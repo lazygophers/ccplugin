@@ -1,17 +1,17 @@
-# Market Plugin - Claude Code 插件开发指南
+# CC Plugin Marketplace - Claude Code 插件市场开发指南
 
-> 项目：Market Plugin - 记忆、上下文、任务、知识库管理
+> 项目：CC Plugin Marketplace - 插件市场 (4个独立插件)
 > 技术栈：Python 3.10+ | MCP SDK | uv | Pydantic
-> 版本：0.1.0（框架实现阶段）
+> 版本：0.1.0
 
 ## 项目概述
 
-Market Plugin 是一个 Claude Code 插件，通过 MCP (Model Context Protocol) 提供 4 大核心功能：
+CC Plugin Marketplace 是一个 Claude Code 插件市场，包含 4 个独立的插件：
 
-1. **记忆管理** - 基于知识图谱的记忆存储与检索
-2. **上下文管理** - 会话级上下文持久化
-3. **任务管理** - 结构化任务创建和追踪
-4. **知识库管理** - 基于向量数据库的语义搜索
+1. **Memory Plugin** - 基于知识图谱的记忆管理
+2. **Context Plugin** - 会话上下文持久化
+3. **Task Plugin** - 开发任务管理
+4. **Knowledge Plugin** - 向量数据库知识库
 
 ## 当前状态
 
@@ -33,31 +33,40 @@ Market Plugin 是一个 Claude Code 插件，通过 MCP (Model Context Protocol)
 ## 项目结构
 
 ```
-ccplugin/
-├── .claude-plugin/           # 插件配置
-│   ├── plugin.json          # 插件元数据和 MCP 配置
-│   └── marketplace.json     # 市场发布配置
-├── src/market/              # Python 包（MCP Server）
-│   ├── __init__.py
-│   ├── __main__.py          # 入口点
-│   ├── server.py            # MCP Server 实现（415 行）
-│   ├── config.py            # 配置管理（49 行）
-│   ├── types.py             # 类型定义（92 行）
-│   ├── tools/               # 工具实现（v0.2.0+）
-│   ├── resources/           # 资源处理（v0.2.0+）
-│   ├── utils/               # 工具函数
-│   └── prompts/             # 提示词
-├── tests/                   # 测试套件
-│   ├── __init__.py
-│   └── test_server.py       # 单元测试（129 行）
-├── docs/                    # 文档
-│   ├── 插件能力说明.md      # Claude Code 插件系统能力
-│   ├── MCP工具参考.md       # MCP 工具参考
-│   └── 快速开始.md          # 安装和使用指南
-├── pyproject.toml           # Python 项目配置
-├── README.md                # 项目说明
+ccplugin/                    # 插件市场根目录
+├── marketplace.json         # 市场元数据
+├── README.md                # 市场说明
+├── CLAUDE.md                # 本文件
 ├── LICENSE                  # MIT 许可证
-└── CLAUDE.md                # 本文件
+├── plugins/                 # 独立插件
+│   ├── memory/              # 记忆管理插件
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json
+│   │   ├── src/memory/
+│   │   │   ├── __init__.py
+│   │   │   ├── __main__.py
+│   │   │   ├── server.py
+│   │   │   └── types.py
+│   │   ├── tests/
+│   │   ├── pyproject.toml
+│   │   └── README.md
+│   ├── context/             # 上下文管理插件
+│   │   ├── .claude-plugin/
+│   │   ├── src/context/
+│   │   ├── tests/
+│   │   └── README.md
+│   ├── task/                # 任务管理插件
+│   │   ├── .claude-plugin/
+│   │   ├── src/task/
+│   │   └── README.md
+│   └── knowledge/           # 知识库管理插件
+│       ├── .claude-plugin/
+│       ├── src/knowledge/
+│       └── README.md
+└── docs/                    # 市场文档
+    ├── 插件能力说明.md
+    ├── MCP工具参考.md
+    └── 快速开始.md
 ```
 
 ## 技术栈
@@ -92,14 +101,17 @@ ccplugin/
 git clone https://github.com/lazygophers/ccplugin.git
 cd ccplugin
 
-# 2. 创建虚拟环境
+# 2. 进入特定插件目录
+cd plugins/memory  # 或 context, task, knowledge
+
+# 3. 创建虚拟环境
 uv venv
 source .venv/bin/activate
 
-# 3. 安装依赖
+# 4. 安装依赖
 uv pip install -e ".[dev]"
 
-# 4. 运行测试
+# 5. 运行测试
 uv run pytest -v
 ```
 
