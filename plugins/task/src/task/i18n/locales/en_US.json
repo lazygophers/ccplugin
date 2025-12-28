@@ -1,0 +1,99 @@
+{
+  "task": {
+    "created": "✅ Task created successfully",
+    "updated": "✅ Task updated successfully",
+    "closed": "✅ Task closed: {title}",
+    "reopened": "✅ Task reopened: {title}",
+    "deleted": "✅ Task deleted: {task_id}",
+    "not_found": "❌ Task not found: {task_id}",
+    "no_tasks": "No tasks found",
+    "found_count": "Found {count} task(s):",
+    "ready_count": "Found {count} ready task(s):",
+    "blocked_count": "Found {count} blocked task(s):",
+    "no_ready": "No ready tasks",
+    "no_blocked": "No blocked tasks"
+  },
+  "dependency": {
+    "added": "✅ Dependency added: {task_id} → {depends_on_id} ({dep_type})",
+    "removed": "✅ Dependency removed: {task_id} → {depends_on_id}",
+    "no_deps": "No dependencies",
+    "task_deps": "Dependencies for task {task_id}:"
+  },
+  "workspace": {
+    "initialized": "✅ Workspace initialized successfully",
+    "info_title": "## Workspace Information",
+    "workspace_id": "Workspace ID: {workspace_id}",
+    "root_dir": "Root directory: {root}",
+    "db_path": "Database path: {path}",
+    "db_exists": "Database exists: {exists}",
+    "db_healthy": "Database healthy: {healthy}",
+    "db_version": "Database version: {version}"
+  },
+  "stats": {
+    "title": "## Task Statistics",
+    "by_status": "### By Status",
+    "by_type": "### By Type",
+    "total_tasks": "Total tasks: {count}",
+    "status_open": "Open: {count}",
+    "status_in_progress": "In Progress: {count}",
+    "status_blocked": "Blocked: {count}",
+    "status_deferred": "Deferred: {count}",
+    "status_closed": "Closed: {count}",
+    "type_bug": "Bug: {count}",
+    "type_feature": "Feature: {count}",
+    "type_task": "Task: {count}",
+    "type_epic": "Epic: {count}",
+    "type_chore": "Chore: {count}"
+  },
+  "field": {
+    "id": "ID",
+    "title": "Title",
+    "description": "Description",
+    "type": "Type",
+    "status": "Status",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "reporter": "Reporter",
+    "tags": "Tags",
+    "created_at": "Created At",
+    "updated_at": "Updated At",
+    "started_at": "Started At",
+    "closed_at": "Closed At",
+    "acceptance_criteria": "Acceptance Criteria",
+    "dependencies": "Dependencies",
+    "dependents": "Dependents"
+  },
+  "status": {
+    "open": "open",
+    "in_progress": "in_progress",
+    "blocked": "blocked",
+    "deferred": "deferred",
+    "closed": "closed"
+  },
+  "priority": {
+    "0": "critical",
+    "1": "high",
+    "2": "medium",
+    "3": "low",
+    "4": "backlog"
+  },
+  "type": {
+    "bug": "bug",
+    "feature": "feature",
+    "task": "task",
+    "epic": "epic",
+    "chore": "chore"
+  },
+  "dep_type": {
+    "blocks": "blocks",
+    "related": "related",
+    "parent-child": "parent-child",
+    "discovered-from": "discovered-from"
+  },
+  "error": {
+    "unknown_tool": "Unknown tool: {name}",
+    "invalid_args": "Invalid arguments",
+    "db_error": "Database error: {error}",
+    "validation_error": "Validation error: {error}"
+  }
+}

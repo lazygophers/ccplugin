@@ -1,0 +1,99 @@
+{
+  "task": {
+    "created": "✅ 任务创建成功",
+    "updated": "✅ 任务更新成功",
+    "closed": "✅ 任务已关闭: {title}",
+    "reopened": "✅ 任务已重新打开: {title}",
+    "deleted": "✅ 任务已删除: {task_id}",
+    "not_found": "❌ 任务不存在: {task_id}",
+    "no_tasks": "未找到任务",
+    "found_count": "找到 {count} 个任务:",
+    "ready_count": "找到 {count} 个就绪任务:",
+    "blocked_count": "找到 {count} 个阻塞任务:",
+    "no_ready": "无就绪任务",
+    "no_blocked": "无阻塞任务"
+  },
+  "dependency": {
+    "added": "✅ 依赖添加成功: {task_id} → {depends_on_id} ({dep_type})",
+    "removed": "✅ 依赖已移除: {task_id} → {depends_on_id}",
+    "no_deps": "无依赖",
+    "task_deps": "任务 {task_id} 的依赖:"
+  },
+  "workspace": {
+    "initialized": "✅ 工作空间初始化成功",
+    "info_title": "## 工作空间信息",
+    "workspace_id": "工作空间 ID: {workspace_id}",
+    "root_dir": "根目录: {root}",
+    "db_path": "数据库路径: {path}",
+    "db_exists": "数据库存在: {exists}",
+    "db_healthy": "数据库健康: {healthy}",
+    "db_version": "数据库版本: {version}"
+  },
+  "stats": {
+    "title": "## 任务统计",
+    "by_status": "### 按状态",
+    "by_type": "### 按类型",
+    "total_tasks": "总任务数: {count}",
+    "status_open": "待处理: {count}",
+    "status_in_progress": "进行中: {count}",
+    "status_blocked": "已阻塞: {count}",
+    "status_deferred": "已延期: {count}",
+    "status_closed": "已完成: {count}",
+    "type_bug": "Bug: {count}",
+    "type_feature": "Feature: {count}",
+    "type_task": "Task: {count}",
+    "type_epic": "Epic: {count}",
+    "type_chore": "Chore: {count}"
+  },
+  "field": {
+    "id": "ID",
+    "title": "标题",
+    "description": "描述",
+    "type": "类型",
+    "status": "状态",
+    "priority": "优先级",
+    "assignee": "负责人",
+    "reporter": "报告人",
+    "tags": "标签",
+    "created_at": "创建时间",
+    "updated_at": "更新时间",
+    "started_at": "开始时间",
+    "closed_at": "完成时间",
+    "acceptance_criteria": "验收标准",
+    "dependencies": "依赖",
+    "dependents": "被依赖"
+  },
+  "status": {
+    "open": "待处理",
+    "in_progress": "进行中",
+    "blocked": "已阻塞",
+    "deferred": "已延期",
+    "closed": "已完成"
+  },
+  "priority": {
+    "0": "critical",
+    "1": "high",
+    "2": "medium",
+    "3": "low",
+    "4": "backlog"
+  },
+  "type": {
+    "bug": "bug",
+    "feature": "feature",
+    "task": "task",
+    "epic": "epic",
+    "chore": "chore"
+  },
+  "dep_type": {
+    "blocks": "blocks",
+    "related": "related",
+    "parent-child": "parent-child",
+    "discovered-from": "discovered-from"
+  },
+  "error": {
+    "unknown_tool": "未知工具: {name}",
+    "invalid_args": "无效的参数",
+    "db_error": "数据库错误: {error}",
+    "validation_error": "验证错误: {error}"
+  }
+}
