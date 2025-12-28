@@ -109,7 +109,7 @@ ENABLE_KNOWLEDGE=true    # 控制 knowledge_* 工具
 - 测试代码：`tests/test_server.py`
 
 **参考文档**：
-- [Claude Code 插件能力](./plugin-capabilities.md)
+- [Claude Code 插件能力](./插件能力说明.md)
 - [项目 README](../README.md)
 
 ---
