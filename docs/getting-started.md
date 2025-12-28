@@ -1,0 +1,221 @@
+# Market Plugin 快速开始
+
+> 版本：0.1.0
+> 前提条件：Python 3.10+, uv
+
+## 安装
+
+### 1. 克隆仓库
+
+```bash
+git clone https://github.com/lyxamour/ccplugin.git
+cd ccplugin
+```
+
+### 2. 创建虚拟环境
+
+```bash
+uv venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
+```
+
+### 3. 安装依赖
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+### 4. 运行测试（可选）
+
+```bash
+uv run pytest -v
+```
+
+预期输出：
+```
+✓ 10/10 tests passed
+✓ Coverage: 75%
+```
+
+## 配置 Claude Code
+
+### 方法 1：自动配置（推荐）
+
+在 Claude Code 中运行：
+
+```bash
+claude plugin install /path/to/ccplugin
+```
+
+### 方法 2：手动配置
+
+编辑 `~/.claude/settings.json`：
+
+```json
+{
+  "plugins": [
+    {
+      "path": "/absolute/path/to/ccplugin"
+    }
+  ]
+}
+```
+
+## 验证安装
+
+### 1. 重启 Claude Code
+
+```bash
+# 退出并重新启动 Claude Code CLI
+```
+
+### 2. 检查 MCP Server 状态
+
+Claude 启动后会自动启动 Market MCP Server。
+
+### 3. 测试工具调用（在 Claude Code 中）
+
+```
+请使用 memory_store 工具存储一条记忆：测试记忆内容
+```
+
+预期响应：
+```
+已存储记忆: 测试记忆内容... (标签: )
+```
+
+## 当前功能
+
+### ✅ 已实现
+
+- 8 个 MCP 工具接口
+- 参数验证
+- 错误处理
+- 配置管理
+- 单元测试
+
+### ⚠️ 待实现（v0.2.0+）
+
+- 实际数据持久化
+- 知识图谱存储（记忆）
+- 关系数据库存储（上下文/任务）
+- 向量数据库存储（知识库）
+
+## 环境变量
+
+默认配置已可用，可选配置：
+
+```bash
+# 日志级别（可选）
+export LOG_LEVEL=DEBUG
+
+# 功能开关（默认全部启用）
+export ENABLE_MEMORY=true
+export ENABLE_CONTEXT=true
+export ENABLE_TASK=true
+export ENABLE_KNOWLEDGE=true
+```
+
+## 开发模式
+
+### 运行 MCP Server（调试）
+
+```bash
+# 方式 1：使用 uv
+uv run python -m market.server
+
+# 方式 2：直接运行
+source .venv/bin/activate
+python -m market.server
+```
+
+### 查看日志
+
+```bash
+# 设置调试日志
+export LOG_LEVEL=DEBUG
+
+# 运行服务器
+uv run python -m market.server
+```
+
+### 代码格式化
+
+```bash
+# 格式化代码
+uv run black src/
+
+# 检查代码规范
+uv run ruff check src/ --fix
+
+# 类型检查
+uv run mypy src/
+```
+
+## 故障排查
+
+### 问题：MCP Server 未启动
+
+**检查步骤**：
+
+1. 确认 Python 版本：
+```bash
+python --version  # 应该 >= 3.10
+```
+
+2. 确认依赖已安装：
+```bash
+uv pip list | grep mcp  # 应显示 mcp>=1.1.0
+```
+
+3. 查看 Claude Code 日志：
+```bash
+# 日志位置因系统而异
+~/.claude/logs/
+```
+
+### 问题：工具未显示
+
+**可能原因**：
+
+1. 功能被禁用：
+```bash
+echo $ENABLE_MEMORY  # 应为 true
+```
+
+2. 配置路径错误：
+```bash
+cat ~/.claude/settings.json  # 检查 path 是否正确
+```
+
+### 问题：导入错误
+
+**解决方法**：
+
+确保在虚拟环境中：
+```bash
+which python  # 应指向 .venv/bin/python
+source .venv/bin/activate
+```
+
+## 下一步
+
+- 查看 [Claude Code 插件能力](./plugin-capabilities.md)
+- 查看 [MCP 工具参考](./mcp-tools-reference.md)
+- 参与开发：查看 [CONTRIBUTING.md](../CONTRIBUTING.md)（如有）
+
+## 支持
+
+遇到问题？
+
+1. 查看 [GitHub Issues](https://github.com/lyxamour/ccplugin/issues)
+2. 创建新 Issue 并提供：
+   - 系统信息（OS、Python 版本）
+   - 错误日志
+   - 复现步骤
+
+---
+
+**最后更新**：2025-01-15
+**维护者**：luoxin
