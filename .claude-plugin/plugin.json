@@ -1,0 +1,33 @@
+{
+  "name": "market",
+  "displayName": "Market Plugin",
+  "description": "Claude Code 插件市场 - 支持记忆、上下文、任务和知识库管理",
+  "version": "0.1.0",
+  "author": "luoxin",
+  "license": "MIT",
+  "homepage": "https://github.com/lyxamour/ccplugin",
+
+  "capabilities": {
+    "commands": true,
+    "agents": true,
+    "skills": true,
+    "hooks": true,
+    "mcp": true
+  },
+
+  "commands": [],
+  "agents": [],
+  "skills": [],
+  "hooks": [],
+
+  "mcpServers": {
+    "market-server": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "market.server"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

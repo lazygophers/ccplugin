@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-plugin-market"
+version = "0.1.0"
+description = "Claude Code 插件市场 - 支持记忆、上下文、任务和知识库管理"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "luoxin", email = "luoxin@example.com"}
+]
+requires-python = ">=3.10"
+
+dependencies = [
+    "mcp>=1.1.0",
+    "pydantic>=2.0",
+    "httpx>=0.24.0",
+    "chromadb>=0.4.0",
+    "networkx>=3.0",
+    "sqlalchemy>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+    "black>=23.0",
+]
+
+test = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/lyxamour/ccplugin"
+Repository = "https://github.com/lyxamour/ccplugin.git"
+Issues = "https://github.com/lyxamour/ccplugin/issues"
+
+[tool.setuptools]
+packages = ["market"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "W", "I", "N"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=src/market --cov-report=term-missing"
