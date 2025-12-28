@@ -1,0 +1,26 @@
+{
+  "name": "knowledge",
+  "displayName": "Knowledge Plugin",
+  "description": "知识库管理插件 - 基于向量数据库的语义搜索",
+  "version": "0.1.0",
+  "author": "luoxin",
+  "license": "MIT",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/knowledge",
+  "capabilities": {
+    "commands": false,
+    "agents": false,
+    "skills": false,
+    "hooks": false,
+    "mcp": true
+  },
+  "mcpServers": {
+    "knowledge-server": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "knowledge.server"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

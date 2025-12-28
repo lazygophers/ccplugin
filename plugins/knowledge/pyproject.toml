@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-plugin-knowledge"
+version = "0.1.0"
+description = "Knowledge Plugin for Claude Code - 知识库管理"
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.1.0", "pydantic>=2.0", "chromadb>=0.4.0"]
+
+[tool.setuptools]
+packages = ["knowledge"]
+
+[tool.setuptools.package-dir]
+"" = "src"

@@ -1,0 +1,26 @@
+{
+  "name": "task",
+  "displayName": "Task Plugin",
+  "description": "任务管理插件 - 创建和管理开发任务",
+  "version": "0.1.0",
+  "author": "luoxin",
+  "license": "MIT",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/task",
+  "capabilities": {
+    "commands": false,
+    "agents": false,
+    "skills": false,
+    "hooks": false,
+    "mcp": true
+  },
+  "mcpServers": {
+    "task-server": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "task.server"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}
