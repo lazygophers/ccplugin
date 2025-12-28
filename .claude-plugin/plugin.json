@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "luoxin",
   "license": "MIT",
-  "homepage": "https://github.com/lyxamour/ccplugin",
+  "homepage": "https://github.com/lazygophers/ccplugin",
 
   "capabilities": {
     "commands": true,

@@ -1,0 +1,28 @@
+{
+  "name": "memory",
+  "displayName": "Memory Plugin",
+  "description": "记忆管理插件 - 基于知识图谱存储和检索记忆",
+  "version": "0.1.0",
+  "author": "luoxin",
+  "license": "MIT",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/memory",
+
+  "capabilities": {
+    "commands": false,
+    "agents": false,
+    "skills": false,
+    "hooks": false,
+    "mcp": true
+  },
+
+  "mcpServers": {
+    "memory-server": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "memory.server"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

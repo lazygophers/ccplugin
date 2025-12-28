@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-plugin-market"
+name = "claude-plugin-memory"
 version = "0.1.0"
-description = "Claude Code 插件市场 - 支持记忆、上下文、任务和知识库管理"
+description = "Memory Plugin for Claude Code - 基于知识图谱的记忆管理"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
@@ -16,10 +16,7 @@ requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.1.0",
     "pydantic>=2.0",
-    "httpx>=0.24.0",
-    "chromadb>=0.4.0",
     "networkx>=3.0",
-    "sqlalchemy>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -38,12 +35,12 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/lazygophers/ccplugin"
+Homepage = "https://github.com/lazygophers/ccplugin/tree/main/plugins/memory"
 Repository = "https://github.com/lazygophers/ccplugin.git"
 Issues = "https://github.com/lazygophers/ccplugin/issues"
 
 [tool.setuptools]
-packages = ["market"]
+packages = ["memory"]
 
 [tool.setuptools.package-dir]
 "" = "src"
@@ -67,4 +64,4 @@ check_untyped_defs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=src/market --cov-report=term-missing"
+addopts = "--cov=src/memory --cov-report=term-missing"

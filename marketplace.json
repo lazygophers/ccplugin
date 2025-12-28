@@ -1,0 +1,60 @@
+{
+  "name": "ccplugin",
+  "displayName": "CC Plugin Marketplace",
+  "description": "Claude Code 插件市场 - 提供记忆、上下文、任务、知识库等独立插件",
+  "version": "0.1.0",
+  "author": "luoxin",
+  "license": "MIT",
+  "homepage": "https://github.com/lazygophers/ccplugin",
+
+  "plugins": [
+    {
+      "id": "memory",
+      "name": "Memory Plugin",
+      "description": "记忆管理插件 - 使用知识图谱存储和检索记忆",
+      "version": "0.1.0",
+      "path": "plugins/memory",
+      "category": "productivity",
+      "tags": ["memory", "knowledge-graph", "storage"]
+    },
+    {
+      "id": "context",
+      "name": "Context Plugin",
+      "description": "上下文管理插件 - 保存和恢复会话上下文",
+      "version": "0.1.0",
+      "path": "plugins/context",
+      "category": "productivity",
+      "tags": ["context", "session", "conversation"]
+    },
+    {
+      "id": "task",
+      "name": "Task Plugin",
+      "description": "任务管理插件 - 创建和管理开发任务",
+      "version": "0.1.0",
+      "path": "plugins/task",
+      "category": "productivity",
+      "tags": ["task", "todo", "project-management"]
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge Plugin",
+      "description": "知识库管理插件 - 使用向量数据库管理知识",
+      "version": "0.1.0",
+      "path": "plugins/knowledge",
+      "category": "productivity",
+      "tags": ["knowledge", "vector-db", "semantic-search"]
+    }
+  ],
+
+  "categories": ["productivity", "ai-tools", "knowledge-management"],
+
+  "requirements": {
+    "claudeCode": ">=1.0.0",
+    "python": ">=3.10"
+  },
+
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lazygophers/ccplugin"
+  }
+}

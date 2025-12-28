@@ -1,168 +1,190 @@
-# Claude Code Market Plugin
+# CC Plugin Marketplace
 
-Claude Code 插件市场 - 提供记忆、上下文、任务和知识库管理功能的综合插件。
+Claude Code 插件市场 - 提供记忆、上下文、任务和知识库管理的独立插件集合。
 
-## 功能特性
+## 概述
 
-### 🧠 记忆管理
-- 基于知识图谱的记忆存储
-- 标签化记忆检索
+本仓库是一个插件市场，包含多个独立的 Claude Code 插件。每个插件都可以**独立安装和使用**，用户可以根据需求选择安装部分或全部插件。
+
+## 可用插件
+
+### 🧠 Memory Plugin - 记忆管理插件
+
+基于知识图谱的记忆存储和检索系统。
+
+**功能**：
+- 长期记忆存储
+- 标签化检索
 - 元数据关联
+- 知识图谱关系
 
-### 📝 上下文管理
-- 会话上下文持久化
+**安装**: [plugins/memory/](plugins/memory/)
+
+---
+
+### 📝 Context Plugin - 上下文管理插件
+
+会话上下文的持久化和恢复系统。
+
+**功能**：
+- 会话上下文保存
 - 多角色上下文追踪
 - 历史上下文检索
+- 跨会话工作流
 
-### ✅ 任务管理
+**安装**: [plugins/context/](plugins/context/)
+
+---
+
+### ✅ Task Plugin - 任务管理插件
+
+开发任务的创建和管理系统。
+
+**功能**：
 - 结构化任务创建
 - 优先级和状态管理
 - 标签过滤
+- 任务依赖关系
 
-### 📚 知识库管理
+**安装**: [plugins/task/](plugins/task/)
+
+---
+
+### 📚 Knowledge Plugin - 知识库管理插件
+
+基于向量数据库的知识管理系统。
+
+**功能**：
 - 向量数据库存储
 - 语义搜索
 - 多源知识整合
+- 知识图谱关联
 
-## 安装
+**安装**: [plugins/knowledge/](plugins/knowledge/)
+
+---
+
+## 快速开始
 
 ### 前置要求
 
-- Python >= 3.9
+- Claude Code >= 1.0.0
+- Python >= 3.10
 - uv (推荐) 或 pip
 
-### 使用 Claude Code 安装
+### 安装插件
+
+#### 方法 1：安装单个插件
 
 ```bash
-# 克隆仓库
-git clone https://github.com/lyxamour/ccplugin
-cd ccplugin
+# 进入插件目录
+cd plugins/memory
 
-# 使用 uv 初始化环境
+# 使用 uv 安装
 uv venv
 source .venv/bin/activate  # Linux/macOS
-# .venv\Scripts\activate   # Windows
-
-# 安装依赖
 uv pip install -e ".[dev]"
 ```
 
-### 配置插件
+#### 方法 2：安装所有插件
 
-在 Claude Code 的配置文件中添加：
+```bash
+# 克隆市场仓库
+git clone https://github.com/lazygophers/ccplugin
+cd ccplugin
+
+# 安装所有插件
+./install-all.sh  # 或查看各插件的 README.md
+```
+
+### 配置 Claude Code
+
+在 Claude Code 配置中添加所需插件：
 
 ```json
 {
   "plugins": [
     {
-      "path": "/path/to/ccplugin"
+      "path": "/path/to/ccplugin/plugins/memory"
+    },
+    {
+      "path": "/path/to/ccplugin/plugins/context"
     }
   ]
 }
 ```
 
-## 使用
+## 项目结构
 
-### MCP Server 工具
-
-插件提供以下 MCP 工具：
-
-#### 记忆管理
-
-```python
-# 存储记忆
-memory_store(
-    content="重要的项目信息",
-    tags=["project", "important"],
-    metadata={"author": "user"}
-)
-
-# 搜索记忆
-memory_search(
-    query="项目信息",
-    tags=["project"],
-    limit=10
-)
+```
+ccplugin/                        # 插件市场根目录
+├── marketplace.json             # 市场元数据
+├── README.md                    # 本文件
+├── plugins/                     # 插件目录
+│   ├── memory/                  # 记忆管理插件
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json
+│   │   ├── src/memory/
+│   │   │   ├── server.py        # MCP Server
+│   │   │   └── ...
+│   │   ├── tests/
+│   │   ├── pyproject.toml
+│   │   └── README.md
+│   ├── context/                 # 上下文管理插件
+│   │   ├── .claude-plugin/
+│   │   ├── src/context/
+│   │   ├── tests/
+│   │   └── README.md
+│   ├── task/                    # 任务管理插件
+│   │   ├── .claude-plugin/
+│   │   ├── src/task/
+│   │   ├── tests/
+│   │   └── README.md
+│   └── knowledge/               # 知识库管理插件
+│       ├── .claude-plugin/
+│       ├── src/knowledge/
+│       ├── tests/
+│       └── README.md
+└── docs/                        # 市场文档
+    ├── 插件能力说明.md
+    ├── 快速开始.md
+    └── ...
 ```
 
-#### 上下文管理
+## 插件独立性
 
-```python
-# 保存上下文
-context_save(
-    session_id="session-123",
-    content="用户的问题描述",
-    role="user"
-)
+每个插件都是**完全独立**的：
 
-# 检索上下文
-context_retrieve(
-    session_id="session-123",
-    limit=20
-)
-```
+- ✅ 独立的 MCP Server
+- ✅ 独立的依赖管理 (pyproject.toml)
+- ✅ 独立的配置文件 (.claude-plugin/plugin.json)
+- ✅ 独立的测试套件
+- ✅ 可单独安装和卸载
 
-#### 任务管理
+## 技术栈
 
-```python
-# 创建任务
-task_create(
-    title="实现新功能",
-    description="添加用户认证功能",
-    priority=1,
-    tags=["feature", "auth"]
-)
+**共同依赖**：
+- MCP SDK >= 1.1.0
+- Pydantic >= 2.0
+- Python >= 3.10
 
-# 列出任务
-task_list(
-    status="in_progress",
-    tags=["feature"]
-)
-```
-
-#### 知识库管理
-
-```python
-# 添加知识
-knowledge_add(
-    content="Python 最佳实践文档",
-    source="官方文档",
-    metadata={"category": "python"}
-)
-
-# 搜索知识
-knowledge_search(
-    query="Python 异步编程",
-    limit=5
-)
-```
+**插件特定依赖**：
+- Memory: NetworkX (知识图谱)
+- Context: SQLAlchemy (会话存储)
+- Task: SQLAlchemy (任务数据库)
+- Knowledge: ChromaDB (向量数据库)
 
 ## 开发
-
-### 项目结构
-
-```
-ccplugin/
-├── .claude-plugin/
-│   └── plugin.json          # 插件配置
-├── src/market/
-│   ├── __init__.py
-│   ├── __main__.py          # 服务器入口
-│   ├── server.py            # MCP Server 实现
-│   ├── config.py            # 配置管理
-│   ├── types.py             # 类型定义
-│   ├── tools/               # 工具实现
-│   ├── resources/           # 资源处理
-│   └── utils/               # 工具函数
-├── tests/                   # 测试
-├── pyproject.toml           # Python 项目配置
-└── README.md
-```
 
 ### 开发环境设置
 
 ```bash
-# 安装开发依赖
+# 克隆仓库
+git clone https://github.com/lazygophers/ccplugin
+cd ccplugin
+
+# 进入特定插件进行开发
+cd plugins/memory
 uv pip install -e ".[dev]"
 
 # 运行测试
@@ -176,57 +198,41 @@ ruff check src/ --fix
 mypy src/
 ```
 
-### 运行测试
+### 添加新插件
 
-```bash
-# 运行所有测试
-pytest
-
-# 运行覆盖率测试
-pytest --cov=src/market --cov-report=html
-
-# 运行特定测试
-pytest tests/test_server.py -v
-```
-
-## 环境变量
-
-| 变量名 | 描述 | 默认值 |
-|--------|------|--------|
-| `LOG_LEVEL` | 日志级别 | INFO |
-| `DEBUG` | 调试模式 | false |
-| `MAX_TIMEOUT` | 最大超时时间 | 30.0 |
-| `MARKET_STORAGE_PATH` | 存储路径 | ./.market_data |
-| `ENABLE_MEMORY` | 启用记忆功能 | true |
-| `ENABLE_CONTEXT` | 启用上下文功能 | true |
-| `ENABLE_TASK` | 启用任务功能 | true |
-| `ENABLE_KNOWLEDGE` | 启用知识库功能 | true |
-
-## 技术栈
-
-- **MCP**: Model Context Protocol SDK
-- **Pydantic**: 数据验证
-- **ChromaDB**: 向量数据库
-- **NetworkX**: 知识图谱
-- **SQLAlchemy**: 关系数据库 ORM
-- **httpx**: HTTP 客户端
+1. 在 `plugins/` 下创建新目录
+2. 参考现有插件结构创建文件
+3. 在 `marketplace.json` 中注册插件
+4. 添加插件文档
 
 ## 路线图
 
-- [ ] 记忆管理完整实现
-  - [ ] 知识图谱存储
+**v0.1.0** (当前)
+- [x] 插件市场基础架构
+- [x] 4 个插件的接口实现
+- [x] 完整的测试覆盖
+
+**v0.2.0** (计划)
+- [ ] Memory Plugin 完整实现
+  - [ ] NetworkX 知识图谱
   - [ ] 关系推理
   - [ ] 记忆合并
-- [ ] 上下文管理完整实现
-  - [ ] 会话持久化
+
+**v0.3.0** (计划)
+- [ ] Context Plugin 完整实现
+  - [ ] SQLAlchemy 会话存储
   - [ ] 上下文压缩
   - [ ] 智能摘要
-- [ ] 任务管理完整实现
-  - [ ] 依赖管理
+
+**v0.4.0** (计划)
+- [ ] Task Plugin 完整实现
+  - [ ] 任务依赖管理
   - [ ] 状态流转
   - [ ] 优先级调度
-- [ ] 知识库管理完整实现
-  - [ ] 向量检索优化
+
+**v0.5.0** (计划)
+- [ ] Knowledge Plugin 完整实现
+  - [ ] ChromaDB 向量检索
   - [ ] 多模态支持
   - [ ] 知识图谱整合
 
@@ -242,12 +248,16 @@ pytest tests/test_server.py -v
 
 ## 许可证
 
-MIT License - 详见 LICENSE 文件
+MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 支持
 
-如有问题或建议，请在 GitHub 上创建 issue。
+如有问题或建议，请在 [GitHub Issues](https://github.com/lazygophers/ccplugin/issues) 上创建 issue。
 
 ## 作者
 
 luoxin
+
+---
+
+**注意**: 每个插件都有独立的文档和使用说明，请查看各插件目录下的 README.md 文件。

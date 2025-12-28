@@ -1,0 +1,26 @@
+{
+  "name": "context",
+  "displayName": "Context Plugin",
+  "description": "上下文管理插件 - 保存和恢复会话上下文",
+  "version": "0.1.0",
+  "author": "luoxin",
+  "license": "MIT",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/context",
+  "capabilities": {
+    "commands": false,
+    "agents": false,
+    "skills": false,
+    "hooks": false,
+    "mcp": true
+  },
+  "mcpServers": {
+    "context-server": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "context.server"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}

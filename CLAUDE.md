@@ -89,7 +89,7 @@ ccplugin/
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/lyxamour/ccplugin.git
+git clone https://github.com/lazygophers/ccplugin.git
 cd ccplugin
 
 # 2. 创建虚拟环境
@@ -363,8 +363,8 @@ MIT License - 详见 [LICENSE](./LICENSE) 文件
 ## 联系方式
 
 - **作者**：luoxin
-- **仓库**：https://github.com/lyxamour/ccplugin
-- **问题反馈**：https://github.com/lyxamour/ccplugin/issues
+- **仓库**：https://github.com/lazygophers/ccplugin
+- **问题反馈**：https://github.com/lazygophers/ccplugin/issues
 
 ---
 
