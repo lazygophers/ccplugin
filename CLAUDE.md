@@ -124,8 +124,8 @@ uv run black src/
 # 代码检查
 uv run ruff check src/ --fix
 
-# 类型检查
-uv run mypy src/
+# 强类型检查（严格模式）
+uv run mypy src/ --strict
 
 # 运行测试（带覆盖率）
 uv run pytest --cov=src/market --cov-report=term-missing
@@ -244,9 +244,53 @@ MAX_TIMEOUT=30.0         # 最大超时（秒）
 ### Python 编码规范
 
 - **命名**：遵循 PEP 8（snake_case 变量/函数，PascalCase 类）
-- **类型注解**：所有函数必须有类型注解
+- **强类型要求**（必须严格遵守）：
+  - 所有函数必须有完整的类型注解（参数和返回值）
+  - 所有类属性必须有类型注解
+  - 使用 Pydantic BaseModel 进行数据验证
+  - 禁止使用 `Any` 类型（除非确实无法确定类型）
+  - 使用 `Optional[T]` 明确可选类型
+  - 使用 `Union[T1, T2]` 或 `T1 | T2` 表示联合类型
+  - 复杂类型使用 `TypeAlias` 定义别名
+  - 必须通过 mypy 类型检查（`uv run mypy src/`）
 - **文档字符串**：公开 API 必须有 docstring
 - **行长度**：最大 100 字符（black 配置）
+
+**强类型示例**：
+
+```python
+from typing import Optional, TypeAlias
+from pydantic import BaseModel
+
+# 类型别名
+MetadataDict: TypeAlias = dict[str, str | int | float | bool]
+
+# Pydantic 模型（推荐）
+class MemoryItem(BaseModel):
+    id: str
+    content: str
+    metadata: MetadataDict
+    timestamp: float
+    tags: list[str] = []
+
+# 函数类型注解
+async def memory_store(
+    content: str,
+    tags: Optional[list[str]] = None,
+    metadata: Optional[MetadataDict] = None,
+) -> MemoryItem:
+    """存储记忆项。
+
+    Args:
+        content: 记忆内容
+        tags: 标签列表（可选）
+        metadata: 元数据字典（可选）
+
+    Returns:
+        MemoryItem: 存储的记忆项对象
+    """
+    ...
+```
 
 ### Git 提交规范
 
@@ -328,7 +372,11 @@ uv run pytest --cov=src/market --cov-report=html
 - ✅ 所有测试必须通过
 - ✅ 代码覆盖率不低于当前水平
 - ✅ 遵循代码规范（black + ruff）
-- ✅ 类型检查通过（mypy）
+- ✅ **强类型检查必须通过（mypy --strict）**
+  - 所有函数有完整类型注解
+  - 所有类属性有类型注解
+  - 无 `Any` 类型（除非必要）
+  - Pydantic 模型定义完整
 - ✅ 有清晰的提交消息
 - ✅ 更新相关文档
 
