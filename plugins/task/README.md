@@ -99,47 +99,79 @@
 - uv 包管理器（推荐）或 pip
 - Claude Code ≥ 1.0.0
 
-### 安装步骤
+### 方式 1：从 Marketplace 安装（推荐）
 
 ```bash
-# 1. 进入插件目录
+# 1. 在 Claude Code 中添加 marketplace
+/plugin marketplace add lazygophers/ccplugin
+
+# 2. 安装 task 插件
+/plugin install task@cc-plugin-marketplace
+
+# 3. 验证安装
+/plugin list
+/help  # 查看 task 相关命令
+```
+
+### 方式 2：本地开发安装
+
+**步骤 1：安装 Python 依赖**
+
+```bash
+# 进入插件目录
 cd plugins/task
 
-# 2. 创建虚拟环境
+# 创建虚拟环境
 uv venv
 source .venv/bin/activate  # Linux/macOS
 # 或 .venv\Scripts\activate  # Windows
 
-# 3. 安装依赖
+# 安装依赖
 uv pip install -e ".[dev]"
 
-# 4. 验证安装
-uv run python -m task --help
-
-# 5. 运行测试
-uv run pytest -v
+# 验证 MCP 服务器
+uv run python -m task.server
 ```
 
-### 配置 Claude Code
+**步骤 2：启动 Claude Code 并加载插件**
 
-插件已包含 `.claude-plugin/plugin.json`，会自动加载。
+```bash
+# 方式 A：启动时指定插件目录（推荐）
+cd /path/to/ccplugin
+claude --plugin-dir ./plugins/task
 
-如需手动配置，在 `~/.claude/settings.json` 添加：
+# 方式 B：使用插件命令安装（本地）
+# 在 Claude Code 中执行：
+/plugin marketplace add /path/to/ccplugin
+/plugin install task@ccplugin --scope project
+```
+
+**步骤 3：验证安装**
+
+在 Claude Code 中执行：
+
+```bash
+/plugin list              # 确认 task 插件已加载
+/help                     # 查看可用命令
+/agents                   # 查看 task-planner, task-decomposer
+```
+
+### 方式 3：项目级配置（团队协作）
+
+在项目根目录创建 `.claude/settings.json`：
 
 ```json
 {
-  "mcpServers": {
+  "plugins": {
     "task": {
-      "command": "uv",
-      "args": ["run", "python", "-m", "task"],
-      "env": {
-        "LOG_LEVEL": "INFO",
-        "PYTHONUNBUFFERED": "1"
-      }
+      "enabled": true,
+      "source": "lazygophers/ccplugin/plugins/task"
     }
   }
 }
 ```
+
+团队成员克隆项目后自动加载插件。
 
 ---
 
@@ -424,6 +456,38 @@ uv run pytest --cov=src/task --cov-fail-under=95
 
 ---
 
+## 🔍 验证安装
+
+### 检查插件是否正确加载
+
+```bash
+# 查看已安装插件
+/plugin list
+# 应显示：task (v0.2.0)
+
+# 查看可用命令
+/help
+# 应包含：/task-add, /task-list, /task-update, /task-ready, /task-stats, /task-export
+
+# 查看 agents
+/agents
+# 应包含：task-planner, task-decomposer
+
+# 测试 MCP 工具（在 Claude Code 中）
+请列出当前任务
+# Claude 会自动调用 task_list 工具
+```
+
+### 调试模式
+
+如遇问题，使用调试模式查看详细日志：
+
+```bash
+claude --debug --plugin-dir ./plugins/task
+```
+
+---
+
 ## 🗺️ 路线图
 
 ### v0.2.0（当前）- 完整功能
@@ -434,9 +498,10 @@ uv run pytest --cov=src/task --cov-fail-under=95
 - [x] 工作空间管理
 - [x] 15个 MCP 工具
 - [x] 2个智能 Agents（planner/decomposer）
-- [x] 自动化 Hooks（session-start）
+- [x] 自动化 Hooks（SessionStart）
 - [x] 6个用户 Commands（含 export）
 - [x] 70+ 单元测试
+- [x] Marketplace 分发支持
 - [x] 完整文档
 
 ### v0.3.0（计划）- 依赖管理增强
