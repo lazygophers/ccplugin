@@ -1,8 +1,7 @@
 {
   "name": "cc-plugin-marketplace",
   "owner": {
-    "name": "luoxin",
-    "email": "noreply@example.com"
+    "name": "lazygophers"
   },
   "metadata": {
     "description": "Claude Code 插件市场 - 包含记忆、上下文、任务和知识库插件",
@@ -15,7 +14,7 @@
       "description": "任务管理插件 - 创建和管理开发任务，支持智能规划和自动初始化",
       "version": "0.2.0",
       "author": {
-        "name": "luoxin"
+        "name": "lazygophers"
       },
       "license": "MIT",
       "keywords": ["task", "management", "planning", "productivity"]

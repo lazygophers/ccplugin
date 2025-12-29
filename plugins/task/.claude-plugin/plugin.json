@@ -1,11 +1,13 @@
 {
   "name": "task",
-  "displayName": "Task Plugin",
   "description": "任务管理插件 - 创建和管理开发任务",
   "version": "0.2.0",
-  "author": "luoxin",
+  "author": {
+    "name": "lazygophers"
+  },
   "license": "MIT",
   "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/task",
+  "repository": "https://github.com/lazygophers/ccplugin",
   "agents": "./agents/",
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
