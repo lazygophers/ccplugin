@@ -18,11 +18,7 @@
         "name": "luoxin"
       },
       "license": "MIT",
-      "keywords": ["task", "management", "planning", "productivity"],
-      "requires": {
-        "python": ">=3.10",
-        "claudeCode": ">=1.0.0"
-      }
+      "keywords": ["task", "management", "planning", "productivity"]
     }
   ]
 }
