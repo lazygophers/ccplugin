@@ -15,7 +15,6 @@ auto-activate:
 1. 需求规划 → 调用 task-planner agent
 2. 任务拆解 → 调用 task-decomposer agent（对复杂任务）
 3. 执行跟踪 → `task_ready`、`task_list`、`task_stats`
-4. 导出文档 → `/task-export` command
 
 ## 核心工具优先级
 

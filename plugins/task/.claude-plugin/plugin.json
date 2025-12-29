@@ -6,7 +6,6 @@
   "author": "luoxin",
   "license": "MIT",
   "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/task",
-  "commands": "./commands/",
   "agents": "./agents/",
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",

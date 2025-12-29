@@ -18,18 +18,9 @@
 - **SessionStart hook**：会话开始时自动初始化工作空间（如需要）
 - **真零配置**：新项目自动创建数据库，无需任何手动操作
 
-### 📋 用户 Commands
-
-| Command | 功能 | 说明 |
-|---------|------|------|
-| `/task-add` | 创建任务 | 支持 title/description/priority/tags |
-| `/task-list` | 列出任务 | 多维度过滤（status/priority/type） |
-| `/task-update` | 更新任务 | 修改状态/优先级/负责人 |
-| `/task-ready` | 查找可执行任务 | 自动过滤被依赖阻塞的任务 |
-| `/task-stats` | 任务统计 | 按状态/类型/优先级分布 |
-| `/task-export` ✨ | 导出文档 | 生成 Markdown 任务清单 |
-
 ### 🛠️ MCP 工具（15个）
+
+**通信方式**：stdio（标准输入输出流）
 
 **任务管理**：
 - `task_create`, `task_list`, `task_show`, `task_update`
@@ -72,19 +63,18 @@
    → 生成：4个子任务 + 依赖链 + 并行建议
 
 3️⃣ 执行跟踪
-   用户：/task-ready
+   用户：显示可以开始的任务
+   → Claude 调用 task_ready 工具
    → 显示：2个可立即执行的任务（tk-001-1, tk-006）
 
    用户：开始处理 tk-001-1
+   → Claude 调用 task_update 工具
    → 更新任务状态为 in_progress
 
 4️⃣ 进度查看
-   用户：/task-stats
+   用户：显示任务统计
+   → Claude 调用 task_stats 工具
    → 显示：总任务9个，待处理6个，进行中1个，完成2个（22.2%）
-
-5️⃣ 导出文档
-   用户：/task-export
-   → 生成：docs/tasks.md（Markdown 格式任务清单）
 ```
 
 详细使用示例请参考 [使用示例文档](./docs/使用示例.md)。
@@ -280,41 +270,6 @@ claude --plugin-dir ./plugins/task
 
 ---
 
-### 4. 导出功能
-
-#### task-export Command
-
-**功能**：导出任务到 Markdown 文档
-
-**输出格式**：
-```markdown
-# 项目任务清单
-
-生成时间：2025-12-29
-
-## 任务统计
-- 总任务数：15
-- 待处理：5
-- 进行中：3
-- 已完成：7
-
-## 待处理任务（优先级排序）
-
-| ID | 标题 | 优先级 | 负责人 | 标签 |
-|----|------|--------|--------|------|
-| tk-abc123 | 实现用户登录 | P1 | Alice | backend, auth |
-...
-```
-
-**调用方式**：
-```
-/task-export
-```
-
-可选参数：status/priority/assignee/task_type（过滤）
-
----
-
 ## 🛠️ 开发
 
 ### 项目结构
@@ -330,14 +285,7 @@ plugins/task/
 │       └── check-workspace.sh
 ├── .claude-plugin/          # 插件配置
 │   └── plugin.json
-├── commands/                # 用户命令
-│   ├── task-add.md
-│   ├── task-list.md
-│   ├── task-update.md
-│   ├── task-ready.md
-│   ├── task-stats.md
-│   └── task-export.md
-├── skills/                  # 技能（自动激活）
+├── skills/                  # Skills（自动激活）
 │   └── task-management.md
 ├── src/task/                # 源代码
 │   ├── __init__.py
@@ -465,10 +413,6 @@ uv run pytest --cov=src/task --cov-fail-under=95
 /plugin list
 # 应显示：task (v0.2.0)
 
-# 查看可用命令
-/help
-# 应包含：/task-add, /task-list, /task-update, /task-ready, /task-stats, /task-export
-
 # 查看 agents
 /agents
 # 应包含：task-planner, task-decomposer
@@ -499,7 +443,7 @@ claude --debug --plugin-dir ./plugins/task
 - [x] 15个 MCP 工具
 - [x] 2个智能 Agents（planner/decomposer）
 - [x] 自动化 Hooks（SessionStart）
-- [x] 6个用户 Commands（含 export）
+- [x] 15个 MCP 工具（stdio 通信）
 - [x] 70+ 单元测试
 - [x] Marketplace 分发支持
 - [x] 完整文档
