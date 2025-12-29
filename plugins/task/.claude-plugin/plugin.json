@@ -8,7 +8,10 @@
   "license": "MIT",
   "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/task",
   "repository": "https://github.com/lazygophers/ccplugin",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/task-planner.md",
+    "./agents/task-decomposer.md"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "mcpServers": {
