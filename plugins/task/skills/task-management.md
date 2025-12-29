@@ -1,35 +1,35 @@
 ---
 name: task-management
-description: Manage development tasks - create, update, track progress. Use when managing project tasks or work items.
+description: 管理开发任务 - 创建、更新、跟踪进度。管理项目任务或工作项时使用。
 ---
 
-# Task Management
+# 任务管理
 
-## Instructions
+## 工作指令
 
-When creating tasks:
-1. Gather task title, description, and priority from user
-2. Use task_create tool with appropriate parameters
-3. Confirm creation and provide task ID
+创建任务时：
+1. 收集任务标题、描述、优先级
+2. 使用 task_create 工具
+3. 确认创建并提供任务 ID
 
-When listing tasks:
-1. Determine if filtering is needed (by status, priority, tags)
-2. Call task_list with filters
-3. Present results in clear, organized format
+列出任务时：
+1. 确定是否需要过滤（按状态、优先级、标签）
+2. 调用 task_list 工具
+3. 清晰展示结果
 
-When updating tasks:
-1. Confirm which task to update (get task ID)
-2. Determine what fields to change
-3. Call task_update with changes
-4. Confirm the update
+更新任务时：
+1. 确认要更新的任务（获取任务 ID）
+2. 确定要修改的字段
+3. 调用 task_update 工具
+4. 确认更新
 
-When querying ready tasks:
-1. Call task_ready to find tasks without blockers
-2. Suggest which task to work on next
+查询就绪任务时：
+1. 调用 task_ready 查找无阻塞任务
+2. 建议下一个要处理的任务
 
-## Best practices
+## 最佳实践
 
-- Use clear, action-oriented task titles
-- Set priorities based on urgency and importance
-- Keep descriptions concise but informative
-- Update status promptly when work progresses
+- 使用清晰的、面向行动的任务标题
+- 根据紧急程度和重要性设置优先级
+- 保持描述简洁但信息完整
+- 工作进展时及时更新状态
