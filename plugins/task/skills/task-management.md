@@ -1,11 +1,6 @@
 ---
 name: task-management
-description: Task Plugin 任务管理最佳实践和规范
-auto-activate: always
-tags:
-  - task
-  - management
-  - workflow
+description: Task Plugin 任务管理最佳实践和规范。创建、管理任务时使用。
 ---
 
 # Task Management Skill
