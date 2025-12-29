@@ -1,0 +1,42 @@
+{
+  "$schema": "./task-config.schema.json",
+  "workspace": {
+    "default_root": ".",
+    "auto_init": true,
+    "database_path": ".task_data"
+  },
+  "tasks": {
+    "default_priority": 2,
+    "default_type": "task",
+    "auto_assign": false,
+    "default_assignee": null
+  },
+  "display": {
+    "brief_mode": true,
+    "default_limit": 20,
+    "show_closed": false,
+    "date_format": "%Y-%m-%d %H:%M:%S"
+  },
+  "dependencies": {
+    "default_dep_type": "blocks",
+    "warn_circular": true,
+    "auto_close_blocking": false
+  },
+  "notifications": {
+    "enabled": false,
+    "on_task_created": true,
+    "on_task_assigned": true,
+    "on_dependency_blocked": true
+  },
+  "integration": {
+    "context_plugin": false,
+    "knowledge_plugin": false,
+    "memory_plugin": false
+  },
+  "advanced": {
+    "enable_caching": true,
+    "cache_ttl": 300,
+    "batch_size": 100,
+    "log_level": "INFO"
+  }
+}

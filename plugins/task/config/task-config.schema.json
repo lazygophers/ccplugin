@@ -1,0 +1,188 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/lazygophers/ccplugin/plugins/task/config-schema.json",
+  "title": "Task Plugin Configuration",
+  "description": "Configuration schema for Task Plugin",
+  "type": "object",
+  "properties": {
+    "workspace": {
+      "type": "object",
+      "description": "Workspace configuration",
+      "properties": {
+        "default_root": {
+          "type": "string",
+          "description": "Default workspace root directory",
+          "default": "."
+        },
+        "auto_init": {
+          "type": "boolean",
+          "description": "Automatically initialize workspace on startup",
+          "default": true
+        },
+        "database_path": {
+          "type": "string",
+          "description": "Custom database path (optional)",
+          "default": ".task_data"
+        }
+      }
+    },
+    "tasks": {
+      "type": "object",
+      "description": "Task management settings",
+      "properties": {
+        "default_priority": {
+          "type": "integer",
+          "description": "Default priority for new tasks (0=critical, 4=backlog)",
+          "minimum": 0,
+          "maximum": 4,
+          "default": 2
+        },
+        "default_type": {
+          "type": "string",
+          "description": "Default task type",
+          "enum": ["bug", "feature", "task", "epic", "chore"],
+          "default": "task"
+        },
+        "auto_assign": {
+          "type": "boolean",
+          "description": "Automatically assign tasks to current user",
+          "default": false
+        },
+        "default_assignee": {
+          "type": "string",
+          "description": "Default assignee email/username",
+          "default": null
+        }
+      }
+    },
+    "display": {
+      "type": "object",
+      "description": "Display and formatting settings",
+      "properties": {
+        "brief_mode": {
+          "type": "boolean",
+          "description": "Use brief mode by default for task listings",
+          "default": true
+        },
+        "default_limit": {
+          "type": "integer",
+          "description": "Default number of tasks to return in listings",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        },
+        "show_closed": {
+          "type": "boolean",
+          "description": "Include closed tasks in default listings",
+          "default": false
+        },
+        "date_format": {
+          "type": "string",
+          "description": "Date format string (ISO 8601 recommended)",
+          "default": "%Y-%m-%d %H:%M:%S"
+        }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "description": "Dependency management settings",
+      "properties": {
+        "default_dep_type": {
+          "type": "string",
+          "description": "Default dependency type",
+          "enum": ["blocks", "related", "parent-child", "discovered-from"],
+          "default": "blocks"
+        },
+        "warn_circular": {
+          "type": "boolean",
+          "description": "Warn when creating potential circular dependencies",
+          "default": true
+        },
+        "auto_close_blocking": {
+          "type": "boolean",
+          "description": "Automatically close blocking tasks when dependent is closed",
+          "default": false
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "description": "Notification settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable notifications",
+          "default": false
+        },
+        "on_task_created": {
+          "type": "boolean",
+          "description": "Notify when task is created",
+          "default": true
+        },
+        "on_task_assigned": {
+          "type": "boolean",
+          "description": "Notify when task is assigned to you",
+          "default": true
+        },
+        "on_dependency_blocked": {
+          "type": "boolean",
+          "description": "Notify when your task is blocked by dependency",
+          "default": true
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "description": "Integration with other plugins",
+      "properties": {
+        "context_plugin": {
+          "type": "boolean",
+          "description": "Enable integration with Context Plugin",
+          "default": false
+        },
+        "knowledge_plugin": {
+          "type": "boolean",
+          "description": "Enable integration with Knowledge Plugin",
+          "default": false
+        },
+        "memory_plugin": {
+          "type": "boolean",
+          "description": "Enable integration with Memory Plugin",
+          "default": false
+        }
+      }
+    },
+    "advanced": {
+      "type": "object",
+      "description": "Advanced settings",
+      "properties": {
+        "enable_caching": {
+          "type": "boolean",
+          "description": "Enable task caching for performance",
+          "default": true
+        },
+        "cache_ttl": {
+          "type": "integer",
+          "description": "Cache time-to-live in seconds",
+          "minimum": 0,
+          "default": 300
+        },
+        "batch_size": {
+          "type": "integer",
+          "description": "Batch size for bulk operations",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 100
+        },
+        "log_level": {
+          "type": "string",
+          "description": "Logging level",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+          "default": "INFO"
+        }
+      }
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}
