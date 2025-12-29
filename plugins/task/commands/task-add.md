@@ -1,9 +1,9 @@
 ---
-description: 创建新任务
+description: 创建任务
 ---
 
-使用 task_create 工具创建新任务。参数：$ARGUMENTS
+调用 `task_create`，参数：$ARGUMENTS
 
-如果用户没提供完整信息，询问：
-- 标题（必需）
-- 描述、类型、优先级（可选）
+**必需**: title
+**可选**: description, task_type(bug/feature/task/epic/chore), priority(0-4), assignee, tags
+**默认**: task_type=task, priority=2, status=open

@@ -1,47 +1,97 @@
 # Task Plugin - 任务管理插件
 
-> 版本：0.2.0 | 基于 MCP 的任务管理系统，支持 CRUD、依赖管理和统计功能
+> 版本：0.2.0 | 基于 MCP 的智能任务管理系统
 
-开发任务的创建、管理和依赖跟踪系统。
+完整的开发任务管理解决方案，提供任务创建、依赖管理、智能规划和拆解功能。
 
-## 功能特性
+## ✨ 核心特性
 
-### ✅ 核心功能 (v0.2.0)
+### 🤖 智能 Agents（新增）
 
-**任务管理**:
-- **任务 CRUD** - 创建、查询、更新、关闭、重新打开、删除
-- **任务列表** - 支持状态、类型、优先级、标签、负责人等多维度过滤
-- **任务详情** - 完整的任务信息展示，包含依赖关系
+| Agent | 功能 | 使用场景 |
+|-------|------|---------|
+| **task-planner** | 需求分析 → 任务规划 | 接到新需求时调用 |
+| **task-decomposer** | 大型任务 → 子任务拆解 | 任务过于复杂时调用 |
 
-**依赖管理**:
-- **依赖添加/移除** - 管理任务间的依赖关系
-- **依赖类型** - 支持 blocks、related、parent-child、discovered-from
-- **依赖查询** - 查看任务的所有依赖和被依赖关系
+### ⚡ 自动化 Hooks（新增）
 
-**查询工具**:
-- **就绪任务** - 查找没有阻塞依赖的可执行任务
-- **阻塞任务** - 查找被依赖阻塞的任务
-- **任务统计** - 按状态、类型、优先级统计任务分布
+- **SessionStart hook**：会话开始时自动初始化工作空间（如需要）
+- **真零配置**：新项目自动创建数据库，无需任何手动操作
 
-**工作空间**:
-- **多工作空间隔离** - 每个项目独立数据库
-- **工作空间管理** - 初始化、查看信息、删除
-- **安全验证** - 防止路径穿越和敏感目录访问
+### 📋 用户 Commands
 
-### 📊 技术实现
+| Command | 功能 | 说明 |
+|---------|------|------|
+| `/task-add` | 创建任务 | 支持 title/description/priority/tags |
+| `/task-list` | 列出任务 | 多维度过滤（status/priority/type） |
+| `/task-update` | 更新任务 | 修改状态/优先级/负责人 |
+| `/task-ready` | 查找可执行任务 | 自动过滤被依赖阻塞的任务 |
+| `/task-stats` | 任务统计 | 按状态/类型/优先级分布 |
+| `/task-export` ✨ | 导出文档 | 生成 Markdown 任务清单 |
 
-- **当前版本 (v0.2.0)**:
-  - ✅ SQLAlchemy 2.0 持久化存储
-  - ✅ Alembic 数据库迁移
-  - ✅ Repository 模式数据访问
-  - ✅ 完整的单元测试（70+ 测试用例，目标覆盖率 ≥95%）
+### 🛠️ MCP 工具（15个）
 
-- **计划版本**:
-  - v0.3.0 - 依赖图算法优化（NetworkX）
-  - v0.4.0 - 状态流转引擎
-  - v0.5.0 - 优先级调度器和报表
+**任务管理**：
+- `task_create`, `task_list`, `task_show`, `task_update`
+- `task_close`, `task_reopen`, `task_delete`
 
-## 安装
+**依赖管理**：
+- `task_dep_add`, `task_dep_remove`, `task_dep_list`
+- 支持依赖类型：blocks（硬阻塞）、related（软关联）、parent-child（层级）、discovered-from（发现）
+
+**查询工具**：
+- `task_ready`（就绪任务）、`task_blocked`（阻塞任务）、`task_stats`（统计）
+
+**工作空间**：
+- `workspace_init`, `workspace_info`
+
+### 💾 技术实现
+
+- ✅ SQLAlchemy 2.0 持久化存储
+- ✅ Alembic 数据库迁移
+- ✅ Repository 模式数据访问
+- ✅ Pydantic 类型安全
+- ✅ 70+ 单元测试（覆盖率 ≥95%）
+- ✅ 多工作空间隔离
+
+---
+
+## 🚀 快速开始
+
+### 典型工作流
+
+```
+1️⃣ 需求规划
+   用户：请帮我规划"实现用户认证功能"的任务
+   → Claude 调用 task-planner agent
+   → 生成：5个结构化任务 + 依赖关系 + 优先级评估
+
+2️⃣ 任务拆解
+   用户：将 tk-001（设计认证架构）拆解为子任务
+   → Claude 调用 task-decomposer agent
+   → 生成：4个子任务 + 依赖链 + 并行建议
+
+3️⃣ 执行跟踪
+   用户：/task-ready
+   → 显示：2个可立即执行的任务（tk-001-1, tk-006）
+
+   用户：开始处理 tk-001-1
+   → 更新任务状态为 in_progress
+
+4️⃣ 进度查看
+   用户：/task-stats
+   → 显示：总任务9个，待处理6个，进行中1个，完成2个（22.2%）
+
+5️⃣ 导出文档
+   用户：/task-export
+   → 生成：docs/tasks.md（Markdown 格式任务清单）
+```
+
+详细使用示例请参考 [使用示例文档](./docs/使用示例.md)。
+
+---
+
+## 📦 安装
 
 ### 前置要求
 
@@ -58,10 +108,9 @@ cd plugins/task
 # 2. 创建虚拟环境
 uv venv
 source .venv/bin/activate  # Linux/macOS
-# 或
-.venv\Scripts\activate  # Windows
+# 或 .venv\Scripts\activate  # Windows
 
-# 3. 安装依赖（包含开发依赖）
+# 3. 安装依赖
 uv pip install -e ".[dev]"
 
 # 4. 验证安装
@@ -73,7 +122,9 @@ uv run pytest -v
 
 ### 配置 Claude Code
 
-在 `~/.claude/settings.json` 或项目的 `.claude-plugin/plugin.json` 中添加：
+插件已包含 `.claude-plugin/plugin.json`，会自动加载。
+
+如需手动配置，在 `~/.claude/settings.json` 添加：
 
 ```json
 {
@@ -90,144 +141,190 @@ uv run pytest -v
 }
 ```
 
-## 快速开始
+---
 
-### 基本使用
+## 📖 核心功能详解
+
+### 1. Agents - 智能规划与拆解
+
+#### task-planner（任务规划专家）
+
+**用途**：将模糊需求转化为结构化任务计划
+
+**工作流程**：
+1. 需求收集与澄清
+2. 任务设计（分解、优先级、依赖）
+3. 计划输出（创建任务、设置依赖）
+
+**输出**：
+- 任务概览（总数、优先级分布）
+- 执行顺序建议
+- 关键路径识别
+- 风险提示
+
+**调用方式**：
+- 直接描述需求，Claude 会根据上下文自动调用
+- 或明确要求："请用 task-planner 规划这个需求"
+
+#### task-decomposer（任务拆解专家）
+
+**用途**：将大型任务拆解为可管理的子任务
+
+**拆解策略**：
+- 按层次：前端 → 后端 → 数据库 → 测试 → 文档
+- 按模块：用户模块 → 订单模块 → 支付模块
+- 按阶段：设计 → 实现 → 测试 → 部署
+
+**输出**：
+- 任务树（父子关系）
+- 子任务列表（含验收标准）
+- 依赖关系链
+- 并行执行建议
+
+**调用方式**：
+- 提供任务ID："将 tk-abc123 拆解为子任务"
+- 或描述任务："将用户管理模块拆解"
+
+更多详情请参考 [agents 目录](./agents/)。
+
+---
+
+### 2. Hooks - 自动化体验
+
+#### SessionStart Hook（自动初始化）
+
+**触发时机**：Claude Code 会话开始时
+
+**功能**：
+- 检查 `.task_data/` 目录是否存在
+- **未初始化则自动调用初始化（无需手动操作）**
+- 已初始化则静默通过
+
+**实现**：
+- 配置文件：`hooks/hooks.json`
+- 脚本：`./hooks/scripts/check-workspace.sh`
+- 自动调用：`WorkspaceManager(auto_init=True)`
+
+**优点**：
+- 🚀 **真正的零配置**：新项目自动初始化，无需手动操作
+- ✅ **幂等性**：重复初始化不会报错
+- 🔇 **静默运行**：已初始化项目无任何输出
+
+更多详情请参考 [hooks 目录](./hooks/)。
+
+---
+
+### 3. 任务管理核心
+
+#### 任务属性
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 任务唯一标识（tk-xxx） |
+| `title` | string | 任务标题（1-200字符） |
+| `description` | string | 任务描述 |
+| `task_type` | enum | bug/feature/task/epic/chore |
+| `status` | enum | open/in_progress/blocked/deferred/closed |
+| `priority` | int | 0-4（0=Critical, 4=Backlog） |
+| `assignee` | string | 负责人 |
+| `tags` | array | 标签列表 |
+| `dependencies` | array | 依赖任务ID列表 |
+
+#### 依赖类型
+
+- **blocks**：硬阻塞（必须先完成，影响 `task_ready` 结果）
+- **related**：软关联（参考关系）
+- **parent-child**：层级关系（epic → 子任务）
+- **discovered-from**：发现关系（在某任务中发现的新任务）
+
+#### 工作流模式
 
 ```
-在 Claude Code 中：
-
-# 创建任务
-创建一个任务：实现用户认证功能
-
-# 列出任务
-列出所有任务
-
-# 查看详情
-显示任务 tk-xxx 的详情
-
-# 更新任务
-更新任务 tk-xxx：状态改为 in_progress
-
-# 关闭任务
-关闭任务 tk-xxx
+开始工作: task_ready → 选任务 → task_update(status=in_progress)
+创建任务: task_create → 设置属性 → (可选)task_dep_add
+进度追踪: task_list(status=in_progress) → task_stats
+完成任务: task_update(status=closed) 或 task_close
 ```
 
-### 依赖管理
+---
 
-```
-# 添加依赖
-添加依赖：任务 tk-aaa 依赖任务 tk-bbb
+### 4. 导出功能
 
-# 查看就绪任务
-列出所有就绪任务
+#### task-export Command
 
-# 查看阻塞任务
-列出所有被阻塞的任务
-```
+**功能**：导出任务到 Markdown 文档
 
-### 工作空间管理
+**输出格式**：
+```markdown
+# 项目任务清单
 
-```
-# 初始化工作空间
-初始化工作空间：/path/to/project
+生成时间：2025-12-29
 
-# 查看工作空间信息
-显示工作空间信息
-```
+## 任务统计
+- 总任务数：15
+- 待处理：5
+- 进行中：3
+- 已完成：7
 
-详细使用说明请参考 [快速开始指南](./docs/快速开始.md)。
+## 待处理任务（优先级排序）
 
-## 插件集成
-
-Task Plugin 可以与其他 Claude Code 插件集成，提供更强大的任务管理能力。
-
-### 支持的集成
-
-- **Context Plugin** - 保存任务讨论和决策到会话上下文
-- **Memory Plugin** - 将任务知识存储到知识图谱
-- **Knowledge Plugin** - 添加任务文档到向量数据库
-
-### 快速示例
-
-```python
-from task.integration.context import get_context_integration
-from task.integration.memory import get_memory_integration
-from task.integration.knowledge import get_knowledge_integration
-
-# Context: 保存任务讨论
-ctx = get_context_integration()
-await ctx.save_task_context(
-    task_id="tk-001",
-    content="讨论了实现方案",
-    role="assistant"
-)
-
-# Memory: 存储技术决策
-mem = get_memory_integration()
-await mem.store_task_decision(
-    task_id="tk-001",
-    decision="使用 JWT 身份验证",
-    tags=["authentication"]
-)
-
-# Knowledge: 添加文档
-kb = get_knowledge_integration()
-await kb.add_task_documentation(
-    task_id="tk-001",
-    content="实现文档",
-    source="技术文档"
-)
+| ID | 标题 | 优先级 | 负责人 | 标签 |
+|----|------|--------|--------|------|
+| tk-abc123 | 实现用户登录 | P1 | Alice | backend, auth |
+...
 ```
 
-### 集成特性
+**调用方式**：
+```
+/task-export
+```
 
-- ✅ 集成接口定义 (v0.1.0)
-- ✅ 辅助类实现 (v0.1.0)
-- ✅ 单元测试 (21 个测试)
-- ⏳ MCP 跨插件调用 (v0.2.0+)
-- ⏳ 自动同步和推荐 (v0.2.0+)
+可选参数：status/priority/assignee/task_type（过滤）
 
-详细文档:
-- [集成指南](./examples/integration.md) - 完整使用示例和工作流
-- [集成 API](./src/task/integration/README.md) - API 参考文档
+---
 
-## 开发
+## 🛠️ 开发
 
 ### 项目结构
 
 ```
 plugins/task/
-├── .claude-plugin/
-│   └── plugin.json          # 插件配置
-├── src/task/
-│   ├── __init__.py          # 公共 API
-│   ├── __main__.py          # 入口点
-│   ├── server.py            # MCP Server (14+ 工具)
-│   ├── types.py             # Pydantic 类型定义
+├── agents/                  # Agents（智能规划与拆解）
+│   ├── task-planner.md
+│   └── task-decomposer.md
+├── hooks/                   # Hooks（自动化）
+│   ├── hooks.json
+│   └── scripts/
+│       └── check-workspace.sh
+├── .claude-plugin/          # 插件配置
+│   └── plugin.json
+├── commands/                # 用户命令
+│   ├── task-add.md
+│   ├── task-list.md
+│   ├── task-update.md
+│   ├── task-ready.md
+│   ├── task-stats.md
+│   └── task-export.md
+├── skills/                  # 技能（自动激活）
+│   └── task-management.md
+├── src/task/                # 源代码
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── server.py            # MCP Server（15个工具）
+│   ├── types.py             # Pydantic 类型
 │   ├── models.py            # SQLAlchemy 模型
 │   ├── database.py          # 数据库管理
 │   ├── repository.py        # Repository 层
-│   ├── mappers.py           # 数据映射器
+│   ├── mappers.py           # 数据映射
 │   └── workspace.py         # 工作空间管理
 ├── alembic/                 # 数据库迁移
-│   ├── versions/            # 迁移脚本
-│   └── env.py               # Alembic 环境
 ├── tests/                   # 测试套件（70+ 测试）
-│   ├── conftest.py          # pytest fixtures
-│   ├── test_repository.py  # Repository 测试
-│   ├── test_mappers.py     # Mapper 测试
-│   ├── test_database.py    # Database 测试
-│   └── test_workspace.py   # Workspace 测试
 ├── docs/                    # 文档
 │   ├── 快速开始.md
 │   ├── 工具参考.md
 │   ├── 架构设计.md
-│   ├── 实现计划.md
-│   └── 开发规范.md
-├── pyproject.toml           # Python 配置
-├── alembic.ini              # Alembic 配置
-├── CHANGELOG.md             # 变更日志
+│   ├── 使用示例.md（新增）
+│   └── ...
 └── README.md                # 本文件
 ```
 
@@ -243,15 +340,12 @@ uv run ruff check src/ --fix
 # 类型检查（严格模式）
 uv run mypy src/ --strict
 
-# 运行所有测试
+# 运行测试
 uv run pytest -v
 
-# 测试覆盖率
+# 覆盖率报告
 uv run pytest --cov=src/task --cov-report=html
 open htmlcov/index.html
-
-# 运行特定测试
-uv run pytest tests/test_repository.py -v
 ```
 
 ### 调试 MCP Server
@@ -268,72 +362,49 @@ uv run python -m task
 ### 数据库迁移
 
 ```bash
-# 创建新迁移
-uv run alembic revision --autogenerate -m "描述变更"
+# 创建迁移
+uv run alembic revision --autogenerate -m "描述"
 
-# 升级到最新版本
+# 升级到最新
 uv run alembic upgrade head
 
 # 降级一个版本
 uv run alembic downgrade -1
-
-# 查看迁移历史
-uv run alembic history
 ```
 
-## MCP 工具参考
+---
 
-Task Plugin 提供以下 MCP 工具：
-
-| 类别 | 工具名 | 描述 |
-|------|--------|------|
-| **任务 CRUD** | `task_create` | 创建新任务 |
-| | `task_list` | 列出和过滤任务 |
-| | `task_show` | 显示任务详情 |
-| | `task_update` | 更新任务属性 |
-| | `task_close` | 关闭任务 |
-| | `task_reopen` | 重新打开任务 |
-| | `task_delete` | 删除任务 |
-| **依赖管理** | `task_dep_add` | 添加依赖关系 |
-| | `task_dep_remove` | 移除依赖关系 |
-| | `task_dep_list` | 列出依赖关系 |
-| **查询工具** | `task_ready` | 查找就绪任务 |
-| | `task_blocked` | 查找阻塞任务 |
-| | `task_stats` | 任务统计 |
-| **工作空间** | `workspace_init` | 初始化工作空间 |
-| | `workspace_info` | 工作空间信息 |
-
-详细的工具参数和使用示例请参考 [工具参考文档](./docs/工具参考.md)。
-
-## 技术栈
+## 📊 技术栈
 
 | 依赖 | 版本 | 用途 |
 |------|------|------|
 | Python | ≥3.10 | 运行环境 |
 | mcp | ≥1.1.0 | MCP SDK |
-| pydantic | ≥2.0 | 数据验证和类型安全 |
+| pydantic | ≥2.0 | 类型安全和数据验证 |
 | sqlalchemy | ≥2.0 | ORM 框架 |
-| alembic | ≥1.12.0 | 数据库迁移工具 |
+| alembic | ≥1.12.0 | 数据库迁移 |
 | pytest | ≥7.0 | 测试框架 |
 | black | ≥23.0 | 代码格式化 |
 | ruff | ≥0.1.0 | 代码检查 |
 | mypy | ≥1.0 | 类型检查 |
 
-## 测试
+---
 
-### 测试套件
+## 🧪 测试
 
-- **总测试文件**: 5 个（含 conftest.py）
-- **总测试用例**: 70+ 个
-- **目标覆盖率**: ≥ 95%
-- **测试隔离**: 每个测试使用独立的临时数据库
+### 测试覆盖
 
-### 测试覆盖范围
+- **总测试文件**：5个
+- **总测试用例**：70+
+- **目标覆盖率**：≥95%
+- **测试隔离**：每个测试独立临时数据库
 
-- ✅ Repository 层（25+ 测试）- CRUD、查询、事务
-- ✅ Mapper 层（20+ 测试）- 数据转换、枚举、边界情况
-- ✅ Database 层（10+ 测试）- 初始化、健康检查、优化
-- ✅ Workspace 层（15+ 测试）- 隔离、安全、管理
+### 测试范围
+
+- ✅ Repository 层（25+ 测试）
+- ✅ Mapper 层（20+ 测试）
+- ✅ Database 层（10+ 测试）
+- ✅ Workspace 层（15+ 测试）
 
 ### 运行测试
 
@@ -344,78 +415,108 @@ uv run pytest
 # 特定模块
 uv run pytest tests/test_repository.py -v
 
-# 详细输出
-uv run pytest -v
-
 # 覆盖率报告
 uv run pytest --cov=src/task --cov-report=term-missing
-
-# HTML 覆盖率报告
-uv run pytest --cov=src/task --cov-report=html
-open htmlcov/index.html
 
 # 覆盖率要求
 uv run pytest --cov=src/task --cov-fail-under=95
 ```
 
-详细的测试说明请参考 [测试文档](./tests/README.md)。
+---
 
-## 路线图
+## 🗺️ 路线图
 
-### v0.2.0 (当前) - 存储实现
-- [x] SQLAlchemy 数据库模型
+### v0.2.0（当前）- 完整功能
+
+- [x] SQLAlchemy 持久化存储
 - [x] Alembic 迁移系统
-- [x] Repository 模式实现
-- [x] 数据映射层
+- [x] Repository 模式
 - [x] 工作空间管理
-- [x] MCP 工具集成
-- [x] 完整的单元测试（70+ 测试）
-- [x] 详细文档
+- [x] 15个 MCP 工具
+- [x] 2个智能 Agents（planner/decomposer）
+- [x] 自动化 Hooks（session-start）
+- [x] 6个用户 Commands（含 export）
+- [x] 70+ 单元测试
+- [x] 完整文档
 
-### v0.3.0 (计划) - 依赖管理增强
-- [ ] NetworkX 图算法集成
+### v0.3.0（计划）- 依赖管理增强
+
+- [ ] NetworkX 图算法
 - [ ] 依赖图可视化
 - [ ] 循环依赖检测优化
 - [ ] 拓扑排序
 - [ ] 依赖影响分析
 
-### v0.4.0 (计划) - 状态流转
+### v0.4.0（计划）- 状态流转
+
 - [ ] 状态机引擎
 - [ ] 状态转换验证
 - [ ] 自动状态推导
 - [ ] 状态历史记录
 
-### v0.5.0 (计划) - 调度与报表
+### v0.5.0（计划）- 调度与报表
+
 - [ ] 优先级调度器
 - [ ] 就绪任务队列
 - [ ] 任务统计报表
 - [ ] 完成率分析
 - [ ] 性能指标
 
-## 文档
+---
 
-- 📖 [快速开始](./docs/快速开始.md) - 安装、配置和基本使用
+## 📚 文档
+
+### 用户文档
+
+- 📖 [快速开始](./docs/快速开始.md) - 安装配置和基本使用
+- 🎯 [使用示例](./docs/使用示例.md) - 完整工作流演示
 - 🛠️ [工具参考](./docs/工具参考.md) - MCP 工具详细说明
+
+### Agents & Hooks
+
+- 🤖 [Agents](./agents/) - 智能规划与拆解（task-planner, task-decomposer）
+- ⚡ [Hooks](./hooks/) - 自动化功能（SessionStart hook）
+
+### 开发文档
+
 - 🏗️ [架构设计](./docs/架构设计.md) - 系统架构和设计决策
 - 📋 [实现计划](./docs/实现计划.md) - 开发路线图
 - 📏 [开发规范](./docs/开发规范.md) - 编码规范和最佳实践
 - 🧪 [测试文档](./tests/README.md) - 测试套件说明
 - 📝 [变更日志](./CHANGELOG.md) - 版本更新历史
 
-## 许可证
+---
 
-MIT License - 详见 [LICENSE](../../LICENSE) 文件
+## 🎯 插件集成
 
-## 支持
+Task Plugin 可与其他插件集成：
 
-如有问题或建议，请在 [GitHub Issues](https://github.com/lazygophers/ccplugin/issues) 上创建 issue。
+- **Context Plugin**：保存任务讨论到会话上下文
+- **Memory Plugin**：存储任务知识到知识图谱
+- **Knowledge Plugin**：添加任务文档到向量数据库
 
-## 作者
-
-luoxin
+详细说明请参考 [集成指南](./examples/integration.md)。
 
 ---
 
-**版本**: 0.2.0
-**最后更新**: 2025-12-28
-**维护者**: luoxin
+## 📄 许可证
+
+MIT License - 详见 [LICENSE](../../LICENSE)
+
+---
+
+## 💬 支持
+
+如有问题或建议，请在 [GitHub Issues](https://github.com/lazygophers/ccplugin/issues) 提交。
+
+---
+
+## 👤 作者
+
+**luoxin**
+
+---
+
+**版本**：0.2.0
+**最后更新**：2025-12-29
+**维护者**：luoxin

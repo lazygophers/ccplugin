@@ -1,7 +1,8 @@
 ---
-description: 显示就绪任务
+description: 查找可执行任务
 ---
 
-使用 task_ready 工具查找没有阻塞依赖的待处理任务。参数：$ARGUMENTS
+调用 `task_ready` 查找无阻塞依赖的 open 状态任务，参数：$ARGUMENTS
 
-展示可以立即开始工作的任务列表。
+**选项**: limit=10
+**用途**: 确定下一步工作内容（自动过滤被依赖阻塞的任务）

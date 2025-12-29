@@ -6,13 +6,10 @@
   "author": "luoxin",
   "license": "MIT",
   "homepage": "https://github.com/lazygophers/ccplugin/tree/main/plugins/task",
-  "capabilities": {
-    "commands": true,
-    "agents": false,
-    "skills": true,
-    "hooks": false,
-    "mcp": true
-  },
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
   "mcpServers": {
     "task-server": {
       "command": "uv",
