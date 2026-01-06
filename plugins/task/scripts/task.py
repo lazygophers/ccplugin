@@ -777,7 +777,7 @@ def stats():
 
 
 def check_gitignore(project_root: Path = None, silent: bool = False) -> bool:
-    """检查并创建 .lazygophers/.gitignore
+    """检查并更新 .lazygophers/.gitignore
 
     Args:
         project_root: 项目根目录路径，如果为 None 则自动查找
@@ -804,66 +804,62 @@ def check_gitignore(project_root: Path = None, silent: bool = False) -> bool:
         # 无法确定项目根目录，跳过检查
         return False
 
-    gitignore_path = project_root / ".gitignore"
     lazygophers_gitignore = project_root / ".lazygophers" / ".gitignore"
 
-    # 检查的路径模式
-    required_patterns = [
-        ".lazygophers/",
-        ".lazygophers/ccplugin/",
-        ".lazygophers/ccplugin/task/",
+    # 需要添加的内容
+    required_content = [
+        "# 忽略插件数据",
+        "/ccplugin/task/",
     ]
 
-    found_patterns = set()
-
-    # 检查主 .gitignore
-    if gitignore_path.exists():
-        with open(gitignore_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    for pattern in required_patterns:
-                        if line.rstrip("/") == pattern.rstrip("/"):
-                            found_patterns.add(pattern)
-
-    # 检查 .lazygophers/.gitignore
+    # 检查文件是否存在
     if lazygophers_gitignore.exists():
-        with open(lazygophers_gitignore, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    for pattern in required_patterns:
-                        if line.rstrip("/") == pattern.rstrip("/"):
-                            found_patterns.add(pattern)
+        # 读取现有内容
+        try:
+            with open(lazygophers_gitignore, "r", encoding="utf-8") as f:
+                existing_lines = [line.strip() for line in f if line.strip()]
+        except Exception:
+            existing_lines = []
 
-    # 检查是否包含所需模式
-    if ".lazygophers/ccplugin/task/" in found_patterns or ".lazygophers/" in found_patterns:
-        if not silent:
-            console.print("[green]✓ Git ignore 配置正确[/green]")
-        return True
-    else:
-        if not silent:
-            console.print("[yellow]⚠ 警告: .lazygophers/ccplugin/task/ 未在 gitignore 中[/yellow]")
-            console.print("[dim]建议添加以下内容到 .lazygophers/.gitignore:[/dim]")
-            console.print("[dim]  /ccplugin/task/[/dim]")
+        # 检查是否已包含所需内容
+        has_required = all(line in existing_lines for line in required_content)
 
-        # 自动创建 .lazygophers/.gitignore
-        lazygophers_dir = project_root / ".lazygophers"
-        lazygophers_dir.mkdir(exist_ok=True)
-
-        if not lazygophers_gitignore.exists():
+        if has_required:
+            if not silent:
+                console.print("[green]✓ Git ignore 配置正确[/green]")
+            return True
+        else:
+            # 追加缺失的内容
             try:
-                with open(lazygophers_gitignore, "w", encoding="utf-8") as f:
-                    f.write("# 忽略插件数据\n")
-                    f.write("/ccplugin/task/\n")
+                with open(lazygophers_gitignore, "a", encoding="utf-8") as f:
+                    # 确保文件以换行结尾
+                    if existing_lines and existing_lines[-1]:
+                        f.write("\n")
+                    # 追加缺失的行
+                    for line in required_content:
+                        if line not in existing_lines:
+                            f.write(line + "\n")
                 if not silent:
-                    console.print(f"[green]✓ 已创建 {lazygophers_gitignore}[/green]")
+                    console.print(f"[green]✓ 已更新 {lazygophers_gitignore}[/green]")
                 return True
             except Exception as e:
                 if not silent:
-                    console.print(f"[dim]无法创建 .gitignore: {e}[/dim]")
+                    console.print(f"[dim]无法更新 .gitignore: {e}[/dim]")
                 return False
-        return False
+    else:
+        # 文件不存在，创建新文件
+        try:
+            lazygophers_gitignore.parent.mkdir(parents=True, exist_ok=True)
+            with open(lazygophers_gitignore, "w", encoding="utf-8") as f:
+                for line in required_content:
+                    f.write(line + "\n")
+            if not silent:
+                console.print(f"[green]✓ 已创建 {lazygophers_gitignore}[/green]")
+            return True
+        except Exception as e:
+            if not silent:
+                console.print(f"[dim]无法创建 .gitignore: {e}[/dim]")
+            return False
 
 
 def init_environment(force: bool = False, silent: bool = False) -> bool:
