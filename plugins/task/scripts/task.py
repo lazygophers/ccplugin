@@ -13,22 +13,17 @@ Task Manager - 任务管理插件核心脚本
   - rich: 终端美化输出
 """
 
-import sys
 import sqlite3
-import re
 import random
 import string
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 
 import typer
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
-from rich.markdown import Markdown
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich import print as rprint
 
 # ========== 常量定义 ==========
 
@@ -53,19 +48,23 @@ STATUS_ICONS = {
     "cancelled": "❌",
 }
 
-# 优先级定义
-PRIORITY_VALUES = ["critical", "high", "medium", "low"]
-PRIORITY_LABELS = {
-    "critical": "紧急",
-    "high": "高",
-    "medium": "中",
-    "low": "低",
+# 任务类型定义
+TYPE_VALUES = ["feature", "bug", "refactor", "test", "docs", "config"]
+TYPE_LABELS = {
+    "feature": "新功能",
+    "bug": "缺陷修复",
+    "refactor": "代码重构",
+    "test": "测试",
+    "docs": "文档",
+    "config": "配置",
 }
-PRIORITY_ICONS = {
-    "critical": "[red]🔴[/red]",
-    "high": "[orange1]🟠[/orange1]",
-    "medium": "[yellow]🟡[/yellow]",
-    "low": "[green]🟢[/green]",
+TYPE_ICONS = {
+    "feature": "[green]✨[/green]",
+    "bug": "[red]🐛[/red]",
+    "refactor": "[blue]♻️[/blue]",
+    "test": "[purple]🧪[/purple]",
+    "docs": "[yellow]📝[/yellow]",
+    "config": "[cyan]⚙️[/cyan]",
 }
 
 # 初始化控制台
@@ -124,13 +123,14 @@ def init_database(db_path: Path) -> None:
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
             description TEXT,
+            type TEXT DEFAULT 'feature',
             status TEXT DEFAULT 'pending',
-            priority TEXT DEFAULT 'medium',
-            tags TEXT,
+            acceptance_criteria TEXT,
+            dependencies TEXT,
+            parent_id TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             completed_at TIMESTAMP,
-            parent_id TEXT,
             FOREIGN KEY (parent_id) REFERENCES tasks(id) ON DELETE CASCADE
         )
     """
@@ -151,7 +151,7 @@ def init_database(db_path: Path) -> None:
 
     # 创建索引
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(priority)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id)")
 
     conn.commit()
@@ -168,13 +168,28 @@ def get_connection(db_path: Path):
 def add_task(
     title: str,
     description: str = "",
+    task_type: str = "feature",
     status: str = "pending",
-    priority: str = "medium",
-    tags: str = "",
+    acceptance_criteria: str = "",
+    dependencies: str = "",
     parent_id: str = None,
     db_path: Optional[Path] = None,
 ) -> str:
-    """添加新任务"""
+    """添加新任务
+
+    Args:
+        title: 任务标题（必填）
+        description: 任务描述
+        task_type: 任务类型 (feature/bug/refactor/test/docs/config)
+        status: 任务状态
+        acceptance_criteria: 验收标准
+        dependencies: 依赖任务ID列表（逗号分隔）
+        parent_id: 父任务ID
+        db_path: 数据库路径
+
+    Returns:
+        新创建的任务ID
+    """
     if db_path is None:
         db_path = get_db_path()
 
@@ -189,10 +204,10 @@ def add_task(
 
     cursor.execute(
         """
-        INSERT INTO tasks (id, title, description, status, priority, tags, parent_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (id, title, description, type, status, acceptance_criteria, dependencies, parent_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """,
-        (task_id, title, description, status, priority, tags, parent_id),
+        (task_id, title, description, task_type, status, acceptance_criteria, dependencies, parent_id),
     )
 
     conn.commit()
@@ -202,7 +217,15 @@ def add_task(
 
 
 def update_task(task_id: str, **kwargs) -> bool:
-    """更新任务"""
+    """更新任务
+
+    Args:
+        task_id: 任务ID
+        **kwargs: 要更新的字段 (title, description, type, status, acceptance_criteria, dependencies, parent_id)
+
+    Returns:
+        是否更新成功
+    """
     db_path = get_db_path()
 
     if not db_path.exists():
@@ -216,7 +239,7 @@ def update_task(task_id: str, **kwargs) -> bool:
     values = []
 
     for key, value in kwargs.items():
-        if key in ["title", "description", "status", "priority", "tags", "parent_id"]:
+        if key in ["title", "description", "type", "status", "acceptance_criteria", "dependencies", "parent_id"]:
             updates.append(f"{key} = ?")
             values.append(value)
 
@@ -295,11 +318,19 @@ def get_task(task_id: str) -> Optional[Dict]:
 
 def list_tasks(
     status: Optional[str] = None,
-    priority: Optional[str] = None,
-    tags: Optional[str] = None,
+    task_type: Optional[str] = None,
     parent_id: Optional[str] = None,
 ) -> List[Dict]:
-    """列出任务"""
+    """列出任务
+
+    Args:
+        status: 按状态筛选
+        task_type: 按任务类型筛选
+        parent_id: 按父任务ID筛选
+
+    Returns:
+        任务列表
+    """
     db_path = get_db_path()
 
     if not db_path.exists():
@@ -315,19 +346,15 @@ def list_tasks(
         query += " AND status = ?"
         params.append(status)
 
-    if priority:
-        query += " AND priority = ?"
-        params.append(priority)
-
-    if tags:
-        query += " AND tags LIKE ?"
-        params.append(f"%{tags}%")
+    if task_type:
+        query += " AND type = ?"
+        params.append(task_type)
 
     if parent_id is not None:
         query += " AND parent_id = ?"
         params.append(parent_id)
 
-    query += " ORDER BY priority DESC, created_at ASC"
+    query += " ORDER BY created_at ASC"
 
     cursor.execute(query, params)
     rows = cursor.fetchall()
@@ -362,9 +389,6 @@ def export_markdown(output_file: Optional[str] = None) -> str:
     md = "# 任务列表\n\n"
     md += f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
 
-    # 优先级排序权重
-    priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-
     for status in STATUS_VALUES:
         if not by_status.get(status):
             continue
@@ -372,27 +396,42 @@ def export_markdown(output_file: Optional[str] = None) -> str:
         label = STATUS_LABELS.get(status, status)
         md += f"## {label}\n\n"
 
-        # 按优先级排序
-        status_tasks = sorted(by_status[status], key=lambda t: priority_order.get(t["priority"], 99))
+        # 按创建时间排序
+        status_tasks = sorted(by_status[status], key=lambda t: t["created_at"])
 
         for task in status_tasks:
-            priority_emoji_map = {
-                "critical": "🔴",
-                "high": "🟠",
-                "medium": "🟡",
-                "low": "🟢",
+            type_emoji_map = {
+                "feature": "✨",
+                "bug": "🐛",
+                "refactor": "♻️",
+                "test": "🧪",
+                "docs": "📝",
+                "config": "⚙️",
             }
-            priority_emoji = priority_emoji_map.get(task["priority"], "⚪")
+            type_emoji = type_emoji_map.get(task["type"], "📋")
+            type_label = TYPE_LABELS.get(task["type"], task["type"])
 
-            md += f"### {priority_emoji} {task['title']} (#{task['id']})\n\n"
+            md += f"### {type_emoji} {task['title']} (#{task['id']})\n\n"
 
+            # 任务类型
+            md += f"**类型**: {type_label}\n\n"
+
+            # 任务描述
             if task["description"]:
-                md += f"{task['description']}\n\n"
+                md += f"**描述**:\n{task['description']}\n\n"
 
-            if task["tags"]:
-                tags_list = task["tags"].split(",")
-                md += f"**标签**: {', '.join(f'`{t}`' for t in tags_list)}\n\n"
+            # 验收标准
+            if task["acceptance_criteria"]:
+                md += f"**验收标准**:\n{task['acceptance_criteria']}\n\n"
 
+            # 依赖任务
+            if task["dependencies"]:
+                deps_list = task["dependencies"].split(",")
+                deps_list = [d.strip() for d in deps_list if d.strip()]
+                if deps_list:
+                    md += f"**依赖**: {', '.join(f'#{d}' for d in deps_list)}\n\n"
+
+            # 时间信息
             md += f"**创建时间**: {task['created_at']}\n"
 
             if status == "completed" and task["completed_at"]:
@@ -404,11 +443,23 @@ def export_markdown(output_file: Optional[str] = None) -> str:
     md += "---\n\n"
     md += "## 统计\n\n"
     md += f"- 总任务数: {len(tasks)}\n"
+
+    # 按状态统计
     for status in STATUS_VALUES:
         count = len(by_status.get(status, []))
         if count > 0:
             label = STATUS_LABELS.get(status, status)
             md += f"- {label}: {count}\n"
+
+    # 按类型统计
+    md += "\n### 按类型\n\n"
+    by_type = {}
+    for task in tasks:
+        t = task["type"]
+        by_type[t] = by_type.get(t, 0) + 1
+    for task_type, count in sorted(by_type.items()):
+        label = TYPE_LABELS.get(task_type, task_type)
+        md += f"- {label}: {count}\n"
 
     # 写入文件
     if output_file:
@@ -426,52 +477,76 @@ def export_markdown(output_file: Optional[str] = None) -> str:
 def add(
     title: str = typer.Argument(..., help="任务标题"),
     description: str = typer.Option("", "--description", "-d", help="任务描述"),
-    priority: str = typer.Option("medium", "--priority", "-p", help="优先级"),
-    tags: str = typer.Option("", "--tags", "-t", help="标签（逗号分隔）"),
-    parent: str = typer.Option(None, "--parent", help="父任务ID（创建子任务）"),
+    task_type: str = typer.Option("feature", "--type", "-t", help="任务类型 (feature/bug/refactor/test/docs/config)"),
+    status: str = typer.Option("pending", "--status", "-s", help="任务状态"),
+    acceptance_criteria: str = typer.Option("", "--acceptance", "-a", help="验收标准"),
+    dependencies: str = typer.Option("", "--depends", "-D", help="依赖任务ID（逗号分隔）"),
+    parent: str = typer.Option(None, "--parent", "-p", help="父任务ID（创建子任务）"),
 ):
     """添加新任务"""
-    if priority not in PRIORITY_VALUES:
-        console.print(f"[red]错误: 无效的优先级 '{priority}'[/red]")
-        console.print(f"可用值: {', '.join(PRIORITY_VALUES)}")
+    # 验证任务类型
+    if task_type not in TYPE_VALUES:
+        console.print(f"[red]错误: 无效的任务类型 '{task_type}'[/red]")
+        console.print(f"可用值: {', '.join(TYPE_VALUES)}")
         raise typer.Exit(1)
 
-    task_id = add_task(title=title, description=description, priority=priority, tags=tags, parent_id=parent)
+    # 验证状态
+    if status not in STATUS_VALUES:
+        console.print(f"[red]错误: 无效的状态 '{status}'[/red]")
+        console.print(f"可用值: {', '.join(STATUS_VALUES)}")
+        raise typer.Exit(1)
 
-    icon = PRIORITY_ICONS.get(priority, "⚪")
+    task_id = add_task(
+        title=title,
+        description=description,
+        task_type=task_type,
+        status=status,
+        acceptance_criteria=acceptance_criteria,
+        dependencies=dependencies,
+        parent_id=parent,
+    )
+
+    type_icon = TYPE_ICONS.get(task_type, "📋")
+    status_icon = STATUS_ICONS.get(status, "⏳")
     if parent:
-        console.print(f"{icon} [green]已创建子任务[/green] [bold]#{task_id}[/bold] (父任务: #{parent}): {title}")
+        console.print(f"{type_icon} {status_icon} [green]已创建子任务[/green] [bold]#{task_id}[/bold] (父任务: #{parent}): {title}")
     else:
-        console.print(f"{icon} [green]已创建任务[/green] [bold]#{task_id}[/bold]: {title}")
+        console.print(f"{type_icon} {status_icon} [green]已创建任务[/green] [bold]#{task_id}[/bold]: {title}")
 
 
 @app.command(name="up")
 def update(
     task_id: str = typer.Argument(..., help="任务ID"),
-    status: Optional[str] = typer.Option(None, "--status", "-s", help="状态"),
-    priority: Optional[str] = typer.Option(None, "--priority", "-p", help="优先级"),
     title: Optional[str] = typer.Option(None, "--title", help="新标题"),
     description: Optional[str] = typer.Option(None, "--description", "-d", help="新描述"),
-    parent: Optional[str] = typer.Option(None, "--parent", help="父任务ID"),
+    task_type: Optional[str] = typer.Option(None, "--type", "-t", help="任务类型"),
+    status: Optional[str] = typer.Option(None, "--status", "-s", help="状态"),
+    acceptance_criteria: Optional[str] = typer.Option(None, "--acceptance", "-a", help="验收标准"),
+    dependencies: Optional[str] = typer.Option(None, "--depends", "-D", help="依赖任务ID（逗号分隔）"),
+    parent: Optional[str] = typer.Option(None, "--parent", "-p", help="父任务ID"),
 ):
     """更新任务"""
     kwargs = {}
+    if title is not None:
+        kwargs["title"] = title
+    if description is not None:
+        kwargs["description"] = description
+    if task_type is not None:
+        if task_type not in TYPE_VALUES:
+            console.print(f"[red]错误: 无效的任务类型 '{task_type}'[/red]")
+            console.print(f"可用值: {', '.join(TYPE_VALUES)}")
+            raise typer.Exit(1)
+        kwargs["type"] = task_type
     if status is not None:
         if status not in STATUS_VALUES:
             console.print(f"[red]错误: 无效的状态 '{status}'[/red]")
             console.print(f"可用值: {', '.join(STATUS_VALUES)}")
             raise typer.Exit(1)
         kwargs["status"] = status
-    if priority is not None:
-        if priority not in PRIORITY_VALUES:
-            console.print(f"[red]错误: 无效的优先级 '{priority}'[/red]")
-            console.print(f"可用值: {', '.join(PRIORITY_VALUES)}")
-            raise typer.Exit(1)
-        kwargs["priority"] = priority
-    if title is not None:
-        kwargs["title"] = title
-    if description is not None:
-        kwargs["description"] = description
+    if acceptance_criteria is not None:
+        kwargs["acceptance_criteria"] = acceptance_criteria
+    if dependencies is not None:
+        kwargs["dependencies"] = dependencies
     if parent is not None:
         kwargs["parent_id"] = parent
 
@@ -518,10 +593,10 @@ def done(task_id: str = typer.Argument(..., help="任务ID")):
 @app.command()
 def list(
     status: Optional[str] = typer.Option(None, "--status", "-s", help="按状态筛选"),
-    priority: Optional[str] = typer.Option(None, "--priority", "-p", help="按优先级筛选"),
+    task_type: Optional[str] = typer.Option(None, "--type", "-t", help="按任务类型筛选"),
 ):
     """列出任务"""
-    tasks = list_tasks(status=status, priority=priority)
+    tasks = list_tasks(status=status, task_type=task_type)
 
     if not tasks:
         console.print("[yellow]暂无任务[/yellow]")
@@ -530,20 +605,20 @@ def list(
     # 创建表格
     table = Table(title="任务列表", show_header=True, header_style="bold magenta")
     table.add_column("ID", style="dim", width=6)
+    table.add_column("类型", width=8)
     table.add_column("状态", width=10)
-    table.add_column("优先级", width=8)
     table.add_column("标题", style="bold")
     table.add_column("创建时间", width=20)
 
     for task in tasks:
+        type_icon = TYPE_ICONS.get(task["type"], "📋")
         status_icon = STATUS_ICONS.get(task["status"], "❓")
         status_label = STATUS_LABELS.get(task["status"], task["status"])
-        priority_icon = PRIORITY_ICONS.get(task["priority"], "⚪")
 
         table.add_row(
             f"#{task['id']}",
+            f"{type_icon}",
             f"{status_icon} {status_label}",
-            f"{priority_icon}",
             task["title"],
             task["created_at"],
         )
@@ -561,23 +636,26 @@ def show(task_id: str = typer.Argument(..., help="任务ID")):
         raise typer.Exit(1)
 
     # 构建详情面板
+    type_icon = TYPE_ICONS.get(task["type"], "📋")
+    type_label = TYPE_LABELS.get(task["type"], task["type"])
     status_icon = STATUS_ICONS.get(task["status"], "❓")
     status_label = STATUS_LABELS.get(task["status"], task["status"])
-    priority_icon = PRIORITY_ICONS.get(task["priority"], "⚪")
-    priority_label = PRIORITY_LABELS.get(task["priority"], task["priority"])
 
     content = f"""
 [bold]任务 #{task['id']}[/bold]
 
 [bold cyan]标题:[/bold cyan] {task['title']}
 
+[bold cyan]类型:[/bold cyan] {type_icon} {type_label}
 [bold cyan]状态:[/bold cyan] {status_icon} {status_label}
-[bold cyan]优先级:[/bold cyan] {priority_icon} {priority_label}
 
 [bold cyan]描述:[/bold cyan]
 {task['description'] or '[dim](无)[/dim]'}
 
-[bold cyan]标签:[/bold cyan] {task['tags'] or '[dim](无)[/dim]'}
+[bold cyan]验收标准:[/bold cyan]
+{task.get('acceptance_criteria') or '[dim](无)[/dim]'}
+
+[bold cyan]依赖任务:[/bold cyan] {task.get('dependencies') or '[dim](无)[/dim]'}
 [bold cyan]创建时间:[/bold cyan] {task['created_at']}
 """
     if task["status"] == "completed" and task["completed_at"]:
@@ -595,7 +673,8 @@ def show(task_id: str = typer.Argument(..., help="任务ID")):
         content += f"\n[bold cyan]子任务 ({len(children)}):[/bold cyan]\n"
         for child in children:
             child_icon = STATUS_ICONS.get(child["status"], "❓")
-            content += f"  {child_icon} #{child['id']} {child['title']}\n"
+            child_type_icon = TYPE_ICONS.get(child["type"], "📋")
+            content += f"  {child_type_icon} {child_icon} #{child['id']} {child['title']}\n"
 
     panel = Panel(content.strip(), title="任务详情", border_style="blue")
     console.print(panel)
