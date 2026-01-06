@@ -1,0 +1,28 @@
+{
+  "name": "example-plugin",
+  "version": "1.0.0",
+  "description": "示例插件 - 展示 Claude Code 插件的标准结构和最佳实践",
+  "author": {
+    "name": "ccplugin Team",
+    "email": "admin@ccplugin.dev",
+    "url": "https://github.com/ccplugin/market"
+  },
+  "homepage": "https://docs.ccplugin.dev/plugins/example",
+  "repository": "https://github.com/ccplugin/market/tree/main/plugins/example-plugin",
+  "license": "MIT",
+  "keywords": ["example", "template", "starter"],
+  "commands": [
+    "./commands/hello.md",
+    "./commands/status.md"
+  ],
+  "agents": "./agents/",
+  "skills": "./skills/",
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "echo 'Example plugin session started'"
+      }
+    ]
+  }
+}

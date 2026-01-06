@@ -1,0 +1,17 @@
+{
+  "name": "plugin-template",
+  "version": "1.0.0",
+  "description": "插件开发模板 - 快速创建新插件的基础结构",
+  "author": {
+    "name": "YOUR_NAME",
+    "email": "your.email@example.com",
+    "url": "https://github.com/yourusername"
+  },
+  "homepage": "https://github.com/yourusername/plugin-template",
+  "repository": "https://github.com/yourusername/plugin-template",
+  "license": "MIT",
+  "keywords": ["template", "starter", "boilerplate"],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
+}
