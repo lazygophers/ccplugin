@@ -87,10 +87,14 @@ my-plugin/
 
 ## 文档
 
-- [插件开发指南](docs/plugin-development.md)
-- [API 参考](docs/api-reference.md)
-- [最佳实践](docs/best-practices.md)
-- [贡献指南](docs/contributing.md)
+### 开发文档
+
+- [插件开发指南](docs/plugin-development.md) - 完整的插件开发教程
+- [API 参考](docs/api-reference.md) - 完整的 API 参考
+- [最佳实践](docs/best-practices.md) - 开发最佳实践
+- [支持的语言](docs/supported-languages.md) - 插件开发语言选择指南
+- [编译型语言指南](docs/compiled-languages-guide.md) - Go/Rust 等编译型语言使用指南
+- [贡献指南](docs/contributing.md) - 贡献指南
 
 ## 许可证
 

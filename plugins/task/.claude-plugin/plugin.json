@@ -1,0 +1,26 @@
+{
+  "name": "task",
+  "version": "1.0.0",
+  "description": "任务管理插件 - 用于项目任务的创建、跟踪和管理。支持SQLite存储、Markdown导出",
+  "author": {
+    "name": "CCPlugin Team",
+    "email": "admin@ccplugin.dev"
+  },
+  "homepage": "https://docs.ccplugin.dev/plugins/task",
+  "repository": "https://github.com/ccplugin/market/tree/main/plugins/task",
+  "license": "MIT",
+  "keywords": ["task", "todo", "project", "management", "sqlite"],
+  "commands": [
+    "./commands/task.md",
+    "./commands/task-export.md"
+  ],
+  "skills": "./skills/task/SKILL.md",
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "cd ${CLAUDE_PLUGIN_ROOT} && uv run scripts/task.py init --silent || true"
+      }
+    ]
+  }
+}
