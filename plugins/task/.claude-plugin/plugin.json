@@ -14,13 +14,6 @@
     "./commands/task.md",
     "./commands/task-export.md"
   ],
-  "skills": "./skills/task/SKILL.md",
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "cd ${CLAUDE_PLUGIN_ROOT} && uv run scripts/task.py init --silent || true"
-      }
-    ]
-  }
+  "skills": "./skills/",
+  "hooks": "./hooks/"
 }

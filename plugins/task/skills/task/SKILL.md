@@ -21,6 +21,19 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 - ✅ 所有任务必须通过 `/task` 命令管理
 - ✅ 使用 TodoWrite 工具时，同步到 task
 
+## 任务元信息
+
+每个任务包含以下元信息：
+
+- **id** - 任务ID（自动生成，6位随机字符串）
+- **title** - 任务名称（必填）
+- **description** - 任务描述
+- **type** - 任务类型（feature/bug/refactor/test/docs/config）
+- **status** - 任务状态（pending/in_progress/completed/blocked/cancelled）
+- **acceptance_criteria** - 验收标准
+- **dependencies** - 前置依赖任务ID列表（逗号分隔）
+- **parent_id** - 父任务ID（支持层级关系）
+
 ## 使用场景
 
 当用户以下情况时，必须使用 task：
@@ -54,26 +67,42 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 /task add "任务标题"
 ```
 
+### 完整参数创建
+
+```bash
+/task add "任务标题" \
+  --description "详细描述" \
+  --type feature \
+  --status pending \
+  --acceptance "验收标准" \
+  --depends "task_id1,task_id2" \
+  --parent "parent_task_id"
+```
+
+**任务类型 (type)**：
+- `feature` - 新功能 ✨
+- `bug` - 缺陷修复 🐛
+- `refactor` - 代码重构 ♻️
+- `test` - 测试 🧪
+- `docs` - 文档 📝
+- `config` - 配置 ⚙️
+
 示例：
 ```bash
-/task add "实现用户登录功能"
-/task add "编写API文档"
-/task add "修复登录页面的样式问题"
+# 功能开发
+/task add "实现用户登录功能" --type feature --acceptance "用户可以使用邮箱和密码登录"
+
+# Bug修复
+/task add "修复登录超时" --type bug --description "生产环境登录接口在并发>100时超时超过30秒" --acceptance "并发100时响应时间<2秒，成功率>99%"
+
+# 测试任务
+/task add "编写登录API单元测试" --type test --depends "实现用户登录"
+
+# 文档任务
+/task add "编写API文档" --type docs --depends "实现用户登录"
 ```
 
-### 快速添加（带描述和优先级）
-
-```bash
-/task add "任务标题" --description "详细描述" --priority "priority"
-```
-
-示例：
-```bash
-/task add "修复API超时" --description "生产环境API调用经常超时超过30秒" --priority "high"
-/task add "添加单元测试" --description "为用户模块添加完整的单元测试覆盖" --priority "medium"
-```
-
-### 更新任务状态
+### 更新任务
 
 ```bash
 /task update <id> --status <status>
@@ -86,29 +115,28 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 - `blocked` - 已阻塞
 - `cancelled` - 已取消
 
-示例：
+可用参数：
 ```bash
-/task update 1 --status in_progress   # 开始任务
-/task update 1 --status completed     # 完成任务
-/task update 2 --status blocked       # 任务阻塞
+/task update <id> --title "新标题"
+/task update <id> --description "新描述"
+/task update <id> --type bug
+/task update <id> --status in_progress
+/task update <id> --acceptance "验收标准"
+/task update <id> --depends "task_id1,task_id2"
+/task update <id> --parent "parent_task_id"
 ```
-
-### 更新任务优先级
-
-```bash
-/task update <id> --priority <priority>
-```
-
-优先级选项：
-- `critical` - 紧急（🔴）
-- `high` - 高（🟠）
-- `medium` - 中（🟡）
-- `low` - 低（🟢）
 
 示例：
 ```bash
-/task update 1 --priority critical
-/task update 2 --priority high
+/task update abc123 --status in_progress   # 开始任务
+/task update abc123 --status completed     # 完成任务
+/task update abc123 --acceptance "用户可使用邮箱、手机号注册并完成验证"
+```
+
+### 快速完成
+
+```bash
+/task done <id>
 ```
 
 ### 列出任务
@@ -116,8 +144,8 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ```bash
 /task list                    # 所有任务
 /task list pending           # 待处理
-/task list in_progress       # 进行中
-/task list completed         # 已完成
+/task list --type bug        # 所有bug类型任务
+/task list --status completed --type feature  # 组合筛选
 ```
 
 ### 查看统计
@@ -138,11 +166,30 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
   进行中: 3
   已完成: 4
 
-按优先级:
-  紧急: 2
-  高: 5
-  中: 6
-  低: 2
+按类型:
+  新功能: 6
+  缺陷修复: 3
+  代码重构: 2
+  测试: 3
+  文档: 1
+```
+
+### 查看任务详情
+
+```bash
+/task show <id>
+```
+
+显示任务的完整信息，包括验收标准和依赖关系。
+
+### 子任务操作
+
+```bash
+# 创建子任务
+/task add "子任务标题" --parent "parent_task_id"
+
+# 列出子任务
+/task children <parent_task_id>
 ```
 
 ### 导出任务
@@ -160,11 +207,11 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 创建初始任务列表：
 
 ```bash
-/task add "项目初始化"
-/task add "设计数据库架构"
-/task add "实现API接口"
-/task add "编写单元测试"
-/task add "准备部署"
+/task add "项目初始化" --type feature --acceptance "项目结构创建完成，数据库初始化成功"
+/task add "设计数据库架构" --type feature --depends "项目初始化" --acceptance "完成表设计、索引设计、关系设计"
+/task add "实现API接口" --type feature --depends "设计数据库架构" --acceptance "核心CRUD接口可用，通过单元测试"
+/task add "编写单元测试" --type test --depends "实现API接口"
+/task add "准备部署" --type config --depends "编写单元测试" --acceptance "Docker配置完成，部署脚本可用"
 ```
 
 ### 2. 每日工作
@@ -175,28 +222,44 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 /task list pending
 
 # 开始任务
-/task update 3 --status in_progress
+/task update <id> --status in_progress
 ```
 
 完成工作时：
 ```bash
 # 完成任务
-/task update 3 --status completed
+/task done <id>
 ```
 
 ### 3. 添加新需求
 
 当用户提出新需求时：
 ```bash
-/task add "新需求描述" --description "详细说明" --priority "priority"
+/task add "新需求描述" \
+  --type feature \
+  --description "详细说明" \
+  --acceptance "明确的验收标准"
 ```
 
-### 4. 任务跟踪
+### 4. 处理Bug
+
+当发现Bug时：
+```bash
+/task add "Bug描述" \
+  --type bug \
+  --description "复现步骤、影响范围" \
+  --acceptance "修复后验证通过，回归测试无问题"
+```
+
+### 5. 任务跟踪
 
 定期查看任务状态：
 ```bash
 # 查看统计
 /task stats
+
+# 按类型查看
+/task list --type bug
 
 # 查看进行中的任务
 /task list in_progress
@@ -215,17 +278,16 @@ todos = [
 
 # 同步到 task
 for todo in todos:
-    status = "pending"
-    if todo["status"] == "in_progress":
-        status = "in_progress"
-    elif todo["status"] == "completed":
-        status = "completed"
+    content = todo["content"]
+    status = todo["status"]
 
     # 添加任务时设置状态
     if status == "pending":
-        /task add f'"{todo["content"]}"'
+        /task add f'"{content}"'
+    elif status == "completed":
+        task_id = /task add f'"{content}" --status completed'
     else:
-        task_id = /task add f'"{todo["content"]}" --status {status}'
+        task_id = /task add f'"{content}" --status {status}'
 ```
 
 ## 任务生命周期
@@ -252,7 +314,7 @@ for todo in todos:
 
 ### 1. 任务粒度
 
-✅ **好的任务**：
+✅ **好的任务**（1-3天完成）：
 - "实现用户登录功能"
 - "添加用户注册表单验证"
 - "编写登录API单元测试"
@@ -267,19 +329,64 @@ for todo in todos:
 提供清晰的上下文：
 ```bash
 /task add "修复API超时问题" \
+  --type bug \
   --description "生产环境/api/users接口在并发>100时超时，需要优化查询性能" \
-  --priority "high"
+  --acceptance "并发100时响应时间<2秒，成功率>99%"
 ```
 
-### 3. 优先级设置
+### 3. 验收标准
 
-合理设置优先级：
-- `critical`: 阻塞发布的安全问题
-- `high`: 影响用户体验的Bug
-- `medium`: 常规功能开发
-- `low`: 优化和改进
+每个任务都应该有清晰的验收标准：
 
-### 4. 定期同步
+✅ **好的验收标准**：
+- 具体、可验证
+- 包含明确的完成条件
+- 可以通过测试验证
+
+示例：
+```bash
+--acceptance "用户可以使用邮箱、手机号注册并完成验证"
+--acceptance "并发100时响应时间<2秒，成功率>99%"
+--acceptance "单元测试覆盖率>80%，所有测试通过"
+```
+
+❌ **不好的验收标准**：
+- "完成功能"（太模糊）
+- "代码质量好"（无法验证）
+
+### 4. 任务类型选择
+
+根据任务性质选择合适的类型：
+
+- **feature** - 新功能开发、功能增强
+- **bug** - 缺陷修复、错误修复
+- **refactor** - 代码重构、性能优化（不改功能）
+- **test** - 测试相关（单元测试、集成测试）
+- **docs** - 文档编写、API文档
+- **config** - 配置变更、环境设置
+
+### 5. 依赖关系
+
+使用依赖关系管理任务顺序：
+
+```bash
+# 基础任务
+/task add "设计数据库" --type feature
+
+# 依赖任务
+/task add "实现用户API" --type feature --depends "设计数据库"
+/task add "实现前端页面" --type feature --depends "实现用户API"
+
+# 测试任务
+/task add "编写测试用例" --type test --depends "实现用户API,实现前端页面"
+```
+
+注意：
+- 依赖任务必须是已存在的任务ID
+- 多个依赖用逗号分隔
+- 依赖表示前置任务必须完成后才能开始当前任务
+
+### 6. 定期导出
 
 每日或每周导出任务到 Git：
 ```bash
@@ -288,7 +395,7 @@ git add "tasks-$(date +%Y-%m-%d).md"
 git commit -m "任务更新 - $(date +%Y-%m-%d)"
 ```
 
-### 5. 导出归档
+### 7. 导出归档
 
 重要里程碑导出任务：
 ```bash
@@ -306,8 +413,9 @@ git commit -m "里程碑1任务归档"
 响应：
 ```bash
 /task add "实现用户头像上传功能" \
+  --type feature \
   --description "支持裁剪、压缩、格式转换，限制大小2MB" \
-  --priority "medium"
+  --acceptance "用户可以上传头像，自动裁剪为正方形，支持JPG/PNG格式，文件大小<2MB"
 ```
 
 ### 场景2：开始工作
@@ -329,7 +437,7 @@ git commit -m "里程碑1任务归档"
 
 响应：
 ```bash
-/task update <id> --status completed
+/task done <id>
 ```
 
 ### 场景4：查看进度
@@ -340,6 +448,31 @@ git commit -m "里程碑1任务归档"
 ```bash
 /task stats
 /task list
+```
+
+### 场景5：发现Bug
+
+用户："发现登录有问题，经常超时"
+
+响应：
+```bash
+/task add "修复登录超时问题" \
+  --type bug \
+  --description "用户反馈登录经常超时，需要排查" \
+  --acceptance "修复后连续24小时无超时投诉，监控显示超时率<0.1%" \
+  --priority "高"
+```
+
+### 场景6：代码重构
+
+用户："用户模块代码太乱了，需要重构"
+
+响应：
+```bash
+/task add "重构用户模块代码" \
+  --type refactor \
+  --description "当前代码结构混乱，需要重构以提高可维护性" \
+  --acceptance "代码通过review，单元测试覆盖率保持>80%，性能无明显下降"
 ```
 
 ## 错误处理
@@ -362,5 +495,4 @@ chmod 755 .lazygophers/ccplugin/task
 ## 参考资源
 
 - [插件 README](../../plugins/task/README.md)
-- [task.py](../../plugins/task/scripts/task.py)
-- [plugin-development skill](../../.claude/skills/plugin-development/SKILL.md)
+- [命令文档](../../plugins/task/commands/task.md)

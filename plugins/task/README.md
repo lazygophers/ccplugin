@@ -6,7 +6,9 @@
 
 - ✅ **任务管理**：创建、更新、删除任务
 - ✅ **状态跟踪**：pending、in_progress、completed、blocked、cancelled
-- ✅ **优先级**：critical、high、medium、low
+- ✅ **任务类型**：feature、bug、refactor、test、docs、config
+- ✅ **验收标准**：为每个任务定义验收标准
+- ✅ **依赖关系**：支持前置依赖和父子任务
 - ✅ **SQLite 存储**：轻量级，无需额外依赖
 - ✅ **Markdown 导出**：便于版本控制和分享
 
@@ -19,6 +21,19 @@
 ├── tasks.db          # SQLite 数据库
 └── backup/           # 自动备份（可选）
 ```
+
+## 任务元信息
+
+每个任务包含：
+
+- **id** - 任务ID（自动生成，6位随机字符串）
+- **title** - 任务名称（必填）
+- **description** - 任务描述
+- **type** - 任务类型（feature/bug/refactor/test/docs/config）
+- **status** - 任务状态
+- **acceptance_criteria** - 验收标准
+- **dependencies** - 前置依赖任务ID列表
+- **parent_id** - 父任务ID（支持层级关系）
 
 ## 快速开始
 
@@ -51,16 +66,25 @@
 | 命令 | 说明 | 示例 |
 |------|------|------|
 | `/task add <title>` | 添加任务 | `/task add "实现登录"` |
+| `/task add <title> --type <type>` | 指定类型 | `/task add "修复Bug" --type bug` |
+| `/task add <title> --acceptance <标准>` | 设置验收标准 | `/task add "登录功能" --acceptance "用户可使用邮箱密码登录"` |
+| `/task add <title> --depends <ids>` | 设置依赖 | `/task add "登录UI" --depends "task1,task2"` |
 | `/task update <id> --status <status>` | 更新状态 | `/task update 1 --status completed` |
+| `/task done <id>` | 完成任务 | `/task done 1` |
 | `/task delete <id>` | 删除任务 | `/task delete 1` |
-| `/task list [status]` | 列出任务 | `/task list pending` |
+| `/task list [--type <type>]` | 列出任务 | `/task list --type feature` |
 | `/task show <id>` | 查看详情 | `/task show 1` |
 
-### 导出任务
+### 任务类型
 
-| 命令 | 说明 | 示例 |
+| 类型 | 图标 | 说明 |
 |------|------|------|
-| `/task-export <file>` | 导出任务 | `/task-export tasks.md` |
+| `feature` | ✨ | 新功能开发 |
+| `bug` | 🐛 | 缺陷修复 |
+| `refactor` | ♻️ | 代码重构 |
+| `test` | 🧪 | 测试相关 |
+| `docs` | 📝 | 文档编写 |
+| `config` | ⚙️ | 配置变更 |
 
 ### 状态值
 
@@ -70,23 +94,22 @@
 - `blocked` - 已阻塞 🚫
 - `cancelled` - 已取消 ❌
 
-### 优先级
+### 导出任务
 
-- `critical` - 紧急 🔴
-- `high` - 高 🟠
-- `medium` - 中 🟡
-- `low` - 低 🟢
+| 命令 | 说明 | 示例 |
+|------|------|------|
+| `/task-export <file>` | 导出任务 | `/task-export tasks.md` |
 
 ## 使用场景
 
 ### 1. 项目初始化
 
 ```bash
-/task add "项目初始化"
-/task add "数据库设计"
-/task add "API开发"
-/task add "前端实现"
-/task add "测试部署"
+/task add "项目初始化" --type feature
+/task add "数据库设计" --type feature --depends "项目初始化"
+/task add "API开发" --type feature --depends "数据库设计"
+/task add "前端实现" --type feature --depends "API开发"
+/task add "测试部署" --type test
 
 /task-export "tasks-initial.md"
 ```
@@ -96,13 +119,26 @@
 ```bash
 # 开始工作
 /task list pending
-/task update 3 --status in_progress
+/task update <id> --status in_progress
 
 # 完成任务
-/task update 3 --status completed
+/task done <id>
 ```
 
-### 3. 版本发布
+### 3. 缺陷修复
+
+```bash
+# 创建bug任务
+/task add "修复登录超时" \
+  --type bug \
+  --description "生产环境登录接口在并发>100时超时超过30秒" \
+  --acceptance "并发100时响应时间<2秒，成功率>99%"
+
+# 修复完成后验证
+/task done <id>
+```
+
+### 4. 版本发布
 
 ```bash
 # 导出任务快照
@@ -119,7 +155,7 @@ git commit -m "v1.0 任务归档"
 
 1. **项目启动**
    ```bash
-   /task add "项目初始化"
+   /task add "项目初始化" --type feature --acceptance "项目结构创建完成"
    /task-export "tasks-plan.md"
    ```
 
@@ -128,7 +164,7 @@ git commit -m "v1.0 任务归档"
    /task list pending
    /task update <id> --status in_progress
    # ... 工作完成 ...
-   /task update <id> --status completed
+   /task done <id>
    ```
 
 3. **里程碑**
@@ -150,22 +186,40 @@ git commit -m "v1.0 任务归档"
 - "完成用户模块"（太大）
 - "写代码"（不明确）
 
-### 2. 任务描述
+### 2. 验收标准
 
-提供完整上下文：
+每个任务都应该有清晰的验收标准：
 
 ```bash
-/task-add "修复API超时" \
-  "生产环境/api/users在并发>100时超时，需要优化查询" \
-  "high"
+/task add "实现用户注册" \
+  --type feature \
+  --acceptance "用户可以使用邮箱注册，收到验证邮件，完成邮箱验证激活账户"
 ```
 
-### 3. 优先级设置
+好的验收标准应该：
+- ✅ 具体、可验证
+- ✅ 包含明确的完成条件
+- ✅ 可以通过测试验证
 
-- `critical`：阻塞发布的安全问题
-- `high`：影响用户体验的Bug
-- `medium`：常规功能开发
-- `low`：文档和改进
+❌ 不好的验收标准：
+- "完成功能"（太模糊）
+- "代码质量好"（无法验证）
+
+### 3. 依赖关系
+
+使用依赖关系管理任务顺序：
+
+```bash
+# 基础任务
+/task add "设计数据库" --type feature
+
+# 依赖任务
+/task add "实现用户API" --type feature --depends "设计数据库"
+/task add "实现前端页面" --type feature --depends "实现用户API"
+
+# 测试任务
+/task add "编写测试用例" --type test --depends "实现用户API,实现前端页面"
+```
 
 ### 4. 定期导出
 
@@ -181,16 +235,17 @@ git commit -m "v1.0 任务归档"
 
 ```sql
 CREATE TABLE tasks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
+    type TEXT DEFAULT 'feature',
     status TEXT DEFAULT 'pending',
-    priority TEXT DEFAULT 'medium',
-    tags TEXT,
+    acceptance_criteria TEXT,
+    dependencies TEXT,
+    parent_id TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
-    parent_id INTEGER,
     FOREIGN KEY (parent_id) REFERENCES tasks(id) ON DELETE CASCADE
 );
 ```
@@ -200,7 +255,7 @@ CREATE TABLE tasks (
 ```sql
 CREATE TABLE notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    task_id INTEGER NOT NULL,
+    task_id TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
