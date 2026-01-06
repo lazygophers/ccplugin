@@ -6,6 +6,94 @@ CCPlugin Market 是一个 Claude Code 插件市场仓库，为开发者提供高
 
 ## 开发规范
 
+### 编程语言规范（强制）
+
+**优先级**：
+1. **Python（首选）** - 用于复杂逻辑、数据处理、API 调用
+2. **Bash（次选）** - 用于系统操作、文件处理、快速脚本
+3. **Markdown/JSON（必需）** - 用于配置和定义
+
+**Python 执行规范（强制）**：
+
+**⚠️ 必须使用 uv 管理和执行 Python**
+
+- ✅ **使用 uv**：`uv run script.py` 或 `uv pip install ...`
+- ❌ **禁止直接执行**：`python3 script.py` 或 `python script.py`
+
+**原因**：
+- uv 提供快速的依赖管理和虚拟环境
+- 确保依赖隔离和版本一致性
+- 避免全局 Python 环境污染
+
+**正确用法**：
+```bash
+# 执行 Python 脚本
+uv run scripts/my_script.py
+
+# 安装依赖
+uv pip install requests
+
+# 同步依赖
+uv sync
+```
+
+**错误用法**：
+```bash
+# ❌ 不要这样
+python3 scripts/my_script.py
+python scripts/my_script.py
+./scripts/my_script.py
+```
+
+**语言选择原则**：
+- 复杂逻辑、数据处理 → Python（使用 uv）
+- 系统操作、文件处理、Hooks → Bash
+- 配置文件、命令定义 → Markdown + JSON
+
+**禁止使用**：
+- 编译型语言（Go、Rust、C++等）- 除非有特殊需求并预先编译好二进制文件
+- 需要复杂环境配置的语言
+- 直接执行 Python（不使用 uv）
+
+**示例**：
+```python
+# Python - 复杂逻辑
+import sys
+import json
+
+def process_data(data):
+    # 复杂处理逻辑
+    return result
+
+if __name__ == "__main__":
+    process_data(sys.stdin.read())
+```
+
+```bash
+#!/bin/bash
+# Bash - 系统操作
+for file in "$@"; do
+    cp "$file" "$file.backup"
+done
+```
+
+**目录结构**：
+```
+plugin/
+├── scripts/
+│   ├── process.py         # Python: 复杂逻辑
+│   ├── format.sh          # Bash: 系统操作
+│   └── check.sh           # Bash: 快速检查
+├── commands/
+│   └── my-command.md      # Markdown: 命令定义
+└── .claude-plugin/
+    └── plugin.json        # JSON: 配置
+```
+
+**参考文档**：
+- [支持的语言](docs/supported-languages.md) - 完整语言列表
+- [编译型语言指南](docs/compiled-languages-guide.md) - 如需使用编译型语言
+
 ### 插件开发规范
 
 **强制要求**：
