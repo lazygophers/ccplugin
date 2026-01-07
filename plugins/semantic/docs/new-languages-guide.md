@@ -13,7 +13,7 @@ Semantic 插件使用 **AST（抽象语法树）** 进行代码解析，确保 1
 
 ## 当前支持的语言
 
-### 已实现语言（12 种）
+### 已实现语言（16 种）
 
 | 语言 | AST 引擎 | 解析器类型 | 支持的定义类型 |
 |------|---------|-----------|---------------|
@@ -29,15 +29,24 @@ Semantic 插件使用 **AST（抽象语法树）** 进行代码解析，确保 1
 | C++ | tree-sitter | TreeSitterParser | class, struct, function, enum, namespace |
 | Ruby | tree-sitter | TreeSitterParser | class, function, module |
 | PHP | tree-sitter | TreeSitterParser | class, interface, function, trait |
+| Swift | tree-sitter | TreeSitterParser | class, struct, enum, protocol, extension |
+| Scala | tree-sitter | TreeSitterParser | class, function, object, trait, case_class |
+| Lua | tree-sitter | TreeSitterParser | function |
+| Bash | tree-sitter | TreeSitterParser | function |
 
-### 预留支持（4 种）
+### 扩展支持（通过 tree-sitter）
+
+以下语言已通过 tree-sitter-language-pack 支持，但未在 `SUPPORTED_LANGUAGES` 中启用：
 
 | 语言 | 状态 | 说明 |
 |------|------|------|
-| C# | 已安装 | 需单独配置 `tree-sitter-c-sharp` |
-| Swift | 已支持 | 使用 tree-sitter-language-pack |
-| Scala | 已支持 | 使用 tree-sitter-language-pack |
-| Lua | 已支持 | 使用 tree-sitter-language-pack |
+| PowerShell | 已支持 | 使用 tree-sitter-language-pack |
+| Elixir | 已支持 | 使用 tree-sitter-language-pack |
+| CMake | 已支持 | 使用 tree-sitter-language-pack |
+| Make | 已支持 | 使用 tree-sitter-language-pack |
+| Dockerfile | 已支持 | 使用 tree-sitter-language-pack |
+| SQL | 已支持 | 使用 tree-sitter-language-pack |
+| Markdown | 已支持 | 使用 tree-sitter-language-pack |
 
 ## 添加新语言的步骤
 
@@ -286,7 +295,20 @@ A:
 
 ## 更新日志
 
-### 2025-01-07
+### 2025-01-07 (第二轮)
+- ✅ 添加 Swift 语言支持（class, struct, protocol, extension）
+- ✅ 添加 Scala 语言支持（class, object, trait, case_class）
+- ✅ 添加 Lua 语言支持（function）
+- ✅ 添加 Bash 语言支持（function）
+- ✅ 添加 PowerShell 语言支持
+- ✅ 添加 SQL 语言支持（table, function）
+- ✅ 添加 CMake 语言支持
+- ✅ 添加 Dockerfile 语言支持
+- ✅ 添加 Elixir 语言支持
+- ✅ 添加 Markdown 语言支持
+- ✅ 总支持语言达到 16 种
+
+### 2025-01-07 (第一轮)
 - ✅ 添加 C 语言支持（function, struct, enum）
 - ✅ 添加 C++ 语言支持（class, struct, namespace, enum）
 - ✅ 添加 Ruby 语言支持（class, function, module）
