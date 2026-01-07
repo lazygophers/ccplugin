@@ -17,6 +17,7 @@
 backup/
 *.bak
 lib/
+!plugins/semantic/scripts/lib/
 *.app/
 *~
 \#*\#

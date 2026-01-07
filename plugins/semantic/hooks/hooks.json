@@ -1,0 +1,32 @@
+{
+    "description": "代码语义搜索插件 Hooks - 自动初始化和管理代码索引",
+    "hooks": {
+        "SessionStart": [
+            {
+                "type": "command",
+                "command": "cd ${CLAUDE_PLUGIN_ROOT}/plugins/semantic && uv run scripts/semantic.py init --silent || true",
+                "description": "会话开始时自动初始化 Semantic 并建立索引"
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Write|Edit|Bash|Task",
+                "hooks": {
+                    "type": "command",
+                    "command": "cd ${CLAUDE_PLUGIN_ROOT}/plugins/semantic && uv run scripts/semantic.py index --incremental --silent || true",
+                    "description": "文件写入后增量更新索引",
+                    "matcher": {
+                        "toolName": "Write"
+                    }
+                }
+            }
+        ],
+        "SessionEnd": [
+            {
+                "type": "command",
+                "command": "cd ${CLAUDE_PLUGIN_ROOT}/plugins/semantic && uv run scripts/semantic.py stats --silent || true",
+                "description": "会话结束时显示索引统计（静默模式）"
+            }
+        ]
+    }
+}
