@@ -1,0 +1,4 @@
+# 插件市场配置
+# 忽略本地配置覆盖
+local.json
+local.*.json

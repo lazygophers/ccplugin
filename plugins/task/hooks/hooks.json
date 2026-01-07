@@ -1,0 +1,17 @@
+{
+  "description": "任务管理插件 Hooks - 自动初始化任务数据库和环境",
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/task/scripts/task.py init --silent || true"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/task/scripts/task.py init --silent || true"
+      }
+    ]
+  }
+}

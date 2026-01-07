@@ -1,0 +1,9 @@
+# Claude Code 开发配置
+# 忽略会话临时文件
+*.session
+*.log
+
+# 忽略测试产生的临时文件
+.tmp/
+*.tmp
+last_change_stats.json
