@@ -125,8 +125,7 @@ class TreeSitterParser(CodeParser):
             "trait": "trait_definition",
         },
         "lua": {
-            "function": "function_definition",
-            "local_function": "function_definition",
+            "function": "function_declaration",
         },
         "elixir": {
             "function": "anonymous_function",
@@ -137,8 +136,8 @@ class TreeSitterParser(CodeParser):
             "alias": "declaration",
         },
         "powershell": {
-            "function": "function_definition",
-            "class": "class_definition",
+            "function": "function_statement",
+            "class": "class_statement",
         },
         "cmake": {
             "function": "function_call",
@@ -151,8 +150,8 @@ class TreeSitterParser(CodeParser):
             "function": "instruction",
         },
         "sql": {
-            "function": "function_definition",
-            "table": "table_definition",
+            "function": "create_function",
+            "table": "create_table",
         },
     }
 
@@ -310,15 +309,66 @@ class TreeSitterParser(CodeParser):
 
         return chunks
 
+    def _find_identifier(self, node) -> Optional[str]:
+        """递归查找 identifier 节点并返回其文本"""
+        if node.type == "identifier":
+            return node.text.decode("utf8")
+
+        for child in node.children:
+            result = self._find_identifier(child)
+            if result:
+                return result
+
+        return None
+
+    def _find_object_reference_name(self, node) -> Optional[str]:
+        """从 object_reference 类型的子节点中查找名称"""
+        for child in node.children:
+            if child.type == "object_reference":
+                # object_reference 节点直接包含名称文本
+                return child.text.decode("utf8")
+        return None
+
     def _parse_function(self, node, code: str, file_path: str) -> Optional[Dict]:
         """解析函数定义"""
         try:
             # 获取函数名
             name_node = node.child_by_field_name("name")
             if not name_node:
-                return None
+                # PowerShell 使用 function_name 字段
+                name_node = node.child_by_field_name("function_name")
 
-            func_name = name_node.text.decode("utf8")
+            if not name_node:
+                # 某些语言的函数名在特定类型的子节点中
+                for child in node.children:
+                    if child.type in ["function_name", "identifier"]:
+                        name_node = child
+                        break
+
+            if not name_node:
+                # 尝试从 declarator 字段获取（C/C++ 特殊处理）
+                declarator_node = node.child_by_field_name("declarator")
+                if declarator_node:
+                    # 查找 identifier 类型的子节点
+                    for child in declarator_node.children:
+                        if child.type == "identifier" or child.type.endswith("declarator"):
+                            # 递归查找 identifier
+                            name_text = self._find_identifier(child)
+                            if name_text:
+                                func_name = name_text
+                                break
+                    else:
+                        # 尝试从 object_reference 子节点获取（SQL 特殊处理）
+                        func_name = self._find_object_reference_name(node)
+                        if not func_name:
+                            return None
+                else:
+                    # 尝试从 object_reference 子节点获取（SQL 特殊处理）
+                    func_name = self._find_object_reference_name(node)
+                    if not func_name:
+                        return None
+            else:
+                func_name = name_node.text.decode("utf8")
 
             # 获取代码范围
             start_line = node.start_point[0]
@@ -689,9 +739,12 @@ class TreeSitterParser(CodeParser):
             # 获取 table 名
             name_node = node.child_by_field_name("name")
             if not name_node:
-                return None
-
-            table_name = name_node.text.decode("utf8")
+                # 尝试从 object_reference 子节点获取（SQL 特殊处理）
+                table_name = self._find_object_reference_name(node)
+                if not table_name:
+                    return None
+            else:
+                table_name = name_node.text.decode("utf8")
 
             # 获取代码范围
             start_line = node.start_point[0]

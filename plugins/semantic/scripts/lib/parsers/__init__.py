@@ -25,8 +25,6 @@ from .flutter_parser import DartParser
 from .java_parser import JavaParser
 from .kotlin_parser import KotlinParser
 from .javascript_parser import JavaScriptParser
-from .simple_parser import SimpleParser
-from .tree_sitter_base import TreeSitterParser
 
 __all__ = [
     "CodeParser",
@@ -37,8 +35,6 @@ __all__ = [
     "JavaParser",
     "KotlinParser",
     "JavaScriptParser",
-    "SimpleParser",
-    "TreeSitterParser",
     "create_parser",
     "parse_file",
 ]
@@ -54,7 +50,7 @@ def create_parser(language: str) -> CodeParser:
         对应语言的解析器实例
 
     Raises:
-        ValueError: 当传入不支持的语言时
+        ImportError: 当 tree-sitter-language-pack 未安装时
     """
     language_lower = language.lower()
 
@@ -99,10 +95,20 @@ def create_parser(language: str) -> CodeParser:
     ]
 
     if language_lower in tree_sitter_languages:
-        return TreeSitterParser(language_lower)
+        # 动态导入 tree-sitter 解析器
+        try:
+            from .tree_sitter_base import TreeSitterParser
+            return TreeSitterParser(language_lower)
+        except ImportError as e:
+            if "tree-sitter-language-pack" in str(e):
+                raise ImportError(
+                    "tree-sitter-language-pack 未安装。\n"
+                    "请运行: uv sync"
+                ) from e
+            raise
 
-    # 对于没有专用解析器的语言，使用简单解析器
-    return SimpleParser(language_lower)
+    # 对于不支持的语言，报错
+    raise ValueError(f"不支持的语言: {language}")
 
 
 def parse_file(file_path: Path, language: str) -> List[Dict]:
