@@ -21,4 +21,7 @@ SUPPORTED_LANGUAGES = {
     "php": [".php"],
     "ruby": [".rb"],
     "markdown": [".md"],
+    "sql": [".sql"],
+    "dockerfile": ["Dockerfile", "dockerfile"],
+    "powershell": [".ps1", ".psm1"],
 }

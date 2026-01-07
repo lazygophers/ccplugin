@@ -6,42 +6,31 @@
 
 Semantic 插件使用 **AST（抽象语法树）** 进行代码解析，确保 100% 的准确性。所有语言解析器都基于 `tree-sitter` 或 Python 标准库 `ast` 模块。
 
-### 当前支持：16 种编程语言
+### 当前支持：19 种编程语言
 
-#### 核心编程语言（16 种）
+#### 完整支持的语言（19 种）
 
-| 语言         | AST 引擎     | 准确性 | 支持状态    |
-| ------------ | ------------ | ------ | ----------- |
-| Python       | `ast` 标准库 | 100%   | ✅ 完全支持 |
-| Go           | tree-sitter  | 100%   | ✅ 完全支持 |
-| Rust         | tree-sitter  | 100%   | ✅ 完全支持 |
-| Java         | tree-sitter  | 100%   | ✅ 完全支持 |
-| Kotlin       | tree-sitter  | 100%   | ✅ 完全支持 |
-| JavaScript   | tree-sitter  | 100%   | ✅ 完全支持 |
-| TypeScript   | tree-sitter  | 100%   | ✅ 完全支持 |
-| Dart/Flutter | tree-sitter  | 100%   | ✅ 完全支持 |
-| C            | tree-sitter  | 100%   | ✅ 完全支持 |
-| C++          | tree-sitter  | 100%   | ✅ 完全支持 |
-| Ruby         | tree-sitter  | 100%   | ✅ 完全支持 |
-| PHP          | tree-sitter  | 100%   | ✅ 完全支持 |
-| Swift        | tree-sitter  | 100%   | ✅ 完全支持 |
-| Scala        | tree-sitter  | 100%   | ✅ 完全支持 |
-| Lua          | tree-sitter  | 100%   | ✅ 完全支持 |
-| Bash         | tree-sitter  | 100%   | ✅ 完全支持 |
-
-#### 扩展语言支持（7 种）
-
-| 语言       | AST 引擎    | 准确性 | 支持状态    |
-| ---------- | ----------- | ------ | ----------- |
-| PowerShell | tree-sitter | 100%   | ⚠️ 基础支持 |
-| Elixir     | tree-sitter | 100%   | ⚠️ 基础支持 |
-| SQL        | tree-sitter | 100%   | ⚠️ 基础支持 |
-| CMake      | tree-sitter | 100%   | ⚠️ 基础支持 |
-| Dockerfile | tree-sitter | 100%   | ⚠️ 基础支持 |
-| Make       | tree-sitter | 100%   | ⚠️ 基础支持 |
-| Markdown   | tree-sitter | 100%   | ⚠️ 基础支持 |
-
-> **说明**: 基础支持意味着解析器可以工作，但可能需要进一步调整节点类型映射以提取更多定义类型。
+| 语言         | 文件扩展名                   | AST 引擎     | 准确性 | 支持状态    |
+| ------------ | ---------------------------- | ------------ | ------ | ----------- |
+| Python       | `.py`                        | `ast` 标准库 | 100%   | ✅ 完全支持 |
+| Go           | `.go`                        | tree-sitter  | 100%   | ✅ 完全支持 |
+| Rust         | `.rs`                        | tree-sitter  | 100%   | ✅ 完全支持 |
+| Java         | `.java`                      | tree-sitter  | 100%   | ✅ 完全支持 |
+| Kotlin       | `.kt`, `.kts`                | tree-sitter  | 100%   | ✅ 完全支持 |
+| JavaScript   | `.js`, `.jsx`, `.mjs`        | tree-sitter  | 100%   | ✅ 完全支持 |
+| TypeScript   | `.ts`, `.tsx`                | tree-sitter  | 100%   | ✅ 完全支持 |
+| Dart/Flutter | `.dart`                      | tree-sitter  | 100%   | ✅ 完全支持 |
+| C            | `.c`, `.h`                   | tree-sitter  | 100%   | ✅ 完全支持 |
+| C++          | `.cpp`, `.cc`, `.cxx`, `.hpp` | tree-sitter  | 100%   | ✅ 完全支持 |
+| C#           | `.cs`                        | tree-sitter  | 100%   | ✅ 完全支持 |
+| Ruby         | `.rb`                        | tree-sitter  | 100%   | ✅ 完全支持 |
+| PHP          | `.php`                       | tree-sitter  | 100%   | ✅ 完全支持 |
+| Swift        | `.swift`                     | tree-sitter  | 100%   | ✅ 完全支持 |
+| Bash         | `.sh`, `.bash`               | tree-sitter  | 100%   | ✅ 完全支持 |
+| Markdown     | `.md`                        | tree-sitter  | 100%   | ✅ 完全支持 |
+| SQL          | `.sql`                       | tree-sitter  | 100%   | ✅ 完全支持 |
+| Dockerfile   | `Dockerfile`, `dockerfile`   | tree-sitter  | 100%   | ✅ 完全支持 |
+| PowerShell   | `.ps1`, `.psm1`              | tree-sitter  | 100%   | ✅ 完全支持 |
 
 ## 语言详细信息
 
@@ -327,6 +316,41 @@ struct Point {
 enum Color { RED, GREEN, BLUE };
 ```
 
+### C#
+
+**AST 引擎**: tree-sitter
+
+**支持的定义类型**:
+
+- `class` - 类定义
+- `interface` - 接口定义
+- `struct` - 结构体定义
+- `enum` - 枚举定义
+- `method` - 方法定义
+
+**特性**:
+
+- 属性支持
+- 泛型
+- LINQ 表达式
+- 异步编程
+
+**示例**:
+
+```csharp
+public class Person {
+    public string Name { get; set; }
+
+    public void Greet() {
+        Console.WriteLine($"Hello, {Name}");
+    }
+}
+
+public interface ILogger {
+    void Log(string message);
+}
+```
+
 ### Ruby
 
 **AST 引擎**: tree-sitter
@@ -448,41 +472,6 @@ extension Int {
 }
 ```
 
-### Scala
-
-**AST 引擎**: tree-sitter
-
-**支持的定义类型**:
-
-- `class` - 类定义
-- `object` - Object 定义（单例）
-- `trait` - Trait 定义
-- `function` - 函数定义
-- `case_class` - Case class
-
-**特性**:
-
-- Object 单例模式
-- Trait 混入
-- Case class 不可变数据
-- 函数式编程
-
-**示例**:
-
-```scala
-trait Logger {
-    def log(message: String): Unit
-}
-
-object Config {
-    val version = "1.0.0"
-}
-
-class UserService extends Logger {
-    def createUser(name: String): Person = ???
-}
-```
-
 ### Bash/Shell
 
 **AST 引擎**: tree-sitter
@@ -512,64 +501,34 @@ function calculate_sum() {
 }
 ```
 
-### Lua
+### Markdown
 
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
 
-- `function` - 函数定义
+- `section` - 章节定义（基于标题）
+- `code_block` - 代码块
 
 **特性**:
 
-- Shell 函数
-- 脚本组织
-- 环境变量管理
+- 标题层级解析
+- 代码块识别
+- 列表和表格支持
 
 **示例**:
 
-```bash
-#!/bin/bash
+```markdown
+# API 文档
 
-function greet() {
-    local name=$1
-    echo "Hello, $name"
-}
+## 用户管理
 
-function calculate_sum() {
-    echo $(($1 + $2))
-}
-```
+### 创建用户
 
-### Lua
-
-**AST 引擎**: tree-sitter
-
-**支持的定义类型**:
-
-- `function` - 函数定义
-
-**特性**:
-
-- 表作为类
-- Module 系统
-- 元编程
-
-**示例**:
-
-```lua
-Person = {}
-Person.__index = Person
-
-function Person.new(name, age)
-    local self = setmetatable({}, Person)
-    self.name = name
-    return self
-end
-
-function Person:greet()
-    return "Hello, " .. self.name
-end
+\`\`\`python
+def create_user(name):
+    return User(name=name)
+\`\`\`
 ```
 
 ### SQL
@@ -580,6 +539,7 @@ end
 
 - `table` - 表定义
 - `function` - 函数定义
+- `view` - 视图定义
 
 **特性**:
 
@@ -595,11 +555,87 @@ CREATE TABLE users (
     username VARCHAR(50)
 );
 
+CREATE VIEW active_users AS
+SELECT * FROM users WHERE status = 'active';
+
 CREATE FUNCTION get_count() RETURNS INT AS $$
 BEGIN
     RETURN COUNT(*) FROM users;
 END;
 $$ LANGUAGE plpgsql;
+```
+
+### Dockerfile
+
+**AST 引擎**: tree-sitter
+
+**支持的定义类型**:
+
+- `instruction` - Docker 指令（FROM, RUN, COPY 等）
+- `section` - 逻辑分块
+
+**特性**:
+
+- 多阶段构建支持
+- 指令级别解析
+- 环境变量识别
+
+**示例**:
+
+```dockerfile
+# 基础镜像
+FROM python:3.12-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 安装依赖
+RUN apt-get update && apt-get install -y gcc
+
+# 复制文件
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# 运行应用
+CMD ["python", "app.py"]
+```
+
+### PowerShell
+
+**AST 引擎**: tree-sitter
+
+**支持的定义类型**:
+
+- `function` - 函数定义
+- `class` - 类定义
+
+**特性**:
+
+- 函数和模块
+- 类和对象
+- 管道操作
+- 错误处理
+
+**示例**:
+
+```powershell
+function Get-Greeting {
+    param([string]$Name)
+    return "Hello, $Name"
+}
+
+class Person {
+    [string]$Name
+    [int]$Age
+
+    [void] Greet() {
+        Write-Host "Hello, $($this.Name)"
+    }
+}
+
+$person = [Person]::new()
+$person.Name = "Alice"
+$person.Greet()
 ```
 
 ## 技术实现
@@ -623,11 +659,19 @@ CodeParser (基类)
     └── TreeSitterParser (通用)
         ├── DartParser
         ├── JavaScriptParser
+        ├── TypeScriptParser
         ├── JavaParser
         ├── RustParser
         ├── C/C++ Parser
+        ├── C# Parser
         ├── Ruby Parser
-        └── PHP Parser
+        ├── PHP Parser
+        ├── Swift Parser
+        ├── BashParser
+        ├── MarkdownParser
+        ├── SQLParser
+        ├── DockerfileParser
+        └── PowerShellParser
 ```
 
 ### 性能指标
@@ -642,41 +686,32 @@ CodeParser (基类)
 
 ```bash
 cd scripts
-python3 test_all_languages.py
+uv run test_all_languages.py
 ```
 
 预期输出：
 
 ```
 ✅ 完整验证通过！所有语言都使用 AST 解析。
-总语言数: 16
-成功: 16
-总定义数: 60+
+总语言数: 19
+成功: 19
+总定义数: 70+
 AST 覆盖率: 100%
 ```
 
 ## 更新日志
 
-**2025-01-07 (第二轮)**
+**2025-01-07 (最新)**
+
+- ✅ 添加 SQL 语言支持（table, function, view）
+- ✅ 添加 Dockerfile 语言支持
+- ✅ 添加 PowerShell 语言支持（function, class）
+- ✅ 总支持语言达到 19 种
+
+**2025-01-07 (之前)**
 
 - ✅ 添加 Swift 语言支持（class, struct, protocol, extension）
-- ✅ 添加 Scala 语言支持（class, object, trait, case_class）
 - ✅ 添加 Bash/Shell 语言支持（function）
-- ✅ 添加 Lua 语言支持（function）
-- ✅ 添加 PowerShell 语言支持
-- ✅ 添加 SQL 语言支持（table, function）
-- ✅ 添加 CMake 语言支持
-- ✅ 添加 Dockerfile 语言支持
-- ✅ 添加 Elixir 语言支持
-- ✅ 添加 Make 语言支持
-- ✅ 添加 Markdown 语言支持
-- ✅ 总支持语言达到 16 种（核心语言）+ 7 种（扩展语言）
-
-**2025-01-07 (第一轮)**
-
-- ✅ 添加 C 语言支持
-- ✅ 添加 C++ 语言支持
-- ✅ 添加 Ruby 语言支持
-- ✅ 添加 PHP 语言支持
+- ✅ 添加 Markdown 语言支持（section, code_block）
 - ✅ 所有语言迁移到 AST 解析
-- ✅ 验证 12 种语言 100% 覆盖
+- ✅ 验证 16 种语言 100% 覆盖
