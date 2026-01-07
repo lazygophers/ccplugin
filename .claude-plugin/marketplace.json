@@ -1,6 +1,6 @@
 {
   "name": "ccplugin-market",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Claude Code 插件市场 - 提供常用插件和开发模板",
   "author": {
     "name": "ccplugin Team",
@@ -19,41 +19,11 @@
       "name": "task",
       "source": "./plugins/task",
       "description": "项目任务管理插件 - 使用 SQLite 存储任务，支持 Markdown 导入导出，完整的项目任务跟踪解决方案",
-      "version": "1.0.0",
+      "version": "0.0.1",
       "author": {
         "name": "ccplugin Team"
       },
       "keywords": ["task", "todo", "project", "management", "sqlite"]
-    },
-    {
-      "name": "code-quality-kit",
-      "source": "./plugins/code-quality-kit",
-      "description": "代码质量检查工具集 - 包含代码审查、安全扫描、性能分析等功能",
-      "version": "1.0.0",
-      "author": {
-        "name": "ccplugin Team"
-      },
-      "keywords": ["quality", "review", "security", "performance"]
-    },
-    {
-      "name": "web-dev-helper",
-      "source": "./plugins/web-dev-helper",
-      "description": "Web 开发助手 - 支持 React、Vue、Flutter 等框架的开发辅助",
-      "version": "1.0.0",
-      "author": {
-        "name": "ccplugin Team"
-      },
-      "keywords": ["web", "react", "vue", "frontend"]
-    },
-    {
-      "name": "data-processor",
-      "source": "./plugins/data-processor",
-      "description": "数据处理工具 - 支持数据转换、验证、导入导出等功能",
-      "version": "1.0.0",
-      "author": {
-        "name": "ccplugin Team"
-      },
-      "keywords": ["data", "etl", "validation"]
     }
   ]
 }

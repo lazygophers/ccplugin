@@ -1,6 +1,6 @@
 {
   "name": "plugin-template",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "插件开发模板 - 快速创建新插件的基础结构",
   "author": {
     "name": "YOUR_NAME",
