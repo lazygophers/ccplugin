@@ -5,7 +5,7 @@
       "args": [
         "--from",
         "git+https://github.com/lazygophers/ccplugin.git@master",
-        "plugins/task/scripts/mcp_server.py",
+        "task-mcp",
         "--mcp"
       ],
       "env": {}
