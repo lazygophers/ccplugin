@@ -14,6 +14,7 @@ Semantic Code Search - 代码语义搜索插件核心脚本
   - lancedb: 向量数据库（嵌入式）
   - sentence-transformers/flagembedding: 代码嵌入模型
 """
+import warnings; warnings.filterwarnings('ignore')
 
 import yaml
 from pathlib import Path
@@ -201,7 +202,6 @@ SUPPORTED_MODELS = {
 DEFAULT_CONFIG = {
     "backend": "lancedb",
     "embedding_model": "multilingual-e5-large",  # 多语言最高精度，1024维
-    "use_gpu": True,
     "chunk_size": 500,
     "chunk_overlap": 50,
     "gitignore": True,  # 默认遵守 .gitignore
@@ -367,8 +367,16 @@ def save_config(config: Dict, project_root: Optional[str] = None) -> bool:
             else:
                 f.write(f"embedding_model: {model_value}\n\n")
 
-            f.write("# 是否启用 GPU 加速（需要安装 torch 和 CUDA/MPS）\n")
-            f.write(f"use_gpu: {config.get('use_gpu', True)}\n\n")
+            f.write("# ============================================\n")
+            f.write("# 硬件加速说明\n")
+            f.write("# ============================================\n")
+            f.write("# GPU/硬件加速已自动检测并启用，无需手动配置\n")
+            f.write("# \n")
+            f.write("# 支持的加速类型:\n")
+            f.write("#   - Apple Silicon (M1/M2/M3): 自动启用 MPS (Metal Performance Shaders)\n")
+            f.write("#   - NVIDIA GPU: 自动启用 CUDA 加速\n")
+            f.write("#   - 其他平台: 使用 CPU 模式\n")
+            f.write("# ============================================\n\n")
 
             f.write("# 代码分块大小（字符数）\n")
             f.write(f"chunk_size: {config.get('chunk_size', 500)}\n\n")
@@ -848,7 +856,6 @@ def init(
 @app.command()
 def config(
     model: Optional[str] = typer.Option(None, "--model", "-m", help="设置嵌入模型"),
-    gpu: Optional[bool] = typer.Option(None, "--gpu", help="启用/禁用 GPU 加速"),
 ):
     """查看和修改配置"""
     config_data = load_config()
@@ -860,9 +867,8 @@ def config(
     model_value = config_data.get("embedding_model", "bge-large-en")
     console.print(f"[dim]嵌入模型:[/dim] {model_value}")
 
-    # GPU 配置
-    gpu_value = config_data.get("use_gpu", True)
-    console.print(f"[dim]GPU 加速:[/dim] {'启用' if gpu_value else '禁用'}")
+    # 硬件加速状态（自动检测）
+    console.print(f"[dim]硬件加速:[/dim] 自动检测并启用")
 
     # 引擎配置
     engines = config_data.get("engines", {})
@@ -892,11 +898,6 @@ def config(
             console.print(f"\n[red]错误: 不支持的模型 '{model}'[/red]")
             console.print(f"可用模型: {', '.join(list(SUPPORTED_MODELS.keys())[:10])}...")
             raise typer.Exit(1)
-
-    if gpu is not None:
-        config_data["use_gpu"] = gpu
-        console.print(f"\n[green]✓ GPU 加速已: {'启用' if gpu else '禁用'}[/green]")
-        updated = True
 
     # 保存配置
     if updated:
@@ -1285,7 +1286,8 @@ def index(
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
 
-    from lib.hybrid_indexer import HybridIndexer
+    from lib.simple_search import SimpleSemanticSearch
+    from lib.parsers import create_parser
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=silent):
@@ -1313,68 +1315,127 @@ def index(
     if not silent:
         console.print(f"\n[bold cyan]代码索引[/bold cyan]")
         console.print(f"[dim]项目路径:[/dim] {root_path}")
-        console.print(f"[dim]后端:[/dim] {config_data.get('backend', 'lancedb')}")
-
-        engines = config_data.get("engines", {})
-        console.print(f"[dim]启用的引擎:[/dim] ", end="")
-        enabled_engines = [name for name, cfg in engines.items() if cfg.get("enabled")]
-        console.print(", ".join(enabled_engines) if enabled_engines else "无")
+        console.print(f"[dim]模型:[/dim] {config_data.get('embedding_model', 'bge-small-en')}")
         console.print()
 
-    # 初始化混合索引器
-    indexer = HybridIndexer(config_data, data_path)
-
-    with console.status("[bold green]初始化中..."):
-        if not indexer.initialize():
-            if not silent:
-                console.print("[red]✗ 初始化失败[/red]")
-            raise typer.Exit(1)
+    # 初始化搜索引擎
+    search_engine = SimpleSemanticSearch(config_data, data_path)
 
     # 清空索引（如果强制）
     if force:
         if not silent:
             console.print("[yellow]清空现有索引...[/yellow]")
-        indexer.clear()
+        search_engine.clear()
 
     # 执行索引
     if not silent:
         console.print("[bold]开始索引...[/bold]\n")
 
-    # 使用进度条显示索引进度
-    if silent:
-        # 静默模式：直接调用
-        stats = indexer.index_project(root_path, incremental=incremental, silent=True)
-    else:
-        # 显示进度条
-        from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
-        from rich.console import Console as RichConsole
+    # 支持的文件扩展名
+    extensions = {
+        ".py": "python",
+        ".go": "golang",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".java": "java",
+        ".kt": "kotlin",
+        ".rs": "rust",
+        ".dart": "flutter",
+        ".swift": "swift",
+        ".scala": "scala",
+        ".lua": "lua",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".ps1": "powershell",
+        ".rb": "ruby",
+        ".php": "php",
+        ".cpp": "cpp",
+        ".c": "c",
+        ".h": "c",
+        ".hpp": "cpp",
+        ".cs": "csharp",
+        ".md": "markdown",
+        ".sql": "sql",
+    }
 
-        progress_console = RichConsole()
+    # 找到所有代码文件
+    code_files = []
+    for ext, lang in extensions.items():
+        files = list(root_path.rglob(f"*{ext}"))
+        for f in files:
+            # 跳过常见排除目录
+            if any(x in f.parts for x in ["node_modules", ".git", ".venv", "venv", "__pycache__", "build", "dist", ".lazygophers"]):
+                continue
+            code_files.append((f, lang))
+
+    if not silent:
+        console.print(f"[dim]找到 {len(code_files)} 个代码文件[/dim]\n")
+
+    if not code_files:
+        console.print("[yellow]警告: 未找到代码文件[/yellow]")
+        raise typer.Exit(0)
+
+    # 索引每个文件
+    indexed_files = 0
+    indexed_chunks = 0
+    failed_files = 0
+
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+
+    if not silent:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
-            TimeRemainingColumn(),
-            console=progress_console,
+            console=console,
         ) as progress:
-            stats = indexer.index_project(
-                root_path,
-                incremental=incremental,
-                progress=progress,
-                silent=False,
-            )
+            task = progress.add_task("[green]索引中...", total=len(code_files))
+
+            for file_path, language in code_files:
+                try:
+                    progress.update(task, description=f"[green]索引: {file_path.name}")
+
+                    # 使用解析器解析文件
+                    parser = create_parser(language)
+                    chunks = parser.parse_file(file_path)
+
+                    if chunks:
+                        search_engine.index_file(file_path, chunks)
+                        indexed_files += 1
+                        indexed_chunks += len(chunks)
+
+                except Exception as e:
+                    failed_files += 1
+                    if not silent:
+                        console.print(f"[dim]跳过 {file_path.name}: {e}[/dim]")
+
+                progress.update(task, advance=1)
+    else:
+        # 静默模式
+        for file_path, language in code_files:
+            try:
+                parser = create_parser(language)
+                chunks = parser.parse_file(file_path)
+
+                if chunks:
+                    search_engine.index_file(file_path, chunks)
+                    indexed_files += 1
+                    indexed_chunks += len(chunks)
+
+            except Exception:
+                failed_files += 1
+
+    # 保存索引
+    search_engine.save_index()
 
     # 显示结果
     if not silent:
         console.print("\n[bold green]✓ 索引完成[/bold green]\n")
-        console.print(f"[dim]扫描文件:[/dim] {stats['total_files']}")
-        console.print(f"[dim]索引文件:[/dim] {stats['indexed_files']}")
-        console.print(f"[dim]符号数:[/dim] {stats['total_symbols']}")
-        console.print(f"[dim]代码块数:[/dim] {stats['total_chunks']}")
-        console.print(f"[dim]失败文件:[/dim] {stats['failed_files']}")
-
-    indexer.close()
+        console.print(f"[dim]扫描文件:[/dim] {len(code_files)}")
+        console.print(f"[dim]索引文件:[/dim] {indexed_files}")
+        console.print(f"[dim]代码块数:[/dim] {indexed_chunks}")
+        console.print(f"[dim]失败文件:[/dim] {failed_files}")
 
 
 @app.command()
@@ -1389,7 +1450,7 @@ def search(
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
 
-    from lib.hybrid_indexer import HybridIndexer
+    from lib.simple_search import SimpleSemanticSearch
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=False):
@@ -1411,40 +1472,39 @@ def search(
         console.print("[red]错误: 未初始化，请先运行: /semantic init[/red]")
         raise typer.Exit(1)
 
-    # 初始化混合索引器
-    indexer = HybridIndexer(config_data, data_path)
+    # 初始化简化搜索引擎
+    search_engine = SimpleSemanticSearch(config_data, data_path)
 
-    with console.status("[bold green]初始化中..."):
-        if not indexer.initialize():
-            console.print("[red]✗ 初始化失败[/red]")
-            raise typer.Exit(1)
+    # 尝试加载索引
+    if not search_engine.load_index():
+        console.print("[yellow]警告: 索引不存在，请先运行: /semantic-index[/yellow]")
+        raise typer.Exit(0)
 
     # 检查索引
-    stats = indexer.get_stats()
+    stats = search_engine.get_stats()
     if stats.get("total_chunks", 0) == 0:
         console.print("[yellow]警告: 索引为空，请先运行: /semantic-index[/yellow]")
-        indexer.close()
         raise typer.Exit(0)
 
     # 执行搜索
-    strategy = config_data.get("search_strategy", "fast")
     console.print(f"\n[bold cyan]搜索:[/bold cyan] {query}")
-    console.print(f"[dim]策略:[/dim] {strategy}")
     console.print(f"[dim]相似度阈值:[/dim] {threshold:.2f}\n")
 
-    # 使用混合搜索
-    hybrid_results = indexer.hybrid_search(
+    # 使用简化搜索
+    results = search_engine.search(
         query=query,
         limit=limit,
-        language=language,
         threshold=threshold,
+        language=language,
     )
 
-    # 显示融合结果
-    results = hybrid_results.get("fused", [])
-
+    # 显示结果
     if not results:
         console.print("[yellow]未找到相关代码[/yellow]")
+        console.print("\n[dim]建议:[/dim]")
+        console.print("  1. 尝试降低阈值: --threshold 0.5")
+        console.print("  2. 尝试不同的关键词")
+        console.print("  3. 确认已建立索引: /semantic-index")
     else:
         table = Table(title=f"搜索结果 ({len(results)} 条)", show_header=True, header_style="bold magenta")
         table.add_column("相似度", style="cyan", width=10)
@@ -1458,7 +1518,7 @@ def search(
             similarity = f"{r.get('similarity', 0):.2f}"
             file_path = r.get('file_path', '')
             line_info = f"{r.get('start_line', 0)}:{r.get('end_line', 0)}"
-            code_type = r.get('code_type', r.get('type', 'block'))
+            code_type = r.get('type', 'block')
             name = r.get('name', '')
             code = r.get('code', '')[:100]
 
@@ -1472,11 +1532,10 @@ def search(
             for i, r in enumerate(results[:limit], 1):
                 console.print(f"[cyan]{i}.[/cyan] [bold]{r.get('file_path', '')}:{r.get('start_line', 0)}[/bold]")
                 console.print(f"[dim]相似度: {r.get('similarity', 0):.3f}[/dim]")
+                console.print(f"[dim]类型: {r.get('type')} | 名称: {r.get('name')}[/dim]")
                 console.print(f"\n[bold yellow]代码:[/bold yellow]")
                 console.print(r.get('code', '')[:500])
                 console.print()
-
-    indexer.close()
 
 
 @app.command()
@@ -1487,7 +1546,7 @@ def stats(
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
 
-    from lib.hybrid_indexer import HybridIndexer
+    from lib.simple_search import SimpleSemanticSearch
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=True):
@@ -1503,50 +1562,33 @@ def stats(
             console.print("[red]错误: 未初始化，请先运行: /semantic init[/red]")
         raise typer.Exit(1)
 
-    # 初始化索引器
-    indexer = HybridIndexer(config_data, data_path)
+    # 初始化搜索引擎
+    search_engine = SimpleSemanticSearch(config_data, data_path)
 
-    if not silent:
-        with console.status("[bold green]初始化中..."):
-            if not indexer.initialize():
-                console.print("[red]✗ 初始化失败[/red]")
-                raise typer.Exit(1)
-    else:
-        if not indexer.initialize():
-            return
+    # 尝试加载索引
+    if not search_engine.load_index():
+        if not silent:
+            console.print("[yellow]警告: 索引不存在，请先运行: /semantic-index[/yellow]")
+        return
 
     # 获取统计信息
-    stats_data = indexer.get_stats()
+    stats_data = search_engine.get_stats()
 
     if not silent:
         console.print("\n[bold cyan]索引统计[/bold cyan]\n")
 
-        # 向量统计
         console.print(f"[bold]向量索引:[/bold]")
-        console.print(f"  后端: {stats_data.get('backend', 'lancedb')}")
+        console.print(f"  模型: {stats_data.get('model', 'unknown')}")
         console.print(f"  代码块: {stats_data.get('total_chunks', 0)}")
 
-        # 符号统计
-        if 'total_symbols' in stats_data:
-            console.print(f"\n[bold]符号索引:[/bold]")
-            console.print(f"  符号总数: {stats_data.get('total_symbols', 0)}")
-
-            if 'by_type' in stats_data:
-                console.print(f"\n  按类型:")
-                for symbol_type, count in stats_data['by_type'].items():
-                    console.print(f"    {symbol_type}: {count}")
-
-            if 'by_language' in stats_data:
-                console.print(f"\n  按语言:")
-                for lang, count in sorted(stats_data['by_language'].items(), key=lambda x: x[1], reverse=True)[:5]:
-                    console.print(f"    {lang}: {count}")
-
-            if 'indexed_files' in stats_data:
-                console.print(f"\n  索引文件: {stats_data['indexed_files']}")
+        # 语言分布
+        languages = stats_data.get('languages', {})
+        if languages:
+            console.print(f"\n[bold]语言分布:[/bold]")
+            for lang, count in sorted(languages.items(), key=lambda x: x[1], reverse=True)[:10]:
+                console.print(f"  {lang}: {count}")
 
         console.print()
-
-    indexer.close()
 
 
 # ========== 主入口 ==========
