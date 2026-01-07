@@ -3,29 +3,33 @@
     "hooks": {
         "SessionStart": [
             {
-                "type": "command",
-                "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic init --silent || true",
-                "description": "会话开始时自动初始化 Semantic 并建立索引"
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic init --silent || true"
+                    }
+                ]
             }
         ],
         "PostToolUse": [
             {
                 "matcher": "Write|Edit|Bash|Task",
-                "hooks": {
-                    "type": "command",
-                    "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic index --incremental --silent || true",
-                    "description": "文件写入后增量更新索引",
-                    "matcher": {
-                        "toolName": "Write"
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic index --incremental --silent || true"
                     }
-                }
+                ]
             }
         ],
         "SessionEnd": [
             {
-                "type": "command",
-                "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic stats --silent || true",
-                "description": "会话结束时显示索引统计（静默模式）"
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic stats --silent || true"
+                    }
+                ]
             }
         ]
     }

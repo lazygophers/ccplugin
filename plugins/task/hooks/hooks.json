@@ -3,14 +3,22 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master task init --silent || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master task init --silent || true"
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "command",
-        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master task init --silent || true"
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master task init --silent || true"
+          }
+        ]
       }
     ]
   }
