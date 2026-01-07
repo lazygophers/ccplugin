@@ -218,9 +218,9 @@ class CodeIndexer:
                 finally:
                     progress.update(task, advance=1)
 
-        # 索引完成后，自动创建向量索引（如果数据量足够）
-        if stats["total_chunks"] >= 1000:
-            console.print("[dim]\\n正在创建向量索引...[/dim]")
+        # 索引完成后，自动创建余弦距离向量索引
+        if stats["total_chunks"] >= 100:
+            console.print("[dim]\\n正在创建余弦距离向量索引...[/dim]")
             self.create_index()
 
         return stats
