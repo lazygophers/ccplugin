@@ -1,7 +1,7 @@
 {
-  "total_files": 4,
+  "total_files": 8,
   "staged": 0,
-  "unstaged": 2,
-  "untracked": 2,
-  "summary": "未暂存 2 个, 未追踪 2 个文件 (Python 1, JSON/YAML 3)"
+  "unstaged": 8,
+  "untracked": 0,
+  "summary": "未暂存 8 个文件 (Markdown 4, JSON/YAML 4)"
 }
