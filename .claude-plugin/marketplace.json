@@ -1,0 +1,29 @@
+{
+  "name": "ccplugin-market",
+  "version": "0.0.1",
+  "description": "Claude Code 插件市场 - 提供常用插件和开发模板",
+  "author": {
+    "name": "ccplugin Team",
+    "email": "admin@ccplugin.dev",
+    "url": "https://github.com/ccplugin/market"
+  },
+  "homepage": "https://docs.ccplugin.dev",
+  "repository": "https://github.com/ccplugin/market",
+  "license": "MIT",
+  "owner": {
+    "name": "ccplugin Team",
+    "email": "admin@ccplugin.dev"
+  },
+  "plugins": [
+    {
+      "name": "task",
+      "source": "./plugins/task",
+      "description": "项目任务管理插件 - 使用 SQLite 存储任务，支持 Markdown 导入导出，完整的项目任务跟踪解决方案",
+      "version": "0.0.1",
+      "author": {
+        "name": "ccplugin Team"
+      },
+      "keywords": ["task", "todo", "project", "management", "sqlite"]
+    }
+  ]
+}

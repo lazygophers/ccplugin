@@ -1,0 +1,19 @@
+{
+  "name": "task",
+  "version": "0.0.1",
+  "description": "任务管理插件 - 用于项目任务的创建、跟踪和管理。支持SQLite存储、Markdown导出",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/plugins/task",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/task",
+  "license": "AGPL-3.0-or-later",
+  "keywords": ["task", "todo", "project", "management"],
+  "commands": [
+    "./commands/task.md",
+    "./commands/task-export.md"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}
