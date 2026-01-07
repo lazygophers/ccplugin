@@ -4,7 +4,7 @@
         "SessionStart": [
             {
                 "type": "command",
-                "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/semantic/scripts/semantic.py init --silent || true",
+                "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic init --silent || true",
                 "description": "会话开始时自动初始化 Semantic 并建立索引"
             }
         ],
@@ -13,7 +13,7 @@
                 "matcher": "Write|Edit|Bash|Task",
                 "hooks": {
                     "type": "command",
-                    "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/semantic/scripts/semantic.py index --incremental --silent || true",
+                    "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic index --incremental --silent || true",
                     "description": "文件写入后增量更新索引",
                     "matcher": {
                         "toolName": "Write"
@@ -24,7 +24,7 @@
         "SessionEnd": [
             {
                 "type": "command",
-                "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/semantic/scripts/semantic.py stats --silent || true",
+                "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic stats --silent || true",
                 "description": "会话结束时显示索引统计（静默模式）"
             }
         ]
