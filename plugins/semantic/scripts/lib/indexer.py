@@ -11,9 +11,16 @@ from typing import List, Dict, Optional, Set
 from datetime import datetime
 import pathspec
 
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.text import Text
+
 from .storage import create_storage
 from .embedding import EmbeddingGenerator, generate_code_id, truncate_code
 from .parsers import parse_file
+from .constants import SUPPORTED_LANGUAGES
+
+console = Console()
 
 
 class CodeIndexer:
@@ -64,11 +71,6 @@ class CodeIndexer:
         enabled_extensions = set()
         for lang, enabled in self.languages.items():
             if enabled:
-                import importlib
-
-                # 从 SUPPORTED_LANGUAGES 获取扩展名
-                from semantic import SUPPORTED_LANGUAGES
-
                 if lang in SUPPORTED_LANGUAGES:
                     enabled_extensions.update(SUPPORTED_LANGUAGES[lang])
 
@@ -97,6 +99,10 @@ class CodeIndexer:
             # 查找所有 .gitignore 文件
             for gitignore_path in root_path.rglob(".gitignore"):
                 try:
+                    # 跳过虚拟环境目录中的 .gitignore（它们通常包含 * 规则）
+                    if ".venv" in gitignore_path.parts or "venv" in gitignore_path.parts:
+                        continue
+
                     with open(gitignore_path, "r", encoding="utf-8") as f:
                         for line in f:
                             line = line.strip()
@@ -105,6 +111,9 @@ class CodeIndexer:
                                 continue
                             # 跳过以 ! 开头的否定规则（pathspec 不支持）
                             if line.startswith("!"):
+                                continue
+                            # 跳过单独的 * 规则（会匹配所有文件）
+                            if line == "*":
                                 continue
                             patterns.append(line)
                 except Exception:
@@ -185,22 +194,48 @@ class CodeIndexer:
         if not files:
             return stats
 
-        # 批量索引
-        for i, file_path in enumerate(files):
-            try:
-                chunk_count = self.index_file(file_path)
-                stats["indexed_files"] += 1
-                stats["total_chunks"] += chunk_count
+        # 使用 rich 进度条
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task(
+                "[cyan]正在索引文件...", total=len(files)
+            )
 
-                # 打印进度
-                if (i + 1) % 10 == 0:
-                    print(f"进度: {i + 1}/{len(files)} 文件")
+            # 批量索引
+            for file_path in files:
+                try:
+                    chunk_count = self.index_file(file_path)
+                    stats["indexed_files"] += 1
+                    stats["total_chunks"] += chunk_count
 
-            except Exception as e:
-                stats["failed_files"] += 1
-                print(f"警告: 索引 {file_path} 失败: {e}")
+                except Exception as e:
+                    stats["failed_files"] += 1
+                finally:
+                    progress.update(task, advance=1)
+
+        # 索引完成后，自动创建向量索引（如果数据量足够）
+        if stats["total_chunks"] >= 1000:
+            console.print("[dim]\\n正在创建向量索引...[/dim]")
+            self.create_index()
 
         return stats
+
+    def create_index(self, index_type: str = "IVF_PQ") -> bool:
+        """创建向量索引
+
+        Args:
+            index_type: 索引类型 ("IVF_PQ" 或 "HNSW")
+        """
+        return self.storage.create_vector_index(index_type=index_type)
+
+    def get_index_status(self) -> Dict:
+        """获取索引状态"""
+        return self.storage.check_index_status()
 
     def _detect_language(self, file_path: Path) -> Optional[str]:
         """检测文件的语言"""

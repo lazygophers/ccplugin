@@ -12,36 +12,15 @@ dependencies = [
     "pydantic>=2.10.0",
     "pathspec>=0.12.0",
     "pyyaml>=6.0.0",
-    "sentence-transformers>=5.1.2",
-    "torch>=2.8.0",
+    "sentence-transformers>=3.3.0",
+    "torch>=2.5.0",
     "tree-sitter-language-pack>=0.9.1",
+    "javalang>=0.13.0",  # Java AST 解析
 ]
 
 [project.optional-dependencies]
-# 代码模型（需要 sentence-transformers）
-code-models = [
-    "sentence-transformers>=3.3.0",
-    "torch>=2.5.0",
-]
-
-# 语言解析器（可选，提高特定语言解析精度）
-parsers = [
-    "javalang>=0.13.0",  # Java AST 解析
-    # 注意: Rust 需要使用 syn（Rust 库），Python 端使用正则回退
-]
-
 # GPU 支持（仅 Linux/Windows，通过 CUDA）
 # 注意：macOS 用户使用默认的 CPU 版本即可
 gpu = [
     "fastembed-gpu>=0.3.0; platform_system == 'Linux' or platform_system == 'Windows'",
-]
-
-# 完整功能（代码模型 + 语言解析器）
-all = [
-    "semantic-plugin[code-models,parsers]",
-]
-
-# GPU + 完整功能（Linux/Windows only）
-all-gpu = [
-    "semantic-plugin[code-models,parsers,gpu]",
 ]

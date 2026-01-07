@@ -134,6 +134,77 @@ class LanceDBStorage:
             print(f"错误: LanceDB 插入失败: {e}")
             return False
 
+    def create_vector_index(self, index_type: str = "IVF_PQ", wait: bool = True) -> bool:
+        """创建 FAISS 向量索引
+
+        Args:
+            index_type: 索引类型，支持 "IVF_PQ"（默认）或 "HNSW"
+            wait: 是否等待索引创建完成
+
+        Returns:
+            是否成功创建索引
+        """
+        if self.table is None:
+            return False
+
+        try:
+            # 检查是否已存在索引
+            existing_indices = self.table.list_indices()
+            for idx in existing_indices:
+                if idx.get("name", "") == "vector_idx":
+                    print("索引已存在，跳过创建")
+                    return True
+
+            # 获取当前行数
+            num_rows = self.table.count_rows()
+
+            # 数据太少时不需要索引（FAISS 需要足够的数据训练）
+            if num_rows < 1000:
+                print(f"数据量较少 ({num_rows} 行)，跳过索引创建（建议 ≥1000 行）")
+                return True
+
+            print(f"正在创建 {index_type} 向量索引 ({num_rows} 行)...")
+
+            # 创建索引
+            if index_type == "HNSW":
+                # HNSW 索引 - 更高质量但内存占用更高
+                self.table.create_index(
+                    "vector",
+                    index_type="HNSW",
+                    metric="cosine",
+                    wait=wait
+                )
+            else:
+                # IVF_PQ 索引（默认）- 适合高维向量，内存占用低
+                self.table.create_index(
+                    "vector",
+                    index_type="IVF_PQ",
+                    metric="cosine",
+                    wait=wait
+                )
+
+            print("✓ 向量索引创建完成")
+            return True
+        except Exception as e:
+            print(f"错误: 索引创建失败: {e}")
+            return False
+
+    def check_index_status(self) -> Dict:
+        """检查索引状态"""
+        if self.table is None:
+            return {"exists": False, "indices": []}
+
+        try:
+            indices = self.table.list_indices()
+            return {
+                "exists": len(indices) > 0,
+                "indices": indices,
+                "count": len(indices)
+            }
+        except Exception as e:
+            print(f"错误: 检查索引状态失败: {e}")
+            return {"exists": False, "indices": []}
+
     def search(
         self,
         query_vector: Optional[List[float]] = None,
