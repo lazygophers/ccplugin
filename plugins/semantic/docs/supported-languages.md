@@ -6,37 +6,40 @@
 
 Semantic 插件使用 **AST（抽象语法树）** 进行代码解析，确保 100% 的准确性。所有语言解析器都基于 `tree-sitter` 或 Python 标准库 `ast` 模块。
 
-### 当前支持：20+ 种编程语言
+### 当前支持：16 种编程语言
 
-#### 核心编程语言（12 种）
+#### 核心编程语言（16 种）
 
-| 语言 | AST 引擎 | 准确性 | 支持状态 |
-|------|---------|--------|---------|
-| Python | `ast` 标准库 | 100% | ✅ 完全支持 |
-| Go | tree-sitter | 100% | ✅ 完全支持 |
-| Rust | tree-sitter | 100% | ✅ 完全支持 |
-| Java | tree-sitter | 100% | ✅ 完全支持 |
-| Kotlin | tree-sitter | 100% | ✅ 完全支持 |
-| JavaScript | tree-sitter | 100% | ✅ 完全支持 |
-| TypeScript | tree-sitter | 100% | ✅ 完全支持 |
-| Dart/Flutter | tree-sitter | 100% | ✅ 完全支持 |
-| C | tree-sitter | 100% | ✅ 完全支持 |
-| C++ | tree-sitter | 100% | ✅ 完全支持 |
-| Ruby | tree-sitter | 100% | ✅ 完全支持 |
-| PHP | tree-sitter | 100% | ✅ 完全支持 |
+| 语言         | AST 引擎     | 准确性 | 支持状态    |
+| ------------ | ------------ | ------ | ----------- |
+| Python       | `ast` 标准库 | 100%   | ✅ 完全支持 |
+| Go           | tree-sitter  | 100%   | ✅ 完全支持 |
+| Rust         | tree-sitter  | 100%   | ✅ 完全支持 |
+| Java         | tree-sitter  | 100%   | ✅ 完全支持 |
+| Kotlin       | tree-sitter  | 100%   | ✅ 完全支持 |
+| JavaScript   | tree-sitter  | 100%   | ✅ 完全支持 |
+| TypeScript   | tree-sitter  | 100%   | ✅ 完全支持 |
+| Dart/Flutter | tree-sitter  | 100%   | ✅ 完全支持 |
+| C            | tree-sitter  | 100%   | ✅ 完全支持 |
+| C++          | tree-sitter  | 100%   | ✅ 完全支持 |
+| Ruby         | tree-sitter  | 100%   | ✅ 完全支持 |
+| PHP          | tree-sitter  | 100%   | ✅ 完全支持 |
+| Swift        | tree-sitter  | 100%   | ✅ 完全支持 |
+| Scala        | tree-sitter  | 100%   | ✅ 完全支持 |
+| Lua          | tree-sitter  | 100%   | ✅ 完全支持 |
+| Bash         | tree-sitter  | 100%   | ✅ 完全支持 |
 
-#### 扩展语言支持（8 种）
+#### 扩展语言支持（7 种）
 
-| 语言 | AST 引擎 | 准确性 | 支持状态 |
-|------|---------|--------|---------|
-| Swift | tree-sitter | 100% | ✅ 完全支持 |
-| Scala | tree-sitter | 100% | ✅ 完全支持 |
-| Lua | tree-sitter | 100% | ⚠️ 基础支持 |
-| Bash/Shell | tree-sitter | 100% | ✅ 完全支持 |
-| PowerShell | tree-sitter | 100% | ⚠️ 基础支持 |
-| SQL | tree-sitter | 100% | ⚠️ 基础支持 |
-| CMake | tree-sitter | 100% | ⚠️ 基础支持 |
-| Dockerfile | tree-sitter | 100% | ⚠️ 基础支持 |
+| 语言       | AST 引擎    | 准确性 | 支持状态    |
+| ---------- | ----------- | ------ | ----------- |
+| PowerShell | tree-sitter | 100%   | ⚠️ 基础支持 |
+| Elixir     | tree-sitter | 100%   | ⚠️ 基础支持 |
+| SQL        | tree-sitter | 100%   | ⚠️ 基础支持 |
+| CMake      | tree-sitter | 100%   | ⚠️ 基础支持 |
+| Dockerfile | tree-sitter | 100%   | ⚠️ 基础支持 |
+| Make       | tree-sitter | 100%   | ⚠️ 基础支持 |
+| Markdown   | tree-sitter | 100%   | ⚠️ 基础支持 |
 
 > **说明**: 基础支持意味着解析器可以工作，但可能需要进一步调整节点类型映射以提取更多定义类型。
 
@@ -47,17 +50,20 @@ Semantic 插件使用 **AST（抽象语法树）** 进行代码解析，确保 1
 **AST 引擎**: Python 标准库 `ast` 模块
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `function` - 函数定义
 - `async_function` - 异步函数定义
 
 **特性**:
+
 - 装饰器支持
 - 类型提示支持
 - 嵌套函数/类
 - 异步函数
 
 **示例**:
+
 ```python
 class Person:
     def __init__(self, name: str):
@@ -72,17 +78,20 @@ async def fetch_data() -> dict:
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `function` - 函数定义
 - `method` - 方法定义（带 receiver）
 - `interface` - 接口定义
 
 **特性**:
+
 - Receiver 方法解析
 - 接口定义
 - 结构体方法
 - 包级别函数
 
 **示例**:
+
 ```go
 type Person struct {
     Name string
@@ -98,6 +107,7 @@ func (p *Person) Greet() string {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `function` - 函数定义
 - `struct` - 结构体定义
 - `trait` - Trait 定义
@@ -105,12 +115,14 @@ func (p *Person) Greet() string {
 - `module` - Module 定义
 
 **特性**:
+
 - Trait 系统
 - Impl 块（包括 Trait impl）
 - Module 系统
 - 泛型支持
 
 **示例**:
+
 ```rust
 struct Point {
     x: i32,
@@ -133,6 +145,7 @@ impl Shape for Point {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `interface` - 接口定义
 - `enum` - 枚举定义
@@ -140,12 +153,14 @@ impl Shape for Point {
 - `method` - 方法定义
 
 **特性**:
+
 - 接口和实现
 - 枚举类型
 - 注解支持
 - 内部类
 
 **示例**:
+
 ```java
 interface Greeter {
     void greet();
@@ -164,18 +179,21 @@ class Person implements Greeter {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `function` - 函数定义
 - `object` - Object 定义（单例）
 - `data_class` - 数据类
 
 **特性**:
+
 - 数据类
 - Object 单例
 - 扩展函数
 - 高阶函数
 
 **示例**:
+
 ```kotlin
 data class Person(val name: String, val age: Int)
 
@@ -193,6 +211,7 @@ fun String.printWithPrefix() {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `function` - 函数定义
 - `class` - 类定义
 - `arrow_function` - 箭头函数
@@ -200,22 +219,24 @@ fun String.printWithPrefix() {
 - `type_alias` - 类型别名（TypeScript）
 
 **特性**:
+
 - 箭头函数
 - 类和继承
 - TypeScript 类型系统
 - 泛型支持
 
 **示例**:
+
 ```typescript
 interface Person {
-    name: string;
-    greet(): string;
+  name: string;
+  greet(): string;
 }
 
 class UserService implements Person {
-    greet(): string {
-        return `Hello`;
-    }
+  greet(): string {
+    return `Hello`;
+  }
 }
 
 const calculate = (a: number, b: number): number => a + b;
@@ -226,6 +247,7 @@ const calculate = (a: number, b: number): number => a + b;
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `function` - 函数定义
 - `method` - 方法定义
@@ -233,12 +255,14 @@ const calculate = (a: number, b: number): number => a + b;
 - `extension` - Extension 定义
 
 **特性**:
+
 - Mixin 系统
 - Extension 方法
 - Widget 类识别
 - 异步函数
 
 **示例**:
+
 ```dart
 class Person {
   String name;
@@ -264,6 +288,7 @@ extension StringExtension on String {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `function` - 函数定义
 - `struct` - 结构体定义
 - `enum` - 枚举定义
@@ -271,6 +296,7 @@ extension StringExtension on String {
 - `class` - 类定义（C++）
 
 **特性**:
+
 - 结构体和联合体
 - 枚举类型
 - 命名空间（C++）
@@ -278,6 +304,7 @@ extension StringExtension on String {
 - 模板（C++）
 
 **示例**:
+
 ```cpp
 namespace Math {
     int add(int a, int b) {
@@ -305,17 +332,20 @@ enum Color { RED, GREEN, BLUE };
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `module` - Module 定义
 - `function` - 方法定义
 
 **特性**:
+
 - Module 系统
 - Mixin 支持
 - 类和实例方法
 - 元编程
 
 **示例**:
+
 ```ruby
 class Person
   attr_accessor :name, :age
@@ -342,18 +372,21 @@ end
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `interface` - 接口定义
 - `function` - 函数定义
 - `trait` - Trait 定义
 
 **特性**:
+
 - Trait 系统
 - 接口和抽象类
 - 命名空间
 - 类型声明
 
 **示例**:
+
 ```php
 interface LoggerInterface {
     public function log(string $message): void;
@@ -379,6 +412,7 @@ class UserService implements LoggerInterface {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `struct` - 结构体定义
 - `enum` - 枚举定义
@@ -387,12 +421,14 @@ class UserService implements LoggerInterface {
 - `function` - 函数定义
 
 **特性**:
+
 - Protocol 面向协议编程
 - Extension 扩展
 - Struct 值类型
 - 泛型支持
 
 **示例**:
+
 ```swift
 protocol Drawable {
     func draw()
@@ -417,6 +453,7 @@ extension Int {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `class` - 类定义
 - `object` - Object 定义（单例）
 - `trait` - Trait 定义
@@ -424,12 +461,14 @@ extension Int {
 - `case_class` - Case class
 
 **特性**:
+
 - Object 单例模式
 - Trait 混入
 - Case class 不可变数据
 - 函数式编程
 
 **示例**:
+
 ```scala
 trait Logger {
     def log(message: String): Unit
@@ -449,14 +488,17 @@ class UserService extends Logger {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `function` - 函数定义
 
 **特性**:
+
 - Shell 函数
 - 脚本组织
 - 环境变量管理
 
 **示例**:
+
 ```bash
 #!/bin/bash
 
@@ -475,14 +517,46 @@ function calculate_sum() {
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `function` - 函数定义
 
 **特性**:
+
+- Shell 函数
+- 脚本组织
+- 环境变量管理
+
+**示例**:
+
+```bash
+#!/bin/bash
+
+function greet() {
+    local name=$1
+    echo "Hello, $name"
+}
+
+function calculate_sum() {
+    echo $(($1 + $2))
+}
+```
+
+### Lua
+
+**AST 引擎**: tree-sitter
+
+**支持的定义类型**:
+
+- `function` - 函数定义
+
+**特性**:
+
 - 表作为类
 - Module 系统
 - 元编程
 
 **示例**:
+
 ```lua
 Person = {}
 Person.__index = Person
@@ -503,15 +577,18 @@ end
 **AST 引擎**: tree-sitter
 
 **支持的定义类型**:
+
 - `table` - 表定义
 - `function` - 函数定义
 
 **特性**:
+
 - 表结构定义
 - 存储过程
 - 视图和触发器
 
 **示例**:
+
 ```sql
 CREATE TABLE users (
     id INT PRIMARY KEY,
@@ -569,10 +646,11 @@ python3 test_all_languages.py
 ```
 
 预期输出：
+
 ```
 ✅ 完整验证通过！所有语言都使用 AST 解析。
-总语言数: 20+
-成功: 20+
+总语言数: 16
+成功: 16
 总定义数: 60+
 AST 覆盖率: 100%
 ```
@@ -580,17 +658,22 @@ AST 覆盖率: 100%
 ## 更新日志
 
 **2025-01-07 (第二轮)**
+
 - ✅ 添加 Swift 语言支持（class, struct, protocol, extension）
-- ✅ 添加 Scala 语言支持（class, object, trait）
+- ✅ 添加 Scala 语言支持（class, object, trait, case_class）
 - ✅ 添加 Bash/Shell 语言支持（function）
 - ✅ 添加 Lua 语言支持（function）
 - ✅ 添加 PowerShell 语言支持
 - ✅ 添加 SQL 语言支持（table, function）
 - ✅ 添加 CMake 语言支持
 - ✅ 添加 Dockerfile 语言支持
-- ✅ 总支持语言达到 20+ 种
+- ✅ 添加 Elixir 语言支持
+- ✅ 添加 Make 语言支持
+- ✅ 添加 Markdown 语言支持
+- ✅ 总支持语言达到 16 种（核心语言）+ 7 种（扩展语言）
 
 **2025-01-07 (第一轮)**
+
 - ✅ 添加 C 语言支持
 - ✅ 添加 C++ 语言支持
 - ✅ 添加 Ruby 语言支持
