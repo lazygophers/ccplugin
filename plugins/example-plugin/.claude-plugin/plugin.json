@@ -1,6 +1,6 @@
 {
   "name": "example-plugin",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "示例插件 - 展示 Claude Code 插件的标准结构和最佳实践",
   "author": {
     "name": "ccplugin Team",

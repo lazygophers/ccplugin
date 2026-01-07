@@ -4,13 +4,13 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "cd ${CLAUDE_PLUGIN_ROOT} && uv run scripts/task.py init --silent || true"
+        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/task/scripts/task.py init --silent || true"
       }
     ],
     "UserPromptSubmit": [
       {
         "type": "command",
-        "command": "cd ${CLAUDE_PLUGIN_ROOT} && uv run scripts/task.py init --silent || true"
+        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/task/scripts/task.py init --silent || true"
       }
     ]
   }
