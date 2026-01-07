@@ -8,3 +8,6 @@ dependencies = [
     "pydantic>=2.12.5",
     "typer>=0.21.1",
 ]
+
+[project.scripts]
+semantic-mcp = "plugins.semantic.scripts.mcp_server:main"

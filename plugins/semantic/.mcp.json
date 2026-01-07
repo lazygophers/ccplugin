@@ -5,7 +5,7 @@
       "args": [
         "--from",
         "git+https://github.com/lazygophers/ccplugin.git@master",
-        "plugins/semantic/scripts/mcp_server.py",
+        "semantic-mcp",
         "--mcp"
       ],
       "env": {}
