@@ -36,22 +36,24 @@ allowed-tools: Bash(uv*,*/task.py)
 /task-export ./tasks.md
 ```
 
-## 执行
+## MCP 技能调用
+
+使用 MCP 技能导出任务：
 
 ```bash
-OUTPUT_FILE="$1"
+# 导出任务到默认位置
+/task:task-export "tasks.md"
 
-# 如果只提供文件名（不含路径），导出到 .claude/ 目录
-if [[ "$OUTPUT_FILE" != *"/"* ]]; then
-    OUTPUT_DIR=".claude"
-    mkdir -p "$OUTPUT_DIR"
-    OUTPUT_FILE="$OUTPUT_DIR/$OUTPUT_FILE"
-fi
+# 导出到指定路径
+/task:task-export "docs/project-tasks.md"
+```
 
-cd ${CLAUDE_PLUGIN_ROOT}
-uv run scripts/task.py export "$OUTPUT_FILE"
+## 命令行执行
 
-echo "✓ 任务已导出到: $OUTPUT_FILE"
+使用 uvx 执行脚本：
+
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin task-export "$@"
 ```
 
 ## 输出格式
@@ -88,11 +90,4 @@ echo "✓ 任务已导出到: $OUTPUT_FILE"
 - 进行中: 3
 - 已完成: 2
 ```
-
-## 注意事项
-
-1. **必须指定输出文件路径**
-2. **推荐导出到 `.claude/` 目录**，便于 AI 访问
-3. 导出的文件可以提交到版本控制
-4. 如果文件已存在，会被覆盖
 

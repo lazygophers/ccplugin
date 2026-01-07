@@ -8,8 +8,6 @@ allowed-tools: Bash(uv*,*/task.py)
 
 项目任务管理命令。使用 SQLite 数据库存储任务，数据位于项目根目录的 `.lazygophers/ccplugin/task/` 目录。
 
-⚠️ **必须使用 uv 执行 Python 脚本**
-
 ## 任务元信息
 
 每个任务包含以下元信息：
@@ -133,24 +131,35 @@ allowed-tools: Bash(uv*,*/task.py)
 /task stats
 ```
 
-## 执行
+## MCP 工具调用
 
-所有任务操作通过 `task.py` 脚本执行（使用 uv）：
+使用 MCP 工具管理任务：
 
 ```bash
-cd ${CLAUDE_PLUGIN_ROOT}
-uv run scripts/task.py "$@"
+# 创建任务
+/task-add "任务标题" --description "任务描述" --type feature
+
+# 更新任务
+/task-update "task_id" --status in_progress
+
+# 删除任务
+/task-delete "task_id"
+
+# 列出任务
+/task-list --status pending --limit 10
+
+# 获取任务详情
+/task-get "task_id"
+```
+
+## 命令行执行
+
+使用 uvx 执行脚本：
+
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin task "$@"
 ```
 
 ## 数据存储
 
 任务数据库位于: `.lazygophers/ccplugin/task/tasks.db`
-
-## 注意事项
-
-1. **必须使用此插件**维护项目任务，不要使用其他任务管理方式
-2. **必须使用 uv 执行 Python 脚本**，不要直接执行 python3
-3. 任务数据存储在项目目录的 `.lazygophers/ccplugin/task/` 下
-4. 数据库使用 SQLite，无需额外依赖
-5. 支持 Markdown 导出，便于版本控制和分享
-6. **依赖关系**表示前置任务必须完成后才能开始当前任务

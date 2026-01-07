@@ -136,7 +136,7 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ### 快速完成
 
 ```bash
-/task done <id>
+/task update <id> --status completed
 ```
 
 ### 列出任务
@@ -151,33 +151,13 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ### 查看统计
 
 ```bash
-/task stats
-```
-
-输出示例：
-```
-📊 任务统计
-========================================
-
-总计: 15 个任务
-
-按状态:
-  待处理: 8
-  进行中: 3
-  已完成: 4
-
-按类型:
-  新功能: 6
-  缺陷修复: 3
-  代码重构: 2
-  测试: 3
-  文档: 1
+/task list --limit 50  # 查看所有任务并统计
 ```
 
 ### 查看任务详情
 
 ```bash
-/task show <id>
+/task get <id>
 ```
 
 显示任务的完整信息，包括验收标准和依赖关系。
@@ -188,8 +168,11 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 # 创建子任务
 /task add "子任务标题" --parent "parent_task_id"
 
-# 列出子任务
-/task children <parent_task_id>
+### 列出子任务
+
+```bash
+/task list --parent "parent_task_id"
+```
 ```
 
 ### 导出任务

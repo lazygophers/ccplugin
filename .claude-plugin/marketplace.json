@@ -24,6 +24,16 @@
         "name": "ccplugin Team"
       },
       "keywords": ["task", "todo", "project", "management", "sqlite"]
+    },
+    {
+      "name": "semantic",
+      "source": "./plugins/semantic",
+      "description": "语义搜索插件 - 基于向量嵌入的自然语言代码搜索，支持中英文混合查询和多语言代码理解",
+      "version": "0.0.1",
+      "author": {
+        "name": "ccplugin Team"
+      },
+      "keywords": ["semantic", "search", "vector", "embedding", "nlp", "code-search"]
     }
   ]
 }
