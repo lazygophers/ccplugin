@@ -11,6 +11,11 @@ from typing import List, Union, Optional
 import hashlib
 import warnings
 
+from rich.console import Console
+from rich.spinner import Spinner
+
+console = Console()
+
 
 class FastEmbedModel:
     """FastEmbed 模型实现"""
@@ -23,11 +28,17 @@ class FastEmbedModel:
 
     def load(self):
         """加载 FastEmbed 模型"""
+        if self.model is not None:
+            return True
+
         try:
             from fastembed import TextEmbedding
 
             # 过滤 fastembed 的警告
             warnings.filterwarnings("ignore", category=UserWarning, message=".*mean pooling instead of CLS embedding.*")
+
+            # 显示模型加载提示
+            console.print(f"[dim]正在加载嵌入模型: {self.model_name}...[/dim]")
 
             # 设置 GPU 提供商
             providers = None
@@ -51,13 +62,14 @@ class FastEmbedModel:
             if embeddings:
                 self.dim = len(embeddings[0])
 
+            console.print("[dim]✓ 嵌入模型加载完成[/dim]")
             return True
         except ImportError:
-            print("错误: 未安装 fastembed")
-            print("安装命令: uv pip install fastembed")
+            console.print("[red]错误: 未安装 fastembed[/red]")
+            console.print("安装命令: uv pip install fastembed")
             return False
         except Exception as e:
-            print(f"错误: 模型加载失败: {e}")
+            console.print(f"[red]错误: 模型加载失败: {e}[/red]")
             return False
 
     def encode(self, texts: Union[str, List[str]]) -> List[List[float]]:
