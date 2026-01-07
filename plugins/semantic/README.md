@@ -6,7 +6,7 @@
 
 - 🔍 **语义搜索** - 使用自然语言查询代码
 - 🚀 **混合引擎** - FastEmbed + CodeModel + Symbol 三层融合
-- 🌐 **多语言支持** - 支持 16 种编程语言
+- 🌐 **多语言支持** - 支持 19 种编程语言
 - 🎯 **语言特定优化** - 针对不同语言的解析策略、分块大小、模型推荐
 - 🤖 **多模型支持** - BGE、Jina、GTE、CodeT5 等最新嵌入模型
 - ⚡ **GPU 加速** - 支持 CUDA 加速
@@ -212,6 +212,9 @@ similarity_threshold: 0.5
 - Ruby (.rb)
 - Bash (.sh, .bash)
 - Markdown (.md)
+- SQL (.sql)
+- Dockerfile (Dockerfile, dockerfile)
+- PowerShell (.ps1, .psm1)
 
 ## 支持的模型
 
@@ -333,6 +336,9 @@ Semantic 为不同编程语言提供针对性的优化策略，包括解析器�
 | Ruby | 350 | codet5+ |
 | Bash | 200 | multilingual-e5-small |
 | Markdown | 1000 | multilingual-e5-large |
+| SQL | 400 | multilingual-e5-small |
+| Dockerfile | 300 | multilingual-e5-small |
+| PowerShell | 350 | multilingual-e5-small |
 
 **注意**：
 - Java 解析使用 `javalang` 库提供 AST 级精度（已默认安装）
