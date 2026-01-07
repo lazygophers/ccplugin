@@ -53,7 +53,11 @@ class LanceDBStorage:
                     pa.field("metadata", pa.string()),  # JSON 字符串
                     pa.field("indexed_at", pa.string()),
                 ])
-                self.table = self.client.create_table(table_name, schema=schema)
+                self.table = self.client.create_table(
+                    table_name,
+                    schema=schema,
+                    mode="overwrite",
+                )
 
             return True
         except ImportError:
@@ -232,6 +236,19 @@ class LanceDBStorage:
             # 格式化结果
             formatted_results = []
             for r in search_results:
+                # LanceDB 返回的是距离（越小越好），需要转换为相似度（越大越好）
+                distance = r.get("_distance", 1.0)
+
+                # 根据距离类型转换相似度
+                # 余弦距离: similarity = 1 - distance (范围 [0, 2])
+                # L2 距离: similarity = 1 / (1 + distance) (范围 [0, +∞])
+                if distance <= 2.0:
+                    # 可能是余弦距离
+                    similarity = max(0.0, 1.0 - distance)
+                else:
+                    # 可能是 L2 距离，使用反比例转换
+                    similarity = 1.0 / (1.0 + distance)
+
                 result = {
                     "id": r.get("id", ""),
                     "file_path": r.get("file_path", ""),
@@ -241,7 +258,7 @@ class LanceDBStorage:
                     "code": r.get("code", ""),
                     "start_line": r.get("start_line", 0),
                     "end_line": r.get("end_line", 0),
-                    "similarity": r.get("_score", 0.0),
+                    "similarity": similarity,
                     "metadata": json.loads(r.get("metadata", "{}")),
                 }
                 formatted_results.append(result)

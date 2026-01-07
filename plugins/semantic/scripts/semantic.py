@@ -1396,7 +1396,7 @@ def search(
     data_path = get_data_path()
 
     # 从配置文件读取默认阈值
-    default_threshold = config_data.get("similarity_threshold", 0.7)
+    default_threshold = config_data.get("similarity_threshold", 0.5)
     # 如果命令行未指定阈值，使用配置文件中的值
     if threshold is None:
         threshold = default_threshold
@@ -1429,10 +1429,6 @@ def search(
     # 显示结果
     if not results:
         console.print("[yellow]未找到相关代码[/yellow]")
-        console.print("\n[dim]建议:[/dim]")
-        console.print("  1. 尝试降低阈值: --threshold 0.5")
-        console.print("  2. 尝试不同的关键词")
-        console.print("  3. 确认已建立索引: /semantic index")
     else:
         table = Table(title=f"搜索结果 ({len(results)} 条)", show_header=True, header_style="bold magenta")
         table.add_column("相似度", style="cyan", width=10)
