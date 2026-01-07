@@ -14,5 +14,6 @@
     "./commands/semantic-search.md"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "mcpConfig": "./.mcp.json"
 }
