@@ -8,8 +8,6 @@ allowed-tools: Bash(uv*,*/semantic.py)
 
 代码语义搜索命令。使用自然语言描述查询代码，基于向量嵌入找到最相关的代码片段。
 
-⚠️ **必须使用 uv 执行 Python 脚本**
-
 ## 基本用法
 
 ```bash
@@ -28,13 +26,13 @@ allowed-tools: Bash(uv*,*/semantic.py)
 
 ## 参数说明
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `query` | 搜索查询（必填） | - |
-| `--limit <n>` | 返回结果数量 | 10 |
-| `--language <lang>` | 限定语言 | 全部 |
-| `--threshold <float>` | 相似度阈值（0-1） | 0.5 |
-| `--context` | 显示上下文代码 | true |
+| 参数                  | 说明              | 默认值 |
+| --------------------- | ----------------- | ------ |
+| `query`               | 搜索查询（必填）  | -      |
+| `--limit <n>`         | 返回结果数量      | 10     |
+| `--language <lang>`   | 限定语言          | 全部   |
+| `--threshold <float>` | 相似度阈值（0-1） | 0.5    |
+| `--context`           | 显示上下文代码    | true   |
 
 ## 搜索模式
 
@@ -70,14 +68,14 @@ allowed-tools: Bash(uv*,*/semantic.py)
 
 搜索结果包含：
 
-| 字段 | 说明 |
-|------|------|
-| `file_path` | 文件路径 |
-| `line_number` | 起始行号 |
-| `code` | 代码片段 |
-| `language` | 编程语言 |
-| `similarity` | 相似度分数（0-1） |
-| `context` | 周围代码（可选） |
+| 字段          | 说明              |
+| ------------- | ----------------- |
+| `file_path`   | 文件路径          |
+| `line_number` | 起始行号          |
+| `code`        | 代码片段          |
+| `language`    | 编程语言          |
+| `similarity`  | 相似度分数（0-1） |
+| `context`     | 周围代码（可选）  |
 
 ## 高级用法
 
@@ -131,14 +129,19 @@ allowed-tools: Bash(uv*,*/semantic.py)
 
 ## 执行
 
+### MCP 工具调用
+
+使用 MCP 工具进行语义搜索：
+
 ```bash
-cd ${CLAUDE_PLUGIN_ROOT}
-uv run scripts/semantic.py search "$@"
+# 语义搜索
+/semantic-search "如何读取文件" --limit 10 --language python
 ```
 
-## 注意事项
+### 命令行执行
 
-1. 需要先运行索引建立搜索索引
-2. 搜索质量取决于索引质量
-3. 相似度是语义相似度，非文本匹配
-4. 中英文混合搜索效果最佳
+使用 uvx 执行脚本：
+
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "$@"
+```

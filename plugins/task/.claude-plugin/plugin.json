@@ -15,6 +15,5 @@
     "./commands/task-export.md"
   ],
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
-  "mcpConfig": "./.mcp.json"
+  "hooks": "./hooks/hooks.json"
 }
