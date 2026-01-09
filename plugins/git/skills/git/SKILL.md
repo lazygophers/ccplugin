@@ -3,7 +3,7 @@ name: git
 description: Git 操作技能 - 当用户需要进行 Git 提交、创建 PR、更新 PR 或管理 .gitignore 时自动激活。提供 Git 工作流指导、提交规范和 PR 最佳实践。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 context: true
-agent: ${CLAUDE_PLUGIN_ROOT}/agents/git.md
+agent: git
 ---
 
 # Git 操作技能
@@ -94,66 +94,17 @@ uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录
 
 ### PR 命令
 
-#### 创建 PR
+详见 [@pr-guidelines](${CLAUDE_PLUGIN_ROOT}/skills/git/pr-guidelines.md) 了解完整的 PR 管理指南。
+
+**快速参考**：
 
 ```bash
+# 创建 PR
 uvx --from git+https://github.com/lazygophers/ccplugin pr
-```
 
-**功能**：
-
-- 分析当前分支相对于基准分支的所有变更
-- 自动生成 PR 标题和描述
-- 创建 PR 并返回 PR URL
-
-**前提条件**：
-
-- 分支已推送到远程
-- 有相对于基准分支的变更
-- 已安装 GitHub CLI (gh)
-
-**生成的 PR 信息**：
-
-```markdown
-## Summary
-
-- 功能点 1
-- 功能点 2
-
-## Changes
-
-- 提交 1: 简短描述
-- 提交 2: 简短描述
-
-## Test plan
-
-- [ ] 单元测试通过
-- [ ] 集成测试通过
-```
-
-#### 更新 PR
-
-```bash
+# 更新 PR（需要提供 PR 编号）
 uvx --from git+https://github.com/lazygophers/ccplugin pr update <pr-number>
 ```
-
-**功能**：
-
-- 分析当前分支相对于基准分支的完整变更
-- 重新生成 PR 描述（包含所有新增变更）
-- 更新 PR 标题和描述
-
-**使用场景**：
-
-- 添加新功能后更新 PR
-- 修复审查反馈后更新 PR
-- 补充测试后更新 PR
-
-**注意事项**：
-
-- 需要提供 PR 编号
-- 仅更新标题和描述
-- 保留现有评论和审查
 
 ### 忽略文件命令
 
@@ -182,43 +133,17 @@ uvx --from git+https://github.com/lazygophers/ccplugin ignore
 
 ## 提交信息规范
 
-### Conventional Commits
+详见 [@commit-guidelines](${CLAUDE_PLUGIN_ROOT}/skills/git/commit-guidelines.md) 了解完整的提交规范指南。
+
+**快速参考**：
+
+遵循 Conventional Commits 规范，提交信息格式为：
 
 ```
 <type>: <subject>
-
-<body>
-
-<footer>
 ```
 
-### 类型（type）
-
-| 类型       | 说明      | 示例                     |
-| ---------- | --------- | ------------------------ |
-| `feat`     | 新功能    | feat: 添加用户认证功能   |
-| `fix`      | 缺陷修复  | fix: 修复登录超时问题    |
-| `docs`     | 文档更新  | docs: 更新 API 文档      |
-| `style`    | 代码格式  | style: 统一代码缩进      |
-| `refactor` | 代码重构  | refactor: 优化数据库查询 |
-| `test`     | 测试相关  | test: 添加单元测试       |
-| `chore`    | 构建/工具 | chore: 更新依赖版本      |
-
-### 提交信息示例
-
-```bash
-# 好的提交信息
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "fix: 修复登录超时问题"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "docs: 更新 API 文档"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "refactor: 优化数据库查询性能"
-
-# 不好的提交信息
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "update"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "fix bug"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "done"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "tmp"
-```
+其中 `type` 包括：`feat`（新功能）、`fix`（缺陷修复）、`docs`（文档更新）、`style`（代码格式）、`refactor`（代码重构）、`test`（测试相关）、`chore`（构建/工具）。
 
 ## 工作流程
 
@@ -392,17 +317,11 @@ done
 
 ### 3. PR 质量
 
-✅ **好的 PR**：
+详见 [@pr-guidelines](${CLAUDE_PLUGIN_ROOT}/skills/git/pr-guidelines.md) 了解完整的 PR 质量标准和最佳实践。
 
-- 变更范围合理（< 1000 行）
-- 描述完整（Summary、Changes、Test plan）
-- 包含测试
+✅ **好的 PR**：变更范围合理（< 1000 行）、描述完整、包含测试
 
-❌ **不好的 PR**：
-
-- 变更范围过大
-- 描述不完整
-- 缺少测试
+❌ **不好的 PR**：变更范围过大、描述不完整、缺少测试
 
 ### 4. 分支策略
 
@@ -488,6 +407,11 @@ unset https_proxy
 ```
 
 ## 参考资源
+
+### 本技能的分层文档
+
+- 📋 [提交规范指南](${CLAUDE_PLUGIN_ROOT}/skills/git/commit-guidelines.md) - Conventional Commits 格式、类型定义、提交粒度、最佳实践
+- 📋 [PR 规范指南](${CLAUDE_PLUGIN_ROOT}/skills/git/pr-guidelines.md) - PR 创建更新、质量标准、编写实践、常见问题、工作流示例
 
 ### 项目文档
 
