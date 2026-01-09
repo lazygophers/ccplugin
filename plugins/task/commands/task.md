@@ -39,7 +39,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin task <sub-command> [args.
 | 子命令     | 说明         | 用法                                     |
 | ---------- | ------------ | ---------------------------------------- |
 | `add`      | 创建新任务   | `uvx ... task add "任务标题" [选项]`     |
-| `update`   | 更新任务     | `uvx ... task update <id> [选项]`        |
+| `up`       | 更新任务     | `uvx ... task up <id> [选项]`            |
 | `done`     | 快速完成任务 | `uvx ... task done <id>`                 |
 | `delete`   | 删除任务     | `uvx ... task delete <id>`               |
 | `list`     | 列出任务     | `uvx ... task list [筛选条件]`           |
@@ -88,16 +88,16 @@ uvx --from git+https://github.com/lazygophers/ccplugin task add "实现用户登
 
 ```bash
 # 标记任务为进行中
-uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --status in_progress
+uvx --from git+https://github.com/lazygophers/ccplugin task up <id> --status in_progress
 
 # 修改任务标题
-uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --title "新的任务标题"
+uvx --from git+https://github.com/lazygophers/ccplugin task up <id> --title "新的任务标题"
 
 # 快速完成任务
 uvx --from git+https://github.com/lazygophers/ccplugin task done <id>
 
 # 更新验收标准
-uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --acceptance "新的验收标准"
+uvx --from git+https://github.com/lazygophers/ccplugin task up <id> --acceptance "新的验收标准"
 ```
 
 ### 查询和列表
