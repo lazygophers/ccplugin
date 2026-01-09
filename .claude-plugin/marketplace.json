@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Claude Code 插件市场 - 提供常用插件和开发模板",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "task",
       "source": "./plugins/task",
       "description": "项目任务管理插件 - 使用 SQLite 存储任务，支持 Markdown 导入导出，完整的项目任务跟踪解决方案",
-      "version": "0.0.7",
+      "version": "0.0.8",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -34,7 +34,7 @@
       "name": "semantic",
       "source": "./plugins/semantic",
       "description": "语义搜索插件 - 基于向量嵌入的自然语言代码搜索，支持中英文混合查询和多语言代码理解",
-      "version": "0.0.7",
+      "version": "0.0.8",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -55,7 +55,7 @@
       "name": "git",
       "source": "./plugins/git",
       "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
-      "version": "0.0.7",
+      "version": "0.0.8",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
