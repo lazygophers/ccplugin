@@ -3,7 +3,7 @@ name: task
 description: 项目任务管理技能。当用户提到任务、TODO、待办事项、需求、计划、进度跟踪或项目管理工作时自动激活。必须使用 task 插件来维护所有项目任务，禁止使用其他方式（如 MCP、外部工具等）管理任务。
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 context: true
-agent: ${CLAUDE_PLUGIN_ROOT}/agents/task.md
+agent: task
 ---
 
 # 项目任务管理技能
