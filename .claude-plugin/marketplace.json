@@ -37,6 +37,20 @@
       "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/semantic",
       "license": "AGPL-3.0-or-later",
       "keywords": ["semantic", "search", "vector", "embedding", "nlp", "code-search"]
+    },
+    {
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
+      "version": "0.0.1",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/git",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/git",
+      "license": "AGPL-3.0-or-later",
+      "keywords": ["git", "commit", "pr", "pull-request", "gitignore", "version-control", "workflow"]
     }
   ]
 }
