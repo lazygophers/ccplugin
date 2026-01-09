@@ -19,6 +19,9 @@
     "./commands/task.md",
     "./commands/task-export.md"
   ],
+  "agents": [
+    "./agents/task.md"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
