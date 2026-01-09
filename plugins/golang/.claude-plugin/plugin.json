@@ -1,0 +1,28 @@
+{
+  "name": "golang",
+  "version": "1.0.0",
+  "description": "Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/golang",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/golang",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "golang",
+    "go",
+    "development",
+    "coding-style",
+    "best-practices",
+    "lazygophers",
+    "lsp",
+    "gopls"
+  ],
+  "agents": [
+    "./agents/golang-developer.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}
