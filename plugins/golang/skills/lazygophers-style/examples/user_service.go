@@ -161,7 +161,6 @@ func UpdateUserAge(id int64, newAge int32) (*User, error) {
 // ✅ 查询构建器模式（函数式链式调用）
 // ============================================================================
 
-// UserQuery 查询构建器
 type UserQuery struct {
 	minAge    int32
 	maxAge    int32
