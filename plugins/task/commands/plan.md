@@ -25,6 +25,20 @@ allowed-tools: Read, Edit, Write, Bash(uv*,uvx*)
 uvx --from git+https://github.com/lazygophers/ccplugin task add <title> [options]
 ```
 
+### 命令可用性
+
+**✅ 本地开发时**（推荐）：
+```bash
+uvx --from . task add <title> [options]
+```
+
+**✅ GitHub 发布版本**（代码已提交后）：
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin task add <title> [options]
+```
+
+> 注：下面所有示例使用 GitHub URL。本地开发时，只需将 `git+https://github.com/lazygophers/ccplugin` 替换为 `.` 即可。
+
 ### 执行时机
 
 - 开发新功能之前进行系统规划

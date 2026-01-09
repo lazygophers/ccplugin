@@ -29,6 +29,22 @@ model: sonnet
 /exec [task-id] [options]
 ```
 
+### 命令可用性
+
+**✅ 本地开发时**（推荐）：
+```bash
+uvx --from . task show <task-id>
+uvx --from . task done <task-id>
+```
+
+**✅ GitHub 发布版本**（代码已提交后）：
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin task show <task-id>
+uvx --from git+https://github.com/lazygophers/ccplugin task done <task-id>
+```
+
+> 注：下面所有示例使用 GitHub URL。本地开发时，只需将 `git+https://github.com/lazygophers/ccplugin` 替换为 `.` 即可。
+
 ### 执行时机
 
 - 从任务列表中选择待执行的任务
