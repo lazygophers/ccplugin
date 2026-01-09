@@ -4,3 +4,15 @@
 .venv/
 .DS_Store
 .claude/last_change_stats.json
+
+# Python 构建产物
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.pyc
+*.pyo
+
+# 项目特定
+plugins/**/.venv/
+plugins/**/__pycache__/
