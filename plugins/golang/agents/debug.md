@@ -1,5 +1,5 @@
 ---
-name: debugger
+name: debug
 description: Golang 调试专家 - 专业的 Go 调试代理，专注于问题定位、bug 修复、panic 分析和性能调试。精通 delve、pprof、race detector 等调试工具
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
