@@ -22,6 +22,9 @@
   "commands": [
     "./commands/semantic-search.md"
   ],
+  "agents": [
+    "./agents/semantic.md"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
