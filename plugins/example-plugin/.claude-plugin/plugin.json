@@ -1,6 +1,6 @@
 {
   "name": "example-plugin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "示例插件 - 展示 Claude Code 插件的标准结构和最佳实践",
   "author": {
     "name": "ccplugin Team",
@@ -10,7 +10,11 @@
   "homepage": "https://docs.ccplugin.dev/plugins/example",
   "repository": "https://github.com/ccplugin/market/tree/main/plugins/example-plugin",
   "license": "MIT",
-  "keywords": ["example", "template", "starter"],
+  "keywords": [
+    "example",
+    "template",
+    "starter"
+  ],
   "commands": [
     "./commands/hello.md",
     "./commands/status.md"
