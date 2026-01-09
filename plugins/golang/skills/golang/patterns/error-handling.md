@@ -1,4 +1,4 @@
-# Lazygophers 错误处理规范
+# golang 错误处理规范
 
 ## 核心原则
 
@@ -145,7 +145,7 @@ func handleError(ctx *fiber.Ctx, err error) error {
 ### 日志级别和格式
 
 ```go
-import "github.com/lazygophers/log"
+import "github.com/golang/log"
 
 // ✅ Info - 正常流程信息
 log.Infof("user registered: %s", username)
