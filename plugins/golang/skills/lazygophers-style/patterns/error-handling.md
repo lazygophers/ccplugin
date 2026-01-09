@@ -6,7 +6,7 @@
 
 1. **多行处理** - 所有 error 必须多行处理，记录日志
 2. **统一日志** - 使用 `log.Errorf("err:%v", err)` 统一格式
-3. **不包装** - 禁止使用 `fmt.Errorf` 包装，直接返回原始错误
+3. **不包装** - 禁止使用 `fmt.Errorf`/`errors.Wrap`/`errors.Wrapf` 包装，直接返回原始错误
 4. **错误判断** - 使用 `errors.Is/As` 判断错误类型（Go 1.13+）
 5. **初始化** - 初始化中使用 `log.Fatalf` 而非 `panic`
 
@@ -82,57 +82,10 @@ if err != nil {
 defer file.Close()
 
 // ✅ 复杂操作在 defer 中检查
-if err := conn.Close(); err != nil {
-    log.Errorf("err:%v", err)
-}
-```
-
-## 自定义错误类型
-
-### 定义（参考 Linky xerror 模式）
-
-```go
-// ✅ 导出的错误类型
-type ValidationError struct {
-    Field   string
-    Message string
-    Code    int32  // 错误码
-}
-
-func (e *ValidationError) Error() string {
-    return fmt.Sprintf("validation error in field %q: %s (code: %d)", e.Field, e.Message, e.Code)
-}
-
-// ✅ 实现 Unwrap 支持错误链
-func (e *ValidationError) Unwrap() error {
-    return nil  // 或返回嵌套的错误
-}
-
-// ✅ 错误构造函数
-func NewValidationError(field, message string, code int32) *ValidationError {
-    return &ValidationError{
-        Field:   field,
-        Message: message,
-        Code:    code,
-    }
-}
-```
-
-### 使用自定义错误
-
-```go
-// ✅ 创建自定义错误
-if email == "" {
-    err := NewValidationError("email", "email cannot be empty", 400)
+err := conn.Close()
+if err != nil {
     log.Errorf("err:%v", err)
     return nil, err
-}
-
-// ✅ 检查自定义错误
-var valErr *ValidationError
-if errors.As(err, &valErr) {
-    log.Warnf("validation failed: field=%s, code=%d", valErr.Field, valErr.Code)
-    return err
 }
 ```
 
@@ -151,20 +104,6 @@ const (
     CodeInternalError     int32 = 500
     CodeServiceUnavailable int32 = 503
 )
-
-// ✅ 错误类型包含错误码
-type AppError struct {
-    Code    int32
-    Message string
-    Err     error  // 原始错误
-}
-
-func (e *AppError) Error() string {
-    if e.Err != nil {
-        return fmt.Sprintf("[%d] %s: %v", e.Code, e.Message, e.Err)
-    }
-    return fmt.Sprintf("[%d] %s", e.Code, e.Message)
-}
 ```
 
 ### 中间件错误处理（参考 Linky 中间件链）
@@ -173,15 +112,13 @@ func (e *AppError) Error() string {
 // ✅ 错误处理中间件
 type Handler func(ctx *fiber.Ctx) error
 
-func ErrorHandler(h Handler) Handler {
-    return func(ctx *fiber.Ctx) error {
-        err := h(ctx)
-        if err != nil {
-            log.Errorf("err:%v", err)
-            return handleError(ctx, err)
-        }
-        return nil
+func ErrorHandler(ctx *fiber.Ctx) error {
+    err := ctx.Next(ctx)
+    if err != nil {
+        log.Errorf("err:%v", err)
+        return handleError(ctx, err)
     }
+    return nil
 }
 
 // ✅ 集中错误处理
@@ -235,13 +172,13 @@ if err != nil {
     return err
 }
 
-// ✅ 需要更多上下文时
+// ❌ 禁止 - 需要更多上下文时
 if err != nil {
     log.Errorf("failed to create user (email=%s): %v", email, err)
     return err
 }
 
-// ✅ 包含操作上下文
+// ❌ 禁止 - 包含操作上下文
 if err != nil {
     log.Errorf("process file %q (size=%d): %v", filepath, size, err)
     return err
@@ -265,19 +202,27 @@ func init() {
 // ✅ 启动流程中（参考 Linky 三阶段启动）
 func Run() error {
     // 阶段 1：加载状态
-    if err := state.Load(); err != nil {
+    err := state.Load()
+    if err != nil {
         log.Errorf("err:%v", err)
-        return fmt.Errorf("load state: %v", err)  // 仅在 Run 中返回
+        return err
     }
 
     // 阶段 2：初始化管理员
-    if err := InitDefaultAdmin(); err != nil {
+    err = InitDefaultAdmin()
+    if err != nil {
         log.Errorf("err:%v", err)
-        return fmt.Errorf("init admin: %v", err)
+        return err
     }
 
     // 阶段 3：启动应用
-    return app.Run()
+    err = app.Run()
+    if err != nil {
+        log.Errorf("err:%v", err)
+        return err
+    }
+
+    return nil
 }
 ```
 
@@ -302,14 +247,20 @@ results := processItems(items)  // 假设成功
 ```go
 // ✅ 提供足够的上下文
 if len(password) < 8 {
-    err := NewValidationError("password", "password must be at least 8 characters", CodeBadRequest)
-    log.Errorf("err:%v", err)
-    return nil, err
+    log.Errorf("password must be at least 8 characters")
+    return nil, NewValidationError("password must be at least 8 characters")
 }
 
 // ❌ 含义不清
 if len(password) < 8 {
     return nil, errors.New("invalid")
+}
+
+// ❌ 为了日志定义错误
+if len(password) < 8 {
+    err := NewValidationError("password", "password must be at least 8 characters", CodeBadRequest)
+    log.Errorf("err:%v", err)
+    return nil, err
 }
 ```
 
@@ -329,9 +280,3 @@ if err != nil {
     return nil, err  // 无日志
 }
 ```
-
-## 参考
-
-- [Go 1.13 Error Wrapping](https://golang.org/doc/go1.13#error_wrapping)
-- [errors Package](https://golang.org/pkg/errors/)
-- [Linky Server 参考](../references.md)
