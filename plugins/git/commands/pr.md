@@ -1,68 +1,190 @@
 ---
-name: 准备 Pull Request
-description: 基于当前分支变更生成 PR 标题和描述
-allowed-tools: Bash(git:*), Read
+description: 准备 Pull Request - 基于分支变更自动生成 PR 标题和描述
+argument-hint: [--update <pr-number>]
+allowed-tools: Bash(git:*, gh*)
+model: sonnet
 ---
 
-## 知识库
+# pr
 
-**code-review-standards**：代码审查标准 | **documentation-standards**：PR 文档最佳实践
+## 命令描述
 
-## 当前分支信息
+基于当前分支相对于基准分支的所有变更，智能分析并生成高质量的 Pull Request 标题和描述。支持创建新 PR 和更新已有 PR。
 
-- 当前分支：!`git branch --show-current`
-- 基准分支：main（或根据项目约定）
-- 变更统计：!`git diff main...HEAD --stat 2>/dev/null || git diff master...HEAD --stat 2>/dev/null || echo "无法确定基准分支"`
-- 提交列表：!`git log main..HEAD --oneline 2>/dev/null || git log master..HEAD --oneline 2>/dev/null || echo "无法确定基准分支"`
+## 工作流描述
 
-## 任务
+1. **分析分支变更**：获取当前分支相对于基准分支（main/master）的所有提交和文件变更
+2. **提取关键信息**：从提交信息中提取功能、修复、重构等核心内容
+3. **生成 PR 信息**：生成符合规范的 PR 标题和描述
+4. **创建/更新 PR**：通过 GitHub CLI 创建新 PR 或更新现有 PR
 
-生成高质量 Pull Request 标题和描述。
+## 命令执行方式
 
-### PR 标题格式
+### 使用方法
 
-```text
-类型(范围): 简洁描述变更
+```bash
+# 创建新 PR
+uvx --from git+https://github.com/lazygophers/ccplugin pr
+
+# 更新现有 PR
+uvx --from git+https://github.com/lazygophers/ccplugin pr --update <pr-number>
 ```
 
-示例：`feat(用户): 添加用户登录功能` | `fix(API): 修复分页查询返回错误` | `refactor(数据库): 优化查询性能`
+### 执行时机
 
-### PR 描述格式
+- 完成功能开发，需要创建 Pull Request
+- 根据 Code Review 反馈修改代码，需要更新 PR 描述
+- PR 中添加了新功能或修复，需要同步描述
+
+### 执行参数
+
+| 参数 | 说明 | 类型 | 默认值 |
+|------|------|------|--------|
+| `--update <pr-number>` | 更新指定的 PR（可选） | int | - |
+
+### 命令说明
+
+- 创建 PR：分析分支变更，生成标题和描述，通过 gh cli 创建
+- 更新 PR：重新分析分支变更，更新 PR 标题和描述
+- 支持多个提交的自动汇总
+- 自动生成测试计划检查清单
+
+## 相关Skills（可选）
+
+参考 Git 操作技能：`@${CLAUDE_PLUGIN_ROOT}/skills/git/SKILL.md`
+
+## 依赖脚本
+
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin pr "$@"
+```
+
+## 示例
+
+### 创建新 PR
+
+```bash
+# 推送分支到远程
+git push -u origin feature/user-auth
+
+# 创建 PR（自动生成标题和描述）
+uvx --from git+https://github.com/lazygophers/ccplugin pr
+```
+
+### 更新 PR
+
+```bash
+# 修改代码后提交
+git add src/auth/
+uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证"
+git push
+
+# 更新 PR 信息
+uvx --from git+https://github.com/lazygophers/ccplugin pr --update 123
+```
+
+### PR 信息示例
+
+生成的 PR 会包含以下结构：
 
 ```markdown
 ## 变更摘要
 
-[1-3 句话描述 PR 做了什么]
+实现用户认证系统，包括用户注册、登录和会话管理。
 
 ## 技术实现
 
-- [关键技术点 1]
-- [关键技术点 2]
+- 使用 JWT 进行会话管理
+- 实现 bcrypt 密码加密
+- 添加请求速率限制
 
 ## 测试说明
 
 - [ ] 单元测试通过
 - [ ] 集成测试通过
-- [ ] 手动测试场景：[描述]
+- [ ] 手动测试场景：用户可正常注册和登录
 
 ## 相关 Issue
 
-Closes #[issue-number]（如适用）
+Closes #123
+```
+
+## 检查清单
+
+在创建/更新 PR 前，确保满足以下条件：
+
+- [ ] 分支已推送到远程仓库
+- [ ] 分支包含相对于基准分支的新提交
+- [ ] 已安装 GitHub CLI（gh）
+- [ ] 已认证到 GitHub（`gh auth login`）
+- [ ] 提交信息符合 Conventional Commits 规范
 
 ## 注意事项
 
-[如有破坏性变更、迁移步骤等，在此说明]
+**PR 范围**：
+- 变更范围应合理（建议 < 1000 行）
+- 超大 PR 应分解为多个 PR
+
+**PR 标题**：
+- ≤50 字符
+- 使用简体中文
+- 遵循 Conventional Commits 规范
+- 清晰描述变更内容
+
+**PR 描述**：
+- **变更摘要**：1-3 句话概述
+- **技术实现**：列出关键技术点
+- **测试说明**：提供可执行的测试步骤
+- **相关 Issue**：链接相关 Issue
+
+**测试计划**：
+- 提供明确的测试场景
+- 包含边界情况测试
+- 说明破坏性变更的迁移步骤
+
+## 其他信息
+
+### PR 标题格式
+
+遵循 Conventional Commits 规范：
+
+```
+<type>(<scope>): <description>
 ```
 
-### 执行步骤
+**示例**：
+- `feat(auth): 添加用户登录功能`
+- `fix(api): 修复分页查询返回错误`
+- `refactor(db): 优化查询性能`
+- `docs(readme): 更新安装说明`
 
-1. 分析所有提交变更内容
-2. 生成清晰 PR/MR 标题
-3. 编写详细 PR/MR 描述
-4. 创建 PR/MR：
-   - **GitLab**：`glab mr create --title "标题" --description "描述"`
-   - **GitHub**：`gh pr create --title "标题" --body "描述"`
+### 提交信息最佳实践
 
-### 要求
+- **清晰的提交信息**：每个提交清晰说明改动
+- **合理的提交粒度**：单一职责原则
+- **完整的提交历史**：保留有意义的提交记录
 
-标题 ≤50 字符 | 描述覆盖所有重要变更 | 测试说明具体可执行 | 使用简体中文
+### 与代码审查配合
+
+1. 创建 PR 并请求审查
+2. 等待审查反馈
+3. 根据反馈修改代码
+4. 使用 `pr --update` 更新 PR 描述
+5. 重新请求审查
+
+### 合并 PR
+
+PR 获批后：
+- 在 GitHub 上进行 merge 操作
+- 或使用 gh cli：`gh pr merge <pr-number> --squash`
+
+### 常见问题
+
+**Q: 如何更新已有 PR？**
+A: 修改代码后提交和推送，然后运行 `pr --update <pr-number>`
+
+**Q: PR 变更范围太大怎么办？**
+A: 将 PR 分解为多个较小的 PR，每个 PR 只处理一个功能或问题
+
+**Q: 如何处理冲突？**
+A: 先 pull 基准分支并解决冲突，然后推送更新

@@ -25,7 +25,7 @@ model: sonnet
 ### 使用方法
 
 ```bash
-/command-name [arg1] [arg2]
+uvx --from git+https://github.com/lazygophers/ccplugin command-name [arg1] [arg2]
 ```
 
 ### 执行时机
@@ -63,13 +63,13 @@ uvx --from git+https://github.com/owner/repo run script-name [args]
 ### 基本用法
 
 ```bash
-/command-name
+uvx --from git+https://github.com/lazygophers/ccplugin command-name
 ```
 
 ### 带参数的用法
 
 ```bash
-/command-name value1 value2
+uvx --from git+https://github.com/lazygophers/ccplugin command-name value1 value2
 ```
 
 ### 实际场景示例
