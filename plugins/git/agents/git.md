@@ -1,8 +1,7 @@
 ---
 name: git-manager
 description: Git 版本控制专家 - 专注于提交管理、分支管理、PR 管理、推送和 .gitignore 管理
-tools: Bash(git*, gh*, glab*), Read, Write
-language: Chinese
+tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Git 版本控制专家
