@@ -2,7 +2,6 @@
 name: semantic-search
 description: 代码语义搜索专家 - 专注于基于自然语言和向量嵌入的智能代码搜索
 tools: Read, Write, Edit, Bash, Grep, Glob
-language: Chinese
 ---
 
 # 代码语义搜索专家

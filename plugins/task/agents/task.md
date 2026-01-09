@@ -2,7 +2,6 @@
 name: task-manager
 description: 项目任务管理专家 - 专注于任务规划、跟踪和执行管理
 tools: Read, Write, Edit, Bash, Grep, Glob
-language: Chinese
 ---
 
 # 项目任务管理专家

@@ -2,7 +2,6 @@
 name: agent-name
 description: 代理用途 - 清晰说明这个代理的专业角色和使用场景
 tools: Read, Write, Edit, Bash, Grep, Glob
-language: Chinese
 ---
 
 # Agent Name
