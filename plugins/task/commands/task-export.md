@@ -35,11 +35,12 @@ uvx --from git+https://github.com/lazygophers/ccplugin task-export <output-file>
 
 ### 执行参数
 
-| 参数 | 说明 | 类型 | 默认值 |
-|------|------|------|--------|
-| `output-file` | 输出文件路径（必填）| string | - |
+| 参数          | 说明                 | 类型   | 默认值 |
+| ------------- | -------------------- | ------ | ------ |
+| `output-file` | 输出文件路径（必填） | string | -      |
 
 **输出文件规则**：
+
 - 如果是相对路径，相对于项目根目录
 - 如果只提供文件名，导出到 `.claude/` 目录
 - 支持任意路径：`docs/`、`.claude/`、`./` 等
@@ -51,9 +52,9 @@ uvx --from git+https://github.com/lazygophers/ccplugin task-export <output-file>
 - 包含任务统计信息（总数、各状态数量）
 - 支持自定义输出路径
 
-## 相关Skills（可选）
+## 相关 Skills（可选）
 
-本命令无依赖Skills。
+本命令无依赖 Skills。
 
 ## 依赖脚本
 
@@ -116,7 +117,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin task-export ./tasks.md
 
 ## 进行中
 
-### 🟠 修复API超时问题 (#2)
+### 🟠 修复 API 超时问题 (#2)
 
 任务描述...
 
@@ -136,9 +137,9 @@ uvx --from git+https://github.com/lazygophers/ccplugin task-export ./tasks.md
 
 ### 性能考虑
 
-- 小型项目（<100任务）：快速完成
-- 中型项目（100-1000任务）：通常需要 1-2 秒
-- 大型项目（>1000任务）：可能需要更长时间
+- 小型项目（<100 任务）：快速完成
+- 中型项目（100-1000 任务）：通常需要 1-2 秒
+- 大型项目（>1000 任务）：可能需要更长时间
 
 ### 用途示例
 

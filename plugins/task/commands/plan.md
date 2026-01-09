@@ -2,7 +2,6 @@
 description: 规划项目任务 - 分析需求、制定多级任务清单、更新到项目task中
 argument-hint: [feature-name] [options]
 allowed-tools: Read, Edit, Write, Bash(uv*,uvx*)
-model: sonnet
 ---
 
 # plan
@@ -40,8 +39,8 @@ uvx --from git+https://github.com/lazygophers/ccplugin task add <title> [options
 - `--type` / `-t`: 任务类型 (feature/bug/refactor/test/docs/config)
 - `--status` / `-s`: 任务状态 (pending/in_progress/completed/blocked/cancelled)
 - `--acceptance` / `-a`: 验收标准
-- `--depends` / `-D`: 依赖任务ID（逗号分隔）
-- `--parent` / `-p`: 父任务ID（创建子任务）
+- `--depends` / `-D`: 依赖任务 ID（逗号分隔）
+- `--parent` / `-p`: 父任务 ID（创建子任务）
 
 ### 命令说明
 
@@ -63,14 +62,17 @@ uvx --from git+https://github.com/lazygophers/ccplugin task add <title> [options
 ### 可选部分
 
 - **数据库设计**（当功能涉及数据存储时）
+
   - 类型：`docs` 或可创建类似类型
   - 示例：数据库模型设计、迁移脚本、索引优化
 
 - **API/Proto 设计**（当功能需要接口规范时）
+
   - 类型：`docs`
   - 示例：接口规范设计、Proto 定义
 
 - **各端开发及测试**（根据平台）
+
   - 开发任务：类型 `feature`
   - 单元测试：类型 `test`
   - 集成测试：类型 `test`
@@ -284,6 +286,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin task add \
 ## 相关 Skills
 
 参考以下 Skill 获得更多指导：
+
 - 项目结构分析：`@${CLAUDE_PLUGIN_ROOT}/skills/project-onboarding/SKILL.md`
 - 测试策略：`@${CLAUDE_PLUGIN_ROOT}/skills/test-strategy/SKILL.md`
 - 代码质量标准：`@${CLAUDE_PLUGIN_ROOT}/skills/code-review-standards/SKILL.md`
@@ -312,18 +315,23 @@ uvx --from git+https://github.com/lazygophers/ccplugin task add \
 ## 常见问题
 
 ### Q: 如何确定是否需要数据库设计任务？
+
 **A**: 如果功能涉及数据的存储或查询，需要数据库设计任务。包括需要设计数据表、建立索引或编写迁移脚本的情况。
 
 ### Q: 多平台应该如何拆分任务？
+
 **A**: 每个平台的功能开发、单元测试都是独立任务。但文档设计、API 设计、数据库设计可以共享，不需要为每个平台重复设计。
 
 ### Q: 集成测试和单元测试如何区分？
+
 **A**: 单元测试是模块级测试，测试单个函数或类的功能。集成测试是模块间交互测试，测试不同模块的协作。
 
 ### Q: 如何处理跨模块的功能规划？
+
 **A**: 将跨模块部分分别在各自的模块中规划任务，然后添加集成测试任务来验证模块间的交互。
 
 ### Q: 任务间的依赖关系如何指定？
+
 **A**: 使用 `--depends` 参数指定任务的前置依赖。例如：`--depends "文档ID,数据库ID"`。
 
 ## 其他信息
