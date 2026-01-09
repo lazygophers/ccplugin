@@ -1,6 +1,6 @@
 {
   "name": "task",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "任务管理插件 - 用于项目任务的创建、跟踪和管理。支持SQLite存储、Markdown导出",
   "author": {
     "name": "lazygophers",
