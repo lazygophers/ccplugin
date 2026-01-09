@@ -1,6 +1,6 @@
 {
   "name": "semantic",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "代码语义搜索插件 - 基于向量嵌入的智能代码搜索。支持多编程语言、多模型、GPU加速、语言特定优化",
   "author": {
     "name": "lazygophers",
@@ -23,7 +23,9 @@
   "commands": [
     "./commands/semantic-search.md"
   ],
-  "agents": "./agents/",
+  "agents": [
+    "./agents/semantic.md"
+  ],
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
