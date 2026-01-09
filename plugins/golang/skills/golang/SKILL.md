@@ -1,6 +1,6 @@
 ---
-name: lazygophers-style
-description: Lazygophers 生态开发规范 - 基于 lazygophers 生态的高性能、简洁 Golang 开发规范。当使用 lazygophers 包、进行高性能开发或参考 lazygophers 项目时自动激活
+name: golang-style
+description: golang 生态开发规范 - 基于 golang 生态的高性能、简洁 Golang 开发规范。当使用 golang 包、进行高性能开发或参考 golang 项目时自动激活
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 auto-activate:
   patterns:
@@ -9,11 +9,11 @@ auto-activate:
 context: true
 ---
 
-# Lazygophers 生态开发规范
+# golang 生态开发规范
 
 ## 核心理念
 
-Lazygophers 生态追求**高性能、低分配、简洁优雅**，通过精选的工具库和最佳实践，帮助开发者写出高质量的 Go 代码。
+golang 生态追求**高性能、低分配、简洁优雅**，通过精选的工具库和最佳实践，帮助开发者写出高质量的 Go 代码。
 
 **三个支柱**：
 
@@ -27,16 +27,16 @@ Lazygophers 生态追求**高性能、低分配、简洁优雅**，通过精选�
 
 ```go
 import (
-    "github.com/lazygophers/utils"        // 综合工具库（20+ 模块）
-    "github.com/lazygophers/utils/candy"  // 函数式编程（Map/Filter/Each）
-    "github.com/lazygophers/log"          // 高性能日志
-    "github.com/lazygophers/utils/stringx" // 字符串处理
-    "github.com/lazygophers/utils/osx"    // 文件操作
-    "github.com/lazygophers/utils/json"   // JSON 处理
-    "github.com/lazygophers/utils/cryptox" // 加密/哈希
-    "github.com/lazygophers/utils/xtime"   // 时间处理
-    "github.com/lazygophers/utils/defaults" // 默认值处理
-    "github.com/lazygophers/utils/validate" // 验证器
+    "github.com/golang/utils"        // 综合工具库（20+ 模块）
+    "github.com/golang/utils/candy"  // 函数式编程（Map/Filter/Each）
+    "github.com/golang/log"          // 高性能日志
+    "github.com/golang/utils/stringx" // 字符串处理
+    "github.com/golang/utils/osx"    // 文件操作
+    "github.com/golang/utils/json"   // JSON 处理
+    "github.com/golang/utils/cryptox" // 加密/哈希
+    "github.com/golang/utils/xtime"   // 时间处理
+    "github.com/golang/utils/defaults" // 默认值处理
+    "github.com/golang/utils/validate" // 验证器
 )
 ```
 
@@ -58,7 +58,7 @@ import (
 
 ```go
 // ✅ 必须 - 使用 stringx
-import "github.com/lazygophers/utils/stringx"
+import "github.com/golang/utils/stringx"
 
 name := stringx.ToCamel("user_name")           // UserName
 smallName := stringx.ToSmallCamel("user_name") // userName
@@ -74,7 +74,7 @@ func toCamel(s string) string {
 
 ```go
 // ✅ 必须 - 使用 candy
-import "github.com/lazygophers/utils/candy"
+import "github.com/golang/utils/candy"
 
 // Each 遍历
 candy.Each(users, func(u *User) {
@@ -102,7 +102,7 @@ for _, user := range users {
 
 ```go
 // ✅ 必须 - 使用 osx
-import "github.com/lazygophers/utils/osx"
+import "github.com/golang/utils/osx"
 
 if osx.IsFile(path) {
     // 文件存在
@@ -123,7 +123,7 @@ if err != nil && os.IsNotExist(err) {
 
 ```go
 // ✅ 必须 - 使用 candy 零失败转换
-import "github.com/lazygophers/utils/candy"
+import "github.com/golang/utils/candy"
 
 port := candy.ToInt64(config["port"])        // 失败返回 0
 isEnabled := candy.ToBool(config["enabled"]) // 失败返回 false
@@ -265,10 +265,10 @@ type UserRepository interface {
 
 ## 日志规范
 
-### 使用 lazygophers/log
+### 使用 golang/log
 
 ```go
-import "github.com/lazygophers/log"
+import "github.com/golang/log"
 
 // ✅ 标准日志
 log.Infof("proto file:%s", protoFile)         // Info
@@ -323,7 +323,7 @@ buf := bufferPool.Get().(*bytes.Buffer)
 defer bufferPool.Put(buf)
 
 // ✅ 日志缓冲优化
-import "github.com/lazygophers/log"
+import "github.com/golang/log"
 buf := log.GetBuffer()
 defer log.PutBuffer(buf)
 ```
@@ -459,10 +459,10 @@ go mod init github.com/username/project
 go mod tidy
 
 # ✅ 添加依赖
-go get github.com/lazygophers/utils@latest
+go get github.com/golang/utils@latest
 
 # ✅ 本地替换（开发时）
-go mod edit -replace github.com/lazygophers/utils=/local/path
+go mod edit -replace github.com/golang/utils=/local/path
 
 # ✅ 查看依赖树
 go mod graph
@@ -512,7 +512,7 @@ go tool pprof cpu.prof
 当本规范与其他规范冲突时：
 
 1. **实际项目代码** - 最高优先级（看现有实现）
-2. **lazygophers 包 API** - 依次按此规范
+2. **golang 包 API** - 依次按此规范
 3. **传统 Go 实践** - 最低优先级
 
 **核心原则**：实际代码风格 > 知识库

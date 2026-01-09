@@ -1,4 +1,4 @@
-# Lazygophers 分库分包规范
+# golang 分库分包规范
 
 ## 核心原则
 
@@ -17,13 +17,11 @@
 - 多层 interface 抽象（业务代码中无需如此）
 - 跨包依赖不清（单向依赖）
 
-## 全局状态模式（Linky Server 风格）
+## 全局状态模式
 
 ### ✅ 推荐设计
 
 ```go
-// 参考 Linky Server internal/state/table.go
-
 // 全局状态变量
 var (
     // 使用泛型 db.Model[T] 作为数据访问接口
@@ -38,7 +36,6 @@ func UserLogin(ctx *fiber.Ctx, req *LoginReq) (*LoginRsp, error) {
     user, err := User.NewScoop().
         Where("username", req.Username).
         First()
-
     if err != nil {
         log.Errorf("err:%v", err)
         return nil, err
@@ -81,28 +78,25 @@ server/
 │   │   ├── database.go            # 数据库连接（有状态）
 │   │   ├── cache.go               # 缓存实例（有状态）
 │   │   └── init.go                # 初始化全局状态
-│   │
 │   ├── impl/                       # ✅ Service 层实现（所有业务逻辑）
 │   │   ├── user.go                # UserLogin, UserRegister 等
 │   │   ├── friend.go              # AddFriend, ListFriends 等
 │   │   ├── message.go             # SendMessage, GetMessages 等
 │   │   ├── user_test.go           # 单元测试（与实现在同包）
 │   │   └── friend_test.go         # 单元测试
-│   │
 │   ├── api/                        # ✅ API 层（HTTP 路由）
 │   │   └── router.go              # 路由定义和中间件链
-│   │
 │   └── middleware/                 # ✅ 中间件（单独包）
 │       ├── handler.go             # ToHandler 适配器
 │       ├── logger.go              # 日志中间件
 │       ├── auth.go                # 认证中间件
 │       └── error.go               # 错误处理中间件
-│
 └── cmd/
     └── main.go                     # ✅ 仅 main.go，不要创建子目录
 ```
 
 **关键规则**：
+
 - ❌ 不要创建 `service/` 目录 - Service 层在 `impl/` 中
 - ❌ 不要创建 `config/` 目录 - 配置在 `state/config.go` 中
 - ❌ 不要创建 `model/` 目录 - 数据模型定义在 `state/` 中
@@ -144,12 +138,14 @@ var Queue *MessageQueue
 ```
 
 **规则**：
+
 - ✅ 任何有状态的东西都放在 state 中
 - ✅ Config、Database、Cache、Hub、Queue 等全部在 state
 - ✅ state/init.go 中统一初始化这些资源
 - ✅ state 包是应用唯一的"有状态保管所"
 
 **示例**：
+
 ```go
 // state/init.go
 func Init(configPath string) error {
@@ -394,7 +390,12 @@ impl := NewUserService(
 
 // 1. 简洁
 func UserLogin(ctx *fiber.Ctx, req *LoginReq) (*LoginRsp, error) {
-    user, _ := User.GetByUsername(req.Username)
+    user, err := User.NewScoop().GetByUsername(req.Username)
+    if err != nil {
+        log.Errorf("err:%v", err)
+        return nil, err
+    }
+
     return &LoginRsp{User: user}, nil
 }
 
@@ -435,7 +436,7 @@ Database
 
 ```go
 // ✅ 统一的错误处理
-err := User.Create(user)
+err := User.NewScoop().Create(user)
 if err != nil {
     log.Errorf("err:%v", err)  // 多行处理
     return nil, err             // 返回原始错误
@@ -449,7 +450,7 @@ return nil, fmt.Errorf("create user: %w", err)  // 不包装
 
 ```go
 // ✅ 使用全局 state 的事务
-err := state.Tx(func(tx *Scoop) error {
+err := state.CommitOrRollback(func(tx *Scoop) error {
     User.NewScoop(tx).Update(user)
     Friend.NewScoop(tx).Create(friend)
     return nil
@@ -459,22 +460,16 @@ err := state.Tx(func(tx *Scoop) error {
 // type TransactionManager interface { Begin() *Tx }
 ```
 
-## 参考
-
-- **[Linky Server state/table.go](file:///Users/luoxin/persons/lyxamour/linky/server/internal/state/table.go)** - 全局状态定义
-- **[Linky Server impl/user.go](file:///Users/luoxin/persons/lyxamour/linky/server/internal/impl/user.go)** - Service 层实现
-- **[Linky Server api/router.go](file:///Users/luoxin/persons/lyxamour/linky/server/internal/api/router.go)** - 路由和中间件
-
 ## 总结
 
-| 方面 | 全局状态模式（✅） | 显式 Interface（❌） |
-|------|-------------------|-------------------|
-| **复杂性** | 低 | 高 |
-| **接口数** | 1-2 个 | 5-10+ 个 |
-| **注入依赖** | 无 | 有 |
-| **测试** | 简单 | 复杂（Mock） |
-| **性能** | 优秀 | 略有开销 |
-| **可读性** | 清晰 | 分散 |
-| **适用范围** | 生产应用 | 通用库 |
+| 方面         | 全局状态模式（✅） | 显式 Interface（❌） |
+| ------------ | ------------------ | -------------------- |
+| **复杂性**   | 低                 | 高                   |
+| **接口数**   | 1-2 个             | 5-10+ 个             |
+| **注入依赖** | 无                 | 有                   |
+| **测试**     | 简单               | 复杂（Mock）         |
+| **性能**     | 优秀               | 略有开销             |
+| **可读性**   | 清晰               | 分散                 |
+| **适用范围** | 生产应用           | 通用库               |
 
-**Linky Server 使用全局状态模式，避免了复杂的依赖注入，代码更简洁高效。**
+**使用全局状态模式，避免了复杂的依赖注入，代码更简洁高效。**

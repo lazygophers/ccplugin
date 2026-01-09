@@ -1,4 +1,4 @@
-# Lazygophers 函数设计规范
+# golang 函数设计规范
 
 ## 核心原则
 
@@ -50,7 +50,7 @@ func processDataBad(data []byte) string {
 ### 集合操作必用 Candy
 
 ```go
-import "github.com/lazygophers/utils/candy"
+import "github.com/golang/utils/candy"
 
 // ✅ 必须使用 candy 而非手动循环
 func ListActiveUsers() ([]*User, error) {
@@ -78,7 +78,7 @@ func ListActiveUsers() ([]*User, error) {
 ### 字符串转换必用 Stringx
 
 ```go
-import "github.com/lazygophers/utils/stringx"
+import "github.com/golang/utils/stringx"
 
 // ✅ 必须使用 stringx
 func TransformField(fieldName string) string {
@@ -95,7 +95,7 @@ func TransformFieldBad(fieldName string) string {
 ### 文件操作必用 Osx
 
 ```go
-import "github.com/lazygophers/utils/osx"
+import "github.com/golang/utils/osx"
 
 // ✅ 必须使用 osx
 func LoadConfigFile(path string) error {
