@@ -1,5 +1,5 @@
 ---
-name: tester
+name: test
 description: Golang 测试专家 - 专业的 Go 测试代理，专注于单元测试、集成测试、基准测试和测试覆盖率优化。精通表驱动测试、Mock 框架和测试策略
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

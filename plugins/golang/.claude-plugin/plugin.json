@@ -21,10 +21,10 @@
     "gopls"
   ],
   "agents": [
-    "./agents/developer.md",
-    "./agents/tester.md",
-    "./agents/debugger.md",
-    "./agents/performance-optimizer.md"
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
   ],
   "skills": "./skills/",
   "lspServers": "./.lsp.json"
