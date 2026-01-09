@@ -3,3 +3,4 @@
 .trae/
 .venv/
 .DS_Store
+.claude/last_change_stats.json
