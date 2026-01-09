@@ -255,12 +255,12 @@ service := NewService(WithLogger(logger))
 ### 内存优化函数
 
 ```go
-// ✅ 使用指针接收者避免复制
+// ✅ 函数式设计避免复制
 type Request struct {
     Data []byte
 }
 
-func (r *Request) Process() error {
+func Process(r *Request) error {
     // 处理 r.Data，避免复制大对象
     return nil
 }
@@ -287,12 +287,12 @@ func ProcessItemsBad(items []Item) []string {
 ### 避免不必要的复制
 
 ```go
-// ✅ 共享而非复制
+// ✅ 函数式 - 共享而非复制
 type Data struct {
     Values []int
 }
 
-func (d *Data) Sum() int {
+func Sum(d *Data) int {
     total := 0
     for _, v := range d.Values {
         total += v
@@ -300,8 +300,8 @@ func (d *Data) Sum() int {
     return total
 }
 
-// ❌ 避免 - 复制整个切片
-func (d Data) SumBad() int {  // 值接收者
+// ❌ 避免 - 复制整个结构体
+func SumBad(d Data) int {  // 值传递
     total := 0
     for _, v := range d.Values {
         total += v
