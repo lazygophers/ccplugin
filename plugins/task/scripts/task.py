@@ -1026,5 +1026,10 @@ task export .claude/tasks.md
 
 # ========== 主入口 ==========
 
-if __name__ == "__main__":
+def main():
+    """主入口函数，用于 uvx entry point"""
     app()
+
+
+if __name__ == "__main__":
+    main()
