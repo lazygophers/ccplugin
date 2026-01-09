@@ -1,54 +1,177 @@
 ---
-name: Git 推送代码
-description: 安全地推送本地提交到远程仓库
+description: Git 推送代码 - 安全地推送本地提交到远程仓库
+argument-hint: []
 allowed-tools: Bash(git:*)
+model: haiku
 ---
 
-## 知识库
+# push
 
-**code-review-standards**：推送前代码质量验证
+## 命令描述
 
-## 当前 Git 状态
+安全地将本地提交推送到远程仓库。自动检查本地和远程的提交状态，处理首次推送、远程冲突和网络异常等情况。
 
-- 当前分支：!`git branch --show-current`
-- 远程仓库：!`git remote -v`
-- 本地领先提交：!`git log origin/$(git branch --show-current 2>/dev/null || echo main)..HEAD --oneline 2>/dev/null || echo "无远程跟踪"`
-- 远程领先提交：!`git log HEAD..origin/$(git branch --show-current 2>/dev/null || echo main) --oneline 2>/dev/null || echo "无远程跟踪"`
+## 工作流描述
 
-## 任务
+1. **检查本地提交**：确认本地有待推送的提交
+2. **检查远程状态**：验证远程是否有新的提交
+3. **冲突处理**：如有冲突，提示需要先 pull
+4. **执行推送**：推送本地提交到远程仓库
 
-安全地将本地提交推送到远程仓库。
+## 命令执行方式
 
-## 执行步骤
+### 使用方法
 
-1. **检查本地提交**：无提交→提示无需推送
-2. **检查远程变更**：有新提交→建议先pull | 确认覆盖→警告force push风险
-3. **执行推送**：正常→`git push origin <branch>` | 首次→`git push -u origin <branch>` | Force（谨慎）→需明确确认
-4. **验证推送**：`git status`确认成功，显示推送提交数量
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin push
+```
 
-## 推送失败处理
+### 执行时机
 
-如果推送失败（网络连接失败或超时）：
+- 完成本地提交，需要推送到远程
+- 定期同步本地变更到远程仓库
+- 为后续创建 PR 做准备
 
-1. **设置代理后重试**
-   ```bash
-   # 方式 1：设置环境变量（当前会话）
-   export http_proxy=http://127.0.0.1:7890
-   export https_proxy=http://127.0.0.1:7890
-   git push
+### 执行参数
 
-   # 方式 2：单次命令使用代理
-   http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 git push
+无参数，自动检测当前分支并推送。
 
-   # 取消代理（当前会话）
-   unset http_proxy
-   unset https_proxy
-   ```
+### 命令说明
 
-2. **其他常见错误**
-   - 认证失败：检查 SSH 密钥或凭据
-   - 分支冲突：先 `git pull`，解决冲突后再推送
+- 自动识别当前分支
+- 首次推送自动设置上游分支（`-u origin <branch>`）
+- 检查并提示远程有新提交的情况
+- 处理网络连接失败（支持代理设置）
+
+## 相关Skills（可选）
+
+参考 Git 操作技能：`@${CLAUDE_PLUGIN_ROOT}/skills/git/SKILL.md`
+
+## 依赖脚本
+
+```bash
+uvx --from git+https://github.com/lazygophers/ccplugin push "$@"
+```
+
+## 示例
+
+### 基本用法
+
+```bash
+# 推送当前分支到远程
+uvx --from git+https://github.com/lazygophers/ccplugin push
+```
+
+### 首次推送分支
+
+```bash
+# 首次推送自动设置上游分支
+git checkout -b feature/new-feature
+# ... 开发和提交 ...
+uvx --from git+https://github.com/lazygophers/ccplugin push
+```
+
+### 遇到冲突处理
+
+```bash
+# 如提示远程有新提交
+git pull origin <branch-name>
+# 解决冲突后
+uvx --from git+https://github.com/lazygophers/ccplugin push
+```
+
+## 检查清单
+
+在推送前，确保满足以下条件：
+
+- [ ] 已提交所有需要推送的变更
+- [ ] 提交信息符合规范
+- [ ] 本地测试已通过（推荐）
+- [ ] 无需要保留的未提交改动
 
 ## 注意事项
 
-推送前确保本地测试通过 | 避免force push到主分支（main/master）| 有冲突先解决再推送 | 网络失败时尝试设置环境变量代理
+**推送成功标志**：
+- 输出显示 `git status` 为干净状态
+- 本地分支领先提交数量变为 0
+
+**常见问题处理**：
+- **网络失败**：命令会提示设置代理的方式
+  ```bash
+  # 设置代理后重试
+  export http_proxy=http://127.0.0.1:7890
+  export https_proxy=http://127.0.0.1:7890
+  uvx --from git+https://github.com/lazygophers/ccplugin push
+
+  # 取消代理
+  unset http_proxy
+  unset https_proxy
+  ```
+
+- **认证失败**：检查 SSH 密钥或凭据配置
+- **远程有新提交**：需要先执行 `git pull` 解决冲突
+
+**禁止操作**：
+- ❌ 不要使用 `--force` 或 `--force-with-lease` 推送（除非非常确定）
+- ❌ 推送到主分支（main/master）前应确认代码质量
+- ❌ 不要推送包含敏感信息的提交
+
+## 其他信息
+
+### 推送状态说明
+
+推送命令会输出以下信息：
+
+- **当前分支**：显示正在推送的分支名
+- **远程仓库**：显示推送目标（origin）
+- **本地领先提交**：显示有多少个提交待推送
+- **远程领先提交**：提示是否需要 pull
+- **推送结果**：显示成功或失败信息
+
+### 推送失败处理步骤
+
+1. **读取错误信息**：查看具体的失败原因
+2. **分类错误类型**：
+   - 网络错误 → 检查网络和代理
+   - 认证错误 → 检查密钥或凭据
+   - 冲突错误 → 执行 pull 解决冲突
+3. **执行对应解决方案**
+4. **重试推送**
+
+### 代理配置
+
+对于需要代理的网络环境：
+
+```bash
+# 临时设置代理（当前会话）
+export http_proxy=http://127.0.0.1:7890
+export https_proxy=http://127.0.0.1:7890
+
+# 永久配置 git（建议）
+git config --global http.proxy http://127.0.0.1:7890
+git config --global https.proxy http://127.0.0.1:7890
+
+# 取消代理
+unset http_proxy
+unset https_proxy
+```
+
+### 与完整工作流配合
+
+```bash
+# 1. 开发和提交
+git add .
+uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 新功能"
+
+# 2. 推送到远程
+uvx --from git+https://github.com/lazygophers/ccplugin push
+
+# 3. 创建 PR
+uvx --from git+https://github.com/lazygophers/ccplugin pr
+```
+
+### 性能考虑
+
+- 小型仓库推送通常很快
+- 大型仓库或网络慢时可能需要较长时间
+- 考虑使用 Git LFS 处理大型二进制文件
