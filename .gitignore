@@ -16,3 +16,6 @@ __pycache__/
 # 项目特定
 plugins/**/.venv/
 plugins/**/__pycache__/
+
+# 运行时数据
+.lazygophers/
