@@ -240,8 +240,8 @@ output := style.Base("user_name")  // userName
 ```go
 // ✅ 导出 PascalCase，私有 camelCase
 type User struct {
-    ID        int64     // 主键
-    UID       int64     // 用户 ID（查询中区分）
+    Id        int64     // 主键
+    UId       int64     // 用户 Id（查询中区分）
     Email     string
     IsActive  bool      // 布尔用 Is/Has 前缀
     Status    int32     // 状态用数字，非字符串
@@ -251,7 +251,7 @@ type User struct {
 
 // ✅ 函数名清晰
 func UserLogin(ctx context.Context, req *LoginReq) (*LoginRsp, error)
-func GetUserByID(ctx context.Context, id int64) (*User, error)
+func GetUserById(ctx context.Context, id int64) (*User, error)
 func ListUsers(ctx context.Context) ([]*User, error)
 
 // ✅ 接收者单字母
@@ -259,7 +259,7 @@ func (u *User) IsAdmin() bool
 
 // ❌ 避免 - 显式 Repository interface（使用全局状态）
 type UserRepository interface {
-    GetByID(id int64) (*User, error)
+    GetById(id int64) (*User, error)
 }
 ```
 
@@ -374,6 +374,7 @@ Database
 ```
 
 关键特性：
+
 - ✅ **全局状态模式** - 无显式 Repository interface，直接使用全局 State 变量
 - ✅ **三层清晰** - API → Service → State，单向依赖
 - ✅ **启动流程** - State Init → Service Prep → API Run
@@ -422,6 +423,7 @@ server/
 ```
 
 **state 文件夹规则**：
+
 - ✅ 所有有状态资源放在 `internal/state/` 中
 - ✅ Config（配置对象）
 - ✅ Database（数据库连接）
