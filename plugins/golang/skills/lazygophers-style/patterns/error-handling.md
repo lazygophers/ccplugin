@@ -89,9 +89,9 @@ if err != nil {
 }
 ```
 
-## Linky 服务器错误处理模式
+## 服务器错误处理模式
 
-### 错误码管理（参考 Linky）
+### 错误码管理
 
 ```go
 // ✅ 统一的错误码定义
@@ -106,7 +106,7 @@ const (
 )
 ```
 
-### 中间件错误处理（参考 Linky 中间件链）
+### 中间件错误处理
 
 ```go
 // ✅ 错误处理中间件
@@ -142,7 +142,7 @@ func handleError(ctx *fiber.Ctx, err error) error {
 
 ## 日志规范
 
-### 日志级别和格式（Linky 风格）
+### 日志级别和格式
 
 ```go
 import "github.com/lazygophers/log"
@@ -199,7 +199,7 @@ func init() {
     }
 }
 
-// ✅ 启动流程中（参考 Linky 三阶段启动）
+// ✅ 启动流程中
 func Run() error {
     // 阶段 1：加载状态
     err := state.Load()

@@ -1,6 +1,6 @@
 # Lazygophers 架构设计规范
 
-基于 Linky Server 的生产级架构设计。强调**全局状态模式**，避免复杂的依赖注入。
+生产级架构设计。强调**全局状态模式**，避免复杂的依赖注入。
 
 ## 核心架构原则
 
@@ -52,7 +52,7 @@
 ### 路由定义
 
 ```go
-// api/router.go（参考 Linky）
+// api/router.go
 
 func SetupRoutes(app *fiber.App) {
     // 公开路由
@@ -73,7 +73,7 @@ func SetupRoutes(app *fiber.App) {
 ```go
 // middleware/middleware.go
 
-// ✅ 中间件调用（参考 Linky）
+// ✅ 中间件调用
 func ChainMiddleware(ctx *fiber.Ctx) err {
     // 前置逻辑
 
@@ -95,7 +95,7 @@ route.Post("/SomeHandler", ChainMiddleware, impl.ToHandler(impl.SomeHandler),)
 ### 错误处理中间件
 
 ```go
-// middleware/error.go（参考 Linky）
+// middleware/error.go
 
 func ErrorHandler(ctx *fiber.Ctx) error {
     err := ctx.Next()
@@ -116,7 +116,7 @@ func ErrorHandler(ctx *fiber.Ctx) error {
 ### 业务逻辑函数
 
 ```go
-// impl/user.go（参考 Linky）
+// impl/user.go
 
 // ✅ Service 层函数，直接访问全局 State
 func UserLogin(ctx *fiber.Ctx, req *LoginReq) (*LoginRsp, error) {
@@ -176,7 +176,7 @@ func GetFriendList(uid int64) ([]*Friend, error) {
 ```go
 // impl/transaction.go
 
-// ✅ 使用全局 state 执行事务（参考 Linky）
+// ✅ 使用全局 state 执行事务
 func UpdateUserWithFriends(userId int64, updateMap map[string]interface{}, friendIds []int64) error {
     err := state.CommitOrRollback(func(tx *Scoop) error {
             err := state.User.NewScoop(tx).
@@ -213,7 +213,7 @@ func UpdateUserWithFriends(userId int64, updateMap map[string]interface{}, frien
 ### 全局状态初始化
 
 ```go
-// state/table.go（参考 Linky Server）
+// state/table.go
 
 // ✅ 全局数据访问对象
 var (
@@ -222,7 +222,7 @@ var (
     Message *db.Model[ModelMessage]
 )
 
-// 初始化全局状态（参考 Linky state.Load()）
+// 初始化全局状态
 // ConnectDatabase 初始化 MySQL 数据库连接
 func ConnectDatabase() error {
 	log.Info("初始化数据库连接")
@@ -263,7 +263,7 @@ func ConnectDatabase() error {
 
 ## 启动流程设计
 
-### 三阶段启动（参考 Linky）
+### 三阶段启动
 
 ```go
 // main.go
@@ -426,7 +426,7 @@ func GetUser(ctx *fiber.Ctx) error {
 ### 1. 无状态服务函数
 
 ```go
-// ✅ 无状态设计（参考 Linky）
+// ✅ 无状态设计
 func ProcessOrder(orderId int64) error {
     order, err := Order.Where("id", orderId).First()
     if err != nil {
@@ -451,7 +451,7 @@ func ProcessOrder(orderId int64) error {
 
 ## 总结
 
-全局状态模式是 Linky Server 的核心设计，它：
+全局状态模式是核心设计，它：
 
 - 简化了项目结构（无复杂依赖注入）
 - 提高了代码可读性（直接访问全局状态）

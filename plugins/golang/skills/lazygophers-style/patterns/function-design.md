@@ -129,7 +129,7 @@ func LoadConfigFileBad(path string) error {
 }
 ```
 
-## 函数签名设计（参考 Linky API Handler）
+## 函数签名设计（API Handler）
 
 ### API Handler 模式
 
@@ -191,7 +191,7 @@ func Register(req *RegisterRequest) (*User, error) {
 
 ## 高级设计模式
 
-### 策略模式（参考 Linky 命名风格处理）
+### 策略模式
 
 ```go
 // ✅ 策略模式处理不同的实现
