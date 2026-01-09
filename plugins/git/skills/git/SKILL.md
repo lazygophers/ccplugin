@@ -1,10 +1,9 @@
 ---
 name: git
 description: Git 操作技能 - 当用户需要进行 Git 提交、创建 PR、更新 PR 或管理 .gitignore 时自动激活。提供 Git 工作流指导、提交规范和 PR 最佳实践。
-auto-activate: always:true
-allowed-tools: Bash(git*, gh*), Read, Write, TodoWrite
-context: fork
-agent: git
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+context: true
+agent: ${CLAUDE_PLUGIN_ROOT}/agents/git.md
 ---
 
 # Git 操作技能
@@ -60,7 +59,7 @@ agent: git
 #### 提交所有变更
 
 ```bash
-/commit-all "feat: 添加用户认证功能"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
 ```
 
 **使用场景**：
@@ -78,7 +77,7 @@ agent: git
 #### 提交暂存区变更
 
 ```bash
-/commit "fix: 修复登录超时问题"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录超时问题"
 ```
 
 **使用场景**：
@@ -98,7 +97,7 @@ agent: git
 #### 创建 PR
 
 ```bash
-/create-pr
+uvx --from git+https://github.com/lazygophers/ccplugin pr
 ```
 
 **功能**：
@@ -135,7 +134,7 @@ agent: git
 #### 更新 PR
 
 ```bash
-/update-pr <pr-number>
+uvx --from git+https://github.com/lazygophers/ccplugin pr update <pr-number>
 ```
 
 **功能**：
@@ -161,7 +160,7 @@ agent: git
 #### 更新 .gitignore
 
 ```bash
-/update-ignore
+uvx --from git+https://github.com/lazygophers/ccplugin ignore
 ```
 
 **功能**：
@@ -209,16 +208,16 @@ agent: git
 
 ```bash
 # 好的提交信息
-/commit-all "feat: 添加用户认证功能"
-/commit-all "fix: 修复登录超时问题"
-/commit-all "docs: 更新 API 文档"
-/commit-all "refactor: 优化数据库查询性能"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "fix: 修复登录超时问题"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "docs: 更新 API 文档"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "refactor: 优化数据库查询性能"
 
 # 不好的提交信息
-/commit-all "update"
-/commit-all "fix bug"
-/commit-all "done"
-/commit-all "tmp"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "update"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "fix bug"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "done"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "tmp"
 ```
 
 ## 工作流程
@@ -231,35 +230,35 @@ git checkout -b feature/user-auth
 
 # 2. 开发并提交
 git add src/auth/
-/commit "feat: 添加用户注册"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加用户注册"
 
 git add tests/
-/commit "test: 添加认证测试"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "test: 添加认证测试"
 
 # 3. 推送到远程
 git push -u origin feature/user-auth
 
 # 4. 创建 PR
-/create-pr
+uvx --from git+https://github.com/lazygophers/ccplugin pr
 
 # 5. 根据审查反馈修改
 vim src/auth/login.py
 git add src/auth/login.py
-/commit "fix: 修复登录验证逻辑"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证逻辑"
 
 # 6. 更新 PR
 git push
-/update-pr 123
+uvx --from git+https://github.com/lazygophers/ccplugin pr update 123
 ```
 
 ### 快速提交流程
 
 ```bash
 # 1. 更新 .gitignore
-/update-ignore
+uvx --from git+https://github.com/lazygophers/ccplugin ignore
 
 # 2. 提交所有变更
-/commit-all "feat: 初始化项目"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 初始化项目"
 
 # 3. 推送到远程
 git push
@@ -270,15 +269,15 @@ git push
 ```bash
 # 1. 添加并提交第一个功能
 git add feature1.py
-/commit "feat: 添加功能1"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加功能1"
 
 # 2. 添加并提交第二个功能
 git add feature2.py
-/commit "feat: 添加功能2"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加功能2"
 
 # 3. 推送并创建 PR
 git push
-/create-pr
+uvx --from git+https://github.com/lazygophers/ccplugin pr
 ```
 
 ## 安全协议
@@ -312,8 +311,8 @@ git push
 
 ```bash
 # 用户：我需要初始化项目并提交
-/update-ignore
-/commit-all "feat: 初始化项目"
+uvx --from git+https://github.com/lazygophers/ccplugin ignore
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 初始化项目"
 git push -u origin master
 ```
 
@@ -324,9 +323,9 @@ git push -u origin master
 git checkout -b feature/user-auth
 # ... 开发代码 ...
 git add .
-/commit-all "feat: 添加用户认证功能"
+uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
 git push -u origin feature/user-auth
-/create-pr
+uvx --from git+https://github.com/lazygophers/ccplugin pr
 ```
 
 ### 场景 3：修复 Bug
@@ -336,9 +335,9 @@ git push -u origin feature/user-auth
 git checkout -b fix/login-timeout
 # ... 修复代码 ...
 git add src/login.py
-/commit "fix: 修复登录超时问题"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录超时问题"
 git push -u origin fix/login-timeout
-/create-pr
+uvx --from git+https://github.com/lazygophers/ccplugin pr
 ```
 
 ### 场景 4：更新 PR
@@ -347,9 +346,9 @@ git push -u origin fix/login-timeout
 # 用户：根据 PR 审查反馈修改了代码，需要更新 PR
 vim src/auth/login.py
 git add src/auth/login.py
-/commit "fix: 修复登录验证逻辑"
+uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证逻辑"
 git push
-/update-pr 123
+uvx --from git+https://github.com/lazygophers/ccplugin pr update 123
 ```
 
 ## 最佳实践
@@ -485,15 +484,15 @@ unset https_proxy
 # macOS: brew install gh
 
 # 错误：PR 已存在
-# 解决：使用 /update-pr 更新现有 PR
+# 解决：使用 uvx --from git+https://github.com/lazygophers/ccplugin pr update 更新现有 PR
 ```
 
 ## 参考资源
 
 ### 项目文档
 
-- [插件 README](../../plugins/git/README.md)
-- [命令文档](../../plugins/git/commands/)
+- [插件 README](${CLAUDE_PLUGIN_ROOT}/README.md)
+- [命令文档](${CLAUDE_PLUGIN_ROOT}/commands/)
 
 ### 官方文档
 
