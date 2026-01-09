@@ -1,9 +1,9 @@
 {
   "name": "plugin-template",
-  "version": "0.0.2",
-  "description": "插件开发模板 - 快速创建新插件的基础结构",
+  "version": "0.0.3",
+  "description": "插件开发模板 - 快速创建新插件的基础结构。提供完整的命令、代理、技能和hooks示例",
   "author": {
-    "name": "YOUR_NAME",
+    "name": "Your Name",
     "email": "your.email@example.com",
     "url": "https://github.com/yourusername"
   },
@@ -13,11 +13,17 @@
   "keywords": [
     "template",
     "starter",
-    "boilerplate"
+    "boilerplate",
+    "plugin",
+    "ccplugin"
   ],
-  "commands": "./commands/",
+  "commands": [
+    "./commands/command-template.md"
+  ],
   "agents": "./agents/",
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "outputStyles": "./styles/",
+  "lspServers": "./.lsp.json"
 }
