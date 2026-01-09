@@ -1,8 +1,9 @@
 ---
 name: task
 description: 项目任务管理技能。当用户提到任务、TODO、待办事项、需求、计划、进度跟踪或项目管理工作时自动激活。必须使用 task 插件来维护所有项目任务，禁止使用其他方式（如 MCP、外部工具等）管理任务。
-auto-activate: always:true
-allowed-tools: Bash(uv*,*/task.py), TodoWrite
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+context: true
+agent: ${CLAUDE_PLUGIN_ROOT}/agents/task.md
 ---
 
 # 项目任务管理技能
@@ -12,12 +13,12 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ⚠️ **必须使用 task 插件维护所有项目任务**
 
 **禁止行为**：
-- ❌ 使用 MCP 工具（如 sequential-thinking）管理任务
+
 - ❌ 使用外部任务管理工具
 - ❌ 在对话中临时记录任务
-- ❌ 使用其他 TodoList 工具
 
 **必须行为**：
+
 - ✅ 所有任务必须通过 `/task` 命令管理
 - ✅ 使用 TodoWrite 工具时，同步到 task
 
@@ -25,31 +26,34 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 
 每个任务包含以下元信息：
 
-- **id** - 任务ID（自动生成，6位随机字符串）
+- **id** - 任务 ID（自动生成，6 位随机字符串）
 - **title** - 任务名称（必填）
 - **description** - 任务描述
 - **type** - 任务类型（feature/bug/refactor/test/docs/config）
 - **status** - 任务状态（pending/in_progress/completed/blocked/cancelled）
 - **acceptance_criteria** - 验收标准
-- **dependencies** - 前置依赖任务ID列表（逗号分隔）
-- **parent_id** - 父任务ID（支持层级关系）
+- **dependencies** - 前置依赖任务 ID 列表（逗号分隔）
+- **parent_id** - 父任务 ID（支持层级关系）
 
 ## 使用场景
 
 当用户以下情况时，必须使用 task：
 
 1. **任务相关**
-   - "添加任务"、"创建TODO"
+
+   - "添加任务"、"创建 TODO"
    - "任务列表"、"查看任务"
    - "更新任务状态"、"完成任务"
    - "删除任务"
 
 2. **需求管理**
+
    - "记录这个需求"
    - "添加功能需求"
    - "追踪需求状态"
 
 3. **项目规划**
+
    - "项目计划"
    - "开发计划"
    - "功能列表"
@@ -64,13 +68,13 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ### 创建任务
 
 ```bash
-/task add "任务标题"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "任务标题"
 ```
 
 ### 完整参数创建
 
 ```bash
-/task add "任务标题" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "任务标题" \
   --description "详细描述" \
   --type feature \
   --status pending \
@@ -80,6 +84,7 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ```
 
 **任务类型 (type)**：
+
 - `feature` - 新功能 ✨
 - `bug` - 缺陷修复 🐛
 - `refactor` - 代码重构 ♻️
@@ -88,27 +93,29 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 - `config` - 配置 ⚙️
 
 示例：
+
 ```bash
 # 功能开发
-/task add "实现用户登录功能" --type feature --acceptance "用户可以使用邮箱和密码登录"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "实现用户登录功能" --type feature --acceptance "用户可以使用邮箱和密码登录"
 
 # Bug修复
-/task add "修复登录超时" --type bug --description "生产环境登录接口在并发>100时超时超过30秒" --acceptance "并发100时响应时间<2秒，成功率>99%"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "修复登录超时" --type bug --description "生产环境登录接口在并发>100时超时超过30秒" --acceptance "并发100时响应时间<2秒，成功率>99%"
 
 # 测试任务
-/task add "编写登录API单元测试" --type test --depends "实现用户登录"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "编写登录API单元测试" --type test --depends "实现用户登录"
 
 # 文档任务
-/task add "编写API文档" --type docs --depends "实现用户登录"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "编写API文档" --type docs --depends "实现用户登录"
 ```
 
 ### 更新任务
 
 ```bash
-/task update <id> --status <status>
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --status <status>
 ```
 
 状态选项：
+
 - `pending` - 待处理
 - `in_progress` - 进行中
 - `completed` - 已完成
@@ -116,70 +123,73 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 - `cancelled` - 已取消
 
 可用参数：
+
 ```bash
-/task update <id> --title "新标题"
-/task update <id> --description "新描述"
-/task update <id> --type bug
-/task update <id> --status in_progress
-/task update <id> --acceptance "验收标准"
-/task update <id> --depends "task_id1,task_id2"
-/task update <id> --parent "parent_task_id"
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --title "新标题"
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --description "新描述"
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --type bug
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --status in_progress
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --acceptance "验收标准"
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --depends "task_id1,task_id2"
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --parent "parent_task_id"
 ```
 
 示例：
+
 ```bash
-/task update abc123 --status in_progress   # 开始任务
-/task update abc123 --status completed     # 完成任务
-/task update abc123 --acceptance "用户可使用邮箱、手机号注册并完成验证"
+uvx --from git+https://github.com/lazygophers/ccplugin task update abc123 --status in_progress   # 开始任务
+uvx --from git+https://github.com/lazygophers/ccplugin task update abc123 --status completed     # 完成任务
+uvx --from git+https://github.com/lazygophers/ccplugin task update abc123 --acceptance "用户可使用邮箱、手机号注册并完成验证"
 ```
 
 ### 快速完成
 
 ```bash
-/task update <id> --status completed
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --status completed
 ```
 
 ### 列出任务
 
 ```bash
-/task list                    # 所有任务
-/task list pending           # 待处理
-/task list --type bug        # 所有bug类型任务
-/task list --status completed --type feature  # 组合筛选
+uvx --from git+https://github.com/lazygophers/ccplugin task list                    # 所有任务
+uvx --from git+https://github.com/lazygophers/ccplugin task list pending           # 待处理
+uvx --from git+https://github.com/lazygophers/ccplugin task list --type bug        # 所有bug类型任务
+uvx --from git+https://github.com/lazygophers/ccplugin task list --status completed --type feature  # 组合筛选
 ```
 
 ### 查看统计
 
 ```bash
-/task list --limit 50  # 查看所有任务并统计
+uvx --from git+https://github.com/lazygophers/ccplugin task list --limit 50  # 查看所有任务并统计
 ```
 
 ### 查看任务详情
 
 ```bash
-/task get <id>
+uvx --from git+https://github.com/lazygophers/ccplugin task get <id>
 ```
 
 显示任务的完整信息，包括验收标准和依赖关系。
 
 ### 子任务操作
 
-```bash
+````bash
 # 创建子任务
-/task add "子任务标题" --parent "parent_task_id"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "子任务标题" --parent "parent_task_id"
 
 ### 列出子任务
 
 ```bash
-/task list --parent "parent_task_id"
-```
-```
+uvx --from git+https://github.com/lazygophers/ccplugin task list --parent "parent_task_id"
+````
+
+````
 
 ### 导出任务
 
 ```bash
 /task-export tasks.md        # 导出到文件
-```
+````
 
 注意：`/task-export` 必须指定输出文件路径。推荐导出到 `.claude/` 目录。
 
@@ -190,45 +200,49 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 创建初始任务列表：
 
 ```bash
-/task add "项目初始化" --type feature --acceptance "项目结构创建完成，数据库初始化成功"
-/task add "设计数据库架构" --type feature --depends "项目初始化" --acceptance "完成表设计、索引设计、关系设计"
-/task add "实现API接口" --type feature --depends "设计数据库架构" --acceptance "核心CRUD接口可用，通过单元测试"
-/task add "编写单元测试" --type test --depends "实现API接口"
-/task add "准备部署" --type config --depends "编写单元测试" --acceptance "Docker配置完成，部署脚本可用"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "项目初始化" --type feature --acceptance "项目结构创建完成，数据库初始化成功"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "设计数据库架构" --type feature --depends "项目初始化" --acceptance "完成表设计、索引设计、关系设计"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "实现API接口" --type feature --depends "设计数据库架构" --acceptance "核心CRUD接口可用，通过单元测试"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "编写单元测试" --type test --depends "实现API接口"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "准备部署" --type config --depends "编写单元测试" --acceptance "Docker配置完成，部署脚本可用"
 ```
 
 ### 2. 每日工作
 
 开始工作时：
+
 ```bash
 # 查看待处理任务
-/task list pending
+uvx --from git+https://github.com/lazygophers/ccplugin task list pending
 
 # 开始任务
-/task update <id> --status in_progress
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --status in_progress
 ```
 
 完成工作时：
+
 ```bash
 # 完成任务
-/task done <id>
+uvx --from git+https://github.com/lazygophers/ccplugin task done <id>
 ```
 
 ### 3. 添加新需求
 
 当用户提出新需求时：
+
 ```bash
-/task add "新需求描述" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "新需求描述" \
   --type feature \
   --description "详细说明" \
   --acceptance "明确的验收标准"
 ```
 
-### 4. 处理Bug
+### 4. 处理 Bug
 
-当发现Bug时：
+当发现 Bug 时：
+
 ```bash
-/task add "Bug描述" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "Bug描述" \
   --type bug \
   --description "复现步骤、影响范围" \
   --acceptance "修复后验证通过，回归测试无问题"
@@ -237,15 +251,16 @@ allowed-tools: Bash(uv*,*/task.py), TodoWrite
 ### 5. 任务跟踪
 
 定期查看任务状态：
+
 ```bash
 # 查看统计
-/task stats
+uvx --from git+https://github.com/lazygophers/ccplugin task stats
 
 # 按类型查看
-/task list --type bug
+uvx --from git+https://github.com/lazygophers/ccplugin task list --type bug
 
 # 查看进行中的任务
-/task list in_progress
+uvx --from git+https://github.com/lazygophers/ccplugin task list in_progress
 ```
 
 ## 与 TodoWrite 配合
@@ -297,21 +312,24 @@ for todo in todos:
 
 ### 1. 任务粒度
 
-✅ **好的任务**（1-3天完成）：
+✅ **好的任务**（1-3 天完成）：
+
 - "实现用户登录功能"
 - "添加用户注册表单验证"
-- "编写登录API单元测试"
+- "编写登录 API 单元测试"
 
 ❌ **不好的任务**：
+
 - "完成用户模块"（太宽泛）
 - "写代码"（不明确）
-- "修复bug"（缺少上下文）
+- "修复 bug"（缺少上下文）
 
 ### 2. 任务描述
 
 提供清晰的上下文：
+
 ```bash
-/task add "修复API超时问题" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "修复API超时问题" \
   --type bug \
   --description "生产环境/api/users接口在并发>100时超时，需要优化查询性能" \
   --acceptance "并发100时响应时间<2秒，成功率>99%"
@@ -322,11 +340,13 @@ for todo in todos:
 每个任务都应该有清晰的验收标准：
 
 ✅ **好的验收标准**：
+
 - 具体、可验证
 - 包含明确的完成条件
 - 可以通过测试验证
 
 示例：
+
 ```bash
 --acceptance "用户可以使用邮箱、手机号注册并完成验证"
 --acceptance "并发100时响应时间<2秒，成功率>99%"
@@ -334,6 +354,7 @@ for todo in todos:
 ```
 
 ❌ **不好的验收标准**：
+
 - "完成功能"（太模糊）
 - "代码质量好"（无法验证）
 
@@ -345,7 +366,7 @@ for todo in todos:
 - **bug** - 缺陷修复、错误修复
 - **refactor** - 代码重构、性能优化（不改功能）
 - **test** - 测试相关（单元测试、集成测试）
-- **docs** - 文档编写、API文档
+- **docs** - 文档编写、API 文档
 - **config** - 配置变更、环境设置
 
 ### 5. 依赖关系
@@ -354,24 +375,26 @@ for todo in todos:
 
 ```bash
 # 基础任务
-/task add "设计数据库" --type feature
+uvx --from git+https://github.com/lazygophers/ccplugin task add "设计数据库" --type feature
 
 # 依赖任务
-/task add "实现用户API" --type feature --depends "设计数据库"
-/task add "实现前端页面" --type feature --depends "实现用户API"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "实现用户API" --type feature --depends "设计数据库"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "实现前端页面" --type feature --depends "实现用户API"
 
 # 测试任务
-/task add "编写测试用例" --type test --depends "实现用户API,实现前端页面"
+uvx --from git+https://github.com/lazygophers/ccplugin task add "编写测试用例" --type test --depends "实现用户API,实现前端页面"
 ```
 
 注意：
-- 依赖任务必须是已存在的任务ID
+
+- 依赖任务必须是已存在的任务 ID
 - 多个依赖用逗号分隔
 - 依赖表示前置任务必须完成后才能开始当前任务
 
 ### 6. 定期导出
 
 每日或每周导出任务到 Git：
+
 ```bash
 /task-export "tasks-$(date +%Y-%m-%d).md"
 git add "tasks-$(date +%Y-%m-%d).md"
@@ -381,6 +404,7 @@ git commit -m "任务更新 - $(date +%Y-%m-%d)"
 ### 7. 导出归档
 
 重要里程碑导出任务：
+
 ```bash
 /task-export "tasks-milestone-1.md"
 git add "tasks-milestone-1.md"
@@ -389,70 +413,76 @@ git commit -m "里程碑1任务归档"
 
 ## 常见场景
 
-### 场景1：用户添加功能需求
+### 场景 1：用户添加功能需求
 
 用户："需要添加用户头像上传功能"
 
 响应：
+
 ```bash
-/task add "实现用户头像上传功能" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "实现用户头像上传功能" \
   --type feature \
   --description "支持裁剪、压缩、格式转换，限制大小2MB" \
   --acceptance "用户可以上传头像，自动裁剪为正方形，支持JPG/PNG格式，文件大小<2MB"
 ```
 
-### 场景2：开始工作
+### 场景 2：开始工作
 
 用户："开始实现登录功能"
 
 响应：
+
 ```bash
 # 1. 找到任务ID
-/task list pending | grep "登录"
+uvx --from git+https://github.com/lazygophers/ccplugin task list pending | grep "登录"
 
 # 2. 更新状态
-/task update <id> --status in_progress
+uvx --from git+https://github.com/lazygophers/ccplugin task update <id> --status in_progress
 ```
 
-### 场景3：完成任务
+### 场景 3：完成任务
 
 用户："登录功能做完了"
 
 响应：
+
 ```bash
-/task done <id>
+uvx --from git+https://github.com/lazygophers/ccplugin task done <id>
 ```
 
-### 场景4：查看进度
+### 场景 4：查看进度
 
 用户："当前项目进度如何？"
 
 响应：
+
 ```bash
-/task stats
-/task list
+uvx --from git+https://github.com/lazygophers/ccplugin task stats
+uvx --from git+https://github.com/lazygophers/ccplugin task list
 ```
 
-### 场景5：发现Bug
+### 场景 5：发现 Bug
 
 用户："发现登录有问题，经常超时"
 
 响应：
+
 ```bash
-/task add "修复登录超时问题" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "修复登录超时问题" \
   --type bug \
   --description "用户反馈登录经常超时，需要排查" \
   --acceptance "修复后连续24小时无超时投诉，监控显示超时率<0.1%" \
   --priority "高"
 ```
 
-### 场景6：代码重构
+### 场景 6：代码重构
 
 用户："用户模块代码太乱了，需要重构"
 
 响应：
+
 ```bash
-/task add "重构用户模块代码" \
+uvx --from git+https://github.com/lazygophers/ccplugin task add "重构用户模块代码" \
   --type refactor \
   --description "当前代码结构混乱，需要重构以提高可维护性" \
   --acceptance "代码通过review，单元测试覆盖率保持>80%，性能无明显下降"
@@ -463,6 +493,7 @@ git commit -m "里程碑1任务归档"
 ### 脚本执行失败
 
 确保 uv 可用：
+
 ```bash
 uv --version
 ```
@@ -470,6 +501,7 @@ uv --version
 ### 权限问题
 
 确保 `.lazygophers` 目录可写：
+
 ```bash
 mkdir -p .lazygophers/ccplugin/task
 chmod 755 .lazygophers/ccplugin/task
@@ -477,5 +509,5 @@ chmod 755 .lazygophers/ccplugin/task
 
 ## 参考资源
 
-- [插件 README](../../plugins/task/README.md)
-- [命令文档](../../plugins/task/commands/task.md)
+- [插件 README](${CLAUDE_PLUGIN_ROOT}/README.md)
+- [命令文档](${CLAUDE_PLUGIN_ROOT}/commands/task.md)

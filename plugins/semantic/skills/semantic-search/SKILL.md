@@ -1,7 +1,9 @@
 ---
 name: semantic-search
 description: 代码语义搜索技能 - 使用自然语言查询代码库，基于向量嵌入进行智能搜索。当用户需要查找代码实现、API用法、代码示例时自动激活。
-auto-activate: always:true
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+context: true
+agent: ${CLAUDE_PLUGIN_ROOT}/agents/semantic.md
 ---
 
 # 代码语义搜索
@@ -10,12 +12,12 @@ auto-activate: always:true
 
 当用户需要以下操作时，使用此技能：
 
-- 查找代码实现（"如何实现xxx"）
-- 查找 API 用法（"xxx怎么用"）
-- 查找代码示例（"xxx的示例代码"）
-- 查找特定功能的代码（"处理xxx的代码"）
-- 理解代码库结构（"xxx功能在哪里"）
-- 寻找最佳实践（"最佳实践xxx"）
+- 查找代码实现（"如何实现 xxx"）
+- 查找 API 用法（"xxx 怎么用"）
+- 查找代码示例（"xxx 的示例代码"）
+- 查找特定功能的代码（"处理 xxx 的代码"）
+- 理解代码库结构（"xxx 功能在哪里"）
+- 寻找最佳实践（"最佳实践 xxx"）
 
 ## 搜索策略
 
@@ -59,25 +61,25 @@ auto-activate: always:true
 查询："连接数据库 connection pool"
 ```
 
-## 命令使用
+## 命令执行
 
 ### 基本搜索
 
 ```bash
-/semantic-search "查询内容"
+uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "查询内容"
 ```
 
 ### 高级搜索
 
 ```bash
 # 限定语言
-/semantic-search "sort" --language python
+uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "sort" --language python
 
 # 更多结果
-/semantic-search "database" --limit 20
+uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "database" --limit 20
 
 # 提高相似度
-/semantic-search "authentication" --threshold 0.7
+uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "authentication" --threshold 0.7
 ```
 
 ## 搜索结果解读
@@ -89,6 +91,7 @@ auto-activate: always:true
 - **相似度 < 0.6**: 可能相关
 
 查看结果时注意：
+
 1. 文件路径和行号定位代码
 2. 代码片段展示实现
 3. 上下文代码帮助理解
@@ -109,13 +112,14 @@ uv run scripts/semantic.py index
 对于代码功能查询，语义搜索优于文本搜索：
 
 ```
-✅ /semantic-search "处理用户输入"
+✅ uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "处理用户输入"
 ❌ grep "user input"
 ```
 
 ### 结合结果验证
 
 搜索结果需要验证：
+
 1. 检查代码是否匹配需求
 2. 确认上下文是否完整
 3. 验证代码是否可运行
@@ -163,5 +167,5 @@ uv run scripts/semantic.py index
 
 ## 相关命令
 
-- `/semantic-search` - 语义搜索（主要命令）
+- `uvx --from git+https://github.com/lazygophers/ccplugin semantic-search` - 语义搜索命令
 - 其他管理功能通过 `semantic.py` 脚本使用
