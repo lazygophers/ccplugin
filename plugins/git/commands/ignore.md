@@ -20,16 +20,11 @@ allowed-tools: Bash(git:*), Read, Write
 ### 自动识别规则
 
 **临时文件**：`*.log`, `*.tmp`, `*.temp`, `*.cache`, `*.bak`, `*.swp`, `*.swo`
-
 **缓存目录**：`__pycache__/`, `.pytest_cache/`, `node_modules/`, `.venv/`, `venv/`
-
 **环境文件**：`.env`, `.env.local`, `.env.*`, `*.secret`, `*.key`
-
 **IDE 配置**：`.vscode/`, `.idea/`（项目配置除外）
 **系统文件**：`.DS_Store`, `Thumbs.db`
-
 **构建产物**：`dist/`, `build/`, `target/`, `.next/`, `out/`
-
 **测试覆盖**：`.coverage`, `coverage/`, `htmlcov/`
 
 ### 执行步骤
