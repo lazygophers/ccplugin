@@ -1,0 +1,15 @@
+{
+  "description": "插件模板 Hooks - 示例钩子配置",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Plugin initialized'"
+          }
+        ]
+      }
+    ]
+  }
+}
