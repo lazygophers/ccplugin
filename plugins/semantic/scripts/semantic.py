@@ -1378,12 +1378,15 @@ def search(
     language: Optional[str] = typer.Option(None, "--lang", help="限定编程语言"),
     threshold: Optional[float] = typer.Option(None, "--threshold", "-t", help="相似度阈值（覆盖配置文件）"),
     context: bool = typer.Option(True, "--context/--no-context", help="显示上下文"),
+    hybrid: bool = typer.Option(True, "--hybrid/--vector-only", help="使用混合搜索（向量+关键词）"),
+    strategy: str = typer.Option("rrf", "--strategy", "-s", help="混合搜索策略（rrf/linear/max/min）"),
 ):
-    """语义搜索"""
+    """语义搜索（支持向量搜索和混合搜索）"""
     import sys
     sys.path.insert(0, str(Path(__file__).parent))
 
     from lib.indexer import CodeIndexer
+    from lib.integrated_searcher import IntegratedSearcher
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=False):
@@ -1415,22 +1418,98 @@ def search(
 
     # 执行搜索
     console.print(f"\n[bold cyan]搜索:[/bold cyan] {query}")
-    console.print(f"[dim]相似度阈值:[/dim] {threshold:.2f}\n")
+    console.print(f"[dim]相似度阈值:[/dim] {threshold:.2f}")
 
-    # 使用 CodeIndexer 搜索
-    results = indexer.search(
-        query=query,
-        limit=limit,
-        language=language,
-        threshold=threshold,
-    )
+    search_mode = "混合搜索" if hybrid else "向量搜索"
+    console.print(f"[dim]搜索模式:[/dim] {search_mode}")
+    if hybrid:
+        console.print(f"[dim]融合策略:[/dim] {strategy}\n")
+    else:
+        console.print()
+
+    # 使用集成搜索器
+    if hybrid:
+        integrated = IntegratedSearcher(
+            vector_searcher=indexer,
+            use_bm25=True,
+            hybrid_strategy=strategy,
+            vector_weight=0.6,
+            keyword_weight=0.4,
+        )
+
+        # 获取所有已索引的块，构建 BM25 索引
+        try:
+            # 从存储中获取所有文档
+            all_docs = indexer.storage.search(
+                query_vector=[0] * 384,  # 虚拟查询向量
+                limit=10000,
+            )
+
+            # 构建 BM25 索引
+            documents = [
+                {
+                    "id": doc.get("id", ""),
+                    "text": doc.get("code", ""),
+                    "metadata": {
+                        k: v for k, v in doc.items()
+                        if k not in ["id", "code", "vector"]
+                    },
+                }
+                for doc in all_docs
+            ]
+
+            if documents:
+                integrated.build_bm25_index(documents)
+                console.print(f"[dim]已构建 BM25 索引：{len(documents)} 个文档[/dim]\n")
+        except Exception as e:
+            console.print(f"[yellow]警告: 构建 BM25 索引失败：{e}[/yellow]\n")
+
+        # 执行混合搜索
+        results = integrated.search(
+            query=query,
+            limit=limit,
+            language=language,
+            threshold=threshold,
+            use_hybrid=True,
+        )
+    else:
+        # 仅向量搜索
+        results = indexer.search(
+            query=query,
+            limit=limit,
+            language=language,
+            threshold=threshold,
+        )
+
+        # 转换为标准格式
+        results = [
+            {
+                "id": r.get("id", ""),
+                "text": r.get("code", ""),
+                "file_path": r.get("file_path", ""),
+                "start_line": r.get("start_line", 0),
+                "end_line": r.get("end_line", 0),
+                "code_type": r.get("code_type", ""),
+                "name": r.get("name", ""),
+                "language": r.get("language", ""),
+                "score": r.get("similarity", 0),
+            }
+            for r in results
+        ]
 
     # 显示结果
     if not results:
         console.print("[yellow]未找到相关代码[/yellow]")
     else:
-        table = Table(title=f"搜索结果 ({len(results)} 条)", show_header=True, header_style="bold magenta")
-        table.add_column("相似度", style="cyan", width=10)
+        # 确定要显示的分数列标签
+        score_label = "混合分数" if hybrid else "相似度"
+
+        table = Table(
+            title=f"搜索结果 ({len(results)} 条)",
+            show_header=True,
+            header_style="bold magenta",
+        )
+        table.add_column(score_label, style="cyan", width=10)
         table.add_column("文件", style="green")
         table.add_column("位置", style="blue", width=10)
         table.add_column("类型", width=10)
@@ -1438,14 +1517,14 @@ def search(
         table.add_column("代码")
 
         for r in results[:limit]:
-            similarity = f"{r.get('similarity', 0):.2f}"
+            score = f"{r.get('score', 0):.2f}"
             file_path = r.get('file_path', '')
             line_info = f"{r.get('start_line', 0)}:{r.get('end_line', 0)}"
             code_type = r.get('code_type', 'block')
             name = r.get('name', '')
-            code = r.get('code', '')[:100]
+            code = r.get('text', '')[:100]
 
-            table.add_row(similarity, file_path, line_info, code_type, name, code)
+            table.add_row(score, file_path, line_info, code_type, name, code)
 
         console.print(table)
 
@@ -1454,10 +1533,15 @@ def search(
             console.print("\n[bold]详细结果:[/bold]\n")
             for i, r in enumerate(results[:limit], 1):
                 console.print(f"[cyan]{i}.[/cyan] [bold]{r.get('file_path', '')}:{r.get('start_line', 0)}[/bold]")
-                console.print(f"[dim]相似度: {r.get('similarity', 0):.3f}[/dim]")
+                console.print(f"[dim]分数: {r.get('score', 0):.3f}[/dim]")
+
+                # 混合搜索时显示向量和关键词分数
+                if hybrid and r.get('vector_score') is not None:
+                    console.print(f"[dim]向量分数: {r.get('vector_score', 0):.3f} | 关键词分数: {r.get('keyword_score', 0):.3f}[/dim]")
+
                 console.print(f"[dim]类型: {r.get('code_type')} | 名称: {r.get('name')}[/dim]")
                 console.print(f"\n[bold yellow]代码:[/bold yellow]")
-                console.print(r.get('code', '')[:500])
+                console.print(r.get('text', '')[:500])
                 console.print()
 
     # 关闭索引器
