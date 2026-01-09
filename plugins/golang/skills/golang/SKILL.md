@@ -1,6 +1,6 @@
 ---
 name: golang-style
-description: golang 生态开发规范 - 基于 golang 生态的高性能、简洁 Golang 开发规范。当使用 golang 包、进行高性能开发或参考 golang 项目时自动激活
+description: golang 开发规范,golang 项目时自动激活
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 auto-activate:
   patterns:
