@@ -1,7 +1,7 @@
 {
-  "total_files": 19,
+  "total_files": 0,
   "staged": 0,
-  "unstaged": 1,
-  "untracked": 18,
-  "summary": "未暂存 1 个, 未追踪 18 个文件 (Go 3, Markdown 15, JSON/YAML 1)"
+  "unstaged": 0,
+  "untracked": 0,
+  "summary": "无文件变更"
 }
