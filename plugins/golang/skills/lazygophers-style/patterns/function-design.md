@@ -21,16 +21,6 @@ type Query struct {
     limit  int
 }
 
-func (q *Query) WithFilter(f string) *Query {
-    q.filter = f
-    return q
-}
-
-func (q *Query) Execute() ([]Item, error) {
-    // 查询逻辑
-    return items, nil
-}
-
 // ✅ 使用内存池减少分配
 var bufferPool = sync.Pool{
     New: func() interface{} {
@@ -63,8 +53,8 @@ func processDataBad(data []byte) string {
 import "github.com/lazygophers/utils/candy"
 
 // ✅ 必须使用 candy 而非手动循环
-func (h *Handler) ListActiveUsers(ctx context.Context) ([]*User, error) {
-    users, err := h.repo.GetAll(ctx)
+func ListActiveUsers() ([]*User, error) {
+    users, err := GetAll()
     if err != nil {
         log.Errorf("err:%v", err)
         return nil, err
@@ -83,17 +73,6 @@ func (h *Handler) ListActiveUsers(ctx context.Context) ([]*User, error) {
     _ = emails
     return activeUsers, nil
 }
-
-// ❌ 禁止 - 手动循环
-func ListActiveUsersBad(ctx context.Context) []*User {
-    var result []*User
-    for _, u := range users {
-        if u.IsActive {
-            result = append(result, u)  // 不推荐
-        }
-    }
-    return result
-}
 ```
 
 ### 字符串转换必用 Stringx
@@ -102,7 +81,7 @@ func ListActiveUsersBad(ctx context.Context) []*User {
 import "github.com/lazygophers/utils/stringx"
 
 // ✅ 必须使用 stringx
-func (h *Handler) TransformField(fieldName string) string {
+func TransformField(fieldName string) string {
     return stringx.ToSmallCamel(fieldName)  // 用户名 → userName
 }
 
@@ -119,8 +98,9 @@ func TransformFieldBad(fieldName string) string {
 import "github.com/lazygophers/utils/osx"
 
 // ✅ 必须使用 osx
-func (h *Handler) LoadConfigFile(path string) error {
+func LoadConfigFile(path string) error {
     if !osx.IsFile(path) {
+        log.Errorf("config file not found: %s", path)
         return fmt.Errorf("config file not found: %s", path)
     }
 
@@ -130,7 +110,13 @@ func (h *Handler) LoadConfigFile(path string) error {
         return err
     }
 
-    return h.parseConfig(data)
+    err =  parseConfig(data)
+    if err != nil {
+        log.Errorf("err:%v", err)
+        return err
+    }
+
+    return nil
 }
 
 // ❌ 禁止 - 使用 os.Stat
@@ -148,22 +134,19 @@ func LoadConfigFileBad(path string) error {
 ### API Handler 模式
 
 ```go
-// ✅ API handlers - 接受 context + request struct
-type Handler struct {
-    service UserService
-}
-
-func (h *Handler) Register(ctx *fiber.Ctx) error {
+// ✅ API handlers - 接受 request struct
+func Register(ctx *fiber.Ctx) error {
     var req RegisterRequest
-    if err := ctx.BodyParser(&req); err != nil {
-        log.Errorf("err:%v", err)
-        return h.error(ctx, http.StatusBadRequest, err)
-    }
-
-    user, err := h.service.Register(ctx.Context(), &req)
+    err := ctx.BodyParser(&req)
     if err != nil {
         log.Errorf("err:%v", err)
-        return h.error(ctx, http.StatusInternalServerError, err)
+        return sendError(ctx, http.StatusBadRequest, err)
+    }
+
+    user, err :=Register(&req)
+    if err != nil {
+        log.Errorf("err:%v", err)
+        return sendError(ctx, http.StatusInternalServerError, err)
     }
 
     return ctx.JSON(http.StatusCreated, user)
@@ -177,13 +160,14 @@ func (h *Handler) RegisterBad(ctx *fiber.Ctx, username, email string) error {}
 
 ```go
 // ✅ Service 函数 - context 优先
-func (s *UserService) Register(ctx context.Context, req *RegisterRequest) (*User, error) {
-    if err := req.Validate(); err != nil {
+func Register(req *RegisterRequest) (*User, error) {
+    err := req.Validate()
+    if err != nil {
         log.Errorf("err:%v", err)
         return nil, err
     }
 
-    exists, err := s.repo.ExistsByEmail(ctx, req.Email)
+    exists, err := ExistsByEmail(req.Email)
     if err != nil {
         log.Errorf("err:%v", err)
         return nil, err
@@ -195,85 +179,13 @@ func (s *UserService) Register(ctx context.Context, req *RegisterRequest) (*User
     user := &User{
         Email: req.Email,
     }
-    if err := s.repo.Save(ctx, user); err != nil {
-        log.Errorf("err:%v", err)
-        return nil, err
-    }
-
-    return user, nil
-}
-
-// ✅ 查询函数 - 查询构建器模式
-type UserQuery struct {
-    db   DB
-    age  int
-    limit int
-}
-
-func NewUserQuery(db DB) *UserQuery {
-    return &UserQuery{db: db, limit: 10}
-}
-
-func (q *UserQuery) WithAge(age int) *UserQuery {
-    q.age = age
-    return q
-}
-
-func (q *UserQuery) Limit(n int) *UserQuery {
-    q.limit = n
-    return q
-}
-
-func (q *UserQuery) Find(ctx context.Context) ([]*User, error) {
-    query := q.db.Query()
-    if q.age > 0 {
-        query = query.Where("age = ?", q.age)
-    }
-
-    var users []*User
-    err := query.Limit(q.limit).Scan(&users).Error
-    if err != nil {
-        log.Errorf("err:%v", err)
-        return nil, err
-    }
-    return users, nil
-}
-
-// 使用
-users, err := NewUserQuery(db).WithAge(18).Limit(20).Find(ctx)
-```
-
-## 状态提取函数（参考 Linky）
-
-### 从 Context 提取状态
-
-```go
-// ✅ 标准的状态提取模式
-func (h *Handler) GetCurrentUser(ctx *fiber.Ctx) (*User, error) {
-    // 从 context 中提取用户信息
-    uid, ok := ctx.Locals("uid").(int64)
-    if !ok {
-        return nil, errors.New("unauthorized")
-    }
-
-    user, err := h.service.GetUser(ctx.Context(), uid)
+    err := repo.Save(user)
     if err != nil {
         log.Errorf("err:%v", err)
         return nil, err
     }
 
     return user, nil
-}
-
-// ✅ 中间件设置状态
-func Auth(h Handler) Handler {
-    return func(ctx *fiber.Ctx) error {
-        token := ctx.Get("Authorization")
-        // 验证 token
-        uid := parseToken(token)
-        ctx.Locals("uid", uid)  // 设置状态
-        return h(ctx)
-    }
 }
 ```
 
@@ -317,8 +229,6 @@ type ServiceOptions struct {
     Logger Logger
     Timeout time.Duration
 }
-
-type ServiceOption func(*ServiceOptions)
 
 func WithLogger(logger Logger) ServiceOption {
     return func(opts *ServiceOptions) {
@@ -399,9 +309,3 @@ func (d Data) SumBad() int {  // 值接收者
     return total
 }
 ```
-
-## 参考
-
-- [Lazygophers Utils](https://github.com/lazygophers/utils)
-- [Candy Documentation](https://github.com/lazygophers/utils/tree/master/candy)
-- [Linky Server 参考](../references.md)
