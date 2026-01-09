@@ -13,5 +13,7 @@
   "keywords": ["template", "starter", "boilerplate"],
   "commands": "./commands/",
   "agents": "./agents/",
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
 }
