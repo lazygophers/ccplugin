@@ -84,22 +84,13 @@ class TaskMCPServer:
         self._register_tools()
 
     def _load_agent_content(self) -> str:
-        """加载 AGENT.md 系统提示词内容"""
+        """加载系统提示词（从 agent_prompt.py 导入内置字符串）"""
         try:
-            agent_file = script_path.parent / "AGENT.md"
-            if agent_file.exists():
-                content = agent_file.read_text(encoding='utf-8').strip()
-                if content:
-                    logger.info(f"成功加载系统提示词: {agent_file}")
-                    return content
-                else:
-                    logger.warning("AGENT.md 文件为空")
-                    return self._get_default_prompt()
-            else:
-                logger.warning(f"AGENT.md 文件不存在: {agent_file}")
-                return self._get_default_prompt()
+            from agent_prompt import get_task_agent_prompt
+            logger.info("成功加载系统提示词（从 agent_prompt.py）")
+            return get_task_agent_prompt()
         except Exception as e:
-            logger.error(f"读取 AGENT.md 失败: {e}")
+            logger.error(f"加载系统提示词失败: {e}")
             return self._get_default_prompt()
 
     def _get_default_prompt(self) -> str:
