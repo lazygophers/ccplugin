@@ -141,10 +141,11 @@ class TaskMCPServer:
         if self.task_db is None:
             try:
                 # 导入任务管理模块（延迟初始化）
-                from task import init_database, add_task, update_task, delete_task, list_tasks, get_task
+                from task import init_database, get_db_path, add_task, update_task, delete_task, list_tasks, get_task
 
                 # 自动检查并初始化
-                init_database()
+                db_path = get_db_path()
+                init_database(db_path)
 
                 # 存储任务管理函数引用
                 self.task_db = {
@@ -575,7 +576,7 @@ class TaskMCPServer:
 
             # 运行服务器
             logger.info("Task MCP Server 启动")
-            await stdio_server(self.server)
+            await stack.enter_async_context(stdio_server(self.server))
 
 def main():
     """主函数"""
