@@ -119,33 +119,11 @@ class SemanticMCPServer:
         """确保索引器已初始化"""
         if self.indexer is None:
             try:
-                # 导入索引器（延迟初始化）
-                # 使用绝对路径导入，避免包结构问题
-                try:
-                    # 优先尝试从 lib 导入（开发环境）
-                    from lib.indexer import CodeIndexer
-                    from lib.config import load_config, get_data_path
-                    from lib.utils import check_and_auto_init
-                except (ImportError, ModuleNotFoundError):
-                    # 备选：直接导入（打包环境）
-                    import importlib.util
-                    lib_path = script_path / "lib"
-
-                    spec_indexer = importlib.util.spec_from_file_location("indexer", lib_path / "indexer.py")
-                    indexer_module = importlib.util.module_from_spec(spec_indexer)
-                    spec_indexer.loader.exec_module(indexer_module)
-                    CodeIndexer = indexer_module.CodeIndexer
-
-                    spec_config = importlib.util.spec_from_file_location("config", lib_path / "config.py")
-                    config_module = importlib.util.module_from_spec(spec_config)
-                    spec_config.loader.exec_module(config_module)
-                    load_config = config_module.load_config
-                    get_data_path = config_module.get_data_path
-
-                    spec_utils = importlib.util.spec_from_file_location("utils", lib_path / "utils.py")
-                    utils_module = importlib.util.module_from_spec(spec_utils)
-                    spec_utils.loader.exec_module(utils_module)
-                    check_and_auto_init = utils_module.check_and_auto_init
+                # 导入索引器（仅支持打包环境 uvx）
+                # 在打包环境中，lib 是作为 plugins.semantic.scripts.lib 包存在的
+                from lib.indexer import CodeIndexer
+                from lib.config import load_config, get_data_path
+                from lib.utils import check_and_auto_init
 
                 # 自动检查并初始化
                 if not check_and_auto_init(silent=True):
@@ -342,16 +320,16 @@ class SemanticMCPServer:
     async def run(self):
         """启动 MCP 服务器"""
         from mcp.server.stdio import stdio_server
+        from mcp.server.models import InitializationOptions
 
         # 准备统计信息（用于初始化检查）
         self._ensure_indexer_initialized()
 
         # 运行服务器
         logger.info("Semantic MCP Server 启动")
-        async with stdio_server(self.server):
-            # stdio_server 会自动处理 stdin/stdout 通信
-            # 我们需要让这个上下文保活，等待服务器关闭
-            await asyncio.Event().wait()
+        async with stdio_server() as (read_stream, write_stream):
+            initialization_options = self.server.create_initialization_options()
+            await self.server.run(read_stream, write_stream, initialization_options)
 
 def main():
     """主函数"""
