@@ -1,9 +1,0 @@
-[project]
-name = "task-plugin"
-version = "1.0.0"
-description = "Task management plugin for Claude Code"
-requires-python = ">=3.8"
-dependencies = [
-    "typer>=0.12.0",
-    "rich>=13.0.0",
-]
