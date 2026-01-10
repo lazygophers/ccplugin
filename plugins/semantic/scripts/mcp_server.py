@@ -22,6 +22,7 @@ import sys
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
+from logging.handlers import RotatingFileHandler
 
 # 添加脚本路径到 sys.path 以导入 semantic.py 的模块
 script_path = Path(__file__).parent
@@ -47,6 +48,24 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("semantic-mcp-server")
+
+# 添加文件日志处理程序
+log_dir = Path.home() / ".lazygophers" / "ccplugin"
+log_dir.mkdir(parents=True, exist_ok=True)
+log_file = log_dir / "error.log"
+
+# 使用 RotatingFileHandler：最大100MB，保留2份备份
+file_handler = RotatingFileHandler(
+    str(log_file),
+    maxBytes=100 * 1024 * 1024,  # 100MB
+    backupCount=2,  # 保留2份备份
+    encoding='utf-8'
+)
+file_handler.setLevel(logging.WARNING)
+file_handler.setFormatter(
+    logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+)
+logging.getLogger().addHandler(file_handler)
 
 class SearchRequest(BaseModel):
     """Search request model"""
