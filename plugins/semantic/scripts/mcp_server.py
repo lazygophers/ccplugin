@@ -22,7 +22,6 @@ import sys
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
-from contextlib import AsyncExitStack
 
 # 添加脚本路径到 sys.path 以导入 semantic.py 的模块
 script_path = Path(__file__).parent
@@ -342,16 +341,17 @@ class SemanticMCPServer:
 
     async def run(self):
         """启动 MCP 服务器"""
-        # 使用 stdio 传输
-        async with AsyncExitStack() as stack:
-            from mcp.server.stdio import stdio_server
+        from mcp.server.stdio import stdio_server
 
-            # 准备统计信息（用于初始化检查）
-            self._ensure_indexer_initialized()
+        # 准备统计信息（用于初始化检查）
+        self._ensure_indexer_initialized()
 
-            # 运行服务器
-            logger.info("Semantic MCP Server 启动")
-            await stack.enter_async_context(stdio_server(self.server))
+        # 运行服务器
+        logger.info("Semantic MCP Server 启动")
+        async with stdio_server(self.server):
+            # stdio_server 会自动处理 stdin/stdout 通信
+            # 我们需要让这个上下文保活，等待服务器关闭
+            await asyncio.Event().wait()
 
 def main():
     """主函数"""
