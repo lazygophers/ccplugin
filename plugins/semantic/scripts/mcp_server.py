@@ -165,13 +165,23 @@ class SemanticMCPServer:
                 logger.info("✓ CodeIndexer 创建成功")
 
                 logger.info("调用 indexer.initialize()...")
-                if not self.indexer.initialize():
-                    logger.error("索引器初始化失败 (initialize() 返回 False)")
-                    self.indexer = None
+                try:
+                    # 尝试初始化索引器（包括模型加载）
+                    init_result = self.indexer.initialize()
+                    if init_result:
+                        logger.info("✓ 索引器初始化成功")
+                        return True
+                    else:
+                        # 初始化失败，但索引结构可能已创建
+                        logger.warning("⚠️ 索引器初始化失败（可能是模型加载问题），但索引结构已创建")
+                        # 继续运行，搜索请求会返回错误信息
+                        return False
+                except Exception as e:
+                    # 初始化过程出错
+                    logger.error(f"索引器初始化异常: {e}")
+                    logger.error(f"错误详情:\n{traceback.format_exc()}")
+                    # 即使出错也继续运行，搜索时会返回错误
                     return False
-
-                logger.info("✓ 索引器初始化成功")
-                return True
 
             except Exception as e:
                 logger.error(f"初始化索引器失败: {e}")
