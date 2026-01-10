@@ -20,6 +20,7 @@ import asyncio
 import json
 import sys
 import logging
+import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 from logging.handlers import RotatingFileHandler
@@ -44,7 +45,7 @@ except ImportError as e:
 
 # 配置日志
 logging.basicConfig(
-    level=logging.WARNING,  # 减少日志输出
+    level=logging.INFO,  # 启用 INFO 级别以获得初始化信息
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("semantic-mcp-server")
@@ -61,7 +62,7 @@ file_handler = RotatingFileHandler(
     backupCount=2,  # 保留2份备份
     encoding='utf-8'
 )
-file_handler.setLevel(logging.WARNING)
+file_handler.setLevel(logging.INFO)  # 捕获 INFO 及以上级别的日志
 file_handler.setFormatter(
     logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 )
@@ -140,31 +141,43 @@ class SemanticMCPServer:
             try:
                 # 导入索引器（仅支持打包环境 uvx）
                 # 在打包环境中，lib 是作为 plugins.semantic.scripts.lib 包存在的
+                logger.info("开始加载索引器模块...")
                 from lib.indexer import CodeIndexer
                 from lib.config import load_config, get_data_path
                 from lib.utils import check_and_auto_init
+                logger.info("✓ 索引器模块加载成功")
 
-                # 自动检查并初始化
-                if not check_and_auto_init(silent=True):
-                    logger.error("semantic 插件初始化失败")
-                    return False
+                # 检查初始化状态（MCP 环境中允许未初始化）
+                logger.info("检查初始化状态...")
+                check_and_auto_init(silent=True)
+                logger.info("✓ 初始化状态检查完成")
 
-                # 加载配置
+                # 加载配置（使用默认配置如果不存在）
+                logger.info("加载配置...")
                 self.config_data = load_config()
                 self.data_path = get_data_path()
+                logger.info(f"✓ 配置加载成功，数据路径: {self.data_path}")
 
                 # 初始化索引器
+                logger.info("初始化 CodeIndexer...")
                 self.indexer = CodeIndexer(self.config_data, self.data_path)
+                logger.info("✓ CodeIndexer 创建成功")
+
+                logger.info("调用 indexer.initialize()...")
                 if not self.indexer.initialize():
-                    logger.error("索引器初始化失败")
+                    logger.error("索引器初始化失败 (initialize() 返回 False)")
                     self.indexer = None
                     return False
 
-                logger.info("索引器初始化成功")
+                logger.info("✓ 索引器初始化成功")
                 return True
 
             except Exception as e:
                 logger.error(f"初始化索引器失败: {e}")
+                logger.error(f"错误详情:\n{traceback.format_exc()}")
+                # 在 MCP 环境中，即使索引器初始化失败也继续运行
+                # 搜索请求会返回适当的错误信息
+                self.indexer = None
                 return False
         return True
 
