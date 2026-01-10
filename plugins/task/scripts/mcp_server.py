@@ -558,16 +558,16 @@ class TaskMCPServer:
     async def run(self):
         """启动 MCP 服务器"""
         from mcp.server.stdio import stdio_server
+        from mcp.server.models import InitializationOptions
 
         # 准备统计信息（用于初始化检查）
         self._ensure_task_db_initialized()
 
         # 运行服务器
         logger.info("Task MCP Server 启动")
-        async with stdio_server(self.server):
-            # stdio_server 会自动处理 stdin/stdout 通信
-            # 我们需要让这个上下文保活，等待服务器关闭
-            await asyncio.Event().wait()
+        async with stdio_server() as (read_stream, write_stream):
+            initialization_options = self.server.create_initialization_options()
+            await self.server.run(read_stream, write_stream, initialization_options)
 
 def main():
     """主函数"""
