@@ -43,14 +43,12 @@ except ImportError as e:
     print("请安装 MCP 依赖: uv pip install mcp", file=sys.stderr)
     sys.exit(1)
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,  # 启用 INFO 级别以获得初始化信息
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# 配置日志（仅文件，不输出到控制台以遵守 MCP stdio 协议）
 logger = logging.getLogger("semantic-mcp-server")
+logger.setLevel(logging.INFO)
 
-# 添加文件日志处理程序
+# 禁用 basicConfig 以避免默认的 console handler
+# 仅添加文件日志处理程序
 log_dir = Path.home() / ".lazygophers" / "ccplugin"
 log_dir.mkdir(parents=True, exist_ok=True)
 log_file = log_dir / "error.log"
@@ -66,7 +64,10 @@ file_handler.setLevel(logging.INFO)  # 捕获 INFO 及以上级别的日志
 file_handler.setFormatter(
     logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 )
-logging.getLogger().addHandler(file_handler)
+logger.addHandler(file_handler)
+
+# 防止日志向上传播到 root logger（避免控制台输出）
+logger.propagate = False
 
 class SearchRequest(BaseModel):
     """Search request model"""
