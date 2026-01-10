@@ -38,7 +38,7 @@ except ImportError as e:
 
 # 配置日志
 logging.basicConfig(
-    level=logging.WARNING,  # 减少日志输出
+    level=logging.INFO,  # 启用 INFO 级别以获得初始化信息
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger("task-mcp-server")
@@ -55,7 +55,7 @@ file_handler = RotatingFileHandler(
     backupCount=2,  # 保留2份备份
     encoding='utf-8'
 )
-file_handler.setLevel(logging.WARNING)
+file_handler.setLevel(logging.INFO)  # 捕获 INFO 及以上级别的日志
 file_handler.setFormatter(
     logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 )
