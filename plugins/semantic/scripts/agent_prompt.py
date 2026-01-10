@@ -1,4 +1,11 @@
-### 代码语义搜索插件
+#!/usr/bin/env python3
+"""
+Semantic Plugin Agent Prompt
+代码语义搜索插件的系统提示词定义
+"""
+
+# 代码语义搜索插件的系统提示词（内置魔法字符串）
+SEMANTIC_AGENT_PROMPT = """### 代码语义搜索插件
 
 **使用 `semantic` 插件进行代码语义搜索**
 
@@ -20,3 +27,12 @@
 其他管理功能通过 `semantic.py` 脚本使用。
 
 完整的 **skills** 信息位于 `${CLAUDE_PLUGIN_ROOT}/skills/semantic-search/SKILL.md` 文件中。
+"""
+
+
+def get_semantic_agent_prompt() -> str:
+    """获取代码语义搜索插件的系统提示词"""
+    return SEMANTIC_AGENT_PROMPT
+
+
+__all__ = ["SEMANTIC_AGENT_PROMPT", "get_semantic_agent_prompt"]
