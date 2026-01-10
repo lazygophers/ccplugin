@@ -16,8 +16,15 @@ Semantic Code Search - 代码语义搜索插件核心脚本
 """
 import warnings; warnings.filterwarnings('ignore')
 
-import yaml
+import sys
 from pathlib import Path
+
+# 添加脚本路径到 sys.path 以导入 lib 模块（支持打包环境 uvx）
+script_path = Path(__file__).parent
+if str(script_path) not in sys.path:
+    sys.path.insert(0, str(script_path))
+
+import yaml
 from typing import List, Dict, Optional, Literal
 from datetime import datetime
 import hashlib
