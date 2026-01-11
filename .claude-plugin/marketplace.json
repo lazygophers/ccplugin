@@ -97,6 +97,32 @@
         "performance",
         "optimization"
       ]
+    },
+    {
+      "name": "python",
+      "source": "./plugins/python",
+      "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
+      "version": "0.0.1",
+      "author": {
+        "name": "Claude Code",
+        "email": "admin@example.com"
+      },
+      "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
+      "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
+      "license": "MIT",
+      "keywords": [
+        "python",
+        "py",
+        "development",
+        "coding-style",
+        "best-practices",
+        "pep8",
+        "type-hints",
+        "testing",
+        "debugging",
+        "performance",
+        "optimization"
+      ]
     }
   ]
 }
