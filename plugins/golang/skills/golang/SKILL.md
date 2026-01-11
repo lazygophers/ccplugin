@@ -1,6 +1,6 @@
 ---
-name: golang-style
-description: golang 开发规范,golang 项目时自动激活
+name: golang
+description: Golang 开发规范和最佳实践指导，包括代码风格、项目结构、依赖管理、测试策略和性能优化等
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 auto-activate:
   patterns:
@@ -27,27 +27,30 @@ golang 生态追求**高性能、低分配、简洁优雅**，通过精选的工
 
 ### 核心规范文档
 
-| 文档 | 路径 | 用途 |
-|------|------|------|
-| **错误处理规范** | [patterns/error-handling.md](patterns/error-handling.md) | 规范的错误处理模式、日志记录、自定义错误 |
-| **函数设计规范** | [patterns/function-design.md](patterns/function-design.md) | 零分配设计、函数式编程、查询构建器、性能优化 |
+| 文档             | 路径                                                                 | 用途                                         |
+| ---------------- | -------------------------------------------------------------------- | -------------------------------------------- |
+| **错误处理规范** | [patterns/error-handling.md](patterns/error-handling.md)             | 规范的错误处理模式、日志记录、自定义错误     |
+| **函数设计规范** | [patterns/function-design.md](patterns/function-design.md)           | 零分配设计、函数式编程、查询构建器、性能优化 |
 | **分库分包规范** | [patterns/package-organization.md](patterns/package-organization.md) | 项目结构、包组织、全局状态模式、避免显式接口 |
-| **架构设计规范** | [patterns/architecture-design.md](patterns/architecture-design.md) | 三层架构、全局状态模式、依赖关系、启动流程 |
-| **命名规范** | [patterns/naming-conventions.md](patterns/naming-conventions.md) | 导出/私有字段、ID 字段、函数命名、常量命名 |
-| **参考资源** | [references.md](references.md) | 官方文档、工具库、项目参考、学习资源 |
+| **架构设计规范** | [patterns/architecture-design.md](patterns/architecture-design.md)   | 三层架构、全局状态模式、依赖关系、启动流程   |
+| **命名规范**     | [patterns/naming-conventions.md](patterns/naming-conventions.md)     | 导出/私有字段、ID 字段、函数命名、常量命名   |
+| **参考资源**     | [references.md](references.md)                                       | 官方文档、工具库、项目参考、学习资源         |
 
 ### 快速导航
 
 **新手入门**：
+
 1. 先阅读 [命名规范](patterns/naming-conventions.md) - 理解基本约定
 2. 再阅读 [错误处理规范](patterns/error-handling.md) - 掌握核心模式
 3. 最后阅读 [函数设计规范](patterns/function-design.md) - 学习最佳实践
 
 **项目架构设计**：
+
 - 阅读 [架构设计规范](patterns/architecture-design.md) - 了解全局状态模式和三层架构
 - 阅读 [分库分包规范](patterns/package-organization.md) - 设计合理的目录结构
 
 **深入理解**：
+
 - 阅读 [参考资源](references.md) - 查找 Linky Server 等实际项目参考
 
 ## 优先包（强制）
