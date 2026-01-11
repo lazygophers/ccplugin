@@ -1,0 +1,71 @@
+{
+  "servers": {
+    "typescript": {
+      "command": "node",
+      "args": [
+        "--max-old-space-size=4096",
+        "node_modules/.bin/typescript-language-server",
+        "--stdio"
+      ],
+      "filetypes": ["typescript", "typescript.tsx", "typescriptreact"],
+      "initializationOptions": {
+        "preferences": {
+          "quotePreference": "single",
+          "importModuleSpecifierPreference": "relative",
+          "importModuleSpecifierEnding": "auto",
+          "jsxAttributeUseEquals": true,
+          "allowIncompleteCompletions": false,
+          "displayPartsForJSDoc": true,
+          "generateReturnInDocTemplate": true
+        },
+        "plugins": [
+          {
+            "name": "@styled/typescript-styled-plugin",
+            "location": "node_modules/@styled/typescript-styled-plugin"
+          }
+        ]
+      },
+      "settings": {
+        "typescript": {
+          "tsdk": "node_modules/typescript/lib",
+          "enablePromptUseWorkspaceTsdk": true
+        },
+        "typescript.check.npmIsInstalled": true,
+        "typescript.format.insertSpaceAfterCommaDelimiter": true,
+        "typescript.format.insertSpaceAfterSemicolonInForStatements": true,
+        "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+        "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+        "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+        "typescript.format.insertSpaceBeforeFunctionParenthesis": false,
+        "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+        "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+        "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+        "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+        "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+        "typescript.format.insertSpaceAfterTypeAssertion": false,
+        "typescript.format.placeOpenBraceOnNewLineForFunctions": false,
+        "typescript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+        "typescript.format.semicolons": "insert",
+        "typescript.preferences.quotePreference": "single",
+        "typescript.preferences.importModuleSpecifierPreference": "relative",
+        "typescript.preferences.importModuleSpecifierEnding": "auto",
+        "typescript.preferences.jsxAttributeUseEquals": true,
+        "typescript.preferences.disableSuggestions": false,
+        "typescript.autoClosingTags": true,
+        "typescript.rename.enable": true,
+        "typescript.inlineSourceMap": false,
+        "typescript.inlayHints.includeInlayEnumMemberValueHints": false,
+        "typescript.inlayHints.includeInlayFunctionLikeReturnTypeHints": false,
+        "typescript.inlayHints.includeInlayFunctionParameterTypeHints": false,
+        "typescript.inlayHints.includeInlayParameterNameHints": "none",
+        "typescript.inlayHints.includeInlayParameterNameHintsWhenArgumentMatchesName": false,
+        "typescript.inlayHints.includeInlayPropertyDeclarationTypeHints": false,
+        "typescript.inlayHints.includeInlayVariableTypeHints": false,
+        "typescript.locale": "auto",
+        "typescript.enablePromptUseWorkspaceTsdk": true,
+        "typescript.validate.enable": true,
+        "typescript.surveys.enabled": false
+      }
+    }
+  }
+}
