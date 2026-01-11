@@ -1,0 +1,31 @@
+{
+  "servers": {
+    "javascript": {
+      "command": "node",
+      "args": [
+        "node_modules/.bin/typescript-language-server",
+        "--stdio"
+      ],
+      "filetypes": [
+        "javascript",
+        "javascriptreact",
+        "jsx"
+      ],
+      "settings": {
+        "javascript.validate.enable": true,
+        "javascript.autoClosingTags": true,
+        "javascript.format.enable": true,
+        "javascript.format.insertSpaceAfterCommaDelimiter": true,
+        "javascript.format.insertSpaceAfterSemicolonInForStatements": true,
+        "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+        "javascript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+        "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+        "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+        "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+        "javascript.preferences.quotePreference": "single",
+        "javascript.preferences.importModuleSpecifierPreference": "relative",
+        "javascript.preferences.importModuleSpecifierEnding": "auto"
+      }
+    }
+  }
+}
