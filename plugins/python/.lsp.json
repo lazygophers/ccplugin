@@ -1,0 +1,63 @@
+{
+  "python": {
+    "command": "pylsp",
+    "args": [],
+    "extensionToLanguage": {
+      ".py": "python"
+    },
+    "settings": {
+      "pylsp": {
+        "configurationSources": ["pycodestyle", "pyflakes"],
+        "plugins": {
+          "pycodestyle": {
+            "enabled": true,
+            "maxLineLength": 88
+          },
+          "pyflakes": {
+            "enabled": true
+          },
+          "mccabe": {
+            "enabled": true,
+            "complexity": 10
+          },
+          "pylint": {
+            "enabled": false
+          },
+          "flake8": {
+            "enabled": true,
+            "maxLineLength": 88,
+            "extend-ignore": ["E203", "W503"]
+          },
+          "black": {
+            "enabled": true,
+            "line_length": 88
+          },
+          "autopep8": {
+            "enabled": false
+          },
+          "isort": {
+            "enabled": true,
+            "profile": "black"
+          },
+          "rope": {
+            "enabled": false
+          }
+        }
+      }
+    },
+    "initializationOptions": {
+      "pylsp": {
+        "configurationSources": ["pycodestyle", "pyflakes"],
+        "plugins": {
+          "pycodestyle": {
+            "maxLineLength": 88
+          }
+        }
+      }
+    },
+    "restartOnCrash": true,
+    "maxRestarts": 5,
+    "startupTimeout": 10000,
+    "shutdownTimeout": 5000
+  }
+}

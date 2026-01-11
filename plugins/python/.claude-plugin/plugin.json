@@ -26,5 +26,6 @@
     "./agents/debug.md",
     "./agents/perf.md"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
 }
