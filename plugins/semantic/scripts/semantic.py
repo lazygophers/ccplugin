@@ -869,9 +869,19 @@ def init(
 
             # 导入并调用索引功能
             import sys
-            sys.path.insert(0, str(Path(__file__).parent))
+            # 找到项目根目录以导入 lib 模块
+            script_dir = Path(__file__).resolve().parent
+            project_root = script_dir.parent.parent.parent
+            if not (project_root / 'lib').exists():
+                current = script_dir
+                for _ in range(5):
+                    if (current / 'lib').exists():
+                        project_root = current
+                        break
+                    current = current.parent
+            sys.path.insert(0, str(project_root))
 
-            from lib.hybrid_indexer import HybridIndexer
+            from lib.utils.hybrid_indexer import HybridIndexer
 
             config_data = load_config()
             indexer = HybridIndexer(config_data, data_path)
@@ -1330,9 +1340,19 @@ def index(
 ):
     """索引代码库"""
     import sys
-    sys.path.insert(0, str(Path(__file__).parent))
+    # 找到项目根目录以导入 lib 模块
+    script_dir = Path(__file__).resolve().parent
+    project_root = script_dir.parent.parent.parent
+    if not (project_root / 'lib').exists():
+        current = script_dir
+        for _ in range(5):
+            if (current / 'lib').exists():
+                project_root = current
+                break
+            current = current.parent
+    sys.path.insert(0, str(project_root))
 
-    from lib.indexer import CodeIndexer
+    from lib.database.indexer import CodeIndexer
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=silent):
@@ -1403,10 +1423,20 @@ def search(
 ):
     """语义搜索（支持向量搜索和混合搜索）"""
     import sys
-    sys.path.insert(0, str(Path(__file__).parent))
+    # 找到项目根目录以导入 lib 模块
+    script_dir = Path(__file__).resolve().parent
+    project_root = script_dir.parent.parent.parent
+    if not (project_root / 'lib').exists():
+        current = script_dir
+        for _ in range(5):
+            if (current / 'lib').exists():
+                project_root = current
+                break
+            current = current.parent
+    sys.path.insert(0, str(project_root))
 
-    from lib.indexer import CodeIndexer
-    from lib.integrated_searcher import IntegratedSearcher
+    from lib.database.indexer import CodeIndexer
+    from lib.search.integrated import IntegratedSearcher
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=False):
@@ -1574,9 +1604,19 @@ def stats(
 ):
     """显示索引统计信息"""
     import sys
-    sys.path.insert(0, str(Path(__file__).parent))
+    # 找到项目根目录以导入 lib 模块
+    script_dir = Path(__file__).resolve().parent
+    project_root = script_dir.parent.parent.parent
+    if not (project_root / 'lib').exists():
+        current = script_dir
+        for _ in range(5):
+            if (current / 'lib').exists():
+                project_root = current
+                break
+            current = current.parent
+    sys.path.insert(0, str(project_root))
 
-    from lib.indexer import CodeIndexer
+    from lib.database.indexer import CodeIndexer
 
     # 自动检查并初始化（hooks 调用）
     if not check_and_auto_init(silent=True):
