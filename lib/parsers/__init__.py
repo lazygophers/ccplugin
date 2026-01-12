@@ -48,9 +48,16 @@ def parse_file(file_path: Path, language: str) -> List[Dict]:
     }
 
     parser_class = parser_map.get(language.lower(), SimpleParser)
-    parser = parser_class(language)
 
     try:
+        # 处理不同的解析器初始化方式
+        if parser_class == PythonParser:
+            parser = parser_class()
+        elif parser_class == SimpleParser:
+            parser = parser_class(language)
+        else:
+            parser = parser_class(language)
+
         chunks = parser.parse_file(file_path)
         # 确保每个 chunk 都有正确的字段
         for chunk in chunks:

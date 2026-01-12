@@ -242,8 +242,6 @@ class CodeIndexer:
         suffix = file_path.suffix
 
         # 根据扩展名映射语言
-        from semantic import SUPPORTED_LANGUAGES
-
         for lang, extensions in SUPPORTED_LANGUAGES.items():
             if suffix in extensions:
                 return lang
