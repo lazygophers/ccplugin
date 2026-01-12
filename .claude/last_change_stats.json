@@ -1,7 +1,7 @@
 {
-  "total_files": 18,
+  "total_files": 3,
   "staged": 0,
-  "unstaged": 1,
-  "untracked": 17,
-  "summary": "未暂存 1 个, 未追踪 17 个文件 (Python 16, Markdown 1, 其他 1)"
+  "unstaged": 3,
+  "untracked": 0,
+  "summary": "未暂存 3 个文件 (Python 3)"
 }

@@ -13,8 +13,8 @@ from typing import List, Dict, Optional
 from pathlib import Path
 
 from .query_processor import QueryProcessor, QueryIntent
-from .hybrid_searcher import HybridSearcher, RankingStrategy
-from .bm25_searcher import BM25Searcher
+from .hybrid import HybridSearcher, RankingStrategy
+from .bm25 import BM25Searcher
 
 
 class IntegratedSearcher:

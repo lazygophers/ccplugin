@@ -9,11 +9,11 @@ from pathlib import Path
 from typing import List, Dict, Optional, Any, TYPE_CHECKING
 from datetime import datetime
 
-from .storage import create_storage
-from .embedding import EmbeddingGenerator, generate_code_id, truncate_code
-from .codemodel import HybridEmbeddingGenerator
-from .symbol_index import SymbolIndex, SymbolExtractor
-from .parsers import parse_file
+from lib.embedding.storage import create_storage
+from lib.embedding import EmbeddingGenerator, generate_code_id, truncate_code
+from lib.embedding.code_model import HybridEmbeddingGenerator
+from lib.database.symbol_index import SymbolIndex, SymbolExtractor
+from lib.parsers import parse_file
 from .language_config import (
     get_chunk_size,
     get_chunk_overlap,
