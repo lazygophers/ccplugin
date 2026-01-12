@@ -1,0 +1,46 @@
+{
+  "name": "React Language Server",
+  "servers": [
+    {
+      "languageId": "javascript",
+      "server": {
+        "command": "typescript-language-server",
+        "args": ["--stdio"],
+        "filetypes": ["javascript", "javascriptreact"]
+      }
+    },
+    {
+      "languageId": "typescript",
+      "server": {
+        "command": "typescript-language-server",
+        "args": ["--stdio"],
+        "filetypes": ["typescript", "typescriptreact"]
+      }
+    }
+  ],
+  "formatters": {
+    "javascript": {
+      "command": "prettier",
+      "args": ["--stdin-filepath", "{file}"],
+      "rootPatterns": ["package.json"]
+    }
+  },
+  "linters": {
+    "javascript": {
+      "command": "eslint",
+      "args": ["--stdin", "--stdin-filename", "{file}", "--format", "json"],
+      "rootPatterns": [".eslintrc.js", ".eslintrc.json", "package.json"]
+    }
+  },
+  "preferences": {
+    "javascript": {
+      "enable": true,
+      "ignorePatterns": ["node_modules"],
+      "autoImport": true,
+      "autoRename": true,
+      "hover": true,
+      "completion": true,
+      "diagnostics": true
+    }
+  }
+}
