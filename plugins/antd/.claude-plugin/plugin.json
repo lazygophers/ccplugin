@@ -1,0 +1,34 @@
+{
+  "name": "antd",
+  "version": "0.0.11",
+  "description": "Ant Design 5.x 企业级 UI 组件库插件 - 提供设计系统、组件库、主题定制、表单管理和完整的企业应用开发规范。包括虚拟滚动、性能优化、TypeScript 完全支持和 Next.js 无缝集成",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/antd",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/antd",
+  "license": "MIT",
+  "keywords": [
+    "antd",
+    "ant-design",
+    "ui-components",
+    "design-system",
+    "form",
+    "table",
+    "enterprise",
+    "react",
+    "typescript",
+    "development",
+    "coding-style",
+    "best-practices"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}
