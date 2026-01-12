@@ -33,16 +33,15 @@ task-mcp = "plugins.task.scripts.mcp_server:main"
 semantic = "plugins.semantic.scripts.semantic:main"
 task = "plugins.task.scripts.task:main"
 
-[tool.setuptools]
-# 使用 find: 指令明确指定包发现方式
-# 只查找 plugins 目录下的包，排除 lib 和其他目录
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-# 明确只在 plugins 目录中查找包
-where = ["plugins"]
-include = ["*"]
-exclude = ["tests", "test_*"]
+# 自动发现所有包
+where = ["."]
+include = ["lib*", "plugins*"]
 
 [tool.setuptools.package-data]
-# 包含所有插件相关的文件
+# 包含所有相关文件
 "*" = ["*.py", "*.yaml", "*.json", "*.md", "*.txt", "*.sh"]
