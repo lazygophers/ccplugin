@@ -170,22 +170,33 @@ class LanceDBStorage:
             print(f"正在创建 {index_type} 向量索引 ({num_rows} 行)...")
 
             # 创建索引
-            if index_type == "HNSW":
-                # HNSW 索引 - 更高质量但内存占用更高
-                self.table.create_index(
-                    "vector",
-                    index_type="HNSW",
-                    metric="cosine",
-                    wait=wait
-                )
-            else:
-                # IVF_PQ 索引（默认）- 适合高维向量，内存占用低
-                self.table.create_index(
-                    "vector",
-                    index_type="IVF_PQ",
-                    metric="cosine",
-                    wait=wait
-                )
+            try:
+                if index_type == "HNSW":
+                    # HNSW 索引 - 更高质量但内存占用更高
+                    self.table.create_index(
+                        column="vector",
+                        index_type="HNSW",
+                        metric="cosine"
+                    )
+                else:
+                    # IVF_PQ 索引（默认）- 适合高维向量，内存占用低
+                    self.table.create_index(
+                        column="vector",
+                        index_type="IVF_PQ",
+                        metric="cosine"
+                    )
+            except TypeError:
+                # 如果上面的 API 不支持，尝试简化版本
+                if index_type == "HNSW":
+                    self.table.create_index(
+                        "vector",
+                        index_type="HNSW"
+                    )
+                else:
+                    self.table.create_index(
+                        "vector",
+                        index_type="IVF_PQ"
+                    )
 
             print("✓ 向量索引创建完成")
             return True
