@@ -6,8 +6,14 @@ Database Module
 - SQLite 任务数据库
 - 表结构定义
 - CRUD 操作
+- 代码索引器
 """
 
+from .indexer import CodeIndexer
+from .symbol_index import SymbolIndex, SymbolExtractor
+
 __all__ = [
-    # 具体类将在此导出
+    "CodeIndexer",
+    "SymbolIndex",
+    "SymbolExtractor",
 ]
