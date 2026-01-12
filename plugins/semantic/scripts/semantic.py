@@ -19,10 +19,23 @@ import warnings; warnings.filterwarnings('ignore')
 import sys
 from pathlib import Path
 
-# 添加脚本路径到 sys.path 以导入 lib 模块（支持打包环境 uvx）
-script_path = Path(__file__).parent
-if str(script_path) not in sys.path:
-    sys.path.insert(0, str(script_path))
+# 添加项目根目录到 sys.path 以导入 lib 模块
+# 从脚本目录向上查找项目根目录（包含lib目录的位置）
+script_path = Path(__file__).resolve().parent  # scripts/
+plugin_path = script_path.parent  # plugins/semantic/ 或 plugins/
+project_root = plugin_path.parent.parent if plugin_path.name != 'semantic' else plugin_path.parent.parent.parent
+
+# 如果自动查找失败，使用备选策略：向上查找包含.lazygophers的目录
+if not (project_root / 'lib').exists():
+    current = Path(__file__).resolve().parent
+    for _ in range(5):
+        if (current / 'lib').exists():
+            project_root = current
+            break
+        current = current.parent
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 import yaml
 from typing import List, Dict, Optional, Literal
