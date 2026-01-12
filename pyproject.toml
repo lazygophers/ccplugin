@@ -32,3 +32,17 @@ semantic-mcp = "plugins.semantic.scripts.mcp_server:main"
 task-mcp = "plugins.task.scripts.mcp_server:main"
 semantic = "plugins.semantic.scripts.semantic:main"
 task = "plugins.task.scripts.task:main"
+
+[tool.setuptools]
+# 使用 find: 指令明确指定包发现方式
+# 只查找 plugins 目录下的包，排除 lib 和其他目录
+
+[tool.setuptools.packages.find]
+# 明确只在 plugins 目录中查找包
+where = ["plugins"]
+include = ["*"]
+exclude = ["tests", "test_*"]
+
+[tool.setuptools.package-data]
+# 包含所有插件相关的文件
+"*" = ["*.py", "*.yaml", "*.json", "*.md", "*.txt", "*.sh"]
