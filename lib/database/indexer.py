@@ -15,10 +15,10 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.text import Text
 
-from .storage import create_storage
-from .embedding import EmbeddingGenerator, generate_code_id, truncate_code
-from .parsers import parse_file
-from .constants import SUPPORTED_LANGUAGES
+from lib.embedding.storage import create_storage
+from lib.embedding import EmbeddingGenerator, generate_code_id, truncate_code
+from lib.parsers import parse_file
+from lib.constants import SUPPORTED_LANGUAGES
 
 console = Console()
 

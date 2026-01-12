@@ -8,8 +8,14 @@ Embedding Module
 - 存储接口 - 向量存储和检索
 """
 
+from .generator import EmbeddingGenerator, generate_code_id, truncate_code
+from .code_model import CodeModelEngine
+from .storage import LanceDBStorage
+
 __all__ = [
     "EmbeddingGenerator",
     "CodeModelEngine",
     "LanceDBStorage",
+    "generate_code_id",
+    "truncate_code",
 ]
