@@ -25,9 +25,22 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 from logging.handlers import RotatingFileHandler
 
-# 添加脚本路径到 sys.path 以导入 semantic.py 的模块
-script_path = Path(__file__).parent
-sys.path.insert(0, str(script_path))
+# 添加项目根目录到 sys.path 以导入 lib 模块
+script_path = Path(__file__).resolve().parent  # scripts/
+plugin_path = script_path.parent  # plugins/semantic/
+project_root = plugin_path.parent.parent  # ccplugin/
+
+# 如果自动查找失败，使用备选策略：向上查找包含lib目录的位置
+if not (project_root / 'lib').exists():
+    current = Path(__file__).resolve().parent
+    for _ in range(5):
+        if (current / 'lib').exists():
+            project_root = current
+            break
+        current = current.parent
+
+sys.path.insert(0, str(project_root))
+sys.path.insert(1, str(script_path))  # 保留脚本目录以支持向后兼容
 
 try:
     from mcp.server.models import InitializationOptions
