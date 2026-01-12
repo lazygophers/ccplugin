@@ -108,7 +108,7 @@ class HybridIndexer:
         enabled_extensions = set()
         for lang, enabled in self.languages.items():
             if enabled:
-                from semantic import SUPPORTED_LANGUAGES
+                from lib.constants import SUPPORTED_LANGUAGES
                 if lang in SUPPORTED_LANGUAGES:
                     enabled_extensions.update(SUPPORTED_LANGUAGES[lang])
 
@@ -427,7 +427,7 @@ class HybridIndexer:
     def _detect_language(self, file_path: Path) -> Optional[str]:
         """检测文件的语言"""
         suffix = file_path.suffix
-        from semantic import SUPPORTED_LANGUAGES
+        from lib.constants import SUPPORTED_LANGUAGES
 
         for lang, extensions in SUPPORTED_LANGUAGES.items():
             if suffix in extensions:
