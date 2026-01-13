@@ -163,6 +163,8 @@ class CodeIndexer:
         # 生成嵌入
         indexed_chunks = []
         skipped_chunks = 0
+        vector_dims_seen = set()  # 用于调试，记录看到的维度
+
         for chunk in chunks:
             # 截断代码
             code = truncate_code(chunk["code"])
@@ -173,37 +175,9 @@ class CodeIndexer:
                 skipped_chunks += 1
                 continue
 
-            # 验证嵌入维度（应与配置的模型维度匹配）
-            model_name = self.config.get("embedding_model", "bge-code-v1")
-            # 模型维度映射
-            model_dims = {
-                "bge-small-en": 384,
-                "bge-small-zh": 512,
-                "bge-base-en": 768,
-                "bge-large-en": 1024,
-                "bge-code-v1": 768,
-                "jina-small-en": 512,
-                "jina-base-en": 768,
-                "jina-code": 768,
-                "jina-v2-code": 768,
-                "jina-v2-small": 512,
-                "arctic-embed-xs": 384,
-                "arctic-embed-s": 384,
-                "arctic-embed-m": 768,
-                "arctic-embed-l": 1024,
-                "gte-large": 1024,
-                "mxbai-embed-large": 1024,
-                "multilingual-e5-small": 384,
-                "multilingual-e5-large": 1024,
-                "nomic-embed-text-1.5": 768,
-                "all-minilm-l6-v2": 384,
-                "default": 384,
-            }
-            expected_dim = model_dims.get(model_name, 768)
-            if len(embedding[0]) != expected_dim:
-                # 维度不匹配，跳过该向量
-                skipped_chunks += 1
-                continue
+            # 记录向量维度用于调试
+            actual_dim = len(embedding[0])
+            vector_dims_seen.add(actual_dim)
 
             # 生成 ID
             chunk_id = generate_code_id(
@@ -227,6 +201,17 @@ class CodeIndexer:
 
         # 存储到数据库
         if indexed_chunks:
+            # 添加调试信息
+            if len(indexed_chunks) > 0:
+                # 检查向量维度的一致性
+                dims = set()
+                for chunk in indexed_chunks:
+                    if isinstance(chunk.get("vector"), (list, tuple)):
+                        dims.add(len(chunk["vector"]))
+
+                if len(dims) > 1:
+                    print(f"警告: 发现不同维度的向量: {dims}")
+
             self.storage.insert(indexed_chunks)
 
         return len(indexed_chunks)
