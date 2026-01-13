@@ -111,15 +111,33 @@ class LanceDBStorage:
 
             # 确保每个项目都有必需字段
             processed_items = []
+            skipped_count = 0
+
             for item in items:
                 vector = item.get("vector", [])
                 if not vector:
                     # 跳过没有向量的项
+                    skipped_count += 1
                     continue
 
-                # 验证向量维度
+                # 验证向量维度和类型
+                if not isinstance(vector, (list, tuple)):
+                    skipped_count += 1
+                    continue
+
                 if len(vector) != expected_dim:
                     # 跳过维度不匹配的向量
+                    skipped_count += 1
+                    continue
+
+                # 转换向量为列表（确保格式一致）
+                vector_list = list(vector) if isinstance(vector, tuple) else vector
+
+                # 验证所有元素都是数字
+                try:
+                    vector_list = [float(v) for v in vector_list]
+                except (TypeError, ValueError):
+                    skipped_count += 1
                     continue
 
                 processed_item = {
@@ -129,15 +147,17 @@ class LanceDBStorage:
                     "code_type": item.get("code_type", "block"),
                     "name": item.get("name", ""),
                     "code": item.get("code", ""),
-                    "start_line": item.get("start_line", 0),
-                    "end_line": item.get("end_line", 0),
-                    "vector": vector,
+                    "start_line": int(item.get("start_line", 0)),
+                    "end_line": int(item.get("end_line", 0)),
+                    "vector": vector_list,
                     "metadata": json.dumps(item.get("metadata", {}), ensure_ascii=False),
                     "indexed_at": item.get("indexed_at", ""),
                 }
                 processed_items.append(processed_item)
 
             if not processed_items:
+                if skipped_count > 0:
+                    print(f"警告: 所有项目都被跳过 (跳过 {skipped_count} 项)")
                 return False
 
             # 执行插入
