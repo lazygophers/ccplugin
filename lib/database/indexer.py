@@ -80,9 +80,13 @@ class CodeIndexer:
             try:
                 for item in path.iterdir():
                     try:
-                        if item.is_file(follow_symlinks=False):
+                        # 检查是否是文件或目录
+                        is_file = item.is_file()
+                        is_dir = item.is_dir()
+
+                        if is_file:
                             yield item
-                        elif item.is_dir(follow_symlinks=False):
+                        elif is_dir:
                             # 跳过某些特殊目录
                             if item.name.startswith('.') or item.name in ('node_modules', '__pycache__', 'venv', '.venv'):
                                 continue
