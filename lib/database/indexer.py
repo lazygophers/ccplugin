@@ -74,20 +74,40 @@ class CodeIndexer:
                 if lang in SUPPORTED_LANGUAGES:
                     enabled_extensions.update(SUPPORTED_LANGUAGES[lang])
 
-        # 扫描目录
-        for file_path in root_path.rglob("*"):
-            # 跳过非文件
-            if not file_path.is_file():
-                continue
+        # 扫描目录（添加超时和异常处理）
+        def safe_rglob(path: Path):
+            """安全的递归目录扫描，跳过不可访问的目录"""
+            try:
+                for item in path.iterdir():
+                    try:
+                        if item.is_file(follow_symlinks=False):
+                            yield item
+                        elif item.is_dir(follow_symlinks=False):
+                            # 跳过某些特殊目录
+                            if item.name.startswith('.') or item.name in ('node_modules', '__pycache__', 'venv', '.venv'):
+                                continue
+                            # 递归扫描
+                            yield from safe_rglob(item)
+                    except (OSError, TimeoutError, PermissionError):
+                        # 跳过不可访问的路径
+                        continue
+            except (OSError, TimeoutError, PermissionError):
+                # 跳过不可访问的目录
+                pass
 
-            # 检查排除规则
-            relative_path = file_path.relative_to(root_path)
-            if spec.match_file(str(relative_path)):
-                continue
+        for file_path in safe_rglob(root_path):
+            try:
+                # 检查排除规则
+                relative_path = file_path.relative_to(root_path)
+                if spec.match_file(str(relative_path)):
+                    continue
 
-            # 检查扩展名
-            if file_path.suffix in enabled_extensions:
-                files.append(file_path)
+                # 检查扩展名
+                if file_path.suffix in enabled_extensions:
+                    files.append(file_path)
+            except (OSError, TimeoutError, PermissionError):
+                # 跳过处理失败的文件
+                continue
 
         return files
 
