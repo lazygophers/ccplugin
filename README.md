@@ -332,6 +332,37 @@ python scripts/my_script.py
 - [CLAUDE.md](CLAUDE.md) - 项目开发规范和指导
 - [CHANGELOG.md](CHANGELOG.md) - 版本变更历史
 
+## 插件缓存清理
+
+### 清理旧插件版本
+
+如果 `~/.claude/plugins/cache/` 目录中积累了很多旧版本的插件，可以使用 `clean` 命令自动清理：
+
+```bash
+# 预览将要删除的内容（不实际删除）
+clean --dry-run
+clean -d
+
+# 实际执行清理
+clean
+
+# 或通过 uvx 远程执行
+uvx --from git+https://github.com/lazygophers/ccplugin clean
+uvx --from git+https://github.com/lazygophers/ccplugin clean --dry-run
+```
+
+这个命令会：
+- 扫描 `~/.claude/plugins/cache/` 目录下所有市场的插件版本
+- 为每个插件保留最新版本，删除所有旧版本
+- 输出清理的详细信息和释放的空间
+
+#### 选项
+
+| 选项 | 说明 |
+|------|------|
+| `--dry-run, -d` | 仅预览将要删除的内容，不执行实际删除 |
+| `--help, -h` | 显示帮助信息 |
+
 ## 常见问题
 
 ### 如何安装插件？
