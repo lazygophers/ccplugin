@@ -1489,9 +1489,14 @@ def search(
 
         # 获取所有已索引的块，构建 BM25 索引
         try:
+            # 获取当前模型的向量维度
+            model_name = config_data.get("embedding_model", "multilingual-e5-large")
+            model_info = SUPPORTED_MODELS.get(model_name, SUPPORTED_MODELS["default"])
+            vector_dim = model_info.get("dim", 384)
+
             # 从存储中获取所有文档
             all_docs = indexer.storage.search(
-                query_vector=[0] * 384,  # 虚拟查询向量
+                query_vector=[0] * vector_dim,  # 虚拟查询向量（维度与索引一致）
                 limit=10000,
             )
 
