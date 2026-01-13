@@ -1368,11 +1368,20 @@ def index(
     else:
         # 查找项目根目录
         current = Path.cwd()
+        project_root = None
         for _ in range(6):
             if (current / ".lazygophers").exists():
-                root_path = current
+                project_root = current
                 break
             current = current.parent
+
+        if project_root:
+            # 优先索引 lib 和 plugins 目录
+            if (project_root / "lib").exists():
+                # 如果存在 lib 目录，索引 lib 和 plugins
+                root_path = project_root
+            else:
+                root_path = project_root
         else:
             root_path = Path.cwd()
 
