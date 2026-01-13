@@ -112,6 +112,7 @@ class LanceDBStorage:
             # 确保每个项目都有必需字段
             processed_items = []
             skipped_count = 0
+            vector_stats = {"total": 0, "dims": set(), "invalid": 0}
 
             for item in items:
                 vector = item.get("vector", [])
@@ -125,7 +126,11 @@ class LanceDBStorage:
                     skipped_count += 1
                     continue
 
-                if len(vector) != expected_dim:
+                actual_dim = len(vector)
+                vector_stats["dims"].add(actual_dim)
+                vector_stats["total"] += 1
+
+                if actual_dim != expected_dim:
                     # 跳过维度不匹配的向量
                     skipped_count += 1
                     continue
@@ -133,10 +138,19 @@ class LanceDBStorage:
                 # 转换向量为列表（确保格式一致）
                 vector_list = list(vector) if isinstance(vector, tuple) else vector
 
-                # 验证所有元素都是数字
+                # 验证所有元素都是有效的数字（非 NaN、无穷）
                 try:
-                    vector_list = [float(v) for v in vector_list]
-                except (TypeError, ValueError):
+                    import math
+                    valid_vector = []
+                    for v in vector_list:
+                        fv = float(v)
+                        # 检查是否是 NaN 或无穷大
+                        if math.isnan(fv) or math.isinf(fv):
+                            vector_stats["invalid"] += 1
+                            raise ValueError(f"无效的向量值: {fv}")
+                        valid_vector.append(fv)
+                    vector_list = valid_vector
+                except (TypeError, ValueError) as e:
                     skipped_count += 1
                     continue
 
@@ -158,7 +172,15 @@ class LanceDBStorage:
             if not processed_items:
                 if skipped_count > 0:
                     print(f"警告: 所有项目都被跳过 (跳过 {skipped_count} 项)")
+                    print(f"  向量统计: 总计 {vector_stats['total']}，维度 {vector_stats['dims']}，无效值 {vector_stats['invalid']}")
                 return False
+
+            # 调试信息
+            dims_set = set()
+            for item in processed_items:
+                dims_set.add(len(item.get("vector", [])))
+            if len(dims_set) > 1:
+                print(f"警告: 处理后的项目中存在不同维度: {dims_set}")
 
             # 执行插入
             self.table.add(processed_items)
