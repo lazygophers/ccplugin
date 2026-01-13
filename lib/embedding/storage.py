@@ -40,6 +40,8 @@ class LanceDBStorage:
                 self.table = self.client.open_table(table_name)
             except Exception:
                 # 表不存在，创建新表 - 使用 pyarrow.Schema
+                # 注意：使用 pa.list_(pa.float32()) 而不是 list_size=dim
+                # 避免 PyArrow 的 fixed-size list 转换问题
                 schema = pa.schema([
                     pa.field("id", pa.string()),
                     pa.field("file_path", pa.string()),
@@ -49,7 +51,7 @@ class LanceDBStorage:
                     pa.field("code", pa.string()),
                     pa.field("start_line", pa.int32()),
                     pa.field("end_line", pa.int32()),
-                    pa.field("vector", pa.list_(pa.float32(), list_size=dim)),
+                    pa.field("vector", pa.list_(pa.float32())),  # 变长列表，避免大小不一致的转换错误
                     pa.field("metadata", pa.string()),  # JSON 字符串
                     pa.field("indexed_at", pa.string()),
                 ])
