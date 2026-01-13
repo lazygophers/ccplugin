@@ -282,14 +282,21 @@ app = typer.Typer(
 def get_data_path(project_root: Optional[str] = None) -> Path:
     """获取数据目录路径"""
     if project_root is None:
-        # 从当前目录向上查找项目根目录（包含 .lazygophers 的目录）
+        # 从当前目录向上查找项目根目录
+        # 优先级：.git > .lazygophers > 当前目录
         current = Path.cwd()
-        for level in range(5):
+        for level in range(6):
+            # 优先查找 .git 文件夹（Git 项目根目录）
+            if (current / ".git").exists():
+                project_root = str(current)
+                break
+            # 然后查找 .lazygophers 文件夹
             if (current / ".lazygophers").exists():
                 project_root = str(current)
                 break
             current = current.parent
         else:
+            # 都找不到，使用当前目录
             project_root = str(Path.cwd())
 
     data_path = Path(project_root) / DATA_DIR
@@ -651,16 +658,21 @@ def init_environment(force: bool = False, silent: bool = False) -> bool:
     """
     try:
         # 查找项目根目录
+        # 优先级：.git > .lazygophers > 当前目录
         project_root = None
         current = Path.cwd()
         for _ in range(6):
+            # 优先查找 .git 文件夹（Git 项目根目录）
+            if (current / ".git").exists():
+                project_root = current
+                break
+            # 然后查找 .lazygophers 文件夹
             if (current / ".lazygophers").exists():
                 project_root = current
                 break
-            if (current / ".git").exists():
-                pass
             current = current.parent
-        else:
+
+        if not project_root:
             project_root = Path.cwd()
 
         # 创建数据目录
@@ -736,15 +748,20 @@ def check_gitignore(project_root: Path = None, silent: bool = False) -> bool:
     """
     # 查找项目根目录
     if project_root is None:
+        # 优先级：.git > .lazygophers > 当前目录
         current = Path.cwd()
         for _ in range(6):
+            # 优先查找 .git 文件夹（Git 项目根目录）
+            if (current / ".git").exists():
+                project_root = current
+                break
+            # 然后查找 .lazygophers 文件夹
             if (current / ".lazygophers").exists():
                 project_root = current
                 break
-            if (current / ".git").exists():
-                pass
             current = current.parent
-        else:
+
+        if not project_root:
             project_root = None
 
     if not project_root:
@@ -1367,23 +1384,25 @@ def index(
         root_path = Path(path).resolve()
     else:
         # 查找项目根目录
+        # 优先级：.git > .lazygophers > 当前目录
         current = Path.cwd()
         project_root = None
         for _ in range(6):
+            # 优先查找 .git 文件夹（Git 项目根目录）
+            if (current / ".git").exists():
+                project_root = current
+                break
+            # 然后查找 .lazygophers 文件夹
             if (current / ".lazygophers").exists():
                 project_root = current
                 break
             current = current.parent
 
-        if project_root:
-            # 优先索引 lib 和 plugins 目录
-            if (project_root / "lib").exists():
-                # 如果存在 lib 目录，索引 lib 和 plugins
-                root_path = project_root
-            else:
-                root_path = project_root
-        else:
-            root_path = Path.cwd()
+        if not project_root:
+            project_root = Path.cwd()
+
+        # 使用找到的项目根目录
+        root_path = project_root
 
     # 显示配置（非静默模式）
     if not silent:
