@@ -171,32 +171,42 @@ class LanceDBStorage:
 
             # 创建索引
             try:
+                # 尝试标准 API：create_index(column, index_type, metric)
                 if index_type == "HNSW":
-                    # HNSW 索引 - 更高质量但内存占用更高
                     self.table.create_index(
                         column="vector",
                         index_type="HNSW",
                         metric="cosine"
                     )
                 else:
-                    # IVF_PQ 索引（默认）- 适合高维向量，内存占用低
                     self.table.create_index(
                         column="vector",
                         index_type="IVF_PQ",
                         metric="cosine"
                     )
-            except TypeError:
-                # 如果上面的 API 不支持，尝试简化版本
-                if index_type == "HNSW":
-                    self.table.create_index(
-                        "vector",
-                        index_type="HNSW"
-                    )
-                else:
-                    self.table.create_index(
-                        "vector",
-                        index_type="IVF_PQ"
-                    )
+            except (TypeError, ValueError):
+                try:
+                    # 尝试不指定 metric 的 API
+                    if index_type == "HNSW":
+                        self.table.create_index(
+                            column="vector",
+                            index_type="HNSW"
+                        )
+                    else:
+                        self.table.create_index(
+                            column="vector",
+                            index_type="IVF_PQ"
+                        )
+                except (TypeError, ValueError):
+                    # 尝试位置参数 API：create_index(column, metric, index_type)
+                    try:
+                        if index_type == "HNSW":
+                            self.table.create_index("vector", "cosine", "HNSW")
+                        else:
+                            self.table.create_index("vector", "cosine", "IVF_PQ")
+                    except (TypeError, ValueError):
+                        # 最后的尝试：不指定任何可选参数
+                        self.table.create_index("vector")
 
             print("✓ 向量索引创建完成")
             return True
