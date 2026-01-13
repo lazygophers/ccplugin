@@ -212,7 +212,26 @@ class CodeIndexer:
                 if len(dims) > 1:
                     print(f"警告: 发现不同维度的向量: {dims}")
 
-            self.storage.insert(indexed_chunks)
+            # 尝试插入，如果失败则自动切换到文本搜索
+            try:
+                self.storage.insert(indexed_chunks)
+            except Exception as e:
+                if "ArrowInvalid" in str(e) or "ListType" in str(e):
+                    # LanceDB ArrowInvalid 错误，切换到文本搜索
+                    console.print(
+                        "[yellow]⚠ LanceDB 兼容性问题，自动切换到文本搜索...[/yellow]"
+                    )
+                    from lib.embedding.storage import create_storage_with_fallback
+
+                    self.storage = create_storage_with_fallback(self.config)
+                    if not self.storage.initialize(self.data_path):
+                        console.print("[red]✗ 文本搜索初始化失败[/red]")
+                        return 0
+
+                    # 重试插入
+                    self.storage.insert(indexed_chunks)
+                else:
+                    raise
 
         return len(indexed_chunks)
 

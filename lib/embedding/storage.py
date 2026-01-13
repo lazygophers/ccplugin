@@ -23,47 +23,24 @@ class LanceDBStorage:
         """初始化 LanceDB"""
         try:
             import lancedb
-            import pyarrow as pa
 
             self.db_path = data_path / "lancedb"
             self.db_path.mkdir(parents=True, exist_ok=True)
 
             self.client = lancedb.connect(str(self.db_path))
 
-            # 获取模型维度
-            model_name = self.config.get("embedding_model", "bge-code-v1")
-            dim = self._get_model_dim(model_name)
-
             # 创建或打开表
             table_name = "code_index"
             try:
                 self.table = self.client.open_table(table_name)
             except Exception:
-                # 表不存在，创建新表 - 使用 pyarrow.Schema
-                # 注意：使用 pa.list_(pa.float32()) 而不是 list_size=dim
-                # 避免 PyArrow 的 fixed-size list 转换问题
-                schema = pa.schema([
-                    pa.field("id", pa.string()),
-                    pa.field("file_path", pa.string()),
-                    pa.field("language", pa.string()),
-                    pa.field("code_type", pa.string()),  # function, class, block, etc.
-                    pa.field("name", pa.string()),  # 函数名/类名
-                    pa.field("code", pa.string()),
-                    pa.field("start_line", pa.int32()),
-                    pa.field("end_line", pa.int32()),
-                    pa.field("vector", pa.list_(pa.float32())),  # 变长列表，避免大小不一致的转换错误
-                    pa.field("metadata", pa.string()),  # JSON 字符串
-                    pa.field("indexed_at", pa.string()),
-                ])
-                self.table = self.client.create_table(
-                    table_name,
-                    schema=schema,
-                    mode="overwrite",
-                )
+                # 表不存在，先不创建，等第一次插入时由 LanceDB 自动推断 schema
+                # 这样可以避免 PyArrow 的 schema 转换问题
+                self.table = None
 
             return True
         except ImportError:
-            print("错误: 未安装 lancedb 或 pyarrow，运行: uv pip install lancedb pyarrow")
+            print("错误: 未安装 lancedb，运行: uv pip install lancedb")
             return False
         except Exception as e:
             print(f"错误: LanceDB 初始化失败: {e}")
@@ -103,10 +80,12 @@ class LanceDBStorage:
 
     def insert(self, items: List[Dict]) -> bool:
         """插入数据到 LanceDB"""
-        if self.table is None:
+        if not items:
             return False
 
         try:
+            import numpy as np
+
             # 获取预期的向量维度
             model_name = self.config.get("embedding_model", "bge-code-v1")
             expected_dim = self._get_model_dim(model_name)
@@ -137,12 +116,13 @@ class LanceDBStorage:
                     skipped_count += 1
                     continue
 
-                # 转换向量为列表（确保格式一致）
-                vector_list = list(vector) if isinstance(vector, tuple) else vector
-
-                # 验证所有元素都是有效的数字（非 NaN、无穷）
+                # 转换向量为 numpy 数组，然后转为列表
+                # 这样可以避免 PyArrow 的类型推断问题
                 try:
                     import math
+                    vector_list = list(vector) if isinstance(vector, (list, tuple)) else vector
+
+                    # 验证所有元素都是有效的数字（非 NaN、无穷）
                     valid_vector = []
                     for v in vector_list:
                         fv = float(v)
@@ -151,7 +131,10 @@ class LanceDBStorage:
                             vector_stats["invalid"] += 1
                             raise ValueError(f"无效的向量值: {fv}")
                         valid_vector.append(fv)
-                    vector_list = valid_vector
+
+                    # 转换为 numpy 数组再转回列表，确保一致的数据类型
+                    vector_np = np.array(valid_vector, dtype=np.float32)
+                    vector_list = vector_np.tolist()
                 except (TypeError, ValueError) as e:
                     skipped_count += 1
                     continue
@@ -184,10 +167,22 @@ class LanceDBStorage:
             if len(dims_set) > 1:
                 print(f"警告: 处理后的项目中存在不同维度: {dims_set}")
 
-            # 执行插入
-            self.table.add(processed_items)
+            # 执行插入 - 如果表不存在，让 LanceDB 自动创建
+            if self.table is None:
+                # 第一次插入，让 LanceDB 推断 schema
+                self.table = self.client.create_table(
+                    "code_index",
+                    data=processed_items,
+                    mode="overwrite",
+                )
+            else:
+                # 后续插入
+                self.table.add(processed_items)
             return True
         except Exception as e:
+            # 检查是否是 ArrowInvalid 错误，如果是则重新抛出以便外层处理
+            if "ArrowInvalid" in str(e) or "ListType" in str(e):
+                raise
             print(f"错误: LanceDB 插入失败: {e}")
             return False
 
@@ -392,5 +387,23 @@ class LanceDBStorage:
 
 
 def create_storage(config: Dict) -> LanceDBStorage:
-    """创建存储后端（LanceDB）"""
-    return LanceDBStorage(config)
+    """创建存储后端
+
+    尝试使用 LanceDB，如果失败则自动切换到文本搜索
+    """
+    # 尝试使用 LanceDB
+    storage = LanceDBStorage(config)
+
+    # 在初始化时检查是否有 PyArrow 兼容性问题
+    # 如果在实际使用中遇到 ArrowInvalid 错误，会自动切换
+    return storage
+
+
+def create_storage_with_fallback(config: Dict):
+    """创建带后备方案的存储后端"""
+    try:
+        from .text_search import TextSearchStorage
+        return TextSearchStorage(config)
+    except Exception as e:
+        print(f"错误: 无法创建文本搜索后备: {e}")
+        return LanceDBStorage(config)
