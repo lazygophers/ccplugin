@@ -162,6 +162,7 @@ class CodeIndexer:
 
         # 生成嵌入
         indexed_chunks = []
+        skipped_chunks = 0
         for chunk in chunks:
             # 截断代码
             code = truncate_code(chunk["code"])
@@ -169,6 +170,39 @@ class CodeIndexer:
             # 生成嵌入
             embedding = self.embedding.encode(code)
             if not embedding or not embedding[0]:
+                skipped_chunks += 1
+                continue
+
+            # 验证嵌入维度（应与配置的模型维度匹配）
+            model_name = self.config.get("embedding_model", "bge-code-v1")
+            # 模型维度映射
+            model_dims = {
+                "bge-small-en": 384,
+                "bge-small-zh": 512,
+                "bge-base-en": 768,
+                "bge-large-en": 1024,
+                "bge-code-v1": 768,
+                "jina-small-en": 512,
+                "jina-base-en": 768,
+                "jina-code": 768,
+                "jina-v2-code": 768,
+                "jina-v2-small": 512,
+                "arctic-embed-xs": 384,
+                "arctic-embed-s": 384,
+                "arctic-embed-m": 768,
+                "arctic-embed-l": 1024,
+                "gte-large": 1024,
+                "mxbai-embed-large": 1024,
+                "multilingual-e5-small": 384,
+                "multilingual-e5-large": 1024,
+                "nomic-embed-text-1.5": 768,
+                "all-minilm-l6-v2": 384,
+                "default": 384,
+            }
+            expected_dim = model_dims.get(model_name, 768)
+            if len(embedding[0]) != expected_dim:
+                # 维度不匹配，跳过该向量
+                skipped_chunks += 1
                 continue
 
             # 生成 ID
