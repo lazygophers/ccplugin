@@ -105,12 +105,21 @@ class LanceDBStorage:
             return False
 
         try:
+            # 获取预期的向量维度
+            model_name = self.config.get("embedding_model", "bge-code-v1")
+            expected_dim = self._get_model_dim(model_name)
+
             # 确保每个项目都有必需字段
             processed_items = []
             for item in items:
                 vector = item.get("vector", [])
                 if not vector:
                     # 跳过没有向量的项
+                    continue
+
+                # 验证向量维度
+                if len(vector) != expected_dim:
+                    # 跳过维度不匹配的向量
                     continue
 
                 processed_item = {
