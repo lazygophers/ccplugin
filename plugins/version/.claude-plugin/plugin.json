@@ -1,0 +1,28 @@
+{
+  "name": "version",
+  "version": "0.0.1.0",
+  "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "version",
+    "semver",
+    "versioning",
+    "release",
+    "management"
+  ],
+  "commands": [
+    "./commands/show.md",
+    "./commands/info.md",
+    "./commands/bump.md",
+    "./commands/set.md",
+    "./commands/init.md"
+  ],
+  "skills": "./skills/"
+}

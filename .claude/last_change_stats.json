@@ -1,7 +1,7 @@
 {
-  "total_files": 1,
+  "total_files": 16,
   "staged": 0,
-  "unstaged": 1,
-  "untracked": 0,
-  "summary": "已提交项目路径检测修复和 LanceDB 兼容性改进"
+  "unstaged": 4,
+  "untracked": 12,
+  "summary": "未暂存 4 个, 未追踪 12 个文件 (Python 3, Markdown 7, JSON/YAML 5)"
 }

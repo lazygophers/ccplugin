@@ -277,6 +277,28 @@
         "coding-style",
         "best-practices"
       ]
+    },
+    {
+      "name": "version",
+      "source": "./plugins/version",
+      "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
+      "version": "0.0.1.0",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "version",
+        "semver",
+        "versioning",
+        "release",
+        "management",
+        "automation",
+        "hooks"
+      ]
     }
   ]
 }

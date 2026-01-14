@@ -19,3 +19,4 @@ plugins/**/__pycache__/
 
 # 运行时数据
 .lazygophers/
+.serena/
