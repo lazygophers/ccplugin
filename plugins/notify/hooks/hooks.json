@@ -1,0 +1,25 @@
+{
+  "description": "系统通知插件 Hooks - 通过系统通知向用户提示会话状态变更和权限请求",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/notify/scripts/stop_hook.py || true"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/notify/scripts/notification_hook.py || true"
+          }
+        ]
+      }
+    ]
+  }
+}

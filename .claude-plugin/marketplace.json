@@ -299,6 +299,28 @@
         "automation",
         "hooks"
       ]
+    },
+    {
+      "name": "notify",
+      "source": "./plugins/notify",
+      "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",
+      "version": "0.0.1",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/notify",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/notify",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "notification",
+        "system-notification",
+        "hook",
+        "event",
+        "macos",
+        "linux",
+        "windows"
+      ]
     }
   ]
 }
