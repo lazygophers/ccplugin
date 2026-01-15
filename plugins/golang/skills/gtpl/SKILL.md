@@ -54,7 +54,8 @@ if err != nil {
 }
 
 // 渲染配置
-if err := tpl.Execute(os.Stdout, config); err != nil {
+err = tpl.Execute(os.Stdout, config)
+if err != nil {
     log.Errorf("render template: %v", err)
 }
 ```
@@ -86,7 +87,8 @@ http.HandleFunc("/user", func(w http.ResponseWriter, r *http.Request) {
         "Name": "<script>alert('xss')</script>",  // 安全转义
         "Bio":  "Hello & welcome",                 // & 被转义为 &amp;
     }
-    if err := tpl.Execute(w, user); err != nil {
+    err = tpl.Execute(w, user)
+    if err != nil {
         log.Errorf("render: %v", err)
         http.Error(w, "Internal Server Error", http.StatusInternalServerError)
     }
@@ -169,7 +171,8 @@ func (m *Manager) Render(name string, data interface{}) (string, error) {
     }
 
     var buf bytes.Buffer
-    if err := tpl.Execute(&buf, data); err != nil {
+    err = tpl.Execute(&buf, data)
+    if err != nil {
         log.Errorf("render template %s: %v", name, err)
         return "", err
     }
@@ -389,7 +392,8 @@ for i := 0; i < 1000; i++ {
 func RenderBatch(tpl *template.Template, dataList []interface{}) (string, error) {
     var buf bytes.Buffer
     for _, data := range dataList {
-        if err := tpl.Execute(&buf, data); err != nil {
+        err = tpl.Execute(&buf, data)
+        if err != nil {
             log.Errorf("render: %v", err)
             return "", err
         }
@@ -434,7 +438,8 @@ http.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
 // ✅ 正确 - 先渲染到缓冲区
 http.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
     var buf bytes.Buffer
-    if err := tpl.Execute(&buf, data); err != nil {
+    err = tpl.Execute(&buf, data)
+    if err != nil {
         log.Errorf("render: %v", err)
         http.Error(w, "Internal Error", http.StatusInternalServerError)
         return

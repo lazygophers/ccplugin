@@ -13,6 +13,7 @@
 ### ❌ 禁止行为
 
 - 单行 if 处理：`if err != nil { return err }`
+- if 条件中声明变量：`if err := eg.Wait(); err != nil { return err }`
 - 忽略错误：`_, _ := ...`
 - 包装 error：`fmt.Errorf("...: %w", err)`
 - 无日志错误处理
@@ -47,6 +48,62 @@ if err != nil { return nil, err }
 if err != nil {
     return nil, fmt.Errorf("read file: %w", err)  // 不要包装
 }
+```
+
+### 错误接收与判断分离（强制）
+
+```go
+// ✅ 必须 - 错误接收与判断分开
+err = eg.Wait()
+if err != nil {
+    log.Errorf("err:%v", err)
+    return err
+}
+
+// ✅ 必须 - 错误接收与判断分开
+err = conn.Close()
+if err != nil {
+    log.Errorf("err:%v", err)
+    return err
+}
+
+// ❌ 禁止 - if 条件中声明变量
+if err := eg.Wait(); err != nil {
+    log.Errorf("err:%s", err)
+    return err
+}
+
+// ❌ 禁止 - if 条件中声明变量
+if err := conn.Close(); err != nil {
+    log.Errorf("err:%v", err)
+    return err
+}
+```
+
+### 错误变量作用域说明
+
+```go
+// ✅ 正确 - 错误变量在外部声明
+var err error
+data, err := fetchData()
+if err != nil {
+    log.Errorf("err:%v", err)
+    return nil, err
+}
+
+// ✅ 正确 - 使用短变量声明
+data, err := fetchData()
+if err != nil {
+    log.Errorf("err:%v", err)
+    return nil, err
+}
+
+// ❌ 错误 - if 条件中声明变量导致作用域受限
+if data, err := fetchData(); err != nil {
+    log.Errorf("err:%v", err)
+    return nil, err
+}
+// data 在这里无法访问
 ```
 
 ### 错误类型判断
