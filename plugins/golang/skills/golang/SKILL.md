@@ -225,7 +225,8 @@ defer file.Close()
 defer resp.Body.Close()
 
 // ✅ 复杂操作才检查
-if err := conn.Close(); err != nil {
+err = conn.Close()
+if err != nil {
     log.Errorf("err:%v", err)
 }
 ```
@@ -384,7 +385,9 @@ for _, item := range items {
         return process(ctx, item)
     })
 }
-if err := eg.Wait(); err != nil {
+err = eg.Wait()
+if err != nil {
+    log.Errorf("err:%v", err)
     return err
 }
 ```
