@@ -1,9 +1,6 @@
 ---
 name: semantic-search
 description: 代码语义搜索技能 - 使用自然语言查询代码库，基于向量嵌入进行智能搜索。当用户需要查找代码实现、API用法、代码示例时自动激活。
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
-context: true
-agent: semantic
 ---
 
 # 代码语义搜索
