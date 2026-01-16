@@ -1,9 +1,6 @@
 ---
 name: git
 description: Git 操作技能 - 当用户需要进行 Git 提交、创建 PR、更新 PR 或管理 .gitignore 时自动激活。提供 Git 工作流指导、提交规范和 PR 最佳实践。
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
-context: true
-agent: git
 ---
 
 # Git 操作技能

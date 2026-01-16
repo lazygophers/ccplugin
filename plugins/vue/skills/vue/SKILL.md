@@ -1,10 +1,20 @@
 ---
 name: vue
 description: Vue 3 开发标准规范 - 包含 Composition API 最佳实践、项目结构、Pinia 状态管理、工具链配置和性能优化指南
-auto-activate: always:true
 ---
 
 # Vue 3 开发标准规范
+
+## 快速导航
+
+本规范分为多个参考文档，按需查看：
+
+| 文档 | 内容 | 适用场景 |
+|------|------|---------|
+| **SKILL.md** | 版本、核心概念、\<script setup\>基础 | 快速开始 |
+| [composition-api.md](composition-api.md) | ref、reactive、computed、watch详细指南 | API详情 |
+| [hooks-lifecycle.md](hooks-lifecycle.md) | 生命周期Hooks、高级响应式模式 | 高级开发 |
+| [project-patterns.md](project-patterns.md) | 项目结构、状态管理、性能优化、安全 | 项目架构 |
 
 ## 版本与环境
 
@@ -20,6 +30,19 @@ auto-activate: always:true
 - **Vitest**：1.0+（Vue 单元测试框架）
 - **Vue Router**：4.2+（官方路由方案）
 - **Volar**：VS Code 官方插件（强大的 IDE 支持）
+
+## 核心概念快览
+
+### Composition API 三大支柱
+
+1. **ref / reactive** - 响应式状态管理
+   - 详见 [composition-api.md](composition-api.md)
+
+2. **computed / watch** - 派生状态和副作用
+   - 详见 [composition-api.md](composition-api.md)
+
+3. **生命周期 Hooks** - 组件生命周期控制
+   - 详见 [hooks-lifecycle.md](hooks-lifecycle.md)
 
 ## 核心概念与最佳实践
 

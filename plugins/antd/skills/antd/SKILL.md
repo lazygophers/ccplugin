@@ -1,7 +1,6 @@
 ---
 name: antd
 description: Ant Design 5.x 企业级开发规范 - 完整的组件库使用、设计系统、表单管理、主题定制和性能优化标准
-auto-activate: always:true
 ---
 
 # Ant Design 5.x 企业级开发规范

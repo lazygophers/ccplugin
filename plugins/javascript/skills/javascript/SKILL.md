@@ -1,7 +1,6 @@
 ---
 name: javascript-development
 description: JavaScript 开发规范 - 涵盖现代 ES2024-2025 标准、异步编程、模块系统、工具链和最佳实践。基于官方标准和业界共识
-auto-activate: always:true
 ---
 
 # JavaScript 开发规范
