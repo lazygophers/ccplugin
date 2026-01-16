@@ -1,24 +1,24 @@
 {
-  "description": "版本管理插件 Hooks - 自动检测任务完成并更新版本号",
+  "description": "版本管理插件 Hooks - 默认更新构建版本号（除非用户明确要求）",
   "hooks": {
     "SubagentStop": [
       {
-        "description": "子任务完成时尝试更新构建版本号",
+        "description": "子任务完成时默认更新构建版本号",
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "检查是否有新完成的任务或功能。如果有，请执行 `/version bump build` 来更新版本号的构建部分。\n\n注意：\n1. 仅在 .version 文件已提交到 git 时才能自动更新\n2. 只能更新 build 版本（最后一位），不能更新 major/minor/patch\n3. 如果 .version 未提交，需要用户手动使用 /version bump <level> 命令\n4. 如果这是一个重大功能完成，请告知用户应该手动使用 /version bump major/minor/patch 来更新相应的版本号"
+            "prompt": "子任务已完成。如果 .version 文件已提交到 git，请执行 `/version bump` 更新构建版本号。\n\n注意：\n1. 仅在 .version 文件已提交到 git 时才能自动更新\n2. 默认只更新 build 版本（最后一位）\n3. 如果用户明确要求更新 major/minor/patch 版本，则按用户要求执行\n4. 如果 .version 未提交，需要用户手动执行版本更新命令"
           }
         ]
       }
     ],
     "Stop": [
       {
-        "description": "会话结束时的最终版本检查",
+        "description": "会话结束时默认更新构建版本号",
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "会话即将结束。请检查本次会话是否完成了任何重要功能或修复。如果有：\n\n1. 如果完成了新功能：执行 `/version bump minor` 更新次版本号\n2. 如果完成了 bug 修复：执行 `/version bump patch` 更新补丁版本号\n3. 如果完成了重大功能或不兼容变更：执行 `/version bump major` 更新主版本号\n4. 如果只是小的改进或完成单个任务：执行 `/version bump build` 更新构建版本号\n\n注意：仅在 .version 文件已提交到 git 且有明确的功能完成时才执行版本更新。"
+            "prompt": "会话即将结束。如果本次会话完成了任何工作，请执行 `/version bump` 更新构建版本号。\n\n注意：\n1. 仅在 .version 文件已提交到 git 时才能自动更新\n2. 默认只更新 build 版本（最后一位）\n3. 如果用户明确要求更新 major/minor/patch 版本，则按用户要求执行\n4. 如果 .version 未提交，需要用户手动执行版本更新命令"
           }
         ]
       }

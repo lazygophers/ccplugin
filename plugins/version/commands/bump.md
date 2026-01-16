@@ -1,6 +1,6 @@
 ---
-description: 自动更新版本号到下一个版本
-argument-hint: build | patch | minor | major
+description: 自动更新版本号到下一个版本（默认更新 build 版本）
+argument-hint: [build] | patch | minor | major
 allowed-tools: Bash(uv*,*/version.py)
 ---
 
@@ -9,6 +9,8 @@ allowed-tools: Bash(uv*,*/version.py)
 ## 命令描述
 
 根据指定的级别自动更新项目版本号。遵循 Semantic Versioning 标准，更新指定部分并重置后续部分。
+
+**默认行为**：不带参数时默认更新 build 版本号。
 
 ## 工作流描述
 
@@ -21,7 +23,8 @@ allowed-tools: Bash(uv*,*/version.py)
 ## 使用方法
 
 ```bash
-/version bump build      # 构建版本 +1
+/version bump            # 默认：构建版本 +1
+/version bump build      # 构建版本 +1（显式指定）
 /version bump patch      # 补丁版本 +1
 /version bump minor      # 次版本 +1
 /version bump major      # 主版本 +1
@@ -39,7 +42,11 @@ allowed-tools: Bash(uv*,*/version.py)
 ## 示例
 
 ```bash
-# 完成任务，更新构建版本
+# 完成任务，更新构建版本（默认）
+/version bump
+# 输出: ✓ 版本已更新: 1.2.3.4 → 1.2.3.5
+
+# 或显式指定 build
 /version bump build
 # 输出: ✓ 版本已更新: 1.2.3.4 → 1.2.3.5
 
@@ -69,6 +76,7 @@ allowed-tools: Bash(uv*,*/version.py)
 
 ## 注意事项
 
+- **默认行为**：不带参数时默认更新 build 版本号
 - **级联重置**：只要更新任何级别，所有后续级别都会被重置为 0
 - **版本文件**：确保项目根目录存在 `.version` 文件（不存在会自动创建）
 - **Git 状态**：更新版本号后需要手动提交到 Git
@@ -76,7 +84,7 @@ allowed-tools: Bash(uv*,*/version.py)
 
 ## 执行时机
 
-- 完成一个功能模块需要更新主版本
-- 完成一个功能需要更新次版本
-- 修复 bug 需要更新补丁版本
-- 完成一个任务需要更新构建版本
+- 完成一个任务或小改进：执行 `/version bump`（默认更新 build）
+- 修复 bug：执行 `/version bump patch`
+- 完成新功能：执行 `/version bump minor`
+- 架构重构或重大变更：执行 `/version bump major`
