@@ -9,6 +9,8 @@ description: 语义化版本控制 (SemVer) 规范和项目版本管理指南
 
 本指南规范项目版本管理，采用 Semantic Versioning (SemVer) 标准，确保版本号的一致性和可追踪性。
 
+**核心原则**：除非用户明确要求，否则任何场景（命令无参数、hooks 自动触发）都默认更新 **Build 版本号**。
+
 ## 版本号格式
 
 采用 **Major.Minor.Patch.Build** 四部分格式：
@@ -106,6 +108,11 @@ X.Y.Z.W
 
 **执行**：
 ```bash
+# 默认更新 build 版本（推荐）
+/version bump
+# 1.1.1.0 → 1.1.1.1
+
+# 或显式指定 build
 /version bump build
 # 1.1.1.0 → 1.1.1.1
 ```
@@ -115,33 +122,32 @@ X.Y.Z.W
 ### 标准工作流
 
 ```
-1. 根据完成的工作类型确定版本级别
-   ├─ 重大功能 → Major
-   ├─ 新功能模块 → Minor
-   ├─ Bug 修复 → Patch
-   └─ 小任务/改进 → Build
+1. 完成工作后更新版本号
+   ├─ 默认: /version bump（更新 Build）
+   └─ 或按需指定: /version bump <level>
 
-2. 使用命令更新版本号
-   └─ /version bump <level>
-
-3. 提交到 Git
+2. 提交到 Git
    └─ git add .version && git commit -m "chore: bump version to X.Y.Z.W"
 
-4. 可选：打标签和发布
+3. 可选：打标签和发布
    └─ git tag vX.Y.Z.W
+
+**重要原则**：除非用户明确要求，否则任何场景都默认更新 Build 版本。
 ```
 
 ### 自动版本更新（Hooks）
 
-Claude Code hooks 会自动检测任务完成并提示版本更新：
+Claude Code hooks 会自动检测任务完成并更新版本：
 
-- **SubagentStop Hook**：子任务完成时触发（仅更新 Build 版本）
-- **Stop Hook**：会话结束时触发（提示更新相应版本）
+- **SubagentStop Hook**：子任务完成时触发（默认更新 Build 版本）
+- **Stop Hook**：会话结束时触发（默认更新 Build 版本）
+
+**原则**：除非用户明确要求，否则任何自动化场景都只更新 Build 版本。
 
 **限制**：
 - 仅在 `.version` 文件已提交到 Git 时有效
-- SubagentStop 只能自动更新 Build 版本
-- Major/Minor/Patch 版本需要手动通过命令更新
+- 自动化场景只能更新 Build 版本
+- Major/Minor/Patch 版本需要用户手动通过命令更新
 
 ## 命令参考
 
@@ -158,7 +164,10 @@ Claude Code hooks 会自动检测任务完成并提示版本更新：
 ### 更新版本
 
 ```bash
-# 手动更新版本
+# 默认更新 build 版本（推荐用于日常任务完成）
+/version bump
+
+# 手动更新其他级别
 /version bump major|minor|patch|build
 
 # 手动设置版本
@@ -288,7 +297,7 @@ git push origin master --tags
 # 当前版本：1.1.4.3
 # 完成了：实现用户头像上传功能（STORY-123）
 
-/version bump build
+version bump
 # 结果：1.1.4.4
 
 git add .version

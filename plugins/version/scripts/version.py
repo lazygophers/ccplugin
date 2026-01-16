@@ -102,15 +102,18 @@ class VersionManager:
             print(f"错误: 无法创建版本文件: {e}", file=sys.stderr)
             return False
 
-    def bump(self, level: str) -> bool:
+    def bump(self, level: str = None) -> bool:
         """更新版本号
 
         Args:
-            level: 更新级别 (major, minor, patch, build)
+            level: 更新级别 (major, minor, patch, build)，默认为 build
 
         Returns:
             是否成功更新
         """
+        # 默认更新 build 版本
+        if level is None:
+            level = "build"
         # 确保版本文件存在
         if not self.version_file.exists():
             self.init()
@@ -238,7 +241,7 @@ def main():
         print("使用方法:")
         print("  version show              # 显示当前版本")
         print("  version info              # 显示版本详情")
-        print("  version bump <level>      # 更新版本 (major|minor|patch|build)")
+        print("  version bump [level]      # 更新版本 (默认: build，可选: major|minor|patch|build)")
         print("  version set <version>     # 手动设置版本")
         print("  version init              # 初始化版本文件")
         sys.exit(0)
@@ -252,10 +255,7 @@ def main():
     elif command == "init":
         manager.init()
     elif command == "bump":
-        if len(sys.argv) < 3:
-            print("错误: 请指定版本级别 (major|minor|patch|build)", file=sys.stderr)
-            sys.exit(1)
-        level = sys.argv[2]
+        level = sys.argv[2] if len(sys.argv) >= 3 else None
         if not manager.bump(level):
             sys.exit(1)
     elif command == "set":
