@@ -200,51 +200,61 @@ def handle_stop_hook() -> int:
     """
     处理 Stop Hook
 
-    根据官方规范，Stop Hook 输入包含：
+    【重要】Stop hook 的目的是决定是否允许会话停止，不是发送通知。
+
+    官方规范中，Stop Hook 输入包含：
     - session_id: 会话ID
     - transcript_path: 对话JSON文件路径（可能为空）
     - permission_mode: 权限模式
-    - stop_hook_active: 是否已通过hook继续执行
+    - hook_event_name: "Stop"
+    - stop_hook_active: 是否已通过stop hook继续执行过（true表示需要避免无限循环）
+
+    返回值含义（EXIT CODE）：
+    - 0 (true): 允许会话停止
+    - 非0 (false): 阻止会话停止，继续执行
+
+    用途：
+    1. 检查 stop_hook_active 是否为 true（如果为 true 说明已经继续过，应该允许停止）
+    2. 根据业务逻辑决定是否允许停止
+    3. 目前的实现：总是允许停止（返回 0）
     """
     try:
         hook_input = sys.stdin.read()
         if not hook_input.strip():
+            # 空输入，允许停止
             return 0
 
         try:
             data = json.loads(hook_input)
         except json.JSONDecodeError:
-            return 1
+            # JSON 解析失败，允许停止
+            return 0
 
         # 验证输入数据
         is_valid, _ = validate_hook_input(data, "stop")
         if not is_valid:
-            return 1
+            # 输入数据无效，允许停止
+            return 0
 
         # 解析输入
         parsed = parse_stop_hook_input(data)
 
-        # 生成通知消息
-        title = "Claude Code 会话已结束"
+        # 关键检查：如果 stop_hook_active 为 true，说明已经通过 stop hook 继续执行过
+        # 此时应该允许停止，避免无限循环
+        stop_hook_active = parsed.get("stop_hook_active", False)
+        if stop_hook_active:
+            # 已经继续过一次，必须允许停止
+            return 0
 
-        # 尝试统计交互次数
-        # transcript_path 是对话JSON文件的路径，可能为空
-        interaction_count = count_interactions(parsed["transcript_path"])
+        # 业务逻辑决策：决定是否允许停止
+        # 当前实现：总是允许停止
+        # 可在此处添加自定义逻辑，比如检查是否有正在运行的任务等
 
-        if interaction_count >= 0:
-            # 成功统计交互次数
-            message = f"[{parsed['timestamp']}] 本次会话共有 {interaction_count} 轮交互"
-        else:
-            # 无法统计交互次数（transcript_path无效或文件不存在）
-            # 此时只显示结束时间和session_id用于参考
-            message = f"[{parsed['timestamp']}] 会话已结束 (ID: {parsed['session_id'][:8]})"
-
-        # 发送通知
-        notify(title, message, timeout=5000)
-
+        # 允许会话停止
         return 0
+
     except Exception:
-        # 异常时不中断主程序
+        # 异常时允许停止（不中断）
         return 0
 
 
