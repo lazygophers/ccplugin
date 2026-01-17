@@ -1,3 +1,14 @@
 {
-  "enabledPlugins": {}
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "学习用户习惯，更新、完善、优化到合适的 @.claude/skills 中，如果创建了新的 skills，则需要更新到 @CLAUDE.md 标注这个新的 skills"
+          }
+        ]
+      }
+    ]
+  }
 }
