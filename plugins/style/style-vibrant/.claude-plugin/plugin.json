@@ -1,11 +1,24 @@
 {
   "name": "style-vibrant",
-  "version": "1.0.0",
+  "version": "0.0.20",
   "description": "充满活力设计风格插件 - 提供活力 UI 设计规范、实现指南和最佳实践。包括高对比、高饱和色彩和动态感的完整设计系统",
-  "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-vibrant",
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-vibrant",
   "license": "MIT",
-  "keywords": ["vibrant", "colorful", "energetic", "high-saturation", "design-system", "bold", "modern-ui", "web-design", "2025-trend"],
+  "keywords": [
+    "vibrant",
+    "colorful",
+    "energetic",
+    "high-saturation",
+    "design-system",
+    "bold",
+    "modern-ui",
+    "web-design",
+    "2025-trend"
+  ],
   "skills": "./skills/"
 }
