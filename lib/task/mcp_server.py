@@ -23,9 +23,9 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from logging.handlers import RotatingFileHandler
 
-# 添加脚本路径到 sys.path 以导入 task.py 的模块
-script_path = Path(__file__).parent
-sys.path.insert(0, str(script_path))
+# 从 lib.task.core 导入 task 模块的函数
+# 注意：这个文件现在在 lib/task/ 中，core.py 也在同一目录
+# 已经可以通过 from .core import ... 导入
 
 try:
     from mcp.server import Server
@@ -151,7 +151,7 @@ class TaskMCPServer:
         if self.task_db is None:
             try:
                 # 导入任务管理模块（延迟初始化）
-                from task import init_database, get_db_path, add_task, update_task, delete_task, list_tasks, get_task
+                from .core import init_database, get_db_path, add_task, update_task, delete_task, list_tasks, get_task
 
                 # 自动检查并初始化
                 db_path = get_db_path()
