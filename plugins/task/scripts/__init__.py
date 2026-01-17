@@ -1,3 +1,1 @@
-"""
-task scripts
-"""
+# Task management plugin scripts
