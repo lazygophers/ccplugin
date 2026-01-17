@@ -24,7 +24,25 @@ DEFAULT_CONFIG_TEMPLATE = """# Claude Code 系统通知配置
 # - voice: true/false - 是否需要语音播报（仅在notify=true时有效）
 
 events:
-  # 工具使用前的通知（工具调用权限请求）
+  # 会话开始通知
+  SessionStart:
+    description: "会话开始事件"
+    notify: false
+    voice: false
+
+  # 会话结束通知
+  SessionEnd:
+    description: "会话结束事件"
+    notify: false
+    voice: false
+
+  # 用户提示提交通知
+  UserPromptSubmit:
+    description: "用户提示提交事件"
+    notify: false
+    voice: false
+
+  # 工具使用前的通知
   PreToolUse:
     description: "工具使用前的通知"
     tools:
@@ -56,7 +74,7 @@ events:
         notify: false
         voice: false
 
-  # 工具使用后的通知（工具执行完成）
+  # 工具使用后的通知
   PostToolUse:
     description: "工具使用后的通知"
     tools:
@@ -104,6 +122,18 @@ events:
       elicitation_dialog:
         notify: false
         voice: false
+
+  # 会话停止通知
+  Stop:
+    description: "会话停止事件"
+    notify: false
+    voice: false
+
+  # 子代理停止通知
+  SubagentStop:
+    description: "子代理停止事件"
+    notify: false
+    voice: false
 """
 
 
