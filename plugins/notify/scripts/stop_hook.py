@@ -52,6 +52,29 @@ def count_interactions(transcript_path: str) -> int:
         return 0
 
 
+def validate_hook_input(data: Dict[str, Any]) -> tuple[bool, str]:
+    """
+    验证 Hook 输入数据的完整性
+    
+    Args:
+        data: Hook 输入的 JSON 数据
+        
+    Returns:
+        (是否有效, 错误信息) 元组
+    """
+    # 检查必填字段
+    required_fields = ["session_id", "hook_event_name"]
+    for field in required_fields:
+        if field not in data:
+            return False, f"缺少必填字段: {field}"
+    
+    # 检查事件名称
+    if data.get("hook_event_name") != "Stop":
+        return False, f"错误的事件类型: {data.get('hook_event_name')}，期望: Stop"
+    
+    return True, ""
+
+
 def parse_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     解析 Hook 输入数据
@@ -65,6 +88,9 @@ def parse_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "session_id": data.get("session_id", "unknown"),
         "transcript_path": data.get("transcript_path", ""),
+        "permission_mode": data.get("permission_mode", "default"),
+        "hook_event_name": data.get("hook_event_name", "Stop"),
+        "stop_hook_active": data.get("stop_hook_active", False),
         "timestamp": datetime.now().strftime("%H:%M:%S"),
     }
 
@@ -79,7 +105,13 @@ def main():
 
         try:
             data = json.loads(hook_input)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            # JSON 格式错误
+            sys.exit(1)
+
+        # 验证输入数据
+        is_valid, error_msg = validate_hook_input(data)
+        if not is_valid:
             sys.exit(1)
 
         # 解析输入
