@@ -4,8 +4,11 @@
 """
 
 from .notifier import Notifier, notify
+from .init_config import init_notify_config, get_effective_config
 
 __all__ = [
     "Notifier",
     "notify",
+    "init_notify_config",
+    "get_effective_config",
 ]
