@@ -109,12 +109,18 @@ def main() -> int:
         if hook_input.get('hook_event_name') != 'PostToolUse':
             return 0
 
+        # 提取常见字段（所有hook都应该有）
+        session_id = hook_input.get('session_id', '')
+        transcript_path = hook_input.get('transcript_path', '')
+        cwd = hook_input.get('cwd', '')
+        permission_mode = hook_input.get('permission_mode', 'default')
+
         # 获取工具名称
         tool_name = hook_input.get('tool_name', '')
         if not tool_name:
             return 0
 
-        # 提取规范字段（虽然当前通知中可能不直接使用）
+        # 提取事件特定字段
         # - tool_input: 工具输入参数
         # - tool_response: 工具执行结果
         # - tool_use_id: 工具使用ID，用于关联请求和响应

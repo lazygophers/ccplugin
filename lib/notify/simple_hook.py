@@ -153,6 +153,12 @@ def main(event_type: str) -> int:
         if hook_input.get("hook_event_name") != event_type:
             return 0
 
+        # 提取常见字段（所有hook都应该有）
+        session_id = hook_input.get("session_id", "")
+        transcript_path = hook_input.get("transcript_path", "")
+        cwd = hook_input.get("cwd", "")
+        permission_mode = hook_input.get("permission_mode", "default")
+
         # 读取配置
         config = get_effective_config()
 
