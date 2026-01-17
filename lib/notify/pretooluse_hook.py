@@ -87,35 +87,45 @@ def send_notification(tool_name: str, hook_input: Dict) -> bool:
         return False
 
 
-def main():
-    """主函数"""
-    # 读取hook输入
-    hook_input = get_hook_input()
-    if hook_input is None:
-        sys.exit(0)
+def main() -> int:
+    """
+    主函数
 
-    # 获取工具名称
-    tool_name = hook_input.get('tool_name', '')
-    if not tool_name:
-        sys.exit(0)
+    Returns:
+        int: 返回码（0 为成功）
+    """
+    try:
+        # 读取hook输入
+        hook_input = get_hook_input()
+        if hook_input is None:
+            return 0
 
-    # 读取配置
-    config = get_effective_config()
+        # 获取工具名称
+        tool_name = hook_input.get('tool_name', '')
+        if not tool_name:
+            return 0
 
-    # 判断是否需要通知
-    should_notify, should_voice = should_notify_tool(tool_name, config)
+        # 读取配置
+        config = get_effective_config()
 
-    if should_notify:
-        send_notification(tool_name, hook_input)
+        # 判断是否需要通知
+        should_notify, should_voice = should_notify_tool(tool_name, config)
 
-        # 如果需要语音播报，则播报
-        if should_voice:
-            voice_message = f"工具 {tool_name} 准备执行"
-            speak(voice_message)
+        if should_notify:
+            send_notification(tool_name, hook_input)
 
-    # 返回成功
-    sys.exit(0)
+            # 如果需要语音播报，则播报
+            if should_voice:
+                voice_message = f"工具 {tool_name} 准备执行"
+                speak(voice_message)
+
+        # 返回成功
+        return 0
+    except Exception:
+        # 错误时也返回 0，不中断主程序
+        return 0
 
 
 if __name__ == "__main__":
-    main()
+    exit_code = main()
+    sys.exit(exit_code if exit_code in (0, 1) else 0)

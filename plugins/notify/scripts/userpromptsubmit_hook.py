@@ -20,4 +20,5 @@ sys.path.insert(0, str(project_root))
 from lib.notify.simple_hook import main
 
 if __name__ == "__main__":
-    main("UserPromptSubmit")
+    exit_code = main("UserPromptSubmit")
+    sys.exit(exit_code if exit_code in (0, 1) else 0)
