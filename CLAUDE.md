@@ -147,6 +147,58 @@ ls plugins/my-plugin/.claude-plugin/plugin.json
 
 ## Important Implementation Details
 
+### Plugin Script Development
+
+**All plugin scripts follow these conventions:**
+
+1. **Help Support**
+   - Scripts support `-h` and `--help` flags to display usage information
+   - Example: `uv run plugins/version/scripts/version.py -h`
+   - Scripts should gracefully handle missing arguments
+
+2. **Version Management** (`plugins/version/scripts/version.py`)
+   - Manages semantic versioning with 4 parts: major.minor.patch.build
+   - Key methods:
+     - `show`: Display current version
+     - `bump [level]`: Update version (default: build)
+     - `set <version>`: Manually set version
+     - `init`: Initialize version file
+   - Constraint: `.version` file must be committed to git before bumping versions
+   - Exit with code 1 and provide hint if `.version` has uncommitted changes
+
+3. **Hook Scripts** (`plugins/notify/scripts/*.py`)
+   - Receive JSON via stdin from Claude Code
+   - Validate input parameters using `validate_hook_input()` function
+   
+   **Stop Hook** (`stop_hook.py`):
+   ```json
+   {
+     "session_id": "abc123",
+     "transcript_path": "path/to/transcript.jsonl",
+     "permission_mode": "default",
+     "hook_event_name": "Stop",
+     "stop_hook_active": true
+   }
+   ```
+   
+   **Notification Hook** (`notification_hook.py`):
+   ```json
+   {
+     "session_id": "abc123",
+     "message": "Permission request message",
+     "notification_type": "permission_prompt|warning|info|error",
+     "cwd": "/current/working/directory",
+     "permission_mode": "default",
+     "hook_event_name": "Notification",
+     "stop_hook_active": false
+   }
+   ```
+
+4. **Script Permissions**
+   - All scripts in `plugins/*/scripts/` must have executable permissions (`+x`)
+   - Commands in `hooks.json` should use `uv run` instead of `uvx` for hook scripts
+   - Hook scripts are NOT registered as global commands in `pyproject.toml`
+
 ### lib/ Module Structure & Imports
 
 Each lib module is a proper Python package with `__init__.py` that exports key classes/functions:
@@ -261,6 +313,25 @@ uv run plugins/semantic/scripts/semantic.py index --path lib/config --batch-size
 uv run plugins/semantic/scripts/semantic.py index --path . --batch-size 50
 ```
 
+### Testing Plugin Scripts Locally
+
+```bash
+# Display help for any plugin script
+uv run plugins/version/scripts/version.py -h
+uv run plugins/notify/scripts/notifier.py --help
+
+# Test version management
+uv run plugins/version/scripts/version.py show
+uv run plugins/version/scripts/version.py bump patch
+
+# Test hook scripts with JSON input
+echo '{"session_id":"test","hook_event_name":"Stop","transcript_path":"/tmp/test.jsonl"}' | \
+  uv run plugins/notify/scripts/stop_hook.py
+
+# Display notification
+uv run plugins/notify/scripts/notifier.py "Title" "Message" 5000
+```
+
 ### Testing via uvx (Remote Installation)
 
 ```bash
@@ -292,6 +363,14 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 - Run before committing: `uv run -m pytest lib/tests/ -v`
 - Test coverage should increase with new lib modules
 
+### Script Development Guidelines
+- All scripts must support `-h` and `--help` flags
+- Hook scripts receive JSON via stdin and must validate input parameters
+- Hook scripts should exit with code 1 on validation failure
+- All scripts in `plugins/*/scripts/` must have executable permissions
+- Use `uv run` to execute scripts locally, never use `python3` directly
+- Hook commands in `hooks.json` should use `uv run` for project-local scripts
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -301,6 +380,9 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 | `ValueError: dimension mismatch in LanceDB` | Verify embedding model dimensions match stored vectors (usually 384 or 1024) |
 | `SSL connection timeout` | Temporary network issue - retry git push/pull after waiting |
 | Indexing shows 0 chunks indexed | Run `semantic init` first; verify file extensions match SUPPORTED_LANGUAGES |
+| Hook script exits with code 1 | Check JSON input format and required fields; see Plugin Script Development section |
+| `Failed to spawn: plugins/notify/scripts/stop_hook.py` | Verify script has executable permissions (`chmod +x`) and hooks.json uses `uv run` command |
+| `.version` file cannot be bumped | Commit `.version` file to git first: `git add .version && git commit -m "initial version"` |
 
 ## References
 
