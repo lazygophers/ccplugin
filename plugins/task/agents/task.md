@@ -257,10 +257,17 @@ description: 项目任务管理专家 - 专注于任务规划、跟踪和执行�
 
 ## 参考资源
 
-- **任务管理命令**：[@${CLAUDE_PLUGIN_ROOT}/commands/task.md](../commands/task.md)
-- **任务导出命令**：[@${CLAUDE_PLUGIN_ROOT}/commands/task-export.md](../commands/task-export.md)
-- **项目规范**：[@${CLAUDE_PLUGIN_ROOT}/skills/](../skills/)
-- **任务最佳实践**：通过搜索相关任务管理 Skills 获取更多指导
+### Skills 文档
+- **任务管理系统**：[@/task:task](../../skills/task/)
+- **任务规范与最佳实践**：[@/task:task](../../skills/task/reference.md)
+- **任务示例和模板**：[@/task:task](../../skills/task/examples/)
+
+### 快速命令
+- **@/task:add** - 添加新任务
+- **@/task:start** - 开始执行任务
+- **@/task:update** - 更新任务进展
+- **@/task:complete** - 完成任务
+- **@/task:plans** - 任务规划和分解
 
 ## 注意事项
 
