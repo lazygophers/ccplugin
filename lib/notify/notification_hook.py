@@ -85,36 +85,46 @@ def send_notification(message: str) -> bool:
         return False
 
 
-def main():
-    """主函数"""
-    # 读取hook输入
-    hook_input = get_hook_input()
-    if hook_input is None:
-        sys.exit(0)
+def main() -> int:
+    """
+    主函数
 
-    # 获取通知类型和消息
-    notification_type = hook_input.get('notification_type', '')
-    message = hook_input.get('message', '')
+    Returns:
+        int: 返回码（0 为成功）
+    """
+    try:
+        # 读取hook输入
+        hook_input = get_hook_input()
+        if hook_input is None:
+            return 0
 
-    if not notification_type or not message:
-        sys.exit(0)
+        # 获取通知类型和消息
+        notification_type = hook_input.get('notification_type', '')
+        message = hook_input.get('message', '')
 
-    # 读取配置
-    config = get_effective_config()
+        if not notification_type or not message:
+            return 0
 
-    # 判断是否需要通知
-    should_notify, should_voice = should_notify_type(notification_type, config)
+        # 读取配置
+        config = get_effective_config()
 
-    if should_notify:
-        send_notification(message)
+        # 判断是否需要通知
+        should_notify, should_voice = should_notify_type(notification_type, config)
 
-        # 如果需要语音播报，则播报
-        if should_voice:
-            speak(message)
+        if should_notify:
+            send_notification(message)
 
-    # 返回成功
-    sys.exit(0)
+            # 如果需要语音播报，则播报
+            if should_voice:
+                speak(message)
+
+        # 返回成功
+        return 0
+    except Exception:
+        # 错误时也返回 0，不中断主程序
+        return 0
 
 
 if __name__ == "__main__":
-    main()
+    exit_code = main()
+    sys.exit(exit_code if exit_code in (0, 1) else 0)

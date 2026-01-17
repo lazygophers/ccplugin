@@ -6,6 +6,7 @@
 
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -81,6 +82,35 @@ def should_notify_event(event_type: str, config: Optional[Dict]) -> tuple[bool, 
         return False, False
 
 
+def get_message_for_event(event_type: str, hook_input: Dict) -> str:
+    """
+    根据事件类型获取通知消息
+
+    Args:
+        event_type: 事件类型
+        hook_input: hook输入的JSON数据
+
+    Returns:
+        str: 通知消息
+    """
+    event_info = EVENT_TYPE_MAPPING.get(event_type, {})
+    message = event_info.get("message_template", f"{event_type} 事件已触发")
+
+    # 针对不同事件类型添加额外信息
+    if event_type == "SessionEnd":
+        reason = hook_input.get("reason", "unknown")
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        message = f"[{timestamp}] Claude Code 会话已结束（原因: {reason}）"
+    elif event_type == "UserPromptSubmit":
+        prompt = hook_input.get("prompt", "")
+        if prompt:
+            # 限制显示长度
+            display_prompt = prompt[:30] + "..." if len(prompt) > 30 else prompt
+            message = f"用户提示已提交：{display_prompt}"
+
+    return message
+
+
 def send_notification(event_type: str, hook_input: Dict) -> bool:
     """
     发送通知
@@ -95,7 +125,7 @@ def send_notification(event_type: str, hook_input: Dict) -> bool:
     try:
         event_info = EVENT_TYPE_MAPPING.get(event_type, {})
         title = event_info.get("title", "Claude Code")
-        message = event_info.get("message_template", f"{event_type} 事件已触发")
+        message = get_message_for_event(event_type, hook_input)
         timeout = 3000
 
         return notify(title, message, timeout)
@@ -103,30 +133,45 @@ def send_notification(event_type: str, hook_input: Dict) -> bool:
         return False
 
 
-def main(event_type: str):
-    """主函数"""
-    # 读取hook输入
-    hook_input = get_hook_input()
-    if hook_input is None:
-        sys.exit(0)
+def main(event_type: str) -> int:
+    """
+    主函数
 
-    # 读取配置
-    config = get_effective_config()
+    Args:
+        event_type: 事件类型
 
-    # 判断是否需要通知
-    should_notify, should_voice = should_notify_event(event_type, config)
+    Returns:
+        int: 返回码（0 为成功）
+    """
+    try:
+        # 读取hook输入
+        hook_input = get_hook_input()
+        if hook_input is None:
+            return 0
 
-    if should_notify:
-        send_notification(event_type, hook_input)
+        # 验证事件类型
+        if hook_input.get("hook_event_name") != event_type:
+            return 0
 
-        # 如果需要语音播报，则播报
-        if should_voice:
-            event_info = EVENT_TYPE_MAPPING.get(event_type, {})
-            voice_message = event_info.get("message_template", f"{event_type} 事件已触发")
-            speak(voice_message)
+        # 读取配置
+        config = get_effective_config()
 
-    # 返回成功
-    sys.exit(0)
+        # 判断是否需要通知
+        should_notify, should_voice = should_notify_event(event_type, config)
+
+        if should_notify:
+            send_notification(event_type, hook_input)
+
+            # 如果需要语音播报，则播报
+            if should_voice:
+                message = get_message_for_event(event_type, hook_input)
+                speak(message)
+
+        # 返回成功
+        return 0
+    except Exception:
+        # 错误时也返回 0，不中断主程序
+        return 0
 
 
 if __name__ == "__main__":
