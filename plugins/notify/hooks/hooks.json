@@ -6,8 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode init",
-            "once": true
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/sessionstart_hook.py",
+            "once": true,
+            "timeout": 5
           }
         ]
       }
@@ -75,7 +76,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-type stop"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/stop_hook.py",
+            "timeout": 5
           }
         ]
       }
@@ -86,6 +88,17 @@
           {
             "type": "command",
             "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/subagentstop_hook.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/precompact_hook.py",
             "timeout": 5
           }
         ]

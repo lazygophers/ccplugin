@@ -105,10 +105,22 @@ def main() -> int:
         if hook_input is None:
             return 0
 
+        # 验证hook事件名称
+        if hook_input.get('hook_event_name') != 'PostToolUse':
+            return 0
+
         # 获取工具名称
         tool_name = hook_input.get('tool_name', '')
         if not tool_name:
             return 0
+
+        # 提取规范字段（虽然当前通知中可能不直接使用）
+        # - tool_input: 工具输入参数
+        # - tool_response: 工具执行结果
+        # - tool_use_id: 工具使用ID，用于关联请求和响应
+        tool_input = hook_input.get('tool_input', {})
+        tool_response = hook_input.get('tool_response', {})
+        tool_use_id = hook_input.get('tool_use_id', '')
 
         # 读取配置
         config = get_effective_config()
@@ -122,7 +134,6 @@ def main() -> int:
             # 如果需要语音播报，则播报
             if should_voice:
                 # 检查工具执行状态
-                tool_response = hook_input.get('tool_response', {})
                 success = tool_response.get('success', True)
                 status = "成功完成" if success else "执行失败"
                 voice_message = f"工具 {tool_name} {status}"
