@@ -1,24 +1,21 @@
 {
-  "description": "版本管理插件 Hooks - 默认更新构建版本号（除非用户明确要求）",
   "hooks": {
     "SubagentStop": [
       {
-        "description": "子任务完成时默认更新构建版本号",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "子任务已完成。如果 .version 文件已提交到 git，请执行 `/version bump` 更新构建版本号。\n\n注意：\n1. 仅在 .version 文件已提交到 git 时才能自动更新\n2. 默认只更新 build 版本（最后一位）\n3. 如果用户明确要求更新 major/minor/patch 版本，则按用户要求执行\n4. 如果 .version 未提交，需要用户手动执行版本更新命令"
+            "type": "commands",
+            "commands": "uvx --from git+https://github.com/lazygophers/ccplugin version bump"
           }
         ]
       }
     ],
     "Stop": [
       {
-        "description": "会话结束时默认更新构建版本号",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "会话即将结束。如果本次会话完成了任何工作，请执行 `/version bump` 更新构建版本号。\n\n注意：\n1. 仅在 .version 文件已提交到 git 时才能自动更新\n2. 默认只更新 build 版本（最后一位）\n3. 如果用户明确要求更新 major/minor/patch 版本，则按用户要求执行\n4. 如果 .version 未提交，需要用户手动执行版本更新命令"
+            "type": "commands",
+            "commands": "uvx --from git+https://github.com/lazygophers/ccplugin version bump"
           }
         ]
       }
