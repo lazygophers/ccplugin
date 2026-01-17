@@ -1,7 +1,11 @@
-# Pastel - 柔和粉彩设计风格规范
+---
+name: pastel
+description: 柔和风格设计采用淡雅色彩、圆角和柔和阴影，创建温柔、舒适的视觉体验，适合内容应用。
+---
+
+Pastel - 柔和粉彩设计风格规范
 
 柔和风格设计采用淡雅色彩、圆角和柔和阴影，创建温柔、舒适的视觉体验，适合内容应用。
-
 ## 核心特征
 
 **色彩系统**：
@@ -19,80 +23,9 @@
 - 饱和度：30-50%
 - 亮度：80-95%
 - 圆角：12-24px
-- 柔和阴影：2-4px
 
-## 实现要点
+## 详细指南
 
-**柔和阴影**：
-```css
-.pastel-card {
-  background: #ffb3ba;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  padding: 20px;
-}
-```
+完整的配置规范和实现细节，请参阅 [reference.md](reference.md)
 
-**排版**：
-```css
---font-family: "Quicksand", "Poppins", sans-serif;
---font-weight: 300 | 400;  /* 轻量级 */
---color: rgba(0, 0, 0, 0.6);  /* 柔和文本 */
-```
-
-## 应用场景
-
-- 🎀 儿童应用
-- 📱 生活方式应用
-- 🧘 冥想和健康
-- 📚 教育平台
-
-## 色彩组合方案
-
-**方案 A：温暖柔和**
-- 粉 + 黄 + 奶油
-
-**方案 B：清爽柔和**
-- 蓝 + 绿 + 乳白
-
-**方案 C：梦幻组合**
-- 粉 + 蓝 + 紫
-
-## DO & DON'T
-
-✅ **DO**:
-- 使用圆角元素
-- 柔和渐变
-- 轻量级排版
-- 足够的留白
-
-❌ **DON'T**:
-- 高对比度
-- 尖锐的边角
-- 粗体排版
-- 复杂的图形
-
-## 响应式圆角
-
-| 设备 | 圆角 |
-|------|------|
-| 移动 | 12px |
-| 平板 | 16px |
-| 桌面 | 20px |
-
-## 渐变效果
-
-```css
-.pastel-gradient {
-  background: linear-gradient(135deg, 
-    #ffb3ba 0%, 
-    #bae1ff 50%, 
-    #fffacd 100%);
-}
-```
-
-## 参考资源
-
-- Dribbble Pastel Collections
-- Color Hunt - Pastel Palettes
-- Figma Pastel UI Kits
+使用示例和最佳实践，请参阅 [examples.md](examples.md)
