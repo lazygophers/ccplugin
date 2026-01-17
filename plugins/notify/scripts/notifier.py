@@ -115,3 +115,46 @@ def notify(title: str, message: str, timeout: int = 5000) -> bool:
     """便捷函数：发送系统通知"""
     notifier = Notifier()
     return notifier.notify(title, message, timeout)
+
+
+def main():
+    """主函数"""
+    if len(sys.argv) < 2:
+        print("使用方法:")
+        print("  notify <title> <message> [timeout]  # 显示系统通知")
+        print("  notify -h, --help                   # 显示帮助信息")
+        sys.exit(0)
+
+    # 支持 -h/--help 标志
+    if sys.argv[1] in ["-h", "--help"]:
+        print("使用方法:")
+        print("  notify <title> <message> [timeout]  # 显示系统通知")
+        print("  notify -h, --help                   # 显示帮助信息")
+        print()
+        print("参数:")
+        print("  title      通知标题")
+        print("  message    通知消息")
+        print("  timeout    显示时间（毫秒，可选，默认 5000）")
+        print()
+        print("示例:")
+        print("  notify '完成' '任务已完成'")
+        print("  notify '警告' '这是一条警告信息' 8000")
+        sys.exit(0)
+
+    # 解析命令行参数
+    if len(sys.argv) < 3:
+        print("错误: 缺少必要参数", file=sys.stderr)
+        print("使用 -h 查看帮助")
+        sys.exit(1)
+
+    title = sys.argv[1]
+    message = sys.argv[2]
+    timeout = int(sys.argv[3]) if len(sys.argv) > 3 else 5000
+
+    # 发送通知
+    success = notify(title, message, timeout)
+    sys.exit(0 if success else 1)
+
+
+if __name__ == "__main__":
+    main()

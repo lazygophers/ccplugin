@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/notify/scripts/stop_hook.py || true"
+            "command": "uv run plugins/notify/scripts/stop_hook.py"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master plugins/notify/scripts/notification_hook.py || true"
+            "command": "uv run plugins/notify/scripts/notification_hook.py"
           }
         ]
       }
