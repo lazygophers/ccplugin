@@ -21,32 +21,49 @@
 - 在用户目录创建配置文件: `~/.lazygophers/ccplugin/notify/config.yaml`
 - 在项目目录创建配置文件: `<project>/.lazygophers/ccplugin/notify/config.yaml`
 - 跳过已存在的配置文件
+- 自动更新 `.lazygophers/.gitignore` 忽略 notify 目录
 
-#### 2. PreToolUse Hook
+#### 2. SessionEnd Hook
+在会话结束时触发，发送会话结束通知：
+- 根据配置决定是否发送通知
+- 支持可选的语音播报
+
+#### 3. UserPromptSubmit Hook
+在用户提示提交时触发，发送提示提交通知：
+- 根据配置决定是否发送通知
+- 支持可选的语音播报
+
+#### 4. PreToolUse Hook
 在工具使用前触发，根据配置决定是否发送通知：
-- 支持的工具: Task、Bash、Edit、Write
+- 支持的工具: Task、Bash、Edit、Write、Glob、Grep、Read、WebFetch、WebSearch
 - 检查配置中的 notify 和 voice 设置
 - 可选的语音播报提示
 
-#### 3. PostToolUse Hook
+#### 5. PostToolUse Hook
 在工具使用后触发，发送工具执行完成通知：
-- 支持的工具: Task、Bash、Edit、Write
+- 支持的工具: Task、Bash、Edit、Write、Glob、Grep、Read、WebFetch、WebSearch
 - 显示工具执行状态（成功/失败）
 - 可选的语音播报确认
 
-#### 4. Stop Hook
-在会话结束时触发，发送会话统计通知：
+#### 6. Notification Hook
+处理 Claude Code 的各类通知事件：
+- `permission_prompt` - 权限请求（默认启用）
+- `idle_prompt` - 空闲提示（默认启用）
+- `auth_success` - 认证成功
+- `elicitation_dialog` - 诱导对话
+- 支持条件化语音播报
+
+#### 7. Stop Hook
+在会话停止时触发，发送会话统计通知：
 - **标题**: "Claude Code 会话已结束"
 - **内容**: 会话时间戳和交互轮次数
 - **示例**: "[10:30:45] 本次会话共有 15 轮交互"
+- 根据配置决定是否发送通知
 
-#### 5. Notification Hook
-处理 Claude Code 的各类通知事件：
-- `permission_prompt` - 权限请求 (8秒)
-- `warning` - 警告信息 (6秒)
-- `info` - 常规提示 (4秒)
-- `error` - 错误信息 (6秒)
-- 支持条件化语音播报
+#### 8. SubagentStop Hook
+在子代理停止时触发，发送子代理停止通知：
+- 根据配置决定是否发送通知
+- 支持可选的语音播报
 
 ### 跨平台实现
 
@@ -211,6 +228,12 @@ plugins/notify/
 # 测试 SessionStart hook（初始化配置）
 uv run plugins/notify/scripts/notify.py --mode init -v
 
+# 测试 SessionEnd hook
+echo '{"session_id":"test123","hook_event_name":"SessionEnd"}' | uv run plugins/notify/scripts/sessionend_hook.py
+
+# 测试 UserPromptSubmit hook
+echo '{"session_id":"test123","hook_event_name":"UserPromptSubmit"}' | uv run plugins/notify/scripts/userpromptsubmit_hook.py
+
 # 测试 PreToolUse hook
 echo '{"tool_name":"Task","hook_event_name":"PreToolUse"}' | uv run plugins/notify/scripts/pretooluse_hook.py
 
@@ -221,7 +244,10 @@ echo '{"tool_name":"Bash","hook_event_name":"PostToolUse","success":true}' | uv 
 echo '{"session_id":"test123","message":"测试权限请求","notification_type":"permission_prompt","cwd":"/tmp"}' | uv run plugins/notify/scripts/notification_hook.py
 
 # 测试 Stop hook
-echo '{"session_id":"test123","transcript_path":"~/.claude/projects/test.jsonl","hook_event_name":"Stop"}' | uv run plugins/notify/scripts/stop_hook.py
+echo '{"session_id":"test123","transcript_path":"~/.claude/projects/test.jsonl","hook_event_name":"Stop"}' | uv run plugins/notify/scripts/notify.py --mode hook --hook-type stop
+
+# 测试 SubagentStop hook
+echo '{"session_id":"test123","hook_event_name":"SubagentStop"}' | uv run plugins/notify/scripts/subagentstop_hook.py
 
 # 测试通知脚本的语音功能
 uv run plugins/notify/scripts/notify.py '测试' --voice-only
