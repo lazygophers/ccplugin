@@ -29,10 +29,10 @@ events:
     description: "工具使用前的通知"
     tools:
       Task:
-        notify: true
+        notify: false
         voice: false
       Bash:
-        notify: true
+        notify: false
         voice: false
       Glob:
         notify: false
@@ -44,10 +44,10 @@ events:
         notify: false
         voice: false
       Edit:
-        notify: true
+        notify: false
         voice: false
       Write:
-        notify: true
+        notify: false
         voice: false
       WebFetch:
         notify: false
@@ -61,10 +61,10 @@ events:
     description: "工具使用后的通知"
     tools:
       Task:
-        notify: true
+        notify: false
         voice: false
       Bash:
-        notify: true
+        notify: false
         voice: false
       Glob:
         notify: false
@@ -76,10 +76,10 @@ events:
         notify: false
         voice: false
       Edit:
-        notify: true
+        notify: false
         voice: false
       Write:
-        notify: true
+        notify: false
         voice: false
       WebFetch:
         notify: false

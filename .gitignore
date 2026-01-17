@@ -19,4 +19,6 @@ plugins/**/__pycache__/
 
 # 运行时数据
 .lazygophers/
+# 允许 .lazygophers/.gitignore 被提交
+!.lazygophers/.gitignore
 .serena/
