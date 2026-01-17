@@ -247,15 +247,16 @@ def get_effective_config() -> Optional[Dict[str, Any]]:
     Returns:
         dict: 合并后的配置，或None如果两个都不存在
     """
-    user_config_path, project_config_path = get_config_paths()
+    user_config_file = get_user_config_path()
+    project_config_file = get_project_config_path()
 
     # 优先使用项目级配置
-    project_config = load_config(project_config_path)
+    project_config = load_config(project_config_file)
     if project_config is not None:
         return project_config
 
     # 其次使用用户级配置
-    user_config = load_config(user_config_path)
+    user_config = load_config(user_config_file)
     if user_config is not None:
         return user_config
 
