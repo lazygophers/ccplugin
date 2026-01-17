@@ -1,11 +1,10 @@
 {
   "mcpServers": {
     "semantic-search": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
-        "--from",
-        "git+https://github.com/lazygophers/ccplugin.git@master",
-        "semantic-mcp",
+        "run",
+        "${CLAUDE_PLUGIN_ROOT}/scripts/mcp_server.py",
         "--mcp"
       ],
       "env": {}
