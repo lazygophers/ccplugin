@@ -2,7 +2,7 @@
 """
 任务管理系统初始化脚本
 
-检查 @.claude/task 目录是否存在，如不存在则创建目录结构和初始文件。
+检查 .claude/task 目录是否存在，如不存在则创建目录结构和初始文件。
 """
 
 import os
@@ -24,7 +24,7 @@ def find_project_root():
 def init_task_system():
     """初始化任务管理系统目录结构"""
     project_root = find_project_root()
-    task_dir = project_root / "@.claude" / "task"
+    task_dir = project_root / ".claude" / "task"
     archive_dir = task_dir / "archive"
 
     # 检查目录和文件是否已完整存在
@@ -47,7 +47,7 @@ def init_task_system():
     if not todo_file.exists():
         todo_content = """# 待完成任务 (TODO)
 
-参考 [@plugins/task/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
+参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
 
 ## 功能需求
 
@@ -66,7 +66,7 @@ def init_task_system():
     if not in_progress_file.exists():
         in_progress_content = """# 进行中任务 (IN-PROGRESS)
 
-参考 [@plugins/task/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
+参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
 
 当前没有进行中的任务。在准备开始任务时，将任务从 todo.md 移动到此处。
 """
@@ -77,7 +77,7 @@ def init_task_system():
     if not done_file.exists():
         done_content = """# 已完成任务 (DONE)
 
-参考 [@plugins/task/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
+参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
 
 任务完成后，从 in-progress.md 移动到此处，记录完成情况。当任务数超过 5 个时，建议将完成的任务归档到 archive/ 中。
 """
@@ -103,7 +103,7 @@ archive/
 
 ## 归档指南
 
-参考 [@plugins/task/skills/task/reference.md](../../plugins/task/skills/task/reference.md) 了解详细的归档规范。
+参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/reference.md](../../plugins/task/skills/task/reference.md) 了解详细的归档规范。
 """
         archive_readme.write_text(archive_readme_content, encoding="utf-8")
 

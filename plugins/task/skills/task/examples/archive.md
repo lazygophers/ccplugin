@@ -1,6 +1,6 @@
 # 任务归档示例
 
-本文件展示 `@.claude/task/archive/` 中任务文件的正确格式和组织方式。
+本文件展示 @.claude/task/archive/ 中任务文件的正确格式和组织方式。
 
 ## 目录结构示例
 
@@ -31,8 +31,8 @@ archive/
   将 task 插件从 Python 脚本方式改为基于 hooks 和文件系统的设计，提高任务管理的可用性和灵活性。新系统不依赖数据库，完全使用 Markdown 文件存储任务。
 
 - **关键交付物**:
-  - @.claude/task/ 目录结构 (todo.md, in-progress.md, done.md, archive/)
-  - @plugins/task 的 multi-file skills 文档 (SKILL.md, reference.md)
+  - .claude/task/ 目录结构 (todo.md, in-progress.md, done.md, archive/)
+  - @${CLAUDE_PLUGIN_ROOT} 的 multi-file skills 文档 (SKILL.md, reference.md)
   - 三个 hooks 配置 (SessionStart, UserPromptSubmit, Stop)
   - examples/ 文件夹，包含完整的样例文件
   - 删除了所有旧的 Python 脚本
@@ -47,7 +47,7 @@ archive/
 
 - **关键交付物**:
   - scripts/update_version.py 更新
-  - 支持递归扫描 **/.claude-plugin/plugin.json
+  - 支持递归扫描 \*\*/.claude-plugin/plugin.json
   - 改进的错误处理和显示格式
 
 - **关联提交**: 7494344
