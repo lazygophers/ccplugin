@@ -15,5 +15,6 @@
     "system-notification",
     "hook",
     "event"
-  ]
+  ],
+  "mcpServers": "./.mcp.json"
 }
