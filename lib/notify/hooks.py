@@ -135,9 +135,21 @@ def validate_hook_input(data: Dict[str, Any], hook_type: str) -> tuple[bool, str
 
 
 def parse_stop_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
-    """解析 Stop Hook 输入数据"""
+    """
+    解析 Stop Hook 输入数据
+
+    官方规范中 Stop Hook 的字段：
+    常见字段（所有hook都有）:
+    - session_id: 会话ID
+    - transcript_path: 对话JSON路径
+    - permission_mode: 权限模式（"default"、"plan"、"acceptEdits"等）
+    - hook_event_name: 事件名称（"Stop"）
+
+    Stop Hook特有字段:
+    - stop_hook_active: 是否已通过stop hook继续执行（true表示需要检查避免无限循环）
+    """
     return {
-        "session_id": data.get("session_id", "unknown"),
+        "session_id": data.get("session_id", ""),
         "transcript_path": data.get("transcript_path", ""),
         "permission_mode": data.get("permission_mode", "default"),
         "hook_event_name": data.get("hook_event_name", "Stop"),
@@ -147,15 +159,29 @@ def parse_stop_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def parse_notification_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
-    """解析 Notification Hook 输入数据"""
+    """
+    解析 Notification Hook 输入数据
+
+    官方规范中 Notification Hook 的字段：
+    常见字段（所有hook都有）:
+    - session_id: 会话ID
+    - transcript_path: 对话JSON路径
+    - cwd: 当前工作目录
+    - permission_mode: 权限模式（"default"、"plan"、"acceptEdits"等）
+    - hook_event_name: 事件名称（"Notification"）
+
+    Notification Hook特有字段:
+    - message: 通知消息内容
+    - notification_type: 通知类型（permission_prompt、idle_prompt、auth_success、elicitation_dialog等）
+    """
     return {
         "session_id": data.get("session_id", ""),
-        "message": data.get("message", ""),
-        "notification_type": data.get("notification_type", "info"),
+        "transcript_path": data.get("transcript_path", ""),
         "cwd": data.get("cwd", ""),
         "permission_mode": data.get("permission_mode", "default"),
+        "message": data.get("message", ""),
+        "notification_type": data.get("notification_type", "info"),
         "hook_event_name": data.get("hook_event_name", "Notification"),
-        "stop_hook_active": data.get("stop_hook_active", False),
     }
 
 

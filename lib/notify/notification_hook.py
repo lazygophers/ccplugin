@@ -98,6 +98,16 @@ def main() -> int:
         if hook_input is None:
             return 0
 
+        # 验证hook事件名称
+        if hook_input.get('hook_event_name') != 'Notification':
+            return 0
+
+        # 提取常见字段（所有hook都应该有）
+        session_id = hook_input.get('session_id', '')
+        transcript_path = hook_input.get('transcript_path', '')
+        cwd = hook_input.get('cwd', '')
+        permission_mode = hook_input.get('permission_mode', 'default')
+
         # 获取通知类型和消息
         notification_type = hook_input.get('notification_type', '')
         message = hook_input.get('message', '')
