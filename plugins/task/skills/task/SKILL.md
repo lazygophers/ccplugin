@@ -5,7 +5,7 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 
 # 任务管理系统
 
-基于文件系统和hooks的任务管理方案，将任务存放在 `@.claude/task/` 目录，通过Markdown文件追踪和管理所有项目任务。
+基于文件系统和hooks的任务管理方案，将任务存放在 `.claude/task/` 目录，通过Markdown文件追踪和管理所有项目任务。
 
 ## 核心概念
 
@@ -13,12 +13,12 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 
 项目中的任务分为三个阶段，分别存放在对应的文件中：
 
-| 状态 | 文件 | 描述 |
-|------|------|------|
-| **TODO** | `@.claude/task/todo.md` | 待完成的任务队列 |
-| **IN-PROGRESS** | `@.claude/task/in-progress.md` | 当前正在执行的任务 |
-| **DONE** | `@.claude/task/done.md` | 本会话完成的任务 |
-| **ARCHIVE** | `@.claude/task/archive/` | 按项目/模块组织的历史任务 |
+| 状态            | 文件                         | 描述                      |
+| --------------- | ---------------------------- | ------------------------- |
+| **TODO**        | @.claude/task/todo.md        | 待完成的任务队列          |
+| **IN-PROGRESS** | @.claude/task/in-progress.md | 当前正在执行的任务        |
+| **DONE**        | @.claude/task/done.md        | 本会话完成的任务          |
+| **ARCHIVE**     | @.claude/task/archive/       | 按项目/模块组织的历史任务 |
 
 ### 任务生命周期
 
@@ -28,16 +28,17 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 ```
 
 每个任务的典型流程：
-1. **创建阶段**：新任务添加到 `todo.md`，包含标题、优先级、类别、描述
+
+1. **创建阶段**：新任务添加到 @.claude/task/todo.md，包含标题、优先级、类别、描述
 2. **执行阶段**：任务从 TODO 移动到 IN-PROGRESS，记录开始时间和进展
 3. **完成阶段**：任务完成，从 IN-PROGRESS 移动到 DONE，记录完成时间
-4. **归档阶段**：定期将 DONE 中的任务移动到 `archive/` 对应的项目/模块文件中
+4. **归档阶段**：定期将 DONE 中的任务移动到 @.claude/task/archive/ 对应的项目/模块文件中
 
 ## 快速开始
 
 ### 1. 创建新任务
 
-在 `@.claude/task/todo.md` 中添加：
+在 @.claude/task/todo.md 中添加：
 
 ```markdown
 ### [P{N}] TASK-{编号} {任务标题}
@@ -54,6 +55,7 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 ```
 
 优先级参考：
+
 - `P0` - 紧急，需要立即处理
 - `P1` - 高优先级，尽快处理
 - `P2` - 普通优先级，按计划处理
@@ -62,9 +64,10 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 ### 2. 开始任务
 
 当准备开始任务时：
-1. 在 `todo.md` 中找到该任务
+
+1. 在 @.claude/task/todo.md 中找到该任务
 2. 剪切任务内容
-3. 粘贴到 `in-progress.md` 并添加：
+3. 粘贴到 @.claude/task/in-progress.md 并添加：
    ```markdown
    - **开始时间**: {YYYY-MM-DD HH:mm}
    - **进展**: {0% 或具体描述}
@@ -73,9 +76,10 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 ### 3. 完成任务
 
 任务完成时：
-1. 在 `in-progress.md` 中找到该任务
+
+1. 在 @.claude/task/in-progress.md 中找到该任务
 2. 剪切任务内容
-3. 粘贴到 `done.md` 并添加：
+3. 粘贴到 @.claude/task/done.md 并添加：
    ```markdown
    - **说明**: {实现方式或解决方案}
    - **验收标准完成情况**: {标记所有验收标准为完成}
@@ -84,36 +88,39 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 
 ### 4. 归档任务
 
-定期将 `done.md` 中完成的任务移动到 `archive/` 中对应的项目/模块文件。
+定期将 @.claude/task/done.md 中完成的任务移动到 @.claude/task/archive/ 中对应的项目/模块文件。
 
 ## Hooks 自动化
 
 系统通过三个hooks自动化任务管理流程：
 
 ### SessionStart Hook
-初始化任务环境，如果 `@.claude/task/` 不存在则自动创建目录和初始文件。
+
+初始化任务环境，如果 @.claude/task/ 不存在则自动创建目录和初始文件。
 
 ### UserPromptSubmit Hook
-- 检查是否有进行中的任务
+
+- 检查 @.claude/task/in-progress.md 是否有进行中的任务
 - 主动提示用户遵守本skill的规范创建、维护和更新任务
 - 如果用户正在执行任务相关工作，提示使用文件系统管理任务
 
 ### Stop Hook
-- 检查 `in-progress.md` 是否不为空
+
+- 检查 @.claude/task/in-progress.md 是否存在且包含未完成的任务
 - 提示用户更新任务状态和完成时间
 - 建议用户考虑是否需要归档已完成的任务
 
 ## 详细指南
 
-完整的任务管理规范、字段说明、文件组织方式 → [reference.md](reference.md)
+完整的任务管理规范、字段说明、文件组织方式 → [reference.md](@${CLAUDE_PLUGIN_ROOT}/skills/task/reference.md)
 
-实际使用示例、各种场景的处理方式、工作流程示例 → [examples/](examples/)
+实际使用示例、各种场景的处理方式、工作流程示例 → [examples/](@${CLAUDE_PLUGIN_ROOT}/skills/task/examples/)
 
 ## 关键要点
 
 ### ✅ DO
 
-- **使用 `@.claude/task/` 管理所有项目任务** - 所有任务必须在此目录追踪
+- **使用 @.claude/task/ 管理所有项目任务** - 所有任务必须在此目录追踪
 - **保持任务清晰明确** - 每个任务有清晰的标题、优先级、类别和描述
 - **及时更新任务状态** - 任务状态应该实时反映实际进展
 - **定期归档任务** - 避免 DONE 文件过大，定期整理到 archive/
@@ -135,11 +142,7 @@ description: 任务管理系统 - 基于文件系统的任务追踪和管理，�
 - **Task 系统**: 用于项目长期任务管理和历史记录（持久化）
 
 推荐做法：
+
 1. 在会话开始时，如需快速规划任务，可使用 TodoWrite
-2. 同时在 `@.claude/task/` 中记录持久化的任务信息
-3. 会话结束时，将重要任务信息整理到 `done.md` 或归档
-
----
-
-**规范版本**：2.0（重新设计）
-**最后更新**：2026-01-18
+2. 同时在 @.claude/task/ 中记录持久化的任务信息
+3. 会话结束时，将重要任务信息整理到 @.claude/task/done.md 或归档到 @.claude/task/archive/

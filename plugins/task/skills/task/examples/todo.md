@@ -1,10 +1,10 @@
 # 待完成任务示例 (TODO)
 
-本文件展示 `@.claude/task/todo.md` 的正确格式和内容结构。
+本文件展示 .claude/task/todo.md 的正确格式和内容结构。
 
 ## 使用规范
 
-参考 [SKILL.md](../SKILL.md) 中的完整指南。
+参考 [SKILL.md](${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md) 中的完整指南。
 
 ## 认证与用户管理
 

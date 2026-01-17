@@ -1,6 +1,6 @@
 # 进行中任务示例 (IN-PROGRESS)
 
-本文件展示 `@.claude/task/in-progress.md` 的正确格式和内容结构。
+本文件展示 @.claude/task/in-progress.md 的正确格式和内容结构。
 
 ## 使用规范
 

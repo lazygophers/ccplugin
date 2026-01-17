@@ -4,11 +4,11 @@
 
 ## 概述
 
-**任务管理系统** 不依赖数据库或脚本，而是使用 `@.claude/task/` 目录下的 Markdown 文件来管理所有项目任务。通过自动化 hooks 在会话的关键时刻（SessionStart、UserPromptSubmit、Stop）提示用户管理任务。
+**任务管理系统** 不依赖数据库或脚本，而是使用 `.claude/task/` 目录下的 Markdown 文件来管理所有项目任务。通过自动化 hooks 在会话的关键时刻（SessionStart、UserPromptSubmit、Stop）提示用户管理任务。
 
 ## 🎯 核心特性
 
-- ✅ **文件系统存储** - 任务存放在 `@.claude/task/` 下的 Markdown 文件
+- ✅ **文件系统存储** - 任务存放在 `.claude/task/` 下的 Markdown 文件
 - ✅ **无脚本依赖** - 完全不依赖 Python 脚本或数据库，只使用文本文件
 - ✅ **自动化提示** - 通过 hooks 在会话关键时刻主动提示用户
 - ✅ **四阶段管理** - TODO → IN-PROGRESS → DONE → ARCHIVE
@@ -19,7 +19,7 @@
 ## 📁 任务存储结构
 
 ```
-@.claude/task/
+.claude/task/
 ├── todo.md              # 待完成任务
 ├── in-progress.md       # 进行中任务
 ├── done.md              # 已完成任务（最近）
@@ -44,7 +44,7 @@
 
 ### 2. 创建新任务
 
-在 `@.claude/task/todo.md` 中添加：
+在 `.claude/task/todo.md` 中添加：
 
 ```markdown
 ### [P{N}] {任务标题}
@@ -73,7 +73,7 @@
 
 ## 📚 完整文档
 
-所有详细说明都在 **@plugins/task/skills/task/** 中：
+所有详细说明都在 **@${CLAUDE_PLUGIN_ROOT}/skills/task/** 中：
 
 - **[SKILL.md](skills/task/SKILL.md)** - 核心概念、快速开始、关键要点（推荐首先阅读）
 - **[reference.md](skills/task/reference.md)** - 完整规范、字段说明、最佳实践、定期维护
@@ -85,7 +85,7 @@
 
 ### SessionStart Hook
 🔷 **时机**：会话开始时
-- 初始化 `@.claude/task` 目录（如果不存在）
+- 初始化 `.claude/task` 目录（如果不存在）
 - 提示用户任务管理系统已就绪
 
 ### UserPromptSubmit Hook
@@ -146,14 +146,14 @@
 
 推荐做法：
 1. 会话内快速规划可用 TodoWrite
-2. 重要任务信息同时记录在 `@.claude/task/`
+2. 重要任务信息同时记录在 `.claude/task/`
 3. 会话结束时将重要信息整理到 `done.md` 或归档
 
 ## 📋 常见场景
 
 ### 场景 1：新项目启动
 
-1. 打开 `@.claude/task/todo.md`
+1. 打开 `.claude/task/todo.md`
 2. 添加项目所有的初始任务
 3. 按优先级排序
 4. 每天选择优先级最高的任务开始工作
@@ -193,7 +193,7 @@ A: 定期从 `done.md` 导出总结分享，或通过 git commit 记录任务完
 
 ## 📖 相关资源
 
-- **Skills 文档** - [@plugins/task/skills/task/](skills/task/)
+- **Skills 文档** - [@${CLAUDE_PLUGIN_ROOT}/skills/task/](skills/task/)
 - **项目架构** - [CLAUDE.md](../../CLAUDE.md)
 - **插件市场** - [.claude-plugin/marketplace.json](../../.claude-plugin/marketplace.json)
 
