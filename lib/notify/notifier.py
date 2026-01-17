@@ -42,6 +42,25 @@ class Notifier:
         else:
             return False
 
+    def speak(self, text: str) -> bool:
+        """
+        语音播报文本
+
+        Args:
+            text: 需要播报的文本
+
+        Returns:
+            是否成功播报
+        """
+        if self.system == "Darwin":
+            return self._speak_macos(text)
+        elif self.system == "Linux":
+            return self._speak_linux(text)
+        elif self.system == "Windows":
+            return self._speak_windows(text)
+        else:
+            return False
+
     def _notify_macos(self, title: str, message: str) -> bool:
         """macOS 通知 (使用 osascript)"""
         try:
@@ -106,8 +125,74 @@ class Notifier:
         except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
             return False
 
+    def _speak_macos(self, text: str) -> bool:
+        """macOS 语音播报 (使用 say 命令)"""
+        try:
+            # 转义文本中的特殊字符
+            text = text.replace('"', '\\"')
+            subprocess.run(
+                ["say", text],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            return False
 
-def notify(title: str, message: str, timeout: int = 5000) -> bool:
+    def _speak_linux(self, text: str) -> bool:
+        """Linux 语音播报 (使用 espeak 或 festival)"""
+        try:
+            # 优先使用 espeak，如果不可用则尝试 festival
+            try:
+                subprocess.run(
+                    ["espeak", text],
+                    check=True,
+                    capture_output=True,
+                    timeout=30,
+                )
+                return True
+            except FileNotFoundError:
+                # 尝试使用 festival
+                subprocess.run(
+                    ["echo", text, "|", "festival", "--tts"],
+                    shell=True,
+                    check=True,
+                    capture_output=True,
+                    timeout=30,
+                )
+                return True
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+
+    def _speak_windows(self, text: str) -> bool:
+        """Windows 语音播报 (使用 PowerShell)"""
+        try:
+            # 转义文本中的特殊字符
+            text = text.replace('"', '\"')
+            ps_script = f"""
+            Add-Type -AssemblyName System.Speech
+            $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer
+            $speak.Speak("{text}")
+            """
+            subprocess.run(
+                ["powershell", "-Command", ps_script],
+                check=True,
+                capture_output=True,
+                timeout=30,
+            )
+            return True
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+
+
+def notify(title: str, message: str, timeout: int = 5000, voice: bool = False) -> bool:
     """便捷函数：发送系统通知"""
     notifier = Notifier()
     return notifier.notify(title, message, timeout)
+
+
+def speak(text: str) -> bool:
+    """便捷函数：语音播报"""
+    notifier = Notifier()
+    return notifier.speak(text)

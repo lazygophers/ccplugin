@@ -32,7 +32,7 @@ if not (project_root / 'lib').exists():
 sys.path.insert(0, str(project_root))
 
 try:
-    from lib.notify import notify, init_notify_config
+    from lib.notify import notify, speak, init_notify_config
     from lib.notify.hooks import handle_stop_hook, handle_notification_hook
     from lib.notify.mcp_server import run_mcp_server
 except ImportError as e:
@@ -67,6 +67,8 @@ def show_help():
     """显示帮助信息"""
     print("""使用方法:
   notify <message> [title] [timeout]      # 发送系统通知
+  notify <message> [title] [timeout] --voice     # 发送通知并语音播报
+  notify <message> [title] [timeout] --voice-only # 仅语音播报
   notify --mode mcp [--debug]              # 启动 MCP 服务器
   notify --mode hook --hook-type TYPE     # 处理 hook（TYPE: stop|notification）
   notify --mode init [-v, --verbose]      # 初始化配置文件
@@ -82,6 +84,8 @@ def show_help():
   --mode hook             处理 hook 事件
   --mode init             初始化通知配置文件
   --hook-type TYPE        Hook 类型：stop 或 notification
+  --voice                 启用语音播报（与通知同时进行）
+  --voice-only            仅语音播报，不显示系统通知
   --debug                 启用调试日志
   -v, --verbose           详细输出（用于 init 模式）
 
@@ -89,6 +93,8 @@ def show_help():
   notify '任务已完成'                      # 使用默认标题
   notify '任务已完成' '完成'               # 指定标题
   notify '任务已完成' '完成' 8000          # 指定标题和超时
+  notify '任务已完成' '完成' 8000 --voice  # 通知 + 语音播报
+  notify '任务已完成' --voice-only        # 仅语音播报
   notify --mode mcp                        # 启动 MCP 服务器
   notify --mode hook --hook-type stop     # 处理 Stop hook
   notify --mode init -v                   # 初始化配置文件（详细输出）
@@ -171,20 +177,42 @@ def main():
 
     # 正常通知模式
     else:
+        # 检查语音参数
+        voice_enabled = "--voice" in sys.argv
+        voice_only = "--voice-only" in sys.argv
+
+        # 移除语音参数后的参数列表
+        args = [arg for arg in sys.argv[1:] if arg not in ["--voice", "--voice-only"]]
+
+        if len(args) < 1:
+            show_help()
+            sys.exit(0)
+
         # 解析消息、标题、超时
-        message = sys.argv[1]
-        title = sys.argv[2] if len(sys.argv) > 2 else "Claude Code"
+        message = args[0]
+        title = args[1] if len(args) > 1 else "Claude Code"
 
         timeout = 5000
-        if len(sys.argv) > 3:
+        if len(args) > 2:
             try:
-                timeout = int(sys.argv[3])
+                timeout = int(args[2])
             except ValueError:
-                print(f"错误: 超时时间必须是整数，得到: {sys.argv[3]}", file=sys.stderr)
+                print(f"错误: 超时时间必须是整数，得到: {args[2]}", file=sys.stderr)
                 sys.exit(1)
 
-        # 发送通知
-        success = notify(title, message, timeout)
+        # 执行操作
+        success = True
+
+        # 如果只做语音播报
+        if voice_only:
+            success = speak(message)
+        else:
+            # 先发送通知
+            success = notify(title, message, timeout)
+            # 如果启用语音播报，则播报消息
+            if voice_enabled and success:
+                speak(message)
+
         sys.exit(0 if success else 1)
 
 
