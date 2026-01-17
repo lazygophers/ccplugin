@@ -331,6 +331,138 @@
       ]
     },
     {
+      "name": "style-glassmorphism",
+      "source": "./plugins/style/style-glassmorphism",
+      "description": "玻璃态设计风格插件 - 提供玻璃态 UI 设计规范、实现指南和最佳实践。包括模糊、透明、分层和光线效果的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-glassmorphism",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-glassmorphism",
+      "license": "MIT",
+      "keywords": ["glassmorphism", "design-system", "ui-design", "frosted-glass", "transparency", "blur", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-neumorphism",
+      "source": "./plugins/style/style-neumorphism",
+      "description": "新拟态设计风格插件 - 提供新拟态 UI 设计规范、实现指南和最佳实践。包括柔和阴影、浮起效果和 3D 视觉的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neumorphism",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neumorphism",
+      "license": "MIT",
+      "keywords": ["neumorphism", "design-system", "ui-design", "soft-ui", "shadows", "3d-effects", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-minimal",
+      "source": "./plugins/style/style-minimal",
+      "description": "极简主义设计风格插件 - 提供极简 UI 设计规范、实现指南和最佳实践。包括留白、简洁排版和功能至上的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-minimal",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-minimal",
+      "license": "MIT",
+      "keywords": ["minimal", "minimalism", "design-system", "clean-ui", "whitespace", "simplicity", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-dark",
+      "source": "./plugins/style/style-dark",
+      "description": "暗黑模式设计风格插件 - 提供暗黑模式 UI 设计规范、实现指南和最佳实践。包括深色背景、高对比和 WCAG 无障碍标准的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-dark",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-dark",
+      "license": "MIT",
+      "keywords": ["dark-mode", "dark-theme", "design-system", "ui-design", "wcag", "accessibility", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-neon",
+      "source": "./plugins/style/style-neon",
+      "description": "霓虹赛博设计风格插件 - 提供霓虹 UI 设计规范、实现指南和最佳实践。包括发光效果、高饱和色彩和科幻感的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neon",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neon",
+      "license": "MIT",
+      "keywords": ["neon", "cyberpunk", "glowing", "high-saturated", "design-system", "vibrant", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-retro",
+      "source": "./plugins/style/style-retro",
+      "description": "复古怀旧设计风格插件 - 提供复古 UI 设计规范、实现指南和最佳实践。包括 80-90s 审美、温暖色调和复古排版的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-retro",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-retro",
+      "license": "MIT",
+      "keywords": ["retro", "vintage", "80s", "90s", "design-system", "nostalgia", "warm-colors", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-brutalism",
+      "source": "./plugins/style/style-brutalism",
+      "description": "野兽派设计风格插件 - 提供野兽派 UI 设计规范、实现指南和最佳实践。包括原始边界、大胆排版和功能优先的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-brutalism",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-brutalism",
+      "license": "MIT",
+      "keywords": ["brutalism", "neobrutalism", "raw", "bold", "functional", "design-system", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-pastel",
+      "source": "./plugins/style/style-pastel",
+      "description": "柔和粉彩设计风格插件 - 提供柔和 UI 设计规范、实现指南和最佳实践。包括淡雅色彩、温柔质感和舒适感的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-pastel",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-pastel",
+      "license": "MIT",
+      "keywords": ["pastel", "soft-colors", "gentle", "cute", "design-system", "calm", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-vibrant",
+      "source": "./plugins/style/style-vibrant",
+      "description": "充满活力设计风格插件 - 提供活力 UI 设计规范、实现指南和最佳实践。包括高对比、高饱和色彩和动态感的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-vibrant",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-vibrant",
+      "license": "MIT",
+      "keywords": ["vibrant", "colorful", "energetic", "high-saturation", "design-system", "bold", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-luxe",
+      "source": "./plugins/style/style-luxe",
+      "description": "奢华高端设计风格插件 - 提供奢华 UI 设计规范、实现指南和最佳实践。包括金色元素、大理石纹理和精致排版的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-luxe",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-luxe",
+      "license": "MIT",
+      "keywords": ["luxury", "luxe", "elegant", "premium", "gold", "design-system", "high-end", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
+      "name": "style-highcontrast",
+      "source": "./plugins/style/style-highcontrast",
+      "description": "高对比无障碍设计风格插件 - 提供高对比 UI 设计规范、实现指南和最佳实践。包括 WCAG AAA 标准、清晰界限和包容性的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-highcontrast",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-highcontrast",
+      "license": "MIT",
+      "keywords": ["high-contrast", "accessibility", "wcag", "aaa", "inclusive", "design-system", "clear", "modern-ui", "web-design"]
+    },
+    {
+      "name": "style-gradient",
+      "source": "./plugins/style/style-gradient",
+      "description": "渐变艺术设计风格插件 - 提供渐变 UI 设计规范、实现指南和最佳实践。包括流动渐变、色彩过渡和艺术表现的完整设计系统",
+      "version": "1.0.0",
+      "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-gradient",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-gradient",
+      "license": "MIT",
+      "keywords": ["gradient", "color-transition", "artistic", "flowing", "design-system", "vibrant", "modern-ui", "web-design", "2025-trend"]
+    },
+    {
       "name": "notify",
       "source": "./plugins/notify",
       "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",

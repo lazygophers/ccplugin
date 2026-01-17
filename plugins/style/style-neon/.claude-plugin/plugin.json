@@ -1,0 +1,11 @@
+{
+  "name": "style-neon",
+  "version": "1.0.0",
+  "description": "霓虹赛博设计风格插件 - 提供霓虹 UI 设计规范、实现指南和最佳实践。包括发光效果、高饱和色彩和科幻感的完整设计系统",
+  "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neon",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neon",
+  "license": "MIT",
+  "keywords": ["neon", "cyberpunk", "glowing", "high-saturated", "design-system", "vibrant", "modern-ui", "web-design", "2025-trend"],
+  "skills": "./skills/"
+}
