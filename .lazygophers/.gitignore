@@ -1,0 +1,4 @@
+# 忽略插件数据
+/ccplugin/semantic/
+/ccplugin/task/
+/ccplugin/notify/
