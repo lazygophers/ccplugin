@@ -61,18 +61,29 @@ class VersionManager:
         return ".".join(str(p) for p in parts)
 
     def _is_version_committed(self) -> bool:
-        """检查 .version 文件是否已提交到 git"""
+        """检查 .version 文件是否已提交到 git（被跟踪且没有未提交的改动）"""
         try:
+            # 首先检查文件是否被 git 跟踪
             result = subprocess.run(
-                ["git", "status", self.VERSION_FILE],
+                ["git", "ls-files", self.VERSION_FILE],
                 cwd=self.project_root,
                 capture_output=True,
                 text=True,
                 timeout=5
             )
-            # 如果文件在 git tracked 且没有修改，则已提交
-            output = result.stdout + result.stderr
-            return "modified" not in output and result.returncode == 0
+            # 如果文件不在 git 中被跟踪，则未提交
+            if not result.stdout.strip():
+                return False
+            
+            # 检查文件是否有未提交的修改
+            result = subprocess.run(
+                ["git", "diff", "--quiet", self.VERSION_FILE],
+                cwd=self.project_root,
+                capture_output=True,
+                timeout=5
+            )
+            # git diff --quiet 返回 0 表示没有改动，返回 1 表示有改动
+            return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
 
@@ -111,6 +122,13 @@ class VersionManager:
         Returns:
             是否成功更新
         """
+        # 检查 .version 文件是否已提交到 git
+        if not self._is_version_committed():
+            print(
+                f"ℹ️  .version 文件未提交到 git，跳过版本更新。请运行: git add .version && git commit"
+            )
+            return False
+
         # 默认更新 build 版本
         if level is None:
             level = "build"
@@ -146,16 +164,6 @@ class VersionManager:
             parts[i] = 0
 
         new_version = self._format_version(parts)
-
-        # 如果是 hooks 自动调用且 .version 未提交，仅允许更新 build 版本
-        if os.environ.get("CLAUDE_HOOK_TYPE") in ["SubagentStop", "Stop"]:
-            if not self._is_version_committed():
-                if level != "build":
-                    print(
-                        f"警告: .version 文件未提交到 git，只能通过 /version bump 命令更新 major/minor/patch 版本",
-                        file=sys.stderr
-                    )
-                    return False
 
         try:
             self.version_file.write_text(new_version + "\n")
