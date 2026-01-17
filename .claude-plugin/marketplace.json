@@ -32,7 +32,7 @@
     },
     {
       "name": "semantic",
-      "source": "./plugins/semantic",
+      "source": "./plugins/code/semantic",
       "description": "语义搜索插件 - 基于向量嵌入的自然语言代码搜索，支持中英文混合查询和多语言代码理解",
       "version": "0.0.19",
       "author": {
@@ -53,7 +53,7 @@
     },
     {
       "name": "git",
-      "source": "./plugins/git",
+      "source": "./plugins/code/git",
       "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
       "version": "0.0.19",
       "author": {
@@ -75,7 +75,7 @@
     },
     {
       "name": "golang",
-      "source": "./plugins/golang",
+      "source": "./plugins/code/golang",
       "description": "Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导",
       "version": "0.0.19",
       "author": {
@@ -100,7 +100,7 @@
     },
     {
       "name": "python",
-      "source": "./plugins/python",
+      "source": "./plugins/code/python",
       "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
       "version": "0.0.19",
       "author": {
@@ -126,7 +126,7 @@
     },
     {
       "name": "typescript",
-      "source": "./plugins/typescript",
+      "source": "./plugins/code/typescript",
       "description": "TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导",
       "version": "0.0.19",
       "author": {
@@ -150,7 +150,7 @@
     },
     {
       "name": "javascript",
-      "source": "./plugins/javascript",
+      "source": "./plugins/code/javascript",
       "description": "JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
       "version": "0.0.19",
       "author": {
@@ -177,7 +177,7 @@
     },
     {
       "name": "vue",
-      "source": "./plugins/vue",
+      "source": "./plugins/code/vue",
       "description": "Vue 3 开发插件 - 提供 Vue 3 开发规范、最佳实践和代码智能支持。包括 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链",
       "version": "0.0.19",
       "author": {
@@ -201,7 +201,7 @@
     },
     {
       "name": "react",
-      "source": "./plugins/react",
+      "source": "./plugins/code/react",
       "description": "React 18+ 开发插件 - 提供现代 React 开发规范、最佳实践和代码智能支持。包括 Hooks 深度指导、函数组件标准、Zustand/Redux 状态管理、Next.js 集成和完整的开发工具链",
       "version": "0.0.19",
       "author": {
@@ -227,7 +227,7 @@
     },
     {
       "name": "nextjs",
-      "source": "./plugins/nextjs",
+      "source": "./plugins/code/nextjs",
       "description": "Next.js 16+ 全栈开发插件 - 提供 App Router、Server Components、Route Handlers 和现代全栈开发规范。包括 PPR、Server Actions、数据缓存、中间件和完整的生产级工具链",
       "version": "0.0.19",
       "author": {
@@ -253,7 +253,7 @@
     },
     {
       "name": "antd",
-      "source": "./plugins/antd",
+      "source": "./plugins/code/antd",
       "description": "Ant Design 5.x 企业级 UI 组件库插件 - 提供设计系统、组件库、主题定制、表单管理和完整的企业应用开发规范。包括虚拟滚动、性能优化、TypeScript 完全支持和 Next.js 无缝集成",
       "version": "0.0.19",
       "author": {
@@ -280,7 +280,7 @@
     },
     {
       "name": "version",
-      "source": "./plugins/version",
+      "source": "./plugins/code/version",
       "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
       "version": "0.0.19",
       "author": {
@@ -302,7 +302,7 @@
     },
     {
       "name": "flutter",
-      "source": "./plugins/flutter",
+      "source": "./plugins/code/flutter",
       "description": "Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持。包括 Material 3、Cupertino、自定义设计系统和 Provider、Riverpod、BLoC 等状态管理方案的最佳实践",
       "version": "1.0.0",
       "author": {

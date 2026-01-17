@@ -29,11 +29,11 @@ gpu = [
 
 [project.scripts]
 clean = "scripts.clean:main"
-semantic-mcp = "plugins.semantic.scripts.mcp_server:main"
+semantic-mcp = "plugins.code.semantic.scripts.mcp_server:main"
 task-mcp = "plugins.task.scripts.mcp_server:main"
-semantic = "plugins.semantic.scripts.semantic:main"
+semantic = "plugins.code.semantic.scripts.semantic:main"
 task = "plugins.task.scripts.task:main"
-version = "plugins.version.scripts.version:main"
+version = "plugins.code.version.scripts.version:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
