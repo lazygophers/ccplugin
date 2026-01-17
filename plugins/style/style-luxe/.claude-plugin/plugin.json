@@ -1,0 +1,11 @@
+{
+  "name": "style-luxe",
+  "version": "1.0.0",
+  "description": "奢华高端设计风格插件 - 提供奢华 UI 设计规范、实现指南和最佳实践。包括金色元素、大理石纹理和精致排版的完整设计系统",
+  "author": {"name": "lazygophers", "email": "admin@lazygophers.dev"},
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-luxe",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-luxe",
+  "license": "MIT",
+  "keywords": ["luxury", "luxe", "elegant", "premium", "gold", "design-system", "high-end", "modern-ui", "web-design", "2025-trend"],
+  "skills": "./skills/"
+}
