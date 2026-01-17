@@ -1,183 +1,129 @@
-# UI 设计风格插件集合
+# Style Plugins - UI 设计风格插件库
 
-本目录包含 12 个专业的 UI 设计风格插件，为 Claude Code 提供完整的现代设计系统参考。
+`plugins/style/` 目录包含 12 个现代 UI 设计风格插件，覆盖 2025 年主流设计趋势，为不同项目提供完整的设计系统、配置规范和实现指南。
 
-## 🎨 风格插件清单
+## 🎨 设计风格概览
 
-### 1. **Glassmorphism** - 玻璃态
-- **特色**：模糊、透明、分层光线效果
-- **用途**：现代应用、金融科技、游戏 UI
-- **参考**：macOS Big Sur、Windows 11
-- **插件**：`style-glassmorphism`
+### 现代创意风格
 
-### 2. **Neumorphism** - 新拟态
-- **特色**：柔和阴影、浮起效果、3D 视觉
-- **用途**：移动应用、设置面板、仪表板
-- **对比**：平衡拟物化和极简主义
-- **插件**：`style-neumorphism`
+| 风格 | 描述 | 特点 | 适用场景 |
+|------|------|------|---------|
+| **[Glassmorphism](style-glassmorphism/)** | 玻璃态设计 | 模糊、透明、分层、虚实感 | 现代应用、SaaS、游戏 UI |
+| **[Neumorphism](style-neumorphism/)** | 新拟态设计 | 柔和阴影、浮起效果、3D 视觉 | 极简风格、柔和界面 |
+| **[Gradient](style-gradient/)** | 渐变艺术 | 流动渐变、色彩过渡、艺术表现 | 创意应用、品牌站点 |
+| **[Neon](style-neon/)** | 霓虹赛博 | 发光效果、高饱和、科幻感 | 游戏、电商、品牌体验 |
 
-### 3. **Minimal** - 极简主义
-- **特色**：留白充足、清晰排版、功能至上
-- **用途**：新闻网站、内容平台、企业官网
-- **原则**：优先级排序、消除装饰
-- **插件**：`style-minimal`
+### 经典怀旧风格
 
-### 4. **Dark Mode** - 暗黑模式
-- **特色**：深色背景、高对比、WCAG AAA 标准
-- **用途**：通用暗黑主题、编辑器、夜间模式
-- **优点**：护眼、省电（OLED）、现代感
-- **插件**：`style-dark`
+| 风格 | 描述 | 特点 | 适用场景 |
+|------|------|------|---------|
+| **[Retro](style-retro/)** | 复古怀旧 | 80-90s 审美、温暖色调、复古排版 | 复古品牌、创意站点、娱乐应用 |
+| **[Brutalism](style-brutalism/)** | 野兽派设计 | 原始边界、大胆排版、功能优先 | 艺术网站、极简应用 |
 
-### 5. **Neon** - 霓虹赛博
-- **特色**：发光效果、高饱和色彩、科幻感
-- **用途**：游戏 UI、科技初创、创意项目
-- **灵感**：Cyberpunk 2077、Synthwave 美学
-- **插件**：`style-neon`
+### 简洁极简风格
 
-### 6. **Retro** - 复古怀旧
-- **特色**：80-90s 审美、温暖色调、斜体排版
-- **用途**：创意项目、时尚品牌、音乐应用
-- **特点**：鲜艳对比、曲线设计、打字机字体
-- **插件**：`style-retro`
+| 风格 | 描述 | 特点 | 适用场景 |
+|------|------|------|---------|
+| **[Minimal](style-minimal/)** | 极简主义 | 留白、简洁排版、功能至上 | 高级品牌、极简产品 |
+| **[Dark](style-dark/)** | 暗黑模式 | 深色背景、高对比、WCAG AAA | 所有应用的夜间模式 |
+| **[Pastel](style-pastel/)** | 柔和粉彩 | 淡雅色彩、温柔质感、舒适感 | 女性向应用、生活类应用 |
 
-### 7. **Brutalism** - 野兽派
-- **特色**：原始边界、大胆排版、功能优先
-- **用途**：艺术项目、建筑投资组合、编辑设计
-- **哲学**：原始性、清晰层级、大胆声明
-- **插件**：`style-brutalism`
+### 高对比鲜明风格
 
-### 8. **Pastel** - 柔和粉彩
-- **特色**：淡雅色彩、圆角、柔和阴影
-- **用途**：儿童应用、生活方式、教育平台
-- **感觉**：温柔、舒适、梦幻
-- **插件**：`style-pastel`
+| 风格 | 描述 | 特点 | 适用场景 |
+|------|------|------|---------|
+| **[Vibrant](style-vibrant/)** | 充满活力 | 高对比、高饱和、动态感 | 电商、媒体、娱乐 |
+| **[HighContrast](style-highcontrast/)** | 高对比无障碍 | WCAG AAA、清晰界限、包容性 | 政府应用、无障碍平台 |
 
-### 9. **Vibrant** - 充满活力
-- **特色**：高饱和色彩、大胆对比、动态布局
-- **用途**：创意机构、音乐产品、时尚品牌
-- **能量**：充满活力、视觉冲击、大胆表达
-- **插件**：`style-vibrant`
+### 高端优雅风格
 
-### 10. **Luxe** - 奢华高端
-- **特色**：黄金元素、大理石纹理、精致排版
-- **用途**：高端珠宝、奢侈品、酒店服务
-- **品质**：优雅、premium、精致
-- **插件**：`style-luxe`
+| 风格 | 描述 | 特点 | 适用场景 |
+|------|------|------|---------|
+| **[Luxe](style-luxe/)** | 奢华高端 | 金色元素、大理石纹理、精致排版 | 奢侈品、高端服务、VIP 应用 |
 
-### 11. **High Contrast** - 高对比无障碍
-- **特色**：WCAG AAA、清晰界限、包容性设计
-- **用途**：政府网站、医疗平台、通用可访问
-- **标准**：严格对比度（≥7:1）、键盘导航
-- **插件**：`style-highcontrast`
+## 🚀 选择风格指南
 
-### 12. **Gradient** - 渐变艺术
-- **特色**：流动渐变、色彩过渡、艺术表现
-- **用途**：创意投资组合、营销落地页
-- **特性**：多维度变化、视觉丰富、动态感
-- **插件**：`style-gradient`
+### 按项目类型选择
 
-## 📁 文件结构
+**📱 电商/消费应用**
+- 🎨 推荐：[Vibrant](style-vibrant/) - 吸引眼球、鼓励购买
+- 🎨 备选：[Neon](style-neon/) - 创意突出、印象深刻
 
-每个风格插件都包含：
+**💼 企业/B2B 应用**
+- 🎨 推荐：[Minimal](style-minimal/) - 专业、清晰、易用
+- 🎨 备选：[Dark](style-dark/) - 现代、专业
 
-```
-style-{name}/
-├── .claude-plugin/
-│   └── plugin.json          # 插件元数据
-└── skills/
-    └── SKILL.md             # 设计规范文档（~300 行）
-                             # 包含：核心特征、色彩系统、实现要点、
-                             # 应用场景、DO & DON'T、参考资源
-```
+**🎮 游戏/娱乐**
+- 🎨 推荐：[Neon](style-neon/) - 科幻感、沉浸感
+- 🎨 备选：[Glassmorphism](style-glassmorphism/) - 现代、视觉深度
 
-## 🚀 使用方式
+**🎨 创意/设计类**
+- 🎨 推荐：[Brutalism](style-brutalism/) - 艺术感、独特风格
+- 🎨 备选：[Gradient](style-gradient/) - 艺术表现
 
-### 作为 Claude Code 插件加载
-```bash
-# 从 marketplace.json 自动加载
-# 插件会出现在 Claude Code 的插件列表中
-```
+**👗 生活/女性向应用**
+- 🎨 推荐：[Pastel](style-pastel/) - 温柔、舒适
+- 🎨 备选：[Luxe](style-luxe/) - 精致、优雅
 
-### 查阅设计规范
-```
-打开任意插件的 skills/SKILL.md 文件
-获取该风格的完整设计规范、色彩系统、实现代码示例
-```
+**🌙 需要深色模式**
+- 🎨 推荐：[Dark](style-dark/) - WCAG AAA 标准
 
-### 应用到项目
-1. 阅读对应风格的 SKILL.md
-2. 了解核心特征和色彩系统
-3. 使用提供的 CSS 变量和代码片段
-4. 一致地应用到整个项目
+**♿ 无障碍优先**
+- 🎨 推荐：[HighContrast](style-highcontrast/) - WCAG AAA 标准
 
-## 🎯 选择风格指南
+**💎 高端品牌**
+- 🎨 推荐：[Luxe](style-luxe/) - 奢华、精致
+- 🎨 备选：[Minimal](style-minimal/) - 高级感
 
-| 项目类型 | 推荐风格 |
-|---------|--------|
-| 现代 SaaS | Glassmorphism, Dark Mode |
-| 创意机构 | Vibrant, Retro, Gradient |
-| 企业官网 | Minimal, Luxe |
-| 儿童应用 | Pastel, Retro |
-| 游戏 | Neon, Glassmorphism |
-| 无障碍优先 | High Contrast, Dark Mode |
-| 艺术项目 | Brutalism, Gradient, Vibrant |
-| 移动优先 | Neumorphism, Pastel, Minimal |
+## 📖 Skills 文档结构
 
-## 📊 2025 年设计趋势
+每个风格插件都遵循 **多文件 skills 结构**：
 
-这 12 个风格反映了 2025 年最新的设计趋势：
+- `SKILL.md` - 核心特性和快速开始（300-400 行）
+- `reference.md` - 完整配置规范
+- `examples.md` - 实现示例和最佳实践
 
-✅ **保持强势**：
-- Glassmorphism（现代应用标配）
-- Dark Mode（用户需求驱动）
-- Minimal（经典常青）
-- High Contrast（无障碍重视）
+**浏览指南**：查阅相应风格目录下的这些文件
 
-🔥 **新兴趋势**：
-- Neumorphism 改进版本
-- Neon + Glassmorphism 混搭
-- Brutalism 复兴
-- Retro 怀旧回潮
+## 💻 实现支持
 
-📈 **增长方向**：
-- Gradient 艺术应用
-- Pastel 人文关怀
-- Vibrant 大胆表达
-- Luxe 高端市场
+所有风格插件都包含：
 
-## 🛠️ 技术支持
+- Pure CSS 实现
+- Tailwind CSS 配置
+- React 组件示例
+- Vue 组件示例
+- Next.js 集成示例
 
-所有插件提供：
-- ✅ CSS 3 实现
-- ✅ Tailwind CSS 配置
-- ✅ CSS 变量系统
-- ✅ 响应式设计方案
-- ✅ 可访问性指南
-- ✅ 性能优化建议
+## ✅ 规范遵循
 
-## 📚 学习资源
+所有 style 插件都遵循 **Anthropic 官方技能创作最佳实践**
 
-### 在线工具
-- [Glassmorphism.io](https://glassmorphism.com/)
-- [Neumorphism.io](https://neumorphism.io/)
-- [WebAIM 对比度检查器](https://webaim.org/resources/contrastchecker/)
-- [Color Hunt - 配色灵感](https://colorhunt.co/)
+详见：[.claude/skills/plugin-skills-authoring.md](../../.claude/skills/plugin-skills-authoring.md)
 
-### 参考资料
-- [2025 年 UI 设计趋势研究](https://www.thewebfactory.us/blogs/30-best-web-design-trends-styles-for-2025/)
-- [Material Design 3](https://m3.material.io/)
-- [WCAG 2.1 可访问性指南](https://www.w3.org/WAI/WCAG21/quickref/)
+## 🎯 常见场景
 
-## 🤝 贡献
+- **现代 SaaS 应用**：Glassmorphism + Dark Mode
+- **极简设计**：Minimal
+- **无障碍应用**：HighContrast
+- **复古风格**：Retro 或 Brutalism
+- **奢华品牌**：Luxe
+- **充满活力的电商**：Vibrant 或 Neon
 
-如果您有新的设计风格想法或改进建议，欢迎提交 PR！
+## 📚 使用步骤
 
-## 📝 许可证
+1. 根据项目类型选择合适的风格
+2. 阅读风格的 SKILL.md 了解核心特性
+3. 查看 reference.md 获取完整规范
+4. 参考 examples.md 的代码示例
+5. 集成到你的项目中
 
-所有风格插件均采用 MIT 许可证。
+## 📝 相关文档
+
+- **Code 插件**：[plugins/code/README.md](../code/README.md)
+- **Skills 编写规范**：[.claude/skills/plugin-skills-authoring.md](../../.claude/skills/plugin-skills-authoring.md)
+- **项目架构**：[CLAUDE.md](../../CLAUDE.md)
 
 ---
 
-**最后更新**：2025 年 1 月 17 日  
-**总计插件数**：12 个  
-**总行数**：~3,600 行设计规范文档
+**选择合适的设计风格，为你的项目创造独特的视觉体验！** 🎨

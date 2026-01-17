@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **CCPlugin Market** is a Claude Code plugin marketplace that provides high-quality plugins and development templates for the Claude Code ecosystem. The project includes:
 
-- **Core Plugins**: `semantic` (code search), `task` (task management), `git` (version control)
-- **Language Plugins**: Python, Go, TypeScript, JavaScript, Vue, React, Next.js, Ant Design
+- **Code Plugins** (`plugins/code/`): 13 language and framework plugins (Python, Go, TypeScript, JavaScript, React, Vue, Next.js, Ant Design, Flutter, and tools like semantic search, Git, version management)
+- **Style Plugins** (`plugins/style/`): 12 UI design style plugins (Glassmorphism, Neumorphism, Gradient, Neon, Retro, Brutalism, Minimal, Dark, Pastel, Vibrant, HighContrast, Luxe)
+- **Utility Plugins** (`plugins/`): Task management and notification system
 - **Shared Library**: `lib/` directory with reusable code components extracted from all plugins
 - **Entry Points**: Command-line scripts in `plugins/*/scripts/` that use the shared library
 
@@ -29,28 +30,55 @@ ccplugin/
 │   └── tests/                    # Comprehensive test suite
 │
 ├── plugins/
-│   ├── semantic/                 # Semantic search plugin
-│   │   ├── scripts/
-│   │   │   ├── semantic.py      # Main CLI using lib.* modules
-│   │   │   └── mcp_server.py    # MCP server wrapper
-│   │   ├── commands/
-│   │   ├── agents/
-│   │   ├── skills/
-│   │   └── README.md
+│   ├── code/                     # Language and framework development plugins
+│   │   ├── python/               # Python development standards
+│   │   ├── golang/               # Go development standards
+│   │   ├── javascript/           # JavaScript (ES2024+) standards
+│   │   ├── typescript/           # TypeScript development standards
+│   │   ├── react/                # React 18+ development standards
+│   │   ├── vue/                  # Vue 3 development standards
+│   │   ├── nextjs/               # Next.js 16+ full-stack development
+│   │   ├── antd/                 # Ant Design 5.x enterprise UI
+│   │   ├── flutter/              # Flutter mobile development
+│   │   ├── semantic/             # Semantic code search (uses lib/*)
+│   │   ├── git/                  # Git version control operations
+│   │   ├── version/              # Version number management
+│   │   ├── template/             # Plugin development template
+│   │   ├── README.md             # Code plugins overview and guide
+│   │   └── [plugin-name]/        # Individual plugin structure
+│   │       ├── skills/
+│   │       ├── scripts/
+│   │       ├── agents/
+│   │       └── commands/
+│   │
+│   ├── style/                    # UI design style plugins
+│   │   ├── style-glassmorphism/  # Glass morphism design style
+│   │   ├── style-neumorphism/    # Neumorphism design style
+│   │   ├── style-gradient/       # Gradient art style
+│   │   ├── style-neon/           # Neon cyberpunk style
+│   │   ├── style-retro/          # Retro vintage style
+│   │   ├── style-brutalism/      # Brutalism design style
+│   │   ├── style-minimal/        # Minimalist style
+│   │   ├── style-dark/           # Dark mode style
+│   │   ├── style-pastel/         # Soft pastel style
+│   │   ├── style-vibrant/        # Vibrant high-contrast style
+│   │   ├── style-highcontrast/   # High contrast accessibility style
+│   │   ├── style-luxe/           # Luxe premium style
+│   │   ├── README.md             # Style plugins overview and guide
+│   │   └── [style-name]/         # Individual style plugin structure
+│   │       └── skills/
 │   │
 │   ├── task/                     # Task management plugin
-│   │   ├── scripts/task.py
-│   │   └── ...
-│   │
-│   ├── git/                      # Git operations plugin
 │   │   ├── scripts/
 │   │   └── ...
 │   │
-│   └── [language_plugins]/       # Python, Go, TypeScript, etc.
-│       └── [plugin-specific-structure]
+│   └── notify/                   # Notification system plugin
+│       ├── scripts/
+│       └── ...
 │
 ├── .claude/                      # Claude Code configuration
 │   ├── skills/                   # Reusable skills for plugin development
+│   │   └── plugin-skills-authoring.md  # Plugin skill authoring guidelines
 │   ├── agents/                   # Specialized sub-agents
 │   ├── commands/                 # Custom slash commands
 │   └── settings.json
@@ -81,6 +109,28 @@ ccplugin/
 - Language-specific parsers (PythonParser, GoParser, etc.)
 - Fallback to SimpleParser for unknown languages
 
+**5. Plugin Directory Organization**
+- **plugins/code/** - 13 language and framework development plugins
+  - Includes: Python, Go, TypeScript, JavaScript, React, Vue, Next.js, Ant Design, Flutter
+  - Tools: Semantic search, Git, version management, development template
+  - Each plugin has its own skills, scripts, agents, and commands
+- **plugins/style/** - 12 UI design style plugins following 2025 design trends
+  - Covers: Glassmorphism, Neumorphism, Gradient, Neon, Retro, Brutalism, Minimal, Dark, Pastel, Vibrant, HighContrast, Luxe
+  - All style plugins use multi-file skills structure (SKILL.md, reference.md, examples.md)
+- **plugins/** - Utility plugins (task, notify) and directory documentation
+  - Task: Task management and organization
+  - Notify: System notification and hook event handling
+
+**6. Plugin Skills Structure (Anthropic Best Practices)**
+- All plugins use progressive disclosure pattern with multi-file skills:
+  - **SKILL.md** (300-400 lines): Navigation hub with core features and quick start
+  - **reference.md**: Detailed configuration, API reference, and specifications
+  - **examples.md**: Implementation examples, best practices, and FAQ
+  - Optional domain-specific files for complex plugins (e.g., design-system.md, performance.md)
+- YAML frontmatter with `name` and `description` fields (required)
+- Third-person descriptions following Anthropic standards
+- See `.claude/skills/plugin-skills-authoring.md` for complete authoring guidelines
+
 ## Development Commands
 
 ### Setup & Dependencies
@@ -100,9 +150,15 @@ uv pip install package-name
 
 ```bash
 # Execute Python scripts (mandatory - must use uv)
-uv run plugins/semantic/scripts/semantic.py --help
+# Code plugins
+uv run plugins/code/semantic/scripts/semantic.py --help
+uv run plugins/code/semantic/scripts/semantic.py index --path lib/config
+uv run plugins/code/git/scripts/git.py status
+uv run plugins/code/version/scripts/version.py show
+
+# Utility plugins
 uv run plugins/task/scripts/task.py list
-uv run plugins/semantic/scripts/semantic.py index --path lib/config
+uv run plugins/notify/scripts/notifier.py "Title" "Message" 5000
 
 # Run installed command-line tools
 semantic init
@@ -135,14 +191,18 @@ git push origin master
 ### Plugin Development
 
 ```bash
-# Create new plugin from template
-cp -r plugins/template plugins/my-plugin
+# Create new code plugin from template
+cp -r plugins/code/template plugins/code/my-plugin
+
+# Create new style plugin
+cp -r plugins/style/style-template plugins/style/my-style
 
 # Install local plugin for testing
-/plugin install ./plugins/my-plugin
+/plugin install ./plugins/code/my-plugin
 
 # Validate plugin structure
-ls plugins/my-plugin/.claude-plugin/plugin.json
+ls plugins/code/my-plugin/.claude-plugin/plugin.json
+ls plugins/style/my-style/.claude-plugin/plugin.json
 ```
 
 ## Important Implementation Details
@@ -278,8 +338,8 @@ Input File → detect_language() → parse_file() → CodeParser
 Plugins expose MCP server endpoints for Claude Code integration:
 
 ```
-plugins/semantic/scripts/mcp_server.py  →  semantic-mcp command
-plugins/task/scripts/mcp_server.py      →  task-mcp command
+plugins/code/semantic/scripts/mcp_server.py  →  semantic-mcp command
+plugins/task/scripts/mcp_server.py           →  task-mcp command
 ```
 
 MCP servers wrap the plugin scripts and handle protocol-specific I/O.
@@ -307,22 +367,22 @@ If you see `ModuleNotFoundError: No module named 'lib.X'`:
 
 ```bash
 # Index a small directory first to verify
-uv run plugins/semantic/scripts/semantic.py index --path lib/config --batch-size 10
+uv run plugins/code/semantic/scripts/semantic.py index --path lib/config --batch-size 10
 
 # Index entire project (takes time for large codebases)
-uv run plugins/semantic/scripts/semantic.py index --path . --batch-size 50
+uv run plugins/code/semantic/scripts/semantic.py index --path . --batch-size 50
 ```
 
 ### Testing Plugin Scripts Locally
 
 ```bash
 # Display help for any plugin script
-uv run plugins/version/scripts/version.py -h
+uv run plugins/code/version/scripts/version.py -h
 uv run plugins/notify/scripts/notifier.py --help
 
 # Test version management
-uv run plugins/version/scripts/version.py show
-uv run plugins/version/scripts/version.py bump patch
+uv run plugins/code/version/scripts/version.py show
+uv run plugins/code/version/scripts/version.py bump patch
 
 # Test hook scripts with JSON input
 echo '{"session_id":"test","hook_event_name":"Stop","transcript_path":"/tmp/test.jsonl"}' | \
@@ -330,6 +390,11 @@ echo '{"session_id":"test","hook_event_name":"Stop","transcript_path":"/tmp/test
 
 # Display notification
 uv run plugins/notify/scripts/notifier.py "Title" "Message" 5000
+
+# Test semantic search
+uv run plugins/code/semantic/scripts/semantic.py init
+uv run plugins/code/semantic/scripts/semantic.py index --path lib/config
+uv run plugins/code/semantic/scripts/semantic.py search "function definition"
 ```
 
 ### Testing via uvx (Remote Installation)
@@ -349,7 +414,9 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 - All plugin scripts must be executable via `uv run plugins/X/scripts/script.py`
 
 ### Code Organization
-- Plugin scripts stay in `plugins/*/scripts/`
+- Code plugin scripts stay in `plugins/code/*/scripts/`
+- Style plugin scripts stay in `plugins/style/*/scripts/` (usually just skills)
+- Utility plugin scripts stay in `plugins/{task,notify}/scripts/`
 - Reusable code goes in `lib/`
 - Each lib/ module must be a proper package with `__init__.py`
 
@@ -367,9 +434,10 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 - All scripts must support `-h` and `--help` flags
 - Hook scripts receive JSON via stdin and must validate input parameters
 - Hook scripts should exit with code 1 on validation failure
-- All scripts in `plugins/*/scripts/` must have executable permissions
+- All scripts in `plugins/code/*/scripts/`, `plugins/style/*/scripts/`, and `plugins/{task,notify}/scripts/` must have executable permissions
 - Use `uv run` to execute scripts locally, never use `python3` directly
 - Hook commands in `hooks.json` should use `uv run` for project-local scripts
+- Skills must follow progressive disclosure pattern: SKILL.md (navigation) → reference.md (details) → examples.md (use cases)
 
 ## Troubleshooting
 
