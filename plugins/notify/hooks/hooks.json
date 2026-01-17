@@ -1,6 +1,17 @@
 {
   "description": "系统通知插件 Hooks - 通过系统通知向用户提示会话状态变更和权限请求",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode init",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

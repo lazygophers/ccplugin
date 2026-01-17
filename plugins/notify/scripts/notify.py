@@ -2,10 +2,11 @@
 """
 Claude Code 系统通知插件 CLI 入口点
 
-支持三种运行模式：
+支持四种运行模式：
   1. MCP 服务器模式 - 提供 MCP 工具接口
   2. Hook 处理模式 - 处理 Stop/Notification hooks
-  3. 正常通知模式 - 直接发送系统通知
+  3. 配置初始化模式 - 初始化用户和项目通知配置
+  4. 正常通知模式 - 直接发送系统通知
 """
 
 import sys
@@ -31,7 +32,7 @@ if not (project_root / 'lib').exists():
 sys.path.insert(0, str(project_root))
 
 try:
-    from lib.notify import notify
+    from lib.notify import notify, init_notify_config
     from lib.notify.hooks import handle_stop_hook, handle_notification_hook
     from lib.notify.mcp_server import run_mcp_server
 except ImportError as e:
@@ -65,10 +66,11 @@ def setup_logging(debug: bool = False):
 def show_help():
     """显示帮助信息"""
     print("""使用方法:
-  notify <message> [title] [timeout]     # 发送系统通知
-  notify --mode mcp [--debug]             # 启动 MCP 服务器
-  notify --mode hook --hook-type TYPE    # 处理 hook（TYPE: stop|notification）
-  notify -h, --help                       # 显示帮助信息
+  notify <message> [title] [timeout]      # 发送系统通知
+  notify --mode mcp [--debug]              # 启动 MCP 服务器
+  notify --mode hook --hook-type TYPE     # 处理 hook（TYPE: stop|notification）
+  notify --mode init [-v, --verbose]      # 初始化配置文件
+  notify -h, --help                        # 显示帮助信息
 
 参数:
   message        通知消息（必填）
@@ -78,15 +80,18 @@ def show_help():
 选项:
   --mode mcp              以 MCP 服务器模式运行
   --mode hook             处理 hook 事件
+  --mode init             初始化通知配置文件
   --hook-type TYPE        Hook 类型：stop 或 notification
   --debug                 启用调试日志
+  -v, --verbose           详细输出（用于 init 模式）
 
 示例:
   notify '任务已完成'                      # 使用默认标题
   notify '任务已完成' '完成'               # 指定标题
   notify '任务已完成' '完成' 8000          # 指定标题和超时
-  notify --mode mcp                       # 启动 MCP 服务器
+  notify --mode mcp                        # 启动 MCP 服务器
   notify --mode hook --hook-type stop     # 处理 Stop hook
+  notify --mode init -v                   # 初始化配置文件（详细输出）
 """)
 
 
@@ -145,8 +150,23 @@ def main():
                 print(f"错误: 未知的 hook 类型: {hook_type}（有效值: stop, notification）", file=sys.stderr)
                 sys.exit(1)
 
+        elif mode == "init":
+            verbose = "-v" in sys.argv or "--verbose" in sys.argv
+            try:
+                success = init_notify_config(verbose=verbose)
+                if success:
+                    if verbose:
+                        print("✓ 配置初始化完成")
+                    sys.exit(0)
+                else:
+                    print("✗ 配置初始化失败", file=sys.stderr)
+                    sys.exit(1)
+            except Exception as e:
+                print(f"配置初始化错误: {e}", file=sys.stderr)
+                sys.exit(1)
+
         else:
-            print(f"错误: 未知的模式: {mode}（有效值: mcp, hook）", file=sys.stderr)
+            print(f"错误: 未知的模式: {mode}（有效值: mcp, hook, init）", file=sys.stderr)
             sys.exit(1)
 
     # 正常通知模式
