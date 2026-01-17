@@ -1,67 +1,28 @@
-#!/usr/bin/env python3
 """
-Notification MCP Server - 系统通知 MCP 服务器
+Notification MCP Server
 基于 Model Context Protocol 实现系统通知功能
-
-⚠️ 必须使用 uv 执行此脚本：
-  uv run mcp_server.py [options]
-
-依赖：
-  - mcp: MCP 协议实现
-  - async: 异步 I/O 支持
-  - pydantic: 数据验证
 """
-
-import warnings
-warnings.filterwarnings('ignore')
 
 import asyncio
-import sys
 import logging
 import platform
-import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from logging.handlers import RotatingFileHandler
-
-# 添加脚本路径到 sys.path 以导入 notifier.py 的模块
-script_path = Path(__file__).parent
-sys.path.insert(0, str(script_path))
+from typing import Any, Dict, List
 
 try:
     from mcp.server import Server
     from mcp.types import Tool, TextContent
     from pydantic import BaseModel, Field
-except ImportError as e:
-    print(f"MCP 依赖安装错误: {e}", file=sys.stderr)
-    print("请安装 MCP 依赖: uv pip install mcp", file=sys.stderr)
-    sys.exit(1)
+except ImportError:
+    # MCP 未安装，提供占位符
+    Server = None
+    Tool = None
+    TextContent = None
+    BaseModel = None
+    Field = None
 
-# 配置日志（仅文件，不输出到控制台以遵守 MCP stdio 协议）
+
 logger = logging.getLogger("notification-mcp-server")
-logger.setLevel(logging.INFO)
-
-# 禁用 basicConfig 以避免默认的 console handler
-# 仅添加文件日志处理程序
-log_dir = Path.home() / ".lazygophers" / "ccplugin"
-log_dir.mkdir(parents=True, exist_ok=True)
-log_file = log_dir / "error.log"
-
-# 使用 RotatingFileHandler：最大100MB，保留2份备份
-file_handler = RotatingFileHandler(
-    str(log_file),
-    maxBytes=100 * 1024 * 1024,  # 100MB
-    backupCount=2,  # 保留2份备份
-    encoding='utf-8'
-)
-file_handler.setLevel(logging.INFO)  # 捕获 INFO 及以上级别的日志
-file_handler.setFormatter(
-    logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-)
-logger.addHandler(file_handler)
-
-# 防止日志向上传播到 root logger（避免控制台输出）
-logger.propagate = False
 
 
 class NotificationRequest(BaseModel):
@@ -75,13 +36,12 @@ class NotificationMCPServer:
     """系统通知 MCP 服务器"""
 
     def __init__(self):
+        if Server is None:
+            raise ImportError("MCP library not installed. Please install: uv pip install mcp")
+
         self.server = Server("notification-system")
         self.notifier = None
-
-        # 加载系统提示词
         self.agent_content = self._load_agent_content()
-
-        # 注册 MCP 工具
         self._register_tools()
 
     def _load_agent_content(self) -> str:
@@ -124,28 +84,13 @@ class NotificationMCPServer:
 """
         except Exception as e:
             logger.error(f"加载系统提示词失败: {e}")
-            return self._get_default_prompt()
-
-    def _get_default_prompt(self) -> str:
-        """获取默认系统提示词"""
-        return """
-### Notification Plugin
-
-**使用 notification 插件发送系统通知**
-
-主要功能：
-- 跨平台系统通知（macOS、Linux、Windows）
-- 可配置显示时长
-- 自定义标题
-
-使用 /notify 命令发送通知。
-"""
+            return "Notification Plugin - Send system notifications"
 
     def _get_notifier(self):
         """延迟加载 Notifier 类"""
         if self.notifier is None:
             try:
-                from notifier import Notifier
+                from .notifier import Notifier
                 self.notifier = Notifier()
                 logger.info("Notifier 初始化成功")
             except Exception as e:
@@ -239,7 +184,6 @@ This might happen if:
         except Exception as e:
             error_msg = f"Failed to send notification: {str(e)}"
             logger.error(error_msg)
-            logger.error(f"Exception details: {type(e).__name__}")
             return [TextContent(type="text", text=f"❌ {error_msg}")]
 
     async def run(self):
@@ -257,27 +201,7 @@ This might happen if:
             await self.server.run(read_stream, write_stream, initialization_options)
 
 
-def main():
-    """主函数"""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="系统通知 MCP 服务器")
-    parser.add_argument("--mcp", action="store_true", help="以 MCP 服务器模式运行")
-    parser.add_argument("--debug", action="store_true", help="启用调试日志")
-    args = parser.parse_args()
-
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    if args.mcp:
-        # 运行 MCP 服务器
-        server = NotificationMCPServer()
-        asyncio.run(server.run())
-    else:
-        # 默认启动 MCP 服务器
-        server = NotificationMCPServer()
-        asyncio.run(server.run())
-
-
-if __name__ == "__main__":
-    main()
+async def run_mcp_server():
+    """运行 MCP 服务器的入口点"""
+    server = NotificationMCPServer()
+    await server.run()

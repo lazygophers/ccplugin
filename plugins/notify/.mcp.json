@@ -4,8 +4,9 @@
       "command": "uv",
       "args": [
         "run",
-        "${CLAUDE_PLUGIN_ROOT}/scripts/mcp_server.py",
-        "--mcp"
+        "${CLAUDE_PLUGIN_ROOT}/scripts/notify.py",
+        "--mode",
+        "mcp"
       ],
       "env": {}
     }
