@@ -74,6 +74,39 @@ def format_notification_message(
     return title, message
 
 
+def validate_hook_input(data: Dict[str, Any]) -> tuple[bool, str]:
+    """
+    验证 Hook 输入数据的完整性
+    
+    Args:
+        data: Hook 输入的 JSON 数据
+        
+    Returns:
+        (是否有效, 错误信息) 元组
+    """
+    # 检查必填字段
+    required_fields = ["session_id", "message", "hook_event_name"]
+    for field in required_fields:
+        if field not in data:
+            return False, f"缺少必填字段: {field}"
+    
+    # 检查事件名称
+    if data.get("hook_event_name") != "Notification":
+        return False, f"错误的事件类型: {data.get('hook_event_name')}，期望: Notification"
+    
+    # 检查消息不为空
+    if not data.get("message", "").strip():
+        return False, "消息内容不能为空"
+    
+    # 检查通知类型是否有效
+    valid_types = ["permission_prompt", "warning", "info", "error"]
+    notification_type = data.get("notification_type", "info")
+    if notification_type not in valid_types:
+        return False, f"无效的通知类型: {notification_type}，有效值: {valid_types}"
+    
+    return True, ""
+
+
 def parse_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     解析 Hook 输入数据
@@ -89,6 +122,9 @@ def parse_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
         "message": data.get("message", ""),
         "notification_type": data.get("notification_type", "info"),
         "cwd": data.get("cwd", ""),
+        "permission_mode": data.get("permission_mode", "default"),
+        "hook_event_name": data.get("hook_event_name", "Notification"),
+        "stop_hook_active": data.get("stop_hook_active", False),
     }
 
 
@@ -102,7 +138,13 @@ def main():
 
         try:
             data = json.loads(hook_input)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            # JSON 格式错误
+            sys.exit(1)
+
+        # 验证输入数据
+        is_valid, error_msg = validate_hook_input(data)
+        if not is_valid:
             sys.exit(1)
 
         # 解析输入
