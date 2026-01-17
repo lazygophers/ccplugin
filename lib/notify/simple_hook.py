@@ -31,7 +31,7 @@ except ImportError as e:
     sys.exit(1)
 
 
-# 事件类型配置映射
+# 事件类型配置映射（不包括 SubagentStop，因为它返回 true/false 而非发送通知）
 EVENT_TYPE_MAPPING = {
     "SessionEnd": {
         "title": "会话结束",
@@ -40,10 +40,6 @@ EVENT_TYPE_MAPPING = {
     "UserPromptSubmit": {
         "title": "用户提示",
         "message_template": "用户提示已提交",
-    },
-    "SubagentStop": {
-        "title": "子代理停止",
-        "message_template": "子代理已停止",
     },
 }
 
@@ -141,13 +137,16 @@ def main(event_type: str) -> int:
         event_type: 事件类型
 
     Returns:
-        int: 返回码（0 为成功）
+        int:
+        - 对于 SessionEnd/UserPromptSubmit: 0 表示成功（仅用于记录）
+        - 对于 SubagentStop: 0 表示允许子代理停止，非 0 表示阻止停止
     """
     try:
         # 读取hook输入
         hook_input = get_hook_input()
         if hook_input is None:
-            return 0
+            # 空输入
+            return 0 if event_type != "SubagentStop" else 0  # SubagentStop: 允许停止
 
         # 验证事件类型
         if hook_input.get("hook_event_name") != event_type:
@@ -159,6 +158,21 @@ def main(event_type: str) -> int:
         cwd = hook_input.get("cwd", "")
         permission_mode = hook_input.get("permission_mode", "default")
 
+        # 特殊处理 SubagentStop - 决定是否允许停止
+        if event_type == "SubagentStop":
+            # SubagentStop 的目的是决定是否允许子代理停止
+            # stop_hook_active 表示是否已经继续执行过
+            stop_hook_active = hook_input.get("stop_hook_active", False)
+
+            # 如果已经通过 hook 继续过，必须允许停止（避免无限循环）
+            if stop_hook_active:
+                return 0  # 允许停止
+
+            # 其他逻辑：总是允许子代理停止
+            # 可在此处添加自定义逻辑，比如检查资源清理状态等
+            return 0  # 允许停止
+
+        # 其他事件（SessionEnd、UserPromptSubmit）的处理
         # 读取配置
         config = get_effective_config()
 
@@ -173,11 +187,16 @@ def main(event_type: str) -> int:
                 message = get_message_for_event(event_type, hook_input)
                 speak(message)
 
-        # 返回成功
+        # 返回成功（仅用于记录，不影响会话继续）
         return 0
     except Exception:
-        # 错误时也返回 0，不中断主程序
-        return 0
+        # 异常处理
+        if event_type == "SubagentStop":
+            # SubagentStop 异常时允许停止
+            return 0
+        else:
+            # 其他事件异常时返回 0，不中断主程序
+            return 0
 
 
 if __name__ == "__main__":
