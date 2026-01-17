@@ -42,30 +42,41 @@ def count_interactions(transcript_path: str) -> int:
     统计会话中的交互次数
 
     Args:
-        transcript_path: 转录文件路径
+        transcript_path: 转录文件路径（来自hook输入的对话JSON路径）
 
     Returns:
-        交互次数
+        交互次数，如果路径无效或文件无法读取返回 -1（表示无法统计）
     """
     try:
+        # 检查路径有效性
+        if not transcript_path or not transcript_path.strip():
+            # 路径为空或仅为空格，表示无法统计
+            return -1
+
         transcript_path = Path(transcript_path).expanduser()
-        if not transcript_path.exists():
-            return 0
+
+        # 检查路径是否存在且是文件（不是目录）
+        if not transcript_path.exists() or not transcript_path.is_file():
+            # 路径不存在或不是文件
+            return -1
 
         count = 0
         with open(transcript_path, "r", encoding="utf-8") as f:
             for line in f:
                 try:
                     data = json.loads(line)
-                    # 计算对话轮次
+                    # 计算对话轮次：user_message 和 assistant_message
                     if data.get("type") in ["user_message", "assistant_message"]:
                         count += 1
                 except json.JSONDecodeError:
+                    # 跳过格式错误的行
                     pass
 
-        return count // 2  # 用户和助手各一条为一轮
-    except (IOError, ValueError):
-        return 0
+        # 用户和助手各一条消息为一轮
+        return count // 2 if count > 0 else 0
+    except (IOError, ValueError, OSError):
+        # 文件读取错误或其他IO异常，返回 -1 表示无法统计
+        return -1
 
 
 def format_notification_message(
@@ -186,7 +197,15 @@ def parse_notification_hook_input(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def handle_stop_hook() -> int:
-    """处理 Stop Hook"""
+    """
+    处理 Stop Hook
+
+    根据官方规范，Stop Hook 输入包含：
+    - session_id: 会话ID
+    - transcript_path: 对话JSON文件路径（可能为空）
+    - permission_mode: 权限模式
+    - stop_hook_active: 是否已通过hook继续执行
+    """
     try:
         hook_input = sys.stdin.read()
         if not hook_input.strip():
@@ -205,18 +224,27 @@ def handle_stop_hook() -> int:
         # 解析输入
         parsed = parse_stop_hook_input(data)
 
-        # 统计交互次数
-        interaction_count = count_interactions(parsed["transcript_path"])
-
         # 生成通知消息
         title = "Claude Code 会话已结束"
-        message = f"[{parsed['timestamp']}] 本次会话共有 {interaction_count} 轮交互"
+
+        # 尝试统计交互次数
+        # transcript_path 是对话JSON文件的路径，可能为空
+        interaction_count = count_interactions(parsed["transcript_path"])
+
+        if interaction_count >= 0:
+            # 成功统计交互次数
+            message = f"[{parsed['timestamp']}] 本次会话共有 {interaction_count} 轮交互"
+        else:
+            # 无法统计交互次数（transcript_path无效或文件不存在）
+            # 此时只显示结束时间和session_id用于参考
+            message = f"[{parsed['timestamp']}] 会话已结束 (ID: {parsed['session_id'][:8]})"
 
         # 发送通知
         notify(title, message, timeout=5000)
 
         return 0
     except Exception:
+        # 异常时不中断主程序
         return 0
 
 
