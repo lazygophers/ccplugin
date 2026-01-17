@@ -1,36 +1,36 @@
 {
-    "description": "代码语义搜索插件 Hooks - 自动初始化和管理代码索引",
-    "hooks": {
-        "SessionStart": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic init --silent || true"
-                    }
-                ]
-            }
-        ],
-        "PostToolUse": [
-            {
-                "matcher": "Write|Edit|Bash|Task",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic index --incremental --silent || true"
-                    }
-                ]
-            }
-        ],
-        "SessionEnd": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master semantic stats --silent || true"
-                    }
-                ]
-            }
+  "description": "代码语义搜索插件 Hooks - 自动初始化和管理代码索引",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/semantic.py init --silent || true"
+          }
         ]
-    }
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|Bash|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/semantic.py index --incremental --silent || true"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/semantic.py stats --silent || true"
+          }
+        ]
+      }
+    ]
+  }
 }

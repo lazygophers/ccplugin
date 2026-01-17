@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master task init --silent || true"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/task.py init --silent || true"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from git+https://github.com/lazygophers/ccplugin.git@master task init --silent || true"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/task.py init --silent || true"
           }
         ]
       }
