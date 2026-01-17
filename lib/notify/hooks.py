@@ -198,7 +198,7 @@ def handle_stop_hook() -> int:
             return 1
 
         # 验证输入数据
-        is_valid, error_msg = validate_hook_input(data, "stop")
+        is_valid, _ = validate_hook_input(data, "stop")
         if not is_valid:
             return 1
 
@@ -233,7 +233,7 @@ def handle_notification_hook() -> int:
             return 1
 
         # 验证输入数据
-        is_valid, error_msg = validate_hook_input(data, "notification")
+        is_valid, _ = validate_hook_input(data, "notification")
         if not is_valid:
             return 1
 
