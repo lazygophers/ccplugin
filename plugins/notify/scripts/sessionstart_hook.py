@@ -53,6 +53,12 @@ def main() -> int:
         if hook_input.get("hook_event_name") != "SessionStart":
             return 0
 
+        # 提取常见字段（SessionStart特有：无cwd字段）
+        session_id = hook_input.get("session_id", "")
+        transcript_path = hook_input.get("transcript_path", "")
+        permission_mode = hook_input.get("permission_mode", "default")
+        source = hook_input.get("source", "startup")  # SessionStart特有字段
+
         # 执行初始化配置
         try:
             init_notify_config(verbose=False)
