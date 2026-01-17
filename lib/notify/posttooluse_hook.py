@@ -25,7 +25,7 @@ sys.path.insert(0, str(project_root))
 
 try:
     from lib.notify.init_config import get_effective_config
-    from lib.notify import notify
+    from lib.notify import notify, speak
 except ImportError as e:
     sys.exit(1)
 
@@ -112,7 +112,15 @@ def main():
 
     if should_notify:
         send_notification(tool_name, hook_input)
-        # TODO: 如果需要语音播报，可在这里添加语音处理逻辑
+
+        # 如果需要语音播报，则播报
+        if should_voice:
+            # 检查工具执行状态
+            tool_response = hook_input.get('tool_response', {})
+            success = tool_response.get('success', True)
+            status = "成功完成" if success else "执行失败"
+            voice_message = f"工具 {tool_name} {status}"
+            speak(voice_message)
 
     # 返回成功
     sys.exit(0)
