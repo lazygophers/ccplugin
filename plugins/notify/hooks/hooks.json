@@ -1,5 +1,5 @@
 {
-  "description": "系统通知插件 Hooks - 根据配置文件动态处理各类hook事件，支持工具执行前/后通知和系统通知",
+  "description": "系统通知插件 Hooks - 根据配置文件动态处理所有hook事件，支持通知和语音播报",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,28 @@
             "type": "command",
             "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode init",
             "once": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/sessionend_hook.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/userpromptsubmit_hook.py",
+            "timeout": 5
           }
         ]
       }
@@ -54,6 +76,17 @@
           {
             "type": "command",
             "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-type stop"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/subagentstop_hook.py",
+            "timeout": 5
           }
         ]
       }
