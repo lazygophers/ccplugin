@@ -36,27 +36,29 @@ def update_marketplace_json(marketplace_path: Path) -> Tuple[str, str]:
 
 
 def update_plugin_versions(plugins_dir: Path, new_version: str) -> list:
+    """Recursively scan and update all plugin.json files under plugins directory."""
     updated_plugins = []
-    
-    for plugin_dir in plugins_dir.iterdir():
-        if not plugin_dir.is_dir():
-            continue
-        
-        plugin_json_path = plugin_dir / '.claude-plugin' / 'plugin.json'
-        if not plugin_json_path.exists():
-            continue
-        
-        with open(plugin_json_path, 'r', encoding='utf-8') as f:
-            plugin_data = json.load(f)
-        
-        plugin_data['version'] = new_version
-        
-        with open(plugin_json_path, 'w', encoding='utf-8') as f:
-            json.dump(plugin_data, f, ensure_ascii=False, indent=2)
-            f.write('\n')
-        
-        updated_plugins.append(plugin_dir.name)
-    
+
+    # Recursively find all plugin.json files
+    plugin_jsons = list(plugins_dir.glob('**/.claude-plugin/plugin.json'))
+
+    for plugin_json_path in sorted(plugin_jsons):
+        try:
+            with open(plugin_json_path, 'r', encoding='utf-8') as f:
+                plugin_data = json.load(f)
+
+            plugin_data['version'] = new_version
+
+            with open(plugin_json_path, 'w', encoding='utf-8') as f:
+                json.dump(plugin_data, f, ensure_ascii=False, indent=2)
+                f.write('\n')
+
+            # Extract plugin path relative to plugins/ for display
+            relative_path = plugin_json_path.relative_to(plugins_dir).parent.parent
+            updated_plugins.append(str(relative_path))
+        except Exception as e:
+            print(f"  Error processing {plugin_json_path}: {e}")
+
     return updated_plugins
 
 
