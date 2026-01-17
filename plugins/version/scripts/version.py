@@ -247,6 +247,16 @@ def main():
         sys.exit(0)
 
     command = sys.argv[1]
+    
+    # 支持 -h/--help 标志
+    if command in ["-h", "--help"]:
+        print("使用方法:")
+        print("  version show              # 显示当前版本")
+        print("  version info              # 显示版本详情")
+        print("  version bump [level]      # 更新版本 (默认: build，可选: major|minor|patch|build)")
+        print("  version set <version>     # 手动设置版本")
+        print("  version init              # 初始化版本文件")
+        sys.exit(0)
 
     if command == "show":
         print(manager.show())
