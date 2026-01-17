@@ -1,5 +1,5 @@
 {
-  "description": "系统通知插件 Hooks - 通过系统通知向用户提示会话状态变更和权限请求",
+  "description": "系统通知插件 Hooks - 根据配置文件动态处理各类hook事件，支持工具执行前/后通知和系统通知",
   "hooks": {
     "SessionStart": [
       {
@@ -7,7 +7,43 @@
           {
             "type": "command",
             "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode init",
-            "timeout": 10
+            "once": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Task|Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/pretooluse_hook.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Task|Bash|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/posttooluse_hook.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt|idle_prompt|auth_success|elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notification_hook.py",
+            "timeout": 5
           }
         ]
       }
@@ -18,16 +54,6 @@
           {
             "type": "command",
             "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-type stop"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-type notification"
           }
         ]
       }
