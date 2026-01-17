@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run plugins/notify/scripts/stop_hook.py"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/plugins/notify/scripts/stop_hook.py"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run plugins/notify/scripts/notification_hook.py"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/plugins/notify/scripts/notification_hook.py"
           }
         ]
       }
