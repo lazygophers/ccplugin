@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-PreToolUse Hook 处理脚本
-在工具使用前根据配置文件决定是否发送通知
+PreCompact Hook 处理脚本
+在会话压缩前根据配置文件决定是否发送通知
 """
 
 import json
@@ -38,12 +38,11 @@ def get_hook_input() -> Optional[Dict[str, Any]]:
         return None
 
 
-def should_notify_tool(tool_name: str, config: Optional[Dict]) -> tuple[bool, bool]:
+def should_notify_precompact(config: Optional[Dict]) -> tuple[bool, bool]:
     """
-    判断是否需要为该工具发送通知
+    判断是否需要发送 PreCompact 通知
 
     Args:
-        tool_name: 工具名称
         config: 配置字典
 
     Returns:
@@ -54,31 +53,38 @@ def should_notify_tool(tool_name: str, config: Optional[Dict]) -> tuple[bool, bo
 
     try:
         events = config.get('events', {})
-        pretooluse = events.get('PreToolUse', {})
-        tools = pretooluse.get('tools', {})
-        tool_config = tools.get(tool_name, {})
+        precompact = events.get('PreCompact', {})
 
-        notify = tool_config.get('notify', False)
-        voice = tool_config.get('voice', False) if notify else False
+        notify_enabled = precompact.get('notify', False)
+        voice = precompact.get('voice', False) if notify_enabled else False
 
-        return notify, voice
+        return notify_enabled, voice
     except Exception:
         return False, False
 
 
-def send_notification(tool_name: str, hook_input: Dict) -> bool:
+def send_notification(hook_input: Dict) -> bool:
     """
-    发送工具使用前的通知
+    发送 PreCompact 事件通知
 
     Args:
-        tool_name: 工具名称
         hook_input: hook输入的JSON数据
 
     Returns:
         bool: 是否成功
     """
     try:
-        message = f"准备使用工具: {tool_name}"
+        # 提取触发方式和自定义指令
+        trigger = hook_input.get('trigger', 'auto')  # manual 或 auto
+        custom_instructions = hook_input.get('custom_instructions', '')
+
+        trigger_text = "手动压缩" if trigger == 'manual' else "自动压缩"
+        message = f"会话将要 {trigger_text}"
+
+        if custom_instructions:
+            display_instructions = custom_instructions[:50] + "..." if len(custom_instructions) > 50 else custom_instructions
+            message += f"（自定义指令: {display_instructions}）"
+
         title = "Claude Code"
         timeout = 3000
 
@@ -101,32 +107,28 @@ def main() -> int:
             return 0
 
         # 验证hook事件名称
-        if hook_input.get('hook_event_name') != 'PreToolUse':
+        if hook_input.get('hook_event_name') != 'PreCompact':
             return 0
 
-        # 获取工具名称
-        tool_name = hook_input.get('tool_name', '')
-        if not tool_name:
-            return 0
-
-        # 提取规范字段（虽然当前通知中可能不直接使用）
-        # - tool_input: 工具输入参数
-        # - tool_use_id: 工具使用ID，用于关联请求和响应
-        tool_input = hook_input.get('tool_input', {})
-        tool_use_id = hook_input.get('tool_use_id', '')
+        # 提取规范字段
+        # - trigger: 触发方式（manual/auto）
+        # - custom_instructions: 用户自定义指令
+        trigger = hook_input.get('trigger', 'auto')
+        custom_instructions = hook_input.get('custom_instructions', '')
 
         # 读取配置
         config = get_effective_config()
 
         # 判断是否需要通知
-        should_notify, should_voice = should_notify_tool(tool_name, config)
+        should_notify, should_voice = should_notify_precompact(config)
 
         if should_notify:
-            send_notification(tool_name, hook_input)
+            send_notification(hook_input)
 
             # 如果需要语音播报，则播报
             if should_voice:
-                voice_message = f"工具 {tool_name} 准备执行"
+                trigger_text = "手动压缩" if trigger == 'manual' else "自动压缩"
+                voice_message = f"会话将要{trigger_text}"
                 speak(voice_message)
 
         # 返回成功

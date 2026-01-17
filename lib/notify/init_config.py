@@ -134,6 +134,12 @@ events:
     description: "子代理停止事件"
     notify: false
     voice: false
+
+  # 会话压缩前通知
+  PreCompact:
+    description: "会话压缩前事件"
+    notify: false
+    voice: false
 """
 
 
