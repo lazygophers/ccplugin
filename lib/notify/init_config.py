@@ -107,21 +107,28 @@ events:
 """
 
 
+def get_project_root() -> Optional[Path]:
+    """获取项目根目录"""
+    try:
+        current = Path.cwd()
+        for _ in range(10):
+            if (current / ".git").exists() or (current / "pyproject.toml").exists():
+                return current
+            current = current.parent
+    except Exception:
+        pass
+    return None
+
+
 def get_config_paths() -> tuple[Path, Path]:
     """获取用户和项目的配置文件路径"""
     user_config_dir = Path.home() / ".lazygophers" / "ccplugin" / "notify"
     project_config_dir = None
 
     # 尝试找到项目根目录
-    try:
-        current = Path.cwd()
-        for _ in range(10):
-            if (current / ".git").exists() or (current / "pyproject.toml").exists():
-                project_config_dir = current / ".lazygophers" / "ccplugin" / "notify"
-                break
-            current = current.parent
-    except Exception:
-        pass
+    project_root = get_project_root()
+    if project_root is not None:
+        project_config_dir = project_root / ".lazygophers" / "ccplugin" / "notify"
 
     if project_config_dir is None:
         # 如果找不到项目，使用当前工作目录的上层
@@ -166,6 +173,53 @@ def create_config_file(config_path: Path, force: bool = False) -> bool:
     return True
 
 
+def update_gitignore(config_path: Path) -> bool:
+    """
+    更新项目的 .gitignore 文件，添加 .lazygophers/ccplugin/notify
+
+    Args:
+        config_path: 配置文件路径
+
+    Returns:
+        bool: 是否成功更新
+    """
+    try:
+        # 找到项目根目录
+        project_root = get_project_root()
+        if project_root is None:
+            return False
+
+        # 获取 .gitignore 路径
+        gitignore_path = project_root / ".lazygophers" / ".gitignore"
+
+        # 需要添加的条目
+        gitignore_entry = "/ccplugin/notify/\n"
+
+        # 创建 .gitignore 目录
+        gitignore_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # 读取现有内容
+        if gitignore_path.exists():
+            content = gitignore_path.read_text(encoding='utf-8')
+        else:
+            content = "# 忽略插件数据\n"
+
+        # 检查是否已经包含这个条目
+        if gitignore_entry.strip() in content:
+            return True
+
+        # 添加新条目
+        if not content.endswith('\n'):
+            content += '\n'
+        content += gitignore_entry
+
+        # 写入 .gitignore
+        gitignore_path.write_text(content, encoding='utf-8')
+        return True
+    except Exception:
+        return False
+
+
 def load_config(config_path: Path) -> Optional[Dict[str, Any]]:
     """
     加载YAML配置文件
@@ -199,6 +253,8 @@ def init_notify_config(verbose: bool = False) -> bool:
     在两个位置检查并创建配置文件：
     1. ~/.lazygophers/ccplugin/notify/config.yaml (用户级)
     2. <项目根目录>/.lazygophers/ccplugin/notify/config.yaml (项目级)
+
+    同时更新项目的 .gitignore 文件以忽略 .lazygophers/ccplugin/notify
 
     Args:
         verbose: 是否输出详细信息
@@ -236,6 +292,15 @@ def init_notify_config(verbose: bool = False) -> bool:
             if verbose:
                 print(f"✗ 创建项目配置失败: {project_config_file}")
             success = False
+
+    # 更新项目 .gitignore
+    if update_gitignore(project_config_file):
+        if verbose:
+            print(f"✓ 已更新 .gitignore 文件")
+    else:
+        if verbose:
+            print(f"✗ 更新 .gitignore 文件失败")
+        # 不影响整体成功状态，因为 .gitignore 更新是辅助操作
 
     return success
 
