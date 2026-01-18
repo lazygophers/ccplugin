@@ -1,0 +1,23 @@
+[project]
+name = "ccplugin-version"
+version = "0.0.1"
+description = "Claude Code version management plugin for semantic versioning"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["version*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.py", "*.json", "*.md"]
