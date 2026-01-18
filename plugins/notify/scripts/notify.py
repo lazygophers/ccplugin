@@ -19,6 +19,11 @@ from typing import Optional
 script_path = Path(__file__).resolve().parent
 sys.path.insert(0, str(script_path))
 
+# 设置 lib 目录路径以支持根目录 lib 模块导入
+project_root = script_path.parent.parent.parent
+if (project_root / "lib").exists():
+    sys.path.insert(0, str(project_root))
+
 try:
     from lib.notify import notify, speak, init_notify_config
     from lib.notify.init_config import get_effective_config
@@ -29,32 +34,22 @@ try:
     from lib.notify.posttooluse_hook import main as posttooluse_hook_main
     from lib.notify.precompact_hook import main as precompact_hook_main
     from lib.notify.notification_hook import main as notification_hook_main
+
+    # 导入新的日志系统
+    from lib.logging import get_logger
 except ImportError as e:
     print(f"导入错误: {e}", file=sys.stderr)
     sys.exit(1)
 
+# 初始化日志
+logger = get_logger("notify")
+
 
 def setup_logging(debug: bool = False):
-    """设置日志"""
-    log_dir = Path.home() / ".lazygophers" / "ccplugin"
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "error.log"
-
-    from logging.handlers import RotatingFileHandler
-
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG if debug else logging.INFO)
-
-    file_handler = RotatingFileHandler(
-        str(log_file),
-        maxBytes=100 * 1024 * 1024,
-        backupCount=2,
-        encoding='utf-8'
-    )
-    file_handler.setFormatter(
-        logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    )
-    logger.addHandler(file_handler)
+    """设置日志（保留用于向后兼容，新代码应该直接使用 logger）"""
+    if debug:
+        logger.logger.setLevel(logging.DEBUG)
+        logger.info("调试模式已启用")
 
 
 def show_help():

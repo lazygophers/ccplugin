@@ -439,6 +439,19 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 - Hook commands in `hooks.json` should use `uv run` for project-local scripts
 - Skills must follow progressive disclosure pattern: SKILL.md (navigation) → reference.md (details) → examples.md (use cases)
 
+### Logging Requirements
+- **All scripts must integrate logging** using `lib.logging` module
+- Log files go to `~/.lazygophers/ccplugin/log/` (按小时自动分片)
+- Use `setup_sys_path(__file__)` and `setup_logger("plugin-name")` for quick integration
+- Refer to [.claude/skills/logging-integration-guide.md](.claude/skills/logging-integration-guide.md) for detailed guidelines
+- Required log events:
+  - Script startup: `logger.info("脚本启动")`
+  - Major operations: `logger.info("operation result")`
+  - Errors: `logger.error("error message")` (仅记录错误信息，不记录 traceback)
+  - User interruption: `logger.info("脚本被用户中断")`
+- Hook scripts: `enable_console=False` (仅输出到文件)
+- MCP servers: `enable_console=False` (仅输出到文件)
+
 ## Troubleshooting
 
 | Issue | Solution |
