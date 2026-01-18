@@ -52,9 +52,16 @@ def should_notify_precompact(config: Optional[Dict]) -> tuple[bool, bool]:
         return False, False
 
     try:
+        # 先检查全局notify设置是否禁用了所有通知
+        global_notify = config.get('notify', True)
+        if not global_notify:
+            # 全局禁用了通知
+            return False, False
+
         events = config.get('events', {})
         precompact = events.get('PreCompact', {})
 
+        # 如果PreCompact有具体配置，使用它；否则保持为False（事件级默认不通知）
         notify_enabled = precompact.get('notify', False)
         voice = precompact.get('voice', False) if notify_enabled else False
 

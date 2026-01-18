@@ -53,11 +53,18 @@ def should_notify_tool(tool_name: str, config: Optional[Dict]) -> tuple[bool, bo
         return False, False
 
     try:
+        # 先检查全局notify设置是否禁用了所有通知
+        global_notify = config.get('notify', True)
+        if not global_notify:
+            # 全局禁用了通知
+            return False, False
+
         events = config.get('events', {})
         pretooluse = events.get('PreToolUse', {})
         tools = pretooluse.get('tools', {})
         tool_config = tools.get(tool_name, {})
 
+        # 如果该工具有具体配置，使用它；否则保持为False（工具级默认不通知）
         notify = tool_config.get('notify', False)
         voice = tool_config.get('voice', False) if notify else False
 
