@@ -19,10 +19,10 @@ from typing import Optional
 script_path = Path(__file__).resolve().parent
 sys.path.insert(0, str(script_path))
 
-# 设置 lib 目录路径以支持根目录 lib 模块导入
+# 设置 lib 目录路径以支持根目录 lib 模块导入（添加到末尾，不覆盖脚本本地lib）
 project_root = script_path.parent.parent.parent
 if (project_root / "lib").exists():
-    sys.path.insert(0, str(project_root))
+    sys.path.append(str(project_root))
 
 try:
     from lib.notify import notify, speak, init_notify_config

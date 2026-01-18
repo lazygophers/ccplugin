@@ -219,65 +219,117 @@ def handle_stop_hook() -> int:
     2. 根据业务逻辑决定是否允许停止
     3. 目前的实现：总是允许停止（返回 0）
     """
+    # 导入日志，延迟导入避免循环依赖
     try:
+        from pathlib import Path
+        project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+        sys.path.insert(0, str(project_root))
+        from lib.logging import get_logger
+        logger = get_logger("stop-hook", enable_console=False)
+    except ImportError:
+        logger = None
+
+    try:
+        if logger:
+            logger.info("Stop hook 启动")
+
         hook_input = sys.stdin.read()
         if not hook_input.strip():
+            if logger:
+                logger.info("空输入，允许停止")
             # 空输入，允许停止
             return 0
 
         try:
             data = json.loads(hook_input)
-        except json.JSONDecodeError:
+            if logger:
+                logger.debug(f"解析 JSON 成功: session_id={data.get('session_id', 'N/A')[:8]}")
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.error(f"JSON 解析失败: {e}")
             # JSON 解析失败，允许停止
             return 0
 
         # 验证输入数据
-        is_valid, _ = validate_hook_input(data, "stop")
+        is_valid, error_msg = validate_hook_input(data, "stop")
         if not is_valid:
+            if logger:
+                logger.warning(f"Stop hook 验证失败: {error_msg}")
             # 输入数据无效，允许停止
             return 0
 
         # 解析输入
         parsed = parse_stop_hook_input(data)
+        if logger:
+            logger.info(f"Stop hook 输入验证通过，session_id={parsed['session_id'][:8]}")
 
         # 关键检查：如果 stop_hook_active 为 true，说明已经通过 stop hook 继续执行过
         # 此时应该允许停止，避免无限循环
         stop_hook_active = parsed.get("stop_hook_active", False)
         if stop_hook_active:
+            if logger:
+                logger.info("stop_hook_active 为 true，已通过 hook 继续过，允许停止")
             # 已经继续过一次，必须允许停止
             return 0
 
         # 业务逻辑决策：决定是否允许停止
         # 当前实现：总是允许停止
         # 可在此处添加自定义逻辑，比如检查是否有正在运行的任务等
+        if logger:
+            logger.info("Stop hook 处理完成，允许会话停止")
 
         # 允许会话停止
         return 0
 
-    except Exception:
+    except Exception as e:
+        if logger:
+            logger.error(f"Stop hook 处理异常: {e}")
         # 异常时允许停止（不中断）
         return 0
 
 
 def handle_notification_hook() -> int:
     """处理 Notification Hook"""
+    # 导入日志，延迟导入避免循环依赖
     try:
+        from pathlib import Path
+        project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+        sys.path.insert(0, str(project_root))
+        from lib.logging import get_logger
+        logger = get_logger("notification-hook", enable_console=False)
+    except ImportError:
+        logger = None
+
+    try:
+        if logger:
+            logger.info("Notification hook 启动")
+
         hook_input = sys.stdin.read()
         if not hook_input.strip():
+            if logger:
+                logger.debug("空输入")
             return 0
 
         try:
             data = json.loads(hook_input)
-        except json.JSONDecodeError:
+            if logger:
+                logger.debug(f"解析 JSON 成功: session_id={data.get('session_id', 'N/A')[:8]}, type={data.get('notification_type', 'N/A')}")
+        except json.JSONDecodeError as e:
+            if logger:
+                logger.error(f"JSON 解析失败: {e}")
             return 1
 
         # 验证输入数据
-        is_valid, _ = validate_hook_input(data, "notification")
+        is_valid, error_msg = validate_hook_input(data, "notification")
         if not is_valid:
+            if logger:
+                logger.warning(f"Notification hook 验证失败: {error_msg}")
             return 1
 
         # 解析输入
         parsed = parse_notification_hook_input(data)
+        if logger:
+            logger.info(f"Notification hook 输入验证通过: type={parsed['notification_type']}")
 
         # 读取配置检查是否应该发送通知
         config = get_effective_config()
@@ -288,6 +340,8 @@ def handle_notification_hook() -> int:
 
         # 如果配置禁用了通知，直接返回
         if not should_notify:
+            if logger:
+                logger.debug(f"通知类型 {parsed['notification_type']} 已被禁用")
             return 0
 
         # 格式化通知
@@ -303,10 +357,17 @@ def handle_notification_hook() -> int:
         ).get("timeout", 4000)
 
         # 发送通知
+        if logger:
+            logger.info(f"发送通知: type={parsed['notification_type']}, title={title}")
         notify(title, message, timeout=timeout)
 
+        if logger:
+            logger.info("Notification hook 处理完成")
+
         return 0
-    except Exception:
+    except Exception as e:
+        if logger:
+            logger.error(f"Notification hook 处理异常: {e}")
         return 0
 
 
