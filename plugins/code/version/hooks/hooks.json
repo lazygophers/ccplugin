@@ -6,17 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/version.py bump"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/version.py bump"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/version.py bump || true",
+            "timeout": 5
           }
         ]
       }
