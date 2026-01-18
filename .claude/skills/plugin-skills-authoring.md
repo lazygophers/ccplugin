@@ -201,6 +201,51 @@ reference/
 - 多个文件重复相同内容
 - 时间敏感的信息
 
+## Commands 命名规范
+
+**严格要求**：所有插件的 commands 必须遵循以下格式：
+
+### 命名格式
+
+```yaml
+# 文件名：dev.md (简短的命令名)
+# COMMAND.md frontmatter 中的 name：plugin-name:command-name
+
+# 示例
+plugins/code/flutter/.claude/commands/dev.md
+---
+name: flutter:dev
+description: Flutter 开发工作流启动命令
+---
+
+plugins/code/python/.claude/commands/lint.md
+---
+name: python:lint
+description: Python 代码检查和格式化
+---
+```
+
+### 规范说明
+
+| 项目 | 格式 | 说明 |
+|------|------|------|
+| **文件名** | `{command-name}.md` | 简短、清晰、小写 |
+| **name 字段** | `{plugin-name}:{command-name}` | 必须包含插件前缀，使用冒号分隔 |
+| **description** | 清晰的命令说明 | 第三人称，简洁描述 |
+
+### 不同类型插件的前缀
+
+- **Code plugins**: `flutter:`, `python:`, `golang:`, `react:`, `typescript:`, `javascript:`, `vue:`, `nextjs:`, `antd:`, `semantic:`, `git:`, `version:`
+- **Style plugins**: `glassmorphism:`, `neumorphism:`, `gradient:`, `neon:`, `retro:`, `brutalism:`, `minimal:`, `dark:`, `pastel:`, `vibrant:`, `highcontrast:`, `luxe:`
+- **Utility plugins**: `task:`, `notify:`
+
+### 检查清单
+
+- [ ] Commands frontmatter 的 `name` 字段包含插件前缀
+- [ ] 使用冒号（`:`）分隔插件名和命令名
+- [ ] 文件名不含前缀（只是命令名）
+- [ ] 所有插件的所有 commands 都遵循此规范
+
 ## 插件特定规范
 
 ### Code 插件
