@@ -7,30 +7,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/init_task_system.py",
-            "once": true
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "notification",
-            "message": "提示: 检查进行中的任务",
-            "description": "如有进行中的任务，请根据 @${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md 规范更新任务进展。任务完成后移动到 done.md。"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "notification",
-            "message": "提示: 保存任务进度",
-            "description": "会话结束前，请确保进行中的任务已更新到 in-progress.md。任务完成后移动到 done.md，并在需要时归档到 archive/ 目录。"
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/init_task_system.py || true",
+            "once": true,
+            "timeout": 5
           }
         ]
       }
