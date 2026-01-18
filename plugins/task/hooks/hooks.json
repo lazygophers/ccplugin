@@ -17,8 +17,9 @@
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "检查 @.claude/task/in-progress.md 是否存在且包含进行中的任务。如果有进行中的任务，提示用户：\n\n当前有进行中的任务。请根据 [@${CLAUDE_PLUGIN_ROOT}/skills/task/](../../plugins/task/skills/task/SKILL.md) 规范管理任务：\n1. 及时更新任务进展（修改 in-progress.md 中的 **进展** 字段）\n2. 任务完成后移动到 done.md（记录完成时间和关键交付物）\n3. 定期将完成的任务归档到 archive/ 中"
+            "type": "notification",
+            "message": "提示: 检查进行中的任务",
+            "description": "如有进行中的任务，请根据 @${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md 规范更新任务进展。任务完成后移动到 done.md。"
           }
         ]
       }
@@ -27,8 +28,9 @@
       {
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "检查 @.claude/task/in-progress.md 是否存在且包含未完成的任务。如果有进行中的任务，提示用户：\n\n您有以下进行中的任务未完成。请在下一个会话中：\n1. 继续完成进行中的任务\n2. 任务完成后，从 in-progress.md 移动到 done.md\n3. 在 done.md 中记录完成时间、说明和关键交付物\n\n如果 done.md 中的任务超过 5 个，建议将已完成的任务归档到 archive/ 中以保持清洁。详见 [@${CLAUDE_PLUGIN_ROOT}/skills/task/reference.md](../../plugins/task/skills/task/reference.md)"
+            "type": "notification",
+            "message": "提示: 保存任务进度",
+            "description": "会话结束前，请确保进行中的任务已更新到 in-progress.md。任务完成后移动到 done.md，并在需要时归档到 archive/ 目录。"
           }
         ]
       }
