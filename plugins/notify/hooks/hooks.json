@@ -71,17 +71,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event Stop || true",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "SubagentStop": [
       {
         "hooks": [
