@@ -42,7 +42,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 # 自动发现所有包
 where = ["."]
-include = ["lib*", "plugins*", "scripts*"]
+include = ["plugins*", "scripts*"]
 
 [tool.setuptools.package-data]
 # 包含所有相关文件
