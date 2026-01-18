@@ -19,9 +19,22 @@ except ImportError:
 DEFAULT_CONFIG_TEMPLATE = """# Claude Code 系统通知配置
 # 控制各类操作是否需要系统通知和语音播报
 
-# 配置说明：
+# 全局配置说明：
+# 可在顶级添加 notify 和 voice 全局设置来控制所有通知
+# notify: true/false  - 是否启用所有系统通知（默认: true）
+# voice: true/false   - 是否启用语音播报（默认: false）
+#
+# 例如，要全局禁用所有通知和语音：
+# notify: false
+# voice: false
+
+# 事件级配置说明：
 # - notify: true/false - 是否需要系统通知
 # - voice: true/false - 是否需要语音播报（仅在notify=true时有效）
+
+# 全局默认设置
+notify: true
+voice: false
 
 events:
   # 会话开始通知

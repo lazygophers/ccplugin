@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .notifier import notify
+from .init_config import get_effective_config
 
 
 # 通知类型映射
@@ -278,6 +279,17 @@ def handle_notification_hook() -> int:
         # 解析输入
         parsed = parse_notification_hook_input(data)
 
+        # 读取配置检查是否应该发送通知
+        config = get_effective_config()
+        should_notify, should_voice = should_notify_type(
+            parsed["notification_type"],
+            config,
+        )
+
+        # 如果配置禁用了通知，直接返回
+        if not should_notify:
+            return 0
+
         # 格式化通知
         title, message = format_notification_message(
             parsed["notification_type"],
@@ -296,3 +308,39 @@ def handle_notification_hook() -> int:
         return 0
     except Exception:
         return 0
+
+
+def should_notify_type(notification_type: str, config: Any) -> tuple[bool, bool]:
+    """
+    判断是否需要为该通知类型发送通知
+
+    Args:
+        notification_type: 通知类型
+        config: 配置字典
+
+    Returns:
+        (should_notify, should_voice): 是否通知、是否语音
+    """
+    if config is None:
+        # 没有配置时，使用默认行为（NOTIFICATION_TYPE_MAPPING中定义的默认值）
+        return True, False
+
+    try:
+        # 先检查全局notify设置是否禁用了所有通知
+        global_notify = config.get('notify', True)
+        if not global_notify:
+            # 全局禁用了通知
+            return False, False
+
+        events = config.get('events', {})
+        notification = events.get('Notification', {})
+        types = notification.get('types', {})
+        type_config = types.get(notification_type, {})
+
+        # 如果该通知类型有具体配置，使用它；否则使用全局设置
+        notify_flag = type_config.get('notify', global_notify)
+        voice = type_config.get('voice', False) if notify_flag else False
+
+        return notify_flag, voice
+    except Exception:
+        return True, False
