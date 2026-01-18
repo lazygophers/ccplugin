@@ -15,21 +15,9 @@ import asyncio
 from pathlib import Path
 from typing import Optional
 
-# 添加项目根目录到 sys.path
+# 添加脚本目录到 sys.path，使 lib 指向本地 lib/
 script_path = Path(__file__).resolve().parent
-plugin_path = script_path.parent
-project_root = plugin_path.parent.parent
-
-if not (project_root / 'lib').exists():
-    # 备选：向上查找
-    current = Path(__file__).resolve().parent
-    for _ in range(5):
-        if (current / 'lib').exists():
-            project_root = current
-            break
-        current = current.parent
-
-sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(script_path))
 
 try:
     from lib.notify import notify, speak, init_notify_config
