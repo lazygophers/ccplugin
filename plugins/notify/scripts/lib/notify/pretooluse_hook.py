@@ -26,8 +26,12 @@ sys.path.insert(0, str(project_root))
 try:
     from lib.notify.init_config import get_effective_config
     from lib.notify import notify, speak
+    from lib.logging import get_logger
 except ImportError as e:
     sys.exit(1)
+
+# 初始化日志（hook 脚本仅输出到文件）
+logger = get_logger("pretooluse-hook", enable_console=False)
 
 
 def get_hook_input() -> Optional[Dict[str, Any]]:

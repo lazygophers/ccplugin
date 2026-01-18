@@ -9,6 +9,26 @@ import os
 import sys
 from pathlib import Path
 
+# 设置 sys.path 以支持导入 lib 模块
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent.parent
+if not (project_root / "lib").exists():
+    # 向上查找直到找到 lib 目录
+    current = script_dir
+    for _ in range(5):
+        if (current / "lib").exists():
+            project_root = current
+            break
+        current = current.parent
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from lib.logging import get_logger
+
+# 初始化日志
+logger = get_logger("init-task")
+
 
 def find_project_root():
     """找到项目根目录（包含 .git 的目录）"""
@@ -23,29 +43,37 @@ def find_project_root():
 
 def init_task_system():
     """初始化任务管理系统目录结构"""
-    project_root = find_project_root()
-    task_dir = project_root / ".claude" / "task"
-    archive_dir = task_dir / "archive"
+    try:
+        logger.info("开始初始化任务管理系统")
 
-    # 检查目录和文件是否已完整存在
-    if task_dir.exists() and task_dir.is_dir():
-        required_files = [
-            task_dir / "todo.md",
-            task_dir / "in-progress.md",
-            task_dir / "done.md",
-            archive_dir / "README.md",
-        ]
-        if all(f.exists() for f in required_files):
-            # 所有文件都存在，无需初始化
-            return 0
+        project_root = find_project_root()
+        logger.debug(f"项目根目录: {project_root}")
 
-    # 创建目录结构
-    archive_dir.mkdir(parents=True, exist_ok=True)
+        task_dir = project_root / ".claude" / "task"
+        archive_dir = task_dir / "archive"
 
-    # 创建 todo.md（如果不存在）
-    todo_file = task_dir / "todo.md"
-    if not todo_file.exists():
-        todo_content = """# 待完成任务 (TODO)
+        # 检查目录和文件是否已完整存在
+        if task_dir.exists() and task_dir.is_dir():
+            required_files = [
+                task_dir / "todo.md",
+                task_dir / "in-progress.md",
+                task_dir / "done.md",
+                archive_dir / "README.md",
+            ]
+            if all(f.exists() for f in required_files):
+                # 所有文件都存在，无需初始化
+                logger.info("任务管理系统已初始化，所有文件都存在")
+                return 0
+
+        # 创建目录结构
+        logger.info(f"创建目录结构: {task_dir}")
+        archive_dir.mkdir(parents=True, exist_ok=True)
+
+        # 创建 todo.md（如果不存在）
+        todo_file = task_dir / "todo.md"
+        if not todo_file.exists():
+            logger.info(f"创建文件: {todo_file}")
+            todo_content = """# 待完成任务 (TODO)
 
 参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
 
@@ -59,34 +87,37 @@ def init_task_system():
   - [ ] 完成步骤 1
   - [ ] 完成步骤 2
 """
-        todo_file.write_text(todo_content, encoding="utf-8")
+            todo_file.write_text(todo_content, encoding="utf-8")
 
-    # 创建 in-progress.md（如果不存在）
-    in_progress_file = task_dir / "in-progress.md"
-    if not in_progress_file.exists():
-        in_progress_content = """# 进行中任务 (IN-PROGRESS)
+        # 创建 in-progress.md（如果不存在）
+        in_progress_file = task_dir / "in-progress.md"
+        if not in_progress_file.exists():
+            logger.info(f"创建文件: {in_progress_file}")
+            in_progress_content = """# 进行中任务 (IN-PROGRESS)
 
 参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
 
 当前没有进行中的任务。在准备开始任务时，将任务从 todo.md 移动到此处。
 """
-        in_progress_file.write_text(in_progress_content, encoding="utf-8")
+            in_progress_file.write_text(in_progress_content, encoding="utf-8")
 
-    # 创建 done.md（如果不存在）
-    done_file = task_dir / "done.md"
-    if not done_file.exists():
-        done_content = """# 已完成任务 (DONE)
+        # 创建 done.md（如果不存在）
+        done_file = task_dir / "done.md"
+        if not done_file.exists():
+            logger.info(f"创建文件: {done_file}")
+            done_content = """# 已完成任务 (DONE)
 
 参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/SKILL.md](../../plugins/task/skills/task/SKILL.md) 了解任务管理规范。
 
 任务完成后，从 in-progress.md 移动到此处，记录完成情况。当任务数超过 5 个时，建议将完成的任务归档到 archive/ 中。
 """
-        done_file.write_text(done_content, encoding="utf-8")
+            done_file.write_text(done_content, encoding="utf-8")
 
-    # 创建 archive/README.md（如果不存在）
-    archive_readme = archive_dir / "README.md"
-    if not archive_readme.exists():
-        archive_readme_content = """# 任务归档
+        # 创建 archive/README.md（如果不存在）
+        archive_readme = archive_dir / "README.md"
+        if not archive_readme.exists():
+            logger.info(f"创建文件: {archive_readme}")
+            archive_readme_content = """# 任务归档
 
 本目录用于存放已完成的任务历史记录，按项目或模块组织。
 
@@ -105,9 +136,14 @@ archive/
 
 参考 [@${CLAUDE_PLUGIN_ROOT}/skills/task/reference.md](../../plugins/task/skills/task/reference.md) 了解详细的归档规范。
 """
-        archive_readme.write_text(archive_readme_content, encoding="utf-8")
+            archive_readme.write_text(archive_readme_content, encoding="utf-8")
 
-    return 0
+        logger.info("任务管理系统初始化完成")
+        return 0
+
+    except Exception as e:
+        logger.error(f"初始化失败: {e}")
+        return 1
 
 
 if __name__ == "__main__":

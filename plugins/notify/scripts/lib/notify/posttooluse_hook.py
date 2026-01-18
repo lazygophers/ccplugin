@@ -26,8 +26,12 @@ sys.path.insert(0, str(project_root))
 try:
     from lib.notify.init_config import get_effective_config
     from lib.notify import notify, speak
+    from lib.logging import get_logger
 except ImportError as e:
     sys.exit(1)
+
+# 初始化日志（hook 脚本仅输出到文件）
+logger = get_logger("posttooluse-hook", enable_console=False)
 
 
 def get_hook_input() -> Optional[Dict[str, Any]]:
@@ -107,33 +111,28 @@ def main() -> int:
         int: 返回码（0 为成功）
     """
     try:
+        logger.info("PostToolUse hook 启动")
+
         # 读取hook输入
         hook_input = get_hook_input()
         if hook_input is None:
+            logger.error("无法读取 hook 输入")
             return 0
 
         # 验证hook事件名称
         if hook_input.get('hook_event_name') != 'PostToolUse':
+            logger.debug(f"Hook 事件类型不是 PostToolUse: {hook_input.get('hook_event_name')}")
             return 0
-
-        # 提取常见字段（所有hook都应该有）
-        session_id = hook_input.get('session_id', '')
-        transcript_path = hook_input.get('transcript_path', '')
-        cwd = hook_input.get('cwd', '')
-        permission_mode = hook_input.get('permission_mode', 'default')
 
         # 获取工具名称
         tool_name = hook_input.get('tool_name', '')
-        if not tool_name:
-            return 0
+        session_id = hook_input.get('session_id', '')
 
-        # 提取事件特定字段
-        # - tool_input: 工具输入参数
-        # - tool_response: 工具执行结果
-        # - tool_use_id: 工具使用ID，用于关联请求和响应
-        tool_input = hook_input.get('tool_input', {})
-        tool_response = hook_input.get('tool_response', {})
-        tool_use_id = hook_input.get('tool_use_id', '')
+        logger.info(f"处理工具执行结果: tool={tool_name}, session={session_id[:8]}")
+
+        if not tool_name:
+            logger.warning("工具名称为空，忽略")
+            return 0
 
         # 读取配置
         config = get_effective_config()
@@ -142,19 +141,25 @@ def main() -> int:
         should_notify, should_voice = should_notify_tool(tool_name, config)
 
         if should_notify:
+            tool_response = hook_input.get('tool_response', {})
+            success = tool_response.get('success', True)
+            status = "成功" if success else "失败"
+            logger.info(f"发送工具通知: {tool_name} 执行{status}")
             send_notification(tool_name, hook_input)
 
             # 如果需要语音播报，则播报
             if should_voice:
-                # 检查工具执行状态
-                success = tool_response.get('success', True)
-                status = "成功完成" if success else "执行失败"
-                voice_message = f"工具 {tool_name} {status}"
+                logger.info(f"播报工具通知: {tool_name}")
+                voice_message = f"工具 {tool_name} {status}完成"
                 speak(voice_message)
+        else:
+            logger.debug(f"工具通知被配置禁用: {tool_name}")
 
+        logger.info("PostToolUse hook 处理完成")
         # 返回成功
         return 0
-    except Exception:
+    except Exception as e:
+        logger.error(f"PostToolUse hook 处理失败: {e}")
         # 错误时也返回 0，不中断主程序
         return 0
 

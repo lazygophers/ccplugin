@@ -27,8 +27,12 @@ sys.path.insert(0, str(project_root))
 try:
     from lib.notify.init_config import get_effective_config
     from lib.notify import notify, speak
+    from lib.logging import get_logger
 except ImportError as e:
     sys.exit(1)
+
+# 初始化日志（hook 脚本仅输出到文件）
+logger = get_logger("simple-hook", enable_console=False)
 
 
 # 事件类型配置映射（不包括 SubagentStop，因为它返回 true/false 而非发送通知）
