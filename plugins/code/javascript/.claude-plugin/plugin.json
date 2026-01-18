@@ -1,6 +1,6 @@
 {
   "name": "javascript",
-  "version": "0.0.26",
+  "version": "0.0.27",
   "description": "JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
   "author": {
     "name": "lazygophers",
