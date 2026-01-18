@@ -67,9 +67,16 @@ def should_notify_event(event_type: str, config: Optional[Dict]) -> tuple[bool, 
         return False, False
 
     try:
+        # 先检查全局notify设置是否禁用了所有通知
+        global_notify = config.get('notify', True)
+        if not global_notify:
+            # 全局禁用了通知
+            return False, False
+
         events = config.get('events', {})
         event_config = events.get(event_type, {})
 
+        # 如果该事件有具体配置，使用它；否则保持为False（事件级默认不通知）
         notify_flag = event_config.get('notify', False)
         voice = event_config.get('voice', False) if notify_flag else False
 

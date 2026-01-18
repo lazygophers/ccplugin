@@ -21,6 +21,7 @@ sys.path.insert(0, str(script_path))
 
 try:
     from lib.notify import notify, speak, init_notify_config
+    from lib.notify.init_config import get_effective_config
     from lib.notify.hooks import handle_stop_hook, handle_notification_hook
     from lib.notify.mcp_server import run_mcp_server
     from lib.notify.simple_hook import main as simple_hook_main
@@ -226,17 +227,32 @@ def main():
                 print(f"错误: 超时时间必须是整数，得到: {args[2]}", file=sys.stderr)
                 sys.exit(1)
 
+        # 读取配置，检查是否应该发送通知
+        config = get_effective_config()
+
+        # 获取全局级别的配置（如果存在）
+        config_notify_enabled = config.get('notify', True) if config else True
+        config_voice_enabled = config.get('voice', False) if config else False
+
         # 执行操作
         success = True
 
+        # 检查配置是否禁用了通知
+        if not config_notify_enabled and not voice_only:
+            # 配置禁用了通知，不执行任何操作
+            sys.exit(0)
+
         # 如果只做语音播报
         if voice_only:
-            success = speak(message)
+            # 检查配置是否禁用了语音
+            if config_voice_enabled or not config:
+                success = speak(message)
+            # 否则配置禁用了语音播报，不执行
         else:
-            # 先发送通知
+            # 先发送通知（已经检查过配置了）
             success = notify(title, message, timeout)
-            # 如果启用语音播报，则播报消息
-            if voice_enabled and success:
+            # 如果启用语音播报（命令行参数或配置），则播报消息
+            if (voice_enabled or config_voice_enabled) and success:
                 speak(message)
 
         sys.exit(0 if success else 1)
