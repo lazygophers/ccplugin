@@ -35,6 +35,11 @@ try:
     from lib.notify import notify, speak, init_notify_config
     from lib.notify.hooks import handle_stop_hook, handle_notification_hook
     from lib.notify.mcp_server import run_mcp_server
+    from lib.notify.simple_hook import main as simple_hook_main
+    from lib.notify.pretooluse_hook import main as pretooluse_hook_main
+    from lib.notify.posttooluse_hook import main as posttooluse_hook_main
+    from lib.notify.precompact_hook import main as precompact_hook_main
+    from lib.notify.notification_hook import main as notification_hook_main
 except ImportError as e:
     print(f"导入错误: {e}", file=sys.stderr)
     sys.exit(1)
@@ -70,7 +75,7 @@ def show_help():
   notify <message> [title] [timeout] --voice     # 发送通知并语音播报
   notify <message> [title] [timeout] --voice-only # 仅语音播报
   notify --mode mcp [--debug]              # 启动 MCP 服务器
-  notify --mode hook --hook-type TYPE     # 处理 hook（TYPE: stop|notification）
+  notify --mode hook --hook-event EVENT   # 处理 hook 事件
   notify --mode init [-v, --verbose]      # 初始化配置文件
   notify -h, --help                        # 显示帮助信息
 
@@ -83,7 +88,14 @@ def show_help():
   --mode mcp              以 MCP 服务器模式运行
   --mode hook             处理 hook 事件
   --mode init             初始化通知配置文件
-  --hook-type TYPE        Hook 类型：stop 或 notification
+  --hook-event EVENT      Hook 事件类型:
+                          - SessionStart, SessionEnd
+                          - UserPromptSubmit
+                          - PreToolUse, PostToolUse
+                          - Notification
+                          - Stop
+                          - SubagentStop
+                          - PreCompact
   --voice                 启用语音播报（与通知同时进行）
   --voice-only            仅语音播报，不显示系统通知
   --debug                 启用调试日志
@@ -96,7 +108,7 @@ def show_help():
   notify '任务已完成' '完成' 8000 --voice  # 通知 + 语音播报
   notify '任务已完成' --voice-only        # 仅语音播报
   notify --mode mcp                        # 启动 MCP 服务器
-  notify --mode hook --hook-type stop     # 处理 Stop hook
+  notify --mode hook --hook-event Stop    # 处理 Stop hook
   notify --mode init -v                   # 初始化配置文件（详细输出）
 """)
 
@@ -135,26 +147,52 @@ def main():
                 sys.exit(1)
 
         elif mode == "hook":
-            if "--hook-type" not in sys.argv:
-                print("错误: --mode hook 需要 --hook-type 参数", file=sys.stderr)
+            if "--hook-event" not in sys.argv:
+                print("错误: --mode hook 需要 --hook-event 参数", file=sys.stderr)
                 sys.exit(1)
 
-            hook_type_idx = sys.argv.index("--hook-type")
-            if hook_type_idx + 1 >= len(sys.argv):
-                print("错误: --hook-type 需要指定值", file=sys.stderr)
+            event_idx = sys.argv.index("--hook-event")
+            if event_idx + 1 >= len(sys.argv):
+                print("错误: --hook-event 需要指定值", file=sys.stderr)
                 sys.exit(1)
 
-            hook_type = sys.argv[hook_type_idx + 1]
+            hook_event = sys.argv[event_idx + 1]
 
-            if hook_type == "stop":
-                exit_code = handle_stop_hook()
-                sys.exit(exit_code)
-            elif hook_type == "notification":
-                exit_code = handle_notification_hook()
-                sys.exit(exit_code)
-            else:
-                print(f"错误: 未知的 hook 类型: {hook_type}（有效值: stop, notification）", file=sys.stderr)
-                sys.exit(1)
+            # Hook 事件处理映射
+            try:
+                if hook_event == "Stop":
+                    exit_code = handle_stop_hook()
+                    sys.exit(exit_code)
+                elif hook_event == "Notification":
+                    exit_code = handle_notification_hook()
+                    sys.exit(exit_code)
+                elif hook_event in ("SessionStart", "SessionEnd"):
+                    # 对于 SessionStart，调用初始化；对于 SessionEnd，使用 simple_hook
+                    if hook_event == "SessionStart":
+                        success = init_notify_config(verbose=False)
+                        sys.exit(0 if success else 1)
+                    else:
+                        exit_code = simple_hook_main(hook_event)
+                        sys.exit(exit_code)
+                elif hook_event in ("UserPromptSubmit", "SubagentStop"):
+                    exit_code = simple_hook_main(hook_event)
+                    sys.exit(exit_code)
+                elif hook_event == "PreToolUse":
+                    exit_code = pretooluse_hook_main()
+                    sys.exit(exit_code)
+                elif hook_event == "PostToolUse":
+                    exit_code = posttooluse_hook_main()
+                    sys.exit(exit_code)
+                elif hook_event == "PreCompact":
+                    exit_code = precompact_hook_main()
+                    sys.exit(exit_code)
+                else:
+                    print(f"错误: 未知的 hook 事件: {hook_event}", file=sys.stderr)
+                    sys.exit(1)
+            except Exception as e:
+                if debug:
+                    print(f"Hook 处理错误: {e}", file=sys.stderr)
+                sys.exit(0)  # Hook 错误不应中断主程序
 
         elif mode == "init":
             verbose = "-v" in sys.argv or "--verbose" in sys.argv
