@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Optional
 from rich.console import Console
 
-from lib.utils.env import project_plugins_dir, app_name
+from lib.utils.env import get_project_plugins_dir, get_app_name
 
 
 class RichLoggerManager:
@@ -41,7 +41,7 @@ class RichLoggerManager:
             return
 
         self._initialized = True
-        self.log_dir = os.path.join(project_plugins_dir, "log")
+        self.log_dir = os.path.join(get_project_plugins_dir(), "log")
         os.makedirs(self.log_dir, exist_ok=True)
 
         # 创建主控制台（文件输出）
@@ -101,7 +101,7 @@ class RichLoggerManager:
             message: 日志消息
             color: 颜色标签
         """
-        formatted = f"{f"[{app_name}] " if app_name else ""}[{color}]{level}[/{color}] [{datetime.now().strftime("%H:%M:%S")}] {message}"
+        formatted = f"{f"[{get_app_name()}] " if get_app_name() else ""}[{color}]{level}[/{color}] [{datetime.now().strftime("%H:%M:%S")}] {message}"
 
         # 写入文件
         self._write_to_file(formatted)

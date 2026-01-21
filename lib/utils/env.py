@@ -1,22 +1,28 @@
 import os
 
-project_dir = os.getcwd()
-if os.getenv("CLAUDE_PROJECT_DIR") is not None:
-	project_dir = os.getenv("CLAUDE_PROJECT_DIR")
+def get_project_dir() -> str:
+	project_dir = os.getcwd()
+	if os.getenv("CLAUDE_PROJECT_DIR") is not None:
+		project_dir = os.getenv("CLAUDE_PROJECT_DIR")
+	return project_dir
 
-project_plugins_dir = os.path.join(project_dir, ".lazygophers", "ccplugin")
+def get_project_plugins_dir() -> str:
+	return os.path.join(get_project_dir(), ".lazygophers", "ccplugin")
 
-if not os.path.exists(project_plugins_dir):
-	os.makedirs(project_plugins_dir)
-
-app_name: str = None
-
+_app_name: str = None
 def set_app(name: str) -> None:
-	global app_name
-	app_name = name
+	global _app_name
+	_app_name = name
 
-plugins_path = os.getcwd()
-if os.getenv("CLAUDE_PLUGIN_ROOT") is not None:
-	plugins_path = os.getenv("CLAUDE_PLUGIN_ROOT")
+def get_app_name() -> str:
+	return _app_name
 
-user_plugins_dir = os.path.join(os.path.expanduser("~"), ".lazygophers", "ccplugin")
+
+def get_plugins_path() -> str:
+	plugins_path = os.getcwd()
+	if os.getenv("CLAUDE_PLUGIN_ROOT") is not None:
+		plugins_path = os.getenv("CLAUDE_PLUGIN_ROOT")
+	return plugins_path
+
+def get_user_plugins_dir() -> str:
+	return os.path.join(os.path.expanduser("~"), ".lazygophers", "ccplugin")
