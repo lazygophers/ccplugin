@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from lib import logging
 
@@ -18,7 +19,12 @@ def init_version():
 
 def auto_update():
 	# 检查是否有未提交的 .version 文件修改
-	result = os.popen(f"git status --porcelain {version_filepath}").read().strip()
+	result = subprocess.run(
+		["git", "status", "--porcelain", version_filepath],
+		cwd=project_dir,
+		capture_output=True,
+		text=True
+	).stdout.strip()
 	if result:
 		logging.warn("版本文件未提交，跳过成功")
 		return

@@ -9,7 +9,15 @@
 import subprocess
 import sys
 import platform
+from pathlib import Path
 from typing import Optional
+
+# 设置 sys.path 以找到 lib 模块
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from lib.logging import error, debug
 
 
 def play_text_tts(text: str, rate: int = 200) -> bool:
@@ -29,7 +37,7 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
         play_text_tts("操作已完成", rate=150)
     """
     if not text or not isinstance(text, str):
-        print("错误: 文本内容不能为空且必须是字符串类型", file=sys.stderr)
+        error("文本内容不能为空且必须是字符串类型")
         return False
 
     try:
@@ -62,17 +70,17 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
             return True
 
         else:
-            print(f"错误: 不支持的操作系统: {system}", file=sys.stderr)
+            error(f"不支持的操作系统: {system}")
             return False
 
     except subprocess.CalledProcessError as e:
-        print(f"错误: TTS 播放失败: {e}", file=sys.stderr)
+        error(f"TTS 播放失败: {e}")
         return False
     except FileNotFoundError as e:
-        print(f"错误: TTS 工具未找到（可能未安装）: {e}", file=sys.stderr)
+        error(f"TTS 工具未找到（可能未安装）: {e}")
         return False
     except Exception as e:
-        print(f"错误: TTS 播放过程中发生异常: {e}", file=sys.stderr)
+        error(f"TTS 播放过程中发生异常: {e}")
         return False
 
 
@@ -101,7 +109,7 @@ def show_system_notification(
         show_system_notification("权限请求", title="Claude Code - Permission", duration=10000)
     """
     if not message or not isinstance(message, str):
-        print("错误: 消息内容不能为空且必须是字符串类型", file=sys.stderr)
+        error("消息内容不能为空且必须是字符串类型")
         return False
 
     if not title or not isinstance(title, str):
@@ -161,30 +169,30 @@ def show_system_notification(
             return True
 
         else:
-            print(f"错误: 不支持的操作系统: {system}", file=sys.stderr)
+            error(f"不支持的操作系统: {system}")
             return False
 
     except subprocess.CalledProcessError as e:
-        print(f"错误: 系统通知显示失败: {e}", file=sys.stderr)
+        error(f"系统通知显示失败: {e}")
         return False
     except FileNotFoundError as e:
-        print(f"错误: 通知工具未找到（可能未安装）: {e}", file=sys.stderr)
+        error(f"通知工具未找到（可能未安装）: {e}")
         return False
     except Exception as e:
-        print(f"错误: 系统通知过程中发生异常: {e}", file=sys.stderr)
+        error(f"系统通知过程中发生异常: {e}")
         return False
 
 
 if __name__ == "__main__":
     # 简单测试
-    print("测试 TTS 功能...")
+    debug("测试 TTS 功能...")
     if play_text_tts("Hello, this is a test"):
-        print("✓ TTS 播放成功")
+        debug("✓ TTS 播放成功")
     else:
-        print("✗ TTS 播放失败")
+        debug("✗ TTS 播放失败")
 
-    print("\n测试系统通知功能...")
+    debug("测试系统通知功能...")
     if show_system_notification("这是一条测试通知", title="Claude Code"):
-        print("✓ 系统通知显示成功")
+        debug("✓ 系统通知显示成功")
     else:
-        print("✗ 系统通知显示失败")
+        debug("✗ 系统通知显示失败")

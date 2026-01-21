@@ -21,6 +21,18 @@ from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional, List
 from pathlib import Path
 import yaml
+import sys
+
+# 设置 sys.path 以找到 lib 模块
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+try:
+    from lib.logging import warn, debug
+except ImportError:
+    def warn(msg): pass
+    def debug(msg): pass
 
 
 @dataclass
@@ -399,7 +411,7 @@ def load_config(config_path: Optional[Path] = None) -> HooksConfig:
         try:
             return HooksConfig.load_from_file(config_path)
         except Exception as e:
-            print(f"警告: 加载配置文件失败 {config_path}: {e}")
+            warn(f"加载配置文件失败 {config_path}: {e}")
 
     # 尝试加载项目目录配置
     project_config = Path.cwd() / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
@@ -407,7 +419,7 @@ def load_config(config_path: Optional[Path] = None) -> HooksConfig:
         try:
             return HooksConfig.load_from_file(project_config)
         except Exception as e:
-            print(f"警告: 加载项目配置文件失败 {project_config}: {e}")
+            warn(f"加载项目配置文件失败 {project_config}: {e}")
 
     # 尝试加载用户主目录配置
     home_config = Path.home() / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
@@ -415,7 +427,7 @@ def load_config(config_path: Optional[Path] = None) -> HooksConfig:
         try:
             return HooksConfig.load_from_file(home_config)
         except Exception as e:
-            print(f"警告: 加载用户配置文件失败 {home_config}: {e}")
+            warn(f"加载用户配置文件失败 {home_config}: {e}")
 
     # 返回默认配置
     return get_default_config()
