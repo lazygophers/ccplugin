@@ -55,6 +55,16 @@ class RichLoggerManager:
         self.console_console: Optional[Console] = None
         self.debug_enabled = False
         self._last_hour = self._get_current_hour()
+        self.app_name: Optional[str] = None
+
+    def set_app_name(self, app_name: str) -> None:
+        """
+        设置应用名称。
+
+        Args:
+            app_name: 应用名称（如 'version'、'task' 等）
+        """
+        self.app_name = app_name
 
     def enable_debug(self) -> None:
         """启用 DEBUG 模式（同时输出到控制台）。"""
@@ -98,7 +108,8 @@ class RichLoggerManager:
             color: 颜色标签
         """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        formatted = f"[{color}]{level}[/{color}] [{timestamp}] {message}"
+        app_prefix = f"[{self.app_name}] " if self.app_name else ""
+        formatted = f"{app_prefix}[{color}]{level}[/{color}] [{timestamp}] {message}"
 
         # 写入文件
         self._write_to_file(formatted)
@@ -182,3 +193,12 @@ def error(message: str) -> None:
 def warn(message: str) -> None:
     """记录 WARNING 级别日志。"""
     _logger.warn(message)
+
+def set_app(app_name: str) -> None:
+    """
+    注册应用名称。
+
+    Args:
+        app_name: 应用名称（如 'version'、'task' 等）
+    """
+    _logger.set_app_name(app_name)
