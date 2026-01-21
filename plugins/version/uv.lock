@@ -44,7 +44,7 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#542d23a905d64ba7fb8e6d33f2600c59379ba2d9" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#f4761b786e5e23c9bab01c8c9ee25b0c54ace89a" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
@@ -237,13 +237,11 @@ wheels = [
 
 [[package]]
 name = "version"
-version = "0.0.65"
+version = "0.0.66"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "lib" },
-    { name = "pydantic" },
-    { name = "rich" },
 ]
 
 [package.optional-dependencies]
@@ -255,8 +253,6 @@ dev = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.0" },
     { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "rich", specifier = ">=14.2.0" },
 ]
 provides-extras = ["dev"]

@@ -101,9 +101,7 @@ class RichLoggerManager:
             message: 日志消息
             color: 颜色标签
         """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        app_prefix = f"[{app_name}] " if app_name else ""
-        formatted = f"{app_prefix}[{color}]{level}[/{color}] [{timestamp}] {message}"
+        formatted = f"{f"[{app_name}] " if app_name else ""}[{color}]{level}[/{color}] [{datetime.now().strftime("%H:%M:%S")}] {message}"
 
         # 写入文件
         self._write_to_file(formatted)
