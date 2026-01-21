@@ -4,8 +4,6 @@
 
 import unittest
 import sys
-import tempfile
-import shutil
 from pathlib import Path
 
 # 添加项目根目录到 sys.path
