@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event SessionStart || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "once": true,
             "timeout": 5
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event SessionEnd || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "timeout": 5
           }
         ]
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event UserPromptSubmit || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "timeout": 5
           }
         ]
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event PreToolUse || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "timeout": 5
           }
         ]
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event PostToolUse || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "timeout": 5
           }
         ]
@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event Notification || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "timeout": 5
           }
         ]
@@ -98,7 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/notify.py --mode hook --hook-event PreCompact || true",
+            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.py",
             "timeout": 5
           }
         ]
