@@ -440,6 +440,14 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 - Optional: sys.path manipulation in plugin entry points for redundancy (fallback if lib not installed)
 - Never import from individual plugins (`semantic`, `task`, etc.) - use lib/shared code instead
 
+### Dependency Management (强制规则)
+- **MUST use GitHub dependencies ONLY** - Never use local file:// paths in `pyproject.toml`
+- lib dependencies in plugin `pyproject.toml` must use format: `lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib`
+- All lib code changes must be committed to GitHub before they can be used by plugins
+- When fixing lib issues: commit changes → push to GitHub → delete `uv.lock` → run `uv sync`
+- Never modify `pyproject.toml` to use `file://` or local paths - this breaks the distributed plugin system
+- After changes: `rm -rf plugins/*/uv.lock` to ensure fresh lib dependency resolution
+
 ### Testing
 - Test files in `lib/tests/`
 - Run before committing: `uv run -m pytest lib/tests/ -v`
