@@ -1,17 +1,3 @@
-import sys
-from pathlib import Path
-
-# 设置 sys.path 以找到 lib 模块
-script_dir = Path(__file__).resolve().parent
-current = script_dir
-
-# 向上搜索 lib 目录（最多 10 层）
-for _ in range(10):
-	if (current / "lib").exists():
-		sys.path.insert(0, str(current))
-		break
-	current = current.parent
-
 from lib import logging
 from lib.utils.env import set_app
 from hooks import handle_hook
