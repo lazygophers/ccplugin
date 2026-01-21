@@ -181,18 +181,3 @@ def show_system_notification(
     except Exception as e:
         error(f"系统通知过程中发生异常: {e}")
         return False
-
-
-if __name__ == "__main__":
-    # 简单测试
-    debug("测试 TTS 功能...")
-    if play_text_tts("Hello, this is a test"):
-        debug("✓ TTS 播放成功")
-    else:
-        debug("✗ TTS 播放失败")
-
-    debug("测试系统通知功能...")
-    if show_system_notification("这是一条测试通知", title="Claude Code"):
-        debug("✓ 系统通知显示成功")
-    else:
-        debug("✗ 系统通知显示失败")
