@@ -1,10 +1,10 @@
 [project]
 name = "version"
-version = "0.0.59"
+version = "0.0.60"
 description = "Claude Code version management plugin for semantic versioning"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [ "lib", "typer>=0.12.0",]
+dependencies = [ "typer>=0.12.0",]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
@@ -19,8 +19,3 @@ dev = [ "pytest>=7.0.0",]
 [tool.setuptools.packages.find]
 where = [ ".",]
 include = [ "version*",]
-
-[tool.uv.sources.lib]
-git = "https://github.com/lazygophers/ccplugin"
-subdirectory = "lib"
-rev = "master"
