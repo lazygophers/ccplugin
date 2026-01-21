@@ -44,7 +44,7 @@ class RichLoggerManager:
 
         self._initialized = True
         self.log_dir = os.path.join(base_dir, "log")
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        os.makedirs(self.log_dir, exist_ok=True)
 
         # 创建主控制台（文件输出）
         self.file_console = Console(
