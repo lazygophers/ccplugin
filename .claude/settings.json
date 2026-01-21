@@ -1,2 +1,6 @@
 {
+  "enabledPlugins": {
+	"git@ccplugin-market": true,
+	"version@ccplugin-market": true
+  }
 }
