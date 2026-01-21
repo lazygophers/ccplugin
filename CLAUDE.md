@@ -149,18 +149,23 @@ uv pip install package-name
 ### Running Code
 
 ```bash
-# Execute Python scripts (mandatory - must use uv)
+# Execute Python scripts in plugin directory (mandatory - must use uv)
+# Each plugin has its own virtual environment and dependencies
+
 # Code plugins
-uv run plugins/code/semantic/scripts/semantic.py --help
-uv run plugins/code/semantic/scripts/semantic.py index --path lib/config
-uv run plugins/code/git/scripts/git.py status
-uv run plugins/version/scripts/version.py show
+cd plugins/version && uv run scripts/version.py --help
+cd plugins/version && uv run scripts/version.py --debug
+
+cd plugins/code/semantic && uv run scripts/semantic.py --help
+cd plugins/code/semantic && uv run scripts/semantic.py index --path ../../lib
+
+cd plugins/code/git && uv run scripts/git.py status
 
 # Utility plugins
-uv run plugins/task/scripts/task.py list
-uv run plugins/notify/scripts/notifier.py "Title" "Message" 5000
+cd plugins/task && uv run scripts/task.py list
+cd plugins/notify && uv run scripts/notifier.py "Title" "Message" 5000
 
-# Run installed command-line tools
+# Run installed command-line tools (after installation)
 semantic init
 semantic index
 semantic search "function definition"
@@ -169,8 +174,8 @@ task add "New feature"
 task list
 task stats
 
-# Execute tests
-uv run -m pytest lib/tests/ -v
+# Execute tests from project root
+cd lib && uv run -m pytest tests/ -v
 ```
 
 ### Git Operations
@@ -213,8 +218,9 @@ ls plugins/style/my-style/.claude-plugin/plugin.json
 
 1. **Help Support**
    - Scripts support `-h` and `--help` flags to display usage information
-   - Example: `uv run plugins/version/scripts/version.py -h`
+   - Example: `cd plugins/version && uv run scripts/version.py -h`
    - Scripts should gracefully handle missing arguments
+   - Each plugin script runs in its own directory with its own virtual environment
 
 2. **Version Management** (`plugins/version/scripts/version.py`)
    - Manages semantic versioning with 4 parts: major.minor.patch.build
@@ -366,35 +372,38 @@ If you see `ModuleNotFoundError: No module named 'lib.X'`:
 ### Running Code Indexing Locally
 
 ```bash
+# Navigate to the semantic plugin directory first
+cd plugins/code/semantic
+
 # Index a small directory first to verify
-uv run plugins/code/semantic/scripts/semantic.py index --path lib/config --batch-size 10
+uv run scripts/semantic.py index --path ../../lib/logging --batch-size 10
 
 # Index entire project (takes time for large codebases)
-uv run plugins/code/semantic/scripts/semantic.py index --path . --batch-size 50
+uv run scripts/semantic.py index --path ../.. --batch-size 50
 ```
 
 ### Testing Plugin Scripts Locally
 
 ```bash
 # Display help for any plugin script
-uv run plugins/version/scripts/version.py -h
-uv run plugins/notify/scripts/notifier.py --help
+cd plugins/version && uv run scripts/version.py -h
+cd plugins/notify && uv run scripts/notifier.py --help
 
-# Test version management
-uv run plugins/version/scripts/version.py show
-uv run plugins/version/scripts/version.py bump patch
+# Test version plugin
+cd plugins/version && uv run scripts/version.py --debug
 
 # Test hook scripts with JSON input
+cd plugins/notify && \
 echo '{"session_id":"test","hook_event_name":"Stop","transcript_path":"/tmp/test.jsonl"}' | \
-  uv run plugins/notify/scripts/stop_hook.py
+  uv run scripts/stop_hook.py
 
 # Display notification
-uv run plugins/notify/scripts/notifier.py "Title" "Message" 5000
+cd plugins/notify && uv run scripts/notifier.py "Title" "Message" 5000
 
 # Test semantic search
-uv run plugins/code/semantic/scripts/semantic.py init
-uv run plugins/code/semantic/scripts/semantic.py index --path lib/config
-uv run plugins/code/semantic/scripts/semantic.py search "function definition"
+cd plugins/code/semantic && uv run scripts/semantic.py init
+cd plugins/code/semantic && uv run scripts/semantic.py index --path ../../lib
+cd plugins/code/semantic && uv run scripts/semantic.py search "function definition"
 ```
 
 ### Testing via uvx (Remote Installation)
@@ -411,19 +420,25 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 
 ### Python Execution
 - **MUST use `uv run`** - Never use `python3` or `python` directly
-- All plugin scripts must be executable via `uv run plugins/X/scripts/script.py`
+- Plugin scripts must be executed from their plugin directory: `cd plugins/X && uv run scripts/script.py`
+- Each plugin has its own virtual environment and dependencies defined in `plugins/X/pyproject.toml`
+- lib module is shared via path dependency: each plugin's pyproject.toml includes `{ path = "../../lib" }`
 
 ### Code Organization
 - Code plugin scripts stay in `plugins/code/*/scripts/`
 - Style plugin scripts stay in `plugins/style/*/scripts/` (usually just skills)
 - Utility plugin scripts stay in `plugins/{task,notify}/scripts/`
-- Reusable code goes in `lib/`
+- Reusable code goes in `lib/` (shared library as path dependency)
+- Each plugin directory must have its own:
+  - `pyproject.toml` (declares dependencies, including lib as path dependency)
+  - `.venv` virtual environment
 - Each lib/ module must be a proper package with `__init__.py`
 
 ### Import Paths
 - Plugins use **absolute imports**: `from lib.module import X`
-- sys.path manipulation required in plugin entry points
-- Never import from `semantic`, `task` modules directly
+- lib is installed as a path dependency in each plugin's virtual environment
+- Optional: sys.path manipulation in plugin entry points for redundancy (fallback if lib not installed)
+- Never import from individual plugins (`semantic`, `task`, etc.) - use lib/shared code instead
 
 ### Testing
 - Test files in `lib/tests/`
@@ -435,22 +450,57 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic --help
 - Hook scripts receive JSON via stdin and must validate input parameters
 - Hook scripts should exit with code 1 on validation failure
 - All scripts in `plugins/code/*/scripts/`, `plugins/style/*/scripts/`, and `plugins/{task,notify}/scripts/` must have executable permissions
-- Use `uv run` to execute scripts locally, never use `python3` directly
-- Hook commands in `hooks.json` should use `uv run` for project-local scripts
+- Execute scripts from plugin directory: `cd plugins/X && uv run scripts/script.py`
+- Never use `python3` directly - always use `uv run`
+- Each plugin has its own virtual environment; dependencies are defined in `plugins/X/pyproject.toml`
+- Hook commands in `hooks.json` should use format: `uv -w plugins/notify run scripts/hook.py` (or `cd plugins/notify && uv run scripts/hook.py`)
 - Skills must follow progressive disclosure pattern: SKILL.md (navigation) → reference.md (details) → examples.md (use cases)
 
 ### Logging Requirements
-- **All scripts must integrate logging** using `lib.logging` module
-- Log files go to `~/.lazygophers/ccplugin/log/` (按小时自动分片)
-- Use `setup_sys_path(__file__)` and `setup_logger("plugin-name")` for quick integration
-- Refer to [.claude/skills/logging-integration-guide.md](.claude/skills/logging-integration-guide.md) for detailed guidelines
+- **All scripts must integrate logging** using `lib.logging` module (singleton-based API)
+- Log files go to `.lazygophers/ccplugin/log/` in current working directory (按小时自动分片 YYYYMMDDHH.log)
+- Maximum 3 log files retained automatically, older files are cleaned up
+- Import and use the simplified 5-function API:
+  ```python
+  from lib.logging import info, debug, error, warn, enable_debug
+  
+  # Basic logging
+  info("操作启动")
+  error("操作失败")
+  
+  # Enable DEBUG mode (outputs to console + file)
+  enable_debug()
+  debug("调试信息")
+  ```
+- Plugin scripts must set up sys.path to find lib/ directory:
+  ```python
+  import sys
+  from pathlib import Path
+  
+  script_dir = Path(__file__).resolve().parent
+  plugin_dir = script_dir.parent
+  project_root = plugin_dir.parent.parent
+  
+  lib_path = project_root / "lib"
+  if not lib_path.exists():
+      current = script_dir
+      for _ in range(5):
+          if (current / "lib").exists():
+              project_root = current
+              break
+          current = current.parent
+  
+  sys.path.insert(0, str(project_root))
+  from lib.logging import info, debug, error, warn, enable_debug
+  ```
 - Required log events:
-  - Script startup: `logger.info("脚本启动")`
-  - Major operations: `logger.info("operation result")`
-  - Errors: `logger.error("error message")` (仅记录错误信息，不记录 traceback)
-  - User interruption: `logger.info("脚本被用户中断")`
-- Hook scripts: `enable_console=False` (仅输出到文件)
-- MCP servers: `enable_console=False` (仅输出到文件)
+  - Script startup: `info("脚本启动")`
+  - Major operations: `info("operation result")`
+  - Errors: `error("error message")` (仅记录错误信息，不记录 traceback)
+  - User interruption: `info("脚本被用户中断")`
+- Hook scripts: All logs written to file only, no console output (DEBUG mode disabled by default)
+- MCP servers: All logs written to file only, no console output (DEBUG mode disabled by default)
+- DEBUG mode: Only enable via `enable_debug()` when `--debug` flag is provided
 
 ## Troubleshooting
 
