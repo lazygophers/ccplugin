@@ -8,23 +8,6 @@ dependencies = [
     "pydantic>=2.12.5",
     "typer>=0.21.1",
     "rich>=13.9.0",
-    "lancedb>=0.26.0",
-    "pyarrow>=14.0.0",
-    "fastembed>=0.3.0",
-    "pathspec>=0.12.0",
-    "pyyaml>=6.0.0",
-    "sentence-transformers>=3.3.0",
-    "torch>=2.5.0",
-    "tree-sitter-language-pack>=0.9.1",
-    "javalang>=0.13.0",
-    "mcp>=1.25.0",
-]
-
-[project.optional-dependencies]
-# GPU 支持（仅 Linux/Windows，通过 CUDA）
-# 注意：macOS 用户使用默认的 CPU 版本即可
-gpu = [
-    "fastembed-gpu>=0.3.0; platform_system == 'Linux' or platform_system == 'Windows'",
 ]
 
 [project.scripts]
@@ -35,15 +18,6 @@ semantic = "plugins.code.semantic.scripts.semantic:main"
 task = "plugins.task.scripts.task:main"
 version = "plugins.code.version.scripts.version:main"
 
-[build-system]
-requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
-build-backend = "setuptools.build_meta"
-
 [tool.setuptools.packages.find]
-# 自动发现所有包
 where = ["."]
-include = ["plugins*", "scripts*"]
-
-[tool.setuptools.package-data]
-# 包含所有相关文件
-"*" = ["*.py", "*.yaml", "*.json", "*.md", "*.txt", "*.sh"]
+include = ["plugins/**/scripts", "scripts", "lib"]
