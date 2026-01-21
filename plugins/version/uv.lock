@@ -3,10 +3,19 @@ revision = 2
 requires-python = ">=3.12"
 
 [[package]]
+name = "ccplugin-lib"
+version = "0.0.1"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=ccplugin&rev=master#ec10632ad2266ec0c83392820d9abf8e97da3722" }
+dependencies = [
+    { name = "rich" },
+]
+
+[[package]]
 name = "ccplugin-version"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
+    { name = "ccplugin-lib" },
     { name = "typer" },
 ]
 
@@ -17,6 +26,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ccplugin-lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=ccplugin&rev=master" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "typer", specifier = ">=0.12.0" },
 ]
