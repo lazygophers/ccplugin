@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import typer
 
 from hooks import handle_hook
