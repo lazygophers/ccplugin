@@ -3,7 +3,7 @@ import logging
 import os.path
 import sys
 
-from lib.utils import plugins_path
+from lib.utils import get_plugins_path
 
 def load_hooks():
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
@@ -26,7 +26,7 @@ def load_hooks():
 
 		# 处理公共逻辑
 		if event_name == "SessionStart":
-			agent_md_path = os.path.join(plugins_path, "AGENT.md")
+			agent_md_path = os.path.join(get_plugins_path(), "AGENT.md")
 			if os.path.exists(agent_md_path):
 				with open(agent_md_path, "r", encoding="utf-8") as f:
 					for line in f:
