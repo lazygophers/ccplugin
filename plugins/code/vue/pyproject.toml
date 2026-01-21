@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-code-vue"
-version = "0.0.44"
+version = "0.0.45"
 description = "Claude Code plugin for Vue language support"
 readme = "README.md"
 requires-python = ">=3.12"
