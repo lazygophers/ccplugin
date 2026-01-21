@@ -30,9 +30,11 @@ sys.path.insert(0, str(project_root))
 
 try:
     from lib.logging import warn, debug
+    from lib.utils.env import project_dir
 except ImportError:
     def warn(msg): pass
     def debug(msg): pass
+    project_dir = None
 
 
 @dataclass
@@ -414,12 +416,13 @@ def load_config(config_path: Optional[Path] = None) -> HooksConfig:
             warn(f"加载配置文件失败 {config_path}: {e}")
 
     # 尝试加载项目目录配置
-    project_config = Path.cwd() / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
-    if project_config.exists():
-        try:
-            return HooksConfig.load_from_file(project_config)
-        except Exception as e:
-            warn(f"加载项目配置文件失败 {project_config}: {e}")
+    if project_dir:
+        project_config = Path(project_dir) / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
+        if project_config.exists():
+            try:
+                return HooksConfig.load_from_file(project_config)
+            except Exception as e:
+                warn(f"加载项目配置文件失败 {project_config}: {e}")
 
     # 尝试加载用户主目录配置
     home_config = Path.home() / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
