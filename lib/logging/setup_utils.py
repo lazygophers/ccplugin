@@ -1,84 +1,120 @@
 """
-日志设置工具 - 帮助脚本快速集成日志系统。
+日志设置工具 - 提供日志配置的便捷接口。
 """
 
+import logging
 import sys
 from pathlib import Path
 from typing import Optional
+from .handler import HourlyRotatingFileHandler
 
 
-def setup_sys_path(script_file: Optional[str] = None, max_levels: int = 5) -> Path:
+# 全局日志记录器字典
+_loggers = {}
+
+
+def setup_logging(
+    log_dir: Optional[str] = None,
+    level: int = logging.INFO,
+    enable_console: bool = False,
+) -> None:
     """
-    设置 sys.path 以支持导入根目录的 lib 模块。
+    设置全局日志配置。
 
     Args:
-        script_file: 脚本文件路径（通常是 __file__）。如果为 None，使用调用者的 __file__
-        max_levels: 最多向上查找的目录级数
-
-    Returns:
-        找到的项目根目录
-
-    Example:
-        ```python
-        from lib.logging import setup_sys_path, setup_logger
-
-        project_root = setup_sys_path(__file__)
-        logger = setup_logger("my-plugin")
-        ```
+        log_dir: 日志目录，默认为 ./lazygophers/ccplugin/log
+        level: 日志级别，默认为 INFO
+        enable_console: 是否同时输出到控制台，默认为 False
     """
-    if script_file is None:
-        # 获取调用者的文件路径
-        import inspect
-        frame = inspect.currentframe()
-        if frame and frame.f_back:
-            script_file = frame.f_back.f_globals.get('__file__')
+    global _loggers
 
-    if script_file is None:
-        raise ValueError("无法确定脚本文件路径")
+    if log_dir is None:
+        # 默认使用相对于当前工作目录的路径
+        log_dir = str(Path.cwd() / "lazygophers" / "ccplugin" / "log")
 
-    script_dir = Path(script_file).resolve().parent
-    project_root = script_dir.parent.parent.parent
+    # 更新所有已存在的 logger
+    for logger in _loggers.values():
+        # 移除旧的处理器
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
 
-    # 检查是否存在 lib 目录
-    if not (project_root / "lib").exists():
-        # 向上查找直到找到 lib 目录
-        current = script_dir
-        for _ in range(max_levels):
-            if (current / "lib").exists():
-                project_root = current
-                break
-            parent = current.parent
-            if parent == current:  # 到达根目录
-                break
-            current = parent
+        # 添加新的文件处理器
+        file_handler = HourlyRotatingFileHandler(log_dir, level=level)
+        file_handler.setFormatter(_get_formatter())
+        logger.addHandler(file_handler)
 
-    # 将项目根目录添加到 sys.path
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
+        # 如果需要，添加控制台处理器
+        if enable_console:
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setLevel(level)
+            console_handler.setFormatter(_get_formatter())
+            logger.addHandler(console_handler)
 
-    return project_root
+        logger.setLevel(level)
 
 
-def setup_logger(plugin_name: str, enable_console: bool = True):
+def get_logger(
+    name: str,
+    debug: bool = False,
+) -> logging.Logger:
     """
-    快速设置日志管理器。
+    获取日志记录器。
 
     Args:
-        plugin_name: 插件名称
-        enable_console: 是否输出到控制台
+        name: 日志记录器名称（通常为 __name__ 或模块名）
+        debug: 是否启用 DEBUG 级别并输出到控制台
 
     Returns:
-        LogManager 实例
-
-    Example:
-        ```python
-        from lib.logging import setup_sys_path, setup_logger
-
-        setup_sys_path(__file__)
-        logger = setup_logger("my-plugin")
-        logger.info("Plugin started")
-        ```
+        配置好的 Logger 实例
     """
-    from .logger import get_logger
+    global _loggers
 
-    return get_logger(plugin_name, enable_console)
+    if name in _loggers:
+        logger = _loggers[name]
+    else:
+        logger = logging.getLogger(name)
+        _loggers[name] = logger
+
+        # 设置默认日志目录
+        log_dir = str(Path.cwd() / "lazygophers" / "ccplugin" / "log")
+
+        # 添加文件处理器
+        level = logging.DEBUG if debug else logging.INFO
+        file_handler = HourlyRotatingFileHandler(log_dir, level=level)
+        file_handler.setFormatter(_get_formatter())
+        logger.addHandler(file_handler)
+
+        # 如果启用 debug，同时输出到控制台
+        if debug:
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setLevel(logging.DEBUG)
+            console_handler.setFormatter(_get_formatter())
+            logger.addHandler(console_handler)
+
+        logger.setLevel(level)
+
+    return logger
+
+
+def set_level(level: int) -> None:
+    """
+    设置所有日志记录器的级别。
+
+    Args:
+        level: 日志级别（logging.DEBUG, logging.INFO, 等）
+    """
+    for logger in _loggers.values():
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            handler.setLevel(level)
+
+
+def _get_formatter() -> logging.Formatter:
+    """
+    获取日志格式化器。
+
+    格式: 时间 级别 文件:行号 消息
+    """
+    fmt = '%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
+    datefmt = '%Y-%m-%d %H:%M:%S'
+    return logging.Formatter(fmt, datefmt=datefmt)
