@@ -12,6 +12,5 @@ dev = ["pytest>=7.0.0"]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]
-namespaces = false
+[tool.setuptools]
+packages = ["ccplugin", "ccplugin.lib", "ccplugin.lib.logging", "ccplugin.lib.tests"]
