@@ -1,27 +1,25 @@
 {
   "description": "版本管理插件 Hooks - 自动管理项目版本号",
   "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '(uv run ${CLAUDE_PLUGIN_ROOT}/scripts/version.py bump > /dev/null 2>&1); echo \"{\\\"ok\\\": true}\"'",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '(uv run ${CLAUDE_PLUGIN_ROOT}/scripts/version.py bump > /dev/null 2>&1); echo \"{\\\"ok\\\": true}\"'",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
+	"SessionStart": [
+	  {
+		"hooks": [
+		  {
+			"type": "command",
+			"command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/main.py --hooks",
+		  }
+		]
+	  }
+	],
+	"UserPromptSubmit": [
+	  {
+		"hooks": [
+		  {
+			"type": "command",
+			"command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/main.py --hooks",
+		  }
+		]
+	  }
+	]
   }
 }

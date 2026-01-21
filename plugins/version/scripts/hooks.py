@@ -19,7 +19,7 @@ else:
 			break
 		current = current.parent
 
-from lib.logging import error
+from lib import logging
 from version import init_version, auto_update
 
 
@@ -35,8 +35,8 @@ def handle_hook() -> None:
 			auto_update()
 
 	except json.JSONDecodeError as e:
-		error(f"JSON 解析失败: {e}")
+		logging.error(f"JSON 解析失败: {e}")
 		sys.exit(1)
 	except Exception as e:
-		error(f"Hook 处理失败: {e}")
+		logging.error(f"Hook 处理失败: {e}")
 		sys.exit(1)
