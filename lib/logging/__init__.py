@@ -1,40 +1,32 @@
 """
-日志模块 - 提供统一的日志管理功能。
+日志模块 - 基于 Rich 的简洁日志系统。
 
 特性：
+- 使用 Rich 库进行彩色输出和格式化
 - 按小时自动分割日志文件 (YYYYMMDDHH.log)
 - 自动清理超过 3 小时的旧日志
-- 支持全局日志级别配置
+- 单实例设计，简洁的函数式 API
 - 支持 DEBUG 模式下的控制台输出
-- 简洁的 API 接口
 
 使用示例：
 
+    from lib.logging import info, debug, error, warn, enable_debug
+
     # 基础使用
-    from lib.logging import get_logger
-    logger = get_logger(__name__)
-    logger.info("操作成功")
-    logger.error("发生错误")
+    info("操作启动")
+    error("发生错误")
 
-    # 启用 DEBUG 模式（同时输出到控制台）
-    logger = get_logger(__name__, debug=True)
-
-    # 全局配置
-    from lib.logging import setup_logging
-    setup_logging(
-        log_dir="./logs",
-        level=logging.DEBUG,
-        enable_console=True
-    )
+    # 启用 DEBUG 模式
+    enable_debug()
+    debug("调试信息（输出到控制台）")
 """
 
-import logging
-from .setup_utils import setup_logging, get_logger, set_level
-from .handler import HourlyRotatingFileHandler
+from .manager import enable_debug, info, debug, error, warn
 
 __all__ = [
-    'setup_logging',
-    'get_logger',
-    'set_level',
-    'HourlyRotatingFileHandler',
+    'enable_debug',
+    'info',
+    'debug',
+    'error',
+    'warn',
 ]

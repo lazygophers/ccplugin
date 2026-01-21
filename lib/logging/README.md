@@ -1,255 +1,203 @@
-# lib/logging - 日志管理模块
+# lib/logging - 基于 Rich 的日志系统
 
-统一的日志管理模块，提供按小时自动分割、自动清理过期日志的功能。
+简洁、强大的日志管理模块，使用 Rich 库提供彩色输出和格式化，自动按小时分割日志文件。
 
 ## 特性
 
-- ✅ **按小时自动分割**：日志文件按 `YYYYMMDDHH.log` 格式自动分割
-- ✅ **自动清理过期日志**：自动删除超过 3 小时的旧日志文件
-- ✅ **全局日志配置**：支持一次性配置所有日志记录器
-- ✅ **DEBUG 模式**：支持 DEBUG 级别和控制台输出
-- ✅ **简洁的 API**：易用的函数式接口
+- ✅ **基于 Rich** - 彩色输出和优雅的格式化
+- ✅ **按小时自动分割** - 日志文件自动按 `YYYYMMDDHH.log` 分割
+- ✅ **自动清理过期日志** - 保留最新 3 个文件，自动删除过期文件
+- ✅ **单实例设计** - 全局统一的日志管理器
+- ✅ **简洁的 API** - 只有 5 个函数：`info()`, `debug()`, `error()`, `warn()`, `enable_debug()`
+- ✅ **DEBUG 模式** - 启用后同时输出到文件和控制台，显示 DEBUG 级别日志
 
-## 文件结构
+## 快速开始
 
-```
-lib/logging/
-├── __init__.py          # 模块公共 API 导出
-├── handler.py           # 按小时分割的文件处理器
-├── setup_utils.py       # 日志设置工具和配置函数
-└── README.md           # 本文件
-```
-
-## 基本使用
-
-### 1. 简单日志记录
+### 基础使用
 
 ```python
-from lib.logging import get_logger
-
-# 获取日志记录器
-logger = get_logger(__name__)
+from lib.logging import info, error, warn
 
 # 记录不同级别的日志
-logger.debug("调试信息")      # 不显示（默认 INFO 级别）
-logger.info("普通信息")       # 输出到文件
-logger.warning("警告信息")    # 输出到文件
-logger.error("错误信息")      # 输出到文件
+info("应用启动成功")
+warn("检测到潜在问题")
+error("发生了一个错误")
+
+# 所有日志自动保存到 ./lazygophers/ccplugin/log/YYYYMMDDHH.log
 ```
 
-### 2. DEBUG 模式
-
-在 DEBUG 模式下，日志同时输出到**文件和控制台**，并显示 DEBUG 级别的日志：
+### DEBUG 模式
 
 ```python
-from lib.logging import get_logger
+from lib.logging import enable_debug, debug, info
 
 # 启用 DEBUG 模式
-logger = get_logger(__name__, debug=True)
+enable_debug()
 
-logger.debug("调试信息")    # 输出到控制台和文件
-logger.info("普通信息")    # 输出到控制台和文件
+# 现在调试信息会同时输出到文件和控制台
+debug("这是调试信息")
+info("普通信息")
 ```
 
-### 3. 全局配置
+## API 参考
 
-配置所有日志记录器的输出方式：
+### `info(message: str)`
+
+记录 INFO 级别日志。
 
 ```python
-from lib.logging import setup_logging, get_logger
-import logging
-
-# 配置所有 logger：级别设为 DEBUG，启用控制台输出
-setup_logging(
-    log_dir="./my_logs",
-    level=logging.DEBUG,
-    enable_console=True
-)
-
-# 现有的 logger 会被更新
-logger = get_logger("my_module")
-logger.debug("现在会输出到控制台和文件")
+from lib.logging import info
+info("操作完成")
 ```
 
-### 4. 设置全局日志级别
+### `debug(message: str)`
+
+记录 DEBUG 级别日志。
+
+仅在启用 DEBUG 模式时输出到控制台（始终写入文件）。
 
 ```python
-from lib.logging import get_logger, set_level
-import logging
+from lib.logging import debug
+debug("调试信息")
+```
 
-logger = get_logger("my_module")
+### `error(message: str)`
 
-# 后续设置全局级别，影响所有 logger
-set_level(logging.DEBUG)
-logger.debug("现在会显示")
+记录 ERROR 级别日志。
+
+```python
+from lib.logging import error
+error("发生错误: 无法连接到服务器")
+```
+
+### `warn(message: str)`
+
+记录 WARNING 级别日志。
+
+```python
+from lib.logging import warn
+warn("内存使用率较高")
+```
+
+### `enable_debug()`
+
+启用 DEBUG 模式。
+
+在 DEBUG 模式下：
+- 日志同时输出到**文件和控制台**
+- 显示 **DEBUG** 级别的日志信息
+- 使用彩色输出增强可读性
+
+```python
+from lib.logging import enable_debug
+enable_debug()
 ```
 
 ## 日志格式
 
-日志文件格式为：
+日志文件中的格式：
 
 ```
-2026-01-21 14:30:00 - INFO - module.py:42 - 消息内容
-2026-01-21 14:30:01 - WARNING - handler.py:15 - 警告消息
-2026-01-21 14:30:02 - ERROR - script.py:99 - 错误消息
+ℹ️  INFO [2026-01-21 14:30:00] 应用启动
+⚠️  WARNING [2026-01-21 14:30:01] 这是一条警告
+❌ ERROR [2026-01-21 14:30:02] 发生错误
+🐛 DEBUG [2026-01-21 14:30:03] 调试信息
 ```
 
-字段说明：
-- **时间**：`YYYY-MM-DD HH:MM:SS` 格式
-- **级别**：`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
-- **文件**：`filename.py:lineno` - 记录日志的文件和行号
-- **消息**：日志消息内容
+- **图标** - 日志级别的视觉标识
+- **级别** - INFO, DEBUG, ERROR, WARNING
+- **时间戳** - `[YYYY-MM-DD HH:MM:SS]` 格式
+- **消息** - 日志内容
 
 ## 日志文件存储
 
-日志文件默认存储在：
+日志默认保存在：
 
 ```
 ./lazygophers/ccplugin/log/
-├── 2026012113.log   # 2026-01-21 13:00-13:59
-├── 2026012114.log   # 2026-01-21 14:00-14:59
-├── 2026012115.log   # 2026-01-21 15:00-15:59
-└── ...
+├── 2026012113.log   (2026-01-21 13:00-13:59)
+├── 2026012114.log   (2026-01-21 14:00-14:59)
+└── 2026012115.log   (2026-01-21 15:00-15:59)
 ```
 
-**特点**：
-- 文件名格式：`YYYYMMDDHH.log`（年月日小时）
-- 最多保留 3 个日志文件
-- 自动删除超过 3 小时的旧日志
+**特点：**
+- 文件命名：`YYYYMMDDHH.log`（年月日小时）
+- 最多保留 **3 个**日志文件
+- 旧文件**自动删除**
 
-## API 参考
+## 常见使用场景
 
-### `get_logger(name, debug=False)`
-
-获取配置好的日志记录器。
-
-**参数：**
-- `name` (str)：日志记录器名称，通常使用 `__name__`
-- `debug` (bool)：是否启用 DEBUG 模式，默认 False
-  - `False`：仅写入文件，级别为 INFO
-  - `True`：同时输出到控制台和文件，级别为 DEBUG
-
-**返回值：**
-- `logging.Logger`：配置好的日志记录器实例
-
-**示例：**
-```python
-# 普通模式
-logger = get_logger(__name__)
-
-# DEBUG 模式
-logger = get_logger(__name__, debug=True)
-```
-
-### `setup_logging(log_dir=None, level=logging.INFO, enable_console=False)`
-
-全局配置日志系统。
-
-**参数：**
-- `log_dir` (str)：日志目录，默认为 `./lazygophers/ccplugin/log`
-- `level` (int)：日志级别，默认 `logging.INFO`
-- `enable_console` (bool)：是否输出到控制台，默认 False
-
-**示例：**
-```python
-import logging
-from lib.logging import setup_logging
-
-# 配置所有 logger 为 DEBUG 级别并输出到控制台
-setup_logging(
-    log_dir="./logs",
-    level=logging.DEBUG,
-    enable_console=True
-)
-```
-
-### `set_level(level)`
-
-设置所有日志记录器的级别。
-
-**参数：**
-- `level` (int)：日志级别（`logging.DEBUG`, `logging.INFO`, 等）
-
-**示例：**
-```python
-from lib.logging import set_level
-import logging
-
-set_level(logging.DEBUG)  # 所有 logger 显示 DEBUG 信息
-```
-
-### `HourlyRotatingFileHandler`
-
-按小时分割的文件处理器（通常不需要直接使用）。
-
-**特性：**
-- 自动按小时创建新的日志文件
-- 自动删除超过 3 小时的旧文件
-- 与标准 `logging.FileHandler` 兼容
-
-## 常见场景
-
-### 场景 1：在插件脚本中集成日志
+### 场景 1: 脚本中的基础日志
 
 ```python
 #!/usr/bin/env python3
-import sys
-from pathlib import Path
-from lib.logging import get_logger
-
-# 获取日志记录器
-logger = get_logger(__name__)
+from lib.logging import info, error
 
 def main():
-    logger.info("脚本启动")
+    info("脚本启动")
     try:
-        # 你的代码
-        logger.info("操作完成")
+        # 执行操作
+        info("操作完成")
     except Exception as e:
-        logger.error(f"发生错误: {e}")
-        sys.exit(1)
+        error(f"发生错误: {e}")
+        return 1
+    return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())
 ```
 
-### 场景 2：Hook 脚本中的日志（仅写文件）
+### 场景 2: 启用 DEBUG 模式进行调试
 
 ```python
 #!/usr/bin/env python3
 import sys
-from pathlib import Path
-from lib.logging import get_logger
+from lib.logging import info, debug, enable_debug
 
-# Hook 脚本通常只写日志文件，不输出到控制台
-logger = get_logger("stop_hook")
+def main(debug_mode=False):
+    if debug_mode:
+        enable_debug()
 
-def main():
-    logger.info("Stop hook triggered")
+    debug("这是调试信息")
+    info("开始处理")
+
     # ...
 
 if __name__ == "__main__":
-    main()
+    debug_mode = "--debug" in sys.argv
+    main(debug_mode)
 ```
 
-### 场景 3：需要 DEBUG 信息的脚本
+### 场景 3: Hook 脚本中的日志
 
 ```python
 #!/usr/bin/env python3
-import sys
-from lib.logging import get_logger
+from lib.logging import info, error
 
-def main(debug_mode=False):
-    # 根据参数启用 DEBUG
-    logger = get_logger(__name__, debug=debug_mode)
+def process_hook():
+    info("Hook 被触发")
+    try:
+        # 处理 Hook 事件
+        info("处理完成")
+    except Exception as e:
+        error(f"Hook 处理失败: {e}")
+        return 1
+    return 0
+```
 
-    logger.debug("调试信息，仅在 debug 模式显示")
-    logger.info("普通信息，始终显示")
+## 日志查看
 
-if __name__ == "__main__":
-    # 检查 --debug 标记
-    debug = "--debug" in sys.argv
-    main(debug)
+查看最新的日志：
+
+```bash
+# 查看最新日志文件
+tail lazygophers/ccplugin/log/2026012114.log
+
+# 实时跟踪日志
+tail -f lazygophers/ccplugin/log/2026012114.log
+
+# 查看所有日志
+cat lazygophers/ccplugin/log/*.log
 ```
 
 ## 测试
@@ -257,44 +205,83 @@ if __name__ == "__main__":
 运行单元测试：
 
 ```bash
-uv run -m pytest lib/tests/test_logging.py -v
+uv run python3 -m unittest lib.tests.test_logging -v
 ```
 
-测试覆盖内容：
-- ✅ 日志处理器创建和文件生成
-- ✅ 日志格式验证
-- ✅ 日志文件自动轮转
-- ✅ 旧日志文件自动清理（保留最新 3 个）
-- ✅ API 缓存和全局配置
-- ✅ 日志级别控制
+测试覆盖：
+- ✅ 所有日志级别函数
+- ✅ DEBUG 模式启用
+- ✅ 日志文件创建和格式
+- ✅ 旧日志文件清理（保留 3 个）
+- ✅ 单例模式
+- ✅ API 可访问性
+
+## 与 Python logging 的区别
+
+| 特性 | lib.logging | Python logging |
+|------|-----------|-----------------|
+| 库 | Rich | 标准库 |
+| API | 简洁函数式 | 复杂、冗长 |
+| 输出格式 | 彩色、表情符号 | 纯文本 |
+| 自动分割 | 按小时分割 | 按大小分割 |
+| 单例 | 是（全局） | 否（多实例） |
+| 行数 | ~200 | ~1000+ |
 
 ## 常见问题
 
 **Q: 日志文件保存在哪里？**
 
-A: 默认保存在项目目录的 `./lazygophers/ccplugin/log/` 目录下。可以通过 `setup_logging(log_dir="...")` 自定义。
-
-**Q: 如何查看日志？**
-
-A: 日志文件按小时命名（如 `2026012114.log`），可以直接用文本编辑器或命令行查看：
-```bash
-cat lazygophers/ccplugin/log/2026012114.log
-```
-
-**Q: 如何启用 DEBUG 日志和控制台输出？**
-
-A: 使用 `debug=True` 参数或 `setup_logging(enable_console=True, level=logging.DEBUG)`。
+A: `./lazygophers/ccplugin/log/` - 相对于当前工作目录。
 
 **Q: 日志会占用很多磁盘空间吗？**
 
-A: 不会。系统最多保留 3 个日志文件，旧文件会自动删除。
+A: 不会。系统最多保留 3 个日志文件，超过的会自动删除。
+
+**Q: 如何查看 DEBUG 日志？**
+
+A: 调用 `enable_debug()` 启用 DEBUG 模式，DEBUG 日志会输出到控制台和文件。
+
+**Q: 可以改变日志存储位置吗？**
+
+A: 当前默认位置固定为 `./lazygophers/ccplugin/log/`。如需改变，请修改 `RichLoggerManager` 中的 `log_dir` 配置。
+
+**Q: 日志文件会一直保留吗？**
+
+A: 不会。只保留最新的 3 个日志文件，旧文件会自动删除。
 
 ## 集成检查清单
 
-- [ ] 在插件脚本中导入：`from lib.logging import get_logger`
-- [ ] 创建 logger：`logger = get_logger(__name__)`
-- [ ] 记录关键操作：`logger.info("operation...")`
-- [ ] 记录错误：`logger.error("error message")`
-- [ ] Hook 脚本使用 `debug=False`（仅文件）
-- [ ] 普通脚本可选 `debug` 参数
-- [ ] 运行测试验证：`pytest lib/tests/test_logging.py`
+- [ ] 在脚本中导入：`from lib.logging import info, error, warn, debug, enable_debug`
+- [ ] 在关键步骤记录日志：`info("step completed")`
+- [ ] 在错误处理中使用 `error()`
+- [ ] 必要时使用 `debug()` 和 `enable_debug()`
+- [ ] 运行测试验证：`uv run python3 -m unittest lib.tests.test_logging -v`
+
+## 架构设计
+
+```
+lib/logging/
+├── __init__.py          → 导出简洁的 5 个 API 函数
+├── manager.py           → RichLoggerManager 单例实现
+│   ├── enable_debug()   → 启用控制台输出
+│   ├── info()           → 记录 INFO 日志
+│   ├── debug()          → 记录 DEBUG 日志
+│   ├── error()          → 记录 ERROR 日志
+│   ├── warn()           → 记录 WARNING 日志
+│   ├── _write_to_file() → 写入日志文件
+│   ├── _cleanup_old_logs() → 清理过期日志
+│   └── ...
+└── README.md            → 本文档
+```
+
+## 关键设计决策
+
+1. **单实例模式** - 全局唯一的日志管理器，避免重复创建
+2. **简洁 API** - 只导出 5 个必要的函数，易于学习和使用
+3. **Rich 库** - 提供美观的彩色输出和格式化
+4. **按小时分割** - 适合日常开发和调试，文件大小可控
+5. **自动清理** - 保留最新 3 个文件，无需手动管理
+
+## 许可证
+
+与 ccplugin 项目相同。
