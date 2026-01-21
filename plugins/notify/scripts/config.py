@@ -16,14 +16,15 @@ Claude Code Hooks 配置管理模块
 配置文件位置: ~/.lazygophers/ccplugin/notify/config.yaml
            或 .lazygophers/ccplugin/notify/config.yaml
 """
+import os
 import os.path
+import shutil
 from dataclasses import dataclass, field, asdict
-from pathlib import Path
 from typing import Dict, Optional
 import yaml
 from lib import logging
 
-from lib.utils.env import project_plugins_dir, app_name, user_plugins_dir
+from lib.utils.env import project_plugins_dir, app_name, user_plugins_dir, plugins_path
 
 
 @dataclass
@@ -327,7 +328,7 @@ class HooksConfig:
 		)
 
 	@classmethod
-	def load_from_file(cls, config_path: Path) -> "HooksConfig":
+	def load_from_file(cls, config_path: str) -> "HooksConfig":
 		"""从 YAML 文件加载配置
 
 		Args:
@@ -341,7 +342,7 @@ class HooksConfig:
 			yaml.YAMLError: YAML 解析错误
 			ValueError: 配置数据无效
 		"""
-		if not config_path.exists():
+		if not os.path.exists(config_path):
 			raise FileNotFoundError(f"配置文件不存在: {config_path}")
 
 		with open(config_path, 'r', encoding='utf-8') as f:
@@ -351,13 +352,15 @@ class HooksConfig:
 		config.validate()
 		return config
 
-	def save_to_file(self, config_path: Path) -> None:
+	def save_to_file(self, config_path: str) -> None:
 		"""保存配置到 YAML 文件
 
 		Args:
 			config_path: YAML 配置文件路径
 		"""
-		config_path.parent.mkdir(parents=True, exist_ok=True)
+		config_dir = os.path.dirname(config_path)
+		if config_dir:
+			os.makedirs(config_dir, exist_ok=True)
 
 		config_dict = {
 			"hooks": asdict(self)
@@ -382,27 +385,18 @@ def get_default_config() -> HooksConfig:
 	return HooksConfig()
 
 
-def load_config(config_path: Optional[Path] = None) -> HooksConfig:
+def load_config() -> HooksConfig:
 	"""加载配置（支持多个位置）
 
 	优先级:
-	1. 指定路径 (config_path)
-	2. 项目目录 .lazygophers/ccplugin/notify/config.yaml
-	3. 用户主目录 ~/.lazygophers/ccplugin/notify/config.yaml
-	4. 默认配置
-
-	Args:
-		config_path: 可选的配置文件路径
+	1. 项目目录 .lazygophers/ccplugin/notify/config.yaml (如不存在则从 hooks.example.yaml 复制)
+	2. 用户主目录 ~/.lazygophers/ccplugin/notify/config.yaml
+	3. 默认配置
 
 	Returns:
 		HooksConfig 实例
 	"""
-	# 尝试加载指定路径
-	if config_path and config_path.exists():
-		try:
-			return HooksConfig.load_from_file(config_path)
-		except Exception as e:
-			logging.warn(f"加载配置文件失败 {config_path}: {e}")
+	example_config_path = os.path.join(plugins_path, "hooks.example.yaml")
 
 	# 尝试加载项目目录配置
 	project_config = os.path.join(project_plugins_dir, app_name, "config.yaml")
@@ -411,6 +405,16 @@ def load_config(config_path: Optional[Path] = None) -> HooksConfig:
 			return HooksConfig.load_from_file(project_config)
 		except Exception as e:
 			logging.warn(f"加载项目配置文件失败 {project_config}: {e}")
+	else:
+		# 项目配置不存在，尝试从示例配置复制
+		if os.path.exists(example_config_path):
+			try:
+				os.makedirs(os.path.dirname(project_config), exist_ok=True)
+				shutil.copy(example_config_path, project_config)
+				logging.info(f"从示例配置复制: {example_config_path} -> {project_config}")
+				return HooksConfig.load_from_file(project_config)
+			except Exception as e:
+				logging.warn(f"从示例配置复制失败: {e}")
 
 	# 尝试加载用户主目录配置
 	home_config = os.path.join(user_plugins_dir, app_name, "config.yaml")
