@@ -1,16 +1,10 @@
 [project]
 name = "ccplugin"
-version = "0.1.0"
+version = "0.0.35"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
-    "pydantic>=2.12.5",
-    "typer>=0.21.1",
-    "rich>=13.9.0",
-    "logging>=0.4.9.6",
-]
+dependencies = [ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib", "pydantic>=2.12.5", "typer>=0.21.1", "rich>=13.9.0", "logging>=0.4.9.6", "toml>=0.10.2",]
 
 [project.scripts]
 clean = "scripts.clean:main"
@@ -21,5 +15,5 @@ task = "plugins.task.scripts.task:main"
 version = "plugins.version.scripts.main:main"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["lib*", "plugins*"]
+where = [ ".",]
+include = [ "lib*", "plugins*",]

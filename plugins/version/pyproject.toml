@@ -1,26 +1,21 @@
 [project]
 name = "version"
-version = "0.0.1"
+version = "0.0.35"
 description = "Claude Code version management plugin for semantic versioning"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
-    "typer>=0.12.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-]
+dependencies = [ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib", "typer>=0.12.0",]
 
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["version*"]
+[project.optional-dependencies]
+dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.package-data]
-"*" = ["*.py", "*.json", "*.md"]
+"*" = [ "*.py", "*.json", "*.md",]
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "version*",]
