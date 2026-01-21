@@ -9,10 +9,10 @@ import json
 import sys
 from typing import Optional, Dict, Any
 
-from lib.hooks import load_hooks
-from lib.logging import info, error, debug, enable_debug
 from config import load_config, HooksConfig, HookConfig
-from notify import play_text_tts, show_system_notification
+from lib.hooks import load_hooks
+from lib.logging import info, error, debug
+from notify import play_text_tts
 
 
 def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict[str, Any]] = None) -> Optional[HookConfig]:
