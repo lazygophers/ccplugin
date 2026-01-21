@@ -280,7 +280,7 @@
     },
     {
       "name": "version",
-      "source": "./plugins/code/version",
+      "source": "./plugins/version",
       "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
       "version": "0.0.31",
       "author": {

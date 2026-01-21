@@ -154,7 +154,7 @@ uv pip install package-name
 uv run plugins/code/semantic/scripts/semantic.py --help
 uv run plugins/code/semantic/scripts/semantic.py index --path lib/config
 uv run plugins/code/git/scripts/git.py status
-uv run plugins/code/version/scripts/version.py show
+uv run plugins/version/scripts/version.py show
 
 # Utility plugins
 uv run plugins/task/scripts/task.py list
@@ -377,12 +377,12 @@ uv run plugins/code/semantic/scripts/semantic.py index --path . --batch-size 50
 
 ```bash
 # Display help for any plugin script
-uv run plugins/code/version/scripts/version.py -h
+uv run plugins/version/scripts/version.py -h
 uv run plugins/notify/scripts/notifier.py --help
 
 # Test version management
-uv run plugins/code/version/scripts/version.py show
-uv run plugins/code/version/scripts/version.py bump patch
+uv run plugins/version/scripts/version.py show
+uv run plugins/version/scripts/version.py bump patch
 
 # Test hook scripts with JSON input
 echo '{"session_id":"test","hook_event_name":"Stop","transcript_path":"/tmp/test.jsonl"}' | \
