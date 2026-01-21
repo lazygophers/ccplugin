@@ -1,23 +1,21 @@
 [project]
 name = "ccplugin-template"
-version = "0.0.1"
+version = "0.0.35"
 description = "Claude Code plugin template with example scripts and configuration"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-]
-
 [build-system]
-requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
+requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["template*"]
+[project.optional-dependencies]
+dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.package-data]
-"*" = ["*.py", "*.json", "*.md"]
+"*" = [ "*.py", "*.json", "*.md",]
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "template*",]
