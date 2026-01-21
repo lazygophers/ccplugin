@@ -18,3 +18,5 @@ def set_app(name: str) -> None:
 plugins_path = os.getcwd()
 if os.getenv("CLAUDE_PLUGIN_ROOT") is not None:
 	plugins_path = os.getenv("CLAUDE_PLUGIN_ROOT")
+
+user_plugins_dir = os.path.join(os.path.expanduser("~"), ".lazygophers", "ccplugin")

@@ -16,12 +16,14 @@ Claude Code Hooks 配置管理模块
 配置文件位置: ~/.lazygophers/ccplugin/notify/config.yaml
            或 .lazygophers/ccplugin/notify/config.yaml
 """
-
+import os.path
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional, List
 from pathlib import Path
 import yaml
 import sys
+
+from lib.utils import project_plugins_dir, app_name
 
 # 设置 sys.path 以找到 lib 模块
 script_dir = Path(__file__).resolve().parent
@@ -30,7 +32,7 @@ sys.path.insert(0, str(project_root))
 
 try:
     from lib.logging import warn, debug
-    from lib.utils.env import project_dir
+    from lib.utils.env import project_dir, user_plugins_dir
 except ImportError:
     def warn(msg): pass
     def debug(msg): pass
@@ -416,16 +418,15 @@ def load_config(config_path: Optional[Path] = None) -> HooksConfig:
             warn(f"加载配置文件失败 {config_path}: {e}")
 
     # 尝试加载项目目录配置
-    if project_dir:
-        project_config = Path(project_dir) / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
-        if project_config.exists():
-            try:
-                return HooksConfig.load_from_file(project_config)
-            except Exception as e:
-                warn(f"加载项目配置文件失败 {project_config}: {e}")
+    project_config = os.path.join(project_plugins_dir, app_name, "config.yaml")
+    if project_config.exists():
+        try:
+            return HooksConfig.load_from_file(project_config)
+        except Exception as e:
+            warn(f"加载项目配置文件失败 {project_config}: {e}")
 
     # 尝试加载用户主目录配置
-    home_config = Path.home() / ".lazygophers" / "ccplugin" / "notify" / "config.yaml"
+    home_config = os.path.join(user_plugins_dir, app_name, "config.yaml")
     if home_config.exists():
         try:
             return HooksConfig.load_from_file(home_config)
