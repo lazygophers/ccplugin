@@ -6,9 +6,14 @@ Supports debug logging mode and hook integration.
 """
 
 import typer
+import sys
+from pathlib import Path
 
 from ccplugin.lib import enable_debug, set_app
-from .hooks import handle_hook
+
+# 导入 hooks，使用绝对路径
+sys.path.insert(0, str(Path(__file__).parent))
+from hooks import handle_hook
 
 
 # 注册应用名称
