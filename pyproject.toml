@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin"
-version = "0.0.47"
+version = "0.0.48"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
