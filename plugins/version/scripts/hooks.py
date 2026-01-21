@@ -5,7 +5,6 @@ from lib import logging
 from lib.hooks import load_hooks
 from version import init_version, auto_update
 
-
 def handle_hook() -> None:
 	"""处理 hook 模式：从 stdin 读取 JSON 并记录。"""
 	try:

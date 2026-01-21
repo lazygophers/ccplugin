@@ -193,7 +193,3 @@ def handle_hook() -> None:
         import traceback
         debug(traceback.format_exc())
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    handle_hook()
