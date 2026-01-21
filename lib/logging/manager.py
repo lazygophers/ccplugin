@@ -14,6 +14,8 @@ from typing import Optional
 from rich.console import Console
 from rich.logging import RichHandler
 
+from lib.utils.env import base_dir, app_name
+
 
 class RichLoggerManager:
     """
@@ -41,7 +43,7 @@ class RichLoggerManager:
             return
 
         self._initialized = True
-        self.log_dir = Path.cwd() / ".lazygophers" / "ccplugin" / "log"
+        self.log_dir = os.path.join(base_dir, "log")
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # 创建主控制台（文件输出）
@@ -55,16 +57,6 @@ class RichLoggerManager:
         self.console_console: Optional[Console] = None
         self.debug_enabled = False
         self._last_hour = self._get_current_hour()
-        self.app_name: Optional[str] = None
-
-    def set_app_name(self, app_name: str) -> None:
-        """
-        设置应用名称。
-
-        Args:
-            app_name: 应用名称（如 'version'、'task' 等）
-        """
-        self.app_name = app_name
 
     def enable_debug(self) -> None:
         """启用 DEBUG 模式（同时输出到控制台）。"""
@@ -108,7 +100,7 @@ class RichLoggerManager:
             color: 颜色标签
         """
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        app_prefix = f"[{self.app_name}] " if self.app_name else ""
+        app_prefix = f"[{app_name}] " if app_name else ""
         formatted = f"{app_prefix}[{color}]{level}[/{color}] [{timestamp}] {message}"
 
         # 写入文件
