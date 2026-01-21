@@ -3,19 +3,11 @@ revision = 2
 requires-python = ">=3.12"
 
 [[package]]
-name = "ccplugin-lib"
-version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=ccplugin&rev=master#ec10632ad2266ec0c83392820d9abf8e97da3722" }
-dependencies = [
-    { name = "rich" },
-]
-
-[[package]]
 name = "ccplugin-version"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "ccplugin-lib" },
+    { name = "lib" },
     { name = "typer" },
 ]
 
@@ -26,7 +18,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ccplugin-lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=ccplugin&rev=master" },
+    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "typer", specifier = ">=0.12.0" },
 ]
@@ -60,6 +52,14 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
+]
+
+[[package]]
+name = "lib"
+version = "0.0.1"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#7fb8a11ee872b8cae3e03259cd2d1d6e51d25c14" }
+dependencies = [
+    { name = "rich" },
 ]
 
 [[package]]

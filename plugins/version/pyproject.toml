@@ -5,7 +5,7 @@ description = "Claude Code version management plugin for semantic versioning"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "ccplugin-lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
+    "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
     "typer>=0.12.0",
 ]
 
