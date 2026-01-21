@@ -10,7 +10,10 @@
 
 使用示例：
 
-    from lib.logging import info, debug, error, warn, enable_debug
+    from ccplugin.lib.logging import info, debug, error, warn, enable_debug, set_app
+
+    # 注册应用名称
+    set_app("version")
 
     # 基础使用
     info("操作启动")
@@ -21,7 +24,7 @@
     debug("调试信息（输出到控制台）")
 """
 
-from .manager import enable_debug, info, debug, error, warn
+from .manager import enable_debug, info, debug, error, warn, set_app
 
 __all__ = [
     'enable_debug',
@@ -29,4 +32,5 @@ __all__ = [
     'debug',
     'error',
     'warn',
+    'set_app',
 ]
