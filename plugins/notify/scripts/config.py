@@ -22,9 +22,8 @@ import shutil
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional
 
-import lib.utils.env as env_module
 from lib import logging
-from lib.utils.env import project_plugins_dir, user_plugins_dir, plugins_path
+from lib.utils.env import get_project_plugins_dir, get_user_plugins_dir, get_plugins_path, get_app_name
 
 
 @dataclass
@@ -343,7 +342,7 @@ class HooksConfig:
 			ValueError: 配置数据无效
 		"""
 		import yaml
-		
+
 		if not os.path.exists(config_path):
 			raise FileNotFoundError(f"配置文件不存在: {config_path}")
 
@@ -361,7 +360,7 @@ class HooksConfig:
 			config_path: YAML 配置文件路径
 		"""
 		import yaml
-		
+
 		config_dir = os.path.dirname(config_path)
 		if config_dir:
 			os.makedirs(config_dir, exist_ok=True)
@@ -445,9 +444,9 @@ def load_config() -> HooksConfig:
 	Returns:
 		HooksConfig 实例
 	"""
-	example_config_path = os.path.join(plugins_path, "hooks.example.yaml")
-	project_config_path = os.path.join(project_plugins_dir, env_module.app_name, "config.yaml")
-	home_config_path = os.path.join(user_plugins_dir, env_module.app_name, "config.yaml")
+	example_config_path = os.path.join(get_plugins_path(), "hooks.example.yaml")
+	project_config_path = os.path.join(get_project_plugins_dir(), get_app_name(), "config.yaml")
+	home_config_path = os.path.join(get_user_plugins_dir(), get_app_name(), "config.yaml")
 
 	# 尝试加载用户主目录配置（基础配置）
 	loaded_home_config = None
