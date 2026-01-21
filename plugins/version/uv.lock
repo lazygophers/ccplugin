@@ -57,7 +57,7 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#fc1e0bec32d97b59a7b106076420a3ba0ce51d3e" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#25fe9276c00ff5ab219cc1ffc9f41e9de1cd29f2" }
 dependencies = [
     { name = "rich" },
 ]
