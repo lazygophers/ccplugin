@@ -13,4 +13,4 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["ccplugin", "ccplugin.lib", "ccplugin.lib.logging", "ccplugin.lib.tests"]
+packages = ["ccplugin", "ccplugin.lib", "ccplugin.lib.logging", "ccplugin.lib.tests", "ccplugin.lib.utils"]
