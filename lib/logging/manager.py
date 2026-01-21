@@ -14,7 +14,7 @@ from typing import Optional
 from rich.console import Console
 from rich.logging import RichHandler
 
-from lib.utils.env import base_dir, app_name
+from lib.utils.env import project_plugins_dir, app_name
 
 
 class RichLoggerManager:
@@ -43,7 +43,7 @@ class RichLoggerManager:
             return
 
         self._initialized = True
-        self.log_dir = os.path.join(base_dir, "log")
+        self.log_dir = os.path.join(project_plugins_dir, "log")
         os.makedirs(self.log_dir, exist_ok=True)
 
         # 创建主控制台（文件输出）
