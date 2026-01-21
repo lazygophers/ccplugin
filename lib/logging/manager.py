@@ -144,11 +144,11 @@ class RichLoggerManager:
     def _get_log_file(self) -> Path:
         """获取当前小时的日志文件路径。"""
         hour = self._get_current_hour()
-        return self.log_dir / f"{hour}.log"
+        return Path(self.log_dir) / f"{hour}.log"
 
     def _cleanup_old_logs(self) -> None:
         """删除超过 3 小时的日志文件，保留最新 3 个。"""
-        log_files = sorted(glob.glob(str(self.log_dir / "*.log")))
+        log_files = sorted(glob.glob(str(Path(self.log_dir) / "*.log")))
 
         if len(log_files) > 3:
             for old_log in log_files[:-3]:
