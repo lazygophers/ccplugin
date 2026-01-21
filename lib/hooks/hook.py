@@ -26,8 +26,9 @@ def load_hooks():
 
 		# 处理公共逻辑
 		if event_name == "SessionStart":
-			if os.path.exists(plugins_path, "AGENT.md"):
-				with open(os.path.exists(plugins_path, "AGENT.md"), "r", encoding="utf-8") as f:
+			agent_md_path = os.path.join(plugins_path, "AGENT.md")
+			if os.path.exists(agent_md_path):
+				with open(agent_md_path, "r", encoding="utf-8") as f:
 					for line in f:
 						print(line)
 

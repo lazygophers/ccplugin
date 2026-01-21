@@ -22,8 +22,8 @@ def main(
 	if debug_mode:
 		logging.enable_debug()
 
-		if hooks:
-			handle_hook()
+	if hooks:
+		handle_hook()
 
 
 if __name__ == "__main__":
