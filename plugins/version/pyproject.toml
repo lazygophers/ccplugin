@@ -1,10 +1,10 @@
 [project]
 name = "version"
-version = "0.0.62"
+version = "0.0.63"
 description = "Claude Code version management plugin for semantic versioning"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [ "pydantic>=2.12.5", "rich>=14.2.0", "typer>=0.12.0",]
+dependencies = [ "pydantic>=2.12.5", "rich>=14.2.0", "click>=8.1.0",]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
