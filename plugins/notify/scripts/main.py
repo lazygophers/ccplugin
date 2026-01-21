@@ -1,15 +1,15 @@
 from lib import logging
 from lib.utils.env import set_app
 from hooks import handle_hook
-import typer
+import click
 
 # 注册应用名称
 set_app("notify")
 
-def main(
-	debug_mode: bool = typer.Option(False, "--debug", help="启用 DEBUG 模式"),
-	hooks: bool = typer.Option(False, "--hooks", help="Hook 模式：从 stdin 读取 JSON"),
-) -> None:
+@click.command()
+@click.option("--debug", "debug_mode", is_flag=True, help="启用 DEBUG 模式")
+@click.option("--hooks", "hooks", is_flag=True, help="Hook 模式：从 stdin 读取 JSON")
+def main(debug_mode: bool, hooks: bool) -> None:
 	"""
 	Version management plugin.
 
@@ -25,4 +25,4 @@ def main(
 
 
 if __name__ == "__main__":
-	typer.run(main)
+	main()
