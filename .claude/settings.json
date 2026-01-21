@@ -1,7 +1,7 @@
 {
 	"enabledPlugins": {
 		"git@ccplugin-market": true,
-		"notify@ccplugin-market": true,
+		"notify@ccplugin-market": false,
 		"version@ccplugin-market": true
 	}
 }
