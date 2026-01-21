@@ -7,19 +7,7 @@ Claude Code Hooks 事件处理模块
 
 import json
 import sys
-from pathlib import Path
 from typing import Optional, Dict, Any
-
-# 设置 sys.path 以找到 lib 模块
-script_dir = Path(__file__).resolve().parent
-current = script_dir
-
-# 向上搜索 lib 目录（最多 10 层）
-for _ in range(10):
-	if (current / "lib").exists():
-		sys.path.insert(0, str(current))
-		break
-	current = current.parent
 
 from config import load_config, HooksConfig, HookConfig
 from lib.hooks import load_hooks
