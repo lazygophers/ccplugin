@@ -47,22 +47,27 @@ class RichLoggerManager:
         os.makedirs(self.log_dir, exist_ok=True)
 
         # 创建主控制台（文件输出）
+        # 设置 width=99999 防止长消息自动换行
         self.file_console = Console(
             file=open(str(self._get_log_file()), "a", encoding="utf-8"),
             force_terminal=False,
             legacy_windows=False,
+            width=99999,
         )
 
         # 创建控制台输出器（默认关闭）
         self.console_console: Optional[Console] = None
         self.debug_enabled = False
         self._last_hour = self._get_current_hour()
+        
+        # 初始化时清理旧日志文件
+        self._cleanup_old_logs()
 
     def enable_debug(self) -> None:
         """启用 DEBUG 模式（同时输出到控制台）。"""
         self.debug_enabled = True
         if self.console_console is None:
-            self.console_console = Console(force_terminal=True)
+            self.console_console = Console(force_terminal=True, width=99999)
 
     def disable_debug(self) -> None:
         """禁用 DEBUG 模式。"""
