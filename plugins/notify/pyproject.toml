@@ -1,7 +1,7 @@
 [project]
 name = "notify"
-version = "0.0.61"
+version = "0.0.62"
 description = "Claude Code system notification plugin with hook support"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [ "pyyaml>=6.0.3", "typer>=0.21.1",]
+dependencies = [ "pydantic>=2.12.5", "pyyaml>=6.0.3", "rich>=14.2.0", "typer>=0.21.1",]
