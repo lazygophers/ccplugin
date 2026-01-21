@@ -6,7 +6,7 @@ Supports debug logging mode and hook integration.
 """
 
 import typer
-from lib.logging import enable_debug
+from lib import logging
 from hooks import handle_hook
 from lib.utils.env import set_app
 
@@ -26,7 +26,7 @@ def main(
         hooks: 是否启用 Hook 模式
     """
     if debug_mode:
-        enable_debug()
+        logging.enable_debug()
 
     if hooks:
         handle_hook()
