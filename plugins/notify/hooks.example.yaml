@@ -1,0 +1,516 @@
+# Claude Code Hooks 事件配置文件示例
+#
+# 复制此文件到以下位置之一:
+# - 项目目录: ./.lazygophers/ccplugin/notify/config.yaml
+# - 用户主目录: ~/.lazygophers/ccplugin/notify/config.yaml
+#
+# 配置将按优先级加载，首个存在的文件将被使用
+
+---
+
+hooks:
+  # ============================================================================
+  # Stop Hook 配置
+  # ============================================================================
+  # 触发条件: 在主 Claude Code agent 完成响应时运行。如果停止是由于用户中断而发生的，则不运行。
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "Stop",
+  #   "stop_hook_active": true
+  # }
+  stop:
+    enabled: true
+    play_sound: true
+    message: "{project_name} 已完成"
+    # 可用变量: {time_now}, {session_id}, {project_name}
+
+  # ============================================================================
+  # SubagentStop Hook 配置
+  # ============================================================================
+  # 触发条件: Task 子代理完成执行时
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "hook_event_name": "SubagentStop",
+  #   "subagent_type": "Task"
+  # }
+  subagent_stop:
+    enabled: false
+    play_sound: false
+    message: "{project_name} Task 已完成"
+    # 可用变量: {time_now}, {session_id}, {project_name}, {subagent_type}
+
+  # ============================================================================
+  # PreToolUse Hook 配置
+  # ============================================================================
+  # 触发条件: Claude 创建工具参数之后和处理工具调用之前运行。
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "cwd": "/current/working/directory",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "PreToolUse",
+  #   "tool_name": "Write",
+  #   "tool_input": {
+  #     "file_path": "/path/to/file.txt",
+  #     "content": "file content"
+  #   },
+  #   "tool_use_id": "toolu_01ABC123..."
+  # }
+  pre_tool_use:
+    # Write 工具
+    write:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备写入文件 {file_path}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Write",
+      #   "tool_input": {
+      #     "file_path": "/path/to/file.txt",
+      #     "content": "file content"
+      #   }
+      # }
+
+    # Edit 工具
+    edit:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备编辑文件 {file_path}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Edit",
+      #   "tool_input": {
+      #     "file_path": "/path/to/file.txt",
+      #     "old_string": "old content",
+      #     "new_string": "new content"
+      #   }
+      # }
+
+    # Read 工具
+    read:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备读取文件 {file_path}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Read",
+      #   "tool_input": {
+      #     "file_path": "/path/to/file.txt"
+      #   }
+      # }
+
+    # Bash 工具
+    bash:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备执行命令"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Bash",
+      #   "tool_input": {
+      #     "command": "ls -la"
+      #   }
+      # }
+
+    # Task 工具（子代理）
+    task:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备启动子任务"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Task",
+      #   "tool_input": {
+      #     "description": "task description",
+      #     "subagent_type": "general-purpose"
+      #   }
+      # }
+
+    # WebFetch 工具
+    webfetch:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备获取网页"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "WebFetch",
+      #   "tool_input": {
+      #     "url": "https://example.com"
+      #   }
+      # }
+
+    # WebSearch 工具
+    websearch:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 准备搜索网页"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "WebSearch",
+      #   "tool_input": {
+      #     "query": "search query"
+      #   }
+      # }
+
+  # ============================================================================
+  # PostToolUse Hook 配置
+  # ============================================================================
+  # 触发条件: 工具调用成功执行完成后
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "cwd": "/current/working/directory",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "PostToolUse",
+  #   "tool_name": "Write",
+  #   "tool_input": {...},
+  #   "tool_result": {
+  #     "success": true,
+  #     "message": "File written successfully"
+  #   },
+  #   "tool_use_id": "toolu_01ABC123..."
+  # }
+  post_tool_use:
+    # Write 工具
+    write:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 文件写入完成 {file_path}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Write",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "File written successfully"
+      #   }
+      # }
+
+    # Edit 工具
+    edit:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 文件编辑完成 {file_path}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Edit",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "File edited successfully"
+      #   }
+      # }
+
+    # Read 工具
+    read:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 文件读取完成 {file_path}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Read",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "File read successfully"
+      #   }
+      # }
+
+    # Bash 工具
+    bash:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 命令执行完成"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Bash",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "Command executed successfully",
+      #     "stdout": "command output"
+      #   }
+      # }
+
+    # Task 工具（子代理）
+    task:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 子任务完成"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "Task",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "Task completed successfully"
+      #   }
+      # }
+
+    # WebFetch 工具
+    webfetch:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 网页获取完成"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "WebFetch",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "Web fetch completed successfully"
+      #   }
+      # }
+
+    # WebSearch 工具
+    websearch:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 网页搜索完成"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      # JSON 输入示例（工具维度）:
+      # {
+      #   "tool_name": "WebSearch",
+      #   "tool_result": {
+      #     "success": true,
+      #     "message": "Web search completed successfully"
+      #   }
+      # }
+
+  # ============================================================================
+  # PermissionRequest Hook 配置
+  # ============================================================================
+  # 触发条件: Claude Code 需要用户授权时
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "cwd": "/current/working/directory",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "PermissionRequest",
+  #   "tool_name": "Bash",
+  #   "tool_input": {
+  #     "command": "dangerous command"
+  #   },
+  #   "message": "Permission required for dangerous operation"
+  # }
+  permission_request:
+    enabled: false
+    play_sound: false
+    message: "{project_name} 需要权限授权 ({tool_name})"
+    # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+
+  # ============================================================================
+  # UserPromptSubmit Hook 配置
+  # ============================================================================
+  # 触发条件: 用户提交提示之前
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "cwd": "/current/working/directory",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "UserPromptSubmit",
+  #   "user_prompt": "the user's prompt text"
+  # }
+  user_prompt_submit:
+    enabled: false
+    play_sound: false
+    message: "{project_name} 接收到用户输入"
+    # 可用变量: {time_now}, {session_id}, {project_name}
+
+  # ============================================================================
+  # Notification Hook 配置
+  # ============================================================================
+  # 触发条件: Claude Code 显示通知消息
+  #
+  # 支持的通知类型（matcher）:
+  #   - permission_prompt: 来自 Claude Code 的权限请求
+  #   - idle_prompt: 当 Claude 等待用户输入时（空闲 60+ 秒后）
+  #   - auth_success: 身份验证成功通知
+  #   - elicitation_dialog: 当 Claude Code 需要输入 MCP 工具引出时
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "cwd": "/current/working/directory",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "Notification",
+  #   "message": "Claude needs your permission to use Bash",
+  #   "notification_type": "permission_prompt"
+  # }
+  #
+  # 可用变量: {time_now}, {session_id}, {project_name}, {message}, {notification_type}
+  notification:
+    # 权限请求通知（Claude Code 的权限请求）
+    permission_prompt:
+      enabled: false
+      play_sound: false
+      message: "权限请求: {message}"
+
+    # 空闲提示（Claude 等待用户输入，空闲 60+ 秒后）
+    idle_prompt:
+      enabled: false
+      play_sound: false
+      message: "等待输入: {message}"
+
+    # 身份验证成功通知
+    auth_success:
+      enabled: false
+      play_sound: false
+      message: "身份验证成功: {message}"
+
+    # MCP 工具引出对话（Claude Code 需要输入 MCP 工具引出时）
+    elicitation_dialog:
+      enabled: false
+      play_sound: false
+      message: "工具引出: {message}"
+
+  # ============================================================================
+  # SessionStart Hook 配置
+  # ============================================================================
+  # 触发条件: 会话开始或恢复时
+  #
+  # 支持的启动场景（匹配器）:
+  #   - startup: 从启动调用
+  #   - resume: 从 --resume、--continue 或 /resume 调用
+  #   - clear: 从 /clear 调用
+  #   - compact: 从自动或手动压缩调用
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "SessionStart",
+  #   "source": "startup"
+  # }
+  #
+  # 可用变量: {time_now}, {session_id}, {project_name}
+  #
+  # 特殊功能：可通过 CLAUDE_ENV_FILE 环境变量为后续 bash 命令持久化环境变量
+  session_start:
+    # 从启动调用
+    startup:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 新会话已启动"
+
+    # 从 --resume、--continue 或 /resume 调用
+    resume:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 会话已恢复"
+
+    # 从 /clear 调用
+    clear:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 会话已清空并重启"
+
+    # 从自动或手动压缩调用
+    compact:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 会话已压缩并重启"
+
+  # ============================================================================
+  # SessionEnd Hook 配置
+  # ============================================================================
+  # 触发条件: 会话结束时
+  #
+  # 退出原因（reason 字段值）:
+  #   - clear: 使用 /clear 命令清除的会话
+  #   - logout: 用户已注销
+  #   - prompt_input_exit: 用户在提示输入可见时退出
+  #   - other: 其他退出原因
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "cwd": "/current/working/directory",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "SessionEnd",
+  #   "reason": "other"
+  # }
+  #
+  # 可用变量: {time_now}, {session_id}, {project_name}
+  session_end:
+    # 使用 /clear 命令清除的会话
+    clear:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 会话已清除"
+
+    # 用户已注销
+    logout:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 用户已注销"
+
+    # 用户在提示输入可见时退出
+    prompt_input_exit:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 用户退出（提示输入）"
+
+    # 其他退出原因
+    other:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 会话已结束"
+
+  # ============================================================================
+  # PreCompact Hook 配置
+  # ============================================================================
+  # 触发条件: 会话压缩之前
+  #
+  # 压缩触发方式（匹配器）:
+  #   - manual: 从 /compact 调用
+  #   - auto: 从自动压缩调用（由于上下文窗口已满）
+  #
+  # JSON 输入示例:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "permission_mode": "default",
+  #   "hook_event_name": "PreCompact",
+  #   "trigger": "manual",
+  #   "custom_instructions": ""
+  # }
+  #
+  # 可用变量: {time_now}, {session_id}, {project_name}
+  pre_compact:
+    # 手动压缩（/compact 命令）
+    manual:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 手动压缩已启动"
+
+    # 自动压缩（上下文窗口已满）
+    auto:
+      enabled: false
+      play_sound: false
+      message: "{project_name} 自动压缩已启动"
