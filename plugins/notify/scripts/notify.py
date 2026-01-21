@@ -7,12 +7,9 @@
 """
 
 import subprocess
-import sys
 import platform
-from pathlib import Path
-from typing import Optional
 
-from lib.logging import error, debug
+from lib.logging import error
 
 
 def play_text_tts(text: str, rate: int = 200) -> bool:
