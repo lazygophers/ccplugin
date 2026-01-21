@@ -14,8 +14,14 @@ from typing import Optional
 
 # 设置 sys.path 以找到 lib 模块
 script_dir = Path(__file__).resolve().parent
-project_root = script_dir.parent.parent.parent
-sys.path.insert(0, str(project_root))
+current = script_dir
+
+# 向上搜索 lib 目录（最多 10 层）
+for _ in range(10):
+	if (current / "lib").exists():
+		sys.path.insert(0, str(current))
+		break
+	current = current.parent
 
 from lib.logging import error, debug
 
