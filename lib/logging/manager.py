@@ -54,27 +54,23 @@ class RichLoggerManager:
         )
 
         # 创建控制台输出器（默认关闭）
-        self.console_console: Optional[Console] = None
+        self.console_console: Optional[Console] = Console(force_terminal=True, width=99999)
         self.debug_enabled = False
         self._last_hour = self._get_current_hour()
-        
+
         # 初始化时清理旧日志文件
         self._cleanup_old_logs()
-        
+
         # 初始化时创建软连接
         self._update_symlink()
 
     def enable_debug(self) -> None:
         """启用 DEBUG 模式（同时输出到控制台）。"""
         self.debug_enabled = True
-        if self.console_console is None:
-            self.console_console = Console(force_terminal=True, width=99999)
 
     def disable_debug(self) -> None:
         """禁用 DEBUG 模式。"""
         self.debug_enabled = False
-        if self.console_console is not None:
-            self.console_console = None
 
     def info(self, message: str) -> None:
         """记录 INFO 级别日志。"""
@@ -113,10 +109,10 @@ class RichLoggerManager:
         self._write_to_file(formatted)
 
         # 如果启用 DEBUG 或需要输出到控制台
-        if self.debug_enabled and level in ("DEBUG", "INFO"):
+        if self.debug_enabled:
             if self.console_console:
                 self.console_console.print(formatted)
-        elif level in ("ERROR", "WARNING"):
+        elif level in ("ERROR"):
             if self.console_console:
                 self.console_console.print(formatted)
 
@@ -143,7 +139,7 @@ class RichLoggerManager:
 
         # 写入日志
         self.file_console.print(message)
-        
+
         # 刷新文件缓冲区，确保日志立即写入
         if hasattr(self.file_console, "file") and self.file_console.file:
             self.file_console.file.flush()
@@ -172,12 +168,12 @@ class RichLoggerManager:
         """更新软连接，使 log.log 指向当前小时的日志文件。"""
         symlink_path = Path(self.log_dir) / "log.log"
         current_log_file = self._get_log_file()
-        
+
         try:
             # 如果软连接已存在，删除它
             if symlink_path.is_symlink():
                 symlink_path.unlink()
-            
+
             # 创建新的软连接
             symlink_path.symlink_to(current_log_file.name)
         except (OSError, FileNotFoundError):
