@@ -1,42 +1,34 @@
-#!/usr/bin/env python3
-"""
-Version management plugin for Claude Code.
+import os
 
-Supports debug logging mode and hook integration.
-"""
+from ccplugin.lib.utils.env import project_dir
 
-import typer
-import sys
-from pathlib import Path
-
-from ccplugin.lib import enable_debug, set_app
-
-# 导入 hooks，使用绝对路径
-sys.path.insert(0, str(Path(__file__).parent))
-from hooks import handle_hook
+version_filepath = ".version"
 
 
-# 注册应用名称
-set_app("version")
+def init_version():
+	if os.path.exists(os.path.join(project_dir, version_filepath)):
+		return
+
+	with open(os.path.join(project_dir, version_filepath), "w", encoding='utf-8') as f:
+		f.write('0.0.1.0')
 
 
-def main(
-    debug_mode: bool = typer.Option(False, "--debug", help="启用 DEBUG 模式"),
-    hooks: bool = typer.Option(False, "--hooks", help="Hook 模式：从 stdin 读取 JSON"),
-) -> None:
-    """
-    Version management plugin.
-
-    Args:
-        debug_mode: 是否启用 DEBUG 模式
-        hooks: 是否启用 Hook 模式
-    """
-    if debug_mode:
-        enable_debug()
-
-    if hooks:
-        handle_hook()
-
-
-if __name__ == "__main__":
-    typer.run(main)
+def auto_update():
+	# 检查是否有未提交的 .version 文件修改
+	result = os.popen(f"git status --porcelain {version_filepath}").read().strip()
+	if result:
+		# 存在未提交的修改，不更新
+		return
+	
+	# 读取当前版本
+	with open(os.path.join(project_dir, version_filepath), 'r', encoding='utf-8') as f:
+		version = f.read().strip()
+	
+	# 解析版本号，第四位+1
+	parts = version.split('.')
+	parts[3] = str(int(parts[3]) + 1)
+	new_version = '.'.join(parts)
+	
+	# 写回版本号
+	with open(os.path.join(project_dir, version_filepath), 'w', encoding='utf-8') as f:
+		f.write(new_version)

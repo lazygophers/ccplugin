@@ -5,7 +5,7 @@ requires-python = ">=3.12"
 [[package]]
 name = "ccplugin-lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=ccplugin&rev=master#4bba29e0273091588ffff5696412c97fbf935d62" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=ccplugin&rev=master#ac7a29ba0705273666bcce78144c1159a61c8b38" }
 dependencies = [
     { name = "rich" },
 ]

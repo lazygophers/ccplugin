@@ -1,7 +1,8 @@
 import json
 import sys
 
-from ccplugin.lib import error
+from ccplugin.lib.logging import error
+from plugins.version.scripts.version import init_version, auto_update
 
 
 def handle_hook() -> None:
@@ -9,9 +10,11 @@ def handle_hook() -> None:
 	try:
 		hook_data = json.load(sys.stdin)
 
-		event_name = hook_data.get("hook_event_name", "unknown")
-
-
+		event_name = hook_data.get("hook_event_name")
+		if event_name == "SessionStart":
+			init_version()
+		if event_name == "UserPromptSubmit":
+			auto_update()
 
 	except json.JSONDecodeError as e:
 		error(f"JSON 解析失败: {e}")
