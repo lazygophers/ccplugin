@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
     "pydantic>=2.12.5",
     "typer>=0.21.1",
     "rich>=13.9.0",
