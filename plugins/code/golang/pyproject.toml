@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-code-golang"
-version = "0.0.41"
+version = "0.0.42"
 description = "Claude Code plugin for Go language support"
 readme = "README.md"
 requires-python = ">=3.12"
