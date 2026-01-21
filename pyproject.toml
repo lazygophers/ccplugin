@@ -16,8 +16,8 @@ semantic-mcp = "plugins.code.semantic.scripts.mcp_server:main"
 task-mcp = "plugins.task.scripts.mcp_server:main"
 semantic = "plugins.code.semantic.scripts.semantic:main"
 task = "plugins.task.scripts.task:main"
-version = "plugins.version.scripts.version:main"
+version = "plugins.version.scripts.main:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["plugins/**/scripts", "scripts", "lib"]
+include = ["lib*", "plugins*"]

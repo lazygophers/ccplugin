@@ -1,8 +1,26 @@
 import json
 import sys
+from pathlib import Path
 
-from ccplugin.lib.logging import error
-from plugins.version.scripts.version import init_version, auto_update
+# Find project root and ccplugin package
+script_dir = Path(__file__).resolve().parent
+project_root = script_dir.parent.parent.parent
+
+# Add ccplugin/ccplugin to sys.path to make lib available
+ccplugin_path = project_root / "ccplugin" / "ccplugin"
+if ccplugin_path.exists():
+	sys.path.insert(0, str(ccplugin_path))
+else:
+	# Fallback: search upward for lib directory
+	current = script_dir
+	for _ in range(5):
+		if (current / "ccplugin" / "ccplugin" / "lib").exists():
+			sys.path.insert(0, str(current / "ccplugin" / "ccplugin"))
+			break
+		current = current.parent
+
+from lib.logging import error
+from version import init_version, auto_update
 
 
 def handle_hook() -> None:
