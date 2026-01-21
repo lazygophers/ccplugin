@@ -43,7 +43,7 @@ class RichLoggerManager:
             return
 
         self._initialized = True
-        self.log_dir = Path(base_dir) / "log"
+        self.log_dir = os.path.join(base_dir, "log")
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # 创建主控制台（文件输出）
