@@ -5,14 +5,12 @@ RichLoggerManager - 基于 Rich 的单实例日志管理器。
 自动清理过期日志，并支持彩色控制台输出。
 """
 
-import sys
 import glob
 import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 from rich.console import Console
-from rich.logging import RichHandler
 
 from lib.utils.env import project_plugins_dir, app_name
 
@@ -62,6 +60,9 @@ class RichLoggerManager:
         
         # 初始化时清理旧日志文件
         self._cleanup_old_logs()
+        
+        # 初始化时创建软连接
+        self._update_symlink()
 
     def enable_debug(self) -> None:
         """启用 DEBUG 模式（同时输出到控制台）。"""
@@ -77,23 +78,23 @@ class RichLoggerManager:
 
     def info(self, message: str) -> None:
         """记录 INFO 级别日志。"""
-        self._log("ℹ️  INFO", message, "blue")
+        self._log("INFO", message, "blue")
 
     def debug(self, message: str) -> None:
         """记录 DEBUG 级别日志（仅在 DEBUG 模式显示）。"""
         if self.debug_enabled:
-            self._log("🐛 DEBUG", message, "cyan")
+            self._log("DEBUG", message, "cyan")
         else:
             # 仅写入文件
-            self.file_console.print(f"[cyan]🐛 DEBUG[/cyan] {message}")
+            self.file_console.print(f"[cyan]DEBUG[/cyan] {message}")
 
     def error(self, message: str) -> None:
         """记录 ERROR 级别日志。"""
-        self._log("❌ ERROR", message, "red")
+        self._log("ERROR", message, "red")
 
     def warn(self, message: str) -> None:
         """记录 WARNING 级别日志。"""
-        self._log("⚠️  WARNING", message, "yellow")
+        self._log("WARNING", message, "yellow")
 
     def _log(self, level: str, message: str, color: str) -> None:
         """
@@ -112,10 +113,10 @@ class RichLoggerManager:
         self._write_to_file(formatted)
 
         # 如果启用 DEBUG 或需要输出到控制台
-        if self.debug_enabled and level in ("🐛 DEBUG", "ℹ️  INFO"):
+        if self.debug_enabled and level in ("DEBUG", "INFO"):
             if self.console_console:
                 self.console_console.print(formatted)
-        elif level in ("❌ ERROR", "⚠️  WARNING"):
+        elif level in ("ERROR", "WARNING"):
             if self.console_console:
                 self.console_console.print(formatted)
 
@@ -138,9 +139,14 @@ class RichLoggerManager:
             new_file = open(str(self._get_log_file()), "a", encoding="utf-8")
             self.file_console.file = new_file
             self._cleanup_old_logs()
+            self._update_symlink()
 
         # 写入日志
         self.file_console.print(message)
+        
+        # 刷新文件缓冲区，确保日志立即写入
+        if hasattr(self.file_console, "file") and self.file_console.file:
+            self.file_console.file.flush()
 
     def _get_current_hour(self) -> str:
         """获取当前小时的格式化字符串 (YYYYMMDDHH)。"""
@@ -161,6 +167,21 @@ class RichLoggerManager:
                     os.remove(old_log)
                 except OSError:
                     pass
+
+    def _update_symlink(self) -> None:
+        """更新软连接，使 log.log 指向当前小时的日志文件。"""
+        symlink_path = Path(self.log_dir) / "log.log"
+        current_log_file = self._get_log_file()
+        
+        try:
+            # 如果软连接已存在，删除它
+            if symlink_path.is_symlink():
+                symlink_path.unlink()
+            
+            # 创建新的软连接
+            symlink_path.symlink_to(current_log_file.name)
+        except (OSError, FileNotFoundError):
+            pass
 
 
 # 创建全局单实例
@@ -190,12 +211,3 @@ def error(message: str) -> None:
 def warn(message: str) -> None:
     """记录 WARNING 级别日志。"""
     _logger.warn(message)
-
-def set_app(app_name: str) -> None:
-    """
-    注册应用名称。
-
-    Args:
-        app_name: 应用名称（如 'version'、'task' 等）
-    """
-    _logger.set_app_name(app_name)
