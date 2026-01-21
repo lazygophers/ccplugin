@@ -32,5 +32,4 @@ __all__ = [
     'debug',
     'error',
     'warn',
-    'set_app',
 ]

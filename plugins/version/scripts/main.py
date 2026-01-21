@@ -6,8 +6,9 @@ Supports debug logging mode and hook integration.
 """
 
 import typer
-from lib.logging import enable_debug, set_app
+from lib.logging import enable_debug
 from hooks import handle_hook
+from lib.utils.env import set_app
 
 # 注册应用名称
 set_app("version")

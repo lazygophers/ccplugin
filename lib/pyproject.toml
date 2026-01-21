@@ -3,7 +3,10 @@ name = "lib"
 version = "0.0.1"
 description = "Shared library for ccplugin - logging and utilities"
 requires-python = ">=3.12"
-dependencies = ["rich>=13.0.0"]
+dependencies = [
+    "pydantic>=2.12.5",
+    "rich>=13.0.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0"]
