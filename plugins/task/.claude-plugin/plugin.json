@@ -1,6 +1,6 @@
 {
   "name": "task",
-  "version": "0.0.48",
+  "version": "0.0.49",
   "description": "完整的项目任务管理插件 - 支持开发计划创建、任务执行、进度追踪、依赖管理。基于SQLite数据库存储，提供任务生命周期管理、工作量评估、需求覆盖分析等功能",
   "author": {
     "name": "lazygophers",
