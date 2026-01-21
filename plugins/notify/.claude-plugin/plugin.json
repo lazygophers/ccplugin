@@ -1,6 +1,6 @@
 {
   "name": "notify",
-  "version": "0.0.51",
+  "version": "0.0.52",
   "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件",
   "author": {
     "name": "lazygophers",
@@ -15,6 +15,5 @@
     "system-notification",
     "hook",
     "event"
-  ],
-  "mcpServers": "./.mcp.json"
+  ]
 }
