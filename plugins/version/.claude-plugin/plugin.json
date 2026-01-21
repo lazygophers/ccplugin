@@ -1,6 +1,6 @@
 {
   "name": "version",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置",
   "author": {
     "name": "lazygophers",
@@ -24,27 +24,5 @@
     "./commands/set.md",
     "./commands/init.md"
   ],
-  "skills": "./skills/",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/main.py --hooks"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/main.py --hooks"
-          }
-        ]
-      }
-    ]
-  }
+  "skills": "./skills/"
 }

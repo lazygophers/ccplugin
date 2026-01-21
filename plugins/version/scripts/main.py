@@ -13,7 +13,6 @@ from lib.utils.env import set_app
 # 注册应用名称
 set_app("version")
 
-
 def main(
     debug_mode: bool = typer.Option(False, "--debug", help="启用 DEBUG 模式"),
     hooks: bool = typer.Option(False, "--hooks", help="Hook 模式：从 stdin 读取 JSON"),
