@@ -19,20 +19,20 @@ project_root = plugin_dir.parent.parent
 sys.path.insert(0, str(project_root))
 
 from lib.logging import info, error, debug, enable_debug
-from config import load_config, HooksConfig
+from config import load_config, HooksConfig, HookConfig
 from notify import play_text_tts, show_system_notification
 
 
-def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict[str, Any]] = None) -> Optional[HookConfig]:
     """根据事件名称获取相应的 Hook 配置
-    
+
     Args:
         config: HooksConfig 实例
         event_name: Hook 事件名称
         context: 事件上下文（用于获取特定的配置，如工具名称）
-    
+
     Returns:
-        Hook 配置或 None
+        HookConfig 配置对象或 None
     """
     if event_name == "SessionStart":
         source = context.get("source", "startup") if context else "startup"
@@ -117,14 +117,14 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
     return context
 
 
-def execute_hook_actions(hook_config, event_name: str, context: Optional[Dict[str, Any]] = None) -> bool:
+def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str, context: Optional[Dict[str, Any]] = None) -> bool:
     """执行 Hook 配置中指定的动作
-    
+
     Args:
-        hook_config: Hook 配置对象
+        hook_config: HookConfig 配置对象或 None
         event_name: Hook 事件名称
         context: 事件上下文
-    
+
     Returns:
         是否成功执行
     """
