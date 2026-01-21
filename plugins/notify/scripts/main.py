@@ -1,14 +1,10 @@
-#!/usr/bin/env python3
-
-import typer
-
-from hooks import handle_hook
 from lib import logging
 from lib.utils.env import set_app
+from hooks import handle_hook
+import typer
 
 # 注册应用名称
 set_app("notify")
-
 
 def main(
 	debug_mode: bool = typer.Option(False, "--debug", help="启用 DEBUG 模式"),

@@ -1,14 +1,7 @@
-#!/usr/bin/env python3
-"""
-Version management plugin for Claude Code.
-
-Supports debug logging mode and hook integration.
-"""
-
-import typer
 from lib import logging
 from hooks import handle_hook
 from lib.utils.env import set_app
+import typer
 
 # 注册应用名称
 set_app("version")
