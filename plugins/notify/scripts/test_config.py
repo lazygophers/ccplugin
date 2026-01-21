@@ -1,127 +1,143 @@
 """
-Hook 配置系统单元测试
+Claude Code Hooks 配置系统单元测试
 """
 
 import tempfile
 from pathlib import Path
 import pytest
 import yaml
-from config import (
-    NotificationConfig,
-    StopHookConfig,
-    NotificationHookConfig,
-    PermissionHookConfig,
+from .config import (
+    HookConfig,
+    ToolSpecificHookConfig,
+    NotificationTypeHookConfig,
+    SessionStartHookConfig,
+    SessionEndHookConfig,
+    PreCompactHookConfig,
     HooksConfig,
-    HookEventType,
-    NotificationType,
-    NotificationChannel,
+    load_config,
 )
 
 
-class TestNotificationConfig:
-    """通知配置测试"""
+class TestHookConfig:
+    """单个 Hook 配置测试"""
+
+    def test_default_hook_config(self):
+        """测试默认 Hook 配置"""
+        config = HookConfig()
+        assert config.enabled is False
+        assert config.play_sound is False
+        assert config.message is None
+
+    def test_hook_config_with_values(self):
+        """测试带值的 Hook 配置"""
+        config = HookConfig(enabled=True, play_sound=True, message="Test message")
+        assert config.enabled is True
+        assert config.play_sound is True
+        assert config.message == "Test message"
+
+    def test_hook_config_validation(self):
+        """测试 Hook 配置验证"""
+        config = HookConfig(enabled=True, play_sound=False, message="Test")
+        assert config.validate() is True
+
+        # 无效的 enabled 类型
+        config = HookConfig(enabled="yes")
+        with pytest.raises(ValueError, match="enabled 必须是 bool 类型"):
+            config.validate()
+
+        # 无效的 play_sound 类型
+        config = HookConfig(play_sound="no")
+        with pytest.raises(ValueError, match="play_sound 必须是 bool 类型"):
+            config.validate()
+
+        # 无效的 message 类型
+        config = HookConfig(message=123)
+        with pytest.raises(ValueError, match="message 必须是 str 类型或 None"):
+            config.validate()
+
+
+class TestToolSpecificHookConfig:
+    """工具特定 Hook 配置测试"""
+
+    def test_default_tool_specific_config(self):
+        """测试默认工具特定配置"""
+        config = ToolSpecificHookConfig()
+        assert config.write.enabled is False
+        assert config.edit.enabled is False
+        assert config.bash.enabled is False
+        assert config.task.enabled is False
+        assert config.webfetch.enabled is False
+        assert config.websearch.enabled is False
+
+    def test_tool_specific_config_validation(self):
+        """测试工具特定配置验证"""
+        config = ToolSpecificHookConfig()
+        assert config.validate() is True
+
+
+class TestNotificationTypeHookConfig:
+    """通知类型 Hook 配置测试"""
 
     def test_default_notification_config(self):
         """测试默认通知配置"""
-        config = NotificationConfig()
-        assert config.enabled is True
-        assert config.channels == ["macos_notification"]
-        assert config.play_sound is False
-        assert config.template is None
+        config = NotificationTypeHookConfig()
+        assert config.permission_prompt.enabled is False
+        assert config.idle_prompt.enabled is False
+        assert config.auth_success.enabled is False
+        assert config.elicitation_dialog.enabled is False
 
     def test_notification_config_validation(self):
         """测试通知配置验证"""
-        # 有效配置
-        config = NotificationConfig(
-            enabled=True,
-            channels=["macos_notification", "file_log"],
-            play_sound=True,
-            template="Test template"
-        )
+        config = NotificationTypeHookConfig()
         assert config.validate() is True
 
-        # 无效的通知渠道
-        config = NotificationConfig(channels=["invalid_channel"])
-        with pytest.raises(ValueError, match="无效的通知渠道"):
-            config.validate()
 
-        # 无效的数据类型
-        config = NotificationConfig(enabled="yes")
-        with pytest.raises(ValueError, match="enabled 必须是 bool 类型"):
-            config.validate()
+class TestSessionStartHookConfig:
+    """SessionStart Hook 配置测试"""
 
+    def test_default_session_start_config(self):
+        """测试默认 SessionStart 配置"""
+        config = SessionStartHookConfig()
+        assert config.startup.enabled is False
+        assert config.resume.enabled is False
+        assert config.clear.enabled is False
+        assert config.compact.enabled is False
 
-class TestStopHookConfig:
-    """Stop Hook 配置测试"""
-
-    def test_default_stop_hook_config(self):
-        """测试默认 Stop Hook 配置"""
-        config = StopHookConfig()
-        assert config.enabled is True
-        assert config.notification.enabled is True
-        assert config.script_path is None
-
-    def test_stop_hook_config_with_custom_values(self):
-        """测试自定义 Stop Hook 配置"""
-        notification = NotificationConfig(
-            enabled=True,
-            channels=["file_log"],
-            play_sound=True
-        )
-        config = StopHookConfig(
-            enabled=True,
-            notification=notification,
-            script_path="/path/to/script.py"
-        )
-        assert config.enabled is True
-        assert config.script_path == "/path/to/script.py"
+    def test_session_start_config_validation(self):
+        """测试 SessionStart 配置验证"""
+        config = SessionStartHookConfig()
         assert config.validate() is True
 
-    def test_stop_hook_config_validation(self):
-        """测试 Stop Hook 配置验证"""
-        config = StopHookConfig(enabled="invalid")
-        with pytest.raises(ValueError, match="enabled 必须是 bool 类型"):
-            config.validate()
 
+class TestSessionEndHookConfig:
+    """SessionEnd Hook 配置测试"""
 
-class TestNotificationHookConfig:
-    """Notification Hook 配置测试"""
+    def test_default_session_end_config(self):
+        """测试默认 SessionEnd 配置"""
+        config = SessionEndHookConfig()
+        assert config.clear.enabled is False
+        assert config.logout.enabled is False
+        assert config.prompt_input_exit.enabled is False
+        assert config.other.enabled is False
 
-    def test_default_notification_hook_config(self):
-        """测试默认 Notification Hook 配置"""
-        config = NotificationHookConfig()
-        assert config.enabled is True
-        assert config.permission_prompt.enabled is True
-        assert config.warning.enabled is True
-        assert config.info.enabled is False
-        assert config.error.enabled is True
-
-    def test_notification_hook_config_validation(self):
-        """测试 Notification Hook 配置验证"""
-        config = NotificationHookConfig(enabled=True)
+    def test_session_end_config_validation(self):
+        """测试 SessionEnd 配置验证"""
+        config = SessionEndHookConfig()
         assert config.validate() is True
 
-    def test_notification_hook_config_with_invalid_sub_config(self):
-        """测试带有无效子配置的 Notification Hook"""
-        config = NotificationHookConfig(
-            permission_prompt=NotificationConfig(channels=["invalid"])
-        )
-        with pytest.raises(ValueError):
-            config.validate()
 
+class TestPreCompactHookConfig:
+    """PreCompact Hook 配置测试"""
 
-class TestPermissionHookConfig:
-    """Permission Hook 配置测试"""
+    def test_default_pre_compact_config(self):
+        """测试默认 PreCompact 配置"""
+        config = PreCompactHookConfig()
+        assert config.manual.enabled is False
+        assert config.auto.enabled is False
 
-    def test_default_permission_hook_config(self):
-        """测试默认 Permission Hook 配置"""
-        config = PermissionHookConfig()
-        assert config.enabled is True
-        assert config.notification.enabled is True
-
-    def test_permission_hook_config_validation(self):
-        """测试 Permission Hook 配置验证"""
-        config = PermissionHookConfig()
+    def test_pre_compact_config_validation(self):
+        """测试 PreCompact 配置验证"""
+        config = PreCompactHookConfig()
         assert config.validate() is True
 
 
@@ -129,157 +145,105 @@ class TestHooksConfig:
     """完整 Hooks 配置测试"""
 
     def test_default_hooks_config(self):
-        """测试默认完整配置"""
+        """测试默认 Hooks 配置"""
         config = HooksConfig()
-        assert config.stop_hook.enabled is True
-        assert config.notification_hook.enabled is True
-        assert config.permission_hook.enabled is True
+        assert config.stop.enabled is True
+        assert config.stop.play_sound is True
+        assert config.subagent_stop.enabled is False
+        assert config.permission_request.enabled is False
+        assert config.user_prompt_submit.enabled is False
+
+    def test_hooks_config_validation(self):
+        """测试 Hooks 配置验证"""
+        config = HooksConfig()
+        assert config.validate() is True
 
     def test_hooks_config_from_dict(self):
         """测试从字典加载配置"""
         config_dict = {
-            "stop_hook": {
-                "enabled": True,
+            "hooks": {
+                "stop": {
+                    "enabled": True,
+                    "play_sound": True,
+                    "message": "Session stopped"
+                },
                 "notification": {
-                    "enabled": True,
-                    "channels": ["macos_notification"],
-                    "play_sound": False
+                    "permission_prompt": {
+                        "enabled": False,
+                        "play_sound": False,
+                        "message": "Permission required"
+                    }
+                },
+                "session_start": {
+                    "startup": {
+                        "enabled": False,
+                        "play_sound": False,
+                        "message": "Session started"
+                    }
                 }
-            },
-            "notification_hook": {
-                "enabled": True,
-                "permission_prompt": {
-                    "enabled": True,
-                    "channels": ["macos_notification"],
-                    "play_sound": True
-                },
-                "warning": {
-                    "enabled": True,
-                    "channels": ["file_log"]
-                },
-                "info": {
-                    "enabled": False
-                },
-                "error": {
-                    "enabled": True,
-                    "channels": ["macos_notification"]
-                }
-            },
-            "permission_hook": {
-                "enabled": False
             }
         }
 
         config = HooksConfig.from_dict(config_dict)
-        assert config.stop_hook.enabled is True
-        assert config.permission_hook.enabled is False
-
-    def test_hooks_config_save_and_load(self):
-        """测试配置文件保存和加载"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "hooks.yaml"
-
-            # 创建并保存配置
-            original_config = HooksConfig(
-                stop_hook=StopHookConfig(
-                    enabled=True,
-                    notification=NotificationConfig(
-                        enabled=True,
-                        channels=["macos_notification"],
-                        play_sound=True
-                    )
-                )
-            )
-            original_config.save_to_file(config_path)
-
-            # 加载并验证
-            loaded_config = HooksConfig.load_from_file(config_path)
-            assert loaded_config.stop_hook.enabled is True
-            assert loaded_config.stop_hook.notification.play_sound is True
+        assert config.stop.enabled is True
+        assert config.stop.message == "Session stopped"
+        assert config.notification.permission_prompt.enabled is False
+        assert config.session_start.startup.enabled is False
 
     def test_hooks_config_to_dict(self):
-        """测试配置转字典"""
+        """测试转换为字典"""
         config = HooksConfig()
         config_dict = config.to_dict()
 
-        assert "stop_hook" in config_dict
-        assert "notification_hook" in config_dict
-        assert "permission_hook" in config_dict
+        assert "hooks" in config_dict
+        assert "stop" in config_dict["hooks"]
+        assert config_dict["hooks"]["stop"]["enabled"] is True
 
-    def test_hooks_config_validation(self):
-        """测试完整配置验证"""
-        config = HooksConfig()
-        assert config.validate() is True
+    def test_hooks_config_save_load(self):
+        """测试保存和加载配置"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = Path(tmpdir) / "config.yaml"
 
-    def test_hooks_config_validation_with_invalid_sub_config(self):
-        """测试带有无效子配置的完整验证"""
-        config = HooksConfig(
-            stop_hook=StopHookConfig(
-                notification=NotificationConfig(channels=["invalid"])
-            )
-        )
-        with pytest.raises(ValueError):
-            config.validate()
+            # 创建和保存配置
+            original_config = HooksConfig()
+            original_config.save_to_file(config_path)
 
+            # 加载配置
+            loaded_config = HooksConfig.load_from_file(config_path)
 
-class TestConfigFileHandling:
-    """配置文件处理测试"""
+            # 验证加载的配置
+            assert loaded_config.stop.enabled == original_config.stop.enabled
+            assert loaded_config.stop.play_sound == original_config.stop.play_sound
 
-    def test_load_from_nonexistent_file(self):
+    def test_hooks_config_file_not_found(self):
         """测试加载不存在的文件"""
-        config_path = Path("/nonexistent/path/hooks.yaml")
+        config_path = Path("/nonexistent/config.yaml")
         with pytest.raises(FileNotFoundError):
             HooksConfig.load_from_file(config_path)
 
-    def test_save_creates_directory(self):
-        """测试保存时创建目录"""
+
+class TestLoadConfig:
+    """加载配置函数测试"""
+
+    def test_load_default_config(self):
+        """测试加载默认配置"""
+        from .config import get_default_config
+        config = get_default_config()
+        assert config.stop.enabled is True
+
+    def test_load_custom_config(self):
+        """测试加载自定义配置"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "subdir" / "hooks.yaml"
-            config = HooksConfig()
-            config.save_to_file(config_path)
+            config_path = Path(tmpdir) / "config.yaml"
 
-            assert config_path.exists()
-            assert config_path.parent.exists()
+            # 创建自定义配置
+            custom_config = HooksConfig()
+            custom_config.subagent_stop.enabled = True
+            custom_config.save_to_file(config_path)
 
-    def test_yaml_file_format(self):
-        """测试生成的 YAML 格式"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            config_path = Path(tmpdir) / "hooks.yaml"
-            config = HooksConfig()
-            config.save_to_file(config_path)
-
-            # 验证文件可被 YAML 解析
-            with open(config_path, 'r', encoding='utf-8') as f:
-                loaded_data = yaml.safe_load(f)
-
-            assert isinstance(loaded_data, dict)
-            assert "stop_hook" in loaded_data
-            assert "notification_hook" in loaded_data
-            assert "permission_hook" in loaded_data
-
-
-class TestEnumTypes:
-    """枚举类型测试"""
-
-    def test_hook_event_type_values(self):
-        """测试 Hook 事件类型枚举"""
-        assert HookEventType.STOP.value == "stop"
-        assert HookEventType.NOTIFICATION.value == "notification"
-        assert HookEventType.PERMISSION.value == "permission"
-
-    def test_notification_type_values(self):
-        """测试通知类型枚举"""
-        assert NotificationType.PERMISSION_PROMPT.value == "permission_prompt"
-        assert NotificationType.WARNING.value == "warning"
-        assert NotificationType.INFO.value == "info"
-        assert NotificationType.ERROR.value == "error"
-
-    def test_notification_channel_values(self):
-        """测试通知渠道枚举"""
-        assert NotificationChannel.MACOS_NOTIFICATION.value == "macos_notification"
-        assert NotificationChannel.SYSTEM_LOG.value == "system_log"
-        assert NotificationChannel.FILE_LOG.value == "file_log"
-        assert NotificationChannel.ALL.value == "all"
+            # 加载自定义配置
+            loaded_config = load_config(config_path)
+            assert loaded_config.subagent_stop.enabled is True
 
 
 if __name__ == "__main__":
