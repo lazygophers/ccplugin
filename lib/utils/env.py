@@ -14,3 +14,7 @@ app_name: str = None
 def set_app(name: str) -> None:
 	global app_name
 	app_name = name
+
+plugins_path = os.getcwd()
+if os.getenv("CLAUDE_PLUGIN_ROOT") is not None:
+	plugins_path = os.getenv("CLAUDE_PLUGIN_ROOT")

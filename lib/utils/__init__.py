@@ -5,4 +5,5 @@ __all__ = [
 	"base_dir",
 	"project_dir",
 	"app_name",
+	"plugins_path"
 ]
