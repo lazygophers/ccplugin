@@ -1,6 +1,6 @@
 import os
 
-from ccplugin.lib.utils.env import project_dir
+from lib.utils.env import project_dir
 
 version_filepath = ".version"
 
