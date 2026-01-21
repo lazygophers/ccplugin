@@ -1,12 +1,11 @@
 [project]
-name = "ccplugin-version"
+name = "ccplugin-lib"
 version = "0.0.1"
-description = "Claude Code version management plugin for semantic versioning"
+description = "Shared library for ccplugin - code parsing, embedding, database, and search utilities"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    { path = "../../lib" },
-    "typer>=0.12.0",
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]
@@ -20,7 +19,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["version*"]
-
-[tool.setuptools.package-data]
-"*" = ["*.py", "*.json", "*.md"]
+include = ["logging*"]
