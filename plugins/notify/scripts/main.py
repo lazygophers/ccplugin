@@ -5,7 +5,7 @@ from lib import logging
 from lib.utils.env import set_app
 
 # 注册应用名称
-set_app("version")
+set_app("notify")
 
 
 def main(
