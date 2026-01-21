@@ -44,7 +44,7 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#d994a78157371e988d80ca60388c8e1eaed6f993" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#edbe5cebf91a55793a7d2b383809e8424473fd6f" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
@@ -74,7 +74,7 @@ wheels = [
 
 [[package]]
 name = "notify"
-version = "0.0.53"
+version = "0.0.54"
 source = { editable = "." }
 dependencies = [
     { name = "lib" },
