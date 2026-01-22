@@ -6,6 +6,7 @@ Claude Code Hooks 事件处理模块
 """
 
 import json
+import logging
 import os
 import sys
 from datetime import datetime
@@ -161,6 +162,8 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	success = True
 
 	message = hook_config.message or f"{event_name} 事件已触发"
+ 
+	logging.info(f'context:{context}')
 
 	# 如果 context 存在，使用其中的参数替换消息中的占位符
 	if context:
