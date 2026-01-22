@@ -11,9 +11,7 @@ def get_project_dir() -> str:
 def get_project_plugins_dir() -> str:
 	return os.path.join(get_project_dir(), ".lazygophers", "ccplugin")
 
-
 _app_name: str = None
-
 
 def set_app(name: str) -> None:
 	global _app_name
