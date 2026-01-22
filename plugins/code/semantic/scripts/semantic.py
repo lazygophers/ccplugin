@@ -34,35 +34,16 @@ def run_mcp_mode():
     """运行 MCP 服务器模式"""
     try:
         from mcp_server import SemanticSearchMCPServer
-        import logging
-        from logging.handlers import RotatingFileHandler
-
-        # 设置日志
-        log_dir = Path.home() / ".lazygophers" / "ccplugin"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / "error.log"
-
-        logger = logging.getLogger("semantic-mcp-server")
-        logger.setLevel(logging.INFO)
-
-        file_handler = RotatingFileHandler(
-            str(log_file),
-            maxBytes=100 * 1024 * 1024,
-            backupCount=2,
-            encoding='utf-8'
-        )
-        file_handler.setFormatter(
-            logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        )
-        logger.addHandler(file_handler)
-        logger.propagate = False
+        from lib.logging import error
 
         server = SemanticSearchMCPServer()
         asyncio.run(server.run())
     except ImportError as e:
+        error(f"MCP 依赖不可用: {e}")
         print(f"MCP 依赖不可用: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
+        error(f"MCP 服务器错误: {e}")
         print(f"MCP 服务器错误: {e}", file=sys.stderr)
         sys.exit(1)
 
