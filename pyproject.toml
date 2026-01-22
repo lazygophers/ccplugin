@@ -9,9 +9,17 @@ dependencies = [ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdi
 [project.scripts]
 clean = "scripts.clean:main"
 
+[project.entry-points."console_scripts"]
+clean = "scripts.clean:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [tool.uv.workspace]
 members = [ "plugins/notify",]
 
 [tool.setuptools.packages.find]
-where = [ ".",]
-include = [ "lib*", "plugins*", "scripts",]
+where = ["."]
+include = ["scripts*"]
+exclude = ["plugins*", "lib*"]
