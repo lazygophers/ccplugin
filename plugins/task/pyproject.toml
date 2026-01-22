@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-task"
-version = "0.0.73"
+version = "0.0.74"
 description = "Claude Code file-system based task management plugin"
 readme = "README.md"
 requires-python = ">=3.12"
