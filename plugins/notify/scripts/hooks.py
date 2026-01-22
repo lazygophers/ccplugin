@@ -6,12 +6,15 @@ Claude Code Hooks 事件处理模块
 """
 
 import json
+import os
 import sys
+from datetime import datetime
 from typing import Optional, Dict, Any
 
 from config import load_config, HooksConfig, HookConfig
 from lib.hooks import load_hooks
 from lib.logging import info, error, debug
+from lib.utils import get_project_dir, get_plugins_path
 from notify import play_text_tts, show_system_notification
 
 
@@ -72,6 +75,30 @@ def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict
 def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 	"""从 Hook 数据中提取上下文信息
 
+	支持的字段：
+	  - tool_name: 工具名称
+	  - notification_type: 通知类型
+	  - source: 会话启动源（startup/editor/cli 等）
+	  - reason: 会话结束原因
+	  - trigger: 压缩触发类型
+	  - message: 消息内容
+	  - title: 消息标题
+	  - project_name: 项目名（从 hook_data 或自动获取项目路径的名称）
+	  - session_id: 会话 ID
+	  - file_path: 文件完整路径
+	  - file_name: 文件名
+	  - status: 状态（success/error/warning/pending 等）
+	  - error_message: 错误消息
+	  - duration: 耗时（毫秒）
+	  - timestamp: 时间戳
+	  - time_now: 当前时间的可读格式（自动生成）
+	  - user_name: 用户名称
+	  - environment: 环境信息（dev/test/prod 等）
+	  - tags: 标签（逗号分隔）
+	  - priority: 优先级（low/medium/high/critical）
+	  - plugin_name: 插件名称
+	  - result: 操作结果摘要
+
 	Args:
 		hook_data: 来自 Claude Code 的 Hook 事件数据
 
@@ -80,32 +107,37 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 	"""
 	context = {}
 
-	# 提取工具名称
+	if "tool_input" in hook_data:
+		if "file_path" in hook_data["tool_input"]:
+			context["file_path"] = hook_data["tool_input"]["file_path"]
+			context["file_name"] = os.path.basename(hook_data["tool_input"]["file_path"])
+
+	context["time_now"] = datetime.now().strftime("%Y年%m月%d日 %H点%M分")
+	context["timestamp"] = hook_data["timestamp"]
+
+	context["plugin_name"] = os.path.basename(get_plugins_path())
+	context["project_name"] = os.path.basename(get_project_dir())
+
+	if "hook_event_name" in hook_data:
+		context["hook_event_name"] = hook_data["hook_event_name"]
+
 	if "tool_name" in hook_data:
 		context["tool_name"] = hook_data["tool_name"]
 
-	# 提取通知类型
+	if "session_id" in hook_data:
+		context["session_id"] = hook_data["session_id"]
+
+	if "tool_response" in hook_data:
+		if hook_data["tool_response"]["success"]:
+			context["success"] = "成功"
+		else:
+			context["success"] = "失败"
+
 	if "notification_type" in hook_data:
 		context["notification_type"] = hook_data["notification_type"]
 
-	# 提取会话启动源
-	if "source" in hook_data:
-		context["source"] = hook_data["source"]
-
-	# 提取会话结束原因
-	if "reason" in hook_data:
-		context["reason"] = hook_data["reason"]
-
-	# 提取压缩触发类型
-	if "trigger" in hook_data:
-		context["trigger"] = hook_data["trigger"]
-
-	# 提取消息和标题（用于通知）
 	if "message" in hook_data:
 		context["message"] = hook_data["message"]
-
-	if "title" in hook_data:
-		context["title"] = hook_data["title"]
 
 	return context
 
@@ -117,7 +149,7 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	Args:
 		hook_config: HookConfig 配置对象或 None
 		event_name: Hook 事件名称
-		context: 事件上下文
+		context: 事件上下文，用于参数替换
 
 	Returns:
 		是否成功执行
@@ -129,6 +161,13 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	success = True
 
 	message = hook_config.message or f"{event_name} 事件已触发"
+
+	# 如果 context 存在，使用其中的参数替换消息中的占位符
+	if context:
+		try:
+			message = message.format(**context)
+		except (KeyError, ValueError) as e:
+			debug(f"消息参数替换失败: {e}，使用原始消息")
 
 	# 显示消息
 	if hook_config.enabled:
