@@ -640,6 +640,30 @@
         "linux",
         "windows"
       ]
+    },
+    {
+      "name": "naming",
+      "source": "./plugins/code/naming",
+      "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正",
+      "version": "0.0.1",
+      "author": {
+        "name": "Claude Code",
+        "email": "admin@example.com"
+      },
+      "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/code/naming",
+      "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/code/naming",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "naming",
+        "conventions",
+        "naming-conventions",
+        "code-style",
+        "standards",
+        "variables",
+        "functions",
+        "classes",
+        "cross-language"
+      ]
     }
   ]
 }

@@ -1,0 +1,3 @@
+# 命名规范
+
+所有代码命名（函数名、变量名、文件名）必须遵守 @${CLAUDE_PLUGIN_ROOT}/skills/naming 的规范要求
