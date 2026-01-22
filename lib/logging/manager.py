@@ -6,6 +6,7 @@ RichLoggerManager - 基于 Rich 的单实例日志管理器。
 """
 
 import glob
+import inspect
 import os
 from pathlib import Path
 from datetime import datetime
@@ -78,11 +79,15 @@ class RichLoggerManager:
 
     def debug(self, message: str) -> None:
         """记录 DEBUG 级别日志（仅在 DEBUG 模式显示）。"""
+        caller_info = self._get_caller_info(skip=4)
+        formatted = f"[cyan]DEBUG[/cyan] [{datetime.now().strftime("%H:%M:%S")}] [dim]{caller_info}[/dim] {message}"
+        
         if self.debug_enabled:
-            self._log("DEBUG", message, "cyan")
-        else:
-            # 仅写入文件
-            self.file_console.print(f"[cyan]DEBUG[/cyan] {message}")
+            if self.console_console:
+                self.console_console.print(formatted)
+        
+        # 始终写入文件
+        self.file_console.print(formatted)
 
     def error(self, message: str) -> None:
         """记录 ERROR 级别日志。"""
@@ -91,6 +96,25 @@ class RichLoggerManager:
     def warn(self, message: str) -> None:
         """记录 WARNING 级别日志。"""
         self._log("WARNING", message, "yellow")
+
+    def _get_caller_info(self, skip: int = 2) -> str:
+        """
+        获取调用者的文件位置信息。
+
+        Args:
+            skip: 跳过的调用栈层级数
+
+        Returns:
+            格式化的文件位置信息，如 "filename.py:123"
+        """
+        try:
+            stack = inspect.stack()
+            frame = stack[skip]
+            filename = os.path.basename(frame.filename)
+            lineno = frame.lineno
+            return f"{filename}:{lineno}"
+        except (IndexError, AttributeError):
+            return "unknown:0"
 
     def _log(self, level: str, message: str, color: str) -> None:
         """
@@ -101,7 +125,8 @@ class RichLoggerManager:
             message: 日志消息
             color: 颜色标签
         """
-        formatted = f"{f"[{get_app_name()}] " if get_app_name() else ""}[{color}]{level}[/{color}] [{datetime.now().strftime("%H:%M:%S")}] {message}"
+        caller_info = self._get_caller_info(skip=4)
+        formatted = f"{f"[{get_app_name()}] " if get_app_name() else ""}[{color}]{level}[/{color}] [{datetime.now().strftime("%H:%M:%S")}] [dim]{caller_info}[/dim] {message}"
 
         # 写入文件
         self._write_to_file(formatted)
