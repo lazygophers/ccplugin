@@ -1,25 +1,25 @@
 [project]
 name = "ccplugin"
-version = "0.0.77"
+version = "0.0.78"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib", "pydantic>=2.12.5", "typer>=0.21.1", "rich>=13.9.0", "logging>=0.4.9.6", "toml>=0.10.2",]
 
+[build-system]
+requires = [ "setuptools>=68.0", "wheel",]
+build-backend = "setuptools.build_meta"
+
 [project.scripts]
 clean = "scripts.clean:main"
 
-[project.entry-points."console_scripts"]
+[project.entry-points.console_scripts]
 clean = "scripts.clean:main"
-
-[build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
 
 [tool.uv.workspace]
 members = [ "plugins/notify",]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["scripts*"]
-exclude = ["plugins*", "lib*"]
+where = [ ".",]
+include = [ "scripts*",]
+exclude = [ "plugins*", "lib*",]
