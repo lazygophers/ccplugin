@@ -1,24 +1,24 @@
 [project]
 name = "code-python"
-version = "0.0.71"
+version = "0.0.72"
 description = "Claude Code plugin for Python language support"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["lib"]
+dependencies = [ "lib",]
 
 [build-system]
-requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0", ]
+requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0.0", ]
+dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.package-data]
-"*" = ["*.py", "*.json", "*.md", ]
+"*" = [ "*.py", "*.json", "*.md",]
 
 [tool.setuptools.packages.find]
-where = [".", ]
-include = ["python*", ]
+where = [ ".",]
+include = [ "python*",]
 
 [tool.uv.sources.lib]
 git = "https://github.com/lazygophers/ccplugin"

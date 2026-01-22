@@ -1,10 +1,10 @@
 [project]
 name = "code-golang"
-version = "0.0.71"
+version = "0.0.72"
 description = "Claude Code plugin for Go language support"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["lib"]
+dependencies = [ "lib",]
 
 [build-system]
 requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
