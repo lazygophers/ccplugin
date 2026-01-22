@@ -466,12 +466,14 @@ def load_config() -> HooksConfig:
 		except Exception as e:
 			logging.warn(f"加载项目配置文件失败 {project_config_path}: {e}")
 	else:
-		# 项目配置不存在，尝试从示例配置复制
+		# 项目配置不存在，尝试从示例配置复制（只在不存在时复制，绝不覆盖）
 		if os.path.exists(example_config_path):
 			try:
 				os.makedirs(os.path.dirname(project_config_path), exist_ok=True)
-				shutil.copy(example_config_path, project_config_path)
-				logging.info(f"从示例配置复制: {example_config_path} -> {project_config_path}")
+				# 检查目标路径，确保不会覆盖已存在的文件
+				if not os.path.exists(project_config_path):
+					shutil.copy(example_config_path, project_config_path)
+					logging.info(f"从示例配置复制: {example_config_path} -> {project_config_path}")
 				loaded_project_config = HooksConfig.load_from_file(project_config_path)
 			except Exception as e:
 				logging.warn(f"从示例配置复制失败: {e}")
