@@ -5,7 +5,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
 					}
 				]
 			}
