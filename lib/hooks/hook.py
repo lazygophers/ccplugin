@@ -30,7 +30,7 @@ def load_hooks():
 			if os.path.exists(agent_md_path):
 				with open(agent_md_path, "r", encoding="utf-8") as f:
 					for line in f:
-						print(line)
+						print(line.replace("${CLAUDE_PLUGIN_ROOT}", get_plugins_path()))
 
 		return hook_data
 
