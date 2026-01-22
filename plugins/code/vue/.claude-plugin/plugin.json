@@ -1,6 +1,6 @@
 {
   "name": "vue",
-  "version": "0.0.69",
+  "version": "0.0.70",
   "description": "Vue 3 开发插件 - 提供 Vue 3 开发规范、最佳实践和代码智能支持。包括 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链",
   "author": {
     "name": "lazygophers",

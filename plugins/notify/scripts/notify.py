@@ -14,10 +14,7 @@ from typing import Optional
 from lib.logging import error
 from lib.utils import get_plugins_path, get_project_plugins_dir, get_app_name, get_project_dir
 
-# 预定义图标映射
-PREDEFINED_ICONS = {
-	'claude': 'claude.svg',  # Anthropic Claude AI 助手官方标志
-}
+from .icons import PREDEFINED_ICONS
 
 def _resolve_icon_path(icon: str) -> Optional[str]:
 	"""解析图标参数为完整路径。
