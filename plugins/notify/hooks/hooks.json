@@ -1,104 +1,104 @@
 {
-  "description": "系统通知插件 Hooks - 支持基于提示的智能决策和系统通知",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
+	"description": "系统通知插件 Hooks - 支持基于提示的智能决策和系统通知",
+	"hooks": {
+		"SessionStart": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "UserPromptSubmit": [
+		],
+		"SessionEnd": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "PreToolUse": [
+		],
+		"UserPromptSubmit": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "PostToolUse": [
+		],
+		"PreToolUse": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "Notification": [
+		],
+		"PostToolUse": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "Stop": [
+		],
+		"Notification": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "SubagentStop": [
+		],
+		"Stop": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ],
-    "PreCompact": [
+		],
+		"SubagentStop": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
 						"timeout": 10
 					}
 				]
 			}
-    ]
-  }
+		],
+		"PreCompact": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT} CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR} uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"timeout": 10
+					}
+				]
+			}
+		]
+	}
 }
