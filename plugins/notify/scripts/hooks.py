@@ -129,10 +129,11 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 		context["session_id"] = hook_data["session_id"]
 
 	if "tool_response" in hook_data:
-		if hook_data["tool_response"]["success"]:
-			context["success"] = "成功"
-		else:
-			context["success"] = "失败"
+		if "success" in hook_data["tool_response"]:
+			if hook_data["tool_response"]["success"]:
+				context["success"] = "成功"
+			else:
+				context["success"] = "失败"
 
 	if "notification_type" in hook_data:
 		context["notification_type"] = hook_data["notification_type"]
