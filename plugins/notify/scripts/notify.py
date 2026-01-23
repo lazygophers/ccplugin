@@ -14,7 +14,7 @@ from typing import Optional
 from lib.logging import error
 from lib.utils import get_plugins_path, get_project_plugins_dir, get_app_name, get_project_dir
 
-from .icons import PREDEFINED_ICONS
+from icons import PREDEFINED_ICONS
 
 def _resolve_icon_path(icon: str) -> Optional[str]:
 	"""解析图标参数为完整路径。
