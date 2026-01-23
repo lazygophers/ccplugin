@@ -114,7 +114,7 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 			context["file_name"] = os.path.basename(hook_data["tool_input"]["file_path"])
 
 	context["time_now"] = datetime.now().strftime("%Y年%m月%d日 %H点%M分")
-	context["timestamp"] = hook_data["timestamp"]
+	context["timestamp"] = datetime.now().timestamp()
 
 	context["plugin_name"] = os.path.basename(get_plugins_path())
 	context["project_name"] = os.path.basename(get_project_dir())
@@ -162,7 +162,7 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	success = True
 
 	message = hook_config.message or f"{event_name} 事件已触发"
- 
+
 	logging.info(f'context:{context}')
 
 	# 如果 context 存在，使用其中的参数替换消息中的占位符
