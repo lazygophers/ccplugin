@@ -43,3 +43,10 @@ def auto_update():
 	# 写回版本号
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
+
+def get_version():
+	try:
+		with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
+			return f.read().strip()
+	except FileNotFoundError:
+		return "0.0.1.0"
