@@ -1,7 +1,7 @@
 import os
 
 
-class Environment:
+class Env:
 	"""
 	环境变量
 	"""
@@ -47,27 +47,27 @@ class Environment:
 
 
 def set_app(name: str) -> None:
-	Environment.set_app(name)
+	Env.set_app(name)
 
 
 def get_app_name() -> str:
-	return Environment.get_app_name()
+	return Env.get_app_name()
 
 
 def get_project_dir() -> str:
-	Environment.get_project_dir()
+	Env.get_project_dir()
 
 
 def get_project_plugins_dir() -> str:
-	return Environment.get_project_plugins_dir()
+	return Env.get_project_plugins_dir()
 
 
 def get_plugins_path() -> str:
-	return Environment.get_plugins_path()
+	return Env.get_plugins_path()
 
 
 def get_user_plugins_dir() -> str:
-	return Environment.get_user_plugins_dir()
+	return Env.get_user_plugins_dir()
 
 
 def get_plugins_skills_dir():
