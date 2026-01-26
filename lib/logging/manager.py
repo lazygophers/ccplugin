@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Optional
 from rich.console import Console
 
-from lib.utils.env import get_project_plugins_dir
+from lib.utils.env import get_project_plugins_dir, get_app_name
 
 
 class RichLoggerManager:
@@ -125,8 +125,7 @@ class RichLoggerManager:
             message: 日志消息
             color: 颜色标签
         """
-        from lib.utils.env import get_app_name
-        formatted = f"[[{get_app_name()}]][{color}]{level}[/{color}] [{datetime.now().strftime("%M:%S")}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
+        formatted = f"[purple][{get_app_name()}][/purple][{color}]{level}[/{color}] [{datetime.now().strftime("%M:%S")}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
 
         # 写入文件
         self._write_to_file(formatted)
