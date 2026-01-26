@@ -130,7 +130,7 @@ class RichLoggerManager:
 			message: 日志消息
 			color: 颜色标签
 		"""
-		formatted = f"<{self._get_app()}>[{color}]{level}[/{color}] [{datetime.now().strftime("%M:%S")}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
+		formatted = f"{self._get_app()} [{color}]{level}[/{color}] [{datetime.now().strftime("%M:%S")}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
 
 		# 写入文件
 		self._write_to_file(formatted)
