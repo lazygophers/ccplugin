@@ -5,6 +5,7 @@ from lib import logging
 from lib.hooks import load_hooks
 from version import init_version, auto_update
 
+
 def handle_hook() -> None:
 	"""处理 hook 模式：从 stdin 读取 JSON 并记录。"""
 	try:
@@ -15,8 +16,12 @@ def handle_hook() -> None:
 
 		if event_name == "SessionStart":
 			init_version()
-		if event_name == "UserPromptSubmit":
+		elif event_name == "UserPromptSubmit":
 			auto_update()
+
+		print(json.dumps({
+			"continue": True,
+		}))
 
 	except json.JSONDecodeError as e:
 		logging.error(f"JSON 解析失败: {e}")
