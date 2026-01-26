@@ -58,7 +58,7 @@ def get_app_name() -> str:
 
 
 def get_project_dir() -> str:
-	Env.get_project_dir()
+	return Env.get_project_dir()
 
 
 def get_project_plugins_dir() -> str:

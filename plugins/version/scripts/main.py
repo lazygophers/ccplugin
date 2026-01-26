@@ -1,7 +1,8 @@
 from lib import logging
 import click
 from functools import wraps
-from . import hooks, version
+from version import get_version
+from hooks import handle_hook
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
@@ -21,17 +22,17 @@ def main(ctx) -> None:
 	"""
 	pass
 
-@click.group()
+@main.command()
 @with_debug
 def info() -> None:
 	"""Show version information"""
-	click.echo(f"Version: {version.get_version()}")
+	click.echo(f"Version: {get_version()}")
 
 @main.command()
 @with_debug
 def hooks_cmd() -> None:
 	"""Hook 模式：从 stdin 读取 JSON"""
-	hooks.handle_hook()
+	handle_hook()
 
 
 if __name__ == "__main__":
