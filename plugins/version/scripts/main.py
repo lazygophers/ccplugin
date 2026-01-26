@@ -1,13 +1,7 @@
 from lib import logging
-from lib.utils.env import set_app
 import click
 from functools import wraps
-
-# Import hooks module using relative import
-from . import hooks
-
-# 注册应用名称
-set_app("version")
+from . import hooks, version
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
@@ -27,9 +21,11 @@ def main(ctx) -> None:
 	"""
 	pass
 
-def info(ctx) -> None:
+@click.group()
+@with_debug
+def info() -> None:
 	"""Show version information"""
-	click.echo(f"Version: {get_version()}")
+	click.echo(f"Version: {version.get_version()}")
 
 @main.command()
 @with_debug
