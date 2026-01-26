@@ -27,6 +27,10 @@ def main(ctx) -> None:
 	"""
 	pass
 
+def info(ctx) -> None:
+	"""Show version information"""
+	click.echo(f"Version: {get_version()}")
+
 @main.command()
 @with_debug
 def hooks_cmd() -> None:
