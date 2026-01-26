@@ -1,13 +1,13 @@
 import os
 
-_app_name: str = None
+app_name: str = None
 
 def set_app(name: str) -> None:
-	global _app_name
-	_app_name = name
+	global app_name
+	app_name = name
 
 def get_app_name() -> str:
-	return _app_name
+	return app_name
 
 
 def get_project_dir() -> str:
