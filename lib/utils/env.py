@@ -45,16 +45,18 @@ class Environment:
 	def get_user_plugins_dir(cls):
 		return os.path.join(cls.get_user_home(), ".lazygophers", "ccplugin")
 
+
 def set_app(name: str) -> None:
 	Environment.set_app(name)
 
 
 def get_app_name() -> str:
-	Environment.get_app_name()
+	return Environment.get_app_name()
 
 
 def get_project_dir() -> str:
 	Environment.get_project_dir()
+
 
 def get_project_plugins_dir() -> str:
 	return Environment.get_project_plugins_dir()
@@ -82,3 +84,8 @@ def get_plugins_hooks_dir():
 
 def get_plugins_agents_dir():
 	return os.path.join(get_plugins_path(), "agents")
+
+
+if __name__ == '__main__':
+	set_app("test")
+	print(get_app_name())
