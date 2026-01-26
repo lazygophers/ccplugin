@@ -32,7 +32,7 @@ class Environment:
 
 	@classmethod
 	def get_project_plugins_dir(cls) -> str:
-		return os.path.join(cls.project_dir, ".lazygophers", "ccplugin")
+		return os.path.join(cls.get_project_dir(), ".lazygophers", "ccplugin")
 
 	@classmethod
 	def get_plugins_path(cls) -> str:
