@@ -7,11 +7,10 @@ class Environment:
 	"""
 	app_name: str = None
 
-	project_dir: str = None
+	project_dir: str = os.getcwd()
 	plugins_path: str = os.path.join(os.path.expanduser("~"), ".claude", "plugins")
 
 	def __init__(self):
-		self.project_dir = os.getcwd()
 		if os.getenv("CLAUDE_PROJECT_DIR") is not None:
 			self.project_dir = os.getenv("CLAUDE_PROJECT_DIR")
 
