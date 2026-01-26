@@ -10,11 +10,10 @@ import inspect
 import os
 from pathlib import Path
 from datetime import datetime
-from pickle import NONE
 from typing import Optional
 from rich.console import Console
 
-from lib.utils.env import get_project_plugins_dir, get_app_name
+from lib.utils.env import get_project_plugins_dir
 
 
 class RichLoggerManager:
@@ -126,6 +125,7 @@ class RichLoggerManager:
             message: 日志消息
             color: 颜色标签
         """
+        from lib.utils.env import get_app_name
         formatted = f"[[{get_app_name()}]][{color}]{level}[/{color}] [{datetime.now().strftime("%M:%S")}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
 
         # 写入文件
