@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/scripts/init_task_system.py || true",
+            "command": "PLUGIN_NAME=task uv run ${CLAUDE_PLUGIN_ROOT}/scripts/init_task_system.py || true",
             "once": true,
             "timeout": 5
           }

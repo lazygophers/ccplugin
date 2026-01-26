@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/semantic.py init --silent || true"
+            "command": "PLUGIN_NAME=semantic uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/semantic.py init --silent || true"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/semantic.py index --incremental --silent || true"
+            "command": "PLUGIN_NAME=semantic uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/semantic.py index --incremental --silent || true"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/semantic.py stats --silent || true"
+            "command": "PLUGIN_NAME=semantic uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/semantic.py stats --silent || true"
           }
         ]
       }

@@ -17,6 +17,9 @@ class Env:
 		if os.getenv("CLAUDE_PLUGIN_ROOT") is not None:
 			self.plugins_path = os.getenv("CLAUDE_PLUGIN_ROOT")
 
+		if os.getenv("PLUGIN_NAME") is not None:
+			self.app_name = os.getenv("PLUGIN_NAME")
+
 	@classmethod
 	def set_app(cls, name: str) -> None:
 		cls.app_name = name

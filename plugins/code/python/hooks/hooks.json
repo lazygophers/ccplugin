@@ -1,14 +1,14 @@
 {
-	"hooks": {
-		"SessionStart": [
-			{
-				"hooks": [
-					{
-						"type": "command",
-						"command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
-					}
-				]
-			}
-		]
-	}
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=python uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
 }
