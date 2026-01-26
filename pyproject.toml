@@ -22,6 +22,9 @@ version = "scripts.version:main"
 members = [ "plugins/notify",]
 
 [tool.setuptools.packages.find]
-where = [ ".",]
+where = [ "."]
 include = [ "scripts*",]
 exclude = [ "plugins*", "lib*",]
+
+[tool.setuptools.package-data]
+"*" = [ "*.json", "*.md",]

@@ -1,8 +1,10 @@
 from lib import logging
-from hooks import handle_hook
 from lib.utils.env import set_app
 import click
 from functools import wraps
+
+# Import hooks module using relative import
+from . import hooks
 
 # 注册应用名称
 set_app("version")
@@ -27,9 +29,9 @@ def main(ctx) -> None:
 
 @main.command()
 @with_debug
-def hooks() -> None:
+def hooks_cmd() -> None:
 	"""Hook 模式：从 stdin 读取 JSON"""
-	handle_hook()
+	hooks.handle_hook()
 
 
 if __name__ == "__main__":
