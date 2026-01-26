@@ -235,6 +235,10 @@ def handle_hook() -> None:
 
 		info(f"Hook 事件 {event_name} 处理完成")
 
+		print(json.dumps({
+			"continue": True,
+		}))
+
 	except json.JSONDecodeError as e:
 		error(f"JSON 解析失败: {e}")
 		sys.exit(1)
