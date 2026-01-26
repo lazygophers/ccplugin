@@ -3,7 +3,7 @@ import sys
 
 from lib import logging
 from lib.hooks import load_hooks
-from version import init_version, auto_update
+from .version import init_version, auto_update
 
 
 def handle_hook() -> None:

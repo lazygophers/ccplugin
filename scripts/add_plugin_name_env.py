@@ -2,10 +2,7 @@
 """为所有插件的 mcp 和 hooks 配置添加 PLUGIN_NAME 环境变量"""
 
 import json
-import os
-import re
 from pathlib import Path
-
 
 def extract_plugin_name(file_path: str) -> str:
     """从文件路径中提取插件名称"""
