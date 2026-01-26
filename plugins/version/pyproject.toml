@@ -6,6 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [ "click>=8.1.0", "lib",]
 
+[project.scripts]
+version-cli = "scripts.main:main"
+
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
@@ -18,7 +21,7 @@ dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.packages.find]
 where = [ ".",]
-include = [ "version*",]
+include = [ "scripts*",]
 
 [tool.uv.sources.lib]
 git = "https://github.com/lazygophers/ccplugin"
