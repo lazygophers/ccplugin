@@ -2,13 +2,15 @@
 
 本文档说明如何配置deepresearch插件所需的环境变量。
 
-## 必需的Token
+## 必需的环境变量
 
-### GitHub Token
+### Token配置
+
+#### GitHub Token
 
 GitHub MCP服务器需要Personal Access Token (PAT)才能访问私有仓库和获取更高的API速率限制。
 
-#### 获取GitHub Token
+**获取GitHub Token**：
 
 1. 访问 [GitHub Token设置](https://github.com/settings/tokens)
 2. 点击 "Generate new token" → "Generate new token (classic)"
@@ -19,7 +21,7 @@ GitHub MCP服务器需要Personal Access Token (PAT)才能访问私有仓库和�
 5. 点击 "Generate token"
 6. **重要**：复制token（只会显示一次）
 
-#### 配置环境变量
+**配置环境变量**：
 
 ```bash
 # 临时设置（当前会话）
@@ -30,13 +32,11 @@ echo 'export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
----
-
-### GitLab Token
+#### GitLab Token
 
 GitLab MCP服务器需要Personal Access Token才能访问私有项目和API。
 
-#### 获取GitLab Token
+**获取GitLab Token**：
 
 1. 访问 [GitLab Token设置](https://gitlab.com/-/user_settings/personal_access_tokens)
 2. 点击 "Add new token"
@@ -49,7 +49,7 @@ GitLab MCP服务器需要Personal Access Token才能访问私有项目和API。
 6. 点击 "Create personal access token"
 7. **重要**：复制token（只会显示一次）
 
-#### 配置环境变量
+**配置环境变量**：
 
 ```bash
 # 临时设置（当前会话）
@@ -100,19 +100,53 @@ curl -H "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab.com/api/v4/user
 
 ## 代理配置
 
-deepresearch插件已配置代理支持（`http://127.0.0.1:7890`），确保以下MCP服务器可以正常访问网络：
+### 环境变量
 
-- Chrome DevTools
-- DuckDuckGo
-- GitHub
-- GitLab
-- Wikipedia
-
-### 验证代理
+deepresearch插件支持通过以下环境变量配置代理：
 
 ```bash
-# 测试代理连接
-curl -x http://127.0.0.1:7890 https://api.github.com
+# 方式1：使用PROXY_URL（推荐）
+export PROXY_URL="http://127.0.0.1:7890"
+
+# 方式2：使用标准代理变量
+export HTTP_PROXY="http://127.0.0.1:7890"
+export HTTPS_PROXY="http://127.0.0.1:7890"
+export ALL_PROXY="http://127.0.0.1:7890"
+```
+
+### 默认配置
+
+如果未设置环境变量，插件将使用以下默认值：
+
+| 变量 | 默认值 |
+|------|--------|
+| `PROXY_URL` | `http://127.0.0.1:7890` |
+| `HTTP_PROXY` | `http://127.0.0.1:7890` |
+| `HTTPS_PROXY` | `http://127.0.0.1:7890` |
+| `ALL_PROXY` | `http://127.0.0.1:7890` |
+
+### 优先级
+
+代理配置的优先级顺序：
+1. `PROXY_URL` - 最高优先级
+2. `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` - 标准代理变量
+3. 默认值 `http://127.0.0.1:7890`
+
+### 永久配置
+
+```bash
+# 添加到 ~/.zshrc 或 ~/.bashrc
+cat >> ~/.zshrc << 'EOF'
+# DeepResearch Proxy Configuration
+export PROXY_URL="http://127.0.0.1:7890"
+# 或使用标准代理变量（备选）
+# export HTTP_PROXY="http://127.0.0.1:7890"
+# export HTTPS_PROXY="http://127.0.0.1:7890"
+# export ALL_PROXY="http://127.0.0.1:7890"
+EOF
+
+# 重新加载配置
+source ~/.zshrc
 ```
 
 ---
