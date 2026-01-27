@@ -24,13 +24,12 @@ wheels = [
 ]
 
 [[package]]
-name = "code-naming"
+name = "code-flutter"
 version = "0.0.88"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "lib" },
-    { name = "rich" },
 ]
 
 [package.optional-dependencies]
@@ -40,10 +39,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
+    { name = "click", specifier = ">=8.3.1" },
     { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "rich", specifier = ">=14.3.1" },
 ]
 provides-extras = ["dev"]
 
@@ -68,7 +66,7 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#97a800d78e3b46a9405f60af5f26ff938029ed88" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#1e7eedd3a70136566ef791ed998482843933dc66" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
