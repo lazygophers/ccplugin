@@ -19,7 +19,17 @@ clean = "scripts.clean:main"
 version = "plugins.version.scripts.main:main"
 
 [tool.uv.workspace]
-members = [ "plugins/notify", "plugins/version", "plugins/languages/python", "plugins/languages/golang", "plugins/languages/typescript", "plugins/languages/vue", "plugins/tools/semantic", "plugins/languages/naming",]
+members = [
+ "plugins/notify",
+ "plugins/version",
+ "plugins/languages/python",
+ "plugins/languages/golang",
+ "plugins/languages/typescript",
+ "plugins/languages/vue",
+ "plugins/tools/semantic",
+ "plugins/languages/naming",
+ "plugins/tools/git",
+]
 
 [tool.setuptools.package-data]
 "*" = [ "*.json", "*.md",]
