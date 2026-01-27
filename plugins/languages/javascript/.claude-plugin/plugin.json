@@ -1,0 +1,35 @@
+{
+  "name": "javascript",
+  "version": "0.0.87",
+  "description": "JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/javascript",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/javascript",
+  "license": "MIT",
+  "keywords": [
+    "javascript",
+    "js",
+    "es2024",
+    "es2025",
+    "development",
+    "async-await",
+    "esm",
+    "vitest",
+    "vite",
+    "pnpm",
+    "coding-style",
+    "best-practices"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}

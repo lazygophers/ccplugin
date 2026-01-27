@@ -1,0 +1,33 @@
+{
+  "name": "react",
+  "version": "0.0.87",
+  "description": "React 18+ 开发插件 - 提供现代 React 开发规范、最佳实践和代码智能支持。包括 Hooks 深度指导、函数组件标准、Zustand/Redux 状态管理、Next.js 集成和完整的开发工具链",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/react",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/react",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "react18",
+    "hooks",
+    "zustand",
+    "redux",
+    "nextjs",
+    "vite",
+    "vitest",
+    "development",
+    "coding-style",
+    "best-practices"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}

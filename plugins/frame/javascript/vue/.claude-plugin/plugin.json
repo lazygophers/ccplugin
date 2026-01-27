@@ -1,0 +1,31 @@
+{
+  "name": "vue",
+  "version": "0.0.87",
+  "description": "Vue 3 开发插件 - 提供 Vue 3 开发规范、最佳实践和代码智能支持。包括 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/vue",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/vue",
+  "license": "MIT",
+  "keywords": [
+    "vue",
+    "vue3",
+    "composition-api",
+    "pinia",
+    "vite",
+    "vitest",
+    "development",
+    "coding-style",
+    "best-practices"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}
