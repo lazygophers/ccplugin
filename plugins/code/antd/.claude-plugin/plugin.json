@@ -1,6 +1,6 @@
 {
   "name": "antd",
-  "version": "0.0.85",
+  "version": "0.0.86",
   "description": "Ant Design 5.x 企业级 UI 组件库插件 - 提供设计系统、组件库、主题定制、表单管理和完整的企业应用开发规范。包括虚拟滚动、性能优化、TypeScript 完全支持和 Next.js 无缝集成",
   "author": {
     "name": "lazygophers",
