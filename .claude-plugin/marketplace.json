@@ -74,6 +74,31 @@
       ]
     },
     {
+      "name": "deepresearch",
+      "source": "./plugins/tools/deepresearch",
+      "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
+      "version": "0.0.89",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/deepresearch",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/deepresearch",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "deep",
+        "research",
+        "investigation",
+        "analysis",
+        "citation",
+        "multi-agent",
+        "got",
+        "graph-of-thoughts",
+        "synthesis",
+        "validation"
+      ]
+    },
+    {
       "name": "golang",
       "source": "./plugins/languages/golang",
       "description": "Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导",
