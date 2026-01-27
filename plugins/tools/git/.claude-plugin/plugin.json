@@ -1,6 +1,6 @@
 {
   "name": "git",
-  "version": "0.0.87",
+  "version": "0.0.88",
   "description": "Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理",
   "author": {
     "name": "lazygophers",
