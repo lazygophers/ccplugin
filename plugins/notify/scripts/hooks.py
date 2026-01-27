@@ -15,7 +15,7 @@ from typing import Optional, Dict, Any
 from config import load_config, HooksConfig, HookConfig
 from lib.hooks import load_hooks
 from lib.logging import info, error, debug
-from lib.utils import get_project_dir, get_plugins_path
+from lib.utils.env import get_project_dir, get_plugins_path
 from notify import play_text_tts, show_system_notification
 
 
