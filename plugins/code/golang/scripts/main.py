@@ -1,11 +1,7 @@
 from lib import logging
 from hooks import handle_hook
-from lib.utils.env import set_app
 import click
 from functools import wraps
-
-# 注册应用名称
-set_app("version")
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
