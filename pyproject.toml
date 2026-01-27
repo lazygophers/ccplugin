@@ -12,12 +12,14 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 clean = "scripts.clean:main"
+version = "plugins.version.scripts.main:main"
 
 [project.entry-points.console_scripts]
 clean = "scripts.clean:main"
+version = "plugins.version.scripts.main:main"
 
 [tool.uv.workspace]
-members = [ "plugins/notify",]
+members = [ "plugins/notify", "plugins/version"]
 
 [tool.setuptools.package-data]
 "*" = [ "*.json", "*.md",]
