@@ -1,5 +1,5 @@
 ---
-name: naming-conventions
+name: naming
 description: Cross-language naming standards and best practices
 ---
 
