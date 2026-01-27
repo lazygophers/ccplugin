@@ -102,35 +102,20 @@ curl -H "PRIVATE-TOKEN: $GITLAB_TOKEN" https://gitlab.com/api/v4/user
 
 ### 环境变量
 
-deepresearch插件支持通过以下环境变量配置代理：
+deepresearch插件统一使用 `PROXY_URL` 环境变量配置代理：
 
 ```bash
-# 方式1：使用PROXY_URL（推荐）
+# 设置代理
 export PROXY_URL="http://127.0.0.1:7890"
-
-# 方式2：使用标准代理变量
-export HTTP_PROXY="http://127.0.0.1:7890"
-export HTTPS_PROXY="http://127.0.0.1:7890"
-export ALL_PROXY="http://127.0.0.1:7890"
 ```
 
 ### 默认配置
 
-如果未设置环境变量，插件将使用以下默认值：
+如果未设置 `PROXY_URL` 环境变量，插件将使用默认值：
 
 | 变量 | 默认值 |
 |------|--------|
 | `PROXY_URL` | `http://127.0.0.1:7890` |
-| `HTTP_PROXY` | `http://127.0.0.1:7890` |
-| `HTTPS_PROXY` | `http://127.0.0.1:7890` |
-| `ALL_PROXY` | `http://127.0.0.1:7890` |
-
-### 优先级
-
-代理配置的优先级顺序：
-1. `PROXY_URL` - 最高优先级
-2. `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` - 标准代理变量
-3. 默认值 `http://127.0.0.1:7890`
 
 ### 永久配置
 
@@ -139,15 +124,20 @@ export ALL_PROXY="http://127.0.0.1:7890"
 cat >> ~/.zshrc << 'EOF'
 # DeepResearch Proxy Configuration
 export PROXY_URL="http://127.0.0.1:7890"
-# 或使用标准代理变量（备选）
-# export HTTP_PROXY="http://127.0.0.1:7890"
-# export HTTPS_PROXY="http://127.0.0.1:7890"
-# export ALL_PROXY="http://127.0.0.1:7890"
 EOF
 
 # 重新加载配置
 source ~/.zshrc
 ```
+
+### 应用范围
+
+`PROXY_URL` 将应用于以下MCP服务器：
+- Chrome DevTools
+- DuckDuckGo
+- GitHub
+- GitLab
+- Wikipedia
 
 ---
 

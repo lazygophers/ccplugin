@@ -18,9 +18,9 @@
         "duckduckgo-mcp-server"
       ],
       "env": {
-        "ALL_PROXY": "${ALL_PROXY:-http://127.0.0.1:7890}",
-        "HTTPS_PROXY": "${HTTPS_PROXY:-http://127.0.0.1:7890}",
-        "HTTP_PROXY": "${HTTP_PROXY:-http://127.0.0.1:7890}"
+        "ALL_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTPS_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTP_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}"
       }
     },
     "time": {
@@ -48,9 +48,9 @@
       ],
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "ALL_PROXY": "${ALL_PROXY:-http://127.0.0.1:7890}",
-        "HTTPS_PROXY": "${HTTPS_PROXY:-http://127.0.0.1:7890}",
-        "HTTP_PROXY": "${HTTP_PROXY:-http://127.0.0.1:7890}"
+        "ALL_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTPS_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTP_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}"
       }
     },
     "gitlab": {
@@ -61,9 +61,9 @@
       ],
       "env": {
         "GITLAB_TOKEN": "${GITLAB_TOKEN}",
-        "ALL_PROXY": "${ALL_PROXY:-http://127.0.0.1:7890}",
-        "HTTPS_PROXY": "${HTTPS_PROXY:-http://127.0.0.1:7890}",
-        "HTTP_PROXY": "${HTTP_PROXY:-http://127.0.0.1:7890}"
+        "ALL_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTPS_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTP_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}"
       }
     },
     "wikipedia": {
@@ -73,9 +73,9 @@
         "mcp-server-wikipedia"
       ],
       "env": {
-        "ALL_PROXY": "${ALL_PROXY:-http://127.0.0.1:7890}",
-        "HTTPS_PROXY": "${HTTPS_PROXY:-http://127.0.0.1:7890}",
-        "HTTP_PROXY": "${HTTP_PROXY:-http://127.0.0.1:7890}"
+        "ALL_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTPS_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}",
+        "HTTP_PROXY": "${PROXY_URL:-http://127.0.0.1:7890}"
       }
     }
   }
