@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Claude Code 插件市场 - 提供常用插件和开发模板",
-    "version": "0.0.86",
+    "version": "0.0.87",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "task",
       "source": "./plugins/task",
       "description": "项目任务管理插件 - 使用 SQLite 存储任务，支持 Markdown 导入导出，完整的项目任务跟踪解决方案",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -32,9 +32,9 @@
     },
     {
       "name": "semantic",
-      "source": "./plugins/code/semantic",
+      "source": "./plugins/tools/semantic",
       "description": "语义搜索插件 - 基于向量嵌入的自然语言代码搜索，支持中英文混合查询和多语言代码理解",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -53,9 +53,9 @@
     },
     {
       "name": "git",
-      "source": "./plugins/code/git",
+      "source": "./plugins/tools/git",
       "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -75,9 +75,9 @@
     },
     {
       "name": "golang",
-      "source": "./plugins/code/golang",
+      "source": "./plugins/languages/golang",
       "description": "Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -100,9 +100,9 @@
     },
     {
       "name": "python",
-      "source": "./plugins/code/python",
+      "source": "./plugins/languages/python",
       "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "Claude Code",
         "email": "admin@example.com"
@@ -126,9 +126,9 @@
     },
     {
       "name": "typescript",
-      "source": "./plugins/code/typescript",
+      "source": "./plugins/languages/typescript",
       "description": "TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -150,9 +150,9 @@
     },
     {
       "name": "javascript",
-      "source": "./plugins/code/javascript",
+      "source": "./plugins/languages/javascript",
       "description": "JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -177,9 +177,9 @@
     },
     {
       "name": "vue",
-      "source": "./plugins/code/vue",
+      "source": "./plugins/languages/vue",
       "description": "Vue 3 开发插件 - 提供 Vue 3 开发规范、最佳实践和代码智能支持。包括 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -201,9 +201,9 @@
     },
     {
       "name": "react",
-      "source": "./plugins/code/react",
+      "source": "./plugins/frame/javascript/react",
       "description": "React 18+ 开发插件 - 提供现代 React 开发规范、最佳实践和代码智能支持。包括 Hooks 深度指导、函数组件标准、Zustand/Redux 状态管理、Next.js 集成和完整的开发工具链",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -227,9 +227,9 @@
     },
     {
       "name": "nextjs",
-      "source": "./plugins/code/nextjs",
+      "source": "./plugins/frame/javascript/nextjs",
       "description": "Next.js 16+ 全栈开发插件 - 提供 App Router、Server Components、Route Handlers 和现代全栈开发规范。包括 PPR、Server Actions、数据缓存、中间件和完整的生产级工具链",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -253,9 +253,9 @@
     },
     {
       "name": "antd",
-      "source": "./plugins/code/antd",
+      "source": "./plugins/frame/javascript/antd",
       "description": "Ant Design 5.x 企业级 UI 组件库插件 - 提供设计系统、组件库、主题定制、表单管理和完整的企业应用开发规范。包括虚拟滚动、性能优化、TypeScript 完全支持和 Next.js 无缝集成",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -282,7 +282,7 @@
       "name": "version",
       "source": "./plugins/version",
       "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -302,9 +302,9 @@
     },
     {
       "name": "flutter",
-      "source": "./plugins/code/flutter",
+      "source": "./plugins/languages/flutter",
       "description": "Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持。包括 Material 3、Cupertino、自定义设计系统和 Provider、Riverpod、BLoC 等状态管理方案的最佳实践",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -332,15 +332,15 @@
     },
     {
       "name": "style-glassmorphism",
-      "source": "./plugins/style/style-glassmorphism",
+      "source": "./plugins/themes/style-glassmorphism",
       "description": "玻璃态设计风格插件 - 提供玻璃态 UI 设计规范、实现指南和最佳实践。包括模糊、透明、分层和光线效果的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-glassmorphism",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-glassmorphism",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-glassmorphism",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-glassmorphism",
       "license": "MIT",
       "keywords": [
         "glassmorphism",
@@ -356,15 +356,15 @@
     },
     {
       "name": "style-neumorphism",
-      "source": "./plugins/style/style-neumorphism",
+      "source": "./plugins/themes/style-neumorphism",
       "description": "新拟态设计风格插件 - 提供新拟态 UI 设计规范、实现指南和最佳实践。包括柔和阴影、浮起效果和 3D 视觉的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neumorphism",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neumorphism",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-neumorphism",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-neumorphism",
       "license": "MIT",
       "keywords": [
         "neumorphism",
@@ -380,15 +380,15 @@
     },
     {
       "name": "style-minimal",
-      "source": "./plugins/style/style-minimal",
+      "source": "./plugins/themes/style-minimal",
       "description": "极简主义设计风格插件 - 提供极简 UI 设计规范、实现指南和最佳实践。包括留白、简洁排版和功能至上的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-minimal",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-minimal",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-minimal",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-minimal",
       "license": "MIT",
       "keywords": [
         "minimal",
@@ -404,15 +404,15 @@
     },
     {
       "name": "style-dark",
-      "source": "./plugins/style/style-dark",
+      "source": "./plugins/themes/style-dark",
       "description": "暗黑模式设计风格插件 - 提供暗黑模式 UI 设计规范、实现指南和最佳实践。包括深色背景、高对比和 WCAG 无障碍标准的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-dark",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-dark",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-dark",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-dark",
       "license": "MIT",
       "keywords": [
         "dark-mode",
@@ -428,15 +428,15 @@
     },
     {
       "name": "style-neon",
-      "source": "./plugins/style/style-neon",
+      "source": "./plugins/themes/style-neon",
       "description": "霓虹赛博设计风格插件 - 提供霓虹 UI 设计规范、实现指南和最佳实践。包括发光效果、高饱和色彩和科幻感的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neon",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-neon",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-neon",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-neon",
       "license": "MIT",
       "keywords": [
         "neon",
@@ -452,15 +452,15 @@
     },
     {
       "name": "style-retro",
-      "source": "./plugins/style/style-retro",
+      "source": "./plugins/themes/style-retro",
       "description": "复古怀旧设计风格插件 - 提供复古 UI 设计规范、实现指南和最佳实践。包括 80-90s 审美、温暖色调和复古排版的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-retro",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-retro",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-retro",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-retro",
       "license": "MIT",
       "keywords": [
         "retro",
@@ -476,15 +476,15 @@
     },
     {
       "name": "style-brutalism",
-      "source": "./plugins/style/style-brutalism",
+      "source": "./plugins/themes/style-brutalism",
       "description": "野兽派设计风格插件 - 提供野兽派 UI 设计规范、实现指南和最佳实践。包括原始边界、大胆排版和功能优先的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-brutalism",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-brutalism",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-brutalism",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-brutalism",
       "license": "MIT",
       "keywords": [
         "brutalism",
@@ -500,15 +500,15 @@
     },
     {
       "name": "style-pastel",
-      "source": "./plugins/style/style-pastel",
+      "source": "./plugins/themes/style-pastel",
       "description": "柔和粉彩设计风格插件 - 提供柔和 UI 设计规范、实现指南和最佳实践。包括淡雅色彩、温柔质感和舒适感的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-pastel",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-pastel",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-pastel",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-pastel",
       "license": "MIT",
       "keywords": [
         "pastel",
@@ -524,15 +524,15 @@
     },
     {
       "name": "style-vibrant",
-      "source": "./plugins/style/style-vibrant",
+      "source": "./plugins/themes/style-vibrant",
       "description": "充满活力设计风格插件 - 提供活力 UI 设计规范、实现指南和最佳实践。包括高对比、高饱和色彩和动态感的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-vibrant",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-vibrant",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-vibrant",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-vibrant",
       "license": "MIT",
       "keywords": [
         "vibrant",
@@ -548,15 +548,15 @@
     },
     {
       "name": "style-luxe",
-      "source": "./plugins/style/style-luxe",
+      "source": "./plugins/themes/style-luxe",
       "description": "奢华高端设计风格插件 - 提供奢华 UI 设计规范、实现指南和最佳实践。包括金色元素、大理石纹理和精致排版的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-luxe",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-luxe",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-luxe",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-luxe",
       "license": "MIT",
       "keywords": [
         "luxury",
@@ -573,15 +573,15 @@
     },
     {
       "name": "style-highcontrast",
-      "source": "./plugins/style/style-highcontrast",
+      "source": "./plugins/themes/style-highcontrast",
       "description": "高对比无障碍设计风格插件 - 提供高对比 UI 设计规范、实现指南和最佳实践。包括 WCAG AAA 标准、清晰界限和包容性的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-highcontrast",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-highcontrast",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-highcontrast",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-highcontrast",
       "license": "MIT",
       "keywords": [
         "high-contrast",
@@ -597,15 +597,15 @@
     },
     {
       "name": "style-gradient",
-      "source": "./plugins/style/style-gradient",
+      "source": "./plugins/themes/style-gradient",
       "description": "渐变艺术设计风格插件 - 提供渐变 UI 设计规范、实现指南和最佳实践。包括流动渐变、色彩过渡和艺术表现的完整设计系统",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-gradient",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/style/style-gradient",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-gradient",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/themes/style-gradient",
       "license": "MIT",
       "keywords": [
         "gradient",
@@ -623,7 +623,7 @@
       "name": "notify",
       "source": "./plugins/notify",
       "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -645,7 +645,7 @@
       "name": "naming",
       "source": "./plugins/code/naming",
       "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正",
-      "version": "0.0.86",
+      "version": "0.0.87",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"

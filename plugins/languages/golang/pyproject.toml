@@ -1,10 +1,10 @@
 [project]
-name = "ccplugin-task"
+name = "code-golang"
 version = "0.0.87"
-description = "Claude Code file-system based task management plugin"
+description = "Claude Code plugin for Go language support"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [ "click>=8.3.1", "lib",]
 
 [build-system]
 requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
@@ -18,4 +18,9 @@ dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.packages.find]
 where = [ ".",]
-include = [ "task*",]
+include = [ "golang*",]
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"

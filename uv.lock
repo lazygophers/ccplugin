@@ -11,7 +11,6 @@ resolution-markers = [
 members = [
     "ccplugin",
     "ccplugin-code-typescript",
-    "ccplugin-code-vue",
     "ccplugin-semantic",
     "code-golang",
     "code-naming",
@@ -44,7 +43,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin"
-version = "0.0.86"
+version = "0.0.87"
 source = { editable = "." }
 dependencies = [
     { name = "lib" },
@@ -67,28 +66,8 @@ requires-dist = [
 
 [[package]]
 name = "ccplugin-code-typescript"
-version = "0.0.86"
-source = { editable = "plugins/code/typescript" }
-dependencies = [
-    { name = "lib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "lib" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
-name = "ccplugin-code-vue"
-version = "0.0.86"
-source = { editable = "plugins/code/vue" }
+version = "0.0.87"
+source = { editable = "plugins/languages/typescript" }
 dependencies = [
     { name = "lib" },
 ]
@@ -107,8 +86,8 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "ccplugin-semantic"
-version = "0.0.86"
-source = { editable = "plugins/code/semantic" }
+version = "0.0.87"
+source = { editable = "plugins/tools/semantic" }
 dependencies = [
     { name = "fastembed" },
     { name = "javalang" },
@@ -235,8 +214,8 @@ wheels = [
 
 [[package]]
 name = "code-golang"
-version = "0.0.86"
-source = { editable = "plugins/code/golang" }
+version = "0.0.87"
+source = { editable = "plugins/languages/golang" }
 dependencies = [
     { name = "click" },
     { name = "lib" },
@@ -257,8 +236,8 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "code-naming"
-version = "0.0.86"
-source = { editable = "plugins/code/naming" }
+version = "0.0.87"
+source = { editable = "plugins/languages/naming" }
 dependencies = [
     { name = "click" },
     { name = "lib" },
@@ -281,8 +260,8 @@ provides-extras = ["dev"]
 
 [[package]]
 name = "code-python"
-version = "0.0.86"
-source = { editable = "plugins/code/python" }
+version = "0.0.87"
+source = { editable = "plugins/languages/python" }
 dependencies = [
     { name = "click" },
     { name = "lib" },
@@ -837,7 +816,7 @@ wheels = [
 
 [[package]]
 name = "notify"
-version = "0.0.86"
+version = "0.0.87"
 source = { editable = "plugins/notify" }
 dependencies = [
     { name = "click" },
@@ -2069,7 +2048,7 @@ wheels = [
 
 [[package]]
 name = "version"
-version = "0.0.86"
+version = "0.0.87"
 source = { editable = "plugins/version" }
 dependencies = [
     { name = "click" },

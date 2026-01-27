@@ -1,0 +1,32 @@
+{
+  "name": "git",
+  "version": "0.0.87",
+  "description": "Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/git",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/git",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "git",
+    "commit",
+    "pr",
+    "pull-request",
+    "gitignore",
+    "version-control",
+    "workflow"
+  ],
+  "commands": [
+    "./commands/commit.md",
+    "./commands/push.md",
+    "./commands/pr.md",
+    "./commands/ignore.md"
+  ],
+  "agents": [
+    "./agents/git.md"
+  ],
+  "skills": "./skills/"
+}

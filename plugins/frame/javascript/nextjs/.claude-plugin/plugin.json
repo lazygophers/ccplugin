@@ -1,0 +1,33 @@
+{
+  "name": "nextjs",
+  "version": "0.0.87",
+  "description": "Next.js 16+ 全栈开发插件 - 提供 App Router、Server Components、Route Handlers 和现代全栈开发规范。包括 PPR、Server Actions、数据缓存、中间件和完整的生产级工具链",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/nextjs",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/nextjs",
+  "license": "MIT",
+  "keywords": [
+    "nextjs",
+    "next",
+    "fullstack",
+    "app-router",
+    "server-components",
+    "route-handlers",
+    "ppr",
+    "turbopack",
+    "development",
+    "coding-style",
+    "best-practices"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}
