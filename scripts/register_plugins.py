@@ -14,6 +14,29 @@ from pathlib import Path
 from typing import Any
 
 
+def _version_key(version: str) -> tuple:
+    """Convert version string to a sortable tuple.
+
+    Handles semantic versions (e.g., '0.0.91') and git SHAs (e.g., '96276205880a').
+
+    Args:
+        version: Version string to parse
+
+    Returns:
+        Tuple that can be used for sorting: (is_semantic, semantic_parts, version_string)
+        - is_semantic: False (semantic versions sort first)
+        - semantic_parts: List of integers for semantic versions, empty list for git SHAs
+        - version_string: Original version string as fallback
+    """
+    try:
+        # Try to parse as semantic version (e.g., '0.0.91')
+        parts = [int(x) for x in version.split(".")]
+        return (False, parts, version)
+    except ValueError:
+        # Not a semantic version (e.g., git SHA), sort as string
+        return (True, [], version)
+
+
 def get_latest_version_from_cache(market: str, plugin: str) -> str | None:
     """Get the latest version from plugin cache directory.
 
@@ -35,9 +58,9 @@ def get_latest_version_from_cache(market: str, plugin: str) -> str | None:
     if not version_dirs:
         return None
 
-    # Sort by version string (assuming semantic versioning)
+    # Sort by version string (semantic versions first, then alphabetically)
     versions = [d.name for d in version_dirs]
-    versions.sort(key=lambda v: [int(x) for x in v.split(".")])
+    versions.sort(key=_version_key)
 
     return versions[-1] if versions else None
 
