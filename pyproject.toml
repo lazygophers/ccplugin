@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin"
-version = "0.0.85"
+version = "0.0.86"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -19,10 +19,10 @@ clean = "scripts.clean:main"
 [tool.uv.workspace]
 members = [ "plugins/notify",]
 
-[tool.setuptools.packages.find]
-where = [ "."]
-include = [ "scripts*",]
-exclude = [ "plugins*", "lib*",]
-
 [tool.setuptools.package-data]
 "*" = [ "*.json", "*.md",]
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "scripts*",]
+exclude = [ "plugins*", "lib*",]
