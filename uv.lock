@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 members = [
     "ccplugin",
     "notify",
+    "version",
 ]
 
 [[package]]
@@ -19,7 +20,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin"
-version = "0.0.85"
+version = "0.0.86"
 source = { editable = "." }
 dependencies = [
     { name = "lib" },
@@ -109,7 +110,7 @@ wheels = [
 
 [[package]]
 name = "notify"
-version = "0.0.85"
+version = "0.0.86"
 source = { editable = "plugins/notify" }
 dependencies = [
     { name = "click" },
@@ -372,3 +373,25 @@ sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
 ]
+
+[[package]]
+name = "version"
+version = "0.0.86"
+source = { editable = "plugins/version" }
+dependencies = [
+    { name = "click" },
+    { name = "lib" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1.0" },
+    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+]
+provides-extras = ["dev"]
