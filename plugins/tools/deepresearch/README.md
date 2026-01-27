@@ -229,12 +229,33 @@ deepresearch插件集成了以下MCP（Model Context Protocol）服务器以增�
 | **time** | 时区处理 | 全球时区转换、时间计算、会议调度 |
 | **sequential-thinking** | 复杂推理 | 思维链分析、逐步推理、问题分解 |
 | **github** | GitHub集成 | 仓库分析、Issue追踪、代码审查 |
+| **gitlab** | GitLab集成 | 仓库管理、CI/CD分析、项目追踪 |
 | **wikipedia** | 百科知识 | 概念解释、背景资料、知识图谱 |
+
+#### Token配置
+
+GitHub和GitLab需要访问令牌，请通过环境变量配置：
+
+```bash
+# GitHub Token（推荐使用Personal Access Token）
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+
+# GitLab Token（推荐使用Personal Access Token）
+export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
+```
+
+**获取Token**：
+- **GitHub**: Settings → Developer settings → Personal access tokens → Tokens (classic)
+- **GitLab**: Settings → Access Tokens → Scopes: api, read_api, read_repository
+
+**Token权限**：
+- **GitHub**: `repo` (完整仓库访问)、`read:org` (组织信息)
+- **GitLab**: `api`、`read_api`、`read_repository`
 
 #### 代理配置
 
 MCP服务器已配置代理支持（`http://127.0.0.1:7890`），确保：
-- Chrome DevTools、GitHub、Wikipedia、DuckDuckGo通过代理访问网络
+- Chrome DevTools、GitHub、GitLab、Wikipedia、DuckDuckGo通过代理访问网络
 - Sequential Thinking和Time无需代理（本地计算服务）
 
 #### 使用示例
@@ -254,6 +275,9 @@ MCP服务器已配置代理支持（`http://127.0.0.1:7890`），确保：
 
 # 使用GitHub分析开源项目
 获取 facebook/react 项目的Star数、最近提交和活跃贡献者
+
+# 使用GitLab分析项目仓库
+获取 gitlab-org/gitlab 项目的合并请求和流水线状态
 
 # 使用Wikipedia获取背景知识
 搜索 "微服务架构" 的定义、历史和应用场景

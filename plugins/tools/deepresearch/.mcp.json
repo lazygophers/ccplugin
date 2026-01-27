@@ -47,6 +47,20 @@
         "mcp-server-github"
       ],
       "env": {
+        "GITHUB_TOKEN": "",
+        "ALL_PROXY": "http://127.0.0.1:7890",
+        "HTTPS_PROXY": "http://127.0.0.1:7890",
+        "HTTP_PROXY": "http://127.0.0.1:7890"
+      }
+    },
+    "gitlab": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-gitlab"
+      ],
+      "env": {
+        "GITLAB_TOKEN": "",
         "ALL_PROXY": "http://127.0.0.1:7890",
         "HTTPS_PROXY": "http://127.0.0.1:7890",
         "HTTP_PROXY": "http://127.0.0.1:7890"
