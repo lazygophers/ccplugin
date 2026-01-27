@@ -17,7 +17,7 @@ def with_debug(func):
 @click.pass_context
 def main(ctx) -> None:
 	"""
-	Python development plugin.
+	React development plugin.
 	"""
 	pass
 
