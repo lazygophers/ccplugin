@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=semantic uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+            "command": "PLUGIN_NAME=git uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
           }
         ]
       }

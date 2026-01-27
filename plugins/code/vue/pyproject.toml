@@ -4,7 +4,7 @@ version = "0.0.86"
 description = "Claude Code plugin for Vue language support"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["lib"]
 
 [build-system]
 requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]

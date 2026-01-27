@@ -7,19 +7,6 @@ resolution-markers = [
     "python_full_version < '3.13'",
 ]
 
-[manifest]
-members = [
-    "ccplugin",
-    "ccplugin-code-typescript",
-    "ccplugin-code-vue",
-    "ccplugin-semantic",
-    "code-golang",
-    "code-naming",
-    "code-python",
-    "notify",
-    "version",
-]
-
 [[package]]
 name = "annotated-types"
 version = "0.7.0"
@@ -43,72 +30,9 @@ wheels = [
 ]
 
 [[package]]
-name = "ccplugin"
-version = "0.0.86"
-source = { editable = "." }
-dependencies = [
-    { name = "lib" },
-    { name = "logging" },
-    { name = "pydantic" },
-    { name = "rich" },
-    { name = "toml" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "logging", specifier = ">=0.4.9.6" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "rich", specifier = ">=13.9.0" },
-    { name = "toml", specifier = ">=0.10.2" },
-    { name = "typer", specifier = ">=0.21.1" },
-]
-
-[[package]]
-name = "ccplugin-code-typescript"
-version = "0.0.86"
-source = { editable = "plugins/code/typescript" }
-dependencies = [
-    { name = "lib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "lib" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
-name = "ccplugin-code-vue"
-version = "0.0.86"
-source = { editable = "plugins/code/vue" }
-dependencies = [
-    { name = "lib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "lib" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
 name = "ccplugin-semantic"
 version = "0.0.86"
-source = { editable = "plugins/code/semantic" }
+source = { editable = "." }
 dependencies = [
     { name = "fastembed" },
     { name = "javalang" },
@@ -232,74 +156,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/3d/fa/656b739db8587d7b5
 wheels = [
     { url = "https://files.pythonhosted.org/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl", hash = "sha256:981153a64e25f12d547d3426c367a4857371575ee7ad18df2a6183ab0545b2a6", size = 108274, upload-time = "2025-11-15T20:45:41.139Z" },
 ]
-
-[[package]]
-name = "code-golang"
-version = "0.0.86"
-source = { editable = "plugins/code/golang" }
-dependencies = [
-    { name = "click" },
-    { name = "lib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.3.1" },
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-]
-provides-extras = ["dev"]
-
-[[package]]
-name = "code-naming"
-version = "0.0.86"
-source = { editable = "plugins/code/naming" }
-dependencies = [
-    { name = "click" },
-    { name = "lib" },
-    { name = "rich" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "rich", specifier = ">=14.3.1" },
-]
-provides-extras = ["dev"]
-
-[[package]]
-name = "code-python"
-version = "0.0.86"
-source = { editable = "plugins/code/python" }
-dependencies = [
-    { name = "click" },
-    { name = "lib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.3.1" },
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "colorama"
@@ -627,18 +483,12 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#c156e8677942fa1ccdb1bbbcad1a041d7a4a823d" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#08a602c8c36c5cc6a92584ab27b85494cec67e6e" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
     { name = "rich" },
 ]
-
-[[package]]
-name = "logging"
-version = "0.4.9.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/93/4b/979db9e44be09f71e85c9c8cfc42f258adfb7d93ce01deed2788b2948919/logging-0.4.9.6.tar.gz", hash = "sha256:26f6b50773f085042d301085bd1bf5d9f3735704db9f37c1ce6d8b85c38f2417", size = 96029, upload-time = "2013-06-04T23:43:22.086Z" }
 
 [[package]]
 name = "loguru"
@@ -834,30 +684,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762", size = 2068504, upload-time = "2025-12-08T17:02:38.159Z" },
 ]
-
-[[package]]
-name = "notify"
-version = "0.0.86"
-source = { editable = "plugins/notify" }
-dependencies = [
-    { name = "click" },
-    { name = "lib" },
-    { name = "pyyaml" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "pyyaml", specifier = ">=6.0.3" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "numpy"
@@ -1808,15 +1634,6 @@ wheels = [
 ]
 
 [[package]]
-name = "toml"
-version = "0.10.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
-]
-
-[[package]]
 name = "torch"
 version = "2.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2066,28 +1883,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/c7/24/5f1b3bdffd70275f6
 wheels = [
     { url = "https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4", size = 131584, upload-time = "2026-01-07T16:24:42.685Z" },
 ]
-
-[[package]]
-name = "version"
-version = "0.0.86"
-source = { editable = "plugins/version" }
-dependencies = [
-    { name = "click" },
-    { name = "lib" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "win32-setctime"
