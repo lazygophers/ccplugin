@@ -254,9 +254,24 @@ export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
 
 #### 代理配置
 
-MCP服务器已配置代理支持（`http://127.0.0.1:7890`），确保：
-- Chrome DevTools、GitHub、GitLab、Wikipedia、DuckDuckGo通过代理访问网络
-- Sequential Thinking和Time无需代理（本地计算服务）
+MCP服务器支持通过环境变量配置代理，使用以下优先级：
+
+1. **PROXY_URL** - 推荐方式，最高优先级
+2. **HTTP_PROXY / HTTPS_PROXY / ALL_PROXY** - 标准代理变量
+3. **默认值** - `http://127.0.0.1:7890`
+
+```bash
+# 设置代理（推荐使用PROXY_URL）
+export PROXY_URL="http://127.0.0.1:7890"
+
+# 或使用标准代理变量
+export HTTP_PROXY="http://127.0.0.1:7890"
+export HTTPS_PROXY="http://127.0.0.1:7890"
+export ALL_PROXY="http://127.0.0.1:7890"
+```
+
+**适用服务器**：Chrome DevTools、GitHub、GitLab、Wikipedia、DuckDuckGo
+**无需代理**：Sequential Thinking、Time（本地计算服务）
 
 #### 使用示例
 
