@@ -1,0 +1,39 @@
+{
+  "name": "deepresearch",
+  "version": "0.0.87",
+  "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/deepresearch",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/deepresearch",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "deep",
+    "research",
+    "investigation",
+    "analysis",
+    "citation",
+    "multi-agent",
+    "got",
+    "graph-of-thoughts",
+    "synthesis",
+    "validation"
+  ],
+  "commands": [
+    "./commands/deep-research.md"
+  ],
+  "agents": [
+    "./agents/code-review-agent.md",
+    "./agents/performance-analysis-agent.md",
+    "./agents/technical-debt-agent.md",
+    "./agents/project-evaluation-agent.md",
+    "./agents/tech-selection-agent.md",
+    "./agents/dependency-audit-agent.md",
+    "./agents/concept-explanation-agent.md",
+    "./agents/architecture-review-agent.md"
+  ],
+  "skills": "./skills"
+  }
