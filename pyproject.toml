@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin"
-version = "0.0.88"
+version = "0.0.89"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,23 +13,6 @@ build-backend = "setuptools.build_meta"
 [project.scripts]
 clean = "scripts.clean:main"
 version = "plugins.version.scripts.main:main"
-
-[project.entry-points.console_scripts]
-clean = "scripts.clean:main"
-version = "plugins.version.scripts.main:main"
-
-[tool.uv.workspace]
-members = [
- "plugins/notify",
- "plugins/version",
- "plugins/languages/python",
- "plugins/languages/golang",
- "plugins/languages/typescript",
- "plugins/languages/vue",
- "plugins/tools/semantic",
- "plugins/languages/naming",
- "plugins/tools/git",
-]
 
 [tool.setuptools.package-data]
 "*" = [ "*.json", "*.md",]
