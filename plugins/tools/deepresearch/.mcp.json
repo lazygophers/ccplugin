@@ -31,6 +31,38 @@
         "--local-timezone=Asia/Shanghai"
       ],
       "env": {}
+    },
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-sequential-thinking"
+      ],
+      "env": {}
+    },
+    "github": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-github"
+      ],
+      "env": {
+        "ALL_PROXY": "http://127.0.0.1:7890",
+        "HTTPS_PROXY": "http://127.0.0.1:7890",
+        "HTTP_PROXY": "http://127.0.0.1:7890"
+      }
+    },
+    "wikipedia": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-wikipedia"
+      ],
+      "env": {
+        "ALL_PROXY": "http://127.0.0.1:7890",
+        "HTTPS_PROXY": "http://127.0.0.1:7890",
+        "HTTP_PROXY": "http://127.0.0.1:7890"
+      }
     }
   }
 }

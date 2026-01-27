@@ -227,13 +227,15 @@ deepresearch插件集成了以下MCP（Model Context Protocol）服务器以增�
 | **chrome-devtools** | 浏览器自动化 | 网页抓取、性能分析、可视化验证 |
 | **duckduckgo** | 网络搜索 | 实时信息检索、多语言搜索、隐私保护 |
 | **time** | 时区处理 | 全球时区转换、时间计算、会议调度 |
+| **sequential-thinking** | 复杂推理 | 思维链分析、逐步推理、问题分解 |
+| **github** | GitHub集成 | 仓库分析、Issue追踪、代码审查 |
+| **wikipedia** | 百科知识 | 概念解释、背景资料、知识图谱 |
 
 #### 代理配置
 
 MCP服务器已配置代理支持（`http://127.0.0.1:7890`），确保：
-- Chrome DevTools可通过代理访问网站
-- DuckDuckGo搜索支持网络环境
-- 时区查询支持亚洲/上海时区
+- Chrome DevTools、GitHub、Wikipedia、DuckDuckGo通过代理访问网络
+- Sequential Thinking和Time无需代理（本地计算服务）
 
 #### 使用示例
 
@@ -246,6 +248,15 @@ MCP服务器已配置代理支持（`http://127.0.0.1:7890`），确保：
 
 # 使用时区服务计算会议时间
 计算 北京时间 2025-03-15 14:00 对应的纽约时间
+
+# 使用Sequential Thinking进行复杂推理
+使用思维链分析问题：评估技术选型的多个维度
+
+# 使用GitHub分析开源项目
+获取 facebook/react 项目的Star数、最近提交和活跃贡献者
+
+# 使用Wikipedia获取背景知识
+搜索 "微服务架构" 的定义、历史和应用场景
 ```
 
 ### 研究参数
