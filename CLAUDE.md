@@ -54,7 +54,10 @@ ccplugin/
 │   └── update_version.py         # Update version across all plugins
 │
 ├── docs/                         # Documentation
-├── .claude/                      # Claude Code configuration (local)
+├── .claude/                      # Claude Code local configuration
+│   └── skills/                   # Local skills (plugin & python script organization)
+│       ├── plugin-organization/  # Plugin structure & configuration
+│       └── python-script-organization/  # Python coding standards
 ├── .claude-plugin/               # Plugin marketplace metadata
 ├── pyproject.toml                # Main project configuration
 └── uv.lock                       # Dependency lock file
@@ -70,14 +73,73 @@ plugin-name/
 ├── .claude-plugin/
 │   └── plugin.json               # Plugin manifest (name, version, description, etc.)
 ├── .mcp.json                     # MCP server configuration (if applicable)
+├── .lsp.json                     # LSP server configuration (if applicable)
 ├── commands/                     # Custom commands (.md files)
 ├── agents/                       # Sub-agents (.md files)
-├── skills/                       # Skills definitions (language-specific guidance)
+├── skills/                       # Skills definitions
+│   └── skill-name/
+│       └── SKILL.md               # Skill entry with frontmatter (name, description)
 ├── scripts/                      # Python scripts for plugin logic
-├── hooks/                        # Plugin hooks configuration
+│   ├── __init__.py
+│   ├── main.py                   # CLI entry point (Click-based)
+│   ├── hooks.py                  # Hook event handlers (optional)
+│   ├── mcp.py                    # MCP server implementation (optional)
+│   └── <module>.py               # Business logic modules
+├── hooks/
+│   └── hooks.json                # Hook event configuration
 ├── pyproject.toml                # Plugin-specific dependencies
 ├── README.md                     # Plugin documentation
 └── CHANGELOG.md                  # Version history
+```
+
+**MCP Server Pattern (via main.py subcommand):**
+
+```json
+// .mcp.json - MCP server configuration
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "uv",
+      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/main.py", "mcp"]
+    }
+  }
+}
+```
+
+```python
+# main.py - CLI entry with MCP subcommand
+@click.group()
+def main(): pass
+
+@main.command()
+def mcp():
+    """MCP server mode"""
+    from mcp import VersionMCPServer
+    asyncio.run(server.run())
+
+# mcp.py - Async MCP server implementation
+class VersionMCPServer:
+    async def handle_request(self, request: dict) -> dict:
+        # JSON-RPC 2.0 handler with tools/list, tools/call, initialize
+```
+
+**Skills Directory Pattern:**
+
+```
+skills/
+└── python/                      # Skill name (lowercase)
+    ├── SKILL.md                   # Entry file with frontmatter
+    ├── subtopic.md                # Additional documentation
+    └── patterns/                  # Optional subdirectory
+        └── design-patterns.md
+```
+
+**SKILL.md frontmatter format:**
+```markdown
+---
+name: python
+description: Python development standards and best practices
+---
 ```
 
 ---
@@ -333,9 +395,23 @@ from lib.utils import get_env_value
 
 ### Adding Skills to Guide Claude Code Behavior
 
-1. Create skill definition in `skills/` directory
-2. Skills are automatically discovered and merged when plugin is loaded
-3. Skills provide coding standards, best practices, and language-specific guidance
+**Plugin Skills:**
+1. Create skill directory in `skills/<skill-name>/`
+2. Create `SKILL.md` entry file with frontmatter:
+   ```markdown
+   ---
+   name: skill-name
+   description: Brief description
+   ---
+   ```
+3. Skills are auto-discovered when plugin is loaded
+4. Reference in plugin.json: `"skills": "./skills/"`
+
+**Local Project Skills (.claude/skills/):**
+- `plugin-organization/`: Plugin structure, plugin.json, components
+- `python-script-organization/`: Python coding standards, imports, patterns
+- These skills are available for all development in this repo
+- Follow same SKILL.md pattern as plugin skills
 
 ---
 
@@ -447,4 +523,5 @@ Certain plugins auto-activate based on context:
 - **Best Practices**: [docs/best-practices.md](docs/best-practices.md)
 - **Supported Languages**: [docs/supported-languages.md](docs/supported-languages.md)
 - **Compiled Languages Guide**: [docs/compiled-languages-guide.md](docs/compiled-languages-guide.md)
+- **Local Skills**: [.claude/skills/](.claude/skills/) - Plugin & Python script organization standards
 - **GitHub**: https://github.com/lazygophers/ccplugin

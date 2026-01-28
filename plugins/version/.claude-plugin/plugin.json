@@ -17,13 +17,6 @@
     "release",
     "management"
   ],
-  "commands": [
-    "./commands/show.md",
-    "./commands/info.md",
-    "./commands/bump.md",
-    "./commands/set.md",
-    "./commands/init.md"
-  ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json"
 }
