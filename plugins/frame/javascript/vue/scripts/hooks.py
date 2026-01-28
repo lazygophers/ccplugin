@@ -1,7 +1,12 @@
 import json
 import sys
+from pathlib import Path
 
-from lib import logging
+# 添加项目根目录到路径
+project_root = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+import lib.logging as logging
 from lib.hooks import load_hooks
 
 def handle_hook() -> None:

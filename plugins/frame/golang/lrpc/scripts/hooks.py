@@ -4,13 +4,11 @@ import os
 import sys
 from pathlib import Path
 
-# 添加 lib 目录到路径
-lib_path = Path(__file__).parent.parent.parent.parent.parent / "lib"
-sys.path.insert(0, str(lib_path))
+# 添加项目根目录到路径
+project_root = Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
 
-from lib.logging import get_logger
-
-logger = get_logger(__name__)
+import lib.logging as logging
 
 
 def handle_session_start(event_data: dict) -> None:
@@ -30,7 +28,7 @@ def handle_session_start(event_data: dict) -> None:
     if "github.com/lazygophers/lrpc" not in content:
         return
 
-    logger.info(f"[lrpc] 检测到 lrpc 项目: {project_path}")
+    logging.info(f"[lrpc] 检测到 lrpc 项目: {project_path}")
 
     # 扫描项目结构
     lrpc_files = list(project_path.rglob("*.go"))
@@ -44,4 +42,4 @@ def handle_session_start(event_data: dict) -> None:
         except Exception:
             pass
 
-    logger.info(f"[lrpc] 发现 {lrpc_count} 个使用 lrpc 的文件")
+    logging.info(f"[lrpc] 发现 {lrpc_count} 个使用 lrpc 的文件")

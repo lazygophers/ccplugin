@@ -31,7 +31,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin-semantic"
-version = "0.0.86"
+version = "0.0.91"
 source = { editable = "." }
 dependencies = [
     { name = "fastembed" },
