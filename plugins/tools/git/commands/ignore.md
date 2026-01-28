@@ -24,7 +24,9 @@ model: haiku
 ### 使用方法
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
+# 使用 git 原生命令手动添加到 .gitignore
+echo "*.log" >> .gitignore
+echo ".env" >> .gitignore
 ```
 
 ### 执行时机
@@ -51,7 +53,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin ignore
 ## 依赖脚本
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin ignore "$@"
+# 使用 git 原生命令手动更新 .gitignore
 ```
 
 ## 示例
@@ -59,8 +61,11 @@ uvx --from git+https://github.com/lazygophers/ccplugin ignore "$@"
 ### 基本用法
 
 ```bash
-# 扫描并更新 .gitignore
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
+# 手动编辑 .gitignore 文件
+vim .gitignore
+
+# 或使用 echo 追加规则
+echo "*.log" >> .gitignore
 ```
 
 ### 完整工作流
@@ -71,7 +76,8 @@ git init
 git add README.md
 
 # 2. 更新 .gitignore
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
+echo "*.log" >> .gitignore
+echo ".env" >> .gitignore
 
 # 3. 提交配置
 git add .gitignore
@@ -202,12 +208,12 @@ Thumbs.db
 
 ```bash
 # 1. 初始化忽略文件
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
+echo "*.log" >> .gitignore
 
 # 2. 提交配置
 git add .gitignore
-uvx --from git+https://github.com/lazygophers/ccplugin commit "chore: 更新 .gitignore"
+git commit -m "chore: 更新 .gitignore"
 
 # 3. 推送到远程
-uvx --from git+https://github.com/lazygophers/ccplugin push
+git push
 ```

@@ -23,7 +23,7 @@ model: sonnet
 ### 使用方法
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin commit [message]
+git commit -m "[message]"
 ```
 
 ### 执行时机
@@ -61,7 +61,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin commit [message]
 ## 依赖脚本
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin commit "$@"
+# 无外部脚本依赖，使用 git 原生命令
 ```
 
 ## 示例
@@ -71,27 +71,27 @@ uvx --from git+https://github.com/lazygophers/ccplugin commit "$@"
 ```bash
 # 自动生成提交信息
 git add src/
-uvx --from git+https://github.com/lazygophers/ccplugin commit
+git commit -m "auto-generated message"
 
 # 指定提交信息
 git add src/auth/
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加用户认证"
+git commit -m "feat: 添加用户认证"
 ```
 
 ### 提交信息示例
 
 ```bash
 # 新功能
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加用户登录功能"
+git commit -m "feat: 添加用户登录功能"
 
 # 缺陷修复
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录超时问题"
+git commit -m "fix: 修复登录超时问题"
 
 # 代码重构
-uvx --from git+https://github.com/lazygophers/ccplugin commit "refactor: 优化数据库查询"
+git commit -m "refactor: 优化数据库查询"
 
 # 文档更新
-uvx --from git+https://github.com/lazygophers/ccplugin commit "docs: 更新 API 文档"
+git commit -m "docs: 更新 API 文档"
 ```
 
 ## 检查清单
