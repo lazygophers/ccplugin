@@ -44,6 +44,54 @@ def auto_update():
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
 
+def inc_major():
+	"""更新主版本号（第一级），其余级别重置为 0"""
+	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
+		version = f.read().strip()
+	
+	parts = version.split('.')
+	parts[0] = str(int(parts[0]) + 1)
+	parts[1] = '0'
+	parts[2] = '0'
+	parts[3] = '0'
+	new_version = '.'.join(parts)
+	
+	logging.info(f"更新主版本号为 {new_version}")
+	
+	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
+		f.write(new_version)
+
+def inc_minor():
+	"""更新次版本号（第二级），patch和build重置为 0"""
+	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
+		version = f.read().strip()
+	
+	parts = version.split('.')
+	parts[1] = str(int(parts[1]) + 1)
+	parts[2] = '0'
+	parts[3] = '0'
+	new_version = '.'.join(parts)
+	
+	logging.info(f"更新次版本号为 {new_version}")
+	
+	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
+		f.write(new_version)
+
+def inc_patch():
+	"""更新补丁版本号（第三级），build重置为 0"""
+	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
+		version = f.read().strip()
+	
+	parts = version.split('.')
+	parts[2] = str(int(parts[2]) + 1)
+	parts[3] = '0'
+	new_version = '.'.join(parts)
+	
+	logging.info(f"更新补丁版本号为 {new_version}")
+	
+	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
+		f.write(new_version)
+
 def get_version():
 	try:
 		with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
