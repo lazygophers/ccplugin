@@ -11,47 +11,6 @@
   },
   "plugins": [
     {
-      "name": "task",
-      "source": "./plugins/task",
-      "description": "项目任务管理插件 - 使用 SQLite 存储任务，支持 Markdown 导入导出，完整的项目任务跟踪解决方案",
-      "version": "0.0.91",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/task",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/task",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "task",
-        "todo",
-        "project",
-        "management",
-        "sqlite"
-      ]
-    },
-    {
-      "name": "semantic",
-      "source": "./plugins/tools/semantic",
-      "description": "语义搜索插件 - 基于向量嵌入的自然语言代码搜索，支持中英文混合查询和多语言代码理解",
-      "version": "0.0.91",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/semantic",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/semantic",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "semantic",
-        "search",
-        "vector",
-        "embedding",
-        "nlp",
-        "code-search"
-      ]
-    },
-    {
       "name": "git",
       "source": "./plugins/tools/git",
       "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
