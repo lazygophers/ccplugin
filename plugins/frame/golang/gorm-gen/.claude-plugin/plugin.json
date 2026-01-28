@@ -1,6 +1,6 @@
 {
   "name": "gorm-gen",
-  "version": "0.0.94",
+  "version": "0.0.95",
   "description": "gorm-gen 代码生成工具插件 - 提供类型安全的 GORM 代码生成规范、最佳实践和开发指南。包括代码生成、类型安全查询 API、DAO 模式和性能优化",
   "author": {
     "name": "lazygophers",
