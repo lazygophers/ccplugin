@@ -12,7 +12,7 @@
 
 📝 **Git 集成** - 智能检测 .version 文件的 Git 提交状态
 
-🔧 **CLI 工具** - 支持 uvx 远程执行和本地脚本运行
+🔧 **CLI 工具** - 支持本地脚本运行
 
 ## 快速开始
 
@@ -41,9 +41,6 @@
 
 # 手动设置版本
 /version set 1.0.0.0
-
-# 使用 uvx 远程执行
-uvx --from git+https://github.com/lazygophers/ccplugin version show
 ```
 
 ## 版本号含义
@@ -172,7 +169,7 @@ Claude Code Hooks 在以下情况会自动提示或更新版本：
 ```
 plugins/version/
 ├── scripts/
-│   ├── version.py           # 主脚本（支持 CLI 和 uvx）
+│   ├── version.py           # 主脚本
 │   └── __init__.py
 ├── commands/
 │   ├── version-show.md      # 显示版本命令
@@ -318,17 +315,17 @@ A: 支持以下格式（自动补全至 4 部分）：
 
 ### Q: 如何在生产环境中使用此插件？
 
-A: 作为 NPM 脚本或 CI/CD 流程的一部分：
+A: 在 CI/CD 流程中使用 Python 直接调用脚本：
 
 ```bash
 # 在 CI/CD 中自动更新版本
-uvx --from git+https://github.com/lazygophers/ccplugin version bump patch
+python scripts/version.py bump patch
 
-# 在 package.json 中定义脚本
+# 在 package.json 中定义脚本（需先确保依赖可用）
 {
   "scripts": {
-    "version:show": "uvx --from git+https://github.com/lazygophers/ccplugin version show",
-    "version:bump": "uvx --from git+https://github.com/lazygophers/ccplugin version bump"
+    "version:show": "python scripts/version.py show",
+    "version:bump": "python scripts/version.py bump"
   }
 }
 ```

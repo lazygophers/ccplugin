@@ -23,7 +23,7 @@ model: haiku
 ### 使用方法
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin push
+git push
 ```
 
 ### 执行时机
@@ -50,7 +50,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin push
 ## 依赖脚本
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin push "$@"
+# 使用 git 原生命令
 ```
 
 ## 示例
@@ -59,7 +59,10 @@ uvx --from git+https://github.com/lazygophers/ccplugin push "$@"
 
 ```bash
 # 推送当前分支到远程
-uvx --from git+https://github.com/lazygophers/ccplugin push
+git push
+
+# 首次推送，设置上游分支
+git push -u origin <branch>
 ```
 
 ### 首次推送分支
@@ -68,7 +71,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin push
 # 首次推送自动设置上游分支
 git checkout -b feature/new-feature
 # ... 开发和提交 ...
-uvx --from git+https://github.com/lazygophers/ccplugin push
+git push -u origin feature/new-feature
 ```
 
 ### 遇到冲突处理
@@ -77,7 +80,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin push
 # 如提示远程有新提交
 git pull origin <branch-name>
 # 解决冲突后
-uvx --from git+https://github.com/lazygophers/ccplugin push
+git push
 ```
 
 ## 检查清单
@@ -101,7 +104,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin push
   # 设置代理后重试
   export http_proxy=http://127.0.0.1:7890
   export https_proxy=http://127.0.0.1:7890
-  uvx --from git+https://github.com/lazygophers/ccplugin push
+  git push
 
   # 取消代理
   unset http_proxy
@@ -161,13 +164,13 @@ unset https_proxy
 ```bash
 # 1. 开发和提交
 git add .
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 新功能"
+git commit -m "feat: 新功能"
 
 # 2. 推送到远程
-uvx --from git+https://github.com/lazygophers/ccplugin push
+git push
 
-# 3. 创建 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr
+# 3. 创建 PR（使用 GitHub CLI）
+gh pr create --title "feat: 新功能" --body "描述内容"
 ```
 
 ### 性能考虑

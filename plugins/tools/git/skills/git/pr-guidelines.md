@@ -5,14 +5,14 @@
 ### 创建 PR
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin pr
+gh pr create
 ```
 
 **功能**：
 
-- 分析当前分支相对于基准分支的所有变更
-- 自动生成 PR 标题和描述
-- 创建 PR 并返回 PR URL
+- 创建 Pull Request
+- 支持通过 `--title` 和 `--body` 参数指定标题和描述
+- 返回 PR URL
 
 **前提条件**：
 
@@ -42,14 +42,13 @@ uvx --from git+https://github.com/lazygophers/ccplugin pr
 ### 更新 PR
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin pr update <pr-number>
+gh pr edit <pr-number>
 ```
 
 **功能**：
 
-- 分析当前分支相对于基准分支的完整变更
-- 重新生成 PR 描述（包含所有新增变更）
 - 更新 PR 标题和描述
+- 使用 `--title` 和 `--body` 参数更新内容
 
 **使用场景**：
 
@@ -186,27 +185,27 @@ git checkout -b feature/user-auth
 
 # 3. 分批提交
 git add src/auth/register.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加用户注册功能"
+git commit -m "feat: 添加用户注册功能"
 
 git add tests/test_auth.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "test: 添加认证测试"
+git commit -m "test: 添加认证测试"
 
 # 4. 推送到远程
 git push -u origin feature/user-auth
 
 # 5. 创建 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr
+gh pr create --title "feat: 添加用户认证功能" --body "实现用户注册、登录和会话管理"
 
 # 6. 根据审查反馈修改
 vim src/auth/login.py
 git add src/auth/login.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证逻辑"
+git commit -m "fix: 修复登录验证逻辑"
 
 # 7. 推送修改
 git push
 
-# 8. 更新 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr update 123
+# 8. 更新 PR（如需更新描述）
+gh pr edit 123 --body "更新后的 PR 描述"
 ```
 
 ## PR 创建失败处理
@@ -229,8 +228,8 @@ git push -u origin feature/branch-name
 gh auth login
 
 # 错误：PR 已存在
-# 解决：使用 pr update 命令更新现有 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr update <pr-number>
+# 解决：使用 gh pr edit 命令更新现有 PR
+gh pr edit <pr-number>
 
 # 错误：无相对于基准分支的变更
 # 解决：确保当前分支有相对于基准分支（通常是 master/main）的新提交
@@ -264,9 +263,9 @@ git pull origin master
 git checkout -b fix/previous-issue
 # ... 修改代码 ...
 git add .
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复之前 PR 中的问题"
+git commit -m "fix: 修复之前 PR 中的问题"
 git push -u origin fix/previous-issue
-uvx --from git+https://github.com/lazygophers/ccplugin pr
+gh pr create --title "fix: 修复之前 PR 中的问题" --body "描述修复内容"
 ```
 
 ## 参考资源

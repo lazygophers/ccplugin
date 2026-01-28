@@ -28,10 +28,10 @@
 
 ```bash
 # 清晰、具体、遵循规范
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "fix: 修复登录超时问题"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "docs: 更新 API 文档"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "refactor: 优化数据库查询性能"
+git commit -m "feat: 添加用户认证功能"
+git commit -m "fix: 修复登录超时问题"
+git commit -m "docs: 更新 API 文档"
+git commit -m "refactor: 优化数据库查询性能"
 ```
 
 详细提交信息示例：
@@ -50,10 +50,10 @@ Closes #123
 
 ```bash
 # 模糊、不具体、不遵循规范
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "update"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "fix bug"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "done"
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "tmp"
+git commit -m "update"
+git commit -m "fix bug"
+git commit -m "done"
+git commit -m "tmp"
 ```
 
 ## 提交粒度最佳实践
@@ -90,15 +90,15 @@ uvx --from git+https://github.com/lazygophers/ccplugin commit-all "tmp"
 ```bash
 # 1. 添加并提交第一个功能
 git add feature1.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加功能1"
+git commit -m "feat: 添加功能1"
 
 # 2. 添加并提交第二个功能
 git add feature2.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加功能2"
+git commit -m "feat: 添加功能2"
 
 # 3. 添加测试代码
 git add tests/
-uvx --from git+https://github.com/lazygophers/ccplugin commit "test: 添加功能测试"
+git commit -m "test: 添加功能测试"
 
 # 4. 推送到远程
 git push
@@ -108,7 +108,7 @@ git push
 
 ```bash
 # 当所有变更属于同一主题时
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 初始化项目"
+git commit -am "feat: 初始化项目"
 git push
 ```
 

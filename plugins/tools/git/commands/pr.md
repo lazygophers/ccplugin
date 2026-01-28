@@ -24,10 +24,10 @@ model: sonnet
 
 ```bash
 # 创建新 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr
+gh pr create
 
 # 更新现有 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr --update <pr-number>
+gh pr edit <pr-number>
 ```
 
 ### 执行时机
@@ -56,7 +56,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin pr --update <pr-number>
 ## 依赖脚本
 
 ```bash
-uvx --from git+https://github.com/lazygophers/ccplugin pr "$@"
+# 使用 GitHub CLI (gh) 原生命令
 ```
 
 ## 示例
@@ -67,8 +67,8 @@ uvx --from git+https://github.com/lazygophers/ccplugin pr "$@"
 # 推送分支到远程
 git push -u origin feature/user-auth
 
-# 创建 PR（自动生成标题和描述）
-uvx --from git+https://github.com/lazygophers/ccplugin pr
+# 创建 PR（需手动指定标题和描述）
+gh pr create --title "feat: 添加用户认证" --body "实现用户注册、登录和会话管理"
 ```
 
 ### 更新 PR
@@ -76,11 +76,11 @@ uvx --from git+https://github.com/lazygophers/ccplugin pr
 ```bash
 # 修改代码后提交
 git add src/auth/
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证"
+git commit -m "fix: 修复登录验证"
 git push
 
 # 更新 PR 信息
-uvx --from git+https://github.com/lazygophers/ccplugin pr --update 123
+gh pr edit 123 --body "更新后的 PR 描述"
 ```
 
 ### PR 信息示例
