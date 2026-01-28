@@ -1,27 +1,27 @@
 [project]
 name = "llms"
 version = "0.0.93"
-description = "LLMS.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件"
+description = "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [ "click>=8.1.0", "rich>=13.9.0", "lib",]
+dependencies = ["click>=8.1.0", "rich>=13.9.0", "lib"]
 
 [build-system]
-requires = [ "setuptools>=68.0", "wheel",]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project.license]
 text = "AGPL-3.0-or-later"
 
 [project.optional-dependencies]
-dev = [ "pytest>=7.0.0",]
+dev = ["pytest>=7.0.0"]
 
 [tool.setuptools.package-data]
-"*" = [ "*.py", "*.json", "*.md",]
+"*" = ["*.py", "*.json", "*.md"]
 
 [tool.setuptools.packages.find]
-where = [ ".",]
-include = [ "scripts*",]
+where = ["."]
+include = ["scripts*"]
 
 [tool.uv.sources.lib]
 git = "https://github.com/lazygophers/ccplugin"

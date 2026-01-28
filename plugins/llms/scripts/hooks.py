@@ -1,5 +1,5 @@
 """
-LLMS.txt Plugin - Hooks Handler
+llms.txt Plugin - Hooks Handler
 
 处理 llms.txt 相关的 hook 事件
 """

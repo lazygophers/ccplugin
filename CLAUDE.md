@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Scripts** (`scripts/`): Utility scripts for version management and cache cleanup
 
 **Tech Stack:**
+
 - **Python**: >= 3.12 (mandatory)
 - **Package Manager**: `uv` (mandatory, not pip)
 - **Key Dependencies**: pydantic, typer, rich, lancedb, fastembed, sentence-transformers
@@ -32,7 +33,7 @@ ccplugin/
 │
 ├── plugins/                      # All plugin implementations
 │   ├── task/                     # Top-level: Task management (SQLite-based)
-│   ├── llms/                     # Top-level: LLMS.txt standard plugin
+│   ├── llms/                     # Top-level: llms.txt standard plugin
 │   ├── notify/                   # Top-level: System notifications
 │   ├── version/                  # Top-level: Version management
 │   ├── template/                 # Top-level: Plugin development template
@@ -121,12 +122,12 @@ plugin-name/
 ```json
 // .mcp.json - MCP server configuration
 {
-  "mcpServers": {
-    "server-name": {
-      "command": "uv",
-      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/main.py", "mcp"]
-    }
-  }
+	"mcpServers": {
+		"server-name": {
+			"command": "uv",
+			"args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/main.py", "mcp"]
+		}
+	}
 }
 ```
 
@@ -159,6 +160,7 @@ skills/
 ```
 
 **SKILL.md frontmatter format:**
+
 ```markdown
 ---
 name: python
@@ -300,30 +302,32 @@ version --help
 ### Creating a New Plugin
 
 1. **Use the template**:
-   ```bash
-   cp -r plugins/template my-new-plugin
-   cd my-new-plugin
-   ```
+
+    ```bash
+    cp -r plugins/template my-new-plugin
+    cd my-new-plugin
+    ```
 
 2. **Configure plugin metadata** in `.claude-plugin/plugin.json`:
-   - Update `name`, `version`, `description`
-   - Update `author`, `homepage`, `repository`, `license`
-   - Define `commands`, `agents`, `skills` paths
+    - Update `name`, `version`, `description`
+    - Update `author`, `homepage`, `repository`, `license`
+    - Define `commands`, `agents`, `skills` paths
 
 3. **Implement plugin components**:
-   - **Commands**: Create `.md` files in `commands/` directory
-   - **Agents**: Create `.md` files in `agents/` directory (with AGENT.md documentation)
-   - **Skills**: Create skill definitions in `skills/` directory
-   - **Scripts**: Implement logic in `scripts/` directory (Python preferred)
+    - **Commands**: Create `.md` files in `commands/` directory
+    - **Agents**: Create `.md` files in `agents/` directory (with AGENT.md documentation)
+    - **Skills**: Create skill definitions in `skills/` directory
+    - **Scripts**: Implement logic in `scripts/` directory (Python preferred)
 
 4. **Update pyproject.toml** with dependencies
 
 5. **Test locally**:
-   ```bash
-   /plugin install ./my-new-plugin
-   # or from market
-   /plugin install my-new-plugin@ccplugin-market
-   ```
+
+    ```bash
+    /plugin install ./my-new-plugin
+    # or from market
+    /plugin install my-new-plugin@ccplugin-market
+    ```
 
 6. **Update marketplace.json** with your plugin entry
 
@@ -345,6 +349,7 @@ python scripts/script.py
 ```
 
 **Why mandatory:**
+
 - Ensures dependency isolation via virtual environments
 - Prevents global Python environment pollution
 - Guarantees version consistency across all environments
@@ -359,6 +364,7 @@ The `lib/` directory provides shared utilities used across all plugins:
 - **`lib.hooks`**: Hook system for plugin event handling
 
 To use shared library in plugins:
+
 ```python
 from lib.logging import get_logger
 from lib.utils import get_env_value
@@ -376,28 +382,34 @@ from lib.utils import get_env_value
 ## Key Technical Decisions
 
 ### 1. Monorepo with Workspace Structure
+
 - **Why**: Simplifies shared code (logging, utilities), centralized version management, easier plugin discovery
 - **Trade-off**: Requires careful namespace management to avoid conflicts
 
 ### 2. uv as Mandatory Package Manager
+
 - **Why**: ~10x faster than pip/virtualenv, deterministic locking, built-in virtual env management
 - **Impact**: All Python execution must use `uv run`
 
 ### 3. Semantic Versioning (major.minor.patch)
+
 - **Format**: `0.0.X` (4-part with build number in .version file)
 - **Update**: Use `scripts/update_version.py` to atomically update all versions
 
 ### 4. Plugin.json as Single Source of Truth
+
 - Each plugin's metadata is centralized in `.claude-plugin/plugin.json`
 - Version, commands, agents, skills paths defined here
 - No need to manually track plugin locations
 
 ### 5. Shared Library for Logging
+
 - All plugins use `lib.logging` for consistent logging behavior
 - Provides rich-formatted, context-aware logging
 - Located in root `lib/` directory, imported via `from lib.logging import ...`
 
 ### 6. MCP Server Support (Optional)
+
 - Plugins can define MCP servers via `.mcp.json`
 - Enables integration with Claude's Model Context Protocol
 - Not required for all plugins
@@ -410,11 +422,11 @@ from lib.utils import get_env_value
 
 1. Create command file in `commands/` (e.g., `commands/my-command.md`)
 2. Update `.claude-plugin/plugin.json` to reference the command:
-   ```json
-   "commands": [
-     "./commands/my-command.md"
-   ]
-   ```
+    ```json
+    "commands": [
+      "./commands/my-command.md"
+    ]
+    ```
 3. Command gets registered automatically when plugin is installed
 
 ### Adding a New Sub-Agent to a Plugin
@@ -423,27 +435,29 @@ from lib.utils import get_env_value
 2. Define agent behavior in markdown frontmatter
 3. Document the agent in `AGENT.md` (for system prompt injection)
 4. Update `.claude-plugin/plugin.json`:
-   ```json
-   "agents": [
-     "./agents/my-agent.md"
-   ]
-   ```
+    ```json
+    "agents": [
+      "./agents/my-agent.md"
+    ]
+    ```
 
 ### Adding Skills to Guide Claude Code Behavior
 
 **Plugin Skills:**
+
 1. Create skill directory in `skills/<skill-name>/`
 2. Create `SKILL.md` entry file with frontmatter:
-   ```markdown
-   ---
-   name: skill-name
-   description: Brief description
-   ---
-   ```
+    ```markdown
+    ---
+    name: skill-name
+    description: Brief description
+    ---
+    ```
 3. Skills are auto-discovered when plugin is loaded
 4. Reference in plugin.json: `"skills": "./skills/"`
 
 **Local Project Skills (.claude/skills/):**
+
 - `plugin-organization/`: Plugin structure, plugin.json, components
 - `python-script-organization/`: Python coding standards, imports, patterns
 - These skills are available for all development in this repo
@@ -453,22 +467,23 @@ from lib.utils import get_env_value
 
 ## Important File Roles
 
-| File | Purpose |
-|------|---------|
-| `pyproject.toml` | Root project config: main dependencies, workspace members, scripts |
-| `uv.lock` | Dependency lock file (generated, don't edit manually) |
-| `.version` | Current version number (use `scripts/update_version.py` to update) |
-| `.python-version` | Required Python version (3.12+) |
-| `CHANGELOG.md` | Version history and release notes |
-| `LICENSE` | AGPL-3.0-or-later |
-| `.claude-plugin/plugin.json` | Plugin marketplace metadata per plugin |
-| `VOICE_SUPPORT.md` | Documentation for voice/audio support |
+| File                         | Purpose                                                            |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `pyproject.toml`             | Root project config: main dependencies, workspace members, scripts |
+| `uv.lock`                    | Dependency lock file (generated, don't edit manually)              |
+| `.version`                   | Current version number (use `scripts/update_version.py` to update) |
+| `.python-version`            | Required Python version (3.12+)                                    |
+| `CHANGELOG.md`               | Version history and release notes                                  |
+| `LICENSE`                    | AGPL-3.0-or-later                                                  |
+| `.claude-plugin/plugin.json` | Plugin marketplace metadata per plugin                             |
+| `VOICE_SUPPORT.md`           | Documentation for voice/audio support                              |
 
 ---
 
 ## Debugging Tips
 
 ### Check Plugin Installation
+
 ```bash
 # List installed plugins
 ls ~/.claude/plugins/
@@ -478,12 +493,14 @@ ls ~/.claude/plugins/cache/
 ```
 
 ### View Plugin Manifest
+
 ```bash
 # Check what a plugin exposes
 cat plugins/task/.claude-plugin/plugin.json
 ```
 
 ### Run Specific Plugin Tests
+
 ```bash
 # Test only semantic plugin
 uv run pytest plugins/tools/semantic/tests/ -v
@@ -493,6 +510,7 @@ uv run pytest lib/tests/test_logging.py -v
 ```
 
 ### Debug Python Script Issues
+
 ```bash
 # Run with verbose output
 uv run --verbose scripts/update_version.py
@@ -507,7 +525,9 @@ uv python --version
 ## Integration with Claude Code
 
 ### Plugin Auto-Activation
+
 Certain plugins auto-activate based on context:
+
 - **python** (`languages/python`): Activates when editing Python files
 - **golang** (`languages/golang`): Activates when editing Go files
 - **typescript** (`languages/typescript`): Activates when editing TypeScript files
@@ -517,6 +537,7 @@ Certain plugins auto-activate based on context:
 - Language plugins provide coding standards and best practices
 
 ### Manual Plugin Usage
+
 ```bash
 # Install plugin from market (recommended)
 /plugin install task@ccplugin-market
@@ -531,6 +552,7 @@ Certain plugins auto-activate based on context:
 ```
 
 ### Plugin Data Storage
+
 - Plugin data stored in `.lazygophers/ccplugin/<plugin-name>/`
 - Auto-ignored by `.gitignore`
 - Per-project isolation (not global)
@@ -549,13 +571,13 @@ Certain plugins auto-activate based on context:
 
 ### Common Issues
 
-| Issue | Solution |
-|-------|----------|
-| "python3: command not found" | Use `uv run` instead of direct `python3` |
-| Outdated plugin installed | Run `clean` to remove old versions, reinstall with `/plugin install plugin@ccplugin-market --force` |
-| Import errors in plugin | Ensure `uv sync` has been run and dependencies are in `pyproject.toml` |
-| Version not updating | Run `uv run scripts/update_version.py` (not manual edits) |
-| Plugin not found in market | Check `marketplace.json` for correct plugin name and ensure market is registered |
+| Issue                        | Solution                                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| "python3: command not found" | Use `uv run` instead of direct `python3`                                                            |
+| Outdated plugin installed    | Run `clean` to remove old versions, reinstall with `/plugin install plugin@ccplugin-market --force` |
+| Import errors in plugin      | Ensure `uv sync` has been run and dependencies are in `pyproject.toml`                              |
+| Version not updating         | Run `uv run scripts/update_version.py` (not manual edits)                                           |
+| Plugin not found in market   | Check `marketplace.json` for correct plugin name and ensure market is registered                    |
 
 ---
 
