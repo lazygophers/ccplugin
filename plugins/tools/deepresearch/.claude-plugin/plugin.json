@@ -1,6 +1,6 @@
 {
   "name": "deepresearch",
-  "version": "0.0.93",
+  "version": "0.0.94",
   "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
   "author": {
     "name": "lazygophers",
