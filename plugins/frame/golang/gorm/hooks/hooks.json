@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=gorm uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
+}

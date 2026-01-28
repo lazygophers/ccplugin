@@ -727,6 +727,67 @@
         "rest"
       ]
     },
+
+    {
+      "name": "gorm",
+      "source": "./plugins/frame/golang/gorm",
+      "description": "GORM ORM 库插件 - 提供完整的 Go ORM 开发规范、最佳实践和代码智能支持。包括模型定义、关联关系、查询构建、事务处理、迁移管理和性能优化",
+      "version": "0.0.91",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gorm",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gorm",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "gorm",
+        "orm",
+        "database",
+        "sql",
+        "mysql",
+        "postgresql",
+        "sqlite",
+        "query-builder",
+        "migration",
+        "model",
+        "association",
+        "transaction",
+        "golang",
+        "go"
+      ]
+    },
+    {
+      "name": "gorm-gen",
+      "source": "./plugins/frame/golang/gorm-gen",
+      "description": "gorm-gen 代码生成工具插件 - 提供类型安全的 GORM 代码生成规范、最佳实践和开发指南。包括代码生成、类型安全查询 API、DAO 模式和性能优化",
+      "version": "0.0.91",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gorm-gen",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gorm-gen",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "gorm-gen",
+        "gorm",
+        "orm",
+        "code-generation",
+        "type-safe",
+        "dao",
+        "database",
+        "sql",
+        "mysql",
+        "postgresql",
+        "query-builder",
+        "golang",
+        "go"
+      ]
+    },
+
     {
       "name": "fasthttp",
       "source": "./plugins/frame/golang/fasthttp",
