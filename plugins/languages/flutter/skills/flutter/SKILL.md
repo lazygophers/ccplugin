@@ -1,28 +1,38 @@
 ---
 name: flutter
-description: Flutter 开发规范和最佳实践 - 涵盖设计系统、状态管理、UI 开发、性能优化和测试的完整开发指南
+description: Flutter 开发规范和最佳实践 - 平台无关的通用 Flutter 开发指南
 ---
 
 # Flutter 开发规范
 
 ## 快速导航
 
+### 平台特定技能
+
+| 平台 | 文档 | 内容 |
+|------|------|------|
+| **iOS** | [ios/SKILL.md](ios/SKILL.md) | Cupertino 设计系统、iOS 性能优化、iOS 测试规范 |
+| **Android** | [android/SKILL.md](android/SKILL.md) | Material 3 设计系统、Android 性能优化、Android 测试规范 |
+| **Web** | [web/SKILL.md](web/SKILL.md) | Web 性能优化、加载速度、PWA 支持 |
+| **macOS** | [macos/SKILL.md](macos/SKILL.md) | macOS 系统集成、窗口管理、Apple Silicon 优化 |
+| **Windows** | [windows/SKILL.md](windows/SKILL.md) | Windows 系统集成、COM 互操作、Fluent Design |
+| **Linux** | [linux/SKILL.md](linux/SKILL.md) | Linux 桌面环境集成、DBus、发行版兼容 |
+
+### 通用技能（平台无关）
+
 | 文档 | 内容 | 适用场景 |
 |------|------|---------|
 | **SKILL.md** | 核心理念、版本要求、命名规范、开发流程速览 | 快速入门 |
-| [design-systems.md](design-systems.md) | Material 3、Cupertino、自定义设计系统详解 | 设计系统选择和应用 |
 | [state-management.md](state-management.md) | Provider、Riverpod、BLoC 对比和使用指南 | 状态管理实现 |
-| [ui-development.md](ui-development.md) | Widget 组合、性能优化、最佳实践 | 日常 UI 开发 |
-| [testing.md](testing.md) | 单元测试、Widget 测试、集成测试规范 | 测试编写 |
-| [performance.md](performance.md) | 帧率、内存、启动、网络优化指南 | 性能优化 |
+| [ui-development.md](ui-development.md) | Widget 组合、构建优化、最佳实践 | 日常 UI 开发 |
 
 ## 核心理念
 
-Flutter 开发追求**一致的设计系统、清晰的状态管理、高性能的 UI 实现**。三个支柱：
+Flutter 开发追求**平台特定的最佳实践、清晰的状态管理、高性能的 UI 实现**。三个支柱：
 
-1. **设计系统优先** - 选择并一致应用（Material 3、Cupertino 或自定义）
+1. **平台特定设计系统** - 根据目标平台选择合适的设计系统（Material 3 for Android、Cupertino for iOS）
 2. **状态管理精准** - 根据复杂度选择合适方案（Provider → Riverpod → BLoC）
-3. **性能导向** - 追求 60fps（或 120fps）、无内存泄漏、快速启动
+3. **性能导向** - 针对平台特性进行性能优化
 
 ## 版本与环境
 
@@ -79,18 +89,16 @@ class _InternalWidget extends StatelessWidget {}
 
 ## 设计系统选择
 
-### 决策矩阵
+### 平台特定决策
 
-| 场景 | 推荐方案 | 理由 |
+| 平台 | 推荐方案 | 详见 |
 |------|---------|------|
-| Android 优先 | Material 3 | 原生 Material 体验，2025 新 Expressive 特性 |
-| iOS 优先 | Cupertino | iOS 原生体验，使用 CupertinoButton、CupertinoSwitch 等 |
-| 企业应用 | 自定义系统 | 品牌一致性，完全控制设计令牌 |
-| 跨平台应用 | Material 3 | 通用性强，支持自适应响应式设计 |
+| Android | Material 3 | [android/material3.md](android/material3.md) |
+| iOS | Cupertino | [ios/cupertino.md](ios/cupertino.md) |
+| Web | Material 3（推荐） | 参考 Android Material 3 |
+| Desktop | 根据平台 | 见各平台 SKILL.md |
 
-**关键原则**：选定一个设计系统并在整个应用中一致应用。混合使用会导致 UI 体验混乱。
-
-详见 [design-systems.md](design-systems.md)
+**关键原则**：根据目标平台选择合适的设计系统，并在整个应用中一致应用。
 
 ## 状态管理选择
 
@@ -105,7 +113,7 @@ class _InternalWidget extends StatelessWidget {}
 
 **升级路径**：Provider → Riverpod（两者 API 类似，可平滑升级）
 
-详见 [state-management.md](state-management.md)
+> 状态管理方案是跨平台通用的，选择后可在所有平台使用。
 
 ## 开发流程
 
@@ -141,16 +149,16 @@ class _InternalWidget extends StatelessWidget {}
    ```
 
 5. **实现 UI 和逻辑**
-   - 遵循 [ui-development.md](ui-development.md) 的 Widget 组合原则
+   - 根据目标平台选择设计系统（Material 3 或 Cupertino）
    - 使用选定的状态管理方案
 
 6. **编写测试**
-   - 参见 [testing.md](testing.md)
+   - 参见目标平台的 [testing.md](android/testing.md) / [testing.md](ios/testing.md) / [testing.md](web/testing.md) 等
    - 目标覆盖率 >80%
 
 7. **性能优化和发布**
-   - 参见 [performance.md](performance.md)
-   - 目标：60fps、<3s 冷启动
+   - 参见目标平台的 [performance.md](android/performance.md) / [performance.md](ios/performance.md) / [performance.md](web/performance.md) 等
+   - 目标：60fps、<3s 冷启动（移动端）
 
 ## 核心约定
 
@@ -302,16 +310,23 @@ class _MyWidgetState extends State<MyWidget> {
 - **Widget 测试**：关键 UI 交互已覆盖
 - **集成测试**：主要用户流程已覆盖
 
-详见 [testing.md](testing.md)
+详见目标平台的测试文件：
+- [ios/testing.md](ios/testing.md)
+- [android/testing.md](android/testing.md)
+- [web/testing.md](web/testing.md)
+- [macos/testing.md](macos/testing.md)
+- [windows/testing.md](windows/testing.md)
+- [linux/testing.md](linux/testing.md)
 
 ## 性能规范
 
-- **帧率**：60fps 达成率 >95%，无卡顿
-- **内存**：正常使用范围内，无泄漏
-- **启动**：冷启动 <3s，热启动 <1s
-- **响应**：交互响应 <100ms
-
-详见 [performance.md](performance.md)
+性能目标因平台而异，详见目标平台的性能文件：
+- [ios/performance.md](ios/performance.md) - 60fps、冷启动 <1.5s
+- [android/performance.md](android/performance.md) - 60fps、冷启动 <2s
+- [web/performance.md](web/performance.md) - FCP <2s、LCP <2.5s
+- [macos/performance.md](macos/performance.md) - 启动 <500ms (Apple Silicon)
+- [windows/performance.md](windows/performance.md) - 启动 <800ms
+- [linux/performance.md](linux/performance.md) - 启动 <800ms
 
 ## 参考资源
 
