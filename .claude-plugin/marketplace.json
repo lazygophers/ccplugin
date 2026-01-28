@@ -19,8 +19,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/git",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/git",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/git",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/git",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "git",
@@ -41,8 +41,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/deepresearch",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/deepresearch",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "deep",
@@ -66,8 +66,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/golang",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/golang",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/golang",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/golang",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "golang",
@@ -88,12 +88,12 @@
       "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
       "version": "0.0.92",
       "author": {
-        "name": "Claude Code",
-        "email": "admin@example.com"
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
-      "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
-      "license": "MIT",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/python",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/python",
+      "license": "AGPL-3.0-or-later",
       "keywords": [
         "python",
         "py",
@@ -117,8 +117,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/typescript",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/typescript",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/typescript",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/typescript",
       "license": "MIT",
       "keywords": [
         "typescript",
@@ -141,8 +141,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/javascript",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/javascript",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/javascript",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/javascript",
       "license": "MIT",
       "keywords": [
         "javascript",
@@ -161,15 +161,15 @@
     },
     {
       "name": "vue",
-      "source": "./plugins/languages/vue",
+      "source": "./plugins/frame/javascript/vue",
       "description": "Vue 3 开发插件 - 提供 Vue 3 开发规范、最佳实践和代码智能支持。包括 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链",
       "version": "0.0.92",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/vue",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/vue",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/vue",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/vue",
       "license": "MIT",
       "keywords": [
         "vue",
@@ -192,8 +192,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/react",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/react",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/react",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/react",
       "license": "MIT",
       "keywords": [
         "react",
@@ -218,8 +218,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/nextjs",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/nextjs",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/nextjs",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/nextjs",
       "license": "MIT",
       "keywords": [
         "nextjs",
@@ -244,8 +244,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/antd",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/antd",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/antd",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/javascript/antd",
       "license": "MIT",
       "keywords": [
         "antd",
@@ -293,8 +293,8 @@
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/flutter",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/flutter",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/flutter",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/flutter",
       "license": "MIT",
       "keywords": [
         "flutter",
@@ -654,15 +654,15 @@
     },
     {
       "name": "naming",
-      "source": "./plugins/code/naming",
+      "source": "./plugins/languages/naming",
       "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正",
       "version": "0.0.92",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/code/naming",
-      "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/code/naming",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/naming",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/naming",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "naming",
