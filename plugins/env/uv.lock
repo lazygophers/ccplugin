@@ -12,6 +12,28 @@ wheels = [
 ]
 
 [[package]]
+name = "ccplugin-env"
+version = "0.0.1"
+source = { editable = "." }
+dependencies = [
+    { name = "click" },
+    { name = "lib" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.1.0" },
+    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "click"
 version = "8.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -44,28 +66,12 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { editable = "." }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#b6fc08311e0bcf68d2f4a8bd8dc72147cbe62e2e" }
 dependencies = [
-    { name = "click" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "rich" },
 ]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.3.1" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "rich", specifier = ">=13.0.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "markdown-it-py"

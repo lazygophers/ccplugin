@@ -1,0 +1,20 @@
+{
+  "name": "env",
+  "version": "0.0.1",
+  "description": "环境处理插件 - 用于处理环境相关的问题",
+  "author": {
+    "name": "ccplugin",
+    "email": "info@ccplugin.dev",
+    "url": "https://github.com/lazygophers/ccplugin"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin",
+  "repository": "https://github.com/lazygophers/ccplugin",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "env",
+    "environment",
+    "plugin",
+    "ccplugin"
+  ],
+  "hooks": "./hooks/hooks.json"
+}
