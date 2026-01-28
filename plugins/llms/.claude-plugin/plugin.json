@@ -1,0 +1,27 @@
+{
+  "name": "plugin-llms",
+  "version": "0.0.91",
+  "description": "LLMS.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件",
+  "author": {
+    "name": "CCPlugin Contributors",
+    "email": "info@lazygophers.com",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin",
+  "repository": "https://github.com/lazygophers/ccplugin",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "llms",
+    "llms.txt",
+    "documentation",
+    "llm",
+    "context",
+    "markdown",
+    "agent"
+  ],
+  "agents": [
+    "./agents/llms-generator.md"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,19 @@
+[project]
+name = "plugin-llms"
+version = "0.0.91"
+description = "LLMS.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "AGPL-3.0-or-later"}
+
+dependencies = [
+    "click>=8.1.0",
+    "rich>=13.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+llms-hooks = "plugins.llms.scripts.main:main"
