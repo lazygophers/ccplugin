@@ -51,68 +51,6 @@ agent: git:git
 - "创建分支"、"切换分支"
 - "合并分支"、"rebase"
 
-## 命令使用
-
-### 提交命令
-
-#### 提交所有变更
-
-```bash
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
-```
-
-**使用场景**：
-
-- 快速提交所有变更
-- 不需要精确控制提交内容
-- 确保 .gitignore 配置正确
-
-**注意事项**：
-
-- 提交前会检查敏感信息
-- 会添加所有未跟踪和已修改的文件
-- 不会自动推送到远程
-
-#### 提交暂存区变更
-
-```bash
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录超时问题"
-```
-
-**使用场景**：
-
-- 精确控制提交内容
-- 分批提交不同功能的修改
-- 仅提交已暂存的文件
-
-**注意事项**：
-
-- 需要先使用 `git add` 添加文件
-- 不会影响未暂存的修改
-- 适合分阶段提交
-
-### PR 命令
-
-详见 [@pr-guidelines](${CLAUDE_PLUGIN_ROOT}/skills/git/pr-guidelines.md) 了解完整的 PR 管理指南。
-
-**快速参考**：
-
-```bash
-# 创建 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr
-
-# 更新 PR（需要提供 PR 编号）
-uvx --from git+https://github.com/lazygophers/ccplugin pr update <pr-number>
-```
-
-### 忽略文件命令
-
-#### 更新 .gitignore
-
-```bash
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
-```
-
 **功能**：
 
 - 分析未提交的文件
@@ -144,66 +82,6 @@ uvx --from git+https://github.com/lazygophers/ccplugin ignore
 
 其中 `type` 包括：`feat`（新功能）、`fix`（缺陷修复）、`docs`（文档更新）、`style`（代码格式）、`refactor`（代码重构）、`test`（测试相关）、`chore`（构建/工具）。
 
-## 工作流程
-
-### 完整开发流程
-
-```bash
-# 1. 创建功能分支
-git checkout -b feature/user-auth
-
-# 2. 开发并提交
-git add src/auth/
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加用户注册"
-
-git add tests/
-uvx --from git+https://github.com/lazygophers/ccplugin commit "test: 添加认证测试"
-
-# 3. 推送到远程
-git push -u origin feature/user-auth
-
-# 4. 创建 PR
-uvx --from git+https://github.com/lazygophers/ccplugin pr
-
-# 5. 根据审查反馈修改
-vim src/auth/login.py
-git add src/auth/login.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证逻辑"
-
-# 6. 更新 PR
-git push
-uvx --from git+https://github.com/lazygophers/ccplugin pr update 123
-```
-
-### 快速提交流程
-
-```bash
-# 1. 更新 .gitignore
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
-
-# 2. 提交所有变更
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 初始化项目"
-
-# 3. 推送到远程
-git push
-```
-
-### 分批提交流程
-
-```bash
-# 1. 添加并提交第一个功能
-git add feature1.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加功能1"
-
-# 2. 添加并提交第二个功能
-git add feature2.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "feat: 添加功能2"
-
-# 3. 推送并创建 PR
-git push
-uvx --from git+https://github.com/lazygophers/ccplugin pr
-```
-
 ## 安全协议
 
 ### 提交前检查
@@ -227,129 +105,12 @@ uvx --from git+https://github.com/lazygophers/ccplugin pr
 1. 检查错误信息
 2. 识别问题类型
 3. 提供解决方案
-4. **不要使用 amend**，创建新提交
-
-## 常见场景
-
-### 场景 1：首次提交
-
-```bash
-# 用户：我需要初始化项目并提交
-uvx --from git+https://github.com/lazygophers/ccplugin ignore
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 初始化项目"
-git push -u origin master
-```
-
-### 场景 2：功能开发
-
-```bash
-# 用户：我开发了一个新功能，需要创建 PR
-git checkout -b feature/user-auth
-# ... 开发代码 ...
-git add .
-uvx --from git+https://github.com/lazygophers/ccplugin commit-all "feat: 添加用户认证功能"
-git push -u origin feature/user-auth
-uvx --from git+https://github.com/lazygophers/ccplugin pr
-```
-
-### 场景 3：修复 Bug
-
-```bash
-# 用户：发现一个 bug，需要修复
-git checkout -b fix/login-timeout
-# ... 修复代码 ...
-git add src/login.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录超时问题"
-git push -u origin fix/login-timeout
-uvx --from git+https://github.com/lazygophers/ccplugin pr
-```
-
-### 场景 4：更新 PR
-
-```bash
-# 用户：根据 PR 审查反馈修改了代码，需要更新 PR
-vim src/auth/login.py
-git add src/auth/login.py
-uvx --from git+https://github.com/lazygophers/ccplugin commit "fix: 修复登录验证逻辑"
-git push
-uvx --from git+https://github.com/lazygophers/ccplugin pr update 123
-```
-
-## 最佳实践
-
-### 1. 提交粒度
-
-✅ **好的提交**（单一职责）：
-
-- "feat: 添加用户注册功能"
-- "feat: 添加用户登录功能"
-- "test: 添加认证测试"
-
-❌ **不好的提交**（过大）：
-
-- "feat: 添加用户模块"（太宽泛）
-
-### 2. 提交信息
-
-✅ **好的提交信息**：
-
-- 清晰、具体
-- 遵循规范
-- 包含上下文
-
-```
-feat: 添加用户认证功能
-
-实现用户注册、登录和会话管理
-```
-
-❌ **不好的提交信息**：
-
-- 模糊、不具体
-- 不遵循规范
-
-```
-update
-fix bug
-done
-```
-
-### 3. PR 质量
-
-详见 [@pr-guidelines](${CLAUDE_PLUGIN_ROOT}/skills/git/pr-guidelines.md) 了解完整的 PR 质量标准和最佳实践。
-
-✅ **好的 PR**：变更范围合理（< 1000 行）、描述完整、包含测试
-
-❌ **不好的 PR**：变更范围过大、描述不完整、缺少测试
-
-### 4. 分支策略
-
-✅ **好的分支**：
-
-- `feature/user-auth`
-- `fix/login-timeout`
-- `refactor/database`
-
-❌ **不好的分支**：
-
-- `stuff`
-- `tmp`
-- `test`
 
 ## 与 Agent 配合
 
 ### git Agent
 
-使用 `git` agent 进行复杂的 Git 操作：
-
-```
-启动 git agent 处理：
-- 复杂的分支操作
-- PR 创建和更新
-- 提交策略规划
-- 推送失败处理（包括代理设置）
-- 仓库维护和优化
-```
+使用 Agents(git:git) 进行 Git 操作：
 
 ## 错误处理
 
@@ -373,16 +134,18 @@ done
 # 解决：尝试设置代理后重试
 
 # 方式 1：设置环境变量（当前会话）
-export http_proxy=http://127.0.0.1:7890
-export https_proxy=http://127.0.0.1:7890
+export HTTP_PROXY=http://127.0.0.1:7890
+export HTTPS_PROXY=http://127.0.0.1:7890
+export ALL_PROXY=http://127.0.0.1:7890
 git push
 
 # 方式 2：单次命令使用代理
-http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890 git push
+HTTP_PROXY=http://127.0.0.1:7890 HTTPS_PROXY=http://127.0.0.1:7890 git push
 
 # 取消代理（当前会话）
-unset http_proxy
-unset https_proxy
+unset HTTP_PROXY
+unset HTTPS_PROXY
+unset ALL_PROXY
 
 # 错误：认证失败
 # 解决：检查 SSH 密钥或凭据
@@ -391,35 +154,9 @@ unset https_proxy
 # 解决：先 pull，解决冲突后再推送
 ```
 
-### PR 创建失败
-
-```bash
-# 错误：分支未推送
-# 解决：先执行 git push
-
-# 错误：gh 未安装
-# 解决：安装 GitHub CLI
-# macOS: brew install gh
-
-# 错误：PR 已存在
-# 解决：使用 uvx --from git+https://github.com/lazygophers/ccplugin pr update 更新现有 PR
-```
-
 ## 参考资源
 
 ### 本技能的分层文档
 
-- 📋 [提交规范指南](${CLAUDE_PLUGIN_ROOT}/skills/git/commit-guidelines.md) - Conventional Commits 格式、类型定义、提交粒度、最佳实践
-- 📋 [PR 规范指南](${CLAUDE_PLUGIN_ROOT}/skills/git/pr-guidelines.md) - PR 创建更新、质量标准、编写实践、常见问题、工作流示例
-
-### 项目文档
-
-- [插件 README](${CLAUDE_PLUGIN_ROOT}/README.md)
-- [命令文档](${CLAUDE_PLUGIN_ROOT}/commands/)
-
-### 官方文档
-
-- [Conventional Commits](https://www.conventionalcommits.org/)
-- [GitHub Flow](https://guides.github.com/introduction/flow/)
-- [Git 工作流](https://www.atlassian.com/git/tutorials/comparing-workflows)
-- [Pull Request 最佳实践](https://github.blog/2015-01-21-how-to-write-the-perfect-pull-request/)
+- 📋 [提交规范指南](./commit-guidelines.md) - Conventional Commits 格式、类型定义、提交粒度、最佳实践
+- 📋 [PR 规范指南](./pr-guidelines.md) - PR 创建更新、质量标准、编写实践、常见问题、工作流示例
