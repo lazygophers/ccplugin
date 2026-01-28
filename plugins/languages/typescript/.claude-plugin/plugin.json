@@ -1,6 +1,6 @@
 {
   "name": "typescript",
-  "version": "0.0.93",
+  "version": "0.0.94",
   "description": "TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导",
   "author": {
     "name": "lazygophers",
