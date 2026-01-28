@@ -1,20 +1,13 @@
 [project]
 name = "ccplugin"
-version = "0.0.91"
+version = "0.0.92"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
-    "pydantic>=2.12.5",
-    "typer>=0.21.1",
-    "rich>=13.9.0",
-    "logging>=0.4.9.6",
-    "toml>=0.10.2",
-]
+dependencies = [ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib", "pydantic>=2.12.5", "typer>=0.21.1", "rich>=13.9.0", "logging>=0.4.9.6", "toml>=0.10.2",]
 
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
@@ -22,9 +15,9 @@ clean = "scripts.clean:main"
 register-plugins = "scripts.register_plugins:main"
 
 [tool.setuptools.package-data]
-"*" = ["*.json", "*.md"]
+"*" = [ "*.json", "*.md",]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["scripts*"]
-exclude = ["plugins*", "lib*"]
+where = [ ".",]
+include = [ "scripts*",]
+exclude = [ "plugins*", "lib*",]
