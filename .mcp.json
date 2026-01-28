@@ -7,38 +7,6 @@
 				"-y",
 				"@modelcontextprotocol/server-sequential-thinking"
 			]
-		},
-		"Chrome DevTools MCP": {
-			"type": "stdio",
-			"command": "npx",
-			"args": [
-				"-y",
-				"chrome-devtools-mcp@latest",
-				"--acceptInsecureCerts",
-				"--proxy-server=http://127.0.0.1:7890"
-			],
-			"env": {}
-		},
-		"duckduckgo": {
-			"type": "stdio",
-			"command": "uvx",
-			"args": [
-				"duckduckgo-mcp-server"
-			],
-			"env": {
-				"ALL_PROXY": "http://127.0.0.1:7890",
-				"HTTPS_PROXY": "http://127.0.0.1:7890",
-				"HTTP_PROXY": "http://127.0.0.1:7890"
-			}
-		},
-		"time": {
-			"type": "stdio",
-			"command": "uvx",
-			"args": [
-				"mcp-server-time",
-				"--local-timezone=Asia/Shanghai"
-			],
-			"env": {}
 		}
 	}
 }
