@@ -1,6 +1,6 @@
 {
   "name": "golang",
-  "version": "0.0.92",
+  "version": "0.0.93",
   "description": "Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导",
   "author": {
     "name": "lazygophers",
