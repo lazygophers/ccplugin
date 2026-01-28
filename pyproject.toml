@@ -1,25 +1,32 @@
 [project]
-name = "llms"
+name = "ccplugin"
 version = "0.0.93"
+description = "CCPlugin Market - Claude Code 插件市场"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [ "click>=8.1.0", "lib", "toml>=0.10.2",]
+dependencies = [
+    "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
+    "click>=8.1.0",
+    "rich>=13.9.0",
+    "toml>=0.10.2",
+]
 
 [build-system]
-requires = [ "setuptools>=68.0", "wheel",]
+requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project.scripts]
+clean = "scripts.clean:main"
+update = "scripts.update:main"
+info = "scripts.info:main"
+
 [project.optional-dependencies]
-dev = [ "pytest>=7.0.0",]
+dev = ["pytest>=7.0.0"]
 
 [tool.setuptools.package-data]
-"*" = [ "*.py", "*.json", "*.md",]
+"*" = ["*.json", "*.md"]
 
 [tool.setuptools.packages.find]
-where = [ ".",]
-include = [ "scripts*",]
-
-[tool.uv.sources.lib]
-git = "https://github.com/lazygophers/ccplugin"
-subdirectory = "lib"
-rev = "master"
+where = ["."]
+include = ["scripts*"]
+exclude = ["plugins*", "lib*"]
