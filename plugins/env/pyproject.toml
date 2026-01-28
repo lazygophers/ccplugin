@@ -7,7 +7,7 @@ requires-python = ">=3.12"
 dependencies = [ "click>=8.1.0", "lib",]
 
 [build-system]
-requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
+requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
@@ -18,7 +18,7 @@ dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.packages.find]
 where = [ ".",]
-include = [ "env*",]
+include = [ "scripts*",]
 
 [tool.uv.sources.lib]
 git = "https://github.com/lazygophers/ccplugin"
