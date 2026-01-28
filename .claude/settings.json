@@ -3,6 +3,7 @@
 		"git@ccplugin-market": true,
 		"notify@ccplugin-market": true,
 		"naming@ccplugin-market": true,
+		    "deepresearch@ccplugin-market": true,
 		"version@ccplugin-market": true
 	}
 }
