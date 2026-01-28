@@ -1,0 +1,372 @@
+# lib - CCPlugin 共享库
+
+> 为 CCPlugin 插件提供统一的日志、Hook 系统和环境变量管理
+
+## 概述
+
+`lib` 是 CCPlugin 生态的共享库，为所有插件提供：
+
+- **日志系统** (`logging/`) - 基于 Rich 的彩色日志，自动分割文件
+- **Hook 系统** (`hooks/`) - 从 stdin 读取 JSON 数据的事件处理器
+- **环境管理** (`utils/`) - 项目目录、插件路径的环境变量
+
+**设计理念：** 单实例、简洁 API、自动清理、依赖隔离
+
+---
+
+## 快速开始
+
+### 安装依赖
+
+```bash
+cd lib/
+uv sync
+```
+
+### 基础使用
+
+```python
+# 日志
+from lib import info, error, warn
+info("操作启动")
+error("发生错误")
+
+# Hook
+from lib.hooks import load_hooks
+hook_data = load_hooks()
+
+# 环境
+from lib.utils import get_project_dir
+project_dir = get_project_dir()
+```
+
+---
+
+## API 参考
+
+### 日志模块 (`lib.logging`)
+
+**导出函数：**
+
+| 函数 | 说明 |
+|------|------|
+| `info(message: str)` | 记录 INFO 级别日志 |
+| `debug(message: str)` | 记录 DEBUG 级别日志（需启用 DEBUG 模式） |
+| `error(message: str)` | 记录 ERROR 级别日志 |
+| `warn(message: str)` | 记录 WARNING 级别日志 |
+| `enable_debug()` | 启用 DEBUG 模式（控制台输出） |
+
+**使用示例：**
+
+```python
+from lib.logging import info, error, enable_debug, debug
+
+# 基础日志
+info("操作完成")
+error("发生错误")
+
+# DEBUG 模式
+enable_debug()
+debug("调试信息")
+```
+
+**日志格式：**
+
+```
+ℹ️  INFO [2026-01-21 14:30:00] 应用启动
+⚠️  WARNING [2026-01-21 14:30:01] 这是一条警告
+❌ ERROR [2026-01-21 14:30:02] 发生错误
+🐛 DEBUG [2026-01-21 14:30:03] 调试信息
+```
+
+**日志存储：**
+
+- 位置：`./lazygophers/ccplugin/log/`
+- 命名：`YYYYMMDDHH.log`（按小时分割）
+- 保留：最新 3 个文件（自动清理）
+
+---
+
+### Hook 模块 (`lib.hooks`)
+
+**导出函数：**
+
+| 函数 | 说明 |
+|------|------|
+| `load_hooks()` | 从 stdin 读取 JSON Hook 数据 |
+
+**Hook 数据格式：**
+
+```json
+{
+  "hook_event_name": "SessionStart",
+  "source": "startup",
+  "message": "Session started"
+}
+```
+
+**使用示例：**
+
+```python
+from lib.hooks import load_hooks
+
+def handle_hook():
+    hook_data = load_hooks()
+    event_name = hook_data.get("hook_event_name")
+
+    if event_name == "SessionStart":
+        # 处理会话开始事件
+        pass
+```
+
+**SessionStart 特殊处理：**
+
+- 自动输出 `AGENT.md` 文件内容
+- 替换 `${CLAUDE_PLUGIN_ROOT}` 为实际路径
+
+---
+
+### 环境模块 (`lib.utils`)
+
+**导出函数：**
+
+| 函数 | 说明 |
+|------|------|
+| `get_project_dir()` | 获取项目根目录（来自 `CLAUDE_PROJECT_DIR` 或当前目录） |
+| `get_project_plugins_dir()` | 获取项目插件目录 `<project>/.lazygophers/ccplugin/` |
+| `get_plugins_path()` | 获取插件路径（同上） |
+| `get_user_plugins_dir()` | 获取用户插件目录 `~/.lazygophers/ccplugin/` |
+| `get_plugins_skills_dir()` | 获取插件 skills 目录 |
+| `get_plugins_commands_dir()` | 获取插件 commands 目录 |
+| `get_plugins_hooks_dir()` | 获取插件 hooks 目录 |
+| `get_plugins_agents_dir()` | 获取插件 agents 目录 |
+| `set_app(name: str)` | 设置应用名称（来自 `PLUGIN_NAME` 环境变量） |
+| `get_app_name()` | 获取应用名称 |
+
+**环境变量：**
+
+| 变量 | 说明 | 来源 |
+|------|------|------|
+| `CLAUDE_PROJECT_DIR` | 项目根目录 | Claude Code 设置 |
+| `CLAUDE_PLUGIN_ROOT` | 插件根目录 | Claude Code 设置 |
+| `PLUGIN_NAME` | 插件名称 | 配置文件设置 |
+
+**使用示例：**
+
+```python
+from lib.utils import get_project_dir, get_project_plugins_dir, set_app
+
+# 获取项目目录
+project_dir = get_project_dir()  # CLAUDE_PROJECT_DIR 或 os.getcwd()
+
+# 获取插件数据目录
+plugin_dir = get_project_plugins_dir()  # <project>/.lazygophers/ccplugin/
+
+# 设置应用名称
+set_app("my-plugin")
+app_name = get_app_name()  # "my-plugin"
+```
+
+---
+
+## 依赖
+
+**Python：** >= 3.12（强制）
+
+**核心依赖：**
+
+```toml
+[project]
+dependencies = [
+    "pydantic>=2.12.5",     # 数据验证
+    "pytest>=9.0.2",        # 测试框架
+    "rich>=13.0.0",         # 终端美化
+]
+```
+
+---
+
+## 目录结构
+
+```
+lib/
+├── __init__.py           # 顶层导出（日志函数）
+├── logging/              # 日志模块
+│   ├── __init__.py      # 导出 info/debug/error/warn/enable_debug
+│   ├── manager.py       # RichLoggerManager 单例实现
+│   └── README.md        # 日志模块文档
+├── hooks/                # Hook 模块
+│   ├── __init__.py      # 导出 load_hooks
+│   └── hook.py          # load_hooks 实现
+├── utils/                # 工具模块
+│   ├── __init__.py      # 导出环境变量函数
+│   └── env.py           # Env 类和函数实现
+├── tests/                # 单元测试
+│   └── test_logging.py
+├── pyproject.toml        # 项目配置
+└── uv.lock               # 依赖锁定
+```
+
+---
+
+## 设计原则
+
+### 1. 单实例模式
+
+**日志管理器** 和 **环境管理器** 使用单例模式，确保全局唯一实例。
+
+```python
+# manager.py (简化示例)
+class RichLoggerManager:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+_logger = RichLoggerManager()
+
+def info(message: str):
+    _logger.info(message)
+```
+
+### 2. 简洁 API
+
+只导出必要的函数，避免复杂配置。
+
+```python
+# ✅ 正确：简洁
+from lib import info, error
+info("消息")
+
+# ❌ 避免：复杂
+from lib.logging.manager import RichLoggerManager
+logger = RichLoggerManager()
+logger.log("INFO", "消息")
+```
+
+### 3. 自动清理
+
+日志文件自动保留最新 3 个，过期文件自动删除。
+
+```python
+# manager.py
+def _cleanup_old_logs(self):
+    log_files = sorted(glob("*.log"), reverse=True)
+    for old_log in log_files[3:]:
+        os.remove(old_log)
+```
+
+### 4. 环境变量优先
+
+Claude Code 设置的环境变量优先于默认值。
+
+```python
+# env.py
+def __init__(self):
+    if os.getenv("CLAUDE_PROJECT_DIR"):
+        self.project_dir = os.getenv("CLAUDE_PROJECT_DIR")
+    else:
+        self.project_dir = os.getcwd()
+```
+
+---
+
+## 测试
+
+运行单元测试：
+
+```bash
+cd lib/
+uv run pytest tests/ -v
+```
+
+测试覆盖：
+- ✅ 所有日志级别函数
+- ✅ DEBUG 模式启用
+- ✅ 日志文件创建和格式
+- ✅ 旧日志文件清理
+- ✅ 单例模式
+- ✅ API 可访问性
+
+---
+
+## 使用规范
+
+### 必须使用共享库
+
+**插件禁止重复实现**日志和 Hook 功能：
+
+```python
+# ✅ 正确：使用共享库
+from lib import logging
+from lib.hooks import load_hooks
+
+# ❌ 错误：自己实现
+import logging
+import json
+```
+
+### 导入顺序
+
+```python
+# 1. 标准库
+import os
+import sys
+
+# 2. 第三方库
+import click
+from rich.console import Console
+
+# 3. 共享库（优先级最高）
+from lib import logging
+from lib.hooks import load_hooks
+from lib.utils import get_project_dir
+```
+
+### 错误处理
+
+Hook 和日志函数已内置异常处理，直接使用即可：
+
+```python
+# 不需要 try-except
+hook_data = load_hooks()  # 失败时自动 sys.exit(1)
+
+# 不需要检查文件存在
+info("消息")  # 自动处理文件创建
+```
+
+---
+
+## 常见问题
+
+**Q: 日志文件在哪里？**
+
+A: `./lazygophers/ccplugin/log/YYYYMMDDHH.log`
+
+**Q: 如何启用 DEBUG 模式？**
+
+A: 调用 `enable_debug()`，DEBUG 日志会输出到控制台。
+
+**Q: 如何获取项目目录？**
+
+A: 使用 `get_project_dir()`，优先使用 `CLAUDE_PROJECT_DIR` 环境变量。
+
+**Q: 单例模式会导致问题吗？**
+
+A: 不会。单例确保全局一致性，适合日志和环境管理。
+
+---
+
+## 相关文档
+
+- [logging/README.md](logging/README.md) - 日志模块详细文档
+- [../CLAUDE.md](../CLAUDE.md) - 项目主文档
+- [../.claude/skills/python-script-organization/](../.claude/skills/python-script-organization/SKILL.md) - Python 脚本组织规范
+
+---
+
+## 许可证
+
+AGPL-3.0-or-later
