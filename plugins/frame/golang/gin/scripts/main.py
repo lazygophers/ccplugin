@@ -1,6 +1,6 @@
 """Gin 插件主入口"""
 import click
-from .hooks import handle_hook
+from hooks import handle_hook
 
 @click.group()
 def main():
