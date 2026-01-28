@@ -698,6 +698,117 @@
         "agent",
         "standard"
       ]
+    },
+    {
+      "name": "gofiber",
+      "source": "./plugins/frame/golang/gofiber",
+      "description": "Go Fiber Web 框架插件 - 提供基于 fasthttp 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件开发、错误处理和性能优化",
+      "version": "0.0.91",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gofiber",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gofiber",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "fiber",
+        "gofiber",
+        "fasthttp",
+        "web-framework",
+        "http",
+        "middleware",
+        "routing",
+        "performance",
+        "golang",
+        "go",
+        "api",
+        "rest"
+      ]
+    },
+    {
+      "name": "fasthttp",
+      "source": "./plugins/frame/golang/fasthttp",
+      "description": "fasthttp 高性能 HTTP 库插件 - 提供基于零拷贝和对象复用的高性能 HTTP 服务开发规范和最佳实践。包括服务器配置、请求处理、性能优化和生态集成",
+      "version": "0.0.91",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/fasthttp",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/fasthttp",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "fasthttp",
+        "http",
+        "server",
+        "client",
+        "performance",
+        "zero-copy",
+        "high-performance",
+        "valyala",
+        "golang",
+        "go"
+      ]
+    },
+    {
+      "name": "gin",
+      "source": "./plugins/frame/golang/gin",
+      "description": "Gin Web 框架插件 - 提供基于 httprouter 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件、数据绑定、验证和丰富的生态集成",
+      "version": "0.0.91",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gin",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/gin",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "gin",
+        "gin-gonic",
+        "web-framework",
+        "http",
+        "middleware",
+        "routing",
+        "golang",
+        "go",
+        "restful",
+        "api",
+        "validation",
+        "binding"
+      ]
+    },
+    {
+      "name": "go-zero",
+      "source": "./plugins/frame/golang/go-zero",
+      "description": "go-zero 微服务框架插件 - 提供云原生 Go 微服务开发规范、最佳实践和代码智能支持。包括 API Gateway、RPC 服务、goctl 代码生成、服务治理和完整的微服务生态集成",
+      "version": "0.0.91",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/go-zero",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/go-zero",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "go-zero",
+        "microservices",
+        "api-gateway",
+        "grpc",
+        "rpc",
+        "goctl",
+        "service-governance",
+        "circuit-breaker",
+        "rate-limiting",
+        "cloud-native",
+        "golang",
+        "go",
+        "distributed-systems"
+      ]
     }
   ]
 }
