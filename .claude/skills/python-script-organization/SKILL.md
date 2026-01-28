@@ -7,15 +7,15 @@ description: Python 插件脚本组织规范 - 定义 CCPlugin 生态中 Python 
 
 ## 快速导航
 
-| 章节 | 内容 | 适用场景 |
-|------|------|---------|
-| **核心理念** | 强制规范、优先使用、目录结构 | 快速入门 |
-| **目录结构** | 标准插件结构、Scripts 目录 | 创建新插件 |
-| **命名约定** | 文件/代码/插件命名规范 | 日常编码 |
-| **导入模式** | 标准导入顺序、共享库使用 | 模块导入 |
-| **代码模式** | CLI/Hook/MCP 标准模式 | 功能实现 |
-| **配置规范** | pyproject.toml、.mcp.json 等 | 项目配置 |
-| **快速模板** | 最小/完整插件模板 | 快速开始 |
+| 章节         | 内容                         | 适用场景   |
+| ------------ | ---------------------------- | ---------- |
+| **核心理念** | 强制规范、优先使用、目录结构 | 快速入门   |
+| **目录结构** | 标准插件结构、Scripts 目录   | 创建新插件 |
+| **命名约定** | 文件/代码/插件命名规范       | 日常编码   |
+| **导入模式** | 标准导入顺序、共享库使用     | 模块导入   |
+| **代码模式** | CLI/Hook/MCP 标准模式        | 功能实现   |
+| **配置规范** | pyproject.toml、.mcp.json 等 | 项目配置   |
+| **快速模板** | 最小/完整插件模板            | 快速开始   |
 
 ## 核心理念
 
@@ -76,15 +76,16 @@ plugin-name/
 
 ### Scripts 目录详解
 
-| 文件 | 职责 | 是否必需 |
-|------|------|----------|
-| `__init__.py` | 标识为 Python 包 | 是 |
-| `main.py` | CLI 入口点，命令路由 | 是 |
-| `<module>.py` | 核心业务逻辑模块 | 按需 |
-| `hooks.py` | Hook 事件处理器 | 按需 |
-| `mcp.py` | MCP 服务器实现 | 按需 |
+| 文件          | 职责                 | 是否必需 |
+| ------------- | -------------------- | -------- |
+| `__init__.py` | 标识为 Python 包     | 是       |
+| `main.py`     | CLI 入口点，命令路由 | 是       |
+| `<module>.py` | 核心业务逻辑模块     | 按需     |
+| `hooks.py`    | Hook 事件处理器      | 按需     |
+| `mcp.py`      | MCP 服务器实现       | 按需     |
 
 **设计原则：**
+
 - **单一职责**：每个文件只负责一个核心功能
 - **入口分离**：CLI 命令定义与业务逻辑分离
 - **最小化实现**：仅实现必要功能，避免过度设计
@@ -109,6 +110,7 @@ mcp.py                           # MCP 服务器
 ### 代码命名
 
 **函数命名：** `lowercase_with_underscores`
+
 ```python
 # ✅ 正确
 def handle_hook() -> None:
@@ -130,6 +132,7 @@ def incMajor():                  # 驼峰命名
 ```
 
 **类命名：** `CapWords`（大驼峰）
+
 ```python
 # ✅ 正确
 class VersionMCPServer:
@@ -146,6 +149,7 @@ class VersionMCP_Server:         # 混合风格
 ```
 
 **常量命名：** `UPPERCASE_WITH_UNDERSCORES`
+
 ```python
 # ✅ 正确
 MAX_RETRIES = 3
@@ -158,6 +162,7 @@ DefaultTimeout = 30              # 驼峰
 ```
 
 **变量命名：** `lowercase_with_underscores`
+
 ```python
 # ✅ 正确
 version = "1.0.0"
@@ -171,6 +176,7 @@ v = "1.0.0"                      # 过于简短
 ### 插件命名
 
 **插件包名：** `{category}-{name}` 或 `code-{language}`
+
 ```
 version/                         # 版本管理插件
 task/                            # 任务管理插件
@@ -179,6 +185,7 @@ code-golang/                     # Golang 开发插件
 ```
 
 **技能目录名：** 与功能同名
+
 ```
 skills/python/                   # Python 技能
 skills/golang/                   # Golang 技能
@@ -238,6 +245,7 @@ hook_data = json.load(sys.stdin)
 ```
 
 **共享库可用模块：**
+
 ```python
 from lib import logging              # 日志系统
 from lib.hooks import load_hooks     # Hook 加载器
@@ -267,7 +275,7 @@ from hooks import handle_hook
 
 # ⚠️ 谨慎：相对导入（仅用于包内部）
 from . import version
-from .hooks import handle_hook
+from hooks import handle_hook
 ```
 
 ## 代码结构模式
@@ -334,6 +342,7 @@ if __name__ == "__main__":
 ```
 
 **模式要点：**
+
 - 使用 Click 框架构建 CLI
 - `@click.group()` 定义命令组
 - `@with_debug` 装饰器统一添加 debug 支持
@@ -398,6 +407,7 @@ def inc_major() -> None:
 ```
 
 **模式要点：**
+
 - 无状态，纯函数设计
 - 单一职责，每个函数只做一件事
 - 使用模块级常量配置
@@ -442,6 +452,7 @@ def handle_hook() -> None:
 ```
 
 **模式要点：**
+
 - 使用 `lib.hooks.load_hooks()` 读取 stdin
 - 基于事件名称路由
 - 统一的异常处理
@@ -561,6 +572,7 @@ class VersionMCPServer:
 ```
 
 **模式要点：**
+
 - 异步设计（`async/await`）
 - JSON-RPC 2.0 协议
 - stdio 通信
@@ -594,19 +606,15 @@ version = "main:main"
 
 ```json
 {
-  "mcpServers": {
-    "server-name": {
-      "command": "uv",
-      "args": [
-        "run",
-        "${CLAUDE_PLUGIN_ROOT}/scripts/main.py",
-        "mcp"
-      ],
-      "env": {
-        "PLUGIN_NAME": "plugin-name"
-      }
-    }
-  }
+	"mcpServers": {
+		"server-name": {
+			"command": "uv",
+			"args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/main.py", "mcp"],
+			"env": {
+				"PLUGIN_NAME": "plugin-name"
+			}
+		}
+	}
 }
 ```
 
@@ -614,18 +622,18 @@ version = "main:main"
 
 ```json
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=plugin-name uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
-          }
-        ]
-      }
-    ]
-  }
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=plugin-name uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+					}
+				]
+			}
+		]
+	}
 }
 ```
 
@@ -633,13 +641,13 @@ version = "main:main"
 
 ```json
 {
-  "name": "plugin-name",
-  "version": "0.0.91",
-  "description": "插件描述",
-  "commands": ["./commands/*.md"],
-  "agents": ["./agents/*.md"],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+	"name": "plugin-name",
+	"version": "0.0.91",
+	"description": "插件描述",
+	"commands": ["./commands/*.md"],
+	"agents": ["./agents/*.md"],
+	"skills": "./skills/",
+	"mcpServers": "./.mcp.json"
 }
 ```
 
@@ -647,12 +655,12 @@ version = "main:main"
 
 ### 代码组织
 
-| 原则 | 说明 |
-|------|------|
+| 原则         | 说明                               |
+| ------------ | ---------------------------------- |
 | **单一职责** | 一个文件一个职责，一个函数一个功能 |
 | **依赖倒置** | 依赖抽象（共享库），不依赖具体实现 |
-| **DRY** | 复用共享库，避免重复实现 |
-| **配置分离** | 配置与代码分离 |
+| **DRY**      | 复用共享库，避免重复实现           |
+| **配置分离** | 配置与代码分离                     |
 
 ### 错误处理
 
@@ -709,6 +717,7 @@ python scripts/main.py info
 ### 最小插件模板
 
 **main.py:**
+
 ```python
 from lib import logging
 import click
@@ -731,6 +740,7 @@ if __name__ == "__main__":
 ```
 
 **pyproject.toml:**
+
 ```toml
 [project]
 name = "my-plugin"
