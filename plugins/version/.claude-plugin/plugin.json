@@ -24,5 +24,6 @@
     "./commands/set.md",
     "./commands/init.md"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
 }

@@ -3,7 +3,9 @@ import click
 from functools import wraps
 from version import get_version
 from hooks import handle_hook
-
+import asyncio
+from mcp import VersionMCPServer
+ 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
 	@wraps(func)
@@ -34,6 +36,11 @@ def hooks_cmd() -> None:
 	"""Hook 模式：从 stdin 读取 JSON"""
 	handle_hook()
 
+@main.command()
+def mcp() -> None:
+	"""MCP 服务器模式：启动版本管理 MCP 服务器"""
+	server = VersionMCPServer()
+	asyncio.run(server.run())
 
 if __name__ == "__main__":
 	main()
