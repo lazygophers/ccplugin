@@ -3,7 +3,11 @@ name = "llms"
 version = "0.0.92"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["click>=8.1.0", "lib"]
+dependencies = [
+    "click>=8.1.0",
+ "lib",
+ "toml>=0.10.2",
+]
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
