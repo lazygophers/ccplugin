@@ -20,6 +20,7 @@ build-backend = "setuptools.build_meta"
 [project.scripts]
 clean = "scripts.clean:main"
 update = "scripts.update:main"
+info = "scripts.info:main"
 
 [tool.setuptools.package-data]
 "*" = ["*.json", "*.md"]
