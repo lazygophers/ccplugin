@@ -1,5 +1,5 @@
 """
-LLMS.txt Plugin - Main Entry Point
+llms.txt Plugin - Main Entry Point
 
 处理 llms.txt 相关的 hook 事件
 """
@@ -25,7 +25,7 @@ def with_debug(func):
 @click.pass_context
 def main(ctx) -> None:
     """
-    LLMS.txt Plugin - Hook 处理入口
+    llms.txt Plugin - Hook 处理入口
 
     此插件通过 Agent 来生成 llms.txt 文件，
     scripts 仅负责处理 hook 事件。

@@ -1,9 +1,9 @@
 ---
 name: llms
-description: LLMS.txt 文件标准规范 - 遵循 llmstxt.org 定义的格式标准，生成符合规范的 LLM 友好文档
+description: llms.txt 文件标准规范 - 遵循 llmstxt.org 定义的格式标准，生成符合规范的 LLM 友好文档
 ---
 
-# LLMS.txt 标准
+# llms.txt 标准
 
 ## 快速导航
 
@@ -15,7 +15,7 @@ description: LLMS.txt 文件标准规范 - 遵循 llmstxt.org 定义的格式标
 
 ## 核心理念
 
-LLMS.txt 是为 LLM 优化的项目文档，提供简洁、结构化的信息，帮助 LLM 快速理解项目。
+llms.txt 是为 LLM 优化的项目文档，提供简洁、结构化的信息，帮助 LLM 快速理解项目。
 
 **三个原则**：
 
@@ -119,5 +119,5 @@ Important notes:
 
 ## 参考资料
 
-- [LLMS.txt 标准](https://llmstxt.org/)
+- [llms.txt 标准](https://llmstxt.org/)
 - [FastHTML 示例](https://fastht.ml/llms.txt)

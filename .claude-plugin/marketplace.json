@@ -679,7 +679,7 @@
     {
       "name": "llms",
       "source": "./plugins/llms",
-      "description": "LLMS.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件。支持项目扫描、混合链接管理和 LLM 友好文档生成",
+      "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件。支持项目扫描、混合链接管理和 LLM 友好文档生成",
       "version": "0.0.93",
       "author": {
         "name": "lazygophers",
