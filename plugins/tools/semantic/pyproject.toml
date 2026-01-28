@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-semantic"
-version = "0.0.91"
+version = "0.0.92"
 description = "Claude Code semantic search plugin with code indexing and analysis capabilities"
 readme = "README.md"
 requires-python = ">=3.12"
