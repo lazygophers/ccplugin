@@ -31,26 +31,48 @@ ccplugin/
 │   └── tests/                    # Unit tests
 │
 ├── plugins/                      # All plugin implementations
-│   ├── task/                     # Task management plugin (SQLite-based)
-│   ├── code/
-│   │   ├── semantic/             # Semantic search plugin (vector embeddings)
-│   │   ├── git/                  # Git operations plugin
-│   │   ├── python/               # Python development plugin
-│   │   ├── golang/               # Golang development plugin
-│   │   ├── typescript/           # TypeScript development plugin
-│   │   ├── javascript/           # JavaScript development plugin
-│   │   ├── vue/                  # Vue 3 development plugin
-│   │   ├── react/                # React 18+ development plugin
-│   │   ├── nextjs/               # Next.js 16+ development plugin
-│   │   ├── antd/                 # Ant Design 5.x plugin
-│   │   └── flutter/              # Flutter development plugin
-│   ├── notify/                   # Notification plugin
-│   ├── version/                  # Version management plugin
-│   ├── style/                    # Styling plugin
-│   └── template/                 # Plugin development template
+│   ├── task/                     # Top-level: Task management (SQLite-based)
+│   ├── llms/                     # Top-level: LLMS.txt standard plugin
+│   ├── notify/                   # Top-level: System notifications
+│   ├── version/                  # Top-level: Version management
+│   ├── template/                 # Top-level: Plugin development template
+│   │
+│   ├── tools/                    # Tool plugins
+│   │   ├── deepresearch/         # Deep research with multi-agent system
+│   │   ├── git/                  # Git operations
+│   │   └── semantic/             # Semantic code search (vector embeddings)
+│   │
+│   ├── languages/                # Language development plugins
+│   │   ├── flutter/              # Flutter development
+│   │   ├── golang/               # Golang development
+│   │   ├── javascript/           # JavaScript (ES2024-2025)
+│   │   ├── naming/               # Cross-language naming conventions
+│   │   ├── python/               # Python development
+│   │   └── typescript/           # TypeScript development
+│   │
+│   ├── frame/                    # Framework plugins
+│   │   ├── golang/               # Golang frameworks
+│   │   │   ├── fasthttp/         # High-performance HTTP library
+│   │   │   ├── gin/              # Web framework
+│   │   │   ├── go-zero/          # Microservices framework
+│   │   │   ├── gofiber/          # Web framework (fasthttp-based)
+│   │   │   ├── gorm/             # ORM library
+│   │   │   ├── gorm-gen/         # Code generation tool
+│   │   │   └── lrpc/             # RPC framework
+│   │   └── javascript/           # JavaScript/TypeScript frameworks
+│   │       ├── antd/             # Ant Design 5.x UI library
+│   │       ├── nextjs/           # Next.js 16+ full-stack
+│   │       ├── react/            # React 18+ development
+│   │       └── vue/              # Vue 3 development
+│   │
+│   └── themes/                   # Theme/style plugins
+│       ├── style-glassmorphism/  # Glassmorphism design
+│       ├── style-neumorphism/    # Neumorphism design
+│       └── ...                   # Other style themes
 │
 ├── scripts/                      # Utility scripts
 │   ├── clean.py                  # Clean old plugin versions from cache
+│   ├── info.py                   # Market information display
 │   └── update_version.py         # Update version across all plugins
 │
 ├── docs/                         # Documentation
@@ -59,6 +81,7 @@ ccplugin/
 │       ├── plugin-organization/  # Plugin structure & configuration
 │       └── python-script-organization/  # Python coding standards
 ├── .claude-plugin/               # Plugin marketplace metadata
+│   └── marketplace.json          # Market configuration & plugin registry
 ├── pyproject.toml                # Main project configuration
 └── uv.lock                       # Dependency lock file
 
@@ -88,8 +111,9 @@ plugin-name/
 ├── hooks/
 │   └── hooks.json                # Hook event configuration
 ├── pyproject.toml                # Plugin-specific dependencies
-├── README.md                     # Plugin documentation
-└── CHANGELOG.md                  # Version history
+├── README.md                     # Plugin documentation (recommended)
+├── AGENT.md                      # Sub-agent documentation (recommended, for system prompt injection)
+└── CHANGELOG.md                  # Version history (recommended)
 ```
 
 **MCP Server Pattern (via main.py subcommand):**
@@ -172,12 +196,17 @@ uv build
 # Install locally for development
 uv pip install -e .
 
-# Install specific plugin (for testing)
+# Install plugin from market (recommended)
+/plugin install task@ccplugin-market
+/plugin install semantic@ccplugin-market
+/plugin install git@ccplugin-market
+
+# Install from local path (for development)
 /plugin install ./plugins/task
-/plugin install ./plugins/code/semantic
+/plugin install ./plugins/tools/semantic
 
 # Reinstall plugin (force latest)
-/plugin install ./plugins/task --force
+/plugin install task@ccplugin-market --force
 ```
 
 ### Linting & Code Quality
@@ -246,15 +275,14 @@ uvx --from git+https://github.com/lazygophers/ccplugin clean --dry-run
 
 ```bash
 # Task plugin - project task management
-task add "Task description"
-task list
-task stats
-/task add "Implement feature X"
+/task add "Task description"
+/task list
+/task stats
 
 # Semantic search plugin - code search with embeddings
-semantic init                    # Initialize vector database
-semantic index                   # Build/update code index
-semantic search "how to read files"
+/semantic init                    # Initialize vector database
+/semantic index                   # Build/update code index
+/semantic search "how to read files"
 
 # Git plugin - version control operations
 /commit-all "feat: description"  # Commit all changes
@@ -273,8 +301,8 @@ version --help
 
 1. **Use the template**:
    ```bash
-   cp -r plugins/template plugins/my-new-plugin
-   cd plugins/my-new-plugin
+   cp -r plugins/template my-new-plugin
+   cd my-new-plugin
    ```
 
 2. **Configure plugin metadata** in `.claude-plugin/plugin.json`:
@@ -284,15 +312,22 @@ version --help
 
 3. **Implement plugin components**:
    - **Commands**: Create `.md` files in `commands/` directory
-   - **Agents**: Create `.md` files in `agents/` directory
+   - **Agents**: Create `.md` files in `agents/` directory (with AGENT.md documentation)
    - **Skills**: Create skill definitions in `skills/` directory
    - **Scripts**: Implement logic in `scripts/` directory (Python preferred)
 
 4. **Update pyproject.toml** with dependencies
 
-5. **Test locally**: `/plugin install ./plugins/my-new-plugin`
+5. **Test locally**:
+   ```bash
+   /plugin install ./my-new-plugin
+   # or from market
+   /plugin install my-new-plugin@ccplugin-market
+   ```
 
-6. **Build & verify**: `uv build`
+6. **Update marketplace.json** with your plugin entry
+
+7. **Build & verify**: `uv build`
 
 ### Python Execution Rules (Mandatory)
 
@@ -386,7 +421,8 @@ from lib.utils import get_env_value
 
 1. Create agent file in `agents/` (e.g., `agents/my-agent.md`)
 2. Define agent behavior in markdown frontmatter
-3. Update `.claude-plugin/plugin.json`:
+3. Document the agent in `AGENT.md` (for system prompt injection)
+4. Update `.claude-plugin/plugin.json`:
    ```json
    "agents": [
      "./agents/my-agent.md"
@@ -450,7 +486,7 @@ cat plugins/task/.claude-plugin/plugin.json
 ### Run Specific Plugin Tests
 ```bash
 # Test only semantic plugin
-uv run pytest plugins/code/semantic/tests/ -v
+uv run pytest plugins/tools/semantic/tests/ -v
 
 # Test lib logging
 uv run pytest lib/tests/test_logging.py -v
@@ -472,14 +508,21 @@ uv python --version
 
 ### Plugin Auto-Activation
 Certain plugins auto-activate based on context:
-- **python**: Activates when editing Python files
-- **golang**: Activates when editing Go files
-- **typescript/react/vue**: Activate for respective file types
+- **python** (`languages/python`): Activates when editing Python files
+- **golang** (`languages/golang`): Activates when editing Go files
+- **typescript** (`languages/typescript`): Activates when editing TypeScript files
+- **javascript** (`languages/javascript`): Activates when editing JavaScript files
+- **flutter** (`languages/flutter`): Activates when editing Dart/Flutter files
+- Framework plugins (react, vue, nextjs, antd): Activate for respective file types
 - Language plugins provide coding standards and best practices
 
 ### Manual Plugin Usage
 ```bash
-# Install plugin
+# Install plugin from market (recommended)
+/plugin install task@ccplugin-market
+/plugin install semantic@ccplugin-market
+
+# Or install from local path (development)
 /plugin install ./plugins/task
 
 # Use plugin commands (if defined)
@@ -509,9 +552,10 @@ Certain plugins auto-activate based on context:
 | Issue | Solution |
 |-------|----------|
 | "python3: command not found" | Use `uv run` instead of direct `python3` |
-| Outdated plugin installed | Run `clean` to remove old versions, reinstall with `/plugin install` |
+| Outdated plugin installed | Run `clean` to remove old versions, reinstall with `/plugin install plugin@ccplugin-market --force` |
 | Import errors in plugin | Ensure `uv sync` has been run and dependencies are in `pyproject.toml` |
 | Version not updating | Run `uv run scripts/update_version.py` (not manual edits) |
+| Plugin not found in market | Check `marketplace.json` for correct plugin name and ensure market is registered |
 
 ---
 
