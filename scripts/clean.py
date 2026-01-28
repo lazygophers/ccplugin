@@ -18,6 +18,14 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.table import Table
+from rich.tree import Tree
+
+console = Console()
+
 
 def get_cache_dir() -> Path:
     """Get the plugin cache directory."""
@@ -102,7 +110,10 @@ def format_size(size_bytes: int) -> str:
     return f"{size_bytes:.1f}TB"
 
 
-def clean_old_versions(cache_dir: Path, dry_run: bool = False) -> Tuple[int, int, List[str]]:
+def clean_old_versions(
+    cache_dir: Path,
+    dry_run: bool = False
+) -> Tuple[int, int, List[Tuple[str, str, str]]]:
     """Clean old plugin versions, keeping only the latest.
 
     For each plugin in each market, deletes all versions except the newest.
@@ -114,12 +125,12 @@ def clean_old_versions(cache_dir: Path, dry_run: bool = False) -> Tuple[int, int
     Returns:
         - Number of deleted directories
         - Total freed space in bytes
-        - List of cleaned plugin names with version info
+        - List of (plugin_key, version, size) tuples
     """
     plugins = get_plugin_versions(cache_dir)
     deleted_count = 0
     freed_space = 0
-    cleaned_info = []
+    cleaned_info: List[Tuple[str, str, str]] = []
 
     for plugin_key, versions in plugins.items():
         if len(versions) <= 1:
@@ -139,28 +150,46 @@ def clean_old_versions(cache_dir: Path, dry_run: bool = False) -> Tuple[int, int
             try:
                 size = calculate_dir_size(version_dir)
                 version = version_dir.name
+                size_str = format_size(size)
 
                 if dry_run:
                     # In dry-run mode, just count and report
                     deleted_count += 1
                     freed_space += size
-                    cleaned_info.append(
-                        f"  [DRY-RUN] Would delete {plugin_key}/{version} ({format_size(size)})"
-                    )
+                    cleaned_info.append((plugin_key, version, size_str))
                 else:
                     # Actually delete the directory
                     shutil.rmtree(version_dir)
                     deleted_count += 1
                     freed_space += size
-                    cleaned_info.append(
-                        f"  Deleted {plugin_key}/{version} ({format_size(size)})"
-                    )
+                    cleaned_info.append((plugin_key, version, size_str))
             except Exception as e:
-                cleaned_info.append(
-                    f"  Failed to delete {plugin_key}/{version_dir.name}: {e}"
-                )
+                console.print(f"  [red]Failed to delete[/red] {plugin_key}/{version_dir.name}: {e}")
 
     return deleted_count, freed_space, cleaned_info
+
+
+def display_cleanup_tree(cleaned_info: List[Tuple[str, str, str]], dry_run: bool) -> None:
+    """Display cleanup information in a tree structure."""
+    if not cleaned_info:
+        return
+
+    action_label = "[yellow]Would delete[/yellow]" if dry_run else "[red]Deleted[/red]"
+    root = Tree(f"{action_label} old plugin versions:")
+
+    # Group by plugin key
+    grouped: Dict[str, List[Tuple[str, str]]] = {}
+    for plugin_key, version, size in cleaned_info:
+        if plugin_key not in grouped:
+            grouped[plugin_key] = []
+        grouped[plugin_key].append((version, size))
+
+    for plugin_key, versions in sorted(grouped.items()):
+        branch = root.add(f"[cyan]{plugin_key}[/cyan]")
+        for version, size in sorted(versions):
+            branch.add(f"  [dim]{version}[/dim] [yellow]({size})[/yellow]")
+
+    console.print(root)
 
 
 def main():
@@ -169,39 +198,85 @@ def main():
     show_help = '--help' in sys.argv or '-h' in sys.argv
 
     if show_help:
-        print("Usage: clean [OPTIONS]")
-        print("\nOptions:")
-        print("  --dry-run, -d  Show what would be deleted without actually deleting")
-        print("  --help, -h     Show this help message")
+        console.print(Panel.fit(
+            "[bold cyan]Plugin Cache Cleaner[/bold cyan]\n\n"
+            "[dim]Usage:[/dim] clean [OPTIONS]\n\n"
+            "[bold cyan]Options:[/bold cyan]\n"
+            "  [cyan]--dry-run, -d[/cyan]  Show what would be deleted without actually deleting\n"
+            "  [cyan]--help, -h[/cyan]     Show this help message\n"
+        ))
         return 0
 
     cache_dir = get_cache_dir()
 
-    mode = "DRY-RUN" if dry_run else "CLEAN"
-    print(f"[{mode}] Cleaning plugin cache...")
-    print(f"Cache directory: {cache_dir}\n")
+    # Print header
+    mode = "[yellow]DRY-RUN[/yellow]" if dry_run else "[bold red]CLEAN[/bold red]"
+    console.print(Panel.fit(
+        f"[bold cyan]Plugin Cache Cleaner[/bold cyan]\n"
+        f"[dim]Mode:[/dim] {mode}\n"
+        f"[dim]Cache:[/dim] {cache_dir}",
+        border_style="blue"
+    ))
 
     if not cache_dir.exists():
-        print("Cache directory not found. Nothing to clean.")
+        console.print("[yellow]Cache directory not found. Nothing to clean.[/yellow]")
         return 0
 
+    # Scan cache directory
+    plugins = get_plugin_versions(cache_dir)
+
+    if not plugins:
+        console.print("[yellow]No plugins found in cache.[/yellow]")
+        return 0
+
+    # Display current cache status
+    status_table = Table(title="[bold]Current Cache Status[/bold]", show_header=True)
+    status_table.add_column("Market/Plugin", style="cyan")
+    status_table.add_column("Versions", justify="right", style="green")
+    status_table.add_column("Latest", style="yellow")
+
+    total_plugins = 0
+    total_versions = 0
+    outdated_plugins = 0
+
+    for plugin_key, versions in sorted(plugins.items()):
+        sorted_versions = sorted(versions, key=lambda p: parse_version(p.name), reverse=True)
+        latest = sorted_versions[0].name
+        version_count = len(versions)
+        total_plugins += 1
+        total_versions += version_count
+        if version_count > 1:
+            outdated_plugins += 1
+            # Mark outdated plugins with a warning
+            status_table.add_row(f"[yellow]⚠[/yellow] {plugin_key}", str(version_count), f"[green]{latest}[/green]")
+        else:
+            status_table.add_row(f"[dim]✓[/dim] {plugin_key}", str(version_count), f"[dim]{latest}[/dim]")
+
+    console.print(status_table)
+    console.print(f"[dim]Total: {total_plugins} plugins, {total_versions} versions, {outdated_plugins} with old versions[/dim]\n")
+
+    if outdated_plugins == 0:
+        console.print("[green]✓ No old plugin versions found. Cache is clean.[/green]")
+        return 0
+
+    # Perform cleanup
     deleted_count, freed_space, cleaned_info = clean_old_versions(cache_dir, dry_run=dry_run)
 
-    if deleted_count == 0:
-        print("No old plugin versions found. Cache is clean.")
-        return 0
+    # Display cleanup tree
+    display_cleanup_tree(cleaned_info, dry_run)
 
-    action_label = "Would delete" if dry_run else "Deleted"
-    print(f"{action_label} old plugin versions:")
-    for info in cleaned_info:
-        print(info)
+    # Display summary table
+    summary_table = Table(title="[bold blue]Cleanup Summary[/bold blue]", show_header=True)
+    summary_table.add_column("Metric", style="cyan", width=25)
+    summary_table.add_column("Value", justify="right", style="green")
 
-    print(f"\nCleanup summary:")
-    print(f"  Directories: {deleted_count}")
-    print(f"  Freed space: {format_size(freed_space)}")
+    summary_table.add_row("Directories cleaned", str(deleted_count))
+    summary_table.add_row("Space freed", f"[bold green]{format_size(freed_space)}[/bold green]")
+
+    console.print(summary_table)
 
     if dry_run:
-        print("\nTo actually delete these versions, run: clean")
+        console.print("\n[yellow]To actually delete these versions, run:[/yellow] [cyan]clean[/cyan]")
 
     return 0
 
