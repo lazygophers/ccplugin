@@ -81,7 +81,8 @@ class RichLoggerManager:
 	def debug(self, message: str) -> None:
 		"""记录 DEBUG 级别日志（仅在 DEBUG 模式显示）。"""
 		caller_info = self._get_caller_info(skip=4)
-		formatted = f"[cyan]DEBUG[/cyan] [{datetime.now().strftime("%H:%M:%S")}] [dim]{caller_info}[/dim] {message}"
+		timestamp = datetime.now().strftime("%H:%M:%S")
+		formatted = f"[cyan]DEBUG[/cyan] [{timestamp}] [dim]{caller_info}[/dim] {message}"
 
 		if self.debug_enabled:
 			if self.console_console:
@@ -130,7 +131,8 @@ class RichLoggerManager:
 			message: 日志消息
 			color: 颜色标签
 		"""
-		formatted = f"{self._get_app()} [{color}]{level}[/{color}] [{datetime.now().strftime("%M:%S")}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
+		timestamp = datetime.now().strftime("%M:%S")
+		formatted = f"{self._get_app()} [{color}]{level}[/{color}] [{timestamp}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
 
 		# 写入文件
 		self._write_to_file(formatted)
