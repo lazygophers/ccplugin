@@ -12,8 +12,8 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-import lib.logging as logging
-from lib.hooks import load_hooks
+import lib.logging as logging  # noqa: E402
+from lib.hooks import load_hooks  # noqa: E402
 
 
 def handle_hook() -> None:
