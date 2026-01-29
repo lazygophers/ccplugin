@@ -3,8 +3,9 @@
 Python 测试文件 - 包含函数、类、装饰器、异步函数
 """
 
-from typing import List, Optional
+from typing import Optional
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 
 @dataclass
@@ -53,6 +54,12 @@ class UserSession:
     def is_valid(self) -> bool:
         """检查会话是否有效"""
         return datetime.now() - self.created_at < timedelta(hours=24)
+
+
+def get_user(username: str) -> Optional[User]:
+    """获取用户（示例）"""
+    # 这里应该是实际的数据库查询
+    return User(id=1, name=username, email=f"{username}@example.com")
 
 
 def create_session(username: str) -> UserSession:
