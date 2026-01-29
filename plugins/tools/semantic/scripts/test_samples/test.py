@@ -1,7 +1,5 @@
 """Python 测试文件"""
 
-from typing import List
-
 
 class Person:
     """Person 类"""

@@ -76,7 +76,7 @@ def test_script_syntax() -> bool:
     try:
         import py_compile
         py_compile.compile(str(script_path), doraise=True)
-        print(f"  ✓ 脚本语法正确")
+        print("  ✓ 脚本语法正确")
         return True
     except py_compile.PyCompileError as e:
         print(f"  ✗ 脚本语法错误: {e}", file=sys.stderr)
