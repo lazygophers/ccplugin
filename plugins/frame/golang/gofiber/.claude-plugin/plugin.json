@@ -1,6 +1,6 @@
 {
   "name": "gofiber",
-  "version": "0.0.96",
+  "version": "0.0.97",
   "description": "Go Fiber Web 框架插件 - 提供基于 fasthttp 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件开发、错误处理和性能优化",
   "author": {
     "name": "lazygophers",
