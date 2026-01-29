@@ -6,7 +6,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "PLUGIN_NAME=env uv run ${CLAUDE_PLUGIN_ROOT}/scripts/main.py"
+						"command": "PLUGIN_NAME=env uv run uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py"
 					},
 					{
 						"type": "command",
