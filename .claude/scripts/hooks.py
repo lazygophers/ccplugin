@@ -9,7 +9,6 @@ from lib import logging
 from lib.hooks import load_hooks
 
 prompt = {
-	"S"
 }
 
 
@@ -22,12 +21,15 @@ def _iter_pyproject_dirs(root_dir: Path):
 def handle_stop() -> tuple[bool, Path | None, str | None]:
 	"""
 		1. 遍历所有存在 pyproject.toml 文件的目录
-		2. 在每一个有 pyproject.toml 文件的目录执行 `uvx ruff check`
-		3. 返回 (success, failed_dir, error_output)
+		2. 检查 lib、scripts 和 .claude/scripts 目录
+		3. 在每一个目录执行 `uvx ruff check`
+		4. 返回 (success, failed_dir, error_output)
 	"""
-	root_dir = Path.cwd().joinpath("plugins")
+	cwd = Path.cwd()
+	root_dir = cwd.joinpath("plugins")
 	found_any = False
 
+	# 检查 plugins 目录下所有有 pyproject.toml 的目录
 	for dir_path in _iter_pyproject_dirs(root_dir):
 		found_any = True
 		try:
@@ -44,8 +46,62 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 			logging.error(f"执行 ruff check 失败: {e}")
 			return False, dir_path, str(e)
 
+	# 检查 lib 目录
+	lib_dir = cwd.joinpath("lib")
+	if lib_dir.exists():
+		found_any = True
+		try:
+			result = subprocess.run(
+				["uvx", "ruff", "check"],
+				cwd=lib_dir,
+				capture_output=True,
+				text=True,
+			)
+			if result.returncode != 0:
+				error_output = result.stderr or result.stdout
+				return False, lib_dir, error_output.strip()
+		except Exception as e:
+			logging.error(f"执行 ruff check 失败: {e}")
+			return False, lib_dir, str(e)
+
+	# 检查 scripts 目录
+	scripts_dir = cwd.joinpath("scripts")
+	if scripts_dir.exists():
+		found_any = True
+		try:
+			result = subprocess.run(
+				["uvx", "ruff", "check"],
+				cwd=scripts_dir,
+				capture_output=True,
+				text=True,
+			)
+			if result.returncode != 0:
+				error_output = result.stderr or result.stdout
+				return False, scripts_dir, error_output.strip()
+		except Exception as e:
+			logging.error(f"执行 ruff check 失败: {e}")
+			return False, scripts_dir, str(e)
+
+	# 检查 .claude/scripts 目录
+	claude_scripts = cwd.joinpath(".claude", "scripts")
+	if claude_scripts.exists():
+		found_any = True
+		try:
+			result = subprocess.run(
+				["uvx", "ruff", "check"],
+				cwd=claude_scripts,
+				capture_output=True,
+				text=True,
+			)
+			if result.returncode != 0:
+				error_output = result.stderr or result.stdout
+				return False, claude_scripts, error_output.strip()
+		except Exception as e:
+			logging.error(f"执行 ruff check 失败: {e}")
+			return False, claude_scripts, str(e)
+
 	if not found_any:
-		logging.info("未找到任何 pyproject.toml 文件")
+		logging.info("未找到任何需要检查的目录")
 
 	return True, None, None
 
