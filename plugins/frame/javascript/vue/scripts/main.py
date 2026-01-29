@@ -17,10 +17,10 @@ if not (project_root / "lib").exists():
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-from lib import logging
-from hooks import handle_hook
-import click
-from functools import wraps
+from lib import logging  # noqa: E402
+from hooks import handle_hook  # noqa: E402
+import click  # noqa: E402
+from functools import wraps  # noqa: E402
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
