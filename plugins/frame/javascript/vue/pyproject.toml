@@ -19,3 +19,9 @@ dev = [ "pytest>=7.0.0",]
 [tool.setuptools.packages.find]
 where = [ ".",]
 include = [ "vue*",]
+
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"

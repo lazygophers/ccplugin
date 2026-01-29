@@ -1,3 +1,22 @@
+import sys
+from pathlib import Path
+
+# 添加项目根目录到 sys.path
+script_path = Path(__file__).resolve().parent
+plugin_path = script_path.parent
+project_root = plugin_path.parent.parent.parent
+
+# 如果 project_root 不包含 lib，尝试查找
+if not (project_root / "lib").exists():
+    # 尝试向上查找包含 lib 的目录
+    for _ in range(3):
+        project_root = project_root.parent
+        if (project_root / "lib").exists():
+            break
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from lib import logging
 from hooks import handle_hook
 import click
