@@ -1,15 +1,13 @@
 import json
 import subprocess
 import sys
-from pathlib import Path
-
 import traceback
+from pathlib import Path
 
 from lib import logging
 from lib.hooks import load_hooks
 
-prompt = {
-}
+prompt = {}
 
 
 def _iter_pyproject_dirs(root_dir: Path):
@@ -32,13 +30,9 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 	# 检查 plugins 目录下所有有 pyproject.toml 的目录
 	for dir_path in _iter_pyproject_dirs(root_dir):
 		found_any = True
+		# 1. ruff 检查
 		try:
-			result = subprocess.run(
-				["uvx", "ruff", "check"],
-				cwd=dir_path,
-				capture_output=True,
-				text=True,
-			)
+			result = subprocess.run(["uvx", "ruff", "check"], cwd=dir_path, capture_output=True, text=True, )
 			if result.returncode != 0:
 				error_output = result.stderr or result.stdout
 				return False, dir_path, error_output.strip()
@@ -46,17 +40,32 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 			logging.error(f"执行 ruff check 失败: {e}")
 			return False, dir_path, str(e)
 
+		# 2. 检查 main.py --help（如果存在）
+		main_py = dir_path / "scripts" / "main.py"
+		if main_py.exists():
+			try:
+				result = subprocess.run(
+					["uv", "run", "./scripts/main.py", "--help"],
+					cwd=dir_path,
+					capture_output=True,
+					text=True,
+					timeout=30,
+				)
+				if result.returncode != 0:
+					error_output = result.stderr or result.stdout
+					return False, dir_path, f"main.py --help 失败:\n{error_output.strip()}"
+			except subprocess.TimeoutExpired:
+				return False, dir_path, "main.py --help 超时"
+			except Exception as e:
+				logging.error(f"执行 main.py --help 失败: {e}")
+				return False, dir_path, str(e)
+
 	# 检查 lib 目录
 	lib_dir = cwd.joinpath("lib")
 	if lib_dir.exists():
 		found_any = True
 		try:
-			result = subprocess.run(
-				["uvx", "ruff", "check"],
-				cwd=lib_dir,
-				capture_output=True,
-				text=True,
-			)
+			result = subprocess.run(["uvx", "ruff", "check"], cwd=lib_dir, capture_output=True, text=True, )
 			if result.returncode != 0:
 				error_output = result.stderr or result.stdout
 				return False, lib_dir, error_output.strip()
@@ -69,12 +78,7 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 	if scripts_dir.exists():
 		found_any = True
 		try:
-			result = subprocess.run(
-				["uvx", "ruff", "check"],
-				cwd=scripts_dir,
-				capture_output=True,
-				text=True,
-			)
+			result = subprocess.run(["uvx", "ruff", "check"], cwd=scripts_dir, capture_output=True, text=True, )
 			if result.returncode != 0:
 				error_output = result.stderr or result.stdout
 				return False, scripts_dir, error_output.strip()
@@ -87,12 +91,7 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 	if claude_scripts.exists():
 		found_any = True
 		try:
-			result = subprocess.run(
-				["uvx", "ruff", "check"],
-				cwd=claude_scripts,
-				capture_output=True,
-				text=True,
-			)
+			result = subprocess.run(["uvx", "ruff", "check"], cwd=claude_scripts, capture_output=True, text=True, )
 			if result.returncode != 0:
 				error_output = result.stderr or result.stdout
 				return False, claude_scripts, error_output.strip()
@@ -124,7 +123,7 @@ def main():
 			if success:
 				print(json.dumps({"continue": False}))
 			else:
-				reason = f"代码检查失败：目录 `{failed_dir}` 的 !`uvx ruff check` 未通过\n\n错误输出：\n{error_output}"
+				reason = f"代码检查失败：目录 `{failed_dir}`\n\n{error_output}"
 				print(json.dumps({"continue": True, "decision": "block", "reason": reason}))
 		else:
 			logging.warning(f"未知的 hook 事件: {hook_event_name}")

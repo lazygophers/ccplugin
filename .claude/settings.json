@@ -12,7 +12,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "PLUGIN_NAME=ccplugin uv run .claude/scripts/hooks.py'"
+						"command": "uv run .claude/scripts/hooks.py"
 					}
 				]
 			}
