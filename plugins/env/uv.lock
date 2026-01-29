@@ -66,8 +66,9 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.1"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#b6fc08311e0bcf68d2f4a8bd8dc72147cbe62e2e" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#d83bfe864992cd8c652188e8991efec800586d27" }
 dependencies = [
+    { name = "click" },
     { name = "pydantic" },
     { name = "pytest" },
     { name = "rich" },

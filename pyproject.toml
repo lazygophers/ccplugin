@@ -4,7 +4,13 @@ version = "0.0.95"
 description = "CCPlugin Market - Claude Code 插件市场"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib", "click>=8.1.0", "rich>=13.9.0", "toml>=0.10.2",]
+dependencies = [
+ "lib @ git+https://github.com/lazygophers/ccplugin@master#subdirectory=lib",
+ "click>=8.1.0",
+ "rich>=13.9.0",
+ "toml>=0.10.2",
+ "wraps>=0.15.0",
+]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
