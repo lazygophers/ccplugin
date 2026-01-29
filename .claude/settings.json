@@ -6,14 +6,16 @@
 		"deepresearch@ccplugin-market": true,
 		"version@ccplugin-market": true
 	},
-	"Stop": [
-		{
-			"hooks": [
-				{
-					"type": "command",
-					"command": "uv run ./.claude/scripts/hooks.py"
-				}
-			]
-		}
-	]
+	"hooks": {
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "uv run ./.claude/scripts/hooks.py"
+					}
+				]
+			}
+		]
+	}
 }
