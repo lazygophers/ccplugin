@@ -7,14 +7,10 @@
 
 import sys
 import json
-import os
-from pathlib import Path
 
 
 def main():
     """主函数"""
-    # 获取插件根目录
-    plugin_root = Path(os.environ.get('CLAUDE_PLUGIN_ROOT', '.'))
 
     # 示例：处理输入数据
     if len(sys.argv) > 1:
