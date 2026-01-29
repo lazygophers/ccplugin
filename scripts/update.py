@@ -21,7 +21,13 @@ from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+)
 from rich.table import Table
 
 console = Console()
@@ -45,7 +51,11 @@ class UpdateStats:
 
     def print_summary(self) -> None:
         """Print a summary table of the update process."""
-        table = Table(title="[bold blue]Update Summary[/bold blue]", show_header=True, header_style="bold magenta")
+        table = Table(
+            title="[bold blue]Update Summary[/bold blue]",
+            show_header=True,
+            header_style="bold magenta",
+        )
         table.add_column("Category", style="cyan", width=20)
         table.add_column("Count", justify="right", style="green")
 
@@ -84,9 +94,7 @@ def run_command(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     Returns:
         Completed process result
     """
-    return subprocess.run(
-        cmd, cwd=cwd, capture_output=True, text=True, check=False
-    )
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
 
 
 def read_settings_json(project_dir: Path) -> dict[str, bool]:
@@ -179,7 +187,9 @@ def update_marketplace(market: str, stats: UpdateStats) -> bool:
     result = run_command(["git", "pull"], cwd=market_dir)
 
     if result.returncode != 0:
-        stats.add_message("error", f"Failed to update {market}: {result.stderr.strip()}")
+        stats.add_message(
+            "error", f"Failed to update {market}: {result.stderr.strip()}"
+        )
         stats.market_failed += 1
         return False
 
@@ -302,15 +312,7 @@ def get_cache_dir(market: str, plugin: str, version: str) -> Path:
     Returns:
         Path to cache directory
     """
-    return (
-        Path.home()
-        / ".claude"
-        / "plugins"
-        / "cache"
-        / market
-        / plugin
-        / version
-    )
+    return Path.home() / ".claude" / "plugins" / "cache" / market / plugin / version
 
 
 def copy_plugin_to_cache(
@@ -344,7 +346,41 @@ def copy_plugin_to_cache(
     try:
         shutil.copytree(source_path, cache_dir)
         stats.copied_count += 1
-        stats.add_message("success", f"Copied [cyan]{plugin}@{market}[/cyan] [dim]@[/dim] [bold]{version}[/bold] to cache")
+        stats.add_message(
+            "success",
+            f"Copied [cyan]{plugin}@{market}[/cyan] [dim]@[/dim] [bold]{version}[/bold] to cache",
+        )
+
+        # Initialize virtual environment if plugin has pyproject.toml
+        pyproject_path = cache_dir / "pyproject.toml"
+        if pyproject_path.exists():
+            try:
+                # Run uv sync to create virtual environment and install dependencies
+                result = subprocess.run(
+                    ["uv", "sync"],
+                    cwd=cache_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+                if result.returncode == 0:
+                    stats.add_message(
+                        "info", f"  [dim]Initialized venv for {plugin}[/dim]"
+                    )
+                else:
+                    stats.add_message(
+                        "warning",
+                        f"  [yellow]uv sync failed for {plugin}: {result.stderr.strip()}[/yellow]",
+                    )
+            except subprocess.TimeoutExpired:
+                stats.add_message(
+                    "warning", f"  [yellow]uv sync timeout for {plugin}[/yellow]"
+                )
+            except Exception as e:
+                stats.add_message(
+                    "warning", f"  [yellow]uv sync error for {plugin}: {e}[/yellow]"
+                )
+
         return True
     except Exception as e:
         stats.add_message("error", f"Failed to copy {plugin}@{market}: {e}")
@@ -500,11 +536,13 @@ def main() -> int:
     project_path = args.project_path.resolve()
 
     # Print header
-    console.print(Panel.fit(
-        f"[bold cyan]Plugin Update Tool[/bold cyan]\n"
-        f"[dim]Project:[/dim] {project_path}",
-        border_style="blue"
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold cyan]Plugin Update Tool[/bold cyan]\n"
+            f"[dim]Project:[/dim] {project_path}",
+            border_style="blue",
+        )
+    )
 
     stats = UpdateStats()
 
@@ -512,11 +550,15 @@ def main() -> int:
     enabled_plugins = get_enabled_plugins(project_path)
 
     if not enabled_plugins:
-        console.print("[yellow]No enabled plugins found in settings.json or settings.local.json[/yellow]")
+        console.print(
+            "[yellow]No enabled plugins found in settings.json or settings.local.json[/yellow]"
+        )
         return 0
 
     # Display enabled plugins
-    enabled_table = Table(title="[bold]Enabled Plugins[/bold]", show_header=True, header_style="bold cyan")
+    enabled_table = Table(
+        title="[bold]Enabled Plugins[/bold]", show_header=True, header_style="bold cyan"
+    )
     enabled_table.add_column("Plugin", style="green")
     enabled_table.add_column("Market", style="blue")
     enabled_table.add_column("Status", style="yellow")
@@ -547,7 +589,7 @@ def main() -> int:
 
     # Update marketplaces
     if markets:
-        console.print(f"[bold cyan]Updating Marketplaces[/bold cyan]")
+        console.print("[bold cyan]Updating Marketplaces[/bold cyan]")
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -555,7 +597,9 @@ def main() -> int:
             TaskProgressColumn(),
             console=console,
         ) as progress:
-            task = progress.add_task("[cyan]Updating markets...[/cyan]", total=len(markets))
+            task = progress.add_task(
+                "[cyan]Updating markets...[/cyan]", total=len(markets)
+            )
             for market in sorted(markets):
                 progress.update(task, description=f"[cyan]Updating {market}...[/cyan]")
                 update_marketplace(market, stats)
@@ -563,7 +607,7 @@ def main() -> int:
         console.print()
 
     # Process plugins
-    console.print(f"[bold cyan]Processing Plugins[/bold cyan]")
+    console.print("[bold cyan]Processing Plugins[/bold cyan]")
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -571,7 +615,9 @@ def main() -> int:
         TaskProgressColumn(),
         console=console,
     ) as progress:
-        task = progress.add_task("[cyan]Processing plugins...[/cyan]", total=len(enabled_list))
+        task = progress.add_task(
+            "[cyan]Processing plugins...[/cyan]", total=len(enabled_list)
+        )
 
         for plugin_key in enabled_plugins:
             if not enabled_plugins[plugin_key]:
@@ -595,7 +641,9 @@ def main() -> int:
 
             if not version:
                 stats.error_count += 1
-                stats.add_message("warning", f"Plugin {plugin_key} not found in marketplace.json")
+                stats.add_message(
+                    "warning", f"Plugin {plugin_key} not found in marketplace.json"
+                )
                 progress.advance(task)
                 continue
 
@@ -604,7 +652,9 @@ def main() -> int:
 
             if not source_path or not source_path.exists():
                 stats.error_count += 1
-                stats.add_message("error", f"Source path not found for {plugin_key}: {source_path}")
+                stats.add_message(
+                    "error", f"Source path not found for {plugin_key}: {source_path}"
+                )
                 progress.advance(task)
                 continue
 
@@ -612,14 +662,22 @@ def main() -> int:
             cache_dir = get_cache_dir(market, plugin, version)
             if not cache_dir.exists():
                 if not args.dry_run:
-                    if not copy_plugin_to_cache(market, plugin, version, source_path, stats):
+                    if not copy_plugin_to_cache(
+                        market, plugin, version, source_path, stats
+                    ):
                         progress.advance(task)
                         continue
                 else:
-                    stats.add_message("info", f"[DRY RUN] Would copy {plugin_key} @ {version} to cache")
+                    stats.add_message(
+                        "info",
+                        f"[DRY RUN] Would copy {plugin_key} @ {version} to cache",
+                    )
 
             stats.updated_count += 1
-            stats.add_message("success", f"Updated [cyan]{plugin_key}[/cyan] [dim]@[/dim] [bold]{version}[/bold]")
+            stats.add_message(
+                "success",
+                f"Updated [cyan]{plugin_key}[/cyan] [dim]@[/dim] [bold]{version}[/bold]",
+            )
 
             if not args.dry_run:
                 update_or_add_plugin(
@@ -631,15 +689,19 @@ def main() -> int:
     # Write back to installed_plugins.json
     if not args.dry_run:
         write_installed_plugins(installed_data)
-        console.print(Panel(
-            "[green]✓[/green] [bold]Updated:[/bold] [dim]~/.claude/plugins/installed_plugins.json[/dim]",
-            border_style="green"
-        ))
+        console.print(
+            Panel(
+                "[green]✓[/green] [bold]Updated:[/bold] [dim]~/.claude/plugins/installed_plugins.json[/dim]",
+                border_style="green",
+            )
+        )
     else:
-        console.print(Panel(
-            "[yellow]⚠[/yellow] [bold]DRY RUN MODE[/bold] - [dim]No changes made[/dim]",
-            border_style="yellow"
-        ))
+        console.print(
+            Panel(
+                "[yellow]⚠[/yellow] [bold]DRY RUN MODE[/bold] - [dim]No changes made[/dim]",
+                border_style="yellow",
+            )
+        )
 
     # Print summary
     console.print()
