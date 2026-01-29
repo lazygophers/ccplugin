@@ -272,5 +272,5 @@ class VersionMCPServer:
             # 无法写入响应时，至少尝试输出到 stderr
             try:
                 print(f"Response error: {e}", file=sys.stderr, flush=True)
-            except:
+            except Exception:
                 pass  # 完全无法输出时放弃
