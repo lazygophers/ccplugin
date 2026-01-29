@@ -68,7 +68,7 @@ def main():
 			if success:
 				print(json.dumps({"continue": False}))
 			else:
-				reason = f"代码检查失败：目录 `{failed_dir}` 的 ruff check 未通过\n\n错误输出：\n{error_output}"
+				reason = f"代码检查失败：目录 `{failed_dir}` 的 !`uvx ruff check` 未通过\n\n错误输出：\n{error_output}"
 				print(json.dumps({"continue": True, "decision": "block", "reason": reason}))
 		else:
 			logging.warning(f"未知的 hook 事件: {hook_event_name}")
