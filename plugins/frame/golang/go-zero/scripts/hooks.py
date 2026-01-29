@@ -26,7 +26,6 @@ def handle_hook() -> None:
 
 def on_session_start(hook_data: dict) -> None:
     """SessionStart 事件处理"""
-    logging.info("[go-zero] 会话开始")
 
     # 检测项目是否使用 go-zero 框架
     import os

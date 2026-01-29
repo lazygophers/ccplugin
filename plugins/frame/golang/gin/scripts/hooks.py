@@ -26,7 +26,6 @@ def handle_hook() -> None:
 
 def on_session_start(hook_data: dict) -> None:
     """SessionStart 事件处理"""
-    logging.info("[Gin] 会话开始")
 
     # 检测项目是否使用 Gin 框架
     import os
