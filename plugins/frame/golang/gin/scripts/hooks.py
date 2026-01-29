@@ -28,7 +28,6 @@ def on_session_start(hook_data: dict) -> None:
     """SessionStart 事件处理"""
 
     # 检测项目是否使用 Gin 框架
-    import os
     from pathlib import Path
 
     project_root = hook_data.get("project_root", "")
