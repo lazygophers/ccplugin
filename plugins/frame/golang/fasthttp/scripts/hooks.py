@@ -26,10 +26,8 @@ def handle_hook() -> None:
 
 def on_session_start(hook_data: dict) -> None:
     """SessionStart 事件处理"""
-    logging.info("[fasthttp] 会话开始")
 
     # 检测项目是否使用 fasthttp
-    import os
     from pathlib import Path
 
     project_root = hook_data.get("project_root", "")
