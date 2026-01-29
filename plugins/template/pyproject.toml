@@ -4,7 +4,7 @@ version = "0.0.96"
 description = "Claude Code plugin template with example scripts and configuration"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["lib"]
 
 [build-system]
 requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
@@ -19,3 +19,9 @@ dev = [ "pytest>=7.0.0",]
 [tool.setuptools.packages.find]
 where = [ ".",]
 include = [ "template*",]
+
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"
