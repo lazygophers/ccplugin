@@ -3,7 +3,17 @@
 		"git@ccplugin-market": true,
 		"notify@ccplugin-market": true,
 		"naming@ccplugin-market": true,
-		    "deepresearch@ccplugin-market": true,
+		"deepresearch@ccplugin-market": true,
 		"version@ccplugin-market": true
-	}
+	},
+	"Stop": [
+		{
+			"hooks": [
+				{
+					"type": "command",
+					"command": "uv run ./.claude/scripts/hooks.py"
+				}
+			]
+		}
+	]
 }
