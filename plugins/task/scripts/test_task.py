@@ -8,8 +8,6 @@ Task 插件测试脚本
 import sys
 import subprocess
 from pathlib import Path
-from shutil import rmtree
-import tempfile
 
 # 获取项目根目录
 script_path = Path(__file__).resolve().parent
@@ -56,7 +54,7 @@ def test_init_creates_directories() -> bool:
         if not dirs_exist:
             print(f"  ✗ 目录创建失败 (task_dir: {task_dir.exists()}, archive_dir: {archive_dir.exists()})")
         else:
-            print(f"  ✓ 目录结构正确")
+            print("  ✓ 目录结构正确")
 
     print(f"  {'✓' if success else '✗'} 初始化: {exit_code}")
     return success
@@ -89,7 +87,7 @@ def test_init_creates_files() -> bool:
             missing = [f.name for f in required_files if not f.exists()]
             print(f"  ✗ 文件未创建: {missing}")
         else:
-            print(f"  ✓ 初始文件正确")
+            print("  ✓ 初始文件正确")
 
     print(f"  {'✓' if success else '✗'} 文件创建: {exit_code}")
     return success

@@ -5,7 +5,6 @@
 检查 .claude/task 目录是否存在，如不存在则创建目录结构和初始文件。
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -15,7 +14,7 @@ project_root = script_dir.parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import lib.logging as logging
+import lib.logging as logging  # noqa: E402
 
 
 def find_project_root():
