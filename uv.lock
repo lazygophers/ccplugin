@@ -17,14 +17,24 @@ wheels = [
 ]
 
 [[package]]
+name = "attrs"
+version = "25.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/685e6633917e101e5dcb62b9dd76946cbb57c26e133bae9e0cd36033c0a9/attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11", size = 934251, upload-time = "2025-10-06T13:54:44.725Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3a/2a/7cc015f5b9f5db42b7d48157e23356022889fc354a2813c15934b7cb5c0e/attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373", size = 67615, upload-time = "2025-10-06T13:54:43.17Z" },
+]
+
+[[package]]
 name = "ccplugin"
-version = "0.0.94"
+version = "0.0.95"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "lib" },
     { name = "rich" },
     { name = "toml" },
+    { name = "wraps" },
 ]
 
 [package.optional-dependencies]
@@ -39,6 +49,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "rich", specifier = ">=13.9.0" },
     { name = "toml", specifier = ">=0.10.2" },
+    { name = "wraps", specifier = ">=0.15.0" },
 ]
 provides-extras = ["dev"]
 
@@ -61,6 +72,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
+name = "funcs"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "solus" },
+    { name = "typing-aliases" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0b/0e/75dfd32c1859e35ade0bc24a032224e990e3f482e5bd33187abd5f7ad53f/funcs-0.11.0.tar.gz", hash = "sha256:d4190ded01b245bdaf33a98d4190248d94a0f784e93b7c2fff69e38a244e4326", size = 20301, upload-time = "2024-08-13T17:56:45.178Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/1e/52a53d7b74143774bc717daf65ff41853883f9bd76541f04196d90a6d185/funcs-0.11.0-py3-none-any.whl", hash = "sha256:1487750e2c8a6055b5fc923ab8127876ccd1354cffe7f9763332ab9bf2eafbf6", size = 12855, upload-time = "2024-08-13T17:56:43.852Z" },
 ]
 
 [[package]]
@@ -101,6 +127,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "named"
+version = "1.4.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/63/89/3e2615a20ce923e58ac07550ce1defa7fc46e27fda0d02fbdfdb1c42b98b/named-1.4.2.tar.gz", hash = "sha256:1d1fe741b27b4bb558442a7a759415a840da4f804f0b1759a251714a4b4ad055", size = 4596, upload-time = "2024-03-15T10:29:50.983Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/6c/53205820011c6ec65dee43f52ce908be23650eaf3f7b6311660fb36d34fe/named-1.4.2-py3-none-any.whl", hash = "sha256:7b0a607cd6f01af239c5c2bb2fbdb0b779f8b649c994468e039aaf433c629498", size = 4920, upload-time = "2024-03-15T10:29:49.91Z" },
 ]
 
 [[package]]
@@ -246,12 +284,36 @@ wheels = [
 ]
 
 [[package]]
+name = "solus"
+version = "1.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "named" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/39/30f3e81fa40f51ccf55a187928e8783e4860f9002d4e48abcfcccabe9d10/solus-1.2.2.tar.gz", hash = "sha256:4bf499b0ea8fd9aca23d27d559008dfee1c75b9336f5a9c7143069c3f5282444", size = 4078, upload-time = "2024-02-26T12:20:19.321Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bf/14/e63493752b7e408f775e10cea9551a61190aaa99b63483b57dc769af9602/solus-1.2.2-py3-none-any.whl", hash = "sha256:2587bcc74cd872a21532cf5cdc9617796473626c3fd7033fcbb09e0f1bf528bc", size = 4322, upload-time = "2024-02-26T12:20:17.604Z" },
+]
+
+[[package]]
 name = "toml"
 version = "0.10.2"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
+]
+
+[[package]]
+name = "typing-aliases"
+version = "1.10.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d5/6a/34e9be629127c099a92ec19ed030bf96ab81a3f6e023b9cb6bc686444f9b/typing_aliases-1.10.1.tar.gz", hash = "sha256:d20bb799a4a4b0b9d25c26821ad08e4d42114c92b87ff12b56a5abc87767bd19", size = 7909, upload-time = "2024-04-22T18:03:57.729Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/1c/543e0a6c6a8e8794407deaf50337cc3e595e4c68724d3d38c53cb70ed049/typing_aliases-1.10.1-py3-none-any.whl", hash = "sha256:41704ed78fd51c413247897f324acd6186a3dbeb0350e49d7e6138afd07df76c", size = 8177, upload-time = "2024-04-22T18:03:56.437Z" },
 ]
 
 [[package]]
@@ -273,4 +335,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac53367ae42139cf4b1ca5f36bb3dc6c9d33acdb43655/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464", size = 75949, upload-time = "2025-10-01T02:14:41.687Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
+]
+
+[[package]]
+name = "wraps"
+version = "0.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "funcs" },
+    { name = "named" },
+    { name = "typing-aliases" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/95/d8/bdfaccce710957873c9f6c37260274cbd4b91b4686315fbf2a00d5cb8f90/wraps-0.15.0.tar.gz", hash = "sha256:498456ec8f8b89f0bdf78f50535916837a1b240f33dd70de9a8d3a441a030a6a", size = 41823, upload-time = "2024-08-25T14:20:21.438Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a2/5d/8abd41b1d4d806b08c81cfeec606ed9888b6650c67e7853bddda88891bd7/wraps-0.15.0-py3-none-any.whl", hash = "sha256:16077c8738202e877d2eb8db83533b9d6226dee9bf97242f1137bceab957d004", size = 40214, upload-time = "2024-08-25T14:20:20.454Z" },
 ]
