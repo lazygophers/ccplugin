@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import json
-import os
-import shutil
 import toml
 from pathlib import Path
 from typing import List

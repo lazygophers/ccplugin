@@ -20,7 +20,6 @@ from typing import Dict, List, Tuple
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.table import Table
 from rich.tree import Tree
 
