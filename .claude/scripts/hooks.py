@@ -25,7 +25,7 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 		2. 在每一个有 pyproject.toml 文件的目录执行 `uvx ruff check`
 		3. 返回 (success, failed_dir, error_output)
 	"""
-	root_dir = Path.cwd()
+	root_dir = Path.cwd().joinpath("plugins")
 	found_any = False
 
 	for dir_path in _iter_pyproject_dirs(root_dir):
