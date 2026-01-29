@@ -12,7 +12,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "sh -c 'cd $(git rev-parse --show-toplevel 2>/dev/null || echo .) && uv run .claude/scripts/hooks.py'"
+						"command": "PLUGIN_NAME=ccplugin uv run .claude/scripts/hooks.py'"
 					}
 				]
 			}
