@@ -1,6 +1,6 @@
 {
   "name": "plugin-llms",
-  "version": "0.0.98",
+  "version": "0.0.99",
   "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件",
   "author": {
     "name": "CCPlugin Contributors",
