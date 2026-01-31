@@ -23,7 +23,7 @@ model: haiku
 ### 使用方法
 
 ```bash
-git push
+git-skills push
 ```
 
 ### 执行时机
@@ -50,7 +50,7 @@ git push
 ## 依赖脚本
 
 ```bash
-# 使用 git 原生命令
+# 使用 git-skills 原生命令
 ```
 
 ## 示例
@@ -59,28 +59,28 @@ git push
 
 ```bash
 # 推送当前分支到远程
-git push
+git-skills push
 
 # 首次推送，设置上游分支
-git push -u origin <branch>
+git-skills push -u origin <branch>
 ```
 
 ### 首次推送分支
 
 ```bash
 # 首次推送自动设置上游分支
-git checkout -b feature/new-feature
+git-skills checkout -b feature/new-feature
 # ... 开发和提交 ...
-git push -u origin feature/new-feature
+git-skills push -u origin feature/new-feature
 ```
 
 ### 遇到冲突处理
 
 ```bash
 # 如提示远程有新提交
-git pull origin <branch-name>
+git-skills pull origin <branch-name>
 # 解决冲突后
-git push
+git-skills push
 ```
 
 ## 检查清单
@@ -104,7 +104,7 @@ git push
   # 设置代理后重试
   export http_proxy=http://127.0.0.1:7890
   export https_proxy=http://127.0.0.1:7890
-  git push
+  git-skills push
 
   # 取消代理
   unset http_proxy
@@ -151,8 +151,8 @@ export http_proxy=http://127.0.0.1:7890
 export https_proxy=http://127.0.0.1:7890
 
 # 永久配置 git（建议）
-git config --global http.proxy http://127.0.0.1:7890
-git config --global https.proxy http://127.0.0.1:7890
+git-skills config --global http.proxy http://127.0.0.1:7890
+git-skills config --global https.proxy http://127.0.0.1:7890
 
 # 取消代理
 unset http_proxy
@@ -163,11 +163,11 @@ unset https_proxy
 
 ```bash
 # 1. 开发和提交
-git add .
-git commit -m "feat: 新功能"
+git-skills add .
+git-skills commit -m "feat: 新功能"
 
 # 2. 推送到远程
-git push
+git-skills push
 
 # 3. 创建 PR（使用 GitHub CLI）
 gh pr create --title "feat: 新功能" --body "描述内容"

@@ -127,7 +127,7 @@ func NewWorkerPool(size int) *WorkerPool {
 }
 
 func (p *WorkerPool) worker() {
-    for task := range p.queue {
+    for task-skills := range p.queue {
         task()
     }
 }

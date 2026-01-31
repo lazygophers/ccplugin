@@ -1,5 +1,5 @@
 ---
-name: git
+name: git-skills
 description: Git 版本控制专家 - 专注于提交管理、分支管理、PR 管理、推送和 .gitignore 管理
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
@@ -64,7 +64,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 阶段 1：变更分析与安全检查
 
-当收到 git 操作请求时，立即执行以下步骤：
+当收到 git-skills 操作请求时，立即执行以下步骤：
 
 1. **变更分析**
    - 了解要提交的变更内容
@@ -191,7 +191,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 ### 交付前检查清单
 
-在执行任何 git 操作前，确保满足以下标准：
+在执行任何 git-skills 操作前，确保满足以下标准：
 
 - [ ] **安全性**：已检查敏感信息、调试代码、大型文件
 - [ ] **规范性**：提交信息符合 Conventional Commits 规范

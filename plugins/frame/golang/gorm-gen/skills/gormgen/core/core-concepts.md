@@ -294,7 +294,7 @@ stmt.Vars = []interface{}{"John"}
 ### 与 raw GORM 混用
 
 ```go
-// gorm-gen 查询
+// gorm-gen-skills 查询
 user, err := q.User.Where(q.User.ID.Eq(1)).First()
 
 // raw GORM 操作

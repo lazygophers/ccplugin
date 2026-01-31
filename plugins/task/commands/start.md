@@ -68,10 +68,10 @@ description: 开始执行任务 - 将任务从 todo.md 移动到 in-progress.md
 
 - 同时进行的任务不超过 3 个
 - 选择高优先级或有依赖的任务优先开始
-- 定期更新进度（参考：@/task:task/update）
+- 定期更新进度（参考：@/task:task-skills/update）
 
 ## 相关资源
 
-- **任务规范**：[@/task:task/reference.md](../../skills/task/reference.md) - 详细的组织规范
-- **快速开始**：[@/task:task/SKILL.md](../../skills/task/SKILL.md) - 任务系统概念
-- **任务示例**：[@/task:task/examples/in-progress.md](../../skills/task/examples/in-progress.md) - 实际示例
+- **任务规范**：[@/task:task-skills/reference.md](../../skills/task-skills/reference.md) - 详细的组织规范
+- **快速开始**：[@/task:task-skills/SKILL.md](../../skills/task-skills/SKILL.md) - 任务系统概念
+- **任务示例**：[@/task:task-skills/examples/in-progress.md](../../skills/task-skills/examples/in-progress.md) - 实际示例

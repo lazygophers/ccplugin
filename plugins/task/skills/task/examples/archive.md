@@ -28,7 +28,7 @@ archive/
 
 - **类别**: 功能重构
 - **说明**:
-  将 task 插件从 Python 脚本方式改为基于 hooks 和文件系统的设计，提高任务管理的可用性和灵活性。新系统不依赖数据库，完全使用 Markdown 文件存储任务。
+  将 task-skills 插件从 Python 脚本方式改为基于 hooks 和文件系统的设计，提高任务管理的可用性和灵活性。新系统不依赖数据库，完全使用 Markdown 文件存储任务。
 
 - **关键交付物**:
   - .claude/task/ 目录结构 (todo.md, in-progress.md, done.md, archive/)

@@ -24,7 +24,7 @@ model: haiku
 ### 使用方法
 
 ```bash
-# 使用 git 原生命令手动添加到 .gitignore
+# 使用 git-skills 原生命令手动添加到 .gitignore
 echo "*.log" >> .gitignore
 echo ".env" >> .gitignore
 ```
@@ -53,7 +53,7 @@ echo ".env" >> .gitignore
 ## 依赖脚本
 
 ```bash
-# 使用 git 原生命令手动更新 .gitignore
+# 使用 git-skills 原生命令手动更新 .gitignore
 ```
 
 ## 示例
@@ -72,16 +72,16 @@ echo "*.log" >> .gitignore
 
 ```bash
 # 1. 初始化项目
-git init
-git add README.md
+git-skills init
+git-skills add README.md
 
 # 2. 更新 .gitignore
 echo "*.log" >> .gitignore
 echo ".env" >> .gitignore
 
 # 3. 提交配置
-git add .gitignore
-git commit -m "chore: 初始化 .gitignore 配置"
+git-skills add .gitignore
+git-skills commit -m "chore: 初始化 .gitignore 配置"
 ```
 
 ## 检查清单
@@ -145,15 +145,15 @@ credentials.json
 如果需要移除已追踪的不需要的文件：
 
 ```bash
-# 从 git 缓存移除文件（不删除本地文件）
-git rm --cached <file>
+# 从 git-skills 缓存移除文件（不删除本地文件）
+git-skills rm --cached <file>
 
-# 从 git 缓存移除目录
-git rm -r --cached <directory>
+# 从 git-skills 缓存移除目录
+git-skills rm -r --cached <directory>
 
 # 更新 .gitignore 后应用
-git add .gitignore
-git commit -m "chore: 更新 .gitignore 并移除已追踪文件"
+git-skills add .gitignore
+git-skills commit -m "chore: 更新 .gitignore 并移除已追踪文件"
 ```
 
 ### 常见场景
@@ -211,9 +211,9 @@ Thumbs.db
 echo "*.log" >> .gitignore
 
 # 2. 提交配置
-git add .gitignore
-git commit -m "chore: 更新 .gitignore"
+git-skills add .gitignore
+git-skills commit -m "chore: 更新 .gitignore"
 
 # 3. 推送到远程
-git push
+git-skills push
 ```

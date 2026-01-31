@@ -27,7 +27,7 @@
 ## 安装
 
 ```bash
-/plugin install antd
+/plugin install antd-skills
 ```
 
 ## 快速开始
@@ -38,11 +38,11 @@
 # 使用 Create React App
 npx create-react-app my-app
 cd my-app
-yarn add antd @ant-design/icons
+yarn add antd-skills @ant-design/icons
 
 # 或使用 Next.js
 npx create-next-app@latest my-app --typescript --tailwind
-yarn add antd @ant-design/nextjs-registry
+yarn add antd-skills @ant-design/nextjs-registry
 ```
 
 ### 基础使用
@@ -228,7 +228,7 @@ import { Form, Input, Button } from 'antd'
 
 ```bash
 # 依赖安装
-yarn add antd @ant-design/icons
+yarn add antd-skills @ant-design/icons
 
 # 表单库集成
 yarn add react-hook-form @hookform/resolvers

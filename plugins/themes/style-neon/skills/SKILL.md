@@ -1,5 +1,5 @@
 ---
-name: neon
+name: neon-skills
 description: 霓虹风格设计采用发光高饱和色彩，创建充满能量的科幻感 UI，适合科技和创意项目。
 ---
 

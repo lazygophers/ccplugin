@@ -37,14 +37,14 @@ Flutter 开发插件提供高质量的 Flutter/Dart 应用开发指导和语言�
 
 ```bash
 # macOS - 使用 Homebrew（推荐）
-brew install --cask flutter
+brew install --cask flutter-skills
 
 # 或者手动下载
 # https://flutter.dev/docs/get-started/install
 
 # 验证安装
-flutter --version
-flutter doctor
+flutter-skills --version
+flutter-skills doctor
 ```
 
 2. **Dart SDK**（通常随 Flutter 一起安装）
@@ -449,10 +449,10 @@ flutter/
 2. **选择状态管理** - Provider（简单）→ Riverpod（中等）→ BLoC（复杂）
 3. **初始化项目**
    ```bash
-   flutter create my_app
+   flutter-skills create my_app
    cd my_app
    # 添加依赖到 pubspec.yaml
-   flutter pub get
+   flutter-skills pub get
    ```
 4. **设置主题和设计系统**
 5. **开发 UI 和业务逻辑**

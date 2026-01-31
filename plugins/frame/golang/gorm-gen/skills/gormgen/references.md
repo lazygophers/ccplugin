@@ -81,7 +81,7 @@ A: 生成的代码暴露了 `UnderlyingDB()` 方法，可以获取原始的 GORM
 
 ### Q: 性能如何？
 
-A: gorm-gen 通过避免反射开销，比 raw GORM 性能更好。基准测试显示约 20-25% 的性能提升。
+A: gorm-gen-skills 通过避免反射开销，比 raw GORM 性能更好。基准测试显示约 20-25% 的性能提升。
 
 ### Q: 是否支持所有 GORM 功能？
 

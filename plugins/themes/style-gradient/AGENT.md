@@ -1,5 +1,5 @@
 ---
-name: gradient
+name: gradient-skills
 description: 渐变风格设计专家 - 专注于流动渐变、色彩过渡和艺术表现，提供视觉丰富和动态感的设计指导
 ---
 

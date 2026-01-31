@@ -1,5 +1,5 @@
 ---
-name: retro
+name: retro-skills
 description: 复古风格设计融合 80-90 年代审美，采用温暖色调、曲线排版和复古字体，唤起怀旧情感。
 ---
 

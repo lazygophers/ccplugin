@@ -204,7 +204,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin [command] [args]
 
 # 示例
 uvx --from git+https://github.com/lazygophers/ccplugin commit "message"
-uvx --from git+https://github.com/lazygophers/ccplugin task add "任务标题"
+uvx --from git+https://github.com/lazygophers/ccplugin task-skills add "任务标题"
 uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "查询内容"
 ```
 

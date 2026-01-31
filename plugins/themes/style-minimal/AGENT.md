@@ -1,5 +1,5 @@
 ---
-name: minimal
+name: minimal-skills
 description: 极简主义设计专家 - 专注于留白、清晰排版和功能至上，提供优先级排序和信息层次的设计指导
 ---
 

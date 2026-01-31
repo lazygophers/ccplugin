@@ -12,8 +12,8 @@ CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提
 
 | 插件名称   | 描述                                                                                          | 版本   | 标签                                    |
 | ---------- | --------------------------------------------------------------------------------------------- | ------ | --------------------------------------- |
-| `task`     | 完整的项目任务管理插件 - 支持开发计划创建、任务执行、进度追踪、依赖管理。基于SQLite数据库存储 | 0.0.93 | task, todo, project, management, sqlite |
-| `llms`     | llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件                               | 0.0.93 | llms, documentation, standards          |
+| `task`     | 完整的项目任务管理插件 - 支持开发计划创建、任务执行、进度追踪、依赖管理。基于SQLite数据库存储 | 0.0.93 | task-skills, todo, project, management, sqlite |
+| `llms`     | llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件                               | 0.0.93 | llms-skills, documentation, standards          |
 | `notify`   | 系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件                     | 0.0.93 | notify, notification, system            |
 | `version`  | 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置                         | -      | version, semver, management             |
 | `template` | 插件开发模板 - 快速创建新插件的基础结构                                                       | 0.0.93 | template, development                   |
@@ -23,19 +23,19 @@ CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提
 | 插件名称       | 描述                                                                                        | 版本   | 标签                                                      |
 | -------------- | ------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------- |
 | `deepresearch` | 深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成 | 0.0.93 | deepresearch, research, agent, knowledge                  |
-| `git`          | Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理             | 0.0.93 | git, commit, pr, pull-request, gitignore, version-control |
-| `semantic`     | 代码语义搜索插件 - 基于向量嵌入的智能代码搜索。支持多编程语言、多模型、GPU加速              | 0.0.93 | semantic, search, vector, embedding, code-search          |
+| `git`          | Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理             | 0.0.93 | git-skills, commit, pr, pull-request, gitignore, version-control |
+| `semantic`     | 代码语义搜索插件 - 基于向量嵌入的智能代码搜索。支持多编程语言、多模型、GPU加速              | 0.0.93 | semantic-skills, search, vector, embedding, code-search          |
 
 ### 语言插件 (languages/)
 
 | 插件名称     | 描述                                                                                   | 版本   | 标签                                                        |
 | ------------ | -------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------- |
-| `golang`     | Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持                         | 0.0.93 | golang, go, development, coding-style, best-practices       |
-| `python`     | Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持                         | 0.0.93 | python, py, development, coding-style, pep8, best-practices |
-| `typescript` | TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持                 | 0.0.93 | typescript, ts, development, type-safety, strict-mode       |
-| `javascript` | JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持   | 0.0.93 | javascript, js, es2024, es2025, development, async-await    |
-| `flutter`    | Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持 | 0.0.93 | flutter, dart, mobile, development, best-practices          |
-| `naming`     | 命名规范插件 - 提供跨编程语言的统一命名规范指南                                        | 0.0.93 | naming, coding-style, conventions, best-practices           |
+| `golang`     | Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持                         | 0.0.93 | golang-skills, go, development, coding-style, best-practices       |
+| `python`     | Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持                         | 0.0.93 | python-skills, py, development, coding-style, pep8, best-practices |
+| `typescript` | TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持                 | 0.0.93 | typescript-skills, ts, development, type-safety, strict-mode       |
+| `javascript` | JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持   | 0.0.93 | javascript-skills, js, es2024, es2025, development, async-await    |
+| `flutter`    | Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持 | 0.0.93 | flutter-skills, dart, mobile, development, best-practices          |
+| `naming`     | 命名规范插件 - 提供跨编程语言的统一命名规范指南                                        | 0.0.93 | naming-skills, coding-style, conventions, best-practices           |
 
 ### 框架插件 (frame/)
 
@@ -43,22 +43,22 @@ CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提
 
 | 插件名称   | 描述                                                                 | 版本   | 标签                                    |
 | ---------- | -------------------------------------------------------------------- | ------ | --------------------------------------- |
-| `fasthttp` | fasthttp 高性能 HTTP 库插件 - 基于零拷贝和对象复用的高性能 HTTP 服务 | 0.0.93 | fasthttp, http, performance, go         |
-| `gin`      | Gin Web 框架插件 - 基于 httprouter 的高性能 Web 开发                 | 0.0.93 | gin, web, framework, go                 |
+| `fasthttp` | fasthttp-skills 高性能 HTTP 库插件 - 基于零拷贝和对象复用的高性能 HTTP 服务 | 0.0.93 | fasthttp-skills, http, performance, go         |
+| `gin`      | Gin Web 框架插件 - 基于 httprouter 的高性能 Web 开发                 | 0.0.93 | gin-skills, web, framework, go                 |
 | `go-zero`  | go-zero 微服务框架插件 - 云原生 Go 微服务开发                        | 0.0.93 | go-zero, microservice, cloud-native, go |
-| `gofiber`  | Go Fiber Web 框架插件 - 基于 fasthttp 的高性能 Web 开发              | 0.0.93 | fiber, web, framework, fasthttp, go     |
-| `gorm`     | GORM ORM 库插件 - 完整的 Go ORM 开发规范和最佳实践                   | 0.0.93 | gorm, orm, database, go                 |
-| `gorm-gen` | gorm-gen 代码生成工具插件 - 类型安全的 GORM 代码生成                 | 0.0.93 | gorm-gen, code-generation, orm, go      |
+| `gofiber`  | Go Fiber Web 框架插件 - 基于 fasthttp-skills 的高性能 Web 开发              | 0.0.93 | fiber, web, framework, fasthttp-skills, go     |
+| `gorm`     | GORM ORM 库插件 - 完整的 Go ORM 开发规范和最佳实践                   | 0.0.93 | gorm-skills, orm, database, go                 |
+| `gorm-gen` | gorm-gen-skills 代码生成工具插件 - 类型安全的 GORM 代码生成                 | 0.0.93 | gorm-gen-skills, code-generation, orm, go      |
 | `lrpc`     | lrpc 高性能 RPC 框架插件 - 基于fasthttp的轻量级 RPC 框架             | 0.0.93 | lrpc, rpc, framework, go                |
 
 #### JavaScript/TypeScript 框架
 
 | 插件名称 | 描述                                                             | 版本   | 标签                                   |
 | -------- | ---------------------------------------------------------------- | ------ | -------------------------------------- |
-| `react`  | React 18+ 开发插件 - 现代 React 开发规范、Hooks、状态管理        | 0.0.93 | react, react18, hooks, frontend        |
-| `vue`    | Vue 3 开发插件 - Vue 3 开发规范、Composition API、Pinia          | 0.0.93 | vue, vue3, composition-api, frontend   |
-| `nextjs` | Next.js 16+ 全栈开发插件 - App Router、Server Components         | 0.0.93 | nextjs, fullstack, app-router, react   |
-| `antd`   | Ant Design 5.x 企业级 UI 组件库插件 - 设计系统、组件库、主题定制 | 0.0.93 | antd, ant-design, ui-components, react |
+| `react`  | React 18+ 开发插件 - 现代 React 开发规范、Hooks、状态管理        | 0.0.93 | react-skills, react18, hooks, frontend        |
+| `vue`    | Vue 3 开发插件 - Vue 3 开发规范、Composition API、Pinia          | 0.0.93 | vue-skills, vue3, composition-api, frontend   |
+| `nextjs` | Next.js 16+ 全栈开发插件 - App Router、Server Components         | 0.0.93 | nextjs-skills, fullstack, app-router, react-skills   |
+| `antd`   | Ant Design 5.x 企业级 UI 组件库插件 - 设计系统、组件库、主题定制 | 0.0.93 | antd-skills, ant-design, ui-components, react-skills |
 
 ## 快速开始
 

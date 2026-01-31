@@ -1,5 +1,5 @@
 ---
-name: task
+name: task-skills
 description: 任务管理系统 - 基于文件系统的任务追踪和管理，使用hooks在SessionStart、UserPromptSubmit和Stop时自动初始化、提示和更新任务状态，确保项目任务得到完整管理和归档。
 context: fork
 agent: task:task

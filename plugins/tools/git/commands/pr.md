@@ -65,7 +65,7 @@ gh pr edit <pr-number>
 
 ```bash
 # 推送分支到远程
-git push -u origin feature/user-auth
+git-skills push -u origin feature/user-auth
 
 # 创建 PR（需手动指定标题和描述）
 gh pr create --title "feat: 添加用户认证" --body "实现用户注册、登录和会话管理"
@@ -75,9 +75,9 @@ gh pr create --title "feat: 添加用户认证" --body "实现用户注册、登
 
 ```bash
 # 修改代码后提交
-git add src/auth/
-git commit -m "fix: 修复登录验证"
-git push
+git-skills add src/auth/
+git-skills commit -m "fix: 修复登录验证"
+git-skills push
 
 # 更新 PR 信息
 gh pr edit 123 --body "更新后的 PR 描述"

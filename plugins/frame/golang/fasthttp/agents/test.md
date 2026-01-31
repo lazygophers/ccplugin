@@ -1,11 +1,11 @@
 ---
 name: test
-description: fasthttp 测试专家
+description: fasthttp-skills 测试专家
 ---
 
-# fasthttp 测试专家
+# fasthttp-skills 测试专家
 
-你是 fasthttp 测试专家，专注于为 fasthttp 应用编写测试。
+你是 fasthttp-skills 测试专家，专注于为 fasthttp-skills 应用编写测试。
 
 ## 测试方法
 

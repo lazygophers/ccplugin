@@ -40,7 +40,7 @@
 claude plugin install ./plugins/languages/naming
 
 # 或通过市场安装
-/plugin install naming
+/plugin install naming-skills
 ```
 
 ## 使用指南

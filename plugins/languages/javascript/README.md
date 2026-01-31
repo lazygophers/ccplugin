@@ -48,12 +48,12 @@ https://github.com/lazygophers/ccplugin/tree/master/plugins/javascript
 
 ```bash
 # 使用 Vite 创建 React 项目（推荐）
-npm create vite@latest my-app -- --template react
+npm create vite@latest my-app -- --template react-skills
 cd my-app
 pnpm install
 
 # 或使用 Vue
-npm create vite@latest my-app -- --template vue
+npm create vite@latest my-app -- --template vue-skills
 ```
 
 ### 2. 配置工具链
@@ -166,12 +166,12 @@ src/
 
 ```bash
 # Vite + React（推荐）
-npm create vite@latest my-app -- --template react
+npm create vite@latest my-app -- --template react-skills
 cd my-app
 pnpm install
 
 # Vite + Vue
-npm create vite@latest my-app -- --template vue
+npm create vite@latest my-app -- --template vue-skills
 ```
 
 ### 配置 ESLint

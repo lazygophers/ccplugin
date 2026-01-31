@@ -49,7 +49,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/semantic-plugin.git
+git-skills clone https://github.com/your-repo/semantic-plugin.git
 cd semantic-plugin
 
 # 同步依赖
@@ -85,36 +85,36 @@ pip install -e .
 
 ```bash
 # 索引当前目录
-semantic index .
+semantic-skills index .
 
 # 索引指定目录
-semantic index /path/to/code
+semantic-skills index /path/to/code
 
 # 指定语言
-semantic index . --language python
+semantic-skills index . --language python-skills
 ```
 
 ### 搜索代码
 
 ```bash
 # 语义搜索
-semantic search "如何创建用户"
+semantic-skills search "如何创建用户"
 
 # 关键词搜索
-semantic search "User.create"
+semantic-skills search "User.create"
 
 # 搜索特定文件
-semantic search "authenticate" --file "auth/*"
+semantic-skills search "authenticate" --file "auth/*"
 ```
 
 ### 配置管理
 
 ```bash
 # 查看配置
-semantic config
+semantic-skills config
 
 # 设置模型
-semantic config --model multilingual-e5-large
+semantic-skills config --model multilingual-e5-large
 ```
 
 ## API 文档
@@ -122,7 +122,7 @@ semantic config --model multilingual-e5-large
 ### 初始化
 
 ```python
-from semantic import SemanticSearch
+from semantic-skills import SemanticSearch
 
 # 创建搜索实例
 search = SemanticSearch(
@@ -202,7 +202,7 @@ uv sync
 
 A: 尝试使用更大的嵌入模型：
 ```bash
-semantic config --model multilingual-e5-large
+semantic-skills config --model multilingual-e5-large
 ```
 
 **Q: Apple Silicon 上性能不佳？**

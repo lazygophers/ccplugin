@@ -475,7 +475,7 @@ export function DynamicFieldsForm() {
 import { Button, Table, Form } from 'antd'
 
 // 仅在特殊场景使用完整导入
-import * as antd from 'antd'
+import * as antd-skills from 'antd'
 
 // 图标按需导入
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
@@ -509,7 +509,7 @@ import * as Icons from '@ant-design/icons' // ❌ 避免
 
 ```bash
 # 安装 Ant Design
-yarn add antd @ant-design/icons
+yarn add antd-skills @ant-design/icons
 
 # 集成 React Hook Form
 yarn add react-hook-form @hookform/resolvers

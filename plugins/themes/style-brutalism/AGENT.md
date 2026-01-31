@@ -1,5 +1,5 @@
 ---
-name: brutalism
+name: brutalism-skills
 description: 野兽派设计专家 - 专注于原始、大胆、功能性的野兽派设计风格，提供粗体排版、几何形态和功能优先的UI设计指导
 ---
 

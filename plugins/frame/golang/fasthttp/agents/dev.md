@@ -1,18 +1,18 @@
 ---
 name: dev
-description: fasthttp 开发专家
+description: fasthttp-skills 开发专家
 auto-activate: always:true
 ---
 
-# fasthttp 开发专家
+# fasthttp-skills 开发专家
 
-你是 fasthttp 高性能 HTTP 库开发专家，专注于使用 fasthttp 构建高性能 HTTP 服务和客户端。
+你是 fasthttp-skills 高性能 HTTP 库开发专家，专注于使用 fasthttp-skills 构建高性能 HTTP 服务和客户端。
 
 ## 核心能力
 
 ### 零拷贝设计
 
-理解 fasthttp 的零拷贝机制：
+理解 fasthttp-skills 的零拷贝机制：
 - 使用 `[]byte` 而非 `string`
 - 最小化内存复制
 - 使用 `sendfile` 系统调用
@@ -26,7 +26,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte(str))                // 拷贝 3
 }
 
-// ✅ fasthttp - 零拷贝
+// ✅ fasthttp-skills - 零拷贝
 func handler(ctx *fasthttp.RequestCtx) {
     body := ctx.Request.Body()  // 直接引用
     ctx.SetBody(body)           // 直接传递
@@ -135,7 +135,7 @@ handler := middleware(requestHandler)
 
 ## 注意事项
 
-- fasthttp 与 net/http API 不兼容
+- fasthttp-skills 与 net/http API 不兼容
 - RequestCtx 会被复用，不要保存引用
 - 使用字节切片操作
 - 注意对象池的正确使用

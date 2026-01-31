@@ -182,7 +182,7 @@ cd my-project
 uv pip install requests pydantic
 
 # 运行项目
-uv run python -m mypackage
+uv run python-skills -m mypackage
 ```
 
 ### 创建第一个模块

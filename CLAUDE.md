@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CCPlugin Market** is a centralized marketplace for Claude Code plugins, providing high-quality plugins and development templates for enhancing Claude Code functionality. The project is structured as a monorepo with:
 
 - **Core library** (`lib/`): Shared utilities including logging infrastructure and helper functions
-- **Plugins** (`plugins/`): Multiple plugin implementations (task management, semantic search, git operations, language-specific development support)
+- **Plugins** (`plugins/`): Multiple plugin implementations (task-skills management, semantic-skills search, git-skills operations, language-specific development support)
 - **Scripts** (`scripts/`): Utility scripts for version management and cache cleanup
 
 **Tech Stack:**
@@ -79,8 +79,8 @@ ccplugin/
 ├── docs/                         # Documentation
 ├── .claude/                      # Claude Code local configuration
 │   └── skills/                   # Local skills (plugin & python script organization)
-│       ├── plugin-organization/  # Plugin structure & configuration
-│       └── python-script-organization/  # Python coding standards
+│       ├── plugin-organization-skills/  # Plugin structure & configuration
+│       └── python-script-organization-skills/  # Python coding standards
 ├── .claude-plugin/               # Plugin marketplace metadata
 │   └── marketplace.json          # Market configuration & plugin registry
 ├── pyproject.toml                # Main project configuration
@@ -163,7 +163,7 @@ skills/
 
 ```markdown
 ---
-name: python
+name: python-skills
 description: Python development standards and best practices
 ---
 ```
@@ -449,7 +449,7 @@ from lib.utils import get_env_value
 2. Create `SKILL.md` entry file with frontmatter:
     ```markdown
     ---
-    name: skill-name
+    name: skill-name-skills
     description: Brief description
     ---
     ```
@@ -502,7 +502,7 @@ cat plugins/task/.claude-plugin/plugin.json
 ### Run Specific Plugin Tests
 
 ```bash
-# Test only semantic plugin
+# Test only semantic-skills plugin
 uv run pytest plugins/tools/semantic/tests/ -v
 
 # Test lib logging
@@ -517,7 +517,7 @@ uv run --verbose scripts/update_version.py
 
 # Check uv environment
 uv venv
-uv python --version
+uv python-skills --version
 ```
 
 ---
@@ -533,7 +533,7 @@ Certain plugins auto-activate based on context:
 - **typescript** (`languages/typescript`): Activates when editing TypeScript files
 - **javascript** (`languages/javascript`): Activates when editing JavaScript files
 - **flutter** (`languages/flutter`): Activates when editing Dart/Flutter files
-- Framework plugins (react, vue, nextjs, antd): Activate for respective file types
+- Framework plugins (react, vue-skills, nextjs-skills, antd): Activate for respective file types
 - Language plugins provide coding standards and best practices
 
 ### Manual Plugin Usage

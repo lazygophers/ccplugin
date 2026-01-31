@@ -79,7 +79,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "如何�
 
 ```bash
 # 限定编程语言
-uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "sort algorithm" --language python
+uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "sort algorithm" --language python-skills
 
 # 调整结果数量
 uvx --from git+https://github.com/lazygophers/ccplugin semantic-search "database" --limit 20

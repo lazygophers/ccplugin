@@ -103,9 +103,9 @@ description: 完成任务 - 将任务从 in-progress.md 移动到 done.md
 
 ## 相关资源
 
-- **任务规范**：[@/task:task/reference.md](../../skills/task/reference.md) - 完整的字段定义
-- **完成示例**：[@/task:task/examples/done.md](../../skills/task/examples/done.md) - 实际完成示例
-- **快速开始**：[@/task:task/SKILL.md](../../skills/task/SKILL.md) - 任务系统概念
+- **任务规范**：[@/task:task-skills/reference.md](../../skills/task-skills/reference.md) - 完整的字段定义
+- **完成示例**：[@/task:task-skills/examples/done.md](../../skills/task-skills/examples/done.md) - 实际完成示例
+- **快速开始**：[@/task:task-skills/SKILL.md](../../skills/task-skills/SKILL.md) - 任务系统概念
 
 ## 最佳实践
 

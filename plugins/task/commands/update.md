@@ -82,9 +82,9 @@ description: 更新任务进展 - 更新 in-progress.md 中的任务状态、进
 
 ## 相关资源
 
-- **任务规范**：[@/task:task/reference.md](../../skills/task/reference.md) - 字段定义和最佳实践
-- **进度示例**：[@/task:task/examples/in-progress.md](../../skills/task/examples/in-progress.md) - 实际进度示例
-- **快速开始**：[@/task:task/SKILL.md](../../skills/task/SKILL.md) - 任务系统概念
+- **任务规范**：[@/task:task-skills/reference.md](../../skills/task-skills/reference.md) - 字段定义和最佳实践
+- **进度示例**：[@/task:task-skills/examples/in-progress.md](../../skills/task-skills/examples/in-progress.md) - 实际进度示例
+- **快速开始**：[@/task:task-skills/SKILL.md](../../skills/task-skills/SKILL.md) - 任务系统概念
 
 ## 最佳实践
 
