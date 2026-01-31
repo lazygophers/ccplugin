@@ -4,8 +4,6 @@
 """
 import os
 import re
-from pathlib import Path
-from typing import Dict, List
 
 # 需要替换的映射：旧名称 -> 新名称
 SKILL_RENAMES = {
@@ -159,7 +157,7 @@ def main():
                     updated_count += 1
                     print(f"✓ Updated: {file_path}")
 
-    print(f"\n=== Update complete ===")
+    print("\n=== Update complete ===")
     print(f"Processed: {processed_count} files")
     print(f"Updated: {updated_count} files")
 
