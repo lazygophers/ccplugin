@@ -30,7 +30,25 @@ from rich.progress import (
 )
 from rich.table import Table
 
+
+class NullConsole:
+    """A console that doesn't output anything."""
+
+    def __getattr__(self, name: str) -> Any:
+        """Return a no-op function for any attribute access."""
+        return lambda *args, **kwargs: None
+
+
 console = Console()
+
+
+def set_quiet_mode(quiet: bool) -> None:
+    """Set quiet mode on or off."""
+    global console
+    if quiet:
+        console = NullConsole()  # type: ignore
+    else:
+        console = Console()
 
 
 class UpdateStats:
@@ -531,9 +549,17 @@ def main() -> int:
         action="store_true",
         help="Show what would be done without making changes",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress all output",
+    )
 
     args = parser.parse_args()
     project_path = args.project_path.resolve()
+
+    # Set quiet mode
+    set_quiet_mode(args.quiet)
 
     # Print header
     console.print(
