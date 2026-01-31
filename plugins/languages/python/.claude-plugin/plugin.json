@@ -1,6 +1,6 @@
 {
   "name": "python",
-  "version": "0.0.101",
+  "version": "0.0.102",
   "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
   "author": {
     "name": "Claude Code",
