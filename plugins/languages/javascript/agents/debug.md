@@ -270,7 +270,7 @@ observer.observe({ entryTypes: ['measure', 'navigation'] });
 // 3️⃣ 监控 Long Tasks
 const observer2 = new PerformanceObserver((list) => {
   for (const entry of list.getEntries()) {
-    console.warn(`Long task detected: ${entry.duration}ms`);
+    console.warn(`Long task-skills detected: ${entry.duration}ms`);
   }
 });
 

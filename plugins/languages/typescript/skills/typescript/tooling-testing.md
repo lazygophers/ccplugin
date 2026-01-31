@@ -55,7 +55,7 @@ function getUserData(id: string): Promise<User | null> { }
 type Status = { type: 'success'; data: T } | { type: 'error'; error: Error };
 
 // ❌ 避免：修改历史注释
-// TODO: 2024-01-15 修复性能问题 <- 应该在 git 提交记录中
+// TODO: 2024-01-15 修复性能问题 <- 应该在 git-skills 提交记录中
 ```
 
 ## 导入规范

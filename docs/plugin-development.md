@@ -173,7 +173,7 @@ Agent Skills，提供特定领域的知识和指导。
 **格式**：
 ```yaml
 ---
-name: skill-name
+name: skill-name-skills
 description: 技能描述
 auto-activate: always:true  # 可选
 allowed-tools: Read, Grep   # 可选
@@ -386,13 +386,13 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 
 ```bash
 # 添加所有更改
-git add .
+git-skills add .
 
 # 提交
-git commit -m "feat(plugin): 添加 my-plugin 插件 v1.0.0"
+git-skills commit -m "feat(plugin): 添加 my-plugin 插件 v1.0.0"
 
 # 推送
-git push origin branch-name
+git-skills push origin branch-name
 ```
 
 ### 4. 创建 Pull Request

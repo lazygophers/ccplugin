@@ -246,7 +246,7 @@ interface HookAction {
 ```javascript
 "Write|Edit"           // 匹配 Write 或 Edit
 "Bash(*)"              // 匹配所有 Bash 工具
-"Bash(git:*)"          // 匹配 git 命令
+"Bash(git:*)"          // 匹配 git-skills 命令
 "*"                    // 匹配所有工具
 ```
 

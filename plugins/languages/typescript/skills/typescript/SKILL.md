@@ -1,5 +1,5 @@
 ---
-name: typescript
+name: typescript-skills
 description: TypeScript 5.9+ 开发规范 - 包含类型系统、编码规范、项目结构、测试策略和最佳实践
 ---
 

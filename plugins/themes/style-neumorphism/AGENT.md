@@ -1,5 +1,5 @@
 ---
-name: neumorphism
+name: neumorphism-skills
 description: 新拟态设计专家 - 专注于柔和阴影、浮起效果和3D视觉，结合拟物化和极简主义的设计指导
 ---
 

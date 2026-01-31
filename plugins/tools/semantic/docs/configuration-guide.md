@@ -326,7 +326,7 @@ exclude_patterns:
 /semantic search "用户登录" --limit 20
 
 # 限定语言
-/semantic search "用户登录" --lang python
+/semantic search "用户登录" --lang python-skills
 ```
 
 ## 配置测试

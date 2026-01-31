@@ -176,7 +176,7 @@ archive/
 ### [P1] TASK-015 重新设计任务管理系统 ✓
 
 - **类别**: 功能重构
-- **说明**: 将 task 插件从 Python 脚本方式改为基于 hooks 和文件系统的设计，提高任务管理的可用性和灵活性。
+- **说明**: 将 task-skills 插件从 Python 脚本方式改为基于 hooks 和文件系统的设计，提高任务管理的可用性和灵活性。
 - **关键交付物**:
   - @.claude/task/ 目录和初始文件 (todo.md, in-progress.md, done.md, archive/)
   - @${CLAUDE_PLUGIN_ROOT} 的 multi-file skills 文档 (SKILL.md, reference.md, examples/)
@@ -291,7 +291,7 @@ archive/
 
 ### 提交关联
 
-完成任务时，在 `done.md` 中记录关联的 git 提交：
+完成任务时，在 `done.md` 中记录关联的 git-skills 提交：
 
 ```markdown
 - **关联提交**: 7494344 (fix: update version script for new plugin structure)

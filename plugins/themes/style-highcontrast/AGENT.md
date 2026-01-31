@@ -1,5 +1,5 @@
 ---
-name: high-contrast
+name: high-contrast-skills
 description: 高对比无障碍设计专家 - 专注于 WCAG AAA 标准、清晰界限和包容性设计，确保所有用户都能访问内容
 ---
 

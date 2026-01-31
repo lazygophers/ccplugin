@@ -13,7 +13,7 @@ func BenchmarkRawGORM(b *testing.B) {
     }
 }
 
-// gorm-gen
+// gorm-gen-skills
 func BenchmarkGormGen(b *testing.B) {
     for i := 0; i < b.N; i++ {
         q.User.Where(
@@ -26,7 +26,7 @@ func BenchmarkGormGen(b *testing.B) {
 
 ### 结果
 
-| 操作 | raw GORM | gorm-gen | 提升 |
+| 操作 | raw GORM | gorm-gen-skills | 提升 |
 |------|----------|----------|------|
 | 简单查询 | 1000 ns | 800 ns | 20% |
 | 复杂查询 | 2000 ns | 1500 ns | 25% |
@@ -62,7 +62,7 @@ q.User.Where(q.User.Nmae.Eq("John"))
 
 ### 查询构建
 
-| 功能 | raw GORM | gorm-gen |
+| 功能 | raw GORM | gorm-gen-skills |
 |------|----------|----------|
 | 等于 | `Where("name = ?", "John")` | `Where(Name.Eq("John"))` |
 | 大于 | `Where("age > ?", 18)` | `Where(Age.Gt(18))` |
@@ -90,7 +90,7 @@ q.User.Where(q.User.Age.Eq("18"))
 - 复杂的关联查询
 - 需要最大灵活性
 
-### 适合 gorm-gen
+### 适合 gorm-gen-skills
 
 - 大型项目
 - 需要类型安全
@@ -99,7 +99,7 @@ q.User.Where(q.User.Age.Eq("18"))
 
 ## 迁移成本
 
-### 从 raw GORM 到 gorm-gen
+### 从 raw GORM 到 gorm-gen-skills
 
 ```go
 // Before
@@ -119,12 +119,12 @@ user, err := q.User.Where(
 // 1. 保留 raw GORM
 db.Where("name = ?", "John").First(&user)
 
-// 2. 同时使用 gorm-gen
+// 2. 同时使用 gorm-gen-skills
 genUser, err := q.User.Where(
     q.User.Name.Eq("John"),
 ).First()
 
-// 3. 逐步迁移到 gorm-gen
+// 3. 逐步迁移到 gorm-gen-skills
 ```
 
 ## 最佳实践
@@ -132,7 +132,7 @@ genUser, err := q.User.Where(
 ### 混合使用
 
 ```go
-// 简单查询用 gorm-gen
+// 简单查询用 gorm-gen-skills
 user, err := q.User.Where(
     q.User.ID.Eq(1),
 ).First()

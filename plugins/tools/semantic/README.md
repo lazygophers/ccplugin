@@ -368,7 +368,7 @@ Semantic 为不同编程语言提供针对性的优化策略，包括解析器�
 ### 限定语言
 
 ```bash
-/semantic-search "sort" --language python
+/semantic-search "sort" --language python-skills
 ```
 
 ### 查看统计

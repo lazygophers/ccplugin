@@ -111,7 +111,7 @@ def slow_function():
     return sum(range(1000000))
 
 # 方法 2：命令行
-# python -m cProfile -s cumulative script.py
+# python-skills -m cProfile -s cumulative script.py
 
 # 方法 3：手动分析
 profiler = cProfile.Profile()

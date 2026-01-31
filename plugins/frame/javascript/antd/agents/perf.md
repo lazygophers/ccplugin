@@ -130,8 +130,8 @@ export function InfiniteTable() {
 
 ```typescript
 // ❌ 避免：全量导入（500KB+ gzip）
-import * as antd from 'antd'
-const { Button, Table, Form } = antd
+import * as antd-skills from 'antd'
+const { Button, Table, Form } = antd-skills
 
 // ✅ 推荐：按需导入（自动 tree-shake）
 import { Button, Table, Form } from 'antd'

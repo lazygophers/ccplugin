@@ -1,5 +1,5 @@
 ---
-name: vibrant
+name: vibrant-skills
 description: 充满活力设计专家 - 专注于高饱和色彩、大胆对比和动态布局，创建充满能量和视觉冲击的UI
 ---
 

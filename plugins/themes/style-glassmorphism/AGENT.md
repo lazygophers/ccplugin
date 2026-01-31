@@ -1,5 +1,5 @@
 ---
-name: glassmorphism
+name: glassmorphism-skills
 description: 玻璃态设计专家 - 专注于现代玻璃态 UI 设计，提供模糊、透明、分层和光线效果的设计指导
 ---
 

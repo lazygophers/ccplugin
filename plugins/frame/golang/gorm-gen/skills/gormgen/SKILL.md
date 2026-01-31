@@ -1,5 +1,5 @@
 ---
-name: gorm-gen
+name: gorm-gen-skills
 description: gorm-gen 代码生成工具开发规范和最佳实践
 ---
 

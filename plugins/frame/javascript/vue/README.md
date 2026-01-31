@@ -32,7 +32,7 @@
 ## 安装
 
 ```bash
-/plugin install vue
+/plugin install vue-skills
 ```
 
 ## 快速开始
@@ -229,7 +229,7 @@ store.increment()
 yarn add -D vite @vitejs/plugin-vue
 
 # TypeScript 支持
-yarn add -D typescript @vue/tsconfig
+yarn add -D typescript-skills @vue/tsconfig
 
 # 测试框架
 yarn add -D vitest @vue/test-utils happy-dom

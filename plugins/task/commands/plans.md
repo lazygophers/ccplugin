@@ -178,10 +178,10 @@ P3 - 低优先级，优化、文档或可选功能
 
 ## 相关资源
 
-- **任务规范**：[@/task:task/reference.md](../../skills/task/reference.md) - 详细的字段定义
-- **快速开始**：[@/task:task/SKILL.md](../../skills/task/SKILL.md) - 任务系统概念
-- **完整示例**：[@/task:task/examples/](../../skills/task/examples/) - 真实规划示例
-- **项目结构规范**：[@/task:task/](../../skills/task/) - 完整文档
+- **任务规范**：[@/task:task-skills/reference.md](../../skills/task-skills/reference.md) - 详细的字段定义
+- **快速开始**：[@/task:task-skills/SKILL.md](../../skills/task-skills/SKILL.md) - 任务系统概念
+- **完整示例**：[@/task:task-skills/examples/](../../skills/task-skills/examples/) - 真实规划示例
+- **项目结构规范**：[@/task:task-skills/](../../skills/task-skills/) - 完整文档
 
 ## 最佳实践
 

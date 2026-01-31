@@ -1,6 +1,6 @@
 # lrpc - 高性能 RPC 框架插件
 
-基于 fasthttp 的轻量级 RPC 框架，提供完整的微服务开发能力。
+基于 fasthttp-skills 的轻量级 RPC 框架，提供完整的微服务开发能力。
 
 ## 特性
 
@@ -368,7 +368,7 @@ plugins/frame/golang/lrpc/
 - [lazygophers/crypto GitHub](https://github.com/lazygophers/crypto)
 - [lazygophers/cache GitHub](https://github.com/lazygophers/cache)
 - [lazygophers/utils GitHub](https://github.com/lazygophers/utils)
-- [fasthttp GitHub](https://github.com/valyala/fasthttp)
+- [fasthttp-skills GitHub](https://github.com/valyala/fasthttp)
 
 ## 许可证
 

@@ -83,7 +83,7 @@ tools: Read, Write, Bash
 
 ```markdown
 ---
-name: skill-name
+name: skill-name-skills
 description: 技能描述
 auto-activate: always:true
 ---

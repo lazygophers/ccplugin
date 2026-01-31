@@ -1,5 +1,5 @@
 ---
-name: luxe
+name: luxe-skills
 description: 奢华高端设计专家 - 专注于金色元素、大理石纹理和精致排版，传达高端、优雅和premium品牌形象
 ---
 

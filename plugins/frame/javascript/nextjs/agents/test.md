@@ -33,7 +33,7 @@ yarn add -D @next/env dotenv-cli
 ```typescript
 // vitest.config.ts
 import { defineConfig } from 'vitest/config'
-import react from '@vitejs/plugin-react'
+import react-skills from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({

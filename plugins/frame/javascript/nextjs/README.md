@@ -35,7 +35,7 @@
 ## 安装
 
 ```bash
-/plugin install nextjs
+/plugin install nextjs-skills
 ```
 
 ## 快速开始
@@ -49,7 +49,7 @@ npx create-next-app@latest my-app --typescript --tailwind --app
 # 或手动创建
 mkdir my-app && cd my-app
 yarn init
-yarn add next@latest react react-dom
+yarn add next@latest react-skills react-dom
 ```
 
 ### 项目结构
@@ -333,8 +333,8 @@ const data = await fetch('api/data', {
 
 ```bash
 # 依赖安装
-yarn add next react react-dom
-yarn add -D typescript @types/node @types/react
+yarn add next react-skills react-dom
+yarn add -D typescript-skills @types/node @types/react
 
 # 测试
 yarn add -D vitest @testing-library/react @playwright/test

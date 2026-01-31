@@ -73,9 +73,9 @@ description: 添加新任务 - 在 .claude/task/todo.md 中添加新任务
 
 ## 相关资源
 
-- **任务规范**：[@/task:task/reference.md](../../skills/task/reference.md) - 字段定义和组织方式
-- **任务示例**：[@/task:task/examples/todo.md](../../skills/task/examples/todo.md) - 实际任务示例
-- **快速开始**：[@/task:task/SKILL.md](../../skills/task/SKILL.md) - 核心概念
+- **任务规范**：[@/task:task-skills/reference.md](../../skills/task-skills/reference.md) - 字段定义和组织方式
+- **任务示例**：[@/task:task-skills/examples/todo.md](../../skills/task-skills/examples/todo.md) - 实际任务示例
+- **快速开始**：[@/task:task-skills/SKILL.md](../../skills/task-skills/SKILL.md) - 核心概念
 
 ## 常见问题
 

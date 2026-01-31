@@ -34,7 +34,7 @@
 ## 安装
 
 ```bash
-/plugin install react
+/plugin install react-skills
 ```
 
 ## 快速开始
@@ -346,11 +346,11 @@ export const store = configureStore({
 
 ```bash
 # 使用 Vite（推荐）
-yarn add react react-dom
+yarn add react-skills react-dom
 yarn add -D vite @vitejs/plugin-react
 
 # TypeScript 支持
-yarn add -D typescript
+yarn add -D typescript-skills
 
 # 测试框架
 yarn add -D vitest @testing-library/react @testing-library/user-event

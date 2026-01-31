@@ -334,7 +334,7 @@ go test ./...
 // ❌ 使用 raw GORM 动态查询
 db.Where("name = ?", name).First(&user)
 
-// ✅ 使用 gorm-gen 类型安全查询
+// ✅ 使用 gorm-gen-skills 类型安全查询
 q.User.Where(q.User.Name.Eq(name)).First()
 ```
 
@@ -351,7 +351,7 @@ q.User.Where(q.User.Name.Eq(name)).First()
 ### 混合使用
 
 ```go
-// 简单查询用 gorm-gen
+// 简单查询用 gorm-gen-skills
 user, err := q.User.Where(q.User.ID.Eq(1)).First()
 
 // 复杂查询用 raw GORM

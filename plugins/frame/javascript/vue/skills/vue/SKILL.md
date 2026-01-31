@@ -1,5 +1,5 @@
 ---
-name: vue
+name: vue-skills
 description: Vue 3 开发标准规范 - 包含 Composition API 最佳实践、项目结构、Pinia 状态管理、工具链配置和性能优化指南
 ---
 

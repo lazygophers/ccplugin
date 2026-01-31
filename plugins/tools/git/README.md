@@ -45,24 +45,24 @@ Git 仓库管理插件 - 提供完整的 Git 操作支持，包括提交管理�
 /commit-all "feat: 初始化项目"
 
 # 推送到远程
-git push -u origin master
+git-skills push -u origin master
 ```
 
 ### 2. 功能开发流程
 
 ```bash
 # 创建功能分支
-git checkout -b feature/user-auth
+git-skills checkout -b feature/user-auth
 
 # 开发并提交
-git add src/auth/
+git-skills add src/auth/
 /commit "feat: 添加用户注册"
 
-git add tests/
+git-skills add tests/
 /commit "test: 添加认证测试"
 
 # 推送并创建 PR
-git push -u origin feature/user-auth
+git-skills push -u origin feature/user-auth
 /create-pr
 ```
 
@@ -71,11 +71,11 @@ git push -u origin feature/user-auth
 ```bash
 # 根据审查反馈修改
 vim src/auth/login.py
-git add src/auth/login.py
+git-skills add src/auth/login.py
 /commit "fix: 修复登录验证逻辑"
 
 # 推送并更新 PR
-git push
+git-skills push
 /update-pr 123
 ```
 

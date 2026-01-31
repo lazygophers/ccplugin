@@ -1,4 +1,4 @@
-# gorm-gen - GORM 代码生成工具插件
+# gorm-gen-skills - GORM 代码生成工具插件
 
 提供类型安全的 GORM 代码生成规范、最佳实践和开发指南。包括代码生成、类型安全查询 API、DAO 模式和性能优化。
 
@@ -16,7 +16,7 @@
 
 ## 与 raw GORM 对比
 
-| 特性 | raw GORM | gorm-gen |
+| 特性 | raw GORM | gorm-gen-skills |
 |------|----------|----------|
 | 类型安全 | 运行时检查 | 编译时检查 |
 | 反射开销 | 有 | 无 |

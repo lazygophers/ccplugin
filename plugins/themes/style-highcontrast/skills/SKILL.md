@@ -1,5 +1,5 @@
 ---
-name: high-contrast
+name: high-contrast-skills
 description: 高对比设计遵循 WCAG AAA 标准，强调清晰、可读和包容性，确保所有用户都能访问内容。
 ---
 

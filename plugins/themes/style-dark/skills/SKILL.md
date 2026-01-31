@@ -1,5 +1,5 @@
 ---
-name: style-dark
+name: style-dark-skills
 description: 暗黑模式设计实现指南 - 遵循WCAG AAA标准的深色背景和高对比文本设计规范，适用于编辑器、IDE、夜间模式和游戏界面
 ---
 

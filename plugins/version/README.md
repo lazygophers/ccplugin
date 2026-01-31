@@ -145,11 +145,11 @@ Bug 修复：
 3. 执行 /version bump <level> 更新版本
    ↓
 4. 提交到 Git
-   git add .version
-   git commit -m "chore: bump version to X.Y.Z.W"
+   git-skills add .version
+   git-skills commit -m "chore: bump version to X.Y.Z.W"
    ↓
 5. 推送到远程
-   git push origin master
+   git-skills push origin master
 ```
 
 ### 自动版本更新（Hooks）
@@ -203,13 +203,13 @@ cat .version
 
 ```bash
 # 添加到 Git
-git add .version
+git-skills add .version
 
 # 提交
-git commit -m "chore: initialize version management"
+git-skills commit -m "chore: initialize version management"
 
 # 推送
-git push origin master
+git-skills push origin master
 ```
 
 ### 创建发布标签
@@ -218,13 +218,13 @@ git push origin master
 
 ```bash
 # 创建标签
-git tag v1.2.3.4
+git-skills tag v1.2.3.4
 
 # 推送标签
-git push origin v1.2.3.4
+git-skills push origin v1.2.3.4
 
 # 列出所有标签
-git tag -l
+git-skills tag -l
 ```
 
 ## 最佳实践

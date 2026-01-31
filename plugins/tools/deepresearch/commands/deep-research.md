@@ -74,14 +74,14 @@ argument-hint: [研究内容]
 
 | Agent                      | 必需Skills                                         | 可选Skills                   |
 | -------------------------- | -------------------------------------------------- | ---------------------------- |
-| code-review-agent          | local-code-analysis, synthesizer                   | citation-validator           |
-| performance-analysis-agent | local-code-analysis, synthesizer                   | explorer                     |
-| technical-debt-agent       | local-code-analysis, synthesizer                   | explorer                     |
-| project-evaluation-agent   | github-analysis, synthesizer                       | citation-validator           |
-| tech-selection-agent       | content-retriever, synthesizer                     | question-refiner, explorer   |
-| dependency-audit-agent     | content-retriever, citation-validator, synthesizer | explorer                     |
-| concept-explanation-agent  | content-retriever, synthesizer                     | question-refiner, explorer   |
-| architecture-review-agent  | local-code-analysis, synthesizer                   | citation-validator, explorer |
+| code-review-agent          | local-code-analysis, synthesizer-skills                   | citation-validator-skills           |
+| performance-analysis-agent | local-code-analysis, synthesizer-skills                   | explorer-skills                     |
+| technical-debt-agent       | local-code-analysis, synthesizer-skills                   | explorer-skills                     |
+| project-evaluation-agent   | github-analysis-skills, synthesizer-skills                       | citation-validator-skills           |
+| tech-selection-agent       | content-retriever-skills, synthesizer-skills                     | question-refiner-skills, explorer-skills   |
+| dependency-audit-agent     | content-retriever-skills, citation-validator-skills, synthesizer-skills | explorer-skills                     |
+| concept-explanation-agent  | content-retriever-skills, synthesizer-skills                     | question-refiner-skills, explorer-skills   |
+| architecture-review-agent  | local-code-analysis, synthesizer-skills                   | citation-validator-skills, explorer-skills |
 
 ## 多轮交互策略
 

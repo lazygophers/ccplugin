@@ -1,5 +1,5 @@
 ---
-name: task
+name: task-skills
 description: 项目任务管理专家 - 专注于任务规划、跟踪和执行管理
 ---
 
@@ -258,9 +258,9 @@ description: 项目任务管理专家 - 专注于任务规划、跟踪和执行�
 ## 参考资源
 
 ### Skills 文档
-- **任务管理系统**：[@/task:task](../../skills/task/)
-- **任务规范与最佳实践**：[@/task:task](../../skills/task/reference.md)
-- **任务示例和模板**：[@/task:task](../../skills/task/examples/)
+- **任务管理系统**：[@/task:task-skills](../../skills/task-skills/)
+- **任务规范与最佳实践**：[@/task:task-skills](../../skills/task-skills/reference.md)
+- **任务示例和模板**：[@/task:task-skills](../../skills/task-skills/examples/)
 
 ### 快速命令
 - **@/task:add** - 添加新任务

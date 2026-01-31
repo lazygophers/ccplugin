@@ -23,7 +23,7 @@ model: sonnet
 ### 使用方法
 
 ```bash
-git commit -m "[message]"
+git-skills commit -m "[message]"
 ```
 
 ### 执行时机
@@ -61,7 +61,7 @@ git commit -m "[message]"
 ## 依赖脚本
 
 ```bash
-# 无外部脚本依赖，使用 git 原生命令
+# 无外部脚本依赖，使用 git-skills 原生命令
 ```
 
 ## 示例
@@ -70,28 +70,28 @@ git commit -m "[message]"
 
 ```bash
 # 自动生成提交信息
-git add src/
-git commit -m "auto-generated message"
+git-skills add src/
+git-skills commit -m "auto-generated message"
 
 # 指定提交信息
-git add src/auth/
-git commit -m "feat: 添加用户认证"
+git-skills add src/auth/
+git-skills commit -m "feat: 添加用户认证"
 ```
 
 ### 提交信息示例
 
 ```bash
 # 新功能
-git commit -m "feat: 添加用户登录功能"
+git-skills commit -m "feat: 添加用户登录功能"
 
 # 缺陷修复
-git commit -m "fix: 修复登录超时问题"
+git-skills commit -m "fix: 修复登录超时问题"
 
 # 代码重构
-git commit -m "refactor: 优化数据库查询"
+git-skills commit -m "refactor: 优化数据库查询"
 
 # 文档更新
-git commit -m "docs: 更新 API 文档"
+git-skills commit -m "docs: 更新 API 文档"
 ```
 
 ## 检查清单

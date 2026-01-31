@@ -1,5 +1,5 @@
 ---
-name: luxe
+name: luxe-skills
 description: 奢华风格设计采用黄金元素、大理石纹理和精致排版，传达高端、优雅和premium 品牌形象。
 ---
 
