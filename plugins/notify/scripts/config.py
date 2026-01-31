@@ -479,15 +479,15 @@ def load_config() -> HooksConfig:
 				logging.warn(f"从示例配置复制失败: {e}")
 
 	# 合并配置
-	if loaded_home_config and loaded_project_config:
-		# 两个配置都存在，深度合并
-		return _merge_hooks_configs(loaded_home_config, loaded_project_config)
-	elif loaded_home_config:
-		# 只有用户配置
-		return loaded_home_config
-	elif loaded_project_config:
+	# if loaded_home_config and loaded_project_config:
+	# 	# 两个配置都存在，深度合并
+	# 	return _merge_hooks_configs(loaded_home_config, loaded_project_config)
+	if loaded_project_config:
 		# 只有项目配置
 		return loaded_project_config
+	if loaded_home_config:
+		# 只有用户配置
+		return loaded_home_config
 	else:
 		# 都不存在，返回默认配置
 		return get_default_config()
