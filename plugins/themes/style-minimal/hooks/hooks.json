@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "所有 UI 设计必须遵守 Skills(minimal) 的极简主义设计规范要求"
+            "prompt": "所有 UI 设计必须遵守 Skills(minimal-skills) 的极简主义设计规范要求"
           }
         ]
       }
