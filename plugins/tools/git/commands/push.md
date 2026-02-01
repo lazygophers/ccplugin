@@ -23,7 +23,7 @@ model: haiku
 ### 使用方法
 
 ```bash
-git-skills push
+gitpush
 ```
 
 ### 执行时机
@@ -50,7 +50,7 @@ git-skills push
 ## 依赖脚本
 
 ```bash
-# 使用 git-skills 原生命令
+# 使用 git原生命令
 ```
 
 ## 示例
@@ -59,28 +59,28 @@ git-skills push
 
 ```bash
 # 推送当前分支到远程
-git-skills push
+gitpush
 
 # 首次推送，设置上游分支
-git-skills push -u origin <branch>
+gitpush -u origin <branch>
 ```
 
 ### 首次推送分支
 
 ```bash
 # 首次推送自动设置上游分支
-git-skills checkout -b feature/new-feature
+gitcheckout -b feature/new-feature
 # ... 开发和提交 ...
-git-skills push -u origin feature/new-feature
+gitpush -u origin feature/new-feature
 ```
 
 ### 遇到冲突处理
 
 ```bash
 # 如提示远程有新提交
-git-skills pull origin <branch-name>
+gitpull origin <branch-name>
 # 解决冲突后
-git-skills push
+gitpush
 ```
 
 ## 检查清单
@@ -95,26 +95,30 @@ git-skills push
 ## 注意事项
 
 **推送成功标志**：
+
 - 输出显示 `git status` 为干净状态
 - 本地分支领先提交数量变为 0
 
 **常见问题处理**：
-- **网络失败**：命令会提示设置代理的方式
-  ```bash
-  # 设置代理后重试
-  export http_proxy=http://127.0.0.1:7890
-  export https_proxy=http://127.0.0.1:7890
-  git-skills push
 
-  # 取消代理
-  unset http_proxy
-  unset https_proxy
-  ```
+- **网络失败**：命令会提示设置代理的方式
+
+    ```bash
+    # 设置代理后重试
+    export http_proxy=http://127.0.0.1:7890
+    export https_proxy=http://127.0.0.1:7890
+    gitpush
+
+    # 取消代理
+    unset http_proxy
+    unset https_proxy
+    ```
 
 - **认证失败**：检查 SSH 密钥或凭据配置
 - **远程有新提交**：需要先执行 `git pull` 解决冲突
 
 **禁止操作**：
+
 - ❌ 不要使用 `--force` 或 `--force-with-lease` 推送（除非非常确定）
 - ❌ 推送到主分支（main/master）前应确认代码质量
 - ❌ 不要推送包含敏感信息的提交
@@ -135,9 +139,9 @@ git-skills push
 
 1. **读取错误信息**：查看具体的失败原因
 2. **分类错误类型**：
-   - 网络错误 → 检查网络和代理
-   - 认证错误 → 检查密钥或凭据
-   - 冲突错误 → 执行 pull 解决冲突
+    - 网络错误 → 检查网络和代理
+    - 认证错误 → 检查密钥或凭据
+    - 冲突错误 → 执行 pull 解决冲突
 3. **执行对应解决方案**
 4. **重试推送**
 
@@ -151,8 +155,8 @@ export http_proxy=http://127.0.0.1:7890
 export https_proxy=http://127.0.0.1:7890
 
 # 永久配置 git（建议）
-git-skills config --global http.proxy http://127.0.0.1:7890
-git-skills config --global https.proxy http://127.0.0.1:7890
+gitconfig --global http.proxy http://127.0.0.1:7890
+gitconfig --global https.proxy http://127.0.0.1:7890
 
 # 取消代理
 unset http_proxy
@@ -163,11 +167,11 @@ unset https_proxy
 
 ```bash
 # 1. 开发和提交
-git-skills add .
-git-skills commit -m "feat: 新功能"
+gitadd .
+gitcommit -m "feat: 新功能"
 
 # 2. 推送到远程
-git-skills push
+gitpush
 
 # 3. 创建 PR（使用 GitHub CLI）
 gh pr create --title "feat: 新功能" --body "描述内容"

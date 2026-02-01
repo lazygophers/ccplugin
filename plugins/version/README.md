@@ -47,12 +47,12 @@
 
 采用 Semantic Versioning 标准，格式为 `X.Y.Z.W`：
 
-| 部分 | 名称 | 何时增加 |
-|------|------|---------|
+| 部分  | 名称  | 何时增加                    |
+| ----- | ----- | --------------------------- |
 | **X** | Major | 不兼容的 API 变更或重大功能 |
-| **Y** | Minor | 向后兼容的新功能 |
-| **Z** | Patch | bug 修复和性能优化 |
-| **W** | Build | 完成任务和小改进 |
+| **Y** | Minor | 向后兼容的新功能            |
+| **Z** | Patch | bug 修复和性能优化          |
+| **W** | Build | 完成任务和小改进            |
 
 ### 版本更新示例
 
@@ -145,11 +145,11 @@ Bug 修复：
 3. 执行 /version bump <level> 更新版本
    ↓
 4. 提交到 Git
-   git-skills add .version
-   git-skills commit -m "chore: bump version to X.Y.Z.W"
+   gitadd .version
+   gitcommit -m "chore: bump version to X.Y.Z.W"
    ↓
 5. 推送到远程
-   git-skills push origin master
+   gitpush origin master
 ```
 
 ### 自动版本更新（Hooks）
@@ -160,6 +160,7 @@ Claude Code Hooks 在以下情况会自动提示或更新版本：
 - **Stop**：会话结束时触发（提示更新相应版本）
 
 **限制条件**：
+
 - `.version` 文件必须已提交到 Git
 - SubagentStop 仅能自动更新 Build 版本
 - Major/Minor/Patch 版本需手动通过命令更新
@@ -203,13 +204,13 @@ cat .version
 
 ```bash
 # 添加到 Git
-git-skills add .version
+gitadd .version
 
 # 提交
-git-skills commit -m "chore: initialize version management"
+gitcommit -m "chore: initialize version management"
 
 # 推送
-git-skills push origin master
+gitpush origin master
 ```
 
 ### 创建发布标签
@@ -218,13 +219,13 @@ git-skills push origin master
 
 ```bash
 # 创建标签
-git-skills tag v1.2.3.4
+gittag v1.2.3.4
 
 # 推送标签
-git-skills push origin v1.2.3.4
+gitpush origin v1.2.3.4
 
 # 列出所有标签
-git-skills tag -l
+gittag -l
 ```
 
 ## 最佳实践
@@ -232,24 +233,28 @@ git-skills tag -l
 ### 何时更新各级版本
 
 **Major 版本**：
+
 - ✅ 不兼容的 API 修改
 - ✅ 架构重构
 - ✅ 主要功能删除或重写
 - ❌ 新增可选功能
 
 **Minor 版本**：
+
 - ✅ 新增功能模块
 - ✅ 新增可选 API
 - ✅ 向后兼容的功能增强
 - ❌ Bug 修复
 
 **Patch 版本**：
+
 - ✅ Bug 修复
 - ✅ 性能优化
 - ✅ 安全补丁
 - ✅ 文档改进
 
 **Build 版本**：
+
 - ✅ 完成单个任务
 - ✅ 代码小改进
 - ✅ 持续集成自动更新
@@ -294,6 +299,7 @@ A: 第一次使用时，脚本会自动创建 `.version` 文件并初始化为 `
 ### Q: 版本号能否自动同步到其他文件？
 
 A: 当前版本不自动同步，建议：
+
 - 手动更新 `pyproject.toml` 中的 version 字段
 - 手动更新 `package.json` 中的 version 字段
 - 使用构建脚本在发布时同步版本
@@ -301,6 +307,7 @@ A: 当前版本不自动同步，建议：
 ### Q: Hooks 为什么没有自动更新版本？
 
 A: 检查以下条件：
+
 1. `.version` 文件是否已提交到 Git（未提交会拒绝更新）
 2. 任务是否确实完成（Hooks 需要检测到完成信号）
 3. 插件是否已启用
@@ -308,6 +315,7 @@ A: 检查以下条件：
 ### Q: 支持的版本格式有哪些？
 
 A: 支持以下格式（自动补全至 4 部分）：
+
 - `1`
 - `1.0`
 - `1.0.0`
@@ -335,6 +343,7 @@ python scripts/version.py bump patch
 ### 项目根目录检测
 
 脚本从当前目录向上查找，优先级如下：
+
 1. 存在 `.git` 目录
 2. 存在 `pyproject.toml` 文件
 3. 存在 `.version` 文件
@@ -346,6 +355,7 @@ python scripts/version.py bump patch
 ### 级联重置
 
 更新任何级别的版本号时，所有后续级别自动重置为 0：
+
 - 更新 Major → Minor/Patch/Build 重置为 0
 - 更新 Minor → Patch/Build 重置为 0
 - 更新 Patch → Build 重置为 0

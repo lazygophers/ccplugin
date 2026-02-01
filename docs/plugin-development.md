@@ -58,6 +58,7 @@ my-plugin/
 ### 重要规则
 
 **必须遵守**：
+
 - `commands/`、`agents/`、`skills/` 必须在插件根目录
 - 不能放在 `.claude-plugin/` 目录内
 - `SKILL.md` 文件名必须大写
@@ -70,18 +71,19 @@ my-plugin/
 
 ```json
 {
-  "name": "my-plugin",           // 必需：kebab-case
-  "version": "1.0.0",              // 推荐：语义化版本
-  "description": "插件描述",        // 必需：清晰说明
-  "author": {                      // 推荐：作者信息
-    "name": "作者名",
-    "email": "email@example.com",
-    "url": "https://github.com/author"
-  },
-  "keywords": ["tag1", "tag2"],    // 推荐：便于发现
-  "commands": "./commands/",       // 可选：命令路径
-  "agents": "./agents/",           // 可选：代理路径
-  "skills": "./skills/"            // 可选：技能路径
+	"name": "my-plugin", // 必需：kebab-case
+	"version": "1.0.0", // 推荐：语义化版本
+	"description": "插件描述", // 必需：清晰说明
+	"author": {
+		// 推荐：作者信息
+		"name": "作者名",
+		"email": "email@example.com",
+		"url": "https://github.com/author"
+	},
+	"keywords": ["tag1", "tag2"], // 推荐：便于发现
+	"commands": "./commands/", // 可选：命令路径
+	"agents": "./agents/", // 可选：代理路径
+	"skills": "./skills/" // 可选：技能路径
 }
 ```
 
@@ -90,25 +92,29 @@ my-plugin/
 自定义斜杠命令，扩展 Claude Code 功能。
 
 **格式**：
+
 ```markdown
 ---
 description: 命令描述
-argument-hint: [args]       # 可选
-allowed-tools: Bash(*)      # 可选
-model: sonnet               # 可选
+argument-hint: [args] # 可选
+allowed-tools: Bash(*) # 可选
+model: sonnet # 可选
 ---
+
 # 命令名称
 
 详细指令。
 ```
 
 **示例**：
-```markdown
+
+````markdown
 ---
 description: 格式化代码
 argument-hint: [file-path]
 allowed-tools: Bash(prettier*)
 ---
+
 # format
 
 格式化指定文件或整个项目。
@@ -120,15 +126,19 @@ allowed-tools: Bash(prettier*)
 ## 示例
 
 格式化单个文件：
+
 ```bash
 /format src/main.js
 ```
+````
 
 格式化整个项目：
+
 ```bash
 /format
 ```
-```
+
+````
 
 ### Agents（代理）
 
@@ -145,9 +155,10 @@ permissionMode: default      # 可选
 skills: skill1, skill2       # 可选
 ---
 代理系统提示词。
-```
+````
 
 **示例**：
+
 ```markdown
 ---
 name: code-reviewer
@@ -155,11 +166,13 @@ description: 代码审查专家，专注于代码质量、安全性和性能
 tools: Read, Grep, Bash
 skills: security-checklist, performance-optimization
 ---
+
 # Code Reviewer Agent
 
 你是一个专业的代码审查专家...
 
 ## 审查重点
+
 - 代码质量
 - 安全漏洞
 - 性能问题
@@ -171,6 +184,7 @@ skills: security-checklist, performance-optimization
 Agent Skills，提供特定领域的知识和指导。
 
 **格式**：
+
 ```yaml
 ---
 name: skill-name-skills
@@ -189,6 +203,7 @@ model: sonnet               # 可选
 ```
 
 **示例**：
+
 ```yaml
 ---
 name: security-auditor
@@ -215,25 +230,27 @@ allowed-tools: Read, Grep, Bash
 在特定事件发生时自动执行命令。
 
 **格式**：
+
 ```json
 {
-  "hooks": {
-    "EventName": [
-      {
-        "matcher": "ToolName|Pattern",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "/path/to/script.sh"
-          }
-        ]
-      }
-    ]
-  }
+	"hooks": {
+		"EventName": [
+			{
+				"matcher": "ToolName|Pattern",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "/path/to/script.sh"
+					}
+				]
+			}
+		]
+	}
 }
 ```
 
 **可用事件**：
+
 - `SessionStart` / `SessionEnd`
 - `PreToolUse` / `PostToolUse`
 - `SubagentStart` / `SubagentStop`
@@ -241,21 +258,22 @@ allowed-tools: Read, Grep, Bash
 - `UserPromptSubmit`
 
 **示例**：
+
 ```json
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/format.sh"
-          }
-        ]
-      }
-    ]
-  }
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "Write|Edit",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/format.sh"
+					}
+				]
+			}
+		]
+	}
 }
 ```
 
@@ -280,18 +298,21 @@ cp -r plugins/template my-plugin
 ### 3. 实现功能
 
 **添加命令**：
+
 ```bash
 cd my-plugin/commands
 vi my-command.md
 ```
 
 **添加代理**：
+
 ```bash
 cd my-plugin/agents
 vi my-agent.md
 ```
 
 **添加技能**：
+
 ```bash
 cd my-plugin/skills
 mkdir my-skill
@@ -329,19 +350,19 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 ### 手动测试
 
 1. **命令测试**
-   - 执行所有命令
-   - 验证参数处理
-   - 检查输出格式
+    - 执行所有命令
+    - 验证参数处理
+    - 检查输出格式
 
 2. **技能测试**
-   - 触发技能条件
-   - 验证自动激活
-   - 检查指导质量
+    - 触发技能条件
+    - 验证自动激活
+    - 检查指导质量
 
 3. **代理测试**
-   - 调用代理
-   - 验证工具使用
-   - 检查执行结果
+    - 调用代理
+    - 验证工具使用
+    - 检查执行结果
 
 ### 测试清单
 
@@ -369,16 +390,16 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 
 ```json
 {
-  "plugins": [
-    {
-      "name": "my-plugin",
-      "source": "./plugins/my-plugin",
-      "description": "插件描述",
-      "version": "1.0.0",
-      "author": {"name": "作者"},
-      "keywords": ["tag1", "tag2"]
-    }
-  ]
+	"plugins": [
+		{
+			"name": "my-plugin",
+			"source": "./plugins/my-plugin",
+			"description": "插件描述",
+			"version": "1.0.0",
+			"author": { "name": "作者" },
+			"keywords": ["tag1", "tag2"]
+		}
+	]
 }
 ```
 
@@ -386,42 +407,49 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 
 ```bash
 # 添加所有更改
-git-skills add .
+gitadd .
 
 # 提交
-git-skills commit -m "feat(plugin): 添加 my-plugin 插件 v1.0.0"
+gitcommit -m "feat(plugin): 添加 my-plugin 插件 v1.0.0"
 
 # 推送
-git-skills push origin branch-name
+gitpush origin branch-name
 ```
 
 ### 4. 创建 Pull Request
 
 **标题**：
+
 ```
 feat(plugin): 添加 my-plugin 插件
 ```
 
 **描述**：
+
 ```markdown
 ## 插件名称
+
 my-plugin
 
 ## 插件描述
+
 简要描述插件功能。
 
 ## 更新内容
+
 - 添加 plugin.json 配置
 - 实现 commands/
 - 实现 agents/
 - 实现 skills/
 
 ## 测试
+
 - [ ] 本地测试通过
 - [ ] 格式验证通过
 - [ ] 文档完整
 
 ## 相关 Issue
+
 Closes #123
 ```
 

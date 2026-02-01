@@ -111,12 +111,14 @@ Closes #123
 ### 2. 变更范围控制
 
 ✅ **合理的 PR 范围**：
+
 - 单一功能或缺陷修复
 - 变更范围 < 1000 行
 - 可以在 30 分钟内审查完成
 - 提交数量 3-8 个
 
 ❌ **过大的 PR**：
+
 - 一个 PR 包含多个功能
 - 变更范围 > 1000 行
 - 审查时间 > 1 小时
@@ -125,6 +127,7 @@ Closes #123
 ### 3. 测试要求
 
 **每个 PR 必须包含**：
+
 - 新增功能的单元测试
 - 相关功能的集成测试（如适用）
 - 手动测试验证结果
@@ -133,6 +136,7 @@ Closes #123
 ### 4. 文档更新
 
 **如果 PR 涉及以下内容，需要更新文档**：
+
 - 新增 API 或命令
 - 行为变更
 - 配置变更
@@ -141,6 +145,7 @@ Closes #123
 ### 5. 审查周期
 
 **标准审查周期**：
+
 1. 提交 PR → 自动检查
 2. 代码审查 → 通常 24 小时内
 3. 修改反馈 → 提供新提交
@@ -156,6 +161,7 @@ A: 通常 3-8 个提交是合理的。每个提交应该对应一个独立的功
 
 **Q: 如何处理 PR 审查中的反馈？**
 A:
+
 1. 理解反馈意见
 2. 修改代码
 3. 创建新提交（不要 amend 已推送的提交）
@@ -164,6 +170,7 @@ A:
 
 **Q: PR 被拒绝了怎么办？**
 A:
+
 1. 了解拒绝原因
 2. 创建新分支（不要在原分支继续修改）
 3. 修改代码
@@ -178,31 +185,31 @@ A: 创建新 PR 前，确保所有提交遵循 Conventional Commits 规范。如
 
 ```bash
 # 1. 创建功能分支
-git-skills checkout -b feature/user-auth
+gitcheckout -b feature/user-auth
 
 # 2. 开发功能
 # ... 编写代码 ...
 
 # 3. 分批提交
-git-skills add src/auth/register.py
-git-skills commit -m "feat: 添加用户注册功能"
+gitadd src/auth/register.py
+gitcommit -m "feat: 添加用户注册功能"
 
-git-skills add tests/test_auth.py
-git-skills commit -m "test: 添加认证测试"
+gitadd tests/test_auth.py
+gitcommit -m "test: 添加认证测试"
 
 # 4. 推送到远程
-git-skills push -u origin feature/user-auth
+gitpush -u origin feature/user-auth
 
 # 5. 创建 PR
 gh pr create --title "feat: 添加用户认证功能" --body "实现用户注册、登录和会话管理"
 
 # 6. 根据审查反馈修改
 vim src/auth/login.py
-git-skills add src/auth/login.py
-git-skills commit -m "fix: 修复登录验证逻辑"
+gitadd src/auth/login.py
+gitcommit -m "fix: 修复登录验证逻辑"
 
 # 7. 推送修改
-git-skills push
+gitpush
 
 # 8. 更新 PR（如需更新描述）
 gh pr edit 123 --body "更新后的 PR 描述"
@@ -214,8 +221,8 @@ gh pr edit 123 --body "更新后的 PR 描述"
 
 ```bash
 # 错误：分支未推送
-# 解决：先执行 git-skills push
-git-skills push -u origin feature/branch-name
+# 解决：先执行 gitpush
+gitpush -u origin feature/branch-name
 
 # 错误：gh 未安装
 # 解决：安装 GitHub CLI
@@ -238,33 +245,36 @@ gh pr edit <pr-number>
 ### 常见解决方案
 
 **问题：分支落后于主分支**
+
 ```bash
 # 解决：更新分支
-git-skills fetch origin
-git-skills rebase origin/master
-git-skills push --force-with-lease  # 仅当确定无人基于此分支工作时使用
+gitfetch origin
+gitrebase origin/master
+gitpush --force-with-lease  # 仅当确定无人基于此分支工作时使用
 ```
 
 **问题：PR 与其他 PR 冲突**
+
 ```bash
 # 解决：解决冲突后创建新 PR
-git-skills merge origin/master
+gitmerge origin/master
 # ... 解决冲突 ...
-git-skills add .
-git-skills commit -m "fix: 解决合并冲突"
-git-skills push
+gitadd .
+gitcommit -m "fix: 解决合并冲突"
+gitpush
 ```
 
 **问题：需要修改已合并的 PR**
+
 ```bash
 # 解决：创建新 PR 修复
-git-skills checkout master
-git-skills pull origin master
-git-skills checkout -b fix/previous-issue
+gitcheckout master
+gitpull origin master
+gitcheckout -b fix/previous-issue
 # ... 修改代码 ...
-git-skills add .
-git-skills commit -m "fix: 修复之前 PR 中的问题"
-git-skills push -u origin fix/previous-issue
+gitadd .
+gitcommit -m "fix: 修复之前 PR 中的问题"
+gitpush -u origin fix/previous-issue
 gh pr create --title "fix: 修复之前 PR 中的问题" --body "描述修复内容"
 ```
 

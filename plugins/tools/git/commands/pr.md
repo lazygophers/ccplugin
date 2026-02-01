@@ -38,9 +38,9 @@ gh pr edit <pr-number>
 
 ### 执行参数
 
-| 参数 | 说明 | 类型 | 默认值 |
-|------|------|------|--------|
-| `--update <pr-number>` | 更新指定的 PR（可选） | int | - |
+| 参数                   | 说明                  | 类型 | 默认值 |
+| ---------------------- | --------------------- | ---- | ------ |
+| `--update <pr-number>` | 更新指定的 PR（可选） | int  | -      |
 
 ### 命令说明
 
@@ -65,7 +65,7 @@ gh pr edit <pr-number>
 
 ```bash
 # 推送分支到远程
-git-skills push -u origin feature/user-auth
+gitpush -u origin feature/user-auth
 
 # 创建 PR（需手动指定标题和描述）
 gh pr create --title "feat: 添加用户认证" --body "实现用户注册、登录和会话管理"
@@ -75,9 +75,9 @@ gh pr create --title "feat: 添加用户认证" --body "实现用户注册、登
 
 ```bash
 # 修改代码后提交
-git-skills add src/auth/
-git-skills commit -m "fix: 修复登录验证"
-git-skills push
+gitadd src/auth/
+gitcommit -m "fix: 修复登录验证"
+gitpush
 
 # 更新 PR 信息
 gh pr edit 123 --body "更新后的 PR 描述"
@@ -122,22 +122,26 @@ Closes #123
 ## 注意事项
 
 **PR 范围**：
+
 - 变更范围应合理（建议 < 1000 行）
 - 超大 PR 应分解为多个 PR
 
 **PR 标题**：
+
 - ≤50 字符
 - 使用简体中文
 - 遵循 Conventional Commits 规范
 - 清晰描述变更内容
 
 **PR 描述**：
+
 - **变更摘要**：1-3 句话概述
 - **技术实现**：列出关键技术点
 - **测试说明**：提供可执行的测试步骤
 - **相关 Issue**：链接相关 Issue
 
 **测试计划**：
+
 - 提供明确的测试场景
 - 包含边界情况测试
 - 说明破坏性变更的迁移步骤
@@ -153,6 +157,7 @@ Closes #123
 ```
 
 **示例**：
+
 - `feat(auth): 添加用户登录功能`
 - `fix(api): 修复分页查询返回错误`
 - `refactor(db): 优化查询性能`
@@ -175,6 +180,7 @@ Closes #123
 ### 合并 PR
 
 PR 获批后：
+
 - 在 GitHub 上进行 merge 操作
 - 或使用 gh cli：`gh pr merge <pr-number> --squash`
 
