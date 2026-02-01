@@ -17,6 +17,5 @@
     "release",
     "management"
   ],
-  "skills": "./skills/",
   "mcpServers": "./.mcp.json"
 }
