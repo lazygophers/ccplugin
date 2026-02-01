@@ -23,7 +23,7 @@ model: sonnet
 ### 使用方法
 
 ```bash
-git-skills commit -m "[message]"
+gitcommit -m "[message]"
 ```
 
 ### 执行时机
@@ -34,11 +34,12 @@ git-skills commit -m "[message]"
 
 ### 执行参数
 
-| 参数 | 说明 | 类型 | 必填 |
-|------|------|------|------|
-| `message` | 提交信息（可选，不提供时自动生成） | string | ✗ |
+| 参数      | 说明                               | 类型   | 必填 |
+| --------- | ---------------------------------- | ------ | ---- |
+| `message` | 提交信息（可选，不提供时自动生成） | string | ✗    |
 
 **提交信息格式**：遵循 Conventional Commits 规范
+
 ```
 <type>(<scope>): <subject>
 
@@ -61,7 +62,7 @@ git-skills commit -m "[message]"
 ## 依赖脚本
 
 ```bash
-# 无外部脚本依赖，使用 git-skills 原生命令
+# 无外部脚本依赖，使用 git原生命令
 ```
 
 ## 示例
@@ -70,28 +71,28 @@ git-skills commit -m "[message]"
 
 ```bash
 # 自动生成提交信息
-git-skills add src/
-git-skills commit -m "auto-generated message"
+gitadd src/
+gitcommit -m "auto-generated message"
 
 # 指定提交信息
-git-skills add src/auth/
-git-skills commit -m "feat: 添加用户认证"
+gitadd src/auth/
+gitcommit -m "feat: 添加用户认证"
 ```
 
 ### 提交信息示例
 
 ```bash
 # 新功能
-git-skills commit -m "feat: 添加用户登录功能"
+gitcommit -m "feat: 添加用户登录功能"
 
 # 缺陷修复
-git-skills commit -m "fix: 修复登录超时问题"
+gitcommit -m "fix: 修复登录超时问题"
 
 # 代码重构
-git-skills commit -m "refactor: 优化数据库查询"
+gitcommit -m "refactor: 优化数据库查询"
 
 # 文档更新
-git-skills commit -m "docs: 更新 API 文档"
+gitcommit -m "docs: 更新 API 文档"
 ```
 
 ## 检查清单
@@ -106,18 +107,22 @@ git-skills commit -m "docs: 更新 API 文档"
 ## 注意事项
 
 **敏感文件检查**：
+
 - 禁止提交：`.env*`、`*.secret`、`*.key`、`*.pem`、`credentials.json`、`.npmrc`、`.aws/`、`.ssh/`
 - 如发现敏感文件，须先移除：`git reset HEAD <file>`
 
 **临时/构建文件检查**：
+
 - 禁止提交：`node_modules/`、`__pycache__/`、`.venv/`、`dist/`、`build/`、`*.log`、`*.tmp`
 - 检查 `.gitignore` 是否配置正确
 
 **文件大小检查**：
+
 - 文件大小 > 10MB 时发出警告
 - 考虑使用 Git LFS 或外部存储
 
 **提交信息要求**：
+
 - ≤50 字符
 - 使用简体中文
 - 遵循 Conventional Commits 规范
@@ -127,15 +132,15 @@ git-skills commit -m "docs: 更新 API 文档"
 
 ### 提交类型说明
 
-| 类型 | 说明 | 示例 |
-|------|------|------|
-| `feat` | 新功能 | feat: 添加用户认证功能 |
-| `fix` | 缺陷修复 | fix: 修复登录超时问题 |
-| `refactor` | 代码重构 | refactor: 优化数据库查询 |
-| `docs` | 文档更新 | docs: 更新 API 文档 |
-| `test` | 测试相关 | test: 添加单元测试 |
-| `chore` | 构建/工具 | chore: 更新依赖版本 |
-| `style` | 代码格式 | style: 统一代码缩进 |
+| 类型       | 说明      | 示例                     |
+| ---------- | --------- | ------------------------ |
+| `feat`     | 新功能    | feat: 添加用户认证功能   |
+| `fix`      | 缺陷修复  | fix: 修复登录超时问题    |
+| `refactor` | 代码重构  | refactor: 优化数据库查询 |
+| `docs`     | 文档更新  | docs: 更新 API 文档      |
+| `test`     | 测试相关  | test: 添加单元测试       |
+| `chore`    | 构建/工具 | chore: 更新依赖版本      |
+| `style`    | 代码格式  | style: 统一代码缩进      |
 
 ### 提交信息最佳实践
 
@@ -152,6 +157,7 @@ git-skills commit -m "docs: 更新 API 文档"
 ### 失败处理
 
 如提交失败：
+
 - 检查 pre-commit hooks 错误信息
 - 移除或修复不符合规范的内容
 - 重新提交（不使用 amend）

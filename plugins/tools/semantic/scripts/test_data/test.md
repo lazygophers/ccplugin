@@ -14,34 +14,34 @@
 
 ### 主要语言
 
-| 语言 | 扩展名 | 状态 |
-|------|--------|------|
-| Python | `.py` | ✅ 完全支持 |
-| Go | `.go` | ✅ 完全支持 |
-| Rust | `.rs` | ✅ 完全支持 |
-| JavaScript | `.js` | ✅ 完全支持 |
-| TypeScript | `.ts` | ✅ 完全支持 |
+| 语言       | 扩展名 | 状态        |
+| ---------- | ------ | ----------- |
+| Python     | `.py`  | ✅ 完全支持 |
+| Go         | `.go`  | ✅ 完全支持 |
+| Rust       | `.rs`  | ✅ 完全支持 |
+| JavaScript | `.js`  | ✅ 完全支持 |
+| TypeScript | `.ts`  | ✅ 完全支持 |
 
 ### 其他语言
 
 1. **系统编程语言**
-   - C/C++
-   - Java
-   - C#
-   - Swift
-   - Kotlin
+    - C/C++
+    - Java
+    - C#
+    - Swift
+    - Kotlin
 
 2. **脚本语言**
-   - Ruby
-   - PHP
-   - Lua
-   - Perl
+    - Ruby
+    - PHP
+    - Lua
+    - Perl
 
 3. **配置语言**
-   - Bash
-   - PowerShell
-   - CMake
-   - Makefile
+    - Bash
+    - PowerShell
+    - CMake
+    - Makefile
 
 ## 安装方法
 
@@ -49,7 +49,7 @@
 
 ```bash
 # 克隆仓库
-git-skills clone https://github.com/your-repo/semantic-plugin.git
+gitclone https://github.com/your-repo/semantic-plugin.git
 cd semantic-plugin
 
 # 同步依赖
@@ -71,11 +71,11 @@ pip install -e .
 
 ```json
 {
-  "backend": "lancedb",
-  "embedding_model": "multilingual-e5-large",
-  "chunk_size": 500,
-  "chunk_overlap": 50,
-  "database_path": "~/.semantic/data"
+	"backend": "lancedb",
+	"embedding_model": "multilingual-e5-large",
+	"chunk_size": 500,
+	"chunk_overlap": 50,
+	"database_path": "~/.semantic/data"
 }
 ```
 
@@ -181,11 +181,11 @@ semantic/
 
 ### 性能指标
 
-| 操作 | 时间 | 说明 |
-|------|------|------|
-| 索引 1000 行 | ~2s | 含解析和嵌入 |
-| 搜索查询 | ~100ms | 语义搜索 |
-| 关键词搜索 | ~50ms | 基于索引 |
+| 操作         | 时间   | 说明         |
+| ------------ | ------ | ------------ |
+| 索引 1000 行 | ~2s    | 含解析和嵌入 |
+| 搜索查询     | ~100ms | 语义搜索     |
+| 关键词搜索   | ~50ms  | 基于索引     |
 
 ## 故障排除
 
@@ -194,6 +194,7 @@ semantic/
 **Q: 索引时提示 "tree-sitter-language-pack 未安装"？**
 
 A: 运行以下命令安装依赖：
+
 ```bash
 uv sync
 ```
@@ -201,6 +202,7 @@ uv sync
 **Q: 搜索结果不准确？**
 
 A: 尝试使用更大的嵌入模型：
+
 ```bash
 semantic-skills config --model multilingual-e5-large
 ```
@@ -208,6 +210,7 @@ semantic-skills config --model multilingual-e5-large
 **Q: Apple Silicon 上性能不佳？**
 
 A: 确保已启用 MPS 加速：
+
 ```bash
 echo "✓ 硬件加速: Apple Silicon MPS 加速"
 ```

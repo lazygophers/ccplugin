@@ -28,13 +28,14 @@
 
 ```bash
 # 清晰、具体、遵循规范
-git-skills commit -m "feat: 添加用户认证功能"
-git-skills commit -m "fix: 修复登录超时问题"
-git-skills commit -m "docs: 更新 API 文档"
-git-skills commit -m "refactor: 优化数据库查询性能"
+gitcommit -m "feat: 添加用户认证功能"
+gitcommit -m "fix: 修复登录超时问题"
+gitcommit -m "docs: 更新 API 文档"
+gitcommit -m "refactor: 优化数据库查询性能"
 ```
 
 详细提交信息示例：
+
 ```
 feat: 添加用户认证功能
 
@@ -50,10 +51,10 @@ Closes #123
 
 ```bash
 # 模糊、不具体、不遵循规范
-git-skills commit -m "update"
-git-skills commit -m "fix bug"
-git-skills commit -m "done"
-git-skills commit -m "tmp"
+gitcommit -m "update"
+gitcommit -m "fix bug"
+gitcommit -m "done"
+gitcommit -m "tmp"
 ```
 
 ## 提交粒度最佳实践
@@ -89,27 +90,27 @@ git-skills commit -m "tmp"
 
 ```bash
 # 1. 添加并提交第一个功能
-git-skills add feature1.py
-git-skills commit -m "feat: 添加功能1"
+gitadd feature1.py
+gitcommit -m "feat: 添加功能1"
 
 # 2. 添加并提交第二个功能
-git-skills add feature2.py
-git-skills commit -m "feat: 添加功能2"
+gitadd feature2.py
+gitcommit -m "feat: 添加功能2"
 
 # 3. 添加测试代码
-git-skills add tests/
-git-skills commit -m "test: 添加功能测试"
+gitadd tests/
+gitcommit -m "test: 添加功能测试"
 
 # 4. 推送到远程
-git-skills push
+gitpush
 ```
 
 ### 快速提交流程
 
 ```bash
 # 当所有变更属于同一主题时
-git-skills commit -am "feat: 初始化项目"
-git-skills push
+gitcommit -am "feat: 初始化项目"
+gitpush
 ```
 
 ## 常见问题
@@ -119,6 +120,7 @@ A: 一行概括（Subject）应该 < 50 字符，清晰说明做了什么。详�
 
 **Q: 如何处理提交失败？**
 A:
+
 1. 检查错误信息
 2. 修复问题（如移除敏感文件、修复 hooks 错误）
 3. 创建新提交（不要使用 amend）

@@ -349,7 +349,7 @@ func BenchmarkHandler(b *testing.B) {
 
 ```bash
 # 安装 wrk
-git-skills clone https://github.com/wg/wrk.git
+gitclone https://github.com/wg/wrk.git
 cd wrk && make
 
 # 测试

@@ -24,7 +24,7 @@ model: haiku
 ### 使用方法
 
 ```bash
-# 使用 git-skills 原生命令手动添加到 .gitignore
+# 使用 git原生命令手动添加到 .gitignore
 echo "*.log" >> .gitignore
 echo ".env" >> .gitignore
 ```
@@ -53,7 +53,7 @@ echo ".env" >> .gitignore
 ## 依赖脚本
 
 ```bash
-# 使用 git-skills 原生命令手动更新 .gitignore
+# 使用 git原生命令手动更新 .gitignore
 ```
 
 ## 示例
@@ -72,16 +72,16 @@ echo "*.log" >> .gitignore
 
 ```bash
 # 1. 初始化项目
-git-skills init
-git-skills add README.md
+gitinit
+gitadd README.md
 
 # 2. 更新 .gitignore
 echo "*.log" >> .gitignore
 echo ".env" >> .gitignore
 
 # 3. 提交配置
-git-skills add .gitignore
-git-skills commit -m "chore: 初始化 .gitignore 配置"
+gitadd .gitignore
+gitcommit -m "chore: 初始化 .gitignore 配置"
 ```
 
 ## 检查清单
@@ -97,16 +97,16 @@ git-skills commit -m "chore: 初始化 .gitignore 配置"
 
 **自动识别的文件类型**：
 
-| 文件类型 | 示例 | 说明 |
-|---------|------|------|
-| 临时文件 | `*.log`, `*.tmp`, `*.temp`, `*.cache`, `*.bak` | 日志和临时文件 |
-| 临时目录 | `__pycache__/`, `.pytest_cache/`, `node_modules/` | 编程语言缓存 |
-| 环境文件 | `.env`, `.env.local`, `.env.*`, `*.secret` | 敏感配置文件 |
-| IDE 配置 | `.vscode/`, `.idea/` | 编辑器配置（谨慎处理） |
-| 系统文件 | `.DS_Store`, `Thumbs.db` | 系统生成文件 |
-| 构建产物 | `dist/`, `build/`, `target/`, `.next/` | 编译输出 |
-| 测试覆盖 | `.coverage`, `coverage/`, `htmlcov/` | 测试报告 |
-| 虚拟环境 | `.venv/`, `venv/`, `env/` | Python 虚拟环境 |
+| 文件类型 | 示例                                              | 说明                   |
+| -------- | ------------------------------------------------- | ---------------------- |
+| 临时文件 | `*.log`, `*.tmp`, `*.temp`, `*.cache`, `*.bak`    | 日志和临时文件         |
+| 临时目录 | `__pycache__/`, `.pytest_cache/`, `node_modules/` | 编程语言缓存           |
+| 环境文件 | `.env`, `.env.local`, `.env.*`, `*.secret`        | 敏感配置文件           |
+| IDE 配置 | `.vscode/`, `.idea/`                              | 编辑器配置（谨慎处理） |
+| 系统文件 | `.DS_Store`, `Thumbs.db`                          | 系统生成文件           |
+| 构建产物 | `dist/`, `build/`, `target/`, `.next/`            | 编译输出               |
+| 测试覆盖 | `.coverage`, `coverage/`, `htmlcov/`              | 测试报告               |
+| 虚拟环境 | `.venv/`, `venv/`, `env/`                         | Python 虚拟环境        |
 
 **特殊处理**：
 
@@ -145,20 +145,21 @@ credentials.json
 如果需要移除已追踪的不需要的文件：
 
 ```bash
-# 从 git-skills 缓存移除文件（不删除本地文件）
-git-skills rm --cached <file>
+# 从 git缓存移除文件（不删除本地文件）
+gitrm --cached <file>
 
-# 从 git-skills 缓存移除目录
-git-skills rm -r --cached <directory>
+# 从 git缓存移除目录
+gitrm -r --cached <directory>
 
 # 更新 .gitignore 后应用
-git-skills add .gitignore
-git-skills commit -m "chore: 更新 .gitignore 并移除已追踪文件"
+gitadd .gitignore
+gitcommit -m "chore: 更新 .gitignore 并移除已追踪文件"
 ```
 
 ### 常见场景
 
 **Python 项目**：
+
 ```gitignore
 __pycache__/
 *.pyc
@@ -170,6 +171,7 @@ build/
 ```
 
 **Node.js 项目**：
+
 ```gitignore
 node_modules/
 npm-debug.log
@@ -179,6 +181,7 @@ build/
 ```
 
 **Java 项目**：
+
 ```gitignore
 target/
 .classpath
@@ -188,6 +191,7 @@ target/
 ```
 
 **通用配置**：
+
 ```gitignore
 .DS_Store
 Thumbs.db
@@ -211,9 +215,9 @@ Thumbs.db
 echo "*.log" >> .gitignore
 
 # 2. 提交配置
-git-skills add .gitignore
-git-skills commit -m "chore: 更新 .gitignore"
+gitadd .gitignore
+gitcommit -m "chore: 更新 .gitignore"
 
 # 3. 推送到远程
-git-skills push
+gitpush
 ```

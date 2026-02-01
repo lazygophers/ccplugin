@@ -27,13 +27,13 @@
 
 ```json
 {
-  "semi": true,
-  "singleQuote": true,
-  "trailingComma": "es5",
-  "printWidth": 100,
-  "tabWidth": 2,
-  "useTabs": false,
-  "arrowParens": "always"
+	"semi": true,
+	"singleQuote": true,
+	"trailingComma": "es5",
+	"printWidth": 100,
+	"tabWidth": 2,
+	"useTabs": false,
+	"arrowParens": "always"
 }
 ```
 
@@ -43,40 +43,40 @@
 // ✅ 推荐：必要时说明"为什么"
 // 为了避免类型推断失败，显式声明 return 类型
 function getUserData(id: string): Promise<User | null> {
-  return fetchUser(id);
+	return fetchUser(id);
 }
 
 // ❌ 避免：显而易见的注释
 // 获取用户数据
-function getUserData(id: string): Promise<User | null> { }
+function getUserData(id: string): Promise<User | null> {}
 
 // ✅ 推荐：复杂逻辑的说明
 // 使用 discriminated union 简化类型检查逻辑
-type Status = { type: 'success'; data: T } | { type: 'error'; error: Error };
+type Status = { type: "success"; data: T } | { type: "error"; error: Error };
 
 // ❌ 避免：修改历史注释
-// TODO: 2024-01-15 修复性能问题 <- 应该在 git-skills 提交记录中
+// TODO: 2024-01-15 修复性能问题 <- 应该在 git提交记录中
 ```
 
 ## 导入规范
 
 ```typescript
 // ✅ 推荐：type-only imports
-import type { User, UserRole } from '@/types';
-import { getUserService } from '@/services';
+import type { User, UserRole } from "@/types";
+import { getUserService } from "@/services";
 
 // ❌ 避免：混合导入或多余导入
-import { User, UserRole, getUserService } from '@/types';
-import * as helpers from '@/helpers'; // 应该明确指定
+import { User, UserRole, getUserService } from "@/types";
+import * as helpers from "@/helpers"; // 应该明确指定
 
 // ✅ 推荐：分组导入
-import { Component } from 'react';
-import type { ReactNode } from 'react';
+import { Component } from "react";
+import type { ReactNode } from "react";
 
-import { getUserById } from '@/services/user';
-import type { User } from '@/types/user';
+import { getUserById } from "@/services/user";
+import type { User } from "@/types/user";
 
-import { generateId } from '@/utils/id';
+import { generateId } from "@/utils/id";
 ```
 
 ## 项目结构
@@ -127,10 +127,10 @@ API Routes → Services → Entities → Types
 
 ```typescript
 // src/services/index.ts - 统一导出公开接口
-export { getUserService } from './user';
-export { getProductService } from './product';
-export type { UserService } from './user';
-export type { ProductService } from './product';
+export { getUserService } from "./user";
+export { getProductService } from "./product";
+export type { UserService } from "./user";
+export type { ProductService } from "./product";
 
 // 禁止导出内部实现
 // ❌ export { privateHelper } from './user/helpers';
@@ -146,21 +146,21 @@ pnpm add -D vitest @vitest/ui
 
 ```typescript
 // vitest.config.ts
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: {
-    environment: 'node',
-    globals: true,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      lines: 80,
-      functions: 80,
-      branches: 75,
-      statements: 80,
-    },
-  },
+	test: {
+		environment: "node",
+		globals: true,
+		coverage: {
+			provider: "v8",
+			reporter: ["text", "json", "html"],
+			lines: 80,
+			functions: 80,
+			branches: 75,
+			statements: 80,
+		},
+	},
 });
 ```
 
@@ -168,29 +168,29 @@ export default defineConfig({
 
 ```typescript
 // ✅ 推荐：清晰的测试结构
-describe('UserService', () => {
-  let service: UserService;
+describe("UserService", () => {
+	let service: UserService;
 
-  beforeEach(() => {
-    service = new UserService();
-  });
+	beforeEach(() => {
+		service = new UserService();
+	});
 
-  describe('getUserById', () => {
-    it('should return user when found', async () => {
-      const result = await service.getUserById('123');
-      expect(result).toMatchObject({ ok: true });
-    });
+	describe("getUserById", () => {
+		it("should return user when found", async () => {
+			const result = await service.getUserById("123");
+			expect(result).toMatchObject({ ok: true });
+		});
 
-    it('should return error when user not found', async () => {
-      const result = await service.getUserById('non-existent');
-      expect(result).toMatchObject({ ok: false });
-    });
-  });
+		it("should return error when user not found", async () => {
+			const result = await service.getUserById("non-existent");
+			expect(result).toMatchObject({ ok: false });
+		});
+	});
 });
 
 // ❌ 避免：不清晰的测试
-it('test', () => {
-  expect(getUserById('123')).toBeDefined();
+it("test", () => {
+	expect(getUserById("123")).toBeDefined();
 });
 ```
 
@@ -205,59 +205,60 @@ it('test', () => {
 
 ```json
 {
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "ESNext",
-    "lib": ["ES2020"],
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"lib": ["ES2020"],
 
-    // 路径别名
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@types/*": ["src/types/*"]
-    },
+		// 路径别名
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"],
+			"@types/*": ["src/types/*"]
+		},
 
-    // 严格检查（必须启用）
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "exactOptionalPropertyTypes": true,
+		// 严格检查（必须启用）
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"exactOptionalPropertyTypes": true,
 
-    // 模块解析
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": false,
+		// 模块解析
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": false,
 
-    // 输出
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "removeComments": true,
+		// 输出
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"removeComments": true,
 
-    // 性能
-    "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
-    "incremental": true,
-    "tsBuildInfoFile": ".tsbuildinfo",
+		// 性能
+		"skipLibCheck": true,
+		"skipDefaultLibCheck": true,
+		"incremental": true,
+		"tsBuildInfoFile": ".tsbuildinfo",
 
-    // 其他
-    "forceConsistentCasingInFileNames": true,
-    "importsNotUsedAsValues": "error",
-    "isolatedModules": true,
-    "noEmitOnError": false
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+		// 其他
+		"forceConsistentCasingInFileNames": true,
+		"importsNotUsedAsValues": "error",
+		"isolatedModules": true,
+		"noEmitOnError": false
+	},
+	"include": ["src/**/*"],
+	"exclude": ["node_modules", "dist", "**/*.test.ts"]
 }
 ```
 
 ## 包管理器：pnpm
 
 **优势**：
+
 - 快速的依赖安装
 - 磁盘空间效率高
 - 严格的依赖隔离
@@ -283,6 +284,7 @@ pnpm run build
 ## 构建工具选择
 
 **推荐顺序**：
+
 1. **Vite** - 最现代化选择，适合 Web 应用
 2. **esbuild** - 超快构建，适合库
 3. **tsup** - 简化库打包（基于 esbuild）
