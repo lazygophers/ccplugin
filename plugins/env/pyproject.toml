@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-env"
-version = "0.0.105"
+version = "0.0.106"
 description = "Environment handling plugin for Claude Code"
 readme = "README.md"
 requires-python = ">=3.12"

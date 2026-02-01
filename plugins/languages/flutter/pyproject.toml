@@ -1,6 +1,6 @@
 [project]
 name = "code-flutter"
-version = "0.0.105"
+version = "0.0.106"
 description = "Claude Code plugin for Flutter language support"
 readme = "README.md"
 requires-python = ">=3.12"
