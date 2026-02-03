@@ -1,0 +1,53 @@
+# plugin-template
+
+> 插件开发模板 - 快速创建新插件的基础结构。提供完整的命令、代理、技能和hooks示例
+
+## 概述
+
+> 插件开发模板 - 快速创建新插件
+
+## 目录结构
+
+```
+template/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   └── agent-template.md
+├── commands/
+│   └── command-template.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   └── skill-template/
+│       ├── SKILL.md
+│       ├── examples.md
+│       └── reference.md
+├── .gitignore
+├── README.md
+├── __init__.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Version management plugin.
+- `hooks_cmd()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义
+- [命令](./commands/) - 命令定义

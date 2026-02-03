@@ -1,0 +1,45 @@
+# 主题插件
+
+> 主题样式插件集合，提供各种 UI 设计风格和视觉规范
+
+## 概述
+
+本目录包含多种 UI 设计风格的主题插件，为前端开发提供完整的设计系统、色彩方案、组件样式和视觉规范指导。
+
+## 插件列表
+
+### 现代风格
+
+- [style-minimal](./style-minimal/llms.txt) - 极简主义设计风格，留白艺术和简洁排版
+- [style-glassmorphism](./style-glassmorphism/llms.txt) - 玻璃态设计风格，模糊透明和分层效果
+- [style-neumorphism](./style-neumorphism/llms.txt) - 新拟态设计风格，柔和阴影和浮起效果
+
+### 色彩主题
+
+- [style-dark](./style-dark/llms.txt) - 暗黑模式设计风格，深色背景和高对比
+- [style-pastel](./style-pastel/llms.txt) - 柔和粉彩设计风格，淡雅色彩和温柔质感
+- [style-neon](./style-neon/llms.txt) - 霓虹赛博设计风格，发光效果和高饱和色彩
+- [style-gradient](./style-gradient/llms.txt) - 渐变艺术设计风格，流动渐变和色彩过渡
+- [style-vibrant](./style-vibrant/llms.txt) - 充满活力设计风格，高对比和动态感
+
+### 特色风格
+
+- [style-brutalism](./style-brutalism/llms.txt) - 野兽派设计风格，原始边界和大胆排版
+- [style-retro](./style-retro/llms.txt) - 复古怀旧设计风格，80-90s 审美和温暖色调
+- [style-luxe](./style-luxe/llms.txt) - 奢华高端设计风格，金色元素和精致排版
+- [style-healing](./style-healing/llms.txt) - 治愈系极简实用风，莫兰迪配色和情感化温度
+- [style-highcontrast](./style-highcontrast/llms.txt) - 高对比无障碍设计风格，WCAG AAA 标准
+
+## 使用场景
+
+- **Web 应用** - 为网站和 Web 应用提供统一的视觉风格
+- **移动应用** - 为移动端应用提供设计规范
+- **组件库** - 为 UI 组件库提供主题定制
+- **设计系统** - 构建完整的设计系统
+
+## 相关文档
+
+- [项目文档](../../README.md) - CCPlugin 项目文档
+- [开发指南](../../CLAUDE.md) - 开发指南
+- [React 框架插件](../frame/javascript/react/llms.txt) - React 开发支持
+- [Vue 框架插件](../frame/javascript/vue/llms.txt) - Vue 开发支持

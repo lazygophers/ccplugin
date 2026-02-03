@@ -1,0 +1,61 @@
+# notify - Scripts
+
+> notify 插件的 Python 脚本实现
+
+## 概述
+
+本目录包含 notify 插件的核心逻辑实现。
+
+## 主要模块
+
+- `hooks.py` - Hook 事件处理
+- `config.py` - Config 模块
+- `icons.py` - Icons 模块
+- `__init__.py` -   Init   模块
+- `notify.py` - Notify 模块
+- `main.py` - CLI 入口点
+
+## API 参考
+
+### hooks.py
+
+- `get_hook_config(config, event_name, context)` - 根据事件名称获取相应的 Hook 配置
+- `extract_context_from_hook_data(hook_data)` - 从 Hook 数据中提取上下文信息
+- `execute_hook_actions(hook_config, event_name, context)` - 执行 Hook 配置中指定的动作
+- `handle_hook()` - 处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
+
+### config.py
+
+- `get_default_config()` - 获取默认配置
+- `load_config()` - 加载配置（支持多个位置，深度合并）
+- `validate(self)` - 验证配置有效性
+- `validate(self)` - 验证所有工具配置
+- `validate(self)` - 验证所有通知类型配置
+- `HookConfig` - 单个 Hook 配置项
+- `ToolSpecificHookConfig` - 工具特定的 Hook 配置
+- `NotificationTypeHookConfig` - 通知类型 Hook 配置
+- `SessionStartHookConfig` - SessionStart Hook 配置
+- `SessionEndHookConfig` - SessionEnd Hook 配置
+
+### notify.py
+
+- `play_text_tts(text, rate)` - 通过 TTS 播放文本内容
+- `show_system_notification(message, title, duration, icon)` - 显示系统通知
+
+### main.py
+
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Notify plugin for system notifications and TTS.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 依赖
+
+- `lib.logging` - 日志系统
+- `lib.hooks` - Hook 系统
+- `lib.utils` - 工具函数
+
+## 相关文档
+
+- [插件文档](../README.md) - 插件完整文档
+- [插件配置](../.claude-plugin/plugin.json) - 插件元数据

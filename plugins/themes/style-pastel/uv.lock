@@ -217,7 +217,7 @@ wheels = [
 
 [[package]]
 name = "theme-style-pastel"
-version = "0.0.1"
+version = "0.0.106"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

@@ -1,0 +1,38 @@
+# git
+
+> Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理
+
+## 概述
+
+Git 仓库管理插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和仓库维护。
+
+## 目录结构
+
+```
+git/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   └── git.md
+├── commands/
+│   ├── commit.md
+│   ├── ignore.md
+│   ├── pr.md
+│   └── push.md
+├── skills/
+│   └── git-skills/
+│       ├── SKILL.md
+│       ├── commit-guidelines.md
+│       └── pr-guidelines.md
+├── AGENT.md
+├── README.md
+└── __init__.py
+```
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义
+- [命令](./commands/) - 命令定义

@@ -1,0 +1,37 @@
+# flutter - Scripts
+
+> flutter 插件的 Python 脚本实现
+
+## 概述
+
+本目录包含 flutter 插件的核心逻辑实现。
+
+## 主要模块
+
+- `hooks.py` - Hook 事件处理
+- `__init__.py` -   Init   模块
+- `main.py` - CLI 入口点
+
+## API 参考
+
+### hooks.py
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+
+### main.py
+
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Flutter development plugin.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 依赖
+
+- `lib.logging` - 日志系统
+- `lib.hooks` - Hook 系统
+- `lib.utils` - 工具函数
+
+## 相关文档
+
+- [插件文档](../README.md) - 插件完整文档
+- [插件配置](../.claude-plugin/plugin.json) - 插件元数据

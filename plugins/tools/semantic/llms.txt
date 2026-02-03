@@ -1,0 +1,112 @@
+# semantic
+
+> 代码语义搜索插件 - 基于向量嵌入的智能代码搜索。支持多编程语言、多模型、GPU加速、语言特定优化
+
+## 概述
+
+基于向量嵌入的智能代码搜索插件，支持多编程语言、多模型、GPU 加速、多引擎融合、**语言特定优化**。
+
+## 目录结构
+
+```
+semantic/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   └── semantic.md
+├── commands/
+│   └── semantic-search.md
+├── docs/
+│   ├── configuration-guide.md
+│   ├── new-languages-guide.md
+│   └── supported-languages.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── test_data/
+│   │   ├── CMakeLists.txt
+│   │   ├── Dockerfile
+│   │   ├── Makefile
+│   │   ├── test.c
+│   │   ├── test.cpp
+│   │   ├── test.dart
+│   │   ├── test.go
+│   │   ├── test.java
+│   │   ├── test.js
+│   │   ├── test.kt
+│   │   ├── test.lua
+│   │   ├── test.md
+│   │   ├── test.php
+│   │   ├── test.ps1
+│   │   ├── test.py
+│   │   ├── test.rb
+│   │   ├── test.rs
+│   │   ├── test.scala
+│   │   ├── test.sh
+│   │   ├── test.sql
+│   │   ├── test.swift
+│   │   └── test.ts
+│   ├── test_samples/
+│   │   ├── CMakeLists.txt
+│   │   ├── Dockerfile
+│   │   ├── test.c
+│   │   ├── test.cpp
+│   │   ├── test.cs
+│   │   ├── test.dart
+│   │   ├── test.go
+│   │   ├── test.java
+│   │   ├── test.js
+│   │   ├── test.kt
+│   │   ├── test.lua
+│   │   ├── test.php
+│   │   ├── test.ps1
+│   │   ├── test.py
+│   │   ├── test.rb
+│   │   ├── test.rs
+│   │   ├── test.scala
+│   │   ├── test.sh
+│   │   ├── test.sql
+│   │   ├── test.swift
+│   │   └── test.ts
+│   ├── __init__.py
+│   ├── agent_prompt.py
+│   ├── hooks.py
+│   ├── main.py
+│   ├── semantic.py
+│   ├── semantic_old.py
+│   └── test_semantic.py
+├── skills/
+│   └── semantic-skills-search/
+│       ├── SKILL.md
+│       ├── examples.md
+│       └── reference.md
+├── .gitignore
+├── .mcp.json
+├── README.md
+├── __init__.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `run_mcp_mode()` - 运行 MCP 服务器模式
+- `run_cli_mode(args)` - 运行 CLI 模式 - 将参数传递给原始 semantic_old.py 的 main 函数
+- `show_help()` - 显示帮助信息
+- `main()` - 主函数
+- `run_semantic_command(args)` - 运行semantic脚本
+- `test_help()` - 测试帮助信息
+- `test_no_args()` - 测试不带参数运行
+- `test_version_flag()` - 测试版本标志
+- `test_script_executable()` - 测试脚本是否可执行
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义
+- [命令](./commands/) - 命令定义

@@ -1,0 +1,68 @@
+# semantic - Scripts
+
+> semantic 插件的 Python 脚本实现
+
+## 概述
+
+本目录包含 semantic 插件的核心逻辑实现。
+
+## 主要模块
+
+- `hooks.py` - Hook 事件处理
+- `semantic.py` - Semantic 模块
+- `__init__.py` -   Init   模块
+- `test_semantic.py` - Test Semantic 模块
+- `semantic_old.py` - Semantic Old 模块
+- `agent_prompt.py` - Agent Prompt 模块
+- `main.py` - CLI 入口点
+
+## API 参考
+
+### hooks.py
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+
+### semantic.py
+
+- `run_mcp_mode()` - 运行 MCP 服务器模式
+- `run_cli_mode(args)` - 运行 CLI 模式 - 将参数传递给原始 semantic_old.py 的 main 函数
+- `show_help()` - 显示帮助信息
+- `main()` - 主函数
+
+### test_semantic.py
+
+- `run_semantic_command(args)` - 运行semantic脚本
+- `test_help()` - 测试帮助信息
+- `test_no_args()` - 测试不带参数运行
+- `test_version_flag()` - 测试版本标志
+- `test_script_executable()` - 测试脚本是否可执行
+
+### semantic_old.py
+
+- `get_data_path(project_root)` - 获取数据目录路径
+- `get_config_path(project_root)` - 获取配置文件路径
+- `load_config(project_root)` - 加载配置文件
+- `save_config(config, project_root)` - 保存配置文件（带注释）
+- `scan_project_languages(project_root)` - 扫描项目，检测使用的编程语言
+
+### agent_prompt.py
+
+- `get_semantic_agent_prompt()` - 获取代码语义搜索插件的系统提示词
+
+### main.py
+
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Semantic search plugin.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 依赖
+
+- `lib.logging` - 日志系统
+- `lib.hooks` - Hook 系统
+- `lib.utils` - 工具函数
+
+## 相关文档
+
+- [插件文档](../README.md) - 插件完整文档
+- [插件配置](../.claude-plugin/plugin.json) - 插件元数据

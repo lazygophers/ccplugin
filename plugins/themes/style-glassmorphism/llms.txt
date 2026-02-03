@@ -1,0 +1,44 @@
+# style-glassmorphism
+
+> 玻璃态设计风格插件 - 提供玻璃态 UI 设计规范、实现指南和最佳实践。包括模糊、透明、分层和光线效果的完整设计系统
+
+## 概述
+
+玻璃态设计风格插件 - 提供玻璃态 UI 设计规范、实现指南和最佳实践。包括模糊、透明、分层和光线效果的完整设计系统
+
+## 目录结构
+
+```
+style-glassmorphism/
+├── .claude-plugin/
+│   └── plugin.json
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   ├── SKILL.md
+│   ├── examples.md
+│   └── reference.md
+├── .lsp.json
+├── AGENT.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Style Glassmorphism plugin.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 相关文档
+
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义

@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-typescript"
-version = "0.0.100"
+version = "0.0.106"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

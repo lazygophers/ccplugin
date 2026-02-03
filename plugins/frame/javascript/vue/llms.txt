@@ -1,0 +1,55 @@
+# vue
+
+> Vue 3 开发插件 - 提供 Vue 3 开发规范、最佳实践和代码智能支持。包括 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链
+
+## 概述
+
+专业的 Vue 3 开发插件，提供 Composition API、Pinia 状态管理、Vite 构建和完整的开发工具链支持。
+
+## 目录结构
+
+```
+vue/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── debug.md
+│   ├── dev.md
+│   ├── perf.md
+│   └── test.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   └── vue/
+│       ├── SKILL.md
+│       ├── composition-api.md
+│       ├── hooks-lifecycle.md
+│       └── project-patterns.md
+├── .lsp.json
+├── AGENT.md
+├── README.md
+├── __init__.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Vue development plugin.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义

@@ -1,0 +1,59 @@
+# golang
+
+> Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导
+
+## 概述
+
+Golang 开发插件提供高质量的 Golang 代码开发指导和 LSP 支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践。
+
+## 目录结构
+
+```
+golang/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── debug.md
+│   ├── dev.md
+│   ├── perf.md
+│   └── test.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   ├── golang-skills/
+│   │   ├── patterns/
+│   │   ├── SKILL.md
+│   │   ├── architecture-tooling.md
+│   │   ├── development-practices.md
+│   │   └── references.md
+│   └── gtpl-skills/
+│       ├── SKILL.md
+│       ├── functions-performance-patterns.md
+│       └── template-design-security.md
+├── .lsp.json
+├── AGENT.md
+├── README.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Version management plugin.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义
