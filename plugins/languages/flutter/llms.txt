@@ -1,0 +1,59 @@
+# flutter
+
+> Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持。包括 Material 3、Cupertino、自定义设计系统和 Provider、Riverpod、BLoC 等状态管理方案的最佳实践
+
+## 概述
+
+Flutter 开发插件提供高质量的 Flutter/Dart 应用开发指导和语言支持。包括通用 Flutter 开发规范和最佳实践，涵盖 UI 组件、状态管理、性能优化等多个维度。
+
+## 目录结构
+
+```
+flutter/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── debug.md
+│   ├── dev.md
+│   ├── perf.md
+│   └── test.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   └── flutter-skills/
+│       ├── android/
+│       ├── ios/
+│       ├── linux/
+│       ├── macos/
+│       ├── web/
+│       ├── windows/
+│       ├── SKILL.md
+│       ├── state-management.md
+│       └── ui-development.md
+├── .lsp.json
+├── AGENT.md
+├── README.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Flutter development plugin.
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义

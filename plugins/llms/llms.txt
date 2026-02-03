@@ -1,0 +1,47 @@
+# plugin-llms
+
+> llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件
+
+## 概述
+
+> 通过 Agent 自动生成符合 [llms.txt 标准](https://llmstxt.org/) 的文件
+
+## 目录结构
+
+```
+llms/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   └── llms-generator.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   └── llms-skills/
+│       ├── format/
+│       └── SKILL.md
+├── AGENT.md
+├── README.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并分发到对应处理器
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - llms.txt Plugin - Hook 处理入口
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)`
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义

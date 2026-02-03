@@ -1,0 +1,21 @@
+# 语言插件
+
+> 编程语言支持插件集合，为不同语言提供开发规范和最佳实践
+
+## 概述
+
+本目录包含 语言插件 相关的插件。
+
+## 插件列表
+
+- [flutter](./flutter/llms.txt): Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持。包括 Material 3、Cupertino、自定义设计系统和 Provider、R...
+- [golang](./golang/llms.txt): Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导
+- [javascript](./javascript/llms.txt): JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest...
+- [naming](./naming/llms.txt): 命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正
+- [python](./python/llms.txt): Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导
+- [typescript](./typescript/llms.txt): TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导
+
+## 相关文档
+
+- [项目文档](../../README.md) - CCPlugin 项目文档
+- [开发指南](../../CLAUDE.md) - 开发指南

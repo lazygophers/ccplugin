@@ -1,0 +1,33 @@
+# lrpc - Scripts
+
+> lrpc 插件的 Python 脚本实现
+
+## 概述
+
+本目录包含 lrpc 插件的核心逻辑实现。
+
+## 主要模块
+
+- `hooks.py` - Hook 事件处理
+- `main.py` - CLI 入口点
+
+## API 参考
+
+### hooks.py
+
+- `handle_session_start(event_data)` - SessionStart Hook 处理
+
+### main.py
+
+- `main()` - lrpc 高性能 RPC 框架插件
+
+## 依赖
+
+- `lib.logging` - 日志系统
+- `lib.hooks` - Hook 系统
+- `lib.utils` - 工具函数
+
+## 相关文档
+
+- [插件文档](../README.md) - 插件完整文档
+- [插件配置](../.claude-plugin/plugin.json) - 插件元数据

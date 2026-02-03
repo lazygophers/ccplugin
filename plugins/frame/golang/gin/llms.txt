@@ -1,0 +1,49 @@
+# gin
+
+> Gin Web 框架插件 - 提供基于 httprouter 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件、数据绑定、验证和丰富的生态集成
+
+## 概述
+
+Gin Web 框架插件 - 提供基于 httprouter 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件、数据绑定、验证和丰富的生态集成
+
+## 目录结构
+
+```
+gin/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── debug.md
+│   ├── dev.md
+│   ├── perf.md
+│   └── test.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   └── gin-skills/
+│       └── SKILL.md
+├── .lsp.json
+├── AGENT.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `on_session_start(hook_data)` - SessionStart 事件处理
+- `on_user_prompt_submit(hook_data)` - UserPromptSubmit 事件处理
+- `main()` - Gin 框架插件命令
+- `hooks()` - 处理 Hook 事件
+
+## 相关文档
+
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义

@@ -1,0 +1,29 @@
+# Plugins - 插件市场
+
+> CCPlugin 插件集合，提供各种开发辅助功能
+
+## 概述
+
+本目录包含所有 CCPlugin 插件，按功能分类组织。
+
+## 插件分类
+
+- [工具插件](./tools/llms.txt) - 开发辅助工具
+- [语言插件](./languages/llms.txt) - 编程语言支持
+- [框架插件](./frame/llms.txt) - 开发框架支持
+- [主题插件](./themes/llms.txt) - UI 设计风格
+
+## 顶层插件
+
+- [env](./env/llms.txt): 环境处理插件 - 用于处理环境相关的问题
+- [plugin-llms](./llms/llms.txt): llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件
+- [notify](./notify/llms.txt): 系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件
+- [task](./task/llms.txt): 完整的项目任务管理插件 - 支持开发计划创建、任务执行、进度追踪、依赖管理。基于SQLite数据库存储，提供任务生命周期管理、工作量评估、需求覆盖分析等功能
+- [plugin-template](./template/llms.txt): 插件开发模板 - 快速创建新插件的基础结构。提供完整的命令、代理、技能和hooks示例
+- [version](./version/llms.txt): 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置
+
+## 相关文档
+
+- [项目文档](../README.md) - CCPlugin 项目文档
+- [开发指南](../CLAUDE.md) - 开发指南
+- [插件市场配置](../.claude-plugin/marketplace.json) - 市场配置

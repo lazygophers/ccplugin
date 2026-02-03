@@ -1,0 +1,59 @@
+# task
+
+> 完整的项目任务管理插件 - 支持开发计划创建、任务执行、进度追踪、依赖管理。基于SQLite数据库存储，提供任务生命周期管理、工作量评估、需求覆盖分析等功能
+
+## 概述
+
+> 项目任务管理插件 - 基于文件系统的轻量级任务追踪系统
+
+## 目录结构
+
+```
+task/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   └── task.md
+├── commands/
+│   ├── add.md
+│   ├── complete.md
+│   ├── plans.md
+│   ├── start.md
+│   └── update.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── init_task_system.py
+│   └── test_task.py
+├── skills/
+│   └── task/
+│       ├── examples/
+│       ├── SKILL.md
+│       └── reference.md
+├── .mcp.json
+├── README.md
+├── __init__.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `run_task_init()` - 运行task初始化脚本
+- `test_init_creates_directories()` - 测试初始化是否创建目录结构
+- `test_init_creates_files()` - 测试初始化是否创建文件
+- `test_init_idempotent()` - 测试初始化是否幂等（多次运行结果一致）
+- `main()` - 运行所有测试
+- `find_project_root()` - 找到项目根目录（包含 .git 的目录）
+- `init_task_system()` - 初始化任务管理系统目录结构
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义
+- [命令](./commands/) - 命令定义

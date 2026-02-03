@@ -1,0 +1,52 @@
+# version
+
+> 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置
+
+## 概述
+
+一个完整的 Semantic Versioning (SemVer) 版本管理解决方案，为 Claude Code 项目提供自动和手动版本号管理功能。
+
+## 目录结构
+
+```
+version/
+├── .claude-plugin/
+│   └── plugin.json
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   ├── main.py
+│   ├── mcp.py
+│   └── version.py
+├── .mcp.json
+├── README.md
+├── __init__.py
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `init_version()`
+- `auto_update()`
+- `inc_major()` - 更新主版本号（第一级），其余级别重置为 0
+- `inc_minor()` - 更新次版本号（第二级），patch和build重置为 0
+- `inc_patch()` - 更新补丁版本号（第三级），build重置为 0
+- `get_version()`
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Version management plugin.
+- `info()` - Show version information
+
+### 主要类
+
+- `VersionMCPServer` - 版本管理 MCP 服务器
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据

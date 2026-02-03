@@ -1,0 +1,58 @@
+# deepresearch
+
+> 深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成
+
+## 概述
+
+基于图思维框架（Graph of Thoughts）的多智能体深度研究系统，提供全方位的深度调查、知识合成和专业报告生成能力。
+
+## 目录结构
+
+```
+deepresearch/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── architecture-review-agent.md
+│   ├── code-review-agent.md
+│   ├── concept-explanation-agent.md
+│   ├── dependency-audit-agent.md
+│   ├── performance-analysis-agent.md
+│   ├── project-evaluation-agent.md
+│   ├── tech-selection-agent.md
+│   └── technical-debt-agent.md
+├── commands/
+│   └── deep-research.md
+├── skills/
+│   ├── citation-validator-skills/
+│   │   └── SKILL.md
+│   ├── content-retriever-skills/
+│   │   └── SKILL.md
+│   ├── explorer-skills/
+│   │   └── SKILL.md
+│   ├── github-analysis-skills/
+│   │   └── SKILL.md
+│   ├── got-controller-skills/
+│   │   └── SKILL.md
+│   ├── local-code-analysis/
+│   │   └── SKILL.md
+│   ├── question-refiner-skills/
+│   │   ├── SKILL.md
+│   │   ├── examples.md
+│   │   └── reference.md
+│   ├── research-executor-skills/
+│   │   └── SKILL.md
+│   └── synthesizer/
+│       ├── formats/
+│       └── SKILL.md
+├── .mcp.json
+└── README.md
+```
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义
+- [命令](./commands/) - 命令定义

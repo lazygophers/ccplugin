@@ -1,0 +1,58 @@
+# gofiber
+
+> Go Fiber Web 框架插件 - 提供基于 fasthttp-skills 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件开发、错误处理和性能优化
+
+## 概述
+
+Go Fiber Web 框架插件 - 提供基于 fasthttp-skills 的高性能 Web 开发规范、最佳实践和代码智能支持。包括路由系统、中间件开发、错误处理和性能优化
+
+## 目录结构
+
+```
+gofiber/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── debug.md
+│   ├── dev.md
+│   ├── perf.md
+│   └── test.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── skills/
+│   └── gofiber-skills/
+│       ├── best-practices/
+│       ├── core/
+│       ├── data-binding/
+│       ├── deployment/
+│       ├── middleware/
+│       ├── performance/
+│       ├── routing/
+│       ├── testing/
+│       ├── SKILL.md
+│       └── references.md
+├── .lsp.json
+├── AGENT.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `on_session_start(hook_data)` - SessionStart 事件处理
+- `on_user_prompt_submit(hook_data)` - UserPromptSubmit 事件处理
+- `main()` - Fiber 框架插件命令
+- `hooks()` - 处理 Hook 事件
+
+## 相关文档
+
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义

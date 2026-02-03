@@ -1,0 +1,59 @@
+# notify
+
+> 系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件
+
+## 概述
+
+通过系统通知向用户实时提示会话状态变更、权限请求等重要事件的 Claude Code 插件。
+
+## 目录结构
+
+```
+notify/
+├── .claude-plugin/
+│   └── plugin.json
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── hooks.py
+│   ├── icons.py
+│   ├── main.py
+│   └── notify.py
+├── README.md
+├── __init__.py
+├── hooks.example.yaml
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `get_hook_config(config, event_name, context)` - 根据事件名称获取相应的 Hook 配置
+- `extract_context_from_hook_data(hook_data)` - 从 Hook 数据中提取上下文信息
+- `execute_hook_actions(hook_config, event_name, context)` - 执行 Hook 配置中指定的动作
+- `handle_hook()` - 处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
+- `get_default_config()` - 获取默认配置
+- `load_config()` - 加载配置（支持多个位置，深度合并）
+- `validate(self)` - 验证配置有效性
+- `validate(self)` - 验证所有工具配置
+- `validate(self)` - 验证所有通知类型配置
+- `validate(self)` - 验证所有启动场景配置
+
+### 主要类
+
+- `HookConfig` - 单个 Hook 配置项
+- `ToolSpecificHookConfig` - 工具特定的 Hook 配置
+- `NotificationTypeHookConfig` - 通知类型 Hook 配置
+- `SessionStartHookConfig` - SessionStart Hook 配置
+- `SessionEndHookConfig` - SessionEnd Hook 配置
+- `PreCompactHookConfig` - PreCompact Hook 配置
+- `HooksConfig` - 完整的 Claude Code Hooks 配置
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
