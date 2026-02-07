@@ -309,27 +309,71 @@ defer log.PutBuffer(buf)
 // ✅ 使用 atomic 原子操作
 import "go.uber.org/atomic"
 
+// Int64 原子操作
 counter := atomic.NewInt64(0)
-counter.Inc()
-val := counter.Load()
+counter.Inc()              // 加 1
+counter.Add(10)            // 加 10
+counter.Dec()              // 减 1
+counter.Sub(5)             // 减 5
+val := counter.Load()       // 读取值
+counter.Store(100)         // 设置值
+counter.Swap(200)          // 交换并返回旧值
+counter.CompareAndSwap(200, 300) // CAS 操作
+
+// Uint32 原子操作
+id := atomic.NewUint32(0)
+id.Inc()
+val := id.Load()
+
+// Float64 原子操作
+rate := atomic.NewFloat64(0.0)
+rate.Add(0.5)
+val := rate.Load()
+
+// Bool 原子操作
+flag := atomic.NewBool(false)
+flag.Toggle()              // 切换
+flag.Store(true)
+val := flag.Load()
+
+// String 原子操作
+name := atomic.NewString("")
+name.Store("hello")
+val := name.Load()
+
+// Value 原子操作（任意类型）
+value := atomic.NewValue(nil)
+value.Store(&User{Id: 1})
+val := value.Load().(*User)
 
 // ❌ 禁止 - 直接使用 sync/atomic（难用）
 var counter int64
 atomic.AddInt64(&counter, 1)  // 容易出错
 
+// ❌ 禁止 - 使用 mutex（性能低）
+var mu sync.Mutex
+var counter int64
+mu.Lock()
+counter++
+mu.Unlock()
+```
+
 // ✅ 使用 errgroup 管理 goroutine
 import "golang.org/x/sync/errgroup"
 
 eg, ctx := errgroup.WithContext(context.Background())
-for _, item := range items {
-    item := item
-    eg.Go(func() error {
-        return process(ctx, item)
-    })
+for \_, item := range items {
+item := item
+eg.Go(func() error {
+return process(ctx, item)
+})
 }
 err = eg.Wait()
 if err != nil {
-    log.Errorf("err:%v", err)
-    return err
+log.Errorf("err:%v", err)
+return err
 }
+
+```
+
 ```

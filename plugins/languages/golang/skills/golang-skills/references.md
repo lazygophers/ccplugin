@@ -52,6 +52,11 @@
 
 ### 补充库
 
+- **Atomic**：[go.uber.org/atomic](https://github.com/uber-go/atomic) - 原子操作
+    - Int64/Uint32/Float64/Bool/String/Value 原子类型
+    - 简单易用的 API
+    - 高性能并发操作
+
 - **Testing**：[testify](https://github.com/stretchr/testify) - 断言和 mock
 - **Errors**：[errors](https://golang.org/pkg/errors/) - Go 1.13+ 错误处理
 - **Context**：[context](https://golang.org/pkg/context/) - 上下文管理
