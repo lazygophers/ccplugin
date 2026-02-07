@@ -1,6 +1,7 @@
 ---
 name: synthesizer-skills
 description: 研究合成技能 - 将来自多个来源和角度的研究发现整合为连贯、有深度的综合报告，支持多种输出格式
+user-invocable: false
 ---
 
 ## 研究合成器
