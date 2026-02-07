@@ -12,6 +12,8 @@ description: Golang 开发规范和最佳实践指导，包括代码风格、项
 | **SKILL.md**                                         | 核心理念、优先包、强制规范速览                       | 快速入门       |
 | [development-practices.md](development-practices.md) | 强制规范、优先包使用、错误处理、命名、日志、性能优化 | 日常编码       |
 | [architecture-tooling.md](architecture-tooling.md)   | 架构设计、项目结构、代码生成、依赖管理、工具链       | 项目架构和部署 |
+| [coding-standards/](coding-standards/)               | 编码规范（错误处理、函数式编程、命名、格式、注释）   | 代码规范参考   |
+| [examples/](examples/)                               | 代码示例（good/bad）                                 | 学习参考       |
 
 ## 核心理念
 
@@ -97,6 +99,26 @@ type User struct {
 
 参见 [development-practices.md](development-practices.md) 了解完整的强制规范、优先包使用、错误处理、函数式编程、命名规范、日志和性能优化指南。
 参见 [architecture-tooling.md](architecture-tooling.md) 了解全局状态模式、三层架构、项目结构、代码生成、依赖管理和开发工具链的详细说明。
+
+### 编码规范
+
+- [错误处理规范](coding-standards/error-handling.md) - 错误处理原则、日志规范、错误判断
+- [函数式编程规范](coding-standards/functional-programming.md) - 函数式编程原则、Candy 库使用
+- [命名规范](coding-standards/naming-conventions.md) - 字段命名、函数命名、包命名、文件命名
+- [代码格式规范](coding-standards/code-formatting.md) - 代码格式化、导入规范、注释规范
+- [注释规范](coding-standards/comment-standards.md) - 注释原则、注释格式、注释内容
+
+### 项目规范
+
+- [项目结构规范](coding-standards/project-structure.md) - 项目目录布局、包组织规则、文件命名
+- [测试规范](coding-standards/testing-standards.md) - 单元测试、集成测试、端到端测试
+- [文档规范](coding-standards/documentation-standards.md) - README、API 文档、代码注释
+- [版本控制规范](coding-standards/version-control-standards.md) - Git 使用规范、分支管理、提交规范
+- [代码审查规范](coding-standards/code-review-standards.md) - 审查原则、审查清单、审查流程
+
+### 代码示例
+
+- [代码示例](examples/) - 符合和不符合规范的代码示例（good/bad）
 
 ## 优先级规则
 

@@ -1,4 +1,4 @@
-# golang-skills 函数设计规范
+# Golang 函数式编程规范
 
 ## 核心原则
 
@@ -39,7 +39,7 @@ func processData(data []byte) string {
 
 // ❌ 避免 - 每次创建新缓冲区
 func processDataBad(data []byte) string {
-    buf := new(bytes.Buffer)  // 每次分配
+    buf := new(bytes.Buffer)
     buf.Write(data)
     return buf.String()
 }
@@ -50,7 +50,7 @@ func processDataBad(data []byte) string {
 ### 集合操作必用 Candy
 
 ```go
-import "github.com/golang/utils/candy"
+import "github.com/lazygophers/utils/candy"
 
 // ✅ 必须使用 candy 而非手动循环
 func ListActiveUsers() ([]*User, error) {
@@ -78,24 +78,23 @@ func ListActiveUsers() ([]*User, error) {
 ### 字符串转换必用 Stringx
 
 ```go
-import "github.com/golang/utils/stringx"
+import "github.com/lazygophers/utils/stringx"
 
 // ✅ 必须使用 stringx
 func TransformField(fieldName string) string {
-    return stringx.ToSmallCamel(fieldName)  // 用户名 → userName
+    return stringx.ToSmallCamel(fieldName)
 }
 
 // ❌ 禁止 - 手动实现
 func TransformFieldBad(fieldName string) string {
-    // 不要自己实现字符串转换
-    return "" // 省略...
+    return ""
 }
 ```
 
 ### 文件操作必用 Osx
 
 ```go
-import "github.com/golang/utils/osx"
+import "github.com/lazygophers/utils/osx"
 
 // ✅ 必须使用 osx
 func LoadConfigFile(path string) error {
@@ -110,7 +109,7 @@ func LoadConfigFile(path string) error {
         return err
     }
 
-    err =  parseConfig(data)
+    err = parseConfig(data)
     if err != nil {
         log.Errorf("err:%v", err)
         return err
@@ -125,7 +124,7 @@ func LoadConfigFileBad(path string) error {
     if err != nil && os.IsNotExist(err) {
         return fmt.Errorf("file not found")
     }
-    // ...
+    return nil
 }
 ```
 
@@ -143,7 +142,7 @@ func Register(ctx *fiber.Ctx) error {
         return sendError(ctx, http.StatusBadRequest, err)
     }
 
-    user, err :=Register(&req)
+    user, err := Register(&req)
     if err != nil {
         log.Errorf("err:%v", err)
         return sendError(ctx, http.StatusInternalServerError, err)
@@ -179,7 +178,7 @@ func Register(req *RegisterRequest) (*User, error) {
     user := &User{
         Email: req.Email,
     }
-    err := repo.Save(user)
+    err = repo.Save(user)
     if err != nil {
         log.Errorf("err:%v", err)
         return nil, err
@@ -218,7 +217,7 @@ func (p *SnakeProcessor) Process(data string) string {
 
 // 使用
 processor := Processors["camel"]
-result := processor.Process("user_name")  // userName
+result := processor.Process("user_name")
 ```
 
 ### 选项模式
@@ -261,13 +260,12 @@ type Request struct {
 }
 
 func Process(r *Request) error {
-    // 处理 r.Data，避免复制大对象
     return nil
 }
 
 // ✅ 预分配容量
 func ProcessItems(items []Item) []string {
-    result := make([]string, 0, len(items))  // 预分配
+    result := make([]string, 0, len(items))
     for _, item := range items {
         result = append(result, item.String())
     }
@@ -276,9 +274,9 @@ func ProcessItems(items []Item) []string {
 
 // ❌ 避免 - 无容量预分配
 func ProcessItemsBad(items []Item) []string {
-    var result []string  // 容量为 0
+    var result []string
     for _, item := range items {
-        result = append(result, item.String())  // 多次重新分配
+        result = append(result, item.String())
     }
     return result
 }
@@ -301,7 +299,7 @@ func Sum(d *Data) int {
 }
 
 // ❌ 避免 - 复制整个结构体
-func SumBad(d Data) int {  // 值传递
+func SumBad(d Data) int {
     total := 0
     for _, v := range d.Values {
         total += v
