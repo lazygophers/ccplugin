@@ -1,6 +1,7 @@
 ---
 name: citation-validator-skills
 description: 引用验证技能 - 对研究中的所有引用进行质量验证和可信度评分，确保学术和研究质量
+user-invocable: false
 ---
 
 ## 引用验证器
