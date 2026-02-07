@@ -7,11 +7,11 @@ description: Golang 开发规范和最佳实践指导，包括代码风格、项
 
 ## 快速导航
 
-| 文档 | 内容 | 适用场景 |
-|------|------|---------|
-| **SKILL.md** | 核心理念、优先包、强制规范速览 | 快速入门 |
-| [development-practices.md](development-practices.md) | 强制规范、优先包使用、错误处理、命名、日志、性能优化 | 日常编码 |
-| [architecture-tooling.md](architecture-tooling.md) | 架构设计、项目结构、代码生成、依赖管理、工具链 | 项目架构和部署 |
+| 文档                                                 | 内容                                                 | 适用场景       |
+| ---------------------------------------------------- | ---------------------------------------------------- | -------------- |
+| **SKILL.md**                                         | 核心理念、优先包、强制规范速览                       | 快速入门       |
+| [development-practices.md](development-practices.md) | 强制规范、优先包使用、错误处理、命名、日志、性能优化 | 日常编码       |
+| [architecture-tooling.md](architecture-tooling.md)   | 架构设计、项目结构、代码生成、依赖管理、工具链       | 项目架构和部署 |
 
 ## 核心理念
 
@@ -25,21 +25,21 @@ Golang 生态追求**高性能、低分配、简洁优雅**，通过精选的工
 
 ## 版本与环境
 
-- **Go 版本**：1.21+ 推荐
+- **Go 版本**：1.25+ 推荐
 - **Go 工具链**：最新 1.x 版本
 - **依赖管理**：go.mod + go.sum
 - **测试框架**：testing + testify（可选）
 
 ## 优先包速查
 
-| 用途 | 推荐包 | 用法 |
-|------|-------|------|
-| 字符串转换 | `stringx` | `stringx.ToCamel("user_name")` |
-| 集合操作 | `candy` | `candy.Map/Filter/Each` |
-| 文件操作 | `osx` | `osx.IsFile(path)` |
-| 类型转换 | `candy` | `candy.ToInt64(v)` |
-| 日志记录 | `golang/log` | `log.Infof/Errorf` |
-| 性能原子操作 | `go.uber.org/atomic` | `atomic.NewInt64()` |
+| 用途         | 推荐包               | 用法                           |
+| ------------ | -------------------- | ------------------------------ |
+| 字符串转换   | `stringx`            | `stringx.ToCamel("user_name")` |
+| 集合操作     | `candy`              | `candy.Map/Filter/Each`        |
+| 文件操作     | `osx`                | `osx.IsFile(path)`             |
+| 类型转换     | `candy`              | `candy.ToInt64(v)`             |
+| 日志记录     | `golang/log`         | `log.Infof/Errorf`             |
+| 性能原子操作 | `go.uber.org/atomic` | `atomic.NewInt64()`            |
 
 ## 核心约定
 
@@ -66,6 +66,7 @@ internal/
 ## 最佳实践概览
 
 **错误处理**
+
 ```go
 data, err := os.ReadFile(path)
 if err != nil {
@@ -75,12 +76,14 @@ if err != nil {
 ```
 
 **集合操作**
+
 ```go
 names := candy.Map(users, func(u *User) string { return u.Name })
 // 不允许: for _, u := range users { names = append(names, u.Name) }
 ```
 
 **命名规范**
+
 ```go
 type User struct {
     Id        int64  // 主键
@@ -93,7 +96,6 @@ type User struct {
 ## 扩展文档
 
 参见 [development-practices.md](development-practices.md) 了解完整的强制规范、优先包使用、错误处理、函数式编程、命名规范、日志和性能优化指南。
-
 参见 [architecture-tooling.md](architecture-tooling.md) 了解全局状态模式、三层架构、项目结构、代码生成、依赖管理和开发工具链的详细说明。
 
 ## 优先级规则
