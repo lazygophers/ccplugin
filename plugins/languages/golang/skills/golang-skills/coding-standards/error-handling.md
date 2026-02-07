@@ -1,4 +1,4 @@
-# golang-skills 错误处理规范
+# Golang 错误处理规范
 
 ## 核心原则
 
@@ -46,7 +46,7 @@ if err != nil { return nil, err }
 
 // ❌ 禁止 - 包装
 if err != nil {
-    return nil, fmt.Errorf("read file: %w", err)  // 不要包装
+    return nil, fmt.Errorf("read file: %w", err)
 }
 ```
 
@@ -202,7 +202,7 @@ func handleError(ctx *fiber.Ctx, err error) error {
 ### 日志级别和格式
 
 ```go
-import "github.com/golang/log"
+import "github.com/lazygophers/log"
 
 // ✅ Info - 正常流程信息
 log.Infof("user registered: %s", username)
@@ -213,7 +213,7 @@ log.Warnf("cache miss for key: %s", key)
 log.Warnf("config file not found, using defaults")
 
 // ✅ Error - 错误（功能异常）
-log.Errorf("err:%v", err)  // 统一格式
+log.Errorf("err:%v", err)
 log.Errorf("failed to save user: %v", err)
 
 // ✅ Fatal - 致命错误（程序无法继续）
@@ -225,7 +225,7 @@ log.Fatalf("failed to load config: %v", err)
 ```go
 // ✅ 简洁统一的错误格式
 if err != nil {
-    log.Errorf("err:%v", err)  // 所有错误使用统一格式
+    log.Errorf("err:%v", err)
     return err
 }
 
@@ -296,7 +296,7 @@ if err != nil {
 }
 
 // ❌ 假设不出错
-results := processItems(items)  // 假设成功
+results := processItems(items)
 ```
 
 ### 2. 清晰的错误含义
@@ -327,13 +327,13 @@ if len(password) < 8 {
 // ✅ 日志 + 返回成对
 data, err := os.ReadFile(path)
 if err != nil {
-    log.Errorf("err:%v", err)     // 日志
-    return nil, err                // 返回
+    log.Errorf("err:%v", err)
+    return nil, err
 }
 
 // ❌ 只返回不日志
 data, err := os.ReadFile(path)
 if err != nil {
-    return nil, err  // 无日志
+    return nil, err
 }
 ```

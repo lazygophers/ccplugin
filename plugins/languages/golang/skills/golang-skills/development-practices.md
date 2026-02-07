@@ -1,8 +1,3 @@
----
-name: development-practices
-description: Golang 开发实践规范 - 包含强制规范、优先包使用、错误处理、函数式编程、命名规范、日志和性能优化
----
-
 # Golang 开发实践规范
 
 ## 优先包（强制）
@@ -11,16 +6,16 @@ description: Golang 开发实践规范 - 包含强制规范、优先包使用、
 
 ```go
 import (
-    "github.com/golang/utils"        // 综合工具库（20+ 模块）
-    "github.com/golang/utils/candy"  // 函数式编程（Map/Filter/Each）
-    "github.com/golang/log"          // 高性能日志
-    "github.com/golang/utils/stringx" // 字符串处理
-    "github.com/golang/utils/osx"    // 文件操作
-    "github.com/golang/utils/json"   // JSON 处理
-    "github.com/golang/utils/cryptox" // 加密/哈希
-    "github.com/golang/utils/xtime"   // 时间处理
-    "github.com/golang/utils/defaults" // 默认值处理
-    "github.com/golang/utils/validate" // 验证器
+    "github.com/lazygophers/utils"        // 综合工具库（20+ 模块）
+    "github.com/lazygophers/utils/candy"  // 函数式编程（Map/Filter/Each）
+    "github.com/lazygophers/log"          // 高性能日志
+    "github.com/lazygophers/utils/stringx" // 字符串处理
+    "github.com/lazygophers/utils/osx"    // 文件操作
+    "github.com/lazygophers/utils/json"   // JSON 处理
+    "github.com/lazygophers/utils/cryptox" // 加密/哈希
+    "github.com/lazygophers/utils/xtime"   // 时间处理
+    "github.com/lazygophers/utils/defaults" // 默认值处理
+    "github.com/lazygophers/utils/validate" // 验证器
 )
 ```
 
@@ -35,6 +30,7 @@ import (
 | `cryptox`  | 加密/哈希                                         | crypto 标准库 |
 | `xtime`    | 时间处理                                          | time 标准库   |
 | `defaults` | 默认值处理                                        | 手动检查      |
+| `validate` | 验证器                                            | 手动验证      |
 
 ## 强制规范
 
@@ -42,7 +38,7 @@ import (
 
 ```go
 // ✅ 必须 - 使用 stringx
-import "github.com/golang/utils/stringx"
+import "github.com/lazygophers/utils/stringx"
 
 name := stringx.ToCamel("user_name")           // UserName
 smallName := stringx.ToSmallCamel("user_name") // userName
@@ -58,7 +54,7 @@ func toCamel(s string) string {
 
 ```go
 // ✅ 必须 - 使用 candy
-import "github.com/golang/utils/candy"
+import "github.com/lazygophers/utils/candy"
 
 // Each 遍历
 candy.Each(users, func(u *User) {
@@ -86,7 +82,7 @@ for _, user := range users {
 
 ```go
 // ✅ 必须 - 使用 osx
-import "github.com/golang/utils/osx"
+import "github.com/lazygophers/utils/osx"
 
 if osx.IsFile(path) {
     // 文件存在
@@ -107,7 +103,7 @@ if err != nil && os.IsNotExist(err) {
 
 ```go
 // ✅ 必须 - 使用 candy 零失败转换
-import "github.com/golang/utils/candy"
+import "github.com/lazygophers/utils/candy"
 
 port := candy.ToInt64(config["port"])        // 失败返回 0
 isEnabled := candy.ToBool(config["enabled"]) // 失败返回 false
@@ -247,7 +243,7 @@ type UserRepository interface {
 ### 使用 golang/log
 
 ```go
-import "github.com/golang/log"
+import "github.com/lazygophers/log"
 
 // ✅ 标准日志
 log.Infof("proto file:%s", protoFile)         // Info
@@ -285,7 +281,7 @@ log.Infof("processing file: %s, size: %d", filename, size)
 
 ### 内存优化
 
-```go
+````go
 // ✅ 使用 embedding 减少分配
 type Request struct {
     *http.Request  // 嵌入指针，不增加分配
@@ -300,12 +296,12 @@ var bufferPool = sync.Pool{
 
 buf := bufferPool.Get().(*bytes.Buffer)
 defer bufferPool.Put(buf)
-
+```go
 // ✅ 日志缓冲优化
-import "github.com/golang/log"
+import "github.com/lazygophers/log"
 buf := log.GetBuffer()
 defer log.PutBuffer(buf)
-```
+````
 
 ### 并发优化
 

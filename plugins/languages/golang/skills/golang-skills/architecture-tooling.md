@@ -1,13 +1,8 @@
----
-name: architecture-tooling
-description: Golang 架构设计和工具链 - 包含全局状态模式、三层架构、项目结构、代码生成、依赖管理和开发工具
----
-
 # Golang 架构设计和工具链
 
 ## 架构设计规范
 
-### 核心设计（参考 Linky）
+### 核心设计
 
 ```
 API Layer (Fiber handlers)
@@ -30,23 +25,23 @@ Database
 ### 设计原则
 
 1. **全局状态模式**
-   - 所有有状态资源（数据库、缓存、配置）作为全局变量
-   - 避免使用 Repository 接口或依赖注入
-   - 简化代码，减少样板代码
+    - 所有有状态资源（数据库、缓存、配置）作为全局变量
+    - 避免使用 Repository 接口或依赖注入
+    - 简化代码，减少样板代码
 
 2. **三层架构**
-   - **API 层**：HTTP 路由、请求验证、响应格式化
-   - **Service 层**：业务逻辑实现、事务处理
-   - **State 层**：数据访问、资源管理
+    - **API 层**：HTTP 路由、请求验证、响应格式化
+    - **Service 层**：业务逻辑实现、事务处理
+    - **State 层**：数据访问、资源管理
 
 3. **启动顺序**
-   - 初始化全局 State（数据库、缓存）
-   - 准备 Service 层（数据预加载）
-   - 启动 API 服务器
+    - 初始化全局 State（数据库、缓存）
+    - 准备 Service 层（数据预加载）
+    - 启动 API 服务器
 
 ## 项目结构
 
-### 推荐目录布局（参考 Linky Server）
+### 推荐目录布局
 
 ```
 server/
@@ -141,10 +136,10 @@ go mod init github.com/username/project
 go mod tidy
 
 # ✅ 添加依赖
-go get github.com/golang/utils@latest
+go get github.com/lazygophers/utils@latest
 
 # ✅ 本地替换（开发时）
-go mod edit -replace github.com/golang/utils=/local/path
+go mod edit -replace github.com/lazygophers/utils=/local/path
 
 # ✅ 查看依赖树
 go mod graph
@@ -187,32 +182,36 @@ go tool pprof cpu.prof
 ### 开发工作流
 
 1. **编写代码**
-   ```bash
-   gofmt -w .
-   goimports -w .
-   ```
+
+    ```bash
+    gofmt -w .
+    goimports -w .
+    ```
 
 2. **本地测试**
-   ```bash
-   go test -v -race -cover ./...
-   ```
+
+    ```bash
+    go test -v -race -cover ./...
+    ```
 
 3. **代码检查**
-   ```bash
-   go vet ./...
-   golangci-lint run
-   ```
+
+    ```bash
+    go vet ./...
+    golangci-lint run
+    ```
 
 4. **性能基准**
-   ```bash
-   go test -bench=. -benchmem ./...
-   ```
+
+    ```bash
+    go test -bench=. -benchmem ./...
+    ```
 
 5. **提交前检查**
-   ```bash
-   go mod tidy
-   go test -v ./...
-   ```
+    ```bash
+    go mod tidy
+    go test -v ./...
+    ```
 
 ## 优先级规则
 
