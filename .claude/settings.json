@@ -16,6 +16,16 @@
 					}
 				]
 			}
+		],
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "uv run .claude/scripts/hooks.py"
+					}
+				]
+			}
 		]
 	}
 }
