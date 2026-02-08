@@ -29,7 +29,7 @@ CCPlugin Python 生态追求**标准化、可复用、可维护**，通过统一
 
 ## 版本与环境
 
-- **Python 版本**：>= 3.12（强制）
+- **Python 版本**：>= 3.11（强制）
 - **包管理器**：uv（强制，不使用 pip）
 - **CLI 框架**：Click（推荐）
 - **共享库**：lib（强制依赖）
@@ -586,7 +586,7 @@ class VersionMCPServer:
 [project]
 name = "plugin-name"              # 插件名称
 version = "0.0.91"                # 语义化版本
-requires-python = ">=3.12"        # 最低 Python 版本
+requires-python = ">=3.11"        # 最低 Python 版本
 dependencies = [
     "click>=8.3.1",               # 依赖项
     "lib",                        # 共享库（必需）
@@ -745,7 +745,7 @@ if __name__ == "__main__":
 [project]
 name = "my-plugin"
 version = "0.0.1"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = ["click>=8.3.1", "lib"]
 
 [tool.uv.sources.lib]

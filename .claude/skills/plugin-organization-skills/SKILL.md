@@ -31,7 +31,7 @@ CCPlugin 插件生态追求**模块化、可发现、可维护**，通过标准�
 
 - **CCPlugin**: >= 0.0.90
 - **Claude Code**: >= 1.0.0
-- **Python**: >= 3.12（如插件包含 Python 代码）
+- **Python**: >= 3.11（如插件包含 Python 代码）
 
 ## 强制规范
 
@@ -571,7 +571,7 @@ my-python-plugin/
 [project]
 name = "my-python-plugin"
 version = "0.0.1"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = ["click>=8.3.1", "lib"]
 
 [tool.uv.sources.lib]

@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Tech Stack:**
 
-- **Python**: >= 3.12 (mandatory)
+- **Python**: >= 3.11 (mandatory)
 - **Package Manager**: `uv` (mandatory, not pip)
 - **Key Dependencies**: pydantic, typer, rich, lancedb, fastembed, sentence-transformers
 - **Version Management**: 3-part semantic versioning (major.minor.patch)
@@ -472,7 +472,7 @@ from lib.utils import get_env_value
 | `pyproject.toml`             | Root project config: main dependencies, workspace members, scripts |
 | `uv.lock`                    | Dependency lock file (generated, don't edit manually)              |
 | `.version`                   | Current version number (use `scripts/update_version.py` to update) |
-| `.python-version`            | Required Python version (3.12+)                                    |
+| `.python-version`            | Required Python version (3.11+)                                    |
 | `CHANGELOG.md`               | Version history and release notes                                  |
 | `LICENSE`                    | AGPL-3.0-or-later                                                  |
 | `.claude-plugin/plugin.json` | Plugin marketplace metadata per plugin                             |
