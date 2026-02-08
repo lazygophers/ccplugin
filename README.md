@@ -64,7 +64,7 @@ CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提
 
 ### 环境要求
 
-- **Python**: >= 3.12
+- **Python**: >= 3.11
 - **uv**: Python 包管理器和执行器（强制使用）
 - **Claude Code**: 最新版本
 

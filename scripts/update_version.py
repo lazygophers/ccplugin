@@ -58,13 +58,18 @@ def update_plugin_versions(plugins_dir: Path, new_version: str) -> list:
 
 
 def find_pyproject_paths(base_dir: Path) -> List[Path]:
-    """Find all pyproject.toml files in base_dir and plugin subdirectories."""
+    """Find all pyproject.toml files in base_dir, lib, and plugin subdirectories."""
     pyproject_paths = []
 
     # Add root pyproject.toml
     root_pyproject = base_dir / 'pyproject.toml'
     if root_pyproject.exists():
         pyproject_paths.append(root_pyproject)
+
+    # Add lib/pyproject.toml
+    lib_pyproject = base_dir / 'lib' / 'pyproject.toml'
+    if lib_pyproject.exists():
+        pyproject_paths.append(lib_pyproject)
 
     # Find all plugin pyproject.toml files
     plugins_dir = base_dir / 'plugins'
