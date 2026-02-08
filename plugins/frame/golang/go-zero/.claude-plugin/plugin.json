@@ -1,6 +1,6 @@
 {
   "name": "go-zero",
-  "version": "0.0.106",
+  "version": "0.0.107",
   "description": "go-zero 微服务框架插件 - 提供云原生 Go 微服务开发规范、最佳实践和代码智能支持。包括 API Gateway、RPC 服务、goctl 代码生成、服务治理和完整的微服务生态集成",
   "author": {
     "name": "lazygophers",
