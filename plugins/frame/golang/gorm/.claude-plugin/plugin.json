@@ -1,6 +1,6 @@
 {
   "name": "gorm",
-  "version": "0.0.107",
+  "version": "0.0.108",
   "description": "GORM ORM 库插件 - 提供完整的 Go ORM 开发规范、最佳实践和代码智能支持。包括模型定义、关联关系、查询构建、事务处理、迁移管理和性能优化",
   "author": {
     "name": "lazygophers",
