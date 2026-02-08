@@ -21,7 +21,7 @@
     debug("调试信息（输出到控制台）")
 """
 
-from .manager import enable_debug, info, debug, error, warn
+from .manager import enable_debug, info, debug, error, warn, warning
 
 __all__ = [
     'enable_debug',
@@ -29,4 +29,5 @@ __all__ = [
     'debug',
     'error',
     'warn',
+    'warning',
 ]
