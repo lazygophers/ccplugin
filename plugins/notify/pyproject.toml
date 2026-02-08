@@ -3,7 +3,7 @@ name = "notify"
 version = "0.0.106"
 description = "Claude Code system notification plugin with hook support"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [ "lib", "pyyaml>=6.0.3", "click>=8.1.0",]
 
 [build-system]
