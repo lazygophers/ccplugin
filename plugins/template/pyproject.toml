@@ -3,7 +3,7 @@ name = "ccplugin-template"
 version = "0.0.106"
 description = "Claude Code plugin template with example scripts and configuration"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [ "lib",]
 
 [build-system]
