@@ -3,17 +3,36 @@ import subprocess
 import sys
 import traceback
 from pathlib import Path
-
+from typing import Dict, Any, Optional
 from lib import logging
 from lib.hooks import load_hooks
 
 prompt = {}
 
 
+def filepath_to_slash(path: str) -> str:
+	"""转换路径分隔符"""
+	try:
+		if sys.platform.startswith('win'):
+			return path.replace('/', '\\')
+		else:
+			return path.replace('\\', '/')
+	except Exception as e:
+		logging.error(f"路径转换失败: {e}, path={path}")
+		return path
+
+
 def _iter_pyproject_dirs(root_dir: Path):
 	"""生成器：递归 yield 所有包含 pyproject.toml 文件的目录"""
 	for pyproject_path in root_dir.rglob("pyproject.toml"):
 		yield pyproject_path.parent
+
+
+remove_files = [filepath_to_slash(item) for item in ["pyproject.toml", "uv.lock", ]]
+
+edit_files = [filepath_to_slash(item) for item in ["pyproject.toml", "uv.lock", ]]
+
+read_files = [filepath_to_slash(item) for item in ["go.sum", "uv.lock", ]]
 
 
 def handle_stop() -> tuple[bool, Path | None, str | None]:
@@ -44,13 +63,8 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 		main_py = dir_path / "scripts" / "main.py"
 		if main_py.exists():
 			try:
-				result = subprocess.run(
-					["uv", "run", "./scripts/main.py", "--help"],
-					cwd=dir_path,
-					capture_output=True,
-					text=True,
-					timeout=30,
-				)
+				result = subprocess.run(["uv", "run", "./scripts/main.py", "--help"], cwd=dir_path, capture_output=True,
+					text=True, timeout=30, )
 				if result.returncode != 0:
 					error_output = result.stderr or result.stdout
 					return False, dir_path, f"main.py --help 失败:\n{error_output.strip()}"
@@ -101,8 +115,95 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 
 	if not found_any:
 		logging.info("未找到任何需要检查的目录")
-
 	return True, None, None
+
+
+def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]]) -> bool:
+	"""
+	检查是否需要保护文件
+
+	Returns:
+		bool: True 表示需要拦截并询问用户
+	"""
+	try:
+		if action is None or tool_input is None:
+			return False
+
+		action = str(action).lower()
+
+		if action == "bash":
+			if "command" in tool_input:
+				command = tool_input.get("command", "")
+				if command.find("rm") >= 0:
+					for locked_file in remove_files:
+						if command.find(locked_file) >= 0:
+							logging.warning(f"检测到受保护文件操作: command={command}, locked_file={locked_file}")
+							print(json.dumps({
+								"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+									"permissionDecisionReason": "危险警告，可能涉及修改受保护的文件",
+									"updatedInput": tool_input}}))
+							return True
+				elif command.find("pip") >= 0:
+					print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+						"permissionDecisionReason": "不允许执行 pip, 请使用 uv 命令", "updatedInput": tool_input}}))
+				elif command.find("python") >= 0:
+					print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+						"permissionDecisionReason": "不允许执行 python, 请使用 uv 命令", "updatedInput": tool_input}}))
+
+				if command.find("python") >= 0:
+					logging.warning(f"检测到受保护文件操作: command={command}, locked_file=python")
+					print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+						"permissionDecisionReason": "危险警告，不允许使用 `python` 执行，必须使用 `uv run` 的方式运行",
+						"updatedInput": tool_input}}))
+					return True
+
+		elif action == "edit":
+			if "file_path" in tool_input:
+				file_path = tool_input.get("file_path", "")
+				for locked_file in edit_files:
+					if file_path.find(locked_file) >= 0:
+						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
+						print(json.dumps({
+							"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+								"permissionDecisionReason": "危险警告，可能涉及修改受保护文件",
+								"updatedInput": tool_input}}))
+						return True
+		elif action == "read":
+			if "file_path" in tool_input:
+				file_path = tool_input.get("file_path", "")
+				for locked_file in read_files:
+					if file_path.find(locked_file) >= 0:
+						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
+						print(json.dumps({
+							"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+								"permissionDecisionReason": "危险警告，可能涉及读取受保护文件",
+								"updatedInput": tool_input}}))
+						return True
+
+		return False
+
+	except Exception as e:
+		logging.error(f"file_protection 异常: {e}\n{traceback.format_exc()}")
+		return False
+
+
+def handle_pre_tool_use(input_data: Dict[str, Any]) -> Optional[bool]:
+	"""处理 PreToolUse 事件"""
+	try:
+		tool_name = input_data.get("tool_name")
+		tool_input = input_data.get("tool_input")
+
+		if tool_name is None or tool_input is None:
+			logging.debug(f"PreToolUse: 缺少必要字段, tool_name={tool_name}, tool_input={tool_input}")
+			return False
+
+		if file_protection(tool_name, tool_input):
+			logging.info(f"拦截工具调用: tool_name={tool_name}, tool_input={tool_input}")
+			return True
+
+	except Exception as e:
+		logging.error(f"PreToolUse 处理异常: {e}\n{traceback.format_exc()}")
+		return False
 
 
 def main():
@@ -125,6 +226,11 @@ def main():
 			else:
 				reason = f"代码检查失败：目录 `{failed_dir}`\n\n{error_output}"
 				print(json.dumps({"continue": True, "decision": "block", "reason": reason}))
+		elif hook_event_name == "PreToolUse":
+			if handle_pre_tool_use(input_data):
+				pass
+			else:
+				print(json.dumps({"continue": True, "suppressOutput": False}))
 		else:
 			logging.warning(f"未知的 hook 事件: {hook_event_name}")
 			print(json.dumps({"continue": True}))
