@@ -236,3 +236,8 @@ def error(message: str) -> None:
 def warn(message: str) -> None:
 	"""记录 WARNING 级别日志。"""
 	_logger.warn(message)
+
+
+def warning(message: str) -> None:
+	"""记录 WARNING 级别日志。"""
+	_logger.warn(message)

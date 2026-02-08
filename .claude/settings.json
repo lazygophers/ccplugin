@@ -7,12 +7,22 @@
 		"version@ccplugin-market": true
 	},
 	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
+					}
+				]
+			}
+		],
 		"Stop": [
 			{
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run .claude/scripts/hooks.py"
+						"command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
 					}
 				]
 			}
@@ -22,7 +32,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "uv run .claude/scripts/hooks.py"
+						"command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
 					}
 				]
 			}

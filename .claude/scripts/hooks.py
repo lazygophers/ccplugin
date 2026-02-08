@@ -137,7 +137,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 				if command.find("rm") >= 0:
 					for locked_file in remove_files:
 						if command.find(locked_file) >= 0:
-							logging.warning(f"检测到受保护文件操作: command={command}, locked_file={locked_file}")
+							logging.warn(f"检测到受保护文件操作: command={command}, locked_file={locked_file}")
 							print(json.dumps({
 								"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
 									"permissionDecisionReason": "危险警告，可能涉及修改受保护的文件",
@@ -151,7 +151,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 						"permissionDecisionReason": "不允许执行 python, 请使用 uv 命令", "updatedInput": tool_input}}))
 
 				if command.find("python") >= 0:
-					logging.warning(f"检测到受保护文件操作: command={command}, locked_file=python")
+					logging.warn(f"检测到受保护文件操作: command={command}, locked_file=python")
 					print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
 						"permissionDecisionReason": "危险警告，不允许使用 `python` 执行，必须使用 `uv run` 的方式运行",
 						"updatedInput": tool_input}}))
@@ -162,7 +162,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 				file_path = tool_input.get("file_path", "")
 				for locked_file in edit_files:
 					if file_path.find(locked_file) >= 0:
-						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
+						logging.warn(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
 								"permissionDecisionReason": "危险警告，可能涉及修改受保护文件",
@@ -173,7 +173,7 @@ def file_protection(action: Optional[str], tool_input: Optional[Dict[str, Any]])
 				file_path = tool_input.get("file_path", "")
 				for locked_file in read_files:
 					if file_path.find(locked_file) >= 0:
-						logging.warning(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
+						logging.warn(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
 								"permissionDecisionReason": "危险警告，可能涉及读取受保护文件",
@@ -232,7 +232,7 @@ def main():
 			else:
 				print(json.dumps({"continue": True, "suppressOutput": False}))
 		else:
-			logging.warning(f"未知的 hook 事件: {hook_event_name}")
+			logging.warn(f"未知的 hook 事件: {hook_event_name}")
 			print(json.dumps({"continue": True}))
 
 	except json.JSONDecodeError as e:
