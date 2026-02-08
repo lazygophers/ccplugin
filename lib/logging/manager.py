@@ -58,6 +58,7 @@ class RichLoggerManager:
 		# 创建控制台输出器（默认关闭）
 		self.console_console: Optional[Console] = Console(force_terminal=True, width=99999)
 		self.debug_enabled = False
+		self.console_output_enabled = False  # 控制台输出总开关
 		self._last_hour = self._get_current_hour()
 
 		# 初始化时清理旧日志文件
@@ -69,6 +70,7 @@ class RichLoggerManager:
 	def enable_debug(self) -> None:
 		"""启用 DEBUG 模式（同时输出到控制台）。"""
 		self.debug_enabled = True
+		self.console_output_enabled = True
 
 	def disable_debug(self) -> None:
 		"""禁用 DEBUG 模式。"""
@@ -137,11 +139,12 @@ class RichLoggerManager:
 		# 写入文件
 		self._write_to_file(formatted)
 
-		# 如果启用 DEBUG 或需要输出到控制台
-		if self.debug_enabled:
+		# 如果启用控制台输出（DEBUG 模式），所有日志都输出到控制台
+		if self.console_output_enabled:
 			if self.console_console:
 				self.console_console.print(formatted)
 		elif level in ("ERROR"):
+			# 错误级别始终输出到控制台
 			if self.console_console:
 				self.console_console.print(formatted)
 

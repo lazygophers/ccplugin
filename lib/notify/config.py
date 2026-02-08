@@ -18,6 +18,42 @@ NOTIFY_DATA_DIR = "~/.lazygophers/ccplugin/notify"
 
 
 @dataclass
+class VoiceSample:
+    """语音样本信息
+
+    Attributes:
+        path: 音频文件路径
+        duration: 音频时长（秒）
+        added_at: 添加时间戳
+        sample_rate: 采样率
+    """
+
+    path: str
+    duration: float = 0.0
+    sample_rate: int = 22050
+    added_at: float = field(default_factory=lambda: __import__("time").time())
+
+
+@dataclass
+class TrainingRecord:
+    """训练记录
+
+    Attributes:
+        timestamp: 训练时间戳
+        epochs: 训练轮数
+        samples_count: 使用的样本数量
+        loss: 最终损失值（可选）
+        method: 训练方法（reference, finetune）
+    """
+
+    timestamp: float = field(default_factory=lambda: __import__("time").time())
+    epochs: int = 0
+    samples_count: int = 0
+    loss: Optional[float] = None
+    method: str = "reference"
+
+
+@dataclass
 class VoiceConfig:
     """音色配置
 
@@ -32,7 +68,11 @@ class VoiceConfig:
         speaker_wav: 参考音频路径（用于声音克隆）
         is_cloned: 是否为克隆音色
         created_at: 创建时间戳
+        samples: 样本列表
+        training_history: 训练历史记录
+        checkpoint_path: 微调检查点路径（如果进行了深度微调）
     """
+
     id: str
     name: str
     engine: str = "coqui"
@@ -42,7 +82,10 @@ class VoiceConfig:
     pitch: float = 1.0
     speaker_wav: Optional[str] = None
     is_cloned: bool = False
-    created_at: float = field(default_factory=lambda: __import__('time').time())
+    created_at: float = field(default_factory=lambda: __import__("time").time())
+    samples: List[VoiceSample] = field(default_factory=list)
+    training_history: List[TrainingRecord] = field(default_factory=list)
+    checkpoint_path: Optional[str] = None
 
     def validate(self) -> bool:
         """验证配置有效性"""
@@ -77,6 +120,7 @@ class NotifyConfig:
         language: 默认语言
         auto_download: 是否自动下载模型
     """
+
     default_voice_id: Optional[str] = None
     voices: Dict[str, VoiceConfig] = field(default_factory=dict)
     system_notification: bool = True
@@ -103,9 +147,34 @@ class NotifyConfig:
             "tts_engine": self.tts_engine,
             "language": self.language,
             "auto_download": self.auto_download,
-            "voices": {}
+            "voices": {},
         }
         for voice_id, voice in self.voices.items():
+            # 序列化 samples
+            samples_data = []
+            for sample in voice.samples:
+                samples_data.append(
+                    {
+                        "path": sample.path,
+                        "duration": sample.duration,
+                        "sample_rate": sample.sample_rate,
+                        "added_at": sample.added_at,
+                    }
+                )
+
+            # 序列化 training_history
+            history_data = []
+            for record in voice.training_history:
+                history_data.append(
+                    {
+                        "timestamp": record.timestamp,
+                        "epochs": record.epochs,
+                        "samples_count": record.samples_count,
+                        "loss": record.loss,
+                        "method": record.method,
+                    }
+                )
+
             result["voices"][voice_id] = {
                 "id": voice.id,
                 "name": voice.name,
@@ -116,7 +185,10 @@ class NotifyConfig:
                 "pitch": voice.pitch,
                 "speaker_wav": voice.speaker_wav,
                 "is_cloned": voice.is_cloned,
-                "created_at": voice.created_at
+                "created_at": voice.created_at,
+                "samples": samples_data,
+                "training_history": history_data,
+                "checkpoint_path": voice.checkpoint_path,
             }
         return result
 
@@ -129,6 +201,35 @@ class NotifyConfig:
         voices = {}
         voices_data = data.get("voices", {})
         for voice_id, voice_info in voices_data.items():
+            # 反序列化 samples
+            samples = []
+            samples_data = voice_info.get("samples", [])
+            for sample_data in samples_data:
+                samples.append(
+                    VoiceSample(
+                        path=sample_data.get("path", ""),
+                        duration=sample_data.get("duration", 0.0),
+                        sample_rate=sample_data.get("sample_rate", 22050),
+                        added_at=sample_data.get("added_at", __import__("time").time()),
+                    )
+                )
+
+            # 反序列化 training_history
+            history = []
+            history_data = voice_info.get("training_history", [])
+            for record_data in history_data:
+                history.append(
+                    TrainingRecord(
+                        timestamp=record_data.get(
+                            "timestamp", __import__("time").time()
+                        ),
+                        epochs=record_data.get("epochs", 0),
+                        samples_count=record_data.get("samples_count", 0),
+                        loss=record_data.get("loss"),
+                        method=record_data.get("method", "reference"),
+                    )
+                )
+
             voices[voice_id] = VoiceConfig(
                 id=voice_info.get("id", voice_id),
                 name=voice_info.get("name", voice_id),
@@ -139,7 +240,10 @@ class NotifyConfig:
                 pitch=voice_info.get("pitch", 1.0),
                 speaker_wav=voice_info.get("speaker_wav"),
                 is_cloned=voice_info.get("is_cloned", False),
-                created_at=voice_info.get("created_at", __import__('time').time())
+                created_at=voice_info.get("created_at", __import__("time").time()),
+                samples=samples,
+                training_history=history,
+                checkpoint_path=voice_info.get("checkpoint_path"),
             )
 
         return cls(
@@ -149,7 +253,7 @@ class NotifyConfig:
             tts_engine=data.get("tts_engine", "coqui"),
             language=data.get("language", "zh"),
             auto_download=data.get("auto_download", True),
-            voices=voices
+            voices=voices,
         )
 
 
@@ -186,7 +290,8 @@ def load_config(config_path: Optional[str] = None) -> NotifyConfig:
 
     try:
         import yaml
-        with open(config_path, 'r', encoding='utf-8') as f:
+
+        with open(config_path, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         config = NotifyConfig.from_dict(data)
         info(f"加载通知配置成功: {config_path}")
@@ -218,10 +323,13 @@ def save_config(config: NotifyConfig, config_path: Optional[str] = None) -> bool
             os.makedirs(config_dir, exist_ok=True)
 
         import yaml
+
         data = config.to_dict()
 
-        with open(config_path, 'w', encoding='utf-8') as f:
-            yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        with open(config_path, "w", encoding="utf-8") as f:
+            yaml.dump(
+                data, f, default_flow_style=False, allow_unicode=True, sort_keys=False
+            )
 
         info(f"保存通知配置成功: {config_path}")
         return True

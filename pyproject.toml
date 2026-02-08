@@ -12,6 +12,7 @@ dependencies = [
     "pyyaml>=6.0",
     "TTS>=0.22.0",
     "lib",
+    "transformers==4.44.0",
 ]
 
 [build-system]

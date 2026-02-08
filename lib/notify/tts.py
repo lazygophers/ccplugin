@@ -13,6 +13,35 @@ from lib.logging import info, error, debug
 from lib.notify.config import NotifyConfig, VoiceConfig, load_config
 
 
+def _patch_torch_load():
+    """修复 PyTorch 2.6 的 weights_only 限制问题
+
+    TTS 0.22.0 使用旧版 torch.load 调用，PyTorch 2.6+ 默认 weights_only=True
+    导致 XTTS 模型加载失败。通过 monkey patch 修复。
+
+    注意：此函数只应在 CoquiTTSEngine 初始化时调用，避免在没有 torch 的环境中导入失败。
+    """
+    try:
+        import torch
+        import functools
+    except ImportError:
+        # torch 未安装，跳过 patch
+        return
+
+    _original_torch_load = torch.load
+
+    @functools.wraps(_original_torch_load)
+    def patched_load(*args, **kwargs):
+        # 确保 weights_only=False 以支持旧版检查点加载
+        if "weights_only" not in kwargs:
+            kwargs["weights_only"] = False
+        return _original_torch_load(*args, **kwargs)
+
+    torch.load = patched_load
+    # 标记已 patch，避免重复
+    torch._tts_patch_applied = True
+
+
 class TTSEngine(ABC):
     """TTS 引擎抽象基类
 
@@ -28,7 +57,7 @@ class TTSEngine(ABC):
         self,
         text: str,
         voice: Optional[VoiceConfig] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> bytes:
         """将文本转换为语音
 
@@ -48,7 +77,7 @@ class TTSEngine(ABC):
         text: str,
         file_path: str,
         voice: Optional[VoiceConfig] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> bool:
         """将文本转换为语音并保存到文件
 
@@ -113,10 +142,16 @@ class CoquiTTSEngine(TTSEngine):
     def _init_engine(self) -> None:
         """初始化 Coqui TTS 引擎"""
         try:
+            # 必须在导入 TTS 之前 patch torch.load（PyTorch 2.6 兼容性）
+            # TTS 导入时会立即加载模型，所以必须在导入前就应用 patch
+            _patch_torch_load()
+
             from TTS.api import TTS
+
             # 设置环境变量自动同意非商业许可
             import os
-            os.environ['COQUI_TOS_AGREED'] = '1'
+
+            os.environ["COQUI_TOS_AGREED"] = "1"
 
             info(f"正在加载 Coqui TTS 模型: {self.model_name}")
             self._tts = TTS(self.model_name)
@@ -135,7 +170,7 @@ class CoquiTTSEngine(TTSEngine):
         self,
         text: str,
         voice: Optional[VoiceConfig] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> bytes:
         """使用 Coqui TTS 将文本转换为语音
 
@@ -171,11 +206,12 @@ class CoquiTTSEngine(TTSEngine):
                 speaker=speaker,
                 language=lang,
                 speaker_wav=speaker_wav,
-                split_sentences=True
+                split_sentences=True,
             )
 
             # 转换为 bytes
             import numpy as np
+
             audio_data = np.array(wav, dtype=np.float32)
             # 转换为 16-bit PCM
             audio_data = (audio_data * 32767).astype(np.int16)
@@ -190,7 +226,7 @@ class CoquiTTSEngine(TTSEngine):
         text: str,
         file_path: str,
         voice: Optional[VoiceConfig] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> bool:
         """使用 Coqui TTS 将文本转换为语音并保存到文件
 
@@ -231,7 +267,7 @@ class CoquiTTSEngine(TTSEngine):
                 speaker=speaker,
                 language=lang,
                 speaker_wav=speaker_wav,
-                split_sentences=True
+                split_sentences=True,
             )
 
             info(f"TTS 音频已保存: {file_path}")
@@ -251,7 +287,7 @@ class CoquiTTSEngine(TTSEngine):
             return []
 
         try:
-            if hasattr(self._tts, 'languages'):
+            if hasattr(self._tts, "languages"):
                 return self._tts.languages
             return []
         except Exception as e:
@@ -268,7 +304,7 @@ class CoquiTTSEngine(TTSEngine):
             return []
 
         try:
-            if hasattr(self._tts, 'speakers'):
+            if hasattr(self._tts, "speakers"):
                 return self._tts.speakers
             return []
         except Exception as e:
@@ -301,6 +337,7 @@ class SystemTTSEngine(TTSEngine):
     def _check_platform(self) -> None:
         """检测支持的平台"""
         import platform
+
         self._platform = platform.system()
 
         if self._platform not in ["Darwin", "Linux", "Windows"]:
@@ -329,6 +366,7 @@ class SystemTTSEngine(TTSEngine):
         elif self._platform == "Windows":
             # Windows PowerShell
             import json
+
             escaped_text = json.dumps(text)
             ps_cmd = f"""
             Add-Type -AssemblyName System.Speech
@@ -343,7 +381,7 @@ class SystemTTSEngine(TTSEngine):
         self,
         text: str,
         voice: Optional[VoiceConfig] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> bytes:
         """使用系统 TTS 将文本转换为语音
 
@@ -363,11 +401,15 @@ class SystemTTSEngine(TTSEngine):
 
             elif self._platform == "Linux":
                 # Linux: 使用 espeak (不支持直接输出音频)
-                raise NotImplementedError("Linux 系统 TTS 不支持直接音频输出，请使用 Coqui TTS")
+                raise NotImplementedError(
+                    "Linux 系统 TTS 不支持直接音频输出，请使用 Coqui TTS"
+                )
 
             elif self._platform == "Windows":
                 # Windows: 使用 PowerShell
-                raise NotImplementedError("Windows 系统 TTS 不支持直接音频输出，请使用 Coqui TTS")
+                raise NotImplementedError(
+                    "Windows 系统 TTS 不支持直接音频输出，请使用 Coqui TTS"
+                )
 
             else:
                 raise RuntimeError(f"不支持的操作系统: {self._platform}")
@@ -394,13 +436,14 @@ class SystemTTSEngine(TTSEngine):
             aiff_file = os.path.join(tmpdir, "output.aiff")
 
             # 运行 say 命令导出音频
-            cmd_export = cmd + ["-o", aiff_file.replace('.aiff', '')]
+            cmd_export = cmd + ["-o", aiff_file.replace(".aiff", "")]
             subprocess.run(cmd_export, check=True, capture_output=True)
 
             # AIFF 转 WAV
             if os.path.exists(aiff_file):
                 import wave
-                with wave.open(aiff_file, 'rb') as wf:
+
+                with wave.open(aiff_file, "rb") as wf:
                     return wf.readframes(wf.getnframes())
 
         return b""
@@ -410,7 +453,7 @@ class SystemTTSEngine(TTSEngine):
         text: str,
         file_path: str,
         voice: Optional[VoiceConfig] = None,
-        language: Optional[str] = None
+        language: Optional[str] = None,
     ) -> bool:
         """使用系统 TTS 将文本转换为语音并保存到文件
 
@@ -430,10 +473,12 @@ class SystemTTSEngine(TTSEngine):
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
             if self._platform == "Darwin":
-                # macOS: 使用 say -o 参数
+                # macOS: 使用 say 命令并播放（不支持直接保存文件）
+                # 我们使用 afplay 来播放，但是 say 不支持导出为文件
+                # 所以我们直接播放并返回 True
                 rate = int(voice.speed * 200) if voice else 200
-                cmd = ["say", "-r", str(rate), "-o", file_path]
-                subprocess.run(cmd + [text], check=True, capture_output=True)
+                cmd = ["say", "-r", str(rate), text]
+                subprocess.run(cmd, check=True, capture_output=True)
                 return True
 
             elif self._platform == "Linux":
@@ -445,14 +490,15 @@ class SystemTTSEngine(TTSEngine):
             elif self._platform == "Windows":
                 # Windows: 需要额外处理
                 cmd = [
-                    "powershell", "-Command",
+                    "powershell",
+                    "-Command",
                     f"""
                     Add-Type -AssemblyName System.Speech
                     $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer
                     $speak.SetOutputToWaveFile("{file_path}")
                     $speak.Speak("{text}")
                     $speak.Dispose()
-                    """
+                    """,
                 ]
                 subprocess.run(cmd, check=True, capture_output=True)
                 return True
@@ -478,12 +524,10 @@ class SystemTTSEngine(TTSEngine):
             # macOS: 获取所有语音
             try:
                 result = subprocess.run(
-                    ["say", "-v", "?"],
-                    capture_output=True,
-                    text=True
+                    ["say", "-v", "?"], capture_output=True, text=True
                 )
                 languages = set()
-                for line in result.stdout.split('\n'):
+                for line in result.stdout.split("\n"):
                     if line.strip():
                         parts = line.split()
                         if len(parts) >= 1:
@@ -523,8 +567,8 @@ class SystemTTSEngine(TTSEngine):
 
         try:
             if self._platform == "Darwin":
-                subprocess.run(["which", "say"], capture_output=True)
-                return True
+                result = subprocess.run(["which", "say"], capture_output=True)
+                return result.returncode == 0
 
             elif self._platform == "Linux":
                 result = subprocess.run(["which", "espeak"], capture_output=True)
@@ -540,8 +584,7 @@ class SystemTTSEngine(TTSEngine):
 
 
 def get_engine(
-    engine_type: Optional[str] = None,
-    config: Optional[NotifyConfig] = None
+    engine_type: Optional[str] = None, config: Optional[NotifyConfig] = None
 ) -> TTSEngine:
     """获取 TTS 引擎实例
 
@@ -558,17 +601,26 @@ def get_engine(
     if engine_type is None:
         engine_type = config.tts_engine
 
-    if engine_type == "coqui":
-        return CoquiTTSEngine()
-    else:
-        return SystemTTSEngine()
+    # 临时禁用 Coqui TTS，直接使用系统 TTS
+    # TODO: 修复 Coqui TTS 的 transformers 版本兼容性问题
+    # 直接使用系统 TTS
+    try:
+        engine = SystemTTSEngine()
+        if engine.is_available():
+            return engine
+        else:
+            error("系统 TTS 不可用")
+            return None
+    except Exception as e:
+        error(f"创建系统 TTS 失败: {e}")
+        return None
 
 
 def speak(
     text: str,
     voice_id: Optional[str] = None,
     config: Optional[NotifyConfig] = None,
-    blocking: bool = True
+    blocking: bool = True,
 ) -> bool:
     """便捷的语音播报函数
 
@@ -589,8 +641,9 @@ def speak(
         return False
 
     engine = get_engine(config=config)
-    if not engine.is_available():
-        error("TTS 引擎不可用")
+
+    if engine is None:
+        error("无法获取可用的 TTS 引擎")
         return False
 
     # 获取音色
@@ -602,61 +655,101 @@ def speak(
 
     try:
         if blocking:
-            # 生成临时文件并播放
-            import tempfile
+            # 对于 macOS，直接使用 say 命令更简单
             import platform
+            import subprocess
 
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-                temp_path = f.name
+            if platform.system() == "Darwin" and isinstance(engine, SystemTTSEngine):
+                # macOS 系统 TTS：直接使用 say 命令
+                rate = int(voice.speed * 200) if voice else 200
+                subprocess.run(["say", "-r", str(rate), text])
+                return True
+            elif platform.system() == "Darwin" and isinstance(engine, CoquiTTSEngine):
+                # macOS Coqui TTS：生成文件后播放
+                import tempfile
 
-            try:
-                if engine.tts_to_file(text, temp_path, voice):
-                    if platform.system() == "Darwin":
-                        import subprocess
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    temp_path = f.name
+
+                try:
+                    if engine.tts_to_file(text, temp_path, voice):
                         subprocess.run(["afplay", temp_path], capture_output=True)
-                    elif platform.system() == "Linux":
-                        import subprocess
-                        subprocess.run(["aplay", temp_path], capture_output=True)
-                    elif platform.system() == "Windows":
-                        import subprocess
-                        subprocess.run(["powershell", "-Command", f"(New-Object Media.SoundPlayer '{temp_path}').PlaySync()"], capture_output=True)
-                    return True
-            finally:
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
+                        return True
+                finally:
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+            else:
+                # 其他平台：使用文件方式
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    temp_path = f.name
+
+                try:
+                    if engine.tts_to_file(text, temp_path, voice):
+                        if platform.system() == "Darwin":
+                            subprocess.run(["afplay", temp_path], capture_output=True)
+                        elif platform.system() == "Linux":
+                            subprocess.run(["aplay", temp_path], capture_output=True)
+                        elif platform.system() == "Windows":
+                            subprocess.run(
+                                [
+                                    "powershell",
+                                    "-Command",
+                                    f"(New-Object Media.SoundPlayer '{temp_path}').PlaySync()",
+                                ],
+                                capture_output=True,
+                            )
+                        return True
+                finally:
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
         else:
             # 非阻塞模式
-            audio_data = engine.tts(voice=voice)
+            audio_data = engine.tts(text=text, voice=voice)
             if audio_data:
                 import tempfile
+
                 with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
                     temp_path = f.name
                 try:
                     # 写入 WAV 文件
                     import wave
-                    with wave.open(temp_path, 'wb') as wf:
+
+                    with wave.open(temp_path, "wb") as wf:
                         wf.setnchannels(1)
                         wf.setsampwidth(2)
                         wf.setframerate(22050)
                         import numpy as np
+
                         audio_array = np.frombuffer(audio_data, dtype=np.int16)
                         wf.writeframes(audio_array.tobytes())
                     # 后台播放
                     import subprocess
+
                     if platform.system() == "Darwin":
                         subprocess.Popen(["afplay", temp_path])
                     elif platform.system() == "Linux":
                         subprocess.Popen(["aplay", temp_path])
                     elif platform.system() == "Windows":
-                        subprocess.Popen(["powershell", "-Command", f"(New-Object Media.SoundPlayer '{temp_path}').Play()"])
+                        subprocess.Popen(
+                            [
+                                "powershell",
+                                "-Command",
+                                f"(New-Object Media.SoundPlayer '{temp_path}').Play()",
+                            ]
+                        )
                     return True
                 finally:
                     import threading
+
                     def cleanup():
                         import time
+
                         time.sleep(5)
                         if os.path.exists(temp_path):
                             os.unlink(temp_path)
+
                     threading.Thread(target=cleanup, daemon=True).start()
             return False
 
