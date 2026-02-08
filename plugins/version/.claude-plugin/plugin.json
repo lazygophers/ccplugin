@@ -1,6 +1,6 @@
 {
   "name": "version",
-  "version": "0.0.106",
+  "version": "0.0.107",
   "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置",
   "author": {
     "name": "lazygophers",
