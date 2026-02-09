@@ -135,7 +135,7 @@
     {
       "name": "javascript",
       "source": "./plugins/languages/javascript",
-      "description": "JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
+      "description": "JavaScript（ES2024-2025）开发插件 - 提供 JavaScript 开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
       "version": "0.0.108",
       "author": {
         "name": "lazygophers",
@@ -157,6 +157,149 @@
         "pnpm",
         "coding-style",
         "best-practices"
+      ]
+    },
+    {
+      "name": "c",
+      "source": "./plugins/languages/c",
+      "description": "C 开发插件 - 提供 C11/C17 开发规范、最佳实践和代码智能支持。包括系统编程、嵌入式开发、POSIX API 和内存管理指导",
+      "version": "0.0.108",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/c",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/c",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "c",
+        "c11",
+        "c17",
+        "development",
+        "coding-style",
+        "best-practices",
+        "system-programming",
+        "embedded",
+        "posix",
+        "memory-management",
+        "lsp",
+        "clangd"
+      ]
+    },
+    {
+      "name": "cpp",
+      "source": "./plugins/languages/cpp",
+      "description": "C++ 开发插件 - 提供 C++17/23 开发规范、最佳实践和代码智能支持。包括现代 C++ 标准、STL、内存管理、模板元编程和并发编程指导",
+      "version": "0.0.108",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/cpp",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/cpp",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "cpp",
+        "c++",
+        "c++17",
+        "c++20",
+        "c++23",
+        "development",
+        "coding-style",
+        "best-practices",
+        "stl",
+        "templates",
+        "memory-management",
+        "concurrency",
+        "lsp",
+        "clangd"
+      ]
+    },
+    {
+      "name": "csharp",
+      "source": "./plugins/languages/csharp",
+      "description": "C# 开发插件 - 提供 C# 12/.NET 8 开发规范、最佳实践和代码智能支持。包括 LINQ、async/await、Entity Framework、WPF、MAUI、ASP.NET Core 和 Blazor 指导",
+      "version": "0.0.108",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/csharp",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/csharp",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "csharp",
+        "c#",
+        ".net",
+        ".net8",
+        "development",
+        "coding-style",
+        "best-practices",
+        "linq",
+        "async-await",
+        "entity-framework",
+        "wpf",
+        "maui",
+        "asp.net-core",
+        "blazor",
+        "lsp",
+        "roslyn"
+      ]
+    },
+    {
+      "name": "java",
+      "source": "./plugins/languages/java",
+      "description": "Java 开发插件 - 提供 Java 21+ 开发规范、最佳实践和代码智能支持。包括现代 Java 开发规范、Spring Boot 3+ 指导和 JVM 性能优化",
+      "version": "0.0.108",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/java",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/java",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "java",
+        "jdk",
+        "java21",
+        "development",
+        "coding-style",
+        "best-practices",
+        "spring-boot",
+        "jvm",
+        "performance",
+        "maven",
+        "gradle",
+        "lsp",
+        "eclipse-jdt"
+      ]
+    },
+    {
+      "name": "rust",
+      "source": "./plugins/languages/rust",
+      "description": "Rust 开发插件 - 提供 Rust 1.70+ 开发规范、最佳实践和代码智能支持。包括现代 Rust 2024 edition、所有权系统、异步编程和零成本抽象指导",
+      "version": "0.0.108",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/rust",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/rust",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "rust",
+        "rust-lang",
+        "development",
+        "coding-style",
+        "best-practices",
+        "ownership",
+        "borrowing",
+        "async",
+        "tokio",
+        "zero-cost",
+        "memory-safety",
+        "lsp",
+        "rust-analyzer"
       ]
     },
     {

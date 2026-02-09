@@ -29,3 +29,4 @@ argument-hint: <需求内容>
 2. 新增的内容必须和原有的代码风格一致
 3. 使用 /deep-research 深度研究以确保编写的内容正确、及时、更新、完善
 4. 可以使用 chrome 操作浏览器进行网络搜索等操作以获取最新、最准确的数据
+5. 如果是新增插件，需要将新增的插件注册到 @.claude-plugin/marketplace.json 中
