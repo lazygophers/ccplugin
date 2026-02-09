@@ -1,6 +1,6 @@
 [project]
 name = "version"
-version = "0.0.110"
+version = "0.0.111"
 description = "Claude Code version management plugin for semantic versioning"
 readme = "README.md"
 requires-python = ">=3.11"

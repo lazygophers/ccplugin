@@ -1,6 +1,6 @@
 {
   "name": "c",
-  "version": "0.0.110",
+  "version": "0.0.111",
   "description": "C 开发插件 - 提供 C11/C17 开发规范、最佳实践和代码智能支持。包括系统编程、嵌入式开发、POSIX API 和内存管理指导",
   "author": {
     "name": "lazygophers",
