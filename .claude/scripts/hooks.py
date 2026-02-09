@@ -181,18 +181,19 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 						}
 					}))
 					return
-				elif command.find("python") >= 0 and command.find("uv run python") < 0 and command.find("uv run ./") < 0:
-					logging.warn(f"检测到 python 操作: command={command}")
-					print(json.dumps({
-						"hookSpecificOutput":
-							{
-								"hookEventName": "PreToolUse",
-								"permissionDecision": "deny",
-								"permissionDecisionReason": "危险警告，不允许使用 `python` 执行，必须使用 `uv run` 的方式运行",
-								"updatedInput": tool_input,
-							},
-					}))
-					return
+				elif command.find("python") >= 0:
+					if command.find("uv run python") < 0 or command.find("uv run ./") < 0:
+						logging.warn(f"检测到 python 操作: command={command}")
+						print(json.dumps({
+							"hookSpecificOutput":
+								{
+									"hookEventName": "PreToolUse",
+									"permissionDecision": "deny",
+									"permissionDecisionReason": "危险警告，不允许使用 `python` 执行，必须使用 `uv run` 的方式运行",
+									"updatedInput": tool_input,
+								},
+						}))
+						return
 
 		elif tool_name == "edit":
 			if "file_path" in tool_input:
