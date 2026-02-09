@@ -33,7 +33,7 @@ wheels = [
 ]
 
 [[package]]
-name = "frame-golang-fasthttp"
+name = "frame-golang-lrpc"
 version = "0.0.91"
 source = { editable = "." }
 dependencies = [

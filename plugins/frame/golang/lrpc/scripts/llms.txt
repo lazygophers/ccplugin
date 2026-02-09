@@ -1,25 +1,29 @@
-# lrpc - Scripts
+# fasthttp - Scripts
 
-> lrpc 插件的 Python 脚本实现
+> fasthttp 插件的 Python 脚本实现
 
 ## 概述
 
-本目录包含 lrpc 插件的核心逻辑实现。
+本目录包含 fasthttp 插件的核心逻辑实现。
 
 ## 主要模块
 
 - `hooks.py` - Hook 事件处理
+- `__init__.py` -   Init   模块
 - `main.py` - CLI 入口点
 
 ## API 参考
 
 ### hooks.py
 
-- `handle_session_start(event_data)` - SessionStart Hook 处理
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `on_session_start(hook_data)` - SessionStart 事件处理
+- `on_user_prompt_submit(hook_data)` - UserPromptSubmit 事件处理
 
 ### main.py
 
-- `main()` - lrpc 高性能 RPC 框架插件
+- `main()` - fasthttp 库插件命令
+- `hooks()` - 处理 Hook 事件
 
 ## 依赖
 
