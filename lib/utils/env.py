@@ -5,14 +5,13 @@ class Env:
 	"""
 	环境变量
 	"""
-	app_name: str = os.getenv("PLUGIN_NAME")
+	app_name: str = os.getenv("PLUGIN_NAME", default="")
 
-	project_dir: str = os.getcwd()
-	plugins_path: str = os.getenv("CLAUDE_PLUGIN_ROOT")
+	project_dir: str = os.getenv("CLAUDE_PROJECT_DIR", default=os.getcwd())
+	plugins_path: str = os.getenv("CLAUDE_PLUGIN_ROOT", default=os.getcwd())
 
 	def __init__(self):
-		if os.getenv("CLAUDE_PROJECT_DIR") is not None:
-			self.project_dir = os.getenv("CLAUDE_PROJECT_DIR")
+		pass
 
 	@classmethod
 	def set_app(cls, name: str) -> None:
