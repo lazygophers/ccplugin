@@ -1,6 +1,6 @@
 [project]
 name = "theme-style-dark"
-version = "0.0.111"
+version = "0.0.112"
 description = "Claude Code plugin for Dark mode design style"
 readme = "README.md"
 requires-python = ">=3.11"

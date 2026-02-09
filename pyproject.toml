@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin"
-version = "0.0.111"
+version = "0.0.112"
 description = "CCPlugin Market - Claude Code 插件市场"
 readme = "README.md"
 requires-python = ">=3.11"
