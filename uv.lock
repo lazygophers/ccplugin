@@ -337,13 +337,15 @@ dependencies = [
     { name = "rich" },
     { name = "toml" },
     { name = "transformers" },
-    { name = "tts" },
     { name = "wraps" },
 ]
 
 [package.optional-dependencies]
 dev = [
     { name = "pytest" },
+]
+tts = [
+    { name = "tts" },
 ]
 
 [package.metadata]
@@ -355,10 +357,10 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.0" },
     { name = "toml", specifier = ">=0.10.2" },
     { name = "transformers", specifier = "==4.44.0" },
-    { name = "tts", specifier = ">=0.22.0" },
+    { name = "tts", marker = "extra == 'tts'", specifier = ">=0.22.0" },
     { name = "wraps", specifier = ">=0.15.0" },
 ]
-provides-extras = ["dev"]
+provides-extras = ["dev", "tts"]
 
 [[package]]
 name = "certifi"
@@ -1395,8 +1397,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.114"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#51f3fef89d4eb558b4a92de34a4adeeb371c29ac" }
+version = "0.0.115"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#82ac8136655a2f81c973e72fb3f38e66ae09c0ab" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
