@@ -6,6 +6,7 @@ from functools import wraps
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
 	@wraps(func)
+	@click.option("--debug", "debug_mode", is_flag=True, help="启用 DEBUG 模式")
 	def wrapper(debug_mode: bool, *args, **kwargs):
 		if debug_mode:
 			logging.enable_debug()
@@ -15,9 +16,6 @@ def with_debug(func):
 @click.group()
 @click.pass_context
 def main(ctx) -> None:
-	"""
-	C development plugin.
-	"""
 	pass
 
 @main.command()

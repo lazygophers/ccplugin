@@ -16,9 +16,6 @@ def with_debug(func):
 @click.group()
 @click.pass_context
 def main(ctx) -> None:
-	"""
-	Python development plugin.
-	"""
 	pass
 
 @main.command()

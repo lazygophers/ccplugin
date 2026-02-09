@@ -9,7 +9,7 @@ def handle_hook() -> None:
 	try:
 		hook_data = load_hooks()
 		event_name = hook_data.get("hook_event_name")
-		logging.info(f"接收到事件: {event_name}")
+		logging.info(f"接收到事件:{event_name}")
 
 	except json.JSONDecodeError as e:
 		logging.error(f"JSON 解析失败: {e}")

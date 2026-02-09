@@ -1,6 +1,6 @@
 [project]
 name = "theme-style-glassmorphism"
-version = "0.0.113"
+version = "0.0.114"
 description = "Claude Code plugin for Glassmorphism design style"
 readme = "README.md"
 requires-python = ">=3.11"

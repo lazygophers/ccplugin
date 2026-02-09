@@ -16,9 +16,6 @@ def with_debug(func):
 @click.group()
 @click.pass_context
 def main(ctx) -> None:
-	"""
-	Version management plugin.
-	"""
 	pass
 
 @main.command()
