@@ -514,7 +514,7 @@ wheels = [
 
 [[package]]
 name = "code-cpp"
-version = "0.0.108"
+version = "0.0.109"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -1421,7 +1421,7 @@ wheels = [
 [[package]]
 name = "lib"
 version = "0.0.108"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#9c1a7cea69f6784f7b100f4d63c812387daf4f1a" }
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#aff907009608f7189cefc347db4490109220cb83" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },

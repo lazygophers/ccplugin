@@ -1398,8 +1398,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.108"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#aff907009608f7189cefc347db4490109220cb83" }
+version = "0.0.109"
+source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
@@ -1408,6 +1408,23 @@ dependencies = [
     { name = "rich" },
     { name = "tts" },
 ]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "click", specifier = ">=8.3.1" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "rich", specifier = ">=13.0.0" },
+    { name = "tts", specifier = ">=0.22.0" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "librosa"
@@ -1434,30 +1451,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/64/36/360b5aafa0238e297
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b5/ba/c63c5786dfee4c3417094c4b00966e61e4a63efecee22cb7b4c0387dda83/librosa-0.11.0-py3-none-any.whl", hash = "sha256:0b6415c4fd68bff4c29288abe67c6d80b587e0e1e2cfb0aad23e4559504a7fa1", size = 260749, upload-time = "2025-03-11T15:09:52.982Z" },
 ]
-
-[[package]]
-name = "llms"
-version = "0.0.109"
-source = { editable = "." }
-dependencies = [
-    { name = "click" },
-    { name = "lib" },
-    { name = "rich" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "click", specifier = ">=8.1.0" },
-    { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "rich", specifier = ">=13.9.0" },
-]
-provides-extras = ["dev"]
 
 [[package]]
 name = "llvmlite"
