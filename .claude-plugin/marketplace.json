@@ -1034,20 +1034,21 @@
       ]
     },
     {
-      "name": "lrpc",
-      "source": "./plugins/frame/golang/lrpc",
-      "description": "lrpc 高性能 RPC 框架插件 - 提供基于 fasthttp-skills 的轻量级 RPC 框架开发规范、最佳实践和代码智能支持。包括服务端/客户端、路由注册、中间件系统、编解码器和配置管理。涵盖 26+ 技能模块：核心框架、日志、加解密、字符串、JSON、网络、类型转换、泛型工具、人类友好格式、随机数、验证器、缓存（3 种）、并发控制、协程管理、熔断器、运行时、应用配置、配置文件、默认值、操作系统、时间处理（农历/节气）、消息队列、国际化、错误处理、数据库、MongoDB",
+      "name": "lazygophers",
+      "source": "./plugins/frame/golang/lazygophers",
+      "description": "lazygophers 全栈开发插件 - 提供 Go 生态系统完整技术栈的开发规范、最佳实践和代码智能支持。包括 lrpc RPC 框架、26+ 工具库模块（日志/加解密/字符串/JSON/网络/类型转换/泛型/人类友好/随机数/验证器/缓存/并发/协程/熔断器/运行时/配置/时间/队列/国际化/错误处理/数据库/MongoDB）",
       "version": "0.0.115",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev",
         "url": "https://github.com/lazygophers"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/lrpc",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/lrpc",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/lazygophers",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/frame/golang/lazygophers",
       "license": "AGPL-3.0-or-later",
       "keywords": [
-        "lrpc",
+        "lazygophers",
+				"lrpc",
         "rpc",
         "fasthttp",
         "microservice",
