@@ -7,3 +7,4 @@
 .tmp/
 *.tmp
 last_change_stats.json
+/settings.local.json
