@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import subprocess
 import toml
 from pathlib import Path
 from typing import List
@@ -113,6 +114,47 @@ def update_pyproject_versions(base_dir: Path, pyproject_paths: List[Path], new_v
     return updated_files
 
 
+def run_uv_lock_update(pyproject_paths: List[Path]) -> list:
+    """Run 'uv lock -U' in each directory containing pyproject.toml."""
+    updated_locks = []
+    processed_dirs = set()
+
+    for pyproject_path in pyproject_paths:
+        if not pyproject_path.exists():
+            continue
+
+        # Get the directory containing pyproject.toml
+        project_dir = pyproject_path.parent
+
+        # Skip if we already processed this directory
+        if project_dir in processed_dirs:
+            continue
+
+        processed_dirs.add(project_dir)
+
+        try:
+            print(f"  Running 'uv lock -U' in {project_dir}...")
+            result = subprocess.run(
+                ['uv', 'lock', '-U'],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+
+            if result.returncode == 0:
+                updated_locks.append(str(project_dir))
+            else:
+                print(f"    Warning: uv lock -U failed in {project_dir}")
+                print(f"    stderr: {result.stderr}")
+        except subprocess.TimeoutExpired:
+            print(f"    Warning: uv lock -U timed out in {project_dir}")
+        except Exception as e:
+            print(f"    Error running uv lock -U in {project_dir}: {e}")
+
+    return updated_locks
+
+
 def main():
     base_dir = Path(__file__).parent.parent
     marketplace_path = base_dir / '.claude-plugin' / 'marketplace.json'
@@ -164,6 +206,13 @@ def main():
     print(f"  Updated {len(updated_pyprojects)} pyproject.toml file(s):")
     for file_path in updated_pyprojects:
         print(f"    - {file_path}: {old_version_full} -> {new_version}")
+
+    # Run 'uv lock -U' in each directory with pyproject.toml
+    print("\nUpdating uv.lock files...")
+    updated_locks = run_uv_lock_update(pyproject_paths)
+    print(f"  Updated {len(updated_locks)} uv.lock file(s):")
+    for lock_dir in updated_locks:
+        print(f"    - {lock_dir}")
 
     # Update .version file with 4-part version
     with open(version_path, 'w', encoding='utf-8') as f:
