@@ -1,6 +1,6 @@
 {
   "name": "fasthttp",
-  "version": "0.0.114",
+  "version": "0.0.115",
   "description": "fasthttp 高性能 HTTP 库插件 - 提供基于零拷贝和对象复用的高性能 HTTP 服务开发规范和最佳实践。包括服务器配置、请求处理、性能优化和生态集成",
   "author": {
     "name": "lazygophers",

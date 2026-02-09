@@ -1,6 +1,6 @@
 [project]
 name = "theme-style-highcontrast"
-version = "0.0.114"
+version = "0.0.115"
 description = "Claude Code plugin for High Contrast design style"
 readme = "README.md"
 requires-python = ">=3.11"

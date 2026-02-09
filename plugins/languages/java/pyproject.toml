@@ -1,6 +1,6 @@
 [project]
 name = "code-java"
-version = "0.0.114"
+version = "0.0.115"
 description = "Claude Code plugin for Java language support"
 readme = "README.md"
 requires-python = ">=3.11"
