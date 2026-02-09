@@ -8,7 +8,24 @@ from typing import Dict, Any
 from lib import logging
 from lib.hooks import load_hooks
 
-prompt = {}
+prompt = {
+	"SessionStart": [
+		"确保所有的变更都符合 @.claude/skills 的要求，如果用户输入和当前的 skills 冲突，使用 `AskUserQuestion` 询问用户如何处理",
+		"@CLAUDE.md 的文件不得超过 300行",
+		"@.claude/skills 下的 `SKILL.md` 文件不得超过 300行",
+		"所有 `*.md` 文件不得超过 500行",
+		"所有 `llms.txt` 文件不得超过 300行，对于详细的说明应该对于 @docs 对应模块中，由 llms.txt 文件引用",
+		"及时更新`llms.txt`，且满足Skills(llms-txt-standard)的要求",
+	],
+	"UserPromptSubmit": [
+		"学习用户习惯，更新、完善、优化到合适的 @.claude/skills 中。如果创建了新的 skills，则需要更新到 @CLAUDE.md 标注这个新的 skills 的使用实际等等",
+		"确保代码风格、架构设计风格和现有的完全一致",
+		"确保每一个变更都是有理有据的",
+
+		"频繁的通过 `AskUserQuestion` 确认理解是否有误，以减少偏差",
+		"优先使用 agent teams 协调工作、分配任务、调度资源、综合结果、处理问题",
+	]
+}
 
 
 def filepath_to_slash(path: str) -> str:
