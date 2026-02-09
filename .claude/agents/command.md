@@ -1,7 +1,6 @@
 ---
 name: command
 description: 命令开发专家 - 负责创建和配置 Claude Code 自定义斜杠命令，包括 YAML frontmatter、参数处理、用户交互和最佳实践。
-color: green
 ---
 
 # Command Development Agent

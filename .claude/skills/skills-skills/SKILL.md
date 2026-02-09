@@ -1,5 +1,5 @@
 ---
-name: skills
+name: skills-skills
 description: Skills 使用指南 - 当需要了解如何创建、管理或使用 Claude Code Skills 时自动激活。覆盖 Skills 的定义、目录结构、YAML frontmatter、渐进披露模式和上下文隔离。
 context: fork
 agent: skill
@@ -135,5 +135,5 @@ Skills 支持**渐进披露（Progressive Disclosure）**：
 
 - [plugin](../plugin-skills/SKILL.md) - 插件使用
 - [commands](../commands/SKILL.md) - 命令使用
-- [agents](../agents/SKILL.md) - 代理使用
+- [agents](../agents-skills/SKILL.md) - 代理使用
 - [hooks](../hooks/SKILL.md) - 钩子使用

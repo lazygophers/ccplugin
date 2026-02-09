@@ -1,5 +1,5 @@
 ---
-name: commands
+name: commands-skills
 description: 命令使用指南 - 当用户需要创建、使用或管理 Claude Code 命令时自动激活。覆盖命令的定义、YAML frontmatter、参数处理和交互模式。
 context: fork
 agent: command
@@ -140,5 +140,5 @@ examples:
 
 - [plugin](../plugin-skills/SKILL.md) - 插件使用
 - [skills](../skills/SKILL.md) - Skills 使用
-- [agents](../agents/SKILL.md) - Agents 使用
+- [agents](../agents-skills/SKILL.md) - Agents 使用
 - [hooks](../hooks/SKILL.md) - Hooks 使用

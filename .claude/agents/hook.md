@@ -1,7 +1,6 @@
 ---
 name: hook
 description: Hooks 开发专家 - 负责创建和配置 Claude Code 钩子系统，包括事件监听、输入输出处理、命令式钩子和提示式钩子开发。
-color: red
 ---
 
 # Hook Development Agent

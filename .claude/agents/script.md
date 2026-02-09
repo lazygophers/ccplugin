@@ -1,7 +1,6 @@
 ---
 name: script
 description: Python CLI 脚本开发专家 - 负责开发插件的 Python 脚本逻辑，使用 Click 框架、结构化日志、错误处理和最佳实践。
-color: indigo
 ---
 
 # Python Script Development Agent

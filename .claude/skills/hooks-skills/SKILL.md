@@ -1,5 +1,5 @@
 ---
-name: hooks
+name: hooks-skills
 description: 钩子使用指南 - 当用户需要创建、使用或管理 Claude Code 钩子时自动激活。覆盖钩子的定义、事件类型、配置格式、输入输出和完整示例。
 context: fork
 agent: hook
@@ -89,5 +89,5 @@ hooks/
 
 - [plugin](../plugin-skills/SKILL.md) - 插件使用
 - [commands](../commands/SKILL.md) - 命令使用
-- [agents](../agents/SKILL.md) - 代理使用
+- [agents](../agents-skills/SKILL.md) - 代理使用
 - [skills](../skills/SKILL.md) - Skills 使用

@@ -153,7 +153,20 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 
 		tool_name = str(tool_name).lower()
 
-		if tool_name == "bash":
+		if tool_name == "mcp__jetbrains__execute_terminal_command":
+			pass
+			# logging
+			# print(json.dumps({
+			# 	"hookSpecificOutput":
+			# 		{
+			# 			"hookEventName": "PreToolUse",
+			# 			"permissionDecision": "deny",
+			# 			"permissionDecisionReason": "不允许使用 mcp 执行 bash",
+			# 			"updatedInput": tool_input
+			# 		}
+			# }))
+			# return
+		elif tool_name == "bash":
 			if "command" in tool_input:
 				command = tool_input.get("command", "")
 				if command.find("rm") >= 0:

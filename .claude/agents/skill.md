@@ -1,7 +1,6 @@
 ---
 name: skill
 description: Skills 开发专家 - 负责创建和配置 Claude Code Skills，包括目录结构、YAML frontmatter、渐进披露模式和上下文隔离。
-color: orange
 ---
 
 # Skill Development Agent

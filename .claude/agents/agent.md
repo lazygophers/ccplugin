@@ -1,7 +1,6 @@
 ---
 name: agent
 description: Agent 文档开发专家 - 负责为插件的 sub-agents 编写系统提示注入文档（AGENT.md），覆盖 agent 行为规范、上下文指导和专业知识注入。
-color: purple
 ---
 
 # Agent Documentation Agent

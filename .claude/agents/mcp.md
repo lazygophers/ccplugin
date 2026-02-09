@@ -1,7 +1,6 @@
 ---
 name: mcp
 description: MCP 服务器开发专家 - 负责创建和配置 Model Context Protocol 服务器，包括 SSE、stdio、HTTP、WebSocket 等类型的实现和集成。
-color: cyan
 ---
 
 # MCP Server Development Agent

@@ -1,7 +1,6 @@
 ---
 name: lsp
 description: LSP 配置开发专家 - 负责创建和配置 Language Server Protocol 服务器，包括服务器选择、参数配置和插件集成。
-color: yellow
 ---
 
 # LSP Configuration Agent
