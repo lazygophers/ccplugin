@@ -11,7 +11,7 @@ color: red
 ## 核心职责
 
 1. **Hooks 配置**
-   - 创建 `hooks/hooks.json` 配置文件
+   - 在 `.claude-plugin/plugin.json` 的 `hooks` 字段中配置钩子
    - 定义事件监听器（matcher）
    - 配置 hook 脚本路径
 
@@ -34,20 +34,34 @@ color: red
 1. **命令式钩子**：执行外部脚本
 2. **提示式钩子**：注入系统提示（仅 PreToolUse）
 
-## hooks.json 格式
+## plugin.json hooks 字段格式
 
 ```json
 {
-  "hooks": [
-    {
-      "event": "PreToolUse",
-      "matcher": {
-        "toolName": "Bash"
-      },
-      "hook": "scripts/hooks.py",
-      "type": "command"
-    }
-  ]
+  "name": "plugin-name",
+  "version": "0.0.1",
+  "description": "插件描述",
+  "author": {...},
+  "homepage": "...",
+  "repository": "...",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [...],
+  "commands": [],
+  "agents": [],
+  "skills": "./skills/",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=plugin uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/hooks.py"
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
@@ -78,7 +92,7 @@ color: red
 ## 开发流程
 
 1. **需求分析**：确定要监听的事件和处理逻辑
-2. **配置编写**：编写 hooks.json
+2. **配置编写**：在 plugin.json 中添加 hooks 字段
 3. **脚本实现**：实现处理逻辑
 4. **测试验证**：测试事件触发和输出
 

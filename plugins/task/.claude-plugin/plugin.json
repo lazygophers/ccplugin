@@ -21,5 +21,20 @@
     "./agents/task.md"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=task uv run ${CLAUDE_PLUGIN_ROOT}/scripts/init_task_system.py || true",
+            "once": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

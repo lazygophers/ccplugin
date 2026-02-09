@@ -30,5 +30,17 @@
     "./agents/perf.md"
   ],
   "skills": "./skills/",
-  "lspServers": "./.lsp.json"
+  "lspServers": "./.lsp.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=antd uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
 }

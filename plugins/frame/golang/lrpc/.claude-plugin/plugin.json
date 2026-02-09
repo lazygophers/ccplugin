@@ -17,5 +17,17 @@
     "golang",
     "framework"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=lrpc uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
 }

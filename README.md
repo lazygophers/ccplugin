@@ -157,7 +157,7 @@ cd ../skills    # 添加技能
 ```
 my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json         # 插件清单（必需）
+│   └── plugin.json         # 插件清单（必需，包含 hooks 配置）
 ├── commands/               # 自定义命令
 │   └── my-command.md
 ├── agents/                 # 子代理
@@ -165,8 +165,6 @@ my-plugin/
 ├── skills/                 # 技能
 │   └── my-skill/
 │       └── SKILL.md
-├── hooks/                  # 钩子（可选）
-│   └── hooks.json
 ├── scripts/                # 脚本（可选）
 │   └── script.py
 ├── README.md               # 插件文档（推荐）
@@ -295,7 +293,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin clean --dry-run
     - 在 `commands/` 目录下添加自定义命令
     - 在 `agents/` 目录下添加子代理
     - 在 `skills/` 目录下添加技能
-    - 在 `hooks/` 目录下添加钩子（可选）
+    - 在 `plugin.json` 的 `hooks` 字段中定义钩子（可选）
     - 在 `scripts/` 目录下添加脚本（可选）
     - 在 `README.md` 中添加插件文档（推荐）
     - 在 `AGENT.md` 中添加子代理文档（推荐,用于插件的系统提示词注入）

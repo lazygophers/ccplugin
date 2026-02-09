@@ -2,14 +2,25 @@
 
 ## 插件钩子概述
 
-插件可以通过 `hooks/hooks.json` 定义钩子，使用 `${CLAUDE_PLUGIN_ROOT}` 环境变量引用插件根目录。
+插件可以通过 `.claude-plugin/plugin.json` 中的 `hooks` 字段定义钩子,使用 `${CLAUDE_PLUGIN_ROOT}` 环境变量引用插件根目录。
 
 ## 插件钩子配置
 
-### hooks.json 格式
+### plugin.json hooks 字段格式
 
 ```json
 {
+  "name": "plugin-name",
+  "version": "0.0.1",
+  "description": "插件描述",
+  "author": {...},
+  "homepage": "...",
+  "repository": "...",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [...],
+  "commands": [...],
+  "agents": [...],
+  "skills": "./skills/",
   "hooks": {
     "SessionStart": [
       {
@@ -94,19 +105,28 @@ def handle_hook():
 
 ```
 golang/
-├── hooks/
-│   └── hooks.json           # 钩子配置
 ├── scripts/
 │   ├── main.py              # CLI 入口
 │   └── hooks.py             # 钩子处理脚本
 └── .claude-plugin/
-    └── plugin.json
+    └── plugin.json          # 包含 hooks 配置
 ```
 
-### hooks.json
+### plugin.json (hooks 字段)
 
 ```json
 {
+  "name": "golang",
+  "version": "0.0.1",
+  "description": "Golang 开发支持",
+  "author": {...},
+  "homepage": "...",
+  "repository": "...",
+  "license": "AGPL-3.0-or-later",
+  "keywords": ["golang", "go"],
+  "commands": [],
+  "agents": [],
+  "skills": "./skills/",
   "hooks": {
     "SessionStart": [
       {

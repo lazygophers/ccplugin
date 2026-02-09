@@ -134,7 +134,7 @@
 | `~/.claude/settings.json` | 用户级设置 |
 | `.claude/settings.json` | 项目设置 |
 | `.claude/settings.local.json` | 本地项目设置 |
-| 插件 `hooks/hooks.json` | 插件 hooks |
+| 插件 `.claude-plugin/plugin.json` 的 `hooks` 字段 | 插件 hooks |
 
 ## 项目特定脚本
 

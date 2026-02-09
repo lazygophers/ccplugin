@@ -26,5 +26,17 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "outputStyles": "./styles/",
-  "lspServers": "./.lsp.json"
+  "lspServers": "./.lsp.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=template uv run ${CLAUDE_PLUGIN_ROOT}/scripts/example.py"
+          }
+        ]
+      }
+    ]
+  }
 }

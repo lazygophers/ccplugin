@@ -7,7 +7,7 @@
 ```
 plugin-name/
 ├── .claude-plugin/
-│   └── plugin.json          # 插件清单（必需）
+│   └── plugin.json          # 插件清单（必需，包含 hooks 配置）
 ├── commands/                 # 命令目录
 │   └── *.md                 # 命令文件
 ├── agents/                  # 代理目录
@@ -15,8 +15,6 @@ plugin-name/
 ├── skills/                  # 技能目录
 │   └── skill-name/         # 技能目录
 │       └── SKILL.md        # 技能入口
-├── hooks/                   # 钩子目录
-│   └── hooks.json          # 钩子配置
 ├── scripts/                 # 脚本目录
 │   ├── __init__.py
 │   ├── main.py             # CLI 入口
@@ -32,11 +30,10 @@ plugin-name/
 
 | 目录/文件 | 必需 | 用途 |
 |-----------|------|------|
-| `.claude-plugin/plugin.json` | ✅ | 插件清单 |
+| `.claude-plugin/plugin.json` | ✅ | 插件清单（包含 hooks 配置） |
 | `commands/*.md` | ❌ | 命令定义 |
 | `agents/*.md` | ❌ | 代理定义 |
 | `skills/skill-name/SKILL.md` | ❌ | 技能定义 |
-| `hooks/hooks.json` | ❌ | 钩子配置 |
 | `scripts/main.py` | ❌ | CLI 入口点 |
 | `AGENT.md` | ❌ | 系统提示注入 |
 | `.mcp.json` | ❌ | MCP 服务器配置 |
@@ -139,8 +136,6 @@ my-plugin/
 ├── skills/
 │   └── coding/
 │       └── SKILL.md
-├── hooks/
-│   └── hooks.json
 ├── scripts/
 │   ├── __init__.py
 │   ├── main.py
