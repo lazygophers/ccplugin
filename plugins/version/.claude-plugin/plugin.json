@@ -17,7 +17,6 @@
     "release",
     "management"
   ],
-  "mcpServers": "./.mcp.json",
   "hooks": {
     "SessionStart": [
       {
