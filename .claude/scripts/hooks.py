@@ -77,6 +77,9 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 			logging.error(f"执行 ruff check 失败: {e}")
 			return False, dir_path, str(e)
 
+		if dir_path.name.find("semantic") >= 0:
+			continue
+
 		# 2. 检查 main.py --help（如果存在）
 		main_py = dir_path / "scripts" / "main.py"
 		if main_py.exists():
@@ -155,17 +158,17 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 
 		if tool_name == "mcp__jetbrains__execute_terminal_command":
 			pass
-			# logging
-			# print(json.dumps({
-			# 	"hookSpecificOutput":
-			# 		{
-			# 			"hookEventName": "PreToolUse",
-			# 			"permissionDecision": "deny",
-			# 			"permissionDecisionReason": "不允许使用 mcp 执行 bash",
-			# 			"updatedInput": tool_input
-			# 		}
-			# }))
-			# return
+		# logging
+		# print(json.dumps({
+		# 	"hookSpecificOutput":
+		# 		{
+		# 			"hookEventName": "PreToolUse",
+		# 			"permissionDecision": "deny",
+		# 			"permissionDecisionReason": "不允许使用 mcp 执行 bash",
+		# 			"updatedInput": tool_input
+		# 		}
+		# }))
+		# return
 		elif tool_name == "bash":
 			if "command" in tool_input:
 				command = tool_input.get("command", "")
