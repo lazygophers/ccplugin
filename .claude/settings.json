@@ -1,47 +1,47 @@
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
-          }
-        ]
-      }
-    ]
-  },
-  "enabledPlugins": {
-    "git@ccplugin-market": true,
-    "notify@ccplugin-market": true,
-    "naming@ccplugin-market": true,
-    "deepresearch@ccplugin-market": true,
-    "version@ccplugin-market": true,
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=ccplugin uv run --directory=${CLAUDE_PROJECT_DIR} .claude/scripts/hooks.py"
+					}
+				]
+			}
+		]
+	},
+	"enabledPlugins": {
+		"git@ccplugin-market": true,
+		"notify@ccplugin-market": true,
+		"naming@ccplugin-market": true,
+		"deepresearch@ccplugin-market": true,
+		"version@ccplugin-market": true,
 		"serena@claude-plugins-official": true,
 		"claude-md-management@claude-plugins-official": true,
 		"agent-sdk-dev@claude-plugins-official": true,
 		"code-simplifier@claude-plugins-official": true,
 		"context7@claude-plugins-official": true,
-    "plugin-dev@claude-plugins-official": true
-  }
+		"plugin-dev@claude-plugins-official": true
+	}
 }
