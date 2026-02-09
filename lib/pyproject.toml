@@ -1,9 +1,9 @@
 [project]
 name = "lib"
 version = "0.0.114"
-description = "Shared library for ccplugin - logging, utilities, and notification with TTS"
+description = "Shared library for ccplugin - logging, utilities, and notification"
 requires-python = ">=3.11"
-dependencies = [ "click>=8.3.1", "pydantic>=2.12.5", "pytest>=9.0.2", "rich>=13.0.0", "pyyaml>=6.0", "TTS>=0.22.0",]
+dependencies = [ "click>=8.3.1", "pydantic>=2.12.5", "pytest>=9.0.2", "rich>=13.0.0", "pyyaml>=6.0",]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
@@ -11,6 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
 dev = [ "pytest>=7.0.0",]
+tts = [ "TTS>=0.22.0",]
 
 [tool.setuptools.packages.find]
 where = [ "..",]
