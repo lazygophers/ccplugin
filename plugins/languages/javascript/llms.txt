@@ -1,6 +1,6 @@
 # javascript
 
-> JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链
+> JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导、React/Vue 开发规范、Web 安全编码和基于 pnpm、Vite、Vitest 的完整工具链
 
 ## 概述
 
@@ -26,8 +26,28 @@ javascript/
 ├── skills/
 │   └── javascript-skills/
 │       ├── SKILL.md
-│       ├── examples.md
-│       └── reference.md
+│       ├── development-practices.md
+│       ├── architecture-tooling.md
+│       ├── references.md
+│       ├── coding-standards/
+│       │   ├── naming-conventions.md
+│       │   ├── code-formatting.md
+│       │   ├── error-handling.md
+│       │   ├── testing-standards.md
+│       │   ├── comment-standards.md
+│       │   ├── documentation-standards.md
+│       │   ├── version-control-standards.md
+│       │   └── code-review-standards.md
+│       ├── specialized/
+│       │   ├── async-programming.md
+│       │   ├── react-development.md
+│       │   ├── vue-development.md
+│       │   └── web-security.md
+│       └── examples/
+│           ├── error-handling-examples.js
+│           ├── async-examples.js
+│           ├── react-examples.jsx
+│           └── good-bad-comparisons.js
 ├── .lsp.json
 ├── AGENT.md
 ├── README.md
@@ -40,15 +60,19 @@ javascript/
 
 ### 主要函数
 
-- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录
 - `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
-- `main(ctx)` - JavaScript development plugin.
+- `main(ctx)` - JavaScript development plugin
 - `hooks()` - Hook 模式：从 stdin 读取 JSON
-- `wrapper(debug_mode)`
+- `wrapper(debug_mode)` - 包装器函数
 
 ## 相关文档
 
 - [README](./README.md) - 完整文档
 - [插件配置](./.claude-plugin/plugin.json) - 插件元数据
-- [技能定义](./skills/) - Skills 定义
+- [Skills 定义](./skills/javascript-skills/SKILL.md) - 核心规范入口
+- [编码规范](./skills/javascript-skills/coding-standards/) - 完整编码规范
+- [专项规范](./skills/javascript-skills/specialized/) - 异步编程、React/Vue、Web 安全
+- [代码示例](./skills/javascript-skills/examples/) - 可运行的代码示例
+- [参考资源](./skills/javascript-skills/references.md) - ES2024-2025 参考资源
 - [子代理](./agents/) - Agent 定义

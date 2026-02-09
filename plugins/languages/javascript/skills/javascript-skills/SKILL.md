@@ -136,6 +136,7 @@ export function UserCard({ userId }) {
 
 参见 [development-practices.md](development-practices.md) 了解完整的强制规范、ES2024-2025 新特性、异步编程、ESM 模块、集合操作和性能优化指南。
 参见 [architecture-tooling.md](architecture-tooling.md) 了解前端架构设计、项目结构、Vite 构建配置、测试框架、依赖管理和开发工具链的详细说明。
+参见 [references.md](references.md) 了解 JavaScript ES2024-2025 参考资源，包括 ECMAScript 规范、官方文档、工具文档、框架文档、安全资源和学习资源。
 
 ### 编码规范
 
@@ -143,10 +144,24 @@ export function UserCard({ userId }) {
 - [代码格式规范](coding-standards/code-formatting.md) - ESLint、Prettier 配置
 - [错误处理规范](coding-standards/error-handling.md) - try-catch、自定义错误、错误边界
 - [测试规范](coding-standards/testing-standards.md) - 单元测试、集成测试、端到端测试
+- [注释规范](coding-standards/comment-standards.md) - JSDoc 注释、注释原则、TODO/FIXME
+- [文档规范](coding-standards/documentation-standards.md) - README、API 文档、组件文档
+- [版本控制规范](coding-standards/version-control-standards.md) - Git 使用规范、分支管理、提交规范
+- [代码审查规范](coding-standards/code-review-standards.md) - 审查原则、审查清单、审查流程
+
+### 专项规范
+
+- [异步编程](specialized/async-programming.md) - async/await、Promise.allSettled、超时控制、异步迭代器
+- [React 开发](specialized/react-development.md) - React 18+、Hooks、组件模式、性能优化
+- [Vue 开发](specialized/vue-development.md) - Vue 3、Composition API、响应式、生命周期
+- [Web 安全](specialized/web-security.md) - XSS 防护、CORS 配置、输入验证、CSP
 
 ### 代码示例
 
-- [代码示例](examples/) - 符合和不符合规范的代码示例（good/bad）
+- [错误处理示例](examples/error-handling-examples.js) - 错误处理代码示例
+- [异步编程示例](examples/async-examples.js) - 异步编程代码示例
+- [React 组件示例](examples/react-examples.jsx) - React 组件代码示例
+- [代码对比示例](examples/good-bad-comparisons.js) - 符合和不符合规范的代码对比
 
 ## 优先级规则
 

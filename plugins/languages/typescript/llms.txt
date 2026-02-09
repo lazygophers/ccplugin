@@ -1,10 +1,10 @@
 # typescript
 
-> TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导
+> TypeScript 5.9+ 开发插件 - 提供类型安全规范、现代开发实践和代码智能支持。包括严格模式配置、Zod 运行时验证、React/Node.js 开发指南和 2024-2025 最佳实践。
 
 ## 概述
 
-TypeScript 开发插件为 Claude Code 提供全面的 TypeScript 5.9+ 开发规范、最佳实践和代码智能支持。
+TypeScript 开发插件为 Claude Code 提供全面的 TypeScript 5.9+ 开发规范、最佳实践和代码智能支持。强调类型安全、现代工程化和可维护性。
 
 ## 目录结构
 
@@ -25,9 +25,30 @@ typescript/
 │   └── main.py
 ├── skills/
 │   └── typescript/
-│       ├── SKILL.md
-│       ├── tooling-testing.md
-│       └── type-system.md
+│       ├── SKILL.md                    # 入口文件：核心理念、优先库、强制规范
+│       ├── development-practices.md    # 强制规范、错误处理、命名、类型安全
+│       ├── architecture-tooling.md      # 架构设计、项目结构、工具链配置
+│       ├── references.md               # 类型系统详解、泛型、工具类型
+│       ├── coding-standards/           # 编码规范目录
+│       │   ├── error-handling.md       # 错误处理原则、Result 类型
+│       │   ├── naming-conventions.md    # 命名规范（类型、变量、函数）
+│       │   ├── code-formatting.md      # 代码格式、导入规范
+│       │   ├── comment-standards.md     # 注释规范、JSDoc
+│       │   ├── project-structure.md     # 项目结构规范
+│       │   ├── testing-standards.md     # 测试规范、Vitest 配置
+│       │   ├── documentation-standards.md # 文档规范
+│       │   ├── version-control-standards.md # Git 规范
+│       │   └── code-review-standards.md  # 代码审查标准
+│       ├── specialized/                 # 专项规范目录
+│       │   ├── async-programming.md     # 异步编程（Promise、async/await）
+│       │   ├── react-development.md     # React 18+ 开发规范
+│       │   ├── nodejs-development.md    # Node.js 20+ 开发规范
+│       │   └── security.md              # 安全编码规范
+│       └── examples/                    # 代码示例目录
+│           ├── error-handling-examples.ts
+│           ├── async-examples.ts
+│           ├── react-examples.tsx
+│           └── good-bad-comparisons.ts
 ├── .lsp.json
 ├── AGENT.md
 ├── README.md
@@ -36,19 +57,41 @@ typescript/
 └── uv.lock
 ```
 
+## 核心特性
+
+### 强制规范
+- 使用 pnpm 作为包管理器
+- 启用 TypeScript strict 模式
+- 使用 Zod 进行运行时类型验证
+- 使用 Vitest 作为测试框架
+- 多行错误处理，记录日志
+
+### 优先库
+- Zod（运行时验证）
+- Vitest（测试）
+- pnpm（包管理）
+- ESLint + Prettier（代码风格）
+- Vite（构建工具）
+
+### 生态支持
+- React 18+ 开发
+- Next.js 15+ 应用
+- Node.js 20+ 后端
+- Express/Fastify 服务器
+- Vue 3 前端框架
+
 ## API 参考
 
 ### 主要函数
 
-- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录
 - `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
-- `main(ctx)` - TypeScript development plugin.
+- `main(ctx)` - TypeScript development plugin
 - `hooks()` - Hook 模式：从 stdin 读取 JSON
-- `wrapper(debug_mode)`
 
 ## 相关文档
 
 - [README](./README.md) - 完整文档
 - [插件配置](./.claude-plugin/plugin.json) - 插件元数据
-- [技能定义](./skills/) - Skills 定义
+- [技能定义](./skills/typescript/) - Skills 定义
 - [子代理](./agents/) - Agent 定义
