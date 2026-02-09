@@ -1,16 +1,157 @@
 ---
 name: javascript-skills
-description: JavaScript 开发规范 - 涵盖现代 ES2024-2025 标准、异步编程、模块系统、工具链和最佳实践。基于官方标准和业界共识
+description: JavaScript 前端开发规范和最佳实践指导，包括现代 ES2024-2025 标准、前端工具链、框架集成和性能优化等
 ---
 
-JavaScript 开发规范
+# JavaScript 前端开发规范
 
-本规范提供现代 JavaScript（ES2024-2025）的完整开发指导，涵盖语言特性、编码规范、异步编程、工具链和框架集成。
+## 快速导航
+
+| 文档                                                 | 内容                                                 | 适用场景       |
+| ---------------------------------------------------- | ---------------------------------------------------- | -------------- |
+| **SKILL.md**                                         | 核心理念、优先工具、强制规范速览                     | 快速入门       |
+| [development-practices.md](development-practices.md) | 强制规范、ES2024-2025 新特性、异步编程、ESM 模块     | 日常编码       |
+| [architecture-tooling.md](architecture-tooling.md)   | 架构设计、项目结构、Vite 构建、测试框架、工具链     | 项目架构和部署 |
+| [coding-standards/](coding-standards/)               | 编码规范（命名、格式、错误处理、测试）               | 代码规范参考   |
+| [examples/](examples/)                               | 代码示例（good/bad）                                 | 学习参考       |
+
+## 核心理念
+
+JavaScript 前端生态追求**高性能、组件化、类型安全**，通过精选的工具库和最佳实践，帮助开发者写出高质量的前端代码。
+
+**三个支柱**：
+
+1. **组件化** - 优先使用函数式组件和 Hooks
+2. **类型安全** - 优先使用 TypeScript（推荐）
+3. **工程化** - 追求项目结构清晰、可维护性强
+
+## 版本与环境
+
 - **JavaScript**：ES2024-2025（最新标准）
 - **Node.js**：24 LTS（推荐）或 22 LTS
+- **包管理器**：pnpm（推荐）> Yarn > npm
+- **构建工具**：Vite 5+
+- **测试框架**：Vitest（推荐）或 Jest
+- **代码检查**：ESLint 9+ + Prettier 3+
 
-## 详细指南
+## 优先工具速查
 
-完整的配置规范和实现细节，请参阅 [reference.md](reference.md)
+| 用途         | 推荐工具               | 用法                           |
+| ------------ | ---------------------- | ------------------------------ |
+| 包管理       | `pnpm`                 | `pnpm add lodash-es`           |
+| 构建         | `Vite`                 | `pnpm create vite`             |
+| 测试         | `Vitest`               | `describe/it/expect`           |
+| 语法检查     | `ESLint 9+`            | `eslint . --fix`               |
+| 代码格式     | `Prettier`             | `prettier --write .`           |
+| 臃肿查询     | `DOMPurify`            | `DOMPurify.sanitize()`         |
 
-使用示例和最佳实践，请参阅 [examples.md](examples.md)
+## 核心约定
+
+### 强制规范
+
+- ✅ 使用 `const`/`let`，禁止 `var`
+- ✅ 使用 ESM（`import`/`export`）
+- ✅ 使用 `async`/`await` 处理异步
+- ✅ 所有 Promise 必须有错误处理
+- ✅ 命名遵循规范（camelCase, PascalCase, UPPER_SNAKE_CASE）
+- ✅ 没有 `console.log` 在生产代码
+- ✅ 测试覆盖率 80%+
+- ✅ 没有 XSS 或 CSRF 漏洞
+
+### 项目结构（功能驱动）
+
+```
+src/
+├── features/
+│   ├── auth/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── components/
+│   │   └── types.js
+│   ├── dashboard/
+│   └── shared/
+│       ├── hooks/
+│       ├── services/
+│       ├── components/
+│       ├── utils/
+│       ├── constants/
+│       └── types.js
+├── config/
+├── middleware/
+├── store/  (Pinia/Redux)
+└── main.js
+```
+
+## 最佳实践概览
+
+**异步编程**
+
+```javascript
+// ✅ 推荐：async/await
+async function fetchData() {
+  try {
+    const response = await fetch('/api/data');
+    return await response.json();
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+// ✅ Promise.allSettled()：推荐
+const results = await Promise.allSettled([
+  fetchUser(), fetchPosts(), fetchComments()
+]);
+```
+
+**ESM 模块**
+
+```javascript
+// ✅ 具名导出（推荐）
+export const getUserData = async (id) => { };
+export const validateUser = (user) => { };
+
+// ✅ 默认导出仅用于主要功能
+export default class UserService { }
+
+// ✅ type-only 导入
+import type { User } from './types.js';
+```
+
+**组件规范**
+
+```javascript
+// ✅ 推荐：函数组件 + Hooks
+export function UserCard({ userId }) {
+  const [user, setUser] = React.useState(null);
+
+  React.useEffect(() => {
+    fetchUser(userId).then(setUser);
+  }, [userId]);
+
+  return user ? <div>{user.name}</div> : <Loading />;
+}
+```
+
+## 扩展文档
+
+参见 [development-practices.md](development-practices.md) 了解完整的强制规范、ES2024-2025 新特性、异步编程、ESM 模块、集合操作和性能优化指南。
+参见 [architecture-tooling.md](architecture-tooling.md) 了解前端架构设计、项目结构、Vite 构建配置、测试框架、依赖管理和开发工具链的详细说明。
+
+### 编码规范
+
+- [命名规范](coding-standards/naming-conventions.md) - 变量、函数、类、常量、文件命名
+- [代码格式规范](coding-standards/code-formatting.md) - ESLint、Prettier 配置
+- [错误处理规范](coding-standards/error-handling.md) - try-catch、自定义错误、错误边界
+- [测试规范](coding-standards/testing-standards.md) - 单元测试、集成测试、端到端测试
+
+### 代码示例
+
+- [代码示例](examples/) - 符合和不符合规范的代码示例（good/bad）
+
+## 优先级规则
+
+当本规范与其他规范冲突时：
+
+1. **实际项目代码** - 最高优先级（看现有实现）
+2. **本规范** - 中优先级
+3. **传统 JavaScript 实践** - 最低优先级

@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-javascript"
-version = "0.0.107"
+version = "0.0.108"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

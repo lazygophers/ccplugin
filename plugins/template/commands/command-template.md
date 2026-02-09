@@ -1,109 +1,90 @@
 ---
-description: 命令描述 - 简洁说明这个命令做什么
-argument-hint: [arg1] [arg2]
-allowed-tools: Read, Write, Bash, Grep
-model: sonnet
+name: command-template
+description: 命令模板 - 演示 Command 的标准格式和用法
 ---
 
-# command-name
+# Command Template
 
-## 命令描述
+## 快速参考
 
-简洁说明命令的用途和功能。
+| 字段 | 说明 |
+|------|------|
+| `name` | 命令名（小写+连字符） |
+| `description` | 简短描述 |
+| `arguments` | 位置参数（可选） |
+| `options` | 选项参数（可选） |
 
-## 工作流描述
+## Frontmatter 完整格式
 
-清晰描述命令执行的整个工作流程：
+```yaml
+---
+name: command-name
+description: 简短描述（1-2句话）
 
-1. **第一步**：描述第一步操作的目的和内容
-2. **第二步**：描述第二步操作的目的和内容
-3. **第三步**：描述第三步操作的目的和内容
-4. **完成**：描述最终的结果或输出
+# 可选字段
+arguments:
+  - name: arg1
+    description: 参数描述
+    required: true
+    enum: [val1, val2]
 
-## 命令执行方式
+options:
+  - name: verbose
+    short: -v
+    description: 详细输出
+    is_flag: true
 
-### 使用方法
+examples:
+  - "/plugin command arg1"
+  - "/plugin command arg1 --verbose"
+---
 
-```bash
-uvx --from git+https://github.com/lazygophers/ccplugin command-name [arg1] [arg2]
+# 命令标题
+
+命令详细说明。
+
+**用法**：
+```
+/plugin-name command-name
+```
 ```
 
-### 执行时机
+## 完整示例
 
-- 何时应该执行此命令
-- 适用的场景或条件
+```markdown
+---
+name: greet
+description: 向用户发送问候
+arguments:
+  - name: name
+    description: 要问候的用户名
+    required: true
+options:
+  - name: formal
+    short: -f
+    description: 使用正式问候语
+    is_flag: true
+---
 
-### 执行参数
+# 向用户发送问候
 
-- `arg1`: 参数 1 的说明和类型
-- `arg2`: 参数 2 的说明和类型
+向指定用户发送问候消息。
 
-### 命令说明
-
-- 命令行为说明
-- 返回值说明
-- 可能的输出形式
-
-## 相关Skills（可选）
-
-如果此命令依赖某个 Skill，通过以下方式引用：
-
-- 参考：`@${CLAUDE_PLUGIN_ROOT}/skills/skill-name/SKILL.md`
-
-## 依赖脚本（可选）
-
-如果需要执行外部脚本，使用以下方式：
-
-```bash
-uvx --from git+https://github.com/owner/repo run script-name [args]
+**用法**：
 ```
-
-## 示例
-
-### 基本用法
-
-```bash
-uvx --from git+https://github.com/lazygophers/ccplugin command-name
+/template greet Alice           # 简单问候
+/template greet Alice --formal  # 正式问候
 ```
-
-### 带参数的用法
-
-```bash
-uvx --from git+https://github.com/lazygophers/ccplugin command-name value1 value2
 ```
-
-### 实际场景示例
-
-描述真实使用场景和预期输出。
-
-## 检查清单
-
-在执行命令前，确保满足以下条件：
-
-- [ ] 前置条件 1 已满足
-- [ ] 前置条件 2 已满足
-- [ ] 相关文件已准备好
-- [ ] 必要的参数已获取
 
 ## 注意事项
 
-- **注意事项 1**：详细说明
-- **注意事项 2**：详细说明
-- **常见问题**：列出可能的问题和解决方案
+1. **命令名使用 kebab-case**：`show-version`
+2. **描述简洁明确**：1-2 句话
+3. **提供使用示例**：让用户快速上手
+4. **参数验证**：使用类型检查
 
-## 其他信息
+## 相关资源
 
-### 性能考虑
-
-- 命令的性能特征
-- 大规模数据处理的注意事项
-
-### 兼容性
-
-- 适用的平台和版本
-- 已知的兼容性问题
-
-### 扩展和自定义
-
-- 如何扩展此命令
-- 可能的定制选项
+- [Commands Skill](../../.claude/skills/commands/SKILL.md)
+- [scripts/main.py](../../scripts/main.py)

@@ -2,26 +2,13 @@
 
 > 插件开发模板 - 快速创建新插件
 
-## 编程语言规范
-
-本市场插件开发遵循以下语言优先级：
-
-1. **Python（首选）** - 复杂逻辑、数据处理、API 调用
-2. **Bash（次选）** - 系统操作、文件处理、快速脚本
-3. **Markdown/JSON（必需）** - 配置文件、命令定义
-
-**语言选择原则**：
-- 复杂逻辑、数据处理 → Python
-- 系统操作、文件处理、Hooks → Bash
-- 配置文件、命令定义 → Markdown + JSON
-
 ## 说明
 
 这是一个插件开发模板，用于快速创建新的 Claude Code 插件。
 
 ## 使用方法
 
-### 复制模板
+### 1. 复制模板
 
 ```bash
 # 复制整个模板目录
@@ -31,78 +18,91 @@ cp -r plugins/template my-new-plugin
 cd my-new-plugin
 ```
 
-### 修改配置
+### 2. 修改配置
 
 编辑 `.claude-plugin/plugin.json`：
 
 ```json
 {
-  "name": "my-new-plugin",      // 修改插件名称
-  "version": "1.0.0",
-  "description": "我的插件描述",  // 修改描述
-  "author": {                    // 修改作者信息
-    "name": "YOUR_NAME",
-    "email": "your.email@example.com",
+  "name": "my-new-plugin",
+  "version": "0.0.1",
+  "description": "我的插件描述",
+  "author": {
+    "name": "Your Name",
+    "email": "you@example.com",
     "url": "https://github.com/yourusername"
-  }
+  },
+  "homepage": "https://github.com/yourusername/my-new-plugin",
+  "repository": "https://github.com/yourusername/my-new-plugin",
+  "license": "AGPL-3.0-or-later"
 }
 ```
 
-### 添加组件
+### 3. 添加组件
 
-#### 添加命令
+#### Command
 
-在 `commands/` 目录创建 `.md` 文件：
+在 `commands/` 创建 `.md` 文件：
 
 ```markdown
 ---
-description: 命令描述
-allowed-tools: Read, Write, Bash
+name: command-name
+description: 命令简短描述
 ---
+
 # 命令名称
 
 命令详细说明。
+
+**用法**：
+```
+/plugin-name command-name
+```
 ```
 
-#### 添加代理
+#### Agent
 
-在 `agents/` 目录创建 `.md` 文件：
+在 `agents/` 创建 `.md` 文件：
 
 ```markdown
 ---
 name: agent-name
-description: 代理描述
-tools: Read, Write, Bash
+description: Agent 简短描述
+context: fork
+allowed-tools:
+  - Read
+  - Write
+  - Bash
 ---
-代理系统提示词。
+
+# Agent 名称
+
+你是 Agent 系统提示词...
 ```
 
-#### 添加技能
+#### Skill
 
 在 `skills/` 创建目录和 `SKILL.md`：
 
 ```markdown
 ---
-name: skill-name-skills
-description: 技能描述
-auto-activate: always:true
+name: skill-name
+description: Skill 简短描述
 ---
-# 技能名称
 
-技能使用说明。
+# Skill 名称
+
+Skill 使用说明...
 ```
 
-### 测试插件
+### 4. 安装测试
 
 ```bash
-# 验证插件
-/plugin-validate ./my-new-plugin
-
-# 本地安装测试
+# 本地安装
 /plugin install ./my-new-plugin
 
 # 测试功能
-/plugin-test ./my-new-plugin
+/plugin-name command-name
 ```
 
 ## 目录结构
@@ -110,63 +110,38 @@ auto-activate: always:true
 ```
 my-new-plugin/
 ├── .claude-plugin/
-│   └── plugin.json         # 插件清单（必需修改）
-├── scripts/                # 脚本目录（可选）
-│   ├── example.py          # Python 示例脚本
-│   └── example.sh          # Bash 示例脚本
-├── commands/               # 命令目录
-├── agents/                 # 代理目录
-├── skills/                 # 技能目录
-└── README.md               # 插件文档（必需修改）
+│   └── plugin.json          # 插件清单（必需）
+├── scripts/                 # Python 脚本
+│   ├── __init__.py
+│   ├── main.py             # CLI 入口
+│   ├── hooks.py            # Hook 处理器
+│   └── mcp.py              # MCP 服务器
+├── commands/               # 命令定义
+├── agents/                 # 子代理定义
+├── skills/                 # 技能定义
+├── hooks/
+│   └── hooks.json          # Hook 配置
+├── .mcp.json               # MCP 配置
+├── .lsp.json               # LSP 配置
+├── pyproject.toml          # Python 配置
+└── README.md               # 插件文档
 ```
 
-## 示例脚本
+## 编程语言规范
 
-模板包含两个示例脚本供参考：
-
-### Python 示例 (`scripts/example.py`)
-
-```bash
-# 运行示例
-./scripts/example.py input.json
-./scripts/example.py - < input.json
-```
-
-用于：数据处理、API 调用、复杂逻辑
-
-### Bash 示例 (`scripts/example.sh`)
-
-```bash
-# 运行示例
-./scripts/example.sh process file.txt
-./scripts/example.sh check /path/to/check
-./scripts/example.sh status
-```
-
-用于：系统操作、文件处理、快速脚本
-
-可以删除或修改这些示例脚本。
+1. **Python（首选）** - 复杂逻辑、API 调用
+2. **Bash（次选）** - 系统操作、快速脚本
+3. **Markdown/JSON（必需）** - 配置文件
 
 ## 检查清单
 
-发布前确保：
-
-- [ ] 修改 `plugin.json` 中的 name、description、author
-- [ ] 添加至少一个命令/代理/技能
+- [ ] 修改 `plugin.json` 所有字段
+- [ ] 实现 `scripts/main.py`
+- [ ] 添加命令/代理/技能
 - [ ] 编写 README.md
 - [ ] 本地测试通过
-- [ ] 命名使用 kebab-case
-- [ ] 验证格式正确
-
-## 下一步
-
-1. 完善插件功能
-2. 添加测试
-3. 编写文档
-4. 发布到市场
 
 ## 参考资源
 
-- [插件开发指南](../../docs/plugin-development.md)
-- [plugin-development skill](../../.claude/skills/plugin-development/SKILL.md)
-- [官方文档](https://code.claude.com/docs/en/plugins.md)
+- [.claude/skills/plugin-development/](../.claude/skills/plugin-development/)
+- [CLAUDE.md](../../CLAUDE.md)
