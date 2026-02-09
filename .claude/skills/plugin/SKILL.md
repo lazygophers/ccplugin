@@ -1,8 +1,8 @@
 ---
-name: plugin
+name: plugin-skills
 description: 插件使用指南 - 当用户需要了解如何创建、使用或管理 Claude Code 插件时自动激活。覆盖插件的定义、目录结构、manifest 配置、组件组织和本地配置。
 context: fork
-agent: plugin
+agent: plugin-agent
 ---
 
 # 插件使用指南
