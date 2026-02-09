@@ -1,0 +1,29 @@
+{
+  "csharp": {
+    "command": "OmniSharp",
+    "args": [
+      "-lsp"
+    ],
+    "extensionToLanguage": {
+      ".cs": "csharp",
+      ".csx": "csharp"
+    },
+    "settings": {
+      "dotnet.defaultSolution": "disable",
+      "omnisharp.enableMsBuildLoadProjectsOnDemand": false,
+      "omnisharp.enableRoslynAnalyzers": true,
+      "omnisharp.enableEditorConfigSupport": true,
+      "omnisharp.enableImportCompletion": true,
+      "omnisharp.analyzeOpenDocumentsOnly": false
+    },
+    "initializationOptions": {
+      "msbuild": {
+        "enablePackageAutoRestore": true
+      }
+    },
+    "restartOnCrash": true,
+    "maxRestarts": 5,
+    "startupTimeout": 10000,
+    "shutdownTimeout": 5000
+  }
+}

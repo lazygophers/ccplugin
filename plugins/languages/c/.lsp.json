@@ -1,0 +1,43 @@
+{
+  "c": {
+    "command": "clangd",
+    "args": [
+      "--background-index",
+      "--clang-tidy",
+      "--header-insertion=iwyu",
+      "--completion-style=detailed",
+      "--function-arg-placeholders",
+      "--fallback-style=llvm"
+    ],
+    "extensionToLanguage": {
+      ".c": "c",
+      ".h": "c"
+    },
+    "settings": {
+      "clangd.path": "clangd",
+      "clangd.arguments": [
+        "--background-index",
+        "--clang-tidy",
+        "--header-insertion=iwyu",
+        "--completion-style=detailed",
+        "--function-arg-placeholders",
+        "--fallback-style=llvm",
+        "--format-style=file"
+      ]
+    },
+    "initializationOptions": {
+      "clangd.path": "clangd",
+      "clangd.arguments": [
+        "--background-index",
+        "--clang-tidy",
+        "--header-insertion=iwyu",
+        "--completion-style=detailed",
+        "--function-arg-placeholders"
+      ]
+    },
+    "restartOnCrash": true,
+    "maxRestarts": 5,
+    "startupTimeout": 10000,
+    "shutdownTimeout": 5000
+  }
+}

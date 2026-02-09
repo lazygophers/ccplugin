@@ -1,0 +1,32 @@
+{
+  "name": "rust",
+  "version": "0.0.108",
+  "description": "Rust 开发插件 - 提供 Rust 1.70+ 开发规范、最佳实践和代码智能支持。包括现代 Rust 2024 edition、所有权系统、异步编程和零成本抽象指导",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/rust",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/rust",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "rust",
+    "rust-lang",
+    "development",
+    "coding-style",
+    "best-practices",
+    "ownership",
+    "async",
+    "lsp",
+    "rust-analyzer"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}

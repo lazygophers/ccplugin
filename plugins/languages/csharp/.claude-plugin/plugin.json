@@ -1,0 +1,32 @@
+{
+  "name": "csharp",
+  "version": "0.0.108",
+  "description": "C# 开发插件 - 提供 C# 12/.NET 8 开发规范、最佳实践和代码智能支持。包括 LINQ、async/await、Entity Framework、WPF、MAUI、ASP.NET Core 和 Blazor 指导",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/csharp",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/csharp",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "csharp",
+    "c#",
+    ".net",
+    ".net8",
+    "development",
+    "coding-style",
+    "best-practices",
+    "lsp",
+    "roslyn"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}

@@ -1,0 +1,40 @@
+{
+  "rust": {
+    "command": "rust-analyzer",
+    "args": [],
+    "extensionToLanguage": {
+      ".rs": "rust"
+    },
+    "settings": {
+      "rust-analyzer.cargo.features": "all",
+      "rust-analyzer.cargo.loadOutDirsFromCheck": true,
+      "rust-analyzer.checkOnSave.command": "clippy",
+      "rust-analyzer.checkOnSave.extraArgs": [],
+      "rust-analyzer.completion.addCallArgumentSnippets": true,
+      "rust-analyzer.completion.addCallParenthesis": true,
+      "rust-analyzer.diagnostics.enable": true,
+      "rust-analyzer.diagnostics.enableExperimental": false,
+      "rust-analyzer.diagnostics.disabled": [],
+      "rust-analyzer.diagnostics.remapPrefix": {},
+      "rust-analyzer.diagnostics.warningsAsHint": [],
+      "rust-analyzer.diagnostics.warningsAsInfo": [],
+      "rust-analyzer.hoverActions.enable": true,
+      "rust-analyzer.hoverActions.linksInHover": true,
+      "rust-analyzer.lens.enable": true,
+      "rust-analyzer.lens.run.enable": true,
+      "rust-analyzer.lens.debug.enable": true,
+      "rust-analyzer.lens.implementations.enable": true,
+      "rust-analyzer.inlayHints.enable": true,
+      "rust-analyzer.inlayHints.typeHints.enable": true,
+      "rust-analyzer.inlayHints.parameterHints.enable": true,
+      "rust-analyzer.inlayHints.chainingHints.enable": true,
+      "rust-analyzer.procMacro.enable": true,
+      "rust-analyzer.server.extraEnv": {}
+    },
+    "initializationOptions": {},
+    "restartOnCrash": true,
+    "maxRestarts": 5,
+    "startupTimeout": 10000,
+    "shutdownTimeout": 5000
+  }
+}

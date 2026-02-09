@@ -1,0 +1,57 @@
+# rust
+
+> Rust 开发插件 - 提供 Rust 开发规范、最佳实践和代码智能支持。包括现代 Rust 开发规范和 Cargo 生态系统最佳实践指导
+
+## 概述
+
+Rust 开发插件提供高质量的 Rust 代码开发指导和 LSP 支持。包括现代 Rust 开发规范、Cargo 生态系统最佳实践以及智能代码补全指导。
+
+## 目录结构
+
+```
+rust/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   ├── debug.md
+│   ├── dev.md
+│   ├── perf.md
+│   └── test.md
+├── hooks/
+│   └── hooks.json
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   └── main.py
+├── services/
+├── skills/
+│   └── rust-skills/
+│       ├── SKILL.md
+│       ├── ownership-borrowing.md
+│       ├── error-handling.md
+│       ├── async-programming.md
+│       ├── unsafe-rust.md
+│       ├── cargo-ecosystem.md
+│       └── references.md
+├── .lsp.json
+├── README.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## API 参考
+
+### 主要函数
+
+- `handle_hook()` - 处理 hook 模式：从 stdin 读取 JSON 并记录。
+- `with_debug(func)` - 装饰器：为所有命令添加 --debug 参数支持
+- `main(ctx)` - Rust 开发插件入口
+- `hooks()` - Hook 模式：从 stdin 读取 JSON
+- `wrapper(debug_mode)` - 命令包装器
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [技能定义](./skills/) - Skills 定义
+- [子代理](./agents/) - Agent 定义

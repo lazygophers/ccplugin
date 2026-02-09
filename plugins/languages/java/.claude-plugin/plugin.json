@@ -1,0 +1,32 @@
+{
+  "name": "java",
+  "version": "0.0.108",
+  "description": "Java 开发插件 - 提供 Java 21+ 开发规范、最佳实践和代码智能支持。包括现代 Java 开发规范、Spring Boot 3+ 指导和 JVM 性能优化",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/java",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/java",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "java",
+    "jdk",
+    "development",
+    "coding-style",
+    "best-practices",
+    "spring-boot",
+    "jvm",
+    "lsp",
+    "eclipse-jdt"
+  ],
+  "agents": [
+    "./agents/dev.md",
+    "./agents/test.md",
+    "./agents/debug.md",
+    "./agents/perf.md"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json"
+}
