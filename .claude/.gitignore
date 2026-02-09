@@ -6,5 +6,4 @@
 # 忽略测试产生的临时文件
 .tmp/
 *.tmp
-last_change_stats.json
 /settings.local.json

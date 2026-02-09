@@ -140,6 +140,109 @@ def get_status_icon(plugin_id: str, enabled_plugins: dict[str, bool]) -> str:
     return "[dim]○[/dim]"
 
 
+def get_plugin_source(market: str, plugin_name: str) -> str | None:
+    """Get plugin source path from marketplace.json.
+
+    Args:
+        market: Marketplace name
+        plugin_name: Plugin name
+
+    Returns:
+        Plugin source path or None if not found
+    """
+    marketplace_data = read_marketplace_json(market)
+    if not marketplace_data:
+        return None
+
+    plugins = marketplace_data.get("plugins", [])
+    for plugin in plugins:
+        if plugin.get("name") == plugin_name:
+            return plugin.get("source")
+
+    return None
+
+
+def get_plugin_dir(market: str, plugin_name: str) -> Path:
+    """Get the plugin directory path.
+
+    Args:
+        market: Marketplace name (e.g., 'ccplugin-market')
+        plugin_name: Plugin name
+
+    Returns:
+        Path to the plugin directory
+    """
+    market_dir = get_marketplace_dir(market)
+
+    # Try to get source from marketplace.json first
+    source = get_plugin_source(market, plugin_name)
+    if source:
+        # Remove leading './' from source
+        source = source.lstrip("./")
+        return market_dir / source
+
+    # Fallback to simple path
+    return market_dir / plugin_name
+
+
+def read_plugin_json(market: str, plugin_name: str) -> dict[str, Any] | None:
+    """Read plugin.json from plugin directory.
+
+    Args:
+        market: Marketplace name
+        plugin_name: Plugin name
+
+    Returns:
+        Plugin data or None if not found
+    """
+    plugin_dir = get_plugin_dir(market, plugin_name)
+    plugin_json = plugin_dir / ".claude-plugin" / "plugin.json"
+
+    if not plugin_json.exists():
+        return None
+
+    with open(plugin_json, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def read_hooks_json(market: str, plugin_name: str) -> dict[str, Any] | None:
+    """Read hooks.json from plugin directory.
+
+    Args:
+        market: Marketplace name
+        plugin_name: Plugin name
+
+    Returns:
+        Hooks data or None if not found
+    """
+    plugin_dir = get_plugin_dir(market, plugin_name)
+    hooks_json = plugin_dir / "hooks" / "hooks.json"
+
+    if not hooks_json.exists():
+        return None
+
+    with open(hooks_json, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def extract_name_from_path(path: str) -> str:
+    """Extract component name from file path.
+
+    Args:
+        path: File path (e.g., './commands/hello.md')
+
+    Returns:
+        Extracted name without extension (e.g., 'hello')
+    """
+    # Remove leading './' or trailing slashes
+    path = path.lstrip("./").strip("/")
+
+    # Get the filename without extension
+    filename = Path(path).stem
+
+    return filename
+
+
 def display_marketplaces(enabled_plugins: dict[str, bool]) -> None:
     """Display all marketplaces and their plugins.
 
@@ -241,7 +344,63 @@ def display_marketplaces(enabled_plugins: dict[str, bool]) -> None:
                     description = description[:57] + "..."
                 plugin_text += f"\n    [dim]{description}[/dim]"
 
-            plugins_branch.add(plugin_text)
+            plugin_node = plugins_branch.add(plugin_text)
+
+            # Show components for enabled plugins
+            if enabled_plugins.get(plugin_id, False):
+                plugin_data = read_plugin_json(market_name, plugin_name)
+                hooks_data = read_hooks_json(market_name, plugin_name)
+
+                # Collect all components to display
+                components_to_show = []
+
+                if plugin_data:
+                    # Commands
+                    commands = plugin_data.get("commands", [])
+                    if commands:
+                        command_names = [extract_name_from_path(cmd) for cmd in commands]
+                        components_to_show.append(("Commands", ", ".join(command_names)))
+
+                    # Agents
+                    agents = plugin_data.get("agents", [])
+                    if agents:
+                        agent_names = [extract_name_from_path(agent) for agent in agents]
+                        components_to_show.append(("Agents", ", ".join(agent_names)))
+
+                    # Skills
+                    skills = plugin_data.get("skills", [])
+                    if skills:
+                        # For skills directory, list subdirectories
+                        plugin_dir = get_plugin_dir(market_name, plugin_name)
+                        skills_dir = plugin_dir / skills.strip("./")
+                        skill_names = []
+                        if skills_dir.exists():
+                            for item in skills_dir.iterdir():
+                                if item.is_dir() and (item / "SKILL.md").exists():
+                                    skill_names.append(item.name)
+                        if skill_names:
+                            components_to_show.append(("Skills", ", ".join(skill_names)))
+
+                    # Inline hooks from plugin.json
+                    inline_hooks = plugin_data.get("hooks", {})
+                    if inline_hooks and isinstance(inline_hooks, dict):
+                        hook_events = list(inline_hooks.keys())
+                        components_to_show.append(("Hooks", ", ".join(hook_events)))
+                    elif inline_hooks and isinstance(inline_hooks, list):
+                        # Array format: ["./hooks/pre-tool-use.md", ...]
+                        hook_names = [extract_name_from_path(hook) for hook in inline_hooks]
+                        components_to_show.append(("Hooks", ", ".join(hook_names)))
+
+                # Show hooks from hooks.json
+                if hooks_data:
+                    hooks_dict = hooks_data.get("hooks", {})
+                    if hooks_dict:
+                        hook_events = list(hooks_dict.keys())
+                        components_to_show.append(("Hook Events", ", ".join(hook_events)))
+
+                # Display all components
+                for component_type, component_names in components_to_show:
+                    plugin_node.add(f"[dim]{component_type}: {component_names}[/dim]")
 
         console.print(Panel(tree, title=f"[bold]{market_name}[/bold]", title_align="left"))
         console.print()
@@ -277,6 +436,84 @@ def display_enabled_plugins(enabled_plugins: dict[str, bool]) -> None:
         table.add_row(plugin_name, market, status)
 
     console.print(table)
+    console.print()
+
+    # Detailed components for enabled plugins
+    tree = Tree("[bold green]✓ Enabled Plugins Details[/bold green]")
+
+    for plugin_id, enabled in sorted(enabled_plugins.items()):
+        if not enabled:
+            continue
+
+        if "@" in plugin_id:
+            plugin_name, market = plugin_id.split("@", 1)
+        else:
+            plugin_name = plugin_id
+            market = "unknown"
+
+        # Plugin node
+        plugin_node = tree.add(f"[bold cyan]{plugin_name}[/bold cyan] [dim]@ {market}[/dim]")
+
+        # Read plugin data
+        plugin_data = read_plugin_json(market, plugin_name)
+        hooks_data = read_hooks_json(market, plugin_name)
+
+        # Collect all components to display
+        components_to_show = []
+
+        if plugin_data:
+            # Commands
+            commands = plugin_data.get("commands", [])
+            if commands:
+                command_names = [extract_name_from_path(cmd) for cmd in commands]
+                components_to_show.append(("Commands", ", ".join(command_names)))
+
+            # Agents
+            agents = plugin_data.get("agents", [])
+            if agents:
+                agent_names = [extract_name_from_path(agent) for agent in agents]
+                components_to_show.append(("Agents", ", ".join(agent_names)))
+
+            # Skills
+            skills = plugin_data.get("skills", [])
+            if skills:
+                # For skills directory, list subdirectories
+                plugin_dir = get_plugin_dir(market, plugin_name)
+                skills_dir = plugin_dir / skills.strip("./")
+                skill_names = []
+                if skills_dir.exists():
+                    for item in skills_dir.iterdir():
+                        if item.is_dir() and (item / "SKILL.md").exists():
+                            skill_names.append(item.name)
+                if skill_names:
+                    components_to_show.append(("Skills", ", ".join(skill_names)))
+
+            # Inline hooks from plugin.json
+            inline_hooks = plugin_data.get("hooks", {})
+            if inline_hooks and isinstance(inline_hooks, dict):
+                hook_events = list(inline_hooks.keys())
+                components_to_show.append(("Hooks", ", ".join(hook_events)))
+            elif inline_hooks and isinstance(inline_hooks, list):
+                # Array format: ["./hooks/pre-tool-use.md", ...]
+                hook_names = [extract_name_from_path(hook) for hook in inline_hooks]
+                components_to_show.append(("Hooks", ", ".join(hook_names)))
+
+        # Show hooks from hooks.json
+        if hooks_data:
+            hooks_dict = hooks_data.get("hooks", {})
+            if hooks_dict:
+                hook_events = list(hooks_dict.keys())
+                components_to_show.append(("Hook Events", ", ".join(hook_events)))
+
+        # Display all components
+        for component_type, component_names in components_to_show:
+            plugin_node.add(f"[dim]{component_type}: {component_names}[/dim]")
+
+        # Add empty line if there were components
+        if components_to_show:
+            plugin_node.add("")
+
+    console.print(Panel(tree, title="[bold]Plugin Components[/bold]", title_align="left"))
     console.print()
 
 
