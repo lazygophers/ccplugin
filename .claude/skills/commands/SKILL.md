@@ -1,6 +1,8 @@
 ---
 name: commands
 description: 命令使用指南 - 当用户需要创建、使用或管理 Claude Code 命令时自动激活。覆盖命令的定义、YAML frontmatter、参数处理和交互模式。
+context: fork
+agent: command
 ---
 
 # 命令使用指南

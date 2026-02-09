@@ -1,6 +1,8 @@
 ---
 name: hooks
 description: 钩子使用指南 - 当用户需要创建、使用或管理 Claude Code 钩子时自动激活。覆盖钩子的定义、事件类型、配置格式、输入输出和完整示例。
+context: fork
+agent: hook
 ---
 
 # 钩子使用指南

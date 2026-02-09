@@ -1,6 +1,8 @@
 ---
 name: agents
 description: 代理使用指南 - 当用户需要创建、使用或管理 Claude Code 子代理时自动激活。覆盖代理的定义、内置代理、完整配置选项、使用模式和示例。
+context: fork
+agent: agent
 ---
 
 # 代理使用指南
