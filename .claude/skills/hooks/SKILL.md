@@ -87,7 +87,7 @@ hooks/
 
 ## 相关技能
 
-- [plugin](../plugin/SKILL.md) - 插件使用
+- [plugin](../plugin-skills/SKILL.md) - 插件使用
 - [commands](../commands/SKILL.md) - 命令使用
 - [agents](../agents/SKILL.md) - 代理使用
 - [skills](../skills/SKILL.md) - Skills 使用

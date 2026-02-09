@@ -1,7 +1,6 @@
 ---
 name: plugin-agent
 description: 插件开发专家 - 负责创建和配置 Claude Code 插件，包括插件结构、manifest 配置、组件组织和本地配置。
-color: blue
 ---
 
 # Plugin Development Agent

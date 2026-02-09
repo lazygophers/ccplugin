@@ -133,7 +133,7 @@ Skills 支持**渐进披露（Progressive Disclosure）**：
 
 ## 相关技能
 
-- [plugin](../plugin/SKILL.md) - 插件使用
+- [plugin](../plugin-skills/SKILL.md) - 插件使用
 - [commands](../commands/SKILL.md) - 命令使用
 - [agents](../agents/SKILL.md) - 代理使用
 - [hooks](../hooks/SKILL.md) - 钩子使用
