@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-template"
-version = "0.0.109"
+version = "0.0.110"
 description = "Claude Code plugin template with example scripts and configuration"
 readme = "README.md"
 requires-python = ">=3.11"
