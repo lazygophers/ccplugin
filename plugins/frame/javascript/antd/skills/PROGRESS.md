@@ -16,8 +16,8 @@
 
 | # | 模块名称 | 中文名称 | 状态 | 优先级 | 备注 |
 |---|---------|---------|------|--------|------|
-| 1 | antd-core-skills | 核心组件 | 🟡 待编写 | P0 | Button、Typography、Divider 等基础组件 |
-| 2 | antd-theme-skills | 主题定制 | 🟡 待编写 | P0 | Design Token、CSS-in-JS |
+| 1 | antd-core-skills | 核心组件 | ✅ 已完成 (1792 行) | P0 | Button、Typography、Divider 等基础组件 |
+| 2 | antd-theme-skills | 主题定制 | ✅ 已完成 (1521 行) | P0 | Design Token、CSS-in-JS |
 | 3 | antd-layout-skills | 布局组件 | 🟡 待编写 | P0 | Grid、Layout、Space |
 | 4 | antd-navigation-skills | 导航组件 | 🟡 待编写 | P1 | Menu、Breadcrumb、Steps |
 | 5 | antd-form-skills | 表单组件 | 🟡 待编写 | P0 | Form、验证、字段联动 |
@@ -72,21 +72,24 @@
 
 **完成日期**: 2026-02-10
 
-### 阶段 2: 核心模块编写 (计划中)
+### 阶段 2: 核心模块编写 ✅ (部分完成)
 
 **优先级 P0 模块**:
-- antd-core-skills
-- antd-theme-skills
-- antd-layout-skills
-- antd-form-skills
-- antd-input-skills
-- antd-table-skills
-- antd-config-skills
-- antd-performance-skills
-- antd-validation-skills
-- antd-nextjs-skills
-- antd-typescript-skills
-- antd-best-practices-skills
+- [x] antd-core-skills (1792 行) - 2026-02-10
+- [x] antd-theme-skills (1521 行) - 2026-02-10
+- [ ] antd-layout-skills
+- [ ] antd-form-skills
+- [ ] antd-input-skills
+- [ ] antd-table-skills
+- [ ] antd-config-skills
+- [ ] antd-performance-skills
+- [ ] antd-validation-skills
+- [ ] antd-nextjs-skills
+- [ ] antd-typescript-skills
+- [ ] antd-best-practices-skills
+
+**已完成**: 2/12 (16.7%)
+**总行数**: 3313 行
 
 **预计完成**: TBD
 
@@ -164,12 +167,13 @@
 ## 统计信息
 
 - **总模块数**: 27
-- **已完成**: 0 (0%)
+- **已完成**: 2 (7.4%)
 - **进行中**: 0 (0%)
-- **待编写**: 27 (100%)
+- **待编写**: 25 (92.6%)
+- **总行数**: 3313 行（已完成模块）
 
 **优先级分布**:
-- P0 (最高): 12 个
+- P0 (最高): 12 个 (已完成 2 个，进行中 0 个，待编写 10 个)
 - P1 (高): 11 个
 - P2 (中): 4 个
 
@@ -177,7 +181,34 @@
 
 ## 更新日志
 
-### 2026-02-10
+### 2026-02-10 (下午)
+
+- ✅ 完成阶段 1：前期准备
+  - 创建 27 个模块目录
+  - 创建 27 个 SKILL.md 模板文件
+  - 创建 PROGRESS.md 进度跟踪文件
+
+- ✅ 完成阶段 2.1：核心基础模块 (2/27)
+  - **antd-core-skills** (1792 行)
+    - 快速入门、项目配置、设计规范
+    - 核心组件：Button, Form, Layout, Table
+    - 反馈组件：Message, Modal, Notification
+    - TypeScript 最佳实践
+    - v4 到 v5 迁移指南
+    - 40+ 个完整代码示例
+
+  - **antd-theme-skills** (1521 行)
+    - Token 系统详解（三层架构）
+    - 主题配置、深色模式
+    - 动态主题切换、多主题系统
+    - 紧凑模式、Next.js SSR 处理
+    - 7 个完整示例
+
+- ✅ Git 提交：
+  - `9d32e08`: 创建 27 个 skills 模块目录结构
+  - `31dfbda`: 完成核心模块编写（core + theme）
+
+### 2026-02-10 (上午)
 
 - ✅ 完成阶段 1：前期准备
 - ✅ 创建 27 个模块目录
