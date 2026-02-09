@@ -7,11 +7,38 @@ description: Python 开发规范和最佳实践指导，包括代码风格、项
 
 ## 快速导航
 
+### 核心文档
+
 | 文档 | 内容 | 适用场景 |
 |------|------|---------|
 | **SKILL.md** | 核心原则、命名约定、文档规范 | 快速入门 |
+| [references.md](references.md) | PEPs 索引、官方文档、工具文档、学习资源 | 查找参考资料 |
 | [type-hints-patterns.md](type-hints-patterns.md) | 类型提示、设计模式、mypy 配置 | 类型设计和架构 |
 | [testing-deployment.md](testing-deployment.md) | 依赖管理、项目结构、测试策略、部署 | 开发工具和质量保证 |
+| [architecture-tooling.md](architecture-tooling.md) | 架构设计、工具链配置、开发环境 | 项目架构搭建 |
+
+### 编码规范
+
+| 文档 | 内容 | 适用场景 |
+|------|------|---------|
+| [naming-conventions.md](coding-standards/naming-conventions.md) | 模块、类、函数、变量命名规范 | 命名参考 |
+| [code-formatting.md](coding-standards/code-formatting.md) | 代码格式、行长、缩进、空行、导入排序 | 代码格式化 |
+| [documentation-standards.md](coding-standards/documentation-standards.md) | Docstring 规范、模块文档 | 文档编写 |
+| [comment-standards.md](coding-standards/comment-standards.md) | 注释规范、最佳实践 | 添加注释 |
+| [error-handling.md](coding-standards/error-handling.md) | 异常处理、错误管理 | 异常处理 |
+| [project-structure.md](coding-standards/project-structure.md) | Python 项目结构规范 | 项目组织 |
+| [testing-standards.md](coding-standards/testing-standards.md) | 测试规范、pytest 使用 | 编写测试 |
+| [version-control-standards.md](coding-standards/version-control-standards.md) | Git 版本控制规范 | 版本管理 |
+| [code-review-standards.md](coding-standards/code-review-standards.md) | 代码审查标准、清单 | 代码审查 |
+
+### 专项文档
+
+| 文档 | 内容 | 适用场景 |
+|------|------|---------|
+| [async-programming.md](specialized/async-programming.md) | asyncio 最佳实践、并发模式、异步测试 | 异步编程 |
+| [web-development.md](specialized/web-development.md) | FastAPI 项目结构、路由组织、依赖注入 | Web 开发 |
+| [data-processing.md](specialized/data-processing.md) | pandas 使用规范、类型安全、内存优化 | 数据处理 |
+| [security.md](specialized/security.md) | 输入验证、SQL 注入防护、依赖扫描 | 安全编码 |
 
 ## 🎯 总体原则
 
@@ -201,6 +228,42 @@ CACHE_EXPIRE_SECONDS = 3600
 
 ## 扩展文档
 
+### 核心文档
+
+参见 [references.md](references.md) 了解 Python 开发参考资源，包括 PEPs 索引（Python 3.11-3.13、2024-2025 最新 PEPs）、官方文档、工具文档（uv、ruff、mypy、pytest、loguru、FastAPI、pydantic、pandas）、学习资源和安全工具。
+
 参见 [type-hints-patterns.md](type-hints-patterns.md) 了解完整的类型提示、设计模式、mypy 配置和性能优化指南。
 
 参见 [testing-deployment.md](testing-deployment.md) 了解项目结构、依赖管理、测试规范、工具链配置和部署最佳实践。
+
+参见 [architecture-tooling.md](architecture-tooling.md) 了解架构设计、工具链配置和开发环境设置。
+
+### 编码规范
+
+参见 [coding-standards/naming-conventions.md](coding-standards/naming-conventions.md) 了解模块、类、函数、变量和常量的命名规范。
+
+参见 [coding-standards/code-formatting.md](coding-standards/code-formatting.md) 了解代码格式规范，包括行长限制、缩进、空行和导入排序。
+
+参见 [coding-standards/documentation-standards.md](coding-standards/documentation-standards.md) 了解文档字符串（Docstring）编写规范。
+
+参见 [coding-standards/comment-standards.md](coding-standards/comment-standards.md) 了解注释规范和最佳实践。
+
+参见 [coding-standards/error-handling.md](coding-standards/error-handling.md) 了解异常处理和错误管理规范。
+
+参见 [coding-standards/project-structure.md](coding-standards/project-structure.md) 了解 Python 项目结构规范和最佳实践。
+
+参见 [coding-standards/testing-standards.md](coding-standards/testing-standards.md) 了解测试规范和 pytest 使用指南。
+
+参见 [coding-standards/version-control-standards.md](coding-standards/version-control-standards.md) 了解 Git 版本控制规范。
+
+参见 [coding-standards/code-review-standards.md](coding-standards/code-review-standards.md) 了解代码审查标准和审查清单。
+
+### 专项规范
+
+参见 [specialized/async-programming.md](specialized/async-programming.md) 了解 asyncio 最佳实践、并发模式（TaskGroup、gather、create_task）、避免阻塞事件循环、异步测试和异步迭代器。
+
+参见 [specialized/web-development.md](specialized/web-development.md) 了解 FastAPI 项目结构、路由组织、依赖注入、中间件使用、请求验证（Pydantic）、响应模型、异常处理、后台任务、WebSocket 支持和测试策略。
+
+参见 [specialized/data-processing.md](specialized/data-processing.md) 了解 pandas 使用规范、类型安全（Pydantic）、大数据处理（chunking）、内存优化和 NumPy 最佳实践。
+
+参见 [specialized/security.md](specialized/security.md) 了解输入验证、SQL 注入防护、XSS 防护、敏感数据处理、依赖扫描和代码扫描。

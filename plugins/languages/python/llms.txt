@@ -28,7 +28,23 @@ python/
 │       ├── SKILL.md
 │       ├── references.md
 │       ├── testing-deployment.md
-│       └── type-hints-patterns.md
+│       ├── type-hints-patterns.md
+│       ├── architecture-tooling.md
+│       ├── coding-standards/
+│       │   ├── naming-conventions.md
+│       │   ├── code-formatting.md
+│       │   ├── documentation-standards.md
+│       │   ├── comment-standards.md
+│       │   ├── error-handling.md
+│       │   ├── project-structure.md
+│       │   ├── testing-standards.md
+│       │   ├── version-control-standards.md
+│       │   └── code-review-standards.md
+│       └── specialized/
+│           ├── async-programming.md
+│           ├── web-development.md
+│           ├── data-processing.md
+│           └── security.md
 ├── .lsp.json
 ├── AGENT.md
 ├── README.md
@@ -48,7 +64,35 @@ python/
 
 ## 相关文档
 
+### 插件文档
+
 - [README](./README.md) - 完整文档
 - [插件配置](./.claude-plugin/plugin.json) - 插件元数据
-- [技能定义](./skills/) - Skills 定义
 - [子代理](./agents/) - Agent 定义
+
+### 核心 Skills 文档
+
+- [SKILL.md](./skills/python-skills/SKILL.md) - 核心原则、命名约定、文档规范、快速入门
+- [references.md](./skills/python-skills/references.md) - Python 开发参考资源（PEPs、官方文档、工具文档、学习资源）
+- [type-hints-patterns.md](./skills/python-skills/type-hints-patterns.md) - 类型提示、设计模式、mypy 配置、性能优化
+- [testing-deployment.md](./skills/python-skills/testing-deployment.md) - 依赖管理、项目结构、测试策略、部署最佳实践
+- [architecture-tooling.md](./skills/python-skills/architecture-tooling.md) - 架构设计和工具链配置
+
+### Coding Standards 文档
+
+- [naming-conventions.md](./skills/python-skills/coding-standards/naming-conventions.md) - 命名规范（模块、类、函数、变量、常量）
+- [code-formatting.md](./skills/python-skills/coding-standards/code-formatting.md) - 代码格式（行长、缩进、空行、导入排序）
+- [documentation-standards.md](./skills/python-skills/coding-standards/documentation-standards.md) - 文档字符串（Docstring）规范
+- [comment-standards.md](./skills/python-skills/coding-standards/comment-standards.md) - 注释规范和最佳实践
+- [error-handling.md](./skills/python-skills/coding-standards/error-handling.md) - 异常处理和错误管理
+- [project-structure.md](./skills/python-skills/coding-standards/project-structure.md) - Python 项目结构规范
+- [testing-standards.md](./skills/python-skills/coding-standards/testing-standards.md) - 测试规范和最佳实践
+- [version-control-standards.md](./skills/python-skills/coding-standards/version-control-standards.md) - Git 版本控制规范
+- [code-review-standards.md](./skills/python-skills/coding-standards/code-review-standards.md) - 代码审查标准和清单
+
+### Specialized 文档
+
+- [async-programming.md](./skills/python-skills/specialized/async-programming.md) - asyncio 最佳实践、并发模式、异步测试
+- [web-development.md](./skills/python-skills/specialized/web-development.md) - FastAPI 项目结构、路由组织、依赖注入
+- [data-processing.md](./skills/python-skills/specialized/data-processing.md) - pandas 使用规范、类型安全、内存优化
+- [security.md](./skills/python-skills/specialized/security.md) - 安全编码、输入验证、依赖扫描、代码安全扫描
