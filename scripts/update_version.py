@@ -8,21 +8,21 @@ from typing import List
 
 def increment_version(version_str: str, include_build: bool = False) -> str:
     """Increment version number.
-    
+
     Args:
         version_str: Version string (3 or 4 parts: major.minor.patch[.build])
         include_build: If True, keep 4-part format with build=0. If False, return 3-part format.
-    
+
     Returns:
         Incremented version string (3 or 4 parts based on include_build)
     """
     parts = version_str.split('.')
     if len(parts) not in (3, 4):
         raise ValueError(f"Invalid version format: {version_str}")
-    
+
     major, minor, patch = int(parts[0]), int(parts[1]), int(parts[2])
     patch += 1
-    
+
     if include_build:
         # Return 4-part format with build=0
         return f"{major}.{minor}.{patch}.0"
@@ -133,9 +133,9 @@ def run_uv_lock_update(pyproject_paths: List[Path]) -> list:
         processed_dirs.add(project_dir)
 
         try:
-            print(f"  Running 'uv lock -U' in {project_dir}...")
+            print(f"  Running 'uv update' in {project_dir}...")
             result = subprocess.run(
-                ['uv', 'lock', '-U'],
+                ['uv', 'lock', '-U', "&&", "uv", "sync"],
                 cwd=project_dir,
                 capture_output=True,
                 text=True,
@@ -145,12 +145,12 @@ def run_uv_lock_update(pyproject_paths: List[Path]) -> list:
             if result.returncode == 0:
                 updated_locks.append(str(project_dir))
             else:
-                print(f"    Warning: uv lock -U failed in {project_dir}")
+                print(f"    Warning: uv update failed in {project_dir}")
                 print(f"    stderr: {result.stderr}")
         except subprocess.TimeoutExpired:
-            print(f"    Warning: uv lock -U timed out in {project_dir}")
+            print(f"    Warning: uv update timed out in {project_dir}")
         except Exception as e:
-            print(f"    Error running uv lock -U in {project_dir}: {e}")
+            print(f"    Error running uv update in {project_dir}: {e}")
 
     return updated_locks
 
@@ -164,7 +164,7 @@ def main():
     if not marketplace_path.exists():
         print(f"Error: marketplace.json not found at {marketplace_path}")
         return 1
-    
+
     if not version_path.exists():
         print(f"Error: .version file not found at {version_path}")
         return 1
@@ -172,7 +172,7 @@ def main():
     # Read current version from .version file
     with open(version_path, 'r', encoding='utf-8') as f:
         old_version_full = f.read().strip()
-    
+
     # Increment version (get 3-part format for marketplace/plugins, 4-part for .version)
     new_version = increment_version(old_version_full, include_build=False)
     new_version_full = increment_version(old_version_full, include_build=True)
@@ -182,16 +182,16 @@ def main():
     # Update marketplace.json with 3-part version
     with open(marketplace_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    
+
     data['metadata']['version'] = new_version
-    
+
     for plugin in data['plugins']:
         plugin['version'] = new_version
-    
+
     with open(marketplace_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write('\n')
-    
+
     print(f"  marketplace.json: {old_version_full} -> {new_version}")
 
     # Update plugin.json files with 3-part version
