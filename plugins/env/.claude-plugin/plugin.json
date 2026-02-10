@@ -1,6 +1,6 @@
 {
   "name": "env",
-  "version": "0.0.117",
+  "version": "0.0.118",
   "description": "环境处理插件 - 用于处理环境相关的问题",
   "author": {
     "name": "ccplugin",
