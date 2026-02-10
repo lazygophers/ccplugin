@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin-env"
-version = "0.0.115"
+version = "0.0.116"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

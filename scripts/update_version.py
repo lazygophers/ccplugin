@@ -4,6 +4,9 @@ import subprocess
 import toml
 from pathlib import Path
 from typing import List
+from rich.console import Console
+
+console = Console()
 
 
 def increment_version(version_str: str, include_build: bool = False) -> str:
@@ -31,9 +34,14 @@ def increment_version(version_str: str, include_build: bool = False) -> str:
         return f"{major}.{minor}.{patch}"
 
 
-def update_plugin_versions(plugins_dir: Path, new_version: str) -> list:
-    """Recursively scan and update all plugin.json files under plugins directory."""
+def update_plugin_versions(plugins_dir: Path, new_version: str) -> tuple:
+    """Recursively scan and update all plugin.json files under plugins directory.
+
+    Returns:
+        Tuple of (updated_plugins list, failed_items list)
+    """
     updated_plugins = []
+    failed_items = []
 
     # Recursively find all plugin.json files
     plugin_jsons = list(plugins_dir.glob('**/.claude-plugin/plugin.json'))
@@ -53,9 +61,13 @@ def update_plugin_versions(plugins_dir: Path, new_version: str) -> list:
             relative_path = plugin_json_path.relative_to(plugins_dir).parent.parent
             updated_plugins.append(str(relative_path))
         except Exception as e:
-            print(f"  Error processing {plugin_json_path}: {e}")
+            relative_path = plugin_json_path.relative_to(plugins_dir).parent.parent
+            failed_items.append({
+                'path': str(relative_path),
+                'error': str(e)
+            })
 
-    return updated_plugins
+    return updated_plugins, failed_items
 
 
 def find_pyproject_paths(base_dir: Path) -> List[Path]:
@@ -84,14 +96,22 @@ def find_pyproject_paths(base_dir: Path) -> List[Path]:
     return pyproject_paths
 
 
-def update_pyproject_versions(base_dir: Path, pyproject_paths: List[Path], new_version: str) -> list:
-    """Update version in all pyproject.toml files."""
+def update_pyproject_versions(base_dir: Path, pyproject_paths: List[Path], new_version: str) -> tuple:
+    """Update version in all pyproject.toml files.
+
+    Returns:
+        Tuple of (updated_files list, failed_items list)
+    """
     updated_files = []
+    failed_items = []
 
     for pyproject_path in pyproject_paths:
         try:
             if not pyproject_path.exists():
-                print(f"  Warning: {pyproject_path} not found")
+                failed_items.append({
+                    'path': str(pyproject_path.relative_to(base_dir)),
+                    'error': 'File not found'
+                })
                 continue
 
             with open(pyproject_path, 'r', encoding='utf-8') as f:
@@ -107,16 +127,27 @@ def update_pyproject_versions(base_dir: Path, pyproject_paths: List[Path], new_v
                 relative_path = pyproject_path.relative_to(base_dir)
                 updated_files.append(str(relative_path))
             else:
-                print(f"  Warning: [project] section not found in {pyproject_path}")
+                failed_items.append({
+                    'path': str(pyproject_path.relative_to(base_dir)),
+                    'error': '[project] section not found'
+                })
         except Exception as e:
-            print(f"  Error processing {pyproject_path}: {e}")
+            failed_items.append({
+                'path': str(pyproject_path.relative_to(base_dir)),
+                'error': str(e)
+            })
 
-    return updated_files
+    return updated_files, failed_items
 
 
-def run_uv_lock_update(pyproject_paths: List[Path]) -> list:
-    """Run 'uv lock -U' in each directory containing pyproject.toml."""
+def run_uv_lock_update(pyproject_paths: List[Path]) -> tuple:
+    """Run 'uv lock -U' in each directory containing pyproject.toml.
+
+    Returns:
+        Tuple of (updated_locks list, failed_items list)
+    """
     updated_locks = []
+    failed_items = []
     processed_dirs = set()
 
     for pyproject_path in pyproject_paths:
@@ -133,7 +164,7 @@ def run_uv_lock_update(pyproject_paths: List[Path]) -> list:
         processed_dirs.add(project_dir)
 
         try:
-            print(f"  Running 'uv update' in {project_dir}...")
+            console.print(f"  Running 'uv update' in {project_dir}...")
             result = subprocess.run(
                 ['uv', 'lock', '-U', "&&", "uv", "sync"],
                 cwd=project_dir,
@@ -145,14 +176,22 @@ def run_uv_lock_update(pyproject_paths: List[Path]) -> list:
             if result.returncode == 0:
                 updated_locks.append(str(project_dir))
             else:
-                print(f"    Warning: uv update failed in {project_dir}")
-                print(f"    stderr: {result.stderr}")
+                failed_items.append({
+                    'path': str(project_dir),
+                    'error': result.stderr or 'Unknown error'
+                })
         except subprocess.TimeoutExpired:
-            print(f"    Warning: uv update timed out in {project_dir}")
+            failed_items.append({
+                'path': str(project_dir),
+                'error': 'Command timed out'
+            })
         except Exception as e:
-            print(f"    Error running uv update in {project_dir}: {e}")
+            failed_items.append({
+                'path': str(project_dir),
+                'error': str(e)
+            })
 
-    return updated_locks
+    return updated_locks, failed_items
 
 
 def main():
@@ -162,11 +201,11 @@ def main():
     plugins_dir = base_dir / 'plugins'
 
     if not marketplace_path.exists():
-        print(f"Error: marketplace.json not found at {marketplace_path}")
+        console.print(f"[red]Error: marketplace.json not found at {marketplace_path}[/red]")
         return 1
 
     if not version_path.exists():
-        print(f"Error: .version file not found at {version_path}")
+        console.print(f"[red]Error: .version file not found at {version_path}[/red]")
         return 1
 
     # Read current version from .version file
@@ -177,7 +216,7 @@ def main():
     new_version = increment_version(old_version_full, include_build=False)
     new_version_full = increment_version(old_version_full, include_build=True)
 
-    print("Updating versions...")
+    console.print("\n[bold cyan]Updating versions...[/bold cyan]")
 
     # Update marketplace.json with 3-part version
     with open(marketplace_path, 'r', encoding='utf-8') as f:
@@ -192,35 +231,55 @@ def main():
         json.dump(data, f, ensure_ascii=False, indent=2)
         f.write('\n')
 
-    print(f"  marketplace.json: {old_version_full} -> {new_version}")
+    console.print(f"  [green]✓[/green] marketplace.json: {old_version_full} → {new_version}")
 
     # Update plugin.json files with 3-part version
-    updated_plugins = update_plugin_versions(plugins_dir, new_version)
-    print(f"  Updated {len(updated_plugins)} plugin.json(s):")
+    updated_plugins, failed_plugins = update_plugin_versions(plugins_dir, new_version)
+    console.print(f"  [green]✓[/green] Updated {len(updated_plugins)} plugin.json(s)")
     for plugin_name in updated_plugins:
-        print(f"    - {plugin_name}: {old_version_full} -> {new_version}")
+        console.print(f"    - {plugin_name}: {old_version_full} → {new_version}")
 
     # Update pyproject.toml files with 3-part version
     pyproject_paths = find_pyproject_paths(base_dir)
-    updated_pyprojects = update_pyproject_versions(base_dir, pyproject_paths, new_version)
-    print(f"  Updated {len(updated_pyprojects)} pyproject.toml file(s):")
+    updated_pyprojects, failed_pyprojects = update_pyproject_versions(base_dir, pyproject_paths, new_version)
+    console.print(f"  [green]✓[/green] Updated {len(updated_pyprojects)} pyproject.toml file(s)")
     for file_path in updated_pyprojects:
-        print(f"    - {file_path}: {old_version_full} -> {new_version}")
+        console.print(f"    - {file_path}: {old_version_full} → {new_version}")
 
     # Run 'uv lock -U' in each directory with pyproject.toml
-    print("\nUpdating uv.lock files...")
-    updated_locks = run_uv_lock_update(pyproject_paths)
-    print(f"  Updated {len(updated_locks)} uv.lock file(s):")
+    console.print("\n[bold cyan]Updating uv.lock files...[/bold cyan]")
+    updated_locks, failed_locks = run_uv_lock_update(pyproject_paths)
+    console.print(f"  [green]✓[/green] Updated {len(updated_locks)} uv.lock file(s)")
     for lock_dir in updated_locks:
-        print(f"    - {lock_dir}")
+        console.print(f"    - {lock_dir}")
 
     # Update .version file with 4-part version
     with open(version_path, 'w', encoding='utf-8') as f:
         f.write(new_version_full)
 
-    print(f"  .version: {old_version_full} -> {new_version_full}")
+    console.print(f"  [green]✓[/green] .version: {old_version_full} → {new_version_full}")
 
-    print(f"\nVersion update completed: {old_version_full} -> {new_version_full}")
+    # Print summary
+    console.print(f"\n[bold green]Version update completed: {old_version_full} → {new_version_full}[/bold green]")
+
+    # Print all failures if any
+    all_failures = []
+    if failed_plugins:
+        all_failures.append(('Plugin Files', failed_plugins))
+    if failed_pyprojects:
+        all_failures.append(('Pyproject Files', failed_pyprojects))
+    if failed_locks:
+        all_failures.append(('UV Lock Updates', failed_locks))
+
+    if all_failures:
+        console.print("\n[bold red]Failures Summary:[/bold red]")
+        for category, failures in all_failures:
+            console.print(f"\n[red]{category}:[/red]")
+            for item in failures:
+                console.print(f"  [red]✗[/red] {item['path']}")
+                console.print(f"      Error: {item['error']}")
+        return 1
+
     return 0
 
 
