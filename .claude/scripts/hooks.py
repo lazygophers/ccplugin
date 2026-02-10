@@ -20,6 +20,7 @@ prompt = {
 	"UserPromptSubmit": [
 		"学习用户习惯，更新、完善、优化到合适的 @.claude/skills 中。如果创建了新的 skills，则需要更新到 @CLAUDE.md 标注这个新的 skills 的使用实际等等",
 		"确保代码风格、架构设计风格和现有的完全一致，确保每一个变更都是有理有据的",
+		"及时提交所有变更 Commands(git:commit)",
 		"及时清理所有的临时文件，确保目录的干净清爽",
 
 		"频繁的通过 `AskUserQuestion` 确认理解是否有误，以减少偏差",
