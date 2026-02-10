@@ -46,7 +46,7 @@
 | # | 模块名称 | 中文名称 | 状态 | 优先级 | 备注 |
 |---|---------|---------|------|--------|------|
 | 20 | antd-nextjs-skills | Next.js 集成 | 🟡 待编写 | P0 | SSR、App Router |
-| 21 | antd-typescript-skills | TypeScript | 🟡 待编写 | P0 | 类型定义、泛型 |
+| 21 | antd-typescript-skills | TypeScript | ✅ 已完成 (1500 行) | P0 | 类型定义、泛型 ⭐ |
 | 22 | antd-mobile-skills | 移动端 | 🟡 待编写 | P2 | 响应式设计 |
 | 23 | antd-accessibility-skills | 无障碍访问 | 🟡 待编写 | P1 | ARIA、键盘导航 |
 | 24 | antd-animation-skills | 动画系统 | 🟡 待编写 | P2 | Motion 动画 |
@@ -85,11 +85,11 @@
 - [ ] antd-performance-skills
 - [ ] antd-validation-skills
 - [ ] antd-nextjs-skills
-- [ ] antd-typescript-skills
+- [x] antd-typescript-skills
 - [ ] antd-best-practices-skills
 
-**已完成**: 6/12 (50%)
-**总行数**: 13,099 行
+**已完成**: 7/12 (58.3%)
+**总行数**: 14,599 行
 
 **预计完成**: TBD
 
@@ -167,20 +167,41 @@
 ## 统计信息
 
 - **总模块数**: 27
-- **已完成**: 6 (22.2%)
+- **已完成**: 7 (25.9%)
 - **进行中**: 0 (0%)
-- **待编写**: 21 (77.8%)
-- **总行数**: 13,099 行（已完成模块）
-- **平均行数**: 2183 行/模块
+- **待编写**: 20 (74.1%)
+- **总行数**: 14,599 行（已完成模块）
+- **平均行数**: 2085 行/模块
 
 **优先级分布**:
-- P0 (最高): 12 个 (已完成 6 个，进行中 0 个，待编写 6 个)
+- P0 (最高): 12 个 (已完成 7 个，进行中 0 个，待编写 5 个)
 - P1 (高): 11 个
 - P2 (中): 4 个
 
 ---
 
 ## 更新日志
+
+### 2026-02-10 (下午 - 第四批)
+
+- ✅ 完成阶段 2.4：TypeScript 类型系统模块 (1/27)
+  - **antd-typescript-skills** (1500 行) ⭐⭐
+    - 核心类型系统（组件 Props、实例类型、泛型）
+    - Form 表单类型（FormInstance、泛型参数、类型推导、Rules）
+    - Table 数据类型（TableProps、ColumnsType、TableRowSelection）
+    - ConfigProvider 类型（ConfigProviderProps、ThemeConfig）
+    - 泛型组件开发（4 个示例：基础、表单包装、约束、条件类型）
+    - 类型推导技巧（infer、Props 推导、表单值推导）
+    - 类型增强（模块声明、Props 扩展、类型合并、全局声明）
+    - 实用类型工具（Utility Types、自定义类型工具）
+    - 最佳实践（✅/❌ 对比）
+    - 常见问题（8 个 Q&A）
+    - 参考资源
+
+- ✅ 进度更新：
+  - 已完成模块：7/27 (25.9%)
+  - 总行数：14,599 行
+  - 平均行数：2085 行/模块
 
 ### 2026-02-10 (下午 - 第三批)
 
