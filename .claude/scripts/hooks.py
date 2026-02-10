@@ -184,7 +184,7 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 					}))
 					return
 				elif command.find("python") >= 0:
-					if command.find("uv run python") < 0 or command.find("uv run ./") < 0:
+					if not (command.find("uv run python -c") < 0 or command.find("uv run python3 -c") < 0):
 						logging.warn(f"检测到 python 操作: command={command}")
 						print(json.dumps({
 							"hookSpecificOutput":
