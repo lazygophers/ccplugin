@@ -1,6 +1,6 @@
 [project]
 name = "code-csharp"
-version = "0.0.115"
+version = "0.0.116"
 description = "Claude Code plugin for C# language support"
 readme = "README.md"
 requires-python = ">=3.11"

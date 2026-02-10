@@ -1,6 +1,6 @@
 {
   "name": "flutter",
-  "version": "0.0.115",
+  "version": "0.0.116",
   "description": "Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持。包括 Material 3、Cupertino、自定义设计系统和 Provider、Riverpod、BLoC 等状态管理方案的最佳实践",
   "author": {
     "name": "lazygophers",

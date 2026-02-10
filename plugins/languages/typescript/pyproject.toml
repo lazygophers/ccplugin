@@ -1,6 +1,6 @@
 [project]
 name = "code-typescript"
-version = "0.0.115"
+version = "0.0.116"
 description = "Claude Code plugin for TypeScript language support"
 readme = "README.md"
 requires-python = ">=3.11"

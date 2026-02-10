@@ -1,6 +1,6 @@
 {
   "name": "lazygophers",
-  "version": "0.0.115",
+  "version": "0.0.116",
   "description": "lazygophers 全栈开发插件 - 提供 Go 生态系统完整技术栈的开发规范、最佳实践和代码智能支持。包括 lrpc RPC 框架、26+ 工具库模块（日志/加解密/字符串/JSON/网络/类型转换/泛型/人类友好/随机数/验证器/缓存/并发/协程/熔断器/运行时/配置/时间/队列/国际化/错误处理/数据库/MongoDB）",
   "author": "lazygophers",
   "homepage": "https://github.com/lazygophers/lrpc",
