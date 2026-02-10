@@ -1,1 +1,0 @@
-# gorm-gen plugin
