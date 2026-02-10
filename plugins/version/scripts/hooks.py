@@ -18,14 +18,10 @@ def handle_hook() -> None:
 			init_version()
 		elif event_name == "UserPromptSubmit":
 			auto_update()
-
-		print(json.dumps({
-			"continue": True,
-		}))
+		elif event_name == "PreToolUse":
+			auto_update()
 
 	except json.JSONDecodeError as e:
 		logging.error(f"JSON 解析失败: {e}")
-		sys.exit(1)
 	except Exception as e:
 		logging.error(f"Hook 处理失败: {e}")
-		sys.exit(1)
