@@ -759,6 +759,66 @@
         "agent",
         "standard"
       ]
+    },
+    {
+      "name": "office-xlsx",
+      "source": "./plugins/office/xlsx",
+      "description": "Office Excel 插件 - 提供 xlsx 文件读写、数据分析功能。基于 openpyxl 和 pandas 实现 MCP 服务器",
+      "version": "0.0.1",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/xlsx",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/xlsx",
+      "license": "MIT",
+      "keywords": [
+        "office",
+        "xlsx",
+        "excel",
+        "spreadsheet",
+        "mcp"
+      ]
+    },
+    {
+      "name": "office-docx",
+      "source": "./plugins/office/docx",
+      "description": "Office Word 插件 - 提供 docx 文件读写、段落格式化功能。基于 python-docx 实现 MCP 服务器",
+      "version": "0.0.1",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/docx",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/docx",
+      "license": "MIT",
+      "keywords": [
+        "office",
+        "docx",
+        "word",
+        "document",
+        "mcp"
+      ]
+    },
+    {
+      "name": "office-pptx",
+      "source": "./plugins/office/pptx",
+      "description": "Office PowerPoint 插件 - 提供 pptx 文件读写、幻灯片操作功能。基于 python-pptx 实现 MCP 服务器",
+      "version": "0.0.1",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/pptx",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/pptx",
+      "license": "MIT",
+      "keywords": [
+        "office",
+        "pptx",
+        "powerpoint",
+        "presentation",
+        "mcp"
+      ]
     }
   ]
 }
