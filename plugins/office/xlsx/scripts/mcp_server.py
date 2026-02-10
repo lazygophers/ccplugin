@@ -8,7 +8,6 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
-import openpyxl
 import pandas as pd
 
 
