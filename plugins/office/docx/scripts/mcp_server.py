@@ -93,12 +93,6 @@ class DocxMCPServer:
             doc = Document(path)
             paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
 
-            result = {
-                "path": str(path),
-                "paragraphs": paragraphs,
-                "paragraph_count": len(paragraphs),
-                "full_text": "\n\n".join(paragraphs)
-            }
             return [TextContent(type="text", text=f"Success: Read {len(paragraphs)} paragraphs")]
 
         except Exception as e:
@@ -130,7 +124,7 @@ class DocxMCPServer:
             doc = Document(path)
             doc.add_paragraph(text)
             doc.save(path)
-            return [TextContent(type="text", text=f"Success: Added paragraph")]
+            return [TextContent(type="text", text="Success: Added paragraph")]
 
         except Exception as e:
             return [TextContent(type="text", text=f"Error adding paragraph: {str(e)}")]
@@ -143,11 +137,6 @@ class DocxMCPServer:
             doc = Document(path)
             paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
 
-            result = {
-                "path": str(path),
-                "paragraphs": paragraphs,
-                "count": len(paragraphs)
-            }
             return [TextContent(type="text", text=f"Found {len(paragraphs)} paragraphs")]
 
         except Exception as e:
