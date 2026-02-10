@@ -12,9 +12,7 @@ CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提
 
 | 插件名称   | 描述                                                                                          | 版本   | 标签                                    |
 | ---------- | --------------------------------------------------------------------------------------------- | ------ | --------------------------------------- |
-| `task`     | 完整的项目任务管理插件 - 支持开发计划创建、任务执行、进度追踪、依赖管理。基于SQLite数据库存储 | 0.0.93 | task-skills, todo, project, management, sqlite |
 | `llms`     | llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件                               | 0.0.93 | llms-skills, documentation, standards          |
-| `notify`   | 系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件                     | 0.0.93 | notify, notification, system            |
 | `version`  | 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置                         | -      | version, semver, management             |
 | `template` | 插件开发模板 - 快速创建新插件的基础结构                                                       | 0.0.93 | template, development                   |
 
@@ -85,9 +83,7 @@ uv --version
 
 ```bash
 # 顶层插件
-/plugin install task@ccplugin-market
 /plugin install llms@ccplugin-market
-/plugin install notify@ccplugin-market
 /plugin install version@ccplugin-market
 
 # 工具插件
@@ -274,15 +270,10 @@ uvx --from git+https://github.com/lazygophers/ccplugin clean --dry-run
 
 ```bash
 # 从市场安装（推荐）
-/plugin install task@ccplugin-market
-/plugin install semantic@ccplugin-market
+/plugin install llms@ccplugin-market
 /plugin install git@ccplugin-market
 /plugin install python@ccplugin-market
 /plugin install golang@ccplugin-market
-
-# 或从本地目录安装（开发时使用）
-/plugin install ./plugins/task
-/plugin install ./plugins/tools/semantic
 ```
 
 ### 如何开发新插件？

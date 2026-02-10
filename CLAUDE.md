@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **CCPlugin Market** is a centralized marketplace for Claude Code plugins, providing high-quality plugins and development templates for enhancing Claude Code functionality. The project is structured as a monorepo with:
 
 - **Core library** (`lib/`): Shared utilities including logging infrastructure and helper functions
-- **Plugins** (`plugins/`): Multiple plugin implementations (task-skills management, semantic-skills search, git-skills operations, language-specific development support)
+- **Plugins** (`plugins/`): Multiple plugin implementations (llms, git operations, language-specific development support)
 - **Scripts** (`scripts/`): Utility scripts for version management and cache cleanup
 
 **Tech Stack:**
@@ -32,16 +32,13 @@ ccplugin/
 │   └── tests/                    # Unit tests
 │
 ├── plugins/                      # All plugin implementations
-│   ├── task/                     # Top-level: Task management (SQLite-based)
 │   ├── llms/                     # Top-level: llms.txt standard plugin
-│   ├── notify/                   # Top-level: System notifications
 │   ├── version/                  # Top-level: Version management
 │   ├── template/                 # Top-level: Plugin development template
 │   │
 │   ├── tools/                    # Tool plugins
 │   │   ├── deepresearch/         # Deep research with multi-agent system
-│   │   ├── git/                  # Git operations
-│   │   └── semantic/             # Semantic code search (vector embeddings)
+│   │   └── git/                  # Git operations
 │   │
 │   ├── languages/                # Language development plugins
 │   │   ├── flutter/              # Flutter development
@@ -50,21 +47,6 @@ ccplugin/
 │   │   ├── naming/               # Cross-language naming conventions
 │   │   ├── python/               # Python development
 │   │   └── typescript/           # TypeScript development
-│   │
-│   ├── frame/                    # Framework plugins
-│   │   ├── golang/               # Golang frameworks
-│   │   │   ├── fasthttp/         # High-performance HTTP library
-│   │   │   ├── gin/              # Web framework
-│   │   │   ├── go-zero/          # Microservices framework
-│   │   │   ├── gofiber/          # Web framework (fasthttp-based)
-│   │   │   ├── gorm/             # ORM library
-│   │   │   ├── gorm-gen/         # Code generation tool
-│   │   │   └── lrpc/             # RPC framework
-│   │   └── javascript/           # JavaScript/TypeScript frameworks
-│   │       ├── antd/             # Ant Design 5.x UI library
-│   │       ├── nextjs/           # Next.js 16+ full-stack
-│   │       ├── react/            # React 18+ development
-│   │       └── vue/              # Vue 3 development
 │   │
 │   └── themes/                   # Theme/style plugins
 │       ├── style-glassmorphism/  # Glassmorphism design
@@ -199,16 +181,14 @@ uv build
 uv pip install -e .
 
 # Install plugin from market (recommended)
-/plugin install task@ccplugin-market
-/plugin install semantic@ccplugin-market
 /plugin install git@ccplugin-market
+/plugin install llms@ccplugin-market
 
 # Install from local path (for development)
-/plugin install ./plugins/task
-/plugin install ./plugins/tools/semantic
+/plugin install ./plugins/git
 
 # Reinstall plugin (force latest)
-/plugin install task@ccplugin-market --force
+/plugin install git@ccplugin-market --force
 ```
 
 ### Linting & Code Quality
@@ -219,8 +199,8 @@ uv run ruff check .
 uv run ruff format .
 
 # Check specific directory
-uv run ruff check plugins/task/scripts/
-uv run ruff format plugins/task/scripts/ --check
+uv run ruff check plugins/version/scripts/
+uv run ruff format plugins/version/scripts/ --check
 ```
 
 ### Testing
@@ -236,7 +216,7 @@ uv run pytest lib/tests/test_logging.py
 uv run pytest -v
 
 # Run tests for a specific plugin
-uv run pytest plugins/task/tests/
+uv run pytest plugins/version/tests/
 
 # Run tests with coverage
 uv run pytest --cov=lib --cov=plugins
@@ -276,16 +256,6 @@ uvx --from git+https://github.com/lazygophers/ccplugin clean --dry-run
 ### Plugin-Specific Commands
 
 ```bash
-# Task plugin - project task management
-/task add "Task description"
-/task list
-/task stats
-
-# Semantic search plugin - code search with embeddings
-/semantic init                    # Initialize vector database
-/semantic index                   # Build/update code index
-/semantic search "how to read files"
-
 # Git plugin - version control operations
 /commit-all "feat: description"  # Commit all changes
 /update-ignore                   # Update .gitignore intelligently
@@ -340,7 +310,7 @@ version --help
 ```bash
 # ✅ Correct
 uv run scripts/script.py
-uv run plugins/task/scripts/main.py
+uv run plugins/version/scripts/main.py
 
 # ❌ Incorrect (forbidden)
 python3 scripts/script.py
@@ -476,7 +446,7 @@ from lib.utils import get_env_value
 | `CHANGELOG.md`               | Version history and release notes                                  |
 | `LICENSE`                    | AGPL-3.0-or-later                                                  |
 | `.claude-plugin/plugin.json` | Plugin marketplace metadata per plugin                             |
-| `VOICE_SUPPORT.md`           | Documentation for voice/audio support                              |
+| `CLAUDE.md`                 | Project development guidelines                                   |
 
 ---
 
@@ -496,15 +466,12 @@ ls ~/.claude/plugins/cache/
 
 ```bash
 # Check what a plugin exposes
-cat plugins/task/.claude-plugin/plugin.json
+cat plugins/version/.claude-plugin/plugin.json
 ```
 
 ### Run Specific Plugin Tests
 
 ```bash
-# Test only semantic-skills plugin
-uv run pytest plugins/tools/semantic/tests/ -v
-
 # Test lib logging
 uv run pytest lib/tests/test_logging.py -v
 ```
@@ -540,15 +507,14 @@ Certain plugins auto-activate based on context:
 
 ```bash
 # Install plugin from market (recommended)
-/plugin install task@ccplugin-market
-/plugin install semantic@ccplugin-market
+/plugin install git@ccplugin-market
+/plugin install llms@ccplugin-market
 
 # Or install from local path (development)
-/plugin install ./plugins/task
+/plugin install ./plugins/git
 
 # Use plugin commands (if defined)
-/task add "New task"
-/semantic search "query"
+/git commit "message"
 ```
 
 ### Plugin Data Storage
