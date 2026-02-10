@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "ccplugin-task"
-version = "0.0.115"
+version = "0.0.117"
 source = { editable = "." }
 
 [package.optional-dependencies]
