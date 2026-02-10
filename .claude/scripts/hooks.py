@@ -23,7 +23,7 @@ prompt = {
 		"确保每一个变更都是有理有据的",
 
 		"频繁的通过 `AskUserQuestion` 确认理解是否有误，以减少偏差",
-		"优先使用 agent teams 协调工作、分配任务、调度资源、综合结果、处理问题",
+		"优先使用 agent teams 协调工作、分配任务、调度资源、综合结果、处理问题，但是并行的 agents 不能超过 2 个",
 	]
 }
 
@@ -147,29 +147,14 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 
 		if tool_name is None or tool_input is None:
 			logging.debug(f"PreToolUse: 缺少必要字段, tool_name={tool_name}, tool_input={tool_input}")
-			print(json.dumps({"continue": True, "suppressOutput": False}))
 			return
 
 		if tool_name is None or tool_input is None:
-			print(json.dumps({"continue": True, "suppressOutput": False}))
 			return
 
 		tool_name = str(tool_name).lower()
 
-		if tool_name == "mcp__jetbrains__execute_terminal_command":
-			pass
-		# logging
-		# print(json.dumps({
-		# 	"hookSpecificOutput":
-		# 		{
-		# 			"hookEventName": "PreToolUse",
-		# 			"permissionDecision": "deny",
-		# 			"permissionDecisionReason": "不允许使用 mcp 执行 bash",
-		# 			"updatedInput": tool_input
-		# 		}
-		# }))
-		# return
-		elif tool_name == "bash":
+		if tool_name == "bash":
 			if "command" in tool_input:
 				command = tool_input.get("command", "")
 				if command.find("rm") >= 0:
@@ -254,7 +239,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 
 	except Exception as e:
 		logging.error(f"PreToolUse 处理异常: {e}\n{traceback.format_exc()}")
-		print(json.dumps({"continue": True, "suppressOutput": False}))
 
 
 def main():
@@ -272,24 +256,18 @@ def main():
 		# 路由到不同的处理器
 		if hook_event_name == "Stop":
 			success, failed_dir, error_output = handle_stop()
-			if success:
-				print(json.dumps({"continue": False}))
-			else:
+			if not success:
 				reason = f"代码检查失败：目录 `{failed_dir}`\n\n{error_output}"
 				print(json.dumps({"continue": True, "decision": "block", "reason": reason}))
 		elif hook_event_name == "PreToolUse":
 			handle_pre_tool_use(input_data)
 		else:
 			logging.warn(f"未知的 hook 事件: {hook_event_name}")
-			print(json.dumps({"continue": True}))
 
 	except json.JSONDecodeError as e:
 		logging.error(f"JSON 解析错误: {e}\n{traceback.format_exc()}")
-		print(json.dumps({"continue": True, "suppressOutput": False}))
 	except Exception as e:
 		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
-		print(json.dumps({"continue": True, "suppressOutput": False}))
-		sys.exit(0)
 
 
 if __name__ == '__main__':
