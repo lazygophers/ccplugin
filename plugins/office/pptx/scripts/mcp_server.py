@@ -9,7 +9,6 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 from pptx import Presentation
-from pptx.util import Inches, Pt
 
 
 class PptxMCPServer:
@@ -105,11 +104,6 @@ class PptxMCPServer:
 
                 slides_data.append(slide_data)
 
-            result = {
-                "path": str(path),
-                "slide_count": len(prs.slides),
-                "slides": slides_data
-            }
             return [TextContent(type="text", text=f"Success: Read {len(prs.slides)} slides")]
 
         except Exception as e:
@@ -166,7 +160,7 @@ class PptxMCPServer:
                 slide.placeholders[1].text = content
 
             prs.save(path)
-            return [TextContent(type="text", text=f"Success: Added slide")]
+            return [TextContent(type="text", text="Success: Added slide")]
 
         except Exception as e:
             return [TextContent(type="text", text=f"Error adding slide: {str(e)}")]
@@ -190,11 +184,6 @@ class PptxMCPServer:
                     "preview": text_preview
                 })
 
-            result = {
-                "path": str(path),
-                "count": len(prs.slides),
-                "slides": slides_info
-            }
             return [TextContent(type="text", text=f"Found {len(prs.slides)} slides")]
 
         except Exception as e:
