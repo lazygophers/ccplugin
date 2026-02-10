@@ -1,0 +1,35 @@
+# Office Xlsx Plugin
+
+> Excel xlsx 文件读写和数据分析插件
+
+## Docs
+
+- [README.md](README.md): 插件说明
+- [skills/office-xlsx-skills/SKILL.md](skills/office-xlsx-skills/SKILL.md): 技能文档
+- [skills/office-xlsx-skills/examples.md](skills/office-xlsx-skills/examples.md): 使用示例
+
+## Features
+
+- 读取 xlsx 文件
+- 写入 xlsx 文件
+- 数据分析
+- 多工作表支持
+
+## Usage
+
+```bash
+# 安装依赖
+uv sync
+
+# 启动 MCP 服务器
+uv run scripts/main.py mcp
+```
+
+## MCP Tools
+
+| Tool | Description |
+| ---- | ----------- |
+| read_xlsx | 读取 Excel 文件 |
+| write_xlsx | 写入 Excel 文件 |
+| analyze_xlsx | 分析数据 |
+| list_sheets | 列出工作表 |

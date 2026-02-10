@@ -1,0 +1,35 @@
+# Office Docx Plugin
+
+> Word docx 文件读写和文档操作插件
+
+## Docs
+
+- [README.md](README.md): 插件说明
+- [skills/office-docx-skills/SKILL.md](skills/office-docx-skills/SKILL.md): 技能文档
+- [skills/office-docx-skills/examples.md](skills/office-docx-skills/examples.md): 使用示例
+
+## Features
+
+- 读取 docx 文件
+- 写入 docx 文件
+- 添加段落
+- 获取文档结构
+
+## Usage
+
+```bash
+# 安装依赖
+uv sync
+
+# 启动 MCP 服务器
+uv run scripts/main.py mcp
+```
+
+## MCP Tools
+
+| Tool | Description |
+| ---- | ----------- |
+| read_docx | 读取 Word 文档 |
+| write_docx | 创建 Word 文档 |
+| add_paragraph | 添加段落 |
+| get_paragraphs | 获取段落列表 |

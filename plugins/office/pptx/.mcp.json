@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "office-pptx": {
+      "command": "uv",
+      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/main.py", "mcp"]
+    }
+  }
+}

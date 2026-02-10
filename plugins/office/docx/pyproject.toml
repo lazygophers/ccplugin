@@ -1,0 +1,17 @@
+[project]
+name = "office-docx"
+version = "0.0.1"
+description = "Office Word plugin - docx read/write and formatting"
+requires-python = ">=3.11"
+dependencies = [
+    "python-docx>=1.1.0",
+    "mcp>=1.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [".."]
+include = ["office_docx", "office_docx.*"]
