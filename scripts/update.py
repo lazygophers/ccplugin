@@ -135,36 +135,8 @@ def run_claude_plugin_update(
 		return True
 	else:
 		error_msg = result.stderr.strip() if result.stderr else result.stdout.strip()
-		console.print(f"[red]Error updating {plugin_key}:[/red] {error_msg}")
-		return False
-
-
-def run_claude_plugin_update_all(
-	dry_run: bool = False,
-	quiet: bool = False,
-) -> bool:
-	"""Run 'claude plugin update --all' command.
-
-	Args:
-		dry_run: If True, show what would be done without making changes
-		quiet: If True, suppress output
-
-	Returns:
-		True if successful, False otherwise
-	"""
-	cmd = ["claude", "plugin", "update", "--all"]
-
-	if dry_run:
-		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
-		return True
-
-	result = subprocess.run(cmd, capture_output=True, text=True)
-
-	if result.returncode == 0:
-		return True
-	else:
-		error_msg = result.stderr.strip() if result.stderr else result.stdout.strip()
-		console.print(f"[red]Error updating all plugins:[/red] {error_msg}")
+		if not quiet:
+			console.print(f"[red]Error updating {plugin_key}:[/red] {error_msg}")
 		return False
 
 
@@ -423,20 +395,36 @@ def main() -> int:
 	console.print("[bold cyan]Updating Plugins[/bold cyan]")
 	console.print("[dim]Using 'claude plugin update' command[/dim]\n")
 
-	success = run_claude_plugin_update_all(dry_run=args.dry_run, quiet=args.quiet)
+	if not args.quiet:
+		with Progress(
+			SpinnerColumn(),
+			TextColumn("[progress.description]{task.description}"),
+			BarColumn(),
+			TaskProgressColumn(),
+			console=console,
+			disable=args.quiet,
+		) as progress:
+			task = progress.add_task(
+				"[cyan]Updating plugins...[/cyan]", total=len(enabled_list)
+			)
 
-	if success:
-		stats.updated_count = len(enabled_list)
-		stats.add_message(
-			"success",
-			f"Updated [cyan]{len(enabled_list)}[/cyan] plugin(s) using Claude's official command",
-		)
+			for plugin_key in enabled_list:
+				plugin = plugin_key.split("@")[0]
+				progress.update(task, description=f"[cyan]Updating {plugin}...[/cyan]")
+
+				if run_claude_plugin_update(plugin_key, dry_run=args.dry_run, quiet=args.quiet):
+					stats.updated_count += 1
+				else:
+					stats.error_count += 1
+
+				progress.advance(task)
 	else:
-		stats.error_count = len(enabled_list)
-		stats.add_message(
-			"error",
-			"Failed to update plugins. Check the output above for details.",
-		)
+		# Quiet mode: update without progress bar
+		for plugin_key in enabled_list:
+			if run_claude_plugin_update(plugin_key, dry_run=args.dry_run, quiet=args.quiet):
+				stats.updated_count += 1
+			else:
+				stats.error_count += 1
 
 	# Print summary
 	console.print()
