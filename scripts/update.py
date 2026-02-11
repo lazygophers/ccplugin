@@ -3,9 +3,11 @@
 Update enabled plugins using Claude's official plugin update command.
 
 This script:
-1. Reads enabledPlugins from .claude/settings.json and .claude/settings.local.json
-2. Optionally updates marketplaces via git pull
-3. Uses 'claude plugin update' command to update plugins
+1. Reads system (user scope) plugins via 'claude plugin list'
+2. Reads project plugins from .claude/settings.json and .claude/settings.local.json
+3. Merges system and project plugins
+4. Optionally updates marketplaces via git pull
+5. Uses 'claude plugin update' command to update all enabled plugins
 """
 
 import argparse
@@ -106,6 +108,53 @@ def run_command(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 		Completed process result
 	"""
 	return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
+
+
+def get_system_plugins() -> dict[str, bool]:
+	"""Get system (user scope) enabled plugins from claude plugin list.
+
+	Returns:
+		Dictionary of enabled plugins (plugin@market -> bool)
+	"""
+	import tempfile
+
+	try:
+		# Use shell output redirection to avoid encoding issues
+		with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
+			temp_path = f.name
+
+		# Run command with output redirection to file
+		with open(temp_path, "w", encoding="utf-8") as f:
+			result = subprocess.run(
+				["claude", "plugin", "list", "--json"],
+				stdout=f,
+				stderr=subprocess.DEVNULL,
+				check=False,
+			)
+
+		if result.returncode != 0:
+			Path(temp_path).unlink(missing_ok=True)
+			return {}
+
+		# Read from temp file
+		with open(temp_path, "r", encoding="utf-8") as f:
+			plugins = json.load(f)
+
+		# Clean up temp file
+		Path(temp_path).unlink(missing_ok=True)
+
+		system_plugins = {}
+
+		for plugin in plugins:
+			# Only include user scope plugins that are enabled
+			if plugin.get("scope") == "user" and plugin.get("enabled"):
+				plugin_id = plugin.get("id", "")
+				if plugin_id and plugin_id not in system_plugins:
+					system_plugins[plugin_id] = True
+
+		return system_plugins
+	except (json.JSONDecodeError, Exception):
+		return {}
 
 
 def run_claude_plugin_update(
@@ -327,14 +376,24 @@ def main() -> int:
 
 	stats = UpdateStats()
 
-	# Read enabled plugins from settings files
-	enabled_plugins = get_enabled_plugins(project_path)
+	# Read system (user scope) plugins
+	system_plugins = get_system_plugins()
+	console.print(f"[dim]Found {len(system_plugins)} system plugin(s)[/dim]")
+
+	# Read project plugins from settings files
+	project_plugins = get_enabled_plugins(project_path)
+	console.print(f"[dim]Found {len(project_plugins)} project plugin(s)[/dim]")
+
+	# Merge system and project plugins (project plugins take precedence)
+	enabled_plugins = {**system_plugins, **project_plugins}
 
 	if not enabled_plugins:
 		console.print(
-			"[yellow]No enabled plugins found in settings.json or settings.local.json[/yellow]"
+			"[yellow]No enabled plugins found in system or project settings[/yellow]"
 		)
 		return 0
+
+	console.print(f"[dim]Total: {len(enabled_plugins)} unique plugin(s)[/dim]\n")
 
 	# Display enabled plugins
 	enabled_table = Table(
@@ -342,6 +401,7 @@ def main() -> int:
 	)
 	enabled_table.add_column("Plugin", style="green")
 	enabled_table.add_column("Market", style="blue")
+	enabled_table.add_column("Scope", style="cyan")
 	enabled_table.add_column("Status", style="yellow")
 
 	enabled_list = []
@@ -349,8 +409,15 @@ def main() -> int:
 		parsed = parse_plugin_key(plugin_key)
 		if parsed:
 			plugin, market = parsed
+			scope = (
+				"[cyan]System[/cyan]"
+				if plugin_key in system_plugins and plugin_key not in project_plugins
+				else "[magenta]Project[/magenta]"
+				if plugin_key in project_plugins and plugin_key not in system_plugins
+				else "[white]Both[/white]"
+			)
 			status = "[green]Enabled[/green]" if enabled else "[dim]Disabled[/dim]"
-			enabled_table.add_row(plugin, market, status)
+			enabled_table.add_row(plugin, market, scope, status)
 			if enabled:
 				enabled_list.append(plugin_key)
 
