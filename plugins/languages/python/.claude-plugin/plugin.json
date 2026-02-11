@@ -1,43 +1,53 @@
 {
-  "name": "python",
-  "version": "0.0.121",
-  "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
-  "author": {
-    "name": "Claude Code",
-    "email": "admin@example.com",
-    "url": "https://github.com/anthropics/claude-code"
-  },
-  "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
-  "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
-  "license": "MIT",
-  "keywords": [
-    "python",
-    "py",
-    "development",
-    "coding-style",
-    "best-practices",
-    "pep8",
-    "type-hints",
-    "testing"
-  ],
-  "agents": [
-    "./agents/dev.md",
-    "./agents/test.md",
-    "./agents/debug.md",
-    "./agents/perf.md"
-  ],
-  "skills": "./skills/",
-  "lspServers": "./.lsp.json",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=python uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
-          }
-        ]
-      }
-    ]
-  }
+	"name": "python",
+	"version": "0.0.121",
+	"description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
+	"author": {
+		"name": "Claude Code",
+		"email": "admin@example.com",
+		"url": "https://github.com/anthropics/claude-code"
+	},
+	"homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
+	"repository": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
+	"license": "MIT",
+	"keywords": [
+		"python",
+		"py",
+		"development",
+		"coding-style",
+		"best-practices",
+		"pep8",
+		"type-hints",
+		"testing"
+	],
+	"agents": [
+		"./agents/dev.md",
+		"./agents/test.md",
+		"./agents/debug.md",
+		"./agents/perf.md"
+	],
+	"skills": "./skills/",
+	"lspServers": "./.lsp.json",
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=python uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=python uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+					}
+				]
+			}
+		]
+	}
 }
