@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
 """
-Update enabled plugins from marketplaces.
+Update enabled plugins using Claude's official plugin update command.
 
 This script:
 1. Reads enabledPlugins from .claude/settings.json and .claude/settings.local.json
-2. Updates marketplaces via git pull
-3. Gets latest versions from marketplace.json
-4. Copies new plugin versions to cache directory
-5. Updates installed_plugins.json with latest versions
+2. Optionally updates marketplaces via git pull
+3. Uses 'claude plugin update' command to update plugins
 """
 
 import argparse
 import json
-import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +56,6 @@ class UpdateStats:
 		self.error_count = 0
 		self.market_updated = 0
 		self.market_failed = 0
-		self.copied_count = 0
 		self.messages: list[tuple[str, str]] = []  # (status, message)
 
 	def add_message(self, status: str, message: str) -> None:
@@ -82,8 +77,6 @@ class UpdateStats:
 			table.add_row("Marketplaces Failed", f"[red]{self.market_failed}[/red]")
 		table.add_row("Plugins Updated", str(self.updated_count))
 		table.add_row("Plugins Skipped", str(self.skipped_count))
-		if self.copied_count > 0:
-			table.add_row("New Versions Copied", str(self.copied_count))
 		if self.error_count > 0:
 			table.add_row("Errors", f"[red]{self.error_count}[/red]")
 
@@ -113,6 +106,66 @@ def run_command(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 		Completed process result
 	"""
 	return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
+
+
+def run_claude_plugin_update(
+	plugin_key: str,
+	dry_run: bool = False,
+	quiet: bool = False,
+) -> bool:
+	"""Run 'claude plugin update' command for a specific plugin.
+
+	Args:
+		plugin_key: Plugin key in format 'plugin@market'
+		dry_run: If True, show what would be done without making changes
+		quiet: If True, suppress output
+
+	Returns:
+		True if successful, False otherwise
+	"""
+	cmd = ["claude", "plugin", "update", plugin_key]
+
+	if dry_run:
+		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
+		return True
+
+	result = subprocess.run(cmd, capture_output=True, text=True)
+
+	if result.returncode == 0:
+		return True
+	else:
+		error_msg = result.stderr.strip() if result.stderr else result.stdout.strip()
+		console.print(f"[red]Error updating {plugin_key}:[/red] {error_msg}")
+		return False
+
+
+def run_claude_plugin_update_all(
+	dry_run: bool = False,
+	quiet: bool = False,
+) -> bool:
+	"""Run 'claude plugin update --all' command.
+
+	Args:
+		dry_run: If True, show what would be done without making changes
+		quiet: If True, suppress output
+
+	Returns:
+		True if successful, False otherwise
+	"""
+	cmd = ["claude", "plugin", "update", "--all"]
+
+	if dry_run:
+		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
+		return True
+
+	result = subprocess.run(cmd, capture_output=True, text=True)
+
+	if result.returncode == 0:
+		return True
+	else:
+		error_msg = result.stderr.strip() if result.stderr else result.stdout.strip()
+		console.print(f"[red]Error updating all plugins:[/red] {error_msg}")
+		return False
 
 
 def read_settings_json(project_dir: Path) -> dict[str, bool]:
@@ -235,289 +288,6 @@ def read_marketplace_json(market: str) -> dict[str, Any] | None:
 		return json.load(f)
 
 
-def is_valid_semver(version: str) -> bool:
-	"""Check if version string is a valid 3-part semantic version.
-
-	Args:
-		version: Version string to validate
-
-	Returns:
-		True if version is in X.Y.Z format, False otherwise
-	"""
-	parts = version.split(".")
-	if len(parts) != 3:
-		return False
-	try:
-		int(parts[0])
-		int(parts[1])
-		int(parts[2])
-		return True
-	except ValueError:
-		return False
-
-
-def get_plugin_latest_version(market: str, plugin: str) -> str | None:
-	"""Get latest version of a plugin from marketplace.json.
-
-	Args:
-		market: Marketplace name
-		plugin: Plugin name
-
-	Returns:
-		Latest version string, marketplace commit hash (8 chars) if not found or invalid,
-		existing cache version, or "1.0.0" as ultimate fallback.
-	"""
-	marketplace_data = read_marketplace_json(market)
-
-	if not marketplace_data:
-		return None
-
-	for p in marketplace_data.get("plugins", []):
-		if p.get("name") == plugin:
-			# Return version if present and valid semver
-			if "version" in p:
-				version = p["version"]
-				if is_valid_semver(version):
-					return version
-			# No valid version in marketplace.json, check cache for existing version
-			cache_base = Path.home() / ".claude" / "plugins" / "cache" / market / plugin
-			if cache_base.exists():
-				existing_versions = [d.name for d in cache_base.iterdir() if d.is_dir()]
-				# Prefer valid semver versions from cache
-				for v in existing_versions:
-					if is_valid_semver(v):
-						return v
-				# If no valid semver in cache, use first available
-				if existing_versions:
-					return existing_versions[0]
-			# Get marketplace git commit hash as default version
-			market_dir = get_marketplace_dir(market)
-			if market_dir.exists():
-				result = run_command(["git", "rev-parse", "HEAD"], cwd=market_dir)
-				if result.returncode == 0:
-					return result.stdout.strip()[:8]  # Short hash
-			# Fallback to 1.0.0 if cannot get commit hash
-			return "1.0.0"
-
-	return None
-
-
-def get_plugin_source_path(market: str, plugin: str) -> Path | None:
-	"""Get source path of a plugin from marketplace directory.
-
-	Args:
-		market: Marketplace name
-		plugin: Plugin name
-
-	Returns:
-		Path to plugin source directory or None if not found
-	"""
-	marketplace_data = read_marketplace_json(market)
-
-	if not marketplace_data:
-		return None
-
-	for p in marketplace_data.get("plugins", []):
-		if p.get("name") == plugin:
-			source = p.get("source")
-			if source:
-				market_dir = get_marketplace_dir(market)
-				return market_dir / source.lstrip("./")
-
-	return None
-
-
-def get_cache_dir(market: str, plugin: str, version: str) -> Path:
-	"""Get cache directory path for a plugin version.
-
-	Args:
-		market: Marketplace name
-		plugin: Plugin name
-		version: Plugin version
-
-	Returns:
-		Path to cache directory
-	"""
-	return Path.home() / ".claude" / "plugins" / "cache" / market / plugin / version
-
-
-def copy_plugin_to_cache(
-	market: str,
-	plugin: str,
-	version: str,
-	source_path: Path,
-	stats: UpdateStats,
-) -> bool:
-	"""Copy plugin from marketplace to cache directory.
-
-	Args:
-		market: Marketplace name
-		plugin: Plugin name
-		version: Plugin version
-		source_path: Path to plugin source directory
-		stats: Statistics object to track results
-
-	Returns:
-		True if successful, False otherwise
-	"""
-	cache_dir = get_cache_dir(market, plugin, version)
-
-	# Skip if already exists
-	if cache_dir.exists():
-		return True
-
-	# Create parent directory
-	cache_dir.parent.mkdir(parents=True, exist_ok=True)
-
-	try:
-		shutil.copytree(source_path, cache_dir)
-		stats.copied_count += 1
-		stats.add_message(
-			"success",
-			f"Copied [cyan]{plugin}@{market}[/cyan] [dim]@[/dim] [bold]{version}[/bold] to cache",
-		)
-
-		# Initialize virtual environment if plugin has pyproject.toml
-		pyproject_path = cache_dir / "pyproject.toml"
-		if pyproject_path.exists():
-			try:
-				# Run uv sync to create virtual environment and install dependencies
-				result = subprocess.run(
-					["uv", "sync"],
-					cwd=cache_dir,
-					capture_output=True,
-					text=True,
-					timeout=120,
-				)
-				if result.returncode == 0:
-					stats.add_message(
-						"info", f"  [dim]Initialized venv for {plugin}[/dim]"
-					)
-				else:
-					stats.add_message(
-						"warning",
-						f"  [yellow]uv sync failed for {plugin}: {result.stderr.strip()}[/yellow]",
-					)
-			except subprocess.TimeoutExpired:
-				stats.add_message(
-					"warning", f"  [yellow]uv sync timeout for {plugin}[/yellow]"
-				)
-			except Exception as e:
-				stats.add_message(
-					"warning", f"  [yellow]uv sync error for {plugin}: {e}[/yellow]"
-				)
-
-		return True
-	except Exception as e:
-		stats.add_message("error", f"Failed to copy {plugin}@{market}: {e}")
-		return False
-
-
-def read_installed_plugins() -> dict[str, Any]:
-	"""Read the installed_plugins.json file.
-
-	Returns:
-		Dictionary containing installed plugins data
-	"""
-	installed_path = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
-
-	if not installed_path.exists():
-		return {"version": 2, "plugins": {}}
-
-	with open(installed_path, "r", encoding="utf-8") as f:
-		return json.load(f)
-
-
-def write_installed_plugins(data: dict[str, Any]) -> None:
-	"""Write data to installed_plugins.json.
-
-	Args:
-		data: Dictionary to write
-	"""
-	installed_path = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
-	installed_path.parent.mkdir(parents=True, exist_ok=True)
-
-	with open(installed_path, "w", encoding="utf-8") as f:
-		json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def get_git_commit_sha(install_path: Path) -> str | None:
-	"""Get git commit SHA from plugin installation directory.
-
-	Args:
-		install_path: Path to the installed plugin directory
-
-	Returns:
-		Git commit SHA or None
-	"""
-	head_file = install_path / ".git" / "HEAD"
-	if head_file.exists():
-		try:
-			content = head_file.read_text().strip()
-			if content.startswith("ref:"):
-				ref_path = install_path / ".git" / content[5:]
-				if ref_path.exists():
-					return ref_path.read_text().strip()
-			else:
-				return content
-		except Exception:
-			pass
-
-	commit_file = install_path / ".git-commit-sha"
-	if commit_file.exists():
-		try:
-			return commit_file.read_text().strip()
-		except Exception:
-			pass
-
-	return None
-
-
-def update_or_add_plugin(
-	data: dict[str, Any],
-	plugin_key: str,
-	project_path: Path,
-	install_path: Path,
-	version: str,
-) -> None:
-	"""Update or add a plugin to installed_plugins.json.
-
-	Args:
-		data: The installed_plugins data structure
-		plugin_key: Plugin key in format 'plugin@market'
-		project_path: Path to the project
-		install_path: Path to the installed plugin
-		version: Plugin version
-	"""
-	now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-	commit_sha = get_git_commit_sha(install_path)
-
-	entry = {
-		"scope": "project",
-		"projectPath": str(project_path),
-		"installPath": str(install_path),
-		"version": version,
-		"installedAt": now,
-		"lastUpdated": now,
-	}
-
-	if commit_sha:
-		entry["gitCommitSha"] = commit_sha
-
-	if plugin_key in data["plugins"]:
-		plugins_list = data["plugins"][plugin_key]
-		updated = False
-		for i, p in enumerate(plugins_list):
-			if p.get("projectPath") == str(project_path):
-				plugins_list[i] = entry
-				updated = True
-				break
-		if not updated:
-			plugins_list.append(entry)
-	else:
-		data["plugins"][plugin_key] = [entry]
-
-
 def parse_plugin_key(key: str) -> tuple[str, str] | None:
 	"""Parse plugin key in format 'plugin@market'.
 
@@ -543,7 +313,7 @@ def parse_plugin_key(key: str) -> tuple[str, str] | None:
 
 def main() -> int:
 	parser = argparse.ArgumentParser(
-		description="Update enabled plugins from marketplaces"
+		description="Update enabled plugins using Claude's official plugin update command"
 	)
 	parser.add_argument(
 		"project_path",
@@ -562,6 +332,11 @@ def main() -> int:
 		action="store_true",
 		help="Suppress all output",
 	)
+	parser.add_argument(
+		"--no-market-update",
+		action="store_true",
+		help="Skip marketplace git pull (faster, but may use stale data)",
+	)
 
 	args = parser.parse_args()
 	project_path = args.project_path.resolve()
@@ -572,7 +347,7 @@ def main() -> int:
 	# Print header
 	console.print(
 		Panel.fit(
-			f"[bold cyan]Plugin Update Tool[/bold cyan]\n"
+			f"[bold cyan]Plugin Update Tool (Claude Official)[/bold cyan]\n"
 			f"[dim]Project:[/dim] {project_path}",
 			border_style="blue",
 		)
@@ -610,9 +385,6 @@ def main() -> int:
 	console.print(enabled_table)
 	console.print(f"[dim]Found {len(enabled_list)} enabled plugin(s)[/dim]\n")
 
-	# Read existing installed_plugins.json
-	installed_data = read_installed_plugins()
-
 	# Collect unique markets
 	markets = set()
 	for plugin_key in enabled_plugins:
@@ -621,127 +393,56 @@ def main() -> int:
 			_, market = parsed
 			markets.add(market)
 
-	# Update marketplaces
-	if markets:
-		console.print("[bold cyan]Updating Marketplaces[/bold cyan]")
+	# Update marketplaces (optional)
+	if markets and not args.no_market_update:
+		if not args.quiet:
+			console.print("[bold cyan]Updating Marketplaces[/bold cyan]")
 		with Progress(
 			SpinnerColumn(),
 			TextColumn("[progress.description]{task.description}"),
 			BarColumn(),
 			TaskProgressColumn(),
 			console=console,
+			disable=args.quiet,
 		) as progress:
-			task = progress.add_task(
-				"[cyan]Updating markets...[/cyan]", total=len(markets)
-			)
-			for market in sorted(markets):
-				progress.update(task, description=f"[cyan]Updating {market}...[/cyan]")
-				update_marketplace(market, stats)
-				progress.advance(task)
-		console.print()
-
-	# Process plugins
-	console.print("[bold cyan]Processing Plugins[/bold cyan]")
-	with Progress(
-		SpinnerColumn(),
-		TextColumn("[progress.description]{task.description}"),
-		BarColumn(),
-		TaskProgressColumn(),
-		console=console,
-	) as progress:
-		task = progress.add_task(
-			"[cyan]Processing plugins...[/cyan]", total=len(enabled_list)
-		)
-
-		for plugin_key in enabled_plugins:
-			if not enabled_plugins[plugin_key]:
-				stats.skipped_count += 1
-				stats.add_message("info", f"Skipped [dim]{plugin_key}[/dim] (disabled)")
-				progress.advance(task)
-				continue
-
-			parsed = parse_plugin_key(plugin_key)
-			if not parsed:
-				stats.error_count += 1
-				stats.add_message("error", f"Invalid plugin key format: {plugin_key}")
-				progress.advance(task)
-				continue
-
-			plugin, market = parsed
-			progress.update(task, description=f"[cyan]Processing {plugin}...[/cyan]")
-
-			# Get latest version from marketplace
-			version = get_plugin_latest_version(market, plugin)
-
-			if not version:
-				stats.error_count += 1
-				stats.add_message(
-					"warning", f"Plugin {plugin_key} not found in marketplace.json"
+			if not args.quiet:
+				task = progress.add_task(
+					"[cyan]Updating markets...[/cyan]", total=len(markets)
 				)
-				progress.advance(task)
-				continue
+				for market in sorted(markets):
+					progress.update(task, description=f"[cyan]Updating {market}...[/cyan]")
+					update_marketplace(market, stats)
+					progress.advance(task)
+			else:
+				for market in sorted(markets):
+					update_marketplace(market, stats)
+		if not args.quiet:
+			console.print()
 
-			# Get source path
-			source_path = get_plugin_source_path(market, plugin)
+	# Update plugins using Claude's official command
+	console.print("[bold cyan]Updating Plugins[/bold cyan]")
+	console.print("[dim]Using 'claude plugin update' command[/dim]\n")
 
-			if not source_path or not source_path.exists():
-				stats.error_count += 1
-				stats.add_message(
-					"error", f"Source path not found for {plugin_key}: {source_path}"
-				)
-				progress.advance(task)
-				continue
+	success = run_claude_plugin_update_all(dry_run=args.dry_run, quiet=args.quiet)
 
-			# Copy to cache if not exists
-			cache_dir = get_cache_dir(market, plugin, version)
-			if not cache_dir.exists():
-				if not args.dry_run:
-					if not copy_plugin_to_cache(
-						market, plugin, version, source_path, stats
-					):
-						progress.advance(task)
-						continue
-				else:
-					stats.add_message(
-						"info",
-						f"[DRY RUN] Would copy {plugin_key} @ {version} to cache",
-					)
-
-			stats.updated_count += 1
-			stats.add_message(
-				"success",
-				f"Updated [cyan]{plugin_key}[/cyan] [dim]@[/dim] [bold]{version}[/bold]",
-			)
-
-			if not args.dry_run:
-				update_or_add_plugin(
-					installed_data, plugin_key, project_path, cache_dir, version
-				)
-
-			progress.advance(task)
-
-	# Write back to installed_plugins.json
-	if not args.dry_run:
-		write_installed_plugins(installed_data)
-		console.print(
-			Panel(
-				"[green]✓[/green] [bold]Updated:[/bold] [dim]~/.claude/plugins/installed_plugins.json[/dim]",
-				border_style="green",
-			)
+	if success:
+		stats.updated_count = len(enabled_list)
+		stats.add_message(
+			"success",
+			f"Updated [cyan]{len(enabled_list)}[/cyan] plugin(s) using Claude's official command",
 		)
 	else:
-		console.print(
-			Panel(
-				"[yellow]⚠[/yellow] [bold]DRY RUN MODE[/bold] - [dim]No changes made[/dim]",
-				border_style="yellow",
-			)
+		stats.error_count = len(enabled_list)
+		stats.add_message(
+			"error",
+			"Failed to update plugins. Check the output above for details.",
 		)
 
 	# Print summary
 	console.print()
 	stats.print_summary()
 
-	return 0
+	return 0 if stats.error_count == 0 else 1
 
 
 if __name__ == "__main__":
