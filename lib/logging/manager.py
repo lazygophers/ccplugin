@@ -14,7 +14,8 @@ from typing import Optional
 
 from rich.console import Console
 
-from lib.utils.env import get_project_plugins_dir
+from lib.utils.env import get_project_dir, get_project_plugins_dir
+from lib.utils.gitignore import add_gitignore_rule
 
 
 class RichLoggerManager:
@@ -46,6 +47,9 @@ class RichLoggerManager:
 		self.log_dir = os.path.join(get_project_plugins_dir(), "log")
 		os.makedirs(self.log_dir, exist_ok=True)
 
+		# 将 log 目录添加到 git 忽略
+		self._setup_gitignore()
+
 		# 创建主控制台（文件输出）
 		# 设置 width=99999 防止长消息自动换行
 		self.file_console = Console(
@@ -66,6 +70,12 @@ class RichLoggerManager:
 
 		# 初始化时创建软连接
 		self._update_symlink()
+
+	def _setup_gitignore(self) -> None:
+		"""
+		将 log 目录添加到项目根目录 .lazygophers/ 下的 git 忽略文件。
+		"""
+		add_gitignore_rule(os.path.join(get_project_dir(), ".lazygophers", ".gitignore"), "/ccplugin/log")
 
 	def enable_debug(self) -> None:
 		"""启用 DEBUG 模式（同时输出到控制台）。"""
