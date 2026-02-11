@@ -1,6 +1,6 @@
 {
   "name": "java",
-  "version": "0.0.121",
+  "version": "0.0.122",
   "description": "Java 开发插件 - 提供 Java 21+ 开发规范、最佳实践和代码智能支持。包括现代 Java 开发规范、Spring Boot 3+ 指导和 JVM 性能优化",
   "author": {
     "name": "lazygophers",
