@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List
 
 
 def read_gitignore(file_path: str) -> List[str]:

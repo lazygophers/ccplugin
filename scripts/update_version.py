@@ -420,27 +420,28 @@ def main() -> int:
 
     console.print("\n[bold cyan]Updating versions...[/bold cyan]")
 
-    # Update marketplace.json
-    update_marketplace(marketplace_path, new_version)
-    console.print(f"  [green]✓[/green] marketplace.json: {old_version} → {new_version}")
-
-    # Update plugin.json files
-    plugin_result = update_plugin_versions(plugins_dir, new_version)
-    print_version_updates(plugin_result.updated, 'plugin.json(s)', old_version, new_version, console)
-
-    # Update pyproject.toml files
+    # Step 1: Update uv.lock files first (update dependencies)
     pyproject_paths = find_pyproject_paths(base_dir)
-    pyproject_result = update_pyproject_versions(base_dir, pyproject_paths, new_version)
-    print_version_updates(pyproject_result.updated, 'pyproject.toml file(s)', old_version, new_version, console)
-
-    # Update uv.lock files
     console.print("\n[bold cyan]Updating uv.lock files...[/bold cyan]")
     lock_result = update_uv_locks(pyproject_paths)
     console.print(f"  [green]✓[/green] Updated {len(lock_result.updated)} uv.lock file(s)")
     for lock_dir in lock_result.updated:
         console.print(f"    - {lock_dir}")
 
-    # Update .version file
+    # Step 2: Update marketplace.json
+    console.print("\n[bold cyan]Updating version files...[/bold cyan]")
+    update_marketplace(marketplace_path, new_version)
+    console.print(f"  [green]✓[/green] marketplace.json: {old_version} → {new_version}")
+
+    # Step 3: Update plugin.json files
+    plugin_result = update_plugin_versions(plugins_dir, new_version)
+    print_version_updates(plugin_result.updated, 'plugin.json(s)', old_version, new_version, console)
+
+    # Step 4: Update pyproject.toml files
+    pyproject_result = update_pyproject_versions(base_dir, pyproject_paths, new_version)
+    print_version_updates(pyproject_result.updated, 'pyproject.toml file(s)', old_version, new_version, console)
+
+    # Step 5: Update .version file (last)
     update_version_file(version_path, new_version_full)
     console.print(f"  [green]✓[/green] .version: {old_version} → {new_version_full}")
 
