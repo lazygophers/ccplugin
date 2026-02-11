@@ -23,10 +23,6 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=env uv run uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py"
-          },
-          {
-            "type": "command",
-            "command": "if [ -n \"$CLAUDE_ENV_FILE\" ]; then for env_file in .claude/.env .claude/.env.local; do if [ -f \"$env_file\" ]; then grep -v '^#' \"$env_file\" | grep -v '^$' | while IFS= read -r line; do echo \"export $line\" >> \"$CLAUDE_ENV_FILE\"; done; fi; done; fi; exit 0"
           }
         ]
       }
