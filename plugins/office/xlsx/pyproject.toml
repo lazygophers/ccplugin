@@ -1,18 +1,14 @@
 [project]
 name = "office-xlsx"
-version = "0.0.1"
+version = "0.0.119"
 description = "Office Excel plugin - xlsx read/write and data analysis"
 requires-python = ">=3.11"
-dependencies = [
-    "openpyxl>=3.1.0",
-    "pandas>=2.0.0",
-    "mcp>=1.0.0",
-]
+dependencies = [ "openpyxl>=3.1.0", "pandas>=2.0.0", "mcp>=1.0.0",]
 
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = [".."]
-include = ["office_xlsx", "office_xlsx.*"]
+where = [ "..",]
+include = [ "office_xlsx", "office_xlsx.*",]

@@ -1,6 +1,6 @@
 [project]
 name = "code-golang"
-version = "0.0.118"
+version = "0.0.119"
 description = "Claude Code plugin for Go language support"
 readme = "README.md"
 requires-python = ">=3.11"
