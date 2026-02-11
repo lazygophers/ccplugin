@@ -1,11 +1,11 @@
 from lib import logging
-from lib.utils.env import set_app
 from hooks import handle_hook
 import click
 from functools import wraps
+from lib.utils.gitignore import add_gitignore_rule
+from lib.utils.env import get_project_dir
 
-# 注册应用名称
-set_app("notify")
+add_gitignore_rule(os.path.join(get_project_dir(), ".lazygophers", ".gitignore"), "/ccplugin/notify")
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
