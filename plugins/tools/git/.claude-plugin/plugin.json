@@ -20,10 +20,19 @@
     "workflow"
   ],
   "commands": [
-    "./commands/commit.md",
-    "./commands/push.md",
-    "./commands/pr.md",
-    "./commands/ignore.md"
+    "./commands/commit.md"
   ],
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=git uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
 }
