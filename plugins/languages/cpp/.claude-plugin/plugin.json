@@ -1,6 +1,6 @@
 {
   "name": "cpp",
-  "version": "0.0.122",
+  "version": "0.0.123",
   "description": "C++ 开发插件 - 提供 C++17/23 开发规范、最佳实践和代码智能支持。包括现代 C++ 标准、STL、内存管理、模板元编程和并发编程指导",
   "author": {
     "name": "lazygophers",

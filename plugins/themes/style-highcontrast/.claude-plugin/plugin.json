@@ -1,6 +1,6 @@
 {
   "name": "style-highcontrast",
-  "version": "0.0.122",
+  "version": "0.0.123",
   "description": "高对比无障碍设计风格插件 - 提供高对比 UI 设计规范、实现指南和最佳实践。包括 WCAG AAA 标准、清晰界限和包容性的完整设计系统",
   "author": {
     "name": "lazygophers",
