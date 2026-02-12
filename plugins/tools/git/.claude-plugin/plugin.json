@@ -25,8 +25,5 @@
     "./commands/pr.md",
     "./commands/ignore.md"
   ],
-  "agents": [
-    "./agents/git.md"
-  ],
   "skills": "./skills/"
 }

@@ -1,1 +1,1 @@
-所有 Git 操作必须遵守 Skills(git-skills) 的规范要求。
+提交 git 的时候，必须遵守 Skills(commit) 的规范
