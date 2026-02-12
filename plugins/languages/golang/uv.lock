@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-golang"
-version = "0.0.121"
+version = "0.0.122"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -65,8 +65,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.121"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#55c8264ebebd42a95ae5e577aae3d6f4c6def806" }
+version = "0.0.122"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#a905adfa9a581f56551eb283f6f1c7a3bfb54aef" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
