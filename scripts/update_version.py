@@ -240,17 +240,19 @@ def update_pyproject_versions(
 	return VersionUpdateResult(updated, failed)
 
 
-def run_uv_update(project_dir: Path, console: Console) -> None:
+def run_uv_update(project_dir: Path, base_dir: Path, console: Console) -> None:
 	"""Run 'uv lock -U' and 'uv sync' in a project directory.
 
 	Args:
 		project_dir: Directory containing pyproject.toml
+		base_dir: Project base directory for relative path display
 		console: Console instance for output
 
 	Raises:
 		RuntimeError: If any step fails
 	"""
-	console.print(f"  Running 'uv lock -U && uv sync' in {project_dir}...")
+	rel_path = project_dir.relative_to(base_dir) if project_dir.is_absolute() else project_dir
+	console.print(f"  Running 'uv lock -U && uv sync' in {rel_path}...")
 
 	try:
 		result = subprocess.run(
@@ -262,7 +264,7 @@ def run_uv_update(project_dir: Path, console: Console) -> None:
 		)
 		console.print(f"  uv lock -U output:\n{result.stdout}")
 		if result.returncode != 0:
-			raise RuntimeError(f"uv lock -U failed:\n{result.stderr}")
+			raise RuntimeError(f"uv lock -U failed in {rel_path}:\n{result.stderr}")
 
 		result = subprocess.run(
 			['uv', 'sync'],
@@ -273,7 +275,7 @@ def run_uv_update(project_dir: Path, console: Console) -> None:
 		)
 		console.print(f"  uv sync output:\n{result.stdout}")
 		if result.returncode != 0:
-			raise RuntimeError(f"uv sync failed:\n{result.stderr}")
+			raise RuntimeError(f"uv sync failed in {rel_path}:\n{result.stderr}")
 
 		result = subprocess.run(
 			['uv', 'run', 'main.py', 'hooks'],
@@ -285,21 +287,22 @@ def run_uv_update(project_dir: Path, console: Console) -> None:
 		)
 		console.print(f"  SessionStart hook output:\n{result.stdout}")
 		if result.returncode != 0:
-			raise RuntimeError(f"SessionStart hook failed:\n{result.stderr}")
+			raise RuntimeError(f"SessionStart hook failed in {rel_path}:\n{result.stderr}")
 	
-		console.print(f"  Successfully updated {project_dir}")
+		console.print(f"  Successfully updated {rel_path}")
 
 	except subprocess.TimeoutExpired as e:
-		raise RuntimeError(f"Command timed out: {e}") from e
+		raise RuntimeError(f"Command timed out in {rel_path}: {e}") from e
 	except Exception as e:
-		raise RuntimeError(f"Unexpected error: {e}") from e
+		raise RuntimeError(f"Unexpected error in {rel_path}: {e}") from e
 
 
-def update_uv_locks(pyproject_paths: list[Path]) -> VersionUpdateResult:
+def update_uv_locks(pyproject_paths: list[Path], base_dir: Path) -> VersionUpdateResult:
 	"""Run 'uv lock -U' in each directory containing pyproject.toml.
 
 	Args:
 		pyproject_paths: List of pyproject.toml file paths
+		base_dir: Project base directory for relative path display
 
 	Returns:
 		VersionUpdateResult with updated directories and failed items
@@ -321,8 +324,9 @@ def update_uv_locks(pyproject_paths: list[Path]) -> VersionUpdateResult:
 
 		processed_dirs.add(project_dir)
 
-		run_uv_update(project_dir, console)
-		updated.append(str(project_dir))
+		run_uv_update(project_dir, base_dir, console)
+		rel_path = project_dir.relative_to(base_dir)
+		updated.append(str(rel_path))
 
 	return VersionUpdateResult(updated, [])
 
@@ -440,7 +444,7 @@ def main() -> int:
 	pyproject_paths = find_pyproject_paths(base_dir)
 	console.print("\n[bold cyan]Updating uv.lock files...[/bold cyan]")
 	try:
-		lock_result = update_uv_locks(pyproject_paths)
+		lock_result = update_uv_locks(pyproject_paths, base_dir)
 	except RuntimeError as e:
 		console.print(f"\n[bold red]Error during uv.lock update:[/bold red]")
 		console.print(f"[red]{e}[/red]")
