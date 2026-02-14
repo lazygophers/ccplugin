@@ -14,8 +14,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
-
-import toml
+import tomlkit
 from rich.console import Console
 
 # Console instance for rich output
@@ -215,7 +214,7 @@ def update_pyproject_versions(
 				continue
 
 			with open(pyproject_path, 'r', encoding='utf-8') as f:
-				data = toml.load(f)
+				data = tomlkit.load(f)
 
 			if 'project' not in data:
 				failed.append({
@@ -227,7 +226,7 @@ def update_pyproject_versions(
 			data['project']['version'] = new_version
 
 			with open(pyproject_path, 'w', encoding='utf-8') as f:
-				toml.dump(data, f)
+				tomlkit.dump(data, f)
 
 			relative_path = pyproject_path.relative_to(base_dir)
 			updated.append(str(relative_path))
@@ -281,8 +280,9 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 			return False
 
 		result = subprocess.run(
-			['echo \'{"hook_event_name": "SessionStart"}\' | uv run main.py hooks'],
+			['uv', 'run', 'main.py', 'hooks'],
 			cwd=project_dir,
+			input=json.dumps({"hook_event_name": "SessionStart"}),
 			capture_output=True,
 			text=True,
 			timeout=120,
