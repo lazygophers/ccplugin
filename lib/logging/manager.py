@@ -71,6 +71,26 @@ class RichLoggerManager:
 		# 初始化时创建软连接
 		self._update_symlink()
 
+	def _resolve_log_dir(self) -> str:
+		"""
+		解析日志目录路径。
+
+		优先使用项目目录下的 .lazygophers/ccplugin/log，
+		如果路径无效（如父路径是文件而非目录），则使用用户主目录。
+
+		Returns:
+			有效的日志目录路径
+		"""
+		from lib.utils.env import get_user_plugins_dir
+
+		project_plugins_dir = get_project_plugins_dir()
+
+		lazygophers_path = os.path.join(get_project_dir(), ".lazygophers")
+		if os.path.exists(lazygophers_path) and not os.path.isdir(lazygophers_path):
+			return os.path.join(get_user_plugins_dir(), "log")
+
+		return os.path.join(project_plugins_dir, "log")
+
 	def _setup_gitignore(self) -> None:
 		"""
 		将 log 目录添加到项目根目录 .lazygophers/ 下的 git 忽略文件。
