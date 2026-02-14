@@ -240,20 +240,19 @@ def update_pyproject_versions(
 	return VersionUpdateResult(updated, failed)
 
 
-def run_uv_update(project_dir: Path, console: Console) -> bool:
+def run_uv_update(project_dir: Path, console: Console) -> None:
 	"""Run 'uv lock -U' and 'uv sync' in a project directory.
 
 	Args:
 		project_dir: Directory containing pyproject.toml
 		console: Console instance for output
 
-	Returns:
-		True if successful, False otherwise
+	Raises:
+		RuntimeError: If any step fails
 	"""
 	console.print(f"  Running 'uv lock -U && uv sync' in {project_dir}...")
 
 	try:
-		# Run uv lock -U
 		result = subprocess.run(
 			['uv', 'lock', '-U'],
 			cwd=project_dir,
@@ -263,10 +262,8 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 		)
 		console.print(f"  uv lock -U output:\n{result.stdout}")
 		if result.returncode != 0:
-			console.print(f"  uv lock -U failed with output:\n{result.stderr}")
-			return False
+			raise RuntimeError(f"uv lock -U failed:\n{result.stderr}")
 
-		# Run uv sync
 		result = subprocess.run(
 			['uv', 'sync'],
 			cwd=project_dir,
@@ -276,8 +273,7 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 		)
 		console.print(f"  uv sync output:\n{result.stdout}")
 		if result.returncode != 0:
-			console.print(f"  uv sync failed with output:\n{result.stderr}")
-			return False
+			raise RuntimeError(f"uv sync failed:\n{result.stderr}")
 
 		result = subprocess.run(
 			['uv', 'run', 'main.py', 'hooks'],
@@ -289,17 +285,14 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 		)
 		console.print(f"  SessionStart hook output:\n{result.stdout}")
 		if result.returncode != 0:
-			console.print(f"  SessionStart hook failed with output:\n{result.stderr}")
-			return False
+			raise RuntimeError(f"SessionStart hook failed:\n{result.stderr}")
 	
 		console.print(f"  Successfully updated {project_dir}")
 
-		return True
-
-	except subprocess.TimeoutExpired:
-		return False
-	except Exception:
-		return False
+	except subprocess.TimeoutExpired as e:
+		raise RuntimeError(f"Command timed out: {e}") from e
+	except Exception as e:
+		raise RuntimeError(f"Unexpected error: {e}") from e
 
 
 def update_uv_locks(pyproject_paths: list[Path]) -> VersionUpdateResult:
@@ -310,9 +303,11 @@ def update_uv_locks(pyproject_paths: list[Path]) -> VersionUpdateResult:
 
 	Returns:
 		VersionUpdateResult with updated directories and failed items
+
+	Raises:
+		RuntimeError: If any uv update fails (exits immediately)
 	"""
 	updated = []
-	failed = []
 	processed_dirs = set()
 
 	for pyproject_path in pyproject_paths:
@@ -321,21 +316,15 @@ def update_uv_locks(pyproject_paths: list[Path]) -> VersionUpdateResult:
 
 		project_dir = pyproject_path.parent
 
-		# Skip already processed directories
 		if project_dir in processed_dirs:
 			continue
 
 		processed_dirs.add(project_dir)
 
-		if run_uv_update(project_dir, console):
-			updated.append(str(project_dir))
-		else:
-			failed.append({
-				'path': str(project_dir),
-				'error': 'uv lock -U or uv sync failed'
-			})
+		run_uv_update(project_dir, console)
+		updated.append(str(project_dir))
 
-	return VersionUpdateResult(updated, failed)
+	return VersionUpdateResult(updated, [])
 
 
 def update_marketplace(marketplace_path: Path, new_version: str) -> None:
@@ -450,14 +439,15 @@ def main() -> int:
 	# Step 1: Update uv.lock files first (update dependencies)
 	pyproject_paths = find_pyproject_paths(base_dir)
 	console.print("\n[bold cyan]Updating uv.lock files...[/bold cyan]")
-	lock_result = update_uv_locks(pyproject_paths)
+	try:
+		lock_result = update_uv_locks(pyproject_paths)
+	except RuntimeError as e:
+		console.print(f"\n[bold red]Error during uv.lock update:[/bold red]")
+		console.print(f"[red]{e}[/red]")
+		return 1
 	console.print(f"  [green]✓[/green] Updated {len(lock_result.updated)} uv.lock file(s)")
 	for lock_dir in lock_result.updated:
 		console.print(f"    - {lock_dir}")
-
-	if lock_result.failed:
-		print_failures([('UV Lock Updates', lock_result.failed)])
-		return 1
 
 	# Step 2: Update marketplace.json
 	console.print("\n[bold cyan]Updating version files...[/bold cyan]")
