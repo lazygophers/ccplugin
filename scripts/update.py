@@ -132,14 +132,12 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 def run_claude_plugin_update(
 	plugin_key: str,
 	dry_run: bool = False,
-	quiet: bool = False,
 ) -> bool:
 	"""Run 'claude plugin update' command for a specific plugin.
 
 	Args:
 		plugin_key: Plugin key in format 'plugin@market'
 		dry_run: If True, show what would be done without making changes
-		quiet: If True, suppress output
 
 	Returns:
 		True if successful, False otherwise
@@ -150,15 +148,9 @@ def run_claude_plugin_update(
 		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
 		return True
 
-	result = subprocess.run(cmd, capture_output=True, text=True)
+	result = subprocess.run(cmd)
 
-	if result.returncode == 0:
-		return True
-	else:
-		error_msg = result.stderr.strip() if result.stderr else result.stdout.strip()
-		if not quiet:
-			console.print(f"[red]Error updating {plugin_key}:[/red] {error_msg}")
-		return False
+	return result.returncode == 0
 
 
 def get_marketplace_list() -> list[dict[str, str]]:
@@ -199,15 +191,9 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
 		console.print(f"[dim][DRY RUN] Would run: claude plugin marketplace update {market}[/dim]")
 		return True
 
-	result = subprocess.run(
-		["claude", "plugin", "marketplace", "update", market],
-		capture_output=True,
-		text=True,
-	)
+	result = subprocess.run(["claude", "plugin", "marketplace", "update", market])
 
 	if result.returncode != 0:
-		error_msg = result.stderr.strip() if result.stderr else result.stdout.strip()
-		stats.add_message("error", f"Failed to update {market}: {error_msg}")
 		stats.market_failed += 1
 		return False
 
@@ -354,7 +340,7 @@ def main() -> int:
 				plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
 				progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
 
-				if run_claude_plugin_update(plugin_id, dry_run=args.dry_run, quiet=args.quiet):
+				if run_claude_plugin_update(plugin_id, dry_run=args.dry_run):
 					stats.updated_count += 1
 				else:
 					stats.error_count += 1
@@ -363,7 +349,7 @@ def main() -> int:
 	else:
 		for plugin in enabled_plugins:
 			plugin_id = plugin.get("id", "")
-			if run_claude_plugin_update(plugin_id, dry_run=args.dry_run, quiet=args.quiet):
+			if run_claude_plugin_update(plugin_id, dry_run=args.dry_run):
 				stats.updated_count += 1
 			else:
 				stats.error_count += 1
