@@ -200,53 +200,35 @@ def handle_hook() -> None:
 		"message": "Session started"
 	}
 	"""
-	try:
-		# 尝试从 stdin 读取 Hook 数据
-		hook_data = load_hooks()
+	hook_data = load_hooks()
 
-		if not isinstance(hook_data, dict):
-			raise ValueError("Hook 数据必须是 JSON 对象")
+	if not isinstance(hook_data, dict):
+		raise ValueError("Hook 数据必须是 JSON 对象")
 
-		event_name = hook_data.get("hook_event_name", "").strip()
+	event_name = hook_data.get("hook_event_name", "").strip()
 
-		if not event_name:
-			raise ValueError("缺少必需的 hook_event_name 字段")
+	if not event_name:
+		raise ValueError("缺少必需的 hook_event_name 字段")
 
-		info(f"处理 Hook 事件: {event_name}")
-		debug(f"Hook 数据: {json.dumps(hook_data)}")
+	info(f"处理 Hook 事件: {event_name}")
+	debug(f"Hook 数据: {json.dumps(hook_data)}")
 
-		# 加载配置
-		config = load_config()
+	config = load_config()
 
-		# 提取上下文信息
-		context = extract_context_from_hook_data(hook_data)
+	context = extract_context_from_hook_data(hook_data)
 
-		# 获取相应的 Hook 配置
-		hook_config = get_hook_config(config, event_name, context)
+	hook_config = get_hook_config(config, event_name, context)
 
-		if hook_config is None:
-			debug(f"未找到 {event_name} 的 Hook 配置")
-			return
+	if hook_config is None:
+		debug(f"未找到 {event_name} 的 Hook 配置")
+		return
 
-		# 执行 Hook 动作
-		if not execute_hook_actions(hook_config, event_name, context):
-			error(f"Hook {event_name} 执行失败")
-			sys.exit(1)
-
-		info(f"Hook 事件 {event_name} 处理完成")
-
-		print(json.dumps({
-			"continue": True,
-		}))
-
-	except json.JSONDecodeError as e:
-		error(f"JSON 解析失败: {e}")
+	if not execute_hook_actions(hook_config, event_name, context):
+		error(f"Hook {event_name} 执行失败")
 		sys.exit(1)
-	except ValueError as e:
-		error(f"Hook 数据验证失败: {e}")
-		sys.exit(1)
-	except Exception as e:
-		error(f"Hook 处理失败: {e}")
-		import traceback
-		debug(traceback.format_exc())
-		sys.exit(1)
+
+	info(f"Hook 事件 {event_name} 处理完成")
+
+	print(json.dumps({
+		"continue": True,
+	}))
