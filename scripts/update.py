@@ -12,7 +12,6 @@ import argparse
 import json
 import subprocess
 import sys
-from pathlib import Path
 from typing import Any
 
 from rich.console import Console
@@ -95,47 +94,24 @@ class UpdateStats:
 					console.print(f"  [dim]ℹ[/dim] {msg}")
 
 
-def run_command(cmd: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
-	"""Run a command and return the result.
-
-	Args:
-		cmd: Command and arguments to run
-		cwd: Working directory for the command
-
-	Returns:
-		Completed process result
-	"""
-	return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=False)
-
-
 def get_enabled_plugins_list() -> list[dict[str, Any]]:
 	"""Get all enabled plugins from 'claude plugin list --json'.
 
 	Returns:
 		List of enabled plugin info dicts
 	"""
-	import tempfile
-
 	try:
-		with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
-			temp_path = f.name
-
-		with open(temp_path, "w", encoding="utf-8") as f:
-			result = subprocess.run(
-				["claude", "plugin", "list", "--json"],
-				stdout=f,
-				stderr=subprocess.DEVNULL,
-				check=False,
-			)
+		result = subprocess.run(
+			["claude", "plugin", "list", "--json"],
+			capture_output=True,
+			text=True,
+			check=False,
+		)
 
 		if result.returncode != 0:
-			Path(temp_path).unlink(missing_ok=True)
 			return []
 
-		with open(temp_path, "r", encoding="utf-8") as f:
-			plugins = json.load(f)
-
-		Path(temp_path).unlink(missing_ok=True)
+		plugins = json.loads(result.stdout)
 
 		enabled_plugins = []
 		seen_ids = set()
@@ -191,29 +167,18 @@ def get_marketplace_list() -> list[dict[str, str]]:
 	Returns:
 		List of marketplace info dicts with keys: name, source, url, installLocation
 	"""
-	import tempfile
-
 	try:
-		with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".json") as f:
-			temp_path = f.name
-
-		with open(temp_path, "w", encoding="utf-8") as f:
-			result = subprocess.run(
-				["claude", "plugin", "marketplace", "list", "--json"],
-				stdout=f,
-				stderr=subprocess.DEVNULL,
-				check=False,
-			)
+		result = subprocess.run(
+			["claude", "plugin", "marketplace", "list", "--json"],
+			capture_output=True,
+			text=True,
+			check=False,
+		)
 
 		if result.returncode != 0:
-			Path(temp_path).unlink(missing_ok=True)
 			return []
 
-		with open(temp_path, "r", encoding="utf-8") as f:
-			marketplaces = json.load(f)
-
-		Path(temp_path).unlink(missing_ok=True)
-		return marketplaces
+		return json.loads(result.stdout)
 
 	except (json.JSONDecodeError, Exception):
 		return []
@@ -248,25 +213,6 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
 
 	stats.market_updated += 1
 	return True
-
-
-def read_marketplace_json(market: str) -> dict[str, Any] | None:
-	"""Read marketplace.json from marketplace directory.
-
-	Args:
-		market: Marketplace name
-
-	Returns:
-		Marketplace data or None if not found
-	"""
-	market_dir = get_marketplace_dir(market)
-	marketplace_json = market_dir / ".claude-plugin" / "marketplace.json"
-
-	if not marketplace_json.exists():
-		return None
-
-	with open(marketplace_json, "r", encoding="utf-8") as f:
-		return json.load(f)
 
 
 def parse_plugin_key(key: str) -> tuple[str, str] | None:
