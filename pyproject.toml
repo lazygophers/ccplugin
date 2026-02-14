@@ -4,7 +4,17 @@ version = "0.0.123"
 description = "CCPlugin Market - Claude Code 插件市场"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [ "click>=8.1.0", "rich>=13.9.0", "toml>=0.10.2", "wraps>=0.15.0", "pyyaml>=6.0", "lib", "transformers==4.44.0", "logging>=0.4.9.6",]
+dependencies = [
+ "click>=8.1.0",
+ "rich>=13.9.0",
+ "toml>=0.10.2",
+ "wraps>=0.15.0",
+ "pyyaml>=6.0",
+ "lib",
+ "transformers==4.44.0",
+ "logging>=0.4.9.6",
+ "tomlkit>=0.14.0",
+]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
