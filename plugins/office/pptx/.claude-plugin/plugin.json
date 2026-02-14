@@ -1,6 +1,6 @@
 {
   "name": "office-pptx",
-  "version": "0.0.125",
+  "version": "0.0.126",
   "description": "Office PowerPoint 插件 - 提供 pptx 文件读写、幻灯片操作功能。基于 python-pptx 实现",
   "author": {
     "name": "lazygophers",
