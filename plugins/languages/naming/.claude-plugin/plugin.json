@@ -1,6 +1,6 @@
 {
   "name": "naming",
-  "version": "0.0.124",
+  "version": "0.0.125",
   "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正",
   "author": {
     "name": "Claude Code",
