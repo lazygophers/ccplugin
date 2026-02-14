@@ -255,39 +255,44 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 
 	try:
 		# Run uv lock -U
-		lock_result = subprocess.run(
+		result = subprocess.run(
 			['uv', 'lock', '-U'],
 			cwd=project_dir,
 			capture_output=True,
 			text=True,
 			timeout=120,
 		)
-
-		if lock_result.returncode != 0:
+		console.print(f"  uv lock -U output:\n{result.stdout}")
+		if result.returncode != 0:
+			console.print(f"  uv lock -U failed with output:\n{result.stderr}")
 			return False
 
 		# Run uv sync
-		sync_result = subprocess.run(
+		result = subprocess.run(
 			['uv', 'sync'],
 			cwd=project_dir,
 			capture_output=True,
 			text=True,
 			timeout=120,
 		)
-
-		if sync_result.returncode != 0:
+		console.print(f"  uv sync output:\n{result.stdout}")
+		if result.returncode != 0:
+			console.print(f"  uv sync failed with output:\n{result.stderr}")
 			return False
 
-		start_result = subprocess.run(
+		result = subprocess.run(
 			['echo', '\'{"hook_event_name": "SessionStart"}\'', '|', 'uv', 'run', 'main.py', 'hooks'],
 			cwd=project_dir,
 			capture_output=True,
 			text=True,
 			timeout=120,
 		)
-
-		if start_result.returncode != 0:
+		console.print(f"  SessionStart hook output:\n{result.stdout}")
+		if result.returncode != 0:
+			console.print(f"  SessionStart hook failed with output:\n{result.stderr}")
 			return False
+	
+		console.print(f"  Successfully updated {project_dir}")
 
 		return True
 
