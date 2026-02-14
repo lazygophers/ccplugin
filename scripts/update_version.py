@@ -275,7 +275,21 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 			timeout=120,
 		)
 
-		return sync_result.returncode == 0
+		if sync_result.returncode != 0:
+			return False
+
+		start_result = subprocess.run(
+			['echo', '\'{"hook_event_name": "SessionStart"}\'', '|', 'uv', 'run', 'main.py', 'hooks'],
+			cwd=project_dir,
+			capture_output=True,
+			text=True,
+			timeout=120,
+		)
+
+		if start_result.returncode != 0:
+			return False
+
+		return True
 
 	except subprocess.TimeoutExpired:
 		return False
