@@ -25,6 +25,8 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from lib.utils.env import get_project_dir
+
 
 class NullConsole:
 	"""A console that doesn't output anything."""
@@ -106,6 +108,7 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 			capture_output=True,
 			text=True,
 			check=False,
+			cwd=get_project_dir(),
 		)
 
 		if result.returncode != 0:
@@ -148,7 +151,7 @@ def run_claude_plugin_update(
 		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
 		return True
 
-	result = subprocess.run(cmd)
+	result = subprocess.run(cmd, cwd=get_project_dir())
 
 	return result.returncode == 0
 
@@ -165,6 +168,7 @@ def get_marketplace_list() -> list[dict[str, str]]:
 			capture_output=True,
 			text=True,
 			check=False,
+			cwd=get_project_dir(),
 		)
 
 		if result.returncode != 0:
@@ -191,7 +195,7 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
 		console.print(f"[dim][DRY RUN] Would run: claude plugin marketplace update {market}[/dim]")
 		return True
 
-	result = subprocess.run(["claude", "plugin", "marketplace", "update", market])
+	result = subprocess.run(["claude", "plugin", "marketplace", "update", market], cwd=get_project_dir())
 
 	if result.returncode != 0:
 		stats.market_failed += 1
@@ -250,7 +254,8 @@ def main() -> int:
 
 	console.print(
 		Panel.fit(
-			"[bold cyan]Plugin Update Tool (Claude Official)[/bold cyan]",
+			f"[bold cyan]Plugin Update Tool (Claude Official)[/bold cyan]\n"
+			f"[dim]Project:[/dim] {get_project_dir()}",
 			border_style="blue",
 		)
 	)
