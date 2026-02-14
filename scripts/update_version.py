@@ -281,7 +281,7 @@ def run_uv_update(project_dir: Path, console: Console) -> bool:
 			return False
 
 		result = subprocess.run(
-			['echo', '\'{"hook_event_name": "SessionStart"}\'', '|', 'uv', 'run', 'main.py', 'hooks'],
+			['echo \'{"hook_event_name": "SessionStart"}\' | uv run main.py hooks'],
 			cwd=project_dir,
 			capture_output=True,
 			text=True,
