@@ -277,17 +277,19 @@ def run_uv_update(project_dir: Path, base_dir: Path, console: Console) -> None:
 		if result.returncode != 0:
 			raise RuntimeError(f"uv sync failed in {rel_path}:\n{result.stderr}")
 
-		result = subprocess.run(
-			['uv', 'run', 'main.py', 'hooks'],
-			cwd=project_dir,
-			input=json.dumps({"hook_event_name": "SessionStart"}),
-			capture_output=True,
-			text=True,
-			timeout=120,
-		)
-		console.print(f"  SessionStart hook output:\n{result.stdout}")
-		if result.returncode != 0:
-			raise RuntimeError(f"SessionStart hook failed in {rel_path}:\n{result.stderr}")
+		hook_script = project_dir / 'scripts' / 'main.py'
+		if hook_script.exists():
+			result = subprocess.run(
+				['uv', 'run', './scripts/main.py', 'hooks'],
+				cwd=project_dir,
+				input=json.dumps({"hook_event_name": "SessionStart"}),
+				capture_output=True,
+				text=True,
+				timeout=120,
+			)
+			console.print(f"  SessionStart hook output:\n{result.stdout}")
+			if result.returncode != 0:
+				raise RuntimeError(f"SessionStart hook failed in {rel_path}:\n{result.stderr}")
 	
 		console.print(f"  Successfully updated {rel_path}")
 
