@@ -1,0 +1,26 @@
+{
+  "markdown": {
+    "command": "marksman",
+    "args": ["server"],
+    "extensionToLanguage": {
+      ".md": "markdown",
+      ".markdown": "markdown"
+    },
+    "settings": {
+      "markdown.completion.label": true,
+      "markdown.diagnostics.deadLinks": true,
+      "markdown.diagnostics.deprecatedTags": true
+    },
+    "initializationOptions": {
+      "completion": {
+        "markdown": {
+          "label": true
+        }
+      }
+    },
+    "restartOnCrash": true,
+    "maxRestarts": 5,
+    "startupTimeout": 10000,
+    "shutdownTimeout": 5000
+  }
+}

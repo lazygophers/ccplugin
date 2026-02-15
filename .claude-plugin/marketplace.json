@@ -83,6 +83,29 @@
       ]
     },
     {
+      "name": "markdown",
+      "source": "./plugins/languages/markdown",
+      "description": "Markdown 开发插件 - 提供 Markdown 编写规范、最佳实践和文档智能支持。包括文档结构、格式规范、写作风格和技术文档编写指导",
+      "version": "0.0.126",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/markdown",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/markdown",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "markdown",
+        "md",
+        "documentation",
+        "writing",
+        "technical-writing",
+        "best-practices",
+        "lsp",
+        "marksman"
+      ]
+    },
+    {
       "name": "python",
       "source": "./plugins/languages/python",
       "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",

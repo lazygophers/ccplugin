@@ -1,0 +1,47 @@
+{
+  "name": "markdown",
+  "version": "0.0.126",
+  "description": "Markdown 开发插件 - 提供 Markdown 编写规范、最佳实践和文档智能支持。包括文档结构、格式规范、写作风格和技术文档编写指导",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/markdown",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/markdown",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "markdown",
+    "md",
+    "documentation",
+    "writing",
+    "technical-writing",
+    "best-practices",
+    "lsp",
+    "marksman"
+  ],
+  "skills": "./skills/",
+  "lspServers": "./.lsp.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=markdown uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=markdown uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
+}

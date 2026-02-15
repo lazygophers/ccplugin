@@ -1,0 +1,26 @@
+[project]
+name = "code-markdown"
+version = "0.0.126"
+description = "Claude Code plugin for Markdown language support"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [ "click>=8.3.1", "lib",]
+
+[build-system]
+requires = [ "setuptools>=68.0", "setuptools-scm[toml]>=7.0",]
+build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+dev = [ "pytest>=7.0.0",]
+
+[tool.setuptools.package-data]
+"*" = [ "*.py", "*.json", "*.md",]
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "markdown*",]
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"
