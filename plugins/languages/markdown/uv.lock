@@ -24,7 +24,7 @@ wheels = [
 ]
 
 [[package]]
-name = "code-golang"
+name = "code-markdown"
 version = "0.0.126"
 source = { editable = "." }
 dependencies = [

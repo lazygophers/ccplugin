@@ -1,6 +1,6 @@
 [project]
 name = "code-git"
-version = "0.0.126"
+version = "0.0.127"
 description = "Claude Code plugin for Git operations including commit, PR, and Issue management"
 readme = "README.md"
 requires-python = ">=3.11"
