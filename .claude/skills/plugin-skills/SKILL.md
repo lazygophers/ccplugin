@@ -9,25 +9,25 @@ agent: plugin-agent
 
 ## 快速导航
 
-| 主题 | 内容 | 参考 |
-|------|------|------|
-| **什么是插件** | 插件的定义和价值 | [definition.md](definition.md) |
-| **目录结构** | 标准插件目录结构 | [structure.md](structure.md) |
-| **Manifest 配置** | plugin.json 详解 | [manifest.md](manifest.md) |
-| **本地配置** | 项目级插件配置 | [local-config.md](local-config.md) |
+| 主题              | 内容             | 参考                               |
+| ----------------- | ---------------- | ---------------------------------- |
+| **什么是插件**    | 插件的定义和价值 | [definition.md](definition.md)     |
+| **目录结构**      | 标准插件目录结构 | [structure.md](structure.md)       |
+| **Manifest 配置** | plugin.json 详解 | [manifest.md](manifest.md)         |
+| **本地配置**      | 项目级插件配置   | [local-config.md](local-config.md) |
 
 ## 插件开发子技能
 
-| 技能 | 作用 | Agent |
-|------|------|-------|
-| [插件开发](plugin-development/SKILL.md) | 创建新插件 | [plugin](../../agents/plugin) |
-| [插件脚本开发](plugin-script-development/SKILL.md) | Python CLI 脚本 | [script](../../agents/script) |
-| [插件命令开发](plugin-command-development/SKILL.md) | 自定义命令 | [command](../../agents/command) |
-| [插件技能开发](plugin-skill-development/SKILL.md) | Skills 编写 | [skill](../../agents/skill) |
-| [插件钩子开发](plugin-hook-development/SKILL.md) | 事件钩子 | [hook](../../agents/hook) |
-| [插件 MCP 开发](plugin-mcp-development/SKILL.md) | MCP 服务器 | [mcp](../../agents/mcp) |
-| [插件 LSP 开发](plugin-lsp-development/SKILL.md) | LSP 配置 | [lsp](../../agents/lsp) |
-| [插件 AGENT.md 开发](plugin-agent-development/SKILL.md) | 系统提示注入 | [agent-doc](../../agents/agent-doc) |
+| 技能                                                    | 作用            | Agent                           |
+| ------------------------------------------------------- | --------------- | ------------------------------- |
+| [插件开发](plugin-development/SKILL.md)                 | 创建新插件      | [plugin](../../agents/plugin)   |
+| [插件脚本开发](plugin-script-development/SKILL.md)      | Python CLI 脚本 | [script](../../agents/script)   |
+| [插件命令开发](plugin-command-development/SKILL.md)     | 自定义命令      | [command](../../agents/command) |
+| [插件技能开发](plugin-skill-development/SKILL.md)       | Skills 编写     | [skill](../../agents/skill)     |
+| [插件钩子开发](plugin-hook-development/SKILL.md)        | 事件钩子        | [hook](../../agents/hook)       |
+| [插件 MCP 开发](plugin-mcp-development/SKILL.md)        | MCP 服务器      | [mcp](../../agents/mcp)         |
+| [插件 LSP 开发](plugin-lsp-development/SKILL.md)        | LSP 配置        | [lsp](../../agents/lsp)         |
+| [插件 AGENT.md 开发](plugin-agent-development/SKILL.md) | 系统提示注入    | [agent](../../agents/agent)     |
 
 ## 什么是插件
 
@@ -58,23 +58,23 @@ plugin-name/
 
 ### 插件类型
 
-| 类型 | 用途 | 示例 |
-|------|------|------|
-| **工具插件** | 提供特定工具能力 | git、semantic |
-| **语言插件** | 语言开发支持 | python、golang |
-| **框架插件** | 框架开发支持 | react、gin |
-| **主题插件** | UI/输出样式 | style-dark |
-| **功能插件** | 增强核心功能 | notify、version |
+| 类型         | 用途             | 示例            |
+| ------------ | ---------------- | --------------- |
+| **工具插件** | 提供特定工具能力 | git、semantic   |
+| **语言插件** | 语言开发支持     | python、golang  |
+| **框架插件** | 框架开发支持     | react、gin      |
+| **主题插件** | UI/输出样式      | style-dark      |
+| **功能插件** | 增强核心功能     | notify、version |
 
 ## 组件对比
 
-| 组件 | 类型 | 作用 | 使用方式 |
-|------|------|------|----------|
-| **Command** | Skill | 可重用工作流 | `/command` |
-| **Agent** | Subagent | 隔离执行上下文 | `@agent` |
-| **Skill** | Skill | 参考知识和操作 | 上下文加载 |
-| **Hook** | Hook | 事件驱动自动化 | 自动触发 |
-| **MCP** | MCP | 外部服务连接 | 工具调用 |
+| 组件        | 类型     | 作用           | 使用方式   |
+| ----------- | -------- | -------------- | ---------- |
+| **Command** | Skill    | 可重用工作流   | `/command` |
+| **Agent**   | Subagent | 隔离执行上下文 | `@agent`   |
+| **Skill**   | Skill    | 参考知识和操作 | 上下文加载 |
+| **Hook**    | Hook     | 事件驱动自动化 | 自动触发   |
+| **MCP**     | MCP      | 外部服务连接   | 工具调用   |
 
 ## 插件使用
 
@@ -101,10 +101,3 @@ ls ~/.claude/plugins/
 # 查看插件清单
 cat ~/.claude/plugins/cache/task@*/.claude-plugin/plugin.json
 ```
-
-## 相关技能
-
-- [skills](skills/SKILL.md) - Skills 使用
-- [commands](commands/SKILL.md) - Commands 使用
-- [agents](agents/SKILL.md) - Agents 使用
-- [hooks](hooks/SKILL.md) - Hooks 使用
