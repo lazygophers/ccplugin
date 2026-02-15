@@ -401,30 +401,42 @@ def verify_versions(
 
 def main() -> int:
 	parser = argparse.ArgumentParser(
-		description="Update enabled plugins using Claude's official plugin update command"
+		prog="update.py",
+		description="🔌 CCPlugin 插件更新工具 - 使用 Claude 官方命令更新已启用的插件",
+		add_help=False,
 	)
 	parser.add_argument(
 		"--dry-run",
 		action="store_true",
-		help="Show what would be done without making changes",
+		help="模拟运行，仅显示将要执行的操作",
 	)
 	parser.add_argument(
 		"--quiet",
 		action="store_true",
-		help="Suppress all output",
+		help="静默模式，不输出任何信息",
 	)
 	parser.add_argument(
 		"--no-market-update",
 		action="store_true",
-		help="Skip marketplace update (faster, but may use stale data)",
+		help="跳过市场更新（更快，但可能使用过时数据）",
 	)
 	parser.add_argument(
 		"--no-verify",
 		action="store_true",
-		help="Skip version verification after update",
+		help="跳过更新后的版本验证",
+	)
+	parser.add_argument(
+		"-h", "--help",
+		action="store_true",
+		help="显示帮助信息",
 	)
 
 	args = parser.parse_args()
+
+	if args.help:
+		from lib.utils import print_help
+		print_help(parser, console)
+		return 0
 
 	set_quiet_mode(args.quiet)
 

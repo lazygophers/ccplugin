@@ -32,6 +32,7 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 from rich.tree import Tree
+from lib.utils import print_help
 
 console = Console()
 
@@ -371,15 +372,27 @@ def display_plugins_table(
 
 def main():
 	parser = argparse.ArgumentParser(
-		description="Clean orphaned plugin versions from cache (versions not in installed_plugins.json)"
+		prog="clean.py",
+		description="🗑️ CCPlugin 缓存清理工具 - 清理未安装的插件版本",
+		add_help=False,
 	)
 	parser.add_argument(
 		'--dry-run', '-d',
 		action='store_true',
-		help='Show what would be deleted without actually deleting'
+		help='模拟运行，仅显示将要删除的内容',
+	)
+	parser.add_argument(
+		"-h", "--help",
+		action="store_true",
+		help="显示帮助信息",
 	)
 
 	args = parser.parse_args()
+	
+	if args.help:
+		print_help(parser, console)
+		return 0
+	
 	dry_run = args.dry_run
 
 	cache_dir = get_cache_dir()

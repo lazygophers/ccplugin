@@ -9,6 +9,7 @@ Updates version numbers across:
 - uv.lock files (via uv lock -U)
 """
 
+import argparse
 import json
 import subprocess
 from dataclasses import dataclass
@@ -16,8 +17,8 @@ from pathlib import Path
 from typing import NamedTuple
 import tomlkit
 from rich.console import Console
+from lib.utils import print_help
 
-# Console instance for rich output
 console = Console()
 
 # Project paths
@@ -421,6 +422,33 @@ def main() -> int:
 	Returns:
 		Exit code (0 for success, 1 for failure)
 	"""
+	parser = argparse.ArgumentParser(
+		prog="update_version.py",
+		description="📦 CCPlugin 版本更新工具 - 更新所有版本号文件",
+		add_help=False,
+	)
+	parser.add_argument(
+		"--dry-run",
+		action="store_true",
+		help="模拟运行，仅显示将要执行的操作",
+	)
+	parser.add_argument(
+		"--skip-uv",
+		action="store_true",
+		help="跳过 uv lock 更新",
+	)
+	parser.add_argument(
+		"-h", "--help",
+		action="store_true",
+		help="显示帮助信息",
+	)
+	
+	args = parser.parse_args()
+	
+	if args.help:
+		print_help(parser, console)
+		return 0
+	
 	base_dir = Path(__file__).parent.parent
 	marketplace_path = base_dir / MARKETPLACE_JSON
 	version_path = base_dir / VERSION_FILE
@@ -444,35 +472,58 @@ def main() -> int:
 
 	# Step 1: Update uv.lock files first (update dependencies)
 	pyproject_paths = find_pyproject_paths(base_dir)
-	console.print("\n[bold cyan]Updating uv.lock files...[/bold cyan]")
-	try:
-		lock_result = update_uv_locks(pyproject_paths, base_dir)
-	except RuntimeError as e:
-		console.print(f"\n[bold red]Error during uv.lock update:[/bold red]")
-		console.print(f"[red]{e}[/red]")
-		return 1
-	console.print(f"  [green]✓[/green] Updated {len(lock_result.updated)} uv.lock file(s)")
-	for lock_dir in lock_result.updated:
-		console.print(f"    - {lock_dir}")
+	if not args.skip_uv:
+		console.print("\n[bold cyan]Updating uv.lock files...[/bold cyan]")
+		if args.dry_run:
+			console.print("  [yellow][DRY RUN] Would update uv.lock files[/yellow]")
+			lock_result = VersionUpdateResult([], [])
+		else:
+			try:
+				lock_result = update_uv_locks(pyproject_paths, base_dir)
+			except RuntimeError as e:
+				console.print(f"\n[bold red]Error during uv.lock update:[/bold red]")
+				console.print(f"[red]{e}[/red]")
+				return 1
+			console.print(f"  [green]✓[/green] Updated {len(lock_result.updated)} uv.lock file(s)")
+			for lock_dir in lock_result.updated:
+				console.print(f"    - {lock_dir}")
+	else:
+		console.print("\n[bold yellow]Skipping uv.lock update...[/bold yellow]")
 
 	# Step 2: Update marketplace.json
 	console.print("\n[bold cyan]Updating version files...[/bold cyan]")
-	update_marketplace(marketplace_path, new_version)
-	console.print(f"  [green]✓[/green] marketplace.json: {old_version} → {new_version}")
+	if args.dry_run:
+		console.print(f"  [yellow][DRY RUN] Would update marketplace.json: {old_version} → {new_version}[/yellow]")
+	else:
+		update_marketplace(marketplace_path, new_version)
+		console.print(f"  [green]✓[/green] marketplace.json: {old_version} → {new_version}")
 
 	# Step 3: Update plugin.json files
-	plugin_result = update_plugin_versions(plugins_dir, new_version)
-	print_version_updates(plugin_result.updated, 'plugin.json(s)', old_version, new_version, console)
+	if args.dry_run:
+		console.print(f"  [yellow][DRY RUN] Would update plugin.json files[/yellow]")
+	else:
+		plugin_result = update_plugin_versions(plugins_dir, new_version)
+		print_version_updates(plugin_result.updated, 'plugin.json(s)', old_version, new_version, console)
 
 	# Step 4: Update pyproject.toml files
-	pyproject_result = update_pyproject_versions(base_dir, pyproject_paths, new_version)
-	print_version_updates(pyproject_result.updated, 'pyproject.toml file(s)', old_version, new_version, console)
+	if args.dry_run:
+		console.print(f"  [yellow][DRY RUN] Would update pyproject.toml files[/yellow]")
+	else:
+		pyproject_result = update_pyproject_versions(base_dir, pyproject_paths, new_version)
+		print_version_updates(pyproject_result.updated, 'pyproject.toml file(s)', old_version, new_version, console)
 
 	# Step 5: Update .version file (last)
-	update_version_file(version_path, new_version_full)
-	console.print(f"  [green]✓[/green] .version: {old_version} → {new_version_full}")
+	if args.dry_run:
+		console.print(f"  [yellow][DRY RUN] Would update .version: {old_version} → {new_version_full}[/yellow]")
+	else:
+		update_version_file(version_path, new_version_full)
+		console.print(f"  [green]✓[/green] .version: {old_version} → {new_version_full}")
 
 	# Print success summary
+	if args.dry_run:
+		console.print(f"\n[bold yellow][DRY RUN] Version update would complete: {old_version} → {new_version_full}[/bold yellow]")
+		return 0
+	
 	console.print(f"\n[bold green]Version update completed: {old_version} → {new_version_full}[/bold green]")
 
 	# Collect and print failures

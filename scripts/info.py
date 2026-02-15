@@ -18,6 +18,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.tree import Tree
+from lib.utils import print_help
 
 console = Console()
 
@@ -520,21 +521,33 @@ def display_enabled_plugins(enabled_plugins: dict[str, bool]) -> None:
 def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Display information about registered marketplaces and plugins"
+        prog="info.py",
+        description="📊 CCPlugin 信息工具 - 显示已注册的市场和插件信息",
+        add_help=False,
     )
     parser.add_argument(
         "--enabled",
         action="store_true",
-        help="Show only enabled plugins for the current project",
+        help="仅显示当前项目已启用的插件",
     )
     parser.add_argument(
         "--project-dir",
         type=str,
         default=".",
-        help="Project directory (default: current directory)",
+        help="项目目录 (默认: 当前目录)",
+        metavar="PATH",
+    )
+    parser.add_argument(
+        "-h", "--help",
+        action="store_true",
+        help="显示帮助信息",
     )
 
     args = parser.parse_args()
+
+    if args.help:
+        print_help(parser, console)
+        return
 
     # Get project directory
     project_dir = Path(args.project_dir).resolve()
