@@ -304,15 +304,15 @@
     },
     {
       "name": "version",
-      "source": "./plugins/version",
+      "source": "./plugins/tools/version",
       "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
       "version": "0.0.126",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/version",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/version",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "version",
@@ -672,15 +672,15 @@
     },
     {
       "name": "env",
-      "source": "./plugins/env",
+      "source": "./plugins/tools/env",
       "description": "环境处理插件 - 用于处理环境相关问题。从 .claude/.env 和 .claude/.env.local 文件加载环境变量，并自动注入到 Claude Code 会话中",
       "version": "0.0.126",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/env",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/env",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/env",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/env",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "env",
@@ -693,15 +693,15 @@
     },
     {
       "name": "notify",
-      "source": "./plugins/notify",
+      "source": "./plugins/tools/notify",
       "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",
       "version": "0.0.126",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/notify",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/notify",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "notification",
