@@ -272,18 +272,18 @@ def run_plugin_check(project_dir: Path, base_dir: Path, console: Console) -> Non
 		if result.returncode != 0:
 			raise RuntimeError(f"uv sync failed in {rel_path}:\n{result.stderr}")
 
-		hook_script = project_dir / 'scripts' / 'main.py'
-		
-		result = subprocess.run(
-			['uvx', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
-			cwd=project_dir,
-			capture_output=True,
-			text=True,
-			timeout=120,
-		)
-		console.print(f"  check output:\n{result.stdout}")
-		if result.returncode != 0:
-			raise RuntimeError(f"check failed in {rel_path}:\n{result.stderr}")
+		plugin_dir = project_dir / '.claude-plugin' / 'plugin.json'
+		if plugin_dir.exists():
+			result = subprocess.run(
+				['uvx', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
+				cwd=project_dir,
+				capture_output=True,
+				text=True,
+				timeout=120,
+			)
+			console.print(f"  check output:\n{result.stdout}")
+			if result.returncode != 0:
+				raise RuntimeError(f"check failed in {rel_path}:\n{result.stderr}")
 
 	except subprocess.TimeoutExpired as e:
 		raise RuntimeError(f"Command timed out in {rel_path}: {e}") from e
