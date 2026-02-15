@@ -164,6 +164,8 @@ class UpdateStats:
 		self.error_count = 0
 		self.market_updated = 0
 		self.market_failed = 0
+		self.uv_sync_count = 0
+		self.uv_sync_failed = 0
 		self.messages: list[tuple[str, str]] = []
 		self.version_mismatches: list[tuple[str, str, str]] = []
 
@@ -208,6 +210,16 @@ class UpdateStats:
 			summary_table.add_row(
 				"❌ Errors",
 				f"[red bold]{self.error_count}[/red bold]",
+			)
+		if self.uv_sync_count > 0:
+			summary_table.add_row(
+				"🔄 UV Sync Completed",
+				f"[green]{self.uv_sync_count}[/green]",
+			)
+		if self.uv_sync_failed > 0:
+			summary_table.add_row(
+				"❌ UV Sync Failed",
+				f"[red]{self.uv_sync_failed}[/red]",
 			)
 		if self.version_mismatches:
 			summary_table.add_row(
@@ -273,6 +285,32 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 	return enabled_plugins
 
 
+def get_all_plugins_list() -> list[dict[str, Any]]:
+	"""Get all plugins (including disabled) from 'claude plugin list --json'.
+
+	Returns:
+		List of all plugin info dicts
+	"""
+	data = run_claude_command_with_progress(
+		["plugin", "list", "--json"],
+		description="🔍 正在获取所有插件..."
+	)
+
+	if not isinstance(data, list):
+		return []
+
+	all_plugins = []
+	seen_ids = set()
+
+	for plugin in data:
+		plugin_id = plugin.get("id", "")
+		if plugin_id and plugin_id not in seen_ids:
+			seen_ids.add(plugin_id)
+			all_plugins.append(plugin)
+
+	return all_plugins
+
+
 def get_latest_versions_from_marketplace() -> dict[str, str]:
 	"""Get latest available versions for all plugins from marketplace.
 
@@ -301,7 +339,7 @@ def get_latest_versions_from_marketplace() -> dict[str, str]:
 def run_claude_plugin_update(
 	plugin_key: str,
 	dry_run: bool = False,
-) -> bool:
+) -> tuple[bool, str]:
 	"""Run 'claude plugin update' command for a specific plugin.
 
 	Args:
@@ -309,17 +347,23 @@ def run_claude_plugin_update(
 		dry_run: If True, show what would be done without making changes
 
 	Returns:
-		True if successful, False otherwise
+		Tuple of (success, output) where success is True if command succeeded
 	"""
 	cmd = ["claude", "plugin", "update", plugin_key]
 
 	if dry_run:
 		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
-		return True
+		return True, ""
 
-	result = subprocess.run(cmd, cwd=get_project_dir())
+	result = subprocess.run(
+		cmd,
+		cwd=get_project_dir(),
+		stdout=subprocess.PIPE,
+		stderr=subprocess.STDOUT,
+		text=True,
+	)
 
-	return result.returncode == 0
+	return result.returncode == 0, result.stdout
 
 
 def get_marketplace_list() -> list[dict[str, str]]:
@@ -353,7 +397,13 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
 		console.print(f"[dim][DRY RUN] Would run: claude plugin marketplace update {market}[/dim]")
 		return True
 
-	result = subprocess.run(["claude", "plugin", "marketplace", "update", market], cwd=get_project_dir())
+	result = subprocess.run(
+		["claude", "plugin", "marketplace", "update", market],
+		cwd=get_project_dir(),
+		stdout=subprocess.PIPE,
+		stderr=subprocess.STDOUT,
+		text=True,
+	)
 
 	if result.returncode != 0:
 		stats.market_failed += 1
@@ -384,6 +434,72 @@ def parse_plugin_key(key: str) -> tuple[str, str] | None:
 		return None
 
 	return plugin, market
+
+
+def run_uv_sync(plugin_path: str, plugin_name: str, stats: UpdateStats, dry_run: bool = False) -> bool:
+	"""Run 'uv sync' in plugin directory if pyproject.toml exists.
+
+	Args:
+		plugin_path: Path to plugin directory
+		plugin_name: Name of the plugin for display
+		stats: Statistics object to track results
+		dry_run: If True, show what would be done without making changes
+
+	Returns:
+		True if uv sync was executed successfully or skipped, False on error
+	"""
+	from pathlib import Path
+
+	plugin_dir = Path(plugin_path)
+	pyproject_path = plugin_dir / "pyproject.toml"
+
+	if not pyproject_path.exists():
+		return True
+
+	if dry_run:
+		console.print(f"[dim][DRY RUN] Would run: uv sync in {plugin_dir}[/dim]")
+		return True
+
+	result = subprocess.run(
+		["uv", "sync"],
+		cwd=plugin_dir,
+		stdout=subprocess.PIPE,
+		stderr=subprocess.STDOUT,
+		text=True,
+	)
+
+	if result.returncode == 0:
+		stats.uv_sync_count += 1
+		stats.add_message("success", f"uv sync completed for [cyan]{plugin_name}[/cyan] [dim]({plugin_dir.name})[/dim]")
+		return True
+	else:
+		stats.uv_sync_failed += 1
+		stats.add_message("error", f"uv sync failed for {plugin_name}: {result.stdout.strip()}")
+		return False
+
+
+def enable_plugin(plugin_id: str, dry_run: bool = False) -> bool:
+	"""Enable a plugin using 'claude plugin enable' command.
+
+	Args:
+		plugin_id: Plugin ID in format 'plugin@market'
+		dry_run: If True, show what would be done without making changes
+
+	Returns:
+		True if successful, False otherwise
+	"""
+	if dry_run:
+		console.print(f"[dim][DRY RUN] Would run: claude plugin enable {plugin_id}[/dim]")
+		return True
+
+	result = subprocess.run(
+		["claude", "plugin", "enable", plugin_id],
+		stdout=subprocess.PIPE,
+		stderr=subprocess.STDOUT,
+		text=True,
+	)
+
+	return result.returncode == 0
 
 
 def create_plugin_table(plugins: list[dict[str, Any]]) -> Table:
@@ -472,6 +588,16 @@ def main() -> int:
 		help="跳过更新后的版本验证",
 	)
 	parser.add_argument(
+		"--auto-enable",
+		action="store_true",
+		help="自动启用被禁用的插件",
+	)
+	parser.add_argument(
+		"--no-uv-sync",
+		action="store_true",
+		help="跳过插件目录的 uv sync 操作",
+	)
+	parser.add_argument(
 		"-h", "--help",
 		action="store_true",
 		help="显示帮助信息",
@@ -497,6 +623,37 @@ def main() -> int:
 	console.print()
 
 	stats = UpdateStats()
+
+	if args.auto_enable:
+		console.print(Rule(title="[bold cyan]Auto-Enabling Plugins[/bold cyan]", style="cyan"))
+		all_plugins = get_all_plugins_list()
+		disabled_plugins = [p for p in all_plugins if not p.get("enabled")]
+
+		if disabled_plugins:
+			console.print(f"[yellow]Found {len(disabled_plugins)} disabled plugin(s)[/yellow]")
+			with Progress(
+				SpinnerColumn(spinner_name="dots"),
+				TextColumn("[progress.description]{task.description}"),
+				BarColumn(bar_width=40, complete_style="green", finished_style="bold green"),
+				TaskProgressColumn(),
+				TimeElapsedColumn(),
+				console=console,
+				disable=args.quiet,
+			) as progress:
+				task = progress.add_task("[cyan]Enabling plugins...[/cyan]", total=len(disabled_plugins))
+				for plugin in disabled_plugins:
+					plugin_id = plugin.get("id", "")
+					plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
+					progress.update(task, description=f"[cyan]Enabling {plugin_name}...[/cyan]")
+					if enable_plugin(plugin_id, dry_run=args.dry_run):
+						stats.add_message("success", f"Enabled plugin: {plugin_name}")
+					else:
+						stats.add_message("error", f"Failed to enable plugin: {plugin_name}")
+					progress.advance(task)
+			console.print()
+		else:
+			console.print("[green]All plugins are already enabled[/green]")
+			console.print()
 
 	enabled_plugins = get_enabled_plugins_list()
 
@@ -549,6 +706,8 @@ def main() -> int:
 	console.print("[dim]Using 'claude plugin update' command[/dim]")
 	console.print()
 
+	update_outputs: list[tuple[str, bool, str]] = []
+
 	with Progress(
 		SpinnerColumn(spinner_name="dots"),
 		TextColumn("[progress.description]{task.description}"),
@@ -565,7 +724,10 @@ def main() -> int:
 			plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
 			progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
 
-			if run_claude_plugin_update(plugin_id, dry_run=args.dry_run):
+			success, output = run_claude_plugin_update(plugin_id, dry_run=args.dry_run)
+			update_outputs.append((plugin_name, success, output))
+
+			if success:
 				stats.updated_count += 1
 			else:
 				stats.error_count += 1
@@ -573,6 +735,58 @@ def main() -> int:
 			progress.advance(task)
 
 	console.print()
+
+	if update_outputs:
+		console.print(Rule(title="[bold]Update Details[/bold]", style="dim"))
+		for plugin_name, success, output in update_outputs:
+			if output.strip():
+				for line in output.strip().split("\n"):
+					if line.strip():
+						if success:
+							console.print(f"  [dim]{line}[/dim]")
+						else:
+							console.print(f"  [red]{line}[/red]")
+		console.print()
+
+	if not args.no_uv_sync and not args.dry_run:
+		console.print(Rule(title="[bold cyan]Running UV Sync[/bold cyan]", style="cyan"))
+		console.print("[dim]Checking for pyproject.toml in plugin directories...[/dim]")
+		console.print()
+
+		plugins_with_pyproject = []
+		for plugin in enabled_plugins:
+			install_path = plugin.get("installPath", "")
+			plugin_id = plugin.get("id", "")
+			if install_path:
+				from pathlib import Path
+				plugin_dir = Path(install_path)
+				pyproject_path = plugin_dir / "pyproject.toml"
+				if pyproject_path.exists():
+					plugins_with_pyproject.append((plugin_id, install_path))
+
+		if plugins_with_pyproject:
+			console.print(f"[cyan]Found {len(plugins_with_pyproject)} plugin(s) with pyproject.toml[/cyan]")
+			console.print()
+
+			with Progress(
+				SpinnerColumn(spinner_name="dots"),
+				TextColumn("[progress.description]{task.description}"),
+				BarColumn(bar_width=40, complete_style="green", finished_style="bold green"),
+				TaskProgressColumn(),
+				TimeElapsedColumn(),
+				console=console,
+				disable=args.quiet,
+			) as progress:
+				task = progress.add_task("[cyan]Running uv sync...[/cyan]", total=len(plugins_with_pyproject))
+				for plugin_id, install_path in plugins_with_pyproject:
+					plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
+					progress.update(task, description=f"[cyan]Syncing {plugin_name}...[/cyan]")
+					run_uv_sync(install_path, plugin_name, stats, dry_run=args.dry_run)
+					progress.advance(task)
+			console.print()
+		else:
+			console.print("[dim]No plugins with pyproject.toml found[/dim]")
+			console.print()
 
 	if not args.no_verify and not args.dry_run:
 		console.print(Rule(title="[bold cyan]Verifying Versions[/bold cyan]", style="cyan"))
