@@ -275,7 +275,7 @@ def run_plugin_check(project_dir: Path, base_dir: Path, console: Console) -> Non
 		hook_script = project_dir / 'scripts' / 'main.py'
 		
 		result = subprocess.run(
-			['uv', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
+			['uvx', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
 			cwd=project_dir,
 			capture_output=True,
 			text=True,
