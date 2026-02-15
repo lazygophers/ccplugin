@@ -67,7 +67,6 @@ def parse_version(version_str: str) -> tuple[int, int, int, int | None]:
 
 	return major, minor, patch, build
 
-
 def format_version(major: int, minor: int, patch: int, build: int | None = None) -> str:
 	"""格式化版本号组件为字符串
 
@@ -92,7 +91,6 @@ def format_version(major: int, minor: int, patch: int, build: int | None = None)
 		return f"{major}.{minor}.{patch}.{build}"
 	return f"{major}.{minor}.{patch}"
 
-
 def increment_version(version_str: str, include_build: bool = False) -> str:
 	"""Increment patch version number.
 
@@ -111,7 +109,6 @@ def increment_version(version_str: str, include_build: bool = False) -> str:
 	new_patch = patch + 1
 	build = 0 if include_build else None
 	return format_version(major, minor, new_patch, build)
-
 
 def update_plugin_versions(plugins_dir: Path, new_version: str) -> VersionUpdateResult:
 	"""Update all plugin.json files under plugins directory.
@@ -146,7 +143,6 @@ def update_plugin_versions(plugins_dir: Path, new_version: str) -> VersionUpdate
 			failed.append({'path': str(relative_path), 'error': str(e)})
 
 	return VersionUpdateResult(updated, failed)
-
 
 def find_pyproject_paths(base_dir: Path) -> list[Path]:
 	"""Find all pyproject.toml files in the project.
@@ -185,7 +181,6 @@ def find_pyproject_paths(base_dir: Path) -> list[Path]:
 			pyproject_paths.append(path)
 
 	return pyproject_paths
-
 
 def update_pyproject_versions(
 	base_dir: Path,
@@ -240,8 +235,7 @@ def update_pyproject_versions(
 
 	return VersionUpdateResult(updated, failed)
 
-
-def run_uv_update(project_dir: Path, base_dir: Path, console: Console) -> None:
+def run_plugin_check(project_dir: Path, base_dir: Path, console: Console) -> None:
 	"""Run 'uv lock -U' and 'uv sync' in a project directory.
 
 	Args:
@@ -279,20 +273,17 @@ def run_uv_update(project_dir: Path, base_dir: Path, console: Console) -> None:
 			raise RuntimeError(f"uv sync failed in {rel_path}:\n{result.stderr}")
 
 		hook_script = project_dir / 'scripts' / 'main.py'
-		if hook_script.exists():
-			result = subprocess.run(
-				['uv', 'run', './scripts/main.py', 'hooks'],
-				cwd=project_dir,
-				input=json.dumps({"hook_event_name": "SessionStart"}),
-				capture_output=True,
-				text=True,
-				timeout=120,
-			)
-			console.print(f"  SessionStart hook output:\n{result.stdout}")
-			if result.returncode != 0:
-				raise RuntimeError(f"SessionStart hook failed in {rel_path}:\n{result.stderr}")
-	
-		console.print(f"  Successfully updated {rel_path}")
+		
+		result = subprocess.run(
+			['uv', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
+			cwd=project_dir,
+			capture_output=True,
+			text=True,
+			timeout=120,
+		)
+		console.print(f"  check output:\n{result.stdout}")
+		if result.returncode != 0:
+			raise RuntimeError(f"check failed in {rel_path}:\n{result.stderr}")
 
 	except subprocess.TimeoutExpired as e:
 		raise RuntimeError(f"Command timed out in {rel_path}: {e}") from e
@@ -327,7 +318,7 @@ def update_uv_locks(pyproject_paths: list[Path], base_dir: Path) -> VersionUpdat
 
 		processed_dirs.add(project_dir)
 
-		run_uv_update(project_dir, base_dir, console)
+		run_plugin_check(project_dir, base_dir, console)
 		rel_path = project_dir.relative_to(base_dir)
 		updated.append(str(rel_path))
 
