@@ -2,82 +2,157 @@
 """
 Display information about registered marketplaces and their plugins.
 
-This script shows:
-1. All registered marketplaces from known_marketplaces.json
-2. Plugins available in each marketplace from marketplace.json
-3. Currently enabled plugins from project settings
+This script uses Claude Code CLI commands to get plugin information:
+- `claude plugin marketplace list --json` for marketplaces
+- `claude plugin list --json --available` for installed and available plugins
 """
 
 import argparse
 import json
+import os
+import random
+import subprocess
+import tempfile
+import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.tree import Tree
 from lib.utils import print_help
 
 console = Console()
 
-
-def get_marketplaces_file() -> Path:
-    """Get the known_marketplaces.json file path.
-
-    Returns:
-        Path to known_marketplaces.json
-    """
-    return Path.home() / ".claude" / "plugins" / "known_marketplaces.json"
-
-
-def get_marketplace_dir(market: str) -> Path:
-    """Get the marketplace directory path.
-
-    Args:
-        market: Marketplace name (e.g., 'ccplugin-market')
-
-    Returns:
-        Path to the marketplace directory
-    """
-    return Path.home() / ".claude" / "plugins" / "marketplaces" / market
+LOADING_MESSAGES = [
+    "🔍 正在搜索插件市场...",
+    "📦 正在加载插件列表...",
+    "🚀 正在获取最新数据...",
+    "✨ 正在整理插件信息...",
+    "🎯 正在匹配已安装插件...",
+    "🌐 正在连接市场源...",
+    "⚡ 正在加速数据传输...",
+    "🔮 正在预测你的需求...",
+    "🦄 正在召唤插件精灵...",
+    "🌟 正在收集星光数据...",
+    "🎭 正在准备精彩展示...",
+    "🎪 正在搭建插件舞台...",
+]
 
 
-def read_known_marketplaces() -> dict[str, Any] | None:
-    """Read known_marketplaces.json.
+def run_claude_command(args: list[str], description: str = "正在执行命令") -> dict[str, Any] | list[Any] | None:
+    """Run a claude CLI command and return JSON output.
 
-    Returns:
-        Marketplaces data or None if not found
-    """
-    marketplaces_file = get_marketplaces_file()
-    if not marketplaces_file.exists():
-        return None
-
-    with open(marketplaces_file, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def read_marketplace_json(market: str) -> dict[str, Any] | None:
-    """Read marketplace.json from marketplace directory.
+    Uses temp file to handle large JSON outputs that exceed pipe buffer.
+    Shows a progress bar with animated messages while waiting.
 
     Args:
-        market: Marketplace name
+        args: Command arguments (e.g., ['plugin', 'list', '--json'])
+        description: Description for the progress bar
 
     Returns:
-        Marketplace data or None if not found
+        Parsed JSON data or None if command fails
     """
-    market_dir = get_marketplace_dir(market)
-    marketplace_json = market_dir / ".claude-plugin" / "marketplace.json"
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        temp_path = f.name
 
-    if not marketplace_json.exists():
-        return None
+    result_container = {"done": False, "data": None}
 
-    with open(marketplace_json, "r", encoding="utf-8") as f:
-        return json.load(f)
+    def run_command():
+        try:
+            proc = subprocess.run(
+                ["claude"] + args,
+                stdout=open(temp_path, 'w'),
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            if proc.returncode == 0:
+                with open(temp_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    if content.strip():
+                        result_container["data"] = json.loads(content)
+        except (subprocess.CalledProcessError, json.JSONDecodeError, OSError):
+            pass
+        finally:
+            result_container["done"] = True
+
+    thread = threading.Thread(target=run_command)
+    thread.start()
+
+    with Progress(
+        SpinnerColumn("dots", style="cyan"),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(complete_style="cyan", finished_style="green"),
+        TextColumn("[dim]{task.fields[emoji]}[/dim]"),
+        console=console,
+        transient=True,
+    ) as progress:
+        task = progress.add_task(description, total=100, emoji="🎯")
+        message_idx = 0
+
+        while not result_container["done"]:
+            if random.random() < 0.1:
+                message_idx = (message_idx + 1) % len(LOADING_MESSAGES)
+                progress.update(task, description=LOADING_MESSAGES[message_idx])
+
+            current = progress.tasks[0].completed
+            if current < 95:
+                advance = random.uniform(0.5, 2.0)
+                progress.advance(task, advance=advance)
+
+            emojis = ["✨", "🌟", "💫", "⭐", "🔥", "💎", "🎯", "🚀"]
+            progress.update(task, emoji=random.choice(emojis))
+
+            time.sleep(0.1)
+
+        progress.update(task, completed=100, description="✅ 完成!", emoji="🎉")
+
+    thread.join()
+
+    try:
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+    except OSError:
+        pass
+
+    return result_container["data"]
 
 
-def read_project_settings(project_dir: Path) -> dict[str, Any]:
+def get_marketplaces() -> list[dict[str, Any]]:
+    """Get list of registered marketplaces via CLI.
+
+    Returns:
+        List of marketplace dictionaries
+    """
+    data = run_claude_command(
+        ["plugin", "marketplace", "list", "--json"],
+        description="🔍 正在获取市场列表..."
+    )
+    if isinstance(data, list):
+        return data
+    return []
+
+
+def get_plugins() -> dict[str, Any]:
+    """Get installed and available plugins via CLI.
+
+    Returns:
+        Dictionary with 'installed' and 'available' lists
+    """
+    data = run_claude_command(
+        ["plugin", "list", "--json", "--available"],
+        description="📦 正在获取插件信息..."
+    )
+    if isinstance(data, dict):
+        return data
+    return {"installed": [], "available": []}
+
+
+def read_project_settings(project_dir: Path) -> dict[str, bool]:
     """Read enabled plugins from project settings.
 
     Args:
@@ -88,14 +163,12 @@ def read_project_settings(project_dir: Path) -> dict[str, Any]:
     """
     enabled_plugins: dict[str, bool] = {}
 
-    # Read settings.json
     settings_path = project_dir / ".claude" / "settings.json"
     if settings_path.exists():
         with open(settings_path, "r", encoding="utf-8") as f:
             data = json.load(f)
             enabled_plugins.update(data.get("enabledPlugins", {}))
 
-    # Read settings.local.json (overrides)
     settings_local_path = project_dir / ".claude" / "settings.local.json"
     if settings_local_path.exists():
         with open(settings_local_path, "r", encoding="utf-8") as f:
@@ -119,400 +192,314 @@ def format_timestamp(iso_string: str | None) -> str:
 
     try:
         dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
-        # Convert to local timezone
         local_dt = dt.astimezone()
         return local_dt.strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         return "[dim]Invalid[/dim]"
 
 
-def get_status_icon(plugin_id: str, enabled_plugins: dict[str, bool]) -> str:
+def format_relative_time(iso_string: str | None) -> str:
+    """Format ISO timestamp to relative time string.
+
+    Args:
+        iso_string: ISO 8601 timestamp string
+
+    Returns:
+        Relative time string (e.g., '2 hours ago')
+    """
+    if not iso_string:
+        return "[dim]Unknown[/dim]"
+
+    try:
+        dt = datetime.fromisoformat(iso_string.replace("Z", "+00:00"))
+        local_dt = dt.astimezone()
+        now = datetime.now(local_dt.tzinfo)
+        diff = now - local_dt
+
+        if diff.days > 365:
+            years = diff.days // 365
+            return f"{years} year{'s' if years > 1 else ''} ago"
+        elif diff.days > 30:
+            months = diff.days // 30
+            return f"{months} month{'s' if months > 1 else ''} ago"
+        elif diff.days > 0:
+            return f"{diff.days} day{'s' if diff.days > 1 else ''} ago"
+        elif diff.seconds > 3600:
+            hours = diff.seconds // 3600
+            return f"{hours} hour{'s' if hours > 1 else ''} ago"
+        elif diff.seconds > 60:
+            minutes = diff.seconds // 60
+            return f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+        else:
+            return "just now"
+    except Exception:
+        return "[dim]Invalid[/dim]"
+
+
+def get_status_icon(enabled: bool) -> str:
     """Get status icon for a plugin.
 
     Args:
-        plugin_id: Plugin identifier (name@market)
-        enabled_plugins: Dictionary of enabled plugins
+        enabled: Whether the plugin is enabled
 
     Returns:
         Status icon string
     """
-    if enabled_plugins.get(plugin_id, False):
-        return "[green]✓[/green]"
-    return "[dim]○[/dim]"
+    return "[green]✓[/green]" if enabled else "[dim]○[/dim]"
 
 
-def get_plugin_source(market: str, plugin_name: str) -> str | None:
-    """Get plugin source path from marketplace.json.
+def get_scope_badge(scope: str) -> str:
+    """Get scope badge for display.
 
     Args:
-        market: Marketplace name
-        plugin_name: Plugin name
+        scope: Plugin scope ('user' or 'project')
 
     Returns:
-        Plugin source path or None if not found
+        Formatted scope badge
     """
-    marketplace_data = read_marketplace_json(market)
-    if not marketplace_data:
-        return None
-
-    plugins = marketplace_data.get("plugins", [])
-    for plugin in plugins:
-        if plugin.get("name") == plugin_name:
-            return plugin.get("source")
-
-    return None
+    if scope == "project":
+        return "[blue]📁 project[/blue]"
+    return "[magenta]👤 user[/magenta]"
 
 
-def get_plugin_dir(market: str, plugin_name: str) -> Path:
-    """Get the plugin directory path.
+def display_marketplaces_summary(marketplaces: list[dict[str, Any]], plugins_data: dict[str, Any]) -> None:
+    """Display marketplaces summary table.
 
     Args:
-        market: Marketplace name (e.g., 'ccplugin-market')
-        plugin_name: Plugin name
-
-    Returns:
-        Path to the plugin directory
+        marketplaces: List of marketplace data
+        plugins_data: Dictionary with installed and available plugins
     """
-    market_dir = get_marketplace_dir(market)
-
-    # Try to get source from marketplace.json first
-    source = get_plugin_source(market, plugin_name)
-    if source:
-        # Remove leading './' from source
-        source = source.lstrip("./")
-        return market_dir / source
-
-    # Fallback to simple path
-    return market_dir / plugin_name
-
-
-def read_plugin_json(market: str, plugin_name: str) -> dict[str, Any] | None:
-    """Read plugin.json from plugin directory.
-
-    Args:
-        market: Marketplace name
-        plugin_name: Plugin name
-
-    Returns:
-        Plugin data or None if not found
-    """
-    plugin_dir = get_plugin_dir(market, plugin_name)
-    plugin_json = plugin_dir / ".claude-plugin" / "plugin.json"
-
-    if not plugin_json.exists():
-        return None
-
-    with open(plugin_json, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def read_hooks_json(market: str, plugin_name: str) -> dict[str, Any] | None:
-    """Read hooks.json from plugin directory.
-
-    Args:
-        market: Marketplace name
-        plugin_name: Plugin name
-
-    Returns:
-        Hooks data or None if not found
-    """
-    plugin_dir = get_plugin_dir(market, plugin_name)
-    hooks_json = plugin_dir / "hooks" / "hooks.json"
-
-    if not hooks_json.exists():
-        return None
-
-    with open(hooks_json, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def extract_name_from_path(path: str) -> str:
-    """Extract component name from file path.
-
-    Args:
-        path: File path (e.g., './commands/hello.md')
-
-    Returns:
-        Extracted name without extension (e.g., 'hello')
-    """
-    # Remove leading './' or trailing slashes
-    path = path.lstrip("./").strip("/")
-
-    # Get the filename without extension
-    filename = Path(path).stem
-
-    return filename
-
-
-def display_marketplaces(enabled_plugins: dict[str, bool]) -> None:
-    """Display all marketplaces and their plugins.
-
-    Args:
-        enabled_plugins: Dictionary of enabled plugins from project settings
-    """
-    marketplaces = read_known_marketplaces()
-
     if not marketplaces:
         console.print("[yellow]No marketplaces found.[/yellow]")
-        console.print(
-            "Marketplaces are registered in: "
-            f"[cyan]{get_marketplaces_file()}[/cyan]"
-        )
+        console.print("Add a marketplace with: [cyan]claude plugin marketplace add <url>[/cyan]")
         return
 
-    # Summary table
-    summary_table = Table(
-        title="[bold blue]Registered Marketplaces[/bold blue]",
+    available_plugins = plugins_data.get("available", [])
+
+    marketplace_plugin_counts: dict[str, int] = {}
+    for plugin in available_plugins:
+        market_name = plugin.get("marketplaceName", "unknown")
+        marketplace_plugin_counts[market_name] = marketplace_plugin_counts.get(market_name, 0) + 1
+
+    table = Table(
+        title="[bold blue]📦 Registered Marketplaces[/bold blue]",
         show_header=True,
         header_style="bold magenta",
     )
-    summary_table.add_column("Marketplace", style="cyan", width=30)
-    summary_table.add_column("Source", style="white")
-    summary_table.add_column("Last Updated", style="yellow")
-    summary_table.add_column("Plugins", justify="right", style="green")
+    table.add_column("Name", style="cyan", width=25)
+    table.add_column("Source", style="white")
+    table.add_column("Plugins", justify="right", style="green", width=8)
 
     total_plugins = 0
 
-    for market_name, market_info in marketplaces.items():
-        source = market_info.get("source", {})
-        source_url = source.get("url", "N/A")
-        last_updated = format_timestamp(market_info.get("lastUpdated"))
+    for market in marketplaces:
+        name = market.get("name", "unknown")
+        url = market.get("url", "N/A")
+        plugin_count = marketplace_plugin_counts.get(name, 0)
+        total_plugins += plugin_count
 
-        # Read marketplace.json to get plugin count
-        marketplace_data = read_marketplace_json(market_name)
-        plugin_count = 0
-        if marketplace_data:
-            plugins = marketplace_data.get("plugins", [])
-            plugin_count = len(plugins)
-            total_plugins += plugin_count
+        source_display = url
+        if url.startswith("https://github.com/"):
+            parts = url.replace("https://github.com/", "").replace(".git", "")
+            source_display = f"[link={url}]{parts}[/link]"
 
-        summary_table.add_row(
-            market_name,
-            f"[dim]{source_url}[/dim]",
-            last_updated,
+        table.add_row(
+            name,
+            f"[dim]{source_display}[/dim]",
             str(plugin_count),
         )
 
-    console.print(summary_table)
-    console.print(f"\n[bold]Total Plugins:[/bold] {total_plugins}\n")
-
-    # Detailed plugin list per marketplace
-    for market_name, market_info in marketplaces.items():
-        marketplace_data = read_marketplace_json(market_name)
-
-        if not marketplace_data:
-            console.print(
-                f"[yellow]⚠[/yellow] No marketplace.json found for [cyan]{market_name}[/cyan]\n"
-            )
-            continue
-
-        plugins = marketplace_data.get("plugins", [])
-
-        # Create tree for this marketplace
-        tree = Tree(f"[bold cyan]📦 {market_name}[/bold cyan]")
-
-        # Add marketplace info
-        source = market_info.get("source", {})
-        install_location = market_info.get("installLocation", "")
-        tree.add(
-            f"[dim]Source: {source.get('url', 'N/A')}[/dim]"
-        )
-        tree.add(
-            f"[dim]Location: {install_location}[/dim]"
-        )
-        tree.add(
-            f"[dim]Last Updated: {format_timestamp(market_info.get('lastUpdated'))}[/dim]"
-        )
-
-        # Add plugins branch
-        plugins_branch = tree.add("[bold]Plugins[/bold]")
-
-        for plugin in plugins:
-            plugin_name = plugin.get("name", "Unknown")
-            version = plugin.get("version", "N/A")
-            description = plugin.get("description", "")
-            plugin_id = f"{plugin_name}@{market_name}"
-
-            # Status icon
-            status_icon = get_status_icon(plugin_id, enabled_plugins)
-
-            # Create plugin entry
-            plugin_text = f"{status_icon} [bold white]{plugin_name}[/bold white] [dim]v{version}[/dim]"
-
-            if description:
-                # Truncate long descriptions
-                if len(description) > 60:
-                    description = description[:57] + "..."
-                plugin_text += f"\n    [dim]{description}[/dim]"
-
-            plugin_node = plugins_branch.add(plugin_text)
-
-            # Show components for enabled plugins
-            if enabled_plugins.get(plugin_id, False):
-                plugin_data = read_plugin_json(market_name, plugin_name)
-                hooks_data = read_hooks_json(market_name, plugin_name)
-
-                # Collect all components to display
-                components_to_show = []
-
-                if plugin_data:
-                    # Commands
-                    commands = plugin_data.get("commands", [])
-                    if commands:
-                        command_names = [extract_name_from_path(cmd) for cmd in commands]
-                        components_to_show.append(("Commands", ", ".join(command_names)))
-
-                    # Agents
-                    agents = plugin_data.get("agents", [])
-                    if agents:
-                        agent_names = [extract_name_from_path(agent) for agent in agents]
-                        components_to_show.append(("Agents", ", ".join(agent_names)))
-
-                    # Skills
-                    skills = plugin_data.get("skills", [])
-                    if skills:
-                        # For skills directory, list subdirectories
-                        plugin_dir = get_plugin_dir(market_name, plugin_name)
-                        skills_dir = plugin_dir / skills.strip("./")
-                        skill_names = []
-                        if skills_dir.exists():
-                            for item in skills_dir.iterdir():
-                                if item.is_dir() and (item / "SKILL.md").exists():
-                                    skill_names.append(item.name)
-                        if skill_names:
-                            components_to_show.append(("Skills", ", ".join(skill_names)))
-
-                    # Inline hooks from plugin.json
-                    inline_hooks = plugin_data.get("hooks", {})
-                    if inline_hooks and isinstance(inline_hooks, dict):
-                        hook_events = list(inline_hooks.keys())
-                        components_to_show.append(("Hooks", ", ".join(hook_events)))
-                    elif inline_hooks and isinstance(inline_hooks, list):
-                        # Array format: ["./hooks/pre-tool-use.md", ...]
-                        hook_names = [extract_name_from_path(hook) for hook in inline_hooks]
-                        components_to_show.append(("Hooks", ", ".join(hook_names)))
-
-                # Show hooks from hooks.json
-                if hooks_data:
-                    hooks_dict = hooks_data.get("hooks", {})
-                    if hooks_dict:
-                        hook_events = list(hooks_dict.keys())
-                        components_to_show.append(("Hook Events", ", ".join(hook_events)))
-
-                # Display all components
-                for component_type, component_names in components_to_show:
-                    plugin_node.add(f"[dim]{component_type}: {component_names}[/dim]")
-
-        console.print(Panel(tree, title=f"[bold]{market_name}[/bold]", title_align="left"))
-        console.print()
+    console.print(table)
+    console.print(f"\n[bold]Total Available Plugins:[/bold] {total_plugins}\n")
 
 
-def display_enabled_plugins(enabled_plugins: dict[str, bool]) -> None:
-    """Display currently enabled plugins.
+def display_installed_plugins(plugins_data: dict[str, Any], project_enabled: dict[str, bool]) -> None:
+    """Display installed plugins grouped by marketplace.
 
     Args:
-        enabled_plugins: Dictionary of enabled plugins
+        plugins_data: Dictionary with installed plugins
+        project_enabled: Project-level enabled plugins settings
     """
-    if not enabled_plugins:
-        console.print("[dim]No plugins enabled in this project.[/dim]\n")
+    installed = plugins_data.get("installed", [])
+
+    if not installed:
+        console.print("[dim]No plugins installed.[/dim]\n")
         return
 
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for plugin in installed:
+        market = plugin.get("id", "@").split("@")[-1] if "@" in plugin.get("id", "") else "unknown"
+        if market not in grouped:
+            grouped[market] = []
+        grouped[market].append(plugin)
+
     table = Table(
-        title="[bold green]Enabled Plugins[/bold green]",
+        title="[bold green]✓ Installed Plugins[/bold green]",
         show_header=True,
         header_style="bold magenta",
     )
-    table.add_column("Plugin", style="cyan", width=25)
-    table.add_column("Marketplace", style="white", width=25)
-    table.add_column("Status", justify="center", width=10)
+    table.add_column("Plugin", style="cyan", width=18)
+    table.add_column("Version", style="yellow", width=10)
+    table.add_column("Scope", width=12)
+    table.add_column("Status", justify="center", width=6)
+    table.add_column("Updated", style="dim", width=12)
+    table.add_column("Command", style="cyan", width=38)
 
-    for plugin_id, enabled in enabled_plugins.items():
-        if "@" in plugin_id:
-            plugin_name, market = plugin_id.split("@", 1)
-        else:
-            plugin_name = plugin_id
-            market = "unknown"
+    for market, plugins in sorted(grouped.items()):
+        for plugin in sorted(plugins, key=lambda p: p.get("id", "")):
+            plugin_id = plugin.get("id", "unknown")
+            name = plugin_id.split("@")[0] if "@" in plugin_id else plugin_id
+            version = plugin.get("version", "N/A")
+            scope = plugin.get("scope", "user")
+            enabled = plugin.get("enabled", False)
+            last_updated = plugin.get("lastUpdated")
 
-        status = "[green]Enabled[/green]" if enabled else "[dim]Disabled[/dim]"
-        table.add_row(plugin_name, market, status)
+            status = get_status_icon(enabled)
+            scope_badge = get_scope_badge(scope)
+            updated = format_relative_time(last_updated)
+            update_cmd = f"[cyan]↻ claude plugin update {plugin_id}[/cyan]"
+
+            table.add_row(name, f"v{version}", scope_badge, status, updated, update_cmd)
+
+        if market != list(grouped.keys())[-1]:
+            table.add_section()
 
     console.print(table)
     console.print()
 
-    # Detailed components for enabled plugins
+
+def display_available_plugins(plugins_data: dict[str, Any], installed_ids: set[str]) -> None:
+    """Display available plugins from marketplaces.
+
+    Args:
+        plugins_data: Dictionary with available plugins
+        installed_ids: Set of installed plugin IDs
+    """
+    available = plugins_data.get("available", [])
+
+    if not available:
+        return
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for plugin in available:
+        market = plugin.get("marketplaceName", "unknown")
+        if market not in grouped:
+            grouped[market] = []
+        grouped[market].append(plugin)
+
+    for market, plugins in sorted(grouped.items()):
+        tree = Tree(f"[bold cyan]📦 {market}[/bold cyan]")
+
+        for plugin in sorted(plugins, key=lambda p: p.get("name", "")):
+            name = plugin.get("name", "unknown")
+            plugin_id = plugin.get("pluginId", f"{name}@{market}")
+            version = plugin.get("version", "N/A")
+            description = plugin.get("description", "")
+            install_count = plugin.get("installCount", 0)
+
+            is_installed = plugin_id in installed_ids
+            status = "[green]✓[/green]" if is_installed else "[dim]○[/dim]"
+
+            plugin_text = f"{status} [bold white]{name}[/bold white] [dim]v{version}[/dim]"
+
+            if description:
+                desc_display = description[:70] + "..." if len(description) > 70 else description
+                plugin_text += f"\n    [dim]{desc_display}[/dim]"
+
+            if install_count > 0:
+                plugin_text += f"\n    [dim]📥 {install_count:,} installs[/dim]"
+
+            if is_installed:
+                plugin_text += f"\n    [cyan]↻ claude plugin update {name}@{market}[/cyan]"
+            else:
+                plugin_text += f"\n    [green]+ claude plugin install {name}@{market}[/green]"
+
+            tree.add(plugin_text)
+
+        console.print(Panel(tree, title=f"[bold]{market}[/bold]", title_align="left"))
+        console.print()
+
+
+def display_enabled_plugins_details(plugins_data: dict[str, Any], project_enabled: dict[str, bool]) -> None:
+    """Display detailed information about enabled plugins.
+
+    Args:
+        plugins_data: Dictionary with installed plugins
+        project_enabled: Project-level enabled plugins settings
+    """
+    installed = plugins_data.get("installed", [])
+    enabled_plugins = [p for p in installed if p.get("enabled", False)]
+
+    if not enabled_plugins:
+        return
+
     tree = Tree("[bold green]✓ Enabled Plugins Details[/bold green]")
 
-    for plugin_id, enabled in sorted(enabled_plugins.items()):
-        if not enabled:
-            continue
+    for plugin in sorted(enabled_plugins, key=lambda p: p.get("id", "")):
+        plugin_id = plugin.get("id", "unknown")
+        name = plugin_id.split("@")[0] if "@" in plugin_id else plugin_id
+        market = plugin_id.split("@")[-1] if "@" in plugin_id else "unknown"
+        version = plugin.get("version", "N/A")
+        scope = plugin.get("scope", "user")
+        install_path = plugin.get("installPath", "")
 
-        if "@" in plugin_id:
-            plugin_name, market = plugin_id.split("@", 1)
-        else:
-            plugin_name = plugin_id
-            market = "unknown"
+        scope_badge = get_scope_badge(scope)
+        plugin_node = tree.add(f"[bold cyan]{name}[/bold cyan] [dim]v{version}[/dim] {scope_badge}")
 
-        # Plugin node
-        plugin_node = tree.add(f"[bold cyan]{plugin_name}[/bold cyan] [dim]@ {market}[/dim]")
+        if install_path:
+            short_path = install_path.replace(str(Path.home()), "~")
+            plugin_node.add(f"[dim]📍 {short_path}[/dim]")
 
-        # Read plugin data
-        plugin_data = read_plugin_json(market, plugin_name)
-        hooks_data = read_hooks_json(market, plugin_name)
+        plugin_json_path = Path(install_path) / ".claude-plugin" / "plugin.json"
+        if plugin_json_path.exists():
+            try:
+                with open(plugin_json_path, "r", encoding="utf-8") as f:
+                    plugin_json = json.load(f)
 
-        # Collect all components to display
-        components_to_show = []
+                components_to_show = []
 
-        if plugin_data:
-            # Commands
-            commands = plugin_data.get("commands", [])
-            if commands:
-                command_names = [extract_name_from_path(cmd) for cmd in commands]
-                components_to_show.append(("Commands", ", ".join(command_names)))
+                commands = plugin_json.get("commands", [])
+                if commands:
+                    command_names = [Path(cmd).stem for cmd in commands]
+                    components_to_show.append(("Commands", command_names))
 
-            # Agents
-            agents = plugin_data.get("agents", [])
-            if agents:
-                agent_names = [extract_name_from_path(agent) for agent in agents]
-                components_to_show.append(("Agents", ", ".join(agent_names)))
+                agents = plugin_json.get("agents", [])
+                if agents:
+                    agent_names = [Path(agent).stem for agent in agents]
+                    components_to_show.append(("Agents", agent_names))
 
-            # Skills
-            skills = plugin_data.get("skills", [])
-            if skills:
-                # For skills directory, list subdirectories
-                plugin_dir = get_plugin_dir(market, plugin_name)
-                skills_dir = plugin_dir / skills.strip("./")
-                skill_names = []
-                if skills_dir.exists():
-                    for item in skills_dir.iterdir():
-                        if item.is_dir() and (item / "SKILL.md").exists():
-                            skill_names.append(item.name)
-                if skill_names:
-                    components_to_show.append(("Skills", ", ".join(skill_names)))
+                skills = plugin_json.get("skills", [])
+                if skills:
+                    if isinstance(skills, list):
+                        skills_path = skills[0] if skills else ""
+                    else:
+                        skills_path = skills
+                    skills_dir = Path(install_path) / skills_path.strip("./")
+                    skill_names = []
+                    if skills_dir.exists():
+                        for item in skills_dir.iterdir():
+                            if item.is_dir() and (item / "SKILL.md").exists():
+                                skill_names.append(item.name)
+                    if skill_names:
+                        components_to_show.append(("Skills", skill_names))
 
-            # Inline hooks from plugin.json
-            inline_hooks = plugin_data.get("hooks", {})
-            if inline_hooks and isinstance(inline_hooks, dict):
-                hook_events = list(inline_hooks.keys())
-                components_to_show.append(("Hooks", ", ".join(hook_events)))
-            elif inline_hooks and isinstance(inline_hooks, list):
-                # Array format: ["./hooks/pre-tool-use.md", ...]
-                hook_names = [extract_name_from_path(hook) for hook in inline_hooks]
-                components_to_show.append(("Hooks", ", ".join(hook_names)))
+                hooks = plugin_json.get("hooks", {})
+                if hooks:
+                    if isinstance(hooks, dict):
+                        hook_events = list(hooks.keys())
+                        components_to_show.append(("Hooks", hook_events))
+                    elif isinstance(hooks, list):
+                        hook_names = [Path(hook).stem for hook in hooks]
+                        components_to_show.append(("Hooks", hook_names))
 
-        # Show hooks from hooks.json
-        if hooks_data:
-            hooks_dict = hooks_data.get("hooks", {})
-            if hooks_dict:
-                hook_events = list(hooks_dict.keys())
-                components_to_show.append(("Hook Events", ", ".join(hook_events)))
+                for component_type, component_names in components_to_show:
+                    names_str = ", ".join(component_names[:5])
+                    if len(component_names) > 5:
+                        names_str += f" ... (+{len(component_names) - 5} more)"
+                    plugin_node.add(f"[dim]{component_type}: {names_str}[/dim]")
 
-        # Display all components
-        for component_type, component_names in components_to_show:
-            plugin_node.add(f"[dim]{component_type}: {component_names}[/dim]")
-
-        # Add empty line if there were components
-        if components_to_show:
-            plugin_node.add("")
+            except (json.JSONDecodeError, OSError):
+                pass
 
     console.print(Panel(tree, title="[bold]Plugin Components[/bold]", title_align="left"))
     console.print()
@@ -529,6 +516,16 @@ def main() -> None:
         "--enabled",
         action="store_true",
         help="仅显示当前项目已启用的插件",
+    )
+    parser.add_argument(
+        "--installed",
+        action="store_true",
+        help="仅显示已安装的插件",
+    )
+    parser.add_argument(
+        "--available",
+        action="store_true",
+        help="仅显示可用的插件（未安装）",
     )
     parser.add_argument(
         "--project-dir",
@@ -549,13 +546,9 @@ def main() -> None:
         print_help(parser, console)
         return
 
-    # Get project directory
     project_dir = Path(args.project_dir).resolve()
+    project_enabled = read_project_settings(project_dir)
 
-    # Read enabled plugins from project settings
-    enabled_plugins = read_project_settings(project_dir)
-
-    # Print header
     header = (
         "[bold blue]╔══════════════════════════════════════════╗[/bold blue]\n"
         "[bold blue]║     Claude Code Plugin Market Info       ║[/bold blue]\n"
@@ -564,17 +557,31 @@ def main() -> None:
     console.print(header)
     console.print()
 
-    if args.enabled:
-        # Show only enabled plugins
-        display_enabled_plugins(enabled_plugins)
-    else:
-        # Show all marketplaces and plugins
-        display_marketplaces(enabled_plugins)
+    marketplaces = get_marketplaces()
+    plugins_data = get_plugins()
 
-        # Show enabled plugins section if any
-        if enabled_plugins:
-            console.print()
-            display_enabled_plugins(enabled_plugins)
+    installed = plugins_data.get("installed", [])
+    installed_ids = {p.get("id", "") for p in installed}
+
+    if args.enabled:
+        display_enabled_plugins_details(plugins_data, project_enabled)
+    elif args.installed:
+        display_installed_plugins(plugins_data, project_enabled)
+    elif args.available:
+        available_plugins = {"available": [p for p in plugins_data.get("available", []) if p.get("pluginId") not in installed_ids]}
+        display_available_plugins(available_plugins, installed_ids)
+    else:
+        display_marketplaces_summary(marketplaces, plugins_data)
+        console.print()
+
+        display_installed_plugins(plugins_data, project_enabled)
+
+        available_not_installed = {
+            "available": [p for p in plugins_data.get("available", []) if p.get("pluginId") not in installed_ids]
+        }
+        if available_not_installed["available"]:
+            console.print("[bold blue]📋 Available Plugins[/bold blue]\n")
+            display_available_plugins(available_not_installed, installed_ids)
 
 
 if __name__ == "__main__":

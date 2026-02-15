@@ -12,9 +12,12 @@ This script:
 import argparse
 import json
 import os
+import random
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from typing import Any
 
 from rich import box
@@ -29,11 +32,28 @@ from rich.progress import (
 	TimeElapsedColumn,
 )
 from rich.rule import Rule
-from rich.status import Status
 from rich.table import Table
 from rich.text import Text
 
 from lib.utils.env import get_project_dir
+
+LOADING_MESSAGES = [
+	"🔍 正在搜索插件市场...",
+	"📦 正在加载插件列表...",
+	"🚀 正在获取最新数据...",
+	"✨ 正在整理插件信息...",
+	"🎯 正在匹配已安装插件...",
+	"🌐 正在连接市场源...",
+	"⚡ 正在加速数据传输...",
+	"🔮 正在预测你的需求...",
+	"🦄 正在召唤插件精灵...",
+	"🌟 正在收集星光数据...",
+	"🎭 正在准备精彩展示...",
+	"🎪 正在搭建插件舞台...",
+	"🔄 正在同步插件版本...",
+	"💫 正在施展更新魔法...",
+	"🎨 正在绘制更新蓝图...",
+]
 
 
 class NullConsole:
@@ -54,6 +74,85 @@ def set_quiet_mode(quiet: bool) -> None:
 		console = NullConsole()
 	else:
 		console = Console()
+
+
+def run_claude_command_with_progress(
+	args: list[str],
+	description: str = "正在执行命令",
+) -> dict[str, Any] | list[Any] | None:
+	"""Run a claude CLI command with animated progress bar.
+
+	Args:
+		args: Command arguments
+		description: Initial description for progress bar
+
+	Returns:
+		Parsed JSON data or None if command fails
+	"""
+	with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+		temp_path = f.name
+
+	result_container = {"done": False, "data": None}
+
+	def run_command():
+		try:
+			proc = subprocess.run(
+				["claude"] + args,
+				stdout=open(temp_path, "w"),
+				stderr=subprocess.PIPE,
+				text=True,
+				cwd=get_project_dir(),
+			)
+			if proc.returncode == 0:
+				with open(temp_path, "r", encoding="utf-8") as f:
+					content = f.read()
+					if content.strip():
+						result_container["data"] = json.loads(content)
+		except (subprocess.CalledProcessError, json.JSONDecodeError, OSError):
+			pass
+		finally:
+			result_container["done"] = True
+
+	thread = threading.Thread(target=run_command)
+	thread.start()
+
+	with Progress(
+		SpinnerColumn("dots", style="cyan"),
+		TextColumn("[progress.description]{task.description}"),
+		BarColumn(complete_style="cyan", finished_style="green"),
+		TextColumn("[dim]{task.fields[emoji]}[/dim]"),
+		console=console,
+		transient=True,
+	) as progress:
+		task = progress.add_task(description, total=100, emoji="🎯")
+		message_idx = 0
+
+		while not result_container["done"]:
+			if random.random() < 0.1:
+				message_idx = (message_idx + 1) % len(LOADING_MESSAGES)
+				progress.update(task, description=LOADING_MESSAGES[message_idx])
+
+			current = progress.tasks[0].completed
+			if current < 95:
+				advance = random.uniform(0.5, 2.0)
+				progress.advance(task, advance=advance)
+
+			emojis = ["✨", "🌟", "💫", "⭐", "🔥", "💎", "🎯", "🚀"]
+			progress.update(task, emoji=random.choice(emojis))
+
+			time.sleep(0.1)
+
+		progress.update(task, completed=100, description="✅ 完成!", emoji="🎉")
+
+	thread.join()
+
+	try:
+		if os.path.exists(temp_path):
+			os.unlink(temp_path)
+	except OSError:
+		pass
+
+	return result_container["data"]
 
 
 class UpdateStats:
@@ -153,43 +252,25 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 	Returns:
 		List of enabled plugin info dicts
 	"""
-	try:
-		with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-			tmpfile = f.name
+	data = run_claude_command_with_progress(
+		["plugin", "list", "--json"],
+		description="🔍 正在获取已启用插件..."
+	)
 
-		try:
-			with open(tmpfile, "w") as f:
-				result = subprocess.run(
-					["claude", "plugin", "list", "--json"],
-					stdout=f,
-					stderr=subprocess.PIPE,
-					text=True,
-					cwd=get_project_dir(),
-				)
-
-			if result.returncode != 0:
-				return []
-
-			with open(tmpfile, "r") as f:
-				plugins = json.load(f)
-
-			enabled_plugins = []
-			seen_ids = set()
-
-			for plugin in plugins:
-				if plugin.get("enabled"):
-					plugin_id = plugin.get("id", "")
-					if plugin_id and plugin_id not in seen_ids:
-						seen_ids.add(plugin_id)
-						enabled_plugins.append(plugin)
-
-			return enabled_plugins
-
-		finally:
-			os.unlink(tmpfile)
-
-	except (json.JSONDecodeError, Exception):
+	if not isinstance(data, list):
 		return []
+
+	enabled_plugins = []
+	seen_ids = set()
+
+	for plugin in data:
+		if plugin.get("enabled"):
+			plugin_id = plugin.get("id", "")
+			if plugin_id and plugin_id not in seen_ids:
+				seen_ids.add(plugin_id)
+				enabled_plugins.append(plugin)
+
+	return enabled_plugins
 
 
 def get_latest_versions_from_marketplace() -> dict[str, str]:
@@ -198,41 +279,23 @@ def get_latest_versions_from_marketplace() -> dict[str, str]:
 	Returns:
 		Dict mapping plugin_id to latest version string
 	"""
-	try:
-		with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-			tmpfile = f.name
+	data = run_claude_command_with_progress(
+		["plugin", "list", "--json", "--all"],
+		description="🌐 正在获取最新版本信息..."
+	)
 
-		try:
-			with open(tmpfile, "w") as f:
-				result = subprocess.run(
-					["claude", "plugin", "list", "--json", "--all"],
-					stdout=f,
-					stderr=subprocess.PIPE,
-					text=True,
-					cwd=get_project_dir(),
-				)
-
-			if result.returncode != 0:
-				return {}
-
-			with open(tmpfile, "r") as f:
-				all_plugins = json.load(f)
-
-			latest_versions: dict[str, str] = {}
-			for plugin in all_plugins:
-				plugin_id = plugin.get("id", "")
-				version = plugin.get("version", "")
-				if plugin_id and version:
-					if plugin_id not in latest_versions:
-						latest_versions[plugin_id] = version
-
-			return latest_versions
-
-		finally:
-			os.unlink(tmpfile)
-
-	except (json.JSONDecodeError, Exception):
+	if not isinstance(data, list):
 		return {}
+
+	latest_versions: dict[str, str] = {}
+	for plugin in data:
+		plugin_id = plugin.get("id", "")
+		version = plugin.get("version", "")
+		if plugin_id and version:
+			if plugin_id not in latest_versions:
+				latest_versions[plugin_id] = version
+
+	return latest_versions
 
 
 def run_claude_plugin_update(
@@ -265,31 +328,14 @@ def get_marketplace_list() -> list[dict[str, str]]:
 	Returns:
 		List of marketplace info dicts with keys: name, source, url, installLocation
 	"""
-	try:
-		with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-			tmpfile = f.name
+	data = run_claude_command_with_progress(
+		["plugin", "marketplace", "list", "--json"],
+		description="📦 正在获取市场列表..."
+	)
 
-		try:
-			with open(tmpfile, "w") as f:
-				result = subprocess.run(
-					["claude", "plugin", "marketplace", "list", "--json"],
-					stdout=f,
-					stderr=subprocess.PIPE,
-					text=True,
-					cwd=get_project_dir(),
-				)
-
-			if result.returncode != 0:
-				return []
-
-			with open(tmpfile, "r") as f:
-				return json.load(f)
-
-		finally:
-			os.unlink(tmpfile)
-
-	except (json.JSONDecodeError, Exception):
-		return []
+	if isinstance(data, list):
+		return data
+	return []
 
 
 def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -> bool:
@@ -452,8 +498,7 @@ def main() -> int:
 
 	stats = UpdateStats()
 
-	with Status("[bold cyan]Fetching enabled plugins...[/bold cyan]", console=console, spinner="dots"):
-		enabled_plugins = get_enabled_plugins_list()
+	enabled_plugins = get_enabled_plugins_list()
 
 	plugin_count_text = Text()
 	plugin_count_text.append("Found ")
@@ -532,11 +577,8 @@ def main() -> int:
 	if not args.no_verify and not args.dry_run:
 		console.print(Rule(title="[bold cyan]Verifying Versions[/bold cyan]", style="cyan"))
 
-		with Status("[bold cyan]Fetching latest versions...[/bold cyan]", console=console, spinner="dots"):
-			latest_versions = get_latest_versions_from_marketplace()
-
-		with Status("[bold cyan]Verifying installed versions...[/bold cyan]", console=console, spinner="dots"):
-			enabled_plugins = get_enabled_plugins_list()
+		latest_versions = get_latest_versions_from_marketplace()
+		enabled_plugins = get_enabled_plugins_list()
 
 		if verify_versions(enabled_plugins, latest_versions, stats):
 			console.print("[green]✓ All plugins are at latest versions[/green]")

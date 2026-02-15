@@ -25,6 +25,7 @@ from typing import Any, Optional
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
+from rich.progress import BarColumn, Progress, TextColumn
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
@@ -644,6 +645,52 @@ def print_report(report: PluginCheckReport) -> None:
 		console.print(table)
 	
 	console.print()
+	
+	total = len(report.results)
+	if total > 0:
+		pass_rate = report.passed / total * 100
+		warning_rate = report.warnings / total * 100
+		error_rate = report.errors / total * 100
+		
+		console.print(Rule(title="[bold]总体进度[/bold]", style="cyan"))
+		
+		progress_table = Table(show_header=False, box=box.ROUNDED, padding=(0, 2))
+		progress_table.add_column("Label", style="bold")
+		progress_table.add_column("Bar", width=50)
+		progress_table.add_column("Percent", justify="right", width=8)
+		
+		if report.passed > 0:
+			progress_table.add_row(
+				"[green]✓ 通过[/green]",
+				f"[green]{'█' * int(pass_rate / 2)}[/green][dim]{'░' * (50 - int(pass_rate / 2))}[/dim]",
+				f"[green]{pass_rate:.1f}%[/green]"
+			)
+		
+		if report.warnings > 0:
+			progress_table.add_row(
+				"[yellow]⚠ 警告[/yellow]",
+				f"[yellow]{'█' * int(warning_rate / 2)}[/yellow][dim]{'░' * (50 - int(warning_rate / 2))}[/dim]",
+				f"[yellow]{warning_rate:.1f}%[/yellow]"
+			)
+		
+		if report.errors > 0:
+			progress_table.add_row(
+				"[red]✗ 错误[/red]",
+				f"[red]{'█' * int(error_rate / 2)}[/red][dim]{'░' * (50 - int(error_rate / 2))}[/dim]",
+				f"[red]{error_rate:.1f}%[/red]"
+			)
+		
+		if report.skipped > 0:
+			skip_rate = report.skipped / total * 100
+			progress_table.add_row(
+				"[dim]○ 跳过[/dim]",
+				f"[dim]{'█' * int(skip_rate / 2)}[/dim][dim]{'░' * (50 - int(skip_rate / 2))}[/dim]",
+				f"[dim]{skip_rate:.1f}%[/dim]"
+			)
+		
+		console.print(progress_table)
+		console.print()
+	
 	summary_table = Table(show_header=False, box=box.ROUNDED, padding=(0, 2))
 	summary_table.add_column("Category", style="bold")
 	summary_table.add_column("Count", justify="right")
