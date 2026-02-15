@@ -7,9 +7,6 @@ class Env:
 	"""
 	app_name: str = os.getenv("PLUGIN_NAME", default="")
 
-	project_dir: str = os.getenv("CLAUDE_PROJECT_DIR", default=os.getcwd())
-	plugins_path: str = os.getenv("CLAUDE_PLUGIN_ROOT", default=os.getcwd())
-
 	def __init__(self):
 		pass
 
@@ -21,26 +18,6 @@ class Env:
 	def get_app_name(cls) -> str:
 		return cls.app_name
 
-	@classmethod
-	def get_project_dir(cls) -> str:
-		return cls.project_dir
-
-	@classmethod
-	def get_project_plugins_dir(cls) -> str:
-		return os.path.join(cls.get_project_dir(), ".lazygophers", "ccplugin")
-
-	@classmethod
-	def get_plugins_path(cls) -> str:
-		return cls.plugins_path
-
-	@classmethod
-	def get_user_home(cls):
-		return os.path.expanduser("~")
-
-	@classmethod
-	def get_user_plugins_dir(cls):
-		return os.path.join(cls.get_user_home(), ".lazygophers", "ccplugin")
-
 
 def set_app(name: str) -> None:
 	Env.set_app(name)
@@ -51,19 +28,15 @@ def get_app_name() -> str:
 
 
 def get_project_dir() -> str:
-	return Env.get_project_dir()
+	return os.getenv("CLAUDE_PROJECT_DIR", default=os.getcwd())
 
 
 def get_project_plugins_dir() -> str:
-	return Env.get_project_plugins_dir()
+	return os.path.join(get_project_dir(), ".lazygophers", "ccplugin")
 
 
 def get_plugins_path() -> str:
-	return Env.get_plugins_path()
-
-
-def get_user_plugins_dir() -> str:
-	return Env.get_user_plugins_dir()
+	return os.getenv("CLAUDE_PLUGIN_ROOT", default=os.getcwd())
 
 
 def get_plugins_skills_dir():
@@ -80,6 +53,18 @@ def get_plugins_hooks_dir():
 
 def get_plugins_agents_dir():
 	return os.path.join(get_plugins_path(), "agents")
+
+
+def get_user_home():
+	return os.path.expanduser("~")
+
+
+def get_user_dir():
+	return os.path.join(get_user_home(), ".config", "lazygophers", "ccplugin")
+
+
+def get_user_plugins_dir():
+	return os.path.join(get_user_dir(), get_app_name())
 
 
 if __name__ == '__main__':
