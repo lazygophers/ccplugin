@@ -10,8 +10,10 @@ This script:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 from rich.console import Console
@@ -103,30 +105,39 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 		List of enabled plugin info dicts
 	"""
 	try:
-		result = subprocess.run(
-			["claude", "plugin", "list", "--json"],
-			capture_output=True,
-			text=True,
-			check=False,
-			cwd=get_project_dir(),
-		)
+		with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+			tmpfile = f.name
 
-		if result.returncode != 0:
-			return []
+		try:
+			with open(tmpfile, "w") as f:
+				result = subprocess.run(
+					["claude", "plugin", "list", "--json"],
+					stdout=f,
+					stderr=subprocess.PIPE,
+					text=True,
+					cwd=get_project_dir(),
+				)
 
-		plugins = json.loads(result.stdout)
+			if result.returncode != 0:
+				return []
 
-		enabled_plugins = []
-		seen_ids = set()
+			with open(tmpfile, "r") as f:
+				plugins = json.load(f)
 
-		for plugin in plugins:
-			if plugin.get("enabled"):
-				plugin_id = plugin.get("id", "")
-				if plugin_id and plugin_id not in seen_ids:
-					seen_ids.add(plugin_id)
-					enabled_plugins.append(plugin)
+			enabled_plugins = []
+			seen_ids = set()
 
-		return enabled_plugins
+			for plugin in plugins:
+				if plugin.get("enabled"):
+					plugin_id = plugin.get("id", "")
+					if plugin_id and plugin_id not in seen_ids:
+						seen_ids.add(plugin_id)
+						enabled_plugins.append(plugin)
+
+			return enabled_plugins
+
+		finally:
+			os.unlink(tmpfile)
 
 	except (json.JSONDecodeError, Exception):
 		return []
@@ -163,18 +174,27 @@ def get_marketplace_list() -> list[dict[str, str]]:
 		List of marketplace info dicts with keys: name, source, url, installLocation
 	"""
 	try:
-		result = subprocess.run(
-			["claude", "plugin", "marketplace", "list", "--json"],
-			capture_output=True,
-			text=True,
-			check=False,
-			cwd=get_project_dir(),
-		)
+		with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+			tmpfile = f.name
 
-		if result.returncode != 0:
-			return []
+		try:
+			with open(tmpfile, "w") as f:
+				result = subprocess.run(
+					["claude", "plugin", "marketplace", "list", "--json"],
+					stdout=f,
+					stderr=subprocess.PIPE,
+					text=True,
+					cwd=get_project_dir(),
+				)
 
-		return json.loads(result.stdout)
+			if result.returncode != 0:
+				return []
+
+			with open(tmpfile, "r") as f:
+				return json.load(f)
+
+		finally:
+			os.unlink(tmpfile)
 
 	except (json.JSONDecodeError, Exception):
 		return []
