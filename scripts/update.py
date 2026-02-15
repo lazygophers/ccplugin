@@ -6,6 +6,7 @@ This script:
 1. Gets enabled plugins via 'claude plugin list --json'
 2. Updates marketplaces via 'claude plugin marketplace update' command
 3. Uses 'claude plugin update' command to update all enabled plugins
+4. Verifies all plugins are at latest versions after update
 """
 
 import argparse
@@ -16,7 +17,8 @@ import sys
 import tempfile
 from typing import Any
 
-from rich.console import Console
+from rich import box
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.progress import (
 	Progress,
@@ -24,8 +26,12 @@ from rich.progress import (
 	TextColumn,
 	BarColumn,
 	TaskProgressColumn,
+	TimeElapsedColumn,
 )
+from rich.rule import Rule
+from rich.status import Status
 from rich.table import Table
+from rich.text import Text
 
 from lib.utils.env import get_project_dir
 
@@ -45,7 +51,7 @@ def set_quiet_mode(quiet: bool) -> None:
 	"""Set quiet mode on or off."""
 	global console
 	if quiet:
-		console = NullConsole()  # type: ignore
+		console = NullConsole()
 	else:
 		console = Console()
 
@@ -59,34 +65,77 @@ class UpdateStats:
 		self.error_count = 0
 		self.market_updated = 0
 		self.market_failed = 0
-		self.messages: list[tuple[str, str]] = []  # (status, message)
+		self.messages: list[tuple[str, str]] = []
+		self.version_mismatches: list[tuple[str, str, str]] = []
 
 	def add_message(self, status: str, message: str) -> None:
 		"""Add a message to the log."""
 		self.messages.append((status, message))
 
+	def add_mismatch(self, plugin_id: str, expected: str, actual: str) -> None:
+		"""Add a version mismatch."""
+		self.version_mismatches.append((plugin_id, expected, actual))
+
 	def print_summary(self) -> None:
 		"""Print a summary table of the update process."""
-		table = Table(
-			title="[bold blue]Update Summary[/bold blue]",
-			show_header=True,
-			header_style="bold magenta",
+		console.print(Rule(title="[bold blue]Update Summary[/bold blue]", style="blue"))
+
+		summary_table = Table(
+			show_header=False,
+			box=box.ROUNDED,
+			padding=(0, 2),
 		)
-		table.add_column("Category", style="cyan", width=20)
-		table.add_column("Count", justify="right", style="green")
+		summary_table.add_column("Category", style="bold")
+		summary_table.add_column("Status", justify="right")
 
-		table.add_row("Marketplaces Updated", str(self.market_updated))
+		summary_table.add_row(
+			"📦 Marketplaces Updated",
+			f"[green]{self.market_updated}[/green]",
+		)
 		if self.market_failed > 0:
-			table.add_row("Marketplaces Failed", f"[red]{self.market_failed}[/red]")
-		table.add_row("Plugins Updated", str(self.updated_count))
-		table.add_row("Plugins Skipped", str(self.skipped_count))
+			summary_table.add_row(
+				"❌ Marketplaces Failed",
+				f"[red]{self.market_failed}[/red]",
+			)
+		summary_table.add_row(
+			"✅ Plugins Updated",
+			f"[green]{self.updated_count}[/green]",
+		)
+		summary_table.add_row(
+			"⏭️  Plugins Skipped",
+			f"[yellow]{self.skipped_count}[/yellow]",
+		)
 		if self.error_count > 0:
-			table.add_row("Errors", f"[red]{self.error_count}[/red]")
+			summary_table.add_row(
+				"❌ Errors",
+				f"[red bold]{self.error_count}[/red bold]",
+			)
+		if self.version_mismatches:
+			summary_table.add_row(
+				"⚠️  Version Mismatches",
+				f"[yellow bold]{len(self.version_mismatches)}[/yellow bold]",
+			)
 
-		console.print(table)
+		console.print(summary_table)
+
+		if self.version_mismatches:
+			console.print()
+			console.print(Rule(title="[bold yellow]Version Mismatches[/bold yellow]", style="yellow"))
+			mismatch_table = Table(
+				show_header=True,
+				header_style="bold yellow",
+				box=box.ROUNDED,
+			)
+			mismatch_table.add_column("Plugin", style="cyan")
+			mismatch_table.add_column("Expected", style="green")
+			mismatch_table.add_column("Actual", style="red")
+			for plugin_id, expected, actual in self.version_mismatches:
+				mismatch_table.add_row(plugin_id, expected, actual)
+			console.print(mismatch_table)
 
 		if self.messages:
-			console.print("\n[bold]Details:[/bold]")
+			console.print()
+			console.print(Rule(title="[bold]Details[/bold]", style="dim"))
 			for status, msg in self.messages:
 				if status == "error":
 					console.print(f"  [red]✗[/red] {msg}")
@@ -141,6 +190,49 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 
 	except (json.JSONDecodeError, Exception):
 		return []
+
+
+def get_latest_versions_from_marketplace() -> dict[str, str]:
+	"""Get latest available versions for all plugins from marketplace.
+
+	Returns:
+		Dict mapping plugin_id to latest version string
+	"""
+	try:
+		with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+			tmpfile = f.name
+
+		try:
+			with open(tmpfile, "w") as f:
+				result = subprocess.run(
+					["claude", "plugin", "list", "--json", "--all"],
+					stdout=f,
+					stderr=subprocess.PIPE,
+					text=True,
+					cwd=get_project_dir(),
+				)
+
+			if result.returncode != 0:
+				return {}
+
+			with open(tmpfile, "r") as f:
+				all_plugins = json.load(f)
+
+			latest_versions: dict[str, str] = {}
+			for plugin in all_plugins:
+				plugin_id = plugin.get("id", "")
+				version = plugin.get("version", "")
+				if plugin_id and version:
+					if plugin_id not in latest_versions:
+						latest_versions[plugin_id] = version
+
+			return latest_versions
+
+		finally:
+			os.unlink(tmpfile)
+
+	except (json.JSONDecodeError, Exception):
+		return {}
 
 
 def run_claude_plugin_update(
@@ -248,6 +340,65 @@ def parse_plugin_key(key: str) -> tuple[str, str] | None:
 	return plugin, market
 
 
+def create_plugin_table(plugins: list[dict[str, Any]]) -> Table:
+	"""Create a rich table for displaying plugins."""
+	table = Table(
+		title="[bold]Enabled Plugins[/bold]",
+		show_header=True,
+		header_style="bold cyan",
+		box=box.ROUNDED,
+		pad_edge=False,
+	)
+	table.add_column("Plugin", style="green", no_wrap=True)
+	table.add_column("Market", style="blue", no_wrap=True)
+	table.add_column("Scope", style="cyan", justify="center")
+	table.add_column("Version", style="yellow", justify="right")
+
+	for plugin in plugins:
+		plugin_id = plugin.get("id", "")
+		parsed = parse_plugin_key(plugin_id)
+		if parsed:
+			plugin_name, market = parsed
+			scope = plugin.get("scope", "unknown")
+			version = plugin.get("version", "-")
+			if scope == "user":
+				scope_display = "[cyan]user[/cyan]"
+			else:
+				scope_display = "[magenta]project[/magenta]"
+			table.add_row(plugin_name, market, scope_display, version)
+
+	return table
+
+
+def verify_versions(
+	enabled_plugins: list[dict[str, Any]],
+	latest_versions: dict[str, str],
+	stats: UpdateStats,
+) -> bool:
+	"""Verify all enabled plugins are at latest versions.
+
+	Args:
+		enabled_plugins: List of enabled plugin info dicts
+		latest_versions: Dict of plugin_id -> latest version
+		stats: Statistics object to track mismatches
+
+	Returns:
+		True if all versions match, False otherwise
+	"""
+	all_match = True
+
+	for plugin in enabled_plugins:
+		plugin_id = plugin.get("id", "")
+		current_version = plugin.get("version", "")
+		latest_version = latest_versions.get(plugin_id, "")
+
+		if latest_version and current_version != latest_version:
+			stats.add_mismatch(plugin_id, latest_version, current_version)
+			all_match = False
+
+	return all_match
+
+
 def main() -> int:
 	parser = argparse.ArgumentParser(
 		description="Update enabled plugins using Claude's official plugin update command"
@@ -267,6 +418,11 @@ def main() -> int:
 		action="store_true",
 		help="Skip marketplace update (faster, but may use stale data)",
 	)
+	parser.add_argument(
+		"--no-verify",
+		action="store_true",
+		help="Skip version verification after update",
+	)
 
 	args = parser.parse_args()
 
@@ -274,114 +430,119 @@ def main() -> int:
 
 	console.print(
 		Panel.fit(
-			f"[bold cyan]Plugin Update Tool (Claude Official)[/bold cyan]\n"
-			f"[dim]Project:[/dim] {get_project_dir()}",
+			"[bold cyan]🔌 Plugin Update Tool[/bold cyan]\n"
+			f"[dim]Project:[/dim] [white]{get_project_dir()}[/white]",
 			border_style="blue",
+			box=box.DOUBLE,
 		)
 	)
+	console.print()
 
 	stats = UpdateStats()
 
-	enabled_plugins = get_enabled_plugins_list()
-	console.print(f"[dim]Found {len(enabled_plugins)} enabled plugin(s)[/dim]\n")
+	with Status("[bold cyan]Fetching enabled plugins...[/bold cyan]", console=console, spinner="dots"):
+		enabled_plugins = get_enabled_plugins_list()
 
-	if not enabled_plugins:
-		console.print("[yellow]No enabled plugins found[/yellow]")
-		return 0
-
-	# Display enabled plugins
-	enabled_table = Table(
-		title="[bold]Enabled Plugins[/bold]", show_header=True, header_style="bold cyan"
-	)
-	enabled_table.add_column("Plugin", style="green")
-	enabled_table.add_column("Market", style="blue")
-	enabled_table.add_column("Scope", style="cyan")
-	enabled_table.add_column("Version", style="yellow")
-
-	for plugin in enabled_plugins:
-		plugin_id = plugin.get("id", "")
-		parsed = parse_plugin_key(plugin_id)
-		if parsed:
-			plugin_name, market = parsed
-			scope = plugin.get("scope", "unknown")
-			version = plugin.get("version", "-")
-			scope_display = f"[cyan]{scope}[/cyan]" if scope == "user" else f"[magenta]{scope}[/magenta]"
-			enabled_table.add_row(plugin_name, market, scope_display, version)
-
-	console.print(enabled_table)
+	plugin_count_text = Text()
+	plugin_count_text.append("Found ")
+	plugin_count_text.append(str(len(enabled_plugins)), style="bold green")
+	plugin_count_text.append(" enabled plugin(s)")
+	console.print(plugin_count_text)
 	console.print()
 
-	# Get installed marketplaces
+	if not enabled_plugins:
+		console.print(Panel(
+			"[yellow]No enabled plugins found[/yellow]",
+			border_style="yellow",
+			box=box.ROUNDED,
+		))
+		return 0
+
+	console.print(create_plugin_table(enabled_plugins))
+	console.print()
+
 	marketplaces = get_marketplace_list()
-	console.print(f"[dim]Found {len(marketplaces)} marketplace(s)[/dim]\n")
+	market_count_text = Text()
+	market_count_text.append("Found ")
+	market_count_text.append(str(len(marketplaces)), style="bold blue")
+	market_count_text.append(" marketplace(s)")
+	console.print(market_count_text)
+	console.print()
 
-	# Update marketplaces (optional)
 	if marketplaces and not args.no_market_update:
-		if not args.quiet:
-			console.print("[bold cyan]Updating Marketplaces[/bold cyan]")
+		console.print(Rule(title="[bold cyan]Updating Marketplaces[/bold cyan]", style="cyan"))
 		with Progress(
-			SpinnerColumn(),
+			SpinnerColumn(spinner_name="dots"),
 			TextColumn("[progress.description]{task.description}"),
-			BarColumn(),
+			BarColumn(bar_width=40, complete_style="green", finished_style="bold green"),
 			TaskProgressColumn(),
+			TimeElapsedColumn(),
 			console=console,
 			disable=args.quiet,
 		) as progress:
-			if not args.quiet:
-				task = progress.add_task(
-					"[cyan]Updating markets...[/cyan]", total=len(marketplaces)
-				)
-				for marketplace in marketplaces:
-					market_name = marketplace.get("name", "unknown")
-					progress.update(task, description=f"[cyan]Updating {market_name}...[/cyan]")
-					update_marketplace(market_name, stats, dry_run=args.dry_run)
-					progress.advance(task)
-			else:
-				for marketplace in marketplaces:
-					market_name = marketplace.get("name", "unknown")
-					update_marketplace(market_name, stats, dry_run=args.dry_run)
-		if not args.quiet:
-			console.print()
-
-	# Update plugins using Claude's official command
-	console.print("[bold cyan]Updating Plugins[/bold cyan]")
-	console.print("[dim]Using 'claude plugin update' command[/dim]\n")
-
-	if not args.quiet:
-		with Progress(
-			SpinnerColumn(),
-			TextColumn("[progress.description]{task.description}"),
-			BarColumn(),
-			TaskProgressColumn(),
-			console=console,
-			disable=args.quiet,
-		) as progress:
-			task = progress.add_task(
-				"[cyan]Updating plugins...[/cyan]", total=len(enabled_plugins)
-			)
-
-			for plugin in enabled_plugins:
-				plugin_id = plugin.get("id", "")
-				plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
-				progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
-
-				if run_claude_plugin_update(plugin_id, dry_run=args.dry_run):
-					stats.updated_count += 1
-				else:
-					stats.error_count += 1
-
+			task = progress.add_task("[cyan]Updating markets...[/cyan]", total=len(marketplaces))
+			for marketplace in marketplaces:
+				market_name = marketplace.get("name", "unknown")
+				progress.update(task, description=f"[cyan]Updating {market_name}...[/cyan]")
+				update_marketplace(market_name, stats, dry_run=args.dry_run)
 				progress.advance(task)
-	else:
+		console.print()
+
+	console.print(Rule(title="[bold cyan]Updating Plugins[/bold cyan]", style="cyan"))
+	console.print("[dim]Using 'claude plugin update' command[/dim]")
+	console.print()
+
+	with Progress(
+		SpinnerColumn(spinner_name="dots"),
+		TextColumn("[progress.description]{task.description}"),
+		BarColumn(bar_width=40, complete_style="green", finished_style="bold green"),
+		TaskProgressColumn(),
+		TimeElapsedColumn(),
+		console=console,
+		disable=args.quiet,
+	) as progress:
+		task = progress.add_task("[cyan]Updating plugins...[/cyan]", total=len(enabled_plugins))
+
 		for plugin in enabled_plugins:
 			plugin_id = plugin.get("id", "")
+			plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
+			progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
+
 			if run_claude_plugin_update(plugin_id, dry_run=args.dry_run):
 				stats.updated_count += 1
 			else:
 				stats.error_count += 1
 
-	# Print summary
+			progress.advance(task)
+
 	console.print()
+
+	if not args.no_verify and not args.dry_run:
+		console.print(Rule(title="[bold cyan]Verifying Versions[/bold cyan]", style="cyan"))
+
+		with Status("[bold cyan]Fetching latest versions...[/bold cyan]", console=console, spinner="dots"):
+			latest_versions = get_latest_versions_from_marketplace()
+
+		with Status("[bold cyan]Verifying installed versions...[/bold cyan]", console=console, spinner="dots"):
+			enabled_plugins = get_enabled_plugins_list()
+
+		if verify_versions(enabled_plugins, latest_versions, stats):
+			console.print("[green]✓ All plugins are at latest versions[/green]")
+		else:
+			console.print(f"[yellow]⚠ Found {len(stats.version_mismatches)} plugin(s) with version mismatches[/yellow]")
+
+		console.print()
+
 	stats.print_summary()
+
+	if stats.version_mismatches:
+		console.print()
+		console.print(Panel(
+			"[yellow]Some plugins may need manual update. Try running 'update' again or check the marketplace.[/yellow]",
+			border_style="yellow",
+			box=box.ROUNDED,
+		))
+		return 1
 
 	return 0 if stats.error_count == 0 else 1
 

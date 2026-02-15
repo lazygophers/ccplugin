@@ -3,10 +3,9 @@
 
 This script:
 1. Scans ~/.claude/plugins/cache/ for plugin versions
-2. Reads installed_plugins.json to identify currently active versions
-3. Keeps only the latest version of each plugin
-4. Protects currently installed plugins from deletion
-5. Shows metadata (install time, last updated) for each version
+2. Reads installed_plugins.json to identify currently installed versions
+3. Only cleans versions that are NOT in installed_plugins.json
+4. Shows metadata (install time, last updated) for each version
 
 Directory structure:
 ~/.claude/plugins/cache/
@@ -25,10 +24,12 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
+from rich.rule import Rule
 from rich.table import Table
 from rich.tree import Tree
 
@@ -40,11 +41,11 @@ def get_cache_dir() -> Path:
 	return Path.home() / '.claude' / 'plugins' / 'cache'
 
 
-def get_installed_plugins() -> Dict[str, str]:
+def get_installed_plugins() -> Dict[str, Set[str]]:
 	"""Read installed plugins from installed_plugins.json.
 
-	Returns a dict mapping plugin_key to version.
-	For example: {"ccplugin-market/git": "0.0.121", ...}
+	Returns a dict mapping plugin_key to set of installed versions.
+	For example: {"ccplugin-market/git": {"0.0.121", "0.0.122"}, ...}
 	"""
 	installed_path = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
 
@@ -57,16 +58,13 @@ def get_installed_plugins() -> Dict[str, str]:
 	except (json.JSONDecodeError, IOError):
 		return {}
 
-	installed = {}
+	installed: Dict[str, Set[str]] = {}
 
 	for plugin_key, installations in data.get('plugins', {}).items():
-		# installations is a list of install records
 		for install in installations:
 			install_path = Path(install.get('installPath', ''))
 			version = install.get('version', '')
 
-			# Extract market/plugin from install path
-			# Path format: ~/.claude/plugins/cache/<market>/<plugin>/<version>/
 			parts = install_path.parts
 			try:
 				cache_idx = parts.index('cache')
@@ -75,7 +73,9 @@ def get_installed_plugins() -> Dict[str, str]:
 					plugin = parts[cache_idx + 2]
 					key = f"{market}/{plugin}"
 					if version:
-						installed[key] = version
+						if key not in installed:
+							installed[key] = set()
+						installed[key].add(version)
 			except (ValueError, IndexError):
 				continue
 
@@ -93,7 +93,6 @@ def get_plugin_metadata(version_dir: Path) -> Dict[str, Optional[str]]:
 		'commit_sha': None,
 	}
 
-	# Try to read from .git-commit-sha file
 	commit_sha_file = version_dir / '.git-commit-sha'
 	if commit_sha_file.exists():
 		try:
@@ -101,7 +100,6 @@ def get_plugin_metadata(version_dir: Path) -> Dict[str, Optional[str]]:
 		except (IOError, OSError):
 			pass
 
-	# Get directory modification time as last updated
 	try:
 		stat = version_dir.stat()
 		mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
@@ -109,7 +107,6 @@ def get_plugin_metadata(version_dir: Path) -> Dict[str, Optional[str]]:
 	except (OSError, ValueError):
 		pass
 
-	# Try to find installed_plugins.json entry for this version
 	installed_path = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
 	if installed_path.exists():
 		try:
@@ -140,7 +137,6 @@ def format_timestamp(timestamp_str: Optional[str]) -> str:
 
 	try:
 		dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-		# Format as relative time if recent, else as date
 		now = datetime.now(timezone.utc)
 		delta = now - dt
 
@@ -191,19 +187,16 @@ def get_plugin_versions(cache_dir: Path) -> Dict[str, List[Path]]:
 	if not cache_dir.exists():
 		return plugins
 
-	# Iterate through market directories
 	for market_dir in cache_dir.iterdir():
 		if not market_dir.is_dir():
 			continue
 
-		# Iterate through plugin directories within each market
 		for plugin_dir in market_dir.iterdir():
 			if not plugin_dir.is_dir():
 				continue
 
 			plugin_key = f"{market_dir.name}/{plugin_dir.name}"
 
-			# Iterate through version directories
 			version_dirs = []
 			for version_dir in plugin_dir.iterdir():
 				if version_dir.is_dir():
@@ -236,19 +229,19 @@ def format_size(size_bytes: int) -> str:
 	return f"{size_bytes:.1f}TB"
 
 
-def clean_old_versions(
+def clean_orphaned_versions(
 	cache_dir: Path,
-	installed_plugins: Dict[str, str],
+	installed_plugins: Dict[str, Set[str]],
 	dry_run: bool = False
 ) -> Tuple[int, int, List[Tuple[str, str, str, bool]]]:
-	"""Clean old plugin versions, keeping only the latest.
+	"""Clean versions that are NOT in installed_plugins.json.
 
-	For each plugin in each market, deletes all versions except the newest.
-	Protects currently installed versions from deletion.
+	Only deletes versions that are not recorded as installed.
+	All versions in installed_plugins.json are protected.
 
 	Args:
 		cache_dir: Path to the cache directory
-		installed_plugins: Dict of plugin_key -> currently installed version
+		installed_plugins: Dict of plugin_key -> set of installed versions
 		dry_run: If True, only show what would be deleted without actually deleting
 
 	Returns:
@@ -262,28 +255,12 @@ def clean_old_versions(
 	cleaned_info: List[Tuple[str, str, str, bool]] = []
 
 	for plugin_key, versions in plugins.items():
-		if len(versions) <= 1:
-			continue
+		installed_versions = installed_plugins.get(plugin_key, set())
 
-		# Sort by version (descending) to find the latest
-		sorted_versions = sorted(
-			versions,
-			key=lambda p: parse_version(p.name),
-			reverse=True
-		)
-
-		installed_version = installed_plugins.get(plugin_key)
-
-		# Keep the first (latest), delete the rest
-		# But skip if the version is currently installed
-		to_delete = sorted_versions[1:]
-
-		for version_dir in to_delete:
+		for version_dir in versions:
 			version = version_dir.name
 
-			# Skip if this version is currently installed
-			if installed_version and version == installed_version:
-				cleaned_info.append((plugin_key, version, "0B (protected)", True))
+			if version in installed_versions:
 				continue
 
 			try:
@@ -291,12 +268,10 @@ def clean_old_versions(
 				size_str = format_size(size)
 
 				if dry_run:
-					# In dry-run mode, just count and report
 					deleted_count += 1
 					freed_space += size
 					cleaned_info.append((plugin_key, version, size_str, False))
 				else:
-					# Actually delete the directory
 					shutil.rmtree(version_dir)
 					deleted_count += 1
 					freed_space += size
@@ -316,9 +291,8 @@ def display_cleanup_tree(
 		return
 
 	action_label = "[yellow]Would delete[/yellow]" if dry_run else "[red]Deleted[/red]"
-	root = Tree(f"{action_label} old plugin versions:")
+	root = Tree(f"{action_label} orphaned plugin versions:")
 
-	# Group by plugin key
 	grouped: Dict[str, List[Tuple[str, str, bool]]] = {}
 	for plugin_key, version, size, is_protected in cleaned_info:
 		if plugin_key not in grouped:
@@ -328,23 +302,21 @@ def display_cleanup_tree(
 	for plugin_key, versions in sorted(grouped.items()):
 		branch = root.add(f"[cyan]{plugin_key}[/cyan]")
 		for version, size, is_protected in sorted(versions):
-			if is_protected:
-				branch.add(f"  [green]✓[/green] [dim]{version}[/dim] [yellow](protected, {size})[/yellow]")
-			else:
-				branch.add(f"  [dim]{version}[/dim] [yellow]({size})[/yellow]")
+			branch.add(f"  [dim]{version}[/dim] [yellow]({size})[/yellow]")
 
 	console.print(root)
 
 
 def display_plugins_table(
 	plugins: Dict[str, List[Path]],
-	installed_plugins: Dict[str, str]
+	installed_plugins: Dict[str, Set[str]]
 ) -> None:
 	"""Display detailed table of all plugins with metadata."""
 	status_table = Table(
 		title="[bold]Plugin Versions Details[/bold]",
 		show_header=True,
-		header_style="bold cyan"
+		header_style="bold cyan",
+		box=box.ROUNDED,
 	)
 	status_table.add_column("Market/Plugin", style="cyan", width=30)
 	status_table.add_column("Version", style="green", width=12)
@@ -354,7 +326,7 @@ def display_plugins_table(
 
 	total_plugins = 0
 	total_versions = 0
-	outdated_plugins = 0
+	orphaned_count = 0
 	protected_count = 0
 
 	for plugin_key, versions in sorted(plugins.items()):
@@ -363,41 +335,29 @@ def display_plugins_table(
 			key=lambda p: parse_version(p.name),
 			reverse=True
 		)
-		latest = sorted_versions[0].name
-		installed_version = installed_plugins.get(plugin_key)
+		installed_versions = installed_plugins.get(plugin_key, set())
 		version_count = len(versions)
 
 		total_plugins += 1
 		total_versions += version_count
 
-		# Mark if multiple versions exist
-		if version_count > 1:
-			outdated_plugins += 1
-
-		# Show each version
 		for i, version_dir in enumerate(sorted_versions):
 			version = version_dir.name
-			is_latest = version == latest
-			is_installed = installed_version and version == installed_version
+			is_installed = version in installed_versions
 
-			# Calculate size
 			size = calculate_dir_size(version_dir)
 			size_str = format_size(size)
 
-			# Get metadata
 			metadata = get_plugin_metadata(version_dir)
 			last_updated = format_timestamp(metadata.get('last_updated'))
 
-			# Determine status
 			if is_installed:
 				status = "[green]✓ Installed[/green]"
 				protected_count += 1
-			elif is_latest and not is_installed:
-				status = "[cyan]Latest[/cyan]"
 			else:
-				status = "[red]× Old[/red]"
+				status = "[red]× Orphaned[/red]"
+				orphaned_count += 1
 
-			# Add row
 			market_plugin = plugin_key if i == 0 else ""
 			ver_str = version
 			status_table.add_row(market_plugin, ver_str, status, size_str, last_updated)
@@ -405,13 +365,13 @@ def display_plugins_table(
 	console.print(status_table)
 	console.print(
 		f"[dim]Total: {total_plugins} plugins, {total_versions} versions, "
-		f"{outdated_plugins} with old versions, {protected_count} protected[/dim]\n"
+		f"{orphaned_count} orphaned, {protected_count} protected[/dim]\n"
 	)
 
 
 def main():
 	parser = argparse.ArgumentParser(
-		description="Clean old plugin versions from cache"
+		description="Clean orphaned plugin versions from cache (versions not in installed_plugins.json)"
 	)
 	parser.add_argument(
 		'--dry-run', '-d',
@@ -425,58 +385,85 @@ def main():
 	cache_dir = get_cache_dir()
 	installed_plugins = get_installed_plugins()
 
-	# Print header
+	total_installed = sum(len(versions) for versions in installed_plugins.values())
+
 	mode = "[yellow]DRY-RUN[/yellow]" if dry_run else "[bold red]CLEAN[/bold red]"
 	console.print(Panel.fit(
-		f"[bold cyan]Plugin Cache Cleaner[/bold cyan]\n"
+		f"[bold cyan]🗑️  Plugin Cache Cleaner[/bold cyan]\n"
 		f"[dim]Mode:[/dim] {mode}\n"
 		f"[dim]Cache:[/dim] {cache_dir}\n"
-		f"[dim]Protected:[/dim] {len(installed_plugins)} installed plugin(s)",
-		border_style="blue"
+		f"[dim]Protected:[/dim] {total_installed} installed version(s)",
+		border_style="blue",
+		box=box.DOUBLE,
 	))
+	console.print()
 
 	if not cache_dir.exists():
-		console.print("[yellow]Cache directory not found. Nothing to clean.[/yellow]")
+		console.print(Panel(
+			"[yellow]Cache directory not found. Nothing to clean.[/yellow]",
+			border_style="yellow",
+			box=box.ROUNDED,
+		))
 		return 0
 
-	# Scan cache directory
 	plugins = get_plugin_versions(cache_dir)
 
 	if not plugins:
-		console.print("[yellow]No plugins found in cache.[/yellow]")
+		console.print(Panel(
+			"[yellow]No plugins found in cache.[/yellow]",
+			border_style="yellow",
+			box=box.ROUNDED,
+		))
 		return 0
 
-	# Display detailed plugin table
 	display_plugins_table(plugins, installed_plugins)
 
-	# Count plugins with old versions
-	outdated_plugins = sum(1 for versions in plugins.values() if len(versions) > 1)
+	orphaned_count = 0
+	for plugin_key, versions in plugins.items():
+		installed_versions = installed_plugins.get(plugin_key, set())
+		for version_dir in versions:
+			if version_dir.name not in installed_versions:
+				orphaned_count += 1
 
-	if outdated_plugins == 0:
-		console.print("[green]✓ No old plugin versions found. Cache is clean.[/green]")
+	if orphaned_count == 0:
+		console.print(Panel(
+			"[green]✓ No orphaned plugin versions found. All versions are installed.[/green]",
+			border_style="green",
+			box=box.ROUNDED,
+		))
 		return 0
 
-	# Perform cleanup
-	deleted_count, freed_space, cleaned_info = clean_old_versions(
+	deleted_count, freed_space, cleaned_info = clean_orphaned_versions(
 		cache_dir,
 		installed_plugins,
 		dry_run=dry_run
 	)
 
-	# Display cleanup tree
 	display_cleanup_tree(cleaned_info, dry_run)
 
-	# Display summary table
-	summary_table = Table(title="[bold blue]Cleanup Summary[/bold blue]", show_header=True)
-	summary_table.add_column("Metric", style="cyan", width=25)
-	summary_table.add_column("Value", justify="right", style="green")
+	console.print()
+	console.print(Rule(title="[bold blue]Cleanup Summary[/bold blue]", style="blue"))
 
-	# Count protected versions
-	protected_count = sum(1 for _, _, _, is_protected in cleaned_info if is_protected)
-	summary_table.add_row("Versions processed", str(deleted_count + protected_count))
-	summary_table.add_row("Versions protected (installed)", str(protected_count))
-	summary_table.add_row("Versions to delete/cleaned", str(deleted_count))
-	summary_table.add_row("Space freed", f"[bold green]{format_size(freed_space)}[/bold green]")
+	summary_table = Table(
+		show_header=False,
+		box=box.ROUNDED,
+		padding=(0, 2),
+	)
+	summary_table.add_column("Metric", style="bold")
+	summary_table.add_column("Value", justify="right")
+
+	summary_table.add_row(
+		"📦 Versions processed",
+		str(len(cleaned_info)),
+	)
+	summary_table.add_row(
+		"🗑️  Orphaned versions cleaned",
+		f"[red]{deleted_count}[/red]",
+	)
+	summary_table.add_row(
+		"💾 Space freed",
+		f"[bold green]{format_size(freed_space)}[/bold green]",
+	)
 
 	console.print(summary_table)
 
