@@ -1,16 +1,20 @@
 [project]
 name = "lib"
 version = "0.0.127"
-description = "Shared library for ccplugin - logging and utilities"
+description = "Shared library for ccplugin - logging, utilities and database ORM"
 requires-python = ">=3.11"
 dependencies = [ "click>=8.3.1", "pydantic>=2.12.5", "rich>=13.0.0", "pyyaml>=6.0",]
+
+[project.optional-dependencies]
+dev = [ "pytest>=7.0.0", "pytest-asyncio>=0.21.0",]
+mysql = [ "aiomysql>=0.2.0",]
+sqlite = [ "aiosqlite>=0.19.0",]
+postgresql = [ "asyncpg>=0.29.0",]
+all = [ "aiomysql>=0.2.0", "aiosqlite>=0.19.0", "asyncpg>=0.29.0",]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
-
-[project.optional-dependencies]
-dev = [ "pytest>=7.0.0",]
 
 [tool.setuptools.packages.find]
 where = [ "..",]
