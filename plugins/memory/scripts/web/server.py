@@ -39,13 +39,14 @@ def find_available_port() -> int:
     raise RuntimeError("无法找到可用端口 (尝试范围: 8000-9000)")
 
 
-async def run_web_server(port: Optional[int] = None, open_browser: bool = True) -> None:
+async def run_web_server(port: Optional[int] = None, open_browser: bool = True, reload: bool = False) -> None:
     """
     启动 Web 服务器
     
     Args:
         port: 端口号，如不指定则自动查找可用端口
         open_browser: 是否自动打开浏览器
+        reload: 是否启用热重载
     """
     import uvicorn
     
@@ -54,25 +55,39 @@ async def run_web_server(port: Optional[int] = None, open_browser: bool = True) 
     if port is None:
         port = find_available_port()
     
-    app = await create_app()
-    
     url = f"http://127.0.0.1:{port}"
     logging.info(f"Web 服务器启动: {url}")
+    
+    if reload:
+        logging.info("热重载已启用 - 文件变更将自动重启服务器")
     
     if open_browser:
         webbrowser.open(url)
     
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    if reload:
+        config = uvicorn.Config(
+            "web.api:create_app",
+            host="127.0.0.1",
+            port=port,
+            log_level="warning",
+            reload=True,
+            factory=True,
+        )
+    else:
+        app = create_app()
+        config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    
     server = uvicorn.Server(config)
     await server.serve()
 
 
-def start_web(port: Optional[int] = None, open_browser: bool = True) -> None:
+def start_web(port: Optional[int] = None, open_browser: bool = True, reload: bool = False) -> None:
     """
     启动 Web 服务器（同步入口）
     
     Args:
         port: 端口号，如不指定则自动查找可用端口
         open_browser: 是否自动打开浏览器
+        reload: 是否启用热重载
     """
-    asyncio.run(run_web_server(port=port, open_browser=open_browser))
+    asyncio.run(run_web_server(port=port, open_browser=open_browser, reload=reload))

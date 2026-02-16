@@ -5,6 +5,7 @@ REST API 模块
 """
 
 import json
+import os
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
@@ -25,7 +26,7 @@ from memory import (
     get_stats,
 )
 
-from .template import HTML_TEMPLATE
+from .template import get_template_path
 
 
 class MemoryCreate(BaseModel):
@@ -43,7 +44,7 @@ class MemoryUpdate(BaseModel):
     disclosure: Optional[str] = None
 
 
-async def create_app() -> FastAPI:
+def create_app() -> FastAPI:
     """
     创建 FastAPI 应用
     
@@ -62,7 +63,9 @@ async def create_app() -> FastAPI:
     
     @app.get("/", response_class=HTMLResponse)
     async def index():
-        return HTML_TEMPLATE
+        template_path = os.path.join(get_template_path(), "index.html")
+        with open(template_path, "r", encoding="utf-8") as f:
+            return f.read()
     
     @app.get("/api/memories")
     async def api_list_memories(
@@ -89,8 +92,8 @@ async def create_app() -> FastAPI:
                 "disclosure": m.disclosure,
                 "status": m.status,
                 "access_count": m.access_count,
-                "created_at": m.created_at.isoformat() if m.created_at else None,
-                "updated_at": m.updated_at.isoformat() if m.updated_at else None,
+                "created_at": m.created_at,
+                "updated_at": m.updated_at,
             }
             for m in memories
         ]
@@ -107,9 +110,9 @@ async def create_app() -> FastAPI:
             "disclosure": memory.disclosure,
             "status": memory.status,
             "access_count": memory.access_count,
-            "last_accessed_at": memory.last_accessed_at.isoformat() if memory.last_accessed_at else None,
-            "created_at": memory.created_at.isoformat() if memory.created_at else None,
-            "updated_at": memory.updated_at.isoformat() if memory.updated_at else None,
+            "last_accessed_at": memory.last_accessed_at,
+            "created_at": memory.created_at,
+            "updated_at": memory.updated_at,
             "metadata": json.loads(memory.metadata or "{}"),
         }
     
@@ -174,7 +177,7 @@ async def create_app() -> FastAPI:
             {
                 "version": v.version,
                 "content": v.content,
-                "changed_at": v.changed_at.isoformat() if v.changed_at else None,
+                "changed_at": v.changed_at,
                 "change_reason": v.change_reason,
                 "changed_by": v.changed_by,
             }

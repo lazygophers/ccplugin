@@ -165,7 +165,7 @@
         
         .uri { font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; color: var(--primary); }
         
-        .priority-badge, .status-badge {
+        .priority-badge, .status-badge, .type-badge {
             display: inline-block;
             padding: 2px 8px;
             border-radius: 12px;
@@ -179,6 +179,17 @@
         .status-active { background: #dcfce7; color: #166534; }
         .status-deprecated { background: #fef3c7; color: #92400e; }
         .status-archived { background: #f1f5f9; color: #475569; }
+        
+        /* 记忆类型标签样式 */
+        .type-project { background: #dbeafe; color: #1e40af; }
+        .type-workflow { background: #fce7f3; color: #9d174d; }
+        .type-user { background: #d1fae5; color: #065f46; }
+        .type-task { background: #fef3c7; color: #92400e; }
+        .type-system { background: #e0e7ff; color: #3730a3; }
+        .type-session { background: #f3e8ff; color: #6b21a8; }
+        .type-file { background: #ecfdf5; color: #047857; }
+        .type-error { background: #fee2e2; color: #991b1b; }
+        .type-other { background: #f1f5f9; color: #475569; }
         
         .content-preview {
             max-width: 400px;
@@ -372,7 +383,7 @@
                 </div>
                 <div class="card-body">
                     <table>
-                        <thead><tr><th>URI</th><th>内容预览</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
+                        <thead><tr><th>URI</th><th>类型</th><th>内容预览</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
                         <tbody id="recent-memories"></tbody>
                     </table>
                 </div>
@@ -388,6 +399,17 @@
                 <div class="card-body">
                     <div class="search-box">
                         <input type="text" id="filter-uri" placeholder="按 URI 前缀过滤..." onkeyup="filterMemories()">
+                        <select id="filter-type" onchange="filterMemories()">
+                            <option value="">所有类型</option>
+                            <option value="project">项目</option>
+                            <option value="workflow">工作流</option>
+                            <option value="user">用户</option>
+                            <option value="task">任务</option>
+                            <option value="system">系统</option>
+                            <option value="session">会话</option>
+                            <option value="file">文件</option>
+                            <option value="error">错误</option>
+                        </select>
                         <select id="filter-status" onchange="filterMemories()">
                             <option value="">所有状态</option>
                             <option value="active">活跃</option>
@@ -402,7 +424,7 @@
                         </select>
                     </div>
                     <table>
-                        <thead><tr><th>URI</th><th>内容预览</th><th>优先级</th><th>状态</th><th>访问次数</th><th>更新时间</th><th>操作</th></tr></thead>
+                        <thead><tr><th>URI</th><th>类型</th><th>内容预览</th><th>优先级</th><th>状态</th><th>访问次数</th><th>更新时间</th><th>操作</th></tr></thead>
                         <tbody id="memories-table"></tbody>
                     </table>
                 </div>
@@ -538,10 +560,12 @@
         
         async function filterMemories() {
             const uriPrefix = document.getElementById('filter-uri').value;
+            const type = document.getElementById('filter-type').value;
             const status = document.getElementById('filter-status').value;
             const priorityRange = document.getElementById('filter-priority').value;
             let url = '/memories?limit=100';
             if (uriPrefix) url += '&uri_prefix=' + encodeURIComponent(uriPrefix + '://');
+            if (type) url += '&uri_prefix=' + encodeURIComponent(type + '://');
             if (status) url += '&status=' + status;
             if (priorityRange) { const [min, max] = priorityRange.split('-'); url += '&priority_min=' + min + '&priority_max=' + max; }
             try { const memories = await api('GET', url); renderMemoriesTable(memories, 'memories-table'); }
@@ -566,19 +590,22 @@
         
         function renderMemoriesTable(memories, tableId, simple = false) {
             const tbody = document.getElementById(tableId);
-            if (memories.length === 0) { tbody.innerHTML = '<tr><td colspan="' + (simple ? 5 : 7) + '" class="empty-state">暂无记忆</td></tr>'; return; }
-            tbody.innerHTML = memories.map(m => 
-                '<tr><td><span class="uri">' + escapeHtml(m.uri) + '</span></td>' +
-                '<td><div class="content-preview">' + escapeHtml(m.content) + '</div></td>' +
-                '<td><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></td>' +
-                '<td><span class="status-badge status-' + m.status + '">' + m.status + '</span></td>' +
-                (simple ? '' : '<td>' + m.access_count + '</td><td>' + formatDate(m.updated_at) + '</td>') +
-                '<td class="actions">' +
-                `<button class="icon-btn" onclick="showDetail('${escapeHtml(m.uri)}')" title="查看">👁</button>` +
-                `<button class="icon-btn" onclick="openEditModal('${escapeHtml(m.uri)}')" title="编辑">✏</button>` +
-                `<button class="icon-btn danger" onclick="deleteMemory('${escapeHtml(m.uri)}')" title="删除">🗑</button>` +
-                '</td></tr>'
-            ).join('');
+            const colCount = simple ? 6 : 8;
+            if (memories.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="empty-state">暂无记忆</td></tr>'; return; }
+            tbody.innerHTML = memories.map(m => {
+                const type = getMemoryType(m.uri);
+                return '<tr><td><span class="uri">' + escapeHtml(m.uri) + '</span></td>' +
+                    '<td><span class="type-badge type-' + type + '">' + getTypeName(type) + '</span></td>' +
+                    '<td><div class="content-preview">' + escapeHtml(m.content) + '</div></td>' +
+                    '<td><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></td>' +
+                    '<td><span class="status-badge status-' + m.status + '">' + m.status + '</span></td>' +
+                    (simple ? '' : '<td>' + m.access_count + '</td><td>' + formatDate(m.updated_at) + '</td>') +
+                    '<td class="actions">' +
+                    `<button class="icon-btn" onclick="showDetail('${escapeHtml(m.uri)}')" title="查看">👁</button>` +
+                    `<button class="icon-btn" onclick="openEditModal('${escapeHtml(m.uri)}')" title="编辑">✏</button>` +
+                    `<button class="icon-btn danger" onclick="deleteMemory('${escapeHtml(m.uri)}')" title="删除">🗑</button>` +
+                    '</td></tr>';
+            }).join('');
         }
         
         async function showDetail(uri) {
@@ -586,8 +613,10 @@
                 const memory = await api('GET', '/memories/' + encodeURIComponent(uri));
                 const versions = await api('GET', '/versions/' + encodeURIComponent(uri));
                 const relations = await api('GET', '/relations/' + encodeURIComponent(uri));
+                const type = getMemoryType(memory.uri);
                 document.getElementById('detail-info').innerHTML = 
                     '<div class="detail-label">URI</div><div>' + escapeHtml(memory.uri) + '</div>' +
+                    '<div class="detail-label">类型</div><div><span class="type-badge type-' + type + '">' + getTypeName(type) + '</span></div>' +
                     '<div class="detail-label">状态</div><div><span class="status-badge status-' + memory.status + '">' + memory.status + '</span></div>' +
                     '<div class="detail-label">优先级</div><div><span class="priority-badge priority-' + memory.priority + '">P' + memory.priority + '</span></div>' +
                     '<div class="detail-label">访问次数</div><div>' + memory.access_count + '</div>' +
@@ -662,6 +691,32 @@
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         function formatDate(dateStr) { if (!dateStr) return '-'; return new Date(dateStr).toLocaleString('zh-CN'); }
         function showToast(message, type = 'success') { const toast = document.createElement('div'); toast.className = 'toast ' + type; toast.textContent = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+        
+        // 获取记忆类型
+        function getMemoryType(uri) {
+            if (!uri) return 'other';
+            const match = uri.match(/^([a-z]+):\/\//);
+            if (!match) return 'other';
+            const type = match[1];
+            const validTypes = ['project', 'workflow', 'user', 'task', 'system', 'session', 'file', 'error'];
+            return validTypes.includes(type) ? type : 'other';
+        }
+        
+        // 获取记忆类型显示名称
+        function getTypeName(type) {
+            const names = {
+                'project': '项目',
+                'workflow': '工作流',
+                'user': '用户',
+                'task': '任务',
+                'system': '系统',
+                'session': '会话',
+                'file': '文件',
+                'error': '错误',
+                'other': '其他'
+            };
+            return names[type] || type;
+        }
         
         // 初始化
         initTheme();
