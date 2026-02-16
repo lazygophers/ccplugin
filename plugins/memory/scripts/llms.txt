@@ -1,0 +1,97 @@
+# scripts
+
+> 智能记忆插件脚本模块
+
+## 模块说明
+
+### main.py
+
+CLI 入口，使用 Click 框架提供命令行接口。
+
+**基础命令**:
+- `read <uri>` - 读取记忆
+- `create <uri> <content>` - 创建记忆
+- `update <uri>` - 更新记忆
+- `delete <uri>` - 删除记忆
+- `search <query>` - 搜索记忆
+- `list` - 列出记忆
+
+**生命周期命令**:
+- `priority <uri> <level>` - 设置优先级
+- `deprecate <uri>` - 废弃记忆
+- `archive <uri>` - 归档记忆
+- `restore <uri>` - 恢复记忆
+
+**版本控制命令**:
+- `versions <uri>` - 查看版本历史
+- `rollback <uri> <version>` - 回滚版本
+- `diff <uri> <v1> <v2>` - 版本对比
+
+**关系命令**:
+- `relate <source> <target> <type>` - 创建关系
+- `relations <uri>` - 查看关系
+
+**管理命令**:
+- `export <file>` - 导出记忆
+- `import <file>` - 导入记忆
+- `clean` - 清理记忆
+- `stats` - 统计信息
+- `preload <uri>` - 预加载记忆
+
+**Hook 命令**:
+- `hooks` - Hook 模式入口
+
+### hooks.py
+
+Hook 处理模块，实现各类 Hook 事件的处理逻辑。
+
+**事件处理器**:
+- `handle_session_start` - 会话开始时加载核心记忆
+- `handle_session_end` - 会话结束时保存记忆
+- `handle_pre_tool_use` - 工具调用前检索相关记忆
+- `handle_post_tool_use` - 工具调用后记录执行结果
+- `handle_post_tool_use_failure` - 工具失败时记录错误信息
+- `handle_stop` - 停止时保存会话状态
+
+### memory.py
+
+记忆管理核心模块，使用 lib/db ORM 管理记忆存储。
+
+**模型定义**:
+- `Memory` - 记忆模型
+- `MemoryPath` - 记忆路径模型
+- `MemoryVersion` - 记忆版本模型
+- `MemoryRelation` - 记忆关系模型
+- `Session` - 会话记录模型
+- `ErrorSolution` - 错误解决方案模型
+
+**枚举类型**:
+- `MemoryStatus` - 记忆状态 (active/deprecated/archived/deleted)
+- `RelationType` - 关系类型 (relates_to/depends_on/contradicts/evolves_from)
+
+**核心函数**:
+- `init_db()` / `close_db()` - 数据库初始化/关闭
+- `create_memory()` / `get_memory()` / `update_memory()` / `delete_memory()` - CRUD
+- `search_memories()` / `list_memories()` - 搜索和列表
+- `get_memories_by_priority()` - 按优先级获取
+- `set_priority()` / `deprecate_memory()` / `archive_memory()` / `restore_memory()` - 生命周期
+- `get_versions()` / `get_version()` / `rollback_to_version()` / `diff_versions()` - 版本控制
+- `add_relation()` / `get_relations()` / `remove_relation()` - 关系管理
+- `export_memories()` / `import_memories()` - 导入导出
+- `get_stats()` / `clean_memories()` - 统计和清理
+- `create_session()` / `end_session()` - 会话管理
+- `record_error_solution()` / `find_error_solution()` / `mark_solution_success()` - 错误解决方案
+
+## 数据库
+
+数据库文件位于 `{project_root}/lazygophers/ccplugin/memory/memory.db`，使用 SQLite 存储。
+
+此目录遵循项目约定，所有插件数据统一存储在 `lazygophers/ccplugin/<plugin-name>/` 目录下。
+
+表结构通过 lib/db ORM 自动创建：
+- `memories` - 记忆表
+- `memory_paths` - 记忆路径关联表
+- `memory_versions` - 记忆版本表
+- `memory_relations` - 记忆关系表
+- `sessions` - 会话记录表
+- `error_solutions` - 错误解决方案表

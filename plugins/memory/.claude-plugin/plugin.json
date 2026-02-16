@@ -1,0 +1,84 @@
+{
+  "name": "memory",
+  "version": "0.0.1",
+  "description": "智能记忆插件 - 提供 URI 寻址的记忆存储、自动 Hooks 集成和跨会话持久化。支持项目、工作流、用户、任务等多维度记忆管理",
+  "author": {
+    "name": "Claude Code",
+    "email": "admin@example.com",
+    "url": "https://github.com/anthropics/claude-code"
+  },
+  "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/memory",
+  "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/memory",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "persistence",
+    "context",
+    "uri",
+    "sqlite",
+    "hooks"
+  ],
+  "skills": "./skills/",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=memory uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=memory uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=memory uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=memory uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=memory uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "PLUGIN_NAME=memory uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,90 @@
+# memory
+
+> 智能记忆插件 - 提供 URI 寻址的记忆存储、自动 Hooks 集成和跨会话持久化。支持项目、工作流、用户、任务等多维度记忆管理
+
+## 概述
+
+智能记忆插件提供基于 URI 寻址的记忆存储系统，通过 Hooks 自动记录和管理上下文信息，实现跨会话的知识持久化。
+
+## 目录结构
+
+```
+memory/
+├── .claude-plugin/
+│   └── plugin.json
+├── docs/
+│   ├── 概述.md
+│   ├── 架构设计.md
+│   ├── Hooks系统设计.md
+│   ├── 记忆系统设计.md
+│   ├── 数据库设计.md
+│   ├── MCP工具设计.md
+│   ├── CLI命令设计.md
+│   ├── 高级特性设计.md
+│   └── 部署指南.md
+├── scripts/
+│   ├── __init__.py
+│   ├── hooks.py
+│   ├── main.py
+│   ├── memory.py
+│   └── llms.txt
+├── skills/
+│   └── memory/
+│       └── SKILL.md
+├── README.md
+├── pyproject.toml
+└── uv.lock
+```
+
+## URI 寻址
+
+记忆系统支持以下 URI 前缀：
+
+- `project://` - 项目级记忆
+- `workflow://` - 工作流记忆
+- `user://` - 用户偏好记忆
+- `task://` - 任务上下文记忆
+- `system://` - 系统配置记忆
+- `session://` - 会话记忆
+- `file://` - 文件相关记忆
+- `error://` - 错误记录
+
+## Hooks 事件
+
+插件响应以下 Hooks 事件：
+
+- `SessionStart` - 会话开始时加载相关记忆
+- `SessionEnd` - 会话结束时保存记忆
+- `PreToolUse` - 工具调用前检索相关记忆
+- `PostToolUse` - 工具调用后记录执行结果
+- `PostToolUseFailure` - 工具失败时记录错误信息
+- `Stop` - 停止时保存会话状态
+
+## 数据存储
+
+数据库文件位于 `{project_root}/lazygophers/ccplugin/memory/memory.db`，使用 SQLite 存储。
+
+此目录遵循项目约定，所有插件数据统一存储在 `lazygophers/ccplugin/<plugin-name>/` 目录下。
+
+表结构通过 lib/db ORM 自动创建：
+- `memories` - 记忆表
+- `memory_paths` - 记忆路径关联表
+
+## 相关文档
+
+### 插件文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+
+### 设计文档
+
+- [概述](./docs/概述.md) - 系统概述
+- [架构设计](./docs/架构设计.md) - 架构设计
+- [Hooks系统设计](./docs/Hooks系统设计.md) - Hooks 系统设计
+- [记忆系统设计](./docs/记忆系统设计.md) - 记忆系统设计
+- [数据库设计](./docs/数据库设计.md) - 数据库设计
+- [MCP工具设计](./docs/MCP工具设计.md) - MCP 工具设计
+- [CLI命令设计](./docs/CLI命令设计.md) - CLI 命令设计
+- [高级特性设计](./docs/高级特性设计.md) - 高级特性设计
+- [部署指南](./docs/部署指南.md) - 部署指南
