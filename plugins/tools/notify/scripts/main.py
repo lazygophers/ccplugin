@@ -4,9 +4,8 @@ from hooks import handle_hook
 import click
 from functools import wraps
 from lib.utils.gitignore import add_gitignore_rule
-from lib.utils.env import get_project_dir
 
-add_gitignore_rule(os.path.join(get_project_dir(), ".lazygophers", ".gitignore"), "/ccplugin/notify")
+add_gitignore_rule("/ccplugin/notify")
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""

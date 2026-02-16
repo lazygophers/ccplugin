@@ -1,6 +1,8 @@
 import os
 from typing import List
 
+from lib.utils.env import get_project_plugins_gitignore_path
+
 
 def read_gitignore(file_path: str) -> List[str]:
 	"""
@@ -25,7 +27,7 @@ def read_gitignore(file_path: str) -> List[str]:
 	return rules
 
 
-def add_gitignore_rule(file_path: str, rule: str) -> bool:
+def add_gitignore_rule(rule: str, file_path: str = get_project_plugins_gitignore_path()) -> bool:
 	"""
 	添加忽略规则到 git 忽略文件
 
@@ -43,6 +45,9 @@ def add_gitignore_rule(file_path: str, rule: str) -> bool:
 	existing_rules = read_gitignore(file_path)
 	if rule in existing_rules:
 		return False
+
+	if os.path.exists(os.path.dirname(file_path)):
+		os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
 	os.makedirs(os.path.dirname(file_path), exist_ok=True)
 	with open(file_path, 'a', encoding='utf-8') as f:

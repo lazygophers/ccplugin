@@ -14,7 +14,7 @@ from typing import Optional
 
 from rich.console import Console
 
-from lib.utils.env import get_project_dir, get_project_plugins_dir
+from lib.utils.env import get_project_dir, get_project_plugins_dir, get_project_plugins_gitignore_path
 from lib.utils.gitignore import add_gitignore_rule
 
 
@@ -95,10 +95,7 @@ class RichLoggerManager:
 		"""
 		将 log 目录添加到项目根目录 .lazygophers/ 下的 git 忽略文件。
 		"""
-		lazygophers_path = os.path.join(get_project_dir(), ".lazygophers")
-		if os.path.exists(lazygophers_path) and not os.path.isdir(lazygophers_path):
-			return
-		add_gitignore_rule(os.path.join(lazygophers_path, ".gitignore"), "/ccplugin/log")
+		add_gitignore_rule("/ccplugin/log")
 
 	def enable_debug(self) -> None:
 		"""启用 DEBUG 模式（同时输出到控制台）。"""
