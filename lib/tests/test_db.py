@@ -398,3 +398,98 @@ async def test_to_dict(sqlite_connection):
     assert user_dict["username"] == "dictuser"
     assert user_dict["email"] == "dict@example.com"
     assert "id" in user_dict
+
+
+async def test_sqlite_wal_mode(sqlite_connection):
+    adapter = sqlite_connection.get_adapter()
+    row = await adapter.fetch_one("PRAGMA journal_mode")
+    assert row is not None
+    assert row["journal_mode"].lower() == "wal"
+
+
+async def test_sqlite_json_functions(sqlite_connection):
+    adapter = sqlite_connection.get_adapter()
+    assert adapter.json_enabled is True
+
+    await User.create_table()
+    await User.create(username="jsonuser", email="json@example.com")
+
+    json_expr = await adapter.json_extract("'{\"name\": \"test\"}'", "$.name")
+    sql = f"SELECT {json_expr} as name"
+    row = await adapter.fetch_one(sql)
+    assert row["name"] == "test"
+
+
+async def test_sqlite_connection_pool(sqlite_connection):
+    adapter = sqlite_connection.get_adapter()
+    assert adapter._pool is not None
+
+    tasks = []
+    for i in range(10):
+        tasks.append(User.create(username=f"pool_user_{i}", email=f"pool{i}@example.com"))
+
+    await User.create_table()
+    users = await asyncio.gather(*tasks)
+    assert len(users) == 10
+
+
+async def test_sqlite_concurrent_read_write():
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+
+    config = DatabaseConfig.sqlite(db_path, pool_size=3)
+    await DatabaseConnection.initialize(config)
+
+    try:
+        await User.create_table()
+
+        async def write_task(prefix: str, count: int):
+            for i in range(count):
+                await User.create(username=f"{prefix}_{i}", email=f"{prefix}_{i}@example.com")
+
+        async def read_task():
+            await User.count()
+
+        tasks = []
+        for i in range(3):
+            tasks.append(write_task(f"writer_{i}", 5))
+        for i in range(5):
+            tasks.append(read_task())
+
+        await asyncio.gather(*tasks)
+
+        count = await User.count()
+        assert count == 15
+    finally:
+        await DatabaseConnection.close()
+        if os.path.exists(db_path):
+            os.unlink(db_path)
+
+
+async def test_sqlite_cosine_similarity():
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        db_path = f.name
+
+    config = DatabaseConfig.sqlite(db_path)
+    await DatabaseConnection.initialize(config)
+
+    try:
+        adapter = DatabaseConnection.get_adapter()
+
+        vec1 = [1.0, 0.0, 0.0]
+        vec2 = [0.0, 1.0, 0.0]
+        vec3 = [1.0, 0.0, 0.0]
+
+        sim_orthogonal = await adapter.cosine_similarity(vec1, vec2)
+        assert abs(sim_orthogonal) < 0.001
+
+        sim_same = await adapter.cosine_similarity(vec1, vec3)
+        assert abs(sim_same - 1.0) < 0.001
+    finally:
+        await DatabaseConnection.close()
+        if os.path.exists(db_path):
+            os.unlink(db_path)
