@@ -38,6 +38,11 @@ CLI 入口，使用 Click 框架提供命令行接口。
 - `stats` - 统计信息
 - `preload <uri>` - 预加载记忆
 
+**Web 命令**:
+- `web` - 启动 Web 管理界面
+  - `-p, --port` - 指定端口（默认自动查找）
+  - `--no-browser` - 不自动打开浏览器
+
 **Hook 命令**:
 - `hooks` - Hook 模式入口
 
@@ -82,16 +87,66 @@ Hook 处理模块，实现各类 Hook 事件的处理逻辑。
 - `create_session()` / `end_session()` - 会话管理
 - `record_error_solution()` / `find_error_solution()` / `mark_solution_success()` - 错误解决方案
 
+### web.py
+
+Web 界面模块，提供记忆管理的 Web 界面和 REST API。
+
+**核心函数**:
+- `find_available_port()` - 查找可用端口
+- `create_app()` - 创建 FastAPI 应用
+- `run_web_server()` - 启动 Web 服务器（异步）
+- `start_web()` - 启动 Web 服务器（同步入口）
+
+**REST API 端点**:
+- `GET /` - Web 界面首页
+- `GET /api/memories` - 列出记忆列表
+- `GET /api/memories/{uri}` - 获取单个记忆
+- `POST /api/memories` - 创建记忆
+- `PUT /api/memories/{uri}` - 更新记忆
+- `DELETE /api/memories/{uri}` - 删除记忆
+- `GET /api/search` - 搜索记忆
+- `GET /api/stats` - 获取统计信息
+- `GET /api/versions/{uri}` - 获取版本历史
+- `GET /api/relations/{uri}` - 获取关系列表
+
+**Web 界面功能**:
+- 仪表盘 - 显示统计数据和最近记忆
+- 记忆列表 - 分页、过滤、排序
+- 搜索 - 关键词搜索
+- 记忆详情 - 基本信息、版本历史、关系
+- 创建/编辑 - 表单操作
+- 删除 - 确认删除
+
 ## 数据库
 
 数据库文件位于 `{project_root}/lazygophers/ccplugin/memory/memory.db`，使用 SQLite 存储。
 
 此目录遵循项目约定，所有插件数据统一存储在 `lazygophers/ccplugin/<plugin-name>/` 目录下。
 
-表结构通过 lib/db ORM 自动创建：
-- `memories` - 记忆表
-- `memory_paths` - 记忆路径关联表
-- `memory_versions` - 记忆版本表
-- `memory_relations` - 记忆关系表
-- `sessions` - 会话记录表
-- `error_solutions` - 错误解决方案表
+## 使用示例
+
+### CLI 使用
+
+```bash
+# 启动 Web 界面
+uv run ./scripts/main.py web
+
+# 指定端口
+uv run ./scripts/main.py web --port 8080
+
+# 不自动打开浏览器
+uv run ./scripts/main.py web --no-browser
+
+# 创建记忆
+uv run ./scripts/main.py create project://config "项目配置说明" -p 1
+
+# 搜索记忆
+uv run ./scripts/main.py search "config"
+
+# 查看统计
+uv run ./scripts/main.py stats
+```
+
+### Web 界面
+
+启动后访问 http://127.0.0.1:{port} 即可使用 Web 界面进行记忆管理。

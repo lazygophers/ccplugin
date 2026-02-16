@@ -27,6 +27,7 @@ memory/
 │   ├── hooks.py
 │   ├── main.py
 │   ├── memory.py
+│   ├── web.py
 │   └── llms.txt
 ├── skills/
 │   └── memory/
@@ -60,6 +61,26 @@ memory/
 - `PostToolUseFailure` - 工具失败时记录错误信息
 - `Stop` - 停止时保存会话状态
 
+## Web 界面
+
+启动 Web 管理界面：
+
+```bash
+uv run ./scripts/main.py web
+```
+
+选项：
+- `-p, --port` - 指定端口（默认自动查找可用端口）
+- `--no-browser` - 不自动打开浏览器
+
+Web 界面功能：
+- 仪表盘 - 显示统计数据和最近记忆
+- 记忆列表 - 分页、过滤、排序
+- 搜索 - 关键词搜索
+- 记忆详情 - 基本信息、版本历史、关系
+- 创建/编辑 - 表单操作
+- 删除 - 确认删除
+
 ## 数据存储
 
 数据库文件位于 `{project_root}/lazygophers/ccplugin/memory/memory.db`，使用 SQLite 存储。
@@ -69,6 +90,10 @@ memory/
 表结构通过 lib/db ORM 自动创建：
 - `memories` - 记忆表
 - `memory_paths` - 记忆路径关联表
+- `memory_versions` - 记忆版本表
+- `memory_relations` - 记忆关系表
+- `sessions` - 会话记录表
+- `error_solutions` - 错误解决方案表
 
 ## 相关文档
 

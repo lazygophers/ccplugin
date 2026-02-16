@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Manager - 智能记忆管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* 浅色主题（默认） */
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --bg-hover: #f1f5f9;
+            --card: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --shadow: rgba(0,0,0,0.1);
+            --modal-bg: rgba(0,0,0,0.5);
+        }
+        
+        /* 深色主题 */
+        [data-theme="dark"] {
+            --primary: #60a5fa;
+            --primary-dark: #3b82f6;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --bg: #0f172a;
+            --bg-hover: #1e293b;
+            --card: #1e293b;
+            --border: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --shadow: rgba(0,0,0,0.3);
+            --modal-bg: rgba(0,0,0,0.7);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        header {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            margin-bottom: 24px;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 700; color: var(--primary); }
+        .logo span { color: var(--text); }
+        
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        
+        nav { display: flex; gap: 8px; }
+        nav a {
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        nav a:hover, nav a.active { background: var(--primary); color: white; }
+        
+        /* 主题切换按钮 */
+        .theme-toggle {
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover { background: var(--border); }
+        .theme-toggle svg { width: 18px; height: 18px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px var(--shadow);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .stat-card h3 { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+        .stat-card .value { font-size: 32px; font-weight: 700; color: var(--primary); }
+        
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px var(--shadow);
+            margin-bottom: 24px;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.3s;
+        }
+        .card-header h2 { font-size: 18px; font-weight: 600; }
+        .card-body { padding: 20px; }
+        
+        .search-box { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .search-box input, .search-box select {
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background: var(--card);
+            color: var(--text);
+            transition: border-color 0.2s, background-color 0.3s;
+        }
+        .search-box input { flex: 1; min-width: 200px; }
+        .search-box input:focus { border-color: var(--primary); }
+        .search-box select { min-width: 120px; }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-secondary { background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); transition: border-color 0.3s; }
+        th { font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+        tr:hover { background: var(--bg-hover); }
+        
+        .uri { font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; color: var(--primary); }
+        
+        .priority-badge, .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .priority-0, .priority-1, .priority-2 { background: #fef3c7; color: #92400e; }
+        .priority-3, .priority-4, .priority-5 { background: #dbeafe; color: #1e40af; }
+        .priority-6, .priority-7, .priority-8 { background: #e0e7ff; color: #3730a3; }
+        .priority-9, .priority-10 { background: #f1f5f9; color: #475569; }
+        .status-active { background: #dcfce7; color: #166534; }
+        .status-deprecated { background: #fef3c7; color: #92400e; }
+        .status-archived { background: #f1f5f9; color: #475569; }
+        
+        .content-preview {
+            max-width: 400px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--modal-bg);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        
+        .modal-content {
+            background: var(--card);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: background-color 0.3s;
+        }
+        
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.3s;
+        }
+        .modal-header h3 { font-size: 18px; font-weight: 600; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); }
+        .modal-body { padding: 20px; }
+        
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 6px; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            background: var(--bg);
+            color: var(--text);
+            transition: border-color 0.2s, background-color 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+        
+        .tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; transition: border-color 0.3s; }
+        .tab {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.2s;
+        }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .detail-grid { display: grid; grid-template-columns: 150px 1fr; gap: 12px; }
+        .detail-label { font-weight: 500; color: var(--text-muted); }
+        
+        .version-list, .relation-list { margin-top: 16px; }
+        .version-item, .relation-item {
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: border-color 0.3s;
+        }
+        .version-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .version-content {
+            background: var(--bg);
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            transition: background-color 0.3s;
+        }
+        .relation-item { display: flex; align-items: center; gap: 12px; }
+        .relation-arrow { color: var(--primary); font-size: 20px; }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .actions { display: flex; gap: 8px; }
+        .icon-btn {
+            padding: 6px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { background: var(--bg-hover); color: var(--primary); }
+        .icon-btn.danger:hover { color: var(--danger); }
+        
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .header-content { flex-direction: column; gap: 12px; }
+            .header-right { flex-direction: column; width: 100%; }
+            nav { width: 100%; justify-content: center; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .search-box { flex-direction: column; }
+            .content-preview { max-width: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">Memory<span>Manager</span></div>
+            <div class="header-right">
+                <nav>
+                    <a href="#" class="active" onclick="showPage('dashboard')">仪表盘</a>
+                    <a href="#" onclick="showPage('memories')">记忆列表</a>
+                    <a href="#" onclick="showPage('search')">搜索</a>
+                </nav>
+                <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
+                    <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <span id="theme-text">深色</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <main class="container">
+        <div id="dashboard-page" class="page active">
+            <div class="stats-grid" id="stats-grid">
+                <div class="stat-card"><h3>总记忆数</h3><div class="value" id="stat-total">-</div></div>
+                <div class="stat-card"><h3>活跃记忆</h3><div class="value" id="stat-active">-</div></div>
+                <div class="stat-card"><h3>版本总数</h3><div class="value" id="stat-versions">-</div></div>
+                <div class="stat-card"><h3>关系总数</h3><div class="value" id="stat-relations">-</div></div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h2>按 URI 前缀分布</h2></div>
+                <div class="card-body"><div id="uri-distribution"></div></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2>最近更新的记忆</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">新建记忆</button>
+                </div>
+                <div class="card-body">
+                    <table>
+                        <thead><tr><th>URI</th><th>内容预览</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
+                        <tbody id="recent-memories"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="memories-page" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <h2>记忆列表</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">新建记忆</button>
+                </div>
+                <div class="card-body">
+                    <div class="search-box">
+                        <input type="text" id="filter-uri" placeholder="按 URI 前缀过滤..." onkeyup="filterMemories()">
+                        <select id="filter-status" onchange="filterMemories()">
+                            <option value="">所有状态</option>
+                            <option value="active">活跃</option>
+                            <option value="deprecated">已废弃</option>
+                            <option value="archived">已归档</option>
+                        </select>
+                        <select id="filter-priority" onchange="filterMemories()">
+                            <option value="">所有优先级</option>
+                            <option value="0-3">核心 (0-3)</option>
+                            <option value="4-6">普通 (4-6)</option>
+                            <option value="7-10">低优先 (7-10)</option>
+                        </select>
+                    </div>
+                    <table>
+                        <thead><tr><th>URI</th><th>内容预览</th><th>优先级</th><th>状态</th><th>访问次数</th><th>更新时间</th><th>操作</th></tr></thead>
+                        <tbody id="memories-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="search-page" class="page">
+            <div class="card">
+                <div class="card-header"><h2>搜索记忆</h2></div>
+                <div class="card-body">
+                    <div class="search-box">
+                        <input type="text" id="search-query" placeholder="输入搜索关键词..." onkeyup="searchMemories(event)">
+                        <button class="btn btn-primary" onclick="searchMemories()">搜索</button>
+                    </div>
+                    <div id="search-results"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <div id="memory-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">新建记忆</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="memory-form">
+                    <div class="form-group"><label>URI *</label><input type="text" id="form-uri" required placeholder="例如: project://config"></div>
+                    <div class="form-group"><label>内容 *</label><textarea id="form-content" required placeholder="记忆内容..."></textarea></div>
+                    <div class="form-group"><label>优先级 (0-10)</label><input type="number" id="form-priority" min="0" max="10" value="5"></div>
+                    <div class="form-group"><label>触发条件</label><input type="text" id="form-disclosure" placeholder="何时加载此记忆"></div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                        <button type="submit" class="btn btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="detail-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>记忆详情</h3>
+                <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('info')">基本信息</button>
+                    <button class="tab" onclick="showTab('versions')">版本历史</button>
+                    <button class="tab" onclick="showTab('relations')">关系</button>
+                </div>
+                <div id="tab-info" class="tab-content active"><div class="detail-grid" id="detail-info"></div></div>
+                <div id="tab-versions" class="tab-content"><div class="version-list" id="version-list"></div></div>
+                <div id="tab-relations" class="tab-content"><div class="relation-list" id="relation-list"></div></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentEditUri = null;
+        
+        // 主题管理
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            setTheme(savedTheme);
+        }
+        
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            
+            const lightIcon = document.getElementById('theme-icon-light');
+            const darkIcon = document.getElementById('theme-icon-dark');
+            const themeText = document.getElementById('theme-text');
+            
+            if (theme === 'dark') {
+                lightIcon.style.display = 'none';
+                darkIcon.style.display = 'block';
+                themeText.textContent = '浅色';
+            } else {
+                lightIcon.style.display = 'block';
+                darkIcon.style.display = 'none';
+                themeText.textContent = '深色';
+            }
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        }
+        
+        // API 调用
+        async function api(method, path, data = null) {
+            const options = { method, headers: {'Content-Type': 'application/json'} };
+            if (data) options.body = JSON.stringify(data);
+            const response = await fetch('/api' + path, options);
+            if (!response.ok) { const error = await response.json(); throw new Error(error.detail || '请求失败'); }
+            return response.json();
+        }
+        
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+            document.getElementById(page + '-page').classList.add('active');
+            event.target.classList.add('active');
+            if (page === 'dashboard') loadDashboard();
+            if (page === 'memories') loadMemories();
+        }
+        
+        async function loadDashboard() {
+            try {
+                const stats = await api('GET', '/stats');
+                document.getElementById('stat-total').textContent = stats.total;
+                document.getElementById('stat-active').textContent = stats.active;
+                document.getElementById('stat-versions').textContent = stats.versions_count;
+                document.getElementById('stat-relations').textContent = stats.relations_count;
+                const uriDist = document.getElementById('uri-distribution');
+                uriDist.innerHTML = Object.entries(stats.by_uri_prefix || {}).map(([prefix, count]) => 
+                    '<div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);"><span>' + prefix + '://</span><span style="font-weight: 600;">' + count + '</span></div>'
+                ).join('') || '<p style="color: var(--text-muted);">暂无数据</p>';
+                const memories = await api('GET', '/memories?limit=5');
+                renderMemoriesTable(memories, 'recent-memories', true);
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function loadMemories() {
+            try { const memories = await api('GET', '/memories?limit=100'); renderMemoriesTable(memories, 'memories-table'); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function filterMemories() {
+            const uriPrefix = document.getElementById('filter-uri').value;
+            const status = document.getElementById('filter-status').value;
+            const priorityRange = document.getElementById('filter-priority').value;
+            let url = '/memories?limit=100';
+            if (uriPrefix) url += '&uri_prefix=' + encodeURIComponent(uriPrefix + '://');
+            if (status) url += '&status=' + status;
+            if (priorityRange) { const [min, max] = priorityRange.split('-'); url += '&priority_min=' + min + '&priority_max=' + max; }
+            try { const memories = await api('GET', url); renderMemoriesTable(memories, 'memories-table'); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function searchMemories(event) {
+            if (event && event.key && event.key !== 'Enter') return;
+            const query = document.getElementById('search-query').value;
+            if (!query) { document.getElementById('search-results').innerHTML = ''; return; }
+            try {
+                const memories = await api('GET', '/search?q=' + encodeURIComponent(query));
+                const container = document.getElementById('search-results');
+                if (memories.length === 0) { container.innerHTML = '<div class="empty-state"><h3>未找到匹配的记忆</h3></div>'; return; }
+                container.innerHTML = memories.map(m => 
+                    `<div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; cursor: pointer;" onclick="showDetail('${escapeHtml(m.uri)}')">` +
+                    '<div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span class="uri">' + escapeHtml(m.uri) + '</span><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></div>' +
+                    '<div style="color: var(--text-muted);">' + escapeHtml(m.content.substring(0, 200)) + (m.content.length > 200 ? '...' : '') + '</div></div>'
+                ).join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        function renderMemoriesTable(memories, tableId, simple = false) {
+            const tbody = document.getElementById(tableId);
+            if (memories.length === 0) { tbody.innerHTML = '<tr><td colspan="' + (simple ? 5 : 7) + '" class="empty-state">暂无记忆</td></tr>'; return; }
+            tbody.innerHTML = memories.map(m => 
+                '<tr><td><span class="uri">' + escapeHtml(m.uri) + '</span></td>' +
+                '<td><div class="content-preview">' + escapeHtml(m.content) + '</div></td>' +
+                '<td><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></td>' +
+                '<td><span class="status-badge status-' + m.status + '">' + m.status + '</span></td>' +
+                (simple ? '' : '<td>' + m.access_count + '</td><td>' + formatDate(m.updated_at) + '</td>') +
+                '<td class="actions">' +
+                `<button class="icon-btn" onclick="showDetail('${escapeHtml(m.uri)}')" title="查看">👁</button>` +
+                `<button class="icon-btn" onclick="openEditModal('${escapeHtml(m.uri)}')" title="编辑">✏</button>` +
+                `<button class="icon-btn danger" onclick="deleteMemory('${escapeHtml(m.uri)}')" title="删除">🗑</button>` +
+                '</td></tr>'
+            ).join('');
+        }
+        
+        async function showDetail(uri) {
+            try {
+                const memory = await api('GET', '/memories/' + encodeURIComponent(uri));
+                const versions = await api('GET', '/versions/' + encodeURIComponent(uri));
+                const relations = await api('GET', '/relations/' + encodeURIComponent(uri));
+                document.getElementById('detail-info').innerHTML = 
+                    '<div class="detail-label">URI</div><div>' + escapeHtml(memory.uri) + '</div>' +
+                    '<div class="detail-label">状态</div><div><span class="status-badge status-' + memory.status + '">' + memory.status + '</span></div>' +
+                    '<div class="detail-label">优先级</div><div><span class="priority-badge priority-' + memory.priority + '">P' + memory.priority + '</span></div>' +
+                    '<div class="detail-label">访问次数</div><div>' + memory.access_count + '</div>' +
+                    '<div class="detail-label">触发条件</div><div>' + escapeHtml(memory.disclosure || '-') + '</div>' +
+                    '<div class="detail-label">创建时间</div><div>' + formatDate(memory.created_at) + '</div>' +
+                    '<div class="detail-label">更新时间</div><div>' + formatDate(memory.updated_at) + '</div>' +
+                    '<div class="detail-label">内容</div><div style="white-space: pre-wrap; word-break: break-all;">' + escapeHtml(memory.content) + '</div>';
+                document.getElementById('version-list').innerHTML = versions.length === 0 ? '<p style="color: var(--text-muted);">暂无版本历史</p>'
+                    : versions.map(v => '<div class="version-item"><div class="version-header"><span><strong>版本 ' + v.version + '</strong></span><span style="color: var(--text-muted);">' + formatDate(v.changed_at) + '</span></div>' +
+                        '<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">原因: ' + escapeHtml(v.change_reason || '-') + ' | 来源: ' + v.changed_by + '</div>' +
+                        '<div class="version-content">' + escapeHtml(v.content) + '</div></div>').join('');
+                document.getElementById('relation-list').innerHTML = relations.length === 0 ? '<p style="color: var(--text-muted);">暂无关系</p>'
+                    : relations.map(r => '<div class="relation-item">' + (r.direction === 'out' 
+                        ? '<span class="relation-arrow">→</span><span>' + r.relation_type + '</span><span class="uri">' + escapeHtml(r.target_uri) + '</span>'
+                        : '<span class="uri">' + escapeHtml(r.source_uri) + '</span><span>' + r.relation_type + '</span><span class="relation-arrow">→</span>') +
+                        '<span style="color: var(--text-muted);">(强度: ' + r.strength + ')</span></div>').join('');
+                document.getElementById('detail-modal').classList.add('active');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+        
+        function openCreateModal() {
+            currentEditUri = null;
+            document.getElementById('modal-title').textContent = '新建记忆';
+            document.getElementById('form-uri').value = '';
+            document.getElementById('form-uri').disabled = false;
+            document.getElementById('form-content').value = '';
+            document.getElementById('form-priority').value = '5';
+            document.getElementById('form-disclosure').value = '';
+            document.getElementById('memory-modal').classList.add('active');
+        }
+        
+        async function openEditModal(uri) {
+            try {
+                const memory = await api('GET', '/memories/' + encodeURIComponent(uri));
+                currentEditUri = uri;
+                document.getElementById('modal-title').textContent = '编辑记忆';
+                document.getElementById('form-uri').value = memory.uri;
+                document.getElementById('form-uri').disabled = true;
+                document.getElementById('form-content').value = memory.content;
+                document.getElementById('form-priority').value = memory.priority;
+                document.getElementById('form-disclosure').value = memory.disclosure || '';
+                document.getElementById('memory-modal').classList.add('active');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        function closeModal() { document.getElementById('memory-modal').classList.remove('active'); }
+        function closeDetailModal() { document.getElementById('detail-modal').classList.remove('active'); }
+        
+        document.getElementById('memory-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = { uri: document.getElementById('form-uri').value, content: document.getElementById('form-content').value, priority: parseInt(document.getElementById('form-priority').value) || 5, disclosure: document.getElementById('form-disclosure').value };
+            try {
+                if (currentEditUri) { await api('PUT', '/memories/' + encodeURIComponent(currentEditUri), data); showToast('记忆已更新', 'success'); }
+                else { await api('POST', '/memories', data); showToast('记忆已创建', 'success'); }
+                closeModal(); loadDashboard();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+        
+        async function deleteMemory(uri) {
+            if (!confirm('确定要删除此记忆吗？')) return;
+            try { await api('DELETE', '/memories/' + encodeURIComponent(uri)); showToast('记忆已删除', 'success'); loadDashboard(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function formatDate(dateStr) { if (!dateStr) return '-'; return new Date(dateStr).toLocaleString('zh-CN'); }
+        function showToast(message, type = 'success') { const toast = document.createElement('div'); toast.className = 'toast ' + type; toast.textContent = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
+        
+        // 初始化
+        initTheme();
+        loadDashboard();
+    </script>
+</body>
+</html>
