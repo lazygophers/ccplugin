@@ -51,8 +51,8 @@ async def export_memories(
             "disclosure": memory.disclosure,
             "status": memory.status,
             "metadata": json.loads(memory.metadata or "{}"),
-            "created_at": memory.created_at.isoformat() if memory.created_at else None,
-            "updated_at": memory.updated_at.isoformat() if memory.updated_at else None,
+            "created_at": memory.created_at,
+            "updated_at": memory.updated_at,
         }
         
         if include_versions:
@@ -61,7 +61,7 @@ async def export_memories(
                 {
                     "version": v.version,
                     "content": v.content,
-                    "changed_at": v.changed_at.isoformat() if v.changed_at else None,
+                    "changed_at": v.changed_at,
                     "change_reason": v.change_reason,
                     "changed_by": v.changed_by,
                 }

@@ -69,7 +69,10 @@ async def init_db() -> None:
         return
 
     db_path = get_db_path()
-    add_gitignore_rule("/ccplugin/memory")
+    project_dir = get_project_dir()
+    if project_dir:
+        gitignore_path = os.path.join(project_dir, ".gitignore")
+        add_gitignore_rule(gitignore_path, "/.lazygophers/ccplugin/memory/")
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     config = DatabaseConfig.sqlite(path=db_path)

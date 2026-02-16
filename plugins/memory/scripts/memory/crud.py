@@ -174,11 +174,15 @@ async def update_memory(
     
     now = datetime.now()
     
-    if content is not None:
+    if old_text and new_text:
+        new_content = memory.content.replace(old_text, new_text)
+        if new_content != memory.content:
+            await create_version(memory.id, memory.content, memory.updated_at, "content_update", changed_by)
+            memory.content = new_content
+            memory.content_hash = compute_hash(new_content)
+    elif content is not None:
         if append:
             new_content = memory.content + "\n" + content
-        elif old_text and new_text:
-            new_content = memory.content.replace(old_text, new_text)
         else:
             new_content = content
         
