@@ -7,7 +7,6 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        /* 浅色主题（默认） */
         :root {
             --primary: #3b82f6;
             --primary-dark: #2563eb;
@@ -24,7 +23,6 @@
             --modal-bg: rgba(0,0,0,0.5);
         }
         
-        /* 深色主题 */
         [data-theme="dark"] {
             --primary: #60a5fa;
             --primary-dark: #3b82f6;
@@ -72,10 +70,10 @@
             padding: 8px 16px;
             border-radius: 6px;
             transition: all 0.2s;
+            cursor: pointer;
         }
         nav a:hover, nav a.active { background: var(--primary); color: white; }
         
-        /* 主题切换按钮 */
         .theme-toggle {
             background: var(--bg-hover);
             border: 1px solid var(--border);
@@ -156,6 +154,10 @@
         .btn-primary:hover { background: var(--primary-dark); }
         .btn-secondary { background: var(--bg-hover); color: var(--text); border: 1px solid var(--border); }
         .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { opacity: 0.9; }
         .btn-sm { padding: 6px 12px; font-size: 12px; }
         
         table { width: 100%; border-collapse: collapse; }
@@ -163,7 +165,8 @@
         th { font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
         tr:hover { background: var(--bg-hover); }
         
-        .uri { font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; color: var(--primary); }
+        .uri { font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; color: var(--primary); cursor: pointer; }
+        .uri:hover { text-decoration: underline; }
         
         .priority-badge, .status-badge, .type-badge {
             display: inline-block;
@@ -180,7 +183,6 @@
         .status-deprecated { background: #fef3c7; color: #92400e; }
         .status-archived { background: #f1f5f9; color: #475569; }
         
-        /* 记忆类型标签样式 */
         .type-project { background: #dbeafe; color: #1e40af; }
         .type-workflow { background: #fce7f3; color: #9d174d; }
         .type-user { background: #d1fae5; color: #065f46; }
@@ -278,7 +280,7 @@
             margin-bottom: 8px;
             transition: border-color 0.3s;
         }
-        .version-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .version-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .version-content {
             background: var(--bg);
             padding: 12px;
@@ -287,6 +289,8 @@
             font-size: 13px;
             white-space: pre-wrap;
             word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
             transition: background-color 0.3s;
         }
         .relation-item { display: flex; align-items: center; gap: 12px; }
@@ -322,14 +326,101 @@
         
         .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
         
+        /* 树形浏览样式 */
+        .tree-container { max-height: 600px; overflow-y: auto; }
+        .tree-node { padding: 4px 0; }
+        .tree-node-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .tree-node-header:hover { background: var(--bg-hover); }
+        .tree-node-header.selected { background: var(--primary); color: white; }
+        .tree-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .tree-icon { margin-right: 8px; font-size: 16px; }
+        .tree-label { flex: 1; font-size: 14px; }
+        .tree-count {
+            background: var(--bg-hover);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .tree-children { margin-left: 24px; display: none; }
+        .tree-children.expanded { display: block; }
+        
+        /* Diff 样式 */
+        .diff-container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .diff-panel { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .diff-panel-header { background: var(--bg-hover); padding: 12px; font-weight: 600; border-bottom: 1px solid var(--border); }
+        .diff-content {
+            padding: 16px;
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .diff-line-added { background: rgba(34, 197, 94, 0.2); }
+        .diff-line-removed { background: rgba(239, 68, 68, 0.2); }
+        
+        /* 清理面板样式 */
+        .cleanup-section { margin-bottom: 24px; }
+        .cleanup-section h3 { margin-bottom: 12px; color: var(--text-muted); font-size: 14px; }
+        .cleanup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: border-color 0.3s;
+        }
+        .cleanup-item:hover { border-color: var(--primary); }
+        .cleanup-item-info { flex: 1; }
+        .cleanup-item-uri { font-family: monospace; color: var(--primary); margin-bottom: 4px; }
+        .cleanup-item-meta { font-size: 12px; color: var(--text-muted); }
+        
+        /* 系统记忆卡片 */
+        .system-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .system-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); }
+        .system-card h3 { margin-bottom: 8px; }
+        .system-card p { opacity: 0.9; font-size: 14px; }
+        
+        .page { display: none; }
+        .page.active { display: block; }
+        
         @media (max-width: 768px) {
             .container { padding: 12px; }
             .header-content { flex-direction: column; gap: 12px; }
             .header-right { flex-direction: column; width: 100%; }
-            nav { width: 100%; justify-content: center; }
+            nav { width: 100%; justify-content: center; flex-wrap: wrap; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .search-box { flex-direction: column; }
             .content-preview { max-width: 150px; }
+            .diff-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -339,9 +430,11 @@
             <div class="logo">Memory<span>Manager</span></div>
             <div class="header-right">
                 <nav>
-                    <a href="#" class="active" onclick="showPage('dashboard')">仪表盘</a>
-                    <a href="#" onclick="showPage('memories')">记忆列表</a>
-                    <a href="#" onclick="showPage('search')">搜索</a>
+                    <a class="active" onclick="showPage('dashboard')">仪表盘</a>
+                    <a onclick="showPage('explorer')">记忆浏览</a>
+                    <a onclick="showPage('memories')">记忆列表</a>
+                    <a onclick="showPage('review')">审查回滚</a>
+                    <a onclick="showPage('cleanup')">记忆清理</a>
                 </nav>
                 <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
                     <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -366,16 +459,40 @@
     
     <main class="container">
         <div id="dashboard-page" class="page active">
-            <div class="stats-grid" id="stats-grid">
+            <div class="stats-grid">
                 <div class="stat-card"><h3>总记忆数</h3><div class="value" id="stat-total">-</div></div>
                 <div class="stat-card"><h3>活跃记忆</h3><div class="value" id="stat-active">-</div></div>
                 <div class="stat-card"><h3>版本总数</h3><div class="value" id="stat-versions">-</div></div>
                 <div class="stat-card"><h3>关系总数</h3><div class="value" id="stat-relations">-</div></div>
             </div>
+            
             <div class="card">
-                <div class="card-header"><h2>按 URI 前缀分布</h2></div>
+                <div class="card-header"><h2>系统入口</h2></div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <div class="system-card" onclick="loadSystemUri('boot')">
+                            <h3>🚀 system://boot</h3>
+                            <p>加载核心记忆（priority ≤ 2），用于初始化 AI 身份</p>
+                        </div>
+                        <div class="system-card" onclick="loadSystemUri('index')">
+                            <h3>📚 system://index</h3>
+                            <p>显示全量记忆索引，按域名分组</p>
+                        </div>
+                        <div class="system-card" onclick="loadSystemUri('recent')">
+                            <h3>🕐 system://recent</h3>
+                            <p>显示最近修改的记忆（前 10 条）</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2>按 URI 前缀分布</h2>
+                </div>
                 <div class="card-body"><div id="uri-distribution"></div></div>
             </div>
+            
             <div class="card">
                 <div class="card-header">
                     <h2>最近更新的记忆</h2>
@@ -383,9 +500,26 @@
                 </div>
                 <div class="card-body">
                     <table>
-                        <thead><tr><th>URI</th><th>类型</th><th>内容预览</th><th>优先级</th><th>状态</th><th>操作</th></tr></thead>
+                        <thead><tr><th>URI</th><th>类型</th><th>内容预览</th><th>优先级</th><th>操作</th></tr></thead>
                         <tbody id="recent-memories"></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="explorer-page" class="page">
+            <div class="card">
+                <div class="card-header">
+                    <h2>记忆浏览器</h2>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateModal()">新建记忆</button>
+                </div>
+                <div class="card-body">
+                    <div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+                        <div class="tree-container" id="memory-tree"></div>
+                        <div id="memory-detail">
+                            <div class="empty-state">选择左侧节点查看详情</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -431,15 +565,45 @@
             </div>
         </div>
         
-        <div id="search-page" class="page">
+        <div id="review-page" class="page">
             <div class="card">
-                <div class="card-header"><h2>搜索记忆</h2></div>
+                <div class="card-header"><h2>审查与回滚</h2></div>
                 <div class="card-body">
                     <div class="search-box">
-                        <input type="text" id="search-query" placeholder="输入搜索关键词..." onkeyup="searchMemories(event)">
-                        <button class="btn btn-primary" onclick="searchMemories()">搜索</button>
+                        <input type="text" id="review-uri" placeholder="输入记忆 URI...">
+                        <button class="btn btn-primary" onclick="loadVersions()">加载版本历史</button>
                     </div>
-                    <div id="search-results"></div>
+                    <div id="review-content">
+                        <div class="empty-state">输入 URI 查看版本历史</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="cleanup-page" class="page">
+            <div class="card">
+                <div class="card-header"><h2>记忆清理</h2></div>
+                <div class="card-body">
+                    <div class="cleanup-section">
+                        <h3>清理选项</h3>
+                        <div style="display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;">
+                            <div class="form-group" style="flex: 1; min-width: 150px;">
+                                <label>未访问天数</label>
+                                <input type="number" id="cleanup-unused-days" placeholder="例如: 30" min="1">
+                            </div>
+                            <div class="form-group" style="flex: 1; min-width: 150px;">
+                                <label>废弃天数</label>
+                                <input type="number" id="cleanup-deprecated-days" placeholder="例如: 7" min="1">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <button class="btn btn-secondary" onclick="previewCleanup()">预览</button>
+                            <button class="btn btn-danger" onclick="executeCleanup()">执行清理</button>
+                        </div>
+                    </div>
+                    <div id="cleanup-results">
+                        <div class="empty-state">设置清理条件后点击预览</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -485,10 +649,22 @@
         </div>
     </div>
     
+    <div id="diff-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h3>版本对比</h3>
+                <button class="modal-close" onclick="closeDiffModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="diff-content"></div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         let currentEditUri = null;
+        let allMemories = [];
         
-        // 主题管理
         function initTheme() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             setTheme(savedTheme);
@@ -497,11 +673,9 @@
         function setTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('theme', theme);
-            
             const lightIcon = document.getElementById('theme-icon-light');
             const darkIcon = document.getElementById('theme-icon-dark');
             const themeText = document.getElementById('theme-text');
-            
             if (theme === 'dark') {
                 lightIcon.style.display = 'none';
                 darkIcon.style.display = 'block';
@@ -515,11 +689,9 @@
         
         function toggleTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
         }
         
-        // API 调用
         async function api(method, path, data = null) {
             const options = { method, headers: {'Content-Type': 'application/json'} };
             if (data) options.body = JSON.stringify(data);
@@ -534,6 +706,7 @@
             document.getElementById(page + '-page').classList.add('active');
             event.target.classList.add('active');
             if (page === 'dashboard') loadDashboard();
+            if (page === 'explorer') loadExplorer();
             if (page === 'memories') loadMemories();
         }
         
@@ -546,15 +719,120 @@
                 document.getElementById('stat-relations').textContent = stats.relations_count;
                 const uriDist = document.getElementById('uri-distribution');
                 uriDist.innerHTML = Object.entries(stats.by_uri_prefix || {}).map(([prefix, count]) => 
-                    '<div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);"><span>' + prefix + '://</span><span style="font-weight: 600;">' + count + '</span></div>'
+                    '<div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border);"><span class="uri" onclick="filterByPrefix(\'' + prefix + '\')">' + prefix + '://</span><span style="font-weight: 600;">' + count + '</span></div>'
                 ).join('') || '<p style="color: var(--text-muted);">暂无数据</p>';
                 const memories = await api('GET', '/memories?limit=5');
                 renderMemoriesTable(memories, 'recent-memories', true);
             } catch (e) { showToast(e.message, 'error'); }
         }
         
+        async function loadExplorer() {
+            try {
+                allMemories = await api('GET', '/memories?limit=1000');
+                renderTree();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        function renderTree() {
+            const tree = buildTree(allMemories);
+            const container = document.getElementById('memory-tree');
+            container.innerHTML = renderTreeNode(tree, '');
+        }
+        
+        function buildTree(memories) {
+            const tree = {};
+            memories.forEach(m => {
+                const parts = m.uri.split('://');
+                if (parts.length < 2) return;
+                const domain = parts[0];
+                const path = parts[1].split('/');
+                let node = tree;
+                if (!node[domain]) node[domain] = { _count: 0, _memories: [], _children: {} };
+                node[domain]._count++;
+                node[domain]._memories.push(m);
+                let current = node[domain]._children;
+                for (let i = 0; i < path.length; i++) {
+                    const part = path[i];
+                    if (!part) continue;
+                    if (!current[part]) current[part] = { _count: 0, _memories: [], _children: {} };
+                    current[part]._count++;
+                    current[part]._memories.push(m);
+                    current = current[part]._children;
+                }
+            });
+            return tree;
+        }
+        
+        function renderTreeNode(node, prefix) {
+            let html = '';
+            for (const [key, value] of Object.entries(node)) {
+                if (key.startsWith('_')) continue;
+                const hasChildren = Object.keys(value._children || {}).length > 0;
+                const icon = hasChildren ? '📁' : '📄';
+                html += '<div class="tree-node">' +
+                    '<div class="tree-node-header" onclick="selectTreeNode(this, \'' + (prefix ? prefix + '://' + key : key) + '\')">' +
+                    (hasChildren ? '<span class="tree-toggle" onclick="toggleTree(event, this)">▶</span>' : '<span class="tree-toggle"></span>') +
+                    '<span class="tree-icon">' + icon + '</span>' +
+                    '<span class="tree-label">' + escapeHtml(key) + '</span>' +
+                    '<span class="tree-count">' + value._count + '</span>' +
+                    '</div>';
+                if (hasChildren) {
+                    html += '<div class="tree-children">' + renderTreeNode(value._children, prefix ? prefix + '://' + key : key) + '</div>';
+                }
+                html += '</div>';
+            }
+            return html;
+        }
+        
+        function toggleTree(event, el) {
+            event.stopPropagation();
+            const children = el.closest('.tree-node').querySelector('.tree-children');
+            if (children) {
+                children.classList.toggle('expanded');
+                el.textContent = children.classList.contains('expanded') ? '▼' : '▶';
+            }
+        }
+        
+        function selectTreeNode(el, uri) {
+            document.querySelectorAll('.tree-node-header').forEach(n => n.classList.remove('selected'));
+            el.classList.add('selected');
+            const memories = allMemories.filter(m => m.uri.startsWith(uri));
+            const detail = document.getElementById('memory-detail');
+            if (memories.length === 1) {
+                showMemoryDetail(memories[0].uri, detail);
+            } else {
+                detail.innerHTML = '<h3 style="margin-bottom: 16px;">' + escapeHtml(uri) + ' (' + memories.length + ' 条)</h3>' +
+                    memories.map(m => '<div style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="showMemoryDetail(\'' + escapeHtml(m.uri) + '\', document.getElementById(\'memory-detail\'))">' +
+                    '<div class="uri">' + escapeHtml(m.uri) + '</div>' +
+                    '<div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">' + escapeHtml(m.content.substring(0, 100)) + '...</div></div>').join('');
+            }
+        }
+        
+        async function showMemoryDetail(uri, container) {
+            try {
+                const memory = await api('GET', '/memories/' + encodeURIComponent(uri));
+                const type = getMemoryType(memory.uri);
+                container.innerHTML = 
+                    '<div class="detail-grid" style="margin-bottom: 16px;">' +
+                    '<div class="detail-label">URI</div><div class="uri">' + escapeHtml(memory.uri) + '</div>' +
+                    '<div class="detail-label">类型</div><div><span class="type-badge type-' + type + '">' + getTypeName(type) + '</span></div>' +
+                    '<div class="detail-label">状态</div><div><span class="status-badge status-' + memory.status + '">' + memory.status + '</span></div>' +
+                    '<div class="detail-label">优先级</div><div><span class="priority-badge priority-' + memory.priority + '">P' + memory.priority + '</span></div>' +
+                    '<div class="detail-label">访问次数</div><div>' + memory.access_count + '</div>' +
+                    '<div class="detail-label">触发条件</div><div>' + escapeHtml(memory.disclosure || '-') + '</div>' +
+                    '<div class="detail-label">更新时间</div><div>' + formatDate(memory.updated_at) + '</div>' +
+                    '</div>' +
+                    '<div style="margin-bottom: 16px;"><strong>内容:</strong></div>' +
+                    '<div class="version-content">' + escapeHtml(memory.content) + '</div>' +
+                    '<div class="actions" style="margin-top: 16px;">' +
+                    '<button class="btn btn-sm btn-secondary" onclick="openEditModal(\'' + escapeHtml(uri) + '\')">编辑</button>' +
+                    '<button class="btn btn-sm btn-danger" onclick="deleteMemory(\'' + escapeHtml(uri) + '\')">删除</button>' +
+                    '</div>';
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
         async function loadMemories() {
-            try { const memories = await api('GET', '/memories?limit=100'); renderMemoriesTable(memories, 'memories-table'); }
+            try { allMemories = await api('GET', '/memories?limit=100'); renderMemoriesTable(allMemories, 'memories-table'); }
             catch (e) { showToast(e.message, 'error'); }
         }
         
@@ -572,34 +850,51 @@
             catch (e) { showToast(e.message, 'error'); }
         }
         
-        async function searchMemories(event) {
-            if (event && event.key && event.key !== 'Enter') return;
-            const query = document.getElementById('search-query').value;
-            if (!query) { document.getElementById('search-results').innerHTML = ''; return; }
+        function filterByPrefix(prefix) {
+            showPage('memories');
+            document.getElementById('filter-uri').value = prefix;
+            filterMemories();
+        }
+        
+        async function loadSystemUri(path) {
             try {
-                const memories = await api('GET', '/search?q=' + encodeURIComponent(query));
-                const container = document.getElementById('search-results');
-                if (memories.length === 0) { container.innerHTML = '<div class="empty-state"><h3>未找到匹配的记忆</h3></div>'; return; }
-                container.innerHTML = memories.map(m => 
-                    `<div style="padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; cursor: pointer;" onclick="showDetail('${escapeHtml(m.uri)}')">` +
-                    '<div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span class="uri">' + escapeHtml(m.uri) + '</span><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></div>' +
-                    '<div style="color: var(--text-muted);">' + escapeHtml(m.content.substring(0, 200)) + (m.content.length > 200 ? '...' : '') + '</div></div>'
-                ).join('');
+                const result = await api('GET', '/system/' + path);
+                const container = document.getElementById('memory-detail');
+                if (result.memories) {
+                    document.getElementById('memory-detail').innerHTML = 
+                        '<h3 style="margin-bottom: 16px;">' + escapeHtml(result.title || result.uri) + '</h3>' +
+                        '<p style="color: var(--text-muted); margin-bottom: 16px;">' + escapeHtml(result.description || '') + '</p>' +
+                        result.memories.map(m => '<div style="padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="showDetail(\'' + escapeHtml(m.uri) + '\')">' +
+                        '<div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span class="uri">' + escapeHtml(m.uri) + '</span><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></div>' +
+                        '<div style="color: var(--text-muted); font-size: 13px;">' + escapeHtml(m.content_preview || m.content || '').substring(0, 200) + '...</div></div>').join('');
+                } else if (result.domains) {
+                    let html = '<h3 style="margin-bottom: 16px;">' + escapeHtml(result.title || result.uri) + '</h3>';
+                    for (const [domain, memories] of Object.entries(result.domains)) {
+                        html += '<div style="margin-bottom: 16px;"><h4 style="margin-bottom: 8px;">' + domain + ':// (' + memories.length + ')</h4>';
+                        html += memories.slice(0, 5).map(m => '<div style="padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; cursor: pointer;" onclick="showDetail(\'' + escapeHtml(m.uri) + '\')">' +
+                            '<span class="uri">' + escapeHtml(m.uri) + '</span> <span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></div>').join('');
+                        if (memories.length > 5) html += '<p style="color: var(--text-muted); font-size: 12px;">还有 ' + (memories.length - 5) + ' 条...</p>';
+                        html += '</div>';
+                    }
+                    document.getElementById('memory-detail').innerHTML = html;
+                }
+                document.getElementById('explorer-page').classList.add('active');
+                document.getElementById('dashboard-page').classList.remove('active');
+                document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
             } catch (e) { showToast(e.message, 'error'); }
         }
         
         function renderMemoriesTable(memories, tableId, simple = false) {
             const tbody = document.getElementById(tableId);
-            const colCount = simple ? 6 : 8;
+            const colCount = simple ? 5 : 8;
             if (memories.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="empty-state">暂无记忆</td></tr>'; return; }
             tbody.innerHTML = memories.map(m => {
                 const type = getMemoryType(m.uri);
-                return '<tr><td><span class="uri">' + escapeHtml(m.uri) + '</span></td>' +
+                return '<tr><td><span class="uri" onclick="showDetail(\'' + escapeHtml(m.uri) + '\')">' + escapeHtml(m.uri) + '</span></td>' +
                     '<td><span class="type-badge type-' + type + '">' + getTypeName(type) + '</span></td>' +
                     '<td><div class="content-preview">' + escapeHtml(m.content) + '</div></td>' +
                     '<td><span class="priority-badge priority-' + m.priority + '">P' + m.priority + '</span></td>' +
-                    '<td><span class="status-badge status-' + m.status + '">' + m.status + '</span></td>' +
-                    (simple ? '' : '<td>' + m.access_count + '</td><td>' + formatDate(m.updated_at) + '</td>') +
+                    (simple ? '' : '<td><span class="status-badge status-' + m.status + '">' + m.status + '</span></td><td>' + m.access_count + '</td><td>' + formatDate(m.updated_at) + '</td>') +
                     '<td class="actions">' +
                     `<button class="icon-btn" onclick="showDetail('${escapeHtml(m.uri)}')" title="查看">👁</button>` +
                     `<button class="icon-btn" onclick="openEditModal('${escapeHtml(m.uri)}')" title="编辑">✏</button>` +
@@ -625,15 +920,88 @@
                     '<div class="detail-label">更新时间</div><div>' + formatDate(memory.updated_at) + '</div>' +
                     '<div class="detail-label">内容</div><div style="white-space: pre-wrap; word-break: break-all;">' + escapeHtml(memory.content) + '</div>';
                 document.getElementById('version-list').innerHTML = versions.length === 0 ? '<p style="color: var(--text-muted);">暂无版本历史</p>'
-                    : versions.map(v => '<div class="version-item"><div class="version-header"><span><strong>版本 ' + v.version + '</strong></span><span style="color: var(--text-muted);">' + formatDate(v.changed_at) + '</span></div>' +
-                        '<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">原因: ' + escapeHtml(v.change_reason || '-') + ' | 来源: ' + v.changed_by + '</div>' +
+                    : versions.map((v, i) => '<div class="version-item"><div class="version-header"><span><strong>版本 ' + v.version + '</strong></span><div class="actions">' +
+                        (i < versions.length - 1 ? '<button class="btn btn-sm btn-secondary" onclick="showDiff(\'' + escapeHtml(uri) + '\', ' + v.version + ', ' + versions[i + 1].version + ')">对比</button>' : '') +
+                        '<button class="btn btn-sm btn-danger" onclick="rollbackVersion(\'' + escapeHtml(uri) + '\', ' + v.version + ')">回滚</button></div></div>' +
+                        '<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">' + formatDate(v.changed_at) + ' | 原因: ' + escapeHtml(v.change_reason || '-') + '</div>' +
                         '<div class="version-content">' + escapeHtml(v.content) + '</div></div>').join('');
                 document.getElementById('relation-list').innerHTML = relations.length === 0 ? '<p style="color: var(--text-muted);">暂无关系</p>'
                     : relations.map(r => '<div class="relation-item">' + (r.direction === 'out' 
-                        ? '<span class="relation-arrow">→</span><span>' + r.relation_type + '</span><span class="uri">' + escapeHtml(r.target_uri) + '</span>'
-                        : '<span class="uri">' + escapeHtml(r.source_uri) + '</span><span>' + r.relation_type + '</span><span class="relation-arrow">→</span>') +
+                        ? '<span class="relation-arrow">→</span><span>' + r.relation_type + '</span><span class="uri" onclick="showDetail(\'' + escapeHtml(r.target_uri) + '\')">' + escapeHtml(r.target_uri) + '</span>'
+                        : '<span class="uri" onclick="showDetail(\'' + escapeHtml(r.source_uri) + '\')">' + escapeHtml(r.source_uri) + '</span><span>' + r.relation_type + '</span><span class="relation-arrow">→</span>') +
                         '<span style="color: var(--text-muted);">(强度: ' + r.strength + ')</span></div>').join('');
                 document.getElementById('detail-modal').classList.add('active');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function loadVersions() {
+            const uri = document.getElementById('review-uri').value;
+            if (!uri) { showToast('请输入 URI', 'error'); return; }
+            try {
+                const versions = await api('GET', '/versions/' + encodeURIComponent(uri));
+                const container = document.getElementById('review-content');
+                if (versions.length === 0) {
+                    container.innerHTML = '<div class="empty-state">该记忆没有版本历史</div>';
+                    return;
+                }
+                container.innerHTML = '<h3 style="margin-bottom: 16px;">' + escapeHtml(uri) + ' - ' + versions.length + ' 个版本</h3>' +
+                    versions.map((v, i) => '<div class="version-item"><div class="version-header"><span><strong>版本 ' + v.version + '</strong> - ' + formatDate(v.changed_at) + '</span>' +
+                        '<div class="actions">' +
+                        (i < versions.length - 1 ? '<button class="btn btn-sm btn-secondary" onclick="showDiff(\'' + escapeHtml(uri) + '\', ' + v.version + ', ' + versions[i + 1].version + ')">与上一版本对比</button>' : '') +
+                        '<button class="btn btn-sm btn-danger" onclick="rollbackVersion(\'' + escapeHtml(uri) + '\', ' + v.version + ')">回滚到此版本</button></div></div>' +
+                        '<div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">原因: ' + escapeHtml(v.change_reason || '-') + ' | 来源: ' + v.changed_by + '</div>' +
+                        '<div class="version-content">' + escapeHtml(v.content) + '</div></div>').join('');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function showDiff(uri, v1, v2) {
+            try {
+                const result = await api('GET', '/diff/' + encodeURIComponent(uri) + '?version1=' + v1 + '&version2=' + v2);
+                document.getElementById('diff-content').innerHTML = 
+                    '<div class="diff-container">' +
+                    '<div class="diff-panel"><div class="diff-panel-header">版本 ' + v1 + '</div><div class="diff-content">' + escapeHtml(result.content1) + '</div></div>' +
+                    '<div class="diff-panel"><div class="diff-panel-header">版本 ' + v2 + '</div><div class="diff-content">' + escapeHtml(result.content2) + '</div></div>' +
+                    '</div>';
+                document.getElementById('diff-modal').classList.add('active');
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function rollbackVersion(uri, version) {
+            if (!confirm('确定要回滚到版本 ' + version + ' 吗？')) return;
+            try {
+                await api('POST', '/rollback/' + encodeURIComponent(uri) + '?version=' + version);
+                showToast('已回滚到版本 ' + version, 'success');
+                loadVersions();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function previewCleanup() {
+            const unusedDays = document.getElementById('cleanup-unused-days').value;
+            const deprecatedDays = document.getElementById('cleanup-deprecated-days').value;
+            try {
+                const result = await api('POST', '/cleanup?dry_run=true' + (unusedDays ? '&unused_days=' + unusedDays : '') + (deprecatedDays ? '&deprecated_days=' + deprecatedDays : ''));
+                const container = document.getElementById('cleanup-results');
+                container.innerHTML = 
+                    '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">' +
+                    '<div class="stat-card"><h3>将归档</h3><div class="value">' + result.archived + '</div></div>' +
+                    '<div class="stat-card"><h3>将清理</h3><div class="value">' + result.cleaned + '</div></div>' +
+                    '</div>' +
+                    '<p style="color: var(--text-muted);">这是预览模式，实际数据未被修改。点击"执行清理"进行实际操作。</p>';
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+        
+        async function executeCleanup() {
+            const unusedDays = document.getElementById('cleanup-unused-days').value;
+            const deprecatedDays = document.getElementById('cleanup-deprecated-days').value;
+            if (!confirm('确定要执行清理吗？此操作不可逆。')) return;
+            try {
+                const result = await api('POST', '/cleanup?dry_run=false' + (unusedDays ? '&unused_days=' + unusedDays : '') + (deprecatedDays ? '&deprecated_days=' + deprecatedDays : ''));
+                showToast('清理完成：归档 ' + result.archived + ' 条，删除 ' + result.cleaned + ' 条', 'success');
+                document.getElementById('cleanup-results').innerHTML = 
+                    '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">' +
+                    '<div class="stat-card"><h3>已归档</h3><div class="value">' + result.archived + '</div></div>' +
+                    '<div class="stat-card"><h3>已清理</h3><div class="value">' + result.cleaned + '</div></div>' +
+                    '</div>';
             } catch (e) { showToast(e.message, 'error'); }
         }
         
@@ -671,6 +1039,7 @@
         
         function closeModal() { document.getElementById('memory-modal').classList.remove('active'); }
         function closeDetailModal() { document.getElementById('detail-modal').classList.remove('active'); }
+        function closeDiffModal() { document.getElementById('diff-modal').classList.remove('active'); }
         
         document.getElementById('memory-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -688,11 +1057,10 @@
             catch (e) { showToast(e.message, 'error'); }
         }
         
-        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML; }
         function formatDate(dateStr) { if (!dateStr) return '-'; return new Date(dateStr).toLocaleString('zh-CN'); }
         function showToast(message, type = 'success') { const toast = document.createElement('div'); toast.className = 'toast ' + type; toast.textContent = message; document.body.appendChild(toast); setTimeout(() => toast.remove(), 3000); }
         
-        // 获取记忆类型
         function getMemoryType(uri) {
             if (!uri) return 'other';
             const match = uri.match(/^([a-z]+):\/\//);
@@ -702,23 +1070,11 @@
             return validTypes.includes(type) ? type : 'other';
         }
         
-        // 获取记忆类型显示名称
         function getTypeName(type) {
-            const names = {
-                'project': '项目',
-                'workflow': '工作流',
-                'user': '用户',
-                'task': '任务',
-                'system': '系统',
-                'session': '会话',
-                'file': '文件',
-                'error': '错误',
-                'other': '其他'
-            };
+            const names = { 'project': '项目', 'workflow': '工作流', 'user': '用户', 'task': '任务', 'system': '系统', 'session': '会话', 'file': '文件', 'error': '错误', 'other': '其他' };
             return names[type] || type;
         }
         
-        // 初始化
         initTheme();
         loadDashboard();
     </script>

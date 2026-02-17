@@ -39,6 +39,11 @@ from .error import (
     find_error_solution,
     mark_solution_success,
 )
+from .system import (
+    handle_system_uri,
+    is_system_uri,
+    get_system_uri_description,
+)
 
 __all__ = [
     "MemoryStatus",
@@ -83,4 +88,7 @@ __all__ = [
     "record_error_solution",
     "find_error_solution",
     "mark_solution_success",
+    "handle_system_uri",
+    "is_system_uri",
+    "get_system_uri_description",
 ]

@@ -24,6 +24,11 @@ from memory import (
     get_versions,
     get_relations,
     get_stats,
+    handle_system_uri,
+    is_system_uri,
+    rollback_to_version,
+    diff_versions,
+    clean_memories,
 )
 
 from .template import get_template_path
@@ -188,5 +193,41 @@ def create_app() -> FastAPI:
     async def api_get_relations(uri: str, direction: str = "both"):
         relations = await get_relations(uri, direction=direction)
         return relations
+    
+    @app.get("/api/system/{path:path}")
+    async def api_system_uri(path: str, limit: int = Query(20, le=100)):
+        uri = f"system://{path}"
+        result = await handle_system_uri(uri, limit=limit)
+        if not result:
+            raise HTTPException(status_code=404, detail="未知的系统 URI")
+        return result
+    
+    @app.post("/api/rollback/{uri:path}")
+    async def api_rollback(uri: str, version: int):
+        memory = await rollback_to_version(uri, version)
+        if not memory:
+            raise HTTPException(status_code=400, detail="回滚失败")
+        return {"success": True, "uri": memory.uri}
+    
+    @app.get("/api/diff/{uri:path}")
+    async def api_diff(uri: str, version1: int, version2: int):
+        result = await diff_versions(uri, version1, version2)
+        if not result:
+            raise HTTPException(status_code=400, detail="无法获取版本差异")
+        return {
+            "version1": version1,
+            "version2": version2,
+            "content1": result[0],
+            "content2": result[1],
+        }
+    
+    @app.post("/api/cleanup")
+    async def api_cleanup(
+        unused_days: Optional[int] = None,
+        deprecated_days: Optional[int] = None,
+        dry_run: bool = True,
+    ):
+        stats = await clean_memories(unused_days, deprecated_days, dry_run)
+        return stats
     
     return app
