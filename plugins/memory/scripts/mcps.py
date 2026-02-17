@@ -15,6 +15,11 @@ MCP Server for Memory Plugin
 - get_memory_stats: 获取统计
 - export_memories: 导出记忆
 - import_memories: 导入记忆
+- add_alias: 添加别名
+- get_memory_versions: 获取版本历史
+- rollback_memory: 回滚记忆
+- diff_versions: 对比版本
+- list_rollbacks: 列出可回滚版本
 """
 
 import asyncio
@@ -54,6 +59,7 @@ from memory import (
     list_memories,
     get_memories_by_priority,
     get_versions,
+    get_version,
     get_relations,
     get_stats,
     export_memories,
@@ -65,6 +71,7 @@ from memory import (
     add_memory_path,
     find_memories_by_path,
 )
+from memory.version import rollback_to_version, diff_versions
 
 
 class MemoryMCPServer:
@@ -287,6 +294,97 @@ class MemoryMCPServer:
                         "required": ["data"]
                     }
                 ),
+                Tool(
+                    name="add_alias",
+                    description="""为现有记忆添加别名（新 URI 路径）。
+
+用途:
+- 同一记忆可以有多个访问入口
+- 不同上下文使用不同名称
+- 构建联想网络
+
+示例:
+- core://agent/my_user -> user://profile
+- project://config -> config://main""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "target_uri": {"type": "string", "description": "目标记忆 URI"},
+                            "alias_uri": {"type": "string", "description": "新别名 URI"}
+                        },
+                        "required": ["target_uri", "alias_uri"]
+                    }
+                ),
+                Tool(
+                    name="get_memory_versions",
+                    description="""获取记忆的版本历史。
+
+返回:
+- 所有历史版本列表
+- 每个版本的时间戳和变更说明
+- 支持限制返回数量""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "uri": {"type": "string", "description": "记忆 URI"},
+                            "limit": {"type": "integer", "description": "返回版本数量限制，默认 10", "default": 10}
+                        },
+                        "required": ["uri"]
+                    }
+                ),
+                Tool(
+                    name="rollback_memory",
+                    description="""将记忆回滚到指定版本。
+
+行为:
+- 恢复到指定版本的内容
+- 创建新的版本记录
+- 保留回滚历史
+
+警告: 回滚操作不可撤销，但会创建新版本记录。""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "uri": {"type": "string", "description": "记忆 URI"},
+                            "version": {"type": "integer", "description": "目标版本号"}
+                        },
+                        "required": ["uri", "version"]
+                    }
+                ),
+                Tool(
+                    name="diff_versions",
+                    description="""对比记忆的两个版本内容。
+
+返回:
+- 两个版本的完整内容
+- 用于手动或自动比较差异""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "uri": {"type": "string", "description": "记忆 URI"},
+                            "version1": {"type": "integer", "description": "第一个版本号"},
+                            "version2": {"type": "integer", "description": "第二个版本号"}
+                        },
+                        "required": ["uri", "version1", "version2"]
+                    }
+                ),
+                Tool(
+                    name="list_rollbacks",
+                    description="""列出可回滚的版本。
+
+返回:
+- 当前版本号
+- 可回滚版本列表
+- 每个版本的摘要信息""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "uri": {"type": "string", "description": "记忆 URI"},
+                            "limit": {"type": "integer", "description": "返回数量限制，默认 10", "default": 10}
+                        },
+                        "required": ["uri"]
+                    }
+                ),
             ]
         
         @self.server.call_tool()
@@ -318,6 +416,16 @@ class MemoryMCPServer:
                     return await self._export_memories(arguments)
                 elif name == "import_memories":
                     return await self._import_memories(arguments)
+                elif name == "add_alias":
+                    return await self._add_alias(arguments)
+                elif name == "get_memory_versions":
+                    return await self._get_memory_versions(arguments)
+                elif name == "rollback_memory":
+                    return await self._rollback_memory(arguments)
+                elif name == "diff_versions":
+                    return await self._diff_versions(arguments)
+                elif name == "list_rollbacks":
+                    return await self._list_rollbacks(arguments)
                 else:
                     return [TextContent(type="text", text=f"Unknown tool: {name}")]
             except Exception as e:
@@ -600,6 +708,132 @@ class MemoryMCPServer:
         result = {
             "success": True,
             "stats": stats,
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _add_alias(self, args: dict) -> list[TextContent]:
+        """添加别名。"""
+        target_uri = args["target_uri"]
+        alias_uri = args["alias_uri"]
+        
+        target_memory = await get_memory(target_uri)
+        if not target_memory:
+            return [TextContent(type="text", text=f"未找到目标记忆: {target_uri}")]
+        
+        existing = await get_memory(alias_uri)
+        if existing:
+            return [TextContent(type="text", text=f"别名 URI 已存在: {alias_uri}")]
+        
+        success = await add_memory_path(target_memory.id, alias_uri)
+        
+        if not success:
+            return [TextContent(type="text", text=f"添加别名失败")]
+        
+        result = {
+            "success": True,
+            "target_uri": target_uri,
+            "alias_uri": alias_uri,
+            "memory_id": target_memory.id,
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _get_memory_versions(self, args: dict) -> list[TextContent]:
+        """获取版本历史。"""
+        uri = args["uri"]
+        limit = args.get("limit", 10)
+        
+        memory = await get_memory(uri, increment_access=False)
+        if not memory:
+            return [TextContent(type="text", text=f"未找到记忆: {uri}")]
+        
+        versions = await get_versions(uri, limit=limit)
+        
+        result = {
+            "uri": uri,
+            "current_version": len(versions) if versions else 0,
+            "versions": [
+                {
+                    "version": v.version,
+                    "content_preview": v.content[:100] + "..." if len(v.content) > 100 else v.content,
+                    "changed_at": v.changed_at,
+                    "changed_by": v.changed_by,
+                    "change_reason": v.change_reason,
+                }
+                for v in versions
+            ],
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _rollback_memory(self, args: dict) -> list[TextContent]:
+        """回滚记忆。"""
+        uri = args["uri"]
+        version = args["version"]
+        
+        memory = await rollback_to_version(uri, version)
+        
+        if not memory:
+            return [TextContent(type="text", text=f"回滚失败: 未找到记忆 {uri} 或版本 {version}")]
+        
+        result = {
+            "success": True,
+            "uri": uri,
+            "rolled_back_to_version": version,
+            "current_content_preview": memory.content[:100] + "..." if len(memory.content) > 100 else memory.content,
+            "updated_at": memory.updated_at,
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _diff_versions(self, args: dict) -> list[TextContent]:
+        """对比版本。"""
+        uri = args["uri"]
+        version1 = args["version1"]
+        version2 = args["version2"]
+        
+        diff_result = await diff_versions(uri, version1, version2)
+        
+        if not diff_result:
+            return [TextContent(type="text", text=f"无法对比: 未找到版本 {version1} 或 {version2}")]
+        
+        content1, content2 = diff_result
+        
+        result = {
+            "uri": uri,
+            "version1": version1,
+            "version2": version2,
+            "content1": content1,
+            "content2": content2,
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _list_rollbacks(self, args: dict) -> list[TextContent]:
+        """列出可回滚版本。"""
+        uri = args["uri"]
+        limit = args.get("limit", 10)
+        
+        memory = await get_memory(uri, increment_access=False)
+        if not memory:
+            return [TextContent(type="text", text=f"未找到记忆: {uri}")]
+        
+        versions = await get_versions(uri, limit=limit)
+        
+        result = {
+            "uri": uri,
+            "current_version": versions[0].version if versions else 0,
+            "can_rollback_to": [
+                {
+                    "version": v.version,
+                    "changed_at": v.changed_at,
+                    "changed_by": v.changed_by,
+                    "change_reason": v.change_reason,
+                    "content_preview": v.content[:100] + "..." if len(v.content) > 100 else v.content,
+                }
+                for v in versions[1:]
+            ],
         }
         
         return [TextContent(type="text", text=json_dumps(result))]
