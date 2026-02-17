@@ -47,9 +47,8 @@
 
 **操作流程**：
 1. 初始化会话记录
-2. 加载 priority ≤ 2 的核心记忆
-3. 加载项目级 CLAUDE.md 导入的记忆
-4. 输出加载摘要
+2. 加载 priority ≤ 3 的核心记忆
+3. 输出加载摘要
 
 **输出**：
 - 加载的记忆数量
@@ -64,60 +63,54 @@
 
 **操作流程**：
 1. 解析文件路径
-2. 根据文件扩展名查找相关记忆
-3. 根据目录路径查找项目结构记忆
-4. 注入上下文到 Claude
+2. 根据文件路径查找相关记忆
+3. 注入上下文到 Claude
 
 **输出**：
-- additionalContext 字段
+- 相关记忆预览
 
 ### 2.3 PostToolUse (Write/Edit)
 
 **输入**：
 - tool_name: 工具名称
 - tool_input: 工具输入
-- tool_output: 工具输出
+- tool_result: 工具输出
 - session_id: 会话 ID
 
 **操作流程**：
 1. 记录文件修改操作
-2. 检测是否需要更新项目结构
-3. 检测是否产生新的代码模式
-4. 智能推荐创建记忆
+2. 创建文件操作记忆
 
 **输出**：
-- 可选的推荐提示
+- 记忆创建确认
 
 ### 2.4 PostToolUseFailure
 
 **输入**：
 - tool_name: 工具名称
 - tool_input: 工具输入
-- tool_output (error): 错误输出
+- error: 错误信息
 - session_id: 会话 ID
 
 **操作流程**：
 1. 记录失败操作和错误信息
-2. 在错误解决方案库中查找匹配
-3. 如果找到解决方案，注入上下文
+2. 创建错误记忆
 
 **输出**：
-- 解决方案提示
+- 错误记录确认
 
 ### 2.5 Stop
 
 **输入**：
 - session_id: 会话 ID
-- transcript_path: 会话记录路径
-- stop_hook_active: 是否已触发停止钩子
+- reason: 停止原因
 
 **操作流程**：
-1. 检查 stop_hook_active 防止循环
-2. 统计未保存的操作数量
-3. 如果超过阈值，阻止停止并提示保存
+1. 创建停止状态记忆
+2. 记录停止原因
 
 **输出**：
-- block 决策 + 提示信息
+- 状态保存确认
 
 ### 2.6 PreCompact
 
@@ -126,12 +119,84 @@
 - transcript_path: 会话记录路径
 
 **操作流程**：
-1. 分析即将压缩的内容
-2. 提取重要信息（决策、模式、解决方案）
-3. 自动保存到记忆系统
+1. 搜索压缩相关记忆
+2. 提取重要关键词记忆（决定、重要、关键、配置等）
+3. 创建压缩前信息摘要记忆
 
 **输出**：
 - 保存确认信息
+
+### 2.7 UserPromptSubmit
+
+**输入**：
+- prompt: 用户提示
+- session_id: 会话 ID
+
+**操作流程**：
+1. 分析用户意图关键词
+2. 搜索相关记忆并预加载
+3. 创建用户提示记忆
+
+**输出**：
+- 预加载的相关记忆
+
+### 2.8 PermissionRequest
+
+**输入**：
+- tool_name: 工具名称
+- permission_type: 权限类型
+- decision: 用户决策
+
+**操作流程**：
+1. 记录权限请求和决策
+2. 如果用户允许，创建权限偏好记忆
+
+**输出**：
+- 权限记录确认
+
+### 2.9 Notification
+
+**输入**：
+- notification_type: 通知类型
+- message: 通知消息
+- title: 通知标题
+
+**操作流程**：
+1. 根据通知类型确定优先级
+2. 创建通知记忆
+
+**输出**：
+- 通知记录确认
+
+### 2.10 SubagentStart
+
+**输入**：
+- subagent_id: Subagent ID
+- parent_session_id: 父会话 ID
+- task: 任务描述
+
+**操作流程**：
+1. 加载核心记忆
+2. 创建上下文传递记忆
+3. 创建启动状态记忆
+
+**输出**：
+- 上下文传递确认
+
+### 2.11 SubagentStop
+
+**输入**：
+- subagent_id: Subagent ID
+- result: 执行结果
+- success: 是否成功
+
+**操作流程**：
+1. 创建停止状态记忆
+2. 如果成功，搜索 Subagent 相关记忆
+3. 创建执行摘要记忆
+
+**输出**：
+- 结果合并确认
 
 ---
 
@@ -192,3 +257,22 @@
 - 捕获所有异常
 - 记录日志到插件日志文件
 - 不影响 Claude Code 主流程
+
+---
+
+## 五、已实现事件
+
+| 事件 | 状态 | 说明 |
+|------|------|------|
+| SessionStart | ✅ | 加载核心记忆 |
+| SessionEnd | ✅ | 保存会话摘要 |
+| PreToolUse | ✅ | 智能预加载 |
+| PostToolUse | ✅ | 自动记录操作 |
+| PostToolUseFailure | ✅ | 记录错误 |
+| Stop | ✅ | 保存会话状态 |
+| PreCompact | ✅ | 提取重要信息 |
+| UserPromptSubmit | ✅ | 分析意图、预加载 |
+| PermissionRequest | ✅ | 记录决策、学习偏好 |
+| Notification | ✅ | 记录重要通知 |
+| SubagentStart | ✅ | 传递上下文、隔离记忆 |
+| SubagentStop | ✅ | 收集结果、合并记忆 |

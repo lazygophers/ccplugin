@@ -158,3 +158,141 @@ class TestHandleStop:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
                 handle_stop({"reason": "test_reason"})
+
+
+class TestHandlePreCompact:
+    """测试 handle_pre_compact 函数"""
+    
+    def test_handle_pre_compact(self):
+        from hooks import handle_pre_compact
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_pre_compact({
+                    "transcript_path": "/test/transcript.json",
+                    "session_id": "test_session"
+                })
+
+
+class TestHandleUserPromptSubmit:
+    """测试 handle_user_prompt_submit 函数"""
+    
+    def test_handle_user_prompt_submit_with_prompt(self):
+        from hooks import handle_user_prompt_submit
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_user_prompt_submit({
+                    "prompt": "请帮我配置项目文件",
+                    "session_id": "test_session"
+                })
+    
+    def test_handle_user_prompt_submit_without_prompt(self):
+        from hooks import handle_user_prompt_submit
+        
+        handle_user_prompt_submit({
+            "prompt": "",
+            "session_id": "test_session"
+        })
+
+
+class TestHandlePermissionRequest:
+    """测试 handle_permission_request 函数"""
+    
+    def test_handle_permission_request_allow(self):
+        from hooks import handle_permission_request
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_permission_request({
+                    "tool_name": "Bash",
+                    "permission_type": "execute",
+                    "decision": "allow"
+                })
+    
+    def test_handle_permission_request_deny(self):
+        from hooks import handle_permission_request
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_permission_request({
+                    "tool_name": "Bash",
+                    "permission_type": "execute",
+                    "decision": "deny"
+                })
+
+
+class TestHandleNotification:
+    """测试 handle_notification 函数"""
+    
+    def test_handle_notification_error(self):
+        from hooks import handle_notification
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_notification({
+                    "notification_type": "error",
+                    "message": "发生错误",
+                    "title": "错误通知"
+                })
+    
+    def test_handle_notification_warning(self):
+        from hooks import handle_notification
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_notification({
+                    "notification_type": "warning",
+                    "message": "警告信息",
+                    "title": "警告"
+                })
+    
+    def test_handle_notification_without_message(self):
+        from hooks import handle_notification
+        
+        handle_notification({
+            "notification_type": "info",
+            "message": "",
+            "title": ""
+        })
+
+
+class TestHandleSubagentStart:
+    """测试 handle_subagent_start 函数"""
+    
+    def test_handle_subagent_start(self):
+        from hooks import handle_subagent_start
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_subagent_start({
+                    "subagent_id": "sub_123",
+                    "parent_session_id": "session_456",
+                    "task": "执行测试任务"
+                })
+
+
+class TestHandleSubagentStop:
+    """测试 handle_subagent_stop 函数"""
+    
+    def test_handle_subagent_stop_success(self):
+        from hooks import handle_subagent_stop
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_subagent_stop({
+                    "subagent_id": "sub_123",
+                    "result": "任务完成",
+                    "success": True
+                })
+    
+    def test_handle_subagent_stop_failure(self):
+        from hooks import handle_subagent_stop
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
+                handle_subagent_stop({
+                    "subagent_id": "sub_123",
+                    "result": "任务失败",
+                    "success": False
+                })
