@@ -1,6 +1,7 @@
 from functools import wraps
+import asyncio
 
-import click
+import rich_click as click
 
 from lib import logging
 from web import start_web
@@ -39,6 +40,30 @@ def web(port, no_browser: bool, enable_reload: bool) -> None:
     """启动 Web 管理界面"""
     logging.enable_debug()
     start_web(port=port, open_browser=not no_browser, reload=enable_reload)
+
+
+@main.command()
+@with_debug
+def mcp() -> None:
+    """启动 MCP Server（Model Context Protocol）
+    
+    启动 MCP 服务器，让 AI Agent 能直接通过 MCP 协议操作记忆系统。
+    
+    可用工具:
+    - read_memory: 读取记忆
+    - create_memory: 创建记忆
+    - update_memory: 更新记忆
+    - delete_memory: 删除记忆
+    - search_memory: 搜索记忆
+    - preload_memory: 预加载记忆
+    - save_session: 保存会话
+    - list_memories: 列出记忆
+    - get_memory_stats: 获取统计
+    - export_memories: 导出记忆
+    - import_memories: 导入记忆
+    """
+    from mcps import main as mcp_main
+    asyncio.run(mcp_main())
 
 
 if __name__ == "__main__":
