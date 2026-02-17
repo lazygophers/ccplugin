@@ -61,6 +61,11 @@ def mcp() -> None:
     - get_memory_stats: 获取统计
     - export_memories: 导出记忆
     - import_memories: 导入记忆
+    - add_alias: 添加别名
+    - get_memory_versions: 获取版本历史
+    - rollback_memory: 回滚记忆
+    - diff_versions: 对比版本
+    - list_rollbacks: 列出可回滚版本
     """
     from mcps import main as mcp_main
     asyncio.run(mcp_main())
