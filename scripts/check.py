@@ -34,6 +34,21 @@ from lib.utils import print_help
 
 console = Console()
 
+VALID_HOOK_EVENTS = frozenset({
+	"PreToolUse",
+	"PostToolUse",
+	"PostToolUseFailure",
+	"PermissionRequest",
+	"UserPromptSubmit",
+	"Notification",
+	"Stop",
+	"SubagentStart",
+	"SubagentStop",
+	"SessionStart",
+	"SessionEnd",
+	"PreCompact",
+})
+
 HOOK_EVENT_SAMPLES = {
 	"SessionStart": {
 		"session_id": "test-session-123",
@@ -86,20 +101,6 @@ HOOK_EVENT_SAMPLES = {
 			"success": True,
 			"message": "File written successfully"
 		},
-		"tool_use_id": "toolu_01ABC123"
-	},
-	"PreToolUseFailure": {
-		"session_id": "test-session-123",
-		"transcript_path": "/tmp/transcript.jsonl",
-		"cwd": "/current/working/directory",
-		"permission_mode": "default",
-		"hook_event_name": "PreToolUseFailure",
-		"tool_name": "Write",
-		"tool_input": {
-			"file_path": "/tmp/test.txt",
-			"content": "test content"
-		},
-		"error": "Permission denied",
 		"tool_use_id": "toolu_01ABC123"
 	},
 	"PostToolUseFailure": {
@@ -462,9 +463,8 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 	
 	hooks = plugin_data.get("hooks", {})
 	if hooks:
-		valid_events = set(HOOK_EVENT_SAMPLES.keys())
 		for event_name in hooks.keys():
-			if event_name in valid_events:
+			if event_name in VALID_HOOK_EVENTS:
 				report.add_result(CheckResult(
 					category="config",
 					name=f"Hook {event_name}",
@@ -475,8 +475,8 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 				report.add_result(CheckResult(
 					category="config",
 					name=f"Hook {event_name}",
-					status="warning",
-					message=f"未知的 Hook 事件类型: {event_name}"
+					status="error",
+					message=f"非法 Hook 事件类型: {event_name}（不在 Claude Code 官方文档中）"
 				))
 	
 	return plugin_data
@@ -536,6 +536,15 @@ def test_hook_input(
 		return
 	
 	for event_name in hooks_config.keys():
+		if event_name not in VALID_HOOK_EVENTS:
+			report.add_result(CheckResult(
+				category="hook_test",
+				name=f"测试 {event_name}",
+				status="error",
+				message=f"非法 Hook 事件类型: {event_name}（不在 Claude Code 官方文档中）"
+			))
+			continue
+		
 		if event_name not in HOOK_EVENT_SAMPLES:
 			report.add_result(CheckResult(
 				category="hook_test",
