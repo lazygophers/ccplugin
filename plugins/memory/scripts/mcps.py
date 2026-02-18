@@ -20,6 +20,11 @@ MCP Server for Memory Plugin
 - rollback_memory: 回滚记忆
 - diff_versions: 对比版本
 - list_rollbacks: 列出可回滚版本
+- detect_patterns: 检测操作模式
+- detect_conflicts: 检测冲突
+- resolve_conflict: 解决冲突
+- generate_report: 生成分析报告
+- get_recommendations: 获取推荐
 """
 
 import asyncio
@@ -72,6 +77,11 @@ from memory import (
     find_memories_by_path,
 )
 from memory.version import rollback_to_version, diff_versions
+from memory.advanced import (
+    get_recommendation_engine,
+    get_conflict_resolver,
+    get_analytics_engine,
+)
 
 
 class MemoryMCPServer:
@@ -385,6 +395,93 @@ class MemoryMCPServer:
                         "required": ["uri"]
                     }
                 ),
+                Tool(
+                    name="detect_patterns",
+                    description="""检测操作模式和重复搜索。
+
+返回:
+- 工具使用模式
+- 目录操作模式
+- 重复搜索检测
+- 推荐创建的记忆""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="detect_conflicts",
+                    description="""检测记忆冲突。
+
+检测类型:
+- 内容冲突: 相同内容但不同 URI
+- 时间冲突: 相似 URI 但内容不同
+- 依赖冲突: 已删除记忆被活跃记忆引用""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "check_content": {"type": "boolean", "description": "检测内容冲突", "default": True},
+                            "check_time": {"type": "boolean", "description": "检测时间冲突", "default": True},
+                            "check_dependency": {"type": "boolean", "description": "检测依赖冲突", "default": True}
+                        },
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="resolve_conflict",
+                    description="""解决记忆冲突。
+
+策略:
+- keep_latest: 保留最新版本
+- keep_oldest: 保留最老版本
+- merge: 合并内容
+- keep_both: 保留两者""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "conflict_type": {"type": "string", "description": "冲突类型"},
+                            "memories": {"type": "array", "items": {"type": "string"}, "description": "冲突的记忆 URI 列表"},
+                            "strategy": {"type": "string", "description": "解决策略: keep_latest/keep_oldest/merge/keep_both", "default": "keep_latest"}
+                        },
+                        "required": ["conflict_type", "memories"]
+                    }
+                ),
+                Tool(
+                    name="generate_report",
+                    description="""生成记忆分析报告。
+
+报告内容:
+- 摘要: 总记忆数、质量分数
+- 使用分析: 访问频率、最常访问、从未访问
+- 质量分析: 过时记忆、短内容、缺失触发条件
+- 演化分析: 增长趋势、更新频率
+- 洞察: 发现的问题和机会
+- 推荐: 建议执行的操作""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                ),
+                Tool(
+                    name="get_recommendations",
+                    description="""获取智能推荐。
+
+推荐类型:
+- 文件类型推荐: 根据文件扩展名推荐相关记忆
+- 模式推荐: 基于操作历史推荐创建记忆
+- 清理推荐: 基于分析推荐清理操作""",
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "file_ext": {"type": "string", "description": "文件扩展名（可选）"},
+                            "include_patterns": {"type": "boolean", "description": "包含模式检测", "default": True},
+                            "include_cleanup": {"type": "boolean", "description": "包含清理推荐", "default": True}
+                        },
+                        "required": []
+                    }
+                ),
             ]
         
         @self.server.call_tool()
@@ -426,6 +523,16 @@ class MemoryMCPServer:
                     return await self._diff_versions(arguments)
                 elif name == "list_rollbacks":
                     return await self._list_rollbacks(arguments)
+                elif name == "detect_patterns":
+                    return await self._detect_patterns(arguments)
+                elif name == "detect_conflicts":
+                    return await self._detect_conflicts(arguments)
+                elif name == "resolve_conflict":
+                    return await self._resolve_conflict(arguments)
+                elif name == "generate_report":
+                    return await self._generate_report(arguments)
+                elif name == "get_recommendations":
+                    return await self._get_recommendations(arguments)
                 else:
                     return [TextContent(type="text", text=f"Unknown tool: {name}")]
             except Exception as e:
@@ -834,6 +941,174 @@ class MemoryMCPServer:
                 }
                 for v in versions[1:]
             ],
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _detect_patterns(self, args: dict) -> list[TextContent]:
+        """检测操作模式。"""
+        engine = get_recommendation_engine()
+        
+        patterns = engine.detect_patterns()
+        repeated = engine.detect_repeated_searches()
+        
+        result = {
+            "patterns": patterns,
+            "repeated_searches": repeated,
+            "total_patterns_found": len(patterns) + len(repeated),
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _detect_conflicts(self, args: dict) -> list[TextContent]:
+        """检测冲突。"""
+        check_content = args.get("check_content", True)
+        check_time = args.get("check_time", True)
+        check_dependency = args.get("check_dependency", True)
+        
+        resolver = get_conflict_resolver()
+        
+        memories = await list_memories(limit=1000)
+        memories_data = [
+            {
+                "uri": m.uri,
+                "content": m.content,
+                "status": m.status,
+                "updated_at": m.updated_at,
+            }
+            for m in memories
+        ]
+        
+        conflicts = []
+        
+        if check_content:
+            conflicts.extend(resolver.detect_content_conflict(memories_data))
+        
+        if check_time:
+            conflicts.extend(resolver.detect_time_conflict(memories_data))
+        
+        if check_dependency:
+            all_relations = []
+            for m in memories[:100]:
+                relations = await get_relations(m.uri)
+                all_relations.extend(relations)
+            conflicts.extend(resolver.detect_dependency_conflict(memories_data, all_relations))
+        
+        result = {
+            "total_conflicts": len(conflicts),
+            "conflicts": conflicts,
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _resolve_conflict(self, args: dict) -> list[TextContent]:
+        """解决冲突。"""
+        conflict_type = args["conflict_type"]
+        memories = args["memories"]
+        strategy = args.get("strategy", "keep_latest")
+        
+        resolver = get_conflict_resolver()
+        
+        conflict = {
+            "type": conflict_type,
+            "memories": memories,
+        }
+        
+        resolution = resolver.resolve_conflict(conflict, strategy)
+        
+        result = {
+            "success": True,
+            "resolution": resolution,
+        }
+        
+        return [TextContent(type="text", text=json_dumps(result))]
+    
+    async def _generate_report(self, args: dict) -> list[TextContent]:
+        """生成分析报告。"""
+        engine = get_analytics_engine()
+        
+        memories = await list_memories(limit=1000)
+        memories_data = [
+            {
+                "uri": m.uri,
+                "content": m.content,
+                "status": m.status,
+                "priority": m.priority,
+                "disclosure": m.disclosure,
+                "access_count": m.access_count,
+                "created_at": m.created_at,
+                "updated_at": m.updated_at,
+            }
+            for m in memories
+        ]
+        
+        versions_data = []
+        for m in memories[:100]:
+            versions = await get_versions(m.uri, limit=10)
+            versions_data.extend([{"uri": m.uri, "version": v.version} for v in versions])
+        
+        report = engine.generate_report(memories_data, versions_data)
+        
+        return [TextContent(type="text", text=json_dumps(report))]
+    
+    async def _get_recommendations(self, args: dict) -> list[TextContent]:
+        """获取推荐。"""
+        file_ext = args.get("file_ext")
+        include_patterns = args.get("include_patterns", True)
+        include_cleanup = args.get("include_cleanup", True)
+        
+        engine = get_recommendation_engine()
+        analytics = get_analytics_engine()
+        
+        recommendations = []
+        
+        if file_ext:
+            file_recs = engine.recommend_for_file_type(file_ext)
+            recommendations.append({
+                "type": "file_type",
+                "file_ext": file_ext,
+                "recommendations": file_recs,
+            })
+        
+        if include_patterns:
+            patterns = engine.detect_patterns()
+            if patterns:
+                recommendations.append({
+                    "type": "patterns",
+                    "patterns": patterns,
+                })
+            
+            repeated = engine.detect_repeated_searches()
+            if repeated:
+                recommendations.append({
+                    "type": "repeated_searches",
+                    "searches": repeated,
+                })
+        
+        if include_cleanup:
+            memories = await list_memories(limit=100)
+            memories_data = [
+                {
+                    "uri": m.uri,
+                    "content": m.content,
+                    "status": m.status,
+                    "access_count": m.access_count,
+                    "updated_at": m.updated_at,
+                }
+                for m in memories
+            ]
+            quality = analytics.generate_quality_analysis(memories_data)
+            
+            if quality.get("outdated_count", 0) > 0:
+                recommendations.append({
+                    "type": "cleanup",
+                    "action": "archive_outdated",
+                    "count": quality.get("outdated_count"),
+                })
+        
+        result = {
+            "recommendations": recommendations,
+            "total_recommendations": len(recommendations),
         }
         
         return [TextContent(type="text", text=json_dumps(result))]

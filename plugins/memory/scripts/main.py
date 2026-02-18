@@ -66,6 +66,11 @@ def mcp() -> None:
     - rollback_memory: 回滚记忆
     - diff_versions: 对比版本
     - list_rollbacks: 列出可回滚版本
+    - detect_patterns: 检测操作模式
+    - detect_conflicts: 检测冲突
+    - resolve_conflict: 解决冲突
+    - generate_report: 生成分析报告
+    - get_recommendations: 获取推荐
     """
     from mcps import main as mcp_main
     asyncio.run(mcp_main())

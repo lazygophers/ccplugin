@@ -20,6 +20,11 @@
 | **rollback_memory** | 回滚记忆 | uri, version |
 | **diff_versions** | 对比版本 | uri, version1, version2 |
 | **list_rollbacks** | 列出可回滚版本 | uri, limit |
+| **detect_patterns** | 检测操作模式 | 无 |
+| **detect_conflicts** | 检测冲突 | check_content, check_time, check_dependency |
+| **resolve_conflict** | 解决冲突 | conflict_type, memories, strategy |
+| **generate_report** | 生成分析报告 | 无 |
+| **get_recommendations** | 获取推荐 | file_ext, include_patterns, include_cleanup |
 
 ---
 
