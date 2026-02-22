@@ -43,8 +43,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.127"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#a34a06870593240d967bb739ba836eb9572b4d07" }
+version = "0.0.128"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#6e2fe982ccd3ec5aae66bbd310f6ccae8cf627e6" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
@@ -54,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "llms"
-version = "0.0.127"
+version = "0.0.128"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

@@ -1,6 +1,6 @@
 {
   "name": "memory",
-  "version": "0.0.128",
+  "version": "0.0.129",
   "description": "智能记忆插件 - 提供 URI 寻址的记忆存储、自动 Hooks 集成和跨会话持久化。支持项目、工作流、用户、任务等多维度记忆管理",
   "author": {
     "name": "Claude Code",
