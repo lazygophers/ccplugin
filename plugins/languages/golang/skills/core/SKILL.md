@@ -7,16 +7,16 @@ description: Go 开发核心规范：强制约定、代码格式、提交检查�
 
 ## 相关 Skills
 
-| 场景           | Skill               | 说明                                        |
-| -------------- | ------------------- | ------------------------------------------- |
-| 处理错误       | Skills(error)       | 错误处理规范：禁止单行 if err、必须记录日志 |
-| 使用工具库     | Skills(libs)        | 优先库规范：stringx/candy/osx/log           |
-| 命名变量/类型  | Skills(naming)      | 命名规范：Id/Uid/IsActive/CreatedAt         |
-| 设计架构       | Skills(structure)   | 项目结构规范：三层架构、全局状态模式        |
-| 写测试         | Skills(testing)     | 测试规范：单元测试、表驱动测试              |
-| 写并发代码     | Skills(concurrency) | 并发规范：atomic/sync.Pool/errgroup         |
-| 配置/运行 lint | Skills(lint)        | Lint 规范：golangci-lint 配置               |
-| 运行工具       | Skills(tooling)     | 工具规范：gofmt/goimports/go mod            |
+| 场景           | Skill                   | 说明                                        |
+| -------------- | ----------------------- | ------------------------------------------- |
+| 处理错误       | Skills(golang:error)       | 错误处理规范：禁止单行 if err、必须记录日志 |
+| 使用工具库     | Skills(golang:libs)        | 优先库规范：stringx/candy/osx/log           |
+| 命名变量/类型  | Skills(golang:naming)      | 命名规范：Id/Uid/IsActive/CreatedAt         |
+| 设计架构       | Skills(golang:structure)   | 项目结构规范：三层架构、全局状态模式        |
+| 写测试         | Skills(golang:testing)     | 测试规范：单元测试、表驱动测试              |
+| 写并发代码     | Skills(golang:concurrency) | 并发规范：atomic/sync.Pool/errgroup         |
+| 配置/运行 lint | Skills(golang:lint)        | Lint 规范：golangci-lint 配置               |
+| 运行工具       | Skills(golang:tooling)     | 工具规范：gofmt/goimports/go mod            |
 
 ## 核心理念
 

@@ -9,10 +9,10 @@ description: Rust 开发核心规范：Rust 2024 edition、所有权系统、强
 
 | 场景 | Skill | 说明 |
 |------|-------|------|
-| 内存管理 | Skills(memory) | 智能指针、内存布局 |
-| 异步编程 | Skills(async) | async/await、Tokio |
-| Unsafe | Skills(unsafe) | unsafe 代码、FFI |
-| 宏开发 | Skills(macros) | 声明宏、过程宏 |
+| 内存管理 | Skills(rust:memory) | 智能指针、内存布局 |
+| 异步编程 | Skills(rust:async) | async/await、Tokio |
+| Unsafe | Skills(rust:unsafe) | unsafe 代码、FFI |
+| 宏开发 | Skills(rust:macros) | 声明宏、过程宏 |
 
 ## 核心原则
 

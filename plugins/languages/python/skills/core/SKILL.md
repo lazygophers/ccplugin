@@ -9,11 +9,11 @@ description: Python 开发核心规范：PEP 8、命名规范、代码格式。�
 
 | 场景 | Skill | 说明 |
 |------|-------|------|
-| 错误处理 | Skills(error) | 异常处理、错误管理 |
-| 类型提示 | Skills(types) | 类型注解、mypy |
-| 测试 | Skills(testing) | pytest、测试规范 |
-| 异步编程 | Skills(async) | asyncio、并发模式 |
-| Web 开发 | Skills(web) | FastAPI、Pydantic |
+| 错误处理 | Skills(python:error) | 异常处理、错误管理 |
+| 类型提示 | Skills(python:types) | 类型注解、mypy |
+| 测试 | Skills(python:testing) | pytest、测试规范 |
+| 异步编程 | Skills(python:async) | asyncio、并发模式 |
+| Web 开发 | Skills(python:web) | FastAPI、Pydantic |
 
 ## 核心原则
 
