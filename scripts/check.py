@@ -16,6 +16,8 @@ Usage:
 
 import argparse
 import json
+import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -169,6 +171,61 @@ HOOK_EVENT_SAMPLES = {
 
 REQUIRED_PLUGIN_FIELDS = ["name", "version", "description"]
 RECOMMENDED_PLUGIN_FIELDS = ["author", "license", "keywords"]
+
+
+def expand_env_vars(text: str, plugin_path: Path) -> str:
+	"""Expand environment variables in a string.
+	
+	Supports:
+	- ${VAR} syntax
+	- $VAR syntax
+	- Special variables: CLAUDE_PLUGIN_ROOT, CLAUDE_PROJECT_DIR
+	
+	Args:
+		text: String containing environment variables
+		plugin_path: Path to plugin directory (for CLAUDE_PLUGIN_ROOT)
+		
+	Returns:
+		String with environment variables expanded
+	"""
+	env_vars = {
+		'CLAUDE_PLUGIN_ROOT': str(plugin_path),
+		'CLAUDE_PROJECT_DIR': str(plugin_path),
+	}
+	
+	env_vars.update(os.environ)
+	
+	def replace_var(match: re.Match) -> str:
+		var_name = match.group(1) or match.group(2)
+		return env_vars.get(var_name, match.group(0))
+	
+	text = re.sub(r'\$\{(\w+)\}', replace_var, text)
+	text = re.sub(r'\$(\w+)(?![\w{])', replace_var, text)
+	
+	return text
+
+
+def extract_hook_commands(hooks_config: list[dict[str, Any]], plugin_path: Path) -> list[str]:
+	"""Extract and expand hook commands from hooks configuration.
+	
+	Args:
+		hooks_config: List of hook configurations
+		plugin_path: Path to plugin directory
+		
+	Returns:
+		List of expanded commands
+	"""
+	commands = []
+	
+	for hook_item in hooks_config:
+		hooks_list = hook_item.get("hooks", [])
+		for hook in hooks_list:
+			if hook.get("type") == "command":
+				cmd = hook.get("command", "")
+				expanded_cmd = expand_env_vars(cmd, plugin_path)
+				commands.append(expanded_cmd)
+	
+	return commands
 
 
 @dataclass
@@ -494,18 +551,6 @@ def test_hook_input(
 		plugin_data: Plugin JSON data
 		report: Check report to update
 	"""
-	hooks_py = plugin_path / 'scripts' / 'hooks.py'
-	main_py = plugin_path / 'scripts' / 'main.py'
-	
-	if not hooks_py.exists() and not main_py.exists():
-		report.add_result(CheckResult(
-			category="hook_test",
-			name="入口文件",
-			status="skip",
-			message="hooks.py 和 main.py 均不存在，跳过 hook 测试"
-		))
-		return
-	
 	if plugin_data is None:
 		report.add_result(CheckResult(
 			category="hook_test",
@@ -525,17 +570,7 @@ def test_hook_input(
 		))
 		return
 	
-	pyproject = plugin_path / 'pyproject.toml'
-	if not pyproject.exists():
-		report.add_result(CheckResult(
-			category="hook_test",
-			name="环境",
-			status="warning",
-			message="pyproject.toml 不存在，无法执行 hook 测试"
-		))
-		return
-	
-	for event_name in hooks_config.keys():
+	for event_name, event_hooks in hooks_config.items():
 		if event_name not in VALID_HOOK_EVENTS:
 			report.add_result(CheckResult(
 				category="hook_test",
@@ -554,55 +589,68 @@ def test_hook_input(
 			))
 			continue
 		
+		commands = extract_hook_commands(event_hooks, plugin_path)
+		if not commands:
+			report.add_result(CheckResult(
+				category="hook_test",
+				name=f"测试 {event_name}",
+				status="warning",
+				message="未找到可执行的 hook 命令"
+			))
+			continue
+		
 		sample_input = HOOK_EVENT_SAMPLES[event_name]
 		
-		try:
-			result = subprocess.run(
-				['uv', 'run', './scripts/main.py', 'hooks'],
-				cwd=plugin_path,
-				input=json.dumps(sample_input),
-				capture_output=True,
-				text=True,
-				timeout=30
-			)
-			
-			if result.returncode == 0:
-				report.add_result(CheckResult(
-					category="hook_test",
-					name=f"测试 {event_name}",
-					status="pass",
-					message="Hook 执行成功",
-					details=result.stdout[:200] if result.stdout else None
-				))
-			else:
+		for cmd in commands:
+			try:
+				result = subprocess.run(
+					cmd,
+					shell=True,
+					cwd=plugin_path,
+					input=json.dumps(sample_input),
+					capture_output=True,
+					text=True,
+					timeout=30,
+					env={**os.environ, 'CLAUDE_PLUGIN_ROOT': str(plugin_path)}
+				)
+				
+				if result.returncode == 0:
+					report.add_result(CheckResult(
+						category="hook_test",
+						name=f"测试 {event_name}",
+						status="pass",
+						message="Hook 执行成功",
+						details=result.stdout[:200] if result.stdout else None
+					))
+				else:
+					report.add_result(CheckResult(
+						category="hook_test",
+						name=f"测试 {event_name}",
+						status="error",
+						message=f"Hook 执行失败 (exit code: {result.returncode})",
+						details=result.stderr[:200] if result.stderr else None
+					))
+			except subprocess.TimeoutExpired:
 				report.add_result(CheckResult(
 					category="hook_test",
 					name=f"测试 {event_name}",
 					status="error",
-					message=f"Hook 执行失败 (exit code: {result.returncode})",
-					details=result.stderr[:200] if result.stderr else None
+					message="Hook 执行超时"
 				))
-		except subprocess.TimeoutExpired:
-			report.add_result(CheckResult(
-				category="hook_test",
-				name=f"测试 {event_name}",
-				status="error",
-				message="Hook 执行超时"
-			))
-		except FileNotFoundError:
-			report.add_result(CheckResult(
-				category="hook_test",
-				name=f"测试 {event_name}",
-				status="error",
-				message="uv 命令未找到"
-			))
-		except Exception as e:
-			report.add_result(CheckResult(
-				category="hook_test",
-				name=f"测试 {event_name}",
-				status="error",
-				message=f"Hook 测试异常: {str(e)}"
-			))
+			except FileNotFoundError:
+				report.add_result(CheckResult(
+					category="hook_test",
+					name=f"测试 {event_name}",
+					status="error",
+					message="命令未找到"
+				))
+			except Exception as e:
+				report.add_result(CheckResult(
+					category="hook_test",
+					name=f"测试 {event_name}",
+					status="error",
+					message=f"Hook 测试异常: {str(e)}"
+				))
 
 
 def print_report(report: PluginCheckReport) -> None:
