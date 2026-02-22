@@ -26,7 +26,23 @@
     "./agents/debug.md",
     "./agents/perf.md"
   ],
-  "skills": "./skills/",
+  "commands": [
+    "./commands/dev.md",
+    "./commands/review.md",
+    "./commands/init.md",
+    "./commands/ci.md"
+  ],
+  "skills": [
+    "./skills/core/SKILL.md",
+    "./skills/error/SKILL.md",
+    "./skills/libs/SKILL.md",
+    "./skills/naming/SKILL.md",
+    "./skills/structure/SKILL.md",
+    "./skills/testing/SKILL.md",
+    "./skills/concurrency/SKILL.md",
+    "./skills/lint/SKILL.md",
+    "./skills/tooling/SKILL.md"
+  ],
   "lspServers": "./.lsp.json",
   "hooks": {
     "SessionStart": [
