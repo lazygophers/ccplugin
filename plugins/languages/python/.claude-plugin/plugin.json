@@ -1,15 +1,15 @@
 {
   "name": "python",
-  "version": "0.0.127",
-  "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
+  "version": "0.0.128",
+  "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持",
   "author": {
-    "name": "Claude Code",
-    "email": "admin@example.com",
-    "url": "https://github.com/anthropics/claude-code"
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
   },
-  "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
-  "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/python",
-  "license": "MIT",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/python",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/python",
+  "license": "AGPL-3.0-or-later",
   "keywords": [
     "python",
     "py",
@@ -26,20 +26,17 @@
     "./agents/debug.md",
     "./agents/perf.md"
   ],
-  "skills": "./skills/",
+  "skills": [
+    "./skills/core/SKILL.md",
+    "./skills/error/SKILL.md",
+    "./skills/types/SKILL.md",
+    "./skills/testing/SKILL.md",
+    "./skills/async/SKILL.md",
+    "./skills/web/SKILL.md"
+  ],
   "lspServers": "./.lsp.json",
   "hooks": {
     "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=python uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
       {
         "hooks": [
           {

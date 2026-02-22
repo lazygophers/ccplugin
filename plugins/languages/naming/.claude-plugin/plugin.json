@@ -1,14 +1,14 @@
 {
   "name": "naming",
-  "version": "0.0.127",
-  "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正",
+  "version": "0.0.128",
+  "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南",
   "author": {
-    "name": "Claude Code",
-    "email": "admin@example.com",
-    "url": "https://github.com/anthropics/claude-code"
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
   },
-  "homepage": "https://github.com/anthropics/claude-code/tree/master/plugins/languages/naming",
-  "repository": "https://github.com/anthropics/claude-code/tree/master/plugins/languages/naming",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/naming",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/naming",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "naming",
@@ -16,12 +16,11 @@
     "naming-conventions",
     "code-style",
     "standards",
-    "variables",
-    "functions",
-    "classes",
     "cross-language"
   ],
-  "skills": "./skills/",
+  "skills": [
+    "./skills/core/SKILL.md"
+  ],
   "hooks": {
     "SessionStart": [
       {

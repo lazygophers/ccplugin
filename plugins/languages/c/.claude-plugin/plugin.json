@@ -1,6 +1,6 @@
 {
   "name": "c",
-  "version": "0.0.127",
+  "version": "0.0.128",
   "description": "C 开发插件 - 提供 C11/C17 开发规范、最佳实践和代码智能支持。包括系统编程、嵌入式开发、POSIX API 和内存管理指导",
   "author": {
     "name": "lazygophers",
@@ -26,7 +26,14 @@
     "./agents/debug.md",
     "./agents/perf.md"
   ],
-  "skills": "./skills/",
+  "skills": [
+    "./skills/core/SKILL.md",
+    "./skills/memory/SKILL.md",
+    "./skills/concurrency/SKILL.md",
+    "./skills/posix/SKILL.md",
+    "./skills/embedded/SKILL.md",
+    "./skills/error/SKILL.md"
+  ],
   "lspServers": "./.lsp.json",
   "hooks": {
     "SessionStart": [
