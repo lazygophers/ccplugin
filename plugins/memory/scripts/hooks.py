@@ -48,13 +48,16 @@ def handle_session_start(hook_data: Dict[str, Any]) -> None:
     
     async def _handle():
         await init_db()
-        
-        core_memories = await get_memories_by_priority(max_priority=3)
-        
-        if core_memories:
-            for mem in core_memories:
-                content_preview = mem.content[:200] if len(mem.content) > 200 else mem.content
-                print(f"[Memory:{mem.uri}] {content_preview}...")
+        try:
+            core_memories = await get_memories_by_priority(max_priority=3)
+
+            # Hook 进程会在执行完后立即退出；保持 DB 连接打开会导致后台线程阻塞退出（check 超时）。
+            if core_memories:
+                for mem in core_memories[:5]:
+                    content_preview = mem.content[:200] if len(mem.content) > 200 else mem.content
+                    print(f"[Memory:{mem.uri}] {content_preview}...")
+        finally:
+            await close_db()
     
     run_async(_handle())
 
