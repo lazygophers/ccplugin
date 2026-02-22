@@ -26,6 +26,12 @@ MARKETPLACE_JSON = ".claude-plugin/marketplace.json"
 VERSION_FILE = ".version"
 PLUGINS_DIR = "plugins"
 
+# Directories where `uvx ... check` should be skipped.
+# `uv lock -U` / `uv sync` will still run.
+SKIP_UVX_CHECK_DIRS = {
+	Path("plugins/template"),
+}
+
 # Version parts
 VERSION_PARTS_STANDARD = 3
 VERSION_PARTS_WITH_BUILD = 4
@@ -272,12 +278,15 @@ def run_plugin_check(project_dir: Path, base_dir: Path, console: Console) -> Non
 		if result.returncode != 0:
 			raise RuntimeError(f"uv sync failed in {rel_path}:\n{result.stderr}")
 
-		plugin_dir = project_dir / '.claude-plugin' / 'plugin.json'
-		if plugin_dir.exists():
-			result = subprocess.run(
-				['uvx', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
-				cwd=project_dir,
-				capture_output=True,
+			plugin_dir = project_dir / '.claude-plugin' / 'plugin.json'
+			if plugin_dir.exists():
+				if rel_path in SKIP_UVX_CHECK_DIRS:
+					console.print(f"  Skipping 'check' in {rel_path} (configured skip)")
+					return
+				result = subprocess.run(
+					['uvx', '--from', 'git+https://github.com/lazygophers/ccplugin.git@master', 'check'],
+					cwd=project_dir,
+					capture_output=True,
 				text=True,
 				timeout=120,
 			)
