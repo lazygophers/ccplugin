@@ -7,13 +7,15 @@
 """
 
 import hashlib
-import math
 import os
 import platform
 import shutil
 import subprocess
 import tempfile
+import time
 from typing import Optional
+
+from lib import logging
 
 from icons import PREDEFINED_ICONS
 from lib.logging import error
@@ -122,32 +124,47 @@ def _show_macos_notification_terminal_notifier(
 	duration_seconds: int,
 	icon_path: Optional[str],
 ) -> bool:
+	# 强制要求：duration、logo、title、message
+	# macOS 横幅显示时长由系统通知样式决定，无法可靠控制；这里将 duration 用于“自动从通知中心移除”的时机。
 	if not _command_exists("terminal-notifier"):
 		return False
 
-	cmd = ["terminal-notifier", "-title", title, "-message", message]
+	if not icon_path:
+		error("macOS 通知要求提供可用的 icon_path，但未找到图标文件")
+		return False
 
-	if duration_seconds and duration_seconds > 0:
-		timeout_seconds = max(1, int(math.ceil(duration_seconds)))
-		cmd.extend(["-timeout", str(timeout_seconds)])
+	icon_for_notifier = icon_path
+	if icon_path.lower().endswith(".svg") and _command_exists("qlmanage"):
+		converted = _svg_to_png_cached(icon_path)
+		if converted:
+			icon_for_notifier = converted
 
-	if icon_path:
-		icon_for_notifier = icon_path
-		if icon_path.lower().endswith(".svg") and _command_exists("qlmanage"):
-			converted = _svg_to_png_cached(icon_path)
-			if converted:
-				icon_for_notifier = converted
-			else:
-				icon_for_notifier = None
+	timeout_seconds = max(1, int(duration_seconds))
 
-		if icon_for_notifier:
-			cmd.extend(["-appIcon", icon_for_notifier])
+	# 使用 group 以便按 duration 自动移除通知
+	group_id = hashlib.sha256(f"{title}\n{message}\n{time.time_ns()}".encode("utf-8")).hexdigest()
+	cmd = ["terminal-notifier", "-title", title, "-message", message, "-group", group_id, "-appIcon", icon_for_notifier]
 
 	try:
 		subprocess.run(cmd, check=True, capture_output=True)
+
+		# 不阻塞主流程：后台等待 timeout_seconds 后移除该 group 的通知
+		if timeout_seconds > 0:
+			subprocess.Popen(
+				[
+					"sh",
+					"-c",
+					f"sleep {timeout_seconds}; terminal-notifier -remove {group_id} >/dev/null 2>&1",
+				],
+				stdout=subprocess.DEVNULL,
+				stderr=subprocess.DEVNULL,
+			)
 		return True
 	except subprocess.CalledProcessError as e:
 		error(f"terminal-notifier 通知失败: {e}")
+		return False
+	except Exception as e:
+		error(f"macOS 通知失败: {e}")
 		return False
 
 
@@ -257,24 +274,10 @@ def show_system_notification(
 		system = platform.system()
 
 		if system == "Darwin":  # macOS
-			# 1) 优先 terminal-notifier：支持 icon/timeout（更接近“系统通知”期望）
+			# 强制要求：duration、logo、title、message
 			if _show_macos_notification_terminal_notifier(message, title, duration, icon_path):
 				return True
-
-			# 2) 回退到 osascript：仅支持 title/message（不支持 icon/timeout）
-			cmd = [
-				"osascript",
-				"-e",
-				"on run argv",
-				"-e",
-				"display notification (item 1 of argv) with title (item 2 of argv)",
-				"-e",
-				"end run",
-				message,
-				title,
-			]
-			subprocess.run(cmd, check=True, capture_output=True)
-			return True
+			return False
 
 		elif system == "Linux":
 			# 使用 notify-send（需要 libnotify 库）
@@ -352,4 +355,5 @@ def show_system_notification(
 
 
 if __name__ == '__main__':
+	logging.enable_debug()
 	show_system_notification("操作已完成")
