@@ -1,6 +1,6 @@
 [project]
 name = "theme-style-brutalism"
-version = "0.0.132"
+version = "0.0.133"
 description = "Claude Code plugin for Brutalism design style"
 readme = "README.md"
 requires-python = ">=3.11"

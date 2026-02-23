@@ -672,7 +672,7 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 def show_system_notification(
 	message: str,
 	title: str = "Claude Code",
-	duration: int = 60,
+	duration: int = 30,
 	icon: str = 'claude'
 ) -> bool:
 	"""显示系统通知

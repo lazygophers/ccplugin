@@ -1,6 +1,6 @@
 {
   "name": "office-xlsx",
-  "version": "0.0.132",
+  "version": "0.0.133",
   "description": "Excel 办公插件 - 提供 xlsx 文件读写、数据分析功能。基于 openpyxl 和 pandas 实现",
   "author": {
     "name": "lazygophers",
