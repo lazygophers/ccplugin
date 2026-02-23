@@ -172,8 +172,8 @@ hooks:
     askuserquestion:
       enabled: true
       play_sound: true
-      message: "{project_name} 等待你回答问题"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{askuserquestion_message}"
+      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {askuserquestion_message}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "WebSearch",

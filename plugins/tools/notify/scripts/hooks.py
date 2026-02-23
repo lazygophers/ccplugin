@@ -19,6 +19,36 @@ from lib.utils.env import get_project_dir, get_plugins_path
 from notify import play_text_tts, show_system_notification
 
 
+def build_askuserquestion_message(project_name: str, questions: Any) -> Optional[str]:
+	"""为 AskUserQuestion 生成可朗读的消息内容。
+
+	期望格式：
+	{project_name} 有 {问题数量} 哥问题需要你解决
+	第1个问题：{question}
+	第2个问题：{question}
+	"""
+	if not isinstance(project_name, str) or not project_name.strip():
+		project_name = "当前项目"
+
+	if not isinstance(questions, list) or not questions:
+		return None
+
+	lines = [f"{project_name} 有 {len(questions)} 哥问题需要你解决"]
+
+	for idx, item in enumerate(questions, start=1):
+		if not isinstance(item, dict):
+			continue
+		question_text = item.get("question")
+		if not isinstance(question_text, str) or not question_text.strip():
+			continue
+		lines.append(f"第{idx}个问题：{question_text}")
+
+	if len(lines) == 1:
+		return None
+
+	return "\n".join(lines)
+
+
 def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict[str, Any]] = None) -> Optional[
 	HookConfig]:
 	"""根据事件名称获取相应的 Hook 配置
@@ -118,12 +148,25 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 
 	context["plugin_name"] = os.path.basename(get_plugins_path())
 	context["project_name"] = os.path.basename(get_project_dir())
+	if isinstance(hook_data.get("cwd"), str) and hook_data["cwd"].strip():
+		context["project_name"] = os.path.basename(hook_data["cwd"])
 
 	if "hook_event_name" in hook_data:
 		context["hook_event_name"] = hook_data["hook_event_name"]
 
 	if "tool_name" in hook_data:
 		context["tool_name"] = hook_data["tool_name"]
+
+	tool_name_lower = str(context.get("tool_name", "")).lower()
+	if tool_name_lower == "askuserquestion":
+		tool_input = hook_data.get("tool_input", {})
+		if isinstance(tool_input, dict):
+			ask_message = build_askuserquestion_message(
+				project_name=context.get("project_name", ""),
+				questions=tool_input.get("questions"),
+			)
+			project_name = context.get("project_name") or "当前项目"
+			context["askuserquestion_message"] = ask_message or f"{project_name} 等待你回答问题"
 
 	if "session_id" in hook_data:
 		context["session_id"] = hook_data["session_id"]
@@ -168,6 +211,15 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	message = hook_config.message or f"{event_name} 事件已触发"
 
 	logging.info(f'context:{context}')
+
+	# AskUserQuestion：若提供了可朗读的 message，则默认使用它（除非用户自定义了 message 模板）
+	if (
+		context
+		and str(context.get("tool_name", "")).lower() == "askuserquestion"
+		and context.get("askuserquestion_message")
+		and (hook_config.message is None or hook_config.message.strip() == "{project_name} 等待你回答问题")
+	):
+		message = "{askuserquestion_message}"
 
 	# 如果 context 存在，使用其中的参数替换消息中的占位符
 	if context:
