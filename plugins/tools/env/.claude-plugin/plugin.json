@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=env uv run uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py"
+            "command": "PLUGIN_NAME=env uvx --from git+https://github.com/lazygophers/ccplugin.git@master update"
           }
         ]
       }
