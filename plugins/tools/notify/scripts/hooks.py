@@ -18,9 +18,6 @@ from lib.logging import info, error, debug
 from lib.utils.env import get_project_dir, get_plugins_path
 from notify import play_text_tts, show_system_notification
 
-from jinja2 import StrictUndefined
-from jinja2.sandbox import SandboxedEnvironment
-
 def _render_message(message: str, context: Dict[str, Any]) -> str:
 	"""渲染消息模板。
 
@@ -32,6 +29,13 @@ def _render_message(message: str, context: Dict[str, Any]) -> str:
 
 	is_jinja = ("{{" in message) or ("{%" in message)
 	if is_jinja:
+		try:
+			from jinja2 import StrictUndefined
+			from jinja2.sandbox import SandboxedEnvironment
+		except Exception as e:
+			debug(f"Jinja2 不可用，使用原始消息: {e}")
+			return message
+
 		env = SandboxedEnvironment(
 			autoescape=False,
 			undefined=StrictUndefined,
@@ -39,9 +43,17 @@ def _render_message(message: str, context: Dict[str, Any]) -> str:
 			lstrip_blocks=True,
 		)
 		env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
-		return env.from_string(message).render(**context)
+		try:
+			return env.from_string(message).render(**context)
+		except Exception as e:
+			debug(f"Jinja2 渲染失败，使用原始消息: {e}")
+			return message
 
-	return message.format(**context)
+	try:
+		return message.format(**context)
+	except (KeyError, ValueError) as e:
+		debug(f"format 渲染失败，使用原始消息: {e}")
+		return message
 
 
 def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict[str, Any]] = None) -> Optional[
@@ -260,7 +272,7 @@ def handle_hook() -> None:
 
 	if not execute_hook_actions(hook_config, event_name, context):
 		error(f"Hook {event_name} 执行失败")
-		sys.exit(1)
+		# 通知/语音失败不应阻断 Claude Code 主流程
 
 	info(f"Hook 事件 {event_name} 处理完成")
 
