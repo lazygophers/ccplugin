@@ -176,7 +176,7 @@ hooks:
       # 1) Python format（旧）："{project_name} 等待你回答问题"
       # 2) Jinja2（推荐，支持循环/条件）："{{ project_name }} ..."
       message: |-
-        {{ project_name }} 有 {{ tool_input.questions | length }} 哥问题需要你解决
+        {{ project_name }} 有 {{ tool_input.questions | length }} 个问题需要你解决
         {%- for q in tool_input.questions %}
         第{{ loop.index }}个问题：{{ q.question }}
         {%- endfor %}
