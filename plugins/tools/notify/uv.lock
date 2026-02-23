@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "notify"
-version = "0.0.130"
+version = "0.0.132"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

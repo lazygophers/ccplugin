@@ -119,7 +119,7 @@ def _resolve_icon_path(icon: str) -> Optional[str]:
 def _show_macos_notification_terminal_notifier(
 	message: str,
 	title: str,
-	duration_ms: int,
+	duration_seconds: int,
 	icon_path: Optional[str],
 ) -> bool:
 	if not _command_exists("terminal-notifier"):
@@ -127,8 +127,8 @@ def _show_macos_notification_terminal_notifier(
 
 	cmd = ["terminal-notifier", "-title", title, "-message", message]
 
-	if duration_ms and duration_ms > 0:
-		timeout_seconds = max(1, int(math.ceil(duration_ms / 1000)))
+	if duration_seconds and duration_seconds > 0:
+		timeout_seconds = max(1, int(math.ceil(duration_seconds)))
 		cmd.extend(["-timeout", str(timeout_seconds)])
 
 	if icon_path:
@@ -218,7 +218,7 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 def show_system_notification(
 	message: str,
 	title: str = "Claude Code",
-	duration: int = 60000,
+	duration: int = 60,
 	icon: str = 'claude'
 ) -> bool:
 	"""显示系统通知
@@ -231,7 +231,7 @@ def show_system_notification(
 	Args:
 		message: 通知消息内容（必填）
 		title: 通知标题，默认为 "Claude Code"
-		duration: 通知显示时长（毫秒），仅对部分系统有效，默认 60000
+		duration: 通知显示时长（秒），仅对部分系统有效，默认 60
 		icon: 通知图标，可以是预定义名称（'claude'）或文件路径，默认为 'claude'
 
 	Returns:
@@ -239,7 +239,7 @@ def show_system_notification(
 
 	示例:
 		show_system_notification("操作已完成")
-		show_system_notification("权限请求", title="Claude Code - Permission", duration=10000)
+		show_system_notification("权限请求", title="Claude Code - Permission", duration=10)
 		show_system_notification("已完成", icon='claude')
 		show_system_notification("已完成", icon='/path/to/icon.png')
 	"""
@@ -284,9 +284,9 @@ def show_system_notification(
 			if icon_path:
 				cmd.extend(["-i", str(icon_path)])
 
-			# 添加超时参数
+			# 添加超时参数（notify-send 单位为毫秒）
 			if duration > 0:
-				cmd.extend(["-t", str(duration)])
+				cmd.extend(["-t", str(int(duration * 1000))])
 
 			cmd.extend([title, message])
 			subprocess.run(cmd, check=True, capture_output=True)
@@ -349,3 +349,7 @@ def show_system_notification(
 	except Exception as e:
 		error(f"系统通知过程中发生异常: {e}")
 		return False
+
+
+if __name__ == '__main__':
+	show_system_notification("操作已完成")
