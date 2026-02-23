@@ -12,7 +12,6 @@ import platform
 import shutil
 import subprocess
 import tempfile
-import time
 from typing import Optional
 
 from lib import logging
@@ -124,47 +123,213 @@ def _show_macos_notification_terminal_notifier(
 	duration_seconds: int,
 	icon_path: Optional[str],
 ) -> bool:
-	# 强制要求：duration、logo、title、message
-	# macOS 横幅显示时长由系统通知样式决定，无法可靠控制；这里将 duration 用于“自动从通知中心移除”的时机。
-	if not _command_exists("terminal-notifier"):
-		return False
+	# 保留函数名用于兼容旧调用路径，但实现改为“可控时长的无焦点浮层提醒”。
+	# 原因：macOS 通知横幅停留时长无法被系统通知 API 可靠控制，无法满足“强制 duration 秒”的要求。
+	return _show_macos_overlay_notification(message=message, title=title, duration_seconds=duration_seconds, icon_path=icon_path)
 
+
+_MACOS_OVERLAY_SWIFT_SOURCE = r'''
+import AppKit
+import Foundation
+
+final class NonActivatingPanel: NSPanel {
+	override var canBecomeKey: Bool { false }
+	override var canBecomeMain: Bool { false }
+}
+
+func measureHeight(text: String, font: NSFont, width: CGFloat) -> CGFloat {
+	let attributes: [NSAttributedString.Key: Any] = [.font: font]
+	let rect = (text as NSString).boundingRect(
+		with: NSSize(width: width, height: 10_000),
+		options: [.usesLineFragmentOrigin, .usesFontLeading],
+		attributes: attributes
+	)
+	return ceil(rect.height)
+}
+
+func main() -> Int32 {
+	// argv: title message duration_seconds icon_path
+	guard CommandLine.arguments.count >= 5 else {
+		return 2
+	}
+
+	let title = CommandLine.arguments[1]
+	let message = CommandLine.arguments[2]
+	let durationSeconds = max(1, Int(CommandLine.arguments[3]) ?? 60)
+	let iconPath = CommandLine.arguments[4]
+
+	NSApplication.shared.setActivationPolicy(.accessory)
+
+	guard let screen = NSScreen.main ?? NSScreen.screens.first else {
+		return 3
+	}
+
+	let visible = screen.visibleFrame
+	let margin: CGFloat = 16
+	let padding: CGFloat = 14
+	let gap: CGFloat = 10
+	let iconSize: CGFloat = 44
+	let width: CGFloat = 380
+
+	let titleFont = NSFont.boldSystemFont(ofSize: 14)
+	let messageFont = NSFont.systemFont(ofSize: 13)
+	let textWidth = width - padding * 2 - iconSize - gap
+	let titleHeight = max(18, measureHeight(text: title, font: titleFont, width: textWidth))
+	let messageHeight = min(160, max(18, measureHeight(text: message, font: messageFont, width: textWidth)))
+	let contentHeight = max(iconSize, titleHeight + 4 + messageHeight)
+	let height: CGFloat = padding * 2 + contentHeight
+
+	let x = visible.maxX - width - margin
+	let y = visible.maxY - height - margin
+	let rect = NSRect(x: x, y: y, width: width, height: height)
+
+	let panel = NonActivatingPanel(
+		contentRect: rect,
+		styleMask: [.nonactivatingPanel, .borderless],
+		backing: .buffered,
+		defer: false
+	)
+	panel.isFloatingPanel = true
+	panel.level = .statusBar
+	panel.collectionBehavior = [.canJoinAllSpaces, .transient, .fullScreenAuxiliary]
+	panel.backgroundColor = .clear
+	panel.isOpaque = false
+	panel.hasShadow = true
+	panel.ignoresMouseEvents = true
+
+	let background = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+	background.material = .popover
+	background.state = .active
+	background.wantsLayer = true
+	background.layer?.cornerRadius = 12
+	background.layer?.masksToBounds = true
+
+	let iconView = NSImageView(frame: NSRect(x: padding, y: height - padding - iconSize, width: iconSize, height: iconSize))
+	iconView.imageScaling = .scaleProportionallyUpOrDown
+	iconView.image = NSImage(contentsOfFile: iconPath)
+
+	let titleField = NSTextField(labelWithString: title)
+	titleField.font = titleFont
+	titleField.textColor = .labelColor
+	titleField.lineBreakMode = .byTruncatingTail
+	titleField.maximumNumberOfLines = 1
+
+	let messageField = NSTextField(wrappingLabelWithString: message)
+	messageField.font = messageFont
+	messageField.textColor = .secondaryLabelColor
+	messageField.lineBreakMode = .byWordWrapping
+	messageField.maximumNumberOfLines = 8
+
+	titleField.frame = NSRect(
+		x: padding + iconSize + gap,
+		y: height - padding - titleHeight,
+		width: textWidth,
+		height: titleHeight
+	)
+	messageField.frame = NSRect(
+		x: padding + iconSize + gap,
+		y: padding,
+		width: textWidth,
+		height: height - padding * 2 - titleHeight - 4
+	)
+
+	background.addSubview(iconView)
+	background.addSubview(titleField)
+	background.addSubview(messageField)
+	panel.contentView = background
+
+	panel.orderFrontRegardless()
+
+	DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationSeconds)) {
+		NSAnimationContext.runAnimationGroup({ ctx in
+			ctx.duration = 0.18
+			panel.animator().alphaValue = 0
+		}, completionHandler: {
+			NSApp.terminate(nil)
+		})
+	}
+
+	NSApp.run()
+	return 0
+}
+
+exit(main())
+'''
+
+
+def _ensure_macos_overlay_binary() -> Optional[str]:
+	"""编译并缓存 macOS 浮层提醒二进制（用于强制 duration 秒）。"""
+	cache_dir = _get_user_cache_dir("bin")
+	os.makedirs(cache_dir, exist_ok=True)
+
+	src_path = os.path.join(cache_dir, "notify_overlay.swift")
+	bin_path = os.path.join(cache_dir, "notify_overlay")
+
+	try:
+		need_write = True
+		if os.path.exists(src_path):
+			try:
+				with open(src_path, "r", encoding="utf-8") as f:
+					need_write = (f.read() != _MACOS_OVERLAY_SWIFT_SOURCE)
+			except OSError:
+				need_write = True
+
+		if need_write:
+			with open(src_path, "w", encoding="utf-8") as f:
+				f.write(_MACOS_OVERLAY_SWIFT_SOURCE)
+
+		need_build = (not os.path.exists(bin_path)) or (os.path.getmtime(bin_path) < os.path.getmtime(src_path))
+		if need_build:
+			if not _command_exists("xcrun"):
+				error("macOS 浮层提醒需要 xcrun/swiftc（请安装 Xcode Command Line Tools）")
+				return None
+
+			result = subprocess.run(
+				["xcrun", "swiftc", "-O", src_path, "-o", bin_path],
+				capture_output=True,
+				text=True,
+			)
+			if result.returncode != 0:
+				error(f"编译 macOS 浮层提醒失败: {result.stderr.strip()}")
+				return None
+
+			try:
+				os.chmod(bin_path, 0o755)
+			except OSError:
+				pass
+
+		return bin_path
+	except Exception as e:
+		error(f"准备 macOS 浮层提醒失败: {e}")
+		return None
+
+
+def _show_macos_overlay_notification(message: str, title: str, duration_seconds: int, icon_path: Optional[str]) -> bool:
+	"""macOS：不抢焦点的右上角浮层提醒，强制展示 duration_seconds 秒。"""
 	if not icon_path:
 		error("macOS 通知要求提供可用的 icon_path，但未找到图标文件")
 		return False
 
-	icon_for_notifier = icon_path
+	icon_for_overlay = icon_path
 	if icon_path.lower().endswith(".svg") and _command_exists("qlmanage"):
 		converted = _svg_to_png_cached(icon_path)
 		if converted:
-			icon_for_notifier = converted
+			icon_for_overlay = converted
+
+	bin_path = _ensure_macos_overlay_binary()
+	if not bin_path:
+		return False
 
 	timeout_seconds = max(1, int(duration_seconds))
-
-	# 使用 group 以便按 duration 自动移除通知
-	group_id = hashlib.sha256(f"{title}\n{message}\n{time.time_ns()}".encode("utf-8")).hexdigest()
-	cmd = ["terminal-notifier", "-title", title, "-message", message, "-group", group_id, "-appIcon", icon_for_notifier]
-
 	try:
-		subprocess.run(cmd, check=True, capture_output=True)
-
-		# 不阻塞主流程：后台等待 timeout_seconds 后移除该 group 的通知
-		if timeout_seconds > 0:
-			subprocess.Popen(
-				[
-					"sh",
-					"-c",
-					f"sleep {timeout_seconds}; terminal-notifier -remove {group_id} >/dev/null 2>&1",
-				],
-				stdout=subprocess.DEVNULL,
-				stderr=subprocess.DEVNULL,
-			)
+		subprocess.Popen(
+			[bin_path, title, message, str(timeout_seconds), str(icon_for_overlay)],
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+		)
 		return True
-	except subprocess.CalledProcessError as e:
-		error(f"terminal-notifier 通知失败: {e}")
-		return False
 	except Exception as e:
-		error(f"macOS 通知失败: {e}")
+		error(f"启动 macOS 浮层提醒失败: {e}")
 		return False
 
 
@@ -241,7 +406,7 @@ def show_system_notification(
 	"""显示系统通知
 
 	根据操作系统调用相应的通知方式：
-	- macOS: 优先使用 terminal-notifier（可选），否则使用 osascript (AppleScript)
+	- macOS: 使用不抢焦点的浮层提醒（保证 duration 秒 + 自定义 logo/title/message）
 	- Linux: 使用 notify-send
 	- Windows: 使用 PowerShell Toast
 
