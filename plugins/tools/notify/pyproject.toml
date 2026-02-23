@@ -1,10 +1,15 @@
 [project]
 name = "notify"
-version = "0.0.131"
+version = "0.0.130"
 description = "Claude Code system notification plugin with hook support"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [ "lib", "pyyaml>=6.0.3", "click>=8.1.0",]
+dependencies = [
+ "lib",
+ "pyyaml>=6.0.3",
+ "click>=8.1.0",
+ "jinja2>=3.1.0",
+]
 
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]

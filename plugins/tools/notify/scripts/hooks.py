@@ -18,35 +18,30 @@ from lib.logging import info, error, debug
 from lib.utils.env import get_project_dir, get_plugins_path
 from notify import play_text_tts, show_system_notification
 
+from jinja2 import StrictUndefined
+from jinja2.sandbox import SandboxedEnvironment
 
-def build_askuserquestion_message(project_name: str, questions: Any) -> Optional[str]:
-	"""为 AskUserQuestion 生成可朗读的消息内容。
+def _render_message(message: str, context: Dict[str, Any]) -> str:
+	"""渲染消息模板。
 
-	期望格式：
-	{project_name} 有 {问题数量} 哥问题需要你解决
-	第1个问题：{question}
-	第2个问题：{question}
+	- 默认使用 Python `str.format(**context)`（兼容旧配置）
+	- 若检测到 Jinja2 语法（`{{`/`{%`），则使用 Jinja2 Sandbox 渲染（支持循环/条件）
 	"""
-	if not isinstance(project_name, str) or not project_name.strip():
-		project_name = "当前项目"
+	if not isinstance(message, str) or not message:
+		return ""
 
-	if not isinstance(questions, list) or not questions:
-		return None
+	is_jinja = ("{{" in message) or ("{%" in message)
+	if is_jinja:
+		env = SandboxedEnvironment(
+			autoescape=False,
+			undefined=StrictUndefined,
+			trim_blocks=True,
+			lstrip_blocks=True,
+		)
+		env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
+		return env.from_string(message).render(**context)
 
-	lines = [f"{project_name} 有 {len(questions)} 哥问题需要你解决"]
-
-	for idx, item in enumerate(questions, start=1):
-		if not isinstance(item, dict):
-			continue
-		question_text = item.get("question")
-		if not isinstance(question_text, str) or not question_text.strip():
-			continue
-		lines.append(f"第{idx}个问题：{question_text}")
-
-	if len(lines) == 1:
-		return None
-
-	return "\n".join(lines)
+	return message.format(**context)
 
 
 def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict[str, Any]] = None) -> Optional[
@@ -161,12 +156,9 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 	if tool_name_lower == "askuserquestion":
 		tool_input = hook_data.get("tool_input", {})
 		if isinstance(tool_input, dict):
-			ask_message = build_askuserquestion_message(
-				project_name=context.get("project_name", ""),
-				questions=tool_input.get("questions"),
-			)
-			project_name = context.get("project_name") or "当前项目"
-			context["askuserquestion_message"] = ask_message or f"{project_name} 等待你回答问题"
+			questions = tool_input.get("questions")
+			if isinstance(questions, list):
+				context["questions_count"] = len(questions)
 
 	if "session_id" in hook_data:
 		context["session_id"] = hook_data["session_id"]
@@ -212,21 +204,9 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 
 	logging.info(f'context:{context}')
 
-	# AskUserQuestion：若提供了可朗读的 message，则默认使用它（除非用户自定义了 message 模板）
-	if (
-		context
-		and str(context.get("tool_name", "")).lower() == "askuserquestion"
-		and context.get("askuserquestion_message")
-		and (hook_config.message is None or hook_config.message.strip() == "{project_name} 等待你回答问题")
-	):
-		message = "{askuserquestion_message}"
-
 	# 如果 context 存在，使用其中的参数替换消息中的占位符
 	if context:
-		try:
-			message = message.format(**context)
-		except (KeyError, ValueError) as e:
-			debug(f"消息参数替换失败: {e}，使用原始消息")
+		message = _render_message(message, context)
 
 	# 显示消息
 	if hook_config.enabled:

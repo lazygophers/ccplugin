@@ -172,8 +172,15 @@ hooks:
     askuserquestion:
       enabled: true
       play_sound: true
-      message: "{askuserquestion_message}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {askuserquestion_message}
+      # 支持两种模板语法：
+      # 1) Python format（旧）："{project_name} 等待你回答问题"
+      # 2) Jinja2（推荐，支持循环/条件）："{{ project_name }} ..."
+      message: |-
+        {{ project_name }} 有 {{ tool_input.questions | length }} 哥问题需要你解决
+        {%- for q in tool_input.questions %}
+        第{{ loop.index }}个问题：{{ q.question }}
+        {%- endfor %}
+      # 常用变量（Jinja2）：project_name, session_id, tool_input, questions_count
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "WebSearch",
