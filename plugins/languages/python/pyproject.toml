@@ -1,6 +1,6 @@
 [project]
 name = "code-python"
-version = "0.0.131"
+version = "0.0.132"
 description = "Claude Code plugin for Python language support"
 readme = "README.md"
 requires-python = ">=3.11"

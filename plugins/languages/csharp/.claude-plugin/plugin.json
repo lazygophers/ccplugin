@@ -1,6 +1,6 @@
 {
   "name": "csharp",
-  "version": "0.0.131",
+  "version": "0.0.132",
   "description": "C# 开发插件 - 提供 C# 12/.NET 8 开发规范、最佳实践和代码智能支持。包括异步编程、LINQ、ASP.NET Core 和 Entity Framework 指导",
   "author": {
     "name": "lazygophers",
