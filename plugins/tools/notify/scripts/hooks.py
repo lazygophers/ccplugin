@@ -11,7 +11,7 @@ import os
 import sys
 from datetime import datetime
 from typing import Optional, Dict, Any
-
+import copy
 from config import load_config, HooksConfig, HookConfig
 from lib.hooks import load_hooks
 from lib.logging import info, error, debug
@@ -106,7 +106,7 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 	Returns:
 		提取的上下文字典
 	"""
-	context = {}
+	context = copy.deepcopy(hook_data)
 
 	if "tool_input" in hook_data:
 		if "file_path" in hook_data["tool_input"]:
@@ -140,6 +140,9 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 
 	if "message" in hook_data:
 		context["message"] = hook_data["message"]
+
+	if "agent_type" in hook_data:
+		context["agent_type"] = hook_data["agent_type"]
 
 	return context
 

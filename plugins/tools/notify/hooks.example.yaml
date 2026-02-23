@@ -25,7 +25,7 @@ hooks:
   stop:
     enabled: true
     play_sound: true
-    message: "{project_name} 已完成"
+    message: "{project_name} 的任务已完成，任务总结：\n{last_assistant_message}"
     # 可用变量: {time_now}, {session_id}, {project_name}
 
   # ============================================================================
@@ -43,7 +43,7 @@ hooks:
   subagent_stop:
     enabled: false
     play_sound: false
-    message: "{project_name} Task 已完成"
+    message: "{project_name} 的 Agent {agent_type} 已完成任务，任务总结：\n{last_assistant_message}"
     # 可用变量: {time_now}, {session_id}, {project_name}, {subagent_type}
 
   # ============================================================================
