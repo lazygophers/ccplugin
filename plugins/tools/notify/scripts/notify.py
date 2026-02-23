@@ -482,6 +482,9 @@ func main() -> Int32 {
 			}
 		}
 	}
+	if let img = iconImage {
+		img.isTemplate = false
+	}
 
 	let iconView = NSImageView(frame: NSRect(x: padding, y: height - padding - iconSize, width: iconSize, height: iconSize))
 	iconView.imageScaling = .scaleProportionallyUpOrDown
@@ -542,32 +545,72 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 	os.makedirs(cache_dir, exist_ok=True)
 
 	# 使用源码内容的 md5：只有源码变更才会生成新文件，尽可能减少重复生成
-	source_md5 = hashlib.md5(_MACOS_OVERLAY_SWIFT_SOURCE.encode("utf-8")).hexdigest()[:16]
+	source_md5_full = hashlib.md5(_MACOS_OVERLAY_SWIFT_SOURCE.encode("utf-8")).hexdigest()
+	source_md5 = source_md5_full[:16]
 	src_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}.swift")
-	bin_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}")
+	ref_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}.ref")
 
 	try:
+		# 如果已有源码->bin 的映射，直接复用，避免重复编译
+		if os.path.exists(ref_path):
+			try:
+				with open(ref_path, "r", encoding="utf-8") as f:
+					bin_name = f.read().strip()
+				if bin_name:
+					candidate = os.path.join(cache_dir, bin_name)
+					if os.path.exists(candidate):
+						return candidate
+			except OSError:
+				pass
+
 		# 文件名已包含源码 hash：同二进制不重复生成/覆盖
 		if not os.path.exists(src_path):
 			with open(src_path, "w", encoding="utf-8") as f:
 				f.write(_MACOS_OVERLAY_SWIFT_SOURCE)
 
-		if not os.path.exists(bin_path):
-			if not _command_exists("xcrun"):
-				error("macOS 浮层提醒需要 xcrun/swiftc（请安装 Xcode Command Line Tools）")
-				return None
+		if not _command_exists("xcrun"):
+			error("macOS 浮层提醒需要 xcrun/swiftc（请安装 Xcode Command Line Tools）")
+			return None
 
-			result = subprocess.run(
-				["xcrun", "swiftc", "-O", src_path, "-o", bin_path],
-				capture_output=True,
-				text=True,
-			)
-			if result.returncode != 0:
-				error(f"编译 macOS 浮层提醒失败: {result.stderr.strip()}")
-				return None
+		tmp_bin = os.path.join(cache_dir, f".notify_overlay_tmp_{os.getpid()}_{source_md5}")
+		result = subprocess.run(
+			["xcrun", "swiftc", "-O", src_path, "-o", tmp_bin],
+			capture_output=True,
+			text=True,
+		)
+		if result.returncode != 0:
+			error(f"编译 macOS 浮层提醒失败: {result.stderr.strip()}")
+			return None
 
+		bin_md5_full = _file_md5(tmp_bin)
+		if not bin_md5_full:
+			try:
+				os.remove(tmp_bin)
+			except OSError:
+				pass
+			return None
+
+		bin_name = f"notify_overlay_bin_{bin_md5_full[:16]}"
+		bin_path = os.path.join(cache_dir, bin_name)
+
+		if os.path.exists(bin_path):
+			# 已有完全相同的二进制，删除临时文件即可
+			try:
+				os.remove(tmp_bin)
+			except OSError:
+				pass
+		else:
+			shutil.move(tmp_bin, bin_path)
 			try:
 				os.chmod(bin_path, 0o755)
+			except OSError:
+				pass
+
+		# 写入映射：同源码后续不再编译
+		if not os.path.exists(ref_path):
+			try:
+				with open(ref_path, "w", encoding="utf-8") as f:
+					f.write(bin_name)
 			except OSError:
 				pass
 
