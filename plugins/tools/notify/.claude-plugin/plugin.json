@@ -23,7 +23,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -34,7 +34,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -45,7 +45,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -56,7 +56,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -67,7 +67,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -78,7 +78,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -89,7 +89,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -100,7 +100,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
@@ -111,7 +111,7 @@
           {
             "type": "command",
             "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
+            "timeout": 300
           }
         ]
       }
