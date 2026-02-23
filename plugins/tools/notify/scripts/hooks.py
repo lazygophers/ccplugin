@@ -12,6 +12,8 @@ import sys
 from datetime import datetime
 from typing import Optional, Dict, Any
 import copy
+from jinja2 import StrictUndefined
+from jinja2.sandbox import SandboxedEnvironment
 from config import load_config, HooksConfig, HookConfig
 from lib.hooks import load_hooks
 from lib.logging import info, error, debug
@@ -29,13 +31,6 @@ def _render_message(message: str, context: Dict[str, Any]) -> str:
 
 	is_jinja = ("{{" in message) or ("{%" in message)
 	if is_jinja:
-		try:
-			from jinja2 import StrictUndefined
-			from jinja2.sandbox import SandboxedEnvironment
-		except Exception as e:
-			debug(f"Jinja2 不可用，使用原始消息: {e}")
-			return message
-
 		env = SandboxedEnvironment(
 			autoescape=False,
 			undefined=StrictUndefined,
