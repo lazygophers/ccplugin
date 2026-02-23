@@ -6,15 +6,69 @@
 2. show_system_notification() - 显示系统通知
 """
 
+import hashlib
+import math
 import os
 import platform
+import shutil
 import subprocess
+import tempfile
 from typing import Optional
 
+from icons import PREDEFINED_ICONS
 from lib.logging import error
 from lib.utils import get_plugins_path, get_project_plugins_dir, get_app_name, get_project_dir
 
-from icons import PREDEFINED_ICONS
+
+def _command_exists(cmd: str) -> bool:
+	return shutil.which(cmd) is not None
+
+
+def _get_user_cache_dir(*parts: str) -> str:
+	# Keep cache in the same family as existing config paths used by this plugin.
+	base_dir = os.path.join(os.path.expanduser("~"), ".lazygophers", "ccplugin", "notify", "cache")
+	return os.path.join(base_dir, *parts)
+
+
+def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
+	"""Convert an SVG to a PNG using macOS QuickLook (qlmanage), with caching."""
+	try:
+		st = os.stat(svg_path)
+	except OSError as e:
+		error(f"读取 SVG 图标失败: {e}")
+		return None
+
+	cache_dir = _get_user_cache_dir("icons")
+	os.makedirs(cache_dir, exist_ok=True)
+
+	cache_key = f"{svg_path}:{st.st_mtime_ns}:{st.st_size}:{size}"
+	cache_name = hashlib.sha256(cache_key.encode("utf-8")).hexdigest() + ".png"
+	cached_png = os.path.join(cache_dir, cache_name)
+	if os.path.exists(cached_png):
+		return cached_png
+
+	tmpdir = tempfile.mkdtemp(prefix="notify-icon-")
+	try:
+		subprocess.run(
+			["qlmanage", "-t", "-s", str(size), "-o", tmpdir, svg_path],
+			check=True,
+			capture_output=True,
+		)
+		generated = os.path.join(tmpdir, os.path.basename(svg_path) + ".png")
+		if not os.path.exists(generated):
+			error(f"SVG 转 PNG 失败（未生成输出文件）: {svg_path}")
+			return None
+		shutil.move(generated, cached_png)
+		return cached_png
+	except FileNotFoundError:
+		error("qlmanage 未找到，无法将 SVG 转换为 PNG（macOS 特有）")
+		return None
+	except subprocess.CalledProcessError as e:
+		error(f"SVG 转 PNG 失败: {e}")
+		return None
+	finally:
+		shutil.rmtree(tmpdir, ignore_errors=True)
+
 
 def _resolve_icon_path(icon: str) -> Optional[str]:
 	"""解析图标参数为完整路径。
@@ -60,6 +114,41 @@ def _resolve_icon_path(icon: str) -> Optional[str]:
 	# 如果找不到文件，记录错误但不中断执行
 	error(f"图标文件不存在: {icon} (搜索位置: {', '.join(search_paths)})")
 	return None
+
+
+def _show_macos_notification_terminal_notifier(
+	message: str,
+	title: str,
+	duration_ms: int,
+	icon_path: Optional[str],
+) -> bool:
+	if not _command_exists("terminal-notifier"):
+		return False
+
+	cmd = ["terminal-notifier", "-title", title, "-message", message]
+
+	if duration_ms and duration_ms > 0:
+		timeout_seconds = max(1, int(math.ceil(duration_ms / 1000)))
+		cmd.extend(["-timeout", str(timeout_seconds)])
+
+	if icon_path:
+		icon_for_notifier = icon_path
+		if icon_path.lower().endswith(".svg") and _command_exists("qlmanage"):
+			converted = _svg_to_png_cached(icon_path)
+			if converted:
+				icon_for_notifier = converted
+			else:
+				icon_for_notifier = None
+
+		if icon_for_notifier:
+			cmd.extend(["-appIcon", icon_for_notifier])
+
+	try:
+		subprocess.run(cmd, check=True, capture_output=True)
+		return True
+	except subprocess.CalledProcessError as e:
+		error(f"terminal-notifier 通知失败: {e}")
+		return False
 
 
 def play_text_tts(text: str, rate: int = 200) -> bool:
@@ -135,14 +224,14 @@ def show_system_notification(
 	"""显示系统通知
 
 	根据操作系统调用相应的通知方式：
-	- macOS: 使用 osascript (AppleScript)
+	- macOS: 优先使用 terminal-notifier（可选），否则使用 osascript (AppleScript)
 	- Linux: 使用 notify-send
 	- Windows: 使用 PowerShell Toast
 
 	Args:
 		message: 通知消息内容（必填）
 		title: 通知标题，默认为 "Claude Code"
-		duration: 通知显示时长（毫秒），仅对部分系统有效，默认 5000
+		duration: 通知显示时长（毫秒），仅对部分系统有效，默认 60000
 		icon: 通知图标，可以是预定义名称（'claude'）或文件路径，默认为 'claude'
 
 	Returns:
@@ -168,17 +257,22 @@ def show_system_notification(
 		system = platform.system()
 
 		if system == "Darwin":  # macOS
-			# 使用 osascript 执行 AppleScript
-			icon_part = ""
-			if icon_path:
-				# 转义路径中的特殊字符
-				escaped_path = str(icon_path).replace("\\", "\\\\").replace('"', '\\"')
-				icon_part = f' with icon POSIX file "{escaped_path}"'
+			# 1) 优先 terminal-notifier：支持 icon/timeout（更接近“系统通知”期望）
+			if _show_macos_notification_terminal_notifier(message, title, duration, icon_path):
+				return True
 
-			applescript = f"""
-            display notification "{message}" with title "{title}"{icon_part}
-            """
-			cmd = ["osascript", "-e", applescript]
+			# 2) 回退到 osascript：仅支持 title/message（不支持 icon/timeout）
+			cmd = [
+				"osascript",
+				"-e",
+				"on run argv",
+				"-e",
+				"display notification (item 1 of argv) with title (item 2 of argv)",
+				"-e",
+				"end run",
+				message,
+				title,
+			]
 			subprocess.run(cmd, check=True, capture_output=True)
 			return True
 

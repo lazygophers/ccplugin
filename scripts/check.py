@@ -9,7 +9,7 @@ Validates:
 Usage:
   cd /path/to/plugin
   uv run /path/to/check.py
-  
+
   Or specify plugin path:
   uv run /path/to/check.py -d /path/to/plugin
 """
@@ -19,7 +19,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -27,10 +26,8 @@ from typing import Any, Optional
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
-from rich.progress import BarColumn, Progress, TextColumn
 from rich.rule import Rule
 from rich.table import Table
-from rich.text import Text
 
 from lib.utils import print_help
 
@@ -175,16 +172,16 @@ RECOMMENDED_PLUGIN_FIELDS = ["author", "license", "keywords"]
 
 def expand_env_vars(text: str, plugin_path: Path) -> str:
 	"""Expand environment variables in a string.
-	
+
 	Supports:
 	- ${VAR} syntax
 	- $VAR syntax
 	- Special variables: CLAUDE_PLUGIN_ROOT, CLAUDE_PROJECT_DIR
-	
+
 	Args:
 		text: String containing environment variables
 		plugin_path: Path to plugin directory (for CLAUDE_PLUGIN_ROOT)
-		
+
 	Returns:
 		String with environment variables expanded
 	"""
@@ -192,31 +189,31 @@ def expand_env_vars(text: str, plugin_path: Path) -> str:
 		'CLAUDE_PLUGIN_ROOT': str(plugin_path),
 		'CLAUDE_PROJECT_DIR': str(plugin_path),
 	}
-	
+
 	env_vars.update(os.environ)
-	
+
 	def replace_var(match: re.Match) -> str:
 		var_name = match.group(1) or match.group(2)
 		return env_vars.get(var_name, match.group(0))
-	
+
 	text = re.sub(r'\$\{(\w+)\}', replace_var, text)
 	text = re.sub(r'\$(\w+)(?![\w{])', replace_var, text)
-	
+
 	return text
 
 
 def extract_hook_commands(hooks_config: list[dict[str, Any]], plugin_path: Path) -> list[str]:
 	"""Extract and expand hook commands from hooks configuration.
-	
+
 	Args:
 		hooks_config: List of hook configurations
 		plugin_path: Path to plugin directory
-		
+
 	Returns:
 		List of expanded commands
 	"""
 	commands = []
-	
+
 	for hook_item in hooks_config:
 		hooks_list = hook_item.get("hooks", [])
 		for hook in hooks_list:
@@ -224,7 +221,7 @@ def extract_hook_commands(hooks_config: list[dict[str, Any]], plugin_path: Path)
 				cmd = hook.get("command", "")
 				expanded_cmd = expand_env_vars(cmd, plugin_path)
 				commands.append(expanded_cmd)
-	
+
 	return commands
 
 
@@ -244,33 +241,33 @@ class PluginCheckReport:
 	plugin_name: str
 	plugin_path: Path
 	results: list[CheckResult] = field(default_factory=list)
-	
+
 	@property
 	def passed(self) -> int:
 		return sum(1 for r in self.results if r.status == "pass")
-	
+
 	@property
 	def warnings(self) -> int:
 		return sum(1 for r in self.results if r.status == "warning")
-	
+
 	@property
 	def errors(self) -> int:
 		return sum(1 for r in self.results if r.status == "error")
-	
+
 	@property
 	def skipped(self) -> int:
 		return sum(1 for r in self.results if r.status == "skip")
-	
+
 	def add_result(self, result: CheckResult) -> None:
 		self.results.append(result)
 
 
 def load_json_file(path: Path) -> Optional[dict[str, Any]]:
 	"""Load and parse a JSON file.
-	
+
 	Args:
 		path: Path to JSON file
-		
+
 	Returns:
 		Parsed JSON data or None if failed
 	"""
@@ -285,13 +282,13 @@ def load_json_file(path: Path) -> Optional[dict[str, Any]]:
 
 def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None:
 	"""Check plugin directory structure.
-	
+
 	Args:
 		plugin_path: Path to plugin directory
 		report: Check report to update
 	"""
 	plugin_json_path = plugin_path / '.claude-plugin' / 'plugin.json'
-	
+
 	if not plugin_json_path.exists():
 		report.add_result(CheckResult(
 			category="structure",
@@ -301,14 +298,14 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 			details=f"期望路径: {plugin_json_path}"
 		))
 		return
-	
+
 	report.add_result(CheckResult(
 		category="structure",
 		name="plugin.json",
 		status="pass",
 		message="plugin.json 存在"
 	))
-	
+
 	scripts_dir = plugin_path / 'scripts'
 	if scripts_dir.exists():
 		report.add_result(CheckResult(
@@ -317,10 +314,10 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 			status="pass",
 			message="scripts 目录存在"
 		))
-		
+
 		hooks_py = scripts_dir / 'hooks.py'
 		main_py = scripts_dir / 'main.py'
-		
+
 		if hooks_py.exists():
 			report.add_result(CheckResult(
 				category="structure",
@@ -335,7 +332,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 				status="skip",
 				message="hooks.py 不存在（可选）"
 			))
-		
+
 		if main_py.exists():
 			report.add_result(CheckResult(
 				category="structure",
@@ -357,7 +354,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 			status="warning",
 			message="scripts 目录不存在"
 		))
-	
+
 	skills_dir = plugin_path / 'skills'
 	if skills_dir.exists():
 		skill_mds = list(skills_dir.glob('**/SKILL.md'))
@@ -375,7 +372,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 				status="warning",
 				message="skills 目录存在但无 SKILL.md 文件"
 			))
-	
+
 	agents_dir = plugin_path / 'agents'
 	if agents_dir.exists():
 		agent_mds = list(agents_dir.glob('*.md'))
@@ -386,7 +383,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 				status="pass",
 				message=f"找到 {len(agent_mds)} 个 agent 文件"
 			))
-	
+
 	commands_dir = plugin_path / 'commands'
 	if commands_dir.exists():
 		command_mds = list(commands_dir.glob('*.md'))
@@ -397,7 +394,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 				status="pass",
 				message=f"找到 {len(command_mds)} 个 command 文件"
 			))
-	
+
 	pyproject = plugin_path / 'pyproject.toml'
 	if pyproject.exists():
 		report.add_result(CheckResult(
@@ -413,7 +410,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 			status="skip",
 			message="pyproject.toml 不存在（非 Python 插件）"
 		))
-	
+
 	readme = plugin_path / 'README.md'
 	if readme.exists():
 		report.add_result(CheckResult(
@@ -429,7 +426,7 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 			status="warning",
 			message="README.md 不存在"
 		))
-	
+
 	llms_txt = plugin_path / 'llms.txt'
 	if llms_txt.exists():
 		report.add_result(CheckResult(
@@ -449,17 +446,17 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 
 def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optional[dict[str, Any]]:
 	"""Check plugin.json configuration.
-	
+
 	Args:
 		plugin_path: Path to plugin directory
 		report: Check report to update
-		
+
 	Returns:
 		Plugin JSON data or None if failed
 	"""
 	plugin_json_path = plugin_path / '.claude-plugin' / 'plugin.json'
 	plugin_data = load_json_file(plugin_json_path)
-	
+
 	if plugin_data is None:
 		report.add_result(CheckResult(
 			category="config",
@@ -468,14 +465,14 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 			message="plugin.json JSON 解析失败"
 		))
 		return None
-	
+
 	report.add_result(CheckResult(
 		category="config",
 		name="JSON 语法",
 		status="pass",
 		message="JSON 语法正确"
 	))
-	
+
 	for field_name in REQUIRED_PLUGIN_FIELDS:
 		if field_name in plugin_data and plugin_data[field_name]:
 			value = plugin_data[field_name]
@@ -494,7 +491,7 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 				status="error",
 				message=f"缺少必需字段: {field_name}"
 			))
-	
+
 	for field_name in RECOMMENDED_PLUGIN_FIELDS:
 		if field_name in plugin_data and plugin_data[field_name]:
 			value = plugin_data[field_name]
@@ -517,7 +514,7 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 				status="warning",
 				message=f"缺少推荐字段: {field_name}"
 			))
-	
+
 	hooks = plugin_data.get("hooks", {})
 	if hooks:
 		for event_name in hooks.keys():
@@ -535,7 +532,7 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 					status="error",
 					message=f"非法 Hook 事件类型: {event_name}（不在 Claude Code 官方文档中）"
 				))
-	
+
 	return plugin_data
 
 
@@ -545,7 +542,7 @@ def test_hook_input(
 	report: PluginCheckReport
 ) -> None:
 	"""Test hook input for plugins with hooks.py.
-	
+
 	Args:
 		plugin_path: Path to plugin directory
 		plugin_data: Plugin JSON data
@@ -559,7 +556,7 @@ def test_hook_input(
 			message="无法测试 hooks（plugin.json 解析失败）"
 		))
 		return
-	
+
 	hooks_config = plugin_data.get("hooks", {})
 	if not hooks_config:
 		report.add_result(CheckResult(
@@ -569,7 +566,7 @@ def test_hook_input(
 			message="plugin.json 中无 hooks 配置"
 		))
 		return
-	
+
 	for event_name, event_hooks in hooks_config.items():
 		if event_name not in VALID_HOOK_EVENTS:
 			report.add_result(CheckResult(
@@ -579,7 +576,7 @@ def test_hook_input(
 				message=f"非法 Hook 事件类型: {event_name}（不在 Claude Code 官方文档中）"
 			))
 			continue
-		
+
 		if event_name not in HOOK_EVENT_SAMPLES:
 			report.add_result(CheckResult(
 				category="hook_test",
@@ -588,7 +585,7 @@ def test_hook_input(
 				message=f"无测试样本数据: {event_name}"
 			))
 			continue
-		
+
 		commands = extract_hook_commands(event_hooks, plugin_path)
 		if not commands:
 			report.add_result(CheckResult(
@@ -598,9 +595,9 @@ def test_hook_input(
 				message="未找到可执行的 hook 命令"
 			))
 			continue
-		
+
 		sample_input = HOOK_EVENT_SAMPLES[event_name]
-		
+
 		for cmd in commands:
 			try:
 				result = subprocess.run(
@@ -611,9 +608,11 @@ def test_hook_input(
 					capture_output=True,
 					text=True,
 					timeout=30,
-					env={**os.environ, 'CLAUDE_PLUGIN_ROOT': str(plugin_path)}
+					env={**os.environ,
+					     'CLAUDE_PLUGIN_ROOT': str(plugin_path),
+					     }
 				)
-				
+
 				if result.returncode == 0:
 					report.add_result(CheckResult(
 						category="hook_test",
@@ -655,7 +654,7 @@ def test_hook_input(
 
 def print_report(report: PluginCheckReport) -> None:
 	"""Print a plugin check report.
-	
+
 	Args:
 		report: Check report to print
 	"""
@@ -666,27 +665,27 @@ def print_report(report: PluginCheckReport) -> None:
 		border_style="blue",
 		box=box.DOUBLE
 	))
-	
+
 	categories = {}
 	for result in report.results:
 		if result.category not in categories:
 			categories[result.category] = []
 		categories[result.category].append(result)
-	
+
 	category_names = {
 		"structure": "目录结构",
 		"config": "配置检查",
 		"hook_test": "Hook 测试"
 	}
-	
+
 	for category, results in categories.items():
 		console.print(Rule(title=f"[bold]{category_names.get(category, category)}[/bold]", style="cyan"))
-		
+
 		table = Table(show_header=True, header_style="bold", box=box.ROUNDED, padding=(0, 1))
 		table.add_column("检查项", style="cyan", no_wrap=True)
 		table.add_column("状态", justify="center", width=8)
 		table.add_column("消息")
-		
+
 		for result in results:
 			if result.status == "pass":
 				status_display = "[green]✓ 通过[/green]"
@@ -696,47 +695,47 @@ def print_report(report: PluginCheckReport) -> None:
 				status_display = "[red]✗ 错误[/red]"
 			else:
 				status_display = "[dim]○ 跳过[/dim]"
-			
+
 			table.add_row(result.name, status_display, result.message)
-		
+
 		console.print(table)
-	
+
 	console.print()
-	
+
 	total = len(report.results)
 	if total > 0:
 		pass_rate = report.passed / total * 100
 		warning_rate = report.warnings / total * 100
 		error_rate = report.errors / total * 100
-		
+
 		console.print(Rule(title="[bold]总体进度[/bold]", style="cyan"))
-		
+
 		progress_table = Table(show_header=False, box=box.ROUNDED, padding=(0, 2))
 		progress_table.add_column("Label", style="bold")
 		progress_table.add_column("Bar", width=50)
 		progress_table.add_column("Percent", justify="right", width=8)
-		
+
 		if report.passed > 0:
 			progress_table.add_row(
 				"[green]✓ 通过[/green]",
 				f"[green]{'█' * int(pass_rate / 2)}[/green][dim]{'░' * (50 - int(pass_rate / 2))}[/dim]",
 				f"[green]{pass_rate:.1f}%[/green]"
 			)
-		
+
 		if report.warnings > 0:
 			progress_table.add_row(
 				"[yellow]⚠ 警告[/yellow]",
 				f"[yellow]{'█' * int(warning_rate / 2)}[/yellow][dim]{'░' * (50 - int(warning_rate / 2))}[/dim]",
 				f"[yellow]{warning_rate:.1f}%[/yellow]"
 			)
-		
+
 		if report.errors > 0:
 			progress_table.add_row(
 				"[red]✗ 错误[/red]",
 				f"[red]{'█' * int(error_rate / 2)}[/red][dim]{'░' * (50 - int(error_rate / 2))}[/dim]",
 				f"[red]{error_rate:.1f}%[/red]"
 			)
-		
+
 		if report.skipped > 0:
 			skip_rate = report.skipped / total * 100
 			progress_table.add_row(
@@ -744,14 +743,14 @@ def print_report(report: PluginCheckReport) -> None:
 				f"[dim]{'█' * int(skip_rate / 2)}[/dim][dim]{'░' * (50 - int(skip_rate / 2))}[/dim]",
 				f"[dim]{skip_rate:.1f}%[/dim]"
 			)
-		
+
 		console.print(progress_table)
 		console.print()
-	
+
 	summary_table = Table(show_header=False, box=box.ROUNDED, padding=(0, 2))
 	summary_table.add_column("Category", style="bold")
 	summary_table.add_column("Count", justify="right")
-	
+
 	summary_table.add_row("✓ 通过", f"[green]{report.passed}[/green]")
 	if report.warnings > 0:
 		summary_table.add_row("⚠ 警告", f"[yellow]{report.warnings}[/yellow]")
@@ -759,13 +758,13 @@ def print_report(report: PluginCheckReport) -> None:
 		summary_table.add_row("✗ 错误", f"[red]{report.errors}[/red]")
 	if report.skipped > 0:
 		summary_table.add_row("○ 跳过", f"[dim]{report.skipped}[/dim]")
-	
+
 	console.print(summary_table)
 
 
 def main() -> int:
 	"""Main entry point for plugin check script.
-	
+
 	Returns:
 		Exit code (0 for success, 1 for errors)
 	"""
@@ -791,18 +790,18 @@ def main() -> int:
 		action="store_true",
 		help="显示帮助信息",
 	)
-	
+
 	args = parser.parse_args()
-	
+
 	if args.help:
 		print_help(parser, console)
 		return 0
-	
+
 	if args.dir:
 		plugin_path = Path(args.dir).resolve()
 	else:
 		plugin_path = Path.cwd()
-	
+
 	plugin_json_path = plugin_path / '.claude-plugin' / 'plugin.json'
 	if not plugin_json_path.exists():
 		console.print(Panel.fit(
@@ -813,20 +812,20 @@ def main() -> int:
 			box=box.DOUBLE
 		))
 		return 1
-	
+
 	report = PluginCheckReport(
 		plugin_name=plugin_path.name,
 		plugin_path=plugin_path
 	)
-	
+
 	check_plugin_structure(plugin_path, report)
 	plugin_data = check_plugin_config(plugin_path, report)
-	
+
 	if not args.skip_hooks:
 		test_hook_input(plugin_path, plugin_data, report)
-	
+
 	print_report(report)
-	
+
 	console.print()
 	if report.errors > 0:
 		console.print(Panel.fit(

@@ -70,9 +70,11 @@
 #### 系统通知
 | 平台 | 实现方式 | 要求 |
 |------|---------|------|
-| macOS | osascript | 内置 |
+| macOS | 优先 terminal-notifier（推荐），回退 osascript | terminal-notifier 需安装；osascript 内置 |
 | Linux | notify-send | 需安装 libnotify |
 | Windows | PowerShell Toast | PowerShell 3.0+ |
+
+> 说明：macOS 原生 `osascript display notification` 不支持自定义图标/超时；如需 `icon` 与 `duration` 生效，建议安装 `terminal-notifier`（例如通过 Homebrew）。
 
 #### 语音播报
 | 平台 | 实现方式 | 要求 |

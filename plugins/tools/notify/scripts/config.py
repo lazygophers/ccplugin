@@ -64,10 +64,11 @@ class ToolSpecificHookConfig:
 	task: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	webfetch: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	websearch: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	askuserquestion: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 
 	def validate(self) -> bool:
 		"""验证所有工具配置"""
-		for tool in ['write', 'edit', 'read', 'bash', 'task', 'webfetch', 'websearch']:
+		for tool in ['write', 'edit', 'read', 'bash', 'task', 'webfetch', 'websearch', 'askuserquestion']:
 			getattr(self, tool).validate()
 		return True
 
@@ -268,7 +269,8 @@ class HooksConfig:
 				bash=load_hook_config(data.get("bash")),
 				task=load_hook_config(data.get("task")),
 				webfetch=load_hook_config(data.get("webfetch")),
-				websearch=load_hook_config(data.get("websearch"))
+				websearch=load_hook_config(data.get("websearch")),
+				askuserquestion=load_hook_config(data.get("askuserquestion")),
 			)
 
 		def load_notification_config(data: Optional[Dict]) -> NotificationTypeHookConfig:
