@@ -403,7 +403,7 @@ wheels = [
 
 [[package]]
 name = "office-pptx"
-version = "0.0.129"
+version = "0.0.130"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
