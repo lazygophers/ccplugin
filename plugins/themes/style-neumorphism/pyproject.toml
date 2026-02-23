@@ -1,6 +1,6 @@
 [project]
 name = "theme-style-neumorphism"
-version = "0.0.129"
+version = "0.0.130"
 description = "Claude Code plugin for Neumorphism design style"
 readme = "README.md"
 requires-python = ">=3.11"

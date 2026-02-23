@@ -1,6 +1,6 @@
 {
   "name": "naming",
-  "version": "0.0.129",
+  "version": "0.0.130",
   "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南",
   "author": {
     "name": "lazygophers",
