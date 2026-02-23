@@ -1,6 +1,6 @@
 [project]
 name = "theme-style-gradient"
-version = "0.0.133"
+version = "0.0.134"
 description = "Claude Code plugin for Gradient design style"
 readme = "README.md"
 requires-python = ">=3.11"

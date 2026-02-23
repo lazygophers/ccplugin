@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-naming"
-version = "0.0.132"
+version = "0.0.133"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -67,8 +67,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.132"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#02c559c3fa93dd1ad59beb02cfbf539a28da591d" }
+version = "0.0.133"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#006718c3e6e1408bf13dced0104d1aa1d47a03f3" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },

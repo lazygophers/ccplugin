@@ -1,6 +1,6 @@
 [project]
 name = "llms"
-version = "0.0.133"
+version = "0.0.134"
 description = "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件"
 readme = "README.md"
 requires-python = ">=3.11"
