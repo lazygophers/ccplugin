@@ -6,23 +6,36 @@
 2. show_system_notification() - 显示系统通知
 """
 
+import base64
 import hashlib
 import os
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 from typing import Optional
 
-from lib import logging
-
 from icons import PREDEFINED_ICONS
+from lib import logging
 from lib.logging import error
 from lib.utils import get_plugins_path, get_project_plugins_dir, get_app_name, get_project_dir
 
 
 def _command_exists(cmd: str) -> bool:
 	return shutil.which(cmd) is not None
+
+
+def _file_md5(path: str) -> Optional[str]:
+	try:
+		h = hashlib.md5()
+		with open(path, "rb") as f:
+			for chunk in iter(lambda: f.read(1024 * 1024), b""):
+				h.update(chunk)
+		return h.hexdigest()
+	except OSError as e:
+		error(f"读取文件失败: {e}")
+		return None
 
 
 def _get_user_cache_dir(*parts: str) -> str:
@@ -32,7 +45,15 @@ def _get_user_cache_dir(*parts: str) -> str:
 
 
 def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
-	"""Convert an SVG to a PNG using macOS QuickLook (qlmanage), with caching."""
+	"""Convert an SVG to a PNG with caching.
+
+	Conversion backends (in order):
+	- rsvg-convert
+	- cairosvg
+	- inkscape
+	- ImageMagick (magick/convert)
+	- macOS qlmanage (fallback; may produce opaque thumbnails)
+	"""
 	try:
 		st = os.stat(svg_path)
 	except OSError as e:
@@ -42,33 +63,274 @@ def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
 	cache_dir = _get_user_cache_dir("icons")
 	os.makedirs(cache_dir, exist_ok=True)
 
-	cache_key = f"{svg_path}:{st.st_mtime_ns}:{st.st_size}:{size}"
-	cache_name = hashlib.sha256(cache_key.encode("utf-8")).hexdigest() + ".png"
-	cached_png = os.path.join(cache_dir, cache_name)
+	source_md5 = _file_md5(svg_path)
+	if not source_md5:
+		return None
+
+	# 按“文件内容 md5”去重：同内容同尺寸只生成一次缓存文件，不重复覆盖/生成
+	cached_png = os.path.join(cache_dir, f"svg_{source_md5}_{int(size)}.png")
 	if os.path.exists(cached_png):
 		return cached_png
 
 	tmpdir = tempfile.mkdtemp(prefix="notify-icon-")
 	try:
-		subprocess.run(
-			["qlmanage", "-t", "-s", str(size), "-o", tmpdir, svg_path],
-			check=True,
-			capture_output=True,
-		)
-		generated = os.path.join(tmpdir, os.path.basename(svg_path) + ".png")
+		out_path = os.path.join(tmpdir, "out.png")
+
+		if _command_exists("rsvg-convert"):
+			subprocess.run(
+				["rsvg-convert", "-w", str(size), "-h", str(size), "-o", out_path, svg_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("cairosvg"):
+			subprocess.run(
+				["cairosvg", "-o", out_path, "-W", str(size), "-H", str(size), svg_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("inkscape"):
+			# Compatible with Inkscape 1.x
+			subprocess.run(
+				["inkscape", svg_path, "-o", out_path, "-w", str(size), "-h", str(size)],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("magick"):
+			subprocess.run(
+				["magick", svg_path, "-background", "none", "-alpha", "on", "-resize", f"{size}x{size}", out_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif _command_exists("convert"):
+			subprocess.run(
+				["convert", svg_path, "-background", "none", "-alpha", "on", "-resize", f"{size}x{size}", out_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = out_path
+		elif platform.system() == "Darwin" and _command_exists("qlmanage"):
+			subprocess.run(
+				["qlmanage", "-t", "-s", str(size), "-o", tmpdir, svg_path],
+				check=True,
+				capture_output=True,
+			)
+			generated = os.path.join(tmpdir, os.path.basename(svg_path) + ".png")
+		else:
+			error("缺少 SVG 转 PNG 工具：请安装 rsvg-convert / inkscape / ImageMagick，或直接提供 PNG 图标")
+			return None
+
 		if not os.path.exists(generated):
 			error(f"SVG 转 PNG 失败（未生成输出文件）: {svg_path}")
 			return None
+
+		# 若目标已存在（并发/重复触发），不覆盖，直接复用
+		if os.path.exists(cached_png):
+			return cached_png
+
 		shutil.move(generated, cached_png)
 		return cached_png
-	except FileNotFoundError:
-		error("qlmanage 未找到，无法将 SVG 转换为 PNG（macOS 特有）")
-		return None
 	except subprocess.CalledProcessError as e:
 		error(f"SVG 转 PNG 失败: {e}")
 		return None
 	finally:
 		shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _icon_for_overlay(icon_path: Optional[str]) -> Optional[str]:
+	"""为 overlay 选择可用的 icon 文件路径（强制要求：必须能展示 logo）。"""
+	if isinstance(icon_path, str) and icon_path and os.path.exists(icon_path):
+		if icon_path.lower().endswith(".svg"):
+			converted = _svg_to_png_cached(icon_path)
+			if converted:
+				return converted
+			return None
+		return icon_path
+
+	return None
+
+
+_TK_OVERLAY_SCRIPT = r'''
+import sys
+import os
+import time
+
+def main() -> int:
+	if len(sys.argv) < 5:
+		return 2
+
+	title = sys.argv[1]
+	message = sys.argv[2]
+	duration_seconds = max(1, int(float(sys.argv[3])))
+	icon_path = sys.argv[4]
+
+	import tkinter as tk
+
+	root = tk.Tk()
+	root.overrideredirect(True)
+	root.attributes("-topmost", True)
+	try:
+		root.wm_attributes("-type", "notification")
+	except Exception:
+		pass
+
+	# Try to avoid focus stealing on Windows
+	if sys.platform.startswith("win"):
+		try:
+			import ctypes
+			from ctypes import wintypes
+
+			GWL_EXSTYLE = -20
+			WS_EX_TOOLWINDOW = 0x00000080
+			WS_EX_NOACTIVATE = 0x08000000
+			WS_EX_TRANSPARENT = 0x00000020
+
+			hwnd = root.winfo_id()
+			user32 = ctypes.windll.user32
+			user32.GetWindowLongW.restype = wintypes.LONG
+			exstyle = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+			user32.SetWindowLongW(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT)
+			# SW_SHOWNOACTIVATE = 4
+			user32.ShowWindow(hwnd, 4)
+		except Exception:
+			pass
+
+	root.configure(bg="#000000")
+	frame = tk.Frame(root, bg="#1e1e1e", bd=0, highlightthickness=0)
+	frame.pack(fill="both", expand=True)
+
+	# Layout constants
+	padding = 12
+	gap = 10
+	width = 380
+
+	# Icon
+	icon = None
+	if icon_path and os.path.exists(icon_path):
+		try:
+			icon = tk.PhotoImage(file=icon_path)
+			# downscale if too large
+			while icon.width() > 64 and icon.height() > 64:
+				icon = icon.subsample(2, 2)
+		except Exception:
+			icon = None
+
+	row = 0
+	if icon is not None:
+		icon_label = tk.Label(frame, image=icon, bg="#1e1e1e")
+		icon_label.image = icon
+		icon_label.grid(row=0, column=0, rowspan=2, padx=(padding, 0), pady=padding, sticky="n")
+		text_col = 1
+	else:
+		text_col = 0
+
+	title_label = tk.Label(
+		frame,
+		text=title,
+		bg="#1e1e1e",
+		fg="#ffffff",
+		font=("Segoe UI", 11, "bold") if sys.platform.startswith("win") else ("Sans", 11, "bold"),
+		anchor="w",
+	)
+	title_label.grid(row=0, column=text_col, padx=(padding if text_col == 0 else gap, padding), pady=(padding, 0), sticky="we")
+
+	message_label = tk.Label(
+		frame,
+		text=message,
+		bg="#1e1e1e",
+		fg="#dddddd",
+		font=("Segoe UI", 10) if sys.platform.startswith("win") else ("Sans", 10),
+		justify="left",
+		anchor="nw",
+		wraplength=width - padding * 2 - (64 + gap if text_col == 1 else 0),
+	)
+	message_label.grid(row=1, column=text_col, padx=(padding if text_col == 0 else gap, padding), pady=(6, padding), sticky="we")
+
+	frame.grid_columnconfigure(text_col, weight=1)
+
+	root.update_idletasks()
+	win_w = max(width, frame.winfo_reqwidth())
+	win_h = frame.winfo_reqheight()
+
+	screen_w = root.winfo_screenwidth()
+	screen_h = root.winfo_screenheight()
+	x = screen_w - win_w - 16
+	y = 16
+	root.geometry(f"{win_w}x{win_h}+{x}+{y}")
+
+	# auto close
+	root.after(int(duration_seconds * 1000), root.destroy)
+	root.mainloop()
+	return 0
+
+if __name__ == "__main__":
+	raise SystemExit(main())
+'''
+
+
+def _ensure_tk_overlay_script() -> Optional[str]:
+	cache_dir = _get_user_cache_dir("bin")
+	os.makedirs(cache_dir, exist_ok=True)
+	source_md5 = hashlib.md5(_TK_OVERLAY_SCRIPT.encode("utf-8")).hexdigest()[:16]
+	script_path = os.path.join(cache_dir, f"notify_overlay_tk_{source_md5}.py")
+
+	try:
+		# 文件名已包含源码 md5：同内容不重复写入/覆盖
+		if not os.path.exists(script_path):
+			with open(script_path, "w", encoding="utf-8") as f:
+				f.write(_TK_OVERLAY_SCRIPT)
+
+		return script_path
+	except Exception as e:
+		error(f"准备 Tk overlay 脚本失败: {e}")
+		return None
+
+
+def _tkinter_available() -> bool:
+	"""不使用 try-import：用子进程检测 tkinter 是否可用。"""
+	try:
+		python_exe = sys.executable
+		if not python_exe:
+			python_exe = shutil.which("python3") or shutil.which("python") or "python"
+		result = subprocess.run(
+			[python_exe, "-c", "import tkinter"],
+			capture_output=True,
+			text=True,
+		)
+		return result.returncode == 0
+	except Exception:
+		return False
+
+
+def _show_tk_overlay_notification(message: str, title: str, duration_seconds: int, icon_path: Optional[str]) -> bool:
+	if not _tkinter_available():
+		error("Tkinter 不可用，无法满足强制 duration/logo/title/message 的提醒需求")
+		return False
+
+	script_path = _ensure_tk_overlay_script()
+	if not script_path:
+		return False
+
+	icon_for_overlay = _icon_for_overlay(icon_path)
+	if not icon_for_overlay:
+		error("无法获取可用图标，无法满足强制 logo 要求")
+		return False
+	logging.debug(f"Tk overlay 使用图标: {icon_for_overlay}")
+
+	timeout_seconds = max(1, int(duration_seconds))
+	try:
+		subprocess.Popen(
+			[sys.executable, script_path, title, message, str(timeout_seconds), str(icon_for_overlay)],
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+		)
+		return True
+	except Exception as e:
+		error(f"启动 Tk overlay 失败: {e}")
+		return False
 
 
 def _resolve_icon_path(icon: str) -> Optional[str]:
@@ -125,7 +387,8 @@ def _show_macos_notification_terminal_notifier(
 ) -> bool:
 	# 保留函数名用于兼容旧调用路径，但实现改为“可控时长的无焦点浮层提醒”。
 	# 原因：macOS 通知横幅停留时长无法被系统通知 API 可靠控制，无法满足“强制 duration 秒”的要求。
-	return _show_macos_overlay_notification(message=message, title=title, duration_seconds=duration_seconds, icon_path=icon_path)
+	return _show_macos_overlay_notification(message=message, title=title, duration_seconds=duration_seconds,
+	                                        icon_path=icon_path)
 
 
 _MACOS_OVERLAY_SWIFT_SOURCE = r'''
@@ -148,7 +411,7 @@ func measureHeight(text: String, font: NSFont, width: CGFloat) -> CGFloat {
 }
 
 func main() -> Int32 {
-	// argv: title message duration_seconds icon_path
+	// argv: title message duration_seconds icon_b64_or_path
 	guard CommandLine.arguments.count >= 5 else {
 		return 2
 	}
@@ -156,7 +419,7 @@ func main() -> Int32 {
 	let title = CommandLine.arguments[1]
 	let message = CommandLine.arguments[2]
 	let durationSeconds = max(1, Int(CommandLine.arguments[3]) ?? 60)
-	let iconPath = CommandLine.arguments[4]
+	let iconArg = CommandLine.arguments[4]
 
 	NSApplication.shared.setActivationPolicy(.accessory)
 
@@ -204,9 +467,25 @@ func main() -> Int32 {
 	background.layer?.cornerRadius = 12
 	background.layer?.masksToBounds = true
 
+	var iconImage: NSImage? = nil
+	if iconArg.hasPrefix("b64:") {
+		let b64 = String(iconArg.dropFirst(4))
+		if let data = Data(base64Encoded: b64, options: [.ignoreUnknownCharacters]) {
+			iconImage = NSImage(data: data)
+		}
+	} else {
+		iconImage = NSImage(contentsOfFile: iconArg)
+		if iconImage == nil {
+			let url = URL(fileURLWithPath: iconArg)
+			if let data = try? Data(contentsOf: url) {
+				iconImage = NSImage(data: data)
+			}
+		}
+	}
+
 	let iconView = NSImageView(frame: NSRect(x: padding, y: height - padding - iconSize, width: iconSize, height: iconSize))
 	iconView.imageScaling = .scaleProportionallyUpOrDown
-	iconView.image = NSImage(contentsOfFile: iconPath)
+	iconView.image = iconImage
 
 	let titleField = NSTextField(labelWithString: title)
 	titleField.font = titleFont
@@ -262,24 +541,18 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 	cache_dir = _get_user_cache_dir("bin")
 	os.makedirs(cache_dir, exist_ok=True)
 
-	src_path = os.path.join(cache_dir, "notify_overlay.swift")
-	bin_path = os.path.join(cache_dir, "notify_overlay")
+	# 使用源码内容的 md5：只有源码变更才会生成新文件，尽可能减少重复生成
+	source_md5 = hashlib.md5(_MACOS_OVERLAY_SWIFT_SOURCE.encode("utf-8")).hexdigest()[:16]
+	src_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}.swift")
+	bin_path = os.path.join(cache_dir, f"notify_overlay_{source_md5}")
 
 	try:
-		need_write = True
-		if os.path.exists(src_path):
-			try:
-				with open(src_path, "r", encoding="utf-8") as f:
-					need_write = (f.read() != _MACOS_OVERLAY_SWIFT_SOURCE)
-			except OSError:
-				need_write = True
-
-		if need_write:
+		# 文件名已包含源码 hash：同二进制不重复生成/覆盖
+		if not os.path.exists(src_path):
 			with open(src_path, "w", encoding="utf-8") as f:
 				f.write(_MACOS_OVERLAY_SWIFT_SOURCE)
 
-		need_build = (not os.path.exists(bin_path)) or (os.path.getmtime(bin_path) < os.path.getmtime(src_path))
-		if need_build:
+		if not os.path.exists(bin_path):
 			if not _command_exists("xcrun"):
 				error("macOS 浮层提醒需要 xcrun/swiftc（请安装 Xcode Command Line Tools）")
 				return None
@@ -306,15 +579,11 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 
 def _show_macos_overlay_notification(message: str, title: str, duration_seconds: int, icon_path: Optional[str]) -> bool:
 	"""macOS：不抢焦点的右上角浮层提醒，强制展示 duration_seconds 秒。"""
-	if not icon_path:
-		error("macOS 通知要求提供可用的 icon_path，但未找到图标文件")
+	icon_for_overlay = _icon_for_overlay(icon_path)
+	if not icon_for_overlay:
+		error("macOS 通知无法获取可用图标，无法满足强制 logo 要求")
 		return False
-
-	icon_for_overlay = icon_path
-	if icon_path.lower().endswith(".svg") and _command_exists("qlmanage"):
-		converted = _svg_to_png_cached(icon_path)
-		if converted:
-			icon_for_overlay = converted
+	logging.debug(f"macOS overlay 使用图标: {icon_for_overlay}")
 
 	bin_path = _ensure_macos_overlay_binary()
 	if not bin_path:
@@ -322,8 +591,11 @@ def _show_macos_overlay_notification(message: str, title: str, duration_seconds:
 
 	timeout_seconds = max(1, int(duration_seconds))
 	try:
+		with open(icon_for_overlay, "rb") as f:
+			icon_b64 = base64.b64encode(f.read()).decode("ascii")
+
 		subprocess.Popen(
-			[bin_path, title, message, str(timeout_seconds), str(icon_for_overlay)],
+			[bin_path, title, message, str(timeout_seconds), f"b64:{icon_b64}"],
 			stdout=subprocess.DEVNULL,
 			stderr=subprocess.DEVNULL,
 		)
@@ -434,75 +706,28 @@ def show_system_notification(
 
 	# 解析图标路径
 	icon_path = _resolve_icon_path(icon)
+	if not icon_path:
+		error("通知要求提供可用的 icon，但未找到图标文件")
+		return False
+
+	logging.debug(f"解析到图标路径: {icon_path}")
 
 	try:
 		system = platform.system()
 
 		if system == "Darwin":  # macOS
 			# 强制要求：duration、logo、title、message
-			if _show_macos_notification_terminal_notifier(message, title, duration, icon_path):
-				return True
-			return False
+			return _show_macos_notification_terminal_notifier(message, title, duration, icon_path)
 
 		elif system == "Linux":
-			# 使用 notify-send（需要 libnotify 库）
-			cmd = ["notify-send"]
-
-			# 添加图标参数
-			if icon_path:
-				cmd.extend(["-i", str(icon_path)])
-
-			# 添加超时参数（notify-send 单位为毫秒）
-			if duration > 0:
-				cmd.extend(["-t", str(int(duration * 1000))])
-
-			cmd.extend([title, message])
-			subprocess.run(cmd, check=True, capture_output=True)
-			return True
+			# 强制要求：duration、logo、title、message
+			return _show_tk_overlay_notification(message=message, title=title, duration_seconds=duration,
+			                                     icon_path=icon_path)
 
 		elif system == "Windows":
-			# 使用 PowerShell Toast Notification
-			# 构建 XML 模板（支持图标）
-			image_element = ""
-			if icon_path:
-				# 转义路径中的反斜杠
-				escaped_icon_path = str(icon_path).replace("\\", "\\\\")
-				# Windows Toast 支持 image 元素，使用 file:// URI
-				image_element = f'<image placement="appLogoOverride" src="file:///{escaped_icon_path}"/>'
-
-			toast_template = f"""<toast>
-                <visual>
-                    <binding template="ToastText02">
-                        <text id="1">{title}</text>
-                        <text id="2">{message}</text>
-                    </binding>
-                </visual>
-                {image_element}
-            </toast>"""
-
-			# 转义 PowerShell 中的双引号
-			ps_template = toast_template.replace('"', '\"')
-
-			ps_cmd = f"""
-            [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-            [Windows.UI.Notifications.ToastNotification, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
-
-            $APP_ID = 'ClaudeCode'
-            $template = @"
-            {ps_template}
-            "@
-
-            $xml = New-Object Windows.Data.Xml.Dom.XmlDocument
-            $xml.LoadXml($template)
-            $toast = New-Object Windows.UI.Notifications.ToastNotification $xml
-            [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($APP_ID).Show($toast)
-            """
-			subprocess.run(
-				["powershell", "-Command", ps_cmd],
-				check=True,
-				capture_output=True
-			)
-			return True
+			# 强制要求：duration、logo、title、message
+			return _show_tk_overlay_notification(message=message, title=title, duration_seconds=duration,
+			                                     icon_path=icon_path)
 
 		else:
 			error(f"不支持的操作系统: {system}")
@@ -521,4 +746,4 @@ def show_system_notification(
 
 if __name__ == '__main__':
 	logging.enable_debug()
-	show_system_notification("操作已完成")
+	show_system_notification("操作已完成", icon='./assets/icons/claude.svg')
