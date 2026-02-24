@@ -19,102 +19,102 @@
   "hooks": {
     "SessionStart": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "SessionEnd": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "UserPromptSubmit": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "PreToolUse": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "PostToolUse": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "Notification": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "Stop": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "SubagentStop": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ],
     "PreCompact": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 30
+            "hooks": [
+              {
+                "type": "command",
+                "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+                "timeout": 300
+              }
+            ]
           }
-        ]
-      }
     ]
   }
 }

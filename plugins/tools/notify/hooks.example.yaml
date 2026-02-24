@@ -176,9 +176,14 @@ hooks:
       # 1) Python format（旧）："{project_name} 等待你回答问题"
       # 2) Jinja2（推荐，支持循环/条件）："{{ project_name }} ..."
       message: |-
-        {{ project_name }} 有 {{ tool_input.questions | length }} 个问题需要你解决
-        {%- for q in tool_input.questions %}
+        {{ project_name }} 有 {{ tool_input.get('questions', []) | length }} 个问题需要你解决
+        {%- for q in tool_input.get('questions', []) %}
         第{{ loop.index }}个问题：{{ q.question }}
+        {%- if q.get('options') %}
+        {%- for opt in q.get('options') %}
+        - {{ opt.label }}：{{ opt.description }}
+        {%- endfor %}
+        {%- endif %}
         {%- endfor %}
       # 常用变量（Jinja2）：project_name, session_id, tool_input, questions_count
       # JSON 输入示例（工具维度）:

@@ -215,19 +215,20 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	if context:
 		message = _render_message(message, context)
 
-	# 显示消息
-	if hook_config.enabled:
-		info(f"弹出提示：{message}")
-		if show_system_notification(message):
-			# 播放声音（TTS）
+		# 显示消息
+		if hook_config.enabled:
+			info(f"弹出提示：{message}")
+			# 播放声音（TTS）：独立子进程启动，不依赖本进程存活，不阻塞主流程
 			if hook_config.play_sound:
 				info(f"播放 TTS: {message}")
 				if not play_text_tts(message):
-					error(f"TTS 播放失败: {message}")
+					error(f"TTS 启动失败: {message}")
 					success = False
-		else:
-			error(f"系统通知显示失败: {message}")
-			success = False
+
+			# 系统通知
+			if not show_system_notification(message):
+				error(f"系统通知显示失败: {message}")
+				success = False
 
 	return success
 

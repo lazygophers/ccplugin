@@ -1,5 +1,5 @@
 PREDEFINED_ICONS = {
-	'claude': 'claude.svg',  # claude
+	'claude': 'claude.png',  # claude
 }
 
 __all__ = ['PREDEFINED_ICONS']

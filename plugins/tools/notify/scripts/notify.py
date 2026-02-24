@@ -10,6 +10,7 @@ import base64
 import hashlib
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -24,6 +25,79 @@ from lib.utils import get_plugins_path, get_project_plugins_dir, get_app_name, g
 
 def _command_exists(cmd: str) -> bool:
 	return shutil.which(cmd) is not None
+
+
+_EMOJI_RE = re.compile(
+	"("
+	"[\U0001F1E6-\U0001F1FF]"  # flags
+	"|[\U0001F300-\U0001F5FF]"  # symbols & pictographs
+	"|[\U0001F600-\U0001F64F]"  # emoticons
+	"|[\U0001F680-\U0001F6FF]"  # transport & map
+	"|[\U0001F700-\U0001F77F]"  # alchemical
+	"|[\U0001F780-\U0001F7FF]"  # geometric extended
+	"|[\U0001F800-\U0001F8FF]"  # arrows-c
+	"|[\U0001F900-\U0001F9FF]"  # supplemental symbols
+	"|[\U0001FA00-\U0001FA6F]"  # chess etc.
+	"|[\U0001FA70-\U0001FAFF]"  # symbols ext-a
+	"|[\u2600-\u26FF]"  # misc symbols
+	"|[\u2700-\u27BF]"  # dingbats
+	")"
+)
+
+_MAX_TTS_HANZI = 300
+
+
+def _is_hanzi(ch: str) -> bool:
+	if not ch:
+		return False
+	cp = ord(ch)
+	# CJK Unified Ideographs + Extensions (common ranges)
+	return (
+		0x3400 <= cp <= 0x4DBF  # Ext A
+		or 0x4E00 <= cp <= 0x9FFF  # Unified
+		or 0xF900 <= cp <= 0xFAFF  # Compatibility
+		or 0x20000 <= cp <= 0x2A6DF  # Ext B
+		or 0x2A700 <= cp <= 0x2B73F  # Ext C
+		or 0x2B740 <= cp <= 0x2B81F  # Ext D
+		or 0x2B820 <= cp <= 0x2CEAF  # Ext E
+		or 0x2CEB0 <= cp <= 0x2EBEF  # Ext F
+		or 0x30000 <= cp <= 0x3134F  # Ext G (subset)
+	)
+
+
+def _truncate_tts_text(text: str, max_hanzi: int = _MAX_TTS_HANZI) -> str:
+	"""TTS 只输出前 max_hanzi 个汉字；超过则直接截断到第 max_hanzi 个汉字的位置。"""
+	if not text:
+		return text
+	if max_hanzi <= 0:
+		return ""
+
+	hanzi_count = 0
+	for i, ch in enumerate(text):
+		if _is_hanzi(ch):
+			hanzi_count += 1
+			if hanzi_count > max_hanzi:
+				return text[:i]
+	return text
+
+
+def _sanitize_tts_text(text: str) -> str:
+	"""过滤 emoji：用空格替换 emoji 本体，移除连接/变体符号。"""
+	if not text:
+		return text
+
+	# Remove joiners/selectors/modifiers that are not useful for TTS output.
+	text = text.replace("\u200d", "")  # ZWJ
+	text = text.replace("\ufe0f", "").replace("\ufe0e", "")  # VS16/VS15
+	text = text.replace("\u20e3", "")  # keycap enclosing
+	text = re.sub(r"[\U0001F3FB-\U0001F3FF]", "", text)  # skin tone modifiers
+
+	# Replace emoji with a space to keep word boundaries readable.
+	text = _EMOJI_RE.sub(" ", text)
+
+	# Collapse excessive spaces but preserve newlines.
+	text = re.sub(r"[ \t]{2,}", " ", text)
+	return text
 
 
 def _file_md5(path: str) -> Optional[str]:
@@ -144,6 +218,10 @@ def _icon_for_overlay(icon_path: Optional[str]) -> Optional[str]:
 	"""为 overlay 选择可用的 icon 文件路径（强制要求：必须能展示 logo）。"""
 	if isinstance(icon_path, str) and icon_path and os.path.exists(icon_path):
 		if icon_path.lower().endswith(".svg"):
+			# 如果同名 PNG 已存在，优先使用（无需外部转换工具，也避免重复生成缓存）
+			png_candidate = os.path.splitext(icon_path)[0] + ".png"
+			if os.path.exists(png_candidate):
+				return png_candidate
 			converted = _svg_to_png_cached(icon_path)
 			if converted:
 				return converted
@@ -337,7 +415,7 @@ def _resolve_icon_path(icon: str) -> Optional[str]:
 	"""解析图标参数为完整路径。
 
 	支持：
-	1. 预定义名称 - 如 'claude'，映射到 assets/icons/claude.svg
+	1. 预定义名称 - 如 'claude'，映射到 assets/icons/claude.png
 	2. 绝对路径 - 直接使用
 	3. 相对路径 - 按照优先级顺序搜索：
 	   - assets/icons/ (用于预定义的项目资源)
@@ -488,6 +566,7 @@ func main() -> Int32 {
 
 	let iconView = NSImageView(frame: NSRect(x: padding, y: height - padding - iconSize, width: iconSize, height: iconSize))
 	iconView.imageScaling = .scaleProportionallyUpOrDown
+	iconView.contentTintColor = nil
 	iconView.image = iconImage
 
 	let titleField = NSTextField(labelWithString: title)
@@ -606,13 +685,17 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 			except OSError:
 				pass
 
-		# 写入映射：同源码后续不再编译
-		if not os.path.exists(ref_path):
-			try:
+		# 写入映射：同源码后续不再编译（ref 存在但失效时也需要刷新，避免重复编译）
+		try:
+			existing_ref = ""
+			if os.path.exists(ref_path):
+				with open(ref_path, "r", encoding="utf-8") as f:
+					existing_ref = (f.read() or "").strip()
+			if existing_ref != bin_name:
 				with open(ref_path, "w", encoding="utf-8") as f:
 					f.write(bin_name)
-			except OSError:
-				pass
+		except OSError:
+			pass
 
 		return bin_path
 	except Exception as e:
@@ -651,14 +734,15 @@ def _show_macos_overlay_notification(message: str, title: str, duration_seconds:
 def play_text_tts(text: str, rate: int = 200) -> bool:
 	"""通过 TTS 播放文本内容
 
-	使用系统默认的 TTS 引擎（macOS 使用 say，Linux 使用 espeak）
+	使用系统默认的 TTS 引擎（macOS 使用 say，Linux 使用 espeak）。
+	强制要求：TTS 以“独立子进程”方式启动，不阻塞当前 Python 进程，且不依赖当前 Python 进程存活。
 
 	Args:
 		text: 要播放的文本内容
 		rate: 播放速率（字/分钟），仅对 macOS 有效，默认 200
 
 	Returns:
-		bool: 播放成功返回 True，失败返回 False
+		bool: 成功启动 TTS 子进程返回 True，失败返回 False
 
 	示例:
 		play_text_tts("Hello, World!")
@@ -668,42 +752,43 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 		error("文本内容不能为空且必须是字符串类型")
 		return False
 
+	text = _sanitize_tts_text(text)
+	text = _truncate_tts_text(text, _MAX_TTS_HANZI)
+
 	try:
 		system = platform.system()
 
 		if system == "Darwin":  # macOS
-			# 使用 macOS 的 say 命令
 			cmd = ["say", "-r", str(rate), text]
-			subprocess.run(cmd, check=True, capture_output=True)
-			return True
-
 		elif system == "Linux":
-			# 使用 Linux 的 espeak 命令
 			cmd = ["espeak", text]
-			subprocess.run(cmd, check=True, capture_output=True)
-			return True
-
 		elif system == "Windows":
-			# 使用 Windows 的 PowerShell TTS
 			ps_cmd = f"""
             Add-Type -AssemblyName System.Speech
             $speak = New-Object System.Speech.Synthesis.SpeechSynthesizer
             $speak.Speak('{text}')
             """
-			subprocess.run(
-				["powershell", "-Command", ps_cmd],
-				check=True,
-				capture_output=True
-			)
-			return True
-
+			cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
 		else:
 			error(f"不支持的操作系统: {system}")
 			return False
 
-	except subprocess.CalledProcessError as e:
-		error(f"TTS 播放失败: {e}")
-		return False
+		popen_kwargs = {
+			"stdin": subprocess.DEVNULL,
+			"stdout": subprocess.DEVNULL,
+			"stderr": subprocess.DEVNULL,
+			"close_fds": True,
+		}
+
+		# 确保子进程不依赖当前 Python 进程存活（尽可能脱离会话/控制台）
+		if system == "Windows":
+			popen_kwargs["creationflags"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+		else:
+			popen_kwargs["start_new_session"] = True
+
+		subprocess.Popen(cmd, **popen_kwargs)
+		return True
+
 	except FileNotFoundError as e:
 		error(f"TTS 工具未找到（可能未安装）: {e}")
 		return False
@@ -715,20 +800,20 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 def show_system_notification(
 	message: str,
 	title: str = "Claude Code",
-	duration: int = 30,
+	duration: int = 60,
 	icon: str = 'claude'
 ) -> bool:
 	"""显示系统通知
 
-	根据操作系统调用相应的通知方式：
-	- macOS: 使用不抢焦点的浮层提醒（保证 duration 秒 + 自定义 logo/title/message）
-	- Linux: 使用 notify-send
-	- Windows: 使用 PowerShell Toast
+	根据操作系统调用相应的通知方式（统一为“无焦点浮层 toast”）：
+	- macOS: Swift/AppKit 浮层（强制 duration 秒 + 自定义 logo/title/message）
+	- Linux: Tk 浮层（强制 duration 秒 + 自定义 logo/title/message）
+	- Windows: Tk 浮层（强制 duration 秒 + 自定义 logo/title/message）
 
 	Args:
 		message: 通知消息内容（必填）
 		title: 通知标题，默认为 "Claude Code"
-		duration: 通知显示时长（秒），仅对部分系统有效，默认 60
+		duration: 通知显示时长（秒），默认 60
 		icon: 通知图标，可以是预定义名称（'claude'）或文件路径，默认为 'claude'
 
 	Returns:
@@ -789,4 +874,4 @@ def show_system_notification(
 
 if __name__ == '__main__':
 	logging.enable_debug()
-	show_system_notification("操作已完成", icon='./assets/icons/claude.svg')
+	show_system_notification("操作已完成", icon='claude')
