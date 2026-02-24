@@ -501,8 +501,50 @@ def main() -> int:
 
 	_place_bottom_right()
 
+	tts_pid = 0
+	if len(sys.argv) >= 6:
+		try:
+			tts_pid = int(float(sys.argv[5]))
+		except Exception:
+			tts_pid = 0
+
+	def _stop_tts():
+		if not tts_pid or tts_pid <= 0:
+			return
+		try:
+			if sys.platform.startswith("win"):
+				import subprocess as _sp
+				_sp.run(
+					["taskkill", "/PID", str(tts_pid), "/T", "/F"],
+					stdout=_sp.DEVNULL,
+					stderr=_sp.DEVNULL,
+				)
+			else:
+				import signal
+				try:
+					os.kill(tts_pid, signal.SIGTERM)
+				except ProcessLookupError:
+					return
+				except PermissionError:
+					return
+				def _kill_hard():
+					try:
+						os.kill(tts_pid, signal.SIGKILL)
+					except Exception:
+						pass
+				root.after(400, _kill_hard)
+		except Exception:
+			pass
+
+	def _close():
+		_stop_tts()
+		root.destroy()
+
+	# wire close button
+	close_btn.configure(command=_close)
+
 	# auto close
-	root.after(int(duration_seconds * 1000), root.destroy)
+	root.after(int(duration_seconds * 1000), _close)
 	root.mainloop()
 	return 0
 
@@ -545,7 +587,13 @@ def _tkinter_available() -> bool:
 		return False
 
 
-def _show_tk_overlay_notification(message: str, title: str, duration_seconds: int, icon_path: Optional[str]) -> bool:
+def _show_tk_overlay_notification(
+	message: str,
+	title: str,
+	duration_seconds: int,
+	icon_path: Optional[str],
+	tts_pid: Optional[int] = None,
+) -> bool:
 	if not _tkinter_available():
 		error("Tkinter 不可用，无法满足强制 duration/logo/title/message 的提醒需求")
 		return False
@@ -562,8 +610,11 @@ def _show_tk_overlay_notification(message: str, title: str, duration_seconds: in
 
 	timeout_seconds = max(1, int(duration_seconds))
 	try:
+		args = [sys.executable, script_path, title, message, str(timeout_seconds), str(icon_for_overlay)]
+		if isinstance(tts_pid, int) and tts_pid > 0:
+			args.append(str(tts_pid))
 		subprocess.Popen(
-			[sys.executable, script_path, title, message, str(timeout_seconds), str(icon_for_overlay)],
+			args,
 			stdout=subprocess.DEVNULL,
 			stderr=subprocess.DEVNULL,
 		)
@@ -634,6 +685,7 @@ def _show_macos_notification_terminal_notifier(
 _MACOS_OVERLAY_SWIFT_SOURCE = r'''
 import AppKit
 import Foundation
+import Darwin
 
 final class NonActivatingPanel: NSPanel {
 	override var canBecomeKey: Bool { false }
@@ -666,8 +718,9 @@ final class TrackingVisualEffectView: NSVisualEffectView {
 }
 
 final class CloseTarget: NSObject {
+	var onClose: (() -> Void)?
 	@objc func close(_ sender: Any?) {
-		NSApp.terminate(nil)
+		onClose?()
 	}
 }
 
@@ -682,23 +735,28 @@ func measureHeight(text: String, font: NSFont, width: CGFloat) -> CGFloat {
 }
 
 func main() -> Int32 {
-	// argv: title message duration_seconds icon_b64_or_path
-	guard CommandLine.arguments.count >= 5 else {
-		return 2
-	}
+	// argv: title message duration_seconds icon_b64_or_path [tts_pid]
+	guard CommandLine.arguments.count >= 5 else { return 2 }
 
 	let title = CommandLine.arguments[1]
 	let message = CommandLine.arguments[2]
 	let durationSeconds = max(1, Int(CommandLine.arguments[3]) ?? 60)
 	let iconArg = CommandLine.arguments[4]
+	let ttsPid: Int32 = (CommandLine.arguments.count >= 6) ? (Int32(CommandLine.arguments[5]) ?? 0) : 0
+
+	func stopTts() {
+		guard ttsPid > 0 else { return }
+		_ = kill(ttsPid, SIGTERM)
+		DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(400)) {
+			_ = kill(ttsPid, SIGKILL)
+		}
+	}
 
 	NSApplication.shared.setActivationPolicy(.accessory)
 
-	guard let screen = NSScreen.main ?? NSScreen.screens.first else {
-		return 3
-	}
-
+	guard let screen = NSScreen.main ?? NSScreen.screens.first else { return 3 }
 	let visible = screen.visibleFrame
+
 	let margin: CGFloat = 16
 	let padding: CGFloat = 14
 	let gap: CGFloat = 10
@@ -710,6 +768,7 @@ func main() -> Int32 {
 	let textWidth = width - padding * 2 - iconSize - gap
 	let titleHeight = max(18, measureHeight(text: title, font: titleFont, width: textWidth))
 	let fullMessageHeight = max(18, measureHeight(text: message, font: messageFont, width: textWidth))
+
 	let collapsedMessageMax: CGFloat = 86
 	let expandedMessageMax: CGFloat = min(420, max(180, visible.height * 0.6))
 
@@ -762,11 +821,9 @@ func main() -> Int32 {
 			}
 		}
 	}
-	if let img = iconImage {
-		img.isTemplate = false
-	}
+	if let img = iconImage { img.isTemplate = false }
 
-	let iconView = NSImageView(frame: NSRect(x: padding, y: collapsedHeight - padding - iconSize, width: iconSize, height: iconSize))
+	let iconView = NSImageView(frame: .zero)
 	iconView.imageScaling = .scaleProportionallyUpOrDown
 	iconView.contentTintColor = nil
 	iconView.image = iconImage
@@ -784,7 +841,7 @@ func main() -> Int32 {
 	textView.font = messageFont
 	textView.textColor = .secondaryLabelColor
 	textView.string = message
-	textView.textContainerInset = NSSize(width: 0, height: 0)
+	textView.textContainerInset = .zero
 	textView.textContainer?.lineFragmentPadding = 0
 
 	let scrollView = NSScrollView(frame: .zero)
@@ -796,20 +853,21 @@ func main() -> Int32 {
 	scrollView.autohidesScrollers = true
 
 	let closeTarget = CloseTarget()
+	closeTarget.onClose = {
+		stopTts()
+		NSApp.terminate(nil)
+	}
 	let closeButton = NSButton(title: "×", target: closeTarget, action: #selector(CloseTarget.close(_:)))
 	closeButton.isBordered = false
-	closeButton.bezelStyle = .regularSquare
 	closeButton.font = NSFont.boldSystemFont(ofSize: 13)
 	closeButton.contentTintColor = .secondaryLabelColor
 
 	func layoutWindow(messageHeight mh: CGFloat, expanded: Bool) {
 		let h = windowHeight(forMessageHeight: mh)
-		let newFrame = NSRect(x: x, y: y, width: width, height: h)
-		panel.setFrame(newFrame, display: true)
+		panel.setFrame(NSRect(x: x, y: y, width: width, height: h), display: true)
 		background.frame = NSRect(x: 0, y: 0, width: width, height: h)
 
 		iconView.frame = NSRect(x: padding, y: h - padding - iconSize, width: iconSize, height: iconSize)
-
 		closeButton.frame = NSRect(x: width - padding - 18, y: h - padding - 18, width: 18, height: 18)
 
 		titleField.frame = NSRect(
@@ -829,14 +887,13 @@ func main() -> Int32 {
 		textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
 	}
 
-	layoutWindow(messageHeight: collapsedMessageHeight, expanded: false)
-
 	background.addSubview(iconView)
 	background.addSubview(titleField)
 	background.addSubview(scrollView)
 	background.addSubview(closeButton)
 	panel.contentView = background
 
+	layoutWindow(messageHeight: collapsedMessageHeight, expanded: false)
 	panel.orderFrontRegardless()
 
 	var isExpanded = false
@@ -859,6 +916,7 @@ func main() -> Int32 {
 	}
 
 	DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationSeconds)) {
+		stopTts()
 		NSAnimationContext.runAnimationGroup({ ctx in
 			ctx.duration = 0.18
 			panel.animator().alphaValue = 0
@@ -960,8 +1018,14 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 		return None
 
 
-def _show_macos_overlay_notification(message: str, title: str, duration_seconds: int, icon_path: Optional[str]) -> bool:
-	"""macOS：不抢焦点的右上角浮层提醒，强制展示 duration_seconds 秒。"""
+def _show_macos_overlay_notification(
+	message: str,
+	title: str,
+	duration_seconds: int,
+	icon_path: Optional[str],
+	tts_pid: Optional[int] = None,
+) -> bool:
+	"""macOS：不抢焦点的右下角浮层提醒，强制展示 duration_seconds 秒。"""
 	icon_for_overlay = _icon_for_overlay(icon_path)
 	if not icon_for_overlay:
 		error("macOS 通知无法获取可用图标，无法满足强制 logo 要求")
@@ -977,8 +1041,11 @@ def _show_macos_overlay_notification(message: str, title: str, duration_seconds:
 		with open(icon_for_overlay, "rb") as f:
 			icon_b64 = base64.b64encode(f.read()).decode("ascii")
 
+		args = [bin_path, title, message, str(timeout_seconds), f"b64:{icon_b64}"]
+		if isinstance(tts_pid, int) and tts_pid > 0:
+			args.append(str(tts_pid))
 		subprocess.Popen(
-			[bin_path, title, message, str(timeout_seconds), f"b64:{icon_b64}"],
+			args,
 			stdout=subprocess.DEVNULL,
 			stderr=subprocess.DEVNULL,
 		)
@@ -1013,6 +1080,19 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 	text = _sanitize_tts_text(text)
 	text = _truncate_tts_text(text, _MAX_TTS_HANZI)
 
+	return start_text_tts(text=text, rate=rate) is not None
+
+
+def start_text_tts(text: str, rate: int = 200) -> Optional[int]:
+	"""启动 TTS 子进程并返回 PID（用于通知关闭时停止播报）。"""
+	if not text or not isinstance(text, str):
+		error("文本内容不能为空且必须是字符串类型")
+		return None
+
+	text = _strip_markdown(text)
+	text = _sanitize_tts_text(text)
+	text = _truncate_tts_text(text, _MAX_TTS_HANZI)
+
 	try:
 		system = platform.system()
 
@@ -1029,7 +1109,7 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 			cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
 		else:
 			error(f"不支持的操作系统: {system}")
-			return False
+			return None
 
 		popen_kwargs = {
 			"stdin": subprocess.DEVNULL,
@@ -1044,22 +1124,23 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 		else:
 			popen_kwargs["start_new_session"] = True
 
-		subprocess.Popen(cmd, **popen_kwargs)
-		return True
+		proc = subprocess.Popen(cmd, **popen_kwargs)
+		return proc.pid
 
 	except FileNotFoundError as e:
 		error(f"TTS 工具未找到（可能未安装）: {e}")
-		return False
+		return None
 	except Exception as e:
 		error(f"TTS 播放过程中发生异常: {e}")
-		return False
+		return None
 
 
 def show_system_notification(
 	message: str,
 	title: str = "Claude Code",
 	duration: int = 60,
-	icon: str = 'claude'
+	icon: str = 'claude',
+	tts_pid: Optional[int] = None,
 ) -> bool:
 	"""显示系统通知
 
@@ -1109,17 +1190,33 @@ def show_system_notification(
 
 		if system == "Darwin":  # macOS
 			# 强制要求：duration、logo、title、message
-			return _show_macos_notification_terminal_notifier(message, title, duration, icon_path)
+			return _show_macos_overlay_notification(
+				message=message,
+				title=title,
+				duration_seconds=duration,
+				icon_path=icon_path,
+				tts_pid=tts_pid,
+			)
 
 		elif system == "Linux":
 			# 强制要求：duration、logo、title、message
-			return _show_tk_overlay_notification(message=message, title=title, duration_seconds=duration,
-			                                     icon_path=icon_path)
+			return _show_tk_overlay_notification(
+				message=message,
+				title=title,
+				duration_seconds=duration,
+				icon_path=icon_path,
+				tts_pid=tts_pid,
+			)
 
 		elif system == "Windows":
 			# 强制要求：duration、logo、title、message
-			return _show_tk_overlay_notification(message=message, title=title, duration_seconds=duration,
-			                                     icon_path=icon_path)
+			return _show_tk_overlay_notification(
+				message=message,
+				title=title,
+				duration_seconds=duration,
+				icon_path=icon_path,
+				tts_pid=tts_pid,
+			)
 
 		else:
 			error(f"不支持的操作系统: {system}")

@@ -18,7 +18,7 @@ from config import load_config, HooksConfig, HookConfig
 from lib.hooks import load_hooks
 from lib.logging import info, error, debug
 from lib.utils.env import get_project_dir, get_plugins_path
-from notify import play_text_tts, show_system_notification
+from notify import start_text_tts, show_system_notification
 
 def _render_message(message: str, context: Dict[str, Any]) -> str:
 	"""渲染消息模板。
@@ -207,20 +207,22 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 	if context:
 		message = _render_message(message, context)
 
-		# 显示消息
-		if hook_config.enabled:
-			info(f"弹出提示：{message}")
-			# 播放声音（TTS）：独立子进程启动，不依赖本进程存活，不阻塞主流程
-			if hook_config.play_sound:
-				info(f"播放 TTS: {message}")
-				if not play_text_tts(message):
-					error(f"TTS 启动失败: {message}")
-					success = False
-
-			# 系统通知
-			if not show_system_notification(message):
-				error(f"系统通知显示失败: {message}")
+	# 显示消息
+	if hook_config.enabled:
+		info(f"弹出提示：{message}")
+		# 播放声音（TTS）：独立子进程启动，不依赖本进程存活，不阻塞主流程
+		tts_pid = None
+		if hook_config.play_sound:
+			info(f"播放 TTS: {message}")
+			tts_pid = start_text_tts(message)
+			if not tts_pid:
+				error(f"TTS 启动失败: {message}")
 				success = False
+
+		# 系统通知（关闭弹窗需同时停止 TTS，因此传入 tts_pid）
+		if not show_system_notification(message, tts_pid=tts_pid):
+			error(f"系统通知显示失败: {message}")
+			success = False
 
 	return success
 
