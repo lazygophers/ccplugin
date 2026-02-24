@@ -285,6 +285,15 @@ import sys
 import os
 import time
 
+def _truncate_preview(text: str, max_chars: int = 180) -> str:
+	if not text:
+		return ""
+	t = str(text).strip()
+	if len(t) <= max_chars:
+		return t
+	return t[:max_chars].rstrip() + "…"
+
+
 def main() -> int:
 	if len(sys.argv) < 5:
 		return 2
@@ -313,13 +322,12 @@ def main() -> int:
 			GWL_EXSTYLE = -20
 			WS_EX_TOOLWINDOW = 0x00000080
 			WS_EX_NOACTIVATE = 0x08000000
-			WS_EX_TRANSPARENT = 0x00000020
 
 			hwnd = root.winfo_id()
 			user32 = ctypes.windll.user32
 			user32.GetWindowLongW.restype = wintypes.LONG
 			exstyle = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
-			user32.SetWindowLongW(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT)
+			user32.SetWindowLongW(hwnd, GWL_EXSTYLE, exstyle | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)
 			# SW_SHOWNOACTIVATE = 4
 			user32.ShowWindow(hwnd, 4)
 		except Exception:
@@ -332,7 +340,8 @@ def main() -> int:
 	# Layout constants
 	padding = 12
 	gap = 10
-	width = 380
+	width = 420
+	margin = 16
 
 	# Icon
 	icon = None
@@ -345,7 +354,6 @@ def main() -> int:
 		except Exception:
 			icon = None
 
-	row = 0
 	if icon is not None:
 		icon_label = tk.Label(frame, image=icon, bg="#1e1e1e")
 		icon_label.image = icon
@@ -353,6 +361,22 @@ def main() -> int:
 		text_col = 1
 	else:
 		text_col = 0
+
+	close_col = text_col + 1
+	close_btn = tk.Button(
+		frame,
+		text="×",
+		command=root.destroy,
+		bg="#1e1e1e",
+		fg="#aaaaaa",
+		activebackground="#1e1e1e",
+		activeforeground="#ffffff",
+		bd=0,
+		highlightthickness=0,
+		cursor="hand2",
+		font=("Segoe UI", 12, "bold") if sys.platform.startswith("win") else ("Sans", 12, "bold"),
+	)
+	close_btn.grid(row=0, column=close_col, padx=(0, padding), pady=(padding, 0), sticky="ne")
 
 	title_label = tk.Label(
 		frame,
@@ -362,31 +386,120 @@ def main() -> int:
 		font=("Segoe UI", 11, "bold") if sys.platform.startswith("win") else ("Sans", 11, "bold"),
 		anchor="w",
 	)
-	title_label.grid(row=0, column=text_col, padx=(padding if text_col == 0 else gap, padding), pady=(padding, 0), sticky="we")
+	title_label.grid(
+		row=0,
+		column=text_col,
+		padx=(padding if text_col == 0 else gap, 6),
+		pady=(padding, 0),
+		sticky="we",
+	)
 
+	collapsed_preview = _truncate_preview(message, 180)
 	message_label = tk.Label(
 		frame,
-		text=message,
+		text=collapsed_preview,
 		bg="#1e1e1e",
 		fg="#dddddd",
 		font=("Segoe UI", 10) if sys.platform.startswith("win") else ("Sans", 10),
 		justify="left",
 		anchor="nw",
-		wraplength=width - padding * 2 - (64 + gap if text_col == 1 else 0),
+		wraplength=width - padding * 2 - (64 + gap if text_col == 1 else 0) - 20,
 	)
-	message_label.grid(row=1, column=text_col, padx=(padding if text_col == 0 else gap, padding), pady=(6, padding), sticky="we")
+	message_label.grid(row=1, column=text_col, columnspan=2, padx=(padding if text_col == 0 else gap, padding), pady=(6, padding), sticky="we")
+
+	# Expanded view (hover): scrollable full text
+	text_frame = tk.Frame(frame, bg="#1e1e1e", bd=0, highlightthickness=0)
+	scrollbar = tk.Scrollbar(text_frame, orient="vertical")
+	text_widget = tk.Text(
+		text_frame,
+		bg="#1e1e1e",
+		fg="#dddddd",
+		bd=0,
+		highlightthickness=0,
+		wrap="word",
+		yscrollcommand=scrollbar.set,
+		font=("Segoe UI", 10) if sys.platform.startswith("win") else ("Sans", 10),
+	)
+	scrollbar.config(command=text_widget.yview)
+	text_widget.insert("1.0", message)
+	text_widget.config(state="disabled")
+	text_widget.pack(side="left", fill="both", expand=True)
+	scrollbar.pack(side="right", fill="y")
 
 	frame.grid_columnconfigure(text_col, weight=1)
 
-	root.update_idletasks()
-	win_w = max(width, frame.winfo_reqwidth())
-	win_h = frame.winfo_reqheight()
+	expanded = False
+	_pending_collapse = None
 
-	screen_w = root.winfo_screenwidth()
-	screen_h = root.winfo_screenheight()
-	x = screen_w - win_w - 16
-	y = 16
-	root.geometry(f"{win_w}x{win_h}+{x}+{y}")
+	def _place_bottom_right():
+		root.update_idletasks()
+		win_w = max(width, frame.winfo_reqwidth())
+		win_h = frame.winfo_reqheight()
+		screen_w = root.winfo_screenwidth()
+		screen_h = root.winfo_screenheight()
+		x = screen_w - win_w - margin
+		y = screen_h - win_h - margin
+		root.geometry(f"{win_w}x{win_h}+{x}+{y}")
+
+	def _expand():
+		nonlocal expanded
+		if expanded:
+			return
+		expanded = True
+		message_label.grid_remove()
+		text_frame.grid(row=1, column=text_col, columnspan=2, padx=(padding if text_col == 0 else gap, padding), pady=(6, padding), sticky="nsew")
+		_place_bottom_right()
+
+	def _collapse():
+		nonlocal expanded
+		if not expanded:
+			return
+		expanded = False
+		text_frame.grid_remove()
+		message_label.grid()
+		_place_bottom_right()
+
+	def _inside_window() -> bool:
+		try:
+			px = root.winfo_pointerx() - root.winfo_rootx()
+			py = root.winfo_pointery() - root.winfo_rooty()
+			return 0 <= px < root.winfo_width() and 0 <= py < root.winfo_height()
+		except Exception:
+			return False
+
+	def _schedule_collapse():
+		nonlocal _pending_collapse
+		if _pending_collapse is not None:
+			try:
+				root.after_cancel(_pending_collapse)
+			except Exception:
+				pass
+		def _check():
+			if not _inside_window():
+				_collapse()
+		_pending_collapse = root.after(80, _check)
+
+	def _on_enter(_evt=None):
+		nonlocal _pending_collapse
+		if _pending_collapse is not None:
+			try:
+				root.after_cancel(_pending_collapse)
+			except Exception:
+				pass
+			_pending_collapse = None
+		_expand()
+
+	def _on_leave(_evt=None):
+		_schedule_collapse()
+
+	for w in (root, frame, title_label, message_label, close_btn, text_frame, text_widget, scrollbar):
+		try:
+			w.bind("<Enter>", _on_enter)
+			w.bind("<Leave>", _on_leave)
+		except Exception:
+			pass
+
+	_place_bottom_right()
 
 	# auto close
 	root.after(int(duration_seconds * 1000), root.destroy)
@@ -527,6 +640,37 @@ final class NonActivatingPanel: NSPanel {
 	override var canBecomeMain: Bool { false }
 }
 
+final class TrackingVisualEffectView: NSVisualEffectView {
+	var onEnter: (() -> Void)?
+	var onExit: (() -> Void)?
+	private var trackingAreaRef: NSTrackingArea?
+
+	override func updateTrackingAreas() {
+		super.updateTrackingAreas()
+		if let ta = trackingAreaRef {
+			self.removeTrackingArea(ta)
+		}
+		let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeAlways, .inVisibleRect]
+		let ta = NSTrackingArea(rect: self.bounds, options: options, owner: self, userInfo: nil)
+		self.addTrackingArea(ta)
+		trackingAreaRef = ta
+	}
+
+	override func mouseEntered(with event: NSEvent) {
+		onEnter?()
+	}
+
+	override func mouseExited(with event: NSEvent) {
+		onExit?()
+	}
+}
+
+final class CloseTarget: NSObject {
+	@objc func close(_ sender: Any?) {
+		NSApp.terminate(nil)
+	}
+}
+
 func measureHeight(text: String, font: NSFont, width: CGFloat) -> CGFloat {
 	let attributes: [NSAttributedString.Key: Any] = [.font: font]
 	let rect = (text as NSString).boundingRect(
@@ -559,19 +703,28 @@ func main() -> Int32 {
 	let padding: CGFloat = 14
 	let gap: CGFloat = 10
 	let iconSize: CGFloat = 44
-	let width: CGFloat = 380
+	let width: CGFloat = 420
 
 	let titleFont = NSFont.boldSystemFont(ofSize: 14)
 	let messageFont = NSFont.systemFont(ofSize: 13)
 	let textWidth = width - padding * 2 - iconSize - gap
 	let titleHeight = max(18, measureHeight(text: title, font: titleFont, width: textWidth))
-	let messageHeight = min(160, max(18, measureHeight(text: message, font: messageFont, width: textWidth)))
-	let contentHeight = max(iconSize, titleHeight + 4 + messageHeight)
-	let height: CGFloat = padding * 2 + contentHeight
+	let fullMessageHeight = max(18, measureHeight(text: message, font: messageFont, width: textWidth))
+	let collapsedMessageMax: CGFloat = 86
+	let expandedMessageMax: CGFloat = min(420, max(180, visible.height * 0.6))
+
+	func windowHeight(forMessageHeight mh: CGFloat) -> CGFloat {
+		let right = titleHeight + 6 + mh
+		let content = max(iconSize, right)
+		return padding * 2 + content
+	}
+
+	let collapsedMessageHeight = min(collapsedMessageMax, fullMessageHeight)
+	let collapsedHeight: CGFloat = windowHeight(forMessageHeight: collapsedMessageHeight)
 
 	let x = visible.maxX - width - margin
-	let y = visible.maxY - height - margin
-	let rect = NSRect(x: x, y: y, width: width, height: height)
+	let y = visible.minY + margin
+	let rect = NSRect(x: x, y: y, width: width, height: collapsedHeight)
 
 	let panel = NonActivatingPanel(
 		contentRect: rect,
@@ -585,9 +738,9 @@ func main() -> Int32 {
 	panel.backgroundColor = .clear
 	panel.isOpaque = false
 	panel.hasShadow = true
-	panel.ignoresMouseEvents = true
+	panel.ignoresMouseEvents = false
 
-	let background = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: width, height: height))
+	let background = TrackingVisualEffectView(frame: NSRect(x: 0, y: 0, width: width, height: collapsedHeight))
 	background.material = .popover
 	background.state = .active
 	background.wantsLayer = true
@@ -613,7 +766,7 @@ func main() -> Int32 {
 		img.isTemplate = false
 	}
 
-	let iconView = NSImageView(frame: NSRect(x: padding, y: height - padding - iconSize, width: iconSize, height: iconSize))
+	let iconView = NSImageView(frame: NSRect(x: padding, y: collapsedHeight - padding - iconSize, width: iconSize, height: iconSize))
 	iconView.imageScaling = .scaleProportionallyUpOrDown
 	iconView.contentTintColor = nil
 	iconView.image = iconImage
@@ -624,31 +777,86 @@ func main() -> Int32 {
 	titleField.lineBreakMode = .byTruncatingTail
 	titleField.maximumNumberOfLines = 1
 
-	let messageField = NSTextField(wrappingLabelWithString: message)
-	messageField.font = messageFont
-	messageField.textColor = .secondaryLabelColor
-	messageField.lineBreakMode = .byWordWrapping
-	messageField.maximumNumberOfLines = 8
+	let textView = NSTextView(frame: .zero)
+	textView.isEditable = false
+	textView.isSelectable = true
+	textView.drawsBackground = false
+	textView.font = messageFont
+	textView.textColor = .secondaryLabelColor
+	textView.string = message
+	textView.textContainerInset = NSSize(width: 0, height: 0)
+	textView.textContainer?.lineFragmentPadding = 0
 
-	titleField.frame = NSRect(
-		x: padding + iconSize + gap,
-		y: height - padding - titleHeight,
-		width: textWidth,
-		height: titleHeight
-	)
-	messageField.frame = NSRect(
-		x: padding + iconSize + gap,
-		y: padding,
-		width: textWidth,
-		height: height - padding * 2 - titleHeight - 4
-	)
+	let scrollView = NSScrollView(frame: .zero)
+	scrollView.drawsBackground = false
+	scrollView.borderType = .noBorder
+	scrollView.documentView = textView
+	scrollView.hasVerticalScroller = false
+	scrollView.hasHorizontalScroller = false
+	scrollView.autohidesScrollers = true
+
+	let closeTarget = CloseTarget()
+	let closeButton = NSButton(title: "×", target: closeTarget, action: #selector(CloseTarget.close(_:)))
+	closeButton.isBordered = false
+	closeButton.bezelStyle = .regularSquare
+	closeButton.font = NSFont.boldSystemFont(ofSize: 13)
+	closeButton.contentTintColor = .secondaryLabelColor
+
+	func layoutWindow(messageHeight mh: CGFloat, expanded: Bool) {
+		let h = windowHeight(forMessageHeight: mh)
+		let newFrame = NSRect(x: x, y: y, width: width, height: h)
+		panel.setFrame(newFrame, display: true)
+		background.frame = NSRect(x: 0, y: 0, width: width, height: h)
+
+		iconView.frame = NSRect(x: padding, y: h - padding - iconSize, width: iconSize, height: iconSize)
+
+		closeButton.frame = NSRect(x: width - padding - 18, y: h - padding - 18, width: 18, height: 18)
+
+		titleField.frame = NSRect(
+			x: padding + iconSize + gap,
+			y: h - padding - titleHeight,
+			width: textWidth - 20,
+			height: titleHeight
+		)
+		scrollView.frame = NSRect(
+			x: padding + iconSize + gap,
+			y: padding,
+			width: textWidth,
+			height: h - padding * 2 - titleHeight - 6
+		)
+
+		scrollView.hasVerticalScroller = expanded && fullMessageHeight > mh
+		textView.scrollRangeToVisible(NSRange(location: 0, length: 0))
+	}
+
+	layoutWindow(messageHeight: collapsedMessageHeight, expanded: false)
 
 	background.addSubview(iconView)
 	background.addSubview(titleField)
-	background.addSubview(messageField)
+	background.addSubview(scrollView)
+	background.addSubview(closeButton)
 	panel.contentView = background
 
 	panel.orderFrontRegardless()
+
+	var isExpanded = false
+	background.onEnter = {
+		if isExpanded { return }
+		isExpanded = true
+		let mh = min(expandedMessageMax, fullMessageHeight)
+		NSAnimationContext.runAnimationGroup { ctx in
+			ctx.duration = 0.12
+			layoutWindow(messageHeight: mh, expanded: true)
+		}
+	}
+	background.onExit = {
+		if !isExpanded { return }
+		isExpanded = false
+		NSAnimationContext.runAnimationGroup { ctx in
+			ctx.duration = 0.12
+			layoutWindow(messageHeight: collapsedMessageHeight, expanded: false)
+		}
+	}
 
 	DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(durationSeconds)) {
 		NSAnimationContext.runAnimationGroup({ ctx in
