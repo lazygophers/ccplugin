@@ -1,6 +1,6 @@
 {
   "name": "python",
-  "version": "0.0.135",
+  "version": "0.0.136",
   "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持",
   "author": {
     "name": "lazygophers",

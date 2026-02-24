@@ -1,6 +1,6 @@
 {
   "name": "javascript",
-  "version": "0.0.135",
+  "version": "0.0.136",
   "description": "JavaScript 开发插件 - 提供 ES2024-2025 开发规范、最佳实践和代码智能支持",
   "author": {
     "name": "lazygophers",
