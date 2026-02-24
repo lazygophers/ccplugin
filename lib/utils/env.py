@@ -35,7 +35,7 @@ def get_project_plugins_dir() -> str:
 	return os.path.join(get_project_dir(), ".lazygophers", "ccplugin")
 
 def get_project_plugins_gitignore_path() -> str:
-	return os.path.join(get_project_plugins_dir(), ".gitignore")
+	return os.path.join(get_project_dir(), ".lazygophers", ".gitignore")
 
 
 def get_plugins_path() -> str:
