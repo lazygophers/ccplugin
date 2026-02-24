@@ -1,6 +1,6 @@
 [project]
 name = "code-memory"
-version = "0.0.136"
+version = "0.0.137"
 description = "Claude Code plugin for intelligent memory management"
 readme = "README.md"
 requires-python = ">=3.11"

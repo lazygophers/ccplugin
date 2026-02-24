@@ -1,6 +1,6 @@
 {
   "name": "rust",
-  "version": "0.0.136",
+  "version": "0.0.137",
   "description": "Rust 开发插件 - 提供 Rust 1.70+ 开发规范、最佳实践和代码智能支持",
   "author": {
     "name": "lazygophers",

@@ -1,6 +1,6 @@
 [project]
 name = "office-pptx"
-version = "0.0.136"
+version = "0.0.137"
 description = "Office PowerPoint plugin - pptx read/write and slide operations"
 requires-python = ">=3.11"
 dependencies = [ "python-pptx>=0.6.23", "mcp>=1.0.0",]
