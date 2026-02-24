@@ -25,8 +25,10 @@ hooks:
   stop:
     enabled: true
     play_sound: true
-    message: "{project_name} 的任务已完成，任务总结：\n{last_assistant_message}"
-    # 可用变量: {time_now}, {session_id}, {project_name}
+    message: |-
+      {{ project_name }} 的任务已完成，任务总结：
+      {{ last_assistant_message | default('') }}
+    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ last_assistant_message }}
 
   # ============================================================================
   # SubagentStop Hook 配置
@@ -43,8 +45,10 @@ hooks:
   subagent_stop:
     enabled: false
     play_sound: false
-    message: "{project_name} 的 Agent {agent_type} 已完成任务，任务总结：\n{last_assistant_message}"
-    # 可用变量: {time_now}, {session_id}, {project_name}, {subagent_type}
+    message: |-
+      {{ project_name }} 的 Agent {{ agent_type | default('') }} 已完成任务，任务总结：
+      {{ last_assistant_message | default('') }}
+    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ agent_type }}, {{ subagent_type }}, {{ last_assistant_message }}
 
   # ============================================================================
   # PreToolUse Hook 配置
@@ -70,8 +74,8 @@ hooks:
     write:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备写入文件 {file_path}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      message: "{{ project_name }} 准备写入文件 {{ file_path | default('') }}"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}, {{ file_path }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Write",
@@ -85,8 +89,8 @@ hooks:
     edit:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备编辑文件 {file_path}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      message: "{{ project_name }} 准备编辑文件 {{ file_path | default('') }}"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}, {{ file_path }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Edit",
@@ -101,8 +105,8 @@ hooks:
     read:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备读取文件 {file_path}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      message: "{{ project_name }} 准备读取文件 {{ file_path | default('') }}"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}, {{ file_path }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Read",
@@ -115,8 +119,8 @@ hooks:
     bash:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备执行命令"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 准备执行命令"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Bash",
@@ -129,8 +133,8 @@ hooks:
     task:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备启动子任务"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 准备启动子任务"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Task",
@@ -144,8 +148,8 @@ hooks:
     webfetch:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备获取网页"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 准备获取网页"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "WebFetch",
@@ -158,8 +162,8 @@ hooks:
     websearch:
       enabled: false
       play_sound: false
-      message: "{project_name} 准备搜索网页"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 准备搜索网页"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "WebSearch",
@@ -172,9 +176,7 @@ hooks:
     askuserquestion:
       enabled: true
       play_sound: true
-      # 支持两种模板语法：
-      # 1) Python format（旧）："{project_name} 等待你回答问题"
-      # 2) Jinja2（推荐，支持循环/条件）："{{ project_name }} ..."
+      # 仅支持 Jinja2 模板语法（支持循环/条件）："{{ project_name }} ..."
       message: |-
         {{ project_name }} 有 {{ tool_input.get('questions', []) | length }} 个问题需要你解决
         {%- for q in tool_input.get('questions', []) %}
@@ -219,8 +221,8 @@ hooks:
     write:
       enabled: false
       play_sound: false
-      message: "{project_name} 文件写入完成 {file_path}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      message: "{{ project_name }} 文件写入完成 {{ file_path | default('') }}"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}, {{ file_path }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Write",
@@ -234,8 +236,8 @@ hooks:
     edit:
       enabled: false
       play_sound: false
-      message: "{project_name} 文件编辑完成 {file_path}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      message: "{{ project_name }} 文件编辑完成 {{ file_path | default('') }}"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}, {{ file_path }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Edit",
@@ -249,8 +251,8 @@ hooks:
     read:
       enabled: false
       play_sound: false
-      message: "{project_name} 文件读取完成 {file_path}"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}, {file_path}
+      message: "{{ project_name }} 文件读取完成 {{ file_path | default('') }}"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}, {{ file_path }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Read",
@@ -264,8 +266,8 @@ hooks:
     bash:
       enabled: false
       play_sound: false
-      message: "{project_name} 命令执行完成"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 命令执行完成"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Bash",
@@ -280,8 +282,8 @@ hooks:
     task:
       enabled: false
       play_sound: false
-      message: "{project_name} 子任务完成"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 子任务完成"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "Task",
@@ -295,8 +297,8 @@ hooks:
     webfetch:
       enabled: false
       play_sound: false
-      message: "{project_name} 网页获取完成"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 网页获取完成"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "WebFetch",
@@ -310,8 +312,8 @@ hooks:
     websearch:
       enabled: false
       play_sound: false
-      message: "{project_name} 网页搜索完成"
-      # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+      message: "{{ project_name }} 网页搜索完成"
+      # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
       # JSON 输入示例（工具维度）:
       # {
       #   "tool_name": "WebSearch",
@@ -342,8 +344,8 @@ hooks:
   permission_request:
     enabled: false
     play_sound: false
-    message: "{project_name} 需要权限授权 ({tool_name})"
-    # 可用变量: {time_now}, {session_id}, {project_name}, {tool_name}
+    message: "{{ project_name }} 需要权限授权 ({{ tool_name | default('') }})"
+    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ tool_name }}
 
   # ============================================================================
   # UserPromptSubmit Hook 配置
@@ -362,8 +364,8 @@ hooks:
   user_prompt_submit:
     enabled: false
     play_sound: false
-    message: "{project_name} 接收到用户输入"
-    # 可用变量: {time_now}, {session_id}, {project_name}
+    message: "{{ project_name }} 接收到用户输入"
+    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}
 
   # ============================================================================
   # Notification Hook 配置
@@ -387,31 +389,31 @@ hooks:
   #   "notification_type": "permission_prompt"
   # }
   #
-  # 可用变量: {time_now}, {session_id}, {project_name}, {message}, {notification_type}
+  # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ message }}, {{ notification_type }}
   notification:
     # 权限请求通知（Claude Code 的权限请求）
     permission_prompt:
       enabled: false
       play_sound: false
-      message: "权限请求: {message}"
+      message: "权限请求: {{ message | default('') }}"
 
     # 空闲提示（Claude 等待用户输入，空闲 60+ 秒后）
     idle_prompt:
       enabled: false
       play_sound: false
-      message: "等待输入: {message}"
+      message: "等待输入: {{ message | default('') }}"
 
     # 身份验证成功通知
     auth_success:
       enabled: false
       play_sound: false
-      message: "身份验证成功: {message}"
+      message: "身份验证成功: {{ message | default('') }}"
 
     # MCP 工具引出对话（Claude Code 需要输入 MCP 工具引出时）
     elicitation_dialog:
       enabled: false
       play_sound: false
-      message: "工具引出: {message}"
+      message: "工具引出: {{ message | default('') }}"
 
   # ============================================================================
   # SessionStart Hook 配置
@@ -433,7 +435,7 @@ hooks:
   #   "source": "startup"
   # }
   #
-  # 可用变量: {time_now}, {session_id}, {project_name}
+  # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}
   #
   # 特殊功能：可通过 CLAUDE_ENV_FILE 环境变量为后续 bash 命令持久化环境变量
   session_start:
@@ -441,25 +443,25 @@ hooks:
     startup:
       enabled: false
       play_sound: false
-      message: "{project_name} 新会话已启动"
+      message: "{{ project_name }} 新会话已启动"
 
     # 从 --resume、--continue 或 /resume 调用
     resume:
       enabled: false
       play_sound: false
-      message: "{project_name} 会话已恢复"
+      message: "{{ project_name }} 会话已恢复"
 
     # 从 /clear 调用
     clear:
       enabled: false
       play_sound: false
-      message: "{project_name} 会话已清空并重启"
+      message: "{{ project_name }} 会话已清空并重启"
 
     # 从自动或手动压缩调用
     compact:
       enabled: false
       play_sound: false
-      message: "{project_name} 会话已压缩并重启"
+      message: "{{ project_name }} 会话已压缩并重启"
 
   # ============================================================================
   # SessionEnd Hook 配置
@@ -482,31 +484,31 @@ hooks:
   #   "reason": "other"
   # }
   #
-  # 可用变量: {time_now}, {session_id}, {project_name}
+  # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}
   session_end:
     # 使用 /clear 命令清除的会话
     clear:
       enabled: false
       play_sound: false
-      message: "{project_name} 会话已清除"
+      message: "{{ project_name }} 会话已清除"
 
     # 用户已注销
     logout:
       enabled: false
       play_sound: false
-      message: "{project_name} 用户已注销"
+      message: "{{ project_name }} 用户已注销"
 
     # 用户在提示输入可见时退出
     prompt_input_exit:
       enabled: false
       play_sound: false
-      message: "{project_name} 用户退出（提示输入）"
+      message: "{{ project_name }} 用户退出（提示输入）"
 
     # 其他退出原因
     other:
       enabled: false
       play_sound: false
-      message: "{project_name} 会话已结束"
+      message: "{{ project_name }} 会话已结束"
 
   # ============================================================================
   # PreCompact Hook 配置
@@ -527,16 +529,16 @@ hooks:
   #   "custom_instructions": ""
   # }
   #
-  # 可用变量: {time_now}, {session_id}, {project_name}
+  # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}
   pre_compact:
     # 手动压缩（/compact 命令）
     manual:
       enabled: false
       play_sound: false
-      message: "{project_name} 手动压缩已启动"
+      message: "{{ project_name }} 手动压缩已启动"
 
     # 自动压缩（上下文窗口已满）
     auto:
       enabled: false
       play_sound: false
-      message: "{project_name} 自动压缩已启动"
+      message: "{{ project_name }} 自动压缩已启动"

@@ -23,31 +23,23 @@ from notify import play_text_tts, show_system_notification
 def _render_message(message: str, context: Dict[str, Any]) -> str:
 	"""渲染消息模板。
 
-	- 默认使用 Python `str.format(**context)`（兼容旧配置）
-	- 若检测到 Jinja2 语法（`{{`/`{%`），则使用 Jinja2 Sandbox 渲染（支持循环/条件）
+	仅支持 Jinja2 Sandbox 渲染（支持循环/条件）。
 	"""
 	if not isinstance(message, str) or not message:
 		return ""
 
-	is_jinja = ("{{" in message) or ("{%" in message)
-	if is_jinja:
-		env = SandboxedEnvironment(
-			autoescape=False,
-			undefined=StrictUndefined,
-			trim_blocks=True,
-			lstrip_blocks=True,
-		)
-		env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
-		try:
-			return env.from_string(message).render(**context)
-		except Exception as e:
-			debug(f"Jinja2 渲染失败，使用原始消息: {e}")
-			return message
+	env = SandboxedEnvironment(
+		autoescape=False,
+		undefined=StrictUndefined,
+		trim_blocks=True,
+		lstrip_blocks=True,
+	)
+	env.filters["tojson"] = lambda v: json.dumps(v, ensure_ascii=False)
 
 	try:
-		return message.format(**context)
-	except (KeyError, ValueError) as e:
-		debug(f"format 渲染失败，使用原始消息: {e}")
+		return env.from_string(message).render(**context)
+	except Exception as e:
+		debug(f"Jinja2 渲染失败，使用原始消息: {e}")
 		return message
 
 

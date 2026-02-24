@@ -147,67 +147,67 @@ class PreCompactHookConfig:
 class HooksConfig:
 	"""完整的 Claude Code Hooks 配置
 
-	配置文件示例 (config.yaml):
-		---
-		hooks:
-		  stop:
-			enabled: true
-			play_sound: true
-			message: "{project_name} 已完成"
+		配置文件示例 (config.yaml):
+			---
+			hooks:
+			  stop:
+				enabled: true
+				play_sound: true
+				message: "{{ project_name }} 已完成"
 
-		  subagent_stop:
-			enabled: false
-			play_sound: false
-			message: "{project_name} Task 已完成"
+			  subagent_stop:
+				enabled: false
+				play_sound: false
+				message: "{{ project_name }} Task 已完成"
 
-		  pre_tool_use:
-			write:
-			  enabled: false
-			  play_sound: false
-			  message: "{project_name} 准备写入文件"
-			# ... 其他工具
+			  pre_tool_use:
+				write:
+				  enabled: false
+				  play_sound: false
+				  message: "{{ project_name }} 准备写入文件"
+				# ... 其他工具
 
-		  notification:
-			permission_prompt:
-			  enabled: false
-			  play_sound: false
-			  message: "权限请求: {message}"
-			# ... 其他通知类型
+			  notification:
+				permission_prompt:
+				  enabled: false
+				  play_sound: false
+				  message: "权限请求: {{ message | default('') }}"
+				# ... 其他通知类型
 
-		  session_start:
-			startup:
-			  enabled: false
-			  play_sound: false
-			  message: "{project_name} 新会话已启动"
-			# ... 其他场景
+			  session_start:
+				startup:
+				  enabled: false
+				  play_sound: false
+				  message: "{{ project_name }} 新会话已启动"
+				# ... 其他场景
 
-		  session_end:
-			clear:
-			  enabled: false
-			  play_sound: false
-			  message: "{project_name} 会话已清除"
-			# ... 其他原因
+			  session_end:
+				clear:
+				  enabled: false
+				  play_sound: false
+				  message: "{{ project_name }} 会话已清除"
+				# ... 其他原因
 
-		  pre_compact:
-			manual:
-			  enabled: false
-			  play_sound: false
-			  message: "{project_name} 手动压缩已启动"
-			auto:
-			  enabled: false
-			  play_sound: false
-			  message: "{project_name} 自动压缩已启动"
+			  pre_compact:
+				manual:
+				  enabled: false
+				  play_sound: false
+				  message: "{{ project_name }} 手动压缩已启动"
+				auto:
+				  enabled: false
+				  play_sound: false
+				  message: "{{ project_name }} 自动压缩已启动"
 
-		  permission_request:
-			enabled: false
-			play_sound: false
-			message: "{project_name} 需要权限授权"
+			  permission_request:
+				enabled: false
+				play_sound: false
+				message: "{{ project_name }} 需要权限授权"
 
-		  user_prompt_submit:
-			enabled: false
-			play_sound: false
-			message: "{project_name} 接收到用户输入"
-	"""
+			  user_prompt_submit:
+				enabled: false
+				play_sound: false
+				message: "{{ project_name }} 接收到用户输入"
+		"""
 	stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=True, play_sound=True))
 	subagent_stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	pre_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
