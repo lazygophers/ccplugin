@@ -515,15 +515,25 @@ def main() -> int:
 	console.print()
 
 	plugins = get_plugin_list()
-	existing_plugin = find_plugin(plugins, plugin_name, market_name)
-	plugin_key = f"{plugin_name}@{market_name}"
+
+	if "@" in plugin_name:
+		plugin_key = plugin_name
+		parts = plugin_name.split("@")
+		plugin_name_only = parts[0]
+		plugin_market = parts[1] if len(parts) > 1 else market_name
+	else:
+		plugin_key = f"{plugin_name}@{market_name}"
+		plugin_name_only = plugin_name
+		plugin_market = market_name
+
+	existing_plugin = find_plugin(plugins, plugin_name_only, plugin_market)
 
 	if existing_plugin:
 		version = existing_plugin.get("version", "unknown")
 		enabled = existing_plugin.get("enabled", False)
 		status = "[green]✓ 已启用[/green]" if enabled else "[yellow]○ 已禁用[/yellow]"
 
-		console.print(f"[green]✓ 插件已安装: [cyan]{plugin_name}[/cyan] [dim]v{version}[/dim] {status}[/green]")
+		console.print(f"[green]✓ 插件已安装: [cyan]{plugin_name_only}[/cyan] [dim]v{version}[/dim] {status}[/green]")
 		console.print()
 
 		console.print(Rule(title="[bold cyan]Step 4: 更新插件[/bold cyan]", style="cyan"))
@@ -535,7 +545,7 @@ def main() -> int:
 
 		console.print(f"[green]✓ 插件已更新: [cyan]{plugin_key}[/cyan][/green]")
 	else:
-		console.print(f"[yellow]○ 插件未安装: [cyan]{plugin_name}[/cyan][/yellow]")
+		console.print(f"[yellow]○ 插件未安装: [cyan]{plugin_name_only}[/cyan][/yellow]")
 		console.print()
 
 		console.print(Rule(title="[bold cyan]Step 4: 安装插件[/bold cyan]", style="cyan"))
