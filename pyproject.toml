@@ -24,8 +24,8 @@ build-backend = "setuptools.build_meta"
 clean = "scripts.clean:main"
 update = "scripts.update:main"
 info = "scripts.info:main"
-notify = "scripts.notify:main"
 check = "scripts.check:main"
+install = "scripts.install:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0"]
