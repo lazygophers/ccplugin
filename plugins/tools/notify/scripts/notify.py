@@ -65,6 +65,55 @@ def _is_hanzi(ch: str) -> bool:
 	)
 
 
+def _strip_markdown(text: str) -> str:
+	"""移除常见 Markdown 标记，保留可读的纯文本（用于通知与 TTS）。"""
+	if not text:
+		return text
+
+	# Code fences: keep inner code, drop fences/language.
+	def _fence_repl(m: re.Match) -> str:
+		block = m.group(0)
+		lines = block.splitlines()
+		if len(lines) >= 2 and lines[0].lstrip().startswith("```") and lines[-1].lstrip().startswith("```"):
+			return "\n".join(lines[1:-1])
+		return ""
+
+	text = re.sub(r"```[\s\S]*?```", _fence_repl, text)
+
+	# Inline code
+	text = re.sub(r"`([^`]*)`", r"\1", text)
+
+	# Images/links
+	text = re.sub(r"!\[([^\]]*)\]\([^)]+\)", r"\1", text)
+	text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+	text = re.sub(r"\[([^\]]+)\]\[[^\]]*\]", r"\1", text)  # reference-style links
+
+	# Autolinks
+	text = re.sub(r"<(https?://[^>]+)>", r"\1", text)
+
+	# Headings / blockquotes / list markers
+	text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", text)
+	text = re.sub(r"(?m)^\s{0,3}>\s?", "", text)
+	text = re.sub(r"(?m)^\s*(?:[-*+]|(?:\d+\.))\s+", "", text)
+
+	# Horizontal rules / setext heading underline
+	text = re.sub(r"(?m)^\s*([-=_])\1{2,}\s*$", "", text)
+
+	# Emphasis / strikethrough (best-effort, avoid over-aggressive stripping)
+	text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+	text = re.sub(r"__([^_]+)__", r"\1", text)
+	text = re.sub(r"\*([^*]+)\*", r"\1", text)
+	text = re.sub(r"_([^_]+)_", r"\1", text)
+	text = re.sub(r"~~([^~]+)~~", r"\1", text)
+
+	# Simple HTML tags
+	text = re.sub(r"</?[^>]+>", "", text)
+
+	# Collapse extra spaces but preserve newlines.
+	text = re.sub(r"[ \t]{2,}", " ", text)
+	return text.strip()
+
+
 def _truncate_tts_text(text: str, max_hanzi: int = _MAX_TTS_HANZI) -> str:
 	"""TTS 只输出前 max_hanzi 个汉字；超过则直接截断到第 max_hanzi 个汉字的位置。"""
 	if not text:
@@ -752,6 +801,7 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 		error("文本内容不能为空且必须是字符串类型")
 		return False
 
+	text = _strip_markdown(text)
 	text = _sanitize_tts_text(text)
 	text = _truncate_tts_text(text, _MAX_TTS_HANZI)
 
@@ -829,8 +879,14 @@ def show_system_notification(
 		error("消息内容不能为空且必须是字符串类型")
 		return False
 
+	message = _strip_markdown(message)
+	if not message:
+		error("消息内容为空（已移除 Markdown 标记）")
+		return False
+
 	if not title or not isinstance(title, str):
 		title = "Claude Code"
+	title = _strip_markdown(title) or "Claude Code"
 
 	# 解析图标路径
 	icon_path = _resolve_icon_path(icon)
