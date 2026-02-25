@@ -1,98 +1,90 @@
 # 命名规范插件
 
-命名规范插件提供跨编程语言的统一命名规范指南。无论使用哪种编程语言，该插件都提供清晰、一致的命名约定和最佳实践。
+> 命名规范插件提供跨编程语言的统一命名规范指南
+
+## 安装
+
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin naming@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install naming@ccplugin-market
+```
 
 ## 功能特性
 
 ### 🎯 核心功能
 
-- **通用命名原则** - 适用于所有编程语言的基本命名规则
-  - **清晰性** - 名称应清楚表达其含义
-  - **一致性** - 项目内保持命名风格统一
-  - **可读性** - 避免过长名称，使用有意义的词汇
-  - **避免混淆** - 不使用相似的名称或容易误解的缩写
+- **命名规范专家代理** - 提供专业的命名建议
+  - 变量命名
+  - 函数命名
+  - 类/接口命名
+  - 文件命名
 
-- **常用命名错误清单** - 开发中常见的命名错误及正确做法
-  - status → state
-  - ID → Id
-  - Users → UserList
-  - 及其他 10+ 常见错误
+- **多语言支持** - 覆盖主流编程语言
+  - Python (PEP 8)
+  - JavaScript/TypeScript (camelCase)
+  - Java (camelCase/PascalCase)
+  - Go (MixedCaps)
+  - Rust (snake_case)
+  - C/C++ (snake_case)
 
-- **命名验证清单** - 在命名前进行检查
-  - 清晰度验证
-  - 社区规范一致性
-  - 长度合理性
-  - 项目一致性
-  - 避免歧义
-  - 避免过度缩写
-  - 避免混淆的相似名称
+### 📦 包含组件
 
-## 安装
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Agent | `dev` | 命名规范专家 |
+| Skill | `core` | 命名核心规范 |
+| Skill | `python` | Python 命名规范 |
+| Skill | `javascript` | JavaScript 命名规范 |
+| Skill | `java` | Java 命名规范 |
+| Skill | `golang` | Go 命名规范 |
+| Skill | `rust` | Rust 命名规范 |
 
-### 前置条件
+## 命名规范速查
 
-- 支持插件功能的 Claude Code 版本
+### Python
 
-### 安装插件
-
-```bash
-# 使用本地路径安装
-claude plugin install ./plugins/languages/naming
-
-# 或通过市场安装
-/plugin install naming-skills
-```
-
-## 使用指南
-
-### 查看命名规范
-
-该插件会在以下场景自动激活：
-- 编写代码时需要命名变量、函数或类
-- 进行代码审查和规范检查
-- 需要跨语言命名一致性
-
-### 查看详细规范
-
-查看 `skills/naming/SKILL.md` 文件了解完整的命名规范指导，包括：
-- 4 项通用命名原则
-- 8 项命名验证清单
-- 10+ 个常用命名错误及正确做法
-
-## 命名规范优势
-
-✅ **一致性** - 整个项目代码风格统一
-✅ **可读性** - 代码自解释，易于理解
-✅ **专业性** - 遵循行业标准和最佳实践
-✅ **跨语言** - 多语言项目易于维护
-✅ **易维护** - 清晰的命名减少认知负担
-
-## 快速参考
-
-### 常见错误
-
-| 错误 | 正确 | 说明 |
+| 类型 | 规范 | 示例 |
 |------|------|------|
-| `status` | `state` | 使用 state 表示状态 |
-| `ID` | `Id` | 保持 PascalCase 一致性 |
-| `Users` | `UserList` | 清晰的集合命名 |
-| `user_id` | `uid` | 统一使用短形式 |
-| `get_status` | `get_state` | 保持方法与属性一致 |
-| `created_time` | `created_at` | 时间字段使用 `_at` 后缀 |
-| 字符串时间 | 时间戳（数字） | 时间必须使用时间戳格式 |
+| 模块 | snake_case | `my_module.py` |
+| 类 | PascalCase | `MyClass` |
+| 函数 | snake_case | `my_function` |
+| 变量 | snake_case | `my_variable` |
+| 常量 | UPPER_SNAKE_CASE | `MY_CONSTANT` |
 
-## 最佳实践
+### JavaScript/TypeScript
 
-### 命名前的检查清单
+| 类型 | 规范 | 示例 |
+|------|------|------|
+| 类/接口 | PascalCase | `MyClass` |
+| 函数 | camelCase | `myFunction` |
+| 变量 | camelCase | `myVariable` |
+| 常量 | UPPER_SNAKE_CASE | `MY_CONSTANT` |
+| 文件 | kebab-case | `my-file.ts` |
 
-- [ ] 名称是否清晰表达意图？
-- [ ] 是否遵循语言社区规范？
-- [ ] 名称长度是否合理（< 40 字符）？
-- [ ] 是否与项目内其他命名一致？
-- [ ] 避免了歧义吗？
-- [ ] 是否需要代码注释来解释这个名称？（如果是，考虑重新命名）
-- [ ] 避免了过度缩写吗？
-- [ ] 避免了容易混淆的相似名称吗？
+### Go
+
+| 类型 | 规范 | 示例 |
+|------|------|------|
+| 包 | lowercase | `mypackage` |
+| 导出 | PascalCase | `MyFunction` |
+| 私有 | camelCase | `myFunction` |
+
+## 命名原则
+
+1. **描述性** - 名称应清晰表达意图
+2. **一致性** - 项目内保持统一风格
+3. **简洁性** - 避免过长名称
+4. **避免缩写** - 除非是通用缩写（如 URL、ID）
+
+## 参考资源
+
+- [PEP 8](https://www.python.org/dev/peps/pep-0008/)
+- [Google Style Guides](https://google.github.io/styleguide/)
+- [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript)
 
 ## 许可证
 

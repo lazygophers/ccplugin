@@ -1,6 +1,17 @@
 # Python 插件
 
-Python 开发插件提供高质量的 Python 代码开发指导和专业支持。包括遵循 PEP 8 规范的编程指导和行业最佳实践。
+> Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持
+
+## 安装
+
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install python@ccplugin-market
+```
 
 ## 功能特性
 
@@ -29,29 +40,20 @@ Python 开发插件提供高质量的 Python 代码开发指导和专业支持�
   - 内存泄漏检测
   - 并发问题诊断
 
-## 安装
+### 📦 包含组件
 
-### 前置条件
-
-1. **Python 版本**
-   - 需要 Python 3.8+（推荐 3.9+）
-
-2. **依赖管理工具**
-   - 使用 uv 进行依赖管理和项目初始化
-   - 简单安装：`pip install uv`
-
-3. **Claude Code 版本**
-   - 支持插件功能的 Claude Code 版本
-
-### 安装插件
-
-```bash
-# 方式 1: 使用本地路径安装
-claude plugin install /path/to/plugins/python
-
-# 方式 2: 复制到插件目录
-cp -r /path/to/plugins/python ~/.claude/plugins/
-```
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Agent | `dev` | Python 开发专家 |
+| Agent | `test` | 测试专家 |
+| Agent | `debug` | 调试专家 |
+| Agent | `perf` | 性能优化专家 |
+| Skill | `core` | Python 核心规范 |
+| Skill | `error` | 错误处理规范 |
+| Skill | `types` | 类型提示规范 |
+| Skill | `testing` | 测试策略 |
+| Skill | `async` | 异步编程规范 |
+| Skill | `web` | Web 开发规范 |
 
 ## 使用方式
 
@@ -64,8 +66,6 @@ cp -r /path/to/plugins/python ~/.claude/plugins/
 - 设计代码架构
 - 优化代码实现
 - 解决技术问题
-
-**调用**：使用 Claude Code 的 `@python-dev` 或在聊天中请求 Python 开发帮助
 
 **示例**：
 ```
@@ -82,8 +82,6 @@ cp -r /path/to/plugins/python ~/.claude/plugins/
 - 编写集成测试
 - 提高测试覆盖率
 
-**调用**：使用 `@python-test` 或请求测试相关帮助
-
 **示例**：
 ```
 我有一个计算函数，需要编写全面的测试用例。
@@ -98,8 +96,6 @@ cp -r /path/to/plugins/python ~/.claude/plugins/
 - 性能瓶颈识别
 - 内存问题诊断
 - 并发问题排查
-
-**调用**：使用 `@python-debug` 或描述遇到的问题
 
 **示例**：
 ```
@@ -116,16 +112,12 @@ cp -r /path/to/plugins/python ~/.claude/plugins/
 - 内存优化
 - 并发优化
 
-**调用**：使用 `@python-perf` 或请求性能优化帮助
-
 **示例**：
 ```
 我的 API 响应时间太长，如何优化性能？
 ```
 
 ## 开发规范
-
-本插件遵循的核心规范包括：
 
 ### 编程规范
 
@@ -182,7 +174,7 @@ cd my-project
 uv pip install requests pydantic
 
 # 运行项目
-uv run python-skills -m mypackage
+uv run python -m mypackage
 ```
 
 ### 创建第一个模块
@@ -231,35 +223,6 @@ class TestCalculateSum:
         assert calculate_sum(numbers) == expected
 ```
 
-### 配置项目
-
-```toml
-# pyproject.toml
-[build-system]
-requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "my-project"
-version = "0.1.0"
-description = "My Python project"
-requires-python = ">=3.8"
-dependencies = [
-    "requests>=2.28.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
-    "black>=22.0",
-]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = ["--cov=src/mypackage", "--cov-report=term-missing"]
-```
-
 ## 最佳实践
 
 ### 1. 代码组织
@@ -293,24 +256,6 @@ addopts = ["--cov=src/mypackage", "--cov-report=term-missing"]
 - 使用 profiling 工具测量关键部分的性能
 - 定期进行基准测试以检测性能回归
 
-## 常见问题
-
-### Q: 如何使用这个插件？
-
-A: 在 Claude Code 中描述你的 Python 开发需求，或使用 @python-dev 等代理标签。插件会自动提供相关的规范指导和最佳实践。
-
-### Q: 支持哪些 Python 版本？
-
-A: 本插件针对 Python 3.8+ 进行优化，推荐使用 Python 3.9 及以上版本以获得更好的类型提示支持。
-
-### Q: 如何处理依赖管理？
-
-A: 使用 uv 进行依赖管理。在 pyproject.toml 中声明依赖，使用 `uv sync` 同步，使用 `uv pip install` 添加新依赖。
-
-### Q: 测试覆盖率的目标是多少？
-
-A: 推荐关键路径 >80%，核心模块 >90%。使用 `pytest --cov` 生成覆盖率报告。
-
 ## 参考资源
 
 ### 官方文档
@@ -325,17 +270,6 @@ A: 推荐关键路径 >80%，核心模块 >90%。使用 `pytest --cov` 生成覆
 - [uv 文档](https://docs.astral.sh/uv/)
 - [mypy 文档](https://mypy.readthedocs.io/)
 
-### 相关技能
+## 许可证
 
-- Python 开发规范 - 完整的编码规范和最佳实践
-- 测试策略 - 全面的测试设计指导
-- 性能优化 - 性能分析和优化建议
-
-## 反馈与贡献
-
-有任何建议或发现问题，欢迎反馈和贡献！
-
----
-
-**版本**：0.0.1
-**最后更新**：2026-01-10
+AGPL-3.0-or-later

@@ -1,6 +1,17 @@
 # Git 插件
 
-Git 仓库管理插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和仓库维护。
+> Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和仓库维护
+
+## 安装
+
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin git@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install git@ccplugin-market
+```
 
 ## 功能特性
 
@@ -27,11 +38,14 @@ Git 仓库管理插件 - 提供完整的 Git 操作支持，包括提交管理�
 - **git-developer** - Git 开发专家，专注于 Git 操作和工作流
 - **git-reviewer** - Git 审查专家，专注于评估提交质量和 PR 完整性
 
-## 安装
+### 📦 包含组件
 
-```bash
-/plugin install ./plugins/git
-```
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Command | `commit` | 提交命令 |
+| Skill | `commit` | 提交规范 |
+| Skill | `pr` | PR 规范 |
+| Skill | `issue` | Issue 规范 |
 
 ## 快速开始
 
@@ -45,24 +59,24 @@ Git 仓库管理插件 - 提供完整的 Git 操作支持，包括提交管理�
 /commit-all "feat: 初始化项目"
 
 # 推送到远程
-gitpush -u origin master
+git push -u origin master
 ```
 
 ### 2. 功能开发流程
 
 ```bash
 # 创建功能分支
-gitcheckout -b feature/user-auth
+git checkout -b feature/user-auth
 
 # 开发并提交
-gitadd src/auth/
+git add src/auth/
 /commit "feat: 添加用户注册"
 
-gitadd tests/
+git add tests/
 /commit "test: 添加认证测试"
 
 # 推送并创建 PR
-gitpush -u origin feature/user-auth
+git push -u origin feature/user-auth
 /create-pr
 ```
 
@@ -71,11 +85,11 @@ gitpush -u origin feature/user-auth
 ```bash
 # 根据审查反馈修改
 vim src/auth/login.py
-gitadd src/auth/login.py
+git add src/auth/login.py
 /commit "fix: 修复登录验证逻辑"
 
 # 推送并更新 PR
-gitpush
+git push
 /update-pr 123
 ```
 
@@ -155,15 +169,15 @@ gitpush
 
 ### 类型（type）
 
-| 类型       | 说明      | 示例                     |
-| ---------- | --------- | ------------------------ |
-| `feat`     | 新功能    | feat: 添加用户认证功能   |
-| `fix`      | 缺陷修复  | fix: 修复登录超时问题    |
-| `docs`     | 文档更新  | docs: 更新 API 文档      |
-| `style`    | 代码格式  | style: 统一代码缩进      |
-| `refactor` | 代码重构  | refactor: 优化数据库查询 |
-| `test`     | 测试相关  | test: 添加单元测试       |
-| `chore`    | 构建/工具 | chore: 更新依赖版本      |
+| 类型 | 说明 | 示例 |
+|------|------|------|
+| `feat` | 新功能 | feat: 添加用户认证功能 |
+| `fix` | 缺陷修复 | fix: 修复登录超时问题 |
+| `docs` | 文档更新 | docs: 更新 API 文档 |
+| `style` | 代码格式 | style: 统一代码缩进 |
+| `refactor` | 代码重构 | refactor: 优化数据库查询 |
+| `test` | 测试相关 | test: 添加单元测试 |
+| `chore` | 构建/工具 | chore: 更新依赖版本 |
 
 ### 提交信息示例
 
@@ -178,28 +192,6 @@ gitpush
 /commit-all "fix bug"
 /commit-all "done"
 ```
-
-## 子代理
-
-### git-developer
-
-Git 开发专家，专注于 Git 仓库操作、提交管理和 Pull Request 工作流。
-
-**适用场景**：
-
-- 复杂的分支操作
-- PR 创建和更新
-- 提交策略规划
-
-### git-reviewer
-
-Git 审查专家，专注于评估提交质量、PR 完整性和仓库健康度。
-
-**适用场景**：
-
-- 提交质量审查
-- PR 完整性检查
-- 仓库健康度评估
 
 ## 安全协议
 
@@ -257,7 +249,3 @@ Git 审查专家，专注于评估提交质量、PR 完整性和仓库健康度�
 ## 许可证
 
 AGPL-3.0-or-later
-
-## 作者
-
-lazygophers <admin@lazygophers.dev>

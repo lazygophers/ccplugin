@@ -1,21 +1,34 @@
-# Memory
+# Memory 插件
 
-智能记忆插件，为 Claude Code 提供持久化、智能化的记忆管理系统。
-
-## 特性
-
-- **URI 结构化记忆**：通过 URI 路径组织记忆，语义清晰
-- **Hooks 自动化**：自动记录、预加载、归档记忆
-- **SQLite 存储**：轻量级、无依赖、跨平台
-- **版本控制**：修改前快照，支持回滚
-- **智能推荐**：基于上下文推荐相关记忆
-- **多项目支持**：项目隔离，支持共享记忆
+> 智能记忆插件 - 提供 URI 寻址的记忆存储和跨会话持久化
 
 ## 安装
 
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin memory@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install memory@ccplugin-market
 ```
-/plugin install memory
-```
+
+## 功能特性
+
+### 🎯 核心功能
+
+- **URI 结构化记忆** - 通过 URI 路径组织记忆，语义清晰
+- **Hooks 自动化** - 自动记录、预加载、归档记忆
+- **SQLite 存储** - 轻量级、无依赖、跨平台
+- **版本控制** - 修改前快照，支持回滚
+- **智能推荐** - 基于上下文推荐相关记忆
+- **多项目支持** - 项目隔离，支持共享记忆
+
+### 📦 包含组件
+
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Skill | `memory` | 记忆管理技能 |
 
 ## 快速开始
 
@@ -84,4 +97,4 @@
 
 ## 许可证
 
-Apache-2.0
+MIT

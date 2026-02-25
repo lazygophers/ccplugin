@@ -1,10 +1,22 @@
 # Deep Research 深度研究插件
 
-基于图思维框架（Graph of Thoughts）的多智能体深度研究系统，提供全方位的深度调查、知识合成和专业报告生成能力。
+> 基于图思维框架（Graph of Thoughts）的多智能体深度研究系统
 
-## 🌟 功能特性
+## 安装
+
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin deepresearch@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install deepresearch@ccplugin-market
+```
+
+## 功能特性
 
 ### 🎯 核心功能
+
 - **多智能体研究系统** - 并行执行多维度研究任务
 - **图思维框架** - 智能优化研究路径和资源分配
 - **引用验证系统** - A-E级质量评估和链式验证
@@ -12,26 +24,16 @@
 - **智能问题优化** - 将模糊问题转化为结构化研究计划
 
 ### 🔍 研究场景支持
+
 - **技术研究** - 技术原理、实现方案、性能分析
 - **市场研究** - 市场规模、竞争格局、用户需求
 - **政策研究** - 监管环境、合规要求、政策影响
 - **学术研究** - 文献综述、理论分析、创新发现
 - **行业分析** - 发展趋势、机会识别、风险评估
 
-## 🚀 快速开始
-
-### 安装插件
-```bash
-# 使用本地路径安装
-claude plugin install ./plugins/tools/deepresearch
-
-# 或通过市场安装
-/plugin install deepresearch
-```
+## 快速开始
 
 ### 基本使用
-
-深度研究插件会根据您的需求自动选择最合适的专业Agent：
 
 ```bash
 # 本地代码分析
@@ -53,357 +55,58 @@ claude plugin install ./plugins/tools/deepresearch
 /deep-research 技术方案搜索 "REST vs GraphQL"
 ```
 
-## 📊 研究流程
+## 📦 包含组件
 
-### 1. 问题优化阶段
-```
-输入：模糊的研究问题
-↓
-智能提问：5-6个关键维度
-↓
-输出：结构化的研究计划
-```
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Skill | `local-code-analysis` | 本地代码分析技能 |
+| Skill | `content-retriever-skills` | 内容检索技能 |
+| Skill | `question-refiner-skills` | 问题优化技能 |
+| Skill | `got-controller-skills` | 图思维控制技能 |
+| Skill | `synthesizer` | 知识合成技能 |
 
-### 2. 多智能体研究阶段
-```
-启动：4个专业研究智能体
-↓
-并行：技术、市场、政策、专家
-↓
-监控：实时质量评估和路径优化
-```
+## 专业 Agent
 
-### 3. 验证整合阶段
-```
-验证：A-E级质量评估
-↓
-整合：多源发现合成
-↓
-输出：综合研究报告
-```
+| Agent | 职责 | 场景 |
+|-------|------|------|
+| 本地代码分析专家 | 深度分析本地代码库 | 代码审查、重构分析 |
+| GitHub项目研究专家 | 研究开源项目 | 技术选型、竞品分析 |
+| 依赖包分析专家 | 分析第三方依赖 | 安全审计、依赖优化 |
+| 关键词探索专家 | 深度主题研究 | 概念学习、领域研究 |
+| 架构分析专家 | 分析系统架构 | 架构评估、设计评审 |
+| 技术方案搜索专家 | 搜索对比技术方案 | 技术选型、方案对比 |
 
-## 🤖 专业Agent
+## 来源质量评级
 
-### 本地代码分析专家 (local-code-analyzer)
-- **职责**：深度分析本地代码库的结构、质量、依赖关系
-- **场景**：代码审查、重构分析、性能优化、安全审计
+- **A级**：同行评审论文、权威机构报告
+- **B级**：专家观点、行业指南
+- **C级**：专业博客、案例报告
+- **D级**：预印本、初步研究
+- **E级**：传言、猜测
 
-### GitHub项目研究专家 (github-project-researcher)
-- **职责**：研究GitHub开源项目的技术特点、社区活跃度
-- **场景**：技术选型、竞品分析、项目评估、趋势预测
+## 配置选项
 
-### 依赖包分析专家 (dependency-analyzer)
-- **职责**：分析项目第三方依赖的安全性、版本兼容性
-- **场景**：安全审计、依赖优化、升级评估、License检查
+### MCP 服务器支持
 
-### 关键词探索专家 (keyword-explorer)
-- **职责**：基于关键词进行深度主题研究，构建知识网络
-- **场景**：概念学习、领域研究、趋势探索、问题解决
+| 服务器 | 用途 |
+|--------|------|
+| chrome-devtools | 浏览器自动化 |
+| duckduckgo | 网络搜索 |
+| github | GitHub 集成 |
+| gitlab | GitLab 集成 |
+| wikipedia | 百科知识 |
+| sequential-thinking | 复杂推理 |
 
-### 架构分析专家 (architecture-analyzer)
-- **职责**：深度分析软件系统架构设计、评估架构模式
-- **场景**：架构评估、设计评审、迁移规划、性能分析
-
-### 技术方案搜索专家 (solution-searcher)
-- **职责**：搜索和对比技术解决方案，提供最佳实践
-- **场景**：技术选型、方案对比、最佳实践、实施建议
-
-### 技术分析智能体
-- **职责**：技术原理、实现方法、性能指标
-- **输出**：技术评估报告、发展趋势、风险评估
-- **来源**：技术文档、论文、开发者社区
-
-### 市场研究智能体
-- **职责**：市场规模、竞争格局、用户需求
-- **输出**：市场分析报告、用户画像、商业机会
-- **来源**：市场报告、用户调研、财务数据
-
-### 政策环境智能体
-- **职责**：监管政策、法规要求、行业标准
-- **输出**：政策分析报告、合规建议、风险评估
-- **来源**：政府文件、行业标准、法律数据库
-
-### 行业专家智能体
-- **职责**：专业深度、前沿动态、未来预测
-- **输出**：专业分析、趋势预测、发展建议
-- **来源**：专家访谈、行业会议、研究报告
-
-## 📈 研究策略
-
-### 平衡策略（推荐）
-```markdown
-- Generate(4-5): 启动4-5个并行研究路径
-- Score: 评估每个路径的信息质量
-- KeepBestN(3): 保留最佳的3个路径
-- Aggregate: 整合为最终综合报告
-```
-
-### 深度策略
-```markdown
-- Generate(3): 启动3个主要研究路径
-- Select: 选择最有价值的路径
-- Generate(3): 从最佳路径继续深入
-- Repeat: 重复直到达到深度要求
-```
-
-### 广度策略
-```markdown
-- Generate(8): 启动大量并行路径
-- KeepBestN(5): 保留最佳的5个路径
-- Parallel: 对保留路径并行深化
-- Synthesize: 最终整合结果
-```
-
-## 📝 输出格式
-
-### 研究项目结构
-```
-RESEARCH/[研究主题]/
-├── README.md                    # 研究概述和导航
-├── executive_summary.md         # 执行摘要（1-2页）
-├── full_report.md               # 完整分析报告
-├── data/                        # 数据和统计
-│   └── statistics.md            # 关键数据和事实
-├── visuals/                     # 可视化内容
-│   └── descriptions.md          # 图表描述
-├── sources/                     # 信息来源
-│   ├── bibliography.md          # 完整参考文献
-│   └── source_quality_table.md  # 来源质量评分
-├── research_notes/              # 研究笔记
-│   └── agent_findings_summary.md # 各代理发现汇总
-└── appendices/                  # 附录
-    ├── methodology.md           # 研究方法
-    └── limitations.md           # 限制和未知
-```
-
-### 来源质量评级
-- **A级**：同行评审论文、权威机构报告、上市公司财报
-- **B级**：专家观点、行业指南、知名咨询分析
-- **C级**：专业博客、案例报告、技术文档
-- **D级**：预印本、初步研究、博客文章
-- **E级**：传言、猜测、不可靠来源
-
-## 🎯 适用场景
-
-### 学术研究
-- 文献综述和理论分析
-- 研究方法评估
-- 创新点发现和验证
-
-### 技术开发
-- 技术方案对比
-- 实现难点分析
-- 性能优化建议
-
-### 商业决策
-- 市场机会识别
-- 竞争对手分析
-- 投资风险评估
-
-### 政策制定
-- 政策环境评估
-- 影响分析预测
-- 合规建议提供
-
-## 📋 命令参考
-
-| 研究场景 | 命令示例 | 使用场景 |
-|---------|---------|---------|
-| 本地代码分析 | `/deep-research 本地代码分析 --scope ./src` | 分析代码质量、技术债、性能瓶颈 |
-| GitHub项目研究 | `/deep-research github项目研究 --project facebook/react` | 研究开源项目技术特点和社区活跃度 |
-| 依赖包分析 | `/deep-research 依赖包分析 --security` | 检查依赖安全性、版本兼容性 |
-| 关键词探索 | `/deep-research 关键词探索 "微服务架构"` | 学习技术概念、构建知识体系 |
-| 架构分析 | `/deep-research 架构分析 --design-doc ./architecture.md` | 评估架构设计、识别架构问题 |
-| 技术方案搜索 | `/deep-research 技术方案搜索 "REST vs GraphQL"` | 对比技术方案、选型决策 |
-
-## ⚙️ 配置选项
-
-### MCP服务器支持
-
-deepresearch插件集成了以下MCP（Model Context Protocol）服务器以增强研究能力：
-
-| 服务器 | 用途 | 功能 |
-|--------|------|------|
-| **chrome-devtools** | 浏览器自动化 | 网页抓取、性能分析、可视化验证 |
-| **duckduckgo** | 网络搜索 | 实时信息检索、多语言搜索、隐私保护 |
-| **time** | 时区处理 | 全球时区转换、时间计算、会议调度 |
-| **sequential-thinking** | 复杂推理 | 思维链分析、逐步推理、问题分解 |
-| **github** | GitHub集成 | 仓库分析、Issue追踪、代码审查 |
-| **gitlab** | GitLab集成 | 仓库管理、CI/CD分析、项目追踪 |
-| **wikipedia** | 百科知识 | 概念解释、背景资料、知识图谱 |
-
-#### Token配置
-
-GitHub和GitLab需要访问令牌，请通过环境变量配置：
+### Token 配置
 
 ```bash
-# GitHub Token（推荐使用Personal Access Token）
+# GitHub Token
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
 
-# GitLab Token（推荐使用Personal Access Token）
+# GitLab Token
 export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
 ```
 
-**获取Token**：
-- **GitHub**: Settings → Developer settings → Personal access tokens → Tokens (classic)
-- **GitLab**: Settings → Access Tokens → Scopes: api, read_api, read_repository
-
-**Token权限**：
-- **GitHub**: `repo` (完整仓库访问)、`read:org` (组织信息)
-- **GitLab**: `api`、`read_api`、`read_repository`
-
-#### 代理配置
-
-MCP服务器统一使用 `PROXY_URL` 环境变量配置代理：
-
-```bash
-# 设置代理
-export PROXY_URL="http://127.0.0.1:7890"
-```
-
-**默认值**：如未设置，使用 `http://127.0.0.1:7890`
-
-**适用服务器**：Chrome DevTools、GitHub、GitLab、Wikipedia、DuckDuckGo
-**无需代理**：Sequential Thinking、Time（本地计算服务）
-
-#### 使用示例
-
-```bash
-# 使用浏览器自动化获取网页数据
-浏览器访问 https://example.com 并提取关键信息
-
-# 使用DuckDuckGo搜索最新信息
-搜索 "人工智能最新进展" 并总结前5个结果
-
-# 使用时区服务计算会议时间
-计算 北京时间 2025-03-15 14:00 对应的纽约时间
-
-# 使用Sequential Thinking进行复杂推理
-使用思维链分析问题：评估技术选型的多个维度
-
-# 使用GitHub分析开源项目
-获取 facebook/react 项目的Star数、最近提交和活跃贡献者
-
-# 使用GitLab分析项目仓库
-获取 gitlab-org/gitlab 项目的合并请求和流水线状态
-
-# 使用Wikipedia获取背景知识
-搜索 "微服务架构" 的定义、历史和应用场景
-```
-
-### 研究参数
-- **研究深度**：浅层、中等、深度、专业
-- **时间范围**：历史、现状、未来
-- **地理范围**：本地、区域、全球
-- **目标受众**：专家、管理者、投资者、公众
-
-### 质量控制
-- **最低质量等级**：可设置接受的最低引用质量
-- **验证严格度**：严格、标准、宽松
-- **交叉验证要求**：最少独立来源数量
-
-## 🎨 特色功能
-
-### 智能问题优化
-通过智能提问将模糊的研究问题转化为结构化的研究计划，确保研究方向明确且可执行。
-
-### 多源信息整合
-自动从多个渠道收集信息，进行交叉验证和一致性检查，确保信息的完整性和可靠性。
-
-### 动态路径优化
-基于信息质量实时调整研究路径，动态分配资源，确保研究效率和质量的最优平衡。
-
-### 专业报告生成
-自动生成包含执行摘要、详细分析、数据支持和行动建议的专业研究报告。
-
-## 🔧 高级使用
-
-### 自定义研究策略
-```bash
-/deep-research 人工智能应用 \
-  --strategy balanced \
-  --depth professional \
-  --scope technical \
-  --audience experts
-```
-
-### 批量研究项目
-```bash
-# 连续执行多个研究项目
-/deep-research 项目1
-/deep-research 项目2
-/deep-research 项目3
-```
-
-### 结果定制化
-```bash
-# 生成特定格式的报告
-/synthesize-findings RESEARCH/项目 \
-  --format presentation \
-  --focus technical \
-  --include-visuals
-```
-
-## 📈 性能指标
-
-- **快速研究**（窄主题）：10-15分钟
-- **标准研究**（中等范围）：20-30分钟
-- **深度研究**（广泛范围）：30-60分钟
-- **学术综述**：45-90分钟
-
-## ✅ 最佳实践
-
-### 研究前准备
-- 明确研究目标和预期结果
-- 确定目标受众和需求
-- 评估所需资源和时间
-
-### 研究中管理
-- 定期检查研究进度
-- 及时调整研究方向
-- 确保信息质量和可靠性
-
-### 研究后优化
-- 验证关键发现
-- 检查报告完整性
-- 提供实用建议
-
-## 🚨 注意事项
-
-- 研究时间取决于主题复杂度和范围
-- 确保网络连接稳定以进行信息检索
-- 研究结果保存在本地RESEARCH目录
-- 定期清理不需要的研究项目
-
-## 📚 相关文档
-
-- **[CLAUDE.md](../../CLAUDE.md)** - 项目总体文档
-- **[Skills说明](./skills/)** - 详细技能使用指南
-- **[Commands说明](./commands/)** - 命令使用详解
-
-## 🤝 贡献指南
-
-欢迎贡献代码、报告问题或提出改进建议！
-
-### 提交问题
-- 使用GitHub Issues报告bug
-- 提供详细的重现步骤
-- 附上相关日志和错误信息
-
-### 功能请求
-- 说明新功能的需求背景
-- 描述预期的使用场景
-- 提供实现建议
-
-### 代码贡献
-- 遵循项目的编码规范
-- 添加必要的测试
-- 更新相关文档
-
-## 📄 许可证
+## 许可证
 
 AGPL-3.0-or-later
-
----
-
-**开启您的深度研究之旅，探索知识的深度和广度！** 🚀

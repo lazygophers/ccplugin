@@ -6,67 +6,158 @@
 
 CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提供了一系列经过验证的高质量插件，帮助开发者提高工作效率，覆盖项目管理、代码搜索、Git 操作、多语言开发等多个领域。
 
-## 可用插件
-
-### 顶层插件
-
-| 插件名称   | 描述                                                                                          | 版本   | 标签                                    |
-| ---------- | --------------------------------------------------------------------------------------------- | ------ | --------------------------------------- |
-| `llms`     | llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件                               | 0.0.93 | llms-skills, documentation, standards          |
-| `version`  | 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置                         | -      | version, semver, management             |
-| `template` | 插件开发模板 - 快速创建新插件的基础结构                                                       | 0.0.93 | template, development                   |
-
-### 工具插件 (tools/)
-
-| 插件名称       | 描述                                                                                        | 版本   | 标签                                                      |
-| -------------- | ------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------- |
-| `deepresearch` | 深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成 | 0.0.93 | deepresearch, research, agent, knowledge                  |
-| `git`          | Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理             | 0.0.93 | git-skills, commit, pr, pull-request, gitignore, version-control |
-| `semantic`     | 代码语义搜索插件 - 基于向量嵌入的智能代码搜索。支持多编程语言、多模型、GPU加速              | 0.0.93 | semantic-skills, search, vector, embedding, code-search          |
-
-### 语言插件 (languages/)
-
-| 插件名称     | 描述                                                                                   | 版本   | 标签                                                        |
-| ------------ | -------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------- |
-| `golang`     | Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持                         | 0.0.93 | golang-skills, go, development, coding-style, best-practices       |
-| `python`     | Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持                         | 0.0.93 | python-skills, py, development, coding-style, pep8, best-practices |
-| `typescript` | TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持                 | 0.0.93 | typescript-skills, ts, development, type-safety, strict-mode       |
-| `javascript` | JavaScript 开发插件 - 提供 JavaScript（ES2024-2025）开发规范、最佳实践和代码智能支持   | 0.0.93 | javascript-skills, js, es2024, es2025, development, async-await    |
-| `flutter`    | Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持 | 0.0.93 | flutter-skills, dart, mobile, development, best-practices          |
-| `naming`     | 命名规范插件 - 提供跨编程语言的统一命名规范指南                                        | 0.0.93 | naming-skills, coding-style, conventions, best-practices           |
-
-### 框架插件 (frame/)
-
-#### Golang 框架
-
-| 插件名称   | 描述                                                                 | 版本   | 标签                                    |
-| ---------- | -------------------------------------------------------------------- | ------ | --------------------------------------- |
-| `fasthttp` | fasthttp-skills 高性能 HTTP 库插件 - 基于零拷贝和对象复用的高性能 HTTP 服务 | 0.0.93 | fasthttp-skills, http, performance, go         |
-| `gin`      | Gin Web 框架插件 - 基于 httprouter 的高性能 Web 开发                 | 0.0.93 | gin-skills, web, framework, go                 |
-| `go-zero`  | go-zero 微服务框架插件 - 云原生 Go 微服务开发                        | 0.0.93 | go-zero, microservice, cloud-native, go |
-| `gofiber`  | Go Fiber Web 框架插件 - 基于 fasthttp-skills 的高性能 Web 开发              | 0.0.93 | fiber, web, framework, fasthttp-skills, go     |
-| `gorm`     | GORM ORM 库插件 - 完整的 Go ORM 开发规范和最佳实践                   | 0.0.93 | gorm-skills, orm, database, go                 |
-| `gorm-gen` | gorm-gen-skills 代码生成工具插件 - 类型安全的 GORM 代码生成                 | 0.0.93 | gorm-gen-skills, code-generation, orm, go      |
-| `lrpc`     | lrpc 高性能 RPC 框架插件 - 基于fasthttp的轻量级 RPC 框架             | 0.0.93 | lrpc, rpc, framework, go                |
-
-#### JavaScript/TypeScript 框架
-
-| 插件名称 | 描述                                                             | 版本   | 标签                                   |
-| -------- | ---------------------------------------------------------------- | ------ | -------------------------------------- |
-| `react`  | React 18+ 开发插件 - 现代 React 开发规范、Hooks、状态管理        | 0.0.93 | react-skills, react18, hooks, frontend        |
-| `vue`    | Vue 3 开发插件 - Vue 3 开发规范、Composition API、Pinia          | 0.0.93 | vue-skills, vue3, composition-api, frontend   |
-| `nextjs` | Next.js 16+ 全栈开发插件 - App Router、Server Components         | 0.0.93 | nextjs-skills, fullstack, app-router, react-skills   |
-| `antd`   | Ant Design 5.x 企业级 UI 组件库插件 - 设计系统、组件库、主题定制 | 0.0.93 | antd-skills, ant-design, ui-components, react-skills |
-
 ## 快速开始
 
-### 环境要求
+### 一键安装（推荐）
+
+使用 `uvx` 一键安装市场和插件：
+
+```bash
+# 安装市场和指定插件
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin <插件名>@ccplugin-market
+
+# 示例：安装 Python 插件
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+
+# 示例：安装多个插件
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market golang@ccplugin-market git@ccplugin-market
+```
+
+### 传统方式安装
+
+```bash
+# 1. 添加市场
+claude plugin marketplace add lazygophers/ccplugin
+
+# 2. 安装插件
+claude plugin install <插件名>@ccplugin-market
+```
+
+### 在 Claude Code 中安装
+
+```bash
+# 方式 1: 直接安装插件（自动添加市场）
+/plugin install python@ccplugin-market
+
+# 方式 2: 先添加市场再安装
+/plugin marketplace add lazygophers/ccplugin
+/plugin install python@ccplugin-market
+```
+
+## 可用插件
+
+### 工具插件
+
+| 插件名称 | 描述 | 关键词 |
+|---------|------|--------|
+| `git` | Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理 | git, commit, pr, workflow |
+| `deepresearch` | 深度研究插件 - 基于图思维框架的多智能体深度研究系统 | research, analysis, multi-agent |
+| `version` | 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新 | semver, versioning, automation |
+| `env` | 环境处理插件 - 从 .env 文件加载环境变量并注入会话 | env, dotenv, config |
+| `notify` | 系统通知插件 - 跨平台系统通知支持 | notification, macos, linux, windows |
+| `memory` | 智能记忆插件 - 提供 URI 寻址的记忆存储和跨会话持久化 | memory, persistence, sqlite |
+
+### 语言插件
+
+| 插件名称 | 描述 | 关键词 |
+|---------|------|--------|
+| `python` | Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持 | python, pep8, type-hints, testing |
+| `golang` | Golang 开发插件 - 提供 Golang 开发规范、最佳实践和 LSP 支持 | golang, go, gopls, best-practices |
+| `typescript` | TypeScript 开发插件 - 提供 TypeScript 开发规范和类型安全支持 | typescript, ts, type-safety, strict-mode |
+| `javascript` | JavaScript 开发插件 - 提供 ES2024-2025 开发规范 | javascript, js, es2024, async-await |
+| `rust` | Rust 开发插件 - 提供 Rust 开发规范和所有权系统指导 | rust, ownership, async, memory-safety |
+| `java` | Java 开发插件 - 提供 Java 21+ 开发规范和 Spring Boot 指导 | java, spring-boot, jvm, performance |
+| `c` | C 开发插件 - 提供 C11/C17 开发规范和系统编程指导 | c, c11, system-programming, posix |
+| `cpp` | C++ 开发插件 - 提供 C++17/23 开发规范和现代 C++ 指导 | cpp, c++17, stl, concurrency |
+| `csharp` | C# 开发插件 - 提供 C# 12/.NET 8 开发规范 | csharp, .net8, linq, async-await |
+| `flutter` | Flutter 开发插件 - 提供 Flutter 应用开发规范和状态管理指导 | flutter, dart, mobile, state-management |
+| `markdown` | Markdown 开发插件 - 提供 Markdown 编写规范和技术文档指导 | markdown, documentation, technical-writing |
+| `naming` | 命名规范插件 - 提供跨编程语言的统一命名规范指南 | naming, conventions, code-style |
+
+### Office 插件
+
+| 插件名称 | 描述 | 关键词 |
+|---------|------|--------|
+| `office-xlsx` | Excel 插件 - 提供 xlsx 文件读写、数据分析功能 | xlsx, excel, spreadsheet, mcp |
+| `office-docx` | Word 插件 - 提供 docx 文件读写、段落格式化功能 | docx, word, document, mcp |
+| `office-pptx` | PowerPoint 插件 - 提供 pptx 文件读写、幻灯片操作功能 | pptx, powerpoint, presentation, mcp |
+
+### 主题插件
+
+| 插件名称 | 描述 |
+|---------|------|
+| `style-glassmorphism` | 玻璃态设计风格 - 模糊、透明、分层效果 |
+| `style-neumorphism` | 新拟态设计风格 - 柔和阴影、浮起效果 |
+| `style-minimal` | 极简主义设计风格 - 留白、简洁排版 |
+| `style-dark` | 暗黑模式设计风格 - 深色背景、高对比 |
+| `style-neon` | 霓虹赛博设计风格 - 发光效果、高饱和色彩 |
+| `style-retro` | 复古怀旧设计风格 - 80-90s 审美、温暖色调 |
+| `style-brutalism` | 野兽派设计风格 - 原始边界、大胆排版 |
+| `style-pastel` | 柔和粉彩设计风格 - 淡雅色彩、温柔质感 |
+| `style-vibrant` | 充满活力设计风格 - 高对比、高饱和色彩 |
+| `style-luxe` | 奢华高端设计风格 - 金色元素、精致排版 |
+| `style-highcontrast` | 高对比无障碍设计风格 - WCAG AAA 标准 |
+| `style-gradient` | 渐变艺术设计风格 - 流动渐变、色彩过渡 |
+| `style-healing` | 治愈系极简实用风 - 莫兰迪配色、情感化温度 |
+
+### 其他插件
+
+| 插件名称 | 描述 | 关键词 |
+|---------|------|--------|
+| `llms` | llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件 | llms.txt, documentation, standard |
+| `template` | 插件开发模板 - 快速创建新插件的基础结构 | template, development |
+
+## 安装示例
+
+### 安装语言插件
+
+```bash
+# Python 开发
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+
+# Golang 开发
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin golang@ccplugin-market
+
+# TypeScript 开发
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin typescript@ccplugin-market
+
+# Rust 开发
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin rust@ccplugin-market
+```
+
+### 安装工具插件
+
+```bash
+# Git 操作
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin git@ccplugin-market
+
+# 深度研究
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin deepresearch@ccplugin-market
+
+# 智能记忆
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin memory@ccplugin-market
+```
+
+### 安装 Office 插件
+
+```bash
+# Excel 操作
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin office-xlsx@ccplugin-market
+
+# Word 操作
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin office-docx@ccplugin-market
+
+# PowerPoint 操作
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin office-pptx@ccplugin-market
+```
+
+## 环境要求
 
 - **Python**: >= 3.11
-- **uv**: Python 包管理器和执行器（强制使用）
+- **uv**: Python 包管理器和执行器
 - **Claude Code**: 最新版本
 
-### 安装 uv（如未安装）
+### 安装 uv
 
 ```bash
 # macOS/Linux
@@ -77,57 +168,6 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 # 验证安装
 uv --version
-```
-
-### 安装插件
-
-```bash
-# 顶层插件
-/plugin install llms@ccplugin-market
-/plugin install version@ccplugin-market
-
-# 工具插件
-/plugin install deepresearch@ccplugin-market
-/plugin install git@ccplugin-market
-/plugin install semantic@ccplugin-market
-
-# 语言插件
-/plugin install golang@ccplugin-market
-/plugin install python@ccplugin-market
-/plugin install typescript@ccplugin-market
-/plugin install javascript@ccplugin-market
-/plugin install flutter@ccplugin-market
-/plugin install naming@ccplugin-market
-
-# 框架插件 - Golang
-/plugin install gin@ccplugin-market
-/plugin install gorm@ccplugin-market
-/plugin install fasthttp@ccplugin-market
-/plugin install go-zero@ccplugin-market
-/plugin install gofiber@ccplugin-market
-/plugin install gorm-gen@ccplugin-market
-/plugin install lrpc@ccplugin-market
-
-# 框架插件 - JavaScript/TypeScript
-/plugin install react@ccplugin-market
-/plugin install vue@ccplugin-market
-/plugin install nextjs@ccplugin-market
-/plugin install antd@ccplugin-market
-
-# 主题插件
-/plugin install style-glassmorphism@ccplugin-market
-/plugin install style-neumorphism@ccplugin-market
-/plugin install style-minimal@ccplugin-market
-/plugin install style-dark@ccplugin-market
-/plugin install style-neon@ccplugin-market
-/plugin install style-retro@ccplugin-market
-/plugin install style-brutalism@ccplugin-market
-/plugin install style-pastel@ccplugin-market
-/plugin install style-vibrant@ccplugin-market
-/plugin install style-luxe@ccplugin-market
-/plugin install style-highcontrast@ccplugin-market
-/plugin install style-gradient@ccplugin-market
-/plugin install style-healing@ccplugin-market
 ```
 
 ## 插件开发
@@ -153,7 +193,7 @@ cd ../skills    # 添加技能
 ```
 my-plugin/
 ├── .claude-plugin/
-│   └── plugin.json         # 插件清单（必需，包含 hooks 配置）
+│   └── plugin.json         # 插件清单（必需）
 ├── commands/               # 自定义命令
 │   └── my-command.md
 ├── agents/                 # 子代理
@@ -163,51 +203,8 @@ my-plugin/
 │       └── SKILL.md
 ├── scripts/                # 脚本（可选）
 │   └── script.py
-├── README.md               # 插件文档（推荐）
-└── CHANGELOG.md            # 版本历史（推荐）
-```
-
-### 编程语言规范
-
-**强制要求**：
-
-- ✅ **Python（首选）** - 用于复杂逻辑、数据处理、API 调用
-- ✅ **Bash（次选）** - 用于系统操作、文件处理、快速脚本
-- ✅ **Markdown/JSON（必需）** - 用于配置和定义
-
-**Python 执行规范（强制）**：
-
-⚠️ **必须使用 uv 管理和执行 Python**
-
-- ✅ **使用 uv**：`uv run script.py` 或 `uv pip install ...`
-- ❌ **禁止直接执行**：`python3 script.py` 或 `python script.py`
-
-**原因**：
-
-- uv 提供快速的依赖管理和虚拟环境
-- 确保依赖隔离和版本一致性
-- 避免全局 Python 环境污染
-
-**正确用法**：
-
-```bash
-# 执行 Python 脚本
-uv run scripts/my_script.py
-
-# 安装依赖
-uv pip install requests
-
-# 同步依赖
-uv sync
-```
-
-**错误用法**：
-
-```bash
-# ❌ 不要这样
-python3 scripts/my_script.py
-python scripts/my_script.py
-./scripts/my_script.py
+├── README.md               # 插件文档
+└── CHANGELOG.md            # 版本历史
 ```
 
 ### 提交插件
@@ -225,7 +222,6 @@ python scripts/my_script.py
 - [API 参考](docs/api-reference.md) - 完整的 API 参考
 - [最佳实践](docs/best-practices.md) - 开发最佳实践
 - [支持的语言](docs/supported-languages.md) - 插件开发语言选择指南
-- [编译型语言指南](docs/compiled-languages-guide.md) - Go/Rust 等编译型语言使用指南
 
 ### 项目文档
 
@@ -234,78 +230,41 @@ python scripts/my_script.py
 
 ## 插件缓存清理
 
-### 清理旧插件版本
-
-如果 `~/.claude/plugins/cache/` 目录中积累了很多旧版本的插件，可以使用 `clean` 命令自动清理：
-
 ```bash
-# 预览将要删除的内容（不实际删除）
-clean --dry-run
-clean -d
+# 预览将要删除的内容
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master clean --dry-run
 
 # 实际执行清理
-clean
-
-# 或通过 uvx 远程执行
-uvx --from git+https://github.com/lazygophers/ccplugin clean
-uvx --from git+https://github.com/lazygophers/ccplugin clean --dry-run
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master clean
 ```
-
-这个命令会：
-
-- 扫描 `~/.claude/plugins/cache/` 目录下所有市场的插件版本
-- 为每个插件保留最新版本，删除所有旧版本
-- 输出清理的详细信息和释放的空间
-
-#### 选项
-
-| 选项            | 说明                                 |
-| --------------- | ------------------------------------ |
-| `--dry-run, -d` | 仅预览将要删除的内容，不执行实际删除 |
-| `--help, -h`    | 显示帮助信息                         |
 
 ## 常见问题
 
 ### 如何安装插件？
 
 ```bash
-# 从市场安装（推荐）
-/plugin install llms@ccplugin-market
-/plugin install git@ccplugin-market
-/plugin install python@ccplugin-market
-/plugin install golang@ccplugin-market
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install python@ccplugin-market
+```
+
+### 如何更新插件？
+
+```bash
+# 重新安装即可更新
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
 ```
 
 ### 如何开发新插件？
 
 1. 复制模板：`cp -r plugins/template my-new-plugin`
 2. 修改配置：编辑 `.claude-plugin/plugin.json`
-3. 实现功能：
-    - 在 `commands/` 目录下添加自定义命令
-    - 在 `agents/` 目录下添加子代理
-    - 在 `skills/` 目录下添加技能
-    - 在 `plugin.json` 的 `hooks` 字段中定义钩子（可选）
-    - 在 `scripts/` 目录下添加脚本（可选）
-    - 在 `README.md` 中添加插件文档（推荐）
-    - 在 `AGENT.md` 中添加子代理文档（推荐,用于插件的系统提示词注入）
-4. 测试插件：`/plugin install ./my-new-plugin` 或 `/plugin install my-new-plugin@ccplugin-market`
+3. 实现功能：添加命令、代理、技能
+4. 测试插件：`/plugin install ./my-new-plugin`
 5. 提交市场：更新 `marketplace.json` 并提交 PR
-
-### 为什么强制使用 uv？
-
-uv 提供快速的依赖管理和虚拟环境，确保依赖隔离和版本一致性，避免全局 Python 环境污染。uv 的执行速度比传统的 pip 和 virtualenv 快数倍，能够显著提高开发效率。
-
-### 插件数据存储在哪里？
-
-每个插件的数据存储在项目目录的 `.lazygophers/ccplugin/<plugin-name>/` 目录下，自动被 `.gitignore` 忽略。
-
-### 如何更新插件？
-
-插件会随着 Claude Code 的更新自动更新，或者您可以手动重新安装插件来获取最新版本：
-
-```bash
-/plugin install task@ccplugin-market --force
-```
 
 ## 许可证
 
@@ -313,12 +272,10 @@ AGPL-3.0-or-later - 详见 [LICENSE](LICENSE)
 
 ## 贡献指南
 
-我们欢迎社区贡献！如果您想为 CCPlugin Market 贡献代码或插件，请遵循以下步骤：
+我们欢迎社区贡献！
 
 1. Fork 本仓库
-2. 创建您的特性分支：`git checkout -b feature/my-new-feature`
-3. 提交您的更改：`git commit -m "Add some feature"`
-4. 推送到分支：`git push origin feature/my-new-feature`
+2. 创建特性分支：`git checkout -b feature/my-new-feature`
+3. 提交更改：`git commit -m "Add some feature"`
+4. 推送分支：`git push origin feature/my-new-feature`
 5. 提交 Pull Request
-
-请确保您的代码符合我们的开发规范，并通过所有测试。

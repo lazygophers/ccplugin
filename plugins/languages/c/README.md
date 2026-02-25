@@ -1,10 +1,21 @@
 # C 开发插件
 
-C 开发插件提供高质量的 C 代码开发指导和 LSP 支持。包括 C11/C17 标准、系统编程、嵌入式开发和 POSIX API 规范。
+> C 开发插件提供高质量的 C 代码开发指导和 LSP 支持
+
+## 安装
+
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin c@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install c@ccplugin-market
+```
 
 ## 功能特性
 
-### 核心功能
+### 🎯 核心功能
 
 - **C 开发专家代理** - 提供专业的 C 开发支持
   - 高质量代码实现
@@ -23,11 +34,24 @@ C 开发插件提供高质量的 C 代码开发指导和 LSP 支持。包括 C11
   - 代码补全和导航
   - 格式化和重构建议
 
-## 安装
+### 📦 包含组件
 
-### 前置条件
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Agent | `dev` | C 开发专家 |
+| Agent | `test` | 测试专家 |
+| Agent | `debug` | 调试专家 |
+| Agent | `perf` | 性能优化专家 |
+| Skill | `core` | C 核心规范 |
+| Skill | `memory` | 内存管理规范 |
+| Skill | `error` | 错误处理规范 |
+| Skill | `concurrency` | 并发编程规范 |
+| Skill | `embedded` | 嵌入式开发规范 |
+| Skill | `posix` | POSIX API 规范 |
 
-1. **clangd 安装**
+## 前置条件
+
+### clangd 安装
 
 ```bash
 # macOS
@@ -39,48 +63,6 @@ apt install clangd
 # 验证安装
 which clangd
 clangd --version
-```
-
-2. **Claude Code 版本**
-   - 需要支持 LSP 的 Claude Code 版本（v2.0.74+）
-
-### 安装插件
-
-```bash
-# 方式 1: 使用本地路径安装
-claude code plugin install /path/to/plugins/languages/c
-
-# 方式 2: 复制到插件目录
-cp -r /path/to/plugins/languages/c ~/.claude/plugins/
-```
-
-## 项目结构
-
-```
-c/
-├── .claude-plugin/
-│   └── plugin.json                      # 插件清单
-├── .lsp.json                            # LSP 配置（clangd）
-├── agents/
-│   ├── dev.md                           # 开发专家代理
-│   ├── test.md                          # 测试专家代理
-│   ├── debug.md                         # 调试专家代理
-│   └── perf.md                          # 性能优化代理
-├── skills/c-skills/
-│   ├── SKILL.md                         # 核心规范入口
-│   ├── development-practices.md         # 内存管理、指针、字符串
-│   ├── system-programming.md            # POSIX API、进程、线程
-│   ├── embedded-development.md          # 寄存器、中断、约束优化
-│   ├── specialized/                     # 高级主题
-│   │   ├── posix-api.md                 # POSIX API 详解
-│   │   ├── memory-management.md         # 内存管理详解
-│   │   └── concurrency.md               # 并发编程
-│   └── references.md                    # 参考资料
-├── hooks/hooks.json                     # Hook 配置
-├── scripts/
-│   ├── main.py                          # CLI 入口
-│   └── hooks.py                         # Hook 处理
-└── README.md                            # 本文档
 ```
 
 ## 核心规范
@@ -146,17 +128,9 @@ error:
 
 ## 参考资源
 
-### 官方文档
-
 - [cppreference C](https://en.cppreference.com/w/c/) - C 语言参考
 - [GNU C Library](https://www.gnu.org/software/libc/manual/) - glibc 文档
 
 ## 许可证
 
 AGPL-3.0-or-later
-
----
-
-**作者**：lazygophers
-**版本**：1.0.0
-**最后更新**：2026-02-09

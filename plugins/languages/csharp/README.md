@@ -1,128 +1,122 @@
 # C# 开发插件
 
-C# 开发插件提供高质量的 C# 代码开发指导和 LSP 支持。包括现代 C# 12/.NET 8 特性、LINQ、async/await 和主流框架开发规范。
+> C# 开发插件提供高质量的 C# 代码开发指导和 LSP 支持
+
+## 安装
+
+```bash
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin csharp@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install csharp@ccplugin-market
+```
 
 ## 功能特性
 
-### 核心功能
+### 🎯 核心功能
 
 - **C# 开发专家代理** - 提供专业的 C# 开发支持
   - 高质量代码实现
   - 架构设计指导
   - 性能优化建议
-  - 框架开发支持
+  - 异步编程支持
 
-- **开发规范指导** - 完整的现代 C# 开发规范
-  - C# 12 新特性
-  - LINQ 和异步编程
-  - ASP.NET Core、WPF、MAUI、Blazor
+- **开发规范指导** - 完整的 C# 开发规范
+  - **C# 12/.NET 8** - 使用最新 C# 特性
+  - **LINQ 和函数式编程** - 数据处理最佳实践
+  - **async/await** - 异步编程模式
 
-- **代码智能支持** - 通过 OmniSharp LSP 提供
+- **代码智能支持** - 通过 C# LSP 提供
   - 实时代码诊断
   - 代码补全和导航
   - 格式化和重构建议
 
-## 安装
+### 📦 包含组件
 
-### 前置条件
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Agent | `dev` | C# 开发专家 |
+| Agent | `test` | 测试专家 |
+| Agent | `debug` | 调试专家 |
+| Agent | `perf` | 性能优化专家 |
+| Skill | `core` | C# 核心规范 |
+| Skill | `async` | 异步编程规范 |
+| Skill | `linq` | LINQ 规范 |
+| Skill | `testing` | 测试规范 |
 
-1. **.NET SDK 安装**
+## 前置条件
+
+### .NET SDK 安装
 
 ```bash
 # macOS
-brew install --cask dotnet-sdk
-
-# Linux (Ubuntu)
-wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-sudo dpkg -i packages-microsoft-prod.deb
-sudo apt-get update
-sudo apt-get install -y dotnet-sdk-8.0
+brew install dotnet@8
 
 # 验证安装
 dotnet --version
-```
-
-2. **OmniSharp 安装**
-
-```bash
-# 通过 NuGet 安装
-dotnet tool install --global OmniSharp
-
-# 或使用 VS Code 扩展
-code --install-extension ms-dotnettools.csharp
-```
-
-### 安装插件
-
-```bash
-# 方式 1: 使用本地路径安装
-claude code plugin install /path/to/plugins/languages/csharp
-
-# 方式 2: 复制到插件目录
-cp -r /path/to/plugins/languages/csharp ~/.claude/plugins/
-```
-
-## 项目结构
-
-```
-csharp/
-├── .claude-plugin/
-│   └── plugin.json                      # 插件清单
-├── .lsp.json                            # LSP 配置（OmniSharp）
-├── agents/
-│   ├── dev.md                           # 开发专家代理
-│   ├── test.md                          # 测试专家代理
-│   ├── debug.md                         # 调试专家代理
-│   └── perf.md                          # 性能优化代理
-├── skills/csharp-skills/
-│   ├── SKILL.md                         # 核心规范入口
-│   ├── development-practices.md         # LINQ、async/await、DI
-│   ├── framework-development.md          # 框架开发
-│   ├── specialized/                     # 高级主题
-│   │   ├── async-programming.md         # 异步编程进阶
-│   │   ├── linq.md                       # LINQ 高级用法
-│   │   ├── wpf-development.md           # WPF 开发
-│   │   └── aspnet-development.md        # ASP.NET Core
-│   └── references.md                    # 参考资料
-├── hooks/hooks.json                     # Hook 配置
-├── scripts/
-│   ├── main.py                          # CLI 入口
-│   └── hooks.py                         # Hook 处理
-└── README.md                            # 本文档
 ```
 
 ## 核心规范
 
 ### 必须遵守
 
-1. **现代优先** - 优先使用 C# 12 特性
-2. **异步优先** - IO 操作使用 async/await
-3. **空安全** - 启用可空引用类型
-4. **LINQ 优先** - 使用 LINQ 进行数据操作
-5. **依赖注入** - 使用 DI 容器
+1. **使用 C# 12 特性** - 主构造函数、集合表达式
+2. **启用 Nullable** - 启用 nullable reference types
+3. **异步最佳实践** - 使用 async/await，避免 .Result
+4. **LINQ 优先** - 优先使用 LINQ 处理数据
+5. **依赖注入** - 使用 DI 容器管理依赖
 
 ### 禁止行为
 
 - 使用 .Result 或 .Wait()
-- 不传递 CancellationToken
-- 禁用可空引用类型
-- 使用 async void（除事件处理）
-- LINQ 查询中的副作用
+- 忽略 nullable 警告
+- 使用魔术字符串
+- 过度使用反射
+
+## 最佳实践
+
+### 异步编程
+
+```csharp
+// ✅ 好的异步代码
+public async Task<User> GetUserAsync(int id)
+{
+    return await _dbContext.Users.FindAsync(id);
+}
+
+// ❌ 不好的异步代码
+public User GetUser(int id)
+{
+    return _dbContext.Users.FindAsync(id).Result;
+}
+```
+
+### LINQ
+
+```csharp
+// ✅ 使用 LINQ
+var activeUsers = users
+    .Where(u => u.IsActive)
+    .OrderBy(u => u.Name)
+    .Select(u => u.Name);
+
+// ❌ 使用循环
+var activeUsers = new List<string>();
+foreach (var u in users)
+{
+    if (u.IsActive)
+        activeUsers.Add(u.Name);
+}
+activeUsers.Sort();
+```
 
 ## 参考资源
 
-### 官方文档
-
-- [.NET 文档](https://learn.microsoft.com/dotnet/)
-- [C# 指南](https://learn.microsoft.com/dotnet/csharp/)
-- [ASP.NET Core](https://learn.microsoft.com/aspnet/core/)
+- [.NET 文档](https://docs.microsoft.com/dotnet/)
+- [C# 编程指南](https://docs.microsoft.com/dotnet/csharp/programming-guide/)
 
 ## 许可证
 
 AGPL-3.0-or-later
-
----
-
-**作者**：lazygophers
-**版本**：1.0.0
-**最后更新**：2026-02-09

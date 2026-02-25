@@ -1,21 +1,35 @@
-# llms.txt Plugin
+# llms.txt 插件
 
-> 通过 Agent 自动生成符合 [llms.txt 标准](https://llmstxt.org/) 的文件
-
-## 功能
-
-- **Agent 驱动**：通过 `llms-generator` Agent 智能扫描并生成文件
-- **自动扫描项目**：识别 README、配置文件、文档目录等
-- **混合链接支持**：同时支持本地文件路径和远程 URL
-- **技能标准**：内置 llms.txt 标准规范，确保生成文件符合标准
+> llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件
 
 ## 安装
 
 ```bash
-/plugin install ./plugins/llms
+# 推荐：一键安装
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin llms@ccplugin-market
+
+# 或：传统方式
+claude plugin marketplace add lazygophers/ccplugin
+claude plugin install llms@ccplugin-market
 ```
 
-## 使用
+## 功能特性
+
+### 🎯 核心功能
+
+- **Agent 驱动** - 通过 `llms-generator` Agent 智能扫描并生成文件
+- **自动扫描项目** - 识别 README、配置文件、文档目录等
+- **混合链接支持** - 同时支持本地文件路径和远程 URL
+- **技能标准** - 内置 llms.txt 标准规范，确保生成文件符合标准
+
+### 📦 包含组件
+
+| 组件类型 | 名称 | 描述 |
+|---------|------|------|
+| Agent | `llms-generator` | llms.txt 生成代理 |
+| Skill | `llms-skills` | llms.txt 标准规范 |
+
+## 使用方式
 
 ### 通过 Agent 生成
 
@@ -38,20 +52,20 @@ Agent 会自动：
 
 ```json
 {
-	"project_name": "项目名称",
-	"description": "项目描述",
-	"details": ["项目详细信息", "- 重要说明"],
-	"sections": {
-		"Docs": [
-			{
-				"title": "README",
-				"path": "README.md",
-				"description": "项目说明文档"
-			}
-		],
-		"Examples": [],
-		"Optional": []
-	}
+  "project_name": "项目名称",
+  "description": "项目描述",
+  "details": ["项目详细信息", "- 重要说明"],
+  "sections": {
+    "Docs": [
+      {
+        "title": "README",
+        "path": "README.md",
+        "description": "项目说明文档"
+      }
+    ],
+    "Examples": [],
+    "Optional": []
+  }
 }
 ```
 
@@ -88,13 +102,13 @@ Agent 会自动：
 
 ### 格式说明
 
-| 部分     | 必需 | 说明                     |
-| -------- | ---- | ------------------------ |
-| H1 标题  | ✅   | 项目/网站名称            |
-| 引用块   | ❌   | 项目摘要                 |
-| 详细内容 | ❌   | 段落、列表等（不含标题） |
-| H2 部分  | ❌   | 文件列表                 |
-| Optional | ❌   | 可在短上下文时跳过       |
+| 部分 | 必需 | 说明 |
+|------|------|------|
+| H1 标题 | ✅ | 项目/网站名称 |
+| 引用块 | ❌ | 项目摘要 |
+| 详细内容 | ❌ | 段落、列表等（不含标题） |
+| H2 部分 | ❌ | 文件列表 |
+| Optional | ❌ | 可在短上下文时跳过 |
 
 ## 链接格式
 
@@ -113,30 +127,21 @@ Agent 会自动：
 ## Agent 工作流程
 
 1. **扫描项目**
-    - README.md / pyproject.toml / package.json
-    - docs/、examples/ 等目录
+   - README.md / pyproject.toml / package.json
+   - docs/、examples/ 等目录
 
 2. **提取信息**
-    - 项目名称、描述
-    - 文档文件列表
-    - 示例文件列表
+   - 项目名称、描述
+   - 文档文件列表
+   - 示例文件列表
 
 3. **生成文件**
-    - 按照 LLMS 标准格式
-    - 创建 .llms.json 配置
+   - 按照 LLMS 标准格式
+   - 创建 .llms.json 配置
 
 4. **验证格式**
-    - 检查是否符合标准
-    - 验证链接有效性
-
-## 技能规范
-
-插件包含 `llms-standard` 技能，定义了：
-
-- llms.txt 标准格式
-- 链接格式规范
-- 验证清单
-- 完整示例
+   - 检查是否符合标准
+   - 验证链接有效性
 
 ## 相关链接
 
@@ -144,6 +149,6 @@ Agent 会自动：
 - [CCPlugin Market](https://github.com/lazygophers/ccplugin)
 - [Claude Code](https://claude.ai/code)
 
-## License
+## 许可证
 
 AGPL-3.0-or-later
