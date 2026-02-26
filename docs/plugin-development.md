@@ -1,6 +1,6 @@
 # 插件开发指南
 
-完整的 Claude Code 插件开发教程，从创建到发布。
+> Claude Code 插件开发完整教程 - 从创建到发布
 
 ## 目录
 
@@ -33,6 +33,13 @@ cd ../..
 /plugin install ./my-new-plugin
 ```
 
+### 使用 uvx 一键安装测试
+
+```bash
+# 本地测试
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin ./my-new-plugin
+```
+
 ## 插件结构
 
 ### 标准结构
@@ -50,8 +57,12 @@ my-plugin/
 │       └── SKILL.md
 ├── hooks/                  # 可选：钩子
 │   └── hooks.json
+├── scripts/                # 可选：脚本
+│   ├── __init__.py
+│   └── main.py
 ├── README.md               # 推荐：插件文档
 ├── CHANGELOG.md            # 推荐：版本历史
+├── pyproject.toml          # Python 项目配置
 └── LICENSE                 # 推荐：许可证
 ```
 
@@ -62,32 +73,32 @@ my-plugin/
 - `commands/`、`agents/`、`skills/` 必须在插件根目录
 - 不能放在 `.claude-plugin/` 目录内
 - `SKILL.md` 文件名必须大写
+- `plugin.json` 必须包含 `name` 字段
 
 ## 核心组件
 
-### plugin.json
+### 1. plugin.json（必需）
 
 插件清单文件，包含插件元数据和配置。
 
 ```json
 {
-	"name": "my-plugin", // 必需：kebab-case
-	"version": "1.0.0", // 推荐：语义化版本
-	"description": "插件描述", // 必需：清晰说明
-	"author": {
-		// 推荐：作者信息
-		"name": "作者名",
-		"email": "email@example.com",
-		"url": "https://github.com/author"
-	},
-	"keywords": ["tag1", "tag2"], // 推荐：便于发现
-	"commands": "./commands/", // 可选：命令路径
-	"agents": "./agents/", // 可选：代理路径
-	"skills": "./skills/" // 可选：技能路径
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "description": "插件描述",
+  "author": {
+    "name": "作者名",
+    "email": "email@example.com",
+    "url": "https://github.com/author"
+  },
+  "keywords": ["tag1", "tag2"],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
 }
 ```
 
-### Commands（命令）
+### 2. Commands（命令）
 
 自定义斜杠命令，扩展 Claude Code 功能。
 
@@ -96,19 +107,34 @@ my-plugin/
 ```markdown
 ---
 description: 命令描述
-argument-hint: [args] # 可选
-allowed-tools: Bash(*) # 可选
-model: sonnet # 可选
+argument-hint: [args]
+allowed-tools: Bash(*)
+model: sonnet
 ---
 
 # 命令名称
 
-详细指令。
+详细指令内容。
+
+## 使用方法
+
+/command-name [args]
+
+## 示例
+
+/command-name example-arg
 ```
+
+**参数占位符**：
+
+| 占位符 | 描述 |
+|--------|------|
+| `$ARGUMENTS` | 捕获所有参数 |
+| `$1`, `$2`, ... | 位置参数 |
 
 **示例**：
 
-````markdown
+```markdown
 ---
 description: 格式化代码
 argument-hint: [file-path]
@@ -123,39 +149,53 @@ allowed-tools: Bash(prettier*)
 
 /format [file-path]
 
-## 示例
+## 执行
 
-格式化单个文件：
-
-```bash
-/format src/main.js
-```
-````
-
-格式化整个项目：
-
-```bash
-/format
+\`\`\`bash
+if [ -n "$ARGUMENTS" ]; then
+    prettier --write "$ARGUMENTS"
+else
+    prettier --write "**/*.{js,ts,jsx,tsx}"
+fi
+\`\`\`
 ```
 
-````
-
-### Agents（代理）
+### 3. Agents（代理）
 
 专用子代理，处理特定任务。
 
 **格式**：
+
 ```markdown
 ---
 name: agent-name
 description: 代理描述
-tools: Read, Write, Bash     # 可选
-model: sonnet                # 可选
-permissionMode: default      # 可选
-skills: skill1, skill2       # 可选
+tools: Read, Write, Bash
+model: sonnet
+permissionMode: default
+skills: skill1, skill2
 ---
-代理系统提示词。
-````
+
+# Agent 名称
+
+代理系统提示词...
+
+## 职责
+
+- 职责1
+- 职责2
+```
+
+**字段说明**：
+
+| 字段 | 类型 | 必需 | 描述 |
+|------|------|------|------|
+| `name` | string | 是 | 代理唯一标识符 |
+| `description` | string | 是 | 代理用途描述 |
+| `tools` | string | 否 | 工具列表，逗号分隔 |
+| `model` | string | 否 | 模型：sonnet, haiku, opus, inherit |
+| `permissionMode` | string | 否 | 权限模式：default, grant, deny |
+| `skills` | string | 否 | 自动加载的技能，逗号分隔 |
 
 **示例**：
 
@@ -169,17 +209,17 @@ skills: security-checklist, performance-optimization
 
 # Code Reviewer Agent
 
-你是一个专业的代码审查专家...
+你是一个专业的代码审查专家。
 
 ## 审查重点
 
-- 代码质量
-- 安全漏洞
-- 性能问题
-- 最佳实践
+- 代码质量：可读性、可维护性、可测试性
+- 安全漏洞：SQL 注入、XSS、CSRF
+- 性能问题：算法复杂度、内存泄漏
+- 最佳实践：设计模式、代码规范
 ```
 
-### Skills（技能）
+### 4. Skills（技能）
 
 Agent Skills，提供特定领域的知识和指导。
 
@@ -189,16 +229,19 @@ Agent Skills，提供特定领域的知识和指导。
 ---
 name: skill-name-skills
 description: 技能描述
-auto-activate: always:true  # 可选
-allowed-tools: Read, Grep   # 可选
-model: sonnet               # 可选
+auto-activate: always:true
+allowed-tools: Read, Grep
+model: sonnet
 ---
+
 # 技能名称
 
 ## 使用场景
+
 描述何时自动激活。
 
 ## 指导原则
+
 提供详细指令。
 ```
 
@@ -211,21 +254,25 @@ description: 安全审计技能。当用户提到安全检查、漏洞扫描或�
 auto-activate: always:true
 allowed-tools: Read, Grep, Bash
 ---
+
 # Security Auditor
 
 ## 使用场景
+
 - 用户要求安全审计
 - 提到漏洞或安全问题
 - 需要安全最佳实践
 
 ## 审查要点
+
 1. SQL 注入
 2. XSS 攻击
 3. CSRF 防护
 4. 认证授权
+5. 敏感数据处理
 ```
 
-### Hooks（钩子）
+### 5. Hooks（钩子）
 
 在特定事件发生时自动执行命令。
 
@@ -233,47 +280,104 @@ allowed-tools: Read, Grep, Bash
 
 ```json
 {
-	"hooks": {
-		"EventName": [
-			{
-				"matcher": "ToolName|Pattern",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "/path/to/script.sh"
-					}
-				]
-			}
-		]
-	}
+  "hooks": {
+    "EventName": [
+      {
+        "matcher": "ToolName|Pattern",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/path/to/script.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
 **可用事件**：
 
-- `SessionStart` / `SessionEnd`
-- `PreToolUse` / `PostToolUse`
-- `SubagentStart` / `SubagentStop`
-- `PermissionRequest`
-- `UserPromptSubmit`
+| 事件 | 触发时机 |
+|------|----------|
+| `SessionStart` | 会话开始 |
+| `SessionEnd` | 会话结束 |
+| `PreToolUse` | 工具使用前 |
+| `PostToolUse` | 工具使用后 |
+| `SubagentStart` | 子代理启动 |
+| `SubagentStop` | 子代理停止 |
+| `PermissionRequest` | 权限请求 |
+| `UserPromptSubmit` | 用户提交提示 |
+| `Stop` | 会话停止 |
+| `Notification` | 系统通知 |
+
+**Matcher 模式**：
+
+```javascript
+"Write|Edit"       // 匹配 Write 或 Edit
+"Bash(*)"          // 匹配所有 Bash 工具
+"Bash(git:*)"      // 匹配 git 命令
+"*"                // 匹配所有工具
+```
 
 **示例**：
 
 ```json
 {
-	"hooks": {
-		"PostToolUse": [
-			{
-				"matcher": "Write|Edit",
-				"hooks": [
-					{
-						"type": "command",
-						"command": "${CLAUDE_PLUGIN_ROOT}/scripts/format.sh"
-					}
-				]
-			}
-		]
-	}
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/format.sh",
+            "env": {
+              "FORMAT": "true"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 6. MCP Servers
+
+Model Context Protocol 服务器，提供外部工具集成。
+
+**配置文件** (`.mcp.json`)：
+
+```json
+{
+  "mcpServers": {
+    "my-server": {
+      "command": "uvx",
+      "args": ["--from", "./scripts", "my-mcp-server"],
+      "env": {
+        "API_KEY": "${API_KEY}"
+      }
+    }
+  }
+}
+```
+
+### 7. LSP Servers
+
+Language Server Protocol 服务器，提供代码智能支持。
+
+**配置文件** (`.lsp.json`)：
+
+```json
+{
+  "lspServers": {
+    "gopls": {
+      "command": "gopls",
+      "args": ["serve"],
+      "filePatterns": ["**/*.go"]
+    }
+  }
 }
 ```
 
@@ -281,9 +385,10 @@ allowed-tools: Read, Grep, Bash
 
 ### 1. 规划设计
 
-- 确定插件功能
+- 确定插件功能和目标用户
 - 设计目录结构
 - 规划组件实现
+- 确定依赖项
 
 ### 2. 创建插件
 
@@ -291,8 +396,12 @@ allowed-tools: Read, Grep, Bash
 # 使用模板
 cp -r plugins/template my-plugin
 
-# 或使用命令
-/plugin-create my-plugin
+# 或手动创建
+mkdir -p my-plugin/.claude-plugin
+mkdir -p my-plugin/commands
+mkdir -p my-plugin/agents
+mkdir -p my-plugin/skills
+mkdir -p my-plugin/scripts
 ```
 
 ### 3. 实现功能
@@ -319,13 +428,23 @@ mkdir my-skill
 vi my-skill/SKILL.md
 ```
 
+**添加脚本**：
+
+```bash
+cd my-plugin/scripts
+vi main.py
+```
+
 ### 4. 本地测试
 
 ```bash
-# 验证插件
-/plugin-validate ./my-plugin
+# 验证插件结构
+ls -la my-plugin/.claude-plugin/plugin.json
 
-# 安装插件
+# 验证 JSON 格式
+cat my-plugin/.claude-plugin/plugin.json | jq .
+
+# 安装测试
 /plugin install ./my-plugin
 
 # 测试功能
@@ -337,34 +456,44 @@ vi my-skill/SKILL.md
 ### 自动验证
 
 ```bash
-# 验证格式
+# 验证 plugin.json 格式
 cat .claude-plugin/plugin.json | jq .
 
-# 检查结构
-ls -d .claude-plugin commands agents skills
+# 检查目录结构
+ls -d .claude-plugin commands agents skills 2>/dev/null
 
-# 验证命名
+# 验证命名规范
 cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 ```
 
-### 手动测试
+### 手动测试清单
 
-1. **命令测试**
-    - 执行所有命令
-    - 验证参数处理
-    - 检查输出格式
+**命令测试**：
 
-2. **技能测试**
-    - 触发技能条件
-    - 验证自动激活
-    - 检查指导质量
+- [ ] 执行所有命令
+- [ ] 验证参数处理
+- [ ] 检查输出格式
+- [ ] 测试错误处理
 
-3. **代理测试**
-    - 调用代理
-    - 验证工具使用
-    - 检查执行结果
+**技能测试**：
 
-### 测试清单
+- [ ] 触发技能条件
+- [ ] 验证自动激活
+- [ ] 检查指导质量
+
+**代理测试**：
+
+- [ ] 调用代理
+- [ ] 验证工具使用
+- [ ] 检查执行结果
+
+**Hook 测试**：
+
+- [ ] 触发所有 Hook 事件
+- [ ] 验证脚本执行
+- [ ] 检查环境变量
+
+### 完整测试清单
 
 - [ ] plugin.json 格式正确
 - [ ] 目录结构符合规范
@@ -373,6 +502,7 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 - [ ] 所有代理可调用
 - [ ] 命名规范符合
 - [ ] 文档完整
+- [ ] 无占位符代码
 
 ## 发布流程
 
@@ -383,6 +513,7 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 - [ ] 文档完整更新
 - [ ] 版本号正确更新
 - [ ] CHANGELOG.md 更新
+- [ ] README.md 更新
 
 ### 2. 更新 marketplace.json
 
@@ -390,16 +521,17 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 
 ```json
 {
-	"plugins": [
-		{
-			"name": "my-plugin",
-			"source": "./plugins/my-plugin",
-			"description": "插件描述",
-			"version": "1.0.0",
-			"author": { "name": "作者" },
-			"keywords": ["tag1", "tag2"]
-		}
-	]
+  "name": "ccplugin-market",
+  "plugins": [
+    {
+      "name": "my-plugin",
+      "source": "./plugins/my-plugin",
+      "description": "插件描述",
+      "version": "1.0.0",
+      "author": { "name": "作者" },
+      "keywords": ["tag1", "tag2"]
+    }
+  ]
 }
 ```
 
@@ -407,13 +539,13 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
 
 ```bash
 # 添加所有更改
-gitadd .
+git add .
 
 # 提交
-gitcommit -m "feat(plugin): 添加 my-plugin 插件 v1.0.0"
+git commit -m "feat(plugin): 添加 my-plugin 插件 v1.0.0"
 
 # 推送
-gitpush origin branch-name
+git push origin branch-name
 ```
 
 ### 4. 创建 Pull Request
@@ -424,7 +556,7 @@ gitpush origin branch-name
 feat(plugin): 添加 my-plugin 插件
 ```
 
-**描述**：
+**描述模板**：
 
 ```markdown
 ## 插件名称
@@ -453,39 +585,22 @@ my-plugin
 Closes #123
 ```
 
-## 最佳实践
-
-### 命名规范
-
-- **插件名称**：`my-awesome-plugin`（kebab-case）
-- **技能名称**：`code-reviewer`（小写、连字符）
-- **代理名称**：`security-auditor`（小写、连字符）
-- **命令名称**：`format-code`（小写、连字符）
-
-### 文档规范
-
-- 每个组件都要有清晰的 description
-- 提供使用示例
-- 说明注意事项
-- 参考相关资源
-
-### 版本管理
-
-- 使用语义化版本：`MAJOR.MINOR.PATCH`
-- MAJOR：破坏性变更
-- MINOR：新功能
-- PATCH：Bug 修复
-
-### 质量保证
-
-- 充分测试
-- 代码审查
-- 文档完整
-- 遵循规范
-
 ## 参考资源
 
-- [plugin-development skill](../.claude/skills/plugin-development/SKILL.md)
-- [官方插件文档](https://code.claude.com/docs/en/plugins.md)
-- [插件市场规范](https://code.claude.com/docs/en/plugin-marketplaces.md)
-- [项目 CLAUDE.md](../CLAUDE.md)
+### 项目文档
+
+- [API 参考](api-reference.md) - 完整的 API 文档
+- [最佳实践](best-practices.md) - 开发最佳实践
+- [支持的语言](supported-languages.md) - 语言选择指南
+- [编译型语言指南](compiled-languages-guide.md) - Go/Rust 开发指南
+
+### 官方文档
+
+- [Claude Code 插件文档](https://code.claude.com/docs/en/plugins)
+- [插件市场规范](https://code.claude.com/docs/en/plugin-marketplaces)
+- [插件参考](https://code.claude.com/docs/en/plugins-reference)
+
+### 项目文件
+
+- [CLAUDE.md](../CLAUDE.md) - 项目开发规范
+- [README.md](../README.md) - 项目说明

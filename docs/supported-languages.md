@@ -1,4 +1,6 @@
-# Claude Code 插件开发 - 支持的语言
+# 插件开发支持的语言
+
+> Claude Code 插件开发语言选择指南
 
 ## 目录
 
@@ -7,15 +9,10 @@
 3. [脚本语言](#脚本语言)
 4. [编程语言](#编程语言)
 5. [语言选择指南](#语言选择指南)
-6. [最佳实践](#最佳实践)
 
 ## 概述
 
 Claude Code 插件开发采用**多语言混合**模式：
-
-- **配置层**: Markdown + JSON
-- **脚本层**: 任意脚本语言
-- **逻辑层**: 任意编程语言
 
 ```
 插件开发语言架构：
@@ -30,7 +27,6 @@ Claude Code 插件开发采用**多语言混合**模式：
 │  - Shell / Bash                         │
 │  - Python                               │
 │  - Node.js                              │
-│  - Ruby / Perl / PHP 等                  │
 ├─────────────────────────────────────────┤
 │  逻辑层 (可选)                           │
 │  - 任意编译语言 (Go, Rust, C++)          │
@@ -42,11 +38,12 @@ Claude Code 插件开发采用**多语言混合**模式：
 
 ### Markdown (.md)
 
-**用途**: 定义 commands、agents、skills
+**用途**：定义 commands、agents、skills
 
-**必需性**: 强制
+**必需性**：强制
 
-**文件位置**:
+**文件位置**：
+
 ```
 plugin/
 ├── commands/
@@ -58,17 +55,20 @@ plugin/
         └── SKILL.md       # 技能定义
 ```
 
-**格式要求**:
+**格式要求**：
+
 - Frontmatter (YAML)
 - Markdown 内容
 - UTF-8 编码
 
-**示例**:
+**示例**：
+
 ```markdown
 ---
 description: 命令描述
 allowed-tools: Bash, Read
 ---
+
 # 命令名称
 
 命令详细说明。
@@ -76,16 +76,22 @@ allowed-tools: Bash, Read
 
 ### JSON (.json)
 
-**用途**: 配置文件
+**用途**：配置文件
 
-**必需性**: 强制
+**必需性**：强制
 
-**文件类型**:
-- `plugin.json` - 插件清单
-- `hooks.json` - 钩子配置
-- `marketplace.json` - 市场清单
+**文件类型**：
 
-**示例**:
+| 文件 | 描述 |
+|------|------|
+| `plugin.json` | 插件清单 |
+| `hooks.json` | 钩子配置 |
+| `marketplace.json` | 市场清单 |
+| `.mcp.json` | MCP 服务器配置 |
+| `.lsp.json` | LSP 服务器配置 |
+
+**示例**：
+
 ```json
 {
   "name": "my-plugin",
@@ -96,26 +102,79 @@ allowed-tools: Bash, Read
 
 ## 脚本语言
 
+### Python
+
+**推荐度**：⭐⭐⭐⭐⭐
+
+**适用场景**：
+
+- 复杂逻辑处理
+- 数据处理和分析
+- API 调用
+- 文本分析
+- MCP 服务器
+
+**优点**：
+
+- 语法简洁
+- 生态丰富
+- 跨平台
+- 易于维护
+
+**缺点**：
+
+- 需要 Python 环境
+- 启动较慢
+
+**示例**：
+
+```python
+#!/usr/bin/env python3
+"""插件主脚本."""
+import sys
+import json
+
+
+def main():
+    """主函数."""
+    data = json.loads(sys.stdin.read())
+    result = process_data(data)
+    print(json.dumps(result))
+
+
+def process_data(data):
+    """处理数据."""
+    return {"result": data}
+
+
+if __name__ == "__main__":
+    main()
+```
+
 ### Shell / Bash
 
-**推荐度**: ⭐⭐⭐⭐⭐
+**推荐度**：⭐⭐⭐⭐⭐
 
-**适用场景**:
+**适用场景**：
+
 - Hooks 脚本
 - 系统操作
 - 文件处理
 - Git 操作
 
-**优点**:
+**优点**：
+
 - 系统原生支持
 - 执行效率高
 - 无需额外依赖
 
-**缺点**:
+**缺点**：
+
 - 跨平台兼容性差
 - 复杂逻辑难维护
 
-**示例** (hooks 格式化):
+**示例**：
+
 ```bash
 #!/bin/bash
 # scripts/format.sh
@@ -129,62 +188,30 @@ for file in "$@"; do
 done
 ```
 
-### Python
-
-**推荐度**: ⭐⭐⭐⭐⭐
-
-**适用场景**:
-- 复杂逻辑处理
-- 数据处理
-- API 调用
-- 文本分析
-
-**优点**:
-- 语法简洁
-- 生态丰富
-- 跨平台
-- 易于维护
-
-**缺点**:
-- 需要Python环境
-- 启动较慢
-
-**示例** (数据处理):
-```python
-#!/usr/bin/env python3
-import sys
-import json
-
-def process_data(input_file):
-    with open(input_file) as f:
-        data = json.load(f)
-    # 处理逻辑
-    return data
-
-if __name__ == "__main__":
-    process_data(sys.argv[1])
-```
-
 ### Node.js / JavaScript
 
-**推荐度**: ⭐⭐⭐⭐
+**推荐度**：⭐⭐⭐⭐
 
-**适用场景**:
+**适用场景**：
+
 - Web 相关工具
 - 前端构建
 - 包管理
 - API 开发
 
-**优点**:
+**优点**：
+
 - 生态庞大
 - 异步处理
 - npm 生态
 
-**缺点**:
-- 需要Node环境
+**缺点**：
+
+- 需要 Node 环境
 - 版本管理复杂
 
-**示例** (代码格式化):
+**示例**：
+
 ```javascript
 #!/usr/bin/env node
 const { execSync } = require('child_process');
@@ -198,123 +225,79 @@ function formatCode(filePath) {
 formatCode(process.argv[2]);
 ```
 
-### 其他脚本语言
-
-#### Ruby
-
-**推荐度**: ⭐⭐⭐
-
-**适用场景**:
-- 文本处理
-- 脚本自动化
-- Rails 相关
-
-#### Perl
-
-**推荐度**: ⭐⭐
-
-**适用场景**:
-- 文本处理
-- 系统管理
-- 正则表达式
-
-#### PHP
-
-**推荐度**: ⭐⭐
-
-**适用场景**:
-- Web 开发
-- 后端服务
-
 ## 编程语言
 
 ### Go
 
-**推荐度**: ⭐⭐⭐⭐⭐
+**推荐度**：⭐⭐⭐⭐⭐
 
-**适用场景**:
+**适用场景**：
+
 - 高性能工具
 - 系统工具
 - 微服务
 - CLI 应用
 
-**优点**:
+**优点**：
+
 - 编译型，性能高
 - 单文件部署
 - 跨平台编译
 - 并发优秀
 
-**缺点**:
+**缺点**：
+
+- 需要预编译
 - 学习曲线
-- 泛型支持较弱
 
-**示例**:
-```go
-package main
-
-import "fmt"
-
-func main() {
-    fmt.Println("Hello from Go!")
-}
-```
+**详细指南**：参见 [编译型语言指南](compiled-languages-guide.md)
 
 ### Rust
 
-**推荐度**: ⭐⭐⭐⭐
+**推荐度**：⭐⭐⭐⭐
 
-**适用场景**:
+**适用场景**：
+
 - 系统工具
 - 高性能服务
 - WebAssembly
 - CLI 应用
 
-**优点**:
+**优点**：
+
 - 内存安全
 - 性能极佳
 - 跨平台
 - 包管理优秀
 
-**缺点**:
+**缺点**：
+
 - 学习曲线陡
 - 编译时间长
 
+**详细指南**：参见 [编译型语言指南](compiled-languages-guide.md)
+
 ### C/C++
 
-**推荐度**: ⭐⭐⭐
+**推荐度**：⭐⭐⭐
 
-**适用场景**:
+**适用场景**：
+
 - 系统级工具
 - 性能关键应用
 - 嵌入式
 
-**优点**:
+**优点**：
+
 - 性能最佳
 - 底层控制
 - 广泛支持
 
-**缺点**:
+**缺点**：
+
 - 内存管理复杂
 - 开发效率低
 - 跨平台问题
-
-### Java / Kotlin
-
-**推荐度**: ⭐⭐⭐
-
-**适用场景**:
-- 企业工具
-- 后端服务
-- Android 工具
-
-**优点**:
-- 生态成熟
-- 跨平台
-- 强类型
-
-**缺点**:
-- 启动慢
-- 内存占用大
 
 ## 语言选择指南
 
@@ -323,12 +306,13 @@ func main() {
 | 场景 | 推荐语言 | 理由 |
 |------|----------|------|
 | **Hooks** | Bash | 系统原生，快速执行 |
-| **文本处理** | Python / Ruby | 强大的字符串处理 |
+| **文本处理** | Python | 强大的字符串处理 |
 | **Web 工具** | Node.js | 生态丰富 |
 | **系统工具** | Go / Rust | 高性能，单文件 |
 | **数据脚本** | Python | 简洁易用 |
 | **快速原型** | Python / Bash | 开发效率高 |
 | **生产工具** | Go / Rust | 稳定可靠 |
+| **MCP 服务器** | Python | 生态完善 |
 
 ### 按性能选择
 
@@ -356,21 +340,24 @@ Python ≈ Bash > Ruby > Node.js > Go > Rust > Java > C/C++
 
 ## 最佳实践
 
-### 1. 语言选择原则
+### 语言选择原则
 
-**简单场景**:
+**简单场景**：
+
 - 优先使用 Bash
 - 快速原型用 Python
 
-**复杂场景**:
+**复杂场景**：
+
 - 逻辑复杂用 Python
 - 性能关键用 Go/Rust
 
-**生产环境**:
+**生产环境**：
+
 - 编译为可执行文件
 - 提供多平台支持
 
-### 2. 混合语言策略
+### 混合语言策略
 
 ```
 示例插件架构：
@@ -383,36 +370,51 @@ Python ≈ Bash > Ruby > Node.js > Go > Rust > Java > C/C++
 └── hooks.json
 ```
 
-### 3. 依赖管理
+### 依赖管理
 
-**Python**:
+**Python**：
+
 ```bash
-# 使用虚拟环境
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# 使用 pyproject.toml
+[project]
+dependencies = [
+    "requests>=2.28.0",
+    "pydantic>=2.0.0",
+]
+
+# 使用 uv
+uv pip install -e .
 ```
 
-**Node.js**:
+**Node.js**：
+
 ```bash
-# 使用本地依赖
+# 使用 package.json
+{
+  "dependencies": {
+    "prettier": "^3.0.0"
+  }
+}
+
+# 安装
 npm install
-# npx 运行本地命令
-npx prettier --write file.js
 ```
 
-**Go**:
+**Go**：
+
 ```bash
-# 编译为单文件
-go build -o mytool main.go
+# 使用 go.mod
+go mod init github.com/user/plugin
+
+# 编译
+go build -o bin/mytool .
 ```
 
-### 4. 环境变量
+### 环境变量
 
 使用环境变量处理路径：
 
-```bash
-# hooks.json
+```json
 {
   "hooks": {
     "PostToolUse": [
@@ -425,12 +427,12 @@ go build -o mytool main.go
 ```
 
 ```python
-# my-script.py
 import os
+
 plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT')
 ```
 
-### 5. Shebang 规范
+### Shebang 规范
 
 确保脚本可执行：
 
@@ -440,8 +442,6 @@ plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT')
 
 #!/usr/bin/env python3
 #!/usr/bin/env node
-
-#!/usr/bin/env ruby
 ```
 
 ## 语言特性对比
@@ -456,69 +456,34 @@ plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT')
 | **部署** | 脚本 | 脚本 | 脚本 | 单文件 | 单文件 |
 | **生态** | 系统命令 | 庞大 | 庞大 | 成长中 | 成长中 |
 
-## 实际案例
-
-### 案例1: 代码格式化插件
-
-```
-plugin/
-├── scripts/
-│   ├── format.sh          # Bash: 调度器
-│   ├── format_py.py       # Python: Python格式化
-│   ├── format_js.js       # Node.js: JS格式化
-│   └── format_go          # Go: Go格式化
-└── hooks.json
-```
-
-### 案例2: 数据处理插件
-
-```
-plugin/
-├── scripts/
-│   ├── process.sh         # Bash: 入口
-│   ├── analyze.py         # Python: 数据分析
-│   └── report             # Go: 生成报告
-└── commands/
-    └── analyze.md
-```
-
-### 案例3: API 工具插件
-
-```
-plugin/
-├── scripts/
-│   ├── api_client         # Go: 高性能客户端
-│   └── format_response.py # Python: 响应格式化
-└── agents/
-    └── api-helper.md
-```
-
 ## 参考资源
 
-### 官方文档
+### 项目文档
 
-- [插件开发](plugin-development.md)
-- [API 参考](api-reference.md)
-- [Hooks 指南](.claude/skills/hooks-guide/SKILL.md)
+- [插件开发指南](plugin-development.md) - 完整开发教程
+- [API 参考](api-reference.md) - 完整 API 文档
+- [编译型语言指南](compiled-languages-guide.md) - Go/Rust 开发指南
 
 ### 语言资源
 
-- **Bash**: [Bash Guide](https://github.com/Idnan/bash-guide)
 - **Python**: [Python Docs](https://docs.python.org/)
+- **Bash**: [Bash Guide](https://github.com/Idnan/bash-guide)
 - **Node.js**: [Node.js Docs](https://nodejs.org/docs)
 - **Go**: [Go Tour](https://go.dev/tour/)
 - **Rust**: [Rust Book](https://doc.rust-lang.org/book/)
 
 ## 总结
 
-**推荐组合**:
+**推荐组合**：
 
-1. **入门级**: Bash + Python
-2. **Web级**: Node.js + Bash
-3. **专业级**: Go + Python + Bash
-4. **性能级**: Rust + Python + Bash
+| 级别 | 组合 | 适用场景 |
+|------|------|----------|
+| 入门级 | Bash + Python | 简单插件开发 |
+| Web级 | Node.js + Bash | Web 相关工具 |
+| 专业级 | Go + Python + Bash | 高性能工具 |
+| 性能级 | Rust + Python + Bash | 极致性能需求 |
 
-**选择依据**:
+**选择依据**：
 
 - 简单任务 → Bash
 - 复杂逻辑 → Python
@@ -526,7 +491,7 @@ plugin/
 - 系统工具 → Go
 - 极致性能 → Rust
 
-**关键原则**:
+**关键原则**：
 
 - 适合 > 流行
 - 简单 > 复杂

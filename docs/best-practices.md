@@ -1,6 +1,6 @@
 # 插件开发最佳实践
 
-Claude Code 插件开发的最佳实践和建议。
+> Claude Code 插件开发的最佳实践和建议
 
 ## 目录
 
@@ -20,29 +20,34 @@ Claude Code 插件开发的最佳实践和建议。
 每个插件应该专注于一个特定领域或功能。
 
 **好的例子**：
-- `code-formatter` - 专注于代码格式化
-- `git-helper` - 专注于 Git 操作
-- `test-runner` - 专注于测试运行
+
+- `python` - Python 开发支持
+- `git` - Git 操作支持
+- `deepresearch` - 深度研究支持
 
 **不好的例子**：
+
 - `awesome-toolkit` - 包含太多不相关功能
+- `utils` - 过于通用，职责不清
 
 ### 清晰命名
 
 插件、组件的名称应该清晰描述其功能。
 
 **推荐**：
+
 ```
-code-formatter          # 清楚说明是代码格式化
-security-scanner        # 清楚说明是安全扫描
-api-client-generator    # 清楚说明是 API 客户端生成
+python              # 清楚说明是 Python 开发
+git                 # 清楚说明是 Git 操作
+office-xlsx         # 清楚说明是 Excel 操作
 ```
 
 **避免**：
+
 ```
-awesome-tool            # 不清楚具体功能
-helper                  # 过于通用
-utils                   # 过于通用
+awesome-tool        # 不清楚具体功能
+helper              # 过于通用
+utils               # 过于通用
 ```
 
 ### 最小依赖
@@ -50,18 +55,21 @@ utils                   # 过于通用
 尽量减少外部依赖，保持插件简单。
 
 **推荐**：
-- 使用内置工具
+
+- 使用内置工具和命令
 - 避免复杂的外部脚本
-- 提供可选功能
+- 提供可选功能而非强制依赖
 
 ### 用户友好
 
 设计易于使用和理解的插件。
 
 **推荐**：
+
 - 清晰的错误消息
 - 提供使用示例
 - 包含帮助文档
+- 合理的默认值
 
 ## 命名规范
 
@@ -134,14 +142,16 @@ plugin/
 ├── commands/
 ├── agents/
 ├── skills/
+├── scripts/
 └── README.md
 ```
 
 ### 避免重复
 
-遵循 DRY（Don't Repeat Yourself）原则：
+遵循 DRY（Don't Repeat Yourself）原则。
 
 **不好**：
+
 ```markdown
 <!-- command1.md -->
 执行命令A
@@ -155,15 +165,16 @@ plugin/
 ```
 
 **好**：
+
 ```markdown
-<!-- common.md -->
-公共命令：A、B、C
+<!-- common-skill/SKILL.md -->
+公共操作：A、B、C
 
 <!-- command1.md -->
-包含公共命令 + 特定操作X
+使用 common-skill + 特定操作X
 
 <!-- command2.md -->
-包含公共命令 + 特定操作Y
+使用 common-skill + 特定操作Y
 ```
 
 ### 错误处理
@@ -175,6 +186,7 @@ plugin/
 description: 执行部署
 allowed-tools: Bash
 ---
+
 # deploy
 
 部署应用到服务器。
@@ -187,6 +199,7 @@ allowed-tools: Bash
 3. 环境变量
 
 ## 恢复步骤
+
 1. 检查错误日志
 2. 修复问题
 3. 重新部署
@@ -203,28 +216,30 @@ allowed-tools: Bash
 
 > 简短描述
 
+## 安装
+
+\`\`\`bash
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin plugin-name@ccplugin-market
+\`\`\`
+
 ## 功能
+
 - 功能1
 - 功能2
 
-## 安装
-\`\`\`bash
-/plugin install plugin-name
-\`\`\`
-
 ## 使用
+
 \`\`\`bash
 /command-name
 \`\`\`
 
 ## 配置
+
 说明配置选项
 
 ## 示例
-提供使用示例
 
-## 问题
-常见问题解答
+提供使用示例
 ```
 
 ### 代码注释
@@ -232,11 +247,13 @@ allowed-tools: Bash
 只在必要时添加注释：
 
 **需要注释**：
+
 - 复杂逻辑
 - 非显而易见的决策
 - 工作原因和限制
 
 **不需要注释**：
+
 - 显而易见的代码
 - 重复代码内容
 
@@ -245,14 +262,15 @@ allowed-tools: Bash
 ### 测试层次
 
 1. **格式验证**
+
    ```bash
-   /plugin-validate ./plugin-path
+   cat .claude-plugin/plugin.json | jq .
    ```
 
 2. **本地测试**
+
    ```bash
    /plugin install ./plugin-path
-   /plugin-test ./plugin-path
    ```
 
 3. **功能测试**
@@ -282,6 +300,7 @@ allowed-tools: Bash
 - **PATCH**: Bug 修复，向后兼容
 
 **示例**：
+
 ```
 1.0.0 → 1.0.1  # Bug 修复
 1.0.1 → 1.1.0  # 新增功能
@@ -296,25 +315,34 @@ allowed-tools: Bash
 ## [1.1.0] - 2025-01-06
 
 ### Added
+
 - 新功能 X
 - 新命令 Y
 
 ### Changed
+
 - 改进功能 Z
 
 ### Fixed
+
 - 修复 bug A
 - 修复 bug B
+
+### Deprecated
+
+- 旧命令 W 将在 2.0.0 移除
 ```
 
 ### 版本升级
 
 **升级前检查**：
+
 - 破坏性变更是否必要
 - 是否有迁移路径
 - 是否更新文档
 
 **升级后验证**：
+
 - 功能是否正常
 - 性能是否可接受
 - 兼容性是否保持
@@ -323,50 +351,48 @@ allowed-tools: Bash
 
 ### 避免阻塞
 
-避免长时间运行的阻塞操作：
+避免长时间运行的阻塞操作。
 
 **不好**：
+
 ```markdown
 ---
 allowed-tools: Bash(*)
 ---
+
 # command
+
 执行耗时 5 分钟的操作
 ```
 
 **好**：
+
 ```markdown
 ---
 allowed-tools: Bash(async-task)
 ---
+
 # command
+
 启动异步任务，立即返回
 ```
 
 ### 缓存结果
 
-缓存计算结果避免重复：
-
-**不好**：
-```markdown
-每次都重新计算
-```
-
-**好**：
-```markdown
-检查缓存，如果存在则使用缓存
-```
+缓存计算结果避免重复计算。
 
 ### 批量操作
 
-批量处理提高效率：
+批量处理提高效率。
 
 **不好**：
+
 ```markdown
 逐个处理文件
 ```
 
 **好**：
+
 ```markdown
 批量处理所有文件
 ```
@@ -400,18 +426,14 @@ permissionMode: default  # 询问用户
 避免存储敏感信息：
 
 **不好**：
+
 ```markdown
----
-description: 使用 API 密钥
----
-在 plugin.json 中存储密钥
+在 plugin.json 中存储 API 密钥
 ```
 
 **好**：
+
 ```markdown
----
-description: 使用环境变量
----
 从环境变量读取密钥
 ```
 
@@ -427,50 +449,19 @@ description: 使用环境变量
 - 限制执行范围
 ```
 
-## 社区最佳实践
-
-### 贡献指南
-
-提供清晰的贡献指南：
-
-```markdown
-## 贡献
-
-欢迎贡献！请遵循：
-
-1. Fork 项目
-2. 创建分支
-3. 提交更改
-4. 创建 PR
-```
-
-### 许可证
-
-选择合适的许可证：
-
-- MIT: 宽松，推荐
-- Apache 2.0: 专利保护
-- GPL: 强制开源衍生作品
-
-### 代码审查
-
-进行代码审查：
-
-- 检查代码质量
-- 验证功能正确
-- 确保文档完整
-
 ## 常见陷阱
 
 ### 避免过度设计
 
 **不好**：
+
 ```
 创建复杂的抽象层
 过度工程化
 ```
 
 **好**：
+
 ```
 保持简单
 直接实现
@@ -479,11 +470,13 @@ description: 使用环境变量
 ### 避免硬编码
 
 **不好**：
+
 ```markdown
 固定路径: /usr/local/bin
 ```
 
 **好**：
+
 ```markdown
 使用环境变量或配置
 ```
@@ -491,11 +484,13 @@ description: 使用环境变量
 ### 避免假设
 
 **不好**：
+
 ```markdown
 假设用户使用特定工具
 ```
 
 **好**：
+
 ```markdown
 检查工具可用性
 提供备选方案
@@ -503,6 +498,14 @@ description: 使用环境变量
 
 ## 参考资源
 
-- [plugin-development skill](../.claude/skills/plugin-development/SKILL.md)
-- [plugin-review skill](../.claude/skills/plugin-review/SKILL.md)
-- [官方最佳实践](https://code.claude.com/docs/en/best-practices.md)
+### 项目文档
+
+- [插件开发指南](plugin-development.md) - 完整开发教程
+- [API 参考](api-reference.md) - 完整 API 文档
+- [支持的语言](supported-languages.md) - 语言选择指南
+- [编译型语言指南](compiled-languages-guide.md) - Go/Rust 开发指南
+
+### 官方文档
+
+- [Claude Code 插件文档](https://code.claude.com/docs/en/plugins)
+- [插件最佳实践](https://code.claude.com/docs/en/plugins-reference)
