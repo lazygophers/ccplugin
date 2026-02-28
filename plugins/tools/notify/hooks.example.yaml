@@ -393,8 +393,8 @@ hooks:
   notification:
     # 权限请求通知（Claude Code 的权限请求）
     permission_prompt:
-      enabled: false
-      play_sound: false
+      enabled: true
+      play_sound: true
       message: "权限请求: {{ message | default('') }}"
 
     # 空闲提示（Claude 等待用户输入，空闲 60+ 秒后）
