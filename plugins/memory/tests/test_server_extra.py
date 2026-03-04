@@ -2,6 +2,7 @@
 Web Server 模块补充测试
 """
 
+import asyncio
 import os
 import sys
 import tempfile
@@ -77,3 +78,7 @@ class TestStartWeb:
             start_web(port=8891, open_browser=False, reload=False)
             
             mock_run.assert_called_once()
+            assert mock_run.call_args
+            coroutine = mock_run.call_args.args[0]
+            assert asyncio.iscoroutine(coroutine)
+            coroutine.close()

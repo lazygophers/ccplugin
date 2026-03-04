@@ -6,6 +6,7 @@ REST API 模块
 
 import json
 import os
+from contextlib import asynccontextmanager
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Query
@@ -56,15 +57,19 @@ def create_app() -> FastAPI:
     Returns:
         FastAPI 应用实例
     """
-    app = FastAPI(title="Memory Manager", description="智能记忆管理 Web 界面")
-    
-    @app.on_event("startup")
-    async def startup():
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
         await init_db()
-    
-    @app.on_event("shutdown")
-    async def shutdown():
-        await close_db()
+        try:
+            yield
+        finally:
+            await close_db()
+
+    app = FastAPI(
+        title="Memory Manager",
+        description="智能记忆管理 Web 界面",
+        lifespan=lifespan,
+    )
     
     @app.get("/", response_class=HTMLResponse)
     async def index():

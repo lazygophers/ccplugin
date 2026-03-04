@@ -1,7 +1,10 @@
 from functools import wraps
 import asyncio
 
-import rich_click as click
+try:
+    import rich_click as click
+except ModuleNotFoundError:
+    import click
 
 from lib import logging
 from web import start_web
