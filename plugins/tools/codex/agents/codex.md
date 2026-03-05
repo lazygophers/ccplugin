@@ -1,4 +1,5 @@
 ---
+name: codex
 description: Codex 协同代理 - 负责与本地 Codex 模型的交互协调
 tools: Bash, Read, Grep
 ---
