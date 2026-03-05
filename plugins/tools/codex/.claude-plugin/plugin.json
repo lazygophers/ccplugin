@@ -17,7 +17,7 @@
     "ai-assistant",
     "collaboration"
   ],
-  "skills": "./skills",
+  "commands": ["./commands/codex.md"],
   "agents": [
     "./agents/codex.md"
   ]
