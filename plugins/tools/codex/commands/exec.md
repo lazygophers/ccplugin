@@ -1,5 +1,4 @@
 ---
-name: codex
 description: 使用 codex 协同开发
 argument-hint: <任务描述>
 ---
