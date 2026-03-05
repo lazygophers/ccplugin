@@ -43,8 +43,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.139"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#426d614bd41d9d075d22f3cebc473de9185a0f81" }
+version = "0.0.140"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#fc1c43aeaf6a025653a06a960403d3b73386013c" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
@@ -298,7 +298,7 @@ wheels = [
 
 [[package]]
 name = "theme-style-luxe"
-version = "0.0.139"
+version = "0.0.140"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
