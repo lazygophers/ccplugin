@@ -313,15 +313,22 @@ def get_enabled_plugins_list() -> list[dict[str, Any]]:
 		return []
 
 	enabled_plugins = []
-	seen_ids = set()
+	current_dir = os.getcwd()
+	user_plugins: dict[str, dict[str, Any]] = {}
 
 	for plugin in data:
 		if plugin.get("enabled"):
+			scope = plugin.get("scope", "")
+			project_path = plugin.get("projectPath", "")
 			plugin_id = plugin.get("id", "")
-			if plugin_id and plugin_id not in seen_ids:
-				seen_ids.add(plugin_id)
-				enabled_plugins.append(plugin)
+			
+			if scope == "user" and plugin_id:
+				user_plugins[plugin_id] = plugin
+			elif scope == "project" and project_path:
+				if os.path.normpath(project_path) == os.path.normpath(current_dir):
+					enabled_plugins.append(plugin)
 
+	enabled_plugins.extend(user_plugins.values())
 	return enabled_plugins
 
 
@@ -340,14 +347,21 @@ def get_all_plugins_list() -> list[dict[str, Any]]:
 		return []
 
 	all_plugins = []
-	seen_ids = set()
+	current_dir = os.getcwd()
+	user_plugins: dict[str, dict[str, Any]] = {}
 
 	for plugin in data:
+		scope = plugin.get("scope", "")
+		project_path = plugin.get("projectPath", "")
 		plugin_id = plugin.get("id", "")
-		if plugin_id and plugin_id not in seen_ids:
-			seen_ids.add(plugin_id)
-			all_plugins.append(plugin)
+		
+		if scope == "user" and plugin_id:
+			user_plugins[plugin_id] = plugin
+		elif scope == "project" and project_path:
+			if os.path.normpath(project_path) == os.path.normpath(current_dir):
+				all_plugins.append(plugin)
 
+	all_plugins.extend(user_plugins.values())
 	return all_plugins
 
 
@@ -378,6 +392,7 @@ def get_latest_versions_from_marketplace() -> dict[str, str]:
 
 def run_claude_plugin_update(
 	plugin_key: str,
+    scope: str="user",
 	dry_run: bool = False,
 ) -> tuple[bool, str]:
 	"""Run 'claude plugin update' command for a specific plugin.
@@ -389,7 +404,37 @@ def run_claude_plugin_update(
 	Returns:
 		Tuple of (success, output) where success is True if command succeeded
 	"""
-	cmd = ["claude", "plugin", "update", plugin_key]
+	cmd = ["claude", "plugin", "update", "--scope", scope, plugin_key]
+
+	if dry_run:
+		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
+		return True, ""
+
+	result = subprocess.run(
+		cmd,
+		cwd=get_project_dir(),
+		stdout=subprocess.PIPE,
+		stderr=subprocess.STDOUT,
+		text=True,
+	)
+
+	return result.returncode == 0, result.stdout
+
+def run_claude_plugin_install(
+	plugin_key: str,
+    scope: str="user",
+	dry_run: bool = False,
+) -> tuple[bool, str]:
+	"""Run 'claude plugin update' command for a specific plugin.
+
+	Args:
+		plugin_key: Plugin key in format 'plugin@market'
+		dry_run: If True, show what would be done without making changes
+
+	Returns:
+		Tuple of (success, output) where success is True if command succeeded
+	"""
+	cmd = ["claude", "plugin", "install", "--scope", scope, plugin_key]
 
 	if dry_run:
 		console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
@@ -695,13 +740,7 @@ def main() -> int:
 			console.print("[green]All plugins are already enabled[/green]")
 			console.print()
 
-	old_plugins = get_enabled_plugins_list()
-	old_plugins_dict: dict[str, str] = {
-		plugin.get("id", ""): plugin.get("version", "")
-		for plugin in old_plugins
-	}
-
-	enabled_plugins = old_plugins
+	enabled_plugins = get_enabled_plugins_list()
 
 	plugin_count_text = Text()
 	plugin_count_text.append("Found ")
@@ -721,13 +760,7 @@ def main() -> int:
 	console.print(create_plugin_table(enabled_plugins))
 	console.print()
 
-	old_marketplaces = get_marketplace_list()
-	old_markets_dict: dict[str, str] = {
-		market.get("name", ""): str(market)
-		for market in old_marketplaces
-	}
-
-	marketplaces = old_marketplaces
+	marketplaces = get_marketplace_list()
 	market_count_text = Text()
 	market_count_text.append("Found ")
 	market_count_text.append(str(len(marketplaces)), style="bold blue")
@@ -776,7 +809,11 @@ def main() -> int:
 			plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
 			progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
 
-			success, output = run_claude_plugin_update(plugin_id, dry_run=args.dry_run)
+			if os.path.exists(plugin.get("installPath", "")):
+				success, output = run_claude_plugin_update(plugin_id, plugin.get("scope", "user"), dry_run=args.dry_run)
+			else:
+				success, output = run_claude_plugin_install(plugin_id, plugin.get("scope", "user"), dry_run=args.dry_run)
+			
 			update_outputs.append((plugin_name, success, output))
 
 			if success:
@@ -840,40 +877,43 @@ def main() -> int:
 			console.print("[dim]No plugins with pyproject.toml found[/dim]")
 			console.print()
 
-	if not args.no_verify and not args.dry_run:
+	if not args.no_verify:
 		console.print(Rule(title="[bold cyan]Verifying Versions[/bold cyan]", style="cyan"))
 
 		latest_versions = get_latest_versions_from_marketplace()
 		enabled_plugins = get_enabled_plugins_list()
 
-		if verify_versions(enabled_plugins, latest_versions, stats):
+		market_check_passed = verify_versions(enabled_plugins, latest_versions, stats)
+
+		plugin_versions: dict[str, list[tuple[str, str]]] = {}
+		for plugin in enabled_plugins:
+			plugin_id = plugin.get("id", "")
+			scope = plugin.get("scope", "")
+			version = plugin.get("version", "")
+			if plugin_id:
+				if plugin_id not in plugin_versions:
+					plugin_versions[plugin_id] = []
+				plugin_versions[plugin_id].append((scope, version))
+
+		scope_version_mismatches = []
+		for plugin_id, versions in plugin_versions.items():
+			if len(versions) > 1:
+				unique_versions = set(v for _, v in versions)
+				if len(unique_versions) > 1:
+					scope_version_mismatches.append((plugin_id, versions))
+
+		if market_check_passed and not scope_version_mismatches:
 			console.print("[green]✓ All plugins are at latest versions[/green]")
 		else:
-			console.print(f"[yellow]⚠ Found {len(stats.version_mismatches)} plugin(s) with version mismatches[/yellow]")
+			if not market_check_passed:
+				console.print(f"[yellow]⚠ Found {len(stats.version_mismatches)} plugin(s) with version mismatches from marketplace[/yellow]")
+			if scope_version_mismatches:
+				console.print(f"[yellow]⚠ Found {len(scope_version_mismatches)} plugin(s) with different versions across scopes[/yellow]")
+				for plugin_id, versions in scope_version_mismatches:
+					version_str = ", ".join([f"{scope}: {version}" for scope, version in versions])
+					console.print(f"  [yellow]•[/yellow] {plugin_id}: {version_str}")
 
 		console.print()
-
-	new_plugins = get_enabled_plugins_list()
-	for plugin in new_plugins:
-		plugin_id = plugin.get("id", "")
-		new_version = plugin.get("version", "")
-		old_version = old_plugins_dict.get(plugin_id, "")
-		if old_version and new_version and old_version != new_version:
-			stats.add_version_change(plugin_id, old_version, new_version)
-
-	new_marketplaces = get_marketplace_list()
-	for market in new_marketplaces:
-		market_name = market.get("name", "")
-		new_state = str(market)
-		old_state = old_markets_dict.get(market_name, "")
-		if old_state and new_state and old_state != new_state:
-			stats.add_market_change(market_name, "updated", "new data")
-		elif not old_state:
-			stats.add_market_change(market_name, "none", "added")
-
-	for old_market_name in old_markets_dict:
-		if not any(m.get("name", "") == old_market_name for m in new_marketplaces):
-			stats.add_market_change(old_market_name, "available", "removed")
 
 	stats.print_summary()
 
