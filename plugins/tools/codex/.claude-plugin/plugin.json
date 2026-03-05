@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.0.142",
+  "version": "0.0.143",
   "description": "Codex 插件 - Claude Code 与本地 Codex 模型协同作战",
   "author": {
     "name": "lazygophers",
@@ -17,9 +17,9 @@
     "ai-assistant",
     "collaboration"
   ],
-	"commands": [
-		"./commands/exec.md"
-	],
+  "commands": [
+    "./commands/exec.md"
+  ],
   "agents": [
     "./agents/codex.md"
   ]
