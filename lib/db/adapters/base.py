@@ -4,8 +4,7 @@
 提供通用的数据库操作实现。
 """
 
-import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from lib.db.core import DatabaseAdapter, DatabaseConfig
 

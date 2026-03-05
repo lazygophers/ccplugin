@@ -837,7 +837,7 @@ def main() -> int:
 		))
 		return 1
 	else:
-		msg = f"[bold green]校验通过[/bold green]"
+		msg = "[bold green]校验通过[/bold green]"
 		if report.warnings > 0:
 			msg += f"\n警告: [yellow bold]{report.warnings}[/yellow bold]"
 		console.print(Panel.fit(msg, border_style="green", box=box.DOUBLE))

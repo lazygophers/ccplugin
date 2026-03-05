@@ -8,7 +8,6 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from lib import logging
 
 from .models import Memory, MemoryStatus, MemoryVersion
 from .database import compute_hash

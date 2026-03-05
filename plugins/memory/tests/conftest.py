@@ -30,7 +30,7 @@ async def temp_db():
         db_path = os.path.join(tmpdir, "test.db")
         
         with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
-            from memory.database import init_db, close_db, _db_initialized
+            from memory.database import init_db, close_db
             
             import memory.database as db_module
             db_module._db_initialized = False

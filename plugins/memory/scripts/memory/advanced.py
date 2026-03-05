@@ -4,12 +4,11 @@
 提供模式检测、解决方案发现、重复查询检测、新文件类型推荐、项目变更检测等功能。
 """
 
-import asyncio
 import hashlib
 import os
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 
 class RecommendationEngine:

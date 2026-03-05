@@ -481,7 +481,7 @@ def main() -> int:
 			try:
 				lock_result = update_uv_locks(pyproject_paths, base_dir)
 			except RuntimeError as e:
-				console.print(f"\n[bold red]Error during uv.lock update:[/bold red]")
+				console.print("\n[bold red]Error during uv.lock update:[/bold red]")
 				console.print(f"[red]{e}[/red]")
 				return 1
 			console.print(f"  [green]✓[/green] Updated {len(lock_result.updated)} uv.lock file(s)")
@@ -500,14 +500,14 @@ def main() -> int:
 
 	# Step 3: Update plugin.json files
 	if args.dry_run:
-		console.print(f"  [yellow][DRY RUN] Would update plugin.json files[/yellow]")
+		console.print("  [yellow][DRY RUN] Would update plugin.json files[/yellow]")
 	else:
 		plugin_result = update_plugin_versions(plugins_dir, new_version)
 		print_version_updates(plugin_result.updated, 'plugin.json(s)', old_version, new_version, console)
 
 	# Step 4: Update pyproject.toml files
 	if args.dry_run:
-		console.print(f"  [yellow][DRY RUN] Would update pyproject.toml files[/yellow]")
+		console.print("  [yellow][DRY RUN] Would update pyproject.toml files[/yellow]")
 	else:
 		pyproject_result = update_pyproject_versions(base_dir, pyproject_paths, new_version)
 		print_version_updates(pyproject_result.updated, 'pyproject.toml file(s)', old_version, new_version, console)

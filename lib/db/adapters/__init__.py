@@ -4,12 +4,14 @@
 根据数据库类型创建对应的适配器实例。
 """
 
-from typing import Type
-
 from lib.db.core import DatabaseAdapter, DatabaseConfig, DatabaseType
 
 
 def create_adapter(config: DatabaseConfig) -> DatabaseAdapter:
+    from lib.db.adapters.mysql import MySQLAdapter  # noqa: F401
+    from lib.db.adapters.postgresql import PostgreSQLAdapter  # noqa: F401
+    from lib.db.adapters.sqlite import SQLiteAdapter  # noqa: F401
+
     adapter_map = {
         DatabaseType.MYSQL: MySQLAdapter,
         DatabaseType.SQLITE: SQLiteAdapter,
@@ -23,10 +25,11 @@ def create_adapter(config: DatabaseConfig) -> DatabaseAdapter:
     return adapter_class(config)
 
 
-from lib.db.adapters.base import BaseAdapter
-from lib.db.adapters.mysql import MySQLAdapter
-from lib.db.adapters.postgresql import PostgreSQLAdapter
-from lib.db.adapters.sqlite import SQLiteAdapter
+# 导入适配器类供外部使用
+from lib.db.adapters.base import BaseAdapter  # noqa: E402
+from lib.db.adapters.mysql import MySQLAdapter  # noqa: E402
+from lib.db.adapters.postgresql import PostgreSQLAdapter  # noqa: E402
+from lib.db.adapters.sqlite import SQLiteAdapter  # noqa: E402
 
 __all__ = [
     "create_adapter",

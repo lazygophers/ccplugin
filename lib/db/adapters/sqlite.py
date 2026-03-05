@@ -193,7 +193,7 @@ class SQLiteAdapter(BaseAdapter):
 
             await self._check_features()
             return self._vector_enabled
-        except Exception as e:
+        except Exception:
             self._vector_enabled = False
             return False
 

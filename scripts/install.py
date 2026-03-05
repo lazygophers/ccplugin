@@ -484,7 +484,7 @@ def main() -> int:
 		console.print()
 
 		if not update_marketplace(market_display_name, dry_run=args.dry_run):
-			console.print(f"[yellow]⚠ 市场更新失败，继续尝试安装插件...[/yellow]")
+			console.print("[yellow]⚠ 市场更新失败，继续尝试安装插件...[/yellow]")
 		else:
 			console.print(f"[green]✓ 市场已更新: [cyan]{market_display_name}[/cyan][/green]")
 		console.print()
@@ -496,7 +496,7 @@ def main() -> int:
 		console.print()
 
 		if not add_marketplace(full_url, dry_run=args.dry_run):
-			console.print(f"[red]✗ 添加市场失败[/red]")
+			console.print("[red]✗ 添加市场失败[/red]")
 			return 1
 
 		console.print(f"[green]✓ 市场已添加: [cyan]{normalized_name}[/cyan][/green]")
@@ -540,7 +540,7 @@ def main() -> int:
 		console.print()
 
 		if not update_plugin(plugin_key, dry_run=args.dry_run):
-			console.print(f"[red]✗ 更新插件失败[/red]")
+			console.print("[red]✗ 更新插件失败[/red]")
 			return 1
 
 		console.print(f"[green]✓ 插件已更新: [cyan]{plugin_key}[/cyan][/green]")
@@ -552,7 +552,7 @@ def main() -> int:
 		console.print()
 
 		if not install_plugin(plugin_key, dry_run=args.dry_run):
-			console.print(f"[red]✗ 安装插件失败[/red]")
+			console.print("[red]✗ 安装插件失败[/red]")
 			return 1
 
 		console.print(f"[green]✓ 插件已安装: [cyan]{plugin_key}[/cyan][/green]")

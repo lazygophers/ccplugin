@@ -4,7 +4,6 @@ llms.txt Plugin - Hooks Handler
 处理 llms.txt 相关的 hook 事件
 """
 
-import json
 import sys
 from pathlib import Path
 

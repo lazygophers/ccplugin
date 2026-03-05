@@ -7,7 +7,6 @@ import importlib
 import os
 import sys
 
-import pytest
 from click.testing import CliRunner
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))

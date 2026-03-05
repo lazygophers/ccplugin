@@ -9,6 +9,11 @@ from typing import Any, Dict, List, Optional
 from lib.db.adapters.base import BaseAdapter
 from lib.db.core import DatabaseConfig
 
+try:
+    import aiomysql
+except ImportError:
+    aiomysql = None
+
 
 class MySQLAdapter(BaseAdapter):
     def __init__(self, config: DatabaseConfig):
@@ -16,9 +21,7 @@ class MySQLAdapter(BaseAdapter):
         self._cursor = None
 
     async def connect(self) -> None:
-        try:
-            import aiomysql
-        except ImportError:
+        if aiomysql is None:
             raise ImportError("请安装 aiomysql: pip install aiomysql")
 
         self._connection = await aiomysql.connect(

@@ -21,7 +21,7 @@ import time
 from typing import Any
 
 from rich import box
-from rich.console import Console, Group
+from rich.console import Console
 from rich.panel import Panel
 from rich.progress import (
 	Progress,

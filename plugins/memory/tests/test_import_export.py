@@ -2,7 +2,6 @@
 导入导出模块测试
 """
 
-import json
 import os
 import sys
 import tempfile

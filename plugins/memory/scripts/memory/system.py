@@ -10,10 +10,8 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .crud import get_memory
 from .search import list_memories, get_memories_by_priority
 from .stats import get_stats
-from .models import Memory
 
 
 async def handle_system_uri(uri: str, limit: int = 20) -> Optional[Dict[str, Any]]:
@@ -168,6 +166,6 @@ def get_system_uri_description(uri: str) -> Optional[str]:
         return descriptions[path]
     
     if path.startswith("recent/"):
-        return f"显示最近修改的记忆（指定数量）"
+        return "显示最近修改的记忆（指定数量）"
     
     return None

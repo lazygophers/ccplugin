@@ -21,7 +21,6 @@ class TestRunWebServer:
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch("memory.database.get_project_plugins_dir", return_value=tmpdir):
                 from web.server import run_web_server
-                import web.server as server_module
                 
                 mock_server = MagicMock()
                 mock_server.serve = AsyncMock()
@@ -41,8 +40,8 @@ class TestRunWebServer:
                 
                 mock_server = MagicMock()
                 mock_server.serve = AsyncMock()
-                
-                with patch("uvicorn.Config") as mock_config:
+
+                with patch("uvicorn.Config"):
                     with patch("uvicorn.Server", return_value=mock_server):
                         with patch("webbrowser.open") as mock_open:
                             await run_web_server(port=8889, open_browser=False, reload=False)

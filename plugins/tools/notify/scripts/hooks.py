@@ -8,7 +8,6 @@ Claude Code Hooks 事件处理模块
 import json
 import logging
 import os
-import sys
 from datetime import datetime
 from typing import Optional, Dict, Any
 import copy

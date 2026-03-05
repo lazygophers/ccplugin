@@ -7,7 +7,7 @@ REST API 模块
 import json
 import os
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
@@ -26,7 +26,6 @@ from memory import (
     get_relations,
     get_stats,
     handle_system_uri,
-    is_system_uri,
     rollback_to_version,
     diff_versions,
     clean_memories,

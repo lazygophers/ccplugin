@@ -1,29 +1,16 @@
 import asyncio
-import json
-import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from lib import logging
 from lib.hooks import load_hooks
-from lib.utils import get_plugins_path
 
 from memory import (
     init_db,
     close_db,
     create_memory,
-    get_memory,
     search_memories,
-    delete_memory,
-    list_memories,
-    add_memory_path,
-    get_memory_paths,
     get_memories_by_priority,
-    create_session,
-    end_session,
-    record_error_solution,
-    find_error_solution,
-    mark_solution_success,
 )
 
 
@@ -124,7 +111,6 @@ def handle_post_tool_use(hook_data: Dict[str, Any]) -> None:
 
 def handle_post_tool_use_failure(hook_data: Dict[str, Any]) -> None:
     tool_name = hook_data.get("tool_name", "").lower()
-    tool_input = hook_data.get("tool_input", {})
     error = hook_data.get("error", "未知错误")
     
     logging.warning(f"handle_post_tool_use_failure: tool={tool_name}, error={error}")
@@ -165,14 +151,14 @@ def handle_pre_compact(hook_data: Dict[str, Any]) -> None:
     操作：分析即将压缩的内容，提取重要信息并保存到记忆系统
     """
     logging.info("handle_pre_compact: 提取重要信息")
-    
-    transcript_path = hook_data.get("transcript_path", "")
+
     session_id = hook_data.get("session_id", "")
-    
+
     async def _handle():
         await init_db()
-        
-        compact_memories = await search_memories("compact", limit=5)
+
+        # 搜索压缩相关记忆
+        await search_memories("compact", limit=5)
         
         important_keywords = ["决定", "decision", "重要", "important", "关键", "key", "配置", "config"]
         important_memories = []
@@ -213,9 +199,8 @@ def handle_user_prompt_submit(hook_data: Dict[str, Any]) -> None:
     操作：分析用户意图，预加载相关记忆
     """
     prompt = hook_data.get("prompt", "")
-    session_id = hook_data.get("session_id", "")
-    
-    logging.info(f"handle_user_prompt_submit: 分析用户意图")
+
+    logging.info("handle_user_prompt_submit: 分析用户意图")
     
     if not prompt:
         return
@@ -360,7 +345,7 @@ def handle_subagent_start(hook_data: Dict[str, Any]) -> None:
         
         core_memories = await get_memories_by_priority(max_priority=2)
         
-        context_lines = [f"# Subagent 上下文传递\n"]
+        context_lines = ["# Subagent 上下文传递\n"]
         context_lines.append(f"Subagent ID: {subagent_id}\n")
         context_lines.append(f"父会话 ID: {parent_session_id}\n")
         context_lines.append(f"任务: {task[:200]}\n")

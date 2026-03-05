@@ -1,0 +1,26 @@
+{
+  "name": "codex",
+  "version": "0.0.138",
+  "description": "Codex 插件 - Claude Code 与本地 Codex 模型协同作战",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/codex",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/codex",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "codex",
+    "code-generation",
+    "local-model",
+    "ai-assistant",
+    "collaboration"
+  ],
+  "commands": [
+    "./commands/codex.md"
+  ],
+  "agents": [
+    "./agents/codex.md"
+  ]
+}

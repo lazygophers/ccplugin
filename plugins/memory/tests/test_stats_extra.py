@@ -34,7 +34,7 @@ class TestCleanMemoriesExtra:
     
     @pytest.mark.asyncio
     async def test_clean_unused_memories(self, db):
-        from memory import create_memory, clean_memories, list_memories
+        from memory import create_memory, clean_memories
         from memory.models import Memory
         
         await create_memory(uri="test://clean-unused", content="未访问记忆")

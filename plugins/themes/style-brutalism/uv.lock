@@ -298,7 +298,7 @@ wheels = [
 
 [[package]]
 name = "theme-style-brutalism"
-version = "0.0.137"
+version = "0.0.138"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

@@ -6,12 +6,12 @@
 
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from lib import logging
 
 from .crud import create_memory, update_memory
-from .models import Memory, MemoryStatus
+from .models import Memory
 from .search import list_memories
 from .version import get_versions
 from .relation import get_relations

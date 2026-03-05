@@ -4,10 +4,10 @@
 提供自动建表、更新表结构、迁移等功能。
 """
 
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Type
 
 from lib.db.core import DatabaseConnection, DatabaseType
-from lib.db.models import Field, FieldType, Model
+from lib.db.models import Field, Model
 
 
 class SchemaManager:
@@ -170,8 +170,6 @@ class SchemaManager:
     ) -> None:
         adapter = DatabaseConnection.get_adapter()
         db_type = cls._get_db_type()
-
-        needs_update = False
 
         if db_type == DatabaseType.SQLITE:
             return

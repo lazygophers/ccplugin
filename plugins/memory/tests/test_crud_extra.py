@@ -33,7 +33,7 @@ class TestUpdateMemoryExtra:
     
     @pytest.mark.asyncio
     async def test_update_with_metadata(self, db):
-        from memory import create_memory, update_memory, get_memory
+        from memory import create_memory, update_memory
         
         await create_memory(uri="test://meta", content="测试")
         

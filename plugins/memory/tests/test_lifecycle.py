@@ -86,7 +86,7 @@ class TestDeprecateMemory:
     
     @pytest.mark.asyncio
     async def test_deprecate(self, db_with_memory):
-        from memory import deprecate_memory, get_memory
+        from memory import deprecate_memory
         from memory.models import MemoryStatus
         
         memory = await deprecate_memory("test://lifecycle")

@@ -14,7 +14,7 @@ from typing import Optional
 
 from rich.console import Console
 
-from lib.utils.env import get_project_dir, get_project_plugins_dir, get_project_plugins_gitignore_path
+from lib.utils.env import get_project_dir, get_project_plugins_dir
 from lib.utils.gitignore import add_gitignore_rule
 
 

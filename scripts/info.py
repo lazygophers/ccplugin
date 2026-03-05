@@ -438,7 +438,6 @@ def display_enabled_plugins_details(plugins_data: dict[str, Any], project_enable
     for plugin in sorted(enabled_plugins, key=lambda p: p.get("id", "")):
         plugin_id = plugin.get("id", "unknown")
         name = plugin_id.split("@")[0] if "@" in plugin_id else plugin_id
-        market = plugin_id.split("@")[-1] if "@" in plugin_id else "unknown"
         version = plugin.get("version", "N/A")
         scope = plugin.get("scope", "user")
         install_path = plugin.get("installPath", "")

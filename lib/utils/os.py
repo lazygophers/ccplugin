@@ -8,5 +8,5 @@ def filepath_to_slash(path: str) -> str:
 			return path.replace('/', '\\')
 		else:
 			return path.replace('\\', '/')
-	except Exception as e:
+	except Exception:
 		return path

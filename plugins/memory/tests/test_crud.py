@@ -219,7 +219,7 @@ class TestDeleteMemory:
     
     @pytest.mark.asyncio
     async def test_hard_delete(self, db):
-        from memory import create_memory, delete_memory, get_memory
+        from memory import create_memory, delete_memory
         from memory.models import Memory
         
         await create_memory(uri="test://hard-delete", content="硬删除测试")

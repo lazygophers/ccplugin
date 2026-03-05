@@ -5,7 +5,7 @@ MCP Server 模块测试
 import os
 import sys
 import tempfile
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch
 
 import pytest
 

@@ -5,9 +5,8 @@ Hooks 模块测试
 import os
 import sys
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 

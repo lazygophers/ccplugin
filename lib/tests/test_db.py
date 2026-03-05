@@ -5,7 +5,6 @@
 import asyncio
 import os
 import tempfile
-from typing import Optional
 
 import pytest
 import pytest_asyncio
@@ -20,7 +19,6 @@ from lib.db import (
     Text,
     Boolean,
     DateTime,
-    SchemaManager,
 )
 
 pytestmark = pytest.mark.asyncio(loop_scope="function")

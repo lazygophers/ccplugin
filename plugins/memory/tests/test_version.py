@@ -86,7 +86,7 @@ class TestRollbackToVersion:
     
     @pytest.mark.asyncio
     async def test_rollback(self, db_with_version):
-        from memory import get_versions, rollback_to_version, get_memory
+        from memory import get_versions, rollback_to_version
         
         versions = await get_versions("test://version")
         if versions:

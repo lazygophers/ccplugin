@@ -1,7 +1,3 @@
-import json
-import sys
-
-from lib import logging
 from lib.hooks import load_hooks
 from lib.hooks.pre_tool_use import handle_pre_tool_use, PreToolUseConfig
 

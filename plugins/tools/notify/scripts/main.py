@@ -1,4 +1,3 @@
-import os
 from lib import logging
 from hooks import handle_hook
 import click

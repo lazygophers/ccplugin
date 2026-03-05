@@ -1,5 +1,4 @@
 import json
-import sys
 
 from lib import logging
 from lib.hooks import load_hooks

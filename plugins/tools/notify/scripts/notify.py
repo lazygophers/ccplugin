@@ -178,7 +178,7 @@ def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
 	- macOS qlmanage (fallback; may produce opaque thumbnails)
 	"""
 	try:
-		st = os.stat(svg_path)
+		os.stat(svg_path)
 	except OSError as e:
 		error(f"读取 SVG 图标失败: {e}")
 		return None
