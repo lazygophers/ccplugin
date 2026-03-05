@@ -168,6 +168,8 @@ class UpdateStats:
 		self.uv_sync_failed = 0
 		self.messages: list[tuple[str, str]] = []
 		self.version_mismatches: list[tuple[str, str, str]] = []
+		self.version_changes: list[tuple[str, str, str]] = []
+		self.market_changes: list[tuple[str, str, str]] = []
 
 	def add_message(self, status: str, message: str) -> None:
 		"""Add a message to the log."""
@@ -176,6 +178,14 @@ class UpdateStats:
 	def add_mismatch(self, plugin_id: str, expected: str, actual: str) -> None:
 		"""Add a version mismatch."""
 		self.version_mismatches.append((plugin_id, expected, actual))
+
+	def add_version_change(self, plugin_id: str, old_version: str, new_version: str) -> None:
+		"""Add a version change record."""
+		self.version_changes.append((plugin_id, old_version, new_version))
+
+	def add_market_change(self, market_name: str, old_state: str, new_state: str) -> None:
+		"""Add a market change record."""
+		self.market_changes.append((market_name, old_state, new_state))
 
 	def print_summary(self) -> None:
 		"""Print a summary table of the update process."""
@@ -243,6 +253,36 @@ class UpdateStats:
 			for plugin_id, expected, actual in self.version_mismatches:
 				mismatch_table.add_row(plugin_id, expected, actual)
 			console.print(mismatch_table)
+
+		if self.market_changes:
+			console.print()
+			console.print(Rule(title="[bold cyan]Market Changes[/bold cyan]", style="cyan"))
+			market_table = Table(
+				show_header=True,
+				header_style="bold cyan",
+				box=box.ROUNDED,
+			)
+			market_table.add_column("Market", style="cyan")
+			market_table.add_column("Old State", style="yellow")
+			market_table.add_column("New State", style="green")
+			for market_name, old_state, new_state in self.market_changes:
+				market_table.add_row(market_name, old_state, new_state)
+			console.print(market_table)
+
+		if self.version_changes:
+			console.print()
+			console.print(Rule(title="[bold green]Version Changes[/bold green]", style="green"))
+			version_table = Table(
+				show_header=True,
+				header_style="bold green",
+				box=box.ROUNDED,
+			)
+			version_table.add_column("Plugin", style="cyan")
+			version_table.add_column("Old Version", style="yellow")
+			version_table.add_column("New Version", style="green")
+			for plugin_id, old_version, new_version in self.version_changes:
+				version_table.add_row(plugin_id, old_version, new_version)
+			console.print(version_table)
 
 		if self.messages:
 			console.print()
@@ -655,7 +695,13 @@ def main() -> int:
 			console.print("[green]All plugins are already enabled[/green]")
 			console.print()
 
-	enabled_plugins = get_enabled_plugins_list()
+	old_plugins = get_enabled_plugins_list()
+	old_plugins_dict: dict[str, str] = {
+		plugin.get("id", ""): plugin.get("version", "")
+		for plugin in old_plugins
+	}
+
+	enabled_plugins = old_plugins
 
 	plugin_count_text = Text()
 	plugin_count_text.append("Found ")
@@ -675,7 +721,13 @@ def main() -> int:
 	console.print(create_plugin_table(enabled_plugins))
 	console.print()
 
-	marketplaces = get_marketplace_list()
+	old_marketplaces = get_marketplace_list()
+	old_markets_dict: dict[str, str] = {
+		market.get("name", ""): str(market)
+		for market in old_marketplaces
+	}
+
+	marketplaces = old_marketplaces
 	market_count_text = Text()
 	market_count_text.append("Found ")
 	market_count_text.append(str(len(marketplaces)), style="bold blue")
@@ -800,6 +852,28 @@ def main() -> int:
 			console.print(f"[yellow]⚠ Found {len(stats.version_mismatches)} plugin(s) with version mismatches[/yellow]")
 
 		console.print()
+
+	new_plugins = get_enabled_plugins_list()
+	for plugin in new_plugins:
+		plugin_id = plugin.get("id", "")
+		new_version = plugin.get("version", "")
+		old_version = old_plugins_dict.get(plugin_id, "")
+		if old_version and new_version and old_version != new_version:
+			stats.add_version_change(plugin_id, old_version, new_version)
+
+	new_marketplaces = get_marketplace_list()
+	for market in new_marketplaces:
+		market_name = market.get("name", "")
+		new_state = str(market)
+		old_state = old_markets_dict.get(market_name, "")
+		if old_state and new_state and old_state != new_state:
+			stats.add_market_change(market_name, "updated", "new data")
+		elif not old_state:
+			stats.add_market_change(market_name, "none", "added")
+
+	for old_market_name in old_markets_dict:
+		if not any(m.get("name", "") == old_market_name for m in new_marketplaces):
+			stats.add_market_change(old_market_name, "available", "removed")
 
 	stats.print_summary()
 
