@@ -1,5 +1,4 @@
 ---
-name: llms-generator
 description: llms.txt 文件生成器 - 自动扫描项目并生成符合 llms.txt 标准的文件
 auto-activate: always: true
 ---

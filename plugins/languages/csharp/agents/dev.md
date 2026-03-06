@@ -1,5 +1,4 @@
 ---
-name: dev
 description: C# 开发专家 - 专业的 C# 开发代理，提供高质量的代码实现、架构设计和性能优化指导。精通 C# 12、.NET 8、LINQ、async/await 和现代框架
 ---
 

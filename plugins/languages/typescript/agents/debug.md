@@ -1,5 +1,4 @@
 ---
-name: debug
 description: TypeScript 调试专家 - 专注于类型错误诊断、性能问题定位和运行时异常分析。提供高效的 TypeScript 调试策略和工具使用指导
 tools: Read, Bash, Grep, Glob
 model: sonnet

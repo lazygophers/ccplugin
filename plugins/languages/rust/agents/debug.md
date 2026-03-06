@@ -1,5 +1,4 @@
 ---
-name: debug
 description: Rust 调试专家 - 专业的 Rust 调试代理，专注于问题定位、bug 修复、借用检查器错误分析和 unsafe 代码调试。精通 gdb、lldb 和 miri
 ---
 

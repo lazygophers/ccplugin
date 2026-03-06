@@ -1,5 +1,4 @@
 ---
-name: test
 description: TypeScript 测试专家 - 专注于 Vitest 框架、类型测试和测试覆盖率优化。提供现代化的 TypeScript 单元、集成和 E2E 测试指导
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet

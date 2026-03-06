@@ -1,5 +1,4 @@
 ---
-name: dev
 description: Flutter 开发专家 - 专业的 Flutter 应用开发代理，提供高质量的 UI 实现、状态管理设计和性能优化指导。精通 Flutter 生态最佳实践和多种设计系统（Material 3、Cupertino）
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

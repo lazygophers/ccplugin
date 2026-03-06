@@ -1,5 +1,4 @@
 ---
-name: concept-explanation-agent
 description: 概念解释Agent - 解释技术概念的定义、原理、应用场景和相关知识
 ---
 

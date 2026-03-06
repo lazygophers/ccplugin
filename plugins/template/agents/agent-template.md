@@ -1,5 +1,4 @@
 ---
-name: agent-template
 description: Agent 模板 - 演示 Sub-Agent 的标准格式和用法
 ---
 

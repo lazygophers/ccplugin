@@ -1,5 +1,4 @@
 ---
-name: test
 description: Java 测试专家 - 专业的 Java 测试代理，专注于单元测试、集成测试、Mock 框架和测试覆盖率优化。精通 JUnit 5、Mockito、TestContainers 和测试策略
 ---
 

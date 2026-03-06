@@ -1,5 +1,4 @@
 ---
-name: dev
 description: Java 开发专家 - 专业的 Java 开发代理，提供高质量的代码实现、架构设计和性能优化指导。精通现代 Java 21+、Spring Boot 3+ 和 JVM 最佳实践
 ---
 

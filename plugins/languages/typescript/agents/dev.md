@@ -1,5 +1,4 @@
 ---
-name: dev
 description: TypeScript 开发专家 - 专注于类型安全、架构设计和现代 TypeScript 开发。精通 TypeScript 5.9+ 严格模式、类型系统和最佳实践
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet

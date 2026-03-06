@@ -1,5 +1,4 @@
 ---
-name: performance-analysis-agent
 description: 性能分析Agent - 分析代码性能瓶颈、资源使用情况和优化机会
 ---
 

@@ -1,5 +1,4 @@
 ---
-name: tech-selection-agent
 description: 技术选型Agent - 对比技术方案，评估技术栈，提供选型建议
 ---
 

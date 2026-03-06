@@ -1,5 +1,4 @@
 ---
-name: developer
 description: JavaScript 开发专家 - 专注于现代 ES2024+ 开发、异步编程和 ESM 模块系统。精通 Vite、pnpm 工具链和 React/Vue 框架集成
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet

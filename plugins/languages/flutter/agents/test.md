@@ -1,5 +1,4 @@
 ---
-name: test
 description: Flutter 测试专家 - 专注于测试策略设计和实现，覆盖 Widget 测试、集成测试、性能测试等多个维度
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

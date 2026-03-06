@@ -1,5 +1,4 @@
 ---
-name: code-review-agent
 description: 代码审查Agent - 审查本地代码库的代码质量、结构规范和技术债
 ---
 

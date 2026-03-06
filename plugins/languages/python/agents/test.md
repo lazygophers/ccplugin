@@ -1,5 +1,4 @@
 ---
-name: test
 description: Python 测试专家 - 专业的 Python 测试代理，提供单元测试、集成测试、基准测试设计和实现指导。精通 pytest 框架和现代测试最佳实践
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---

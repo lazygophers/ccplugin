@@ -1,5 +1,4 @@
 ---
-name: dependency-audit-agent
 description: 依赖审计Agent - 审计项目依赖的安全性、License合规性和漏洞风险
 ---
 

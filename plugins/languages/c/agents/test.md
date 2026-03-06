@@ -1,5 +1,4 @@
 ---
-name: test
 description: C 测试专家 - 专业的 C 测试代理，专注于单元测试、集成测试、内存泄漏测试和测试覆盖率优化。精通 Unity、CppUTest 和测试驱动开发
 ---
 
