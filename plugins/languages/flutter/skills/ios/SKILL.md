@@ -1,6 +1,8 @@
 ---
 name: ios
 description: Flutter iOS 开发规范：Cupertino 设计、iOS 性能优化、测试规范。开发 iOS 应用时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Flutter iOS 开发规范

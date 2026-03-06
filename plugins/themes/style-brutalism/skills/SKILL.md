@@ -1,6 +1,8 @@
 ---
 name: brutalism-skills
 description: 野兽派设计强调原始、大胆和功能性，优先级排序功能而非美学，采用粗体排版和几何形态。
+user-invocable: true
+context: fork
 ---
 
 Brutalism - 野兽派设计风格规范

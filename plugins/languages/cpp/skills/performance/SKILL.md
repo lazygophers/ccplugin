@@ -1,6 +1,8 @@
 ---
 name: performance
 description: C++ 性能优化规范：Cache优化、SIMD、编译器优化、内存分配优化。优化性能时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C++ 性能优化规范

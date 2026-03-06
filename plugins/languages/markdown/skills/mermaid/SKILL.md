@@ -1,6 +1,8 @@
 ---
 name: mermaid
 description: Mermaid 图表规范：流程图、序列图、类图、ER图等。绘制 Mermaid 图表时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Mermaid 图表规范

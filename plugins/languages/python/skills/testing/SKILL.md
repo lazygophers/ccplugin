@@ -1,6 +1,8 @@
 ---
 name: testing
 description: Python 测试规范：pytest、测试组织、覆盖率。写测试时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Python 测试规范

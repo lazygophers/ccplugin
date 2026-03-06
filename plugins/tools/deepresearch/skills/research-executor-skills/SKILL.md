@@ -1,6 +1,8 @@
 ---
 name: research-executor-skills
 description: 研究执行技能 - 基于图思维框架的多智能体并行研究执行器，负责协调多个专业研究代理进行深度调查
+user-invocable: true
+context: fork
 ---
 
 ## 研究执行器

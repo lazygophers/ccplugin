@@ -1,6 +1,8 @@
 ---
 name: nodejs
 description: TypeScript Node.js 开发规范：Node.js 20+、ESM、性能优化。开发 Node.js 应用时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # TypeScript Node.js 开发规范

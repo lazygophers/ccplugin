@@ -1,6 +1,8 @@
 ---
 name: android
 description: Flutter Android 开发规范：Material 3 设计、Android 性能优化、测试规范。开发 Android 应用时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Flutter Android 开发规范

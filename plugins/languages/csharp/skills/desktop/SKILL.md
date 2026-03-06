@@ -1,6 +1,8 @@
 ---
 name: desktop
 description: C# 桌面开发规范：WPF、MAUI、MVVM 模式。开发桌面应用时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C# 桌面开发规范

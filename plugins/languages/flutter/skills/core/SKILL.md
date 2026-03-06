@@ -1,6 +1,8 @@
 ---
 name: core
 description: Flutter 开发核心规范：Dart 3.2+、强制约定、代码格式。写任何 Flutter 代码前必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Flutter 开发核心规范

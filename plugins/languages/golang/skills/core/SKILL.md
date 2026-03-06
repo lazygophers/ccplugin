@@ -1,6 +1,8 @@
 ---
 name: core
 description: Go 开发核心规范：强制约定、代码格式、提交检查清单。写任何 Go 代码前必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Go 开发核心规范

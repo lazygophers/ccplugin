@@ -1,6 +1,8 @@
 ---
 name: memory
 description: C++ 内存管理规范：智能指针、RAII、内存池、自定义分配器。管理内存时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C++ 内存管理规范

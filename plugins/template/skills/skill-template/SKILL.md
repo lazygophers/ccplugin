@@ -1,6 +1,7 @@
 ---
 name: skill-name
 description: 技能用途简述 - 说明这个技能做什么和什么时候使用。当用户需要[XX功能]或遇到[XX问题]时自动激活。支持[XX操作]。
+user-invocable: true
 ---
 
 # Skill Name
@@ -53,6 +54,7 @@ skill-name/
 ---
 name: skill-name              # 技能标识（小写+连字符）
 description: 简短描述          # 1-2 句话说明用途
+user-invocable: true
 
 # 可选字段
 context: fork                # fork 或 inherit

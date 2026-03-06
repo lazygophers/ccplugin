@@ -1,6 +1,8 @@
 ---
 name: style-healing-skills
 description: 治愈系极简实用风 - 融合莫兰迪配色、极简扁平设计与情感化温度的现代UI设计风格
+user-invocable: true
+context: fork
 ---
 
 # 治愈系极简实用风 (Healing Minimalist Practical Style)

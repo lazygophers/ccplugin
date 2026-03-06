@@ -1,6 +1,8 @@
 ---
 name: issue
 description: GitHub Issue 创建和管理规范
+user-invocable: true
+context: fork
 ---
 
 **Issue 模板 - Bug 报告**

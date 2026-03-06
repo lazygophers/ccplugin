@@ -1,6 +1,8 @@
 ---
 name: error
 description: Python 错误处理规范：异常处理、错误管理、日志记录。处理错误时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Python 错误处理规范

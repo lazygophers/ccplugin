@@ -1,6 +1,8 @@
 ---
 name: async
 description: C# 异步编程规范：async/await、CancellationToken、ValueTask。写异步代码时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C# 异步编程规范

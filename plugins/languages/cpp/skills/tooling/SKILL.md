@@ -1,6 +1,8 @@
 ---
 name: tooling
 description: C++ 工具链规范：CMake、静态分析、性能分析、代码覆盖。运行工具时加载。
+user-invocable: true
+context: fork
 ---
 
 # C++ 工具链规范

@@ -1,6 +1,8 @@
 ---
 name: content-retriever-skills
 description: 内容检索技能 - 从多种渠道智能检索和收集相关内容，包括学术论文、技术文档、市场报告等多类型信息
+user-invocable: true
+context: fork
 ---
 
 ## 内容检索器

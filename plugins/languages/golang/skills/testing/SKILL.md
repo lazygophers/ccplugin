@@ -1,6 +1,8 @@
 ---
 name: testing
 description: Go 测试规范：单元测试、表驱动测试、基准测试。写测试时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Go 测试规范

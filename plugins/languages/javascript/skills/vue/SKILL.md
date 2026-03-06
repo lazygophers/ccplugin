@@ -1,6 +1,8 @@
 ---
 name: vue
 description: JavaScript Vue 开发规范：Vue 3、Composition API、响应式。开发 Vue 应用时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # JavaScript Vue 开发规范

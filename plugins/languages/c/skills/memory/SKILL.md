@@ -1,6 +1,8 @@
 ---
 name: memory
 description: C 内存管理规范：内存分配、泄漏检测、对齐、指针最佳实践。管理内存时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C 内存管理规范

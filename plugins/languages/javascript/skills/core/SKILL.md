@@ -1,6 +1,8 @@
 ---
 name: core
 description: JavaScript 开发核心规范：ES2024-2025 标准、强制约定、代码格式。写任何 JavaScript 代码前必须加载。
+user-invocable: true
+context: fork
 ---
 
 # JavaScript 开发核心规范

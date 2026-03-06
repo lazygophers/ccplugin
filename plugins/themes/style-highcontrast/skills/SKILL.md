@@ -1,6 +1,8 @@
 ---
 name: high-contrast-skills
 description: 高对比设计遵循 WCAG AAA 标准，强调清晰、可读和包容性，确保所有用户都能访问内容。
+user-invocable: true
+context: fork
 ---
 
 High Contrast - 高对比无障碍设计风格规范

@@ -1,6 +1,8 @@
 ---
 name: async
 description: Rust 异步编程规范：async/await、Tokio、futures。写异步代码时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Rust 异步编程规范

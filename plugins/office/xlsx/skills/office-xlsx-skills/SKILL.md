@@ -1,6 +1,8 @@
 ---
 name: office-xlsx-skills
 description: Excel xlsx 文件操作技能 - 提供 Excel 文件读写、数据分析 MCP 工具
+user-invocable: true
+context: fork
 ---
 
 # Office Xlsx 技能

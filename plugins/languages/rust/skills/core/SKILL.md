@@ -1,6 +1,8 @@
 ---
 name: core
 description: Rust 开发核心规范：Rust 2024 edition、所有权系统、强制约定。写任何 Rust 代码前必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Rust 开发核心规范

@@ -1,6 +1,8 @@
 ---
 name: neumorphism-skills
 description: 新拟态（Neumorphic）设计结合了拟物化和极简主义，使用柔和阴影创建 3D 浮起或凹陷效果。
+user-invocable: true
+context: fork
 ---
 
 Neumorphism - 新拟态设计风格规范

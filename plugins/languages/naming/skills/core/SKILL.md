@@ -1,6 +1,8 @@
 ---
 name: core
 description: 跨语言命名规范：清晰性、一致性、可读性。命名变量/函数/类型时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # 命名规范指南

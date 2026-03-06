@@ -1,6 +1,8 @@
 ---
 name: error
 description: C 错误处理规范：errno、perror、错误检查、安全清理。处理错误时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C 错误处理规范

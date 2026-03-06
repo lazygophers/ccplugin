@@ -1,6 +1,8 @@
 ---
 name: tooling
 description: Go 工具使用：gofmt、goimports、go mod、代码生成。运行工具时加载。
+user-invocable: true
+context: fork
 ---
 
 # Go 工具规范

@@ -1,6 +1,8 @@
 ---
 name: office-pptx-skills
 description: PowerPoint pptx 文件操作技能 - 提供演示文稿读写、幻灯片操作 MCP 工具
+user-invocable: true
+context: fork
 ---
 
 # Office Pptx 技能

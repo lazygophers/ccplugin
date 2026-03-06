@@ -1,6 +1,8 @@
 ---
 name: concurrency
 description: Java 并发编程规范：Virtual Threads、并发工具、线程池。写并发代码时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Java 并发编程规范

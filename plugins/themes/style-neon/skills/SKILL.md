@@ -1,6 +1,8 @@
 ---
 name: neon-skills
 description: 霓虹风格设计采用发光高饱和色彩，创建充满能量的科幻感 UI，适合科技和创意项目。
+user-invocable: true
+context: fork
 ---
 
 Neon - 霓虹赛博设计风格规范

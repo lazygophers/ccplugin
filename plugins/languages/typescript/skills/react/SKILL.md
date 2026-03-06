@@ -1,6 +1,8 @@
 ---
 name: react
 description: TypeScript React 开发规范：React 18+、Hooks、组件模式。开发 React 应用时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # TypeScript React 开发规范

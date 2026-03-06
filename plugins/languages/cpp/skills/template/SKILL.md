@@ -1,6 +1,8 @@
 ---
 name: template
 description: C++ 模板编程规范：类型萃取、Concepts、编译期计算。写模板代码时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # C++ 模板编程规范

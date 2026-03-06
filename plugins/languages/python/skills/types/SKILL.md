@@ -1,6 +1,8 @@
 ---
 name: types
 description: Python 类型提示规范：类型注解、mypy 配置、泛型。使用类型提示时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Python 类型提示规范

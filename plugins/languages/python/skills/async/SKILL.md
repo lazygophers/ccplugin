@@ -1,6 +1,8 @@
 ---
 name: async
 description: Python 异步编程规范：asyncio、并发模式、异步测试。写异步代码时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Python 异步编程规范

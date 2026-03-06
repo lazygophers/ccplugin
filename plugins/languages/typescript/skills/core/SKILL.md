@@ -1,6 +1,8 @@
 ---
 name: core
 description: TypeScript 开发核心规范：TS 5.9+、严格模式、强制约定。写任何 TypeScript 代码前必须加载。
+user-invocable: true
+context: fork
 ---
 
 # TypeScript 开发核心规范

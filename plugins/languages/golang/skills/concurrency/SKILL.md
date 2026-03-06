@@ -1,6 +1,8 @@
 ---
 name: concurrency
 description: Go 并发规范：使用 go.uber.org/atomic、sync.Pool、errgroup。写并发代码时必须加载。
+user-invocable: true
+context: fork
 ---
 
 # Go 并发规范
