@@ -13,14 +13,14 @@ deepresearch/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── agents/
-│   ├── architecture-review-agent.md
-│   ├── code-review-agent.md
-│   ├── concept-explanation-agent.md
-│   ├── dependency-audit-agent.md
-│   ├── performance-analysis-agent.md
-│   ├── project-evaluation-agent.md
-│   ├── tech-selection-agent.md
-│   └── technical-debt-agent.md
+│   ├── architecture-review.md
+│   ├── code-review.md
+│   ├── concept-explanation.md
+│   ├── dependency-audit.md
+│   ├── performance-analysis.md
+│   ├── project-evaluation.md
+│   ├── tech-selection.md
+│   └── technical-debt.md
 ├── commands/
 │   └── deep-research.md
 ├── skills/

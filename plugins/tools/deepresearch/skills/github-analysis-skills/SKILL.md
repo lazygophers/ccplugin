@@ -196,4 +196,4 @@ curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
 
 - [GitHub MCP Server](https://github.com/modelcontextprotocol/servers/tree/main/src/github)
 - [GitHub API文档](https://docs.github.com/en/rest)
-- [项目评估指南](../../agents/project-evaluation-agent.md)
+- [项目评估指南](../../agents/project-evaluation.md)
