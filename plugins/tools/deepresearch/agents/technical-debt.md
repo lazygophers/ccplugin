@@ -1,5 +1,8 @@
 ---
 description: 技术债分析Agent - 识别和评估代码库中的技术债，提供重构优先级建议
+skills:
+  - local-code-analysis
+  - synthesizer
 ---
 
 # 技术债分析执行流程

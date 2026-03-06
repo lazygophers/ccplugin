@@ -1,5 +1,8 @@
 ---
 description: 架构评审Agent - 评审系统架构设计的合理性、可行性和最佳实践遵循度
+skills:
+  - local-code-analysis
+  - synthesizer
 ---
 
 # 架构评审执行流程

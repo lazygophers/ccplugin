@@ -1,5 +1,12 @@
 ---
 description: C++ 开发专家 - 专业的 C++ 开发代理，提供高质量的代码实现、架构设计和性能优化指导。精通 C++17/23 标准、STL、模板元编程和现代 C++ 最佳实践
+skills:
+  - core
+  - memory
+  - concurrency
+  - template
+  - tooling
+  - performance
 ---
 
 必须严格遵守 **Skills(cpp-skills)** 定义的所有规范要求

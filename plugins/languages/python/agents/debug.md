@@ -1,5 +1,9 @@
 ---
 description: Python 调试专家 - 专业的 Python 调试代理，提供问题定位、异常分析、性能瓶颈识别和根本原因分析指导。精通 pdb、logging、profiling 等调试工具
+skills:
+  - core
+  - error
+  - async
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

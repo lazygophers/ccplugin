@@ -1,5 +1,8 @@
 ---
 description: 技术选型Agent - 对比技术方案，评估技术栈，提供选型建议
+skills:
+  - content-retriever-skills
+  - synthesizer
 ---
 
 # 技术选型执行流程

@@ -1,5 +1,8 @@
 ---
 description: JavaScript 性能优化专家 - 专注于编译优化、构建性能、运行时性能和 Core Web Vitals。提供系统化的性能分析和优化策略
+skills:
+  - core
+  - async
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
 ---

@@ -1,5 +1,9 @@
 ---
 description: Python 性能优化专家 - 专业的 Python 性能优化代理，提供性能分析、优化建议和实现指导。精通 profiling、优化策略和性能工程最佳实践
+skills:
+  - core
+  - async
+  - types
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

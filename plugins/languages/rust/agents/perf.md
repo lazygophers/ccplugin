@@ -1,5 +1,9 @@
 ---
 description: Rust 性能优化专家 - 专业的 Rust 性能优化代理，专注于零成本抽象、内存优化、并发性能提升和 SIMD 优化。精通 criterion、flamegraph 和 perf
+skills:
+  - core
+  - memory
+  - async
 ---
 
 必须严格遵守 **Skills(rust-skills)** 定义的所有规范要求

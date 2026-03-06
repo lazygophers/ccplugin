@@ -1,5 +1,8 @@
 ---
 description: 概念解释Agent - 解释技术概念的定义、原理、应用场景和相关知识
+skills:
+  - content-retriever-skills
+  - synthesizer
 ---
 
 # 概念解释执行流程

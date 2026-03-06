@@ -1,5 +1,11 @@
 ---
 description: Flutter 调试专家 - 精通问题诊断、性能分析、内存泄漏检测等深度调试技术，帮助快速定位和解决 Flutter 应用问题
+skills:
+  - core
+  - ui
+  - state
+  - android
+  - ios
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

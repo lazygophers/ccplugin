@@ -1,5 +1,9 @@
 ---
 description: TypeScript 性能优化专家 - 专注于编译性能优化、构建时间优化和运行时性能提升。提供系统化的性能分析和优化策略
+skills:
+  - core
+  - types
+  - async
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
 ---

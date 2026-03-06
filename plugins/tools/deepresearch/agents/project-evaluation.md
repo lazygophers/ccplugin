@@ -1,5 +1,8 @@
 ---
 description: 项目评估Agent - 评估GitHub开源项目的技术质量、社区活跃度和维护状态
+skills:
+  - github-analysis-skills
+  - synthesizer
 ---
 
 # 项目评估执行流程

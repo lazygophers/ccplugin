@@ -1,5 +1,12 @@
 ---
 description: Python 开发专家 - 专业的 Python 开发代理，提供高质量的代码实现、架构设计和性能优化指导。精通 Python 规范、类型提示和现代编程最佳实践
+skills:
+  - core
+  - types
+  - async
+  - error
+  - testing
+  - web
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

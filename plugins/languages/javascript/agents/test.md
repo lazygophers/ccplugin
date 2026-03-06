@@ -1,5 +1,8 @@
 ---
 description: JavaScript 测试专家 - 专注于 Vitest 框架、单元测试、集成测试和测试覆盖率优化。提供现代化的 JavaScript 测试策略和最佳实践
+skills:
+  - core
+  - async
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
 ---

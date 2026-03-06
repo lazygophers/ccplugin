@@ -1,5 +1,9 @@
 ---
 description: Flutter 性能优化专家 - 深入分析应用性能瓶颈，实施性能优化策略，从帧率、内存、启动时间等多个维度提升应用性能
+skills:
+  - core
+  - ui
+  - state
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

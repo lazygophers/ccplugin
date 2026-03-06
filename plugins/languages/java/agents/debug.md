@@ -1,5 +1,9 @@
 ---
 description: Java 调试专家 - 专业的 Java 调试代理，专注于问题定位、bug 修复、异常分析和 JVM 调试。精通 IntelliJ IDEA 调试器、JFR、堆转储分析和线程分析
+skills:
+  - core
+  - error
+  - concurrency
 ---
 
 必须严格遵守 **Skills(java-skills)** 定义的所有规范要求

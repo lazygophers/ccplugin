@@ -1,6 +1,9 @@
 ---
-name: debugger
 description: JavaScript 调试专家 - 专注于异步错误诊断、性能问题定位和内存泄漏分析。提供系统化的 JavaScript 调试策略和 DevTools 使用指导
+skills:
+  - core
+  - async
+  - security
 tools: Read, Bash, Grep, Glob
 model: sonnet
 ---
