@@ -42,14 +42,14 @@ argument-hint: [研究内容]
 
 | 研究内容特征       | 输入类型      | 选择Agent                          | 检测逻辑                                                                          | 确认方式        |
 | ------------------ | ------------- | ---------------------------------- | --------------------------------------------------------------------------------- | --------------- |
-| 代码审查和质量分析 | 文本/路径     | Agents(code-review-agent)          | 关键词："代码审查"、"代码质量"、"代码规范"                                        | AskUserQuestion |
-| 性能分析和优化     | 文本/路径     | Agents(performance-analysis-agent) | 关键词："性能分析"、"性能优化"、"性能瓶颈"<br>或：路径 + 性能关键词               | AskUserQuestion |
-| 技术债识别         | 文本/路径     | Agents(technical-debt-agent)       | 关键词："技术债"、"重构"、"代码异味"                                              | AskUserQuestion |
-| GitHub项目评估     | URL/文本      | Agents(project-evaluation-agent)   | 关键词："GitHub项目"、"项目评估"、"开源项目"<br>或：包含 "github.com"             | AskUserQuestion |
-| 技术选型对比       | 文本          | Agents(tech-selection-agent)       | 关键词："技术选型"、"方案对比"、"vs"                                              | AskUserQuestion |
-| 依赖安全审计       | 文件路径      | Agents(dependency-audit-agent)     | 关键词："依赖审计"、"安全漏洞"、"依赖安全"<br>或：package.json/pyproject.toml文件 | AskUserQuestion |
-| 技术概念解释       | 文本          | Agents(concept-explanation-agent)  | 关键词："什么是"、"如何"、"概念解释"                                              | AskUserQuestion |
-| 架构设计评审       | 文档路径/文本 | Agents(architecture-review-agent)  | 关键词："架构评审"、"架构设计"、"架构评估"<br>或：架构文档路径                    | AskUserQuestion |
+| 代码审查和质量分析 | 文本/路径     | Agents(deepresearch:code-review-agent)          | 关键词："代码审查"、"代码质量"、"代码规范"                                        | AskUserQuestion |
+| 性能分析和优化     | 文本/路径     | Agents(deepresearch:performance-analysis-agent) | 关键词："性能分析"、"性能优化"、"性能瓶颈"<br>或：路径 + 性能关键词               | AskUserQuestion |
+| 技术债识别         | 文本/路径     | Agents(deepresearch:technical-debt-agent)       | 关键词："技术债"、"重构"、"代码异味"                                              | AskUserQuestion |
+| GitHub项目评估     | URL/文本      | Agents(deepresearch:project-evaluation-agent)   | 关键词："GitHub项目"、"项目评估"、"开源项目"<br>或：包含 "github.com"             | AskUserQuestion |
+| 技术选型对比       | 文本          | Agents(deepresearch:tech-selection-agent)       | 关键词："技术选型"、"方案对比"、"vs"                                              | AskUserQuestion |
+| 依赖安全审计       | 文件路径      | Agents(deepresearch:dependency-audit-agent)     | 关键词："依赖审计"、"安全漏洞"、"依赖安全"<br>或：package.json/pyproject.toml文件 | AskUserQuestion |
+| 技术概念解释       | 文本          | Agents(deepresearch:concept-explanation-agent)  | 关键词："什么是"、"如何"、"概念解释"                                              | AskUserQuestion |
+| 架构设计评审       | 文档路径/文本 | Agents(deepresearch:architecture-review-agent)  | 关键词："架构评审"、"架构设计"、"架构评估"<br>或：架构文档路径                    | AskUserQuestion |
 
 ## Skills激活策略
 
