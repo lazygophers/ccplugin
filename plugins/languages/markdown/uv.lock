@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-markdown"
-version = "0.0.142"
+version = "0.0.143"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -65,8 +65,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.142"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#f49c82d46b57244667cedd5f982908db570a8918" }
+version = "0.0.143"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#3e025836ac48f828dc86b34ecd00b83571d9425d" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
