@@ -397,7 +397,7 @@ wheels = [
 
 [[package]]
 name = "office-xlsx"
-version = "0.0.143"
+version = "0.0.144"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
