@@ -1,7 +1,6 @@
 ---
 name: github-analysis-skills
 description: GitHub分析技能 - 分析GitHub项目、仓库、代码贡献、社区活跃度等GitHub相关内容
-user-invocable: false
 ---
 
 ## GitHub分析技能

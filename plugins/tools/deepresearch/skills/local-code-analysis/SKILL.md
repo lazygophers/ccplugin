@@ -1,7 +1,6 @@
 ---
 name: local-code-analysis-skills
 description: 本地代码分析技能 - 分析本地代码库的结构、质量、复杂度、技术债等
-user-invocable: false
 ---
 
 ## 本地代码分析技能
