@@ -1,5 +1,4 @@
 ---
-name: command-template
 description: 命令模板 - 演示 Command 的标准格式和用法
 ---
 
