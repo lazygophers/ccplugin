@@ -5,7 +5,6 @@ RichLoggerManager - 基于 Rich 的单实例日志管理器。
 自动清理过期日志，并支持彩色控制台输出。
 """
 
-import glob
 import inspect
 import os
 from datetime import datetime
@@ -16,6 +15,17 @@ from rich.console import Console
 
 from lib.utils.env import get_project_dir, get_project_plugins_dir
 from lib.utils.gitignore import add_gitignore_rule
+
+
+class LogDir(str):
+	def __new__(cls, value: str):
+		return super().__new__(cls, value)
+
+	def __truediv__(self, other: str) -> Path:
+		return Path(str(self)) / other
+
+	def glob(self, pattern: str):
+		return Path(str(self)).glob(pattern)
 
 
 class RichLoggerManager:
@@ -44,7 +54,7 @@ class RichLoggerManager:
 			return
 
 		self._initialized = True
-		self.log_dir = self._resolve_log_dir()
+		self.log_dir = LogDir(self._resolve_log_dir())
 		os.makedirs(self.log_dir, exist_ok=True)
 
 		# 将 log 目录添加到 git 忽略
@@ -84,7 +94,6 @@ class RichLoggerManager:
 		from lib.utils.env import get_user_plugins_dir
 
 		project_plugins_dir = get_project_plugins_dir()
-
 		lazygophers_path = os.path.join(get_project_dir(), ".lazygophers")
 		if os.path.exists(lazygophers_path) and not os.path.isdir(lazygophers_path):
 			return os.path.join(get_user_plugins_dir(), "log")
@@ -120,8 +129,7 @@ class RichLoggerManager:
 			if self.console_console:
 				self.console_console.print(formatted)
 
-		# 始终写入文件
-		self.file_console.print(formatted)
+		self._write_to_file(formatted)
 
 	def error(self, message: str) -> None:
 		"""记录 ERROR 级别日志。"""
@@ -206,6 +214,8 @@ class RichLoggerManager:
 		if hasattr(self.file_console, "file") and self.file_console.file:
 			self.file_console.file.flush()
 
+		self._update_symlink()
+
 	def _get_current_hour(self) -> str:
 		"""获取当前小时的格式化字符串 (YYYYMMDDHH)。"""
 		return datetime.now().strftime("%Y%m%d%H")
@@ -213,18 +223,19 @@ class RichLoggerManager:
 	def _get_log_file(self) -> Path:
 		"""获取当前小时的日志文件路径。"""
 		hour = self._get_current_hour()
-		return Path(self.log_dir) / f"{hour}.log"
+		return self.log_dir / f"{hour}.log"
 
 	def _cleanup_old_logs(self) -> None:
-		"""删除超过 3 小时的日志文件，保留最新 3 个。"""
-		log_files = sorted(glob.glob(str(Path(self.log_dir) / "*.log")))
-
-		if len(log_files) > 3:
-			for old_log in log_files[:-3]:
-				try:
-					os.remove(old_log)
-				except OSError:
-					pass
+		current_log_file = self._get_log_file()
+		for log_file in self.log_dir.glob("*.log"):
+			if log_file.name == "log.log":
+				continue
+			if log_file == current_log_file:
+				continue
+			try:
+				log_file.unlink()
+			except OSError:
+				pass
 
 	def _update_symlink(self) -> None:
 		"""更新软连接，使 log.log 指向当前小时的日志文件。"""
@@ -233,7 +244,7 @@ class RichLoggerManager:
 
 		try:
 			# 如果软连接已存在，删除它
-			if symlink_path.is_symlink():
+			if symlink_path.is_symlink() or symlink_path.exists():
 				symlink_path.unlink()
 
 			# 创建新的软连接
@@ -242,35 +253,35 @@ class RichLoggerManager:
 			pass
 
 
-# 创建全局单实例
-_logger = RichLoggerManager()
+def _get_logger() -> RichLoggerManager:
+	return RichLoggerManager()
 
 
 def enable_debug() -> None:
 	"""启用 DEBUG 模式（同时输出到控制台）。"""
-	_logger.enable_debug()
+	_get_logger().enable_debug()
 
 
 def info(message: str) -> None:
 	"""记录 INFO 级别日志。"""
-	_logger.info(message)
+	_get_logger().info(message)
 
 
 def debug(message: str) -> None:
 	"""记录 DEBUG 级别日志（仅在 DEBUG 模式显示到控制台）。"""
-	_logger.debug(message)
+	_get_logger().debug(message)
 
 
 def error(message: str) -> None:
 	"""记录 ERROR 级别日志。"""
-	_logger.error(message)
+	_get_logger().error(message)
 
 
 def warn(message: str) -> None:
 	"""记录 WARNING 级别日志。"""
-	_logger.warn(message)
+	_get_logger().warn(message)
 
 
 def warning(message: str) -> None:
 	"""记录 WARNING 级别日志。"""
-	_logger.warn(message)
+	_get_logger().warn(message)

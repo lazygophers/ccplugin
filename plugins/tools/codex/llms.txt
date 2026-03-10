@@ -1,0 +1,14 @@
+# codex
+
+> Codex 插件：在 Claude Code 中编排/调用本地 `codex` CLI 做协同开发（包含 1 个 command + 1 个 agent）。
+
+## 入口
+
+- [插件清单](.claude-plugin/plugin.json)：组件声明（commands/agents）与 SessionStart hook
+- [命令：exec](commands/exec.md)：`/codex exec <任务描述>` 的交互与拆分要求
+- [执行代理](agents/codex.md)：如何用 codex 执行器落地任务
+
+## 注意
+
+- 本插件以“命令编排/代理提示”为主：目录下无 `scripts/`，主要内容在 `commands/` 与 `agents/`。
+- `SessionStart` hook 会向 `CLAUDE_ENV_FILE` 追加 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。

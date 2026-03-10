@@ -1,0 +1,15 @@
+# docs
+
+> CCPlugin Market 文档集合：插件结构、API 参考、最佳实践与语言选择。
+
+## 索引
+
+- [插件开发指南](plugin-development.md)：从创建到发布的完整流程
+- [API 参考](api-reference.md)：`plugin.json`/Commands/Agents/Skills/Hooks/MCP/LSP/`marketplace.json` 的 schema 与说明
+- [最佳实践](best-practices.md)：插件设计原则、命名、质量、测试、版本与安全建议
+- [支持的语言](supported-languages.md)：插件开发语言选择指南（配置层/脚本层/逻辑层）
+- [编译语言指南](compiled-languages-guide.md)：编译型语言在插件体系中的定位与集成建议
+
+## 相关
+
+- [仓库开发约定](../CLAUDE.md)

@@ -1,0 +1,14 @@
+# markdown
+
+> Markdown 开发插件：提供 Markdown 编写规范与文档智能支持（skills + LSP + hooks）。
+
+## 入口
+
+- [README](README.md)：插件能力与核心规范（必须遵守/禁止行为）
+- [插件清单](.claude-plugin/plugin.json)：skills、LSP、SessionStart hook
+- [Skill: core](skills/core/SKILL.md)：Markdown 核心规范
+- [Skill: mermaid](skills/mermaid/SKILL.md)：Mermaid 相关规范
+
+## 可选
+
+- [LSP 配置](.lsp.json)：marksman 等 Markdown LSP 配置
