@@ -1,0 +1,50 @@
+{
+  "name": "task",
+  "version": "0.0.147",
+  "description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "task",
+    "task-management",
+    "planning",
+    "execution",
+    "orchestration",
+    "loop",
+    "agentic",
+    "workflow",
+    "verification",
+    "multi-agent"
+  ],
+  "agents": [
+    "./agents/planner.md",
+    "./agents/executor.md",
+    "./agents/reviewer.md",
+    "./agents/orchestrator.md",
+    "./agents/debugger.md"
+  ],
+  "commands": [
+    "./commands/add.md",
+    "./commands/cancel.md",
+    "./commands/loop.md",
+    "./commands/plan.md",
+    "./commands/execute.md",
+    "./commands/review.md",
+    "./commands/status.md"
+  ],
+  "skills": "./skills/",
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "prompt",
+        "prompt": "如果用户的任务涉及多步骤工作流、复杂任务分解或需要持续执行的场景，建议使用 task 插件的 /loop、/plan、/execute 命令进行管理。"
+      }
+    ]
+  }
+}
