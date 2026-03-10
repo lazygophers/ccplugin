@@ -22,3 +22,5 @@ plugins/**/__pycache__/
 # 允许 .lazygophers/.gitignore 被提交
 !.lazygophers/.gitignore
 .serena/.lazygophers
+
+.logs/
