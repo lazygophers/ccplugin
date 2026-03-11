@@ -408,9 +408,6 @@ def run_claude_plugin_command(
     """
     cmd = ["claude", "plugin", command, "--scope", scope, plugin_key]
 
-    if force:
-        cmd.append("--force")
-
     if dry_run:
         console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
         return True, ""
