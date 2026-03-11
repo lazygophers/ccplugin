@@ -1,6 +1,6 @@
 ---
 description: 命令模板 - 演示 Command 的标准格式和用法
-model: haiku
+model: sonnet
 ---
 
 # Command Template

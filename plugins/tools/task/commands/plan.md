@@ -1,7 +1,7 @@
 ---
 description: 任务规划 - 将复杂任务分解为结构化的子任务 DAG，定义依赖关系、执行策略和验收标准
 argument-hint: [任务描述]
-model: haiku
+model: sonnet
 ---
 
 # 任务规划

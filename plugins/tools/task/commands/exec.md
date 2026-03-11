@@ -1,7 +1,7 @@
 ---
 description: 执行任务计划 - 按照已确认的执行计划调度子任务，支持并行分组、依赖管理和自动验证
 argument-hint: [计划名称或"继续执行"]
-model: haiku
+model: sonnet
 ---
 
 # 执行任务计划（/exec）

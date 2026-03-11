@@ -1,7 +1,7 @@
 ---
 description: 使用 codex 协同开发
 argument-hint: <任务描述>
-model: haiku
+model: sonnet
 ---
 
 待处理任务：
