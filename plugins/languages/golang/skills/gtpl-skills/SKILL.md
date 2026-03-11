@@ -4,6 +4,7 @@ description: Go 模板(Golang Template)开发规范 - 提供 text/template 和 h
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Go 模板(Golang Template)开发规范

@@ -9,6 +9,7 @@ skills:
   - nodejs
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # TypeScript 开发专家

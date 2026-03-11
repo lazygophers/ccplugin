@@ -4,6 +4,7 @@ description: git commit 提交规范
 user-invocable: true
 context: fork
 model: haiku
+memory: project
 ---
 
 **提交信息生成模板**

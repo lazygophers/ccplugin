@@ -4,6 +4,7 @@ description: C# Web 开发规范：ASP.NET Core、Minimal API、Blazor。开发 
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C# Web 开发规范

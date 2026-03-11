@@ -2,6 +2,7 @@
 description: 审查任务完成质量 - 对照验收标准逐项审查已完成的任务，输出结构化审查报告
 argument-hint: [任务名称或"全部"]
 model: sonnet
+memory: project
 ---
 
 # 审查任务完成质量

@@ -4,6 +4,7 @@ description: 任务验收规范 - 验收标准定义、自动化验证方法、�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # 任务验收规范

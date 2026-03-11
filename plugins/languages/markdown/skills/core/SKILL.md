@@ -4,6 +4,7 @@ description: Markdown 核心规范：格式规范、文档结构、写作风格�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Markdown 核心规范

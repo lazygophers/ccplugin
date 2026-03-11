@@ -6,6 +6,7 @@ skills:
   - state
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # Flutter 性能优化专家

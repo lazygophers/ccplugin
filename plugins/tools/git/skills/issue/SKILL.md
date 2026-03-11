@@ -4,6 +4,7 @@ description: GitHub Issue 创建和管理规范
 user-invocable: true
 context: fork
 model: haiku
+memory: project
 ---
 
 **Issue 模板 - Bug 报告**

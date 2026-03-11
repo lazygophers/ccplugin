@@ -4,6 +4,7 @@ description: GitHub Pull Request 规范和创建流程
 user-invocable: true
 context: fork
 model: haiku
+memory: project
 ---
 
 **Pull Request 模板**

@@ -4,6 +4,7 @@ description: llms.txt 文件标准规范 - 遵循 llmstxt.org 定义的格式标
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # llms.txt 标准

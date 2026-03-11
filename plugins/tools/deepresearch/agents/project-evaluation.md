@@ -4,6 +4,7 @@ skills:
   - github-analysis-skills
   - synthesizer
 model: sonnet
+memory: project
 ---
 
 # 项目评估执行流程

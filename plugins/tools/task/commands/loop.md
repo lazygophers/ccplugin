@@ -2,6 +2,7 @@
 description: Agentic Loop 持续执行 - 进入 gather-act-verify 循环模式，持续迭代直到任务目标达成或触发终止条件
 argument-hint: [任务目标描述]
 model: sonnet
+memory: project
 ---
 
 # Agentic Loop 持续执行

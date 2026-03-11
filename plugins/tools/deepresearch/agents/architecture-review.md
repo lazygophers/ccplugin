@@ -4,6 +4,7 @@ skills:
   - local-code-analysis
   - synthesizer
 model: opus
+memory: project
 ---
 
 # 架构评审执行流程

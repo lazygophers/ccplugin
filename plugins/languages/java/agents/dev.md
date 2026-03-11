@@ -7,6 +7,7 @@ skills:
   - spring
   - performance
 model: sonnet
+memory: project
 ---
 
 必须严格遵守 **Skills(java-skills)** 定义的所有规范要求

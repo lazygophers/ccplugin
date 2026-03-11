@@ -2,6 +2,7 @@
 name: llms-txt
 description: llms.txt格式 - 为LLM优化的标准化文本输出格式，适用于API文档、项目概览和技术文档
 model: sonnet
+memory: project
 ---
 
 

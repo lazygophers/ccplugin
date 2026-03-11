@@ -4,6 +4,7 @@ description: C++ 并发编程规范：原子操作、线程、互斥锁、协程
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C++ 并发编程规范

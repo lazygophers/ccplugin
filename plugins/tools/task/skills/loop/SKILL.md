@@ -4,6 +4,7 @@ description: Agentic Loop 规范 - Gather-Act-Verify-Adjust 循环模式、终�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Agentic Loop 规范

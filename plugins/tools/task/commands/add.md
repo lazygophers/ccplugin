@@ -2,6 +2,7 @@
 description: 补充当前任务 - 在 Loop 或执行过程中追加补充说明、纠正方向、添加约束或调整目标
 argument-hint: [补充内容]
 model: sonnet
+memory: project
 ---
 
 # 补充当前任务

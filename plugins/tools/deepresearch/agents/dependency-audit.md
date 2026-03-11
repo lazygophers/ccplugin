@@ -5,6 +5,7 @@ skills:
   - citation-validator-skills
   - synthesizer
 model: sonnet
+memory: project
 ---
 
 # 依赖审计执行流程

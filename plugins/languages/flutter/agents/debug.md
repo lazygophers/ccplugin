@@ -8,6 +8,7 @@ skills:
   - ios
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # Flutter 调试专家

@@ -4,6 +4,7 @@ description: 高对比设计遵循 WCAG AAA 标准，强调清晰、可读和包
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 High Contrast - 高对比无障碍设计风格规范

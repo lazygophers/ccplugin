@@ -4,6 +4,7 @@ description: TypeScript React 开发规范：React 18+、Hooks、组件模式。
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # TypeScript React 开发规范

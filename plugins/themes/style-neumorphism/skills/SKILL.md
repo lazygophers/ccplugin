@@ -4,6 +4,7 @@ description: 新拟态（Neumorphic）设计结合了拟物化和极简主义，
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 Neumorphism - 新拟态设计风格规范

@@ -4,6 +4,7 @@ description: PowerPoint pptx 文件操作技能 - 提供演示文稿读写、幻
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Office Pptx 技能

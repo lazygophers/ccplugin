@@ -2,6 +2,7 @@
 description: 使用 codex 协同开发
 argument-hint: <任务描述>
 model: sonnet
+memory: project
 ---
 
 待处理任务：

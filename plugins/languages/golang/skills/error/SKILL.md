@@ -4,6 +4,7 @@ description: Go 错误处理强制规范：禁止单行 if err、必须记录日
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Go 错误处理规范

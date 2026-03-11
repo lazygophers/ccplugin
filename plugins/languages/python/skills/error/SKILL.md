@@ -4,6 +4,7 @@ description: Python 错误处理规范：异常处理、错误管理、日志记
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Python 错误处理规范

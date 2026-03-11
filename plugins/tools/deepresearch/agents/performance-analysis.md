@@ -4,6 +4,7 @@ skills:
   - local-code-analysis
   - synthesizer
 model: sonnet
+memory: project
 ---
 
 # 性能分析执行流程

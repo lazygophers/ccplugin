@@ -6,6 +6,7 @@ skills:
   - security
 tools: Read, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # JavaScript 调试专家

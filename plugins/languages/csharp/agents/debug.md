@@ -6,6 +6,7 @@ skills:
   - web
   - desktop
 model: sonnet
+memory: project
 ---
 
 必须严格遵守 **Skills(csharp-skills)** 定义的所有规范要求

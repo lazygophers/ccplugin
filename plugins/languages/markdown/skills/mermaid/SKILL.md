@@ -4,6 +4,7 @@ description: Mermaid 图表规范：流程图、序列图、类图、ER图等。
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Mermaid 图表规范

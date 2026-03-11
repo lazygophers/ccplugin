@@ -4,6 +4,7 @@ description: Rust 开发核心规范：Rust 2024 edition、所有权系统、强
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Rust 开发核心规范

@@ -6,6 +6,7 @@ skills:
   - verification
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: haiku
+memory: project
 ---
 
 # 任务执行者

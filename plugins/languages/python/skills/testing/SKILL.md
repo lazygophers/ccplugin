@@ -4,6 +4,7 @@ description: Python 测试规范：pytest、测试组织、覆盖率。写测试
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Python 测试规范

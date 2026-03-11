@@ -4,6 +4,7 @@ description: C# 异步编程规范：async/await、CancellationToken、ValueTask
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C# 异步编程规范

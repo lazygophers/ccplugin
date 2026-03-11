@@ -2,6 +2,7 @@
 name: gtpl-template-design-security
 description: Go 模板设计与安全规范 - 包括模板选择、结构设计、组织方案和 XSS 防护
 model: sonnet
+memory: project
 ---
 
 

@@ -15,6 +15,7 @@ context: fork
   
 auto-activate: always:true
 model: sonnet
+memory: project
 ---
 
 # Memory Commands

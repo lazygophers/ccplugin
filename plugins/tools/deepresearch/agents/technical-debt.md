@@ -4,6 +4,7 @@ skills:
   - local-code-analysis
   - synthesizer
 model: sonnet
+memory: project
 ---
 
 # 技术债分析执行流程

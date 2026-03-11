@@ -2,6 +2,7 @@
 description: codex 协同代理。负责如何使用 codex 进行交互
 tools: Bash, Read, Grep
 model: haiku
+memory: project
 ---
 
 # Codex 执行代理

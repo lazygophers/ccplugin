@@ -4,6 +4,7 @@ description: 复古风格设计融合 80-90 年代审美，采用温暖色调、
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 Retro - 复古怀旧设计风格规范

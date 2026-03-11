@@ -6,6 +6,7 @@ skills:
   - async
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # TypeScript 测试专家

@@ -4,6 +4,7 @@ description: Python 开发核心规范：PEP 8、命名规范、代码格式。�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Python 开发核心规范

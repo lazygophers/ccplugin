@@ -4,6 +4,7 @@ description: Rust 异步编程规范：async/await、Tokio、futures。写异步
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Rust 异步编程规范

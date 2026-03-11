@@ -8,6 +8,7 @@ skills:
   - vue
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # JavaScript 开发专家

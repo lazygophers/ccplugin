@@ -4,6 +4,7 @@ description: Java 错误处理规范：异常处理、Optional、自定义异常
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Java 错误处理规范

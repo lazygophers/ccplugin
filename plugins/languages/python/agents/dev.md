@@ -9,6 +9,7 @@ skills:
   - web
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # Python 开发专家

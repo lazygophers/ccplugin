@@ -4,6 +4,7 @@ description: Flutter Web 开发规范：Web 性能优化、PWA 支持、响应�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Flutter Web 开发规范

@@ -4,6 +4,7 @@ description: Excel xlsx 文件操作技能 - 提供 Excel 文件读写、数据�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Office Xlsx 技能

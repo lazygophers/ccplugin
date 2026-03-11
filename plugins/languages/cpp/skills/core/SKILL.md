@@ -4,6 +4,7 @@ description: C++ 开发核心规范：C++17/23 标准、强制约定、代码格
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C++ 开发核心规范

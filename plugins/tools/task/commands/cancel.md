@@ -1,6 +1,7 @@
 ---
 description: 取消当前任务 - 终止正在执行的 Loop 或 Exec 流程，清理临时状态
 model: sonnet
+memory: project
 ---
 
 # 取消当前任务

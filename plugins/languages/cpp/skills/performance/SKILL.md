@@ -4,6 +4,7 @@ description: C++ 性能优化规范：Cache优化、SIMD、编译器优化、内
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C++ 性能优化规范

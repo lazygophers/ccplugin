@@ -1,6 +1,7 @@
 ---
 description: 开发工作流：编码 → 格式化 → 测试 → lint → 提交
 model: sonnet
+memory: project
 ---
 
 # Go 开发工作流

@@ -4,6 +4,7 @@ description: C 错误处理规范：errno、perror、错误检查、安全清理
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C 错误处理规范

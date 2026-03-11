@@ -4,6 +4,7 @@ description: Word docx 文件操作技能 - 提供 Word 文档读写、段落格
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Office Docx 技能

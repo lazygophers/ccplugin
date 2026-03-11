@@ -7,6 +7,7 @@ skills:
   - types
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # Python 测试专家

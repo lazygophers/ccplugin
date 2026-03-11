@@ -4,6 +4,7 @@ description: Go 并发规范：使用 go.uber.org/atomic、sync.Pool、errgroup�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Go 并发规范

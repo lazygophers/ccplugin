@@ -4,6 +4,7 @@ description: JavaScript Vue 开发规范：Vue 3、Composition API、响应式�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # JavaScript Vue 开发规范

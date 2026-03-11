@@ -4,6 +4,7 @@ skills:
   - content-retriever-skills
   - synthesizer
 model: opus
+memory: project
 ---
 
 # 技术选型执行流程

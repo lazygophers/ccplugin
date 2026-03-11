@@ -4,6 +4,7 @@ skills:
   - content-retriever-skills
   - synthesizer
 model: sonnet
+memory: project
 ---
 
 # 概念解释执行流程

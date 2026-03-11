@@ -4,6 +4,7 @@ description: Rust Unsafe 开发规范：unsafe 代码、FFI、未定义行为。
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # Rust Unsafe 开发规范

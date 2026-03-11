@@ -6,6 +6,7 @@ skills:
   - loop
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
+memory: project
 ---
 
 # 任务编排器

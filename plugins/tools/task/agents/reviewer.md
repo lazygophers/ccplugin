@@ -5,6 +5,7 @@ skills:
   - verification
 tools: Read, Bash, Grep, Glob
 model: sonnet
+memory: project
 ---
 
 # 任务审查员

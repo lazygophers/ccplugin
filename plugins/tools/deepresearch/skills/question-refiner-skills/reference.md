@@ -2,6 +2,7 @@
 name: question-refiner-skills
 description: 研究问题优化技能 - 详细配置规范和实现指南
 model: sonnet
+memory: project
 ---
 
 

@@ -4,6 +4,7 @@ description: C 嵌入式开发规范：寄存器操作、中断处理、资源�
 user-invocable: true
 context: fork
 model: sonnet
+memory: project
 ---
 
 # C 嵌入式开发规范
