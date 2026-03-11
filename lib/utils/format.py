@@ -18,7 +18,7 @@ def format_size(size_bytes: int) -> str:
         1024 -> "1.0KB"
         1048576 -> "1.0MB"
     """
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    for unit in ["B", "KB", "MB", "GB"]:
         if size_bytes < 1024:
             return f"{size_bytes:.1f}{unit}"
         size_bytes /= 1024
@@ -43,7 +43,7 @@ def format_timestamp(timestamp_str: Optional[str]) -> str:
         return "[dim]N/A[/dim]"
 
     try:
-        dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         delta = now - dt
 
@@ -56,6 +56,6 @@ def format_timestamp(timestamp_str: Optional[str]) -> str:
         elif delta.days < 7:
             return f"[cyan]{delta.days}d ago[/cyan]"
         else:
-            return dt.strftime('%Y-%m-%d')
+            return dt.strftime("%Y-%m-%d")
     except (ValueError, AttributeError):
         return str(timestamp_str)

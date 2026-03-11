@@ -23,7 +23,7 @@ def safe_load_json(file_path: Path) -> Dict[str, Any] | None:
         return None
 
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError, OSError):
         return None
@@ -44,9 +44,9 @@ def safe_save_json(file_path: Path, data: Any) -> bool:
             print("Saved successfully")
     """
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-            f.write('\n')
+            f.write("\n")
         return True
     except (IOError, OSError, TypeError):
         return False

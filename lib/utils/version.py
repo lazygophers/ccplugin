@@ -27,7 +27,7 @@ def parse_version(version_str: str) -> Tuple[int, int, int]:
         For strict version parsing, use parse_version() from update_version.py.
     """
     try:
-        parts = version_str.split('.')
+        parts = version_str.split(".")
         if len(parts) >= 3:
             return (int(parts[0]), int(parts[1]), int(parts[2]))
         elif len(parts) == 2:
