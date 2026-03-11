@@ -26,9 +26,8 @@ hooks:
     enabled: true
     play_sound: true
     message: |-
-      {{ project_name }} 的任务已完成，任务总结：
-      {{ last_assistant_message | default('') }}
-    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ last_assistant_message }}
+      {{ project_name }} 的任务已完成
+    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}
 
   # ============================================================================
   # SubagentStop Hook 配置
@@ -46,9 +45,8 @@ hooks:
     enabled: false
     play_sound: false
     message: |-
-      {{ project_name }} 的 Agent {{ agent_type | default('') }} 已完成任务，任务总结：
-      {{ last_assistant_message | default('') }}
-    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ agent_type }}, {{ subagent_type }}, {{ last_assistant_message }}
+      {{ project_name }} 的 Agent {{ agent_type | default('') }} 已完成任务
+    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ agent_type }}, {{ subagent_type }}
 
   # ============================================================================
   # PreToolUse Hook 配置
@@ -190,9 +188,14 @@ hooks:
       # 常用变量（Jinja2）：project_name, session_id, tool_input, questions_count
       # JSON 输入示例（工具维度）:
       # {
-      #   "tool_name": "WebSearch",
+      #   "tool_name": "AskUserQuestion",
       #   "tool_input": {
-      #     "query": "search query"
+      #     "questions": [
+      #       {
+      #         "question": "请选择",
+      #         "options": [{"label": "A", "description": "选项A"}]
+      #       }
+      #     ]
       #   }
       # }
 

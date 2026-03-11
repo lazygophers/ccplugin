@@ -177,6 +177,9 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 	if "agent_type" in hook_data:
 		context["agent_type"] = hook_data["agent_type"]
 
+	if "subagent_type" in hook_data:
+		context["subagent_type"] = hook_data["subagent_type"]
+
 	return context
 
 
