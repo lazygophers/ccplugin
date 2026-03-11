@@ -392,19 +392,24 @@ def run_claude_plugin_command(
     plugin_key: str,
     scope: str = "user",
     dry_run: bool = False,
+    force: bool = False,
 ) -> tuple[bool, str]:
     """Run 'claude plugin' command for a specific plugin.
 
     Args:
-            command: Command to run ('update', 'install', or 'enable')
+            command: Command to run ('install' or 'enable')
             plugin_key: Plugin key in format 'plugin@market'
             scope: Plugin scope ('user' or 'project')
             dry_run: If True, show what would be done without making changes
+            force: If True, add --force flag to the command
 
     Returns:
             Tuple of (success, output) where success is True if command succeeded
     """
     cmd = ["claude", "plugin", command, "--scope", scope, plugin_key]
+
+    if force:
+        cmd.append("--force")
 
     if dry_run:
         console.print(f"[dim][DRY RUN] Would run: {' '.join(cmd)}[/dim]")
@@ -775,7 +780,7 @@ def main() -> int:
         console.print()
 
     console.print(Rule(title="[bold cyan]Updating Plugins[/bold cyan]", style="cyan"))
-    console.print("[dim]Using 'claude plugin update' command[/dim]")
+    console.print("[dim]Using 'claude plugin install --force' command[/dim]")
     console.print()
 
     update_outputs: list[tuple[str, bool, str]] = []
@@ -790,20 +795,13 @@ def main() -> int:
             plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
             progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
 
-            if os.path.exists(plugin.get("installPath", "")):
-                success, output = run_claude_plugin_command(
-                    "update",
-                    plugin_id,
-                    plugin.get("scope", "user"),
-                    dry_run=args.dry_run,
-                )
-            else:
-                success, output = run_claude_plugin_command(
-                    "install",
-                    plugin_id,
-                    plugin.get("scope", "user"),
-                    dry_run=args.dry_run,
-                )
+            success, output = run_claude_plugin_command(
+                "install",
+                plugin_id,
+                plugin.get("scope", "user"),
+                dry_run=args.dry_run,
+                force=True,
+            )
 
             update_outputs.append((plugin_name, success, output))
 
