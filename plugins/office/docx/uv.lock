@@ -403,7 +403,7 @@ wheels = [
 
 [[package]]
 name = "office-docx"
-version = "0.0.147"
+version = "0.0.148"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
