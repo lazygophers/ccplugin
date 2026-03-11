@@ -74,20 +74,16 @@ argument-hint: [任务描述]
 - ...
 ```
 
-### 步骤 5：持久化计划
+### 步骤 5：注册任务
 
-1. 创建目录 `.lazygophers/ccplugin/task/plans/`（如不存在）
-2. 为每个子任务创建独立文件 `.lazygophers/ccplugin/task/plans/T<N>-<slug>.md`
-   - 包含 YAML frontmatter（id、title、status、depends_on、时间戳）
-   - 包含描述、输入、输出、验收标准、执行建议
-3. 使用 `TaskCreate` 为每个子任务创建任务条目
-4. 使用 `TaskList` 展示完整任务清单给用户确认
+1. 为每个子任务创建 `TaskCreate` 任务条目
+2. 通过 `TaskUpdate` 建立依赖关系（`addBlockedBy`）
+3. 附加 metadata（target_files、retry_count 等）
+4. 展示完整任务清单给用户确认
 
 ### 步骤 6：确认计划
 
-将计划展示给用户，确认后：
-- 更新计划文件状态为 `confirmed`
-- 可通过 `/execute` 开始执行
+将计划展示给用户，确认后可通过 `/execute` 开始执行。
 
 ## 规划原则
 

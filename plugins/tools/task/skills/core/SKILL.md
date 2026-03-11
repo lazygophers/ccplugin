@@ -59,9 +59,9 @@ context: fork
 - 并行任务不得操作同一文件
 - 等待并行组完成后再进入下一组
 
-### 5. 快速失败
+### 5. 快速失败与升级
 - 失败时立即报告，不静默继续
-- 同一错误不重试超过 2 次
+- 遵循升级链：executor 重试 → debugger 诊断 → reviewer/planner 重新规划 → 用户指导
 - 连续无进展时中断并请求用户指导
 
 ### 6. 提问规范
@@ -70,89 +70,48 @@ context: fork
 - 由 Team 管理者通过 `AskUserQuestion` 工具统一向用户提问
 - 问题必须包含充足的上下文、可选方案和建议方向
 
-## 计划存储
+## 任务状态管理
 
-任务计划持久化存储在项目本地目录，**每个子任务一个独立文件**：
+所有任务状态通过内置的 `TaskCreate` / `TaskUpdate` / `TaskGet` / `TaskList` 系统管理，**不写入文件**。
 
-```
-.lazygophers/ccplugin/task/plans/
-├── T1-create-data-model.md      # 子任务 1
-├── T2-implement-api.md          # 子任务 2
-├── T3-write-unit-tests.md       # 子任务 3
-└── ...
-```
+**状态来源**：TaskList/TaskGet 是任务状态的唯一真实来源。
 
-**文件命名**：`T<序号>-<简短标题slug>.md`
-
-**单个任务文件格式**：
-```markdown
----
-id: T1
-title: 创建数据模型
-status: pending|in_progress|completed|failed|blocked
-depends_on: []
-created: <ISO 时间>
-updated: <ISO 时间>
----
-
-# T1: 创建数据模型
-
-## 描述
-[做什么、为什么做]
-
-## 输入
-[依赖的文件、数据或前置任务输出]
-
-## 输出
-[产出的文件、代码变更]
-
-## 验收标准
-- [ ] 标准 1
-- [ ] 标准 2
-
-## 执行建议
-[推荐的 Agent 或工具]
-
-## 执行日志
-[执行过程中追加记录]
-
-### [时间] 开始执行
-...
-
-### [时间] 执行完成/失败
-变更文件：...
-结果：...
-```
-
-**维护规范**：
-- 规划完成后，为每个子任务创建独立文件
-- 子任务状态变更时更新对应文件的 frontmatter `status` 和 `updated`
-- 执行过程中在"执行日志"部分追加记录
-- 验收标准通过时更新 checkbox 状态
-- 每次迭代开始前读取相关任务文件确认当前状态
-- 任务文件是该子任务的唯一真实状态来源
-
-**清理规范**：
-- 所有子任务完成并通过审查后，删除整个 `.lazygophers/ccplugin/task/plans/` 目录下的所有任务文件
-- 同时清理 TaskList 中已完成的任务条目
+**清理规范**：所有子任务完成并通过审查后，清理 TaskList 中已完成的任务条目。
 
 ## 内置工具使用规范
 
-任务管理必须使用 Claude Code 内置的 Task/Team 工具：
+### 什么时候用什么工具
 
-| 工具 | 用途 | 使用时机 |
-|------|------|---------|
-| `TaskCreate` | 创建任务条目 | 规划完成后，为每个子任务创建条目 |
-| `TaskUpdate` | 更新任务状态 | 任务开始(in_progress)、完成(completed)、失败(failed) |
-| `TaskGet` | 获取任务详情 | 检查依赖任务状态、获取执行结果 |
-| `TaskList` | 列出所有任务 | 查看整体进度、加载任务清单 |
-| `TeamCreate` | 创建 Agent 团队 | 需要多 Agent 并行执行时 |
+**规划完成后** — 使用 `TaskCreate` 为每个子任务创建条目，使用 `TaskUpdate` 设置 `addBlockedBy` 建立任务间的依赖关系
+
+**需要多 Agent 并行执行时** — 使用 `TeamCreate` 创建团队，使用 `Agent`（带 `team_name` 和 `name`）生成团队成员
+
+**分配任务时** — 使用 `TaskUpdate` 设置 `owner` 将任务分配给成员，同时设置 `status` 为 `in_progress`
+
+**查看进度时** — 使用 `TaskList` 查看所有任务状态，使用 `TaskGet` 获取某个任务的详细信息和依赖
+
+**团队内通信时** — 使用 `SendMessage` 给指定成员发消息（分配任务、指导修复、协调工作）
+
+**需要全员通知时** — 使用 `SendMessage` 的 broadcast 模式，仅用于紧急阻塞性问题
+
+**需要向用户提问时** — 使用 `AskUserQuestion` 统一提问，只有 orchestrator 有权使用
+
+**任务完成关闭团队时** — 使用 `SendMessage` 的 shutdown_request 逐个关闭成员，全部关闭后使用 `TeamDelete` 清理
+
+**需要终止后台任务时** — 使用 `TaskStop` 终止，使用 `TaskOutput` 获取已有输出
+
+### 任务元数据
+
+每个任务通过 `TaskUpdate` 的 `metadata` 附加以下信息：
+- `target_files`：该任务操作的文件列表（用于并行隔离检查）
+- `retry_count`：重试次数（用于三次失败升级）
+- `failure_reason`：最近一次失败原因
 
 ### 并行执行约束
 - **最大并行数：2** — 超过时排队等待
-- **文件隔离** — 并行任务不得修改同一文件
+- **文件隔离** — 并行任务不得修改同一文件（通过 metadata.target_files 检查）
 - **包隔离** — 并行任务不得修改同一包
-- 通过 `TeamCreate` 创建团队时必须验证隔离条件
+- 分配任务前必须检查 target_files 无交集
 
 ## 子任务定义模板
 

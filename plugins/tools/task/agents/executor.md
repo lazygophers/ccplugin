@@ -60,6 +60,18 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 - 操作前检查文件状态
 - 保留回退能力
 
+## Completion Promise
+
+所有验收标准通过时，输出明确的完成信号：
+
+```markdown
+## T[N]: [标题] - 完成
+
+[PROMISE] 所有验收标准已通过，变更已验证 [/PROMISE]
+```
+
+**只有当所有验收标准都通过时才能输出 PROMISE 标记。** 该标记触发 Oracle 验证流程。
+
 ## 输出格式
 
 ```markdown

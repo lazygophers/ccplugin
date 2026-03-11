@@ -92,11 +92,12 @@ context: fork
 
 | 阶段 | 行为 |
 |------|------|
-| 首次失败 | 自行分析错误，调整实现方式重试 |
-| 二次失败 | 输出详细的失败上下文，请求 debugger 介入 |
-| 三次失败 | 上报给 orchestrator，可能需要重新规划 |
+| 第 1 次失败 | 自行分析错误，调整实现方式重试 |
+| 第 2 次失败 | 输出详细的失败上下文，请求 debugger 介入诊断根因 |
+| 第 3 次失败 | 上报给 orchestrator，reviewer 审查任务定义，必要时 planner 重新规划 |
+| 仍然失败 | orchestrator 通过 AskUserQuestion 请求用户指导 |
 
-每次失败都必须记录到对应的任务文件中（`.lazygophers/ccplugin/task/plans/T<N>-*.md` 的执行日志部分）。
+每次失败都必须通过 `TaskUpdate` 记录失败原因到任务的 metadata 中。
 
 ## 执行报告规范
 

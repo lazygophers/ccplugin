@@ -1,6 +1,5 @@
 ---
 description: Agentic Loop 持续执行 - 进入 gather-act-verify 循环模式，持续迭代直到任务目标达成或触发终止条件
-auto-activate: true
 argument-hint: [任务目标描述]
 ---
 
@@ -44,7 +43,7 @@ while True:
 - 读取当前代码状态、测试结果、错误日志
 - 收集可用的 skills 和 agents，评估本次迭代需要哪些能力
 - 理解上一次迭代的变更和反馈
-- 读取 `.lazygophers/ccplugin/task/plans/` 中的任务文件确认当前状态
+- 通过 `TaskList` / `TaskGet` 确认当前任务状态
 - 确定本次迭代的具体目标
 - 选择合适的 agents 执行本次迭代（可并行分配独立子目标）
 
@@ -112,7 +111,7 @@ Loop 迭代 1:
   [Verify] 确认计划合理
 
 Loop 迭代 2:
-  [Gather] 读取计划文件
+  [Gather] 读取任务状态
   [Act]    调用 /execute 执行第一组子任务
   [Verify] 调用 /review 审查结果 → 部分失败
 
@@ -135,4 +134,4 @@ Loop 迭代 3:
 - 不要在一次迭代中做过多变更
 - 保持每次迭代的上下文连贯
 - 遇到需要用户决策的问题时立即中断循环
-- 每次迭代后更新 `.lazygophers/ccplugin/task/plans/` 中的任务文件
+- 每次迭代后通过 `TaskUpdate` 更新任务状态和 metadata

@@ -35,7 +35,7 @@ context: fork
 - 收集可用的 skills 和 agents，评估本次迭代需要的能力
 - 如果是首次迭代，收集完整上下文
 - 如果是后续迭代，聚焦上次失败的反馈
-- 读取 `.lazygophers/ccplugin/task/plans/` 中的任务文件确认当前状态
+- 通过 `TaskList` / `TaskGet` 确认当前任务状态
 - 确定本次迭代的目标，识别可并行的独立子目标
 - 选择合适的 agents 分配任务
 

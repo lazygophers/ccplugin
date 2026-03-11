@@ -134,14 +134,9 @@ feature/architecture + L3/L4 → 完整规划 + reviewer 预审
 investigation → 探索性规划（可能需要多轮信息收集）
 ```
 
-## Draft 持久化
+## 规划输出
 
-规划过程中持续更新 draft，避免规划工作丢失：
-
-- 规划开始时创建 draft 文件：`.lazygophers/ccplugin/task/plans/_draft.md`
-- 每完成一个分析步骤就更新 draft
-- 用户确认后，将 draft 拆分为独立的子任务文件
-- 确认后删除 draft 文件
+规划完成后通过 `TaskCreate` 注册所有子任务，通过 `TaskUpdate` 建立依赖关系和附加 metadata。不将计划写入文件，TaskList 是唯一的任务状态来源。
 
 ## 风险评估
 
