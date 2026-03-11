@@ -20,7 +20,6 @@ Directory structure:
 └── ...
 """
 import argparse
-import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,36 +31,38 @@ from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 from rich.tree import Tree
-from lib.utils import print_help
+from lib.utils import print_help, parse_version, format_size, format_timestamp, safe_load_json
 
 console = Console()
+
+# Path constants
+CACHE_DIR = Path.home() / '.claude' / 'plugins' / 'cache'
+INSTALLED_PLUGINS_JSON = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
 
 
 def get_cache_dir() -> Path:
 	"""Get the plugin cache directory."""
-	return Path.home() / '.claude' / 'plugins' / 'cache'
+	return CACHE_DIR
 
 
-def get_installed_plugins() -> Dict[str, Set[str]]:
+def get_installed_plugins(installed_data: Optional[Dict] = None) -> Dict[str, Set[str]]:
 	"""Read installed plugins from installed_plugins.json.
+
+	Args:
+		installed_data: Pre-loaded JSON data (optional, for performance)
 
 	Returns a dict mapping plugin_key to set of installed versions.
 	For example: {"ccplugin-market/git": {"0.0.121", "0.0.122"}, ...}
 	"""
-	installed_path = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
+	if installed_data is None:
+		installed_data = safe_load_json(INSTALLED_PLUGINS_JSON)
 
-	if not installed_path.exists():
-		return {}
-
-	try:
-		with open(installed_path, 'r', encoding='utf-8') as f:
-			data = json.load(f)
-	except (json.JSONDecodeError, IOError):
+	if not installed_data:
 		return {}
 
 	installed: Dict[str, Set[str]] = {}
 
-	for plugin_key, installations in data.get('plugins', {}).items():
+	for plugin_key, installations in installed_data.get('plugins', {}).items():
 		for install in installations:
 			install_path = Path(install.get('installPath', ''))
 			version = install.get('version', '')
@@ -83,8 +84,12 @@ def get_installed_plugins() -> Dict[str, Set[str]]:
 	return installed
 
 
-def get_plugin_metadata(version_dir: Path) -> Dict[str, Optional[str]]:
+def get_plugin_metadata(version_dir: Path, installed_data: Optional[Dict] = None) -> Dict[str, Optional[str]]:
 	"""Get metadata for a plugin version directory.
+
+	Args:
+		version_dir: Path to plugin version directory
+		installed_data: Pre-loaded installed_plugins.json data (optional)
 
 	Returns dict with 'installed_at' and 'last_updated' timestamps.
 	"""
@@ -108,72 +113,23 @@ def get_plugin_metadata(version_dir: Path) -> Dict[str, Optional[str]]:
 	except (OSError, ValueError):
 		pass
 
-	installed_path = Path.home() / '.claude' / 'plugins' / 'installed_plugins.json'
-	if installed_path.exists():
-		try:
-			with open(installed_path, 'r', encoding='utf-8') as f:
-				data = json.load(f)
+	if installed_data is None:
+		installed_data = safe_load_json(INSTALLED_PLUGINS_JSON)
 
-			for plugin_key, installations in data.get('plugins', {}).items():
-				for install in installations:
-					install_path = Path(install.get('installPath', ''))
-					if install_path == version_dir:
-						installed_at = install.get('installedAt')
-						if installed_at:
-							metadata['installed_at'] = installed_at
-						last_updated = install.get('lastUpdated')
-						if last_updated:
-							metadata['last_updated'] = last_updated
-						break
-		except (json.JSONDecodeError, IOError, OSError):
-			pass
+	if installed_data:
+		for plugin_key, installations in installed_data.get('plugins', {}).items():
+			for install in installations:
+				install_path = Path(install.get('installPath', ''))
+				if install_path == version_dir:
+					installed_at = install.get('installedAt')
+					if installed_at:
+						metadata['installed_at'] = installed_at
+					last_updated = install.get('lastUpdated')
+					if last_updated:
+						metadata['last_updated'] = last_updated
+					break
 
 	return metadata
-
-
-def format_timestamp(timestamp_str: Optional[str]) -> str:
-	"""Format ISO timestamp for display."""
-	if not timestamp_str:
-		return "[dim]N/A[/dim]"
-
-	try:
-		dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-		now = datetime.now(timezone.utc)
-		delta = now - dt
-
-		if delta.days < 1:
-			hours = delta.seconds // 3600
-			if hours < 1:
-				minutes = delta.seconds // 60
-				return f"[cyan]{minutes}m ago[/cyan]"
-			return f"[cyan]{hours}h ago[/cyan]"
-		elif delta.days < 7:
-			return f"[cyan]{delta.days}d ago[/cyan]"
-		else:
-			return dt.strftime('%Y-%m-%d')
-	except (ValueError, AttributeError):
-		return str(timestamp_str)
-
-
-def parse_version(version_str: str) -> Tuple[int, int, int]:
-	"""Parse version string to tuple for comparison.
-
-	Examples:
-		'0.0.11' -> (0, 0, 11)
-		'1.2' -> (1, 2, 0)
-		'1' -> (1, 0, 0)
-	"""
-	try:
-		parts = version_str.split('.')
-		if len(parts) >= 3:
-			return (int(parts[0]), int(parts[1]), int(parts[2]))
-		elif len(parts) == 2:
-			return (int(parts[0]), int(parts[1]), 0)
-		elif len(parts) == 1:
-			return (int(parts[0]), 0, 0)
-	except (ValueError, AttributeError):
-		pass
-	return (0, 0, 0)
 
 
 def get_plugin_versions(cache_dir: Path) -> Dict[str, List[Path]]:
@@ -219,15 +175,6 @@ def calculate_dir_size(path: Path) -> int:
 	except OSError:
 		pass
 	return total
-
-
-def format_size(size_bytes: int) -> str:
-	"""Format bytes to human-readable size."""
-	for unit in ['B', 'KB', 'MB', 'GB']:
-		if size_bytes < 1024:
-			return f"{size_bytes:.1f}{unit}"
-		size_bytes /= 1024
-	return f"{size_bytes:.1f}TB"
 
 
 def clean_orphaned_versions(
@@ -310,9 +257,16 @@ def display_cleanup_tree(
 
 def display_plugins_table(
 	plugins: Dict[str, List[Path]],
-	installed_plugins: Dict[str, Set[str]]
+	installed_plugins: Dict[str, Set[str]],
+	installed_data: Optional[Dict] = None
 ) -> None:
-	"""Display detailed table of all plugins with metadata."""
+	"""Display detailed table of all plugins with metadata.
+
+	Args:
+		plugins: Dict of plugin_key -> list of version directories
+		installed_plugins: Dict of plugin_key -> set of installed versions
+		installed_data: Pre-loaded installed_plugins.json data (for performance)
+	"""
 	status_table = Table(
 		title="[bold]Plugin Versions Details[/bold]",
 		show_header=True,
@@ -329,6 +283,7 @@ def display_plugins_table(
 	total_versions = 0
 	orphaned_count = 0
 	protected_count = 0
+	size_cache: Dict[Path, int] = {}
 
 	for plugin_key, versions in sorted(plugins.items()):
 		sorted_versions = sorted(
@@ -346,10 +301,12 @@ def display_plugins_table(
 			version = version_dir.name
 			is_installed = version in installed_versions
 
-			size = calculate_dir_size(version_dir)
+			if version_dir not in size_cache:
+				size_cache[version_dir] = calculate_dir_size(version_dir)
+			size = size_cache[version_dir]
 			size_str = format_size(size)
 
-			metadata = get_plugin_metadata(version_dir)
+			metadata = get_plugin_metadata(version_dir, installed_data)
 			last_updated = format_timestamp(metadata.get('last_updated'))
 
 			if is_installed:
@@ -396,7 +353,8 @@ def main():
 	dry_run = args.dry_run
 
 	cache_dir = get_cache_dir()
-	installed_plugins = get_installed_plugins()
+	installed_data = safe_load_json(INSTALLED_PLUGINS_JSON)
+	installed_plugins = get_installed_plugins(installed_data)
 
 	total_installed = sum(len(versions) for versions in installed_plugins.values())
 
@@ -429,7 +387,7 @@ def main():
 		))
 		return 0
 
-	display_plugins_table(plugins, installed_plugins)
+	display_plugins_table(plugins, installed_plugins, installed_data)
 
 	orphaned_count = 0
 	for plugin_key, versions in plugins.items():
