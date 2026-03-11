@@ -3,6 +3,7 @@ name: web
 description: Flutter Web 开发规范：Web 性能优化、PWA 支持、响应式设计。开发 Web 应用时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Flutter Web 开发规范

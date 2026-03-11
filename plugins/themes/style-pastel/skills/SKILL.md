@@ -3,6 +3,7 @@ name: pastel-skills
 description: 柔和风格设计采用淡雅色彩、圆角和柔和阴影，创建温柔、舒适的视觉体验，适合内容应用。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 Pastel - 柔和粉彩设计风格规范

@@ -5,6 +5,7 @@ skills:
   - ui
   - state
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: sonnet
 ---
 
 # Flutter 测试专家

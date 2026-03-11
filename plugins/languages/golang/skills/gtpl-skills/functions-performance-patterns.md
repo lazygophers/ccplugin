@@ -1,7 +1,9 @@
 ---
 name: gtpl-functions-performance-patterns
 description: Go 模板函数、性能优化和常见错误模式 - 包括自定义函数、嵌套模板、缓存策略和最佳实践
+model: sonnet
 ---
+
 
 # Go 模板函数、性能优化和常见错误模式
 

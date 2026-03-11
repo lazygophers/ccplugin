@@ -6,6 +6,7 @@ skills:
   - error
   - types
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: sonnet
 ---
 
 # Python 测试专家

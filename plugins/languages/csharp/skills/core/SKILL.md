@@ -3,6 +3,7 @@ name: core
 description: C# 开发核心规范：C# 12/.NET 8 标准、强制约定、代码格式。写任何 C# 代码前必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # C# 开发核心规范

@@ -3,6 +3,7 @@ name: web
 description: Python Web 开发规范：FastAPI、Pydantic、依赖注入。开发 Web 应用时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Python Web 开发规范

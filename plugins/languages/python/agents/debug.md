@@ -5,6 +5,7 @@ skills:
   - error
   - async
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: sonnet
 ---
 
 # Python 调试专家

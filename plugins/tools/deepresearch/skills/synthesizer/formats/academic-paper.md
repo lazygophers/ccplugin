@@ -1,7 +1,9 @@
 ---
 name: academic-paper
 description: 学术论文格式 - 为研究人员和学者提供严谨、引用规范的学术研究报告
+model: sonnet
 ---
+
 
 ## 学术论文格式
 

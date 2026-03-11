@@ -3,6 +3,7 @@ name: libs
 description: Go 优先库规范：字符串用 stringx、集合用 candy、文件用 osx、日志用 lazygophers/log。使用工具库时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Go 优先库规范

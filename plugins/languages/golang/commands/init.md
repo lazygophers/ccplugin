@@ -1,5 +1,6 @@
 ---
 description: 项目初始化工作流：创建目录结构、配置文件、.golangci.yml
+model: haiku
 ---
 
 # Go 项目初始化工作流

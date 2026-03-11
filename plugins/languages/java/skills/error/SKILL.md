@@ -3,6 +3,7 @@ name: error
 description: Java 错误处理规范：异常处理、Optional、自定义异常。处理错误时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Java 错误处理规范

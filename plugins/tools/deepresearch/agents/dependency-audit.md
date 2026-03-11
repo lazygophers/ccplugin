@@ -4,6 +4,7 @@ skills:
   - content-retriever-skills
   - citation-validator-skills
   - synthesizer
+model: sonnet
 ---
 
 # 依赖审计执行流程

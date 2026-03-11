@@ -3,6 +3,7 @@ name: glassmorphism-skills
 description: 玻璃态设计通过模糊、透明和分层来创建优雅的现代 UI，提供视觉深度和虚实感。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 Glassmorphism - 玻璃态设计风格规范

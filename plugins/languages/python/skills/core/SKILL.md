@@ -3,6 +3,7 @@ name: core
 description: Python 开发核心规范：PEP 8、命名规范、代码格式。写任何 Python 代码前必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Python 开发核心规范

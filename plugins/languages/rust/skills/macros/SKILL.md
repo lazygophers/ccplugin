@@ -3,6 +3,7 @@ name: macros
 description: Rust 宏开发规范：声明宏、过程宏、derive 宏。开发宏时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Rust 宏开发规范

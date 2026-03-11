@@ -2,6 +2,7 @@
 description: 执行完整的深度研究工作流程 - 根据研究内容选择合适的Agent，通过多轮交互完成深度研究
 auto-activate: true
 argument-hint: [研究内容]
+model: haiku
 ---
 
 # 深度研究

@@ -3,6 +3,7 @@ name: data
 description: C# 数据访问规范：Entity Framework Core、DbContext、查询优化。访问数据库时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # C# 数据访问规范

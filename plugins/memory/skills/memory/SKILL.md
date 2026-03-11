@@ -14,6 +14,7 @@ context: fork
   - View memory index and recent changes
   
 auto-activate: always:true
+model: sonnet
 ---
 
 # Memory Commands

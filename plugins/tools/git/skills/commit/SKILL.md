@@ -3,6 +3,7 @@ name: commit
 description: git commit 提交规范
 user-invocable: true
 context: fork
+model: haiku
 ---
 
 **提交信息生成模板**
@@ -33,8 +34,8 @@ context: fork
 
 - 如果一次提交涉及到多个不同的类型，则需要使用多个`commit`进行提交，每个`commit`的`type`和`subject`需要分别填写
 - 不允许将以下类型的文件提交:
-	- 备份文件：如 `.*.bak`
-	- 日志文件：如 `.*.log`
-	- 临时文件：如 `.*.tmp`/`.*.temp`
-	- 二进制文件：如 `.*.exe`/`.*.dll`/`.*.so`/`.*.dylib`/`.*.a`/`.*.lib`/`.*.o`/`.*.obj`/`.*.img`
-	- 压缩文件：如 `.*.zip`/`.*.rar`/`.*.7z`/`.*.tar`/`.*.gz`/`.*.bz2`/`.*.xz`/`.*.tar.gz`
+  - 备份文件：如 `.*.bak`
+  - 日志文件：如 `.*.log`
+  - 临时文件：如 `.*.tmp`/`.*.temp`
+  - 二进制文件：如 `.*.exe`/`.*.dll`/`.*.so`/`.*.dylib`/`.*.a`/`.*.lib`/`.*.o`/`.*.obj`/`.*.img`
+  - 压缩文件：如 `.*.zip`/`.*.rar`/`.*.7z`/`.*.tar`/`.*.gz`/`.*.bz2`/`.*.xz`/`.*.tar.gz`

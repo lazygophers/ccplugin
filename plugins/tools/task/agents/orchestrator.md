@@ -5,6 +5,7 @@ skills:
   - orchestration
   - loop
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: opus
 ---
 
 # 任务编排器

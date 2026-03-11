@@ -3,6 +3,7 @@ name: retro-skills
 description: 复古风格设计融合 80-90 年代审美，采用温暖色调、曲线排版和复古字体，唤起怀旧情感。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 Retro - 复古怀旧设计风格规范

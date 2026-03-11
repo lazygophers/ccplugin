@@ -3,6 +3,7 @@ name: concurrency
 description: C++ 并发编程规范：原子操作、线程、互斥锁、协程。写并发代码时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # C++ 并发编程规范

@@ -1,5 +1,6 @@
 ---
 description: CI 工作流：本地运行完整检查流程（测试 + lint + 构建）
+model: haiku
 ---
 
 # Go CI 工作流

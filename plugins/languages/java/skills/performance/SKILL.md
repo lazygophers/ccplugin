@@ -3,6 +3,7 @@ name: performance
 description: Java 性能优化规范：JVM 调优、GC 优化、性能分析。优化性能时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Java 性能优化规范

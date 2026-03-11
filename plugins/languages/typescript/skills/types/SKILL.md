@@ -3,6 +3,7 @@ name: types
 description: TypeScript 类型系统规范：类型安全、泛型、类型守卫。设计类型时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # TypeScript 类型系统规范

@@ -3,6 +3,7 @@ name: office-docx-skills
 description: Word docx 文件操作技能 - 提供 Word 文档读写、段落格式化 MCP 工具
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Office Docx 技能

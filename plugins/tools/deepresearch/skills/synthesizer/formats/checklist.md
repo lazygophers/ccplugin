@@ -1,7 +1,9 @@
 ---
 name: checklist
 description: 清单报告格式 - 为质量检查和审计结果提供结构化、可检查的报告
+model: sonnet
 ---
+
 
 ## 清单报告格式
 

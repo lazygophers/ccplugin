@@ -3,6 +3,7 @@ name: got-controller-skills
 description: 图思维控制器 - 管理研究过程中的图思维框架，优化研究路径，确保高质量的信息收集和分析
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 ## 图思维控制器

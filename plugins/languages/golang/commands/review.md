@@ -1,5 +1,6 @@
 ---
 description: 代码审查工作流：检查规范、测试覆盖、lint 问题、性能问题
+model: haiku
 ---
 
 # Go 代码审查工作流

@@ -3,6 +3,7 @@ name: spring
 description: Java Spring Boot 开发规范：Spring Boot 3+ 最佳实践、依赖注入、配置管理。开发 Spring 应用时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Java Spring Boot 开发规范

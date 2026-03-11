@@ -3,6 +3,7 @@ name: memory
 description: Rust 内存管理规范：智能指针、所有权、内存布局。管理内存时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Rust 内存管理规范

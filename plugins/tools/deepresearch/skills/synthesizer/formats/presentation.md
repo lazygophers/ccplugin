@@ -1,7 +1,9 @@
 ---
 name: presentation
 description: 演示文稿格式 - 为会议分享和团队汇报提供可视化、简洁的演示内容
+model: sonnet
 ---
+
 
 ## 演示文稿格式
 

@@ -3,6 +3,7 @@ name: minimal-skills
 description: 极简主义设计强调留白、清晰的排版和功能至上的原则，优先级排序和信息层次。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 Minimal - 极简主义设计风格规范

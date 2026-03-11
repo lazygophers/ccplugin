@@ -3,6 +3,7 @@ name: planning
 description: 任务规划方法论 - 需求分析、任务分解策略、DAG 依赖建模和执行策略设计
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # 任务规划方法论

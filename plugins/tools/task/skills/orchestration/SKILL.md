@@ -3,6 +3,7 @@ name: orchestration
 description: 多任务编排规范 - 团队组建、任务分配、通信协调、并行调度和异常处理
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # 多任务编排规范

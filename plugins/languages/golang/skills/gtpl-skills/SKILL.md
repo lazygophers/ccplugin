@@ -3,6 +3,7 @@ name: gtpl-skills
 description: Go 模板(Golang Template)开发规范 - 提供 text/template 和 html/template 最佳实践指导，包括安全性、性能优化和常见错误模式
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Go 模板(Golang Template)开发规范

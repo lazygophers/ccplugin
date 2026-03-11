@@ -3,6 +3,7 @@ name: issue
 description: GitHub Issue 创建和管理规范
 user-invocable: true
 context: fork
+model: haiku
 ---
 
 **Issue 模板 - Bug 报告**
@@ -12,9 +13,9 @@ context: fork
 <!-- 清晰简洁地描述 bug -->
 
 ## 复现步骤
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## 期望行为
 <!-- 描述期望发生什么 -->
@@ -23,9 +24,9 @@ context: fork
 <!-- 描述实际发生了什么 -->
 
 ## 环境信息
-- 操作系统: 
-- 版本: 
-- 浏览器: 
+- 操作系统:
+- 版本:
+- 浏览器:
 
 ## 截图
 <!-- 如适用，添加截图帮助解释 -->
@@ -58,6 +59,7 @@ context: fork
 格式: `[<type>] <subject>`
 
 类型:
+
 - `[bug]`: Bug 报告
 - `[feat]`: 功能请求
 - `[docs]`: 文档问题
@@ -65,6 +67,7 @@ context: fork
 - `[discussion]`: 讨论
 
 示例:
+
 - `[bug] 用户登录失败`
 - `[feat] 支持暗黑模式`
 - `[docs] API 文档缺失`
@@ -72,12 +75,14 @@ context: fork
 **Issue 标签规范**
 
 优先级:
+
 - `P0`: 紧急，需立即处理
 - `P1`: 高优先级
 - `P2`: 中优先级
 - `P3`: 低优先级
 
 类型:
+
 - `bug`: Bug 报告
 - `enhancement`: 功能增强
 - `documentation`: 文档相关
@@ -85,6 +90,7 @@ context: fork
 - `good first issue`: 适合新手
 
 状态:
+
 - `status: in progress`: 进行中
 - `status: blocked`: 阻塞
 - `status: review needed`: 待审查

@@ -3,6 +3,7 @@ name: question-refiner-skills
 description: 研究问题优化技能 - 将模糊的研究问题转化为结构化的研究计划，通过智能提问确保研究方向明确且可执行
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 ## 问题优化器

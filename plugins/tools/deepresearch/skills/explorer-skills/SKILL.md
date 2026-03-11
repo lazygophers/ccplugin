@@ -3,6 +3,7 @@ name: explorer-skills
 description: 技术探索技能 - 主动探索新兴技术、前沿发展和创新应用，发现潜在机会和风险
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 ## 技术探索器

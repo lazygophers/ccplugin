@@ -1,7 +1,9 @@
 ---
 name: comparison-table
 description: 对比表格格式 - 为方案对比和选型决策提供一目了然的多维对比分析
+model: sonnet
 ---
+
 
 ## 对比表格格式
 

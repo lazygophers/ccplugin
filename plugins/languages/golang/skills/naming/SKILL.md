@@ -3,6 +3,7 @@ name: naming
 description: Go 命名强制规范：Id/Uid 字段、IsActive 布尔前缀、CreatedAt 时间字段。命名时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Go 命名规范

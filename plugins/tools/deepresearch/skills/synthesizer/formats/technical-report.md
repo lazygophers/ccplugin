@@ -1,7 +1,9 @@
 ---
 name: technical-report
 description: 技术报告格式 - 为技术团队提供详细、结构化的深度分析报告
+model: sonnet
 ---
+
 
 ## 技术报告格式
 

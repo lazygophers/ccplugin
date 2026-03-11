@@ -3,6 +3,7 @@ name: state
 description: Flutter 状态管理规范：Provider、Riverpod、BLoC 选择和实现。管理状态时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Flutter 状态管理规范

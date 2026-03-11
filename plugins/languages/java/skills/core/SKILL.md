@@ -3,6 +3,7 @@ name: core
 description: Java 开发核心规范：Java 21+ 特性、强制约定、代码格式。写任何 Java 代码前必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Java 开发核心规范

@@ -3,6 +3,7 @@ name: posix
 description: C POSIX API 规范：文件系统、进程管理、信号处理、网络编程。使用 POSIX API 时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # C POSIX API 规范

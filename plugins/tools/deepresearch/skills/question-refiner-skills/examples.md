@@ -1,7 +1,9 @@
 ---
 name: question-refiner-skills
 description: 研究问题优化技能 - 使用示例和最佳实践
+model: sonnet
 ---
+
 
 ## 问题优化技能使用示例
 

@@ -5,6 +5,7 @@ skills:
   - async
   - types
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: sonnet
 ---
 
 # Python 性能优化专家

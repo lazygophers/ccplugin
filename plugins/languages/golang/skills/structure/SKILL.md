@@ -3,6 +3,7 @@ name: structure
 description: Go 项目结构强制规范：三层架构、全局状态模式、禁止 Repository 接口。设计架构时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Go 项目结构规范

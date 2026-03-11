@@ -3,6 +3,7 @@ name: web
 description: C# Web 开发规范：ASP.NET Core、Minimal API、Blazor。开发 Web 应用时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # C# Web 开发规范

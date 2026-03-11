@@ -3,6 +3,7 @@ name: core
 description: 任务管理核心规范 - 任务生命周期、状态机、角色分工和基本原则。所有任务管理操作前必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # 任务管理核心规范

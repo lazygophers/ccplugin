@@ -3,6 +3,7 @@ name: pr
 description: GitHub Pull Request 规范和创建流程
 user-invocable: true
 context: fork
+model: haiku
 ---
 
 **Pull Request 模板**

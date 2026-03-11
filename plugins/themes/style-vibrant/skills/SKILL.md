@@ -3,6 +3,7 @@ name: vibrant-skills
 description: 充满活力风格设计采用高饱和色彩、大胆对比和动态布局，创建充满能量和视觉冲击的 UI。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 Vibrant - 充满活力设计风格规范

@@ -3,6 +3,7 @@ name: gradient-skills
 description: 渐变风格设计采用流动的色彩过渡、多维度变化和艺术表现，创建视觉丰富和动态感的 UI。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 Gradient - 渐变艺术设计风格规范

@@ -3,6 +3,7 @@ name: loop
 description: Agentic Loop 规范 - Gather-Act-Verify-Adjust 循环模式、终止条件、防无限循环机制和迭代策略
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Agentic Loop 规范

@@ -1,7 +1,9 @@
 ---
 name: blog-post
 description: 博客文章格式 - 为广泛读者提供通俗易懂、案例丰富的知识分享内容
+model: sonnet
 ---
+
 
 ## 博客文章格式
 

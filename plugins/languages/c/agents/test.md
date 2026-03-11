@@ -5,6 +5,7 @@ skills:
   - memory
   - error
   - concurrency
+model: sonnet
 ---
 
 必须严格遵守 **Skills(c-skills)** 定义的所有规范要求

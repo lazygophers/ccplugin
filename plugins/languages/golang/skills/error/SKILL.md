@@ -3,6 +3,7 @@ name: error
 description: Go 错误处理强制规范：禁止单行 if err、必须记录日志、禁止包装错误。处理错误时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Go 错误处理规范

@@ -3,6 +3,7 @@ name: execution
 description: 任务执行最佳实践 - Gather-Act-Verify 模式、最小变更原则、安全执行和自验证规范
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # 任务执行最佳实践

@@ -1,7 +1,9 @@
 ---
 name: executive-summary
 description: 执行摘要格式 - 为管理层和决策者提供简洁、重点突出的研究报告摘要
+model: sonnet
 ---
+
 
 ## 执行摘要格式
 

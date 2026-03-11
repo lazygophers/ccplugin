@@ -4,6 +4,7 @@ skills:
   - core
   - planning
 tools: Read, Grep, Glob, Bash
+model: opus
 ---
 
 # 任务规划师

@@ -1,5 +1,6 @@
 ---
 description: 提交变更
+model: haiku
 ---
 
 1. 检查当前未提交的文件 !`git status`

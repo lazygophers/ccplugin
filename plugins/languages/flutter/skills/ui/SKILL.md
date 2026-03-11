@@ -3,6 +3,7 @@ name: ui
 description: Flutter UI 开发规范：Widget 组合、构建优化、性能最佳实践。开发 UI 时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Flutter UI 开发规范

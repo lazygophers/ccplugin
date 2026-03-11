@@ -8,6 +8,7 @@ skills:
   - concurrency
   - testing
   - naming
+model: sonnet
 ---
 
 必须严格遵守 **Skills(golang-skills)** 定义的所有规范要求

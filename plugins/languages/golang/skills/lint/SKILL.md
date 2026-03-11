@@ -3,6 +3,7 @@ name: lint
 description: Go lint 配置规范：golangci-lint 配置、linter 启用/禁用规则、问题处理。配置或运行 lint 时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # Go Lint 规范

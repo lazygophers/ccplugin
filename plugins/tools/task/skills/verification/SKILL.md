@@ -3,6 +3,7 @@ name: verification
 description: 任务验收规范 - 验收标准定义、自动化验证方法、质量检查清单和审查报告格式
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # 任务验收规范

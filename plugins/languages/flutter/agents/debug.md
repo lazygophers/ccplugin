@@ -7,6 +7,7 @@ skills:
   - android
   - ios
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: sonnet
 ---
 
 # Flutter 调试专家

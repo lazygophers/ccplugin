@@ -3,6 +3,7 @@ name: linq
 description: C# LINQ 规范：查询语法、方法语法、集合操作。使用 LINQ 时必须加载。
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # C# LINQ 规范

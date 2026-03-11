@@ -3,6 +3,7 @@ name: llms-skills
 description: llms.txt 文件标准规范 - 遵循 llmstxt.org 定义的格式标准，生成符合规范的 LLM 友好文档
 user-invocable: true
 context: fork
+model: sonnet
 ---
 
 # llms.txt 标准
