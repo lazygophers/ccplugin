@@ -12,34 +12,170 @@ memory: project
 ## 循环结构
 
 ```
-TeamCreate()
-defer TeamDelete()
+# ===== 初始化阶段 =====
+team = TeamCreate(
+    name="loop-execution-team",
+    goal="完成用户指定的迭代任务目标",
+    members=["coder", "tester", "reviewer"]  # 根据任务需求动态调整
+)
+defer TeamDelete(team.id)
+
+main_task = TaskCreate(
+    title="Loop 主任务",
+    description="用户提供的任务目标",
+    acceptance_criteria=["验收标准1", "验收标准2", ...]
+)
 
 iteration = 0
+max_iterations = 20  # 防止无限循环
+stalled_count = 0    # 无进展计数器
 
-while True:
+# ===== 迭代循环 =====
+while iteration < max_iterations:
     iteration += 1
 
+    # ─────────────────────────────────────────────
     # Phase 1: Gather - 收集当前上下文
-    gather_context()
+    # ─────────────────────────────────────────────
+    print(f"--- 迭代 {iteration} ---")
 
+    # 1.1 获取所有任务状态
+    tasks = TaskList()
+    current_status = TaskGet(main_task.id)
+
+    # 1.2 读取代码状态、测试结果、日志
+    code_state = read_current_codebase()
+    test_results = check_test_results()
+
+    # 1.3 分析上次迭代的反馈
+    last_feedback = current_status.metadata.get("last_feedback", {})
+
+    # 1.4 确定本次迭代目标和子任务
+    sub_goals = plan_iteration_goals(last_feedback, test_results)
+
+
+    # ─────────────────────────────────────────────
     # Phase 2: Act - 执行操作
-    take_action()
+    # ─────────────────────────────────────────────
+    print(f"[Act] 执行 {len(sub_goals)} 个子目标")
 
+    # 2.1 分配任务给 agents（并行不超过2个）
+    parallel_tasks = []
+    for goal in sub_goals[:2]:  # 最多2个并行
+        agent_result = Agent(
+            subagent_type=goal.agent_type,  # coder/tester/reviewer
+            task=goal.description,
+            context=goal.context
+        )
+        parallel_tasks.append(agent_result)
+
+        # 2.2 更新任务状态
+        TaskUpdate(
+            task_id=main_task.id,
+            status="in_progress",
+            metadata={
+                "iteration": iteration,
+                "current_goal": goal.description,
+                "agent_type": goal.agent_type
+            }
+        )
+
+    # 2.3 等待并行任务完成
+    results = wait_for_agents(parallel_tasks)
+
+
+    # ─────────────────────────────────────────────
     # Phase 3: Verify - 验证结果
-    result = verify_result()
+    # ─────────────────────────────────────────────
+    print("[Verify] 验证执行结果")
 
-    if result.passed:
-        report_success()
+    # 3.1 运行测试验证
+    test_result = run_verification_tests()
+
+    # 3.2 检查验收标准
+    acceptance_check = check_acceptance_criteria(
+        main_task.acceptance_criteria,
+        test_result
+    )
+
+    # 3.3 更新任务验证结果
+    TaskUpdate(
+        task_id=main_task.id,
+        metadata={
+            "iteration": iteration,
+            "verification_result": test_result,
+            "acceptance_passed": acceptance_check.passed,
+            "failed_criteria": acceptance_check.failed_items
+        }
+    )
+
+    # ─────────────────────────────────────────────
+    # 终止条件检查
+    # ─────────────────────────────────────────────
+
+    # 成功：所有验收标准通过
+    if acceptance_check.passed:
+        print("[完成] 所有验收标准通过")
+        TaskUpdate(
+            task_id=main_task.id,
+            status="completed",
+            metadata={"total_iterations": iteration}
+        )
+        report_success(iteration, results)
         break
 
-    if result.no_progress:
-        report_stalled()
-        ask_user_for_guidance()
-        break
+    # 无进展：连续2次相同错误
+    if is_same_error(test_result, last_feedback):
+        stalled_count += 1
+        if stalled_count >= 2:
+            print("[停滞] 连续2次无进展")
+            TaskUpdate(
+                task_id=main_task.id,
+                status="blocked",
+                metadata={
+                    "stalled_reason": test_result.error,
+                    "stalled_at_iteration": iteration
+                }
+            )
+            AskUserQuestion("任务停滞，需要指导：" + test_result.error)
+            break
+    else:
+        stalled_count = 0  # 重置计数器
 
+
+    # ─────────────────────────────────────────────
     # Phase 4: Adjust - 调整策略
-    adjust_strategy(result.feedback)
+    # ─────────────────────────────────────────────
+    print(f"[Adjust] 分析失败原因并调整策略")
+
+    # 4.1 分析失败原因
+    failure_analysis = analyze_failure(test_result, acceptance_check)
+
+    # 4.2 调整下次策略
+    adjustment_strategy = decide_next_strategy(failure_analysis)
+
+    # 4.3 记录调整策略
+    TaskUpdate(
+        task_id=main_task.id,
+        metadata={
+            "iteration": iteration,
+            "last_feedback": test_result,
+            "adjustment_strategy": adjustment_strategy,
+            "failure_reason": failure_analysis
+        }
+    )
+
+    print(f"[Adjust] 下次策略: {adjustment_strategy}")
+
+
+# ===== 循环结束清理 =====
+if iteration >= max_iterations:
+    print("[超时] 达到最大迭代次数")
+    TaskUpdate(
+        task_id=main_task.id,
+        status="failed",
+        metadata={"timeout_at_iteration": iteration}
+    )
 ```
 
 ## 执行规范
