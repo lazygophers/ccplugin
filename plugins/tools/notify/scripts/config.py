@@ -155,11 +155,6 @@ class HooksConfig:
 				play_sound: true
 				message: "{{ project_name }} 已完成"
 
-			  subagent_stop:
-				enabled: false
-				play_sound: false
-				message: "{{ project_name }} Task 已完成"
-
 			  pre_tool_use:
 				write:
 				  enabled: false
@@ -209,7 +204,6 @@ class HooksConfig:
 				message: "{{ project_name }} 接收到用户输入"
 		"""
 	stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=True, play_sound=True))
-	subagent_stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	pre_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	post_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	permission_request: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
@@ -222,7 +216,6 @@ class HooksConfig:
 	def validate(self) -> bool:
 		"""验证所有配置有效性"""
 		self.stop.validate()
-		self.subagent_stop.validate()
 		self.pre_tool_use.validate()
 		self.post_tool_use.validate()
 		self.permission_request.validate()
@@ -317,7 +310,6 @@ class HooksConfig:
 
 		return cls(
 			stop=load_hook_config(hooks_data.get("stop")),
-			subagent_stop=load_hook_config(hooks_data.get("subagent_stop")),
 			pre_tool_use=load_tool_specific_config(hooks_data.get("pre_tool_use")),
 			post_tool_use=load_tool_specific_config(hooks_data.get("post_tool_use")),
 			permission_request=load_hook_config(hooks_data.get("permission_request")),

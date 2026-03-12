@@ -255,7 +255,7 @@ def main():
 			return
 
 		# 路由到不同的处理器
-		if hook_event_name == "Stop":
+		if hook_event_name == "Stop" and "agent_transcript_path" not in input_data:
 			success, failed_dir, error_output = handle_stop()
 			if not success:
 				reason = f"代码检查失败：目录 `{failed_dir}`\n\n{error_output}"

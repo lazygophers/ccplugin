@@ -12,15 +12,27 @@ hooks:
   # ============================================================================
   # Stop Hook 配置
   # ============================================================================
-  # 触发条件: 在主 Claude Code agent 完成响应时运行。如果停止是由于用户中断而发生的，则不运行。
+  # 触发条件: 在 agent 完成响应时运行。如果停止是由于用户中断而发生的，则不运行。
+  # 通过 agent_transcript_path 字段判断类型：
+  #   - 存在 agent_transcript_path: 子代理 stop
+  #   - 不存在 agent_transcript_path: 主 agent stop
   #
-  # JSON 输入示例:
+  # JSON 输入示例（主 agent stop）:
   # {
   #   "session_id": "abc123",
   #   "transcript_path": "/path/to/transcript.jsonl",
   #   "permission_mode": "default",
   #   "hook_event_name": "Stop",
   #   "stop_hook_active": true
+  # }
+  #
+  # JSON 输入示例（子代理 stop）:
+  # {
+  #   "session_id": "abc123",
+  #   "transcript_path": "/path/to/transcript.jsonl",
+  #   "agent_transcript_path": "/path/to/agent_transcript.jsonl",
+  #   "hook_event_name": "Stop",
+  #   "subagent_type": "Task"
   # }
   stop:
     enabled: true
@@ -29,25 +41,6 @@ hooks:
       {{ project_name }} 的任务已完成
       {{ last_assistant_message }}
     # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}
-
-  # ============================================================================
-  # SubagentStop Hook 配置
-  # ============================================================================
-  # 触发条件: Task 子代理完成执行时
-  #
-  # JSON 输入示例:
-  # {
-  #   "session_id": "abc123",
-  #   "transcript_path": "/path/to/transcript.jsonl",
-  #   "hook_event_name": "SubagentStop",
-  #   "subagent_type": "Task"
-  # }
-  subagent_stop:
-    enabled: false
-    play_sound: false
-    message: |-
-      {{ project_name }} 的 Agent {{ agent_type | default('') }} 已完成任务
-    # 可用变量: {{ time_now }}, {{ session_id }}, {{ project_name }}, {{ agent_type }}, {{ subagent_type }}
 
   # ============================================================================
   # PreToolUse Hook 配置

@@ -12,8 +12,7 @@ Notify 插件支持的 Hook 事件。
 | `PreToolUse` | 工具使用前 | 工具通知 |
 | `PostToolUse` | 工具使用后 | 完成通知 |
 | `Notification` | 系统通知事件 | 权限/空闲通知 |
-| `Stop` | 会话停止 | 统计通知 |
-| `SubagentStop` | 子代理停止 | 代理通知 |
+| `Stop` | 会话或子代理停止 | 统计通知 |
 
 ## 事件详情
 
@@ -97,7 +96,11 @@ events:
 
 ### Stop
 
-会话停止时触发，显示统计信息。
+会话或子代理停止时触发，显示统计信息。
+
+**类型判断**：
+- 如果存在 `agent_transcript_path` 字段：子代理 stop
+- 如果不存在 `agent_transcript_path` 字段：主 agent stop
 
 ```yaml
 events:
@@ -105,15 +108,4 @@ events:
     notify: true
     voice: false
     stats: true
-```
-
-### SubagentStop
-
-子代理停止时触发。
-
-```yaml
-events:
-  SubagentStop:
-    notify: true
-    voice: false
 ```

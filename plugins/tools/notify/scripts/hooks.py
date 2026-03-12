@@ -85,9 +85,6 @@ def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict
 	elif event_name == "Stop":
 		return config.stop
 
-	elif event_name == "SubagentStop":
-		return config.subagent_stop
-
 	elif event_name == "PreCompact":
 		trigger = context.get("trigger", "manual") if context else "manual"
 		hook_config = config.pre_compact
@@ -179,6 +176,9 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 
 	if "subagent_type" in hook_data:
 		context["subagent_type"] = hook_data["subagent_type"]
+
+	if "agent_transcript_path" in hook_data:
+		context["agent_transcript_path"] = hook_data["agent_transcript_path"]
 
 	return context
 
