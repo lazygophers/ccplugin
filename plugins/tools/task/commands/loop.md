@@ -236,7 +236,8 @@ Agent(
   context={
     "target_files": task.metadata.target_files,
     "skills": task.metadata.skills,
-    "acceptance_criteria": task.acceptance_criteria
+    "acceptance_criteria": task.acceptance_criteria,
+    "working_directory": os.getcwd()  # 继承 leader 的工作目录
   }
 )
 
@@ -250,15 +251,29 @@ Agent(
   context={
     "target_files": task.metadata.target_files,
     "skills": task.metadata.skills,
-    "acceptance_criteria": task.acceptance_criteria
+    "acceptance_criteria": task.acceptance_criteria,
+    "working_directory": os.getcwd()  # 继承 leader 的工作目录
   }
 )
 ```
 
-**后台运行要求**：
-- 所有 agent 尽可能使用 `background=True` 在后台运行
-- 后台运行可以提升执行效率，减少主线程阻塞
-- 只有需要实时交互的 agent 才使用前台模式
+**执行要求**：
+
+1. **后台运行**：
+   - 所有 agent 尽可能使用 `background=True` 在后台运行
+   - 后台运行可以提升执行效率，减少主线程阻塞
+   - 只有需要实时交互的 agent 才使用前台模式
+
+2. **工作目录一致性**（⚠️ 必须遵守）：
+   - Agent 的工作目录必须与 team leader 完全一致
+   - 通过 `context` 传递 `working_directory: os.getcwd()`
+   - 确保 agent 访问的文件路径与 leader 相同
+   - 避免相对路径解析错误导致文件找不到
+
+   **使用 tmux 的特殊要求**：
+   - 如果使用 tmux 启动 agent，必须通过 `-c` 参数指定启动目录为 leader 的工作目录
+   - 不允许使用 tmux 的默认目录（通常是 `~`）
+   - 示例：`tmux new-session -d -s agent -c $(pwd)`
 
 **并行控制和动态队列管理**：
 
@@ -479,3 +494,7 @@ Team 清理：已在步骤 4 完成
 - 所有提问统一通过 AskUserQuestion
 - Agents 通过 SendMessage 上报问题
 - 停滞时请求用户指导，但继续循环
+- **⚠️ Agent 工作目录必须与 leader 完全一致**
+  - 每次调用 Agent 时通过 `context` 传递 `working_directory: os.getcwd()`
+  - 使用 tmux 启动时，必须通过 `-c` 参数指定 leader 的工作目录
+  - 不允许使用 tmux 默认目录或其他目录

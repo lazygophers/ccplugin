@@ -171,12 +171,17 @@ else:
 
 Agent 执行示例：
 ```
+import os
+
 # 单任务场景：直接调用
 Agent(
   subagent_type=task.metadata.agent_type,
   task=task.description,
   background=True,  # 尽可能使用后台运行
-  context={...}
+  context={
+    "working_directory": os.getcwd(),  # 继承 leader 的工作目录
+    ...
+  }
 )
 
 # 多任务场景：通过 team 调用
@@ -186,14 +191,29 @@ Agent(
   subagent_type=task.metadata.agent_type,
   task=task.description,
   background=True,  # 尽可能使用后台运行
-  context={...}
+  context={
+    "working_directory": os.getcwd(),  # 继承 leader 的工作目录
+    ...
+  }
 )
 ```
 
-**后台运行要求**：
-- 所有 agent 尽可能使用 `background=True` 在后台运行
-- 后台运行可以提升执行效率，减少主线程阻塞
-- 只有需要实时交互的 agent 才使用前台模式
+**执行要求**：
+
+1. **后台运行**：
+   - 所有 agent 尽可能使用 `background=True` 在后台运行
+   - 后台运行可以提升执行效率，减少主线程阻塞
+   - 只有需要实时交互的 agent 才使用前台模式
+
+2. **工作目录一致性**（⚠️ 必须遵守）：
+   - Agent 的工作目录必须与 team leader 完全一致
+   - 通过 `context` 传递 `working_directory: os.getcwd()`
+   - 确保 agent 访问的文件路径与 leader 相同
+
+   **使用 tmux 的特殊要求**：
+   - 如果使用 tmux 启动 agent，必须通过 `-c` 参数指定启动目录
+   - 启动目录必须是 leader 的工作目录，不允许使用默认目录或其他目录
+   - 示例：`tmux new-session -d -s agent -c $(pwd)`
 
 执行完成后清理（**必须执行**）：
 ```

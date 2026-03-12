@@ -52,6 +52,7 @@ pending → in_progress → completed
 4. **消息上报** - Agents 通过 SendMessage 向 leader 上报，leader 通过 AskUserQuestion 向用户提问
 5. **原子任务** - 每个任务必须是原子性的、不可再分的
 6. **并行控制** - 最多 2 个任务并行，不修改同一文件或模块
+7. **工作目录一致** - Agent 的工作目录必须与 leader 完全一致
 
 ## 内置工具使用规范
 
@@ -91,6 +92,37 @@ pending → in_progress → completed
 | Agent | 调用 agent 执行任务 | 需要 agent 执行具体工作时 |
 | SendMessage | 发送消息给 leader 或成员 | Agent 向 leader 上报时 |
 | AskUserQuestion | 向用户提问 | Leader 需要用户确认或指导时 |
+
+### Agent 工作目录规范
+
+**⚠️ 严格要求**：Agent 的工作目录必须与 team leader 完全一致。
+
+**实现方式**：
+```python
+import os
+
+# 每次调用 Agent 时传递工作目录
+Agent(
+  subagent_type="...",
+  task="...",
+  background=True,
+  context={
+    "working_directory": os.getcwd(),  # 继承 leader 的当前目录
+    ...
+  }
+)
+```
+
+**使用 tmux 的特殊要求**：
+- 如果使用 tmux 启动 agent，必须显式指定启动目录为 leader 的工作目录
+- 不允许使用 tmux 的默认目录（通常是 `~`）
+- 不允许使用其他任何目录
+- 示例：`tmux new-session -d -s agent-session -c /path/to/leader/directory`
+
+**原因**：
+- 确保 agent 访问的相对路径与 leader 相同
+- 避免 "文件找不到" 错误
+- 保证任务执行的一致性
 
 ## 任务元数据规范
 

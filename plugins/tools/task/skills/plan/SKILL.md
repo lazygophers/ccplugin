@@ -95,19 +95,23 @@ Skills 来源：
 
 如果任务复杂需要辅助规划：
 ```
+import os
+
 Agent(
   subagent_type="planner",  # 使用规划类 agent
   task="分析任务复杂度并建议分解方案",
   background=True,  # 尽可能使用后台运行
   context={
     "main_task": "...",
-    "collected_info": "..."
+    "collected_info": "...",
+    "working_directory": os.getcwd()  # 继承 leader 的工作目录
   }
 )
 ```
 
-**后台运行要求**：
+**执行要求**：
 - 所有 agent 尽可能使用 `background=True` 在后台运行
+- Agent 的工作目录必须与 leader 完全一致（通过 `working_directory` 传递）
 - 后台运行可以提升执行效率，减少主线程阻塞
 
 Agent 通过 SendMessage 上报规划建议给 leader。
