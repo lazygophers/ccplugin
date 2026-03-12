@@ -33,14 +33,18 @@ context: fork
 使用工具：Agent
 
 调用场景：
-- 需要深度分析代码结构时，使用 Agent(subagent_type='Explore')
-- 需要研究特定技术栈时，使用相关技术栈的 agent
+- 需要深度分析代码结构时，使用 Agent(subagent_type='Explore', background=True)
+- 需要研究特定技术栈时，使用相关技术栈的 agent（background=True）
 
 Agent 执行内容：
 - 分析项目架构
 - 识别相关模块和文件
 - 理解现有实现方式
 - 识别技术约束
+
+**后台运行要求**：
+- 所有 agent 尽可能使用 `background=True` 在后台运行
+- 后台运行可以提升执行效率，减少主线程阻塞
 
 ### 3. 确认不确定部分
 

@@ -48,6 +48,7 @@ else:
 Agent(
   subagent_type=task.metadata.agent_type,
   task=task.description,
+  background=True,  # 尽可能使用后台运行
   context={
     "target_files": task.metadata.target_files,
     "skills": task.metadata.skills,
@@ -63,6 +64,7 @@ Agent(
   name=f"executor-{task_id}",
   subagent_type=task.metadata.agent_type,
   task=task.description,
+  background=True,  # 尽可能使用后台运行
   context={
     "target_files": task.metadata.target_files,
     "skills": task.metadata.skills,
@@ -70,6 +72,11 @@ Agent(
   }
 )
 ```
+
+**后台运行要求**：
+- 所有 agent 尽可能使用 `background=True` 在后台运行
+- 后台运行可以提升执行效率，减少主线程阻塞
+- 只有需要实时交互的 agent 才使用前台模式
 
 Agent 职责：
 - 执行具体的任务实现

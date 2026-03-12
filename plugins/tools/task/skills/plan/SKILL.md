@@ -98,12 +98,17 @@ Skills 来源：
 Agent(
   subagent_type="planner",  # 使用规划类 agent
   task="分析任务复杂度并建议分解方案",
+  background=True,  # 尽可能使用后台运行
   context={
     "main_task": "...",
     "collected_info": "..."
   }
 )
 ```
+
+**后台运行要求**：
+- 所有 agent 尽可能使用 `background=True` 在后台运行
+- 后台运行可以提升执行效率，减少主线程阻塞
 
 Agent 通过 SendMessage 上报规划建议给 leader。
 
