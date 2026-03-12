@@ -1,18 +1,17 @@
 ---
 name: memory
 description: |
+	Intelligent memory system with hooks integration. Automatically manages memories
+	across sessions with smart loading, recording, and saving capabilities.
+
+	Use this skill to:
+	- Read stored memories by URI path
+	- Create new memories with priority and disclosure
+	- Update existing memories
+	- Search memories by keyword
+	- View memory index and recent changes
 user-invocable: true
 context: fork
-  Intelligent memory system with hooks integration. Automatically manages memories 
-  across sessions with smart loading, recording, and saving capabilities.
-  
-  Use this skill to:
-  - Read stored memories by URI path
-  - Create new memories with priority and disclosure
-  - Update existing memories
-  - Search memories by keyword
-  - View memory index and recent changes
-  
 auto-activate: always:true
 model: sonnet
 memory: project
