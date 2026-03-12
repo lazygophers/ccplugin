@@ -43,8 +43,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.156"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#03dd1161491834bcf51706988bb9f744d83adf4b" }
+version = "0.0.157"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#4d27981ea909cb94e09b2194ed1adc478647f546" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
@@ -298,7 +298,7 @@ wheels = [
 
 [[package]]
 name = "theme-style-highcontrast"
-version = "0.0.156"
+version = "0.0.157"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
