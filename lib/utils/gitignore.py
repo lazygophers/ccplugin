@@ -46,9 +46,6 @@ def add_gitignore_rule(rule: str, file_path: str = get_project_plugins_gitignore
 	if rule in existing_rules:
 		return False
 
-	if os.path.exists(os.path.dirname(file_path)):
-		os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
 	os.makedirs(os.path.dirname(file_path), exist_ok=True)
 	with open(file_path, 'a', encoding='utf-8') as f:
 		f.write(rule + '\n')

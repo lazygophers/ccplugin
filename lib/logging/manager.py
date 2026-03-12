@@ -171,18 +171,14 @@ class RichLoggerManager:
 			message: 日志消息
 			color: 颜色标签
 		"""
-		timestamp = datetime.now().strftime("%M:%S")
+		timestamp = datetime.now().strftime("%H:%M:%S")
 		formatted = f"{self._get_app()} [{color}]{level}[/{color}] [{timestamp}] [dim]{self._get_caller_info(skip=4)}[/dim] {message}"
 
 		# 写入文件
 		self._write_to_file(formatted)
 
 		# 如果启用控制台输出（DEBUG 模式），所有日志都输出到控制台
-		if self.console_output_enabled:
-			if self.console_console:
-				self.console_console.print(formatted)
-		elif level in ("ERROR"):
-			# 错误级别始终输出到控制台
+		if self.console_output_enabled or level == "ERROR":
 			if self.console_console:
 				self.console_console.print(formatted)
 
@@ -197,15 +193,7 @@ class RichLoggerManager:
 		# 检查是否需要轮转文件
 		if self._last_hour != current_hour:
 			self._last_hour = current_hour
-			# 关闭旧文件
-			if hasattr(self.file_console, "file") and self.file_console.file:
-				self.file_console.file.close()
-
-			# 打开新文件
-			new_file = open(str(self._get_log_file()), "a", encoding="utf-8")
-			self.file_console.file = new_file
-			self._cleanup_old_logs()
-			self._update_symlink()
+			self._rotate_log_file()
 
 		# 写入日志
 		self.file_console.print(message)
@@ -214,6 +202,16 @@ class RichLoggerManager:
 		if hasattr(self.file_console, "file") and self.file_console.file:
 			self.file_console.file.flush()
 
+	def _rotate_log_file(self) -> None:
+		"""轮转日志文件到新的小时文件。"""
+		# 关闭旧文件
+		if hasattr(self.file_console, "file") and self.file_console.file:
+			self.file_console.file.close()
+
+		# 打开新文件
+		new_file = open(str(self._get_log_file()), "a", encoding="utf-8")
+		self.file_console.file = new_file
+		self._cleanup_old_logs()
 		self._update_symlink()
 
 	def _get_current_hour(self) -> str:
@@ -284,4 +282,4 @@ def warn(message: str) -> None:
 
 def warning(message: str) -> None:
 	"""记录 WARNING 级别日志。"""
-	_get_logger().warn(message)
+	warn(message)

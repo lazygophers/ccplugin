@@ -2,11 +2,10 @@ import json
 import logging
 import os.path
 import sys
+from typing import Any
 
-from lib.utils import get_plugins_path
 
-
-def _truncate_value_for_log(value: any, max_length: int = 100) -> any:
+def _truncate_value_for_log(value: Any, max_length: int = 100) -> Any:
 	"""递归截断值用于日志输出，避免日志过长
 
 	Args:
@@ -53,7 +52,7 @@ def load_hooks():
 		# 处理公共逻辑
 		if event_name == "SessionStart":
 			logging.info("load_hooks: 处理 SessionStart 事件")
-			plugins_path = get_plugins_path()
+			plugins_path = os.getenv("CLAUDE_PLUGIN_ROOT")
 			logging.info(f"load_hooks: plugins_path = {plugins_path}")
 			if plugins_path is None:
 				logging.debug("CLAUDE_PLUGIN_ROOT 未设置，跳过 AGENT.md 处理")

@@ -2,28 +2,27 @@ import os
 
 
 class Env:
-	"""
-	环境变量
-	"""
+	"""环境变量管理类。"""
 	app_name: str = os.getenv("PLUGIN_NAME", default="")
-
-	def __init__(self):
-		pass
 
 	@classmethod
 	def set_app(cls, name: str) -> None:
+		"""设置应用名称。"""
 		cls.app_name = name
 
 	@classmethod
 	def get_app_name(cls) -> str:
+		"""获取应用名称。"""
 		return cls.app_name
 
 
 def set_app(name: str) -> None:
+	"""设置应用名称（便捷函数）。"""
 	Env.set_app(name)
 
 
 def get_app_name() -> str:
+	"""获取应用名称（便捷函数）。"""
 	return Env.get_app_name()
 
 
