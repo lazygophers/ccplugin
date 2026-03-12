@@ -5,7 +5,7 @@
 对于 commands、skills、agents、agent.md 的优化、简化，必须通过以下命令检查 AI 是否可以正确理解识别，是否符合预期：
 
 ```bash
-claude --settings ~/.claude/settings.glm-4.5-flash.json -p "<待测试的内容>" --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result' | tr -d '\n'
+claude --settings ~/.claude/settings.glm-4.5-flash.json -p "<待测试的内容>" --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```
 
 ### 使用说明：
