@@ -14,6 +14,7 @@ import json
 import subprocess
 from pathlib import Path
 from typing import NamedTuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import tomlkit
 from rich.console import Console
 from lib.utils import print_help
@@ -38,6 +39,10 @@ VERSION_PARTS_WITH_BUILD = 4
 # Subprocess configuration
 SUBPROCESS_TIMEOUT = 120
 CCPLUGIN_REPO_URL = "git+https://github.com/lazygophers/ccplugin.git@master"
+
+# Concurrency settings
+MAX_WORKERS = 4  # Maximum concurrent file updates
+MAX_UV_WORKERS = 2  # Maximum concurrent uv lock updates (resource-intensive)
 
 # File patterns
 PLUGIN_JSON_PATTERN = "**/.claude-plugin/plugin.json"
@@ -119,8 +124,37 @@ def increment_version(version_str: str, include_build: bool = False) -> str:
     return format_version(major, minor, new_patch, build)
 
 
+def _update_single_plugin_json(plugin_json_path: Path, plugins_dir: Path, new_version: str) -> dict:
+    """Update a single plugin.json file.
+
+    Args:
+            plugin_json_path: Path to plugin.json file
+            plugins_dir: Base plugins directory for relative path calculation
+            new_version: New version string to set
+
+    Returns:
+            Dict with 'success' (bool), 'path' (str), and optional 'error' (str)
+    """
+    try:
+        relative_path = plugin_json_path.relative_to(plugins_dir).parent.parent
+
+        with open(plugin_json_path, "r", encoding="utf-8") as f:
+            plugin_data = json.load(f)
+
+        plugin_data["version"] = new_version
+
+        with open(plugin_json_path, "w", encoding="utf-8") as f:
+            json.dump(plugin_data, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+
+        return {"success": True, "path": str(relative_path)}
+    except Exception as e:
+        relative_path = plugin_json_path.relative_to(plugins_dir).parent.parent
+        return {"success": False, "path": str(relative_path), "error": str(e)}
+
+
 def update_plugin_versions(plugins_dir: Path, new_version: str) -> VersionUpdateResult:
-    """Update all plugin.json files under plugins directory.
+    """Update all plugin.json files under plugins directory (concurrent).
 
     Args:
             plugins_dir: Path to plugins directory
@@ -134,21 +168,18 @@ def update_plugin_versions(plugins_dir: Path, new_version: str) -> VersionUpdate
 
     plugin_jsons = list(plugins_dir.glob(PLUGIN_JSON_PATTERN))
 
-    for plugin_json_path in sorted(plugin_jsons):
-        relative_path = plugin_json_path.relative_to(plugins_dir).parent.parent
-        try:
-            with open(plugin_json_path, "r", encoding="utf-8") as f:
-                plugin_data = json.load(f)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(_update_single_plugin_json, p, plugins_dir, new_version): p
+            for p in plugin_jsons
+        }
 
-            plugin_data["version"] = new_version
-
-            with open(plugin_json_path, "w", encoding="utf-8") as f:
-                json.dump(plugin_data, f, ensure_ascii=False, indent=2)
-                f.write("\n")
-
-            updated.append(str(relative_path))
-        except Exception as e:
-            failed.append({"path": str(relative_path), "error": str(e)})
+        for future in as_completed(futures):
+            result = future.result()
+            if result["success"]:
+                updated.append(result["path"])
+            else:
+                failed.append({"path": result["path"], "error": result.get("error", "Unknown error")})
 
     return VersionUpdateResult(updated, failed)
 
@@ -180,10 +211,49 @@ def find_pyproject_paths(base_dir: Path) -> list[Path]:
     return pyproject_paths
 
 
+def _update_single_pyproject(pyproject_path: Path, base_dir: Path, new_version: str) -> dict:
+    """Update a single pyproject.toml file.
+
+    Args:
+            pyproject_path: Path to pyproject.toml file
+            base_dir: Project base directory for relative path calculation
+            new_version: New version string to set
+
+    Returns:
+            Dict with 'success' (bool), 'path' (str), and optional 'error' (str)
+    """
+    try:
+        with open(pyproject_path, "r", encoding="utf-8") as f:
+            data = tomlkit.load(f)
+
+        if "project" not in data:
+            relative_path = pyproject_path.relative_to(base_dir)
+            return {
+                "success": False,
+                "path": str(relative_path),
+                "error": "[project] section not found",
+            }
+
+        data["project"]["version"] = new_version
+
+        with open(pyproject_path, "w", encoding="utf-8") as f:
+            tomlkit.dump(data, f)
+
+        relative_path = pyproject_path.relative_to(base_dir)
+        return {"success": True, "path": str(relative_path)}
+
+    except FileNotFoundError:
+        relative_path = pyproject_path.relative_to(base_dir)
+        return {"success": False, "path": str(relative_path), "error": "File not found"}
+    except Exception as e:
+        relative_path = pyproject_path.relative_to(base_dir)
+        return {"success": False, "path": str(relative_path), "error": str(e)}
+
+
 def update_pyproject_versions(
     base_dir: Path, pyproject_paths: list[Path], new_version: str
 ) -> VersionUpdateResult:
-    """Update version in all pyproject.toml files.
+    """Update version in all pyproject.toml files (concurrent).
 
     Args:
             base_dir: Project base directory for relative paths
@@ -196,32 +266,18 @@ def update_pyproject_versions(
     updated = []
     failed = []
 
-    for pyproject_path in pyproject_paths:
-        try:
-            with open(pyproject_path, "r", encoding="utf-8") as f:
-                data = tomlkit.load(f)
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(_update_single_pyproject, p, base_dir, new_version): p
+            for p in pyproject_paths
+        }
 
-            if "project" not in data:
-                relative_path = pyproject_path.relative_to(base_dir)
-                failed.append(
-                    {"path": str(relative_path), "error": "[project] section not found"}
-                )
-                continue
-
-            data["project"]["version"] = new_version
-
-            with open(pyproject_path, "w", encoding="utf-8") as f:
-                tomlkit.dump(data, f)
-
-            relative_path = pyproject_path.relative_to(base_dir)
-            updated.append(str(relative_path))
-
-        except FileNotFoundError:
-            relative_path = pyproject_path.relative_to(base_dir)
-            failed.append({"path": str(relative_path), "error": "File not found"})
-        except Exception as e:
-            relative_path = pyproject_path.relative_to(base_dir)
-            failed.append({"path": str(relative_path), "error": str(e)})
+        for future in as_completed(futures):
+            result = future.result()
+            if result["success"]:
+                updated.append(result["path"])
+            else:
+                failed.append({"path": result["path"], "error": result.get("error", "Unknown error")})
 
     return VersionUpdateResult(updated, failed)
 
@@ -287,8 +343,81 @@ def run_plugin_check(project_dir: Path, base_dir: Path, console: Console) -> Non
         raise RuntimeError(f"Unexpected error in {rel_path}: {e}") from e
 
 
+def _run_single_uv_update(project_dir: Path, base_dir: Path) -> dict:
+    """Run uv lock -U and uv sync in a single project directory.
+
+    Args:
+            project_dir: Directory containing pyproject.toml
+            base_dir: Project base directory for relative path display
+
+    Returns:
+            Dict with 'success' (bool), 'path' (str), and optional 'error' (str) or 'output' (str)
+    """
+    rel_path = (
+        project_dir.relative_to(base_dir) if project_dir.is_absolute() else project_dir
+    )
+
+    try:
+        # Run uv lock -U
+        result = subprocess.run(
+            ["uv", "lock", "-U"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+        )
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "path": str(rel_path),
+                "error": f"uv lock -U failed: {result.stderr}",
+            }
+
+        # Run uv sync
+        result = subprocess.run(
+            ["uv", "sync"],
+            cwd=project_dir,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT,
+        )
+        if result.returncode != 0:
+            return {
+                "success": False,
+                "path": str(rel_path),
+                "error": f"uv sync failed: {result.stderr}",
+            }
+
+        # Run check if plugin.json exists
+        plugin_json = project_dir / ".claude-plugin" / "plugin.json"
+        if plugin_json.exists():
+            if rel_path in SKIP_UVX_CHECK_DIRS:
+                return {"success": True, "path": str(rel_path), "output": "Skipped check (configured skip)"}
+
+            result = subprocess.run(
+                ["uvx", "--from", CCPLUGIN_REPO_URL, "check"],
+                cwd=project_dir,
+                capture_output=True,
+                text=True,
+                timeout=SUBPROCESS_TIMEOUT,
+            )
+            if result.returncode != 0:
+                return {
+                    "success": False,
+                    "path": str(rel_path),
+                    "error": f"check failed: {result.stderr}",
+                }
+
+        return {"success": True, "path": str(rel_path)}
+
+    except subprocess.TimeoutExpired as e:
+        return {"success": False, "path": str(rel_path), "error": f"Command timed out: {e}"}
+    except Exception as e:
+        return {"success": False, "path": str(rel_path), "error": f"Unexpected error: {e}"}
+
+
 def update_uv_locks(pyproject_paths: list[Path], base_dir: Path) -> VersionUpdateResult:
-    """Run 'uv lock -U' in each directory containing pyproject.toml.
+    """Run 'uv lock -U' in each directory containing pyproject.toml (concurrent).
 
     Args:
             pyproject_paths: List of pyproject.toml file paths
@@ -301,21 +430,44 @@ def update_uv_locks(pyproject_paths: list[Path], base_dir: Path) -> VersionUpdat
             RuntimeError: If any uv update fails (exits immediately)
     """
     updated = []
+    failed = []
     processed_dirs = set()
 
+    # Get unique project directories
+    project_dirs = []
     for pyproject_path in pyproject_paths:
         project_dir = pyproject_path.parent
+        if project_dir not in processed_dirs:
+            processed_dirs.add(project_dir)
+            project_dirs.append(project_dir)
 
-        if project_dir in processed_dirs:
-            continue
+    # Process concurrently with limited workers (uv operations are resource-intensive)
+    with ThreadPoolExecutor(max_workers=MAX_UV_WORKERS) as executor:
+        futures = {
+            executor.submit(_run_single_uv_update, p, base_dir): p
+            for p in project_dirs
+        }
 
-        processed_dirs.add(project_dir)
+        for future in as_completed(futures):
+            result = future.result()
+            rel_path = result["path"]
 
-        run_plugin_check(project_dir, base_dir, console)
-        rel_path = project_dir.relative_to(base_dir)
-        updated.append(str(rel_path))
+            if result["success"]:
+                console.print(f"  [green]✓[/green] {rel_path}")
+                updated.append(rel_path)
+                if "output" in result:
+                    console.print(f"    {result['output']}")
+            else:
+                console.print(f"  [red]✗[/red] {rel_path}")
+                console.print(f"    Error: {result['error']}")
+                failed.append({"path": rel_path, "error": result["error"]})
 
-    return VersionUpdateResult(updated, [])
+    if failed:
+        # Collect all errors and raise at the end
+        error_messages = [f"{f['path']}: {f['error']}" for f in failed]
+        raise RuntimeError(f"UV update failed in {len(failed)} directories:\n" + "\n".join(error_messages))
+
+    return VersionUpdateResult(updated, failed)
 
 
 def update_marketplace(marketplace_path: Path, new_version: str) -> None:

@@ -298,7 +298,7 @@ wheels = [
 
 [[package]]
 name = "theme-style-retro"
-version = "0.0.152"
+version = "0.0.153"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
