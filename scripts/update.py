@@ -393,6 +393,86 @@ def get_latest_versions_from_marketplace() -> dict[str, str]:
     return latest_versions
 
 
+def cleanup_old_plugin_versions(
+    all_plugins: list[dict[str, Any]],
+    dry_run: bool = False,
+) -> int:
+    """清理旧版本的插件安装记录.
+
+    Args:
+            all_plugins: 更新后的所有插件列表
+            dry_run: 如果为 True，仅显示将要执行的操作
+
+    Returns:
+            清理的旧版本数量
+    """
+    from pathlib import Path
+
+    installed_json = Path.home() / ".claude" / "plugins" / "installed_plugins.json"
+
+    if not installed_json.exists():
+        return 0
+
+    try:
+        with open(installed_json, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return 0
+
+    plugins_data = data.get("plugins", {})
+    if not plugins_data:
+        return 0
+
+    total_cleaned = 0
+
+    # 遍历所有插件，找出需要清理的旧版本
+    for plugin in all_plugins:
+        plugin_id = plugin.get("id", "")
+        if not plugin_id:
+            continue
+
+        installations = plugins_data.get(plugin_id, [])
+        if not installations:
+            continue
+
+        # 找出每个 plugin_id 对应的最新版本
+        version_to_install = plugin.get("version", "")
+        if not version_to_install:
+            continue
+
+        # 找出需要删除的旧版本记录
+        to_remove = []
+        to_keep = []
+
+        for install in installations:
+            version = install.get("version", "")
+            if version != version_to_install:
+                to_remove.append(install)
+            else:
+                to_keep.append(install)
+
+        if not to_remove:
+            continue
+
+        if dry_run:
+            console.print(
+                f"[dim][DRY RUN] Would clean up {len(to_remove)} old version(s) of {plugin_id}[/dim]"
+            )
+            total_cleaned += len(to_remove)
+            continue
+
+        # 更新安装记录
+        plugins_data[plugin_id] = to_keep
+        total_cleaned += len(to_remove)
+
+    if total_cleaned > 0 and not dry_run:
+        # 写回文件
+        with open(installed_json, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+    return total_cleaned
+
+
 def run_claude_plugin_command(
     command: str,
     plugin_key: str,
@@ -732,6 +812,27 @@ def update_plugins_concurrent(
                     update_outputs.append((plugin_name, False, str(e)))
 
                 progress.advance(task)
+
+    # 清理旧版本的插件
+    if not dry_run and not quiet:
+        # 重新获取更新后的插件列表，以获取最新版本号
+        updated_plugins = get_plugins_list(enabled_only=True)
+
+        if updated_plugins:
+            with create_progress_bar(console, quiet, len(updated_plugins)) as progress:
+                task = progress.add_task(
+                    "[cyan]Cleaning up old versions...[/cyan]", total=len(updated_plugins)
+                )
+
+                cleaned_total = cleanup_old_plugin_versions(updated_plugins, dry_run)
+                if cleaned_total > 0:
+                    stats.add_message(
+                        "info",
+                        f"Cleaned up [cyan]{cleaned_total}[/cyan] old version(s) in total",
+                    )
+                    progress.update(task, completed=len(updated_plugins))
+                else:
+                    progress.update(task, completed=len(updated_plugins))
 
     return update_outputs
 
