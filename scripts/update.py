@@ -19,7 +19,7 @@ import tempfile
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, NamedTuple
 
 from rich import box
 from rich.console import Console
@@ -48,6 +48,7 @@ from lib.utils.constants import (
 # Concurrency settings
 MAX_MARKET_WORKERS = 3  # Maximum concurrent marketplace updates
 MAX_PLUGIN_WORKERS = 5  # Maximum concurrent plugin updates
+MAX_ENABLE_WORKERS = 3  # Maximum concurrent plugin enables
 MAX_UV_WORKERS = 4  # Maximum concurrent uv sync operations
 
 
@@ -525,6 +526,58 @@ def get_marketplace_list() -> list[dict[str, str]]:
     return []
 
 
+class InitialData(NamedTuple):
+    """Container for initial data fetched concurrently."""
+
+    enabled_plugins: list[dict[str, Any]]
+    all_plugins: list[dict[str, Any]] | None
+    marketplaces: list[dict[str, str]]
+
+
+def fetch_initial_data_concurrent(
+    auto_enable: bool,
+) -> InitialData:
+    """Fetch initial plugin and marketplace data concurrently.
+
+    Args:
+            auto_enable: If True, also fetch all plugins (including disabled ones)
+
+    Returns:
+            InitialData containing enabled_plugins, all_plugins (None if auto_enable=False),
+            and marketplaces
+    """
+    enabled_plugins: list[dict[str, Any]] = []
+    all_plugins: list[dict[str, Any]] | None = None
+    marketplaces: list[dict[str, str]] = []
+
+    def _get_enabled() -> None:
+        nonlocal enabled_plugins
+        enabled_plugins = get_plugins_list(enabled_only=True)
+
+    def _get_all() -> None:
+        nonlocal all_plugins
+        all_plugins = get_plugins_list(enabled_only=False)
+
+    def _get_markets() -> None:
+        nonlocal marketplaces
+        marketplaces = get_marketplace_list()
+
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [executor.submit(_get_enabled), executor.submit(_get_markets)]
+
+        if auto_enable:
+            futures.append(executor.submit(_get_all))
+
+        for future in as_completed(futures):
+            future.result()  # Wait for completion, results stored in nonlocal vars
+
+    return InitialData(
+        enabled_plugins=enabled_plugins,
+        all_plugins=all_plugins,
+        marketplaces=marketplaces,
+    )
+
+
 def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -> bool:
     """Update marketplace using 'claude plugin marketplace update' command.
 
@@ -728,6 +781,50 @@ def enable_plugin(plugin_id: str, dry_run: bool = False) -> bool:
     return result.returncode == 0
 
 
+def enable_plugins_concurrent(
+    plugins: list[dict[str, Any]], stats: UpdateStats, dry_run: bool = False, quiet: bool = False
+) -> None:
+    """Enable plugins concurrently.
+
+    Args:
+            plugins: List of plugin info dicts
+            stats: Statistics object to track results
+            dry_run: If True, show what would be done without making changes
+            quiet: Whether to disable progress display
+    """
+    if not plugins:
+        return
+
+    with create_progress_bar(console, quiet, len(plugins)) as progress:
+        task = progress.add_task(
+            "[cyan]Enabling plugins...[/cyan]", total=len(plugins)
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_ENABLE_WORKERS) as executor:
+            futures = {
+                executor.submit(
+                    enable_plugin, p.get("id", "unknown"), dry_run
+                ): p
+                for p in plugins
+            }
+
+            for future in as_completed(futures):
+                plugin = futures[future]
+                plugin_id = plugin.get("id", "unknown")
+                plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
+                success = future.result()
+                if success:
+                    stats.add_message("success", f"Enabled plugin: {plugin_name}")
+                else:
+                    stats.add_message(
+                        "error", f"Failed to enable plugin: {plugin_name}"
+                    )
+                progress.update(
+                    task, description=f"[cyan]Enabled {plugin_name}[/cyan]"
+                )
+                progress.advance(task)
+
+
 def create_plugin_table(plugins: list[dict[str, Any]]) -> Table:
     """Create a rich table for displaying plugins."""
     table = Table(
@@ -837,6 +934,24 @@ def update_plugins_concurrent(
     return update_outputs
 
 
+def fetch_verification_data_concurrent() -> tuple[dict[str, str], list[dict[str, Any]]]:
+    """Concurrently fetch latest versions and enabled plugins for verification.
+
+    Returns:
+        Tuple of (latest_versions, enabled_plugins) where:
+        - latest_versions: Dict mapping plugin_id to latest version string
+        - enabled_plugins: List of enabled plugin info dicts
+    """
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_versions = executor.submit(get_latest_versions_from_marketplace)
+        future_plugins = executor.submit(get_plugins_list, True)
+
+        latest_versions = future_versions.result()
+        enabled_plugins = future_plugins.result()
+
+    return latest_versions, enabled_plugins
+
+
 def verify_versions(
     enabled_plugins: list[dict[str, Any]],
     latest_versions: dict[str, str],
@@ -942,31 +1057,16 @@ def main() -> int:
             console.print(
                 f"[yellow]Found {len(disabled_plugins)} disabled plugin(s)[/yellow]"
             )
-            with create_progress_bar(
-                console, args.quiet, len(disabled_plugins)
-            ) as progress:
-                task = progress.add_task(
-                    "[cyan]Enabling plugins...[/cyan]", total=len(disabled_plugins)
-                )
-                for plugin in disabled_plugins:
-                    plugin_id = plugin.get("id", "")
-                    plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
-                    progress.update(
-                        task, description=f"[cyan]Enabling {plugin_name}...[/cyan]"
-                    )
-                    if enable_plugin(plugin_id, dry_run=args.dry_run):
-                        stats.add_message("success", f"Enabled plugin: {plugin_name}")
-                    else:
-                        stats.add_message(
-                            "error", f"Failed to enable plugin: {plugin_name}"
-                        )
-                    progress.advance(task)
+            enable_plugins_concurrent(disabled_plugins, stats, dry_run=args.dry_run, quiet=args.quiet)
             console.print()
         else:
             console.print("[green]All plugins are already enabled[/green]")
             console.print()
 
-    enabled_plugins = get_plugins_list(enabled_only=True)
+    # Fetch initial data concurrently
+    initial_data = fetch_initial_data_concurrent(auto_enable=False)
+    enabled_plugins = initial_data.enabled_plugins
+    marketplaces = initial_data.marketplaces
 
     plugin_count_text = Text()
     plugin_count_text.append("Found ")
@@ -988,7 +1088,6 @@ def main() -> int:
     console.print(create_plugin_table(enabled_plugins))
     console.print()
 
-    marketplaces = get_marketplace_list()
     market_count_text = Text()
     market_count_text.append("Found ")
     market_count_text.append(str(len(marketplaces)), style="bold blue")
@@ -1059,8 +1158,7 @@ def main() -> int:
             Rule(title="[bold cyan]Verifying Versions[/bold cyan]", style="cyan")
         )
 
-        latest_versions = get_latest_versions_from_marketplace()
-        enabled_plugins = get_plugins_list(enabled_only=True)
+        latest_versions, enabled_plugins = fetch_verification_data_concurrent()
 
         market_check_passed = verify_versions(enabled_plugins, latest_versions, stats)
 

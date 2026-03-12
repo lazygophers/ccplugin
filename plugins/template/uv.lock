@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin-template"
-version = "0.0.157"
+version = "0.0.158"
 source = { editable = "." }
 dependencies = [
     { name = "lib" },
