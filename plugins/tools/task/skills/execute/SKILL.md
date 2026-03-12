@@ -18,14 +18,50 @@ context: fork
 
 ## 执行步骤
 
+### 0. 判断是否创建团队
+
+使用工具：TaskList, TeamCreate
+
+```
+tasks = TaskList()
+pending_tasks = [t for t in tasks if t.status == "pending"]
+
+if len(pending_tasks) > 1:
+    # 多任务，创建 team
+    team_id = TeamCreate(
+        name="task-execution-team",
+        goal="执行多个并行/串行任务"
+    )
+else:
+    # 单任务，不创建 team
+    team_id = None
+```
+
 ### 1. 调用 Agent 执行任务
 
 使用工具：Agent
 
-根据任务的 metadata.agent_type 调用相应的 agent：
+根据任务数量选择调用方式：
+
+**单任务场景**（不创建 team）：
 ```
 Agent(
-  subagent_type=task.metadata.agent_type,  # 如 "coder", "tester"
+  subagent_type=task.metadata.agent_type,
+  task=task.description,
+  context={
+    "target_files": task.metadata.target_files,
+    "skills": task.metadata.skills,
+    "acceptance_criteria": task.acceptance_criteria
+  }
+)
+```
+
+**多任务场景**（通过 team）：
+```
+Agent(
+  team_name="task-execution-team",
+  name=f"executor-{task_id}",
+  subagent_type=task.metadata.agent_type,
   task=task.description,
   context={
     "target_files": task.metadata.target_files,
@@ -177,6 +213,17 @@ TaskUpdate(
 总进度：1/4 (25%)
 ```
 
+## 执行完成后清理
+
+使用工具：TeamDelete
+
+```
+# 删除团队（如果创建了）
+if team_id is not None:
+    TeamDelete(team_id)
+    team_id = None
+```
+
 ## 输出要求
 
 任务执行完成后：
@@ -184,6 +231,7 @@ TaskUpdate(
 2. 失败任务已记录失败原因
 3. 进度信息已输出
 4. Agent 已通过 SendMessage 上报结果
+5. **Team 已删除**（如果创建了）
 
 ## 注意事项
 

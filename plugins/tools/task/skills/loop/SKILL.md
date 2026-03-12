@@ -26,12 +26,6 @@ context: fork
 Loop 开始时执行一次：
 
 ```
-# 创建团队
-TeamCreate(
-  name="task-execution-team",
-  goal="完成用户指定的任务目标"
-)
-
 # 创建主任务
 TaskCreate(
   title="Loop 主任务",
@@ -43,6 +37,7 @@ TaskCreate(
 iteration = 0
 stalled_count = 0  # 停滞计数器
 max_stalled_attempts = 3  # 最多允许 3 次停滞
+team_id = None  # 团队 ID，仅在执行多任务时创建
 ```
 
 ## 步骤 1：信息收集
@@ -122,24 +117,58 @@ max_stalled_attempts = 3  # 最多允许 3 次停滞
 使用 Skills(task:execute) 规范执行。
 
 执行内容：
-- 使用 TaskList 获取待执行任务
-- 使用 TaskGet 检查依赖关系
-- 使用 Agent 调用相应的 agent 执行任务
-- 并行/串行调度（最多 2 个并行，文件无交集）
-- 使用 TaskUpdate 更新任务状态
-- 处理 SendMessage（接收 agent 上报）
+1. 使用 TaskList 获取待执行任务
+2. 判断任务数量：
+   - 如果只有 1 个任务：直接使用 Agent 执行，不创建 team
+   - 如果有多个任务：创建 team 管理并行/串行执行
+3. 使用 TaskGet 检查依赖关系
+4. 使用 Agent 调用相应的 agent 执行任务
+5. 并行/串行调度（最多 2 个并行，文件无交集）
+6. 使用 TaskUpdate 更新任务状态
+7. 处理 SendMessage（接收 agent 上报）
+8. **执行完成后删除 team**（如果创建了）
+
+TeamCreate 逻辑：
+```
+tasks = TaskList()
+pending_tasks = [t for t in tasks if t.status == "pending"]
+
+if len(pending_tasks) > 1:
+    # 多任务，创建 team
+    team_id = TeamCreate(
+        name="task-execution-team",
+        goal="执行多个并行/串行任务"
+    )
+else:
+    # 单任务，不创建 team
+    team_id = None
+```
 
 Agent 执行示例：
 ```
+# 单任务场景：直接调用
 Agent(
   subagent_type=task.metadata.agent_type,
   task=task.description,
-  context={
-    "target_files": task.metadata.target_files,
-    "skills": task.metadata.skills,
-    "acceptance_criteria": task.acceptance_criteria
-  }
+  context={...}
 )
+
+# 多任务场景：通过 team 调用
+Agent(
+  team_name="task-execution-team",
+  name=f"executor-{task_id}",
+  subagent_type=task.metadata.agent_type,
+  task=task.description,
+  context={...}
+)
+```
+
+执行完成后清理：
+```
+# 删除团队（如果创建了）
+if team_id is not None:
+    TeamDelete(team_id)
+    team_id = None
 ```
 
 实时输出进度：
@@ -237,16 +266,18 @@ if stalled_count >= max_stalled_attempts:
 ### 团队生命周期
 
 ```
-Loop 开始：
-  TeamCreate(name="task-execution-team", goal="...")
+步骤 4（任务执行）开始：
+  判断任务数量
+  如果有多个任务：TeamCreate(name="task-execution-team", goal="...")
+  如果只有 1 个任务：不创建 team
 
-Loop 执行中：
-  每个步骤调用 Agent 生成 members
+步骤 4 执行中：
+  调用 Agent 执行任务（单任务直接调用，多任务通过 team）
   Members 通过 SendMessage 上报给 leader
   Leader 处理消息并决策
 
-Loop 结束：
-  TeamDelete(team_id)
+步骤 4 结束：
+  如果创建了 team：TeamDelete(team_id)
 ```
 
 ### Leader 职责
@@ -291,10 +322,8 @@ Loop 结束：
 
 Loop 结束时：
 ```
-# 删除团队
-TeamDelete(team_id)
-
 # 输出最终报告
+# 注意：team 已在步骤 4 结束时删除
 ```
 
 ## 注意事项

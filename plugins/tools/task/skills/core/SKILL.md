@@ -70,8 +70,13 @@ pending → in_progress → completed
 
 | 工具 | 用途 | 调用时机 |
 |------|------|---------|
-| TeamCreate | 创建团队 | loop 开始时创建一次 |
-| TeamDelete | 删除团队 | loop 结束时删除 |
+| TeamCreate | 创建团队 | 步骤 4（任务执行）开始时，**仅当有多个任务时**创建 |
+| TeamDelete | 删除团队 | 步骤 4（任务执行）结束时删除 |
+
+**Team 使用规则**：
+- 只有 1 个任务：不创建 team，直接使用 Agent 执行
+- 有多个任务：创建 team，通过 team 管理并行/串行执行
+- Team 生命周期仅限于步骤 4（任务执行）
 
 ### 通信工具
 
