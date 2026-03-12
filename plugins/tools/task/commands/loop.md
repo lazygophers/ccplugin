@@ -1,533 +1,321 @@
 ---
-description: Agentic Loop 持续执行 - 进入 gather-act-verify 循环模式，持续迭代直到任务目标达成或触发终止条件
+description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
 argument-hint: [任务目标描述]
 skills:
   - core
-  - orchestration
+  - gather
+  - plan
+  - execute
+  - verify
   - loop
 model: opus
 memory: project
 ---
 
-# Agentic Loop 持续执行
+# Loop 持续执行
 
-你将进入 Agentic Loop 模式，持续迭代执行直到目标达成。
+作为 team leader，负责调度所有工作，持续迭代直到任务目标达成。
 
 ## 角色定位
 
-在 Loop 模式下，你是**团队的 Leader（Orchestrator）**，负责：
+你是 **team leader**，负责：
+- 创建和管理团队（TeamCreate/TeamDelete）
+- 调度所有工作（包括但不限于 6 步流程）
+- 接收处理 SendMessage
+- 统一执行 AskUserQuestion
+- 编排任务执行顺序
 
-- **组建团队**：使用 `TeamCreate` 创建执行团队
-- **分配任务**：使用 `Agent` 生成成员并分配任务
-- **协调通信**：使用 `SendMessage` 通知成员、指导修复、收集反馈
-- **验证质量**：实施 Oracle 验证，不直接信任 executor 自评
-- **处理异常**：管理失败升级链，必要时请求用户指导
-- **向用户汇报**：你是唯一有权使用 `AskUserQuestion` 的角色
+## 通信职责
 
-### 通信职责
+**向用户提问**：你是唯一有权使用 AskUserQuestion 的角色。Agents 遇到问题时通过 SendMessage 上报给你，由你整理后统一向用户提问。
 
-**分配任务** — 使用 `SendMessage` 告知成员任务内容、涉及文件和验收标准
+**处理 SendMessage**：接收 agents 的上报，处理问题、提供指导、收集反馈。
 
-**指导修复** — 成员失败后，使用 `SendMessage` 发送修复方向和具体建议
+**Agent 不直接提问**：所有 agents 不得直接调用 AskUserQuestion。
 
-**向用户提问** — 你是唯一有权使用 `AskUserQuestion` 的角色。其他成员遇到问题时通过 `SendMessage` 上报给你，由你整理后统一向用户提问。提问时包含：
-- 问题背景
-- 已尝试方案
-- 可选方向
-- 推荐建议
+## 执行流程
 
-**紧急广播** — 仅当发现影响全员的严重问题时，使用 `SendMessage` broadcast 通知全员暂停
+### 初始化
 
-### 失败升级链
-
-同一问题连续失败时的升级策略：
-
-- **第 1 次失败**：使用 `SendMessage` 指导 executor 调整后重试
-- **第 2 次失败**：生成 debugger 成员介入诊断根因，使用 `SendMessage` 发送失败上下文
-- **第 3 次失败**：reviewer 审查任务定义是否合理，必要时让 planner 重新规划
-- **仍然失败**：使用 `AskUserQuestion` 向用户报告，请求指导
-
-### 成员管理原则
-
-- 需要编辑代码的使用 `general-purpose` agent
-- 只需读取分析的使用 `Explore` agent
-- **最多同时 2 个成员并行工作**
-- 成员 idle 是正常状态，不要当作异常
-- 成员消息自动送达，不需要轮询
-- 关闭团队前必须先使用 `SendMessage` 的 shutdown_request 逐个关闭成员
-- 全部关闭后使用 `TeamDelete` 清理
-
-## 循环结构
+循环开始时执行一次：
 
 ```
-# ===== 初始化阶段 =====
-team = TeamCreate(
-    name="loop-execution-team",
-    goal="完成用户指定的迭代任务目标",
-    members=["coder", "tester", "reviewer"]  # 根据任务需求动态调整
-)
-defer TeamDelete(team.id)
-
-main_task = TaskCreate(
-    title="Loop 主任务",
-    description="用户提供的任务目标",
-    acceptance_criteria=["验收标准1", "验收标准2", ...]
+# 1. 创建团队
+TeamCreate(
+  name="task-execution-team",
+  goal="完成用户指定的任务目标"
 )
 
+# 2. 创建主任务
+TaskCreate(
+  title="Loop 主任务",
+  description=用户提供的任务目标,
+  acceptance_criteria=[...]
+)
+
+# 3. 初始化状态
 iteration = 0
-stalled_count = 0        # 无进展计数器
-max_stalled_attempts = 3 # 最多允许3次停滞后才询问用户
-
-# ===== 迭代循环 =====
-while True:  # 持续执行直到目标达成
-    iteration += 1
-
-    # ─────────────────────────────────────────────
-    # Phase 1: Gather - 收集当前上下文
-    # ─────────────────────────────────────────────
-    print(f"--- 迭代 {iteration} ---")
-
-    # 1.1 获取所有任务状态
-    tasks = TaskList()
-    current_status = TaskGet(main_task.id)
-
-    # 1.2 读取代码状态、测试结果、日志
-    code_state = read_current_codebase()
-    test_results = check_test_results()
-
-    # 1.3 分析上次迭代的反馈
-    last_feedback = current_status.metadata.get("last_feedback", {})
-
-    # 1.4 确定本次迭代目标和子任务
-    sub_goals = plan_iteration_goals(last_feedback, test_results)
-
-
-    # ─────────────────────────────────────────────
-    # Phase 2: Act - 执行操作
-    # ─────────────────────────────────────────────
-    print(f"[Act] 执行 {len(sub_goals)} 个子目标")
-
-    # 2.1 分配任务给 agents（并行不超过2个）
-    parallel_tasks = []
-    for goal in sub_goals[:2]:  # 最多2个并行
-        agent_result = Agent(
-            subagent_type=goal.agent_type,  # coder/tester/reviewer
-            task=goal.description,
-            context=goal.context
-        )
-        parallel_tasks.append(agent_result)
-
-        # 2.2 更新任务状态
-        TaskUpdate(
-            task_id=main_task.id,
-            status="in_progress",
-            metadata={
-                "iteration": iteration,
-                "current_goal": goal.description,
-                "agent_type": goal.agent_type
-            }
-        )
-
-    # 2.3 等待并行任务完成
-    results = wait_for_agents(parallel_tasks)
-
-
-    # ─────────────────────────────────────────────
-    # Phase 3: Verify - 验证结果
-    # ─────────────────────────────────────────────
-    print("[Verify] 验证执行结果")
-
-    # 3.1 运行测试验证
-    test_result = run_verification_tests()
-
-    # 3.2 检查验收标准
-    acceptance_check = check_acceptance_criteria(
-        main_task.acceptance_criteria,
-        test_result
-    )
-
-    # 3.3 更新任务验证结果
-    TaskUpdate(
-        task_id=main_task.id,
-        metadata={
-            "iteration": iteration,
-            "verification_result": test_result,
-            "acceptance_passed": acceptance_check.passed,
-            "failed_criteria": acceptance_check.failed_items
-        }
-    )
-
-    # ─────────────────────────────────────────────
-    # 终止条件检查 - 成功
-    # ─────────────────────────────────────────────
-
-    # 成功：所有验收标准通过
-    if acceptance_check.passed:
-        print("[完成] 所有验收标准通过")
-        TaskUpdate(
-            task_id=main_task.id,
-            status="completed",
-            metadata={"total_iterations": iteration}
-        )
-        report_success(iteration, results)
-        break
-
-
-    # ─────────────────────────────────────────────
-    # Phase 4: Adjust - 分析失败原因并调整策略
-    # ─────────────────────────────────────────────
-    print(f"[Adjust] 分析失败原因并调整策略")
-
-    # 4.1 分析失败原因
-    failure_analysis = analyze_failure(test_result, acceptance_check)
-
-    # 4.2 检测是否停滞（相同错误重复出现）
-    is_stalled = is_same_error(test_result, last_feedback)
-    if is_stalled:
-        stalled_count += 1
-        print(f"[Adjust] 检测到停滞 ({stalled_count}/{max_stalled_attempts})")
-    else:
-        stalled_count = 0  # 有进展，重置计数器
-
-    # 4.3 调整下次策略
-    if is_stalled and stalled_count < max_stalled_attempts:
-        # 停滞但未达到上限，尝试更激进的策略
-        adjustment_strategy = decide_recovery_strategy(
-            failure_analysis,
-            stalled_count,
-            previous_strategies=last_feedback.get("tried_strategies", [])
-        )
-        print(f"[Adjust] 尝试恢复策略 #{stalled_count}: {adjustment_strategy}")
-    else:
-        # 正常调整策略
-        adjustment_strategy = decide_next_strategy(failure_analysis)
-
-    # 4.4 记录调整策略
-    TaskUpdate(
-        task_id=main_task.id,
-        metadata={
-            "iteration": iteration,
-            "last_feedback": test_result,
-            "adjustment_strategy": adjustment_strategy,
-            "failure_reason": failure_analysis,
-            "stalled_count": stalled_count,
-            "tried_strategies": last_feedback.get("tried_strategies", []) + [adjustment_strategy]
-        }
-    )
-
-    print(f"[Adjust] 下次策略: {adjustment_strategy}")
-
-
-    # ─────────────────────────────────────────────
-    # 停滞处理 - 请求用户指导并继续
-    # ─────────────────────────────────────────────
-
-    # 停滞过多：请求用户指导
-    if stalled_count >= max_stalled_attempts:
-        print(f"[停滞] 连续 {stalled_count} 次无进展，请求用户指导")
-        TaskUpdate(
-            task_id=main_task.id,
-            status="awaiting_guidance",
-            metadata={
-                "stalled_reason": test_result.error,
-                "stalled_at_iteration": iteration,
-                "tried_strategies": last_feedback.get("tried_strategies", [])
-            }
-        )
-
-        # 请求用户指导
-        user_guidance = AskUserQuestion(
-            f"任务停滞 {stalled_count} 次，已尝试策略：\n" +
-            "\n".join(f"- {s}" for s in last_feedback.get("tried_strategies", [])) +
-            f"\n\n当前错误：{test_result.error}\n\n" +
-            "请提供指导：\n" +
-            "1. 具体的解决方向或建议\n" +
-            "2. 需要调整的参数或方法\n" +
-            "3. 或者输入 'continue' 让我尝试新的自动策略"
-        )
-
-        # 根据用户指导调整策略
-        if user_guidance and user_guidance.lower() != 'continue':
-            # 用户提供了具体指导，重置停滞计数器并应用指导
-            stalled_count = 0
-            adjustment_strategy = f"用户指导: {user_guidance}"
-            TaskUpdate(
-                task_id=main_task.id,
-                metadata={
-                    "user_guidance": user_guidance,
-                    "adjustment_strategy": adjustment_strategy,
-                    "tried_strategies": []  # 清空策略历史，开始新方向
-                }
-            )
-            print(f"[Adjust] 应用用户指导并继续执行")
-        else:
-            # 用户要求继续自动尝试，重置计数器
-            stalled_count = 0
-            print(f"[Adjust] 用户确认继续，重置停滞计数器并尝试新策略")
-
-        # 继续循环，不退出
-
-
-# ===== 循环结束清理 =====
-# 注意：此循环会持续执行直到目标达成或用户主动中断
-# 不存在迭代次数上限，确保任务必须完成
+stalled_count = 0
+max_stalled_attempts = 3
 ```
 
-## 执行规范
+### 步骤 1：信息收集
 
-### Phase 1: Gather（收集）
+**目标**：收集足够的项目信息以支持任务规划。
 
-- 读取当前代码状态、测试结果、错误日志
-- 收集可用的 skills 和 agents，评估本次迭代需要哪些能力
-- 理解上一次迭代的变更和反馈
-- 通过 `TaskList` / `TaskGet` 确认当前任务状态
-- 确定本次迭代的具体目标
-- 选择合适的 agents 执行本次迭代（可并行分配独立子目标）
+**执行**：
+1. 使用 Read, Glob, Grep 读取项目文件、文档、配置、CLAUDE.md
+2. 使用 Agent(subagent_type='Explore') 或其他 agent 深度分析代码结构
+3. 通过 AskUserQuestion 确认不确定部分
 
-### Phase 2: Act（执行）
+**收集内容**：
+- 用户核心目标
+- 成功标准
+- 技术约束（技术栈、版本、规范）
+- 项目上下文（现有代码、架构、模块）
+- 相关文件路径
+- 测试覆盖情况
 
-- 基于收集的信息做出具体变更
-- 将独立的子目标分配给不同 agents 并行执行，如果超过最大并行数，则在队列中等待
-- 并行任务不得修改同一文件或同一包
-- 每个 agent 每次只做一个逻辑变更，保持原子性
-- 变更后立即保存
+**输出**：完整的需求理解和项目上下文。
 
-### Phase 3: Verify（验证）
+### 步骤 2：计划设计
 
-- 运行测试或检查命令验证变更效果
-- 对比预期输出和实际输出
-- 判断是否达成目标
+**目标**：将任务分解为原子子任务，建立依赖关系，分配 agents 和 skills。
 
-### Phase 4: Adjust（调整）
+**执行**：
+1. 使用 TaskCreate 分解任务为原子子任务
+2. 使用 TaskUpdate addBlockedBy 建立依赖关系
+3. 为每个任务分配 agent_type 和 skills（metadata）
+4. 可选：使用 Agent 调用规划类 agent 辅助
 
-- 在成功检查**之后**执行，确保每次失败都有机会调整
-- 分析验证失败的原因
-- 检测是否停滞（相同错误重复出现）
-- 如果停滞但未达到上限（3次），尝试更激进的恢复策略
-- 记录已尝试的策略，避免重复相同方法
-- 调整下一次迭代的策略
-- 连续 3 次停滞时，请求用户指导并根据反馈调整策略
-- **重要**：请求用户指导后会继续循环，不会退出
+**任务分解示例**：
+```
+TaskCreate(
+  title="T1: 实现用户模型",
+  description="创建 User 模型类，包含基本属性和方法",
+  acceptance_criteria=[
+    "User 模型类已创建",
+    "包含 id、name、email 属性",
+    "单元测试通过"
+  ],
+  metadata={
+    "target_files": ["src/models/user.py"],
+    "agent_type": "coder",
+    "skills": ["python:core", "python:types"],
+    "retry_count": 0
+  }
+)
+```
+
+**依赖建立示例**：
+```
+TaskUpdate(
+  task_id=task_b_id,
+  addBlockedBy=[task_a_id]
+)
+```
+
+**输出**：所有子任务已注册，依赖关系已建立。
+
+### 步骤 3：计划确认
+
+**目标**：向用户展示计划并获得确认。
+
+**执行**：
+1. 输出任务列表（包含依赖关系）
+2. 输出验收标准
+3. 输出简要说明（≤100字）
+4. 使用 AskUserQuestion 让用户确认
+
+**输出格式**：
+```
+## 执行计划
+
+### 任务列表
+- T1: 实现用户模型（无依赖）
+- T2: 实现 API 接口（依赖 T1）
+- T3: 编写测试（依赖 T2）
+
+### 验收标准
+- [ ] 所有测试通过
+- [ ] Lint 无错误
+- [ ] 功能符合需求
+
+### 简要说明
+分 3 个子任务实现用户认证功能，先建模型再实现接口最后补测试。
+```
+
+**确认**：用户确认后继续，不确认则回到步骤 2 调整。
+
+### 步骤 4：任务执行
+
+**目标**：按依赖顺序调度执行所有子任务。
+
+**执行**：
+1. 使用 TaskList 获取待执行任务
+2. 使用 TaskGet 检查依赖关系（blockedBy）
+3. 识别可并行任务（无依赖、文件无交集）
+4. 使用 Agent 调用相应 agent 执行任务
+5. 最多同时 2 个任务并行
+6. 使用 TaskUpdate 更新任务状态
+7. 处理 SendMessage（接收 agent 上报）
+
+**Agent 调用示例**：
+```
+Agent(
+  subagent_type=task.metadata.agent_type,
+  task=task.description,
+  context={
+    "target_files": task.metadata.target_files,
+    "skills": task.metadata.skills,
+    "acceptance_criteria": task.acceptance_criteria
+  }
+)
+```
+
+**并行控制**：
+- 检查依赖：`all_dependencies_completed(task.blockedBy)`
+- 检查文件冲突：`task_a_files.isdisjoint(task_b_files)`
+- 最多并行数：2
+
+**进度输出**：
+```
+[进度] T1 实现用户模型 ......... 已完成 ✓
+[进度] T2 实现 API 接口 ......... 执行中
+[进度] T3 编写测试 ............. 待执行
+
+总进度：1/3 (33%)
+```
+
+**输出**：所有任务执行完成，状态已更新。
+
+### 步骤 5：结果验证
+
+**目标**：验证所有任务的验收标准是否通过。
+
+**执行**：
+1. 使用 TaskList, TaskGet 检查所有任务
+2. 验证每个任务的验收标准
+3. 使用 TaskUpdate 记录验证结果
+
+**验证示例**：
+```
+task = TaskGet(task_id)
+for criterion in task.acceptance_criteria:
+    # 运行测试、检查输出、验证文件
+    result = verify_criterion(criterion)
+
+TaskUpdate(
+  task_id=task_id,
+  metadata={
+    "verification_result": {
+      "passed": all_passed,
+      "criteria_results": results
+    }
+  }
+)
+```
+
+**判断**：
+- 全部通过 → Loop 完成，跳到清理阶段
+- 部分失败 → 进入步骤 6
+
+**输出**：验证结果已记录。
+
+### 步骤 6：失败调整
+
+**目标**：分析失败原因，决定下一步策略。
+
+**执行**：
+1. 分析失败原因
+2. 检测是否停滞（相同错误重复）
+3. 决定下一步策略
+4. 回到步骤 2 重新规划
+
+**停滞检测**：
+```
+if is_same_error(current_error, last_error):
+    stalled_count += 1
+else:
+    stalled_count = 0  # 有进展，重置
+```
+
+**失败升级策略**：
+- 第 1 次失败：调整后重试
+- 第 2 次失败：使用调试类 agent 诊断
+- 第 3 次失败：重新规划任务
+- 仍然失败：AskUserQuestion 请求用户指导
+
+**停滞处理**（连续 3 次停滞）：
+```
+if stalled_count >= max_stalled_attempts:
+    user_guidance = AskUserQuestion(
+        "任务停滞 3 次，已尝试策略：...\n" +
+        "当前错误：...\n" +
+        "请提供指导"
+    )
+
+    if user_guidance:
+        stalled_count = 0  # 重置停滞计数器
+        # 应用用户指导
+
+    # 继续循环，不退出
+```
+
+**输出**：调整策略已确定，回到步骤 2。
+
+### 清理阶段
+
+Loop 完成时执行一次：
+
+```
+# 删除团队
+TeamDelete(team_id)
+
+# 输出最终报告
+```
+
+最终报告格式：
+```
+=== Loop 完成 ===
+状态：成功（所有验收标准通过）
+总迭代次数：N
+变更文件：[文件列表]
+停滞次数：M（如发生过）
+用户指导次数：K（如请求过）
+```
 
 ## 终止条件
 
-**Loop 模式设计原则**：必须完成全部工作直到符合预期，不存在迭代次数上限。
+| 条件 | 触发 | 行为 |
+|------|------|------|
+| 目标达成 | 步骤 5 全部通过 | 正常退出，输出报告 |
+| 停滞过多 | 连续 3 次相同错误 | 请求用户指导后继续（不退出） |
+| 用户中断 | 用户主动中断 | 根据用户指令处理 |
 
-1. **目标达成**：所有验收标准通过 → 成功退出
-2. **停滞过多**：连续 3 次迭代出现相同错误，且已尝试多种恢复策略仍无效 → 请求用户指导后继续（不退出）
-3. **用户中断**：用户主动发送中断信号 → 根据用户指令处理
+**重要**：
+- 无最大迭代次数限制
+- 停滞时请求用户指导，但不退出循环
+- 获得用户指导后重置停滞计数器，继续执行
 
-## 输出格式
+## 迭代日志格式
 
 每次迭代输出：
-
 ```
---- 迭代 N ---
-[Gather] 当前状态摘要
-[Act] 本次变更描述
-[Verify] 验证结果：通过/失败 - 原因
-[Adjust] 下次调整策略（如需继续）
-```
-
-最终输出：
-
-```
---- Loop 完成 ---
-状态：成功（所有验收标准通过）
-总迭代次数：N
-变更摘要：[所有变更的简要列表]
-停滞次数：M（如果发生过停滞）
-用户指导次数：K（如果请求过用户指导）
+=== 迭代 N ===
+[信息收集] 当前状态摘要
+[计划设计] 任务分解结果
+[计划确认] 用户已确认
+[任务执行] 进度和结果
+[结果验证] 通过/失败 - 原因
+[失败调整] 下次策略（如需要）
 ```
 
-## 与其他命令协作
+## 执行原则
 
-Loop 在迭代过程中可以调用其他 task 命令来组织具体行为：
-
-| 命令      | 在 Loop 中的用途           |
-| --------- | -------------------------- |
-| `/plan`   | 规划分解                   |
-| `/exec`   | 执行已规划好的子任务       |
-| `/review` | 每轮迭代后审查变更质量     |
-| `/add`    | 用户中途补充说明或纠正方向 |
-
-**典型 Loop + Commands 协作流程**：
-
-```
-Loop 迭代 1:
-  [Gather] 收集状态 → 发现需要规划
-  [Act]    调用 /plan 分解任务
-  [Verify] 确认计划合理
-
-Loop 迭代 2:
-  [Gather] 读取任务状态
-  [Act]    调用 /exec 执行第一组子任务
-  [Verify] 调用 /review 审查结果 → 部分失败
-
-Loop 迭代 3:
-  [Gather] 读取失败原因
-  [Act]    修复失败的子任务
-  [Verify] 调用 /review 审查 → 全部通过
-```
-
-## 团队管理流程（使用内置工具）
-
-在 Loop 模式中，**你作为团队 Leader** 通过内置工具进行团队管理和任务协调。
-
-### 团队组建流程
-
-```
-迭代开始前:
-  1. 使用 TeamCreate 创建执行团队
-     - 定义团队名称和目标
-     - 声明所需的 agent 角色（如 coder, tester, reviewer）
-     - 设置团队通信规则
-
-  2. 使用 TaskCreate 为团队创建主任务
-     - 定义任务目标和验收标准
-     - 分解为可并行的子任务
-     - 建立任务依赖关系（DAG）
-```
-
-### Gather 阶段的团队操作
-
-```
-[Gather] 阶段:
-  1. TaskList - 列出所有待执行任务
-  2. TaskGet - 获取任务详情和状态
-  3. 评估团队成员能力与任务需求的匹配度
-  4. 识别可并行执行的独立任务
-  5. 确认团队成员的可用状态
-```
-
-### Act 阶段的任务分配
-
-```
-[Act] 阶段:
-  1. 使用 Agent 工具分配任务给团队成员
-     - 独立任务并行分配（不超过 2 个并行）
-     - 依赖任务串行执行
-     - 避免多个 agent 修改同一文件
-
-  2. 使用 TaskUpdate 记录任务执行状态
-     - 更新任务进度
-     - 记录关键 metadata（如 iteration, agent_id）
-     - 标记阻塞或失败状态
-
-  3. 团队协作规范
-     - coder agent 负责代码实现
-     - tester agent 负责测试验证
-     - reviewer agent 负责代码审查
-     - 你（loop Leader）协调冲突和依赖
-```
-
-### Verify 阶段的团队验证
-
-```
-[Verify] 阶段:
-  1. 并行任务结果收集
-     - 等待所有并行任务完成
-     - 汇总各 agent 的执行结果
-
-  2. 使用 TaskGet 确认任务状态
-     - 检查 metadata 中的验证结果
-     - 识别失败或阻塞的任务
-
-  3. 团队输出整合
-     - 合并代码变更（无冲突）
-     - 运行集成测试
-     - 统一验证标准
-```
-
-### Adjust 阶段的团队调整
-
-```
-[Adjust] 阶段:
-  1. 分析失败原因
-     - 任务失败：调整任务策略
-     - agent 失败：重新分配或替换 agent
-     - 依赖冲突：重新规划任务顺序
-
-  2. 检测停滞并选择恢复策略
-     - 检查是否与上次错误相同
-     - 如果停滞：stalled_count += 1
-     - 如果有进展：stalled_count = 0（重置）
-     - 根据停滞次数选择策略：
-       * 第1次：调整现有方案参数
-       * 第2次：尝试替代实现方案
-       * 第3次：重新分解任务或更换 agent
-     - 记录已尝试的策略，避免重复
-
-  3. 使用 TaskUpdate 记录调整策略
-     - 更新 metadata.adjustment_strategy
-     - 记录失败次数和原因（stalled_count）
-     - 记录已尝试的策略列表（tried_strategies）
-
-  4. 团队重组（如需要）
-     - 使用 TeamDelete 解散无效团队
-     - 使用 TeamCreate 创建新团队
-```
-
-### 团队协作示例
-
-```
-迭代 1:
-  [Gather]
-    - TeamCreate "feature-team"（成员: coder-a, coder-b, tester-c）
-    - TaskCreate "实现登录功能"
-    - 分解子任务: [实现 API, 实现 UI, 编写测试]
-
-  [Act]
-    - Agent(coder-a) → 实现 API（并行 1）
-    - Agent(coder-b) → 实现 UI（并行 2）
-    - TaskUpdate: 标记两个任务为 in_progress
-
-  [Verify]
-    - 等待 coder-a 和 coder-b 完成
-    - Agent(tester-c) → 运行集成测试
-    - TaskGet: 检查测试结果 → 部分失败
-
-  [Adjust]
-    - TaskUpdate: 记录失败原因（API 返回格式错误）
-    - 下次迭代策略: 修复 API 格式
-
-迭代 2:
-  [Gather]
-    - TaskList: 获取失败任务
-    - 识别问题：API 序列化问题
-
-  [Act]
-    - Agent(coder-a) → 修复 API 序列化
-    - TaskUpdate: 标记为 in_progress
-
-  [Verify]
-    - Agent(tester-c) → 重新运行测试
-    - TaskGet: 测试全部通过
-
-  [完成]
-    - TaskUpdate: 标记所有任务为 completed
-    - TeamDelete "feature-team"
-```
-
-## 适用场景
-
-- 修复测试失败（迭代修复直到所有测试通过）
-- 性能优化（迭代优化直到达标）
-- 代码重构（迭代重构直到 lint 通过）
-- 功能实现（迭代实现直到验收通过）
-- 多模块并行开发（团队协作模式）
-- 复杂系统集成（需要多角色配合）
-
-## 注意事项
-
-- **无迭代次数限制**：Loop 会持续执行直到所有验收标准通过，不存在最大迭代次数
-- **必须完成**：设计原则是必须完成全部工作符合预期才停止，不允许中途放弃
-- 每次迭代必须有可观测的进展
-- 不要在一次迭代中做过多变更
-- 保持每次迭代的上下文连贯
-- **自动恢复优先**：遇到停滞时，先尝试最多3次不同的恢复策略，而非立即询问用户
-- **智能调整**：每次停滞时应尝试不同的策略（调参 → 替代方案 → 重新分解），避免重复相同方法
-- **记录历史**：通过 metadata.tried_strategies 记录已尝试的策略，避免循环
-- **用户介入不中断**：请求用户指导后会继续执行，不会退出循环
-- **用户指导后重置**：获得用户指导后重置停滞计数器，开始新的尝试方向
-- 每次迭代后通过 `TaskUpdate` 更新任务状态和 metadata
+- 严格按照 6 步顺序执行
+- 不要跳过计划确认步骤
+- 并行任务数不超过 2
+- 所有提问统一通过 AskUserQuestion
+- Agents 通过 SendMessage 上报问题
+- 停滞时请求用户指导，但继续循环

@@ -1,194 +1,160 @@
 ---
 name: core
-description: 任务管理核心规范 - 任务生命周期、状态机、角色分工和基本原则。所有任务管理操作前必须加载。
-user-invocable: true
+description: Task 插件核心规范 - 任务管理生命周期、状态机、角色分工和基本概念
+user-invocable: false
 context: fork
-model: sonnet
-memory: project
 ---
 
-# 任务管理核心规范
+# Task 插件核心规范
+
+Task 插件提供任务管理框架，支持任务规划、执行、验证和迭代。不提供具体实现 agents，使用其他插件或用户自定义的 agents。
 
 ## 任务生命周期
 
+任务状态转换：
+
 ```
-创建 → 规划 → 确认 → 执行 → 验收 → 完成
-                         ↑        |
-                         └─ 修复 ←┘
+pending → in_progress → completed
+                     → failed → (重新规划或修复)
 ```
 
-## 任务状态机
+### 状态说明
 
-| 状态 | 说明 | 可转换到 |
-|------|------|---------|
-| `pending` | 待执行 | `in_progress`, `cancelled` |
-| `in_progress` | 执行中 | `completed`, `failed`, `blocked` |
-| `completed` | 已完成 | `in_review` |
-| `failed` | 执行失败 | `in_progress`(重试), `cancelled` |
-| `blocked` | 被阻塞 | `in_progress`(解除阻塞) |
-| `in_review` | 审查中 | `completed`, `in_progress`(需修复) |
-| `cancelled` | 已取消 | - |
+- **pending**: 任务已创建，等待执行
+- **in_progress**: 任务正在执行中
+- **completed**: 任务已完成，验证通过
+- **failed**: 任务执行失败，需要分析修复
 
 ## 角色分工
 
-| 角色 | 职责 | 介入时机 |
-|------|------|---------|
-| **planner** | 任务分解、依赖分析 | 任务创建时 |
-| **executor** | 具体执行和自验证 | 任务执行时 |
-| **reviewer** | 质量审查和验收 | 任务完成后 |
-| **loop Leader** | 调度和编排 | 多任务协调时 |
-| **debugger** | 问题诊断和修复 | 任务失败时 |
+### Team Leader (/loop 命令)
 
-## 核心原则
+职责：
+- 创建和管理团队 (TeamCreate/TeamDelete)
+- 调度所有工作（包括但不限于 6 步流程）
+- 接收处理 SendMessage
+- 统一执行 AskUserQuestion
+- 编排任务执行顺序
 
-### 1. 规划先行
-- 非平凡任务必须先规划后执行
-- 规划结果需要用户确认后才执行
-- 过于简单的任务（<3分钟）可直接执行
+### Agents（由其他插件或用户提供）
 
-### 2. 单一职责
-- 每个子任务只做一件事
-- 每个子任务有明确的输入和输出
-- 子任务之间通过输入输出连接
+职责：
+- 执行具体的任务（收集、规划、编码、测试、验证等）
+- 通过 SendMessage 向 leader 上报结果或问题
+- 不直接调用 AskUserQuestion
+- 不调用其他 agents
 
-### 3. 验证驱动
-- 每个子任务必须有可自动验证的验收标准
-- 完成后立即验证，不积压
-- 验收标准的优先级：运行测试 > 检查输出 > 人工确认
+## 设计原则
 
-### 4. 最小并行
-- 并行任务数不超过 2
-- 并行任务不得操作同一文件
-- 等待并行组完成后再进入下一组
-
-### 5. 快速失败与升级
-- 失败时立即报告，不静默继续
-- 遵循升级链：executor 重试 → debugger 诊断 → reviewer/planner 重新规划 → 用户指导
-- 连续无进展时中断并请求用户指导
-
-### 6. 提问规范
-- **Agent 不得直接向用户提问**
-- Agent 遇到需要用户决策的问题时，将问题上报给 Team 管理者（loop Leader）
-- 由 Team 管理者通过 `AskUserQuestion` 工具统一向用户提问
-- 问题必须包含充足的上下文、可选方案和建议方向
-
-## 任务状态管理
-
-所有任务状态通过内置的 `TaskCreate` / `TaskUpdate` / `TaskGet` / `TaskList` 系统管理，**不写入文件**。
-
-**状态来源**：TaskList/TaskGet 是任务状态的唯一真实来源。
-
-**清理规范**：所有子任务完成并通过审查后，清理 TaskList 中已完成的任务条目。
+1. **框架优先** - 提供任务管理框架和规范，不提供具体实现 agents
+2. **Agent 灵活** - 使用其他插件或用户自定义的 agents 执行具体任务
+3. **Leader 统一** - /loop 命令作为 team leader 统一管理所有调度和提问
+4. **消息上报** - Agents 通过 SendMessage 向 leader 上报，leader 通过 AskUserQuestion 向用户提问
+5. **原子任务** - 每个任务必须是原子性的、不可再分的
+6. **并行控制** - 最多 2 个任务并行，不修改同一文件或模块
 
 ## 内置工具使用规范
 
-### 什么时候用什么工具
+### Task 管理工具
 
-**规划完成后** — 使用 `TaskCreate` 为每个子任务创建条目，使用 `TaskUpdate` 设置 `addBlockedBy` 建立任务间的依赖关系
+| 工具 | 用途 | 调用时机 |
+|------|------|---------|
+| TaskCreate | 创建任务 | 规划阶段创建子任务 |
+| TaskUpdate | 更新任务状态和 metadata | 任务状态变更时 |
+| TaskList | 列出所有任务 | 查询任务列表时 |
+| TaskGet | 获取任务详情 | 查询单个任务时 |
+| TaskStop | 停止任务执行 | 需要中断时 |
+| TaskOutput | 读取任务输出 | 需要查看任务结果时 |
 
-**需要多 Agent 并行执行时** — 使用 `TeamCreate` 创建团队，使用 `Agent`（带 `team_name` 和 `name`）生成团队成员
+### Team 管理工具
 
-**分配任务时** — 使用 `TaskUpdate` 设置 `owner` 将任务分配给成员，同时设置 `status` 为 `in_progress`
+| 工具 | 用途 | 调用时机 |
+|------|------|---------|
+| TeamCreate | 创建团队 | loop 开始时创建一次 |
+| TeamDelete | 删除团队 | loop 结束时删除 |
 
-**查看进度时** — 使用 `TaskList` 查看所有任务状态，使用 `TaskGet` 获取某个任务的详细信息和依赖
+### 通信工具
 
-**团队内通信时** — 使用 `SendMessage` 给指定成员发消息（分配任务、指导修复、协调工作）
+| 工具 | 用途 | 调用时机 |
+|------|------|---------|
+| Agent | 调用 agent 执行任务 | 需要 agent 执行具体工作时 |
+| SendMessage | 发送消息给 leader 或成员 | Agent 向 leader 上报时 |
+| AskUserQuestion | 向用户提问 | Leader 需要用户确认或指导时 |
 
-**需要全员通知时** — 使用 `SendMessage` 的 broadcast 模式，仅用于紧急阻塞性问题
+## 任务元数据规范
 
-**需要向用户提问时** — 使用 `AskUserQuestion` 统一提问，只有 loop Leader 有权使用
+每个任务的 metadata 必须包含：
 
-**任务完成关闭团队时** — 使用 `SendMessage` 的 shutdown_request 逐个关闭成员，全部关闭后使用 `TeamDelete` 清理
+```json
+{
+  "target_files": ["文件路径"],
+  "agent_type": "agent 名称",
+  "skills": ["skill1", "skill2"],
+  "retry_count": 0,
+  "verification_result": {},
+  "failure_reason": "",
+  "iteration": 1
+}
+```
 
-**需要终止后台任务时** — 使用 `TaskStop` 终止，使用 `TaskOutput` 获取已有输出
+## 并行执行规范
 
-### 任务元数据
+### 并行条件
 
-每个任务通过 `TaskUpdate` 的 `metadata` 附加以下信息：
-- `target_files`：该任务操作的文件列表（用于并行隔离检查）
-- `retry_count`：重试次数（用于三次失败升级）
-- `failure_reason`：最近一次失败原因
+两个任务可以并行执行当且仅当：
+1. 无依赖关系（通过 TaskUpdate addBlockedBy 建立）
+2. 不修改同一文件
+3. 不修改同一模块或包
+4. 总并行数不超过 2
 
-### 并行执行约束
-- **最大并行数：2** — 超过时排队等待
-- **文件隔离** — 并行任务不得修改同一文件（通过 metadata.target_files 检查）
-- **包隔离** — 并行任务不得修改同一包
-- 分配任务前必须检查 target_files 无交集
+### 串行条件
+
+任务必须串行执行如果：
+1. 存在依赖关系
+2. 修改同一文件或模块
+3. 当前已有 2 个并行任务
+
+## 失败处理原则
+
+### 失败分类
+
+1. **任务定义问题** - 任务拆分不合理，需要重新规划
+2. **执行失败** - 代码错误、环境问题等，需要修复
+3. **验证失败** - 不符合验收标准，需要调整
+
+### 处理策略
+
+- 第 1 次失败：分析原因，调整后重试
+- 第 2 次失败：使用调试类 agent 深入诊断
+- 第 3 次失败：重新规划任务拆分
+- 仍然失败：向用户请求指导
+
+## 验收标准规范
+
+每个任务必须定义明确的验收标准，格式：
+
+```
+验收标准：
+- [ ] 可自动验证的检查项 1
+- [ ] 可自动验证的检查项 2
+- [ ] 可自动验证的检查项 3
+```
+
+要求：
+- 必须可自动验证（测试、编译、lint 等）
+- 避免主观判断（如"代码质量好"）
+- 每项独立可检查
 
 ## 子任务定义模板
 
 ```markdown
 ### T[N]: [标题]
-- **描述**：[做什么、为什么做]
-- **输入**：[文件/数据/前置任务输出]
-- **输出**：[文件变更/数据产出]
-- **依赖**：[T1, T2] 或 无
-- **验收标准**：
+- 描述：[做什么、为什么做]
+- 输入：[文件/数据/前置任务输出]
+- 输出：[文件变更/数据产出]
+- 依赖：[T1, T2] 或 无
+- 验收标准：
   - [ ] [可自动验证的条件]
-- **执行方式**：Agent/直接执行
+- Agent类型：[agent名称]
+- Skills：[skill1, skill2]
 ```
-
-## 执行过程检查清单
-
-### 任务状态管理检查
-- [ ] 所有任务通过 `TaskCreate` / `TaskUpdate` / `TaskGet` / `TaskList` 管理
-- [ ] 任务状态未写入文件
-- [ ] TaskList/TaskGet 是任务状态的唯一真实来源
-
-### 任务生命周期检查
-- [ ] 任务按照生命周期流转：创建 → 规划 → 确认 → 执行 → 验收 → 完成
-- [ ] 失败任务可返回修复状态
-- [ ] 任务状态转换符合状态机规范
-
-### 角色分工检查
-- [ ] planner 负责任务分解和依赖分析
-- [ ] executor 负责具体执行和自验证
-- [ ] reviewer 负责质量审查和验收
-- [ ] loop Leader 负责调度和编排
-- [ ] debugger 负责问题诊断和修复
-
-### 核心原则检查
-- [ ] 非平凡任务先规划后执行
-- [ ] 规划结果需用户确认后才执行
-- [ ] 每个子任务只做一件事（单一职责）
-- [ ] 每个子任务有明确的输入和输出
-- [ ] 每个子任务有可自动验证的验收标准
-- [ ] 并行任务数不超过 2
-- [ ] 并行任务不操作同一文件
-- [ ] 失败时立即报告，不静默继续
-
-### 提问规范检查
-- [ ] Agent 不直接向用户提问
-- [ ] Agent 遇到问题时上报给 Team 管理者（loop Leader）
-- [ ] 由 loop Leader 通过 `AskUserQuestion` 统一提问
-- [ ] 问题包含充足上下文、可选方案和建议方向
-
-### 工具使用检查
-- [ ] 规划完成后使用 `TaskCreate` 创建子任务
-- [ ] 使用 `TaskUpdate` 的 `addBlockedBy` 建立依赖关系
-- [ ] 需要多 Agent 时使用 `TeamCreate` 创建团队
-- [ ] 使用 `Agent` 生成团队成员（带 team_name 和 name）
-- [ ] 使用 `TaskUpdate` 设置 `owner` 分配任务
-- [ ] 使用 `SendMessage` 进行团队内通信
-- [ ] 使用 `AskUserQuestion` 向用户提问（仅 loop Leader）
-- [ ] 使用 `TeamDelete` 清理团队（任务完成后）
-
-### 并行执行检查
-- [ ] 最大并行数为 2
-- [ ] 并行任务通过 metadata.target_files 检查无交集
-- [ ] 并行任务不修改同一文件或同一包
-- [ ] 分配任务前检查 target_files 无交集
-
-## 完成后检查清单
-
-### 任务元数据检查
-- [ ] 每个任务 metadata 包含 `target_files`（操作的文件列表）
-- [ ] 每个任务 metadata 包含 `retry_count`（重试次数）
-- [ ] 失败任务 metadata 包含 `failure_reason`（失败原因）
-- [ ] 任务 metadata 包含完成时间戳
-
-### 任务清理检查
-- [ ] 所有子任务完成并通过审查后清理 TaskList
-- [ ] 已完成的任务条目已从 TaskList 移除
-- [ ] 团队资源已释放（TeamDelete）
-- [ ] 无残余的临时状态
