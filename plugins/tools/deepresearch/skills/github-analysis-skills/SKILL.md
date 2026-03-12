@@ -200,3 +200,48 @@ curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/user
 - [GitHub MCP Server](https://github.com/modelcontextprotocol/servers/tree/main/src/github)
 - [GitHub API文档](https://docs.github.com/en/rest)
 - [项目评估指南](../../agents/project-evaluation.md)
+
+## 执行过程检查清单
+
+### 项目分析检查
+- [ ] 提取项目元数据（名称/描述/许可证/语言）
+- [ ] 分析代码库结构
+- [ ] 统计开发活动（提交频率/活跃分支）
+- [ ] 评估社区健康度（Issues/PRs处理速度）
+
+### 数据获取检查
+- [ ] 通过 GitHub MCP 服务器调用 API
+- [ ] 检索仓库信息
+- [ ] 分析提交历史
+- [ ] 分析 Issue 和 PR 数据
+
+### 指标计算检查
+- [ ] 计算 Stars/Forks/Watchers 趋势
+- [ ] 计算贡献者活跃度
+- [ ] 计算代码变更频率
+- [ ] 计算 Issue 和 PR 处理速度
+
+### 环境要求检查
+- [ ] GitHub MCP 服务器已配置
+- [ ] GitHub Personal Access Token 已设置（如需要）
+- [ ] API 访问权限正常
+
+## 完成后检查清单
+
+### 分析报告检查
+- [ ] 报告包含项目基本信息
+- [ ] 报告包含关键指标统计
+- [ ] 报告包含社区健康度评估
+- [ ] 报告包含发展趋势分析
+- [ ] 报告包含改进建议（如适用）
+
+### 数据质量检查
+- [ ] 所有数据来源于 GitHub API
+- [ ] 数据时效性合格
+- [ ] 指标计算准确
+- [ ] 趋势分析有依据
+
+### 输出格式检查
+- [ ] 使用 Skills(synthesizer) 整合分析结果
+- [ ] 报告格式清晰（技术报告/评估清单）
+- [ ] 图表准确易懂（趋势图/活跃度图）

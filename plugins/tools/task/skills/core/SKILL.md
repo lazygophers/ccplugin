@@ -127,3 +127,68 @@ memory: project
   - [ ] [可自动验证的条件]
 - **执行方式**：Agent/直接执行
 ```
+
+## 执行过程检查清单
+
+### 任务状态管理检查
+- [ ] 所有任务通过 `TaskCreate` / `TaskUpdate` / `TaskGet` / `TaskList` 管理
+- [ ] 任务状态未写入文件
+- [ ] TaskList/TaskGet 是任务状态的唯一真实来源
+
+### 任务生命周期检查
+- [ ] 任务按照生命周期流转：创建 → 规划 → 确认 → 执行 → 验收 → 完成
+- [ ] 失败任务可返回修复状态
+- [ ] 任务状态转换符合状态机规范
+
+### 角色分工检查
+- [ ] planner 负责任务分解和依赖分析
+- [ ] executor 负责具体执行和自验证
+- [ ] reviewer 负责质量审查和验收
+- [ ] orchestrator 负责调度和编排
+- [ ] debugger 负责问题诊断和修复
+
+### 核心原则检查
+- [ ] 非平凡任务先规划后执行
+- [ ] 规划结果需用户确认后才执行
+- [ ] 每个子任务只做一件事（单一职责）
+- [ ] 每个子任务有明确的输入和输出
+- [ ] 每个子任务有可自动验证的验收标准
+- [ ] 并行任务数不超过 2
+- [ ] 并行任务不操作同一文件
+- [ ] 失败时立即报告，不静默继续
+
+### 提问规范检查
+- [ ] Agent 不直接向用户提问
+- [ ] Agent 遇到问题时上报给 Team 管理者（orchestrator）
+- [ ] 由 orchestrator 通过 `AskUserQuestion` 统一提问
+- [ ] 问题包含充足上下文、可选方案和建议方向
+
+### 工具使用检查
+- [ ] 规划完成后使用 `TaskCreate` 创建子任务
+- [ ] 使用 `TaskUpdate` 的 `addBlockedBy` 建立依赖关系
+- [ ] 需要多 Agent 时使用 `TeamCreate` 创建团队
+- [ ] 使用 `Agent` 生成团队成员（带 team_name 和 name）
+- [ ] 使用 `TaskUpdate` 设置 `owner` 分配任务
+- [ ] 使用 `SendMessage` 进行团队内通信
+- [ ] 使用 `AskUserQuestion` 向用户提问（仅 orchestrator）
+- [ ] 使用 `TeamDelete` 清理团队（任务完成后）
+
+### 并行执行检查
+- [ ] 最大并行数为 2
+- [ ] 并行任务通过 metadata.target_files 检查无交集
+- [ ] 并行任务不修改同一文件或同一包
+- [ ] 分配任务前检查 target_files 无交集
+
+## 完成后检查清单
+
+### 任务元数据检查
+- [ ] 每个任务 metadata 包含 `target_files`（操作的文件列表）
+- [ ] 每个任务 metadata 包含 `retry_count`（重试次数）
+- [ ] 失败任务 metadata 包含 `failure_reason`（失败原因）
+- [ ] 任务 metadata 包含完成时间戳
+
+### 任务清理检查
+- [ ] 所有子任务完成并通过审查后清理 TaskList
+- [ ] 已完成的任务条目已从 TaskList 移除
+- [ ] 团队资源已释放（TeamDelete）
+- [ ] 无残余的临时状态
