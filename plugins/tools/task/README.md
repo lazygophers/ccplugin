@@ -39,7 +39,7 @@
   → 用户确认计划
 
 用户：/exec
-  → orchestrator 按依赖顺序调度执行
+  → 按依赖顺序调度执行（使用 loop 模式编排）
   → executor 完成每个子任务并自验证
 
 用户：/review 全部
@@ -66,8 +66,9 @@
 | **planner** | 规划师 | 需求分析、任务分解、依赖建模 |
 | **executor** | 执行者 | 按计划执行具体任务并自验证 |
 | **reviewer** | 审查员 | 质量审查、验收检查、报告生成 |
-| **orchestrator** | 编排器 | 多任务调度、并行管理、进度追踪 |
 | **debugger** | 调试员 | 问题诊断、根因分析、修复执行 |
+
+**注意**：编排（Orchestration）职责已整合到 `/loop` 命令中，由 loop 命令作为团队 Leader 负责多任务调度、并行管理和进度追踪。
 
 ### Skills（技能规范）
 
@@ -103,11 +104,11 @@
 
 1. **规划先行** - 复杂任务先规划后执行，简单任务跳过规划
 2. **意图门控** - 先分类任务复杂度，决定规划深度和执行策略
-3. **纪律分工** - 不同阶段由专业 Agent 负责，orchestrator 统一管理
+3. **纪律分工** - 不同阶段由专业 Agent 负责，loop 命令作为 Leader 统一管理
 4. **Oracle 验证** - 任务完成由独立 reviewer 验证，不信任自评
 5. **三次升级** - 失败后逐级升级（executor → debugger → planner → 用户）
 6. **最小并行** - 并行数不超过 2，不修改同一文件或包
-7. **统一提问** - Agent 不直接提问，由 orchestrator 通过 AskUserQuestion 统一提问
+7. **统一提问** - Agent 不直接提问，由 loop Leader 通过 AskUserQuestion 统一提问
 
 ## 目录结构
 
@@ -119,7 +120,6 @@ task/
 │   ├── planner.md          # 任务规划师
 │   ├── executor.md         # 任务执行者
 │   ├── reviewer.md         # 任务审查员
-│   ├── orchestrator.md     # 任务编排器
 │   └── debugger.md         # 任务调试员
 ├── commands/
 │   ├── add.md              # 补充当前任务命令

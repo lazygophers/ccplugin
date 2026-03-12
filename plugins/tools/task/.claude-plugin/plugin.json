@@ -26,7 +26,6 @@
     "./agents/planner.md",
     "./agents/executor.md",
     "./agents/reviewer.md",
-    "./agents/orchestrator.md",
     "./agents/debugger.md"
   ],
   "commands": [

@@ -36,7 +36,7 @@ memory: project
 | **planner** | 任务分解、依赖分析 | 任务创建时 |
 | **executor** | 具体执行和自验证 | 任务执行时 |
 | **reviewer** | 质量审查和验收 | 任务完成后 |
-| **orchestrator** | 调度和编排 | 多任务协调时 |
+| **loop Leader** | 调度和编排 | 多任务协调时 |
 | **debugger** | 问题诊断和修复 | 任务失败时 |
 
 ## 核心原则
@@ -68,7 +68,7 @@ memory: project
 
 ### 6. 提问规范
 - **Agent 不得直接向用户提问**
-- Agent 遇到需要用户决策的问题时，将问题上报给 Team 管理者（orchestrator）
+- Agent 遇到需要用户决策的问题时，将问题上报给 Team 管理者（loop Leader）
 - 由 Team 管理者通过 `AskUserQuestion` 工具统一向用户提问
 - 问题必须包含充足的上下文、可选方案和建议方向
 
@@ -96,7 +96,7 @@ memory: project
 
 **需要全员通知时** — 使用 `SendMessage` 的 broadcast 模式，仅用于紧急阻塞性问题
 
-**需要向用户提问时** — 使用 `AskUserQuestion` 统一提问，只有 orchestrator 有权使用
+**需要向用户提问时** — 使用 `AskUserQuestion` 统一提问，只有 loop Leader 有权使用
 
 **任务完成关闭团队时** — 使用 `SendMessage` 的 shutdown_request 逐个关闭成员，全部关闭后使用 `TeamDelete` 清理
 
@@ -144,7 +144,7 @@ memory: project
 - [ ] planner 负责任务分解和依赖分析
 - [ ] executor 负责具体执行和自验证
 - [ ] reviewer 负责质量审查和验收
-- [ ] orchestrator 负责调度和编排
+- [ ] loop Leader 负责调度和编排
 - [ ] debugger 负责问题诊断和修复
 
 ### 核心原则检查
@@ -159,8 +159,8 @@ memory: project
 
 ### 提问规范检查
 - [ ] Agent 不直接向用户提问
-- [ ] Agent 遇到问题时上报给 Team 管理者（orchestrator）
-- [ ] 由 orchestrator 通过 `AskUserQuestion` 统一提问
+- [ ] Agent 遇到问题时上报给 Team 管理者（loop Leader）
+- [ ] 由 loop Leader 通过 `AskUserQuestion` 统一提问
 - [ ] 问题包含充足上下文、可选方案和建议方向
 
 ### 工具使用检查
@@ -170,7 +170,7 @@ memory: project
 - [ ] 使用 `Agent` 生成团队成员（带 team_name 和 name）
 - [ ] 使用 `TaskUpdate` 设置 `owner` 分配任务
 - [ ] 使用 `SendMessage` 进行团队内通信
-- [ ] 使用 `AskUserQuestion` 向用户提问（仅 orchestrator）
+- [ ] 使用 `AskUserQuestion` 向用户提问（仅 loop Leader）
 - [ ] 使用 `TeamDelete` 清理团队（任务完成后）
 
 ### 并行执行检查

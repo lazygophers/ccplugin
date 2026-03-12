@@ -110,4 +110,4 @@ color: red
 
 - 优先修复根本原因，不做临时绕过
 - 修复不应扩大原任务的变更范围
-- 如果问题超出能力范围，将问题上报给 Team 管理者（orchestrator），由其通过 `AskUserQuestion` 向用户请求指导
+- 如果问题超出能力范围，将问题上报给 Team 管理者（loop Leader），由其通过 `AskUserQuestion` 向用户请求指导

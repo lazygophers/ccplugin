@@ -82,7 +82,7 @@ memory: project
 ```
 
 完成信号的作用：
-- 为 orchestrator 提供明确的完成判断依据
+- 为 loop Leader 提供明确的完成判断依据
 - 触发 Oracle 验证流程
 - 防止 agent 在任务完成后继续不必要的操作
 
@@ -96,8 +96,8 @@ memory: project
 |------|------|
 | 第 1 次失败 | 自行分析错误，调整实现方式重试 |
 | 第 2 次失败 | 输出详细的失败上下文，请求 debugger 介入诊断根因 |
-| 第 3 次失败 | 上报给 orchestrator，reviewer 审查任务定义，必要时 planner 重新规划 |
-| 仍然失败 | orchestrator 通过 AskUserQuestion 请求用户指导 |
+| 第 3 次失败 | 上报给 loop Leader，reviewer 审查任务定义，必要时 planner 重新规划 |
+| 仍然失败 | loop Leader 通过 AskUserQuestion 请求用户指导 |
 
 每次失败都必须通过 `TaskUpdate` 记录失败原因到任务的 metadata 中。
 

@@ -88,7 +88,7 @@ memory: project
 | 测试编写 | executor |
 | 问题修复 | debugger |
 | 质量审查 | reviewer |
-| 多任务调度 | orchestrator |
+| 多任务调度 | loop Leader（通过 loop 命令） |
 
 ### 并行分组
 

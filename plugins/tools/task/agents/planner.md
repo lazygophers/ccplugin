@@ -120,4 +120,4 @@ color: cyan
 - 分解粒度应确保每个子任务可在单次 Agent 交互中完成
 - 并行任务不得操作同一文件
 - 验收标准必须是可自动验证的（运行命令、检查输出）
-- 如果任务过于模糊，将问题上报给 Team 管理者（orchestrator），由其通过 `AskUserQuestion` 统一向用户提问
+- 如果任务过于模糊，将问题上报给 Team 管理者（loop Leader），由其通过 `AskUserQuestion` 统一向用户提问

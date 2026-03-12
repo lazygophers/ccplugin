@@ -1,14 +1,18 @@
 ---
 description: 执行任务计划 - 按照已确认的执行计划调度子任务，支持并行分组、依赖管理和自动验证
 argument-hint: [计划名称或"继续执行"]
-model: sonnet
+skills:
+  - core
+  - orchestration
+  - loop
+  - execution
+model: opus
 memory: project
-preferred_subagent: orchestrator
 ---
 
 # 执行任务计划（/exec）
 
-**推荐使用 `orchestrator` Agent 作为团队领导**，orchestrator 会组建多 Agent 团队并协调执行。
+**使用内置 Loop 模式作为团队 Leader**，负责组建多 Agent 团队并协调执行。
 
 按照已确认的执行计划，调度并执行所有子任务。
 
@@ -91,7 +95,7 @@ preferred_subagent: orchestrator
 
 ### Agent 团队组建检查
 
-- [ ] 使用 `orchestrator` Agent 作为团队领导
+- [ ] 使用 `loop Leader` Agent 作为团队领导
 - [ ] 为独立任务分配合适的 Agent（coder/tester/reviewer）
 - [ ] 确认 Agent 任务分配明确（输入、输出、验收标准）
 - [ ] 并行 Agent 任务互不冲突
@@ -155,7 +159,7 @@ preferred_subagent: orchestrator
 
 | Agent | 用途 | 触发条件 |
 |------|------|---------|
-| `orchestrator` | 团队领导，协调执行 | **推荐**作为 preferred_subagent |
+| `loop Leader` | 团队领导，协调执行 | **推荐**作为 preferred_subagent |
 | `coder` | 代码实现 | 分配给代码实现任务 |
 | `tester` | 测试验证 | 分配给测试任务 |
 | `reviewer` | 代码审查 | 整体完成后的 Oracle 验证 |
@@ -196,7 +200,7 @@ preferred_subagent: orchestrator
 
 ### 最佳实践
 
-- ✅ 使用 `orchestrator` Agent 协调执行
+- ✅ 使用 `loop Leader` Agent 协调执行
 - ✅ 失败任务立即分析，避免连锁失败
 - ✅ 定期输出进度，保持用户知情
 - ✅ 遇到设计问题及时暂停，避免返工

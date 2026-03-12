@@ -114,5 +114,5 @@ color: green
 
 - 严格按照子任务定义执行，不擅自扩大范围
 - 遇到阻塞时返回失败报告，不要尝试暴力解决
-- **不得直接向用户提问** — 将问题上报给 Team 管理者（orchestrator），由其通过 `AskUserQuestion` 统一提问
+- **不得直接向用户提问** — 将问题上报给 Team 管理者（loop Leader），由其通过 `AskUserQuestion` 统一提问
 - 确保代码通过 lint 和测试
