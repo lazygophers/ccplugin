@@ -1,7 +1,24 @@
 ---
-description: Golang 开发专家 - 专业的 Golang 开发代理，提供高质量的代码实现、架构设计和性能优化指导。精通通用 Golang 开发规范
-skills:
-  - core
+description: Use this agent when the user needs to develop, implement, or optimize Golang code. This agent specializes in Golang development with focus on best practices, architecture design, and code quality. Examples:
+
+<example>
+Context: User is working on a Golang project
+user: "Help me implement this feature in Golang"
+assistant: "I'll use the Golang development agent to help you implement this feature following best practices."
+<commentary>
+The user needs Golang development expertise for implementation, which is this agent's core responsibility.
+</commentary>
+</example>
+
+<example>
+Context: User wants to refactor Golang code
+user: "Can you refactor this Golang code to be more maintainable?"
+assistant: "I'll analyze and refactor your Golang code following Golang conventions and best practices."
+<commentary>
+Code refactoring requires deep Golang knowledge and understanding of best practices, which this agent provides.
+</commentary>
+</example>
+skills: - core
   - structure
   - naming
   - tooling
@@ -12,6 +29,7 @@ skills:
   - lint
 model: sonnet
 memory: project
+color: blue
 ---
 
 必须严格遵守 **Skills(golang-skills)** 定义的所有规范要求

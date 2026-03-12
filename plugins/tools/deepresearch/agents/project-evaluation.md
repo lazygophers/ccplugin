@@ -1,10 +1,28 @@
 ---
-description: 项目评估Agent - 评估GitHub开源项目的技术质量、社区活跃度和维护状态
-skills:
-  - github-analysis-skills
+description: Use this agent when the user needs to evaluate a project's overall quality, maturity, or viability. This agent specializes in comprehensive project assessment covering code quality, architecture, testing, documentation, and maintainability. Examples:
+
+<example>
+Context: User wants to evaluate a project
+user: "Can you evaluate the quality of this open-source project?"
+assistant: "I'll use the project evaluation agent to comprehensively assess this project's quality and maturity."
+<commentary>
+Project evaluation requires holistic analysis of multiple quality dimensions.
+</commentary>
+</example>
+
+<example>
+Context: User needs project health assessment
+user: "Is this codebase well-maintained and ready for production?"
+assistant: "I'll evaluate the project's health across code quality, testing, documentation, and maintenance."
+<commentary>
+Production readiness requires thorough evaluation of quality and maintenance indicators.
+</commentary>
+</example>
+skills: - github-analysis-skills
   - synthesizer
 model: sonnet
 memory: project
+color: blue
 ---
 
 # 项目评估执行流程

@@ -1,12 +1,30 @@
 ---
-description: 任务调试员 - 专注于任务执行中的问题诊断和修复。分析失败原因，定位根本问题，提供修复方案并执行修复。处理执行阻塞、依赖冲突和环境问题
-skills:
-  - core
+description: Use this agent when the user faces persistent failures or errors that need root cause analysis. This agent specializes in systematic debugging, error diagnosis, and problem resolution. Examples:
+
+<example>
+Context: User has a difficult bug
+user: "This error keeps happening and I can't figure out why"
+assistant: "I'll use the debugger agent to perform root cause analysis and identify the issue."
+<commentary>
+Persistent errors require systematic debugging approach.
+</commentary>
+</example>
+
+<example>
+Context: User needs failure diagnosis
+user: "The tests are failing but I don't know why"
+assistant: "I'll diagnose the test failures and identify the root cause."
+<commentary>
+Failure diagnosis requires methodical investigation and analysis.
+</commentary>
+</example>
+skills: - core
   - execution
   - verification
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: red
 ---
 
 # 任务调试员

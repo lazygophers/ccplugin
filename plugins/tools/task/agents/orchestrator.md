@@ -1,12 +1,30 @@
 ---
-description: 任务编排器 - 作为 Team Leader 协调多 Agent 团队。组建团队、分配任务、协调通信、处理异常、向用户汇报。是整个任务管理系统的调度中枢和唯一的用户提问入口
-skills:
-  - core
+description: Use this agent when the user needs to coordinate multiple agents for complex multi-step tasks. This agent acts as a team leader, creating teams, assigning tasks, coordinating communication, and reporting to the user. Examples:
+
+<example>
+Context: User has a complex multi-step task
+user: "I need to refactor this large codebase and add tests"
+assistant: "I'll use the orchestrator agent to coordinate multiple specialized agents for this complex task."
+<commentary>
+Complex tasks requiring multiple agents need orchestration and coordination.
+</commentary>
+</example>
+
+<example>
+Context: User needs parallel task execution
+user: "Can you optimize these modules in parallel?"
+assistant: "I'll use the orchestrator to create a team and execute these tasks in parallel."
+<commentary>
+Parallel task execution requires coordination and team management.
+</commentary>
+</example>
+skills: - core
   - orchestration
   - loop
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
 memory: project
+color: blue
 ---
 
 # 任务编排器

@@ -1,10 +1,28 @@
 ---
-description: 代码审查Agent - 审查本地代码库的代码质量、结构规范和技术债
-skills:
-  - local-code-analysis
+description: Use this agent when the user needs to review code quality, structure, or technical debt in a local codebase. This agent specializes in code analysis, quality assessment, and improvement recommendations. Examples:
+
+<example>
+Context: User wants to review code quality
+user: "Can you review the code quality of my project?"
+assistant: "I'll use the code review agent to analyze your codebase's quality, structure, and technical debt."
+<commentary>
+Code review requires systematic analysis of code quality, which is this agent's core responsibility.
+</commentary>
+</example>
+
+<example>
+Context: User wants to identify technical debt
+user: "Help me identify technical debt in this codebase"
+assistant: "I'll analyze your codebase to identify technical debt and provide prioritized recommendations."
+<commentary>
+Technical debt identification requires deep code analysis and architectural understanding.
+</commentary>
+</example>
+skills: - local-code-analysis
   - synthesizer
 model: sonnet
 memory: project
+color: blue
 ---
 
 # 代码审查执行流程

@@ -1,7 +1,24 @@
 ---
-description: C++ 开发专家 - 专业的 C++ 开发代理，提供高质量的代码实现、架构设计和性能优化指导。精通 C++17/23 标准、STL、模板元编程和现代 C++ 最佳实践
-skills:
-  - core
+description: Use this agent when the user needs to develop, implement, or optimize C++ code. This agent specializes in C++ development with focus on best practices, architecture design, and code quality. Examples:
+
+<example>
+Context: User is working on a C++ project
+user: "Help me implement this feature in C++"
+assistant: "I'll use the C++ development agent to help you implement this feature following best practices."
+<commentary>
+The user needs C++ development expertise for implementation, which is this agent's core responsibility.
+</commentary>
+</example>
+
+<example>
+Context: User wants to refactor C++ code
+user: "Can you refactor this C++ code to be more maintainable?"
+assistant: "I'll analyze and refactor your C++ code following C++ conventions and best practices."
+<commentary>
+Code refactoring requires deep C++ knowledge and understanding of best practices, which this agent provides.
+</commentary>
+</example>
+skills: - core
   - memory
   - concurrency
   - template
@@ -9,6 +26,7 @@ skills:
   - performance
 model: sonnet
 memory: project
+color: blue
 ---
 
 必须严格遵守 **Skills(cpp-skills)** 定义的所有规范要求

@@ -1,7 +1,24 @@
 ---
-description: TypeScript 开发专家 - 专注于类型安全、架构设计和现代 TypeScript 开发。精通 TypeScript 5.9+ 严格模式、类型系统和最佳实践
-skills:
-  - core
+description: Use this agent when the user needs to develop, implement, or optimize TypeScript code. This agent specializes in TypeScript development with focus on best practices, architecture design, and code quality. Examples:
+
+<example>
+Context: User is working on a TypeScript project
+user: "Help me implement this feature in TypeScript"
+assistant: "I'll use the TypeScript development agent to help you implement this feature following best practices."
+<commentary>
+The user needs TypeScript development expertise for implementation, which is this agent's core responsibility.
+</commentary>
+</example>
+
+<example>
+Context: User wants to refactor TypeScript code
+user: "Can you refactor this TypeScript code to be more maintainable?"
+assistant: "I'll analyze and refactor your TypeScript code following TypeScript conventions and best practices."
+<commentary>
+Code refactoring requires deep TypeScript knowledge and understanding of best practices, which this agent provides.
+</commentary>
+</example>
+skills: - core
   - types
   - async
   - security
@@ -10,6 +27,7 @@ skills:
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: blue
 ---
 
 # TypeScript 开发专家

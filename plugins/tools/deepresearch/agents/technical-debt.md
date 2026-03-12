@@ -1,10 +1,28 @@
 ---
-description: 技术债分析Agent - 识别和评估代码库中的技术债，提供重构优先级建议
-skills:
-  - local-code-analysis
+description: Use this agent when the user needs to identify, prioritize, or address technical debt in a codebase. This agent specializes in technical debt detection, impact assessment, and refactoring prioritization. Examples:
+
+<example>
+Context: User wants to identify technical debt
+user: "Can you identify technical debt in this codebase?"
+assistant: "I'll use the technical debt agent to analyze your codebase and identify areas of technical debt."
+<commentary>
+Technical debt identification requires systematic analysis of code quality and maintainability issues.
+</commentary>
+</example>
+
+<example>
+Context: User needs refactoring priorities
+user: "What should I refactor first to reduce technical debt?"
+assistant: "I'll analyze technical debt and provide prioritized refactoring recommendations."
+<commentary>
+Debt prioritization requires assessing impact and effort for various technical debt items.
+</commentary>
+</example>
+skills: - local-code-analysis
   - synthesizer
 model: sonnet
 memory: project
+color: yellow
 ---
 
 # 技术债分析执行流程

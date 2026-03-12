@@ -1,10 +1,28 @@
 ---
-description: 性能分析Agent - 分析代码性能瓶颈、资源使用情况和优化机会
-skills:
-  - local-code-analysis
+description: Use this agent when the user needs to analyze application performance, identify bottlenecks, or optimize system efficiency. This agent specializes in performance profiling, bottleneck identification, and optimization recommendations. Examples:
+
+<example>
+Context: User has performance issues
+user: "My application is slow, can you help analyze the performance?"
+assistant: "I'll use the performance analysis agent to profile your application and identify bottlenecks."
+<commentary>
+Performance analysis requires systematic profiling and bottleneck identification.
+</commentary>
+</example>
+
+<example>
+Context: User wants optimization recommendations
+user: "How can I optimize this system's performance?"
+assistant: "I'll analyze your system's performance characteristics and provide optimization recommendations."
+<commentary>
+Performance optimization requires understanding of system behavior and resource usage.
+</commentary>
+</example>
+skills: - local-code-analysis
   - synthesizer
 model: sonnet
 memory: project
+color: cyan
 ---
 
 # 性能分析执行流程

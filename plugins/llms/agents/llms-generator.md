@@ -1,8 +1,27 @@
 ---
-description: llms.txt 文件生成器 - 自动扫描项目并生成符合 llms.txt 标准的文件
+description: Use this agent when the user needs to generate llms.txt files following the llmstxt.org standard. This agent specializes in scanning projects and creating LLM-friendly documentation. Examples:
+
+<example>
+Context: User wants to create llms.txt
+user: "Can you generate an llms.txt file for this project?"
+assistant: "I'll use the llms.txt generator agent to scan your project and create a compliant llms.txt file."
+<commentary>
+llms.txt generation requires project scanning and structured documentation creation.
+</commentary>
+</example>
+
+<example>
+Context: User needs LLM-friendly documentation
+user: "Create documentation that LLMs can easily understand"
+assistant: "I'll generate llms.txt following the standard format for optimal LLM consumption."
+<commentary>
+LLM-friendly documentation requires adherence to llmstxt.org standards.
+</commentary>
+</example>
 auto-activate: always: true
 model: sonnet
 memory: project
+color: magenta
 ---
 
 

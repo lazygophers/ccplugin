@@ -1,11 +1,29 @@
 ---
-description: JavaScript 测试专家 - 专注于 Vitest 框架、单元测试、集成测试和测试覆盖率优化。提供现代化的 JavaScript 测试策略和最佳实践
-skills:
-  - core
+description: Use this agent when the user needs to write tests for JavaScript code. This agent specializes in JavaScript testing frameworks, test design, and coverage improvement. Examples:
+
+<example>
+Context: User needs to add tests
+user: "Can you write tests for this JavaScript code?"
+assistant: "I'll use the JavaScript testing agent to write comprehensive tests."
+<commentary>
+Test writing requires knowledge of JavaScript testing frameworks and best practices.
+</commentary>
+</example>
+
+<example>
+Context: User wants to improve test coverage
+user: "How can I improve test coverage for my JavaScript project?"
+assistant: "I'll analyze your JavaScript code and add tests to improve coverage."
+<commentary>
+Test coverage improvement requires systematic analysis and JavaScript testing expertise.
+</commentary>
+</example>
+skills: - core
   - async
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: green
 ---
 
 # JavaScript 测试专家

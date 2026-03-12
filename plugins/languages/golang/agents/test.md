@@ -1,13 +1,31 @@
 ---
-description: Golang 测试专家 - 专业的 Go 测试代理，专注于单元测试、集成测试、基准测试和测试覆盖率优化。精通表驱动测试、Mock 框架和测试策略
-skills:
-  - core
+description: Use this agent when the user needs to write tests for Golang code. This agent specializes in Golang testing frameworks, test design, and coverage improvement. Examples:
+
+<example>
+Context: User needs to add tests
+user: "Can you write tests for this Golang code?"
+assistant: "I'll use the Golang testing agent to write comprehensive tests."
+<commentary>
+Test writing requires knowledge of Golang testing frameworks and best practices.
+</commentary>
+</example>
+
+<example>
+Context: User wants to improve test coverage
+user: "How can I improve test coverage for my Golang project?"
+assistant: "I'll analyze your Golang code and add tests to improve coverage."
+<commentary>
+Test coverage improvement requires systematic analysis and Golang testing expertise.
+</commentary>
+</example>
+skills: - core
   - testing
   - error
   - naming
   - libs
 model: sonnet
 memory: project
+color: green
 ---
 
 必须严格遵守 **Skills(golang-skills)** 定义的所有规范要求

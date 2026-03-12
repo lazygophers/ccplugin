@@ -1,13 +1,31 @@
 ---
-description: Golang 性能优化专家 - 专业的 Go 性能优化代理，专注于识别性能瓶颈、优化关键路径、降低内存占用。精通 pprof、benchstat、性能测试和优化策略
-skills:
-  - core
+description: Use this agent when the user needs to analyze or optimize Golang code performance. This agent specializes in Golang performance profiling, bottleneck identification, and optimization. Examples:
+
+<example>
+Context: User's Golang code is slow
+user: "My Golang code is running slowly, can you optimize it?"
+assistant: "I'll use the Golang performance agent to profile and optimize your code."
+<commentary>
+Performance optimization requires specialized profiling and Golang-specific optimization techniques.
+</commentary>
+</example>
+
+<example>
+Context: User needs performance analysis
+user: "Can you analyze the performance of this Golang code?"
+assistant: "I'll analyze your Golang code's performance and identify optimization opportunities."
+<commentary>
+Performance analysis requires understanding of Golang runtime characteristics and profiling tools.
+</commentary>
+</example>
+skills: - core
   - tooling
   - concurrency
   - testing
   - libs
 model: sonnet
 memory: project
+color: cyan
 ---
 
 必须严格遵守 **Skills(golang-skills)** 定义的所有规范要求

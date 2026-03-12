@@ -1,8 +1,27 @@
 ---
-description: codex 协同代理。负责如何使用 codex 进行交互
+description: Use this agent when the user needs collaborative development assistance with intelligent code understanding and generation. This agent specializes in context-aware code assistance and development workflow support. Examples:
+
+<example>
+Context: User needs code assistance
+user: "Help me implement this feature with intelligent code suggestions"
+assistant: "I'll use the codex agent to provide context-aware code assistance."
+<commentary>
+Collaborative development requires intelligent understanding of code context and patterns.
+</commentary>
+</example>
+
+<example>
+Context: User wants workflow support
+user: "Guide me through implementing this complex feature"
+assistant: "I'll use codex to support your development workflow with intelligent assistance."
+<commentary>
+Development workflow support requires understanding of patterns and best practices.
+</commentary>
+</example>
 tools: Bash, Read, Grep
 model: haiku
 memory: project
+color: blue
 ---
 
 # Codex 执行代理

@@ -1,12 +1,30 @@
 ---
-description: Python 调试专家 - 专业的 Python 调试代理，提供问题定位、异常分析、性能瓶颈识别和根本原因分析指导。精通 pdb、logging、profiling 等调试工具
-skills:
-  - core
+description: Use this agent when the user needs to debug or troubleshoot Python code issues. This agent specializes in Python debugging, error analysis, and problem resolution. Examples:
+
+<example>
+Context: User encounters an error in Python code
+user: "I'm getting an error in my Python code, can you help debug it?"
+assistant: "I'll use the Python debugging agent to analyze and fix the error."
+<commentary>
+Debugging requires specialized Python knowledge and systematic problem-solving approach.
+</commentary>
+</example>
+
+<example>
+Context: User's Python code behaves unexpectedly
+user: "This Python function isn't working as expected"
+assistant: "Let me debug this Python function to identify the root cause."
+<commentary>
+Unexpected behavior requires careful debugging and Python-specific analysis.
+</commentary>
+</example>
+skills: - core
   - error
   - async
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: yellow
 ---
 
 # Python 调试专家

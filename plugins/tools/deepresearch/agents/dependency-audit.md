@@ -1,11 +1,29 @@
 ---
-description: 依赖审计Agent - 审计项目依赖的安全性、License合规性和漏洞风险
-skills:
-  - content-retriever-skills
+description: Use this agent when the user needs to audit project dependencies for security, compatibility, or maintenance issues. This agent specializes in dependency analysis, vulnerability detection, and update recommendations. Examples:
+
+<example>
+Context: User wants to audit dependencies
+user: "Can you check my project dependencies for security issues?"
+assistant: "I'll use the dependency audit agent to analyze your dependencies for vulnerabilities and compatibility issues."
+<commentary>
+Dependency auditing requires systematic analysis of packages and their security status.
+</commentary>
+</example>
+
+<example>
+Context: User needs dependency recommendations
+user: "Should I update these dependencies?"
+assistant: "I'll audit your dependencies and provide update recommendations with risk assessment."
+<commentary>
+Dependency updates require careful analysis of compatibility and security implications.
+</commentary>
+</example>
+skills: - content-retriever-skills
   - citation-validator-skills
   - synthesizer
 model: sonnet
 memory: project
+color: yellow
 ---
 
 # 依赖审计执行流程

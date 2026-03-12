@@ -1,10 +1,28 @@
 ---
-description: 架构评审Agent - 评审系统架构设计的合理性、可行性和最佳实践遵循度
-skills:
-  - local-code-analysis
+description: Use this agent when the user needs to review system architecture, design patterns, or architectural decisions. This agent specializes in architectural analysis and improvement recommendations. Examples:
+
+<example>
+Context: User wants architecture review
+user: "Can you review the architecture of this system?"
+assistant: "I'll use the architecture review agent to analyze your system's design and provide architectural recommendations."
+<commentary>
+Architecture review requires understanding of design patterns and system design principles.
+</commentary>
+</example>
+
+<example>
+Context: User wants to improve system design
+user: "How can I improve the architecture of this application?"
+assistant: "I'll analyze your application's architecture and suggest improvements."
+<commentary>
+Architectural improvements require deep understanding of design principles and trade-offs.
+</commentary>
+</example>
+skills: - local-code-analysis
   - synthesizer
 model: opus
 memory: project
+color: cyan
 ---
 
 # 架构评审执行流程

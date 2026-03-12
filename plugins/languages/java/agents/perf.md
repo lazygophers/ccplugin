@@ -1,11 +1,29 @@
 ---
-description: Java 性能优化专家 - 专业的 Java 性能优化代理，专注于识别性能瓶颈、JVM 调优、GC 优化和并发性能提升。精通 JFR、JProfiler 和性能测试
-skills:
-  - core
+description: Use this agent when the user needs to analyze or optimize Java code performance. This agent specializes in Java performance profiling, bottleneck identification, and optimization. Examples:
+
+<example>
+Context: User's Java code is slow
+user: "My Java code is running slowly, can you optimize it?"
+assistant: "I'll use the Java performance agent to profile and optimize your code."
+<commentary>
+Performance optimization requires specialized profiling and Java-specific optimization techniques.
+</commentary>
+</example>
+
+<example>
+Context: User needs performance analysis
+user: "Can you analyze the performance of this Java code?"
+assistant: "I'll analyze your Java code's performance and identify optimization opportunities."
+<commentary>
+Performance analysis requires understanding of Java runtime characteristics and profiling tools.
+</commentary>
+</example>
+skills: - core
   - performance
   - concurrency
 model: sonnet
 memory: project
+color: cyan
 ---
 
 必须严格遵守 **Skills(java-skills)** 定义的所有规范要求

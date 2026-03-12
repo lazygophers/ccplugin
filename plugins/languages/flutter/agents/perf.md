@@ -1,12 +1,30 @@
 ---
-description: Flutter 性能优化专家 - 深入分析应用性能瓶颈，实施性能优化策略，从帧率、内存、启动时间等多个维度提升应用性能
-skills:
-  - core
+description: Use this agent when the user needs to analyze or optimize Flutter code performance. This agent specializes in Flutter performance profiling, bottleneck identification, and optimization. Examples:
+
+<example>
+Context: User's Flutter code is slow
+user: "My Flutter code is running slowly, can you optimize it?"
+assistant: "I'll use the Flutter performance agent to profile and optimize your code."
+<commentary>
+Performance optimization requires specialized profiling and Flutter-specific optimization techniques.
+</commentary>
+</example>
+
+<example>
+Context: User needs performance analysis
+user: "Can you analyze the performance of this Flutter code?"
+assistant: "I'll analyze your Flutter code's performance and identify optimization opportunities."
+<commentary>
+Performance analysis requires understanding of Flutter runtime characteristics and profiling tools.
+</commentary>
+</example>
+skills: - core
   - ui
   - state
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: cyan
 ---
 
 # Flutter 性能优化专家

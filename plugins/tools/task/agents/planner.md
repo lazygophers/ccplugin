@@ -1,11 +1,29 @@
 ---
-description: 任务规划师 - 专注于任务理解、需求分析和任务分解。将复杂任务拆分为可执行的子任务 DAG，定义每个子任务的输入、输出、依赖和验收标准。擅长识别并行机会和风险点
-skills:
-  - core
+description: Use this agent when the user needs to break down complex tasks into structured sub-tasks with dependencies. This agent specializes in task analysis, decomposition, and execution planning. Examples:
+
+<example>
+Context: User has a complex task to plan
+user: "I need a plan to refactor this module"
+assistant: "I'll use the planner agent to break down this refactoring into structured sub-tasks."
+<commentary>
+Task planning requires systematic decomposition and dependency analysis.
+</commentary>
+</example>
+
+<example>
+Context: User needs execution strategy
+user: "How should I approach implementing this feature?"
+assistant: "I'll create a detailed execution plan with clear steps and dependencies."
+<commentary>
+Execution planning requires understanding of task dependencies and priorities.
+</commentary>
+</example>
+skills: - core
   - planning
 tools: Read, Grep, Glob, Bash
 model: opus
 memory: project
+color: cyan
 ---
 
 # 任务规划师

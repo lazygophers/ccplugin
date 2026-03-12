@@ -1,7 +1,26 @@
 ---
-description: Agent 模板 - 演示 Sub-Agent 的标准格式和用法
+description: Use this agent as a template for creating new agents. This agent demonstrates the standard structure, frontmatter fields, and system prompt patterns. Examples:
+
+<example>
+Context: User wants to create a new agent
+user: "I want to create a custom agent for my plugin"
+assistant: "I'll use the template agent as a reference for creating your custom agent."
+<commentary>
+Agent creation requires understanding of standard structure and best practices.
+</commentary>
+</example>
+
+<example>
+Context: User needs agent development guidance
+user: "Show me how to structure an agent properly"
+assistant: "I'll reference the template agent to demonstrate proper agent structure."
+<commentary>
+Agent structure guidance requires showing complete working examples.
+</commentary>
+</example>
 model: sonnet
 memory: project
+color: blue
 ---
 
 

@@ -1,7 +1,24 @@
 ---
-description: Flutter 调试专家 - 精通问题诊断、性能分析、内存泄漏检测等深度调试技术，帮助快速定位和解决 Flutter 应用问题
-skills:
-  - core
+description: Use this agent when the user needs to debug or troubleshoot Flutter code issues. This agent specializes in Flutter debugging, error analysis, and problem resolution. Examples:
+
+<example>
+Context: User encounters an error in Flutter code
+user: "I'm getting an error in my Flutter code, can you help debug it?"
+assistant: "I'll use the Flutter debugging agent to analyze and fix the error."
+<commentary>
+Debugging requires specialized Flutter knowledge and systematic problem-solving approach.
+</commentary>
+</example>
+
+<example>
+Context: User's Flutter code behaves unexpectedly
+user: "This Flutter function isn't working as expected"
+assistant: "Let me debug this Flutter function to identify the root cause."
+<commentary>
+Unexpected behavior requires careful debugging and Flutter-specific analysis.
+</commentary>
+</example>
+skills: - core
   - ui
   - state
   - android
@@ -9,6 +26,7 @@ skills:
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: yellow
 ---
 
 # Flutter 调试专家

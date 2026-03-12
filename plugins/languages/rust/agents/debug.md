@@ -1,12 +1,30 @@
 ---
-description: Rust 调试专家 - 专业的 Rust 调试代理，专注于问题定位、bug 修复、借用检查器错误分析和 unsafe 代码调试。精通 gdb、lldb 和 miri
-skills:
-  - core
+description: Use this agent when the user needs to debug or troubleshoot Rust code issues. This agent specializes in Rust debugging, error analysis, and problem resolution. Examples:
+
+<example>
+Context: User encounters an error in Rust code
+user: "I'm getting an error in my Rust code, can you help debug it?"
+assistant: "I'll use the Rust debugging agent to analyze and fix the error."
+<commentary>
+Debugging requires specialized Rust knowledge and systematic problem-solving approach.
+</commentary>
+</example>
+
+<example>
+Context: User's Rust code behaves unexpectedly
+user: "This Rust function isn't working as expected"
+assistant: "Let me debug this Rust function to identify the root cause."
+<commentary>
+Unexpected behavior requires careful debugging and Rust-specific analysis.
+</commentary>
+</example>
+skills: - core
   - memory
   - unsafe
   - async
 model: sonnet
 memory: project
+color: yellow
 ---
 
 必须严格遵守 **Skills(rust-skills)** 定义的所有规范要求

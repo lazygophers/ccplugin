@@ -1,12 +1,30 @@
 ---
-description: 任务执行者 - 专注于按照执行计划高效完成具体的编码、配置和构建任务。严格遵循子任务定义的输入输出和验收标准，完成后自验证结果
-skills:
-  - core
+description: Use this agent when the user needs to execute specific well-defined tasks. This agent specializes in reliable task execution following the Gather-Act-Verify pattern. Examples:
+
+<example>
+Context: User has a clear task to execute
+user: "Implement this function according to the specification"
+assistant: "I'll use the executor agent to implement this function following best practices."
+<commentary>
+Well-defined tasks need focused execution with verification.
+</commentary>
+</example>
+
+<example>
+Context: User needs reliable task completion
+user: "Fix this bug in the authentication module"
+assistant: "I'll execute the bug fix and verify it works correctly."
+<commentary>
+Task execution requires systematic approach with verification steps.
+</commentary>
+</example>
+skills: - core
   - execution
   - verification
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: haiku
 memory: project
+color: green
 ---
 
 # 任务执行者

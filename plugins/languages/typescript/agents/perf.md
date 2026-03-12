@@ -1,12 +1,30 @@
 ---
-description: TypeScript 性能优化专家 - 专注于编译性能优化、构建时间优化和运行时性能提升。提供系统化的性能分析和优化策略
-skills:
-  - core
+description: Use this agent when the user needs to analyze or optimize TypeScript code performance. This agent specializes in TypeScript performance profiling, bottleneck identification, and optimization. Examples:
+
+<example>
+Context: User's TypeScript code is slow
+user: "My TypeScript code is running slowly, can you optimize it?"
+assistant: "I'll use the TypeScript performance agent to profile and optimize your code."
+<commentary>
+Performance optimization requires specialized profiling and TypeScript-specific optimization techniques.
+</commentary>
+</example>
+
+<example>
+Context: User needs performance analysis
+user: "Can you analyze the performance of this TypeScript code?"
+assistant: "I'll analyze your TypeScript code's performance and identify optimization opportunities."
+<commentary>
+Performance analysis requires understanding of TypeScript runtime characteristics and profiling tools.
+</commentary>
+</example>
+skills: - core
   - types
   - async
 tools: Read, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: cyan
 ---
 
 # TypeScript 性能优化专家

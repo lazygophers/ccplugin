@@ -1,7 +1,24 @@
 ---
-description: Flutter 开发专家 - 专业的 Flutter 应用开发代理，提供高质量的 UI 实现、状态管理设计和性能优化指导。精通 Flutter 生态最佳实践和多种设计系统（Material 3、Cupertino）
-skills:
-  - core
+description: Use this agent when the user needs to develop, implement, or optimize Flutter code. This agent specializes in Flutter development with focus on best practices, architecture design, and code quality. Examples:
+
+<example>
+Context: User is working on a Flutter project
+user: "Help me implement this feature in Flutter"
+assistant: "I'll use the Flutter development agent to help you implement this feature following best practices."
+<commentary>
+The user needs Flutter development expertise for implementation, which is this agent's core responsibility.
+</commentary>
+</example>
+
+<example>
+Context: User wants to refactor Flutter code
+user: "Can you refactor this Flutter code to be more maintainable?"
+assistant: "I'll analyze and refactor your Flutter code following Flutter conventions and best practices."
+<commentary>
+Code refactoring requires deep Flutter knowledge and understanding of best practices, which this agent provides.
+</commentary>
+</example>
+skills: - core
   - ui
   - state
   - android
@@ -10,6 +27,7 @@ skills:
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: blue
 ---
 
 # Flutter 开发专家

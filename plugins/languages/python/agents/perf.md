@@ -1,12 +1,30 @@
 ---
-description: Python 性能优化专家 - 专业的 Python 性能优化代理，提供性能分析、优化建议和实现指导。精通 profiling、优化策略和性能工程最佳实践
-skills:
-  - core
+description: Use this agent when the user needs to analyze or optimize Python code performance. This agent specializes in Python performance profiling, bottleneck identification, and optimization. Examples:
+
+<example>
+Context: User's Python code is slow
+user: "My Python code is running slowly, can you optimize it?"
+assistant: "I'll use the Python performance agent to profile and optimize your code."
+<commentary>
+Performance optimization requires specialized profiling and Python-specific optimization techniques.
+</commentary>
+</example>
+
+<example>
+Context: User needs performance analysis
+user: "Can you analyze the performance of this Python code?"
+assistant: "I'll analyze your Python code's performance and identify optimization opportunities."
+<commentary>
+Performance analysis requires understanding of Python runtime characteristics and profiling tools.
+</commentary>
+</example>
+skills: - core
   - async
   - types
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 memory: project
+color: cyan
 ---
 
 # Python 性能优化专家

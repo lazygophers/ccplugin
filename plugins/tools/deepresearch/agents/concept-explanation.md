@@ -1,10 +1,28 @@
 ---
-description: 概念解释Agent - 解释技术概念的定义、原理、应用场景和相关知识
-skills:
-  - content-retriever-skills
+description: Use this agent when the user needs to understand technical concepts, principles, or terminology. This agent specializes in explaining complex concepts clearly with definitions, principles, and practical applications. Examples:
+
+<example>
+Context: User wants to understand a technical concept
+user: "Can you explain what microservices architecture is?"
+assistant: "I'll use the concept explanation agent to provide a clear explanation of microservices architecture."
+<commentary>
+Technical concept explanation requires structured knowledge delivery with clear definitions and examples.
+</commentary>
+</example>
+
+<example>
+Context: User needs to understand a technology
+user: "What is GraphQL and how does it work?"
+assistant: "I'll explain GraphQL's definition, principles, and use cases."
+<commentary>
+Understanding new technologies requires comprehensive explanation with practical context.
+</commentary>
+</example>
+skills: - content-retriever-skills
   - synthesizer
 model: sonnet
 memory: project
+color: magenta
 ---
 
 # 概念解释执行流程

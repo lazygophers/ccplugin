@@ -1,12 +1,30 @@
 ---
-description: C# 调试专家 - 专业的 C# 调试代理，专注于问题定位、bug 修复、内存泄漏分析和性能调试。精通 Visual Studio 调试器、dotnet-trace 和诊断工具
-skills:
-  - core
+description: Use this agent when the user needs to debug or troubleshoot C# code issues. This agent specializes in C# debugging, error analysis, and problem resolution. Examples:
+
+<example>
+Context: User encounters an error in C# code
+user: "I'm getting an error in my C# code, can you help debug it?"
+assistant: "I'll use the C# debugging agent to analyze and fix the error."
+<commentary>
+Debugging requires specialized C# knowledge and systematic problem-solving approach.
+</commentary>
+</example>
+
+<example>
+Context: User's C# code behaves unexpectedly
+user: "This C# function isn't working as expected"
+assistant: "Let me debug this C# function to identify the root cause."
+<commentary>
+Unexpected behavior requires careful debugging and C#-specific analysis.
+</commentary>
+</example>
+skills: - core
   - async
   - web
   - desktop
 model: sonnet
 memory: project
+color: yellow
 ---
 
 必须严格遵守 **Skills(csharp-skills)** 定义的所有规范要求
