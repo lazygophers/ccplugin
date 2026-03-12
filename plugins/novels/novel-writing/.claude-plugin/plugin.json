@@ -6,8 +6,8 @@
     "name": "lazygophers",
     "email": "admin@lazygophers.dev"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-writing",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-writing",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-writing",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-writing",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "novel",

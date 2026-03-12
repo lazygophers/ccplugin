@@ -1,0 +1,24 @@
+{
+  "name": "novel-mystery",
+  "version": "0.0.160",
+  "description": "悬疑推理小说创作插件 - 提供案件设计、线索布局、推理逻辑、悬念营造等悬疑特色功能",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-mystery",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-mystery",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "mystery",
+    "detective",
+    "suspense",
+    "novel",
+    "investigation",
+    "clue",
+    "reasoning"
+  ],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
+}

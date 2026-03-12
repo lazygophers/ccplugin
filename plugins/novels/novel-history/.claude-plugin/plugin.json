@@ -6,8 +6,8 @@
     "name": "lazygophers",
     "email": "admin@lazygophers.dev"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-history",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-history",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-history",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-history",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "history",

@@ -6,8 +6,8 @@
     "name": "lazygophers",
     "email": "admin@lazygophers.dev"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-wuxia",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-wuxia",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-wuxia",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-wuxia",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "wuxia",

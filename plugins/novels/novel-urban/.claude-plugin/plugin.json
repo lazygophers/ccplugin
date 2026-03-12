@@ -6,8 +6,8 @@
     "name": "lazygophers",
     "email": "admin@lazygophers.dev"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-urban",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-urban",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-urban",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-urban",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "urban",

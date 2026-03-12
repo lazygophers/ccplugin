@@ -6,8 +6,8 @@
     "name": "lazygophers",
     "email": "admin@lazygophers.dev"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-scifi",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-scifi",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-scifi",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-scifi",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "scifi",

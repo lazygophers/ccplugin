@@ -7,8 +7,8 @@
     "email": "admin@lazygophers.dev",
     "url": "https://github.com/lazygophers"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/notify",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/notify",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "notification",

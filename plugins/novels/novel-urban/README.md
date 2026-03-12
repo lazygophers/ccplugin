@@ -35,7 +35,7 @@ Novel Urban 是一个专为都市言情类网络小说创作设计的 Claude Cod
 claude plugin install novel-urban@ccplugin-market
 
 # 从本地安装
-claude plugin install ./plugins/tools/novel-urban
+claude plugin install ./plugins/novels/novel-urban
 ```
 
 ### 使用命令
@@ -160,6 +160,6 @@ AGPL-3.0-or-later
 ## 相关链接
 
 - [项目主页](https://github.com/lazygophers/ccplugin)
-- [插件文档](https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-urban)
+- [插件文档](https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-urban)
 - [问题反馈](https://github.com/lazygophers/ccplugin/issues)
 - [novel-writing 通用小说插件](../novel-writing/)

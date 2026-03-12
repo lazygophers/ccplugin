@@ -7,8 +7,8 @@
     "email": "admin@lazygophers.dev",
     "url": "https://github.com/lazygophers"
   },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/version",
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/version",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/version",
   "license": "AGPL-3.0-or-later",
   "keywords": [
     "version",

@@ -1,0 +1,23 @@
+{
+  "name": "novel-romance",
+  "version": "0.0.160",
+  "description": "言情现代小说创作插件 - 提供情感发展、人物关系、情节冲突、甜虐平衡等言情特色功能",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-romance",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-romance",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "romance",
+    "love",
+    "modern",
+    "novel",
+    "relationship",
+    "emotion"
+  ],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
+}
