@@ -1,6 +1,6 @@
 {
   "name": "codex",
-  "version": "0.0.155",
+  "version": "0.0.156",
   "description": "Codex 插件 - Claude Code 与本地 Codex 模型协同作战",
   "author": {
     "name": "lazygophers",
