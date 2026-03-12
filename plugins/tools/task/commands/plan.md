@@ -3,11 +3,12 @@ description: 任务规划 - 将复杂任务分解为结构化的子任务 DAG，
 argument-hint: [任务描述]
 model: sonnet
 memory: project
+preferred_subagent: planner
 ---
 
 # 任务规划
 
-使用 `planner` Agent 对任务进行结构化分解。
+**使用 `planner` Agent** 对任务进行结构化分解。
 
 ## 规划流程
 
