@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-typescript"
-version = "0.0.158"
+version = "0.0.159"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -65,8 +65,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.158"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#a741b69b24b0660e2baf58ec36384bfca3c15941" }
+version = "0.0.159"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#03513facae892af2b3cc8243ff66177290dab39f" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
