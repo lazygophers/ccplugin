@@ -1,0 +1,45 @@
+# Novel History Plugin
+
+> 历史架空小说创作插件 - 提供朝代背景、权谋设计、战争策略、官场体系等历史特色功能
+
+## 插件信息
+
+- **名称**：novel-history
+- **版本**：0.0.160
+- **描述**：提供朝代背景、权谋设计、战争策略、官场体系等历史架空类网络小说的特色创作功能
+- **类型**：工具插件
+- **许可证**：AGPL-3.0-or-later
+
+## 核心功能
+
+### 快捷命令
+
+- `/novel-history dynasty` - 设计朝代背景
+- `/novel-history intrigue` - 设计权谋情节
+- `/novel-history warfare` - 设计战争策略
+
+### 专业 Agents
+
+- `@history-agent` - 历史背景顾问
+- `@strategy-agent` - 策略设计师
+
+### 核心技能
+
+- `dynasty-setting` - 朝代背景设计技能
+- `political-intrigue` - 权谋设计技能
+- `warfare-strategy` - 战争策略设计技能
+
+## 使用场景
+
+- 新作品的历史架空世界观构建
+- 朝代背景和政治制度设计
+- 权谋斗争情节的策划和验证
+- 战争场面和军事策略设计
+- 官场升迁和科举制度设计
+
+## 相关文档
+
+- [README.md](./README.md) - 完整使用文档
+- [技能文档](./skills/) - 各技能详细说明
+- [命令文档](./commands/) - 命令使用指南
+- [Agent 文档](./agents/) - 专业 agent 介绍

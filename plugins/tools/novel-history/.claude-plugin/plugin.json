@@ -1,0 +1,25 @@
+{
+  "name": "novel-history",
+  "version": "0.0.160",
+  "description": "历史架空小说创作插件 - 提供朝代背景、权谋设计、战争策略、官场体系等历史特色功能",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-history",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-history",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "history",
+    "alternate-history",
+    "politics",
+    "war",
+    "novel",
+    "dynasty",
+    "intrigue",
+    "strategy"
+  ],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
+}
