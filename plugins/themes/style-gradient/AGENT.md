@@ -1,1 +1,0 @@
-所有 UI 设计必须遵守 Skills(gradient-skills) 的渐变设计规范要求

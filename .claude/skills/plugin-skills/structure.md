@@ -49,7 +49,7 @@ task
 semantic
 git
 python
-style-dark
+notify
 
 # ❌ 避免
 Task              # 大写

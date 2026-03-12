@@ -82,24 +82,6 @@ claude plugin install <插件名>@ccplugin-market
 | `office-docx` | Word 插件 - 提供 docx 文件读写、段落格式化功能 | docx, word, document, mcp |
 | `office-pptx` | PowerPoint 插件 - 提供 pptx 文件读写、幻灯片操作功能 | pptx, powerpoint, presentation, mcp |
 
-### 主题插件
-
-| 插件名称 | 描述 |
-|---------|------|
-| `style-glassmorphism` | 玻璃态设计风格 - 模糊、透明、分层效果 |
-| `style-neumorphism` | 新拟态设计风格 - 柔和阴影、浮起效果 |
-| `style-minimal` | 极简主义设计风格 - 留白、简洁排版 |
-| `style-dark` | 暗黑模式设计风格 - 深色背景、高对比 |
-| `style-neon` | 霓虹赛博设计风格 - 发光效果、高饱和色彩 |
-| `style-retro` | 复古怀旧设计风格 - 80-90s 审美、温暖色调 |
-| `style-brutalism` | 野兽派设计风格 - 原始边界、大胆排版 |
-| `style-pastel` | 柔和粉彩设计风格 - 淡雅色彩、温柔质感 |
-| `style-vibrant` | 充满活力设计风格 - 高对比、高饱和色彩 |
-| `style-luxe` | 奢华高端设计风格 - 金色元素、精致排版 |
-| `style-highcontrast` | 高对比无障碍设计风格 - WCAG AAA 标准 |
-| `style-gradient` | 渐变艺术设计风格 - 流动渐变、色彩过渡 |
-| `style-healing` | 治愈系极简实用风 - 莫兰迪配色、情感化温度 |
-
 ### 其他插件
 
 | 插件名称 | 描述 | 关键词 |

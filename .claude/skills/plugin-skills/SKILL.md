@@ -64,7 +64,6 @@ plugin-name/
 | **工具插件** | 提供特定工具能力 | git、semantic   |
 | **语言插件** | 语言开发支持     | python、golang  |
 | **框架插件** | 框架开发支持     | react、gin      |
-| **主题插件** | UI/输出样式      | style-dark      |
 | **功能插件** | 增强核心功能     | notify、version |
 
 ## 组件对比

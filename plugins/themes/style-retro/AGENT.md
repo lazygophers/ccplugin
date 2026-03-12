@@ -1,1 +1,0 @@
-所有 UI 设计必须遵守 Skills(retro-skills) 的复古怀旧设计规范要求

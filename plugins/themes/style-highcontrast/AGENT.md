@@ -1,1 +1,0 @@
-所有 UI 设计必须遵守 Skills(high-contrast-skills) 的高对比无障碍设计规范要求，确保 WCAG AAA 合规
