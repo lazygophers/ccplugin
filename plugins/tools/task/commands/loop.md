@@ -1,6 +1,6 @@
 ---
 description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
-argument-hint: \[任务目标描述]
+argument-hint: [任务目标描述]
 skills:
 	- core
 	- gather
@@ -12,7 +12,10 @@ model: opus
 memory: project
 ---
 
-# Loop 持续执行
+这是一个全新任务，你需要完成
+<user_task>
+$$ARGUMENTS
+</user_task>
 
 作为 team leader，负责调度所有工作，持续迭代直到任务目标达成。
 

@@ -7,9 +7,9 @@ memory: project
 
 待处理任务：
 
-```
-$ARGUMENTS
-```
+<user_task>
+$$ARGUMENTS
+</user_task>
 
 请按以下流程执行：
 
