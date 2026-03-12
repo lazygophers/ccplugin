@@ -1,0 +1,22 @@
+{
+  "name": "novel-wuxia",
+  "version": "0.0.160",
+  "description": "武侠仙侠小说创作插件 - 提供江湖设定、武功招式、门派体系、江湖规则等武侠特色功能",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-wuxia",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-wuxia",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "wuxia",
+    "martial-arts",
+    "jianghu",
+    "kungfu",
+    "novel"
+  ],
+  "commands": "./commands/",
+  "agents": "./agents/",
+  "skills": "./skills/"
+}
