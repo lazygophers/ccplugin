@@ -28,6 +28,7 @@ agent: plugin-agent
 | [插件 MCP 开发](plugin-mcp-development/SKILL.md)        | MCP 服务器      | [mcp](../../agents/mcp)         |
 | [插件 LSP 开发](plugin-lsp-development/SKILL.md)        | LSP 配置        | [lsp](../../agents/lsp)         |
 | [插件 AGENT.md 开发](plugin-agent-development/SKILL.md) | 系统提示注入    | [agent](../../agents/agent)     |
+| [插件质量检查](quality-check/SKILL.md)                  | AI 理解验证     | -                               |
 
 ## 什么是插件
 
