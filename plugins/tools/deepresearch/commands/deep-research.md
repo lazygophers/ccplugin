@@ -103,6 +103,121 @@ memory: project
 | 生成完整的研究报告 | 报告内容完整且符合要求 |
 | 用户主动结束研究   | 用户明确表示结束研究   |
 
+## 执行检查清单
+
+### 阶段 1：Agent 选择与方案提供检查
+
+- [ ] 分析研究内容，识别研究类型（代码审查/性能分析/技术选型等）
+- [ ] 根据研究内容特征匹配最合适的 Agent（参考 Agent 选择策略表）
+- [ ] 准备 2-3 个 Agent 选择方案
+- [ ] 通过 `AskUserQuestion` 提供 Agent 选择方案
+- [ ] 获取用户确认选择的 Agent
+
+### 阶段 2：信息采集与需求明确检查
+
+- [ ] 识别需要收集的信息维度（范围、时间、地理、受众、质量）
+- [ ] 通过 `AskUserQuestion` 逐个询问信息维度
+- [ ] 收集研究范围和具体方向
+- [ ] 收集时间范围（历史/现状/未来）
+- [ ] 收集地理范围（本地/区域/全球）
+- [ ] 收集目标受众和详细程度
+- [ ] 收集质量标准和时间约束
+- [ ] 生成结构化研究计划
+- [ ] 通过 `AskUserQuestion` 确认用户是否满意
+
+### 阶段 3：循环执行与结果完善检查
+
+**信息采集检查**：
+- [ ] 根据研究计划采集信息
+- [ ] 使用合适的 Skills（content-retriever, explorer 等）
+- [ ] 记录信息来源和可信度
+
+**理解整理检查**：
+- [ ] 整理分类采集的信息
+- [ ] 识别关键发现和模式
+- [ ] 标注信息之间的关联
+
+**质量检查**：
+- [ ] 检查信息完整性（对照研究计划）
+- [ ] 识别信息缺口
+- [ ] 验证信息来源质量（使用 citation-validator）
+
+**交互完善检查**：
+- [ ] 对有问题的部分通过 `AskUserQuestion` 提问
+- [ ] 补充缺失的信息
+- [ ] 澄清模糊的内容
+
+**循环迭代检查**：
+- [ ] 重复步骤 1-4 直到获得完整结果
+- [ ] 检查是否满足循环终止条件
+
+### Skills 激活检查
+
+**核心流程 Skills（所有 Agent 通用）**：
+- [ ] `Skills(question-refiner)` - 需要明确研究问题时激活
+- [ ] `Skills(content-retriever)` - 信息采集阶段激活
+- [ ] `Skills(explorer)` - 需要深入探索时激活
+- [ ] `Skills(citation-validator)` - 质量检查阶段激活
+- [ ] `Skills(synthesizer)` - **必需**，最后阶段激活
+
+**Agent 特定 Skills 检查**（参考 Agent 特定 Skills 需求表）：
+- [ ] 确认当前 Agent 的必需 Skills 已激活
+- [ ] 确认当前 Agent 的可选 Skills 按需激活
+
+### 循环终止条件检查
+
+- [ ] 已收集所有必要信息（核心维度信息完整）
+- [ ] 用户确认信息充足
+- [ ] 生成完整的研究报告
+- [ ] 用户主动结束研究
+
+### 最终报告生成检查
+
+- [ ] 使用 `Skills(synthesizer)` 整合研究结果
+- [ ] 报告格式符合用户要求
+- [ ] 报告内容完整且有深度
+- [ ] 引用来源已标注
+- [ ] 通过 `AskUserQuestion` 获得用户最终确认
+
+## 工具调用说明
+
+### 必需工具
+
+| 工具 | 用途 | 调用时机 |
+|------|------|---------|
+| `AskUserQuestion` | 确认 Agent 选择、收集信息、补充缺口、确认结果 | 阶段 1、阶段 2、阶段 3 交互完善、最终确认 |
+
+### Agent 调用
+
+根据研究内容选择（参考 Agent 选择策略表）：
+| Agent | 触发条件 | 检测逻辑 |
+|------|---------|---------|
+| `deepresearch:code-review` | 代码审查和质量分析 | 关键词："代码审查"、"代码质量" |
+| `deepresearch:performance-analysis` | 性能分析和优化 | 关键词："性能分析"、"性能优化" |
+| `deepresearch:technical-debt` | 技术债识别 | 关键词："技术债"、"重构" |
+| `deepresearch:project-evaluation` | GitHub 项目评估 | 包含 "github.com" 或关键词 |
+| `deepresearch:tech-selection` | 技术选型对比 | 关键词："技术选型"、"vs" |
+| `deepresearch:dependency-audit` | 依赖安全审计 | package.json/pyproject.toml |
+| `deepresearch:concept-explanation` | 技术概念解释 | 关键词："什么是"、"如何" |
+| `deepresearch:architecture-review` | 架构设计评审 | 关键词："架构评审"、"架构设计" |
+
+### Skills 引用
+
+**核心流程 Skills**：
+| Skill | 用途 | 必需性 |
+|------|------|--------|
+| `Skills(question-refiner)` | 明确研究问题 | 可选 |
+| `Skills(content-retriever)` | 采集信息 | 按需 |
+| `Skills(explorer)` | 探索前沿 | 按需 |
+| `Skills(citation-validator)` | 验证来源 | 按需 |
+| `Skills(synthesizer)` | 整合报告 | **必需** |
+
+**辅助决策 Skills**：
+| Skill | 用途 | 触发条件 |
+|------|------|---------|
+| `Skills(got-controller)` | 优化研究路径 | 需要优化研究策略时 |
+| `Skills(research-executor)` | 并行执行研究 | 需要多角度并行研究时 |
+
 ## 执行保证
 
 | 保证项        | 要求                                      |
@@ -111,3 +226,26 @@ memory: project
 | 信息收集      | 必须通过AskUserQuestion收集必要信息       |
 | 缺口补充      | 发现信息缺口时必须通过AskUserQuestion补充 |
 | 结果确认      | 最终报告前必须获得用户确认                |
+
+## 注意事项
+
+### 研究质量保证
+
+- Agent 选择必须基于研究内容特征
+- 信息收集必须覆盖所有关键维度
+- 信息来源必须验证可信度
+- 最终报告必须有深度和洞察
+
+### 常见错误
+
+- ❌ 未确认用户直接选择 Agent
+- ❌ 信息收集不完整就生成报告
+- ❌ 未验证信息来源可信度
+- ❌ 报告内容浅薄缺少深度
+
+### 最佳实践
+
+- ✅ 多轮交互确保需求明确
+- ✅ 循环迭代确保信息完整
+- ✅ 验证来源确保信息可信
+- ✅ 整合深度确保报告质量
