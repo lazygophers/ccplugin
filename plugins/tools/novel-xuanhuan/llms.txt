@@ -1,0 +1,45 @@
+# Novel Xuanhuan Plugin
+
+> 玄幻修仙小说创作插件 - 提供修炼体系、功法设定、法宝系统、宗门架构等玄幻特色功能
+
+## 插件信息
+
+- **名称**：novel-xuanhuan
+- **版本**：0.0.160
+- **描述**：提供修炼体系、功法设定、法宝系统、宗门架构等玄幻修仙类网络小说的特色创作功能
+- **类型**：工具插件
+- **许可证**：AGPL-3.0-or-later
+
+## 核心功能
+
+### 快捷命令
+
+- `/novel-xuanhuan cultivation` - 设计修炼体系
+- `/novel-xuanhuan magic-item` - 创建法宝装备
+- `/novel-xuanhuan sect` - 设计宗门势力
+
+### 专业 Agents
+
+- `@cultivation-agent` - 修炼体系顾问
+- `@worldbuilding-agent` - 玄幻世界观设计师
+
+### 核心技能
+
+- `cultivation-system` - 修炼体系设计技能
+- `magic-items` - 法宝装备系统技能
+- `sect-faction` - 宗门势力设定技能
+
+## 使用场景
+
+- 新作品的修仙世界观构建
+- 修炼体系的设计与完善
+- 法宝装备的分级设定
+- 宗门势力的架构设计
+- 灵根资质和天赋体系设计
+
+## 相关文档
+
+- [README.md](./README.md) - 完整使用文档
+- [技能文档](./skills/) - 各技能详细说明
+- [命令文档](./commands/) - 命令使用指南
+- [Agent 文档](./agents/) - 专业 agent 介绍
