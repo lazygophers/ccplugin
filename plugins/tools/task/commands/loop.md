@@ -1,19 +1,16 @@
-***
-
+---
 description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
 argument-hint: \[任务目标描述]
 skills:
-
-- core
-- gather
-- plan
-- execute
-- verify
-- loop
-  model: opus
-  memory: project
-
-***
+	- core
+	- gather
+	- plan
+	- execute
+	- verify
+	- loop
+model: opus
+memory: project
+---
 
 # Loop 持续执行
 
@@ -76,12 +73,13 @@ team_id = None  # 团队 ID，仅在需要时创建
 - 项目上下文（现有代码、架构、模块）
 - 相关文件路径
 - 测试覆盖情况
+- 当前的现状
 
 **输出**：完整的需求理解和项目上下文。
 
 ### 步骤 2：计划设计
 
-**目标**：将任务分解为原子子任务，建立依赖关系，分配 agents 和 skills。
+**目标**：将任务分解为原子子任务，建立依赖关系，分配 agents 和 skills，并建立验收标准
 
 **执行**：
 
@@ -89,6 +87,7 @@ team_id = None  # 团队 ID，仅在需要时创建
 2. 使用 TaskUpdate addBlockedBy 建立依赖关系
 3. 为每个任务分配 agent\_type 和 skills（metadata）
 4. 可选：使用 Agent 调用规划类 agent 辅助
+5. 确认每一个任务的验收标准
 
 **任务分解示例**：
 
@@ -233,7 +232,7 @@ Agent(
 
 - 检查依赖：`all_dependencies_completed(task.blockedBy)`
 - 检查文件冲突：`task_a_files.isdisjoint(task_b_files)`
-- 最多并行数：2
+- 最多并行数：2（如果超过则放置于队列中排队执行）
 
 **进度输出**：
 
@@ -264,7 +263,8 @@ if team_id is not None:
 
 1. 使用 TaskList, TaskGet 检查所有任务
 2. 验证每个任务的验收标准
-3. 使用 TaskUpdate 记录验证结果
+3. 验证没有影响已有的功能和别的模块
+4. 使用 TaskUpdate 记录验证结果
 
 **验证示例**：
 
@@ -364,7 +364,6 @@ Loop 完成时执行一次：
 
 ```
 # 输出最终报告
-# 注意：team 已在步骤 4 结束时删除，这里无需再删除
 ```
 
 最终报告格式：
@@ -414,4 +413,3 @@ Loop 完成时执行一次：
 - 所有提问统一通过 AskUserQuestion
 - Agents 通过 SendMessage 上报问题
 - 停滞时请求用户指导，但继续循环
-
