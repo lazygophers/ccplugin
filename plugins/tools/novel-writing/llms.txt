@@ -1,0 +1,58 @@
+# Novel Writing Plugin
+
+> 网络小说创作插件 - 提供完整的小说创作辅助功能
+
+## 插件信息
+
+- **名称**：novel-writing
+- **版本**：0.0.160
+- **描述**：提供故事构思、角色设定、情节发展、对话生成、文风调整、大纲管理等完整的小说创作辅助功能
+- **类型**：工具插件
+- **许可证**：AGPL-3.0-or-later
+
+## 核心功能
+
+### 快捷命令
+
+- `/novel-writing brainstorm` - 故事构思
+- `/novel-writing character` - 角色设定
+- `/novel-writing plot` - 情节设计
+- `/novel-writing dialogue` - 对话生成
+- `/novel-writing outline` - 大纲管理
+
+### 专业 Agents
+
+- `@story-agent` - 故事顾问
+- `@character-agent` - 角色设计师
+- `@plot-agent` - 情节架构师
+- `@dialogue-agent` - 对话大师
+- `@style-agent` - 文风顾问
+
+### 核心技能
+
+- `story-brainstorm` - 故事构思技能
+- `character-design` - 角色设定技能
+- `plot-development` - 情节发展技能
+- `dialogue-generation` - 对话生成技能
+- `style-tuning` - 文风调整技能
+- `outline-management` - 大纲管理技能
+
+## 使用场景
+
+- 新作品策划和题材选择
+- 角色塑造和关系设计
+- 情节推进和冲突设计
+- 对话创作和语言优化
+- 文风统一和氛围营造
+- 大纲规划和进度跟踪
+
+## 适用类型
+
+支持所有网络小说类型：玄幻、都市、科幻、历史、游戏、悬疑、武侠等
+
+## 相关文档
+
+- [README.md](./README.md) - 完整使用文档
+- [技能文档](./skills/) - 各技能详细说明
+- [命令文档](./commands/) - 命令使用指南
+- [Agent 文档](./agents/) - 专业 agent 介绍

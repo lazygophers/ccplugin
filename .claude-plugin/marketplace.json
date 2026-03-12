@@ -548,6 +548,31 @@
       ]
     },
     {
+      "name": "novel-writing",
+      "source": "./plugins/tools/novel-writing",
+      "description": "网络小说创作插件 - 提供故事构思、角色设定、情节发展、对话生成、文风调整、大纲管理等完整的小说创作辅助功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-writing",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-writing",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "writing",
+        "fiction",
+        "creative-writing",
+        "story",
+        "character",
+        "plot",
+        "dialogue",
+        "outline",
+        "webnovel"
+      ]
+    },
+    {
       "name": "task",
       "source": "./plugins/tools/task",
       "description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
