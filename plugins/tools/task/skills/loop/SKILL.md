@@ -195,13 +195,16 @@ Agent(
 - 后台运行可以提升执行效率，减少主线程阻塞
 - 只有需要实时交互的 agent 才使用前台模式
 
-执行完成后清理：
+执行完成后清理（**必须执行**）：
 ```
 # 删除团队（如果创建了）
 if team_id is not None:
     TeamDelete(team_id)
     team_id = None
+    print("[清理] Team 已删除")
 ```
+
+**⚠️ 重要**：步骤 4 结束时必须删除 team。如果进入步骤 5 时仍能看到 `@executor-*` 成员，说明此清理步骤未执行。
 
 实时输出进度：
 ```
@@ -213,6 +216,8 @@ if team_id is not None:
 ```
 
 ## 步骤 5：结果验证
+
+**前置条件**：Team 已在步骤 4 结束时删除，此时不应存在任何 team 成员。
 
 使用 Skills(task:verify) 规范执行。
 
@@ -354,9 +359,12 @@ if stalled_count >= max_stalled_attempts:
 
 Loop 结束时：
 ```
+# 确认 team 已在步骤 4 删除（此时不应存在 team）
+# 如果仍能看到 @executor-* 成员，说明步骤 4 清理未执行
 # 输出最终报告
-# 注意：team 已在步骤 4 结束时删除
 ```
+
+**⚠️ 检查点**：如果此时仍能看到 team 成员，必须执行 TeamDelete 补救。
 
 ## 注意事项
 

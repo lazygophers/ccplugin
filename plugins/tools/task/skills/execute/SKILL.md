@@ -265,12 +265,19 @@ TaskUpdate(
 
 使用工具：TeamDelete
 
+**⚠️ 必须执行**：步骤 4 结束时，无论任务成功或失败，都必须删除 team。
+
 ```
 # 删除团队（如果创建了）
 if team_id is not None:
     TeamDelete(team_id)
     team_id = None
+    print("[清理] Team 已删除")
 ```
+
+**检查点**：
+- 如果进入步骤 5（结果验证）时仍能看到 `@executor-*` 成员
+- 说明此清理步骤未执行，必须立即执行 TeamDelete
 
 ## 输出要求
 
@@ -279,7 +286,7 @@ if team_id is not None:
 2. 失败任务已记录失败原因
 3. 进度信息已输出
 4. Agent 已通过 SendMessage 上报结果
-5. **Team 已删除**（如果创建了）
+5. **Team 已删除**（如果创建了）- 此时不应存在任何 team 成员
 
 ## 注意事项
 
