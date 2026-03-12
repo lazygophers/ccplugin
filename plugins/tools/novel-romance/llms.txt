@@ -1,0 +1,45 @@
+# Novel Romance Plugin
+
+> 言情小说创作插件 - 提供情感线设计、互动场景、心理刻画、感情冲突等言情特色功能
+
+## 插件信息
+
+- **名称**：novel-romance
+- **版本**：0.0.160
+- **描述**：提供情感线设计、互动场景、心理刻画、感情冲突等言情类网络小说的特色创作功能
+- **类型**：工具插件
+- **许可证**：AGPL-3.0-or-later
+
+## 核心功能
+
+### 快捷命令
+
+- `/novel-romance emotion` - 设计情感线与心理刻画
+- `/novel-romance relationship` - 设计互动与关系发展
+- `/novel-romance conflict` - 设计感情冲突与化解
+
+### 专业 Agents
+
+- `@romance-agent` - 感情线设计师
+- `@emotional-agent` - 心理分析师
+
+### 核心技能
+
+- `emotional-arc` - 情感线设计与心理刻画技能
+- `relationship-dynamics` - 感情线进展与互动设计技能
+- `romantic-conflict` - 感情冲突与解决方案技能
+
+## 使用场景
+
+- 新作品的感情线整体规划
+- 角色情感弧线和心理设计
+- 互动场景和感情升温设计
+- 冲突桥段和虐心情节设计
+- 多条感情线的平衡编排
+
+## 相关文档
+
+- [README.md](./README.md) - 完整使用文档
+- [技能文档](./skills/) - 各技能详细说明
+- [命令文档](./commands/) - 命令使用指南
+- [Agent 文档](./agents/) - 专业 agent 介绍
