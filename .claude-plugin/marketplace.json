@@ -549,15 +549,15 @@
     },
     {
       "name": "novel-writing",
-      "source": "./plugins/tools/novel-writing",
+      "source": "./plugins/novels/novel-writing",
       "description": "网络小说创作插件 - 提供故事构思、角色设定、情节发展、对话生成、文风调整、大纲管理等完整的小说创作辅助功能",
       "version": "0.0.160",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
       },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-writing",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novel-writing",
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-writing",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-writing",
       "license": "AGPL-3.0-or-later",
       "keywords": [
         "novel",
@@ -569,6 +569,177 @@
         "plot",
         "dialogue",
         "outline",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-xuanhuan",
+      "source": "./plugins/novels/novel-xuanhuan",
+      "description": "玄幻修仙小说创作插件 - 提供修炼体系设计、法宝设定、门派势力构建等玄幻小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-xuanhuan",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-xuanhuan",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "xuanhuan",
+        "fantasy",
+        "cultivation",
+        "magic",
+        "sect",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-urban",
+      "source": "./plugins/novels/novel-urban",
+      "description": "都市言情小说创作插件 - 提供都市背景设定、职场描写、感情线设计等都市小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-urban",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-urban",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "urban",
+        "romance",
+        "workplace",
+        "modern",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-scifi",
+      "source": "./plugins/novels/novel-scifi",
+      "description": "科幻未来小说创作插件 - 提供科技设定、文明构建、机甲系统设计等科幻小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-scifi",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-scifi",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "scifi",
+        "science-fiction",
+        "technology",
+        "civilization",
+        "mecha",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-history",
+      "source": "./plugins/novels/novel-history",
+      "description": "历史架空小说创作插件 - 提供朝代背景设定、政治权谋、战争谋略等历史小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-history",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-history",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "history",
+        "historical",
+        "dynasty",
+        "politics",
+        "warfare",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-wuxia",
+      "source": "./plugins/novels/novel-wuxia",
+      "description": "武侠仙侠小说创作插件 - 提供江湖设定、武学体系、门派势力等武侠小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-wuxia",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-wuxia",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "wuxia",
+        "martial-arts",
+        "jianghu",
+        "sect",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-game",
+      "source": "./plugins/novels/novel-game",
+      "description": "游戏竞技小说创作插件 - 提供游戏系统设计、技能体系、竞技赛事等游戏小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-game",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-game",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "game",
+        "esports",
+        "competition",
+        "skill",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-mystery",
+      "source": "./plugins/novels/novel-mystery",
+      "description": "悬疑推理小说创作插件 - 提供悬念布局、线索系统、角色秘密设计等悬疑小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-mystery",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-mystery",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "mystery",
+        "detective",
+        "clue",
+        "suspense",
+        "webnovel"
+      ]
+    },
+    {
+      "name": "novel-romance",
+      "source": "./plugins/novels/novel-romance",
+      "description": "言情小说创作插件 - 提供情感线设计、关系发展、感情冲突等言情小说专属功能",
+      "version": "0.0.160",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-romance",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-romance",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "romance",
+        "emotional",
+        "relationship",
+        "love",
         "webnovel"
       ]
     },
