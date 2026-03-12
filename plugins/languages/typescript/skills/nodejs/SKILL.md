@@ -44,11 +44,11 @@ const data = await readFile(path.join(__dirname, 'data.json'), 'utf-8');
 ```typescript
 // ✅ 正确
 try {
-	const data = await fs.readFile(path, "utf-8");
-	return JSON.parse(data);
+    const data = await fs.readFile(path, "utf-8");
+    return JSON.parse(data);
 } catch (error) {
-	console.error("error:", error);
-	throw error;
+    console.error("error:", error);
+    throw error;
 }
 ```
 
@@ -59,21 +59,21 @@ try {
 import { createReadStream } from "fs";
 
 async function processLargeFile(path: string) {
-	const stream = createReadStream(path, "utf-8");
-	for await (const chunk of stream) {
-		await processChunk(chunk);
-	}
+    const stream = createReadStream(path, "utf-8");
+    for await (const chunk of stream) {
+        await processChunk(chunk);
+    }
 }
 
 // Worker Threads
 import { Worker } from "worker_threads";
 
 function runWorker<T>(data: T): Promise<T> {
-	return new Promise((resolve, reject) => {
-		const worker = new Worker("./worker.js", { workerData: data });
-		worker.on("message", resolve);
-		worker.on("error", reject);
-	});
+    return new Promise((resolve, reject) => {
+        const worker = new Worker("./worker.js", { workerData: data });
+        worker.on("message", resolve);
+        worker.on("error", reject);
+    });
 }
 ```
 

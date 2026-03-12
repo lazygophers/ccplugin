@@ -20,16 +20,16 @@ memory: project
 ```typescript
 // ✅ 正确
 async function getUser(id: string): Promise<User> {
-	try {
-		const response = await fetch(`/api/users/${id}`);
-		if (!response.ok) {
-			throw new Error(`HTTP ${response.status}`);
-		}
-		return response.json();
-	} catch (error) {
-		console.error("error:", error);
-		throw error;
-	}
+    try {
+        const response = await fetch(`/api/users/${id}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+    } catch (error) {
+        console.error("error:", error);
+        throw error;
+    }
 }
 
 // ❌ 禁止
@@ -54,11 +54,11 @@ const result = await Promise.race([fetchWithTimeout(url, 5000), timeout(5000)]);
 ```typescript
 // ✅ 正确 - 多行处理
 try {
-	const data = await fetchData();
-	return data;
+    const data = await fetchData();
+    return data;
 } catch (error) {
-	console.error("error:", error);
-	throw error;
+    console.error("error:", error);
+    throw error;
 }
 
 // ❌ 禁止 - 单行 if

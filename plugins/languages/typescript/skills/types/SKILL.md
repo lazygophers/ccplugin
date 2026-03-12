@@ -21,8 +21,8 @@ memory: project
 // ✅ 正确
 type UserDTO = { id: string; name: string };
 interface ApiResponse {
-	data: unknown;
-	status: number;
+    data: unknown;
+    status: number;
 }
 type Status = "active" | "inactive" | "pending";
 
@@ -35,16 +35,16 @@ type user = {}; // 类型使用 PascalCase
 
 ```typescript
 function isString(value: unknown): value is string {
-	return typeof value === "string";
+    return typeof value === "string";
 }
 
 function isUser(value: unknown): value is User {
-	return typeof value === "object" && value !== null && "id" in value;
+    return typeof value === "object" && value !== null && "id" in value;
 }
 
 // 使用
 if (isString(value)) {
-	console.log(value.toUpperCase());
+    console.log(value.toUpperCase());
 }
 ```
 
@@ -53,18 +53,18 @@ if (isString(value)) {
 ```typescript
 // 泛型函数
 function identity<T>(value: T): T {
-	return value;
+    return value;
 }
 
 // 泛型约束
 function getProperty<T, K extends keyof T>(obj: T, key: K): T[K] {
-	return obj[key];
+    return obj[key];
 }
 
 // 泛型接口
 interface Repository<T> {
-	findById(id: string): Promise<T | null>;
-	save(entity: T): Promise<void>;
+    findById(id: string): Promise<T | null>;
+    save(entity: T): Promise<void>;
 }
 ```
 
@@ -74,9 +74,9 @@ interface Repository<T> {
 import { z } from "zod";
 
 const UserSchema = z.object({
-	id: z.string().uuid(),
-	name: z.string().min(1),
-	email: z.string().email(),
+    id: z.string().uuid(),
+    name: z.string().min(1),
+    email: z.string().email(),
 });
 
 type User = z.infer<typeof UserSchema>;

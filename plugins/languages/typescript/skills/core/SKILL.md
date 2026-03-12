@@ -53,8 +53,8 @@ TypeScript 生态追求**类型安全、现代工程、可维护性**。
 // 类型：PascalCase
 type UserDTO = { id: string; name: string };
 interface ApiResponse {
-	data: unknown;
-	status: number;
+    data: unknown;
+    status: number;
 }
 
 // 变量：camelCase
@@ -71,11 +71,11 @@ function getUserById(id: string): Promise<User> {}
 
 ```json
 {
-	"compilerOptions": {
-		"strict": true,
-		"noImplicitAny": true,
-		"strictNullChecks": true
-	}
+    "compilerOptions": {
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true
+    }
 }
 ```
 

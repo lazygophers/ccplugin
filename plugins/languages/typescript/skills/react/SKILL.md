@@ -43,18 +43,18 @@ export function UserCard({ userId }: UserCardProps) {
 
 ```typescript
 export function useUser(userId: string) {
-	const [user, setUser] = useState<User | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<Error | null>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
 
-	useEffect(() => {
-		fetchUser(userId)
-			.then(setUser)
-			.catch(setError)
-			.finally(() => setLoading(false));
-	}, [userId]);
+    useEffect(() => {
+        fetchUser(userId)
+            .then(setUser)
+            .catch(setError)
+            .finally(() => setLoading(false));
+    }, [userId]);
 
-	return { user, loading, error };
+    return { user, loading, error };
 }
 ```
 

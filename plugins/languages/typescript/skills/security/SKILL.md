@@ -22,19 +22,19 @@ import { z } from "zod";
 
 // ✅ 使用 Zod 验证
 const UserInputSchema = z.object({
-	name: z.string().min(1).max(100),
-	email: z.string().email(),
-	age: z.number().int().min(0).max(150).optional(),
+    name: z.string().min(1).max(100),
+    email: z.string().email(),
+    age: z.number().int().min(0).max(150).optional(),
 });
 
 function validateUser(input: unknown) {
-	return UserInputSchema.safeParse(input);
+    return UserInputSchema.safeParse(input);
 }
 
 // 使用
 const result = validateUser(req.body);
 if (!result.success) {
-	return res.status(400).json({ errors: result.error.errors });
+    return res.status(400).json({ errors: result.error.errors });
 }
 ```
 
@@ -74,8 +74,8 @@ const apiKey = "sk-xxx"; // 危险！
 
 // ✅ 日志脱敏
 function sanitizeForLog(data: object): object {
-	const { password, token, ...rest } = data;
-	return rest;
+    const { password, token, ...rest } = data;
+    return rest;
 }
 ```
 
