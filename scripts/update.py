@@ -18,6 +18,7 @@ import sys
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from rich import box
@@ -43,6 +44,11 @@ from lib.utils.constants import (
     MIN_ADVANCE,
     MAX_ADVANCE,
 )
+
+# Concurrency settings
+MAX_MARKET_WORKERS = 3  # Maximum concurrent marketplace updates
+MAX_PLUGIN_WORKERS = 5  # Maximum concurrent plugin updates
+MAX_UV_WORKERS = 4  # Maximum concurrent uv sync operations
 
 
 class NullConsole:
@@ -454,6 +460,7 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
         console.print(
             f"[dim][DRY RUN] Would run: claude plugin marketplace update {market}[/dim]"
         )
+        stats.market_updated += 1
         return True
 
     result = subprocess.run(
@@ -470,6 +477,42 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
 
     stats.market_updated += 1
     return True
+
+
+def update_marketplaces_concurrent(
+    marketplaces: list[dict[str, str]], stats: UpdateStats, dry_run: bool = False, quiet: bool = False
+) -> None:
+    """Update marketplaces concurrently.
+
+    Args:
+            marketplaces: List of marketplace info dicts
+            stats: Statistics object to track results
+            dry_run: If True, show what would be done without making changes
+            quiet: Whether to disable progress display
+    """
+    if not marketplaces:
+        return
+
+    with create_progress_bar(console, quiet, len(marketplaces)) as progress:
+        task = progress.add_task(
+            "[cyan]Updating markets...[/cyan]", total=len(marketplaces)
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_MARKET_WORKERS) as executor:
+            futures = {
+                executor.submit(
+                    update_marketplace, m.get("name", "unknown"), stats, dry_run
+                ): m
+                for m in marketplaces
+            }
+
+            for future in as_completed(futures):
+                market = futures[future]
+                market_name = market.get("name", "unknown")
+                progress.update(
+                    task, description=f"[cyan]Updated {market_name}[/cyan]"
+                )
+                progress.advance(task)
 
 
 def parse_plugin_key(key: str) -> tuple[str, str] | None:
@@ -518,7 +561,6 @@ def run_uv_sync(
         return True
 
     if dry_run:
-        console.print(f"[dim][DRY RUN] Would run: uv sync in {plugin_dir}[/dim]")
         return True
 
     result = subprocess.run(
@@ -542,6 +584,42 @@ def run_uv_sync(
             "error", f"uv sync failed for {plugin_name}: {result.stdout.strip()}"
         )
         return False
+
+
+def run_uv_sync_concurrent(
+    plugins_with_pyproject: list[tuple[str, str]], stats: UpdateStats, dry_run: bool = False, quiet: bool = False
+) -> None:
+    """Run uv sync concurrently for plugins with pyproject.toml.
+
+    Args:
+            plugins_with_pyproject: List of (plugin_id, install_path) tuples
+            stats: Statistics object to track results
+            dry_run: If True, show what would be done without making changes
+            quiet: Whether to disable progress display
+    """
+    if not plugins_with_pyproject:
+        return
+
+    with create_progress_bar(console, quiet, len(plugins_with_pyproject)) as progress:
+        task = progress.add_task(
+            "[cyan]Running uv sync...[/cyan]", total=len(plugins_with_pyproject)
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_UV_WORKERS) as executor:
+            futures = {
+                executor.submit(
+                    run_uv_sync, path, pid.split("@")[0] if pid else "unknown", stats, dry_run
+                ): (pid, path)
+                for pid, path in plugins_with_pyproject
+            }
+
+            for future in as_completed(futures):
+                plugin_id, _ = futures[future]
+                plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
+                progress.update(
+                    task, description=f"[cyan]Synced {plugin_name}[/cyan]"
+                )
+                progress.advance(task)
 
 
 def enable_plugin(plugin_id: str, dry_run: bool = False) -> bool:
@@ -598,6 +676,64 @@ def create_plugin_table(plugins: list[dict[str, Any]]) -> Table:
             table.add_row(plugin_name, market, scope_display, version)
 
     return table
+
+
+def update_plugins_concurrent(
+    enabled_plugins: list[dict[str, Any]], stats: UpdateStats, dry_run: bool = False, quiet: bool = False
+) -> list[tuple[str, bool, str]]:
+    """Update plugins concurrently.
+
+    Args:
+            enabled_plugins: List of enabled plugin info dicts
+            stats: Statistics object to track results
+            dry_run: If True, show what would be done without making changes
+            quiet: Whether to disable progress display
+
+    Returns:
+            List of (plugin_name, success, output) tuples
+    """
+    update_outputs: list[tuple[str, bool, str]] = []
+
+    with create_progress_bar(console, quiet, len(enabled_plugins)) as progress:
+        task = progress.add_task(
+            "[cyan]Updating plugins...[/cyan]", total=len(enabled_plugins)
+        )
+
+        with ThreadPoolExecutor(max_workers=MAX_PLUGIN_WORKERS) as executor:
+            futures = {}
+            for plugin in enabled_plugins:
+                plugin_id = plugin.get("id", "")
+                plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
+                future = executor.submit(
+                    run_claude_plugin_command,
+                    "install",
+                    plugin_id,
+                    plugin.get("scope", "user"),
+                    dry_run,
+                    True,
+                )
+                futures[future] = (plugin_name, plugin)
+
+            for future in as_completed(futures):
+                plugin_name, plugin = futures[future]
+                progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
+
+                try:
+                    success, output = future.result()
+                    update_outputs.append((plugin_name, success, output))
+
+                    if success:
+                        stats.updated_count += 1
+                    else:
+                        stats.error_count += 1
+                except Exception as e:
+                    stats.error_count += 1
+                    stats.add_message("error", f"Failed to update {plugin_name}: {str(e)}")
+                    update_outputs.append((plugin_name, False, str(e)))
+
+                progress.advance(task)
+
+    return update_outputs
 
 
 def verify_versions(
@@ -763,51 +899,14 @@ def main() -> int:
         console.print(
             Rule(title="[bold cyan]Updating Marketplaces[/bold cyan]", style="cyan")
         )
-        with create_progress_bar(console, args.quiet, len(marketplaces)) as progress:
-            task = progress.add_task(
-                "[cyan]Updating markets...[/cyan]", total=len(marketplaces)
-            )
-            for marketplace in marketplaces:
-                market_name = marketplace.get("name", "unknown")
-                progress.update(
-                    task, description=f"[cyan]Updating {market_name}...[/cyan]"
-                )
-                update_marketplace(market_name, stats, dry_run=args.dry_run)
-                progress.advance(task)
+        update_marketplaces_concurrent(marketplaces, stats, dry_run=args.dry_run, quiet=args.quiet)
         console.print()
 
     console.print(Rule(title="[bold cyan]Updating Plugins[/bold cyan]", style="cyan"))
     console.print("[dim]Using 'claude plugin install --force' command[/dim]")
     console.print()
 
-    update_outputs: list[tuple[str, bool, str]] = []
-
-    with create_progress_bar(console, args.quiet, len(enabled_plugins)) as progress:
-        task = progress.add_task(
-            "[cyan]Updating plugins...[/cyan]", total=len(enabled_plugins)
-        )
-
-        for plugin in enabled_plugins:
-            plugin_id = plugin.get("id", "")
-            plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
-            progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
-
-            success, output = run_claude_plugin_command(
-                "install",
-                plugin_id,
-                plugin.get("scope", "user"),
-                dry_run=args.dry_run,
-                force=True,
-            )
-
-            update_outputs.append((plugin_name, success, output))
-
-            if success:
-                stats.updated_count += 1
-            else:
-                stats.error_count += 1
-
-            progress.advance(task)
+    update_outputs = update_plugins_concurrent(enabled_plugins, stats, dry_run=args.dry_run, quiet=args.quiet)
 
     console.print()
 
@@ -848,19 +947,7 @@ def main() -> int:
             )
             console.print()
 
-            with create_progress_bar(
-                console, args.quiet, len(plugins_with_pyproject)
-            ) as progress:
-                task = progress.add_task(
-                    "[cyan]Running uv sync...[/cyan]", total=len(plugins_with_pyproject)
-                )
-                for plugin_id, install_path in plugins_with_pyproject:
-                    plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
-                    progress.update(
-                        task, description=f"[cyan]Syncing {plugin_name}...[/cyan]"
-                    )
-                    run_uv_sync(install_path, plugin_name, stats, dry_run=args.dry_run)
-                    progress.advance(task)
+            run_uv_sync_concurrent(plugins_with_pyproject, stats, dry_run=args.dry_run, quiet=args.quiet)
             console.print()
         else:
             console.print("[dim]No plugins with pyproject.toml found[/dim]")
