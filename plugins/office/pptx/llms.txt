@@ -1,35 +1,22 @@
-# Office Pptx Plugin
+# office-pptx
 
-> PowerPoint pptx 文件读写和幻灯片操作插件
+PowerPoint pptx 文件读写和幻灯片操作插件。
 
-## Docs
+## 功能
 
-- [README.md](README.md): 插件说明
-- [skills/office-pptx-skills/SKILL.md](skills/office-pptx-skills/SKILL.md): 技能文档
-- [skills/office-pptx-skills/examples.md](skills/office-pptx-skills/examples.md): 使用示例
+- 演示文稿创建、读取、编辑
+- 幻灯片增删改查和排序
+- 文本、图片、表格、图表内容操作
+- 主题、布局、母版管理
+- 25+ 内置模板
+- 批量操作和格式转换
 
-## Features
+## MCP 服务
 
-- 读取 pptx 文件
-- 写入 pptx 文件
-- 添加幻灯片
-- 列出幻灯片结构
+使用 office-powerpoint-mcp-server，通过 uvx 运行。
 
-## Usage
+## 文档
 
-```bash
-# 安装依赖
-uv sync
-
-# 启动 MCP 服务器
-uv run scripts/main.py mcp
-```
-
-## MCP Tools
-
-| Tool | Description |
-| ---- | ----------- |
-| read_pptx | 读取 PowerPoint 演示文稿 |
-| write_pptx | 创建 PowerPoint 演示文稿 |
-| add_slide | 添加幻灯片 |
-| list_slides | 列出幻灯片 |
+- docs/index.md - 插件文档首页
+- docs/api.md - API 文档
+- skills/office-pptx-skills/ - 技能和示例

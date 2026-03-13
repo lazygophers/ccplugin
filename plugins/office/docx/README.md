@@ -1,63 +1,37 @@
-# Office Docx 插件
+# office-docx
 
-> Word docx 文件读写和文档操作插件。基于 MCP 协议提供 Word 操作工具。
+Word docx 文件读写和文档操作插件。基于 MCP 协议提供 Word 操作工具。
 
 ## 安装
 
 ```bash
-# 推荐：一键安装
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin office-docx@ccplugin-market
-
-# 或：传统方式
-claude plugin marketplace add lazygophers/ccplugin
-claude plugin install office-docx@ccplugin-market
+claude plugin add ./plugins/office/docx
 ```
 
 ## 功能特性
 
-### 🎯 核心功能
-
-- **读取 docx 文件** - 读取 Word 文档内容
-- **写入 docx 文件** - 创建 Word 文档
-- **添加段落** - 添加格式化段落
-- **获取文档结构** - 获取文档结构信息
-
-### 📦 包含组件
-
-| 组件类型 | 名称 | 描述 |
-|---------|------|------|
-| Skill | `office-docx-skills` | Word 操作技能 |
-| MCP Server | `docx` | Word MCP 服务器 |
-
-## MCP 工具
-
-| 工具名称 | 描述 |
-|---------|------|
-| `read_docx` | 读取 Word 文档 |
-| `write_docx` | 创建 Word 文档 |
-| `add_paragraph` | 添加段落 |
-| `get_paragraphs` | 列出段落 |
+- 创建和编辑 Word 文档
+- 段落和文本管理（添加、修改、删除）
+- 表格操作（创建、编辑、格式化）
+- 图片插入和管理
+- 页眉页脚设置
+- 样式和格式化
+- 文档属性管理
+- 支持 37+ 种操作工具
 
 ## 快速开始
 
-### 读取 Word 文档
+安装插件后，可以直接在 Claude Code 中操作 Word 文件：
 
-```
-读取 report.docx 文件的内容
-```
+- 创建新的 Word 文档
+- 读取和修改文档内容
+- 添加表格、图片等元素
+- 设置文档格式和样式
 
-### 创建 Word 文档
+## 技术实现
 
-```
-创建一个新的 Word 文档，标题为"项目报告"...
-```
-
-### 添加段落
-
-```
-在文档中添加一个新段落，内容为...
-```
+基于 [office-word-mcp-server](https://github.com/GongRzhe/Office-Word-MCP-Server) MCP 服务，通过 `uvx --from office-word-mcp-server word_mcp_server` 运行。
 
 ## 许可证
 
-MIT
+AGPL-3.0-or-later

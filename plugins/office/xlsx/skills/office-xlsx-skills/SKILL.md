@@ -1,117 +1,104 @@
 ---
 name: office-xlsx-skills
-description: Excel xlsx 文件操作技能 - 提供 Excel 文件读写、数据分析 MCP 工具
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+description: Excel xlsx 文件操作技能 - 读写 Excel 文件、数据分析、格式转换、批量处理
+triggers:
+  - excel
+  - xlsx
+  - spreadsheet
+  - 表格
+  - 工作表
+  - 单元格
+  - csv转换
+  - 数据分析
 ---
 
-# Office Xlsx 技能
+# Excel xlsx 操作技能
 
-## 快速导航
+通过 MCP 工具和包装层操作 Excel 文件。
 
-| 文档 | 内容 | 适用场景 |
-| ---- | ---- | -------- |
-| **SKILL.md** | 核心工具、使用方法 | 快速入门 |
-| [examples.md](examples.md) | 完整使用示例 | 实践参考 |
+## MCP 基础工具（mcp-excel-server）
 
-## 核心工具
+### 文件读取
 
-### read_xlsx
-读取 Excel 文件，返回 JSON 格式数据。
+| 工具 | 用途 | 关键参数 |
+|------|------|----------|
+| `read_excel` | 读取文件内容 | `file_path`（支持 xlsx/xls/csv/tsv/json） |
+| `get_excel_info` | 获取文件元数据 | `file_path` |
+| `get_sheet_names` | 列出所有工作表 | `file_path` |
 
-```python
-# Claude Code 中使用
-result = await mcp.call_tool("read_xlsx", {
-    "path": "/path/to/file.xlsx",
-    "sheet": "Sheet1"  # 可选
-})
+### 数据分析
+
+| 工具 | 用途 | 关键参数 |
+|------|------|----------|
+| `analyze_excel` | 统计分析 | `file_path`, `sheet_name?` |
+| `filter_excel` | 条件过滤 | `file_path`, `conditions` |
+| `pivot_table` | 透视表 | `file_path`, `rows`, `columns`, `values` |
+| `data_summary` | 数据摘要 | `file_path`, `sheet_name?` |
+
+### 文件操作
+
+| 工具 | 用途 | 关键参数 |
+|------|------|----------|
+| `write_excel` | 创建新文件 | `file_path`, `data`, `sheet_name` |
+| `update_excel` | 修改现有文件 | `file_path`, `updates`, `sheet_name` |
+| `export_chart` | 生成图表 | `file_path`, `chart_type`, `x_column`, `y_column` |
+
+## 包装层额外功能
+
+通过 `scripts/wrapper.py` 提供，使用 `uv run` 执行：
+
+### 格式转换
+
+```bash
+# xlsx -> CSV
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py convert data.xlsx output.csv
+
+# CSV -> xlsx
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py convert data.csv output.xlsx
+
+# xlsx -> JSON
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py convert data.xlsx output.json --sheet Sheet1
+
+# JSON -> xlsx
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py convert data.json output.xlsx
 ```
 
-### write_xlsx
-写入数据到 Excel 文件。
+### 批量处理
 
-```python
-result = await mcp.call_tool("write_xlsx", {
-    "path": "/path/to/output.xlsx",
-    "data": [["Name", "Age"], ["Alice", 30], ["Bob", 25]],
-    "headers": ["Name", "Age"]  # 可选
-})
+```bash
+# 批量导入：将目录下所有 CSV 合并为一个 xlsx（每个文件一个工作表）
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py batch-import ./data_dir/ merged.xlsx --pattern "*.csv"
+
+# 批量导出：将 xlsx 每个工作表导出为独立 CSV
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py batch-export data.xlsx ./output_dir/ --format csv
+
+# 批量导出为 JSON
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py batch-export data.xlsx ./output_dir/ --format json
 ```
 
-### analyze_xlsx
-分析 Excel 文件，返回统计信息。
+### 统计分析与图表
 
-```python
-result = await mcp.call_tool("analyze_xlsx", {
-    "path": "/path/to/file.xlsx"
-})
+```bash
+# 统计分析（输出 JSON）
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py analyze data.xlsx --sheet Sheet1
+
+# 统计分析 + 生成柱状图
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py analyze data.xlsx --output chart.png --chart-type bar --x name --y score
+
+# 图表类型：bar, line, scatter, histogram, pie, box
 ```
 
-### list_sheets
-列出 Excel 文件中的所有工作表。
+### 智能洞察
 
-```python
-result = await mcp.call_tool("list_sheets", {
-    "path": "/path/to/file.xlsx"
-})
+```bash
+# 数据洞察（异常值检测、相关性分析、趋势判断）
+uv run --directory ${CLAUDE_PLUGIN_ROOT} python scripts/wrapper.py insight data.xlsx --sheet Sheet1 --top 5
 ```
 
-## 使用示例
+## 使用指南
 
-### 读取并分析数据
-```
-1. read_xlsx 读取文件
-2. analyze_xlsx 获取统计
-3. write_xlsx 导出结果
-```
-
-## 注意事项
-
-- 确保文件路径存在且有权限
-- 大文件可能需要较长时间处理
-- 使用 pandas 读取，支持多种数据格式
-
-## 执行过程检查清单
-
-### 文件读取检查（read_xlsx）
-- [ ] 文件路径存在且有权限访问
-- [ ] 文件格式为 .xlsx
-- [ ] Sheet 名称正确（如指定）
-- [ ] 数据成功读取为 JSON 格式
-- [ ] 大文件处理时间合理
-
-### 文件写入检查（write_xlsx）
-- [ ] 输出路径可写
-- [ ] 数据格式正确（二维数组）
-- [ ] Headers 格式正确（如指定）
-- [ ] Excel 文件成功创建
-- [ ] 数据完整写入
-
-### 数据分析检查（analyze_xlsx）
-- [ ] 文件可正常读取
-- [ ] 统计信息计算正确
-- [ ] 分析结果包含有用信息（行数/列数/数据类型等）
-
-### 工作表操作检查（list_sheets）
-- [ ] 文件存在
-- [ ] 所有工作表名称成功列出
-- [ ] 工作表顺序正确
-
-## 完成后检查清单
-
-### 操作结果验证
-- [ ] 文件操作成功完成
-- [ ] 输出文件可正常打开
-- [ ] 数据完整无丢失
-- [ ] 格式符合预期（pandas 支持的格式）
-
-### 性能检查
-- [ ] 大文件处理时间可接受
-- [ ] 内存使用合理
-
-### 异常处理检查
-- [ ] 文件不存在时有明确错误提示
-- [ ] 权限不足时有明确错误提示
-- [ ] 数据格式错误时有明确错误提示
+1. 简单读写操作优先使用 MCP 工具（`read_excel`、`write_excel`）
+2. 格式转换和批量操作使用包装层（`wrapper.py`）
+3. 数据分析可组合使用 MCP 的 `analyze_excel` + 包装层的 `analyze`/`insight`
+4. 图表生成：MCP 的 `export_chart` 适合简单图表，包装层支持更多类型（pie、box）
+5. 编辑操作会直接修改文件，注意备份

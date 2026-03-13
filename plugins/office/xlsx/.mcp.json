@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "office-xlsx": {
-      "command": "uv",
-      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/scripts/main.py", "mcp"]
-    }
-  }
-}

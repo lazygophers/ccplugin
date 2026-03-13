@@ -1,0 +1,14 @@
+[project]
+name = "office-pdf"
+version = "1.0.0"
+description = "Office PDF plugin - PDF reading and content extraction"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1.0",
+    "pypdf>=4.0.0",
+    "pillow>=10.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"

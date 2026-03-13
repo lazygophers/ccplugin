@@ -1,39 +1,93 @@
-# Office Docx 使用示例
+# Word 操作示例
 
-## 读取文档
+## 基础操作（MCP 工具）
 
-```python
-# 读取整个文档
-result = await mcp.call_tool("read_docx", {
-    "path": "document.docx"
-})
+### 创建文档并添加内容
+
+```
+创建 report.docx，标题为"2026年度报告"，然后添加：
+1. 一级标题"项目概述"
+2. 一段描述文字
+3. 一个 4x3 的表格
+4. 一张图片 logo.png
 ```
 
-## 创建文档
+### 格式化文档
 
-```python
-# 创建新文档
-result = await mcp.call_tool("write_docx", {
-    "path": "output.docx",
-    "content": "这是一个测试文档。\n\n包含多个段落。"
-})
+```
+打开 report.docx，将第一个段落设置为黑体 16pt 粗体，
+然后将表格设置交替行颜色和表头高亮
 ```
 
-## 添加段落
+### 查找替换
 
-```python
-# 添加段落
-result = await mcp.call_tool("add_paragraph", {
-    "path": "document.docx",
-    "text": "这是新增的段落内容。"
-})
+```
+在 report.docx 中将所有"旧公司名"替换为"新公司名"
 ```
 
-## 获取段落
+## 格式转换（包装层）
 
-```python
-# 获取所有段落
-result = await mcp.call_tool("get_paragraphs", {
-    "path": "document.docx"
-})
+### docx 转 Markdown
+
+```
+将 report.docx 转换为 Markdown 格式
+```
+
+### Markdown 转 docx
+
+```
+将 notes.md 转换为 Word 文档
+```
+
+### docx 转 PDF
+
+```
+将 report.docx 导出为 PDF
+```
+
+## 批量处理
+
+### 批量读取信息
+
+```
+读取 ./documents/ 目录下所有 Word 文件的基本信息（标题、段落数、表格数）
+```
+
+### 批量转换
+
+```
+将 ./reports/ 目录下所有 docx 文件批量转换为 Markdown，输出到 ./markdown/ 目录
+```
+
+## 模板生成
+
+### 创建报告模板
+
+```
+创建一个标准报告模板，包含摘要、正文、结论章节
+```
+
+### 使用模板生成文档
+
+```
+基于 template.docx 模板生成报告，替换以下变量：
+- author: 张三
+- date: 2026-03-13
+- summary: 项目进展顺利
+- content: 本季度完成了核心功能开发
+- conclusion: 建议下季度开始测试
+```
+
+## 智能分析
+
+### 分析文档结构
+
+```
+分析 report.docx 的结构，查看段落数、表格数、标题大纲、字数统计
+```
+
+### 提取关键信息
+
+```
+从 contract.docx 中提取所有标题、表格数据、列表项和粗体文本
 ```

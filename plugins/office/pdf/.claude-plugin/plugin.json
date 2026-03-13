@@ -1,0 +1,28 @@
+{
+  "name": "office-pdf",
+  "version": "1.0.0",
+  "description": "PDF 文件读取和内容提取插件。基于 MCP 协议提供 PDF 操作工具。",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/pdf",
+  "repository": "https://github.com/lazygophers/ccplugin",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "pdf",
+    "document",
+    "reader",
+    "text-extraction"
+  ],
+  "skills": "./skills",
+  "mcpServers": {
+    "pdf-reader": {
+      "command": "npx",
+      "args": [
+        "@sylphx/pdf-reader-mcp"
+      ]
+    }
+  }
+}

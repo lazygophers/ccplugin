@@ -1,14 +1,31 @@
 [project]
-name = "office-docx"
-version = "0.0.161"
-description = "Office Word plugin - docx read/write and formatting"
+name = "ccplugin-office-docx"
+version = "1.0.0"
+description = "Word docx 文件操作插件包装层 - 格式转换、批量处理、模板生成、智能分析"
+readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [ "python-docx>=1.1.0", "mcp>=1.0.0",]
+dependencies = [
+    "lib",
+    "python-docx>=1.1.0",
+    "pypandoc>=1.14",
+    "click>=8.0",
+]
 
 [build-system]
-requires = [ "setuptools>=68.0", "wheel",]
+requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0"]
+
+[tool.setuptools.package-data]
+"*" = ["*.py", "*.json", "*.md"]
+
 [tool.setuptools.packages.find]
-where = [ "..",]
-include = [ "office_docx", "office_docx.*",]
+where = ["."]
+include = ["scripts*"]
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"

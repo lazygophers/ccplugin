@@ -1,0 +1,27 @@
+# Office PDF Plugin
+
+> PDF 文件读取和内容提取插件
+
+## Docs
+
+- [README.md](README.md): 插件说明
+- [skills/office-pdf-skills/SKILL.md](skills/office-pdf-skills/SKILL.md): 技能文档
+- [skills/office-pdf-skills/examples.md](skills/office-pdf-skills/examples.md): 使用示例
+
+## Features
+
+- 读取 PDF 文件
+- 提取文本内容
+- 提取图片
+- 获取元数据
+- 并行处理（5-10x 更快）
+
+## Usage
+
+基于 SylphxAI/pdf-reader-mcp 提供生产级 PDF 处理能力。
+
+## MCP Tools
+
+| Tool | Description |
+| ---- | ----------- |
+| read_pdf | 读取 PDF 文件，支持文本、图片、元数据提取 |

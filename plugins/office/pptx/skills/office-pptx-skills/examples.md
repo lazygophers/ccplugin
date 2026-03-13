@@ -1,44 +1,107 @@
-# Office Pptx 使用示例
+# PowerPoint 操作示例
 
-## 读取演示文稿
+## 基础操作（MCP 工具）
 
-```python
-# 读取整个演示文稿
-result = await mcp.call_tool("read_pptx", {
-    "path": "presentation.pptx"
-})
+### 创建演示文稿
+
+```
+创建一个名为 quarterly_report.pptx 的演示文稿，使用商务模板，
+包含标题页、目录、3 张内容页和总结页
 ```
 
-## 创建演示文稿
+### 自动生成演示文稿
 
-```python
-# 创建新演示文稿
-result = await mcp.call_tool("write_pptx", {
-    "path": "output.pptx",
-    "title": "我的演示",
-    "slides": [
-        {"title": "封面", "content": "演示标题"},
-        {"title": "第一页", "content": "内容介绍"}
-    ]
-})
+```
+以"人工智能在医疗领域的应用"为主题，自动生成 10 张幻灯片的演示文稿
 ```
 
-## 添加幻灯片
+### 添加内容
 
-```python
-# 添加幻灯片
-result = await mcp.call_tool("add_slide", {
-    "path": "presentation.pptx",
-    "title": "新幻灯片",
-    "content": "这是新幻灯片的内容。"
-})
+```
+在 presentation.pptx 第 2 张幻灯片中：
+1. 添加标题"项目进度"
+2. 添加项目符号列表：需求分析（已完成）、设计（进行中）、开发（待开始）
+3. 插入一个柱状图展示各阶段工时
 ```
 
-## 列出幻灯片
+### 应用专业设计
 
-```python
-# 列出所有幻灯片
-result = await mcp.call_tool("list_slides", {
-    "path": "presentation.pptx"
-})
+```
+为 report.pptx 应用 Modern Blue 主题，优化所有幻灯片的文本可读性
+```
+
+### 管理幻灯片
+
+```
+在 presentation.pptx 中：
+1. 复制第 3 张幻灯片
+2. 将第 5 张幻灯片设置淡入转场效果
+3. 管理母版幻灯片布局
+```
+
+## 格式转换（包装层）
+
+### pptx 转 Markdown
+
+```
+将 report.pptx 的内容提取为 Markdown 文档，方便阅读和编辑
+```
+
+### pptx 转 PDF
+
+```
+将 presentation.pptx 导出为 PDF 格式
+```
+
+## 批量处理
+
+### 批量读取信息
+
+```
+读取 ./presentations/ 目录下所有 PPT 文件的基本信息（幻灯片数、形状数、文本量）
+```
+
+### 批量提取文本
+
+```
+将 ./slides/ 目录下所有 pptx 文件的内容批量提取为 Markdown，输出到 ./markdown/ 目录
+```
+
+## 模板生成
+
+### 创建报告模板
+
+```
+创建一个包含 8 张幻灯片的标准项目报告模板，带有占位符变量
+```
+
+### 使用模板生成
+
+```
+基于 template.pptx 模板生成演示文稿，替换以下变量：
+- author: 张三
+- date: 2026-03-13
+- section_1_title: 项目背景
+- section_1_content: 本项目旨在...
+- conclusion: 项目按计划推进中
+```
+
+## 智能分析
+
+### 分析结构
+
+```
+分析 report.pptx 的结构，查看幻灯片数、形状统计、表格和图片数量
+```
+
+### 提取演讲稿
+
+```
+从 presentation.pptx 中提取所有幻灯片的演讲备注
+```
+
+### 内容总结
+
+```
+生成 report.pptx 的内容总结，列出每张幻灯片的标题和关键要点
 ```

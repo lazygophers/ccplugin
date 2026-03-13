@@ -1,22 +1,21 @@
 {
   "name": "office-docx",
-  "version": "0.0.161",
-  "description": "Office Word 插件 - 提供 docx 文件读写、段落格式化功能。基于 python-docx 实现",
+  "version": "1.0.0",
+  "description": "Word docx 文件读写和文档操作插件。基于 MCP 协议提供 Word 操作工具。",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
     "url": "https://github.com/lazygophers"
   },
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/docx",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/docx",
-  "license": "MIT",
-  "keywords": [
-    "office",
-    "docx",
-    "word",
-    "document",
-    "mcp"
-  ],
-  "mcpServers": "./.mcp.json",
-  "skills": "./skills/"
+  "repository": "https://github.com/lazygophers/ccplugin",
+  "license": "AGPL-3.0-or-later",
+  "keywords": ["word", "docx", "document"],
+  "skills": "./skills",
+  "mcpServers": {
+    "office-word": {
+      "command": "uvx",
+      "args": ["--from", "office-word-mcp-server", "word_mcp_server"]
+    }
+  }
 }

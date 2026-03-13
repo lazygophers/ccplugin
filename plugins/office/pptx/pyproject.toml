@@ -1,14 +1,31 @@
 [project]
-name = "office-pptx"
-version = "0.0.161"
-description = "Office PowerPoint plugin - pptx read/write and slide operations"
+name = "ccplugin-office-pptx"
+version = "1.0.0"
+description = "PowerPoint pptx 文件操作插件包装层 - 格式转换、批量处理、模板生成、智能分析"
+readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [ "python-pptx>=0.6.23", "mcp>=1.0.0",]
+dependencies = [
+    "lib",
+    "python-pptx>=1.0.0",
+    "pypandoc>=1.14",
+    "click>=8.0",
+]
 
 [build-system]
-requires = [ "setuptools>=68.0", "wheel",]
+requires = ["setuptools>=68.0", "setuptools-scm[toml]>=7.0"]
 build-backend = "setuptools.build_meta"
 
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0"]
+
+[tool.setuptools.package-data]
+"*" = ["*.py", "*.json", "*.md"]
+
 [tool.setuptools.packages.find]
-where = [ "..",]
-include = [ "office_pptx", "office_pptx.*",]
+where = ["."]
+include = ["scripts*"]
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"

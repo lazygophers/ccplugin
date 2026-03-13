@@ -1,28 +1,31 @@
-# Office Pptx 插件文档
+# office-pptx 插件文档
 
-> PowerPoint pptx 文件读写和幻灯片操作插件
+## 概述
 
-## 目录
+office-pptx 是一个基于 MCP 协议的 PowerPoint 文件操作插件，提供对 .pptx 文件的完整读写支持。
 
-1. [概述](index.md)
-2. [MCP 工具](tools.md)
-3. [使用示例](examples.md)
+## 架构
 
-## 安装
-
-```bash
-# 推荐：一键安装
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin office-pptx@ccplugin-market
-
-# 或：传统方式
-claude plugin marketplace add lazygophers/ccplugin
-claude plugin install office-pptx@ccplugin-market
+```
+plugins/office/pptx/
+├── .claude-plugin/
+│   └── plugin.json          # 插件配置和 MCP 服务定义
+├── skills/
+│   └── office-pptx-skills/
+│       ├── SKILL.md          # 技能定义
+│       └── examples.md       # 使用示例
+├── docs/
+│   ├── index.md              # 文档首页
+│   └── api.md                # API 文档
+├── README.md
+└── llms.txt
 ```
 
-## 版本
+## MCP 服务
 
-当前版本：0.0.138
+使用 [Office-PowerPoint-MCP-Server](https://github.com/GongRzhe/Office-PowerPoint-MCP-Server) 提供 PowerPoint 操作能力，通过 `uvx --from office-powerpoint-mcp-server ppt_mcp_server` 启动。
 
-## 许可证
+## 相关链接
 
-MIT
+- [API 文档](api.md)
+- [Office-PowerPoint-MCP-Server GitHub](https://github.com/GongRzhe/Office-PowerPoint-MCP-Server)
