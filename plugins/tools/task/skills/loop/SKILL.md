@@ -283,17 +283,83 @@ else:
     stalled_count = 0  # 有进展，重置
 ```
 
-失败升级策略：
-- 第 1 次失败：调整后重试
-- 第 2 次失败：使用调试类 agent 诊断
-- 第 3 次失败：重新规划任务
-- 仍然失败：AskUserQuestion 请求用户指导
+### 3-Strike 升级协议
 
-停滞处理（连续 3 次停滞）：
+**第 1 次失败（Strike 1）**：
+- 记录错误信息和当前尝试方案
+- 自动调整策略后重试
+- 更新 `stall_history` 元数据
+
+**第 2 次失败（Strike 2）**：
+- 使用调试类 agent 深入诊断根因
+- 记录已排除的假设和方案
+- 尝试不同方向的解决方案
+
+**第 3 次失败（Strike 3 — 触发用户升级）**：
+- 停止自动重试
+- 汇总所有已尝试方案和已排除假设
+- 使用 AskUserQuestion 向用户上报，**必须使用以下模板**
+
+### AskUserQuestion 增强模板
+
+```
+任务已停滞 3 次，需要您的指导。
+
+**问题描述**：
+[当前错误的详细描述，包含完整错误信息]
+
+**已尝试的方案**：
+1. [方案 1] → 失败原因：[具体失败原因]
+2. [方案 2] → 失败原因：[具体失败原因]
+3. [方案 3] → 失败原因：[具体失败原因]
+
+**已排除的方向**：
+- [假设 A]：[排除理由，如"已验证不成立"]
+- [假设 B]：[排除理由，如"测试失败"]
+
+**请提供指导**：
+- 您认为应该尝试什么方向？
+- 是否需要调整任务目标或验收标准？
+- 是否有我遗漏的信息或约束？
+```
+
+### stall_history 元数据
+
+每次失败时通过 TaskUpdate 记录停滞历史，确保信息不丢失：
+
+```python
+TaskUpdate(
+  task_id=task_id,
+  metadata={
+    "stall_history": [
+      {
+        "iteration": 3,
+        "error": "ModuleNotFoundError: No module named 'xyz'",
+        "attempted_solutions": [
+          {"solution": "pip install xyz", "outcome": "failed", "reason": "包名拼写错误"},
+          {"solution": "pip install xyz-py", "outcome": "failed", "reason": "版本不兼容"},
+          {"solution": "使用 conda 安装", "outcome": "failed", "reason": "conda 源无此包"}
+        ],
+        "excluded_hypotheses": [
+          "包在 PyPI 上存在（已验证不存在）",
+          "包名为 xyz（实际为 xyz-python）"
+        ]
+      }
+    ]
+  }
+)
+```
+
+### 停滞处理流程
+
 ```
 if stalled_count >= max_stalled_attempts:
+    # 1. 汇总 stall_history
+    stall_record = build_stall_record(iteration, error, solutions, hypotheses)
+
+    # 2. 使用增强模板向用户上报
     user_guidance = AskUserQuestion(
-        "任务停滞 3 次，已尝试策略：...\n当前错误：...\n请提供指导"
+        format_stall_report(stall_record)  # 使用上述模板格式化
     )
 
     if user_guidance:
