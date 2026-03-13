@@ -66,10 +66,26 @@ def _is_hanzi(ch: str) -> bool:
 
 
 def _strip_markdown(text: str) -> str:
-	"""移除常见 Markdown 标记，保留可读的纯文本（用于通知与 TTS）。"""
+	"""移除常见 Markdown 标记，保留可读的纯文本（用于通知与 TTS）。
+
+	特殊处理：保护 Jinja2 模板语法（{{ variable }}）不被破坏。
+	"""
 	if not text:
 		return text
 
+	# 1. 先保护 Jinja2 模板语法（避免下划线被当作 Markdown 斜体标记移除）
+	# 使用 \x00 作为分隔符，这是一个不会出现在普通文本中的字符
+	jinja_placeholders = {}
+	def _protect_jinja(m: re.Match) -> str:
+		placeholder = f"\x00JINJA{len(jinja_placeholders)}\x00"
+		jinja_placeholders[placeholder] = m.group(0)
+		return placeholder
+
+	# 保护 {{ ... }} 和 {% ... %}
+	text = re.sub(r"\{\{[^}]+\}\}", _protect_jinja, text)
+	text = re.sub(r"\{%[^}]+%\}", _protect_jinja, text)
+
+	# 2. 处理 Markdown 标记
 	# Code fences: keep inner code, drop fences/language.
 	def _fence_repl(m: re.Match) -> str:
 		block = m.group(0)
@@ -111,6 +127,11 @@ def _strip_markdown(text: str) -> str:
 
 	# Collapse extra spaces but preserve newlines.
 	text = re.sub(r"[ \t]{2,}", " ", text)
+
+	# 3. 恢复 Jinja2 模板语法
+	for placeholder, original in jinja_placeholders.items():
+		text = text.replace(placeholder, original)
+
 	return text.strip()
 
 

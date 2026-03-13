@@ -180,6 +180,40 @@ def extract_context_from_hook_data(hook_data: Dict[str, Any]) -> Dict[str, Any]:
 	if "agent_transcript_path" in hook_data:
 		context["agent_transcript_path"] = hook_data["agent_transcript_path"]
 
+	# 提取 last_assistant_message（从 transcript 文件读取最后一条 assistant 消息）
+	if "transcript_path" in hook_data and isinstance(hook_data["transcript_path"], str):
+		try:
+			transcript_path = hook_data["transcript_path"]
+			if os.path.exists(transcript_path):
+				with open(transcript_path, "r", encoding="utf-8") as f:
+					lines = f.readlines()
+					# 从后往前查找最后一条 assistant 消息
+					for line in reversed(lines):
+						try:
+							entry = json.loads(line.strip())
+							if entry.get("role") == "assistant" and "content" in entry:
+								# 提取纯文本内容
+								content = entry["content"]
+								if isinstance(content, str):
+									context["last_assistant_message"] = content.strip()
+									break
+								elif isinstance(content, list):
+									# 如果是列表，提取第一个 text 块
+									for block in content:
+										if isinstance(block, dict) and block.get("type") == "text":
+											context["last_assistant_message"] = block.get("text", "").strip()
+											break
+									break
+						except (json.JSONDecodeError, KeyError):
+							continue
+		except Exception as e:
+			debug(f"读取 transcript 失败: {e}")
+			context["last_assistant_message"] = ""
+
+	# 如果未找到，提供默认值
+	if "last_assistant_message" not in context:
+		context["last_assistant_message"] = ""
+
 	return context
 
 
