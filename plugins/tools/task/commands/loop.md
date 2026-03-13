@@ -33,6 +33,7 @@ $ARGUMENTS
 4. **提问权限**：只有 leader 可调用 AskUserQuestion
 5. **验收标准**：必须量化（测试覆盖率、性能指标等）
 6. **执行顺序**：严格按 6 步循环（信息收集→计划设计→确认→执行→验证→调整）
+7. **资源清理**：及时清理已完成的 executor 及其关联的 tmux session，避免资源泄漏
 
 ## 角色定位
 
@@ -183,7 +184,11 @@ DAG：T1 → (T2, T3, T4) → T5（并行上限：2；当 Ready 任务数 > 2，
 4. Agent 调用（background=True，传递 working_directory）
 5. 最多 2 个任务并行，TaskUpdate 更新状态
 6. 处理 SendMessage（agent 上报）
-7. **执行完成后清理**：TaskStop 停止所有后台任务 → TeamDelete 删除团队（如果创建了 team）
+7. **执行完成后清理**：
+   - TaskStop 停止所有后台任务
+   - TeamDelete 删除团队（如果创建了 team）
+   - 清理关联的 tmux session（`tmux kill-session -t <session-name>`）
+   - 验证资源释放（`tmux ls` 确认无残留 session）
 
 **⚠️ Team 生命周期**：本步骤内创建和删除，步骤结束时必须无Team成员。
 
