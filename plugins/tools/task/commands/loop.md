@@ -14,7 +14,9 @@ memory: project
 
 这是一个全新任务，你需要完成
 <user_task>
-$$ARGUMENTS
+
+$$
+ARGUMENTS
 </user_task>
 
 作为 team leader，负责调度所有工作，持续迭代直到任务目标达成。
@@ -166,29 +168,35 @@ TaskUpdate(
 
 **依赖关系 DAG**：
 ```
-       ┌─────────────────────┐  ┌─────────────────────┐
-       │ T1: 实现用户模型     │  │ T2: 实现工具模块     │
-       │ agent: coder        │  │ agent: coder        │
-       │ files: user.py      │  │ files: helper.py    │
-       │ (无依赖)            │  │ (无依赖)            │
-       └──────────┬──────────┘  └──────────┬──────────┘
+       ┌───────────────────────┐  ┌───────────────────────┐
+       │ T1: 实现用户模型        │  │ T2: 实现工具模块        │
+       │ agent: coder          │  │ agent: coder          │
+       │ skills:               │  │ skills:               │
+       │   - python:core       │  │   - python:core       │
+       │   - python:types      │  │   - python:types      │
+       │ files: user.py        │  │ files: helper.py      │
+       │ (无依赖)               │  │ (无依赖)               │
+       └──────────┬────────────┘  └──────────┬────────────┘
                   │                        │
                   ↓                        ↓
-       ┌─────────────────────┐  ┌─────────────────────┐
-       │ T3: 实现 API 接口    │  │ T4: 实现数据处理     │
-       │ agent: coder        │  │ agent: coder        │
-       │ files: auth.py      │  │ files: processor.py │
-       │ (依赖 T1)           │  │ (依赖 T2)           │
-       └──────────┬──────────┘  └──────────┬──────────┘
+       ┌───────────────────────┐  ┌───────────────────────┐
+       │ T3: 实现 API 接口      │  │ T4: 实现数据处理       │
+       │ agent: coder          │  │ agent: coder          │
+       │ skills:               │  │ skills:               │
+       │   - python:core       │  │   - python:core       │
+       │   - python:types      │  │   - python:types      │
+       │ files: auth.py        │  │ files: processor.py   │
+       │ (依赖 T1)              │  │ (依赖 T2)              │
+       └──────────┬────────────┘  └──────────┬────────────┘
                   │                        │
                   └──────────┬─────────────┘
                              ↓
-                  ┌─────────────────────┐
-                  │ T5: 编写集成测试     │
-                  │ agent: tester       │
-                  │ files: test_*.py    │
-                  │ (依赖 T3 和 T4)      │
-                  └─────────────────────┘
+                  ┌───────────────────────┐
+                  │ T5: 编写集成测试        │
+                  │ agent: tester         │
+                  │ files: test_*.py      │
+                  │ (依赖 T3 和 T4)        │
+                  └───────────────────────┘
 ```
 
 **动态执行队列**（最多同时 2 个任务）：
@@ -524,3 +532,4 @@ Team 清理：已在步骤 4 完成
   - 每次调用 Agent 时通过 `context` 传递 `working_directory: os.getcwd()`
   - 使用 tmux 启动时，必须通过 `-c` 参数指定 leader 的工作目录
   - 不允许使用 tmux 默认目录或其他目录
+$$
