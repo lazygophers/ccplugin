@@ -9,6 +9,15 @@ memory: project
 
 在 Loop 执行过程中，向当前任务注入额外的上下文信息。
 
+## ✋ 前置条件
+
+**必须有正在执行的 task:loop**，否则无法使用 `/add`：
+
+- ✅ **可用场景**：Loop 执行过程中（步骤 1-6 任意阶段）
+- ❌ **不可用**：无活跃 Loop 任务时
+
+**检查方式**：TaskList 查询状态为 `in_progress` 且类型为 `loop` 的主任务
+
 ## 适用场景
 
 | 场景 | 示例 |
@@ -18,6 +27,14 @@ memory: project
 | **添加约束** | `/add 必须兼容 Python 3.11` |
 | **调整目标** | `/add 先不管性能，优先保证功能正确` |
 | **提供线索** | `/add 错误可能在 utils/token.py 的 verify 方法中` |
+
+## ⚠️ 核心原则
+
+1. **立即生效**：补充信息影响下一次迭代，不回滚已完成步骤
+2. **累积叠加**：多次 `/add` 的内容累积，不互相覆盖
+3. **冲突提示**：补充内容与已完成工作矛盾时，提示用户确认
+4. **Anchor守护**：检测意图偏移，防止任务范围失控
+5. **清晰具体**：补充内容必须明确，避免模糊描述
 
 ## 执行流程
 
@@ -32,139 +49,80 @@ memory: project
 
 ### 2. 检查意图偏移（Anchor 对齐）
 
-使用工具：TaskGet
+**目标**：检测补充内容是否与原始任务意图冲突。
 
-读取主任务的 anchor_snapshot，检查补充内容是否与原始意图冲突：
+**执行流程**：
 
-```python
-# 1. 读取 anchor
-main_task = TaskGet(main_task_id)
-anchor = main_task.metadata.get("anchor_snapshot", {})
-intent = anchor.get("intent")
-critical_constraints = anchor.get("critical_constraints", [])
-excluded_scope = anchor.get("excluded_scope", [])
+1. **读取 Anchor**：TaskGet 获取 `anchor_snapshot`（intent/constraints/excluded_scope）
+2. **检测冲突**：语义分析补充内容与原始意图是否矛盾
+3. **无冲突** → 跳到步骤 3
+4. **有冲突** → AskUserQuestion 提供 3 个选项
 
-# 2. 检查语义冲突
-if has_semantic_conflict(user_addition, intent):
-    # 意图偏移检测到冲突
-    drift_detected = True
-else:
-    drift_detected = False
-```
+**意图偏移处理选项**：
 
-**当检测到意图偏移时**，使用 AskUserQuestion 提供选项：
+| 选项 | 适用场景 | 影响 | Anchor变更 |
+|------|---------|------|-----------|
+| 1️⃣ 修改 Anchor | 核心需求改变 | 永久改变任务目标，版本升级（v1→v2） | ✅ 更新 |
+| 2️⃣ 临时调整 | 微调/补充信息 | 仅影响当前迭代 | ❌ 不变 |
+| 3️⃣ 创建新任务 | 新需求拆分 | 独立任务，原任务不变 | ❌ 不变 |
 
+**Anchor 更新时**：版本号递增，记录 changelog（版本/时间戳/原因/变更内容）。
+
+**冲突提示示例**：
 ```
 补充内容与原始任务意图存在冲突：
 
-**原始意图**：{intent}
+**原始意图**：实现用户认证功能
+**新补充**：添加会话管理和权限控制
+**冲突分析**：原任务聚焦认证，新需求扩展到会话+权限，范围显著增加
 
-**新补充**：{user_addition}
-
-**冲突分析**：
-- 原始任务的核心目标是 {goal_A}
-- 但补充内容要求 {goal_B}
-- 这可能导致任务范围扩大或方向改变
-
-请选择如何处理：
-1. 修改 Anchor（更新核心意图）→ 版本升级 v1 → v2
-2. 作为临时调整（不更新 Anchor）→ 仅影响当前迭代
-3. 创建新任务（独立处理）→ 拆分为新的 Loop 任务
-```
-
-**选项说明**：
-
-| 选项 | 适用场景 | 影响 |
-|------|---------|------|
-| 修改 Anchor | 用户改变了核心需求 | 永久改变任务目标，版本号升级 |
-| 临时调整 | 用户提供补充信息或微调 | 仅影响当前迭代，不改变 Anchor |
-| 创建新任务 | 用户提出了新的需求 | 拆分为独立任务，保持原任务不变 |
-
-**Anchor 版本更新流程**（当用户选择"修改 Anchor"时）：
-
-```python
-# 1. 更新 anchor_snapshot
-new_version = increment_version(anchor["version"])  # v1 → v2
-
-TaskUpdate(
-  task_id=main_task_id,
-  metadata={
-    "anchor_snapshot": {
-      "version": new_version,
-      "intent": updated_intent,
-      "critical_constraints": updated_constraints,
-      "excluded_scope": updated_excluded_scope,
-      "assumptions": updated_assumptions,
-      "changelog": [
-        {
-          "version": new_version,
-          "timestamp": "...",
-          "reason": "用户通过 /add 修改了核心意图",
-          "changes": ["intent: ... → ...", "constraints: added X"]
-        },
-        ...previous_changelog
-      ]
-    }
-  }
-)
-
-# 2. 输出变更确认
-print(f"[Anchor 已更新] 版本：{old_version} → {new_version}")
-print(f"核心意图：{old_intent} → {updated_intent}")
+请选择：
+1. 修改 Anchor（更新核心意图）→ v1 → v2
+2. 临时调整（不更新 Anchor）→ 仅当前迭代
+3. 创建新任务（独立处理）→ 拆分新 Loop
 ```
 
 ### 3. 注入当前任务
 
-使用工具：TaskUpdate
+**工具**：TaskUpdate
 
-将补充信息注入到当前执行上下文：
-```
-TaskUpdate(
-  task_id=current_task_id,
-  metadata={
-    "user_additions": [
-      {
-        "type": "方向纠正",
-        "content": "不要改 auth 模块，只改 session 模块",
-        "timestamp": "...",
-        "drift_handling": "temporary"  # 或 "anchor_updated" 或 "new_task"
-      }
-    ]
-  }
-)
-```
+**操作**：将补充信息写入 `metadata.user_additions`（包含类型/内容/时间戳/drift_handling）
 
-影响：
-- 下一次迭代的步骤 1（信息收集）会读取此信息
-- 步骤 2（计划设计）会据此调整计划
-- 如果 Anchor 已更新，所有后续验证都将基于新版本
+**影响**：
+- 步骤 1（信息收集）读取此信息
+- 步骤 2（计划设计）据此调整
+- Anchor 更新时，后续验证基于新版本
 
 ### 4. 确认反馈
 
-输出简要确认：
+**输出格式**：
+
+✅ **无冲突场景**：
 ```
 [补充已注入] 类型：方向纠正
 内容：不要改 auth 模块，只改 session 模块
-意图偏移：未检测到冲突
-影响：下一次迭代将跳过 auth 相关修改
+意图偏移：未检测
+影响：下次迭代跳过 auth 相关修改
 ```
 
-如果检测到意图偏移并更新了 Anchor：
+⚠️ **Anchor 更新场景**：
 ```
-[Anchor 已更新] 版本：v1 → v2
+[Anchor 已更新] v1 → v2
 原始意图：实现用户认证功能
 更新意图：实现用户认证和会话管理功能
-变更原因：用户通过 /add 扩展了任务范围
-影响：所有后续验证将基于新的核心意图
+变更原因：用户通过 /add 扩展任务范围
+影响：所有后续验证基于新意图
 ```
 
-## 优先级
+## 📊 补充类型优先级
 
-- **约束追加**：高优先级，必须遵守
-- **方向纠正**：高优先级，立即调整
-- **目标调整**：中优先级，影响后续规划
-- **信息补充**：低优先级，作为参考
-- **范围变更**：高优先级，需重新评估计划
+| 类型 | 优先级 | 处理方式 | 影响范围 |
+|------|--------|---------|----------|
+| 约束追加 | 🔴 高 | 必须遵守 | 所有后续步骤 |
+| 方向纠正 | 🔴 高 | 立即调整 | 当前+后续迭代 |
+| 范围变更 | 🔴 高 | 重新评估计划 | 触发重新规划 |
+| 目标调整 | 🟡 中 | 影响后续规划 | 后续迭代 |
+| 信息补充 | 🟢 低 | 作为参考 | 辅助决策 |
 
 ## 注意事项
 
