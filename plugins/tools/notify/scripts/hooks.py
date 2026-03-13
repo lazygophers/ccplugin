@@ -222,7 +222,7 @@ def execute_hook_actions(hook_config: Optional[HookConfig], event_name: str,
 				success = False
 
 		# 系统通知（关闭弹窗需同时停止 TTS，因此传入 tts_pid）
-		if not show_system_notification(message, tts_pid=tts_pid):
+		if not show_system_notification(message, tts_pid=tts_pid, event=event_name):
 			error(f"系统通知显示失败: {message}")
 			success = False
 
