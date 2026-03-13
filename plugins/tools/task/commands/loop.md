@@ -108,41 +108,15 @@ team_id = None  # 团队 ID，仅在需要时创建
 ```markdown
 ## 执行计划
 
-### 执行流程图（DAG 可视化，从上往下）
-```
-开始
-  │
-  ├─────> [T1: 实现用户模型]
-  │       agent: coder
-  │       skills: python:core, python:types
-  │       files: src/models/user.py
-  │
-  ├─────> [T2: 实现工具模块]
-  │       agent: coder
-  │       skills: python:core, python:types
-  │       files: src/utils/helper.py
-  │
-  ↓ (T1、T2 无依赖，可并行执行，最多2个)
-  │
-  └─────> [T3: 集成测试]
-          agent: tester
-          skills: python:testing
-          files: tests/test_integration.py
-          依赖: T1, T2
-  │
-  ↓
-结束
-```
-
 ### 任务列表
 - T1: [任务标题] (agent: X, files: Y, 依赖: 无)
-- T2: [任务标题] (agent: X, files: Y, 依赖: 无)
-- T3: [任务标题] (agent: X, files: Y, 依赖: T1, T2)
+- T2: [任务标题] (agent: X, files: Y, 依赖: T1)
+- ...
 
 ### 执行策略
 - 并行上限：2 个任务
-- 依赖关系：T1→T3, T2→T3
-- 执行顺序：T1||T2 → T3（|| 表示并行）
+- 依赖关系：[简要描述，如 T1→T3, T2→T4→T5]
+- 执行顺序：[说明哪些并行，哪些串行]
 
 ### 验收标准（必须量化）
 - [ ] 单元测试覆盖率 ≥ 90%
@@ -193,9 +167,8 @@ team_id = None  # 团队 ID，仅在需要时创建
 **判断**：
 
 - 验收失败 → 步骤 6
-- 验收通过 + 有未完成的任务 → 回到步骤 2（继续下一个迭代）
-- 验收通过 + 所有任务完成 + 有建议 → AskUserQuestion 询问是否属于任务范围
-- 验收通过 + 所有任务完成 + 无建议 → Loop 完成，跳到清理阶段
+- 验收通过 + 有建议 → AskUserQuestion 询问是否属于任务范围
+- 验收通过 + 无建议 → Loop 完成，跳到清理阶段
 
 ### 步骤 6：失败调整
 
