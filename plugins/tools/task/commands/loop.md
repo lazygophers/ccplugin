@@ -104,17 +104,78 @@ team_id = None  # 团队 ID，仅在需要时创建
 ```markdown
 ## 执行计划
 
+### 执行流程图（DAG 可视化，从上往下）
+
+```
+开始
+  │
+  ↓ 【串行阶段】
+  │
+  [T1: 数据库迁移]
+  agent: devops
+  skills: sql, migration
+  files: migrations/001_init.sql
+  │
+  ↓ (T1 完成后，T2/T3/T4 依赖满足)
+  │
+  ↓ 【并行阶段 - 第1批，最多2个】
+  │
+  ├─────> [T2: 实现用户模型]
+  │       agent: coder
+  │       skills: python:core, python:types
+  │       files: src/models/user.py
+  │       依赖: T1
+  │
+  ├─────> [T3: 实现订单模型]
+  │       agent: coder
+  │       skills: python:core, python:types
+  │       files: src/models/order.py
+  │       依赖: T1
+  │
+  ↓ (T2、T3 并行执行中，T4 等待)
+  │
+  ↓ 【并行阶段 - 第2批】
+  │
+  └─────> [T4: 实现支付模块]
+          agent: coder
+          skills: python:core, payment
+          files: src/services/payment.py
+          依赖: T1
+  │
+  ↓ (T2、T3、T4 全部完成后，T5 依赖满足)
+  │
+  ↓ 【串行阶段】
+  │
+  [T5: 集成测试]
+  agent: tester
+  skills: python:testing
+  files: tests/test_integration.py
+  依赖: T2, T3, T4
+  │
+  ↓
+结束
+
+执行时序：
+- 时刻0: T1 执行（串行）
+- 时刻1: T1完成 → T2||T3 并行执行（最多2个），T4 等待
+- 时刻2: T2||T3完成 → T4 执行
+- 时刻3: T4完成 → T5 执行（串行）
+- 时刻4: 全部完成
+```
+
 ### 任务列表
 
-- T1: [任务标题] (agent: X, files: Y, 依赖: 无)
-- T2: [任务标题] (agent: X, files: Y, 依赖: T1)
-- ...
+- T1: 数据库迁移 (agent: devops, skills: sql/migration, files: migrations/001_init.sql, 依赖: 无)
+- T2: 实现用户模型 (agent: coder, skills: python:core/python:types, files: src/models/user.py, 依赖: T1)
+- T3: 实现订单模型 (agent: coder, skills: python:core/python:types, files: src/models/order.py, 依赖: T1)
+- T4: 实现支付模块 (agent: coder, skills: python:core/payment, files: src/services/payment.py, 依赖: T1)
+- T5: 集成测试 (agent: tester, skills: python:testing, files: tests/test_integration.py, 依赖: T2/T3/T4)
 
 ### 执行策略
 
 - 并行上限：2 个任务
-- 依赖关系：[简要描述，如 T1→T3, T2→T4→T5]
-- 执行顺序：[说明哪些并行，哪些串行]
+- 依赖关系：T1 → (T2, T3, T4) → T5
+- 执行顺序：T1（串行）→ T2||T3（第1批并行）→ T4（第2批）→ T5（串行）
 
 ### 验收标准（必须量化）
 
