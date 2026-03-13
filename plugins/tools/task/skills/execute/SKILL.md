@@ -167,50 +167,99 @@ Leader 处理：
 - 统一使用 AskUserQuestion 向用户提问
 - 通过 SendMessage 回复 agent 指导
 
-## 并行执行控制
+## 并行执行控制：任务队列 + 两槽位模型
+
+### 核心机制
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      任务队列                            │
+│  [所有依赖已满足的 Ready 任务]                           │
+│  T2 (Ready) | T3 (Ready) | T4 (Ready) | T5 (Blocked)    │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+                  │ 从队列取出任务，填充空闲槽位
+                  │
+     ┌────────────┴──────────────┐
+     │                           │
+     ▼                           ▼
+┌──────────┐                ┌──────────┐
+│ Slot #1  │                │ Slot #2  │  ← 最多 2 个并行槽位
+│   T2     │                │   T3     │
+│ 执行中   │                │ 执行中   │
+└─────┬────┘                └─────┬────┘
+      │                           │
+      │ T2 完成 ✓                 │ T3 仍在运行
+      ▼                           │
+┌──────────┐                      │
+│ Slot #1  │ ← 自动补位             │
+│   T4     │    (从队列取出)        │
+│ 执行中   │                       │
+└──────────┘                       │
+                                   │ T3 完成 ✓
+                                   ▼
+                              ┌──────────┐
+                              │ Slot #2  │ ← 自动补位
+                              │   T5     │    (依赖满足后)
+                              │ 执行中   │
+                              └──────────┘
+```
 
 ### Leader 的队列管理职责
 
 Leader 负责：
-1. 维护任务执行队列
-2. 跟踪所有任务状态
-3. 动态检查依赖关系
-4. 自动启动可执行任务
-5. 保持最多 2 个任务并行
+1. **维护任务队列**：动态筛选依赖已满足的 Ready 任务
+2. **管理两个槽位**：跟踪 Slot#1 和 Slot#2 的占用状态
+3. **自动补位**：槽位释放时立即从队列取出下一个任务
+4. **依赖检查**：每次任务完成后重新评估队列中任务的依赖状态
+5. **文件冲突检查**：确保并行任务不修改同一文件
 
 ### 并行条件验证
 
 启动任务前必须验证：
-1. 任务依赖已满足（blockedBy 为空或已完成）
-2. 当前并行数 < 2
-3. target_files 与当前执行中任务无交集
-4. 不修改同一模块或包
+1. **依赖满足**：任务的 blockedBy 为空或已完成
+2. **槽位可用**：当前并行数 < 2（有空闲槽位）
+3. **文件无冲突**：target_files 与当前执行中任务无交集
+4. **模块无冲突**：不修改同一模块或包
 
-### 动态队列调度
+### 动态队列调度算法
 
 ```python
+# 初始化两个槽位
+slots = [None, None]  # Slot#1, Slot#2
+
 while 有待执行任务:
-    # 1. 获取当前执行中的任务数
-    running_tasks = [t for t in tasks if t.status == "in_progress"]
+    # 1. 更新任务队列（筛选依赖已满足的任务）
+    ready_queue = []
+    pending_tasks = [t for t in tasks if t.status == "pending"]
+    for task in pending_tasks:
+        if all_dependencies_completed(task.blockedBy):
+            ready_queue.append(task)
 
-    # 2. 如果未达到并行上限，查找可启动任务
-    if len(running_tasks) < 2:
-        pending_tasks = [t for t in tasks if t.status == "pending"]
-        for task in pending_tasks:
-            # 检查依赖是否满足
-            if all_dependencies_completed(task.blockedBy):
-                # 检查文件冲突
-                if no_file_conflict_with_running_tasks(task):
-                    # 启动任务
-                    start_task(task)
-                    if len(running_tasks) >= 2:
-                        break
+    # 2. 填充空闲槽位（从队列取出任务）
+    for i in range(2):
+        if slots[i] is None and len(ready_queue) > 0:
+            # 槽位空闲，从队列取出任务
+            task = ready_queue.pop(0)
 
-    # 3. 等待任务完成，触发下一轮检查
-    wait_for_any_task_completion()
+            # 检查文件冲突
+            if no_file_conflict_with_running_tasks(task, slots):
+                slots[i] = task
+                start_task(task)
+                print(f"[槽位#{i+1}] 启动任务 {task.id}")
+
+    # 3. 等待任意一个任务完成
+    completed_task = wait_for_any_completion(slots)
+
+    # 4. 释放槽位（自动触发下一轮补位）
+    for i in range(2):
+        if slots[i] == completed_task:
+            slots[i] = None
+            print(f"[槽位#{i+1}] 任务完成，槽位释放")
+            break
 ```
 
-### 动态队列执行示例
+### 执行时间线示例
 
 **依赖关系 DAG**：
 ```
@@ -233,18 +282,45 @@ while 有待执行任务:
                 └─────────────┘
 ```
 
-**执行队列**（最多同时 2 个）：
+**执行时间线**：
 ```
-时刻 0: [T1 执行中] [T2 执行中] [T3 等待] [T4 等待] [T5 等待]
-时刻 1: [T1 完成✓] [T2 执行中] [T3 执行中] [T4 等待] [T5 等待]
-时刻 2: [T1 完成✓] [T2 完成✓] [T3 执行中] [T4 执行中] [T5 等待]
-时刻 3: [T1 完成✓] [T2 完成✓] [T3 完成✓] [T4 完成✓] [T5 执行中]
+时刻 0:
+Queue: [T1✓, T2✓] [T3⊗, T4⊗, T5⊗]  ← ⊗ 表示依赖未满足
+Slot#1: T1 启动
+Slot#2: T2 启动
+
+时刻 1: (T1 完成)
+Queue: [T3✓] [T4⊗, T5⊗]  ← T3 依赖满足，进入队列
+Slot#1: 空闲 → T3 启动 (自动补位)
+Slot#2: T2 运行中
+
+时刻 2: (T2 完成)
+Queue: [T4✓] [T5⊗]  ← T4 依赖满足，进入队列
+Slot#1: T3 运行中
+Slot#2: 空闲 → T4 启动 (自动补位)
+
+时刻 3: (T3 完成)
+Queue: [] [T5⊗]  ← T5 依赖未满足（还需等待 T4）
+Slot#1: 空闲 (等待)
+Slot#2: T4 运行中
+
+时刻 4: (T4 完成)
+Queue: [T5✓]  ← T5 依赖满足，进入队列
+Slot#1: 空闲 → T5 启动 (自动补位)
+Slot#2: 空闲
+
+时刻 5: (T5 完成)
+Queue: []
+Slot#1: 空闲
+Slot#2: 空闲
+→ 所有任务完成
 ```
 
-**调度逻辑**：
-- 初始启动无依赖任务（T1, T2）
-- 任务完成后，检查队列中依赖已满足的任务
-- 自动启动可执行任务，保持最多 2 个并行
+**调度逻辑总结**：
+- ✓ 表示依赖已满足（Ready）
+- ⊗ 表示依赖未满足（Blocked）
+- 槽位释放时立即检查队列，自动补位
+- 任务完成后重新评估所有 Blocked 任务的依赖状态
 
 ## 失败处理
 
