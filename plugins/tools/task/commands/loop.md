@@ -194,6 +194,10 @@ TaskUpdate(
                   ┌───────────────────────┐
                   │ T5: 编写集成测试        │
                   │ agent: tester         │
+                  │ skills:               │
+                  │   - python:core       │
+                  │   - python:types      │
+                  │   - python:test       │
                   │ files: test_*.py      │
                   │ (依赖 T3 和 T4)        │
                   └───────────────────────┘
