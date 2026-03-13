@@ -19,6 +19,9 @@
     "reasoning"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/mystery-agent.md",
+    "./agents/clue-agent.md"
+  ],
   "skills": "./skills/"
 }

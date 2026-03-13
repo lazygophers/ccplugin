@@ -19,6 +19,9 @@
     "civilization"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/worldbuilding-agent.md",
+    "./agents/tech-agent.md"
+  ],
   "skills": "./skills/"
 }

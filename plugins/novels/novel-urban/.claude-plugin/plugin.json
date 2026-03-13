@@ -20,6 +20,9 @@
     "wealthy-family"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/urban-agent.md",
+    "./agents/romance-agent.md"
+  ],
   "skills": "./skills/"
 }

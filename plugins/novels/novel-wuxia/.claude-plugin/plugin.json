@@ -17,6 +17,9 @@
     "novel"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/martial-agent.md",
+    "./agents/wuxia-agent.md"
+  ],
   "skills": "./skills/"
 }

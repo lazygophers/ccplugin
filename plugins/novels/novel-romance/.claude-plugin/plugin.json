@@ -18,6 +18,9 @@
     "emotion"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/emotional-agent.md",
+    "./agents/romance-agent.md"
+  ],
   "skills": "./skills/"
 }

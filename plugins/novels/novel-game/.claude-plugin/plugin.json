@@ -20,6 +20,9 @@
     "skill-system"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/game-agent.md",
+    "./agents/competition-agent.md"
+  ],
   "skills": "./skills/"
 }

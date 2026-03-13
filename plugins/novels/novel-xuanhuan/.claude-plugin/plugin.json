@@ -20,6 +20,9 @@
     "magic-items"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/cultivation-agent.md",
+    "./agents/worldbuilding-agent.md"
+  ],
   "skills": "./skills/"
 }

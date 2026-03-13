@@ -22,6 +22,12 @@
     "webnovel"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/character-agent.md",
+    "./agents/style-agent.md",
+    "./agents/dialogue-agent.md",
+    "./agents/plot-agent.md",
+    "./agents/story-agent.md"
+  ],
   "skills": "./skills/"
 }

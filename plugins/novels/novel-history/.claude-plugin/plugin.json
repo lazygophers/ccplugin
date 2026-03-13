@@ -20,6 +20,9 @@
     "strategy"
   ],
   "commands": "./commands/",
-  "agents": "./agents/",
+  "agents": [
+    "./agents/history-agent.md",
+    "./agents/strategy-agent.md"
+  ],
   "skills": "./skills/"
 }
