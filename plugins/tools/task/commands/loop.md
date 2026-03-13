@@ -1,25 +1,39 @@
----
+***
+
 description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
-argument-hint: [任务目标描述]
+argument-hint: \[任务目标描述]
 skills:
-	- core
-	- gather
-	- plan
-	- execute
-	- verify
-	- loop
+\- core
+\- gather
+\- plan
+\- execute
+\- verify
+\- loop
 model: opus
 memory: project
----
+---------------
 
 这是一个全新任务，你需要完成
-<user_task>
+
+\<user\_task>
 
 $$
 ARGUMENTS
-</user_task>
+
+\</user\_task>
 
 作为 team leader，负责调度所有工作，持续迭代直到任务目标达成。
+
+## ⚠️ 必须遵守的约束
+
+1. **并行上限**：最多 2 个任务同时执行
+2. **工作目录一致性**：Agent 必须继承 leader 的 `os.getcwd()`
+   - 通过 `context` 传递 `working_directory: os.getcwd()`
+   - 使用 tmux 时：`tmux new-session -d -s agent -c $(pwd)`
+3. **Team 生命周期**：步骤 4 创建 team，步骤 4 结束时删除
+4. **提问权限**：只有 leader 可调用 AskUserQuestion
+5. **验收标准**：必须量化（测试覆盖率、性能指标等）
+6. **执行顺序**：严格按 6 步循环（信息收集→计划设计→确认→执行→验证→调整）
 
 ## 角色定位
 
@@ -64,167 +78,67 @@ team_id = None  # 团队 ID，仅在需要时创建
 
 **目标**：收集足够的项目信息以支持任务规划。
 
-**执行**：
+**详细规范**：参见 Skills(task:gather)
 
-1. 使用 Read, Glob, Grep 读取项目文件、文档、配置、CLAUDE.md
-2. 使用 Agent(subagent\_type='Explore') 或其他 agent 深度分析代码结构
-3. 通过 AskUserQuestion 确认不确定部分
+**要点**：
 
-**收集内容**：
-
-- 用户核心目标
-- 成功标准
-- 技术约束（技术栈、版本、规范）
-- 项目上下文（现有代码、架构、模块）
-- 相关文件路径
-- 测试覆盖情况
-- 当前的现状
-
-**输出**：完整的需求理解和项目上下文。
+- 使用 Read/Glob/Grep 读取项目文件、文档、CLAUDE.md
+- 使用 Agent(Explore) 深度分析代码结构
+- 通过 AskUserQuestion 确认不确定部分
+- 收集：目标、约束、上下文、文件路径、测试覆盖
 
 ### 步骤 2：计划设计
 
-**目标**：将任务分解为原子子任务，建立依赖关系
+**目标**：将任务分解为原子子任务，建立依赖关系。
 
-**执行**：
+**详细规范**：参见 Skills(task:plan)
 
-1. 使用 TaskCreate 分解任务为原子子任务
-2. 使用 TaskUpdate addBlockedBy 建立依赖关系
-3. 为每个任务分配 agent_type 和 skills（metadata）
-4. 可选：使用 Agent 调用规划类 agent 辅助
-5. 确认每一个任务的验收标准
+**核心原则**：MECE、可交付原子化、可量化可验证、依赖闭环
 
-**任务拆分说明**:
+**避坑**：禁止过度拆分、权责模糊、完成标准模糊
 
-1. 合理的分配 agents 和 skills，并建立验收标准
-2. 核心原则:
-   1. 目标锚定
-   2. MECE（相互独立，完全穷尽）
-   3. 可交付原子化
-   4. 可量化可验证
-   5. 权责唯一匹配
-   6. 颗粒度均衡
-   7. 风险与关键路径前置
-   8. 层级适配
-   9. 依赖闭环
-   10. 弹性缓冲
-   11. 动态迭代
-3. 避坑原则:
-   1. 禁止过度拆分
-   2. 禁止拆分不彻底
-   3. 禁止为拆分而拆分
-   4. 禁止权责模糊
-   5. 禁止完成标准模糊
-4. 不要强迫在一个迭代中完成所有任务，可以尝试动态迭代
-
-**任务分解示例**：
-
-```
-TaskCreate(
-  title="T1: 实现用户模型",
-  description="创建 User 模型类，包含基本属性和方法",
-  acceptance_criteria=[
-    "User 模型类已创建",
-    "包含 id、name、email 属性",
-    "单元测试通过"
-  ],
-  metadata={
-    "target_files": ["src/models/user.py"],
-    "agent_type": "coder",
-    "skills": ["python:core", "python:types"],
-    "retry_count": 0
-  }
-)
-```
-
-**依赖建立示例**：
-
-```
-TaskUpdate(
-  task_id=task_b_id,
-  addBlockedBy=[task_a_id]
-)
-```
-
-**输出**：所有子任务已注册，依赖关系已建立。
+**输出**：所有子任务已注册（TaskCreate），依赖已建立（TaskUpdate addBlockedBy）。
 
 ### 步骤 3：计划确认
 
-**目标**：向用户展示计划并获得确认。
+**目标**：向用户展示计划并获得确认（使用 AskUserQuestion）。
 
-**执行**：
+**输出格式**（必填项：任务列表、执行策略、量化验收标准、简要说明）：
 
-1. 输出任务列表（包含依赖关系）
-2. 输出验收标准
-3. 输出简要说明（≤100字）
-4. 使用 AskUserQuestion 让用户确认
-
-**输出格式**：
-
-```
+```markdown
 ## 执行计划
 
-### 执行流程图
-
-**依赖关系 DAG**：
+### 执行流程图（DAG 可视化）
 ```
-       ┌───────────────────────┐  ┌───────────────────────┐
-       │ T1: 实现用户模型        │  │ T2: 实现工具模块        │
-       │ agent: coder          │  │ agent: coder          │
-       │ skills:               │  │ skills:               │
-       │   - python:core       │  │   - python:core       │
-       │   - python:types      │  │   - python:types      │
-       │ files: user.py        │  │ files: helper.py      │
-       │ (无依赖)               │  │ (无依赖)               │
-       └──────────┬────────────┘  └──────────┬────────────┘
-                  │                        │
-                  ↓                        ↓
-       ┌───────────────────────┐  ┌───────────────────────┐
-       │ T3: 实现 API 接口      │  │ T4: 实现数据处理       │
-       │ agent: coder          │  │ agent: coder          │
-       │ skills:               │  │ skills:               │
-       │   - python:core       │  │   - python:core       │
-       │   - python:types      │  │   - python:types      │
-       │ files: auth.py        │  │ files: processor.py   │
-       │ (依赖 T1)              │  │ (依赖 T2)              │
-       └──────────┬────────────┘  └──────────┬────────────┘
-                  │                        │
-                  └──────────┬─────────────┘
-                             ↓
-                  ┌───────────────────────┐
-                  │ T5: 编写集成测试        │
-                  │ agent: tester         │
-                  │ skills:               │
-                  │   - python:core       │
-                  │   - python:types      │
-                  │   - python:test       │
-                  │ files: test_*.py      │
-                  │ (依赖 T3 和 T4)        │
-                  └───────────────────────┘
+开始
+ ├─> [T1: 任务1] ────┐
+ │                   ├─> [T3: 任务3] ─> 结束
+ └─> [T2: 任务2] ────┘
+
+说明：
+- T1、T2 无依赖，可并行（最多2个）
+- T3 依赖 T1、T2 完成后执行
 ```
 
-**动态执行队列**（最多同时 2 个任务）：
-```
-时刻 0: [T1 执行中] [T2 执行中] [T3 等待T1] [T4 等待T2] [T5 等待T3,T4]
-时刻 1: [T1 完成✓] [T2 执行中] [T3 执行中] [T4 等待T2] [T5 等待T3,T4]
-时刻 2: [T1 完成✓] [T2 完成✓] [T3 执行中] [T4 执行中] [T5 等待T3,T4]
-时刻 3: [T1 完成✓] [T2 完成✓] [T3 完成✓] [T4 完成✓] [T5 执行中]
-时刻 4: 全部完成 ✓
-```
+### 任务列表
+- T1: [任务标题] (agent: X, files: Y, 依赖: 无)
+- T2: [任务标题] (agent: X, files: Y, 依赖: 无)
+- T3: [任务标题] (agent: X, files: Y, 依赖: T1, T2)
 
-**执行逻辑**：
-- 初始启动所有无依赖任务（T1, T2），最多 2 个并行
-- 当任务完成时，检查队列中被阻塞的任务
-- 自动启动依赖已满足的任务（T1完成→T3启动，T2完成→T4启动）
-- 保持最多 2 个任务并行执行
+### 执行策略
+- 并行上限：2 个任务
+- 依赖关系：T1→T3, T2→T3
+- 执行顺序：T1||T2 → T3（|| 表示并行）
 
-### 验收标准
-- [ ] 所有测试通过
-- [ ] Lint 无错误
-- [ ] 功能符合需求
+### 验收标准（必须量化）
+- [ ] 单元测试覆盖率 ≥ 90%
+- [ ] 所有 CI 检查通过（lint/test/build）
+- [ ] 验收标准与需求 1:1 映射
+- [ ] 无新增技术债（代码复杂度 ≤ X）
+- [ ] 无影响已有功能（回归测试通过）
 
-### 简要说明
-分 5 个子任务实现用户认证功能。执行队列动态调度：T1/T2 并行启动→完成后自动启动 T3/T4→最后执行 T5 集成测试。
+### 简要说明（≤100字）
+[任务概述和执行策略]
 ```
 
 **确认**：用户确认后继续，不确认则回到步骤 2 调整。
@@ -233,307 +147,85 @@ TaskUpdate(
 
 **目标**：按依赖顺序调度执行所有子任务。
 
-**执行**：
+**详细规范**：参见 Skills(task:execute)
 
-1. 使用 TaskList 获取待执行任务
-2. 判断任务数量：
-   - 如果只有 1 个任务：直接使用 Agent 执行，不创建 team
-   - 如果有多个任务：创建 team 管理并行/串行执行
-3. 使用 TaskGet 检查依赖关系（blockedBy）
-4. 识别可并行任务（无依赖、文件无交集）
-5. 使用 Agent 调用相应 agent 执行任务
-6. 最多同时 2 个任务并行
-7. 使用 TaskUpdate 更新任务状态
-8. 处理 SendMessage（接收 agent 上报）
+**核心流程**：
 
-**TeamCreate 逻辑**：
+1. TaskList 获取待执行任务
+2. 判断任务数量：1个任务直接调用 Agent，多个任务创建 team
+3. TaskGet 检查依赖，识别可并行任务（无依赖+文件无交集）
+4. Agent 调用（background=True，传递 working\_directory）
+5. 最多 2 个任务并行，TaskUpdate 更新状态
+6. 处理 SendMessage（agent 上报）
+7. **执行完成后清理**：TeamDelete（如果创建了 team）
 
-```
-tasks = TaskList()
-pending_tasks = [t for t in tasks if t.status == "pending"]
-
-if len(pending_tasks) > 1:
-    # 多任务，创建 team
-    team_id = TeamCreate(
-        name="task-execution-team",
-        goal="执行多个并行/串行任务"
-    )
-else:
-    # 单任务，不创建 team
-    team_id = None
-```
-
-**Agent 调用示例**：
-
-```
-# 单任务场景：直接调用
-Agent(
-  subagent_type=task.metadata.agent_type,
-  task=task.description,
-  background=True,  # 尽可能使用后台运行
-  context={
-    "target_files": task.metadata.target_files,
-    "skills": task.metadata.skills,
-    "acceptance_criteria": task.acceptance_criteria,
-    "working_directory": os.getcwd()  # 继承 leader 的工作目录
-  }
-)
-
-# 多任务场景：通过 team 调用
-Agent(
-  team_name="task-execution-team",
-  name=f"executor-{task_id}",
-  subagent_type=task.metadata.agent_type,
-  task=task.description,
-  background=True,  # 尽可能使用后台运行
-  context={
-    "target_files": task.metadata.target_files,
-    "skills": task.metadata.skills,
-    "acceptance_criteria": task.acceptance_criteria,
-    "working_directory": os.getcwd()  # 继承 leader 的工作目录
-  }
-)
-```
-
-**执行要求**：
-
-1. **后台运行**：
-   - 所有 agent 尽可能使用 `background=True` 在后台运行
-   - 后台运行可以提升执行效率，减少主线程阻塞
-   - 只有需要实时交互的 agent 才使用前台模式
-
-2. **工作目录一致性**（⚠️ 必须遵守）：
-   - Agent 的工作目录必须与 team leader 完全一致
-   - 通过 `context` 传递 `working_directory: os.getcwd()`
-   - 确保 agent 访问的文件路径与 leader 相同
-   - 避免相对路径解析错误导致文件找不到
-
-   **使用 tmux 的特殊要求**：
-   - 如果使用 tmux 启动 agent，必须通过 `-c` 参数指定启动目录为 leader 的工作目录
-   - 不允许使用 tmux 的默认目录（通常是 `~`）
-   - 示例：`tmux new-session -d -s agent -c $(pwd)`
-
-**并行控制和动态队列管理**：
-
-Leader 职责：
-- 维护执行队列，跟踪所有任务状态
-- 检查依赖：`all_dependencies_completed(task.blockedBy)`
-- 检查文件冲突：`task_a_files.isdisjoint(task_b_files)`
-- 保持最多 2 个任务并行执行
-- **当任务完成时，自动检查队列并启动依赖已满足的任务**
-
-队列调度逻辑：
-```python
-while 有待执行任务:
-    # 1. 获取当前执行中的任务数
-    running_tasks = [t for t in tasks if t.status == "in_progress"]
-
-    # 2. 如果未达到并行上限，查找可启动任务
-    if len(running_tasks) < 2:
-        pending_tasks = [t for t in tasks if t.status == "pending"]
-        for task in pending_tasks:
-            # 检查依赖是否满足
-            if all_dependencies_completed(task.blockedBy):
-                # 检查文件冲突
-                if no_file_conflict_with_running_tasks(task):
-                    # 启动任务
-                    start_task(task)
-                    if len(running_tasks) >= 2:
-                        break
-
-    # 3. 等待任务完成，触发下一轮检查
-    wait_for_any_task_completion()
-```
-
-**进度输出**：
-
-```
-[进度] T1 实现用户模型 ......... 已完成 ✓
-[进度] T2 实现 API 接口 ......... 执行中
-[进度] T3 编写测试 ............. 待执行
-
-总进度：1/3 (33%)
-```
-
-**执行完成后清理**：
-
-```
-# 删除团队（如果创建了）
-if team_id is not None:
-    TeamDelete(team_id)
-    team_id = None
-```
-
-**输出**：所有任务执行完成，状态已更新，**team 已删除**（如果创建了）。
-
-**⚠️ 重要**：步骤 4 结束时，必须确保 team 已删除。如果进入步骤 5 时仍能看到 team 成员（如 `@executor-t2`），说明清理未执行。
+**⚠️ 关键检查点**：步骤 4 结束时，必须执行 TeamDelete（如创建了 team）。进入步骤 5 时不应存在任何 team 成员。
 
 ### 步骤 5：结果验证
 
-**前置条件**：Team 已在步骤 4 结束时删除，此时不应存在任何 team 成员。
+**前置条件**：Team 已在步骤 4 删除，不应存在 team 成员。
 
 **目标**：验证所有任务的验收标准是否通过。
 
-**执行**：
+**详细规范**：参见 Skills(task:verify)
 
-1. 使用 TaskList, TaskGet 检查所有任务
-2. 验证每个任务的验收标准
-3. 验证没有影响已有的功能和别的模块
-4. 使用 TaskUpdate 记录验证结果
+**执行流程**：
 
-**验证示例**：
-
-```
-task = TaskGet(task_id)
-for criterion in task.acceptance_criteria:
-    # 运行测试、检查输出、验证文件
-    result = verify_criterion(criterion)
-
-TaskUpdate(
-  task_id=task_id,
-  metadata={
-    "verification_result": {
-      "passed": all_passed,
-      "criteria_results": results
-    }
-  }
-)
-```
+1. TaskList, TaskGet 检查所有任务
+2. 验证每个任务的验收标准（运行测试、检查输出、验证文件）
+3. 验证无影响已有功能和别的模块（回归测试）
+4. TaskUpdate 记录验证结果
 
 **判断**：
 
-1. **验收标准失败** → 直接进入步骤 6
-2. **验收标准通过 + 有建议事项** → 使用 AskUserQuestion 询问用户
-3. **验收标准通过 + 无建议** → Loop 完成，跳到清理阶段
-
-**建议事项处理**：
-
-当验收标准通过但有建议事项时：
-```
-user_decision = AskUserQuestion(
-  "验收标准已全部通过，但发现以下可选优化建议：\n" +
-  "- 建议 1\n" +
-  "- 建议 2\n\n" +
-  "这些建议是否属于当前任务范围？\n" +
-  "- 是：将继续迭代完善\n" +
-  "- 否：任务完成，建议留待后续处理"
-)
-
-if user_decision == "是":
-    # 将建议事项转为新的验收标准，进入步骤 6
-else:
-    # Loop 完成，跳到清理阶段
-```
-
-**输出**：验证结果已记录。
+- 验收失败 → 步骤 6
+- 验收通过 + 有未完成的任务 → 回到步骤 2（继续下一个迭代）
+- 验收通过 + 所有任务完成 + 有建议 → AskUserQuestion 询问是否属于任务范围
+- 验收通过 + 所有任务完成 + 无建议 → Loop 完成，跳到清理阶段
 
 ### 步骤 6：失败调整
 
-**目标**：分析失败原因，决定下一步策略。
+**目标**：分析失败原因，决定下一步策略，回到步骤 2 重新规划。
 
-**执行**：
+**执行流程**：
 
-1. 分析失败原因
-2. 检测是否停滞（相同错误重复）
-3. 决定下一步策略
-4. 回到步骤 2 重新规划
-
-**停滞检测**：
-
-```
-if is_same_error(current_error, last_error):
-    stalled_count += 1
-else:
-    stalled_count = 0  # 有进展，重置
-```
+1. 分析失败原因（错误分类：编译/测试/依赖/其他）
+2. 检测停滞（相同错误重复 → stalled\_count++）
+3. 应用失败升级策略
+4. 回到步骤 2
 
 **失败升级策略**：
 
 - 第 1 次失败：调整后重试
-- 第 2 次失败：使用调试类 agent 诊断
+- 第 2 次失败：调试 agent 诊断
 - 第 3 次失败：重新规划任务
-- 仍然失败：AskUserQuestion 请求用户指导
-
-**停滞处理**（连续 3 次停滞）：
-
-```
-if stalled_count >= max_stalled_attempts:
-    user_guidance = AskUserQuestion(
-        "任务停滞 3 次，已尝试策略：...\n" +
-        "当前错误：...\n" +
-        "请提供指导"
-    )
-
-    if user_guidance:
-        stalled_count = 0  # 重置停滞计数器
-        # 应用用户指导
-
-    # 继续循环，不退出
-```
-
-**输出**：调整策略已确定，回到步骤 2。
+- 停滞 3 次：AskUserQuestion 请求用户指导（重置 stalled\_count，继续循环）
 
 ### 清理阶段
 
-Loop 完成时执行一次：
-
-```
-# 确认 team 已在步骤 4 删除（此时不应存在 team）
-# 输出最终报告
-```
-
-**⚠️ 检查点**：如果此时仍能看到 team 成员（如 `@executor-t2`），说明步骤 4 的清理未正确执行。
-
-最终报告格式：
+Loop 完成时执行一次，输出最终报告：
 
 ```
 === Loop 完成 ===
 状态：成功（所有验收标准通过）
-总迭代次数：N
-变更文件：[文件列表]
-停滞次数：M（如发生过）
-用户指导次数：K（如请求过）
+总迭代次数：N | 变更文件：[列表] | 停滞次数：M | 用户指导次数：K
 Team 清理：已在步骤 4 完成
 ```
 
 ## 终止条件
 
-| 条件   | 触发         | 行为             |
-| ---- | ---------- | -------------- |
-| 目标达成 | 步骤 5 全部通过  | 正常退出，输出报告      |
-| 停滞过多 | 连续 3 次相同错误 | 请求用户指导后继续（不退出） |
-| 用户中断 | 用户主动中断     | 根据用户指令处理       |
+- **目标达成**：步骤 5 全部通过 → 正常退出，输出报告
+- **停滞过多**：连续 3 次相同错误 → 请求用户指导后继续（不退出）
+- **用户中断**：用户主动中断 → 根据指令处理
 
-**重要**：
-
-- 无最大迭代次数限制
-- 停滞时请求用户指导，但不退出循环
-- 获得用户指导后重置停滞计数器，继续执行
-
-## 迭代日志格式
-
-每次迭代输出：
-
-```
-=== 迭代 N ===
-[信息收集] 当前状态摘要
-[计划设计] 任务分解结果
-[计划确认] 用户已确认
-[任务执行] 进度和结果
-[结果验证] 通过/失败 - 原因
-[失败调整] 下次策略（如需要）
-```
+**重要**：无最大迭代次数限制，停滞时继续循环。
 
 ## 执行原则
 
-- 严格按照 6 步顺序执行
+严格遵守顶部"⚠️ 必须遵守的约束"，此外：
+
 - 不要跳过计划确认步骤
-- 并行任务数不超过 2
-- 所有提问统一通过 AskUserQuestion
 - Agents 通过 SendMessage 上报问题
-- 停滞时请求用户指导，但继续循环
-- **⚠️ Agent 工作目录必须与 leader 完全一致**
-  - 每次调用 Agent 时通过 `context` 传递 `working_directory: os.getcwd()`
-  - 使用 tmux 启动时，必须通过 `-c` 参数指定 leader 的工作目录
-  - 不允许使用 tmux 默认目录或其他目录
-$$
+- 停滞时请求用户指导，但继续循环（不退出）
+  $$
+
