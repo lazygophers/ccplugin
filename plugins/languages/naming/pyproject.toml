@@ -1,6 +1,6 @@
 [project]
 name = "code-naming"
-version = "0.0.167"
+version = "0.0.168"
 description = "Claude Code plugin for cross-language naming conventions"
 readme = "README.md"
 requires-python = ">=3.11"
