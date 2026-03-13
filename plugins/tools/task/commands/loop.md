@@ -180,7 +180,7 @@ DAG：T1 → (T2, T3, T4) → T5（并行上限：2；当 Ready 任务数 > 2，
 4. Agent 调用（background=True，传递 working_directory）
 5. 最多 2 个任务并行，TaskUpdate 更新状态
 6. 处理 SendMessage（agent 上报）
-7. **执行完成后清理**：TeamDelete（如果创建了 team）
+7. **执行完成后清理**：TaskStop 停止所有后台任务 → TeamDelete 删除团队（如果创建了 team）
 
 **⚠️ Team 生命周期**：本步骤内创建和删除，步骤结束时必须无Team成员。
 
