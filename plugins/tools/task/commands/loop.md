@@ -47,7 +47,7 @@ $ARGUMENTS
 
 **处理 SendMessage**：接收 agents 的上报，处理问题、提供指导、收集反馈。
 
-**Agent 不直接提问**：所有 agents 不得直接调用 AskUserQuestion。
+**Agents 不直接提问**：所有 agents 不得直接调用 AskUserQuestion。
 
 ## 执行流程
 
@@ -182,11 +182,11 @@ DAG：T1 → (T2, T3, T4) → T5（并行上限：2；当 Ready 任务数 > 2，
 6. 处理 SendMessage（agent 上报）
 7. **执行完成后清理**：TeamDelete（如果创建了 team）
 
-**⚠️ 关键检查点**：步骤 4 结束时，必须执行 TeamDelete（如创建了 team）。进入步骤 5 时不应存在任何 team 成员。
+**⚠️ Team 生命周期**：本步骤内创建和删除，步骤结束时必须无Team成员。
 
 ### 步骤 5：结果验证
 
-**前置条件**：Team 已在步骤 4 删除，不应存在 team 成员。
+**前置条件**：✓ Team已删除（由步骤4完成）
 
 **目标**：验证所有任务的验收标准是否通过。
 
@@ -219,7 +219,7 @@ DAG：T1 → (T2, T3, T4) → T5（并行上限：2；当 Ready 任务数 > 2，
 **失败升级策略**：
 
 - 第 1 次失败：调整后重试
-- 第 2 次失败：调试 agent 诊断
+- 第 2 次失败：调试 Agent 诊断
 - 第 3 次失败：重新规划任务
 - 停滞 3 次：AskUserQuestion 请求用户指导（重置 stalled_count，继续循环）
 
