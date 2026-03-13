@@ -182,7 +182,6 @@ DAG：T1 → (T2, T3, T4) → T5（并行上限：2；当 Ready 任务数 > 2，
 5. 最多 2 个任务并行，TaskUpdate 更新状态
 6. 处理 SendMessage（agent 上报）
 7. **执行完成后清理**：
-   - TaskStop 停止所有后台任务
    - TeamDelete 删除团队（如果创建了 team）
    - 清理关联的 tmux session（`tmux kill-session -t <session-name>`）
    - 验证资源释放（`tmux ls` 确认无残留 session）
