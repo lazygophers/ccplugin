@@ -108,16 +108,30 @@ team_id = None  # 团队 ID，仅在需要时创建
 ```markdown
 ## 执行计划
 
-### 执行流程图（DAG 可视化）
+### 执行流程图（DAG 可视化，从上往下）
 ```
 开始
- ├─> [T1: 任务1] ────┐
- │                   ├─> [T3: 任务3] ─> 结束
- └─> [T2: 任务2] ────┘
-
-说明：
-- T1、T2 无依赖，可并行（最多2个）
-- T3 依赖 T1、T2 完成后执行
+  │
+  ├─────> [T1: 实现用户模型]
+  │       agent: coder
+  │       skills: python:core, python:types
+  │       files: src/models/user.py
+  │
+  ├─────> [T2: 实现工具模块]
+  │       agent: coder
+  │       skills: python:core, python:types
+  │       files: src/utils/helper.py
+  │
+  ↓ (T1、T2 无依赖，可并行执行，最多2个)
+  │
+  └─────> [T3: 集成测试]
+          agent: tester
+          skills: python:testing
+          files: tests/test_integration.py
+          依赖: T1, T2
+  │
+  ↓
+结束
 ```
 
 ### 任务列表
