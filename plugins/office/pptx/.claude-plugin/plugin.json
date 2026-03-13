@@ -1,6 +1,6 @@
 {
   "name": "office-pptx",
-  "version": "1.0.0",
+  "version": "0.0.162",
   "description": "PowerPoint pptx 文件读写和幻灯片操作插件。基于 MCP 协议提供 PowerPoint 操作工具。",
   "author": {
     "name": "lazygophers",
@@ -10,12 +10,21 @@
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/pptx",
   "repository": "https://github.com/lazygophers/ccplugin",
   "license": "AGPL-3.0-or-later",
-  "keywords": ["powerpoint", "pptx", "presentation", "slides"],
+  "keywords": [
+    "powerpoint",
+    "pptx",
+    "presentation",
+    "slides"
+  ],
   "skills": "./skills",
   "mcpServers": {
     "powerpoint": {
       "command": "uvx",
-      "args": ["--from", "office-powerpoint-mcp-server", "ppt_mcp_server"]
+      "args": [
+        "--from",
+        "office-powerpoint-mcp-server",
+        "ppt_mcp_server"
+      ]
     }
   }
 }

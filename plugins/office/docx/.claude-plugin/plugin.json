@@ -1,6 +1,6 @@
 {
   "name": "office-docx",
-  "version": "1.0.0",
+  "version": "0.0.162",
   "description": "Word docx 文件读写和文档操作插件。基于 MCP 协议提供 Word 操作工具。",
   "author": {
     "name": "lazygophers",
@@ -10,12 +10,20 @@
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/docx",
   "repository": "https://github.com/lazygophers/ccplugin",
   "license": "AGPL-3.0-or-later",
-  "keywords": ["word", "docx", "document"],
+  "keywords": [
+    "word",
+    "docx",
+    "document"
+  ],
   "skills": "./skills",
   "mcpServers": {
     "office-word": {
       "command": "uvx",
-      "args": ["--from", "office-word-mcp-server", "word_mcp_server"]
+      "args": [
+        "--from",
+        "office-word-mcp-server",
+        "word_mcp_server"
+      ]
     }
   }
 }
