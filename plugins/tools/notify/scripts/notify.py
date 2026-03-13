@@ -1143,31 +1143,31 @@ def show_system_notification(
 	tts_pid: Optional[int] = None,
 	event: Optional[str] = None,
 ) -> bool:
-	“””显示系统通知
+	"""显示系统通知
 
-	根据操作系统调用相应的通知方式（统一为”无焦点浮层 toast”）：
+	根据操作系统调用相应的通知方式（统一为"无焦点浮层 toast"）：
 	- macOS: Swift/AppKit 浮层（强制 duration 秒 + 自定义 logo/title/message）
 	- Linux: Tk 浮层（强制 duration 秒 + 自定义 logo/title/message）
 	- Windows: Tk 浮层（强制 duration 秒 + 自定义 logo/title/message）
 
 	Args:
 		message: 通知消息内容（必填）
-		title: 通知标题，默认为 “Claude Code”
+		title: 通知标题，默认为 "Claude Code"
 		duration: 通知显示时长（秒），默认 60
 		icon: 通知图标，可以是预定义名称（'claude'）或文件路径，默认为 'claude'
-		event: 事件名称，会在标题后添加 [event] 后缀，例如 “Claude Code[Stop]”
+		event: 事件名称，会在标题后添加 [event] 后缀，例如 "Claude Code[Stop]"
 		tts_pid: TTS 进程 ID，用于在关闭通知时停止 TTS 播放
 
 	Returns:
 		bool: 通知显示成功返回 True，失败返回 False
 
 	示例:
-		show_system_notification(“操作已完成”)
-		show_system_notification(“权限请求”, title=”Claude Code - Permission”, duration=10)
-		show_system_notification(“已完成”, icon='claude')
-		show_system_notification(“已完成”, icon='/path/to/icon.png')
-		show_system_notification(“已停止”, event=”Stop”)
-	“””
+		show_system_notification("操作已完成")
+		show_system_notification("权限请求", title="Claude Code - Permission", duration=10)
+		show_system_notification("已完成", icon='claude')
+		show_system_notification("已完成", icon='/path/to/icon.png')
+		show_system_notification("已停止", event="Stop")
+	"""
 	if not message or not isinstance(message, str):
 		error("消息内容不能为空且必须是字符串类型")
 		return False
