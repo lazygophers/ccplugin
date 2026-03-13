@@ -13,10 +13,10 @@ memory: project
 
 | 场景 | 示例 |
 |------|------|
-| **新故事起步** | `/novel-writing brainstorm 都市修仙` |
-| **灵感发散** | `/novel-writing brainstorm 废土+机甲` |
-| **题材探索** | `/novel-writing brainstorm 系统流` |
-| **融合创新** | `/novel-writing brainstorm 玄幻+科幻` |
+| **新故事起步** | `/novel brainstorm 都市修仙` |
+| **灵感发散** | `/novel brainstorm 废土+机甲` |
+| **题材探索** | `/novel brainstorm 系统流` |
+| **融合创新** | `/novel brainstorm 玄幻+科幻` |
 
 ## 执行流程
 

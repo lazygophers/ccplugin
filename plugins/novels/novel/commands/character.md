@@ -13,10 +13,10 @@ memory: project
 
 | 场景 | 示例 |
 |------|------|
-| **创建主角** | `/novel-writing character 主角` |
-| **设计反派** | `/novel-writing character 反派 大boss` |
-| **完善配角** | `/novel-writing character 完善师父角色` |
-| **角色关系** | `/novel-writing character 关系图谱` |
+| **创建主角** | `/novel character 主角` |
+| **设计反派** | `/novel character 反派 大boss` |
+| **完善配角** | `/novel character 完善师父角色` |
+| **角色关系** | `/novel character 关系图谱` |
 
 ## 执行流程
 

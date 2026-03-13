@@ -13,11 +13,11 @@ memory: project
 
 | 场景 | 示例 |
 |------|------|
-| **生成对话** | `/novel-writing dialogue 主角初遇反派` |
-| **优化对话** | `/novel-writing dialogue 优化第10章对话` |
-| **日常对话** | `/novel-writing dialogue 师徒日常互动` |
-| **冲突对话** | `/novel-writing dialogue 谈判破裂` |
-| **独白设计** | `/novel-writing dialogue 主角内心独白` |
+| **生成对话** | `/novel dialogue 主角初遇反派` |
+| **优化对话** | `/novel dialogue 优化第10章对话` |
+| **日常对话** | `/novel dialogue 师徒日常互动` |
+| **冲突对话** | `/novel dialogue 谈判破裂` |
+| **独白设计** | `/novel dialogue 主角内心独白` |
 
 ## 执行流程
 

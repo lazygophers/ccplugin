@@ -13,12 +13,12 @@ memory: project
 
 | 场景 | 示例 |
 |------|------|
-| **主线设计** | `/novel-writing plot 主线` |
-| **支线编排** | `/novel-writing plot 感情支线` |
-| **单卷规划** | `/novel-writing plot 第一卷` |
-| **高潮设计** | `/novel-writing plot 大战高潮` |
-| **过渡章节** | `/novel-writing plot 过渡 第50-60章` |
-| **解决卡文** | `/novel-writing plot 接下来写什么` |
+| **主线设计** | `/novel plot 主线` |
+| **支线编排** | `/novel plot 感情支线` |
+| **单卷规划** | `/novel plot 第一卷` |
+| **高潮设计** | `/novel plot 大战高潮` |
+| **过渡章节** | `/novel plot 过渡 第50-60章` |
+| **解决卡文** | `/novel plot 接下来写什么` |
 
 ## 执行流程
 

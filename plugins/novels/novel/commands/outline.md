@@ -13,11 +13,11 @@ memory: project
 
 | 场景 | 示例 |
 |------|------|
-| **创建总纲** | `/novel-writing outline 创建` |
-| **分卷大纲** | `/novel-writing outline 第一卷` |
-| **细化章节** | `/novel-writing outline 细化 第1-10章` |
-| **调整大纲** | `/novel-writing outline 调整 删掉副本线` |
-| **查看大纲** | `/novel-writing outline 查看` |
+| **创建总纲** | `/novel outline 创建` |
+| **分卷大纲** | `/novel outline 第一卷` |
+| **细化章节** | `/novel outline 细化 第1-10章` |
+| **调整大纲** | `/novel outline 调整 删掉副本线` |
+| **查看大纲** | `/novel outline 查看` |
 
 ## 执行流程
 

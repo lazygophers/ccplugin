@@ -162,4 +162,4 @@ AGPL-3.0-or-later
 - [项目主页](https://github.com/lazygophers/ccplugin)
 - [插件文档](https://github.com/lazygophers/ccplugin/tree/master/plugins/novels/novel-urban)
 - [问题反馈](https://github.com/lazygophers/ccplugin/issues)
-- [novel-writing 通用小说插件](../novel-writing/)
+- [novel 通用小说插件](../novel/)
