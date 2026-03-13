@@ -1,22 +1,25 @@
 ---
+
 description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
-argument-hint: [任务目标描述]
+argument-hint: \[任务目标描述]
 skills:
-  - core
-  - gather
-  - plan
-  - execute
-  - verify
-  - loop
-model: opus
-memory: project
+
+- core
+- gather
+- plan
+- execute
+- verify
+- loop
+  model: opus
+  memory: project
+
 ---
 
 这是一个全新任务，你需要完成
 
-<user_task>
+\<user_task>
 $ARGUMENTS
-</user_task>
+\</user_task>
 
 作为 team leader，负责调度所有工作，持续迭代直到任务目标达成。
 
@@ -26,7 +29,7 @@ $ARGUMENTS
 2. **工作目录一致性**：Agent 必须继承 leader 的 `os.getcwd()`
    - 通过 `context` 传递 `working_directory: os.getcwd()`
    - 使用 tmux 时：`tmux new-session -d -s agent -c $(pwd)`
-3. **Team 生命周期**：步骤 4 创建 team，步骤 4 结束时删除
+3. **Team 生命周期**：步骤 4 创建 team，步骤 4 结束时删除执行完成后清理
 4. **提问权限**：只有 leader 可调用 AskUserQuestion
 5. **验收标准**：必须量化（测试覆盖率、性能指标等）
 6. **执行顺序**：严格按 6 步循环（信息收集→计划设计→确认→执行→验证→调整）
@@ -109,46 +112,46 @@ team_id = None  # 团队 ID，仅在需要时创建
 DAG：T1 → (T2, T3, T4) → T5（并行上限：2；当 Ready 任务数 > 2，用 Slot 泳道表达“排队/补位”）
 
 ┌───────────────────────────────────────────────────────────────┐
-│ T1: 数据库迁移                                                │
-│ agent : devops                                                │
-│ skills: sql, migration                                         │
-│ files : migrations/001_init.sql                                │
+│ T1: 数据库迁移 │
+│ agent : devops │
+│ skills: sql, migration │
+│ files : migrations/001_init.sql │
 └───────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
+│
+▼
 ┌───────────────────────────────────────────────────────────────┐
-│ Scheduler（max_running=2）                                    │
-│ Ready: T2, T3, T4                                              │
+│ Scheduler（max_running=2） │
+│ Ready: T2, T3, T4 │
 └───────────────────┬───────────────────────────────┬───────────┘
-                    │                               │
-                    ▼                               ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────┐
-│ Slot#1  T2: 实现用户模型           │   │ Slot#2  T3: 实现订单模型           │
-│ agent : coder                      │   │ agent : coder                      │
-│ skills: python:core, python:types  │   │ skills: python:core, python:types  │
-│ files : src/models/user.py         │   │ files : src/models/order.py        │
-└───────────────────┬───────────────┘   └───────────────────┬───────────────┘
-                    │（T2 结束 ⇒ Slot#1 空闲）               │（T3 仍在运行）
-                    ▼                                       │
-┌───────────────────────────────────┐                       │
-│ Slot#1  T4: 实现支付模块           │                       │
-│ agent : coder                      │                       │
-│ skills: python:core, payment       │                       │
-│ files : src/services/payment.py    │                       │
-└───────────────────┬───────────────┘                       │
-                    │                                       │
-                    └───────────────────┬───────────────────┘
-                                        ▼
+│ │
+▼ ▼
+┌───────────────────────────────────┐ ┌───────────────────────────────────┐
+│ Slot#1 T2: 实现用户模型 │ │ Slot#2 T3: 实现订单模型 │
+│ agent : coder │ │ agent : coder │
+│ skills: python:core, python:types │ │ skills: python:core, python:types │
+│ files : src/models/user.py │ │ files : src/models/order.py │
+└───────────────────┬───────────────┘ └───────────────────┬───────────────┘
+│（T2 结束 ⇒ Slot#1 空闲） │（T3 仍在运行）
+▼ │
+┌───────────────────────────────────┐ │
+│ Slot#1 T4: 实现支付模块 │ │
+│ agent : coder │ │
+│ skills: python:core, payment │ │
+│ files : src/services/payment.py │ │
+└───────────────────┬───────────────┘ │
+│ │
+└───────────────────┬───────────────────┘
+▼
 ┌───────────────────────────────────────────────────────────────┐
-│ JOIN（等待：T2✓, T3✓, T4✓）                                    │
+│ JOIN（等待：T2✓, T3✓, T4✓） │
 └───────────────────────────────┬───────────────────────────────┘
-                                │
-                                ▼
+│
+▼
 ┌───────────────────────────────────────────────────────────────┐
-│ T5: 集成测试                                                  │
-│ agent : tester                                                │
-│ skills: python:testing                                         │
-│ files : tests/test_integration.py                              │
+│ T5: 集成测试 │
+│ agent : tester │
+│ skills: python:testing │
+│ files : tests/test_integration.py │
 └───────────────────────────────────────────────────────────────┘
 
 ### 验收标准（必须量化）
