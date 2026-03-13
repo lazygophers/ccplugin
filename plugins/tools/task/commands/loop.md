@@ -1,26 +1,22 @@
-***
-
+---
 description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
-argument-hint: \[任务目标描述]
+argument-hint: [任务目标描述]
 skills:
-\- core
-\- gather
-\- plan
-\- execute
-\- verify
-\- loop
+  - core
+  - gather
+  - plan
+  - execute
+  - verify
+  - loop
 model: opus
 memory: project
----------------
+---
 
 这是一个全新任务，你需要完成
 
-\<user\_task>
-
-$$
-ARGUMENTS
-
-\</user\_task>
+<user_task>
+$ARGUMENTS
+</user_task>
 
 作为 team leader，负责调度所有工作，持续迭代直到任务目标达成。
 
@@ -109,16 +105,19 @@ team_id = None  # 团队 ID，仅在需要时创建
 ## 执行计划
 
 ### 任务列表
+
 - T1: [任务标题] (agent: X, files: Y, 依赖: 无)
 - T2: [任务标题] (agent: X, files: Y, 依赖: T1)
 - ...
 
 ### 执行策略
+
 - 并行上限：2 个任务
 - 依赖关系：[简要描述，如 T1→T3, T2→T4→T5]
 - 执行顺序：[说明哪些并行，哪些串行]
 
 ### 验收标准（必须量化）
+
 - [ ] 单元测试覆盖率 ≥ 90%
 - [ ] 所有 CI 检查通过（lint/test/build）
 - [ ] 验收标准与需求 1:1 映射
@@ -126,6 +125,7 @@ team_id = None  # 团队 ID，仅在需要时创建
 - [ ] 无影响已有功能（回归测试通过）
 
 ### 简要说明（≤100字）
+
 [任务概述和执行策略]
 ```
 
@@ -142,7 +142,7 @@ team_id = None  # 团队 ID，仅在需要时创建
 1. TaskList 获取待执行任务
 2. 判断任务数量：1个任务直接调用 Agent，多个任务创建 team
 3. TaskGet 检查依赖，识别可并行任务（无依赖+文件无交集）
-4. Agent 调用（background=True，传递 working\_directory）
+4. Agent 调用（background=True，传递 working_directory）
 5. 最多 2 个任务并行，TaskUpdate 更新状态
 6. 处理 SendMessage（agent 上报）
 7. **执行完成后清理**：TeamDelete（如果创建了 team）
@@ -177,7 +177,7 @@ team_id = None  # 团队 ID，仅在需要时创建
 **执行流程**：
 
 1. 分析失败原因（错误分类：编译/测试/依赖/其他）
-2. 检测停滞（相同错误重复 → stalled\_count++）
+2. 检测停滞（相同错误重复 → stalled_count++）
 3. 应用失败升级策略
 4. 回到步骤 2
 
@@ -186,7 +186,7 @@ team_id = None  # 团队 ID，仅在需要时创建
 - 第 1 次失败：调整后重试
 - 第 2 次失败：调试 agent 诊断
 - 第 3 次失败：重新规划任务
-- 停滞 3 次：AskUserQuestion 请求用户指导（重置 stalled\_count，继续循环）
+- 停滞 3 次：AskUserQuestion 请求用户指导（重置 stalled_count，继续循环）
 
 ### 清理阶段
 
@@ -215,4 +215,3 @@ Team 清理：已在步骤 4 完成
 - Agents 通过 SendMessage 上报问题
 - 停滞时请求用户指导，但继续循环（不退出）
   $$
-

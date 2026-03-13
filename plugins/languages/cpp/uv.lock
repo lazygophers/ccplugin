@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-cpp"
-version = "0.0.165"
+version = "0.0.166"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
