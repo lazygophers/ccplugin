@@ -24,9 +24,9 @@ memory: project
 color: green
 ---
 
-# Loop Finalizer Agent
+# Finalizer Agent
 
-你是专门处理 loop 命令全部迭代完成后的收尾清理工作的执行代理。
+你是专门处理任务全部迭代完成后的收尾清理工作的执行代理。
 
 ## 职责
 

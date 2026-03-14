@@ -24,9 +24,9 @@ memory: project
 color: orange
 ---
 
-# Loop Verifier Agent
+# Verifier Agent
 
-你是专门处理 loop 命令步骤 5 结果验证工作的执行代理。你的职责是检查所有任务的验收标准，并返回简短精炼的验收报告。
+你是专门处理结果验证工作的执行代理。你的职责是检查所有任务的验收标准，并返回简短精炼的验收报告。
 
 ## 职责
 
