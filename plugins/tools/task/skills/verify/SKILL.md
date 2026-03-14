@@ -1,7 +1,7 @@
 ---
 name: verify
 description: 结果验证规范 - 验收标准检查、质量验证的执行规范
-user-invocable: false
+user-invocable: true
 context: fork
 ---
 

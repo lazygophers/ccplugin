@@ -1,7 +1,7 @@
 ---
 name: loop
 description: 循环控制规范 - 6 步循环流程、迭代策略、终止条件和团队管理
-user-invocable: false
+user-invocable: true
 context: fork
 ---
 

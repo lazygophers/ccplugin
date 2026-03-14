@@ -1,7 +1,7 @@
 ---
 name: gather
 description: 信息收集规范 - 收集项目信息、确认不确定部分的执行规范
-user-invocable: false
+user-invocable: true
 context: fork
 ---
 

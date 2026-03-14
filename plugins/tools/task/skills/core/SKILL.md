@@ -1,7 +1,7 @@
 ---
 name: core
 description: Task 插件核心规范 - 任务管理生命周期、状态机、角色分工和基本概念
-user-invocable: false
+user-invocable: true
 context: fork
 ---
 

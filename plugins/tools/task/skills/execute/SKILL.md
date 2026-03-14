@@ -1,7 +1,7 @@
 ---
 name: execute
 description: 任务执行规范 - 并行编排、团队管理、进度跟踪的执行规范
-user-invocable: false
+user-invocable: true
 context: fork
 ---
 
