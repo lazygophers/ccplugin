@@ -32,7 +32,8 @@
 		"./agents/planner.md"
 	],
 	"skills": [
-		"./skills/planner.md"
+		"./skills/planner.md",
+		"./skills/verifier.md"
 	],
   "hooks": {
     "SessionStart": [

@@ -174,28 +174,16 @@ TeamCreate() # Create an agent team to explore this from different angles
 
 ### 步骤 4：结果验证
 
-1. **前置条件**：✓ Team已删除（由步骤4完成）
+1. **前置条件**：✓ Team已删除（由步骤3完成）
 2. **目标**：验证所有任务的验收标准是否通过。
-3. **调用 verifier agent 进行验证**：
+3. **调用 verifier skill 进行验证**（skill 会自动调用指定的 agent）：
 	```
-	# 调用 verifier agent 处理验证工作
-	verification_result = Agent(task:verifier, prompt="执行 loop 步骤 4 的结果验证工作：
-	1. 获取所有任务列表
-	2. 检查每个任务的验收标准
-	3. 验证任务完成情况
-	4. 检查是否有影响已有功能
-	5. 返回简短精炼的验收报告（≤100字）
-
-	返回格式要求：
-	- 必须返回 JSON 格式
-	- status: 'passed'（通过）| 'failed'（失败）| 'suggestions'（通过但有建议）
-	- report: 简短的验收报告（≤100字）
-	- suggestions: 建议列表（可选，仅当 status='suggestions' 时）
-	- failures: 失败原因列表（可选，仅当 status='failed' 时）")
+	# 调用 verifier skill 处理验证工作
+	verification_result = Skill(task:verifier, "执行 loop 步骤 4 的结果验证工作：验证所有任务验收标准")
 	```
 4. **输出验收报告**：
 	```
-	print(f"[MindFlow·{$ARGUMENTS}·步骤5·{verification_result.status}]")
+	print(f"[MindFlow·{$ARGUMENTS}·步骤4·{verification_result.status}]")
 	print(verification_result.report)
 	```
 5. **根据验收结果判断**：
