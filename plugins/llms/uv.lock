@@ -54,7 +54,7 @@ dependencies = [
 
 [[package]]
 name = "llms"
-version = "0.0.170"
+version = "0.0.171"
 source = { editable = "." }
 dependencies = [
     { name = "click" },

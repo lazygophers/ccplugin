@@ -1,6 +1,6 @@
 [project]
 name = "office-pdf"
-version = "0.0.171"
+version = "0.0.172"
 description = "Office PDF plugin - PDF reading and content extraction"
 requires-python = ">=3.11"
 dependencies = [
