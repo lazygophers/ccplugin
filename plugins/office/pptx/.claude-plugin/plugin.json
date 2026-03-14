@@ -1,6 +1,6 @@
 {
   "name": "office-pptx",
-  "version": "0.0.174",
+  "version": "0.0.175",
   "description": "PowerPoint pptx 文件读写和幻灯片操作插件。基于 MCP 协议提供 PowerPoint 操作工具。",
   "author": {
     "name": "lazygophers",
