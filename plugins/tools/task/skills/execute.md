@@ -138,6 +138,119 @@ T5: 创建通知模块 ········ 待执行(依赖 T4) ····· coder-py
 - 使用点号和空格形成视觉进度条
 - 实时更新，反映最新的任务状态
 
+## Team 生命周期管理
+
+### 1. Team 创建
+
+当有多个任务需要并行执行时，创建 Team：
+
+```
+team_name = f"task-execution-{iteration}"
+TeamCreate(team_name=team_name)
+```
+
+**创建时机**：
+- 识别到 2 个或以上可并行任务
+- 无依赖且文件无交集
+
+### 2. 执行者分配
+
+为每个任务分配执行者并加入 Team：
+
+```python
+def add_executors_to_team(team_name, tasks):
+    for task in tasks:
+        agent_type = task.metadata.get("agent_type", "Coder")
+        executor_name = assign_task(task)
+
+        Agent(
+            subagent_type=agent_type,
+            name=executor_name,
+            team_name=team_name,
+            prompt=task.description,
+            background=True,
+            context={"working_directory": os.getcwd()}
+        )
+```
+
+### 3. Team 执行监控
+
+监控 Team 中所有执行者的状态：
+
+```python
+def monitor_team_progress(team_name):
+    while True:
+        teammates = TeamList()
+        active_executors = [t for t in teammates if t.team_name == team_name]
+
+        if not active_executors:
+            break  # 所有执行者已完成
+
+        # 更新任务进度
+        for executor in active_executors:
+            update_task_status(executor)
+
+        # 输出进度
+        print_progress_report()
+
+        # 等待一段时间再检查
+        time.sleep(5)
+```
+
+### 4. Team 清理
+
+所有任务完成后，清理 Team：
+
+```python
+def cleanup_team(team_name):
+    # 1. 等待所有执行者完成
+    while True:
+        teammates = TeamList()
+        active_executors = [t for t in teammates if t.team_name == team_name]
+        if not active_executors:
+            break
+        time.sleep(1)
+
+    # 2. 删除 Team
+    TeamDelete()
+
+    # 3. 清理空闲执行者的 tmux session
+    cleanup_idle_executors(max_idle_seconds=0)  # 立即清理
+
+    print(f"[Team {team_name}] 已清理完成")
+```
+
+### 5. tmux Session 清理
+
+精准清理执行者关联的 tmux session：
+
+```python
+def cleanup_executor_tmux(executor_name, agent_type):
+    # 执行者名称格式：executor-{agent_type}-{index}
+    # tmux session 名称格式：task-exec-{agent_type}-{index}
+
+    index = executor_name.split('-')[-1]
+    tmux_session = f"task-exec-{agent_type.lower()}-{index}"
+
+    try:
+        subprocess.run(
+            ["tmux", "kill-session", "-t", tmux_session],
+            capture_output=True,
+            check=False
+        )
+        print(f"[清理] tmux session {tmux_session} 已删除")
+    except Exception as e:
+        print(f"[清理] tmux session {tmux_session} 清理失败: {e}")
+```
+
+### Team 生命周期规则
+
+1. **创建**：仅在有多任务并行时创建
+2. **执行**：步骤 3 内创建并执行
+3. **清理**：步骤 3 结束时必须删除，步骤结束时必须无 Team 成员
+4. **隔离**：每次迭代创建独立的 Team，不跨迭代复用
+5. **验证**：清理后验证 Team 已删除，tmux session 已清理
+
 ## 并行规则
 
 1. 每个并行任务至少有一个前置依赖（没有则父任务是前置依赖）
@@ -157,6 +270,8 @@ T5: 创建通知模块 ········ 待执行(依赖 T4) ····· coder-py
 ## 注意事项
 
 - **工作目录一致性**：Agent 必须继承 leader 的 `os.getcwd()`
-- **Team 生命周期**：步骤 3 内创建和删除，步骤结束时必须无 Team 成员
+- **Team 生命周期**：参见"Team 生命周期管理"章节
 - **资源清理**：精准清理执行者关联的 tmux session
 - **不要跳过**：`tmux kill-server` 会清理所有 tmux，包括用户其他会话
+- **执行者复用**：优先使用已存在的同类型空闲执行者
+- **并行上限**：同时最多 2 个任务并行执行
