@@ -33,7 +33,8 @@
 	],
 	"skills": [
 		"./skills/planner.md",
-		"./skills/verifier.md"
+		"./skills/verifier.md",
+		"./skills/adjuster.md"
 	],
   "hooks": {
     "SessionStart": [

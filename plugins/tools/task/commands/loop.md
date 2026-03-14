@@ -194,32 +194,14 @@ TeamCreate() # Create an agent team to explore this from different angles
 ### 步骤 5：失败调整
 
 1. **目标**：分析失败原因，决定下一步策略，回到步骤 1 重新规划。
-2. **调用 adjuster agent 进行失败调整**：
+2. **调用 adjuster skill 进行失败调整**（skill 会自动调用指定的 agent）：
 	```
-	# 调用 adjuster agent 处理失败调整
-	adjustment_result = Agent(task:adjuster, prompt="执行 loop 步骤 5 的失败调整工作：
-	1. 分析失败原因（错误分类：编译/测试/依赖/其他）
-	2. 检测停滞（相同错误重复）
-	3. 应用失败升级策略：
-	   - 第 1 次失败：调整后重试
-	   - 第 2 次失败：调试 Agent 诊断
-	   - 第 3 次失败：重新规划任务
-	   - 停滞 3 次：请求用户指导
-	4. 返回简短精炼的调整报告（≤100字）
-
-	当前停滞次数：${stalled_count}
-	当前迭代次数：${iteration}
-
-	返回格式要求：
-	- 必须返回 JSON 格式
-	- strategy: 'retry'（重试）| 'debug'（调试）| 'replan'（重新规划）| 'ask_user'（请求用户指导）
-	- report: 简短的调整报告（≤100字）
-	- adjustments: 调整建议列表
-	- stalled_info: 停滞信息（可选，仅当 strategy='ask_user' 时）")
+	# 调用 adjuster skill 处理失败调整
+	adjustment_result = Skill(task:adjuster, "执行 loop 步骤 5 的失败调整工作：分析失败并决定下一步策略")
 	```
 3. **输出调整报告**：
 	```
-	print(f"[MindFlow·{$ARGUMENTS}·步骤6·{adjustment_result.strategy}]")
+	print(f"[MindFlow·{$ARGUMENTS}·步骤5·{adjustment_result.strategy}]")
 	print(adjustment_result.report)
 	```
 4. **根据调整策略执行**：
