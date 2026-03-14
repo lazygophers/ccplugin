@@ -34,7 +34,8 @@
     "./commands/loop.md",
     "./commands/plan.md",
     "./commands/exec.md",
-    "./commands/review.md"
+    "./commands/review.md",
+		"./commands/clean.md"
   ],
   "skills": "./skills/",
   "hooks": {
