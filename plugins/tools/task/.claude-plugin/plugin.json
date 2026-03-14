@@ -1,6 +1,6 @@
 {
   "name": "task",
-  "version": "0.0.175",
+  "version": "0.0.176",
   "description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
   "author": {
     "name": "lazygophers",
@@ -35,7 +35,7 @@
     "./commands/plan.md",
     "./commands/exec.md",
     "./commands/review.md",
-		"./commands/clean.md"
+    "./commands/clean.md"
   ],
   "skills": "./skills/",
   "hooks": {

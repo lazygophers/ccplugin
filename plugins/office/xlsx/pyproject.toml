@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-office-xlsx"
-version = "0.0.175"
+version = "0.0.176"
 description = "Excel xlsx wrapper - format conversion, batch processing, data analysis"
 readme = "README.md"
 requires-python = ">=3.11"
