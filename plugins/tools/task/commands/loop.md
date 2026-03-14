@@ -176,11 +176,8 @@ TeamCreate() # Create an agent team to explore this from different angles
 	 T1: 创建用户模型 ········ 已完成·············· coder-mysql
 	 T2: 创建订单模型 ········ 进行中 ············· coder-mysql
 	 T3: 创建商品模型 ········ 待执行(依赖 T2) ····· coder-postgres
-	 T4: 创建库存模型 ········ 待执行(依赖 T2) ····· coder-golang
+	 T4: 创建库存模型 ········ 待执行(依赖 T2) ····· coder-python
 	 T5: 创建通知模块 ········ 待执行(依赖 T4) ····· coder-python
-	 T6: 创建支付模块 ········ 待执行(依赖 T4) ····· coder-python
-	 T7: 创建价格计算模块 ····· 待执行(依赖 T6) ····· coder-golang
-	 T8: 创建商品搜索模块 ····· 待执行(依赖 T7) ····· coder-golang
 	 ```
 4. **核心流程**：
 	1. TaskList 获取待执行任务
@@ -211,87 +208,6 @@ TeamCreate() # Create an agent team to explore this from different angles
 		- 确认无残留执行者进程
 10. **⚠️ Team 生命周期**：本步骤内创建和删除，步骤结束时必须无Team成员。
 11. **执行者复用示例**：
-
-```python
-import datetime
-# 初始化执行者池
-executor_pool = {}  # {agent_type: [{name: executor-xxx, status: idle/busy, task_id: ...}]}
-
-
-# 分配任务
-def assign_task_to_executor(task):
-	agent_type = task.metadata.get("agent_type", "Coder")
-
-	# 1. 查找空闲的同类型执行者
-	if agent_type in executor_pool:
-		for executor in executor_pool[agent_type]:
-			if executor["status"] == "idle":
-				# 复用已有执行者
-				executor["status"] = "busy"
-				executor["task_id"] = task.id
-				print(f"[复用] 执行者 {executor['name']} 分配任务 {task.id}")
-				return executor["name"]
-
-	# 2. 无可复用执行者，创建新的
-	if agent_type not in executor_pool:
-		executor_pool[agent_type] = []
-
-	executor_index = len(executor_pool[agent_type]) + 1
-	executor_name = f"executor-{agent_type.lower()}-{executor_index}"
-
-	executor_pool[agent_type].append({
-		"name": executor_name,
-		"status": "busy",
-		"task_id": task.id
-	})
-
-	print(f"[新建] 执行者 {executor_name} 分配任务 {task.id}")
-	return executor_name
-
-
-# 任务完成后释放执行者
-def release_executor(executor_name):
-	for agent_type, executors in executor_pool.items():
-		for executor in executors:
-			if executor["name"] == executor_name:
-				executor["status"] = "idle"
-				executor["task_id"] = None
-				executor["idle_since"] = datetime.now()
-				print(f"[释放] 执行者 {executor_name} 已空闲")
-				return
-
-
-# 清理不需要的执行者（定期调用或步骤 4 结束时调用）
-def cleanup_idle_executors(max_idle_seconds=300):
-	import subprocess
-	from datetime import datetime, timedelta
-
-	for agent_type, executors in list(executor_pool.items()):
-		for executor in list(executors):
-			# 检查空闲时间
-			if executor["status"] == "idle" and "idle_since" in executor:
-				idle_duration = datetime.now() - executor["idle_since"]
-				if idle_duration > timedelta(seconds=max_idle_seconds):
-					# 清理执行者关联的 tmux session
-					tmux_session = f"task-exec-{agent_type.lower()}-{executor['name'].split('-')[-1]}"
-					try:
-						subprocess.run(
-							["tmux", "kill-session", "-t", tmux_session],
-							capture_output=True,
-							check=False  # 不抛出异常，session 可能已不存在
-						)
-						print(f"[清理] tmux session {tmux_session} 已删除")
-					except Exception as e:
-						print(f"[清理] tmux session {tmux_session} 清理失败: {e}")
-
-					# 从执行者池移除
-					executors.remove(executor)
-					print(f"[清理] 执行者 {executor['name']} 已移除（空闲 {idle_duration.total_seconds():.0f}s）")
-
-		# 如果该类型执行者全部清理，移除该类型
-		if not executors:
-			del executor_pool[agent_type]
-```
 
 ### 步骤 5：结果验证
 
@@ -381,17 +297,3 @@ TeamDelete() # Clean up the team
 	- 优先使用已存在且空闲的 executor（同 agent_type）
 	- 仅在无可复用执行者或所有执行者忙碌时创建新的
 	- **及时清理不需要的执行者**：当某类型执行者长时间空闲或不再需要时，主动清理
-9. **资源清理**：精准清理执行者关联的资源，避免资源泄漏
-	- **清理执行者关联的 tmux session**（不是清理所有 tmux）
-	- 通过执行者名称匹配对应的 tmux session（如 `executor-coder` → tmux session `task-exec-coder`）
-	- 清理时机：执行者不再需要时（长时间空闲、步骤 4 结束、Loop 完成）
-	- 验证资源释放：确认特定 tmux session 已删除（`tmux ls | grep <session-pattern>`）
-10. **[MindFlow] 前缀规范**：Loop 执行过程中所有输出必须带前缀
-	- 格式：`[MindFlow | 第{N}轮 | 步骤{X}: {步骤名}]`
-	- 示例：`[MindFlow | 第1轮 | 步骤1: 信息收集]`、`[MindFlow | 第2轮 | 步骤4: 任务执行]`
-	- 包含信息：当前迭代次数、当前步骤编号和名称
-	- 自动移除：loop 完成或退出时不再输出前缀
-	- 目的：让用户清晰追踪 loop 执行状态和进度
-11. 不要跳过计划确认步骤
-12. Agents 通过 `SendMessage` 上报问题
-13. 停滞时请求用户指导，但继续循环（不退出）
