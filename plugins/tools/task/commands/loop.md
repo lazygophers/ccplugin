@@ -1,14 +1,14 @@
 ---
-description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括信息收集、计划设计、执行、验证、调整
+description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括计划设计、执行、验证、调整
 argument-hint: [ 任务目标描述 ]
 skills:
 	- core
-	- gather
-	- plan
+	- planner
 	- execute
-	- verify
+	- verifier
+	- adjuster
 	- loop
-model: opus
+model: sonnet
 memory: project
 ---
 
