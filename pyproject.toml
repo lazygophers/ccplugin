@@ -11,7 +11,7 @@ dependencies = [
     "wraps>=0.15.0",
     "pyyaml>=6.0",
     "lib",
-    "transformers==4.44.0",
+    "transformers==4.53.0",
     "logging>=0.4.9.6",
     "tomlkit>=0.14.0",
 ]
