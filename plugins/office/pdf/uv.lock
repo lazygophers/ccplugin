@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "office-pdf"
-version = "0.0.175"
+version = "0.0.176"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
