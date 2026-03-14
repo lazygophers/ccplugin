@@ -33,6 +33,7 @@
 	],
 	"skills": [
 		"./skills/planner.md",
+		"./skills/execute.md",
 		"./skills/verifier.md",
 		"./skills/adjuster.md"
 	],
