@@ -27,7 +27,8 @@
   ],
 	"agents": [
 		"./agents/finalizer.md",
-		"./agents/verifier.md"
+		"./agents/verifier.md",
+		"./agents/adjuster.md"
 	],
   "hooks": {
     "SessionStart": [
