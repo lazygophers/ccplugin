@@ -47,18 +47,10 @@ TeamCreate() # Create an agent team to explore this from different angles
 ### 步骤 1：计划设计
 
 1. **目标**：通过收集项目信息来设计执行计划（信息收集是计划设计的内置部分）。
-2. **调用 planner agent 进行计划设计**：
+2. **调用 planner skill 进行计划设计**（skill 会自动调用指定的 agent）：
 	```
-	# 调用 planner agent 处理计划设计
-	planner_result = Agent(task:planner, prompt="执行 loop 步骤 1 的计划设计工作：
-
-	1. 深度分析代码结构，收集：目标、依赖、现状、边界
-	2. 将任务分解为原子子任务
-	3. 建立任务依赖关系
-	4. 为每个任务分配合适的 Agent 和 Skills
-	5. 返回简短精炼的执行报告（≤200字）
-
-	任务目标：$ARGUMENTS")
+	# 调用 planner skill 处理计划设计
+	planner_result = Skill(task:planner, "执行 loop 步骤 1 的计划设计工作：$ARGUMENTS")
 	```
 3. **处理结果**：
 	1. 如果 `planner_result.status == 'questions'`，通过 `AskUserQuestion` 向用户确认
