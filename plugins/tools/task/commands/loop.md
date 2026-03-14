@@ -57,7 +57,7 @@ ListMcpResourcesTool()
 ListSkills()
 
 # 创建团队
-TeamCreate()
+TeamCreate() # Create an agent team to explore this from different angles
 ```
 
 ### 步骤 1：信息收集
@@ -335,12 +335,16 @@ status = "completed"
 for task in TaskList():
 	TaskStop(task.id)
 
+# 关闭所有队友
+for teammate in TeamList():
+		TeamRemove(teammate.id) # Ask the researcher teammate to shut down
+
 # 删除所有计划
 for plan in plans:
 	delete_plan(plan)
 
 # 删除 Team
-TeamDelete()
+TeamDelete() # Clean up the team
 ```
 
 **输出总结报告**
