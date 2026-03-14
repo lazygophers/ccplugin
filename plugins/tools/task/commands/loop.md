@@ -222,31 +222,29 @@ TeamCreate() # Create an agent team to explore this from different angles
 ```
 status = "completed"
 
-# 停止所有任务
-for task in TaskList():
-	TaskStop(task.id)
+# 调用 finalizer agent 处理清理工作
+Agent(
+	subagent_type="task:finalizer",
+	prompt="执行 loop 完成后的收尾清理工作：
+1. 停止所有任务
+2. 关闭所有队友
+3. 删除所有计划
+4. 删除 Team"
+)
 
-# 关闭所有队友
-for teammate in TeamList():
-		TeamRemove(teammate.id) # Ask the researcher teammate to shut down
+# 输出总结报告
+print(f"[MindFlow·{$ARGUMENTS}·completed]")
+print("状态：成功（所有验收标准通过）")
+print(f"总迭代次数：{iteration}·停滞次数：{stalled_count}·用户指导次数：{guidance_count}")
+print("")
 
-# 删除所有计划
-for plan in plans:
-	delete_plan(plan)
+# 获取所有变更的文件（通过 git diff 或其他方式）
+changed_files = []  # TODO: 收集变更的文件列表
 
-# 删除 Team
-TeamDelete() # Clean up the team
+print("## 任务总结")
+for file in changed_files:
+	print(f"- {file}")
 ```
-
-**输出总结报告**
-
- ```
- [MindFlow·${任务内容}·${任务状态}]
- 状态：成功（所有验收标准通过）
- 总迭代次数：N·变更文件：[列表]·停滞次数：M·用户指导次数：K
-
- ## 任务总结
- ```
 
 ## 终止条件
 
