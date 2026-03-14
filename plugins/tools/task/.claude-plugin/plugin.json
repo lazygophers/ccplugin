@@ -26,7 +26,8 @@
     "./commands/loop.md"
   ],
 	"agents": [
-		"./agents/finalizer.md"
+		"./agents/finalizer.md",
+		"./agents/verifier.md"
 	],
   "hooks": {
     "SessionStart": [

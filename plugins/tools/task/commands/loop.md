@@ -188,17 +188,32 @@ TeamCreate() # Create an agent team to explore this from different angles
 
 1. **前置条件**：✓ Team已删除（由步骤4完成）
 2. **目标**：验证所有任务的验收标准是否通过。
-3. **详细规范**：参见 `Skills(task:verify)`
-4. **输出示例**：`[MindFlow·${任务内容}·${步骤索引}/${迭代轮数}: ${任务状态} 开始验证所有验收标准...`
-5. **执行流程**：
-	1. TaskList, TaskGet 检查所有任务
-	2. 验证每个任务的验收标准（运行测试、检查输出、验证文件）
-	3. 验证无影响已有功能和别的模块（回归测试）
-	4. TaskUpdate 记录验证结果
-6. **判断**：
-	1. 验收失败 → 步骤 6
-	2. 验收通过 + 有建议 → `AskUserQuestion` 询问是否属于任务范围
-	3. 验收通过 + 无建议 → Loop 完成，跳到清理阶段
+3. **调用 verifier agent 进行验证**：
+	```
+	# 调用 verifier agent 处理验证工作
+	verification_result = Agent(task:verifier, prompt="执行 loop 步骤 5 的结果验证工作：
+	1. 获取所有任务列表
+	2. 检查每个任务的验收标准
+	3. 验证任务完成情况
+	4. 检查是否有影响已有功能
+	5. 返回简短精炼的验收报告（≤100字）
+
+	返回格式要求：
+	- 必须返回 JSON 格式
+	- status: 'passed'（通过）| 'failed'（失败）| 'suggestions'（通过但有建议）
+	- report: 简短的验收报告（≤100字）
+	- suggestions: 建议列表（可选，仅当 status='suggestions' 时）
+	- failures: 失败原因列表（可选，仅当 status='failed' 时）")
+	```
+4. **输出验收报告**：
+	```
+	print(f"[MindFlow·{$ARGUMENTS}·步骤5·{verification_result.status}]")
+	print(verification_result.report)
+	```
+5. **根据验收结果判断**：
+	1. `verification_result.status == 'failed'` → 步骤 6
+	2. `verification_result.status == 'suggestions'` → `AskUserQuestion` 询问是否属于任务范围
+	3. `verification_result.status == 'passed'` → Loop 完成，跳到"全部迭代完成"
 
 ### 步骤 6：失败调整
 
@@ -223,14 +238,11 @@ TeamCreate() # Create an agent team to explore this from different angles
 status = "completed"
 
 # 调用 finalizer agent 处理清理工作
-Agent(
-	subagent_type="task:finalizer",
-	prompt="执行 loop 完成后的收尾清理工作：
+Agent(task:finalizer, prompt="执行 loop 完成后的收尾清理工作：
 1. 停止所有任务
 2. 关闭所有队友
 3. 删除所有计划
-4. 删除 Team"
-)
+4. 删除 Team")
 
 # 输出总结报告
 print(f"[MindFlow·{$ARGUMENTS}·completed]")
