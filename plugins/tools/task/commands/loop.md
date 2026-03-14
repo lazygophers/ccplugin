@@ -34,8 +34,8 @@ stalled_count = 0 # 停滞次数
 max_stalled_attempts = 3 # 最大停滞次数
 
 # 列出所有资源
-ListMcpResourcesTool()
 ListSkills()
+ListAgents()
 ```
 
 ### 步骤 1：计划设计
@@ -202,4 +202,3 @@ for file in changed_files:
 
 1. 对于一个任务，尽可能的通过多次迭代完成，而非一个迭代直接完全所有
 2. 除非的特别简单的任务，否则迭代移除一般不小于 3 次
-
