@@ -22,22 +22,9 @@
     "verification",
     "multi-agent"
   ],
-  "agents": [
-    "./agents/planner.md",
-    "./agents/executor.md",
-    "./agents/reviewer.md",
-    "./agents/debugger.md"
-  ],
   "commands": [
-    "./commands/add.md",
-    "./commands/cancel.md",
-    "./commands/loop.md",
-    "./commands/plan.md",
-    "./commands/exec.md",
-    "./commands/review.md",
-    "./commands/clean.md"
+    "./commands/loop.md"
   ],
-  "skills": "./skills/",
   "hooks": {
     "SessionStart": [
       {

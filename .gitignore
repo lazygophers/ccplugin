@@ -24,3 +24,5 @@ plugins/**/__pycache__/
 .serena/.lazygophers
 
 .logs/
+
+plans/
