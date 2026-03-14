@@ -28,7 +28,11 @@
 	"agents": [
 		"./agents/finalizer.md",
 		"./agents/verifier.md",
-		"./agents/adjuster.md"
+		"./agents/adjuster.md",
+		"./agents/planner.md"
+	],
+	"skills": [
+		"./skills/planner.md"
 	],
   "hooks": {
     "SessionStart": [

@@ -44,39 +44,40 @@ ListSkills()
 TeamCreate() # Create an agent team to explore this from different angles
 ```
 
-### 步骤 1：信息收集
+### 步骤 1：计划设计
 
-1. **目标**：收集足够的项目信息以支持任务规划。
-2. **详细规范**：参见 Skills(task:gather)
-3. **输出示例**：`[MindFlow·${任务内容}·${步骤索引}/${迭代轮数}·${任务状态-总任务的状态}] 开始收集项目信息...`
-4. **要点**：
-	1. 先使用 `EnterPlanMode` 进入计划模式
-	2. 深度分析代码结构
-	3. 通过 `AskUserQuestion` 确认不确定部分
-	4. 通过搜索等方式获取互联网的最新信息
-	5. 收集：目标、依赖、现状、边界
+1. **目标**：通过收集项目信息来设计执行计划（信息收集是计划设计的内置部分）。
+2. **调用 planner agent 进行计划设计**：
 
-### 步骤 2：计划设计
+```
+# 调用 planner agent 处理计划设计
+planner_result = Agent(task:planner, prompt="执行 loop 步骤 1 的计划设计工作：
 
-1. **目标**：将任务分解为原子子任务，建立依赖关系。
-2. **详细规范**：参见 `Skills(task:plan)`
-3. **输出示例**：`[MindFlow·${任务内容}·${步骤索引}/${迭代轮数}·${任务状态-总任务的状态}] 开始任务分解，识别依赖关系...`
-4. **核心原则**：MECE、可交付原子化、可量化可验证、依赖闭环
-5. **避坑**：禁止过度拆分、权责模糊、完成标准模糊
-6. **输出**：
-	1. 迭代目标
-	2. 任务清单
-		1. 任务描述
-		2. Agent(根据任务选择最合适当前任务的 Agent)
-		3. Skills(根据任务选择最合适当前任务的 Skills)
-		4. files(如果存在)
-		5. module(如果存在)
-		6. 任务验收标准
-	3. 任务依赖关系
-	4. 迭代验收标准(需要指定验证的 Agent)
-	5. 预期下次迭代目标(如果存在)
+1. 深度分析代码结构，收集：目标、依赖、现状、边界
+2. 将任务分解为原子子任务
+3. 建立任务依赖关系
+4. 为每个任务分配合适的 Agent 和 Skills
+5. 返回简短精炼的执行报告（≤200字）
 
-### 步骤 3：计划确认
+任务目标：$ARGUMENTS")
+```
+
+3. **处理结果**：
+	1. 如果 `planner_result.status == 'questions'`，通过 `AskUserQuestion` 向用户确认
+	2. 保存计划（`planner_result.tasks`, `planner_result.dependencies`）
+
+4. **输出执行计划**：
+
+```
+print(f"[MindFlow·{$ARGUMENTS}·步骤1/{iteration + 1}·running]")
+print("计划设计完成：")
+print(planner_result.report)
+```
+
+5. **核心原则**：MECE、可交付原子化、可量化可验证、依赖闭环
+6. **避坑**：禁止过度拆分、权责模糊、完成标准模糊
+
+### 步骤 2：计划确认
 
 1. **目标**：向用户展示计划并获得确认（使用 `ExitPlanMode`）。
 2. **输出格式**（必填项：执行流程图（含每个任务 agent/skills/files）、量化验收标准、简要说明）：
@@ -143,7 +144,7 @@ TeamCreate() # Create an agent team to explore this from different angles
 	 ```
 3. **确认**：用户确认后继续，不确认则回到步骤 2 调整。
 
-### 步骤 4：任务执行
+### 步骤 3：任务执行
 
 1. **目标**：按依赖顺序调度执行所有子任务。
 2. **详细规范**：参见 `Skills(task:execute)`
@@ -184,14 +185,14 @@ TeamCreate() # Create an agent team to explore this from different angles
     - 确认特定 tmux session 已删除：`tmux ls | grep task-exec-coder-1`
     - 确认无残留执行者进程
 
-### 步骤 5：结果验证
+### 步骤 4：结果验证
 
 1. **前置条件**：✓ Team已删除（由步骤4完成）
 2. **目标**：验证所有任务的验收标准是否通过。
 3. **调用 verifier agent 进行验证**：
 	```
 	# 调用 verifier agent 处理验证工作
-	verification_result = Agent(task:verifier, prompt="执行 loop 步骤 5 的结果验证工作：
+	verification_result = Agent(task:verifier, prompt="执行 loop 步骤 4 的结果验证工作：
 	1. 获取所有任务列表
 	2. 检查每个任务的验收标准
 	3. 验证任务完成情况
@@ -211,17 +212,17 @@ TeamCreate() # Create an agent team to explore this from different angles
 	print(verification_result.report)
 	```
 5. **根据验收结果判断**：
-	1. `verification_result.status == 'failed'` → 步骤 6
+	1. `verification_result.status == 'failed'` → 步骤 5
 	2. `verification_result.status == 'suggestions'` → `AskUserQuestion` 询问是否属于任务范围
 	3. `verification_result.status == 'passed'` → Loop 完成，跳到"全部迭代完成"
 
-### 步骤 6：失败调整
+### 步骤 5：失败调整
 
 1. **目标**：分析失败原因，决定下一步策略，回到步骤 2 重新规划。
 2. **调用 adjuster agent 进行失败调整**：
 	```
 	# 调用 adjuster agent 处理失败调整
-	adjustment_result = Agent(task:adjuster, prompt="执行 loop 步骤 6 的失败调整工作：
+	adjustment_result = Agent(task:adjuster, prompt="执行 loop 步骤 5 的失败调整工作：
 	1. 分析失败原因（错误分类：编译/测试/依赖/其他）
 	2. 检测停滞（相同错误重复）
 	3. 应用失败升级策略：
@@ -282,7 +283,7 @@ for file in changed_files:
 
 ## 终止条件
 
-- **目标达成**：步骤 5 全部通过 → 正常退出，输出报告
+- **目标达成**：步骤 4 全部通过 → 正常退出，输出报告
 - **停滞过多**：连续 3 次相同错误 → 请求用户指导后继续（不退出）
 - **用户中断**：用户主动中断 → 根据指令处理
 
@@ -309,7 +310,7 @@ for file in changed_files:
 1. **工作目录一致性**：Agent 必须继承 leader 的 `os.getcwd()`
 	- 通过 `context` 传递 `working_directory: os.getcwd()`
 	- 使用 tmux 时：`tmux new-session -d -s agent -c $(pwd)`
-2. **Team 生命周期**：步骤 4 创建 team，步骤 4 结束时删除执行完成后清理
+2. **Team 生命周期**：步骤 3 创建 team，步骤 3 结束时删除执行完成后清理
 3. **任务创建规范**：TaskCreate 时必须在 metadata 中指定 agent_type
 	- 示例：`TaskCreate(..., metadata={"agent_type": "Coder", "skills": [...]})`
 	- 目的：明确任务由哪个类型的 agent 执行，便于执行者复用和调度
