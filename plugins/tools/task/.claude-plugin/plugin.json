@@ -23,6 +23,7 @@
     "multi-agent"
   ],
   "commands": [
+    "./commands/loop.md"
   ],
   "hooks": {
     "SessionStart": [
