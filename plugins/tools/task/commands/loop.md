@@ -48,32 +48,27 @@ TeamCreate() # Create an agent team to explore this from different angles
 
 1. **目标**：通过收集项目信息来设计执行计划（信息收集是计划设计的内置部分）。
 2. **调用 planner agent 进行计划设计**：
+	```
+	# 调用 planner agent 处理计划设计
+	planner_result = Agent(task:planner, prompt="执行 loop 步骤 1 的计划设计工作：
 
-```
-# 调用 planner agent 处理计划设计
-planner_result = Agent(task:planner, prompt="执行 loop 步骤 1 的计划设计工作：
+	1. 深度分析代码结构，收集：目标、依赖、现状、边界
+	2. 将任务分解为原子子任务
+	3. 建立任务依赖关系
+	4. 为每个任务分配合适的 Agent 和 Skills
+	5. 返回简短精炼的执行报告（≤200字）
 
-1. 深度分析代码结构，收集：目标、依赖、现状、边界
-2. 将任务分解为原子子任务
-3. 建立任务依赖关系
-4. 为每个任务分配合适的 Agent 和 Skills
-5. 返回简短精炼的执行报告（≤200字）
-
-任务目标：$ARGUMENTS")
-```
-
+	任务目标：$ARGUMENTS")
+	```
 3. **处理结果**：
 	1. 如果 `planner_result.status == 'questions'`，通过 `AskUserQuestion` 向用户确认
 	2. 保存计划（`planner_result.tasks`, `planner_result.dependencies`）
-
 4. **输出执行计划**：
-
-```
-print(f"[MindFlow·{$ARGUMENTS}·步骤1/{iteration + 1}·running]")
-print("计划设计完成：")
-print(planner_result.report)
-```
-
+	```
+	print(f"[MindFlow·{$ARGUMENTS}·步骤1/{iteration + 1}·running]")
+	print("计划设计完成：")
+	print(planner_result.report)
+	```
 5. **核心原则**：MECE、可交付原子化、可量化可验证、依赖闭环
 6. **避坑**：禁止过度拆分、权责模糊、完成标准模糊
 
@@ -142,7 +137,7 @@ print(planner_result.report)
 
 	 [任务概述]
 	 ```
-3. **确认**：用户确认后继续，不确认则回到步骤 2 调整。
+3. **确认**：用户确认后继续，不确认则回到步骤 1 调整。
 
 ### 步骤 3：任务执行
 
@@ -218,7 +213,7 @@ print(planner_result.report)
 
 ### 步骤 5：失败调整
 
-1. **目标**：分析失败原因，决定下一步策略，回到步骤 2 重新规划。
+1. **目标**：分析失败原因，决定下一步策略，回到步骤 1 重新规划。
 2. **调用 adjuster agent 进行失败调整**：
 	```
 	# 调用 adjuster agent 处理失败调整
@@ -248,10 +243,10 @@ print(planner_result.report)
 	print(adjustment_result.report)
 	```
 4. **根据调整策略执行**：
-	1. `adjustment_result.strategy == 'retry'` → 回到步骤 2
-	2. `adjustment_result.strategy == 'debug'` → 调用 debug agent 后回到步骤 2
-	3. `adjustment_result.strategy == 'replan'` → 回到步骤 2 重新规划
-	4. `adjustment_result.strategy == 'ask_user'` → `AskUserQuestion` 请求用户指导，然后回到步骤 2
+	1. `adjustment_result.strategy == 'retry'` → 回到步骤 1
+	2. `adjustment_result.strategy == 'debug'` → 调用 debug agent 后回到步骤 1
+	3. `adjustment_result.strategy == 'replan'` → 回到步骤 1 重新规划
+	4. `adjustment_result.strategy == 'ask_user'` → `AskUserQuestion` 请求用户指导，然后回到步骤 1
 
 ### 全部迭代完成
 
