@@ -25,7 +25,7 @@ wheels = [
 
 [[package]]
 name = "code-flutter"
-version = "0.0.172"
+version = "0.0.173"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -65,8 +65,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.172"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#0a0f8a0f995b0eb7b7c79264770f2402ad8d29f2" }
+version = "0.0.173"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#0159f40299e7f859a97e913d90c6f5b984c5dbdf" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
