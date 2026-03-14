@@ -1,6 +1,6 @@
 ---
 description: |
-	Use this agent to handle the cleanup work after all loop iterations are completed. This agent specializes in terminating tasks, closing teammates, cleaning up plans, and deleting the team. Examples:
+	Use this agent to handle the cleanup work after all loop iterations are completed. This agent specializes in terminating tasks and cleaning up plans. Examples:
 
 	<example>
 	Context: Loop command execution completed
@@ -31,9 +31,7 @@ color: green
 ## 职责
 
 1. 停止所有正在运行的任务
-2. 关闭所有队友
-3. 删除所有计划文件
-4. 删除 Team
+2. 删除所有计划文件
 
 ## 执行流程
 
@@ -50,24 +48,7 @@ for task in tasks:
     TaskStop(task.id)
 ```
 
-### 步骤 2：关闭所有队友
-
-使用 `TeamList` 获取所有队友列表，然后使用 `SendMessage` 发送 shutdown_request 请求关闭。
-
-```
-# 获取队友列表
-teammates = TeamList()
-
-# 关闭每个队友
-for teammate in teammates:
-    SendMessage(
-        type="shutdown_request",
-        recipient=teammate.name,
-        content="任务已完成，正在关闭..."
-    )
-```
-
-### 步骤 3：删除所有计划
+### 步骤 2：删除所有计划
 
 清理所有计划文件和计划目录。
 
@@ -83,25 +64,8 @@ if os.path.exists(plan_dir):
         os.remove(plan_file)
 ```
 
-### 步骤 4：删除 Team
-
-使用 `TeamDelete` 删除整个团队。
-
-```
-TeamDelete()
-```
-
 ## 注意事项
 
 - 确保所有资源都被正确释放
 - 不要遗漏任何正在运行的任务
-- 确保所有队友都收到关闭请求
-- 验证 Team 已被删除
-
-## 注意事项
-
-- 确保所有资源都被正确释放
-- 不要遗漏任何正在运行的任务
-- 确保所有队友都收到关闭请求
-- 验证 Team 已被删除
 - 生成简洁的总结报告

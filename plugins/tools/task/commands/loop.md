@@ -32,14 +32,10 @@ status = "running"
 iteration = 0 # 迭代次数
 stalled_count = 0 # 停滞次数
 max_stalled_attempts = 3 # 最大停滞次数
-team_id = None  # 团队 ID，仅在需要时创建
 
 # 列出所有资源
 ListMcpResourcesTool()
 ListSkills()
-
-# 创建团队
-TeamCreate() # Create an agent team to explore this from different angles
 ```
 
 ### 步骤 1：计划设计
@@ -143,48 +139,21 @@ TeamCreate() # Create an agent team to explore this from different angles
    T4: 创建库存模型 ········ 待执行(依赖 T2) ····· coder-python
    T5: 创建通知模块 ········ 待执行(依赖 T4) ····· coder-python
    ```
-4. **核心流程**：
-	1. TaskList 获取待执行任务
-	2. 判断任务数量：1个任务直接调用 Agent，多个任务创建 team
-	3. TaskGet 检查依赖，识别可并行任务（无依赖+文件无交集）
-5. **执行者复用机制**（优先复用已存在的执行者）：
-	- 维护执行者池：`executor_pool = {agent_type: [executor_name, ...]}`
-	- 分配任务前检查：是否有相同 `agent_type` 的空闲执行者
-	- 复用策略：
-    - ✅ 优先使用已存在且空闲的同类型执行者
-    - ✅ 仅在无可复用执行者或槽位已满时创建新的
-	- 状态跟踪：记录每个执行者的任务分配和完成状态
-6. Agent 调用（background=True，传递 working_directory）
-7. 处理 `SendMessage`（Agent 上报）
-8. **执行完成后清理**：
-	- `TeamDelete` 删除团队（如果创建了 team）
-	- **精准清理执行者关联的 tmux session**（⚠️ 不清理所有 tmux）：
-    - 通过执行者名称定位对应的 tmux session
-    - 示例：执行者 `executor-coder` → tmux session `task-exec-coder`
-    - 清理命令：`tmux kill-session -t task-exec-coder-1`（仅清理特定 session）
-    - ❌ 错误：`tmux kill-server`（会清理所有 tmux，包括用户其他会话）
-	- 及时清理不需要的执行者：
-    - 长时间空闲的执行者（如 5 分钟无新任务）
-    - 特定类型任务全部完成后的执行者
-	- 验证资源释放：
-    - 确认特定 tmux session 已删除：`tmux ls | grep task-exec-coder-1`
-    - 确认无残留执行者进程
 
 ### 步骤 4：结果验证
 
-1. **前置条件**：✓ Team已删除（由步骤3完成）
-2. **目标**：验证所有任务的验收标准是否通过。
-3. **调用 verifier skill 进行验证**（skill 会自动调用指定的 agent）：
+1. **目标**：验证所有任务的验收标准是否通过。
+2. **调用 verifier skill 进行验证**（skill 会自动调用指定的 agent）：
 	```
 	# 调用 verifier skill 处理验证工作
 	verification_result = Skill(task:verifier, "执行 loop 步骤 4 的结果验证工作：验证所有任务验收标准")
 	```
-4. **输出验收报告**：
+3. **输出验收报告**：
 	```
 	print(f"[MindFlow·{$ARGUMENTS}·步骤4·{verification_result.status}]")
 	print(verification_result.report)
 	```
-5. **根据验收结果判断**：
+4. **根据验收结果判断**：
 	1. `verification_result.status == 'failed'` → 步骤 5
 	2. `verification_result.status == 'suggestions'` → `AskUserQuestion` 询问是否属于任务范围
 	3. `verification_result.status == 'passed'` → Loop 完成，跳到"全部迭代完成"
@@ -218,9 +187,7 @@ status = "completed"
 # 调用 finalizer agent 处理清理工作
 Agent(task:finalizer, prompt="执行 loop 完成后的收尾清理工作：
 1. 停止所有任务
-2. 关闭所有队友
-3. 删除所有计划
-4. 删除 Team")
+2. 删除所有计划")
 
 # 输出总结报告
 print(f"[MindFlow·{$ARGUMENTS}·completed]")
@@ -244,7 +211,7 @@ for file in changed_files:
 ## 通信职责
 
 1. 所有 Agent 不得直接调用 `AskUserQuestion`，而是通过 `SendMessage` 发送给 `@main`，由 `@main` 调用 `AskUserQuestion` 提问，并结果反馈给 Agent
-2. 实时监控任务状态、进度、异常、资源使用情况、执行者状态、团队状态
+2. 实时监控任务状态、进度、异常、资源使用情况、执行者状态
 
 ## 并行规则
 
@@ -259,11 +226,10 @@ for file in changed_files:
 1. **工作目录一致性**：Agent 必须继承 leader 的 `os.getcwd()`
 	- 通过 `context` 传递 `working_directory: os.getcwd()`
 	- 使用 tmux 时：`tmux new-session -d -s agent -c $(pwd)`
-2. **Team 生命周期**：步骤 3 创建 team，步骤 3 结束时删除执行完成后清理
-3. **任务创建规范**：TaskCreate 时必须在 metadata 中指定 agent_type
+2. **任务创建规范**：TaskCreate 时必须在 metadata 中指定 agent_type
 	- 示例：`TaskCreate(..., metadata={"agent_type": "Coder", "skills": [...]})`
 	- 目的：明确任务由哪个类型的 agent 执行，便于执行者复用和调度
-4. **执行者复用**：尽可能复用已创建的执行者，避免重复创建
+3. **执行者复用**：尽可能复用已创建的执行者，避免重复创建
 	- 优先使用已存在且空闲的 executor（同 agent_type）
 	- 仅在无可复用执行者或所有执行者忙碌时创建新的
 	- **及时清理不需要的执行者**：当某类型执行者长时间空闲或不再需要时，主动清理
