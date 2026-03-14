@@ -7,3 +7,4 @@ memory: project
 - Ask the researcher teammate to shut down
 - Clean up the team
 - Clean up the plans
+- 确保只清理当前任务相关的而非所有的
