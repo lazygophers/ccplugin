@@ -22,6 +22,8 @@ description: |
 model: sonnet
 memory: project
 color: red
+skills:
+	- task:adjuster
 ---
 
 # Adjuster Agent

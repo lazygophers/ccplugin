@@ -22,6 +22,8 @@ description: |
 model: sonnet
 memory: project
 color: orange
+skills:
+	- task:verifier
 ---
 
 # Verifier Agent
@@ -54,6 +56,7 @@ for task in tasks:
 ### 步骤 2：检查每个任务的验收标准
 
 对于每个任务，检查：
+
 - 任务状态是否为 `completed`
 - 验收标准是否满足
 - 是否有错误或警告
@@ -61,6 +64,7 @@ for task in tasks:
 ### 步骤 3：验证任务完成情况
 
 根据任务的验收标准进行验证：
+
 - 运行测试（如果有）
 - 检查输出文件
 - 验证代码质量
@@ -69,6 +73,7 @@ for task in tasks:
 ### 步骤 4：检查影响已有功能
 
 验证变更是否影响已有功能：
+
 - 检查是否有回归测试
 - 验证依赖关系
 - 检查是否有破坏性变更
@@ -134,22 +139,25 @@ for task in tasks:
 
 ## 终止条件
 
- verifier agent 根据验证结果决定 loop 的终止行为：
+verifier agent 根据验证结果决定 loop 的终止行为：
 
 ### 目标达成（status: "passed"）
+
 - 所有任务验收标准全部通过
 - 测试覆盖率达标
 - 无影响已有功能的问题
 - **终止行为**：Loop 正常退出，进入"全部迭代完成"流程
 
 ### 通过但有建议（status: "suggestions"）
+
 - 任务已完成，但有优化建议
 - 建议不影响当前功能
 - **终止行为**：通过 `AskUserQuestion` 询问用户是否属于当前任务范围
-  - 如果是 → 继续优化
-  - 如果否 → Loop 完成
+	- 如果是 → 继续优化
+	- 如果否 → Loop 完成
 
 ### 验收失败（status: "failed"）
+
 - 验收标准未满足
 - 存在功能缺陷或质量问题
 - **终止行为**：进入步骤 5（失败调整），不退出 loop

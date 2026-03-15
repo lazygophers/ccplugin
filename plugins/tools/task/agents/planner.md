@@ -22,6 +22,8 @@ description: |
 model: opus
 memory: project
 color: purple
+skills:
+	- task:planner
 ---
 
 # Planner Agent

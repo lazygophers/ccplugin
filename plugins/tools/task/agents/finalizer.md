@@ -22,6 +22,8 @@ description: |
 model: haiku
 memory: project
 color: green
+skills:
+	- task:finalizer
 ---
 
 # Finalizer Agent
