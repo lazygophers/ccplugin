@@ -64,6 +64,9 @@ loop:
 			AskUserQuestion(planner_result.questions)
 			continue
 
+	if len(planner_result.tasks) == 0:
+	 goto Step(全部迭代完成)
+
 	save_plan(planner_result.tasks, planner_result.dependencies)
 	print(f"[MindFlow·{user_task·计划设计/{iteration + 1}·进行中]")
 	print(planner_result.report)
