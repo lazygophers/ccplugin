@@ -3,7 +3,7 @@ agent: task:verifier
 description: 结果验证规范 - 检查任务验收标准、验证完成情况、判断终止条件的执行规范
 model: sonnet
 context: fork
-user-invocable: true
+user-invocable: false
 ---
 
 # Skills(task:verifier) - 结果验证规范

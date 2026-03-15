@@ -2,7 +2,7 @@
 description: 任务执行规范 - 并行编排、团队管理、进度跟踪的执行规范
 model: sonnet
 context: fork
-user-invocable: true
+user-invocable: false
 ---
 
 # Skills(task:execute) - 任务执行规范
