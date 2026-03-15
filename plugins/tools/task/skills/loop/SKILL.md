@@ -80,77 +80,50 @@ loop:
 
 ```
 print(f"[MindFlow·{user_task·计划确认/{iteration + 1}·进行中]")
-print(cover_plan_to_show(planner_result)))
-switch ExitPlanMode(desc="确认计划") {
-case "通过":
- goto Step(任务执行)
-default:
- goto Step(计划设计)
-}
+
+# 1. 生成计划 markdown 文件（基于模板）
+plan_md_path = create_temp_plan_file(planner_result, template="./plan-confirmation-template.md")
+logging.info(f"计划文件已生成: {plan_md_path}")
+
+# 2. 转换为 HTML 并自动在浏览器中打开
+try:
+    Bash(
+        command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ./scripts/main.py md2html {plan_md_path}",
+        description="将计划转换为 HTML 并在浏览器中展示"
+    )
+    plan_html_path = plan_md_path.replace('.md', '.html')
+    logging.info(f"计划 HTML 已打开: {plan_html_path}")
+
+    # 3. 等待用户确认
+    switch ExitPlanMode(desc="确认计划") {
+    case "通过":
+        # 清理临时文件
+        Bash(command=f"rm -f {plan_md_path} {plan_html_path}", description="删除临时计划文件")
+        logging.info("临时计划文件已删除")
+        goto Step(任务执行)
+    default:
+        # 清理临时文件
+        Bash(command=f"rm -f {plan_md_path} {plan_html_path}", description="删除临时计划文件")
+        logging.info("临时计划文件已删除，返回计划设计")
+        goto Step(计划设计)
+    }
+except Exception as e:
+    logging.error(f"计划展示失败: {e}")
+    # 失败时也要清理临时文件
+    Bash(command=f"rm -f {plan_md_path} {plan_md_path.replace('.md', '.html')}", description="清理临时文件")
+    # 降级到文本模式
+    print(cover_plan_to_show(planner_result))
+    goto Step(计划设计)
 ```
-1. **输出格式**：
-   ```markdown
-   [MindFlow·${任务内容}·${步骤索引}/${迭代轮数}·${任务状态-总任务的状态}] 请确认以下执行计划
-   ### 执行流程图（任务队列 + 两槽位并行模型）
 
-   ┌─────────────────────────────────────────────────────────────────────┐
-   │ T1: 数据库迁移                                                       │
-   │ agent : devops                                                      │
-   │ skills: sql, migration                                              │
-   │ files : migrations/001_init.sql                                     │
-   └─────────────────────────────────────┬───────────────────────────────┘
-           ┌──────────────┬──────────────┼────────────────┬──────────────┐
-           │              │              │                │              │
-           ▼              ▼              ▼                ▼              ▼
-   ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐
-   │ T2: 用户模型 │ │ T3: 订单模型 │ │ T4: 商品模型 │ │ T5: 库存模型  │ │ T6: 通知模块 │
-   │ agent: coder│ │ agent: coder│ │ agent: coder│ │ agent: coder│ │ agent: coder│
-   │ skills:     │ │ skills:     │ │ skills:     │ │ skills:     │ │ skills:     │
-   │ python:core │ │ python:core │ │ python:core │ │ python:core │ │ python:core │
-   │ files:      │ │ files:      │ │ files:      │ │ files:      │ │ files:      │
-   │ user.py     │ │ order.py    │ │ product.py  │ │ inventory.py│ │ notify.py   │
-   │ (依赖 T1)    │ │ (依赖 T1)   │ │ (依赖 T1)    │ │ (依赖 T1)   │ │ (依赖 T1)    │
-   └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘
-          │               │               │               │               │
-          │               └───────────────┼───────────────┘               │
-          ▼                               ▼                               │
-   ┌─────────────┐            ┌───────────┼───────────┐                   │
-   │ T7: 支付模块 │            │           │           │                    │
-   │ agent: coder│            ▼           ▼           ▼                   │
-   │ skills:     │         ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
-   │ python:core │         │ T8: 价格计算 │ │ T9: 商品搜索 │ │ T10:商品分类  ││
-   │ payment     │         │ agent: coder│ │ agent: coder│ │ agent: coder││
-   │ files:      │         │ skills:     │ │ skills:     │ │ skills:     ││
-   │ payment.py  │         │ python:core │ │ python:core │ │ python:core ││
-   │ (依赖 T2)   │         │ files:      │ │ files:       │ │ files:      ││
-   └──────┬──────┘         │ pricing.py  │ │ search.py   │ │ category.py ││
-          │                │ (依赖 T4)   │ │ (依赖 T4)   │ │ (依赖 T4)     ││
-          │                └──────┬──────┘ └──────┬──────┘ └──────┬──────┘│
-          │                       │               │               │       │
-          └───────────────────────┴───────────────┴───────────────┴───────┘
-                                         │
-                                         ▼
-                       ┌───────────────────────────────────┐
-                       │ T11: 集成测试                      │
-                       │ agent : tester                    │
-                       │ skills: python:testing            │
-                       │ files : tests/test_integration.py │
-                       │ (依赖 T3, T5-T10)                  │
-                       └───────────────────────────────────┘
+**输出格式和确认流程**：参见 [执行计划确认模板](./plan-confirmation-template.md)
 
-   ### 验收标准（必须量化）
-
-   - [ ] 单元测试覆盖率 ≥ 90%
-   - [ ] 所有 CI 检查通过（lint/test/build）
-   - [ ] 验收标准与需求 1:1 映射
-   - [ ] 无新增技术债（代码复杂度 ≤ X）
-   - [ ] 无影响已有功能（回归测试通过）
-
-   ### 简要说明（≤100字）
-
-   [任务概述]
-   ```
-2. **确认**：用户确认后继续，不确认则回到 `计划设计` 调整。
+**工作流程：**
+1. 基于模板生成临时 markdown 计划文件
+2. 使用 `md2html` 转换为 HTML 并自动在浏览器中打开
+3. 用户在浏览器中查看可视化的计划（含 Mermaid 图表）
+4. 用户确认后，立即删除临时 markdown 和 HTML 文件
+5. 确认失败或异常时，同样删除临时文件
 
 ### 任务执行
 
