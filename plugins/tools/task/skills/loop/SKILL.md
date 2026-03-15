@@ -38,8 +38,7 @@ F --> B
 
 ### 初始化
 
-循环开始时执行一次：
-
+**执行流程**
 ```
 # 初始化状态
 status = "进行中"
@@ -55,6 +54,7 @@ ListAgents()
 
 ### 计划设计
 
+**执行流程**
 ```
 EnterPlanMode()
 
@@ -78,6 +78,7 @@ loop:
 
 ### 计划确认
 
+**执行流程**
 ```
 print(f"[MindFlow·{user_task·计划确认/{iteration + 1}·进行中]")
 
@@ -108,6 +109,7 @@ default:
 
 ### 任务执行
 
+**执行流程**
 ```
 executor_result = TeamCreate(desc="lanner_result.report", skills=[Skill(task:execute)])
 TeamDelete(desc="删除团队和任务目录")
@@ -115,6 +117,7 @@ TeamDelete(desc="删除团队和任务目录")
 
 ### 结果验证
 
+**执行流程**
 ```
 verification_result = Skill(task:verifier, executor_result=executor_result)
 print(f"[MindFlow·{user_task·结果验证/{iteration + 1}·{verification_result.status}]")
@@ -153,6 +156,7 @@ case "ask_user":
 
 **全部结束执行一次**
 
+**执行流程**
 ```
 status = "completed"
 

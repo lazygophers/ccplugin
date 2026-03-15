@@ -546,6 +546,12 @@ def _wrap_html_document(*, title: str, toc_html: str, body_html: str) -> str:
       background: rgba(15, 23, 42, 0.02);
       overflow: auto;
       cursor: zoom-in;
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg {
+      display: block;
+      margin: 0 auto;
     }
 
     /* Heading anchor */

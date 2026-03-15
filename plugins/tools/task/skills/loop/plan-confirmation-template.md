@@ -6,31 +6,31 @@
 flowchart TD
     Start([开始]) --> T1
 
-    T1["T1: 需求分析<br/>━━━━━━━━━━━━<br/>agent: analyst<br/>skills: requirements<br/>files: docs/requirements.md"]
+    T1["T1: 需求分析<br/>━━━━━━━━━━━━<br/>agent: analyst（分析师）<br/>skills: requirements（需求分析）<br/>files: docs/requirements.md"]
 
     T1 --> T2 & T3 & T4
 
-    T2["T2: 核心功能实现<br/>━━━━━━━━━━━━<br/>agent: developer<br/>skills: python:core<br/>files: src/core.py"]
-    T3["T3: API 接口开发<br/>━━━━━━━━━━━━<br/>agent: developer<br/>skills: python:web<br/>files: src/api.py"]
-    T4["T4: 配置管理<br/>━━━━━━━━━━━━<br/>agent: developer<br/>skills: python:core<br/>files: src/config.py"]
+    T2["T2: 核心功能实现<br/>━━━━━━━━━━━━<br/>agent: developer（开发者）<br/>skills: python:core（核心功能）<br/>files: src/core.py"]
+    T3["T3: API 接口开发<br/>━━━━━━━━━━━━<br/>agent: developer（开发者）<br/>skills: python:web（Web开发）<br/>files: src/api.py"]
+    T4["T4: 配置管理<br/>━━━━━━━━━━━━<br/>agent: developer（开发者）<br/>skills: python:core（核心功能）<br/>files: src/config.py"]
 
     T2 --> T5
     T2 & T3 --> T6
 
-    T5["T5: 性能优化<br/>━━━━━━━━━━━━<br/>agent: developer<br/>skills: python:perf<br/>files: src/core.py"]
-    T6["T6: 单元测试<br/>━━━━━━━━━━━━<br/>agent: tester<br/>skills: python:testing<br/>files: tests/test_core.py"]
+    T5["T5: 性能优化<br/>━━━━━━━━━━━━<br/>agent: developer（开发者）<br/>skills: python:perf（性能优化）<br/>files: src/core.py"]
+    T6["T6: 单元测试<br/>━━━━━━━━━━━━<br/>agent: tester（测试员）<br/>skills: python:testing（测试）<br/>files: tests/test_core.py"]
 
     T3 --> T7
 
-    T7["T7: API 文档<br/>━━━━━━━━━━━━<br/>agent: writer<br/>skills: documentation<br/>files: docs/api.md"]
+    T7["T7: API 文档<br/>━━━━━━━━━━━━<br/>agent: writer（文档撰写者）<br/>skills: documentation（文档编写）<br/>files: docs/api.md"]
 
     T4 & T5 & T6 & T7 --> T8
 
-    T8["T8: 集成测试<br/>━━━━━━━━━━━━<br/>agent: tester<br/>skills: python:testing<br/>files: tests/test_integration.py"]
+    T8["T8: 集成测试<br/>━━━━━━━━━━━━<br/>agent: tester（测试员）<br/>skills: python:testing（测试）<br/>files: tests/test_integration.py"]
 
     T8 --> T9
 
-    T9["T9: 代码审查<br/>━━━━━━━━━━━━<br/>agent: reviewer<br/>skills: code-review<br/>files: 所有变更文件"]
+    T9["T9: 代码审查<br/>━━━━━━━━━━━━<br/>agent: reviewer（审查员）<br/>skills: code-review（代码审查）<br/>files: 所有变更文件"]
 
     T9 --> End([结束])
 
@@ -47,33 +47,33 @@ flowchart TD
 journey
     title Agent 执行旅程
     section 需求阶段
-      需求分析: 5: analyst
+      需求分析: 5: analyst（分析师）
     section 开发阶段
-      核心功能实现: 5: developer
-      API接口开发: 5: developer
-      配置管理: 5: developer
+      核心功能实现: 5: developer（开发者）
+      API接口开发: 5: developer（开发者）
+      配置管理: 5: developer（开发者）
     section 测试优化
-      性能优化: 4: developer
-      单元测试: 5: tester
-      API文档: 5: writer
+      性能优化: 4: developer（开发者）
+      单元测试: 5: tester（测试员）
+      API文档: 5: writer（文档撰写者）
     section 验收阶段
-      集成测试: 5: tester
-      代码审查: 5: reviewer
+      集成测试: 5: tester（测试员）
+      代码审查: 5: reviewer（审查员）
 ```
 
 ### 任务清单
 
 | 任务ID | 任务名称 | 负责Agent | 使用Skills | 相关文件 | 依赖任务 |
 |--------|---------|-----------|-----------|---------|---------|
-| T1 | 需求分析 | analyst | requirements | docs/requirements.md | - |
-| T2 | 核心功能实现 | developer | python:core | src/core.py | T1 |
-| T3 | API接口开发 | developer | python:web | src/api.py | T1 |
-| T4 | 配置管理 | developer | python:core | src/config.py | T1 |
-| T5 | 性能优化 | developer | python:perf | src/core.py | T2 |
-| T6 | 单元测试 | tester | python:testing | tests/test_core.py | T2, T3 |
-| T7 | API文档 | writer | documentation | docs/api.md | T3 |
-| T8 | 集成测试 | tester | python:testing | tests/test_integration.py | T4, T5, T6, T7 |
-| T9 | 代码审查 | reviewer | code-review | 所有变更文件 | T8 |
+| T1 | 需求分析 | analyst（分析师） | requirements（需求分析） | docs/requirements.md | - |
+| T2 | 核心功能实现 | developer（开发者） | python:core（核心功能） | src/core.py | T1 |
+| T3 | API接口开发 | developer（开发者） | python:web（Web开发） | src/api.py | T1 |
+| T4 | 配置管理 | developer（开发者） | python:core（核心功能） | src/config.py | T1 |
+| T5 | 性能优化 | developer（开发者） | python:perf（性能优化） | src/core.py | T2 |
+| T6 | 单元测试 | tester（测试员） | python:testing（测试） | tests/test_core.py | T2, T3 |
+| T7 | API文档 | writer（文档撰写者） | documentation（文档编写） | docs/api.md | T3 |
+| T8 | 集成测试 | tester（测试员） | python:testing（测试） | tests/test_integration.py | T4, T5, T6, T7 |
+| T9 | 代码审查 | reviewer（审查员） | code-review（代码审查） | 所有变更文件 | T8 |
 
 **多依赖说明：**
 - **T6（单元测试）** 依赖 2 个前置任务：T2（核心功能）、T3（API接口）
