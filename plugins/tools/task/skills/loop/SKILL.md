@@ -58,8 +58,6 @@ ListAgents()
 **执行流程**
 
 ```
-EnterPlanMode()
-
 loop:
 	planner_result = Skill(task:planner, "user_tasl")
 	if planner_result.status == "questions":
@@ -87,7 +85,7 @@ loop:
 
 ```
 # 3. 等待用户确认
-switch ExitPlanMode(desc="确认计划", planner_result=planner_result, template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md", plan_md_path=plan_md_path) {
+switch AskUserQuestion(querstions=["立即执行", "重新设计", "我有别的想法"]) {
 case "通过":
     goto Step(任务执行)
 default:
