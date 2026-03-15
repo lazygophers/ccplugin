@@ -39,6 +39,7 @@ F --> B
 ### 初始化
 
 **执行流程**
+
 ```
 # 初始化状态
 status = "进行中"
@@ -55,6 +56,7 @@ ListAgents()
 ### 计划设计
 
 **执行流程**
+
 ```
 EnterPlanMode()
 
@@ -67,9 +69,12 @@ loop:
 	if len(planner_result.tasks) == 0:
 	 goto Step(全部迭代完成)
 
-	save_plan(planner_result.tasks, planner_result.dependencies)
+	plan_md_path = save_plan(planner_result=planner_result, template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md")
+
+	Bash(command=f"uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py md2html {plan_md_path}")
 	print(f"[MindFlow·{user_task·计划设计/{iteration + 1}·进行中]")
 	print(planner_result.report)
+	Bash(command=f"rm -f {plan_html_path}", description="删除临时计划文件")
 	break
 ```
 
@@ -79,37 +84,23 @@ loop:
 ### 计划确认
 
 **执行流程**
+
 ```
-print(f"[MindFlow·{user_task·计划确认/{iteration + 1}·进行中]")
-
-# 1. 生成计划 markdown 文件（基于模板）
-plan_md_path = create_temp_plan_file(planner_result, template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md")
-logging.info(f"计划文件已生成: {plan_md_path}")
-
-# 2. 转换为 HTML 并自动在浏览器中打开
-Bash(
-    command=f"uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py md2html {plan_md_path}",
-    description="将计划转换为 HTML 并在浏览器中展示"
-)
-plan_html_path = plan_md_path.replace('.md', '.html')
-logging.info(f"计划 HTML 已打开: {plan_html_path}")
-
-# 清理临时文件
-Bash(command=f"rm -f {plan_html_path}", description="删除临时计划文件")
-
 # 3. 等待用户确认
-switch ExitPlanMode(desc="确认计划") {
+switch ExitPlanMode(desc="确认计划", planner_result=planner_result, template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md", plan_md_path=plan_md_path) {
 case "通过":
     goto Step(任务执行)
 default:
     goto Step(计划设计)
 }
 ```
+
 **输出格式和确认流程**：参见 [执行计划确认模板](${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md)
 
 ### 任务执行
 
 **执行流程**
+
 ```
 executor_result = TeamCreate(desc="lanner_result.report", skills=[Skill(task:execute)])
 TeamDelete(desc="删除团队和任务目录")
@@ -118,6 +109,7 @@ TeamDelete(desc="删除团队和任务目录")
 ### 结果验证
 
 **执行流程**
+
 ```
 verification_result = Skill(task:verifier, executor_result=executor_result)
 print(f"[MindFlow·{user_task·结果验证/{iteration + 1}·{verification_result.status}]")
@@ -157,6 +149,7 @@ case "ask_user":
 **全部结束执行一次**
 
 **执行流程**
+
 ```
 status = "completed"
 
