@@ -82,12 +82,12 @@ loop:
 print(f"[MindFlow·{user_task·计划确认/{iteration + 1}·进行中]")
 
 # 1. 生成计划 markdown 文件（基于模板）
-plan_md_path = create_temp_plan_file(planner_result, template="./plan-confirmation-template.md")
+plan_md_path = create_temp_plan_file(planner_result, template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md")
 logging.info(f"计划文件已生成: {plan_md_path}")
 
 # 2. 转换为 HTML 并自动在浏览器中打开
 Bash(
-    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ./scripts/main.py md2html {plan_md_path}",
+    command=f"uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py md2html {plan_md_path}",
     description="将计划转换为 HTML 并在浏览器中展示"
 )
 plan_html_path = plan_md_path.replace('.md', '.html')
@@ -104,7 +104,7 @@ default:
     goto Step(计划设计)
 }
 ```
-**输出格式和确认流程**：参见 [执行计划确认模板](./plan-confirmation-template.md)
+**输出格式和确认流程**：参见 [执行计划确认模板](${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md)
 
 ### 任务执行
 
