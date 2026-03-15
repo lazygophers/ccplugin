@@ -22,9 +22,6 @@
     "verification",
     "multi-agent"
   ],
-  "commands": [
-    "./commands/loop.md"
-  ],
   "agents": [
     "./agents/finalizer.md",
     "./agents/verifier.md",
@@ -35,7 +32,8 @@
     "./skills/planner.md",
     "./skills/execute.md",
     "./skills/verifier.md",
-    "./skills/adjuster.md"
+    "./skills/adjuster.md",
+    "./skills/loop.md"
   ],
   "hooks": {
     "SessionStart": [
