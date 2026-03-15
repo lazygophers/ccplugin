@@ -86,44 +86,25 @@ plan_md_path = create_temp_plan_file(planner_result, template="./plan-confirmati
 logging.info(f"计划文件已生成: {plan_md_path}")
 
 # 2. 转换为 HTML 并自动在浏览器中打开
-try:
-    Bash(
-        command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ./scripts/main.py md2html {plan_md_path}",
-        description="将计划转换为 HTML 并在浏览器中展示"
-    )
-    plan_html_path = plan_md_path.replace('.md', '.html')
-    logging.info(f"计划 HTML 已打开: {plan_html_path}")
+Bash(
+    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ./scripts/main.py md2html {plan_md_path}",
+    description="将计划转换为 HTML 并在浏览器中展示"
+)
+plan_html_path = plan_md_path.replace('.md', '.html')
+logging.info(f"计划 HTML 已打开: {plan_html_path}")
 
-    # 3. 等待用户确认
-    switch ExitPlanMode(desc="确认计划") {
-    case "通过":
-        # 清理临时文件
-        Bash(command=f"rm -f {plan_md_path} {plan_html_path}", description="删除临时计划文件")
-        logging.info("临时计划文件已删除")
-        goto Step(任务执行)
-    default:
-        # 清理临时文件
-        Bash(command=f"rm -f {plan_md_path} {plan_html_path}", description="删除临时计划文件")
-        logging.info("临时计划文件已删除，返回计划设计")
-        goto Step(计划设计)
-    }
-except Exception as e:
-    logging.error(f"计划展示失败: {e}")
-    # 失败时也要清理临时文件
-    Bash(command=f"rm -f {plan_md_path} {plan_md_path.replace('.md', '.html')}", description="清理临时文件")
-    # 降级到文本模式
-    print(cover_plan_to_show(planner_result))
+# 清理临时文件
+Bash(command=f"rm -f {plan_html_path}", description="删除临时计划文件")
+
+# 3. 等待用户确认
+switch ExitPlanMode(desc="确认计划") {
+case "通过":
+    goto Step(任务执行)
+default:
     goto Step(计划设计)
+}
 ```
-
 **输出格式和确认流程**：参见 [执行计划确认模板](./plan-confirmation-template.md)
-
-**工作流程：**
-1. 基于模板生成临时 markdown 计划文件
-2. 使用 `md2html` 转换为 HTML 并自动在浏览器中打开
-3. 用户在浏览器中查看可视化的计划（含 Mermaid 图表）
-4. 用户确认后，立即删除临时 markdown 和 HTML 文件
-5. 确认失败或异常时，同样删除临时文件
 
 ### 任务执行
 
