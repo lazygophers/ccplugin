@@ -599,6 +599,16 @@ def test_hook_input(
 		sample_input = HOOK_EVENT_SAMPLES[event_name]
 
 		for cmd in commands:
+			# 检查命令是否依赖 CLAUDE_ENV_FILE
+			if '$CLAUDE_ENV_FILE' in cmd or '${CLAUDE_ENV_FILE}' in cmd:
+				report.add_result(CheckResult(
+					category="hook_test",
+					name=f"测试 {event_name}",
+					status="skip",
+					message="Hook 依赖 CLAUDE_ENV_FILE，跳过测试"
+				))
+				continue
+
 			try:
 				result = subprocess.run(
 					cmd,
