@@ -12,7 +12,7 @@ user-invocable: false
 
 当你需要处理任务失败并确定恢复策略时，使用此 skill：
 
-- ✓ Loop 命令步骤 6：失败调整阶段
+- ✓ Loop 命令失败调整（Adjustment / Act）阶段
 - ✓ 分析失败任务的错误原因
 - ✓ 检测停滞模式（相同错误重复出现）
 - ✓ 应用分级失败升级策略
@@ -44,7 +44,7 @@ user-invocable: false
 
 ## 执行流程
 
-### 步骤 1：调用 adjuster agent
+### 调用 adjuster agent
 
 ```python
 # 基础调用
@@ -70,7 +70,7 @@ adjustment_result = Agent(
 )
 ```
 
-### 步骤 2：处理调整结果
+### 处理调整结果
 
 ```python
 # 检查策略
@@ -86,37 +86,37 @@ if "retry_config" in adjustment_result:
 
 # 根据策略执行
 if adjustment_result["strategy"] == "retry":
-    # 第 1 次失败：调整后重试
+    # 首次失败：调整后重试
     print(f"策略：调整后重试")
     apply_adjustments(adjustment_result["adjustments"])
-    return "retry"  # 回到步骤 2
+    return "retry"  # 回到任务执行
 
 elif adjustment_result["strategy"] == "debug":
-    # 第 2 次失败：深度诊断
+    # 重复失败：深度诊断
     print(f"策略：深度诊断")
     debug_result = Agent(agent="debug", prompt="分析失败原因...")
     apply_debug_fixes(debug_result)
-    return "retry"  # 回到步骤 2
+    return "retry"  # 回到任务执行
 
 elif adjustment_result["strategy"] == "replan":
-    # 第 3 次失败：重新规划
+    # 持续失败：重新规划
     print(f"策略：重新规划")
     new_plan = Agent(agent="planner", prompt="重新设计计划...")
-    return "replan"  # 回到步骤 1
+    return "replan"  # 回到计划设计
 
 elif adjustment_result["strategy"] == "ask_user":
     # 停滞检测：请求用户指导
     print(f"策略：请求用户指导")
     user_guidance = AskUserQuestion(adjustment_result["question"])
     # 根据用户回答继续
-    return "retry"  # 回到步骤 2
+    return "retry"  # 回到任务执行
 ```
 
-### 步骤 3：输出调整报告
+### 输出调整报告
 
 ```python
 # 输出调整报告
-print(f"[MindFlow·{task_name}·步骤6/{iteration + 1}·{adjustment_result['strategy']}]")
+print(f"[MindFlow·{task_name}·失败调整/{iteration + 1}·{adjustment_result['strategy']}]")
 print(f"调整报告：{adjustment_result['report']}")
 
 # 输出调整详情
@@ -153,7 +153,7 @@ for adj in adjustment_result["adjustments"]:
 }
 ```
 
-**行为**：立即修复并重试（回到步骤 2）。
+**行为**：立即修复并重试（回到任务执行）。
 
 ---
 
@@ -187,7 +187,7 @@ for adj in adjustment_result["adjustments"]:
 }
 ```
 
-**行为**：等待 2 秒（指数退避），然后调用 debug agent，修复后重试（回到步骤 2）。
+**行为**：等待 2 秒（指数退避），然后调用 debug agent，修复后重试（回到任务执行）。
 
 ---
 
@@ -230,7 +230,7 @@ for adj in adjustment_result["adjustments"]:
 }
 ```
 
-**行为**：等待 4 秒（指数退避），然后调用 planner agent 重新规划（回到步骤 1）。
+**行为**：等待 4 秒（指数退避），然后调用 planner agent 重新规划（回到计划设计）。
 
 ---
 
@@ -274,7 +274,7 @@ for adj in adjustment_result["adjustments"]:
 }
 ```
 
-**行为**：通过 `AskUserQuestion` 请求用户指导，根据回答继续（回到步骤 2）。
+**行为**：通过 `AskUserQuestion` 请求用户指导，根据回答继续（回到任务执行）。
 
 ---
 
@@ -306,10 +306,10 @@ for adj in adjustment_result["adjustments"]:
 
 | 失败次数 | 策略 | 等待时间 | 行为 | Loop 流向 |
 |---------|------|---------|------|----------|
-| 第 1 次 | Retry | 0 秒 | 分析错误，提供修复建议，立即重试 | 回到步骤 2 |
-| 第 2 次 | Debug | 2 秒 | 调用 debug agent 深度诊断 | 回到步骤 2 |
-| 第 3 次 | Replan | 4 秒 | 评估可行性，建议拆分或调整方案 | 回到步骤 1 |
-| 停滞 3 次 | Ask User | 无限 | 识别停滞模式，请求用户干预 | 回到步骤 2 |
+| 首次失败 | Retry | 0 秒 | 分析错误，提供修复建议，立即重试 | 回到任务执行 |
+| 重复失败 | Debug | 2 秒 | 调用 debug agent 深度诊断 | 回到任务执行 |
+| 持续失败 | Replan | 4 秒 | 评估可行性，建议拆分或调整方案 | 回到计划设计 |
+| 停滞 3 次 | Ask User | 无限 | 识别停滞模式，请求用户干预 | 回到任务执行 |
 
 **指数退避公式**：`wait_time = 2^(failure_count - 1)` 秒
 
@@ -328,9 +328,9 @@ for adj in adjustment_result["adjustments"]:
 ### Loop 命令中的使用
 
 ```python
-# loop 命令的第六步：失败调整
-def step_6_adjustment(task_description, iteration):
-    """Loop 命令第六步：失败调整"""
+# loop 命令的失败调整阶段
+def adjustment_phase(task_description, iteration):
+    """Loop 命令失败调整（Adjustment / Act）阶段"""
 
     # 调用 adjuster agent
     adjustment_result = Agent(
@@ -350,7 +350,7 @@ def step_6_adjustment(task_description, iteration):
     )
 
     # 输出报告
-    print(f"[MindFlow·{task_description}·步骤6/{iteration + 1}·{adjustment_result['strategy']}]")
+    print(f"[MindFlow·{task_description}·失败调整/{iteration + 1}·{adjustment_result['strategy']}]")
     print(f"调整报告：{adjustment_result['report']}")
 
     # 应用指数退避
@@ -367,7 +367,7 @@ def step_6_adjustment(task_description, iteration):
         # 应用调整建议
         for adj in adjustment_result["adjustments"]:
             apply_adjustment(adj)
-        return "step_2"  # 回到步骤 2
+        return "execution"  # 回到任务执行
 
     elif strategy == "debug":
         # 调用 debug agent
@@ -376,7 +376,7 @@ def step_6_adjustment(task_description, iteration):
             prompt=f"深度分析失败原因：{adjustment_result['debug_plan']}"
         )
         apply_debug_fixes(debug_result)
-        return "step_2"  # 回到步骤 2
+        return "execution"  # 回到任务执行
 
     elif strategy == "replan":
         # 调用 planner agent 重新规划
@@ -384,16 +384,16 @@ def step_6_adjustment(task_description, iteration):
             agent="planner",
             prompt=f"重新规划任务：{adjustment_result['replan_options']}"
         )
-        return "step_1"  # 回到步骤 1
+        return "planning"  # 回到计划设计
 
     elif strategy == "ask_user":
         # 请求用户指导
         user_response = AskUserQuestion(adjustment_result["question"])
         # 根据用户回答应用修复
         apply_user_guidance(user_response)
-        return "step_2"  # 回到步骤 2
+        return "execution"  # 回到任务执行
 
-    return "step_2"  # 默认回到步骤 2
+    return "execution"  # 默认回到任务执行
 ```
 
 ## 注意事项

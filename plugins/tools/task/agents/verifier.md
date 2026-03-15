@@ -402,7 +402,7 @@ def determine_status(verification_results):
 }
 ```
 
-**终止行为**：不退出 Loop，进入步骤 6（失败调整）。
+**终止行为**：不退出 Loop，进入失败调整（Adjustment / Act）阶段。
 
 ---
 

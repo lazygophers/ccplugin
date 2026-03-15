@@ -12,7 +12,7 @@ user-invocable: false
 
 当你需要系统性验证任务完成情况和质量标准时，使用此 skill：
 
-- ✓ Loop 命令步骤 5：结果验证阶段
+- ✓ Loop 命令结果验证（Verification / Check）阶段
 - ✓ 检查所有任务的验收标准是否满足
 - ✓ 验证交付物的完整性和质量
 - ✓ 检查是否影响已有功能（回归测试）
@@ -108,7 +108,7 @@ elif verification_result["status"] == "failed":
 
 ```python
 # 输出验收报告
-print(f"[MindFlow·{task_name}·步骤5/{iteration + 1}·{verification_result['status']}]")
+print(f"[MindFlow·{task_name}·结果验证/{iteration + 1}·{verification_result['status']}]")
 print(f"验收报告：{verification_result['report']}")
 
 # 输出统计信息
@@ -337,9 +337,9 @@ Verifier agent 根据验证结果决定 Loop 的行为：
 ### Loop 命令中的使用
 
 ```python
-# loop 命令的第五步：结果验证
-def step_5_verification(task_description, iteration):
-    """Loop 命令第五步：结果验证"""
+# loop 命令的结果验证阶段
+def verification_phase(task_description, iteration):
+    """Loop 命令结果验证（Verification / Check）阶段"""
 
     # 调用 verifier agent
     verification_result = Agent(
@@ -359,7 +359,7 @@ def step_5_verification(task_description, iteration):
     )
 
     # 输出报告
-    print(f"[MindFlow·{task_description}·步骤5/{iteration + 1}·{verification_result['status']}]")
+    print(f"[MindFlow·{task_description}·结果验证/{iteration + 1}·{verification_result['status']}]")
     print(f"验收报告：{verification_result['report']}")
 
     # 根据状态决定行为
@@ -382,10 +382,10 @@ def step_5_verification(task_description, iteration):
             return "exit"  # 完成
 
     elif verification_result["status"] == "failed":
-        # 失败，进入调整步骤
-        return "adjust"  # 进入步骤 6
+        # 失败，进入调整阶段
+        return "adjustment"  # 进入失败调整
 
-    return "adjust"  # 默认进入调整
+    return "adjustment"  # 默认进入调整
 ```
 
 ## 注意事项

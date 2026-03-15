@@ -16,7 +16,7 @@ user-invocable: false
 - ✓ 需要将复杂任务分解为可执行的子任务
 - ✓ 需要建立任务依赖关系和并行执行策略
 - ✓ 需要为每个任务分配合适的 Agent 和 Skills
-- ✓ Loop 命令的第一步（计划设计阶段）
+- ✓ Loop 命令的计划设计（Planning / Plan）阶段
 
 ## 核心原则
 
@@ -31,7 +31,7 @@ user-invocable: false
 
 ## 执行流程
 
-### 步骤 1：调用 planner agent
+### 调用 planner agent
 
 ```python
 # 基础调用
@@ -55,7 +55,7 @@ planner_result = Agent(
 )
 ```
 
-### 步骤 2：处理 planner 结果
+### 处理 planner 结果
 
 ```python
 # 检查状态
@@ -81,7 +81,7 @@ if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
 validate_plan(planner_result)
 ```
 
-### 步骤 3：验证计划质量
+### 验证计划质量
 
 ```python
 def validate_plan(plan):
@@ -110,11 +110,11 @@ def validate_plan(plan):
             raise Exception(f"任务 {task['id']} 缺少验收标准")
 ```
 
-### 步骤 4：输出执行计划
+### 输出执行计划
 
 ```python
 # 输出计划摘要
-print(f"[MindFlow·{task_name}·步骤1/1·completed]")
+print(f"[MindFlow·{task_name}·计划设计/1·completed]")
 print(f"✓ 计划设计完成：{planner_result['report']}")
 print(f"\n任务总数：{len(planner_result['tasks'])}")
 print(f"并行组数：{len(planner_result['parallel_groups'])}")
@@ -348,9 +348,9 @@ print(f"迭代目标：{planner_result['iteration_goal']}")
 ### Loop 命令中的使用
 
 ```python
-# loop 命令的第一步
-def step_1_planning(task_description, iteration):
-    """Loop 命令第一步：计划设计"""
+# loop 命令的计划设计阶段
+def planning_phase(task_description, iteration):
+    """Loop 命令计划设计（Planning / Plan）阶段"""
 
     # 调用 planner agent
     planner_result = Agent(
@@ -394,7 +394,7 @@ def step_1_planning(task_description, iteration):
         return None  # 结束 loop
 
     # 输出计划
-    print(f"[MindFlow·{task_description}·步骤1/{iteration + 1}·completed]")
+    print(f"[MindFlow·{task_description}·计划设计/{iteration + 1}·completed]")
     print(f"✓ 计划设计完成：{planner_result['report']}")
 
     return planner_result
