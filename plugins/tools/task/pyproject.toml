@@ -1,6 +1,6 @@
 [project]
 name = "task"
-version = "0.0.177"
+version = "0.0.178"
 description = "Claude Code task management plugin with CLI tools"
 readme = "README.md"
 requires-python = ">=3.11"
