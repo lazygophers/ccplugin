@@ -13,24 +13,6 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from memory import (
-    init_db,
-    close_db,
-    create_memory,
-    get_memory,
-    update_memory,
-    delete_memory,
-    search_memories,
-    list_memories,
-    get_versions,
-    get_relations,
-    get_stats,
-    handle_system_uri,
-    rollback_to_version,
-    diff_versions,
-    clean_memories,
-)
-
 from .template import get_template_path
 
 
@@ -52,10 +34,29 @@ class MemoryUpdate(BaseModel):
 def create_app() -> FastAPI:
     """
     创建 FastAPI 应用
-    
+
     Returns:
         FastAPI 应用实例
     """
+    # 延迟导入 memory 模块，避免启动时的导入开销
+    from memory import (
+        init_db,
+        close_db,
+        create_memory,
+        get_memory,
+        update_memory,
+        delete_memory,
+        search_memories,
+        list_memories,
+        get_versions,
+        get_relations,
+        get_stats,
+        handle_system_uri,
+        rollback_to_version,
+        diff_versions,
+        clean_memories,
+    )
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         await init_db()
@@ -69,13 +70,13 @@ def create_app() -> FastAPI:
         description="智能记忆管理 Web 界面",
         lifespan=lifespan,
     )
-    
+
     @app.get("/", response_class=HTMLResponse)
     async def index():
         template_path = os.path.join(get_template_path(), "index.html")
         with open(template_path, "r", encoding="utf-8") as f:
             return f.read()
-    
+
     @app.get("/api/memories")
     async def api_list_memories(
         uri_prefix: str = "",
@@ -106,7 +107,7 @@ def create_app() -> FastAPI:
             }
             for m in memories
         ]
-    
+
     @app.get("/api/memories/{uri:path}")
     async def api_get_memory(uri: str):
         memory = await get_memory(uri, increment_access=False)
@@ -124,7 +125,7 @@ def create_app() -> FastAPI:
             "updated_at": memory.updated_at,
             "metadata": json.loads(memory.metadata or "{}"),
         }
-    
+
     @app.post("/api/memories")
     async def api_create_memory(data: MemoryCreate):
         memory = await create_memory(
@@ -134,7 +135,7 @@ def create_app() -> FastAPI:
             disclosure=data.disclosure,
         )
         return {"uri": memory.uri, "id": memory.id}
-    
+
     @app.put("/api/memories/{uri:path}")
     async def api_update_memory(uri: str, data: MemoryUpdate):
         memory = await update_memory(
@@ -146,14 +147,14 @@ def create_app() -> FastAPI:
         if not memory:
             raise HTTPException(status_code=404, detail="记忆不存在")
         return {"uri": memory.uri}
-    
+
     @app.delete("/api/memories/{uri:path}")
     async def api_delete_memory(uri: str):
         success = await delete_memory(uri, soft=True)
         if not success:
             raise HTTPException(status_code=404, detail="记忆不存在")
         return {"success": True}
-    
+
     @app.get("/api/search")
     async def api_search_memories(
         q: str,
@@ -174,11 +175,11 @@ def create_app() -> FastAPI:
             }
             for m in memories
         ]
-    
+
     @app.get("/api/stats")
     async def api_get_stats():
         return await get_stats()
-    
+
     @app.get("/api/versions/{uri:path}")
     async def api_get_versions(uri: str, limit: int = Query(20, le=100)):
         versions = await get_versions(uri, limit=limit)
@@ -192,12 +193,12 @@ def create_app() -> FastAPI:
             }
             for v in versions
         ]
-    
+
     @app.get("/api/relations/{uri:path}")
     async def api_get_relations(uri: str, direction: str = "both"):
         relations = await get_relations(uri, direction=direction)
         return relations
-    
+
     @app.get("/api/system/{path:path}")
     async def api_system_uri(path: str, limit: int = Query(20, le=100)):
         uri = f"system://{path}"
@@ -205,14 +206,14 @@ def create_app() -> FastAPI:
         if not result:
             raise HTTPException(status_code=404, detail="未知的系统 URI")
         return result
-    
+
     @app.post("/api/rollback/{uri:path}")
     async def api_rollback(uri: str, version: int):
         memory = await rollback_to_version(uri, version)
         if not memory:
             raise HTTPException(status_code=400, detail="回滚失败")
         return {"success": True, "uri": memory.uri}
-    
+
     @app.get("/api/diff/{uri:path}")
     async def api_diff(uri: str, version1: int, version2: int):
         result = await diff_versions(uri, version1, version2)
@@ -224,7 +225,7 @@ def create_app() -> FastAPI:
             "content1": result[0],
             "content2": result[1],
         }
-    
+
     @app.post("/api/cleanup")
     async def api_cleanup(
         unused_days: Optional[int] = None,
@@ -233,5 +234,5 @@ def create_app() -> FastAPI:
     ):
         stats = await clean_memories(unused_days, deprecated_days, dry_run)
         return stats
-    
+
     return app

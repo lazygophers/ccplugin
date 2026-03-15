@@ -28,13 +28,7 @@
     "./agents/adjuster.md",
     "./agents/planner.md"
   ],
-  "skills": [
-    "./skills/planner.md",
-    "./skills/execute.md",
-    "./skills/verifier.md",
-    "./skills/adjuster.md",
-    "./skills/loop.md"
-  ],
+  "skills": "./skills/",
   "hooks": {
     "SessionStart": [
       {
