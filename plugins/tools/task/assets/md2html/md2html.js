@@ -26,6 +26,10 @@
   const setTheme = (theme) => {
     const next = theme === THEME_LIGHT ? THEME_LIGHT : THEME_DARK;
     document.documentElement.setAttribute('data-theme', next);
+    // Help form controls / scrollbars follow the current theme.
+    try {
+      document.documentElement.style.colorScheme = next;
+    } catch (_e) {}
     updateThemeToggleIcon(next);
   };
 
@@ -259,7 +263,11 @@
       // Prevent Mermaid's built-in auto-start from rendering before we stash sources.
       window.mermaid.startOnLoad = false;
 
-      const sans = (getComputedStyle(document.documentElement).getPropertyValue('--sans') || '')
+      const computedSans =
+        (document.body && getComputedStyle(document.body).fontFamily) ||
+        (document.documentElement && getComputedStyle(document.documentElement).fontFamily) ||
+        '';
+      const sans = String(computedSans)
         .replace(/\s+/g, ' ')
         .trim();
 
@@ -390,5 +398,14 @@
       .catch(() => renderMermaid({ theme: getTheme(), rerender: false }));
   } else {
     renderMermaid({ theme: getTheme(), rerender: false });
+    // Fallback for environments without FontFaceSet: re-render once after all resources load
+    // to reduce layout issues (e.g., journey label overlap).
+    window.addEventListener(
+      'load',
+      () => {
+        renderMermaid({ theme: getTheme(), rerender: true });
+      },
+      { once: true }
+    );
   }
 })();
