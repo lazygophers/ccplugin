@@ -41,6 +41,7 @@ memory: project
 - 调度 4 个核心 agent：planner、executor、verifier、adjuster
 - 唯一通信出口：接收 agent 的 `SendMessage`，统一调用 `AskUserQuestion`
 - 资源管理：清理临时文件、管理 Team 生命周期
+- 环境变量替换：如 CLAUDE_PLUGIN_ROOT 等环境变量要替换为实际路径
 - 详见：[通信规范文档](loop-communication.md)
 
 ### 状态追踪和报告
@@ -124,7 +125,7 @@ plan_md_path = generate_plan_document(
     template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md",
     iteration=iteration
 )
-Bash(f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ./scripts/main.py md2html {plan_md_path}")
+Bash(f"uv run --directory ${CLAUDE_PLUGIN_ROOT}/skills/loop/scripts python main.py md2html {plan_md_path}")
 print(f"详细计划已生成：{plan_md_path.replace('.md', '.html')}")
 ```
 

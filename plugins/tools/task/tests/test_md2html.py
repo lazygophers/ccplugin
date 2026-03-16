@@ -4,7 +4,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from plugins.tools.task.scripts.md2html import (
+from plugins.tools.task.skills.loop.scripts.md2html import (
     _build_markdown_renderer,
     _build_toc_and_set_heading_ids,
     _normalize_markdown_content,
