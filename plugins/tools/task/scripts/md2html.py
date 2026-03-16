@@ -450,7 +450,14 @@ def _wrap_html_document(
     <div class="viewer-panel" role="dialog" aria-modal="true">
       <div class="viewer-bar">
         <div class="viewer-title" id="viewer-title"></div>
-        <button class="viewer-close" id="viewer-close" type="button">关闭</button>
+        <div class="viewer-actions" aria-label="查看器操作">
+          <button class="viewer-action" id="viewer-zoom-out" type="button" aria-label="缩小" title="缩小">−</button>
+          <button class="viewer-action viewer-action--reset" id="viewer-zoom-reset" type="button" aria-label="重置为 100%" title="重置为 100%">
+            <span class="viewer-zoom-level" id="viewer-zoom-level">100%</span>
+          </button>
+          <button class="viewer-action" id="viewer-zoom-in" type="button" aria-label="放大" title="放大">+</button>
+          <button class="viewer-close" id="viewer-close" type="button">关闭</button>
+        </div>
       </div>
       <div class="viewer-stage" id="viewer-stage">
         <div class="viewer-inner" id="viewer-inner"></div>

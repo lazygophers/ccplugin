@@ -65,7 +65,13 @@
   const closeBtn = document.getElementById('viewer-close');
   const stage = document.getElementById('viewer-stage');
 
+  const zoomOutBtn = document.getElementById('viewer-zoom-out');
+  const zoomInBtn = document.getElementById('viewer-zoom-in');
+  const zoomResetBtn = document.getElementById('viewer-zoom-reset');
+  const zoomLevelText = document.getElementById('viewer-zoom-level');
+
   let scale = 1;
+  let baseScale = 1;
   let translateX = 0;
   let translateY = 0;
   let dragging = false;
@@ -73,6 +79,15 @@
   let dragStartY = 0;
   let dragBaseX = 0;
   let dragBaseY = 0;
+
+  const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
+
+  const updateZoomUi = () => {
+    if (!zoomLevelText) return;
+    const denom = baseScale > 0 ? baseScale : 1;
+    const pct = Math.round((scale / denom) * 100);
+    zoomLevelText.textContent = pct + '%';
+  };
 
   const applyTransform = () => {
     if (!inner) return;
@@ -84,15 +99,75 @@
       'px)) scale(' +
       scale +
       ')';
+    updateZoomUi();
+  };
+
+  const measureContentSize = () => {
+    if (!inner) return null;
+    const el = inner.querySelector('svg, img');
+    if (!el) return null;
+    if (el.tagName && el.tagName.toLowerCase() === 'svg') {
+      const svg = el;
+      try {
+        if (typeof svg.getBBox === 'function') {
+          const box = svg.getBBox();
+          if (box && box.width > 0 && box.height > 0) return { width: box.width, height: box.height };
+        }
+      } catch (_e) {}
+      try {
+        const rect = svg.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) return { width: rect.width, height: rect.height };
+      } catch (_e) {}
+      return null;
+    }
+    const img = el;
+    const w = img.naturalWidth || img.width || 0;
+    const h = img.naturalHeight || img.height || 0;
+    if (w > 0 && h > 0) return { width: w, height: h };
+    try {
+      const rect = img.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) return { width: rect.width, height: rect.height };
+    } catch (_e) {}
+    return null;
+  };
+
+  const computeBaseScale = () => {
+    if (!stage) return 1;
+    const size = measureContentSize();
+    if (!size) return 1;
+    const stageRect = stage.getBoundingClientRect();
+    const maxW = Math.max(1, stageRect.width - 32);
+    const maxH = Math.max(1, stageRect.height - 32);
+    const fit = Math.min(maxW / size.width, maxH / size.height);
+    // Avoid extreme values; allow shrinking to fit, but don't auto upscale by default.
+    return clamp(fit, 0.1, 1);
+  };
+
+  const resetViewerTransform = ({ fit } = {}) => {
+    translateX = 0;
+    translateY = 0;
+    baseScale = fit ? computeBaseScale() : 1;
+    // Define "100%" as the fit-to-stage base scale so users can always zoom >100%.
+    scale = baseScale;
+    applyTransform();
+  };
+
+  const setScaleFromBase = (next) => {
+    // Allow zoom up to 400% relative to fit.
+    const nextScale = clamp(next, baseScale * 0.5, baseScale * 4);
+    scale = nextScale;
+    applyTransform();
   };
 
   const openViewer = (opts) => {
     if (!modal || !inner) return;
     scale = 1;
+    baseScale = 1;
     translateX = 0;
     translateY = 0;
     inner.classList.remove('dragging');
     inner.innerHTML = '';
+    inner.style.opacity = '0';
 
     if (title) title.textContent = opts.title || '';
     if (caption) caption.textContent = opts.caption || '';
@@ -106,9 +181,23 @@
       inner.innerHTML = opts.svg || '';
     }
 
-    applyTransform();
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+
+    // Fit & center after DOM paints.
+    requestAnimationFrame(() => {
+      resetViewerTransform({ fit: true });
+      inner.style.opacity = '1';
+      // For SVG, getBBox may be 0 before fonts load; re-fit once after load.
+      window.addEventListener(
+        'load',
+        () => {
+          if (!modal.classList.contains('open')) return;
+          resetViewerTransform({ fit: true });
+        },
+        { once: true }
+      );
+    });
   };
 
   const closeViewer = () => {
@@ -119,6 +208,21 @@
   };
 
   closeBtn && closeBtn.addEventListener('click', closeViewer);
+  zoomOutBtn &&
+    zoomOutBtn.addEventListener('click', () => {
+      if (!modal || !modal.classList.contains('open')) return;
+      setScaleFromBase(scale - baseScale * 0.15);
+    });
+  zoomInBtn &&
+    zoomInBtn.addEventListener('click', () => {
+      if (!modal || !modal.classList.contains('open')) return;
+      setScaleFromBase(scale + baseScale * 0.15);
+    });
+  zoomResetBtn &&
+    zoomResetBtn.addEventListener('click', () => {
+      if (!modal || !modal.classList.contains('open')) return;
+      resetViewerTransform({ fit: true });
+    });
   modal && modal.addEventListener('click', (ev) => {
     if (ev.target === modal) closeViewer();
   });
@@ -134,10 +238,8 @@
         if (!modal || !modal.classList.contains('open')) return;
         ev.preventDefault();
         const delta = Math.sign(ev.deltaY);
-        const next = Math.min(4, Math.max(1, scale + (delta > 0 ? -0.15 : 0.15)));
-        if (next === scale) return;
-        scale = next;
-        applyTransform();
+        const next = scale + (delta > 0 ? -baseScale * 0.15 : baseScale * 0.15);
+        setScaleFromBase(next);
       },
       { passive: false }
     );
@@ -145,7 +247,7 @@
   // Pan with drag
   inner &&
     inner.addEventListener('pointerdown', (ev) => {
-      if (scale <= 1) return;
+      if (scale <= baseScale) return;
       dragging = true;
       inner.classList.add('dragging');
       dragStartX = ev.clientX;

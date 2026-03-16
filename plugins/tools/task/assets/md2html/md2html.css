@@ -1303,6 +1303,55 @@ body:is([data-theme="dark"] *) {
   color: rgb(203 213 225 / var(--tw-text-opacity, 1));
 }
 
+.viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.viewer-action {
+  border-radius: 0.75rem;
+  border-width: 1px;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-color: rgb(226 232 240 / 0.7);
+  background-color: rgb(255 255 255 / 0.8);
+  --tw-text-opacity: 1;
+  color: rgb(15 23 42 / var(--tw-text-opacity, 1));
+}
+
+.viewer-action:is([data-theme="dark"] *) {
+  border-color: rgb(51 65 85 / 0.6);
+  background-color: rgb(15 23 42 / 0.6);
+  --tw-text-opacity: 1;
+  color: rgb(241 245 249 / var(--tw-text-opacity, 1));
+}
+
+.viewer-action {
+  cursor: pointer;
+}
+
+.viewer-action:hover {
+  border-color: rgba(96, 165, 250, 0.6);
+}
+
+.viewer-action--reset {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.viewer-zoom-level {
+  display: inline-block;
+  min-width: 3.5rem;
+  text-align: center;
+  --tw-numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--tw-ordinal) var(--tw-slashed-zero) var(--tw-numeric-figure) var(--tw-numeric-spacing) var(--tw-numeric-fraction);
+}
+
 .viewer-close {
   border-radius: 0.75rem;
   border-width: 1px;
@@ -1353,6 +1402,8 @@ body:is([data-theme="dark"] *) {
   -webkit-user-select: none;
      -moz-user-select: none;
           user-select: none;
+  opacity: 1;
+  transition: opacity 120ms ease;
 }
 
 .viewer-inner.dragging {
@@ -1365,8 +1416,6 @@ body:is([data-theme="dark"] *) {
 
 .viewer-inner img {
   display: block;
-  max-height: 78vh;
-  max-width: 92vw;
   border-radius: 1rem;
   border-width: 1px;
   --tw-bg-opacity: 1;
@@ -1375,13 +1424,13 @@ body:is([data-theme="dark"] *) {
 }
 
 .viewer-inner svg {
-  max-height: 78vh;
-  max-width: 94vw;
   border-radius: 1rem;
   border-width: 1px;
   border-color: rgb(15 23 42 / 0.1);
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
+  max-width: none;
+  max-height: none;
 }
 
 .viewer-caption {
