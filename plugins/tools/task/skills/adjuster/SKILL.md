@@ -127,8 +127,9 @@ Adjuster 支持四种输出格式，对应不同的失败级别：
 
 ## 详细文档
 
-完整的输出格式、集成示例和错误分类详见以下文档：
+完整的输出格式、失败策略、集成示例和错误分类详见以下文档：
 
+- **[失败升级策略指南](adjuster-strategies.md)** - 四级升级策略、停滞检测、Circuit Breaker、指数退避
 - **[输出格式文档](adjuster-output-formats.md)** - 四种策略的详细说明和示例
 - **[集成示例](adjuster-integration.md)** - Loop 集成、处理流程、停滞检测
 

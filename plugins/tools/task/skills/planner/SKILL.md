@@ -234,8 +234,9 @@ print(f"迭代目标：{planner_result['iteration_goal']}")
 
 ## 详细文档
 
-完整的 Agent/Skills 选择、避坑指南和集成示例详见以下文档：
+完整的 Agent/Skills 选择、上下文学习、避坑指南和集成示例详见以下文档：
 
+- **[上下文学习指南](planner-context-learning.md)** - 三层上下文学习、项目理解、记忆系统、规范驱动计划
 - **[Agent/Skills 选择参考](planner-reference.md)** - Agent 和 Skills 的选择指南、使用示例
 - **[避坑指南](planner-pitfalls.md)** - 常见错误、最佳实践、验证检查清单
 - **[集成示例](planner-integration.md)** - Loop 集成、验证函数、高级用法
