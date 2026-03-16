@@ -121,12 +121,12 @@ if not planner_result["tasks"]:
 
 ```python
 # 步骤 1: 保存 planner_result 为临时 JSON 文件
-planner_json_path = f"/tmp/mindflow-planner-result-iter{iteration}.json"
+planner_json_path = f"${{CLAUDE_PLANS_Directory}}/mindflow-planner-result-iter{iteration}.json"
 Write(planner_json_path, json.dumps(planner_result, ensure_ascii=False, indent=2))
 
 # 步骤 2: 调用 fill-plan 命令填充模板
 template_path = "${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md"
-plan_md_path = f"/tmp/mindflow-plan-iter{iteration}.md"
+plan_md_path = f"${{CLAUDE_PLANS_Directory}}/mindflow-plan-iter{iteration}.md"
 
 filled_plan_content = Bash(
     command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ${{CLAUDE_PLUGIN_ROOT}}/scripts/main.py fill-plan '{template_path}' '{planner_json_path}' '{user_task}' {iteration}",
