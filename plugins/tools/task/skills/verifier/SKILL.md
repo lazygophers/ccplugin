@@ -22,29 +22,13 @@ user-invocable: false
 
 ### 验收测试最佳实践
 
-**可测试性（Testability）**：
-- 每个标准必须客观可验证
-- 无主观判断空间
-- 可执行的测试证明
+- **可测试性**：客观可验证，无主观判断，可执行测试证明
+- **可度量性**：量化期望值，使用数值指标（≥ 90%、< 200ms）
+- **独立性**：每个标准可独立验证，无交叉依赖
+- **关注结果**：验证用户体验和业务价值，而非技术步骤
+- **避免绝对词汇**：不使用 "all"、"always"、"never"
 
-**可度量性（Measurability）**：
-- 量化期望值，创建明确的通过/失败阈值
-- 使用数值指标（≥ 90%、< 200ms）
-- 避免模糊描述
-
-**独立性（Independence）**：
-- 每个标准可独立验证
-- 无交叉依赖
-- 简化测试流程
-
-**关注结果（Outcome-Focused）**：
-- 描述用户体验的结果，而非技术步骤
-- 验证业务价值交付
-- 确保功能正确性
-
-**避免绝对词汇**：
-- 避免使用"all"、"always"、"never"
-- 使用具体的、可验证的标准
+详见：[验证检查清单](verifier-checklist.md)
 
 ## 执行流程
 
@@ -120,166 +104,13 @@ if "test_coverage" in summary:
 
 ## 输出格式
 
-### 格式 1：完全通过（passed）
+Verifier 支持三种输出格式，对应不同的验收状态：
 
-所有任务完成，所有验收标准满足，无质量问题。
+1. **passed** - 所有标准通过，Loop 正常退出
+2. **suggestions** - 标准通过但有优化建议，询问用户是否继续
+3. **failed** - 标准未满足，进入失败调整
 
-```json
-{
-  "status": "passed",
-  "report": "所有任务已完成：T1（JWT工具）✓、T2（认证中间件）✓、T3（测试覆盖）✓。测试覆盖率 92%，所有 CI 检查通过，无影响已有功能。",
-  "verified_tasks": [
-    {
-      "task_id": "T1",
-      "task_name": "实现 JWT 工具函数",
-      "status": "verified",
-      "criteria_passed": 2,
-      "criteria_total": 2
-    },
-    {
-      "task_id": "T2",
-      "task_name": "实现认证中间件",
-      "status": "verified",
-      "criteria_passed": 2,
-      "criteria_total": 2
-    },
-    {
-      "task_id": "T3",
-      "task_name": "编写认证测试",
-      "status": "verified",
-      "criteria_passed": 2,
-      "criteria_total": 2
-    }
-  ],
-  "summary": {
-    "total_tasks": 3,
-    "completed_tasks": 3,
-    "failed_tasks": 0,
-    "test_coverage": 92.0,
-    "regression_tests_passed": true
-  }
-}
-```
-
-**Loop 行为**：正常退出，进入"全部迭代完成"流程。
-
----
-
-### 格式 2：通过但有建议（suggestions）
-
-任务已完成，验收标准满足，但有优化建议。
-
-```json
-{
-  "status": "suggestions",
-  "report": "任务已完成，所有验收标准满足。建议优化：代码复杂度略高（圈复杂度 15），建议后续重构；可添加更多边界测试。",
-  "verified_tasks": [
-    {
-      "task_id": "T1",
-      "task_name": "实现 JWT 工具函数",
-      "status": "verified",
-      "criteria_passed": 2,
-      "criteria_total": 2
-    },
-    {
-      "task_id": "T2",
-      "task_name": "实现认证中间件",
-      "status": "verified",
-      "criteria_passed": 2,
-      "criteria_total": 2,
-      "notes": "代码复杂度略高"
-    }
-  ],
-  "suggestions": [
-    {
-      "task_id": "T2",
-      "category": "code_quality",
-      "suggestion": "重构认证中间件，降低圈复杂度（当前 15，建议 < 10）",
-      "priority": "medium"
-    },
-    {
-      "task_id": "T3",
-      "category": "test_coverage",
-      "suggestion": "添加更多边界测试用例（如超长 token、特殊字符）",
-      "priority": "low"
-    }
-  ],
-  "summary": {
-    "total_tasks": 3,
-    "completed_tasks": 3,
-    "failed_tasks": 0,
-    "test_coverage": 90.5
-  }
-}
-```
-
-**Loop 行为**：通过 `AskUserQuestion` 询问用户是否属于当前任务范围。
-- 如果是 → 继续优化（新一轮迭代）
-- 如果否 → Loop 完成
-
----
-
-### 格式 3：验收失败（failed）
-
-验收标准未满足，存在功能缺陷或质量问题。
-
-```json
-{
-  "status": "failed",
-  "report": "验收失败：T3 测试未通过（2/10 失败），测试覆盖率仅 75%（要求≥90%）。T2 存在 Lint 错误 3 个。",
-  "verified_tasks": [
-    {
-      "task_id": "T1",
-      "task_name": "实现 JWT 工具函数",
-      "status": "verified",
-      "criteria_passed": 2,
-      "criteria_total": 2
-    },
-    {
-      "task_id": "T2",
-      "task_name": "实现认证中间件",
-      "status": "failed",
-      "criteria_passed": 1,
-      "criteria_total": 2
-    },
-    {
-      "task_id": "T3",
-      "task_name": "编写认证测试",
-      "status": "failed",
-      "criteria_passed": 0,
-      "criteria_total": 2
-    }
-  ],
-  "failures": [
-    {
-      "task_id": "T2",
-      "criterion": "Lint 检查 0 错误 0 警告",
-      "actual": "3 错误, 0 警告",
-      "reason": "变量未使用、导入未使用、格式问题"
-    },
-    {
-      "task_id": "T3",
-      "criterion": "所有测试用例通过",
-      "actual": "8/10 通过, 2 失败",
-      "reason": "test_login_timeout 和 test_invalid_token 失败"
-    },
-    {
-      "task_id": "T3",
-      "criterion": "测试覆盖率 ≥ 90%",
-      "actual": "75%",
-      "reason": "jwt.go 的错误处理分支未覆盖"
-    }
-  ],
-  "summary": {
-    "total_tasks": 3,
-    "completed_tasks": 3,
-    "failed_tasks": 2,
-    "test_coverage": 75.0
-  }
-}
-```
-
-**Loop 行为**：不退出 Loop，进入步骤 6（失败调整）。
+详见：[输出格式文档](verifier-output-formats.md)
 
 ---
 
@@ -305,88 +136,30 @@ if "test_coverage" in summary:
 | `criteria_total` | number | 总标准数 | `2` |
 | `notes` | string | 备注（可选） | `"代码复杂度略高"` |
 
-## 终止条件决策
+## 详细文档
 
-Verifier agent 根据验证结果决定 Loop 的行为：
+完整的输出格式、集成示例和检查清单详见以下文档：
 
-| 验收状态 | 条件 | 终止行为 |
-|---------|------|---------|
-| **passed** | 所有标准通过，无建议 | ✓ Loop 正常退出 |
-| **suggestions** | 标准通过，有优化建议 | ? 询问用户是否继续 |
-| **failed** | 标准未满足 | ✗ 进入失败调整步骤 |
+- **[输出格式文档](verifier-output-formats.md)** - 三种输出格式的详细说明和示例
+- **[集成示例](verifier-integration.md)** - Loop 集成、处理流程、高级用法
+- **[验证检查清单](verifier-checklist.md)** - 验证前后检查清单、最佳实践
 
-## 验证检查清单
+## 快速参考
 
-在调用 verifier agent 前，确保：
+### 终止条件决策
 
-- [ ] 所有任务已执行完成
-- [ ] 每个任务的验收标准已明确定义
-- [ ] 验收标准可量化且可验证
-- [ ] 避免使用绝对词汇（all, always, never）
+| 验收状态 | Loop 行为 |
+|---------|----------|
+| `passed` | 正常退出 |
+| `suggestions` | 询问用户是否继续 |
+| `failed` | 进入失败调整 |
 
-在处理验证结果时，确保：
+### 验证要点
 
-- [ ] 检查 `status` 字段的值
-- [ ] 根据不同状态采取相应行为
-- [ ] 记录验证报告和统计数据
-- [ ] 对于 `suggestions` 状态，询问用户意见
-- [ ] 对于 `failed` 状态，进入失败调整流程
-
-## 集成示例
-
-### Loop 命令中的使用
-
-```python
-# loop 命令的结果验证阶段
-def verification_phase(task_description, iteration):
-    """Loop 命令结果验证（Verification / Check）阶段"""
-
-    # 调用 verifier agent
-    verification_result = Agent(
-        agent="task:verifier",
-        prompt=f"""执行结果验证：
-
-任务目标：{task_description}
-当前迭代：第 {iteration + 1} 轮
-
-要求：
-1. 获取所有任务的状态和验收标准
-2. 系统性验证每个任务的验收标准
-3. 检查回归测试
-4. 生成验收报告（≤100字）
-5. 决定验收状态
-"""
-    )
-
-    # 输出报告
-    print(f"[MindFlow·{task_description}·结果验证/{iteration + 1}·{verification_result['status']}]")
-    print(f"验收报告：{verification_result['report']}")
-
-    # 根据状态决定行为
-    if verification_result["status"] == "passed":
-        # 完全通过，Loop 退出
-        return "exit"
-
-    elif verification_result["status"] == "suggestions":
-        # 有建议，询问用户
-        user_response = AskUserQuestion(
-            f"{verification_result['report']}\n\n" +
-            "建议：\n" +
-            "\n".join(f"- {s['suggestion']}" for s in verification_result['suggestions']) +
-            "\n\n这些优化是否属于当前任务范围？(是/否)"
-        )
-
-        if user_response.strip().lower() in ["是", "yes", "y"]:
-            return "continue"  # 继续迭代
-        else:
-            return "exit"  # 完成
-
-    elif verification_result["status"] == "failed":
-        # 失败，进入调整阶段
-        return "adjustment"  # 进入失败调整
-
-    return "adjustment"  # 默认进入调整
-```
+- 所有任务已完成
+- 验收标准可量化
+- 避免绝对词汇
+- 检查回归测试
 
 ## 注意事项
 

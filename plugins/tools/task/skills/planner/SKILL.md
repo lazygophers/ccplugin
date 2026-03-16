@@ -232,173 +232,31 @@ print(f"迭代目标：{planner_result['iteration_goal']}")
 | `acceptance_criteria` | array | 验收标准（可量化） | `["单元测试覆盖率 ≥ 90%"]` |
 | `dependencies` | array | 前置任务 ID 列表 | `["T1"]` |
 
-## Agent 选择指南
+## 详细文档
 
-| Agent | 职责 | 适用场景 |
-|-------|------|---------|
-| `coder（开发者）` | 编写业务代码、实现功能 | 新功能开发、重构 |
-| `tester（测试员）` | 编写测试、验证质量 | 单元测试、集成测试 |
-| `devops（运维）` | 部署、CI/CD、基础设施 | 部署脚本、配置管理 |
-| `writer（文档撰写者）` | 编写文档、README、API 文档 | 文档更新、API 说明 |
-| `reviewer（审查员）` | 代码审查、质量检查 | Code Review、质量门禁 |
+完整的 Agent/Skills 选择、避坑指南和集成示例详见以下文档：
 
-## Skills 选择指南
+- **[Agent/Skills 选择参考](planner-reference.md)** - Agent 和 Skills 的选择指南、使用示例
+- **[避坑指南](planner-pitfalls.md)** - 常见错误、最佳实践、验证检查清单
+- **[集成示例](planner-integration.md)** - Loop 集成、验证函数、高级用法
 
-### 通用 Skills
-- `python:core（核心功能）` - Python 核心开发
-- `python:web（Web开发）` - FastAPI、Django 等
-- `python:testing（测试）` - pytest、单元测试
-- `golang:core（核心功能）` - Go 核心开发
-- `golang:testing（测试）` - Go 测试框架
-- `typescript:core（核心功能）` - TypeScript 开发
-- `typescript:react（React开发）` - React 组件开发
+## 快速参考
 
-### 专用 Skills
-- `documentation（文档编写）` - 文档撰写
-- `code-review（代码审查）` - 代码质量检查
-- `requirements（需求分析）` - 需求分析
+### 常见陷阱
 
-## 避坑指南
+- 过度拆分任务（应合并为原子任务）
+- 验收标准模糊（应可量化）
+- 缺少中文注释（Agent/Skills 必须带括号注释）
+- 循环依赖（必须是 DAG 结构）
+- 并行度超限（最多 2 个任务并行）
 
-### ❌ 常见错误
+### 最佳实践
 
-1. **过度拆分**
-   ```json
-   // ❌ 错误：简单配置修改拆分成 3 个任务
-   {"id": "T1", "description": "创建配置文件"},
-   {"id": "T2", "description": "写入配置项"},
-   {"id": "T3", "description": "保存配置文件"}
-
-   // ✓ 正确：合并为 1 个原子任务
-   {"id": "T1", "description": "创建并配置 API 配置文件"}
-   ```
-
-2. **验收标准模糊**
-   ```json
-   // ❌ 错误：无法量化
-   "acceptance_criteria": ["代码质量好", "功能正常"]
-
-   // ✓ 正确：可量化
-   "acceptance_criteria": [
-     "单元测试覆盖率 ≥ 90%",
-     "所有 API 返回正确状态码"
-   ]
-   ```
-
-3. **缺少中文注释**
-   ```json
-   // ❌ 错误
-   "agent": "coder",
-   "skills": ["golang:core"]
-
-   // ✓ 正确
-   "agent": "coder（开发者）",
-   "skills": ["golang:core（核心功能）"]
-   ```
-
-4. **循环依赖**
-   ```json
-   // ❌ 错误：T1 → T2 → T3 → T1
-   "dependencies": {
-     "T2": ["T1"],
-     "T3": ["T2"],
-     "T1": ["T3"]  // 循环！
-   }
-
-   // ✓ 正确：DAG 结构
-   "dependencies": {
-     "T2": ["T1"],
-     "T3": ["T2"]
-   }
-   ```
-
-5. **并行度超限**
-   ```json
-   // ❌ 错误：3 个任务并行
-   "parallel_groups": [["T1", "T2", "T3"]]
-
-   // ✓ 正确：最多 2 个并行
-   "parallel_groups": [["T1", "T2"], ["T3"]]
-   ```
-
-### ✓ 最佳实践
-
-1. **优先使用中等深度探索**
-   - 先快速了解项目结构
-   - 发现信息不足时再深入
-
-2. **发现功能已存在时及时报告**
-   - 返回空 tasks 数组
-   - 在 report 中说明原因
-
-3. **一次只问一个问题**
-   - 通过 `questions` 字段返回
-   - 等用户回答后再继续
-
-4. **验收标准必须可量化**
-   - 使用数值指标（≥ 90%）
-   - 使用明确的验证方式（所有测试通过）
-
-5. **保持报告简洁**
-   - report 字段 ≤ 200 字
-   - 突出关键信息：任务数、依赖关系、预计时间
-
-## 集成示例
-
-### Loop 命令中的使用
-
-```python
-# loop 命令的计划设计阶段
-def planning_phase(task_description, iteration):
-    """Loop 命令计划设计（Planning / Plan）阶段"""
-
-    # 调用 planner agent
-    planner_result = Agent(
-        agent="task:planner",
-        prompt=f"""设计执行计划：
-
-任务目标：{task_description}
-
-当前迭代：第 {iteration + 1} 轮
-
-要求：
-1. 分析项目结构和技术栈
-2. 收集目标、依赖、现状、边界
-3. 分解为原子子任务（MECE）
-4. 建立依赖关系（DAG）
-5. 分配 Agent 和 Skills
-6. 定义可量化验收标准
-7. 返回简短报告（≤200字）
-
-如果功能已存在，返回空 tasks 数组。
-"""
-    )
-
-    # 处理疑问
-    if "questions" in planner_result and planner_result["questions"]:
-        for question in planner_result["questions"]:
-            answer = AskUserQuestion(question)
-            # 补充信息后重新生成计划
-            planner_result = Agent(
-                agent="task:planner",
-                prompt=f"补充信息：{answer}\n继续设计计划..."
-            )
-
-    # 验证计划
-    validate_plan(planner_result)
-
-    # 特殊情况：无需执行
-    if not planner_result["tasks"]:
-        print(f"[MindFlow·{task_description}·{iteration + 1}/1·completed]")
-        print(f"✓ {planner_result['report']}")
-        return None  # 结束 loop
-
-    # 输出计划
-    print(f"[MindFlow·{task_description}·计划设计/{iteration + 1}·completed]")
-    print(f"✓ 计划设计完成：{planner_result['report']}")
-
-    return planner_result
-```
+- 优先中等深度探索，必要时深入
+- 功能已存在时返回空 tasks 数组
+- 一次只问一个问题
+- 验收标准必须可量化（数值指标）
+- 保持报告简洁（≤ 200 字）
 
 ## 注意事项
 
