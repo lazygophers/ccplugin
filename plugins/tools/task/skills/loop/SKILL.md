@@ -129,7 +129,7 @@ template_path = "${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md
 plan_md_path = f"/tmp/mindflow-plan-iter{iteration}.md"
 
 filled_plan_content = Bash(
-    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}}/skills/loop/scripts python main.py fill-plan '{template_path}' '{planner_json_path}' '{user_task}' {iteration}",
+    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ${{CLAUDE_PLUGIN_ROOT}}/scripts/main.py fill-plan '{template_path}' '{planner_json_path}' '{user_task}' {iteration}",
     description="填充计划模板"
 )
 
@@ -138,7 +138,7 @@ Write(plan_md_path, filled_plan_content)
 
 # 步骤 4: 调用 md2html 命令转换并打开
 Bash(
-    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}}/skills/loop/scripts python main.py md2html '{plan_md_path}'",
+    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ${{CLAUDE_PLUGIN_ROOT}}/scripts/main.py md2html '{plan_md_path}'",
     description="转换为 HTML 并自动打开浏览器"
 )
 
