@@ -120,14 +120,39 @@ if not planner_result["tasks"]:
 生成计划文档并转换为 HTML：
 
 ```python
-plan_md_path = generate_plan_document(
-    planner_result,
-    template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md",
-    iteration=iteration
+# 步骤 1: 保存 planner_result 为临时 JSON 文件
+planner_json_path = f"/tmp/mindflow-planner-result-iter{iteration}.json"
+Write(planner_json_path, json.dumps(planner_result, ensure_ascii=False, indent=2))
+
+# 步骤 2: 调用 fill-plan 命令填充模板
+template_path = "${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md"
+plan_md_path = f"/tmp/mindflow-plan-iter{iteration}.md"
+
+filled_plan_content = Bash(
+    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}}/skills/loop/scripts python main.py fill-plan '{template_path}' '{planner_json_path}' '{user_task}' {iteration}",
+    description="填充计划模板"
 )
-Bash(f"uv run --directory ${CLAUDE_PLUGIN_ROOT}/skills/loop/scripts python main.py md2html {plan_md_path}")
-print(f"详细计划已生成：{plan_md_path.replace('.md', '.html')}")
+
+# 步骤 3: 保存填充后的 Markdown
+Write(plan_md_path, filled_plan_content)
+
+# 步骤 4: 调用 md2html 命令转换并打开
+Bash(
+    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}}/skills/loop/scripts python main.py md2html '{plan_md_path}'",
+    description="转换为 HTML 并自动打开浏览器"
+)
+
+# 步骤 5: 清理临时文件
+Bash(command=f"rm -f '{planner_json_path}'")
+
+print(f"✓ 计划已生成并打开：{plan_md_path.replace('.md', '.html')}")
 ```
+
+**重要**：
+1. **严格使用 `main.py fill-plan` 命令填充模板**，不要自己实现填充逻辑
+2. **严格使用 `main.py md2html` 命令转换 HTML**，不要自己实现转换逻辑
+3. md2html 默认会自动在浏览器中打开生成的 HTML
+4. 环境变量 `${CLAUDE_PLUGIN_ROOT}` 需要替换为实际路径（通常是 `/Users/luoxin/persons/lyxamour/ccplugin/plugins/tools/task`）
 
 **状态转换**：有任务 → 计划确认；无任务 → 全部完成
 

@@ -5,8 +5,10 @@ from functools import wraps
 # Support both direct execution and module import
 try:
     from .md2html import md2html_command
+    from .fill_plan_template import fill_plan_command
 except ImportError:
     from md2html import md2html_command
+    from fill_plan_template import fill_plan_command
 
 
 def with_debug(func):
@@ -29,8 +31,9 @@ def main(ctx) -> None:
     pass
 
 
-# 注册 md2html 命令
+# 注册命令
 main.add_command(md2html_command, name="md2html")
+main.add_command(fill_plan_command, name="fill-plan")
 
 
 if __name__ == "__main__":
