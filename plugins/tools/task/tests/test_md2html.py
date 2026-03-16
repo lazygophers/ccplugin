@@ -4,10 +4,13 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from plugins.tools.task.skills.loop.scripts.md2html import (
+from plugins.tools.task.scripts.md2html import (
     _build_markdown_renderer,
     _build_toc_and_set_heading_ids,
+    _load_mermaid_js,
+    _markdown_has_mermaid,
     _normalize_markdown_content,
+    _wrap_script_tag,
     _wrap_html_document,
     md2html_command,
 )
@@ -116,14 +119,99 @@ def test_cli_writes_full_html_document(tmp_path: Path) -> None:
     assert 'class="k"' in html
 
 
+def test_cli_embeds_mermaid_js_when_markdown_has_mermaid(tmp_path: Path) -> None:
+    # Arrange
+    md_path = tmp_path / "doc.md"
+    md_path.write_text(
+        "# Doc\n\n```mermaid\ngraph LR\nA-->B\n```\n",
+        encoding="utf-8",
+    )
+    mermaid_js_path = tmp_path / "mermaid.min.js"
+    mermaid_js_path.write_text(
+        "/*MERMAID_STUB*/ window.mermaid={initialize(){},run(){return Promise.resolve();}};",
+        encoding="utf-8",
+    )
+
+    # Act
+    runner = CliRunner()
+    result = runner.invoke(
+        md2html_command,
+        [str(md_path), "--disable-open", "--mermaid-js", str(mermaid_js_path)],
+    )
+
+    # Assert
+    assert result.exit_code == 0, result.output
+    html_path = md_path.with_suffix(".html")
+    assert html_path.exists()
+    html = html_path.read_text(encoding="utf-8")
+    assert "/*MERMAID_STUB*/" in html
+    assert "<script src=" not in html
+
+
 def test_wrap_document_includes_toc_and_body() -> None:
     # Arrange
     toc = '<aside class="toc"><div class="toc-title">目录</div><ul><li><a href="#x">x</a></li></ul></aside>'
     body = '<h1 id="x">x</h1>'
 
     # Act
-    html = _wrap_html_document(title="t", toc_html=toc, body_html=body)
+    html = _wrap_html_document(title="t", toc_html=toc, body_html=body, mermaid_js="")
 
     # Assert
     assert toc in html
     assert body in html
+
+
+def test_wrap_document_includes_mermaid_font_overlap_fixes() -> None:
+    # Arrange
+    toc = ""
+    body = '<div class="mermaid" data-md2html-viewer="mermaid">graph LR\\nA-->B</div>'
+
+    # Act
+    html = _wrap_html_document(
+        title="t",
+        toc_html=toc,
+        body_html=body,
+        mermaid_js="window.mermaid={initialize(){},run(){return Promise.resolve();}};",
+    )
+
+    # Assert
+    assert "md2html-mermaid-svg" in html
+    assert "themeVariables" in html
+    assert ".run({ querySelector" in html
+    assert "<script src=" not in html
+    assert "window.mermaid={initialize()" in html
+
+
+def test_markdown_has_mermaid_detects_fenced_block() -> None:
+    # Arrange
+    content = "# x\n\n```mermaid\ngraph LR\nA-->B\n```\n"
+
+    # Act
+    has_mermaid = _markdown_has_mermaid(content)
+
+    # Assert
+    assert has_mermaid is True
+
+
+def test_wrap_script_tag_escapes_script_close_sequence() -> None:
+    # Arrange
+    js = "console.log('</script>');"
+
+    # Act
+    wrapped = _wrap_script_tag(js)
+
+    # Assert
+    assert "<\\/script>" in wrapped
+    assert "console.log('</script>')" not in wrapped
+
+
+def test_load_mermaid_js_reads_from_explicit_path(tmp_path: Path) -> None:
+    # Arrange
+    p = tmp_path / "mermaid.min.js"
+    p.write_text("window.mermaid = {};", encoding="utf-8")
+
+    # Act
+    js = _load_mermaid_js(mermaid_js_path=p)
+
+    # Assert
+    assert js == "window.mermaid = {};"

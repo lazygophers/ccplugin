@@ -3,8 +3,11 @@ from __future__ import annotations
 from html import escape
 from pathlib import Path
 from typing import Any
+import os
 import re
+import sys
 import unicodedata
+import urllib.request
 import webbrowser
 
 import click
@@ -15,14 +18,26 @@ from markdown_it import MarkdownIt
 @click.command()
 @click.argument("markdown_file", type=click.Path(exists=True))
 @click.option("--disable-open", is_flag=True, help="不自动打开生成的 HTML 文件")
+@click.option(
+    "--mermaid-js",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="本地 Mermaid JS 文件路径（用于离线内联到导出 HTML）",
+)
 @click.option("--debug", is_flag=True, help="启用 DEBUG 模式")
-def md2html_command(markdown_file: str, disable_open: bool, debug: bool) -> None:
+def md2html_command(
+    markdown_file: str,
+    disable_open: bool,
+    mermaid_js: Path | None,
+    debug: bool,
+) -> None:
     """
     Convert markdown to HTML (output to same directory).
 
     Args:
         markdown_file: Path to markdown file (relative or absolute)
         disable_open: If True, do not open HTML in browser
+        mermaid_js: Optional local Mermaid JS file path (for offline embedding)
         debug: Enable debug logging
     """
     if debug:
@@ -34,6 +49,7 @@ def md2html_command(markdown_file: str, disable_open: bool, debug: bool) -> None
         logging.info(f"Reading markdown file: {md_path}")
         markdown_content = md_path.read_text(encoding="utf-8")
         markdown_content = _normalize_markdown_content(markdown_content)
+        has_mermaid = _markdown_has_mermaid(markdown_content)
 
         logging.debug("Converting markdown to HTML")
         md = _build_markdown_renderer()
@@ -43,10 +59,15 @@ def md2html_command(markdown_file: str, disable_open: bool, debug: bool) -> None
         body_html = md.renderer.render(tokens, md.options, env)
         body_html = _postprocess_body_html(body_html)
 
+        mermaid_js_content = ""
+        if has_mermaid:
+            mermaid_js_content = _load_mermaid_js(mermaid_js_path=mermaid_js)
+
         html_content = _wrap_html_document(
             title=md_path.stem,
             toc_html=toc_html,
             body_html=body_html,
+            mermaid_js=mermaid_js_content,
         )
 
         html_path = md_path.with_suffix(".html")
@@ -337,7 +358,74 @@ def _postprocess_body_html(body_html: str) -> str:
     return body_html
 
 
-def _wrap_html_document(*, title: str, toc_html: str, body_html: str) -> str:
+MERMAID_CDN_URL = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
+
+
+def _markdown_has_mermaid(markdown_content: str) -> bool:
+    return bool(re.search(r"```[ \t]*mermaid\b", markdown_content, flags=re.IGNORECASE))
+
+
+def _default_cache_dir() -> Path:
+    if sys.platform == "darwin":
+        base = Path.home() / "Library" / "Caches"
+    elif os.name == "nt":
+        base = Path(os.getenv("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    else:
+        base = Path(os.getenv("XDG_CACHE_HOME") or (Path.home() / ".cache"))
+    return base / "ccplugin" / "md2html"
+
+
+def _download_text(url: str) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "ccplugin-md2html/1.0",
+            "Accept": "text/javascript,*/*;q=0.9",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        raw = resp.read()
+    return raw.decode("utf-8", errors="replace")
+
+
+def _load_mermaid_js(*, mermaid_js_path: Path | None) -> str:
+    if mermaid_js_path:
+        logging.debug(f"Loading Mermaid JS from: {mermaid_js_path}")
+        return mermaid_js_path.read_text(encoding="utf-8")
+
+    cache_dir = _default_cache_dir()
+    cache_path = cache_dir / "mermaid@10.min.js"
+    try:
+        if cache_path.exists():
+            logging.debug(f"Loading Mermaid JS from cache: {cache_path}")
+            return cache_path.read_text(encoding="utf-8")
+    except Exception:
+        # Cache read errors shouldn't block downloading a fresh copy.
+        pass
+
+    logging.info("Downloading Mermaid JS for offline embedding (first time only)")
+    js = _download_text(MERMAID_CDN_URL)
+    if len(js) < 100_000:
+        raise RuntimeError("Downloaded Mermaid JS content looks invalid (too small).")
+
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(js, encoding="utf-8")
+        logging.debug(f"Cached Mermaid JS to: {cache_path}")
+    except Exception as e:
+        logging.warning(f"Failed to write Mermaid JS cache: {e}")
+
+    return js
+
+
+def _wrap_html_document(
+    *,
+    title: str,
+    toc_html: str,
+    body_html: str,
+    mermaid_js: str,
+) -> str:
     template = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -548,10 +636,22 @@ def _wrap_html_document(*, title: str, toc_html: str, body_html: str) -> str:
       cursor: zoom-in;
       display: flex;
       justify-content: center;
+      line-height: 1.25;
     }
     .mermaid svg {
       display: block;
       margin: 0 auto;
+    }
+    /* Mermaid typography fix: keep htmlLabels/foreignObject from inheriting page-wide line-height */
+    .md2html-mermaid-svg text,
+    .md2html-mermaid-svg tspan {
+      font-family: var(--sans);
+    }
+    .md2html-mermaid-svg foreignObject { overflow: visible; }
+    .md2html-mermaid-svg foreignObject * {
+      box-sizing: content-box;
+      line-height: 1.25;
+      font-family: var(--sans);
     }
 
     /* Heading anchor */
@@ -693,7 +793,7 @@ def _wrap_html_document(*, title: str, toc_html: str, body_html: str) -> str:
   <style>
 __MD2HTML_PYGMENTS_CSS__
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  __MD2HTML_MERMAID_SCRIPT__
 </head>
 <body>
   <div class="layout">
@@ -807,15 +907,44 @@ __MD2HTML_PYGMENTS_CSS__
         inner.classList.remove('dragging');
       });
 
+      const tagMermaidSvgs = (root) => {
+        try {
+          const scope = root && root.querySelectorAll ? root : document;
+          const mermaidRoots = [];
+          if (root && root.matches && root.matches('.mermaid')) mermaidRoots.push(root);
+          mermaidRoots.push(...scope.querySelectorAll('.mermaid'));
+          mermaidRoots.forEach((m) => {
+            m.querySelectorAll('svg').forEach((svg) => svg.classList.add('md2html-mermaid-svg'));
+          });
+        } catch (e) {}
+      };
+
       // Mermaid
       try {
         if (window.mermaid) {
+          const sans = (getComputedStyle(document.documentElement).getPropertyValue('--sans') || '')
+            .replace(/\\s+/g, ' ')
+            .trim();
+          const runMermaid = () => {
+            try {
+              window.mermaid
+                .run({ querySelector: '.mermaid[data-md2html-viewer=\"mermaid\"]' })
+                .then(() => tagMermaidSvgs(document))
+                .catch(() => {});
+            } catch (e) {}
+          };
           window.mermaid.initialize({
-            startOnLoad: true,
+            startOnLoad: false,
             theme: 'default',
             securityLevel: 'loose',
+            themeVariables: { fontFamily: sans || 'arial, sans-serif', fontSize: '14px' },
             flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
           });
+          if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+            document.fonts.ready.then(runMermaid).catch(runMermaid);
+          } else {
+            runMermaid();
+          }
         }
       } catch (e) {}
 
@@ -893,7 +1022,10 @@ __MD2HTML_PYGMENTS_CSS__
           if (!el.querySelector('svg')) {
             try {
               if (window.mermaid && window.mermaid.run) {
-                window.mermaid.run({ nodes: [el] }).then(tryOpen).catch(() => {});
+                window.mermaid
+                  .run({ nodes: [el] })
+                  .then(() => { tagMermaidSvgs(el); tryOpen(); })
+                  .catch(() => {});
               }
             } catch (e) {}
           }
@@ -925,4 +1057,12 @@ __MD2HTML_PYGMENTS_CSS__
         .replace("__MD2HTML_TOC__", toc_html or "")
         .replace("__MD2HTML_BODY__", body_html)
         .replace("__MD2HTML_PYGMENTS_CSS__", _pygments_css())
+        .replace("__MD2HTML_MERMAID_SCRIPT__", _wrap_script_tag(mermaid_js))
     )
+
+
+def _wrap_script_tag(js: str) -> str:
+    if not js.strip():
+        return ""
+    safe_js = js.replace("</script>", "<\\/script>")
+    return f"<script>\\n{safe_js}\\n</script>"
