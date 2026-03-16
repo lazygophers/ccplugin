@@ -99,6 +99,37 @@ def build_journey_section(tasks: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def build_multi_dependency_notes(tasks: list[dict], dependencies: dict) -> str:
+    """构建多依赖说明"""
+    multi_dep_tasks = []
+
+    # 找出有多个依赖的任务
+    for task in tasks:
+        task_id = str(task["id"])
+        deps = dependencies.get(task_id, [])
+        if len(deps) >= 2:
+            multi_dep_tasks.append({
+                "id": task_id,
+                "description": task["description"],
+                "deps": deps
+            })
+
+    if not multi_dep_tasks:
+        # 如果没有多依赖任务，返回通用说明
+        return "- 所有任务按依赖关系顺序执行\n- 多依赖任务必须等待**所有**前置任务完成后才能开始执行"
+
+    lines = []
+    for task in multi_dep_tasks:
+        dep_count = len(task["deps"])
+        dep_list = "、".join([f"T{dep}" for dep in task["deps"]])
+        line = f"- **T{task['id']}（{task['description']}）** 依赖 {dep_count} 个前置任务：{dep_list}"
+        lines.append(line)
+
+    lines.append("- 多依赖任务必须等待**所有**前置任务完成后才能开始执行")
+
+    return "\n".join(lines)
+
+
 def build_task_table(tasks: list[dict], dependencies: dict) -> str:
     """构建任务清单表格"""
     lines = [
@@ -175,6 +206,11 @@ def fill_template(
     table_pattern = r"\| 任务ID \| 任务名称 \| 负责Agent \| 使用Skills \| 相关文件 \| 依赖任务 \|.*?\n(?:\|.*?\n)*"
     task_table = build_task_table(tasks, dependencies)
     template_content = re.sub(table_pattern, task_table + "\n", template_content, flags=re.DOTALL)
+
+    # 替换多依赖说明
+    multi_dep_notes = build_multi_dependency_notes(tasks, dependencies)
+    multi_dep_pattern = r"\*\*多依赖说明：\*\*\n(?:- .*?\n)+"
+    template_content = re.sub(multi_dep_pattern, f"**多依赖说明：**\n{multi_dep_notes}\n", template_content, flags=re.DOTALL)
 
     # 替换验收标准
     acceptance_list = "\n".join([f"- [ ] {criterion}" for criterion in acceptance_criteria])
