@@ -160,6 +160,17 @@ skills:
 | **Files** | 涉及文件 | src/auth/jwt.go、tests/auth_test.go |
 | **Module** | 所属模块（可选） | auth、api、database |
 
+**Agent/Skills 来源标注规则**：
+- **插件提供**：标注插件名，格式 `agent名（说明）@插件名` 或 `skill名（说明）@插件名`
+- **项目本地**：标注 `@project`，格式 `agent名（说明）@project` 或 `skill名（说明）@project`
+- **全局用户**：标注 `@user`，格式 `agent名（说明）@user` 或 `skill名（说明）@user`
+
+示例：
+- `coder（开发者）@task` - task 插件提供的 coder agent
+- `golang:testing（测试）@golang` - golang 插件提供的测试 skill
+- `custom-agent（自定义代理）@project` - 项目本地定义的 agent
+- `python:core（核心功能）@user` - 用户全局配置的 skill
+
 **Agent 选择指南**：
 - `coder`：编写业务代码、实现功能
 - `tester`：编写测试、验证质量
@@ -196,8 +207,8 @@ skills:
     {
       "id": "T1",
       "description": "实现 JWT 工具函数",
-      "agent": "coder（开发者）",
-      "skills": ["golang:core（核心功能）"],
+      "agent": "coder（开发者）@task",
+      "skills": ["golang:core（核心功能）@golang"],
       "files": ["internal/auth/jwt.go"],
       "acceptance_criteria": [
         "生成和验证 Token 功能完整",
@@ -208,8 +219,8 @@ skills:
     {
       "id": "T2",
       "description": "实现认证中间件",
-      "agent": "coder（开发者）",
-      "skills": ["golang:core（核心功能）"],
+      "agent": "coder（开发者）@task",
+      "skills": ["golang:core（核心功能）@golang"],
       "files": ["internal/auth/middleware.go"],
       "acceptance_criteria": [
         "中间件功能正确",
@@ -220,8 +231,8 @@ skills:
     {
       "id": "T3",
       "description": "编写认证测试",
-      "agent": "tester（测试员）",
-      "skills": ["golang:testing（测试）"],
+      "agent": "tester（测试员）@task",
+      "skills": ["golang:testing（测试）@golang"],
       "files": ["internal/auth/jwt_test.go", "internal/auth/middleware_test.go"],
       "acceptance_criteria": [
         "所有测试用例通过",
@@ -320,6 +331,7 @@ skills:
 - ✓ 任务分解时保持单一维度
 - ✓ 验收标准必须可量化、可验证
 - ✓ Agent 和 Skills 名称必须带中文注释（如 `coder（开发者）`）
+- ✓ Agent 和 Skills 必须标注来源（如 `coder（开发者）@task`、`golang:testing@golang`、`custom-agent@project`）
 
 ### Don'ts ✗
 - ✗ 不要在信息不足时强行制定计划
@@ -359,8 +371,8 @@ skills:
     {
       "id": "T1",
       "description": "写代码",  // ❌ 描述模糊
-      "agent": "coder",  // ❌ 缺少中文注释
-      "skills": ["golang"],  // ❌ 技能过于宽泛
+      "agent": "coder",  // ❌ 缺少中文注释和来源标注
+      "skills": ["golang"],  // ❌ 技能过于宽泛且缺少来源标注
       "acceptance_criteria": ["代码质量好"]  // ❌ 无法量化
     }
   ]
@@ -371,13 +383,13 @@ skills:
 ```json
 {
   "status": "completed",
-  "report": "计划：3个子任务。T1：JWT 工具（coder）→ T2：认证中间件（coder）→ T3：测试覆盖（tester）。预计 2 小时。",
+  "report": "计划：3个子任务。T1：JWT 工具（coder@task）→ T2：认证中间件（coder@task）→ T3：测试覆盖（tester@task）。预计 2 小时。",
   "tasks": [
     {
       "id": "T1",
       "description": "实现 JWT 生成和验证工具函数",  // ✓ 清晰具体
-      "agent": "coder（开发者）",  // ✓ 有中文注释
-      "skills": ["golang:core（核心功能）"],  // ✓ 技能明确
+      "agent": "coder（开发者）@task",  // ✓ 有中文注释和来源标注
+      "skills": ["golang:core（核心功能）@golang"],  // ✓ 技能明确且有来源标注
       "files": ["internal/auth/jwt.go"],
       "acceptance_criteria": [
         "生成和验证 Token 功能完整",
