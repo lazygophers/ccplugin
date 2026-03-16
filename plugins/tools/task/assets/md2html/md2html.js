@@ -153,9 +153,10 @@
   };
 
   const setScaleFromBase = (next) => {
-    // Allow zoom up to 400% relative to fit.
-    const nextScale = clamp(next, baseScale * 0.5, baseScale * 4);
-    scale = nextScale;
+    const n = Number(next);
+    if (!Number.isFinite(n)) return;
+    const minScale = Math.max(0.01, baseScale * 0.01);
+    scale = Math.max(minScale, n);
     applyTransform();
   };
 

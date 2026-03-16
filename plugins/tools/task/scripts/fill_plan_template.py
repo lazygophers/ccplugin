@@ -10,6 +10,13 @@ from html import escape as html_escape
 from pathlib import Path
 
 
+def _sanitize_table_cell(text: object) -> str:
+    s = str(text).replace("\r\n", "\n").replace("\r", "\n")
+    s = re.sub(r"\s+", " ", s).strip()
+    # Markdown tables use `|` as a delimiter.
+    return s.replace("|", r"\|")
+
+
 def _task_id_variants(task_id: object) -> list[str]:
     raw = str(task_id).strip()
     if not raw:
@@ -167,6 +174,152 @@ def build_journey_section(tasks: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _sanitize_mermaid_state_text(text: object) -> str:
+    s = str(text).replace("\r\n", "\n").replace("\r", "\n")
+    # Mermaid state label uses double quotes; avoid breaking it.
+    s = s.replace('"', "”")
+    s = re.sub(r"[ \t]+", " ", s).strip()
+    return s
+
+
+def build_state_diagram_section(tasks: list[dict], dependencies: dict) -> str:
+    """构建 Mermaid stateDiagram-v2（用于 plan-confirmation-template.md）"""
+    lines = ["```mermaid", "stateDiagram-v2"]
+
+    if not tasks:
+        lines.append("    [*] --> [*]")
+        lines.append("```")
+        return "\n".join(lines)
+
+    node_ids = [_task_node_id(t["id"]) for t in tasks]
+    deps_map = {str(_task_display_id(t["id"])): _get_dependencies(dependencies, t["id"]) for t in tasks}
+
+    # Root nodes (no deps)
+    roots = [t for t in tasks if not _get_dependencies(dependencies, t["id"])]
+    if roots:
+        for t in roots:
+            lines.append(f"    [*] --> {_task_node_id(t['id'])}")
+    else:
+        # Fallback to the first task.
+        lines.append(f"    [*] --> {_task_node_id(tasks[0]['id'])}")
+
+    lines.append("")
+
+    # Task states
+    for task in tasks:
+        task_id = task["id"]
+        node_id = _task_node_id(task_id)
+        display_id = _task_display_id(task_id)
+        description = _sanitize_mermaid_state_text(task.get("description", ""))
+        agent = _sanitize_mermaid_state_text(task.get("agent", ""))
+        skills = task.get("skills", []) or []
+        files = task.get("files", []) or []
+
+        label_lines: list[str] = [
+            f"{display_id}: {description}",
+            "━━━━━━━━━━━━",
+            f"agent: {agent}",
+            "skills:",
+        ]
+        if skills:
+            label_lines.extend([f"  - {_sanitize_mermaid_state_text(s)}" for s in skills])
+        else:
+            label_lines.append("  - 无")
+        label_lines.append("files:")
+        if files:
+            label_lines.extend([f"  - {_sanitize_mermaid_state_text(f)}" for f in files])
+        else:
+            label_lines.append("  - 无")
+
+        label = "\\n".join(label_lines)
+        lines.append(f'    state "{label}" as {node_id}')
+
+    lines.append("")
+
+    # Edges
+    outgoing: dict[str, int] = {nid: 0 for nid in node_ids}
+    for task in tasks:
+        task_id = task["id"]
+        task_node = _task_node_id(task_id)
+        deps = _get_dependencies(dependencies, task_id)
+        for dep in deps:
+            dep_node = _task_node_id(dep)
+            lines.append(f"    {dep_node} --> {task_node}")
+            outgoing[dep_node] = outgoing.get(dep_node, 0) + 1
+
+    # Terminal nodes
+    terminals = [t for t in tasks if outgoing.get(_task_node_id(t["id"]), 0) == 0]
+    if terminals:
+        lines.append("")
+        for t in terminals:
+            lines.append(f"    {_task_node_id(t['id'])} --> [*]")
+
+    lines.append("```")
+    return "\n".join(lines)
+
+
+def _compact_gantt_task_name(task_id: object, description: object, *, max_len: int = 26) -> str:
+    base = _sanitize_journey_text(description)
+    prefix = _task_display_id(task_id)
+    label = f"{prefix} {base}".strip()
+    if len(label) <= max_len:
+        return label
+    return label[: max(0, max_len - 1)].rstrip() + "…"
+
+
+def build_gantt_section(tasks: list[dict], dependencies: dict, *, base_date: str = "2026-03-16 00:00") -> str:
+    """构建 Mermaid gantt（用于 plan-confirmation-template.md）"""
+    lines = [
+        "```mermaid",
+        "gantt",
+        "    title 任务相对耗时分布（单位：小时）",
+        "    dateFormat YYYY-MM-DD HH:mm",
+        "    axisFormat %H:%M",
+        "",
+    ]
+
+    if not tasks:
+        lines.append("    section 空")
+        lines.append("    无任务 :t0, 2026-03-16 00:00, 1h")
+        lines.append("```")
+        return "\n".join(lines)
+
+    # Stable ordering: first appearance
+    agent_order: list[str] = []
+    tasks_by_agent: dict[str, list[dict]] = {}
+    for t in tasks:
+        agent = _sanitize_journey_text(t.get("agent", "")) or "unknown"
+        if agent not in tasks_by_agent:
+            tasks_by_agent[agent] = []
+            agent_order.append(agent)
+        tasks_by_agent[agent].append(t)
+
+    # Map task -> gantt id (t1, t2, ...)
+    gantt_ids: dict[str, str] = {}
+    for i, t in enumerate(tasks, 1):
+        gantt_ids[_task_node_id(t["id"])] = f"t{i}"
+
+    for agent in agent_order:
+        lines.append(f"    section {agent}")
+        for t in tasks_by_agent[agent]:
+            tid = _task_node_id(t["id"])
+            gid = gantt_ids[tid]
+            name = _compact_gantt_task_name(t["id"], t.get("description", ""))
+            deps = _get_dependencies(dependencies, t["id"])
+            dep_gids = [gantt_ids.get(_task_node_id(d), "") for d in deps]
+            dep_gids = [x for x in dep_gids if x]
+
+            if dep_gids:
+                after_expr = " ".join(dep_gids)
+                lines.append(f"    {name} (1h)      :{gid}, after {after_expr}, 1h")
+            else:
+                lines.append(f"    {name} (1h)      :{gid}, {base_date}, 1h")
+        lines.append("")
+
+    lines.append("```")
+    return "\n".join(lines)
+
+
 def build_multi_dependency_notes(tasks: list[dict], dependencies: dict) -> str:
     """构建多依赖说明"""
     multi_dep_tasks = []
@@ -207,13 +360,13 @@ def build_task_table(tasks: list[dict], dependencies: dict) -> str:
 
     for task in tasks:
         task_id = task["id"]
-        description = task["description"]
-        agent = task["agent"]
+        description = _sanitize_table_cell(task.get("description", ""))
+        agent = _sanitize_table_cell(task.get("agent", ""))
         skills = task.get("skills", [])
         files = task.get("files", [])
 
-        skills_str = ", ".join(skills) if skills else "-"
-        files_str = ", ".join(files) if files else "-"
+        skills_str = ", ".join(_sanitize_table_cell(s) for s in skills) if skills else "-"
+        files_str = ", ".join(_sanitize_table_cell(f) for f in files) if files else "-"
 
         deps = _get_dependencies(dependencies, task_id)
         deps_str = ", ".join([_task_display_id(dep) for dep in deps]) if deps else "-"
@@ -261,14 +414,36 @@ def fill_template(
     )
 
     # 替换 flowchart（整个代码块）
-    flowchart_pattern = r"```mermaid\nflowchart TD\n.*?```"
-    flowchart_section = build_flowchart_section(tasks, dependencies)
-    template_content = re.sub(flowchart_pattern, flowchart_section, template_content, flags=re.DOTALL, count=1)
+    state_diagram_pattern = r"```mermaid\nstateDiagram-v2\n.*?```"
+    if re.search(state_diagram_pattern, template_content, flags=re.DOTALL):
+        state_diagram_section = build_state_diagram_section(tasks, dependencies)
+        template_content = re.sub(
+            state_diagram_pattern,
+            state_diagram_section,
+            template_content,
+            flags=re.DOTALL,
+            count=1,
+        )
+    else:
+        flowchart_pattern = r"```mermaid\nflowchart TD\n.*?```"
+        flowchart_section = build_flowchart_section(tasks, dependencies)
+        template_content = re.sub(
+            flowchart_pattern, flowchart_section, template_content, flags=re.DOTALL, count=1
+        )
 
     # 替换 journey（整个代码块）
-    journey_pattern = r"```mermaid\njourney\n.*?```"
-    journey_section = build_journey_section(tasks)
-    template_content = re.sub(journey_pattern, journey_section, template_content, flags=re.DOTALL, count=1)
+    gantt_pattern = r"```mermaid\ngantt\n.*?```"
+    if re.search(gantt_pattern, template_content, flags=re.DOTALL):
+        gantt_section = build_gantt_section(tasks, dependencies)
+        template_content = re.sub(
+            gantt_pattern, gantt_section, template_content, flags=re.DOTALL, count=1
+        )
+    else:
+        journey_pattern = r"```mermaid\njourney\n.*?```"
+        journey_section = build_journey_section(tasks)
+        template_content = re.sub(
+            journey_pattern, journey_section, template_content, flags=re.DOTALL, count=1
+        )
 
     # 替换任务表格（包括表头）
     table_pattern = r"\| 任务ID \| 任务名称 \| 负责Agent \| 使用Skills \| 相关文件 \| 依赖任务 \|.*?\n(?:\|.*?\n)*"
@@ -287,6 +462,19 @@ def fill_template(
 
     # 替换简要说明
     template_content = template_content.replace("[任务概述]", report)
+
+    # 填充“任务说明（≤100字）”
+    task_note_heading = "### 任务说明（≤100字）"
+    if task_note_heading in template_content:
+        parts = template_content.split(task_note_heading, 1)
+        before = parts[0] + task_note_heading
+        after = parts[1]
+        # Replace everything after heading with a single paragraph.
+        note = str(report).strip()
+        if note:
+            note = re.sub(r"\s+", " ", note)
+            note = note[:100]
+            template_content = before + "\n\n" + note + "\n"
 
     return template_content
 
