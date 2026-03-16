@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -10,6 +11,7 @@ from plugins.tools.task.scripts.md2html import (
     _load_mermaid_js,
     _markdown_has_mermaid,
     _normalize_markdown_content,
+    _resolve_asset_urls,
     _wrap_script_tag,
     _wrap_html_document,
     md2html_command,
@@ -97,6 +99,7 @@ def test_headings_get_ids_and_toc_is_generated() -> None:
 
 def test_cli_writes_full_html_document(tmp_path: Path) -> None:
     # Arrange
+    plugin_root = Path(__file__).resolve().parents[1]
     md_path = tmp_path / "doc.md"
     md_path.write_text(
         "# Doc\n\n- [ ] todo one\n- [x] done one\n\n```python\ndef hi(x):\n    return x + 1\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n![Alt](img.png)\n",
@@ -105,7 +108,11 @@ def test_cli_writes_full_html_document(tmp_path: Path) -> None:
 
     # Act
     runner = CliRunner()
-    result = runner.invoke(md2html_command, [str(md_path), "--disable-open"])
+    result = runner.invoke(
+        md2html_command,
+        [str(md_path), "--disable-open"],
+        env={"CLAUDE_PLUGIN_ROOT": str(plugin_root)},
+    )
 
     # Assert
     assert result.exit_code == 0, result.output
@@ -117,10 +124,14 @@ def test_cli_writes_full_html_document(tmp_path: Path) -> None:
     assert 'class="task-checkbox"' in html
     assert '<pre class="codehilite">' in html
     assert 'class="k"' in html
+    assert "md2html.css" in html
+    assert "md2html.js" in html
+    assert 'id="md2html-theme-toggle"' in html
 
 
 def test_cli_embeds_mermaid_js_when_markdown_has_mermaid(tmp_path: Path) -> None:
     # Arrange
+    plugin_root = Path(__file__).resolve().parents[1]
     md_path = tmp_path / "doc.md"
     md_path.write_text(
         "# Doc\n\n```mermaid\ngraph LR\nA-->B\n```\n",
@@ -137,6 +148,7 @@ def test_cli_embeds_mermaid_js_when_markdown_has_mermaid(tmp_path: Path) -> None
     result = runner.invoke(
         md2html_command,
         [str(md_path), "--disable-open", "--mermaid-js", str(mermaid_js_path)],
+        env={"CLAUDE_PLUGIN_ROOT": str(plugin_root)},
     )
 
     # Assert
@@ -145,7 +157,8 @@ def test_cli_embeds_mermaid_js_when_markdown_has_mermaid(tmp_path: Path) -> None
     assert html_path.exists()
     html = html_path.read_text(encoding="utf-8")
     assert "/*MERMAID_STUB*/" in html
-    assert "<script src=" not in html
+    assert "md2html.js" in html
+    assert "md2html.css" in html
 
 
 def test_wrap_document_includes_toc_and_body() -> None:
@@ -154,14 +167,23 @@ def test_wrap_document_includes_toc_and_body() -> None:
     body = '<h1 id="x">x</h1>'
 
     # Act
-    html = _wrap_html_document(title="t", toc_html=toc, body_html=body, mermaid_js="")
+    html = _wrap_html_document(
+        title="t",
+        toc_html=toc,
+        body_html=body,
+        mermaid_js="",
+        css_href="file:///tmp/md2html.css",
+        js_src="file:///tmp/md2html.js",
+    )
 
     # Assert
     assert toc in html
     assert body in html
+    assert "file:///tmp/md2html.css" in html
+    assert "file:///tmp/md2html.js" in html
 
 
-def test_wrap_document_includes_mermaid_font_overlap_fixes() -> None:
+def test_wrap_document_includes_theme_toggle_button() -> None:
     # Arrange
     toc = ""
     body = '<div class="mermaid" data-md2html-viewer="mermaid">graph LR\\nA-->B</div>'
@@ -172,13 +194,12 @@ def test_wrap_document_includes_mermaid_font_overlap_fixes() -> None:
         toc_html=toc,
         body_html=body,
         mermaid_js="window.mermaid={initialize(){},run(){return Promise.resolve();}};",
+        css_href="file:///tmp/md2html.css",
+        js_src="file:///tmp/md2html.js",
     )
 
     # Assert
-    assert "md2html-mermaid-svg" in html
-    assert "themeVariables" in html
-    assert ".run({ querySelector" in html
-    assert "<script src=" not in html
+    assert 'id="md2html-theme-toggle"' in html
     assert "window.mermaid={initialize()" in html
 
 
@@ -201,6 +222,9 @@ def test_wrap_script_tag_escapes_script_close_sequence() -> None:
     wrapped = _wrap_script_tag(js)
 
     # Assert
+    assert wrapped.startswith("<script>\n")
+    assert "<script>\\n" not in wrapped
+    assert wrapped.endswith("\n</script>")
     assert "<\\/script>" in wrapped
     assert "console.log('</script>')" not in wrapped
 
@@ -215,3 +239,41 @@ def test_load_mermaid_js_reads_from_explicit_path(tmp_path: Path) -> None:
 
     # Assert
     assert js == "window.mermaid = {};"
+
+
+def test_resolve_asset_urls_requires_env_var() -> None:
+    # Arrange
+    old = os.environ.pop("CLAUDE_PLUGIN_ROOT", None)
+
+    # Act / Assert
+    try:
+        try:
+            _resolve_asset_urls()
+            raise AssertionError("Expected RuntimeError for missing CLAUDE_PLUGIN_ROOT")
+        except RuntimeError:
+            pass
+    finally:
+        if old is not None:
+            os.environ["CLAUDE_PLUGIN_ROOT"] = old
+
+
+def test_resolve_asset_urls_returns_file_uris() -> None:
+    # Arrange
+    old = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    plugin_root = Path(__file__).resolve().parents[1]
+    os.environ["CLAUDE_PLUGIN_ROOT"] = str(plugin_root)
+
+    # Act
+    css_href, js_src = _resolve_asset_urls()
+
+    # Assert
+    assert css_href.startswith("file://")
+    assert js_src.startswith("file://")
+    assert css_href.endswith("/assets/md2html/md2html.css")
+    assert js_src.endswith("/assets/md2html/md2html.js")
+
+    # Cleanup
+    if old is None:
+        os.environ.pop("CLAUDE_PLUGIN_ROOT", None)
+    else:
+        os.environ["CLAUDE_PLUGIN_ROOT"] = old
