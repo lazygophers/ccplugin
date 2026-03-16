@@ -92,7 +92,7 @@ plan_md_path = generate_plan_document(
 # 转换为 HTML 供用户查看
 plan_html_path = plan_md_path.replace(".md", ".html")
 Bash(
-    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}}/skills/loop/scripts python main.py md2html {plan_md_path}",
+    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ${{CLAUDE_PLUGIN_ROOT}}/scripts/main.py md2html {plan_md_path}",
     description="将计划 Markdown 转换为 HTML"
 )
 
