@@ -972,23 +972,31 @@ body:is([data-theme="dark"] *) {
 
 .content table {
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .content table th,
   .content table td {
-  white-space: nowrap;
   border-bottom-width: 1px;
   padding-left: 0.75rem;
   padding-right: 0.75rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   text-align: center;
+  vertical-align: top;
   border-color: rgb(226 232 240 / 0.7);
 }
 
 .content table th:is([data-theme="dark"] *),
   .content table td:is([data-theme="dark"] *) {
   border-color: rgb(51 65 85 / 0.6);
+}
+
+.content table th,
+  .content table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .content table th {

@@ -132,11 +132,15 @@
     @apply block w-full overflow-x-auto rounded-2xl border mb-4;
     @apply border-slate-200/80 dark:border-slate-700/60;
     border-collapse: collapse;
+    table-layout: fixed;
   }
   .content table th,
   .content table td {
-    @apply border-b px-3 py-2 text-center whitespace-nowrap;
+    @apply border-b px-3 py-2 text-center align-top;
     @apply border-slate-200/70 dark:border-slate-700/60;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .content table th {
     @apply bg-slate-900/[0.03] dark:bg-white/5;

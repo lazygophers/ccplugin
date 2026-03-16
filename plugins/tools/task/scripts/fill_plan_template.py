@@ -6,7 +6,66 @@
 import json
 import re
 import sys
+from html import escape as html_escape
 from pathlib import Path
+
+
+def _task_id_variants(task_id: object) -> list[str]:
+    raw = str(task_id).strip()
+    if not raw:
+        return ["0", "T0"]
+    if raw.startswith("T"):
+        return [raw, raw[1:]]
+    return [raw, f"T{raw}"]
+
+
+def _task_display_id(task_id: object) -> str:
+    raw = str(task_id).strip()
+    if not raw:
+        return "T0"
+    return raw if raw.startswith("T") else f"T{raw}"
+
+
+def _task_node_id(task_id: object) -> str:
+    # Mermaid node ids should be identifier-like. Keep it stable and safe.
+    display = _task_display_id(task_id)
+    safe = re.sub(r"[^A-Za-z0-9_]", "_", display)
+    # Ensure it starts with a letter (Mermaid is usually tolerant, but keep safe).
+    if not safe or not safe[0].isalpha():
+        safe = f"T{safe}"
+    return safe
+
+
+def _get_dependencies(dependencies: dict, task_id: object) -> list:
+    for key in _task_id_variants(task_id):
+        if key in dependencies:
+            deps = dependencies.get(key)
+            return deps if isinstance(deps, list) else []
+    return []
+
+
+def _escape_mermaid_html_label(text: object) -> str:
+    # Escape user-controlled text that will live inside Mermaid's htmlLabels.
+    # Keep our own <br/> separators outside.
+    s = str(text).replace("\r\n", "\n").replace("\r", "\n")
+    s = re.sub(r"\s+", " ", s).strip()
+    return html_escape(s, quote=True)
+
+
+def _sanitize_journey_text(text: object) -> str:
+    s = str(text).replace("\r\n", "\n").replace("\r", "\n")
+    s = re.sub(r"\s+", " ", s).strip()
+    # Mermaid journey uses ":" as a delimiter: task: score: actor
+    return s.replace(":", "：")
+
+
+def _compact_journey_task_name(task_id: object, description: object, *, max_len: int = 28) -> str:
+    base = _sanitize_journey_text(description)
+    prefix = _task_display_id(task_id)
+    label = f"{prefix} {base}".strip()
+    if len(label) <= max_len:
+        return label
+    return label[: max(0, max_len - 1)].rstrip() + "…"
 
 
 def build_flowchart_section(tasks: list[dict], dependencies: dict) -> str:
@@ -15,7 +74,7 @@ def build_flowchart_section(tasks: list[dict], dependencies: dict) -> str:
 
     # Start节点
     if tasks:
-        lines.append(f"    Start([开始]) --> T{tasks[0]['id']}")
+        lines.append(f"    Start([开始]) --> {_task_node_id(tasks[0]['id'])}")
         lines.append("")
 
     # 所有任务节点
@@ -29,24 +88,33 @@ def build_flowchart_section(tasks: list[dict], dependencies: dict) -> str:
         skill_display = skills[0] if skills else "无"
         file_display = files[0] if files else "无"
 
-        node = f'    T{task_id}["{task_id}: {description}<br/>━━━━━━━━━━━━<br/>agent: {agent}<br/>skills: {skill_display}<br/>files: {file_display}"]'
+        node_id = _task_node_id(task_id)
+        label_lines = [
+            f"{_task_display_id(task_id)}: {description}",
+            "━━━━━━━━━━━━",
+            f"agent: {agent}",
+            f"skills: {skill_display}",
+            f"files: {file_display}",
+        ]
+        label = "<br/>".join(_escape_mermaid_html_label(x) for x in label_lines)
+        node = f'    {node_id}["{label}"]'
         lines.append(node)
 
     lines.append("")
 
     # 依赖关系箭头
     for task in tasks:
-        task_id = str(task["id"])
-        deps = dependencies.get(task_id, [])
+        task_id = task["id"]
+        deps = _get_dependencies(dependencies, task_id)
 
         if deps:
-            dep_list = " & ".join([f"T{dep}" for dep in deps])
-            lines.append(f"    {dep_list} --> T{task_id}")
+            dep_list = " & ".join([_task_node_id(dep) for dep in deps])
+            lines.append(f"    {dep_list} --> {_task_node_id(task_id)}")
 
     # End节点
     if tasks:
         lines.append("")
-        lines.append(f"    T{tasks[-1]['id']} --> End([结束])")
+        lines.append(f"    {_task_node_id(tasks[-1]['id'])} --> End([结束])")
 
     # 样式类
     lines.append("")
@@ -55,7 +123,7 @@ def build_flowchart_section(tasks: list[dict], dependencies: dict) -> str:
     lines.append("")
     lines.append("    class Start,End startEnd")
 
-    task_ids = ",".join([f"T{t['id']}" for t in tasks])
+    task_ids = ",".join([_task_node_id(t["id"]) for t in tasks])
     lines.append(f"    class {task_ids} task")
 
     lines.append("```")
@@ -77,8 +145,8 @@ def build_journey_section(tasks: list[dict]) -> str:
 
     total = len(tasks)
     for i, task in enumerate(tasks):
-        task_name = task["description"]
-        agent = task["agent"]
+        task_name = _compact_journey_task_name(task["id"], task["description"])
+        agent = _sanitize_journey_text(task["agent"])
 
         if i < total * 0.2:
             sections["需求阶段"].append(f"      {task_name}: 5: {agent}")
@@ -105,11 +173,11 @@ def build_multi_dependency_notes(tasks: list[dict], dependencies: dict) -> str:
 
     # 找出有多个依赖的任务
     for task in tasks:
-        task_id = str(task["id"])
-        deps = dependencies.get(task_id, [])
+        task_id = task["id"]
+        deps = _get_dependencies(dependencies, task_id)
         if len(deps) >= 2:
             multi_dep_tasks.append({
-                "id": task_id,
+                "id": _task_display_id(task_id),
                 "description": task["description"],
                 "deps": deps
             })
@@ -121,8 +189,8 @@ def build_multi_dependency_notes(tasks: list[dict], dependencies: dict) -> str:
     lines = []
     for task in multi_dep_tasks:
         dep_count = len(task["deps"])
-        dep_list = "、".join([f"T{dep}" for dep in task["deps"]])
-        line = f"- **T{task['id']}（{task['description']}）** 依赖 {dep_count} 个前置任务：{dep_list}"
+        dep_list = "、".join([_task_display_id(dep) for dep in task["deps"]])
+        line = f"- **{task['id']}（{task['description']}）** 依赖 {dep_count} 个前置任务：{dep_list}"
         lines.append(line)
 
     lines.append("- 多依赖任务必须等待**所有**前置任务完成后才能开始执行")
@@ -147,10 +215,10 @@ def build_task_table(tasks: list[dict], dependencies: dict) -> str:
         skills_str = ", ".join(skills) if skills else "-"
         files_str = ", ".join(files) if files else "-"
 
-        deps = dependencies.get(str(task_id), [])
-        deps_str = ", ".join([f"T{dep}" for dep in deps]) if deps else "-"
+        deps = _get_dependencies(dependencies, task_id)
+        deps_str = ", ".join([_task_display_id(dep) for dep in deps]) if deps else "-"
 
-        row = f"| T{task_id} | {description} | {agent} | {skills_str} | {files_str} | {deps_str} |"
+        row = f"| {_task_display_id(task_id)} | {description} | {agent} | {skills_str} | {files_str} | {deps_str} |"
         lines.append(row)
 
     return "\n".join(lines)
