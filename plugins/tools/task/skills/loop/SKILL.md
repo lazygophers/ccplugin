@@ -149,7 +149,7 @@ print(f"✓ 计划已生成并打开：{plan_md_path.replace('.md', '.html')}")
 ```
 
 **重要**：
-1. **严格使用 `main.py fill-plan` 命令填充模板**，不要自己实现填充逻辑
+1. **严格使用 `${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md` 填充模板**，不要自己实现填充逻辑
 2. **严格使用 `main.py md2html` 命令转换 HTML**，不要自己实现转换逻辑
 3. md2html 默认会自动在浏览器中打开生成的 HTML
 4. 环境变量 `${CLAUDE_PLUGIN_ROOT}` 需要替换为实际路径（通常是 `/Users/luoxin/persons/lyxamour/ccplugin/plugins/tools/task`）
