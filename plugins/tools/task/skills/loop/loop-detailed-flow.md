@@ -81,26 +81,37 @@ if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
 
 ### 生成计划确认文档
 
-```python
-# 使用模板生成计划文档
-plan_md_path = generate_plan_document(
-    planner_result=planner_result,
-    template="${CLAUDE_PLUGIN_ROOT}/skills/loop/plan-confirmation-template.md",
-    iteration=iteration
-)
+直接基于 `plan-confirmation-template.md` 模板格式生成 Markdown 文档，无需脚本处理：
 
-# 转换为 HTML 供用户查看
-plan_html_path = plan_md_path.replace(".md", ".html")
-Bash(
-    command=f"uv run --directory ${{CLAUDE_PLUGIN_ROOT}} ${{CLAUDE_PLUGIN_ROOT}}/scripts/main.py md2html {plan_md_path}",
-    description="将计划 Markdown 转换为 HTML"
-)
+```python
+from pathlib import Path
+
+# 确定计划文件路径
+# 文件名格式：<任务名>-<迭代数>.md
+# 存放目录：.claude/plans（固定路径）
+plans_dir = Path(".claude/plans")
+plans_dir.mkdir(parents=True, exist_ok=True)
+
+# 从任务内容生成安全的文件名（移除特殊字符，限制长度）
+import re
+safe_task_name = re.sub(r'[^\w\u4e00-\u9fff]+', '-', user_task)[:50]
+plan_md_path = plans_dir / f"{safe_task_name}-{iteration}.md"
+
+# 基于 plan-confirmation-template.md 模板格式生成 Markdown
+# 包含：任务编排图（Mermaid stateDiagram）、任务清单表格、迭代验收标准、任务说明
+Write(str(plan_md_path), filled_markdown_content)
 
 # 输出计划报告
 print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
 print(planner_result["report"])
-print(f"详细计划已生成：{plan_html_path}")
+print(f"✓ 计划已生成：{plan_md_path}")
 ```
+
+**重要说明**：
+- 计划文件固定存放在 `.claude/plans` 目录（不从环境变量读取）
+- 文件名格式：`<任务名>-<迭代数>.md`（例如：`添加用户认证-1.md`）
+- 任务名会进行安全化处理（移除特殊字符，限制长度）
+- 直接生成 Markdown 文档，无需额外的脚本或 HTML 转换
 
 ### 状态转换
 - **成功（有任务需执行）** → 进入"计划确认"

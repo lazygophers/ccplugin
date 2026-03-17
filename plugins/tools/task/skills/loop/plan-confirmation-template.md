@@ -43,49 +43,23 @@ stateDiagram-v2
     T9 --> [*]
 ```
 
-### Agent/成员 视角
-
-```mermaid
-gantt
-    title 任务相对耗时分布（单位：小时）
-    dateFormat YYYY-MM-DD
-    axisFormat %H:%M
-
-    section analyst（分析师）@project
-    T1 需求分析 (1h)      :t1, 2024-01-01 00:00, 1h
-
-    section developer（开发者）@task
-    T2 核心功能实现 (2h)  :t2, after t1, 2h
-    T3 API接口开发 (2h)   :t3, after t1, 2h
-    T4 配置管理 (1h)      :t4, after t1, 1h
-    T5 性能优化 (1h)      :t5, after t2, 1h
-
-    section tester（测试员）@task
-    T6 单元测试 (1h)      :t6, after t2 t3, 1h
-    T8 集成测试 (1h)      :t8, after t4 t5 t6 t7, 1h
-
-    section writer（文档撰写者）@task
-    T7 API文档 (1h)       :t7, after t3, 1h
-
-    section reviewer（审查员）@task
-    T9 代码审查 (1h)      :t9, after t8, 1h
-```
-
 ### 任务清单
 
-| 任务ID | 任务名称 | 负责Agent | 使用Skills | 相关文件 | 依赖任务 |
-|--------|---------|-----------|-----------|---------|---------|
-| T1 | 需求分析 | analyst（分析师）@project | requirements（需求分析）@project | docs/requirements.md | - |
-| T2 | 核心功能实现 | developer（开发者）@task | python:core（核心功能）@python<br>python:async（异步编程）@python | src/core.py<br>src/utils.py | T1 |
-| T3 | API接口开发 | developer（开发者）@task | python:web（Web开发）@python<br>python:security（安全编码）@python | src/api.py<br>src/middleware.py | T1 |
-| T4 | 配置管理 | developer（开发者）@task | python:core（核心功能）@python | src/config.py | T1 |
-| T5 | 性能优化 | developer（开发者）@task | python:async（异步编程）@python<br>python:core（核心功能）@python | src/core.py | T2 |
-| T6 | 单元测试 | tester（测试员）@task | python:testing（测试）@python | tests/test_core.py<br>tests/test_api.py | T2, T3 |
-| T7 | API文档 | writer（文档撰写者）@task | documentation（文档编写）@user | docs/api.md | T3 |
-| T8 | 集成测试 | tester（测试员）@task | python:testing（测试）@python<br>python:web（Web开发）@python | tests/test_integration.py | T4, T5, T6, T7 |
-| T9 | 代码审查 | reviewer（审查员）@task | code-review（代码审查）@code-review<br>python:core（核心功能）@python | 所有变更文件 | T8 |
+| 状态 | 任务ID | 任务名称 | 负责Agent | 使用Skills | 相关文件 | 依赖任务 | 验收标准 |
+|------|--------|---------|-----------|-----------|---------|---------|---------|
+| 📋 | T1 | 需求分析 | analyst（分析师）@project | requirements（需求分析）@project | docs/requirements.md | - | - [ ] 需求文档完整<br>- [ ] 用例清晰 |
+| 📋 | T2 | 核心功能实现 | developer（开发者）@task | python:core（核心功能）@python<br>python:async（异步编程）@python | src/core.py<br>src/utils.py | T1 | - [ ] 功能实现完整<br>- [ ] 代码通过 lint |
+| 📋 | T3 | API接口开发 | developer（开发者）@task | python:web（Web开发）@python<br>python:security（安全编码）@python | src/api.py<br>src/middleware.py | T1 | - [ ] API 端点完整<br>- [ ] 安全检查通过 |
+| 📋 | T4 | 配置管理 | developer（开发者）@task | python:core（核心功能）@python | src/config.py | T1 | - [ ] 配置项完整<br>- [ ] 默认值合理 |
+| 📋 | T5 | 性能优化 | developer（开发者）@task | python:async（异步编程）@python<br>python:core（核心功能）@python | src/core.py | T2 | - [ ] 性能指标达标<br>- [ ] 无性能回归 |
+| 📋 | T6 | 单元测试 | tester（测试员）@task | python:testing（测试）@python | tests/test_core.py<br>tests/test_api.py | T2, T3 | - [ ] 覆盖率 ≥ 90%<br>- [ ] 所有测试通过 |
+| 📋 | T7 | API文档 | writer（文档撰写者）@task | documentation（文档编写）@user | docs/api.md | T3 | - [ ] 文档完整<br>- [ ] 示例清晰 |
+| 📋 | T8 | 集成测试 | tester（测试员）@task | python:testing（测试）@python<br>python:web（Web开发）@python | tests/test_integration.py | T4, T5, T6, T7 | - [ ] 集成测试通过<br>- [ ] E2E 场景覆盖 |
+| 📋 | T9 | 代码审查 | reviewer（审查员）@task | code-review（代码审查）@code-review<br>python:core（核心功能）@python | 所有变更文件 | T8 | - [ ] 代码质量达标<br>- [ ] 无阻塞性问题 |
 
-### 验收标准
+**状态说明**：📋 待开始 | ⏸️ 等待前置任务 | 🔄 进行中 | ✅ 已完成 | ❌ 失败
+
+### 迭代验收标准
 
 - [ ] 单元测试覆盖率 ≥ 90%
 - [ ] 所有 CI 检查通过（lint/test/build）

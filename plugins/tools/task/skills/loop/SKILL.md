@@ -106,13 +106,12 @@ stateDiagram-v2
 - 融合研究发现和推荐方案
 - 设置质量目标（对应当前轮次阈值）
 - MECE 分解、DAG 依赖、验收标准
-- 生成计划文档并转换为 HTML
+- 生成计划文档（Markdown）
 
 **关键步骤**：
-1. 保存 planner_result 为 JSON
-2. 调用 fill-plan 命令填充模板
-3. 调用 md2html 命令转换并打开
-4. 清理临时文件
+1. 从 planner_result 中提取任务、依赖、验收标准
+2. 基于 plan-confirmation-template.md 模板格式生成 Markdown
+3. 保存计划文档到 `.claude/plans/<任务名>-<迭代数>.md`
 
 **详见**：[计划设计详细实现](loop-deep-iteration.md#计划设计阶段融合研究结果)
 

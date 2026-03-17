@@ -42,10 +42,9 @@
   - 定义可量化的验收标准
 
 → 计划确认（Plan Confirmation）
-  - 生成计划文档（Markdown + HTML）
+  - 生成计划文档（Markdown）
   - 输出执行流程图和验收标准
   - 用户确认计划
-  - 清理临时文件
 
 → 任务执行（Execution / Do）
   - 判断任务数量（1 个任务不创建 team，多个任务创建 team）
@@ -123,17 +122,19 @@
 
 ```
 task/
-├── commands/
-│   ├── loop.md      # 主流程 (team leader)
-│   ├── add.md       # 调整任务
-│   └── cancel.md    # 中断执行
+├── agents/          # Agent 定义
+│   ├── planner.md
+│   ├── verifier.md
+│   └── adjuster.md
 ├── skills/
-│   ├── core/        # 核心概念和规范
-│   ├── gather/      # 信息收集规范
-│   ├── plan/        # 计划设计规范
-│   ├── execute/     # 任务执行规范
-│   ├── verify/      # 结果验证规范
-│   └── loop/        # 循环控制规范
+│   ├── adjuster/       # 失败调整规范
+│   ├── deep-iteration/ # 深度迭代规范
+│   ├── execute/        # 任务执行规范
+│   ├── finalizer/      # 完成清理规范
+│   ├── loop/           # 循环控制规范
+│   ├── planner/        # 计划设计规范
+│   └── verifier/       # 结果验证规范
+├── docs/            # 文档
 └── README.md
 ```
 
