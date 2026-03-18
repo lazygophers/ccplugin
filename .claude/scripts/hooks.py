@@ -158,6 +158,19 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 		if tool_name == "bash":
 			if "command" in tool_input:
 				command = tool_input.get("command", "")
+				# 白名单：允许 git 命令和 git 相关文件操作自动执行
+				if (command.strip().startswith("git ") or
+					command.find(" && git ") >= 0 or
+					command.find("; git ") >= 0 or
+					command.find(".git/") >= 0):
+					print(json.dumps({
+						"hookSpecificOutput": {
+							"hookEventName": "PreToolUse",
+							"permissionDecision": "allow",
+							"updatedInput": tool_input
+						}
+					}))
+					return
 				if command.find("rm") >= 0:
 					for locked_file in remove_files:
 						if command.find(locked_file) >= 0:
