@@ -1,6 +1,6 @@
 {
   "name": "office-xlsx",
-  "version": "0.0.179",
+  "version": "0.0.180",
   "description": "Excel xlsx 文件读写和数据分析插件。基于 MCP 协议提供 Excel 操作工具。",
   "author": {
     "name": "lazygophers",
