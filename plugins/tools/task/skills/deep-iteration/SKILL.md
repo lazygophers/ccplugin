@@ -85,21 +85,88 @@ user-invocable: false
 2. ✓ 质量分数 ≥ 当前迭代的阈值
 3. ✓ 遵循行业最佳实践（无明显偏离）
 4. ✓ 用户明确确认"完全符合预期"
-5. ✓ 达到最小迭代次数（3 轮）
+5. ✓ 达到最小迭代次数（根据任务复杂度动态确定）
 
 ## 集成到 Loop
 
 ### 初始化阶段
 
 ```python
+# 1. 评估任务复杂度（动态确定最小迭代次数）
+def assess_task_complexity(user_task: str) -> dict:
+    """
+    评估任务复杂度，返回迭代配置
+
+    评分维度（总分 100）：
+    - 文件变更数（0-25分）：1-2文件=5分，3-5=15分，6+=25分
+    - 技术栈新颖度（0-25分）：熟悉=5分，新技术=15分，未知=25分
+    - 任务类型（0-25分）：bug修复=5分，新功能=15分，架构重构=25分
+    - 质量要求（0-25分）：基础=5分，生产级=15分，企业级=25分
+
+    复杂度分级：
+    - Simple（0-30分）：1 轮迭代，阈值 {1: 70}
+    - Moderate（31-60分）：2 轮迭代，阈值 {1: 60, 2: 80}
+    - Complex（61-80分）：3 轮迭代，阈值 {1: 60, 2: 75, 3: 85}
+    - VeryComplex（81-100分）：4 轮迭代，阈值 {1: 60, 2: 70, 3: 80, 4: 90}
+    """
+    # 示例评估逻辑（planner 在计划设计时可以提供复杂度评分）
+    score = 0
+
+    # 从任务描述中推断复杂度（简化版）
+    if any(keyword in user_task for keyword in ["重构", "架构", "迁移", "升级"]):
+        score += 25  # 架构重构类任务
+    elif any(keyword in user_task for keyword in ["新增", "添加", "实现", "开发"]):
+        score += 15  # 新功能开发
+    else:
+        score += 5  # bug修复或简单任务
+
+    # 默认假设中等质量要求和技术熟悉度
+    score += 15 + 15  # 质量要求 + 技术栈
+
+    # 根据评分确定配置
+    if score <= 30:
+        return {
+            "complexity": "simple",
+            "min_iterations": 1,
+            "quality_threshold": {1: 70}
+        }
+    elif score <= 60:
+        return {
+            "complexity": "moderate",
+            "min_iterations": 2,
+            "quality_threshold": {1: 60, 2: 80}
+        }
+    elif score <= 80:
+        return {
+            "complexity": "complex",
+            "min_iterations": 3,
+            "quality_threshold": {1: 60, 2: 75, 3: 85}
+        }
+    else:
+        return {
+            "complexity": "very_complex",
+            "min_iterations": 4,
+            "quality_threshold": {1: 60, 2: 70, 3: 80, 4: 90}
+        }
+
+# 2. 根据复杂度初始化配置
+complexity_config = assess_task_complexity(user_task)
+
 deep_iteration_config = {
     "mode": "deep",  # 深度迭代模式（默认）
-    "min_iterations": 3,  # 最小迭代次数
-    "quality_threshold": {1: 60, 2: 75, 3: 85, 4: 90},
+    "min_iterations": complexity_config["min_iterations"],  # 动态确定
+    "quality_threshold": complexity_config["quality_threshold"],  # 动态阈值
+    "complexity": complexity_config["complexity"],  # 复杂度等级
     "enable_research": True,
     "enable_quality_gate": True,
     "enable_continuous_improvement": True
 }
+
+# 输出初始化信息
+print(f"[MindFlow·{user_task}·初始化/1·进行中]")
+print(f"✓ 任务复杂度：{complexity_config['complexity']}")
+print(f"✓ 最小迭代次数：{complexity_config['min_iterations']} 轮")
+print(f"✓ 质量阈值：{complexity_config['quality_threshold']}")
 ```
 
 ### 深度研究阶段（1.5）
@@ -121,7 +188,7 @@ deep_iteration_config = {
 
 增强验证：
 - **质量门控**：检查质量分数是否达标
-- **最小迭代**：检查是否达到 3 轮
+- **最小迭代**：检查是否达到最小迭代次数（根据复杂度动态确定）
 - **持续改进**：识别高价值优化点
 
 详见：[loop-deep-iteration.md](../loop/loop-deep-iteration.md#结果验证阶段质量门控--持续改进)
