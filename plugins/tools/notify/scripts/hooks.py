@@ -286,6 +286,10 @@ def handle_hook() -> None:
 	info(f"处理 Hook 事件: {event_name}")
 	debug(f"Hook 数据: {json.dumps(hook_data)}")
 
+	if event_name == "Stop":
+		if "subagent_type" in hook_data:
+			return
+
 	config = load_config()
 
 	context = extract_context_from_hook_data(hook_data)
