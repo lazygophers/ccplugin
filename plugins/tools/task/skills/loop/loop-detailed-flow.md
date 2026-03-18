@@ -130,7 +130,7 @@ print(f"✓ 计划已生成：{plan_md_path}")
 # 询问用户意见
 user_decision = AskUserQuestion(
     question="请确认执行计划",
-    options=["立即执行", "重新设计", "我有别的想法"]
+    options=["立即执行", "重新设计"]
 )
 
 # 清理临时 HTML 文件
