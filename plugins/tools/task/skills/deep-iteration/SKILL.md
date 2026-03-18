@@ -103,11 +103,16 @@ def assess_task_complexity(user_task: str) -> dict:
     - 任务类型（0-25分）：bug修复=5分，新功能=15分，架构重构=25分
     - 质量要求（0-25分）：基础=5分，生产级=15分，企业级=25分
 
-    复杂度分级：
-    - Simple（0-30分）：1 轮迭代，阈值 {1: 70}
-    - Moderate（31-60分）：2 轮迭代，阈值 {1: 60, 2: 80}
-    - Complex（61-80分）：3 轮迭代，阈值 {1: 60, 2: 75, 3: 85}
-    - VeryComplex（81-100分）：4 轮迭代，阈值 {1: 60, 2: 70, 3: 80, 4: 90}
+    复杂度分级（最小迭代次数，无最大轮数限制）：
+    - Simple（0-30分）：最小 1 轮
+    - Moderate（31-60分）：最小 2 轮
+    - Complex（61-100分）：最小 3 轮
+
+    质量阈值递进（持续提升，无上限）：
+    - 轮次 1: 60分（Foundation - 基础）
+    - 轮次 2: 75分（Enhancement - 增强）
+    - 轮次 3: 85分（Refinement - 精化）
+    - 轮次 4+: 90分（Excellence - 卓越，保持）
     """
     # 示例评估逻辑（planner 在计划设计时可以提供复杂度评分）
     score = 0
@@ -127,46 +132,55 @@ def assess_task_complexity(user_task: str) -> dict:
     if score <= 30:
         return {
             "complexity": "simple",
-            "min_iterations": 1,
-            "quality_threshold": {1: 70}
+            "min_iterations": 1
         }
     elif score <= 60:
         return {
             "complexity": "moderate",
-            "min_iterations": 2,
-            "quality_threshold": {1: 60, 2: 80}
+            "min_iterations": 2
         }
-    elif score <= 80:
+    else:  # score > 60
         return {
             "complexity": "complex",
-            "min_iterations": 3,
-            "quality_threshold": {1: 60, 2: 75, 3: 85}
+            "min_iterations": 3
         }
-    else:
-        return {
-            "complexity": "very_complex",
-            "min_iterations": 4,
-            "quality_threshold": {1: 60, 2: 70, 3: 80, 4: 90}
-        }
+
+def get_quality_threshold(iteration: int) -> int:
+    """
+    获取指定迭代轮次的质量阈值（递进式，无上限）
+
+    轮次 1: 60分（Foundation）
+    轮次 2: 75分（Enhancement）
+    轮次 3: 85分（Refinement）
+    轮次 4+: 90分（Excellence，保持）
+    """
+    thresholds = {
+        1: 60,
+        2: 75,
+        3: 85
+    }
+    return thresholds.get(iteration, 90)  # 第 4 轮及以后保持 90 分
 
 # 2. 根据复杂度初始化配置
 complexity_config = assess_task_complexity(user_task)
 
 deep_iteration_config = {
     "mode": "deep",  # 深度迭代模式（默认）
-    "min_iterations": complexity_config["min_iterations"],  # 动态确定
-    "quality_threshold": complexity_config["quality_threshold"],  # 动态阈值
+    "min_iterations": complexity_config["min_iterations"],  # 最小迭代次数（1-3 轮）
+    "max_iterations": None,  # 无最大轮数限制，持续迭代直到质量达标
     "complexity": complexity_config["complexity"],  # 复杂度等级
     "enable_research": True,
     "enable_quality_gate": True,
     "enable_continuous_improvement": True
 }
 
+# 质量阈值通过 get_quality_threshold(iteration) 函数动态获取
+
 # 输出初始化信息
 print(f"[MindFlow·{user_task}·初始化/1·进行中]")
 print(f"✓ 任务复杂度：{complexity_config['complexity']}")
 print(f"✓ 最小迭代次数：{complexity_config['min_iterations']} 轮")
-print(f"✓ 质量阈值：{complexity_config['quality_threshold']}")
+print(f"✓ 质量阈值：递进式（60→75→85→90分，无上限）")
 ```
 
 ### 深度研究阶段（1.5）

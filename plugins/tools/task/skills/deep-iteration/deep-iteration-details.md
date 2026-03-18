@@ -55,14 +55,14 @@ planner_result = Agent(
 
 ### 阶段 2：质量递进（Quality Progression）
 
-**迭代质量等级**：
+**迭代质量等级**（递进式，无轮数上限）：
 
-| 迭代轮次 | 质量等级 | 验收标准 |
-|---------|---------|---------|
-| 第 1 轮 | Foundation（基础） | 功能实现，测试通过 |
-| 第 2 轮 | Enhancement（增强） | 边界处理，错误处理，性能优化 |
-| 第 3 轮 | Refinement（精化） | 代码质量，可维护性，文档完善 |
-| 第 4+ 轮 | Excellence（卓越） | 最佳实践，可扩展性，安全性 |
+| 迭代轮次 | 质量阈值 | 质量等级 | 验收标准 |
+|---------|---------|---------|---------|
+| 第 1 轮 | 60分 | Foundation（基础） | 功能实现，测试通过 |
+| 第 2 轮 | 75分 | Enhancement（增强） | 边界处理，错误处理，性能优化 |
+| 第 3 轮 | 85分 | Refinement（精化） | 代码质量，可维护性，文档完善 |
+| 第 4+ 轮 | 90分 | Excellence（卓越，保持） | 最佳实践，可扩展性，安全性，持续改进 |
 
 **质量门控**：
 
@@ -208,13 +208,16 @@ complexity_config = assess_task_complexity(user_task)
 
 deep_iteration_config = {
     "mode": "deep",  # standard | deep
-    "min_iterations": complexity_config["min_iterations"],  # 动态确定（1-4 轮）
-    "quality_threshold": complexity_config["quality_threshold"],  # 动态阈值
-    "complexity": complexity_config["complexity"],  # simple | moderate | complex | very_complex
+    "min_iterations": complexity_config["min_iterations"],  # 最小迭代次数（1-3 轮）
+    "max_iterations": None,  # 无最大轮数限制，持续迭代直到质量达标
+    "complexity": complexity_config["complexity"],  # simple | moderate | complex
     "enable_research": True,  # 启用深度研究
     "enable_quality_gate": True,  # 启用质量门控
     "enable_continuous_improvement": True  # 启用持续改进
 }
+
+# 质量阈值通过 get_quality_threshold(iteration) 函数动态获取
+# 轮次 1: 60分, 轮次 2: 75分, 轮次 3: 85分, 轮次 4+: 90分（保持）
 ```
 
 ## 深度研究触发条件

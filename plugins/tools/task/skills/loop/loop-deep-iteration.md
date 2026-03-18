@@ -10,13 +10,16 @@ complexity_config = assess_task_complexity(user_task)
 
 deep_iteration_config = {
     "mode": "deep",  # 深度迭代模式（默认）
-    "min_iterations": complexity_config["min_iterations"],  # 动态确定（1-4 轮）
-    "quality_threshold": complexity_config["quality_threshold"],  # 动态阈值
-    "complexity": complexity_config["complexity"],  # simple | moderate | complex | very_complex
+    "min_iterations": complexity_config["min_iterations"],  # 最小迭代次数（1-3 轮）
+    "max_iterations": None,  # 无最大轮数限制，持续迭代直到质量达标
+    "complexity": complexity_config["complexity"],  # simple | moderate | complex
     "enable_research": True,  # 启用深度研究
     "enable_quality_gate": True,  # 启用质量门控
     "enable_continuous_improvement": True  # 启用持续改进
 }
+
+# 质量阈值通过 get_quality_threshold(iteration) 函数动态获取
+# 轮次 1: 60分, 轮次 2: 75分, 轮次 3: 85分, 轮次 4+: 90分（保持）
 ```
 
 ## 深度研究阶段（1.5）
@@ -103,8 +106,8 @@ planner_result = Agent(agent="task:planner", prompt=planner_prompt)
 ### 质量门控检查
 
 ```python
-# 获取当前轮次的质量阈值
-quality_threshold = deep_iteration_config['quality_threshold'].get(iteration, 90)
+# 获取当前轮次的质量阈值（动态递进）
+quality_threshold = get_quality_threshold(iteration)  # 1:60, 2:75, 3:85, 4+:90
 
 verification_result = Agent(agent="task:verifier", prompt=f"""
 验证任务（深度迭代模式）：{user_task}（第 {iteration} 轮）
