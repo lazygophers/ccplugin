@@ -2,7 +2,6 @@
   "hooks": {
     "SessionStart": [
       {
-        "async": true,
         "hooks": [
           {
             "type": "command",
@@ -13,7 +12,6 @@
     ],
     "Stop": [
       {
-        "async": true,
         "hooks": [
           {
             "type": "command",
@@ -24,7 +22,6 @@
     ],
     "PreToolUse": [
       {
-        "async": true,
         "hooks": [
           {
             "type": "command",

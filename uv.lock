@@ -337,20 +337,16 @@ wheels = [
 
 [[package]]
 name = "ccplugin"
-version = "0.0.179"
+version = "0.0.180"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
     { name = "lib" },
-    { name = "logging" },
     { name = "mistune" },
     { name = "pyyaml" },
     { name = "rich" },
-    { name = "toml" },
     { name = "tomlkit" },
-    { name = "transformers" },
     { name = "typer" },
-    { name = "wraps" },
 ]
 
 [package.optional-dependencies]
@@ -365,17 +361,13 @@ tts = [
 requires-dist = [
     { name = "click", specifier = ">=8.1.0" },
     { name = "lib", git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master" },
-    { name = "logging", specifier = ">=0.4.9.6" },
     { name = "mistune", specifier = ">=3.2.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "rich", specifier = ">=13.9.0" },
-    { name = "toml", specifier = ">=0.10.2" },
     { name = "tomlkit", specifier = ">=0.14.0" },
-    { name = "transformers", specifier = "==4.44.0" },
     { name = "tts", marker = "extra == 'tts'", specifier = ">=0.22.0" },
     { name = "typer", specifier = ">=0.24.1" },
-    { name = "wraps", specifier = ">=0.15.0" },
 ]
 provides-extras = ["dev", "tts"]
 
@@ -1045,21 +1037,6 @@ wheels = [
 ]
 
 [[package]]
-name = "funcs"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "attrs" },
-    { name = "solus" },
-    { name = "typing-aliases" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0b/0e/75dfd32c1859e35ade0bc24a032224e990e3f482e5bd33187abd5f7ad53f/funcs-0.11.0.tar.gz", hash = "sha256:d4190ded01b245bdaf33a98d4190248d94a0f784e93b7c2fff69e38a244e4326", size = 20301, upload-time = "2024-08-13T17:56:45.178Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/31/1e/52a53d7b74143774bc717daf65ff41853883f9bd76541f04196d90a6d185/funcs-0.11.0-py3-none-any.whl", hash = "sha256:1487750e2c8a6055b5fc923ab8127876ccd1354cffe7f9763332ab9bf2eafbf6", size = 12855, upload-time = "2024-08-13T17:56:43.852Z" },
-]
-
-[[package]]
 name = "g2pkk"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1509,12 +1486,6 @@ wheels = [
 ]
 
 [[package]]
-name = "logging"
-version = "0.4.9.6"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/93/4b/979db9e44be09f71e85c9c8cfc42f258adfb7d93ce01deed2788b2948919/logging-0.4.9.6.tar.gz", hash = "sha256:26f6b50773f085042d301085bd1bf5d9f3735704db9f37c1ce6d8b85c38f2417", size = 96029, upload-time = "2013-06-04T23:43:22.086Z" }
-
-[[package]]
 name = "markdown"
 version = "3.10.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1933,18 +1904,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2d/f9/8e360bdfc3c44e267e7e046f0e0b9922766da92da26959a6963f597e6bb5/murmurhash-1.0.15-cp314-cp314t-musllinux_1_2_x86_64.whl", hash = "sha256:4fd8189ee293a09f30f4931408f40c28ccd42d9de4f66595f8814879339378bc", size = 161811, upload-time = "2025-11-14T09:51:01.289Z" },
     { url = "https://files.pythonhosted.org/packages/f9/31/97649680595b1096803d877ababb9a67c07f4378f177ec885eea28b9db6d/murmurhash-1.0.15-cp314-cp314t-win_amd64.whl", hash = "sha256:66395b1388f7daa5103db92debe06842ae3be4c0749ef6db68b444518666cdcc", size = 29817, upload-time = "2025-11-14T09:51:02.493Z" },
     { url = "https://files.pythonhosted.org/packages/76/66/4fce8755f25d77324401886c00017c556be7ca3039575b94037aff905385/murmurhash-1.0.15-cp314-cp314t-win_arm64.whl", hash = "sha256:c22e56c6a0b70598a66e456de5272f76088bc623688da84ef403148a6d41851d", size = 26219, upload-time = "2025-11-14T09:51:03.563Z" },
-]
-
-[[package]]
-name = "named"
-version = "1.4.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/63/89/3e2615a20ce923e58ac07550ce1defa7fc46e27fda0d02fbdfdb1c42b98b/named-1.4.2.tar.gz", hash = "sha256:1d1fe741b27b4bb558442a7a759415a840da4f804f0b1759a251714a4b4ad055", size = 4596, upload-time = "2024-03-15T10:29:50.983Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/6c/53205820011c6ec65dee43f52ce908be23650eaf3f7b6311660fb36d34fe/named-1.4.2-py3-none-any.whl", hash = "sha256:7b0a607cd6f01af239c5c2bb2fbdb0b779f8b649c994468e039aaf433c629498", size = 4920, upload-time = "2024-03-15T10:29:49.91Z" },
 ]
 
 [[package]]
@@ -3132,18 +3091,6 @@ wheels = [
 ]
 
 [[package]]
-name = "solus"
-version = "1.2.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "named" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/1b/39/30f3e81fa40f51ccf55a187928e8783e4860f9002d4e48abcfcccabe9d10/solus-1.2.2.tar.gz", hash = "sha256:4bf499b0ea8fd9aca23d27d559008dfee1c75b9336f5a9c7143069c3f5282444", size = 4078, upload-time = "2024-02-26T12:20:19.321Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/14/e63493752b7e408f775e10cea9551a61190aaa99b63483b57dc769af9602/solus-1.2.2-py3-none-any.whl", hash = "sha256:2587bcc74cd872a21532cf5cdc9617796473626c3fd7033fcbb09e0f1bf528bc", size = 4322, upload-time = "2024-02-26T12:20:17.604Z" },
-]
-
-[[package]]
 name = "soundfile"
 version = "0.13.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3524,15 +3471,6 @@ wheels = [
 ]
 
 [[package]]
-name = "toml"
-version = "0.10.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/be/ba/1f744cdc819428fc6b5084ec34d9b30660f6f9daaf70eead706e3203ec3c/toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f", size = 22253, upload-time = "2020-11-01T01:40:22.204Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/6f/7120676b6d73228c96e17f1f794d8ab046fc910d781c8d151120c3f1569e/toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b", size = 16588, upload-time = "2020-11-01T01:40:20.672Z" },
-]
-
-[[package]]
 name = "tomlkit"
 version = "0.14.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3794,18 +3732,6 @@ wheels = [
 ]
 
 [[package]]
-name = "typing-aliases"
-version = "1.10.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/d5/6a/34e9be629127c099a92ec19ed030bf96ab81a3f6e023b9cb6bc686444f9b/typing_aliases-1.10.1.tar.gz", hash = "sha256:d20bb799a4a4b0b9d25c26821ad08e4d42114c92b87ff12b56a5abc87767bd19", size = 7909, upload-time = "2024-04-22T18:03:57.729Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/1c/543e0a6c6a8e8794407deaf50337cc3e595e4c68724d3d38c53cb70ed049/typing_aliases-1.10.1-py3-none-any.whl", hash = "sha256:41704ed78fd51c413247897f324acd6186a3dbeb0350e49d7e6138afd07df76c", size = 8177, upload-time = "2024-04-22T18:03:56.437Z" },
-]
-
-[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3924,22 +3850,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/61/f1/ee81806690a87dab5f5653c1f146c92bc066d7f4cebc603ef88eb9e13957/werkzeug-3.1.6.tar.gz", hash = "sha256:210c6bede5a420a913956b4791a7f4d6843a43b6fcee4dfa08a65e93007d0d25", size = 864736, upload-time = "2026-02-19T15:17:18.884Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4d/ec/d58832f89ede95652fd01f4f24236af7d32b70cab2196dfcc2d2fd13c5c2/werkzeug-3.1.6-py3-none-any.whl", hash = "sha256:7ddf3357bb9564e407607f988f683d72038551200c704012bb9a4c523d42f131", size = 225166, upload-time = "2026-02-19T15:17:17.475Z" },
-]
-
-[[package]]
-name = "wraps"
-version = "0.15.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "attrs" },
-    { name = "funcs" },
-    { name = "named" },
-    { name = "typing-aliases" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/95/d8/bdfaccce710957873c9f6c37260274cbd4b91b4686315fbf2a00d5cb8f90/wraps-0.15.0.tar.gz", hash = "sha256:498456ec8f8b89f0bdf78f50535916837a1b240f33dd70de9a8d3a441a030a6a", size = 41823, upload-time = "2024-08-25T14:20:21.438Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/5d/8abd41b1d4d806b08c81cfeec606ed9888b6650c67e7853bddda88891bd7/wraps-0.15.0-py3-none-any.whl", hash = "sha256:16077c8738202e877d2eb8db83533b9d6226dee9bf97242f1137bceab957d004", size = 40214, upload-time = "2024-08-25T14:20:20.454Z" },
 ]
 
 [[package]]
