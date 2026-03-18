@@ -182,7 +182,7 @@ if verification_result["status"] == "passed":
 2. **质量达标**：质量分数 ≥ 当前迭代的阈值
 3. **最佳实践**：遵循行业最佳实践（无明显偏离）
 4. **用户满意**：用户明确确认"完全符合预期"
-5. **最小迭代**：达到最小迭代次数（3 轮）
+5. **最小迭代**：达到最小迭代次数（根据任务复杂度动态确定）
 
 **决策树**：
 
@@ -203,15 +203,14 @@ if verification_result["status"] == "passed":
 ## 深度迭代配置
 
 ```python
+# 评估任务复杂度，动态确定迭代配置
+complexity_config = assess_task_complexity(user_task)
+
 deep_iteration_config = {
     "mode": "deep",  # standard | deep
-    "min_iterations": 3,  # 最小迭代次数
-    "quality_threshold": {
-        1: 60,  # 第 1 轮：60 分
-        2: 75,  # 第 2 轮：75 分
-        3: 85,  # 第 3 轮：85 分
-        4: 90   # 第 4+ 轮：90 分
-    },
+    "min_iterations": complexity_config["min_iterations"],  # 动态确定（1-4 轮）
+    "quality_threshold": complexity_config["quality_threshold"],  # 动态阈值
+    "complexity": complexity_config["complexity"],  # simple | moderate | complex | very_complex
     "enable_research": True,  # 启用深度研究
     "enable_quality_gate": True,  # 启用质量门控
     "enable_continuous_improvement": True  # 启用持续改进

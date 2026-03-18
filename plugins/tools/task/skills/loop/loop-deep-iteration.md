@@ -2,18 +2,17 @@
 
 ## 深度迭代配置
 
-在 loop 初始化时设置：
+在 loop 初始化时设置（动态评估任务复杂度）：
 
 ```python
+# 评估任务复杂度，动态确定迭代配置
+complexity_config = assess_task_complexity(user_task)
+
 deep_iteration_config = {
     "mode": "deep",  # 深度迭代模式（默认）
-    "min_iterations": 3,  # 最小迭代次数（Foundation → Enhancement → Refinement）
-    "quality_threshold": {
-        1: 60,  # 第 1 轮：基础功能（60分）
-        2: 75,  # 第 2 轮：增强优化（75分）
-        3: 85,  # 第 3 轮：精化完善（85分）
-        4: 90   # 第 4+ 轮：追求卓越（90分）
-    },
+    "min_iterations": complexity_config["min_iterations"],  # 动态确定（1-4 轮）
+    "quality_threshold": complexity_config["quality_threshold"],  # 动态阈值
+    "complexity": complexity_config["complexity"],  # simple | moderate | complex | very_complex
     "enable_research": True,  # 启用深度研究
     "enable_quality_gate": True,  # 启用质量门控
     "enable_continuous_improvement": True  # 启用持续改进
