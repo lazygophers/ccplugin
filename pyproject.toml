@@ -14,6 +14,8 @@ dependencies = [
     "transformers==4.44.0",
     "logging>=0.4.9.6",
     "tomlkit>=0.14.0",
+    "mistune>=3.2.0",
+    "typer>=0.24.1",
 ]
 
 [build-system]
@@ -26,6 +28,7 @@ update = "scripts.update:main"
 info = "scripts.info:main"
 check = "scripts.check:main"
 install = "scripts.install:main"
+md2html = "scripts.md2html:app"
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0.0"]
