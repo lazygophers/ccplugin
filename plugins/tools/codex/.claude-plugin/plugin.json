@@ -29,7 +29,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1' >> \"$CLAUDE_ENV_FILE\""
+            "command": "echo 'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1' >> \"$CLAUDE_ENV_FILE\"",
+            "async": true,
+            "timeout": 300
           }
         ]
       }

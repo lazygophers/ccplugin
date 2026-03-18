@@ -27,7 +27,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=naming uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
+            "command": "PLUGIN_NAME=naming uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "async": true,
+            "timeout": 300
           }
         ]
       }

@@ -33,7 +33,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=template uv run ${CLAUDE_PLUGIN_ROOT}/scripts/example.py"
+            "command": "PLUGIN_NAME=template uv run ${CLAUDE_PLUGIN_ROOT}/scripts/example.py",
+            "async": true,
+            "timeout": 300
           }
         ]
       }
