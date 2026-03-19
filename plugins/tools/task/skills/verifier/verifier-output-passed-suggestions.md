@@ -1,14 +1,16 @@
 # Verifier 输出格式 - Passed 和 Suggestions
 
-本文档包含 Verifier 的 passed 和 suggestions 两种输出格式及详细示例。
+<overview>
+
+本文档定义了 Verifier 的两种成功状态输出格式。passed 表示所有任务完成且验收标准全部满足，Loop 收到后直接进入完成流程。suggestions 表示验收标准满足但发现可优化之处，Loop 会询问用户是否继续优化。两种格式共享相同的基础结构（status、report、verified_tasks、summary），suggestions 额外包含建议列表。
+
+</overview>
+
+<format_passed>
 
 ## 格式 1：完全通过（passed）
 
-### 适用场景
-
-所有任务完成，所有验收标准满足，无质量问题。
-
-### 输出示例
+所有任务完成，所有验收标准满足，无质量问题时使用此格式。Loop 收到后正常退出，进入全部迭代完成流程。
 
 ```json
 {
@@ -67,38 +69,17 @@
 }
 ```
 
-### Loop 行为
+字段要求：status 必须是 "passed"，report 为简短摘要（不超过100字）列出所有完成的任务，verified_tasks 中所有任务的 status 都是 "verified"，summary 中 failed_tasks 为 0。
 
-正常退出，进入"全部迭代完成"流程。
+报告编写格式：`所有任务已完成：T1（任务名）✓、T2（任务名）✓。测试覆盖率 X%，所有 CI 检查通过，无影响已有功能。`
 
-### 字段说明
+</format_passed>
 
-- `status`: 必须是 `"passed"`
-- `report`: 简短报告（≤100字），列出所有完成的任务
-- `verified_tasks`: 所有任务的验证结果，status 都是 `"verified"`
-- `summary`: 统计摘要，`failed_tasks` 为 0
-
-### 报告编写指南
-
-**格式**：
-```
-所有任务已完成：T1（任务名）✓、T2（任务名）✓。测试覆盖率 X%，所有 CI 检查通过，无影响已有功能。
-```
-
-**要点**：
-- 列出所有完成的任务（用 ✓ 标记）
-- 提及关键指标（测试覆盖率、CI 状态）
-- 确认无回归问题
-
----
+<format_suggestions>
 
 ## 格式 2：通过但有建议（suggestions）
 
-### 适用场景
-
-任务已完成，验收标准满足，但有优化建议。
-
-### 输出示例
+任务已完成且验收标准满足，但发现可优化之处时使用此格式。Loop 通过 AskUserQuestion 询问用户建议是否属于当前任务范围——如果是则继续新一轮迭代，否则标记完成。
 
 ```json
 {
@@ -144,42 +125,18 @@
 }
 ```
 
-### Loop 行为
-
-通过 `AskUserQuestion` 询问用户是否属于当前任务范围：
-- **如果是** → 继续优化（新一轮迭代）
-- **如果否** → Loop 完成
-
-### 字段说明
-
-- `status`: 必须是 `"suggestions"`
-- `report`: 说明所有标准通过，并概述建议
-- `verified_tasks`: 所有任务验证通过，可选 `notes` 字段
-- `suggestions`: 建议列表，每个建议包含：
-  - `task_id`: 相关任务 ID
-  - `category`: 建议类别（code_quality / test_coverage / performance / security）
-  - `suggestion`: 具体建议内容
-  - `priority`: 优先级（low / medium / high）
-- `summary`: 统计摘要，`failed_tasks` 为 0
+字段要求：status 必须是 "suggestions"，report 先确认所有标准通过再概述建议，verified_tasks 中所有任务验证通过（可选 notes 字段），suggestions 列表中每个建议包含 task_id、category、suggestion 和 priority，summary 中 failed_tasks 为 0。
 
 ### Suggestion 类别
 
 | 类别 | 说明 | 示例 |
 |------|------|------|
-| `code_quality` | 代码质量改进 | 降低复杂度、重构代码 |
-| `test_coverage` | 测试覆盖改进 | 添加边界测试、异常测试 |
-| `performance` | 性能优化 | 优化查询、缓存优化 |
-| `security` | 安全加固 | 输入验证、权限检查 |
-| `documentation` | 文档完善 | 补充注释、API 文档 |
+| code_quality | 代码质量改进 | 降低复杂度、重构代码 |
+| test_coverage | 测试覆盖改进 | 添加边界测试、异常测试 |
+| performance | 性能优化 | 优化查询、缓存优化 |
+| security | 安全加固 | 输入验证、权限检查 |
+| documentation | 文档完善 | 补充注释、API 文档 |
 
-### 报告编写指南
+报告编写格式：`任务已完成，所有验收标准满足。建议优化：[建议1]；[建议2]。`
 
-**格式**：
-```
-任务已完成，所有验收标准满足。建议优化：[建议1]；[建议2]。
-```
-
-**要点**：
-- 先确认所有标准通过
-- 简要列出主要建议
-- 使用分号分隔多个建议
+</format_suggestions>

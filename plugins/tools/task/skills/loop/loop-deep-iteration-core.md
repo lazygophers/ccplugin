@@ -1,10 +1,16 @@
 # Loop 深度迭代详细实现 - 核心流程
 
-本文档包含深度迭代的配置、研究、计划和验证核心流程。
+<overview>
+
+本文档包含深度迭代的配置、研究、计划和验证核心流程。深度迭代的核心思路是根据任务复杂度动态确定迭代轮数和质量标准，通过逐轮递进的方式从基础功能实现到卓越质量。每个阶段都有明确的触发条件和状态转换规则，确保流程可控且高效。
+
+</overview>
+
+<deep_iteration_config>
 
 ## 深度迭代配置
 
-在 loop 初始化时设置（动态评估任务复杂度）：
+在 loop 初始化时，首先评估任务复杂度，然后动态确定迭代参数。复杂度评估基于文件数、技术栈、任务类型和质量要求（总分 100），决定最小迭代次数（1-3 轮）。质量阈值不在配置中硬编码，而是通过 get_quality_threshold(iteration) 函数按轮次动态获取（第1轮60分、第2轮75分、第3轮85分、第4轮及以后90分）。
 
 ```python
 # 评估任务复杂度，动态确定迭代配置
@@ -24,18 +30,15 @@ deep_iteration_config = {
 # 轮次 1: 60分, 轮次 2: 75分, 轮次 3: 85分, 轮次 4+: 90分（保持）
 ```
 
+</deep_iteration_config>
+
+<deep_research>
+
 ## 深度研究阶段（1.5）
 
-### 触发条件
+深度研究是一个可选阶段，在正式规划前触发。其目的是避免盲目开始——通过调研最新技术方案、对比解决路径、收集最佳实践，为后续规划提供数据支撑。
 
-满足任一条件时触发：
-- 第 1 轮迭代（了解最佳方案）
-- 复杂任务（planner 识别为高复杂度）
-- 失败 2 次以上（同一任务）
-- 质量不达标（分数 < 阈值 - 10）
-- 用户明确要求深入研究
-
-### 实现代码
+满足以下任一条件时触发：第 1 轮迭代（了解最佳方案）、复杂任务（planner 识别为高复杂度）、失败 2 次以上（同一任务需要根因分析）、质量不达标（分数低于阈值10分以上）、用户明确要求深入研究。
 
 ```python
 research_result = None
@@ -63,12 +66,16 @@ if should_trigger_research(user_task, iteration, deep_iteration_config):
 """
     )
 
-    print(f"✓ 深度研究完成：推荐方案 - {research_result.get('recommended_solution', 'N/A')}")
+    print(f"深度研究完成：推荐方案 - {research_result.get('recommended_solution', 'N/A')}")
 ```
+
+</deep_research>
+
+<planning_with_research>
 
 ## 计划设计阶段（融合研究结果）
 
-### 实现代码
+当深度研究完成后，其结果会被注入到 planner 的 prompt 中，使计划设计基于实际调研数据而非假设。研究结果包括技术发现、推荐方案和质量标准，planner 据此设置更精确的验收标准。
 
 ```python
 iteration += 1
@@ -103,9 +110,13 @@ if research_result:
 planner_result = Agent(agent="task:planner", prompt=planner_prompt)
 ```
 
+</planning_with_research>
+
+<verification_quality_gate>
+
 ## 结果验证阶段（质量门控 + 持续改进）
 
-### 质量门控检查
+结果验证在深度迭代模式下承担三重职责：验收标准检查、质量门控评分、持续改进识别。质量门控通过多维度评分（功能、测试覆盖率、性能、可维护性、安全性、最佳实践）计算综合分数，与当前轮次的阈值对比。
 
 ```python
 # 获取当前轮次的质量阈值（动态递进）
@@ -138,18 +149,19 @@ if deep_iteration_config['enable_quality_gate']:
     quality_score = verification_result.get('quality_score', 0)
 
     if quality_score < quality_threshold:
-        print(f"⚠ 质量门控未通过：{quality_score} < {quality_threshold}")
+        print(f"质量门控未通过：{quality_score} < {quality_threshold}")
         print(f"差距：{verification_result.get('gaps', [])}")
         goto("失败调整")  # 质量不达标视为失败
 ```
 
 ### 最小迭代次数检查
 
+验收通过但未达到最小迭代次数时，询问用户是否继续优化。这是因为早期轮次的质量阈值较低，仅通过基础验收不代表达到了最优质量。
+
 ```python
 if verification_result["status"] == "passed":
-    # 深度迭代：检查是否达到最小迭代次数
     if iteration < deep_iteration_config['min_iterations']:
-        print(f"✓ 验收通过，但未达最小迭代次数（{iteration}/{deep_iteration_config['min_iterations']}）")
+        print(f"验收通过，但未达最小迭代次数（{iteration}/{deep_iteration_config['min_iterations']}）")
         user_decision = AskUserQuestion(
             question=f"功能已完成，但建议继续优化（当前 {iteration} 轮，建议至少 {deep_iteration_config['min_iterations']} 轮）",
             options=["继续优化", "提前完成"]
@@ -162,8 +174,9 @@ if verification_result["status"] == "passed":
 
 ### 持续改进检查
 
+即使验收通过，持续改进模块也会识别高价值优化点。用户可以选择将这些优化纳入当前任务、记录为技术债、或直接完成。这种机制确保不会错过明显的改进机会。
+
 ```python
-# 持续改进检查
 if deep_iteration_config['enable_continuous_improvement']:
     improvement = Agent(agent="task:verifier", prompt=f"""
 质量提升分析：
@@ -199,9 +212,10 @@ if deep_iteration_config['enable_continuous_improvement']:
         if user_decision == "是，纳入当前任务":
             goto("计划设计")  # 新一轮优化迭代
         elif user_decision == "否，记录为技术债":
-            # 记录到 .claude/memory/tech-debt.md
             record_tech_debt(improvement['high_value_optimizations'])
             goto("全部完成")
         else:
             goto("全部完成")
 ```
+
+</verification_quality_gate>

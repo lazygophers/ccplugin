@@ -1,39 +1,18 @@
 # Loop 错误处理和重试
 
-本文档包含 MindFlow Loop 的错误处理、重试策略和补偿模式。
+<overview>
 
-## 声明式错误处理
+本文档定义了 MindFlow Loop 的错误处理机制。错误处理的核心设计是分级升级：从简单重试逐步升级到深度诊断、重新规划、最终请求用户指导。这种渐进式策略避免了在简单问题上浪费时间（直接重试），同时确保复杂问题能得到充分诊断（升级到 debug 或 replan）。补偿模式（Saga Pattern）处理任务失败后的回滚，确保系统一致性。
 
-### Retry 配置
+</overview>
 
-**首次失败（failure_count=1）**：
-- 退避时间：0 秒
-- 策略：立即重试
-- 操作：应用简单调整后重新执行
+<retry_strategy>
 
-**重复失败（failure_count=2）**：
-- 退避时间：2 秒
-- 策略：深度诊断
-- 操作：调用 debug agent 分析根因
+## 重试配置
 
-**持续失败（failure_count=3）**：
-- 退避时间：4 秒
-- 策略：重新规划
-- 操作：返回计划设计阶段
+错误处理按失败次数分级。首次失败（failure_count=1）立即重试，退避 0 秒，应用简单调整后重新执行。重复失败（failure_count=2）等待 2 秒后深度诊断，调用 debug agent 分析根因。持续失败（failure_count=3）等待 4 秒后返回计划设计阶段重新规划。
 
-### Catch 配置
-
-**停滞检测（stalled_count=3）**：
-- 触发条件：连续 3 次相同错误
-- 操作：请求用户指导
-- 行为：不退出循环，等待用户输入
-
-**超过最大停滞次数**：
-- 触发条件：stalled_count >= max_stalled_attempts
-- 操作：强制结束循环
-- 行为：输出停滞报告，建议人工介入
-
-### 指数退避策略
+停滞检测在连续 3 次相同错误时触发，请求用户指导但不退出循环。超过最大停滞次数时强制结束，输出停滞报告并建议人工介入。
 
 ```python
 def calculate_backoff(failure_count):
@@ -47,30 +26,13 @@ def calculate_backoff(failure_count):
     return 0
 ```
 
+</retry_strategy>
+
+<saga_pattern>
+
 ## Saga Pattern（补偿模式）
 
-### 补偿场景
-
-当任务执行失败且无法恢复时，需要执行补偿操作以确保系统一致性。
-
-### 补偿策略
-
-1. **识别已完成的任务**：
-   - 查询任务状态
-   - 标记已完成的任务
-   - 确定需要回滚的操作
-
-2. **生成补偿操作**：
-   - 为每个已完成任务生成逆操作
-   - 考虑任务间的依赖关系
-   - 按反向顺序执行
-
-3. **执行补偿**：
-   - 从最后一个任务开始
-   - 逐个撤销已完成的更改
-   - 记录补偿执行日志
-
-### 补偿实现
+当任务执行失败且无法恢复时，需要执行补偿操作以确保系统一致性。补偿流程分三步：首先识别已完成的任务并确定需要回滚的操作，然后为每个已完成任务按依赖关系生成逆操作，最后从最后一个任务开始逐个撤销。
 
 ```python
 def compensate_on_failure(completed_tasks):
@@ -79,22 +41,18 @@ def compensate_on_failure(completed_tasks):
     Args:
         completed_tasks: 已完成的任务列表
     """
-    # 反向遍历已完成的任务
     for task in reversed(completed_tasks):
         if task.has_compensation:
             try:
                 print(f"执行补偿操作：{task.id} - {task.description}")
                 execute_compensation(task)
-                print(f"✓ 补偿成功：{task.id}")
             except Exception as e:
-                print(f"✗ 补偿失败：{task.id} - {str(e)}")
-                # 记录失败但继续执行其他补偿
+                print(f"补偿失败：{task.id} - {str(e)}")
 ```
 
-### 补偿操作示例
+补偿操作在任务定义时声明，支持多种类型：
 
 ```python
-# 任务定义包含补偿操作
 task = {
     "id": "T1",
     "description": "创建数据库表",
@@ -104,7 +62,6 @@ task = {
     }
 }
 
-# 执行补偿
 def execute_compensation(task):
     """执行具体的补偿操作"""
     comp = task.compensation
@@ -117,57 +74,34 @@ def execute_compensation(task):
         call_api(comp["endpoint"], comp["params"])
 ```
 
-## 错误分类和处理
+</saga_pattern>
 
-### 可恢复错误
+<error_classification>
 
-- **网络超时**：自动重试
-- **资源临时不可用**：应用退避后重试
-- **测试失败**：分析原因后重新执行
+## 错误分类
 
-### 不可恢复错误
+错误分为可恢复和不可恢复两类，处理策略不同。可恢复错误（网络超时、资源临时不可用、测试失败）通过自动重试或退避后重试解决。不可恢复错误（配置错误、权限不足、依赖缺失）需要请求用户介入修正。
 
-- **配置错误**：请求用户修正
-- **权限不足**：请求用户授权
-- **依赖缺失**：请求用户安装
-
-### 停滞模式检测
+停滞模式检测通过比较最近 3 次错误的签名来判断是否陷入重复失败：
 
 ```python
 def detect_stall(error_history):
-    """检测停滞模式
-
-    Returns:
-        bool: True 表示检测到停滞
-    """
+    """检测停滞模式"""
     if len(error_history) < 3:
         return False
 
-    # 检查最近 3 次错误是否相同
     recent_errors = error_history[-3:]
     error_signatures = [get_error_signature(e) for e in recent_errors]
 
     return len(set(error_signatures)) == 1  # 所有错误签名相同
 ```
 
+</error_classification>
+
+<escalation_levels>
+
 ## 分级升级策略
 
-### Level 1: Retry（重试）
-- **适用场景**：首次失败
-- **操作**：应用简单调整后重试
-- **示例**：增加超时时间、清理缓存
+Level 1 Retry（首次失败）：应用简单调整后重试，如增加超时时间、清理缓存。Level 2 Debug（重复失败）：深度诊断和修复，分析日志、检查环境。Level 3 Replan（持续失败）：返回计划设计阶段，调整任务分解或修改依赖。Level 4 Ask User（停滞检测）：请求用户提供指导，询问是否调整目标或需要人工介入。
 
-### Level 2: Debug（调试）
-- **适用场景**：重复失败
-- **操作**：深度诊断和修复
-- **示例**：分析日志、检查环境
-
-### Level 3: Replan（重新规划）
-- **适用场景**：持续失败
-- **操作**：返回计划设计阶段
-- **示例**：调整任务分解、修改依赖
-
-### Level 4: Ask User（请求指导）
-- **适用场景**：检测到停滞
-- **操作**：请求用户提供指导
-- **示例**：询问是否调整目标、是否需要人工介入
+</escalation_levels>

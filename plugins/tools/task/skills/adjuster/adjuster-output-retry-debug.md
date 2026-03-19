@@ -1,14 +1,16 @@
-# Adjuster 输出格式
+# Adjuster 输出格式 - Retry 和 Debug
 
-本文档包含 Adjuster 的四种输出格式及详细示例。
+<overview>
+
+本文档定义了 Adjuster 前两级策略的输出格式。retry 是最轻量的恢复策略，适用于首次失败的简单问题（如断言错误、拼写错误），通过直接调整后立即重试解决。debug 在 retry 失败后升级，引入 debug agent 进行深度诊断，适用于根因不明显的重复失败。两种格式共享基础结构（strategy、report、adjustments、retry_config），debug 额外包含 debug_plan。
+
+</overview>
+
+<format_retry>
 
 ## 格式 1：Retry（调整后重试）
 
-### 触发条件
-
-第 1 次失败
-
-### 输出示例
+第 1 次失败时触发。Loop 收到后立即应用调整建议并重新执行（回到任务执行阶段），退避时间 0 秒。
 
 ```json
 {
@@ -32,26 +34,15 @@
 }
 ```
 
-### Loop 行为
+字段要求：strategy 必须是 "retry"，report 简短说明失败原因和修复方案（不超过100字），adjustments 包含具体的调整建议列表，retry_config.backoff_seconds 为 0（立即重试）。
 
-立即修复并重试（回到任务执行）。
+</format_retry>
 
-### 字段说明
-
-- `strategy`: 必须是 `"retry"`
-- `report`: 简短说明失败原因和修复方案（≤100字）
-- `adjustments`: 调整建议列表
-- `retry_config.backoff_seconds`: `0` 秒（立即重试）
-
----
+<format_debug>
 
 ## 格式 2：Debug（深度诊断）
 
-### 触发条件
-
-第 2 次失败
-
-### 输出示例
+第 2 次失败时触发，说明简单调整不够，需要更深入的根因分析。Loop 等待 2 秒（指数退避）后调用 debug agent，修复后重新执行（回到任务执行阶段）。
 
 ```json
 {
@@ -79,92 +70,23 @@
 }
 ```
 
-### Loop 行为
+字段要求：strategy 必须是 "debug"，report 说明需要深度诊断，adjustments 包含 failure_count 字段，retry_config.backoff_seconds 为 2 秒，debug_plan 定义调试 agent 和关注领域。
 
-等待 2 秒（指数退避），然后调用 debug agent，修复后重试（回到任务执行）。
+</format_debug>
 
-### 字段说明
+<error_classification>
 
-- `strategy`: 必须是 `"debug"`
-- `report`: 说明需要深度诊断
-- `adjustments`: 包含 `failure_count` 字段
-- `retry_config.backoff_seconds`: `2` 秒
-- `debug_plan`: 调试计划，包含 agent 和关注领域
+## 错误分类
 
----
+Adjuster 在分析失败原因时将错误归类，以便选择最合适的恢复策略：
 
-## 格式 3：Replan（重新规划）
+| 错误类型 | 说明 | 典型恢复策略 |
+|---------|------|------------|
+| compilation_error | 编译或语法错误 | retry（修复代码后重试） |
+| test_failure | 测试断言失败 | retry 或 debug |
+| dependency_error | 依赖缺失或版本冲突 | replan（调整依赖方案） |
+| runtime_error | 运行时异常 | debug（深度诊断） |
+| environment_error | 环境配置问题 | ask_user（可能需要人工配置） |
+| timeout | 执行超时 | retry（增加超时时间） |
 
-### 触发条件
-
-第 3 次失败
-
-### 输出示例
-
-```json
-{
-  "strategy": "replan",
-  "report": "T3 连续 3 次失败，当前方案可能不可行。建议重新规划：将 T3 拆分为两个子任务，或调整技术方案。",
-  "adjustments": [
-    {
-      "task_id": "T3",
-      "task_name": "编写认证测试",
-      "action": "重新规划任务",
-      "details": "建议方案：1) 将 T3 拆分为 T3a（基础功能测试）和 T3b（边界测试）；2) 或调整测试框架（从 pytest 切换到 unittest）",
-      "error_type": "test_failure",
-      "failure_count": 3,
-      "feasibility": "low"
-    }
-  ],
-  "retry_config": {
-    "max_retries": 3,
-    "current_retry": 3,
-    "backoff_seconds": 4
-  },
-  "replan_options": [
-    {
-      "option": "拆分任务",
-      "description": "将 T3 拆分为 T3a（基础测试）和 T3b（边界测试）",
-      "estimated_effort": "medium"
-    },
-    {
-      "option": "调整方案",
-      "description": "切换测试框架或调整测试策略",
-      "estimated_effort": "high"
-    }
-  ]
-}
-```
-
-### Loop 行为
-
-等待 4 秒（指数退避），然后调用 planner agent 重新规划（回到计划设计）。
-
-### 字段说明
-
-- `strategy`: 必须是 `"replan"`
-- `report`: 说明需要重新规划
-- `adjustments`: 包含 `feasibility` 字段（low 表示当前方案不可行）
-- `retry_config.backoff_seconds`: `4` 秒
-- `replan_options`: 重新规划的选项列表
-
----
-
-## 格式 4：Ask User（请求用户指导）
-
-### 触发条件
-
-停滞 3 次（相同错误重复 3 次）
-
-### 输出示例
-
-```json
-{
-  "strategy": "ask_user",
-  "report": "检测到停滞：T3 测试失败已重复 3 次，相同错误反复出现 (AssertionError: Expected 0 but got 1)。自动恢复失败，需要用户指导。",
-  "stalled_info": {
-    "task_id": "T3",
-    "task_name": "编写认证测试",
-    "error": "AssertionError: Expected 0 but got 1",
-    "occurrences": 3,
-    "error_similarity": 0.95,
+</error_classification>

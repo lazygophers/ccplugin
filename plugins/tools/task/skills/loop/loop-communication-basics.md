@@ -2,28 +2,14 @@
 
 本文档包含 Agent 间通信规则、消息格式、消息类型和协作模式。
 
+<communication_rules>
+
 ## Agent 通信规则
 
-### 严格禁止
+Agent 不得直接与用户交互——不得调用 `AskUserQuestion`，不得直接向用户输出信息，不得绕过 Team Leader 与用户沟通。这条规则存在的原因是：当多个 Agent 同时向用户提问时会造成混乱，由 Team Leader 统一管理所有用户交互可以保持清晰的责任边界和沟通路径。
 
-**Agent 不得直接与用户交互**：
-- ❌ Agent 不得调用 `AskUserQuestion`
-- ❌ Agent 不得直接向用户输出信息
-- ❌ Agent 不得绕过 Team Leader 与用户沟通
+正确的通信路径是 Agent 通过 `SendMessage` 向 `@main` 发送消息，`@main`（MindFlow）调用 `AskUserQuestion` 与用户交互，然后将用户回答传递给相应的 Agent。
 
-**原因**：
-- 避免多个 Agent 同时提问造成混乱
-- 确保 Team Leader 统一管理所有用户交互
-- 保持清晰的责任边界和沟通路径
-
-### 正确方式
-
-**Agent → Team Leader → 用户**：
-1. Agent 通过 `SendMessage` 向 `@main` 发送消息
-2. `@main`（MindFlow）调用 `AskUserQuestion` 与用户交互
-3. `@main` 将用户回答传递给相应的 Agent
-
-**示例流程**：
 ```
 [Verifier Agent] → SendMessage(@main, question)
     → [MindFlow] → AskUserQuestion(user)
@@ -31,9 +17,13 @@
     → [MindFlow] → SendMessage(Verifier, response)
 ```
 
+</communication_rules>
+
+<message_formats>
+
 ## 消息格式
 
-### Agent 发送问题给 Team Leader
+Agent 发送问题给 Team Leader：
 
 ```python
 # Agent 代码
@@ -42,7 +32,7 @@ SendMessage(
     message={
         "type": "question",
         "agent": "task:verifier",
-        "content": "验收标准 '测试覆盖率 ≥ 90%' 当前为 85%，是否需要补充测试？",
+        "content": "验收标准 '测试覆盖率 >= 90%' 当前为 85%，是否需要补充测试？",
         "options": ["是", "否", "调整标准为 85%"],
         "context": {
             "task_id": "T3",
@@ -53,7 +43,7 @@ SendMessage(
 )
 ```
 
-### Team Leader 处理并响应
+Team Leader 处理并响应：
 
 ```python
 # MindFlow 代码
@@ -78,7 +68,7 @@ def handle_agent_message(message):
         )
 ```
 
-### Agent 接收用户回答
+Agent 接收用户回答：
 
 ```python
 # Agent 代码
@@ -97,11 +87,13 @@ if response["type"] == "response":
         adjust_acceptance_criteria(85)
 ```
 
+</message_formats>
+
+<message_types>
+
 ## 消息类型
 
-### 1. Question（提问）
-
-**用途**：Agent 需要用户确认或决策
+Question（提问）用于 Agent 需要用户确认或决策的场景：
 
 ```python
 {
@@ -113,9 +105,7 @@ if response["type"] == "response":
 }
 ```
 
-### 2. Response（响应）
-
-**用途**：Team Leader 将用户回答传递给 Agent
+Response（响应）用于 Team Leader 将用户回答传递给 Agent：
 
 ```python
 {
@@ -125,9 +115,7 @@ if response["type"] == "response":
 }
 ```
 
-### 3. Report（报告）
-
-**用途**：Agent 向 Team Leader 报告进度或结果
+Report（报告）用于 Agent 向 Team Leader 报告进度或结果：
 
 ```python
 {
@@ -142,9 +130,7 @@ if response["type"] == "response":
 }
 ```
 
-### 4. Alert（警报）
-
-**用途**：Agent 检测到异常情况需要通知
+Alert（警报）用于 Agent 检测到异常情况需要通知：
 
 ```python
 {
@@ -159,9 +145,7 @@ if response["type"] == "response":
 }
 ```
 
-### 5. Request（请求）
-
-**用途**：Agent 请求 Team Leader 执行某个操作
+Request（请求）用于 Agent 请求 Team Leader 执行某个操作：
 
 ```python
 {
@@ -175,24 +159,19 @@ if response["type"] == "response":
 }
 ```
 
+</message_types>
+
+<collaboration_patterns>
+
 ## 协作模式
 
-### 模式 1: 顺序协作
-
-Agent 按顺序执行，后一个 Agent 依赖前一个的输出。
+顺序协作中 Agent 按顺序执行，后一个 Agent 依赖前一个的输出。这种模式有严格的执行顺序和清晰的输入输出关系，适合线性流程。
 
 ```
 Planner → Executor → Verifier → [Pass/Fail] → Adjuster/Finalizer
 ```
 
-**特点**：
-- 严格的执行顺序
-- 清晰的输入输出关系
-- 适合线性流程
-
-### 模式 2: 并行协作
-
-多个 Agent 同时执行不相关的任务。
+并行协作中多个 Agent 同时执行不相关的任务，最多 2 个 Agent 并行，无依赖关系，提高执行效率。
 
 ```
          ┌─ Agent A (Task T1)
@@ -202,21 +181,11 @@ Leader ─┼─ Agent B (Task T2)
          └─ Agent C (Task T3)
 ```
 
-**特点**：
-- 最多 2 个 Agent 并行
-- 无依赖关系
-- 提高执行效率
-
-### 模式 3: 反馈循环
-
-Agent 执行后根据结果决定下一步。
+反馈循环中 Agent 执行后根据结果决定下一步，支持持续改进和自适应调整，适合迭代流程。
 
 ```
 Executor → Verifier → [Failed] → Adjuster → Executor
                    → [Passed] → Finalizer
 ```
 
-**特点**：
-- 持续改进
-- 自适应调整
-- 适合迭代流程
+</collaboration_patterns>

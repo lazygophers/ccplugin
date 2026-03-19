@@ -2,20 +2,15 @@
 
 本文档包含 Planner 的自定义场景集成、高级用法和调试测试。
 
+<custom_scenarios>
+
 ## 自定义场景集成
 
-### 场景 1: 单次任务规划
+单次任务规划适用于不在 Loop 中执行的独立任务。调用方式与 Loop 集成相同，但不需要迭代计数器。
 
 ```python
 def plan_single_task(description):
-    """为单次任务创建执行计划
-
-    Args:
-        description: 任务描述
-
-    Returns:
-        dict: 执行计划
-    """
+    """为单次任务创建执行计划"""
     planner_result = Agent(
         agent="task:planner",
         prompt=f"""设计执行计划：
@@ -32,24 +27,14 @@ def plan_single_task(description):
 如果功能已存在，返回空 tasks 数组。
 """
     )
-
     return handle_planner_result(planner_result, description)
 ```
 
-### 场景 2: 增量规划
+增量规划用于在已有计划基础上追加新工作。它避免重复已完成的任务，只生成增量部分，确保与之前计划兼容。
 
 ```python
 def plan_incremental(description, previous_plan, completed_tasks):
-    """基于之前的计划进行增量规划
-
-    Args:
-        description: 新的任务描述
-        previous_plan: 之前的执行计划
-        completed_tasks: 已完成的任务列表
-
-    Returns:
-        dict: 增量执行计划
-    """
+    """基于之前的计划进行增量规划"""
     planner_result = Agent(
         agent="task:planner",
         prompt=f"""设计增量执行计划：
@@ -69,24 +54,14 @@ def plan_incremental(description, previous_plan, completed_tasks):
 4. 返回增量任务列表
 """
     )
-
     return handle_planner_result(planner_result, description)
 ```
 
-### 场景 3: 重新规划
+重新规划在任务失败后使用，它分析失败原因并调整任务分解策略，避免重复相同错误。
 
 ```python
 def replan_after_failure(description, failed_tasks, failure_reasons):
-    """失败后重新规划
-
-    Args:
-        description: 原任务描述
-        failed_tasks: 失败的任务列表
-        failure_reasons: 失败原因
-
-    Returns:
-        dict: 重新规划的执行计划
-    """
+    """失败后重新规划"""
     planner_result = Agent(
         agent="task:planner",
         prompt=f"""重新设计执行计划：
@@ -106,27 +81,20 @@ def replan_after_failure(description, failed_tasks, failure_reasons):
 4. 返回新的执行计划
 """
     )
-
     return handle_planner_result(planner_result, description)
 ```
 
----
+</custom_scenarios>
+
+<advanced_usage>
 
 ## 高级用法
 
-### 条件规划
+条件规划根据技术栈、环境等约束条件调整计划内容，让 Planner 在满足约束的前提下选择最合适的技术方案。
 
 ```python
 def conditional_planning(description, conditions):
-    """基于条件进行规划
-
-    Args:
-        description: 任务描述
-        conditions: 条件字典（如技术栈、环境等）
-
-    Returns:
-        dict: 执行计划
-    """
+    """基于条件进行规划"""
     planner_result = Agent(
         agent="task:planner",
         prompt=f"""设计执行计划：
@@ -143,23 +111,14 @@ def conditional_planning(description, conditions):
 4. 定义验收标准
 """
     )
-
     return handle_planner_result(planner_result, description)
 ```
 
-### 分阶段规划
+分阶段规划将大型项目拆分为 foundation（核心功能和基础架构）、enhancement（功能细节和测试）、refinement（优化重构和文档）三个阶段，每个阶段独立规划和执行。
 
 ```python
 def phased_planning(description, phase):
-    """分阶段规划
-
-    Args:
-        description: 任务描述
-        phase: 当前阶段（foundation / enhancement / refinement）
-
-    Returns:
-        dict: 执行计划
-    """
+    """分阶段规划"""
     phase_goals = {
         "foundation": "完成核心功能，建立基础架构",
         "enhancement": "完善功能细节，添加测试",
@@ -181,27 +140,20 @@ def phased_planning(description, phase):
 4. 返回阶段计划
 """
     )
-
     return handle_planner_result(planner_result, description)
 ```
 
----
+</advanced_usage>
+
+<debugging>
 
 ## 调试和测试
 
-### 调试模式
+调试模式在规划完成后输出详细的内部状态，帮助排查计划生成问题。
 
 ```python
 def plan_with_debug(description, debug=True):
-    """带调试信息的规划
-
-    Args:
-        description: 任务描述
-        debug: 是否开启调试模式
-
-    Returns:
-        dict: 执行计划
-    """
+    """带调试信息的规划"""
     planner_result = Agent(
         agent="task:planner",
         prompt=f"设计执行计划：{description}"
@@ -218,12 +170,11 @@ def plan_with_debug(description, debug=True):
     return handle_planner_result(planner_result, description)
 ```
 
-### 模拟测试
+模拟测试验证 Planner 在各种场景下的行为是否符合预期。
 
 ```python
 def test_planner():
     """测试 Planner 功能"""
-
     # 测试用例 1: 正常规划
     plan1 = plan_single_task("实现用户认证功能")
     assert plan1 is not None
@@ -231,7 +182,7 @@ def test_planner():
 
     # 测试用例 2: 功能已存在
     plan2 = plan_single_task("实现已存在的功能")
-    assert plan2 is None  # 应该返回 None
+    assert plan2 is None
 
     # 测试用例 3: 验证依赖关系
     plan3 = plan_single_task("复杂的多任务项目")
@@ -239,3 +190,5 @@ def test_planner():
 
     print("✓ 所有测试通过")
 ```
+
+</debugging>

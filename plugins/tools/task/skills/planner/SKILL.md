@@ -8,30 +8,23 @@ user-invocable: false
 
 # Skills(task:planner) - 计划设计规范
 
-## 适用场景
+<scope>
 
-当你需要为复杂任务设计执行计划时，使用此 skill：
+当你需要为复杂任务设计执行计划时使用此 skill。适用于深入分析项目结构和技术栈、将复杂任务分解为可执行的子任务、建立任务依赖关系和并行执行策略、为每个任务分配合适的 Agent 和 Skills，以及 Loop 命令的计划设计（Planning / Plan）阶段。
 
-- ✓ 需要深入分析项目结构和技术栈
-- ✓ 需要将复杂任务分解为可执行的子任务
-- ✓ 需要建立任务依赖关系和并行执行策略
-- ✓ 需要为每个任务分配合适的 Agent 和 Skills
-- ✓ Loop 命令的计划设计（Planning / Plan）阶段
+</scope>
 
-## 核心原则
+<core_principles>
 
-### MECE 分解原则
-- **Mutually Exclusive（相互独立）**：子任务之间无文件冲突，可独立执行
-- **Collectively Exhaustive（完全穷尽）**：覆盖所有必要工作，无遗漏
+MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文件冲突，可独立执行）且完全穷尽（Collectively Exhaustive，覆盖所有必要工作，无遗漏）。
 
-### 质量标准
-- **可交付原子化**：每个任务必须产生可验证的交付物
-- **可量化可验证**：每个任务必须有明确的、可量化的验收标准
-- **依赖闭环**：任务之间的依赖关系必须形成有向无环图（DAG）
+质量标准包括三个方面：可交付原子化（每个任务必须产生可验证的交付物）、可量化可验证（每个任务必须有明确的、可量化的验收标准）、依赖闭环（任务之间的依赖关系必须形成有向无环图 DAG）。
 
-## 执行流程
+</core_principles>
 
-### 调用 planner agent
+<invocation>
+
+调用 planner agent：
 
 ```python
 # 基础调用
@@ -55,7 +48,7 @@ planner_result = Agent(
 )
 ```
 
-### 处理 planner 结果
+处理 planner 结果：
 
 ```python
 # 检查状态
@@ -64,9 +57,7 @@ if planner_result["status"] != "completed":
 
 # 检查是否有疑问需要用户确认
 if "questions" in planner_result and planner_result["questions"]:
-    # 通过 AskUserQuestion 向用户确认
     user_response = AskUserQuestion(planner_result["questions"][0])
-    # 重新调用 planner，补充用户回答
     planner_result = Agent(
         agent="task:planner",
         prompt=f"补充信息：{user_response}\n继续设计计划..."
@@ -81,22 +72,18 @@ if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
 validate_plan(planner_result)
 ```
 
-### 验证计划质量
+验证计划质量：
 
 ```python
 def validate_plan(plan):
     """验证计划的合理性"""
-
-    # 检查依赖关系
     if has_circular_dependency(plan["dependencies"]):
         raise Exception("发现循环依赖，请修正计划")
 
-    # 检查并行度
     for group in plan["parallel_groups"]:
         if len(group) > 2:
             raise Exception(f"并行任务数超过限制（最多2个）：{group}")
 
-    # 检查 Agent/Skills 格式
     for task in plan["tasks"]:
         if "（" not in task["agent"]:
             raise Exception(f"Agent 缺少中文注释：{task['agent']}")
@@ -104,26 +91,16 @@ def validate_plan(plan):
             if "（" not in skill:
                 raise Exception(f"Skill 缺少中文注释：{skill}")
 
-    # 检查验收标准
     for task in plan["tasks"]:
         if not task["acceptance_criteria"]:
             raise Exception(f"任务 {task['id']} 缺少验收标准")
 ```
 
-### 输出执行计划
+</invocation>
 
-```python
-# 输出计划摘要
-print(f"[MindFlow·{task_name}·计划设计/1·completed]")
-print(f"✓ 计划设计完成：{planner_result['report']}")
-print(f"\n任务总数：{len(planner_result['tasks'])}")
-print(f"并行组数：{len(planner_result['parallel_groups'])}")
-print(f"迭代目标：{planner_result['iteration_goal']}")
-```
+<output_format>
 
-## 输出格式
-
-### 标准输出（有任务需执行）
+标准输出（有任务需执行）：
 
 ```json
 {
@@ -141,86 +118,45 @@ print(f"迭代目标：{planner_result['iteration_goal']}")
         "单元测试覆盖率 ≥ 90%"
       ],
       "dependencies": []
-    },
-    {
-      "id": "T2",
-      "description": "实现认证中间件",
-      "agent": "coder（开发者）",
-      "skills": ["golang:core（核心功能）"],
-      "files": ["internal/auth/middleware.go"],
-      "acceptance_criteria": [
-        "中间件功能正确",
-        "集成测试通过"
-      ],
-      "dependencies": ["T1"]
-    },
-    {
-      "id": "T3",
-      "description": "编写认证测试",
-      "agent": "tester（测试员）",
-      "skills": ["golang:testing（测试）"],
-      "files": ["internal/auth/jwt_test.go"],
-      "acceptance_criteria": [
-        "所有测试用例通过",
-        "测试覆盖率 ≥ 90%"
-      ],
-      "dependencies": ["T2"]
     }
   ],
-  "dependencies": {
-    "T2": ["T1"],
-    "T3": ["T2"]
-  },
-  "parallel_groups": [
-    ["T1"],
-    ["T2"],
-    ["T3"]
-  ],
+  "dependencies": {"T2": ["T1"], "T3": ["T2"]},
+  "parallel_groups": [["T1"], ["T2"], ["T3"]],
   "iteration_goal": "完成用户认证功能的实现和测试",
-  "acceptance_criteria": [
-    "所有子任务完成",
-    "整体测试通过",
-    "代码质量达标"
-  ]
+  "acceptance_criteria": ["所有子任务完成", "整体测试通过", "代码质量达标"]
 }
 ```
 
-### 特殊输出（无需执行任务）
-
-当 planner 发现以下情况时，返回空 tasks 数组：
-- 功能已存在且满足需求
-- 没有找到需要改动的地方
-- 用户要求已被满足
+特殊输出（无需执行任务）：当功能已存在且满足需求、没有找到需要改动的地方、或用户要求已被满足时，返回空 tasks 数组：
 
 ```json
 {
   "status": "completed",
-  "report": "分析结果：用户认证功能已在 internal/auth 模块完整实现，包含 JWT 生成/验证、中间件和完整测试。无需额外开发。",
+  "report": "分析结果：用户认证功能已在 internal/auth 模块完整实现。无需额外开发。",
   "tasks": [],
   "dependencies": {},
   "parallel_groups": [],
   "iteration_goal": "确认现有实现满足需求",
-  "acceptance_criteria": [
-    "确认功能完整性",
-    "验证测试覆盖率"
-  ]
+  "acceptance_criteria": ["确认功能完整性"]
 }
 ```
 
-## 字段说明
+</output_format>
+
+<field_reference>
 
 | 字段 | 类型 | 说明 | 必填 |
 |------|------|------|------|
-| `status` | string | 执行状态：`completed` 或 `questions` | ✓ |
-| `report` | string | 简短报告（≤200字） | ✓ |
-| `tasks` | array | 任务列表（可为空数组） | ✓ |
-| `dependencies` | object | 依赖关系映射 | ✓ |
-| `parallel_groups` | array | 并行执行分组 | ✓ |
-| `iteration_goal` | string | 迭代目标 | ✓ |
-| `acceptance_criteria` | array | 整体验收标准 | ✓ |
-| `questions` | array | 需要用户确认的问题（可选） | ✗ |
+| `status` | string | 执行状态：`completed` 或 `questions` | 是 |
+| `report` | string | 简短报告（≤200字） | 是 |
+| `tasks` | array | 任务列表（可为空数组） | 是 |
+| `dependencies` | object | 依赖关系映射 | 是 |
+| `parallel_groups` | array | 并行执行分组 | 是 |
+| `iteration_goal` | string | 迭代目标 | 是 |
+| `acceptance_criteria` | array | 整体验收标准 | 是 |
+| `questions` | array | 需要用户确认的问题 | 否 |
 
-### Task 对象字段
+Task 对象字段：
 
 | 字段 | 类型 | 说明 | 示例 |
 |------|------|------|------|
@@ -232,52 +168,24 @@ print(f"迭代目标：{planner_result['iteration_goal']}")
 | `acceptance_criteria` | array | 验收标准（支持字符串或结构化对象） | 见 [结构化验收标准](planner-structured-criteria.md) |
 | `dependencies` | array | 前置任务 ID 列表 | `["T1"]` |
 
----
+结构化验收标准详见 [planner-structured-criteria.md](planner-structured-criteria.md)。
 
-## 结构化验收标准
+</field_reference>
 
-`acceptance_criteria` 字段支持字符串和结构化对象两种格式，详见：
-- **[结构化验收标准完整文档](planner-structured-criteria.md)** - 字段定义、评估方法、使用示例、验证规则
+<references>
 
----
+- [结构化验收标准](planner-structured-criteria.md) - 精确匹配、量化阈值评估、字段定义、使用示例
+- [上下文学习指南](planner-context-learning.md) - 三层上下文学习、项目理解、记忆系统、规范驱动计划
+- [Agent/Skills 选择参考](planner-reference.md) - Agent 和 Skills 的选择指南、使用示例
+- [避坑指南](planner-pitfalls.md) - 常见错误、最佳实践、验证检查清单
+- [集成示例](planner-integration.md) - Loop 集成、验证函数、高级用法
 
-## 详细文档
+</references>
 
-完整的 Agent/Skills 选择、上下文学习、避坑指南和集成示例详见以下文档：
+<guidelines>
 
-- **[结构化验收标准](planner-structured-criteria.md)** - 精确匹配、量化阈值评估、字段定义、使用示例
-- **[上下文学习指南](planner-context-learning.md)** - 三层上下文学习、项目理解、记忆系统、规范驱动计划
-- **[Agent/Skills 选择参考](planner-reference.md)** - Agent 和 Skills 的选择指南、使用示例
-- **[避坑指南](planner-pitfalls.md)** - 常见错误、最佳实践、验证检查清单
-- **[集成示例](planner-integration.md)** - Loop 集成、验证函数、高级用法
+始终使用 `Agent(agent="task:planner", ...)` 调用，检查 `status` 字段确认执行状态，处理 `questions` 字段中的用户确认请求。验证依赖关系无循环（使用拓扑排序），验证并行度不超过 2，验证 Agent/Skills 带中文注释，处理空 tasks 数组的特殊情况。
 
-## 快速参考
+不要跳过计划验证步骤，不要忽略 planner 返回的问题，不要修改 planner 返回的 JSON 结构。常见陷阱包括：过度拆分任务（应合并为原子任务）、验收标准模糊（应可量化）、缺少中文注释、循环依赖、并行度超限。
 
-### 常见陷阱
-
-- 过度拆分任务（应合并为原子任务）
-- 验收标准模糊（应可量化）
-- 缺少中文注释（Agent/Skills 必须带括号注释）
-- 循环依赖（必须是 DAG 结构）
-- 并行度超限（最多 2 个任务并行）
-
-### 最佳实践
-
-- 优先中等深度探索，必要时深入
-- 功能已存在时返回空 tasks 数组
-- 一次只问一个问题
-- 验收标准必须可量化（数值指标）
-- 保持报告简洁（≤ 200 字）
-
-## 注意事项
-
-- ✓ 始终使用 `Agent(agent="task:planner", ...)` 调用
-- ✓ 检查 `status` 字段确认执行状态
-- ✓ 处理 `questions` 字段中的用户确认请求
-- ✓ 验证依赖关系无循环（使用拓扑排序）
-- ✓ 验证并行度 ≤ 2
-- ✓ 验证 Agent/Skills 带中文注释
-- ✓ 处理空 tasks 数组的特殊情况
-- ✗ 不要跳过计划验证步骤
-- ✗ 不要忽略 planner 返回的问题
-- ✗ 不要修改 planner 返回的 JSON 结构
+</guidelines>

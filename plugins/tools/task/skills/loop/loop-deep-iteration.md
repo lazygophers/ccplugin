@@ -1,25 +1,23 @@
 # Loop 深度迭代详细实现
 
-本文档是 Loop 深度迭代的索引，详细内容已拆分为以下文件：
+<overview>
 
-## 文件结构
+本文档是深度迭代实现的索引入口。深度迭代将复杂任务的执行过程分为多轮递进式优化，每轮设定递增的质量阈值，确保最终结果达到预期标准。实现细节已按职责拆分为两个文件，避免单文件过长。
 
-### 核心流程
-- **文件**: [loop-deep-iteration-core.md](loop-deep-iteration-core.md)
-- **内容**:
-  - 深度迭代配置
-  - 深度研究阶段（1.5）
-  - 计划设计阶段（融合研究结果）
-  - 结果验证阶段（质量门控 + 持续改进）
+</overview>
 
-### 辅助功能
-- **文件**: [loop-deep-iteration-helpers.md](loop-deep-iteration-helpers.md)
-- **内容**:
-  - 失败调整阶段（深度失败分析）
-  - 完成阶段（深度迭代质量报告）
-  - 辅助函数（触发条件检查、迭代等级获取、质量阈值、复杂度评估、技术债记录等）
+<navigation>
 
-## 快速导航
+## 核心流程
 
-- 如果你需要了解核心流程 → 查看 [核心流程](loop-deep-iteration-core.md)
-- 如果你需要辅助函数和工具 → 查看 [辅助功能](loop-deep-iteration-helpers.md)
+文件：[loop-deep-iteration-core.md](loop-deep-iteration-core.md)
+
+包含深度迭代的主干逻辑：配置初始化（复杂度评估和质量阈值设定）、深度研究阶段（1.5阶段，在正式规划前收集技术方案）、计划设计阶段（融合研究结果生成执行计划）、结果验证阶段（质量门控检查和持续改进判定）。
+
+## 辅助功能
+
+文件：[loop-deep-iteration-helpers.md](loop-deep-iteration-helpers.md)
+
+包含支撑核心流程的辅助模块：失败调整阶段（深度失败分析和根因定位）、完成阶段（深度迭代质量报告生成）、辅助函数（触发条件检查、迭代等级获取、质量阈值计算、复杂度评估、技术债记录等）。
+
+</navigation>
