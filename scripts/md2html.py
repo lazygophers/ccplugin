@@ -928,13 +928,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <meta name="description" content="{description}">
   <title>{title}</title>
 
+  <!-- Security Policies for file:// protocol -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: http:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="sameorigin">
+
   <!-- Prism.js Core -->
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" defer></script>
 
   <!-- Mermaid.js -->
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({{ startOnLoad: true, theme: 'dark' }});
+    mermaid.initialize({{ startOnLoad: true, theme: 'dark', securityLevel: 'loose' }});
   </script>
 
   <style>{css}</style>
