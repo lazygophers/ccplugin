@@ -1159,6 +1159,26 @@ def convert(
     ),
 ) -> None:
     """Convert a Markdown file to a styled HTML file."""
+    do_convert(input_file, output, no_delete, no_open)
+
+
+@app.command()
+def assets_update(
+    check: bool = typer.Option(
+        False, "--check", "-c", help="Check for updates without installing"
+    ),
+) -> None:
+    """Update local assets to latest versions."""
+    update_assets(check=check)
+
+
+def do_convert(
+    input_file: Path,
+    output: Optional[Path] = None,
+    no_delete: bool = False,
+    no_open: bool = False,
+) -> None:
+    """Core conversion logic."""
     # Ensure assets are downloaded before converting
     try:
         get_asset_path("prism.js")
@@ -1189,14 +1209,63 @@ def convert(
         threading.Timer(5.0, lambda: os.remove(str(out_path))).start()
 
 
-@app.command()
-def assets_update(
-    check: bool = typer.Option(
-        False, "--check", "-c", help="Check for updates without installing"
+@app.callback(invoke_without_command=True)
+def main(
+    ctx: typer.Context,
+    input_file: Path = typer.Argument(
+        None,
+        help="Input Markdown file path",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output HTML file path"
+    ),
+    no_delete: bool = typer.Option(
+        False, "--no-delete", help="Keep temporary file (don't auto-delete)"
+    ),
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Don't auto-open in browser"
     ),
 ) -> None:
-    """Update local assets to latest versions."""
-    update_assets(check=check)
+    """Convert a Markdown file to a styled HTML file."""
+    # If a subcommand is invoked, don't run convert
+    if ctx.invoked_subcommand is not None:
+        return
+
+    # If no input file, show help
+    if input_file is None:
+        typer.echo(app.get_help(ctx))
+        raise typer.Exit(code=0)
+
+    # Run conversion
+    do_convert(input_file, output, no_delete, no_open)
+
+
+@app.command()
+def convert(
+    input_file: Path = typer.Argument(
+        ...,
+        help="Input Markdown file path",
+        exists=True,
+        file_okay=True,
+        dir_okay=False,
+        readable=True,
+    ),
+    output: Optional[Path] = typer.Option(
+        None, "--output", "-o", help="Output HTML file path"
+    ),
+    no_delete: bool = typer.Option(
+        False, "--no-delete", help="Keep temporary file (don't auto-delete)"
+    ),
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Don't auto-open in browser"
+    ),
+) -> None:
+    """Convert a Markdown file to a styled HTML file."""
+    do_convert(input_file, output, no_delete, no_open)
 
 
 if __name__ == "__main__":
