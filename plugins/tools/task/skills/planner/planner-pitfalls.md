@@ -170,6 +170,97 @@
 
 ---
 
+### 6. 结构化验收标准的常见错误
+
+**错误示例 1**：缺少必需字段
+
+```json
+// ❌ 错误：缺少 priority 字段
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "type": "quantitative_threshold",
+      "description": "测试覆盖率 ≥ 90%",
+      "metric": "test_coverage",
+      "operator": ">=",
+      "threshold": 0.9
+      // 缺少 priority 字段
+    }
+  ]
+}
+
+// ✓ 正确：包含所有必需字段
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "type": "quantitative_threshold",
+      "description": "测试覆盖率 ≥ 90%",
+      "metric": "test_coverage",
+      "operator": ">=",
+      "threshold": 0.9,
+      "priority": "required"
+    }
+  ]
+}
+```
+
+**错误示例 2**：使用了不支持的 operator
+
+```json
+// ❌ 错误：operator 值无效
+{
+  "type": "quantitative_threshold",
+  "operator": "≥",  // 应使用 ">="
+  "threshold": 0.9
+}
+
+// ✓ 正确：使用支持的 operator
+{
+  "type": "quantitative_threshold",
+  "operator": ">=",  // 支持: >=, <=, >, <, ==
+  "threshold": 0.9
+}
+```
+
+**错误示例 3**：混淆容差的含义
+
+```json
+// ❌ 错误：误解 tolerance 为绝对值
+{
+  "type": "quantitative_threshold",
+  "description": "测试覆盖率 ≥ 90%",
+  "threshold": 0.9,
+  "tolerance": 5  // 错误：应为相对值 0.05
+}
+
+// ✓ 正确：tolerance 为相对值
+{
+  "type": "quantitative_threshold",
+  "description": "测试覆盖率 ≥ 90%",
+  "threshold": 0.9,
+  "unit": "percentage",
+  "tolerance": 0.05  // 5% 的相对容差
+}
+```
+
+**原因**：
+- 缺少必需字段导致验证失败
+- 不支持的 operator 值导致验证逻辑错误
+- 误解 tolerance 含义导致验收标准不准确
+
+**解决方案**：
+- 使用结构化格式时，确保包含所有必需字段：`id`, `type`, `description`, `priority`
+- 根据 `type` 包含特定字段：
+  - `exact_match`: 需要 `verification_method`
+  - `quantitative_threshold`: 需要 `metric`, `operator`, `threshold`
+- 使用支持的 `operator` 值：`>=`, `<=`, `>`, `<`, `==`
+- `tolerance` 为相对值（如 0.05 表示 5%），而非绝对值
+- 向后兼容：不确定时可继续使用字符串格式
+
+---
+
 ## 最佳实践
 
 ### 1. 优先使用中等深度探索

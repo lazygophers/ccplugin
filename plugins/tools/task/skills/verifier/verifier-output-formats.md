@@ -20,7 +20,27 @@
       "task_name": "实现 JWT 工具函数",
       "status": "verified",
       "criteria_passed": 2,
-      "criteria_total": 2
+      "criteria_total": 2,
+      "criteria_results": [
+        {
+          "criterion_id": "AC1",
+          "status": "passed",
+          "evaluation_method": "exact_match",
+          "expected": "all tests passed",
+          "actual": "all tests passed",
+          "priority": "required"
+        },
+        {
+          "criterion_id": "AC2",
+          "status": "passed_with_tolerance",
+          "evaluation_method": "quantitative_threshold",
+          "expected": ">= 90%",
+          "actual": "92%",
+          "tolerance": 0.02,
+          "margin": {"gap": 0.02, "relative_gap": 0.022},
+          "priority": "required"
+        }
+      ]
     },
     {
       "task_id": "T2",

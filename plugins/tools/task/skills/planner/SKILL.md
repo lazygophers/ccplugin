@@ -229,13 +229,23 @@ print(f"迭代目标：{planner_result['iteration_goal']}")
 | `agent` | string | 执行 Agent（含中文注释） | `"coder（开发者）"` |
 | `skills` | array | 所需 Skills（含中文注释） | `["golang:core（核心功能）"]` |
 | `files` | array | 涉及的文件 | `["internal/auth/jwt.go"]` |
-| `acceptance_criteria` | array | 验收标准（可量化） | `["单元测试覆盖率 ≥ 90%"]` |
+| `acceptance_criteria` | array | 验收标准（支持字符串或结构化对象） | 见 [结构化验收标准](planner-structured-criteria.md) |
 | `dependencies` | array | 前置任务 ID 列表 | `["T1"]` |
+
+---
+
+## 结构化验收标准
+
+`acceptance_criteria` 字段支持字符串和结构化对象两种格式，详见：
+- **[结构化验收标准完整文档](planner-structured-criteria.md)** - 字段定义、评估方法、使用示例、验证规则
+
+---
 
 ## 详细文档
 
 完整的 Agent/Skills 选择、上下文学习、避坑指南和集成示例详见以下文档：
 
+- **[结构化验收标准](planner-structured-criteria.md)** - 精确匹配、量化阈值评估、字段定义、使用示例
 - **[上下文学习指南](planner-context-learning.md)** - 三层上下文学习、项目理解、记忆系统、规范驱动计划
 - **[Agent/Skills 选择参考](planner-reference.md)** - Agent 和 Skills 的选择指南、使用示例
 - **[避坑指南](planner-pitfalls.md)** - 常见错误、最佳实践、验证检查清单

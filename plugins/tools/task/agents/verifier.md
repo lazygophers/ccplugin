@@ -85,6 +85,8 @@ skills:
 
 | 标准类型 | 验证方法 | 示例 |
 |---------|---------|------|
+| **精确匹配（exact_match）** | 运行验证方法并检查结果是否完全匹配期望值 | `lint errors = 0`, `all tests passed` |
+| **量化阈值（quantitative_threshold）** | 提取度量值并与阈值比较（支持容差） | `coverage ≥ 90% (tolerance 2%)`, `response time < 200ms` |
 | **测试覆盖率** | 运行测试并检查覆盖率报告 | `coverage ≥ 90%` |
 | **代码质量** | 运行 lint 工具并检查输出 | `lint errors = 0` |
 | **性能指标** | 运行性能测试并测量响应时间 | `response time < 200ms` |

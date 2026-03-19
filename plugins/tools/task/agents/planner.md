@@ -153,8 +153,24 @@ skills:
       "skills": ["golang:core（核心功能）@golang"],
       "files": ["internal/auth/jwt.go"],
       "acceptance_criteria": [
-        "生成和验证 Token 功能完整",
-        "单元测试覆盖率 ≥ 90%"
+        {
+          "id": "AC1",
+          "type": "exact_match",
+          "description": "生成和验证 Token 功能完整",
+          "verification_method": "run_tests",
+          "priority": "required"
+        },
+        {
+          "id": "AC2",
+          "type": "quantitative_threshold",
+          "description": "单元测试覆盖率 ≥ 90%",
+          "metric": "test_coverage",
+          "operator": ">=",
+          "threshold": 0.9,
+          "unit": "percentage",
+          "tolerance": 0.02,
+          "priority": "required"
+        }
       ],
       "dependencies": []
     }

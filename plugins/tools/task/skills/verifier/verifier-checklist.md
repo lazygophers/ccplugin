@@ -23,6 +23,19 @@
   - **R**elevant（相关的）
   - **T**ime-bound（有时限的）
 
+### 结构化验收标准检查（新增）
+
+针对使用结构化格式（对象格式）的验收标准：
+
+- [ ] **必需字段完整性**：所有标准包含 `id`, `type`, `description`, `priority` 字段
+- [ ] **类型特定字段**：
+  - `exact_match` 包含 `verification_method` 字段
+  - `quantitative_threshold` 包含 `metric`, `operator`, `threshold` 字段
+- [ ] **Priority 值合法性**：所有 `priority` 值为 `required` 或 `recommended`
+- [ ] **Operator 值合法性**：`quantitative_threshold` 的 `operator` 为 `>=`, `<=`, `>`, `<`, `==` 之一
+- [ ] **容差合理性**：如果使用 `tolerance`，值应为相对值（如 0.05 表示 5%）
+- [ ] **向后兼容性**：旧字符串格式的验证行为不变
+
 ### 环境和工具检查
 
 - [ ] 测试环境已准备就绪
