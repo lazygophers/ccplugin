@@ -8,53 +8,6 @@ from lib.utils.env import get_project_dir
 version_filepath = ".version"
 
 
-def git_add_version_file():
-	"""如果是 git 仓库且 .version 未被忽略，则添加到暂存区"""
-	project_dir = get_project_dir()
-
-	# 检查是否是 git 仓库
-	try:
-		subprocess.run(
-			["git", "rev-parse", "--git-dir"],
-			cwd=project_dir,
-			capture_output=True,
-			check=True,
-			text=True
-		)
-	except (subprocess.CalledProcessError, FileNotFoundError):
-		# 不是 git 仓库或 git 未安装
-		return
-
-	# 检查 .version 是否被 .gitignore 忽略
-	try:
-		result = subprocess.run(
-			["git", "check-ignore", version_filepath],
-			cwd=project_dir,
-			capture_output=True,
-			text=True
-		)
-		if result.returncode == 0:
-			# 文件被忽略
-			logging.info(".version 文件被 .gitignore 忽略，跳过添加到暂存区")
-			return
-	except FileNotFoundError:
-		# git 未安装
-		return
-
-	# 添加到暂存区
-	try:
-		subprocess.run(
-			["git", "add", version_filepath],
-			cwd=project_dir,
-			capture_output=True,
-			check=True,
-			text=True
-		)
-		logging.info(".version 文件已添加到 git 暂存区")
-	except subprocess.CalledProcessError as e:
-		logging.error(f"添加 .version 到暂存区失败: {e}")
-
-
 def init_version():
 	if os.path.exists(os.path.join(get_project_dir(), version_filepath)):
 		return
@@ -91,9 +44,6 @@ def auto_update():
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
 
-	# 添加到 git 暂存区
-	git_add_version_file()
-
 def inc_major():
 	"""更新主版本号（第一级），其余级别重置为 0"""
 	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
@@ -111,9 +61,6 @@ def inc_major():
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
 
-	# 添加到 git 暂存区
-	git_add_version_file()
-
 def inc_minor():
 	"""更新次版本号（第二级），patch和build重置为 0"""
 	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
@@ -130,9 +77,6 @@ def inc_minor():
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
 
-	# 添加到 git 暂存区
-	git_add_version_file()
-
 def inc_patch():
 	"""更新补丁版本号（第三级），build重置为 0"""
 	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
@@ -147,9 +91,6 @@ def inc_patch():
 
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
-
-	# 添加到 git 暂存区
-	git_add_version_file()
 
 def get_version():
 	try:
