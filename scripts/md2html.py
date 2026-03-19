@@ -1139,30 +1139,6 @@ def convert_md_to_html(md_content: str) -> str:
 # CLI
 # ──────────────────────────────────────────────────────────────
 @app.command()
-def convert(
-    input_file: Path = typer.Argument(
-        ...,
-        help="Input Markdown file path",
-        exists=True,
-        file_okay=True,
-        dir_okay=False,
-        readable=True,
-    ),
-    output: Optional[Path] = typer.Option(
-        None, "--output", "-o", help="Output HTML file path"
-    ),
-    no_delete: bool = typer.Option(
-        False, "--no-delete", help="Keep temporary file (don't auto-delete)"
-    ),
-    no_open: bool = typer.Option(
-        False, "--no-open", help="Don't auto-open in browser"
-    ),
-) -> None:
-    """Convert a Markdown file to a styled HTML file."""
-    do_convert(input_file, output, no_delete, no_open)
-
-
-@app.command()
 def assets_update(
     check: bool = typer.Option(
         False, "--check", "-c", help="Check for updates without installing"
