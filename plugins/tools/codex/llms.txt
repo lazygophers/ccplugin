@@ -11,4 +11,3 @@
 ## 注意
 
 - 本插件以“命令编排/代理提示”为主：目录下无 `scripts/`，主要内容在 `commands/` 与 `agents/`。
-- `SessionStart` hook 会向 `CLAUDE_ENV_FILE` 追加 `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`。
