@@ -12,9 +12,10 @@ import uuid
 import webbrowser
 import urllib.request
 import urllib.error
+import urllib.parse
 import json
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 import mistune
 import typer
@@ -31,17 +32,40 @@ app = typer.Typer(
 ASSETS_DIR = Path.home() / ".lazygophers" / "ccplugin" / "assets"
 VERSION_FILE = ASSETS_DIR / "versions.json"
 
-# Remote URLs with versions
-REMOTE_ASSETS: Dict[str, Dict[str, str]] = {
+# Remote URLs with multiple mirror sources for global availability
+# Mirrors are tried in order until one succeeds
+REMOTE_ASSETS: Dict[str, Dict[str, Any]] = {
     "prism.js": {
-        "url": "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js",
         "version": "1.29.0",
-        "local": "prism.min.js"
+        "local": "prism.min.js",
+        "mirrors": [
+            # Primary: jsdelivr (fastest in most regions)
+            "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js",
+            # China: npmmirror (formerly taobao npm)
+            "https://npmmirror.com/mirrors/prismjs/1.29.0/prism.min.js",
+            # China: staticfile
+            "https://cdn.staticfile.net/prism/1.29.0/prism.min.js",
+            # Global: unpkg
+            "https://unpkg.com/prismjs@1.29.0/prism.min.js",
+            # Global: cdnjs
+            "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js",
+        ]
     },
     "mermaid.js": {
-        "url": "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js",
         "version": "11.6.0",
-        "local": "mermaid.min.js"
+        "local": "mermaid.min.js",
+        "mirrors": [
+            # Primary: jsdelivr
+            "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js",
+            # China: npmmirror
+            "https://npmmirror.com/mirrors/mermaid/11.6.0/mermaid.min.js",
+            # China: staticfile
+            "https://cdn.staticfile.net/mermaid/11.6.0/mermaid.min.js",
+            # Global: unpkg
+            "https://unpkg.com/mermaid@11.6.0/dist/mermaid.min.js",
+            # Global: cdnjs
+            "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.6.0/mermaid.min.js",
+        ]
     }
 }
 
@@ -50,6 +74,30 @@ def ensure_assets_dir() -> Path:
     """Ensure assets directory exists."""
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
     return ASSETS_DIR
+
+
+def download_with_mirrors(name: str, mirrors: list, local_path: Path) -> None:
+    """Try downloading from multiple mirrors until one succeeds."""
+    for i, url in enumerate(mirrors, 1):
+        mirror_name = urllib.parse.urlparse(url).netloc
+        try:
+            typer.echo(f"  [{i}/{len(mirrors)}] Trying {mirror_name}...")
+            with urllib.request.urlopen(url, timeout=15) as response:
+                data = response.read()
+
+            local_path.write_bytes(data)
+            if local_path.stat().st_size == 0:
+                raise RuntimeError("Downloaded file is empty")
+
+            typer.echo(f"  ✓ Downloaded from {mirror_name}")
+            return
+        except (urllib.error.URLError, OSError, RuntimeError) as e:
+            typer.echo(f"  ✗ Failed: {e}")
+            if i < len(mirrors):
+                typer.echo("  Trying next mirror...")
+            continue
+
+    raise RuntimeError(f"All mirrors failed for {name}")
 
 
 def get_asset_path(name: str) -> Path:
@@ -61,12 +109,11 @@ def get_asset_path(name: str) -> Path:
     if not local_path.exists():
         typer.echo(f"Downloading {name} {asset['version']}...")
         try:
-            with urllib.request.urlopen(asset["url"], timeout=30) as response:
-                data = response.read()
-            local_path.write_bytes(data)
-            if local_path.stat().st_size == 0:
-                raise RuntimeError(f"Downloaded file is empty: {name}")
-        except urllib.error.URLError as e:
+            download_with_mirrors(name, asset["mirrors"], local_path)
+        except RuntimeError as e:
+            # Clean up partial download
+            if local_path.exists():
+                local_path.unlink()
             raise RuntimeError(f"Failed to download {name}: {e}")
 
     return local_path
@@ -125,10 +172,8 @@ def update_assets(check: bool = False) -> None:
         # Download new version
         typer.echo(f"Updating {name} to {asset['version']}...")
         try:
-            with urllib.request.urlopen(asset["url"], timeout=30) as response:
-                data = response.read()
-            local_path.write_bytes(data)
-        except urllib.error.URLError as e:
+            download_with_mirrors(name, asset["mirrors"], local_path)
+        except RuntimeError as e:
             typer.echo(f"Warning: Failed to update {name}: {e}", err=True)
             continue
 
