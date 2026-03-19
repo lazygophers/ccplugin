@@ -27,6 +27,112 @@ print(f"初始化完成。可用 Skills：{len(available_skills)} 个，可用 A
 
 </phase_initialization>
 
+<caching_helpers>
+
+## Prompt Caching 辅助函数
+
+```python
+def extract_static_content(file_path):
+    """提取静态内容用于缓存"""
+    with open(file_path, 'r') as f:
+        content = f.read()
+
+    # 提取 STATIC_CONTENT 标记之间的内容
+    start_marker = "<!-- STATIC_CONTENT"
+    end_marker = "<!-- /STATIC_CONTENT -->"
+
+    start_idx = content.find(start_marker)
+    end_idx = content.find(end_marker)
+
+    if start_idx == -1 or end_idx == -1:
+        return content  # 无标记，返回全部内容
+
+    # 提取静态部分（包含标记）
+    return content[start_idx:end_idx + len(end_marker)]
+
+
+def check_min_tokens(content, model="haiku"):
+    """检查是否满足最小 token 要求"""
+    min_tokens = {
+        "haiku": 4096,
+        "sonnet": 1024,
+        "opus": 1024
+    }
+
+    # 粗略估算：1 token ≈ 4 bytes
+    estimated_tokens = len(content.encode('utf-8')) // 4
+
+    required = min_tokens.get(model, 1024)
+    if estimated_tokens < required:
+        print(f"警告：静态内容仅 {estimated_tokens} tokens，"
+              f"模型 {model} 要求 ≥ {required} tokens")
+        return False
+
+    return True
+
+
+def verify_cache_stability(file_paths):
+    """验证静态内容稳定性（通过哈希）"""
+    import hashlib
+    import json
+
+    hash_file = ".claude/cache_hashes.json"
+    current_hashes = {}
+
+    # 计算当前哈希
+    for path in file_paths:
+        static_content = extract_static_content(path)
+        content_hash = hashlib.sha256(static_content.encode()).hexdigest()
+        current_hashes[path] = content_hash
+
+    # 对比上次哈希
+    try:
+        with open(hash_file, 'r') as f:
+            last_hashes = json.load(f)
+    except FileNotFoundError:
+        last_hashes = {}
+
+    # 检测变化
+    changed_files = []
+    for path, current_hash in current_hashes.items():
+        if path in last_hashes and last_hashes[path] != current_hash:
+            changed_files.append(path)
+            print(f"缓存失效：{path} 静态内容已变化")
+
+    # 保存当前哈希
+    with open(hash_file, 'w') as f:
+        json.dump(current_hashes, f, indent=2)
+
+    return len(changed_files) == 0  # True 表示缓存稳定
+```
+
+使用示例：
+
+```python
+# 在初始化阶段检查缓存稳定性
+cache_files = [
+    "plugins/tools/task/skills/loop/SKILL.md",
+    "plugins/tools/task/skills/planner/SKILL.md"
+]
+
+# 提取静态内容
+loop_static = extract_static_content(cache_files[0])
+planner_static = extract_static_content(cache_files[1])
+
+# 检查最小 token 要求
+check_min_tokens(loop_static, model="sonnet")    # True
+check_min_tokens(planner_static, model="haiku")  # True
+
+# 验证缓存稳定性
+cache_stable = verify_cache_stability(cache_files)
+if cache_stable:
+    print("✓ 缓存稳定，预期命中率 >90%")
+else:
+    print("⚠ 缓存已失效，首次调用将重建缓存")
+```
+
+</caching_helpers>
+
 <phase_planning>
 
 ## 计划设计（Planning / Plan）

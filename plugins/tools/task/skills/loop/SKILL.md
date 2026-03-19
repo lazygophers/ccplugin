@@ -43,13 +43,13 @@ memory: project
 
 **子技能**：task:loop-planning（计划设计）、task:loop-verification（验证）、task:planner、task:execute、task:verifier、task:adjuster
 
-**详细文档**：[loop-deep-iteration.md](loop-deep-iteration.md)、[loop-detailed-flow.md](loop-detailed-flow.md)
+**详细文档**：[loop-deep-iteration.md](loop-deep-iteration.md)、[loop-detailed-flow.md](loop-detailed-flow.md)、[loop-prompt-caching.md](loop-prompt-caching.md)
 
 </references>
 
 <quick_reference>
 
-质量阈值：60→75→85→90分 | 失败策略：retry→debug→replan→ask_user | 深度研究：第1轮/失败2次/质量不达标/复杂任务
+质量阈值：60→75→85→90分 | 失败策略：retry→debug→replan→ask_user | 深度研究：第1轮/失败2次/质量不达标/复杂任务 | 缓存优化：静态内容标记，90%成本节省
 
 </quick_reference>
 
