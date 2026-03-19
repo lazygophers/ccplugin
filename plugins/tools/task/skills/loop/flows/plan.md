@@ -17,6 +17,54 @@ user-invocable: false
 
 <execution_flow>
 
+## 阶段0：提示词优化（Prompt Optimization）
+
+仅在第一轮（iteration=0）执行，确保用户输入清晰可执行。
+
+触发条件：
+- loop 命令启动后的第一轮
+- 用户原始输入已获取
+
+```python
+# 仅在第一轮执行
+if iteration == 0:
+    optimizer_result = Agent(
+        agent="task:prompt-optimizer",
+        prompt=f"""优化用户提示词：
+
+原始输入：{user_task}
+
+要求：
+1. 评估质量（清晰度、完整性、可执行性，0-10分）
+2. 综合得分 = (清晰度 + 完整性 + 可执行性) / 3
+3. 质量 ≥ 8分：返回 status="no_optimization_needed"，静默跳过
+4. 质量 < 8分：识别缺失的5W1H维度，通过SendMessage(@main)提问
+5. 质量 < 6分：使用WebSearch搜索"prompt engineering best practices 2025"
+6. 生成优化后的结构化提示词（Markdown格式）
+7. 返回优化报告（≤100字）
+
+提问不限次数，确保信息完整。
+"""
+    )
+
+    # 质量高：静默跳过
+    if optimizer_result["status"] == "no_optimization_needed":
+        # 完全不输出任何信息，直接继续
+        pass
+    # 质量低：显示优化结果
+    else:
+        print(f"[MindFlow·{user_task}·提示词优化/0·completed]")
+        print(f"优化报告：{optimizer_result['report']}")
+
+        # 更新任务描述
+        user_task = optimizer_result["optimized_prompt"]
+        print(f"✓ 提示词已优化（质量：{optimizer_result['quality_score']['overall']:.1f}分）")
+```
+
+状态转换：
+- 优化完成 → 深度研究（如需）或 计划设计
+- 静默跳过 → 深度研究（如需）或 计划设计
+
 ## 阶段1：深度研究（可选）
 
 触发条件：
