@@ -80,6 +80,7 @@ if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
 ```python
 from pathlib import Path
 import re
+import json
 
 plans_dir = Path(".claude/plans")
 plans_dir.mkdir(parents=True, exist_ok=True)
@@ -88,7 +89,7 @@ plans_dir.mkdir(parents=True, exist_ok=True)
 safe_task_name = re.sub(r'[^\w\u4e00-\u9fff]+', '-', user_task)[:50]
 plan_md_path = plans_dir / f"{safe_task_name}-{iteration}.md"
 
-# YAML frontmatter + 必须使用 plan-confirmation-template.md 模板
+# YAML frontmatter
 frontmatter = f"""---
 status: pending
 created_at: {datetime.now().isoformat()}
@@ -98,9 +99,24 @@ completed_count: 0
 ---
 """
 
-# 基于 plan-confirmation-template.md 填充内容
-filled_content = fill_plan_template(planner_result, frontmatter)
-Write(str(plan_md_path), filled_content)
+# 调用 task:plan-formatter 格式化计划文档
+formatted_plan = Agent(
+    agent="task:plan-formatter",
+    prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
+
+{json.dumps(planner_result, ensure_ascii=False, indent=2)}
+
+YAML Frontmatter（必须放在文档开头）：
+{frontmatter}
+
+要求：
+1. 严格遵循 template.md 格式
+2. Mermaid 图单行文本，无 \\n
+3. 包含完整的任务清单表格
+"""
+)
+
+Write(str(plan_md_path), formatted_plan)
 
 print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
 print(planner_result["report"])
@@ -147,7 +163,7 @@ else:
 <references>
 
 详细实现参见：
-- [loop-deep-iteration.md](../deep-iteration.md#计划设计阶段融合研究结果)
+- [loop-deep-iteration.md](../../deep-iteration/implementation.md#计划设计阶段融合研究结果)
 - [plan-confirmation-template.md](../../plan-formatter/template.md)
 - Skills(task:planner)
 

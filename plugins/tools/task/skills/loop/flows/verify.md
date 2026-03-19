@@ -161,7 +161,7 @@ def calculate_quality_score(metrics):
 <references>
 
 详细实现参见：
-- [loop-deep-iteration.md](../deep-iteration.md#结果验证阶段质量门控--持续改进)
+- [loop-deep-iteration.md](../../deep-iteration/implementation.md#结果验证阶段质量门控--持续改进)
 - Skills(task:verifier)
 
 </references>

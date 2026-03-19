@@ -41,7 +41,7 @@ memory: project
 
 **子技能**：flows/plan（计划流程）、flows/verify（验证流程）、task:planner、task:execute、task:verifier、task:adjuster
 
-**详细文档**：[deep-iteration.md](deep-iteration.md)、[detailed-flow.md](detailed-flow.md)、[prompt-caching.md](prompt-caching.md)
+**详细文档**：[deep-iteration实现](../deep-iteration/implementation.md)、[detailed-flow.md](detailed-flow.md)、[prompt-caching.md](prompt-caching.md)
 
 </references>
 
