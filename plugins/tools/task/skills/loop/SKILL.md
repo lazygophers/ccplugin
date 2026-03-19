@@ -6,8 +6,6 @@ skills:
   - task:execute
   - task:verifier
   - task:adjuster
-  - task:loop-planning
-  - task:loop-verification
   - deepresearch:deep-research
 model: sonnet
 memory: project
@@ -29,7 +27,7 @@ memory: project
 
 ## PDCA 流程
 
-**Plan**（task:loop-planning）→ **Do**（task:execute）→ **Check**（task:loop-verification）→ **Act**（task:adjuster）
+**Plan**（flows/plan）→ **Do**（task:execute）→ **Check**（flows/verify）→ **Act**（task:adjuster）
 
 **7个阶段**：初始化 → 深度研究（可选）→ 计划设计 → 任务执行 → 结果验证 → 失败调整 → 完成
 
@@ -41,7 +39,7 @@ memory: project
 
 ## 子技能与文档
 
-**子技能**：task:loop-planning（计划设计）、task:loop-verification（验证）、task:planner、task:execute、task:verifier、task:adjuster
+**子技能**：flows/plan（计划流程）、flows/verify（验证流程）、task:planner、task:execute、task:verifier、task:adjuster
 
 **详细文档**：[deep-iteration.md](deep-iteration.md)、[detailed-flow.md](detailed-flow.md)、[prompt-caching.md](prompt-caching.md)
 
