@@ -6,6 +6,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable (6000+ tokens) -->
+
 # Skills(task:planner) - 计划设计规范
 
 <scope>
@@ -224,3 +226,5 @@ Task 对象字段：
 不要跳过计划验证步骤，不要忽略 planner 返回的问题，不要修改 planner 返回的 JSON 结构。常见陷阱包括：过度拆分任务（应合并为原子任务）、验收标准模糊（应可量化）、缺少中文注释、循环依赖、并行度超限。
 
 </guidelines>
+
+<!-- /STATIC_CONTENT -->
