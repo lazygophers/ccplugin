@@ -139,8 +139,8 @@ def update_assets(check: bool = False) -> None:
     typer.echo(f"Updated {len(updates_needed)} asset(s).")
 
 
-def get_html_with_local_paths() -> str:
-    """Get HTML template with local asset paths."""
+def get_html_with_local_paths(title: str, description: str, css: str, content: str) -> str:
+    """Get HTML with local asset paths and content."""
     prism_path = get_asset_path("prism.js")
     mermaid_path = get_asset_path("mermaid.js")
 
@@ -149,8 +149,8 @@ def get_html_with_local_paths() -> str:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="{{description}}">
-  <title>{{title}}</title>
+  <meta name="description" content="{description}">
+  <title>{title}</title>
 
   <!-- Prism.js (Local) -->
   <script src="{prism_path.as_uri()}" defer></script>
@@ -161,12 +161,12 @@ def get_html_with_local_paths() -> str:
     mermaid.initialize({{ startOnLoad: true, theme: 'dark', securityLevel: 'loose' }});
   </script>
 
-  <style>{{css}}</style>
+  <style>{css}</style>
 </head>
 <body>
   <div class="gradient-bg">
     <article class="markdown-body glass-container">
-      {{content}}
+      {content}
     </article>
   </div>
 </body>
@@ -1125,9 +1125,7 @@ def convert_md_to_html(md_content: str) -> str:
     parser = create_parser()
     body = parser(md_content)
 
-    html_template = get_html_with_local_paths()
-
-    return html_template.format(
+    return get_html_with_local_paths(
         title=mistune.escape(title),
         description=mistune.escape(description),
         css=GRADIENT_CSS,
