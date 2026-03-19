@@ -30,11 +30,12 @@ finalizer_result = Agent(
 当前状态：{loop_state}
 已完成任务：{completed_tasks}
 未完成任务：{pending_tasks}
+计划文件路径：{plan_md_path}  # 例如：.claude/plans/任务名-1.md
 
 要求：
 1. 盘点所有资源（任务、文件、其他）
 2. 停止运行中的任务
-3. 清理计划文件和临时文件
+3. 清理计划文件（删除 {plan_md_path} 及对应的 .html 文件）和临时文件
 4. 生成最终清理报告
 
 如遇错误，继续剩余清理流程。

@@ -78,10 +78,20 @@ import re
 plans_dir = Path(".claude/plans")
 plans_dir.mkdir(parents=True, exist_ok=True)
 
+# 强制保留用户语言字符（中文：\u4e00-\u9fff）
 safe_task_name = re.sub(r'[^\w\u4e00-\u9fff]+', '-', user_task)[:50]
 plan_md_path = plans_dir / f"{safe_task_name}-{iteration}.md"
 
-Write(str(plan_md_path), filled_markdown_content)
+# YAML frontmatter 元数据 + 必须使用 plan-confirmation-template.md 模板
+frontmatter = f"""---
+status: pending
+created_at: {datetime.now().isoformat()}
+iteration: {iteration}
+task_count: {len(planner_result['tasks'])}
+completed_count: 0
+---
+"""
+Write(str(plan_md_path), frontmatter + filled_markdown_content)
 
 print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
 print(planner_result["report"])
@@ -100,17 +110,13 @@ print(f"计划已生成：{plan_md_path}")
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
 print(f"计划文件：{plan_md_path}")
 
-Bash(
-    command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path}",
-    description="将计划 MD 转换为 HTML 并在浏览器打开"
-)
+Bash(command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path}",
+     description="将计划 MD 转换为 HTML 并在浏览器打开")
 print("已在浏览器打开计划预览")
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
 
-user_decision = AskUserQuestion(
-    question="执行计划已准备就绪，是否开始执行？",
-    options=["立即执行", "重新设计"]
-)
+user_decision = AskUserQuestion(question="执行计划已准备就绪，是否开始执行？",
+                                 options=["立即执行", "重新设计"])
 ```
 
 状态转换：立即执行 → 任务执行；重新设计 → 计划设计
@@ -123,7 +129,6 @@ user_decision = AskUserQuestion(
 
 ```python
 team_name = f"mindflow-execution-{iteration}"
-
 print(f"[MindFlow·{user_task}·任务执行/{iteration}·进行中]")
 
 execution_result = TeamCreate(
@@ -131,6 +136,9 @@ execution_result = TeamCreate(
     description=planner_result["report"],
     skills=[Skill("task:execute")]
 )
+
+# 更新plan文件状态：📋→⏸️→🔄→✅/❌，同步 frontmatter
+update_plan_task_status(plan_md_path, task_id, new_icon)
 
 TeamDelete(team_name=team_name)
 print(f"[MindFlow·{user_task}·任务执行/{iteration}·completed]")
@@ -163,9 +171,11 @@ verification_result = Agent(
 
 print(f"[MindFlow·{user_task}·结果验证/{iteration}·{verification_result['status']}]")
 print(f"验收报告：{verification_result['report']}")
-```
 
-```python
+# 更新plan文件整体状态（passed→completed, failed→failed）
+update_plan_frontmatter(plan_md_path, status=verification_result["status"],
+                        completed_count=count_completed_tasks())
+
 # 状态转换
 status = verification_result["status"]
 
@@ -220,9 +230,7 @@ if "retry_config" in adjustment_result:
     if backoff_seconds > 0:
         print(f"应用指数退避：等待 {backoff_seconds} 秒...")
         time.sleep(backoff_seconds)
-```
 
-```python
 # 状态转换
 strategy = adjustment_result["strategy"]
 
@@ -263,19 +271,11 @@ elif strategy == "ask_user":
 ## 全部完成（Completion / Finalization）
 
 ```python
-status = "completed"
-
-finalizer_result = Agent(
-    agent="task:finalizer",
-    prompt="""执行 loop 完成后的收尾清理工作：
-
-要求：
-1. 停止所有运行中的任务
-2. 删除所有计划文件
-3. 清理临时文件和缓存
-4. 生成清理报告
-"""
-)
+finalizer_result = Agent(agent="task:finalizer",
+    prompt=f"""执行 loop 完成后的收尾清理：
+计划文件：{plan_md_path}
+要求：1.停止任务 2.删除计划文件（含.html） 3.清理临时文件 4.生成报告
+""")
 
 print(f"[MindFlow·{user_task}·completed]")
 
