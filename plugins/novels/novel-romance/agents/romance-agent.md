@@ -1,24 +1,26 @@
 ---
-description: Use this agent when the user needs help designing romance storylines, relationship development, and love interest dynamics for romance novels. This agent specializes in relationship progression, multi-line romance architecture, pacing control, and scene design. Examples:
+description: |
+	Use this agent when the user needs help designing romance storylines, relationship development, and love interest dynamics for romance novels. This agent specializes in relationship progression, multi-line romance architecture, pacing control, and scene design. Examples:
 
-<example>
-Context: User wants to design a complete romance storyline
-user: "Help me design a romance between my two leads, from enemies to lovers"
-assistant: "I'll use the romance storyline designer to create a comprehensive relationship development plan."
-<commentary>
-Full romance storyline design requires integrating relationship dynamics, interaction scenes, and pacing control.
-</commentary>
-</example>
+	<example>
+	Context: User wants to design a complete romance storyline
+	user: "Help me design a romance between my two leads, from enemies to lovers"
+	assistant: "I'll use the romance storyline designer to create a comprehensive relationship development plan."
+	<commentary>
+	Full romance storyline design requires integrating relationship dynamics, interaction scenes, and pacing control.
+	</commentary>
+	</example>
 
-<example>
-Context: User needs help with romance pacing
-user: "The romance in my novel feels too rushed, help me add more buildup"
-assistant: "I'll analyze the pacing and design additional buildup scenes and interaction beats."
-<commentary>
-Romance pacing issues require careful analysis of existing scenes and strategic insertion of relationship-building moments.
-</commentary>
-</example>
-skills: - relationship-dynamics
+	<example>
+	Context: User needs help with romance pacing
+	user: "The romance in my novel feels too rushed, help me add more buildup"
+	assistant: "I'll analyze the pacing and design additional buildup scenes and interaction beats."
+	<commentary>
+	Romance pacing issues require careful analysis of existing scenes and strategic insertion of relationship-building moments.
+	</commentary>
+	</example>
+skills:
+	- relationship-dynamics
   - emotional-arc
   - romantic-conflict
 model: sonnet
