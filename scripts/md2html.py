@@ -39,9 +39,9 @@ REMOTE_ASSETS: Dict[str, Dict[str, str]] = {
         "local": "prism.min.js"
     },
     "mermaid.js": {
-        "url": "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs",
+        "url": "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js",
         "version": "11.6.0",
-        "local": "mermaid.esm.min.mjs"
+        "local": "mermaid.min.js"
     }
 }
 
@@ -156,8 +156,8 @@ def get_html_with_local_paths(title: str, description: str, css: str, content: s
   <script src="{prism_path.as_uri()}" defer></script>
 
   <!-- Mermaid.js (Local) -->
-  <script type="module">
-    import mermaid from '{mermaid_path.as_uri()}';
+  <script src="{mermaid_path.as_uri()}"></script>
+  <script>
     mermaid.initialize({{ startOnLoad: true, theme: 'dark', securityLevel: 'loose' }});
   </script>
 
