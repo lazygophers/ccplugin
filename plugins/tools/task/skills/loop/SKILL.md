@@ -43,7 +43,7 @@ memory: project
 
 **子技能**：task:loop-planning（计划设计）、task:loop-verification（验证）、task:planner、task:execute、task:verifier、task:adjuster
 
-**详细文档**：[loop-deep-iteration.md](loop-deep-iteration.md)、[loop-detailed-flow.md](loop-detailed-flow.md)、[loop-prompt-caching.md](loop-prompt-caching.md)
+**详细文档**：[deep-iteration.md](deep-iteration.md)、[detailed-flow.md](detailed-flow.md)、[prompt-caching.md](prompt-caching.md)
 
 </references>
 
