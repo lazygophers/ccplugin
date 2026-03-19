@@ -10,8 +10,11 @@ import tempfile
 import threading
 import uuid
 import webbrowser
+import urllib.request
+import urllib.error
+import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 import mistune
 import typer
@@ -21,6 +24,155 @@ app = typer.Typer(
     help="Markdown to HTML converter with Aurora Borealis gradient theme",
     add_completion=False,
 )
+
+# ──────────────────────────────────────────────────────────────
+# Local Assets Management
+# ──────────────────────────────────────────────────────────────
+ASSETS_DIR = Path.home() / ".lazygophers" / "ccplugin" / "assets"
+VERSION_FILE = ASSETS_DIR / "versions.json"
+
+# Remote URLs with versions
+REMOTE_ASSETS: Dict[str, Dict[str, str]] = {
+    "prism.js": {
+        "url": "https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js",
+        "version": "1.29.0",
+        "local": "prism.min.js"
+    },
+    "mermaid.js": {
+        "url": "https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.esm.min.mjs",
+        "version": "11.6.0",
+        "local": "mermaid.esm.min.mjs"
+    }
+}
+
+
+def ensure_assets_dir() -> Path:
+    """Ensure assets directory exists."""
+    ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+    return ASSETS_DIR
+
+
+def get_asset_path(name: str) -> Path:
+    """Get local asset path, downloading if necessary."""
+    ensure_assets_dir()
+    asset = REMOTE_ASSETS[name]
+    local_path = ASSETS_DIR / asset["local"]
+
+    if not local_path.exists():
+        typer.echo(f"Downloading {name} {asset['version']}...")
+        try:
+            with urllib.request.urlopen(asset["url"], timeout=30) as response:
+                data = response.read()
+            local_path.write_bytes(data)
+            if local_path.stat().st_size == 0:
+                raise RuntimeError(f"Downloaded file is empty: {name}")
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Failed to download {name}: {e}")
+
+    return local_path
+
+
+def save_versions(versions: Dict[str, str]) -> None:
+    """Save asset versions to file."""
+    ensure_assets_dir()
+    with open(VERSION_FILE, "w", encoding="utf-8") as f:
+        json.dump(versions, f, indent=2)
+
+
+def load_versions() -> Dict[str, str]:
+    """Load asset versions from file."""
+    if VERSION_FILE.exists():
+        with open(VERSION_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
+def update_assets(check: bool = False) -> None:
+    """Update local assets to latest versions."""
+    ensure_assets_dir()
+    local_versions = load_versions()
+    updates_needed = []
+
+    for name, asset in REMOTE_ASSETS.items():
+        local_ver = local_versions.get(name)
+        remote_ver = asset["version"]
+        local_path = ASSETS_DIR / asset["local"]
+
+        if local_path.exists() and local_ver == remote_ver:
+            continue
+
+        updates_needed.append(name)
+        if check:
+            current = local_ver or "not installed"
+            typer.echo(f"{name}: {current} -> {remote_ver}")
+
+    if not updates_needed:
+        typer.echo("All assets are up to date.")
+        return
+
+    if check:
+        typer.echo(f"\nFound {len(updates_needed)} update(s). Run without --check to update.")
+        return
+
+    for name in updates_needed:
+        asset = REMOTE_ASSETS[name]
+        local_path = ASSETS_DIR / asset["local"]
+
+        # Remove old file if exists
+        if local_path.exists():
+            local_path.unlink()
+
+        # Download new version
+        typer.echo(f"Updating {name} to {asset['version']}...")
+        try:
+            with urllib.request.urlopen(asset["url"], timeout=30) as response:
+                data = response.read()
+            local_path.write_bytes(data)
+        except urllib.error.URLError as e:
+            typer.echo(f"Warning: Failed to update {name}: {e}", err=True)
+            continue
+
+    # Save new versions
+    new_versions = {name: asset["version"] for name, asset in REMOTE_ASSETS.items()}
+    new_versions.update(local_versions)
+    save_versions(new_versions)
+    typer.echo(f"Updated {len(updates_needed)} asset(s).")
+
+
+def get_html_with_local_paths() -> str:
+    """Get HTML template with local asset paths."""
+    prism_path = get_asset_path("prism.js")
+    mermaid_path = get_asset_path("mermaid.js")
+
+    return f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{{description}}">
+  <title>{{title}}</title>
+
+  <!-- Prism.js (Local) -->
+  <script src="{prism_path.as_uri()}" defer></script>
+
+  <!-- Mermaid.js (Local) -->
+  <script type="module">
+    import mermaid from '{mermaid_path.as_uri()}';
+    mermaid.initialize({{ startOnLoad: true, theme: 'dark', securityLevel: 'loose' }});
+  </script>
+
+  <style>{{css}}</style>
+</head>
+<body>
+  <div class="gradient-bg">
+    <article class="markdown-body glass-container">
+      {{content}}
+    </article>
+  </div>
+</body>
+</html>
+'''
+
 
 # ──────────────────────────────────────────────────────────────
 # Aurora Borealis Gradient CSS (~800 lines)
@@ -522,7 +674,7 @@ body {
 }
 
 .markdown-body .task-list-item input[type="checkbox"]:checked::after {
-    content: '\\2713';
+    content: '\\\\2713';
     display: block;
     text-align: center;
     color: #0a0015;
@@ -918,45 +1070,6 @@ body {
 
 
 # ──────────────────────────────────────────────────────────────
-# HTML Template
-# ──────────────────────────────────────────────────────────────
-HTML_TEMPLATE = """<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="{description}">
-  <title>{title}</title>
-
-  <!-- Security Policies for file:// protocol -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: http:; font-src 'self' data: https://cdn.jsdelivr.net; connect-src 'self' https://cdn.jsdelivr.net; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
-  <meta name="referrer" content="no-referrer">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="sameorigin">
-
-  <!-- Prism.js Core -->
-  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js" defer></script>
-
-  <!-- Mermaid.js -->
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({{ startOnLoad: true, theme: 'dark', securityLevel: 'loose' }});
-  </script>
-
-  <style>{css}</style>
-</head>
-<body>
-  <div class="gradient-bg">
-    <article class="markdown-body glass-container">
-      {content}
-    </article>
-  </div>
-</body>
-</html>
-"""
-
-
-# ──────────────────────────────────────────────────────────────
 # Markdown Renderer
 # ──────────────────────────────────────────────────────────────
 class MermaidRenderer(mistune.HTMLRenderer):
@@ -964,12 +1077,12 @@ class MermaidRenderer(mistune.HTMLRenderer):
 
     def block_code(self, code: str, info: Optional[str] = None) -> str:
         if info and info.strip().lower() == "mermaid":
-            return f'<pre class="mermaid">\n{mistune.escape(code)}\n</pre>\n'
+            return f'<pre class="mermaid">\\n{mistune.escape(code)}\\n</pre>\\n'
         lang = info.strip() if info else "text"
         escaped = mistune.escape(code)
         return (
             f'<pre><code class="language-{lang}">'
-            f"{escaped}</code></pre>\n"
+            f"{escaped}</code></pre>\\n"
         )
 
 
@@ -986,16 +1099,16 @@ def create_parser() -> mistune.Markdown:
 # ──────────────────────────────────────────────────────────────
 def extract_title(md: str) -> str:
     """Extract first H1 heading from markdown."""
-    m = re.search(r"^#\s+(.+)$", md, re.MULTILINE)
+    m = re.search(r"^#\\s+(.+)$", md, re.MULTILINE)
     return m.group(1).strip() if m else "Markdown Document"
 
 
 def extract_description(md: str, max_len: int = 200) -> str:
     """Extract first paragraph as description."""
-    text = re.sub(r"^#+\s+.+$", "", md, flags=re.MULTILINE)
-    text = re.sub(r"```[\s\S]*?```", "", text)
-    text = re.sub(r"[#*`\[\]()]", "", text)
-    paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    text = re.sub(r"^#+\\s+.+$", "", md, flags=re.MULTILINE)
+    text = re.sub(r"```[\\s\\S]*?```", "", text)
+    text = re.sub(r"[#*`\\[\\]()]", "", text)
+    paragraphs = [p.strip() for p in text.split("\\n\\n") if p.strip()]
     if paragraphs:
         desc = paragraphs[0]
         return desc[:max_len] + "..." if len(desc) > max_len else desc
@@ -1011,7 +1124,10 @@ def convert_md_to_html(md_content: str) -> str:
     description = extract_description(md_content)
     parser = create_parser()
     body = parser(md_content)
-    return HTML_TEMPLATE.format(
+
+    html_template = get_html_with_local_paths()
+
+    return html_template.format(
         title=mistune.escape(title),
         description=mistune.escape(description),
         css=GRADIENT_CSS,
@@ -1043,6 +1159,14 @@ def convert(
     ),
 ) -> None:
     """Convert a Markdown file to a styled HTML file."""
+    # Ensure assets are downloaded before converting
+    try:
+        get_asset_path("prism.js")
+        get_asset_path("mermaid.js")
+    except RuntimeError as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
     md_content = input_file.read_text(encoding="utf-8")
     html = convert_md_to_html(md_content)
 
@@ -1063,6 +1187,16 @@ def convert(
 
     if use_temp and not no_delete:
         threading.Timer(5.0, lambda: os.remove(str(out_path))).start()
+
+
+@app.command()
+def assets_update(
+    check: bool = typer.Option(
+        False, "--check", "-c", help="Check for updates without installing"
+    ),
+) -> None:
+    """Update local assets to latest versions."""
+    update_assets(check=check)
 
 
 if __name__ == "__main__":
