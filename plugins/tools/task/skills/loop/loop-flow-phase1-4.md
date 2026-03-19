@@ -131,31 +131,12 @@ print(f"✓ 计划已生成：{plan_md_path}")
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
 print(f"📋 计划文件：{plan_md_path}")
 
-# 使用 md2html 命令转换为 HTML（保留临时文件，不自动打开）
-html_result = Bash(
-    command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path} --no-delete",
-    description="将计划 MD 转换为 HTML"
+# 使用 md2html 命令转换为 HTML（自动打开浏览器并删除临时文件）
+Bash(
+    command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path}",
+    description="将计划 MD 转换为 HTML 并在浏览器打开"
 )
-
-# 从输出中提取 HTML 文件路径（md2html 会输出路径）
-# 预期输出格式："✓ HTML 已生成：/tmp/md2html-xxx.html"
-import re
-html_match = re.search(r"(?:生成|输出|保存).*?([/\w\-\.]+\.html)", html_result.stdout)
-if html_match:
-    plan_html_path = html_match.group(1)
-    print(f"📄 HTML 预览：{plan_html_path}")
-
-    # 在浏览器打开 HTML 预览
-    import platform
-    open_cmd = "open" if platform.system() == "Darwin" else "xdg-open"
-    Bash(
-        command=f"{open_cmd} {plan_html_path}",
-        description="在浏览器打开计划预览"
-    )
-    print("✓ 已在浏览器打开计划预览")
-else:
-    print("⚠️ HTML 转换失败，将使用 MD 文件")
-    plan_html_path = None
+print("✓ 已在浏览器打开计划预览")
 
 # 2. 等待用户确认
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
@@ -164,13 +145,6 @@ user_decision = AskUserQuestion(
     question="执行计划已准备就绪，是否开始执行？",
     options=["立即执行", "重新设计"]
 )
-
-# 3. 清理临时 HTML 文件
-if plan_html_path:
-    Bash(
-        command=f"rm -f {plan_html_path}",
-        description="删除临时计划 HTML 文件"
-    )
 ```
 
 ### 状态转换
