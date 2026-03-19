@@ -98,6 +98,41 @@ def validate_plan(plan):
 
 </invocation>
 
+<mermaid_generation_rules>
+
+## Mermaid stateDiagram 生成规范
+
+**关键约束**（必须严格遵守）：
+1. **单行文本**：状态描述必须在单行内，**禁止使用 `\n` 换行符**
+2. **简洁标签**：每个状态仅包含任务 ID 和简短名称（≤15 字符）
+3. **信息分离**：详细信息（agent/skills/files）放在任务清单表格，**不在图中**
+
+**正确示例**：
+```mermaid
+stateDiagram-v2
+    [*] --> T1
+    state "T1: 需求分析" as T1
+    state "T2: 核心功能" as T2
+    T1 --> T2
+    T2 --> [*]
+```
+
+**错误示例**（禁止）：
+```mermaid
+state "T1: 需求分析\nagent: analyst" as T1  ❌ 使用了 \n
+state "T1: 实现用户认证功能并添加测试覆盖" as T1  ❌ 描述过长
+state "T1: 需求分析\n━━━━━━\nagent: xx" as T1  ❌ 多行文本
+```
+
+**验证步骤**：
+生成 Mermaid 图后，检查：
+- [ ] 无 `\n` 换行符
+- [ ] 每个状态描述 ≤ 20 字符
+- [ ] 图表节点数 ≤ 12 个
+- [ ] 无分隔符（━━━━）
+
+</mermaid_generation_rules>
+
 <output_format>
 
 标准输出（有任务需执行）：

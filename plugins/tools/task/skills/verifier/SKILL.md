@@ -1,3 +1,10 @@
+---
+description: 结果验证规范 - 验收标准检查、质量评分、回归测试
+model: sonnet
+context: fork
+user-invocable: false
+---
+
 # Skills(task:verifier) - 结果验证规范
 
 <overview>

@@ -6,40 +6,28 @@
 stateDiagram-v2
     [*] --> T1
 
-    state "T1: 需求分析\n━━━━━━━━━━━━\nagent: analyst（分析师）@project\nskills:\n  - requirements（需求分析）@project\nfiles:\n  - docs/requirements.md" as T1
+    state "T1: 需求分析" as T1
+    state "T2: 核心功能" as T2
+    state "T3: API开发" as T3
+    state "T4: 配置管理" as T4
+    state "T5: 性能优化" as T5
+    state "T6: 单元测试" as T6
+    state "T7: API文档" as T7
+    state "T8: 集成测试" as T8
+    state "T9: 代码审查" as T9
 
     T1 --> T2
     T1 --> T3
     T1 --> T4
-
-    state "T2: 核心功能实现\n━━━━━━━━━━━━\nagent: developer（开发者）@task\nskills:\n  - python:core（核心功能）@python\n  - python:async（异步编程）@python\nfiles:\n  - src/core.py\n  - src/utils.py" as T2
-
-    state "T3: API接口开发\n━━━━━━━━━━━━\nagent: developer（开发者）@task\nskills:\n  - python:web（Web开发）@python\n  - python:security（安全编码）@python\nfiles:\n  - src/api.py\n  - src/middleware.py" as T3
-
-    state "T4: 配置管理\n━━━━━━━━━━━━\nagent: developer（开发者）@task\nskills:\n  - python:core（核心功能）@python\nfiles:\n  - src/config.py" as T4
-
     T2 --> T5
     T2 --> T6
     T3 --> T6
     T3 --> T7
-
-    state "T5: 性能优化\n━━━━━━━━━━━━\nagent: developer（开发者）@task\nskills:\n  - python:async（异步编程）@python\n  - python:core（核心功能）@python\nfiles:\n  - src/core.py" as T5
-
-    state "T6: 单元测试\n━━━━━━━━━━━━\nagent: tester（测试员）@task\nskills:\n  - python:testing（测试）@python\nfiles:\n  - tests/test_core.py\n  - tests/test_api.py" as T6
-
-    state "T7: API文档\n━━━━━━━━━━━━\nagent: writer（文档撰写者）@task\nskills:\n  - documentation（文档编写）@user\nfiles:\n  - docs/api.md" as T7
-
     T4 --> T8
     T5 --> T8
     T6 --> T8
     T7 --> T8
-
-    state "T8: 集成测试\n━━━━━━━━━━━━\nagent: tester（测试员）@task\nskills:\n  - python:testing（测试）@python\n  - python:web（Web开发）@python\nfiles:\n  - tests/test_integration.py" as T8
-
     T8 --> T9
-
-    state "T9: 代码审查\n━━━━━━━━━━━━\nagent: reviewer（审查员）@task\nskills:\n  - code-review（代码审查）@code-review\n  - python:core（核心功能）@python\nfiles:\n  - 所有变更文件" as T9
-
     T9 --> [*]
 ```
 
@@ -56,16 +44,6 @@ stateDiagram-v2
 | 📋 | T7 | API文档 | writer（文档撰写者）@task | documentation（文档编写）@user | docs/api.md | T3 | - [ ] 文档完整<br>- [ ] 示例清晰 |
 | 📋 | T8 | 集成测试 | tester（测试员）@task | python:testing（测试）@python<br>python:web（Web开发）@python | tests/test_integration.py | T4, T5, T6, T7 | - [ ] 集成测试通过<br>- [ ] E2E 场景覆盖 |
 | 📋 | T9 | 代码审查 | reviewer（审查员）@task | code-review（代码审查）@code-review<br>python:core（核心功能）@python | 所有变更文件 | T8 | - [ ] 代码质量达标<br>- [ ] 无阻塞性问题 |
-
-**状态说明**：
-
-| 状态 | 含义 | 触发条件 | 转换规则 |
-|------|------|---------|---------|
-| 📋 待开始 | 任务已创建，准备执行 | 无前置依赖，或所有前置任务已完成 | → 🔄 被分配执行时 |
-| ⏸️ 等待前置 | 任务被阻塞，等待依赖完成 | 存在未完成的前置依赖任务 | → 📋 所有前置任务完成时 |
-| 🔄 进行中 | 任务正在被 Agent 执行 | Agent 开始处理该任务 | → ✅ 验收标准全部通过时；→ ❌ 执行失败或验收不通过时 |
-| ✅ 已完成 | 任务执行成功并通过验收 | 所有验收标准检查通过 | 终态，触发依赖此任务的后续任务状态更新 |
-| ❌ 失败 | 任务执行异常或验收不通过 | 执行出错、超时、或验收标准未满足 | → 🔄 问题修复后重新执行时 |
 
 ### 迭代验收标准
 

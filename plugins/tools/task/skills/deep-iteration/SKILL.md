@@ -1,3 +1,10 @@
+---
+description: 深度迭代规范 - 质量递进、深度研究、质量门控
+model: sonnet
+context: fork
+user-invocable: false
+---
+
 # Skills(task:deep-iteration) - 深度迭代规范
 
 <overview>
