@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { usePlugins } from "@/hooks/usePlugins";
 import { usePythonCommand } from "@/hooks/usePythonCommand";
 import { PluginCard } from "@/components/PluginCard";
+import { PluginDetailDialog } from "@/components/PluginDetailDialog";
 import { Search, Filter, RefreshCw, Loader2 } from "lucide-react";
+import type { PluginInfo } from "@/hooks/usePlugins";
 
 const categories = [
   { value: "all", label: "全部", count: 0 },
@@ -30,6 +32,8 @@ export default function Marketplace() {
 
   const { install, progress } = usePythonCommand();
   const [installingPlugin, setInstallingPlugin] = useState<string | null>(null);
+  const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   // 计算每个分类的插件数量
   const categoriesWithCount = categories.map((cat) => ({
@@ -49,6 +53,11 @@ export default function Marketplace() {
     } finally {
       setInstallingPlugin(null);
     }
+  };
+
+  const handleViewDetails = (plugin: PluginInfo) => {
+    setSelectedPlugin(plugin);
+    setDetailDialogOpen(true);
   };
 
   return (
@@ -147,6 +156,7 @@ export default function Marketplace() {
                   key={plugin.name}
                   plugin={plugin}
                   onInstall={handleInstall}
+                  onViewDetails={handleViewDetails}
                   installing={installingPlugin === plugin.name}
                 />
               ))}
@@ -173,6 +183,15 @@ export default function Marketplace() {
           <p className="text-sm text-muted-foreground">{progress.message}</p>
         </div>
       )}
+
+      {/* Plugin Detail Dialog */}
+      <PluginDetailDialog
+        plugin={selectedPlugin}
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        onInstall={handleInstall}
+        installing={installingPlugin === selectedPlugin?.name}
+      />
     </div>
   );
 }

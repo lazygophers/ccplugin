@@ -10,7 +10,9 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
+    "@tailwindcss/typography": "^0.5.19",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
     "class-variance-authority": "^0.7.1",
@@ -18,7 +20,9 @@
     "lucide-react": "^0.577.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
