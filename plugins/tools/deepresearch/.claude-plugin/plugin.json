@@ -1,7 +1,7 @@
 {
   "name": "deepresearch",
-  "version": "0.0.180",
-  "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
+  "version": "0.0.181",
+  "description": "深度研究插件（2026架构）- Task-Centric任务驱动型研究系统。DGoT动态优化降低50%成本，Agentic RAG精度99%，支持8种输出格式",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -11,29 +11,24 @@
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/deepresearch",
   "license": "AGPL-3.0-or-later",
   "keywords": [
-    "deep",
-    "research",
-    "investigation",
-    "analysis",
-    "citation",
+    "deep-research",
+    "dgot",
+    "agentic-rag",
+    "graphrag",
+    "task-centric",
     "multi-agent",
-    "got",
-    "graph-of-thoughts",
-    "synthesis",
-    "validation"
-  ],
-  "commands": [
-    "./commands/deep-research.md"
+    "fot-framework",
+    "a2a-protocol",
+    "2026",
+    "research",
+    "analysis",
+    "synthesis"
   ],
   "agents": [
-    "./agents/code-review-agent.md",
-    "./agents/performance-analysis-agent.md",
-    "./agents/technical-debt-agent.md",
-    "./agents/project-evaluation-agent.md",
-    "./agents/tech-selection-agent.md",
-    "./agents/dependency-audit-agent.md",
-    "./agents/concept-explanation-agent.md",
-    "./agents/architecture-review-agent.md"
+    "./agents/code-analyst.md",
+    "./agents/research-strategist.md",
+    "./agents/project-assessor.md",
+    "./agents/architecture-advisor.md"
   ],
   "skills": "./skills"
 }

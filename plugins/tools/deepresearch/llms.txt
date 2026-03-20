@@ -1,10 +1,39 @@
 # deepresearch
 
-> 深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成
+> 深度研究插件（2026架构）- Task-Centric任务驱动型研究系统。DGoT动态优化降低50%成本，Agentic RAG精度99%
 
 ## 概述
 
-基于图思维框架（Graph of Thoughts）的多智能体深度研究系统，提供全方位的深度调查、知识合成和专业报告生成能力。
+Task-Centric 任务驱动型深度研究系统，采用2026最新技术：DGoT动态图思维、Agentic RAG、GraphRAG接口、FoT框架优化、A2A协议。
+
+## 核心特性
+
+- **DGoT动态优化**：早停+阈值裁剪，降低43-56%研究成本
+- **Agentic RAG**：嵌入自主AI代理，动态管理检索策略，精度99%
+- **单次需求收集**：智能结构化提问，消除重复交互
+- **自动Agent匹配**：基于任务特征自动选择最优Agent
+- **8种输出格式**：适配不同受众和场景
+
+## 架构（2026）
+
+### 4个专业Agent
+
+- **code-analyst** - 代码质量+技术债+性能统一分析
+- **research-strategist** - 技术概念研究+方案对比选型
+- **project-assessor** - 项目评估+依赖安全审计
+- **architecture-advisor** - 架构评审+设计建议
+
+### 5个核心Skill
+
+- **dgot-engine** - DGoT动态图思维引擎（-50%成本）
+- **agentic-retriever** - Agentic RAG智能检索器（99%精度）
+- **source-validator** - A-E级来源验证器
+- **knowledge-synthesizer** - 知识合成器（8种格式）
+- **code-inspector** - 本地+GitHub代码检查器
+
+### 1个用户入口
+
+- **deep-research** - Task-Centric研究工作流（Skill，非Command）
 
 ## 目录结构
 
@@ -13,46 +42,44 @@ deepresearch/
 ├── .claude-plugin/
 │   └── plugin.json
 ├── agents/
-│   ├── architecture-review.md
-│   ├── code-review.md
-│   ├── concept-explanation.md
-│   ├── dependency-audit.md
-│   ├── performance-analysis.md
-│   ├── project-evaluation.md
-│   ├── tech-selection.md
-│   └── technical-debt.md
-├── commands/
-│   └── deep-research.md
+│   ├── code-analyst.md
+│   ├── research-strategist.md
+│   ├── project-assessor.md
+│   └── architecture-advisor.md
 ├── skills/
-│   ├── citation-validator-skills/
-│   │   └── SKILL.md
-│   ├── content-retriever-skills/
-│   │   └── SKILL.md
-│   ├── explorer-skills/
-│   │   └── SKILL.md
-│   ├── github-analysis-skills/
-│   │   └── SKILL.md
-│   ├── got-controller-skills/
-│   │   └── SKILL.md
-│   ├── local-code-analysis/
-│   │   └── SKILL.md
-│   ├── question-refiner-skills/
+│   ├── deep-research/SKILL.md
+│   ├── dgot-engine/SKILL.md
+│   ├── agentic-retriever/SKILL.md
+│   ├── source-validator/SKILL.md
+│   ├── knowledge-synthesizer/
 │   │   ├── SKILL.md
-│   │   ├── examples.md
-│   │   └── reference.md
-│   ├── research-executor-skills/
-│   │   └── SKILL.md
-│   └── synthesizer/
-│       ├── formats/
-│       └── SKILL.md
+│   │   └── formats/ (8个输出格式)
+│   └── code-inspector/SKILL.md
 ├── .mcp.json
-└── README.md
+├── README.md
+└── docs/
+    ├── index.md (架构文档)
+    ├── agents.md
+    ├── skills.md
+    ├── configuration.md
+    └── commands.md
 ```
+
+## MCP服务器（7个）
+
+- **duckduckgo** - 网络搜索（核心）
+- **github** - GitHub API集成（核心）
+- **wikipedia** - 百科知识（核心）
+- **sequential-thinking** - 复杂推理引擎（核心）
+- **time** - 时间服务（核心）
+- **context7** - 文档检索增强（新增）
+- **chrome-devtools** - 浏览器自动化（可选）
 
 ## 相关文档
 
-- [README](./README.md) - 完整文档
+- [完整架构设计](./docs/index.md) - 2026架构详解
+- [README](./README.md) - 快速开始
 - [插件配置](./.claude-plugin/plugin.json) - 插件元数据
-- [技能定义](./skills/) - Skills 定义
-- [子代理](./agents/) - Agent 定义
-- [命令](./commands/) - 命令定义
+- [Agent系统](./docs/agents.md) - 4个专业Agent
+- [Skill系统](./docs/skills.md) - 5个核心Skill
+- [配置指南](./docs/configuration.md) - MCP和环境配置
