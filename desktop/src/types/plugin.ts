@@ -8,7 +8,18 @@ export interface Plugin {
   category: PluginCategory;
 }
 
-export type PluginCategory = "tools" | "languages" | "office" | "other";
+export type PluginCategory = "tools" | "languages" | "office" | "novels" | "other";
+
+export interface PluginInfo {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  keywords: string[];
+  category: string;
+  installed: boolean;
+  installed_version: string | null;
+}
 
 export interface PluginInstallProgress {
   plugin_name: string;
