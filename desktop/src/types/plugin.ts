@@ -15,6 +15,10 @@ export interface PluginInfo {
   version: string;
   description: string;
   author: string;
+  homepage: string;
+  repository: string;
+  license: string;
+  source: string;
   keywords: string[];
   category: string;
   installed: boolean;

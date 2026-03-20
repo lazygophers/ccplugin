@@ -1,35 +1,40 @@
 import { PluginInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Download, CheckCircle } from "lucide-react";
+import { Package, Download, CheckCircle, RefreshCw } from "lucide-react";
+import { getCategoryBadgeClass, getCategoryLabel } from "@/lib/plugin-ui";
 
 interface PluginCardProps {
   plugin: PluginInfo;
   onInstall?: (pluginName: string) => void;
+  onUpdate?: (pluginName: string) => void;
   onViewDetails?: (plugin: PluginInfo) => void;
   installing?: boolean;
+  updating?: boolean;
 }
 
-export function PluginCard({ plugin, onInstall, onViewDetails, installing }: PluginCardProps) {
-  const categoryColors: Record<string, string> = {
-    tools: "bg-blue-500/10 text-blue-500",
-    languages: "bg-green-500/10 text-green-500",
-    office: "bg-purple-500/10 text-purple-500",
-    novels: "bg-pink-500/10 text-pink-500",
-    other: "bg-gray-500/10 text-gray-500",
-  };
-
-  const categoryColor = categoryColors[plugin.category] || categoryColors.other;
-
+export function PluginCard({
+  plugin,
+  onInstall,
+  onUpdate,
+  onViewDetails,
+  installing,
+  updating,
+}: PluginCardProps) {
   return (
-    <div className="p-4 border rounded-lg bg-card hover:shadow-md transition-shadow">
+    <div
+      className="group p-4 border rounded-lg bg-card hover:shadow-md transition-shadow"
+      role="article"
+    >
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <Package className="w-5 h-5 text-primary" />
           <h3 className="font-semibold text-lg">{plugin.name}</h3>
         </div>
-        <Badge className={categoryColor}>{plugin.category}</Badge>
+        <Badge variant="outline" className={getCategoryBadgeClass(plugin.category)}>
+          {getCategoryLabel(plugin.category)}
+        </Badge>
       </div>
 
       {/* Description */}
@@ -65,15 +70,23 @@ export function PluginCard({ plugin, onInstall, onViewDetails, installing }: Plu
       {/* Actions */}
       <div className="flex items-center gap-2">
         {plugin.installed ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            disabled
-          >
-            <CheckCircle className="w-4 h-4 mr-2" />
-            已安装 v{plugin.installed_version}
-          </Button>
+          onUpdate ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => onUpdate(plugin.name)}
+              disabled={updating}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
+              {updating ? "更新中..." : `更新（已安装 v${plugin.installed_version ?? plugin.version}）`}
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" className="flex-1" disabled>
+              <CheckCircle className="w-4 h-4 mr-2" />
+              已安装 v{plugin.installed_version ?? plugin.version}
+            </Button>
+          )
         ) : (
           <Button
             variant="default"

@@ -1,18 +1,79 @@
-import { Bell, Search, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Bell, Search, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function TopBar() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+
+  const pageTitle = useMemo(() => {
+    const p = location.pathname;
+    if (p === "/") return "仪表板";
+    if (p.startsWith("/marketplace")) return "插件市场";
+    if (p.startsWith("/installed")) return "已安装";
+    if (p.startsWith("/updates")) return "更新中心";
+    if (p.startsWith("/settings")) return "设置";
+    if (p.startsWith("/logs")) return "日志";
+    if (p.startsWith("/devtools")) return "开发工具";
+    return "CCPlugin Desktop";
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/marketplace")) {
+      const params = new URLSearchParams(location.search);
+      setQuery(params.get("q") ?? "");
+    } else {
+      setQuery("");
+    }
+  }, [location.pathname, location.search]);
+
+  const commitQueryToMarketplace = (next: string) => {
+    const params = new URLSearchParams();
+    if (next.trim()) params.set("q", next.trim());
+    navigate({ pathname: "/marketplace", search: params.toString() ? `?${params.toString()}` : "" });
+  };
+
   return (
     <div className="h-16 border-b bg-card px-6 flex items-center justify-between">
-      {/* Search */}
-      <div className="flex-1 max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="搜索插件..."
-            className="w-full pl-10 pr-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <h2 className="text-sm font-medium text-muted-foreground truncate">{pageTitle}</h2>
+
+        {/* Search */}
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="搜索插件（回车跳转到市场）"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  commitQueryToMarketplace(query);
+                }
+              }}
+              className="w-full pl-10 pr-9 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="搜索插件"
+            />
+            {query && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                onClick={() => {
+                  setQuery("");
+                  if (location.pathname.startsWith("/marketplace")) {
+                    commitQueryToMarketplace("");
+                  }
+                }}
+                aria-label="清空搜索"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

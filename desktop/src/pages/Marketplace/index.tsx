@@ -1,23 +1,19 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePlugins } from "@/hooks/usePlugins";
 import { usePythonCommand } from "@/hooks/usePythonCommand";
 import { PluginCard } from "@/components/PluginCard";
 import { PluginDetailDialog } from "@/components/PluginDetailDialog";
-import { Search, Filter, RefreshCw, Loader2 } from "lucide-react";
-import type { PluginInfo } from "@/hooks/usePlugins";
+import { Search, Filter, RefreshCw, Loader2, Sparkles } from "lucide-react";
+import type { PluginInfo } from "@/types";
+import { getCategoryOptions } from "@/lib/plugin-ui";
 
-const categories = [
-  { value: "all", label: "全部", count: 0 },
-  { value: "tools", label: "工具", count: 0 },
-  { value: "languages", label: "语言", count: 0 },
-  { value: "office", label: "Office", count: 0 },
-  { value: "novels", label: "小说", count: 0 },
-  { value: "other", label: "其他", count: 0 },
-];
+const categories = getCategoryOptions();
 
 export default function Marketplace() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     plugins,
     loading,
@@ -34,6 +30,36 @@ export default function Marketplace() {
   const [installingPlugin, setInstallingPlugin] = useState<string | null>(null);
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+
+  const qParam = useMemo(() => searchParams.get("q") ?? "", [searchParams]);
+  const categoryParam = useMemo(
+    () => searchParams.get("category") ?? "all",
+    [searchParams]
+  );
+
+  const updateParams = (next: { q?: string; category?: string }) => {
+    const params = new URLSearchParams(searchParams);
+    if (typeof next.q === "string") {
+      const v = next.q.trim();
+      if (v) params.set("q", v);
+      else params.delete("q");
+    }
+    if (typeof next.category === "string") {
+      if (next.category && next.category !== "all") params.set("category", next.category);
+      else params.delete("category");
+    }
+    setSearchParams(params, { replace: true });
+  };
+
+  useEffect(() => {
+    if (qParam !== searchQuery) setSearchQuery(qParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qParam]);
+
+  useEffect(() => {
+    if (categoryParam !== selectedCategory) setSelectedCategory(categoryParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryParam]);
 
   // 计算每个分类的插件数量
   const categoriesWithCount = categories.map((cat) => ({
@@ -63,9 +89,12 @@ export default function Marketplace() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold mb-2">插件市场</h1>
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            <Sparkles className="w-7 h-7 text-primary" />
+            插件市场
+          </h1>
           <p className="text-muted-foreground">
             共 {plugins.length} 个插件可用，{plugins.filter((p) => p.installed).length} 个已安装
           </p>
@@ -75,6 +104,7 @@ export default function Marketplace() {
           size="sm"
           onClick={refresh}
           disabled={loading}
+          aria-label="刷新插件列表"
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
           刷新
@@ -90,21 +120,38 @@ export default function Marketplace() {
             type="text"
             placeholder="搜索插件名称、描述或关键词..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSearchQuery(v);
+              updateParams({ q: v });
+            }}
             className="w-full pl-10 pr-4 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label="搜索插件"
           />
         </div>
 
         {/* Category Filter */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {categoriesWithCount.map((cat) => (
               <Badge
                 key={cat.value}
                 variant={selectedCategory === cat.value ? "default" : "outline"}
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => setSelectedCategory(cat.value)}
+                onClick={() => {
+                  setSelectedCategory(cat.value);
+                  updateParams({ category: cat.value });
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedCategory(cat.value);
+                    updateParams({ category: cat.value });
+                  }
+                }}
               >
                 {cat.label} ({cat.count})
               </Badge>
@@ -167,7 +214,10 @@ export default function Marketplace() {
 
       {/* Install Progress (Global) */}
       {progress && installingPlugin && (
-        <div className="fixed bottom-6 right-6 w-96 p-4 bg-card border rounded-lg shadow-lg">
+        <div
+          className="fixed bottom-6 right-6 w-96 p-4 bg-card border rounded-lg shadow-lg"
+          aria-live="polite"
+        >
           <div className="flex items-center justify-between mb-2">
             <span className="font-medium">{progress.plugin_name}</span>
             <span className="text-sm text-muted-foreground">
