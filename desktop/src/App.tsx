@@ -1,50 +1,40 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { Button } from "@/components/ui/button";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const [count, setCount] = useState(0);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4 p-8 bg-background text-foreground">
+      <h1 className="text-4xl font-bold">CCPlugin Desktop</h1>
+      <p className="text-lg text-muted-foreground">跨平台插件管理工具</p>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className="flex gap-2 mt-8">
+        <Button onClick={() => setCount(count + 1)}>
+          Count: {count}
+        </Button>
+        <Button variant="secondary">Secondary</Button>
+        <Button variant="outline">Outline</Button>
+        <Button variant="ghost">Ghost</Button>
+        <Button variant="destructive">Destructive</Button>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      <div className="flex gap-2 mt-4">
+        <Button size="sm">Small</Button>
+        <Button size="default">Default</Button>
+        <Button size="lg">Large</Button>
+      </div>
+
+      <div className="mt-8 p-4 border rounded-md bg-card text-card-foreground max-w-md">
+        <h2 className="text-xl font-semibold mb-2">技术栈</h2>
+        <ul className="list-disc list-inside space-y-1 text-sm">
+          <li>Tauri 2.x - 轻量级跨平台框架</li>
+          <li>React 18 + TypeScript 5.x</li>
+          <li>Tailwind CSS 4.x</li>
+          <li>Shadcn UI - 现代化组件库</li>
+        </ul>
+      </div>
+    </div>
   );
 }
 
