@@ -1,10 +1,10 @@
-use crate::models::Plugin;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 struct MarketplaceJson {
+    #[allow(dead_code)]
     name: String,
     plugins: Vec<MarketplacePlugin>,
 }
@@ -26,6 +26,7 @@ struct MarketplacePlugin {
 struct PluginAuthor {
     name: String,
     #[serde(default)]
+    #[allow(dead_code)]
     email: String,
 }
 

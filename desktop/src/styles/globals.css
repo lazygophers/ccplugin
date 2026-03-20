@@ -2,6 +2,8 @@
 
 /* Base styles */
 @theme {
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
   --color-primary: #3b82f6;
   --color-primary-foreground: #ffffff;
   --color-secondary: #64748b;
@@ -24,6 +26,8 @@
 
 @media (prefers-color-scheme: dark) {
   @theme {
+    --color-background: #0f172a;
+    --color-foreground: #f8fafc;
     --color-primary: #3b82f6;
     --color-primary-foreground: #ffffff;
     --color-secondary: #64748b;
