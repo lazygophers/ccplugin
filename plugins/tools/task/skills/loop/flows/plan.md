@@ -171,11 +171,37 @@ print(planner_result["report"])
 print(f"计划已生成：{plan_md_path}")
 ```
 
-## 阶段4：计划确认（含 HITL 风险评估）
+## 阶段4：计划确认（含 HITL 风险评估，智能跳过）
+
+**智能跳过逻辑**：
+
+为避免重复确认，根据触发来源决定是否需要用户确认：
+
+| 场景 | `iteration` | `replan_trigger` | 是否确认 |
+|------|-------------|------------------|---------|
+| 首次规划 | 1 | None | ✓ 需要确认 |
+| 用户主动重新设计 | >1 | "user" | ✓ 需要确认 |
+| Adjuster 自动重新规划 | >1 | "adjuster" | ✗ 跳过确认 |
+| Verifier 建议优化（用户同意） | >1 | "verifier" | ✗ 跳过确认 |
+
+**实现原理**：
+- 首次规划时，用户需要了解和批准执行计划
+- 自动重新规划（adjuster/verifier 触发）时，已经在调整阶段告知用户，无需重复确认
+- 用户主动选择"重新设计"时，需要重新确认新计划
 
 ```python
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
 print(f"计划文件：{plan_md_path}")
+
+# 【智能跳过】检查是否需要用户确认
+replan_trigger = context.get("replan_trigger", None)
+
+# 跳过确认的场景
+if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
+    print(f"\n✓ 自动重新规划（触发来源：{replan_trigger}），跳过用户确认")
+    print(f"  原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
+    print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
+    return "execute"  # 直接执行，跳过确认
 
 # 【HITL 集成】分析计划风险摘要
 risk_summary = analyze_plan_risks(planner_result)
@@ -207,8 +233,12 @@ user_decision = AskUserQuestion(
 )
 
 if user_decision == "重新设计":
+    # 用户主动选择重新设计，下次规划仍需确认
+    context["replan_trigger"] = "user"
     return "replan"
 else:
+    # 用户批准执行，清除 replan_trigger 标志
+    context["replan_trigger"] = None
     return "execute"
 
 

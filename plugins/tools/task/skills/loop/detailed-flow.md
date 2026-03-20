@@ -16,6 +16,11 @@ guidance_count = 0
 max_stalled_attempts = 3
 user_task = "$ARGUMENTS"
 
+# 上下文状态
+context = {
+    "replan_trigger": None  # 跟踪重新规划的触发来源
+}
+
 available_skills = ListSkills()
 available_agents = ListAgents()
 
@@ -337,6 +342,8 @@ elif status == "suggestions":
     )
 
     if user_response.strip().lower() in ["是", "yes", "y"]:
+        # 标记为 verifier 触发的重新规划，跳过用户确认
+        context["replan_trigger"] = "verifier"
         goto("计划设计")
     else:
         goto("全部完成")
@@ -434,6 +441,8 @@ if "recovery_action" in adjustment_result and adjustment_result["recovery_action
             goto("结果验证")
 
         elif user_guidance == "重新规划":
+            # 标记为用户主动触发的重新规划，需要重新确认
+            context["replan_trigger"] = "user"
             goto("计划设计")
 
         elif user_guidance == "终止循环":
@@ -466,6 +475,8 @@ elif strategy == "debug":
     goto("任务执行")
 
 elif strategy == "replan":
+    # 标记为 adjuster 触发的重新规划，跳过用户确认
+    context["replan_trigger"] = "adjuster"
     goto("计划设计")
 
 elif strategy == "ask_user":
