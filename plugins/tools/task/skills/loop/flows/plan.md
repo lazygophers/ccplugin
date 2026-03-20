@@ -171,18 +171,34 @@ print(planner_result["report"])
 print(f"计划已生成：{plan_md_path}")
 ```
 
-## 阶段4：计划确认
+## 阶段4：计划确认（含 HITL 风险评估）
 
 ```python
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
 print(f"计划文件：{plan_md_path}")
 
+# 【HITL 集成】分析计划风险摘要
+risk_summary = analyze_plan_risks(planner_result)
+
+# 展示风险评估
+print("\n## 风险评估摘要")
+print(f"预计操作分布：")
+print(f"  • auto（自动通过）: {risk_summary['auto_count']} 个操作（{risk_summary['auto_percentage']:.0f}%）")
+print(f"  • review（需审查）: {risk_summary['review_count']} 个操作（{risk_summary['review_percentage']:.0f}%）")
+print(f"  • mandatory（强制审批）: {risk_summary['mandatory_count']} 个操作（{risk_summary['mandatory_percentage']:.0f}%）")
+
+if risk_summary['mandatory_operations']:
+    print(f"\n⚠️ 高风险操作提醒：")
+    for op in risk_summary['mandatory_operations']:
+        print(f"  • 任务 {op['task_id']}: {op['operation']}（mandatory 级别，需要明确确认）")
+
+# 打开浏览器预览
 Bash(
     command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path}",
     description="将计划 MD 转换为 HTML 并在浏览器打开"
 )
 
-print("已在浏览器打开计划预览")
+print("\n已在浏览器打开计划预览")
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
 
 user_decision = AskUserQuestion(
@@ -194,6 +210,71 @@ if user_decision == "重新设计":
     return "replan"
 else:
     return "execute"
+
+
+def analyze_plan_risks(planner_result: dict) -> dict:
+    """
+    分析执行计划的风险摘要
+
+    扫描所有任务的预期操作，统计风险等级分布
+    """
+    from collections import Counter
+
+    risk_counts = Counter()
+    mandatory_operations = []
+    total_operations = 0
+
+    for task in planner_result.get("tasks", []):
+        # 根据任务类型和 agent 预估风险等级
+        agent = task.get("agent", "")
+        operations = task.get("estimated_operations", [])
+
+        for op in operations:
+            total_operations += 1
+            risk_level = estimate_operation_risk(op, agent)
+            risk_counts[risk_level] += 1
+
+            if risk_level == "mandatory":
+                mandatory_operations.append({
+                    "task_id": task["id"],
+                    "operation": op.get("description", op.get("tool", "未知操作"))
+                })
+
+    return {
+        "auto_count": risk_counts.get("auto", 0),
+        "review_count": risk_counts.get("review", 0),
+        "mandatory_count": risk_counts.get("mandatory", 0),
+        "auto_percentage": (risk_counts.get("auto", 0) / total_operations * 100) if total_operations > 0 else 0,
+        "review_percentage": (risk_counts.get("review", 0) / total_operations * 100) if total_operations > 0 else 0,
+        "mandatory_percentage": (risk_counts.get("mandatory", 0) / total_operations * 100) if total_operations > 0 else 0,
+        "mandatory_operations": mandatory_operations,
+        "total_operations": total_operations
+    }
+
+
+def estimate_operation_risk(operation: dict, agent: str) -> str:
+    """
+    预估单个操作的风险等级
+
+    基于操作类型和 agent 特征进行简单启发式估计
+    """
+    tool = operation.get("tool", "")
+    command = operation.get("command", "")
+
+    # mandatory 级别关键字
+    if any(kw in command for kw in ["rm -rf", "DROP TABLE", "--force", "sudo"]):
+        return "mandatory"
+
+    # auto 级别工具
+    if tool in ["Read", "Grep", "Glob", "WebSearch"]:
+        return "auto"
+
+    # review 级别工具
+    if tool in ["Edit", "Write", "Bash"]:
+        return "review"
+
+    # 默认 auto
+    return "auto"
 ```
 
 </execution_flow>

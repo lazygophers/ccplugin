@@ -122,41 +122,85 @@ T3: 编写测试 ············ ⏸️ 等待前置任务(T2) ····
 - 用户干预次数
 - 反馈响应时间
 
-### 监控数据收集
+### 监控数据收集（集成可观测性技能）
+
+**注意**：Loop 监控已集成 `task:observability` 技能，提供完整的成本、效率、质量和稳定性指标。
 
 ```python
-class MonitoringCollector:
-    """监控数据收集器"""
+# 使用可观测性技能替代基础 MonitoringCollector
+from observability import MetricsCollector
 
-    def __init__(self):
-        self.metrics = {
-            "iteration": 0,
-            "tasks_completed": 0,
-            "tasks_failed": 0,
-            "stalled_count": 0,
-            "guidance_count": 0,
-            "start_time": None,
-            "end_time": None
-        }
+# 初始化（Loop 启动时）
+collector = MetricsCollector()
+config = load_observability_config()  # 从 .claude/task.local.md 加载
+collector.set_budget_limit(config.get("budget_limit_usd", None))
 
-    def record_task_start(self, task_id):
-        """记录任务开始"""
-        self.metrics[f"task_{task_id}_start"] = time.time()
-
-    def record_task_end(self, task_id, status):
-        """记录任务结束"""
-        self.metrics[f"task_{task_id}_end"] = time.time()
-        self.metrics[f"task_{task_id}_status"] = status
-
-        if status == "completed":
-            self.metrics["tasks_completed"] += 1
-        elif status == "failed":
-            self.metrics["tasks_failed"] += 1
-
-    def get_metrics(self):
-        """获取所有指标"""
-        return self.metrics
+print(f"[可观测性] 已初始化（预算上限：${config.get('budget_limit_usd', '无限制')}）")
 ```
+
+**迭代监控集成**：
+
+```python
+# 迭代开始
+collector.record_iteration_start(iteration)
+
+# Agent/Skill 调用（自动埋点）
+@auto_track_metrics(collector)
+def execute_agent(agent_name: str, prompt: str):
+    return Agent(agent=agent_name, prompt=prompt)
+
+# 任务执行
+task_context = collector.record_task_start(task_id="T1")
+result = execute_task(task)
+collector.record_task_end(task_context, status="completed")
+
+# 迭代结束（聚合并输出）
+iteration_metrics = collector.aggregate_iteration(iteration)
+
+print(f"\n[迭代 {iteration} 指标摘要]")
+print(f"  成本：${iteration_metrics['cost']['total_cost_usd']:.2f}（缓存命中率 {iteration_metrics['cost']['cache_hit_rate']*100:.0f}%）")
+print(f"  效率：{iteration_metrics['efficiency']['task_count']} 个任务，总耗时 {iteration_metrics['efficiency']['total_duration_ms']/60000:.1f} 分钟")
+print(f"  质量：成功率 {iteration_metrics['quality']['success_rate']*100:.0f}%")
+
+# 预算检查
+if collector.budget_limit_usd:
+    cumulative_cost = collector.get_cumulative_cost()
+    budget_usage = cumulative_cost / collector.budget_limit_usd
+
+    if budget_usage > 0.80:
+        print(f"\n⚠️ 预算预警：已使用 {budget_usage*100:.0f}%（${cumulative_cost:.2f} / ${collector.budget_limit_usd:.2f}）")
+```
+
+**最终报告生成**：
+
+```python
+# Loop 完成时
+final_report = collector.generate_cost_report()
+
+print("\n" + "="*60)
+print("## 成本报告")
+print("="*60)
+print(f"\n总成本：${final_report['summary']['total_cost_usd']:.2f}")
+print(f"总耗时：{final_report['summary']['total_duration_ms'] / 60000:.1f} 分钟")
+print(f"缓存节省：${final_report['caching_analysis']['cost_saved_usd']:.2f}（{final_report['caching_analysis']['savings_percentage']:.0f}%）")
+
+# 优化建议
+if final_report['recommendations']:
+    print(f"\n### 优化建议\n")
+    for rec in final_report['recommendations'][:3]:
+        print(f"• {rec['suggestion']}")
+
+# 持久化
+if config.get("persist_metrics", True):
+    save_path = ".claude/plans/{task_hash}/metrics.json".format(task_hash=task_hash)
+    save_cost_report(final_report, save_path)
+    print(f"\n指标已保存：{save_path}")
+```
+
+**详细文档**：
+- [metrics-collector.md](../observability/metrics-collector.md) - 指标体系定义
+- [cost-report.md](../observability/cost-report.md) - 成本报告生成
+- [observability/SKILL.md](../observability/SKILL.md) - 可观测性主技能
 
 ## 日志记录
 
