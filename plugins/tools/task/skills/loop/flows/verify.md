@@ -81,26 +81,16 @@ quality_passed = quality_score >= required_score
 status = verification_result["status"]
 
 if status == "passed" and quality_passed:
-    # 检查是否达到最小迭代次数
-    if iteration >= min_iterations:
-        return "completed"
-    else:
-        # 询问用户是否继续优化
-        user_choice = AskUserQuestion(
-            f"当前质量：{quality_score}分，已达标。是否继续优化？",
-            options=["继续优化", "完成任务"]
-        )
-        return "continue" if user_choice == "继续优化" else "completed"
+    # 直接完成任务（已移除用户确认，实现全自动化）
+    return "completed"
 
 elif status == "suggestions":
-    # 有优化建议
-    user_response = AskUserQuestion(
-        f"{verification_result['report']}\n\n建议：\n" +
-        "\n".join(f"- {s['suggestion']}" for s in verification_result['suggestions']) +
-        "\n\n这些优化是否属于当前任务范围？",
-        options=["是，继续优化", "否，完成任务"]
-    )
-    return "continue" if "是" in user_response else "completed"
+    # 有优化建议，自动继续优化（已移除用户确认）
+    print(f"检测到优化建议，自动继续下一轮迭代...")
+    print("建议列表：")
+    for s in verification_result['suggestions']:
+        print(f"  - {s['suggestion']}")
+    return "continue"
 
 elif status == "failed":
     return "adjustment"  # 进入失败调整阶段
@@ -150,9 +140,8 @@ def calculate_quality_score(metrics):
 <state_transitions>
 
 **状态转换**：
-- passed + 质量达标 + 达最小迭代 → 全部完成
-- passed + 质量达标 + 未达最小迭代 → 计划设计（用户确认）
-- suggestions → 计划设计（用户确认继续）/ 全部完成（用户确认完成）
+- passed + 质量达标 → 全部完成
+- suggestions → 计划设计（自动继续优化）
 - failed → 失败调整
 - 质量不达标 → 失败调整
 

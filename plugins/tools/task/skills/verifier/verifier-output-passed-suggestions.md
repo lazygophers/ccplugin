@@ -2,7 +2,7 @@
 
 <overview>
 
-本文档定义了 Verifier 的两种成功状态输出格式。passed 表示所有任务完成且验收标准全部满足，Loop 收到后直接进入完成流程。suggestions 表示验收标准满足但发现可优化之处，Loop 会询问用户是否继续优化。两种格式共享相同的基础结构（status、report、verified_tasks、summary），suggestions 额外包含建议列表。
+本文档定义了 Verifier 的两种成功状态输出格式。passed 表示所有任务完成且验收标准全部满足，Loop 收到后直接进入完成流程。suggestions 表示验收标准满足但发现可优化之处，Loop 会自动继续下一轮迭代进行优化。两种格式共享相同的基础结构（status、report、verified_tasks、summary），suggestions 额外包含建议列表。
 
 </overview>
 
@@ -79,7 +79,7 @@
 
 ## 格式 2：通过但有建议（suggestions）
 
-任务已完成且验收标准满足，但发现可优化之处时使用此格式。Loop 通过 AskUserQuestion 询问用户建议是否属于当前任务范围——如果是则继续新一轮迭代，否则标记完成。
+任务已完成且验收标准满足，但发现可优化之处时使用此格式。Loop 收到后自动继续新一轮迭代进行优化。
 
 ```json
 {

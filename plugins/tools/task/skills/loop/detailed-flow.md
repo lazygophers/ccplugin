@@ -335,18 +335,15 @@ if status == "passed":
     goto("全部完成")
 
 elif status == "suggestions":
-    user_response = AskUserQuestion(
-        f"{verification_result['report']}\n\n建议：\n" +
-        "\n".join(f"- {s['suggestion']}" for s in verification_result['suggestions']) +
-        "\n\n这些优化是否属于当前任务范围？(是/否)"
-    )
+    # 自动继续优化（已移除用户确认）
+    print(f"检测到优化建议，自动继续下一轮迭代...")
+    print("建议列表：")
+    for s in verification_result['suggestions']:
+        print(f"  - {s['suggestion']}")
 
-    if user_response.strip().lower() in ["是", "yes", "y"]:
-        # 标记为 verifier 触发的重新规划，跳过用户确认
-        context["replan_trigger"] = "verifier"
-        goto("计划设计")
-    else:
-        goto("全部完成")
+    # 标记为 verifier 触发的重新规划，跳过用户确认
+    context["replan_trigger"] = "verifier"
+    goto("计划设计")
 
 elif status == "failed":
     goto("失败调整")

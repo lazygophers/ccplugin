@@ -184,57 +184,37 @@ if deep_iteration_config['enable_quality_gate']:
 
 ### 最小迭代次数检查
 
-验收通过但未达到最小迭代次数时，询问用户是否继续优化。这是因为早期轮次的质量阈值较低，仅通过基础验收不代表达到了最优质量。
+验收通过后直接完成任务。早期的最小迭代次数检查已移除，改为依赖质量门控机制来确保质量。
 
 ```python
 if verification_result["status"] == "passed":
-    if iteration < deep_iteration_config['min_iterations']:
-        print(f"验收通过，但未达最小迭代次数（{iteration}/{deep_iteration_config['min_iterations']}）")
-        user_decision = AskUserQuestion(
-            question=f"功能已完成，但建议继续优化（当前 {iteration} 轮，建议至少 {deep_iteration_config['min_iterations']} 轮）",
-            options=["继续优化", "提前完成"]
-        )
-        if user_decision == "继续优化":
-            goto("计划设计")
-        else:
-            goto("全部完成")
+    # 直接完成任务（已移除最小迭代次数检查）
+    print(f"验收通过，任务完成（迭代 {iteration} 轮）")
+    goto("全部完成")
 ```
 
 ### 持续改进检查
 
-即使验收通过，持续改进模块也会识别高价值优化点。用户可以选择将这些优化纳入当前任务、记录为技术债、或直接完成。这种机制确保不会错过明显的改进机会。
+验收通过后，持续改进模块会识别高价值优化点并自动触发新一轮迭代。这通过 verifier 返回 suggestions 状态实现，Loop 会自动继续优化。
 
 ```python
 if deep_iteration_config['enable_continuous_improvement']:
-    improvement = Agent(agent="task:verifier", prompt=f"""
-质量提升分析：
+    # 持续改进通过 verifier 的 suggestions 状态自动触发
+    # 当 verifier 发现高价值优化点时，返回 suggestions 状态
+    # Loop 收到后自动进入下一轮迭代
 
-当前结果：{verification_result}
-质量分数：{quality_score}
-
-要求：
-1. 对比业界最佳实践
-2. 识别可优化点（性能、可维护性、扩展性、安全性）
-3. 评估优化价值 vs 成本
-4. 提供高价值优化建议
-
-输出：
-- high_value_optimizations: 高价值优化点（优先级排序）
-- expected_benefits: 预期收益
-- implementation_cost: 实施成本
-- recommendation: 是否值得优化
-""")
+    # verifier 内部逻辑示例：
+    improvement = analyze_optimization_opportunities(verification_result, quality_score)
 
     if improvement.get("high_value_optimizations"):
-        user_decision = AskUserQuestion(f"""
-任务已通过验收（质量 {quality_score} 分），但发现高价值优化点：
+        print("发现高价值优化点，自动继续下一轮迭代...")
+        for opt in improvement['high_value_optimizations']:
+            print(f"  - {opt['description']} (优先级: {opt['priority']})")
 
-{format_optimizations(improvement['high_value_optimizations'])}
-
-是否继续优化？
-1. 是，纳入当前任务
-2. 否，记录为技术债
-3. 完成，结果已满意
+        return {
+            "status": "suggestions",
+            "report": f"任务已通过验收（质量 {quality_score} 分），发现 {len(improvement['high_value_optimizations'])} 个优化点",
+            "suggestions": improvement['high_value_optimizations
 """)
 
         if user_decision == "是，纳入当前任务":

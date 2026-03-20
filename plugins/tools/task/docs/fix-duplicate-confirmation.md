@@ -1,8 +1,8 @@
-# 修复重复确认问题
+# 修复重复确认问题（已完成 - 全自动化方案）
 
 ## 问题描述
 
-用户报告：在使用 `@plugins/tools/task` 插件时，已经确认过执行计划后，在执行过程中还会多次弹出"执行计划已准备就绪，是否开始执行？"的确认提示。
+用户报告：在使用 `@plugins/tools/task` 插件时，迭代过程中会不断询问用户是否继续，希望除了计划部分外的所有流程都是自动的。
 
 ## 根本原因
 
@@ -31,182 +31,180 @@ elif strategy == "replan":
     goto("计划设计")  # 直接跳回，导致重复确认
 ```
 
-## 修复方案
+## 修复方案（已实施）
 
 ### 设计思路
 
-引入 `context["replan_trigger"]` 状态变量，区分三种规划场景：
+采用全自动化方案，只在计划确认阶段需要用户交互，其他所有阶段都自动化：
 
-| 场景 | `iteration` | `replan_trigger` | 是否确认 |
-|------|-------------|------------------|---------|
-| 首次规划 | 1 | None | ✓ 需要确认 |
-| 用户主动重新设计 | >1 | "user" | ✓ 需要确认 |
-| Adjuster 自动重新规划 | >1 | "adjuster" | ✗ 跳过确认 |
-| Verifier 建议优化（用户同意） | >1 | "verifier" | ✗ 跳过确认 |
+| 阶段 | 是否需要用户确认 | 说明 |
+|------|----------------|------|
+| 计划确认 | ✓ 需要确认 | 用户审核执行计划 |
+| 任务执行 | ✗ 自动执行 | 自动执行所有任务 |
+| 结果验证 - passed | ✗ 自动完成 | 直接完成任务 |
+| 结果验证 - suggestions | ✗ 自动继续优化 | 自动进入下一轮迭代 |
+| 失败调整 | ✗ 自动调整 | 按策略自动调整（retry/debug/replan） |
 
 ### 实现细节
 
-#### 1. 初始化阶段（detailed-flow.md:13-24）
+#### 1. 验证流程自动化（flows/verify.md）
+
+移除了验证阶段的所有用户询问：
 
 ```python
-context = {
-    "replan_trigger": None  # 跟踪重新规划的触发来源
-}
+# 之前：passed状态时询问是否继续优化
+# 现在：直接完成
+if status == "passed" and quality_passed:
+    return "completed"
+
+# 之前：suggestions状态时询问是否继续
+# 现在：自动继续优化
+elif status == "suggestions":
+    print(f"检测到优化建议，自动继续下一轮迭代...")
+    for s in verification_result['suggestions']:
+        print(f"  - {s['suggestion']}")
+    return "continue"
 ```
 
-#### 2. 计划确认阶段（flows/plan.md:174-202）
+#### 2. 详细流程自动化（detailed-flow.md）
+
+更新验证阶段逻辑，移除用户询问：
 
 ```python
-# 【智能跳过】检查是否需要用户确认
-replan_trigger = context.get("replan_trigger", None)
+if status == "passed":
+    goto("全部完成")
 
-# 跳过确认的场景
-if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
-    print(f"\n✓ 自动重新规划（触发来源：{replan_trigger}），跳过用户确认")
-    print(f"  原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
-    print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
-    return "execute"  # 直接执行，跳过确认
-```
-
-#### 3. 用户选择处理（flows/plan.md:234-241）
-
-```python
-if user_decision == "重新设计":
-    # 用户主动选择重新设计，下次规划仍需确认
-    context["replan_trigger"] = "user"
-    return "replan"
-else:
-    # 用户批准执行，清除 replan_trigger 标志
-    context["replan_trigger"] = None
-    return "execute"
-```
-
-#### 4. Adjuster 触发重新规划（detailed-flow.md:469-471）
-
-```python
-elif strategy == "replan":
-    # 标记为 adjuster 触发的重新规划，跳过用户确认
-    context["replan_trigger"] = "adjuster"
-    goto("计划设计")
-```
-
-#### 5. Verifier 触发重新规划（detailed-flow.md:340-343）
-
-```python
-if user_response.strip().lower() in ["是", "yes", "y"]:
-    # 标记为 verifier 触发的重新规划，跳过用户确认
+elif status == "suggestions":
+    # 自动继续优化
+    print(f"检测到优化建议，自动继续下一轮迭代...")
     context["replan_trigger"] = "verifier"
     goto("计划设计")
 ```
 
-#### 6. 用户主动选择重新规划（detailed-flow.md:437-440）
+#### 3. 文档更新
 
-```python
-elif user_guidance == "重新规划":
-    # 标记为用户主动触发的重新规划，需要重新确认
-    context["replan_trigger"] = "user"
-    goto("计划设计")
-```
+- `verifier-output-passed-suggestions.md`: 更新 suggestions 状态说明为"自动继续"
+- `deep-iteration/implementation.md`: 移除最小迭代次数检查和用户询问
+- `deep-iteration-core.md`: 更新持续改进说明
+- `README.md`: 更新流程说明
 
 ## 验证场景
 
-### 场景1：首次规划
+### 场景1：标准流程（一次通过）
 
 ```
-Loop 启动 → 生成计划 → ✓ 用户确认（首次）→ 执行
+Loop 启动 → 生成计划 → ✓ 用户确认 → 执行 → 验证passed → 自动完成
 ```
 
-### 场景2：Adjuster 自动重新规划
+### 场景2：优化建议场景
 
 ```
-执行失败 → Adjuster 分析 → 选择 replan → 生成新计划 → ✗ 跳过确认（已在调整阶段告知）→ 执行
+Loop 启动 → 生成计划 → ✓ 用户确认 → 执行 → 验证suggestions → 自动继续优化 → 生成新计划 → ✓ 用户确认 → 执行...
 ```
 
-### 场景3：Verifier 建议优化
+### 场景3：执行失败自动重试
 
 ```
-验证完成 → Verifier 提出优化建议 → 用户同意优化 → 生成新计划 → ✗ 跳过确认（已同意优化）→ 执行
+执行 → 验证failed → Adjuster选择retry → 自动重新执行
 ```
 
-### 场景4：用户主动重新设计
+### 场景4：执行失败自动重新规划
 
 ```
-首次确认 → 用户选择"重新设计" → 生成新计划 → ✓ 用户确认（主动要求）→ 执行
+执行 → 验证failed → Adjuster选择replan → 生成新计划 → ✓ 用户确认 → 执行
 ```
 
-### 场景5：用户在调整阶段选择重新规划
+### 场景5：用户主动重新设计
 
 ```
-Adjuster 建议被拒绝 → 用户选择"重新规划" → 生成新计划 → ✓ 用户确认（主动要求）→ 执行
+生成计划 → 用户选择"重新设计" → 生成新计划 → ✓ 用户确认 → 执行
 ```
 
 ## 影响分析
 
 ### 改动文件
 
-1. `plugins/tools/task/skills/loop/flows/plan.md`：计划确认逻辑
-2. `plugins/tools/task/skills/loop/detailed-flow.md`：状态管理和跳转逻辑
+1. `plugins/tools/task/skills/loop/flows/verify.md`：验证流程自动化
+2. `plugins/tools/task/skills/loop/detailed-flow.md`：验证阶段自动化
+3. `plugins/tools/task/skills/verifier/verifier-output-passed-suggestions.md`：文档更新
+4. `plugins/tools/task/skills/deep-iteration/implementation.md`：深度迭代逻辑更新
+5. `plugins/tools/task/skills/deep-iteration/deep-iteration-core.md`：核心机制更新
+6. `plugins/tools/task/README.md`：流程说明更新
 
 ### 向后兼容性
 
-✓ 完全向后兼容：
-- 首次规划行为不变（仍需确认）
-- 仅优化了重复确认的场景（减少不必要的用户交互）
-- 不影响现有功能和 API
+⚠️ 行为变更（改进）：
+- 验证阶段不再询问用户，全自动化
+- suggestions 状态自动触发下一轮迭代
+- 移除了最小迭代次数的用户确认
+- 计划确认阶段保持不变（仍需用户确认）
 
 ### 用户体验提升
 
-- **减少重复确认**：从每次重新规划都确认 → 仅必要时确认
-- **保持透明度**：跳过确认时仍显示原因和风险摘要
-- **尊重用户意图**：用户主动重新设计时仍需确认
+- **全自动化迭代**：只在计划阶段需要确认，其他全自动
+- **更高效的优化流程**：发现优化点后自动继续，无需等待用户确认
+- **保持控制权**：计划阶段仍需用户审核，确保执行方向正确
 
 ## 测试建议
 
 ### 单元测试
 
 ```python
-def test_replan_trigger_adjuster():
-    context = {"replan_trigger": "adjuster"}
-    iteration = 2
-    assert should_skip_confirmation(iteration, context) == True
+def test_verification_passed_auto_complete():
+    """验证passed状态自动完成"""
+    result = {"status": "passed", "quality_score": 85}
+    next_state = handle_verification(result)
+    assert next_state == "completed"
+    # 不应调用 AskUserQuestion
 
-def test_replan_trigger_user():
-    context = {"replan_trigger": "user"}
-    iteration = 2
-    assert should_skip_confirmation(iteration, context) == False
+def test_verification_suggestions_auto_continue():
+    """验证suggestions状态自动继续"""
+    result = {
+        "status": "suggestions",
+        "suggestions": [{"suggestion": "优化性能"}]
+    }
+    next_state = handle_verification(result)
+    assert next_state == "continue"
+    # 不应调用 AskUserQuestion
 
-def test_first_iteration():
-    context = {"replan_trigger": None}
-    iteration = 1
-    assert should_skip_confirmation(iteration, context) == False
+def test_verification_failed_adjustment():
+    """验证failed状态进入调整"""
+    result = {"status": "failed"}
+    next_state = handle_verification(result)
+    assert next_state == "adjustment"
 ```
 
 ### 集成测试
 
-1. **测试自动重新规划不确认**：
-   - 启动 loop → 确认计划 → 模拟执行失败 → adjuster 选择 replan
-   - 验证：不弹出第二次确认
+1. **测试自动完成流程**：
+   - 启动 loop → 确认计划 → 执行 → 验证passed
+   - 验证：自动完成，无额外用户询问
 
-2. **测试用户重新设计需要确认**：
-   - 启动 loop → 第一次确认选择"重新设计" → 生成新计划
-   - 验证：弹出第二次确认
+2. **测试自动优化流程**：
+   - 启动 loop → 确认计划 → 执行 → 验证suggestions
+   - 验证：自动生成新计划并再次确认，无中间询问
 
-3. **测试 verifier 优化不确认**：
-   - 启动 loop → 确认计划 → 执行成功 → verifier 提出优化 → 用户同意
-   - 验证：不弹出第二次确认
+3. **测试失败重试流程**：
+   - 启动 loop → 确认计划 → 执行失败 → adjuster选择retry
+   - 验证：自动重新执行，无用户询问
 
 ## 发布说明
 
 ### 用户可见变更
 
-**优化**：减少重复确认提示
-- 当系统自动重新规划（由 adjuster 或 verifier 触发）时，不再弹出确认对话框
-- 仍会显示重新规划的原因和风险摘要，保持透明度
-- 用户主动选择重新设计时，仍需确认新计划
+**重大改进**：全自动化迭代流程
+- 迭代过程中不再询问用户是否继续优化
+- 验证通过后自动完成任务
+- 发现优化建议后自动触发下一轮迭代
+- 执行失败后按策略自动调整（retry/debug/replan）
+- **唯一需要用户交互的时机**：计划确认阶段（审核执行计划）
 
 ### 升级指南
 
-无需任何操作，自动生效。
+无需任何操作，自动生效。建议在使用时：
+- 仔细审核计划阶段生成的执行计划
+- 确保验收标准准确定义了任务完成的条件
+- 相信系统会自动处理迭代优化流程
 
 ## 相关文档
 
