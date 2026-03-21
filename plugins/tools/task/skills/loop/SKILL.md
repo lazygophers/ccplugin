@@ -44,6 +44,7 @@ memory: project
 9. 完成
 
 **关键要求**：
+- **所有输出必须以 [MindFlow] 开头**（强制规则，无例外）
 - 计划确认阶段**必须执行**，不可跳过
 - 首次规划（iteration=1）**必须**通过 AskUserQuestion 获取用户确认
 - 自动重新规划（adjuster/verifier触发）可跳过确认，但必须输出日志说明
@@ -76,77 +77,174 @@ memory: project
 
 用户任务：`$ARGUMENTS`
 
+## 输出格式要求
+
+**强制规则**：从现在开始，你的所有回复内容必须以 `[MindFlow]` 开头。
+
+正确示例：
+```
+[MindFlow] 开始执行任务...
+[MindFlow] 正在生成执行计划...
+[MindFlow·任务名·计划设计/1·completed]
+```
+
+错误示例（禁止）：
+```
+开始执行任务...  ← 缺少 [MindFlow] 前缀
+正在生成计划...  ← 缺少 [MindFlow] 前缀
+```
+
 ## 执行要求
 
 **重要**：严格按照以下流程执行，不可跳过任何阶段。
 
 ### 阶段1：初始化
 ```python
+# 输出初始化信息（必须以 [MindFlow] 开头）
+print("[MindFlow] 开始初始化任务...")
+
 iteration = 0
 context = {"replan_trigger": None}
+
+print(f"[MindFlow·{user_task}·初始化/0·进行中]")
+print("[MindFlow] 初始化完成")
 ```
 
 ### 阶段2：计划设计 + 计划确认
 
-**调用 flows/plan skill（包含完整的计划生成和确认流程）：**
+**所有输出必须以 [MindFlow] 开头。**
 
 ```python
-# 调用 flows/plan - 它会自动执行以下步骤：
-# 1. 调用 task:planner 生成计划
-# 2. 生成计划文档
-# 3. 执行计划确认（首次必须用户确认）
-# 4. 返回用户决策
+print("[MindFlow] 开始计划设计...")
 
-Skill(
-    skill="task:loop:flows/plan",  # 调用计划流程 skill
-    args=f"""
-    用户任务：{user_task}
-    迭代编号：{iteration}
-    重新规划触发来源：{context.get('replan_trigger', None)}
-    """
-)
+iteration += 1
+
+# 调用 task:planner 生成计划
+print(f"[MindFlow] 正在调用 planner 生成执行计划...")
+planner_result = Agent(agent="task:planner", ...)
+
+# 生成计划文档
+print(f"[MindFlow] 正在生成计划文档...")
+# ... 生成文档代码 ...
+
+print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+print(f"[MindFlow] 计划已生成：{plan_md_path}")
+
+# 计划确认（必须执行）
+print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
+print(f"[MindFlow] 计划文件：{plan_md_path}")
+
+replan_trigger = context.get("replan_trigger", None)
+
+if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
+    print(f"[MindFlow] ✓ 自动重新规划（触发来源：{replan_trigger}），跳过用户确认")
+    print(f"[MindFlow]   原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
+    print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
+    context["replan_trigger"] = None
+else:
+    # 打开浏览器预览
+    print(f"[MindFlow] 正在打开浏览器预览计划...")
+    Bash("md2html ...")
+    print(f"[MindFlow] 已在浏览器打开计划预览")
+
+    # 必须询问用户
+    print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
+    user_decision = AskUserQuestion(
+        question="执行计划已准备就绪，是否开始执行？",
+        options=["立即执行", "重新设计"]
+    )
+
+    if user_decision == "重新设计":
+        print(f"[MindFlow] 用户选择重新设计计划")
+        context["replan_trigger"] = "user"
+        # 回到计划设计
+    else:
+        print(f"[MindFlow] 用户批准计划，准备执行")
+        context["replan_trigger"] = None
+        # 继续下一阶段
 ```
-
-**flows/plan 会输出以下日志**：
-1. `[MindFlow·xxx·计划设计/{iteration}·completed]`
-2. `[MindFlow·xxx·计划确认/{iteration}·准备预览]`
-3. 如果是自动重新规划：`[MindFlow·xxx·计划确认/{iteration}·auto_approved]`
-4. 如果需要用户确认：`[MindFlow·xxx·计划确认/{iteration}·等待确认]`
 
 **检查点**：在进入任务执行前，必须看到以下日志之一：
 - `[MindFlow·xxx·计划确认/N·等待确认]` + 用户做出选择
 - `[MindFlow·xxx·计划确认/N·auto_approved]` (仅 iteration > 1)
 
-**如果看不到这些日志，说明 flows/plan 没有被调用，必须修正！**
+**如果看不到这些日志，说明计划确认环节被跳过，必须修正！**
 
 ### 阶段3：任务执行
+
+**所有输出必须以 [MindFlow] 开头。**
+
 ```python
-task:execute 执行所有任务
+print(f"[MindFlow·{user_task}·任务执行/{iteration}·进行中]")
+print(f"[MindFlow] 开始执行所有任务...")
+
+# 调用 task:execute
+result = Agent(agent="task:execute", ...)
+
+print(f"[MindFlow·{user_task}·任务执行/{iteration}·completed]")
+print(f"[MindFlow] 任务执行完成")
 ```
 
 ### 阶段4：结果验证
+
+**所有输出必须以 [MindFlow] 开头。**
+
 ```python
+print(f"[MindFlow] 开始验证执行结果...")
+
 verification_result = Agent(agent="task:verifier", ...)
 
+status = verification_result["status"]
+print(f"[MindFlow·{user_task}·结果验证/{iteration}·{status}]")
+print(f"[MindFlow] 验收报告：{verification_result['report']}")
+
 if status == "passed":
+    print(f"[MindFlow] 所有验收标准通过，任务完成")
     goto("完成")
 elif status == "suggestions":
+    print(f"[MindFlow] 检测到优化建议，自动继续下一轮迭代...")
+    for s in verification_result['suggestions']:
+        print(f"[MindFlow]   - {s['suggestion']}")
     context["replan_trigger"] = "verifier"
     goto("阶段2")  # 自动继续优化
 elif status == "failed":
+    print(f"[MindFlow] 验收失败，进入失败调整阶段")
     goto("阶段5")  # 失败调整
 ```
 
 ### 阶段5：失败调整
+
+**所有输出必须以 [MindFlow] 开头。**
+
 ```python
+print(f"[MindFlow] 开始分析失败原因...")
+
 adjustment_result = Agent(agent="task:adjuster", ...)
 
-if strategy == "retry" or strategy == "debug":
+strategy = adjustment_result["strategy"]
+print(f"[MindFlow·{user_task}·失败调整/{iteration}·{strategy}]")
+print(f"[MindFlow] 调整报告：{adjustment_result['report']}")
+
+if strategy == "retry":
+    print(f"[MindFlow] 应用修正后重新执行任务")
+    goto("阶段3")
+elif strategy == "debug":
+    print(f"[MindFlow] 执行深度诊断后重新执行")
     goto("阶段3")
 elif strategy == "replan":
+    print(f"[MindFlow] 重新设计执行计划")
     context["replan_trigger"] = "adjuster"
     goto("阶段2")
+elif strategy == "ask_user":
+    print(f"[MindFlow] 需要用户指导")
+    # 询问用户...
 ```
+
+**重要提醒**：执行过程中的每一条输出都必须以 `[MindFlow]` 开头，包括：
+- 普通日志：`[MindFlow] xxx`
+- 状态追踪：`[MindFlow·任务名·阶段/迭代·状态]`
+- 错误信息：`[MindFlow] ⚠️ xxx`
+- 成功提示：`[MindFlow] ✓ xxx`
 
 开始执行 PDCA 循环。
 

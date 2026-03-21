@@ -2,13 +2,19 @@
 
 <overview>
 本文档包含 MindFlow Loop 所有7个阶段的详细执行流程，覆盖完整的 PDCA 循环。
+
+**强制输出格式**：所有输出必须以 `[MindFlow]` 开头，无例外。
 </overview>
 
 <phase_initialization>
 
 ## 初始化（Initialization）
 
+**所有输出必须以 [MindFlow] 开头。**
+
 ```python
+print("[MindFlow] 开始初始化任务管理循环...")
+
 status = "进行中"
 iteration = 0
 stalled_count = 0
@@ -21,11 +27,12 @@ context = {
     "replan_trigger": None  # 跟踪重新规划的触发来源
 }
 
+print(f"[MindFlow] 正在检查可用资源...")
 available_skills = ListSkills()
 available_agents = ListAgents()
 
 print(f"[MindFlow·{user_task}·初始化/0·进行中]")
-print(f"初始化完成。可用 Skills：{len(available_skills)} 个，可用 Agents：{len(available_agents)} 个")
+print(f"[MindFlow] 初始化完成。可用 Skills：{len(available_skills)} 个，可用 Agents：{len(available_agents)} 个")
 ```
 
 状态转换：成功 → 计划设计
