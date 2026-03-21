@@ -5,6 +5,7 @@ vi.mock("@/services/plugin-service", () => ({
   PluginService: {
     install: vi.fn(),
     update: vi.fn(),
+    uninstall: vi.fn(),
     clean: vi.fn(),
     getInfo: vi.fn(),
   },
@@ -150,5 +151,45 @@ describe("usePythonCommand", () => {
     });
     expect(result.current.result?.stdout).toBe("info");
     expect(result.current.error).toBeNull();
+  });
+
+  it("uninstall sets error on unsuccessful result", async () => {
+    vi.mocked(PluginService.uninstall).mockResolvedValueOnce({ success: false, stdout: "", stderr: "" });
+
+    const { result } = renderHook(() => usePythonCommand());
+    await act(async () => {
+      await result.current.uninstall("python");
+    });
+
+    expect(result.current.error).toBe("卸载失败");
+  });
+
+  it("uninstall sets progress/result on success", async () => {
+    vi.mocked(PluginService.uninstall).mockImplementationOnce(async (_name, onProgress) => {
+      onProgress?.({ plugin_name: "python", status: "installing", progress: 33, message: "removing" });
+      return { success: true, stdout: "ok", stderr: "" };
+    });
+
+    const { result } = renderHook(() => usePythonCommand());
+    await act(async () => {
+      await result.current.uninstall("python");
+    });
+
+    expect(result.current.loading).toBe(false);
+    expect(result.current.progress?.progress).toBe(33);
+    expect(result.current.result?.success).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("uninstall sets error on throw", async () => {
+    vi.mocked(PluginService.uninstall).mockRejectedValueOnce("nope");
+
+    const { result } = renderHook(() => usePythonCommand());
+    await act(async () => {
+      await result.current.uninstall("python");
+    });
+
+    expect(result.current.error).toBe("nope");
+    expect(result.current.loading).toBe(false);
   });
 });

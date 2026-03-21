@@ -25,6 +25,15 @@ export async function updatePlugin(pluginName: string): Promise<CommandResult> {
 }
 
 /**
+ * 卸载插件
+ */
+export async function uninstallPlugin(pluginName: string): Promise<CommandResult> {
+  return await invoke<CommandResult>("uninstall_plugin", {
+    pluginName,
+  });
+}
+
+/**
  * 清理缓存
  */
 export async function cleanCache(): Promise<CommandResult> {

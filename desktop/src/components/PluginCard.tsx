@@ -8,18 +8,22 @@ interface PluginCardProps {
   plugin: PluginInfo;
   onInstall?: (pluginName: string) => void;
   onUpdate?: (pluginName: string) => void;
+  onUninstall?: (pluginName: string) => void;
   onViewDetails?: (plugin: PluginInfo) => void;
   installing?: boolean;
   updating?: boolean;
+  uninstalling?: boolean;
 }
 
 export function PluginCard({
   plugin,
   onInstall,
   onUpdate,
+  onUninstall,
   onViewDetails,
   installing,
   updating,
+  uninstalling,
 }: PluginCardProps) {
   return (
     <div
@@ -70,23 +74,37 @@ export function PluginCard({
       {/* Actions */}
       <div className="flex items-center gap-2">
         {plugin.installed ? (
-          onUpdate ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={() => onUpdate(plugin.name)}
-              disabled={updating}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
-              {updating ? "更新中..." : `更新（已安装 v${plugin.installed_version ?? plugin.version}）`}
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="flex-1" disabled>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              已安装 v{plugin.installed_version ?? plugin.version}
-            </Button>
-          )
+          <>
+            {onUpdate ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => onUpdate(plugin.name)}
+                disabled={updating}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
+                {updating ? "更新中..." : `更新（已安装 v${plugin.installed_version ?? plugin.version}）`}
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" className="flex-1" disabled>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                已安装 v{plugin.installed_version ?? plugin.version}
+              </Button>
+            )}
+
+            {onUninstall && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => onUninstall(plugin.name)}
+                disabled={uninstalling || updating}
+                aria-label={`卸载 ${plugin.name}`}
+              >
+                {uninstalling ? "卸载中..." : "卸载"}
+              </Button>
+            )}
+          </>
         ) : (
           <Button
             variant="default"

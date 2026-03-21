@@ -79,6 +79,32 @@ impl PythonBridge {
         })
     }
 
+    /// 卸载插件
+    pub async fn uninstall_plugin(&self, plugin_name: &str) -> Result<CommandResult, String> {
+        self.emit_progress(&plugin_name, InstallStatus::Installing, 10, "开始卸载插件...");
+
+        let output = StdCommand::new("claude")
+            .args(&["plugin", "uninstall", plugin_name])
+            .output()
+            .map_err(|e| format!("Failed to execute claude plugin uninstall: {}", e))?;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let success = output.status.success();
+
+        if success {
+            self.emit_progress(&plugin_name, InstallStatus::Completed, 100, "卸载完成");
+        } else {
+            self.emit_progress(&plugin_name, InstallStatus::Failed, 0, &stderr);
+        }
+
+        Ok(CommandResult {
+            success,
+            stdout,
+            stderr,
+        })
+    }
+
     /// 清理缓存
     pub async fn clean_cache(&self) -> Result<CommandResult, String> {
         let output = StdCommand::new("uvx")

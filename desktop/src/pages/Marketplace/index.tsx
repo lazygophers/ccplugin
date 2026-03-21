@@ -26,8 +26,9 @@ export default function Marketplace() {
     filteredPlugins,
   } = usePlugins();
 
-  const { install, progress } = usePythonCommand();
+  const { install, uninstall, progress } = usePythonCommand();
   const [installingPlugin, setInstallingPlugin] = useState<string | null>(null);
+  const [uninstallingPlugin, setUninstallingPlugin] = useState<string | null>(null);
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -84,6 +85,19 @@ export default function Marketplace() {
   const handleViewDetails = (plugin: PluginInfo) => {
     setSelectedPlugin(plugin);
     setDetailDialogOpen(true);
+  };
+
+  const handleUninstall = async (pluginName: string) => {
+    const ok = window.confirm(`确认卸载插件「${pluginName}」？`);
+    if (!ok) return;
+
+    setUninstallingPlugin(pluginName);
+    try {
+      await uninstall(pluginName);
+      await refresh();
+    } finally {
+      setUninstallingPlugin(null);
+    }
   };
 
   return (
@@ -203,8 +217,10 @@ export default function Marketplace() {
                   key={plugin.name}
                   plugin={plugin}
                   onInstall={handleInstall}
+                  onUninstall={handleUninstall}
                   onViewDetails={handleViewDetails}
                   installing={installingPlugin === plugin.name}
+                  uninstalling={uninstallingPlugin === plugin.name}
                 />
               ))}
             </div>

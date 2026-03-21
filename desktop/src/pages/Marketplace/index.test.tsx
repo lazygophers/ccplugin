@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import Marketplace from "./index";
@@ -7,11 +7,13 @@ import { renderWithRouter } from "@/test/render";
 import { pluginFixtures } from "@/test/fixtures";
 
 const installMock = vi.fn();
+const uninstallMock = vi.fn();
 let progressValue: any = null;
 
 vi.mock("@/hooks/usePythonCommand", () => ({
   usePythonCommand: () => ({
     install: installMock,
+    uninstall: uninstallMock,
     progress: progressValue,
   }),
 }));
@@ -19,6 +21,7 @@ vi.mock("@/hooks/usePythonCommand", () => ({
 describe("Marketplace page", () => {
   beforeEach(() => {
     installMock.mockReset();
+    uninstallMock.mockReset();
     progressValue = null;
     vi.mocked(invoke).mockReset();
   });
@@ -71,6 +74,26 @@ describe("Marketplace page", () => {
     expect(installMock).toHaveBeenCalledWith("git");
     // refresh triggered after install
     expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it("handles uninstall and refresh", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures).mockResolvedValueOnce(pluginFixtures);
+    uninstallMock.mockResolvedValueOnce(undefined);
+
+    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
+      initialEntries: ["/marketplace"],
+    });
+
+    const heading = await screen.findByRole("heading", { name: "python" });
+    const card = heading.closest('[role="article"]');
+    expect(card).toBeTruthy();
+    await user.click(within(card as HTMLElement).getByRole("button", { name: /卸载/ }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(uninstallMock).toHaveBeenCalledWith("python");
+    expect(invoke).toHaveBeenCalledTimes(2);
+    confirmSpy.mockRestore();
   });
 
   it("shows global progress when installing and progress exists", async () => {

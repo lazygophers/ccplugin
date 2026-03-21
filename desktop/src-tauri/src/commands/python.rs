@@ -40,6 +40,22 @@ pub async fn update_plugin(
 }
 
 #[tauri::command]
+pub async fn uninstall_plugin(
+    plugin_name: String,
+    app_handle: AppHandle,
+    state: State<'_, PythonBridgeState>,
+) -> Result<CommandResult, String> {
+    let mut bridge_guard = state.0.lock().await;
+
+    if bridge_guard.is_none() {
+        *bridge_guard = Some(PythonBridge::new(app_handle.clone()));
+    }
+
+    let bridge = bridge_guard.as_ref().unwrap();
+    bridge.uninstall_plugin(&plugin_name).await
+}
+
+#[tauri::command]
 pub async fn clean_cache(
     app_handle: AppHandle,
     state: State<'_, PythonBridgeState>,

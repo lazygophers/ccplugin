@@ -9,8 +9,9 @@ import type { PluginInfo } from "@/types";
 
 export default function Installed() {
   const { plugins, loading, error, refresh } = usePlugins();
-  const { update } = usePythonCommand();
+  const { update, uninstall } = usePythonCommand();
   const [updatingPlugin, setUpdatingPlugin] = useState<string | null>(null);
+  const [uninstallingPlugin, setUninstallingPlugin] = useState<string | null>(null);
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
@@ -29,6 +30,19 @@ export default function Installed() {
   const handleViewDetails = (plugin: PluginInfo) => {
     setSelectedPlugin(plugin);
     setDetailDialogOpen(true);
+  };
+
+  const handleUninstall = async (pluginName: string) => {
+    const ok = window.confirm(`确认卸载插件「${pluginName}」？`);
+    if (!ok) return;
+
+    setUninstallingPlugin(pluginName);
+    try {
+      await uninstall(pluginName);
+      await refresh();
+    } finally {
+      setUninstallingPlugin(null);
+    }
   };
 
   return (
@@ -86,7 +100,9 @@ export default function Installed() {
                   key={plugin.name}
                   plugin={plugin}
                   onUpdate={handleUpdate}
+                  onUninstall={handleUninstall}
                   updating={updatingPlugin === plugin.name}
+                  uninstalling={uninstallingPlugin === plugin.name}
                   onViewDetails={handleViewDetails}
                 />
               ))}

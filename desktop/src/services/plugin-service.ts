@@ -1,6 +1,7 @@
 import {
   installPlugin as installPluginCmd,
   updatePlugin as updatePluginCmd,
+  uninstallPlugin as uninstallPluginCmd,
   cleanCache as cleanCacheCmd,
   getPluginInfo as getPluginInfoCmd,
   listenToInstallProgress,
@@ -47,6 +48,28 @@ export class PluginService {
 
     try {
       const result = await updatePluginCmd(pluginName);
+      return result;
+    } finally {
+      if (unlisten) {
+        unlisten();
+      }
+    }
+  }
+
+  /**
+   * 卸载插件
+   */
+  static async uninstall(
+    pluginName: string,
+    onProgress?: (progress: PluginInstallProgress) => void
+  ): Promise<CommandResult> {
+    let unlisten: (() => void) | undefined;
+    if (onProgress) {
+      unlisten = await listenToInstallProgress(onProgress);
+    }
+
+    try {
+      const result = await uninstallPluginCmd(pluginName);
       return result;
     } finally {
       if (unlisten) {

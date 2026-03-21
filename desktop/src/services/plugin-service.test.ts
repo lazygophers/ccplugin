@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("./tauri-commands", () => ({
   installPlugin: vi.fn(),
   updatePlugin: vi.fn(),
+  uninstallPlugin: vi.fn(),
   cleanCache: vi.fn(),
   getPluginInfo: vi.fn(),
   listenToInstallProgress: vi.fn(),
@@ -11,6 +12,7 @@ vi.mock("./tauri-commands", () => ({
 import {
   installPlugin,
   updatePlugin,
+  uninstallPlugin,
   cleanCache,
   getPluginInfo,
   listenToInstallProgress,
@@ -62,6 +64,32 @@ describe("PluginService", () => {
     vi.mocked(updatePlugin).mockResolvedValueOnce({ success: true, stdout: "", stderr: "" });
     await PluginService.update("python");
     expect(listenToInstallProgress).not.toHaveBeenCalled();
+  });
+
+  it("uninstall listens and unlistens", async () => {
+    const unlisten = vi.fn();
+    vi.mocked(listenToInstallProgress).mockResolvedValueOnce(unlisten);
+    vi.mocked(uninstallPlugin).mockResolvedValueOnce({ success: true, stdout: "", stderr: "" });
+
+    const onProgress = vi.fn();
+    await PluginService.uninstall("python", onProgress);
+    expect(listenToInstallProgress).toHaveBeenCalledWith(onProgress);
+    expect(unlisten).toHaveBeenCalledTimes(1);
+  });
+
+  it("uninstall does not listen when onProgress missing", async () => {
+    vi.mocked(uninstallPlugin).mockResolvedValueOnce({ success: true, stdout: "", stderr: "" });
+    await PluginService.uninstall("python");
+    expect(listenToInstallProgress).not.toHaveBeenCalled();
+  });
+
+  it("uninstall unlistens even if command throws", async () => {
+    const unlisten = vi.fn();
+    vi.mocked(listenToInstallProgress).mockResolvedValueOnce(unlisten);
+    vi.mocked(uninstallPlugin).mockRejectedValueOnce(new Error("boom"));
+
+    await expect(PluginService.uninstall("python", vi.fn())).rejects.toThrow("boom");
+    expect(unlisten).toHaveBeenCalledTimes(1);
   });
 
   it("clean proxies cleanCache", async () => {

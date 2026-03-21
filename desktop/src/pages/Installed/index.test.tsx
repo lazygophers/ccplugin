@@ -7,16 +7,19 @@ import { renderWithRouter } from "@/test/render";
 import { pluginFixtures } from "@/test/fixtures";
 
 const updateMock = vi.fn();
+const uninstallMock = vi.fn();
 
 vi.mock("@/hooks/usePythonCommand", () => ({
   usePythonCommand: () => ({
     update: updateMock,
+    uninstall: uninstallMock,
   }),
 }));
 
 describe("Installed page", () => {
   beforeEach(() => {
     updateMock.mockReset();
+    uninstallMock.mockReset();
     vi.mocked(invoke).mockReset();
   });
 
@@ -65,5 +68,26 @@ describe("Installed page", () => {
     await user.click(within(card as HTMLElement).getByRole("button", { name: /更新/ }));
     expect(updateMock).toHaveBeenCalledWith("python");
     expect(invoke).toHaveBeenCalledTimes(2);
+  });
+
+  it("uninstalls an installed plugin", async () => {
+    const user = userEvent.setup();
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValueOnce(true);
+    vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures).mockResolvedValueOnce(pluginFixtures);
+    uninstallMock.mockResolvedValueOnce(undefined);
+
+    renderWithRouter([{ path: "/installed", element: <Installed /> }], {
+      initialEntries: ["/installed"],
+    });
+
+    const heading = await screen.findByRole("heading", { name: "python" });
+    const card = heading.closest('[role="article"]');
+    expect(card).toBeTruthy();
+
+    await user.click(within(card as HTMLElement).getByRole("button", { name: /卸载/ }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(uninstallMock).toHaveBeenCalledWith("python");
+    expect(invoke).toHaveBeenCalledTimes(2);
+    confirmSpy.mockRestore();
   });
 });

@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import {
   installPlugin,
   updatePlugin,
+  uninstallPlugin,
   cleanCache,
   getPluginInfo,
   listenToInstallProgress,
@@ -27,6 +28,14 @@ describe("tauri-commands", () => {
 
     await expect(updatePlugin("python")).resolves.toEqual(mockResult);
     expect(invoke).toHaveBeenCalledWith("update_plugin", { pluginName: "python" });
+  });
+
+  it("uninstallPlugin invokes tauri command", async () => {
+    const mockResult = { success: true, stdout: "removed", stderr: "" };
+    vi.mocked(invoke).mockResolvedValueOnce(mockResult);
+
+    await expect(uninstallPlugin("python")).resolves.toEqual(mockResult);
+    expect(invoke).toHaveBeenCalledWith("uninstall_plugin", { pluginName: "python" });
   });
 
   it("cleanCache invokes tauri command", async () => {
@@ -58,4 +67,3 @@ describe("tauri-commands", () => {
     expect(returnedUnlisten).toBe(unlisten);
   });
 });
-

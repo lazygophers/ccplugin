@@ -21,6 +21,15 @@ describe("PluginCard", () => {
     expect(screen.getByText(/已安装 v1.0.0/)).toBeInTheDocument();
   });
 
+  it("renders uninstall action when installed and onUninstall provided", async () => {
+    const user = userEvent.setup();
+    const onUninstall = vi.fn();
+    render(<PluginCard plugin={pluginFixtures[0]} onUninstall={onUninstall} />);
+
+    await user.click(screen.getByRole("button", { name: /卸载/ }));
+    expect(onUninstall).toHaveBeenCalledWith("python");
+  });
+
   it("renders update action when installed and onUpdate provided", async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn();
@@ -28,6 +37,19 @@ describe("PluginCard", () => {
 
     await user.click(screen.getByRole("button", { name: /更新/ }));
     expect(onUpdate).toHaveBeenCalledWith("python");
+  });
+
+  it("renders update + uninstall when both callbacks provided", () => {
+    render(
+      <PluginCard
+        plugin={pluginFixtures[0]}
+        onUpdate={vi.fn()}
+        onUninstall={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: /更新/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /卸载/ })).toBeInTheDocument();
   });
 
   it("renders keyword overflow indicator", () => {
@@ -42,6 +64,11 @@ describe("PluginCard", () => {
   it("shows updating state when updating=true", () => {
     render(<PluginCard plugin={pluginFixtures[0]} onUpdate={vi.fn()} updating />);
     expect(screen.getByText("更新中...")).toBeInTheDocument();
+  });
+
+  it("shows uninstalling state when uninstalling=true", () => {
+    render(<PluginCard plugin={pluginFixtures[0]} onUninstall={vi.fn()} uninstalling />);
+    expect(screen.getByText("卸载中...")).toBeInTheDocument();
   });
 
   it("shows installing state when installing=true", () => {

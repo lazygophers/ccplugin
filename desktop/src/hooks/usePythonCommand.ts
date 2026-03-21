@@ -9,6 +9,7 @@ interface UsePythonCommandResult {
   error: string | null;
   install: (pluginName: string, marketplace?: string) => Promise<void>;
   update: (pluginName: string) => Promise<void>;
+  uninstall: (pluginName: string) => Promise<void>;
   clean: () => Promise<void>;
   getInfo: (pluginName: string) => Promise<void>;
 }
@@ -67,6 +68,30 @@ export function usePythonCommand(): UsePythonCommandResult {
     }
   }, []);
 
+  const uninstall = useCallback(async (pluginName: string) => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    setProgress(null);
+
+    try {
+      const res = await PluginService.uninstall(pluginName, (prog) => {
+        setProgress(prog);
+      });
+
+      setResult(res);
+
+      if (!res.success) {
+        setError(res.stderr || "卸载失败");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const clean = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -116,6 +141,7 @@ export function usePythonCommand(): UsePythonCommandResult {
     error,
     install,
     update,
+    uninstall,
     clean,
     getInfo,
   };

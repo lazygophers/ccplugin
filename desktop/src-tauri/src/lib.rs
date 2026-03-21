@@ -91,6 +91,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::install_plugin,
             commands::update_plugin,
+            commands::uninstall_plugin,
             commands::clean_cache,
             commands::get_plugin_info,
             commands::get_marketplace_plugins,
