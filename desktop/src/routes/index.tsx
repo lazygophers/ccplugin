@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createHashRouter, Navigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
 import Marketplace from "@/pages/Marketplace";
@@ -8,7 +8,7 @@ import Settings from "@/pages/Settings";
 import Logs from "@/pages/Logs";
 import DevTools from "@/pages/DevTools";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: "/",
     element: <Layout />,
@@ -40,6 +40,10 @@ export const router = createBrowserRouter([
       {
         path: "devtools",
         element: <DevTools />,
+      },
+      {
+        path: "*",
+        element: <Navigate to="/" replace />,
       },
     ],
   },

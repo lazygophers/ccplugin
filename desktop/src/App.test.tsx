@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 describe("App", () => {
   it("renders routes via RouterProvider", async () => {
-    window.history.pushState({}, "", "/logs");
+    window.location.hash = "#/logs";
     const { default: App } = await import("./App");
     render(<App />);
     expect(

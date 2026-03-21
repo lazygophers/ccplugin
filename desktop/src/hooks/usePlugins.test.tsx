@@ -41,6 +41,17 @@ describe("usePlugins", () => {
     expect(result.current.error).toBe("x");
   });
 
+  it("normalizes invalid backend data to empty list", async () => {
+    vi.mocked(MarketplaceService.getAllPlugins).mockResolvedValueOnce(undefined as never);
+
+    const { result } = renderHook(() => usePlugins());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.plugins).toEqual([]);
+    expect(result.current.filteredPlugins).toEqual([]);
+  });
+
   it("filters by category and search", async () => {
     vi.mocked(MarketplaceService.getAllPlugins).mockResolvedValueOnce(pluginFixtures);
 

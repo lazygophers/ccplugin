@@ -27,7 +27,7 @@ export function usePlugins(): UsePluginsResult {
 
     try {
       const data = await MarketplaceService.getAllPlugins();
-      setPlugins(data);
+      setPlugins(Array.isArray(data) ? data : []);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       setError(errorMessage);
@@ -41,7 +41,7 @@ export function usePlugins(): UsePluginsResult {
   }, [loadPlugins]);
 
   // 客户端过滤（也可以调用后端API）
-  const filteredPlugins = plugins.filter((plugin) => {
+  const filteredPlugins = (plugins ?? []).filter((plugin) => {
     // 分类过滤
     if (selectedCategory !== "all" && plugin.category !== selectedCategory) {
       return false;
@@ -51,9 +51,9 @@ export function usePlugins(): UsePluginsResult {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       return (
-        plugin.name.toLowerCase().includes(query) ||
-        plugin.description.toLowerCase().includes(query) ||
-        plugin.keywords.some((k) => k.toLowerCase().includes(query))
+        (plugin.name ?? "").toLowerCase().includes(query) ||
+        (plugin.description ?? "").toLowerCase().includes(query) ||
+        (plugin.keywords ?? []).some((k) => (k ?? "").toLowerCase().includes(query))
       );
     }
 
