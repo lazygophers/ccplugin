@@ -58,7 +58,100 @@ uv run --directory plugins/memory pytest
 uv run scripts/update_version.py
 ```
 
+## Agent Teams 使用决策树
+
+### 核心约束
+- **优先原则**：尽量避免使用 Agent Teams
+- **并发限制**：并行任务/Agent 数量不超过 2 个
+- **成员限制**：Teams 激活成员不超过 2 个
+
+### 决策流程
+
+```
+任务场景
+  ├─ 单一职责任务？
+  │   └─ 使用单个 Agent（推荐）
+  │
+  ├─ 多步骤但有依赖关系？
+  │   └─ 串行调用多个 Agent（推荐）
+  │
+  └─ 必须并行且独立？
+      ├─ 操作同一文件？
+      │   └─ 禁止并行，改为串行
+      │
+      └─ 操作不同文件且完全独立？
+          ├─ 任务数 ≤ 2？
+          │   └─ 可使用 Agent Teams（最多 2 成员）
+          │
+          └─ 任务数 > 2？
+              └─ 分批执行（每批最多 2 个）
+```
+
+### 示例说明
+
+#### ✅ 正确用法
+
+**场景 1：单一职责**
+```
+任务：更新插件版本号
+方案：使用单个 Agent 执行
+```
+
+**场景 2：有依赖的多步骤**
+```
+任务：添加新插件功能并测试
+方案：
+  1. Agent A 实现功能代码
+  2. 等待 A 完成后，Agent B 编写测试
+```
+
+**场景 3：独立的并行任务（≤2个）**
+```
+任务：同时更新 Python 插件和 TypeScript 插件的文档
+方案：Agent Teams（2 成员）
+  - Agent A 更新 plugins/languages/python/README.md
+  - Agent B 更新 plugins/languages/typescript/README.md
+前提：两个文件完全独立，无共享依赖
+```
+
+#### ❌ 错误用法
+
+**错误 1：不必要的 Teams**
+```
+任务：更新单个插件的配置文件
+错误：创建 Agent Team
+正确：使用单个 Agent
+```
+
+**错误 2：操作同一文件**
+```
+任务：多个 Agent 同时修改 marketplace.json
+问题：并发冲突
+正确：串行执行或单 Agent 统一处理
+```
+
+**错误 3：超过 2 个成员**
+```
+任务：同时更新 5 个插件
+错误：创建 5 成员 Team
+正确：分 3 批执行（2+2+1）或串行处理
+```
+
+**错误 4：有依赖关系仍并行**
+```
+任务：Agent A 生成代码，Agent B 立即测试
+问题：B 可能在 A 完成前执行
+正确：串行调用（A → B）
+```
+
+### 资源优化建议
+
+- 优先选择消耗最小 tokens 和资源的方案
+- 简单任务不拆分，直接单 Agent 执行
+- 禁止后台运行 Agent/Task，避免内存泄露
+- 每批任务完成后再启动下一批
+
 ## 常见坑
 
 - 修改/新增插件：别只改 `plugins/**/.claude-plugin/plugin.json`，还要同步 `.claude-plugin/marketplace.json`（市场索引）。
-- 根包依赖 `lib`：根 `pyproject.toml` 通过 `[tool.uv.sources.lib]` 指向本仓库 `lib/` 子目录；调试依赖问题时要区分“根包环境”和“lib 子项目环境”。
+- 根包依赖 `lib`：根 `pyproject.toml` 通过 `[tool.uv.sources.lib]` 指向本仓库 `lib/` 子目录；调试依赖问题时要区分”根包环境”和”lib 子项目环境”。

@@ -7,6 +7,7 @@
 **渐进式升级（Progressive Escalation）**：
 - 不是第一次失败就放弃，而是逐步升级策略
 - Level 1: Retry（快速重试）
+- Level 1.5: Self-Healing（自动修复）- 针对可预测错误的即时修复
 - Level 2: Debug（深度诊断）
 - Level 3: Replan（重新规划）
 - Level 4: Ask User（请求指导）
@@ -18,6 +19,7 @@
 
 **智能恢复（Intelligent Recovery）**：
 - 根据错误类型选择最合适的恢复策略
+- 可自愈错误（依赖缺失/端口占用等） → Self-Healing
 - 临时网络错误 → Retry
 - 配置错误 → Debug
 - 需求变更 → Replan
@@ -28,11 +30,12 @@
 | 级别 | 策略 | 适用场景 | 停滞阈值 | 预期效果 |
 |------|------|---------|---------|---------|
 | **Level 1** | **Retry** | 临时性错误、偶发性故障 | 连续 3 次相同错误 | 快速恢复，无需人工介入 |
+| **Level 1.5** | **Self-Healing** | 可预测的常见错误（依赖缺失/端口占用/目录不存在/权限不足/配置缺失/网络超时） | 连续 2 次自愈失败 | 即时自动修复，零延迟恢复 |
 | **Level 2** | **Debug** | 持续性错误、配置问题 | 连续 2 次 Debug 无效 | 收集详细信息，定位根本原因 |
 | **Level 3** | **Replan** | 需求变更、架构调整 | 连续 2 次 Replan 无效 | 重新设计，调整执行路径 |
 | **Level 4** | **Ask User** | 所有自动策略失败 | - | 人工介入，明确方向 |
 
-## 四级升级策略详解
+## 升级策略详解
 
 ### Level 1: Retry（调整后重试）
 
@@ -59,10 +62,50 @@
 }
 ```
 
+### Level 1.5: Self-Healing（自动修复）
+
+**触发条件**：
+- 首次失败检测
+- 错误类型匹配自愈目录（6 类可自愈错误）
+- 在 Level 1 Retry 之前执行
+
+**执行操作**：
+- 依赖缺失 → 自动安装缺失的依赖包
+- 端口占用 → 自动选择新端口或终止占用进程
+- 目录不存在 → 自动创建缺失的目录
+- 权限不足 → 自动调整文件/目录权限
+- 配置缺失 → 自动创建默认配置或复制示例配置
+- 网络超时 → 自动扩大超时时间和配置重试参数
+
+**HITL 联动**：
+- `auto` 模式：低风险操作自动执行，高风险操作需确认
+- `review` 模式：所有操作都需要用户确认
+- `manual` 模式：所有操作都需要用户确认
+
+**输出示例**：
+```json
+{
+  "status": "healed",
+  "reason": "依赖缺失已自动修复",
+  "healing_details": {
+    "error_type": "dependency_missing",
+    "action_taken": "pip install numpy==1.21.0",
+    "verification": "success"
+  },
+  "retry_config": {
+    "backoff_seconds": 0,
+    "immediate_retry": true
+  }
+}
+```
+
+**详细说明**：参见 [自愈机制指南](./self-healing.md)
+
 ### Level 2: Debug（深度诊断）
 
 **触发条件**：
 - Retry 3 次失败后
+- Self-Healing 2 次失败后
 - 检测到停滞（相同错误重复）
 - 配置问题、依赖缺失
 

@@ -194,172 +194,39 @@ user-invocable: false
 
 <!-- DYNAMIC_CONTENT -->
 
-<execution_flow>
+<invocation>
 
-## 阶段 1：质量评估（Quality Assessment）
-
-### 步骤 1.1：三维度评分
-
-逐项评估清晰度、完整性、可执行性，每个维度 0-10 分。
-
-**清晰度评估检查点**：
-- 是否使用具体动词（实现/添加/修复/优化）？
-- 术语是否精确（JWT vs 认证、REST vs API）？
-- 是否有歧义（"优化"未说明优化什么）？
-
-**完整性评估检查点**：
-- What（目标）是否明确？
-- Why（动机）是否说明？
-- Who（受众）是否清楚？
-- When（时间）是否指定？
-- Where（范围）是否定义？
-- How（方式）是否有技术偏好？
-
-**可执行性评估检查点**：
-- 是否可以分解为原子任务？
-- 验收标准是否可量化（有数值）？
-- 依赖关系是否明确（需要什么库/服务）？
-
-### 步骤 1.2：计算综合得分
-
-综合得分 = (清晰度 + 完整性 + 可执行性) / 3
-
-### 步骤 1.3：识别模糊点
-
-使用 5W1H 框架逐项检查，标注缺失或模糊的维度。
-
-**常见模糊点**：
-- 目标不明确："优化代码"（优化什么方面？性能？质量？架构？）
-- 技术方案缺失："添加认证"（用 JWT？Session？OAuth？）
-- 验收标准模糊："代码质量要好"（如何量化？）
-- 范围边界不清："实现登录"（包含注册？密码重置？社交登录？）
-
-## 阶段 2：搜索最佳实践（Search Best Practices）
-
-### 触发条件
-
-综合得分 < 6 分时触发 WebSearch。
-
-### 步骤 2.1：搜索最新提示词工程技巧
+## 调用方式
 
 ```python
-try:
-    search_results = mcp__duckduckgo__search(
-        query="prompt engineering best practices 2025",
-        max_results=3
-    )
-    # 提取关键建议
-    best_practices = extract_key_practices(search_results)
-except Exception as e:
-    # 失败时使用静态最佳实践
-    best_practices = use_static_best_practices()
+optimizer_result = Agent(
+    agent="task:prompt-optimizer",
+    prompt=f"""优化用户提示词：
+
+原始提示：{user_input}
+
+要求：
+1. 评估质量（清晰度、完整性、可执行性）
+2. 如果得分 < 6，搜索最新最佳实践
+3. 通过 5W1H 框架提问收集缺失信息
+4. 生成优化后的结构化提示词
+5. 如果得分 ≥ 8，返回 status="no_optimization_needed"
+"""
+)
+
+# 处理结果
+if optimizer_result["status"] == "no_optimization_needed":
+    # 高质量输入，静默跳过
+    optimized_prompt = optimizer_result["original_prompt"]
+elif optimizer_result["status"] == "optimized":
+    # 已优化，使用优化后的提示词
+    optimized_prompt = optimizer_result["optimized_prompt"]
+    print(f"优化报告：{optimizer_result['report']}")
 ```
 
-### 步骤 2.2：搜索相关领域标准（可选）
+## 优化模板结构
 
-如果任务涉及特定领域（如 API 设计、数据库设计），搜索相关标准：
-
-```python
-if "API" in user_task:
-    api_practices = mcp__duckduckgo__search(
-        query="REST API design best practices 2025"
-    )
-```
-
-### 步骤 2.3：整合搜索结果
-
-提取关键的最佳实践、常见模式、反模式，整合到优化建议中。
-
-## 阶段 3：结构化提问（Structured Questioning）
-
-### 提问原则
-
-- 每次只问一个核心问题
-- 提供 3 个具体选项
-- 允许开放回答
-- 说明为什么需要这个信息
-- 不限制提问次数
-
-### 提问顺序（按优先级）
-
-1. **What（目标）** - 最关键
-2. **Why（动机）** - 理解背景
-3. **Where（范围）** - 定义边界
-4. **How（方式）** - 技术偏好
-5. **When（时间）** - 优先级
-6. **Who（受众）** - 质量标准
-
-### 提问模板
-
-```markdown
-关于[维度名称]，需要澄清以下信息：
-
-[具体问题]
-
-建议选项：
-1. [选项 A]
-2. [选项 B]
-3. [选项 C]
-
-或者提供其他信息：[开放回答]
-
----
-为什么需要这个信息：[说明原因，建立信任]
-```
-
-### 示例提问
-
-**What（目标）提问示例**：
-
-```markdown
-关于优化目标，请问：
-
-您希望优化哪个方面？
-
-建议选项：
-1. 性能优化（减少响应时间、提升吞吐量）
-2. 代码质量优化（重构、提升可维护性、增加测试覆盖）
-3. 架构优化（改进设计模式、提升可扩展性）
-
-或者提供其他信息：[您的具体优化目标]
-
----
-为什么需要这个信息：明确优化方向可以确保后续工作聚焦在最重要的目标上，避免无效工作。
-```
-
-**How（技术方案）提问示例**：
-
-```markdown
-关于认证技术方案，请问：
-
-您倾向使用哪种认证方式？
-
-建议选项：
-1. JWT（无状态、适合分布式系统）
-2. Session（有状态、适合传统单体应用）
-3. OAuth 2.0（第三方登录、适合开放平台）
-
-或者提供其他信息：[您的技术方案]
-
----
-为什么需要这个信息：不同认证方式的实现复杂度和适用场景差异很大，需要明确技术方案才能准确规划。
-```
-
-### 提问实施
-
-```python
-for dimension in missing_dimensions:
-    question = generate_question(dimension)
-    answer = SendMessage(
-        to="@main",
-        message=question
-    )
-    integrate_answer(dimension, answer)
-```
-
-## 阶段 4：生成优化提示（Generate Optimized Prompt）
-
-### 步骤 4.1：使用标准模板
+Agent 生成的优化提示词遵循以下标准模板：
 
 ```markdown
 # 任务目标
@@ -377,48 +244,21 @@ for dimension in missing_dimensions:
 ## 具体要求
 1. [要求 1]
 2. [要求 2]
-3. [要求 3]
 
 ## 范围边界
-包含：
-- [包含项 1]
-- [包含项 2]
-
-不包含：
-- [不包含项 1]
-- [不包含项 2]
+包含：[包含项列表]
+不包含：[不包含项列表]
 
 ## 验收标准
 1. [可量化标准 1]
 2. [可量化标准 2]
-3. [可量化标准 3]
 
 ## 时间和优先级
 - 优先级：[高/中/低]
 - 期望完成时间：[时间]
 ```
 
-### 步骤 4.2：填充模板
-
-基于收集的信息填充模板，确保每个部分都有具体内容。
-
-### 步骤 4.3：质量检查
-
-检查优化后的提示词：
-- 长度是否合理（≤500 字）？
-- 关键信息是否前置（目标、验收标准）？
-- 结构是否清晰（使用 Markdown 标题）？
-- 是否明显优于原始输入？
-
-### 步骤 4.4：生成优化报告
-
-报告内容（≤100 字）：
-- 质量提升：原始 X 分 → 优化后 Y 分
-- 改进点数量：澄清了 N 个关键模糊点
-- 提问次数：通过 M 次提问收集信息
-- 关键改进：列举 2-3 个最重要的改进点
-
-</execution_flow>
+</invocation>
 
 <output_format>
 

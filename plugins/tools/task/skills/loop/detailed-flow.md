@@ -15,27 +15,84 @@
 ```python
 print("[MindFlow] 开始初始化任务管理循环...")
 
-status = "进行中"
-iteration = 0
-stalled_count = 0
-guidance_count = 0
-max_stalled_attempts = 3
 user_task = "$ARGUMENTS"
 
-# 上下文状态
-context = {
-    "replan_trigger": None  # 跟踪重新规划的触发来源
-}
+# 【检查点恢复】尝试加载上次中断的检查点
+checkpoint = load_checkpoint(user_task)
 
-print(f"[MindFlow] 正在检查可用资源...")
-available_skills = ListSkills()
-available_agents = ListAgents()
+if checkpoint:
+    # 从检查点恢复状态
+    iteration = checkpoint["iteration"]
+    context = checkpoint["context"]
+    plan_md_path = checkpoint.get("plan_md_path")
+    stalled_count = context.get("stalled_count", 0)
+    guidance_count = context.get("guidance_count", 0)
+    max_stalled_attempts = context.get("max_stalled_attempts", 3)
 
-print(f"[MindFlow·{user_task}·初始化/0·进行中]")
-print(f"[MindFlow] 初始化完成。可用 Skills：{len(available_skills)} 个，可用 Agents：{len(available_agents)} 个")
+    print(f"[MindFlow] ✓ 从检查点恢复执行")
+    print(f"[MindFlow]   迭代: {iteration}")
+    print(f"[MindFlow]   阶段: {checkpoint['phase']}")
+    print(f"[MindFlow·{user_task}·初始化/0·恢复自检查点]")
+
+    # 跳转到检查点保存的阶段
+    phase_map = {
+        "planning": "计划设计",
+        "confirmation": "计划确认",
+        "execution": "任务执行",
+        "verification": "结果验证",
+        "adjustment": "失败调整"
+    }
+    next_phase = phase_map.get(checkpoint["phase"], "计划设计")
+    print(f"[MindFlow] 继续执行 {next_phase} 阶段...")
+    goto(next_phase)
+
+else:
+    # 正常初始化
+    status = "进行中"
+    iteration = 0
+    stalled_count = 0
+    guidance_count = 0
+    max_stalled_attempts = 3
+
+    # 上下文状态
+    context = {
+        "replan_trigger": None  # 跟踪重新规划的触发来源
+    }
+
+    # 【记忆加载】生成会话 ID 并加载任务相关记忆
+    import hashlib
+    from datetime import datetime
+    session_id = hashlib.md5(f"{user_task}_{datetime.now().isoformat()}".encode('utf-8')).hexdigest()[:12]
+    start_time = datetime.now()
+
+    print(f"[MindFlow] 正在加载任务记忆...")
+    task_memories = load_task_memories(
+        user_task=user_task,
+        task_type=determine_task_type(user_task),
+        session_id=session_id
+    )
+
+    # 记录记忆加载结果
+    context["session_id"] = session_id
+    context["task_memories"] = task_memories
+
+    if task_memories["episodic_memory"]:
+        print(f"[MindFlow·Memory] 找到 {len(task_memories['episodic_memory'])} 个相似任务情节")
+        for episode in task_memories["episodic_memory"][:3]:
+            print(f"  • {episode['task_desc']} - {episode['result']} (相似度: {episode['similarity_score']:.2f})")
+
+    if task_memories["semantic_memory"]:
+        print(f"[MindFlow·Memory] 已加载 {len(task_memories['semantic_memory'])} 条项目知识")
+
+    print(f"[MindFlow] 正在检查可用资源...")
+    available_skills = ListSkills()
+    available_agents = ListAgents()
+
+    print(f"[MindFlow·{user_task}·初始化/0·进行中]")
+    print(f"[MindFlow] 初始化完成。可用 Skills：{len(available_skills)} 个，可用 Agents：{len(available_agents)} 个")
 ```
 
-状态转换：成功 → 计划设计
+状态转换：成功 → 计划设计；检查点恢复 → 对应阶段
 
 </phase_initialization>
 
@@ -43,107 +100,210 @@ print(f"[MindFlow] 初始化完成。可用 Skills：{len(available_skills)} 个
 
 ## Prompt Caching 辅助函数
 
-```python
-def extract_static_content(file_path):
-    """提取静态内容用于缓存"""
-    with open(file_path, 'r') as f:
-        content = f.read()
-
-    # 提取 STATIC_CONTENT 标记之间的内容
-    start_marker = "<!-- STATIC_CONTENT"
-    end_marker = "<!-- /STATIC_CONTENT -->"
-
-    start_idx = content.find(start_marker)
-    end_idx = content.find(end_marker)
-
-    if start_idx == -1 or end_idx == -1:
-        return content  # 无标记，返回全部内容
-
-    # 提取静态部分（包含标记）
-    return content[start_idx:end_idx + len(end_marker)]
-
-
-def check_min_tokens(content, model="haiku"):
-    """检查是否满足最小 token 要求"""
-    min_tokens = {
-        "haiku": 4096,
-        "sonnet": 1024,
-        "opus": 1024
-    }
-
-    # 粗略估算：1 token ≈ 4 bytes
-    estimated_tokens = len(content.encode('utf-8')) // 4
-
-    required = min_tokens.get(model, 1024)
-    if estimated_tokens < required:
-        print(f"警告：静态内容仅 {estimated_tokens} tokens，"
-              f"模型 {model} 要求 ≥ {required} tokens")
-        return False
-
-    return True
-
-
-def verify_cache_stability(file_paths):
-    """验证静态内容稳定性（通过哈希）"""
-    import hashlib
-    import json
-
-    hash_file = ".claude/cache_hashes.json"
-    current_hashes = {}
-
-    # 计算当前哈希
-    for path in file_paths:
-        static_content = extract_static_content(path)
-        content_hash = hashlib.sha256(static_content.encode()).hexdigest()
-        current_hashes[path] = content_hash
-
-    # 对比上次哈希
-    try:
-        with open(hash_file, 'r') as f:
-            last_hashes = json.load(f)
-    except FileNotFoundError:
-        last_hashes = {}
-
-    # 检测变化
-    changed_files = []
-    for path, current_hash in current_hashes.items():
-        if path in last_hashes and last_hashes[path] != current_hash:
-            changed_files.append(path)
-            print(f"缓存失效：{path} 静态内容已变化")
-
-    # 保存当前哈希
-    with open(hash_file, 'w') as f:
-        json.dump(current_hashes, f, indent=2)
-
-    return len(changed_files) == 0  # True 表示缓存稳定
-```
-
-使用示例：
-
-```python
-# 在初始化阶段检查缓存稳定性
-cache_files = [
-    "plugins/tools/task/skills/loop/SKILL.md",
-    "plugins/tools/task/skills/planner/SKILL.md"
-]
-
-# 提取静态内容
-loop_static = extract_static_content(cache_files[0])
-planner_static = extract_static_content(cache_files[1])
-
-# 检查最小 token 要求
-check_min_tokens(loop_static, model="sonnet")    # True
-check_min_tokens(planner_static, model="haiku")  # True
-
-# 验证缓存稳定性
-cache_stable = verify_cache_stability(cache_files)
-if cache_stable:
-    print("✓ 缓存稳定，预期命中率 >90%")
-else:
-    print("⚠ 缓存已失效，首次调用将重建缓存")
-```
+初始化阶段可验证缓存稳定性，确保 STATIC_CONTENT 标记内容稳定。
+详见：cache_hashes.json 记录内容哈希，检测变化时提示缓存失效。
 
 </caching_helpers>
+
+<memory_helpers>
+
+## 记忆管理辅助函数
+
+### 任务类型推断
+```python
+def determine_task_type(user_task: str) -> str:
+    """
+    从用户任务描述推断任务类型
+
+    返回：feature/bugfix/refactor/docs/test/optimization/migration
+    """
+    task_lower = user_task.lower()
+
+    if any(keyword in task_lower for keyword in ["实现", "添加", "新增", "开发", "implement", "add", "create", "feature"]):
+        return "feature"
+    elif any(keyword in task_lower for keyword in ["修复", "解决", "bug", "fix", "resolve", "issue"]):
+        return "bugfix"
+    elif any(keyword in task_lower for keyword in ["重构", "优化", "refactor", "optimize", "improve", "cleanup"]):
+        return "refactor"
+    elif any(keyword in task_lower for keyword in ["文档", "注释", "doc", "documentation", "comment", "readme"]):
+        return "docs"
+    elif any(keyword in task_lower for keyword in ["测试", "test", "unit", "e2e", "integration", "spec"]):
+        return "test"
+    elif any(keyword in task_lower for keyword in ["性能", "performance", "速度", "speed", "optimization"]):
+        return "optimization"
+    elif any(keyword in task_lower for keyword in ["迁移", "升级", "migration", "upgrade", "update"]):
+        return "migration"
+    else:
+        return "feature"  # 默认为功能开发
+```
+
+### Agent/Skills 提取
+```python
+def extract_agents_used(planner_result: dict) -> list:
+    """
+    从规划结果提取使用的 Agents 列表（去重）
+    """
+    agents = set()
+    for task in planner_result.get("tasks", []):
+        if "agent" in task:
+            agents.add(task["agent"])
+    return sorted(list(agents))
+
+
+def extract_skills_used(planner_result: dict) -> list:
+    """
+    从规划结果提取使用的 Skills 列表（去重）
+    """
+    skills = set()
+    for task in planner_result.get("tasks", []):
+        for skill in task.get("skills", []):
+            skills.add(skill)
+    return sorted(list(skills))
+```
+
+### 短期记忆清理
+```python
+def cleanup_working_memory(session_id: str) -> bool:
+    """
+    清理短期记忆（会话状态）
+
+    注意：短期记忆已通过 save_task_episode() 归档到情节记忆，
+    因此可以安全删除
+    """
+    working_memory_uri = f"task://sessions/{session_id}"
+
+    try:
+        # 调用 Memory 插件删除（如果支持）
+        # 注意：当前 Memory 插件可能不支持删除操作，可以降低优先级替代
+        Skill("memory", f"update {working_memory_uri} --priority 10")  # 归档（不加载）
+        return True
+    except Exception as e:
+        print(f"[MindFlow·Memory] ⚠️ 短期记忆清理失败: {e}")
+        return False
+```
+
+### 记忆格式化（用于 Planner 提示）
+```python
+def format_episodic_memories(episodes: list, max_count: int = 3) -> str:
+    """
+    格式化情节记忆为 Planner 可读的文本
+    """
+    if not episodes:
+        return "（无相似任务历史）"
+
+    lines = []
+    for i, episode in enumerate(episodes[:max_count], 1):
+        lines.append(f"\n【情节 {i}】 {episode['task_desc']}")
+        lines.append(f"  结果: {episode['result']}")
+        lines.append(f"  相似度: {episode['similarity_score']:.2f}")
+        lines.append(f"  规划: {episode['plan']['report']}")
+        lines.append(f"  用时: {episode['metrics']['duration_minutes']}分钟, 迭代: {episode['metrics']['iterations']}次")
+        lines.append(f"  使用的 Agents: {', '.join(episode['agents_used'])}")
+
+        # 失败情节添加失败信息
+        if episode['result'] == 'failed' and 'failure' in episode:
+            lines.append(f"  失败原因: {episode['failure']['reason']}")
+            if episode['failure'].get('recovery_action'):
+                lines.append(f"  恢复措施: {episode['failure']['recovery_action']['description']}")
+
+    return "\n".join(lines)
+
+
+def format_semantic_memories(memories: list, max_count: int = 5) -> str:
+    """
+    格式化语义记忆为 Planner 可读的文本
+    """
+    if not memories:
+        return "（无项目知识）"
+
+    # 按领域分组
+    by_domain = {}
+    for memory in memories:
+        domain = memory.get("domain", "other")
+        if domain not in by_domain:
+            by_domain[domain] = []
+        by_domain[domain].append(memory)
+
+    lines = []
+    for domain, domain_memories in sorted(by_domain.items()):
+        lines.append(f"\n【{domain}】")
+        for memory in domain_memories[:max_count]:
+            lines.append(f"  • {memory.get('title', 'Untitled')}")
+            content = memory.get("content", "")
+            # 截取前 100 字符
+            if len(content) > 100:
+                content = content[:100] + "..."
+            lines.append(f"    {content}")
+
+    return "\n".join(lines)
+
+
+def format_failure_patterns(patterns: list, max_count: int = 3) -> str:
+    """
+    格式化失败模式为 Adjuster 可读的文本
+    """
+    if not patterns:
+        return "（无相似失败历史）"
+
+    lines = []
+    for i, pattern in enumerate(patterns[:max_count], 1):
+        lines.append(f"\n【失败模式 {i}】")
+        lines.append(f"  任务: {pattern.get('task_desc', 'Unknown')}")
+        lines.append(f"  失败原因: {pattern['failure_reason']}")
+        lines.append(f"  相似度: {pattern['similarity_score']:.2f}")
+
+        recovery_action = pattern.get('recovery_action')
+        if recovery_action:
+            lines.append(f"  恢复措施: {recovery_action.get('description', 'Unknown')}")
+            lines.append(f"  措施类型: {recovery_action.get('type', 'Unknown')}")
+            if pattern['recovery_success']:
+                lines.append(f"  ✓ 恢复成功")
+            else:
+                lines.append(f"  ✗ 恢复失败")
+
+        lessons = pattern.get('lessons_learned')
+        if lessons:
+            lines.append(f"  经验教训: {lessons}")
+
+    return "\n".join(lines)
+
+
+def extract_failure_reason(failed_tasks: list) -> str:
+    """
+    从失败任务中提取失败原因摘要
+
+    优先提取错误类型和关键信息
+    """
+    if not failed_tasks:
+        return "Unknown failure"
+
+    # 合并所有失败原因
+    reasons = []
+    for task in failed_tasks:
+        if "error" in task:
+            reasons.append(task["error"])
+        elif "reason" in task:
+            reasons.append(task["reason"])
+
+    # 返回第一个失败原因（通常是根本原因）
+    if reasons:
+        return reasons[0]
+    else:
+        return f"任务 {failed_tasks[0].get('id', 'Unknown')} 执行失败"
+
+
+def get_failed_tasks(planner_result: dict) -> list:
+    """
+    从规划结果中获取失败的任务列表
+    """
+    failed_tasks = []
+    for task in planner_result.get("tasks", []):
+        if task.get("status") in ["failed", "error"]:
+            failed_tasks.append(task)
+    return failed_tasks
+```
+
+</memory_helpers>
 
 <phase_planning>
 
@@ -233,6 +393,15 @@ Write(str(plan_md_path), formatted_plan)
 print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
 print(planner_result["report"])
 print(f"计划已生成：{plan_md_path}")
+
+# 【检查点保存】计划设计完成后保存检查点
+save_checkpoint(
+    user_task=user_task,
+    iteration=iteration,
+    phase="planning",
+    context=context,
+    plan_md_path=str(plan_md_path)
+)
 ```
 
 状态转换：有任务 → 计划确认；无任务 → 全部完成
@@ -266,6 +435,16 @@ if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
     print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
     # 清除标志，准备下一轮
     context["replan_trigger"] = None
+
+    # 【检查点保存】自动批准后保存检查点
+    save_checkpoint(
+        user_task=user_task,
+        iteration=iteration,
+        phase="confirmation",
+        context=context,
+        plan_md_path=str(plan_md_path)
+    )
+
     goto("任务执行")
 
 # 需要用户确认的场景（首次或用户主动重新设计）
@@ -284,6 +463,16 @@ if user_decision == "重新设计":
 else:
     # 用户批准执行，清除 replan_trigger 标志
     context["replan_trigger"] = None
+
+    # 【检查点保存】用户批准后保存检查点
+    save_checkpoint(
+        user_task=user_task,
+        iteration=iteration,
+        phase="confirmation",
+        context=context,
+        plan_md_path=str(plan_md_path)
+    )
+
     goto("任务执行")
 ```
 
@@ -304,6 +493,85 @@ print(f"[MindFlow·{user_task}·任务执行/{iteration}·进行中]")
 # 【HITL 集成】加载用户配置
 hitl_config = load_hitl_config()  # 从 .claude/task.local.md 加载配置
 
+# 【智能并行调度】替代固定并行度
+# 1. 获取待执行任务
+ready_tasks = [task for task in planner_result["tasks"] if is_ready(task)]
+
+# 2. 评估任务复杂度
+task_complexities = {}
+for task in ready_tasks:
+    complexity = Agent(
+        agent="task:complexity-analyzer",
+        prompt=f"""评估任务复杂度：
+
+任务 ID：{task['id']}
+涉及文件：{task['files']}
+依赖任务：{task['dependencies']}
+Agent：{task['agent']}
+Skills：{task['skills']}
+
+要求：
+1. 计算涉及文件数维度得分（30%）
+2. 计算依赖深度维度得分（25%）
+3. 估算 token 消耗维度得分（20%）
+4. 检测文件冲突维度得分（25%）
+5. 返回综合复杂度分数（0-100）和等级（low/medium/high）
+"""
+    )
+    task_complexities[task['id']] = complexity
+
+# 3. 检测文件冲突
+file_map = {}
+for task in ready_tasks:
+    for file in task.get('files', []):
+        if file not in file_map:
+            file_map[file] = []
+        file_map[file].append(task['id'])
+
+has_conflicts = any(len(tasks) > 1 for tasks in file_map.values())
+
+# 4. 计算动态并行度（尊重用户约束）
+user_max_parallel = hitl_config.get("max_parallel_tasks", 2)
+max_parallel = min(user_max_parallel, 5)  # 硬上限 5
+
+low_complexity_count = sum(
+    1 for c in task_complexities.values() if c['level'] == 'low'
+)
+
+if has_conflicts:
+    parallel_degree = 1  # 存在文件冲突，串行执行
+    scheduling_reason = "检测到文件冲突，任务串行执行"
+elif low_complexity_count == len(ready_tasks):
+    parallel_degree = max_parallel  # 全部低复杂度，最大并行
+    scheduling_reason = f"全部低复杂度任务，并行度 {max_parallel}"
+else:
+    parallel_degree = 2  # 混合复杂度，保守策略
+    scheduling_reason = "混合复杂度任务，使用默认并行度 2"
+
+print(f"[MindFlow·任务执行] 智能调度：{parallel_degree}/{max_parallel}（用户约束）")
+print(f"[MindFlow·任务执行] 调度原因：{scheduling_reason}")
+
+# 5. 选择本批次并行任务
+parallel_batch = []
+for task in ready_tasks:
+    if len(parallel_batch) >= parallel_degree:
+        break
+
+    # 检查是否与已选任务存在文件冲突
+    task_files = set(task.get('files', []))
+    conflict_free = True
+    for selected in parallel_batch:
+        selected_files = set(selected.get('files', []))
+        if task_files & selected_files:  # 有交集
+            conflict_free = False
+            break
+
+    if conflict_free:
+        parallel_batch.append(task)
+
+print(f"[MindFlow·任务执行] 本批次任务：{[t['id'] for t in parallel_batch]}")
+
+# 6. 执行任务
 execution_result = TeamCreate(
     team_name=team_name,
     description=planner_result["report"],
@@ -334,6 +602,15 @@ if execution_result.get("user_rejected_tasks"):
     print(f"\n⚠️ 有 {len(rejected_tasks)} 个任务因用户拒绝操作而失败")
     for task in rejected_tasks:
         print(f"  • 任务 {task['id']}: 拒绝了操作 \"{task['rejected_operation']}\"")
+
+# 【检查点保存】任务执行完成后保存检查点
+save_checkpoint(
+    user_task=user_task,
+    iteration=iteration,
+    phase="execution",
+    context=context,
+    plan_md_path=str(plan_md_path)
+)
 ```
 
 状态转换：成功 → 结果验证
@@ -368,6 +645,19 @@ print(f"验收报告：{verification_result['report']}")
 update_plan_frontmatter(plan_md_path, status=verification_result["status"],
                         completed_count=count_completed_tasks())
 
+# 【检查点保存】结果验证完成后保存检查点
+save_checkpoint(
+    user_task=user_task,
+    iteration=iteration,
+    phase="verification",
+    context=context,
+    plan_md_path=str(plan_md_path),
+    additional_state={
+        "verification_status": verification_result["status"],
+        "verification_report": verification_result["report"]
+    }
+)
+
 # 状态转换
 status = verification_result["status"]
 
@@ -396,6 +686,26 @@ elif status == "failed":
 ## 失败调整（Adjustment / Act，含 HITL 审批）
 
 ```python
+# 【记忆检索】检索失败模式和恢复策略
+print(f"[MindFlow] 正在检索历史失败模式...")
+
+# 提取失败原因关键词
+failed_tasks = get_failed_tasks(planner_result)
+failure_reason = extract_failure_reason(failed_tasks)
+
+# 检索相似失败情节
+failure_patterns = search_failure_patterns(
+    failure_reason=failure_reason,
+    task_type=determine_task_type(user_task)
+)
+
+if failure_patterns:
+    print(f"[MindFlow·Memory] 找到 {len(failure_patterns)} 个相似失败模式")
+    for pattern in failure_patterns[:2]:
+        print(f"  • {pattern['failure_reason']} (相似度: {pattern['similarity_score']:.2f})")
+        if pattern['recovery_success']:
+            print(f"    ✓ 恢复措施有效: {pattern['recovery_action']['description']}")
+
 adjustment_result = Agent(
     agent="task:adjuster",
     prompt=f"""执行失败调整：
@@ -403,17 +713,34 @@ adjustment_result = Agent(
 任务目标：{user_task}
 迭代编号：{iteration}
 
+【失败模式】历史相似失败（共 {len(failure_patterns)} 个）：
+{format_failure_patterns(failure_patterns)}
+
 要求：
 1. 获取所有失败任务的详细信息
 2. 分析失败原因
-3. 检测停滞模式
-4. 应用分级升级策略
-5. 生成调整报告（≤100字）
+3. 参考历史恢复策略（优先采用 recovery_success=true 的措施）
+4. 检测停滞模式
+5. 应用分级升级策略
+6. 生成调整报告（≤100字）
 """
 )
 
 print(f"[MindFlow·{user_task}·失败调整/{iteration}·{adjustment_result['strategy']}]")
 print(f"调整报告：{adjustment_result['report']}")
+
+# 【检查点保存】失败调整完成后保存检查点
+save_checkpoint(
+    user_task=user_task,
+    iteration=iteration,
+    phase="adjustment",
+    context=context,
+    plan_md_path=str(plan_md_path),
+    additional_state={
+        "adjustment_strategy": adjustment_result["strategy"],
+        "adjustment_report": adjustment_result["report"]
+    }
+)
 
 # 【HITL 集成】如果 adjuster 建议执行危险操作，需要用户审批
 if "recovery_action" in adjustment_result and adjustment_result["recovery_action"]:
@@ -526,10 +853,34 @@ elif strategy == "ask_user":
     if stalled_count >= max_stalled_attempts:
         print(f"[MindFlow·{user_task}·失败调整/{iteration}·stopped]")
         print(f"检测到持续停滞（{stalled_count} 次），建议人工介入")
+
+        # 【记忆保存】保存失败情节
+        print(f"[MindFlow] 正在保存失败记忆...")
+
+        end_time = datetime.now()
+        duration_minutes = int((end_time - start_time).total_seconds() / 60)
+
+        episode_id = save_task_episode(
+            user_task=user_task,
+            task_type=determine_task_type(user_task),
+            plan=planner_result,
+            result="failed",
+            duration_minutes=duration_minutes,
+            iterations=iteration,
+            stalled_count=stalled_count,
+            guidance_count=guidance_count,
+            agents_used=extract_agents_used(planner_result),
+            skills_used=extract_skills_used(planner_result),
+            failure_reason=f"持续停滞（{stalled_count} 次），无法自动恢复",
+            recovery_action=adjustment_result.get("recovery_action")
+        )
+
+        print(f"[MindFlow·Memory] ✓ 失败情节已保存: {episode_id}")
+
         goto("全部完成")
     else:
         goto("任务执行")
-```
+```</invoke>
 
 </phase_adjustment>
 
@@ -544,6 +895,42 @@ finalizer_result = Agent(agent="task:finalizer",
 要求：1.停止任务 2.删除计划文件（含.html） 3.清理临时文件 4.生成报告
 """)
 
+# 【检查点清理】任务完成后清理检查点
+cleanup_checkpoint(user_task)
+
+# 【记忆保存】保存任务执行情节到记忆系统
+print(f"[MindFlow] 正在保存任务执行记忆...")
+
+# 计算执行时长
+end_time = datetime.now()
+duration_minutes = int((end_time - start_time).total_seconds() / 60)
+
+# 提取使用的 Agents 和 Skills
+agents_used = extract_agents_used(planner_result)
+skills_used = extract_skills_used(planner_result)
+
+# 保存情节记忆
+episode_id = save_task_episode(
+    user_task=user_task,
+    task_type=determine_task_type(user_task),
+    plan=planner_result,
+    result="success",
+    duration_minutes=duration_minutes,
+    iterations=iteration,
+    stalled_count=stalled_count,
+    guidance_count=guidance_count,
+    agents_used=agents_used,
+    skills_used=skills_used
+)
+
+print(f"[MindFlow·Memory] ✓ 情节记忆已保存: {episode_id}")
+
+# 清理短期记忆（会话状态）
+session_id = context.get("session_id")
+if session_id:
+    cleanup_working_memory(session_id)
+    print(f"[MindFlow·Memory] ✓ 短期记忆已清理")
+
 print(f"[MindFlow·{user_task}·completed]")
 
 # 总结报告
@@ -554,10 +941,16 @@ print(f"状态：成功（所有验收标准通过）")
 print(f"总迭代次数：{iteration}")
 print(f"停滞次数：{stalled_count}")
 print(f"用户指导次数：{guidance_count}")
+print(f"执行时长：{duration_minutes} 分钟")
 
 print("\n## 变更文件")
 for file in changed_files:
     print(f"  - {file}")
+
+print("\n## 记忆积累")
+print(f"情节记忆 ID：{episode_id}")
+print(f"会话 ID：{session_id}")
+print(f"记忆 URI：workflow://task-episodes/{determine_task_type(user_task)}/{episode_id}")
 
 print("\n任务完成")
 ```
