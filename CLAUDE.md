@@ -3,6 +3,7 @@
 ## 复盘防回归规则
 
 - Desktop 路由方案变更后，必须验证 `hash` 路由与首屏渲染（避免打包后白屏）。
+- Desktop 升级 Tailwind 构建链后，必须验证 Tailwind utilities 是否实际生成（避免“只有黑白无样式”）。
 
 ## 代码质量检查规范
 
