@@ -54,7 +54,7 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
 → 计划确认（Plan Confirmation）
   - 生成计划文档（Markdown）
   - 输出执行流程图和验收标准
-  - 用户确认计划
+  - 智能确认（首次+用户主动重新设计需确认，adjuster/verifier自动触发跳过）
 
 → 任务执行（Execution / Do）
   - 判断任务数量（1 个任务不创建 team，多个任务创建 team）

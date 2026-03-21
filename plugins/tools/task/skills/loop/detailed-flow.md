@@ -236,10 +236,32 @@ print(f"计划已生成：{plan_md_path}")
 
 ## 计划确认（Plan Confirmation）
 
+**智能跳过逻辑**：
+
+| 场景 | `iteration` | `replan_trigger` | 是否确认 |
+|------|-------------|------------------|---------|
+| 首次规划 | 1 | None | ✓ 需要确认 |
+| 用户主动重新设计 | >1 | "user" | ✓ 需要确认 |
+| Adjuster 自动重新规划 | >1 | "adjuster" | ✗ 跳过确认 |
+| Verifier 建议优化 | >1 | "verifier" | ✗ 跳过确认 |
+
 ```python
 print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
 print(f"计划文件：{plan_md_path}")
 
+# 【智能跳过】检查是否需要用户确认
+replan_trigger = context.get("replan_trigger", None)
+
+# 跳过确认的场景
+if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
+    print(f"\n✓ 自动重新规划（触发来源：{replan_trigger}），跳过用户确认")
+    print(f"  原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
+    print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
+    # 清除标志，准备下一轮
+    context["replan_trigger"] = None
+    goto("任务执行")
+
+# 需要用户确认的场景（首次或用户主动重新设计）
 Bash(command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path}",
      description="将计划 MD 转换为 HTML 并在浏览器打开")
 print("已在浏览器打开计划预览")
@@ -247,9 +269,20 @@ print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
 
 user_decision = AskUserQuestion(question="执行计划已准备就绪，是否开始执行？",
                                  options=["立即执行", "重新设计"])
+
+if user_decision == "重新设计":
+    # 用户主动选择重新设计，下次规划仍需确认
+    context["replan_trigger"] = "user"
+    goto("计划设计")
+else:
+    # 用户批准执行，清除 replan_trigger 标志
+    context["replan_trigger"] = None
+    goto("任务执行")
 ```
 
-状态转换：立即执行 → 任务执行；重新设计 → 计划设计
+状态转换：
+- 首次/用户重新设计：需确认 → 立即执行/重新设计
+- 自动重新规划(adjuster/verifier)：自动批准 → 任务执行
 
 </phase_confirmation>
 
