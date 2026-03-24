@@ -237,7 +237,7 @@ def apply_graduated_escalation(failure_count):
 
 ## 注意事项
 
-应当做的：使用 PDCA 循环持续改进，每次迭代都经过计划、执行、检查、改进。小步迭代快速反馈（最小迭代 1-3 轮，无最大轮数限制）。充分监控和日志记录，记录所有关键事件。及时清理临时资源（删除临时文件、清理 Team 资源）。声明式定义状态转换，使用状态机模式。应用指数退避策略（0s、2s、4s）。实施补偿操作保证一致性，失败时回滚已完成的任务。
+应当做的：使用 PDCA 循环持续改进，每次迭代都经过计划、执行、检查、改进。小步迭代快速反馈（最小迭代 1-3 轮，无最大轮数限制）。充分监控和日志记录，记录所有关键事件。及时清理临时资源（删除临时文件）。声明式定义状态转换，使用状态机模式。应用指数退避策略（0s、2s、4s）。实施补偿操作保证一致性，失败时回滚已完成的任务。
 
 不应做的：不要一次性完成所有工作（违背迭代式改进原则）。不要忽略验证和测试（可能引入缺陷）。不要在停滞时继续重试（应该升级策略或请求指导）。不要让 Agent 直接与用户交互（违背 Team Leader 模式）。不要遗漏资源清理（造成资源泄漏）。不要忽略错误信号（及时处理才能避免恶化）。不要跳过迭代强行完成（质量无法保证）。
 
@@ -257,19 +257,19 @@ def handle_verification_result(result):
         record_lesson_learned(root_cause)
 ```
 
-资源泄漏表现为临时文件未删除、Team 未清理、进程未终止。解决方案是使用 try-finally 确保清理逻辑总是执行。
+资源泄漏表现为临时文件未删除、进程未终止。解决方案是使用 try-finally 确保清理逻辑总是执行。Agent 自动管理资源生命周期，无需手动清理。
 
 ```python
 def execute_with_cleanup():
-    team = None
     temp_files = []
     try:
-        team = TeamCreate(...)
+        # 使用 Agent 执行任务（自动管理资源）
+        result = Agent(
+            agent="task:execute",
+            prompt="执行任务计划..."
+        )
         temp_files = create_temp_files()
-        # 执行任务
     finally:
-        if team:
-            TeamDelete(team)
         for file in temp_files:
             os.remove(file)
 ```
@@ -297,6 +297,6 @@ def detect_stall(error):
 
 验证阶段：所有验收标准已验证、测试覆盖率达标、回归测试通过、Lint 检查通过、文档完整。
 
-完成阶段：所有任务完成、临时文件已清理、Team 已删除、生成最终报告、记录经验教训。
+完成阶段：所有任务完成、临时文件已清理、生成最终报告、记录经验教训。
 
 </checklist>

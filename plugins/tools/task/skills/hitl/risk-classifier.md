@@ -85,10 +85,10 @@ operations:
       - "git commit -m 'feat: add user auth'"
       - "git push origin feature/auth"
 
-  - type: "TeamCreate"
+  - type: "Agent (run_in_background)"
     risk_level: "review"
     examples:
-      - "Create team with 2 agents for parallel execution"
+      - "Execute 2 tasks in parallel via Agent(run_in_background=True)"
 ```
 
 **风险评分**：4-6 分（中风险）

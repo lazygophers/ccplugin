@@ -12,7 +12,7 @@ user-invocable: false
 
 Adjuster 技能在任务执行失败时介入，负责分析失败原因、检测停滞模式并应用分级升级策略。它的核心设计借鉴了弹性工程中的 Circuit Breaker 模式——当简单重试无法解决问题时，自动升级到更深层次的诊断和修复，避免无限重试造成的资源浪费。
 
-四级升级策略按失败次数递进：retry（首次失败，立即重试）、debug（第2次，深度诊断）、replan（第3次，重新规划）、ask_user（停滞3次，请求用户指导）。指数退避公式 `2^(failure_count - 1)` 秒确保重试间隔逐步增大。
+六级升级策略按失败次数递进：Level 1 Retry with adjustment（1次相同错误）、Level 1.5 Self-Healing（匹配 17 类错误）、Level 2 Debug（深度诊断）、Level 2.5 Micro-Replan（仅重规划失败任务+直接依赖，保留成功任务）、Level 3 Full Replan（重建整个计划）、Level 4 Ask User（请求人工指导）。指数退避公式 `2^(failure_count - 1)` 秒确保重试间隔逐步增大。支持振荡检测（A->B->A->B 立即 ask_user）和紧急逃逸（总失败>=15 立即 ask_user）。
 
 </overview>
 
@@ -50,10 +50,12 @@ adjustment_result = Agent(
 5. 生成调整报告（≤100字）
 
 升级策略：
-- 第 1 次失败：Retry（0 秒，立即重试）
-- 第 2 次失败：Debug（2 秒退避，深度诊断）
-- 第 3 次失败：Replan（4 秒退避，重新规划）
-- 停滞 3 次：Ask User（请求用户指导）
+- Level 1：Retry with adjustment（1次相同错误，0秒）
+- Level 1.5：Self-Healing（匹配17类错误，0秒）
+- Level 2：Debug（深度诊断，2秒退避）
+- Level 2.5：Micro-Replan（连续3次Debug无效，仅重规划失败任务+直接依赖）
+- Level 3：Full Replan（Micro-Replan失败，重建整个计划）
+- Level 4：Ask User（所有自动策略失败/振荡检测/总失败>=15）
 
 指数退避公式：wait_time = 2^(failure_count - 1) 秒
 """
@@ -111,16 +113,50 @@ for adj in adjustment_result["adjustments"]:
 
 ## 快速参考
 
-| 失败次数 | 策略 | 等待时间 | Loop 流向 |
-|---------|------|---------|----------|
-| 1 | retry | 0秒 | 任务执行 |
-| 2 | debug | 2秒 | 任务执行 |
-| 3 | replan | 4秒 | 计划设计 |
-| 停滞 3次 | ask_user | - | 任务执行 |
+| 级别 | 策略 | 触发条件 | 等待时间 | Loop 流向 |
+|------|------|---------|---------|----------|
+| Level 1 | Retry with adjustment | 1次相同错误 | 0秒 | 任务执行 |
+| Level 1.5 | Self-Healing | 匹配17类错误 | 0秒 | 任务执行 |
+| Level 2 | Debug | 持续性错误 | 2秒 | 任务执行 |
+| Level 2.5 | Micro-Replan | 连续3次Debug无效 | 4秒 | 部分计划重设计 |
+| Level 3 | Full Replan | Micro-Replan失败 | 8秒 | 完整计划重设计 |
+| Level 4 | Ask User | 所有自动策略失败/振荡/总失败>=15 | - | 等待用户 |
+
+### Level 2.5 Micro-Replan 详细定义
+
+**触发条件**：连续 3 次 Debug 无效
+
+**行为**：仅重规划失败任务及其直接依赖，保留所有成功完成的任务
+
+**输出格式**：
+```json
+{
+  "status": "micro_replan",
+  "strategy": "micro_replan",
+  "report": "Debug 3 次无效，对失败任务局部重规划。",
+  "replan_scope": {
+    "failed_tasks": ["T3"],
+    "direct_dependencies": ["T4"],
+    "keep_completed": ["T1", "T2"],
+    "new_approach": "调整 T3 实现方式"
+  }
+}
+```
+
+**失败条件**：Micro-Replan 失败 -> 升级到 Level 3 Full Replan
+
+### 振荡检测
+
+当检测到策略振荡模式（A->B->A->B 重复出现）时，立即升级到 Level 4 Ask User，避免无限循环。
+
+### 紧急逃逸
+
+总失败次数 >= 15 时，无论当前处于哪个级别，立即升级到 Level 4 Ask User。
 
 ## 详细文档
 
-- [失败升级策略指南](adjuster-strategies.md) - 四级升级策略、停滞检测、Circuit Breaker、指数退避
+- [失败升级策略指南](adjuster-strategies.md) - 六级升级策略、停滞检测、Circuit Breaker、指数退避
+- [升级流程图](escalation-flowchart.md) - 分级升级决策树、振荡检测、紧急逃逸
 - [输出格式文档](adjuster-output-formats.md) - 四种策略的详细 JSON 示例
 - [集成示例](adjuster-integration.md) - Loop 集成、处理流程、停滞检测
 

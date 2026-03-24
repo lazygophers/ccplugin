@@ -61,12 +61,13 @@ memory: project
 - [detailed-flow.md](detailed-flow.md) - 完整流程说明（含计划确认要求）
 - [deep-iteration实现](../deep-iteration/implementation.md) - 深度迭代机制
 - [prompt-caching.md](prompt-caching.md) - 缓存优化
+- [deep-research-triggers.md](deep-research-triggers.md) - 深度研究触发决策
 
 </references>
 
 <quick_reference>
 
-质量阈值：60→75→85→90分 | 失败策略：retry→debug→replan→ask_user | 深度研究：第1轮/失败2次/质量不达标/复杂任务 | 缓存优化：静态内容标记，90%成本节省
+质量阈值：60→75→85→90分 | 失败策略：retry→debug→replan→ask_user | 深度研究：复杂度>8自动触发/失败2次询问用户/用户可拒绝（详见 deep-research-triggers.md） | 缓存优化：静态内容标记，90%成本节省
 
 </quick_reference>
 

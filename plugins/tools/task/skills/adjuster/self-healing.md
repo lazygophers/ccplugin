@@ -210,6 +210,331 @@ retry_delay = 2  # 秒
 - `auto` 模式：自动调整超时参数
 - `review` 模式：超过 3 次超时后询问用户
 
+### 7. API 客户端错误（API 4xx）
+
+**错误特征**：
+- `HTTP 400 Bad Request`
+- `HTTP 401 Unauthorized`
+- `HTTP 403 Forbidden`
+- `HTTP 404 Not Found`
+- `HTTP 422 Unprocessable Entity`
+
+**修复方案**：
+```bash
+# 检查请求参数
+curl -v <url> 2>&1 | grep "< HTTP"
+
+# 更新认证令牌
+export AUTH_TOKEN=$(refresh_token)
+```
+
+**自愈策略**：
+1. 从错误信息提取 HTTP 状态码和响应体
+2. 400/422：检查并修正请求参数格式
+3. 401/403：刷新认证令牌或提示重新登录
+4. 404：检查 URL 路径拼写和 API 版本
+5. 验证修复后请求返回 2xx
+
+**HITL 联动**：
+- `auto` 模式：自动修正参数和刷新令牌
+- `review` 模式：涉及认证变更需确认
+
+### 8. API 服务端错误（API 5xx）
+
+**错误特征**：
+- `HTTP 500 Internal Server Error`
+- `HTTP 502 Bad Gateway`
+- `HTTP 503 Service Unavailable`
+- `HTTP 504 Gateway Timeout`
+
+**修复方案**：
+```python
+# 指数退避重试
+for i in range(max_retries):
+    time.sleep(2 ** i)
+    response = requests.get(url)
+    if response.status_code < 500:
+        break
+
+# 降级到备用服务
+url = fallback_url
+```
+
+**自愈策略**：
+1. 识别 5xx 状态码
+2. 应用指数退避重试（最多 3 次，间隔 2^n 秒）
+3. 3 次重试均失败 → 降级到备用服务（如有配置）
+4. 无备用服务 → 降级到 Level 1 Retry
+
+**HITL 联动**：
+- `auto` 模式：自动重试和降级
+- `review` 模式：降级前需确认
+
+### 9. 数据格式错误（Data Format Error）
+
+**错误特征**：
+- `JSONDecodeError`
+- `json.decoder.JSONDecodeError`
+- `SyntaxError: Unexpected token`
+- `XML parsing error`
+- `Invalid YAML`
+
+**修复方案**：
+```python
+# 格式转换
+try:
+    data = json.loads(raw_data)
+except JSONDecodeError:
+    data = yaml.safe_load(raw_data)  # 尝试 YAML
+    if data is None:
+        data = default_value  # 使用默认值
+```
+
+**自愈策略**：
+1. 识别数据格式错误类型
+2. 尝试替代格式解析（JSON → YAML → CSV）
+3. 解析失败 → 使用预设默认值
+4. 验证数据结构完整性
+
+**HITL 联动**：
+- `auto` 模式：自动尝试格式转换和默认值
+- `review` 模式：使用默认值前需确认
+
+### 10. 内存不足（Out of Memory）
+
+**错误特征**：
+- `MemoryError`
+- `JavaScript heap out of memory`
+- `java.lang.OutOfMemoryError`
+- `Cannot allocate memory`
+- `ENOMEM`
+
+**修复方案**：
+```bash
+# 减少批次大小
+BATCH_SIZE=$((BATCH_SIZE / 2))
+
+# 清理缓存
+python -c "import gc; gc.collect()"
+npm cache clean --force
+```
+
+**自愈策略**：
+1. 识别内存不足错误
+2. 减少处理批次大小（减半）
+3. 清理运行时缓存和临时对象
+4. 对 Node.js 增加 `--max-old-space-size`
+5. 验证内存使用恢复正常
+
+**HITL 联动**：
+- `auto` 模式：自动减少批次和清理缓存
+- `review` 模式：调整 JVM/Node 参数需确认
+
+### 11. 磁盘空间不足（Disk Space Full）
+
+**错误特征**：
+- `No space left on device`
+- `ENOSPC`
+- `Disk quota exceeded`
+- `not enough disk space`
+
+**修复方案**：
+```bash
+# 清理临时文件
+rm -rf /tmp/task-*
+rm -rf node_modules/.cache
+
+# 清理构建产物
+rm -rf dist/ build/ .cache/
+```
+
+**自愈策略**：
+1. 识别磁盘空间错误
+2. 清理项目临时文件和缓存目录
+3. 清理构建产物（dist/build/.cache）
+4. 验证可用空间恢复
+
+**HITL 联动**：
+- `auto` 模式：自动清理临时文件和缓存
+- `review` 模式：清理构建产物前需确认
+
+### 12. CPU 过载（CPU Overload）
+
+**错误特征**：
+- `CPU time limit exceeded`
+- `process killed.*resource`
+- `SIGKILL`
+- `Operation timed out.*cpu`
+
+**修复方案**：
+```python
+# 降低并行度
+MAX_WORKERS = max(1, MAX_WORKERS // 2)
+
+# 添加执行间隔
+time.sleep(0.1)  # 在批处理间添加间隔
+```
+
+**自愈策略**：
+1. 识别 CPU 过载信号
+2. 降低并行度（减半 worker 数量）
+3. 在批处理任务间添加间隔
+4. 验证进程不再被 kill
+
+**HITL 联动**：
+- `auto` 模式：自动降低并行度
+- `review` 模式：需确认性能影响
+
+### 13. 文件锁冲突（File Lock Conflict）
+
+**错误特征**：
+- `resource temporarily unavailable`
+- `EACCES.*lock`
+- `lock file.*exists`
+- `could not obtain lock`
+- `EAGAIN`
+
+**修复方案**：
+```bash
+# 等待后重试
+sleep 2 && retry_operation
+
+# 使用副本
+cp file file.tmp && operate_on file.tmp && mv file.tmp file
+```
+
+**自愈策略**：
+1. 识别文件锁冲突
+2. 等待 2 秒后重试（最多 3 次）
+3. 重试失败 → 创建文件副本操作
+4. 操作完成后替换原文件
+5. 验证文件内容正确
+
+**HITL 联动**：
+- `auto` 模式：自动等待重试
+- `review` 模式：使用副本策略需确认
+
+### 14. 数据库锁（Database Lock）
+
+**错误特征**：
+- `database is locked`
+- `SQLITE_BUSY`
+- `Lock wait timeout exceeded`
+- `deadlock detected`
+- `could not serialize access`
+
+**修复方案**：
+```python
+# 重试事务
+for i in range(3):
+    try:
+        db.execute(query)
+        break
+    except DatabaseLocked:
+        time.sleep(2 ** i)
+```
+
+**自愈策略**：
+1. 识别数据库锁类型（行锁/表锁/死锁）
+2. 指数退避重试事务（最多 3 次）
+3. 死锁 → 回滚并调整事务顺序
+4. 验证事务成功提交
+
+**HITL 联动**：
+- `auto` 模式：自动重试事务
+- `review` 模式：调整事务顺序需确认
+
+### 15. 缺少环境变量（Missing Environment Variable）
+
+**错误特征**：
+- `environment variable.*not set`
+- `env:.*not found`
+- `KeyError:.*ENV`
+- `undefined variable`
+
+**修复方案**：
+```bash
+# 使用默认值
+export VAR_NAME=${VAR_NAME:-default_value}
+
+# 从 .env.example 加载
+cp .env.example .env
+```
+
+**自愈策略**：
+1. 从错误信息提取环境变量名
+2. 检查 `.env.example` 或 `.env.template` 是否有默认值
+3. 有默认值 → 自动设置
+4. 无默认值 → 提示用户设置
+5. 验证环境变量已正确设置
+
+**HITL 联动**：
+- `auto` 模式：使用默认值自动设置
+- `review` 模式：涉及敏感变量（KEY/SECRET/TOKEN）需确认
+
+### 16. 版本不兼容（Version Incompatible）
+
+**错误特征**：
+- `version.*incompatible`
+- `requires.*version`
+- `unsupported.*version`
+- `deprecated.*removed`
+
+**修复方案**：
+```bash
+# 降级到兼容版本
+pip install package==compatible_version
+npm install package@compatible_version
+
+# 或升级到最新版本
+pip install --upgrade package
+npm update package
+```
+
+**自愈策略**：
+1. 从错误信息提取包名和版本要求
+2. 查询兼容版本范围
+3. 优先尝试升级到兼容最新版
+4. 升级失败 → 降级到上一个稳定版
+5. 验证版本兼容
+
+**HITL 联动**：
+- `auto` 模式：自动调整版本
+- `review` 模式：主版本变更需确认
+
+### 17. 缺少系统依赖（Missing System Dependency）
+
+**错误特征**：
+- `command not found`
+- `not recognized as.*command`
+- `No such file or directory.*bin`
+- `unable to locate package`
+- `pkg-config.*not found`
+
+**修复方案**：
+```bash
+# macOS
+brew install <package>
+
+# Ubuntu/Debian
+sudo apt-get install <package>
+
+# 通用提示
+echo "请安装：<package>"
+```
+
+**自愈策略**：
+1. 从错误信息提取缺失的命令/包名
+2. 识别操作系统类型
+3. 生成对应的安装命令
+4. 低风险依赖 → 自动安装
+5. 系统级依赖 → 提示用户安装命令
+6. 验证命令可用
+
+**HITL 联动**：
+- `auto` 模式：提示安装命令，不自动执行 sudo
+- `review` 模式：所有系统依赖安装需确认
+
 ## 自愈操作执行流程
 
 ### 阶段 1：错误匹配
@@ -234,7 +559,22 @@ def match_healable_error(error_message: str) -> Optional[str]:
             r"Port .* is already in use",
             r"EADDRINUSE"
         ],
-        # ... 其他错误模式
+        "directory_not_found": [r"No such file or directory", r"ENOENT"],
+        "permission_denied": [r"Permission denied", r"EACCES"],
+        "configuration_missing": [r"Configuration file not found", r"Missing required configuration"],
+        "network_timeout": [r"Connection timeout", r"ETIMEDOUT"],
+        "api_4xx": [r"HTTP 4\d{2}", r"Bad Request", r"Unauthorized", r"Forbidden"],
+        "api_5xx": [r"HTTP 5\d{2}", r"Internal Server Error", r"Service Unavailable"],
+        "data_format_error": [r"JSONDecodeError", r"SyntaxError.*Unexpected token", r"Invalid YAML"],
+        "out_of_memory": [r"MemoryError", r"heap out of memory", r"OutOfMemoryError", r"ENOMEM"],
+        "disk_space_full": [r"No space left on device", r"ENOSPC", r"Disk quota exceeded"],
+        "cpu_overload": [r"CPU time limit exceeded", r"SIGKILL"],
+        "file_lock_conflict": [r"resource temporarily unavailable", r"lock file.*exists", r"EAGAIN"],
+        "database_lock": [r"database is locked", r"SQLITE_BUSY", r"deadlock detected"],
+        "missing_env_var": [r"environment variable.*not set", r"KeyError:.*ENV"],
+        "version_incompatible": [r"version.*incompatible", r"requires.*version"],
+        "missing_system_dep": [r"command not found", r"not recognized as.*command"],
+        # ... 共 17 类错误模式
     }
 
     for error_type, patterns in error_patterns.items():
@@ -321,7 +661,18 @@ def execute_healing(error_type: str, parameters: dict) -> HealingResult:
         "directory_not_found": create_directory,
         "permission_denied": fix_permissions,
         "configuration_missing": create_config,
-        "network_timeout": adjust_timeout
+        "network_timeout": adjust_timeout,
+        "api_4xx": check_params_and_auth,
+        "api_5xx": retry_with_backoff_or_fallback,
+        "data_format_error": convert_format_or_default,
+        "out_of_memory": reduce_batch_and_clear_cache,
+        "disk_space_full": clean_temp_files,
+        "cpu_overload": reduce_parallelism,
+        "file_lock_conflict": wait_retry_or_copy,
+        "database_lock": retry_transaction,
+        "missing_env_var": set_default_or_prompt,
+        "version_incompatible": upgrade_or_downgrade,
+        "missing_system_dep": prompt_install,
     }
 
     action = healing_actions.get(error_type)
@@ -349,7 +700,18 @@ def verify_healing(error_type: str, parameters: dict, original_task: Task) -> bo
         "directory_not_found": lambda p: os.path.exists(p["path"]),
         "permission_denied": lambda p: os.access(p["path"], os.W_OK),
         "configuration_missing": lambda p: verify_config(p["config_key"]),
-        "network_timeout": lambda p: verify_network_connection(p["url"])
+        "network_timeout": lambda p: verify_network_connection(p["url"]),
+        "api_4xx": lambda p: verify_http_status(p["url"], expected=2),
+        "api_5xx": lambda p: verify_http_status(p["url"], expected=2),
+        "data_format_error": lambda p: verify_data_parseable(p["data"]),
+        "out_of_memory": lambda p: verify_memory_available(),
+        "disk_space_full": lambda p: verify_disk_space(p.get("path", "/")),
+        "cpu_overload": lambda p: verify_cpu_usage(),
+        "file_lock_conflict": lambda p: verify_file_accessible(p["path"]),
+        "database_lock": lambda p: verify_db_writable(p["db_path"]),
+        "missing_env_var": lambda p: os.environ.get(p["var_name"]) is not None,
+        "version_incompatible": lambda p: verify_version(p["package"], p["version"]),
+        "missing_system_dep": lambda p: shutil.which(p["command"]) is not None,
     }
 
     verify = verification_methods.get(error_type)

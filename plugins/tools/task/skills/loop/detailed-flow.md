@@ -710,29 +710,20 @@ for task in ready_tasks:
 
 print(f"[MindFlow·任务执行] 本批次任务：{[t['id'] for t in parallel_batch]}")
 
-# 6. 执行任务
-execution_result = TeamCreate(
-    team_name=team_name,
-    description=planner_result["report"],
-    skills=[Skill("task:execute")]
+# 6. 使用 execute agent 编排任务执行
+execution_result = Agent(
+    agent="task:execute",
+    description="执行任务计划",
+    prompt=f"执行以下任务计划：\n{json.dumps(parallel_batch, ensure_ascii=False)}"
 )
+# 无需手动清理资源 - Agent 自动管理生命周期
 
-# 注意：HITL 审批在 task:execute skill 内部进行
-# execute skill 会拦截每个 Agent 的工具调用，逐个进行风险评估和审批
-#
-# 工作流程：
-#   1. execute 调用 Agent 执行任务
-#   2. 拦截 Agent 的每个工具调用（Edit、Write、Bash 等）
-#   3. 调用 hitl_approve_operation() 进行风险评估
-#   4. 根据风险等级决定是否需要用户确认
-#   5. 用户拒绝 → 标记任务失败，记录原因
-#   6. 用户批准 → 继续执行工具调用
-#   7. 所有审批决策记录到 approval-log.json
+# 注意：HITL 审批在 task:execute agent 内部进行
+# execute agent 会拦截每个工具调用，逐个进行风险评估和审批
 
 # 更新plan文件状态：📋→⏸️→🔄→✅/❌，同步 frontmatter
 update_plan_task_status(plan_md_path, task_id, new_icon)
 
-TeamDelete(team_name=team_name)
 print(f"[MindFlow·{user_task}·任务执行/{iteration}·completed]")
 
 # 检查是否有任务因用户拒绝而失败
