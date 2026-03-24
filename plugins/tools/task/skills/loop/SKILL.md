@@ -104,7 +104,7 @@ memory: project
 print("[MindFlow] 开始初始化任务...")
 
 iteration = 0
-context = {"replan_trigger": None}
+context = {"replan_trigger": None, "start_time": datetime.now()}
 
 print(f"[MindFlow·{user_task}·初始化/0·进行中]")
 print("[MindFlow] 初始化完成")
@@ -259,6 +259,62 @@ elif strategy == "replan":
 elif strategy == "ask_user":
     print(f"[MindFlow] 需要用户指导")
     # 询问用户...
+```
+
+### 阶段6：完成清理
+
+**所有输出必须以 [MindFlow] 开头。**
+
+```python
+print(f"[MindFlow·{user_task}·完成清理/final·进行中]")
+
+# 从 context 获取 plan_md_path
+plan_md_path = context.get("plan_md_path", "")
+
+if plan_md_path:
+    print(f"[MindFlow] 正在清理资源...")
+
+    # 调用 finalizer 清理计划文件和临时资源
+    finalizer_result = Agent(
+        agent="task:finalizer",
+        description="清理 loop 资源",
+        prompt=f"""执行 loop 完成后的收尾清理：
+计划文件：{plan_md_path}
+要求：
+1. 停止所有运行中的任务
+2. 删除计划文件（含 .html 文件）
+3. 清理临时文件
+4. 生成清理报告
+"""
+    )
+
+    print(f"[MindFlow] 清理完成：{finalizer_result.get('report', '无报告')}")
+else:
+    print(f"[MindFlow] ⚠️ 未找到计划文件路径，跳过清理")
+
+# 清理检查点
+print(f"[MindFlow] 清理检查点...")
+cleanup_checkpoint(user_task)
+
+# 保存任务执行记忆
+print(f"[MindFlow] 保存任务执行记忆...")
+end_time = datetime.now()
+duration_minutes = int((end_time - context.get("start_time", end_time)).total_seconds() / 60)
+
+save_episode_memory(
+    task_type="loop",
+    user_task=user_task,
+    iteration=iteration,
+    success=True,
+    duration_minutes=duration_minutes,
+    planner_result=context.get("planner_result", {}),
+    execution_summary=context.get("execution_summary", ""),
+    quality_score=context.get("quality_score", 0)
+)
+
+# 生成最终报告
+print(f"[MindFlow·{user_task}·完成清理/final·completed]")
+print(f"[MindFlow] ✓ 任务完成！共 {iteration} 次迭代，耗时 {duration_minutes} 分钟")
 ```
 
 **重要提醒**：执行过程中的每一条输出都必须以 `[MindFlow]` 开头，包括：
