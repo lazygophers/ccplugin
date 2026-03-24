@@ -325,11 +325,16 @@ from pathlib import Path
 import re
 import json
 
-iteration += 1
+iteration += 1  # 从 0 变为 1（首次）或递增
 print(f"[MindFlow·{user_task}·计划设计/{iteration}·启动]")
 
 replan_trigger = context.get("replan_trigger", None)
 
+# 智能路径选择逻辑：
+# - iteration=1（首次规划）：必须进入 Plan 模式
+# - iteration>1 且 replan_trigger="adjuster"/"verifier"（自动优化）：跳过 Plan 模式
+# - iteration>1 且 replan_trigger="user"（用户重新设计）：必须进入 Plan 模式
+# - iteration>1 且 replan_trigger=None（新任务，异常状态）：必须进入 Plan 模式
 if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
     print(f"[MindFlow] 自动重新规划（触发来源：{replan_trigger}），跳过 Plan 模式")
 

@@ -44,6 +44,7 @@ memory: project
 
 **关键要求**：
 - **所有输出必须以 [MindFlow] 开头**（强制规则，无例外）
+- **每次调用必须重置状态**（iteration=0, context={}），避免同一会话中不同任务的状态混淆
 - 计划确认阶段**必须执行**，不可跳过
 - 首次规划（iteration=1）和用户重新设计**使用 Plan Mode**（EnterPlanMode/ExitPlanMode）
 - 自动重新规划（adjuster/verifier触发）**跳过 Plan Mode**，直接生成并自动批准
@@ -99,14 +100,34 @@ memory: project
 **重要**：严格按照以下流程执行，不可跳过任何阶段。
 
 ### 阶段1：初始化
+
+**状态隔离要求**：每次调用 loop 时，必须重置所有状态变量，避免不同任务之间的状态混淆。
+
 ```python
 # 输出初始化信息（必须以 [MindFlow] 开头）
 print("[MindFlow] 开始初始化任务...")
 
+# 强制重置状态（即使在同一会话中）
 iteration = 0
-context = {"replan_trigger": None, "start_time": datetime.now()}
+context = {
+    "replan_trigger": None,
+    "start_time": datetime.now(),
+    "task_id": hashlib.md5(user_task.encode()).hexdigest()[:8]
+}
+
+# 检查是否为新任务（避免状态混淆）
+if "previous_task_id" in globals() and previous_task_id == context["task_id"]:
+    print("[MindFlow] ⚠️ 检测到相同任务，这可能是错误调用")
+    # 询问用户是否继续
+    response = AskUserQuestion("检测到相同的任务目标，是否要重新开始？")
+    if response != "是":
+        print("[MindFlow] 用户取消执行")
+        exit()
+
+previous_task_id = context["task_id"]
 
 print(f"[MindFlow·{user_task}·初始化/0·进行中]")
+print(f"[MindFlow] 任务ID: {context['task_id']}")
 print("[MindFlow] 初始化完成")
 ```
 
@@ -135,11 +156,14 @@ print("[MindFlow] 初始化完成")
 ```python
 print("[MindFlow] 开始计划设计...")
 
-iteration += 1
+iteration += 1  # 从 0 变为 1（首次）或递增
 replan_trigger = context.get("replan_trigger", None)
 
+# 智能路径选择逻辑：
+# - 自动优化（verifier/adjuster 触发 + iteration > 1）：跳过 Plan 模式
+# - 其他所有情况（首次/用户重新设计/新任务）：必须进入 Plan 模式
 if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
-    # 自动重规划：跳过 Plan 模式
+    # 路径 A：自动重规划（跳过 Plan 模式）
     print(f"[MindFlow] 自动重新规划（触发来源：{replan_trigger}），跳过 Plan 模式")
 
     # 直接生成计划
@@ -315,6 +339,11 @@ save_episode_memory(
 # 生成最终报告
 print(f"[MindFlow·{user_task}·完成清理/final·completed]")
 print(f"[MindFlow] ✓ 任务完成！共 {iteration} 次迭代，耗时 {duration_minutes} 分钟")
+
+# 清理本次任务的状态变量（保留 previous_task_id 用于下次检测）
+del iteration
+del context
+print(f"[MindFlow] 状态已清理，准备接受新任务")
 ```
 
 **重要提醒**：执行过程中的每一条输出都必须以 `[MindFlow]` 开头，包括：
