@@ -12,7 +12,8 @@ user-invocable: false
 1. 触发深度研究（第1轮、失败2次、质量不达标、复杂任务）
 2. 调用 task:planner 生成执行计划
 3. 基于 plan-confirmation-template.md 生成计划文档
-4. 通过 AskUserQuestion 获取用户确认
+4. 通过 EnterPlanMode/ExitPlanMode 控制计划审查流程（首次和用户重新设计）
+5. 智能跳过：adjuster/verifier 触发的重规划自动批准，无需用户确认
 </scope>
 
 <execution_flow>
@@ -82,18 +83,48 @@ if should_trigger_deep_research(iteration, failure_count, quality_score):
     # 融合研究结果到 planner prompt
 ```
 
-## 阶段2：计划生成
+## 阶段2-4：计划设计与确认（Plan Mode）
+
+**智能路径选择**：根据 `replan_trigger` 决定是使用 Plan 模式还是直接生成。
+
+| 场景 | `iteration` | `replan_trigger` | 流程 |
+|------|-------------|------------------|------|
+| 首次规划 | 1 | None | ✓ Plan 模式 |
+| 用户主动重新设计 | >1 | "user" | ✓ Plan 模式 |
+| Adjuster 自动重新规划 | >1 | "adjuster" | ✗ 直接生成并自动批准 |
+| Verifier 建议优化 | >1 | "verifier" | ✗ 直接生成并自动批准 |
 
 ```python
-iteration += 1
+from pathlib import Path
+import re
+import json
 
-planner_result = Agent(
-    agent="task:planner",
-    prompt=f"""设计执行计划：
+iteration += 1
+print(f"[MindFlow·{user_task}·计划设计/{iteration}·启动]")
+
+# 检查智能跳过条件
+replan_trigger = context.get("replan_trigger", None)
+
+if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
+    # === 路径 A：自动重规划（跳过 Plan 模式）===
+    print(f"[MindFlow] 自动重新规划（触发来源：{replan_trigger}），跳过 Plan 模式")
+
+    # 直接调用 planner（非 plan 模式）
+    user_feedback = context.get("user_feedback", "")
+    planner_prompt = f"""设计执行计划：
 
 任务目标：{user_task}
 迭代编号：{iteration}
+"""
 
+    if user_feedback:
+        planner_prompt += f"""
+用户反馈（上一轮）：{user_feedback}
+请根据用户反馈调整计划。
+"""
+        del context["user_feedback"]
+
+    planner_prompt += """
 要求：
 1. 分析项目结构（优先中等深度）
 2. 收集：目标、依赖、现状、边界
@@ -105,40 +136,36 @@ planner_result = Agent(
 
 如果功能已存在，返回空 tasks 数组。
 """
-)
 
-# 处理问题
-if "questions" in planner_result and planner_result["questions"]:
-    for question in planner_result["questions"]:
-        user_answer = AskUserQuestion(question)
-        planner_result = Agent(
-            agent="task:planner",
-            prompt=f"补充信息：{user_answer}\n继续设计计划..."
-        )
+    planner_result = Agent(
+        agent="task:planner",
+        description="设计任务执行计划",
+        prompt=planner_prompt
+    )
 
-# 无需执行情况
-if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
-    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
-    print(f"{planner_result['report']}")
-    return "skip_execution"
-```
+    # 处理 planner 的问题
+    if "questions" in planner_result and planner_result["questions"]:
+        for question in planner_result["questions"]:
+            user_answer = AskUserQuestion(question)
+            planner_result = Agent(
+                agent="task:planner",
+                prompt=f"补充信息：{user_answer}\n继续设计计划..."
+            )
 
-## 阶段3：生成计划文档
+    # 无需执行情况
+    if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
+        print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+        print(f"{planner_result['report']}")
+        return "skip_execution"
 
-```python
-from pathlib import Path
-import re
-import json
+    # 生成计划文档（自动重规划也需要更新计划文件）
+    plans_dir = Path(".claude/plans")
+    plans_dir.mkdir(parents=True, exist_ok=True)
 
-plans_dir = Path(".claude/plans")
-plans_dir.mkdir(parents=True, exist_ok=True)
+    safe_task_name = re.sub(r'[^\w\u4e00-\u9fff]+', '-', user_task)[:50]
+    plan_md_path = plans_dir / f"{safe_task_name}-{iteration}.md"
 
-# 强制保留用户语言字符（中文：\u4e00-\u9fff）
-safe_task_name = re.sub(r'[^\w\u4e00-\u9fff]+', '-', user_task)[:50]
-plan_md_path = plans_dir / f"{safe_task_name}-{iteration}.md"
-
-# YAML frontmatter
-frontmatter = f"""---
+    frontmatter = f"""---
 status: pending
 created_at: {datetime.now().isoformat()}
 iteration: {iteration}
@@ -147,10 +174,10 @@ completed_count: 0
 ---
 """
 
-# 调用 task:plan-formatter 格式化计划文档
-formatted_plan = Agent(
-    agent="task:plan-formatter",
-    prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
+    formatted_plan = Agent(
+        agent="task:plan-formatter",
+        description="格式化计划为标准 Markdown",
+        prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
 
 {json.dumps(planner_result, ensure_ascii=False, indent=2)}
 
@@ -162,149 +189,212 @@ YAML Frontmatter（必须放在文档开头）：
 2. Mermaid 图单行文本，无 \\n
 3. 包含完整的任务清单表格
 """
-)
+    )
 
-Write(str(plan_md_path), formatted_plan)
+    Write(str(plan_md_path), formatted_plan)
 
-print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
-print(planner_result["report"])
-print(f"计划已生成：{plan_md_path}")
-```
+    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+    print(planner_result["report"])
+    print(f"[MindFlow] 计划已生成：{plan_md_path}")
 
-## 阶段4：计划确认（含 HITL 风险评估，智能跳过）
-
-**智能跳过逻辑**：
-
-为避免重复确认，根据触发来源决定是否需要用户确认：
-
-| 场景 | `iteration` | `replan_trigger` | 是否确认 |
-|------|-------------|------------------|---------|
-| 首次规划 | 1 | None | ✓ 需要确认 |
-| 用户主动重新设计 | >1 | "user" | ✓ 需要确认 |
-| Adjuster 自动重新规划 | >1 | "adjuster" | ✗ 跳过确认 |
-| Verifier 建议优化（用户同意） | >1 | "verifier" | ✗ 跳过确认 |
-
-**实现原理**：
-- 首次规划时，用户需要了解和批准执行计划
-- 自动重新规划（adjuster/verifier 触发）时，已经在调整阶段告知用户，无需重复确认
-- 用户主动选择"重新设计"时，需要重新确认新计划
-
-```python
-print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
-print(f"计划文件：{plan_md_path}")
-
-# 【智能跳过】检查是否需要用户确认
-replan_trigger = context.get("replan_trigger", None)
-
-# 跳过确认的场景
-if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
-    print(f"\n✓ 自动重新规划（触发来源：{replan_trigger}），跳过用户确认")
-    print(f"  原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
+    # 自动批准
     print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
-    return "execute"  # 直接执行，跳过确认
-
-# 【HITL 集成】分析计划风险摘要
-risk_summary = analyze_plan_risks(planner_result)
-
-# 展示风险评估
-print("\n## 风险评估摘要")
-print(f"预计操作分布：")
-print(f"  • auto（自动通过）: {risk_summary['auto_count']} 个操作（{risk_summary['auto_percentage']:.0f}%）")
-print(f"  • review（需审查）: {risk_summary['review_count']} 个操作（{risk_summary['review_percentage']:.0f}%）")
-print(f"  • mandatory（强制审批）: {risk_summary['mandatory_count']} 个操作（{risk_summary['mandatory_percentage']:.0f}%）")
-
-if risk_summary['mandatory_operations']:
-    print(f"\n⚠️ 高风险操作提醒：")
-    for op in risk_summary['mandatory_operations']:
-        print(f"  • 任务 {op['task_id']}: {op['operation']}（mandatory 级别，需要明确确认）")
-
-# 打开浏览器预览
-Bash(
-    command=f"uvx --from git+https://github.com/lazygophers/ccplugin.git@master md2html {plan_md_path}",
-    description="将计划 MD 转换为 HTML 并在浏览器打开"
-)
-
-print("\n已在浏览器打开计划预览")
-print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
-
-user_decision = AskUserQuestion(
-    question="执行计划已准备就绪，是否开始执行？",
-    options=["立即执行", "重新设计"]
-)
-
-if user_decision == "重新设计":
-    # 用户主动选择重新设计，下次规划仍需确认
-    context["replan_trigger"] = "user"
-    return "replan"
-else:
-    # 用户批准执行，清除 replan_trigger 标志
+    print(f"[MindFlow]   原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
     context["replan_trigger"] = None
+    context["plan_md_path"] = str(plan_md_path)
+
     return "execute"
 
+else:
+    # === 路径 B：Plan 模式（首次或用户重新设计）===
+    print(f"[MindFlow] 进入 Plan 模式进行计划设计...")
 
-def analyze_plan_risks(planner_result: dict) -> dict:
+    # 进入 plan 模式
+    EnterPlanMode()
+
+    # Phase 1: 深度研究（可选）
+    if should_trigger_deep_research(iteration, failure_count, quality_score):
+        print(f"[MindFlow] 执行深度研究...")
+        research_result = Agent(
+            subagent_type="Explore",
+            description="深度研究最佳实践",
+            prompt=f"研究任务：{user_task}\n重点：最佳实践、技术选型、潜在风险"
+        )
+
+    # Phase 2: 设计计划
+    print(f"[MindFlow] 正在设计执行计划...")
+
+    user_feedback = context.get("user_feedback", "")
+    planner_prompt = f"""设计执行计划：
+
+任务目标：{user_task}
+迭代编号：{iteration}
+"""
+
+    if user_feedback:
+        planner_prompt += f"""
+用户反馈（上一轮）：{user_feedback}
+请根据用户反馈调整计划。
+"""
+        del context["user_feedback"]
+
+    planner_prompt += """
+要求：
+1. 分析项目结构（优先中等深度）
+2. 收集：目标、依赖、现状、边界
+3. 分解为原子子任务（MECE）
+4. 建立依赖关系（DAG）
+5. 分配 Agent 和 Skills（带中文注释）
+6. 定义可量化验收标准
+7. 返回简短报告（≤200字）
+
+如果功能已存在，返回空 tasks 数组。
+"""
+
+    planner_result = Agent(
+        subagent_type="Plan",  # 使用 Plan agent 类型
+        agent="task:planner",
+        description="设计任务执行计划",
+        prompt=planner_prompt
+    )
+
+    # 处理 planner 的问题
+    if "questions" in planner_result and planner_result["questions"]:
+        for question in planner_result["questions"]:
+            user_answer = AskUserQuestion(question)
+            planner_result = Agent(
+                agent="task:planner",
+                prompt=f"补充信息：{user_answer}\n继续设计计划..."
+            )
+
+    # 无需执行情况
+    if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
+        print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+        print(f"{planner_result['report']}")
+        # 退出 plan 模式（无需执行）
+        ExitPlanMode()
+        return "skip_execution"
+
+    # Phase 3: 格式化计划文档
+    print(f"[MindFlow] 正在格式化计划文档...")
+
+    # 从系统消息获取计划文件路径
+    # plan_file_path 应该从 plan 模式系统消息中获取
+    # 如果无法获取，使用默认路径
+    import os
+    plan_file_path = os.getenv("PLAN_FILE_PATH")
+    if not plan_file_path:
+        # 降级：使用自定义路径
+        plans_dir = Path(".claude/plans")
+        plans_dir.mkdir(parents=True, exist_ok=True)
+        safe_task_name = re.sub(r'[^\w\u4e00-\u9fff]+', '-', user_task)[:50]
+        plan_file_path = str(plans_dir / f"{safe_task_name}-{iteration}.md")
+
+    frontmatter = f"""---
+status: pending
+created_at: {datetime.now().isoformat()}
+iteration: {iteration}
+task_count: {len(planner_result['tasks'])}
+completed_count: 0
+---
+"""
+
+    formatted_plan = Agent(
+        agent="task:plan-formatter",
+        description="格式化计划为标准 Markdown",
+        prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
+
+{json.dumps(planner_result, ensure_ascii=False, indent=2)}
+
+YAML Frontmatter（必须放在文档开头）：
+{frontmatter}
+
+要求：
+1. 严格遵循 template.md 格式
+2. Mermaid 图单行文本，无 \\n
+3. 包含完整的任务清单表格
+"""
+    )
+
+    # Phase 4: 写入计划文件
+    Write(plan_file_path, formatted_plan)
+
+    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+    print(planner_result["report"])
+    print(f"[MindFlow] 计划已生成：{plan_file_path}")
+
+    # Phase 5: 退出 plan 模式并请求用户批准
+    print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
+
+    exit_result = ExitPlanMode()
+
+    # 处理用户决策
+    if exit_result.get("approved", False):
+        # 用户批准
+        print(f"[MindFlow] ✓ 用户批准计划，准备执行")
+        context["replan_trigger"] = None
+        context["plan_md_path"] = plan_file_path
+
+        # 保存检查点
+        save_checkpoint(
+            user_task=user_task,
+            iteration=iteration,
+            phase="confirmation",
+            context=context,
+            plan_md_path=plan_file_path
+        )
+
+        return "execute"
+    else:
+        # 用户拒绝
+        print(f"[MindFlow] 用户选择重新设计计划")
+
+        # 尝试从计划文件提取用户标注/反馈
+        plan_content = Read(plan_file_path)
+        user_feedback = extract_user_feedback(plan_content)
+
+        if user_feedback:
+            print(f"[MindFlow] 检测到用户反馈：{user_feedback[:100]}...")
+            context["user_feedback"] = user_feedback
+
+        # 标记为用户触发的重新规划
+        context["replan_trigger"] = "user"
+
+        return "replan"
+
+
+def extract_user_feedback(plan_content: str) -> str:
     """
-    分析执行计划的风险摘要
+    从计划文件中提取用户标注的反馈
 
-    扫描所有任务的预期操作，统计风险等级分布
+    用户可能的标注方式：
+    1. Markdown 注释：<!-- 用户反馈：... -->
+    2. 特殊标记：[反馈] ... 或 [TODO] ...
+    3. 删除线标记：~~原方案~~ 改为 新方案
     """
-    from collections import Counter
+    import re
 
-    risk_counts = Counter()
-    mandatory_operations = []
-    total_operations = 0
+    feedback_parts = []
 
-    for task in planner_result.get("tasks", []):
-        # 根据任务类型和 agent 预估风险等级
-        agent = task.get("agent", "")
-        operations = task.get("estimated_operations", [])
+    # 提取 HTML 注释
+    html_comments = re.findall(r'<!--\s*(.*?)\s*-->', plan_content, re.DOTALL)
+    if html_comments:
+        feedback_parts.extend(html_comments)
 
-        for op in operations:
-            total_operations += 1
-            risk_level = estimate_operation_risk(op, agent)
-            risk_counts[risk_level] += 1
+    # 提取 [反馈] 或 [TODO] 标记
+    feedback_markers = re.findall(r'\[(反馈|TODO|FIXME|NOTE)\]\s*(.+?)(?:\n|$)', plan_content)
+    if feedback_markers:
+        feedback_parts.extend([f"{marker}: {text}" for marker, text in feedback_markers])
 
-            if risk_level == "mandatory":
-                mandatory_operations.append({
-                    "task_id": task["id"],
-                    "operation": op.get("description", op.get("tool", "未知操作"))
-                })
+    # 提取删除线标记（GitHub Markdown）
+    strikethrough = re.findall(r'~~(.+?)~~\s*(.+?)(?:\n|$)', plan_content)
+    if strikethrough:
+        feedback_parts.extend([f"删除 '{old}' 改为 '{new}'" for old, new in strikethrough])
 
-    return {
-        "auto_count": risk_counts.get("auto", 0),
-        "review_count": risk_counts.get("review", 0),
-        "mandatory_count": risk_counts.get("mandatory", 0),
-        "auto_percentage": (risk_counts.get("auto", 0) / total_operations * 100) if total_operations > 0 else 0,
-        "review_percentage": (risk_counts.get("review", 0) / total_operations * 100) if total_operations > 0 else 0,
-        "mandatory_percentage": (risk_counts.get("mandatory", 0) / total_operations * 100) if total_operations > 0 else 0,
-        "mandatory_operations": mandatory_operations,
-        "total_operations": total_operations
-    }
-
-
-def estimate_operation_risk(operation: dict, agent: str) -> str:
-    """
-    预估单个操作的风险等级
-
-    基于操作类型和 agent 特征进行简单启发式估计
-    """
-    tool = operation.get("tool", "")
-    command = operation.get("command", "")
-
-    # mandatory 级别关键字
-    if any(kw in command for kw in ["rm -rf", "DROP TABLE", "--force", "sudo"]):
-        return "mandatory"
-
-    # auto 级别工具
-    if tool in ["Read", "Grep", "Glob", "WebSearch"]:
-        return "auto"
-
-    # review 级别工具
-    if tool in ["Edit", "Write", "Bash"]:
-        return "review"
-
-    # 默认 auto
-    return "auto"
+    if feedback_parts:
+        return "\n".join(feedback_parts)
+    else:
+        return ""
 ```
 
 </execution_flow>
@@ -312,10 +402,16 @@ def estimate_operation_risk(operation: dict, agent: str) -> str:
 <state_transitions>
 
 **状态转换**：
-- 成功生成计划 → 计划确认
+
+**路径 A（自动重规划）**：
+- 成功生成计划 → 自动批准 → 任务执行
 - 无需执行（空tasks） → 全部完成
-- 用户选择"立即执行" → 任务执行
-- 用户选择"重新设计" → 计划设计
+
+**路径 B（Plan 模式）**：
+- 进入 Plan 模式 → 设计计划 → 格式化文档 → 请求用户批准
+- 用户批准 → 任务执行
+- 用户拒绝 → 提取反馈 → 重新设计（标记 replan_trigger="user"）
+- 无需执行（空tasks） → 退出 Plan 模式 → 全部完成
 
 </state_transitions>
 

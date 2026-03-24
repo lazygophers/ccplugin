@@ -36,18 +36,17 @@ memory: project
 1. 初始化
 2. 提示词优化（可选）
 3. 深度研究（可选）
-4. 计划设计
-5. **计划确认**（必须执行，首次必须用户确认）
-6. 任务执行
-7. 结果验证
-8. 失败调整（如需）
-9. 完成
+4. 计划设计与确认（Plan Mode）
+5. 任务执行
+6. 结果验证
+7. 失败调整（如需）
+8. 完成
 
 **关键要求**：
 - **所有输出必须以 [MindFlow] 开头**（强制规则，无例外）
 - 计划确认阶段**必须执行**，不可跳过
-- 首次规划（iteration=1）**必须**通过 AskUserQuestion 获取用户确认
-- 自动重新规划（adjuster/verifier触发）可跳过确认，但必须输出日志说明
+- 首次规划（iteration=1）和用户重新设计**使用 Plan Mode**（EnterPlanMode/ExitPlanMode）
+- 自动重新规划（adjuster/verifier触发）**跳过 Plan Mode**，直接生成并自动批准
 - 每次都要输出状态追踪日志：`[MindFlow·${任务}·${步骤}/${迭代}·${状态}]`
 
 </execution>
@@ -110,7 +109,25 @@ print(f"[MindFlow·{user_task}·初始化/0·进行中]")
 print("[MindFlow] 初始化完成")
 ```
 
-### 阶段2：计划设计 + 计划确认
+### 阶段2：计划设计与确认（Plan Mode）
+
+**使用 Plan Mode 统一设计和确认流程**：
+
+**智能路径选择**：
+- **首次规划 / 用户重新设计**：使用 EnterPlanMode/ExitPlanMode
+  - 进入 plan 模式
+  - 探索代码（可选深度研究）
+  - 设计计划（调用 task:planner）
+  - 格式化文档（调用 task:plan-formatter）
+  - 写入计划文件
+  - 请求用户批准
+  - 用户可在文件中标注反馈
+
+- **自动重规划（adjuster/verifier）**：跳过 plan 模式
+  - 直接调用 planner 生成计划
+  - 格式化并写入文档
+  - 自动批准并继续执行
+  - 避免重复确认
 
 **所有输出必须以 [MindFlow] 开头。**
 
@@ -118,57 +135,60 @@ print("[MindFlow] 初始化完成")
 print("[MindFlow] 开始计划设计...")
 
 iteration += 1
-
-# 调用 task:planner 生成计划
-print(f"[MindFlow] 正在调用 planner 生成执行计划...")
-planner_result = Agent(agent="task:planner", ...)
-
-# 生成计划文档
-print(f"[MindFlow] 正在生成计划文档...")
-# ... 生成文档代码 ...
-
-print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
-print(f"[MindFlow] 计划已生成：{plan_md_path}")
-
-# 计划确认（必须执行）
-print(f"[MindFlow·{user_task}·计划确认/{iteration}·准备预览]")
-print(f"[MindFlow] 计划文件：{plan_md_path}")
-
 replan_trigger = context.get("replan_trigger", None)
 
 if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
-    print(f"[MindFlow] ✓ 自动重新规划（触发来源：{replan_trigger}），跳过用户确认")
-    print(f"[MindFlow]   原因：已在{'调整阶段' if replan_trigger == 'adjuster' else '验证阶段'}告知用户")
+    # 自动重规划：跳过 Plan 模式
+    print(f"[MindFlow] 自动重新规划（触发来源：{replan_trigger}），跳过 Plan 模式")
+
+    # 直接生成计划
+    planner_result = Agent(agent="task:planner", ...)
+    # 格式化文档
+    formatted_plan = Agent(agent="task:plan-formatter", ...)
+    # 写入文件
+    Write(plan_md_path, formatted_plan)
+
+    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
     print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
     context["replan_trigger"] = None
 else:
-    # 打开浏览器预览
-    print(f"[MindFlow] 正在打开浏览器预览计划...")
-    Bash("md2html ...")
-    print(f"[MindFlow] 已在浏览器打开计划预览")
+    # Plan 模式：首次或用户重新设计
+    print(f"[MindFlow] 进入 Plan 模式进行计划设计...")
 
-    # 必须询问用户
+    EnterPlanMode()
+
+    # 设计计划
+    planner_result = Agent(subagent_type="Plan", agent="task:planner", ...)
+    # 格式化文档
+    formatted_plan = Agent(agent="task:plan-formatter", ...)
+    # 写入计划文件
+    Write(plan_file_path, formatted_plan)
+
+    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
     print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
-    user_decision = AskUserQuestion(
-        question="执行计划已准备就绪，是否开始执行？",
-        options=["立即执行", "重新设计"]
-    )
 
-    if user_decision == "重新设计":
-        print(f"[MindFlow] 用户选择重新设计计划")
-        context["replan_trigger"] = "user"
-        # 回到计划设计
-    else:
-        print(f"[MindFlow] 用户批准计划，准备执行")
+    # 请求用户批准
+    exit_result = ExitPlanMode()
+
+    if exit_result.get("approved"):
+        print(f"[MindFlow] ✓ 用户批准计划，准备执行")
         context["replan_trigger"] = None
         # 继续下一阶段
+    else:
+        print(f"[MindFlow] 用户选择重新设计计划")
+        # 提取用户反馈
+        user_feedback = extract_user_feedback(Read(plan_file_path))
+        if user_feedback:
+            context["user_feedback"] = user_feedback
+        context["replan_trigger"] = "user"
+        # 回到计划设计
 ```
 
 **检查点**：在进入任务执行前，必须看到以下日志之一：
-- `[MindFlow·xxx·计划确认/N·等待确认]` + 用户做出选择
-- `[MindFlow·xxx·计划确认/N·auto_approved]` (仅 iteration > 1)
+- `[MindFlow·xxx·计划确认/N·等待确认]` + ExitPlanMode 批准
+- `[MindFlow·xxx·计划确认/N·auto_approved]` (自动重规划)
 
-**如果看不到这些日志，说明计划确认环节被跳过，必须修正！**
+**详细实现**：参见 [flows/plan.md](flows/plan.md)
 
 ### 阶段3：任务执行
 
