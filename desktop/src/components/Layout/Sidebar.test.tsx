@@ -25,7 +25,7 @@ describe("Sidebar", () => {
   });
 
   it("renders navigation links", () => {
-    renderSidebar("/marketplace");
+    renderSidebar("/marketplaces");
     expect(screen.getByRole("link", { name: "插件市场" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "设置" })).toBeInTheDocument();
   });

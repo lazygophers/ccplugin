@@ -12,7 +12,16 @@ import { getCategoryOptions } from "@/lib/plugin-ui";
 
 const categories = getCategoryOptions();
 
-export default function Marketplace() {
+const installedFilters: Array<{
+  value: "all" | "installed" | "uninstalled";
+  label: string;
+}> = [
+  { value: "all", label: "全部" },
+  { value: "installed", label: "已安装" },
+  { value: "uninstalled", label: "未安装" },
+];
+
+export default function Plugins() {
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     plugins,
@@ -20,8 +29,10 @@ export default function Marketplace() {
     error,
     searchQuery,
     selectedCategory,
+    installedFilter,
     setSearchQuery,
     setSelectedCategory,
+    setInstalledFilter,
     refresh,
     filteredPlugins,
   } = usePlugins();
@@ -62,7 +73,6 @@ export default function Marketplace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryParam]);
 
-  // 计算每个分类的插件数量
   const categoriesWithCount = categories.map((cat) => ({
     ...cat,
     count:
@@ -75,16 +85,10 @@ export default function Marketplace() {
     setInstallingPlugin(pluginName);
     try {
       await install(pluginName);
-      // 安装完成后刷新列表
       await refresh();
     } finally {
       setInstallingPlugin(null);
     }
-  };
-
-  const handleViewDetails = (plugin: PluginInfo) => {
-    setSelectedPlugin(plugin);
-    setDetailDialogOpen(true);
   };
 
   const handleUninstall = async (pluginName: string) => {
@@ -100,17 +104,26 @@ export default function Marketplace() {
     }
   };
 
+  const handleViewDetails = (plugin: PluginInfo) => {
+    setSelectedPlugin(plugin);
+    setDetailDialogOpen(true);
+  };
+
+  const installedCount = useMemo(
+    () => plugins.filter((p) => p.installed).length,
+    [plugins]
+  );
+
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <Sparkles className="w-7 h-7 text-primary" />
-            插件市场
+            插件
           </h1>
           <p className="text-muted-foreground">
-            共 {plugins.length} 个插件可用，{plugins.filter((p) => p.installed).length} 个已安装
+            共 {plugins.length} 个插件，{installedCount} 个已安装
           </p>
         </div>
         <Button
@@ -125,9 +138,7 @@ export default function Marketplace() {
         </Button>
       </div>
 
-      {/* Search and Filter */}
       <div className="flex gap-4">
-        {/* Search Bar */}
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
@@ -144,37 +155,59 @@ export default function Marketplace() {
           />
         </div>
 
-        {/* Category Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
           <div className="flex gap-2 flex-wrap">
-            {categoriesWithCount.map((cat) => (
+            {installedFilters.map((f) => (
               <Badge
-                key={cat.value}
-                variant={selectedCategory === cat.value ? "default" : "outline"}
+                key={f.value}
+                variant={installedFilter === f.value ? "default" : "outline"}
                 className="cursor-pointer hover:bg-accent"
-                onClick={() => {
-                  setSelectedCategory(cat.value);
-                  updateParams({ category: cat.value });
-                }}
+                onClick={() => setInstalledFilter(f.value)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setSelectedCategory(cat.value);
-                    updateParams({ category: cat.value });
+                    setInstalledFilter(f.value);
                   }
                 }}
               >
-                {cat.label} ({cat.count})
+                {f.label}
               </Badge>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Loading State */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Filter className="w-4 h-4 text-muted-foreground" />
+        <div className="flex gap-2 flex-wrap">
+          {categoriesWithCount.map((cat) => (
+            <Badge
+              key={cat.value}
+              variant={selectedCategory === cat.value ? "default" : "outline"}
+              className="cursor-pointer hover:bg-accent"
+              onClick={() => {
+                setSelectedCategory(cat.value);
+                updateParams({ category: cat.value });
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelectedCategory(cat.value);
+                  updateParams({ category: cat.value });
+                }
+              }}
+            >
+              {cat.label} ({cat.count})
+            </Badge>
+          ))}
+        </div>
+      </div>
+
       {loading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -182,7 +215,6 @@ export default function Marketplace() {
         </div>
       )}
 
-      {/* Error State */}
       {error && (
         <div className="p-4 border border-destructive bg-destructive/10 text-destructive rounded-md">
           <p className="font-semibold">加载失败</p>
@@ -193,20 +225,24 @@ export default function Marketplace() {
         </div>
       )}
 
-      {/* Plugins Grid */}
       {!loading && !error && (
         <>
           {filteredPlugins.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>未找到匹配的插件</p>
-              {searchQuery && (
+              {(searchQuery || installedFilter !== "all" || selectedCategory !== "all") && (
                 <Button
                   variant="link"
                   size="sm"
                   className="mt-2"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                    setInstalledFilter("all");
+                    updateParams({ q: "", category: "all" });
+                  }}
                 >
-                  清除搜索
+                  清除筛选
                 </Button>
               )}
             </div>
@@ -228,8 +264,7 @@ export default function Marketplace() {
         </>
       )}
 
-      {/* Install Progress (Global) */}
-      {progress && installingPlugin && (
+      {progress && (installingPlugin || uninstallingPlugin) && (
         <div
           className="fixed bottom-6 right-6 w-96 p-4 bg-card border rounded-lg shadow-lg"
           aria-live="polite"
@@ -250,7 +285,6 @@ export default function Marketplace() {
         </div>
       )}
 
-      {/* Plugin Detail Dialog */}
       <PluginDetailDialog
         plugin={selectedPlugin}
         open={detailDialogOpen}
@@ -261,3 +295,4 @@ export default function Marketplace() {
     </div>
   );
 }
+

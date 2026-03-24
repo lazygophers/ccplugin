@@ -42,19 +42,34 @@
       "task_id": "T2",
       "criterion": "Lint 检查 0 错误 0 警告",
       "actual": "3 错误, 0 警告",
-      "reason": "变量未使用、导入未使用、格式问题"
+      "reason": "变量未使用、导入未使用、格式问题",
+      "evidence": {
+        "command": "npm run lint",
+        "output": "middleware.js:5:5 error unused variable 'temp'\nmiddleware.js:12:1 error unused import 'lodash'\nmiddleware.js:45:10 error inconsistent indentation",
+        "timestamp": "2026-03-24T10:28:30Z"
+      }
     },
     {
       "task_id": "T3",
       "criterion": "所有测试用例通过",
       "actual": "8/10 通过, 2 失败",
-      "reason": "test_login_timeout 和 test_invalid_token 失败"
+      "reason": "test_login_timeout 和 test_invalid_token 失败",
+      "evidence": {
+        "command": "npm test -- auth.test.js",
+        "output": "✓ test_login_success\n✓ test_login_invalid_password\n✗ test_login_timeout (expected true, got false)\n✓ test_logout\n✗ test_invalid_token (expected error, got success)\nTests: 8/10 passed",
+        "timestamp": "2026-03-24T10:29:00Z"
+      }
     },
     {
       "task_id": "T3",
       "criterion": "测试覆盖率 ≥ 90%",
       "actual": "75%",
-      "reason": "jwt.go 的错误处理分支未覆盖"
+      "reason": "jwt.go 的错误处理分支未覆盖",
+      "evidence": {
+        "command": "npm test -- --coverage",
+        "output": "Statements   : 75% ( 150/200 )\nBranches     : 72% ( 36/50 )\nFunctions    : 75% ( 18/25 )\nLines        : 75% ( 145/195 )\nUncovered lines: jwt.go:45-67 (error handling)",
+        "timestamp": "2026-03-24T10:29:15Z"
+      }
     }
   ],
   "summary": {
@@ -82,6 +97,10 @@
   - `criterion`: 未满足的验收标准
   - `actual`: 实际结果
   - `reason`: 失败原因和详细信息
+  - `evidence`: 验证证据（必须），包含：
+    - `command`: 验证命令（如 `npm test`）
+    - `output`: 命令完整输出
+    - `timestamp`: 执行时间戳（ISO 8601 格式）
 - `summary`: 统计摘要，`failed_tasks > 0`
 
 ### 报告编写指南

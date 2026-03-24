@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { path: "/", label: "仪表板", icon: LayoutDashboard },
-  { path: "/marketplace", label: "插件市场", icon: Store },
-  { path: "/installed", label: "已安装", icon: Package },
+  { path: "/marketplaces", label: "插件市场", icon: Store },
+  { path: "/plugins", label: "插件", icon: Package },
   { path: "/updates", label: "更新", icon: ArrowUpCircle },
   { path: "/settings", label: "设置", icon: Settings },
   { path: "/logs", label: "日志", icon: FileText },

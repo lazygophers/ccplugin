@@ -69,4 +69,21 @@ describe("usePlugins", () => {
     });
     expect(result.current.filteredPlugins.map((p) => p.name)).toEqual(["python"]);
   });
+
+  it("filters by installed state", async () => {
+    vi.mocked(MarketplaceService.getAllPlugins).mockResolvedValueOnce(pluginFixtures);
+
+    const { result } = renderHook(() => usePlugins());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => {
+      result.current.setInstalledFilter("installed");
+    });
+    expect(result.current.filteredPlugins.map((p) => p.name).sort()).toEqual(["docx", "python"]);
+
+    act(() => {
+      result.current.setInstalledFilter("uninstalled");
+    });
+    expect(result.current.filteredPlugins.map((p) => p.name)).toEqual(["git"]);
+  });
 });

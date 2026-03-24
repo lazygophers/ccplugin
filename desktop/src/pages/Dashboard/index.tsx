@@ -47,7 +47,7 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground">市场插件</p>
           <p className="text-2xl font-semibold mt-2">{stats.total}</p>
           <div className="mt-4">
-            <Link to="/marketplace">
+            <Link to="/marketplaces">
               <Button variant="outline" size="sm">
                 <Store className="w-4 h-4 mr-2" />
                 去市场
@@ -56,10 +56,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="rounded-lg border bg-card p-5">
-          <p className="text-sm text-muted-foreground">已安装</p>
+          <p className="text-sm text-muted-foreground">插件</p>
           <p className="text-2xl font-semibold mt-2">{stats.installed}</p>
           <div className="mt-4">
-            <Link to="/installed">
+            <Link to="/plugins">
               <Button variant="outline" size="sm">
                 <Package className="w-4 h-4 mr-2" />
                 管理

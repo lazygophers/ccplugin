@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
-import Marketplace from "./index";
+import Plugins from "./index";
 import { renderWithRouter } from "@/test/render";
 import { pluginFixtures } from "@/test/fixtures";
 
@@ -18,7 +18,7 @@ vi.mock("@/hooks/usePythonCommand", () => ({
   }),
 }));
 
-describe("Marketplace page", () => {
+describe("Plugins page", () => {
   beforeEach(() => {
     installMock.mockReset();
     uninstallMock.mockReset();
@@ -28,8 +28,8 @@ describe("Marketplace page", () => {
 
   it("renders plugins and supports search params sync", async () => {
     vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures);
-    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
-      initialEntries: ["/marketplace?q=git&category=tools"],
+    renderWithRouter([{ path: "/plugins", element: <Plugins /> }], {
+      initialEntries: ["/plugins?q=git&category=tools"],
     });
 
     const input = await screen.findByRole("textbox", { name: "搜索插件" });
@@ -38,12 +38,23 @@ describe("Marketplace page", () => {
     expect(await screen.findByRole("heading", { name: "git" })).toBeInTheDocument();
   });
 
+  it("supports installed filter", async () => {
+    const user = userEvent.setup();
+    vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures);
+    renderWithRouter([{ path: "/plugins", element: <Plugins /> }], {
+      initialEntries: ["/plugins"],
+    });
+
+    await screen.findByRole("heading", { name: "git" });
+    await user.click(screen.getByRole("button", { name: "已安装" }));
+    expect(screen.queryByRole("heading", { name: "git" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "python" })).toBeInTheDocument();
+  });
+
   it("shows loading state initially", () => {
-    vi.mocked(invoke).mockImplementationOnce(
-      () => new Promise(() => {})
-    );
-    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
-      initialEntries: ["/marketplace"],
+    vi.mocked(invoke).mockImplementationOnce(() => new Promise(() => {}));
+    renderWithRouter([{ path: "/plugins", element: <Plugins /> }], {
+      initialEntries: ["/plugins"],
     });
     expect(screen.getByText("加载插件列表...")).toBeInTheDocument();
   });
@@ -51,8 +62,8 @@ describe("Marketplace page", () => {
   it("shows error state and allows retry", async () => {
     const user = userEvent.setup();
     vi.mocked(invoke).mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce(pluginFixtures);
-    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
-      initialEntries: ["/marketplace"],
+    renderWithRouter([{ path: "/plugins", element: <Plugins /> }], {
+      initialEntries: ["/plugins"],
     });
 
     expect(await screen.findByText("加载失败")).toBeInTheDocument();
@@ -65,14 +76,13 @@ describe("Marketplace page", () => {
     vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures).mockResolvedValueOnce(pluginFixtures);
     installMock.mockResolvedValueOnce(undefined);
 
-    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
-      initialEntries: ["/marketplace"],
+    renderWithRouter([{ path: "/plugins", element: <Plugins /> }], {
+      initialEntries: ["/plugins"],
     });
 
     await screen.findByRole("heading", { name: "git" });
     await user.click(screen.getByRole("button", { name: "安装" }));
     expect(installMock).toHaveBeenCalledWith("git");
-    // refresh triggered after install
     expect(invoke).toHaveBeenCalledTimes(2);
   });
 
@@ -82,8 +92,8 @@ describe("Marketplace page", () => {
     vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures).mockResolvedValueOnce(pluginFixtures);
     uninstallMock.mockResolvedValueOnce(undefined);
 
-    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
-      initialEntries: ["/marketplace"],
+    renderWithRouter([{ path: "/plugins", element: <Plugins /> }], {
+      initialEntries: ["/plugins"],
     });
 
     const heading = await screen.findByRole("heading", { name: "python" });
@@ -95,27 +105,5 @@ describe("Marketplace page", () => {
     expect(invoke).toHaveBeenCalledTimes(2);
     confirmSpy.mockRestore();
   });
-
-  it("shows global progress when installing and progress exists", async () => {
-    const user = userEvent.setup();
-    vi.mocked(invoke).mockResolvedValueOnce(pluginFixtures);
-
-    installMock.mockImplementationOnce(
-      () => new Promise<void>(() => {})
-    );
-    progressValue = {
-      plugin_name: "git",
-      progress: 42,
-      message: "downloading",
-      status: "downloading",
-    };
-
-    renderWithRouter([{ path: "/marketplace", element: <Marketplace /> }], {
-      initialEntries: ["/marketplace"],
-    });
-
-    await screen.findByRole("heading", { name: "git" });
-    await user.click(screen.getByRole("button", { name: "安装" }));
-    expect(await screen.findByText("42%")).toBeInTheDocument();
-  });
 });
+

@@ -11,8 +11,8 @@ export default function TopBar() {
   const pageTitle = useMemo(() => {
     const p = location.pathname;
     if (p === "/") return "仪表板";
-    if (p.startsWith("/marketplace")) return "插件市场";
-    if (p.startsWith("/installed")) return "已安装";
+    if (p.startsWith("/marketplaces")) return "插件市场";
+    if (p.startsWith("/plugins")) return "插件";
     if (p.startsWith("/updates")) return "更新中心";
     if (p.startsWith("/settings")) return "设置";
     if (p.startsWith("/logs")) return "日志";
@@ -21,7 +21,7 @@ export default function TopBar() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (location.pathname.startsWith("/marketplace")) {
+    if (location.pathname.startsWith("/plugins")) {
       const params = new URLSearchParams(location.search);
       setQuery(params.get("q") ?? "");
     } else {
@@ -29,10 +29,10 @@ export default function TopBar() {
     }
   }, [location.pathname, location.search]);
 
-  const commitQueryToMarketplace = (next: string) => {
+  const commitQueryToPlugins = (next: string) => {
     const params = new URLSearchParams();
     if (next.trim()) params.set("q", next.trim());
-    navigate({ pathname: "/marketplace", search: params.toString() ? `?${params.toString()}` : "" });
+    navigate({ pathname: "/plugins", search: params.toString() ? `?${params.toString()}` : "" });
   };
 
   return (
@@ -46,12 +46,12 @@ export default function TopBar() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="搜索插件（回车跳转到市场）"
+              placeholder="搜索插件（回车跳转到插件页）"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  commitQueryToMarketplace(query);
+                  commitQueryToPlugins(query);
                 }
               }}
               className="w-full pl-10 pr-9 py-2 border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
@@ -64,8 +64,8 @@ export default function TopBar() {
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                 onClick={() => {
                   setQuery("");
-                  if (location.pathname.startsWith("/marketplace")) {
-                    commitQueryToMarketplace("");
+                  if (location.pathname.startsWith("/plugins")) {
+                    commitQueryToPlugins("");
                   }
                 }}
                 aria-label="清空搜索"

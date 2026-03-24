@@ -30,7 +30,13 @@
           "evaluation_method": "exact_match",
           "expected": "all tests passed",
           "actual": "all tests passed",
-          "priority": "required"
+          "priority": "required",
+          "evidence": {
+            "command": "npm test",
+            "output": "✓ 24 tests passed (320ms)",
+            "exit_code": 0,
+            "timestamp": "2026-03-24T10:30:00Z"
+          }
         },
         {
           "criterion_id": "AC2",
@@ -40,7 +46,12 @@
           "actual": "92%",
           "tolerance": 0.02,
           "margin": {"gap": 0.02, "relative_gap": 0.022},
-          "priority": "required"
+          "priority": "required",
+          "evidence": {
+            "command": "npm test -- --coverage",
+            "output": "Statements   : 92% ( 184/200 )\nBranches     : 90% ( 45/50 )\nFunctions    : 92% ( 23/25 )\nLines        : 92% ( 180/195 )",
+            "timestamp": "2026-03-24T10:30:15Z"
+          }
         }
       ]
     },

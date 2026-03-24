@@ -8,8 +8,10 @@ interface UsePluginsResult {
   error: string | null;
   searchQuery: string;
   selectedCategory: string;
+  installedFilter: "all" | "installed" | "uninstalled";
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: string) => void;
+  setInstalledFilter: (filter: "all" | "installed" | "uninstalled") => void;
   refresh: () => Promise<void>;
   filteredPlugins: PluginInfo[];
 }
@@ -20,6 +22,9 @@ export function usePlugins(): UsePluginsResult {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [installedFilter, setInstalledFilter] = useState<
+    "all" | "installed" | "uninstalled"
+  >("all");
 
   const loadPlugins = useCallback(async () => {
     setLoading(true);
@@ -42,6 +47,13 @@ export function usePlugins(): UsePluginsResult {
 
   // 客户端过滤（也可以调用后端API）
   const filteredPlugins = (plugins ?? []).filter((plugin) => {
+    if (installedFilter === "installed" && !plugin.installed) {
+      return false;
+    }
+    if (installedFilter === "uninstalled" && plugin.installed) {
+      return false;
+    }
+
     // 分类过滤
     if (selectedCategory !== "all" && plugin.category !== selectedCategory) {
       return false;
@@ -66,8 +78,10 @@ export function usePlugins(): UsePluginsResult {
     error,
     searchQuery,
     selectedCategory,
+    installedFilter,
     setSearchQuery,
     setSelectedCategory,
+    setInstalledFilter,
     refresh: loadPlugins,
     filteredPlugins,
   };
