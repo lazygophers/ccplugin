@@ -168,14 +168,34 @@ if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
 
     # 直接生成计划
     planner_result = Agent(agent="task:planner", ...)
-    # 格式化文档
-    formatted_plan = Agent(agent="task:plan-formatter", ...)
-    # 写入文件
-    Write(plan_md_path, formatted_plan)
+
+    # 格式化文档并直接写入文件（减少 context 消耗）
+    formatter_result = Agent(
+        agent="task:plan-formatter",
+        description="格式化计划为标准 Markdown 并写入文件",
+        prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
+
+{json.dumps(planner_result, ensure_ascii=False, indent=2)}
+
+YAML Frontmatter（必须放在文档开头）：
+{frontmatter}
+
+要求：
+1. 严格遵循 template.md 格式
+2. Mermaid 图单行文本，无 \\n
+3. 包含完整的任务清单表格
+
+文件路径：{plan_md_path}
+请直接写入文件并返回元数据。
+"""
+    )
 
     print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+    print(f"[MindFlow] 计划已生成：{formatter_result['file_path']}")
+    print(f"[MindFlow] {formatter_result['summary']}")
     print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
     context["replan_trigger"] = None
+    context["plan_md_path"] = formatter_result["file_path"]
 else:
     # Plan 模式：首次或用户重新设计
     print(f"[MindFlow] 进入 Plan 模式进行计划设计...")
@@ -184,12 +204,31 @@ else:
 
     # 设计计划
     planner_result = Agent(subagent_type="Plan", agent="task:planner", ...)
-    # 格式化文档
-    formatted_plan = Agent(agent="task:plan-formatter", ...)
-    # 写入计划文件
-    Write(plan_file_path, formatted_plan)
+
+    # 格式化文档并直接写入文件（减少 context 消耗）
+    formatter_result = Agent(
+        agent="task:plan-formatter",
+        description="格式化计划为标准 Markdown 并写入文件",
+        prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
+
+{json.dumps(planner_result, ensure_ascii=False, indent=2)}
+
+YAML Frontmatter（必须放在文档开头）：
+{frontmatter}
+
+要求：
+1. 严格遵循 template.md 格式
+2. Mermaid 图单行文本，无 \\n
+3. 包含完整的任务清单表格
+
+文件路径：{plan_file_path}
+请直接写入文件并返回元数据。
+"""
+    )
 
     print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
+    print(f"[MindFlow] 计划已生成：{formatter_result['file_path']}")
+    print(f"[MindFlow] {formatter_result['summary']}")
     print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
 
     # 请求用户批准
@@ -198,6 +237,7 @@ else:
     if exit_result.get("approved"):
         print(f"[MindFlow] ✓ 用户批准计划，准备执行")
         context["replan_trigger"] = None
+        context["plan_md_path"] = formatter_result["file_path"]
         # 继续下一阶段
     else:
         print(f"[MindFlow] 用户选择重新设计计划")

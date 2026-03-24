@@ -1,6 +1,6 @@
 [project]
 name = "ccplugin-office-pptx"
-version = "0.0.181"
+version = "0.0.182"
 description = "PowerPoint pptx 文件操作插件包装层 - 格式转换、批量处理、模板生成、智能分析"
 readme = "README.md"
 requires-python = ">=3.11"
