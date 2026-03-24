@@ -19,7 +19,9 @@ interface PluginDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInstall?: (pluginName: string) => void;
+  onUninstall?: (pluginName: string) => void;
   installing?: boolean;
+  uninstalling?: boolean;
 }
 
 export function PluginDetailDialog({
@@ -27,7 +29,9 @@ export function PluginDetailDialog({
   open,
   onOpenChange,
   onInstall,
+  onUninstall,
   installing,
+  uninstalling,
 }: PluginDetailDialogProps) {
   const [readme, setReadme] = useState<string>("");
   const [loadingReadme, setLoadingReadme] = useState(false);
@@ -97,9 +101,22 @@ export function PluginDetailDialog({
                 {getCategoryLabel(plugin.category)}
               </Badge>
               {plugin.installed ? (
-                <Badge variant="secondary" className="bg-green-500/10 text-green-700">
-                  已安装 v{plugin.installed_version}
-                </Badge>
+                <>
+                  <Badge variant="secondary" className="bg-green-500/10 text-green-700">
+                    已安装 v{plugin.installed_version}
+                  </Badge>
+                  {onUninstall && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => onUninstall(plugin.name)}
+                      disabled={uninstalling}
+                      size="sm"
+                      aria-label={`卸载 ${plugin.name}`}
+                    >
+                      {uninstalling ? "卸载中..." : "卸载"}
+                    </Button>
+                  )}
+                </>
               ) : (
                 <Button
                   onClick={() => onInstall?.(plugin.name)}

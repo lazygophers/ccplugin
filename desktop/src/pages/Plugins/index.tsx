@@ -290,9 +290,10 @@ export default function Plugins() {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         onInstall={handleInstall}
+        onUninstall={handleUninstall}
         installing={installingPlugin === selectedPlugin?.name}
+        uninstalling={uninstallingPlugin === selectedPlugin?.name}
       />
     </div>
   );
 }
-

@@ -119,4 +119,26 @@ describe("PluginDetailDialog", () => {
 
     expect(await screen.findByText(/已安装 v1.0.0/)).toBeInTheDocument();
   });
+
+  it("calls onUninstall when uninstall button clicked", async () => {
+    vi.spyOn(global, "fetch").mockResolvedValueOnce({
+      ok: true,
+      text: async () => "# x",
+    } as Response);
+
+    const user = userEvent.setup();
+    const onUninstall = vi.fn();
+    render(
+      <PluginDetailDialog
+        plugin={pluginFixtures[0]}
+        open
+        onOpenChange={vi.fn()}
+        onUninstall={onUninstall}
+      />
+    );
+
+    const uninstallButton = await screen.findByRole("button", { name: "卸载 python" });
+    await user.click(uninstallButton);
+    expect(onUninstall).toHaveBeenCalledWith("python");
+  });
 });
