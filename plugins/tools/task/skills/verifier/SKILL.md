@@ -9,7 +9,7 @@ user-invocable: false
 
 <overview>
 
-Verifier 技能负责验证任务执行结果是否满足验收标准。它在 Loop 的 Check 阶段被调用，通过系统性检查每个子任务的完成情况、测试覆盖率和回归测试结果，输出三种状态之一：passed（全部通过）、suggestions（通过但有优化建议）、failed（验收失败）。详细实现按职责拆分为以下文件。
+Verifier 技能负责验证任务执行结果是否满足验收标准。采用**两阶段验证架构**：Stage 1（Spec Compliance）检查功能合规性，Stage 2（Code Quality）审查代码质量。Stage 1 是 MUST PASS 的门控阶段，失败直接触发 adjuster；Stage 2 仅在 Stage 1 通过后执行，生成 suggestions 但不触发 adjuster。最终输出三种状态之一：passed（全部通过）、suggestions（功能合规但质量有优化建议）、failed（功能合规未通过）。详细实现按职责拆分为以下文件。
 
 </overview>
 
@@ -41,6 +41,15 @@ Verifier 技能负责验证任务执行结果是否满足验收标准。它在 L
 文件：[verifier-skill-advanced.md](verifier-skill-advanced.md)
 
 包含结构化验收标准的处理：结构化验收标准的验证流程、验证逻辑（通用验证函数、精确匹配、量化阈值）、容差验证示例、辅助函数、结构化验收标准最佳实践。
+
+## 两阶段验证
+
+- **Stage 1 - 功能合规检查** → [spec-compliance-checklist.md](spec-compliance-checklist.md)
+  - MUST PASS 门控：验收标准匹配、功能完整性、回归检查
+  - 任何 required 标准失败即触发 adjuster，不进入 Stage 2
+- **Stage 2 - 代码质量审查** → [code-quality-checklist.md](code-quality-checklist.md)
+  - CAN SUGGEST：测试质量、代码标准、性能考量、安全检查
+  - quality_score >= 85 通过，否则生成 suggestions 创建优化迭代
 
 ## 相关文档
 

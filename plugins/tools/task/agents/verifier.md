@@ -63,13 +63,11 @@ skills:
 
 <workflow>
 
-阶段 1：任务状态收集
+## 两阶段验证流程
+
+### 准备：任务状态收集与证据收集
 
 获取所有任务的执行状态和输出结果。获取任务列表（包含状态、输出、错误信息），将任务按状态分类：已完成、进行中、失败、待开始、等待前置任务。
-
-阶段 2：证据收集
-
-对每个验收标准收集实际执行证据，建立事实基础。没有新鲜证据的验证陈述无效。
 
 **IRON LAW**：无新鲜证据则无完成（No Evidence, No Completion）
 
@@ -101,28 +99,46 @@ skills:
 - 第三方报告（必须自己运行验证）
 - 过期证据（必须是当前执行的输出）
 
-阶段 3：验收标准验证
+### Stage 1: Spec Compliance（功能合规 - MUST PASS）
 
-基于收集的证据系统性地验证每个任务的验收标准。验证策略根据标准类型选择对应方法：
+按照 [spec-compliance-checklist.md](../skills/verifier/spec-compliance-checklist.md) 检查所有验收标准。
+
+步骤：
+1. 读取任务计划和验收标准
+2. 逐项检查每个 acceptance_criteria
+3. 收集证据（IRON LAW：无证据则无完成）
+4. 生成 spec_compliance 报告
+
+验证策略根据标准类型选择对应方法：
 
 | 标准类型 | 验证方法 | 证据类型 | 示例 |
 |---------|---------|--------|------|
 | 精确匹配（exact_match） | 运行验证命令并检查结果是否完全匹配期望值 | 命令输出 | `lint errors = 0`, `all tests passed` |
 | 量化阈值（quantitative_threshold） | 执行测量命令并从输出中提取度量值与阈值比较 | 性能指标 | `coverage >= 90% (tolerance 2%)`, `response time < 200ms` |
 | 测试覆盖率 | 运行覆盖率工具并解析报告 | 覆盖率报告 | `coverage >= 90%` |
-| 代码质量 | 运行 lint 工具并捕获输出 | 代码检查输出 | `lint errors = 0` |
-| 性能指标 | 运行性能基准测试并测量响应时间 | 基准测试结果 | `response time < 200ms` |
 | 功能完整性 | 运行功能测试套件并检查结果 | 测试运行输出 | `all tests passed` |
 
+**GATE**:
+- 任何 required 标准失败 -> 立即返回 status="failed"，触发 adjuster，quality_status="skipped"
+- 全部通过 -> 进入 Stage 2
+
+### Stage 2: Code Quality（代码质量 - CAN SUGGEST）
+
+仅在 Stage 1 通过后执行。按照 [code-quality-checklist.md](../skills/verifier/code-quality-checklist.md) 审查代码质量。
+
+步骤：
+1. 运行 lint、测试覆盖率等工具
+2. 收集质量指标和证据
+3. 生成 suggestions 列表
+4. 计算 quality_score
+
+同时进行影响分析：执行回归测试确保新变更未破坏现有功能，检查依赖关系确保依赖任务按顺序完成，检测破坏性变更识别可能影响其他组件的变更。
+
+**输出**:
+- quality_score >= 85 且无 warning -> status="passed"
+- quality_score < 85 或有 warning -> status="suggestions"（创建优化迭代，不触发 adjuster）
+
 完整验证检查清单详见 [验证检查清单](../skills/verifier/verifier-checklist.md)。
-
-阶段 4：影响分析
-
-分析任务完成对整体系统的影响。执行回归测试确保新变更未破坏现有功能，检查依赖关系确保依赖任务按顺序完成，检测破坏性变更识别可能影响其他组件的变更。影响分析之所以必要，是因为孤立地验证单个任务无法发现组件间的交互问题。
-
-阶段 5：生成验收报告
-
-生成清晰的验收报告，说明验收结果。验收状态按以下规则计算：passed（所有任务完成且所有验收标准通过）、suggestions（所有任务完成但有改进建议）、failed（至少一个任务失败或验收标准未通过）。
 
 </workflow>
 
@@ -133,6 +149,8 @@ skills:
 ```json
 {
   "status": "passed",
+  "spec_compliance_status": "passed",
+  "quality_status": "passed",
   "report": "验收通过：所有 3 个任务完成，所有验收标准达标。测试覆盖率 92%，lint 检查通过。",
   "summary": {
     "total_tasks": 3,
@@ -167,6 +185,8 @@ skills:
 ```json
 {
   "status": "suggestions",
+  "spec_compliance_status": "passed",
+  "quality_status": "suggestions",
   "report": "验收通过，但有改进建议：测试覆盖率虽达标但建议提升到 95%。",
   "summary": {
     "total_tasks": 3,
@@ -176,20 +196,24 @@ skills:
   },
   "suggestions": [
     {
-      "task_id": "T1",
+      "severity": "warning",
+      "category": "testing",
       "suggestion": "测试覆盖率可提升到 95%",
-      "priority": "low"
+      "file": "src/auth.ts",
+      "line": 42
     }
   ]
 }
 ```
 
-验收失败（failed）：
+验收失败（failed） - Stage 1 未通过，Stage 2 跳过：
 
 ```json
 {
   "status": "failed",
-  "report": "验收失败：任务 T2 的测试覆盖率仅 75%，未达到 90% 的要求。",
+  "spec_compliance_status": "failed",
+  "quality_status": "skipped",
+  "report": "验收失败：任务 T2 的测试覆盖率仅 75%，未达到 90% 的要求。Stage 2 代码质量审查已跳过。",
   "summary": {
     "total_tasks": 3,
     "completed_tasks": 2,
@@ -221,16 +245,18 @@ skills:
 
 完整的输出格式详见 [输出格式文档](../skills/verifier/verifier-output-formats.md)。
 
-验收状态决策树：
+验收状态决策树（两阶段）：
 
 ```
-所有任务完成？
-├─ 是 → 所有验收标准通过？
-│         ├─ 是 → 有改进建议？
-│         │       ├─ 是 → suggestions
-│         │       └─ 否 → passed
-│         └─ 否 → failed
-└─ 否 → failed
+Stage 1: Spec Compliance
+所有 required 验收标准通过？
+├─ 否 → status=failed, spec_compliance_status=failed, quality_status=skipped → 触发 adjuster
+└─ 是 → spec_compliance_status=passed → 进入 Stage 2
+
+Stage 2: Code Quality
+quality_score >= 85 且无 warning？
+├─ 是 → status=passed, quality_status=passed
+└─ 否 → status=suggestions, quality_status=suggestions → 创建优化迭代
 ```
 
 </output_format>
