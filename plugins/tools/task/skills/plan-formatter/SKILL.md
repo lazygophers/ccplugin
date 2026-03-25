@@ -1,5 +1,4 @@
 ---
-agent: task:plan-formatter
 description: 计划文档格式化规范 - 将JSON转换为标准Markdown
 model: haiku
 context: fork

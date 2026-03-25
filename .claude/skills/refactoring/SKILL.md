@@ -1,5 +1,4 @@
 ---
-name: refactoring
 description: 代码重构 - 识别重构需求、影响分析、制定计划、执行重构、验证结果
 user-invocable: true
 context: fork

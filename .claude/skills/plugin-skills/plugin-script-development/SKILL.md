@@ -1,8 +1,6 @@
 ---
-name: plugin-script-development
 description: 插件脚本开发指南 - 当用户需要为插件开发 Python 脚本时使用。覆盖脚本目录结构、CLI 入口实现、Click 命令和脚本模块化。
 context: fork
-agent: script
 ---
 
 # 插件脚本开发指南

@@ -1,5 +1,4 @@
 ---
-name: commit
 description: git commit 提交规范
 user-invocable: true
 context: fork

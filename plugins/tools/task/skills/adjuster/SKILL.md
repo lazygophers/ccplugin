@@ -1,5 +1,4 @@
 ---
-agent: task:adjuster
 description: 失败调整规范 - 分析失败原因、检测停滞、应用升级策略的执行规范
 model: sonnet
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: plot-development
 description: 情节发展技能 - 提供情节推进、冲突设计、高潮布局指导。当用户需要设计故事走向、安排冲突节奏、布局情节转折或解决卡文问题时自动激活。
 context: fork
 ---

@@ -1,5 +1,4 @@
 ---
-name: web
 description: Python Web 框架 - FastAPI 0.115+、Pydantic v2、SQLAlchemy 2.0 异步。现代 Web 开发的最佳实践。
 user-invocable: true
 context: fork

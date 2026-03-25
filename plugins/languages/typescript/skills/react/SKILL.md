@@ -1,5 +1,4 @@
 ---
-name: react
 description: TypeScript React 开发规范：React 19、Server Components、Actions、use hook、Next.js 15。开发 React 应用时必须加载。
 user-invocable: true
 context: fork

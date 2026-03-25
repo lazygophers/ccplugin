@@ -1,5 +1,4 @@
 ---
-name: spring
 description: Spring Boot 3+ 开发规范 - Native Image、Virtual Threads 集成、Observability、Security 6、Data JPA + Hibernate 6。开发 Spring 应用时必须加载。
 user-invocable: true
 context: fork

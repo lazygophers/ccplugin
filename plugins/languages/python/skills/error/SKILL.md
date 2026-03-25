@@ -1,5 +1,4 @@
 ---
-name: error
 description: Python 错误处理和日志 - 结构化日志（structlog）、异常设计、Context Manager。现代错误处理的最佳实践。
 user-invocable: true
 context: fork

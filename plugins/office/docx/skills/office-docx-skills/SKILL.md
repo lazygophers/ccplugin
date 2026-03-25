@@ -1,5 +1,4 @@
 ---
-name: office-docx-skills
 description: Word docx 文件操作技能 - 读写文档、格式转换(docx/md/pdf)、批量处理、模板生成、智能分析
 triggers:
   - word

@@ -1,5 +1,4 @@
 ---
-name: office-xlsx-skills
 description: Excel xlsx 文件操作技能 - 读写 Excel 文件、数据分析、格式转换、批量处理
 triggers:
   - excel

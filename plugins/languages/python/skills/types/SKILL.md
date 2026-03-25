@@ -1,5 +1,4 @@
 ---
-name: types
 description: Python 类型系统最佳实践 - PEP 695 泛型、Pydantic v2、mypy strict mode。现代 Python 类型安全的核心规范。
 user-invocable: true
 context: fork

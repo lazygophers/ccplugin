@@ -1,5 +1,4 @@
 ---
-name: memory
 description: |
 	Intelligent memory system with hooks integration. Automatically manages memories
 	across sessions with smart loading, recording, and saving capabilities.

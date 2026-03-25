@@ -1,8 +1,6 @@
 ---
-name: plugin-development
 description: 插件开发指南 - 当用户需要创建新的插件或从模板初始化插件时使用。覆盖插件规划、目录创建、manifest 配置和完整开发流程。
 context: fork
-agent: plugin
 ---
 
 # 插件开发指南

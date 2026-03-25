@@ -1,5 +1,4 @@
 ---
-agent: task:finalizer
 description: 资源清理规范 - 系统性资源清理、任务终止、最终报告生成的执行规范
 model: haiku
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: dialogue-generation
 description: 对话生成技能 - 提供符合角色性格的对话创作指导。当用户需要编写角色对话、改善对话质量、设计对话场景或用对话推进情节时自动激活。
 context: fork
 ---

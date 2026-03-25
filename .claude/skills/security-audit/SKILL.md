@@ -1,5 +1,4 @@
 ---
-name: security-audit
 description: 安全审计 - OWASP Top 10检查、依赖安全扫描、敏感信息检测、安全配置审查
 user-invocable: false
 context: fork

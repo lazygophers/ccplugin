@@ -1,5 +1,4 @@
 ---
-name: core
 description: Java 核心规范 - Java 21+ 现代特性（Records、Pattern Matching、Sealed Classes）、项目结构、工具链。所有 Java 开发的基础规范。
 user-invocable: true
 context: fork

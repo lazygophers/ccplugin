@@ -1,5 +1,4 @@
 ---
-name: async
 description: JavaScript 异步编程规范：async/await、Promise.withResolvers、AbortController、Streams API。处理异步代码时必须加载。
 user-invocable: true
 context: fork

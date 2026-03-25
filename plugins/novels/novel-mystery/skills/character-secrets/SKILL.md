@@ -1,5 +1,4 @@
 ---
-name: character-secrets
 description: 角色秘密与动机分析技能 - 提供角色隐藏动机、秘密设计、身份伪装、心理画像等指导。当用户需要设计角色秘密、规划秘密揭露节奏、构建角色动机时自动激活。
 context: fork
 ---

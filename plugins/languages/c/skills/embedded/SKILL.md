@@ -1,5 +1,4 @@
 ---
-name: embedded
 description: C 嵌入式开发规范：寄存器操作、中断处理、资源约束优化、MISRA C 2023 合规、静态分配策略。嵌入式开发时必须加载。
 user-invocable: true
 context: fork

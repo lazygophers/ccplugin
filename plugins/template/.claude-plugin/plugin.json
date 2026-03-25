@@ -21,7 +21,8 @@
     "./commands/command-template.md"
   ],
   "agents": [
-    "./agents/agent-template.md"
+    "./agents/agent-template.md",
+    "./agents/template.md"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",

@@ -1,5 +1,4 @@
 ---
-name: desktop
 description: C# 桌面开发规范 - WPF/.NET 8、.NET MAUI、Avalonia UI、WinUI 3、CommunityToolkit.Mvvm。开发桌面应用时必须加载。
 user-invocable: true
 context: fork

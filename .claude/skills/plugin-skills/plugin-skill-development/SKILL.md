@@ -1,8 +1,6 @@
 ---
-name: plugin-skill-development
 description: 插件技能开发指南 - 当用户需要为插件添加 Skills 时使用。覆盖插件技能目录结构、SKILL.md 编写、渐进披露模式和技能注册。
 context: fork
-agent: skill
 ---
 
 # 插件技能开发指南
@@ -22,7 +20,6 @@ skills/
 
 ```markdown
 ---
-name: skill-name
 description: 技能简短描述
 ---
 

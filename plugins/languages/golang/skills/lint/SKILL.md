@@ -1,5 +1,4 @@
 ---
-name: lint
 description: Go lint 规范：golangci-lint v2 配置（version "2" schema）、linter 启用/禁用规则、govulncheck 集成、CI 配置。配置或运行 lint 时必须加载。
 user-invocable: true
 context: fork

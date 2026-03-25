@@ -1,5 +1,4 @@
 ---
-name: memory
 description: C++ memory management -- smart pointers, RAII, custom deleters, scope guards, allocators. Load when managing resources or ownership.
 user-invocable: true
 context: fork

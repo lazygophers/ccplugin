@@ -1,5 +1,4 @@
 ---
-name: new-plugin
 description: 创建新插件 - 插件结构设计、manifest配置、组件创建、MCP集成、文档生成
 user-invocable: true
 context: fork

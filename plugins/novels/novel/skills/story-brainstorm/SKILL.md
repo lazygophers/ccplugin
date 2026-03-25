@@ -1,5 +1,4 @@
 ---
-name: story-brainstorm
 description: 故事构思技能 - 帮助构思故事主题、背景设定、核心冲突。当用户需要创作灵感、选择题材、构建世界观或设计故事前提时自动激活。
 context: fork
 ---

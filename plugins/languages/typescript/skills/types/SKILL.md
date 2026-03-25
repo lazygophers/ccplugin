@@ -1,5 +1,4 @@
 ---
-name: types
 description: TypeScript 类型系统规范：discriminated unions、const type params、模板字面量、Zod 4。设计类型时必须加载。
 user-invocable: true
 context: fork

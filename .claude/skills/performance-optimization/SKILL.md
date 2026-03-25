@@ -1,5 +1,4 @@
 ---
-name: performance-optimization
 description: 性能优化 - 性能瓶颈定位、优化策略、基准测试、性能监控
 user-invocable: false
 context: fork

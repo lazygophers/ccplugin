@@ -1,5 +1,4 @@
 ---
-name: concurrency
 description: Go 并发规范：go.uber.org/atomic 替代 sync/atomic、sync.Pool 复用对象、errgroup 管理 goroutine、context 最佳实践、Go 1.23 iter 迭代器。写并发代码时必须加载。
 user-invocable: true
 context: fork

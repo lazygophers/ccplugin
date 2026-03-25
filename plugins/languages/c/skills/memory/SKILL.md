@@ -1,5 +1,4 @@
 ---
-name: memory
 description: C 内存管理规范：安全分配模式、泄漏检测（Valgrind/ASan）、对齐、内存池、RAII-like 宏。管理内存时必须加载。
 user-invocable: true
 context: fork

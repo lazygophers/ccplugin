@@ -1,5 +1,4 @@
 ---
-name: ui
 description: Flutter UI 开发规范：Material 3、Cupertino 自适应、响应式布局、Impeller 渲染、动画最佳实践。开发 UI 时必须加载。
 user-invocable: true
 context: fork

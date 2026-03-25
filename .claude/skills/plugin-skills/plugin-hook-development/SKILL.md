@@ -1,8 +1,6 @@
 ---
-name: plugin-hook-development
 description: 插件钩子开发指南 - 当用户需要为插件添加事件驱动的钩子时使用。覆盖 hooks.json 配置、事件类型和脚本集成。先完成脚本开发。
 context: fork
-agent: hook
 ---
 
 # 插件钩子开发指南

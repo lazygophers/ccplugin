@@ -1,5 +1,4 @@
 ---
-name: agentic-retriever
 description: Agentic RAG智能检索器 - 动态检索策略+GraphRAG知识图谱，精度高达99%
 user-invocable: false
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: testing
 description: Python 测试框架和策略 - pytest 8.x、hypothesis 属性测试、pytest-asyncio。测试驱动开发的核心规范。
 user-invocable: true
 context: fork

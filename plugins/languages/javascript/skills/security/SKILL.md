@@ -1,5 +1,4 @@
 ---
-name: security
 description: JavaScript Web 安全规范：XSS 防护、CSP、CORS、Zod 运行时验证、依赖审计。处理安全问题时必须加载。
 user-invocable: true
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: libs
 description: Go 优先库规范：字符串用 stringx、集合用 candy（Map/Filter/Each）、文件用 osx、日志用 lazygophers/log、JSON 用 lazygophers/utils/json。Go 1.21+ 内置 min/max/clear。使用工具库时必须加载。
 user-invocable: true
 context: fork

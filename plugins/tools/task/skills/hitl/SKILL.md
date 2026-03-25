@@ -1,5 +1,4 @@
 ---
-agent: task:loop
 description: HITL 审批技能 - 在关键决策点插入人工审批，实现风险分级审批策略，满足 EU AI Act 2026 合规要求
 model: sonnet
 context: fork

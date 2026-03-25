@@ -1,5 +1,4 @@
 ---
-name: outline-management
 description: 大纲管理技能 - 提供小说大纲结构设计和管理方法。当用户需要规划小说整体结构、设计章节大纲、管理情节线索或布局伏笔时自动激活。
 context: fork
 ---

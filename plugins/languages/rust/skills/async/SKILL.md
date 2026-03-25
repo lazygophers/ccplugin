@@ -1,5 +1,4 @@
 ---
-name: async
 description: Rust 异步编程规范 - Tokio 1.x、async fn in traits、tower middleware、结构化并发。写异步代码时加载。
 user-invocable: true
 context: fork

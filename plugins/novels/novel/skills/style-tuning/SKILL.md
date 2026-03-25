@@ -1,5 +1,4 @@
 ---
-name: style-tuning
 description: 文风调整技能 - 提供不同文风的写作指导和调整方法。当用户需要调整叙事风格、切换语言风格、营造特定氛围或统一全文文风时自动激活。
 context: fork
 ---

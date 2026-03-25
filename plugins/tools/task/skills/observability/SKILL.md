@@ -1,5 +1,4 @@
 ---
-agent: task:loop
 description: 可观测性技能 - 实时收集性能指标、成本指标、质量指标，生成成本报告和优化建议
 model: sonnet
 context: fork

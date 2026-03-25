@@ -1,8 +1,6 @@
 ---
-name: plugin-lsp-development
 description: 插件 LSP 开发指南 - 当用户需要为插件配置语言服务器协议时使用。覆盖 .lsp.json 配置、服务器类型和集成方式。
 context: fork
-agent: lsp
 ---
 
 # 插件 LSP 开发指南

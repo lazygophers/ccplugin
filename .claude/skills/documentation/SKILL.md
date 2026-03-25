@@ -1,5 +1,4 @@
 ---
-name: documentation
 description: 文档生成 - README、API文档、代码注释、CHANGELOG、架构图
 user-invocable: false
 context: fork
@@ -392,7 +391,6 @@ max_retries = 3
 
 ```yaml
 # GitHub Actions - 自动生成文档
-name: Documentation
 on:
   push:
     branches: [main]

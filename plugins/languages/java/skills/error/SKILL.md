@@ -1,5 +1,4 @@
 ---
-name: error
 description: Java 错误处理规范 - sealed exception 层次结构、RFC 9457 Problem Details、Optional、SLF4J 结构化日志。处理错误时必须加载。
 user-invocable: true
 context: fork

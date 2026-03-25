@@ -1,8 +1,6 @@
 ---
-name: plugin-mcp-development
 description: 插件 MCP 开发指南 - 当用户需要为插件添加 Model Context Protocol 服务器时使用。覆盖 .mcp.json 配置、MCP 服务器类型和实现方式。
 context: fork
-agent: mcp
 ---
 
 # 插件 MCP 开发指南

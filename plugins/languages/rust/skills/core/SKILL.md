@@ -1,5 +1,4 @@
 ---
-name: core
 description: Rust 核心规范 - Rust 2024 edition、所有权系统、错误处理、工具链标准。所有 Rust 开发的基础规范。
 user-invocable: true
 context: fork

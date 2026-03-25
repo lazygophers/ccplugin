@@ -1,5 +1,4 @@
 ---
-name: deep-research
 description: 执行完整的深度研究工作流程 - Task-Centric任务驱动，DGoT核心优化，单次需求收集
 user-invocable: true
 context: fork

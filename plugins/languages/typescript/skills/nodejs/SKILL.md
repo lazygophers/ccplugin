@@ -1,5 +1,4 @@
 ---
-name: nodejs
 description: TypeScript Node.js 开发规范：Node.js 22 LTS、ESM、native fetch、fs/promises、native test runner。开发 Node.js 应用时必须加载。
 user-invocable: true
 context: fork

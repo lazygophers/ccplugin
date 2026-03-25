@@ -1,5 +1,4 @@
 ---
-name: dgot-engine
 description: DGoT动态图思维引擎 - 研究路径优化和动态资源分配，降低43-56%成本
 user-invocable: false
 context: fork

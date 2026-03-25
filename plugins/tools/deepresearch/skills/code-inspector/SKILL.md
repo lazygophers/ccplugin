@@ -1,5 +1,4 @@
 ---
-name: code-inspector
 description: 代码检查器 - 本地+GitHub统一代码分析接口，支持质量/债务/性能检测
 user-invocable: false
 context: fork

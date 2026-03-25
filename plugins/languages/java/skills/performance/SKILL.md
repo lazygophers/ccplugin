@@ -1,5 +1,4 @@
 ---
-name: performance
 description: Java 性能优化规范 - JFR、JMH 基准测试、ZGC/G1GC 调优、GraalVM Native Image、async-profiler。优化性能时必须加载。
 user-invocable: true
 context: fork

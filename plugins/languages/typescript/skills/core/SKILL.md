@@ -1,5 +1,4 @@
 ---
-name: core
 description: TypeScript 核心规范：TS 5.7+、strict mode、ESLint flat config、Biome、现代工具链。写任何 TypeScript 代码前必须加载。
 user-invocable: true
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: android
 description: Flutter Android 开发规范：Material 3 Expressive、Impeller 渲染、权限管理、性能优化。开发 Android 应用时必须加载。
 user-invocable: true
 context: fork

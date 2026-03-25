@@ -1,5 +1,4 @@
 ---
-name: security
 description: TypeScript 安全编码规范：CSP、Zod 输入验证、XSS 防护、依赖审计。处理安全问题时必须加载。
 user-invocable: true
 context: fork

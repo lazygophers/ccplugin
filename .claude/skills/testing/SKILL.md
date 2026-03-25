@@ -1,5 +1,4 @@
 ---
-name: testing
 description: 测试策略 - 测试类型选择、测试用例生成、覆盖率分析、测试框架集成
 user-invocable: false
 context: fork

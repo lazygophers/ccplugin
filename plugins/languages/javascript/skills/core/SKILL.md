@@ -1,5 +1,4 @@
 ---
-name: core
 description: JavaScript 核心规范：ES2024-2025 标准、ESM 模块、const/let、命名约定、Vite 6、ESLint 9 flat config。写任何 JavaScript 代码前必须加载。
 user-invocable: true
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: concurrency
 description: C 并发编程规范：C11 原子操作与内存序、C11/pthread 线程、互斥锁与条件变量、ThreadSanitizer。写并发代码时必须加载。
 user-invocable: true
 context: fork

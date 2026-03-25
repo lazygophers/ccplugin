@@ -1,5 +1,4 @@
 ---
-name: plugin-quality-check
 description: 插件质量检查工具 - 验证 AI 对优化后插件组件的理解准确性
 ---
 

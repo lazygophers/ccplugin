@@ -1,5 +1,4 @@
 ---
-name: performance
 description: C++ performance optimization -- cache-friendly layout, SIMD, zero-copy, compile-time computation, LTO/PGO. Load when optimizing hot paths.
 user-invocable: true
 context: fork

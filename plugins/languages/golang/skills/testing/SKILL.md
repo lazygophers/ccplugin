@@ -1,5 +1,4 @@
 ---
-name: testing
 description: Go 测试规范：表驱动测试（table-driven）、模糊测试（go test -fuzz，Go 1.18+）、基准测试（benchstat）、testify 断言、覆盖率 >= 90%。写测试时必须加载。
 user-invocable: true
 context: fork

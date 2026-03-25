@@ -1,5 +1,4 @@
 ---
-name: core
 description: C++ core conventions -- C++20/23 language features, mandatory coding standards, and modern idioms. Load before writing any C++ code.
 user-invocable: true
 context: fork

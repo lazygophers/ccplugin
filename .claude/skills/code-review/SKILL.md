@@ -1,5 +1,4 @@
 ---
-name: code-review
 description: 代码审查 - 质量检查、最佳实践验证、测试覆盖率分析，生成改进建议
 user-invocable: true
 context: fork

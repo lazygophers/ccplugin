@@ -1,5 +1,4 @@
 ---
-name: relationship-dynamics
 description: 感情线进展与互动设计技能 - 提供人物关系建立与发展、互动场景设计与铺垫、感情推进节奏控制等设计指导。当用户需要设计角色互动、感情线推进、关系变化或互动场景时自动激活。
 context: fork
 ---

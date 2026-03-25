@@ -1,5 +1,4 @@
 ---
-name: core
 description: Flutter 核心规范：Dart 3.x 特性、Flutter 3.x 工具链、命名约定、项目结构。写任何 Flutter 代码前必须加载。
 user-invocable: true
 context: fork

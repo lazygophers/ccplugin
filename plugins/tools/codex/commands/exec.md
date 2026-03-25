@@ -122,9 +122,9 @@ $$ARGUMENTS
 
 | Skill | 用途 | 必需性 |
 |------|------|--------|
-| `Skills(task:planning)` | 任务规划方法论 | 推荐 |
-| `Skills(task:execution)` | 任务执行最佳实践 | 推荐 |
-| `Skills(task:core)` | 任务管理核心规范 | 推荐 |
+| `Skills(task:planner)` | 任务规划方法论 | 推荐 |
+| `Skills(task:execute)` | 任务执行最佳实践 | 推荐 |
+| `Skills(task:loop)` | 任务管理核心规范 | 推荐 |
 
 ## 执行原则
 

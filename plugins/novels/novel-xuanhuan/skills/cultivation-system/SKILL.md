@@ -1,5 +1,4 @@
 ---
-name: cultivation-system
 description: 修炼体系设计技能 - 提供境界划分、突破条件、灵根资质、功法等级等修仙核心体系设计指导。当用户需要设计修炼境界、功法体系、灵根设定或突破机制时自动激活。
 context: fork
 ---

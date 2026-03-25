@@ -1,5 +1,4 @@
 ---
-name: concurrency
 description: C++ concurrency -- jthread, coroutines, atomics, latch/barrier, parallel algorithms. Load when writing concurrent or async code.
 user-invocable: true
 context: fork

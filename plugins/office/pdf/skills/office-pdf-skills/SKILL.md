@@ -1,5 +1,4 @@
 ---
-name: office-pdf-skills
 description: PDF 文件操作技能 - 提供 PDF 读取、文本提取、图片提取 MCP 工具
 user-invocable: true
 context: fork

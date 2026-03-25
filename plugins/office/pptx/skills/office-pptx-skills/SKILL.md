@@ -1,5 +1,4 @@
 ---
-name: office-pptx-skills
 description: PowerPoint pptx 文件操作技能 - 创建编辑演示文稿、管理幻灯片、插入内容、应用模板、格式转换、智能分析
 triggers:
   - powerpoint

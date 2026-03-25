@@ -1,5 +1,4 @@
 ---
-name: linq
 description: C# LINQ 规范 - .NET 8 新操作符、性能优化、EF Core query translation、Span 替代方案。使用 LINQ 或集合操作时必须加载。
 user-invocable: true
 context: fork

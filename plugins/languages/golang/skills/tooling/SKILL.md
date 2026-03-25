@@ -1,5 +1,4 @@
 ---
-name: tooling
 description: Go 工具链规范：gofmt、goimports、go mod、golangci-lint v2、govulncheck、delve debugger、go test -fuzz。运行工具时加载。
 user-invocable: true
 context: fork

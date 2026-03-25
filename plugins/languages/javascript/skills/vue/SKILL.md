@@ -1,5 +1,4 @@
 ---
-name: vue
 description: JavaScript Vue 3.5 开发规范：Composition API、Vapor mode、Pinia、Nuxt 4。开发 Vue 应用时必须加载。
 user-invocable: true
 context: fork

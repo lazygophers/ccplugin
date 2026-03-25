@@ -1,5 +1,4 @@
 ---
-name: macros
 description: Rust 宏开发规范 - 声明宏、derive 宏、proc-macro2 + syn 2.x + quote。开发宏时加载。
 user-invocable: true
 context: fork

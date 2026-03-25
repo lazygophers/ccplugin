@@ -1,5 +1,4 @@
 ---
-name: source-validator
 description: 来源验证器 - A-E级质量评分+链式验证，确保信息可信度
 user-invocable: false
 context: fork

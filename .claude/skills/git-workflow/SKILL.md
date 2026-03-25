@@ -1,5 +1,4 @@
 ---
-name: git-workflow
 description: Git工作流 - 分支管理、Commit规范、PR流程、合并策略、版本发布
 user-invocable: true
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: unsafe
 description: Rust Unsafe 规范 - 最小化 unsafe、MIRI 验证、FFI、safety comments。写 unsafe 代码或 FFI 时加载。
 user-invocable: true
 context: fork

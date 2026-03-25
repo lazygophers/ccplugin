@@ -1,5 +1,4 @@
 ---
-name: web
 description: C# Web 开发规范 - ASP.NET Core 8 Minimal APIs、native AOT、Blazor SSR + Streaming、rate limiting、output caching。开发 Web 应用时必须加载。
 user-invocable: true
 context: fork

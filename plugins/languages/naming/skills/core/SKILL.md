@@ -1,5 +1,4 @@
 ---
-name: core
 description: 跨语言命名规范 - 清晰性、一致性、可读性。适用于所有编程语言的变量/函数/类型命名。
 user-invocable: true
 context: fork

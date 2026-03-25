@@ -1,5 +1,4 @@
 ---
-name: core
 description: C 核心规范：C11/C17/C23 标准特性、强制编码约定、构建系统和静态分析。写任何 C 代码前必须加载。
 user-invocable: true
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: character-design
 description: 角色设定技能 - 提供角色性格、背景故事、成长弧线设计指导。当用户需要创建主角、配角、反派或设计角色关系网络时自动激活。
 context: fork
 ---

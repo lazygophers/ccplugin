@@ -1,5 +1,4 @@
 ---
-name: template
 description: C++ template programming -- concepts, CTAD, fold expressions, constexpr/consteval, variable templates. Load when writing generic code.
 user-invocable: true
 context: fork

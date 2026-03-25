@@ -1,5 +1,4 @@
 ---
-name: async
 description: Python 异步编程模式 - asyncio、trio、httpx、结构化并发。I/O 密集型操作的最佳实践。
 user-invocable: true
 context: fork

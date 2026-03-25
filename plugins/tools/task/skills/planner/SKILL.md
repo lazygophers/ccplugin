@@ -1,5 +1,4 @@
 ---
-agent: task:planner
 description: 计划设计规范 - 收集项目信息、任务分解、依赖建模、agents/skills 分配的执行规范
 model: opus
 context: fork

@@ -1,5 +1,4 @@
 ---
-name: core
 description: C# 核心规范 - C# 12/.NET 8 标准、nullable、primary constructors、collection expressions、Roslyn analyzers。所有 C# 开发的基础规范。
 user-invocable: true
 context: fork

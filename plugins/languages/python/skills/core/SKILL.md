@@ -1,5 +1,4 @@
 ---
-name: core
 description: Python 核心规范 - PEP 8、现代工具链（uv、ruff）、命名规范、代码格式。所有 Python 开发的基础规范。
 user-invocable: true
 context: fork

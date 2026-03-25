@@ -1,5 +1,4 @@
 ---
-name: knowledge-synthesizer
 description: 知识合成器 - 多源整合+8种输出格式，适配不同受众和场景
 user-invocable: false
 context: fork

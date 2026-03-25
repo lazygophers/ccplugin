@@ -1,5 +1,4 @@
 ---
-name: political-intrigue
 description: 权谋设计技能 - 提供宫廷斗争、朝堂博弈、派系对立、阴谋布局等设计指导。当用户需要设计政治阴谋、权力斗争、派系博弈或宫廷权术时自动激活。
 context: fork
 ---

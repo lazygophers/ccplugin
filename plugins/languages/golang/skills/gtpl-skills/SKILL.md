@@ -1,5 +1,4 @@
 ---
-name: gtpl-skills
 description: Go 模板(Golang Template)开发规范 - text/template 和 html/template 最佳实践，包括安全性、性能优化（预编译缓存）、Go 1.22+ embed 集成、常见错误模式。
 user-invocable: true
 context: fork

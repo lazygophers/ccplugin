@@ -1,5 +1,4 @@
 ---
-name: concurrency
 description: Java 并发编程规范 - Virtual Threads、Structured Concurrency、ScopedValues、CompletableFuture。写并发代码时必须加载。
 user-invocable: true
 context: fork

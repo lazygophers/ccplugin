@@ -28,7 +28,8 @@
     "./agents/verifier.md",
     "./agents/adjuster.md",
     "./agents/planner.md",
-    "./agents/plan-formatter.md"
+    "./agents/plan-formatter.md",
+    "./agents/execute.md"
   ],
   "skills": "./skills/",
   "hooks": {

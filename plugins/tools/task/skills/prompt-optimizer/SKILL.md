@@ -1,5 +1,4 @@
 ---
-agent: task:prompt-optimizer
 description: 提示词优化规范 - 评估质量、识别模糊点、结构化提问、生成优化提示词
 model: sonnet
 context: fork
