@@ -13,7 +13,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin-office-pptx"
-version = "0.0.181"
+version = "0.0.182"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -69,8 +69,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.181"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#51817fa14560f91e84ff38a610b666dd43dd3659" }
+version = "0.0.182"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#b407489487aada71af7660816ec8c75f9cc87395" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },

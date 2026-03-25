@@ -583,11 +583,11 @@ wheels = [
 
 [[package]]
 name = "confection"
-version = "1.3.2"
+version = "1.3.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/67/cc/00afea872926e943282c8bc9f91d92fd8dfba6cccd33515bf012aeab6448/confection-1.3.2.tar.gz", hash = "sha256:6590efa4e6ee5465ead06f563ae147a6c8059f42852427aa436744951caf8839", size = 54353, upload-time = "2026-03-23T08:34:58.741Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/65/efd0fe8a936fc8ca2978cb7b82581fb20d901c6039e746a808f746b7647b/confection-1.3.3.tar.gz", hash = "sha256:f0f6810d567ff73993fe74d218ca5e1ffb6a44fb03f391257fc5d033546cbfaa", size = 54895, upload-time = "2026-03-24T18:45:24.331Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/92/57/eb1126a93fbc55599eba5445ec7224f9f46377c9d5c7e3d6ab6a56a60399/confection-1.3.2-py3-none-any.whl", hash = "sha256:92272c41baba5bbfd00aa13321f3b7392e4af47bd915121791318eda1ab7678a", size = 35760, upload-time = "2026-03-23T08:34:57.384Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/e4/d66708bdf0d92fb4d49b22cdff4b10cec38aca5dcd7e81d909bb55c65cd7/confection-1.3.3-py3-none-any.whl", hash = "sha256:b9fef9ee84b237ef4611ec3eb5797b70e13063e6310ad9f15536373f5e313c82", size = 35902, upload-time = "2026-03-24T18:45:22.664Z" },
 ]
 
 [[package]]
@@ -703,10 +703,10 @@ wheels = [
 
 [[package]]
 name = "cuda-pathfinder"
-version = "1.4.4"
+version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/66/7b2c3d23dac4bb9629b4d9702f1f796bd41c01142c2b47be6fcfdeaf4ee4/cuda_pathfinder-1.4.4-py3-none-any.whl", hash = "sha256:1a9e7feccae0d969ad88545d0462f2ed2750df8e6732309798dc1e1ca603a28b", size = 48834, upload-time = "2026-03-23T20:50:00.706Z" },
+    { url = "https://files.pythonhosted.org/packages/93/66/0c02bd330e7d976f83fa68583d6198d76f23581bcbb5c0e98a6148f326e5/cuda_pathfinder-1.5.0-py3-none-any.whl", hash = "sha256:498f90a9e9de36044a7924742aecce11c50c49f735f1bc53e05aa46de9ea4110", size = 49739, upload-time = "2026-03-24T21:14:30.869Z" },
 ]
 
 [[package]]
@@ -1519,8 +1519,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.181"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#51817fa14560f91e84ff38a610b666dd43dd3659" }
+version = "0.0.182"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#b407489487aada71af7660816ec8c75f9cc87395" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },
