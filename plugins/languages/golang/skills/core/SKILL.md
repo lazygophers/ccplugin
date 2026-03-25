@@ -1,6 +1,6 @@
 ---
 name: core
-description: Go 开发核心规范：强制约定、代码格式、提交检查清单。写任何 Go 代码前必须加载。
+description: Go 1.23+ 核心开发规范：强制约定、代码格式、Go 新特性（range-over-func, slog, min/max/clear）、提交检查清单。写任何 Go 代码前必须加载。
 user-invocable: true
 context: fork
 model: sonnet
@@ -9,18 +9,25 @@ memory: project
 
 # Go 开发核心规范
 
+## 适用 Agents
+
+- **dev** - 开发专家（主要使用者）
+- **debug** - 调试专家
+- **test** - 测试专家
+- **perf** - 性能优化专家
+
 ## 相关 Skills
 
-| 场景           | Skill                   | 说明                                        |
-| -------------- | ----------------------- | ------------------------------------------- |
+| 场景           | Skill                      | 说明                                        |
+| -------------- | -------------------------- | ------------------------------------------- |
 | 处理错误       | Skills(golang:error)       | 错误处理规范：禁止单行 if err、必须记录日志 |
 | 使用工具库     | Skills(golang:libs)        | 优先库规范：stringx/candy/osx/log           |
 | 命名变量/类型  | Skills(golang:naming)      | 命名规范：Id/Uid/IsActive/CreatedAt         |
 | 设计架构       | Skills(golang:structure)   | 项目结构规范：三层架构、全局状态模式        |
-| 写测试         | Skills(golang:testing)     | 测试规范：单元测试、表驱动测试              |
-| 写并发代码     | Skills(golang:concurrency) | 并发规范：atomic/sync.Pool/errgroup         |
-| 配置/运行 lint | Skills(golang:lint)        | Lint 规范：golangci-lint 配置               |
-| 运行工具       | Skills(golang:tooling)     | 工具规范：gofmt/goimports/go mod            |
+| 写测试         | Skills(golang:testing)     | 测试规范：表驱动测试、模糊测试              |
+| 写并发代码     | Skills(golang:concurrency) | 并发规范：atomic/sync.Pool/errgroup/iter    |
+| 配置/运行 lint | Skills(golang:lint)        | Lint 规范：golangci-lint v2 配置            |
+| 运行工具       | Skills(golang:tooling)     | 工具规范：gofmt/goimports/govulncheck       |
 
 ## 核心理念
 
@@ -34,8 +41,58 @@ Go 生态追求**高性能、低分配、简洁优雅**。
 
 ## 版本与环境
 
-- **Go 版本**：1.25+ 推荐
-- **依赖管理**：go.mod
+- **Go 版本**：1.23+ 推荐
+- **依赖管理**：go.mod（支持 workspace）
+- **工具链管理**：Go 1.23 内置 toolchain 指令
+
+## Go 1.21-1.23 关键新特性
+
+### Go 1.21（slog、内置函数）
+```go
+// 结构化日志（标准库）
+import "log/slog"
+slog.Info("user registered", "username", name, "email", email)
+
+// 内置 min/max/clear
+m := min(a, b)
+M := max(a, b)
+clear(mySlice) // 清空 slice
+clear(myMap)   // 清空 map
+```
+
+### Go 1.22（for-range integer、增强路由）
+```go
+// for-range 整数
+for i := range 10 {
+    fmt.Println(i) // 0..9
+}
+
+// net/http 增强路由模式
+mux.HandleFunc("GET /api/users/{id}", getUser)
+mux.HandleFunc("POST /api/users", createUser)
+```
+
+### Go 1.23（range-over-func、iter 包）
+```go
+// range-over-func 迭代器
+import "maps"
+import "slices"
+
+for k, v := range maps.All(m) {
+    fmt.Println(k, v)
+}
+
+for i, v := range slices.All(s) {
+    fmt.Println(i, v)
+}
+
+// 自定义迭代器
+func (t *Tree[V]) All() iter.Seq2[string, V] {
+    return func(yield func(string, V) bool) {
+        // ...
+    }
+}
+```
 
 ## 强制规范
 
@@ -44,7 +101,6 @@ Go 生态追求**高性能、低分配、简洁优雅**。
 - 所有 error 必须记录日志（禁止单行 if）
 - 使用全局 State 模式而非 Repository 接口
 - 严禁直接返回函数结果而不处理错误
-- 严禁使用 `context.Context`
 - API Handler 仅做 HTTP 适配，逻辑委托给 Service 层
 
 ### 禁止行为
@@ -68,15 +124,18 @@ goimports -w .
 
 ```go
 import (
+    // 标准库
     "context"
     "fmt"
     "os"
     "time"
 
+    // 第三方库
     "github.com/gofiber/fiber/v2"
     "github.com/lazygophers/log"
     "gorm.io/gorm"
 
+    // 项目内部
     "github.com/username/project/internal/state"
     "github.com/username/project/internal/impl"
 )
@@ -87,16 +146,11 @@ import (
 ```go
 package main
 
-import (
-)
+import ()
 
-const (
-    MaxRetries = 3
-)
+const ()
 
-var (
-    globalVar int
-)
+var ()
 
 type MyType struct {}
 
@@ -110,6 +164,7 @@ func main() {}
 ### 导出类型必须有注释
 
 ```go
+// User 表示系统用户
 type User struct {
     Id        int64
     Email     string
@@ -121,19 +176,20 @@ type User struct {
 ### 导出函数必须有注释
 
 ```go
-func UserLogin(req *LoginReq) (*User, error) {
-}
+// UserLogin 处理用户登录逻辑
+func UserLogin(req *LoginReq) (*User, error) {}
 ```
 
-### 注释说明"是什么"和"为什么"
+## Red Flags
 
-```go
-var bufferPool = sync.Pool{
-    New: func() interface{} {
-        return new(bytes.Buffer)
-    },
-}
-```
+| AI 可能的理性化解释 | 实际应该检查的内容 | 严重程度 |
+|---------------------|-------------------|---------|
+| "单行 if err 更简洁" | 是否所有 error 都多行处理？ | 高 |
+| "for 循环更直观" | 是否使用 candy 库操作集合？ | 高 |
+| "fmt.Errorf 能加上下文" | 是否禁止包装错误，直接返回原始？ | 高 |
+| "Go 1.18 泛型就够了" | 是否使用了 Go 1.23 新特性（iter、min/max）？ | 低 |
+| "Repository 接口更灵活" | 是否使用全局 State 模式？ | 高 |
+| "导出函数不用注释" | 是否所有导出类型/函数有注释？ | 中 |
 
 ## 提交前检查清单
 
@@ -146,3 +202,4 @@ var bufferPool = sync.Pool{
 - [ ] 代码已通过 gofmt 和 goimports
 - [ ] 代码已通过 golangci-lint
 - [ ] 所有导出类型和函数有注释
+- [ ] 使用了适当的 Go 1.21+ 新特性
