@@ -1,115 +1,159 @@
 ---
 name: memory
-description: C++ 内存管理规范：智能指针、RAII、内存池、自定义分配器。管理内存时必须加载。
+description: C++ memory management -- smart pointers, RAII, custom deleters, scope guards, allocators. Load when managing resources or ownership.
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# C++ 内存管理规范
+# C++ Memory Management (Modern RAII)
 
-## 相关 Skills
+## Applicable Agents
 
-| 场景     | Skill               | 说明                    |
-| -------- | ------------------- | ----------------------- |
-| 核心规范 | Skills(core)        | C++17/23 标准、强制约定 |
-| 并发编程 | Skills(concurrency) | 线程安全内存管理        |
+| Agent | When |
+|---|---|
+| Skills(cpp:dev) | Resource ownership design |
+| Skills(cpp:debug) | Memory bug diagnosis |
+| Skills(cpp:perf) | Allocation optimization |
 
-## RAII 原则
+## Related Skills
+
+| Scenario | Skill | Description |
+|---|---|---|
+| Core | Skills(cpp:core) | C++20/23 standards |
+| Concurrency | Skills(cpp:concurrency) | Thread-safe memory |
+| Performance | Skills(cpp:performance) | Allocation optimization |
+
+## Ownership Model
+
+```
+unique_ptr  -- exclusive ownership (default choice)
+shared_ptr  -- shared ownership (use sparingly)
+weak_ptr    -- break cycles, observer pattern
+raw pointer -- non-owning reference only (never owns)
+std::span   -- non-owning view of contiguous memory
+```
+
+## Smart Pointers
+
+### std::unique_ptr (default)
 
 ```cpp
-class ResourceManager {
-    std::unique_ptr<FILE, decltype(&fclose)> file;
-    std::unique_ptr<char[], decltype(&std::free)> buffer;
-    std::mutex mtx;
+// Construction
+auto widget = std::make_unique<Widget>(args...);
 
-public:
-    ResourceManager(const char* path)
-        : file(fopen(path, "r"), &fclose)
-        , buffer(static_cast<char*>(std::malloc(1024)), &std::free)
-    {
-        if (!file) throw std::runtime_error("Failed to open file");
+// Custom deleter (C interop)
+auto file = std::unique_ptr<FILE, decltype(&fclose)>(fopen("data.txt", "r"), &fclose);
+
+// Transfer ownership
+auto moved = std::move(widget);
+
+// Factory pattern
+std::unique_ptr<Base> create(Type t) {
+    switch (t) {
+        case Type::A: return std::make_unique<DerivedA>();
+        case Type::B: return std::make_unique<DerivedB>();
     }
+}
+```
 
-    void process() {
-        std::lock_guard lock(mtx);
+### std::shared_ptr (when shared)
+
+```cpp
+auto shared = std::make_shared<Resource>(args...);  // single allocation
+
+// Aliasing constructor -- share ownership, point to member
+auto member = std::shared_ptr<Member>(shared, &shared->member);
+
+// Enable shared_from_this
+class Session : public std::enable_shared_from_this<Session> {
+    void start() {
+        auto self = shared_from_this();
+        async_op([self](auto result) { self->handle(result); });
     }
 };
 ```
 
-## 智能指针
-
-### std::unique_ptr
-
-```cpp
-auto ptr1 = std::make_unique<MyClass>(args);
-std::unique_ptr<FILE, decltype(&fclose)> file(fopen("test.txt", "w"), &fclose);
-std::unique_ptr<MyClass> ptr3 = std::move(ptr1);
-```
-
-### std::shared_ptr
-
-```cpp
-auto shared1 = std::make_shared<MyClass>(args);
-std::cout << shared1.use_count() << "\n";
-auto shared3 = shared1;
-```
-
-### std::weak_ptr
+### std::weak_ptr (break cycles)
 
 ```cpp
 class Node {
     std::shared_ptr<Node> next;
-    std::weak_ptr<Node> prev;
-};
+    std::weak_ptr<Node> parent;  // break cycle
 
-if (auto shared = weak_ptr.lock()) {
+    void access_parent() {
+        if (auto p = parent.lock()) {
+            p->notify();
+        }
+    }
+};
+```
+
+## Scope Guards
+
+```cpp
+// C++23 std::scope_exit / boost::scope_exit
+auto guard = std::scope_exit([&] { cleanup(); });
+
+// Manual scope guard (pre-C++23)
+template<typename F>
+class ScopeGuard {
+    F fn;
+    bool active = true;
+public:
+    explicit ScopeGuard(F f) : fn(std::move(f)) {}
+    ~ScopeGuard() { if (active) fn(); }
+    void dismiss() { active = false; }
+    ScopeGuard(ScopeGuard&& o) noexcept : fn(std::move(o.fn)), active(o.active) { o.active = false; }
+};
+```
+
+## RAII Wrapper for C APIs
+
+```cpp
+// Generic RAII wrapper using unique_ptr + custom deleter
+template<typename T, auto Deleter>
+using CResource = std::unique_ptr<T, decltype([](T* p) { Deleter(p); })>;
+
+// Usage
+using FileHandle = CResource<FILE, fclose>;
+using SqliteDB = CResource<sqlite3, sqlite3_close>;
+
+FileHandle open_file(const char* path) {
+    return FileHandle(fopen(path, "r"));
 }
 ```
 
-## STL 容器选择
+## Container Selection
 
-| 容器               | 时间复杂度                   | 适用场景     |
-| ------------------ | ---------------------------- | ------------ |
-| std::vector        | 末尾 O(1)，随机访问 O(1)     | 默认选择     |
-| std::deque         | 两端 O(1)，随机访问 O(1)     | 两端插入     |
-| std::list          | 任意位置 O(1)，随机访问 O(n) | 频繁中间插入 |
-| std::set           | 插入/查找/删除 O(log n)      | 有序、唯一   |
-| std::unordered_set | 插入/查找/删除 O(1) 平均     | 无序、唯一   |
-| std::map           | 插入/查找/删除 O(log n)      | 键值对、有序 |
-| std::unordered_map | 插入/查找/删除 O(1) 平均     | 键值对、无序 |
+| Need | Container | Why |
+|---|---|---|
+| Default | `std::vector<T>` | Cache-friendly, contiguous |
+| Fixed size | `std::array<T, N>` | Stack-allocated, no overhead |
+| Key-value (ordered) | `std::map<K, V>` | O(log n) |
+| Key-value (fast) | `std::unordered_map<K, V>` | O(1) average |
+| Key-value (cache) | `std::flat_map<K, V>` (C++23) | Contiguous storage |
+| Queue | `std::deque<T>` | O(1) both ends |
+| Non-owning view | `std::span<T>` | Zero-cost view |
 
-## 内存池
+## Red Flags
 
-```cpp
-template<typename T>
-class ObjectPool {
-    std::vector<std::unique_ptr<T>> pool_;
-    std::vector<T*> available_;
+| Rationalization | Actual Check |
+|---|---|
+| "Raw pointer is fine" | Is ownership expressed by smart pointer? |
+| "new/delete is clearer" | Use make_unique/make_shared |
+| "shared_ptr everywhere" | Is unique_ptr sufficient? |
+| "No need for scope guard" | Is cleanup guaranteed on all paths? |
+| "Manual free is ok" | Use RAII wrapper for C APIs |
 
-public:
-    template<typename... Args>
-    T* acquire(Args&&... args) {
-        if (available_.empty()) {
-            pool_.push_back(std::make_unique<T>(std::forward<Args>(args)...));
-            available_.push_back(pool_.back().get());
-        }
-        T* obj = available_.back();
-        available_.pop_back();
-        return obj;
-    }
+## Checklist
 
-    void release(T* obj) {
-        available_.push_back(obj);
-    }
-};
-```
-
-## 检查清单
-
-- [ ] 使用智能指针管理资源
-- [ ] 使用 std::make_unique/make_shared
-- [ ] 循环引用使用 weak_ptr
-- [ ] 容器预分配 reserve
-- [ ] 无内存泄漏
+- [ ] Every owning resource uses RAII (smart pointer or scope guard)
+- [ ] std::unique_ptr is the default; std::shared_ptr only when shared
+- [ ] Cycles broken with std::weak_ptr
+- [ ] C APIs wrapped with custom-deleter unique_ptr
+- [ ] Containers use reserve() when size is known
+- [ ] Non-owning access via raw pointer, std::span, or std::string_view
+- [ ] No raw new/delete, no malloc/free
+- [ ] No memory leaks (verified by ASan/Valgrind)

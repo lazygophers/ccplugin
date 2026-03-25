@@ -1,33 +1,76 @@
 ---
 name: performance
-description: C++ 性能优化规范：Cache优化、SIMD、编译器优化、内存分配优化。优化性能时必须加载。
+description: C++ performance optimization -- cache-friendly layout, SIMD, zero-copy, compile-time computation, LTO/PGO. Load when optimizing hot paths.
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# C++ 性能优化规范
+# C++ Performance Optimization (2024-2025)
 
-## 相关 Skills
+## Applicable Agents
 
-| 场景     | Skill          | 说明                    |
-| -------- | -------------- | ----------------------- |
-| 核心规范 | Skills(core)   | C++17/23 标准、强制约定 |
-| 内存管理 | Skills(memory) | 内存池、自定义分配器    |
+| Agent | When |
+|---|---|
+| Skills(cpp:dev) | Performance-aware design |
+| Skills(cpp:perf) | Dedicated optimization |
 
-## Cache 优化
+## Related Skills
 
-### 分块算法
+| Scenario | Skill | Description |
+|---|---|---|
+| Core | Skills(cpp:core) | C++20/23 features for perf |
+| Memory | Skills(cpp:memory) | Allocators, pools |
+| Concurrency | Skills(cpp:concurrency) | Parallel algorithms |
+| Tooling | Skills(cpp:tooling) | Profiling tools, LTO/PGO |
+
+## Optimization Priority (Amdahl's Law)
+
+1. **Algorithm** -- reduce complexity class (O(n^2) -> O(n log n))
+2. **Data layout** -- cache-friendly, SoA, contiguous
+3. **Compile-time** -- constexpr, consteval, if consteval
+4. **Parallelism** -- execution policies, coroutines
+5. **Micro** -- SIMD, branch hints, prefetch (last resort)
+
+## Cache-Friendly Data Layout
+
+### SoA (Structure of Arrays) for hot loops
 
 ```cpp
-void transpose_blocked(int n, double A[n][n], double B[n][n]) {
-    constexpr int BLOCK = 32;
-    for (int ii = 0; ii < n; ii += BLOCK) {
-        for (int jj = 0; jj < n; jj += BLOCK) {
-            for (int i = ii; i < std::min(ii + BLOCK, n); ++i) {
-                for (int j = jj; j < std::min(jj + BLOCK, n); ++j) {
-                    B[j][i] = A[i][j];
+// AoS: cache-unfriendly for position-only iteration
+struct ParticleAoS { float x, y, z, vx, vy, vz, mass, charge; };
+std::vector<ParticleAoS> particles;  // iterating x,y,z loads unused fields
+
+// SoA: cache-friendly
+struct Particles {
+    std::vector<float> x, y, z;
+    std::vector<float> vx, vy, vz;
+    std::vector<float> mass, charge;
+
+    void update_positions(float dt) {
+        const size_t n = x.size();
+        for (size_t i = 0; i < n; ++i) {
+            x[i] += vx[i] * dt;
+            y[i] += vy[i] * dt;
+            z[i] += vz[i] * dt;
+        }
+    }
+};
+```
+
+### Cache blocking
+
+```cpp
+template<size_t BLOCK = 64>
+void blocked_transpose(std::mdspan<const float, std::dextents<size_t, 2>> A,
+                        std::mdspan<float, std::dextents<size_t, 2>> B) {
+    const size_t n = A.extent(0);
+    for (size_t ii = 0; ii < n; ii += BLOCK) {
+        for (size_t jj = 0; jj < n; jj += BLOCK) {
+            for (size_t i = ii; i < std::min(ii + BLOCK, n); ++i) {
+                for (size_t j = jj; j < std::min(jj + BLOCK, n); ++j) {
+                    B[j, i] = A[i, j];
                 }
             }
         }
@@ -35,112 +78,173 @@ void transpose_blocked(int n, double A[n][n], double B[n][n]) {
 }
 ```
 
-### Data-oriented Design
+## Zero-Copy Patterns
 
 ```cpp
-struct ParticleDOD {
-    std::vector<float> x, y, z;
-    std::vector<float> vx, vy, vz;
-};
+// std::span: non-owning view of contiguous data
+void process(std::span<const float> data);
+void modify(std::span<float> data);
 
-void update_dod(ParticleDOD& particles) {
-    size_t n = particles.x.size();
-    for (size_t i = 0; i < n; ++i) {
-        particles.x[i] += particles.vx[i];
-        particles.y[i] += particles.vy[i];
-        particles.z[i] += particles.vz[i];
+// std::string_view: non-owning string view
+void parse(std::string_view input);
+
+// Move semantics: transfer ownership, no copy
+std::vector<Data> produce() {
+    std::vector<Data> result;
+    // ... fill result ...
+    return result;  // NRVO: no copy, no move
+}
+
+// std::mdspan: multi-dimensional non-owning view (C++23)
+void process_matrix(std::mdspan<float, std::dextents<size_t, 2>> mat);
+```
+
+## Compile-Time Computation
+
+```cpp
+// constexpr: evaluated at compile-time when possible
+constexpr auto lookup_table = [] {
+    std::array<int, 256> table{};
+    for (int i = 0; i < 256; ++i) {
+        table[i] = /* compute */;
+    }
+    return table;
+}();
+
+// consteval: must be compile-time (C++20)
+consteval int compile_hash(std::string_view s) {
+    unsigned hash = 0;
+    for (char c : s) hash = hash * 31 + static_cast<unsigned>(c);
+    return static_cast<int>(hash);
+}
+
+// if consteval: dual path (C++23)
+constexpr double fast_sqrt(double x) {
+    if consteval {
+        // compile-time: use precise algorithm
+        return precise_sqrt(x);
+    } else {
+        // runtime: use hardware sqrt
+        return __builtin_sqrt(x);
     }
 }
 ```
 
-## SIMD 优化
+## SIMD Optimization
+
+### Compiler auto-vectorization
+
+```cpp
+// Help the compiler vectorize
+void add_arrays(float* __restrict out,
+                const float* __restrict a,
+                const float* __restrict b,
+                size_t n) {
+    #pragma omp simd
+    for (size_t i = 0; i < n; ++i) {
+        out[i] = a[i] + b[i];
+    }
+}
+```
+
+### Manual intrinsics (when auto-vectorization fails)
 
 ```cpp
 #include <immintrin.h>
 
-void vector_add_avx2(const float* a, const float* b, float* result, size_t n) {
+void dot_product_avx2(const float* a, const float* b, size_t n, float& result) {
+    __m256 sum = _mm256_setzero_ps();
     size_t i = 0;
-    constexpr size_t SIMD_WIDTH = 8;
-
-    for (; i + SIMD_WIDTH <= n; i += SIMD_WIDTH) {
+    for (; i + 8 <= n; i += 8) {
         __m256 va = _mm256_loadu_ps(a + i);
         __m256 vb = _mm256_loadu_ps(b + i);
-        __m256 vr = _mm256_add_ps(va, vb);
-        _mm256_storeu_ps(result + i, vr);
+        sum = _mm256_fmadd_ps(va, vb, sum);  // fused multiply-add
     }
-
-    for (; i < n; ++i) {
-        result[i] = a[i] + b[i];
-    }
+    // Horizontal sum
+    __m128 hi = _mm256_extractf128_ps(sum, 1);
+    __m128 lo = _mm256_castps256_ps128(sum);
+    __m128 s = _mm_add_ps(lo, hi);
+    s = _mm_hadd_ps(s, s);
+    s = _mm_hadd_ps(s, s);
+    result = _mm_cvtss_f32(s);
+    // Scalar tail
+    for (; i < n; ++i) result += a[i] * b[i];
 }
 ```
 
-## 编译器优化
-
-### 分支预测
+## Compiler Optimization Hints
 
 ```cpp
-bool process_data(int value) {
-    if (value > 0) [[likely]] {
-        return true;
-    } else [[unlikely]] {
-        return false;
-    }
-}
-```
+// Branch prediction
+if (condition) [[likely]] { fast_path(); }
+else [[unlikely]] { slow_path(); }
 
-### LTO 和 PGO
+// Assume (C++23)
+[[assume(x > 0)]];  // compiler can optimize based on this
 
-```cmake
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-```
-
-```bash
-g++ -fprofile-generate -O2 source.cpp -o app
-./app
-g++ -fprofile-use -O3 source.cpp -o app_optimized
-```
-
-## 内存分配优化
-
-```cpp
-class BumpAllocator {
-    void* memory_;
-    size_t capacity_;
-    size_t offset_;
-
-public:
-    BumpAllocator(size_t capacity) : capacity_(capacity), offset_(0) {
-        memory_ = std::malloc(capacity_);
-    }
-
-    template<typename T>
-    T* allocate(size_t n = 1) {
-        size_t size = sizeof(T) * n;
-        size_t aligned = (offset_ + alignof(T) - 1) & ~(alignof(T) - 1);
-        T* ptr = static_cast<T*>(static_cast<char*>(memory_) + aligned);
-        offset_ = aligned + size;
-        return ptr;
-    }
-
-    void reset() { offset_ = 0; }
+// No unique address (C++20) -- compress empty members
+struct Optimized {
+    [[no_unique_address]] Allocator alloc;
+    Data data;
 };
 ```
 
-## 性能分析工具
+## LTO and PGO
 
-```bash
-perf record -g ./application
-perf report
+```cmake
+# LTO (Link-Time Optimization)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-valgrind --tool=cachegrind ./application
+# PGO (Profile-Guided Optimization)
+# Step 1: instrument
+set(CMAKE_CXX_FLAGS "-fprofile-generate=${CMAKE_BINARY_DIR}/profiles")
+# Step 2: run representative workload
+# Step 3: optimize
+set(CMAKE_CXX_FLAGS "-fprofile-use=${CMAKE_BINARY_DIR}/profiles")
 ```
 
-## 检查清单
+## Avoid False Sharing
 
-- [ ] 使用分块算法优化 Cache
-- [ ] 使用 DOD 设计数据布局
-- [ ] 使用 SIMD 加速计算
-- [ ] 使用 [[likely]]/[[unlikely]] 优化分支
-- [ ] 开启 LTO 优化
-- [ ] 使用性能分析工具验证
+```cpp
+struct alignas(std::hardware_destructive_interference_size) PaddedCounter {
+    std::atomic<int64_t> value{0};
+};
+
+// Thread-local counters for high contention
+thread_local int64_t local_count = 0;
+std::atomic<int64_t> global_count{0};
+
+void count() {
+    ++local_count;
+    if (local_count >= 1024) {
+        global_count.fetch_add(local_count, std::memory_order_relaxed);
+        local_count = 0;
+    }
+}
+```
+
+## Red Flags
+
+| Rationalization | Actual Check |
+|---|---|
+| "Optimize first, profile later" | Profile first, optimize the measured hotspot |
+| "AoS is simpler" | Use SoA for cache-hot loops |
+| "Copy is fine" | Use span/string_view for non-owning access |
+| "Runtime is ok" | Use constexpr/consteval where possible |
+| "SIMD everywhere" | Only use SIMD after confirming auto-vectorization fails |
+| "Single thread is enough" | Use parallel execution policies for large data |
+| "Don't need LTO" | Enable LTO for release builds |
+
+## Checklist
+
+- [ ] Profiled before optimizing (perf record, cachegrind)
+- [ ] Baseline benchmarks established (Google Benchmark)
+- [ ] SoA layout for cache-hot data
+- [ ] Zero-copy with std::span, string_view, move semantics
+- [ ] constexpr/consteval for compile-time computation
+- [ ] Parallel execution policies for large data sets
+- [ ] LTO enabled for release builds
+- [ ] PGO considered for critical applications
+- [ ] False sharing avoided (alignas + hardware_destructive_interference_size)
+- [ ] SIMD only where auto-vectorization confirmed insufficient
+- [ ] Before/after benchmarks with statistical validation

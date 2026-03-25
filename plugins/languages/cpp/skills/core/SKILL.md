@@ -1,84 +1,101 @@
 ---
 name: core
-description: C++ 开发核心规范：C++17/23 标准、强制约定、代码格式。写任何 C++ 代码前必须加载。
+description: C++ core conventions -- C++20/23 language features, mandatory coding standards, and modern idioms. Load before writing any C++ code.
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# C++ 开发核心规范
+# C++ Core Conventions (C++20/23)
 
-## 相关 Skills
+## Applicable Agents
 
-| 场景     | Skill               | 说明                   |
-| -------- | ------------------- | ---------------------- |
-| 内存管理 | Skills(memory)      | 智能指针、RAII、内存池 |
-| 并发编程 | Skills(concurrency) | 原子操作、线程、协程   |
-| 模板编程 | Skills(template)    | 类型萃取、Concepts     |
-| 性能优化 | Skills(performance) | Cache优化、SIMD        |
-| 工具链   | Skills(tooling)     | CMake、静态分析        |
+| Agent | When |
+|---|---|
+| Skills(cpp:dev) | All C++ development |
+| Skills(cpp:debug) | Debugging with modern idioms |
+| Skills(cpp:test) | Writing test code |
+| Skills(cpp:perf) | Performance-critical code |
 
-## 核心原则
+## Related Skills
 
-C++ 是一门强调性能和抽象的系统编程语言。
+| Scenario | Skill | Description |
+|---|---|---|
+| Memory | Skills(cpp:memory) | Smart pointers, RAII, scope guards |
+| Concurrency | Skills(cpp:concurrency) | jthread, coroutines, atomics |
+| Templates | Skills(cpp:template) | Concepts, CTAD, fold expressions |
+| Tooling | Skills(cpp:tooling) | CMake 3.28+, clang-tidy, sanitizers |
+| Performance | Skills(cpp:performance) | Cache, SIMD, zero-copy |
 
-### 必须遵守
+## Mandatory Rules
 
-1. **现代优先** - 优先使用 C++17/23 特性，避免过时模式
-2. **RAII 原则** - 资源获取即初始化，自动管理资源生命周期
-3. **智能指针** - 使用 std::unique_ptr/std::shared_ptr，避免裸指针
-4. **STL 优先** - 优先使用标准库容器和算法
-5. **类型安全** - 使用 auto、模板、概念避免类型转换
-6. **异常安全** - 提供强异常安全保证
-7. **零开销** - 抽象不应带来运行时开销
+1. **C++20/23 features first** -- use concepts, ranges, std::expected, std::format, std::print
+2. **RAII everywhere** -- std::unique_ptr, std::shared_ptr, custom deleters, scope guards
+3. **No raw new/delete** -- use std::make_unique, std::make_shared
+4. **Value semantics** -- prefer move semantics, copy elision (NRVO)
+5. **Concepts over SFINAE** -- constrain all templates with concepts
+6. **Ranges over raw loops** -- std::ranges::sort, views::filter, views::transform
+7. **std::expected for errors** -- reserve exceptions for truly exceptional cases
+8. **Three-way comparison** -- `auto operator<=>(const T&) const = default;`
+9. **std::format/std::print** -- no printf, no iostream formatting
+10. **No macros** -- use constexpr, consteval, inline, concepts
 
-### 禁止行为
+## Prohibited
 
-- 使用 C 风格类型转换（用 static_cast/const_cast）
-- 使用 malloc/free（用 new/delete 或智能指针）
-- 使用裸指针管理资源（用智能指针）
-- 使用 C 风格数组（用 std::array/std::vector）
-- 使用 varargs（用可变参数模板）
-- 忽略异常安全保证
-- 使用宏（用 constexpr/inline）
+- C-style casts (use static_cast, const_cast, reinterpret_cast, std::bit_cast)
+- malloc/free (use smart pointers)
+- Raw owning pointers (use std::unique_ptr/std::shared_ptr)
+- C-style arrays (use std::array, std::vector, std::span)
+- varargs (use variadic templates with fold expressions)
+- Macros for constants/functions (use constexpr, consteval)
+- RTTI unless absolutely necessary
 
-## C++17 核心特性
+## C++20 Features
 
-| 特性             | 说明             | 示例                              |
-| ---------------- | ---------------- | --------------------------------- |
-| 结构化绑定       | 解构元组/结构体  | `auto [x, y] = pair;`             |
-| if constexpr     | 编译期条件       | `if constexpr (is_integral_v<T>)` |
-| std::optional    | 可选值           | `std::optional<int> result;`      |
-| std::variant     | 类型安全联合     | `std::variant<int, string>;`      |
-| 折叠表达式       | 可变参数模板     | `(... + args);`                   |
-| std::string_view | 非拥有字符串视图 | `void func(std::string_view);`    |
+| Feature | Usage | Example |
+|---|---|---|
+| Concepts | Constrain templates | `template<std::integral T>` |
+| Ranges | Functional pipelines | `data \| views::filter(pred) \| views::transform(fn)` |
+| Coroutines | Async/generators | `co_await`, `co_yield`, `co_return` |
+| Modules | Replace headers | `import std;` `export module mylib;` |
+| Three-way comparison | Auto-generate operators | `auto operator<=>(const T&) const = default;` |
+| std::format | Type-safe formatting | `std::format("{:.2f}", 3.14)` |
+| std::span | Non-owning view | `void process(std::span<const int> data)` |
+| std::jthread | Auto-joining thread | `std::jthread t(func);` |
+| std::latch/barrier | Synchronization | `std::latch done(n);` |
 
-## C++20 核心特性
+## C++23 Features
 
-| 特性        | 说明               | 示例                                    |
-| ----------- | ------------------ | --------------------------------------- |
-| Concepts    | 约束模板           | `template<std::integral T>`             |
-| Ranges      | 函数式范围操作     | `std::ranges::sort(vec);`               |
-| 协程        | 消费者/生产者模式  | `co_await, co_yield`                    |
-| 三向比较    | 自动生成比较运算符 | `auto operator<=>(const T&) = default;` |
-| std::span   | 连续序列视图       | `void func(std::span<int>);`            |
-| std::format | 类型安全格式化     | `std::format("{}", value);`             |
+| Feature | Usage | Example |
+|---|---|---|
+| std::expected | Error handling | `std::expected<int, Error> parse(str)` |
+| std::print | Simple output | `std::print("Hello {}!\n", name)` |
+| std::mdspan | Multi-dim view | `std::mdspan<float, std::extents<int, 3, 3>> mat(data)` |
+| std::generator | Lazy sequences | `std::generator<int> range(int n)` |
+| Deducing this | Recursive lambdas, CRTP | `void f(this auto&& self)` |
+| if consteval | Compile-time branch | `if consteval { ... } else { ... }` |
+| std::flat_map | Cache-friendly map | `std::flat_map<K, V> m;` |
 
-## C++23 核心特性
+## Red Flags
 
-| 特性          | 说明         | 示例                               |
-| ------------- | ------------ | ---------------------------------- |
-| std::expected | 期望错误处理 | `std::expected<int, error>`        |
-| std::mdspan   | 多维数组视图 | `std::mdspan<int, extents>`        |
-| std::print    | 简化输出     | `std::print("Hello {}!\n", name);` |
+| Rationalization | Actual Check |
+|---|---|
+| "Raw pointers are faster" | Use unique_ptr -- zero overhead |
+| "SFINAE works fine" | Use concepts -- clearer errors |
+| "printf is simpler" | Use std::format/std::print |
+| "Don't need ranges" | Use ranges pipeline over raw loops |
+| "C cast is shorter" | Use static_cast/bit_cast |
+| "Macros are convenient" | Use constexpr/consteval |
 
-## 检查清单
+## Checklist
 
-- [ ] 使用 C++17/23 特性
-- [ ] 使用智能指针管理资源
-- [ ] 使用 STL 容器和算法
-- [ ] 无 C 风格类型转换
-- [ ] 无裸指针管理资源
-- [ ] 无 C 风格数组
-- [ ] 异常安全保证
+- [ ] C++20/23 features used where applicable
+- [ ] All resources managed by RAII (smart pointers, scope guards)
+- [ ] Templates constrained with concepts
+- [ ] Ranges/algorithms used over raw loops
+- [ ] std::expected for expected errors
+- [ ] std::format/std::print for output
+- [ ] Three-way comparison for custom types
+- [ ] No C-style casts, no macros, no raw new/delete
+- [ ] Files under 600 lines (200-400 recommended)

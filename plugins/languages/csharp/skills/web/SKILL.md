@@ -1,6 +1,6 @@
 ---
 name: web
-description: C# Web 开发规范：ASP.NET Core、Minimal API、Blazor。开发 Web 应用时必须加载。
+description: C# Web 开发规范 - ASP.NET Core 8 Minimal APIs、native AOT、Blazor SSR + Streaming、rate limiting、output caching。开发 Web 应用时必须加载。
 user-invocable: true
 context: fork
 model: sonnet
@@ -9,111 +9,260 @@ memory: project
 
 # C# Web 开发规范
 
+## 适用 Agents
+
+- **csharp:dev** - Web API 开发
+- **csharp:debug** - Web 应用调试
+- **csharp:test** - 集成测试（WebApplicationFactory）
+
 ## 相关 Skills
 
-| 场景     | Skill         | 说明                           |
-| -------- | ------------- | ------------------------------ |
-| 核心规范 | Skills(core)  | C# 12/.NET 8 标准、强制约定    |
-| 异步编程 | Skills(async) | async/await、CancellationToken |
-| 数据访问 | Skills(data)  | Entity Framework Core          |
+- **Skills(csharp:core)** - 核心规范：C# 12/.NET 8 标准
+- **Skills(csharp:async)** - 异步编程：async/await、CancellationToken
+- **Skills(csharp:data)** - 数据访问：EF Core 8
 
-## Minimal API
+## ASP.NET Core 8 Minimal APIs
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
+// 服务注册
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddDbContext<AppDb>(o => o.UseSqlServer(connectionString));
+
+// Rate limiting（.NET 8 内置）
+builder.Services.AddRateLimiter(o =>
+{
+    o.AddFixedWindowLimiter("api", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 100;
+    });
+});
+
+// Output caching（.NET 8 内置）
+builder.Services.AddOutputCache(o =>
+{
+    o.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(5)));
+    o.AddPolicy("users", b => b.Tag("users").Expire(TimeSpan.FromMinutes(10)));
+});
 
 var app = builder.Build();
 
-app.MapGet("/api/users/{id}", async (int id, IUserService service, CancellationToken ct) =>
+// ✅ Minimal API with TypedResults
+app.MapGet("/api/users/{id:int}", async (
+    int id,
+    IUserService service,
+    CancellationToken ct) =>
 {
     var user = await service.GetUserAsync(id, ct);
-    return user is not null ? Results.Ok(user) : Results.NotFound();
+    return user is not null
+        ? TypedResults.Ok(user)
+        : TypedResults.NotFound();
 })
 .WithName("GetUser")
-.WithOpenApi();
+.WithOpenApi()
+.CacheOutput("users")
+.RequireRateLimiting("api");
 
-app.MapPost("/api/users", async (User user, IUserService service, CancellationToken ct) =>
+app.MapPost("/api/users", async (
+    CreateUserRequest request,
+    IUserService service,
+    CancellationToken ct) =>
 {
-    var created = await service.CreateUserAsync(user, ct);
-    return Results.Created($"/api/users/{created.Id}", created);
-});
+    var user = await service.CreateAsync(request, ct);
+    return TypedResults.Created($"/api/users/{user.Id}", user);
+})
+.WithName("CreateUser")
+.WithOpenApi()
+.AddEndpointFilter<ValidationFilter>();
 
 app.Run();
 ```
 
-## 中间件
+## Route Groups（组织端点）
 
 ```csharp
-public class ExceptionHandlingMiddleware
+// ✅ 使用 MapGroup 组织相关端点
+var users = app.MapGroup("/api/users")
+    .RequireAuthorization()
+    .RequireRateLimiting("api")
+    .WithTags("Users");
+
+users.MapGet("/", async (IUserService svc, CancellationToken ct) =>
+    TypedResults.Ok(await svc.GetAllAsync(ct)));
+
+users.MapGet("/{id:int}", async (int id, IUserService svc, CancellationToken ct) =>
+    await svc.GetAsync(id, ct) is { } user
+        ? TypedResults.Ok(user)
+        : TypedResults.NotFound());
+
+users.MapPost("/", async (CreateUserRequest req, IUserService svc, CancellationToken ct) =>
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    var user = await svc.CreateAsync(req, ct);
+    return TypedResults.Created($"/api/users/{user.Id}", user);
+});
+```
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
-    {
-        _next = next;
-        _logger = logger;
-    }
+## Endpoint Filters（管道过滤器）
 
-    public async Task InvokeAsync(HttpContext context)
+```csharp
+// ✅ 验证过滤器
+public class ValidationFilter : IEndpointFilter
+{
+    public async ValueTask<object?> InvokeAsync(
+        EndpointFilterInvocationContext ctx,
+        EndpointFilterDelegate next)
     {
-        try
+        // 自动验证请求参数
+        foreach (var arg in ctx.Arguments)
         {
-            await _next(context);
+            if (arg is IValidatable validatable)
+            {
+                var errors = validatable.Validate();
+                if (errors.Any())
+                    return TypedResults.ValidationProblem(errors);
+            }
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unhandled exception");
-            await HandleExceptionAsync(context, ex);
-        }
+        return await next(ctx);
     }
+}
+```
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception ex)
+## 异常处理中间件
+
+```csharp
+// ✅ .NET 8 IExceptionHandler（推荐）
+public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+{
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext context,
+        Exception exception,
+        CancellationToken ct)
     {
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        return context.Response.WriteAsJsonAsync(new { Status = false, Message = ex.Message });
+        logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
+
+        var problem = new ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "Internal Server Error",
+            Detail = exception.Message
+        };
+
+        context.Response.StatusCode = problem.Status.Value;
+        await context.Response.WriteAsJsonAsync(problem, ct);
+        return true;
     }
 }
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+app.UseExceptionHandler();
 ```
 
-## Blazor 组件
+## Blazor SSR + Streaming（.NET 8）
 
 ```razor
-@* UserCard.razor *@
-<div class="card">
-    <h3>@User.Name</h3>
-    <p>@User.Email</p>
-    <button @onclick="ToggleDetails">Details</button>
+@* 服务端渲染 + 流式更新 *@
+@page "/users"
+@attribute [StreamRendering]
 
-    @if (showDetails)
-    {
-        <div>
-            <p>Created: @User.CreatedAt.ToString("d")</p>
-        </div>
-    }
-</div>
+<h1>Users</h1>
+
+@if (users is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <ul>
+        @foreach (var user in users)
+        {
+            <li>@user.Name - @user.Email</li>
+        }
+    </ul>
+}
 
 @code {
-    [Parameter]
-    public User User { get; set; } = default!;
+    private List<User>? users;
 
-    private bool showDetails;
-
-    private void ToggleDetails() => showDetails = !showDetails;
+    protected override async Task OnInitializedAsync()
+    {
+        users = await UserService.GetAllAsync();
+    }
 }
 ```
+
+## Native AOT 支持
+
+```csharp
+// ✅ AOT 友好的 Minimal API
+var builder = WebApplication.CreateSlimBuilder(args);
+
+// AOT 需要 source generator JSON
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default);
+});
+
+var app = builder.Build();
+app.MapGet("/", () => TypedResults.Ok(new { Message = "Hello AOT!" }));
+app.Run();
+
+// Source-generated JSON context
+[JsonSerializable(typeof(User))]
+[JsonSerializable(typeof(List<User>))]
+internal partial class AppJsonContext : JsonSerializerContext;
+```
+
+## 安全（Identity + JWT）
+
+```csharp
+// ✅ .NET 8 Identity API endpoints
+builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
+    .AddEntityFrameworkStores<AppDb>();
+
+// ✅ JWT Bearer
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
+app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
+```
+
+## Red Flags：AI 常见误区
+
+| AI 可能的理性化解释 | 实际应该检查的内容 |
+|---------------------|-------------------|
+| "Controller 更清晰" | ✅ 简单 API 是否用 Minimal APIs？ |
+| "不需要 rate limiting" | ✅ 公开 API 是否配置 rate limiter？ |
+| "缓存以后再加" | ✅ 读多写少端点是否用 output cache？ |
+| "手动写异常处理" | ✅ 是否用 IExceptionHandler + ProblemDetails？ |
+| "不需要 CancellationToken" | ✅ 端点是否接受 CancellationToken？ |
+| "Results.Ok 就行" | ✅ 是否用 TypedResults 获得类型安全？ |
 
 ## 检查清单
 
-- [ ] 使用 Minimal API
-- [ ] 端点传递 CancellationToken
-- [ ] 使用异常处理中间件
-- [ ] 启用 Swagger
-- [ ] 使用依赖注入
+- [ ] 使用 Minimal APIs（简单 API）
+- [ ] 端点接受 CancellationToken
+- [ ] 使用 TypedResults 替代 Results
+- [ ] 使用 MapGroup 组织端点
+- [ ] 配置 rate limiting
+- [ ] 配置 output caching
+- [ ] 使用 IExceptionHandler + ProblemDetails
+- [ ] 启用 Swagger/OpenAPI
+- [ ] 配置 Authentication/Authorization
+- [ ] Health Checks 端点可用

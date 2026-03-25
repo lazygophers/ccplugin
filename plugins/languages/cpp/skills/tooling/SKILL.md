@@ -1,157 +1,245 @@
 ---
 name: tooling
-description: C++ 工具链规范：CMake、静态分析、性能分析、代码覆盖。运行工具时加载。
+description: C++ toolchain -- CMake 3.28+, Conan 2.x/vcpkg, clang-tidy, clang-format, sanitizers, coverage. Load when configuring builds or CI.
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# C++ 工具链规范
+# C++ Toolchain (2024-2025)
 
-## 相关 Skills
+## Applicable Agents
 
-| 场景     | Skill        | 说明                    |
-| -------- | ------------ | ----------------------- |
-| 核心规范 | Skills(core) | C++17/23 标准、强制约定 |
+| Agent | When |
+|---|---|
+| Skills(cpp:dev) | Project setup, build config |
+| Skills(cpp:debug) | Sanitizer configuration |
+| Skills(cpp:test) | Coverage, CI integration |
+| Skills(cpp:perf) | Profiling tools |
 
-## CMake 最佳实践
+## Related Skills
+
+| Scenario | Skill | Description |
+|---|---|---|
+| Core | Skills(cpp:core) | C++20/23 standards |
+| Performance | Skills(cpp:performance) | Profiling, LTO/PGO |
+
+## CMake 3.28+
 
 ```cmake
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.28)
 project(MyProject
     VERSION 1.0.0
-    DESCRIPTION "My C++ Project"
+    DESCRIPTION "Modern C++ Project"
     LANGUAGES CXX
 )
 
+# C++23 standard
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
-    add_compile_options(/W4 /WX)
-else()
-    add_compile_options(-Wall -Wextra -Werror -pedantic)
+# Export compile_commands.json for clang-tidy
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# Strict warnings
+add_library(project_warnings INTERFACE)
+target_compile_options(project_warnings INTERFACE
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /permissive->
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Werror -Wpedantic -Wconversion -Wshadow>
+)
+
+# Sanitizer support
+option(ENABLE_SANITIZER_ADDRESS "Enable ASan" OFF)
+option(ENABLE_SANITIZER_UNDEFINED "Enable UBSan" OFF)
+option(ENABLE_SANITIZER_THREAD "Enable TSan" OFF)
+
+add_library(project_sanitizers INTERFACE)
+if(ENABLE_SANITIZER_ADDRESS)
+    target_compile_options(project_sanitizers INTERFACE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(project_sanitizers INTERFACE -fsanitize=address)
+endif()
+if(ENABLE_SANITIZER_UNDEFINED)
+    target_compile_options(project_sanitizers INTERFACE -fsanitize=undefined)
+    target_link_options(project_sanitizers INTERFACE -fsanitize=undefined)
+endif()
+if(ENABLE_SANITIZER_THREAD)
+    target_compile_options(project_sanitizers INTERFACE -fsanitize=thread)
+    target_link_options(project_sanitizers INTERFACE -fsanitize=thread)
 endif()
 
-add_executable(my_app src/main.cpp)
-
-add_library(my_lib src/lib.cpp)
-target_include_directories(my_lib PUBLIC
+# Library target
+add_library(mylib src/lib.cpp)
+target_include_directories(mylib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(mylib PRIVATE project_warnings project_sanitizers)
 
-target_link_libraries(my_app PRIVATE my_lib)
-
+# FetchContent for dependencies
 include(FetchContent)
-FetchContent_Declare(
-    fmt
-    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 10.1.1
-)
-FetchContent_MakeAvailable(fmt)
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 11.1.4)
+FetchContent_Declare(googletest GIT_REPOSITORY https://github.com/google/googletest.git GIT_TAG v1.15.2)
+FetchContent_Declare(benchmark GIT_REPOSITORY https://github.com/google/benchmark.git GIT_TAG v1.9.1)
+FetchContent_MakeAvailable(fmt googletest benchmark)
+
+# Testing
+enable_testing()
+add_subdirectory(tests)
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 project/
 ├── CMakeLists.txt
+├── CMakePresets.json          # Build presets (debug, release, asan, tsan)
+├── .clang-tidy                # Static analysis config
+├── .clang-format              # Code format config
 ├── cmake/
-│   ├── FindLib.cmake
 │   └── CompilerWarnings.cmake
-├── include/
-│   └── project/
-│       └── lib.hpp
-├── src/
+├── include/project/           # Public headers
+│   └── lib.hpp
+├── src/                       # Implementation
 │   ├── lib.cpp
 │   └── main.cpp
 ├── tests/
 │   ├── CMakeLists.txt
-│   └── test_lib.cpp
-├── examples/
-├── docs/
-└── scripts/
+│   ├── unit/
+│   ├── integration/
+│   ├── fuzz/
+│   └── benchmark/
+├── conanfile.py               # or vcpkg.json
+└── .github/workflows/ci.yml
 ```
 
-## 静态分析
+## Dependency Management
 
-### clang-tidy
+### Conan 2.x
+
+```bash
+# conanfile.py
+from conan import ConanFile
+class MyProjectConan(ConanFile):
+    requires = "fmt/11.1.4", "spdlog/1.15.0", "nlohmann_json/3.11.3"
+    generators = "CMakeDeps", "CMakeToolchain"
+
+# Install
+conan install . --output-folder=build --build=missing
+cmake --preset conan-release
+```
+
+### vcpkg
+
+```json
+{
+  "dependencies": ["fmt", "spdlog", "nlohmann-json", "gtest", "benchmark"]
+}
+```
+
+## clang-tidy Configuration
 
 ```yaml
+# .clang-tidy
 Checks: >
   -*,
   bugprone-*,
+  cert-*,
   cppcoreguidelines-*,
+  misc-*,
   modernize-*,
   performance-*,
-  readability-*
-WarningsAsErrors: ""
-HeaderFilterRegex: ".*"
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-identifier-length
+WarningsAsErrors: >
+  bugprone-*,
+  cppcoreguidelines-avoid-non-const-global-variables,
+  modernize-use-nullptr,
+  modernize-use-auto,
+  performance-*
+HeaderFilterRegex: "include/.*"
+CheckOptions:
+  readability-identifier-naming.ClassCase: CamelCase
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.ConstantCase: UPPER_CASE
 ```
 
-### cppcheck
+## clang-format Configuration
+
+```yaml
+# .clang-format
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: Inline
+BreakBeforeBraces: Attach
+SpacesBeforeTrailingComments: 2
+IncludeBlocks: Regroup
+```
+
+## Sanitizers
 
 ```bash
-cppcheck --enable=all \
-         --suppress=missingIncludeSystem \
-         --std=c++23 \
-         -I include/ \
-         src/
+# ASan: memory errors (use-after-free, buffer overflow, leak)
+cmake -B build -DENABLE_SANITIZER_ADDRESS=ON -DCMAKE_BUILD_TYPE=Debug ..
+
+# UBSan: undefined behavior (signed overflow, null deref)
+cmake -B build -DENABLE_SANITIZER_UNDEFINED=ON -DCMAKE_BUILD_TYPE=Debug ..
+
+# TSan: data races (mutually exclusive with ASan)
+cmake -B build -DENABLE_SANITIZER_THREAD=ON -DCMAKE_BUILD_TYPE=Debug ..
+
+# MSan: uninitialized memory (Clang only, requires instrumented libc++)
+cmake -B build -DCMAKE_CXX_FLAGS="-fsanitize=memory -fno-omit-frame-pointer" ..
 ```
 
-## 性能分析
-
-### perf
+## Coverage
 
 ```bash
-perf record -g ./app
-perf report
-perf script | FlameGraph/flaregraph.pl > flamegraph.svg
-```
-
-### Google Benchmark
-
-```cpp
-#include <benchmark/benchmark.h>
-
-static void BM_StringCopy(benchmark::State& state) {
-    std::string x = "Hello World!";
-    for (auto _ : state) {
-        std::string copy(x);
-        benchmark::DoNotOptimize(copy);
-    }
-}
-BENCHMARK(BM_StringCopy);
-
-BENCHMARK_MAIN();
-```
-
-## 内存分析
-
-```bash
-valgrind --leak-check=full --show-leak-kinds=all ./app
-
-g++ -fsanitize=address -fno-omit-frame-pointer -g -O1 src/*.cpp -o app
-ASAN_OPTIONS=detect_leaks=1 ./app
-```
-
-## 代码覆盖
-
-```bash
-g++ --coverage src/*.cpp -o app
-./app
-gcov *.gcda
-lcov --capture --directory . --output-file coverage.info
+# GCC
+cmake -B build -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_BUILD_TYPE=Debug ..
+cmake --build build && ctest --test-dir build
+lcov --capture --directory build --output-file coverage.info
 genhtml coverage.info --output-directory coverage_html
+
+# Clang (llvm-cov)
+cmake -B build -DCMAKE_CXX_FLAGS="-fprofile-instr-generate -fcoverage-mapping" ..
+LLVM_PROFILE_FILE="app.profraw" ./build/app
+llvm-profdata merge -sparse app.profraw -o app.profdata
+llvm-cov show ./build/app -instr-profile=app.profdata
 ```
 
-## 检查清单
+## Static Analysis Tools
 
-- [ ] CMake 版本 3.20+
-- [ ] 使用 FetchContent 管理依赖
-- [ ] 使用 clang-tidy 静态分析
-- [ ] 使用 AddressSanitizer 检测内存问题
-- [ ] 使用 perf 分析性能
-- [ ] 生成代码覆盖率报告
+| Tool | Purpose | Command |
+|---|---|---|
+| clang-tidy | Lint + modernize | `clang-tidy -p build src/*.cpp` |
+| cppcheck | Bug finding | `cppcheck --enable=all --std=c++23 -I include/ src/` |
+| include-what-you-use | Header hygiene | `iwyu_tool.py -p build` |
+| PVS-Studio | Deep analysis | `pvs-studio-analyzer analyze -o log -j4` |
+
+## Red Flags
+
+| Rationalization | Actual Check |
+|---|---|
+| "CMake 3.14 is enough" | Use CMake 3.28+ for C++23 module support |
+| "Don't need clang-tidy" | Run clang-tidy with strict checks |
+| "Sanitizers slow things down" | Run sanitizers in CI on every PR |
+| "Manual dependency management" | Use Conan 2.x or vcpkg |
+| "Coverage is optional" | Target >80% line coverage |
+| "Don't need presets" | Use CMakePresets.json for reproducible builds |
+
+## Checklist
+
+- [ ] CMake 3.28+ with C++23
+- [ ] CMakePresets.json for debug/release/asan/tsan
+- [ ] Strict warnings enabled (-Wall -Wextra -Werror -Wpedantic)
+- [ ] clang-tidy with strict checks, warnings-as-errors
+- [ ] clang-format enforced
+- [ ] ASan/UBSan/TSan builds in CI
+- [ ] Coverage reports generated (>80%)
+- [ ] Dependencies managed by Conan 2.x or vcpkg
+- [ ] compile_commands.json exported

@@ -1,9 +1,9 @@
-所有 C++ 代码必须遵守以下 Skills 规范：
-- Skills(cpp:core) - 核心规范：C++17/23 标准、强制约定
-- Skills(cpp:memory) - 内存管理规范：智能指针、RAII
-- Skills(cpp:concurrency) - 并发编程规范：原子操作、线程、协程
-- Skills(cpp:template) - 模板编程规范：类型萃取、Concepts
-- Skills(cpp:performance) - 性能优化规范：Cache优化、SIMD
-- Skills(cpp:tooling) - 工具链规范：CMake、静态分析
+All C++ code must follow these Skills:
+- Skills(cpp:core) - Core: C++20/23 features, mandatory conventions
+- Skills(cpp:memory) - Memory: smart pointers, RAII, scope guards
+- Skills(cpp:concurrency) - Concurrency: jthread, coroutines, atomics, latch/barrier
+- Skills(cpp:template) - Templates: concepts, CTAD, fold expressions, constexpr/consteval
+- Skills(cpp:performance) - Performance: cache optimization, SIMD, zero-copy
+- Skills(cpp:tooling) - Toolchain: CMake 3.28+, clang-tidy, sanitizers, Conan 2.x/vcpkg
 
-每一个 `*.cpp`、`*.h` 和 `*.hpp` 文件都不得超过600行，推荐200~400行
+Every `*.cpp`, `*.h`, and `*.hpp` file must not exceed 600 lines (200-400 recommended).

@@ -1,101 +1,225 @@
 ---
 name: core
-description: C# 开发核心规范：C# 12/.NET 8 标准、强制约定、代码格式。写任何 C# 代码前必须加载。
+description: C# 核心规范 - C# 12/.NET 8 标准、nullable、primary constructors、collection expressions、Roslyn analyzers。所有 C# 开发的基础规范。
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# C# 开发核心规范
+# C# 核心规范
+
+## 适用 Agents
+
+- **csharp:dev** - 开发阶段使用
+- **csharp:debug** - 调试时遵守
+- **csharp:test** - 测试代码规范
+- **csharp:perf** - 性能优化时保持规范
 
 ## 相关 Skills
 
-| 场景     | Skill           | 说明                           |
-| -------- | --------------- | ------------------------------ |
-| 异步编程 | Skills(async)   | async/await、CancellationToken |
-| 数据查询 | Skills(linq)    | LINQ 查询、集合操作            |
-| Web 开发 | Skills(web)     | ASP.NET Core、Blazor           |
-| 桌面开发 | Skills(desktop) | WPF、MAUI                      |
-| 数据访问 | Skills(data)    | Entity Framework Core          |
+- **Skills(csharp:async)** - 异步编程：async/await、Channels
+- **Skills(csharp:linq)** - LINQ：查询优化、新操作符
+- **Skills(csharp:web)** - Web 开发：ASP.NET Core 8
+- **Skills(csharp:desktop)** - 桌面开发：WPF、MAUI
+- **Skills(csharp:data)** - 数据访问：EF Core 8
 
-## 核心原则
+## 核心原则（2024-2025 版本）
 
-C# 是一门现代、类型安全的面向对象语言。
+### 1. C# 版本要求
 
-### 必须遵守
+- **目标版本**：C# 12/.NET 8（LTS）
+- **预览特性**：C# 13/.NET 9（params collections、lock object、extension types）
+- **nullable**：必须启用 `<Nullable>enable</Nullable>`
+
+### 2. C# 12 核心特性
+
+| 特性 | 说明 | 示例 |
+|------|------|------|
+| Primary constructors | 类/结构体参数化构造 | `public class Service(IRepo repo)` |
+| Collection expressions | 统一集合初始化 | `int[] nums = [1, 2, 3];` |
+| Inline arrays | 固定大小栈数组 | `[InlineArray(4)] struct Buffer { int _e; }` |
+| Alias any type | using 别名任何类型 | `using Point = (int X, int Y);` |
+| Lambda defaults | Lambda 默认参数 | `var add = (int x, int y = 1) => x + y;` |
+| Interceptors | 编译时方法替换 | source generator 场景 |
+
+### 3. C# 13 预览特性（.NET 9）
+
+| 特性 | 说明 | 示例 |
+|------|------|------|
+| params collections | params 支持任何集合 | `void Log(params ReadOnlySpan<string> msgs)` |
+| Lock object | 新的 Lock 类型 | `private readonly Lock _lock = new();` |
+| Extension types | 扩展类型（预览） | 替代传统 extension methods |
+
+### 4. 必须遵守
 
 1. **现代优先** - 优先使用 C# 12/.NET 8 新特性
-2. **异步优先** - IO 操作使用 async/await
-3. **空安全** - 启用可空引用类型
-4. **LINQ 优先** - 使用 LINQ 进行数据操作
-5. **依赖注入** - 使用 DI 容器管理依赖
-6. **资源管理** - using 语句管理资源
+2. **空安全** - 启用 `<Nullable>enable</Nullable>`
+3. **异步优先** - I/O 操作使用 async/await（详见 Skills(csharp:async)）
+4. **依赖注入** - 使用 DI 容器管理依赖
+5. **资源管理** - using 语句管理 IDisposable/IAsyncDisposable
+6. **不可变优先** - record 替代可变 class、init 属性
 
-### 禁止行为
+### 5. 禁止行为
 
-- 使用 .Result 或 .Wait()（导致死锁）
-- 不传递 CancellationToken
-- 禁用可空引用类型
+- 使用 .Result 或 .Wait()（死锁风险）
+- 禁用 nullable reference types
 - 使用 async void（除事件处理）
-- LINQ 查询中的副作用
 - 忽略异步方法返回的 Task
+- 不传递 CancellationToken
+- LINQ 查询中的副作用
 
-## C# 12 核心特性
-
-| 特性         | 说明                | 示例                                 |
-| ------------ | ------------------- | ------------------------------------ |
-| 主构造函数   | 在类/结构上声明参数 | `public record Person(string Name);` |
-| 集合表达式   | 简化集合初始化      | `int[] nums = [1, 2, 3];`            |
-| Lambda 改进  | 默认参数、属性      | `var add = (int x = 0) => x + 1;`    |
-| 别名任意类型 | using 别名任何类型  | `using IntArray = int[];`            |
-
-## 空安全
+## Primary Constructors
 
 ```csharp
-#nullable enable
-
-public class UserService
+// ✅ C# 12 primary constructor（DI 场景）
+public class UserService(IUserRepository repo, ILogger<UserService> logger)
 {
-    public string Name { get; set; }
-    public string? Email { get; set; }
-
-    public string GetDisplayName() => Name;
-    public string? GetEmail() => Email?.ToLower();
+    public async Task<User?> GetAsync(int id, CancellationToken ct = default)
+    {
+        logger.LogDebug("Getting user {UserId}", id);
+        return await repo.FindAsync(id, ct);
+    }
 }
 
-string name = user?.Name ?? "Unknown";
-users ??= new List<User>();
+// ✅ record 类型（DTO/值对象）
+public record CreateUserRequest(string Name, string Email, int Age);
+public record UserResponse(int Id, string Name, string Email);
+
+// ❌ 传统冗余构造函数
+public class UserService
+{
+    private readonly IUserRepository _repo;
+    private readonly ILogger<UserService> _logger;
+    public UserService(IUserRepository repo, ILogger<UserService> logger)
+    {
+        _repo = repo;
+        _logger = logger;
+    }
+}
+```
+
+## Collection Expressions
+
+```csharp
+// ✅ C# 12 collection expressions
+int[] numbers = [1, 2, 3, 4, 5];
+List<string> names = ["Alice", "Bob", "Charlie"];
+Span<int> span = [1, 2, 3];
+ReadOnlySpan<char> vowels = ['a', 'e', 'i', 'o', 'u'];
+
+// ✅ Spread 运算符
+int[] first = [1, 2, 3];
+int[] second = [4, 5, 6];
+int[] all = [..first, ..second];  // [1, 2, 3, 4, 5, 6]
+
+// ❌ 传统初始化
+var numbers = new int[] { 1, 2, 3, 4, 5 };
+var names = new List<string> { "Alice", "Bob", "Charlie" };
+```
+
+## Nullable Reference Types
+
+```csharp
+// 项目文件启用
+// <Nullable>enable</Nullable>
+
+public class UserService(IUserRepository repo)
+{
+    // ✅ 明确可空性
+    public string Name { get; set; } = "";
+    public string? Email { get; set; }
+
+    // ✅ 空条件运算符链
+    public string GetDisplayEmail() => Email?.ToLower() ?? "N/A";
+
+    // ✅ null 合并赋值
+    public List<User> GetUsers(List<User>? input) => input ??= [];
+
+    // ✅ 模式匹配空检查
+    public string Describe(User? user) => user switch
+    {
+        { Name: var name, Email: not null } => $"{name} ({user.Email})",
+        { Name: var name } => name,
+        null => "Unknown"
+    };
+}
 ```
 
 ## 依赖注入
 
 ```csharp
-services.AddTransient<IValidator, Validator>();
-services.AddScoped<IUserRepository, UserRepository>();
-services.AddSingleton<ICacheService, CacheService>();
+// ✅ .NET 8 Keyed Services
+builder.Services.AddKeyedScoped<ICache, RedisCache>("redis");
+builder.Services.AddKeyedScoped<ICache, MemoryCache>("memory");
 
-public class UserService(IUserRepository repository, ILogger<UserService> logger)
+public class UserService([FromKeyedServices("redis")] ICache cache) { }
+
+// ✅ IOptions 模式
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+
+public class EmailService(IOptions<SmtpSettings> options)
 {
+    private readonly SmtpSettings _settings = options.Value;
 }
 ```
 
-## 资源管理
+## 工具链标准（2024-2025）
 
-```csharp
-public async Task ProcessAsync(string path)
-{
-    using var stream = File.OpenRead(path);
-    using var reader = new StreamReader(stream);
-    return await reader.ReadToEndAsync();
-}
+```xml
+<!-- .csproj 推荐配置 -->
+<PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+</PropertyGroup>
+
+<ItemGroup>
+    <!-- Roslyn analyzers -->
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.*" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.*" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.*" />
+</ItemGroup>
 ```
+
+```bash
+# 格式化代码
+dotnet format
+
+# 运行 analyzers
+dotnet build /p:TreatWarningsAsErrors=true
+```
+
+## Red Flags：AI 常见误区
+
+| AI 可能的理性化解释 | 实际应该检查的内容 |
+|---------------------|-------------------|
+| "传统构造函数可读性更好" | ✅ 简单 DI 类是否用 primary constructors？ |
+| "new List 已经够简洁" | ✅ 是否用 collection expressions？ |
+| "不启用 nullable 更方便" | ✅ 是否启用 `<Nullable>enable</Nullable>`？ |
+| "class 比 record 灵活" | ✅ DTO/值对象是否用 record？ |
+| "不需要 analyzers" | ✅ 是否配置 Roslyn + SonarAnalyzer？ |
+| "手动格式化就行" | ✅ 是否运行 dotnet format？ |
 
 ## 检查清单
 
-- [ ] 使用 C# 12/.NET 8 特性
-- [ ] 启用可空引用类型
-- [ ] IO 操作使用 async/await
-- [ ] 传递 CancellationToken
-- [ ] 使用 using 管理资源
-- [ ] 无 .Result 或 .Wait()
+### C# 12 特性
+- [ ] 使用 primary constructors（DI 场景）
+- [ ] 使用 collection expressions `[1, 2, 3]`
+- [ ] 使用 alias any type 简化复杂类型
+- [ ] 使用 record 定义 DTO/值对象
+
+### 空安全
+- [ ] 启用 `<Nullable>enable</Nullable>`
+- [ ] 所有 API 明确可空性标注
+- [ ] 使用 `?.`、`??`、`??=` 运算符
+- [ ] 无 null suppression (`!`) 滥用
+
+### 工具链
+- [ ] Roslyn analyzers 配置并无警告
+- [ ] SonarAnalyzer 配置
+- [ ] .editorconfig 规范代码风格
+- [ ] `dotnet format` 格式化
+- [ ] `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`
