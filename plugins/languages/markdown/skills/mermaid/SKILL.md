@@ -1,6 +1,6 @@
 ---
 name: mermaid
-description: Mermaid 图表规范：流程图、序列图、类图、ER图等。绘制 Mermaid 图表时必须加载。
+description: Mermaid 图表规范 - 流程图、序列图、类图、ER 图、状态图、甘特图。绘制任何 Mermaid 图表时必须加载。
 user-invocable: true
 context: fork
 model: sonnet
@@ -11,9 +11,7 @@ memory: project
 
 ## 相关 Skills
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(core) | Markdown 格式规范 |
+- **Skills(markdown:core)** - Markdown 核心规范
 
 ## 流程图
 

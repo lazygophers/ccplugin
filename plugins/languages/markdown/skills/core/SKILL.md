@@ -1,6 +1,6 @@
 ---
 name: core
-description: Markdown 核心规范：格式规范、文档结构、写作风格。写任何 Markdown 文档前必须加载。
+description: Markdown 核心规范 - 文档结构、格式规范、写作风格、GFM 扩展。写任何 Markdown 文档前必须加载。
 user-invocable: true
 context: fork
 model: sonnet
@@ -11,9 +11,18 @@ memory: project
 
 ## 相关 Skills
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| Mermaid 图表 | Skills(mermaid) | 流程图、序列图、类图等 |
+- **Skills(markdown:mermaid)** - Mermaid 图表（流程图、序列图、类图、ER 图）
+- **Skills(naming:core)** - 命名规范（文件名、标题命名）
+
+## Red Flags：AI 常见误区
+
+| AI 可能的理性化解释 | 实际应该检查的内容 |
+|---------------------|-------------------|
+| "代码块不需要语言标记" | ✅ 是否所有代码块都指定了语言？ |
+| "标题跳级没关系" | ✅ 是否标题层级连续（# → ## → ###）？ |
+| "链接文字随便写" | ✅ 链接文字是否描述了目标内容？ |
+| "段落长一点更完整" | ✅ 每段是否控制在 5 句以内？ |
+| "不需要 alt 文本" | ✅ 所有图片是否有 alt 描述？ |
 
 ## 核心原则
 

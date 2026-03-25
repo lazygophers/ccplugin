@@ -1,6 +1,6 @@
 ---
 name: core
-description: 跨语言命名规范：清晰性、一致性、可读性。命名变量/函数/类型时必须加载。
+description: 跨语言命名规范 - 清晰性、一致性、可读性。适用于所有编程语言的变量/函数/类型命名。
 user-invocable: true
 context: fork
 model: sonnet
@@ -8,6 +8,21 @@ memory: project
 ---
 
 # 命名规范指南
+
+## 相关 Skills
+
+适用于所有语言插件的命名场景：
+- **Skills(python:core)** / **Skills(golang:naming)** / **Skills(typescript:core)** 等 - 各语言特定命名规则
+
+## Red Flags：AI 常见误区
+
+| AI 可能的理性化解释 | 实际应该检查的内容 |
+|---------------------|-------------------|
+| "简短名称更高效" | ✅ 名称是否清晰表达意图？ |
+| "data/temp/obj 足够明确" | ✅ 是否使用了具体的描述性名称？ |
+| "ID 全大写更规范" | ✅ 是否使用 `Id`（PascalCase）？ |
+| "status 和 state 一样" | ✅ 是否统一使用 `state`？ |
+| "字符串时间更易读" | ✅ 时间字段是否使用时间戳？ |
 
 ## 核心原则
 
