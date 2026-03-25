@@ -1,6 +1,6 @@
 ---
 name: testing
-description: Go 测试规范：单元测试、表驱动测试、基准测试。写测试时必须加载。
+description: Go 测试规范：表驱动测试（table-driven）、模糊测试（go test -fuzz，Go 1.18+）、基准测试（benchstat）、testify 断言、覆盖率 >= 90%。写测试时必须加载。
 user-invocable: true
 context: fork
 model: sonnet
@@ -9,26 +9,40 @@ memory: project
 
 # Go 测试规范
 
+## 适用 Agents
+
+- **dev** - 开发专家
+- **test** - 测试专家（主要使用者）
+
+## 相关 Skills
+
+| 场景     | Skill                      | 说明                         |
+| -------- | -------------------------- | ---------------------------- |
+| 核心规范 | Skills(golang:core)        | 核心规范：强制约定           |
+| 错误处理 | Skills(golang:error)       | 错误路径测试                 |
+| 并发测试 | Skills(golang:concurrency) | race 检测、并发测试          |
+| 工具链   | Skills(golang:tooling)     | go test 命令、pprof          |
+
 ## 核心原则
 
 ### 必须遵守
 
-1. **测试文件命名** - 测试文件以 `_test.go` 结尾
-2. **测试函数命名** - 测试函数以 `Test` 开头
-3. **测试覆盖** - 关键业务逻辑必须有测试
-4. **测试隔离** - 测试之间相互独立，不依赖执行顺序
-5. **测试可读性** - 测试代码清晰易懂，测试意图明确
-6. **严禁修改生产代码** - 测试代码必须独立，不修改生产代码，不为了测试而修改生产代码
+1. **测试文件命名** - 以 `_test.go` 结尾
+2. **测试函数命名** - 以 `Test` 开头
+3. **表驱动测试** - 默认使用表驱动模式
+4. **测试隔离** - 测试之间相互独立
+5. **覆盖率** - >= 90%，关键路径 100%
+6. **严禁修改生产代码** - 不为测试而改生产代码
 
 ### 禁止行为
 
 - 测试依赖执行顺序
 - 测试之间共享状态
-- 测试中硬编码环境依赖
+- 使用 time.Sleep 等待异步操作
 - 忽略测试失败
 - 测试代码过于复杂
 
-## 单元测试
+## 表驱动测试（标准模式）
 
 ```go
 func TestUserLogin(t *testing.T) {
@@ -38,18 +52,10 @@ func TestUserLogin(t *testing.T) {
         password string
         wantErr  bool
     }{
-        {
-            name:     "valid login",
-            username: "testuser",
-            password: "password123",
-            wantErr:  false,
-        },
-        {
-            name:     "invalid password",
-            username: "testuser",
-            password: "wrongpassword",
-            wantErr:  true,
-        },
+        {"valid login", "testuser", "password123", false},
+        {"invalid password", "testuser", "wrong", true},
+        {"empty username", "", "password123", true},
+        {"empty password", "testuser", "", true},
     }
 
     for _, tt := range tests {
@@ -67,55 +73,33 @@ func TestUserLogin(t *testing.T) {
 }
 ```
 
-## 表驱动测试
+## 模糊测试（Go 1.18+）
 
 ```go
-func TestValidateEmail(t *testing.T) {
-    tests := []struct {
-        email string
-        valid bool
-    }{
-        {"test@example.com", true},
-        {"invalid", false},
-        {"", false},
-        {"test@", false},
-    }
+func FuzzParseJSON(f *testing.F) {
+    // 种子语料
+    f.Add(`{"name":"test"}`)
+    f.Add(`{}`)
+    f.Add(`[]`)
+    f.Add(`""`)
 
-    for _, tt := range tests {
-        t.Run(tt.email, func(t *testing.T) {
-            got := ValidateEmail(tt.email)
-            if got != tt.valid {
-                t.Errorf("ValidateEmail(%q) = %v, want %v", tt.email, got, tt.valid)
-            }
-        })
-    }
+    f.Fuzz(func(t *testing.T, input string) {
+        result, err := ParseJSON(input)
+        if err != nil {
+            return // 合法的解析失败
+        }
+        // 验证不变量
+        if result == nil {
+            t.Error("ParseJSON returned nil without error")
+        }
+    })
 }
 ```
 
-## 集成测试
+运行模糊测试：
 
-```go
-func TestUserIntegration(t *testing.T) {
-    db := setupTestDB(t)
-    defer cleanupTestDB(t, db)
-
-    user := &User{
-        Email:    "test@example.com",
-        Password: "password123",
-    }
-    err := db.Create(user).Error
-    if err != nil {
-        t.Fatalf("failed to create test user: %v", err)
-    }
-
-    loggedIn, err := UserLogin(user.Email, "password123")
-    if err != nil {
-        t.Errorf("UserLogin() error = %v", err)
-    }
-    if loggedIn == nil {
-        t.Error("UserLogin() returned nil user")
-    }
-}
+```bash
+go test -fuzz=FuzzParseJSON -fuzztime=30s ./parser/
 ```
 
 ## 基准测试
@@ -123,16 +107,6 @@ func TestUserIntegration(t *testing.T) {
 ```go
 func BenchmarkProcessData(b *testing.B) {
     data := generateTestData(1000)
-
-    b.ResetTimer()
-    for i := 0; i < b.N; i++ {
-        ProcessData(data)
-    }
-}
-
-func BenchmarkProcessDataWithAllocs(b *testing.B) {
-    data := generateTestData(1000)
-
     b.ReportAllocs()
     b.ResetTimer()
     for i := 0; i < b.N; i++ {
@@ -141,43 +115,43 @@ func BenchmarkProcessDataWithAllocs(b *testing.B) {
 }
 ```
 
-## 测试辅助函数
+基准对比：
 
-### Setup 和 Teardown
+```bash
+go test -bench=. -benchmem -count=5 > old.txt
+# 修改代码后
+go test -bench=. -benchmem -count=5 > new.txt
+benchstat old.txt new.txt
+```
+
+## 使用 testify
 
 ```go
-func setupTestDB(t *testing.T) *gorm.DB {
-    db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-    if err != nil {
-        t.Fatalf("failed to open test database: %v", err)
-    }
+import (
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/require"
+)
 
-    err = db.AutoMigrate(&User{}, &Friend{}, &Message{})
-    if err != nil {
-        t.Fatalf("failed to migrate test database: %v", err)
-    }
-
-    return db
+func TestCalculate(t *testing.T) {
+    result := Calculate(2, 3)
+    assert.Equal(t, 5, result)
+    assert.NotZero(t, result)
 }
 
-func cleanupTestDB(t *testing.T, db *gorm.DB) {
-    sqlDB, err := db.DB()
-    if err != nil {
-        t.Errorf("failed to get sql.DB: %v", err)
-        return
-    }
-    sqlDB.Close()
+func TestCreateUser(t *testing.T) {
+    user, err := CreateUser("test@example.com")
+    require.NoError(t, err)       // 失败则立即终止
+    require.NotNil(t, user)
+    assert.Equal(t, "test@example.com", user.Email)
 }
 ```
 
-### Mock 全局状态
+## Mock 全局状态
 
 ```go
 func TestUserLoginWithMock(t *testing.T) {
     originalUser := state.User
-    defer func() {
-        state.User = originalUser
-    }()
+    defer func() { state.User = originalUser }()
 
     state.User = &MockUserModel{
         users: map[int64]*User{
@@ -186,67 +160,48 @@ func TestUserLoginWithMock(t *testing.T) {
     }
 
     user, err := UserLogin("test@example.com", "password")
-    if err != nil {
-        t.Errorf("UserLogin() error = %v", err)
-    }
-    if user == nil || user.Email != "test@example.com" {
-        t.Error("UserLogin() returned unexpected user")
-    }
-}
-```
-
-## 使用 testify
-
-```go
-import "github.com/stretchr/testify/assert"
-import "github.com/stretchr/testify/require"
-
-func TestCalculate(t *testing.T) {
-    result := Calculate(2, 3)
-    assert.Equal(t, 5, result)
-    assert.NotZero(t, result)
-}
-
-func TestCalculateWithRequire(t *testing.T) {
-    result := Calculate(2, 3)
-    require.Equal(t, 5, result)
-    require.NotZero(t, result)
+    require.NoError(t, err)
+    assert.Equal(t, "test@example.com", user.Email)
 }
 ```
 
 ## 测试覆盖率
 
 ```bash
-go test -v -cover ./...
-
+# 运行并生成覆盖率
 go test -coverprofile=coverage.out ./...
+
+# 查看总覆盖率
+go tool cover -func=coverage.out | grep total
+
+# HTML 报告
 go tool cover -html=coverage.out
 
-go test -coverprofile=coverage.out ./...
-go tool cover -func=coverage.out | grep total
+# 带 race 检测
+go test -v -race -cover ./...
 ```
 
-## 测试文件位置
+## Red Flags
 
-```
-<path>/
-├── user.go
-├── user_test.go
-├── friend.go
-└── friend_test.go
-```
+| AI 可能的理性化解释 | 实际应该检查的内容 | 严重程度 |
+|---------------------|-------------------|---------|
+| "80% 覆盖率就够了" | 是否 >= 90%，关键路径 100%？ | 高 |
+| "不需要 fuzz 测试" | 解析器/编解码器是否有 fuzz？ | 中 |
+| "time.Sleep 等等就好" | 是否用确定性同步机制？ | 高 |
+| "mock 一切依赖" | 是否只 mock 外部依赖？ | 中 |
+| "Test1/Test2 命名" | 表驱动测试 name 是否有描述性？ | 中 |
+| "跳过错误路径" | 错误路径是否有测试？ | 高 |
 
 ## 检查清单
 
 - [ ] 测试文件以 `_test.go` 结尾
 - [ ] 测试函数以 `Test` 开头
+- [ ] 使用表驱动测试模式
 - [ ] 关键业务逻辑有测试覆盖
 - [ ] 测试之间相互独立
-- [ ] 测试代码清晰易懂
-- [ ] 使用表驱动测试
-- [ ] 测试有适当的 Setup 和 Teardown
-- [ ] 测试覆盖率符合要求（≥95%）
-- [ ] 并发代码有并发测试
-- [ ] 错误处理有错误测试
-- [ ] 测试代码符合 Go 标准库编码规范
-- [ ] 测试通过率必须为 100%
+- [ ] 覆盖率 >= 90%
+- [ ] 解析器/编解码器有模糊测试
+- [ ] 关键函数有基准测试
+- [ ] 并发代码有 race 检测测试
+- [ ] 错误路径有专门测试
+- [ ] 测试通过率 100%

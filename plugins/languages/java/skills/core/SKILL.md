@@ -1,91 +1,201 @@
 ---
 name: core
-description: Java 开发核心规范：Java 21+ 特性、强制约定、代码格式。写任何 Java 代码前必须加载。
+description: Java 核心规范 - Java 21+ 现代特性（Records、Pattern Matching、Sealed Classes）、项目结构、工具链。所有 Java 开发的基础规范。
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# Java 开发核心规范
+# Java 核心规范
+
+## 适用 Agents
+
+- **java:dev** - 开发阶段使用
+- **java:debug** - 调试时遵守
+- **java:test** - 测试代码规范
+- **java:perf** - 性能优化时保持规范
 
 ## 相关 Skills
 
-| 场景        | Skill               | 说明                      |
-| ----------- | ------------------- | ------------------------- |
-| 错误处理    | Skills(error)       | 异常处理、Optional        |
-| 并发编程    | Skills(concurrency) | Virtual Threads、并发工具 |
-| Spring Boot | Skills(spring)      | Spring Boot 3+ 最佳实践   |
-| 性能优化    | Skills(performance) | JVM 调优、GC 优化         |
+- **Skills(java:concurrency)** - Virtual Threads、Structured Concurrency
+- **Skills(java:error)** - sealed exception、Problem Details、Optional
+- **Skills(java:spring)** - Spring Boot 3+、Native Image、Observability
+- **Skills(java:performance)** - JFR、JMH、ZGC、GraalVM
 
-## 核心原则
+## 核心原则（2024-2025 版本）
 
-Java 生态追求**类型安全、现代特性、工程化**。
+### 1. Java 版本要求
 
-### 必须遵守
+- **最低版本**：Java 21 LTS（推荐 Java 21+）
+- **现代特性**：Records、Pattern Matching、Sealed Classes、Virtual Threads
+- **预览特性**：String Templates、Structured Concurrency、ScopedValues
 
-1. **现代 Java** - 使用 Java 21+ 特性（Records、Pattern Matching、Virtual Threads）
-2. **类型安全** - 返回 Optional 而非 null
-3. **资源管理** - 使用 Try-With-Resources
-4. **Stream API** - 使用 Stream 进行集合操作
-5. **异常处理** - 异常必须处理和记录日志
+### 2. 必须遵守
 
-### 禁止行为
+1. **Records** - 不可变数据载体使用 Records 替代 Lombok @Value/@Data
+2. **Pattern Matching** - 使用 `instanceof` pattern 和 switch pattern matching
+3. **Sealed Classes** - 类型层次结构使用 sealed interface/class
+4. **Optional** - 返回 Optional 而非 null
+5. **Try-With-Resources** - 所有可关闭资源使用 try-with-resources
+6. **Stream API** - 集合操作使用 Stream，避免传统 for 循环
+7. **构造函数注入** - 依赖注入使用构造函数，无 @Autowired
+
+### 3. 禁止行为
 
 - 返回 null（使用 Optional）
-- 空 catch 块
-- 使用 System.out.println
-- 使用 synchronized（使用并发工具类）
-- 使用传统 for 循环（使用 for-each 或 Stream）
+- 空 catch 块（至少记录日志）
+- 使用 System.out.println（使用 SLF4J）
+- 使用 synchronized（使用 java.util.concurrent）
+- 使用 Lombok @Data/@Value（使用 Records）
+- 使用 raw types（使用泛型参数化类型）
+- 字符串拼接日志（使用 SLF4J 参数化 `log.info("user={}", id)`）
 
 ## Java 21+ 核心特性
 
 ```java
-// Record
-public record User(Long id, String email, String name) {}
+// Record - 不可变数据载体
+public record UserResponse(Long id, String email, String name) {
+    // 紧凑构造函数（compact constructor）
+    public UserResponse {
+        Objects.requireNonNull(email, "email must not be null");
+    }
 
-// Pattern Matching
-if (obj instanceof String s) {
-    System.out.println(s.toUpperCase());
+    // 从 Entity 转换的工厂方法
+    public static UserResponse from(User entity) {
+        return new UserResponse(entity.getId(), entity.getEmail(), entity.getName());
+    }
+}
+
+// Sealed Classes - 受限类型层次
+public sealed interface Shape permits Circle, Rectangle, Triangle {
+    double area();
+}
+public record Circle(double radius) implements Shape {
+    public double area() { return Math.PI * radius * radius; }
+}
+
+// Pattern Matching for switch
+String describe(Shape shape) {
+    return switch (shape) {
+        case Circle c when c.radius() > 10 -> "large circle: r=" + c.radius();
+        case Circle c    -> "circle: r=" + c.radius();
+        case Rectangle r -> "rectangle: %dx%d".formatted(r.width(), r.height());
+        case Triangle t  -> "triangle: base=" + t.base();
+    };
+}
+
+// Pattern Matching for instanceof
+if (obj instanceof String s && s.length() > 5) {
+    process(s.toUpperCase());
 }
 
 // Switch Expressions
-String result = switch (day) {
-    case MONDAY, FRIDAY, SUNDAY -> "工作日";
-    default -> "其他";
+int numLetters = switch (day) {
+    case MONDAY, FRIDAY, SUNDAY -> 6;
+    case TUESDAY                -> 7;
+    default -> throw new IllegalArgumentException("Unknown day: " + day);
 };
 
-// Virtual Threads
-try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-    IntStream.range(0, 10_000).forEach(i -> {
-        executor.submit(() -> processRequest(i));
-    });
-}
-
-// Stream API
-List<String> names = users.stream()
-    .map(User::name)
-    .filter(name -> name.length() > 3)
+// Stream API + toList()（Java 16+, unmodifiable）
+List<String> activeEmails = users.stream()
+    .filter(User::isActive)
+    .map(User::getEmail)
     .toList();
+
+// Text Blocks
+String json = """
+    {
+        "name": "%s",
+        "email": "%s"
+    }
+    """.formatted(name, email);
+```
+
+## 工具链标准（2024-2025）
+
+### 构建工具
+```groovy
+// Gradle 8.x + Version Catalog（推荐）
+// gradle/libs.versions.toml
+[versions]
+spring-boot = "3.3.0"
+junit = "5.11.0"
+testcontainers = "1.20.0"
+
+[libraries]
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+```
+
+### 代码质量
+```bash
+# SpotBugs 静态分析
+./gradlew spotbugsMain
+
+# Checkstyle 代码规范
+./gradlew checkstyleMain
+
+# JaCoCo 覆盖率
+./gradlew test jacocoTestReport
+
+# OWASP 依赖检查
+./gradlew dependencyCheckAnalyze
 ```
 
 ## 项目结构
 
 ```
 src/main/java/com/example/app/
-├── config/          # 配置类
-├── controller/      # REST 控制器
-├── service/         # 业务逻辑
-├── repository/      # 数据访问
-├── domain/          # 领域模型
-├── dto/             # 数据传输对象
-└── exception/       # 自定义异常
+├── config/          # @Configuration、@ConfigurationProperties
+├── controller/      # @RestController（薄层，仅路由和验证）
+├── service/         # @Service（业务逻辑，事务边界）
+├── repository/      # @Repository（数据访问，Spring Data JPA）
+├── domain/          # JPA Entity（持久化模型）
+├── dto/             # Record DTO（请求/响应模型）
+├── exception/       # Sealed exception 层次结构
+└── infra/           # 基础设施（外部 API 客户端、消息队列）
+
+src/test/java/com/example/app/
+├── unit/            # 单元测试（@ExtendWith(MockitoExtension.class)）
+├── integration/     # 集成测试（@SpringBootTest + @Testcontainers）
+└── architecture/    # 架构测试（ArchUnit）
 ```
+
+## Red Flags
+
+| AI 可能的理性化解释 | 实际应该检查的内容 |
+|---------------------|-------------------|
+| "这是简单 POJO，不需要 Record" | 不可变数据是否使用了 Record？ |
+| "Lombok 更方便" | 是否避免了 Lombok @Data/@Value？ |
+| "if-else instanceof 够清晰" | 是否使用了 Pattern Matching？ |
+| "普通 class 继承就行" | 类型层次是否使用了 Sealed Classes？ |
+| "Maven 够稳定" | 是否使用了 Gradle Version Catalog 管理版本？ |
+| "手动格式化代码" | 是否配置了 Checkstyle/SpotBugs 自动检查？ |
 
 ## 检查清单
 
-- [ ] 使用 Java 21+ 特性
+### 语言特性
+- [ ] Java 21+ 编译
+- [ ] 不可变数据使用 Records
+- [ ] instanceof 使用 Pattern Matching
+- [ ] 类型层次使用 Sealed Classes
+- [ ] switch 使用 Switch Expressions
+- [ ] 集合操作使用 Stream API
+
+### 代码规范
 - [ ] 返回 Optional 而非 null
-- [ ] 使用 Try-With-Resources
-- [ ] 使用 Stream API
-- [ ] 异常必须处理和记录日志
+- [ ] Try-With-Resources 管理资源
+- [ ] SLF4J 参数化日志（无字符串拼接）
+- [ ] 构造函数注入（无 @Autowired）
+- [ ] 方法不超过 50 行
+
+### 工具链
+- [ ] Gradle 8.x / Maven 4.x 构建
+- [ ] SpotBugs 静态分析无警告
+- [ ] Checkstyle 代码规范检查
+- [ ] JaCoCo 覆盖率报告
+- [ ] OWASP dependency-check
