@@ -175,7 +175,7 @@ if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
     print(f"[MindFlow] 自动重新规划（触发来源：{replan_trigger}），跳过 Plan 模式")
 
     # 直接生成计划
-    planner_result = Agent(agent="task:planner", ...)
+    planner_result = Agent(subagent_type="task:planner", ...)
 
     # 格式化文档并直接写入文件（减少 context 消耗）
     formatter_result = Agent(
@@ -211,7 +211,7 @@ else:
     EnterPlanMode()
 
     # 设计计划
-    planner_result = Agent(subagent_type="Plan", agent="task:planner", ...)
+    planner_result = Agent(subagent_type="task:planner", ...)
 
     # 格式化文档并直接写入文件（减少 context 消耗）
     formatter_result = Agent(

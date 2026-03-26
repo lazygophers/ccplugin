@@ -47,7 +47,7 @@ if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
 
     # 直接调用 planner
     planner_result = Agent(
-        agent="task:planner",
+        subagent_type="task:planner",
         description="设计任务执行计划",
         prompt=f"""设计执行计划：
 
@@ -72,7 +72,7 @@ if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
         for question in planner_result["questions"]:
             user_answer = AskUserQuestion(question)
             planner_result = Agent(
-                agent="task:planner",
+                subagent_type="task:planner",
                 prompt=f"补充信息：{user_answer}\n继续设计计划..."
             )
 
@@ -191,8 +191,7 @@ else:
 """
 
     planner_result = Agent(
-        subagent_type="Plan",  # 使用 Plan agent 类型
-        agent="task:planner",
+        subagent_type="task:planner",  # 使用 task planner agent
         description="设计任务执行计划",
         prompt=planner_prompt
     )
@@ -202,7 +201,7 @@ else:
         for question in planner_result["questions"]:
             user_answer = AskUserQuestion(question)
             planner_result = Agent(
-                agent="task:planner",
+                subagent_type="task:planner",
                 prompt=f"补充信息：{user_answer}\n继续设计计划..."
             )
 
