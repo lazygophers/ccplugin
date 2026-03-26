@@ -33,7 +33,12 @@
     "./agents/explorer-general.md",
     "./agents/explorer-code.md",
     "./agents/explorer-frontend.md",
-    "./agents/explorer-backend.md"
+    "./agents/explorer-backend.md",
+    "./agents/explorer-database.md",
+    "./agents/explorer-api.md",
+    "./agents/explorer-test.md",
+    "./agents/explorer-infrastructure.md",
+    "./agents/explorer-dependencies.md"
   ],
   "skills": "./skills/",
   "hooks": {

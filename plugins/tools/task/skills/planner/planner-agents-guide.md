@@ -20,6 +20,11 @@
 | `explorer-code（代码探索）@task` | 代码结构分析、符号索引、依赖追踪、模式识别 | 深度代码分析、重构前调研 | 分析模块依赖、识别设计模式 |
 | `explorer-frontend（前端探索）@task` | React/Vue 组件树、状态管理、路由、样式体系 | 前端项目分析 | 分析组件树、追踪状态管理 |
 | `explorer-backend（后端探索）@task` | API 路由、数据模型、服务架构、中间件链 | 后端项目分析 | 映射 API 端点、分析数据模型 |
+| `explorer-database（数据库探索）@task` | Schema 结构、表关系、索引评估、迁移历史 | 数据库架构分析 | 分析表结构、追踪外键关系 |
+| `explorer-api（API 探索）@task` | REST/GraphQL/gRPC 端点、参数、认证机制 | API 设计分析 | 映射 API 端点、分析认证方式 |
+| `explorer-test（测试探索）@task` | 测试框架、覆盖率、测试质量、缺口识别 | 测试体系分析 | 评估覆盖率、识别测试缺口 |
+| `explorer-infrastructure（基础设施探索）@task` | Docker/K8s、CI/CD、云服务、环境配置 | DevOps 分析 | 分析部署配置、识别云服务 |
+| `explorer-dependencies（依赖探索）@task` | 依赖树、安全审计、版本管理、许可证合规 | 依赖分析 | 检查安全漏洞、分析许可证 |
 
 ### Explorer 选择决策树
 
@@ -37,9 +42,29 @@
 │   └── explorer-frontend（前端探索）
 │       → 继承 code 能力 + 组件树/状态/路由分析
 │
-└── 后端项目（Go/Python/Node.js/Java）
-    └── explorer-backend（后端探索）
-        → 继承 code 能力 + API/模型/服务分析
+├── 后端项目（Go/Python/Node.js/Java）
+│   └── explorer-backend（后端探索）
+│       → 继承 code 能力 + API/模型/服务分析
+│
+├── 数据库架构分析
+│   └── explorer-database（数据库探索）
+│       → 继承 code 能力 + Schema/关系/索引/迁移分析
+│
+├── API 设计分析
+│   └── explorer-api（API 探索）
+│       → 继承 code 能力 + REST/GraphQL/gRPC 端点分析
+│
+├── 测试体系分析
+│   └── explorer-test（测试探索）
+│       → 继承 code 能力 + 框架/覆盖率/质量评估
+│
+├── DevOps / 基础设施分析
+│   └── explorer-infrastructure（基础设施探索）
+│       → Docker/K8s/CI-CD/云服务分析
+│
+└── 依赖和供应链分析
+    └── explorer-dependencies（依赖探索）
+        → 依赖树/安全审计/许可证分析
 ```
 
 ### Explorer 继承关系
@@ -49,7 +74,14 @@ explorer-general（宏观）
     ↓
 explorer-code（基础层）
     ├─→ explorer-frontend（前端特化，继承 code 能力）
-    └─→ explorer-backend（后端特化，继承 code 能力）
+    ├─→ explorer-backend（后端特化，继承 code 能力）
+    ├─→ explorer-database（数据库特化，继承 code 能力）
+    ├─→ explorer-api（API 特化，继承 code 能力）
+    └─→ explorer-test（测试特化，继承 code 能力）
+
+独立层（不继承 code）：
+    ├─→ explorer-infrastructure（基础设施，配置文件分析）
+    └─→ explorer-dependencies（依赖分析，包管理器分析）
 ```
 
 ### Explorer 使用示例
