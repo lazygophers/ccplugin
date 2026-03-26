@@ -217,3 +217,280 @@ Level 4 Ask User（请求用户指导）：
 失败信息获取使用 `TaskList()` 获取失败任务。错误分类基于错误信息识别类型。用户沟通使用 `SendMessage` 向 @main 请求指导。停滞检测通过检查失败历史中的重复模式完成。
 
 </tools>
+
+<structured_error_handling>
+
+## 结构化错误处理
+
+Adjuster 接收结构化错误后，基于以下字段做决策：
+
+### 决策逻辑
+
+```python
+def analyze_structured_error(error: dict) -> str:
+    """
+    分析结构化错误并决定恢复策略
+
+    Args:
+        error: 结构化错误字典
+
+    Returns:
+        恢复策略：retry|debug|replan|ask_user|escalate
+    """
+    category = error.get("category")
+    severity = error.get("severity")
+    iteration = error.get("context", {}).get("iteration", 0)
+
+    # 1. 不可恢复错误 → 立即升级
+    if category == "unrecoverable":
+        if severity in ["critical", "high"]:
+            return "ask_user"
+        else:
+            return "replan"
+
+    # 2. Critical可恢复错误 → 优先retry
+    if severity == "critical" and category == "recoverable":
+        if iteration < 3:
+            return "retry"
+        else:
+            return "debug"
+
+    # 3. 检查是否有历史模式匹配
+    patterns = error.get("related_patterns", [])
+    if patterns and patterns[0].get("confidence", 0) >= 0.80:
+        # 使用历史成功修复方案
+        return patterns[0]["fix_strategy"]
+
+    # 4. 默认渐进式升级
+    if iteration <= 2:
+        return "retry"
+    elif iteration <= 4:
+        return "debug"
+    elif iteration <= 6:
+        return "replan"
+    else:
+        return "ask_user"
+```
+
+### 使用suggested_fix
+
+如果错误包含修复建议，adjuster应优先考虑：
+
+```python
+def apply_suggested_fix(error: dict):
+    """应用错误中的修复建议"""
+    fix = error.get("suggested_fix", {})
+    strategy = fix.get("strategy")
+    details = fix.get("details")
+    success_rate = fix.get("estimated_success_rate", 0.0)
+
+    if success_rate >= 0.80:
+        print(f"应用高置信度修复建议（成功率：{success_rate:.0%}）")
+        print(f"策略：{strategy}")
+        print(f"详情：{details}")
+        return execute_strategy(strategy, details)
+    else:
+        print(f"修复建议成功率较低（{success_rate:.0%}），使用标准分析")
+        return analyze_structured_error(error)
+```
+
+### 结构化错误解析流程
+
+当 adjuster 接收到结构化错误时，按以下流程处理：
+
+1. **验证错误格式**：确保包含必需字段（error_id、category、severity、context）
+2. **提取上下文**：解析 task_id、iteration、phase、agent 等信息
+3. **评估严重性**：基于 category 和 severity 判断优先级
+4. **检查修复建议**：如果 suggested_fix 存在且成功率 >= 0.80，优先采用
+5. **匹配历史模式**：如果 related_patterns 存在且置信度 >= 0.80，使用历史方案
+6. **应用决策树**：根据 category、severity、iteration 选择恢复策略
+7. **生成调整报告**：返回标准化的调整报告
+
+### 示例：处理结构化网络超时错误
+
+```python
+# 输入：结构化错误
+error = {
+    "error_id": "err_a1b2c3d4",
+    "timestamp": "2026-03-25T10:30:00Z",
+    "category": "recoverable",
+    "severity": "medium",
+    "message": "HTTP request to API endpoint timed out after 30 seconds",
+    "context": {
+        "task_id": "t_abc123",
+        "iteration": 2,
+        "phase": "execution",
+        "agent": "api-client",
+        "file_path": "src/services/api.py",
+        "line_number": 45
+    },
+    "suggested_fix": {
+        "strategy": "retry",
+        "details": "Retry with exponential backoff: 2s → 4s → 8s",
+        "estimated_success_rate": 0.85
+    }
+}
+
+# adjuster 决策过程
+# 1. category="recoverable" → 可恢复
+# 2. severity="medium" → 中等严重性
+# 3. iteration=2 → 第2次失败
+# 4. suggested_fix.estimated_success_rate=0.85 → 高置信度
+# 5. 决策：采用 suggested_fix 的 retry 策略
+
+# 输出：调整报告
+{
+    "status": "retry",
+    "strategy": "retry",
+    "report": "网络超时（中等严重性），采用指数退避重试。",
+    "retry_config": {
+        "backoff_seconds": 2,
+        "max_retries": 3
+    },
+    "adjustments": [
+        {
+            "task_id": "t_abc123",
+            "action": "应用修复建议",
+            "details": "Retry with exponential backoff: 2s → 4s → 8s"
+        }
+    ],
+    "source": "structured_error_suggested_fix"
+}
+```
+
+### 示例：处理不可恢复配置错误
+
+```python
+# 输入：结构化错误
+error = {
+    "error_id": "err_e5f6g7h8",
+    "timestamp": "2026-03-25T10:35:00Z",
+    "category": "unrecoverable",
+    "severity": "critical",
+    "message": "Required configuration 'DATABASE_URL' not found in environment",
+    "context": {
+        "task_id": "t_def456",
+        "iteration": 1,
+        "phase": "initialization",
+        "agent": "config-loader"
+    },
+    "suggested_fix": {
+        "strategy": "ask_user",
+        "details": "Request user to set DATABASE_URL environment variable",
+        "estimated_success_rate": 1.0
+    }
+}
+
+# adjuster 决策过程
+# 1. category="unrecoverable" → 不可恢复
+# 2. severity="critical" → 严重错误
+# 3. 决策：立即 ask_user（不进行自动重试）
+
+# 输出：调整报告
+{
+    "status": "ask_user",
+    "strategy": "ask_user",
+    "report": "配置缺失（不可恢复），需要用户介入。",
+    "question": {
+        "summary": "任务 t_def456 初始化失败：缺少 DATABASE_URL 配置",
+        "error_id": "err_e5f6g7h8",
+        "details": "Required configuration 'DATABASE_URL' not found in environment",
+        "suggested_action": "Request user to set DATABASE_URL environment variable",
+        "ask": "请设置 DATABASE_URL 环境变量后继续，或选择：1) 跳过该任务？2) 使用默认值？"
+    }
+}
+```
+
+### 集成到 Adjuster 工作流
+
+在 adjuster 的阶段 2（失败原因分析）中，优先检查是否为结构化错误：
+
+```python
+# 伪代码示例
+def analyze_failure(task_failure):
+    """分析任务失败"""
+
+    # 检查是否为结构化错误
+    if is_structured_error(task_failure.error):
+        error = parse_structured_error(task_failure.error)
+
+        # 使用结构化错误决策
+        if error["suggested_fix"]["estimated_success_rate"] >= 0.80:
+            return apply_suggested_fix(error)
+        else:
+            return analyze_structured_error(error)
+    else:
+        # 传统错误分析流程
+        return classify_and_analyze(task_failure.error)
+```
+
+</structured_error_handling>
+
+## 历史模式匹配
+
+Adjuster 优先匹配历史失败模式，利用持续学习提升自愈能力。
+
+### 匹配流程
+
+```python
+def analyze_failure(failure_info: Dict) -> str:
+    """
+    分析失败并决定恢复策略
+
+    优先级：
+    1. 匹配历史模式（置信度≥80%）
+    2. 使用suggested_fix（成功率≥80%）
+    3. 常规决策树分析
+    """
+
+    # 1. 尝试匹配历史模式
+    pattern, confidence = match_failure_to_patterns(failure_info)
+
+    if pattern and confidence >= 0.80:
+        print(f"[Adjuster] ✓ 匹配到历史模式: {pattern['pattern_id']}")
+        print(f"[Adjuster]   置信度: {confidence:.0%}")
+        print(f"[Adjuster]   出现次数: {pattern['occurrences']}")
+
+        if pattern["fix_success_rate"] >= 0.80 and pattern["fixes"]:
+            best_fix = pattern["fixes"][0]
+            print(f"[Adjuster] ✓ 应用历史修复方案")
+            print(f"[Adjuster]   成功率: {pattern['fix_success_rate']:.0%}")
+            print(f"[Adjuster]   策略: {best_fix['fix_type']}")
+            return best_fix["fix_type"]
+
+    # 2. 尝试使用suggested_fix
+    if "suggested_fix" in failure_info:
+        fix = failure_info["suggested_fix"]
+        if fix.get("estimated_success_rate", 0) >= 0.80:
+            print(f"[Adjuster] 使用错误内建议修复")
+            return fix["strategy"]
+
+    # 3. 常规决策树
+    print(f"[Adjuster] 使用常规决策树分析")
+    return analyze_structured_error(failure_info)
+```
+
+### 模式匹配优势
+
+- **快速决策**：跳过分析，直接应用已知修复
+- **高成功率**：优先使用成功率≥80%的方案
+- **持续学习**：跨会话累积经验
+- **智能降级**：匹配失败时回退到常规分析
+
+### 匹配统计
+
+Adjuster 记录模式匹配统计：
+
+```python
+stats = {
+    "total_failures": 10,
+    "pattern_matched": 6,
+    "pattern_match_rate": 0.60,
+    "pattern_fix_success": 5,
+    "pattern_fix_success_rate": 0.83
+}
+```
+
+目标：
+- 匹配率 ≥60%
+- 匹配后成功率 ≥80%

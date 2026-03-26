@@ -96,6 +96,56 @@ user-invocable: false
 
 **返回**: 相似失败情节列表和恢复策略
 
+### 5. extract_failure_patterns()
+
+**功能**: 从会话中提取失败模式
+
+**调用时机**: Loop finalization阶段（任务完成后）
+
+**参数**: `session_id` - 会话ID
+
+**返回**: 模式列表，每个包含：
+- `pattern_id` - 唯一模式ID
+- `signature` - 错误签名
+- `occurrences` - 出现次数
+- `confidence` - 置信度（0.0-1.0）
+- `fixes` - 修复方案列表
+- `fix_success_rate` - 修复成功率
+
+**示例**:
+```python
+patterns = extract_failure_patterns("sess_abc123")
+for p in patterns:
+    print(f"{p['pattern_id']}: {p['signature']} ({p['occurrences']}次)")
+```
+
+### 6. match_failure_to_patterns()
+
+**功能**: 匹配当前失败到历史模式
+
+**调用时机**: Adjuster分析失败时
+
+**参数**: `failure` - 结构化失败信息
+
+**返回**: `(pattern, confidence)` - 最佳匹配模式和置信度，或 `(None, 0.0)` 无匹配
+
+**示例**:
+```python
+pattern, confidence = match_failure_to_patterns(current_failure)
+if pattern and confidence >= 0.80:
+    print(f"匹配到模式: {pattern['pattern_id']}, 置信度: {confidence:.0%}")
+```
+
+### 7. load_patterns_from_memory()
+
+**功能**: 从情节记忆加载所有模式
+
+**调用时机**: 初始化或模式匹配时
+
+**返回**: 所有历史模式列表
+
+**存储位置**: `workflow://patterns/{pattern_id}`
+
 </api>
 
 <integration>

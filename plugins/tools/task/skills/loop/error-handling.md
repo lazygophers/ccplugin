@@ -105,3 +105,235 @@ def detect_stall(error_history):
 Level 1 Retry（首次失败）：应用简单调整后重试，如增加超时时间、清理缓存。Level 2 Debug（重复失败）：深度诊断和修复，分析日志、检查环境。Level 3 Replan（持续失败）：返回计划设计阶段，调整任务分解或修改依赖。Level 4 Ask User（停滞检测）：请求用户提供指导，询问是否调整目标或需要人工介入。
 
 </escalation_levels>
+
+<structured_error_format>
+
+## 结构化错误消息格式
+
+### 核心数据结构
+
+所有错误必须使用以下JSON格式：
+
+```json
+{
+  "error_id": "err_${hash8}",
+  "timestamp": "ISO 8601格式时间戳",
+  "category": "recoverable|unrecoverable",
+  "severity": "critical|high|medium|low",
+  "message": "人类可读的错误描述",
+  "context": {
+    "task_id": "当前任务ID",
+    "iteration": "当前迭代次数",
+    "phase": "planning|execution|verification|adjustment|etc.",
+    "agent": "触发错误的agent名称",
+    "file_path": "相关文件路径（如适用）",
+    "line_number": "行号（如适用）"
+  },
+  "stack_trace": "完整的堆栈跟踪（如适用）",
+  "suggested_fix": {
+    "strategy": "retry|debug|replan|ask_user",
+    "details": "具体的修复建议",
+    "estimated_success_rate": "0.0-1.0"
+  },
+  "related_patterns": [
+    {
+      "pattern_id": "匹配的历史模式ID",
+      "confidence": "0.0-1.0"
+    }
+  ]
+}
+```
+
+### 字段说明
+
+#### error_id
+- 格式：`err_` + 8位哈希
+- 生成方式：`hashlib.md5(f"{timestamp}_{message}_{context}".encode()).hexdigest()[:8]`
+- 用途：唯一标识错误，便于追踪和去重
+
+#### category
+- `recoverable`：可恢复的错误（网络超时、依赖缺失、语法错误等）
+- `unrecoverable`：不可恢复的错误（磁盘满、权限不足、配置错误等）
+- 用途：指导adjuster选择恢复策略
+
+#### severity
+- `critical`：阻塞任务继续，需要立即处理
+- `high`：影响核心功能，应尽快处理
+- `medium`：影响部分功能，可延后处理
+- `low`：轻微影响，可忽略
+- 用途：优先级排序和升级决策
+
+#### context
+提供足够的上下文信息用于诊断：
+- `task_id`：跟踪错误属于哪个任务
+- `iteration`：识别是否为重复失败
+- `phase`：定位错误发生的执行阶段
+- `agent`：识别哪个组件出错
+- `file_path`、`line_number`：精确定位代码位置
+
+#### suggested_fix
+基于错误分析提供初步修复建议：
+- `strategy`：推荐的恢复策略
+- `details`：具体的操作步骤
+- `estimated_success_rate`：修复成功率估计
+
+#### related_patterns
+关联历史失败模式（如果模式提取功能已启用）：
+- `pattern_id`：匹配的模式ID
+- `confidence`：匹配置信度
+
+### 错误生成函数
+
+```python
+import hashlib
+from datetime import datetime
+
+def create_structured_error(
+    message: str,
+    category: str,
+    severity: str,
+    context: dict,
+    stack_trace: str = None,
+    suggested_fix: dict = None,
+    related_patterns: list = None
+) -> dict:
+    """
+    生成结构化错误消息
+
+    Args:
+        message: 错误描述
+        category: recoverable|unrecoverable
+        severity: critical|high|medium|low
+        context: 上下文字典
+        stack_trace: 堆栈跟踪（可选）
+        suggested_fix: 修复建议（可选）
+        related_patterns: 关联模式（可选）
+
+    Returns:
+        结构化错误字典
+    """
+    timestamp = datetime.now().isoformat()
+    error_id = f"err_{hashlib.md5(f'{timestamp}_{message}_{context}'.encode()).hexdigest()[:8]}"
+
+    return {
+        "error_id": error_id,
+        "timestamp": timestamp,
+        "category": category,
+        "severity": severity,
+        "message": message,
+        "context": context,
+        "stack_trace": stack_trace or "",
+        "suggested_fix": suggested_fix or {},
+        "related_patterns": related_patterns or []
+    }
+```
+
+### 使用示例
+
+#### 示例1：可恢复错误（网络超时）
+
+```python
+error = create_structured_error(
+    message="HTTP request to API endpoint timed out after 30 seconds",
+    category="recoverable",
+    severity="medium",
+    context={
+        "task_id": "t_abc123",
+        "iteration": 2,
+        "phase": "execution",
+        "agent": "api-client",
+        "file_path": "src/services/api.py",
+        "line_number": 45
+    },
+    suggested_fix={
+        "strategy": "retry",
+        "details": "Retry with exponential backoff: 2s → 4s → 8s",
+        "estimated_success_rate": 0.85
+    }
+)
+```
+
+#### 示例2：不可恢复错误（配置缺失）
+
+```python
+error = create_structured_error(
+    message="Required configuration 'DATABASE_URL' not found in environment",
+    category="unrecoverable",
+    severity="critical",
+    context={
+        "task_id": "t_def456",
+        "iteration": 1,
+        "phase": "initialization",
+        "agent": "config-loader"
+    },
+    suggested_fix={
+        "strategy": "ask_user",
+        "details": "Request user to set DATABASE_URL environment variable",
+        "estimated_success_rate": 1.0
+    }
+)
+```
+
+### 错误日志存储
+
+所有结构化错误应保存到：
+- 文件路径：`.claude/logs/task-{session_id}.log`
+- 格式：每行一个JSON对象（JSONL格式）
+- 旋转策略：每个会话一个文件
+- 保留期限：30天
+
+```python
+import json
+from pathlib import Path
+
+def log_structured_error(error: dict, session_id: str):
+    """
+    将结构化错误写入日志文件
+
+    Args:
+        error: 结构化错误字典
+        session_id: 会话ID
+    """
+    log_dir = Path.home() / ".claude/logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    log_file = log_dir / f"task-{session_id}.log"
+
+    with log_file.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(error, ensure_ascii=False) + "\n")
+```
+
+### 集成到Loop流程
+
+在每个执行阶段捕获异常时，生成结构化错误：
+
+```python
+try:
+    # 执行任务...
+    result = execute_task(task)
+except Exception as e:
+    error = create_structured_error(
+        message=str(e),
+        category=classify_error(e),
+        severity=assess_severity(e),
+        context={
+            "task_id": task.id,
+            "iteration": current_iteration,
+            "phase": current_phase,
+            "agent": current_agent
+        },
+        stack_trace=traceback.format_exc(),
+        suggested_fix=generate_suggestion(e)
+    )
+
+    # 保存到日志
+    log_structured_error(error, session_id)
+
+    # 传递给adjuster
+    adjustment = Agent(
+        agent="task:adjuster",
+        prompt=f"Analyze and handle this structured error:\n{json.dumps(error, indent=2)}"
+    )
+```
+
+</structured_error_format>

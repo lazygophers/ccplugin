@@ -75,6 +75,13 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
   - 指数退避（0秒 → 2秒 → 4秒）
   - 回到相应阶段（任务执行 或 计划设计）
 
+→ 模式提取（Pattern Extraction）[新增]
+  - 自动提取失败模式（样本≥3）
+  - 保存到情节记忆（workflow://patterns/{pattern_id}）
+  - 下次任务自动匹配和应用
+  - DBSCAN聚类算法（最小样本3，距离阈值0.2）
+  - 匹配率目标≥60%，自愈成功率≥80%
+
 → 全部完成（Completion / Finalization）
   - 调用 finalizer agent 清理资源
   - 输出最终报告和统计信息
@@ -115,6 +122,19 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
 ### 简要说明
 分 3 个子任务实现用户认证功能，先建模型再实现接口最后补测试。
 ```
+
+## 📖 完整导航
+
+本文档提供快速入门指南。如需查找特定功能、agent、skill或解决方案，请参阅：
+
+👉 [**Task插件完整导航索引**](./NAVIGATION.md)
+
+导航索引包含：
+- 7个核心Agents详细说明
+- 15+个Skills功能索引
+- 按场景分类的快速查找表
+- 常见问题解答
+- 高级主题和最佳实践
 
 </getting_started>
 
@@ -172,14 +192,16 @@ task/
 
 ## Skills
 
-| Skill | 说明 |
-|-------|------|
-| prompt-optimizer | 提示词优化规范 - 评估质量、5W1H框架、结构化提问、生成优化提示 [新增] |
-| planner | 计划设计规范 - 收集项目信息、任务分解、依赖建模、agents/skills 分配 |
-| execute | 任务执行规范 - 并行编排、团队管理、进度跟踪 |
-| verifier | 结果验证规范 - 检查任务验收标准、验证完成情况、判断终止条件 |
-| adjuster | 失败调整规范 - 分析失败原因、检测停滞、应用升级策略 |
-| loop | Loop 持续执行 - 基于 PDCA 循环的完整任务管理流程（8个阶段）|
+| Skill | 说明 | 文档 |
+|-------|------|------|
+| prompt-optimizer | 提示词优化规范 - 评估质量、5W1H框架、结构化提问、生成优化提示 [新增] | [skills/prompt-optimizer/SKILL.md](skills/prompt-optimizer/SKILL.md) |
+| planner | 计划设计规范 - 收集项目信息、任务分解、依赖建模、agents/skills 分配 | [skills/planner/SKILL.md](skills/planner/SKILL.md) |
+| execute | 任务执行规范 - 并行编排、团队管理、进度跟踪 | [skills/execute/SKILL.md](skills/execute/SKILL.md) |
+| verifier | 结果验证规范 - 检查任务验收标准、验证完成情况、判断终止条件 | [skills/verifier/SKILL.md](skills/verifier/SKILL.md) |
+| adjuster | 失败调整规范 - 分析失败原因、检测停滞、应用升级策略 | [skills/adjuster/SKILL.md](skills/adjuster/SKILL.md) |
+| loop | Loop 持续执行 - 基于 PDCA 循环的完整任务管理流程（8个阶段）| [skills/loop/SKILL.md](skills/loop/SKILL.md) |
+| pattern-extraction | 模式提取 - 任务完成时自动提取失败模式（样本≥3） | [skills/memory-bridge/pattern-extraction.md](skills/memory-bridge/pattern-extraction.md) |
+| hooks | 生命周期钩子 - 8个hooks自动触发（SessionStart到SessionEnd） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
 
 </reference>
 
@@ -318,6 +340,36 @@ AI 提问2："关于验收标准，请问："
 
 详细的提示词工程最佳实践请参考：
 - [best-practices.md](./skills/prompt-optimizer/best-practices.md) - 详细指南和示例
+
+---
+
+## 最新优化（v0.0.183）
+
+### 结构化错误消息
+- 8字段JSON格式（error_id、timestamp、category、severity等）
+- 机器可解析，便于自动修复
+- 详见：[error-handling.md](skills/loop/error-handling.md)
+
+### Loop文档模块化
+- 1100行拆分为8个phase文件（复杂度降低77%）
+- 缓存友好，修改任意phase不影响其他缓存
+- 详见：[详细流程导航](skills/loop/detailed-flow.md)
+
+### 失败模式提取
+- DBSCAN聚类算法，自动提取可复用模式
+- Adjuster优先匹配历史模式（匹配率目标≥60%）
+- 持续学习，跨会话累积经验
+- 详见：[pattern-extraction.md](skills/memory-bridge/pattern-extraction.md)
+
+### Hook系统扩展
+- 从1个扩展到8个生命周期hooks
+- 自动指标收集、日志记录、事件驱动
+- 详见：[hooks/SKILL.md](skills/hooks/SKILL.md)
+
+### 统一导航索引
+- 集中式NAVIGATION.md，导航时间<30秒
+- 按场景分类查找表，快速定位解决方案
+- 详见：[NAVIGATION.md](NAVIGATION.md)
 
 ---
 
