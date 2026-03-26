@@ -13,10 +13,11 @@
  * 通知和 TTS 委托给 Python notify.py（跨平台 Swift/Tk overlay）
  */
 
-import { readFileSync, existsSync, copyFileSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, copyFileSync, mkdirSync, writeFileSync, readdirSync, unlinkSync, symlinkSync, lstatSync, statSync } from 'fs';
 import { join, basename, dirname } from 'path';
 import { homedir } from 'os';
 import { execFile } from 'child_process';
+import { appendFileSync } from 'fs';
 
 // ─── 环境变量 ───────────────────────────────────────────────────────────────────
 const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || process.cwd();
@@ -26,9 +27,93 @@ const PLUGIN_NAME = process.env.PLUGIN_NAME || 'notify';
 const PROJECT_PLUGINS_DIR = join(PROJECT_DIR, '.lazygophers', 'ccplugin');
 const USER_PLUGINS_DIR = join(homedir(), '.lazygophers', 'ccplugin');
 
-// ─── 日志 ────────────────────────────────────────────────────────────────────────
+// ─── 日志（与 lib/logging 规范一致）────────────────────────────────────────────────
+// 日志目录: <project>/.lazygophers/ccplugin/log/
+// 文件命名: YYYYMMDDHH.log（按小时轮转）
+// 软连接: log.log → 当前小时文件
+// 格式: <app_name> [LEVEL] [HH:MM:SS] [filename:lineno] message
 const DEBUG = process.env.DEBUG === '1' || process.argv.includes('--debug');
-function log(level, msg) { process.stderr.write(`[${PLUGIN_NAME}][${level}] ${msg}\n`); }
+
+function _resolveLogDir() {
+  const lazygophersPath = join(PROJECT_DIR, '.lazygophers');
+  try {
+    if (existsSync(lazygophersPath) && !statSync(lazygophersPath).isDirectory()) {
+      return join(USER_PLUGINS_DIR, 'log');
+    }
+  } catch { /* ignore */ }
+  return join(PROJECT_PLUGINS_DIR, 'log');
+}
+
+function _getCurrentHour() {
+  const now = new Date();
+  return now.getFullYear().toString() +
+    String(now.getMonth() + 1).padStart(2, '0') +
+    String(now.getDate()).padStart(2, '0') +
+    String(now.getHours()).padStart(2, '0');
+}
+
+function _getTimestamp() {
+  const now = new Date();
+  return String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0') + ':' +
+    String(now.getSeconds()).padStart(2, '0');
+}
+
+function _ensureLogDir(logDir) {
+  try { mkdirSync(logDir, { recursive: true }); } catch { /* ignore */ }
+}
+
+function _cleanupOldLogs(logDir, currentFile) {
+  try {
+    for (const f of readdirSync(logDir)) {
+      if (f === 'log.log' || f === currentFile) continue;
+      if (f.endsWith('.log')) {
+        try { unlinkSync(join(logDir, f)); } catch { /* ignore */ }
+      }
+    }
+  } catch { /* ignore */ }
+}
+
+function _updateSymlink(logDir, currentFile) {
+  const symlinkPath = join(logDir, 'log.log');
+  try {
+    if (existsSync(symlinkPath) || (lstatSync(symlinkPath).isSymbolicLink())) {
+      unlinkSync(symlinkPath);
+    }
+  } catch { /* ignore */ }
+  try { symlinkSync(currentFile, symlinkPath); } catch { /* ignore */ }
+}
+
+function _getCallerInfo() {
+  const e = new Error();
+  const lines = (e.stack || '').split('\n');
+  // lines[0] = "Error", [1] = _getCallerInfo, [2] = _logToFile, [3] = log/info/error/debug, [4] = actual caller
+  const callerLine = lines[4] || '';
+  const match = callerLine.match(/(?:at\s+)?(?:.*?\s+\()?(.*?):(\d+):\d+\)?$/);
+  if (match) return `${basename(match[1])}:${match[2]}`;
+  return 'hooks.mjs:0';
+}
+
+function _logToFile(level, msg) {
+  try {
+    const logDir = _resolveLogDir();
+    _ensureLogDir(logDir);
+    const hour = _getCurrentHour();
+    const logFile = `${hour}.log`;
+    const logPath = join(logDir, logFile);
+    const ts = _getTimestamp();
+    const caller = _getCallerInfo();
+    const line = `${PLUGIN_NAME} [${level}] [${ts}] [${caller}] ${msg}\n`;
+    appendFileSync(logPath, line, 'utf-8');
+    _cleanupOldLogs(logDir, logFile);
+    _updateSymlink(logDir, logFile);
+  } catch { /* ignore file logging errors */ }
+}
+
+function log(level, msg) {
+  process.stderr.write(`[${PLUGIN_NAME}][${level}] ${msg}\n`);
+  _logToFile(level, msg);
+}
 function info(msg) { log('INFO', msg); }
 function error(msg) { log('ERROR', msg); }
 function debug(msg) { if (DEBUG) log('DEBUG', msg); }
