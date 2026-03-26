@@ -144,6 +144,22 @@ class PreCompactHookConfig:
 
 
 @dataclass
+class PostCompactHookConfig:
+	"""PostCompact Hook 配置
+
+	用于 post_compact，包含 2 种压缩触发方式
+	"""
+	manual: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	auto: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+
+	def validate(self) -> bool:
+		"""验证所有压缩触发方式配置"""
+		for trigger in ['manual', 'auto']:
+			getattr(self, trigger).validate()
+		return True
+
+
+@dataclass
 class HooksConfig:
 	"""完整的 Claude Code Hooks 配置
 
@@ -212,6 +228,21 @@ class HooksConfig:
 	session_start: SessionStartHookConfig = field(default_factory=SessionStartHookConfig)
 	session_end: SessionEndHookConfig = field(default_factory=SessionEndHookConfig)
 	pre_compact: PreCompactHookConfig = field(default_factory=PreCompactHookConfig)
+	post_compact: PostCompactHookConfig = field(default_factory=PostCompactHookConfig)
+	post_tool_use_failure: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	subagent_start: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	subagent_stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	stop_failure: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	teammate_idle: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	task_completed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	instructions_loaded: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	config_change: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	cwd_changed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	file_changed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	worktree_create: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	worktree_remove: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	elicitation: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	elicitation_result: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 
 	def validate(self) -> bool:
 		"""验证所有配置有效性"""
@@ -224,6 +255,21 @@ class HooksConfig:
 		self.session_start.validate()
 		self.session_end.validate()
 		self.pre_compact.validate()
+		self.post_compact.validate()
+		self.post_tool_use_failure.validate()
+		self.subagent_start.validate()
+		self.subagent_stop.validate()
+		self.stop_failure.validate()
+		self.teammate_idle.validate()
+		self.task_completed.validate()
+		self.instructions_loaded.validate()
+		self.config_change.validate()
+		self.cwd_changed.validate()
+		self.file_changed.validate()
+		self.worktree_create.validate()
+		self.worktree_remove.validate()
+		self.elicitation.validate()
+		self.elicitation_result.validate()
 		return True
 
 	@classmethod
@@ -308,6 +354,15 @@ class HooksConfig:
 				auto=load_hook_config(data.get("auto"))
 			)
 
+		def load_post_compact_config(data: Optional[Dict]) -> PostCompactHookConfig:
+			"""加载 PostCompact 配置"""
+			if not data:
+				return PostCompactHookConfig()
+			return PostCompactHookConfig(
+				manual=load_hook_config(data.get("manual")),
+				auto=load_hook_config(data.get("auto"))
+			)
+
 		return cls(
 			stop=load_hook_config(hooks_data.get("stop")),
 			pre_tool_use=load_tool_specific_config(hooks_data.get("pre_tool_use")),
@@ -317,7 +372,22 @@ class HooksConfig:
 			notification=load_notification_config(hooks_data.get("notification")),
 			session_start=load_session_start_config(hooks_data.get("session_start")),
 			session_end=load_session_end_config(hooks_data.get("session_end")),
-			pre_compact=load_pre_compact_config(hooks_data.get("pre_compact"))
+			pre_compact=load_pre_compact_config(hooks_data.get("pre_compact")),
+			post_compact=load_post_compact_config(hooks_data.get("post_compact")),
+			post_tool_use_failure=load_hook_config(hooks_data.get("post_tool_use_failure")),
+			subagent_start=load_hook_config(hooks_data.get("subagent_start")),
+			subagent_stop=load_hook_config(hooks_data.get("subagent_stop")),
+			stop_failure=load_hook_config(hooks_data.get("stop_failure")),
+			teammate_idle=load_hook_config(hooks_data.get("teammate_idle")),
+			task_completed=load_hook_config(hooks_data.get("task_completed")),
+			instructions_loaded=load_hook_config(hooks_data.get("instructions_loaded")),
+			config_change=load_hook_config(hooks_data.get("config_change")),
+			cwd_changed=load_hook_config(hooks_data.get("cwd_changed")),
+			file_changed=load_hook_config(hooks_data.get("file_changed")),
+			worktree_create=load_hook_config(hooks_data.get("worktree_create")),
+			worktree_remove=load_hook_config(hooks_data.get("worktree_remove")),
+			elicitation=load_hook_config(hooks_data.get("elicitation")),
+			elicitation_result=load_hook_config(hooks_data.get("elicitation_result"))
 		)
 
 	@classmethod

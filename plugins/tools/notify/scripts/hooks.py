@@ -90,6 +90,53 @@ def get_hook_config(config: HooksConfig, event_name: str, context: Optional[Dict
 		hook_config = config.pre_compact
 		return getattr(hook_config, trigger, None)
 
+	elif event_name == "PostCompact":
+		trigger = context.get("trigger", "manual") if context else "manual"
+		hook_config = config.post_compact
+		return getattr(hook_config, trigger, None)
+
+	elif event_name == "PostToolUseFailure":
+		return config.post_tool_use_failure
+
+	elif event_name == "SubagentStart":
+		return config.subagent_start
+
+	elif event_name == "SubagentStop":
+		return config.subagent_stop
+
+	elif event_name == "StopFailure":
+		return config.stop_failure
+
+	elif event_name == "TeammateIdle":
+		return config.teammate_idle
+
+	elif event_name == "TaskCompleted":
+		return config.task_completed
+
+	elif event_name == "InstructionsLoaded":
+		return config.instructions_loaded
+
+	elif event_name == "ConfigChange":
+		return config.config_change
+
+	elif event_name == "CwdChanged":
+		return config.cwd_changed
+
+	elif event_name == "FileChanged":
+		return config.file_changed
+
+	elif event_name == "WorktreeCreate":
+		return config.worktree_create
+
+	elif event_name == "WorktreeRemove":
+		return config.worktree_remove
+
+	elif event_name == "Elicitation":
+		return config.elicitation
+
+	elif event_name == "ElicitationResult":
+		return config.elicitation_result
+
 	return None
 
 
