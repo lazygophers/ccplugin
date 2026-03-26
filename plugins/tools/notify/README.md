@@ -1,6 +1,6 @@
 # Notify - 系统通知插件
 
-> 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件的 Claude Code 插件
+> 通过系统通知和 TTS 语音播报向用户实时提示 Claude Code 会话状态变更、权限请求等重要事件
 
 ## 安装
 
@@ -15,26 +15,41 @@ claude plugin install notify@ccplugin-market
 
 ## 功能特性
 
-- 📢 **跨平台支持** - macOS、Linux (D-Bus)、Windows (Toast) 通知
-- 🎙️ **语音播报** - 支持跨平台文本转语音（macOS/Linux/Windows）
-- ⏱️ **会话统计** - Stop 事件时显示会话交互次数和时间戳
-- 🎯 **智能通知** - 根据通知类型自动调整显示时间和格式
-- ⚙️ **配置驱动** - YAML 配置文件灵活控制通知和语音行为
-- 🔇 **无声集成** - Hook 错误处理，不中断主程序
-- ⚡ **快速响应** - 使用 uvx 快速执行，无需预先安装
+- **全事件覆盖** - 支持全部 24 个 Claude Code 官方 Hook 事件
+- **跨平台通知** - macOS (Swift/AppKit overlay)、Linux/Windows (Tk overlay)
+- **语音播报** - 跨平台 TTS（macOS say / Linux espeak / Windows PowerShell）
+- **YAML 配置驱动** - 每个事件独立开关，按子类型精细控制
+- **模板消息** - Jinja2 风格模板语法，支持变量替换
+- **Node.js 入口** - 快速启动，零 Python 依赖等待（通知部分按需调用 Python）
 
-## Hook 事件
+## Hook 事件（全部 24 个）
 
-| Hook | 描述 |
-|------|------|
-| SessionStart | 会话开始，初始化配置 |
-| SessionEnd | 会话结束，发送通知 |
-| UserPromptSubmit | 用户提示提交，发送通知 |
-| PreToolUse | 工具使用前，发送通知 |
-| PostToolUse | 工具使用后，发送通知 |
-| Notification | 系统通知事件（权限请求、空闲提示等） |
-| Stop | 会话停止，显示统计 |
-| SubagentStop | 子代理停止，发送通知 |
+| Hook | 描述 | Matcher |
+|------|------|---------|
+| SessionStart | 会话开始/恢复 | source: startup, resume, clear, compact |
+| UserPromptSubmit | 用户提交提示前 | - |
+| PreToolUse | 工具调用前 | tool_name |
+| PermissionRequest | 权限请求 | tool_name |
+| PostToolUse | 工具调用成功后 | tool_name |
+| PostToolUseFailure | 工具调用失败后 | tool_name |
+| Notification | 通知事件 | notification_type |
+| SubagentStart | 子代理启动 | agent_type |
+| SubagentStop | 子代理完成 | agent_type |
+| Stop | 主 Agent 完成响应 | - |
+| StopFailure | API 错误导致回合结束 | error type |
+| TeammateIdle | 团队成员即将空闲 | - |
+| TaskCompleted | 任务标记完成 | - |
+| InstructionsLoaded | 指令文件加载 | load_reason |
+| ConfigChange | 配置文件变更 | source |
+| CwdChanged | 工作目录变更 | - |
+| FileChanged | 监视文件变更 | filename |
+| WorktreeCreate | Worktree 创建 | - |
+| WorktreeRemove | Worktree 移除 | - |
+| PreCompact | 压缩前 | trigger: manual, auto |
+| PostCompact | 压缩后 | trigger: manual, auto |
+| Elicitation | MCP 服务器请求输入 | mcp_server_name |
+| ElicitationResult | MCP elicitation 响应 | mcp_server_name |
+| SessionEnd | 会话结束 | reason |
 
 ## 跨平台支持
 
@@ -42,55 +57,69 @@ claude plugin install notify@ccplugin-market
 
 | 平台 | 实现方式 | 要求 |
 |------|---------|------|
-| macOS | terminal-notifier / osascript | terminal-notifier 需安装 |
-| Linux | notify-send | libnotify |
-| Windows | PowerShell Toast | PowerShell 3.0+ |
+| macOS | Swift/AppKit 无焦点浮层 | Xcode CLT (自动编译缓存) |
+| Linux | Tkinter 浮层 | python3-tk |
+| Windows | Tkinter 浮层 | python3-tk |
 
 ### 语音播报
 
 | 平台 | 实现方式 | 要求 |
 |------|---------|------|
 | macOS | say 命令 | 内置 |
-| Linux | espeak/festival | 需安装 |
+| Linux | espeak | 需安装 |
 | Windows | PowerShell Speech API | .NET Framework |
 
 ## 配置
 
 配置文件位置：
-- 用户级: `~/.lazygophers/ccplugin/notify/config.yaml`
 - 项目级: `<project>/.lazygophers/ccplugin/notify/config.yaml`
+- 用户级: `~/.lazygophers/ccplugin/notify/config.yaml`
+
+首次运行时自动从 `hooks.example.yaml` 复制到项目目录。
+
+### 配置示例
 
 ```yaml
-events:
-  PreToolUse:
-    tools:
-      Task:
-        notify: true
-        voice: false
-      Bash:
-        notify: true
-        voice: false
+hooks:
+  # 主 Agent 完成时通知 + 语音
+  stop:
+    enabled: true
+    play_sound: true
+    message: "{{ project_name }} 任务已完成"
 
-  Notification:
-    types:
-      permission_prompt:
-        notify: true
-        voice: false
-      idle_prompt:
-        notify: true
-        voice: false
+  # 只在权限请求时通知
+  notification:
+    permission_prompt:
+      enabled: true
+      play_sound: true
+      message: "权限请求: {{ message | default('') }}"
+
+  # API 错误时通知
+  stop_failure:
+    enabled: true
+    play_sound: true
+    message: "{{ project_name }} API 错误: {{ error | default('unknown') }}"
 ```
 
-## 故障排除
+### 模板变量
 
-### macOS 未显示通知
-- 检查系统通知设置中 Claude Code 的通知权限
+所有事件可用：`{{ time_now }}`, `{{ session_id }}`, `{{ project_name }}`
 
-### Linux 未显示通知
-- 安装 libnotify: `sudo apt-get install libnotify-bin`
+各事件专有变量见 `hooks.example.yaml` 中的注释。
 
-### Windows 未显示通知
-- 确保 PowerShell 版本 3.0 或更高
+## 架构
+
+```
+hooks.mjs (Node.js)          notify.py (Python)
+  ├─ 读取 stdin JSON           ├─ TTS 引擎
+  ├─ 加载 YAML 配置             │   ├─ macOS: say
+  ├─ 匹配事件配置               │   ├─ Linux: espeak
+  ├─ 渲染消息模板               │   └─ Windows: PowerShell
+  └─ 调用 notify.py ──────────→├─ 系统通知
+                                │   ├─ macOS: Swift overlay
+                                │   └─ Linux/Win: Tk overlay
+                                └─ 图标解析/SVG转PNG
+```
 
 ## 许可证
 

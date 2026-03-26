@@ -1,5 +1,9 @@
 # 集成测试报告
 
+> **版本说明**：本报告记录v0.0.183的集成测试结果。
+>
+> **v0.0.184更新**：Hook系统已修正，移除了6个不受官方支持的hooks（TaskStart、IterationStart、IterationEnd、TaskComplete、TaskFailed、CheckpointSave），仅保留2个官方支持hooks（SessionStart、SessionEnd）。报告中的hooks测试场景已过时。
+
 ## 测试时间
 2026-03-26 11:14:24
 

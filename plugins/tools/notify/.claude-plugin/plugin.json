@@ -1,6 +1,6 @@
 {
   "name": "notify",
-  "version": "0.0.183",
+  "version": "0.0.184",
   "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件",
   "author": {
     "name": "lazygophers",
@@ -14,7 +14,8 @@
     "notification",
     "system-notification",
     "hook",
-    "event"
+    "event",
+    "tts"
   ],
   "hooks": {
     "SessionStart": [
@@ -22,21 +23,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 300
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 300
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "timeout": 10
           }
         ]
       }
@@ -46,9 +34,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
           }
         ]
       }
@@ -58,9 +46,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
           }
         ]
       }
@@ -70,9 +70,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
           }
         ]
       }
@@ -82,21 +94,21 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
           }
         ]
       }
     ],
-    "Stop": [
+    "SubagentStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
           }
         ]
       }
@@ -106,9 +118,129 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "FileChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
           }
         ]
       }
@@ -118,9 +250,57 @@
         "hooks": [
           {
             "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
             "async": true,
-            "timeout": 300
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "ElicitationResult": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks.mjs",
+            "async": true,
+            "timeout": 5
           }
         ]
       }

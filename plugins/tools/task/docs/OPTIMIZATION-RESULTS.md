@@ -12,7 +12,7 @@
 
 **关键成果**：
 - 文档复杂度降低77%（1100行→平均256行/文件）
-- Hook覆盖率提升700%（1个→8个）
+- Hook系统优化：从1个扩展到2个官方支持hooks（v0.0.183误配置了6个不支持的hooks，v0.0.184已修正）
 - 新增失败模式提取和自动修复能力
 - 导航时间从>60秒优化到<30秒
 
@@ -23,10 +23,12 @@
 | 指标 | 优化前 | 优化后 | 改进 |
 |------|--------|--------|------|
 | Loop文档复杂度 | 1100行（单文件） | 8×平均256行 | -77% |
-| Hook覆盖率 | 1/8（12.5%） | 8/8（100%） | +700% |
+| Hook覆盖率 | 1/2（50%） | 2/2（100%） | +100% |
 | 模式匹配能力 | 无 | 自动提取+匹配 | ✅ 新增 |
 | 错误消息结构化 | 非结构化文本 | 8字段JSON | ✅ 新增 |
 | 导航时间 | >60秒 | <30秒 | -50%+ |
+
+**注**：v0.0.183误配置了6个不受Claude Code官方支持的hooks（TaskStart、IterationStart、IterationEnd、TaskComplete、TaskFailed、CheckpointSave），这些hooks永远不会被触发。v0.0.184已修正，仅保留2个官方支持的hooks（SessionStart、SessionEnd）。
 | AI可理解性 | 未验证 | 100%通过 | ✅ 验证 |
 | 集成测试通过率 | 未测试 | 4/5（80%） | ✅ 验证 |
 
@@ -111,18 +113,24 @@ phase-8-finalization.md       178行
 - Adjuster三级优先级决策：历史模式 > suggested_fix > 常规分析
 - 目标：匹配率≥60%，自愈成功率≥80%
 
-#### Task 3.2：扩展Hook系统 ✅
-**变更**：
-- 更新`plugin.json`（添加7个新hooks）
+#### Task 3.2：Hook系统（v0.0.183配置，v0.0.184修正） ✅
+**v0.0.183变更**：
+- 更新`plugin.json`（尝试添加7个新hooks）
 - 创建7个hook脚本（task-start.js、iteration-start.js等）
 - 新建`skills/hooks/SKILL.md`（372行）
 
-**成果**：
-- Hook覆盖率从12.5%提升到100%
-- 8个生命周期hooks：SessionStart、TaskStart、IterationStart、IterationEnd、TaskComplete、TaskFailed、CheckpointSave、SessionEnd
-- 自动指标收集（iteration-end.js）
-- 日志保存到`.claude/logs/task-hooks-{session_id}.jsonl`
-- 指标保存到`.claude/metrics/task-metrics.jsonl`
+**v0.0.183问题**：
+- 6个hooks不在Claude Code官方支持列表（TaskStart、IterationStart、IterationEnd、TaskComplete、TaskFailed、CheckpointSave）
+- 这些hooks永远不会被触发
+- 相关脚本永远不会执行
+- Hook覆盖率实际为2/2（100%），而非8/8
+
+**v0.0.184修正**：
+- 移除6个不支持的hooks配置
+- 删除未使用的hook脚本
+- 仅保留2个官方支持hooks：SessionStart、SessionEnd
+- 重写`skills/hooks/SKILL.md`（~200行）
+- Task生命周期事件通过Agent内部逻辑处理
 
 ---
 
@@ -222,23 +230,23 @@ phase-8-finalization.md       178行
 - 匹配率：≥60%（10+任务后）
 - 自愈成功率：≥80%（匹配模式）
 
-### 3. Hook系统架构
+### 3. Hook系统架构（v0.0.184修正）
 
-**8个生命周期Hooks**：
+**2个官方支持的Hooks**：
 ```
-SessionStart → TaskStart → IterationStart → IterationEnd →
-TaskComplete/TaskFailed → CheckpointSave → SessionEnd
+SessionStart → [Task生命周期通过Agent内部处理] → SessionEnd
 ```
 
 **用途**：
-- 指标收集（IterationEnd自动收集）
-- 日志记录（所有hooks记录到`.claude/logs/`）
-- 事件驱动（通知、CI/CD集成）
-- 自定义扩展（用户可配置）
+- SessionStart：环境初始化（设置环境变量）
+- SessionEnd：会话清理和日志归档
+- Task生命周期事件（任务启动/迭代/完成等）通过Agent内部逻辑处理
+
+**注**：v0.0.183误配置了6个不支持的hooks（TaskStart、IterationStart、IterationEnd、TaskComplete、TaskFailed、CheckpointSave），这些hooks不在Claude Code官方支持列表中，永远不会被触发。v0.0.184已移除。
 
 **性能**：
-- 超时保护（3-10秒）
-- 异步执行（除TaskComplete）
+- 超时保护（SessionEnd: 5秒）
+- 异步执行（SessionStart、SessionEnd）
 - 轻量脚本（<1秒执行）
 
 ---
@@ -306,12 +314,14 @@ TaskComplete/TaskFailed → CheckpointSave → SessionEnd
 | 缓存友好 | ✅ | 修改单个phase不影响其他 |
 | AI可理解性 | 100% | 14/14文件通过验证 |
 
-### Hook系统
+### Hook系统（v0.0.184修正）
 
 | 指标 | 值 | 说明 |
 |------|-----|------|
-| 覆盖率 | 100% | 8/8定义，7/7脚本，8/8文档 |
+| 覆盖率 | 100% | 2/2官方支持hooks（SessionStart、SessionEnd） |
 | 执行延迟 | <100ms | 异步执行，不阻塞主流程 |
+
+**注**：v0.0.183误配置了6个不支持的hooks，v0.0.184已修正。Task生命周期事件通过Agent内部逻辑处理。
 | 日志存储 | JSONL | 机器可解析，易于分析 |
 
 ### 模式提取
@@ -383,12 +393,12 @@ TaskComplete/TaskFailed → CheckpointSave → SessionEnd
 
 1. **文档模块化**：复杂度降低77%，维护性显著提升
 2. **智能化增强**：自动模式提取和匹配，自愈能力达到预期
-3. **系统扩展**：Hook系统从1个扩展到8个，事件驱动能力完善
+3. **系统优化**：Hook系统从1个扩展到2个官方支持hooks（v0.0.184修正，移除6个不支持的hooks）
 4. **用户体验**：导航时间从>60秒优化到<30秒，错误诊断效率提升
 
 **核心价值**：
 - **可维护性**：模块化设计，新功能开发时间减少30%
-- **可扩展性**：Hook系统支持插件化扩展
+- **标准合规**：使用2个官方支持hooks，避免误导性配置（v0.0.184修正）
 - **智能化**：模式提取和自动修复，adjuster命中率目标≥60%
 - **用户体验**：导航效率提升50%+，错误修复时间减少40%
 

@@ -201,7 +201,7 @@ task/
 | adjuster | 失败调整规范 - 分析失败原因、检测停滞、应用升级策略 | [skills/adjuster/SKILL.md](skills/adjuster/SKILL.md) |
 | loop | Loop 持续执行 - 基于 PDCA 循环的完整任务管理流程（8个阶段）| [skills/loop/SKILL.md](skills/loop/SKILL.md) |
 | pattern-extraction | 模式提取 - 任务完成时自动提取失败模式（样本≥3） | [skills/memory-bridge/pattern-extraction.md](skills/memory-bridge/pattern-extraction.md) |
-| hooks | 生命周期钩子 - 8个hooks自动触发（SessionStart到SessionEnd） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
+| hooks | 生命周期钩子 - 2个官方支持hooks（SessionStart、SessionEnd）用于会话级事件处理 | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
 
 </reference>
 
@@ -361,9 +361,10 @@ AI 提问2："关于验收标准，请问："
 - 持续学习，跨会话累积经验
 - 详见：[pattern-extraction.md](skills/memory-bridge/pattern-extraction.md)
 
-### Hook系统扩展
-- 从1个扩展到8个生命周期hooks
-- 自动指标收集、日志记录、事件驱动
+### Hook系统（v0.0.183-v0.0.184优化）
+- v0.0.183: 扩展到8个生命周期hooks（但6个不受官方支持，永远不会触发）
+- v0.0.184: 修正为2个官方支持hooks（SessionStart、SessionEnd）用于会话级事件处理
+- Task内部生命周期事件通过Agent逻辑处理，不依赖hooks
 - 详见：[hooks/SKILL.md](skills/hooks/SKILL.md)
 
 ### 统一导航索引

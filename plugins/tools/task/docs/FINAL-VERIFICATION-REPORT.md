@@ -1,5 +1,9 @@
 # Task插件优化最终验证报告
 
+> **版本说明**：本报告记录v0.0.183的验证结果。
+>
+> **v0.0.184更新**：修正了Hook系统配置，移除了6个不受Claude Code官方支持的hooks（TaskStart、IterationStart、IterationEnd、TaskComplete、TaskFailed、CheckpointSave），仅保留2个官方支持hooks（SessionStart、SessionEnd）。详见 [skills/hooks/SKILL.md](../skills/hooks/SKILL.md)
+
 ## 验证时间
 2026-03-26T03:29:23Z
 
