@@ -12,6 +12,72 @@
 | `writer（文档撰写者）` | 编写文档、README、API 文档 | 文档更新、API 说明 | 编写 README、API 文档 |
 | `reviewer（审查员）` | 代码审查、质量检查 | Code Review、质量门禁 | 审查代码、检查质量 |
 
+## Explorer Agents（探索代理）
+
+| Agent | 职责 | 适用场景 | 示例任务 |
+|-------|------|---------|---------|
+| `explorer-general（通用探索）@task` | 项目宏观理解、技术栈识别、目录结构概览 | 首次接触项目、快速了解全貌 | 了解项目架构、识别技术栈 |
+| `explorer-code（代码探索）@task` | 代码结构分析、符号索引、依赖追踪、模式识别 | 深度代码分析、重构前调研 | 分析模块依赖、识别设计模式 |
+| `explorer-frontend（前端探索）@task` | React/Vue 组件树、状态管理、路由、样式体系 | 前端项目分析 | 分析组件树、追踪状态管理 |
+| `explorer-backend（后端探索）@task` | API 路由、数据模型、服务架构、中间件链 | 后端项目分析 | 映射 API 端点、分析数据模型 |
+
+### Explorer 选择决策树
+
+```
+项目类型判断：
+├── 首次接触 / 不确定项目类型
+│   └── explorer-general（通用探索）
+│       → 输出项目概览后，根据 project_type 继续选择
+│
+├── 需要代码级分析（非特定领域）
+│   └── explorer-code（代码探索）
+│       → 符号索引、依赖追踪、模式识别
+│
+├── 前端项目（React/Vue/Svelte/Angular）
+│   └── explorer-frontend（前端探索）
+│       → 继承 code 能力 + 组件树/状态/路由分析
+│
+└── 后端项目（Go/Python/Node.js/Java）
+    └── explorer-backend（后端探索）
+        → 继承 code 能力 + API/模型/服务分析
+```
+
+### Explorer 继承关系
+
+```
+explorer-general（宏观）
+    ↓
+explorer-code（基础层）
+    ├─→ explorer-frontend（前端特化，继承 code 能力）
+    └─→ explorer-backend（后端特化，继承 code 能力）
+```
+
+### Explorer 使用示例
+
+```json
+{
+  "tasks": [
+    {
+      "id": "T0",
+      "description": "了解项目全貌和技术栈",
+      "agent": "explorer-general（通用探索）@task"
+    },
+    {
+      "id": "T1",
+      "description": "分析前端组件架构和状态管理",
+      "agent": "explorer-frontend（前端探索）@task",
+      "dependencies": ["T0"]
+    },
+    {
+      "id": "T2",
+      "description": "分析后端 API 路由和数据模型",
+      "agent": "explorer-backend（后端探索）@task",
+      "dependencies": ["T0"]
+    }
+  ]
+}
+```
+
 ## Agent 选择原则
 
 **根据任务类型选择**：
