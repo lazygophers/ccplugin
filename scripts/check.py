@@ -34,18 +34,30 @@ from lib.utils import print_help
 console = Console()
 
 VALID_HOOK_EVENTS = frozenset({
+	"SessionStart",
+	"UserPromptSubmit",
 	"PreToolUse",
+	"PermissionRequest",
 	"PostToolUse",
 	"PostToolUseFailure",
-	"PermissionRequest",
-	"UserPromptSubmit",
 	"Notification",
-	"Stop",
 	"SubagentStart",
 	"SubagentStop",
-	"SessionStart",
-	"SessionEnd",
+	"Stop",
+	"StopFailure",
+	"TeammateIdle",
+	"TaskCompleted",
+	"InstructionsLoaded",
+	"ConfigChange",
+	"CwdChanged",
+	"FileChanged",
+	"WorktreeCreate",
+	"WorktreeRemove",
 	"PreCompact",
+	"PostCompact",
+	"Elicitation",
+	"ElicitationResult",
+	"SessionEnd",
 })
 
 HOOK_EVENT_SAMPLES = {
@@ -163,6 +175,119 @@ HOOK_EVENT_SAMPLES = {
 		"hook_event_name": "PreCompact",
 		"trigger": "manual",
 		"custom_instructions": ""
+	},
+	"PostCompact": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "PostCompact",
+		"trigger": "manual",
+		"compact_summary": "Summary of the compacted conversation..."
+	},
+	"StopFailure": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "StopFailure",
+		"error": "rate_limit",
+		"error_details": "429 Too Many Requests",
+		"last_assistant_message": "API Error: Rate limit reached"
+	},
+	"TeammateIdle": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"permission_mode": "default",
+		"hook_event_name": "TeammateIdle",
+		"teammate_name": "researcher",
+		"team_name": "my-project"
+	},
+	"TaskCompleted": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"permission_mode": "default",
+		"hook_event_name": "TaskCompleted",
+		"task_id": "task-001",
+		"task_subject": "Implement user authentication",
+		"task_description": "Add login and signup endpoints",
+		"teammate_name": "implementer",
+		"team_name": "my-project"
+	},
+	"InstructionsLoaded": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "InstructionsLoaded",
+		"file_path": "/current/working/directory/CLAUDE.md",
+		"memory_type": "Project",
+		"load_reason": "session_start"
+	},
+	"ConfigChange": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "ConfigChange",
+		"source": "project_settings",
+		"file_path": "/current/working/directory/.claude/settings.json"
+	},
+	"CwdChanged": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory/src",
+		"hook_event_name": "CwdChanged",
+		"old_cwd": "/current/working/directory",
+		"new_cwd": "/current/working/directory/src"
+	},
+	"FileChanged": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "FileChanged",
+		"file_path": "/current/working/directory/.envrc",
+		"event": "change"
+	},
+	"WorktreeCreate": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "WorktreeCreate",
+		"name": "feature-auth"
+	},
+	"WorktreeRemove": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"hook_event_name": "WorktreeRemove",
+		"worktree_path": "/current/working/directory/.claude/worktrees/feature-auth"
+	},
+	"Elicitation": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"permission_mode": "default",
+		"hook_event_name": "Elicitation",
+		"mcp_server_name": "my-mcp-server",
+		"message": "Please provide your credentials",
+		"mode": "form",
+		"requested_schema": {
+			"type": "object",
+			"properties": {
+				"username": {"type": "string", "title": "Username"}
+			}
+		}
+	},
+	"ElicitationResult": {
+		"session_id": "test-session-123",
+		"transcript_path": "/tmp/transcript.jsonl",
+		"cwd": "/current/working/directory",
+		"permission_mode": "default",
+		"hook_event_name": "ElicitationResult",
+		"mcp_server_name": "my-mcp-server",
+		"action": "accept",
+		"content": {"username": "alice"},
+		"mode": "form",
+		"elicitation_id": "elicit-123"
 	}
 }
 
