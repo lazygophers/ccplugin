@@ -39,7 +39,7 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
 MindFlow 执行引擎的完整 PDCA 循环流程：
 
 ```mermaid
-graph LR
+graph TD
     A[用户任务] --> B[Phase 1: 初始化]
     B --> C{需要优化?}
     C -->|是| D[Phase 2: 提示词优化]

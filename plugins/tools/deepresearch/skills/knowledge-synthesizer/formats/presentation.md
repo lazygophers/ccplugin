@@ -109,7 +109,7 @@ memory: project
 
 [推荐使用mermaid图表]
 ```mermaid
-graph LR
+graph TD
     A[起点] --> B[节点1]
     B --> C[节点2]
     C --> D[终点]
