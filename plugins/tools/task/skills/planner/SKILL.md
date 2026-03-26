@@ -35,6 +35,9 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 | "5个并行任务可以分两批执行" | 并行度硬性限制≤2，必须严格遵守，即使有不同的agent也要串行 |
 | "已有中文注释，可以省略 depth:1 验证" | 中文注释不等于结构化，必须用 depth:1 检查 agent/skills 是否都带注释 |
 | "没有用到 Mermaid 就不用画状态图" | Mermaid 是输出规范的一部分，复杂计划（>5个任务）必须生成 |
+| "agent 是可选的，有些任务不需要" | agent 和 skills 在 tasks 不为空时是强制字段，缺失会导致调度失败 |
+| "skills 可以留空，让系统自动推断" | skills 必须显式指定，空数组会触发验证错误 |
+| "来源必须是 task 插件" | agent/skills 可来自任何插件或项目自定义，来源灵活 |
 
 </red_flags>
 
@@ -209,15 +212,17 @@ state "T1: 需求分析\n━━━━━━\nagent: xx" as T1  ❌ 多行文本
 
 Task 对象字段：
 
-| 字段 | 类型 | 说明 | 示例 |
-|------|------|------|------|
-| `id` | string | 任务唯一标识 | `"T1"` |
-| `description` | string | 任务描述 | `"实现 JWT 工具函数"` |
-| `agent` | string | 执行 Agent（含中文注释） | `"coder（开发者）"` |
-| `skills` | array | 所需 Skills（含中文注释） | `["golang:core（核心功能）"]` |
-| `files` | array | 涉及的文件 | `["internal/auth/jwt.go"]` |
-| `acceptance_criteria` | array | 验收标准（支持字符串或结构化对象） | 见 [结构化验收标准](planner-structured-criteria.md) |
-| `dependencies` | array | 前置任务 ID 列表 | `["T1"]` |
+| 字段 | 类型 | 必填 | 说明 | 示例 |
+|------|------|------|------|------|
+| `id` | string | 是 | 任务唯一标识 | `"T1"` |
+| `description` | string | 是 | 任务描述 | `"实现 JWT 工具函数"` |
+| `agent` | string | 是* | 执行 Agent（必须带中文注释） | `"coder（开发者）"` |
+| `skills` | array | 是* | 所需 Skills（每项必须带中文注释） | `["golang:core（核心功能）"]` |
+| `files` | array | 否 | 涉及的文件 | `["internal/auth/jwt.go"]` |
+| `acceptance_criteria` | array | 是 | 验收标准（支持字符串或结构化对象） | 见 [结构化验收标准](planner-structured-criteria.md) |
+| `dependencies` | array | 是 | 前置任务 ID 列表 | `["T1"]` |
+
+\* 注：当 tasks 数组不为空时为必填。tasks 为空数组时（功能已存在场景）无需填写。
 
 结构化验收标准详见 [planner-structured-criteria.md](planner-structured-criteria.md)。
 
@@ -240,5 +245,59 @@ Task 对象字段：
 不要跳过计划验证步骤，不要忽略 planner 返回的问题，不要修改 planner 返回的 JSON 结构。常见陷阱包括：过度拆分任务（应合并为原子任务）、验收标准模糊（应可量化）、缺少中文注释、循环依赖、并行度超限。
 
 </guidelines>
+
+<agent_skills_sources>
+
+**Agent 和 Skills 来源说明**：
+
+Agent 和 Skills 可以来自多种来源，不局限于 task 插件：
+
+**Agent 来源**：
+1. **Task 插件内置** - 用于流程编排
+   - `task:planner`、`task:verifier`、`task:adjuster`（loop 内部使用）
+   - `task:explorer-*`（探索类任务）
+
+2. **其他插件提供** - 专业领域 agents
+   - `golang:dev`、`python:dev`、`javascript:dev`（语言专用开发）
+   - `golang:test`、`python:test`（专用测试）
+
+3. **项目自定义** - 项目特定 agents
+   - 在项目 `.claude/agents/` 定义的自定义 agent
+
+4. **通用 agent** - 多用途 agents
+   - `coder（开发者）`、`tester（测试员）`、`devops（运维）`（不带来源标注）
+
+**Skills 来源**：
+1. **语言插件** - `golang:*`、`python:*`、`javascript:*`、`typescript:*`
+2. **通用技能** - `documentation（文档编写）`、`code-review（代码审查）`
+3. **项目技能** - 项目 `.claude/skills/` 中定义的自定义 skill
+
+**格式要求**：
+- 带来源标注：`name（中文注释）@source`（如 `coder（开发者）@task`）
+- 不带来源：`name（中文注释）`（如 `coder（开发者）`，系统自动查找）
+
+**重要区分**：
+- **Loop 内部调用**：必须明确来源（如 `task:planner`、`task:verifier`）
+- **任务执行 agent**：来源灵活，可省略 `@source` 让系统自动查找
+
+</agent_skills_sources>
+
+<agent_skills_requirement>
+
+**Agent 和 Skills 分配规则**（强制要求）：
+
+当计划包含任务时（tasks 数组不为空），必须为每个任务分配：
+
+1. **Agent**：明确的执行角色
+   - ✓ 正确：`"coder（开发者）"`、`"golang:dev（Go开发专家）@golang"`
+   - ✗ 错误：`""`、`"coder"`（缺少中文注释）
+
+2. **Skills**：至少一个技能
+   - ✓ 正确：`["golang:core（核心功能）@golang"]`、`["documentation（文档编写）"]`
+   - ✗ 错误：`[]`、`["golang:core"]`（缺少中文注释）
+
+**特殊情况**：仅当 tasks 为空数组（功能已存在，无需开发）时，可不分配 agent 和 skills。
+
+</agent_skills_requirement>
 
 <!-- /STATIC_CONTENT -->

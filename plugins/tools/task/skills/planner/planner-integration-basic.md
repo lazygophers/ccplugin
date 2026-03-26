@@ -65,27 +65,84 @@ def planning_phase(task_description, iteration):
 
 ```python
 def validate_plan(plan):
-    """验证计划的合理性"""
+    """验证计划的合理性
+
+    验证规则：
+    1. 依赖关系必须形成 DAG（无循环）
+    2. 并行度不超过 2
+    3. 当 tasks 不为空时，每个任务必须有：
+       - 非空的 agent 字段（带中文注释）
+       - 非空的 skills 数组（每项带中文注释）
+       - 非空的 acceptance_criteria
+    4. 当 tasks 为空时（功能已存在场景），跳过 agent/skills 检查
+    """
+    # 1. 检查循环依赖
     if has_circular_dependency(plan["dependencies"]):
         raise Exception("发现循环依赖，请修正计划")
 
+    # 2. 检查并行度
     for group in plan["parallel_groups"]:
         if len(group) > 2:
             raise Exception(f"并行任务数超过限制（最多2个）：{group}")
 
-    for task in plan["tasks"]:
-        if "（" not in task["agent"]:
-            raise Exception(f"Agent 缺少中文注释：{task['agent']}")
-        for skill in task["skills"]:
-            if "（" not in skill:
-                raise Exception(f"Skill 缺少中文注释：{skill}")
+    # 3. 仅当 tasks 不为空时，检查 agent 和 skills
+    if plan["tasks"] and len(plan["tasks"]) > 0:
+        for task in plan["tasks"]:
+            task_id = task.get("id", "Unknown")
 
-    for task in plan["tasks"]:
-        if not task["acceptance_criteria"]:
-            raise Exception(f"任务 {task['id']} 缺少验收标准")
-        for criterion in task["acceptance_criteria"]:
-            if isinstance(criterion, dict):
-                validate_structured_criterion(criterion, task['id'])
+            # 3.1 检查 agent 字段存在且非空
+            if "agent" not in task or not task["agent"]:
+                raise Exception(
+                    f"任务 {task_id} 缺少 agent 字段。\n"
+                    f"每个任务必须指定执行 agent。\n"
+                    f"格式：name（中文注释）@source 或 name（中文注释）\n"
+                    f"示例：coder（开发者） 或 golang:dev（Go开发专家）@golang"
+                )
+
+            # 3.2 检查 agent 包含中文注释
+            if "（" not in task["agent"]:
+                raise Exception(
+                    f"任务 {task_id} 的 Agent 缺少中文注释：{task['agent']}\n"
+                    f"正确格式：name（中文注释）@source\n"
+                    f"示例：coder（开发者）、golang:dev（Go开发专家）@golang"
+                )
+
+            # 3.3 检查 skills 字段存在且非空数组
+            if "skills" not in task:
+                raise Exception(
+                    f"任务 {task_id} 缺少 skills 字段。\n"
+                    f"每个任务至少需要一个 skill。"
+                )
+
+            if not isinstance(task["skills"], list):
+                raise Exception(
+                    f"任务 {task_id} 的 skills 必须是数组，当前：{type(task['skills'])}"
+                )
+
+            if len(task["skills"]) == 0:
+                raise Exception(
+                    f"任务 {task_id} 的 skills 数组为空。\n"
+                    f"每个任务至少需要一个 skill。\n"
+                    f"格式：name（中文注释）@source 或 name（中文注释）\n"
+                    f"示例：golang:core（核心功能）@golang 或 documentation（文档编写）"
+                )
+
+            # 3.4 检查每个 skill 包含中文注释
+            for skill in task["skills"]:
+                if "（" not in skill:
+                    raise Exception(
+                        f"任务 {task_id} 的 Skill 缺少中文注释：{skill}\n"
+                        f"正确格式：name（中文注释）@source\n"
+                        f"示例：golang:core（核心功能）@golang"
+                    )
+
+            # 3.5 检查验收标准
+            if not task.get("acceptance_criteria"):
+                raise Exception(f"任务 {task_id} 缺少验收标准")
+
+            for criterion in task.get("acceptance_criteria", []):
+                if isinstance(criterion, dict):
+                    validate_structured_criterion(criterion, task_id)
 
     print("✓ 计划验证通过")
 

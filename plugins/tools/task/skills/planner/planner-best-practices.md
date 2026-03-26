@@ -48,7 +48,16 @@
 
 依赖关系：依赖关系形成 DAG（无循环）、所有依赖都是必要的、并行度不超过 2。
 
-Agent/Skills：所有 Agent 带中文注释、所有 Skills 带中文注释、Agent 和 Skills 分配合理。
+Agent/Skills（强制要求）：
+  - [ ] 当 tasks 不为空时，每个任务都有 agent 字段
+  - [ ] 当 tasks 不为空时，每个任务都有非空 skills 数组
+  - [ ] 所有 Agent 带中文注释（格式：name（中文注释）或 name（中文注释）@source）
+  - [ ] 所有 Skills 带中文注释（格式同上）
+  - [ ] Agent 来源灵活（task/其他插件/项目自定义/通用）
+  - [ ] Skills 来源灵活（语言插件/通用技能/项目技能）
+  - [ ] Loop 内部调用明确指定 @task 来源
+  - [ ] 探索类任务使用 task:explorer-* agents
+  - [ ] 实现类任务根据技术栈选择合适 agent（golang:dev/python:dev/coder）
 
 验收标准：所有任务都有验收标准、验收标准可量化、验收标准可验证。
 

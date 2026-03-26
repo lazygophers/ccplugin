@@ -145,3 +145,126 @@
 tolerance 必须是相对值而非绝对值。例如 `tolerance: 0.05` 表示 5% 的相对容差，而不是绝对值 5。不确定时可继续使用字符串格式。
 
 </error_structured_criteria>
+
+<error_missing_agent_skills>
+
+## 7. 缺少 Agent 或 Skills 分配
+
+### 规则
+
+当 tasks 数组不为空时，每个任务必须明确指定 agent 和至少一个 skill。
+
+### 错误示例
+
+**示例 1：Agent 为空**
+```json
+{
+  "tasks": [{
+    "id": "T1",
+    "agent": "",  // ❌ 不能为空
+    "skills": ["python:web（Web开发）"]
+  }]
+}
+```
+
+**示例 2：Skills 为空数组**
+```json
+{
+  "tasks": [{
+    "id": "T1",
+    "agent": "coder（开发者）",
+    "skills": []  // ❌ 至少需要一个
+  }]
+}
+```
+
+**示例 3：缺少中文注释**
+```json
+{
+  "tasks": [{
+    "id": "T1",
+    "agent": "coder",  // ❌ 缺少（中文注释）
+    "skills": ["golang:core"]  // ❌ 缺少（中文注释）
+  }]
+}
+```
+
+### 正确示例
+
+**示例 1：通用 agent**
+```json
+{
+  "tasks": [{
+    "id": "T1",
+    "agent": "coder（开发者）",  // ✓ 通用开发者
+    "skills": ["documentation（文档编写）"]  // ✓ 通用技能
+  }]
+}
+```
+
+**示例 2：专业 agent（带来源）**
+```json
+{
+  "tasks": [{
+    "id": "T1",
+    "agent": "golang:dev（Go开发专家）@golang",  // ✓ 明确来源
+    "skills": [
+      "golang:core（核心功能）@golang",
+      "golang:testing（测试）@golang"
+    ]
+  }]
+}
+```
+
+**示例 3：项目自定义 agent**
+```json
+{
+  "tasks": [{
+    "id": "T1",
+    "agent": "ml-engineer（机器学习工程师）",  // ✓ 项目自定义
+    "skills": ["python:ml（机器学习）@python"]
+  }]
+}
+```
+
+### 特殊情况：功能已存在
+
+当功能已存在时，返回空 tasks 数组，此时无需 agent/skills：
+
+```json
+{
+  "status": "completed",
+  "report": "功能已存在，无需开发。",
+  "tasks": [],  // ✓ 空数组时不需要 agent/skills
+  "dependencies": {},
+  "parallel_groups": []
+}
+```
+
+### Agent/Skills 来源灵活性
+
+Agent 和 Skills 可来自：
+- **Task 插件**：`task:planner`、`task:explorer-*`
+- **其他插件**：`golang:dev`、`python:test`
+- **项目自定义**：`.claude/agents/` 中定义的 agent
+- **通用 agent**：`coder（开发者）`、`tester（测试员）`
+
+**Loop 内部调用**需明确来源：
+```json
+{
+  "id": "T0",
+  "agent": "task:planner",  // ✓ 明确来源
+  "skills": ["task:planning（计划设计）@task"]
+}
+```
+
+**任务执行**可灵活选择：
+```json
+{
+  "id": "T1",
+  "agent": "coder（开发者）",  // ✓ 系统自动查找
+  "skills": ["golang:core（核心功能）@golang"]  // ✓ 或明确来源
+}
+```
+
+</error_missing_agent_skills>
