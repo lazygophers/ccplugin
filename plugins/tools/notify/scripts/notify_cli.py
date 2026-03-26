@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """通知 CLI - 供 hooks.mjs 调用的简单入口"""
-import sys
 import argparse
 
 from notify import start_text_tts, show_system_notification
