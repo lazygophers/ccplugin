@@ -70,6 +70,24 @@ class ExpandedLayout(Layout):
             if error_part:
                 parts.append(error_part)
 
+        # 工具信息
+        if self._components.get("tools"):
+            tools_part = self._render_tools(state)
+            if tools_part:
+                parts.append(tools_part)
+
+        # Agent 信息
+        if self._components.get("agents"):
+            agents_part = self._render_agents(state)
+            if agents_part:
+                parts.append(agents_part)
+
+        # Todo 信息
+        if self._components.get("todos"):
+            todos_part = self._render_todos(state)
+            if todos_part:
+                parts.append(todos_part)
+
         return join_parts(parts, sep=" | ")
 
     def get_width(self) -> int:
@@ -164,3 +182,73 @@ class ExpandedLayout(Layout):
             return None
 
         return f"[{count} errors]"
+
+    def _render_tools(self, state: AggregatedState) -> Optional[str]:
+        """
+        渲染工具信息
+
+        Args:
+            state: 聚合状态
+
+        Returns:
+            工具字符串
+        """
+        if not isinstance(state.value, dict):
+            return None
+
+        active_count = state.value.get("active_count", 0)
+        if active_count == 0:
+            return None
+
+        active = state.value.get("active", [])
+        if active:
+            tool_names = ", ".join(t.get("name", "?") for t in active[:3])
+            return f"[工具: {tool_names} ({active_count} active)]"
+
+        return f"[工具: ({active_count} active)]"
+
+    def _render_agents(self, state: AggregatedState) -> Optional[str]:
+        """
+        渲染 Agent 信息
+
+        Args:
+            state: 聚合状态
+
+        Returns:
+            Agent 字符串
+        """
+        if not isinstance(state.value, dict):
+            return None
+
+        active_count = state.value.get("active_count", 0)
+        if active_count == 0:
+            return None
+
+        active = state.value.get("active", [])
+        if active:
+            agent_names = ", ".join(a.get("name", "?") for a in active[:2])
+            return f"[Agent: {agent_names} ({active_count} running)]"
+
+        return f"[Agent: ({active_count} running)]"
+
+    def _render_todos(self, state: AggregatedState) -> Optional[str]:
+        """
+        渲染 Todo 信息
+
+        Args:
+            state: 聚合状态
+
+        Returns:
+            Todo 字符串
+        """
+        if not isinstance(state.value, dict):
+            return None
+
+        total = state.value.get("total", 0)
+        completed = state.value.get("completed", 0)
+
+        if total == 0:
+            return None
+
+        percentage = state.value.get("percentage", 0)
+        return f"[Todo: {completed}/{total} ({percentage:.0f}%)]"

@@ -73,6 +73,21 @@ class CompactLayout(Layout):
             if resource_part:
                 parts_map["tokens"] = resource_part
 
+        if self._components.get("tools"):
+            tools_part = self._render_tools(state)
+            if tools_part:
+                parts_map["tools"] = tools_part
+
+        if self._components.get("agents"):
+            agents_part = self._render_agents(state)
+            if agents_part:
+                parts_map["agents"] = agents_part
+
+        if self._components.get("todos"):
+            todos_part = self._render_todos(state)
+            if todos_part:
+                parts_map["todos"] = todos_part
+
         # 按优先级排序并选择
         parts = []
         remaining_width = self._max_width
@@ -164,3 +179,62 @@ class CompactLayout(Layout):
 
         tokens = state.value.get("tokens", 0)
         return format_token_count(tokens)
+
+    def _render_tools(self, state: AggregatedState) -> Optional[str]:
+        """
+        渲染工具信息
+
+        Args:
+            state: 聚合状态
+
+        Returns:
+            工具字符串
+        """
+        if not isinstance(state.value, dict):
+            return None
+
+        active_count = state.value.get("active_count", 0)
+        if active_count == 0:
+            return None
+
+        return f"🔧{active_count}"
+
+    def _render_agents(self, state: AggregatedState) -> Optional[str]:
+        """
+        渲染 Agent 信息
+
+        Args:
+            state: 聚合状态
+
+        Returns:
+            Agent 字符串
+        """
+        if not isinstance(state.value, dict):
+            return None
+
+        active_count = state.value.get("active_count", 0)
+        if active_count == 0:
+            return None
+
+        return f"🤖{active_count}"
+
+    def _render_todos(self, state: AggregatedState) -> Optional[str]:
+        """
+        渲染 Todo 信息
+
+        Args:
+            state: 聚合状态
+
+        Returns:
+            Todo 字符串
+        """
+        if not isinstance(state.value, dict):
+            return None
+
+        total = state.value.get("total", 0)
+        completed = state.value.get("completed", 0)
+
+        if total == 0:
+            return None
+
+        return f"✓{completed}/{total}"

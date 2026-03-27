@@ -15,6 +15,10 @@ class EventType(Enum):
     ASSISTANT_MESSAGE = "assistant_message"
     TOOL_CALL = "tool_call"
     TOOL_RESULT = "tool_result"
+    AGENT_CALL = "agent_call"
+    AGENT_RESULT = "agent_result"
+    TODO_WRITE = "todo_write"
+    TODO_UPDATE = "todo_update"
     STATUS_CHANGE = "status_change"
     ERROR = "error"
 
@@ -143,6 +147,78 @@ class ErrorEvent(TranscriptEvent):
             self.data = {
                 "error_message": self.error_message,
                 "error_type": self.error_type,
+            }
+
+
+@dataclass
+class AgentCallEvent(TranscriptEvent):
+    """Agent 调用事件"""
+    agent_name: str = ""
+    agent_type: str = ""  # "skill", "plugin", "builtin"
+    status: str = ""      # "running", "completed", "failed"
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.event_type = EventType.AGENT_CALL
+        if not self.data:
+            self.data = {
+                "agent_name": self.agent_name,
+                "agent_type": self.agent_type,
+                "status": self.status,
+            }
+
+
+@dataclass
+class AgentResultEvent(TranscriptEvent):
+    """Agent 结果事件"""
+    agent_name: str = ""
+    result: Any = None
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.event_type = EventType.AGENT_RESULT
+        if not self.data:
+            self.data = {
+                "agent_name": self.agent_name,
+                "result": self.result,
+                "error": self.error,
+            }
+
+
+@dataclass
+class TodoWriteEvent(TranscriptEvent):
+    """Todo 写入事件"""
+    todo_id: str = ""
+    content: str = ""
+    total: int = 1
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.event_type = EventType.TODO_WRITE
+        if not self.data:
+            self.data = {
+                "todo_id": self.todo_id,
+                "content": self.content,
+                "total": self.total,
+            }
+
+
+@dataclass
+class TodoUpdateEvent(TranscriptEvent):
+    """Todo 更新事件"""
+    todo_id: str = ""
+    completed: int = 0
+    total: int = 1
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.event_type = EventType.TODO_UPDATE
+        if not self.data:
+            self.data = {
+                "todo_id": self.todo_id,
+                "completed": self.completed,
+                "total": self.total,
             }
 
 

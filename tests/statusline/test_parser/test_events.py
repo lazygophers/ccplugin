@@ -11,6 +11,10 @@ from scripts.statusline.parser.events import (
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,
+    AgentCallEvent,
+    AgentResultEvent,
+    TodoWriteEvent,
+    TodoUpdateEvent,
     StatusChangeEvent,
     ErrorEvent,
     EventSequence,
@@ -28,6 +32,10 @@ class TestEventTypes:
         assert EventType.ASSISTANT_MESSAGE.value == "assistant_message"
         assert EventType.TOOL_CALL.value == "tool_call"
         assert EventType.TOOL_RESULT.value == "tool_result"
+        assert EventType.AGENT_CALL.value == "agent_call"
+        assert EventType.AGENT_RESULT.value == "agent_result"
+        assert EventType.TODO_WRITE.value == "todo_write"
+        assert EventType.TODO_UPDATE.value == "todo_update"
         assert EventType.STATUS_CHANGE.value == "status_change"
         assert EventType.ERROR.value == "error"
 
@@ -191,6 +199,91 @@ class TestErrorEvent:
         )
         assert event.error_message == "Something went wrong"
         assert event.error_type == "ValueError"
+
+
+class TestAgentCallEvent:
+    """Agent 调用事件测试"""
+
+    def test_agent_call_creation(self):
+        """测试 Agent 调用事件创建"""
+        event = AgentCallEvent(
+            event_type=EventType.AGENT_CALL,
+            timestamp=1.0,
+            data={},
+            agent_name="research",
+            agent_type="skill",
+            status="running",
+        )
+        assert event.agent_name == "research"
+        assert event.agent_type == "skill"
+        assert event.status == "running"
+        assert event.event_type == EventType.AGENT_CALL
+
+
+class TestAgentResultEvent:
+    """Agent 结果事件测试"""
+
+    def test_agent_result_creation(self):
+        """测试 Agent 结果事件创建"""
+        event = AgentResultEvent(
+            event_type=EventType.AGENT_RESULT,
+            timestamp=1.0,
+            data={},
+            agent_name="research",
+            result={"data": "result"},
+            error=None,
+        )
+        assert event.agent_name == "research"
+        assert event.result == {"data": "result"}
+        assert event.error is None
+
+    def test_agent_result_with_error(self):
+        """测试带错误的 Agent 结果"""
+        event = AgentResultEvent(
+            event_type=EventType.AGENT_RESULT,
+            timestamp=1.0,
+            data={},
+            agent_name="research",
+            result=None,
+            error="Agent failed",
+        )
+        assert event.error == "Agent failed"
+
+
+class TestTodoWriteEvent:
+    """Todo 写入事件测试"""
+
+    def test_todo_write_creation(self):
+        """测试 Todo 写入事件创建"""
+        event = TodoWriteEvent(
+            event_type=EventType.TODO_WRITE,
+            timestamp=1.0,
+            data={},
+            todo_id="task-1",
+            content="Implement feature",
+            total=5,
+        )
+        assert event.todo_id == "task-1"
+        assert event.content == "Implement feature"
+        assert event.total == 5
+
+
+class TestTodoUpdateEvent:
+    """Todo 更新事件测试"""
+
+    def test_todo_update_creation(self):
+        """测试 Todo 更新事件创建"""
+        event = TodoUpdateEvent(
+            event_type=EventType.TODO_UPDATE,
+            timestamp=1.0,
+            data={},
+            todo_id="task-1",
+            completed=3,
+            total=5,
+        )
+        assert event.todo_id == "task-1"
+        assert event.completed == 3
+        assert event.total == 5
 
 
 class TestEventSequence:

@@ -30,6 +30,9 @@ class Layout(ABC):
             "progress": self._config.get("show_progress", True),
             "resources": self._config.get("show_resources", True),
             "errors": self._config.get("show_errors", True),
+            "tools": self._config.get("show_tools", False),
+            "agents": self._config.get("show_agents", False),
+            "todos": self._config.get("show_todos", False),
         }
 
     @abstractmethod
@@ -118,6 +121,12 @@ class Layout(ABC):
             self._components["resources"] = config["show_resources"]
         if "show_errors" in config:
             self._components["errors"] = config["show_errors"]
+        if "show_tools" in config:
+            self._components["tools"] = config["show_tools"]
+        if "show_agents" in config:
+            self._components["agents"] = config["show_agents"]
+        if "show_todos" in config:
+            self._components["todos"] = config["show_todos"]
 
     def _validate_config(self) -> None:
         """

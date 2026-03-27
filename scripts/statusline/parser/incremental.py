@@ -16,6 +16,10 @@ from .events import (
     AssistantMessageEvent,
     ToolCallEvent,
     ToolResultEvent,
+    AgentCallEvent,
+    AgentResultEvent,
+    TodoWriteEvent,
+    TodoUpdateEvent,
     StatusChangeEvent,
     ErrorEvent,
 )
@@ -28,6 +32,9 @@ class ParseState(Enum):
     PARSING_ASSISTANT = "parsing_assistant"
     PARSING_TOOL_CALL = "parsing_tool_call"
     PARSING_TOOL_RESULT = "parsing_tool_result"
+    PARSING_AGENT_CALL = "parsing_agent_call"
+    PARSING_AGENT_RESULT = "parsing_agent_result"
+    PARSING_TODO = "parsing_todo"
     ERROR = "error"
 
 
@@ -217,6 +224,42 @@ class IncrementalParser:
                     data=msg_data,
                     error_message=msg_data.get("error_message", ""),
                     error_type=msg_data.get("error_type", ""),
+                )
+            elif event_type == EventType.AGENT_CALL:
+                return AgentCallEvent(
+                    event_type=event_type,
+                    timestamp=timestamp,
+                    data=msg_data,
+                    agent_name=msg_data.get("agent_name", ""),
+                    agent_type=msg_data.get("agent_type", ""),
+                    status=msg_data.get("status", ""),
+                )
+            elif event_type == EventType.AGENT_RESULT:
+                return AgentResultEvent(
+                    event_type=event_type,
+                    timestamp=timestamp,
+                    data=msg_data,
+                    agent_name=msg_data.get("agent_name", ""),
+                    result=msg_data.get("result"),
+                    error=msg_data.get("error"),
+                )
+            elif event_type == EventType.TODO_WRITE:
+                return TodoWriteEvent(
+                    event_type=event_type,
+                    timestamp=timestamp,
+                    data=msg_data,
+                    todo_id=msg_data.get("todo_id", ""),
+                    content=msg_data.get("content", ""),
+                    total=msg_data.get("total", 1),
+                )
+            elif event_type == EventType.TODO_UPDATE:
+                return TodoUpdateEvent(
+                    event_type=event_type,
+                    timestamp=timestamp,
+                    data=msg_data,
+                    todo_id=msg_data.get("todo_id", ""),
+                    completed=msg_data.get("completed", 0),
+                    total=msg_data.get("total", 1),
                 )
             return None
 

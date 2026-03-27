@@ -18,6 +18,9 @@ class StateDimension(Enum):
     PROGRESS = "progress"
     RESOURCES = "resources"
     ERRORS = "errors"
+    TOOLS = "tools"
+    AGENTS = "agents"
+    TODOS = "todos"
 
 
 @dataclass
@@ -93,8 +96,18 @@ class StateAggregator:
             self._update_resources(event)
         elif event.event_type == EventType.TOOL_CALL:
             self._update_progress(event)
+            self._update_tools(event)
         elif event.event_type == EventType.TOOL_RESULT:
             self._update_progress(event)
+            self._update_tools(event)
+        elif event.event_type == EventType.AGENT_CALL:
+            self._update_agents(event)
+        elif event.event_type == EventType.AGENT_RESULT:
+            self._update_agents(event)
+        elif event.event_type == EventType.TODO_WRITE:
+            self._update_todos(event)
+        elif event.event_type == EventType.TODO_UPDATE:
+            self._update_todos(event)
         elif event.event_type == EventType.ERROR:
             self._update_errors(event)
 
@@ -249,6 +262,158 @@ class StateAggregator:
             },
         )
 
+    def _update_tools(self, event: TranscriptEvent) -> None:
+        """更新工具状态"""
+        current = self._states.get(StateDimension.TOOLS)
+        if current:
+            active = current.metadata.get("active", [])
+            history = current.metadata.get("history", [])
+        else:
+            active = []
+            history = []
+
+        tool_name = event.data.get("tool_name", "")
+
+        if event.event_type == EventType.TOOL_CALL:
+            # 添加到活动列表
+            active.append({
+                "name": tool_name,
+                "args": event.data.get("tool_args", {}),
+                "since": event.timestamp,
+            })
+        elif event.event_type == EventType.TOOL_RESULT:
+            # 从活动列表移除，添加到历史
+            active = [t for t in active if t["name"] != tool_name]
+            error = event.data.get("error")
+            history.append({
+                "name": tool_name,
+                "status": "success" if not error else "error",
+                "timestamp": event.timestamp,
+            })
+            # 限制历史长度
+            history = history[-20:]
+
+        self._states[StateDimension.TOOLS] = AggregatedState(
+            dimension=StateDimension.TOOLS,
+            value={
+                "active_count": len(active),
+                "active": active[-5:],  # 只保留最近 5 个活动的
+                "history_count": len(history),
+            },
+            timestamp=event.timestamp,
+            metadata={
+                "active": active,
+                "history": history,
+            },
+        )
+
+    def _update_agents(self, event: TranscriptEvent) -> None:
+        """更新 Agent 状态"""
+        current = self._states.get(StateDimension.AGENTS)
+        if current:
+            active = current.metadata.get("active", [])
+            history = current.metadata.get("history", [])
+        else:
+            active = []
+            history = []
+
+        agent_name = event.data.get("agent_name", "")
+
+        if event.event_type == EventType.AGENT_CALL:
+            # 添加到活动列表
+            active.append({
+                "name": agent_name,
+                "type": event.data.get("agent_type", ""),
+                "since": event.timestamp,
+            })
+        elif event.event_type == EventType.AGENT_RESULT:
+            # 从活动列表移除，添加到历史
+            active = [a for a in active if a["name"] != agent_name]
+            error = event.data.get("error")
+            duration = event.timestamp - next(
+                (h.get("start_time", event.timestamp) for h in history if h.get("name") == agent_name),
+                event.timestamp
+            )
+            history.append({
+                "name": agent_name,
+                "status": "success" if not error else "error",
+                "duration": duration,
+                "timestamp": event.timestamp,
+            })
+            # 限制历史长度
+            history = history[-10:]
+
+        self._states[StateDimension.AGENTS] = AggregatedState(
+            dimension=StateDimension.AGENTS,
+            value={
+                "active_count": len(active),
+                "active": active[-3:],  # 只保留最近 3 个活动的
+                "history_count": len(history),
+            },
+            timestamp=event.timestamp,
+            metadata={
+                "active": active,
+                "history": history,
+            },
+        )
+
+    def _update_todos(self, event: TranscriptEvent) -> None:
+        """更新 Todo 状态"""
+        current = self._states.get(StateDimension.TODOS)
+        if current:
+            todos = current.metadata.get("todos", {})
+            total = current.metadata.get("total", 0)
+            completed = current.metadata.get("completed", 0)
+        else:
+            todos = {}
+            total = 0
+            completed = 0
+
+        todo_id = event.data.get("todo_id", "")
+
+        if event.event_type == EventType.TODO_WRITE:
+            # 新建 todo
+            todos[todo_id] = {
+                "content": event.data.get("content", ""),
+                "total": event.data.get("total", 1),
+                "completed": 0,
+            }
+            total += event.data.get("total", 1)
+        elif event.event_type == EventType.TODO_UPDATE:
+            # 更新 todo 进度
+            event_completed = event.data.get("completed", 0)
+            event_total = event.data.get("total", 1)
+            if todo_id in todos:
+                todos[todo_id]["completed"] = event_completed
+                todos[todo_id]["total"] = event_total
+            else:
+                todos[todo_id] = {
+                    "content": "",
+                    "total": event_total,
+                    "completed": event_completed,
+                }
+            # 重新计算总数
+            total = sum(t.get("total", 0) for t in todos.values())
+            completed = sum(t.get("completed", 0) for t in todos.values())
+
+        percentage = (completed / total * 100) if total > 0 else 0
+
+        self._states[StateDimension.TODOS] = AggregatedState(
+            dimension=StateDimension.TODOS,
+            value={
+                "total": total,
+                "completed": completed,
+                "percentage": percentage,
+                "pending": len([t for t in todos.values() if t.get("completed", 0) < t.get("total", 1)]),
+            },
+            timestamp=event.timestamp,
+            metadata={
+                "todos": todos,
+                "total": total,
+                "completed": completed,
+            },
+        )
+
     def _create_default_state(self, dimension: StateDimension) -> AggregatedState:
         """创建默认状态"""
         default_values = {
@@ -265,6 +430,22 @@ class StateAggregator:
             StateDimension.ERRORS: {
                 "count": 0,
                 "errors": [],
+            },
+            StateDimension.TOOLS: {
+                "active_count": 0,
+                "active": [],
+                "history_count": 0,
+            },
+            StateDimension.AGENTS: {
+                "active_count": 0,
+                "active": [],
+                "history_count": 0,
+            },
+            StateDimension.TODOS: {
+                "total": 0,
+                "completed": 0,
+                "percentage": 0,
+                "pending": 0,
             },
         }
 
