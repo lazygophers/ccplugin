@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable (7100+ tokens) -->
+
 # Skills(task:adjuster) - 失败调整规范
 
 <overview>
@@ -164,3 +166,5 @@ for adj in adjustment_result["adjustments"]:
 始终使用 `Agent(agent="task:adjuster", ...)` 调用，检查 strategy 字段确认调整策略，应用指数退避避免重试风暴。对于 ask_user 策略必须通过 AskUserQuestion 请求指导。记录失败历史用于停滞检测，限制最大重试次数（默认 3 次）。不要无限重试、不要忽略失败历史、不要跳过指数退避、不要在停滞时继续自动重试、不要修改 adjuster 返回的 JSON 结构。
 
 </reference>
+
+<!-- /STATIC_CONTENT -->
