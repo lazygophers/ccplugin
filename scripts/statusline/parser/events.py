@@ -4,12 +4,9 @@ Transcript 事件模型
 定义事件类型和处理机制，支持事件序列化和监听。
 """
 
-import json
-from typing import Dict, Any, List, Callable, Optional
-from dataclasses import dataclass, field, asdict
+from typing import Dict, Any, List, Optional
+from dataclasses import dataclass, field
 from enum import Enum
-from copy import deepcopy
-import time
 
 
 class EventType(Enum):

@@ -6,13 +6,10 @@
 
 import sys
 import time
-import json
 from typing import Optional, Dict, Any
-from pathlib import Path
 
-from ..config.manager import ConfigManager, Config
+from ..config.manager import Config
 from ..parser.incremental import IncrementalParser
-from ..parser.events import EventSequence
 from ..tracker.aggregator import StateAggregator
 from ..tracker.cache import StateCache, CacheKey
 from ..layout.factory import LayoutFactory

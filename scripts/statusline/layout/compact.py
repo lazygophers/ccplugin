@@ -4,7 +4,7 @@
 优化空间利用的布局模式。
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from ..tracker.aggregator import AggregatedState
 from ..utils.formatting import (
     format_token_count,

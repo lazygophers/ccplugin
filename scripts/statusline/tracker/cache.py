@@ -6,7 +6,7 @@
 
 import time
 import hashlib
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, Tuple
 from dataclasses import dataclass, field
 from collections import OrderedDict
 from enum import Enum

@@ -5,11 +5,11 @@
 """
 
 import warnings
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 from pathlib import Path
 
 from .loop import StatuslineLoop
-from ..config.manager import Config, ConfigManager, LayoutMode
+from ..config.manager import Config, ConfigManager
 
 
 def migrate_config(old_config: Dict[str, Any]) -> Dict[str, Any]:

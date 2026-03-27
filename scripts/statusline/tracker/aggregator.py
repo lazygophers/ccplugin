@@ -4,7 +4,7 @@
 从多个数据源收集和聚合状态信息。
 """
 
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import time

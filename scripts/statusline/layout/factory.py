@@ -5,7 +5,7 @@
 """
 
 from typing import Dict, Type, List, Optional, Any
-from ..config.manager import Config, LayoutMode
+from ..config.manager import Config
 
 from .base import Layout
 

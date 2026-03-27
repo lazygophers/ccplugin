@@ -230,9 +230,9 @@ class IncrementalRenderer:
         Returns:
             是否都是数值变化
         """
-        for field in fields:
-            old_val = old_values.get(field)
-            new_val = new_values.get(field)
+        for field_name in fields:
+            old_val = old_values.get(field_name)
+            new_val = new_values.get(field_name)
 
             if not isinstance(old_val, (int, float)) or not isinstance(new_val, (int, float)):
                 return False
@@ -256,9 +256,9 @@ class IncrementalRenderer:
         if "percentage" in diff.changed_fields:
             # 更新百分比
             new_pct = diff.new_values.get("percentage", 0)
-            # 使用主题应用颜色
-            colored_pct = self._theme.apply_color(f"{new_pct}%", ThemeColor.PRIMARY)
-            return last_render  # 简化处理，实际应该替换
+            # 使用主题应用颜色（简化处理，直接返回上次渲染）
+            _ = self._theme.apply_color(f"{new_pct}%", ThemeColor.PRIMARY)
+            return last_render
 
         # 对于其他情况，重新渲染
         return self._render_full_from_state(diff.new_values)

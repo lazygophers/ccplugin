@@ -138,7 +138,7 @@ class IncrementalParser:
         except json.JSONDecodeError:
             # JSON 不完整，等待更多数据
             pass
-        except Exception as e:
+        except Exception:
             # 解析错误
             self._context.state = ParseState.ERROR
             self._context.error_count += 1
