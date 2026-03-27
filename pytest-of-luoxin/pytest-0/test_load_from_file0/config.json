@@ -1,0 +1,1 @@
+{"layout_mode": "expanded", "layout_width": 80, "theme": "default", "refresh": {"interval": 0.1, "incremental": true}, "cache": {"enabled": true, "ttl": 60, "max_size": 1000}, "show_user": true, "show_progress": true, "show_resources": true, "show_errors": true, "verbose": false, "debug": false}
