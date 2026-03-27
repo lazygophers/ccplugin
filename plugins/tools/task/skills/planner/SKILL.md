@@ -43,77 +43,11 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 <invocation>
 
-调用 planner agent：
+调用：`Agent(agent="task:planner", prompt="设计执行计划：\n任务目标：{desc}\n要求：1.分析项目结构 2.收集目标/依赖/现状/边界 3.MECE分解 4.DAG依赖 5.分配Agent+Skills(带中文注释) 6.可量化验收标准 7.报告≤200字\n功能已存在则返回空tasks。")`
 
-```python
-# 基础调用
-planner_result = Agent(
-    agent="task:planner",
-    prompt=f"""设计执行计划：
+**结果处理**：检查 status=completed → 处理 questions(有则询问用户) → tasks为空则直接结束 → validate_plan
 
-任务目标：{task_description}
-
-要求：
-1. 分析项目结构（优先中等深度，必要时深入）
-2. 收集：目标、依赖、现状、边界
-3. 分解为原子子任务（遵循 MECE 原则）
-4. 建立依赖关系（DAG，无循环）
-5. 分配 Agent 和 Skills（带中文注释）
-6. 定义可量化的验收标准
-7. 返回简短报告（≤200字）
-
-如果功能已存在且满足需求，返回空 tasks 数组。
-"""
-)
-```
-
-处理 planner 结果：
-
-```python
-# 检查状态
-if planner_result["status"] != "completed":
-    raise Exception("计划设计失败")
-
-# 检查是否有疑问需要用户确认
-if "questions" in planner_result and planner_result["questions"]:
-    user_response = AskUserQuestion(planner_result["questions"][0])
-    planner_result = Agent(
-        agent="task:planner",
-        prompt=f"补充信息：{user_response}\n继续设计计划..."
-    )
-
-# 特殊情况：无需执行任务
-if not planner_result["tasks"] or len(planner_result["tasks"]) == 0:
-    print(f"✓ {planner_result['report']}")
-    return  # 直接结束，无需执行
-
-# 验证计划质量
-validate_plan(planner_result)
-```
-
-验证计划质量：
-
-```python
-def validate_plan(plan):
-    """验证计划的合理性"""
-    if has_circular_dependency(plan["dependencies"]):
-        raise Exception("发现循环依赖，请修正计划")
-
-    for group in plan["parallel_groups"]:
-        if len(group) > 2:
-            raise Exception(f"并行任务数超过限制（最多2个）：{group}")
-
-    for task in plan["tasks"]:
-        if "（" not in task["agent"]:
-            raise Exception(f"Agent 缺少中文注释：{task['agent']}")
-        for skill in task["skills"]:
-            if "（" not in skill:
-                raise Exception(f"Skill 缺少中文注释：{skill}")
-
-    for task in plan["tasks"]:
-        if not task["acceptance_criteria"]:
-            raise Exception(f"任务 {task['id']} 缺少验收标准")
-```
+**计划验证**：无循环依赖 + 并行组≤2个 + Agent/Skills带中文注释"（" + 每个task有acceptance_criteria
 
 </invocation>
 
@@ -246,58 +180,16 @@ Task 对象字段：
 
 </guidelines>
 
-<agent_skills_sources>
+<agent_skills_rules>
 
-**Agent 和 Skills 来源说明**：
+**Agent/Skills 来源**：task插件内置(`task:planner/verifier/adjuster/explorer-*`) | 其他插件(`golang:dev/python:dev`) | 项目自定义(`.claude/agents/`) | 通用(`coder/tester/devops`)
 
-Agent 和 Skills 可以来自多种来源，不局限于 task 插件：
+Skills来源：语言插件(`golang:*/python:*`) | 通用(`documentation/code-review`) | 项目(`.claude/skills/`)
 
-**Agent 来源**：
-1. **Task 插件内置** - 用于流程编排
-   - `task:planner`、`task:verifier`、`task:adjuster`（loop 内部使用）
-   - `task:explorer-*`（探索类任务）
+**格式**：`name（中文注释）`或`name（中文注释）@source`。Loop内部必须明确来源，任务执行agent来源灵活。
 
-2. **其他插件提供** - 专业领域 agents
-   - `golang:dev`、`python:dev`、`javascript:dev`（语言专用开发）
-   - `golang:test`、`python:test`（专用测试）
+**强制规则**：tasks非空时，每个任务必须有 agent(带中文注释) + skills(≥1项，带中文注释)。仅 tasks 为空时可省略。
 
-3. **项目自定义** - 项目特定 agents
-   - 在项目 `.claude/agents/` 定义的自定义 agent
-
-4. **通用 agent** - 多用途 agents
-   - `coder（开发者）`、`tester（测试员）`、`devops（运维）`（不带来源标注）
-
-**Skills 来源**：
-1. **语言插件** - `golang:*`、`python:*`、`javascript:*`、`typescript:*`
-2. **通用技能** - `documentation（文档编写）`、`code-review（代码审查）`
-3. **项目技能** - 项目 `.claude/skills/` 中定义的自定义 skill
-
-**格式要求**：
-- 带来源标注：`name（中文注释）@source`（如 `coder（开发者）@task`）
-- 不带来源：`name（中文注释）`（如 `coder（开发者）`，系统自动查找）
-
-**重要区分**：
-- **Loop 内部调用**：必须明确来源（如 `task:planner`、`task:verifier`）
-- **任务执行 agent**：来源灵活，可省略 `@source` 让系统自动查找
-
-</agent_skills_sources>
-
-<agent_skills_requirement>
-
-**Agent 和 Skills 分配规则**（强制要求）：
-
-当计划包含任务时（tasks 数组不为空），必须为每个任务分配：
-
-1. **Agent**：明确的执行角色
-   - ✓ 正确：`"coder（开发者）"`、`"golang:dev（Go开发专家）@golang"`
-   - ✗ 错误：`""`、`"coder"`（缺少中文注释）
-
-2. **Skills**：至少一个技能
-   - ✓ 正确：`["golang:core（核心功能）@golang"]`、`["documentation（文档编写）"]`
-   - ✗ 错误：`[]`、`["golang:core"]`（缺少中文注释）
-
-**特殊情况**：仅当 tasks 为空数组（功能已存在，无需开发）时，可不分配 agent 和 skills。
-
-</agent_skills_requirement>
+</agent_skills_rules>
 
 <!-- /STATIC_CONTENT -->
