@@ -48,6 +48,23 @@
 
 ## 最近完成优化项
 
+### 2026-03-27: v0.0.185 技术对标优化 ✅
+
+基于 2025-2026 年 AI Agent 编排、代码分析、DAG 工作流最佳实践研究：
+
+- ✅ **T12-1**: 差距分析报告（对比LangGraph/CrewAI/AutoGen，识别7个改进项）
+- ✅ **T12-2**: Fan-in/Fan-out并行模式（parallel-scheduler新增任务分裂与聚合支持）
+- ✅ **T12-3**: 多层检索策略（explorer-code新增lexical→符号索引→AST三层检索原则）
+- ✅ **T12-4**: 幂等性设计原则（planner核心原则新增幂等性质量标准）
+- ✅ **T12-5**: 历史文档归档（3个已完成报告移至docs/archive/）
+- ✅ **T12-6**: 技术参考章节（README新增架构对比表、代码分析技术栈、DAG最佳实践）
+
+**关键成果**: Fan-in/Fan-out模式+幂等性保证+多层检索+技术对标文档
+
+研究参考：[DataCamp](https://www.datacamp.com/tutorial/crewai-vs-langgraph-vs-autogen) | [cAST](https://arxiv.org/html/2506.15655v1) | [LogicLens](https://arxiv.org/html/2601.10773v1) | [Argo Workflows](https://www.alibabacloud.com/help/en/ack/distributed-cloud-container-platform-for-kubernetes/use-cases/use-argo-workflow-to-orchestrate-dynamic-dag-fan-out-fan-in-tasks)
+
+详细差距分析报告：[gap-analysis-2026-03-27.json](./gap-analysis-2026-03-27.json)
+
 ### 2026-03-25: v0.0.183 优化 ✅
 
 基于 [everything-claude-code](https://github.com/affaan-m/everything-claude-code) 研究成果：

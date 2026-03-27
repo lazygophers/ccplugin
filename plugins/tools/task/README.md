@@ -1266,6 +1266,47 @@ Task 插件不提供执行 agents，而是使用以下来源：
 
 ---
 
+## 技术参考与最佳实践
+
+### 架构对比
+
+Task 插件的设计借鉴了多种主流 AI Agent 编排框架的优势：
+
+| 特性 | Task Plugin | LangGraph | CrewAI | AutoGen |
+|------|-------------|-----------|--------|---------|
+| 编排模型 | PDCA循环 + DAG | 图状态机 | 角色模型 | 对话式 |
+| 状态管理 | Checkpoint持久化 | Reducer合并 | 内置 | 会话级 |
+| 并行执行 | Fan-in/Fan-out + 复杂度调度 | 节点并行 | 有限异步 | 多轮对话 |
+| 容错机制 | 6级渐进升级 + Circuit Breaker | 可配置重试 | 基础重试 | 人工介入 |
+| 质量保证 | 深度迭代(60→90分) | 无内置 | 无内置 | 无内置 |
+| 代码分析 | Tree-sitter AST + 符号索引 | 无内置 | 无内置 | 无内置 |
+
+### 代码分析技术栈
+
+基于 2025-2026 年最新研究成果：
+
+- **AST 分析**：通过 Serena MCP 集成 Tree-sitter，支持 40+ 语言的增量式 AST 解析
+- **符号索引**：批量符号提取（get_symbols_overview）+ 引用追踪（find_referencing_symbols）
+- **多层检索**：lexical 搜索（grep）快速过滤 → 符号索引（serena）精确定位 → AST 分析深度理解
+- **Memory 集成**：探索知识持久化，支持增量更新和自动过时验证
+
+参考研究：
+- [Semantic Code Indexing with AST and Tree-sitter for AI Agents](https://medium.com/@email2dineshkuppan/semantic-code-indexing-with-ast-and-tree-sitter-for-ai-agents-part-1-of-3-eb5237ba687a)
+- [cAST: Enhancing Code RAG with Structural Chunking via AST](https://arxiv.org/html/2506.15655v1)
+
+### DAG 工作流最佳实践
+
+Task 插件遵循以下 DAG 工作流最佳实践：
+
+- **任务幂等性**：任务设计为可安全重复执行，失败重试不产生副作用
+- **Fan-in/Fan-out**：支持任务动态分裂（by_file/by_module/by_batch）和结果聚合（merge/reduce/gate/any）
+- **检查点机制**：阶段转换时自动保存状态，支持中断后恢复（24小时时效）
+- **错误隔离**：单个任务失败不影响无关任务，支持独立重试
+
+参考：[Argo Workflows Dynamic DAG Fan-in/Fan-out](https://www.alibabacloud.com/help/en/ack/distributed-cloud-container-platform-for-kubernetes/use-cases/use-argo-workflow-to-orchestrate-dynamic-dag-fan-out-fan-in-tasks)
+
+---
+
 ## 许可证
 
 AGPL-3.0-or-later
