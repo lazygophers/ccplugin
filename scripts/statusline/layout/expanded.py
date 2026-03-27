@@ -185,7 +185,7 @@ class ExpandedLayout(Layout):
 
     def _render_tools(self, state: AggregatedState) -> Optional[str]:
         """
-        渲染工具信息
+        渲染工具信息（累计计数）
 
         Args:
             state: 聚合状态
@@ -196,20 +196,15 @@ class ExpandedLayout(Layout):
         if not isinstance(state.value, dict):
             return None
 
-        active_count = state.value.get("active_count", 0)
-        if active_count == 0:
+        history_count = state.value.get("history_count", 0)
+        if history_count == 0:
             return None
 
-        active = state.value.get("active", [])
-        if active:
-            tool_names = ", ".join(t.get("name", "?") for t in active[:3])
-            return f"[工具: {tool_names} ({active_count} active)]"
-
-        return f"[工具: ({active_count} active)]"
+        return f"[工具: {history_count} calls]"
 
     def _render_agents(self, state: AggregatedState) -> Optional[str]:
         """
-        渲染 Agent 信息
+        渲染 Agent 信息（累计计数）
 
         Args:
             state: 聚合状态
@@ -220,16 +215,11 @@ class ExpandedLayout(Layout):
         if not isinstance(state.value, dict):
             return None
 
-        active_count = state.value.get("active_count", 0)
-        if active_count == 0:
+        history_count = state.value.get("history_count", 0)
+        if history_count == 0:
             return None
 
-        active = state.value.get("active", [])
-        if active:
-            agent_names = ", ".join(a.get("name", "?") for a in active[:2])
-            return f"[Agent: {agent_names} ({active_count} running)]"
-
-        return f"[Agent: ({active_count} running)]"
+        return f"[Agent: {history_count} calls]"
 
     def _render_todos(self, state: AggregatedState) -> Optional[str]:
         """

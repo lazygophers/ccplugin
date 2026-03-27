@@ -226,7 +226,7 @@ class CompactLayout(Layout):
 
     def _render_tools(self, state: AggregatedState) -> Optional[str]:
         """
-        渲染工具信息
+        渲染工具信息（累计计数）
 
         Args:
             state: 聚合状态
@@ -237,12 +237,12 @@ class CompactLayout(Layout):
         if not isinstance(state.value, dict):
             return None
 
-        active_count = state.value.get("active_count", 0)
-        return f"🔧{active_count}"
+        count = state.value.get("history_count", 0)
+        return f"🔧{count}"
 
     def _render_agents(self, state: AggregatedState) -> Optional[str]:
         """
-        渲染 Agent 信息
+        渲染 Agent 信息（累计计数）
 
         Args:
             state: 聚合状态
@@ -253,8 +253,8 @@ class CompactLayout(Layout):
         if not isinstance(state.value, dict):
             return None
 
-        active_count = state.value.get("active_count", 0)
-        return f"🤖{active_count}"
+        count = state.value.get("history_count", 0)
+        return f"🤖{count}"
 
     def _render_todos(self, state: AggregatedState) -> Optional[str]:
         """
