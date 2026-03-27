@@ -53,44 +53,13 @@ user-invocable: false
 | Spring | `@GetMapping("/path")`, `@RestController` |
 | Django | `path("/api/", views.api)`, `urlpatterns` |
 
-**GraphQL 模式**：
-
-| 方式 | 识别标志 |
-|------|---------|
-| SDL-first | `.graphql` 文件, `typeDefs` |
-| Code-first | `@ObjectType()`, `@Field()`, `GraphQLObjectType` |
-| Resolver | `@Resolver()`, `@Query()`, `@Mutation()` |
+**GraphQL**：SDL-first(`.graphql`,`typeDefs`) | Code-first(`@ObjectType`,`GraphQLObjectType`) | Resolver(`@Resolver`,`@Query`,`@Mutation`)
 
 </detection_patterns>
 
 <output_format>
 
-```json
-{
-  "api_type": "REST|GraphQL|gRPC|Mixed",
-  "spec_file": "openapi.yaml|null",
-  "base_url": "/api/v1",
-  "endpoints": [
-    {
-      "method": "GET",
-      "path": "/users/{id}",
-      "handler": "GetUser",
-      "file": "handlers/user.go:25",
-      "parameters": [...],
-      "responses": {...},
-      "auth": "JWT",
-      "middleware": ["auth"]
-    }
-  ],
-  "schemas": {...},
-  "auth": {
-    "type": "JWT|OAuth|API Key",
-    "config": "配置路径"
-  },
-  "versioning": "URL path|Header|None",
-  "summary": "API 架构总结"
-}
-```
+JSON: `{api_type, spec_file, base_url, endpoints[{method,path,handler,file,parameters,responses,auth,middleware}], schemas, auth{type,config}, versioning, summary}`
 
 </output_format>
 

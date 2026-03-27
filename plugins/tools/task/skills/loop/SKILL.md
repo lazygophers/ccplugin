@@ -54,23 +54,9 @@ memory: project
 
 <references>
 
-## 子技能与文档
+**子技能**：flows/plan、flows/verify、task:planner、task:execute、task:verifier、task:adjuster
 
-**子技能**：flows/plan（计划流程，含必须的计划确认）、flows/verify（验证流程）、task:planner、task:execute、task:verifier、task:adjuster
-
-**详细文档**：
-- [detailed-flow.md](detailed-flow.md) - 8阶段流程导航索引（含各phase详细说明）
-  - [Phase 1: Initialization](phases/phase-1-initialization.md) - 初始化和记忆加载
-  - [Phase 2: Prompt Optimization](phases/phase-2-prompt-optimization.md) - 提示词优化（仅首次）
-  - [Phase 3: Deep Research](phases/phase-3-deep-research.md) - 深度研究（可选）
-  - [Phase 4: Planning](phases/phase-4-planning.md) - 计划设计与确认
-  - [Phase 5: Execution](phases/phase-5-execution.md) - 智能并行执行
-  - [Phase 6: Verification](phases/phase-6-verification.md) - 结果验证
-  - [Phase 7: Adjustment](phases/phase-7-adjustment.md) - 失败调整
-  - [Phase 8: Finalization](phases/phase-8-finalization.md) - 完成清理
-- [deep-iteration实现](../deep-iteration/implementation.md) - 深度迭代机制
-- [prompt-caching.md](prompt-caching.md) - 缓存优化
-- [deep-research-triggers.md](deep-research-triggers.md) - 深度研究触发决策
+**文档**：[detailed-flow.md](detailed-flow.md)（8阶段导航+各phase详细说明）| [deep-iteration](../deep-iteration/implementation.md) | [prompt-caching](prompt-caching.md) | [deep-research-triggers](deep-research-triggers.md)
 
 </references>
 

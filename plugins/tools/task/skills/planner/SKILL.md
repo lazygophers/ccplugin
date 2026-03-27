@@ -53,110 +53,22 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 <mermaid_generation_rules>
 
-## Mermaid stateDiagram 生成规范
-
-**关键约束**（必须严格遵守）：
-1. **单行文本**：状态描述必须在单行内，**禁止使用 `\n` 换行符**
-2. **简洁标签**：每个状态仅包含任务 ID 和简短名称（≤15 字符）
-3. **信息分离**：详细信息（agent/skills/files）放在任务清单表格，**不在图中**
-
-**正确示例**：
-```mermaid
-stateDiagram-v2
-    [*] --> T1
-    state "T1: 需求分析" as T1
-    state "T2: 核心功能" as T2
-    T1 --> T2
-    T2 --> [*]
-```
-
-**错误示例**（禁止）：
-```mermaid
-state "T1: 需求分析\nagent: analyst" as T1  ❌ 使用了 \n
-state "T1: 实现用户认证功能并添加测试覆盖" as T1  ❌ 描述过长
-state "T1: 需求分析\n━━━━━━\nagent: xx" as T1  ❌ 多行文本
-```
-
-**验证步骤**：
-生成 Mermaid 图后，检查：
-- [ ] 无 `\n` 换行符
-- [ ] 每个状态描述 ≤ 20 字符
-- [ ] 图表节点数 ≤ 12 个
-- [ ] 无分隔符（━━━━）
+Mermaid stateDiagram 规则：单行文本（禁止`\n`）、标签≤15字符（仅ID+名称）、详情放表格不放图中、节点≤12个。格式：`state "T1: 需求分析" as T1`
 
 </mermaid_generation_rules>
 
 <output_format>
 
-标准输出（有任务需执行）：
+JSON 输出：`{status, report(≤200字), tasks[], dependencies{}, parallel_groups[[]], iteration_goal, acceptance_criteria[], questions?[]}`
 
-```json
-{
-  "status": "completed",
-  "report": "计划：3个子任务。T1：JWT 工具（coder）→ T2：认证中间件（coder）→ T3：测试覆盖（tester）。依赖：T2→T3。预计完成时间：2小时。",
-  "tasks": [
-    {
-      "id": "T1",
-      "description": "实现 JWT 工具函数",
-      "agent": "coder（开发者）",
-      "skills": ["golang:core（核心功能）"],
-      "files": ["internal/auth/jwt.go"],
-      "acceptance_criteria": [
-        "生成和验证 Token 功能完整",
-        "单元测试覆盖率 ≥ 90%"
-      ],
-      "dependencies": []
-    }
-  ],
-  "dependencies": {"T2": ["T1"], "T3": ["T2"]},
-  "parallel_groups": [["T1"], ["T2"], ["T3"]],
-  "iteration_goal": "完成用户认证功能的实现和测试",
-  "acceptance_criteria": ["所有子任务完成", "整体测试通过", "代码质量达标"]
-}
-```
-
-特殊输出（无需执行任务）：当功能已存在且满足需求、没有找到需要改动的地方、或用户要求已被满足时，返回空 tasks 数组：
-
-```json
-{
-  "status": "completed",
-  "report": "分析结果：用户认证功能已在 internal/auth 模块完整实现。无需额外开发。",
-  "tasks": [],
-  "dependencies": {},
-  "parallel_groups": [],
-  "iteration_goal": "确认现有实现满足需求",
-  "acceptance_criteria": ["确认功能完整性"]
-}
-```
+- `status`: "completed" 或 "questions"
+- `tasks`: 任务数组（功能已存在时返回空数组`[]`）
+- 每个 task: `{id, description, agent("name（中文注释）"), skills(["name（注释）"]), files?, acceptance_criteria(可量化), dependencies(前置ID[])}`
+- tasks 为空时 agent/skills 可省略，非空时必填
 
 </output_format>
 
 <field_reference>
-
-| 字段 | 类型 | 说明 | 必填 |
-|------|------|------|------|
-| `status` | string | 执行状态：`completed` 或 `questions` | 是 |
-| `report` | string | 简短报告（≤200字） | 是 |
-| `tasks` | array | 任务列表（可为空数组） | 是 |
-| `dependencies` | object | 依赖关系映射 | 是 |
-| `parallel_groups` | array | 并行执行分组 | 是 |
-| `iteration_goal` | string | 迭代目标 | 是 |
-| `acceptance_criteria` | array | 整体验收标准 | 是 |
-| `questions` | array | 需要用户确认的问题 | 否 |
-
-Task 对象字段：
-
-| 字段 | 类型 | 必填 | 说明 | 示例 |
-|------|------|------|------|------|
-| `id` | string | 是 | 任务唯一标识 | `"T1"` |
-| `description` | string | 是 | 任务描述 | `"实现 JWT 工具函数"` |
-| `agent` | string | 是* | 执行 Agent（必须带中文注释） | `"coder（开发者）"` |
-| `skills` | array | 是* | 所需 Skills（每项必须带中文注释） | `["golang:core（核心功能）"]` |
-| `files` | array | 否 | 涉及的文件 | `["internal/auth/jwt.go"]` |
-| `acceptance_criteria` | array | 是 | 验收标准（支持字符串或结构化对象） | 见 [结构化验收标准](planner-structured-criteria.md) |
-| `dependencies` | array | 是 | 前置任务 ID 列表 | `["T1"]` |
-
-\* 注：当 tasks 数组不为空时为必填。tasks 为空数组时（功能已存在场景）无需填写。
 
 结构化验收标准详见 [planner-structured-criteria.md](planner-structured-criteria.md)。
 
