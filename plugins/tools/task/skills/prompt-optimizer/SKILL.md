@@ -43,7 +43,7 @@ user-invocable: false
 
 ## 调用
 
-`Agent(agent="task:prompt-optimizer", prompt="优化用户提示词：\n原始提示：{input}\n要求：1.评估质量 2.得分<6搜索最佳实践 3.5W1H提问 4.生成优化提示词 5.得分≥8返回no_optimization_needed")`
+`Skill(skill="task:prompt-optimizer", args="优化用户提示词：\n原始提示：{input}\n要求：1.评估质量 2.得分<6搜索最佳实践 3.5W1H提问 4.生成优化提示词 5.得分≥8返回no_optimization_needed")`
 
 结果处理：status=no_optimization_needed→使用原始 | status=optimized→使用优化后提示词
 

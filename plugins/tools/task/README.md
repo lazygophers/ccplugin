@@ -710,14 +710,14 @@ Task 插件提供多个 Skills，按职责分为 3 类：核心流程（3 个）
 ```python
 if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
     # 自动重规划：跳过 Plan Mode
-    planner_result = Agent(agent="task:planner", ...)
-    formatter_result = Agent(agent="task:plan-formatter", ...)
+    planner_result = Skill(skill="task:planner", ...)
+    formatter_result = Skill(skill="task:plan-formatter", ...)
     # 自动批准
 else:
     # 首次或用户重新设计：使用 Plan Mode
     EnterPlanMode()
-    planner_result = Agent(subagent_type="Plan", agent="task:planner", ...)
-    formatter_result = Agent(agent="task:plan-formatter", ...)
+    planner_result = Skill(skill="task:planner", ...)
+    formatter_result = Skill(skill="task:plan-formatter", ...)
     exit_result = ExitPlanMode()
     # 等待用户批准
 ```

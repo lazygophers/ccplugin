@@ -15,7 +15,7 @@
 
 | 必须 | 禁止 |
 |------|------|
-| 正确调用：`Agent(agent="task:verifier")` | 接受模糊标准("代码质量好") |
+| 正确调用：`Skill(skill="task:verifier")` | 接受模糊标准("代码质量好") |
 | 处理所有三种状态 | 忽略suggestions直接退出 |
 | 验证所有任务不遗漏 | 跳过回归测试 |
 | suggestions必须询问用户 | 修改verifier返回的JSON |

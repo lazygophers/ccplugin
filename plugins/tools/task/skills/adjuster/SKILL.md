@@ -27,7 +27,7 @@ user-invocable: false
 
 ## 执行流程
 
-1. **调用adjuster**：`Agent(agent="task:adjuster")` 要求：获取失败详情/分析原因(编译/测试/依赖/运行时/环境)/检测停滞/分级升级/报告≤100字
+1. **调用adjuster**：`Skill(skill="task:adjuster")` 要求：获取失败详情/分析原因(编译/测试/依赖/运行时/环境)/检测停滞/分级升级/报告≤100字
 2. **指数退避**：按`retry_config.backoff_seconds`等待
 3. **策略路由**：retry→应用adjustments重试 | debug→调用debug agent | replan→调用planner | ask_user→AskUserQuestion
 4. **输出报告**：`[MindFlow·{task}·失败调整/{N}·{strategy}]` + adjustments详情
@@ -49,7 +49,7 @@ user-invocable: false
 
 ## 注意事项
 
-**必须**：`Agent(agent="task:adjuster")`调用 | 检查strategy字段 | 应用指数退避 | ask_user通过AskUserQuestion | 记录失败历史 | 最大重试3次
+**必须**：`Skill(skill="task:adjuster")`调用 | 检查strategy字段 | 应用指数退避 | ask_user通过AskUserQuestion | 记录失败历史 | 最大重试3次
 
 **禁止**：无限重试 | 忽略失败历史 | 跳过退避 | 停滞时自动重试 | 修改返回JSON
 

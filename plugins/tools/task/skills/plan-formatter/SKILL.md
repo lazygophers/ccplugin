@@ -30,7 +30,7 @@ user-invocable: false
 
 **模式 1（推荐）：直接写文件**
 
-调用：`Agent(agent="task:plan-formatter", prompt="将JSON转为Markdown计划文档：\n{planner_result_json}\nfrontmatter：{frontmatter}\n要求：1.遵循template.md 2.Mermaid无\\n 3.完整任务表格\n文件路径：{plan_md_path}\n直接写入文件并返回元数据。")`
+调用：`Skill(skill="task:plan-formatter", args="将JSON转为Markdown计划文档：\n{planner_result_json}\nfrontmatter：{frontmatter}\n要求：1.遵循template.md 2.Mermaid无\\n 3.完整任务表格\n文件路径：{plan_md_path}\n直接写入文件并返回元数据。")`
 
 返回：`{status, file_path, summary, task_count, estimated_duration}`
 

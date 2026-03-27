@@ -7,7 +7,7 @@
 ## 执行流程
 
 1. **记忆检索**：提取失败原因关键词 → `search_failure_patterns()` 检索相似失败情节
-2. **调用 adjuster**：`Agent(agent="task:adjuster")` 传入失败模式、迭代信息
+2. **调用 adjuster**：`Skill(skill="task:adjuster")` 传入失败模式、迭代信息
 3. **检查点保存**：`save_checkpoint(phase="adjustment", strategy, report)`
 4. **HITL审批**：若 adjuster 建议危险操作 → `hitl_approve_operation()` 风险评估
 5. **指数退避**：按 `retry_config.backoff_seconds` 等待

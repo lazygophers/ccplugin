@@ -2,7 +2,7 @@
 
 ## Loop集成流程
 
-1. **调用adjuster**：`Agent(agent="task:adjuster", prompt="执行失败调整：{task}，迭代{N}，要求：获取失败详情/分析原因/检测停滞/分级升级/生成报告≤100字")`
+1. **调用adjuster**：`Skill(skill="task:adjuster", args="执行失败调整：{task}，迭代{N}，要求：获取失败详情/分析原因/检测停滞/分级升级/生成报告≤100字")`
 2. **输出报告**：`[MindFlow·{task}·失败调整/{N}·{strategy}]`
 3. **指数退避**：按`retry_config.backoff_seconds`等待
 4. **策略路由**：

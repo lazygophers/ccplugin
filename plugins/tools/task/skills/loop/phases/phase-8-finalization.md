@@ -6,9 +6,9 @@
 
 ## 执行流程
 
-1. **【强制】调用 finalizer agent**：即使任务失败，finalizer 也必须执行以清理资源
+1. **【强制】调用 finalizer skill**：即使任务失败，finalizer 也必须执行以清理资源
    ```
-   Agent(agent="task:finalizer", prompt="清理任务资源：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
+   Skill(skill="task:finalizer", args="清理任务资源：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
    ```
 2. **模式提取**：`extract_failure_patterns(session_id)` → 提取失败模式(需failures>0且样本≥3)
 3. **检查点清理**：`cleanup_checkpoint(user_task)`

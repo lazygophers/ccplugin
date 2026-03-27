@@ -2,7 +2,7 @@
 
 ## Loop集成
 
-1. **调用verifier**：`Agent(agent="task:verifier")` 传入任务目标、迭代轮次
+1. **调用verifier**：`Skill(skill="task:verifier")` 传入任务目标、迭代轮次
 2. **输出报告**：`[MindFlow·{task}·结果验证/{N}·{status}]`
 3. **状态路由**：passed→exit | suggestions→询问用户(是→continue/否→exit) | failed→adjustment
 

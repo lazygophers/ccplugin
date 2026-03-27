@@ -15,7 +15,7 @@ Loop 完成或紧急停止时执行资源清理。防御性清理：每个操作
 
 <execution_flow>
 
-调用：`Agent(agent="task:finalizer", prompt="执行资源清理：\n状态：{loop_state}\n已完成：{completed_tasks}\n未完成：{pending_tasks}\n计划文件：{plan_md_path}\n要求：1.盘点资源 2.停止运行中任务 3.清理计划文件(.md+.html)+临时文件 4.生成清理报告\n遇错误继续清理。")`
+调用：`Skill(skill="task:finalizer", args="执行资源清理：\n状态：{loop_state}\n已完成：{completed_tasks}\n未完成：{pending_tasks}\n计划文件：{plan_md_path}\n要求：1.盘点资源 2.停止运行中任务 3.清理计划文件(.md+.html)+临时文件 4.生成清理报告\n遇错误继续清理。")`
 
 结果处理：检查 `status` ∈ [completed, partially_completed] → 输出 report + cleanup_summary → 处理 errors 列表
 

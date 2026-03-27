@@ -7,11 +7,11 @@ user-invocable: false
 
 # Loop 验证流程
 
-Loop Check阶段：调用verifier验证验收标准 → 质量门控评分 → 状态转换决策
+Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分 → 状态转换决策
 
 ## 验证流程
 
-1. **调用verifier**：`Agent(agent="task:verifier")` 验证所有任务验收标准 + 回归测试
+1. **调用verifier**：`Skill(skill="task:verifier")` 验证所有任务验收标准 + 回归测试
 2. **更新计划状态**：`update_plan_frontmatter(status, completed_count)`
 3. **质量评分**：加权计算综合分数
 

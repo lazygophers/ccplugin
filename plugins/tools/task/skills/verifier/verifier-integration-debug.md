@@ -2,7 +2,7 @@
 
 ## 高级用法
 
-- **自定义规则**：`Agent(agent="task:verifier")` 传入custom_rules JSON
+- **自定义规则**：`Skill(skill="task:verifier")` 传入custom_rules JSON
 - **条件验证**：根据环境/配置调整验证标准
 - **分阶段验证**：foundation(基本通过) → enhancement(覆盖≥90%) → refinement(质量+文档+性能)
 

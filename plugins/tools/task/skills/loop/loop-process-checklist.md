@@ -15,7 +15,7 @@
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 复杂度评估正确 | 如果任务复杂度<8，跳过；≥8则触发 | 可选 |
-| 调用 prompt-optimizer | 检查是否调用了 `Agent(agent="task:prompt-optimizer")` | 可选 |
+| 调用 prompt-optimizer | 检查是否调用了 `Skill(skill="task:prompt-optimizer")` | 可选 |
 | 优化后的提示词已应用 | 验证后续计划设计使用优化后的提示词 | 可选 |
 
 ## 阶段3：深度研究（可选）
@@ -24,7 +24,7 @@
 |-------|---------|----------|
 | 触发条件检查 | 验证复杂度>8 或 失败2次 的触发逻辑 | 可选 |
 | 用户确认机制 | 如果触发，检查是否询问用户 | 可选 |
-| 调用 deep-research | 检查是否调用了 `Agent(agent="deepresearch:deep-research")` | 可选 |
+| 调用 deep-research | 检查是否调用了 `Skill(skill="deepresearch:deep-research")` | 可选 |
 | 研究结果已整合 | 验证研究结果是否用于后续计划设计 | 可选 |
 
 ## 阶段4：计划设计与确认
@@ -35,8 +35,8 @@
 | L1 - 项目全局理解 | 验证是否读取了 README.md/CLAUDE.md/package.json | 必须 |
 | L2 - 规范和记忆 | 验证是否检查了 `.claude/rules/` 和项目记忆 | 必须 |
 | L3 - 目标相关文件 | 验证是否使用 Glob/Grep 定位并读取相关文件 | 必须 |
-| **Planner 调用** | **检查是否调用了 `Agent(agent="task:planner")`** | **必须** |
-| Plan-formatter 调用 | 检查是否调用了 `Agent(agent="task:plan-formatter")` | 必须 |
+| **Planner 调用** | **检查是否调用了 `Skill(skill="task:planner")`** | **必须** |
+| Plan-formatter 调用 | 检查是否调用了 `Skill(skill="task:plan-formatter")` | 必须 |
 | 计划文件已生成 | 验证文件存在：`ls .claude/plans/*.md` | 必须 |
 | 计划文件使用中文文件名 | 验证文件名包含中文关键词 | 必须 |
 | **用户批准（首次/用户重新设计）** | **检查是否调用了 AskUserQuestion** | **必须** |
@@ -49,8 +49,8 @@
 |-------|---------|----------|
 | 前置条件检查 | 验证计划文件存在且已获得批准 | 必须 |
 | 读取计划文件 | 检查是否从 plan_md_path 读取任务列表 | 必须 |
-| **使用 Agent 工具执行** | **grep "Agent(" <执行日志> \| grep -v "Edit\|Write\|Bash"** | **必须** |
-| 禁止直接使用工具 | 验证没有直接调用 Edit/Write/Bash（除 Agent 内部） | 必须 |
+| **使用 Skill 工具执行** | **grep "Skill(" <执行日志> \| grep -v "Edit\|Write\|Bash"** | **必须** |
+| 禁止直接使用工具 | 验证没有直接调用 Edit/Write/Bash（除 Skill 内部） | 必须 |
 | 任务状态更新 | 验证计划文件中任务状态从 📋 → ✅/❌ | 必须 |
 | 后置验证点通过 | 验证所有任务已执行完成 | 必须 |
 
@@ -59,7 +59,7 @@
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 前置条件检查 | 验证所有任务已执行完成（状态为 ✅ 或 ❌） | 必须 |
-| **Verifier 调用** | **检查是否调用了 `Agent(agent="task:verifier")`** | **必须** |
+| **Verifier 调用** | **检查是否调用了 `Skill(skill="task:verifier")`** | **必须** |
 | 跳过检测机制生效 | 如果未调用 verifier，检查是否触发错误 | 必须 |
 | 状态日志输出 | 验证输出包含 `[MindFlow·任务·结果验证/N·{status}]` | 必须 |
 | 计划文件 frontmatter 更新 | 验证status/completed_count 已更新 | 必须 |
@@ -69,7 +69,7 @@
 
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
-| Adjuster 调用 | 检查是否调用了 `Agent(agent="task:adjuster")` | 必须 |
+| Adjuster 调用 | 检查是否调用了 `Skill(skill="task:adjuster")` | 必须 |
 | 策略选择正确 | 验证返回的 strategy 符合失败场景 | 必须 |
 | 状态转换正确 | 验证根据 strategy 正确跳转到下一阶段 | 必须 |
 
@@ -78,7 +78,7 @@
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 前置条件检查 | 验证验证通过或用户确认完成 | 必须 |
-| **Finalizer 调用** | **检查是否调用了 `Agent(agent="task:finalizer")`** | **必须** |
+| **Finalizer 调用** | **检查是否调用了 `Skill(skill="task:finalizer")`** | **必须** |
 | 即使失败也执行清理 | 验证失败场景下 finalizer 也被调用 | 必须 |
 | 计划文件已删除 | 验证文件已删除：`! test -f .claude/plans/*.md` | 必须 |
 | 检查点已清理 | 验证检查点文件已删除 | 必须 |
@@ -101,14 +101,14 @@
 # 检查 planner 是否完成三层上下文学习
 grep -i "README\|CLAUDE.md\|package.json" <planner输出>
 
-# 检查是否使用 Agent 工具执行任务
-grep "Agent(agent=" <执行日志> | grep -v "planner\|formatter\|verifier\|adjuster\|finalizer"
+# 检查是否使用 Skill 工具执行任务
+grep "Skill(skill=" <执行日志> | grep -v "planner\|formatter\|verifier\|adjuster\|finalizer"
 
 # 检查 verifier 是否被调用
-grep "Agent(agent=\"task:verifier\")" <loop输出>
+grep "Skill(skill=\"task:verifier\")" <loop输出>
 
 # 检查 finalizer 是否被调用
-grep "Agent(agent=\"task:finalizer\")" <loop输出>
+grep "Skill(skill=\"task:finalizer\")" <loop输出>
 
 # 检查计划文件是否清理
 ! test -f .claude/plans/*.md && echo "已清理" || echo "未清理"
@@ -131,7 +131,7 @@ grep -E "必须|MUST|强制|禁止" <文档> | wc -l
 
 **违规表现**：loop 在任务执行阶段直接调用 `Edit()` 修改文件
 
-**检测方法**：`grep "Edit(" <loop输出> | grep -v "Agent("`
+**检测方法**：`grep "Edit(" <loop输出> | grep -v "Skill("`
 
 **后果**：bypassed agent logic，验证阶段会报告流程违规
 
@@ -139,7 +139,7 @@ grep -E "必须|MUST|强制|禁止" <文档> | wc -l
 
 **违规表现**：任务执行完成后直接进入完成清理，未调用 verifier
 
-**检测方法**：`grep "Agent(agent=\"task:verifier\")" <loop输出> || echo "违规"`
+**检测方法**：`grep "Skill(skill=\"task:verifier\")" <loop输出> || echo "违规"`
 
 **后果**：无法确保任务质量，可能遗漏错误
 

@@ -2,7 +2,7 @@
 
 ## Loop集成
 
-在Loop计划设计阶段调用：`Agent(agent="task:planner", prompt="设计执行计划：\n任务目标：{desc}\n当前迭代：{n}\n要求：1-7项标准要求")`
+在Loop计划设计阶段调用：`Skill(skill="task:planner", args="设计执行计划：\n任务目标：{desc}\n当前迭代：{n}\n要求：1-7项标准要求")`
 
 处理流程：questions→AskUserQuestion→validate_plan→tasks为空则完成→输出报告
 

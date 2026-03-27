@@ -8,9 +8,9 @@
 
 **前置条件检查**：进入验证阶段前，必须确认所有任务已执行完成（plan文件中所有任务状态为✅或❌）。未满足则触发错误。
 
-1. **【强制】调用 verifier agent**：禁止跳过此步骤
+1. **【强制】调用 verifier skill**：禁止跳过此步骤
    ```
-   Agent(agent="task:verifier", prompt="执行结果验证：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.获取任务状态+验收标准 2.系统性验证 3.回归测试 4.生成验收报告(≤100字) 5.决定状态")
+   Skill(skill="task:verifier", args="执行结果验证：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.获取任务状态+验收标准 2.系统性验证 3.回归测试 4.生成验收报告(≤100字) 5.决定状态")
    ```
 2. 输出 `[MindFlow·{task}·结果验证/{N}·{status}]` + 验收报告
 3. 更新 plan 文件 frontmatter（status + completed_count）
