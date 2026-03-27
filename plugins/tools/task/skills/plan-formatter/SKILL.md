@@ -11,6 +11,13 @@ user-invocable: false
 
 将 planner 的 JSON 输出转换为标准 Markdown 计划文档。**强制使用**：所有生成计划文档必须通过此 skill，禁止直接拼接 Markdown。
 
+**文件命名规范**（由调用方负责）：
+- 目录：`.claude/plans/`（强制）
+- 文件名：`{中文关键词}-{iteration}.md`
+- 关键词提取：从任务描述提取 2-4 个中文词（优先动词+名词），连字符连接
+- 特殊字符过滤：移除 `/ \ : * ? " < > |`
+- 示例："实现用户登录功能" → `.claude/plans/实现用户登录-1.md`
+
 </scope>
 
 <template_reference>

@@ -19,7 +19,7 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 
 1. iteration++ → 调用 task:planner(任务目标+迭代编号+标准7项要求)
 2. 处理questions(有则AskUserQuestion) → tasks为空则goto完成
-3. 生成计划文档：mkdir .claude/plans → 命名{safe_task_name}-{iteration}.md
+3. 生成计划文档：mkdir .claude/plans → 命名{中文关键词}-{iteration}.md（过滤特殊字符 / \ : * ? " < > |）
 4. 调用 task:plan-formatter 写入文件(frontmatter+JSON→Markdown)
 5. 自动批准 → save_checkpoint → goto任务执行
 
