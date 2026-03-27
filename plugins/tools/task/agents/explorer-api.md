@@ -13,6 +13,7 @@ color: teal
 skills:
   - task:explorer-api
   - task:explorer-code
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -32,10 +33,12 @@ skills:
 
 <workflow>
 
-1. **类型识别**：搜索规范文件(OpenAPI/GraphQL/Proto)→确定API风格
-2. **端点映射**：REST路由注册/GraphQL Query+Mutation/gRPC service→映射到handler
-3. **契约提取**：请求参数(path/query/body)+响应格式+状态码+错误结构
-4. **安全分析**：认证(JWT/OAuth/API Key)+授权(RBAC/ABAC)+中间件+版本管理
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/api")→若存在则 read_memory→验证端点文件路径（serena:find_file）→删除过时端点→复用有效信息
+2. **类型识别**：搜索规范文件(OpenAPI/GraphQL/Proto)→确定API风格
+3. **端点映射**：REST路由注册/GraphQL Query+Mutation/gRPC service→映射到handler
+4. **契约提取**：请求参数(path/query/body)+响应格式+状态码+错误结构
+5. **安全分析**：认证(JWT/OAuth/API Key)+授权(RBAC/ABAC)+中间件+版本管理
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/api", "{service_name}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -47,7 +50,9 @@ JSON 报告，必含字段：`api_type`（REST/GraphQL/gRPC）、`spec_file`、`
 
 <tools>
 
-规范：`glob`（openapi.yaml/swagger.json/schema.graphql）、`Read`。端点：`grep`（路由注册）、`serena:find_symbol`。参数：`serena:get_symbols_overview`。认证：`grep`（auth/middleware）、`serena:find_referencing_symbols`。沟通：`SendMessage(@main)`。
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查文件存在性）、`serena:find_symbol`（检查符号存在性）。
+规范：`glob`（openapi.yaml/swagger.json/schema.graphql）、`Read`。端点：`grep`（路由注册）。参数：`serena:get_symbols_overview`。认证：`grep`（auth/middleware）、`serena:find_referencing_symbols`。沟通：`SendMessage(@main)`。
 
 </tools>
 

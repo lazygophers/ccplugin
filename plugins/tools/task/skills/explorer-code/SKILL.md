@@ -29,14 +29,29 @@ user-invocable: false
 | 3-依赖分析 | 模块关系+依赖图 | serena:find_referencing_symbols, grep | 主要引用关系已建立 |
 | 4-模式识别 | 设计模式+架构决策 | 综合分析 | 模式已识别+架构已总结 |
 
+## Memory 集成
+
+**探索前**：
+1. `list_memories(topic_filter="explorer/code")` 列出已有 memory
+2. 若存在匹配模块的 memory（subtopic=模块路径），read_memory 加载
+3. 验证 memory 中的符号名称（serena:find_symbol）和文件路径（serena:find_file）
+4. 删除过时符号，将有效信息作为探索起点
+
+**探索后**：
+1. 对比探索前后信息差异
+2. `write_memory("explorer/code", "{module_path}", content)` 创建新 memory 或 `edit_memory` 更新已有 memory
+3. 添加符号验证时间戳：`last_updated: YYYY-MM-DD`
+4. 确保内容不超过 10KB
+
+详细规范参见 Skills(task:explorer-memory-integration)。
+
 ## 工具
 
-- **serena:get_symbols_overview** - 批量获取文件符号(优先使用)
-- **serena:find_symbol** - 精确查找符号定义
-- **serena:find_referencing_symbols** - 查找引用(依赖分析核心)
-- **serena:search_for_pattern** - 正则搜索代码模式
-- **glob/grep** - 文件匹配/内容搜索
-- **SendMessage(@main)** - 用户交互
+- **Memory** - `serena:list_memories`/`read_memory`/`write_memory`/`edit_memory`
+- **验证** - `serena:find_file`(检查文件存在性)/`serena:find_symbol`(检查符号存在性)
+- **符号索引** - `serena:get_symbols_overview`(批量获取)/`serena:find_referencing_symbols`(查找引用)
+- **搜索** - `serena:search_for_pattern`/`glob`/`grep`
+- **沟通** - `SendMessage(@main)`
 
 ## 输出格式
 
@@ -44,7 +59,7 @@ JSON必含：`project_type` | `modules[](name/path/purpose/symbols_count/key_fil
 
 ## 规范
 
-**必须**：先扫描再索引再分析、批量获取符号、聚焦核心模块、模式基于证据、输出结构化JSON、依赖含原因。
-**禁止**：跳过目录扫描、忽略可见性、单文件下结论、忽略配置文件、不了解语言时强判模式、分析所有文件。
+**必须**：探索前加载并验证 memory、先扫描再索引再分析、批量获取符号、聚焦核心模块、模式基于证据、输出结构化JSON、依赖含原因、探索后更新 memory。
+**禁止**：跳过 memory 验证、跳过目录扫描、忽略可见性、单文件下结论、忽略配置文件、不了解语言时强判模式、分析所有文件、创建超过 10KB 的 memory。
 
 <!-- /STATIC_CONTENT -->

@@ -13,6 +13,7 @@ color: orange
 skills:
   - task:explorer-backend
   - task:explorer-code
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -32,12 +33,14 @@ skills:
 
 <workflow>
 
-1. **框架识别**：依赖文件→框架（Go:gin/echo/chi, Python:FastAPI/Django, Node:Express/NestJS, Java:Spring）→入口文件→目录结构
-2. **API路由映射**：按框架搜索路由注册模式→提取方法/路径/handler→路由分组→中间件
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/backend")→若存在则 read_memory→验证handler文件路径和模型符号（serena:find_file/find_symbol）→删除过时条目→复用有效信息
+2. **框架识别**：依赖文件→框架（Go:gin/echo/chi, Python:FastAPI/Django, Node:Express/NestJS, Java:Spring）→入口文件→目录结构
+3. **API路由映射**：按框架搜索路由注册模式→提取方法/路径/handler→路由分组→中间件
    - 路由模式：gin `r.GET`/echo `e.GET`/chi `r.Get`/FastAPI `@app.get`/Django `urlpatterns`/Express `app.get`/NestJS `@Get`
-3. **数据模型**：ORM model→字段/类型/约束→关系映射→migration→数据库类型
+4. **数据模型**：ORM model→字段/类型/约束→关系映射→migration→数据库类型
    - 模型模式：GORM struct/SQLAlchemy Base/Django models.Model/Prisma schema/TypeORM @Entity
-4. **服务和中间件**：全局/路由级中间件→执行顺序→服务间通信（HTTP/gRPC/MQ）→注册发现→DI
+5. **服务和中间件**：全局/路由级中间件→执行顺序→服务间通信（HTTP/gRPC/MQ）→注册发现→DI
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/backend", "{component}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -56,6 +59,8 @@ JSON 报告，必含字段：`framework`（name/language/version）、`api_route
 
 <tools>
 
-符号索引：`serena:get_symbols_overview`/`find_symbol`/`find_referencing_symbols`。模式搜索：`grep`（路由注册如r.GET/@app.get）、`serena:search_for_pattern`（装饰器/注解）。文件：`glob`（models/routes/controllers/handlers/migrations/）、`serena:list_dir`。沟通：`SendMessage(@main)`。
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查文件存在性）、`serena:find_symbol`（检查符号存在性）。
+符号索引：`serena:get_symbols_overview`/`find_referencing_symbols`。模式搜索：`grep`（路由注册如r.GET/@app.get）、`serena:search_for_pattern`（装饰器/注解）。文件：`glob`（models/routes/controllers/handlers/migrations/）、`serena:list_dir`。沟通：`SendMessage(@main)`。
 
 </tools>

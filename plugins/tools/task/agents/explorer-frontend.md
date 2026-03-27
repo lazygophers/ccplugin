@@ -13,6 +13,7 @@ color: green
 skills:
   - task:explorer-frontend
   - task:explorer-code
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -32,10 +33,12 @@ skills:
 
 <workflow>
 
-1. **框架识别**：package.json→框架（react/vue/svelte）、配置→构建工具（vite/webpack）、变体（Next.js/Nuxt/SvelteKit）、入口文件
-2. **组件树分析**：根组件→向下遍历→组件类型（页面/布局/UI）→props/state→父子关系
-3. **状态管理**：识别方案（Redux/Zustand/Pinia/Context）→store定义→slices→actions→组件消费映射
-4. **路由和样式**：路由方案→路径映射页面组件；样式方案→配置→组织方式
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/frontend")→若存在则 read_memory→验证组件文件路径（serena:find_file）和符号（serena:find_symbol）→删除过时组件→复用有效信息
+2. **框架识别**：package.json→框架（react/vue/svelte）、配置→构建工具（vite/webpack）、变体（Next.js/Nuxt/SvelteKit）、入口文件
+3. **组件树分析**：根组件→向下遍历→组件类型（页面/布局/UI）→props/state→父子关系
+4. **状态管理**：识别方案（Redux/Zustand/Pinia/Context）→store定义→slices→actions→组件消费映射
+5. **路由和样式**：路由方案→路径映射页面组件；样式方案→配置→组织方式
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/frontend", "{framework}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -54,7 +57,9 @@ JSON 报告，必含字段：`framework`（name/version/variant/build_tool）、
 
 <tools>
 
-符号索引：`serena:get_symbols_overview`/`find_symbol`/`find_referencing_symbols`。模式搜索：`serena:search_for_pattern`（useState/defineStore等）、`glob`（*.tsx/*.vue）。文件：`Read`/`serena:list_dir`/`serena:find_file`。沟通：`SendMessage(@main)`。
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查文件存在性）、`serena:find_symbol`（检查符号存在性）。
+符号索引：`serena:get_symbols_overview`/`find_referencing_symbols`。模式搜索：`serena:search_for_pattern`（useState/defineStore等）、`glob`（*.tsx/*.vue）。文件：`Read`/`serena:list_dir`。沟通：`SendMessage(@main)`。
 
 </tools>
 

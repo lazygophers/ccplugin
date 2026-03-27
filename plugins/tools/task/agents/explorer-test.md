@@ -13,6 +13,7 @@ color: yellow
 skills:
   - task:explorer-test
   - task:explorer-code
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -32,10 +33,12 @@ skills:
 
 <workflow>
 
-1. **框架识别**：依赖→测试框架(jest/vitest/pytest/testify)+配置+Mock框架+运行脚本
-2. **文件分析**：搜索测试文件→分类(单元/集成/E2E)→统计数量→映射源码
-3. **覆盖率**：运行覆盖率工具/分析已有报告→识别低覆盖模块→计算指标(行/函数/分支)
-4. **质量+缺口**：断言模式+边界覆盖+异常测试+过时测试→列出缺失模块
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/test")→若存在则 read_memory→验证测试文件路径（serena:find_file）→删除过时测试→复用有效信息
+2. **框架识别**：依赖→测试框架(jest/vitest/pytest/testify)+配置+Mock框架+运行脚本
+3. **文件分析**：搜索测试文件→分类(单元/集成/E2E)→统计数量→映射源码
+4. **覆盖率**：运行覆盖率工具/分析已有报告→识别低覆盖模块→计算指标(行/函数/分支)
+5. **质量+缺口**：断言模式+边界覆盖+异常测试+过时测试→列出缺失模块
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/test", "{test_suite}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -47,6 +50,8 @@ JSON 报告，必含字段：`test_framework`（name/version/config/mock_framewo
 
 <tools>
 
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查测试文件存在性）。
 框架：`Read`（配置）、`glob`（配置文件）。测试文件：`glob`（*.test.ts/*_test.go）、`grep`（describe/it/test）。覆盖率：`glob`（报告文件）、`Bash`（运行覆盖率）。质量：`grep`（expect/assert）。沟通：`SendMessage(@main)`。
 
 </tools>

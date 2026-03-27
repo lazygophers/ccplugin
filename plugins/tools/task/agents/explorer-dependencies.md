@@ -12,6 +12,7 @@ memory: project
 color: pink
 skills:
   - task:explorer-dependencies
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -31,10 +32,12 @@ skills:
 
 <workflow>
 
-1. **包管理器识别**：JS(npm/yarn/pnpm)+Python(pip/poetry)+Go(go mod)+Java(Maven/Gradle)+Rust(Cargo)
-2. **依赖树分析**：直接/间接数量+重复+大型依赖+dev/prod分离
-3. **安全审计**：运行audit命令→CVE检查→严重级别分类→修复建议
-4. **版本+许可证**：过时识别(current vs latest)+升级风险+许可证兼容性
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/dependencies")→若存在则 read_memory→验证依赖配置文件（serena:find_file检查package.json/go.mod等）→删除过时依赖→复用有效信息
+2. **包管理器识别**：JS(npm/yarn/pnpm)+Python(pip/poetry)+Go(go mod)+Java(Maven/Gradle)+Rust(Cargo)
+3. **依赖树分析**：直接/间接数量+重复+大型依赖+dev/prod分离
+4. **安全审计**：运行audit命令→CVE检查→严重级别分类→修复建议
+5. **版本+许可证**：过时识别(current vs latest)+升级风险+许可证兼容性
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/dependencies", "{package_manager}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -46,6 +49,8 @@ JSON 报告，必含字段：`package_manager`（name/lock_file/config）、`dep
 
 <tools>
 
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查配置文件存在性）。
 包管理：`glob`（package.json/go.mod/Cargo.toml）、`Read`（配置/lock文件）。分析：`Bash`（npm ls/audit/outdated, pip list/audit, go list/verify）。许可证：`Read`（LICENSE）、`Bash`（license-checker）。沟通：`SendMessage(@main)`。
 
 </tools>

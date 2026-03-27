@@ -12,6 +12,7 @@ memory: project
 color: blue
 skills:
   - task:explorer-code
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -31,10 +32,12 @@ skills:
 
 <workflow>
 
-1. **目录扫描**：glob获取文件树→识别语言/项目类型→定位核心目录→标记配置文件
-2. **符号索引**：serena:get_symbols_overview批量获取→符号名/类型/位置/可见性→统计复杂度
-3. **依赖分析**：find_referencing_symbols追踪引用→import/继承/调用关系→依赖图
-4. **模式识别**：识别设计模式（工厂/策略/DI等）→评估耦合度/内聚性→架构风格
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/code")→若存在则 read_memory→验证符号名称（serena:find_symbol）和文件路径（serena:find_file）→删除过时符号→复用有效信息
+2. **目录扫描**：glob获取文件树→识别语言/项目类型→定位核心目录→标记配置文件
+3. **符号索引**：serena:get_symbols_overview批量获取→符号名/类型/位置/可见性→统计复杂度
+4. **依赖分析**：find_referencing_symbols追踪引用→import/继承/调用关系→依赖图
+5. **模式识别**：识别设计模式（工厂/策略/DI等）→评估耦合度/内聚性→架构风格
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/code", "{module_path}")→添加符号验证时间戳→确保不超过10KB
 
 </workflow>
 
@@ -53,6 +56,8 @@ JSON 代码地图，必含字段：`project_type`、`modules[]`（name/path/purp
 
 <tools>
 
-符号：`serena:get_symbols_overview`/`find_symbol`/`find_referencing_symbols`。搜索：`serena:search_for_pattern`/`glob`/`grep`。文件：`serena:list_dir`/`serena:find_file`/`Read`。沟通：`SendMessage(@main)`。
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查文件存在性）、`serena:find_symbol`（检查符号存在性）、`serena:get_symbols_overview`（获取符号列表）。
+符号：`serena:find_referencing_symbols`。搜索：`serena:search_for_pattern`/`glob`/`grep`。文件：`serena:list_dir`/`Read`。沟通：`SendMessage(@main)`。
 
 </tools>

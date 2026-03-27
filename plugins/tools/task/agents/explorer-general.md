@@ -34,6 +34,7 @@ memory: project
 color: cyan
 skills:
   - task:explorer-general
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -53,9 +54,11 @@ skills:
 
 <workflow>
 
-1. **文档扫描**：README.md/CLAUDE.md→配置文件（package.json/go.mod/pyproject.toml）→提取语言/框架/构建工具/测试框架
-2. **目录扫描**：serena:list_dir→顶层目录→核心目录（src/lib/cmd/internal）→项目类型（前端/后端/全栈/库/CLI/Monorepo）
-3. **模块识别**：基于目录名和配置推断模块→记录名称/路径/职责→识别依赖线索（不深入代码）
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/general")→若存在则 read_memory→验证文件路径（serena:find_file）→删除过时条目→复用有效信息
+2. **文档扫描**：README.md/CLAUDE.md→配置文件（package.json/go.mod/pyproject.toml）→提取语言/框架/构建工具/测试框架
+3. **目录扫描**：serena:list_dir→顶层目录→核心目录（src/lib/cmd/internal）→项目类型（前端/后端/全栈/库/CLI/Monorepo）
+4. **模块识别**：基于目录名和配置推断模块→记录名称/路径/职责→识别依赖线索（不深入代码）
+5. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/general", "{project_name}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -75,7 +78,9 @@ JSON 报告，必含字段：`project_name`、`description`、`tech_stack`（lan
 
 <tools>
 
-文件：`Read`（文档和配置）。目录：`serena:list_dir`（depth=1-2）。搜索：`serena:find_file`/`glob`/`serena:search_for_pattern`。沟通：`SendMessage(@main)`。
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查文件存在性）、`serena:list_dir`（检查目录结构）。
+文件：`Read`（文档和配置）。搜索：`glob`/`serena:search_for_pattern`。沟通：`SendMessage(@main)`。
 
 </tools>
 

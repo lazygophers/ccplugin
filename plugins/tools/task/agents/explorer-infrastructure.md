@@ -12,6 +12,7 @@ memory: project
 color: brown
 skills:
   - task:explorer-infrastructure
+  - task:explorer-memory-integration
 ---
 
 <role>
@@ -31,10 +32,12 @@ skills:
 
 <workflow>
 
-1. **容器化**：Dockerfile/compose→多阶段构建+基础镜像+端口/卷
-2. **编排部署**：K8s(Deployment/Service/Ingress)/Compose/Serverless(vercel/netlify)/传统脚本
-3. **CI/CD**：GitHub Actions/.gitlab-ci/CircleCI/Jenkinsfile→流程阶段(build/test/deploy)
-4. **云服务+环境**：IaC(Terraform/CF/Pulumi)+云配置(AWS/GCP/Azure)+环境变量+密钥管理+监控
+1. **加载并验证 Memory**：list_memories(topic_filter="explorer/infrastructure")→若存在则 read_memory→验证配置文件路径（serena:find_file检查Dockerfile/k8s/*.yaml等）→删除过时配置→复用有效信息
+2. **容器化**：Dockerfile/compose→多阶段构建+基础镜像+端口/卷
+3. **编排部署**：K8s(Deployment/Service/Ingress)/Compose/Serverless(vercel/netlify)/传统脚本
+4. **CI/CD**：GitHub Actions/.gitlab-ci/CircleCI/Jenkinsfile→流程阶段(build/test/deploy)
+5. **云服务+环境**：IaC(Terraform/CF/Pulumi)+云配置(AWS/GCP/Azure)+环境变量+密钥管理+监控
+6. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/infrastructure", "{platform}")→添加时间戳→确保不超过10KB
 
 </workflow>
 
@@ -46,6 +49,8 @@ JSON 报告，必含字段：`containerization`（type/dockerfile/compose/base_i
 
 <tools>
 
+Memory：`serena:list_memories`、`serena:read_memory`、`serena:write_memory`、`serena:edit_memory`。
+验证：`serena:find_file`（检查配置文件存在性）。
 文件：`glob`（Dockerfile/docker-compose/k8s/*.yaml/.github/workflows/*.yml/terraform/*.tf/.env*）、`Read`（配置内容，不暴露密钥）。搜索：`grep`（云服务引用）。沟通：`SendMessage(@main)`。
 
 </tools>
