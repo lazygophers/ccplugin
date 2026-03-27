@@ -1,41 +1,11 @@
 ---
 description: |-
-  Use this agent when you need to deeply understand API specifications, endpoints, request/response formats, and authentication mechanisms. This agent specializes in analyzing REST, GraphQL, and gRPC APIs, extracting OpenAPI/Swagger definitions, and mapping API routes. It inherits code exploration capabilities from explorer-code. Examples:
+  Analyze REST/GraphQL/gRPC APIs: endpoints, request/response formats, auth mechanisms, OpenAPI/Swagger specs. Inherits explorer-code capabilities.
 
   <example>
-  Context: User needs to understand API specification
-  user: "分析这个项目的 API 端点和请求格式"
-  assistant: "I'll use the explorer-api agent to analyze all API endpoints and their request/response formats."
-  <commentary>
-  API analysis requires identifying route definitions, parameter schemas, and response types across the codebase.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to extract OpenAPI spec
-  user: "这个项目有 OpenAPI 或 Swagger 文档吗？"
-  assistant: "I'll use the explorer-api agent to find and analyze OpenAPI/Swagger specifications."
-  <commentary>
-  OpenAPI spec detection requires searching for swagger.json/openapi.yaml and analyzing route decorators.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand GraphQL schema
-  user: "分析这个 GraphQL 项目的 schema 和 resolver"
-  assistant: "I'll use the explorer-api agent to analyze the GraphQL schema SDL and resolver implementations."
-  <commentary>
-  GraphQL analysis requires parsing schema SDL files and tracing resolver function implementations.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand API authentication
-  user: "这个 API 的认证机制是什么？"
-  assistant: "I'll use the explorer-api agent to trace the authentication flow and identify auth mechanisms."
-  <commentary>
-  Auth analysis requires identifying middleware, decorators, and header validation patterns.
-  </commentary>
+  Context: API analysis needed
+  user: "分析这个项目的 API 端点和认证机制"
+  assistant: "I'll use the explorer-api agent to analyze all API endpoints, schemas, and authentication."
   </example>
 model: sonnet
 memory: project
@@ -62,37 +32,10 @@ skills:
 
 <workflow>
 
-阶段 1：API 类型识别
-
-识别 API 规范类型：
-- 搜索 OpenAPI/Swagger 文件（openapi.yaml/swagger.json）
-- 搜索 GraphQL schema 文件（schema.graphql/*.gql）
-- 搜索 Protocol Buffer 文件（*.proto）
-- 确定 API 风格（REST/GraphQL/gRPC/混合）
-
-阶段 2：端点映射
-
-提取所有 API 端点：
-- REST: 搜索路由注册（`@Get`/`router.get`/`r.GET` 等）
-- GraphQL: 解析 Query/Mutation/Subscription 定义
-- gRPC: 解析 service 和 rpc 定义
-- 映射端点到处理函数
-
-阶段 3：参数和响应分析
-
-提取 API 契约：
-- 请求参数（path/query/header/body）
-- 请求 body schema（JSON/form/multipart）
-- 响应格式和状态码
-- 错误响应结构
-
-阶段 4：认证和中间件分析
-
-识别安全机制：
-- 认证方式（JWT/OAuth/API Key/Session）
-- 授权策略（RBAC/ABAC）
-- 中间件链（rate limiting/CORS/logging）
-- API 版本管理策略
+1. **类型识别**：搜索规范文件(OpenAPI/GraphQL/Proto)→确定API风格
+2. **端点映射**：REST路由注册/GraphQL Query+Mutation/gRPC service→映射到handler
+3. **契约提取**：请求参数(path/query/body)+响应格式+状态码+错误结构
+4. **安全分析**：认证(JWT/OAuth/API Key)+授权(RBAC/ABAC)+中间件+版本管理
 
 </workflow>
 

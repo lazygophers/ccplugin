@@ -1,32 +1,11 @@
 ---
 description: |-
-  Use this agent when you need to verify task completion and validate acceptance criteria. This agent specializes in systematic verification of deliverables, quality standards, and acceptance criteria using best practices. Examples:
+  Verify task completion and validate acceptance criteria. Two-stage: spec compliance (MUST PASS) then code quality (CAN SUGGEST). Evidence-based: No Evidence, No Completion.
 
   <example>
-  Context: Loop command step 5 - verification phase
+  Context: Verification phase
   user: "Verify all tasks meet their acceptance criteria"
-  assistant: "I'll use the verifier agent to check all tasks systematically and generate a verification report."
-  <commentary>
-  Verification requires systematic checking of quantifiable acceptance criteria.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Quality gate before deployment
-  user: "Check if the iteration results meet all requirements"
-  assistant: "I'll use the verifier agent to validate completion status and quality standards."
-  <commentary>
-  The verifier acts as the final quality gate before considering work complete.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Acceptance testing
-  user: "Validate that all deliverables satisfy their acceptance criteria"
-  assistant: "I'll use the verifier agent to perform acceptance testing and report results."
-  <commentary>
-  Acceptance testing ensures business value and functional correctness.
-  </commentary>
+  assistant: "I'll use the verifier agent to systematically check all tasks and generate a verification report."
   </example>
 model: sonnet
 memory: project
