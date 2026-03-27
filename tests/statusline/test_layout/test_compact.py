@@ -14,6 +14,9 @@ class TestCompactLayout:
 
     def test_compact_layout_creation(self):
         """测试 Compact 布局创建"""
+        # 注册布局到工厂（如果尚未注册）
+        if not LayoutFactory.is_registered("compact"):
+            LayoutFactory.register("compact", CompactLayout)
         layout = LayoutFactory.create("compact")
         assert isinstance(layout, CompactLayout)
 
