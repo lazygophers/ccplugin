@@ -86,319 +86,60 @@ memory: project
 
 用户任务：`$ARGUMENTS`
 
-## 输出格式要求
+## 输出格式
 
-**强制规则**：从现在开始，你的所有回复内容必须以 `[MindFlow]` 开头。
+**强制**：所有输出以 `[MindFlow]` 开头。状态日志格式：`[MindFlow·任务名·步骤/迭代·状态]`
 
-正确示例：
-```
-[MindFlow] 开始执行任务...
-[MindFlow] 正在生成执行计划...
-[MindFlow·任务名·计划设计/1·completed]
-```
+## 执行流程
 
-错误示例（禁止）：
-```
-开始执行任务...  ← 缺少 [MindFlow] 前缀
-正在生成计划...  ← 缺少 [MindFlow] 前缀
-```
-
-## 执行要求
-
-**重要**：严格按照以下流程执行，不可跳过任何阶段。
+严格按阶段顺序执行，不可跳过。
 
 ### 阶段1：初始化
 
-**状态隔离要求**：每次调用 loop 时，必须重置所有状态变量，避免不同任务之间的状态混淆。
+重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id}`。若检测到相同 task_id，询问用户是否重新开始。输出 `[MindFlow·任务·初始化/0·进行中]`。
 
-```python
-# 输出初始化信息（必须以 [MindFlow] 开头）
-print("[MindFlow] 开始初始化任务...")
+详见 [phase-1-initialization.md](phases/phase-1-initialization.md)
 
-# 强制重置状态（即使在同一会话中）
-iteration = 0
-context = {
-    "replan_trigger": None,
-    "start_time": datetime.now(),
-    "task_id": hashlib.md5(user_task.encode()).hexdigest()[:8]
-}
+### 阶段2：计划设计与确认
 
-# 检查是否为新任务（避免状态混淆）
-if "previous_task_id" in globals() and previous_task_id == context["task_id"]:
-    print("[MindFlow] ⚠️ 检测到相同任务，这可能是错误调用")
-    # 询问用户是否继续
-    response = AskUserQuestion("检测到相同的任务目标，是否要重新开始？")
-    if response != "是":
-        print("[MindFlow] 用户取消执行")
-        exit()
+`iteration += 1`
 
-previous_task_id = context["task_id"]
+**路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"]`）：
+- **true → 自动重规划**：跳过 Plan Mode，直接调用 planner → formatter → 自动批准
+- **false → Plan Mode**：EnterPlanMode → 探索+设计 → planner → formatter → ExitPlanMode 请求用户批准；用户拒绝时提取反馈，设 `replan_trigger="user"` 回到本阶段
 
-print(f"[MindFlow·{user_task}·初始化/0·进行中]")
-print(f"[MindFlow] 任务ID: {context['task_id']}")
-print("[MindFlow] 初始化完成")
-```
+**共同步骤**：调用 task:planner 设计计划 → 调用 task:plan-formatter 格式化写入文件 → 更新 `context.plan_md_path`
 
-### 阶段2：计划设计与确认（Plan Mode）
+**检查点**：进入执行前必须有 `计划确认/N·等待确认`+批准 或 `计划确认/N·auto_approved`
 
-**使用 Plan Mode 统一设计和确认流程**：
-
-**智能路径选择**：
-- **首次规划 / 用户重新设计**：使用 EnterPlanMode/ExitPlanMode
-  - 进入 plan 模式
-  - 探索代码（可选深度研究）
-  - 设计计划（调用 task:planner）
-  - 格式化文档（调用 task:plan-formatter）
-  - 写入计划文件
-  - 请求用户批准
-  - 用户可在文件中标注反馈
-
-- **自动重规划（adjuster/verifier）**：跳过 plan 模式
-  - 直接调用 planner 生成计划
-  - 格式化并写入文档
-  - 自动批准并继续执行
-  - 避免重复确认
-
-**所有输出必须以 [MindFlow] 开头。**
-
-```python
-print("[MindFlow] 开始计划设计...")
-
-iteration += 1  # 从 0 变为 1（首次）或递增
-replan_trigger = context.get("replan_trigger", None)
-
-# 智能路径选择逻辑：
-# - 自动优化（verifier/adjuster 触发 + iteration > 1）：跳过 Plan 模式
-# - 其他所有情况（首次/用户重新设计/新任务）：必须进入 Plan 模式
-if iteration > 1 and replan_trigger in ["adjuster", "verifier"]:
-    # 路径 A：自动重规划（跳过 Plan 模式）
-    print(f"[MindFlow] 自动重新规划（触发来源：{replan_trigger}），跳过 Plan 模式")
-
-    # 直接生成计划
-    planner_result = Agent(subagent_type="task:planner", ...)
-
-    # 格式化文档并直接写入文件（减少 context 消耗）
-    formatter_result = Agent(
-        agent="task:plan-formatter",
-        description="格式化计划为标准 Markdown 并写入文件",
-        prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
-
-{json.dumps(planner_result, ensure_ascii=False, indent=2)}
-
-YAML Frontmatter（必须放在文档开头）：
-{frontmatter}
-
-要求：
-1. 严格遵循 template.md 格式
-2. Mermaid 图单行文本，无 \\n
-3. 包含完整的任务清单表格
-
-文件路径：{plan_md_path}
-请直接写入文件并返回元数据。
-"""
-    )
-
-    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
-    print(f"[MindFlow] 计划已生成：{formatter_result['file_path']}")
-    print(f"[MindFlow] {formatter_result['summary']}")
-    print(f"[MindFlow·{user_task}·计划确认/{iteration}·auto_approved]")
-    context["replan_trigger"] = None
-    context["plan_md_path"] = formatter_result["file_path"]
-else:
-    # Plan 模式：首次或用户重新设计
-    print(f"[MindFlow] 进入 Plan 模式进行计划设计...")
-
-    EnterPlanMode()
-
-    # 设计计划
-    planner_result = Agent(subagent_type="task:planner", ...)
-
-    # 格式化文档并直接写入文件（减少 context 消耗）
-    formatter_result = Agent(
-        agent="task:plan-formatter",
-        description="格式化计划为标准 Markdown 并写入文件",
-        prompt=f"""将以下 JSON 转换为标准 Markdown 计划文档：
-
-{json.dumps(planner_result, ensure_ascii=False, indent=2)}
-
-YAML Frontmatter（必须放在文档开头）：
-{frontmatter}
-
-要求：
-1. 严格遵循 template.md 格式
-2. Mermaid 图单行文本，无 \\n
-3. 包含完整的任务清单表格
-
-文件路径：{plan_file_path}
-请直接写入文件并返回元数据。
-"""
-    )
-
-    print(f"[MindFlow·{user_task}·计划设计/{iteration}·completed]")
-    print(f"[MindFlow] 计划已生成：{formatter_result['file_path']}")
-    print(f"[MindFlow] {formatter_result['summary']}")
-    print(f"[MindFlow·{user_task}·计划确认/{iteration}·等待确认]")
-
-    # 请求用户批准
-    exit_result = ExitPlanMode()
-
-    if exit_result.get("approved"):
-        print(f"[MindFlow] ✓ 用户批准计划，准备执行")
-        context["replan_trigger"] = None
-        context["plan_md_path"] = formatter_result["file_path"]
-        # 继续下一阶段
-    else:
-        print(f"[MindFlow] 用户选择重新设计计划")
-        # 提取用户反馈
-        user_feedback = extract_user_feedback(Read(plan_file_path))
-        if user_feedback:
-            context["user_feedback"] = user_feedback
-        context["replan_trigger"] = "user"
-        # 回到计划设计
-```
-
-**检查点**：在进入任务执行前，必须看到以下日志之一：
-- `[MindFlow·xxx·计划确认/N·等待确认]` + ExitPlanMode 批准
-- `[MindFlow·xxx·计划确认/N·auto_approved]` (自动重规划)
-
-**详细实现**：参见 [flows/plan.md](flows/plan.md)
+详见 [flows/plan.md](flows/plan.md) 和 [phase-4-planning.md](phases/phase-4-planning.md)
 
 ### 阶段3：任务执行
 
-**所有输出必须以 [MindFlow] 开头。**
-
-```python
-print(f"[MindFlow·{user_task}·任务执行/{iteration}·进行中]")
-print(f"[MindFlow] 开始执行所有任务...")
-
-# 调用 task:execute
-result = Agent(agent="task:execute", ...)
-
-print(f"[MindFlow·{user_task}·任务执行/{iteration}·completed]")
-print(f"[MindFlow] 任务执行完成")
-```
+调用 task:execute 执行所有任务。输出 `[MindFlow·任务·任务执行/N·进行中]` → `completed`
 
 ### 阶段4：结果验证
 
-**所有输出必须以 [MindFlow] 开头。**
-
-```python
-print(f"[MindFlow] 开始验证执行结果...")
-
-verification_result = Agent(agent="task:verifier", ...)
-
-status = verification_result["status"]
-print(f"[MindFlow·{user_task}·结果验证/{iteration}·{status}]")
-print(f"[MindFlow] 验收报告：{verification_result['report']}")
-
-if status == "passed":
-    print(f"[MindFlow] 所有验收标准通过，任务完成")
-    goto("完成")
-elif status == "suggestions":
-    print(f"[MindFlow] 检测到优化建议，自动继续下一轮迭代...")
-    for s in verification_result['suggestions']:
-        print(f"[MindFlow]   - {s['suggestion']}")
-    context["replan_trigger"] = "verifier"
-    goto("阶段2")  # 自动继续优化
-elif status == "failed":
-    print(f"[MindFlow] 验收失败，进入失败调整阶段")
-    goto("阶段5")  # 失败调整
-```
+调用 task:verifier 验证。根据 `status` 分支：
+- `passed` → 阶段6（完成）
+- `suggestions` → 设 `replan_trigger="verifier"` → 阶段2（自动迭代）
+- `failed` → 阶段5（失败调整）
 
 ### 阶段5：失败调整
 
-**所有输出必须以 [MindFlow] 开头。**
-
-```python
-print(f"[MindFlow] 开始分析失败原因...")
-
-adjustment_result = Agent(agent="task:adjuster", ...)
-
-strategy = adjustment_result["strategy"]
-print(f"[MindFlow·{user_task}·失败调整/{iteration}·{strategy}]")
-print(f"[MindFlow] 调整报告：{adjustment_result['report']}")
-
-if strategy == "retry":
-    print(f"[MindFlow] 应用修正后重新执行任务")
-    goto("阶段3")
-elif strategy == "debug":
-    print(f"[MindFlow] 执行深度诊断后重新执行")
-    goto("阶段3")
-elif strategy == "replan":
-    print(f"[MindFlow] 重新设计执行计划")
-    context["replan_trigger"] = "adjuster"
-    goto("阶段2")
-elif strategy == "ask_user":
-    print(f"[MindFlow] 需要用户指导")
-    # 询问用户...
-```
+调用 task:adjuster 分析。根据 `strategy` 分支：
+- `retry`/`debug` → 阶段3
+- `replan` → 设 `replan_trigger="adjuster"` → 阶段2
+- `ask_user` → AskUserQuestion 请求指导
 
 ### 阶段6：完成清理
 
-**所有输出必须以 [MindFlow] 开头。**
+1. 调用 task:finalizer（删除计划文件、清理检查点、停止运行中任务）
+2. 保存执行记忆（iteration、duration_minutes、quality_score）
+3. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代，耗时 M 分钟`
+4. 清理状态变量
 
-```python
-print(f"[MindFlow·{user_task}·完成清理/final·进行中]")
-
-# 从 context 获取 plan_md_path
-plan_md_path = context.get("plan_md_path", "")
-
-if plan_md_path:
-    print(f"[MindFlow] 正在清理资源...")
-
-    # 调用 finalizer 清理计划文件和临时资源
-    finalizer_result = Agent(
-        agent="task:finalizer",
-        description="清理 loop 资源",
-        prompt=f"""执行 loop 完成后的收尾清理：
-计划文件：{plan_md_path}
-要求：
-1. 停止所有运行中的任务
-2. 删除计划文件（含 .html 文件）
-3. 清理临时文件
-4. 生成清理报告
-"""
-    )
-
-    print(f"[MindFlow] 清理完成：{finalizer_result.get('report', '无报告')}")
-else:
-    print(f"[MindFlow] ⚠️ 未找到计划文件路径，跳过清理")
-
-# 清理检查点
-print(f"[MindFlow] 清理检查点...")
-cleanup_checkpoint(user_task)
-
-# 保存任务执行记忆
-print(f"[MindFlow] 保存任务执行记忆...")
-end_time = datetime.now()
-duration_minutes = int((end_time - context.get("start_time", end_time)).total_seconds() / 60)
-
-save_episode_memory(
-    task_type="loop",
-    user_task=user_task,
-    iteration=iteration,
-    success=True,
-    duration_minutes=duration_minutes,
-    planner_result=context.get("planner_result", {}),
-    execution_summary=context.get("execution_summary", ""),
-    quality_score=context.get("quality_score", 0)
-)
-
-# 生成最终报告
-print(f"[MindFlow·{user_task}·完成清理/final·completed]")
-print(f"[MindFlow] ✓ 任务完成！共 {iteration} 次迭代，耗时 {duration_minutes} 分钟")
-
-# 清理本次任务的状态变量（保留 previous_task_id 用于下次检测）
-del iteration
-del context
-print(f"[MindFlow] 状态已清理，准备接受新任务")
-```
-
-**重要提醒**：执行过程中的每一条输出都必须以 `[MindFlow]` 开头，包括：
-- 普通日志：`[MindFlow] xxx`
-- 状态追踪：`[MindFlow·任务名·阶段/迭代·状态]`
-- 错误信息：`[MindFlow] ⚠️ xxx`
-- 成功提示：`[MindFlow] ✓ xxx`
+详见 [phase-8-finalization.md](phases/phase-8-finalization.md)
 
 开始执行 PDCA 循环。
 
