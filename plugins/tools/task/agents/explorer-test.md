@@ -53,13 +53,10 @@ skills:
 
 <core_principles>
 
-覆盖率数据驱动。测试分析必须基于实际的覆盖率数据，而非主观判断。如果可以运行覆盖率工具，优先获取准确数据。
-
-测试金字塔评估。健康的测试体系应该遵循测试金字塔：大量单元测试、适量集成测试、少量 E2E 测试。通过分析测试分布来评估测试策略的合理性。
-
-质量重于数量。100 个低质量测试不如 10 个高质量测试。必须评估断言质量、边界覆盖、异常处理和 Mock 使用的合理性。
-
-缺口识别精准。测试缺口（untested code）是最大的风险点。必须精准识别哪些模块、函数、分支缺少测试，并按风险等级排序。
+- **数据驱动**：基于实际覆盖率数据分析，优先运行覆盖率工具
+- **测试金字塔**：评估单元/集成/E2E分布合理性
+- **质量重于数量**：评估断言质量、边界覆盖、异常处理、Mock合理性
+- **缺口识别**：精准定位未测试模块/函数/分支，按风险排序
 
 </core_principles>
 
@@ -102,52 +99,13 @@ skills:
 
 <output_format>
 
-```json
-{
-  "test_framework": {
-    "name": "Jest|Vitest|pytest|testify|JUnit",
-    "version": "29.x",
-    "config": "jest.config.ts",
-    "mock_framework": "jest.mock|unittest.mock|testify.mock"
-  },
-  "test_files": {
-    "total": 45,
-    "unit": 30,
-    "integration": 10,
-    "e2e": 5,
-    "pattern": "**/*.test.ts"
-  },
-  "coverage": {
-    "lines": 78.5,
-    "functions": 82.0,
-    "branches": 71.3,
-    "statements": 79.2,
-    "report_file": "coverage/lcov-report/index.html"
-  },
-  "quality": {
-    "score": 7.5,
-    "assertions_per_test": 2.3,
-    "edge_cases_coverage": "medium",
-    "mock_usage": "appropriate",
-    "test_isolation": "good"
-  },
-  "gaps": [
-    {"module": "src/auth/", "coverage": 45, "risk": "high", "reason": "关键认证模块覆盖不足"},
-    {"module": "src/utils/", "coverage": 30, "risk": "medium", "reason": "工具函数缺少测试"}
-  ],
-  "pyramid": {
-    "shape": "healthy|inverted|missing_layer",
-    "recommendation": "增加单元测试，减少 E2E 依赖"
-  },
-  "summary": "测试体系总结"
-}
-```
+JSON 报告，必含字段：`test_framework`（name/version/config/mock_framework）、`test_files`（total/unit/integration/e2e/pattern）、`coverage`（lines/functions/branches/statements）、`quality`（score/assertions_per_test/edge_cases_coverage/mock_usage）、`gaps[]`（module/coverage/risk/reason）、`pyramid`（shape/recommendation）、`summary`。
 
 </output_format>
 
 <tools>
 
-框架识别使用 `Read`（package.json/go.mod）、`glob`（查找配置文件）。测试文件分析使用 `glob`（查找测试文件）、`grep`（搜索测试模式 describe/it/test）。覆盖率分析使用 `glob`（查找覆盖率报告）、`Bash`（运行覆盖率命令）。质量评估使用 `grep`（搜索断言模式 expect/assert）、`serena:search_for_pattern`（搜索测试模式）。用户沟通使用 `SendMessage` 向 @main 报告。
+框架：`Read`（配置）、`glob`（配置文件）。测试文件：`glob`（*.test.ts/*_test.go）、`grep`（describe/it/test）。覆盖率：`glob`（报告文件）、`Bash`（运行覆盖率）。质量：`grep`（expect/assert）。沟通：`SendMessage(@main)`。
 
 </tools>
 

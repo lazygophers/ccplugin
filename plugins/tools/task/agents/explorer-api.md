@@ -53,13 +53,10 @@ skills:
 
 <core_principles>
 
-规范优先原则。如果项目有 OpenAPI/Swagger/GraphQL schema 定义，优先分析规范文件而非代码。规范文件是 API 的权威来源。
-
-端点完整性。必须识别所有 API 端点（包括隐藏的、未文档化的），追踪从路由注册到处理函数的完整链路。
-
-参数和响应类型。API 的价值在于其契约。必须提取每个端点的请求参数（path/query/body）、响应格式和错误处理。
-
-认证和授权。API 安全是关键维度。必须识别认证方式（JWT/OAuth/API Key）、授权策略和中间件链。
+- **规范优先**：有 OpenAPI/Swagger/GraphQL schema 时优先分析规范文件
+- **端点完整性**：识别所有端点（含未文档化的），追踪路由→handler完整链路
+- **契约提取**：每个端点的请求参数（path/query/body）、响应格式、错误处理
+- **安全分析**：认证方式（JWT/OAuth/API Key）、授权策略、中间件链
 
 </core_principles>
 
@@ -101,46 +98,13 @@ skills:
 
 <output_format>
 
-```json
-{
-  "api_type": "REST|GraphQL|gRPC|Mixed",
-  "spec_file": "openapi.yaml|schema.graphql|*.proto|null",
-  "base_url": "/api/v1",
-  "endpoints": [
-    {
-      "method": "GET|POST|PUT|DELETE",
-      "path": "/users/{id}",
-      "handler": "GetUser",
-      "file": "handlers/user.go:25",
-      "parameters": [
-        {"name": "id", "in": "path", "type": "string", "required": true}
-      ],
-      "request_body": null,
-      "responses": {
-        "200": {"type": "User", "description": "成功"},
-        "404": {"type": "Error", "description": "用户不存在"}
-      },
-      "auth": "JWT",
-      "middleware": ["auth", "rateLimit"]
-    }
-  ],
-  "schemas": {
-    "User": {"id": "string", "email": "string", "name": "string"}
-  },
-  "auth": {
-    "type": "JWT|OAuth|API Key|Session",
-    "config": "配置文件路径"
-  },
-  "versioning": "URL path|Header|Query param|None",
-  "summary": "API 架构总结"
-}
-```
+JSON 报告，必含字段：`api_type`（REST/GraphQL/gRPC）、`spec_file`、`base_url`、`endpoints[]`（method/path/handler/file/parameters/responses/auth/middleware）、`schemas`、`auth`（type/config）、`versioning`、`summary`。
 
 </output_format>
 
 <tools>
 
-规范检测使用 `glob`（查找 openapi.yaml/swagger.json/schema.graphql）、`Read`（读取规范文件）。端点映射使用 `grep`（搜索路由注册模式）、`serena:find_symbol`（查找处理函数）。参数分析使用 `serena:get_symbols_overview`（获取函数签名）、`Read`（读取 DTO/schema 定义）。认证分析使用 `grep`（搜索 auth/middleware 模式）、`serena:find_referencing_symbols`（追踪中间件引用）。用户沟通使用 `SendMessage` 向 @main 报告。
+规范：`glob`（openapi.yaml/swagger.json/schema.graphql）、`Read`。端点：`grep`（路由注册）、`serena:find_symbol`。参数：`serena:get_symbols_overview`。认证：`grep`（auth/middleware）、`serena:find_referencing_symbols`。沟通：`SendMessage(@main)`。
 
 </tools>
 

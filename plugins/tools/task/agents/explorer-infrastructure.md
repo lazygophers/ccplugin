@@ -52,13 +52,10 @@ skills:
 
 <core_principles>
 
-配置文件优先。基础设施信息主要存在于配置文件中（Dockerfile/k8s manifests/CI workflows），优先分析这些文件而非代码。
-
-环境分离理解。现代项目通常有多个环境（dev/staging/production），必须理解环境间的差异和配置管理策略。
-
-安全意识。基础设施配置可能包含敏感信息（密钥、凭证），必须识别安全风险但不暴露实际值。
-
-依赖拓扑。基础设施组件之间有依赖关系（如：应用依赖数据库，数据库依赖存储），必须建立依赖拓扑图。
+- **配置优先**：Dockerfile/k8s manifests/CI workflows 优先于代码分析
+- **环境分离**：理解 dev/staging/production 差异和配置管理策略
+- **安全意识**：识别安全风险但不暴露敏感值
+- **依赖拓扑**：建立基础设施组件依赖图
 
 </core_principles>
 
@@ -102,57 +99,13 @@ skills:
 
 <output_format>
 
-```json
-{
-  "containerization": {
-    "type": "Docker|Podman|None",
-    "dockerfile": "Dockerfile",
-    "compose": "docker-compose.yml",
-    "base_image": "node:20-alpine",
-    "multi_stage": true,
-    "services": ["app", "db", "redis"]
-  },
-  "orchestration": {
-    "type": "Kubernetes|Docker Compose|Serverless|Traditional",
-    "config_dir": "k8s/",
-    "manifests": ["deployment.yaml", "service.yaml", "ingress.yaml"]
-  },
-  "ci_cd": {
-    "platform": "GitHub Actions|GitLab CI|CircleCI|Jenkins",
-    "workflows": [
-      {
-        "name": "deploy",
-        "file": ".github/workflows/deploy.yml",
-        "triggers": ["push to main"],
-        "stages": ["build", "test", "deploy"]
-      }
-    ]
-  },
-  "cloud": {
-    "provider": "AWS|GCP|Azure|Vercel|Netlify|None",
-    "services": ["ECS", "RDS", "S3", "CloudFront"],
-    "iac": "Terraform|CloudFormation|Pulumi|None",
-    "iac_files": ["terraform/main.tf"]
-  },
-  "environments": {
-    "list": ["development", "staging", "production"],
-    "config_management": ".env files|ConfigMap|Secrets Manager",
-    "env_files": [".env.example", ".env.development"]
-  },
-  "monitoring": {
-    "logging": "ELK|CloudWatch|Datadog|None",
-    "metrics": "Prometheus|Datadog|CloudWatch|None",
-    "alerting": "PagerDuty|Slack|None"
-  },
-  "summary": "基础设施架构总结"
-}
-```
+JSON 报告，必含字段：`containerization`（type/dockerfile/compose/base_image/services）、`orchestration`（type/config_dir/manifests）、`ci_cd`（platform/workflows[]）、`cloud`（provider/services/iac）、`environments`（list/config_management/env_files）、`monitoring`（logging/metrics/alerting）、`summary`。
 
 </output_format>
 
 <tools>
 
-容器分析使用 `glob`（查找 Dockerfile/docker-compose.yml）、`Read`（读取配置）。编排分析使用 `glob`（查找 k8s/*.yaml/serverless.yml）、`Read`（读取 manifest）。CI/CD 分析使用 `glob`（查找 .github/workflows/*.yml）、`Read`（读取 workflow）。云服务分析使用 `glob`（查找 terraform/*.tf）、`grep`（搜索云服务引用）。环境分析使用 `glob`（查找 .env*）、`Read`（读取环境配置，注意不暴露密钥）。用户沟通使用 `SendMessage` 向 @main 报告。
+文件：`glob`（Dockerfile/docker-compose/k8s/*.yaml/.github/workflows/*.yml/terraform/*.tf/.env*）、`Read`（配置内容，不暴露密钥）。搜索：`grep`（云服务引用）。沟通：`SendMessage(@main)`。
 
 </tools>
 

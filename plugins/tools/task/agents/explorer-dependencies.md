@@ -52,13 +52,10 @@ skills:
 
 <core_principles>
 
-安全优先原则。依赖分析的首要目标是识别安全风险。必须检查已知漏洞（CVE）、恶意包和供应链攻击风险。
-
-直接 vs 间接依赖。直接依赖是项目明确声明的，间接依赖是通过依赖传递引入的。间接依赖往往是安全风险的主要来源。
-
-版本锁定策略。分析版本锁定策略（exact/range/latest），评估更新风险和兼容性。
-
-许可证合规。不同开源许可证有不同的要求（MIT/Apache/GPL/AGPL），必须确保依赖的许可证与项目兼容。
+- **安全优先**：检查CVE/恶意包/供应链攻击风险
+- **直接vs间接**：间接依赖是安全风险主要来源，需重点关注
+- **版本锁定**：分析锁定策略（exact/range/latest），评估更新风险
+- **许可证合规**：确保依赖许可证（MIT/Apache/GPL）与项目兼容
 
 </core_principles>
 
@@ -101,67 +98,13 @@ skills:
 
 <output_format>
 
-```json
-{
-  "package_manager": {
-    "name": "npm|yarn|pnpm|pip|poetry|go mod|cargo|maven",
-    "lock_file": "package-lock.json|yarn.lock|go.sum",
-    "config": "package.json|pyproject.toml|go.mod"
-  },
-  "dependencies": {
-    "direct": 42,
-    "dev": 28,
-    "transitive": 303,
-    "total": 345,
-    "duplicates": [
-      {"name": "lodash", "versions": ["4.17.21", "4.17.15"]}
-    ]
-  },
-  "security": {
-    "vulnerabilities": {
-      "critical": 0,
-      "high": 2,
-      "medium": 5,
-      "low": 12
-    },
-    "details": [
-      {
-        "package": "minimist",
-        "severity": "high",
-        "cve": "CVE-2021-44906",
-        "fix": "升级到 1.2.6+"
-      }
-    ]
-  },
-  "outdated": [
-    {
-      "name": "react",
-      "current": "17.0.2",
-      "latest": "18.2.0",
-      "type": "major",
-      "risk": "high",
-      "breaking_changes": true
-    }
-  ],
-  "licenses": {
-    "MIT": 280,
-    "Apache-2.0": 45,
-    "BSD-3-Clause": 15,
-    "GPL-3.0": 3,
-    "Unknown": 2,
-    "compliance_issues": [
-      {"package": "example-lib", "license": "GPL-3.0", "issue": "GPL 与项目 MIT 许可不兼容"}
-    ]
-  },
-  "summary": "依赖分析总结"
-}
-```
+JSON 报告，必含字段：`package_manager`（name/lock_file/config）、`dependencies`（direct/dev/transitive/total/duplicates[]）、`security`（vulnerabilities{critical/high/medium/low}/details[]）、`outdated[]`（name/current/latest/type/risk）、`licenses`（按类型统计/compliance_issues[]）、`summary`。
 
 </output_format>
 
 <tools>
 
-包管理器识别使用 `glob`（查找 package.json/go.mod/Cargo.toml）、`Read`（读取配置）。依赖分析使用 `Read`（读取 lock 文件）、`Bash`（运行 npm ls/pip list/go list）。安全审计使用 `Bash`（运行 npm audit/pip-audit/go mod verify）。版本分析使用 `Bash`（运行 npm outdated/pip list --outdated）。许可证分析使用 `Read`（读取 LICENSE 文件）、`Bash`（运行 license-checker 等工具）。用户沟通使用 `SendMessage` 向 @main 报告。
+包管理：`glob`（package.json/go.mod/Cargo.toml）、`Read`（配置/lock文件）。分析：`Bash`（npm ls/audit/outdated, pip list/audit, go list/verify）。许可证：`Read`（LICENSE）、`Bash`（license-checker）。沟通：`SendMessage(@main)`。
 
 </tools>
 
