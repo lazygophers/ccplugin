@@ -63,8 +63,17 @@ JSON 输出：`{status, report(≤200字), tasks[], dependencies{}, parallel_gro
 
 - `status`: "completed" 或 "questions"
 - `tasks`: 任务数组（功能已存在时返回空数组`[]`）
-- 每个 task: `{id, description, agent("name（中文注释）"), skills(["name（注释）"]), files?, acceptance_criteria(可量化), dependencies(前置ID[])}`
+- 每个 task 必含字段：
+  - `id`: 任务ID
+  - `description`: 任务描述
+  - `agent`（单个，必填）: `"name（中文注释）@source"`，执行该任务的 agent 名称，执行阶段动态获取
+  - `skills`（数组，必填，≥1个）: `["name（注释）@source"]`，该任务使用的 skills，执行阶段动态获取
+  - `files`（数组，可选）: 关联文件/模块列表
+  - `acceptance_criteria`（数组，必填）: 验收清单（check list），可量化
+  - `dependencies`（数组）: 前置任务ID列表
 - tasks 为空时 agent/skills 可省略，非空时必填
+
+**重要**：agent/skills 在规划阶段只是名称引用，实际加载和调用在执行阶段进行（loop 按名称动态查找）
 
 </output_format>
 

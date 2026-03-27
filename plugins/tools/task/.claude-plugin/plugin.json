@@ -29,7 +29,6 @@
     "./agents/adjuster.md",
     "./agents/planner.md",
     "./agents/plan-formatter.md",
-    "./agents/execute.md",
     "./agents/explorer-general.md",
     "./agents/explorer-code.md",
     "./agents/explorer-frontend.md",

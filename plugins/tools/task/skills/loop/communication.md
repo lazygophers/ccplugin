@@ -36,7 +36,7 @@
 
 ## 安全
 
-- **来源验证**：只允许合法Agent(planner/execute/verifier/adjuster/finalizer)
+- **来源验证**：只允许合法Agent(planner/verifier/adjuster/finalizer/explorer-*)
 - **格式验证**：必含type/agent/content
 - **循环检测**：跟踪最近10条消息，重复>50%则中断
 - **敏感加密**：含密钥/凭证时加密传输

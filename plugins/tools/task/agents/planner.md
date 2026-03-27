@@ -44,19 +44,28 @@ skills:
 1. **执行规范**（Spec-Driven）：功能规范（What）→技术规范（How）→质量规范→合规规范
 2. **任务分解**：按时间/逻辑顺序→单维度拆分→原子化→避免过度拆分
 3. **依赖关系**：DAG表示，禁止循环依赖，最多2任务并行
-4. **资源分配**（前两项必填）：
-   - **Agent**（必填）：`name（中文注释）@source`，每个任务必须指定
-   - **Skills**（必填）：`["name（中文注释）@source"]`，每个任务至少一个
-   - **Files**（可选）：`["path/to/file"]`
+4. **资源分配**（Agent/Skills 在执行时动态获取，非规划时加载）：
+   - **Agent**（必填，单个）：`name（中文注释）@source`，每个任务必须指定一个 agent，执行阶段按名称动态查找
+   - **Skills**（必填，至少1个）：`["name（中文注释）@source"]`，每个任务至少一个，可多个，执行阶段按名称动态查找
+   - **Files**（可选）：`["path/to/file"]`，关联文件/模块列表
    - 来源标注：带`@source`指定插件，不带则自动查找；Loop内部必须带`@task`
    - tasks为空时（功能已存在）可省略agent/skills
-5. **验收标准**：可量化、可验证、完整（功能+质量+性能）
+5. **验收标准**（必填，check list 格式）：可量化、可验证、完整（功能+质量+性能），每个任务必须包含 acceptance_criteria
 
 </workflow>
 
 <output_format>
 
-JSON 输出，必含字段：`status`（completed）、`report`（摘要）、`tasks[]`（id/description/agent/skills/files/acceptance_criteria[]/dependencies）、`dependencies`、`parallel_groups`、`iteration_goal`、`acceptance_criteria[]`。
+JSON 输出，必含字段：`status`（completed）、`report`（摘要）、`tasks[]`、`dependencies`、`parallel_groups`、`iteration_goal`、`acceptance_criteria[]`。
+
+**tasks[] 每个任务必含字段**：
+- `id`：任务ID
+- `description`：任务描述
+- `agent`（单个，必填）：执行该任务的 agent 名称，执行阶段动态查找
+- `skills`（数组，必填，至少1个）：该任务使用的 skills 列表，执行阶段动态查找
+- `files`（数组，可选）：关联文件/模块列表
+- `acceptance_criteria`（数组，必填）：验收清单（check list），每项含 id/type/description/verification_method/priority
+- `dependencies`（数组）：依赖的任务ID列表
 
 acceptance_criteria 子字段：id/type（exact_match/quantitative_threshold）/description/verification_method/priority（required/optional），量化类型额外含 metric/operator/threshold/unit/tolerance。
 
@@ -71,11 +80,13 @@ acceptance_criteria 子字段：id/type（exact_match/quantitative_threshold）/
 
 </guidelines>
 
-<plan_mode_integration>
+<invocation_modes>
 
-两种调用模式：1) Plan模式（首次/用户重设计）：EnterPlanMode→planner→ExitPlanMode，用户可标注反馈 2) 直接调用（自动重规划）：adjuster/verifier触发。prompt含`用户反馈`时必须据此调整。
+两种调用模式：1) 首次/用户重设计：调用 task:planner → 生成计划 → 由 loop 通过 AskUserQuestion 请求用户确认 2) 自动重规划：adjuster/verifier触发，自动批准。prompt含`用户反馈`时必须据此调整。
 
-</plan_mode_integration>
+**重要**：规划阶段只负责设计计划，agent/skills 字段只是名称引用，实际加载和调用在执行阶段进行（loop 按任务的 agent/skills 字段动态查找并调用）。
+
+</invocation_modes>
 
 <references>
 

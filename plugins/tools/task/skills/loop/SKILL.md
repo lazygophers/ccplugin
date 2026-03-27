@@ -4,7 +4,6 @@ argument-hint: [ 任务目标描述 ]
 skills:
   - task:prompt-optimizer
   - task:planner
-  - task:execute
   - task:verifier
   - task:adjuster
   - deepresearch:deep-research
@@ -30,7 +29,7 @@ memory: project
 
 ## PDCA 流程
 
-**Prepare**（flows/prompt-optimization）→ **Plan**（flows/plan，必须包含计划确认）→ **Do**（task:execute）→ **Check**（flows/verify）→ **Act**（task:adjuster）
+**Prepare**（flows/prompt-optimization）→ **Plan**（flows/plan，必须包含计划确认）→ **Do**（按计划中任务的 agent 执行）→ **Check**（flows/verify）→ **Act**（task:adjuster）
 
 **8个阶段**：
 1. 初始化
@@ -54,7 +53,7 @@ memory: project
 
 <references>
 
-**子技能**：flows/plan、flows/verify、task:planner、task:execute、task:verifier、task:adjuster
+**子技能**：flows/plan、flows/verify、task:planner、task:verifier、task:adjuster
 
 **文档**：[detailed-flow.md](detailed-flow.md)（8阶段导航+各phase详细说明）| [deep-iteration](../deep-iteration/implementation.md) | [prompt-caching](prompt-caching.md) | [deep-research-triggers](deep-research-triggers.md)
 
@@ -102,7 +101,7 @@ memory: project
 
 ### 阶段3：任务执行
 
-调用 task:execute 执行所有任务。输出 `[MindFlow·任务·任务执行/N·进行中]` → `completed`
+读取计划文件，按 DAG 依赖顺序直接调用每个任务指定的 agent 执行。输出 `[MindFlow·任务·任务执行/N·进行中]` → `completed`
 
 ### 阶段4：结果验证
 

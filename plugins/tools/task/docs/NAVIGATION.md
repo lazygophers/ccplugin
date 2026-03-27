@@ -7,12 +7,11 @@
 - [README.md](./README.md) - 项目概览和快速入门
 - [ROADMAP.md](./docs/ROADMAP.md) - 功能路线图和完成状态
 
-## 核心循环Agents (7)
+## 核心循环Agents (6)
 
 | Agent | 用途 | 关键文件 | 使用场景 |
 |-------|------|---------|---------|
 | planner | 任务规划和分解 | [agents/planner.md](agents/planner.md)<br/>[skills/planner/](skills/planner/) | MECE分解复杂任务为原子子任务 |
-| execute | 任务执行编排 | [agents/execute.md](agents/execute.md)<br/>[skills/execute/](skills/execute/) | 多任务并行调度（最多2个） |
 | verifier | 验收验证 | [agents/verifier.md](agents/verifier.md)<br/>[skills/verifier/](skills/verifier/) | 检查验收标准、质量评分 |
 | adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 5级渐进式升级（retry→debug→replan→ask_user） |
 | finalizer | 资源清理 | [agents/finalizer.md](agents/finalizer.md)<br/>[skills/finalizer/](skills/finalizer/) | 任务完成后清理资源和生成报告 |
@@ -27,7 +26,6 @@
 |-------|------|---------|---------|
 | loop | Loop持续执行 | `/loop`命令 | [skills/loop/SKILL.md](skills/loop/SKILL.md) |
 | planner | 计划设计 | loop调用或独立使用 | [skills/planner/SKILL.md](skills/planner/SKILL.md) |
-| execute | 任务执行 | loop调用或独立使用 | [skills/execute/SKILL.md](skills/execute/SKILL.md) |
 | verifier | 结果验证 | loop调用或独立使用 | [skills/verifier/SKILL.md](skills/verifier/SKILL.md) |
 | adjuster | 失败调整 | loop调用或独立使用 | [skills/adjuster/SKILL.md](skills/adjuster/SKILL.md) |
 
@@ -96,8 +94,8 @@
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 如何控制并行任务数量？ | execute → parallel-scheduler | [并行调度](skills/execute/parallel-scheduler.md) |
-| 为什么限制2个并行任务？ | execute → 复杂度评估 | [任务执行](skills/execute/SKILL.md) |
+| 如何控制并行任务数量？ | loop → parallel-scheduler | [并行调度](skills/parallel-scheduler/SKILL.md) |
+| 为什么限制2个并行任务？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-5-execution.md) |
 | Team何时创建和删除？ | execute → Team管理 | [详细流程](skills/loop/phases/phase-5-execution.md) |
 
 ### HITL审批
