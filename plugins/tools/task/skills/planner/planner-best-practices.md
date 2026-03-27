@@ -38,6 +38,24 @@
 {"report": "计划：3个子任务。T1：JWT 工具（coder）→ T2：认证中间件（coder）→ T3：测试覆盖（tester）。依赖：T2→T3。预计完成时间：2小时。"}
 ```
 
+优先使用专用 agent/skills。根据任务类型选择最合适的工具：探索类任务使用 task:explorer-*，实现类任务使用技术栈对应的 agent（golang:dev/python:dev），测试类任务使用 tester。专用工具比通用工具（coder）更高效、更准确。
+
+正确做法：
+```json
+{
+  "agent": "golang:dev（Go开发专家）@golang",
+  "skills": ["golang:implement（实现Go代码）@golang", "golang:test（Go测试）@golang"]
+}
+```
+
+错误做法：
+```json
+{
+  "agent": "coder（通用编码助手）@task",
+  "skills": ["write-code（编写代码）@task"]
+}
+```
+
 </best_practices>
 
 <checklist>
@@ -58,6 +76,12 @@ Agent/Skills（强制要求）：
   - [ ] Loop 内部调用明确指定 @task 来源
   - [ ] 探索类任务使用 task:explorer-* agents
   - [ ] 实现类任务根据技术栈选择合适 agent（golang:dev/python:dev/coder）
+  - [ ] 制定计划前已发现全部可用的 agents 和 skills
+  - [ ] 优先使用专用 agent/skills 而非通用工具（coder）
+  - [ ] 所有 Agent 来源标注正确（@task/@golang/@python 等）
+  - [ ] 所有 Skills 来源标注正确且完整
+  - [ ] 来源标注与实际工具位置一致（如 golang:dev 必须标注 @golang）
+  - [ ] Loop 内部调用和递归调用的来源标注清晰（必须标注 @task）
 
 验收标准：所有任务都有验收标准、验收标准可量化、验收标准可验证。
 
