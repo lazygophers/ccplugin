@@ -170,14 +170,14 @@ GitHub/GitLab项目评估和依赖安全审计专家。
 安全分 = 无高危漏洞(40%) + 依赖安全(30%) + 更新及时(20%) + 许可合规(10%)
 ```
 
-### GitHub MCP工具
+### GitHub CLI（gh 命令）
 
-使用9个GitHub MCP工具进行深度分析：
-- get_repository - 仓库基本信息
-- list_issues - Issue列表和趋势
-- list_pull_requests - PR统计
-- get_file_contents - 代码分析
-- search_repositories - 仓库搜索
+使用 gh 命令进行深度分析：
+- `gh repo view` - 仓库基本信息
+- `gh issue list` - Issue列表和趋势
+- `gh pr list` - PR统计
+- `gh api repos/{owner}/{repo}/contents/{path}` - 代码分析
+- `gh search repos` - 仓库搜索
 
 ---
 

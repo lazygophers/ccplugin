@@ -95,7 +95,7 @@ GraphQL 和 REST 分别适合什么场景
 **自动流程**：
 1. 需求收集：项目URL、关注点（质量/安全）
 2. Agent匹配：project-assessor（检测到github.com）
-3. 项目分析：GitHub MCP工具（健康度+安全分）
+3. 项目分析：GitHub CLI gh 命令（健康度+安全分）
 4. 报告生成：技术报告（评估+风险+建议）
 
 ---

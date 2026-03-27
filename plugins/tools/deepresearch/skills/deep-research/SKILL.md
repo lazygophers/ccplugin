@@ -176,7 +176,7 @@ final = dgot.Aggregate(refined)
 1. 需求收集：项目（facebook/react）、关注点（质量+安全）
 2. Agent匹配：project-assessor（检测到github.com）
 3. DGoT驱动：平衡搜索，质量+安全双维度
-4. 项目分析：code-inspector GitHub集成（MCP工具）
+4. 项目分析：code-inspector GitHub集成（gh 命令）
 5. 安全审计：CVE数据库、依赖树分析
 6. 知识合成：技术报告（健康度+安全分+风险评估）
 ```

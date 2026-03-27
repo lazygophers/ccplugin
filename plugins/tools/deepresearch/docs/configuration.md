@@ -9,7 +9,6 @@ Deep Research 插件的MCP服务器和环境配置。
 | 服务器 | 用途 | 优先级 | 依赖Skills |
 |--------|------|--------|-----------|
 | **duckduckgo** | 网络搜索引擎 | 必需 | agentic-retriever |
-| **github** | GitHub API集成 | 必需 | code-inspector, project-assessor |
 | **wikipedia** | 百科知识库 | 必需 | research-strategist |
 | **sequential-thinking** | 复杂推理引擎 | 必需 | architecture-advisor |
 | **time** | 时间服务 | 必需 | source-validator |
@@ -44,22 +43,6 @@ Deep Research 插件的MCP服务器和环境配置。
         "priority": "required",
         "usage": "信息检索、技术文档搜索、市场数据"
       }
-    },
-    "github": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["mcp-server-github"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "ALL_PROXY": "${PROXY_URL}",
-        "HTTPS_PROXY": "${PROXY_URL}",
-        "HTTP_PROXY": "${PROXY_URL}"
-      },
-      "metadata": {
-        "description": "GitHub API集成 - code-inspector和project-assessor核心依赖",
-        "priority": "required",
-        "usage": "项目评估、代码分析、依赖安全审计"
-      }
     }
   }
 }
@@ -75,22 +58,26 @@ Deep Research 插件的MCP服务器和环境配置。
 
 ## 环境变量配置
 
-### GitHub Token（推荐）
+### GitHub CLI（gh 命令）
+
+GitHub 功能通过 `gh` CLI 实现，无需 MCP 服务器：
 
 ```bash
-# 1. 创建 GitHub Personal Access Token
-# 访问：https://github.com/settings/tokens
+# 安装 gh CLI
+brew install gh
 
-# 2. 设置环境变量
-export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
+# 登录认证
+gh auth login
 
-# 3. 验证配置
-echo $GITHUB_TOKEN
+# 验证
+gh auth status
 ```
 
-**权限要求**：
-- `repo`：访问仓库内容
-- `read:org`：读取组织信息（可选）
+**常用命令**：
+- `gh repo view` - 仓库信息
+- `gh issue list` - Issue列表
+- `gh pr list` - PR列表
+- `gh api repos/{owner}/{repo}/contents/{path}` - 文件内容
 
 ### 代理配置（可选）
 
@@ -138,7 +125,9 @@ claude mcp list
 
 # 测试特定服务器
 claude mcp test duckduckgo
-claude mcp test github
+
+# 验证 gh CLI
+gh auth status
 ```
 
 ### 检查环境变量
@@ -155,14 +144,14 @@ echo $PROXY_URL
 
 ## 故障排除
 
-### GitHub Token无效
+### GitHub CLI 认证失败
 
 **症状**：project-assessor无法获取GitHub数据
 
 **解决**：
-1. 检查Token是否过期
-2. 验证Token权限（需要repo权限）
-3. 重新生成Token
+1. 运行 `gh auth status` 检查认证状态
+2. 运行 `gh auth login` 重新认证
+3. 确保网络连接正常
 
 ### 代理连接失败
 
@@ -181,7 +170,6 @@ echo $PROXY_URL
 ```bash
 # 更新MCP服务器
 uvx --upgrade duckduckgo-mcp-server
-uvx --upgrade mcp-server-github
 
 # 清理缓存
 rm -rf ~/.cache/uv
@@ -200,23 +188,14 @@ rm -rf ~/.cache/uv
       "type": "stdio",
       "command": "uvx",
       "args": ["duckduckgo-mcp-server"]
-    },
-    "github": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["mcp-server-github"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-      }
     }
   }
 }
 ```
 
-**限制**：
-- 无代理支持
-- 无metadata元数据
-- 仅2个核心服务器
+**说明**：
+- GitHub 功能通过 `gh` CLI 提供，无需 MCP 服务器
+- 无代理支持、无metadata元数据
 
 ---
 
@@ -224,7 +203,7 @@ rm -rf ~/.cache/uv
 
 | 维度 | 旧架构 | 新架构（2026） |
 |------|--------|---------------|
-| MCP服务器数 | 7个 | 7个（移除gitlab，新增context7） |
+| MCP服务器数 | 7个 | 5个（移除gitlab/github，新增context7，GitHub改用gh CLI） |
 | metadata支持 | ❌ 无 | ✅ MCP Server Cards标准 |
 | 代理默认值 | 有默认值 | 无默认值（按需设置） |
 | 优先级标识 | ❌ 无 | ✅ required/optional |

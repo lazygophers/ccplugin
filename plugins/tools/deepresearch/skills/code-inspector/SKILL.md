@@ -109,19 +109,17 @@ analyze_github(
 - 依赖更新频率
 - 安全漏洞修复速度
 
-### 2. GitHub MCP工具
+### 2. GitHub CLI（gh 命令）
 
-使用9个GitHub MCP工具：
+使用 `gh` 命令替代 GitHub MCP 工具：
 ```
-get_repository          - 仓库基本信息
-list_issues             - Issue列表
-list_pull_requests      - PR列表
-get_file_contents       - 文件内容
-create_or_update_file   - 更新文件
-push_files              - 批量推送
-search_repositories     - 仓库搜索
-create_repository       - 创建仓库
-get_issue               - Issue详情
+gh repo view             - 仓库基本信息
+gh issue list            - Issue列表
+gh pr list               - PR列表
+gh api repos/{owner}/{repo}/contents/{path} - 文件内容
+gh api repos/{owner}/{repo}/search - 仓库搜索
+gh issue view            - Issue详情
+gh repo clone            - 克隆仓库
 ```
 
 ### 3. 趋势分析

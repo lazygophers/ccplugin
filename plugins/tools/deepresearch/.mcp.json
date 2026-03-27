@@ -17,29 +17,11 @@
         "usage": "信息检索、技术文档搜索、市场数据"
       }
     },
-    "github": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "mcp-server-github"
-      ],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "ALL_PROXY": "${PROXY_URL}",
-        "HTTPS_PROXY": "${PROXY_URL}",
-        "HTTP_PROXY": "${PROXY_URL}"
-      },
-      "metadata": {
-        "description": "GitHub API集成 - code-inspector和project-assessor核心依赖",
-        "priority": "required",
-        "usage": "项目评估、代码分析、依赖安全审计"
-      }
-    },
     "wikipedia": {
       "type": "stdio",
       "command": "uvx",
       "args": [
-        "mcp-server-wikipedia"
+        "wikipedia-mcp"
       ],
       "env": {
         "ALL_PROXY": "${PROXY_URL}",

@@ -236,12 +236,12 @@ A-E级质量评分和链式验证，确保信息可信度。
 健康分 = 活跃度(40%) + 质量(30%) + 社区(20%) + 维护(10%)
 ```
 
-**GitHub MCP工具**（9个）：
-- get_repository - 仓库基本信息
-- list_issues - Issue列表
-- list_pull_requests - PR列表
-- get_file_contents - 文件内容
-- search_repositories - 仓库搜索
+**GitHub CLI（gh 命令）**：
+- `gh repo view` - 仓库基本信息
+- `gh issue list` - Issue列表
+- `gh pr list` - PR列表
+- `gh api repos/{owner}/{repo}/contents/{path}` - 文件内容
+- `gh search repos` - 仓库搜索
 
 ### 质量指标
 
