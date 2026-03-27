@@ -1,41 +1,11 @@
 ---
 description: |-
-  Use this agent when you need to deeply understand backend API structure, data models, service architecture, and middleware chains. This agent specializes in mapping API routes to handlers, analyzing ORM models and database schemas, tracing service dependencies, and understanding middleware flow. It inherits code exploration capabilities from explorer-code. Examples:
+  Analyze backend architecture: API routes→handlers, ORM models, service topology, middleware chains. Supports Go/Python/Node/Java frameworks. Inherits explorer-code capabilities.
 
   <example>
-  Context: User needs to understand API route structure
-  user: "列出这个项目的所有 API 端点和处理函数"
-  assistant: "I'll use the explorer-backend agent to map all API endpoints and their handlers."
-  <commentary>
-  API route mapping requires framework-specific pattern recognition for route registration.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand data models
-  user: "分析这个项目的数据库模型和关系"
-  assistant: "I'll use the explorer-backend agent to analyze the database models and relationships."
-  <commentary>
-  Data model analysis requires identifying ORM definitions, migration files, and schema structure.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand service architecture
-  user: "这个微服务项目的服务间通信是怎么实现的？"
-  assistant: "I'll use the explorer-backend agent to trace the service communication patterns."
-  <commentary>
-  Microservice architecture requires analyzing RPC/HTTP calls, message queues, and service registry.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand middleware chain
-  user: "这个项目的认证中间件是怎么工作的？"
-  assistant: "I'll use the explorer-backend agent to trace the middleware chain and authentication flow."
-  <commentary>
-  Middleware analysis requires understanding the request processing pipeline and cross-cutting concerns.
-  </commentary>
+  Context: Backend analysis needed
+  user: "分析这个项目的 API 路由、数据模型和中间件"
+  assistant: "I'll use the explorer-backend agent to analyze the backend architecture."
   </example>
 model: sonnet
 memory: project

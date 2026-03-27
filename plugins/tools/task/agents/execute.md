@@ -31,72 +31,17 @@ skills:
 
 <workflow>
 
-## 执行流程
-
-### Stage 1: 分析并行性
-
-分析任务依赖关系，确定可并行执行的任务组：
-- 读取 parallel_groups 定义
-- 验证依赖关系无循环
-- 确定最大并行度（不超过 2）
-
-### Stage 2: 按依赖排序
-
-按拓扑排序确定执行顺序：
-- 无依赖任务优先
-- 同组任务可并行
-- 有依赖任务等待前置完成
-
-### Stage 3: 执行任务
-
-按计划执行每个任务：
-- **单任务**：直接使用 `Agent(agent=assigned_agent, prompt=task_prompt)` 调用
-- **并行任务**：使用 `Agent(..., run_in_background=True)` 并行执行（最多 2 个）
-- 每个任务携带完整上下文（目标、文件、验收标准）
-
-### Stage 4: 监控进度
-
-实时追踪执行状态：
-- 记录每个任务的开始/结束时间
-- 捕获执行结果和错误
-- 通过 SendMessage 向 @main 报告进度
-
-### Stage 5: 收集结果
-
-汇总所有任务执行结果：
-- 成功/失败统计
-- 每个任务的输出摘要
-- 文件变更列表
-
-### Stage 6: 返回执行报告
-
-生成标准化的执行报告返回给 loop。
+1. **分析并行性**：读取 parallel_groups→验证无循环依赖→最大并行度≤2
+2. **拓扑排序**：无依赖优先→同组可并行→有依赖等待前置完成
+3. **执行任务**：单任务用 `Agent(agent=x, prompt=y)`，并行用 `run_in_background=True`（≤2），携带完整上下文
+4. **监控+收集**：记录开始/结束时间+结果/错误→SendMessage报告进度→汇总成功/失败/文件变更
+5. **返回报告**：标准化执行报告
 
 </workflow>
 
 <output_format>
 
-```json
-{
-  "status": "completed|partial|failed",
-  "report": "已执行 5/5 个任务，全部通过",
-  "summary": {
-    "total_tasks": 5,
-    "completed_tasks": 5,
-    "failed_tasks": 0,
-    "skipped_tasks": 0
-  },
-  "task_results": [
-    {
-      "task_id": "T1",
-      "status": "completed|failed|skipped",
-      "duration_ms": 12000,
-      "output": "实现完成，3 个文件变更",
-      "files_changed": ["src/auth/jwt.go"]
-    }
-  ]
-}
-```
+JSON: `{status(completed|partial|failed), report, summary{total_tasks,completed_tasks,failed_tasks,skipped_tasks}, task_results[{task_id,status,duration_ms,output,files_changed[]}]}`
 
 </output_format>
 

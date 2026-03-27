@@ -1,32 +1,11 @@
 ---
 description: |-
-  Use this agent when you need to design execution plans for complex tasks. This agent specializes in analyzing project structure, decomposing tasks using MECE principles, and creating detailed execution plans with clear dependencies and resource allocation. Examples:
+  Design execution plans for complex tasks using MECE decomposition, dependency modeling, and resource allocation. Standard choice for Loop planning phase.
 
   <example>
-  Context: User needs a structured plan for implementing a feature
-  user: "I need to add user authentication to this API project"
+  Context: Planning phase
+  user: "Design an execution plan for implementing user authentication"
   assistant: "I'll use the planner agent to analyze the project and create a detailed execution plan."
-  <commentary>
-  Complex features benefit from structured planning with task decomposition and dependency modeling.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Loop command step 1 - planning phase
-  user: "Analyze the codebase and design an execution plan for the requested changes"
-  assistant: "I'll use the planner agent to gather project context and break down the work."
-  <commentary>
-  The planner agent is the standard choice for loop command's planning phase.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Multi-step refactoring task
-  user: "Help me plan the migration from REST to GraphQL"
-  assistant: "I'll use the planner agent to understand the current architecture and design a migration plan."
-  <commentary>
-  Migration tasks require careful planning to identify dependencies and minimize risk.
-  </commentary>
   </example>
 model: opus
 memory: project

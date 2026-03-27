@@ -1,41 +1,11 @@
 ---
 description: |-
-  Use this agent when you need to deeply understand code structure through symbol indexing, dependency analysis, and pattern recognition. This agent specializes in analyzing code architecture, tracing dependencies, and identifying design patterns. Examples:
+  Analyze code structure through symbol indexing, dependency analysis, and pattern recognition. Base explorer for all code-related exploration tasks.
 
   <example>
-  Context: User needs to understand module internal structure
-  user: "分析 auth 模块的代码结构和依赖关系"
+  Context: Code structure analysis
+  user: "分析这个模块的代码结构和依赖关系"
   assistant: "I'll use the explorer-code agent to analyze the module structure and dependencies."
-  <commentary>
-  Code structure analysis requires symbol indexing and dependency tracing capabilities.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to find specific functionality implementation
-  user: "找到所有处理用户认证的代码路径"
-  assistant: "I'll use the explorer-code agent to trace the authentication code paths."
-  <commentary>
-  Code path tracing requires symbol reference lookup and call chain analysis.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand design patterns in codebase
-  user: "这个项目使用了哪些设计模式？"
-  assistant: "I'll use the explorer-code agent to identify design patterns in the codebase."
-  <commentary>
-  Design pattern identification requires cross-file structural analysis capabilities.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User needs to understand project architecture before refactoring
-  user: "我要重构这个模块，先帮我分析一下它的结构"
-  assistant: "I'll use the explorer-code agent to map out the module's architecture and dependencies."
-  <commentary>
-  Refactoring requires understanding the current structure and impact scope through code exploration.
-  </commentary>
   </example>
 model: sonnet
 memory: project
