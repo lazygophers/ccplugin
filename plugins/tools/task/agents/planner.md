@@ -71,11 +71,11 @@ acceptance_criteria 子字段：id/type（exact_match/quantitative_threshold）/
 
 </guidelines>
 
-<plan_mode_integration>
+<invocation_modes>
 
-两种调用模式：1) Plan模式（首次/用户重设计）：EnterPlanMode→planner→ExitPlanMode，用户可标注反馈 2) 直接调用（自动重规划）：adjuster/verifier触发。prompt含`用户反馈`时必须据此调整。
+两种调用模式：1) 首次/用户重设计：调用 task:planner → 生成计划 → 由 loop 通过 AskUserQuestion 请求用户确认 2) 自动重规划：adjuster/verifier触发，自动批准。prompt含`用户反馈`时必须据此调整。
 
-</plan_mode_integration>
+</invocation_modes>
 
 <references>
 

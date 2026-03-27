@@ -9,7 +9,7 @@ user-invocable: false
 
 ## 范围
 
-Planning阶段：触发深度研究→调用task:planner→格式化计划文档→Plan Mode控制审查流程。adjuster/verifier触发的重规划自动批准。
+Planning阶段：触发深度研究→调用task:planner→格式化计划文档→用户确认（AskUserQuestion）。adjuster/verifier触发的重规划自动批准。
 
 ## 执行流程
 
@@ -27,8 +27,8 @@ Planning阶段：触发深度研究→调用task:planner→格式化计划文档
 
 | 场景 | 条件 | 流程 |
 |------|------|------|
-| 首次规划 | iteration=1 | Plan模式 |
-| 用户重新设计 | replan_trigger="user" | Plan模式 |
+| 首次规划 | iteration=1 | task:planner + 用户确认 |
+| 用户重新设计 | replan_trigger="user" | task:planner + 用户确认 |
 | Adjuster自动重规划 | iteration>1, trigger="adjuster" | 直接生成+自动批准 |
 | Verifier建议优化 | iteration>1, trigger="verifier" | 直接生成+自动批准 |
 
@@ -39,22 +39,21 @@ Planning阶段：触发深度研究→调用task:planner→格式化计划文档
 4. 调用 task:plan-formatter 格式化并写入文件
 5. 自动批准，设置plan_md_path
 
-**路径B（Plan模式）**：
-1. EnterPlanMode()
-2. 深度研究（如需）
-3. 调用 task:planner
-4. 处理planner的问题
-5. 空tasks→ExitPlanMode→skip_execution
-6. 调用 task:plan-formatter 写入文件
-7. ExitPlanMode() 请求用户批准
-8. 批准→execute | 拒绝→提取反馈(HTML注释/[反馈]/删除线标记)→replan_trigger="user"
+**路径B（用户确认）**：
+1. 深度研究（如需）
+2. 调用 task:planner
+3. 处理planner的问题
+4. 空tasks→skip_execution
+5. 调用 task:plan-formatter 写入文件
+6. AskUserQuestion 展示计划摘要，请求用户批准
+7. 批准→execute | 拒绝→提取反馈→replan_trigger="user"
 
 **Planner调用参数**：任务目标 + 迭代编号 + user_feedback(如有) + 要求(项目分析/MECE分解/DAG依赖/Agent+Skills分配/可量化验收/≤200字报告)
 
 ## 状态转换
 
 - 路径A：生成计划→自动批准→执行 | 空tasks→完成
-- 路径B：Plan模式→设计→格式化→用户批准→执行 | 拒绝→提取反馈→重新设计
+- 路径B：task:planner→格式化→AskUserQuestion用户批准→执行 | 拒绝→提取反馈→重新设计
 
 ## 最佳实践
 

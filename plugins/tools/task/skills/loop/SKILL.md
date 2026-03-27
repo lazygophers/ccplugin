@@ -36,7 +36,7 @@ memory: project
 1. 初始化
 2. 提示词优化（可选）
 3. 深度研究（可选）
-4. 计划设计与确认（Plan Mode）
+4. 计划设计与确认
 5. 任务执行
 6. 结果验证
 7. 失败调整（如需）
@@ -46,8 +46,8 @@ memory: project
 - **所有输出必须以 [MindFlow] 开头**（强制规则，无例外）
 - **每次调用必须重置状态**（iteration=0, context={}），避免同一会话中不同任务的状态混淆
 - 计划确认阶段**必须执行**，不可跳过
-- 首次规划（iteration=1）和用户重新设计**使用 Plan Mode**（EnterPlanMode/ExitPlanMode）
-- 自动重新规划（adjuster/verifier触发）**跳过 Plan Mode**，直接生成并自动批准
+- 首次规划（iteration=1）和用户重新设计：调用 task:planner → 生成计划 → AskUserQuestion 请求用户确认
+- 自动重新规划（adjuster/verifier触发）：直接调用 task:planner → 生成并自动批准
 - 每次都要输出状态追踪日志：`[MindFlow·${任务}·${步骤}/${迭代}·${状态}]`
 
 </execution>
@@ -91,8 +91,8 @@ memory: project
 `iteration += 1`
 
 **路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"]`）：
-- **true → 自动重规划**：跳过 Plan Mode，直接调用 planner → formatter → 自动批准
-- **false → Plan Mode**：EnterPlanMode → 探索+设计 → planner → formatter → ExitPlanMode 请求用户批准；用户拒绝时提取反馈，设 `replan_trigger="user"` 回到本阶段
+- **true → 自动重规划**：直接调用 task:planner → task:plan-formatter → 自动批准
+- **false → 用户确认**：调用 task:planner → task:plan-formatter → AskUserQuestion 请求用户批准；用户拒绝时提取反馈，设 `replan_trigger="user"` 回到本阶段
 
 **共同步骤**：调用 task:planner 设计计划 → 调用 task:plan-formatter 格式化写入文件 → 更新 `context.plan_md_path`
 
