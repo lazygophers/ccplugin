@@ -26,3 +26,4 @@ plugins/**/__pycache__/
 .logs/
 
 plans/
+.gitnexus
