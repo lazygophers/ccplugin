@@ -27,6 +27,17 @@ memory: project
 
 <execution>
 
+## 【铁律】禁止跳过的步骤
+
+以下 4 个步骤是 loop 流程的基石，**绝对禁止跳过**，违规将导致流程验证失败：
+
+1. **Planner 内部流程**：必须完成三层上下文学习（L1项目理解 + L2规范记忆 + L3目标文件），未完成不可进入计划设计
+2. **Agent 工具调用**：任务执行阶段必须通过 `Agent()` 工具调用计划中指定的 agent，禁止直接使用 Edit/Write/Bash 等工具
+3. **Verifier 验证**：结果验证阶段必须调用 `task:verifier` agent，禁止跳过或用简单检查替代
+4. **Finalizer 清理**：完成阶段必须调用 `task:finalizer` agent，即使任务失败也必须执行
+
+**违规后果**：跳过任何一个步骤将导致流程不完整、资源泄漏、质量无保障，验证阶段会检测并报错。
+
 ## PDCA 流程
 
 **Prepare**（flows/prompt-optimization）→ **Plan**（flows/plan，必须包含计划确认）→ **Do**（按计划中任务的 agent 执行）→ **Check**（flows/verify）→ **Act**（task:adjuster）
@@ -87,6 +98,8 @@ memory: project
 
 ### 阶段2：计划设计与确认
 
+**前置条件**：iteration 已递增，有明确的任务目标
+
 `iteration += 1`
 
 **路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"]`）：
@@ -95,20 +108,37 @@ memory: project
 
 **共同步骤**：调用 task:planner 设计计划 → 调用 task:plan-formatter 格式化写入文件 → 更新 `context.plan_md_path`
 
-**检查点**：进入执行前必须有 `计划确认/N·等待确认`+批准 或 `计划确认/N·auto_approved`
+**后置验证点**：
+- ✓ plan_md_path 已设置且文件存在
+- ✓ 计划文件包含有效的 YAML frontmatter 和任务列表
+- ✓ 已获得用户批准（首次/用户重新设计）或自动批准（adjuster/verifier触发）
 
 详见 [flows/plan.md](flows/plan.md) 和 [phase-4-planning.md](phases/phase-4-planning.md)
 
 ### 阶段3：任务执行
 
+**前置条件**：计划文件存在，已获得用户批准
+
 读取计划文件，按 DAG 依赖顺序直接调用每个任务指定的 agent 执行。输出 `[MindFlow·任务·任务执行/N·进行中]` → `completed`
+
+**后置验证点**：
+- ✓ 所有任务已执行完成（状态为 ✅ 或 ❌）
+- ✓ 计划文件已更新任务状态
+- ✓ 已保存检查点
 
 ### 阶段4：结果验证
 
-调用 task:verifier 验证。根据 `status` 分支：
+**前置条件**：所有任务已执行完成
+
+【强制】调用 task:verifier 验证。根据 `status` 分支：
 - `passed` → 阶段6（完成）
 - `suggestions` → 设 `replan_trigger="verifier"` → 阶段2（自动迭代）
 - `failed` → 阶段5（失败调整）
+
+**后置验证点**：
+- ✓ verifier已被调用并返回结果
+- ✓ 状态日志已输出
+- ✓ 计划文件 frontmatter 已更新
 
 ### 阶段5：失败调整
 
@@ -119,13 +149,70 @@ memory: project
 
 ### 阶段6：完成清理
 
-1. 调用 task:finalizer（删除计划文件、清理检查点、停止运行中任务）
+**前置条件**：验证通过或用户确认完成
+
+1. 【强制】调用 task:finalizer（删除计划文件、清理检查点、停止运行中任务）
 2. 保存执行记忆（iteration、duration_minutes、quality_score）
 3. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代，耗时 M 分钟`
 4. 清理状态变量
+
+**后置验证点**：
+- ✓ finalizer 已被调用
+- ✓ 计划文件已删除
+- ✓ 检查点已清理
+- ✓ 执行记忆已保存
 
 详见 [phase-8-finalization.md](phases/phase-8-finalization.md)
 
 开始执行 PDCA 循环。
 
 <!-- /DYNAMIC_CONTENT -->
+
+<violation_handling>
+
+## 流程违规检测与处理
+
+### 检测机制
+
+Loop 在关键阶段设置检查点，自动检测流程违规行为：
+
+1. **Planner 内部流程检测**：
+   - 检查点：planner 输出 JSON 前
+   - 检测方法：验证是否包含三层上下文学习的证据（读取的文件列表、项目理解摘要）
+   - 违规判定：未读取 README/CLAUDE.md，未检查规范和记忆，未读取目标相关文件
+
+2. **Agent 工具调用检测**：
+   - 检查点：任务执行阶段，每个任务开始前
+   - 检测方法：监控工具调用记录，验证是否使用 `Agent()` 工具
+   - 违规判定：直接使用 Edit/Write/Bash 等工具，而非通过 Agent() 调用
+
+3. **Verifier 调用检测**：
+   - 检查点：进入阶段6（完成）或阶段7（失败调整）前
+   - 检测方法：检查 task:verifier agent 是否被调用
+   - 违规判定：未调用 verifier 就进入下一阶段
+
+4. **Finalizer 调用检测**：
+   - 检查点：Loop 结束前
+   - 检测方法：检查 task:finalizer agent 是否被调用
+   - 违规判定：Loop 即将结束但未调用 finalizer
+
+### 处理策略
+
+| 违规类型 | 严重程度 | 处理策略 |
+|---------|---------|---------|
+| Planner 内部流程不完整 | 高 | 强制回退到计划设计阶段，要求完成三层上下文学习 |
+| 未使用 Agent 工具 | 高 | 警告并记录违规，verifier 阶段会检测并报告 |
+| 跳过 Verifier | 严重 | 强制回退到结果验证阶段，必须调用 verifier |
+| 跳过 Finalizer | 严重 | 阻止 loop 结束，强制调用 finalizer 清理资源 |
+
+### 违规日志
+
+所有违规行为会被记录到短期记忆 `task://sessions/{id}/violations`，包括：
+- 违规类型
+- 发生时间
+- 违规详情
+- 处理措施
+
+Finalizer 在清理阶段会读取违规日志，如果存在高严重程度违规，会在最终报告中特别标注。
+
+</violation_handling>

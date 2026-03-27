@@ -11,7 +11,10 @@
 3. **冲突检测**：构建file_map，检测共享文件写入
 4. **计算并行度**：冲突→1(串行) | 全低→max_parallel | 混合→2
 5. **选择批次**：按并行度选择无冲突任务
-6. **执行**：按 DAG 依赖顺序，直接调用每个任务的 `Agent(agent=任务指定的agent)` 执行
+6. **执行**【强制】：按 DAG 依赖顺序调用 Agent 工具执行任务
+   - **必须使用**：`Agent(agent=task.agent, prompt=task.description + "\n关联文件：" + task.files + "\n验收标准：" + task.acceptance_criteria)`
+   - **禁止直接使用**：Edit/Write/Bash 等工具（违规将导致流程验证失败）
+   - **示例**：`Agent(agent="coder（开发）@task", prompt="实现用户登录功能\n文件：/src/auth.ts\n验收：测试覆盖率≥90%")`
 7. **状态更新**：更新plan文件任务状态(📋→⏸️→🔄→✅/❌)
 8. **检查点保存**：`save_checkpoint(phase="execution")`
 

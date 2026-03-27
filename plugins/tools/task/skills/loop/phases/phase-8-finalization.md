@@ -6,12 +6,21 @@
 
 ## 执行流程
 
-1. **调用finalizer**：`Agent(agent="task:finalizer")` 停止任务/删除计划文件(.md+.html)/清理临时文件/生成报告
+1. **【强制】调用 finalizer agent**：即使任务失败，finalizer 也必须执行以清理资源
+   ```
+   Agent(agent="task:finalizer", prompt="清理任务资源：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
+   ```
 2. **模式提取**：`extract_failure_patterns(session_id)` → 提取失败模式(需failures>0且样本≥3)
 3. **检查点清理**：`cleanup_checkpoint(user_task)`
 4. **记忆保存**：`save_task_episode(result="success", duration, iterations, agents, skills)` → 返回episode_id
 5. **短期记忆清理**：`cleanup_working_memory(session_id)`
 6. **最终报告**：状态/迭代次数/停滞次数/指导次数/时长/变更文件/记忆URI
+
+**资源泄漏警告**：跳过 finalizer 可能导致：
+- 计划文件残留（`.claude/plans/*.md`）
+- 后台任务未终止（占用资源）
+- 检查点未清理（状态污染）
+- 短期记忆未归档（记忆泄漏）
 
 ## 清理操作
 
