@@ -9,7 +9,9 @@ import shutil
 import subprocess
 import sys
 import time
+from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Optional
 
 ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -17,6 +19,36 @@ try:
     import tomllib  # py>=3.11
 except Exception:  # pragma: no cover
     tomllib = None
+
+
+class ToolVersionParser(ABC):
+    """工具版本解析器抽象基类"""
+    
+    @property
+    @abstractmethod
+    def tool_name(self) -> str:
+        """工具名称，如 'go', 'node', 'python', 'rust'"""
+        pass
+    
+    @property
+    @abstractmethod
+    def config_files(self) -> list[str]:
+        """需要查找的配置文件列表"""
+        pass
+    
+    @property
+    def detection_files(self) -> list[str]:
+        """用于检测工具是否存在的文件（默认使用config_files）"""
+        return self.config_files
+    
+    @abstractmethod
+    def parse(self, file_path: Path) -> Optional[str]:
+        """解析配置文件，返回版本字符串或None"""
+        pass
+    
+    def get_installed_version(self, cwd: str) -> Optional[str]:
+        """获取已安装的工具版本（可被子类覆盖）"""
+        return None
 
 
 def run_cmd(cmd: list[str] | str, *, cwd: str | None = None, timeout: float = 0.35) -> str | None:
@@ -655,153 +687,268 @@ def get_installed_tool_versions(*, cwd: str, need_node: bool, need_go: bool, nee
     if need_go:
         v = run_cmd(["go", "version"], cwd=cwd, timeout=0.25)
         if v:
-            # go version go1.22.4 darwin/arm64
             m = re.search(r"\bgo([0-9]+(?:\.[0-9]+){1,2})\b", v)
             out["go"] = (m.group(1) if m else v).strip()
     if need_rust:
         v = run_cmd(["rustc", "-V"], cwd=cwd, timeout=0.25)
         if v:
-            # rustc 1.76.0 (....)
             m = re.search(r"\brustc\s+([0-9]+(?:\.[0-9]+){1,2})\b", v)
             out["rust"] = (m.group(1) if m else v).strip()
     return out
 
 
-def detect_project_tooling(cwd: str, *, ttl_s: float = 6.0) -> dict:
-    root = Path(choose_project_root(cwd))
-    cache_file = cache_path_for_tools(str(root))
-    now = time.time()
-    try:
-        if cache_file.exists():
-            age = now - cache_file.stat().st_mtime
-            if age <= ttl_s:
-                cached = json.loads(cache_file.read_text(encoding="utf-8"))
-                if isinstance(cached, dict):
-                    return cached
-    except Exception:
-        pass
+class GoParser(ToolVersionParser):
+    """Go语言版本解析器"""
+    
+    @property
+    def tool_name(self) -> str:
+        return "go"
+    
+    @property
+    def config_files(self) -> list[str]:
+        return ["go.mod"]
+    
+    def parse(self, file_path: Path) -> Optional[str]:
+        try:
+            for line in file_path.read_text(encoding="utf-8", errors="ignore").splitlines()[:60]:
+                s = line.strip()
+                if s.startswith("go "):
+                    parts = s.split()
+                    if len(parts) >= 2:
+                        return parts[1]
+        except Exception:
+            return None
+        return None
+    
+    def get_installed_version(self, cwd: str) -> Optional[str]:
+        v = run_cmd(["go", "version"], cwd=cwd, timeout=0.25)
+        if v:
+            m = re.search(r"\bgo([0-9]+(?:\.[0-9]+){1,2})\b", v)
+            return (m.group(1) if m else v).strip()
+        return None
 
-    wanted = {
-        ".version",
-        "go.mod",
-        "package.json",
-        "pnpm-workspace.yaml",
-        "pnpm-lock.yaml",
-        "yarn.lock",
-        "bun.lockb",
-        ".nvmrc",
-        ".node-version",
-        ".tool-versions",
-        "pyproject.toml",
-        "uv.lock",
-        ".python-version",
-        "requirements.txt",
-        "requirements-dev.txt",
-        "Pipfile",
-        "poetry.lock",
-        "Cargo.toml",
-        "rust-toolchain",
-        "rust-toolchain.toml",
-    }
 
-    try:
+class NodeParser(ToolVersionParser):
+    """Node.js版本解析器"""
+    
+    @property
+    def tool_name(self) -> str:
+        return "node"
+    
+    @property
+    def config_files(self) -> list[str]:
+        return [
+            ".nvmrc",
+            ".node-version",
+            ".tool-versions",
+            "package.json",
+            "pnpm-lock.yaml",
+            "yarn.lock",
+            "bun.lockb",
+        ]
+    
+    def parse(self, file_path: Path) -> Optional[str]:
+        filename = file_path.name
+        
+        if filename in [".nvmrc", ".node-version"]:
+            return _read_first_nonempty_line(file_path)
+        
+        if filename == ".tool-versions":
+            return parse_node_version_from_tool_versions(file_path)
+        
+        if filename == "package.json":
+            return parse_node_constraint_from_package_json(file_path)
+        
+        return None
+    
+    def get_installed_version(self, cwd: str) -> Optional[str]:
+        v = run_cmd(["node", "-v"], cwd=cwd, timeout=0.25)
+        return v.lstrip("v").strip() if v else None
+
+
+class PythonParser(ToolVersionParser):
+    """Python版本解析器"""
+    
+    @property
+    def tool_name(self) -> str:
+        return "python"
+    
+    @property
+    def config_files(self) -> list[str]:
+        return [
+            ".python-version",
+            ".tool-versions",
+            "pyproject.toml",
+            "requirements.txt",
+            "requirements-dev.txt",
+            "Pipfile",
+            "poetry.lock",
+            "uv.lock",
+        ]
+    
+    def parse(self, file_path: Path) -> Optional[str]:
+        filename = file_path.name
+        
+        if filename == ".python-version":
+            return _read_first_nonempty_line(file_path)
+        
+        if filename == ".tool-versions":
+            return parse_python_version_from_tool_versions(file_path)
+        
+        if filename == "pyproject.toml":
+            return parse_python_constraint_from_pyproject(file_path)
+        
+        return None
+    
+    def get_installed_version(self, cwd: str) -> Optional[str]:
+        return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+
+
+class RustParser(ToolVersionParser):
+    """Rust版本解析器"""
+    
+    @property
+    def tool_name(self) -> str:
+        return "rust"
+    
+    @property
+    def config_files(self) -> list[str]:
+        return ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
+    
+    @property
+    def detection_files(self) -> list[str]:
+        """用于检测工具是否存在的文件（优先级高于config_files）"""
+        return ["Cargo.toml"]
+    
+    def parse(self, file_path: Path) -> Optional[str]:
+        filename = file_path.name
+        if filename in ["rust-toolchain.toml", "rust-toolchain"]:
+            return parse_rust_toolchain(file_path)
+        return None
+    
+    def get_installed_version(self, cwd: str) -> Optional[str]:
+        v = run_cmd(["rustc", "-V"], cwd=cwd, timeout=0.25)
+        if v:
+            m = re.search(r"\brustc\s+([0-9]+(?:\.[0-9]+){1,2})\b", v)
+            return (m.group(1) if m else v).strip()
+        return None
+
+
+class ToolDetector:
+    """工具检测管理器"""
+    
+    def __init__(self):
+        self.parsers: list[ToolVersionParser] = [
+            GoParser(),
+            NodeParser(),
+            PythonParser(),
+            RustParser(),
+        ]
+    
+    def detect(self, cwd: str, *, ttl_s: float = 6.0) -> dict:
+        """检测项目工具信息"""
+        root = Path(choose_project_root(cwd))
+        cache_file = cache_path_for_tools(str(root))
+        
+        cached = self._try_load_cache(cache_file, ttl_s)
+        if cached:
+            return cached
+        
+        all_config_files = set()
+        for parser in self.parsers:
+            all_config_files.update(parser.config_files)
+        
+        all_config_files.add(".version")
+        
         root_level = {p.name: p for p in root.iterdir()} if root.exists() else {}
-    except Exception:
-        root_level = {}
-
-    scanned = collect_best_paths(root, wanted, max_depth=4, max_files=2500) if root.exists() else {}
-
-    def pick(name: str) -> Path | None:
-        p = root_level.get(name)
-        if p and p.exists():
-            return p
-        return scanned.get(name)
-
-    go_mod = pick("go.mod")
-    project_version_file = pick(".version")
-    pkg_json = pick("package.json")
-    nvmrc = pick(".nvmrc")
-    node_ver = pick(".node-version")
-    tool_versions = pick(".tool-versions")
-
-    pyproject = pick("pyproject.toml")
-    python_version_file = pick(".python-version")
-    uv_lock = pick("uv.lock")
-    cargo = pick("Cargo.toml")
-    rust_toolchain = pick("rust-toolchain.toml") or pick("rust-toolchain")
-
-    node_lock_marker = pick("pnpm-lock.yaml") or pick("yarn.lock") or pick("bun.lockb")
-    py_marker = pick("requirements.txt") or pick("requirements-dev.txt") or pick("Pipfile") or pick("poetry.lock")
-
-    info: dict[str, object] = {
-        "root": str(root),
-        "has_go": go_mod is not None,
-        "has_node": any([pkg_json, nvmrc, node_ver, tool_versions, node_lock_marker]),
-        "has_python": any([pyproject, python_version_file, uv_lock, py_marker]),
-        "has_rust": cargo is not None,
-    }
-
-    go_req = parse_go_version(go_mod) if go_mod else None
-    node_req = None
-    node_req_src = None
-    if nvmrc:
-        node_req = _read_first_nonempty_line(nvmrc)
-        node_req_src = ".nvmrc" if node_req else None
-    if not node_req and node_ver:
-        node_req = _read_first_nonempty_line(node_ver)
-        node_req_src = ".node-version" if node_req else None
-    if not node_req and tool_versions:
-        node_req = parse_node_version_from_tool_versions(tool_versions)
-        node_req_src = ".tool-versions" if node_req else None
-    if not node_req and pkg_json:
-        node_req = parse_node_constraint_from_package_json(pkg_json)
-        node_req_src = "package.json" if node_req else None
-
-    py_req = None
-    py_req_src = None
-    if python_version_file:
-        py_req = _read_first_nonempty_line(python_version_file)
-        py_req_src = ".python-version" if py_req else None
-    if not py_req and tool_versions:
-        py_req = parse_python_version_from_tool_versions(tool_versions)
-        py_req_src = ".tool-versions" if py_req else None
-    if not py_req and pyproject:
-        py_req = parse_python_constraint_from_pyproject(pyproject)
-        py_req_src = "pyproject.toml" if py_req else None
-
-    rust_req = parse_rust_toolchain(rust_toolchain) if rust_toolchain else None
-    project_version = _read_first_nonempty_line(project_version_file) if project_version_file else None
-
-    venv = os.environ.get("VIRTUAL_ENV")
-    venv_name = Path(venv).name if venv else ""
-
-    installed = get_installed_tool_versions(
-        cwd=str(root), need_node=bool(info["has_node"]), need_go=bool(info["has_go"]), need_rust=bool(info["has_rust"])
-    )
-
-    info.update(
-        {
-            "go_required": go_req or "",
-            "go_installed": installed.get("go", ""),
-            "node_required": node_req or "",
-            "node_required_src": node_req_src or "",
-            "node_installed": installed.get("node", ""),
-            "python_required": py_req or "",
-            "python_required_src": py_req_src or "",
-            "python_installed": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
-            "python_venv": venv_name,
-            "python_uv": bool(uv_lock),
-            "rust_required": rust_req or "",
-            "rust_installed": installed.get("rust", ""),
-            "project_version": (project_version or "").strip(),
+        scanned = collect_best_paths(root, all_config_files, max_depth=4, max_files=2500) if root.exists() else {}
+        
+        def pick(name: str) -> Optional[Path]:
+            p = root_level.get(name)
+            if p and p.exists():
+                return p
+            return scanned.get(name)
+        
+        info: dict[str, object] = {
+            "root": str(root),
         }
-    )
+        
+        for parser in self.parsers:
+            tool_info = self._detect_tool(parser, pick)
+            info.update(tool_info)
+        
+        project_version_file = pick(".version")
+        project_version = _read_first_nonempty_line(project_version_file) if project_version_file else None
+        info["project_version"] = (project_version or "").strip()
+        
+        venv = os.environ.get("VIRTUAL_ENV")
+        venv_name = Path(venv).name if venv else ""
+        info["python_venv"] = venv_name
+        
+        uv_lock = pick("uv.lock")
+        info["python_uv"] = uv_lock is not None
+        
+        self._save_cache(cache_file, info)
+        
+        return info
+    
+    def _detect_tool(self, parser: ToolVersionParser, pick) -> dict:
+        """检测单个工具的信息"""
+        tool_name = parser.tool_name
+        
+        detection_file = None
+        for filename in parser.detection_files:
+            detection_file = pick(filename)
+            if detection_file:
+                break
+        
+        required_version = None
+        version_source = None
+        for filename in parser.config_files:
+            config_file = pick(filename)
+            if config_file:
+                required_version = parser.parse(config_file)
+                if required_version:
+                    version_source = config_file.name
+                    break
+        
+        installed_version = parser.get_installed_version(str(pick("root") or "."))
+        
+        return {
+            f"has_{tool_name}": detection_file is not None,
+            f"{tool_name}_required": required_version or "",
+            f"{tool_name}_required_src": version_source or "",
+            f"{tool_name}_installed": installed_version or "",
+        }
+    
+    def _try_load_cache(self, cache_file: Path, ttl_s: float) -> Optional[dict]:
+        """尝试加载缓存"""
+        now = time.time()
+        try:
+            if cache_file.exists():
+                age = now - cache_file.stat().st_mtime
+                if age <= ttl_s:
+                    cached = json.loads(cache_file.read_text(encoding="utf-8"))
+                    if isinstance(cached, dict):
+                        return cached
+        except Exception:
+            pass
+        return None
+    
+    def _save_cache(self, cache_file: Path, info: dict) -> None:
+        """保存缓存"""
+        try:
+            cache_file.write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
 
-    try:
-        cache_file.write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
-    except Exception:
-        pass
-    return info
+
+_detector = ToolDetector()
+
+
+def detect_project_tooling(cwd: str, *, ttl_s: float = 6.0) -> dict:
+    """检测项目工具信息（重构后的入口函数）"""
+    return _detector.detect(cwd, ttl_s=ttl_s)
 
 
 def ctx_color(pct: float) -> tuple[int, int, int]:
