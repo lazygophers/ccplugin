@@ -94,6 +94,10 @@ class TestLayout:
         assert layout.supports_component("user")
         assert layout.supports_component("progress")
         assert layout.supports_component("resources")
+        # tools/agents/todos 始终启用，无需配置
+        assert layout.supports_component("tools")
+        assert layout.supports_component("agents")
+        assert layout.supports_component("todos")
 
     def test_layout_enable_multiple_components(self):
         """测试启用多个组件"""
@@ -178,3 +182,45 @@ class TestLayout:
         """测试抽象基类不能直接实例化"""
         with pytest.raises(TypeError):
             Layout()  # type: ignore
+
+    def test_layout_tools_agents_todos_always_enabled(self):
+        """测试 tools/agents/todos 组件始终启用"""
+        layout = CompactLayout()
+
+        # 验证默认启用
+        assert layout.supports_component("tools")
+        assert layout.supports_component("agents")
+        assert layout.supports_component("todos")
+
+        # 验证尝试禁用无效
+        layout.disable_component("tools")
+        assert layout.supports_component("tools")
+
+        layout.disable_component("agents")
+        assert layout.supports_component("agents")
+
+        layout.disable_component("todos")
+        assert layout.supports_component("todos")
+
+        # 验证即使通过配置传入 False，仍然启用
+        config = {"show_tools": False, "show_agents": False, "show_todos": False}
+        layout2 = CompactLayout(config)
+        assert layout2.supports_component("tools")
+        assert layout2.supports_component("agents")
+        assert layout2.supports_component("todos")
+
+    def test_layout_update_config_ignores_tools_agents_todos(self):
+        """测试 update_config 忽略 tools/agents/todos 配置"""
+        layout = CompactLayout()
+
+        # 尝试通过 update_config 禁用
+        layout.update_config({
+            "show_tools": False,
+            "show_agents": False,
+            "show_todos": False
+        })
+
+        # 验证仍然启用
+        assert layout.supports_component("tools")
+        assert layout.supports_component("agents")
+        assert layout.supports_component("todos")

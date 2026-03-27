@@ -30,9 +30,9 @@ class Layout(ABC):
             "progress": self._config.get("show_progress", True),
             "resources": self._config.get("show_resources", True),
             "errors": self._config.get("show_errors", True),
-            "tools": self._config.get("show_tools", False),
-            "agents": self._config.get("show_agents", False),
-            "todos": self._config.get("show_todos", False),
+            "tools": True,   # 始终启用
+            "agents": True,  # 始终启用
+            "todos": True,   # 始终启用
         }
 
     @abstractmethod
@@ -89,7 +89,14 @@ class Layout(ABC):
 
         Args:
             component: 组件名称
+
+        Note:
+            tools, agents, todos 组件始终启用，不能被禁用
         """
+        if component in ("tools", "agents", "todos"):
+            # 这些组件始终启用，忽略禁用请求
+            return
+
         if component in self._components:
             self._components[component] = True
 
@@ -99,7 +106,14 @@ class Layout(ABC):
 
         Args:
             component: 组件名称
+
+        Note:
+            tools, agents, todos 组件始终启用，不能被禁用
         """
+        if component in ("tools", "agents", "todos"):
+            # 这些组件始终启用，忽略禁用请求
+            return
+
         if component in self._components:
             self._components[component] = False
 
@@ -109,10 +123,13 @@ class Layout(ABC):
 
         Args:
             config: 配置字典
+
+        Note:
+            tools, agents, todos 组件始终启用，忽略相关配置
         """
         self._config.update(config)
 
-        # 更新组件显示状态
+        # 更新可配置组件的显示状态
         if "show_user" in config:
             self._components["user"] = config["show_user"]
         if "show_progress" in config:
@@ -121,12 +138,9 @@ class Layout(ABC):
             self._components["resources"] = config["show_resources"]
         if "show_errors" in config:
             self._components["errors"] = config["show_errors"]
-        if "show_tools" in config:
-            self._components["tools"] = config["show_tools"]
-        if "show_agents" in config:
-            self._components["agents"] = config["show_agents"]
-        if "show_todos" in config:
-            self._components["todos"] = config["show_todos"]
+
+        # tools/agents/todos 组件始终启用，忽略配置中的设置
+        # 如果配置中包含这些选项，静默忽略以保持向后兼容
 
     def _validate_config(self) -> None:
         """
