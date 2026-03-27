@@ -238,9 +238,6 @@ class CompactLayout(Layout):
             return None
 
         active_count = state.value.get("active_count", 0)
-        if active_count == 0:
-            return None
-
         return f"🔧{active_count}"
 
     def _render_agents(self, state: AggregatedState) -> Optional[str]:
@@ -257,9 +254,6 @@ class CompactLayout(Layout):
             return None
 
         active_count = state.value.get("active_count", 0)
-        if active_count == 0:
-            return None
-
         return f"🤖{active_count}"
 
     def _render_todos(self, state: AggregatedState) -> Optional[str]:
@@ -278,17 +272,14 @@ class CompactLayout(Layout):
         total = state.value.get("total", 0)
         completed = state.value.get("completed", 0)
 
-        if total == 0:
-            return None
-
         return f"✓{completed}/{total}"
 
     def _render_line1_primary(self, state: AggregatedState) -> str:
         """
         渲染主要信息行
 
-        格式: Model · Tokens (Cost) · Duration
-        示例: GLM-4.7 · 652K ($11.94) · 42m53s
+        格式: Model · Tokens (Cost)
+        示例: GLM-4.7 · 204K（$26.97）
 
         Args:
             state: 聚合状态
@@ -307,10 +298,6 @@ class CompactLayout(Layout):
             resource_part = self._render_tokens_cost(state)
             if resource_part:
                 parts.append(resource_part)
-
-        duration_part = self._render_duration(state)
-        if duration_part:
-            parts.append(duration_part)
 
         return join_parts(parts, sep=self._separator_primary) if parts else ""
 
@@ -390,7 +377,7 @@ class CompactLayout(Layout):
         """
         渲染 Token 和成本
 
-        示例: "652K ($11.94)"
+        示例: "204K（$26.97）" 或 "87015 tokens（$11.94）"
 
         Args:
             state: 聚合状态
@@ -408,11 +395,17 @@ class CompactLayout(Layout):
         if tokens == 0:
             return None
 
-        token_str = format_token_count(tokens)
+        # 根据大小决定显示格式
+        if tokens >= 100000:
+            token_str = format_token_count(tokens)
+        elif tokens >= 1000:
+            token_str = f"{tokens // 1000}.{(tokens % 1000) // 100}K"
+        else:
+            token_str = f"{tokens}"
 
         if cost > 0 and self._show_cost:
             cost_str = f"${cost:.2f}"
-            return f"{token_str} ({cost_str})"
+            return f"{token_str}（{cost_str}）"
 
         return token_str
 
@@ -441,7 +434,7 @@ class CompactLayout(Layout):
         """
         渲染 Git 信息（紧凑格式）
 
-        示例: "⎇ cdp 19 · +6653 -409"
+        示例: "⎇ master · +9.5K/-758" 或 "⎇ cdp 19 · +6653 -409"
 
         Args:
             state: 聚合状态
@@ -466,7 +459,10 @@ class CompactLayout(Layout):
         deletions = git_info.get("deletions", 0)
 
         if insertions > 0 or deletions > 0:
-            changes = f"+{insertions} -{deletions}"
+            # 格式化数字（大数字用 K）
+            ins_str = f"+{insertions}" if insertions < 1000 else f"+{insertions / 1000:.1f}K"
+            del_str = f"-{deletions}" if deletions < 1000 else f"-{deletions / 1000:.1f}K"
+            changes = f"{ins_str} {del_str}"
             parts.append(changes)
 
         return join_parts(parts, sep=" ") if parts else None
