@@ -61,18 +61,39 @@ class NullConsole:
 
 
 console = Console()
+_quiet_mode = False
 
 
 def set_quiet_mode(quiet: bool) -> None:
     """Set quiet mode on or off."""
-    global console
+    global console, _quiet_mode
+    _quiet_mode = quiet
     if quiet:
         console = NullConsole()
     else:
         console = Console()
 
 
-def create_progress_bar(console: Console, quiet: bool, total: int) -> Progress:
+class _NullProgress:
+    """A no-op progress context manager for quiet mode."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def add_task(self, description, total=None, **kwargs):
+        return 0  # Return dummy task ID
+
+    def update(self, task, **kwargs):
+        pass
+
+    def advance(self, task, advance=1):
+        pass
+
+
+def create_progress_bar(console: Console, quiet: bool, total: int):
     """Create standardized progress bar.
 
     Args:
@@ -81,8 +102,11 @@ def create_progress_bar(console: Console, quiet: bool, total: int) -> Progress:
             total: Total number of items
 
     Returns:
-            Configured Progress instance
+            Configured Progress instance or NullProgress if quiet
     """
+    if quiet:
+        return _NullProgress()
+
     return Progress(
         SpinnerColumn(spinner_name="dots"),
         TextColumn("[progress.description]{task.description}"),
@@ -90,7 +114,7 @@ def create_progress_bar(console: Console, quiet: bool, total: int) -> Progress:
         TaskProgressColumn(),
         TimeElapsedColumn(),
         console=console,
-        disable=quiet,
+        disable=False,
     )
 
 
@@ -120,16 +144,27 @@ def run_claude_command_with_progress(
                 stderr=subprocess.PIPE,
                 text=True,
                 cwd=get_project_dir(),
+                timeout=60,  # Add 60 second timeout
             )
             if proc.returncode == 0:
                 with open(temp_path, "r", encoding="utf-8") as f:
                     content = f.read()
                     if content.strip():
                         result_container["data"] = json.loads(content)
-        except (subprocess.CalledProcessError, json.JSONDecodeError, OSError):
+        except (subprocess.CalledProcessError, json.JSONDecodeError, OSError, subprocess.TimeoutExpired):
             pass
         finally:
             result_container["done"] = True
+
+    # In quiet mode, run directly without progress bar
+    if _quiet_mode:
+        run_command()
+        try:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+        except OSError:
+            pass
+        return result_container["data"]
 
     thread = threading.Thread(target=run_command)
     thread.start()
@@ -505,6 +540,7 @@ def run_claude_plugin_command(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        timeout=60,
     )
 
     return result.returncode == 0, result.stdout
@@ -569,7 +605,7 @@ def fetch_initial_data_concurrent(
             futures.append(executor.submit(_get_all))
 
         for future in as_completed(futures):
-            future.result()  # Wait for completion, results stored in nonlocal vars
+            future.result(timeout=120)  # Add 120 second timeout per future
 
     return InitialData(
         enabled_plugins=enabled_plugins,
@@ -602,6 +638,7 @@ def update_marketplace(market: str, stats: UpdateStats, dry_run: bool = False) -
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        timeout=120,
     )
 
     if result.returncode != 0:
@@ -702,6 +739,7 @@ def run_uv_sync(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        timeout=300,
     )
 
     if result.returncode == 0:
@@ -776,6 +814,7 @@ def enable_plugin(plugin_id: str, dry_run: bool = False) -> bool:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        timeout=60,
     )
 
     return result.returncode == 0
@@ -812,7 +851,7 @@ def enable_plugins_concurrent(
                 plugin = futures[future]
                 plugin_id = plugin.get("id", "unknown")
                 plugin_name = plugin_id.split("@")[0] if plugin_id else "unknown"
-                success = future.result()
+                success = future.result(timeout=120)
                 if success:
                     stats.add_message("success", f"Enabled plugin: {plugin_name}")
                 else:
@@ -896,7 +935,7 @@ def update_plugins_concurrent(
                 progress.update(task, description=f"[cyan]Updating {plugin_name}...[/cyan]")
 
                 try:
-                    success, output = future.result()
+                    success, output = future.result(timeout=180)
                     update_outputs.append((plugin_name, success, output))
 
                     if success:
