@@ -53,6 +53,12 @@ Verifier 技能负责验证任务执行结果是否满足验收标准。采用**
   - CAN SUGGEST：测试质量、代码标准、性能考量、安全检查
   - quality_score >= 85 通过，否则生成 suggestions 创建优化迭代
 
+## 深度校验
+
+- **Stage 3 - 深度校验** → [deep-validation-checklist.md](deep-validation-checklist.md)
+  - MUST PASS：用户预期验证、业务逻辑验证、交付物完整性验证
+  - 仅在 Stage 1/2 通过后执行，确保交付物从用户视角完全对齐
+
 ## 相关文档
 
 - 验证检查清单 → [verifier-checklist.md](verifier-checklist.md)
