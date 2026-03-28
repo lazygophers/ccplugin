@@ -24,6 +24,12 @@ plugins/**/__pycache__/
 
 .logs/
 
+# 日志文件
+*.log
+
+# 系统/IDE 文件
+.DS_Store
+
 .gitnexus
 .claude/plans
 .claude/tasks
