@@ -186,7 +186,7 @@ flowchart TB
         P5_10{重试次数小于2?}
         P5_11[标记失败]
 
-        P5_12[更新 plan 文件状态]
+        P5_12[更新任务状态文件<br/>.claude/tasks/*.json]
         P5_13[更新任务状态文件]
         P5_14[save_checkpoint<br/>phase=execution]
         P5_Violation[违规检测点: Skill工具调用检测]
