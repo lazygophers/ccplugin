@@ -15,7 +15,7 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 
 ### 阶段0：提示词优化（仅iteration=0）
 
-调用 `task:prompt-optimizer` skill 评估质量(清晰度/完整性/可执行性)。≥8分静默跳过，<8分识别缺失5W1H并提问，<6分触发WebSearch。优化后更新user_task。
+调用 `task:prompt-optimizer` skill 评估质量(清晰度/完整性/可执行性)。≥8分静默跳过，<8分识别缺失5W1H并提问，<6分触发WebSearch。优化完成后展示原始提示词 vs 优化后提示词对比，由用户选择：A(使用原始)、B(使用优化)、C(重新优化)。根据用户选择更新user_task。
 
 ### 阶段1：深度研究（可选）
 
