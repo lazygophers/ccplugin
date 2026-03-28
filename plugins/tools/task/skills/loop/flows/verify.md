@@ -11,7 +11,11 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
 
 ## 验证流程
 
-1. **调用verifier**：`Skill(skill="task:verifier")` 验证所有任务验收标准 + 回归测试
+1. **调用verifier**：传入6个必传上下文字段，每次调用独立
+   ```
+   Skill(skill="task:verifier", args="执行结果验证：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}")
+   ```
+   验证所有任务验收标准 + 回归测试
 2. **深度校验**：Stage 1/2 通过后，执行 Stage 3 深度校验（用户预期验证+业务逻辑验证+交付物完整性验证），确保交付物从用户视角完全对齐
 3. **更新计划状态**：`update_plan_frontmatter(status, completed_count)`
 4. **同步任务状态文件**：更新 `.claude/task/{task_id}.json`

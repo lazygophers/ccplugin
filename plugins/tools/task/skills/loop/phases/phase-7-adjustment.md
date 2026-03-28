@@ -7,7 +7,11 @@
 ## 执行流程
 
 1. **记忆检索**：提取失败原因关键词 → `search_failure_patterns()` 检索相似失败情节
-2. **调用 adjuster**：`Skill(skill="task:adjuster")` 传入失败模式、迭代信息
+2. **调用 adjuster**：
+   ```
+   Skill(skill="task:adjuster", args="失败调整分析：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n失败任务：{failed_tasks}\n失败原因：{failure_reason}\n历史失败模式：{failure_patterns}")
+   ```
+   每次调用独立传递所有上下文，不依赖会话记忆。
 3. **检查点保存**：`save_checkpoint(phase="adjustment", strategy, report)`
 4. **HITL审批**：若 adjuster 建议危险操作 → `hitl_approve_operation()` 风险评估
 5. **指数退避**：按 `retry_config.backoff_seconds` 等待

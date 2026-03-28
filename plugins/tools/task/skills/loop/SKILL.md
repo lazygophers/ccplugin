@@ -38,6 +38,23 @@ memory: project
 
 **违规后果**：跳过任何一个步骤将导致流程不完整、资源泄漏、质量无保障，验证阶段会检测并报错。
 
+## 独立上下文传递规范
+
+**核心原则**：每次 Skill/Agent 调用都是独立任务，不依赖会话上下文。调用方必须在 args/prompt 中显式传递完整上下文。
+
+**必传字段**：
+
+| 字段 | 类型 | 说明 | 来源 |
+|------|------|------|------|
+| project_path | string | 项目根目录绝对路径 | 初始化阶段确定 |
+| task_id | string | 任务唯一标识 | Phase 1生成 |
+| iteration | number | 当前迭代轮次 | loop状态变量 |
+| plan_md_path | string | 计划文件绝对路径 | 计划设计阶段生成 |
+| working_directory | string | 工作目录 | 等于project_path或子目录 |
+| user_task | string | 用户原始任务描述 | 用户输入 |
+
+**规则**：所有 `Skill()` / `Agent()` 调用的 args/prompt 必须包含以上 6 个字段，禁止依赖隐式上下文。遗漏任何字段将导致被调用方无法正确定位项目、任务或工作目录。
+
 ## PDCA 流程
 
 **Prepare**（flows/prompt-optimization）→ **Plan**（flows/plan，必须包含计划确认）→ **Do**（按计划中任务的 skill 执行）→ **Check**（flows/verify）→ **Act**（task:adjuster）
@@ -130,7 +147,7 @@ memory: project
 
 **前置条件**：所有任务已执行完成
 
-【强制】调用 task:verifier skill 验证。根据 `status` 分支：
+【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支：
 - `passed` → 阶段6（完成）
 - `suggestions` → 设 `replan_trigger="verifier"` → 阶段2（自动迭代）
 - `failed` → 阶段5（失败调整）
@@ -151,7 +168,7 @@ memory: project
 
 **前置条件**：验证通过或用户确认完成
 
-1. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、停止运行中任务）
+1. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
 2. 保存执行记忆（iteration、duration_minutes、quality_score）
 3. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代，耗时 M 分钟`
 4. 清理状态变量

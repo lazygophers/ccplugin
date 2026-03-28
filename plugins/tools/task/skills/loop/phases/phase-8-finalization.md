@@ -8,7 +8,7 @@
 
 1. **【强制】调用 finalizer skill**：即使任务失败，finalizer 也必须执行以清理资源
    ```
-   Skill(skill="task:finalizer", args="清理任务资源：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
+   Skill(skill="task:finalizer", args="清理任务资源：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
    ```
 2. **模式提取**：`extract_failure_patterns(session_id)` → 提取失败模式(需failures>0且样本≥3)
 3. **检查点清理**：`cleanup_checkpoint(user_task)`

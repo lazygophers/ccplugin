@@ -35,6 +35,8 @@
 | L1 - 项目全局理解 | 验证是否读取了 README.md/CLAUDE.md/package.json | 必须 |
 | L2 - 规范和记忆 | 验证是否检查了 `.claude/rules/` 和项目记忆 | 必须 |
 | L3 - 目标相关文件 | 验证是否使用 Glob/Grep 定位并读取相关文件 | 必须 |
+| **原子拆分验证** | **每个任务的files数组长度≤1（单文件单任务）** | **必须** |
+| **上下文完整性** | **Skill/Agent调用包含6个必传字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）** | **必须** |
 | **Planner 调用** | **检查是否调用了 `Skill(skill="task:planner")`** | **必须** |
 | Plan-formatter 调用 | 检查是否调用了 `Skill(skill="task:plan-formatter")` | 必须 |
 | 计划文件已生成 | 验证文件存在：`ls .claude/plans/*.md` | 必须 |
@@ -49,6 +51,7 @@
 |-------|---------|----------|
 | 前置条件检查 | 验证计划文件存在且已获得批准 | 必须 |
 | 读取计划文件 | 检查是否从 plan_md_path 读取任务列表 | 必须 |
+| **上下文字段传递** | **Skill/Agent调用args/prompt包含project_path和task_id** | **必须** |
 | **使用 Skill 工具执行** | **grep "Skill(" <执行日志> \| grep -v "Edit\|Write\|Bash"** | **必须** |
 | 禁止直接使用工具 | 验证没有直接调用 Edit/Write/Bash（除 Skill 内部） | 必须 |
 | 任务状态更新 | 验证计划文件中任务状态从 📋 → ✅/❌ | 必须 |
@@ -114,6 +117,12 @@ grep "Skill(skill=\"task:finalizer\")" <loop输出>
 
 # 检查计划文件是否清理
 ! test -f .claude/plans/*.md && echo "已清理" || echo "未清理"
+
+# 检查原子拆分（每个任务files≤1个）
+grep -A2 '"files"' <计划JSON> | grep -c ',' # 应为0
+
+# 检查上下文字段传递
+grep -c 'project_path\|task_id' <Skill调用> # 应≥2（每个调用至少包含这两个字段）
 
 # 检查强制性关键词出现次数
 grep -E "必须|MUST|强制|禁止" <文档> | wc -l

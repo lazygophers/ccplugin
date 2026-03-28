@@ -39,7 +39,7 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 | Verifier建议优化 | iteration>1, trigger="verifier" | 直接生成+（auto_approve ? 自动批准 : 用户确认） |
 
 **路径A（自动重规划）**：
-1. 直接调用 task:planner skill（含user_feedback如有）
+1. 直接调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)
 2. 处理planner的问题（AskUserQuestion）
 3. 空tasks→skip_execution
 4. 调用 task:plan-formatter skill 格式化并写入文件
@@ -47,14 +47,25 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 
 **路径B（用户确认）**：
 1. 深度研究（如需）
-2. 调用 task:planner skill
+2. 调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）
 3. 处理planner的问题
 4. 空tasks→skip_execution
 5. 调用 task:plan-formatter skill 写入文件
 6. AskUserQuestion 展示计划摘要，请求用户批准
 7. 批准→execute | 拒绝→提取反馈→replan_trigger="user"
 
-**Planner调用参数**：任务目标 + 迭代编号 + user_feedback(如有) + 要求(项目分析/MECE分解/DAG依赖/Skills分配/可量化验收/≤200字报告)
+**Planner调用参数（6个必传上下文字段）**：
+
+| 字段 | 类型 | 说明 | 来源 |
+|------|------|------|------|
+| project_path | string | 项目根目录绝对路径 | 初始化阶段确定 |
+| task_id | string | 任务唯一标识 | Phase 1生成 |
+| iteration | number | 当前迭代轮次 | loop状态变量 |
+| plan_md_path | string | 计划文件绝对路径 | 计划设计阶段生成，首次为null |
+| working_directory | string | 工作目录 | 等于project_path或子目录 |
+| user_task | string | 用户原始任务描述 | 用户输入 |
+
+附加参数：user_feedback(如有) + 要求(项目分析/MECE分解/DAG依赖/Skills分配/可量化验收/≤200字报告)
 
 ## 状态转换
 

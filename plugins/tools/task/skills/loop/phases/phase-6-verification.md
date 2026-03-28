@@ -10,7 +10,7 @@
 
 1. **【强制】调用 verifier skill**：禁止跳过此步骤
    ```
-   Skill(skill="task:verifier", args="执行结果验证：\n任务目标：{user_task}\n迭代：{iteration}\n要求：1.获取任务状态+验收标准 2.系统性验证 3.回归测试 4.生成验收报告(≤100字) 5.决定状态")
+   Skill(skill="task:verifier", args="执行结果验证：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n要求：1.获取任务状态+验收标准 2.系统性验证 3.回归测试 4.生成验收报告(≤100字) 5.决定状态")
    ```
 2. 输出 `[MindFlow·{task}·结果验证/{N}·{status}]` + 验收报告
 3. 更新 plan 文件 frontmatter（status + completed_count）
