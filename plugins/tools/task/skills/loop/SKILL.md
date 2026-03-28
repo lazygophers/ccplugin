@@ -53,12 +53,12 @@ memory: project
 8. 完成
 
 **关键要求**：
-- **所有输出必须以 [MindFlow] 开头**（强制规则，无例外）
+- **所有输出必须以 [MindFlow·${task_id}] 开头**（强制规则，无例外。task_id在初始化阶段生成）
 - **每次调用必须重置状态**（iteration=0, context={}），避免同一会话中不同任务的状态混淆
 - 计划确认阶段**必须执行**，不可跳过
 - 首次规划（iteration=1）和用户重新设计：调用 task:planner skill → 生成计划 → AskUserQuestion 请求用户确认
-- 自动重新规划（adjuster/verifier触发）：直接调用 task:planner skill → 生成并自动批准
-- 每次都要输出状态追踪日志：`[MindFlow·${任务}·${步骤}/${迭代}·${状态}]`
+- 自动重新规划（adjuster/verifier触发）：调用 task:planner skill → 生成计划 → 如 auto_approve=true 自动批准，否则请求用户确认（默认需确认）
+- 每次都要输出状态追踪日志：`[MindFlow·${task_id}·${步骤}/${迭代}·${状态}]`
 
 </execution>
 
@@ -84,7 +84,7 @@ memory: project
 
 ## 输出格式
 
-**强制**：所有输出以 `[MindFlow]` 开头。状态日志格式：`[MindFlow·任务名·步骤/迭代·状态]`
+**强制**：所有输出以 `[MindFlow·${task_id}]` 开头。状态日志格式：`[MindFlow·${task_id}·步骤/迭代·状态]`
 
 ## 执行流程
 
@@ -92,7 +92,7 @@ memory: project
 
 ### 阶段1：初始化
 
-重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id}`。若检测到相同 task_id，询问用户是否重新开始。输出 `[MindFlow·任务·初始化/0·进行中]`。
+重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
 
 详见 [phase-1-initialization.md](phases/phase-1-initialization.md)
 
@@ -102,7 +102,7 @@ memory: project
 
 `iteration += 1`
 
-**路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"]`）：
+**路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"] && auto_approve`）：
 - **true → 自动重规划**：直接调用 task:planner skill → task:plan-formatter skill → 自动批准
 - **false → 用户确认**：调用 task:planner skill → task:plan-formatter skill → AskUserQuestion 请求用户批准；用户拒绝时提取反馈，设 `replan_trigger="user"` 回到本阶段
 

@@ -14,7 +14,32 @@
 3. **检查点清理**：`cleanup_checkpoint(user_task)`
 4. **记忆保存**：`save_task_episode(result="success", duration, iterations, agents, skills)` → 返回episode_id
 5. **短期记忆清理**：`cleanup_working_memory(session_id)`
-6. **最终报告**：状态/迭代次数/停滞次数/指导次数/时长/变更文件/记忆URI
+6. **最终状态更新**：更新 `.claude/task/{task_id}.json`
+   - `status` → `"completed"` 或 `"failed"`
+   - `phase` → `"finalization"`
+   - `updated_at` → 当前时间
+   - `quality_score` → 验证阶段的最终评分
+   - `tasks[]` → 所有子任务的最终状态
+   - `error` → 失败时记录原因（成功为null）
+7. **最终报告**：状态/迭代次数/停滞次数/指导次数/时长/变更文件/记忆URI
+
+## 临时文件清理规则
+
+| 文件类型 | 路径模式 | 清理时机 | 条件 |
+|---------|----------|---------|------|
+| 计划文件 | `.claude/plans/{name}-{N}.md` | 任务完成/失败时 | 始终删除 |
+| 计划HTML | `.claude/plans/{name}-{N}.html` | 随计划文件删除 | 始终删除 |
+| 检查点 | `.claude/checkpoints/{hash}.json` | 任务完成时 | 始终删除 |
+| 短期记忆 | `task://sessions/{id}/*` | 归档后 | 始终删除 |
+| 任务状态 | `.claude/task/{task_id}.json` | 30天未更新 | `updated_at` 超过30天 |
+| Planner中间产物 | `.claude/plans/*-draft-*.md` | 计划确认后 | 非最终版本 |
+
+**清理顺序**：检查点 → 短期记忆 → 计划文件 → 过期任务状态 → 中间产物
+
+**保留规则**：
+- `completed`/`failed` 状态的任务状态文件保留30天供查询
+- 情节记忆（episodic memory）永久保留，不在清理范围
+- 用户手动创建的文件不自动清理
 
 **资源泄漏警告**：跳过 finalizer 可能导致：
 - 计划文件残留（`.claude/plans/*.md`）
@@ -30,6 +55,7 @@
 | 检查点 | `.claude/checkpoints/{hash}.json` |
 | 短期记忆 | `task://sessions/{id}` → 归档后删除 |
 | 临时文件 | 执行过程中生成的临时文件 |
+| 任务状态 | `.claude/task/{task_id}.json`（completed/failed状态保留，30天后自动清理） |
 
 ## 记忆保存
 

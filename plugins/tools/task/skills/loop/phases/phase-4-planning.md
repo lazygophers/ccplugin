@@ -12,16 +12,17 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 |------|-----------|----------------|------|
 | 首次规划 | 1 | None | task:planner + 用户确认 |
 | 用户重新设计 | >1 | "user" | task:planner + 用户确认 |
-| Adjuster重规划 | >1 | "adjuster" | 直接生成+自动批准 |
-| Verifier建议优化 | >1 | "verifier" | 直接生成+自动批准 |
+| Adjuster重规划 | >1 | "adjuster" | 直接生成 + (auto_approve ? 自动批准 : 用户确认) |
+| Verifier建议优化 | >1 | "verifier" | 直接生成 + (auto_approve ? 自动批准 : 用户确认) |
 
-## 路径A：自动重规划
+## 路径A：重规划（auto_approve 控制审批方式）
 
 1. iteration++ → 调用 task:planner skill(任务目标+迭代编号+标准7项要求)
 2. 处理questions(有则AskUserQuestion) → tasks为空则goto完成
 3. 生成计划文档：mkdir .claude/plans → 命名{中文关键词}-{iteration}.md（过滤特殊字符 / \ : * ? " < > |）
 4. 调用 task:plan-formatter skill 写入文件(frontmatter+JSON→Markdown)
-5. 自动批准 → save_checkpoint → goto任务执行
+5. if auto_approve: 自动批准 → save_checkpoint → goto任务执行
+   else: AskUserQuestion 请求用户批准 → 批准→goto任务执行 | 拒绝→replan_trigger="user"→goto计划设计
 
 ## 路径B：用户确认
 

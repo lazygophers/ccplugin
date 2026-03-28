@@ -11,6 +11,12 @@ user-invocable: false
 
 Planning阶段：触发深度研究→调用task:planner skill→格式化计划文档→用户确认（AskUserQuestion）。adjuster/verifier触发的重规划自动批准。
 
+## 配置
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| auto_approve | false | 是否允许 adjuster/verifier 触发的重规划自动批准。false 时所有重规划都需要用户确认 |
+
 ## 执行流程
 
 ### 阶段0：提示词优化（仅iteration=0）
@@ -29,15 +35,15 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 |------|------|------|
 | 首次规划 | iteration=1 | task:planner + 用户确认 |
 | 用户重新设计 | replan_trigger="user" | task:planner + 用户确认 |
-| Adjuster自动重规划 | iteration>1, trigger="adjuster" | 直接生成+自动批准 |
-| Verifier建议优化 | iteration>1, trigger="verifier" | 直接生成+自动批准 |
+| Adjuster自动重规划 | iteration>1, trigger="adjuster" | 直接生成+（auto_approve ? 自动批准 : 用户确认） |
+| Verifier建议优化 | iteration>1, trigger="verifier" | 直接生成+（auto_approve ? 自动批准 : 用户确认） |
 
 **路径A（自动重规划）**：
 1. 直接调用 task:planner skill（含user_feedback如有）
 2. 处理planner的问题（AskUserQuestion）
 3. 空tasks→skip_execution
 4. 调用 task:plan-formatter skill 格式化并写入文件
-5. 自动批准，设置plan_md_path
+5. if auto_approve: 自动批准；else: AskUserQuestion 请求用户批准（同路径B步骤6-7）
 
 **路径B（用户确认）**：
 1. 深度研究（如需）
