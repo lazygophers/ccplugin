@@ -43,7 +43,7 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 2. 处理planner的问题（AskUserQuestion）
 3. 空tasks→skip_execution
 4. 调用 task:plan-formatter skill 格式化并写入文件
-5. if auto_approve: 自动批准；else: AskUserQuestion 请求用户批准（同路径B步骤6-7）
+5. if auto_approve: 自动批准；else: AskUserQuestion 请求用户批准（按批准判定规则处理）
 
 **路径B（用户确认）**：
 1. 深度研究（如需）
@@ -51,8 +51,21 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 3. 处理planner的问题
 4. 空tasks→skip_execution
 5. 调用 task:plan-formatter skill 写入文件
-6. AskUserQuestion 展示计划摘要，请求用户批准
-7. 批准→execute | 拒绝→提取反馈→replan_trigger="user"
+6. AskUserQuestion 展示计划摘要，请求用户批准（按批准判定规则处理）
+7. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
+
+**批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
+
+## 用户反馈循环
+
+当用户通过AskUserQuestion的Other输入或非批准选项提供修改意见时：
+
+1. 提取用户输入文本为 `user_feedback`
+2. 设置 `replan_trigger = "user"`
+3. `iteration++`，回到计划设计阶段
+4. 调用 task:planner skill，将 `user_feedback` 作为附加参数传入
+5. 生成新计划 → 再次 AskUserQuestion 请求用户确认
+6. **循环直到用户明确选择"批准执行"选项或放弃任务**
 
 **Planner调用参数（6个必传上下文字段）**：
 

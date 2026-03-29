@@ -42,7 +42,7 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 3. 生成计划文档：mkdir .claude/plans → 命名{中文关键词}-{iteration}.md（过滤特殊字符 / \ : * ? " < > |）
 4. 调用 task:plan-formatter skill 写入文件(frontmatter+JSON→Markdown)
 5. if auto_approve: 自动批准 → save_checkpoint → goto任务执行
-   else: AskUserQuestion 请求用户批准 → 批准→goto任务执行 | 拒绝→replan_trigger="user"→goto计划设计
+   else: AskUserQuestion 请求用户批准（按下方批准判定规则处理）
 
 ## 路径B：用户确认
 
@@ -57,9 +57,19 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - 附加：user_feedback（如有）
 3. 处理questions → tasks为空则goto完成
 4. 调用 task:plan-formatter skill 写入文件
-5. AskUserQuestion 展示计划摘要，请求用户批准：
-   - 批准 → save_checkpoint → goto任务执行
-   - 拒绝 → 提取用户反馈 → replan_trigger="user" → goto计划设计
+5. AskUserQuestion 展示计划摘要，请求用户批准（按下方批准判定规则处理）
+
+## 批准判定规则（强制）
+
+AskUserQuestion 返回后，**必须严格按以下规则判定用户意图**：
+
+| 用户响应 | 判定 | 处理 |
+|---------|------|------|
+| 选择"批准执行"选项 | **批准** | save_checkpoint → goto任务执行 |
+| 选择"Other"并输入文本 | **修改意见** | 提取Other文本为 `user_feedback` → `replan_trigger="user"` → goto计划设计 |
+| 选择其他非批准选项 | **拒绝/修改意见** | 提取选项描述为 `user_feedback` → `replan_trigger="user"` → goto计划设计 |
+
+**关键规则**：**只有用户明确选择"批准执行"选项才视为批准。所有其他响应（包括Other文本输入）都必须视为修改意见，触发重新规划并再次请求用户确认。绝对禁止将非批准响应当作批准处理。**
 
 ## 状态转换
 
