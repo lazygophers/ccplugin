@@ -42,17 +42,15 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 1. 直接调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)
 2. 处理planner的问题（AskUserQuestion）
 3. 空tasks→skip_execution
-4. 调用 task:plan-formatter skill 格式化并写入文件
-5. if auto_approve: 自动批准；else: AskUserQuestion 请求用户批准（按批准判定规则处理）
+4. ⚠️ **连续执行（同一消息中）**：调用 task:plan-formatter skill 格式化并写入文件 → if auto_approve: 自动批准；else: **立即** AskUserQuestion 请求用户批准（按批准判定规则处理）
 
 **路径B（用户确认）**：
 1. 深度研究（如需）
 2. 调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）
 3. 处理planner的问题
 4. 空tasks→skip_execution
-5. 调用 task:plan-formatter skill 写入文件
-6. AskUserQuestion 展示计划摘要，请求用户批准（按批准判定规则处理）
-7. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
+5. ⚠️ **连续执行（同一消息中）**：调用 task:plan-formatter skill 写入文件 → **立即** AskUserQuestion 展示计划摘要，请求用户批准（按批准判定规则处理）
+6. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
 
 **批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
 
