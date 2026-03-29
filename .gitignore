@@ -34,3 +34,6 @@ plugins/**/__pycache__/
 .claude/plans
 .claude/tasks
 .remember
+
+# 运行时数据库
+*.db

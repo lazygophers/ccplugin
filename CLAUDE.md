@@ -38,7 +38,7 @@ claude --settings ~/.claude/settings.glm-4.5-flash.json -p "<待测试的内容>
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **ccplugin** (11157 symbols, 17687 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **ccplugin** (11309 symbols, 18001 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
