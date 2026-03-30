@@ -6,18 +6,13 @@
 
 MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 
-## 智能路径选择
+## 核心设计：单次 Skill() 调用完成整个阶段
 
-| 场景 | iteration | replan_trigger | 流程 |
-|------|-----------|----------------|------|
-| 首次规划 | 1 | None | task:planner + 用户确认 |
-| 用户重新设计 | >1 | "user" | task:planner + 用户确认 |
-| Adjuster重规划 | >1 | "adjuster" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
-| Verifier建议优化 | >1 | "verifier" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
+**planner 内部完成所有工作**：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回最终结果。Loop 只需一次 `Skill(skill="task:planner")` 调用，无需链式调用其他工具。
 
 ## 上下文传递规范
 
-调用 task:planner skill 时必须显式传递以下6个上下文字段：
+调用 task:planner skill 时必须显式传递以下字段：
 
 | 字段 | 说明 | 来源 |
 |------|------|------|
@@ -27,79 +22,46 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 | plan_md_path | 计划文件绝对路径（首次为null） | context.plan_md_path |
 | working_directory | 工作目录 | context.working_directory |
 | user_task | 用户原始任务描述 | user_task变量 |
+| auto_approve | 是否自动批准 | 见下方路径选择 |
+| user_feedback | 用户修改意见（如有） | 上一轮用户反馈 |
 
-## 路径A：重规划（auto_approve 控制审批方式）
+## 路径选择（由 loop 通过 auto_approve 参数控制）
 
-**步骤1**：iteration++ → 调用 `Skill(skill="task:planner", args="...")`，传入必传上下文：
-   - project_path: ${context.project_path}
-   - task_id: ${context.task_id}
-   - iteration: ${iteration}
-   - plan_md_path: ${context.plan_md_path}（首次为null）
-   - working_directory: ${context.working_directory}
-   - user_task: ${user_task}
-   - 附加：任务目标+迭代编号+标准7项要求
-   - **planner 会自动格式化并写入计划文件，返回 plan_md_path**
+| 场景 | auto_approve | planner 行为 |
+|------|-------------|-------------|
+| 首次规划 (iteration=1) | false | 设计 → 写文件 → AskUserQuestion → 返回 |
+| 用户重新设计 (replan_trigger="user") | false | 设计 → 写文件 → AskUserQuestion → 返回 |
+| Adjuster重规划 | true/false | 设计 → 写文件 → (auto_approve ? 自动返回 : AskUserQuestion) |
+| Verifier建议优化 | true/false | 设计 → 写文件 → (auto_approve ? 自动返回 : AskUserQuestion) |
 
-**步骤2**：处理 planner 返回结果：
-   - 有 questions → AskUserQuestion 询问用户
-   - tasks 为空 → goto完成
-   - tasks 非空 → 从返回结果提取 `plan_md_path`，更新 `context.plan_md_path`
+## Planner 返回值处理
 
-**步骤3**：if auto_approve=true: 自动批准 → save_checkpoint → goto任务执行；else: 调用 `AskUserQuestion` 请求用户批准（按下方批准判定规则处理）。**参数格式（必须严格遵守）**：
+planner 返回 JSON，loop 根据 `status` 字段处理：
 
-```json
-AskUserQuestion({
-  "questions": [{
-    "question": "[MindFlow·${task_id}] 计划已生成（N个任务），是否批准执行？",
-    "header": "计划确认",
-    "options": [
-      {"label": "批准执行", "description": "开始按计划执行所有任务"},
-      {"label": "修改计划", "description": "提供修改意见，重新设计计划"},
-      {"label": "取消任务", "description": "放弃当前任务"}
-    ],
-    "multiSelect": false
-  }]
-})
-```
+| status | 含义 | loop 处理 |
+|--------|------|----------|
+| `confirmed` | 用户批准或自动批准 | 提取 plan_md_path → save_checkpoint → goto Phase 5 |
+| `rejected` | 用户要求修改 | 提取 user_feedback → replan_trigger="user" → goto Phase 4 |
+| `no_tasks` | 无需执行任何任务 | goto Phase 8 |
+| `cancelled` | 用户取消任务 | goto Phase 8 |
 
-⚠️ 顶层参数是 `questions`（复数，数组），不是 `question`。禁止使用 `type`/`default_value`/`choices` 等不存在的参数。
+## 批准判定规则（planner 内部执行）
 
-## 路径B：用户确认
+planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 
-**步骤1**：可选：深度研究(should_trigger_deep_research)
+| 用户响应 | 判定 | planner 返回 |
+|---------|------|-------------|
+| 选择"批准执行"选项 | **批准** | `{status: "confirmed", plan_md_path: "..."}` |
+| 选择"Other"并输入文本 | **修改意见** | `{status: "rejected", user_feedback: "..."}` |
+| 选择其他非批准选项 | **拒绝/修改** | `{status: "rejected", user_feedback: "..."}` |
+| 选择"取消任务" | **取消** | `{status: "cancelled"}` |
 
-**步骤2**：调用 `Skill(skill="task:planner", args="...")`，传入必传上下文：
-   - project_path: ${context.project_path}
-   - task_id: ${context.task_id}
-   - iteration: ${iteration}
-   - plan_md_path: ${context.plan_md_path}（首次为null）
-   - working_directory: ${context.working_directory}
-   - user_task: ${user_task}
-   - 附加：user_feedback（如有）
-   - **planner 会自动格式化并写入计划文件，返回 plan_md_path**
-
-**步骤3**：处理 planner 返回结果：
-   - 有 questions → AskUserQuestion 询问用户
-   - tasks 为空 → goto完成
-   - tasks 非空 → 从返回结果提取 `plan_md_path`，更新 `context.plan_md_path`
-
-**步骤4**：调用 `AskUserQuestion` 展示计划摘要，请求用户批准（按下方批准判定规则处理），参数格式同路径A步骤3
-
-## 批准判定规则（强制）
-
-AskUserQuestion 返回后，**必须严格按以下规则判定用户意图**：
-
-| 用户响应 | 判定 | 处理 |
-|---------|------|------|
-| 选择"批准执行"选项 | **批准** | save_checkpoint → goto任务执行 |
-| 选择"Other"并输入文本 | **修改意见** | 提取Other文本为 `user_feedback` → `replan_trigger="user"` → goto计划设计 |
-| 选择其他非批准选项 | **拒绝/修改意见** | 提取选项描述为 `user_feedback` → `replan_trigger="user"` → goto计划设计 |
-
-**关键规则**：**只有用户明确选择"批准执行"选项才视为批准。所有其他响应（包括Other文本输入）都必须视为修改意见，触发重新规划并再次请求用户确认。绝对禁止将非批准响应当作批准处理。**
+**关键规则**：只有用户明确选择"批准执行"选项才视为批准。所有其他响应都视为修改意见。
 
 ## 状态转换
 
-- 路径A → 自动批准 → Phase 5(任务执行)
-- 路径B：用户批准 → Phase 5 | 拒绝 → Phase 4(重新设计) | 无需执行 → Phase 8
+- confirmed → Phase 5(任务执行)
+- rejected → Phase 4(重新设计，带 user_feedback)
+- no_tasks / cancelled → Phase 8(完成)
 
 <!-- /STATIC_CONTENT -->

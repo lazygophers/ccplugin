@@ -75,9 +75,9 @@ memory: project
 - **所有输出必须以 [MindFlow·${task_id}] 开头**（强制规则，无例外。task_id在初始化阶段生成）
 - **每次调用必须重置状态**（iteration=0, context={}），避免同一会话中不同任务的状态混淆
 - 计划确认阶段**必须执行**，不可跳过
-- **所有规划场景都调用 task:planner skill** → 生成计划 → 根据场景确认
-  - 首次规划（iteration=1）或用户重新设计：**必须** AskUserQuestion 请求用户确认
-  - Adjuster/Verifier触发的重规划：if auto_approve=true 自动批准，else AskUserQuestion 请求用户确认（默认需确认）
+- **所有规划场景都调用 task:planner skill**，planner 内部完成：设计 → 写文件 → 用户确认/自动批准 → 返回结果
+  - 首次规划（iteration=1）或用户重新设计：planner 内部调用 AskUserQuestion
+  - Adjuster/Verifier触发的重规划：传入 auto_approve=true 跳过确认
 - 每次都要输出状态追踪日志：`[MindFlow·${task_id}·${步骤}/${迭代}·${状态}]`
 
 </execution>
@@ -122,44 +122,26 @@ memory: project
 
 `iteration += 1`
 
-**路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"] && auto_approve`）：
-- **true → 自动重规划**：执行步骤 1-3（跳过步骤4用户确认）
-- **false → 用户确认**：执行步骤 1-4
+**整个阶段只需一次 Skill() 调用**。planner 内部完成：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回结果。
 
-**批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
+调用 `Skill(skill="task:planner", args="...")` ，传递以下字段：
+- 6个上下文字段：project_path、task_id、iteration、plan_md_path、working_directory、user_task
+- `auto_approve`：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"] && auto_approve` 时为 true
+- `user_feedback`：如有用户修改意见
 
-**执行步骤**：
+**处理 planner 返回结果**（planner 返回时，计划已确认或已拒绝）：
 
-**步骤1**：调用 `Skill(skill="task:planner", args="...")` 设计计划并写入文件。必须传递6个上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task）。planner 会自动格式化计划并写入 `.claude/plans/` 目录，返回结果中包含 `plan_md_path`。
-
-**步骤2**：处理 planner 返回结果：
-- 有 questions 字段 → 调用 AskUserQuestion 询问用户
-- tasks 为空 → 跳到完成阶段
-- tasks 非空 → 从返回结果中提取 `plan_md_path`，更新 `context.plan_md_path`
-
-**步骤3**：调用 `AskUserQuestion` 请求用户批准计划（仅在 auto_approve=false 时执行）。如果 AskUserQuestion 的 schema 未加载，先调用 `ToolSearch(query="select:AskUserQuestion")` 加载。**参数格式（必须严格遵守）**：
-
-```json
-AskUserQuestion({
-  "questions": [{
-    "question": "[MindFlow·${task_id}] 计划已生成（${task_count}个任务），是否批准执行？",
-    "header": "计划确认",
-    "options": [
-      {"label": "批准执行", "description": "开始按计划执行所有任务"},
-      {"label": "修改计划", "description": "提供修改意见，重新设计计划"},
-      {"label": "取消任务", "description": "放弃当前任务"}
-    ],
-    "multiSelect": false
-  }]
-})
-```
-
-⚠️ **参数格式要求**：顶层参数是 `questions`（复数，数组），不是 `question`。每个元素必须包含 `question`/`header`/`options`/`multiSelect` 四个字段。`options` 每项必须包含 `label` 和 `description`。禁止使用 `type`/`default_value`/`choices` 等不存在的参数。
+| planner 返回 status | loop 处理 |
+|---------------------|----------|
+| `confirmed` | 提取 `plan_md_path`，更新 context → 进入阶段3（任务执行）|
+| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` → 回到阶段2 |
+| `no_tasks` | 跳到阶段6（完成）|
+| `cancelled` | 跳到阶段6（完成）|
 
 **后置验证点**：
 - ✓ plan_md_path 已设置且文件存在（由 planner 直接写入）
 - ✓ 计划文件包含有效的 YAML frontmatter 和任务列表
-- ✓ 已获得用户批准（首次/用户重新设计）或自动批准（adjuster/verifier触发）
+- ✓ 已获得用户批准或自动批准
 
 详见 [flows/plan.md](flows/plan.md) 和 [phase-4-planning.md](phases/phase-4-planning.md)
 
