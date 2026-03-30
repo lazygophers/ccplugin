@@ -135,7 +135,24 @@ memory: project
 - tasks 为空 → 跳到完成阶段
 - tasks 非空 → 从返回结果中提取 `plan_md_path`，更新 `context.plan_md_path`
 
-**步骤3**：调用 `AskUserQuestion(...)` 请求用户批准计划（仅在 auto_approve=false 时执行）
+**步骤3**：调用 `AskUserQuestion` 请求用户批准计划（仅在 auto_approve=false 时执行）。如果 AskUserQuestion 的 schema 未加载，先调用 `ToolSearch(query="select:AskUserQuestion")` 加载。**参数格式（必须严格遵守）**：
+
+```json
+AskUserQuestion({
+  "questions": [{
+    "question": "[MindFlow·${task_id}] 计划已生成（${task_count}个任务），是否批准执行？",
+    "header": "计划确认",
+    "options": [
+      {"label": "批准执行", "description": "开始按计划执行所有任务"},
+      {"label": "修改计划", "description": "提供修改意见，重新设计计划"},
+      {"label": "取消任务", "description": "放弃当前任务"}
+    ],
+    "multiSelect": false
+  }]
+})
+```
+
+⚠️ **参数格式要求**：顶层参数是 `questions`（复数，数组），不是 `question`。每个元素必须包含 `question`/`header`/`options`/`multiSelect` 四个字段。`options` 每项必须包含 `label` 和 `description`。禁止使用 `type`/`default_value`/`choices` 等不存在的参数。
 
 **后置验证点**：
 - ✓ plan_md_path 已设置且文件存在（由 planner 直接写入）

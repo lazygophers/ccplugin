@@ -45,7 +45,24 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - tasks 为空 → goto完成
    - tasks 非空 → 从返回结果提取 `plan_md_path`，更新 `context.plan_md_path`
 
-**步骤3**：if auto_approve=true: 自动批准 → save_checkpoint → goto任务执行；else: 调用 `AskUserQuestion(...)` 请求用户批准（按下方批准判定规则处理）
+**步骤3**：if auto_approve=true: 自动批准 → save_checkpoint → goto任务执行；else: 调用 `AskUserQuestion` 请求用户批准（按下方批准判定规则处理）。**参数格式（必须严格遵守）**：
+
+```json
+AskUserQuestion({
+  "questions": [{
+    "question": "[MindFlow·${task_id}] 计划已生成（N个任务），是否批准执行？",
+    "header": "计划确认",
+    "options": [
+      {"label": "批准执行", "description": "开始按计划执行所有任务"},
+      {"label": "修改计划", "description": "提供修改意见，重新设计计划"},
+      {"label": "取消任务", "description": "放弃当前任务"}
+    ],
+    "multiSelect": false
+  }]
+})
+```
+
+⚠️ 顶层参数是 `questions`（复数，数组），不是 `question`。禁止使用 `type`/`default_value`/`choices` 等不存在的参数。
 
 ## 路径B：用户确认
 
@@ -66,7 +83,7 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - tasks 为空 → goto完成
    - tasks 非空 → 从返回结果提取 `plan_md_path`，更新 `context.plan_md_path`
 
-**步骤4**：调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按下方批准判定规则处理）
+**步骤4**：调用 `AskUserQuestion` 展示计划摘要，请求用户批准（按下方批准判定规则处理），参数格式同路径A步骤3
 
 ## 批准判定规则（强制）
 
