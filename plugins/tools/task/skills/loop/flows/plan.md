@@ -39,18 +39,27 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 | Verifier建议优化 | iteration>1, trigger="verifier" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
 
 **路径A（自动重规划）**：
-1. 直接调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)
-2. 处理planner的问题（AskUserQuestion）
-3. 空tasks→skip_execution
-4. ⚠️ **连续执行（同一消息中）**：调用 task:plan-formatter skill 格式化并写入文件 → if auto_approve: 自动批准；else: **立即** AskUserQuestion 请求用户批准（按批准判定规则处理）
+1. 深度研究（如需）
+2. **在同一个回复中**执行以下步骤：
+   - 步骤2.1：调用 `Skill(skill="task:planner", args="...")` 设计计划，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)
+   - 步骤2.2：处理planner的问题（如有questions字段，调用AskUserQuestion询问用户）
+   - 步骤2.3：检查tasks是否为空，空则→skip_execution
+   - 步骤2.4：**立即**调用 `Skill(skill="task:plan-formatter", args="...")` 格式化并写入文件
+   - 步骤2.5：if auto_approve=true: 自动批准并进入任务执行；else: **立即**调用 `AskUserQuestion(...)` 请求用户批准（按批准判定规则处理）
+
+⚠️ **关键要求**：步骤2.1-2.5必须在**同一个回复消息**中完成，不可分割
 
 **路径B（用户确认）**：
 1. 深度研究（如需）
-2. 调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）
-3. 处理planner的问题
-4. 空tasks→skip_execution
-5. ⚠️ **连续执行（同一消息中）**：调用 task:plan-formatter skill 写入文件 → **立即** AskUserQuestion 展示计划摘要，请求用户批准（按批准判定规则处理）
-6. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
+2. **在同一个回复中**执行以下步骤：
+   - 步骤2.1：调用 `Skill(skill="task:planner", args="...")` 设计计划，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）
+   - 步骤2.2：处理planner的问题（如有questions字段，调用AskUserQuestion询问用户）
+   - 步骤2.3：检查tasks是否为空，空则→skip_execution
+   - 步骤2.4：**立即**调用 `Skill(skill="task:plan-formatter", args="...")` 写入文件
+   - 步骤2.5：**立即**调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按批准判定规则处理）
+3. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
+
+⚠️ **关键要求**：步骤2.1-2.5必须在**同一个回复消息**中完成，不可分割
 
 **批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
 

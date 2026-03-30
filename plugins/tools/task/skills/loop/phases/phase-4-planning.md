@@ -30,7 +30,9 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 
 ## 路径A：重规划（auto_approve 控制审批方式）
 
-1. iteration++ → 调用 task:planner skill，传入必传上下文：
+**必须在同一个回复消息中完成以下所有步骤**：
+
+**步骤1**：iteration++ → 调用 `Skill(skill="task:planner", args="...")`，传入必传上下文：
    - project_path: ${context.project_path}
    - task_id: ${context.task_id}
    - iteration: ${iteration}
@@ -38,14 +40,24 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - working_directory: ${context.working_directory}
    - user_task: ${user_task}
    - 附加：任务目标+迭代编号+标准7项要求
-2. 处理questions(有则AskUserQuestion) → tasks为空则goto完成
-3. 生成计划文档：mkdir .claude/plans → 命名{中文关键词}-{iteration}.md（过滤特殊字符 / \ : * ? " < > |）
-4. ⚠️ 连续执行（同一消息中）：调用 task:plan-formatter skill 写入文件 → if auto_approve: 自动批准 → save_checkpoint → goto任务执行；else: **立即** AskUserQuestion 请求用户批准（按下方批准判定规则处理）
+
+**步骤2**：处理questions(有则AskUserQuestion询问用户) → tasks为空则goto完成
+
+**步骤3**：生成计划文档路径：mkdir .claude/plans → 命名{中文关键词}-{iteration}.md（过滤特殊字符 / \ : * ? " < > |）
+
+**步骤4**：**立即**在同一回复中调用 `Skill(skill="task:plan-formatter", args="...")` 写入文件
+
+**步骤5**：if auto_approve=true: 自动批准 → save_checkpoint → goto任务执行；else: **立即**在同一回复中调用 `AskUserQuestion(...)` 请求用户批准（按下方批准判定规则处理）
+
+⚠️ **关键要求**：步骤1-5必须在**同一个回复消息**中完成，禁止在任何步骤后结束回复
 
 ## 路径B：用户确认
 
-1. 可选：深度研究(should_trigger_deep_research)
-2. 调用 task:planner skill，传入必传上下文：
+**必须在同一个回复消息中完成以下所有步骤**：
+
+**步骤1**：可选：深度研究(should_trigger_deep_research)
+
+**步骤2**：调用 `Skill(skill="task:planner", args="...")`，传入必传上下文：
    - project_path: ${context.project_path}
    - task_id: ${context.task_id}
    - iteration: ${iteration}
@@ -53,8 +65,14 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - working_directory: ${context.working_directory}
    - user_task: ${user_task}
    - 附加：user_feedback（如有）
-3. 处理questions → tasks为空则goto完成
-4. ⚠️ 连续执行（同一消息中）：调用 task:plan-formatter skill 写入文件 → **立即** AskUserQuestion 展示计划摘要，请求用户批准（按下方批准判定规则处理）
+
+**步骤3**：处理questions(有则AskUserQuestion询问用户) → tasks为空则goto完成
+
+**步骤4**：**立即**在同一回复中调用 `Skill(skill="task:plan-formatter", args="...")` 写入文件
+
+**步骤5**：**立即**在同一回复中调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按下方批准判定规则处理）
+
+⚠️ **关键要求**：步骤2-5必须在**同一个回复消息**中完成，禁止在任何步骤后结束回复
 
 ## 批准判定规则（强制）
 

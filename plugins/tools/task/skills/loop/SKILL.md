@@ -121,12 +121,22 @@ memory: project
 `iteration += 1`
 
 **路径选择**（条件：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"] && auto_approve`）：
-- **true → 自动重规划**：直接调用 task:planner skill → ⚠️ **同一消息中连续执行** task:plan-formatter skill → 自动批准
-- **false → 用户确认**：调用 task:planner skill → ⚠️ **同一消息中连续执行** task:plan-formatter skill → **立即** AskUserQuestion 请求用户批准（按批准判定规则处理）
+- **true → 自动重规划**：执行步骤 1-3（跳过步骤4用户确认）
+- **false → 用户确认**：执行步骤 1-4
 
 **批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
 
-**共同步骤**：调用 task:planner skill 设计计划 → ⚠️ **同一消息中连续执行** task:plan-formatter skill 格式化写入文件 → 更新 `context.plan_md_path` → （如需确认）**立即** AskUserQuestion
+**执行步骤（必须在同一个回复消息中完成所有步骤）**：
+
+**步骤1**：调用 `Skill(skill="task:planner", args="...")` 设计计划，必须传递6个上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task）
+
+**步骤2**：处理 planner 返回的 questions 字段（如有），调用 AskUserQuestion 询问用户
+
+**步骤3**：**在同一个回复中**，立即调用 `Skill(skill="task:plan-formatter", args="...")` 格式化计划并写入文件，更新 `context.plan_md_path`
+
+**步骤4**：**在同一个回复中**，立即调用 `AskUserQuestion(...)` 请求用户批准计划（仅在 auto_approve=false 时执行）
+
+⚠️ **关键要求**：步骤1-4必须在**同一个回复消息**中完成，不可分割。禁止在步骤1执行后就结束回复，必须继续执行后续步骤
 
 **后置验证点**：
 - ✓ plan_md_path 已设置且文件存在
