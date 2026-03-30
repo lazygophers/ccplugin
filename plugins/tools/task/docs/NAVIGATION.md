@@ -7,16 +7,15 @@
 - [README.md](./README.md) - 项目概览和快速入门
 - [ROADMAP.md](./docs/ROADMAP.md) - 功能路线图和完成状态
 
-## 核心循环Agents (6)
+## 核心循环Agents (5)
 
 | Agent | 用途 | 关键文件 | 使用场景 |
 |-------|------|---------|---------|
-| planner | 任务规划和分解 | [agents/planner.md](agents/planner.md)<br/>[skills/planner/](skills/planner/) | MECE分解复杂任务为原子子任务 |
+| planner | 任务规划、分解、格式化 | [agents/planner.md](agents/planner.md)<br/>[skills/planner/](skills/planner/) | MECE分解复杂任务为原子子任务，自动格式化并写入计划文件 |
 | verifier | 验收验证 | [agents/verifier.md](agents/verifier.md)<br/>[skills/verifier/](skills/verifier/) | 检查验收标准、质量评分 |
 | adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 5级渐进式升级（retry→debug→replan→ask_user） |
 | finalizer | 资源清理 | [agents/finalizer.md](agents/finalizer.md)<br/>[skills/finalizer/](skills/finalizer/) | 任务完成后清理资源和生成报告 |
 | prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
-| plan-formatter | 计划格式化 | [agents/plan-formatter.md](agents/plan-formatter.md) | JSON → Markdown标准计划文档 |
 
 ## 支持功能Skills (15+)
 
@@ -41,7 +40,6 @@
 | context-versioning | 上下文版本化 | 规划前自动保存、失败回滚 | [skills/context-versioning/SKILL.md](skills/context-versioning/SKILL.md) |
 | prompt-optimizer | 提示词优化 | iteration=0（首次） | [skills/prompt-optimizer/SKILL.md](skills/prompt-optimizer/SKILL.md) |
 | parallel-scheduler | 智能并行调度 | 多任务执行 | [skills/execute/parallel-scheduler.md](skills/execute/parallel-scheduler.md) |
-| plan-formatter | 计划格式化 | 计划生成后 | [skills/planner/SKILL.md](skills/planner/SKILL.md) |
 | hooks | 生命周期钩子 | 事件触发（8个hooks） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
 
 ## 按场景查找

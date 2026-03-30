@@ -82,7 +82,7 @@ memory: project
 
 <references>
 
-**子技能**：flows/plan、flows/verify、task:planner（含计划格式化写文件）、task:verifier、task:adjuster
+**子技能**：flows/plan、flows/verify、task:planner（含格式化+写文件）、task:verifier、task:adjuster
 
 **文档**：[detailed-flow.md](detailed-flow.md)（8阶段导航+各phase详细说明）| [deep-iteration](../deep-iteration/implementation.md) | [prompt-caching](prompt-caching.md) | [deep-research-triggers](deep-research-triggers.md)
 
@@ -138,7 +138,7 @@ memory: project
 **步骤3**：调用 `AskUserQuestion(...)` 请求用户批准计划（仅在 auto_approve=false 时执行）
 
 **后置验证点**：
-- ✓ plan_md_path 已设置且文件存在（由 planner 写入，无需额外调用 plan-formatter）
+- ✓ plan_md_path 已设置且文件存在（由 planner 直接写入）
 - ✓ 计划文件包含有效的 YAML frontmatter 和任务列表
 - ✓ 已获得用户批准（首次/用户重新设计）或自动批准（adjuster/verifier触发）
 

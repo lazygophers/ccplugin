@@ -110,11 +110,9 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
    - 过滤特殊字符：`/ \ : * ? " < > |`
    - fallback：无中文则用 `task-plan`
 2. **创建目录**：确保 `.claude/plans/` 存在
-3. **生成 Markdown**：按 plan-formatter 模板（YAML frontmatter + Mermaid stateDiagram + 任务表格 + 验收标准）
+3. **生成 Markdown**：按计划模板（YAML frontmatter + Mermaid stateDiagram + 任务表格 + 验收标准），参考 [template.md](../plan-formatter/template.md)
 4. **写入文件**：使用 Write 工具写入
 5. **更新输出 JSON**：在返回的 JSON 中设置 `plan_md_path` 字段为文件绝对路径
-
-**模板参考**：Skills(task:plan-formatter) 的 [template.md](../plan-formatter/template.md)
 
 **验证点**：plan_md_path 对应的文件存在且内容完整。
 

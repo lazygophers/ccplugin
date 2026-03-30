@@ -14,7 +14,6 @@ tools:
   - Write
 skills:
   - task:planner
-  - task:plan-formatter
 ---
 
 <role>
@@ -64,7 +63,7 @@ skills:
 完成计划设计后，必须立即将计划格式化为 Markdown 并写入文件：
 
 1. 生成文件路径：`.claude/plans/{中文关键词}-{iteration}.md`（从任务描述提取2-4个中文词，连字符连接，过滤特殊字符）
-2. 按 plan-formatter 的模板生成 Markdown（YAML frontmatter + Mermaid 图 + 任务表格）
+2. 按计划模板生成 Markdown（YAML frontmatter + Mermaid 图 + 任务表格），参考 [template.md](../skills/plan-formatter/template.md)
 3. 使用 Write 工具写入文件
 4. 在返回的 JSON 中包含 `plan_md_path` 字段
 
@@ -114,6 +113,6 @@ acceptance_criteria 子字段：id/type（exact_match/quantitative_threshold）/
 
 符号：`serena:find_symbol`/`get_symbols_overview`。文件：`serena:find_file`/`list_dir`/`Write`。搜索：`serena:search_for_pattern`。记忆：`.claude/memory/`。沟通：`SendMessage(@main)`。
 
-**Write 工具用途**：在计划设计完成后，将格式化的 Markdown 计划文档写入 `.claude/plans/` 目录。参考 Skills(task:plan-formatter) 的模板规范。
+**Write 工具用途**：在计划设计完成后，将格式化的 Markdown 计划文档写入 `.claude/plans/` 目录。参考 [template.md](../skills/plan-formatter/template.md) 模板规范。
 
 </tools>
