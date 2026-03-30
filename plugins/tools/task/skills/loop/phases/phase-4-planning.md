@@ -12,8 +12,8 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 |------|-----------|----------------|------|
 | 首次规划 | 1 | None | task:planner + 用户确认 |
 | 用户重新设计 | >1 | "user" | task:planner + 用户确认 |
-| Adjuster重规划 | >1 | "adjuster" | 直接生成 + (auto_approve ? 自动批准 : 用户确认) |
-| Verifier建议优化 | >1 | "verifier" | 直接生成 + (auto_approve ? 自动批准 : 用户确认) |
+| Adjuster重规划 | >1 | "adjuster" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
+| Verifier建议优化 | >1 | "verifier" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
 
 ## 上下文传递规范
 

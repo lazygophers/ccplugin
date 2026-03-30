@@ -35,8 +35,8 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 |------|------|------|
 | 首次规划 | iteration=1 | task:planner + 用户确认 |
 | 用户重新设计 | replan_trigger="user" | task:planner + 用户确认 |
-| Adjuster自动重规划 | iteration>1, trigger="adjuster" | 直接生成+（auto_approve ? 自动批准 : 用户确认） |
-| Verifier建议优化 | iteration>1, trigger="verifier" | 直接生成+（auto_approve ? 自动批准 : 用户确认） |
+| Adjuster自动重规划 | iteration>1, trigger="adjuster" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
+| Verifier建议优化 | iteration>1, trigger="verifier" | task:planner + (auto_approve ? 自动批准 : 用户确认) |
 
 **路径A（自动重规划）**：
 1. 直接调用 task:planner skill，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)

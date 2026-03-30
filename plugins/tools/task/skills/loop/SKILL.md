@@ -73,8 +73,9 @@ memory: project
 - **所有输出必须以 [MindFlow·${task_id}] 开头**（强制规则，无例外。task_id在初始化阶段生成）
 - **每次调用必须重置状态**（iteration=0, context={}），避免同一会话中不同任务的状态混淆
 - 计划确认阶段**必须执行**，不可跳过
-- 首次规划（iteration=1）和用户重新设计：调用 task:planner skill → 生成计划 → AskUserQuestion 请求用户确认
-- 自动重新规划（adjuster/verifier触发）：调用 task:planner skill → 生成计划 → 如 auto_approve=true 自动批准，否则请求用户确认（默认需确认）
+- **所有规划场景都调用 task:planner skill** → 生成计划 → 根据场景确认
+  - 首次规划（iteration=1）或用户重新设计：**必须** AskUserQuestion 请求用户确认
+  - Adjuster/Verifier触发的重规划：if auto_approve=true 自动批准，else AskUserQuestion 请求用户确认（默认需确认）
 - 每次都要输出状态追踪日志：`[MindFlow·${task_id}·${步骤}/${迭代}·${状态}]`
 
 </execution>
