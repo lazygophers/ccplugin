@@ -1,6 +1,6 @@
 [project]
 name = "code-rust"
-version = "0.0.185"
+version = "0.0.186"
 description = "Claude Code plugin for Rust language support"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -1,6 +1,6 @@
 {
   "name": "office-pdf",
-  "version": "0.0.185",
+  "version": "0.0.186",
   "description": "PDF 文件读取和内容提取插件。基于 MCP 协议提供 PDF 操作工具。",
   "author": {
     "name": "lazygophers",
