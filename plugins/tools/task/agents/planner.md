@@ -10,8 +10,11 @@ description: |-
 model: opus
 memory: project
 color: purple
+tools:
+  - Write
 skills:
   - task:planner
+  - task:plan-formatter
 ---
 
 <role>
@@ -56,7 +59,16 @@ skills:
 
 <output_format>
 
-JSON 输出，必含字段：`status`（completed）、`report`（摘要）、`tasks[]`、`dependencies`、`parallel_groups`、`iteration_goal`、`acceptance_criteria[]`。
+**阶段3：格式化并写入计划文件**
+
+完成计划设计后，必须立即将计划格式化为 Markdown 并写入文件：
+
+1. 生成文件路径：`.claude/plans/{中文关键词}-{iteration}.md`（从任务描述提取2-4个中文词，连字符连接，过滤特殊字符）
+2. 按 plan-formatter 的模板生成 Markdown（YAML frontmatter + Mermaid 图 + 任务表格）
+3. 使用 Write 工具写入文件
+4. 在返回的 JSON 中包含 `plan_md_path` 字段
+
+**JSON 输出**必含字段：`status`（completed）、`plan_md_path`（已写入的计划文件路径）、`report`（摘要）、`tasks[]`、`dependencies`、`parallel_groups`、`iteration_goal`、`acceptance_criteria[]`。
 
 **tasks[] 每个任务必含字段**：
 - `id`：任务ID
@@ -69,7 +81,7 @@ JSON 输出，必含字段：`status`（completed）、`report`（摘要）、`t
 
 acceptance_criteria 子字段：id/type（exact_match/quantitative_threshold）/description/verification_method/priority（required/optional），量化类型额外含 metric/operator/threshold/unit/tolerance。
 
-功能已存在时返回空 `tasks: []`。
+功能已存在时返回空 `tasks: []`，此时 plan_md_path 可省略。
 
 </output_format>
 
@@ -100,6 +112,8 @@ acceptance_criteria 子字段：id/type（exact_match/quantitative_threshold）/
 
 <tools>
 
-符号：`serena:find_symbol`/`get_symbols_overview`。文件：`serena:find_file`/`list_dir`。搜索：`serena:search_for_pattern`。记忆：`.claude/memory/`。沟通：`SendMessage(@main)`。
+符号：`serena:find_symbol`/`get_symbols_overview`。文件：`serena:find_file`/`list_dir`/`Write`。搜索：`serena:search_for_pattern`。记忆：`.claude/memory/`。沟通：`SendMessage(@main)`。
+
+**Write 工具用途**：在计划设计完成后，将格式化的 Markdown 计划文档写入 `.claude/plans/` 目录。参考 Skills(task:plan-formatter) 的模板规范。
 
 </tools>

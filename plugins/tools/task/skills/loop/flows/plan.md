@@ -9,7 +9,7 @@ user-invocable: false
 
 ## 范围
 
-Planning阶段：触发深度研究→调用task:planner skill→格式化计划文档→用户确认（AskUserQuestion）。adjuster/verifier触发的重规划自动批准。
+Planning阶段：触发深度研究→调用task:planner skill（planner自动格式化并写入计划文件）→用户确认（AskUserQuestion）。adjuster/verifier触发的重规划自动批准。
 
 ## 配置
 
@@ -40,26 +40,22 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 
 **路径A（自动重规划）**：
 1. 深度研究（如需）
-2. **在同一个回复中**执行以下步骤：
-   - 步骤2.1：调用 `Skill(skill="task:planner", args="...")` 设计计划，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)
-   - 步骤2.2：处理planner的问题（如有questions字段，调用AskUserQuestion询问用户）
-   - 步骤2.3：检查tasks是否为空，空则→skip_execution
-   - 步骤2.4：**立即**调用 `Skill(skill="task:plan-formatter", args="...")` 格式化并写入文件
-   - 步骤2.5：if auto_approve=true: 自动批准并进入任务执行；else: **立即**调用 `AskUserQuestion(...)` 请求用户批准（按批准判定规则处理）
-
-⚠️ **关键要求**：步骤2.1-2.5必须在**同一个回复消息**中完成，不可分割
+2. 调用 `Skill(skill="task:planner", args="...")` 设计计划，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）及user_feedback(如有)。**planner 会自动格式化并写入计划文件**。
+3. 处理 planner 返回结果：
+   - 有 questions → AskUserQuestion 询问用户
+   - tasks 为空 → skip_execution
+   - tasks 非空 → 提取 `plan_md_path`，更新 context
+4. if auto_approve=true: 自动批准并进入任务执行；else: 调用 `AskUserQuestion(...)` 请求用户批准（按批准判定规则处理）
 
 **路径B（用户确认）**：
 1. 深度研究（如需）
-2. **在同一个回复中**执行以下步骤：
-   - 步骤2.1：调用 `Skill(skill="task:planner", args="...")` 设计计划，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）
-   - 步骤2.2：处理planner的问题（如有questions字段，调用AskUserQuestion询问用户）
-   - 步骤2.3：检查tasks是否为空，空则→skip_execution
-   - 步骤2.4：**立即**调用 `Skill(skill="task:plan-formatter", args="...")` 写入文件
-   - 步骤2.5：**立即**调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按批准判定规则处理）
-3. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
-
-⚠️ **关键要求**：步骤2.1-2.5必须在**同一个回复消息**中完成，不可分割
+2. 调用 `Skill(skill="task:planner", args="...")` 设计计划，传入6个必传上下文字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）。**planner 会自动格式化并写入计划文件**。
+3. 处理 planner 返回结果：
+   - 有 questions → AskUserQuestion 询问用户
+   - tasks 为空 → skip_execution
+   - tasks 非空 → 提取 `plan_md_path`，更新 context
+4. 调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按批准判定规则处理）
+5. 按判定结果处理：批准→execute | 修改意见→提取user_feedback→replan_trigger="user"→重新规划
 
 **批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
 
@@ -89,8 +85,8 @@ Planning阶段：触发深度研究→调用task:planner skill→格式化计划
 
 ## 状态转换
 
-- 路径A：生成计划→自动批准→执行 | 空tasks→完成
-- 路径B：task:planner skill→格式化→AskUserQuestion用户批准→执行 | 拒绝→提取反馈→重新设计
+- 路径A：task:planner（含格式化写文件）→自动批准→执行 | 空tasks→完成
+- 路径B：task:planner（含格式化写文件）→AskUserQuestion用户批准→执行 | 拒绝→提取反馈→重新设计
 
 ## 最佳实践
 

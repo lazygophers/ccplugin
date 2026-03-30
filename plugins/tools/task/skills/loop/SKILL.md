@@ -82,7 +82,7 @@ memory: project
 
 <references>
 
-**子技能**：flows/plan、flows/verify、task:planner、task:verifier、task:adjuster
+**子技能**：flows/plan、flows/verify、task:planner（含计划格式化写文件）、task:verifier、task:adjuster
 
 **文档**：[detailed-flow.md](detailed-flow.md)（8阶段导航+各phase详细说明）| [deep-iteration](../deep-iteration/implementation.md) | [prompt-caching](prompt-caching.md) | [deep-research-triggers](deep-research-triggers.md)
 
@@ -126,20 +126,19 @@ memory: project
 
 **批准判定规则**：只有用户明确选择"批准执行"选项=批准。Other文本输入和其他非批准选项=修改意见，提取为user_feedback，触发replan_trigger="user"回到计划设计阶段重新规划并再次确认。
 
-**执行步骤（必须在同一个回复消息中完成所有步骤）**：
+**执行步骤**：
 
-**步骤1**：调用 `Skill(skill="task:planner", args="...")` 设计计划，必须传递6个上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task）
+**步骤1**：调用 `Skill(skill="task:planner", args="...")` 设计计划并写入文件。必须传递6个上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task）。planner 会自动格式化计划并写入 `.claude/plans/` 目录，返回结果中包含 `plan_md_path`。
 
-**步骤2**：处理 planner 返回的 questions 字段（如有），调用 AskUserQuestion 询问用户
+**步骤2**：处理 planner 返回结果：
+- 有 questions 字段 → 调用 AskUserQuestion 询问用户
+- tasks 为空 → 跳到完成阶段
+- tasks 非空 → 从返回结果中提取 `plan_md_path`，更新 `context.plan_md_path`
 
-**步骤3**：**在同一个回复中**，立即调用 `Skill(skill="task:plan-formatter", args="...")` 格式化计划并写入文件，更新 `context.plan_md_path`
-
-**步骤4**：**在同一个回复中**，立即调用 `AskUserQuestion(...)` 请求用户批准计划（仅在 auto_approve=false 时执行）
-
-⚠️ **关键要求**：步骤1-4必须在**同一个回复消息**中完成，不可分割。禁止在步骤1执行后就结束回复，必须继续执行后续步骤
+**步骤3**：调用 `AskUserQuestion(...)` 请求用户批准计划（仅在 auto_approve=false 时执行）
 
 **后置验证点**：
-- ✓ plan_md_path 已设置且文件存在
+- ✓ plan_md_path 已设置且文件存在（由 planner 写入，无需额外调用 plan-formatter）
 - ✓ 计划文件包含有效的 YAML frontmatter 和任务列表
 - ✓ 已获得用户批准（首次/用户重新设计）或自动批准（adjuster/verifier触发）
 

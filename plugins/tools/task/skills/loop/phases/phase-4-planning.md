@@ -30,8 +30,6 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 
 ## 路径A：重规划（auto_approve 控制审批方式）
 
-**必须在同一个回复消息中完成以下所有步骤**：
-
 **步骤1**：iteration++ → 调用 `Skill(skill="task:planner", args="...")`，传入必传上下文：
    - project_path: ${context.project_path}
    - task_id: ${context.task_id}
@@ -40,20 +38,16 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - working_directory: ${context.working_directory}
    - user_task: ${user_task}
    - 附加：任务目标+迭代编号+标准7项要求
+   - **planner 会自动格式化并写入计划文件，返回 plan_md_path**
 
-**步骤2**：处理questions(有则AskUserQuestion询问用户) → tasks为空则goto完成
+**步骤2**：处理 planner 返回结果：
+   - 有 questions → AskUserQuestion 询问用户
+   - tasks 为空 → goto完成
+   - tasks 非空 → 从返回结果提取 `plan_md_path`，更新 `context.plan_md_path`
 
-**步骤3**：生成计划文档路径：mkdir .claude/plans → 命名{中文关键词}-{iteration}.md（过滤特殊字符 / \ : * ? " < > |）
-
-**步骤4**：**立即**在同一回复中调用 `Skill(skill="task:plan-formatter", args="...")` 写入文件
-
-**步骤5**：if auto_approve=true: 自动批准 → save_checkpoint → goto任务执行；else: **立即**在同一回复中调用 `AskUserQuestion(...)` 请求用户批准（按下方批准判定规则处理）
-
-⚠️ **关键要求**：步骤1-5必须在**同一个回复消息**中完成，禁止在任何步骤后结束回复
+**步骤3**：if auto_approve=true: 自动批准 → save_checkpoint → goto任务执行；else: 调用 `AskUserQuestion(...)` 请求用户批准（按下方批准判定规则处理）
 
 ## 路径B：用户确认
-
-**必须在同一个回复消息中完成以下所有步骤**：
 
 **步骤1**：可选：深度研究(should_trigger_deep_research)
 
@@ -65,14 +59,14 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
    - working_directory: ${context.working_directory}
    - user_task: ${user_task}
    - 附加：user_feedback（如有）
+   - **planner 会自动格式化并写入计划文件，返回 plan_md_path**
 
-**步骤3**：处理questions(有则AskUserQuestion询问用户) → tasks为空则goto完成
+**步骤3**：处理 planner 返回结果：
+   - 有 questions → AskUserQuestion 询问用户
+   - tasks 为空 → goto完成
+   - tasks 非空 → 从返回结果提取 `plan_md_path`，更新 `context.plan_md_path`
 
-**步骤4**：**立即**在同一回复中调用 `Skill(skill="task:plan-formatter", args="...")` 写入文件
-
-**步骤5**：**立即**在同一回复中调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按下方批准判定规则处理）
-
-⚠️ **关键要求**：步骤2-5必须在**同一个回复消息**中完成，禁止在任何步骤后结束回复
+**步骤4**：调用 `AskUserQuestion(...)` 展示计划摘要，请求用户批准（按下方批准判定规则处理）
 
 ## 批准判定规则（强制）
 
