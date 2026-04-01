@@ -1,5 +1,5 @@
 ---
-description: C 内存管理规范：安全分配模式、泄漏检测（Valgrind/ASan）、对齐、内存池、RAII-like 宏。管理内存时必须加载。
+description: "C语言内存管理规范，涵盖malloc/free安全分配模式、内存泄漏检测（Valgrind/AddressSanitizer）、内存对齐、内存池、RAII-like自动释放宏。适用于内存分配、泄漏调试、缓存优化。"
 user-invocable: true
 context: fork
 model: sonnet

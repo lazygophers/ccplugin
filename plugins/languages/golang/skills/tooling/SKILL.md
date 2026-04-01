@@ -1,5 +1,5 @@
 ---
-description: Go 工具链规范：gofmt、goimports、go mod、golangci-lint v2、govulncheck、delve debugger、go test -fuzz。运行工具时加载。
+description: "Go 工具链使用规范：gofmt/goimports 格式化、go mod 依赖管理、golangci-lint v2 静态检查、govulncheck 安全扫描、delve 调试器、go test -fuzz 模糊测试、pprof 性能分析。适用于工具选型、命令执行、开发环境配置场景。"
 user-invocable: true
 context: fork
 model: sonnet

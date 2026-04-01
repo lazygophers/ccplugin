@@ -1,5 +1,5 @@
 ---
-description: TypeScript 核心规范：TS 5.7+、strict mode、ESLint flat config、Biome、现代工具链。写任何 TypeScript 代码前必须加载。
+description: "TypeScript 核心开发规范，覆盖 TS 5.7+ strict mode、tsconfig 配置、ESLint flat config、Biome 格式化、模块解析与现代工具链最佳实践。适用于新建 TS 项目、配置 TypeScript 编译选项、设置 linter/formatter 时加载。"
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,14 +1,5 @@
 ---
-description: |
-	Intelligent memory system with hooks integration. Automatically manages memories
-	across sessions with smart loading, recording, and saving capabilities.
-
-	Use this skill to:
-	- Read stored memories by URI path
-	- Create new memories with priority and disclosure
-	- Update existing memories
-	- Search memories by keyword
-	- View memory index and recent changes
+description: "项目记忆管理 - 跨会话持久化记忆的读取、创建、更新、搜索与索引。当用户需要记住信息、查找历史记忆、管理知识库、保存上下文或查看记忆变更时激活。支持优先级、披露控制和关键词搜索。"
 user-invocable: true
 context: fork
 auto-activate: always:true

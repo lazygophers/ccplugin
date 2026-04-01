@@ -1,5 +1,5 @@
 ---
-description: GitHub Pull Request 规范和创建流程
+description: "GitHub Pull Request创建与管理：生成标准PR模板，包含变更类型、描述、测试计划和Review清单，适用于提交PR、合并请求、代码审查准备场景"
 user-invocable: true
 context: fork
 model: haiku

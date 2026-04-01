@@ -1,5 +1,5 @@
 ---
-description: 测试探索 - 框架识别、覆盖率分析、质量评估、缺口识别
+description: "探索项目测试体系：识别测试框架、分析覆盖率、评估测试质量、定位测试缺口。当需要了解测试现状、评估测试金字塔分布、发现未覆盖的高风险模块时触发。"
 model: sonnet
 context: fork
 user-invocable: false

@@ -1,5 +1,5 @@
 ---
-description: 结果验证规范 - 验收标准检查、质量评分、回归测试
+description: "Verifier 结果验证 - Loop Verification 阶段调用：两阶段验证（功能合规性门控 + 代码质量审查），输出 passed/suggestions/failed 状态。失败时触发 adjuster。由 Loop 内部调度，不直接面向用户"
 model: sonnet
 context: fork
 user-invocable: false

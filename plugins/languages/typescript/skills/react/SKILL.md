@@ -1,5 +1,5 @@
 ---
-description: TypeScript React 开发规范：React 19、Server Components、Actions、use hook、Next.js 15。开发 React 应用时必须加载。
+description: "TypeScript React 开发规范，覆盖 React 19 Server Components、Actions、use hook、Suspense 与 Next.js 15 App Router。适用于开发 React 组件、页面路由、服务端渲染、状态管理时加载。"
 user-invocable: true
 context: fork
 model: sonnet

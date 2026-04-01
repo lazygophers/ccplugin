@@ -1,5 +1,5 @@
 ---
-description: Go 命名强制规范：Id/Uid 字段、IsActive 布尔前缀、CreatedAt 时间字段、接收者用 p、Go 1.22+ 新路由模式命名。命名时必须加载。
+description: "Go命名规范：Id/Uid字段、IsActive布尔前缀、CreatedAt时间字段、接收者用p、Go 1.22+路由模式命名。定义变量、函数、结构体命名时自动加载。"
 user-invocable: true
 context: fork
 model: sonnet

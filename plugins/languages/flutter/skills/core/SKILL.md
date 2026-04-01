@@ -1,5 +1,5 @@
 ---
-description: Flutter 核心规范：Dart 3.x 特性、Flutter 3.x 工具链、命名约定、项目结构。写任何 Flutter 代码前必须加载。
+description: "Flutter/Dart 核心开发规范。涵盖 Dart 3.x 语法特性、Flutter 3.x 工具链配置、命名约定与项目结构模板。适用于新建 Flutter 项目、配置构建环境、编写 Dart 代码时加载。"
 user-invocable: true
 context: fork
 model: sonnet

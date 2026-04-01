@@ -1,5 +1,5 @@
 ---
-description: Flutter 状态管理规范：Riverpod 2.x（推荐）、Bloc 8.x、依赖注入、异步状态处理。管理状态时必须加载。
+description: "Flutter 状态管理规范。涵盖 Riverpod 2.x（推荐）、Bloc 8.x 模式选型、依赖注入与异步状态处理。适用于设计数据流、管理应用状态、实现 Provider/Bloc 时加载。"
 user-invocable: true
 context: fork
 model: sonnet

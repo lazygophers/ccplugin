@@ -1,5 +1,5 @@
 ---
-description: C++ toolchain -- CMake 3.28+, Conan 2.x/vcpkg, clang-tidy, clang-format, sanitizers, coverage. Load when configuring builds or CI.
+description: "C++ toolchain: CMake 3.28+, Conan 2.x/vcpkg, clang-tidy, clang-format, sanitizers, coverage. Load when configuring build system, static analysis, or CI."
 user-invocable: true
 context: fork
 model: sonnet

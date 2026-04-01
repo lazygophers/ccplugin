@@ -1,5 +1,5 @@
 ---
-description: 数据库探索 - Schema结构、表关系、索引评估、迁移历史
+description: "探索数据库架构：分析Schema结构、表关系(外键/级联)、索引性能、迁移历史。当需要理解数据模型、评估索引策略、追踪Schema演进时触发。支持SQL/NoSQL和主流ORM。"
 model: sonnet
 context: fork
 user-invocable: false

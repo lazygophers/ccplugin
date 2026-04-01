@@ -1,5 +1,5 @@
 ---
-description: C# Web 开发规范 - ASP.NET Core 8 Minimal APIs、native AOT、Blazor SSR + Streaming、rate limiting、output caching。开发 Web 应用时必须加载。
+description: "C# Web 开发规范：ASP.NET Core 8 Minimal APIs、native AOT 发布、Blazor SSR/Streaming 渲染、rate limiting 限流、output caching 缓存、middleware 中间件。开发 Web API、REST 服务、Blazor 应用时加载。"
 user-invocable: true
 context: fork
 model: sonnet

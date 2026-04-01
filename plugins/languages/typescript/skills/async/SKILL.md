@@ -1,5 +1,5 @@
 ---
-description: TypeScript 异步编程规范：Promise patterns、AbortController、async iterators、tRPC。处理异步代码时必须加载。
+description: "TypeScript 异步编程规范，覆盖 Promise 模式、async/await 错误处理、AbortController 取消控制、async iterators 流式处理与 tRPC 类型安全 API 调用。适用于编写异步逻辑、并发控制、流式数据处理时加载。"
 user-invocable: true
 context: fork
 model: sonnet

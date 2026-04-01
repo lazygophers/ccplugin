@@ -1,5 +1,5 @@
 ---
-description: 代码检查器 - 本地+GitHub统一代码分析接口，支持质量/债务/性能检测
+description: "代码检查器 - 统一本地代码库和GitHub远程仓库的分析接口，支持代码质量评估、技术债务检测、性能分析，适用于代码审查和项目评估场景"
 user-invocable: false
 context: fork
 model: sonnet

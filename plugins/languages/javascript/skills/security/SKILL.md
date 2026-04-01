@@ -1,5 +1,5 @@
 ---
-description: JavaScript Web 安全规范：XSS 防护、CSP、CORS、Zod 运行时验证、依赖审计。处理安全问题时必须加载。
+description: "JavaScript Web安全规范：XSS跨站脚本防护、CSP内容安全策略、CORS跨域配置、Zod运行时输入验证、npm依赖安全审计。处理安全漏洞修复、输入校验、权限控制、安全加固时加载。"
 user-invocable: true
 context: fork
 model: sonnet

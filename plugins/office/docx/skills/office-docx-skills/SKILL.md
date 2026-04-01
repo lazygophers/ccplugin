@@ -1,5 +1,5 @@
 ---
-description: Word docx 文件操作技能 - 读写文档、格式转换(docx/md/pdf)、批量处理、模板生成、智能分析
+description: "Word/docx 文档操作技能 - 读写段落与表格、格式转换(docx/md/pdf)、模板生成、批量处理、智能分析。适用于合同生成、报告撰写、文档格式转换等场景"
 triggers:
   - word
   - docx

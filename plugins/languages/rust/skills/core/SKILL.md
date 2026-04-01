@@ -1,5 +1,5 @@
 ---
-description: Rust 核心规范 - Rust 2024 edition、所有权系统、错误处理、工具链标准。所有 Rust 开发的基础规范。
+description: "Rust核心开发规范 - Rust 2024 edition、所有权系统、错误处理(Result/Option/?操作符)、模式匹配、cargo/clippy/rustfmt工具链。所有Rust编码、调试、测试的基础规范，其他Rust技能的前置依赖。"
 user-invocable: true
 context: fork
 model: sonnet

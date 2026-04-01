@@ -1,5 +1,5 @@
 ---
-description: C POSIX API 规范：文件描述符 I/O、进程管理、信号处理、网络编程（socket/epoll/kqueue）。使用 POSIX API 时必须加载。
+description: "C语言POSIX系统编程规范，涵盖文件描述符I/O、fork/exec进程管理、信号处理、socket网络编程、epoll/kqueue高性能I/O多路复用。适用于Linux/macOS系统编程和网络服务开发。"
 user-invocable: true
 context: fork
 model: sonnet

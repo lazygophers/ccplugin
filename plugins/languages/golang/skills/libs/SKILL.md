@@ -1,5 +1,5 @@
 ---
-description: Go 优先库规范：字符串用 stringx、集合用 candy（Map/Filter/Each）、文件用 osx、日志用 lazygophers/log、JSON 用 lazygophers/utils/json。Go 1.21+ 内置 min/max/clear。使用工具库时必须加载。
+description: "Go优先库选型规范：字符串stringx、集合candy（Map/Filter/Each）、文件osx、日志lazygophers/log、JSON lazygophers/utils/json。选择Go第三方库和工具函数时自动加载。"
 user-invocable: true
 context: fork
 model: sonnet

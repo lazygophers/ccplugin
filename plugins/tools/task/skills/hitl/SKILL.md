@@ -1,5 +1,5 @@
 ---
-description: HITL 审批技能 - 在关键决策点插入人工审批，实现风险分级审批策略，满足 EU AI Act 2026 合规要求
+description: "HITL人工审批 - 关键决策点插入人工审批，风险分级(低/中/高)自动或手动审批，安全优先默认拒绝高风险操作"
 model: sonnet
 context: fork
 user-invocable: false

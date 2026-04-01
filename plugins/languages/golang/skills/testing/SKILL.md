@@ -1,5 +1,5 @@
 ---
-description: Go 测试规范：表驱动测试（table-driven）、模糊测试（go test -fuzz，Go 1.18+）、基准测试（benchstat）、testify 断言、覆盖率 >= 90%。写测试时必须加载。
+description: "Go 测试编写规范：表驱动测试(table-driven)、子测试(t.Run)、模糊测试(go test -fuzz)、基准测试(benchmark/benchstat)、testify 断言与 mock、覆盖率 >= 90%、测试辅助函数。适用于编写单元测试、集成测试、性能基准场景。"
 user-invocable: true
 context: fork
 model: sonnet

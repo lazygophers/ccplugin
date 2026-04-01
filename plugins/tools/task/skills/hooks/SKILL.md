@@ -1,6 +1,6 @@
 ---
 name: hooks
-description: Task插件Hook系统 - 插件级生命周期钩子（SessionStart, SessionEnd）+ 组件级校验钩子（SubagentStop, Stop, PreToolUse）
+description: "Task插件Hook系统 - 插件级生命周期钩子(SessionStart/SessionEnd)和组件级校验钩子(SubagentStop/Stop/PreToolUse)"
 model: haiku
 context: fork
 user-invocable: false

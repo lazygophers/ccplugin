@@ -1,5 +1,5 @@
 ---
-description: Java 核心规范 - Java 21+ 现代特性（Records、Pattern Matching、Sealed Classes）、项目结构、工具链。所有 Java 开发的基础规范。
+description: "Java核心开发规范 - Java 21+现代特性(Records、Pattern Matching、Sealed Classes、Text Blocks)、Maven/Gradle项目结构与工具链配置。编写、重构、初始化Java项目时加载。"
 user-invocable: true
 context: fork
 model: sonnet

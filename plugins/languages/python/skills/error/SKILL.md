@@ -1,5 +1,5 @@
 ---
-description: Python 错误处理和日志 - 结构化日志（structlog）、异常设计、Context Manager。现代错误处理的最佳实践。
+description: "Python异常处理与结构化日志规范。涵盖自定义异常层次设计、structlog结构化日志、Context Manager资源管理、错误传播策略。适用于异常设计、日志配置、错误排查、资源清理等场景。"
 user-invocable: true
 context: fork
 model: sonnet

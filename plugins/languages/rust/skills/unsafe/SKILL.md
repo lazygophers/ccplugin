@@ -1,5 +1,5 @@
 ---
-description: Rust Unsafe 规范 - 最小化 unsafe、MIRI 验证、FFI、safety comments。写 unsafe 代码或 FFI 时加载。
+description: "Rust unsafe代码规范 - 最小化unsafe范围、裸指针操作、transmute、MIRI验证、FFI/C互操作、safety comments。编写unsafe块、调用C库、排查UB(未定义行为)时加载。"
 user-invocable: true
 context: fork
 model: sonnet

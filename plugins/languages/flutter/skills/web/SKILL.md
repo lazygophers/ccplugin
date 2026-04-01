@@ -1,5 +1,5 @@
 ---
-description: Flutter Web 开发规范：WASM 编译、CanvasKit/HTML 渲染、响应式设计、PWA、SEO 优化。开发 Web 应用时必须加载。
+description: "Flutter Web 应用开发规范。涵盖 WASM 编译、CanvasKit/HTML 渲染器选型、响应式 Web 设计、PWA 配置与 SEO 优化。适用于构建 Flutter Web 项目、优化加载性能时加载。"
 user-invocable: true
 context: fork
 model: sonnet

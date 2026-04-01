@@ -1,5 +1,5 @@
 ---
-description: Python 核心规范 - PEP 8、现代工具链（uv、ruff）、命名规范、代码格式。所有 Python 开发的基础规范。
+description: "Python核心编码规范与工具链配置。涵盖PEP 8风格、命名约定、代码格式化、uv包管理、ruff检查。适用于编写Python代码、代码风格检查、格式化配置、项目初始化等场景。"
 user-invocable: true
 context: fork
 model: sonnet

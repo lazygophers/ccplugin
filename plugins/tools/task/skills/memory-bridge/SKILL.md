@@ -1,5 +1,5 @@
 ---
-description: 记忆桥接 - 连接 MindFlow 与 Memory 插件，三层记忆存储和智能检索
+description: "记忆桥接 - 连接MindFlow与Memory插件的适配层，管理短期/情节/语义三层记忆，支持版本隔离和智能检索"
 model: sonnet
 context: fork
 user-invocable: false

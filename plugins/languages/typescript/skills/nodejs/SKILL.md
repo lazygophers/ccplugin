@@ -1,5 +1,5 @@
 ---
-description: TypeScript Node.js 开发规范：Node.js 22 LTS、ESM、native fetch、fs/promises、native test runner。开发 Node.js 应用时必须加载。
+description: "TypeScript Node.js 后端开发规范，覆盖 Node.js 22 LTS、ESM 模块系统、native fetch、fs/promises 文件操作与 native test runner 测试。适用于开发 Node.js 服务端应用、CLI 工具、API 服务时加载。"
 user-invocable: true
 context: fork
 model: sonnet

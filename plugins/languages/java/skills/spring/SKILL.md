@@ -1,5 +1,5 @@
 ---
-description: Spring Boot 3+ 开发规范 - Native Image、Virtual Threads 集成、Observability、Security 6、Data JPA + Hibernate 6。开发 Spring 应用时必须加载。
+description: "Spring Boot 3+开发规范 - Native Image编译、Virtual Threads集成、Micrometer可观测性、Spring Security 6、Data JPA/Hibernate 6。开发Spring REST API、微服务或Web应用时加载。"
 user-invocable: true
 context: fork
 model: sonnet

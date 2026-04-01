@@ -1,5 +1,5 @@
 ---
-description: C++ core conventions -- C++20/23 language features, mandatory coding standards, and modern idioms. Load before writing any C++ code.
+description: "C++ core conventions: C++20/23 language features, coding standards, best practices, modern idioms. Load before writing or reviewing any C++ code."
 user-invocable: true
 context: fork
 model: sonnet

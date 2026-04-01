@@ -1,5 +1,5 @@
 ---
-description: Java 并发编程规范 - Virtual Threads、Structured Concurrency、ScopedValues、CompletableFuture。写并发代码时必须加载。
+description: "Java并发编程规范 - Virtual Threads、Structured Concurrency、ScopedValues、CompletableFuture、线程安全与锁策略。编写多线程、异步、并行代码或排查死锁竞争问题时加载。"
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: C 并发编程规范：C11 原子操作与内存序、C11/pthread 线程、互斥锁与条件变量、ThreadSanitizer。写并发代码时必须加载。
+description: "C语言并发编程规范，涵盖C11原子操作与内存序、pthread线程管理、互斥锁、条件变量、读写锁、ThreadSanitizer竞态检测。适用于多线程开发、死锁调试、无锁数据结构优化。"
 user-invocable: true
 context: fork
 model: sonnet

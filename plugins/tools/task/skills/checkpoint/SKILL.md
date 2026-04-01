@@ -1,5 +1,5 @@
 ---
-description: 检查点管理 - 保存/恢复/清理任务执行状态，支持中断恢复
+description: "检查点管理 - 保存、恢复、清理任务执行状态快照，支持中断后自动恢复继续执行，阶段转换时自动持久化"
 model: sonnet
 context: fork
 user-invocable: false

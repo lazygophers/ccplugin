@@ -1,5 +1,5 @@
 ---
-description: C++ template programming -- concepts, CTAD, fold expressions, constexpr/consteval, variable templates. Load when writing generic code.
+description: "C++ template metaprogramming: concepts, CTAD, fold expressions, constexpr/consteval, variable templates. Load when writing generic or compile-time code."
 user-invocable: true
 context: fork
 model: sonnet

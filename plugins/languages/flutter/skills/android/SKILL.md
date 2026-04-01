@@ -1,5 +1,5 @@
 ---
-description: Flutter Android 开发规范：Material 3 Expressive、Impeller 渲染、权限管理、性能优化。开发 Android 应用时必须加载。
+description: "Flutter Android 平台开发规范。涵盖 Material 3 Expressive 设计、Impeller 渲染引擎、权限管理与 Android 性能调优。适用于开发 Android 应用、处理平台通道与原生集成时加载。"
 user-invocable: true
 context: fork
 model: sonnet

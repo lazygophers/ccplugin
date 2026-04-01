@@ -1,5 +1,5 @@
 ---
-description: Python 测试框架和策略 - pytest 8.x、hypothesis 属性测试、pytest-asyncio。测试驱动开发的核心规范。
+description: "Python测试框架与测试策略规范。涵盖pytest 8.x断言与fixture、hypothesis属性测试、pytest-asyncio异步测试、TDD流程。适用于编写单元测试、集成测试、测试覆盖率提升、测试失败调试等场景。"
 user-invocable: true
 context: fork
 model: sonnet

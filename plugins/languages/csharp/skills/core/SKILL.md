@@ -1,5 +1,5 @@
 ---
-description: C# 核心规范 - C# 12/.NET 8 标准、nullable、primary constructors、collection expressions、Roslyn analyzers。所有 C# 开发的基础规范。
+description: "C# 核心开发规范：C# 12/.NET 8 语言标准、nullable reference types、pattern matching、primary constructors、collection expressions、Roslyn analyzers 静态分析。新建或审查 C# 项目时加载，是所有 C# 技能的基础依赖。"
 user-invocable: true
 context: fork
 model: sonnet

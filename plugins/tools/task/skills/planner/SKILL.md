@@ -1,5 +1,5 @@
 ---
-description: 计划设计规范 - 收集项目信息、任务分解、依赖建模、agents/skills 分配的执行规范
+description: "Planner 计划设计 - Loop Planning 阶段调用：分析项目结构和技术栈，将复杂任务分解为子任务，建立依赖关系和并行策略，为每个子任务分配 Agent/Skills。由 Loop 内部调度，不直接面向用户"
 model: sonnet
 context: fork
 user-invocable: false

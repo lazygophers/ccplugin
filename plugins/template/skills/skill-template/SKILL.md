@@ -1,5 +1,5 @@
 ---
-description: 技能用途简述 - 说明这个技能做什么和什么时候使用。当用户需要[XX功能]或遇到[XX问题]时自动激活。支持[XX操作]。
+description: "技能模板 - 创建新技能的标准模板和脚手架。当用户需要新建 Skill、创建技能文件、编写 SKILL.md 或参考技能开发规范时激活。提供目录结构、frontmatter 配置和内容编写示例。"
 user-invocable: true
 model: sonnet
 memory: project

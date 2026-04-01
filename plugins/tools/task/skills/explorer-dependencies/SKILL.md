@@ -1,5 +1,5 @@
 ---
-description: 依赖探索 - 依赖树、安全审计、版本管理、许可证合规
+description: "探索项目依赖：分析依赖树、检测安全漏洞(CVE/供应链攻击)、评估版本锁定策略、验证许可证合规。当需要审计依赖安全、理解依赖关系、检查过时包时触发。支持npm/pip/go mod/Maven/Cargo等。"
 model: sonnet
 context: fork
 user-invocable: false

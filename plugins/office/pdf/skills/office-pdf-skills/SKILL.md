@@ -1,5 +1,5 @@
 ---
-description: PDF 文件操作技能 - 提供 PDF 读取、文本提取、图片提取 MCP 工具
+description: "PDF 文件操作技能 - 读取解析PDF、提取文本内容、提取嵌入图片。适用于文档阅读、内容提取、PDF数据分析等场景"
 user-invocable: true
 context: fork
 model: sonnet

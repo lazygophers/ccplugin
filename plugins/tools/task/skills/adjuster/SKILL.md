@@ -1,5 +1,5 @@
 ---
-description: 失败调整规范 - 分析失败原因、检测停滞、应用升级策略的执行规范
+description: "Adjuster 失败调整 - Loop Adjustment 阶段调用：任务失败时分析原因、检测停滞，六级升级策略（Retry → Self-Healing → Debug → Micro-Replan → Full Replan → Ask User）。由 Loop 内部调度，不直接面向用户"
 model: sonnet
 context: fork
 user-invocable: false

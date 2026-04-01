@@ -1,5 +1,5 @@
 ---
-description: C# 桌面开发规范 - WPF/.NET 8、.NET MAUI、Avalonia UI、WinUI 3、CommunityToolkit.Mvvm。开发桌面应用时必须加载。
+description: "C# 桌面与跨平台 GUI 开发规范：WPF/.NET 8、.NET MAUI 跨平台、Avalonia UI、WinUI 3、CommunityToolkit.Mvvm、MVVM 数据绑定。开发桌面应用、GUI 界面、跨平台客户端时加载。"
 user-invocable: true
 context: fork
 model: sonnet

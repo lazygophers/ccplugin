@@ -1,5 +1,5 @@
 ---
-description: C# 异步编程规范 - async/await、IAsyncEnumerable、System.Threading.Channels、Parallel.ForEachAsync。写异步代码时必须加载。
+description: "C# 异步并发编程规范：async/await 最佳实践、IAsyncEnumerable 异步流、System.Threading.Channels 生产者消费者、Parallel.ForEachAsync 并行处理、CancellationToken 取消机制。编写异步代码、排查死锁、优化并发性能时加载。"
 user-invocable: true
 context: fork
 model: sonnet

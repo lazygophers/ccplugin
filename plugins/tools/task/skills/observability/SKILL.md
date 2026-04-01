@@ -1,5 +1,5 @@
 ---
-description: 可观测性技能 - 实时收集性能指标、成本指标、质量指标，生成成本报告和优化建议
+description: "可观测性 - task:loop执行中实时采集性能/成本/质量指标，零侵入自动采集，生成成本报告和具体优化建议"
 model: sonnet
 context: fork
 user-invocable: false

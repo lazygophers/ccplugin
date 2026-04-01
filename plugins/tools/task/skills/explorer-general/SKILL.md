@@ -1,5 +1,5 @@
 ---
-description: 通用项目探索规范 - 快速理解项目全貌、识别技术栈、目录结构和核心模块的执行规范
+description: "快速探索项目全貌：识别技术栈、映射目录结构、定位核心模块。当首次接触项目或需要建立整体认知时优先触发。宏观优先，5分钟内完成项目概览。深入分析请用其他explorer。"
 model: sonnet
 context: fork
 user-invocable: false

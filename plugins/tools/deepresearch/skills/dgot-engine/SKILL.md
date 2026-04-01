@@ -1,5 +1,5 @@
 ---
-description: DGoT动态图思维引擎 - 研究路径优化和动态资源分配，降低43-56%成本
+description: "DGoT动态图思维引擎 - 自动生成和优化研究路径，通过早停、阈值裁剪和FoT框架实现动态资源分配，降低43-56%研究成本"
 user-invocable: false
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: C++ performance optimization -- cache-friendly layout, SIMD, zero-copy, compile-time computation, LTO/PGO. Load when optimizing hot paths.
+description: "C++ performance optimization: cache-friendly layout, SIMD, zero-copy, compile-time computation, LTO/PGO. Load when profiling, benchmarking, or optimizing hot paths."
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: 智能并行调度 - 基于任务复杂度动态调整并行度，支持Fan-in/Fan-out模式，优化任务执行效率
+description: "智能并行调度 - 基于复杂度四维评估动态调整并行度(2-5槽位)，支持Fan-in/Fan-out模式，自动检测文件冲突"
 model: haiku
 context: fork
 user-invocable: false

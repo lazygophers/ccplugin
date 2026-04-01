@@ -1,5 +1,5 @@
 ---
-description: 代码结构探索规范 - 符号索引、依赖分析、模式识别的执行规范
+description: "深度探索代码结构：构建符号索引、分析模块依赖关系、识别设计模式和架构决策。当需要理解代码组织、类/函数/接口关系、模块耦合度时触发。基于AST和符号索引而非文本搜索。"
 model: sonnet
 context: fork
 user-invocable: false

@@ -1,5 +1,5 @@
 ---
-description: TypeScript 安全编码规范：CSP、Zod 输入验证、XSS 防护、依赖审计。处理安全问题时必须加载。
+description: "TypeScript 安全编码规范，覆盖 CSP 内容安全策略、Zod 输入验证与消毒、XSS/CSRF 防护、依赖漏洞审计与安全头配置。适用于安全加固、漏洞修复、输入校验、安全审计时加载。"
 user-invocable: true
 context: fork
 model: sonnet

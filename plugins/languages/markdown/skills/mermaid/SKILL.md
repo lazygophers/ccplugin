@@ -1,5 +1,5 @@
 ---
-description: Mermaid 图表规范 - 流程图、序列图、类图、ER 图、状态图、甘特图。绘制任何 Mermaid 图表时必须加载。
+description: "Mermaid 图表规范 - 流程图、序列图、类图、ER 图、状态图、甘特图的语法与最佳实践。在 Markdown 中绘制或修改 mermaid 代码块时加载。"
 user-invocable: true
 context: fork
 model: sonnet

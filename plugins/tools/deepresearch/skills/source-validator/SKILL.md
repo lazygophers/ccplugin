@@ -1,5 +1,5 @@
 ---
-description: 来源验证器 - A-E级质量评分+链式验证，确保信息可信度
+description: "来源验证器 - 对信息源进行A-E五级质量评分和链式交叉验证，过滤低质量来源，确保研究信息的可信度和可追溯性"
 user-invocable: false
 context: fork
 model: sonnet

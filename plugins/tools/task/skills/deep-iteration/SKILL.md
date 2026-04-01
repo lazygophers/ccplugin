@@ -1,5 +1,5 @@
 ---
-description: 深度迭代规范 - 质量递进、深度研究、质量门控
+description: "深度迭代规范 - 多轮递进式质量提升(60→75→85→90)，结合深度研究和质量门控，持续优化直到用户满意"
 model: sonnet
 context: fork
 user-invocable: false

@@ -1,5 +1,5 @@
 ---
-description: Java 性能优化规范 - JFR、JMH 基准测试、ZGC/G1GC 调优、GraalVM Native Image、async-profiler。优化性能时必须加载。
+description: "Java性能优化规范 - JFR诊断、JMH基准测试、ZGC/G1GC垃圾回收调优、GraalVM Native Image、async-profiler火焰图分析。排查性能瓶颈、内存泄漏或优化吞吐延迟时加载。"
 user-invocable: true
 context: fork
 model: sonnet

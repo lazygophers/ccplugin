@@ -1,5 +1,5 @@
 ---
-description: TypeScript 类型系统规范：discriminated unions、const type params、模板字面量、Zod 4。设计类型时必须加载。
+description: "TypeScript 高级类型系统规范，覆盖 discriminated unions、const type parameters、模板字面量类型、条件类型、mapped types 与 Zod 4 schema 验证。适用于设计复杂类型、类型体操、运行时类型校验时加载。"
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: Markdown 核心规范 - 文档结构、格式规范、写作风格、GFM 扩展。写任何 Markdown 文档前必须加载。
+description: "Markdown 核心规范 - 文档结构、标题层级、列表、链接、代码块、表格、GFM 扩展语法。编写、审查或格式化 .md 文件时加载。"
 user-invocable: true
 context: fork
 model: sonnet

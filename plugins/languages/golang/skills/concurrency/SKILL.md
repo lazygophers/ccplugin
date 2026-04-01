@@ -1,5 +1,5 @@
 ---
-description: Go 并发规范：go.uber.org/atomic 替代 sync/atomic、sync.Pool 复用对象、errgroup 管理 goroutine、context 最佳实践、Go 1.23 iter 迭代器。写并发代码时必须加载。
+description: "Go 并发编程规范：goroutine 生命周期管理、errgroup 并发编排、context 超时取消传播、sync.Pool 对象复用、go.uber.org/atomic 原子操作、channel 模式、Go 1.23 iter 迭代器。适用于并发设计、竞态排查、性能调优场景。"
 user-invocable: true
 context: fork
 model: sonnet

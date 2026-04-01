@@ -1,5 +1,5 @@
 ---
-description: PowerPoint pptx 文件操作技能 - 创建编辑演示文稿、管理幻灯片、插入内容、应用模板、格式转换、智能分析
+description: "PowerPoint/pptx 演示文稿操作技能 - 创建编辑幻灯片、插入文本图片图表、应用模板主题、格式转换、智能分析。适用于制作汇报PPT、批量生成slides等场景"
 triggers:
   - powerpoint
   - pptx

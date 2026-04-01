@@ -1,5 +1,5 @@
 ---
-description: C# 数据访问规范 - EF Core 8 compiled queries、JSON columns、complex types、bulk operations、interceptors。访问数据库时必须加载。
+description: "C# 数据访问与 ORM 规范：EF Core 8 compiled queries 编译查询、JSON columns、complex types 复杂类型、bulk operations 批量操作、interceptors 拦截器、数据库迁移。访问数据库、设计数据模型、优化查询性能时加载。"
 user-invocable: true
 context: fork
 model: sonnet

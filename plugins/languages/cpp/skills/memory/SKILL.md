@@ -1,5 +1,5 @@
 ---
-description: C++ memory management -- smart pointers, RAII, custom deleters, scope guards, allocators. Load when managing resources or ownership.
+description: "C++ memory management: smart pointers, RAII, custom deleters, scope guards, allocators. Load when managing resources, ownership, or diagnosing memory leaks."
 user-invocable: true
 context: fork
 model: sonnet

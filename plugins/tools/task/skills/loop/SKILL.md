@@ -1,5 +1,5 @@
 ---
-description: Loop 持续执行 - 作为 team leader 执行完整的任务管理循环，包括计划设计、执行、验证、调整
+description: "Loop 主控循环 - 用户提交复杂任务时作为 team leader 驱动完整生命周期：计划设计 → 并行执行 → 结果验证 → 失败调整 → 迭代收敛。触发词：执行任务、开始做、run task、loop"
 argument-hint: [ 任务目标描述 ]
 skills:
   - task:prompt-optimizer

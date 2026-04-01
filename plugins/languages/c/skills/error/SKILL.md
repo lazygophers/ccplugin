@@ -1,5 +1,5 @@
 ---
-description: C 错误处理规范：errno/perror、goto cleanup 模式、安全字符串操作、返回值约定。处理错误时必须加载。
+description: "C语言错误处理规范，涵盖errno/perror机制、goto cleanup资源释放模式、安全字符串操作（snprintf/strncpy）、函数返回值约定。适用于错误传播设计、防御性编程、异常路径调试。"
 user-invocable: true
 context: fork
 model: sonnet

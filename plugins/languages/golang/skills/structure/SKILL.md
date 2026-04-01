@@ -1,5 +1,5 @@
 ---
-description: Go 项目结构强制规范：三层架构（API->Impl->State）、全局状态模式、go.mod workspace 支持、禁止 Repository 接口。设计架构时必须加载。
+description: "Go项目结构规范：三层架构（API->Impl->State）、全局状态模式、go.mod workspace、禁止Repository接口。设计Go项目架构和目录结构时自动加载。"
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: git commit 提交规范
+description: "Git commit提交规范：生成符合Conventional Commits的提交信息，支持type/scope/subject/body/footer结构，适用于提交代码、暂存变更、编写commit message场景"
 user-invocable: true
 context: fork
 model: haiku

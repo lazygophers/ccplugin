@@ -1,5 +1,5 @@
 ---
-description: Flutter iOS 开发规范：Cupertino 设计、Impeller 渲染、App Store 规范、性能优化。开发 iOS 应用时必须加载。
+description: "Flutter iOS 平台开发规范。涵盖 Cupertino 设计适配、Impeller 渲染引擎、App Store 审核合规与 iOS 性能调优。适用于开发 iPhone/iPad 应用、处理原生交互时加载。"
 user-invocable: true
 context: fork
 model: sonnet

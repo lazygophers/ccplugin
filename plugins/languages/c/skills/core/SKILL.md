@@ -1,5 +1,5 @@
 ---
-description: C 核心规范：C11/C17/C23 标准特性、强制编码约定、构建系统和静态分析。写任何 C 代码前必须加载。
+description: "C语言核心规范，涵盖C11/C17/C23标准特性、编码约定、构建系统（CMake/Makefile）和静态分析（clang-tidy/cppcheck）。适用于编写、审查、调试任何C代码。"
 user-invocable: true
 context: fork
 model: sonnet

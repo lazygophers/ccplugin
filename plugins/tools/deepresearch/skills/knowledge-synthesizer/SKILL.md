@@ -1,5 +1,5 @@
 ---
-description: 知识合成器 - 多源整合+8种输出格式，适配不同受众和场景
+description: "知识合成器 - 将多源研究发现整合为结构化报告，支持8种输出格式（学术/技术/摘要等），适用于研究总结、报告生成、知识归纳场景"
 user-invocable: false
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: Python 类型系统最佳实践 - PEP 695 泛型、Pydantic v2、mypy strict mode。现代 Python 类型安全的核心规范。
+description: "Python类型注解与类型安全规范。涵盖PEP 695泛型语法、Pydantic v2模型验证、mypy严格模式配置。适用于添加类型注解、类型检查报错修复、数据模型定义、泛型设计等场景。"
 user-invocable: true
 context: fork
 model: sonnet

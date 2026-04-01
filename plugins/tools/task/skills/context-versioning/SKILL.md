@@ -1,5 +1,5 @@
 ---
-description: 上下文版本化 - 保存快照/列表版本/回滚/对比，支持规划前自动保存和失败回滚
+description: "上下文版本化 - 保存快照、列表版本、回滚、对比上下文状态，规划前自动保存，失败后回滚到已知良好状态，防止上下文污染"
 model: sonnet
 context: fork
 user-invocable: false

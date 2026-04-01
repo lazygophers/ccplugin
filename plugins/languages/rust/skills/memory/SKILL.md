@@ -1,5 +1,5 @@
 ---
-description: Rust 内存管理规范 - 所有权、借用、生命周期、智能指针、零拷贝模式。管理内存和优化分配时加载。
+description: "Rust内存管理规范 - 所有权转移、借用检查、生命周期标注、智能指针(Box/Rc/Arc/Cow)、零拷贝模式、内存泄漏排查。处理借用冲突、生命周期错误、内存优化、分配策略时加载。"
 user-invocable: true
 context: fork
 model: sonnet

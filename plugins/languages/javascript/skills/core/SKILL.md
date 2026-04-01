@@ -1,5 +1,5 @@
 ---
-description: JavaScript 核心规范：ES2024-2025 标准、ESM 模块、const/let、命名约定、Vite 6、ESLint 9 flat config。写任何 JavaScript 代码前必须加载。
+description: "JavaScript/TypeScript 核心开发规范：ES2024-2025语法标准、ESM模块系统、const/let变量声明、命名约定、Vite 6构建工具、ESLint 9 flat config代码检查。编写JS/TS代码、创建项目、配置构建工具链时加载。"
 user-invocable: true
 context: fork
 model: sonnet

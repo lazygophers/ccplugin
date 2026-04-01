@@ -1,5 +1,5 @@
 ---
-description: 提示词优化规范 - 评估质量、识别模糊点、结构化提问、生成优化提示词
+description: "提示词优化 - 优化模糊/不完整的用户任务描述，评估质量、识别模糊点、结构化提问，生成明确可执行的提示词"
 model: sonnet
 context: fork
 user-invocable: false

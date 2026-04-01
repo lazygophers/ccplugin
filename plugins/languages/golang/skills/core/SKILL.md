@@ -1,5 +1,5 @@
 ---
-description: Go 1.23+ 核心开发规范：强制约定、代码格式、Go 新特性（range-over-func, slog, min/max/clear）、提交检查清单。写任何 Go 代码前必须加载。
+description: "Go 1.23+ 核心开发规范：强制约定、代码格式、新特性（range-over-func/slog/min/max/clear）、提交检查清单。编写Go代码时自动加载。"
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: C# LINQ 规范 - .NET 8 新操作符、性能优化、EF Core query translation、Span 替代方案。使用 LINQ 或集合操作时必须加载。
+description: "C# LINQ 查询与集合操作规范：.NET 8 新操作符（CountBy/AggregateBy）、LINQ 性能优化、EF Core query translation 查询转换、Span<T> 高性能替代。编写数据查询、集合处理、序列操作时加载。"
 user-invocable: true
 context: fork
 model: sonnet

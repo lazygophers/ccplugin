@@ -1,5 +1,5 @@
 ---
-description: Go 模板(Golang Template)开发规范 - text/template 和 html/template 最佳实践，包括安全性、性能优化（预编译缓存）、Go 1.22+ embed 集成、常见错误模式。
+description: "Go 模板开发规范：text/template 与 html/template 最佳实践、XSS 安全防护、模板预编译缓存优化、自定义 FuncMap、Go 1.22+ embed 嵌入集成、常见错误模式。适用于模板渲染、HTML 生成、代码生成场景。"
 user-invocable: true
 context: fork
 model: sonnet

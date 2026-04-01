@@ -1,5 +1,5 @@
 ---
-description: llms.txt 文件标准规范 - 遵循 llmstxt.org 定义的格式标准，生成符合规范的 LLM 友好文档
+description: "llms.txt 生成与验证 - 遵循 llmstxt.org 标准，为项目生成 LLM 友好的文档索引文件。当用户需要创建 llms.txt、生成 AI 可读文档、构建项目知识索引或验证 llms.txt 格式时激活。"
 user-invocable: true
 context: fork
 model: sonnet

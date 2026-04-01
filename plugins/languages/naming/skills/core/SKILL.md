@@ -1,5 +1,5 @@
 ---
-description: 跨语言命名规范 - 清晰性、一致性、可读性。适用于所有编程语言的变量/函数/类型命名。
+description: "跨语言命名规范 - 变量、函数、类、常量、文件的命名风格与约定。重命名、代码审查或新建模块时加载，确保清晰性与一致性。"
 user-invocable: true
 context: fork
 model: sonnet

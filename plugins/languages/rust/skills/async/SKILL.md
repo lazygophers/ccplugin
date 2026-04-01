@@ -1,5 +1,5 @@
 ---
-description: Rust 异步编程规范 - Tokio 1.x、async fn in traits、tower middleware、结构化并发。写异步代码时加载。
+description: "Rust异步编程规范 - Tokio 1.x runtime、async/await、async fn in traits、Future/Stream/Pin、tower middleware、结构化并发、死锁排查。编写异步服务、并发任务、网络IO时加载。"
 user-invocable: true
 context: fork
 model: sonnet

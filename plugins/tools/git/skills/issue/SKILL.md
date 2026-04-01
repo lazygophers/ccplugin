@@ -1,5 +1,5 @@
 ---
-description: GitHub Issue 创建和管理规范
+description: "GitHub Issue创建与管理：生成Bug报告和Feature Request模板，包含描述、复现步骤、标签分类，适用于创建issue、报告bug、提交需求场景"
 user-invocable: true
 context: fork
 model: haiku

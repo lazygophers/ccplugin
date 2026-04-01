@@ -1,5 +1,5 @@
 ---
-description: Go 错误处理强制规范：禁止单行 if err、必须记录日志（lazygophers/log 或 slog）、禁止包装错误、errors.Join 聚合、sentinel errors 模式。处理错误时必须加载。
+description: "Go错误处理规范：禁止单行if err、必须记录日志（lazygophers/log或slog）、禁止包装错误、errors.Join聚合、sentinel errors模式。处理Go错误和异常时自动加载。"
 user-invocable: true
 context: fork
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: JavaScript Vue 3.5 开发规范：Composition API、Vapor mode、Pinia、Nuxt 4。开发 Vue 应用时必须加载。
+description: "Vue 3.5开发规范：Composition API组合式API、Vapor mode高性能模式、Pinia状态管理、Nuxt 4全栈框架。开发Vue组件、SFC单文件组件、响应式数据、路由页面时加载。"
 user-invocable: true
 context: fork
 model: sonnet

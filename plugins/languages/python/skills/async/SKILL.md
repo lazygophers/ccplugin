@@ -1,5 +1,5 @@
 ---
-description: Python 异步编程模式 - asyncio、trio、httpx、结构化并发。I/O 密集型操作的最佳实践。
+description: "Python异步编程与并发模式规范。涵盖asyncio事件循环、trio结构化并发、httpx异步HTTP客户端、async/await用法。适用于异步函数编写、并发任务调度、I/O密集型优化、异步API调用等场景。"
 user-invocable: true
 context: fork
 model: sonnet

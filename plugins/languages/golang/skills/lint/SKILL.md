@@ -1,5 +1,5 @@
 ---
-description: Go lint 规范：golangci-lint v2 配置（version "2" schema）、linter 启用/禁用规则、govulncheck 集成、CI 配置。配置或运行 lint 时必须加载。
+description: "Go 静态分析与 lint 规范：golangci-lint v2 配置(version 2 schema)、linter 启用禁用规则、自定义 linter、govulncheck 漏洞扫描、CI 集成配置。适用于配置 lint 规则、修复 lint 警告、代码质量检查场景。"
 user-invocable: true
 context: fork
 model: sonnet

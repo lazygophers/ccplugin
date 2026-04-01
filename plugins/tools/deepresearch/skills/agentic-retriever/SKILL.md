@@ -1,5 +1,5 @@
 ---
-description: Agentic RAG智能检索器 - 动态检索策略+GraphRAG知识图谱，精度高达99%
+description: "Agentic RAG智能检索器 - 基于动态检索策略和GraphRAG知识图谱的多源并行信息采集，支持Web搜索、文档解析、代码库检索，精度达99%"
 user-invocable: false
 context: fork
 model: sonnet

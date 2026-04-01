@@ -1,5 +1,5 @@
 ---
-description: 执行完整的深度研究工作流程 - Task-Centric任务驱动，DGoT核心优化，单次需求收集
+description: "深度研究工作流 - 任务驱动型研究系统，自动编排检索、验证、分析、合成全流程，适用于深度调研、技术选型、竞品分析、文献综述等复杂研究任务"
 user-invocable: true
 context: fork
 model: sonnet

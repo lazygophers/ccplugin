@@ -1,5 +1,5 @@
 ---
-description: Flutter UI 开发规范：Material 3、Cupertino 自适应、响应式布局、Impeller 渲染、动画最佳实践。开发 UI 时必须加载。
+description: "Flutter UI 界面开发规范。涵盖 Material 3 组件、Cupertino 自适应设计、响应式布局策略、Impeller 渲染优化与动画实现。适用于开发页面、组件、布局、主题样式时加载。"
 user-invocable: true
 context: fork
 model: sonnet

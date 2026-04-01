@@ -1,5 +1,5 @@
 ---
-description: Rust 宏开发规范 - 声明宏、derive 宏、proc-macro2 + syn 2.x + quote。开发宏时加载。
+description: "Rust宏开发规范 - macro_rules!声明宏、derive/属性/函数式过程宏、proc-macro2 + syn 2.x + quote工具链。设计宏、编写derive宏、代码生成、元编程时加载。"
 user-invocable: true
 context: fork
 model: sonnet

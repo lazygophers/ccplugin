@@ -1,5 +1,5 @@
 ---
-description: Excel xlsx 文件操作技能 - 读写 Excel 文件、数据分析、格式转换、批量处理
+description: "Excel/xlsx/spreadsheet 文件操作技能 - 读写工作表与单元格、数据分析与统计、CSV格式转换、批量处理。适用于创建报表、数据导入导出、表格计算等场景"
 triggers:
   - excel
   - xlsx

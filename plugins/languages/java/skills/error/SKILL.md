@@ -1,5 +1,5 @@
 ---
-description: Java 错误处理规范 - sealed exception 层次结构、RFC 9457 Problem Details、Optional、SLF4J 结构化日志。处理错误时必须加载。
+description: "Java错误处理规范 - sealed exception层次设计、RFC 9457 Problem Details响应、Optional空值安全、SLF4J结构化日志。设计异常体系、处理错误、编写日志或调试异常堆栈时加载。"
 user-invocable: true
 context: fork
 model: sonnet

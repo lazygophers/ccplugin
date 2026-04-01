@@ -1,5 +1,5 @@
 ---
-description: JavaScript React 19 开发规范：Server Components、Actions、use hook、Next.js 15。开发 React 应用时必须加载。
+description: "React 19开发规范：Server Components服务端组件、Actions表单处理、use hook数据获取、Next.js 15 App Router。开发React组件、页面路由、状态管理、SSR服务端渲染时加载。"
 user-invocable: true
 context: fork
 model: sonnet

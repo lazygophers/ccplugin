@@ -1,5 +1,5 @@
 ---
-description: JavaScript 异步编程规范：async/await、Promise.withResolvers、AbortController、Streams API。处理异步代码时必须加载。
+description: "JavaScript异步编程规范：async/await、Promise链式调用、Promise.withResolvers、AbortController取消控制、Streams API流处理。处理并发请求、异步流程控制、超时取消、数据流时加载。"
 user-invocable: true
 context: fork
 model: sonnet

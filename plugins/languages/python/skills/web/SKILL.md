@@ -1,5 +1,5 @@
 ---
-description: Python Web 框架 - FastAPI 0.115+、Pydantic v2、SQLAlchemy 2.0 异步。现代 Web 开发的最佳实践。
+description: "Python Web开发框架规范。涵盖FastAPI 0.115+路由与依赖注入、Pydantic v2请求响应模型、SQLAlchemy 2.0异步ORM。适用于REST API开发、数据库模型设计、中间件配置、API测试等场景。"
 user-invocable: true
 context: fork
 model: sonnet
