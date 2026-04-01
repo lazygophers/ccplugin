@@ -1,8 +1,9 @@
-%%{init: {'theme':'dark','flowchart': {'nodeSpacing': 22,'rankSpacing': 86,'curve': 'basis','padding': 12},'themeVariables': {'background':'#0f172a','mainBkg':'#0f172a','primaryColor':'#111827','primaryTextColor':'#e5e7eb','primaryBorderColor':'#334155','lineColor':'#94a3b8','secondaryColor':'#0b1220','tertiaryColor':'#111827','clusterBkg':'#0b1220','clusterBorder':'#334155','clusterTextColor':'#e5e7eb','edgeLabelBackground':'#0b1220','fontFamily':'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, \"Apple Color Emoji\", \"Segoe UI Emoji\"'},'themeCSS':'svg{background-color:#0f172a !important;}'}}%%
+%%{init: {'theme':'dark','flowchart': {'nodeSpacing': 22,'rankSpacing': 86,'curve': 'basis','padding': 12},'themeVariables': {'background':'#0f172a','mainBkg':'#0f172a','primaryColor':'#111827','primaryTextColor':'#e5e7eb','primaryBorderColor':'#334155','lineColor':'#94a3b8','secondaryColor':'#0b1220','tertiaryColor':'#111827','clusterBkg':'#0b1220','clusterBorder':'#334155','clusterTextColor':'#e5e7eb','edgeLabelBackground':'#0b1220','fontFamily':'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"'},'themeCSS':'svg{background-color:#0f172a !important;}'}}%%
 flowchart TB
     %% =============================================================================
     %% MindFlow Loop - 迭代式任务编排引擎完整执行流程
     %% 基于 PDCA 循环的智能任务管理系统
+    %% 阶段使用语义化命名（非严格顺序执行）
     %% =============================================================================
 
     %% 节点样式定义
@@ -22,314 +23,314 @@ flowchart TB
     Start([开始: 用户任务])
 
     %% =============================================================================
-    %% 阶段1: 初始化 (Phase 1: Initialization)
+    %% Initialization: 初始化
     %% =============================================================================
-    subgraph P1[阶段1: 初始化]
+    subgraph Init[Initialization: 初始化]
         direction TB
-        P1_1[检查点恢复检测]
-        P1_2{存在检查点?}
-        P1_3[恢复状态<br/>iter/context/plan]
-        P1_Jump[恢复跳转<br/>从 checkpoint 进入对应阶段]
-        P1_4[正常初始化<br/>iter=0, stalled=0]
-        P1_5[生成任务ID: task_id]
-        P1_6[创建状态文件<br/>.claude/task/task_id.json]
-        P1_7[30天自动清理过期状态]
-        P1_8[加载记忆<br/>episodic + semantic]
-        P1_9[资源检查<br/>ListSkills + ListAgents]
+        Init_1[检查点恢复检测]
+        Init_2{存在检查点?}
+        Init_3[恢复状态<br/>iter/context/plan]
+        Init_Jump[恢复跳转<br/>从 checkpoint 进入对应阶段]
+        Init_4[正常初始化<br/>iter=0, stalled=0]
+        Init_5[生成任务ID: task_id]
+        Init_6[创建状态文件<br/>.claude/task/task_id.json]
+        Init_7[残留清理+30天过期清理]
+        Init_8[加载记忆<br/>episodic + semantic]
+        Init_9[资源检查<br/>ListSkills + ListAgents]
 
-        P1_1 --> P1_2
-        P1_2 -->|是| P1_3
-        P1_2 -->|否| P1_4
-        P1_4 --> P1_5
-        P1_3 --> P1_Jump
-        P1_Jump --> P1_5
-        P1_5 --> P1_6
-        P1_6 --> P1_7
-        P1_7 --> P1_8
-        P1_8 --> P1_9
+        Init_1 --> Init_2
+        Init_2 -->|是| Init_3
+        Init_2 -->|否| Init_4
+        Init_4 --> Init_5
+        Init_3 --> Init_Jump
+        Init_Jump --> Init_5
+        Init_5 --> Init_6
+        Init_6 --> Init_7
+        Init_7 --> Init_8
+        Init_8 --> Init_9
     end
 
-    Start --> P1_1
-    P1_Jump -.恢复.-> P4_Entry
-    P1_Jump -.恢复.-> P5_Entry
-    P1_Jump -.恢复.-> P6_Entry
-    P1_Jump -.恢复.-> P7_Entry
+    Start --> Init_1
+    Init_Jump -.恢复.-> Plan_Entry
+    Init_Jump -.恢复.-> Exec_Entry
+    Init_Jump -.恢复.-> Verify_Entry
+    Init_Jump -.恢复.-> Adjust_Entry
 
     %% =============================================================================
-    %% 阶段2: 提示词优化 (Phase 2: Prompt Optimization) - 仅首次
+    %% PromptOptimization: 提示词优化（可选，仅首次）
     %% =============================================================================
-    subgraph P2[阶段2: 提示词优化-仅首次]
+    subgraph PromptOpt[PromptOptimization: 提示词优化 - 可选]
         direction TB
-        P2_1{iter=0?}
-        P2_2[prompt-optimizer<br/>质量评估]
-        P2_3{score小于24?}
-        P2_4[5W1H 提问<br/>AskUserQuestion]
-        P2_5{score小于18?}
-        P2_6[必要时 WebSearch<br/>最佳实践]
-        P2_7[生成优化提示词]
-        P2_8{用户选择<br/>A/B/C}
-        P2_Skip([跳过 P2])
+        PO_1{iter=0?}
+        PO_2[prompt-optimizer<br/>质量评估]
+        PO_3{score < 8?}
+        PO_4[5W1H 提问<br/>AskUserQuestion]
+        PO_5{score < 6?}
+        PO_6[必要时 WebSearch<br/>最佳实践]
+        PO_7[生成优化提示词]
+        PO_8{用户选择<br/>A/B/C}
+        PO_Skip([跳过])
 
-        P2_1 -->|是| P2_2
-        P2_1 -->|否| P2_Skip
-        P2_2 --> P2_3
-        P2_3 -->|是| P2_4
-        P2_3 -->|否| P2_5
-        P2_4 --> P2_5
-        P2_5 -->|是| P2_6
-        P2_5 -->|否| P2_7
-        P2_6 --> P2_7
-        P2_7 --> P2_8
+        PO_1 -->|是| PO_2
+        PO_1 -->|否| PO_Skip
+        PO_2 --> PO_3
+        PO_3 -->|是| PO_4
+        PO_3 -->|否| PO_5
+        PO_4 --> PO_5
+        PO_5 -->|是| PO_6
+        PO_5 -->|否| PO_7
+        PO_6 --> PO_7
+        PO_7 --> PO_8
     end
 
-    P1_9 --> P2_1
-    P2_Skip --> P3_Entry
-    P2_8 -->|A/B:继续| P3_Entry
-    P2_8 -->|C:重做| P2_7
+    Init_9 --> PO_1
+    PO_Skip --> DR_Entry
+    PO_8 -->|A/B:继续| DR_Entry
+    PO_8 -->|C:重做| PO_7
 
     %% =============================================================================
-    %% 阶段3: 深度研究 (Phase 3: Deep Research) - 可选
+    %% DeepResearch: 深度研究（可选）
     %% =============================================================================
-    subgraph P3[阶段3: 深度研究-可选]
+    subgraph DeepRes[DeepResearch: 深度研究 - 可选]
         direction TB
-        P3_Entry{需要深度研究?}
-        P3_1[复杂度评估<br/>4维度]
-        P3_2{≥8?}
-        P3_3{6-8?}
-        P3_4[AskUserQuestion<br/>是否研究]
-        P3_5{用户选择?}
-        P3_6[deepresearch<br/>deep-research]
-        P3_7[并行探索<br/>选型/架构/陷阱]
-        P3_8[整合结果<br/>发现/建议/风险]
-        P3_9[写入<br/>context.research_report]
-        P3_Skip([跳过 P3])
+        DR_Entry{需要深度研究?}
+        DR_1[复杂度评估<br/>4维度]
+        DR_2{≥8?}
+        DR_3{6-8?}
+        DR_4[AskUserQuestion<br/>是否研究]
+        DR_5{用户选择?}
+        DR_6[deepresearch<br/>deep-research]
+        DR_7[并行探索<br/>选型/架构/陷阱]
+        DR_8[整合结果<br/>发现/建议/风险]
+        DR_9[写入<br/>context.research_report]
+        DR_Skip([跳过])
 
-        P3_Entry -->|是| P3_1
-        P3_Entry -->|否| P3_Skip
-        P3_1 --> P3_2
-        P3_2 -->|是| P3_6
-        P3_2 -->|否| P3_3
-        P3_3 -->|是| P3_4
-        P3_3 -->|否| P3_Skip
-        P3_4 --> P3_5
-        P3_5 -->|是| P3_6
-        P3_5 -->|否| P3_Skip
-        P3_6 --> P3_7
-        P3_7 --> P3_8
-        P3_8 --> P3_9
+        DR_Entry -->|是| DR_1
+        DR_Entry -->|否| DR_Skip
+        DR_1 --> DR_2
+        DR_2 -->|是| DR_6
+        DR_2 -->|否| DR_3
+        DR_3 -->|是| DR_4
+        DR_3 -->|否| DR_Skip
+        DR_4 --> DR_5
+        DR_5 -->|是| DR_6
+        DR_5 -->|否| DR_Skip
+        DR_6 --> DR_7
+        DR_7 --> DR_8
+        DR_8 --> DR_9
     end
 
-    P2_Skip --> P3_Entry
-    P3_9 --> P4_Entry
-    P3_Skip --> P4_Entry
+    PO_Skip --> DR_Entry
+    DR_9 --> Plan_Entry
+    DR_Skip --> Plan_Entry
 
     %% =============================================================================
-    %% 阶段4: 计划设计与确认 (Phase 4: Planning & Confirmation)
+    %% Planning: 计划设计与确认
     %% =============================================================================
-    subgraph P4[阶段4: 计划设计与确认]
+    subgraph Plan[Planning: 计划设计与确认]
         direction TB
-        P4_Entry[iteration 加一]
-        P4_Mode[模式判定<br/>iter大于1且trigger?]
-        P4_1[task:planner<br/>含格式化+写文件]
-        P4_Violation[违规检测<br/>Planner完整性]
-        P4_2[处理 planner 返回结果<br/>提取 plan_md_path]
-        P4_3{tasks为空?}
-        P4_SkipExec([跳过执行])
-        P4_5{auto_approve?}
-        P4_6[自动批准]
-        P4_7[AskUserQuestion<br/>请求批准]
-        P4_8{用户批准?}
-        P4_9[提取反馈<br/>replan_trigger=user]
-        P4_10[save_checkpoint]
-        P4_Context[Context-6<br/>project_path/...]
+        Plan_Entry[iteration 加一]
+        Plan_Mode[模式判定<br/>iter>1且trigger?]
+        Plan_1[task:planner<br/>含格式化+写文件]
+        Plan_Violation[违规检测<br/>Planner完整性]
+        Plan_2[处理 planner 返回结果<br/>提取 plan_md_path]
+        Plan_3{tasks为空?}
+        Plan_SkipExec([跳过执行])
+        Plan_5{auto_approve?}
+        Plan_6[自动批准]
+        Plan_7[AskUserQuestion<br/>请求批准]
+        Plan_8{用户批准?}
+        Plan_9[提取反馈<br/>replan_trigger=user]
+        Plan_10[save_checkpoint]
+        Plan_Context[Context-6<br/>project_path/...]
 
-        P4_Entry --> P4_Mode
-        P4_Mode --> P4_1
-        P4_1 --> P4_Violation
-        P4_Violation --> P4_2
-        P4_2 --> P4_3
-        P4_3 -->|是| P4_SkipExec
-        P4_3 -->|否| P4_5
-        P4_5 -->|true| P4_6
-        P4_5 -->|false| P4_7
-        P4_7 --> P4_8
-        P4_8 -->|是| P4_10
-        P4_8 -->|否| P4_9
-        P4_9 -.-> P4_Entry
-        P4_6 --> P4_Context
-        P4_10 --> P4_Context
+        Plan_Entry --> Plan_Mode
+        Plan_Mode --> Plan_1
+        Plan_1 --> Plan_Violation
+        Plan_Violation --> Plan_2
+        Plan_2 --> Plan_3
+        Plan_3 -->|是| Plan_SkipExec
+        Plan_3 -->|否| Plan_5
+        Plan_5 -->|true| Plan_6
+        Plan_5 -->|false| Plan_7
+        Plan_7 --> Plan_8
+        Plan_8 -->|是| Plan_10
+        Plan_8 -->|否| Plan_9
+        Plan_9 -.-> Plan_Entry
+        Plan_6 --> Plan_Context
+        Plan_10 --> Plan_Context
     end
 
-    P4_Context --> P5_Entry
-    P4_SkipExec --> P8_Entry
+    Plan_Context --> Exec_Entry
+    Plan_SkipExec --> Final_Entry
 
     %% =============================================================================
-    %% 阶段5: 任务执行 (Phase 5: Execution)
+    %% Execution: 任务执行
     %% =============================================================================
-    subgraph P5[阶段5: 任务执行]
+    subgraph Exec[Execution: 任务执行]
         direction TB
-        P5_Entry[读取计划文件]
-        P5_1[复杂度评估]
-        P5_2[冲突检测<br/>file_map]
-        P5_3[并行度≤2<br/>batch]
-        P5_4[选批次<br/>无冲突]
-        P5_5[按 DAG<br/>依赖执行]
-        P5_Exec[调用 Agent<br/>执行 task]
-        P5_Context[Context-6+<br/>... + task参数]
+        Exec_Entry[读取计划文件]
+        Exec_1[复杂度评估]
+        Exec_2[冲突检测<br/>file_map]
+        Exec_3[并行度≤2<br/>batch]
+        Exec_4[选批次<br/>无冲突]
+        Exec_5[按 DAG<br/>依赖执行]
+        Exec_Run[调用 Agent/Skill<br/>执行 task]
+        Exec_Context[Context-6+<br/>... + task参数]
 
-        P5_6[执行完整性检查]
-        P5_7{交付物完整?}
-        P5_8[标记 incomplete]
-        P5_9[自动重新调用 Agent]
-        P5_10{重试次数小于2?}
-        P5_11[标记失败]
+        Exec_6[执行完整性检查]
+        Exec_7{交付物完整?}
+        Exec_8[标记 incomplete]
+        Exec_9[自动重新调用 Agent]
+        Exec_10{重试次数<2?}
+        Exec_11[标记失败]
 
-        P5_12[更新任务状态文件<br/>.claude/tasks/*.json]
-        P5_13[更新任务状态文件]
-        P5_14[save_checkpoint<br/>phase=execution]
-        P5_Violation[违规检测点: Skill工具调用检测]
+        Exec_12[更新计划文件状态]
+        Exec_13[更新任务状态文件]
+        Exec_14[save_checkpoint<br/>phase=execution]
+        Exec_Violation[违规检测: Skill/Agent工具调用]
 
-        P5_Entry --> P5_1
-        P5_1 --> P5_2
-        P5_2 --> P5_3
-        P5_3 --> P5_4
-        P5_4 --> P5_5
-        P5_5 --> P5_Exec
-        P5_Exec --> P5_Violation
-        P5_Violation --> P5_Context
-        P5_Context --> P5_6
-        P5_6 --> P5_7
-        P5_7 -->|是| P5_12
-        P5_7 -->|否| P5_8
-        P5_8 --> P5_9
-        P5_9 --> P5_10
-        P5_10 -->|是| P5_Exec
-        P5_10 -->|否| P5_11
-        P5_11 --> P5_12
-        P5_12 --> P5_13
-        P5_13 --> P5_14
+        Exec_Entry --> Exec_1
+        Exec_1 --> Exec_2
+        Exec_2 --> Exec_3
+        Exec_3 --> Exec_4
+        Exec_4 --> Exec_5
+        Exec_5 --> Exec_Run
+        Exec_Run --> Exec_Violation
+        Exec_Violation --> Exec_Context
+        Exec_Context --> Exec_6
+        Exec_6 --> Exec_7
+        Exec_7 -->|是| Exec_12
+        Exec_7 -->|否| Exec_8
+        Exec_8 --> Exec_9
+        Exec_9 --> Exec_10
+        Exec_10 -->|是| Exec_Run
+        Exec_10 -->|否| Exec_11
+        Exec_11 --> Exec_12
+        Exec_12 --> Exec_13
+        Exec_13 --> Exec_14
     end
 
-    P5_14 --> P6_Entry
+    Exec_14 --> Verify_Entry
 
     %% =============================================================================
-    %% 阶段6: 结果验证 (Phase 6: Verification)
+    %% Verification: 结果验证
     %% =============================================================================
-    subgraph P6[阶段6: 结果验证]
+    subgraph Verify[Verification: 结果验证]
         direction TB
-        P6_Entry[前置条件检查]
-        P6_Check{所有任务完成?}
-        P6_Error[触发错误: 未完成就验证]
+        Verify_Entry[前置条件检查]
+        Verify_Check{所有任务完成?}
+        Verify_Error[触发错误: 未完成就验证]
 
-        P6_1[强制: 调用 task:verifier skill]
-        P6_Context[Context-6<br/>project_path/...]
+        Verify_1[强制: 调用 task:verifier]
+        Verify_Context[Context-6<br/>project_path/...]
 
-        P6_2[Stage 1: 验收标准检查]
-        P6_3[Stage 2: 回归测试]
-        P6_4[Stage 3: 深度校验]
-        P6_5[质量评分: 7维度加权]
-        P6_6{status?<br/>passed/suggestions/failed}
-        P6_10{质量达标?}
-        P6_Qual[质量阈值<br/>迭代1=60, 迭代2=75<br/>迭代3=85, 迭代4及以上=90]
+        Verify_2[Stage 1: 验收标准检查]
+        Verify_3[Stage 2: 回归测试]
+        Verify_4[Stage 3: 深度校验]
+        Verify_5[质量评分: 7维度加权]
+        Verify_6{status?<br/>passed/suggestions/failed}
+        Verify_10{质量达标?}
+        Verify_Qual[质量阈值<br/>迭代1=60, 迭代2=75<br/>迭代3=85, 迭代4+=90]
 
-        P6_11[更新 plan frontmatter]
-        P6_12[更新任务状态文件]
-        P6_13[save_checkpoint<br/>phase=verification]
+        Verify_11[更新 plan frontmatter]
+        Verify_12[更新任务状态文件]
+        Verify_13[save_checkpoint<br/>phase=verification]
 
-        P6_Entry --> P6_Check
-        P6_Check -->|否| P6_Error
-        P6_Check -->|是| P6_1
-        P6_1 --> P6_Context
-        P6_Context --> P6_2
-        P6_2 --> P6_3
-        P6_3 --> P6_4
-        P6_4 --> P6_5
-        P6_5 --> P6_6
-        P6_6 --> P6_10
-        P6_10 -->|达标| P6_11
-        P6_10 -->|不达标| P6_Fail[-> 失败调整]
-        P6_11 --> P6_12
-        P6_12 --> P6_13
+        Verify_Entry --> Verify_Check
+        Verify_Check -->|否| Verify_Error
+        Verify_Check -->|是| Verify_1
+        Verify_1 --> Verify_Context
+        Verify_Context --> Verify_2
+        Verify_2 --> Verify_3
+        Verify_3 --> Verify_4
+        Verify_4 --> Verify_5
+        Verify_5 --> Verify_6
+        Verify_6 --> Verify_10
+        Verify_10 -->|达标| Verify_11
+        Verify_10 -->|不达标| Verify_Fail[-> Adjustment]
+        Verify_11 --> Verify_12
+        Verify_12 --> Verify_13
     end
 
-    P6_Route[结果路由<br/>passed→P8 / suggestions→P4 / failed→P7]
-    P6_13 --> P6_Route
-    P6_Route -->|passed| P8_Entry
-    P6_Route -->|suggestions| P4_Entry
-    P6_Route -->|failed| P7_Entry
-    P6_Fail --> P7_Entry
+    Verify_Route[结果路由<br/>passed→Finalization<br/>suggestions→Planning<br/>failed→Adjustment]
+    Verify_13 --> Verify_Route
+    Verify_Route -->|passed| Final_Entry
+    Verify_Route -->|suggestions| Plan_Entry
+    Verify_Route -->|failed| Adjust_Entry
+    Verify_Fail --> Adjust_Entry
 
     %% =============================================================================
-    %% 阶段7: 失败调整 (Phase 7: Adjustment)
+    %% Adjustment: 失败调整（条件触发）
     %% =============================================================================
-    subgraph P7[阶段7: 失败调整]
+    subgraph Adjust[Adjustment: 失败调整]
         direction TB
-        P7_Entry[记忆检索: 提取失败原因]
-        P7_1[search_failure_patterns<br/>检索]
-        P7_2[调用 task:adjuster skill]
-        P7_Context[Context-失败信息<br/>... + failed_tasks + reason]
-        P7_3[分析失败原因]
-        P7_4[决定恢复策略<br/>strategy]
-        P7_5[save_checkpoint<br/>phase=adjustment]
-        P7_6{HITL 审批}
-        P7_7{风险评估}
-        P7_8[指数退避: backoff_seconds]
+        Adjust_Entry[记忆检索: 提取失败原因]
+        Adjust_1[search_failure_patterns<br/>检索]
+        Adjust_2[调用 task:adjuster]
+        Adjust_Context[Context-失败信息<br/>... + failed_tasks + reason]
+        Adjust_3[分析失败原因]
+        Adjust_4[决定恢复策略<br/>strategy]
+        Adjust_5[save_checkpoint<br/>phase=adjustment]
+        Adjust_6{HITL 审批}
+        Adjust_7{风险评估}
+        Adjust_8[指数退避: backoff_seconds]
 
-        P7_Level[5级升级策略-摘要<br/>L1 retry 0s<br/>L2 debug 2s<br/>L3 replan 4s<br/>L4 ask_user<br/>L5 escalate]
-        P7_Route[路由<br/>retry/debug→P5<br/>replan→P4<br/>ask_user→用户<br/>escalate→高级]
+        Adjust_Level[升级策略<br/>L1 retry 0s<br/>L1.5 self-healing 0s<br/>L2 debug 2s<br/>L2.5 micro-replan 4s<br/>L3 full replan 8s<br/>L4 ask_user]
+        Adjust_Route[路由<br/>retry/debug→Execution<br/>replan→Planning<br/>ask_user→用户]
 
-        P7_Stuck[停滞检测:<br/>连续3次相同错误<br/>连续3次重规划相似度大于80%]
+        Adjust_Stuck[停滞检测:<br/>连续3次相同错误<br/>振荡检测A→B→A→B]
 
-        P7_Entry --> P7_1
-        P7_1 --> P7_2
-        P7_2 --> P7_Context
-        P7_Context --> P7_3
-        P7_3 --> P7_4
-        P7_4 --> P7_5
-        P7_5 --> P7_6
-        P7_6 --> P7_7
-        P7_7 --> P7_8
-        P7_8 --> P7_Level
-        P7_Level --> P7_Route
+        Adjust_Entry --> Adjust_1
+        Adjust_1 --> Adjust_2
+        Adjust_2 --> Adjust_Context
+        Adjust_Context --> Adjust_3
+        Adjust_3 --> Adjust_4
+        Adjust_4 --> Adjust_5
+        Adjust_5 --> Adjust_6
+        Adjust_6 --> Adjust_7
+        Adjust_7 --> Adjust_8
+        Adjust_8 --> Adjust_Level
+        Adjust_Level --> Adjust_Route
     end
 
-    P7_User([用户决策])
-    P7_Escalate([高级 Agent])
-    P7_Route -->|retry/debug| P5_Entry
-    P7_Route -->|replan| P4_Entry
-    P7_Route -->|ask_user| P7_User
-    P7_Route -->|escalate| P7_Escalate
+    Adjust_User([用户决策])
+    Adjust_Route -->|retry/debug| Exec_Entry
+    Adjust_Route -->|replan| Plan_Entry
+    Adjust_Route -->|ask_user| Adjust_User
 
     %% =============================================================================
-    %% 阶段8: 完成清理 (Phase 8: Finalization)
+    %% Finalization: 完成清理
     %% =============================================================================
-    subgraph P8[阶段8: 完成清理]
+    subgraph Final[Finalization: 完成清理]
         direction TB
-        P8_Entry[前置条件: 验证通过或确认]
-        P8_1[调用 task:finalizer]
-        P8_Context[Context-6<br/>project_path/...]
+        Final_Entry[前置条件: 验证通过或确认]
+        Final_0[更新任务状态文件<br/>status→completed/failed]
+        Final_1[调用 task:finalizer]
+        Final_Context[Context-6<br/>project_path/...]
 
-        P8_2[模式提取<br/>extract_failure_patterns]
-        P8_3[检查点清理: cleanup_checkpoint]
-        P8_4[记忆保存: save_task_episode]
-        P8_5[短期记忆清理<br/>cleanup_working_memory]
-        P8_6[更新任务状态文件]
-        P8_7[最终报告]
+        Final_2[模式提取<br/>extract_failure_patterns]
+        Final_3[检查点清理: cleanup_checkpoint]
+        Final_4[微回顾: 有效实践/需改进/下次注意]
+        Final_5[记忆保存: save_task_episode]
+        Final_6[短期记忆清理<br/>cleanup_working_memory]
+        Final_7[最终报告]
 
-        P8_Cleanup[临时文件清理规则:<br/>计划文件+检查点+短期记忆<br/>+任务状态30天+中间产物]
+        Final_Cleanup[6类中间产物清理:<br/>计划文件+检查点+审批日志<br/>+指标数据+上下文快照+草稿]
 
-        P8_Entry --> P8_1
-        P8_1 --> P8_Context
-        P8_Context --> P8_2
-        P8_2 --> P8_3
-        P8_3 --> P8_4
-        P8_4 --> P8_5
-        P8_5 --> P8_6
-        P8_6 --> P8_7
-        P8_7 --> P8_Cleanup
+        Final_Entry --> Final_0
+        Final_0 --> Final_1
+        Final_1 --> Final_Context
+        Final_Context --> Final_2
+        Final_2 --> Final_3
+        Final_3 --> Final_4
+        Final_4 --> Final_5
+        Final_5 --> Final_6
+        Final_6 --> Final_7
+        Final_7 --> Final_Cleanup
     end
 
-    P8_Cleanup --> End
+    Final_Cleanup --> End
 
     %% =============================================================================
     %% 结束节点
@@ -337,15 +338,14 @@ flowchart TB
     End([结束: 任务完成])
 
     %% =============================================================================
-    %% 附录入口（连接辅助说明，保证单图连通）
+    %% 附录入口
     %% =============================================================================
     Appendix([附录: 说明与图例])
 
     End --> Appendix
     Appendix --> V_Title
     V_Title --> C_Title
-    C_Title --> ST_Title
-    ST_Title --> L_Title
+    C_Title --> L_Title
 
     %% =============================================================================
     %% 辅助说明图
@@ -353,56 +353,36 @@ flowchart TB
     subgraph Violations[违规检测系统]
         direction TB
         V_Title[四大违规检测点]
-        V1[1. Planner内部流程检测]
-        V2[2. Skill工具调用检测]
-        V3[3. Verifier调用检测]
-        V4[4. Finalizer调用检测]
+        V1[Planner内部流程检测]
+        V2[Skill/Agent工具调用检测]
+        V3[Verifier调用检测]
+        V4[Finalizer调用检测]
         V_Title --> V1
         V_Title --> V2
         V_Title --> V3
         V_Title --> V4
     end
 
-    subgraph Context说明[上下文传递规范]
+    subgraph ContextSpec[上下文传递规范]
         direction TB
         C_Title[每次调用必须显式传递]
         C_Rule[核心原则: 不依赖会话上下文]
-        C_Fields[6个必传字段]
+        C_Fields[6个必传字段<br/>project_path/task_id/iteration<br/>plan_md_path/working_directory/user_task]
         C_Warning[遗漏任何字段将导致无法正确定位]
         C_Title --> C_Rule
         C_Rule --> C_Fields
         C_Fields --> C_Warning
     end
 
-    subgraph StateTransitions[状态转换图]
-        direction TB
-        ST_Title[MindFlow 状态转换]
-        ST[P4: 计划设计]
-        ST1[P5: 任务执行]
-        ST2[P6: 结果验证]
-        ST3[P7: 失败调整]
-        ST4[P8: 完成清理]
-        ST_User([用户决策])
-
-        ST -->|用户批准| ST1
-        ST1 -->|完成| ST2
-        ST2 -->|passed| ST4
-        ST2 -->|suggestions| ST
-        ST2 -->|failed| ST3
-        ST3 -->|retry或debug| ST1
-        ST3 -->|replan| ST
-        ST3 -->|ask_user| ST_User
-    end
-
     subgraph Legend[图例说明]
         direction TB
         L_Title[节点类型]
         L1[常规阶段]
-        L2[可选阶段]
+        L2[可选阶段 - 虚线边框]
         L3[决策节点]
-        L4[违规检测]
+        L4[违规检测 - 红色]
         L5[开始/结束]
-        L6[上下文说明]
+        L6[上下文说明 - 绿色]
 
         L_Title --> L1
         L_Title --> L2
@@ -414,41 +394,55 @@ flowchart TB
 
     %% =============================================================================
     %% 应用样式类
-    %%
+    %% =============================================================================
 
-    %% 阶段节点
-    class P1_1,P1_3,P1_4,P1_5,P1_6,P1_7,P1_8,P1_9 phaseNode
-    class P2_2,P2_4,P2_6,P2_7 optionalNode
-    class P3_1,P3_6,P3_7,P3_8 optionalNode
-    class P4_Entry,P4_1,P4_2,P4_6,P4_10 phaseNode
-    class P5_Entry,P5_1,P5_2,P5_3,P5_4,P5_5,P5_Exec,P5_12,P5_13,P5_14 phaseNode
-    class P6_Entry,P6_2,P6_3,P6_4,P6_5,P6_11,P6_12,P6_13 phaseNode
-    class P7_Entry,P7_3,P7_4,P7_5,P7_8 phaseNode
-    class P8_Entry,P8_2,P8_3,P8_4,P8_5,P8_6,P8_7 phaseNode
+    %% Initialization 节点
+    class Init_1,Init_3,Init_4,Init_5,Init_6,Init_7,Init_8,Init_9 phaseNode
+
+    %% PromptOptimization 节点（可选）
+    class PO_2,PO_4,PO_6,PO_7 optionalNode
+
+    %% DeepResearch 节点（可选）
+    class DR_1,DR_6,DR_7,DR_8 optionalNode
+
+    %% Planning 节点
+    class Plan_Entry,Plan_1,Plan_2,Plan_6,Plan_10 phaseNode
+
+    %% Execution 节点
+    class Exec_Entry,Exec_1,Exec_2,Exec_3,Exec_4,Exec_5,Exec_Run,Exec_12,Exec_13,Exec_14 phaseNode
+
+    %% Verification 节点
+    class Verify_Entry,Verify_2,Verify_3,Verify_4,Verify_5,Verify_11,Verify_12,Verify_13 phaseNode
+
+    %% Adjustment 节点
+    class Adjust_Entry,Adjust_3,Adjust_4,Adjust_5,Adjust_8 phaseNode
+
+    %% Finalization 节点
+    class Final_Entry,Final_0,Final_2,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
 
     %% 决策节点
-    class P1_2,P2_1,P2_3,P2_5,P2_8,P3_Entry,P3_2,P3_3,P3_5,P4_3,P4_5,P4_8,P5_7,P5_10,P6_Check,P6_6,P6_10,P7_6,P7_7 decisionNode
+    class Init_2,PO_1,PO_3,PO_5,PO_8,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,Verify_10,Adjust_6,Adjust_7 decisionNode
 
     %% 违规检测节点
-    class P4_Violation,P5_Violation,P6_1,P7_2,P8_1,V1,V2,V3,V4 violationNode
+    class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,Final_1,V1,V2,V3,V4 violationNode
 
     %% 上下文说明节点
-    class P1_Jump,P4_Mode,P4_Context,P5_Context,P6_Context,P6_Route,P7_Context,P7_Level,P7_Route,P8_Context,P6_Qual,P7_Stuck,P8_Cleanup,C_Fields contextNode
+    class Init_Jump,Plan_Mode,Plan_Context,Exec_Context,Verify_Context,Verify_Route,Adjust_Context,Adjust_Level,Adjust_Route,Final_Context,Verify_Qual,Adjust_Stuck,Final_Cleanup,C_Fields contextNode
 
     %% 开始结束节点
     class Start startNode
-    class P2_Skip,P3_Skip,P4_SkipExec skipNode
-    class P6_Fail,P6_Error,C_Warning errorNode
+    class PO_Skip,DR_Skip,Plan_SkipExec skipNode
+    class Verify_Fail,Verify_Error,C_Warning errorNode
     class End endNode
 
     %% 额外节点
-    class P7_User,P7_Escalate optionalNode
+    class Adjust_User optionalNode
 
     %% 可选阶段容器
-    class P2,P3 optionalNode
+    class PromptOpt,DeepRes optionalNode
 
     %% 附录节点
     class Appendix contextNode
 
-    %% 全局连线样式（适配深色背景）
+    %% 全局连线样式
     linkStyle default stroke:#94a3b8,stroke-width:1.5px

@@ -1,0 +1,117 @@
+%% MindFlow 状态转换图
+%% 展示阶段之间的非线性转换关系，突出条件分支和可选路径
+
+stateDiagram-v2
+    [*] --> Initialization
+
+    state Initialization {
+        [*] --> ResetState: 重置 iteration/context
+        ResetState --> GenTaskId: 生成 task_id
+        GenTaskId --> CheckResidual: 检查残留计划
+        CheckResidual --> LoadMemory: 加载项目记忆
+        LoadMemory --> [*]
+    }
+
+    Initialization --> FirstIteration: 首次迭代?
+
+    state FirstIteration <<choice>>
+    FirstIteration --> PromptOptimization: 是（可选阶段）
+    FirstIteration --> Planning: 否（跳过优化）
+
+    state PromptOptimization {
+        [*] --> QualityAssess: 质量评估
+        QualityAssess --> Optimize5W1H: 5W1H 结构化
+        Optimize5W1H --> UserChoice: 用户选择
+        UserChoice --> [*]
+    }
+    note right of PromptOptimization: 可选阶段\n仅首次迭代触发
+
+    state prompt_choice <<choice>>
+    PromptOptimization --> prompt_choice
+    prompt_choice --> DeepResearch: A/B - 继续
+    prompt_choice --> PromptOptimization: C - 重新优化
+
+    state NeedResearch <<choice>>
+    prompt_choice --> NeedResearch: 评估复杂度
+    NeedResearch --> DeepResearch: 复杂度>8 或 失败2次
+    NeedResearch --> Planning: 不需要研究
+
+    state DeepResearch {
+        [*] --> ComplexityEval: 复杂度评估
+        ComplexityEval --> ExploreAgent: Agent 探索
+        ExploreAgent --> IntegrateResults: 整合结果
+        IntegrateResults --> [*]
+    }
+    note right of DeepResearch: 可选阶段\n复杂度>8 自动触发
+
+    DeepResearch --> Planning
+
+    state Planning {
+        [*] --> ContextLearning: 三层上下文学习
+        ContextLearning --> MECEDecompose: MECE 分解
+        MECEDecompose --> DAGBuild: DAG 依赖建模
+        DAGBuild --> WritePlan: 写入计划文件
+        WritePlan --> UserConfirm: 用户确认
+        UserConfirm --> [*]
+    }
+
+    state plan_result <<choice>>
+    Planning --> plan_result
+    plan_result --> Execution: confirmed（批准）
+    plan_result --> Planning: rejected（修改意见）
+    plan_result --> Finalization: no_tasks / cancelled
+
+    state Execution {
+        [*] --> ReadPlan: 读取计划文件
+        ReadPlan --> RunTasks: 按 DAG 顺序执行
+        RunTasks --> UpdateStatus: 更新任务状态
+        UpdateStatus --> SaveCheckpoint: 保存检查点
+        SaveCheckpoint --> [*]
+    }
+    note left of Execution: 通过 Skill() 调用\n禁止直接 Edit/Write
+
+    Execution --> Verification
+
+    state Verification {
+        [*] --> SpecCompliance: Stage1 功能合规
+        SpecCompliance --> CodeQuality: Stage2 代码质量
+        CodeQuality --> DeepValidation: Stage3 深度校验
+        DeepValidation --> [*]
+    }
+
+    state verify_result <<choice>>
+    Verification --> verify_result
+    verify_result --> Finalization: passed（通过）
+    verify_result --> Planning: suggestions（优化建议）
+    verify_result --> Adjustment: failed（失败）
+
+    state Adjustment {
+        [*] --> AnalyzeFailure: 分析失败原因
+        AnalyzeFailure --> SelectStrategy: 选择策略
+        SelectStrategy --> [*]
+    }
+    note left of Adjustment: 5级升级策略\nretry→debug→replan\n→ask_user→escalate
+
+    state adjust_result <<choice>>
+    Adjustment --> adjust_result
+    adjust_result --> Execution: retry / debug
+    adjust_result --> Planning: replan
+    adjust_result --> WaitUser: ask_user
+
+    state WaitUser {
+        [*] --> AskGuidance: 请求用户指导
+        AskGuidance --> [*]
+    }
+    WaitUser --> Planning: 用户提供方向
+
+    state Finalization {
+        [*] --> UpdateTaskStatus: 更新任务状态文件
+        UpdateTaskStatus --> CallFinalizer: 调用 Finalizer
+        CallFinalizer --> CleanResources: 清理6类中间产物
+        CleanResources --> SaveMemory: 保存执行记忆
+        SaveMemory --> MicroRetro: 微回顾
+        MicroRetro --> [*]
+    }
+    note right of Finalization: 即使失败也必须执行\n清理计划/检查点/草稿
+
+    Finalization --> [*]

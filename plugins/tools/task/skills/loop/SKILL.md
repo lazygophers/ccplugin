@@ -35,12 +35,12 @@ user-invocable: true
 
 **Loop 是一个不可中断的完整流程。以下规则优先级高于所有其他规则：**
 
-1. **禁止提前停止**：在完成阶段6（Finalizer 清理）之前，**绝对禁止**结束回复或停止执行。只有阶段6的 finalizer 执行完成且最终报告输出后，才允许结束回复。
+1. **禁止提前停止**：在完成 Finalization（Finalizer 清理）之前，**绝对禁止**结束回复或停止执行。只有 Finalization 的 finalizer 执行完成且最终报告输出后，才允许结束回复。
 2. **阶段必须连续**：每个阶段完成后，**必须立即**在同一回复中继续执行下一阶段，不等待用户响应（用户确认阶段除外）。
 3. **禁止输出原始 JSON**：**禁止**直接输出子 skill 返回的原始 JSON 数据。只输出人类可读的进度摘要（如"计划已确认（8个任务），开始执行..."）。
 4. **强制完整性**：即使任务全部失败，也必须执行完 Verifier → Adjuster → Finalizer 的完整流程后才能结束。
 
-**自检规则**：每次完成一个阶段时，检查"我是否已到达阶段6且 finalizer 已执行？"——如果不是，**必须继续**。
+**自检规则**：每次完成一个阶段时，检查"我是否已到达 Finalization 且 finalizer 已执行？"——如果不是，**必须继续**。
 
 ## 【铁律】禁止跳过的步骤
 
@@ -75,7 +75,7 @@ user-invocable: true
 | 字段 | 类型 | 说明 | 来源 |
 |------|------|------|------|
 | project_path | string | 项目根目录绝对路径 | 初始化阶段确定 |
-| task_id | string | 任务唯一标识 | Phase 1生成 |
+| task_id | string | 任务唯一标识 | Initialization 阶段生成 |
 | iteration | number | 当前迭代轮次 | loop状态变量 |
 | plan_md_path | string | 计划文件绝对路径 | 计划设计阶段生成 |
 | working_directory | string | 工作目录 | 等于project_path或子目录 |
@@ -87,15 +87,15 @@ user-invocable: true
 
 **Prepare**（flows/prompt-optimization）→ **Plan**（flows/plan，必须包含计划确认）→ **Do**（按计划中任务的 skill 执行）→ **Check**（flows/verify）→ **Act**（task:adjuster）
 
-**8个阶段**：
-1. 初始化
-2. 提示词优化（可选）
-3. 深度研究（可选）
-4. 计划设计与确认
-5. 任务执行
-6. 结果验证
-7. 失败调整（如需）
-8. 完成
+**8个阶段**（语义化命名，非严格顺序）：
+- **Initialization** — 初始化
+- **PromptOptimization** — 提示词优化（可选）
+- **DeepResearch** — 深度研究（可选）
+- **Planning** — 计划设计与确认
+- **Execution** — 任务执行
+- **Verification** — 结果验证
+- **Adjustment** — 失败调整（条件触发）
+- **Finalization** — 完成清理
 
 **关键要求**：
 - **所有输出必须以 [MindFlow·${task_id}] 开头**（强制规则，无例外。task_id在初始化阶段生成）
@@ -141,13 +141,21 @@ user-invocable: true
 
 严格按阶段顺序执行，不可跳过。
 
-### 阶段1：初始化
+### Initialization: 初始化
 
 重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
 
 详见 [phase-1-initialization.md](phases/phase-1-initialization.md)
 
-### 阶段2：计划设计与确认
+### PromptOptimization: 提示词优化（可选）
+
+仅首次迭代（iteration=0）时评估。质量 ≥8 分静默跳过，<8 分使用 5W1H 框架澄清需求。详见 [phase-2-prompt-optimization.md](phases/phase-2-prompt-optimization.md)
+
+### DeepResearch: 深度研究（可选）
+
+触发条件：复杂度 >8 自动触发 | 失败 2 次询问用户 | 用户显式请求。详见 [phase-3-deep-research.md](phases/phase-3-deep-research.md) 和 [deep-research-triggers.md](deep-research-triggers.md)
+
+### Planning: 计划设计与确认
 
 **前置条件**：iteration 已递增，有明确的任务目标
 
@@ -164,10 +172,10 @@ user-invocable: true
 
 | planner 返回 status | loop 处理 | 强制要求 |
 |---------------------|----------|---------|
-| `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入阶段3（任务执行） |
-| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到阶段2 |
-| `no_tasks` | - | **必须立即**跳到阶段6（完成清理） |
-| `cancelled` | - | **必须立即**跳到阶段6（完成清理） |
+| `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
+| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 Planning |
+| `no_tasks` | - | **必须立即**跳到 Finalization（完成清理） |
+| `cancelled` | - | **必须立即**跳到 Finalization（完成清理） |
 
 **禁止**：处理完 planner 返回结果后就结束回复。**必须**立即继续执行下一阶段。
 
@@ -178,7 +186,7 @@ user-invocable: true
 
 详见 [flows/plan.md](flows/plan.md) 和 [phase-4-planning.md](phases/phase-4-planning.md)
 
-### 阶段3：任务执行
+### Execution: 任务执行
 
 **前置条件**：计划文件存在，已获得用户批准
 
@@ -189,16 +197,16 @@ user-invocable: true
 - ✓ 计划文件已更新任务状态
 - ✓ 已保存检查点
 
-**禁止**：任务执行完成后就结束回复。**必须立即**在同一回复中进入阶段4（结果验证）。
+**禁止**：任务执行完成后就结束回复。**必须立即**在同一回复中进入Verification（结果验证）。
 
-### 阶段4：结果验证
+### Verification: 结果验证
 
 **前置条件**：所有任务已执行完成
 
 【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支**必须立即继续**：
-- `passed` → **必须立即**进入阶段6（完成清理）
-- `suggestions` → 设 `replan_trigger="verifier"` → **必须立即**回到阶段2（自动迭代）
-- `failed` → **必须立即**进入阶段5（失败调整）
+- `passed` → **必须立即**进入 Finalization（完成清理）
+- `suggestions` → 设 `replan_trigger="verifier"` → **必须立即**回到Planning（自动迭代）
+- `failed` → **必须立即**进入Adjustment（失败调整）
 
 **后置验证点**：
 - ✓ verifier已被调用并返回结果
@@ -207,16 +215,16 @@ user-invocable: true
 
 **禁止**：验证完成后就结束回复。**必须立即**按状态分支继续执行下一阶段。
 
-### 阶段5：失败调整
+### Adjustment: 失败调整
 
 调用 task:adjuster skill 分析。根据 `strategy` 分支**必须立即继续**：
-- `retry`/`debug` → **必须立即**回到阶段3（任务执行）
-- `replan` → 设 `replan_trigger="adjuster"` → **必须立即**回到阶段2
+- `retry`/`debug` → **必须立即**回到Execution（任务执行）
+- `replan` → 设 `replan_trigger="adjuster"` → **必须立即**回到 Planning
 - `ask_user` → AskUserQuestion 请求指导 → 获得响应后**必须立即**继续
 
 **禁止**：调整完成后就结束回复。**必须立即**按策略分支继续执行。
 
-### 阶段6：完成清理
+### Finalization: 完成清理
 
 **前置条件**：验证通过或用户确认完成
 
@@ -240,7 +248,7 @@ user-invocable: true
 
 详见 [phase-8-finalization.md](phases/phase-8-finalization.md)
 
-**阶段6是唯一允许结束 loop 的阶段**。只有 finalizer 执行完成且最终报告输出后，才允许结束回复。
+**Finalization 是唯一允许结束 loop 的阶段**。只有 finalizer 执行完成且最终报告输出后，才允许结束回复。
 
 开始执行 PDCA 循环。
 
@@ -265,7 +273,7 @@ Loop 在关键阶段设置检查点，自动检测流程违规行为：
    - 违规判定：直接使用 Edit/Write/Bash 等工具，而非通过 Skill() 调用
 
 3. **Verifier 调用检测**：
-   - 检查点：进入阶段6（完成）或阶段7（失败调整）前
+   - 检查点：进入 Finalization 或 Adjustment 前
    - 检测方法：检查 task:verifier skill 是否被调用
    - 违规判定：未调用 verifier 就进入下一阶段
 
