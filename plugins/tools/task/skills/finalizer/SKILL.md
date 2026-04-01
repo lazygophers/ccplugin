@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:finalizer) - 资源清理规范
 
 <overview>
@@ -52,3 +54,5 @@ JSON: `{status, report(≤200字), cleanup_summary{tasks_terminated,tasks_cancel
 注意：即使部分失败也完成剩余清理，不因单个错误停止整个流程。
 
 </reference>
+
+<!-- /STATIC_CONTENT -->

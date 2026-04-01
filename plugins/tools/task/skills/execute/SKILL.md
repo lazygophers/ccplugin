@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:execute) - 任务执行规范
 
 <overview>
@@ -102,3 +104,5 @@ T3: 创建商品模型 ········ 待执行(依赖 T2)
 **禁止使用 TeamCreate/TeamDelete**：所有任务执行通过 Agent 直接调用或 `Agent(..., run_in_background=True)` 并行执行。Agent 自动管理资源生命周期，无需手动清理。
 
 </rules>
+
+<!-- /STATIC_CONTENT -->

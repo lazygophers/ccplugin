@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:explorer-database) - 数据库探索
 
 分析数据库架构：schema/表关系/索引/迁移。支持PostgreSQL/MySQL/SQLite/MongoDB/Redis + Prisma/TypeORM/GORM/SQLAlchemy/Django ORM/Drizzle。
@@ -47,3 +49,5 @@ ORM：`glob("**/schema.prisma")` | `grep("gorm.Model")` | `grep("__tablename__")
 ## 指南
 
 ORM优先于原始SQL | 迁移按时间序分析 | NoSQL从代码推断结构
+
+<!-- /STATIC_CONTENT -->

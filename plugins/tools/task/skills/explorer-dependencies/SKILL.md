@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:explorer-dependencies) - 依赖探索
 
 分析项目依赖：依赖树/安全漏洞/版本管理/许可证合规。支持npm/yarn/pnpm/pip/poetry/uv/go mod/Maven/Gradle/Cargo。
@@ -41,3 +43,5 @@ JSON含：`package_manager{name,lock_file,config}` + `dependencies{direct,dev,tr
 ## 指南
 
 先识别包管理器 | 优先用lock文件 | 按严重级别排序审计结果 | 注意Monorepo场景
+
+<!-- /STATIC_CONTENT -->

@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:explorer-test) - 测试探索
 
 分析项目测试体系：框架识别/覆盖率/质量评估/缺口识别。支持Jest/Vitest/pytest/go testing/JUnit/Playwright/Cypress。
@@ -43,3 +45,5 @@ JSON包含：`test_framework{name,version,config,mock}` + `test_files{total,unit
 ## 指南
 
 先识别框架 | 有覆盖率报告直接用 | 按文件位置/导入/名称分类测试类型
+
+<!-- /STATIC_CONTENT -->

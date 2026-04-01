@@ -9,6 +9,8 @@ skills:
   - deepresearch:deep-research
 model: sonnet
 memory: project
+context: conversation
+user-invocable: true
 ---
 
 <!-- STATIC_CONTENT: Cacheable (4800+ tokens) -->

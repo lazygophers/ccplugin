@@ -1,5 +1,6 @@
 ---
 description: 智能并行调度 - 基于任务复杂度动态调整并行度，支持Fan-in/Fan-out模式，优化任务执行效率
+model: haiku
 context: fork
 user-invocable: false
 ---

@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:checkpoint) - 检查点管理
 
 为MindFlow Loop提供状态持久化，允许中断后恢复执行。阶段转换时自动保存检查点。
@@ -47,3 +49,5 @@ user-invocable: false
 ## 相关文档
 
 [集成与示例](./integration-examples.md) | [状态序列化](./state-serializer.md)
+
+<!-- /STATIC_CONTENT -->
