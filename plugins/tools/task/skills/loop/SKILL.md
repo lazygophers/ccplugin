@@ -47,7 +47,7 @@ user-invocable: true
 以下 4 个步骤是 loop 流程的基石，**绝对禁止跳过**，违规将导致流程验证失败：
 
 1. **Planner 内部流程**：必须完成三层上下文学习（L1项目理解 + L2规范记忆 + L3目标文件），未完成不可进入计划设计
-2. **Skill 工具调用**：任务执行阶段必须通过 `Skill()` 工具调用计划中指定的 skill，禁止直接使用 Edit/Write/Bash 等工具
+2. **Skill/Agent 工具调用**：任务执行阶段必须通过 `Skill()` 或 `Agent()` 工具调用计划中指定的 skill/agent，禁止直接使用 Edit/Write/Bash 等工具
 3. **Verifier 验证**：结果验证阶段必须调用 `task:verifier` skill，禁止跳过或用简单检查替代
 4. **Finalizer 清理**：完成阶段必须调用 `task:finalizer` skill，即使任务失败也必须执行
 
@@ -55,16 +55,15 @@ user-invocable: true
 
 ## Reflection 自检检查点
 
-**每个阶段完成后，必须执行 Reflection 自检（≤30秒）**，验证以下 3 项：
+**每个阶段完成后，执行 Reflection 自检**，验证以下 2 项：
 
-1. **输出质量**：本阶段产出是否完整、准确、可用于下一阶段？
-2. **铁律遵守**：是否通过 Skill() 调用而非直接工具？是否遗漏必要步骤？
-3. **上下文完整性**：Skill/Agent 调用是否包含 6 个必传字段？
+1. **铁律遵守**：是否通过 Skill()/Agent() 调用而非直接工具？是否遗漏必要步骤（Planner三层学习/Verifier/Finalizer）？
+2. **状态转换正确**：下一阶段是否与当前结果匹配（如 confirmed→Execution、passed→Finalization）？6 个必传字段是否就绪？
 
-**退出条件**（防止无限自检循环）：
+**规则**：
 - 自检最多执行 1 次，不循环
-- 发现问题时：记录到状态日志，在当前阶段内修复后继续（不回退）
-- 自检不产生额外输出，仅在发现违规时输出 `[MindFlow·${task_id}·Reflection] 检测到：{问题描述}，已修复`
+- 发现问题时：在当前阶段内修复后继续（不回退）
+- 发现违规时输出 `[MindFlow·${task_id}·Reflection] 检测到：{问题描述}，已修复`
 
 ## 独立上下文传递规范
 
@@ -82,6 +81,15 @@ user-invocable: true
 | user_task | string | 用户原始任务描述 | 用户输入 |
 
 **规则**：所有 `Skill()` / `Agent()` 调用的 args/prompt 必须包含以上 6 个字段，禁止依赖隐式上下文。遗漏任何字段将导致被调用方无法正确定位项目、任务或工作目录。
+
+**调用前自检**（每次 Skill/Agent 调用前必须执行）：
+- ✓ project_path 非空且为绝对路径
+- ✓ task_id 非空（Initialization 阶段已生成）
+- ✓ iteration ≥ 1（已递增）
+- ✓ plan_md_path 非空且文件存在（Planning 阶段后）
+- ✓ working_directory 非空且目录存在
+- ✓ user_task 非空（用户原始输入）
+- 缺失任何字段 → 停止调用，在当前阶段内补全后重试
 
 ## PDCA 流程
 
@@ -145,15 +153,15 @@ user-invocable: true
 
 重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
 
-详见 [phase-1-initialization.md](phases/phase-1-initialization.md)
+详见 [phase-initialization.md](phases/phase-initialization.md)
 
 ### PromptOptimization: 提示词优化（可选）
 
-仅首次迭代（iteration=0）时评估。质量 ≥8 分静默跳过，<8 分使用 5W1H 框架澄清需求。详见 [phase-2-prompt-optimization.md](phases/phase-2-prompt-optimization.md)
+仅首次迭代（iteration=0）时评估。质量 ≥8 分静默跳过，<8 分使用 5W1H 框架澄清需求。详见 [phase-prompt-optimization.md](phases/phase-prompt-optimization.md)
 
 ### DeepResearch: 深度研究（可选）
 
-触发条件：复杂度 >8 自动触发 | 失败 2 次询问用户 | 用户显式请求。详见 [phase-3-deep-research.md](phases/phase-3-deep-research.md) 和 [deep-research-triggers.md](deep-research-triggers.md)
+触发条件：复杂度 >8 自动触发 | 失败 2 次询问用户 | 用户显式请求。详见 [phase-deep-research.md](phases/phase-deep-research.md) 和 [deep-research-triggers.md](deep-research-triggers.md)
 
 ### Planning: 计划设计与确认
 
@@ -184,7 +192,7 @@ user-invocable: true
 - ✓ 计划文件包含有效的 YAML frontmatter 和任务列表
 - ✓ 已获得用户批准或自动批准
 
-详见 [flows/plan.md](flows/plan.md) 和 [phase-4-planning.md](phases/phase-4-planning.md)
+详见 [flows/plan.md](flows/plan.md) 和 [phase-planning.md](phases/phase-planning.md)
 
 ### Execution: 任务执行
 
@@ -246,7 +254,7 @@ user-invocable: true
 - ✓ 检查点已清理
 - ✓ 执行记忆已保存
 
-详见 [phase-8-finalization.md](phases/phase-8-finalization.md)
+详见 [phase-finalization.md](phases/phase-finalization.md)
 
 **Finalization 是唯一允许结束 loop 的阶段**。只有 finalizer 执行完成且最终报告输出后，才允许结束回复。
 
@@ -263,23 +271,27 @@ user-invocable: true
 Loop 在关键阶段设置检查点，自动检测流程违规行为：
 
 1. **Planner 内部流程检测**：
-   - 检查点：planner 输出 JSON 前
-   - 检测方法：验证是否包含三层上下文学习的证据（读取的文件列表、项目理解摘要）
-   - 违规判定：未读取 README/CLAUDE.md，未检查规范和记忆，未读取目标相关文件
+   - 检测者：**Planner 自检**（planner 在输出 JSON 前自行验证）
+   - 检测时机：planner 返回结果前
+   - 检测方法：planner 在 report 中声明已完成 L1/L2/L3（如"已读取 README.md、CLAUDE.md、目标文件"）
+   - 违规判定：report 中无三层学习证据
 
-2. **Skill 工具调用检测**：
-   - 检查点：任务执行阶段，每个任务开始前
-   - 检测方法：监控工具调用记录，验证是否使用 `Skill()` 工具
-   - 违规判定：直接使用 Edit/Write/Bash 等工具，而非通过 Skill() 调用
+2. **Skill/Agent 工具调用检测**：
+   - 检测者：**Reflection 自检**（每个阶段完成后的 Reflection 检查点）
+   - 检测时机：Execution 阶段每个任务完成后
+   - 检测方法：回顾本阶段是否通过 Skill()/Agent() 调用，而非直接 Edit/Write/Bash
+   - 违规判定：发现直接工具调用，输出 Reflection 违规日志
 
 3. **Verifier 调用检测**：
-   - 检查点：进入 Finalization 或 Adjustment 前
-   - 检测方法：检查 task:verifier skill 是否被调用
-   - 违规判定：未调用 verifier 就进入下一阶段
+   - 检测者：**Loop 主体**（进入 Finalization/Adjustment 前检查）
+   - 检测时机：Execution 完成后、准备进入下一阶段前
+   - 检测方法：确认已调用 `Skill(skill="task:verifier", ...)` 并获得返回结果
+   - 违规判定：未调用 verifier 就尝试进入 Finalization/Adjustment
 
 4. **Finalizer 调用检测**：
-   - 检查点：Loop 结束前
-   - 检测方法：检查 task:finalizer skill 是否被调用
+   - 检测者：**Loop 主体**（Loop 结束前检查）
+   - 检测时机：准备输出最终完成消息前
+   - 检测方法：确认已调用 `Skill(skill="task:finalizer", ...)` 并获得返回结果
    - 违规判定：Loop 即将结束但未调用 finalizer
 
 ### 处理策略
@@ -287,7 +299,7 @@ Loop 在关键阶段设置检查点，自动检测流程违规行为：
 | 违规类型 | 严重程度 | 处理策略 |
 |---------|---------|---------|
 | Planner 内部流程不完整 | 高 | 强制回退到计划设计阶段，要求完成三层上下文学习 |
-| 未使用 Skill 工具 | 高 | 警告并记录违规，verifier 阶段会检测并报告 |
+| 未使用 Skill/Agent 工具 | 高 | 警告并记录违规，verifier 阶段会检测并报告 |
 | 跳过 Verifier | 严重 | 强制回退到结果验证阶段，必须调用 verifier |
 | 跳过 Finalizer | 严重 | 阻止 loop 结束，强制调用 finalizer 清理资源 |
 

@@ -11,7 +11,11 @@ user-invocable: false
 
 ## 概述
 
-任务失败时介入，借鉴Circuit Breaker模式分析原因、检测停滞、分级升级。六级策略：L1 Retry(1次错误,0s) → L1.5 Self-Healing(匹配17类错误,0s) → L2 Debug(深度诊断,2s) → L2.5 Micro-Replan(仅失败任务+直接依赖) → L3 Full Replan(重建计划) → L4 Ask User(人工指导)。退避：`2^(failure_count-1)`秒。振荡检测(A→B→A→B立即ask_user)。紧急逃逸(总失败≥15立即ask_user)。
+任务失败时介入，借鉴Circuit Breaker模式分析原因、检测停滞、分级升级。六级策略：L1 Retry(1次错误,0s) → L1.5 Self-Healing(匹配17类错误,0s) → L2 Debug(深度诊断,2s) → L2.5 Micro-Replan(仅失败任务+直接依赖) → L3 Full Replan(重建计划) → L4 Ask User(人工指导)。退避：`2^(failure_count-1)`秒。
+
+**停滞检测**：当连续 2 次失败的 `error_type` + 失败任务 ID 完全相同时，判定为停滞（相同错误在相同任务上重复出现）。停滞后跳过中间级别，直接升级到 L4 Ask User。
+
+**振荡检测**：策略模式出现 A→B→A→B 交替时，立即 ask_user。**紧急逃逸**：总失败≥15 立即 ask_user。
 
 ## Red Flags
 

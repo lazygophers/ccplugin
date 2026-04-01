@@ -54,7 +54,7 @@ skills:
 - **明确所有权**：识别资源归属，所有者负责释放
 - **错误容忍**：单个错误不阻止整个清理流程
 - **逆序清理**：先创建后清理，先停任务再清文件
-- **防御性**：try-except包裹，部分失败继续执行
+- **防御性**：每个操作独立执行并捕获错误，部分失败继续执行
 
 </core_principles>
 
@@ -86,7 +86,7 @@ JSON 输出，必含：`status`（completed/partially_completed）、`report`（
 
 <guidelines>
 
-**必须**：逆序清理、try-except包裹、部分失败继续、记录所有错误、先停任务再清文件。
+**必须**：逆序清理、每步独立执行并捕获错误、部分失败继续、记录所有错误、先停任务再清文件。
 **禁止**：单错误停止全部、跳过资源盘点、删除非当前迭代文件。
 错误类型：task_termination_failed/file_deletion_failed/permission_denied/resource_locked，均记录后继续。
 

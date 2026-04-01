@@ -1,6 +1,6 @@
-<!-- STATIC_CONTENT: Phase 3流程文档，可缓存 -->
+<!-- STATIC_CONTENT: DeepResearch 流程文档，可缓存 -->
 
-# Phase 3: Deep Research
+# DeepResearch: Deep Research
 
 任务复杂度较高或多次失败时触发，通过Explore subagent深入调研最佳实践和技术方案。
 
@@ -10,7 +10,7 @@
 |------|--------|------|
 | 自动触发 | >8分 | 直接启动研究 |
 | 询问用户 | 6-8分 | 用户选择是否研究 |
-| 跳过 | <6分 | 直接进入Phase 4 |
+| 跳过 | <6分 | 直接进入Planning |
 | 失败触发 | 连续失败≥2次 | 询问用户 |
 
 ## 复杂度评估（4维度，总分10）
@@ -34,6 +34,6 @@
 
 ## 状态转换
 
-- 研究完成/跳过 → Phase 4（计划设计）
+- 研究完成/跳过 → Planning（计划设计）
 
 <!-- /STATIC_CONTENT -->

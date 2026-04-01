@@ -2,7 +2,7 @@
 
 **版本**: v1.0
 **最后更新**: 2026-03-21
-**插件版本**: v0.0.181
+**插件版本**: 见 plugin.json
 **基于**: IMPROVEMENTS-2026.md + task-optimization-plan.md 合并
 
 ---

@@ -32,32 +32,32 @@ T3: 编写测试 ············ ⏸️ 等待(T2)
 
 迭代次数(iteration/total) | 停滞检测(stalled_count/error_signature) | 用户指导(guidance_count) | 整体进度(completed/total)
 
-## Token/成本预算守护（Circuit Breaker）
+## 迭代熔断器（Circuit Breaker）
 
-**目标**：防止 Reflection loop 或多轮迭代耗尽 token 预算。
+**目标**：防止多轮迭代无限循环，基于迭代次数触发熔断。
 
 ### 预警级别
 
-| 级别 | 阈值 | 动作 |
+| 级别 | 条件 | 动作 |
 |------|------|------|
-| 告警（Warning） | 预算使用 ≥80% | 输出 `[MindFlow·${task_id}·预算] 已使用 {N}%，建议精简后续操作` |
-| 强制确认（Confirm） | 预算使用 ≥90% | AskUserQuestion 询问用户是否继续（"预算接近上限，是否继续？"） |
-| 熔断（Circuit Break） | 预算使用 ≥100% | 强制进入 Phase 8（Finalization），跳过未完成任务，输出部分结果 |
+| 告警（Warning） | iteration >= 4 | 输出 `[MindFlow·${task_id}·预算] 已迭代 {N} 次，建议精简后续操作` |
+| 强制确认（Confirm） | iteration >= 5 | AskUserQuestion 询问用户是否继续（"已迭代5次，是否继续？"） |
+| 熔断（Circuit Break） | iteration > max_iterations | 强制进入 Finalization，跳过未完成任务，输出部分结果 |
 
-### 预算配置
+### 熔断配置
 
 ```
-budget:
-  max_iterations: 5          # 单次 loop 最大迭代轮次
+circuit_breaker:
+  max_iterations: 5          # 单次 loop 最大迭代轮次（用户确认可延长）
   max_tasks_per_iteration: 10 # 单次迭代最大任务数
   reflection_max_rounds: 1    # Reflection 自检最多 1 轮（防止循环）
 ```
 
 ### 集成方式
 
-- 每个阶段开始时检查预算使用率
-- 与 `task:observability` skill 的 `MetricsCollector` 联动
+- 每次 `iteration += 1` 时检查是否触发预警/熔断
 - 熔断时保存当前进度到检查点，支持下次恢复
+- 用户确认继续后，max_iterations 临时 +2
 
 ## 可观测性集成
 

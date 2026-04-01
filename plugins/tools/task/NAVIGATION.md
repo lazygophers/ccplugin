@@ -5,7 +5,7 @@
 ## 快速开始
 
 - [README.md](./README.md) - 项目概览和快速入门
-- [ROADMAP.md](./docs/ROADMAP.md) - 功能路线图和完成状态
+- [ROADMAP.md](docs/ROADMAP.md) - 功能路线图和完成状态
 
 ## 核心循环Agents (5)
 
@@ -84,7 +84,7 @@
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
 | 计划确认机制如何工作？ | loop → Plan Mode | [计划流程](skills/loop/flows/plan.md) |
-| 什么时候需要用户确认？ | loop → 智能确认策略 | [详细流程](skills/loop/phases/phase-4-planning.md) |
+| 什么时候需要用户确认？ | loop → 智能确认策略 | [详细流程](skills/loop/phases/phase-planning.md) |
 | 如何重新设计计划？ | loop → 重新规划 | [计划流程](skills/loop/flows/plan.md) |
 | 如何查看计划版本历史？ | context-versioning → 版本对比 | [上下文版本化](skills/context-versioning/SKILL.md) |
 
@@ -93,8 +93,8 @@
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
 | 如何控制并行任务数量？ | loop → parallel-scheduler | [并行调度](skills/parallel-scheduler/SKILL.md) |
-| 为什么限制2个并行任务？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-5-execution.md) |
-| Team何时创建和删除？ | execute → Team管理 | [详细流程](skills/loop/phases/phase-5-execution.md) |
+| 为什么限制2个并行任务？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-execution.md) |
+| Team何时创建和删除？ | execute → Team管理 | [详细流程](skills/loop/phases/phase-execution.md) |
 
 ### HITL审批
 
@@ -126,7 +126,6 @@
 ### 架构文档
 
 - [Agent/Skill边界](docs/AGENT_SKILL_BOUNDARY.md) - 设计决策和职责划分
-- [版本历史](docs/VERSION_HISTORY.md) - 重要变更记录
 
 ## 开发和贡献
 
@@ -230,7 +229,6 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 
 ## 版本信息
 
-- **当前版本**：0.0.183
 - **许可证**：AGPL-3.0-or-later
 - **仓库**：https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task
 

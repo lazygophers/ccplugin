@@ -19,7 +19,13 @@ user-invocable: false
 
 **参数**：`(user_task, iteration, phase, context, plan_md_path?, additional_state?)`
 
-**逻辑**：生成task_hash(MD5[:12]) → 写入`.claude/checkpoints/{hash}.json` → 含user_task/iteration/phase/context/timestamp/additional_state
+**逻辑**：生成task_hash(MD5[:12]) → 写入`.claude/checkpoints/{hash}.json` → 含user_task/iteration/phase/resume_phase/context/timestamp/additional_state
+
+**resume_phase 规则**：保存时自动计算下一个应执行的阶段：
+- phase=`planning` → resume_phase=`execution`
+- phase=`execution` → resume_phase=`verification`
+- phase=`verification` → resume_phase=`finalization`（passed）或 `adjustment`（failed）
+- phase=`adjustment` → resume_phase=`planning`（replan）或 `execution`（retry/debug）
 
 ### load_checkpoint()
 
@@ -27,7 +33,7 @@ user-invocable: false
 
 **参数**：`(user_task)` → 返回dict或None
 
-**逻辑**：匹配task_hash → 验证必需字段(user_task/iteration/phase/context/timestamp) → 时效检查(>24h过期) → 询问用户恢复/重新开始
+**逻辑**：匹配task_hash → 验证必需字段(user_task/iteration/phase/resume_phase/context/timestamp) → 时效检查(>24h过期) → 询问用户恢复/重新开始 → 恢复时跳转到 `resume_phase` 指定的阶段
 
 ### cleanup_checkpoint()
 

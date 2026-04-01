@@ -1,6 +1,6 @@
-<!-- STATIC_CONTENT: Phase 1流程文档，可缓存 -->
+<!-- STATIC_CONTENT: Initialization 流程文档，可缓存 -->
 
-# Phase 1: Initialization
+# Initialization
 
 ## 目标
 
@@ -66,6 +66,6 @@
 
 ## 状态转换
 
-成功 → Phase 4(计划设计) | 检查点恢复 → 对应阶段
+成功 → Planning(计划设计) | 检查点恢复 → 对应阶段
 
 <!-- /STATIC_CONTENT -->

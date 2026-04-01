@@ -1,6 +1,6 @@
-<!-- STATIC_CONTENT: Phase 5流程文档，可缓存 -->
+<!-- STATIC_CONTENT: Execution 流程文档，可缓存 -->
 
-# Phase 5: Execution
+# Execution
 
 按计划调度执行所有子任务，支持智能并行调度和HITL审批。
 
@@ -21,6 +21,7 @@
      - `working_directory`: ${context.working_directory} — 工作目录
      - `user_task`: ${user_task} — 用户原始任务描述
      - `task.description` + `task.files` + `task.acceptance_criteria`
+   - **验收标准传递与自验**：prompt 中必须包含该任务的完整 `acceptance_criteria` 列表，并在 prompt 末尾附加指令："完成后，逐条对照验收标准自验，输出每条标准的通过/未通过状态及证据"
    - **禁止直接使用**：Edit/Write/Bash 等工具（违规将导致流程验证失败）
    - **示例**：`Agent(agent="coder（开发）@task", prompt="project_path: /Users/dev/myapp\ntask_id: task-20260328-001\niteration: 1\nplan_md_path: /Users/dev/myapp/.claude/plans/plan.md\nworking_directory: /Users/dev/myapp\nuser_task: 实现用户认证模块\n\n任务：实现用户登录功能\n关联文件：/src/auth.ts\n验收标准：测试覆盖率≥90%")`
 7. **执行完整性检查**：每个任务的 Agent 执行完成后，立即验证交付物完整性：
@@ -36,15 +37,24 @@
    - `updated_at` → 当前时间
    - `tasks[]` → 同步每个子任务的最新状态：
      ```json
-     { "id": "T1", "description": "...", "status": "completed|failed|incomplete", "completed_at": "ISO8601" }
+     { "id": "T1", "description": "...", "status": "completed|failed|incomplete", "completed_at": "ISO8601", "failure_reason": "错误描述（failed/incomplete时必填）", "error_type": "execution_error|timeout|dependency_missing|validation_failed（failed时必填）" }
      ```
 10. **检查点保存**：`save_checkpoint(phase="execution")`
+
+## 状态权威来源（Source of Truth）
+
+| 文件 | 角色 | 生命周期 |
+|------|------|---------|
+| `.claude/plans/{name}.md` | **执行期间权威状态** | 执行中实时更新，Finalizer 清理时删除 |
+| `.claude/task/{task_id}.json` | **持久化归档** | 执行期间同步更新，任务结束后保留30天 |
+
+**规则**：执行期间所有状态读写以计划文件为准。任务状态文件在每个任务完成/失败后同步更新。如果两者不一致，以计划文件为准并修正任务状态文件。
 
 ## 并行调度
 
 | 场景 | 并行度 |
 |------|--------|
-| 全低复杂度+无冲突 | max_parallel(默认2,上限5) |
+| 全低复杂度+无冲突 | max_parallel(默认2,上限2) |
 | 混合复杂度 | 2 |
 | 文件冲突 | 1(串行) |
 
@@ -61,12 +71,15 @@ loop 在执行阶段拦截工具调用进行风险评估：
 
 ## 强制状态转换
 
-**执行完成后的强制要求**：所有任务执行完成（plan 文件中所有任务状态为 ✅ 或 ❌）后，**必须立即在同一回复中进入阶段4（结果验证）**，不允许停止。
+**执行完成后的强制流程**：
+1. 所有任务执行完成（plan 文件中所有任务状态为 ✅ 或 ❌）
+2. 保存检查点：`save_checkpoint(phase="execution")`
+3. **必须立即在同一回复中进入 Verification（结果验证）**，不允许停止
 
 | 状态 | 下一阶段 | 强制要求 |
 |------|---------|---------|
-| 成功（全部 ✅） | Phase 6(结果验证) | **必须立即**继续，不允许停止 |
-| 部分失败（有 ❌） | Phase 6(结果验证) | **必须立即**继续，不允许停止 |
+| 成功（全部 ✅） | Verification(结果验证) | **必须立即**继续，不允许停止 |
+| 部分失败（有 ❌） | Verification(结果验证) | **必须立即**继续，不允许停止 |
 
 **禁止**：执行完成后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
 

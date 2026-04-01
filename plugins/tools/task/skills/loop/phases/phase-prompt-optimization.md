@@ -1,6 +1,6 @@
-<!-- STATIC_CONTENT: Phase 2流程文档，可缓存 -->
+<!-- STATIC_CONTENT: PromptOptimization 流程文档，可缓存 -->
 
-# Phase 2: Prompt Optimization
+# PromptOptimization: Prompt Optimization
 
 仅在首次迭代(iteration=0)执行，确保用户输入清晰、完整、可执行。
 
@@ -42,13 +42,13 @@
 
 | 选项 | 描述 | 后续流程 |
 |------|------|---------|
-| **A: 使用原始提示词** | 保持用户原始输入不变 | 更新 `context.user_task = original_prompt` → Phase 3/4 |
-| **B: 使用优化后提示词** | 应用 prompt-optimizer 的优化结果 | 更新 `context.user_task = optimized_prompt` → Phase 3/4 |
+| **A: 使用原始提示词** | 保持用户原始输入不变 | 更新 `context.user_task = original_prompt` → DeepResearch/Planning |
+| **B: 使用优化后提示词** | 应用 prompt-optimizer 的优化结果 | 更新 `context.user_task = optimized_prompt` → DeepResearch/Planning |
 | **C: 重新优化** | 提供反馈后重新生成优化提示词 | AskUserQuestion 收集改进方向 → 回到步骤4 |
 
 ## 状态转换
 
-- **选项A/B** → Phase 3(深度研究)或Phase 4(计划设计)
+- **选项A/B** → DeepResearch(深度研究)或Planning(计划设计)
 - **选项C** → 循环回到步骤4（生成优化提示词），基于用户反馈重新优化
 
 <!-- /STATIC_CONTENT -->

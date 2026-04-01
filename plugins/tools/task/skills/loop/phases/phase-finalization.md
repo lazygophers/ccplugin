@@ -1,6 +1,6 @@
-<!-- STATIC_CONTENT: Phase 8流程文档，可缓存 -->
+<!-- STATIC_CONTENT: Finalization 流程文档，可缓存 -->
 
-# Phase 8: Finalization
+# Finalization
 
 完成阶段：清理资源、保存记忆、生成报告。
 

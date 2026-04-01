@@ -29,9 +29,9 @@ user-invocable: false
 
 | 位置 | 时机 | 审批内容 |
 |------|------|---------|
-| 计划确认(Phase 4) | planner生成计划后 | 风险评估摘要(auto/review/mandatory分布) |
-| 任务执行(Phase 5) | 每个工具调用前 | 拦截Edit/Write/Bash，按风险等级决定 |
-| 危险操作(Phase 7) | adjuster建议危险操作时 | 自愈操作(删除文件/修改配置)需确认 |
+| 计划确认(Planning) | planner生成计划后 | 风险评估摘要(auto/review/mandatory分布) |
+| 任务执行(Execution) | 每个工具调用前 | 拦截Edit/Write/Bash，按风险等级决定 |
+| 危险操作(Adjustment) | adjuster建议危险操作时 | 自愈操作(删除文件/修改配置)需确认 |
 
 ## API
 

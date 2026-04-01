@@ -46,9 +46,9 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
 |------|------|
 | passed + 质量达标 | 全部完成 |
 | suggestions | 自动继续优化 |
-| failed | 失败调整(Phase 7) |
-| 质量不达标 | 失败调整(Phase 7) |
-| 深度校验失败 | 失败调整(Phase 7) |
+| failed | 失败调整(Adjustment) |
+| 质量不达标 | 失败调整(Adjustment) |
+| 深度校验失败 | 失败调整(Adjustment) |
 | 深度校验suggestions | 自动继续优化 |
 
 ## 最佳实践
