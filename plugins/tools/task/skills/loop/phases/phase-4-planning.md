@@ -58,10 +58,17 @@ planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 
 **关键规则**：只有用户明确选择"批准执行"选项才视为批准。所有其他响应都视为修改意见。
 
-## 状态转换
+## 强制状态转换
 
-- confirmed → Phase 5(任务执行)
-- rejected → Phase 4(重新设计，带 user_feedback)
-- no_tasks / cancelled → Phase 8(完成)
+**每个状态转换必须立即在同一回复中执行，禁止在本阶段后结束回复：**
+
+| status | 下一阶段 | 强制要求 |
+|--------|---------|---------|
+| confirmed | Phase 5(任务执行) | **必须立即**继续执行，不允许停止 |
+| rejected | Phase 4(重新设计) | **必须立即**带 user_feedback 重新调用 planner |
+| no_tasks | Phase 8(完成) | **必须立即**进入 Finalizer 清理 |
+| cancelled | Phase 8(完成) | **必须立即**进入 Finalizer 清理 |
+
+**禁止**：处理完 planner 返回结果后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
 
 <!-- /STATIC_CONTENT -->

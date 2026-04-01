@@ -61,8 +61,17 @@
 
 情节记忆：`workflow://task-episodes/{type}/{episode_id}` 含task_desc/type/result/plan/metrics/agents/skills
 
-## 状态转换
+## 状态转换（唯一允许结束 Loop 的阶段）
 
-完成 → 结束
+**本阶段是整个 Loop 流程中唯一允许结束回复的阶段。**
+
+只有同时满足以下条件时，才允许结束回复：
+1. finalizer skill 已执行完成
+2. 最终报告已输出
+3. 状态变量已清理
+
+完成以上所有步骤 → 结束回复
+
+**在此之前的任何阶段都禁止结束回复。**
 
 <!-- /STATIC_CONTENT -->

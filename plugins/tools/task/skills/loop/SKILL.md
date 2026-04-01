@@ -29,6 +29,17 @@ memory: project
 
 <execution>
 
+## 全局流程控制规则（最高优先级）
+
+**Loop 是一个不可中断的完整流程。以下规则优先级高于所有其他规则：**
+
+1. **禁止提前停止**：在完成阶段6（Finalizer 清理）之前，**绝对禁止**结束回复或停止执行。只有阶段6的 finalizer 执行完成且最终报告输出后，才允许结束回复。
+2. **阶段必须连续**：每个阶段完成后，**必须立即**在同一回复中继续执行下一阶段，不等待用户响应（用户确认阶段除外）。
+3. **禁止输出原始 JSON**：**禁止**直接输出子 skill 返回的原始 JSON 数据。只输出人类可读的进度摘要（如"计划已确认（8个任务），开始执行..."）。
+4. **强制完整性**：即使任务全部失败，也必须执行完 Verifier → Adjuster → Finalizer 的完整流程后才能结束。
+
+**自检规则**：每次完成一个阶段时，检查"我是否已到达阶段6且 finalizer 已执行？"——如果不是，**必须继续**。
+
 ## 【铁律】禁止跳过的步骤
 
 以下 4 个步骤是 loop 流程的基石，**绝对禁止跳过**，违规将导致流程验证失败：
@@ -106,6 +117,11 @@ memory: project
 
 **强制**：所有输出以 `[MindFlow·${task_id}]` 开头。状态日志格式：`[MindFlow·${task_id}·步骤/迭代·状态]`
 
+**进度输出规范**：
+- **正确**：`[MindFlow·${task_id}] 计划已确认（8个任务），开始执行...`（人类可读摘要）
+- **错误**：直接输出 `{"status": "confirmed", "plan_md_path": "...", ...}`（原始 JSON）
+- 每个阶段完成后，输出简洁的进度摘要，然后**立即继续**下一阶段，不等待用户响应
+
 ## 执行流程
 
 严格按阶段顺序执行，不可跳过。
@@ -129,14 +145,16 @@ memory: project
 - `auto_approve`：`iteration > 1 && replan_trigger ∈ ["adjuster","verifier"] && auto_approve` 时为 true
 - `user_feedback`：如有用户修改意见
 
-**处理 planner 返回结果**（planner 返回时，计划已确认或已拒绝）：
+**处理 planner 返回结果并强制继续**（planner 返回时，计划已确认或已拒绝）：
 
-| planner 返回 status | loop 处理 |
-|---------------------|----------|
-| `confirmed` | 提取 `plan_md_path`，更新 context → 进入阶段3（任务执行）|
-| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` → 回到阶段2 |
-| `no_tasks` | 跳到阶段6（完成）|
-| `cancelled` | 跳到阶段6（完成）|
+| planner 返回 status | loop 处理 | 强制要求 |
+|---------------------|----------|---------|
+| `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入阶段3（任务执行） |
+| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到阶段2 |
+| `no_tasks` | - | **必须立即**跳到阶段6（完成清理） |
+| `cancelled` | - | **必须立即**跳到阶段6（完成清理） |
+
+**禁止**：处理完 planner 返回结果后就结束回复。**必须**立即继续执行下一阶段。
 
 **后置验证点**：
 - ✓ plan_md_path 已设置且文件存在（由 planner 直接写入）
@@ -156,26 +174,32 @@ memory: project
 - ✓ 计划文件已更新任务状态
 - ✓ 已保存检查点
 
+**禁止**：任务执行完成后就结束回复。**必须立即**在同一回复中进入阶段4（结果验证）。
+
 ### 阶段4：结果验证
 
 **前置条件**：所有任务已执行完成
 
-【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支：
-- `passed` → 阶段6（完成）
-- `suggestions` → 设 `replan_trigger="verifier"` → 阶段2（自动迭代）
-- `failed` → 阶段5（失败调整）
+【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支**必须立即继续**：
+- `passed` → **必须立即**进入阶段6（完成清理）
+- `suggestions` → 设 `replan_trigger="verifier"` → **必须立即**回到阶段2（自动迭代）
+- `failed` → **必须立即**进入阶段5（失败调整）
 
 **后置验证点**：
 - ✓ verifier已被调用并返回结果
 - ✓ 状态日志已输出
 - ✓ 计划文件 frontmatter 已更新
 
+**禁止**：验证完成后就结束回复。**必须立即**按状态分支继续执行下一阶段。
+
 ### 阶段5：失败调整
 
-调用 task:adjuster skill 分析。根据 `strategy` 分支：
-- `retry`/`debug` → 阶段3
-- `replan` → 设 `replan_trigger="adjuster"` → 阶段2
-- `ask_user` → AskUserQuestion 请求指导
+调用 task:adjuster skill 分析。根据 `strategy` 分支**必须立即继续**：
+- `retry`/`debug` → **必须立即**回到阶段3（任务执行）
+- `replan` → 设 `replan_trigger="adjuster"` → **必须立即**回到阶段2
+- `ask_user` → AskUserQuestion 请求指导 → 获得响应后**必须立即**继续
+
+**禁止**：调整完成后就结束回复。**必须立即**按策略分支继续执行。
 
 ### 阶段6：完成清理
 
@@ -193,6 +217,8 @@ memory: project
 - ✓ 执行记忆已保存
 
 详见 [phase-8-finalization.md](phases/phase-8-finalization.md)
+
+**阶段6是唯一允许结束 loop 的阶段**。只有 finalizer 执行完成且最终报告输出后，才允许结束回复。
 
 开始执行 PDCA 循环。
 
