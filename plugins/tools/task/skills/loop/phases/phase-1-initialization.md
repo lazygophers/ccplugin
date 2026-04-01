@@ -36,7 +36,11 @@
    ```
    - `status` 枚举：`initialized` | `planning` | `executing` | `verifying` | `adjusting` | `completed` | `failed`
    - 每次阶段转换时更新 `status`、`phase`、`updated_at`
-5. **30天自动清理**：扫描 `.claude/task/*.json`，删除 `updated_at` 距今超过30天的状态文件及其关联的计划文件（`plan_path`）和检查点
+5. **残留状态修复**：扫描 `.claude/task/*.json`，对 **非当前 task_id** 的文件：
+   - `status` 为 `completed` / `failed` → 正常保留（30天后自动清理）
+   - `status` 为其他非终态（`initialized`/`planning`/`executing`/`verifying`/`adjusting`）→ **自动修正为 `failed`**，设 `error: "abnormal_termination: 前次 loop 未正常完成 finalization"`，更新 `updated_at`
+   - **禁止**因发现其他任务的非终态状态文件而阻断当前任务的初始化流程
+6. **30天自动清理**：扫描 `.claude/task/*.json`，删除 `updated_at` 距今超过30天的状态文件及其关联的计划文件（`plan_path`）和检查点
 6. **记忆加载**：生成session_id(MD5) → load_task_memories(user_task, task_type, session_id) → 显示episodic(前3个)+semantic记忆
 7. **资源检查**：ListSkills() + ListAgents()
 

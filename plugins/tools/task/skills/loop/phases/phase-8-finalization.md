@@ -6,21 +6,22 @@
 
 ## 执行流程
 
-1. **【强制】调用 finalizer skill**：即使任务失败，finalizer 也必须执行以清理资源
-   ```
-   Skill(skill="task:finalizer", args="清理任务资源：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
-   ```
-2. **模式提取**：`extract_failure_patterns(session_id)` → 提取失败模式(需failures>0且样本≥3)
-3. **检查点清理**：`cleanup_checkpoint(user_task)`
-4. **记忆保存**：`save_task_episode(result="success", duration, iterations, agents, skills)` → 返回episode_id
-5. **短期记忆清理**：`cleanup_working_memory(session_id)`
-6. **最终状态更新**：更新 `.claude/task/{task_id}.json`
-   - `status` → `"completed"` 或 `"failed"`
+1. **【强制·最先执行】任务状态更新**：在任何清理操作之前，**必须先**更新 `.claude/task/{task_id}.json`
+   - `status` → `"completed"` 或 `"failed"`（终态，不可逆）
    - `phase` → `"finalization"`
    - `updated_at` → 当前时间
    - `quality_score` → 验证阶段的最终评分
    - `tasks[]` → 所有子任务的最终状态
    - `error` → 失败时记录原因（成功为null）
+   - **为何最先执行**：如果后续清理步骤中断，状态文件已为终态，不会导致下次 loop 误判"前一个任务未完成"
+2. **【强制】调用 finalizer skill**：即使任务失败，finalizer 也必须执行以清理资源
+   ```
+   Skill(skill="task:finalizer", args="清理任务资源：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
+   ```
+3. **模式提取**：`extract_failure_patterns(session_id)` → 提取失败模式(需failures>0且样本≥3)
+4. **检查点清理**：`cleanup_checkpoint(user_task)`
+5. **记忆保存**：`save_task_episode(result="success", duration, iterations, agents, skills)` → 返回episode_id
+6. **短期记忆清理**：`cleanup_working_memory(session_id)`
 7. **最终报告**：状态/迭代次数/停滞次数/指导次数/时长/变更文件/记忆URI
 
 ## 临时文件清理规则

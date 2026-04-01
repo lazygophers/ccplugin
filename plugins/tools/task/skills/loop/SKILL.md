@@ -205,12 +205,19 @@ memory: project
 
 **前置条件**：验证通过或用户确认完成
 
-1. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
-2. 保存执行记忆（iteration、duration_minutes、quality_score）
-3. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代，耗时 M 分钟`
-4. 清理状态变量
+1. **【强制】更新任务状态文件**：在调用 finalizer 之前，**必须先**更新 `.claude/task/{task_id}.json`：
+   - `status` → `"completed"`（验证通过）或 `"failed"`（最终失败）
+   - `phase` → `"finalization"`
+   - `updated_at` → 当前时间
+   - `quality_score` → 验证阶段的最终评分
+   - **此步骤不可跳过**，否则下次 loop 初始化会误判为"前一个任务未完成"
+2. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
+3. 保存执行记忆（iteration、duration_minutes、quality_score）
+4. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代，耗时 M 分钟`
+5. 清理状态变量
 
 **后置验证点**：
+- ✓ `.claude/task/{task_id}.json` status 为 `completed` 或 `failed`
 - ✓ finalizer 已被调用
 - ✓ 计划文件已删除
 - ✓ 检查点已清理

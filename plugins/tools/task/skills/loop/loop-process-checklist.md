@@ -82,6 +82,7 @@
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 前置条件检查 | 验证验证通过或用户确认完成 | 必须 |
+| **任务状态文件更新** | **`.claude/task/{task_id}.json` status 为 completed/failed（必须在 finalizer 之前）** | **必须** |
 | **Finalizer 调用** | **检查是否调用了 `Skill(skill="task:finalizer")`** | **必须** |
 | 即使失败也执行清理 | 验证失败场景下 finalizer 也被调用 | 必须 |
 | 计划文件已删除 | 验证文件已删除：`! test -f .claude/plans/*.md` | 必须 |
