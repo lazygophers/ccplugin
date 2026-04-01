@@ -20,6 +20,12 @@ hooks:
         - type: command
           command: "VALIDATE_TYPE=planner bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
           timeout: 10
+  PreToolUse:
+    - matcher: Write
+      hooks:
+        - type: command
+          command: "bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-pretooluse.sh"
+          timeout: 10
 ---
 
 <role>

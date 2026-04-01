@@ -11,6 +11,12 @@ model: sonnet
 memory: project
 context: conversation
 user-invocable: true
+hooks:
+  Stop:
+    - hooks:
+        - type: command
+          command: "bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-stop.sh"
+          timeout: 10
 ---
 
 <!-- STATIC_CONTENT: Cacheable (4800+ tokens) -->
