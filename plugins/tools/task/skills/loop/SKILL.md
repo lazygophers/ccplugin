@@ -158,7 +158,7 @@ hooks:
 
 ### Initialization: 初始化
 
-重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
+重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。创建 Loop 状态文件：`mkdir -p .claude/tasks/${task_id} && echo "active" > .claude/tasks/${task_id}/loop-phase`（Stop hook 依赖此文件判断是否允许停止，仅 `completed` 时放行）。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
 
 详见 [phase-initialization.md](phases/phase-initialization.md)
 
@@ -174,7 +174,7 @@ hooks:
 
 **前置条件**：iteration 已递增，有明确的任务目标
 
-`iteration += 1`
+`iteration += 1`，更新状态文件：`echo "planning" > .claude/tasks/${task_id}/loop-phase`
 
 **整个阶段只需一次 Skill() 调用**。planner 内部完成：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回完整 JSON。
 
@@ -205,7 +205,7 @@ hooks:
 
 ### Execution: 任务执行
 
-**前置条件**：计划文件存在，已获得用户批准
+**前置条件**：计划文件存在，已获得用户批准。更新状态文件：`echo "execution" > .claude/tasks/${task_id}/loop-phase`
 
 读取计划文件，按 DAG 依赖顺序直接调用每个任务指定的 skill 执行。输出 `[MindFlow·任务·任务执行/N·进行中]` → `completed`
 
@@ -218,7 +218,7 @@ hooks:
 
 ### Verification: 结果验证
 
-**前置条件**：所有任务已执行完成
+**前置条件**：所有任务已执行完成。更新状态文件：`echo "verification" > .claude/tasks/${task_id}/loop-phase`
 
 【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支**必须立即继续**：
 - `passed` → **必须立即**进入 Finalization（完成清理）
@@ -234,6 +234,8 @@ hooks:
 
 ### Adjustment: 失败调整
 
+更新状态文件：`echo "adjustment" > .claude/tasks/${task_id}/loop-phase`
+
 调用 task:adjuster skill 分析。根据 `strategy` 分支**必须立即继续**：
 - `retry`/`debug` → **必须立即**回到Execution（任务执行）
 - `replan` → 设 `replan_trigger="adjuster"` → **必须立即**回到 Planning
@@ -243,12 +245,13 @@ hooks:
 
 ### Finalization: 完成清理
 
-**前置条件**：验证通过或用户确认完成
+**前置条件**：验证通过或用户确认完成。更新状态文件：`echo "finalization" > .claude/tasks/${task_id}/loop-phase`
 
 1. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、清理任务状态文件、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
 2. 保存执行记忆（iteration、duration_minutes、quality_score）
 3. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代`
-4. 清理状态变量
+4. 标记完成：`echo "completed" > .claude/tasks/${task_id}/loop-phase`（此后 Stop hook 才允许停止）
+5. 清理状态变量
 
 **后置验证点**：
 - ✓ finalizer 已被调用

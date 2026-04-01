@@ -81,6 +81,11 @@
 2. 最终报告已输出
 3. 状态变量已清理
 
+4. **标记 Loop 完成**：写入 completed 状态，此后 Stop hook 才允许停止
+   ```bash
+   echo "completed" > .claude/tasks/{task_id}/loop-phase
+   ```
+
 完成以上所有步骤 → 结束回复
 
 **在此之前的任何阶段都禁止结束回复。**

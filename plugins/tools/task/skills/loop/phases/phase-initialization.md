@@ -18,7 +18,13 @@
    - 全小写、短横线分隔、不超过30字符
    - 设置 `context.task_id = task_id`
    - 后续所有输出必须以 `[MindFlow·${task_id}]` 开头
-4. **创建任务状态文件**：在 `.claude/tasks/{task_id}/` 目录创建 `status.json` 状态文件
+4. **创建 Loop 状态文件**：在 `.claude/tasks/{task_id}/` 目录创建 `loop-phase` 文件
+   ```bash
+   mkdir -p .claude/tasks/{task_id} && echo "active" > .claude/tasks/{task_id}/loop-phase
+   ```
+   - Stop hook 依赖此文件判断是否允许停止，仅当内容为 `completed` 时放行
+   - 每次阶段转换时更新（planning/execution/verification/adjustment/finalization/completed）
+5. **创建任务状态文件**：在 `.claude/tasks/{task_id}/` 目录创建 `status.json` 状态文件
    ```json
    {
      "task_id": "${task_id}",
