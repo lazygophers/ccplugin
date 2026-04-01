@@ -2,7 +2,7 @@
 
 ## 上下文版本化
 
-规划前自动保存快照到 `.claude/context-versions/{task_hash}/v{iteration}.json`（调用 context-versioning skill）。执行成功后标记 status=success。验证失败时可回滚到最近成功快照。
+规划前自动保存快照到 `.claude/context-versions/{task_id}/v{iteration}.json`（调用 context-versioning skill）。执行成功后标记 status=success。验证失败时可回滚到最近成功快照。
 
 详见 `skills/context-versioning/SKILL.md`
 

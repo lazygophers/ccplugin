@@ -1,10 +1,10 @@
 # 状态序列化规范
 
-检查点保存在 `.claude/checkpoints/{task_hash}.json`，用于序列化/反序列化任务执行状态。
+检查点保存在 `.claude/checkpoints/{task_id}.json`，用于序列化/反序列化任务执行状态。
 
 ## Schema
 
-必需字段：`user_task`(string) | `task_hash`(MD5前12位) | `iteration`(int≥0) | `phase`(enum) | `context`(object) | `timestamp`(ISO8601)
+必需字段：`user_task`(string) | `task_id` (string) | `iteration`(int≥0) | `phase`(enum) | `context`(object) | `timestamp`(ISO8601)
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -27,4 +27,4 @@
 
 ## 注意事项
 
-UTF-8编码 | ISO8601时间 | MD5(user_task)[:12]哈希 | 新增字段必须Optional | 不含敏感数据
+UTF-8编码 | ISO8601时间 | task_id唯一标识 | 新增字段必须Optional | 不含敏感数据

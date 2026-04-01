@@ -242,7 +242,7 @@ hooks:
 
 **前置条件**：验证通过或用户确认完成
 
-1. **【强制】更新任务状态文件**：在调用 finalizer 之前，**必须先**更新 `.claude/task/{task_id}.json`：
+1. **【强制】更新任务状态文件**：在调用 finalizer 之前，**必须先**更新 `.claude/tasks/{task_id}/status.json`：
    - `status` → `"completed"`（验证通过）或 `"failed"`（最终失败）
    - `phase` → `"finalization"`
    - `updated_at` → 当前时间
@@ -254,7 +254,7 @@ hooks:
 5. 清理状态变量
 
 **后置验证点**：
-- ✓ `.claude/task/{task_id}.json` status 为 `completed` 或 `failed`
+- ✓ `.claude/tasks/{task_id}/status.json` status 为 `completed` 或 `failed`
 - ✓ finalizer 已被调用
 - ✓ 计划文件已删除
 - ✓ 检查点已清理

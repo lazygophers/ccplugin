@@ -43,6 +43,6 @@ user-invocable: false
 
 `.claude/task.local.md`: enabled | trust_mode(review→auto) | timeout(review:5min, mandatory:10min) | overrides
 
-审批日志：`.claude/plans/{task_hash}/approval-log.json`（操作详情+风险分级+用户决策+执行结果）
+审批日志：`.claude/plans/{task_id}/approval-log.json`（操作详情+风险分级+用户决策+执行结果）
 
 <!-- /STATIC_CONTENT -->

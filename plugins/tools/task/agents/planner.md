@@ -70,7 +70,7 @@ hooks:
 
 **阶段3：格式化并写入计划文件**（tasks 非空时必须执行）
 
-1. 生成文件路径：`.claude/plans/{中文关键词}-{iteration}.md`
+1. 生成文件路径：`.claude/plans/{task_id}.md`
 2. 按计划模板生成 Markdown，参考 [template.md](../skills/planner/template.md)
 3. 使用 Write 工具写入文件
 

@@ -197,7 +197,7 @@
 **检查点状态模型**:
 ```json
 {
-  "checkpoint_id": "ckpt-{task_hash}-{timestamp}",
+  "checkpoint_id": "ckpt-{task_id}-{timestamp}",
   "version": 1,
   "task_description": "用户任务描述",
   "iteration": 3,
@@ -213,7 +213,7 @@
 ```
 
 **检查点生命周期**:
-- **保存**: 每个阶段转换时写入 `.claude/checkpoints/{task_hash}.json`
+- **保存**: 每个阶段转换时写入 `.claude/checkpoints/{task_id}.json`
 - **检测**: loop 初始化时扫描 `.claude/checkpoints/` 目录
 - **恢复**: 用户确认后跳过已完成任务，从断点继续
 - **清理**: 任务完成后删除对应检查点文件

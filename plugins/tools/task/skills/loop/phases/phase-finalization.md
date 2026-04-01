@@ -6,7 +6,7 @@
 
 ## 执行流程
 
-1. **【强制·最先执行】任务状态更新**：在任何清理操作之前，**必须先**更新 `.claude/task/{task_id}.json`
+1. **【强制·最先执行】任务状态更新**：在任何清理操作之前，**必须先**更新 `.claude/tasks/{task_id}/status.json`
    - `status` → `"completed"` 或 `"failed"`（终态，不可逆）
    - `phase` → `"finalization"`
    - `updated_at` → 当前时间
@@ -28,12 +28,11 @@
 
 | 文件类型 | 路径模式 | 清理时机 | 条件 |
 |---------|----------|---------|------|
-| 计划文件 | `.claude/plans/{name}-{N}.md` | 任务完成/失败时 | 始终删除 |
-| 计划HTML | `.claude/plans/{name}-{N}.html` | 随计划文件删除 | 始终删除 |
-| 检查点 | `.claude/checkpoints/{hash}.json` | 任务完成时 | 始终删除 |
+| 计划文件 | `.claude/plans/{task_id}.md` | 任务完成/失败时 | 始终删除（包括 draft 状态） |
+| 计划HTML | `.claude/plans/{task_id}.html` | 随计划文件删除 | 始终删除 |
+| 检查点 | `.claude/checkpoints/{task_id}.json` | 任务完成时 | 始终删除 |
 | 短期记忆 | `task://sessions/{id}/*` | 归档后 | 始终删除 |
-| 任务状态 | `.claude/task/{task_id}.json` | 30天未更新 | `updated_at` 超过30天 |
-| Planner中间产物 | `.claude/plans/*-draft-*.md` | 计划确认后 | 非最终版本 |
+| 任务状态 | `.claude/tasks/{task_id}/status.json` | 30天未更新 | `updated_at` 超过30天 |
 
 **清理顺序**：检查点 → 短期记忆 → 计划文件 → 过期任务状态 → 中间产物
 
@@ -52,11 +51,11 @@
 
 | 操作 | 目标 |
 |------|------|
-| 计划文件 | `.claude/plans/{name}-{N}.md` + `.html` |
+| 计划文件 | `.claude/plans/{task_id}.md` + `.html` |
 | 检查点 | `.claude/checkpoints/{hash}.json` |
 | 短期记忆 | `task://sessions/{id}` → 归档后删除 |
 | 临时文件 | 执行过程中生成的临时文件 |
-| 任务状态 | `.claude/task/{task_id}.json`（completed/failed状态保留，30天后自动清理） |
+| 任务状态 | `.claude/tasks/{task_id}.json`（completed/failed状态保留，30天后自动清理） |
 
 ## 微回顾（Micro-Retrospective）
 

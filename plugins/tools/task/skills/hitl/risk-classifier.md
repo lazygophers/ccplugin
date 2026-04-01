@@ -33,4 +33,4 @@
 输入：tool/command/files/method/environment/user_trust_mode
 输出：level(auto/review/mandatory)/score(0-10)/reasons[]/requires_approval/approval_policy(timeout/default_action)
 
-日志：记录到`.claude/plans/{task_hash}-approval-log.json`，含operation/risk_classification/approval。
+日志：记录到`.claude/plans/{task_id}/approval-log.json`，含operation/risk_classification/approval。

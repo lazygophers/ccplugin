@@ -56,12 +56,12 @@ graph TB
 
     subgraph Artifacts["中间产物生命周期"]
         direction LR
-        PlanFile[".claude/plans/{name}-{N}.md<br/>Planning 创建 → Finalization 删除"]
-        CheckpointFile[".claude/checkpoints/{hash}.json<br/>Execution 创建 → Finalization 删除"]
-        TaskStatusFile[".claude/task/{task_id}.json<br/>Finalization 创建 → 保留30天"]
-        ApprovalLog[".claude/plans/{hash}/approval-log.json<br/>Planning 创建 → Finalization 删除"]
-        MetricsFile[".claude/plans/{hash}/metrics.json<br/>Observability 创建 → Finalization 删除"]
-        ContextSnap[".claude/context-versions/{hash}/v*.json<br/>ContextVersioning 创建 → Finalization 删除"]
+        PlanFile[".claude/plans/{task_id}.md<br/>Planning 创建 → Finalization 删除"]
+        CheckpointFile[".claude/checkpoints/{task_id}.json<br/>Execution 创建 → Finalization 删除"]
+        TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Finalization 创建 → 保留30天"]
+        ApprovalLog[".claude/plans/{task_id}/approval-log.json<br/>Planning 创建 → Finalization 删除"]
+        MetricsFile[".claude/plans/{task_id}/metrics.json<br/>Observability 创建 → Finalization 删除"]
+        ContextSnap[".claude/context-versions/{task_id}/v*.json<br/>ContextVersioning 创建 → Finalization 删除"]
     end
 
     subgraph Memory["记忆层"]

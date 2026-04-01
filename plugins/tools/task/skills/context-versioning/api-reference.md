@@ -1,6 +1,6 @@
 # Context Versioning API Reference
 
-快照存储：`.claude/context-versions/{task_hash}/v{iteration}.json`（task_hash=MD5(user_task)[:12]）
+快照存储：`.claude/context-versions/{task_id}/v{iteration}.json`
 
 ## API
 

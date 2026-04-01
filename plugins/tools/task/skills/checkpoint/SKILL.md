@@ -19,7 +19,7 @@ user-invocable: false
 
 **参数**：`(user_task, iteration, phase, context, plan_md_path?, additional_state?)`
 
-**逻辑**：生成task_hash(MD5[:12]) → 写入`.claude/checkpoints/{hash}.json` → 含user_task/iteration/phase/resume_phase/context/timestamp/additional_state
+**逻辑**：写入`.claude/checkpoints/{task_id}.json` → 含user_task/iteration/phase/resume_phase/context/timestamp/additional_state
 
 **resume_phase 规则**：保存时自动计算下一个应执行的阶段：
 - phase=`planning` → resume_phase=`execution`
@@ -33,7 +33,7 @@ user-invocable: false
 
 **参数**：`(user_task)` → 返回dict或None
 
-**逻辑**：匹配task_hash → 验证必需字段(user_task/iteration/phase/resume_phase/context/timestamp) → 时效检查(>24h过期) → 询问用户恢复/重新开始 → 恢复时跳转到 `resume_phase` 指定的阶段
+**逻辑**：匹配task_id → 验证必需字段(user_task/iteration/phase/resume_phase/context/timestamp) → 时效检查(>24h过期) → 询问用户恢复/重新开始 → 恢复时跳转到 `resume_phase` 指定的阶段
 
 ### cleanup_checkpoint()
 
@@ -45,8 +45,7 @@ user-invocable: false
 
 ## 注意事项
 
-- 文件位置：`.claude/checkpoints/{task_hash}.json`
-- 哈希：MD5(user_task)[:12]
+- 文件位置：`.claude/checkpoints/{task_id}.json`
 - 时效：>24h过期
 - 恢复前必须询问用户
 - 单任务同时只有一个检查点
