@@ -3,6 +3,12 @@ description: 结果验证规范 - 验收标准检查、质量评分、回归测�
 model: sonnet
 context: fork
 user-invocable: false
+hooks:
+  SubagentStop:
+    - hooks:
+        - type: command
+          command: "VALIDATE_TYPE=verifier bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
+          timeout: 10
 ---
 
 <!-- STATIC_CONTENT: Cacheable (6500+ tokens) -->

@@ -14,6 +14,12 @@ tools:
   - Write
 skills:
   - task:planner
+hooks:
+  SubagentStop:
+    - hooks:
+        - type: command
+          command: "VALIDATE_TYPE=planner bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
+          timeout: 10
 ---
 
 <role>
