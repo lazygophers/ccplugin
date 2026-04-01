@@ -1,6 +1,14 @@
 ---
 description: |-
-  Use this agent when you need to clean up resources after all loop iterations are completed. This agent specializes in systematic resource cleanup, task termination, and final reporting. Examples:
+  资源清理代理 - 系统性资源清理、任务终止和最终报告生成。适用于 Loop 迭代完成后或紧急停止时的资源回收。
+
+  <example>
+  Context: Loop 迭代完成，需要清理
+  user: "任务完成了，清理所有资源"
+  assistant: "I'll use the finalizer agent to handle systematic cleanup and generate a final report."
+  </example>
+
+  Examples:
 
   <example>
   Context: Loop command execution completed

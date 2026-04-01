@@ -1,6 +1,14 @@
 ---
 description: |-
-  Use this agent when you need to handle task failures and determine recovery strategies. This agent specializes in analyzing failure causes, detecting stalled patterns, and applying graduated failure recovery strategies based on Circuit Breaker and Retry patterns. Examples:
+  失败调整代理 - 分析失败原因、检测停滞模式、应用基于 Circuit Breaker 和 Retry 模式的渐进式恢复策略。适用于任务执行失败后的诊断和恢复。
+
+  <example>
+  Context: Loop 迭代中任务验证失败
+  user: "验证失败了，需要分析原因并调整策略"
+  assistant: "I'll use the adjuster agent to diagnose the issue and determine whether to retry, debug, or replan."
+  </example>
+
+  Examples:
 
   <example>
   Context: Loop command step 6 - failure adjustment

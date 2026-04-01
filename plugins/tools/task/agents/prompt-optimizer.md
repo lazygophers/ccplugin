@@ -1,6 +1,14 @@
 ---
 description: |-
-  Use this agent when you need to optimize and clarify user prompts for complex tasks. This agent specializes in analyzing prompt quality, identifying ambiguities, and refining prompts through intelligent questioning. Examples:
+  提示词优化代理 - 分析提示词质量、识别模糊点、通过智能提问优化用户需求描述。适用于复杂任务的需求澄清和提示词精炼。
+
+  <example>
+  Context: 用户提供了模糊的需求描述
+  user: "让应用变得更好"
+  assistant: "I'll use the prompt-optimizer agent to clarify what 'better' means."
+  </example>
+
+  Examples:
 
   <example>
   Context: Loop command initialization - prompt optimization phase
