@@ -298,8 +298,8 @@ Level 4: Ask User（请求指导）
 **版本化机制**:
 | 操作 | 存储位置 | 触发时机 |
 |------|---------|---------|
-| 保存快照 | `.claude/context/snapshots/{timestamp}.json` | 每次规划前 |
-| 列表版本 | 读取 snapshots 目录 | 用户请求 |
+| 保存快照 | `.claude/context/{task_id}/v{iteration}.json` | 每次规划前 |
+| 列表版本 | 读取 `context/{task_id}/` 目录 | 用户请求 |
 | 回滚 | 恢复指定快照到当前上下文 | 用户请求 |
 | 对比 | JSON diff 两个版本 | 用户请求 |
 
@@ -323,7 +323,7 @@ Level 4: Ask User（请求指导）
 - [x] 修改 `skills/planner/planner-context-learning.md`（集成版本化）
 
 **验收标准**:
-- ✅ 每次规划前自动创建上下文快照到 `.claude/context/snapshots/`
+- ✅ 每次规划前自动创建上下文快照到 `.claude/context/{task_id}/`
 - ✅ 支持查看历史版本列表（按时间排序）
 - ✅ 支持回滚到指定版本（恢复上下文状态）
 - ✅ 版本对比可展示两个版本的 JSON diff

@@ -52,10 +52,10 @@
 | 操作 | 目标 |
 |------|------|
 | 计划文件 | `.claude/plans/{task_id}.md` + `.html` |
-| 检查点 | `.claude/checkpoints/{hash}.json` |
+| 检查点 | `.claude/checkpoints/{task_id}.json` |
 | 短期记忆 | `task://sessions/{id}` → 归档后删除 |
 | 临时文件 | 执行过程中生成的临时文件 |
-| 任务状态 | `.claude/tasks/{task_id}.json`（completed/failed状态保留，30天后自动清理） |
+| 任务状态 | `.claude/tasks/{task_id}/status.json`（completed/failed状态保留，30天后自动清理） |
 
 ## 微回顾（Micro-Retrospective）
 

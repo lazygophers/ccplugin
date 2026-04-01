@@ -33,6 +33,7 @@ plugins/**/__pycache__/
 .gitnexus
 .claude/plans
 .claude/tasks
+.claude/research
 .remember
 
 # 运行时数据库
