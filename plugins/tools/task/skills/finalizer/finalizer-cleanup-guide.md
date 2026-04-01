@@ -17,7 +17,7 @@
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 任务执行状态快照 | 始终删除 |
 | 审批日志 | `.claude/plans/{task_id}/approval-log.json` | HITL审批记录 | 始终删除 |
 | 指标数据 | `.claude/plans/{task_id}/metrics.json` | 可观测性指标 | 始终删除 |
-| 上下文快照 | `.claude/context-versions/{task_id}/v*.json` | 规划阶段上下文版本 | 始终删除 |
+| 上下文快照 | `.claude/context/{task_id}/v*.json` | 规划阶段上下文版本 | 始终删除 |
 
 ## 保留规则（不清理）
 
@@ -35,7 +35,7 @@
 - **文件**：扫描以下目录
   - `.claude/plans/` — 计划文件(.md/.html)、审批日志、指标数据、草稿、子目录
   - `.claude/checkpoints/` — 检查点JSON
-  - `.claude/context-versions/` — 上下文版本快照目录
+  - `.claude/context/` — 上下文版本快照目录
 - **其他**：lock文件、缓存
 
 ### 阶段2：任务终止
@@ -48,11 +48,11 @@
 按以下顺序逐类清理（每步独立执行，失败记录后继续）：
 
 1. **检查点**：删除 `.claude/checkpoints/{task_id}.json`
-2. **上下文快照**：删除 `.claude/context-versions/{task_id}/` 整个目录
+2. **上下文快照**：删除 `.claude/context/{task_id}/` 整个目录
 3. **审批日志**：删除 `.claude/plans/{task_id}/approval-log.json`
 4. **指标数据**：删除 `.claude/plans/{task_id}/metrics.json`
 5. **计划文件**：删除 `.claude/plans/{task_id}.md` + `.html`（包括所有状态的文件）
-6. **空目录**：清理 `.claude/context-versions/{task_id}/` 等空子目录
+6. **空目录**：清理 `.claude/context/{task_id}/` 等空子目录
 
 ### 阶段4：最终报告
 

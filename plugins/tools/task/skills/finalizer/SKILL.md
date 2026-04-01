@@ -33,7 +33,7 @@ Loop 完成或紧急停止时执行资源清理。防御性清理：每个操作
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 始终删除 |
 | 审批日志 | `.claude/plans/{task_id}/approval-log.json` | 始终删除 |
 | 指标数据 | `.claude/plans/{task_id}/metrics.json` | 始终删除 |
-| 上下文快照 | `.claude/context-versions/{task_id}/v*.json` | 始终删除 |
+| 上下文快照 | `.claude/context/{task_id}/v*.json` | 始终删除 |
 
 **清理顺序**：检查点 → 上下文快照 → 审批日志 → 指标数据 → 草稿 → 计划文件 → 空目录
 

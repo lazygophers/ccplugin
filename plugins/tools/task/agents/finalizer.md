@@ -68,11 +68,11 @@ hooks:
 
 1. **资源盘点**：
    - 任务：`TaskList()` → 分类 running / pending / completed / failed
-   - 文件：扫描 `.claude/plans/`、`.claude/checkpoints/`、`.claude/context-versions/`
+   - 文件：扫描 `.claude/plans/`、`.claude/checkpoints/`、`.claude/context/`
 2. **任务终止**：`TaskStop` 终止 running 任务，取消 pending 任务，失败记录但继续
 3. **文件清理**（5类中间产物，按顺序）：
    - 检查点：`.claude/checkpoints/{task_id}.json`
-   - 上下文快照：`.claude/context-versions/{task_id}/v*.json`
+   - 上下文快照：`.claude/context/{task_id}/v*.json`
    - 审批日志：`.claude/plans/{task_id}/approval-log.json`
    - 指标数据：`.claude/plans/{task_id}/metrics.json`
    - 计划文件：`.claude/plans/{task_id}.md` + `.html`（包括所有状态）

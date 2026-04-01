@@ -32,7 +32,7 @@ user-invocable: false
 
 <notes>
 
-存储：`.claude/context-versions/{task_id}/v{iteration}.json`。状态：pending→success/failed。回滚默认最近 success 快照。
+存储：`.claude/context/{task_id}/v{iteration}.json`。状态：pending→success/failed。回滚默认最近 success 快照。
 
 与 checkpoint 区别：checkpoint 是进程级中断恢复，context-versioning 是逻辑级上下文回滚。
 

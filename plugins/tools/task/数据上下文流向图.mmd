@@ -61,7 +61,7 @@ graph TB
         TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Finalization 创建 → 保留30天"]
         ApprovalLog[".claude/plans/{task_id}/approval-log.json<br/>Planning 创建 → Finalization 删除"]
         MetricsFile[".claude/plans/{task_id}/metrics.json<br/>Observability 创建 → Finalization 删除"]
-        ContextSnap[".claude/context-versions/{task_id}/v*.json<br/>ContextVersioning 创建 → Finalization 删除"]
+        ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Finalization 删除"]
     end
 
     subgraph Memory["记忆层"]
