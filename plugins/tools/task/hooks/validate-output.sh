@@ -8,6 +8,9 @@ set -euo pipefail
 # 环境变量: VALIDATE_TYPE (planner|verifier|adjuster|finalizer|auto)
 # 退出码: 0=合法, 2=校验失败(stderr反馈给Claude)
 
+# 检查依赖命令
+command -v jq >/dev/null 2>&1 || { echo "错误: jq 命令未安装" >&2; exit 1; }
+
 input=$(cat)
 
 # 从 hook input 中提取输出内容
