@@ -34,6 +34,6 @@ user-invocable: false
 
 ## 配置
 
-`.claude/task.local.md` YAML frontmatter: `observability: {enabled, budget_limit_usd, budget_warning_threshold(0.80), persist_metrics}`
+内置默认值：`observability: {enabled: true, budget_limit_usd: null, budget_warning_threshold: 0.80, persist_metrics: true}`。用户可在 loop 调用时通过参数覆盖。
 
 <!-- /STATIC_CONTENT -->

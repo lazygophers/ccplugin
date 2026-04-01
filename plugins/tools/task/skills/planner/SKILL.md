@@ -121,10 +121,9 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 **强制要求**：tasks 非空时，必须将计划格式化为 Markdown 并写入文件，然后再返回 JSON。
 
-1. **生成文件路径**：`.claude/plans/{中文关键词}-{iteration}.md`
-   - 从用户任务描述提取 2-4 个中文词（优先动词+名词），连字符连接
-   - 过滤特殊字符：`/ \ : * ? " < > |`
-   - fallback：无中文则用 `task-plan`
+1. **生成文件路径**：`.claude/plans/{task_id}.md`
+   - 使用 task_id 作为文件名（由 loop Initialization 阶段生成）
+   - 若文件已存在则覆盖写入，不存在则直接新建
 2. **创建目录**：确保 `.claude/plans/` 存在
 3. **生成 Markdown**：按计划模板（YAML frontmatter + Mermaid stateDiagram + 任务表格 + 验收标准），参考 [template.md](template.md)
 4. **写入文件**：使用 Write 工具写入
@@ -164,6 +163,18 @@ AskUserQuestion({
 **当 `auto_approve=true` 时**：跳过此阶段，直接设置 `status = "confirmed"`。
 
 **当 tasks 为空时**：跳过此阶段，设置 `status = "no_tasks"`。
+
+### 步骤7：输出完整 JSON（强制，禁止跳过）
+
+**⚠️ 防中止规则（最高优先级）**：
+
+步骤6完成（用户确认/自动批准/取消）后，**绝对禁止**在此处结束回复。必须**立即**在同一回复中完成以下操作：
+
+1. **构建完整 JSON**：包含 `status`、`plan_md_path`、`report`、`tasks`、`dependencies`、`parallel_groups`、`iteration_goal`、`acceptance_criteria`、`context_learning` 等所有字段
+2. **输出 JSON**：将完整 JSON 作为代码块输出，供 loop 主体解析
+3. **禁止**：输出"计划已确认"等摘要后就停止。**必须**输出完整 JSON 后才能结束 planner skill 的执行
+
+**自检**：在准备结束回复前，检查"我是否已输出了包含 status 字段的完整 JSON？"——如果没有，**必须继续**。
 
 </execution_workflow>
 

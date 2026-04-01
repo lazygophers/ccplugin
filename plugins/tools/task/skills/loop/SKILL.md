@@ -45,8 +45,9 @@ hooks:
 2. **阶段必须连续**：每个阶段完成后，**必须立即**在同一回复中继续执行下一阶段，不等待用户响应（用户确认阶段除外）。
 3. **禁止输出原始 JSON**：**禁止**直接输出子 skill 返回的原始 JSON 数据。只输出人类可读的进度摘要（如"计划已确认（8个任务），开始执行..."）。
 4. **强制完整性**：即使任务全部失败，也必须执行完 Verifier → Adjuster → Finalizer 的完整流程后才能结束。
+5. **错误不中止**：任何步骤返回错误、异常、不完整结果时，**绝对禁止**因此终止流程。必须在当前阶段内重试、修复或降级处理后继续。错误是继续执行的理由，不是终止的理由。
 
-**自检规则**：每次完成一个阶段时，检查"我是否已到达 Finalization 且 finalizer 已执行？"——如果不是，**必须继续**。
+**自检规则**：每次完成一个阶段时，检查"我是否已到达 Finalization 且 finalizer 已执行？"——如果不是，**必须继续**。无论当前结果是正确还是错误，都**必须继续**到下一阶段。
 
 ## 【铁律】禁止跳过的步骤
 
@@ -175,7 +176,9 @@ hooks:
 
 `iteration += 1`
 
-**整个阶段只需一次 Skill() 调用**。planner 内部完成：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回结果。
+**整个阶段只需一次 Skill() 调用**。planner 内部完成：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回完整 JSON。
+
+**⚠️ 注意**：planner 可能在用户确认后中止而未输出 JSON。如果 planner 返回不包含 `status` 字段的完整 JSON，则视为 planner 异常中止。此时**不要停止**，而应：读取计划文件（plan_md_path）确认已写入，设 `status = "confirmed"`，继续进入 Execution。
 
 调用 `Skill(skill="task:planner", args="...")` ，传递以下字段：
 - 6个上下文字段：project_path、task_id、iteration、plan_md_path、working_directory、user_task
@@ -242,22 +245,16 @@ hooks:
 
 **前置条件**：验证通过或用户确认完成
 
-1. **【强制】更新任务状态文件**：在调用 finalizer 之前，**必须先**更新 `.claude/tasks/{task_id}/status.json`：
-   - `status` → `"completed"`（验证通过）或 `"failed"`（最终失败）
-   - `phase` → `"finalization"`
-   - `updated_at` → 当前时间
-   - `quality_score` → 验证阶段的最终评分
-   - **此步骤不可跳过**，否则下次 loop 初始化会误判为"前一个任务未完成"
-2. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
-3. 保存执行记忆（iteration、duration_minutes、quality_score）
-4. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代，耗时 M 分钟`
-5. 清理状态变量
+1. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、清理任务状态文件、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
+2. 保存执行记忆（iteration、duration_minutes、quality_score）
+3. 输出 `[MindFlow] ✓ 任务完成！共 N 次迭代`
+4. 清理状态变量
 
 **后置验证点**：
-- ✓ `.claude/tasks/{task_id}/status.json` status 为 `completed` 或 `failed`
 - ✓ finalizer 已被调用
 - ✓ 计划文件已删除
 - ✓ 检查点已清理
+- ✓ 任务状态文件已清理
 - ✓ 执行记忆已保存
 
 详见 [phase-finalization.md](phases/phase-finalization.md)

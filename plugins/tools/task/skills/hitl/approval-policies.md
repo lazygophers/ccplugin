@@ -24,7 +24,7 @@
 
 ## 配置
 
-`.claude/task.local.md` YAML配置：enabled/trust_mode/timeout(review_seconds:300, mandatory_seconds:600)/timeout_behavior(review:block, mandatory:auto_reject)/notifications/overrides[pattern→risk_level]/batch_approval(enabled/max_batch_size:10)
+内置默认值：enabled/trust_mode/timeout(review_seconds:300, mandatory_seconds:600)/timeout_behavior(review:block, mandatory:auto_reject)/notifications/overrides[pattern→risk_level]/batch_approval(enabled/max_batch_size:10)。用户可在 loop 调用时通过参数覆盖。
 
 ## 批量审批
 

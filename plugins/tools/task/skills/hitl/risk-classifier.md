@@ -25,7 +25,7 @@
 ## 特殊场景
 
 - **批量操作**：风险取所有子操作最高级
-- **用户覆盖**：`.claude/task.local.md` 中 hitl_overrides 可覆盖特定pattern的风险等级
+- **用户覆盖**：用户可在 loop 调用时通过 hitl_overrides 参数覆盖特定 pattern 的风险等级
 - **信任模式**：review→auto，mandatory不变
 
 ## 接口

@@ -75,11 +75,11 @@ hooks:
    - 上下文快照：`.claude/context/{task_id}/v*.json`
    - 审批日志：`.claude/plans/{task_id}/approval-log.json`
    - 指标数据：`.claude/plans/{task_id}/metrics.json`
-   - 计划文件：`.claude/plans/{task_id}.md` + `.html`（包括所有状态）
+   - 计划文件：`.claude/plans/{task_id}.md`（包括所有状态）
    - 空目录：清理上述路径中的空子目录
 4. **报告生成**：清理统计（任务数/文件数/错误数），≤100字
 
-**保留规则**：任务状态文件(`.claude/tasks/`)保留30天 | 情节记忆永久保留 | 用户文件不清理
+**清理规则**：任务状态文件(`.claude/tasks/`)立即清理 | 情节记忆永久保留 | 用户文件不清理
 
 </workflow>
 

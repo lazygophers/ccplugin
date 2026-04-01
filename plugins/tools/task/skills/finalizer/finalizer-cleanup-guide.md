@@ -13,7 +13,7 @@
 
 | 类型 | 路径模式 | 说明 | 清理条件 |
 |------|---------|------|---------|
-| 计划文件 | `.claude/plans/{task_id}.md` + `.html` | 计划文档及HTML预览（含 draft 状态） | 始终删除 |
+| 计划文件 | `.claude/plans/{task_id}.md` | 计划文档（含 draft 状态） | 始终删除 |
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 任务执行状态快照 | 始终删除 |
 | 审批日志 | `.claude/plans/{task_id}/approval-log.json` | HITL审批记录 | 始终删除 |
 | 指标数据 | `.claude/plans/{task_id}/metrics.json` | 可观测性指标 | 始终删除 |
@@ -23,9 +23,14 @@
 
 | 类型 | 路径模式 | 保留原因 |
 |------|---------|---------|
-| 任务状态 | `.claude/tasks/{task_id}/status.json` | 保留30天供查询，超期由初始化阶段自动清理 |
 | 情节记忆 | `workflow://task-episodes/` | 永久保留，长期学习数据 |
 | 用户文件 | 用户手动创建的文件 | 非自动产物，不自动清理 |
+
+## 立即清理（Finalization 阶段）
+
+| 类型 | 路径模式 | 清理时机 |
+|------|---------|---------|
+| 任务状态 | `.claude/tasks/{task_id}/status.json` | Finalization 阶段立即清理 |
 
 ## 执行流程
 
@@ -33,7 +38,7 @@
 
 - **任务**：`TaskList()` → 分类 running / pending / completed / failed
 - **文件**：扫描以下目录
-  - `.claude/plans/` — 计划文件(.md/.html)、审批日志、指标数据、草稿、子目录
+  - `.claude/plans/` — 计划文件(.md)、审批日志、指标数据、草稿、子目录
   - `.claude/checkpoints/` — 检查点JSON
   - `.claude/context/` — 上下文版本快照目录
 - **其他**：lock文件、缓存
@@ -51,7 +56,7 @@
 2. **上下文快照**：删除 `.claude/context/{task_id}/` 整个目录
 3. **审批日志**：删除 `.claude/plans/{task_id}/approval-log.json`
 4. **指标数据**：删除 `.claude/plans/{task_id}/metrics.json`
-5. **计划文件**：删除 `.claude/plans/{task_id}.md` + `.html`（包括所有状态的文件）
+5. **计划文件**：删除 `.claude/plans/{task_id}.md`（包括所有状态的文件）
 6. **空目录**：清理 `.claude/context/{task_id}/` 等空子目录
 
 ### 阶段4：最终报告

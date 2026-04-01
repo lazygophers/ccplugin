@@ -58,7 +58,7 @@ graph TB
         direction LR
         PlanFile[".claude/plans/{task_id}.md<br/>Planning 创建 → Finalization 删除"]
         CheckpointFile[".claude/checkpoints/{task_id}.json<br/>Execution 创建 → Finalization 删除"]
-        TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Finalization 创建 → 保留30天"]
+        TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Initialization 创建 → Finalization 删除"]
         ApprovalLog[".claude/plans/{task_id}/approval-log.json<br/>Planning 创建 → Finalization 删除"]
         MetricsFile[".claude/plans/{task_id}/metrics.json<br/>Observability 创建 → Finalization 删除"]
         ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Finalization 删除"]

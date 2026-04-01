@@ -6,15 +6,7 @@
 
 ## 执行流程
 
-1. **【强制·最先执行】任务状态更新**：在任何清理操作之前，**必须先**更新 `.claude/tasks/{task_id}/status.json`
-   - `status` → `"completed"` 或 `"failed"`（终态，不可逆）
-   - `phase` → `"finalization"`
-   - `updated_at` → 当前时间
-   - `quality_score` → 验证阶段的最终评分
-   - `tasks[]` → 所有子任务的最终状态
-   - `error` → 失败时记录原因（成功为null）
-   - **为何最先执行**：如果后续清理步骤中断，状态文件已为终态，不会导致下次 loop 误判"前一个任务未完成"
-2. **【强制】调用 finalizer skill**：即使任务失败，finalizer 也必须执行以清理资源
+1. **【强制】调用 finalizer skill**：即使任务失败，finalizer 也必须执行以清理所有资源（计划文件、检查点、任务状态文件）
    ```
    Skill(skill="task:finalizer", args="清理任务资源：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n要求：1.停止运行中任务 2.删除计划文件 3.清理临时文件 4.生成最终报告")
    ```
@@ -29,15 +21,14 @@
 | 文件类型 | 路径模式 | 清理时机 | 条件 |
 |---------|----------|---------|------|
 | 计划文件 | `.claude/plans/{task_id}.md` | 任务完成/失败时 | 始终删除（包括 draft 状态） |
-| 计划HTML | `.claude/plans/{task_id}.html` | 随计划文件删除 | 始终删除 |
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 任务完成时 | 始终删除 |
 | 短期记忆 | `task://sessions/{id}/*` | 归档后 | 始终删除 |
-| 任务状态 | `.claude/tasks/{task_id}/status.json` | 30天未更新 | `updated_at` 超过30天 |
+| 任务状态 | `.claude/tasks/{task_id}/status.json` | 任务完成/失败时 | 始终删除 |
 
 **清理顺序**：检查点 → 短期记忆 → 计划文件 → 过期任务状态 → 中间产物
 
 **保留规则**：
-- `completed`/`failed` 状态的任务状态文件保留30天供查询
+- `completed`/`failed` 状态的任务状态文件在 Finalization 阶段立即清理
 - 情节记忆（episodic memory）永久保留，不在清理范围
 - 用户手动创建的文件不自动清理
 
@@ -51,11 +42,11 @@
 
 | 操作 | 目标 |
 |------|------|
-| 计划文件 | `.claude/plans/{task_id}.md` + `.html` |
+| 计划文件 | `.claude/plans/{task_id}.md` |
 | 检查点 | `.claude/checkpoints/{task_id}.json` |
 | 短期记忆 | `task://sessions/{id}` → 归档后删除 |
 | 临时文件 | 执行过程中生成的临时文件 |
-| 任务状态 | `.claude/tasks/{task_id}/status.json`（completed/failed状态保留，30天后自动清理） |
+| 任务状态 | `.claude/tasks/{task_id}/status.json`（Finalization 阶段立即清理） |
 
 ## 微回顾（Micro-Retrospective）
 
