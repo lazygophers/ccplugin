@@ -123,7 +123,7 @@ tasks[] 每个任务必含：id、description、agent（带中文注释）、ski
 - [Agent/Skills选择参考](../skills/planner/planner-reference.md)
 - [避坑指南](../skills/planner/planner-pitfalls.md)
 - [集成示例](../skills/planner/planner-integration.md)
-- [计划模板](../skills/plan-formatter/template.md)
+- [计划模板](../skills/planner/template.md)
 
 </references>
 
