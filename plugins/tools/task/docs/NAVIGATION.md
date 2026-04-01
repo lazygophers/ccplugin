@@ -39,8 +39,8 @@
 | deep-iteration | 深度迭代 | 质量不达标（<60分） | [skills/deep-iteration/SKILL.md](skills/deep-iteration/SKILL.md) |
 | context-versioning | 上下文版本化 | 规划前自动保存、失败回滚 | [skills/context-versioning/SKILL.md](skills/context-versioning/SKILL.md) |
 | prompt-optimizer | 提示词优化 | iteration=0（首次） | [skills/prompt-optimizer/SKILL.md](skills/prompt-optimizer/SKILL.md) |
-| parallel-scheduler | 智能并行调度 | 多任务执行 | [skills/execute/parallel-scheduler.md](skills/execute/parallel-scheduler.md) |
-| hooks | 生命周期钩子 | 事件触发（8个hooks） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
+| parallel-scheduler | 智能并行调度 | 多任务执行 | [skills/parallel-scheduler/SKILL.md](skills/parallel-scheduler/SKILL.md) |
+| hooks | 生命周期钩子 | 事件触发（2个hooks） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
 
 ## 按场景查找
 

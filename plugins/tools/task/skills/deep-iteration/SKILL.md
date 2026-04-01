@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:deep-iteration) - 深度迭代规范
 
 <overview>
@@ -35,3 +37,5 @@ user-invocable: false
 - Loop 主文档 → [Loop Skill](../loop/SKILL.md)
 
 </navigation>
+
+<!-- /STATIC_CONTENT -->

@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:observability) - 可观测性规范
 
 ## 概述
@@ -33,3 +35,5 @@ user-invocable: false
 ## 配置
 
 `.claude/task.local.md` YAML frontmatter: `observability: {enabled, budget_limit_usd, budget_warning_threshold(0.80), persist_metrics}`
+
+<!-- /STATIC_CONTENT -->

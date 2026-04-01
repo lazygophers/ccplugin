@@ -5,6 +5,8 @@ context: fork
 user-invocable: false
 ---
 
+<!-- STATIC_CONTENT: Cacheable -->
+
 # Skills(task:context-versioning) - 上下文版本化
 
 <overview>
@@ -35,3 +37,5 @@ user-invocable: false
 与 checkpoint 区别：checkpoint 是进程级中断恢复，context-versioning 是逻辑级上下文回滚。
 
 </notes>
+
+<!-- /STATIC_CONTENT -->

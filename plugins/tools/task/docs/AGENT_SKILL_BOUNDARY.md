@@ -40,7 +40,7 @@
 | **verifier** | 执行任务验收流程 | 定义验收测试最佳实践 | 导航型架构 |
 | **adjuster** | 执行失败调整流程 | 定义升级策略和Circuit Breaker | 无重叠 |
 | **finalizer** | 执行资源清理流程 | 定义防御性清理原则 | 无重叠 |
-| **plan-formatter** | 执行JSON→Markdown转换 | 定义模板格式规范 | 单一职责 |
+| **planner（含格式化）** | 执行计划设计+JSON→Markdown转换 | 定义模板格式规范 | 已合并至planner |
 | **loop** | 无（特殊） | PDCA编排引擎 | 特殊情况 |
 
 ### 需优化的模块（⚠️）
