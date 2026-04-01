@@ -58,9 +58,29 @@
 | 临时文件 | 执行过程中生成的临时文件 |
 | 任务状态 | `.claude/task/{task_id}.json`（completed/failed状态保留，30天后自动清理） |
 
+## 微回顾（Micro-Retrospective）
+
+**在 finalizer 完成后、记忆保存前执行**（≤5分钟），生成本次迭代的经验总结：
+
+| 维度 | 内容 | 示例 |
+|------|------|------|
+| 做得好的 | 1-2 条有效实践 | "MECE 分解准确，无遗漏任务" |
+| 需改进的 | 1-2 条问题发现 | "执行阶段直接用 Edit 违反铁律" |
+| 下次注意 | 1-2 条行动项 | "所有执行必须通过 Skill() 调用" |
+
+**输出格式**：
+```
+[MindFlow·${task_id}·微回顾]
+- 有效实践：{内容}
+- 需改进：{内容}
+- 下次注意：{内容}
+```
+
+**回顾结果保存**：作为情节记忆的 `retrospective` 字段一并保存，供后续迭代参考。
+
 ## 记忆保存
 
-情节记忆：`workflow://task-episodes/{type}/{episode_id}` 含task_desc/type/result/plan/metrics/agents/skills
+情节记忆：`workflow://task-episodes/{type}/{episode_id}` 含task_desc/type/result/plan/metrics/agents/skills/retrospective
 
 ## 状态转换（唯一允许结束 Loop 的阶段）
 

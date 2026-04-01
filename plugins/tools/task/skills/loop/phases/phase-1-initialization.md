@@ -36,13 +36,19 @@
    ```
    - `status` 枚举：`initialized` | `planning` | `executing` | `verifying` | `adjusting` | `completed` | `failed`
    - 每次阶段转换时更新 `status`、`phase`、`updated_at`
-5. **残留状态修复**：扫描 `.claude/task/*.json`，对 **非当前 task_id** 的文件：
+5. **残留计划文件清理**：扫描 `.claude/plans/*.md`，对 **非当前任务** 的计划文件：
+   - 检查文件 frontmatter 中的 `task_id` 和 `status`
+   - `status` 为 `completed` / `cancelled` → 删除（应由 finalizer 清理但遗漏）
+   - `status` 为其他（`pending`/`in_progress`）→ 说明前次 loop 未正常完成 finalization，记录警告后删除
+   - 输出清理日志：`[MindFlow·${task_id}] 已清理 N 个残留计划文件（前次 loop 未正常完成 finalization）`
+   - **禁止**删除当前任务的计划文件
+6. **残留状态修复**：扫描 `.claude/task/*.json`，对 **非当前 task_id** 的文件：
    - `status` 为 `completed` / `failed` → 正常保留（30天后自动清理）
    - `status` 为其他非终态（`initialized`/`planning`/`executing`/`verifying`/`adjusting`）→ **自动修正为 `failed`**，设 `error: "abnormal_termination: 前次 loop 未正常完成 finalization"`，更新 `updated_at`
    - **禁止**因发现其他任务的非终态状态文件而阻断当前任务的初始化流程
-6. **30天自动清理**：扫描 `.claude/task/*.json`，删除 `updated_at` 距今超过30天的状态文件及其关联的计划文件（`plan_path`）和检查点
-6. **记忆加载**：生成session_id(MD5) → load_task_memories(user_task, task_type, session_id) → 显示episodic(前3个)+semantic记忆
-7. **资源检查**：ListSkills() + ListAgents()
+7. **30天自动清理**：扫描 `.claude/task/*.json`，删除 `updated_at` 距今超过30天的状态文件及其关联的计划文件（`plan_path`）和检查点
+8. **记忆加载**：生成session_id(MD5) → load_task_memories(user_task, task_type, session_id) → 显示episodic(前3个)+semantic记忆
+9. **资源检查**：ListSkills() + ListAgents()
 
 ## 辅助函数
 
