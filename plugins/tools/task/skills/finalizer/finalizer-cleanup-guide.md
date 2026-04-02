@@ -26,11 +26,11 @@
 | 情节记忆 | `workflow://task-episodes/` | 永久保留，长期学习数据 |
 | 用户文件 | 用户手动创建的文件 | 非自动产物，不自动清理 |
 
-## 立即清理（Finalization 阶段）
+## 立即清理（Cleanup 阶段）
 
 | 类型 | 路径模式 | 清理时机 |
 |------|---------|---------|
-| 任务状态 | `.claude/tasks/{task_id}/status.json` | Finalization 阶段立即清理 |
+| 任务状态 | `.claude/tasks/{task_id}/status.json` | Cleanup 阶段立即清理 |
 
 ## 执行流程
 

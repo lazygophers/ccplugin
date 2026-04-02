@@ -40,13 +40,13 @@ hooks:
 
 **Loop 是一个不可中断的完整流程。以下规则优先级高于所有其他规则：**
 
-1. **禁止提前停止**：在完成 Finalization（Finalizer 清理）之前，**绝对禁止**结束回复或停止执行。只有 Finalization 的 finalizer 执行完成且最终报告输出后，才允许结束回复。
+1. **禁止提前停止**：在完成 Cleanup（Finalizer 清理）之前，**绝对禁止**结束回复或停止执行。只有 Cleanup 的 finalizer 执行完成且最终报告输出后，才允许结束回复。
 2. **阶段必须连续**：每个阶段完成后，**必须立即**在同一回复中继续执行下一阶段，不等待用户响应（用户确认阶段除外）。
 3. **禁止输出原始 JSON**：**禁止**直接输出子 skill 返回的原始 JSON 数据。只输出人类可读的进度摘要（如"计划已确认（8个任务），开始执行..."）。
 4. **强制完整性**：即使任务全部失败，也必须执行完 Verifier → Adjuster → Finalizer 的完整流程后才能结束。
 5. **错误不中止**：任何步骤返回错误、异常、不完整结果时，**绝对禁止**因此终止流程。必须在当前阶段内重试、修复或降级处理后继续。错误是继续执行的理由，不是终止的理由。
 
-**自检规则**：每次完成一个阶段时，检查"我是否已到达 Finalization 且 finalizer 已执行？"——如果不是，**必须继续**。无论当前结果是正确还是错误，都**必须继续**到下一阶段。
+**自检规则**：每次完成一个阶段时，检查"我是否已到达 Cleanup 且 finalizer 已执行？"——如果不是，**必须继续**。无论当前结果是正确还是错误，都**必须继续**到下一阶段。
 
 ## 【铁律】禁止跳过的步骤
 
@@ -64,7 +64,7 @@ hooks:
 **每个阶段完成后，执行 Reflection 自检**，验证以下 2 项：
 
 1. **铁律遵守**：是否通过 Skill()/Agent() 调用而非直接工具？是否遗漏必要步骤（Planner三层学习/Verifier/Finalizer）？
-2. **状态转换正确**：下一阶段是否与当前结果匹配（如 confirmed→Execution、passed→Finalization）？6 个必传字段是否就绪？
+2. **状态转换正确**：下一阶段是否与当前结果匹配（如 confirmed→Execution、passed→QualityGate→Cleanup）？6 个必传字段是否就绪？
 
 **规则**：
 - 自检最多执行 1 次，不循环
@@ -107,9 +107,10 @@ hooks:
 - **DeepResearch** — 深度研究（可选）
 - **Planning** — 计划设计与确认
 - **Execution** — 任务执行
-- **Verification** — 结果验证
-- **Adjustment** — 失败调整（条件触发）
-- **Finalization** — 完成清理
+- **Verification** — 验收检查（passed/failed）
+- **QualityGate** — 质量评估（达标→Cleanup，不达标→PromptCheck，非失败）
+- **Adjustment** — 失败调整（仅 Verification failed 触发）
+- **Cleanup** — 清理
 
 **关键要求**：
 - **所有输出必须以 [MindFlow·${task_id}] 开头**（强制规则，无例外。task_id在初始化阶段生成）
@@ -188,8 +189,8 @@ hooks:
 |---------------------|----------|---------|
 | `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
 | `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 PromptCheck（重新评估提示词质量） |
-| `no_tasks` | - | **必须立即**跳到 Finalization（完成清理） |
-| `cancelled` | - | **必须立即**进入 Terminated（中止，仅清理状态文件） |
+| `no_tasks` | - | **必须立即**进入 Cleanup（清理） |
+| `cancelled` | - | **必须立即**进入 Cleanup（清理） |
 
 **禁止**：处理完 planner 返回结果后就结束回复。**必须**立即继续执行下一阶段。
 
@@ -218,9 +219,14 @@ hooks:
 **前置条件**：所有任务已执行完成。更新状态文件：`echo "verification" > .claude/tasks/${task_id}/loop-phase`
 
 【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支**必须立即继续**：
-- `passed` → **必须立即**进入 Finalization（完成清理）
-- `suggestions` → 设 `replan_trigger="verifier"` → **必须立即**回到 PromptCheck（重新评估）
-- `failed` → **必须立即**进入Adjustment（失败调整）
+- `passed` → **必须立即**进入 QualityGate（质量评估）
+- `failed` → **必须立即**进入 Adjustment（失败调整）
+
+### QualityGate: 质量评估
+
+Verification passed 后，检查 `quality_score` 是否达到当前迭代阈值（见 flows/verify.md SSOT）。**质量不达标不是失败**，不进入 Adjustment：
+- 质量达标（`quality_score ≥ threshold`）→ **必须立即**进入 Cleanup（清理）
+- 质量不达标 → **必须立即**回到 PromptCheck（改进，非失败）
 
 **后置验证点**：
 - ✓ verifier已被调用并返回结果
@@ -240,9 +246,9 @@ hooks:
 
 **禁止**：调整完成后就结束回复。**必须立即**按策略分支继续执行。
 
-### Finalization: 完成清理
+### Cleanup: 清理
 
-**前置条件**：验证通过或用户确认完成。更新状态文件：`echo "finalization" > .claude/tasks/${task_id}/loop-phase`
+**前置条件**：质量评估通过 / no_tasks / cancelled。更新状态文件：`echo "cleanup" > .claude/tasks/${task_id}/loop-phase`
 
 1. 【强制】调用 task:finalizer skill（删除计划文件、清理检查点、清理任务状态文件、停止运行中任务）。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 finalizer 能独立定位需要清理的资源。
 2. 保存执行记忆（iteration、duration_minutes、quality_score）
@@ -257,9 +263,11 @@ hooks:
 - ✓ 任务状态文件已清理
 - ✓ 执行记忆已保存
 
-详见 [phase-finalization.md](phases/phase-finalization.md)
+详见 [phase-cleanup.md](phases/phase-cleanup.md)
 
-**Finalization 是唯一允许结束 loop 的阶段**。只有 finalizer 执行完成且最终报告输出后，才允许结束回复。
+### End: 结束
+
+Cleanup 完成后进入 End。**End 是唯一允许结束 loop 的节点**。只有 Cleanup 执行完成且最终报告输出后，才允许结束回复。End 本身不做任何操作，仅标记 loop 结束。
 
 开始执行 PDCA 循环。
 
@@ -285,10 +293,10 @@ Loop 在关键阶段设置检查点，自动检测流程违规行为：
    - 违规判定：发现直接工具调用，输出 Reflection 违规日志
 
 3. **Verifier 调用检测**：
-   - 检测者：**Loop 主体**（进入 Finalization/Adjustment 前检查）
+   - 检测者：**Loop 主体**（进入 Cleanup/Adjustment 前检查）
    - 检测时机：Execution 完成后、准备进入下一阶段前
    - 检测方法：确认已调用 `Skill(skill="task:verifier", ...)` 并获得返回结果
-   - 违规判定：未调用 verifier 就尝试进入 Finalization/Adjustment
+   - 违规判定：未调用 verifier 就尝试进入 Cleanup/Adjustment
 
 4. **Finalizer 调用检测**：
    - 检测者：**Loop 主体**（Loop 结束前检查）

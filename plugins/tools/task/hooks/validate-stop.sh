@@ -34,7 +34,7 @@ if [ -d "$tasks_dir" ]; then
     if echo "$reason" | grep -qiE "用户取消|cancelled|user.*cancel"; then
       exit 0
     fi
-    echo '{"decision":"block","reason":"[MindFlow·Stop校验] 检测到活跃的 Loop 流程（状态文件非 completed），禁止提前终止。","systemMessage":"[Hook·Stop校验] Loop 流程尚未完成 Finalization。请继续执行直到 finalizer 清理完成并写入 completed 状态。"}' >&2
+    echo '{"decision":"block","reason":"[MindFlow·Stop校验] 检测到活跃的 Loop 流程（状态文件非 completed），禁止提前终止。","systemMessage":"[Hook·Stop校验] Loop 流程尚未完成 Cleanup。请继续执行直到 finalizer 清理完成并写入 completed 状态。"}' >&2
     exit 2
   fi
 
@@ -50,8 +50,8 @@ if echo "$reason" | grep -qiE "用户取消|cancelled|user.*cancel"; then
   exit 0
 fi
 
-# 收紧的 Finalization 完成标志（必须有 [MindFlow 前缀或明确的 finalizer 关键词）
-if echo "$reason" | grep -qiE "\[MindFlow.*[Ff]inali[sz](ation|er).*完成\]|\[MindFlow.*✓.*完成\]|finalizer.*执行完成|finalizer.*清理完成|completed.*cleanup.*successfully"; then
+# 收紧的 Cleanup 完成标志（必须有 [MindFlow 前缀或明确的 finalizer/cleanup 关键词）
+if echo "$reason" | grep -qiE "\[MindFlow.*(Cleanup|[Ff]inali[sz](ation|er)).*完成\]|\[MindFlow.*✓.*完成\]|finalizer.*执行完成|finalizer.*清理完成|cleanup.*完成|completed.*cleanup.*successfully"; then
   exit 0
 fi
 

@@ -35,8 +35,8 @@ planner 返回 JSON，loop 根据 `status` 字段处理：
 |--------|------|----------|
 | `confirmed` | 用户批准或自动批准 | 提取 plan_md_path → save_checkpoint → goto Execution |
 | `rejected` | 用户要求修改 | 提取 user_feedback → replan_trigger="user" → goto PromptCheck |
-| `no_tasks` | 无需执行任何任务 | goto Finalization |
-| `cancelled` | 用户取消任务 | goto Terminated（中止） |
+| `no_tasks` | 无需执行任何任务 | goto Cleanup |
+| `cancelled` | 用户取消任务 | goto Cleanup（清理） |
 
 ## 批准判定规则（planner 内部执行）
 
@@ -59,8 +59,8 @@ planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 |--------|---------|---------|
 | confirmed | Execution(任务执行) | **必须立即**继续执行，不允许停止 |
 | rejected | PromptCheck(重新评估) | **必须立即**回到提示词质量评估 |
-| no_tasks | Finalization(完成) | **必须立即**进入 Finalizer 清理 |
-| cancelled | Terminated(中止) | **必须立即**中止，仅清理状态文件 |
+| no_tasks | Cleanup(完成) | **必须立即**进入 Finalizer 清理 |
+| cancelled | Cleanup(清理) | **必须立即**进入清理 |
 
 **禁止**：处理完 planner 返回结果后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
 

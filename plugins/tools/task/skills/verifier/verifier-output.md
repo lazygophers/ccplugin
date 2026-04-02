@@ -4,27 +4,24 @@
 
 | 条件 | 状态 | Loop行为 |
 |------|------|---------|
-| 所有通过+无建议 | passed | 正常退出 |
-| 所有通过+有建议 | suggestions | 自动继续优化 |
-| 部分未通过 | failed | 失败调整 |
+| 所有验收标准通过 | passed | → QualityGate（质量评估） |
+| 至少一项未通过 | failed | → Adjustment（失败调整） |
 
-## passed（完全通过）
+**注意**：verifier 仅判断验收标准是否通过，不做质量分门控。quality_score 始终包含在 passed 输出中，由 Loop 的 QualityGate 阶段决定是否达标。
 
-所有任务完成，验收标准全部满足。Loop正常退出。
+## passed（验收通过）
+
+所有任务完成，验收标准全部满足。包含 quality_score 和可选的 suggestions。
 
 **必需字段**：
 - `status`: `"passed"`
 - `report`: ≤100字，格式`所有任务已完成：T1(名)✓、T2(名)✓。覆盖率X%，CI通过，无回归。`
+- `quality_score`: 7维度加权综合分（0-100）
 - `verified_tasks`: 所有status=`"verified"`，含criteria_passed/total
 - `summary`: `{total_tasks, completed_tasks, failed_tasks:0, test_coverage?, regression_tests_passed?}`
 
-## suggestions（通过但有建议）
-
-验收标准满足但发现可优化之处。Loop自动继续新一轮迭代。
-
-**额外字段**：
-- `suggestions[]`: 每个含`{task_id, category, suggestion, priority}`
-- `report`格式：`任务已完成，标准满足。建议优化：[建议1]；[建议2]。`
+**可选字段**：
+- `suggestions[]`: 优化建议，每个含`{task_id, category, suggestion, priority}`
 
 ### Suggestion类别
 
@@ -38,7 +35,7 @@
 
 ## failed（验收未通过）
 
-验收标准未满足，存在功能缺陷或质量问题。Loop进入失败调整阶段。
+验收标准未满足，存在功能缺陷。Loop进入失败调整阶段。
 
 **必需字段**：
 

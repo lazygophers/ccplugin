@@ -1,5 +1,5 @@
 ---
-description: "Verifier 结果验证 - Loop Verification 阶段调用：两阶段验证（功能合规性门控 + 代码质量审查），输出 passed/suggestions/failed 状态。失败时触发 adjuster。由 Loop 内部调度，不直接面向用户"
+description: "Verifier 结果验证 - Loop Verification 阶段调用：三阶段验证（功能合规性门控 + 代码质量审查 + 深度校验），输出 passed/failed 状态。质量分由 QualityGate 判定。由 Loop 内部调度，不直接面向用户"
 model: sonnet
 context: fork
 user-invocable: false
@@ -16,7 +16,7 @@ hooks:
 
 <overview>
 
-Verifier 技能负责验证任务执行结果是否满足验收标准。采用**两阶段验证架构**：Stage 1（Spec Compliance）检查功能合规性，Stage 2（Code Quality）审查代码质量。Stage 1 是 MUST PASS 的门控阶段，失败直接触发 adjuster；Stage 2 仅在 Stage 1 通过后执行，生成 suggestions 但不触发 adjuster。最终输出三种状态之一：passed（全部通过）、suggestions（功能合规但质量有优化建议）、failed（功能合规未通过）。详细实现按职责拆分为以下文件。
+Verifier 技能负责验证任务执行结果是否满足验收标准。采用**三阶段验证架构**：Stage 1（Spec Compliance）检查功能合规性，Stage 2（Code Quality）审查代码质量，Stage 3（Deep Validation）深度校验。Stage 1 是 MUST PASS 的门控阶段，失败直接返回 failed。最终输出两种状态：passed（验收通过，含 quality_score 和可选 suggestions）、failed（验收未通过）。质量分判定由 Loop 的 QualityGate 阶段负责，verifier 不做质量分门控。
 
 </overview>
 
@@ -27,10 +27,10 @@ Verifier 技能负责验证任务执行结果是否满足验收标准。采用**
 | "代码能运行就说明功能正确" | 能运行≠功能正确，必须验证所有验收标准（包括边界、异常、性能）通过 |
 | "手动测试通过了就可以跳过单元测试验证" | 手动验证无法复现和回归，coverage 验证必须用工具（nyc、coverage.py等）检查 |
 | "测试用例全是正常场景就够了" | 必须覆盖：正常case、边界值、异常情况、null/空值，否则无法通过完整性检查 |
-| "把 failed 改成 suggestions 不会有后果" | suggestions 等于通过但有优化，实际失败却输出 suggestions = 隐瞒问题 |
+| "把 failed 改成 passed 不会有后果" | passed 等于验收通过，实际失败却输出 passed = 隐瞒问题 |
 | "验收标准检查很耗时，简化一些项目" | 验收标准不能简化，验收必须完整逐一检查，不能跳过任何标准 |
 | "已有回归测试，不用重复验证新改动" | 新改动可能破坏回归测试，必须重新跑完整测试套件，不能省略 |
-| "一个验收标准失败，其他通过也可以" | 验收规则是全量通过（passed）、优化建议（suggestions）或失败（failed），单个失败 = 整体失败 |
+| "一个验收标准失败，其他通过也可以" | 验收规则是全量通过（passed）或失败（failed），单个失败 = 整体失败 |
 | "第三方库已验证过，测试时可以跳过它" | 第三方库与本代码交互处必须测试，跳过等于留下隐患 |
 
 </red_flags>
@@ -54,7 +54,7 @@ Verifier 技能负责验证任务执行结果是否满足验收标准。采用**
 
 ## 相关文档
 
-- 输出格式（passed/suggestions/failed） → [verifier-output.md](verifier-output.md)
+- 输出格式（passed/failed） → [verifier-output.md](verifier-output.md)
 - 集成指南（基础/高级/调试） → [verifier-integration.md](verifier-integration.md)
 
 </navigation>

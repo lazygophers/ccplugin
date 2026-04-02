@@ -4,14 +4,13 @@
 
 1. **调用verifier**：`Skill(skill="task:verifier")` 传入任务目标、迭代轮次
 2. **输出报告**：`[MindFlow·{task}·结果验证/{N}·{status}]`
-3. **状态路由**：passed→exit | suggestions→自动继续优化 | failed→adjustment
+3. **状态路由**：passed→QualityGate | failed→Adjustment
 
 ### 结果处理
 
-- 验证status有效性(passed/suggestions/failed)
+- 验证status有效性(passed/failed)
 - 输出summary统计(total/completed/failed/coverage/regression)
-- passed：所有标准通过
-- suggestions：显示建议(priority图标❗⚠️💡)
+- passed：所有标准通过（含 quality_score 和可选 suggestions）
 - failed：列出每个failure的criterion/actual/reason
 
 ### 自定义场景

@@ -96,9 +96,9 @@ validate_verifier() {
     exit 2
   fi
   case "$status" in
-    passed|suggestions|failed) ;;
+    passed|failed) ;;
     *)
-      echo "{\"systemMessage\": \"[Hook·校验] verifier status 值非法: '$status'，合法值: passed/suggestions/failed\"}" >&2
+      echo "{\"systemMessage\": \"[Hook·校验] verifier status 值非法: '$status'，合法值: passed/failed\"}" >&2
       exit 2
       ;;
   esac

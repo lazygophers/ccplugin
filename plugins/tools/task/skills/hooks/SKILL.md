@@ -53,7 +53,7 @@ hooks:
 | 组件 | VALIDATE_TYPE | 必填字段 | 合法值 |
 |------|--------------|---------|--------|
 | planner | `planner` | `status` | confirmed / rejected / no_tasks / cancelled |
-| verifier | `verifier` | `status` | passed / suggestions / failed |
+| verifier | `verifier` | `status` | passed / failed |
 | adjuster | `adjuster` | `strategy` | retry / debug / replan / ask_user |
 | finalizer | `finalizer` | `status` | completed / partially_completed / failed |
 
@@ -61,7 +61,7 @@ hooks:
 
 触发：agent/skill 即将停止执行时。用途：防止流程提前终止，确保关键步骤完成。
 
-校验脚本：`hooks/validate-stop.sh`，检测是否包含 Finalization 完成标志。
+校验脚本：`hooks/validate-stop.sh`，检测是否包含 Cleanup 完成标志。
 
 ```yaml
 hooks:
@@ -75,9 +75,9 @@ hooks:
 **已配置组件**：loop skill
 
 **校验逻辑**：
-- 检测 reason 中是否包含 Finalization 完成标志（关键词匹配）
+- 检测 reason 中是否包含 Cleanup 完成标志（关键词匹配）
 - 用户主动取消（cancelled）→ 允许停止
-- Finalization 未完成 → 阻止停止（exit 2），输出 `{"decision":"block"}` 反馈
+- Cleanup 未完成 → 阻止停止（exit 2），输出 `{"decision":"block"}` 反馈
 - 无 phase 信息 → 跳过校验（exit 0）
 
 ### PreToolUse（输入校验）
@@ -145,7 +145,7 @@ hooks:
 ### v0.0.187 — 新增组件级校验 hooks
 
 - SubagentStop：planner/verifier/adjuster/finalizer（agent + skill）输出格式校验
-- Stop：loop skill 防止 Finalization 前提前终止
+- Stop：loop skill 防止 Cleanup 前提前终止
 - PreToolUse：planner agent Write 工具路径安全校验
 
 ### v0.0.184 — 移除非官方 hooks

@@ -46,7 +46,7 @@ graph TB
         ScoreOut["quality_score + status"]
     end
 
-    subgraph PhaseFinal["Finalization"]
+    subgraph PhaseFinal["Cleanup"]
         CleanPlan["删除计划文件"]
         CleanCheckpoint["清理检查点"]
         CleanArtifacts["清理5类中间产物"]
@@ -56,12 +56,12 @@ graph TB
 
     subgraph Artifacts["中间产物生命周期"]
         direction LR
-        PlanFile[".claude/plans/{task_id}.md<br/>Planning 创建 → Finalization 删除"]
-        CheckpointFile[".claude/checkpoints/{task_id}.json<br/>Execution 创建 → Finalization 删除"]
-        TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Initialization 创建 → Finalization 删除"]
-        ApprovalLog[".claude/plans/{task_id}/approval-log.json<br/>Planning 创建 → Finalization 删除"]
-        MetricsFile[".claude/plans/{task_id}/metrics.json<br/>Observability 创建 → Finalization 删除"]
-        ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Finalization 删除"]
+        PlanFile[".claude/plans/{task_id}.md<br/>Planning 创建 → Cleanup 删除"]
+        CheckpointFile[".claude/checkpoints/{task_id}.json<br/>Execution 创建 → Cleanup 删除"]
+        TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Initialization 创建 → Cleanup 删除"]
+        ApprovalLog[".claude/plans/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
+        MetricsFile[".claude/plans/{task_id}/metrics.json<br/>Observability 创建 → Cleanup 删除"]
+        ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
     end
 
     subgraph Memory["记忆层"]
@@ -99,11 +99,12 @@ graph TB
     %% Verification 流程
     PlanFile -->|"读取"| ReadPlanV
     ReadPlanV --> Stage1 --> Stage2 --> Stage3 --> ScoreOut
-    ScoreOut -->|"passed"| PhaseFinal
-    ScoreOut -->|"suggestions"| PhasePlan
-    ScoreOut -->|"failed"| PhaseExec
+    ScoreOut -->|"passed"| QualityGate{"QualityGate"}
+    ScoreOut -->|"failed"| PhaseAdjust["Adjustment"]
+    QualityGate -->|"达标"| PhaseFinal
+    QualityGate -->|"不达标"| PhasePromptCheck["PromptCheck"]
 
-    %% Finalization 流程
+    %% Cleanup 流程
     PlanFile -->|"删除"| CleanPlan
     CheckpointFile -->|"删除"| CleanCheckpoint
     ApprovalLog & MetricsFile & ContextSnap -->|"删除"| CleanArtifacts

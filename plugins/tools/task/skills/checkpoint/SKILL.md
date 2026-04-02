@@ -23,7 +23,7 @@ user-invocable: false
 **resume_phase 规则**：保存时自动计算下一个应执行的阶段：
 - phase=`planning` → resume_phase=`execution`
 - phase=`execution` → resume_phase=`verification`
-- phase=`verification` → resume_phase=`finalization`（passed）或 `adjustment`（failed）
+- phase=`verification` → resume_phase=`quality_gate`（passed）或 `adjustment`（failed）
 - phase=`adjustment` → resume_phase=`prompt_check`（所有策略统一回到提示词评估）
 
 ### load_checkpoint()

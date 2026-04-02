@@ -42,7 +42,7 @@ T3: 编写测试 ············ ⏸️ 等待(T2)
 |------|------|------|
 | 告警（Warning） | iteration >= 4 | 输出 `[MindFlow·${task_id}·预算] 已迭代 {N} 次，建议精简后续操作` |
 | 强制确认（Confirm） | iteration >= 5 | AskUserQuestion 询问用户是否继续（"已迭代5次，是否继续？"） |
-| 熔断（Circuit Break） | iteration > max_iterations | 强制进入 Finalization，跳过未完成任务，输出部分结果 |
+| 熔断（Circuit Break） | iteration > max_iterations | 强制进入 Cleanup，跳过未完成任务，输出部分结果 |
 
 ### 熔断配置
 

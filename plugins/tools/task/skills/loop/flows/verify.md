@@ -22,7 +22,7 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
    - `status` → `"verifying"`
    - `phase` → `"verification"`
    - `updated_at` → 当前时间戳
-   - `tasks[]` → 同步各子任务验证结果（passed/failed/suggestions + 证据摘要）
+   - `tasks[]` → 同步各子任务验证结果（passed/failed + 证据摘要）
    - `quality_score` → 本轮验证评分
 5. **质量评分**：加权计算综合分数
 
@@ -45,18 +45,16 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
 
 | 条件 | 行为 |
 |------|------|
-| passed + 质量达标 | 全部完成 |
-| suggestions | 自动继续优化 |
-| failed | 失败调整(Adjustment) |
-| 质量不达标 | 失败调整(Adjustment) |
-| 深度校验失败 | 失败调整(Adjustment) |
-| 深度校验suggestions | 自动继续优化 |
+| passed（验收通过）| → QualityGate（质量评估） |
+| failed（验收失败）| → Adjustment（失败调整） |
+| 质量达标（score ≥ 阈值）| → Cleanup（清理）|
+| 质量不达标（score < 阈值）| → PromptCheck（改进，非失败）|
 
 ## 最佳实践
 
 **必须**：全面验证所有验收标准 | 回归测试确认无破坏 | 立即报告具体失败原因 | 5 Why根因分析 | 渐进升级(retry→debug→replan→ask_user) | 深度校验不可跳过，即使Stage 1/2全部通过
 
-**禁止**：接受模糊标准("代码质量好") | 忽略suggestions建议 | 跳过回归测试 | 失败时盲目重试所有任务 | 修改verifier返回的JSON结构 | 仅凭技术指标通过就跳过用户预期验证
+**禁止**：接受模糊标准("代码质量好") | 跳过回归测试 | 失败时盲目重试所有任务 | 修改verifier返回的JSON结构 | 仅凭技术指标通过就跳过用户预期验证
 
 ## 验收标准要求
 

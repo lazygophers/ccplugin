@@ -50,21 +50,20 @@ hooks:
 
 运行 lint/覆盖率/回归测试，详见 [code-quality-checklist.md](../skills/verifier/code-quality-checklist.md)。
 
-- quality_score ≥ 85 且无 warning → status="passed"
-- 否则 → status="suggestions"（创建优化迭代，不触发 adjuster）
+- 始终计算 quality_score 并包含在输出中
+- 质量分门控由 Loop QualityGate 阶段负责，verifier 不做质量分判定
 
 </workflow>
 
 <output_format>
 
-返回 JSON，必含：`status`（passed/suggestions/failed）、`spec_compliance_status`、`quality_status`、`report`、`summary`（total_tasks/completed_tasks/passed_criteria/failed_criteria）。
+返回 JSON，必含：`status`（passed/failed）、`spec_compliance_status`、`quality_score`、`report`、`summary`（total_tasks/completed_tasks/passed_criteria/failed_criteria）。
 
 按状态附加：
-- passed: `task_results[]`（含 criteria_results + evidence）
-- suggestions: `suggestions[]`（severity/category/suggestion/file/line）
-- failed: `failed_tasks[]`（含 failure_reason + criteria_results + evidence），quality_status="skipped"
+- passed: `task_results[]`（含 criteria_results + evidence）、`quality_score`、可选 `suggestions[]`
+- failed: `failed_tasks[]`（含 failure_reason + criteria_results + evidence）
 
-**决策树**：Stage1 任何 required 失败 → failed → adjuster | Stage1 通过 → Stage2 score≥85 无 warning → passed | 否则 → suggestions
+**决策树**：Stage1 任何 required 失败 → failed | Stage1 通过 → passed（含 quality_score + 可选 suggestions）
 
 详见 [输出格式文档](../skills/verifier/verifier-output.md)。
 

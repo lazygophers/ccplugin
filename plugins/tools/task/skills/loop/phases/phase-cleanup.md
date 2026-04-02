@@ -1,7 +1,7 @@
 
-# Finalization
+# Cleanup
 
-完成阶段：清理资源、保存记忆、生成报告。
+清理阶段：清理资源、保存记忆、生成报告。
 
 ## 执行流程
 
@@ -27,7 +27,7 @@
 **清理顺序**：检查点 → 短期记忆 → 计划文件 → 过期任务状态 → 中间产物
 
 **保留规则**：
-- `completed`/`failed` 状态的任务状态文件在 Finalization 阶段立即清理
+- `completed`/`failed` 状态的任务状态文件在 Cleanup 阶段立即清理
 - 情节记忆（episodic memory）永久保留，不在清理范围
 - 用户手动创建的文件不自动清理
 
@@ -45,7 +45,7 @@
 | 检查点 | `.claude/checkpoints/{task_id}.json` |
 | 短期记忆 | `task://sessions/{id}` → 归档后删除 |
 | 临时文件 | 执行过程中生成的临时文件 |
-| 任务状态 | `.claude/tasks/{task_id}/status.json`（Finalization 阶段立即清理） |
+| 任务状态 | `.claude/tasks/{task_id}/status.json`（Cleanup 阶段立即清理） |
 
 ## 微回顾（Micro-Retrospective）
 
@@ -71,21 +71,19 @@
 
 情节记忆：`workflow://task-episodes/{type}/{episode_id}` 含task_desc/type/result/plan/metrics/agents/skills/retrospective
 
-## 状态转换（唯一允许结束 Loop 的阶段）
+## 状态转换
 
-**本阶段是整个 Loop 流程中唯一允许结束回复的阶段。**
+Cleanup 完成后进入 End（结束）。**End 是整个 Loop 流程中唯一允许结束回复的节点。**
 
-只有同时满足以下条件时，才允许结束回复：
+只有同时满足以下条件时，才允许进入 End：
 1. finalizer skill 已执行完成
 2. 最终报告已输出
 3. 状态变量已清理
-
 4. **标记 Loop 完成**：写入 completed 状态，此后 Stop hook 才允许停止
    ```bash
    echo "completed" > .claude/tasks/{task_id}/loop-phase
    ```
 
-完成以上所有步骤 → 结束回复
+完成以上所有步骤 → End（结束回复）
 
 **在此之前的任何阶段都禁止结束回复。**
-

@@ -9,7 +9,7 @@
 | 调用前后 | Agent/Skill调用 | record_call_start/end（可用装饰器自动化） |
 | 任务前后 | Execution阶段 | record_task_start/end(task_id, status) |
 | 迭代结束 | Verification完成 | aggregate_iteration → 输出摘要 → 预算检查(>80%预警，超支询问用户) |
-| Loop完成 | Finalization | generate_cost_report → 输出报告 → 持久化到metrics.json |
+| Loop完成 | Cleanup | generate_cost_report → 输出报告 → 持久化到metrics.json |
 
 ## 配置
 

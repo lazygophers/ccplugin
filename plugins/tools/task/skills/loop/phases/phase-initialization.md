@@ -57,7 +57,7 @@
    - 输出清理日志：`[MindFlow·${task_id}] 已清理 N 个残留计划文件（前次 loop 未正常完成 finalization）`
    - **禁止**删除当前任务的计划文件
 6. **残留状态修复**：扫描 `.claude/tasks/*/status.json`，对 **非当前 task_id** 的文件：
-   - `status` 为 `completed` / `failed` → 正常终态，直接删除（已由 Finalization 完成归档）
+   - `status` 为 `completed` / `failed` → 正常终态，直接删除（已由 Cleanup 完成归档）
    - `status` 为其他非终态（`initialized`/`planning`/`executing`/`verifying`/`adjusting`）→ **自动修正为 `failed`**，设 `error: "abnormal_termination: 前次 loop 未正常完成 finalization"`，更新 `updated_at`
    - **禁止**因发现其他任务的非终态状态文件而阻断当前任务的初始化流程
 7. **残留状态清理**：扫描 `.claude/tasks/*/status.json`，删除所有非当前 task_id 的终态（`completed`/`failed`）文件及其关联的计划文件和检查点

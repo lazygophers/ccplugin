@@ -6,7 +6,7 @@ Stage 2 验证关注"做得好不好"，即代码质量和最佳实践。
 
 ## CAN SUGGEST - 质量审查
 
-质量问题生成 suggestions，不直接触发 adjuster。
+质量问题记录在 passed 输出的 suggestions 数组中，质量分判定由 Loop 的 QualityGate 阶段负责。
 
 ### 1. 测试质量
 - [ ] 测试覆盖率达标（AAA 模式）
@@ -35,7 +35,7 @@ Stage 2 验证关注"做得好不好"，即代码质量和最佳实践。
 ```json
 {
   "stage": "code_quality",
-  "status": "passed|suggestions",
+  "status": "passed",
   "quality_score": 85,
   "suggestions": [
     {
@@ -50,6 +50,6 @@ Stage 2 验证关注"做得好不好"，即代码质量和最佳实践。
 ```
 
 ## 处理规则
-- quality_score >= 85 且无 warning -> status = "passed"
-- quality_score < 85 或有 warning -> status = "suggestions"，创建优化迭代
-- suggestions 不触发 adjuster，仅创建新迭代任务
+- Stage 2 始终输出 quality_score 和 suggestions（如有）
+- 质量分是否达标由 Loop 的 QualityGate 阶段判定（非 Verifier 职责）
+- suggestions 作为优化建议附在 passed 输出中，不影响 status 判定

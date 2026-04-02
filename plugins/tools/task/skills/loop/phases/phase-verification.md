@@ -15,21 +15,31 @@
 3. 更新 plan 文件 frontmatter（status + completed_count）
 4. 保存检查点 `save_checkpoint(phase="verification")`
 
-**跳过检测机制**：如果未调用 verifier 就进入下一阶段（Adjustment 或 Finalization），将触发验证错误并强制回退到本阶段。
+**跳过检测机制**：如果未调用 verifier 就进入下一阶段，将触发验证错误并强制回退到本阶段。
 
 ## 强制状态转换
 
 **验证完成后必须立即按状态分支继续，禁止在本阶段后结束回复：**
 
-| 状态 | 条件 | 质量分 | 下一步 | 强制要求 |
-|------|------|--------|--------|---------|
-| passed | 全部验收通过，无建议 | ≥80 | Finalization（完成） | **必须立即**进入 Finalizer 清理 |
-| suggestions | 全部通过，有优化空间 | 60-79 | PromptCheck（重新评估） | **必须立即**回到 PromptCheck（`replan_trigger="verifier"`） |
-| failed | 至少一项验收未通过 | <60 | Adjustment（失败调整） | **必须立即**进入失败调整 |
+| 状态 | 条件 | 下一步 | 强制要求 |
+|------|------|--------|---------|
+| passed | 全部验收通过 | QualityGate（质量评估） | **必须立即**进入质量评估 |
+| failed | 至少一项验收未通过 | Adjustment（失败调整） | **必须立即**进入失败调整 |
 
-suggestions 自动继续，不询问用户。
+**注意**：Verification 仅判断验收标准是否通过（passed/failed），质量分评估由 QualityGate 阶段负责。
 
-**禁止**：验证完成后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
+**禁止**：验证完成后就结束回复。Loop 流程不可中断，必须继续到 Cleanup。
+
+## QualityGate: 质量评估
+
+Verification passed 后，检查 verifier 返回的 `quality_score` 是否达到当前迭代阈值（SSOT 在 flows/verify.md）。
+
+**质量不达标不是失败**，不进入 Adjustment：
+
+| 条件 | 下一步 | 强制要求 |
+|------|--------|---------|
+| quality_score ≥ 阈值 | Cleanup（清理） | **必须立即**进入清理 |
+| quality_score < 阈值 | PromptCheck（改进） | **必须立即**回到提示词评估（非失败，需改进） |
 
 ## 验收维度
 
@@ -57,4 +67,3 @@ suggestions 自动继续，不询问用户。
 **强制规则**：`failed_criteria` 数组不可为空，每项必须包含 `criterion`/`actual`/`expected`/`suggestion` 四个字段。Loop 在调用 Adjuster 时，必须将 `failed_criteria` 完整传递到 Adjuster 的 args 中。
 
 详见：[verifier/SKILL.md](../verifier/SKILL.md) | [flows/verify.md](../flows/verify.md)
-

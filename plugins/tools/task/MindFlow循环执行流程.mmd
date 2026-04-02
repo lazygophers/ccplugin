@@ -166,7 +166,7 @@ flowchart TB
 
     Plan_Context --> Exec_Entry
     Plan_SkipExec --> Final_Entry
-    Plan_Cancel --> Terminated
+    Plan_Cancel --> Final_Entry
 
     %% =============================================================================
     %% Execution: 任务执行
@@ -233,9 +233,7 @@ flowchart TB
         Verify_3[Stage 2: 回归测试]
         Verify_4[Stage 3: 深度校验]
         Verify_5[质量评分: 7维度加权]
-        Verify_6{status?<br/>passed/suggestions/failed}
-        Verify_10{质量达标?}
-        Verify_Qual[质量阈值<br/>迭代1=60, 迭代2=75<br/>迭代3=85, 迭代4+=90]
+        Verify_6{验收通过?<br/>passed/failed}
 
         Verify_11[更新 plan frontmatter]
         Verify_12[更新任务状态文件]
@@ -250,18 +248,18 @@ flowchart TB
         Verify_3 --> Verify_4
         Verify_4 --> Verify_5
         Verify_5 --> Verify_6
-        Verify_6 --> Verify_10
-        Verify_10 -->|达标| Verify_11
-        Verify_10 -->|不达标| Verify_Fail[-> Adjustment]
+        Verify_6 -->|passed| Verify_11
+        Verify_6 -->|failed| Verify_Fail[-> Adjustment]
         Verify_11 --> Verify_12
         Verify_12 --> Verify_13
     end
 
-    Verify_Route[结果路由<br/>passed→Finalization<br/>suggestions→PromptCheck<br/>failed→Adjustment]
-    Verify_13 --> Verify_Route
-    Verify_Route -->|passed| Final_Entry
-    Verify_Route -->|suggestions| PO_1
-    Verify_Route -->|failed| Adjust_Entry
+    %% Quality Assessment: 质量评估（Verification passed 后）
+    QualityGate{质量达标?}
+    QualityGate_Qual[质量阈值<br/>迭代1=60, 迭代2=75<br/>迭代3=85, 迭代4+=90]
+    Verify_13 --> QualityGate
+    QualityGate -->|达标| Final_Entry
+    QualityGate -->|不达标（非失败）| PO_1
     Verify_Fail --> Adjust_Entry
 
     %% =============================================================================
@@ -304,9 +302,9 @@ flowchart TB
     Adjust_User --> PO_1
 
     %% =============================================================================
-    %% Finalization: 完成清理
+    %% Cleanup: 清理
     %% =============================================================================
-    subgraph Final[Finalization: 完成清理]
+    subgraph Final[Cleanup: 清理]
         direction TB
         Final_Entry[前置条件: 验证通过或确认]
         Final_0[更新任务状态文件<br/>status→completed/failed]
@@ -339,8 +337,7 @@ flowchart TB
     %% =============================================================================
     %% 结束节点
     %% =============================================================================
-    End([结束: 任务完成])
-    Terminated([中止: 用户取消])
+    End([结束])
 
     %% =============================================================================
     %% 附录入口
@@ -422,17 +419,17 @@ flowchart TB
     %% Adjustment 节点
     class Adjust_Entry,Adjust_3,Adjust_4,Adjust_5,Adjust_8 phaseNode
 
-    %% Finalization 节点
+    %% Cleanup 节点
     class Final_Entry,Final_0,Final_2,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
 
     %% 决策节点
-    class Init_2,PO_1,PO_3,PO_5,PO_8,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,Verify_10,Adjust_6,Adjust_7 decisionNode
+    class Init_2,PO_1,PO_3,PO_5,PO_8,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
 
     %% 违规检测节点
     class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,Final_1,V1,V2,V3,V4 violationNode
 
     %% 上下文说明节点
-    class Init_Jump,Plan_Mode,Plan_Context,Exec_Context,Verify_Context,Verify_Route,Adjust_Context,Adjust_Level,Adjust_Route,Final_Context,Verify_Qual,Adjust_Stuck,Final_Cleanup,C_Fields contextNode
+    class Init_Jump,Plan_Mode,Plan_Context,Exec_Context,Verify_Context,QualityGate_Qual,Adjust_Context,Adjust_Level,Adjust_Route,Final_Context,Adjust_Stuck,Final_Cleanup,C_Fields contextNode
 
     %% 开始结束节点
     class Start startNode

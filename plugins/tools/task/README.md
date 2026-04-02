@@ -34,9 +34,10 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
 | DeepResearch | 收集最佳实践和技术方案 | 可选（复杂度>8） |
 | Planning | MECE 分解任务、DAG 依赖、用户确认 | 必须 |
 | Execution | 按计划调度 agent 执行任务 | 必须 |
-| Verification | 验收标准检查、质量评分 | 必须 |
+| Verification | 验收标准检查（passed/failed） | 必须 |
+| QualityGate | 质量评估（达标→Cleanup，不达标→PromptCheck） | 必须 |
 | Adjustment | 失败分析、升级策略（retry→debug→replan→ask_user） | 条件触发 |
-| Finalization | 资源清理、最终报告 | 必须 |
+| Cleanup | 资源清理、最终报告 | 必须 |
 
 ## 组件概览
 
