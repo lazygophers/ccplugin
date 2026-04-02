@@ -12,6 +12,8 @@ dist/
 __pycache__/
 *.pyc
 *.pyo
+.ruff_cache/
+.pytest_cache/
 
 # 项目特定
 plugins/**/.venv/
@@ -34,7 +36,12 @@ plugins/**/__pycache__/
 .claude/plans
 .claude/tasks
 .claude/research
+.claude/settings.local.json
 .remember
+
+# Serena 工具运行时数据
+.serena/cache/
+.serena/logs/
 
 # 运行时数据库
 *.db
