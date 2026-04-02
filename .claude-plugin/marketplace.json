@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Claude Code 插件市场 - 提供常用插件和开发模板",
-    "version": "0.0.186",
+    "version": "0.0.187",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "git",
       "source": "./plugins/tools/git",
       "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -36,7 +36,7 @@
       "name": "deepresearch",
       "source": "./plugins/tools/deepresearch",
       "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -61,7 +61,7 @@
       "name": "golang",
       "source": "./plugins/languages/golang",
       "description": "Golang 开发插件 - 提供 Golang 开发规范、最佳实践和代码智能支持。包括通用 Golang 开发规范和基于 lazygophers 生态的最佳实践指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -86,7 +86,7 @@
       "name": "markdown",
       "source": "./plugins/languages/markdown",
       "description": "Markdown 开发插件 - 提供 Markdown 编写规范、最佳实践和文档智能支持。包括文档结构、格式规范、写作风格和技术文档编写指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -109,7 +109,7 @@
       "name": "python",
       "source": "./plugins/languages/python",
       "description": "Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持。包括通用 Python 开发规范（PEP 8）和基于行业最佳实践的高质量代码开发指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -135,7 +135,7 @@
       "name": "typescript",
       "source": "./plugins/languages/typescript",
       "description": "TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -159,7 +159,7 @@
       "name": "javascript",
       "source": "./plugins/languages/javascript",
       "description": "JavaScript（ES2024-2025）开发插件 - 提供 JavaScript 开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -186,7 +186,7 @@
       "name": "c",
       "source": "./plugins/languages/c",
       "description": "C 开发插件 - 提供 C11/C17 开发规范、最佳实践和代码智能支持。包括系统编程、嵌入式开发、POSIX API 和内存管理指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -213,7 +213,7 @@
       "name": "cpp",
       "source": "./plugins/languages/cpp",
       "description": "C++ 开发插件 - 提供 C++17/23 开发规范、最佳实践和代码智能支持。包括现代 C++ 标准、STL、内存管理、模板元编程和并发编程指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -242,7 +242,7 @@
       "name": "csharp",
       "source": "./plugins/languages/csharp",
       "description": "C# 开发插件 - 提供 C# 12/.NET 8 开发规范、最佳实践和代码智能支持。包括 LINQ、async/await、Entity Framework、WPF、MAUI、ASP.NET Core 和 Blazor 指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -273,7 +273,7 @@
       "name": "java",
       "source": "./plugins/languages/java",
       "description": "Java 开发插件 - 提供 Java 21+ 开发规范、最佳实践和代码智能支持。包括现代 Java 开发规范、Spring Boot 3+ 指导和 JVM 性能优化",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -301,7 +301,7 @@
       "name": "rust",
       "source": "./plugins/languages/rust",
       "description": "Rust 开发插件 - 提供 Rust 1.70+ 开发规范、最佳实践和代码智能支持。包括现代 Rust 2024 edition、所有权系统、异步编程和零成本抽象指导",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -329,7 +329,7 @@
       "name": "version",
       "source": "./plugins/tools/version",
       "description": "版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置。通过 Claude Code Hooks 自动检测任务完成并更新构建版本号",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -351,7 +351,7 @@
       "name": "flutter",
       "source": "./plugins/languages/flutter",
       "description": "Flutter 开发插件 - 提供 Flutter 应用开发规范、设计系统应用、状态管理指导和代码智能支持。包括 Material 3、Cupertino、自定义设计系统和 Provider、Riverpod、BLoC 等状态管理方案的最佳实践",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -381,7 +381,7 @@
       "name": "env",
       "source": "./plugins/tools/env",
       "description": "环境处理插件 - 用于处理环境相关问题。从 .claude/.env 和 .claude/.env.local 文件加载环境变量，并自动注入到 Claude Code 会话中",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -402,7 +402,7 @@
       "name": "notify",
       "source": "./plugins/tools/notify",
       "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -424,7 +424,7 @@
       "name": "codex",
       "source": "./plugins/tools/codex",
       "description": "Codex 插件 - Claude Code 与本地 Codex 模型协同作战，提供代码生成、分析和优化能力",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -444,7 +444,7 @@
       "name": "naming",
       "source": "./plugins/languages/naming",
       "description": "命名规范插件 - 提供跨编程语言的统一命名规范指南。包括通用命名原则、命名验证清单和常用命名错误指正",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -468,7 +468,7 @@
       "name": "llms",
       "source": "./plugins/llms",
       "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件。支持项目扫描、混合链接管理和 LLM 友好文档生成",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -491,7 +491,7 @@
       "name": "office-xlsx",
       "source": "./plugins/office/xlsx",
       "description": "Office Excel 插件 - 提供 xlsx 文件读写、数据分析功能。基于 openpyxl 和 pandas 实现 MCP 服务器",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -511,7 +511,7 @@
       "name": "office-docx",
       "source": "./plugins/office/docx",
       "description": "Office Word 插件 - 提供 docx 文件读写、段落格式化功能。基于 python-docx 实现 MCP 服务器",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -531,7 +531,7 @@
       "name": "office-pptx",
       "source": "./plugins/office/pptx",
       "description": "Office PowerPoint 插件 - 提供 pptx 文件读写、幻灯片操作功能。基于 python-pptx 实现 MCP 服务器",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -551,7 +551,7 @@
       "name": "novel",
       "source": "./plugins/novels/novel",
       "description": "网络小说创作插件 - 提供故事构思、角色设定、情节发展、对话生成、文风调整、大纲管理等完整的小说创作辅助功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -576,7 +576,7 @@
       "name": "novel-xuanhuan",
       "source": "./plugins/novels/novel-xuanhuan",
       "description": "玄幻修仙小说创作插件 - 提供修炼体系设计、法宝设定、门派势力构建等玄幻小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -598,7 +598,7 @@
       "name": "novel-urban",
       "source": "./plugins/novels/novel-urban",
       "description": "都市言情小说创作插件 - 提供都市背景设定、职场描写、感情线设计等都市小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -619,7 +619,7 @@
       "name": "novel-scifi",
       "source": "./plugins/novels/novel-scifi",
       "description": "科幻未来小说创作插件 - 提供科技设定、文明构建、机甲系统设计等科幻小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -641,7 +641,7 @@
       "name": "novel-history",
       "source": "./plugins/novels/novel-history",
       "description": "历史架空小说创作插件 - 提供朝代背景设定、政治权谋、战争谋略等历史小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -663,7 +663,7 @@
       "name": "novel-wuxia",
       "source": "./plugins/novels/novel-wuxia",
       "description": "武侠仙侠小说创作插件 - 提供江湖设定、武学体系、门派势力等武侠小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -684,7 +684,7 @@
       "name": "novel-game",
       "source": "./plugins/novels/novel-game",
       "description": "游戏竞技小说创作插件 - 提供游戏系统设计、技能体系、竞技赛事等游戏小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -705,7 +705,7 @@
       "name": "novel-mystery",
       "source": "./plugins/novels/novel-mystery",
       "description": "悬疑推理小说创作插件 - 提供悬念布局、线索系统、角色秘密设计等悬疑小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -726,7 +726,7 @@
       "name": "novel-romance",
       "source": "./plugins/novels/novel-romance",
       "description": "言情小说创作插件 - 提供情感线设计、关系发展、感情冲突等言情小说专属功能",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -747,7 +747,7 @@
       "name": "task",
       "source": "./plugins/tools/task",
       "description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
-      "version": "0.0.186",
+      "version": "0.0.187",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
