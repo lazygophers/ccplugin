@@ -38,7 +38,7 @@
 
 - **任务**：`TaskList()` → 分类 running / pending / completed / failed
 - **文件**：扫描以下目录
-  - `.claude/plans/` — 计划文件(.md)、审批日志、指标数据、草稿、子目录
+  - `.claude/plans/` — 计划文件(.md)、审批日志、指标数据、子目录
   - `.claude/checkpoints/` — 检查点JSON
   - `.claude/context/` — 上下文版本快照目录
 - **其他**：lock文件、缓存
@@ -66,7 +66,7 @@
 ## 检查清单
 
 - [ ] 所有 running/pending 任务已处理
-- [ ] 6类中间产物已扫描并清理
+- [ ] 5类中间产物已扫描并清理
 - [ ] 空目录已移除
 - [ ] 所有清理操作有错误处理且已记录
 - [ ] 报告简洁准确

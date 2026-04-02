@@ -12,7 +12,7 @@
 |-------|------|---------|---------|
 | planner | 任务规划、分解、格式化 | [agents/planner.md](agents/planner.md)<br/>[skills/planner/](skills/planner/) | MECE分解复杂任务为原子子任务，自动格式化并写入计划文件 |
 | verifier | 验收验证 | [agents/verifier.md](agents/verifier.md)<br/>[skills/verifier/](skills/verifier/) | 检查验收标准、质量评分 |
-| adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 5级渐进式升级（retry→debug→replan→ask_user） |
+| adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 四级渐进式升级（retry→debug→replan→ask_user） |
 | finalizer | 资源清理 | [agents/finalizer.md](agents/finalizer.md)<br/>[skills/finalizer/](skills/finalizer/) | 任务完成后清理资源和生成报告 |
 | prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
 
@@ -195,12 +195,11 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 
 ### Q7: 失败后如何自动修复？
 
-5级渐进式升级策略：
-1. **retry**：简单重试（0秒退避）
+四级渐进式升级策略：
+1. **retry**：简单重试+自愈（0秒退避）
 2. **debug**：深度诊断（2秒退避）
 3. **replan**：重新规划（4秒退避）
 4. **ask_user**：请求用户指导
-5. **escalate**：升级到更高级agent
 
 相关文档：[失败调整](skills/adjuster/adjuster-strategies.md)
 
@@ -222,7 +221,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 - **Team Leader**：Loop作为统一调度者和用户交互接口
 - **Plan Mode**：只读探索阶段，使用EnterPlanMode/ExitPlanMode
 - **深度迭代**：质量递进60→75→85→90分
-- **5级升级**：retry→debug→replan→ask_user→escalate
+- **四级升级**：retry→debug→replan→ask_user
 - **三级审批**：auto→review→mandatory
 - **三层记忆**：Working→Episodic→Semantic
 
