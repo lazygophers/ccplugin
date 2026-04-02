@@ -14,8 +14,9 @@
 
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
-| 复杂度评估正确 | 如果任务复杂度<8，跳过；≥8则触发 | 可选 |
-| 调用 prompt-optimizer | 检查是否调用了 `Skill(skill="task:prompt-optimizer")` | 可选 |
+| 质量评估已执行 | 评估提示词质量，<9分触发优化 | 必须 |
+| 调用 prompt-optimizer | 评分<9时检查是否调用了 `Skill(skill="task:prompt-optimizer")` | 条件必须 |
+| 优化过程中允许提问 | Agent 通过 SendMessage(@main) 发送问题，由 main 执行 AskUserQuestion | 可选 |
 | 优化后的提示词已应用 | 验证后续计划设计使用优化后的提示词 | 可选 |
 
 ## DeepResearch：深度研究（可选）

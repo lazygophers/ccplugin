@@ -57,14 +57,14 @@ flowchart TB
     Init_Jump -.恢复.-> Adjust_Entry
 
     %% =============================================================================
-    %% PromptOptimization: 提示词优化（可选，仅首次）
+    %% PromptOptimization: 提示词优化（评分<9触发）
     %% =============================================================================
-    subgraph PromptOpt[PromptOptimization: 提示词优化 - 可选]
+    subgraph PromptOpt["PromptOptimization: 提示词优化 - 评分<9触发"]
         direction TB
-        PO_1{iter=0?}
+        PO_1{"评分<9?"}
         PO_2[prompt-optimizer<br/>质量评估]
-        PO_3{score < 8?}
-        PO_4[5W1H 提问<br/>AskUserQuestion]
+        PO_3{score < 9?}
+        PO_4["5W1H 提问<br/>SendMessage(@main)→AskUser"]
         PO_5{score < 6?}
         PO_6[必要时 WebSearch<br/>最佳实践]
         PO_7[生成优化提示词]
@@ -86,7 +86,7 @@ flowchart TB
     Init_9 --> PO_1
     PO_Skip --> DR_Entry
     PO_8 -->|A/B:继续| DR_Entry
-    PO_8 -->|C:重做| PO_7
+    PO_8 -->|C:重新评估| PO_1
 
     %% =============================================================================
     %% DeepResearch: 深度研究（可选）

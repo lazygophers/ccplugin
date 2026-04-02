@@ -34,7 +34,7 @@ user-invocable: false
 | Where(范围) | 影响模块/部署环境/交互组件 |
 | How(方式) | 技术方案/栈/架构模式 |
 
-质量评分：清晰度(0-10) + 完整性(0-10) + 可执行性(0-10)。综合≥8分返回 no_optimization_needed。
+质量评分：清晰度(0-10) + 完整性(0-10) + 可执行性(0-10)。综合≥9分返回 no_optimization_needed。
 
 
 

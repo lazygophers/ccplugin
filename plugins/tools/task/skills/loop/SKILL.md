@@ -161,7 +161,7 @@ hooks:
 
 ### PromptOptimization: 提示词优化（可选）
 
-仅首次迭代（iteration=0）时评估。质量 ≥8 分静默跳过，<8 分使用 5W1H 框架澄清需求。详见 [phase-prompt-optimization.md](phases/phase-prompt-optimization.md)
+每次迭代前评估用户提示词质量。质量 ≥9 分跳过，<9 分触发优化（5W1H 框架澄清需求）。详见 [phase-prompt-optimization.md](phases/phase-prompt-optimization.md)
 
 ### DeepResearch: 深度研究（可选）
 

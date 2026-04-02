@@ -69,13 +69,13 @@ skills:
 
 <output_format>
 
-JSON 输出，必含：`status`（optimized/no_optimization_needed）、`quality_score`（clarity/completeness/actionability/overall）、`original_prompt`、`optimized_prompt`、`improvements[]`、`questions_asked`、`web_searches`、`report`（≤100字）。质量≥8分返回 `no_optimization_needed`。
+JSON 输出，必含：`status`（optimized/no_optimization_needed）、`quality_score`（clarity/completeness/actionability/overall）、`original_prompt`、`optimized_prompt`、`improvements[]`、`questions_asked`、`web_searches`、`report`（≤100字）。质量≥9分返回 `no_optimization_needed`。
 
 </output_format>
 
 <guidelines>
 
-**必须**：逐项5W1H评估、SendMessage(@main)明确提问、质量<6搜索最佳实践、优化后≥8分、≥8分返回no_optimization_needed。
+**必须**：逐项5W1H评估、SendMessage(@main)明确提问、质量<6搜索最佳实践、优化后≥9分、≥9分返回no_optimization_needed。
 **禁止**：跳过评估、一次问多个问题、模糊建议、假设用户意图或技术方案。
 
 </guidelines>

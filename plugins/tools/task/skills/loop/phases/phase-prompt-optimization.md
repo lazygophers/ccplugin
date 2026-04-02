@@ -1,7 +1,7 @@
 
 # PromptOptimization: Prompt Optimization
 
-仅在首次迭代(iteration=0)执行，确保用户输入清晰、完整、可执行。
+每次迭代前评估用户提示词质量，评分 <9 分时触发优化，确保用户输入清晰、完整、可执行。
 
 ## 执行流程
 
@@ -43,10 +43,14 @@
 |------|------|---------|
 | **A: 使用原始提示词** | 保持用户原始输入不变 | 更新 `context.user_task = original_prompt` → DeepResearch/Planning |
 | **B: 使用优化后提示词** | 应用 prompt-optimizer 的优化结果 | 更新 `context.user_task = optimized_prompt` → DeepResearch/Planning |
-| **C: 重新优化** | 提供反馈后重新生成优化提示词 | AskUserQuestion 收集改进方向 → 回到步骤4 |
+| **C: 重新优化** | 提供反馈后重新评估 | 收集反馈 → 回到质量评估（评分<9才重新优化） |
 
 ## 状态转换
 
 - **选项A/B** → DeepResearch(深度研究)或Planning(计划设计)
-- **选项C** → 循环回到步骤4（生成优化提示词），基于用户反馈重新优化
+- **选项C** → 回到质量评估，评分<9才重新触发优化流程
+
+## 提问机制
+
+Agent（prompt-optimizer）不可直接向用户提问。正确路径：Agent 通过 `SendMessage(@main)` 将问题发给 main，由 main 执行 `AskUserQuestion` 向用户提问。
 

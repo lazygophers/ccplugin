@@ -12,11 +12,11 @@ stateDiagram-v2
         LoadMemory --> [*]
     }
 
-    Initialization --> FirstIteration: 首次迭代?
+    Initialization --> PromptCheck: 提示词评分?
 
-    state FirstIteration <<choice>>
-    FirstIteration --> PromptOptimization: 是（可选阶段）
-    FirstIteration --> Planning: 否（跳过优化）
+    state PromptCheck <<choice>>
+    PromptCheck --> PromptOptimization: 评分<9（需优化）
+    PromptCheck --> Planning: 评分≥9（跳过）
 
     state PromptOptimization {
         [*] --> QualityAssess: 质量评估
@@ -24,12 +24,12 @@ stateDiagram-v2
         Optimize5W1H --> UserChoice: 用户选择
         UserChoice --> [*]
     }
-    note right of PromptOptimization: 可选阶段\n仅首次迭代触发
+    note right of PromptOptimization: 评分<9时触发\n允许通过@main提问
 
     state prompt_choice <<choice>>
     PromptOptimization --> prompt_choice
     prompt_choice --> DeepResearch: A/B - 继续
-    prompt_choice --> PromptOptimization: C - 重新优化
+    prompt_choice --> PromptCheck: C - 重新评估（评分<9才再次优化）
 
     state NeedResearch <<choice>>
     prompt_choice --> NeedResearch: 评估复杂度
