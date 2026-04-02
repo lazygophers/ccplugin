@@ -20,10 +20,11 @@
 
 1. **检查点恢复**：load_checkpoint(user_task)，存在则恢复 iteration/context/plan_md_path/stalled_count，跳转到保存的阶段(planning/confirmation/execution/verification/adjustment)
 2. **正常初始化**：iteration=0, stalled_count=0, guidance_count=0, max_stalled_attempts=3, context={replan_trigger: None, task_id: null}
-3. **生成任务ID**：从用户任务描述中提取2-4个语义关键词生成 `task_id`（如"loop-fix-20260328"、"deep-validation-20260328"）。规则：
-   - 提取任务核心动词+对象（如"修复Loop"→"loop-fix"）
-   - 附加日期后缀避免重复（格式：YYYYMMDD）
-   - 全小写、短横线分隔、不超过30字符
+3. **生成任务ID**：从用户任务描述中提取最简短的中文描述作为 `task_id`（如"修复日志"、"添加认证"、"优化查询"）。规则：
+   - **必须中文**，用最少的字描述任务核心（2-6个汉字）
+   - **禁止**附加日期、序号、哈希等避免重复的标识
+   - **禁止**使用英文、拼音、短横线分隔
+   - **不可变**：一个 loop 完成前不得修改 task_id
    - 设置 `context.task_id = task_id`
    - 后续所有输出必须以 `[MindFlow·${task_id}]` 开头
 4. **创建 Loop 状态文件**：在 `.claude/tasks/{task_id}/` 目录创建 `loop-phase` 文件

@@ -23,7 +23,7 @@
      - `task.description` + `task.files` + `task.acceptance_criteria`
    - **验收标准传递与自验**：prompt 中必须包含该任务的完整 `acceptance_criteria` 列表，并在 prompt 末尾附加指令："完成后，逐条对照验收标准自验，输出每条标准的通过/未通过状态及证据"
    - **禁止直接使用**：Edit/Write/Bash 等工具（违规将导致流程验证失败）
-   - **示例**：`Agent(agent="coder（开发）@task", prompt="project_path: /Users/dev/myapp\ntask_id: task-20260328-001\niteration: 1\nplan_md_path: /Users/dev/myapp/.claude/plans/plan.md\nworking_directory: /Users/dev/myapp\nuser_task: 实现用户认证模块\n\n任务：实现用户登录功能\n关联文件：/src/auth.ts\n验收标准：测试覆盖率≥90%")`
+   - **示例**：`Agent(agent="coder（开发）@task", prompt="project_path: /Users/dev/myapp\ntask_id: 实现认证\niteration: 1\nplan_md_path: /Users/dev/myapp/.claude/plans/plan.md\nworking_directory: /Users/dev/myapp\nuser_task: 实现用户认证模块\n\n任务：实现用户登录功能\n关联文件：/src/auth.ts\n验收标准：测试覆盖率≥90%")`
 7. **执行完整性检查**：每个任务的 Agent 执行完成后，立即验证交付物完整性：
    - **文件检查**：task.files 中列出的所有文件是否已创建/修改
    - **验收预检**：task.acceptance_criteria 中的 required 标准是否有明确证据
