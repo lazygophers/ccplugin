@@ -16,7 +16,7 @@ stateDiagram-v2
 
     state PromptCheck <<choice>>
     PromptCheck --> PromptOptimization: 评分<9（需优化）
-    PromptCheck --> Planning: 评分≥9（跳过）
+    PromptCheck --> NeedResearch: 评分≥9（进入复杂度评估）
 
     state PromptOptimization {
         [*] --> QualityAssess: 质量评估
