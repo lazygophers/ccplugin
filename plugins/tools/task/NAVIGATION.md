@@ -48,7 +48,7 @@
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 任务执行失败，如何恢复？ | adjuster → 5级升级策略 | [失败调整](skills/adjuster/self-healing.md) |
+| 任务执行失败，如何恢复？ | adjuster → 四级升级策略 | [失败调整](skills/adjuster/adjuster-strategies.md) |
 | 连续失败3次，系统如何处理？ | adjuster → 停滞检测 | [停滞检测](skills/adjuster/stall-detection.md) |
 | 如何查看失败原因？ | loop → error-handling | [错误处理](skills/loop/error-handling.md) |
 | 如何从历史失败学习？ | memory-bridge → pattern-extraction | [模式提取](skills/memory-bridge/pattern-extraction.md) |
@@ -76,7 +76,7 @@
 |------|---------|---------|
 | 如何定义验收标准？ | planner → acceptance_criteria | [计划设计](skills/planner/SKILL.md) |
 | 质量评分如何计算？ | verifier → quality-scoring | [结果验证](skills/verifier/SKILL.md) |
-| 质量不达标如何自动优化？ | deep-iteration → 深度迭代 | [深度迭代](skills/deep-iteration/deep-iteration-core.md) |
+| 质量不达标如何自动优化？ | deep-iteration → 深度迭代 | [深度迭代](skills/deep-iteration/SKILL.md) |
 | 如何触发深度研究？ | loop → deep-research-triggers | [深度研究触发](skills/loop/deep-research-triggers.md) |
 
 ### 计划和确认
@@ -118,7 +118,7 @@
 ### 最佳实践
 
 - [任务分解原则](skills/planner/task-decomposition.md) - MECE原则应用
-- [失败升级策略](skills/adjuster/self-healing.md) - 5级渐进式升级
+- [失败升级策略](skills/adjuster/adjuster-strategies.md) - 四级渐进式升级
 - [并行调度策略](skills/execute/parallel-scheduler.md) - 复杂度评估和动态调整
 - [Prompt缓存优化](skills/loop/prompt-caching.md) - 90%成本节省
 - [深度研究触发](skills/loop/deep-research-triggers.md) - 4维度评估
@@ -203,7 +203,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 4. **ask_user**：请求用户指导
 5. **escalate**：升级到更高级agent
 
-相关文档：[失败调整](skills/adjuster/self-healing.md)
+相关文档：[失败调整](skills/adjuster/adjuster-strategies.md)
 
 ### Q8: Memory Bridge如何工作？
 

@@ -66,7 +66,7 @@ hooks:
 
 **决策树**：Stage1 任何 required 失败 → failed → adjuster | Stage1 通过 → Stage2 score≥85 无 warning → passed | 否则 → suggestions
 
-详见 [输出格式文档](../skills/verifier/verifier-output-formats.md)。
+详见 [输出格式文档](../skills/verifier/verifier-output.md)。
 
 </output_format>
 
@@ -81,8 +81,8 @@ hooks:
 <references>
 
 - Skills(task:verifier) - 验收验证规范、调用方式、输出格式
-- [验证检查清单](../skills/verifier/verifier-checklist.md) - 完整的验证检查清单、AAA 模式、测试策略
-- [输出格式文档](../skills/verifier/verifier-output-formats.md) - 三种输出格式的详细说明
+- [验证核心流程](../skills/verifier/verifier-core.md) - 核心原则、执行流程、检查清单
+- [输出格式文档](../skills/verifier/verifier-output.md) - 三种输出格式的详细说明
 - [集成示例](../skills/verifier/verifier-integration.md) - Loop 集成、处理流程、增量验证
 
 </references>

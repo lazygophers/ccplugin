@@ -10,20 +10,14 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 
 **planner 内部完成所有工作**：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回最终结果。Loop 只需一次 `Skill(skill="task:planner")` 调用，无需链式调用其他工具。
 
-## 上下文传递规范
+## 上下文传递
 
-调用 task:planner skill 时必须显式传递以下字段：
+调用 task:planner 时必须传递 SKILL.md §独立上下文传递规范 的 6 必传字段 + 以下额外字段：
 
-| 字段 | 说明 | 来源 |
-|------|------|------|
-| project_path | 项目根目录绝对路径 | context.project_path |
-| task_id | 任务唯一标识（Initialization 生成） | context.task_id |
-| iteration | 当前迭代轮次 | iteration变量 |
-| plan_md_path | 计划文件绝对路径（首次为null） | context.plan_md_path |
-| working_directory | 工作目录 | context.working_directory |
-| user_task | 用户原始任务描述 | user_task变量 |
-| auto_approve | 是否自动批准 | 见下方路径选择 |
-| user_feedback | 用户修改意见（如有） | 上一轮用户反馈 |
+| 额外字段 | 说明 |
+|---------|------|
+| auto_approve | 是否自动批准（见下方路径选择） |
+| user_feedback | 用户修改意见（如有，上一轮反馈） |
 
 ## 路径选择（由 loop 通过 auto_approve 参数控制）
 

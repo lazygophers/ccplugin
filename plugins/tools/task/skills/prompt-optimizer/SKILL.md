@@ -35,7 +35,7 @@ user-invocable: false
 | Where(范围) | 影响模块/部署环境/交互组件 |
 | How(方式) | 技术方案/栈/架构模式 |
 
-质量评分：清晰度(0-10) + 完整性(0-10) + 可执行性(0-10)。详见 best-practices.md。
+质量评分：清晰度(0-10) + 完整性(0-10) + 可执行性(0-10)。综合≥8分返回 no_optimization_needed。
 
 <!-- /STATIC_CONTENT -->
 
@@ -43,13 +43,9 @@ user-invocable: false
 
 ## 调用
 
-`Skill(skill="task:prompt-optimizer", args="优化用户提示词：\n原始提示：{input}\n要求：1.评估质量 2.得分<6搜索最佳实践 3.5W1H提问 4.生成优化提示词 5.得分≥8返回no_optimization_needed")`
+`Skill(skill="task:prompt-optimizer", args="优化用户提示词：\n原始提示：{input}")`
 
 结果处理：status=no_optimization_needed→使用原始 | status=optimized→使用优化后提示词
-
-## 优化模板
-
-`# 任务目标` → `## 背景和动机` → `## 技术上下文`(类型/栈/状态/依赖) → `## 具体要求` → `## 范围边界`(包含/不包含) → `## 验收标准` → `## 时间和优先级`
 
 ## 输出格式
 

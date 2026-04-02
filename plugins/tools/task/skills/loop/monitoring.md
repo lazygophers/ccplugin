@@ -82,3 +82,13 @@ circuit_breaker:
 - **可追踪**：关联ID(迭代→任务)、调用链跟踪
 - **可调试**：记录输入参数/中间状态/错误详情、支持重放
 - **可理解**：语义化命名、一致性、文档化决策
+
+## Agent 通信规则
+
+**核心规则**：Agent不得直接与用户交互（禁止AskUserQuestion/直接输出）。正确路径：Agent→SendMessage(@main)→MindFlow→AskUserQuestion(user)
+
+**消息类型**：question(需用户确认) | response(传递回答) | report(进度/结果) | alert(异常) | request(请求操作)。消息必含：type/agent/content。
+
+**协作模式**：顺序(Planner→Executor→Verifier→Adjuster/Finalizer) | 并行(最多2个无依赖) | 反馈循环(Executor→Verifier→Adjuster→Executor)
+
+**安全**：来源验证(只允许合法Agent) | 格式验证(必含type/agent/content) | 循环检测(重复>50%中断)

@@ -1,5 +1,5 @@
 ---
-description: "Adjuster 失败调整 - Loop Adjustment 阶段调用：任务失败时分析原因、检测停滞，六级升级策略（Retry → Self-Healing → Debug → Micro-Replan → Full Replan → Ask User）。由 Loop 内部调度，不直接面向用户"
+description: "Adjuster 失败调整 - Loop Adjustment 阶段调用：任务失败时分析原因、检测停滞，四级升级策略（Retry → Debug → Replan → Ask User）。由 Loop 内部调度，不直接面向用户"
 model: sonnet
 context: fork
 user-invocable: false
@@ -17,7 +17,7 @@ hooks:
 
 ## 概述
 
-任务失败时介入，借鉴Circuit Breaker模式分析原因、检测停滞、分级升级。六级策略：L1 Retry(1次错误,0s) → L1.5 Self-Healing(匹配17类错误,0s) → L2 Debug(深度诊断,2s) → L2.5 Micro-Replan(仅失败任务+直接依赖) → L3 Full Replan(重建计划) → L4 Ask User(人工指导)。退避：`2^(failure_count-1)`秒。
+任务失败时介入，借鉴Circuit Breaker模式分析原因、检测停滞、分级升级。四级策略：L1 Retry(含Self-Healing,匹配17类错误自动修复) → L2 Debug(深度诊断) → L3 Replan(含Micro-Replan优先局部重规划) → L4 Ask User(人工指导)。退避：`2^(failure_count-1)`秒。
 
 **停滞检测**：当连续 2 次失败的 `error_type` + 失败任务 ID 完全相同时，判定为停滞（相同错误在相同任务上重复出现）。停滞后跳过中间级别，直接升级到 L4 Ask User。
 
@@ -44,18 +44,12 @@ hooks:
 
 ## 升级策略表
 
-| 级别 | 策略 | 触发条件 | 等待 | Loop流向 |
-|------|------|---------|------|---------|
-| L1 | Retry | 1次相同错误 | 0s | 任务执行 |
-| L1.5 | Self-Healing | 匹配17类错误 | 0s | 任务执行 |
-| L2 | Debug | 持续性错误 | 2s | 任务执行 |
-| L2.5 | Micro-Replan | 3次Debug无效 | 4s | 部分重设计 |
-| L3 | Full Replan | Micro-Replan失败 | 8s | 完整重设计 |
-| L4 | Ask User | 所有自动失败/振荡/总失败≥15 | - | 等待用户 |
-
-### Micro-Replan(L2.5)
-
-仅重规划失败任务+直接依赖，保留成功任务。输出`replan_scope{failed_tasks, direct_dependencies, keep_completed, new_approach}`。失败则升级L3。
+| 级别 | 策略(status) | 触发条件 | 退避 | Loop流向 |
+|------|-------------|---------|------|---------|
+| L1 | retry | 首次失败/临时错误。含Self-Healing：匹配17类可预测错误时自动修复 | 0s | Execution |
+| L2 | debug | Retry×3失败/持续性错误 | 2s | Execution |
+| L3 | replan | Debug×3无效。优先Micro-Replan(仅失败任务+直接依赖)，失败则Full Replan | 4s | Planning |
+| L4 | ask_user | Replan×2失败/振荡(A→B→A→B)/总失败≥15 | - | 等待用户 |
 
 ## 注意事项
 
@@ -65,6 +59,6 @@ hooks:
 
 ## 详细文档
 
-- [升级策略](adjuster-strategies.md) | [升级流程图](escalation-flowchart.md) | [输出格式](adjuster-output-formats.md) | [集成示例](adjuster-integration.md)
+- [升级策略与自愈机制](adjuster-strategies.md) | [输出格式](adjuster-output.md) | [集成指南](adjuster-integration.md)
 
 <!-- /STATIC_CONTENT -->

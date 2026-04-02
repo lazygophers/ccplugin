@@ -228,11 +228,11 @@ JSON 输出：`{status, plan_md_path?, report(≤200字), tasks[], dependencies{
 
 <references>
 
-- [结构化验收标准](planner-structured-criteria.md) - 精确匹配、量化阈值评估、字段定义、使用示例
-- [上下文学习指南](planner-context-learning.md) - 三层上下文学习、项目理解、记忆系统、规范驱动计划
-- [Agent/Skills 选择参考](planner-reference.md) - Agent 和 Skills 的选择指南、使用示例
-- [避坑指南](planner-pitfalls.md) - 常见错误、最佳实践、验证检查清单
-- [集成示例](planner-integration.md) - Loop 集成、验证函数、高级用法
+- [结构化验收标准](planner-structured-criteria.md) - 精确匹配、量化阈值评估、字段定义
+- [上下文学习指南](planner-context-learning.md) - 三层上下文学习、项目理解、记忆系统
+- [资源选择指南](planner-resource-guide.md) - Agent/Skills 发现、选择原则、来源标注
+- [最佳实践与避坑](planner-best-practices.md) - 常见错误、检查清单、关键要点
+- [集成指南](planner-integration.md) - Loop 集成、验证函数、高级用法
 
 </references>
 

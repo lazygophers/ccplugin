@@ -132,8 +132,8 @@ tasks[] 每个任务必含：id、description、agent（带中文注释）、ski
 
 - Skills(task:planner) - 计划设计规范
 - [上下文学习指南](../skills/planner/planner-context-learning.md)
-- [Agent/Skills选择参考](../skills/planner/planner-reference.md)
-- [避坑指南](../skills/planner/planner-pitfalls.md)
+- [资源选择指南](../skills/planner/planner-resource-guide.md)
+- [最佳实践与避坑](../skills/planner/planner-best-practices.md)
 - [集成示例](../skills/planner/planner-integration.md)
 - [计划模板](../skills/planner/template.md)
 

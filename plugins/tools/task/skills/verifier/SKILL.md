@@ -38,38 +38,25 @@ Verifier 技能负责验证任务执行结果是否满足验收标准。采用**
 
 <navigation>
 
-## 核心功能
+## 核心功能与检查清单
 
-文件：[verifier-skill-core.md](verifier-skill-core.md)
+文件：[verifier-core.md](verifier-core.md)
 
-包含 Verifier 的基础使用：适用场景、核心原则（验收测试最佳实践）、执行流程（步骤1-3）、输出格式和字段说明、快速参考、注意事项。
+适用场景、核心原则、执行流程、输出字段、结构化验收标准验证（精确匹配/量化阈值/容差）、验证前/中/后检查清单、最佳实践。
 
-## 高级功能
-
-文件：[verifier-skill-advanced.md](verifier-skill-advanced.md)
-
-包含结构化验收标准的处理：结构化验收标准的验证流程、验证逻辑（通用验证函数、精确匹配、量化阈值）、容差验证示例、辅助函数、结构化验收标准最佳实践。
-
-## 两阶段验证
+## 三阶段验证
 
 - **Stage 1 - 功能合规检查** → [spec-compliance-checklist.md](spec-compliance-checklist.md)
   - MUST PASS 门控：验收标准匹配、功能完整性、回归检查
-  - 任何 required 标准失败即触发 adjuster，不进入 Stage 2
 - **Stage 2 - 代码质量审查** → [code-quality-checklist.md](code-quality-checklist.md)
   - CAN SUGGEST：测试质量、代码标准、性能考量、安全检查
-  - quality_score >= 85 通过，否则生成 suggestions 创建优化迭代
-
-## 深度校验
-
 - **Stage 3 - 深度校验** → [deep-validation-checklist.md](deep-validation-checklist.md)
   - MUST PASS：用户预期验证、业务逻辑验证、交付物完整性验证
-  - 仅在 Stage 1/2 通过后执行，确保交付物从用户视角完全对齐
 
 ## 相关文档
 
-- 验证检查清单 → [verifier-checklist.md](verifier-checklist.md)
-- 集成示例 → [verifier-integration.md](verifier-integration.md)
-- 输出格式 → [verifier-output-formats.md](verifier-output-formats.md)
+- 输出格式（passed/suggestions/failed） → [verifier-output.md](verifier-output.md)
+- 集成指南（基础/高级/调试） → [verifier-integration.md](verifier-integration.md)
 
 </navigation>
 

@@ -133,7 +133,7 @@ hooks:
 
 <quick_reference>
 
-质量阈值：60→75→85→90分 | 失败策略：retry→debug→replan→ask_user | 深度研究：复杂度>8自动触发/失败2次询问用户/用户可拒绝（详见 deep-research-triggers.md） | 缓存优化：静态内容标记，90%成本节省
+质量阈值：按迭代递进（详见 [flows/verify.md](flows/verify.md) §质量评分） | 失败策略：retry→debug→replan→ask_user（四级） | 深度研究：复杂度>8自动触发/失败2次询问用户/用户可拒绝（详见 deep-research-triggers.md） | 缓存优化：静态内容标记，90%成本节省
 
 </quick_reference>
 

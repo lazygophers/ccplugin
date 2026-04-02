@@ -1,29 +1,53 @@
-# Verifier 集成示例
+# Verifier 集成指南
 
-<overview>
+## 基础集成（Loop内）
 
-本文档是 Verifier 集成文档的索引。集成文档展示了如何在不同场景中调用 Verifier，从最简单的 Loop 内集成到复杂的结构化验收标准验证和调试模式。按使用复杂度拆分为三个层级。
+1. **调用verifier**：`Skill(skill="task:verifier")` 传入任务目标、迭代轮次
+2. **输出报告**：`[MindFlow·{task}·结果验证/{N}·{status}]`
+3. **状态路由**：passed→exit | suggestions→自动继续优化 | failed→adjustment
 
-</overview>
+### 结果处理
 
-<navigation>
+- 验证status有效性(passed/suggestions/failed)
+- 输出summary统计(total/completed/failed/coverage/regression)
+- passed：所有标准通过
+- suggestions：显示建议(priority图标❗⚠️💡)
+- failed：列出每个failure的criterion/actual/reason
 
-## 基础集成
+### 自定义场景
 
-文件：[verifier-integration-basic.md](verifier-integration-basic.md)
+- **单任务验证**：传入task_id + acceptance_criteria
+- **批量验证**：传入tasks JSON列表
+- **增量验证**：传入new_tasks + previous_verification
 
-包含最常见的集成场景：Loop 命令中的使用（标准调用方式和结果处理）、自定义场景集成（单次任务验证、批量任务验证、增量验证）。大多数情况下只需参考基础集成即可。
+## 高级集成（结构化验收标准）
 
-## 高级集成
+### validate_structured_criterion
 
-文件：[verifier-integration-advanced.md](verifier-integration-advanced.md)
+字符串格式直接通过(向后兼容)。结构化格式验证：
 
-包含结构化验收标准的集成：结构化验收标准验证（使用精确匹配和量化阈值）、验证函数的调用方式、混合格式示例（同时包含文本和结构化标准）、容差范围处理。
+| 检查 | 规则 |
+|------|------|
+| 必需字段 | id + type + description + priority |
+| priority | required/recommended |
+| exact_match | 需verification_method(run_linter/run_tests/check_build) |
+| quantitative_threshold | 需metric + operator(>=,<=,>,<,==) + threshold；tolerance可选(0-1) |
 
-## 调试和错误处理
+### validate_all_criteria
 
-文件：[verifier-integration-debug.md](verifier-integration-debug.md)
+遍历所有tasks的acceptance_criteria，收集验证错误。返回 `{valid: bool, errors: [{task_id, criterion_index, error}]}`
 
-包含验证问题的排查和处理：自定义验证规则、条件验证、分阶段验证、调试模式（详细日志输出）、模拟测试、错误处理策略、重试机制。
+### 容差处理
 
-</navigation>
+对于 quantitative_threshold + tolerance：
+- actual ≥ threshold → `passed`
+- actual ≥ threshold×(1-tolerance) → `passed_with_tolerance`
+- actual < threshold×(1-tolerance) → `failed`
+
+## 调试与错误处理
+
+- **自定义规则**：`Skill(skill="task:verifier")` 传入custom_rules JSON
+- **条件验证**：根据环境/配置调整验证标准
+- **分阶段验证**：foundation(基本通过) → enhancement(覆盖≥90%) → refinement(质量+文档+性能)
+- **调试模式**：开启debug时输出详细日志（Status/任务数/criteria通过数/Failures数量）
+- **重试机制**：`verify_with_retry(tasks, max_retries=3)`，指数退避(`2^attempt`秒)

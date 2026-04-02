@@ -63,9 +63,9 @@ hooks:
 
 **Retry + 指数退避**：`wait = 2^(n-1)` 秒，加 Jitter 避免雷鸣群效应。
 
-**Self-Healing**：17 类可自愈错误（依赖缺失/端口占用/目录不存在/权限/配置/网络超时/API错误/内存/磁盘/文件锁等），与 HITL 联动。详见 [自愈机制指南](../skills/adjuster/self-healing.md)。
+**Self-Healing**：17 类可自愈错误（依赖缺失/端口占用/目录不存在/权限/配置/网络超时/API错误/内存/磁盘/文件锁等），与 HITL 联动。详见 [升级策略](../skills/adjuster/adjuster-strategies.md)。
 
-**渐进式升级**：L1 Retry → L1.5 Self-Healing → L2 Debug → L2.5 Micro-Replan → L3 Full Replan → L4 Ask User。振荡检测（A→B→A→B）和紧急逃逸（总失败≥15）立即 Ask User。详见 [升级策略](../skills/adjuster/adjuster-strategies.md)。
+**渐进式升级**：L1 Retry（含 Self-Healing）→ L2 Debug → L3 Replan（含 Micro-Replan）→ L4 Ask User。振荡检测（A→B→A→B）和紧急逃逸（总失败≥15）立即 Ask User。详见 [升级策略](../skills/adjuster/adjuster-strategies.md)。
 
 **停滞检测**：相同错误 3 次/相同策略连续失败 2 次/无进展 → 升级策略。
 
@@ -77,7 +77,7 @@ hooks:
 2. **自愈尝试**(可选)：首次失败检查17类可自愈错误（用户规则优先→内置规则），HITL联动(auto/review)，成功则继续，失败降级L1
 3. **原因分析**：分类错误(环境/依赖/逻辑/网络)，识别根因
 4. **停滞检测**：相同错误3次/相同策略失败2次/无进展 → 升级
-5. **选择策略**：L1 Retry(临时错误,3次) → L1.5 Self-Heal(17类,2次) → L2 Debug(持续错误,3次) → L2.5 Micro-Replan(局部) → L3 Full Replan(架构) → L4 Ask User(全部失败/振荡/≥15次)。退避：`2^(n-1)`秒
+5. **选择策略**：L1 Retry(临时错误+自愈,3次) → L2 Debug(持续错误,3次) → L3 Replan(架构+局部) → L4 Ask User(全部失败/振荡/≥15次)。退避：`2^(n-1)`秒
 6. **生成报告**：≤100字，含原因+措施+下一步+等待时间
 
 </workflow>
@@ -93,7 +93,7 @@ hooks:
 - replan: `replan_scope`（affected_tasks, keep_completed, new_approach）
 - ask_user: `question`（summary, tried_strategies, ask）
 
-完整示例详见 [输出格式文档](../skills/adjuster/adjuster-output-formats.md)。
+完整示例详见 [输出格式文档](../skills/adjuster/adjuster-output.md)。
 
 </output_format>
 
@@ -107,10 +107,8 @@ hooks:
 <references>
 
 - Skills(task:adjuster) - 失败调整规范、调用方式、输出格式
-- [自愈机制指南](../skills/adjuster/self-healing.md) - 17 类可自愈错误、修复方案、HITL 联动
-- [自定义自愈规则](../skills/adjuster/custom-healing-rules.md) - 用户自定义自愈规则格式和优先级
-- [失败升级策略指南](../skills/adjuster/adjuster-strategies.md) - 升级策略、停滞检测、Circuit Breaker、指数退避
-- [输出格式文档](../skills/adjuster/adjuster-output-formats.md) - 策略的详细说明和示例
+- [升级策略指南](../skills/adjuster/adjuster-strategies.md) - 四级升级策略、自愈机制、停滞检测、Circuit Breaker、自定义规则
+- [输出格式文档](../skills/adjuster/adjuster-output.md) - 策略的详细说明和示例
 - [集成示例](../skills/adjuster/adjuster-integration.md) - Loop 集成、处理流程、停滞检测
 
 </references>

@@ -1,23 +1,53 @@
-# Adjuster 集成示例
+# Adjuster 集成指南
 
-<overview>
+## 基础集成（Loop内）
 
-本文档是 Adjuster 集成文档的索引。Adjuster 的集成主要发生在 Loop 的失败调整阶段，但也支持独立使用。按使用复杂度拆分为两个层级：基础集成覆盖 Loop 内的标准用法，高级集成覆盖自定义场景和停滞检测。
+1. **调用adjuster**：`Skill(skill="task:adjuster", args="执行失败调整：{task}，迭代{N}，要求：获取失败详情/分析原因/检测停滞/分级升级/生成报告≤100字")`
+2. **输出报告**：`[MindFlow·{task}·失败调整/{N}·{strategy}]`
+3. **指数退避**：按`retry_config.backoff_seconds`等待
+4. **策略路由**：
 
-</overview>
+| 策略 | 操作 | 返回 |
+|------|------|------|
+| retry | 应用adjustments列表修复 | → Execution |
+| debug | 调用debug agent深度分析 | → Execution |
+| replan | 显示replan_options | → Planning |
+| ask_user | AskUserQuestion请求指导 | → 用户决定 |
 
-<navigation>
+### 调整应用
 
-## 基础集成
+遍历`adjustments`数组，按`action`类型执行：
+- 含"修复" → `apply_fix(task_id, details)`
+- 含"调整" → `apply_configuration_change(task_id, details)`
+- 含"安装" → `install_dependency(details)`
 
-文件：[adjuster-integration-basic.md](adjuster-integration-basic.md)
+### 深度诊断
 
-包含最常见的集成场景：Loop 命令中的使用（标准调用方式和结果处理）、辅助函数实现（应用调整建议 apply_adjustments、深度诊断 apply_debug_fixes、显示重新规划选项、应用用户指导 apply_user_guidance）。大多数情况下只需参考基础集成。
+从`debug_plan`获取`agent`和`focus_areas` → 调用debug agent → 应用修复
+
+### 用户指导
+
+显示`stalled_info`(task_id/error/occurrences) → `AskUserQuestion(question)` → 解析回答应用修复
 
 ## 高级集成
 
-文件：[adjuster-integration-advanced.md](adjuster-integration-advanced.md)
+### 自定义场景
 
-包含进阶使用场景：自定义场景集成（单次失败处理、批量失败处理、条件调整）、停滞检测的实现（错误签名比对和相似度计算）、指数退避的完整实现、错误处理和异常恢复。
+- **单次失败**：传入task_id+error → Retry策略
+- **批量失败**：传入failed_tasks JSON → 识别共同模式 → 统一或独立修复
+- **条件调整**：传入task+conditions → 根据条件选择策略
 
-</navigation>
+### 停滞检测
+
+检测最近3次错误签名(`{type, message, task_id}`)的相似度：
+- 不同type → 0.0 | 不同task_id → 0.5 | 相同message → 1.0 | 部分匹配 → 0.7
+- 所有相似度≥0.9 → 停滞
+
+### 指数退避
+
+公式：`2^(failure_count-1)`秒，上限60秒。`backoff_seconds>0`时等待。
+
+### 错误处理
+
+- **无效策略**：检查strategy∈{retry,debug,replan,ask_user}，否则抛异常
+- **超过重试**：`current_retry>=max_retries(默认3)` → 返回True
