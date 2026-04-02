@@ -24,7 +24,7 @@
 | 状态 | 条件 | 质量分 | 下一步 | 强制要求 |
 |------|------|--------|--------|---------|
 | passed | 全部验收通过，无建议 | ≥80 | Finalization（完成） | **必须立即**进入 Finalizer 清理 |
-| suggestions | 全部通过，有优化空间 | 60-79 | Planning（自动重规划） | **必须立即**回到计划设计（`replan_trigger="verifier"`） |
+| suggestions | 全部通过，有优化空间 | 60-79 | PromptCheck（重新评估） | **必须立即**回到 PromptCheck（`replan_trigger="verifier"`） |
 | failed | 至少一项验收未通过 | <60 | Adjustment（失败调整） | **必须立即**进入失败调整 |
 
 suggestions 自动继续，不询问用户。

@@ -45,10 +45,10 @@ hooks:
 
 | 级别 | 策略(status) | 触发条件 | 退避 | Loop流向 |
 |------|-------------|---------|------|---------|
-| L1 | retry | 首次失败/临时错误。含Self-Healing：匹配17类可预测错误时自动修复 | 0s | Execution |
-| L2 | debug | Retry×3失败/持续性错误 | 2s | Execution |
-| L3 | replan | Debug×3无效。优先Micro-Replan(仅失败任务+直接依赖)，失败则Full Replan | 4s | Planning |
-| L4 | ask_user | Replan×2失败/振荡(A→B→A→B)/总失败≥15 | - | 等待用户 |
+| L1 | retry | 首次失败/临时错误。含Self-Healing：匹配17类可预测错误时自动修复 | 0s | PromptCheck |
+| L2 | debug | Retry×3失败/持续性错误 | 2s | PromptCheck |
+| L3 | replan | Debug×3无效。优先Micro-Replan(仅失败任务+直接依赖)，失败则Full Replan | 4s | PromptCheck |
+| L4 | ask_user | Replan×2失败/振荡(A→B→A→B)/总失败≥15 | - | 用户决定→PromptCheck |
 
 ## 注意事项
 

@@ -28,17 +28,15 @@ stateDiagram-v2
 
     state prompt_choice <<choice>>
     PromptOptimization --> prompt_choice
-    prompt_choice --> DeepResearch: A/B - 继续
+    prompt_choice --> NeedResearch: A/B - 复杂度评估
     prompt_choice --> PromptCheck: C - 重新评估（评分<9才再次优化）
 
     state NeedResearch <<choice>>
-    prompt_choice --> NeedResearch: 评估复杂度
     NeedResearch --> DeepResearch: 复杂度>8 或 失败2次
     NeedResearch --> Planning: 不需要研究
 
     state DeepResearch {
-        [*] --> ComplexityEval: 复杂度评估
-        ComplexityEval --> ExploreAgent: Agent 探索
+        [*] --> ExploreAgent: Agent 探索
         ExploreAgent --> IntegrateResults: 整合结果
         IntegrateResults --> SaveResearchMemory: 保存记忆
         SaveResearchMemory --> [*]
@@ -60,7 +58,8 @@ stateDiagram-v2
     Planning --> plan_result
     plan_result --> Execution: confirmed（批准）
     plan_result --> PromptCheck: rejected（修改意见→重新评估提示词）
-    plan_result --> Finalization: no_tasks / cancelled
+    plan_result --> Finalization: no_tasks
+    plan_result --> Terminated: cancelled（用户中止）
 
     state Execution {
         [*] --> ReadPlan: 读取计划文件
@@ -83,7 +82,7 @@ stateDiagram-v2
     state verify_result <<choice>>
     Verification --> verify_result
     verify_result --> Finalization: passed（通过）
-    verify_result --> Planning: suggestions（优化建议）
+    verify_result --> PromptCheck: suggestions（优化建议→重新评估）
     verify_result --> Adjustment: failed（失败）
 
     state Adjustment {
@@ -95,15 +94,15 @@ stateDiagram-v2
 
     state adjust_result <<choice>>
     Adjustment --> adjust_result
-    adjust_result --> Execution: retry / debug
-    adjust_result --> Planning: replan
+    adjust_result --> PromptCheck: retry / debug
+    adjust_result --> PromptCheck: replan
     adjust_result --> WaitUser: ask_user
 
     state WaitUser {
         [*] --> AskGuidance: 请求用户指导
         AskGuidance --> [*]
     }
-    WaitUser --> Planning: 用户提供方向
+    WaitUser --> PromptCheck: 用户提供方向
 
     state Finalization {
         [*] --> UpdateTaskStatus: 更新任务状态文件
@@ -116,3 +115,10 @@ stateDiagram-v2
     note right of Finalization: 即使失败也必须执行\n清理计划/检查点/快照
 
     Finalization --> [*]
+
+    state Terminated {
+        [*] --> CleanupMinimal: 最小清理（状态文件）
+        CleanupMinimal --> [*]
+    }
+    note right of Terminated: 用户主动中止\n仅清理状态文件
+    Terminated --> [*]

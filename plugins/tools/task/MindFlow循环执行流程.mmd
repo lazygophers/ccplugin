@@ -140,9 +140,10 @@ flowchart TB
         Plan_5{auto_approve?}
         Plan_6[自动批准]
         Plan_7[AskUserQuestion<br/>请求批准]
-        Plan_8{用户批准?}
+        Plan_8{用户决定?}
         Plan_9[提取反馈<br/>replan_trigger=user]
         Plan_10[save_checkpoint]
+        Plan_Cancel([用户取消])
         Plan_Context[Context-6<br/>project_path/...]
 
         Plan_Entry --> Plan_Mode
@@ -155,8 +156,9 @@ flowchart TB
         Plan_5 -->|true| Plan_6
         Plan_5 -->|false| Plan_7
         Plan_7 --> Plan_8
-        Plan_8 -->|是| Plan_10
-        Plan_8 -->|否| Plan_9
+        Plan_8 -->|批准| Plan_10
+        Plan_8 -->|修改| Plan_9
+        Plan_8 -->|取消| Plan_Cancel
         Plan_9 -.-> PO_1
         Plan_6 --> Plan_Context
         Plan_10 --> Plan_Context
@@ -164,6 +166,7 @@ flowchart TB
 
     Plan_Context --> Exec_Entry
     Plan_SkipExec --> Final_Entry
+    Plan_Cancel --> Terminated
 
     %% =============================================================================
     %% Execution: 任务执行
@@ -254,10 +257,10 @@ flowchart TB
         Verify_12 --> Verify_13
     end
 
-    Verify_Route[结果路由<br/>passed→Finalization<br/>suggestions→Planning<br/>failed→Adjustment]
+    Verify_Route[结果路由<br/>passed→Finalization<br/>suggestions→PromptCheck<br/>failed→Adjustment]
     Verify_13 --> Verify_Route
     Verify_Route -->|passed| Final_Entry
-    Verify_Route -->|suggestions| Plan_Entry
+    Verify_Route -->|suggestions| PO_1
     Verify_Route -->|failed| Adjust_Entry
     Verify_Fail --> Adjust_Entry
 
@@ -278,7 +281,7 @@ flowchart TB
         Adjust_8[指数退避: backoff_seconds]
 
         Adjust_Level["升级策略<br/>L1 retry(含自愈) 0s<br/>L2 debug 2s<br/>L3 replan(含微调) 4s<br/>L4 ask_user"]
-        Adjust_Route[路由<br/>retry/debug→Execution<br/>replan→Planning<br/>ask_user→用户]
+        Adjust_Route[路由<br/>retry/debug/replan→PromptCheck<br/>ask_user→用户→PromptCheck]
 
         Adjust_Stuck[停滞检测:<br/>连续3次相同错误<br/>振荡检测A→B→A→B]
 
@@ -296,9 +299,9 @@ flowchart TB
     end
 
     Adjust_User([用户决策])
-    Adjust_Route -->|retry/debug| Exec_Entry
-    Adjust_Route -->|replan| Plan_Entry
+    Adjust_Route -->|retry/debug/replan| PO_1
     Adjust_Route -->|ask_user| Adjust_User
+    Adjust_User --> PO_1
 
     %% =============================================================================
     %% Finalization: 完成清理
@@ -337,6 +340,7 @@ flowchart TB
     %% 结束节点
     %% =============================================================================
     End([结束: 任务完成])
+    Terminated([中止: 用户取消])
 
     %% =============================================================================
     %% 附录入口

@@ -187,9 +187,9 @@ hooks:
 | planner 返回 status | loop 处理 | 强制要求 |
 |---------------------|----------|---------|
 | `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
-| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 PromptOptimization（重新评估提示词质量） |
+| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 PromptCheck（重新评估提示词质量） |
 | `no_tasks` | - | **必须立即**跳到 Finalization（完成清理） |
-| `cancelled` | - | **必须立即**跳到 Finalization（完成清理） |
+| `cancelled` | - | **必须立即**进入 Terminated（中止，仅清理状态文件） |
 
 **禁止**：处理完 planner 返回结果后就结束回复。**必须**立即继续执行下一阶段。
 
@@ -219,7 +219,7 @@ hooks:
 
 【强制】调用 task:verifier skill 验证。调用时必须传递完整上下文字段（project_path、task_id、iteration、plan_md_path、working_directory、user_task），确保 verifier 能独立定位项目和计划文件。根据 `status` 分支**必须立即继续**：
 - `passed` → **必须立即**进入 Finalization（完成清理）
-- `suggestions` → 设 `replan_trigger="verifier"` → **必须立即**回到Planning（自动迭代）
+- `suggestions` → 设 `replan_trigger="verifier"` → **必须立即**回到 PromptCheck（重新评估）
 - `failed` → **必须立即**进入Adjustment（失败调整）
 
 **后置验证点**：
@@ -234,9 +234,9 @@ hooks:
 更新状态文件：`echo "adjustment" > .claude/tasks/${task_id}/loop-phase`
 
 调用 task:adjuster skill 分析。根据 `strategy` 分支**必须立即继续**：
-- `retry`/`debug` → **必须立即**回到Execution（任务执行）
-- `replan` → 设 `replan_trigger="adjuster"` → **必须立即**回到 Planning
-- `ask_user` → AskUserQuestion 请求指导 → 获得响应后**必须立即**继续
+- `retry`/`debug` → **必须立即**回到 PromptCheck（重新评估）
+- `replan` → 设 `replan_trigger="adjuster"` → **必须立即**回到 PromptCheck（重新评估）
+- `ask_user` → AskUserQuestion 请求指导 → 获得响应后**必须立即**回到 PromptCheck
 
 **禁止**：调整完成后就结束回复。**必须立即**按策略分支继续执行。
 

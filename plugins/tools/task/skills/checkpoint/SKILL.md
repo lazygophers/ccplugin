@@ -24,7 +24,7 @@ user-invocable: false
 - phase=`planning` → resume_phase=`execution`
 - phase=`execution` → resume_phase=`verification`
 - phase=`verification` → resume_phase=`finalization`（passed）或 `adjustment`（failed）
-- phase=`adjustment` → resume_phase=`planning`（replan）或 `execution`（retry/debug）
+- phase=`adjustment` → resume_phase=`prompt_check`（所有策略统一回到提示词评估）
 
 ### load_checkpoint()
 

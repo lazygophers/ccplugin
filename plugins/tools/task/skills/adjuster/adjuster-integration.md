@@ -9,10 +9,10 @@
 
 | 策略 | 操作 | 返回 |
 |------|------|------|
-| retry | 应用adjustments列表修复 | → Execution |
-| debug | 调用debug agent深度分析 | → Execution |
-| replan | 显示replan_options | → Planning |
-| ask_user | AskUserQuestion请求指导 | → 用户决定 |
+| retry | 应用adjustments列表修复 | → PromptCheck |
+| debug | 调用debug agent深度分析 | → PromptCheck |
+| replan | 显示replan_options | → PromptCheck |
+| ask_user | AskUserQuestion请求指导 | → 用户决定→PromptCheck |
 
 ### 调整应用
 

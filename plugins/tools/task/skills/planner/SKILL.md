@@ -183,7 +183,7 @@ AskUserQuestion({
 
 **结果处理**（planner 返回时，用户确认已完成）：
 - `status: "confirmed"` → 提取 plan_md_path，进入执行阶段
-- `status: "rejected"` → 提取 user_feedback，回到 PromptOptimization（重新评估提示词质量）
+- `status: "rejected"` → 提取 user_feedback，回到 PromptCheck（重新评估提示词质量）
 - `status: "no_tasks"` → 无需执行
 - `status: "cancelled"` → 用户取消
 

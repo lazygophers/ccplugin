@@ -41,8 +41,8 @@
 
 | 选项 | 描述 | 后续流程 |
 |------|------|---------|
-| **A: 使用原始提示词** | 保持用户原始输入不变 | 更新 `context.user_task = original_prompt` → DeepResearch/Planning |
-| **B: 使用优化后提示词** | 应用 prompt-optimizer 的优化结果 | 更新 `context.user_task = optimized_prompt` → DeepResearch/Planning |
+| **A: 使用原始提示词** | 保持用户原始输入不变 | 更新 `context.user_task = original_prompt` → 复杂度评估 |
+| **B: 使用优化后提示词** | 应用 prompt-optimizer 的优化结果 | 更新 `context.user_task = optimized_prompt` → 复杂度评估 |
 | **C: 重新优化** | 提供反馈后重新评估 | 收集反馈 → 回到质量评估（评分<9才重新优化） |
 
 ## 状态转换
