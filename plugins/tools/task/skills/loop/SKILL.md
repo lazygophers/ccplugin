@@ -187,7 +187,7 @@ hooks:
 | planner 返回 status | loop 处理 | 强制要求 |
 |---------------------|----------|---------|
 | `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
-| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 Planning |
+| `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 PromptOptimization（重新评估提示词质量） |
 | `no_tasks` | - | **必须立即**跳到 Finalization（完成清理） |
 | `cancelled` | - | **必须立即**跳到 Finalization（完成清理） |
 

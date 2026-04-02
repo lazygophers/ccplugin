@@ -40,7 +40,8 @@ stateDiagram-v2
         [*] --> ComplexityEval: 复杂度评估
         ComplexityEval --> ExploreAgent: Agent 探索
         ExploreAgent --> IntegrateResults: 整合结果
-        IntegrateResults --> [*]
+        IntegrateResults --> SaveResearchMemory: 保存记忆
+        SaveResearchMemory --> [*]
     }
     note right of DeepResearch: 可选阶段\n复杂度>8 自动触发
 
@@ -58,7 +59,7 @@ stateDiagram-v2
     state plan_result <<choice>>
     Planning --> plan_result
     plan_result --> Execution: confirmed（批准）
-    plan_result --> Planning: rejected（修改意见）
+    plan_result --> PromptCheck: rejected（修改意见→重新评估提示词）
     plan_result --> Finalization: no_tasks / cancelled
 
     state Execution {

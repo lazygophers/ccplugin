@@ -111,7 +111,7 @@ AskUserQuestion({
 | status | plan_md_path | 说明 |
 |--------|-------------|------|
 | `confirmed` | 文件路径 | 用户批准或自动批准，loop 进入执行阶段 |
-| `rejected` | 文件路径 | 用户要求修改，loop 重新调用 planner 并传入 user_feedback |
+| `rejected` | 文件路径 | 用户要求修改，loop 回到 PromptOptimization 重新评估提示词质量 |
 | `no_tasks` | 无 | 功能已存在，无需执行 |
 | `cancelled` | 无 | 用户取消任务 |
 

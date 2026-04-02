@@ -118,6 +118,8 @@ flowchart TB
         DR_6 --> DR_7
         DR_7 --> DR_8
         DR_8 --> DR_9
+        DR_10["保存记忆<br/>技术选型/最佳实践/风险"]
+        DR_9 --> DR_10
     end
 
     PO_Skip --> DR_Entry
@@ -156,7 +158,7 @@ flowchart TB
         Plan_7 --> Plan_8
         Plan_8 -->|是| Plan_10
         Plan_8 -->|否| Plan_9
-        Plan_9 -.-> Plan_Entry
+        Plan_9 -.-> PO_1
         Plan_6 --> Plan_Context
         Plan_10 --> Plan_Context
     end
