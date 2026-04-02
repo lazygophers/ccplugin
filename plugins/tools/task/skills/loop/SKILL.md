@@ -158,7 +158,7 @@ hooks:
 
 ### Initialization: 初始化
 
-重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。创建 Loop 状态文件：`mkdir -p .claude/tasks/${task_id} && echo "active" > .claude/tasks/${task_id}/loop-phase`（Stop hook 依赖此文件判断是否允许停止，仅 `completed` 时放行）。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
+**【第一步】创建临时状态文件**：`mkdir -p .claude/tasks/pending && echo "initializing" > .claude/tasks/pending/loop-phase`（Stop hook 依赖此文件阻止提前终止，必须最先执行）。然后重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成语义性 task_id（从用户任务提取关键词+日期，如 "loop-fix-20260328"），后续所有输出以 `[MindFlow·${task_id}]` 开头。若检测到相同 task_id，询问用户是否重新开始。重命名状态目录：`mv .claude/tasks/pending .claude/tasks/${task_id}`（仅 `completed` 时 Stop hook 放行）。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
 
 详见 [phase-initialization.md](phases/phase-initialization.md)
 

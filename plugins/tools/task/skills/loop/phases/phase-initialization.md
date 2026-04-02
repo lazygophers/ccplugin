@@ -10,6 +10,14 @@
 
 **所有输出必须以 [MindFlow·${task_id}] 开头。**
 
+0. **【最高优先级】创建 Loop 状态文件**：任何其他操作之前，必须先执行此步骤（Stop hook 依赖此文件阻止提前终止）
+   ```bash
+   mkdir -p .claude/tasks/pending && echo "initializing" > .claude/tasks/pending/loop-phase
+   ```
+   - 此文件是 Stop hook 的唯一依赖项，缺失会导致 Loop 无法阻止提前停止
+   - task_id 确定后（步骤3）立即重命名：`mv .claude/tasks/pending .claude/tasks/{task_id}`
+   - **禁止**跳过此步骤或延后执行
+
 1. **检查点恢复**：load_checkpoint(user_task)，存在则恢复 iteration/context/plan_md_path/stalled_count，跳转到保存的阶段(planning/confirmation/execution/verification/adjustment)
 2. **正常初始化**：iteration=0, stalled_count=0, guidance_count=0, max_stalled_attempts=3, context={replan_trigger: None, task_id: null}
 3. **生成任务ID**：从用户任务描述中提取2-4个语义关键词生成 `task_id`（如"loop-fix-20260328"、"deep-validation-20260328"）。规则：
