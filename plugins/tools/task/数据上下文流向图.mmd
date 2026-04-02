@@ -56,11 +56,12 @@ graph TB
 
     subgraph Artifacts["中间产物生命周期"]
         direction LR
-        PlanFile[".claude/plans/{task_id}.md<br/>Planning 创建 → Cleanup 删除"]
+        PlanFile[".claude/tasks/{task_id}/plan.md<br/>Planning 创建 → Cleanup 删除"]
         CheckpointFile[".claude/checkpoints/{task_id}.json<br/>Execution 创建 → Cleanup 删除"]
-        TaskStatusFile[".claude/tasks/{task_id}/status.json<br/>Initialization 创建 → Cleanup 删除"]
-        ApprovalLog[".claude/plans/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
-        MetricsFile[".claude/plans/{task_id}/metrics.json<br/>Observability 创建 → Cleanup 删除"]
+        MetadataFile[".claude/tasks/{task_id}/metadata.json<br/>Initialization 创建 → Cleanup 删除"]
+        TasksFile[".claude/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
+        ApprovalLog[".claude/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
+        MetricsFile[".claude/tasks/{task_id}/metrics.json<br/>Observability 创建 → Cleanup 删除"]
         ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
     end
 
@@ -118,7 +119,7 @@ graph TB
     EpisodicMem -->|"历史参考"| L2
 
     %% 任务状态文件
-    PhaseFinal -->|"创建"| TaskStatusFile
+    PhaseFinal -->|"创建"| MetadataFile
 
     %% 样式
     classDef input fill:#3498DB,stroke:#2471A3,color:#fff
@@ -130,5 +131,5 @@ graph TB
     class UserTask,WorkDir,ProjectPath input
     class F1,F2,F3,F4,F5,F6 field
     class L1,L2,L3,MECE,WritePlanFile,ReadPlan,SkillCall,UpdateTask,ReadPlanV,Stage1,Stage2,Stage3,ScoreOut,CleanPlan,CleanCheckpoint,CleanArtifacts,SaveMem,Retro,GenId,SetIter,ResetCtx,ScanResidual phase
-    class PlanFile,CheckpointFile,TaskStatusFile,ApprovalLog,MetricsFile,ContextSnap artifact
+    class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,MetricsFile,ContextSnap artifact
     class EpisodicMem,ProjectMem memory

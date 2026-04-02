@@ -72,9 +72,10 @@ hooks:
 
 **阶段3：格式化并写入计划文件**（tasks 非空时必须执行）
 
-1. 生成文件路径：`.claude/plans/{task_id}.md`
+1. 生成文件路径：`.claude/tasks/{task_id}/plan.md`
 2. 按计划模板生成 Markdown，参考 [template.md](../skills/planner/template.md)
-3. 使用 Write 工具写入文件
+3. 使用 Write 工具写入 plan.md
+4. 将 tasks 数组写入 `.claude/tasks/{task_id}/tasks.json`
 
 **阶段4：用户确认**（根据 auto_approve 参数决定）
 
@@ -145,7 +146,7 @@ tasks[] 每个任务必含：id、description、agent（带中文注释）、ski
 
 符号：`serena:find_symbol`/`get_symbols_overview`。文件：`serena:find_file`/`list_dir`/`Write`。搜索：`serena:search_for_pattern`。记忆：`.claude/memory/`。沟通：`SendMessage(@main)`。
 
-**Write**：写入格式化的计划文档到 `.claude/plans/`。
+**Write**：写入格式化的计划文档（plan.md）和任务清单（tasks.json）到 `.claude/tasks/{task_id}/`。
 **AskUserQuestion**：请求用户批准计划（auto_approve=false 时使用）。使用前必须先 `ToolSearch(query="select:AskUserQuestion")` 加载 schema。
 
 </tools>

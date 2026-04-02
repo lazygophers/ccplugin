@@ -13,21 +13,21 @@ input=$(cat)
 reason=$(echo "$input" | jq -r '.reason // ""')
 
 # === 第一优先级：状态文件检查 ===
-# 查找所有活跃的 loop-phase 文件
+# 查找所有活跃的 metadata.json 文件
 tasks_dir="${PWD}/.claude/tasks"
 if [ -d "$tasks_dir" ]; then
   has_active=false
   found_any=false
-  while IFS= read -r phase_file; do
+  while IFS= read -r meta_file; do
     found_any=true
-    phase_content=$(cat "$phase_file" 2>/dev/null | tr -d '[:space:]' || echo "")
+    phase_content=$(jq -r '.phase // ""' "$meta_file" 2>/dev/null || echo "")
     if [ "$phase_content" = "completed" ]; then
       continue  # 已完成的 loop，不阻止
     elif [ -n "$phase_content" ]; then
       has_active=true  # 发现活跃的 loop
       break
     fi
-  done < <(find "$tasks_dir" -name "loop-phase" -type f 2>/dev/null)
+  done < <(find "$tasks_dir" -name "metadata.json" -type f 2>/dev/null)
 
   if [ "$has_active" = true ]; then
     # 用户取消仍然允许停止
@@ -38,7 +38,7 @@ if [ -d "$tasks_dir" ]; then
     exit 2
   fi
 
-  # 找到了 loop-phase 文件且全部为 completed → 允许停止
+  # 找到了 metadata.json 文件且全部为 completed → 允许停止
   if [ "$found_any" = true ]; then
     exit 0
   fi
@@ -57,5 +57,5 @@ fi
 
 # 无状态文件且无完成标志 → task:loop hook 场景，默认阻止停止
 # 此 hook 仅注册在 task:loop skill 上，触发即代表 Loop 场景
-echo '{"decision":"block","reason":"[MindFlow·Stop校验] 未检测到 loop-phase 状态文件或完成标志","systemMessage":"[Hook·Stop校验] Loop 尚未完成 Finalization，禁止停止。根据当前阶段继续执行：\n- Planner 已返回 confirmed → 立即进入 Execution（读取计划文件，调度任务）\n- Execution 已完成 → 立即调用 Skill(task:verifier)\n- Verifier 已返回 passed → 立即调用 Skill(task:finalizer)\n- Finalizer 已完成 → echo completed > .claude/tasks/{task_id}/loop-phase 后可结束"}' >&2
+echo '{"decision":"block","reason":"[MindFlow·Stop校验] 未检测到 metadata.json 状态文件或完成标志","systemMessage":"[Hook·Stop校验] Loop 尚未完成 Finalization，禁止停止。根据当前阶段继续执行：\n- Planner 已返回 confirmed → 立即进入 Execution（读取计划文件，调度任务）\n- Execution 已完成 → 立即调用 Skill(task:verifier)\n- Verifier 已返回 passed → 立即调用 Skill(task:finalizer)\n- Finalizer 已完成 → 更新 metadata.json phase 为 completed 后可结束"}' >&2
 exit 2

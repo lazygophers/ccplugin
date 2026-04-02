@@ -32,7 +32,7 @@
 
 ## 审批日志
 
-存储：`.claude/plans/{task_id}/approval-log.json`。每条含：timestamp/operation/risk_classification/approval(requested_at/user_decision/decided_at/response_time)/execution。统计：total/auto/reviewed/approved/rejected/mandatory/avg_response_time。
+存储：`.claude/tasks/{task_id}/approval-log.json`。每条含：timestamp/operation/risk_classification/approval(requested_at/user_decision/decided_at/response_time)/execution。统计：total/auto/reviewed/approved/rejected/mandatory/avg_response_time。
 
 ## 合规
 

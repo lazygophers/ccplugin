@@ -28,15 +28,15 @@ Loop 完成或紧急停止时执行资源清理。防御性清理：每个操作
 
 | 类型 | 路径模式 | 清理条件 |
 |------|---------|---------|
-| 计划文件 | `.claude/plans/{task_id}.md` | 始终删除（包括 draft 状态文件） |
+| 计划文件 | `.claude/tasks/{task_id}/plan.md` | 始终删除（包括 draft 状态文件） |
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 始终删除 |
-| 审批日志 | `.claude/plans/{task_id}/approval-log.json` | 始终删除 |
-| 指标数据 | `.claude/plans/{task_id}/metrics.json` | 始终删除 |
+| 审批日志 | `.claude/tasks/{task_id}/approval-log.json` | 始终删除 |
+| 指标数据 | `.claude/tasks/{task_id}/metrics.json` | 始终删除 |
 | 上下文快照 | `.claude/context/{task_id}/v*.json` | 始终删除 |
 
 **清理顺序**：检查点 → 上下文快照 → 审批日志 → 指标数据 → 计划文件（含所有状态） → 空目录
 
-**清理规则**：任务状态文件(`.claude/tasks/`)立即清理 | 情节记忆永久保留 | 用户文件不清理
+**清理规则**：任务状态文件(`.claude/tasks/{task_id}/`)立即清理 | 情节记忆永久保留 | 用户文件不清理
 
 结果处理：检查 `status` ∈ [completed, partially_completed] → 输出 report + cleanup_summary → 处理 errors 列表
 

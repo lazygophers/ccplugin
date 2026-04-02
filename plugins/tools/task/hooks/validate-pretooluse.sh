@@ -86,13 +86,13 @@ validate_bash() {
 validate_plan_mode() {
   local tasks_dir="${PWD}/.claude/tasks"
   if [ -d "$tasks_dir" ]; then
-    while IFS= read -r phase_file; do
-      phase_content=$(cat "$phase_file" 2>/dev/null | tr -d '[:space:]' || echo "")
+    while IFS= read -r meta_file; do
+      phase_content=$(jq -r '.phase // ""' "$meta_file" 2>/dev/null || echo "")
       if [ -n "$phase_content" ] && [ "$phase_content" != "completed" ]; then
         echo "{\"hookSpecificOutput\":{\"permissionDecision\":\"deny\"},\"systemMessage\":\"[Hook·PreToolUse] ${tool_name} 被拒绝：检测到活跃的 Loop 流程，禁止使用内置 Plan 模式。必须使用 Skill(skill=\\\"task:planner\\\") 进行计划设计。\"}" >&2
         exit 2
       fi
-    done < <(find "$tasks_dir" -name "loop-phase" -type f 2>/dev/null)
+    done < <(find "$tasks_dir" -name "metadata.json" -type f 2>/dev/null)
   fi
   exit 0
 }

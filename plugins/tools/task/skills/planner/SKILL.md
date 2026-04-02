@@ -120,15 +120,23 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 **强制要求**：tasks 非空时，必须将计划格式化为 Markdown 并写入文件，然后再返回 JSON。
 
-1. **生成文件路径**：`.claude/plans/{task_id}.md`
-   - 使用 task_id 作为文件名（由 loop Initialization 阶段生成）
+1. **生成文件路径**：`.claude/tasks/{task_id}/plan.md`
+   - 计划文件与元数据统一存放在任务目录下
    - 若文件已存在则覆盖写入，不存在则直接新建
-2. **创建目录**：确保 `.claude/plans/` 存在
+2. **创建目录**：确保 `.claude/tasks/{task_id}/` 存在（Initialization 阶段已创建）
 3. **生成 Markdown**：按计划模板（YAML frontmatter + Mermaid stateDiagram + 任务表格 + 验收标准），参考 [template.md](template.md)
-4. **写入文件**：使用 Write 工具写入
-5. **更新输出 JSON**：在返回的 JSON 中设置 `plan_md_path` 字段为文件绝对路径
+4. **写入文件**：使用 Write 工具写入 plan.md
+5. **写入任务清单**：将 tasks 数组写入 `.claude/tasks/{task_id}/tasks.json`
+   ```json
+   {
+     "tasks": [
+       { "id": "T1", "description": "...", "agent": "...", "skills": [...], "files": [...], "acceptance_criteria": [...], "dependencies": [...], "status": "pending" }
+     ]
+   }
+   ```
+6. **更新输出 JSON**：在返回的 JSON 中设置 `plan_md_path` 字段为 plan.md 的绝对路径
 
-**验证点**：plan_md_path 对应的文件存在且内容完整。
+**验证点**：plan_md_path 对应的文件存在且内容完整，tasks.json 已写入且包含与 plan.md 一致的任务列表。
 
 ### 步骤6：用户确认（根据 auto_approve 参数决定）
 

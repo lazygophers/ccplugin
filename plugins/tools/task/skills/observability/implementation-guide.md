@@ -22,7 +22,7 @@
 | budget_warning_threshold | 0.80 | 预警阈值 |
 | budget_exceed_behavior | ask_user | 超支行为(ask_user/continue/abort) |
 | persist_metrics | true | 持久化指标 |
-| metrics_path | .claude/plans/{task_id}/metrics.json | 存储路径 |
+| metrics_path | .claude/tasks/{task_id}/metrics.json | 存储路径 |
 
 ## MetricsCollector API
 

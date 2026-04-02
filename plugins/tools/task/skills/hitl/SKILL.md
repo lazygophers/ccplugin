@@ -42,5 +42,5 @@ user-invocable: false
 
 内置默认值：enabled | trust_mode(review→auto) | timeout(review:5min, mandatory:10min) | overrides。用户可在 loop 调用时通过参数覆盖。
 
-审批日志：`.claude/plans/{task_id}/approval-log.json`（操作详情+风险分级+用户决策+执行结果）
+审批日志：`.claude/tasks/{task_id}/approval-log.json`（操作详情+风险分级+用户决策+执行结果）
 

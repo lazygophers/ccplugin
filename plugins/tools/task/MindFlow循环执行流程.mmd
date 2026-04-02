@@ -33,7 +33,7 @@ flowchart TB
         Init_Jump[恢复跳转<br/>从 checkpoint 进入对应阶段]
         Init_4[正常初始化<br/>iter=0, stalled=0]
         Init_5[生成任务ID: task_id]
-        Init_6["创建状态文件<br/>.claude/tasks/{task_id}/status.json"]
+        Init_6["创建 metadata.json + tasks.json<br/>.claude/tasks/{task_id}/"]
         Init_7[残留清理+30天过期清理]
         Init_8[加载记忆<br/>episodic + semantic]
         Init_9[资源检查<br/>ListSkills + ListAgents]

@@ -35,4 +35,4 @@ failure_count | stall_count | retry_count | user_intervention_count | timeout_co
 迭代摘要：`[迭代N指标] 成本$X 效率N任务Xmin 质量X%`
 最终报告：总迭代/任务/耗时/成本/tokens/缓存/成功率 + 每迭代详情
 
-存储：内存events[]+iteration_metrics[]，完成后持久化`.claude/plans/{task_id}/metrics.json`
+存储：内存events[]+iteration_metrics[]，完成后持久化`.claude/tasks/{task_id}/metrics.json`

@@ -11,9 +11,9 @@
 
 0. **【最高优先级】创建 Loop 状态文件**：任何其他操作之前，必须先执行此步骤（Stop hook 依赖此文件阻止提前终止）
    ```bash
-   mkdir -p .claude/tasks/pending && echo "initializing" > .claude/tasks/pending/loop-phase
+   mkdir -p .claude/tasks/pending && echo '{"phase":"initializing"}' > .claude/tasks/pending/metadata.json
    ```
-   - 此文件是 Stop hook 的唯一依赖项，缺失会导致 Loop 无法阻止提前停止
+   - `metadata.json` 是 Stop hook 的唯一依赖项，缺失会导致 Loop 无法阻止提前停止
    - task_id 确定后（步骤3）立即重命名：`mv .claude/tasks/pending .claude/tasks/{task_id}`
    - **禁止**跳过此步骤或延后执行
 
@@ -26,41 +26,44 @@
    - **不可变**：一个 loop 完成前不得修改 task_id
    - 设置 `context.task_id = task_id`
    - 后续所有输出必须以 `[MindFlow·${task_id}]` 开头
-4. **创建 Loop 状态文件**：在 `.claude/tasks/{task_id}/` 目录创建 `loop-phase` 文件
-   ```bash
-   mkdir -p .claude/tasks/{task_id} && echo "active" > .claude/tasks/{task_id}/loop-phase
-   ```
-   - Stop hook 依赖此文件判断是否允许停止，仅当内容为 `completed` 时放行
-   - 每次阶段转换时更新（planning/execution/verification/adjustment/finalization/completed）
-5. **创建任务状态文件**：在 `.claude/tasks/{task_id}/` 目录创建 `status.json` 状态文件
+4. **创建任务元数据文件**：在 `.claude/tasks/{task_id}/` 目录创建 `metadata.json`（合并原 loop-phase + status.json）
    ```json
    {
      "task_id": "${task_id}",
      "description": "${user_task}",
      "status": "initialized",
+     "phase": "initialization",
      "created_at": "ISO8601",
      "updated_at": "ISO8601",
      "iteration": 0,
-     "phase": "initialization",
-     "tasks": [],
      "plan_path": null,
      "quality_score": null,
      "error": null
    }
    ```
    - `status` 枚举：`initialized` | `planning` | `executing` | `verifying` | `adjusting` | `completed` | `failed`
+   - `phase` 枚举：`initializing` | `initialization` | `planning` | `execution` | `verification` | `adjustment` | `cleanup` | `completed`
+   - Stop hook 依赖 `phase` 字段判断是否允许停止，仅当 `phase` 为 `completed` 时放行
    - 每次阶段转换时更新 `status`、`phase`、`updated_at`
-5. **残留计划文件清理**：扫描 `.claude/plans/*.md`，对 **非当前任务** 的计划文件：
+5. **创建任务清单文件**：在 `.claude/tasks/{task_id}/` 目录创建空的 `tasks.json`
+   ```json
+   {
+     "tasks": []
+   }
+   ```
+   - Planning 阶段由 planner 写入子任务列表
+   - Execution 阶段实时更新每个子任务的状态
+5. **残留计划文件清理**：扫描 `.claude/tasks/*/plan.md`，对 **非当前任务** 的计划文件：
    - 检查文件 frontmatter 中的 `task_id` 和 `status`
    - `status` 为 `completed` / `cancelled` → 删除（应由 finalizer 清理但遗漏）
    - `status` 为其他（`pending`/`in_progress`）→ 说明前次 loop 未正常完成 finalization，记录警告后删除
    - 输出清理日志：`[MindFlow·${task_id}] 已清理 N 个残留计划文件（前次 loop 未正常完成 finalization）`
    - **禁止**删除当前任务的计划文件
-6. **残留状态修复**：扫描 `.claude/tasks/*/status.json`，对 **非当前 task_id** 的文件：
+6. **残留状态修复**：扫描 `.claude/tasks/*/metadata.json`，对 **非当前 task_id** 的文件：
    - `status` 为 `completed` / `failed` → 正常终态，直接删除（已由 Cleanup 完成归档）
    - `status` 为其他非终态（`initialized`/`planning`/`executing`/`verifying`/`adjusting`）→ **自动修正为 `failed`**，设 `error: "abnormal_termination: 前次 loop 未正常完成 finalization"`，更新 `updated_at`
    - **禁止**因发现其他任务的非终态状态文件而阻断当前任务的初始化流程
-7. **残留状态清理**：扫描 `.claude/tasks/*/status.json`，删除所有非当前 task_id 的终态（`completed`/`failed`）文件及其关联的计划文件和检查点
+7. **残留状态清理**：扫描 `.claude/tasks/*/metadata.json`，删除所有非当前 task_id 的终态（`completed`/`failed`）文件及其关联的计划文件和检查点
 8. **记忆加载**：生成session_id(MD5) → load_task_memories(user_task, task_type, session_id) → 显示episodic(前3个)+semantic记忆
 9. **资源检查**：ListSkills() + ListAgents()
 

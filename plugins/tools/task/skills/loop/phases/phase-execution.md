@@ -22,7 +22,7 @@
      - `task.description` + `task.files` + `task.acceptance_criteria`
    - **验收标准传递与自验**：prompt 中必须包含该任务的完整 `acceptance_criteria` 列表，并在 prompt 末尾附加指令："完成后，逐条对照验收标准自验，输出每条标准的通过/未通过状态及证据"
    - **禁止直接使用**：Edit/Write/Bash 等工具（违规将导致流程验证失败）
-   - **示例**：`Agent(agent="coder（开发）@task", prompt="project_path: /Users/dev/myapp\ntask_id: 实现认证\niteration: 1\nplan_md_path: /Users/dev/myapp/.claude/plans/plan.md\nworking_directory: /Users/dev/myapp\nuser_task: 实现用户认证模块\n\n任务：实现用户登录功能\n关联文件：/src/auth.ts\n验收标准：测试覆盖率≥90%")`
+   - **示例**：`Agent(agent="coder（开发）@task", prompt="project_path: /Users/dev/myapp\ntask_id: 实现认证\niteration: 1\nplan_md_path: /Users/dev/myapp/.claude/tasks/实现认证/plan.md\nworking_directory: /Users/dev/myapp\nuser_task: 实现用户认证模块\n\n任务：实现用户登录功能\n关联文件：/src/auth.ts\n验收标准：测试覆盖率≥90%")`
 7. **执行完整性检查**：每个任务的 Agent 执行完成后，立即验证交付物完整性：
    - **文件检查**：task.files 中列出的所有文件是否已创建/修改
    - **验收预检**：task.acceptance_criteria 中的 required 标准是否有明确证据
@@ -30,22 +30,22 @@
    - **自动继续**：incomplete 状态的任务自动重新调用 Agent，附带上次结果和缺失内容清单
    - **最大重试**：单个任务最多重试2次，仍不完整则标记为 ❌ 并记录原因
 8. **状态更新**：更新plan文件任务状态(📋→⏸️→🔄→✅/❌)
-9. **任务状态文件更新**：更新 `.claude/tasks/{task_id}/status.json`
+9. **元数据更新**：更新 `.claude/tasks/{task_id}/metadata.json`
    - `status` → `"executing"`
    - `phase` → `"execution"`
    - `updated_at` → 当前时间
-   - `tasks[]` → 同步每个子任务的最新状态：
-     ```json
-     { "id": "T1", "description": "...", "status": "completed|failed|incomplete", "completed_at": "ISO8601", "failure_reason": "错误描述（failed/incomplete时必填）", "error_type": "execution_error|timeout|dependency_missing|validation_failed（failed时必填）" }
-     ```
+10. **任务清单更新**：更新 `.claude/tasks/{task_id}/tasks.json` 中每个子任务的最新状态：
+   ```json
+   { "id": "T1", "description": "...", "status": "completed|failed|incomplete", "completed_at": "ISO8601", "failure_reason": "错误描述（failed/incomplete时必填）", "error_type": "execution_error|timeout|dependency_missing|validation_failed（failed时必填）" }
+   ```
 10. **检查点保存**：`save_checkpoint(phase="execution")`
 
 ## 状态权威来源（Source of Truth）
 
 | 文件 | 角色 | 生命周期 |
 |------|------|---------|
-| `.claude/plans/{name}.md` | **执行期间权威状态** | 执行中实时更新，Finalizer 清理时删除 |
-| `.claude/tasks/{task_id}/status.json` | **持久化归档** | 执行期间同步更新，Cleanup 阶段清理 |
+| `.claude/tasks/{task_id}/plan.md` | **执行期间权威状态** | 执行中实时更新，Finalizer 清理时删除 |
+| `.claude/tasks/{task_id}/metadata.json` | **持久化归档** | 执行期间同步更新，Cleanup 阶段清理 |
 
 **规则**：执行期间所有状态读写以计划文件为准。任务状态文件在每个任务完成/失败后同步更新。如果两者不一致，以计划文件为准并修正任务状态文件。
 

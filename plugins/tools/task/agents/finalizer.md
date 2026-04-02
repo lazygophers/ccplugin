@@ -68,18 +68,20 @@ hooks:
 
 1. **资源盘点**：
    - 任务：`TaskList()` → 分类 running / pending / completed / failed
-   - 文件：扫描 `.claude/plans/`、`.claude/checkpoints/`、`.claude/context/`
+   - 文件：扫描 `.claude/tasks/{task_id}/`、`.claude/checkpoints/`、`.claude/context/`
 2. **任务终止**：`TaskStop` 终止 running 任务，取消 pending 任务，失败记录但继续
 3. **文件清理**（5类中间产物，按顺序）：
    - 检查点：`.claude/checkpoints/{task_id}.json`
    - 上下文快照：`.claude/context/{task_id}/v*.json`
-   - 审批日志：`.claude/plans/{task_id}/approval-log.json`
-   - 指标数据：`.claude/plans/{task_id}/metrics.json`
-   - 计划文件：`.claude/plans/{task_id}.md`（包括所有状态）
-   - 空目录：清理上述路径中的空子目录
+   - 审批日志：`.claude/tasks/{task_id}/approval-log.json`
+   - 指标数据：`.claude/tasks/{task_id}/metrics.json`
+   - 计划文件：`.claude/tasks/{task_id}/plan.md`（包括所有状态）
+   - 任务清单：`.claude/tasks/{task_id}/tasks.json`
+   - 元数据：`.claude/tasks/{task_id}/metadata.json`
+   - 空目录：清理 `.claude/tasks/{task_id}/` 等空子目录
 4. **报告生成**：清理统计（任务数/文件数/错误数），≤100字
 
-**清理规则**：任务状态文件(`.claude/tasks/`)立即清理 | 情节记忆永久保留 | 用户文件不清理
+**清理规则**：`.claude/tasks/{task_id}/` 整个目录立即清理 | 情节记忆永久保留 | 用户文件不清理
 
 </workflow>
 
