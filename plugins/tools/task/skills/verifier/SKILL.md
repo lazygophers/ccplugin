@@ -11,7 +11,6 @@ hooks:
           timeout: 10
 ---
 
-<!-- STATIC_CONTENT: Cacheable (6500+ tokens) -->
 
 # Skills(task:verifier) - 结果验证规范
 
@@ -60,4 +59,3 @@ Verifier 技能负责验证任务执行结果是否满足验收标准。采用**
 
 </navigation>
 
-<!-- /STATIC_CONTENT -->

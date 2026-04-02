@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:memory-bridge) - 记忆桥接
 
@@ -87,4 +86,3 @@ Memory 插件不可用时的处理策略：
 
 文档：[API详情](./api-details.md) | [数据模型](./memory-schema.md) | [检索策略](./retrieval-strategy.md)
 
-<!-- /STATIC_CONTENT -->

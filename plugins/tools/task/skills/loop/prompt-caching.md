@@ -14,7 +14,6 @@ Claude API Prompt Caching 将静态提示词缓存，实现 **90% 成本节省**
 
 ## 缓存友好设计
 
-loop/SKILL.md 和 planner/SKILL.md 已标记 `<!-- STATIC_CONTENT -->` / `<!-- /STATIC_CONTENT -->` + `<!-- DYNAMIC_CONTENT -->` 区域。
 
 ## 最佳实践
 

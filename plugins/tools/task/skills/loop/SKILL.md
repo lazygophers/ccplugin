@@ -19,7 +19,6 @@ hooks:
           timeout: 10
 ---
 
-<!-- STATIC_CONTENT: Cacheable (4800+ tokens) -->
 
 # MindFlow - 迭代式任务编排引擎
 
@@ -137,9 +136,7 @@ hooks:
 
 </quick_reference>
 
-<!-- /STATIC_CONTENT -->
 
-<!-- DYNAMIC_CONTENT -->
 
 用户任务：`$ARGUMENTS`
 
@@ -266,7 +263,6 @@ hooks:
 
 开始执行 PDCA 循环。
 
-<!-- /DYNAMIC_CONTENT -->
 
 <violation_handling>
 

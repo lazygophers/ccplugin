@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: Initialization 流程文档，可缓存 -->
 
 # Initialization
 
@@ -83,4 +82,3 @@
 
 成功 → Planning(计划设计) | 检查点恢复 → 对应阶段
 
-<!-- /STATIC_CONTENT -->

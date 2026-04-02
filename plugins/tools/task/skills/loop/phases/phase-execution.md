@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: Execution 流程文档，可缓存 -->
 
 # Execution
 
@@ -83,4 +82,3 @@ loop 在执行阶段拦截工具调用进行风险评估：
 
 **禁止**：执行完成后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
 
-<!-- /STATIC_CONTENT -->

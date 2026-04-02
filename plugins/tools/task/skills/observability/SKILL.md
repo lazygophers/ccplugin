@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:observability) - 可观测性规范
 
@@ -36,4 +35,3 @@ user-invocable: false
 
 内置默认值：`observability: {enabled: true, budget_limit_usd: null, budget_warning_threshold: 0.80, persist_metrics: true}`。用户可在 loop 调用时通过参数覆盖。
 
-<!-- /STATIC_CONTENT -->

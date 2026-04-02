@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: Verification 流程文档，可缓存 -->
 
 # Verification
 
@@ -59,4 +58,3 @@ suggestions 自动继续，不询问用户。
 
 详见：[verifier/SKILL.md](../verifier/SKILL.md) | [flows/verify.md](../flows/verify.md)
 
-<!-- /STATIC_CONTENT -->

@@ -11,7 +11,6 @@ hooks:
           timeout: 10
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:finalizer) - 资源清理规范
 
@@ -60,4 +59,3 @@ JSON: `{status, report(≤200字), cleanup_summary{tasks_terminated,tasks_cancel
 
 </reference>
 
-<!-- /STATIC_CONTENT -->

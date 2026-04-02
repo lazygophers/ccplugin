@@ -1,6 +1,5 @@
 # Loop详细执行流程 - 导航索引
 
-<!-- STATIC_CONTENT: 导航文档，可缓存 -->
 
 MindFlow Loop基于PDCA循环，8个阶段完成任务规划、执行、验证和调整。**所有输出必须以 `[MindFlow·${task_id}]` 开头（task_id在 Initialization 阶段生成）。**
 
@@ -48,4 +47,3 @@ flowchart TD
 - [flows/plan.md](flows/plan.md) / [flows/verify.md](flows/verify.md)
 - [prompt-caching.md](prompt-caching.md) | [deep-research-triggers.md](deep-research-triggers.md)
 
-<!-- /STATIC_CONTENT -->

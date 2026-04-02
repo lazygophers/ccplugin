@@ -1,6 +1,5 @@
 # Pattern Extraction - 失败模式自动提取
 
-<!-- STATIC_CONTENT: 模式提取算法文档，可缓存 -->
 
 ## 概述
 
@@ -50,4 +49,3 @@ pattern_extraction:
   memory: { retention_days: 90, max_patterns: 1000 }
 ```
 
-<!-- /STATIC_CONTENT -->

@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable (2500+ tokens) -->
 
 # Skills(task:prompt-optimizer) - 提示词优化规范
 
@@ -37,9 +36,7 @@ user-invocable: false
 
 质量评分：清晰度(0-10) + 完整性(0-10) + 可执行性(0-10)。综合≥8分返回 no_optimization_needed。
 
-<!-- /STATIC_CONTENT -->
 
-<!-- DYNAMIC_CONTENT -->
 
 ## 调用
 
@@ -51,4 +48,3 @@ user-invocable: false
 
 JSON：status(optimized/no_optimization_needed) + quality_score{clarity,completeness,actionability,overall} + original_prompt + optimized_prompt + improvements[] + questions_asked + web_searches + report
 
-<!-- /DYNAMIC_CONTENT -->

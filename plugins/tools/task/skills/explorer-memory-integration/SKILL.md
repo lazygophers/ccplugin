@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-memory-integration) - Explorer Memory 集成规范
 
@@ -129,4 +128,3 @@ user-invocable: false
 
 </references>
 
-<!-- /STATIC_CONTENT -->

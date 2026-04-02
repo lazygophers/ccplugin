@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-backend) - 后端项目探索规范
 
@@ -52,4 +51,3 @@ JSON报告，必含：`framework`(name/language/version)、`api_routes[]`(method
 **必须**：先识别框架再分析、优先路由表+数据模型、区分全局/路由级中间件、识别同步/异步通信、输出结构化JSON。
 **禁止**：跳过框架识别、忽略路由分组前缀、单文件下结论、忽略migration历史。
 
-<!-- /STATIC_CONTENT -->

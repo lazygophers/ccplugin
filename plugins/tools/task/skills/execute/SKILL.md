@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:execute) - 任务执行规范
 
@@ -105,4 +104,3 @@ T3: 创建商品模型 ········ 待执行(依赖 T2)
 
 </rules>
 
-<!-- /STATIC_CONTENT -->

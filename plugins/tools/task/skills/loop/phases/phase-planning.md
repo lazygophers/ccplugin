@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: Planning 流程文档，可缓存 -->
 
 # Planning: Planning & Confirmation
 
@@ -65,4 +64,3 @@ planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 
 **禁止**：处理完 planner 返回结果后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
 
-<!-- /STATIC_CONTENT -->

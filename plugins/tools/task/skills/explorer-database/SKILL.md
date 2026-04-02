@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-database) - 数据库探索
 
@@ -50,4 +49,3 @@ ORM：`glob("**/schema.prisma")` | `grep("gorm.Model")` | `grep("__tablename__")
 
 ORM优先于原始SQL | 迁移按时间序分析 | NoSQL从代码推断结构
 
-<!-- /STATIC_CONTENT -->

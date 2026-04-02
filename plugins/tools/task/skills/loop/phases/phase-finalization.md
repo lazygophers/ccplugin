@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: Finalization 流程文档，可缓存 -->
 
 # Finalization
 
@@ -90,4 +89,3 @@
 
 **在此之前的任何阶段都禁止结束回复。**
 
-<!-- /STATIC_CONTENT -->

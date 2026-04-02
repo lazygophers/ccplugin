@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: DeepResearch 流程文档，可缓存 -->
 
 # DeepResearch: Deep Research
 
@@ -36,4 +35,3 @@
 
 - 研究完成/跳过 → Planning（计划设计）
 
-<!-- /STATIC_CONTENT -->

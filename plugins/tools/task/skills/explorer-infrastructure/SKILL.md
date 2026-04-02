@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-infrastructure) - 基础设施探索
 
@@ -46,4 +45,3 @@ IaC：`glob("**/*.tf")` | `glob("**/Pulumi.yaml")`
 
 安全第一：不暴露.env实际值 | 多文件交叉验证引用关系 | 重点分析环境差异
 
-<!-- /STATIC_CONTENT -->

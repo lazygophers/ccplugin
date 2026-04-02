@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-test) - 测试探索
 
@@ -46,4 +45,3 @@ JSON包含：`test_framework{name,version,config,mock}` + `test_files{total,unit
 
 先识别框架 | 有覆盖率报告直接用 | 按文件位置/导入/名称分类测试类型
 
-<!-- /STATIC_CONTENT -->

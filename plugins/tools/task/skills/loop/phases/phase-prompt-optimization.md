@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: PromptOptimization 流程文档，可缓存 -->
 
 # PromptOptimization: Prompt Optimization
 
@@ -51,4 +50,3 @@
 - **选项A/B** → DeepResearch(深度研究)或Planning(计划设计)
 - **选项C** → 循环回到步骤4（生成优化提示词），基于用户反馈重新优化
 
-<!-- /STATIC_CONTENT -->

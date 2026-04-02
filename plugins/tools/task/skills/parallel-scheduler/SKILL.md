@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(parallel-scheduler) - 智能并行调度
 
@@ -95,4 +94,3 @@ user-invocable: false
 
 **禁止**：超过用户上限 | 并行冲突任务 | 忽略复杂度 | 硬编码并行度 | Fan-out无限递归分裂
 
-<!-- /STATIC_CONTENT -->

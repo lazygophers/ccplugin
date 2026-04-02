@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:checkpoint) - 检查点管理
 
@@ -55,4 +54,3 @@ user-invocable: false
 
 [集成与示例](./integration-examples.md) | [状态序列化](./state-serializer.md)
 
-<!-- /STATIC_CONTENT -->

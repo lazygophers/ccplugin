@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-frontend) - 前端项目探索规范
 
@@ -75,4 +74,3 @@ JSON包含：`framework{name,version,variant}` + `component_tree[{name,path,type
 
 **Monorepo**：先识别前端包再分析内部。**设计系统**：先理解约定再分析业务组件。
 
-<!-- /STATIC_CONTENT -->

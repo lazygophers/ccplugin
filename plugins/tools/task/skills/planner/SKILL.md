@@ -11,7 +11,6 @@ hooks:
           timeout: 10
 ---
 
-<!-- STATIC_CONTENT: Cacheable (6000+ tokens) -->
 
 # Skills(task:planner) - 计划设计规范
 
@@ -256,4 +255,3 @@ Skills来源：语言插件(`golang:*/python:*`) | 通用(`documentation/code-re
 
 </agent_skills_rules>
 
-<!-- /STATIC_CONTENT -->

@@ -6,7 +6,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Hooks - 生命周期钩子系统
 
@@ -172,4 +171,3 @@ hooks:
 
 未触发：检查hook名在官方列表/frontmatter配置正确/脚本可执行/路径使用`${CLAUDE_PLUGIN_ROOT}`。失败：检查语法/环境变量/stderr/超时/权限。
 
-<!-- /STATIC_CONTENT -->

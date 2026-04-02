@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable (3000+ tokens) -->
 
 # Skills(task:explorer-general) - 通用项目探索规范
 
@@ -74,4 +73,3 @@ Memory：`serena:list_memories`/`read_memory`/`write_memory`/`edit_memory`。
 **禁止**：跳过 memory 验证、跳过文档阅读、深入每个文件、猜测技术栈、输出非结构化文本、创建超过 10KB 的 memory。
 不确定时在uncertainty字段标注。Monorepo优先整体结构不深入子项目。
 
-<!-- /STATIC_CONTENT -->

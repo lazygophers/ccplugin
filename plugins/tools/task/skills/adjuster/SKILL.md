@@ -11,7 +11,6 @@ hooks:
           timeout: 10
 ---
 
-<!-- STATIC_CONTENT: Cacheable (7100+ tokens) -->
 
 # Skills(task:adjuster) - 失败调整规范
 
@@ -61,4 +60,3 @@ hooks:
 
 - [升级策略与自愈机制](adjuster-strategies.md) | [输出格式](adjuster-output.md) | [集成指南](adjuster-integration.md)
 
-<!-- /STATIC_CONTENT -->

@@ -1,4 +1,3 @@
-<!-- STATIC_CONTENT: Adjustment 流程文档，可缓存 -->
 
 # Adjustment
 
@@ -45,4 +44,3 @@
 - 连续3次重规划，相似度>80% → 停滞
 - 达到阈值 → 保存失败情节 → 请求用户决定
 
-<!-- /STATIC_CONTENT -->

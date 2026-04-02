@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-api) - API 探索规范
 
@@ -100,4 +99,3 @@ GraphQL 项目需要分析 schema 和 resolver 两个维度。schema 定义了 A
 
 </guidelines>
 
-<!-- /STATIC_CONTENT -->

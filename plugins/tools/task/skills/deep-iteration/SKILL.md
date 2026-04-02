@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:deep-iteration) - 深度迭代规范
 
@@ -65,4 +64,3 @@ user-invocable: false
 
 详细实现 → [implementation.md](implementation.md)
 
-<!-- /STATIC_CONTENT -->

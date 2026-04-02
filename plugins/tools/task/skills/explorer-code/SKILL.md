@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable (2500+ tokens) -->
 
 # Skills(task:explorer-code) - 代码结构探索规范
 
@@ -63,4 +62,3 @@ JSON必含：`project_type` | `modules[](name/path/purpose/symbols_count/key_fil
 **必须**：探索前加载并验证 memory、先扫描再索引再分析、批量获取符号、聚焦核心模块、模式基于证据、输出结构化JSON、依赖含原因、探索后更新 memory。
 **禁止**：跳过 memory 验证、跳过目录扫描、忽略可见性、单文件下结论、忽略配置文件、不了解语言时强判模式、分析所有文件、创建超过 10KB 的 memory。
 
-<!-- /STATIC_CONTENT -->

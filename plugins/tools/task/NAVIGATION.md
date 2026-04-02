@@ -1,6 +1,5 @@
 # Task插件导航索引
 
-<!-- STATIC_CONTENT: 导航索引，可缓存 -->
 
 ## 快速开始
 
@@ -236,4 +235,3 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 
 **导航提示**：使用Ctrl+F或Cmd+F搜索关键字，快速定位相关文档。
 
-<!-- /STATIC_CONTENT -->

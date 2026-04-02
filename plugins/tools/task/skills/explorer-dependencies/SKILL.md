@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:explorer-dependencies) - 依赖探索
 
@@ -44,4 +43,3 @@ JSON含：`package_manager{name,lock_file,config}` + `dependencies{direct,dev,tr
 
 先识别包管理器 | 优先用lock文件 | 按严重级别排序审计结果 | 注意Monorepo场景
 
-<!-- /STATIC_CONTENT -->

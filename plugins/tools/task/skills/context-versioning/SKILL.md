@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable -->
 
 # Skills(task:context-versioning) - 上下文版本化
 
@@ -38,4 +37,3 @@ user-invocable: false
 
 </notes>
 
-<!-- /STATIC_CONTENT -->

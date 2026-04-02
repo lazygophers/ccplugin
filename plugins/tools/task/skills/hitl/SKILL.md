@@ -5,7 +5,6 @@ context: fork
 user-invocable: false
 ---
 
-<!-- STATIC_CONTENT: Cacheable (5200+ tokens) -->
 
 # Skills(task:hitl) - HITL 审批规范
 
@@ -45,4 +44,3 @@ user-invocable: false
 
 审批日志：`.claude/plans/{task_id}/approval-log.json`（操作详情+风险分级+用户决策+执行结果）
 
-<!-- /STATIC_CONTENT -->
