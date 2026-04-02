@@ -32,7 +32,6 @@
 | Skill | 用途 | 触发条件 | 文档路径 |
 |-------|------|---------|---------|
 | hitl | HITL审批 | 高风险操作（删除、修改核心文件） | [skills/hitl/SKILL.md](skills/hitl/SKILL.md) |
-| observability | 可观测性 | 每次迭代结束 | [skills/observability/SKILL.md](skills/observability/SKILL.md) |
 | checkpoint | 检查点管理 | 关键节点（planning、execution） | [skills/checkpoint/SKILL.md](skills/checkpoint/SKILL.md) |
 | memory-bridge | 记忆桥接 | 任务完成、失败分析 | [skills/memory-bridge/SKILL.md](skills/memory-bridge/SKILL.md) |
 | deep-iteration | 深度迭代 | 质量不达标（<60分） | [skills/deep-iteration/SKILL.md](skills/deep-iteration/SKILL.md) |
@@ -56,10 +55,7 @@
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 如何查看Token消耗？ | observability → cost-report | [成本报告](skills/observability/cost-report.md) |
-| 如何优化成本？ | observability → optimization-suggestions | [优化建议](skills/observability/implementation-guide.md) |
 | 如何启用Prompt Caching？ | loop → prompt-caching | [缓存优化](skills/loop/prompt-caching.md) |
-| 如何控制预算？ | observability → budget-controller | [预算控制](skills/observability/cost-report.md) |
 
 ### 任务中断与恢复
 
@@ -112,7 +108,6 @@
 - [深度迭代指南](skills/deep-iteration/implementation.md) - 质量递进机制（60→75→85→90分）
 - [Memory Bridge详解](skills/memory-bridge/memory-schema.md) - 三层记忆架构
 - [HITL审批策略](skills/hitl/approval-policies.md) - 风险分级审批
-- [Observability实施指南](skills/observability/implementation-guide.md) - 指标收集和报告
 
 ### 最佳实践
 
@@ -190,8 +185,6 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 1. **缓存优化**：标记静态内容（40-60%节省）
 2. **模型选择**：简单任务用Haiku（70%节省）
 3. **Prompt精简**：减少冗余描述（15-25%节省）
-
-相关文档：[成本报告](skills/observability/cost-report.md)
 
 ### Q7: 失败后如何自动修复？
 

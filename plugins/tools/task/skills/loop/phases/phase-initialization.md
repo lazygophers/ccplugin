@@ -9,14 +9,6 @@
 
 **所有输出必须以 [MindFlow·${task_id}] 开头。**
 
-0. **【最高优先级】创建 Loop 状态文件**：任何其他操作之前，必须先执行此步骤（Stop hook 依赖此文件阻止提前终止）
-   ```bash
-   mkdir -p .claude/tasks/pending && echo '{"phase":"initializing"}' > .claude/tasks/pending/metadata.json
-   ```
-   - `metadata.json` 是 Stop hook 的唯一依赖项，缺失会导致 Loop 无法阻止提前停止
-   - task_id 确定后（步骤3）立即重命名：`mv .claude/tasks/pending .claude/tasks/{task_id}`
-   - **禁止**跳过此步骤或延后执行
-
 1. **检查点恢复**：load_checkpoint(user_task)，存在则恢复 iteration/context/plan_md_path/stalled_count，跳转到保存的阶段(planning/confirmation/execution/verification/adjustment)
 2. **正常初始化**：iteration=0, stalled_count=0, guidance_count=0, max_stalled_attempts=3, context={replan_trigger: None, task_id: null}
 3. **生成任务ID**：从用户任务描述中提取最简短的中文描述作为 `task_id`（如"修复日志"、"添加认证"、"优化查询"）。规则：
@@ -26,7 +18,10 @@
    - **不可变**：一个 loop 完成前不得修改 task_id
    - 设置 `context.task_id = task_id`
    - 后续所有输出必须以 `[MindFlow·${task_id}]` 开头
-4. **创建任务元数据文件**：在 `.claude/tasks/{task_id}/` 目录创建 `metadata.json`（合并原 loop-phase + status.json）
+4. **【最高优先级】创建任务目录和元数据文件**：task_id 生成后立即创建 `.claude/tasks/{task_id}/metadata.json`（Stop hook 依赖此文件阻止提前终止，合并原 loop-phase + status.json）
+   ```bash
+   mkdir -p .claude/tasks/{task_id}
+   ```
    ```json
    {
      "task_id": "${task_id}",

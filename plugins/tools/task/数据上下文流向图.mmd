@@ -61,7 +61,6 @@ graph TB
         MetadataFile[".claude/tasks/{task_id}/metadata.json<br/>Initialization 创建 → Cleanup 删除"]
         TasksFile[".claude/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
         ApprovalLog[".claude/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
-        MetricsFile[".claude/tasks/{task_id}/metrics.json<br/>Observability 创建 → Cleanup 删除"]
         ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
     end
 
@@ -108,7 +107,7 @@ graph TB
     %% Cleanup 流程
     PlanFile -->|"删除"| CleanPlan
     CheckpointFile -->|"删除"| CleanCheckpoint
-    ApprovalLog & MetricsFile & ContextSnap -->|"删除"| CleanArtifacts
+    ApprovalLog & ContextSnap -->|"删除"| CleanArtifacts
     CleanArtifacts --> SaveMem
     SaveMem -->|"写入"| EpisodicMem
     SaveMem --> Retro
@@ -131,5 +130,5 @@ graph TB
     class UserTask,WorkDir,ProjectPath input
     class F1,F2,F3,F4,F5,F6 field
     class L1,L2,L3,MECE,WritePlanFile,ReadPlan,SkillCall,UpdateTask,ReadPlanV,Stage1,Stage2,Stage3,ScoreOut,CleanPlan,CleanCheckpoint,CleanArtifacts,SaveMem,Retro,GenId,SetIter,ResetCtx,ScanResidual phase
-    class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,MetricsFile,ContextSnap artifact
+    class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,ContextSnap artifact
     class EpisodicMem,ProjectMem memory

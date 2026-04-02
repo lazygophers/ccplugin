@@ -74,7 +74,6 @@ hooks:
    - 检查点：`.claude/checkpoints/{task_id}.json`
    - 上下文快照：`.claude/context/{task_id}/v*.json`
    - 审批日志：`.claude/tasks/{task_id}/approval-log.json`
-   - 指标数据：`.claude/tasks/{task_id}/metrics.json`
    - 计划文件：`.claude/tasks/{task_id}/plan.md`（包括所有状态）
    - 任务清单：`.claude/tasks/{task_id}/tasks.json`
    - 元数据：`.claude/tasks/{task_id}/metadata.json`

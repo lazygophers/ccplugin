@@ -39,7 +39,6 @@ graph TB
             Checkpoint["checkpoint<br/>检查点管理"]
             MemBridge["memory-bridge<br/>记忆桥接"]
             CtxVersion["context-versioning<br/>上下文版本化"]
-            Observe["observability<br/>可观测性"]
             ParaSched["parallel-scheduler<br/>并行调度"]
         end
 
@@ -76,7 +75,6 @@ graph TB
     Loop -->|"保存/恢复"| Checkpoint
     Loop -->|"记忆读写"| MemBridge
     Loop -->|"快照管理"| CtxVersion
-    Loop -->|"指标收集"| Observe
     Execute -->|"并行控制"| ParaSched
 
     %% 治理
@@ -100,6 +98,6 @@ graph TB
     class Planner,Verifier,Adjuster,Finalizer lifecycle
     class PromptOpt,DeepIter optional
     class ExGeneral,ExCode,ExFrontend,ExBackend,ExAPI,ExDB,ExDeps,ExInfra,ExTest,ExMem explorer
-    class Checkpoint,MemBridge,CtxVersion,Observe,ParaSched infra
+    class Checkpoint,MemBridge,CtxVersion,ParaSched infra
     class HITL,Hooks govern
     class DeepRes external

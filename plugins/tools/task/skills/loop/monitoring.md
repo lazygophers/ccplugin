@@ -59,16 +59,6 @@ circuit_breaker:
 - 熔断时保存当前进度到检查点，支持下次恢复
 - 用户确认继续后，max_iterations 临时 +2
 
-## 可观测性集成
-
-集成 `task:observability` 技能提供成本/效率/质量/稳定性指标：
-- 初始化：`MetricsCollector()` + 预算上限配置
-- 迭代监控：`record_iteration_start/end` + `record_task_start/end`
-- 预算预警：使用>80%时告警
-- 最终报告：`generate_cost_report()` 含总成本/耗时/缓存节省/优化建议
-
-详细文档：[observability/SKILL.md](../observability/SKILL.md)
-
 ## 日志
 
 级别：DEBUG/INFO/WARNING/ERROR/CRITICAL

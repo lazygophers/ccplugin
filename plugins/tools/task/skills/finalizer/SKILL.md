@@ -1,5 +1,5 @@
 ---
-description: "Finalizer 资源清理 - Loop 完成或紧急停止时调用：按创建逆序清理计划/检查点/快照等5类产物，生成最终报告。防御性清理，单个失败不阻断。由 Loop 内部调度，不直接面向用户"
+description: "Finalizer 资源清理 - Loop 完成或紧急停止时调用：按创建逆序清理计划/检查点/快照等4类产物，生成最终报告。防御性清理，单个失败不阻断。由 Loop 内部调度，不直接面向用户"
 model: haiku
 context: fork
 user-invocable: false
@@ -22,19 +22,18 @@ Loop 完成或紧急停止时执行资源清理。防御性清理：每个操作
 
 <execution_flow>
 
-调用：`Skill(skill="task:finalizer", args="执行资源清理：\n状态：{loop_state}\n已完成：{completed_tasks}\n未完成：{pending_tasks}\n计划文件：{plan_md_path}\ntask_id：{task_id}\n要求：1.盘点资源 2.停止运行中任务 3.清理全部5类中间产物 4.生成清理报告\n遇错误继续清理。")`
+调用：`Skill(skill="task:finalizer", args="执行资源清理：\n状态：{loop_state}\n已完成：{completed_tasks}\n未完成：{pending_tasks}\n计划文件：{plan_md_path}\ntask_id：{task_id}\n要求：1.盘点资源 2.停止运行中任务 3.清理全部4类中间产物 4.生成清理报告\n遇错误继续清理。")`
 
-**清理目标（5类中间产物）**：
+**清理目标（4类中间产物）**：
 
 | 类型 | 路径模式 | 清理条件 |
 |------|---------|---------|
 | 计划文件 | `.claude/tasks/{task_id}/plan.md` | 始终删除（包括 draft 状态文件） |
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 始终删除 |
 | 审批日志 | `.claude/tasks/{task_id}/approval-log.json` | 始终删除 |
-| 指标数据 | `.claude/tasks/{task_id}/metrics.json` | 始终删除 |
 | 上下文快照 | `.claude/context/{task_id}/v*.json` | 始终删除 |
 
-**清理顺序**：检查点 → 上下文快照 → 审批日志 → 指标数据 → 计划文件（含所有状态） → 空目录
+**清理顺序**：检查点 → 上下文快照 → 审批日志 → 计划文件（含所有状态） → 空目录
 
 **清理规则**：任务状态文件(`.claude/tasks/{task_id}/`)立即清理 | 情节记忆永久保留 | 用户文件不清理
 

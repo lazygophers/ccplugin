@@ -186,7 +186,7 @@ hooks:
 
 ### Initialization: 初始化
 
-**【第一步】创建临时状态文件**：`mkdir -p .claude/tasks/pending && echo '{"phase":"initializing"}' > .claude/tasks/pending/metadata.json`（Stop hook 依赖 metadata.json 的 phase 字段阻止提前终止，必须最先执行）。然后重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成 task_id：用最简短的中文描述任务核心（2-6个汉字，如"修复日志"、"添加认证"），禁止附加日期/序号，loop 完成前不可变。后续所有输出以 `[MindFlow·${task_id}]` 开头。重命名状态目录：`mv .claude/tasks/pending .claude/tasks/${task_id}`。创建完整 `metadata.json`（含 task_id/description/status/phase/iteration 等字段）和空 `tasks.json`（`{"tasks":[]}`）。仅 phase 为 `completed` 时 Stop hook 放行。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
+重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成 task_id：用最简短的中文描述任务核心（2-6个汉字，如"修复日志"、"添加认证"），禁止附加日期/序号，loop 完成前不可变。后续所有输出以 `[MindFlow·${task_id}]` 开头。**task_id 生成后立即创建任务目录**：`mkdir -p .claude/tasks/${task_id}`，写入 `metadata.json`（含 task_id/description/status/phase/iteration 等字段，Stop hook 依赖 phase 字段阻止提前终止）和空 `tasks.json`（`{"tasks":[]}`）。仅 phase 为 `completed` 时 Stop hook 放行。输出 `[MindFlow·${task_id}·初始化/0·进行中]`。
 
 详见 [phase-initialization.md](phases/phase-initialization.md)
 
