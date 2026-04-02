@@ -82,9 +82,26 @@ validate_bash() {
   exit 0
 }
 
+# EnterPlanMode/ExitPlanMode 校验：Loop 活跃时禁止使用内置 Plan
+validate_plan_mode() {
+  local tasks_dir="${PWD}/.claude/tasks"
+  if [ -d "$tasks_dir" ]; then
+    while IFS= read -r phase_file; do
+      phase_content=$(cat "$phase_file" 2>/dev/null | tr -d '[:space:]' || echo "")
+      if [ -n "$phase_content" ] && [ "$phase_content" != "completed" ]; then
+        echo "{\"hookSpecificOutput\":{\"permissionDecision\":\"deny\"},\"systemMessage\":\"[Hook·PreToolUse] ${tool_name} 被拒绝：检测到活跃的 Loop 流程，禁止使用内置 Plan 模式。必须使用 Skill(skill=\\\"task:planner\\\") 进行计划设计。\"}" >&2
+        exit 2
+      fi
+    done < <(find "$tasks_dir" -name "loop-phase" -type f 2>/dev/null)
+  fi
+  exit 0
+}
+
 # 路由校验
 case "$tool_name" in
-  Write) validate_write ;;
-  Bash)  validate_bash ;;
-  *)     exit 0 ;; # 其他工具跳过
+  Write)            validate_write ;;
+  Bash)             validate_bash ;;
+  EnterPlanMode)    validate_plan_mode ;;
+  ExitPlanMode)     validate_plan_mode ;;
+  *)                exit 0 ;; # 其他工具跳过
 esac

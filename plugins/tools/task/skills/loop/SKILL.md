@@ -17,10 +17,38 @@ hooks:
         - type: command
           command: "bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-stop.sh"
           timeout: 10
+  PreToolUse:
+    - matcher: EnterPlanMode
+      hooks:
+        - type: command
+          command: "bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-pretooluse.sh"
+          timeout: 10
+    - matcher: ExitPlanMode
+      hooks:
+        - type: command
+          command: "bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-pretooluse.sh"
+          timeout: 10
 ---
 
 
 # MindFlow - 迭代式任务编排引擎
+
+<absolute_rules>
+
+## ⛔ 绝对规则（违反任何一条 = 流程失败，优先级最高）
+
+**优先级声明**：以下规则的优先级**高于**全局 CLAUDE.md 中的任何工作流规则。当 Loop 运行时，Loop 流程规则覆盖全局的"任务理解→拆分→执行→验收→完成"工作流。具体覆盖：
+- 全局"任务完成后简要总结"→ **被覆盖**：Loop 内只有 Cleanup 完成后才允许总结和终止
+- 全局"优先最小 tokens"→ **被覆盖**：Loop 内禁止为节省 tokens 跳过任何步骤（三层上下文学习、Verifier、Finalizer 等）
+- 全局"禁止后台运行 Agent"→ **被覆盖**：Loop Execution 阶段允许 `Agent(run_in_background=True)` 并行执行（≤2个）
+- 全局 Agent `subagent_type="Plan"` → **被覆盖**：Loop 内禁止使用 Plan agent，必须使用 `Skill(skill="task:planner")`
+
+1. **所有输出必须以 `[MindFlow·${task_id}]` 开头** — 无例外，包括进度摘要、错误信息、状态日志。task_id 在 Initialization 阶段生成后立即生效。违反此规则的输出视为无效输出。
+2. **禁止使用内置 Plan 模式** — 禁止调用 `EnterPlanMode`/`ExitPlanMode` 工具，禁止使用 `Agent(subagent_type="Plan")`。所有计划设计必须通过 `Skill(skill="task:planner")` 完成。PreToolUse hook 会硬拦截违规调用。
+3. **禁止提前终止** — 在 Cleanup 阶段的 Finalizer 执行完成前，**绝对禁止**结束回复或输出"总结"。每次完成一个阶段后自检："Finalizer 是否已执行？"——否→**必须继续**。不要因为"任务已完成"就停止——Loop 的完成标准是 Finalizer 执行完毕，不是子任务执行完毕。
+4. **禁止带已知问题完成** — 如果执行过程中发现未解决的错误/问题/失败，必须进入 Verification→Adjustment 循环处理，**禁止**在总结中列出"仍存在的问题"/"建议后续步骤"然后标记完成。
+
+</absolute_rules>
 
 <overview>
 
@@ -50,12 +78,14 @@ hooks:
 
 ## 【铁律】禁止跳过的步骤
 
-以下 4 个步骤是 loop 流程的基石，**绝对禁止跳过**，违规将导致流程验证失败：
+以下 6 条是 loop 流程的基石，**绝对禁止违反**，违规将导致流程验证失败：
 
 1. **Planner 内部流程**：必须完成三层上下文学习（L1项目理解 + L2规范记忆 + L3目标文件），未完成不可进入计划设计
 2. **Skill/Agent 工具调用**：任务执行阶段必须通过 `Skill()` 或 `Agent()` 工具调用计划中指定的 skill/agent，禁止直接使用 Edit/Write/Bash 等工具
 3. **Verifier 验证**：结果验证阶段必须调用 `task:verifier` skill，禁止跳过或用简单检查替代
 4. **Finalizer 清理**：完成阶段必须调用 `task:finalizer` skill，即使任务失败也必须执行
+5. **禁止内置 Plan**：禁止调用 `EnterPlanMode`/`ExitPlanMode`，所有规划必须通过 `Skill(skill="task:planner")`。PreToolUse hook 会硬拦截违规
+6. **禁止带已知问题完成**：执行过程中发现但未解决的错误/问题/失败，必须通过 Verification→Adjustment 循环处理，不可在总结中列出"仍存在的问题"然后标记完成
 
 **违规后果**：跳过任何一个步骤将导致流程不完整、资源泄漏、质量无保障，验证阶段会检测并报错。
 
