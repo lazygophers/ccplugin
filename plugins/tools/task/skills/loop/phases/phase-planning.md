@@ -33,7 +33,7 @@ planner 返回 JSON，loop 根据 `status` 字段处理：
 
 | status | 含义 | loop 处理 |
 |--------|------|----------|
-| `confirmed` | 用户批准或自动批准 | 提取 plan_md_path → save_checkpoint → goto Execution |
+| `confirmed` | 用户批准或自动批准 | 设 plan_md_path = `.claude/tasks/{task_id}/plan.md` → save_checkpoint → goto Execution |
 | `rejected` | 用户要求修改 | 提取 user_feedback → replan_trigger="user" → goto PromptOptimization |
 | `no_tasks` | 无需执行任何任务 | goto Cleanup |
 | `cancelled` | 用户取消任务 | goto Cleanup（清理） |
@@ -44,7 +44,7 @@ planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 
 | 用户响应 | 判定 | planner 返回 |
 |---------|------|-------------|
-| 选择"批准执行"选项 | **批准** | `{status: "confirmed", plan_md_path: "..."}` |
+| 选择"批准执行"选项 | **批准** | `{status: "confirmed", report: "...", task_count: N}` |
 | 选择"Other"并输入文本 | **修改意见** | `{status: "rejected", user_feedback: "..."}` |
 | 选择其他非批准选项 | **拒绝/修改** | `{status: "rejected", user_feedback: "..."}` |
 | 选择"取消任务" | **取消** | `{status: "cancelled"}` |

@@ -99,18 +99,18 @@ AskUserQuestion({
 
 <output_format>
 
-**最终返回 JSON**：
+**最终返回 JSON**（仅状态，计划详情已写入 plan.md 和 tasks.json）：
 
-| status | plan_md_path | 说明 |
-|--------|-------------|------|
-| `confirmed` | 文件路径 | 用户批准或自动批准，loop 进入执行阶段 |
-| `rejected` | 文件路径 | 用户要求修改，loop 回到 PromptOptimization 重新评估提示词质量 |
-| `no_tasks` | 无 | 功能已存在，无需执行 |
-| `cancelled` | 无 | 用户取消任务 |
+| status | 说明 |
+|--------|------|
+| `confirmed` | 用户批准或自动批准，loop 进入执行阶段 |
+| `rejected` | 用户要求修改，loop 回到 PromptOptimization 重新评估提示词质量 |
+| `no_tasks` | 功能已存在，无需执行 |
+| `cancelled` | 用户取消任务 |
 
-`confirmed`/`rejected` 时还包含：`report`、`tasks[]`、`dependencies`、`parallel_groups`、`iteration_goal`、`task_count`。
+`confirmed`/`rejected` 时还包含：`report`（≤200字）、`task_count`。`rejected` 时必含 `user_feedback`。
 
-tasks[] 每个任务必含：id、description、agent（带中文注释）、skills（≥1，带中文注释）、acceptance_criteria（可量化）、dependencies。
+**禁止**将计划内容（tasks/dependencies/parallel_groups 等）打印到对话中——这些已写入文件。
 
 </output_format>
 

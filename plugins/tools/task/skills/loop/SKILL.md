@@ -223,9 +223,9 @@ hooks:
 
 `iteration += 1`，更新 metadata.json：`phase → "planning"`, `updated_at → 当前时间`
 
-**整个阶段只需一次 Skill() 调用**。planner 内部完成：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回完整 JSON。
+**整个阶段只需一次 Skill() 调用**。planner 内部完成：设计计划 → 写入文件 → 用户确认（或自动批准）→ 返回状态 JSON。
 
-**⚠️ 注意**：planner 可能在用户确认后中止而未输出 JSON。如果 planner 返回不包含 `status` 字段的完整 JSON，则视为 planner 异常中止。此时**不要停止**，而应：读取计划文件（plan_md_path）确认已写入，设 `status = "confirmed"`，继续进入 Execution。
+**⚠️ 注意**：planner 可能在用户确认后中止而未返回 JSON。如果 planner 返回不包含 `status` 字段的 JSON，则视为 planner 异常中止。此时**不要停止**，而应：读取计划文件（`.claude/tasks/{task_id}/plan.md`）确认已写入，设 `status = "confirmed"`，继续进入 Execution。
 
 调用 `Skill(skill="task:planner", args="...")` ，传递以下字段：
 - 6个上下文字段：project_path、task_id、iteration、plan_md_path、working_directory、user_task
@@ -236,7 +236,7 @@ hooks:
 
 | planner 返回 status | loop 处理 | 强制要求 |
 |---------------------|----------|---------|
-| `confirmed` | 提取 `plan_md_path`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
+| `confirmed` | 设 `plan_md_path = .claude/tasks/{task_id}/plan.md`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
 | `rejected` | 提取 `user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 PromptOptimization（重新评估提示词质量） |
 | `no_tasks` | - | **必须立即**进入 Cleanup（清理） |
 | `cancelled` | - | **必须立即**进入 Cleanup（清理） |
@@ -244,7 +244,7 @@ hooks:
 **禁止**：处理完 planner 返回结果后就结束回复。**必须**立即继续执行下一阶段。
 
 **后置验证点**：
-- ✓ plan_md_path 已设置且文件存在（由 planner 直接写入）
+- ✓ `.claude/tasks/{task_id}/plan.md` 文件存在（由 planner 直接写入）
 - ✓ 计划文件包含有效的 YAML frontmatter 和任务列表
 - ✓ 已获得用户批准或自动批准
 
