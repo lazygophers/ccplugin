@@ -1,34 +1,5 @@
 ---
-description: |-
-  通用项目探索代理 - 快速理解项目全貌，识别技术栈、目录结构和核心模块。
-  适用于首次接触项目、需要宏观理解项目架构的场景。
-
-  <example>
-  Context: 用户首次接触一个项目
-  user: "帮我快速了解这个项目的整体架构"
-  assistant: "I'll use the explorer-general agent to get a high-level overview of the project."
-  <commentary>
-  首次接触项目需要宏观理解，从文档和目录结构入手。
-  </commentary>
-  </example>
-
-  <example>
-  Context: 用户需要了解项目技术栈
-  user: "这个项目用了什么技术栈？"
-  assistant: "I'll use the explorer-general agent to identify the technology stack."
-  <commentary>
-  技术栈识别需要扫描配置文件和依赖声明。
-  </commentary>
-  </example>
-
-  <example>
-  Context: 用户需要了解项目结构
-  user: "列出这个项目的核心模块和目录结构"
-  assistant: "I'll use the explorer-general agent to map the project structure."
-  <commentary>
-  目录结构映射需要自顶向下的扫描策略。
-  </commentary>
-  </example>
+description: 通用项目探索代理 - 快速理解项目全貌，识别技术栈、目录结构和核心模块。适用于首次接触项目、需要宏观理解项目架构的场景。
 model: sonnet
 memory: project
 color: cyan

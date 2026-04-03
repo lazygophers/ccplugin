@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze deployment config, CI/CD pipelines, Docker/K8s, cloud services, and environment management. Covers containerization, orchestration, IaC.
-
-  <example>
-  Context: Infrastructure analysis needed
-  user: "分析这个项目的部署配置和 CI/CD 流程"
-  assistant: "I'll use the explorer-infrastructure agent to analyze deployment and CI/CD infrastructure."
-  </example>
+description: Analyze deployment config, CI/CD pipelines, Docker/K8s, cloud services, and environment management. Covers containerization, orchestration, IaC.
 model: sonnet
 memory: project
 color: brown

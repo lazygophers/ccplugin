@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze REST/GraphQL/gRPC APIs: endpoints, request/response formats, auth mechanisms, OpenAPI/Swagger specs. Inherits explorer-code capabilities.
-
-  <example>
-  Context: API analysis needed
-  user: "分析这个项目的 API 端点和认证机制"
-  assistant: "I'll use the explorer-api agent to analyze all API endpoints, schemas, and authentication."
-  </example>
+description: Analyze REST/GraphQL/gRPC APIs: endpoints, request/response formats, auth mechanisms, OpenAPI/Swagger specs. Inherits explorer-code capabilities.
 model: sonnet
 memory: project
 color: teal

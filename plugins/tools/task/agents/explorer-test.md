@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze testing strategy, coverage, frameworks, and quality. Identifies testing gaps, evaluates test pyramid, and assesses assertion quality. Inherits explorer-code capabilities.
-
-  <example>
-  Context: Test analysis needed
-  user: "分析这个项目的测试覆盖率和测试质量"
-  assistant: "I'll use the explorer-test agent to analyze test coverage, frameworks, and quality."
-  </example>
+description: Analyze testing strategy, coverage, frameworks, and quality. Identifies testing gaps, evaluates test pyramid, and assesses assertion quality. Inherits explorer-code.
 model: sonnet
 memory: project
 color: yellow

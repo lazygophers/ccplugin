@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze code structure through symbol indexing, dependency analysis, and pattern recognition. Base explorer for all code-related exploration tasks.
-
-  <example>
-  Context: Code structure analysis
-  user: "分析这个模块的代码结构和依赖关系"
-  assistant: "I'll use the explorer-code agent to analyze the module structure and dependencies."
-  </example>
+description: Analyze code structure through symbol indexing, dependency analysis, and pattern recognition. Base explorer for all code-related exploration tasks.
 model: sonnet
 memory: project
 color: blue

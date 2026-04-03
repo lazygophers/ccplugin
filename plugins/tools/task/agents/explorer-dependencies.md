@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze dependency tree, security vulnerabilities, version management, and license compliance. Supports npm/pip/go mod/Maven/Cargo.
-
-  <example>
-  Context: Dependency analysis needed
-  user: "分析项目依赖安全性和过时包"
-  assistant: "I'll use the explorer-dependencies agent to audit dependencies for vulnerabilities and outdated packages."
-  </example>
+description: Analyze dependency tree, security vulnerabilities, version management, and license compliance. Supports npm/pip/go mod/Maven/Cargo.
 model: sonnet
 memory: project
 color: pink

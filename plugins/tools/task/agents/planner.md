@@ -1,12 +1,5 @@
 ---
-description: |-
-  Design execution plans for complex tasks using MECE decomposition, dependency modeling, and resource allocation. Standard choice for Loop planning phase.
-
-  <example>
-  Context: Planning phase
-  user: "Design an execution plan for implementing user authentication"
-  assistant: "I'll use the planner agent to analyze the project and create a detailed execution plan."
-  </example>
+description: Design execution plans for complex tasks using MECE decomposition, dependency modeling, and resource allocation. Standard choice for Loop planning phase.
 model: opus
 memory: project
 color: purple

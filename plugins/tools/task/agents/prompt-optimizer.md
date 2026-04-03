@@ -1,41 +1,5 @@
 ---
-description: |-
-  提示词优化代理 - 将模糊任务描述转化为可执行规格说明（Deliverable + Context + Guardrails）。首次迭代必须执行；后续迭代仅在用户提供新输入时触发，基于已有 prompt.md 增量修订（非重写）。输出的 prompt.md 是迭代验收基准。
-
-  <example>
-  Context: Loop 首次迭代，用户提供模糊需求
-  user: "让应用变得更好"
-  assistant: "I'll use the prompt-optimizer agent to decompose and clarify this task."
-  </example>
-
-  Examples:
-
-  <example>
-  Context: 首次迭代，需求不完整
-  user: "Add authentication"
-  assistant: "I'll use the prompt-optimizer agent to define deliverables, boundaries, and acceptance criteria."
-  <commentary>
-  首次迭代必须执行，将模糊需求转化为可执行规格说明。
-  </commentary>
-  </example>
-
-  <example>
-  Context: 后续迭代，用户给出新方向
-  user: "改用 OAuth2 而不是 JWT"
-  assistant: "I'll use the prompt-optimizer agent to revise the existing spec based on user's new input."
-  <commentary>
-  非首次迭代，基于已有 prompt.md 增量修订，不重写。
-  </commentary>
-  </example>
-
-  <example>
-  Context: 后续迭代，无用户新输入
-  user: (Adjustment 自动回退)
-  assistant: "Skipping prompt optimization — no new user input, reusing existing prompt.md."
-  <commentary>
-  无新输入的后续迭代跳过，复用已有 prompt.md。
-  </commentary>
-  </example>
+description: 提示词优化代理 - 将模糊任务描述转化为可执行规格说明（Deliverable + Context + Guardrails）。首次迭代必须执行；用户新输入触发增量修订；无新输入跳过。输出 prompt.md 是迭代验收基准。
 model: sonnet
 memory: project
 color: blue

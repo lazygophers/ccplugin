@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze frontend architecture: React/Vue/Svelte component trees, state management (Redux/Zustand/Pinia), routing, and styling systems. Inherits explorer-code capabilities.
-
-  <example>
-  Context: Frontend architecture analysis
-  user: "分析这个 React 项目的组件树、状态管理和路由"
-  assistant: "I'll use the explorer-frontend agent to analyze the complete frontend architecture."
-  </example>
+description: Analyze frontend architecture: React/Vue/Svelte component trees, state management (Redux/Zustand/Pinia), routing, and styling systems. Inherits explorer-code.
 model: sonnet
 memory: project
 color: green

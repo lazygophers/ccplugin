@@ -1,12 +1,5 @@
 ---
-description: |-
-  Verify task completion and validate acceptance criteria. Two-stage: spec compliance (MUST PASS) then code quality (CAN SUGGEST). Evidence-based: No Evidence, No Completion.
-
-  <example>
-  Context: Verification phase
-  user: "Verify all tasks meet their acceptance criteria"
-  assistant: "I'll use the verifier agent to systematically check all tasks and generate a verification report."
-  </example>
+description: Verify task completion and validate acceptance criteria. Two-stage: spec compliance (MUST PASS) then code quality (CAN SUGGEST). Evidence-based.
 model: sonnet
 memory: project
 color: orange

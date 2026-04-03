@@ -1,41 +1,5 @@
 ---
-description: |-
-  失败调整代理 - 分析失败原因、检测停滞模式、应用基于 Circuit Breaker 和 Retry 模式的渐进式恢复策略。适用于任务执行失败后的诊断和恢复。
-
-  <example>
-  Context: Loop 迭代中任务验证失败
-  user: "验证失败了，需要分析原因并调整策略"
-  assistant: "I'll use the adjuster agent to diagnose the issue and determine whether to retry, debug, or replan."
-  </example>
-
-  Examples:
-
-  <example>
-  Context: Loop command step 6 - failure adjustment
-  user: "Analyze the failure and determine the next strategy"
-  assistant: "I'll use the adjuster agent to analyze failure causes and propose a recovery strategy."
-  <commentary>
-  Failure adjustment requires systematic analysis and graduated recovery strategies.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Task verification failed
-  user: "Verification failed, need to adjust the approach"
-  assistant: "I'll use the adjuster agent to diagnose the issue and determine whether to retry, debug, or replan."
-  <commentary>
-  The adjuster applies Circuit Breaker logic to prevent cascading failures.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Repeated failure detection
-  user: "The same task keeps failing, what should we do?"
-  assistant: "I'll use the adjuster agent to detect the stall pattern and recommend escalation."
-  <commentary>
-  Stall detection prevents infinite retry loops and prompts user intervention when needed.
-  </commentary>
-  </example>
+description: 失败调整代理 - 分析失败原因、检测停滞模式、应用基于 Circuit Breaker 和 Retry 模式的渐进式恢复策略。适用于任务执行失败后的诊断和恢复。
 model: sonnet
 memory: project
 color: red

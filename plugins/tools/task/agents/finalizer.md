@@ -1,41 +1,5 @@
 ---
-description: |-
-  资源清理代理 - 系统性资源清理、任务终止和最终报告生成。适用于 Loop 迭代完成后或紧急停止时的资源回收。
-
-  <example>
-  Context: Loop 迭代完成，需要清理
-  user: "任务完成了，清理所有资源"
-  assistant: "I'll use the finalizer agent to handle systematic cleanup and generate a final report."
-  </example>
-
-  Examples:
-
-  <example>
-  Context: Loop command execution completed
-  user: "The loop has finished, clean up everything"
-  assistant: "I'll use the finalizer agent to handle systematic cleanup and generate a final report."
-  <commentary>
-  Proper cleanup prevents resource leaks and provides closure to the iteration cycle.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Emergency stop required
-  user: "Stop all tasks immediately and clean up resources"
-  assistant: "I'll use the finalizer agent to perform emergency shutdown and cleanup."
-  <commentary>
-  Emergency cleanup ensures all resources are properly released even in failure scenarios.
-  </commentary>
-  </example>
-
-  <example>
-  Context: Iteration cycle completed successfully
-  user: "All tasks completed, finalize the iteration"
-  assistant: "I'll use the finalizer agent to clean up resources and generate a completion report."
-  <commentary>
-  Systematic finalization ensures proper closure and resource management.
-  </commentary>
-  </example>
+description: 资源清理代理 - 系统性资源清理、任务终止和最终报告生成。适用于 Loop 迭代完成后或紧急停止时的资源回收。
 model: haiku
 memory: project
 color: green

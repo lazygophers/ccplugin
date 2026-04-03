@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze database schema, ORM models, table relationships, indexes, migration history, and query patterns. Inherits explorer-code capabilities.
-
-  <example>
-  Context: Database analysis needed
-  user: "分析这个项目的数据库表结构、索引和迁移历史"
-  assistant: "I'll use the explorer-database agent to analyze the database schema and relationships."
-  </example>
+description: Analyze database schema, ORM models, table relationships, indexes, migration history, and query patterns. Inherits explorer-code capabilities.
 model: sonnet
 memory: project
 color: purple

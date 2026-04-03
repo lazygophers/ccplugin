@@ -1,12 +1,5 @@
 ---
-description: |-
-  Analyze backend architecture: API routes→handlers, ORM models, service topology, middleware chains. Supports Go/Python/Node/Java frameworks. Inherits explorer-code capabilities.
-
-  <example>
-  Context: Backend analysis needed
-  user: "分析这个项目的 API 路由、数据模型和中间件"
-  assistant: "I'll use the explorer-backend agent to analyze the backend architecture."
-  </example>
+description: Analyze backend architecture: API routes→handlers, ORM models, service topology, middleware chains. Supports Go/Python/Node/Java frameworks. Inherits explorer-code.
 model: sonnet
 memory: project
 color: orange
