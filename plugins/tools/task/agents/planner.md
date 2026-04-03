@@ -58,17 +58,14 @@ hooks:
 
 收集四类信息：目标（功能/交付/标准）、依赖（库/版本/API）、现状（状态/代码/限制）、边界（范围/约束）。
 
-**PlanDesign：计划设计**
+**PlanDesign：计划设计**（自顶向下分解，详见 Skills(task:planner) PlanDesign 步骤）
 
-1. **执行规范**（Spec-Driven）：功能规范（What）→技术规范（How）→质量规范→合规规范
-2. **任务分解**：按时间/逻辑顺序→单维度拆分→原子化→避免过度拆分
-3. **依赖关系**：DAG表示，禁止循环依赖，最多2任务并行
-4. **资源分配**（Agent/Skills 在执行时动态获取，非规划时加载）：
-   - **Agent**（必填，单个）：`name（中文注释）@source`
-   - **Skills**（必填，至少1个）：`["name（中文注释）@source"]`
-   - **Files**（可选）：`["path/to/file"]`
+1. **ScopeMapping**：扫描变更范围，列出所有需修改/新建的文件（Glob/Grep 定位，不凭猜测）
+2. **TaskExtraction**：逐文件提取原子任务（一文件=一任务，单一动作，可独立验证交付物）
+3. **IndependenceVerification**：验证无文件交叉、无隐式耦合、可独立执行
+4. **DependencyModeling**：构建 DAG，拓扑排序验证无循环，并行组≤2个任务
+5. **ResourceAllocation**：分配 agent（单个，`name（中文注释）@source`）+ skills（≥1个）+ 可量化验收标准
    - tasks为空时可省略agent/skills
-5. **验收标准**（必填，check list 格式）：可量化、可验证、完整
 
 **PlanWrite：格式化并写入计划文件**（tasks 非空时必须执行）
 

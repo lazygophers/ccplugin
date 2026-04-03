@@ -5,9 +5,8 @@
 .DS_Store
 .claude/last_change_stats.json
 
-# Python 构建产物
-build/
-dist/
+# 构建产物
+.version
 *.egg-info/
 __pycache__/
 *.pyc
