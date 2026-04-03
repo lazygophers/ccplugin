@@ -3,6 +3,7 @@ description: "探索前端项目架构：分析组件树层级、状态管理流
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:explorer-frontend
 ---
 
 

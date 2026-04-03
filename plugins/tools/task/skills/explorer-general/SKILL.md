@@ -3,6 +3,7 @@ description: "快速探索项目全貌：识别技术栈、映射目录结构、
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:explorer-general
 ---
 
 

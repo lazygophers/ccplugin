@@ -3,6 +3,7 @@ description: "Finalizer 资源清理 - Loop 完成或紧急停止时调用：按
 model: haiku
 context: fork
 user-invocable: false
+agent: task:finalizer
 hooks:
   SubagentStop:
     - hooks:

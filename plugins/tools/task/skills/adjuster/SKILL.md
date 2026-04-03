@@ -3,6 +3,7 @@ description: "Adjuster 失败调整 - Loop Adjustment 阶段调用：任务失�
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:adjuster
 hooks:
   SubagentStop:
     - hooks:

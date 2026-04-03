@@ -3,6 +3,7 @@ description: "探索后端项目架构：从路由到handler到service到reposit
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:explorer-backend
 ---
 
 

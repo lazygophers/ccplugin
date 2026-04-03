@@ -3,6 +3,7 @@ description: "探索项目API层：分析REST端点/GraphQL schema/gRPC服务定
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:explorer-api
 ---
 
 

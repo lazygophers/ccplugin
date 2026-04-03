@@ -3,6 +3,7 @@ description: "深度探索代码结构：构建符号索引、分析模块依赖
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:explorer-code
 ---
 
 

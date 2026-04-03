@@ -3,6 +3,7 @@ description: "探索项目测试体系：识别测试框架、分析覆盖率、
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:explorer-test
 ---
 
 

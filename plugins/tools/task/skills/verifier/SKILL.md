@@ -3,6 +3,7 @@ description: "Verifier 结果验证 - Loop Verification 阶段调用：三阶段
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:verifier
 hooks:
   SubagentStop:
     - hooks:
