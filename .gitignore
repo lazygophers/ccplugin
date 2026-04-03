@@ -15,6 +15,7 @@ __pycache__/
 *.pyo
 .ruff_cache/
 .pytest_cache/
+.coverage
 
 # 项目特定
 plugins/**/.venv/
@@ -31,7 +32,7 @@ plugins/**/__pycache__/
 *.log
 
 # 系统/IDE 文件
-.DS_Store
+# .DS_Store（已在顶部）
 
 .gitnexus
 .claude/plans
@@ -46,6 +47,7 @@ plugins/**/__pycache__/
 # Serena 工具运行时数据
 .serena/
 !.serena/.gitignore
+!.serena/project.yml
 
 # Desktop 构建产物
 desktop/node_modules/
@@ -60,3 +62,6 @@ plugins/tools/task/scripts/__init__.py
 
 # 运行时数据库
 *.db
+
+# 版本文件（构建产物）
+*.version
