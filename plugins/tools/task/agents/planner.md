@@ -99,18 +99,18 @@ AskUserQuestion({
 
 <output_format>
 
-**最终返回 JSON**（仅状态，计划详情已写入 plan.md 和 tasks.json）：
+**所有结果通过文件传递，禁止输出 JSON 或计划内容到对话。**
 
-| status | 说明 |
-|--------|------|
+完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段：
+
+| result.status | 说明 |
+|---------------|------|
 | `confirmed` | 用户批准或自动批准，loop 进入执行阶段 |
 | `rejected` | 用户要求修改，loop 回到 PromptOptimization 重新评估提示词质量 |
 | `no_tasks` | 功能已存在，无需执行 |
 | `cancelled` | 用户取消任务 |
 
-`confirmed`/`rejected` 时还包含：`report`（≤200字）、`task_count`。`rejected` 时必含 `user_feedback`。
-
-**禁止**将计划内容（tasks/dependencies/parallel_groups 等）打印到对话中——这些已写入文件。
+`confirmed`/`rejected` 时 result 还包含：`report`（≤200字）、`task_count`。`rejected` 时必含 `user_feedback`。
 
 </output_format>
 

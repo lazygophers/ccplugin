@@ -1,5 +1,7 @@
 # Verifier 输出格式
 
+**所有结果通过文件传递**：verifier 完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段，禁止输出 JSON 到对话。
+
 ## 状态决策
 
 | 条件 | 状态 | Loop行为 |
@@ -7,7 +9,7 @@
 | 所有验收标准通过 | passed | → QualityGate（质量评估） |
 | 至少一项未通过 | failed | → Adjustment（失败调整） |
 
-**注意**：verifier 仅判断验收标准是否通过，不做质量分门控。quality_score 始终包含在 passed 输出中，由 Loop 的 QualityGate 阶段决定是否达标。
+**注意**：verifier 仅判断验收标准是否通过，不做质量分门控。quality_score 始终包含在 passed 结果中，由 Loop 的 QualityGate 阶段决定是否达标。
 
 ## passed（验收通过）
 

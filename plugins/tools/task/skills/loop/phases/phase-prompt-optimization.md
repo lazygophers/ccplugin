@@ -70,15 +70,17 @@ created_at: ISO8601
 - [ ] {可独立验证的条件}
 ```
 
-### UserConfirmation：用户确认
+### UserConfirmation：用户确认（由 loop 执行，非 agent）
 
-通过 `AskUserQuestion` 展示优化结果。用户可选择：
+prompt-optimizer 写入 prompt.md 并返回后，**loop 必须立即**通过 `AskUserQuestion` 让用户确认：
 
 | 选项 | 描述 | 后续流程 |
 |------|------|---------|
 | **A: 确认使用** | 接受优化后的规格说明 | 更新 `context.user_task` → 复杂度评估 |
-| **B: 使用原始提示词** | 保持用户原始输入 | 仍写入 prompt.md（原始版本）→ 复杂度评估 |
-| **C: 重新优化** | 提供反馈后重新优化 | 收集反馈 → 回到 TaskDecomposition |
+| **B: 使用原始提示词** | 保持用户原始输入 | 将原始版本写入 prompt.md → 复杂度评估 |
+| **C: 重新优化** | 提供反馈后重新优化 | 收集反馈 → 重新调用 prompt-optimizer |
+
+**禁止**：跳过确认直接进入下一阶段。
 
 ## prompt.md 作为验收基准
 

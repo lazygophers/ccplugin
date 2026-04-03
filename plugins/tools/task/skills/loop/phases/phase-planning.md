@@ -27,14 +27,14 @@ MECE任务分解 | DAG依赖建模 | Agents/Skills分配 | 用户确认
 | Adjuster重规划 | true/false | 设计 → 写文件 → (auto_approve ? 自动返回 : AskUserQuestion) |
 | Verifier建议优化 | true/false | 设计 → 写文件 → (auto_approve ? 自动返回 : AskUserQuestion) |
 
-## Planner 返回值处理
+## Planner 结果处理
 
-planner 返回 JSON，loop 根据 `status` 字段处理：
+planner 将结果写入 metadata.json 的 `result` 字段，loop 读取 `result.status` 处理：
 
-| status | 含义 | loop 处理 |
-|--------|------|----------|
+| result.status | 含义 | loop 处理 |
+|---------------|------|----------|
 | `confirmed` | 用户批准或自动批准 | 设 plan_md_path = `.claude/tasks/{task_id}/plan.md` → save_checkpoint → goto Execution |
-| `rejected` | 用户要求修改 | 提取 user_feedback → replan_trigger="user" → goto PromptOptimization |
+| `rejected` | 用户要求修改 | 读取 result.user_feedback → replan_trigger="user" → goto PromptOptimization |
 | `no_tasks` | 无需执行任何任务 | goto Cleanup |
 | `cancelled` | 用户取消任务 | goto Cleanup（清理） |
 
@@ -44,10 +44,10 @@ planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 
 | 用户响应 | 判定 | planner 返回 |
 |---------|------|-------------|
-| 选择"批准执行"选项 | **批准** | `{status: "confirmed", report: "...", task_count: N}` |
-| 选择"Other"并输入文本 | **修改意见** | `{status: "rejected", user_feedback: "..."}` |
-| 选择其他非批准选项 | **拒绝/修改** | `{status: "rejected", user_feedback: "..."}` |
-| 选择"取消任务" | **取消** | `{status: "cancelled"}` |
+| 选择"批准执行"选项 | **批准** | 写入 `result: {status: "confirmed", report, task_count}` |
+| 选择"Other"并输入文本 | **修改意见** | 写入 `result: {status: "rejected", user_feedback: "..."}` |
+| 选择其他非批准选项 | **拒绝/修改** | 写入 `result: {status: "rejected", user_feedback: "..."}` |
+| 选择"取消任务" | **取消** | 写入 `result: {status: "cancelled"}` |
 
 **关键规则**：只有用户明确选择"批准执行"选项才视为批准。所有其他响应都视为修改意见。
 

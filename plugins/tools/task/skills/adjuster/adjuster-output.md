@@ -1,5 +1,7 @@
 # Adjuster 输出格式
 
+**所有结果通过文件传递**：adjuster 完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段，禁止输出 JSON 到对话。
+
 ## 通用字段
 
 | 字段 | 类型 | 必填 | 适用策略 |

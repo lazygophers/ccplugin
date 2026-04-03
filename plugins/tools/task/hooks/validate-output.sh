@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Task 插件输出校验脚本
-# 用于 SubagentStop / PostToolUse hooks，校验 agent/skill 输出格式
+# 用于 SubagentStop hooks，校验 agent 是否已将结果写入 metadata.json
 #
 # 输入: stdin JSON (hook input)
 # 环境变量: VALIDATE_TYPE (planner|verifier|adjuster|finalizer|auto)
@@ -13,126 +13,95 @@ command -v jq >/dev/null 2>&1 || { echo "错误: jq 命令未安装" >&2; exit 1
 
 input=$(cat)
 
-# 从 hook input 中提取输出内容
-# SubagentStop: reason 字段包含 agent 输出
-# PostToolUse: tool_result 字段包含 skill 输出
-hook_event=$(echo "$input" | jq -r '.hook_event_name // "unknown"')
+# 查找当前任务的 metadata.json
+# 扫描 .claude/tasks/*/metadata.json，找到 phase 非终态的文件
+metadata_file=""
+for f in .claude/tasks/*/metadata.json; do
+  [ -f "$f" ] || continue
+  phase=$(jq -r '.phase // ""' "$f" 2>/dev/null)
+  case "$phase" in
+    completed|failed) continue ;;
+    *) metadata_file="$f"; break ;;
+  esac
+done
 
-if [ "$hook_event" = "SubagentStop" ]; then
-  output=$(echo "$input" | jq -r '.reason // ""')
-elif [ "$hook_event" = "PostToolUse" ]; then
-  output=$(echo "$input" | jq -r '.tool_result // ""')
-else
-  output=$(echo "$input" | jq -r '.reason // .tool_result // ""')
-fi
-
-# 空输出直接通过（某些场景输出可能为空）
-if [ -z "$output" ]; then
+# 无活跃任务则跳过校验
+if [ -z "$metadata_file" ]; then
   exit 0
 fi
 
-# 尝试从输出中提取 JSON 块（输出可能包含非 JSON 前缀文本）
-json_block=""
-if echo "$output" | jq -e '.' >/dev/null 2>&1; then
-  json_block="$output"
-else
-  # 尝试提取 ```json ... ``` 代码块中的 JSON
-  extracted=$(echo "$output" | sed -n '/^```json/,/^```$/p' | sed '1d;$d')
-  if [ -n "$extracted" ] && echo "$extracted" | jq -e '.' >/dev/null 2>&1; then
-    json_block="$extracted"
-  fi
-fi
+# 读取 metadata.json 的 result 字段
+result=$(jq '.result // null' "$metadata_file" 2>/dev/null)
 
-# 无法提取 JSON 则跳过校验（非结构化输出不校验）
-if [ -z "$json_block" ]; then
-  exit 0
+# result 为 null 说明 agent 未写入结果
+if [ "$result" = "null" ] || [ -z "$result" ]; then
+  validate_type="${VALIDATE_TYPE:-auto}"
+  echo "{\"systemMessage\": \"[Hook·校验] ${validate_type} 未将结果写入 metadata.json 的 result 字段。请更新 metadata.json 后再结束。\"}" >&2
+  exit 2
 fi
-
-# 自动检测类型（基于 JSON 字段特征）
-detect_type() {
-  local json="$1"
-  if echo "$json" | jq -e '.tasks' >/dev/null 2>&1 && echo "$json" | jq -e '.plan_md_path // .status' >/dev/null 2>&1; then
-    echo "planner"
-  elif echo "$json" | jq -e '.strategy' >/dev/null 2>&1; then
-    echo "adjuster"
-  elif echo "$json" | jq -e '.cleanup_summary' >/dev/null 2>&1; then
-    echo "finalizer"
-  elif echo "$json" | jq -e '.quality_score' >/dev/null 2>&1 || echo "$json" | jq -e '.stage1' >/dev/null 2>&1; then
-    echo "verifier"
-  else
-    echo "unknown"
-  fi
-}
 
 validate_type="${VALIDATE_TYPE:-auto}"
-if [ "$validate_type" = "auto" ]; then
-  validate_type=$(detect_type "$json_block")
-fi
 
-# 校验函数
+# 校验函数：验证 result 字段中的关键值
 validate_planner() {
-  local json="$1"
   local status
-  status=$(echo "$json" | jq -r '.status // ""')
+  status=$(jq -r '.result.status // ""' "$metadata_file")
   if [ -z "$status" ]; then
-    echo '{"systemMessage": "[Hook·校验] planner 输出缺少 status 字段"}' >&2
+    echo '{"systemMessage": "[Hook·校验] metadata.json result 缺少 status 字段"}' >&2
     exit 2
   fi
   case "$status" in
     confirmed|rejected|no_tasks|cancelled) ;;
     *)
-      echo "{\"systemMessage\": \"[Hook·校验] planner status 值非法: '$status'，合法值: confirmed/rejected/no_tasks/cancelled\"}" >&2
+      echo "{\"systemMessage\": \"[Hook·校验] planner result.status 值非法: '$status'，合法值: confirmed/rejected/no_tasks/cancelled\"}" >&2
       exit 2
       ;;
   esac
 }
 
 validate_verifier() {
-  local json="$1"
   local status
-  status=$(echo "$json" | jq -r '.status // ""')
+  status=$(jq -r '.result.status // ""' "$metadata_file")
   if [ -z "$status" ]; then
-    echo '{"systemMessage": "[Hook·校验] verifier 输出缺少 status 字段"}' >&2
+    echo '{"systemMessage": "[Hook·校验] metadata.json result 缺少 status 字段"}' >&2
     exit 2
   fi
   case "$status" in
     passed|failed) ;;
     *)
-      echo "{\"systemMessage\": \"[Hook·校验] verifier status 值非法: '$status'，合法值: passed/failed\"}" >&2
+      echo "{\"systemMessage\": \"[Hook·校验] verifier result.status 值非法: '$status'，合法值: passed/failed\"}" >&2
       exit 2
       ;;
   esac
 }
 
 validate_adjuster() {
-  local json="$1"
   local strategy
-  strategy=$(echo "$json" | jq -r '.strategy // ""')
+  strategy=$(jq -r '.result.strategy // ""' "$metadata_file")
   if [ -z "$strategy" ]; then
-    echo '{"systemMessage": "[Hook·校验] adjuster 输出缺少 strategy 字段"}' >&2
+    echo '{"systemMessage": "[Hook·校验] metadata.json result 缺少 strategy 字段"}' >&2
     exit 2
   fi
   case "$strategy" in
     retry|debug|replan|ask_user) ;;
     *)
-      echo "{\"systemMessage\": \"[Hook·校验] adjuster strategy 值非法: '$strategy'，合法值: retry/debug/replan/ask_user\"}" >&2
+      echo "{\"systemMessage\": \"[Hook·校验] adjuster result.strategy 值非法: '$strategy'，合法值: retry/debug/replan/ask_user\"}" >&2
       exit 2
       ;;
   esac
 }
 
 validate_finalizer() {
-  local json="$1"
   local status
-  status=$(echo "$json" | jq -r '.status // ""')
+  status=$(jq -r '.result.status // ""' "$metadata_file")
   if [ -z "$status" ]; then
-    echo '{"systemMessage": "[Hook·校验] finalizer 输出缺少 status 字段"}' >&2
+    echo '{"systemMessage": "[Hook·校验] metadata.json result 缺少 status 字段"}' >&2
     exit 2
   fi
   case "$status" in
     completed|partially_completed|failed) ;;
     *)
-      echo "{\"systemMessage\": \"[Hook·校验] finalizer status 值非法: '$status'，合法值: completed/partially_completed/failed\"}" >&2
+      echo "{\"systemMessage\": \"[Hook·校验] finalizer result.status 值非法: '$status'，合法值: completed/partially_completed/failed\"}" >&2
       exit 2
       ;;
   esac
@@ -140,12 +109,11 @@ validate_finalizer() {
 
 # 路由校验
 case "$validate_type" in
-  planner)   validate_planner "$json_block" ;;
-  verifier)  validate_verifier "$json_block" ;;
-  adjuster)  validate_adjuster "$json_block" ;;
-  finalizer) validate_finalizer "$json_block" ;;
-  unknown)   ;; # 未知类型跳过
-  *)         ;; # 其他类型跳过
+  planner)   validate_planner ;;
+  verifier)  validate_verifier ;;
+  adjuster)  validate_adjuster ;;
+  finalizer) validate_finalizer ;;
+  *)         ;; # 未知类型跳过
 esac
 
 exit 0

@@ -31,9 +31,15 @@
      "updated_at": "ISO8601",
      "iteration": 0,
      "quality_score": null,
-     "error": null
+     "error": null,
+     "result": null
    }
    ```
+   - `result`：当前阶段子 agent 的执行结果（对象），每次阶段转换时由子 agent 写入，loop 读取后决定下一步。各阶段 result 格式：
+     - **planning**：`{status: "confirmed|rejected|no_tasks|cancelled", report?, task_count?, user_feedback?}`
+     - **verification**：`{status: "passed|failed", quality_score?, report?, failed_criteria?}`
+     - **adjustment**：`{strategy: "retry|debug|replan|ask_user", report?, modified_tasks?}`
+     - **cleanup**：`{status: "completed|partially_completed|failed", report?, cleanup_summary?}`
    - `phase` 枚举（与 loop 阶段名一致）：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
    - Stop hook 依赖 `phase` 字段判断是否允许停止，仅当 `phase` 为 `completed` 时放行
    - 每次阶段转换时更新 `phase`、`updated_at`

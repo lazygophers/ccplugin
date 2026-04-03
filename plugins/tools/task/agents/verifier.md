@@ -50,11 +50,12 @@ hooks:
 
 <output_format>
 
-返回 JSON，必含：`status`（passed/failed）、`spec_compliance_status`、`quality_score`、`report`、`summary`（total_tasks/completed_tasks/passed_criteria/failed_criteria）。
+**所有结果通过文件传递，禁止输出 JSON 到对话。**
 
-按状态附加：
-- passed: `task_results[]`（含 criteria_results + evidence）、`quality_score`、可选 `suggestions[]`
-- failed: `failed_tasks[]`（含 failure_reason + criteria_results + evidence）
+完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段：
+- `status`（passed/failed）、`quality_score`、`report`、`summary`（total_tasks/completed_tasks/passed_criteria/failed_criteria）
+- passed 时附加：可选 `suggestions[]`
+- failed 时附加：`failed_criteria[]`（未通过的验收标准及证据）
 
 **决策树**：Stage1 任何 required 失败 → failed | Stage1 通过 → passed（含 quality_score + 可选 suggestions）
 
