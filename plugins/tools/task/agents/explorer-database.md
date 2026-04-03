@@ -1,5 +1,5 @@
 ---
-description: Analyze database schema, ORM models, table relationships, indexes, migration history, and query patterns. Inherits explorer-code capabilities.
+description: 数据库探索代理 - 分析数据库 Schema、ORM 模型、表关系、索引、迁移历史和查询模式。继承 explorer-code 能力。
 model: sonnet
 memory: project
 color: purple

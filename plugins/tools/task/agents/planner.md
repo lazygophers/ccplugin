@@ -1,5 +1,5 @@
 ---
-description: Design execution plans for complex tasks using MECE decomposition, dependency modeling, and resource allocation. Standard choice for Loop planning phase.
+description: 计划设计代理 - 使用 MECE 分解、依赖建模和资源分配为复杂任务设计执行计划。Loop Planning 阶段的标准选择。
 model: opus
 memory: project
 color: purple

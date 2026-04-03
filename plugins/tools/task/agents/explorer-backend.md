@@ -1,5 +1,5 @@
 ---
-description: Analyze backend architecture: API routes→handlers, ORM models, service topology, middleware chains. Supports Go/Python/Node/Java frameworks. Inherits explorer-code.
+description: 后端探索代理 - 分析 API 路由→处理器、ORM 模型、服务拓扑、中间件链。支持 Go/Python/Node/Java 框架。继承 explorer-code 能力。
 model: sonnet
 memory: project
 color: orange

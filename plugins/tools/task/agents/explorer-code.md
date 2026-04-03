@@ -1,5 +1,5 @@
 ---
-description: Analyze code structure through symbol indexing, dependency analysis, and pattern recognition. Base explorer for all code-related exploration tasks.
+description: 代码结构探索代理 - 通过符号索引、依赖分析和模式识别分析代码结构。所有代码相关探索任务的基础探索器。
 model: sonnet
 memory: project
 color: blue

@@ -1,5 +1,5 @@
 ---
-description: Verify task completion and validate acceptance criteria. Two-stage: spec compliance (MUST PASS) then code quality (CAN SUGGEST). Evidence-based.
+description: 验证代理 - 验证任务完成度和验收标准。两阶段：规格合规（必须通过）→ 代码质量（建议性）。基于证据：无证据则不通过。
 model: sonnet
 memory: project
 color: orange

@@ -1,5 +1,5 @@
 ---
-description: Analyze frontend architecture: React/Vue/Svelte component trees, state management (Redux/Zustand/Pinia), routing, and styling systems. Inherits explorer-code.
+description: 前端探索代理 - 分析 React/Vue/Svelte 组件树、状态管理（Redux/Zustand/Pinia）、路由和样式系统。继承 explorer-code 能力。
 model: sonnet
 memory: project
 color: green

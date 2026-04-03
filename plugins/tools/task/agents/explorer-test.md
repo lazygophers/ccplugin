@@ -1,5 +1,5 @@
 ---
-description: Analyze testing strategy, coverage, frameworks, and quality. Identifies testing gaps, evaluates test pyramid, and assesses assertion quality. Inherits explorer-code.
+description: 测试探索代理 - 分析测试策略、覆盖率、框架和质量。识别测试缺口、评估测试金字塔和断言质量。继承 explorer-code 能力。
 model: sonnet
 memory: project
 color: yellow

@@ -1,5 +1,5 @@
 ---
-description: Analyze dependency tree, security vulnerabilities, version management, and license compliance. Supports npm/pip/go mod/Maven/Cargo.
+description: 依赖探索代理 - 分析依赖树、安全漏洞、版本管理和许可证合规性。支持 npm/pip/go mod/Maven/Cargo。
 model: sonnet
 memory: project
 color: pink

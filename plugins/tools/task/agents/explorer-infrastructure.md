@@ -1,5 +1,5 @@
 ---
-description: Analyze deployment config, CI/CD pipelines, Docker/K8s, cloud services, and environment management. Covers containerization, orchestration, IaC.
+description: 基础设施探索代理 - 分析部署配置、CI/CD 流水线、Docker/K8s、云服务和环境管理。涵盖容器化、编排、IaC。
 model: sonnet
 memory: project
 color: brown
