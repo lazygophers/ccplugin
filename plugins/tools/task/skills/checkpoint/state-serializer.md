@@ -15,7 +15,7 @@
 | plan_md_path | string? | 计划文档路径 |
 | additional_state.completed_tasks | string[] | 已完成任务ID |
 | additional_state.failed_tasks | object[] | 失败任务(task_id/failure_reason/retry_count) |
-| additional_state.execution_metrics | object | start_time/total_duration_seconds/task_count |
+| additional_state.execution_metrics | object | started_at/total_duration_seconds/task_count |
 | version | string | 格式版本(默认1.0.0) |
 
 ## 操作

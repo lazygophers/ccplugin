@@ -205,7 +205,7 @@ hooks:
 
 ### Initialization: 初始化
 
-重置状态：`iteration=0, context={replan_trigger: None, start_time, task_id: null}`。生成 task_id：用最简短的中文描述任务核心（2-6个汉字，如"修复日志"、"添加认证"），禁止附加日期/序号，loop 完成前不可变。后续所有输出以 `[MindFlow·${task_id}]` 开头。**task_id 生成后立即创建任务目录**：`mkdir -p .claude/tasks/${task_id}`，写入 `metadata.json`（含 task_id/description/phase/iteration/plan_md_path 等字段，Stop hook 依赖 phase 字段阻止提前终止）和空 `tasks.json`（`{"tasks":[]}`）。仅 phase 为 `completed` 时 Stop hook 放行。输出 `[MindFlow·${task_id}·Initialization/0·进行中]`。
+重置状态：`iteration=0, context={replan_trigger: None, started_at, task_id: null}`。生成 task_id：用最简短的中文描述任务核心（2-6个汉字，如"修复日志"、"添加认证"），禁止附加日期/序号，loop 完成前不可变。后续所有输出以 `[MindFlow·${task_id}]` 开头。**task_id 生成后立即创建任务目录**：`mkdir -p .claude/tasks/${task_id}`，写入 `metadata.json`（含 task_id/description/phase/iteration 等字段，Stop hook 依赖 phase 字段阻止提前终止）和空 `tasks.json`（`{"tasks":[]}`）。仅 phase 为 `completed` 时 Stop hook 放行。输出 `[MindFlow·${task_id}·Initialization/0·进行中]`。
 
 详见 [phase-initialization.md](phases/phase-initialization.md)
 

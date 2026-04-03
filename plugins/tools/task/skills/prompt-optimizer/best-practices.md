@@ -11,7 +11,7 @@
 
 | 要素 | 核心问题 | 输出内容 | 缺失后果 |
 |------|---------|---------|---------|
-| **Deliverable** | 做什么？做到什么程度？ | 目标 + 验收标准 | Verification 无判定依据 |
+| **Deliverable** | 做什么？做到什么程度？ | 目标描述 + 验收标准 | Verification 无判定依据 |
 | **Context** | 技术背景、约束、依赖 | 技术上下文 | Planning 选错方案 |
 | **Guardrails** | 什么不做？什么不能碰？ | in-scope / out-of-scope | 范围蔓延 |
 

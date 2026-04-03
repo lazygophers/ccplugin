@@ -6,7 +6,7 @@
 
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
-| 状态变量已重置 | 确认 iteration=0, context 包含 replan_trigger/start_time/task_id | 必须 |
+| 状态变量已重置 | 确认 iteration=0, context 包含 replan_trigger/started_at/task_id | 必须 |
 | 检测到重复任务时已询问用户 | 如果 task_id 重复，检查是否调用了 AskUserQuestion | 必须 |
 | 输出初始化状态日志 | 验证输出包含 `[MindFlow·${task_id}·Initialization/0·进行中]` | 必须 |
 

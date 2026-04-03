@@ -30,7 +30,6 @@
      "created_at": "ISO8601",
      "updated_at": "ISO8601",
      "iteration": 0,
-     "plan_md_path": null,
      "quality_score": null,
      "error": null
    }
@@ -39,7 +38,6 @@
    - Stop hook 依赖 `phase` 字段判断是否允许停止，仅当 `phase` 为 `completed` 时放行
    - 每次阶段转换时更新 `phase`、`updated_at`
    - ⚠️ 已移除 `status` 字段（与 `phase` 语义重叠），统一使用 `phase` 跟踪当前阶段
-   - ⚠️ 已将 `plan_path` 统一为 `plan_md_path`（与 planner 输出和 loop 上下文一致）
 5. **创建任务清单文件**：在 `.claude/tasks/{task_id}/` 目录创建空的 `tasks.json`
    ```json
    {
