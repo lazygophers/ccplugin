@@ -10,14 +10,15 @@
 | 检测到重复任务时已询问用户 | 如果 task_id 重复，检查是否调用了 AskUserQuestion | 必须 |
 | 输出初始化状态日志 | 验证输出包含 `[MindFlow·${task_id}·Initialization/0·进行中]` | 必须 |
 
-## PromptOptimization：提示词优化（可选）
+## PromptOptimization：提示词优化（必选）
 
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
-| 质量评估已执行 | 评估提示词质量，<9分触发优化 | 必须 |
-| 调用 prompt-optimizer | 评分<9时检查是否调用了 `Skill(skill="task:prompt-optimizer")` | 条件必须 |
+| 调用 prompt-optimizer | 检查是否调用了 `Skill(skill="task:prompt-optimizer")` | 必须 |
+| BoundaryAnalysis 已执行 | 验证输出包含 in-scope/out-of-scope 边界 | 必须 |
+| prompt.md 已生成 | 验证 `.claude/tasks/{task_id}/prompt.md` 文件存在 | 必须 |
+| 用户确认已执行 | 验证用户选择 A/B/C | 必须 |
 | 优化过程中允许提问 | Agent 通过 SendMessage(@main) 发送问题，由 main 执行 AskUserQuestion | 可选 |
-| 优化后的提示词已应用 | 验证后续计划设计使用优化后的提示词 | 可选 |
 
 ## DeepResearch：深度研究（可选）
 

@@ -15,6 +15,14 @@ graph TB
         ScanResidual["扫描残留计划"]
     end
 
+    subgraph PhasePromptOpt["PromptOptimization（必选）"]
+        POBoundary["BoundaryAnalysis<br/>任务边界分析"]
+        POQuestion["StructuredQuestioning<br/>5W1H 提问"]
+        POGenerate["PromptGeneration<br/>生成优化提示词"]
+        POPersist["PromptPersistence<br/>写入 prompt.md"]
+        POConfirm["UserConfirmation<br/>用户确认 A/B/C"]
+    end
+
     subgraph ContextFields["6 个必传上下文字段"]
         F1["project_path"]
         F2["task_id"]
@@ -62,6 +70,7 @@ graph TB
         TasksFile[".claude/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
         ApprovalLog[".claude/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
         ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
+        PromptFile[".claude/tasks/{task_id}/prompt.md<br/>PromptOptimization 创建 → Cleanup 删除"]
     end
 
     subgraph Memory["记忆层"]
@@ -78,6 +87,15 @@ graph TB
     GenId --> F2
     SetIter --> F3
     ScanResidual -.->|"清理残留"| PlanFile
+
+    %% PromptOptimization 流程
+    UserTask -->|"原始提示词"| POBoundary
+    POBoundary --> POQuestion
+    POQuestion --> POGenerate
+    POGenerate --> POPersist
+    POPersist -->|"生成"| PromptFile
+    POPersist --> POConfirm
+    POConfirm -->|"A/B:更新"| F6
 
     %% 上下文字段传递
     F1 & F2 & F3 & F4 & F5 & F6 -->|"每次 Skill() 调用<br/>必须全量传递"| SkillCall
@@ -97,6 +115,7 @@ graph TB
     SkillCall -->|"保存"| CheckpointFile
 
     %% Verification 流程
+    PromptFile -->|"对照验证"| ReadPlanV
     PlanFile -->|"读取"| ReadPlanV
     ReadPlanV --> Stage1 --> Stage2 --> Stage3 --> ScoreOut
     ScoreOut -->|"passed"| QualityGate{"QualityGate"}
@@ -105,6 +124,7 @@ graph TB
     QualityGate -->|"不达标"| PhasePromptCheck["PromptCheck"]
 
     %% Cleanup 流程
+    PromptFile -->|"删除"| CleanPlan
     PlanFile -->|"删除"| CleanPlan
     CheckpointFile -->|"删除"| CleanCheckpoint
     ApprovalLog & ContextSnap -->|"删除"| CleanArtifacts
@@ -130,5 +150,6 @@ graph TB
     class UserTask,WorkDir,ProjectPath input
     class F1,F2,F3,F4,F5,F6 field
     class L1,L2,L3,MECE,WritePlanFile,ReadPlan,SkillCall,UpdateTask,ReadPlanV,Stage1,Stage2,Stage3,ScoreOut,CleanPlan,CleanCheckpoint,CleanArtifacts,SaveMem,Retro,GenId,SetIter,ResetCtx,ScanResidual phase
-    class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,ContextSnap artifact
+    class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,ContextSnap,PromptFile artifact
+    class POBoundary,POQuestion,POGenerate,POPersist,POConfirm phase
     class EpisodicMem,ProjectMem memory

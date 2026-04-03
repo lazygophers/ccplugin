@@ -34,7 +34,7 @@ planner 返回 JSON，loop 根据 `status` 字段处理：
 | status | 含义 | loop 处理 |
 |--------|------|----------|
 | `confirmed` | 用户批准或自动批准 | 提取 plan_md_path → save_checkpoint → goto Execution |
-| `rejected` | 用户要求修改 | 提取 user_feedback → replan_trigger="user" → goto PromptCheck |
+| `rejected` | 用户要求修改 | 提取 user_feedback → replan_trigger="user" → goto PromptOptimization |
 | `no_tasks` | 无需执行任何任务 | goto Cleanup |
 | `cancelled` | 用户取消任务 | goto Cleanup（清理） |
 
@@ -58,7 +58,7 @@ planner 调用 AskUserQuestion 后，按以下规则判定用户意图：
 | status | 下一阶段 | 强制要求 |
 |--------|---------|---------|
 | confirmed | Execution(任务执行) | **必须立即**继续执行，不允许停止 |
-| rejected | PromptCheck(重新评估) | **必须立即**回到提示词质量评估 |
+| rejected | PromptOptimization(重新评估) | **必须立即**回到提示词质量评估 |
 | no_tasks | Cleanup(完成) | **必须立即**进入 Finalizer 清理 |
 | cancelled | Cleanup(清理) | **必须立即**进入清理 |
 

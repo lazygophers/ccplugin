@@ -17,8 +17,11 @@ graph TB
             Finalizer["finalizer<br/>资源清理"]
         end
 
-        subgraph OptionalSkills["可选 Skills"]
+        subgraph MandatorySkills["必选 Skills"]
             PromptOpt["prompt-optimizer<br/>提示词优化"]
+        end
+
+        subgraph OptionalSkills["可选 Skills"]
             DeepIter["deep-iteration<br/>深度迭代"]
         end
 
@@ -55,8 +58,9 @@ graph TB
     Loop -->|"调度"| Adjuster
     Loop -->|"调度"| Finalizer
 
+    %% 必选阶段
+    Loop -->|"必选"| PromptOpt
     %% 可选阶段
-    Loop -.->|"可选"| PromptOpt
     Loop -.->|"可选"| DeepIter
 
     %% Execute 使用 Explorer
@@ -96,7 +100,8 @@ graph TB
 
     class Loop,Execute core
     class Planner,Verifier,Adjuster,Finalizer lifecycle
-    class PromptOpt,DeepIter optional
+    class PromptOpt lifecycle
+    class DeepIter optional
     class ExGeneral,ExCode,ExFrontend,ExBackend,ExAPI,ExDB,ExDeps,ExInfra,ExTest,ExMem explorer
     class Checkpoint,MemBridge,CtxVersion,ParaSched infra
     class HITL,Hooks govern

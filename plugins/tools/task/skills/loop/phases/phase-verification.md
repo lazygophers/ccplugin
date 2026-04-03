@@ -39,7 +39,7 @@ Verification passed 后，检查 verifier 返回的 `quality_score` 是否达到
 | 条件 | 下一步 | 强制要求 |
 |------|--------|---------|
 | quality_score ≥ 阈值 | Cleanup（清理） | **必须立即**进入清理 |
-| quality_score < 阈值 | PromptCheck（改进） | **必须立即**回到提示词评估（非失败，需改进） |
+| quality_score < 阈值 | PromptOptimization（改进） | **必须立即**回到提示词评估（非失败，需改进） |
 
 ## 验收维度
 

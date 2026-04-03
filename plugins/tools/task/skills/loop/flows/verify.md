@@ -15,7 +15,7 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
    ```
    Skill(skill="task:verifier", args="执行结果验证：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}")
    ```
-   验证所有任务验收标准 + 回归测试
+   验证所有任务验收标准 + 回归测试 + **对照 `.claude/tasks/{task_id}/prompt.md` 中的任务边界和验收标准**
 2. **深度校验**：Stage 1/2 通过后，执行 Stage 3 深度校验（用户预期验证+业务逻辑验证+交付物完整性验证），确保交付物从用户视角完全对齐
 3. **更新计划状态**：`update_plan_frontmatter(status, completed_count)`
 4. **同步元数据**：更新 `.claude/tasks/{task_id}/metadata.json`
@@ -47,13 +47,13 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
 | passed（验收通过）| → QualityGate（质量评估） |
 | failed（验收失败）| → Adjustment（失败调整） |
 | 质量达标（score ≥ 阈值）| → Cleanup（清理）|
-| 质量不达标（score < 阈值）| → PromptCheck（改进，非失败）|
+| 质量不达标（score < 阈值）| → PromptOptimization（改进，非失败）|
 
 ## 最佳实践
 
-**必须**：全面验证所有验收标准 | 回归测试确认无破坏 | 立即报告具体失败原因 | 5 Why根因分析 | 渐进升级(retry→debug→replan→ask_user) | 深度校验不可跳过，即使Stage 1/2全部通过
+**必须**：全面验证所有验收标准 | 回归测试确认无破坏 | 立即报告具体失败原因 | 5 Why根因分析 | 渐进升级(retry→debug→replan→ask_user) | 深度校验不可跳过，即使Stage 1/2全部通过 | **读取 prompt.md 对照任务边界（in-scope/out-of-scope）和验收标准**
 
-**禁止**：接受模糊标准("代码质量好") | 跳过回归测试 | 失败时盲目重试所有任务 | 修改verifier返回的JSON结构 | 仅凭技术指标通过就跳过用户预期验证
+**禁止**：接受模糊标准("代码质量好") | 跳过回归测试 | 失败时盲目重试所有任务 | 修改verifier返回的JSON结构 | 仅凭技术指标通过就跳过用户预期验证 | **忽略 prompt.md 中定义的验收标准**
 
 ## 验收标准要求
 

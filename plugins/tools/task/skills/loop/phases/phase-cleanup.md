@@ -20,6 +20,7 @@
 | 文件类型 | 路径模式 | 清理时机 | 条件 |
 |---------|----------|---------|------|
 | 计划文件 | `.claude/tasks/{task_id}/plan.md` | 任务完成/失败时 | 始终删除（包括 draft 状态） |
+| 提示词文件 | `.claude/tasks/{task_id}/prompt.md` | 任务完成/失败时 | 始终删除 |
 | 检查点 | `.claude/checkpoints/{task_id}.json` | 任务完成时 | 始终删除 |
 | 短期记忆 | `task://sessions/{id}/*` | 归档后 | 始终删除 |
 | 任务状态 | `.claude/tasks/{task_id}/metadata.json` | 任务完成/失败时 | 始终删除 |
@@ -42,6 +43,7 @@
 | 操作 | 目标 |
 |------|------|
 | 计划文件 | `.claude/tasks/{task_id}/plan.md` |
+| 提示词文件 | `.claude/tasks/{task_id}/prompt.md` |
 | 检查点 | `.claude/checkpoints/{task_id}.json` |
 | 短期记忆 | `task://sessions/{id}` → 归档后删除 |
 | 临时文件 | 执行过程中生成的临时文件 |

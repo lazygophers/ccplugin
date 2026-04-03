@@ -20,10 +20,10 @@
 
 | Level | 策略 | 触发条件 | 退避 | 下一步 | 强制要求 |
 |-------|------|---------|------|--------|---------|
-| 1 | retry | 首次失败/临时错误（含自愈） | 0s | PromptCheck | **必须立即**回到提示词评估 |
-| 2 | debug | 重试失败/逻辑错误 | 2s | PromptCheck | **必须立即**回到提示词评估 |
-| 3 | replan | 调试失败/计划缺陷 | 4s | PromptCheck | **必须立即**回到提示词评估 |
-| 4 | ask_user | 重规划失败/停滞 | - | 用户决定→PromptCheck | 获得响应后**必须立即**回到提示词评估 |
+| 1 | retry | 首次失败/临时错误（含自愈） | 0s | PromptOptimization | **必须立即**回到提示词评估 |
+| 2 | debug | 重试失败/逻辑错误 | 2s | PromptOptimization | **必须立即**回到提示词评估 |
+| 3 | replan | 调试失败/计划缺陷 | 4s | PromptOptimization | **必须立即**回到提示词评估 |
+| 4 | ask_user | 重规划失败/停滞 | - | 用户决定→PromptOptimization | 获得响应后**必须立即**回到提示词评估 |
 
 **禁止**：调整完成后就结束回复。Loop 流程不可中断，必须继续到 Finalizer。
 

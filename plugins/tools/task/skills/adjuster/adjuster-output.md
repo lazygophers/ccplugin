@@ -27,7 +27,7 @@
 
 输出：`{strategy:"retry", report, adjustments[{task_id,task_name,action,details,error_type,root_cause}], retry_config:{max_retries:3,current_retry:1,backoff_seconds:0}}`
 
-Loop行为：应用调整 → 回到PromptCheck，退避 0s。
+Loop行为：应用调整 → 回到PromptOptimization，退避 0s。
 
 ## debug（L2：持续失败）
 
@@ -35,13 +35,13 @@ Loop行为：应用调整 → 回到PromptCheck，退避 0s。
 
 输出：在 retry 基础上增加 `debug_plan:{agent,focus_areas[]}`，adjustments 含 `failure_count`，`backoff_seconds:2`
 
-Loop行为：等待 2s → 调用 debug agent → 修复 → 回到PromptCheck。
+Loop行为：等待 2s → 调用 debug agent → 修复 → 回到PromptOptimization。
 
 ## replan（L3：方案不可行）
 
 输出：在 retry 基础上增加 `replan_options[]`，`backoff_seconds:4`
 
-Loop行为：等待 4s → 回到PromptCheck。
+Loop行为：等待 4s → 回到PromptOptimization。
 
 ## ask_user（L4：停滞/振荡）
 

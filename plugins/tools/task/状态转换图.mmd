@@ -12,24 +12,22 @@ stateDiagram-v2
         LoadMemory --> [*]
     }
 
-    Initialization --> PromptCheck: 提示词评分?
-
-    state PromptCheck <<choice>>
-    PromptCheck --> PromptOptimization: 评分<9（需优化）
-    PromptCheck --> NeedResearch: 评分≥9（进入复杂度评估）
+    Initialization --> PromptOptimization: 必选阶段
 
     state PromptOptimization {
-        [*] --> QualityAssess: 质量评估
-        QualityAssess --> Optimize5W1H: 5W1H 结构化
-        Optimize5W1H --> UserChoice: 用户选择
+        [*] --> BoundaryAnalysis: 任务边界分析
+        BoundaryAnalysis --> StructuredQuestioning: 5W1H 结构化提问
+        StructuredQuestioning --> PromptGeneration: 生成优化提示词
+        PromptGeneration --> PromptPersistence: 写入 prompt.md
+        PromptPersistence --> UserChoice: 用户选择
         UserChoice --> [*]
     }
-    note right of PromptOptimization: 评分<9时触发\n允许通过@main提问
+    note right of PromptOptimization: 每次迭代必须执行\n允许通过@main提问\n结果写入 prompt.md
 
     state prompt_choice <<choice>>
     PromptOptimization --> prompt_choice
     prompt_choice --> NeedResearch: A/B - 复杂度评估
-    prompt_choice --> PromptCheck: C - 重新评估（评分<9才再次优化）
+    prompt_choice --> PromptOptimization: C - 重新优化
 
     state NeedResearch <<choice>>
     NeedResearch --> DeepResearch: 复杂度>8 或 失败2次
@@ -57,7 +55,7 @@ stateDiagram-v2
     state plan_result <<choice>>
     Planning --> plan_result
     plan_result --> Execution: confirmed（批准）
-    plan_result --> PromptCheck: rejected（修改意见→重新评估提示词）
+    plan_result --> PromptOptimization: rejected（修改意见→重新优化提示词）
     plan_result --> Cleanup: no_tasks
     plan_result --> Cleanup: cancelled（用户中止）
 
@@ -87,7 +85,7 @@ stateDiagram-v2
     state QualityGate <<choice>>
     note left of QualityGate: 质量评估\n非失败判定
     QualityGate --> Cleanup: 质量达标（≥阈值）
-    QualityGate --> PromptCheck: 质量不达标（需改进，非失败）
+    QualityGate --> PromptOptimization: 质量不达标（需改进，非失败）
 
     state Adjustment {
         [*] --> AnalyzeFailure: 分析失败原因
@@ -98,15 +96,15 @@ stateDiagram-v2
 
     state adjust_result <<choice>>
     Adjustment --> adjust_result
-    adjust_result --> PromptCheck: retry / debug
-    adjust_result --> PromptCheck: replan
+    adjust_result --> PromptOptimization: retry / debug
+    adjust_result --> PromptOptimization: replan
     adjust_result --> WaitUser: ask_user
 
     state WaitUser {
         [*] --> AskGuidance: 请求用户指导
         AskGuidance --> [*]
     }
-    WaitUser --> PromptCheck: 用户提供方向
+    WaitUser --> PromptOptimization: 用户提供方向
 
     state Cleanup {
         [*] --> UpdateTaskStatus: 更新任务状态文件

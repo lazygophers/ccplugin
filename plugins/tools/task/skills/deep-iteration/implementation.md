@@ -29,7 +29,7 @@ Planner prompt注入：任务目标 + 质量目标(当前阈值) + 迭代等级(
 
 三重职责：验收标准检查 + 质量门控评分(功能/测试覆盖率/代码质量/性能/可维护性/安全/最佳实践) + 持续改进识别
 
-质量门控：score < threshold → QualityGate 不达标→PromptCheck（非失败）。passed 且达标 → Cleanup。failed → Adjustment。
+质量门控：score < threshold → QualityGate 不达标→PromptOptimization（非失败）。passed 且达标 → Cleanup。failed → Adjustment。
 
 ## 深度失败分析（失败2次+触发）
 

@@ -4,10 +4,10 @@
 
 | 级别 | 策略(status) | 触发条件 | 操作 | 下一步 |
 |------|-------------|---------|------|--------|
-| L1 | retry | 首次失败/临时错误 | 调整参数+指数退避(delay=base×2^n, max 60s)。匹配17类可预测错误时自动修复 | PromptCheck |
-| L2 | debug | Retry×3失败 | 收集日志+检查依赖配置+诊断报告 | PromptCheck |
-| L3 | replan | Debug×3无效 | 优先Micro-Replan(仅失败任务+直接依赖，保留成功任务)，失败则Full Replan | PromptCheck |
-| L4 | ask_user | Replan×2失败/振荡/总失败≥15 | 总结失败历史+结构化提问 | 用户决定→PromptCheck |
+| L1 | retry | 首次失败/临时错误 | 调整参数+指数退避(delay=base×2^n, max 60s)。匹配17类可预测错误时自动修复 | PromptOptimization |
+| L2 | debug | Retry×3失败 | 收集日志+检查依赖配置+诊断报告 | PromptOptimization |
+| L3 | replan | Debug×3无效 | 优先Micro-Replan(仅失败任务+直接依赖，保留成功任务)，失败则Full Replan | PromptOptimization |
+| L4 | ask_user | Replan×2失败/振荡/总失败≥15 | 总结失败历史+结构化提问 | 用户决定→PromptOptimization |
 
 ### Micro-Replan（L3 内部优先策略）
 

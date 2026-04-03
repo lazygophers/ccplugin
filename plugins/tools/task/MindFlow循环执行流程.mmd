@@ -57,36 +57,30 @@ flowchart TB
     Init_Jump -.恢复.-> Adjust_Entry
 
     %% =============================================================================
-    %% PromptOptimization: 提示词优化（评分<9触发）
+    %% PromptOptimization: 提示词优化（必选阶段）
     %% =============================================================================
-    subgraph PromptOpt["PromptOptimization: 提示词优化 - 评分<9触发"]
+    subgraph PromptOpt["PromptOptimization: 提示词优化 - 必选"]
         direction TB
-        PO_1{"评分<9?"}
-        PO_2[prompt-optimizer<br/>质量评估]
-        PO_3{score < 9?}
-        PO_4["5W1H 提问<br/>SendMessage(@main)→AskUser"]
-        PO_5{score < 6?}
-        PO_6[必要时 WebSearch<br/>最佳实践]
-        PO_7[生成优化提示词]
-        PO_8{用户选择<br/>A/B/C}
-        PO_Skip([跳过])
+        PO_1[prompt-optimizer<br/>BoundaryAnalysis 任务边界分析]
+        PO_2["StructuredQuestioning<br/>5W1H 提问<br/>SendMessage(@main)→AskUser"]
+        PO_3{score < 6?}
+        PO_4[WebSearch<br/>最佳实践]
+        PO_5[PromptGeneration<br/>生成优化提示词]
+        PO_6["PromptPersistence<br/>写入 prompt.md<br/>.claude/tasks/{task_id}/prompt.md"]
+        PO_7{UserConfirmation<br/>用户选择 A/B/C}
 
-        PO_1 -->|是| PO_2
-        PO_1 -->|否| PO_Skip
+        PO_1 --> PO_2
         PO_2 --> PO_3
         PO_3 -->|是| PO_4
         PO_3 -->|否| PO_5
         PO_4 --> PO_5
-        PO_5 -->|是| PO_6
-        PO_5 -->|否| PO_7
+        PO_5 --> PO_6
         PO_6 --> PO_7
-        PO_7 --> PO_8
     end
 
     Init_9 --> PO_1
-    PO_Skip --> DR_Entry
-    PO_8 -->|A/B:继续| DR_Entry
-    PO_8 -->|C:重新评估| PO_1
+    PO_7 -->|A/B:继续| DR_Entry
+    PO_7 -->|C:重新优化| PO_1
 
     %% =============================================================================
     %% DeepResearch: 深度研究（可选）
@@ -318,7 +312,7 @@ flowchart TB
         Final_6[短期记忆清理<br/>cleanup_working_memory]
         Final_7[最终报告]
 
-        Final_Cleanup["5类中间产物清理:<br/>计划文件+检查点+审批日志<br/>+指标数据+上下文快照"]
+        Final_Cleanup["5类中间产物清理:<br/>计划文件+提示词文件+检查点<br/>+审批日志+上下文快照"]
 
         Final_Entry --> Final_0
         Final_0 --> Final_1
@@ -401,8 +395,8 @@ flowchart TB
     %% Initialization 节点
     class Init_1,Init_3,Init_4,Init_5,Init_6,Init_7,Init_8,Init_9 phaseNode
 
-    %% PromptOptimization 节点（可选）
-    class PO_2,PO_4,PO_6,PO_7 optionalNode
+    %% PromptOptimization 节点（必选）
+    class PO_1,PO_2,PO_5,PO_6 phaseNode
 
     %% DeepResearch 节点（可选）
     class DR_1,DR_6,DR_7,DR_8 optionalNode
@@ -423,7 +417,7 @@ flowchart TB
     class Final_Entry,Final_0,Final_2,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
 
     %% 决策节点
-    class Init_2,PO_1,PO_3,PO_5,PO_8,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
+    class Init_2,PO_3,PO_7,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
 
     %% 违规检测节点
     class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,Final_1,V1,V2,V3,V4 violationNode
@@ -433,7 +427,7 @@ flowchart TB
 
     %% 开始结束节点
     class Start startNode
-    class PO_Skip,DR_Skip,Plan_SkipExec skipNode
+    class DR_Skip,Plan_SkipExec skipNode
     class Verify_Fail,Verify_Error,C_Warning errorNode
     class End endNode
 
@@ -441,7 +435,7 @@ flowchart TB
     class Adjust_User optionalNode
 
     %% 可选阶段容器
-    class PromptOpt,DeepRes optionalNode
+    class DeepRes optionalNode
 
     %% 附录节点
     class Appendix contextNode
