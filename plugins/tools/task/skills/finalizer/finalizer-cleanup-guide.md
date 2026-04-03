@@ -34,7 +34,7 @@
 
 ## 执行流程
 
-### 阶段1：资源盘点
+### ResourceInventory：资源盘点
 
 - **任务**：`TaskList()` → 分类 running / pending / completed / failed
 - **文件**：扫描以下目录
@@ -43,12 +43,12 @@
   - `.claude/context/` — 上下文版本快照目录
 - **其他**：lock文件、缓存
 
-### 阶段2：任务终止
+### TaskTermination：任务终止
 
 - `TaskStop(task.id)` 停止 running 任务 → 记录 stopped / failed_to_stop
 - `TaskStop(task.id)` 取消 pending 任务 → 标记 cancelled
 
-### 阶段3：文件清理
+### FileCleanup：文件清理
 
 按以下顺序逐类清理（每步独立执行，失败记录后继续）：
 
@@ -58,7 +58,7 @@
 4. **计划文件**：删除 `.claude/tasks/{task_id}/plan.md`（包括所有状态的文件）
 6. **空目录**：清理 `.claude/context/{task_id}/` 等空子目录
 
-### 阶段4：最终报告
+### FinalReport：最终报告
 
 生成清理统计：任务数 / 文件数 / 错误数，报告 ≤ 100字。
 

@@ -33,7 +33,7 @@ hooks:
 
 **完整工作流**：设计计划 → 格式化写入文件 → 用户确认（或自动批准）→ 返回最终结果。
 
-**优先级声明**：本 agent 的工作流优先于全局 CLAUDE.md 中的"任务理解→拆分→执行→验收→完成"工作流。你必须按照 Skills(task:planner) 定义的 7 个步骤执行，不可被全局规则的"任务完成后简要总结"所中断——步骤7（输出完整 JSON）完成前禁止结束。
+**优先级声明**：本 agent 的工作流优先于全局 CLAUDE.md 中的"任务理解→拆分→执行→验收→完成"工作流。你必须按照 Skills(task:planner) 定义的步骤执行，不可被全局规则的"任务完成后简要总结"所中断——OutputJSON（输出完整 JSON）完成前禁止结束。
 
 详细的执行指南请参考 Skills(task:planner) 和相关文档。
 </role>
@@ -49,7 +49,7 @@ hooks:
 
 <workflow>
 
-**阶段1：信息收集**
+**InformationGathering：信息收集**
 
 三层上下文学习（详见 [上下文学习指南](../skills/planner/planner-context-learning.md)）：
 - Tier 1（必须）：项目基本信息、CLAUDE.md/README.md/.claude/memory/MEMORY.md
@@ -58,7 +58,7 @@ hooks:
 
 收集四类信息：目标（功能/交付/标准）、依赖（库/版本/API）、现状（状态/代码/限制）、边界（范围/约束）。
 
-**阶段2：计划设计**
+**PlanDesign：计划设计**
 
 1. **执行规范**（Spec-Driven）：功能规范（What）→技术规范（How）→质量规范→合规规范
 2. **任务分解**：按时间/逻辑顺序→单维度拆分→原子化→避免过度拆分
@@ -70,14 +70,14 @@ hooks:
    - tasks为空时可省略agent/skills
 5. **验收标准**（必填，check list 格式）：可量化、可验证、完整
 
-**阶段3：格式化并写入计划文件**（tasks 非空时必须执行）
+**PlanWrite：格式化并写入计划文件**（tasks 非空时必须执行）
 
 1. 生成文件路径：`.claude/tasks/{task_id}/plan.md`
 2. 按计划模板生成 Markdown，参考 [template.md](../skills/planner/template.md)
 3. 使用 Write 工具写入 plan.md
 4. 将 tasks 数组写入 `.claude/tasks/{task_id}/tasks.json`
 
-**阶段4：用户确认**（根据 auto_approve 参数决定）
+**UserConfirmation：用户确认**（根据 auto_approve 参数决定）
 
 如果 `auto_approve=false`（默认），必须调用 `AskUserQuestion` 请求用户批准。如果 `auto_approve=true`，跳过此阶段直接返回 `confirmed`。
 

@@ -57,9 +57,9 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 ## Planner 内部执行流程（强制遵守）
 
-**必须按顺序执行以下 6 个步骤，禁止跳过任何步骤**：
+**必须按顺序执行以下步骤，禁止跳过任何步骤**：
 
-### 步骤1：三层上下文学习（前置条件）
+### ContextLearning：三层上下文学习（前置条件）
 
 **强制要求**：必须完成三层上下文学习才可进入计划设计。未完成则暂停，请求补充信息。
 
@@ -79,7 +79,7 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 ```
 每层列表不可为空。若某层无相关文件（如 L2 无 rules），须记录 `["(none)"]` 并说明原因。
 
-### 步骤2：信息收集（MECE准备）
+### InformationGathering：信息收集（MECE准备）
 
 **强制要求**：收集计划设计所需的所有信息维度。
 
@@ -90,7 +90,7 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 **验证点**：四个维度都有明确答案，无模糊或缺失信息。如有疑问，必须通过 `questions` 字段询问用户。
 
-### 步骤3：计划设计（MECE分解 + DAG依赖）
+### PlanDesign：计划设计（MECE分解 + DAG依赖）
 
 **强制要求**：应用 MECE 原则分解任务，建立 DAG 依赖关系。
 
@@ -104,7 +104,7 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 **验证点**：DAG 合法、并行度≤2、所有任务有 agent/skills/acceptance_criteria。
 
-### 步骤4：输出验证（质量门控）
+### OutputValidation：输出验证（质量门控）
 
 **强制要求**：验证输出JSON符合格式要求，检查字段完整性。
 
@@ -116,7 +116,7 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 **验证点**：所有验证通过，输出符合规范。
 
-### 步骤5：格式化并写入计划文件（强制，tasks非空时）
+### PlanWrite：格式化并写入计划文件（强制，tasks非空时）
 
 **强制要求**：tasks 非空时，必须将计划格式化为 Markdown 并写入文件，然后再返回 JSON。
 
@@ -138,7 +138,7 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
 
 **验证点**：plan_md_path 对应的文件存在且内容完整，tasks.json 已写入且包含与 plan.md 一致的任务列表。
 
-### 步骤6：用户确认（根据 auto_approve 参数决定）
+### UserConfirmation：用户确认（根据 auto_approve 参数决定）
 
 **当 `auto_approve=false`（默认）且 tasks 非空时，必须执行此阶段**。
 
@@ -171,11 +171,11 @@ AskUserQuestion({
 
 **当 tasks 为空时**：跳过此阶段，设置 `status = "no_tasks"`。
 
-### 步骤7：输出完整 JSON（强制，禁止跳过）
+### OutputJSON：输出完整 JSON（强制，禁止跳过）
 
 **⚠️ 防中止规则（最高优先级）**：
 
-步骤6完成（用户确认/自动批准/取消）后，**绝对禁止**在此处结束回复。必须**立即**在同一回复中完成以下操作：
+UserConfirmation 完成（用户确认/自动批准/取消）后，**绝对禁止**在此处结束回复。必须**立即**在同一回复中完成以下操作：
 
 1. **构建完整 JSON**：包含 `status`、`plan_md_path`、`report`、`tasks`、`dependencies`、`parallel_groups`、`iteration_goal`、`acceptance_criteria`、`context_learning` 等所有字段
 2. **输出 JSON**：将完整 JSON 作为代码块输出，供 loop 主体解析
@@ -223,7 +223,7 @@ JSON 输出：`{status, plan_md_path?, report(≤200字), tasks[], dependencies{
 - tasks 为空时 agent/skills/plan_md_path 可省略，非空时必填
 
 **重要**：agent/skills 在规划阶段只是名称引用，实际加载和调用在执行阶段进行（loop 按名称动态查找）
-**重要**：tasks 非空时，planner 必须完成步骤5（写文件）和步骤6（用户确认），然后返回最终 status
+**重要**：tasks 非空时，planner 必须完成 PlanWrite（写文件）和 UserConfirmation（用户确认），然后返回最终 status
 
 </output_format>
 
