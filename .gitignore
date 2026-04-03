@@ -40,9 +40,20 @@ plugins/**/__pycache__/
 .claude/settings.local.json
 .remember
 
+# Claude 工作目录
+.claude/scripts/.ruff_cache/
+
 # Serena 工具运行时数据
-.serena/cache/
-.serena/logs/
+.serena/
+!.serena/.gitignore
+
+# Desktop 构建产物
+desktop/node_modules/
+desktop/src-tauri/gen/
+
+# Python 构建产物
+lib/build/
+dist/
 
 # 运行时数据库
 *.db
