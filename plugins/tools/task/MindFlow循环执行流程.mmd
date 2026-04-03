@@ -63,17 +63,12 @@ flowchart TB
         direction TB
         PO_1[prompt-optimizer<br/>BoundaryAnalysis 任务边界分析]
         PO_2["StructuredQuestioning<br/>5W1H 提问<br/>SendMessage(@main)→AskUser"]
-        PO_3{score < 6?}
-        PO_4[WebSearch<br/>最佳实践]
         PO_5[PromptGeneration<br/>生成优化提示词]
         PO_6["PromptPersistence<br/>写入 prompt.md<br/>.claude/tasks/{task_id}/prompt.md"]
         PO_7{UserConfirmation<br/>用户选择 A/B/C}
 
         PO_1 --> PO_2
-        PO_2 --> PO_3
-        PO_3 -->|是| PO_4
-        PO_3 -->|否| PO_5
-        PO_4 --> PO_5
+        PO_2 --> PO_5
         PO_5 --> PO_6
         PO_6 --> PO_7
     end
@@ -417,7 +412,7 @@ flowchart TB
     class Final_Entry,Final_0,Final_2,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
 
     %% 决策节点
-    class Init_2,PO_3,PO_7,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
+    class Init_2,PO_7,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
 
     %% 违规检测节点
     class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,Final_1,V1,V2,V3,V4 violationNode

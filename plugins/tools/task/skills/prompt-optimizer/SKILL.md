@@ -3,6 +3,7 @@ description: "提示词优化 - 分析任务边界和范围、结构化提问澄
 model: sonnet
 context: fork
 user-invocable: false
+agent: task:prompt-optimizer
 ---
 
 
@@ -46,7 +47,7 @@ user-invocable: false
 | Where(范围) | 影响模块/部署环境/交互组件 |
 | How(方式) | 技术方案/栈/架构模式 |
 
-必要时（涉及未知技术栈/最佳实践）执行 WebSearch 补充信息。
+不主动执行 WebSearch，仅在用户明确要求搜索时才执行。
 
 ### PromptGeneration：生成优化提示词
 
@@ -64,7 +65,7 @@ user-invocable: false
 
 ## 输出格式
 
-JSON：`{status, quality_score{clarity,completeness,actionability,overall}, original_prompt, optimized_prompt, boundary{in_scope[], out_of_scope[]}, scope[], deliverables[], acceptance_criteria[], improvements[], questions_asked, web_searches, report}`
+JSON：`{status, quality_score{clarity,completeness,actionability,overall}, original_prompt, optimized_prompt, boundary{in_scope[], out_of_scope[]}, scope[], deliverables[], acceptance_criteria[], improvements[], questions_asked, report}`
 
 - `status`: 固定为 `"optimized"`（每次都执行优化）
 - `boundary`: 任务边界（in_scope + out_of_scope 数组）

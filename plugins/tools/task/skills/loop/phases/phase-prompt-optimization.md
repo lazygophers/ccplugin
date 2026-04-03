@@ -23,7 +23,7 @@
 - Where：涉及模块/部署环境
 - How：技术栈限制/性能要求
 
-必要时（涉及未知技术栈/最佳实践）执行 WebSearch 补充信息。
+不主动执行 WebSearch，仅在用户明确要求搜索时才执行。
 
 **PromptGeneration：生成优化提示词**
 
