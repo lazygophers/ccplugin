@@ -8,7 +8,7 @@
 |-------|---------|----------|
 | 状态变量已重置 | 确认 iteration=0, context 包含 replan_trigger/start_time/task_id | 必须 |
 | 检测到重复任务时已询问用户 | 如果 task_id 重复，检查是否调用了 AskUserQuestion | 必须 |
-| 输出初始化状态日志 | 验证输出包含 `[MindFlow·任务·初始化/0·进行中]` | 必须 |
+| 输出初始化状态日志 | 验证输出包含 `[MindFlow·${task_id}·Initialization/0·进行中]` | 必须 |
 
 ## PromptOptimization：提示词优化（可选）
 
@@ -66,7 +66,7 @@
 | 前置条件检查 | 验证所有任务已执行完成（状态为 ✅ 或 ❌） | 必须 |
 | **Verifier 调用** | **检查是否调用了 `Skill(skill="task:verifier")`** | **必须** |
 | 跳过检测机制生效 | 如果未调用 verifier，检查是否触发错误 | 必须 |
-| 状态日志输出 | 验证输出包含 `[MindFlow·任务·结果验证/N·{status}]` | 必须 |
+| 状态日志输出 | 验证输出包含 `[MindFlow·${task_id}·Verification/N·{passed或failed}]` | 必须 |
 | 计划文件 frontmatter 更新 | 验证status/completed_count 已更新 | 必须 |
 | 后置验证点通过 | 验证 verifier 已被调用并返回结果 | 必须 |
 
@@ -83,7 +83,7 @@
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 前置条件检查 | 验证验证通过或用户确认完成 | 必须 |
-| **元数据文件更新** | **`.claude/tasks/{task_id}/metadata.json` status 为 completed/failed（必须在 finalizer 之前）** | **必须** |
+| **元数据文件更新** | **`.claude/tasks/{task_id}/metadata.json` phase 为 cleanup（必须在 finalizer 之前）** | **必须** |
 | **Finalizer 调用** | **检查是否调用了 `Skill(skill="task:finalizer")`** | **必须** |
 | 即使失败也执行清理 | 验证失败场景下 finalizer 也被调用 | 必须 |
 | 计划文件已删除 | 验证文件已删除：`! test -f .claude/tasks/{task_id}/plan.md` | 必须 |

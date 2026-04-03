@@ -31,7 +31,6 @@
    - **最大重试**：单个任务最多重试2次，仍不完整则标记为 ❌ 并记录原因
 8. **状态更新**：更新plan文件任务状态(📋→⏸️→🔄→✅/❌)
 9. **元数据更新**：更新 `.claude/tasks/{task_id}/metadata.json`
-   - `status` → `"executing"`
    - `phase` → `"execution"`
    - `updated_at` → 当前时间
 10. **任务清单更新**：更新 `.claude/tasks/{task_id}/tasks.json` 中每个子任务的最新状态：

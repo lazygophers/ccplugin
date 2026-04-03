@@ -26,20 +26,20 @@
    {
      "task_id": "${task_id}",
      "description": "${user_task}",
-     "status": "initialized",
      "phase": "initialization",
      "created_at": "ISO8601",
      "updated_at": "ISO8601",
      "iteration": 0,
-     "plan_path": null,
+     "plan_md_path": null,
      "quality_score": null,
      "error": null
    }
    ```
-   - `status` 枚举：`initialized` | `planning` | `executing` | `verifying` | `adjusting` | `completed` | `failed`
-   - `phase` 枚举：`initializing` | `initialization` | `planning` | `execution` | `verification` | `adjustment` | `cleanup` | `completed`
+   - `phase` 枚举（与 loop 阶段名一致）：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
    - Stop hook 依赖 `phase` 字段判断是否允许停止，仅当 `phase` 为 `completed` 时放行
-   - 每次阶段转换时更新 `status`、`phase`、`updated_at`
+   - 每次阶段转换时更新 `phase`、`updated_at`
+   - ⚠️ 已移除 `status` 字段（与 `phase` 语义重叠），统一使用 `phase` 跟踪当前阶段
+   - ⚠️ 已将 `plan_path` 统一为 `plan_md_path`（与 planner 输出和 loop 上下文一致）
 5. **创建任务清单文件**：在 `.claude/tasks/{task_id}/` 目录创建空的 `tasks.json`
    ```json
    {
@@ -55,8 +55,8 @@
    - 输出清理日志：`[MindFlow·${task_id}] 已清理 N 个残留计划文件（前次 loop 未正常完成 finalization）`
    - **禁止**删除当前任务的计划文件
 6. **残留状态修复**：扫描 `.claude/tasks/*/metadata.json`，对 **非当前 task_id** 的文件：
-   - `status` 为 `completed` / `failed` → 正常终态，直接删除（已由 Cleanup 完成归档）
-   - `status` 为其他非终态（`initialized`/`planning`/`executing`/`verifying`/`adjusting`）→ **自动修正为 `failed`**，设 `error: "abnormal_termination: 前次 loop 未正常完成 finalization"`，更新 `updated_at`
+   - `phase` 为 `completed` / `failed` → 正常终态，直接删除（已由 Cleanup 完成归档）
+   - `phase` 为其他非终态（`initialization`/`planning`/`execution`/`verification`/`adjustment`/`cleanup`）→ **自动修正 `phase` 为 `failed`**，设 `error: "abnormal_termination: 前次 loop 未正常完成 finalization"`，更新 `updated_at`
    - **禁止**因发现其他任务的非终态状态文件而阻断当前任务的初始化流程
 7. **残留状态清理**：扫描 `.claude/tasks/*/metadata.json`，删除所有非当前 task_id 的终态（`completed`/`failed`）文件及其关联的计划文件和检查点
 8. **记忆加载**：生成session_id(MD5) → load_task_memories(user_task, task_type, session_id) → 显示episodic(前3个)+semantic记忆

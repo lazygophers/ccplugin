@@ -19,7 +19,6 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
 2. **深度校验**：Stage 1/2 通过后，执行 Stage 3 深度校验（用户预期验证+业务逻辑验证+交付物完整性验证），确保交付物从用户视角完全对齐
 3. **更新计划状态**：`update_plan_frontmatter(status, completed_count)`
 4. **同步元数据**：更新 `.claude/tasks/{task_id}/metadata.json`
-   - `status` → `"verifying"`
    - `phase` → `"verification"`
    - `updated_at` → 当前时间戳
    - `quality_score` → 本轮验证评分
