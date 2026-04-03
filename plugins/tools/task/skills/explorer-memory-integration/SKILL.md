@@ -1,7 +1,6 @@
 ---
 description: "Explorer的memory集成协议：定义探索知识的持久化命名规范和存储策略。当explorer agent需要保存或复用探索结果到memory系统时触发。所有explorer agent必须遵守此协议。"
 model: haiku
-context: fork
 user-invocable: false
 ---
 

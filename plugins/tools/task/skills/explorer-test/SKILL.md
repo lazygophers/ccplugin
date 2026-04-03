@@ -1,7 +1,6 @@
 ---
 description: "探索项目测试体系：识别测试框架、分析覆盖率、评估测试质量、定位测试缺口。当需要了解测试现状、评估测试金字塔分布、发现未覆盖的高风险模块时触发。"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:explorer-test
 ---

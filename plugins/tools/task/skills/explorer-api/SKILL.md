@@ -1,7 +1,6 @@
 ---
 description: "探索项目API层：分析REST端点/GraphQL schema/gRPC服务定义，提取路由、参数、认证机制。当需要理解API设计、提取OpenAPI规范、分析API版本策略时触发。"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:explorer-api
 ---

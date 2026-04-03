@@ -1,7 +1,6 @@
 ---
 description: "提示词优化 - 将模糊任务描述转化为可执行规格说明（Deliverable + Context + Guardrails），输出 prompt.md 作为迭代验收基准"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:prompt-optimizer
 ---

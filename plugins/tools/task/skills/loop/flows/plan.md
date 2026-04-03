@@ -1,7 +1,6 @@
 ---
 description: Loop 计划设计流程 - 深度研究、计划生成、用户确认（全部由 planner 内部完成）
 model: sonnet
-context: fork
 user-invocable: false
 ---
 

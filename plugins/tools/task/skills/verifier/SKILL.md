@@ -1,7 +1,6 @@
 ---
 description: "Verifier 结果验证 - Loop Verification 阶段调用：三阶段验证（功能合规性门控 + 代码质量审查 + 深度校验），输出 passed/failed 状态。质量分由 QualityGate 判定。由 Loop 内部调度，不直接面向用户"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:verifier
 ---

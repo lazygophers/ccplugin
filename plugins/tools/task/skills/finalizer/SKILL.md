@@ -1,7 +1,6 @@
 ---
 description: "Finalizer 资源清理 - Loop 完成或紧急停止时调用：按创建逆序清理计划/检查点/快照等4类产物，生成最终报告。防御性清理，单个失败不阻断。由 Loop 内部调度，不直接面向用户"
 model: haiku
-context: fork
 user-invocable: false
 agent: task:finalizer
 ---

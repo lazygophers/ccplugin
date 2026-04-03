@@ -1,7 +1,6 @@
 ---
 description: "探索前端项目架构：分析组件树层级、状态管理流向、路由结构、样式体系。当需要理解前端页面组织、组件props/事件传递、代码分割策略时触发。支持React/Vue/Svelte/Angular。"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:explorer-frontend
 ---

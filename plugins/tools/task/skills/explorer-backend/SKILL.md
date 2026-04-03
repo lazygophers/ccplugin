@@ -1,7 +1,6 @@
 ---
 description: "探索后端项目架构：从路由到handler到service到repository的完整请求链路分析。当需要理解后端API结构、ORM数据模型、中间件链、微服务拓扑时触发。支持Go/Python/Node.js/Java主流框架。"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:explorer-backend
 ---

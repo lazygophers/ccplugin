@@ -1,7 +1,6 @@
 ---
 description: "探索项目DevOps和基础设施：分析Docker/K8s容器化配置、CI/CD流水线、云服务部署、IaC模板、监控告警。当需要理解部署架构、环境差异、运维配置时触发。"
 model: sonnet
-context: fork
 user-invocable: false
 agent: task:explorer-infrastructure
 ---

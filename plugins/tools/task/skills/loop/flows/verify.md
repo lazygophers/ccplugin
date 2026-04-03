@@ -1,7 +1,6 @@
 ---
 description: Loop 验证流程 - 质量门控、持续改进决策
 model: sonnet
-context: fork
 user-invocable: false
 ---
 
