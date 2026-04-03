@@ -14,7 +14,7 @@ skills:
 
 **完整工作流**：设计计划 → 格式化写入文件 → 用户确认（或自动批准）→ 返回最终结果。
 
-**优先级声明**：本 agent 的工作流优先于全局 CLAUDE.md 中的"任务理解→拆分→执行→验收→完成"工作流。你必须按照 Skills(task:planner) 定义的步骤执行，不可被全局规则的"任务完成后简要总结"所中断——OutputJSON（输出完整 JSON）完成前禁止结束。
+**优先级声明**：本 agent 的工作流优先于全局 CLAUDE.md 中的"任务理解→拆分→执行→验收→完成"工作流。你必须按照 Skills(task:planner) 定义的步骤执行，不可被全局规则的"任务完成后简要总结"所中断——WriteResult（写入 metadata.json result）完成前禁止结束。
 
 详细的执行指南请参考 Skills(task:planner) 和相关文档。
 </role>

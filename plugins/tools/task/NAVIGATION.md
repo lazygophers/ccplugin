@@ -16,7 +16,7 @@
 | finalizer | 资源清理 | [agents/finalizer.md](agents/finalizer.md)<br/>[skills/finalizer/](skills/finalizer/) | 任务完成后清理资源和生成报告 |
 | prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
 
-## 支持功能Skills (15+)
+## 支持功能Skills
 
 ### 核心技能
 
@@ -26,18 +26,7 @@
 | planner | 计划设计 | loop调用或独立使用 | [skills/planner/SKILL.md](skills/planner/SKILL.md) |
 | verifier | 结果验证 | loop调用或独立使用 | [skills/verifier/SKILL.md](skills/verifier/SKILL.md) |
 | adjuster | 失败调整 | loop调用或独立使用 | [skills/adjuster/SKILL.md](skills/adjuster/SKILL.md) |
-
-### 高级功能
-
-| Skill | 用途 | 触发条件 | 文档路径 |
-|-------|------|---------|---------|
-| hitl | HITL审批 | 高风险操作（删除、修改核心文件） | [skills/hitl/SKILL.md](skills/hitl/SKILL.md) |
-| checkpoint | 检查点管理 | 关键节点（planning、execution） | [skills/checkpoint/SKILL.md](skills/checkpoint/SKILL.md) |
-| memory-bridge | 记忆桥接 | 任务完成、失败分析 | [skills/memory-bridge/SKILL.md](skills/memory-bridge/SKILL.md) |
-| deep-iteration | 深度迭代 | 质量不达标（<60分） | [skills/deep-iteration/SKILL.md](skills/deep-iteration/SKILL.md) |
-| context-versioning | 上下文版本化 | 规划前自动保存、失败回滚 | [skills/context-versioning/SKILL.md](skills/context-versioning/SKILL.md) |
 | prompt-optimizer | 提示词优化 | 首次迭代必选，用户新输入时增量修订 | [skills/prompt-optimizer/SKILL.md](skills/prompt-optimizer/SKILL.md) |
-| parallel-scheduler | 智能并行调度 | 多任务执行 | [skills/parallel-scheduler/SKILL.md](skills/parallel-scheduler/SKILL.md) |
 | hooks | 生命周期钩子 | 事件触发（2个hooks） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
 
 ## 按场景查找
@@ -49,7 +38,6 @@
 | 任务执行失败，如何恢复？ | adjuster → 四级升级策略 | [失败调整](skills/adjuster/adjuster-strategies.md) |
 | 连续失败3次，系统如何处理？ | adjuster → 停滞检测 | [停滞检测](skills/adjuster/stall-detection.md) |
 | 如何查看失败原因？ | loop → error-handling | [错误处理](skills/loop/error-handling.md) |
-| 如何从历史失败学习？ | memory-bridge → pattern-extraction | [模式提取](skills/memory-bridge/pattern-extraction.md) |
 
 ### 成本和性能
 
@@ -61,9 +49,8 @@
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 任务中断后如何恢复？ | checkpoint → 检查点恢复 | [检查点管理](skills/checkpoint/SKILL.md) |
-| 检查点保存在哪里？ | checkpoint → 存储位置 | [检查点管理](skills/checkpoint/SKILL.md) |
-| 如何手动触发检查点？ | checkpoint → 手动保存 | [检查点管理](skills/checkpoint/SKILL.md) |
+| 任务中断后如何恢复？ | loop → 检查点恢复 | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
+| 检查点保存在哪里？ | `.claude/checkpoints/{task_id}.json` | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
 
 ### 质量和验收
 
@@ -71,7 +58,6 @@
 |------|---------|---------|
 | 如何定义验收标准？ | planner → acceptance_criteria | [计划设计](skills/planner/SKILL.md) |
 | 质量评分如何计算？ | verifier → quality-scoring | [结果验证](skills/verifier/SKILL.md) |
-| 质量不达标如何自动优化？ | deep-iteration → 深度迭代 | [深度迭代](skills/deep-iteration/SKILL.md) |
 | 如何触发深度研究？ | loop → deep-research-triggers | [深度研究触发](skills/loop/deep-research-triggers.md) |
 
 ### 计划和确认
@@ -81,13 +67,12 @@
 | 计划确认机制如何工作？ | loop → Plan Mode | [计划流程](skills/loop/flows/plan.md) |
 | 什么时候需要用户确认？ | loop → 智能确认策略 | [详细流程](skills/loop/phases/phase-planning.md) |
 | 如何重新设计计划？ | loop → 重新规划 | [计划流程](skills/loop/flows/plan.md) |
-| 如何查看计划版本历史？ | context-versioning → 版本对比 | [上下文版本化](skills/context-versioning/SKILL.md) |
 
 ### 并行和调度
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 如何控制并行任务数量？ | loop → parallel-scheduler | [并行调度](skills/parallel-scheduler/SKILL.md) |
+| 如何控制并行任务数量？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-execution.md) |
 | 为什么限制2个并行任务？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-execution.md) |
 | Team何时创建和删除？ | execute → Team管理 | [详细流程](skills/loop/phases/phase-execution.md) |
 
@@ -95,25 +80,18 @@
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 什么操作需要人工审批？ | hitl → approval-policies | [审批策略](skills/hitl/approval-policies.md) |
-| 三级审批策略是什么？ | hitl → auto/review/mandatory | [审批策略](skills/hitl/approval-policies.md) |
-| 如何查看审批历史？ | hitl → 决策记录 | [审批策略](skills/hitl/approval-policies.md) |
-| 如何自定义审批规则？ | hitl → 配置指南 | [实施指南](skills/hitl/implementation-guide.md) |
+| 什么操作需要人工审批？ | loop → execution HITL | [任务执行](skills/loop/phases/phase-execution.md) |
 
 ## 高级主题
 
 ### 深入理解
 
 - [Loop详细执行流程](skills/loop/detailed-flow.md) - 8个执行阶段导航索引
-- [深度迭代指南](skills/deep-iteration/implementation.md) - 质量递进机制（60→75→85→90分）
-- [Memory Bridge详解](skills/memory-bridge/memory-schema.md) - 三层记忆架构
-- [HITL审批策略](skills/hitl/approval-policies.md) - 风险分级审批
 
 ### 最佳实践
 
 - [任务分解原则](skills/planner/task-decomposition.md) - MECE原则应用
 - [失败升级策略](skills/adjuster/adjuster-strategies.md) - 四级渐进式升级
-- [并行调度策略](skills/execute/parallel-scheduler.md) - 复杂度评估和动态调整
 - [Prompt缓存优化](skills/loop/prompt-caching.md) - 90%成本节省
 - [深度研究触发](skills/loop/deep-research-triggers.md) - 4维度评估
 
@@ -149,7 +127,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 - 文件冲突
 - 调试困难
 
-相关文档：[并行调度](skills/execute/parallel-scheduler.md)
+相关文档：[并行调度](skills/loop/phases/phase-execution.md)
 
 ### Q3: 什么时候触发深度研究？
 
@@ -177,7 +155,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 
 恢复时自动检测并加载最近的检查点。
 
-相关文档：[检查点管理](skills/checkpoint/SKILL.md)
+相关文档：[初始化（含检查点）](skills/loop/phases/phase-initialization.md)
 
 ### Q6: 成本报告包含哪些优化建议？
 
@@ -196,27 +174,13 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 
 相关文档：[失败调整](skills/adjuster/adjuster-strategies.md)
 
-### Q8: Memory Bridge如何工作？
-
-三层记忆架构：
-- **Working Memory**：当前会话状态（临时）
-- **Episodic Memory**：任务执行记录（中期）
-- **Semantic Memory**：知识和模式（长期）
-
-检索策略：相似任务匹配、失败模式匹配、上下文预加载
-
-相关文档：[Memory Bridge](skills/memory-bridge/SKILL.md)
-
 ## 关键术语
 
 - **PDCA循环**：Plan-Do-Check-Act，持续改进循环
 - **MECE原则**：Mutually Exclusive, Collectively Exhaustive，任务分解原则
 - **Team Leader**：Loop作为统一调度者和用户交互接口
 - **Plan Mode**：只读探索阶段，使用EnterPlanMode/ExitPlanMode
-- **深度迭代**：质量递进60→75→85→90分
 - **四级升级**：retry→debug→replan→ask_user
-- **三级审批**：auto→review→mandatory
-- **三层记忆**：Working→Episodic→Semantic
 
 ## 版本信息
 
@@ -226,4 +190,3 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 ---
 
 **导航提示**：使用Ctrl+F或Cmd+F搜索关键字，快速定位相关文档。
-

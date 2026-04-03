@@ -2,9 +2,7 @@
 
 ## 上下文版本化
 
-规划前自动保存快照到 `.claude/context/{task_id}/v{iteration}.json`（调用 context-versioning skill）。执行成功后标记 status=success。验证失败时可回滚到最近成功快照。
-
-详见 `skills/context-versioning/SKILL.md`
+规划前自动保存快照到 `.claude/context/{task_id}/v{iteration}.json`。执行成功后标记 status=success。验证失败时可回滚到最近成功快照。
 
 ## 三层上下文学习（ACE 模式）
 
@@ -12,7 +10,7 @@
 |------|------|------|---------|
 | 1-热记忆 | Constitution | 语言/框架/构建工具、runtime版本、架构模式、CLAUDE.md/README.md/.claude/memory/ | Glob扫描目录+读取配置文件+项目文档 |
 | 2-专业知识 | Specialist | 代码风格、测试策略、架构决策、团队约定 | 读取.editorconfig/.prettierrc/eslint.config+代码样本+.claude/rules/ |
-| 3-冷记忆 | Knowledge Base | 情节记忆(相似任务历史)+语义记忆(架构/约定/技术栈) | Memory Bridge按需检索 |
+| 3-冷记忆 | Knowledge Base | 情节记忆(相似任务历史)+语义记忆(架构/约定/技术栈) | 记忆系统按需检索 |
 
 **记忆集成**：将 episodic/semantic memory 作为上下文传入 planner prompt，参考相似任务模式、复用成功 agent/skills 组合、避免已知失败模式。
 

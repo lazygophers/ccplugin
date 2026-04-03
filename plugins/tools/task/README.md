@@ -42,7 +42,7 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
 ## 组件概览
 
 - **Agents（14个）**：任务编排（planner/verifier）+ 项目探索（8个 explorer）+ 辅助（adjuster/finalizer/prompt-optimizer/execute）
-- **Skills（15+）**：核心流程（loop/plan/verify）+ 探索（9个）+ 辅助（deep-iteration/memory-bridge/hooks 等）
+- **Skills**：核心流程（loop/planner/verifier/adjuster/prompt-optimizer）+ 探索（9个）+ 辅助（hooks 等）
 
 ## 详细文档
 

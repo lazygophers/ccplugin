@@ -124,10 +124,8 @@
 - **初始化阶段**: 加载项目语义记忆
 
 **已完成内容**:
-- [x] 创建 `skills/memory-bridge/SKILL.md`（记忆桥接主技能）
-- [x] 创建 `skills/memory-bridge/memory-schema.md`（三层记忆数据模型）
-- [x] 创建 `skills/memory-bridge/retrieval-strategy.md`（检索策略）
-- [x] 修改 `skills/planner/planner-context-learning.md`（Tier 3 集成 memory-bridge）
+- [x] ~~创建 `skills/memory-bridge/`（已移除，记忆功能内置于 loop 初始化阶段）~~
+- [x] 修改 `skills/planner/planner-context-learning.md`（Tier 3 集成记忆检索）
 - [x] 修改 `skills/loop/detailed-flow.md`（初始化加载记忆、完成保存记忆）
 
 **验收标准**:
@@ -170,8 +168,7 @@
 | 用户配置覆盖 | 用户指定值 | 尊重用户约束 |
 
 **已完成内容**:
-- [x] 创建 `skills/parallel-scheduler/SKILL.md`（并行调度主技能）
-- [x] 创建 `skills/parallel-scheduler/complexity-analyzer.md`（任务复杂度分析器）
+- [x] ~~创建 `skills/parallel-scheduler/`（已合并到 `skills/loop/phases/phase-execution.md`）~~
 - [x] 修改 `skills/loop/detailed-flow.md`（执行阶段使用智能调度）
 
 **验收标准**:
@@ -319,7 +316,7 @@ Level 4: Ask User（请求指导）
 ```
 
 **已完成内容**:
-- [x] 创建 `skills/context-versioning/SKILL.md`（上下文版本化主技能）
+- [x] ~~创建 `skills/context-versioning/SKILL.md`（已移除，快照功能内置于 loop）~~
 - [x] 修改 `skills/planner/planner-context-learning.md`（集成版本化）
 
 **验收标准**:

@@ -19,7 +19,6 @@ graph TB
 
         subgraph ConditionalSkills["条件触发 Skills"]
             PromptOpt["prompt-optimizer<br/>提示词优化"]
-            DeepIter["deep-iteration<br/>深度迭代"]
         end
 
         subgraph ExplorerFamily["Explorer 探索体系"]
@@ -35,15 +34,7 @@ graph TB
             ExMem["explorer-memory-integration<br/>记忆集成探索"]
         end
 
-        subgraph Infrastructure["基础设施"]
-            Checkpoint["checkpoint<br/>检查点管理"]
-            MemBridge["memory-bridge<br/>记忆桥接"]
-            CtxVersion["context-versioning<br/>上下文版本化"]
-            ParaSched["parallel-scheduler<br/>并行调度"]
-        end
-
         subgraph Governance["治理与合规"]
-            HITL["hitl<br/>人工审批"]
             Hooks["hooks<br/>生命周期钩子"]
         end
     end
@@ -57,7 +48,6 @@ graph TB
 
     %% 条件触发阶段
     Loop -.->|"条件触发"| PromptOpt
-    Loop -.->|"条件触发"| DeepIter
 
     %% Execute 使用 Explorer
     Execute -.->|"按需调用"| ExGeneral
@@ -71,14 +61,7 @@ graph TB
     ExGeneral -->|"继承"| ExTest
     ExGeneral -->|"继承"| ExMem
 
-    %% 基础设施支撑
-    Loop -->|"保存/恢复"| Checkpoint
-    Loop -->|"记忆读写"| MemBridge
-    Loop -->|"快照管理"| CtxVersion
-    Execute -->|"并行控制"| ParaSched
-
     %% 治理
-    Planner -.->|"关键决策"| HITL
     Loop -->|"事件通知"| Hooks
 
     %% 外部依赖
@@ -90,15 +73,12 @@ graph TB
     classDef lifecycle fill:#7BC67E,stroke:#4A8A4D,color:#fff
     classDef optional fill:#F5A623,stroke:#C47D1A,color:#fff
     classDef explorer fill:#9B59B6,stroke:#6C3483,color:#fff
-    classDef infra fill:#95A5A6,stroke:#5D6D7E,color:#fff
     classDef govern fill:#E74C3C,stroke:#A93226,color:#fff
     classDef external fill:#BDC3C7,stroke:#7F8C8D,color:#333
 
     class Loop,Execute core
     class Planner,Verifier,Adjuster,Finalizer lifecycle
     class PromptOpt optional
-    class DeepIter optional
     class ExGeneral,ExCode,ExFrontend,ExBackend,ExAPI,ExDB,ExDeps,ExInfra,ExTest,ExMem explorer
-    class Checkpoint,MemBridge,CtxVersion,ParaSched infra
-    class HITL,Hooks govern
+    class Hooks govern
     class DeepRes external

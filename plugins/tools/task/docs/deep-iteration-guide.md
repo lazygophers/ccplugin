@@ -105,8 +105,5 @@ claude /loop "实现用户认证功能"
 
 ## 相关文档
 
-- **深度迭代规范**: `skills/deep-iteration/SKILL.md`
-- **深度迭代详细说明**: `skills/deep-iteration/deep-iteration-details.md`
 - **Loop Skill**: `skills/loop/SKILL.md`
-- **Loop 深度迭代实现**: `skills/loop/loop-deep-iteration.md`
 - **功能路线图**: `docs/ROADMAP.md`

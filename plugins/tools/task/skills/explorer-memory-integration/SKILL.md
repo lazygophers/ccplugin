@@ -124,7 +124,7 @@ user-invocable: false
 
 <references>
 
-- [Explorer Agent 列表](../../agents/) | [Memory Bridge Skill](../memory-bridge/SKILL.md)
+- [Explorer Agent 列表](../../agents/)
 
 </references>
 

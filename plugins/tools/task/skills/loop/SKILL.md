@@ -157,7 +157,7 @@ hooks:
 
 **子技能**：flows/plan、flows/verify、task:planner（含格式化+写文件）、task:verifier、task:adjuster
 
-**文档**：[detailed-flow.md](detailed-flow.md)（8阶段导航+各phase详细说明）| [deep-iteration](../deep-iteration/implementation.md) | [prompt-caching](prompt-caching.md) | [deep-research-triggers](deep-research-triggers.md)
+**文档**：[detailed-flow.md](detailed-flow.md)（8阶段导航+各phase详细说明）| [prompt-caching](prompt-caching.md) | [deep-research-triggers](deep-research-triggers.md)
 
 </references>
 

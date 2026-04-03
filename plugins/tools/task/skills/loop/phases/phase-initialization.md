@@ -80,6 +80,36 @@
 | extract_failure_reason | failed_tasks→str | 提取首个失败原因 |
 | get_failed_tasks | planner_result→list | 过滤status=failed/error的任务 |
 
+## 检查点规范
+
+检查点保存在 `.claude/checkpoints/{task_id}.json`，用于中断后恢复执行。
+
+### API
+
+| 函数 | 时机 | 说明 |
+|------|------|------|
+| `save_checkpoint(user_task, iteration, phase, context)` | 计划确认/执行完成/验证完成/调整完成 | 写入检查点文件 |
+| `load_checkpoint(user_task)` | Loop 初始化 | 匹配 task_id → 时效检查(>24h过期) → 询问用户恢复/重新开始 |
+| `cleanup_checkpoint(user_task)` | 任务完成/用户选择重新开始 | 删除检查点文件 |
+
+### Schema
+
+必需字段：`user_task`(string) | `task_id`(string) | `iteration`(int≥0) | `phase`(enum) | `context`(object) | `timestamp`(ISO8601)
+
+可选字段：`additional_state.completed_tasks`(string[]) | `additional_state.failed_tasks`(object[]) | `additional_state.execution_metrics`(object: started_at/total_duration_seconds/task_count)
+
+### resume_phase 规则
+
+保存时自动计算下一个应执行的阶段：
+- phase=`planning` → resume_phase=`execution`
+- phase=`execution` → resume_phase=`verification`
+- phase=`verification` → resume_phase=`quality_gate`（passed）或 `adjustment`（failed）
+- phase=`adjustment` → resume_phase=`prompt_check`
+
+### 注意事项
+
+时效 >24h 过期 | 恢复前必须询问用户 | 单任务同时只有一个检查点 | UTF-8 编码 | ISO8601 时间
+
 ## 状态转换
 
 成功 → Planning(计划设计) | 检查点恢复 → 对应阶段
