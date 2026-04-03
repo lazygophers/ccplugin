@@ -209,9 +209,9 @@ hooks:
 
 详见 [phase-initialization.md](phases/phase-initialization.md)
 
-### PromptOptimization: 提示词优化（必选）
+### PromptOptimization: 提示词优化
 
-每次迭代必须执行。明确任务边界（in-scope/out-of-scope）、任务范围、验收标准，生成优化提示词并写入 `.claude/tasks/{task_id}/prompt.md`，需用户确认后才进入下一阶段。Verification 阶段对照 prompt.md 检查交付物。详见 [phase-prompt-optimization.md](phases/phase-prompt-optimization.md)
+首次迭代必须执行，后续迭代仅在用户提供新输入时触发（增量修订已有 prompt.md，非重写），无新输入则跳过。将任务描述转化为可执行规格说明（Deliverable + Context + Guardrails），写入 `.claude/tasks/{task_id}/prompt.md`，其中的验收标准是 Verification 判定和迭代是否继续的核心依据。详见 [phase-prompt-optimization.md](phases/phase-prompt-optimization.md)
 
 ### DeepResearch: 深度研究（可选）
 

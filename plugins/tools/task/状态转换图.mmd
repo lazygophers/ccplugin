@@ -12,17 +12,20 @@ stateDiagram-v2
         LoadMemory --> [*]
     }
 
-    Initialization --> PromptOptimization: 必选阶段
+    Initialization --> PromptOptimization: 条件触发
 
     state PromptOptimization {
-        [*] --> BoundaryAnalysis: 任务边界分析
-        BoundaryAnalysis --> StructuredQuestioning: 5W1H 结构化提问
-        StructuredQuestioning --> PromptGeneration: 生成优化提示词
-        PromptGeneration --> PromptPersistence: 写入 prompt.md
+        [*] --> TriggerCheck: 触发条件检查
+        TriggerCheck --> SkipOpt: 无新输入→跳过
+        TriggerCheck --> TaskDecomposition: 首次/用户新输入→执行
+        TaskDecomposition --> ClarificationDialog: 澄清对话
+        ClarificationDialog --> SpecGeneration: 生成规格说明
+        SpecGeneration --> PromptPersistence: 写入 prompt.md
         PromptPersistence --> UserChoice: 用户选择
+        SkipOpt --> [*]
         UserChoice --> [*]
     }
-    note right of PromptOptimization: 每次迭代必须执行\n允许通过@main提问\n结果写入 prompt.md
+    note right of PromptOptimization: 首次迭代必选\n用户新输入→增量修订\n无新输入→跳过\n结果写入 prompt.md
 
     state prompt_choice <<choice>>
     PromptOptimization --> prompt_choice

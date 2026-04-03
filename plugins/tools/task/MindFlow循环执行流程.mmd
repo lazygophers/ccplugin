@@ -57,23 +57,28 @@ flowchart TB
     Init_Jump -.恢复.-> Adjust_Entry
 
     %% =============================================================================
-    %% PromptOptimization: 提示词优化（必选阶段）
+    %% PromptOptimization: 提示词优化（条件触发）
     %% =============================================================================
-    subgraph PromptOpt["PromptOptimization: 提示词优化 - 必选"]
+    subgraph PromptOpt["PromptOptimization: 提示词优化"]
         direction TB
-        PO_1[prompt-optimizer<br/>BoundaryAnalysis 任务边界分析]
-        PO_2["StructuredQuestioning<br/>5W1H 提问<br/>SendMessage(@main)→AskUser"]
-        PO_5[PromptGeneration<br/>生成优化提示词]
+        PO_Trigger{首次迭代 或<br/>用户有新输入?}
+        PO_Skip([跳过: 复用已有 prompt.md])
+        PO_1[TaskDecomposition<br/>任务分解+边界定义]
+        PO_2["ClarificationDialog<br/>澄清对话<br/>SendMessage(@main)→AskUser"]
+        PO_5[SpecGeneration<br/>生成规格说明]
         PO_6["PromptPersistence<br/>写入 prompt.md<br/>.claude/tasks/{task_id}/prompt.md"]
         PO_7{UserConfirmation<br/>用户选择 A/B/C}
 
+        PO_Trigger -->|是| PO_1
+        PO_Trigger -->|否| PO_Skip
         PO_1 --> PO_2
         PO_2 --> PO_5
         PO_5 --> PO_6
         PO_6 --> PO_7
     end
 
-    Init_9 --> PO_1
+    Init_9 --> PO_Trigger
+    PO_Skip --> DR_Entry
     PO_7 -->|A/B:继续| DR_Entry
     PO_7 -->|C:重新优化| PO_1
 
@@ -268,7 +273,7 @@ flowchart TB
         Adjust_8[指数退避: backoff_seconds]
 
         Adjust_Level["升级策略<br/>L1 retry(含自愈) 0s<br/>L2 debug 2s<br/>L3 replan(含微调) 4s<br/>L4 ask_user"]
-        Adjust_Route[路由<br/>retry/debug/replan→PromptCheck<br/>ask_user→用户→PromptCheck]
+        Adjust_Route[路由<br/>retry/debug/replan→PromptOptimization<br/>ask_user→用户→PromptOptimization]
 
         Adjust_Stuck[停滞检测:<br/>连续3次相同错误<br/>振荡检测A→B→A→B]
 
@@ -412,7 +417,7 @@ flowchart TB
     class Final_Entry,Final_0,Final_2,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
 
     %% 决策节点
-    class Init_2,PO_7,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
+    class Init_2,PO_Trigger,PO_7,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
 
     %% 违规检测节点
     class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,Final_1,V1,V2,V3,V4 violationNode
@@ -422,7 +427,7 @@ flowchart TB
 
     %% 开始结束节点
     class Start startNode
-    class DR_Skip,Plan_SkipExec skipNode
+    class DR_Skip,PO_Skip,Plan_SkipExec skipNode
     class Verify_Fail,Verify_Error,C_Warning errorNode
     class End endNode
 

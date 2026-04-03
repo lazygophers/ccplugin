@@ -15,10 +15,10 @@ graph TB
         ScanResidual["扫描残留计划"]
     end
 
-    subgraph PhasePromptOpt["PromptOptimization（必选）"]
-        POBoundary["BoundaryAnalysis<br/>任务边界分析"]
-        POQuestion["StructuredQuestioning<br/>5W1H 提问"]
-        POGenerate["PromptGeneration<br/>生成优化提示词"]
+    subgraph PhasePromptOpt["PromptOptimization（条件触发）"]
+        PODecompose["TaskDecomposition<br/>任务分解+边界定义"]
+        PODialog["ClarificationDialog<br/>澄清对话"]
+        POSpec["SpecGeneration<br/>生成规格说明"]
         POPersist["PromptPersistence<br/>写入 prompt.md"]
         POConfirm["UserConfirmation<br/>用户确认 A/B/C"]
     end
@@ -89,10 +89,10 @@ graph TB
     ScanResidual -.->|"清理残留"| PlanFile
 
     %% PromptOptimization 流程
-    UserTask -->|"原始提示词"| POBoundary
-    POBoundary --> POQuestion
-    POQuestion --> POGenerate
-    POGenerate --> POPersist
+    UserTask -->|"原始提示词"| PODecompose
+    PODecompose --> PODialog
+    PODialog --> POSpec
+    POSpec --> POPersist
     POPersist -->|"生成"| PromptFile
     POPersist --> POConfirm
     POConfirm -->|"A/B:更新"| F6
@@ -121,7 +121,7 @@ graph TB
     ScoreOut -->|"passed"| QualityGate{"QualityGate"}
     ScoreOut -->|"failed"| PhaseAdjust["Adjustment"]
     QualityGate -->|"达标"| PhaseFinal
-    QualityGate -->|"不达标"| PhasePromptCheck["PromptCheck"]
+    QualityGate -->|"不达标"| PhasePromptOpt2["PromptOptimization"]
 
     %% Cleanup 流程
     PromptFile -->|"删除"| CleanPlan
@@ -151,5 +151,5 @@ graph TB
     class F1,F2,F3,F4,F5,F6 field
     class L1,L2,L3,MECE,WritePlanFile,ReadPlan,SkillCall,UpdateTask,ReadPlanV,Stage1,Stage2,Stage3,ScoreOut,CleanPlan,CleanCheckpoint,CleanArtifacts,SaveMem,Retro,GenId,SetIter,ResetCtx,ScanResidual phase
     class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,ContextSnap,PromptFile artifact
-    class POBoundary,POQuestion,POGenerate,POPersist,POConfirm phase
+    class PODecompose,PODialog,POSpec,POPersist,POConfirm phase
     class EpisodicMem,ProjectMem memory

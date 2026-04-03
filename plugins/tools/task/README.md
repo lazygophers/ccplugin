@@ -30,7 +30,7 @@ Task 是一个任务管理框架插件，提供规划、执行、验证和迭代
 | 阶段 | 说明 | 必须/可选 |
 |------|------|----------|
 | Initialization | 初始化状态、生成 task_id | 必须 |
-| PromptOptimization | 任务边界分析+5W1H+prompt.md 持久化 | 必须 |
+| PromptOptimization | 任务规格说明（首次必选，用户新输入增量修订） | 条件触发 |
 | DeepResearch | 收集最佳实践和技术方案 | 可选（复杂度>8） |
 | Planning | MECE 分解任务、DAG 依赖、用户确认 | 必须 |
 | Execution | 按计划调度 agent 执行任务 | 必须 |
