@@ -4,12 +4,6 @@ model: haiku
 context: fork
 user-invocable: false
 agent: task:finalizer
-hooks:
-  SubagentStop:
-    - hooks:
-        - type: command
-          command: "VALIDATE_TYPE=finalizer bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
-          timeout: 10
 ---
 
 

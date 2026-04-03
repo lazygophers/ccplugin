@@ -38,30 +38,5 @@
     "./agents/explorer-infrastructure.md",
     "./agents/explorer-dependencies.md"
   ],
-  "skills": "./skills/",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo 'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0' >> \"$CLAUDE_ENV_FILE\"",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-end.js",
-            "async": true,
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
+  "skills": "./skills/"
 }

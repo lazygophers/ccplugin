@@ -55,5 +55,8 @@ desktop/src-tauri/gen/
 lib/build/
 dist/
 
+# Python 空 __init__.py（框架自动生成）
+plugins/tools/task/scripts/__init__.py
+
 # 运行时数据库
 *.db

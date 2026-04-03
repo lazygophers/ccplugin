@@ -5,12 +5,6 @@ memory: project
 color: red
 skills:
   - task:adjuster
-hooks:
-  SubagentStop:
-    - hooks:
-        - type: command
-          command: "VALIDATE_TYPE=adjuster bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
-          timeout: 10
 ---
 
 <role>

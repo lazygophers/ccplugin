@@ -1,0 +1,25 @@
+[project]
+name = "task"
+version = "0.0.187"
+description = "Claude Code system notification plugin with hook support"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+ "lib",
+]
+
+[build-system]
+requires = [ "setuptools>=68.0", "wheel",]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"*" = [ "*.py", "*.json", "*.md",]
+
+[tool.setuptools.packages.find]
+where = [ ".",]
+include = [ "task*",]
+
+[tool.uv.sources.lib]
+git = "https://github.com/lazygophers/ccplugin"
+subdirectory = "lib"
+rev = "master"

@@ -4,12 +4,6 @@ model: sonnet
 context: fork
 user-invocable: false
 agent: task:planner
-hooks:
-  SubagentStop:
-    - hooks:
-        - type: command
-          command: "VALIDATE_TYPE=planner bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
-          timeout: 10
 ---
 
 

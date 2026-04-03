@@ -5,12 +5,6 @@ memory: project
 color: orange
 skills:
   - task:verifier
-hooks:
-  SubagentStop:
-    - hooks:
-        - type: command
-          command: "VALIDATE_TYPE=verifier bash ${CLAUDE_PLUGIN_ROOT}/hooks/validate-output.sh"
-          timeout: 10
 ---
 
 <role>
