@@ -144,7 +144,7 @@ wheels = [
 
 [[package]]
 name = "code-memory"
-version = "0.0.187"
+version = "0.0.188"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
