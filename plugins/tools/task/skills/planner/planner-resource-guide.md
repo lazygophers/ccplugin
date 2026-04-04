@@ -51,7 +51,7 @@
 ### Skills 发现机制
 
 扫描三个来源：
-1. **插件级**：`~/.claude/plugins/*/skills/` → 标注 `@plugin-name`
+1. **插件级**：`~/.claude/plugins/cache/*/*/skills/` → 标注 `@plugin-name`
 2. **User级**：`~/.claude/skills/` → 标注 `@user`
 3. **项目级**：`.claude/skills/` → 无后缀
 

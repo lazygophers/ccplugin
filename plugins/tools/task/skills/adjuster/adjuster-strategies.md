@@ -67,7 +67,7 @@ Closed(正常) →[N次失败]→ Open(熔断) →[冷却]→ Half-Open(尝试) 
 
 ### 自定义自愈规则
 
-支持用户在 `.claude/self-healing-rules.yaml` 定义自定义规则（优先级高于内置）：
+支持用户在 `.claude/rules/loop.extra.yaml` 定义自定义规则（优先级高于内置）：
 
 ```yaml
 rules:
@@ -80,4 +80,4 @@ rules:
 
 字段：name(必需) | pattern(regex,必需) | action(修复命令,必需) | verify(验证命令) | priority(high/medium/low) | max_retries(默认3)
 
-加载优先级：用户自定义 → 项目级(.claude/project-healing-rules.yaml) → 内置(17种)
+加载优先级：用户自定义 → 项目级(.claude/rules/loop.extra.yaml) → 内置(17种)

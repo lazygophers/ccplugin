@@ -199,7 +199,7 @@
   "task_description": "用户任务描述",
   "iteration": 3,
   "current_phase": "execution",
-  "plan_file": ".claude/plans/xxx-3.md",
+  "plan_file": ".claude/tasks/xxx-3.md",
   "planner_result": { "tasks": [...], "dependencies": {...} },
   "completed_tasks": ["T1", "T2"],
   "failed_tasks": ["T3"],
