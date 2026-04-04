@@ -21,6 +21,22 @@
 | <6 分 | 跳过，直接进入 Planning |
 | 连续失败 >=2 次 | 询问用户 |
 
+### 用户确认（6-8分或连续失败时）
+
+```json
+AskUserQuestion({
+  "questions": [{
+    "question": "任务复杂度评分${score}/10，建议进行深度研究，是否启动？",
+    "header": "[MindFlow·${task_id}·深度研究]",
+    "options": [
+      {"label": "启动研究", "description": "调研技术方案和最佳实践"},
+      {"label": "跳过研究", "description": "直接进入Planning阶段"}
+    ],
+    "multiSelect": false
+  }]
+})
+```
+
 ## 调用研究 Agent
 
 ```

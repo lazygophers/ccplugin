@@ -7,7 +7,24 @@
 
 ## 执行流程
 
-1. **检查点恢复**：`load_checkpoint(user_task)`，存在则恢复 iteration/context/plan_md_path/stalled_count，跳转到保存的阶段
+1. **检查点恢复**：`load_checkpoint(user_task)`，存在则恢复 iteration/context/plan_md_path/stalled_count，询问用户是否恢复：
+   
+   ```json
+   AskUserQuestion({
+     "questions": [{
+       "question": "检测到中断的任务（阶段：${phase}，迭代：${iteration}），是否恢复？",
+       "header": "[MindFlow·${task_id}·检查点恢复]",
+       "options": [
+         {"label": "恢复任务", "description": "从中断点继续执行"},
+         {"label": "重新开始", "description": "清理检查点并从头开始"}
+       ],
+       "multiSelect": false
+     }]
+   })
+   ```
+   
+   - 用户选择"恢复任务" → 跳转到保存的阶段
+   - 用户选择"重新开始" → 调用 `cleanup_checkpoint()` 并继续正常初始化
 2. **正常初始化**：iteration=0, stalled_count=0, guidance_count=0, max_stalled_attempts=3, context={replan_trigger: None, task_id: null}
 3. **生成 task_id**：从用户任务描述提取最简短的中文描述（2-6 个汉字）
    - 必须中文，禁止日期/序号/哈希/英文/拼音/短横线

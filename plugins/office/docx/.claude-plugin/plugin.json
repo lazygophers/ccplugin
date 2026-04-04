@@ -1,6 +1,6 @@
 {
   "name": "office-docx",
-  "version": "0.0.188",
+  "version": "0.0.189",
   "description": "Word docx 文件读写和文档操作插件。基于 MCP 协议提供 Word 操作工具。",
   "author": {
     "name": "lazygophers",

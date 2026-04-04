@@ -39,15 +39,36 @@ Agent 内部完成：TaskDecomposition → ClarificationDialog → SpecGeneratio
 
 ## UserConfirmation：用户确认（由 loop 执行，非 agent）
 
-prompt-optimizer 返回后，**loop 必须立即**通过 `AskUserQuestion` 让用户确认：
+prompt-optimizer 返回后，**loop 必须立即**通过 `AskUserQuestion` 让用户确认。
 
-| 选项 | 描述 | 后续流程 |
-|------|------|---------|
-| **A: 确认使用** | 接受优化后的规格说明 | 更新 `context.user_task` → 复杂度评估 |
-| **B: 确认并跳过计划确认** | 接受优化后的规格说明，同时授权跳过下一次 Planning 用户确认（仅单次有效） | 更新 `context.user_task` + 设置 `skip_next_plan_confirm=true` → 复杂度评估 |
-| **C: 使用原始提示词** | 保持用户原始输入 | 将原始版本写入 prompt.md → 复杂度评估 |
-| **D: 修正偏离部分** | 用户指出提示词与意图偏离的部分，提供修正内容 | 收集用户修正 → 重新调用 prompt-optimizer（增量修订模式，仅修正指定部分） |
-| **E: 重新优化** | 提供反馈后全面重新优化 | 收集反馈 → 重新调用 prompt-optimizer |
+**AskUserQuestion 调用格式**（必须先 `ToolSearch(query="select:AskUserQuestion")` 加载工具）：
+
+```json
+AskUserQuestion({
+  "questions": [{
+    "question": "规格说明已生成，请确认是否使用",
+    "header": "[MindFlow·${task_id}·提示词确认]",
+    "options": [
+      {"label": "A: 确认使用", "description": "接受优化后的规格说明"},
+      {"label": "B: 确认并跳过计划确认", "description": "接受规格说明并授权跳过下一次Planning确认（单次有效）"},
+      {"label": "C: 使用原始提示词", "description": "保持用户原始输入"},
+      {"label": "D: 修正偏离部分", "description": "指出偏离部分并提供修正内容"},
+      {"label": "E: 重新优化", "description": "提供反馈后全面重新优化"}
+    ],
+    "multiSelect": false
+  }]
+})
+```
+
+**后续流程**：
+
+| 选项 | 后续处理 |
+|------|---------|
+| **A: 确认使用** | 更新 `context.user_task` → 复杂度评估 |
+| **B: 确认并跳过计划确认** | 更新 `context.user_task` + 设置 `skip_next_plan_confirm=true` → 复杂度评估 |
+| **C: 使用原始提示词** | 将原始版本写入 prompt.md → 复杂度评估 |
+| **D: 修正偏离部分** | 收集用户修正 → 重新调用 prompt-optimizer（增量修订模式，仅修正指定部分） |
+| **E: 重新优化** | 收集反馈 → 重新调用 prompt-optimizer |
 
 **禁止**：跳过确认直接进入下一阶段。
 

@@ -73,8 +73,8 @@ hooks:
 ```json
 AskUserQuestion({
   "questions": [{
-    "question": "[MindFlow·${task_id}] 计划已生成（${task_count}个任务），是否批准执行？",
-    "header": "计划确认",
+    "question": "计划已生成（${task_count}个任务），是否批准执行？",
+    "header": "[MindFlow·${task_id}·计划确认]",
     "options": [
       {"label": "批准执行", "description": "开始按计划执行所有任务"},
       {"label": "修改计划", "description": "提供修改意见，重新设计计划"},
