@@ -3,67 +3,52 @@
 
 系统性检查所有任务执行结果，确保满足验收标准。
 
-## 执行流程
+## 前置条件
 
-**前置条件检查**：进入验证阶段前，必须确认所有任务已执行完成（plan文件中所有任务状态为✅或❌）。未满足则触发错误。
+进入验证阶段前，必须确认所有任务已执行完成（plan 文件中所有任务状态为 ✅ 或 ❌）。
 
-1. **【强制】调用 verifier skill**：禁止跳过此步骤
-   ```
-   Skill(skill="task:verifier", args="执行结果验证：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}\n要求：1.获取任务状态+验收标准 2.系统性验证 3.回归测试 4.生成验收报告(≤100字) 5.决定状态")
-   ```
-2. 输出 `[MindFlow·{task}·结果验证/{N}·{status}]` + 验收报告
-3. 更新 plan 文件 frontmatter（status + completed_count）
-4. 保存检查点 `save_checkpoint(phase="verification")`
+## 调用 verifier
 
-**跳过检测机制**：如果未调用 verifier 就进入下一阶段，将触发验证错误并强制回退到本阶段。
+```
+Agent(subagent_type="task:verifier", prompt="执行结果验证：
+  项目路径：{project_path}
+  任务ID：{task_id}
+  任务目标：{user_task}
+  迭代：{iteration}
+  计划文件：{plan_md_path}
+  工作目录：{working_directory}")
+```
 
-## 强制状态转换
+Verifier 内部完成：Stage 1 Spec Compliance → Stage 2 Code Quality → 写入 metadata.json result。详见 agent 定义。
 
-**验证完成后必须立即按状态分支继续，禁止在本阶段后结束回复：**
+**跳过检测**：如果未调用 verifier 就进入下一阶段，将触发验证错误并强制回退。
 
-| 状态 | 条件 | 下一步 | 强制要求 |
-|------|------|--------|---------|
-| passed | 全部验收通过 | QualityGate（质量评估） | **必须立即**进入质量评估 |
-| failed | 至少一项验收未通过 | Adjustment（失败调整） | **必须立即**进入失败调整 |
+## 结果处理
 
-**注意**：Verification 仅判断验收标准是否通过（passed/failed），质量分评估由 QualityGate 阶段负责。
+读取 metadata.json 的 `result` 字段：
 
-**禁止**：验证完成后就结束回复。Loop 流程不可中断，必须继续到 Cleanup。
+| result.status | 下一步 | 强制要求 |
+|---------------|--------|---------|
+| `passed` | QualityGate（质量评估） | **必须立即**进入质量评估 |
+| `failed` | Adjustment（失败调整） | **必须立即**进入失败调整，传递 `failed_criteria` |
+
+**Verifier→Adjuster 数据传递**：failed 时 result 包含 `failed_criteria[]`（每项含 criterion/actual/expected/suggestion），loop 调用 adjuster 时必须完整传递。
 
 ## QualityGate: 质量评估
 
-Verification passed 后，检查 verifier 返回的 `quality_score` 是否达到当前迭代阈值（SSOT 在 flows/verify.md）。
-
-**质量不达标不是失败**，不进入 Adjustment：
+Verification passed 后，检查 `result.quality_score` 是否达到当前迭代阈值（SSOT 在 flows/verify.md）。
 
 | 条件 | 下一步 | 强制要求 |
 |------|--------|---------|
-| quality_score ≥ 阈值 | Cleanup（清理） | **必须立即**进入清理 |
+| quality_score >= 阈值 | Cleanup（清理） | **必须立即**进入清理 |
 | quality_score < 阈值 | PromptOptimization（改进） | **必须立即**回到提示词评估（非失败，需改进） |
 
-## 验收维度
+**质量不达标不是失败**，不进入 Adjustment。
 
-功能完整性 | 验收标准(acceptance_criteria) | 代码质量 | 测试覆盖 | 回归测试
+## 后续操作
 
-## Verifier→Adjuster 数据契约
+1. 输出 `[MindFlow·{task_id}·结果验证/{iteration}·{status}]` + 验收报告
+2. 更新 plan 文件 frontmatter（status + completed_count）
+3. 保存检查点 `save_checkpoint(phase="verification")`
 
-当 Verifier 返回 `failed` 状态时，输出必须包含结构化的失败信息，供 Adjuster 精准定位问题：
-
-```json
-{
-  "status": "failed",
-  "quality_score": 45,
-  "failed_criteria": [
-    {
-      "criterion": "验收标准原文",
-      "actual": "实际观察到的结果",
-      "expected": "期望的结果",
-      "suggestion": "建议的修复方向"
-    }
-  ]
-}
-```
-
-**强制规则**：`failed_criteria` 数组不可为空，每项必须包含 `criterion`/`actual`/`expected`/`suggestion` 四个字段。Loop 在调用 Adjuster 时，必须将 `failed_criteria` 完整传递到 Adjuster 的 args 中。
-
-详见：[verifier/SKILL.md](../verifier/SKILL.md) | [flows/verify.md](../flows/verify.md)
+**禁止**：验证完成后结束回复。Loop 流程不可中断。
