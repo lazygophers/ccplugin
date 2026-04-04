@@ -65,6 +65,8 @@ def handle_hook_skills() -> None:
 		# 路由到不同的处理器
 		if hook_event_name == "SessionStart":
 			handle_session_start(session_id)
+		elif hook_event_name == "SubagentStart":
+			handle_session_start(session_id)
 	except Exception as e:
 		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
 		sys.exit(0)

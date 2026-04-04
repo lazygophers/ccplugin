@@ -1,0 +1,15 @@
+{
+  "task_id": "数据迁移",
+  "session_id": "b2c3d4e5f6789012345678abcdef012",
+  "description": "将旧数据库数据迁移到新的 PostgreSQL 数据库",
+  "phase": "failed",
+  "created_at": 1733310000,
+  "updated_at": 1733320000,
+  "iteration": 3,
+  "quality_score": 45,
+  "error": "数据库连接超时，无法完成迁移任务",
+  "result": {
+    "status": "failed"
+  },
+  "skip_next_plan_confirm": false
+}
