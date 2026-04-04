@@ -2,7 +2,7 @@ import json
 import logging
 import os.path
 import sys
-from typing import Any
+from typing import Any, Dict
 
 
 def _truncate_value_for_log(value: Any, max_length: int = 100) -> Any:
@@ -28,7 +28,7 @@ def _truncate_value_for_log(value: Any, max_length: int = 100) -> Any:
 		return value
 
 
-def load_hooks():
+def load_hooks() -> Dict[str, Any]:
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
 
 	  Hook 数据格式示例：
