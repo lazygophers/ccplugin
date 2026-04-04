@@ -71,6 +71,24 @@
    - `result`：各阶段子 agent 的执行结果（对象），loop 读取后决定下一步
    - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
    
+   **c) 【自检】验证 index.json 已正确更新**（防御性编程，避免索引创建失败导致后续 hooks 阻断）：
+   
+   读取 `.claude/tasks/index.json` 并验证当前 `session_id` 和 `task_id` 已记录：
+   
+   ```bash
+   # 检查 session_id 是否存在
+   jq -e --arg sid "$SESSION_ID" 'has($sid)' .claude/tasks/index.json
+   
+   # 检查该 session 下是否包含当前 task_id
+   jq -e --arg sid "$SESSION_ID" --arg tid "$TASK_ID" \
+     '.[$sid] | any(.task_id == $tid)' .claude/tasks/index.json
+   ```
+   
+   **如验证失败**（索引缺失或损坏）：
+   - 立即执行步骤 4a 的索引更新逻辑（补救创建）
+   - 记录警告但**不中止**初始化流程
+   - 理由：首次初始化失败可能由并发写入、权限问题等引起，自检补救可提高容错性
+   
 5. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
 6. **残留清理**：
    - 扫描 `.claude/tasks/*/plan.md`，删除非当前任务的残留计划文件

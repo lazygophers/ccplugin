@@ -38,6 +38,35 @@ def handle_session_start(session_id: str):
 				}
 			}))
 
+def handle_pretooluse(tool_name: str, tool_input: dict, session_id: str):
+	"""PreToolUse: 阻止未索引的 task agent 启动"""
+	# 只检查 Agent 工具调用
+	if tool_name != "Agent":
+		sys.exit(0)
+
+	# 提取 subagent_type
+	subagent_type = tool_input.get("subagent_type", "")
+
+	# 只检查 task:* agents（排除 task:loop）
+	if not subagent_type.startswith("task:") or subagent_type == "task:loop":
+		sys.exit(0)
+
+	# 检查 index.json 是否存在
+	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
+	if not os.path.exists(index_path):
+		print(f"阻止 {subagent_type} 启动：.claude/tasks/index.json 不存在", file=sys.stderr)
+		sys.exit(2)
+
+	# 检查 session_id 是否已索引
+	with open(index_path) as file:
+		tasks = json.load(file)
+		if session_id not in tasks:
+			print(f"阻止 {subagent_type} 启动：session {session_id} 未在 index.json 中索引", file=sys.stderr)
+			sys.exit(2)
+
+	# 通过检查，允许启动
+	sys.exit(0)
+
 def handle_hook_skills() -> None:
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
 
@@ -67,6 +96,10 @@ def handle_hook_skills() -> None:
 			handle_session_start(session_id)
 		elif hook_event_name == "SubagentStart":
 			handle_session_start(session_id)
+		elif hook_event_name == "PreToolUse":
+			tool_name = input_data.get("tool_name", "")
+			tool_input = input_data.get("tool_input", {})
+			handle_pretooluse(tool_name, tool_input, session_id)
 	except Exception as e:
 		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
 		sys.exit(0)
