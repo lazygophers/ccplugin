@@ -10,6 +10,11 @@ agents:
 model: sonnet
 memory: project
 user-invocable: true
+hooks:
+  Stop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks"
 ---
 
 

@@ -8,6 +8,10 @@ hooks:
     - hooks:
         - type: command
           command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
+  SubagentStart:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 # Skills(task:prompt-optimizer) - 提示词优化规范
