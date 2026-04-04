@@ -196,7 +196,7 @@ def handle_permission_request(hook_data: Dict[str, any]):
 					"hookEventName": hook_data.get("hook_event_name", "PermissionRequest"),
 					"decision": {
 						"behavior": "allow",
-						"updatedInput": tool_input
+						"permissionDecisionReason": "允许"
 					}
 				}
 			}))
