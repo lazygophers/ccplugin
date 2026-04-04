@@ -65,3 +65,9 @@ plugins/tools/task/scripts/__init__.py
 
 # 版本文件（构建产物）
 *.version
+
+# 测试基准数据
+.benchmarks/
+
+# 覆盖率报告
+coverage.json
