@@ -49,6 +49,8 @@ Finalizer 返回 `result.status`：`completed` | `partially_completed` | `failed
 1. finalizer skill 已执行完成
 2. 最终报告已输出
 3. 状态变量已清理
-4. **标记 Loop 完成**：更新 `.claude/tasks/{task_id}/metadata.json` 的 `phase` 为 `"completed"`
+4. **标记 Loop 完成**：
+   - 更新 `.claude/tasks/{task_id}/metadata.json` 的 `phase` 为 `"completed"` 或 `"failed"`
+   - 更新 `.claude/tasks/index.json` 中对应任务的 `phase`、`updated_at`、`quality_score`
 
 **End 是整个 Loop 流程中唯一允许结束回复的节点。在此之前的任何阶段都禁止结束回复。**

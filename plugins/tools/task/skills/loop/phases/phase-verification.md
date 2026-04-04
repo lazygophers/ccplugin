@@ -59,6 +59,9 @@ Verification passed 后，检查 `result.quality_score` 是否达到当前迭代
 
 1. 输出 `[MindFlow·{task_id}·结果验证/{iteration}·{status}]` + 验收报告
 2. 更新 plan 文件 frontmatter（status + completed_count）
-3. 保存检查点 `save_checkpoint(phase="verification")`
+3. **更新索引**：更新 `.claude/tasks/index.json` 中对应任务的 `quality_score`、`phase`、`updated_at`
+4. 保存检查点 `save_checkpoint(phase="verification")`
+
+**索引更新**：Verification 完成后，更新索引中的质量分数。详见 [task-index-management.md](../task-index-management.md)
 
 **禁止**：验证完成后结束回复。Loop 流程不可中断。

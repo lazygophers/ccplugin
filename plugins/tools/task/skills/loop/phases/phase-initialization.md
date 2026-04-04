@@ -17,10 +17,12 @@
    ```bash
    mkdir -p .claude/tasks/{task_id}
    ```
-   写入 `.claude/tasks/{task_id}/metadata.json`：
+   
+   **a) 写入任务元数据** `.claude/tasks/{task_id}/metadata.json`：
    ```json
    {
      "task_id": "${task_id}",
+     "session_id": "${session_id}",
      "description": "${user_task}",
      "phase": "initialization",
      "created_at": "ISO8601",
@@ -32,10 +34,43 @@
      "skip_next_plan_confirm": false
    }
    ```
+   - `task_id`：任务唯一标识（从用户任务描述提取的中文描述，2-6 个汉字）
+   - `session_id`：Claude Code 会话标识（MD5 哈希，用于记忆加载、日志关联）
+   - `description`：用户原始任务描述
+   - `phase`：当前阶段，枚举值：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
+   - `created_at`：任务创建时间（ISO8601 格式）
+   - `updated_at`：任务最后更新时间（ISO8601 格式，每次阶段转换时更新）
+   - `iteration`：当前迭代轮次（从 0 开始）
+   - `quality_score`：验证质量分数（Verification 阶段写入，范围 0-100）
+   - `error`：错误信息（发生错误时记录）
    - `result`：各阶段子 agent 的执行结果（对象），loop 读取后决定下一步
-   - `phase` 枚举：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
    - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
-   - 每次阶段转换时更新 `phase`、`updated_at`
+   
+   **b) 更新任务索引** `.claude/tasks/index.json`：
+   
+   索引文件存储所有任务的基本信息列表，便于快速查询和管理。首次创建索引文件时初始化为空数组，后续任务追加到数组。
+   
+   ```json
+   [
+     {
+       "task_id": "${task_id}",
+       "session_id": "${session_id}",
+       "description": "${user_task}",
+       "phase": "initialization",
+       "created_at": "ISO8601",
+       "updated_at": "ISO8601",
+       "iteration": 0,
+       "quality_score": null
+     }
+   ]
+   ```
+   
+   **索引操作规则**：
+   - **创建任务**：检查 index.json 是否存在，不存在则创建空数组，然后追加当前任务信息
+   - **更新任务**：每次阶段转换时，更新索引中对应 task_id 的记录（phase、updated_at、iteration、quality_score）
+   - **清理任务**：Cleanup 阶段完成后，更新索引中对应任务的 phase 为 `completed` 或 `failed`
+   - **过期清理**：定期清理索引中 30 天前的已完成/失败任务记录
+   
 5. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
 6. **残留清理**：
    - 扫描 `.claude/tasks/*/plan.md`，删除非当前任务的残留计划文件
