@@ -23,8 +23,11 @@ Agent(subagent_type="task:verifier", prompt="执行结果验证：
   任务目标：{user_task}
   迭代：{iteration}
   计划文件：{plan_md_path}
+  规格说明：.claude/tasks/{task_id}/prompt.md
   工作目录：{working_directory}")
 ```
+
+`规格说明`（prompt.md）包含验收标准，verifier 必须逐条对照判定 passed/failed，并据此决定是否需要下一轮迭代。
 
 Verifier 内部完成：Stage 1 Spec Compliance → Stage 2 Code Quality → 写入 metadata.json result。详见 agent 定义。
 
