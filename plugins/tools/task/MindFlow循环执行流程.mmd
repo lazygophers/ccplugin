@@ -67,7 +67,7 @@ flowchart TB
         PO_2["ClarificationDialog<br/>澄清对话<br/>SendMessage(@main)→AskUser"]
         PO_5[SpecGeneration<br/>生成规格说明]
         PO_6["PromptPersistence<br/>写入 prompt.md<br/>.claude/tasks/{task_id}/prompt.md"]
-        PO_7{UserConfirmation<br/>用户选择 A/B/C}
+        PO_7{UserConfirmation<br/>用户选择 A/B/C/D/E}
 
         PO_Trigger -->|是| PO_1
         PO_Trigger -->|否| PO_Skip
@@ -79,8 +79,8 @@ flowchart TB
 
     Init_9 --> PO_Trigger
     PO_Skip --> DR_Entry
-    PO_7 -->|A/B:继续| DR_Entry
-    PO_7 -->|C:重新优化| PO_1
+    PO_7 -->|A/B/C:继续| DR_Entry
+    PO_7 -->|D/E:重新优化| PO_1
 
     %% =============================================================================
     %% DeepResearch: 深度研究（可选）

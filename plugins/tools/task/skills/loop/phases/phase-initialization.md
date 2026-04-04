@@ -28,11 +28,13 @@
      "iteration": 0,
      "quality_score": null,
      "error": null,
-     "result": null
+     "result": null,
+     "skip_next_plan_confirm": false
    }
    ```
    - `result`：各阶段子 agent 的执行结果（对象），loop 读取后决定下一步
    - `phase` 枚举：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
+   - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
    - 每次阶段转换时更新 `phase`、`updated_at`
 5. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
 6. **残留清理**：

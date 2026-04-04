@@ -32,12 +32,15 @@ Agent(subagent_type="task:planner", prompt="
 
 | 场景 | auto_approve | 说明 |
 |------|-------------|------|
-| 首次规划 (iteration=1) | false | 需要用户确认 |
-| 用户重新设计 (replan_trigger="user") | false | 需要用户确认 |
+| 首次规划 (iteration=1) | false | 需要用户确认（除非 skip_next_plan_confirm=true） |
+| 用户重新设计 (replan_trigger="user") | false | 需要用户确认（除非 skip_next_plan_confirm=true） |
+| PromptOptimization 选项 B | true | 用户授权跳过确认（仅单次有效） |
 | Adjuster 重规划 | true/false | 视情况决定 |
 | Verifier 建议优化 | true/false | 视情况决定 |
 
-Planner 内部完成：信息收集（三层上下文学习）→ 计划设计（MECE 分解）→ 写入 plan.md + tasks.json → 用户确认 → 写入 metadata.json result。详见 agent 定义。
+**skip_next_plan_confirm 优先级最高**：loop 调用 planner 前，先读取 metadata.json 的 `skip_next_plan_confirm` 字段。如果为 true，则强制设置 `auto_approve=true`，并在调用后立即清除此标记（设为 false）。
+
+Planner 内部完成：信息收集（三层上下文学习）→ 计划设计（MECE 分解）→ 写入 plan.md + tasks.json → (auto_approve ? 自动返回 : 用户确认) → 写入 metadata.json result。详见 agent 定义。
 
 ## 结果处理
 
