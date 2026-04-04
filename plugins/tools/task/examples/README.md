@@ -1,6 +1,6 @@
 # metadata.json 样例文件
 
-本目录包含 `.claude/tasks/{task_id}/metadata.json` 在不同完成状态下的样例文件。
+本目录包含 `.lazygophers/tasks/{task_id}/metadata.json` 在不同完成状态下的样例文件。
 
 ## 样例说明
 
@@ -106,7 +106,7 @@ print(timestamp)  # 1733308800
 
 ## 与 index.json 的对应
 
-完成状态的 metadata.json 会同步到 `.claude/tasks/index.json`：
+完成状态的 metadata.json 会同步到 `.lazygophers/tasks/index.json`：
 
 ```json
 {

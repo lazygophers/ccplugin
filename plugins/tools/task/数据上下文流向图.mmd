@@ -65,14 +65,14 @@ graph TB
 
     subgraph Artifacts["中间产物生命周期"]
         direction LR
-        PlanFile[".claude/tasks/{task_id}/plan.md<br/>Planning 创建 → Cleanup 删除"]
-        CheckpointFile[".claude/tasks/{task_id}/checkpoints/<br/>Execution 创建 → Cleanup 删除"]
-        MetadataFile[".claude/tasks/{task_id}/metadata.json<br/>Initialization 创建 → Cleanup 更新"]
-        TasksFile[".claude/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
-        ApprovalLog[".claude/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
+        PlanFile[".lazygophers/tasks/{task_id}/plan.md<br/>Planning 创建 → Cleanup 删除"]
+        CheckpointFile[".lazygophers/tasks/{task_id}/checkpoints/<br/>Execution 创建 → Cleanup 删除"]
+        MetadataFile[".lazygophers/tasks/{task_id}/metadata.json<br/>Initialization 创建 → Cleanup 更新"]
+        TasksFile[".lazygophers/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
+        ApprovalLog[".lazygophers/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
         ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
-        PromptFile[".claude/tasks/{task_id}/prompt.md<br/>PromptOptimization 创建 → Cleanup 删除"]
-        IndexFile[".claude/tasks/index.json<br/>所有任务索引<br/>Initialization 追加 → 阶段转换更新 → Cleanup 标记完成"]
+        PromptFile[".lazygophers/tasks/{task_id}/prompt.md<br/>PromptOptimization 创建 → Cleanup 删除"]
+        IndexFile[".lazygophers/tasks/index.json<br/>所有任务索引<br/>Initialization 追加 → 阶段转换更新 → Cleanup 标记完成"]
     end
 
     subgraph Memory["记忆层"]

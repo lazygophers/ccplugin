@@ -23,7 +23,7 @@ Agent(subagent_type="task:verifier", prompt="执行结果验证：
   任务目标：{user_task}
   迭代：{iteration}
   计划文件：{plan_md_path}
-  规格说明：.claude/tasks/{task_id}/prompt.md
+  规格说明：.lazygophers/tasks/{task_id}/prompt.md
   工作目录：{working_directory}")
 ```
 
@@ -59,7 +59,7 @@ Verification passed 后，检查 `result.quality_score` 是否达到当前迭代
 
 1. 输出 `[MindFlow·{task_id}·结果验证/{iteration}·{status}]` + 验收报告
 2. 更新 plan 文件 frontmatter（status + completed_count）
-3. **更新索引**：更新 `.claude/tasks/index.json` 中对应任务的 `quality_score`、`phase`、`updated_at`
+3. **更新索引**：更新 `.lazygophers/tasks/index.json` 中对应任务的 `quality_score`、`phase`、`updated_at`
 4. 保存检查点 `save_checkpoint(phase="verification")`
 
 **索引更新**：**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行以下 jq 命令**。
@@ -83,8 +83,8 @@ jq --arg sid "$SESSION_ID" \
        .updated_at = $ts
      else . end
    )
-   ' .claude/tasks/index.json > .claude/tasks/index.json.tmp && \
-   mv .claude/tasks/index.json.tmp .claude/tasks/index.json
+   ' .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
+   mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
 ```
 
 **禁止**：验证完成后结束回复。Loop 流程不可中断。

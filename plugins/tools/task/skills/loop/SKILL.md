@@ -200,8 +200,8 @@ hooks:
 重置状态：`iteration=0, context={replan_trigger: None, started_at, task_id: null}`。生成 task_id：用最简短的中文描述任务核心（2-6个汉字，如"修复日志"、"添加认证"），禁止附加日期/序号，loop 完成前不可变。后续所有输出以 `[MindFlow·${task_id}]` 开头。
 
 **task_id 生成后立即执行以下步骤（严格顺序）**：
-1. **【第一步】更新任务索引** `.claude/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行 phase-initialization.md 步骤4 中提供的 jq 命令**。索引使用 Map 结构（**根键直接是 session_id 哈希值**，如 `"14ec8eae-411c-421f-b184-536c09507fb0"`，不可使用 `"session_id"`/`"tasks"` 等包装键），值为任务数组；确保 `.claude/tasks/` 目录存在；检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；追加当前任务信息（task_id/description/phase/created_at/updated_at/iteration/quality_score，时间戳为整数）
-2. 创建任务目录：`mkdir -p .claude/tasks/${task_id}`
+1. **【第一步】更新任务索引** `.lazygophers/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行 phase-initialization.md 步骤4 中提供的 jq 命令**。索引使用 Map 结构（**根键直接是 session_id 哈希值**，如 `"14ec8eae-411c-421f-b184-536c09507fb0"`，不可使用 `"session_id"`/`"tasks"` 等包装键），值为任务数组；确保 `.lazygophers/tasks/` 目录存在；检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；追加当前任务信息（task_id/description/phase/created_at/updated_at/iteration/quality_score，时间戳为整数）
+2. 创建任务目录：`mkdir -p .lazygophers/tasks/${task_id}`
 3. 写入 `metadata.json`：含 task_id/session_id/description/phase/iteration 等字段
 4. 写入空 `tasks.json`：`{"tasks":[]}`
 
@@ -211,7 +211,7 @@ hooks:
 
 ### PromptOptimization: 提示词优化
 
-首次迭代必须执行，后续迭代仅在用户提供新输入时触发（增量修订已有 prompt.md，非重写），无新输入则跳过。调用 `Agent(subagent_type="task:prompt-optimizer", prompt="...")` 将任务描述转化为可执行规格说明，写入 `.claude/tasks/{task_id}/prompt.md`。
+首次迭代必须执行，后续迭代仅在用户提供新输入时触发（增量修订已有 prompt.md，非重写），无新输入则跳过。调用 `Agent(subagent_type="task:prompt-optimizer", prompt="...")` 将任务描述转化为可执行规格说明，写入 `.lazygophers/tasks/{task_id}/prompt.md`。
 
 **prompt-optimizer 返回后，loop 必须立即执行 UserConfirmation**：通过 `AskUserQuestion` 让用户确认 prompt.md 内容。
 
@@ -250,7 +250,7 @@ hooks:
 
 | result.status | loop 处理 | 强制要求 |
 |---------------|----------|---------|
-| `confirmed` | 设 `plan_md_path = .claude/tasks/{task_id}/plan.md`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
+| `confirmed` | 设 `plan_md_path = .lazygophers/tasks/{task_id}/plan.md`，更新 context | **必须立即**在同一回复中进入 Execution（任务执行） |
 | `rejected` | 读取 `result.user_feedback`，设 `replan_trigger="user"` | **必须立即**回到 PromptOptimization（重新评估提示词质量） |
 | `no_tasks` | - | **必须立即**进入 Cleanup（清理） |
 | `cancelled` | - | **必须立即**进入 Cleanup（清理） |
@@ -259,7 +259,7 @@ hooks:
 
 **后置验证点**：
 - ✓ metadata.json 的 `result.status` 已更新
-- ✓ `.claude/tasks/{task_id}/plan.md` 文件存在（confirmed 时）
+- ✓ `.lazygophers/tasks/{task_id}/plan.md` 文件存在（confirmed 时）
 - ✓ 已获得用户批准或自动批准
 
 详见 [flows/plan.md](flows/plan.md) 和 [phase-planning.md](phases/phase-planning.md)

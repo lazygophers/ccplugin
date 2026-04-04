@@ -15,7 +15,7 @@
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 触发条件判定 | 首次迭代→必须执行；用户新输入→增量修订；无新输入→跳过 | 必须 |
-| prompt.md 存在 | 验证 `.claude/tasks/{task_id}/prompt.md` 文件存在（首次生成或已有） | 必须 |
+| prompt.md 存在 | 验证 `.lazygophers/tasks/{task_id}/prompt.md` 文件存在（首次生成或已有） | 必须 |
 | 验收标准可验证 | prompt.md 中每条验收标准可独立验证、可量化 | 必须 |
 | 用户确认已执行 | 首次/增量修订时验证用户选择 A/B/C/D/E | 条件必须 |
 | 增量修订保留未变更内容 | 非首次修订时验证未变更部分保持不变 | 条件必须 |
@@ -41,7 +41,7 @@
 | **上下文完整性** | **Skill/Agent调用包含6个必传字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）** | **必须** |
 | **Planner 调用** | **检查是否调用了 `Skill(skill="task:planner")`（planner 内部完成：设计+写文件+用户确认）** | **必须** |
 | Planner 返回 status | 验证 status 为 confirmed/rejected/no_tasks/cancelled 之一 | 必须 |
-| 计划文件已生成 | 验证 planner 返回的 plan_md_path 文件存在：`ls .claude/tasks/{task_id}/plan.md` | 必须 |
+| 计划文件已生成 | 验证 planner 返回的 plan_md_path 文件存在：`ls .lazygophers/tasks/{task_id}/plan.md` | 必须 |
 | 计划文件使用中文文件名 | 验证文件名包含中文关键词 | 必须 |
 | 用户确认已在 planner 内完成 | planner 返回 confirmed（已批准）或 rejected（已拒绝并带 user_feedback）| 必须 |
 | 后置验证点通过 | 验证 plan_md_path 已设置且文件存在 | 必须 |
@@ -112,7 +112,7 @@ grep "Agent(subagent_type=" <执行日志>
 grep "Agent(subagent_type=\"task:verifier\")" <loop输出>
 
 # 检查 metadata.json 是否更新为终态
-jq '.phase' .claude/tasks/*/metadata.json
+jq '.phase' .lazygophers/tasks/*/metadata.json
 
 # 检查原子拆分（每个任务files≤1个）
 grep -A2 '"files"' <计划JSON> | grep -c ',' # 应为0

@@ -15,14 +15,14 @@ from lib.hooks import load_hooks
 
 def handle_session_start(session_id: str):
 	"""检查 session_id 是否在任务索引中（index.json 格式：{session_id: [{task_id, ...}]}）"""
-	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
+	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
 
 	# 如果文件不存在，当做 session 不存在处理
 	if not os.path.exists(index_path):
 		print(json.dumps({
 			"hookSpecificOutput": {
 				"hookEventName": "SessionStart",
-				"additionalContext": ".claude/tasks/index.json 不存在"
+				"additionalContext": ".lazygophers/tasks/index.json 不存在"
 			}
 		}))
 		return
@@ -34,7 +34,7 @@ def handle_session_start(session_id: str):
 			print(json.dumps({
 				"hookSpecificOutput": {
 					"hookEventName": "SessionStart",
-					"additionalContext": f".claude/tasks/index.json 缺少 {session_id} 的信息"
+					"additionalContext": f".lazygophers/tasks/index.json 缺少 {session_id} 的信息"
 				}
 			}))
 
@@ -52,9 +52,9 @@ def handle_pretooluse(tool_name: str, tool_input: dict, session_id: str):
 		sys.exit(0)
 
 	# 检查 index.json 是否存在
-	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
+	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
 	if not os.path.exists(index_path):
-		print(f"阻止 {subagent_type} 启动：.claude/tasks/index.json 不存在", file=sys.stderr)
+		print(f"阻止 {subagent_type} 启动：.lazygophers/tasks/index.json 不存在", file=sys.stderr)
 		sys.exit(2)
 
 	# 检查 session_id 是否已索引（index.json 格式：{session_id: [{task_id, ...}]}）

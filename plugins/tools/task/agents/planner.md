@@ -59,10 +59,10 @@ hooks:
 
 **PlanWrite：格式化并写入计划文件**（tasks 非空时必须执行）
 
-1. 生成文件路径：`.claude/tasks/{task_id}/plan.md`
+1. 生成文件路径：`.lazygophers/tasks/{task_id}/plan.md`
 2. 按计划模板生成 Markdown，参考 [template.md](../skills/planner/template.md)
 3. 使用 Write 工具写入 plan.md
-4. 将 tasks 数组写入 `.claude/tasks/{task_id}/tasks.json`
+4. 将 tasks 数组写入 `.lazygophers/tasks/{task_id}/tasks.json`
 
 **UserConfirmation：用户确认**（根据 auto_approve 参数决定）
 
@@ -98,7 +98,7 @@ AskUserQuestion({
 
 **所有结果通过文件传递，禁止输出 JSON 或计划内容到对话。**
 
-完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段：
+完成后更新 `.lazygophers/tasks/{task_id}/metadata.json` 的 `result` 字段：
 
 | result.status | 说明 |
 |---------------|------|
@@ -133,7 +133,7 @@ AskUserQuestion({
 
 符号：`serena:find_symbol`/`get_symbols_overview`。文件：`serena:find_file`/`list_dir`/`Write`。搜索：`serena:search_for_pattern`。记忆：`.claude/memory/`。沟通：`SendMessage(@main)`。
 
-**Write**：写入格式化的计划文档（plan.md）和任务清单（tasks.json）到 `.claude/tasks/{task_id}/`。
+**Write**：写入格式化的计划文档（plan.md）和任务清单（tasks.json）到 `.lazygophers/tasks/{task_id}/`。
 **AskUserQuestion**：请求用户批准计划（auto_approve=false 时使用）。使用前必须先 `ToolSearch(query="select:AskUserQuestion")` 加载 schema。
 
 </tools>

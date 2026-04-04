@@ -2,11 +2,11 @@
 
 ## 概述
 
-`.claude/tasks/index.json` 是任务索引文件，存储所有任务的基本信息列表，便于快速查询和管理，无需遍历所有任务子目录。
+`.lazygophers/tasks/index.json` 是任务索引文件，存储所有任务的基本信息列表，便于快速查询和管理，无需遍历所有任务子目录。
 
 ## 文件位置
 
-`.claude/tasks/index.json`
+`.lazygophers/tasks/index.json`
 
 ## 数据结构
 
@@ -107,7 +107,7 @@
 **时机**：生成 task_id 后的第一步操作（在创建 metadata.json 之前）
 
 **操作**：
-1. 检查 `.claude/tasks/index.json` 是否存在
+1. 检查 `.lazygophers/tasks/index.json` 是否存在
    - 不存在：创建空对象 `{}`
    - 存在：读取现有内容
 2. 在当前 session_id 的任务列表中追加任务信息
@@ -121,7 +121,7 @@ import json
 import time
 from pathlib import Path
 
-index_path = Path(".claude/tasks/index.json")
+index_path = Path(".lazygophers/tasks/index.json")
 
 # 读取或创建索引
 if index_path.exists():
@@ -156,7 +156,7 @@ with open(index_path, "w") as f:
 **时机**：每次阶段转换时
 
 **操作**：
-1. 读取 `.claude/tasks/index.json`
+1. 读取 `.lazygophers/tasks/index.json`
 2. 在 session_id 的任务列表中找到对应 `task_id` 的记录
 3. 更新 `phase`、`updated_at`、`iteration`（如果迭代增加）
 4. 写回文件
@@ -164,7 +164,7 @@ with open(index_path, "w") as f:
 **示例代码**：
 ```python
 # 读取索引
-with open(".claude/tasks/index.json") as f:
+with open(".lazygophers/tasks/index.json") as f:
     index = json.load(f)
 
 # 更新任务状态
@@ -178,7 +178,7 @@ if session_id in index:
             break
 
 # 写回索引
-with open(".claude/tasks/index.json", "w") as f:
+with open(".lazygophers/tasks/index.json", "w") as f:
     json.dump(index, f, indent=2, ensure_ascii=False)
 ```
 
@@ -213,45 +213,45 @@ with open(".claude/tasks/index.json", "w") as f:
 ### 查询所有进行中的任务
 
 ```bash
-jq '[.[][] | select(.phase != "completed" and .phase != "failed")]' .claude/tasks/index.json
+jq '[.[][] | select(.phase != "completed" and .phase != "failed")]' .lazygophers/tasks/index.json
 ```
 
 ### 查询特定会话的任务
 
 ```bash
-jq --arg sid "$SESSION_ID" '.[$sid] // []' .claude/tasks/index.json
+jq --arg sid "$SESSION_ID" '.[$sid] // []' .lazygophers/tasks/index.json
 ```
 
 ### 查询会话的任务数量
 
 ```bash
-jq --arg sid "$SESSION_ID" '(.[$sid] // []) | length' .claude/tasks/index.json
+jq --arg sid "$SESSION_ID" '(.[$sid] // []) | length' .lazygophers/tasks/index.json
 ```
 
 ### 统计所有任务状态
 
 ```bash
-jq '[.[][] | {phase, task_id}] | group_by(.phase) | map({phase: .[0].phase, count: length})' .claude/tasks/index.json
+jq '[.[][] | {phase, task_id}] | group_by(.phase) | map({phase: .[0].phase, count: length})' .lazygophers/tasks/index.json
 ```
 
 ### 查询最近的 5 个任务（跨所有会话）
 
 ```bash
-jq '[to_entries[] | .key as $sid | .value[] | . + {session_id: $sid}] | sort_by(.updated_at) | reverse | .[0:5]' .claude/tasks/index.json
+jq '[to_entries[] | .key as $sid | .value[] | . + {session_id: $sid}] | sort_by(.updated_at) | reverse | .[0:5]' .lazygophers/tasks/index.json
 ```
 **说明**：`to_entries` 将 Map 转为 `[{key: session_id, value: [tasks]}]`，然后为每个任务添加 session_id 字段。
 
 ### 查询所有会话 ID
 
 ```bash
-jq 'keys' .claude/tasks/index.json
+jq 'keys' .lazygophers/tasks/index.json
 ```
 
 ## 与 metadata.json 的关系
 
 | 特性 | index.json | metadata.json |
 |------|-----------|---------------|
-| 位置 | `.claude/tasks/index.json` | `.claude/tasks/{task_id}/metadata.json` |
+| 位置 | `.lazygophers/tasks/index.json` | `.lazygophers/tasks/{task_id}/metadata.json` |
 | 作用 | 所有任务的索引列表 | 单个任务的完整元数据 |
 | 字段 | 基本信息（8个字段） | 完整信息（12个字段 + result 对象） |
 | 更新时机 | 阶段转换时 | 每次状态变化时 |

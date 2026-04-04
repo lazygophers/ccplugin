@@ -25,7 +25,7 @@ def cleanup_expired_tasks():
 	如果删除失败，保留在 index.json 中，下次 SessionStart 时重试。
 	"""
 
-	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
+	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
 	if not os.path.exists(index_path):
 		return
 
@@ -53,7 +53,7 @@ def cleanup_expired_tasks():
 				all_deleted = True
 
 				# 1. 删除任务目录（包括其内部的 checkpoints 目录）
-				task_dir = os.path.join(get_project_dir(), ".claude", "tasks", task_id)
+				task_dir = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id)
 				if os.path.exists(task_dir):
 					try:
 						shutil.rmtree(task_dir)
@@ -100,10 +100,10 @@ def cleanup_expired_tasks():
 
 
 def handle_session_start():
-	if not os.path.exists(os.path.join(get_project_dir(), ".claude", "tasks")):
-		os.mkdir(os.path.join(get_project_dir(), ".claude", "tasks"))
+	if not os.path.exists(os.path.join(get_project_dir(), ".lazygophers", "tasks")):
+		os.mkdir(os.path.join(get_project_dir(), ".lazygophers", "tasks"))
 
-	add_gitignore_rule("/tasks", file_path=os.path.join(get_project_dir(), ".claude", ".gitignore"))
+	add_gitignore_rule("/tasks", file_path=os.path.join(get_project_dir(), ".lazygophers", ".gitignore"))
 
 	# 清理过期任务
 	cleanup_expired_tasks()
@@ -111,14 +111,14 @@ def handle_session_start():
 
 def handle_stop(hook_event_name: str, session_id: str):
 	"""Stop hook: 检查任务是否完成（index.json 格式：{session_id: [{task_id, ...}]}）"""
-	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
+	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
 
 	# 如果文件不存在，当做 session 不存在处理
 	if not os.path.exists(index_path):
 		print(json.dumps({
 			"hookSpecificOutput": {
 				"hookEventName": hook_event_name,
-				"additionalContext": ".claude/tasks/index.json 不存在"
+				"additionalContext": ".lazygophers/tasks/index.json 不存在"
 			}
 		}))
 		return
@@ -130,7 +130,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 			print(json.dumps({
 				"hookSpecificOutput": {
 					"hookEventName": hook_event_name,
-					"additionalContext": f".claude/tasks/index.json 缺少 {session_id} 的信息"
+					"additionalContext": f".lazygophers/tasks/index.json 缺少 {session_id} 的信息"
 				}
 			}))
 			return
@@ -150,7 +150,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 		current_task = task_list[-1]
 		task_id = current_task.get("task_id", "")
 
-	status_file_path = os.path.join(get_project_dir(), ".claude", "tasks", task_id, "metadata.json")
+	status_file_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id, "metadata.json")
 	if not os.path.exists(status_file_path):
 		print(json.dumps({
 			"hookSpecificOutput": {
@@ -178,9 +178,9 @@ def handle_permission_request(hook_data: Dict[str, any]):
 
 	tool_input = hook_data.get("tool_input", {})
 
-	# .claude/tasks 目录下的自动放行
+	# .lazygophers/tasks 目录下的自动放行
 	if "file_path" in tool_input:
-		if (str(tool_input.get("file_path", "")).find(".claude") >= 0 and
+		if (str(tool_input.get("file_path", "")).find(".lazygophers") >= 0 and
 			str(tool_input.get("file_path", "")).find("tasks") >= 0):
 			print(json.dumps({
 				"hookSpecificOutput": {

@@ -31,7 +31,7 @@ Agent(subagent_type="task:prompt-optimizer", prompt="
   user_task: {user_task}
   mode: {首次迭代 ? 'create' : 'revise'}
   user_feedback: {user_feedback | null}
-  existing_prompt_path: .claude/tasks/{task_id}/prompt.md
+  existing_prompt_path: .lazygophers/tasks/{task_id}/prompt.md
 ")
 ```
 

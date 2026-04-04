@@ -8,8 +8,8 @@
 ## 执行流程（loop 自身执行，无独立 agent）
 
 1. **标记任务完成**：
-   - 更新 `.claude/tasks/{task_id}/metadata.json` 的 `phase` 为 `"completed"` 或 `"failed"`
-   - 更新 `.claude/tasks/index.json`（**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行以下 jq 命令**）：
+   - 更新 `.lazygophers/tasks/{task_id}/metadata.json` 的 `phase` 为 `"completed"` 或 `"failed"`
+   - 更新 `.lazygophers/tasks/index.json`（**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行以下 jq 命令**）：
 
    ```bash
    TASK_ID="当前任务的task_id"      # 从 context 获取
@@ -31,8 +31,8 @@
           .updated_at = $ts
         else . end
       )
-      ' .claude/tasks/index.json > .claude/tasks/index.json.tmp && \
-      mv .claude/tasks/index.json.tmp .claude/tasks/index.json
+      ' .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
+      mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
    ```
 
 2. **检查点清理**：`cleanup_checkpoint(user_task)`

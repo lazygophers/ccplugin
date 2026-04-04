@@ -13,7 +13,7 @@
    - 必须中文，禁止日期/序号/哈希/英文/拼音/短横线
    - 不可变：loop 完成前不得修改
    - 设置 `context.task_id = task_id`
-4. **【第一步】更新任务索引** `.claude/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：
+4. **【第一步】更新任务索引** `.lazygophers/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：
    
    索引文件使用 Map 结构（**根键直接是 session_id 的哈希值**），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
    
@@ -33,12 +33,12 @@
    USER_TASK="用户的原始任务描述"  # 用户输入的任务描述
    TIMESTAMP=$(date +%s)          # 当前Unix时间戳（整数，秒）
    
-   # 确保 .claude/tasks 目录存在
-   mkdir -p .claude/tasks
+   # 确保 .lazygophers/tasks 目录存在
+   mkdir -p .lazygophers/tasks
    
    # 创建 index.json（如果不存在）
-   if [ ! -f .claude/tasks/index.json ]; then
-       echo '{}' > .claude/tasks/index.json
+   if [ ! -f .lazygophers/tasks/index.json ]; then
+       echo '{}' > .lazygophers/tasks/index.json
    fi
    
    # 更新索引：添加当前任务到 session_id 的任务列表
@@ -59,8 +59,8 @@
         iteration: 0,
         quality_score: null
       }]
-      ' .claude/tasks/index.json > .claude/tasks/index.json.tmp && \
-      mv .claude/tasks/index.json.tmp .claude/tasks/index.json
+      ' .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
+      mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
    ```
    
    **JSON 结构示例**（根键直接是 session_id 哈希值）：
@@ -96,15 +96,15 @@
    
    **【自检】验证 index.json 已正确更新**（防御性编程，避免索引创建失败导致后续 hooks 阻断）：
    
-   读取 `.claude/tasks/index.json` 并验证当前 `session_id` 和 `task_id` 已记录：
+   读取 `.lazygophers/tasks/index.json` 并验证当前 `session_id` 和 `task_id` 已记录：
    
    ```bash
    # 检查 session_id 是否存在
-   jq -e --arg sid "$SESSION_ID" 'has($sid)' .claude/tasks/index.json
+   jq -e --arg sid "$SESSION_ID" 'has($sid)' .lazygophers/tasks/index.json
    
    # 检查该 session 下是否包含当前 task_id
    jq -e --arg sid "$SESSION_ID" --arg tid "$TASK_ID" \
-     '.[$sid] | any(.task_id == $tid)' .claude/tasks/index.json
+     '.[$sid] | any(.task_id == $tid)' .lazygophers/tasks/index.json
    ```
    
    **如验证失败**（索引缺失或损坏）：
@@ -114,10 +114,10 @@
 
 5. **创建任务目录**：
    ```bash
-   mkdir -p .claude/tasks/{task_id}
+   mkdir -p .lazygophers/tasks/{task_id}
    ```
 
-6. **写入任务元数据** `.claude/tasks/{task_id}/metadata.json`：
+6. **写入任务元数据** `.lazygophers/tasks/{task_id}/metadata.json`：
    ```json
    {
      "task_id": "${task_id}",
@@ -153,7 +153,7 @@
 
 ## 检查点规范
 
-检查点保存在 `.claude/tasks/{task_id}/checkpoints/`，用于中断后恢复。
+检查点保存在 `.lazygophers/tasks/{task_id}/checkpoints/`，用于中断后恢复。
 
 | 函数 | 时机 |
 |------|------|

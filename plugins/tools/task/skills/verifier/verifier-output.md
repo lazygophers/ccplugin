@@ -1,6 +1,6 @@
 # Verifier 输出格式
 
-**所有结果通过文件传递**：verifier 完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段，禁止输出 JSON 到对话。
+**所有结果通过文件传递**：verifier 完成后更新 `.lazygophers/tasks/{task_id}/metadata.json` 的 `result` 字段，禁止输出 JSON 到对话。
 
 ## 状态决策
 

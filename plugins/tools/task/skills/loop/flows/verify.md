@@ -14,14 +14,14 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
    ```
    Skill(skill="task:verifier", args="执行结果验证：\n项目路径：{project_path}\n任务ID：{task_id}\n任务目标：{user_task}\n迭代：{iteration}\n计划文件：{plan_md_path}\n工作目录：{working_directory}")
    ```
-   验证所有任务验收标准 + 回归测试 + **对照 `.claude/tasks/{task_id}/prompt.md` 中的任务边界和验收标准**
+   验证所有任务验收标准 + 回归测试 + **对照 `.lazygophers/tasks/{task_id}/prompt.md` 中的任务边界和验收标准**
 2. **深度校验**：Stage 1/2 通过后，执行 Stage 3 深度校验（用户预期验证+业务逻辑验证+交付物完整性验证），确保交付物从用户视角完全对齐
 3. **更新计划状态**：`update_plan_frontmatter(status, completed_count)`
-4. **同步元数据**：更新 `.claude/tasks/{task_id}/metadata.json`
+4. **同步元数据**：更新 `.lazygophers/tasks/{task_id}/metadata.json`
    - `phase` → `"verification"`
    - `updated_at` → 当前时间戳
    - `quality_score` → 本轮验证评分
-5. **同步任务清单**：更新 `.claude/tasks/{task_id}/tasks.json` 中各子任务验证结果（passed/failed + 证据摘要）
+5. **同步任务清单**：更新 `.lazygophers/tasks/{task_id}/tasks.json` 中各子任务验证结果（passed/failed + 证据摘要）
 5. **质量评分**：加权计算综合分数
 
 ## 质量评分

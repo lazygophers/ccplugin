@@ -53,7 +53,7 @@ hooks:
 
 **所有结果通过文件传递，禁止输出 JSON 到对话。**
 
-完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段，必含：`strategy`（retry/debug/replan/ask_user）、`retry_config`（含 backoff_seconds）。
+完成后更新 `.lazygophers/tasks/{task_id}/metadata.json` 的 `result` 字段，必含：`strategy`（retry/debug/replan/ask_user）、`retry_config`（含 backoff_seconds）。
 
 按策略附加字段：
 - retry: `adjustments[]`（task_id, action, details）
