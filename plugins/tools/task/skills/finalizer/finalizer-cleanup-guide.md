@@ -1,5 +1,9 @@
 # Finalizer 资源清理指南
 
+**适用范围**：仅清理**当前任务**的资源（Loop Cleanup 阶段调用）
+
+**过期任务清理**：超过30天的过期任务由 SessionStart hook 自动清理，无需 finalizer 处理
+
 ## 核心原则
 
 | 原则 | 说明 |

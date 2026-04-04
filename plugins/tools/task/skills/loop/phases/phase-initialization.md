@@ -1,7 +1,7 @@
 
 # Initialization
 
-状态重置 | 检查点恢复 | 任务目录创建 | 残留清理 | 记忆加载 | 资源检查
+状态重置 | 检查点恢复 | 任务目录创建 | 记忆加载 | 资源检查
 
 **所有输出必须以 [MindFlow·${task_id}] 开头。**
 
@@ -146,12 +146,10 @@
    - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
 
 7. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
-8. **残留清理**：
-   - 扫描 `.claude/tasks/*/plan.md`，删除非当前任务的残留计划文件
-   - 扫描 `.claude/tasks/*/metadata.json`，非当前 task_id 的非终态文件自动修正为 `failed`，终态文件直接删除
-   - 禁止因发现残留而阻断当前任务初始化
-9. **记忆加载**：生成 session_id(MD5) → `load_task_memories()` → 显示 episodic(前 3 个) + semantic 记忆
-10. **资源检查**：`ListSkills()` + `ListAgents()`
+8. **记忆加载**：生成 session_id(MD5) → `load_task_memories()` → 显示 episodic(前 3 个) + semantic 记忆
+9. **资源检查**：`ListSkills()` + `ListAgents()`
+
+**注意**：过期任务的清理（超过30天）由 SessionStart hook 自动处理，无需手动清理。
 
 ## 检查点规范
 

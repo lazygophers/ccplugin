@@ -1,7 +1,11 @@
 
 # Cleanup
 
-清理阶段：调用 finalizer 清理资源，保存记忆，生成报告。
+清理阶段：调用 finalizer 清理当前任务的资源，保存记忆，生成报告。
+
+**注意**：
+- finalizer 只清理**当前任务**的资源（`.claude/tasks/{task_id}/`）
+- **过期任务**（超过30天）的清理由 SessionStart hook 自动处理，无需手动清理
 
 ## 关联资源
 
