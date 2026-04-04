@@ -13,12 +13,37 @@
    - 必须中文，禁止日期/序号/哈希/英文/拼音/短横线
    - 不可变：loop 完成前不得修改
    - 设置 `context.task_id = task_id`
-4. **【最高优先级】创建任务目录和元数据文件**（Stop hook 依赖此文件）：
+4. **【最高优先级】创建任务目录和更新索引**（Stop hook 依赖 index.json）：
    ```bash
    mkdir -p .claude/tasks/{task_id}
    ```
    
-   **a) 写入任务元数据** `.claude/tasks/{task_id}/metadata.json`：
+   **a) 更新任务索引** `.claude/tasks/index.json`（生成 task_id 后的第一步）：
+   
+   索引文件使用 Map 结构（key 为 session_id），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
+   
+   ```json
+   {
+     "${session_id}": [
+       {
+         "task_id": "${task_id}",
+         "description": "${user_task}",
+         "phase": "initialization",
+         "created_at": 1733308800,
+         "updated_at": 1733308800,
+         "iteration": 0,
+         "quality_score": null
+       }
+     ]
+   }
+   ```
+   
+   **索引操作规则**：
+   - **创建任务**：检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；然后追加当前任务信息
+   - **更新任务**：每次阶段转换时，在对应 session_id 的任务列表中找到 task_id，更新 phase、updated_at、iteration、quality_score
+   - **清理任务**：Cleanup 阶段完成后，更新索引中对应任务的 phase 为 `completed` 或 `failed`
+   
+   **b) 写入任务元数据** `.claude/tasks/{task_id}/metadata.json`：
    ```json
    {
      "task_id": "${task_id}",
@@ -45,31 +70,6 @@
    - `error`：错误信息（发生错误时记录）
    - `result`：各阶段子 agent 的执行结果（对象），loop 读取后决定下一步
    - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
-   
-   **b) 更新任务索引** `.claude/tasks/index.json`：
-   
-   索引文件使用 Map 结构（key 为 session_id），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
-   
-   ```json
-   {
-     "${session_id}": [
-       {
-         "task_id": "${task_id}",
-         "description": "${user_task}",
-         "phase": "initialization",
-         "created_at": 1733308800,
-         "updated_at": 1733308800,
-         "iteration": 0,
-         "quality_score": null
-       }
-     ]
-   }
-   ```
-   
-   **索引操作规则**：
-   - **创建任务**：检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；然后追加当前任务信息
-   - **更新任务**：每次阶段转换时，在对应 session_id 的任务列表中找到 task_id，更新 phase、updated_at、iteration、quality_score
-   - **清理任务**：Cleanup 阶段完成后，更新索引中对应任务的 phase 为 `completed` 或 `failed`
    
 5. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
 6. **残留清理**：

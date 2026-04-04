@@ -77,7 +77,7 @@
 
 ### 1. Initialization：创建任务索引
 
-**时机**：任务初始化时
+**时机**：生成 task_id 后的第一步操作（在创建 metadata.json 之前）
 
 **操作**：
 1. 检查 `.claude/tasks/index.json` 是否存在
@@ -85,6 +85,8 @@
    - 存在：读取现有内容
 2. 在当前 session_id 的任务列表中追加任务信息
 3. 写回文件
+
+**重要性**：Stop hook 依赖 index.json 检查任务状态，必须在创建 metadata.json 之前完成索引更新
 
 **示例代码**：
 ```python
