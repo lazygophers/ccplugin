@@ -62,7 +62,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 			print(json.dumps({
 				"hookSpecificOutput": {
 					"hookEventName":hook_event_name,
-					"additionalContext": f"task not finish，continue"
+					"additionalContext": "task not finish，continue"
 				}
 			}))
 			sys.exit(2)
