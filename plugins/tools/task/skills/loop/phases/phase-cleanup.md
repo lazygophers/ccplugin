@@ -53,13 +53,15 @@ Finalizer 返回 `result.status`：`completed` | `partially_completed` | `failed
    - 更新 `.claude/tasks/{task_id}/metadata.json` 的 `phase` 为 `"completed"` 或 `"failed"`
    - 更新 `.claude/tasks/index.json` 中对应任务的 `phase`、`updated_at`、`quality_score`
    
-   **索引更新命令**（Bash + jq）：
+   **索引更新**：**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行以下 jq 命令**。
+   
+   **执行命令**（Bash + jq）：
    ```bash
-   TASK_ID="任务ID"
-   SESSION_ID="session哈希值"
+   TASK_ID="当前任务的task_id"      # 从 context 获取
+   SESSION_ID="当前会话的session_id"  # 从环境获取
    FINAL_PHASE="completed"  # 或 failed
-   QUALITY_SCORE=85  # 从 metadata.json 读取
-   TIMESTAMP=$(date +%s)
+   QUALITY_SCORE=85  # 从 metadata.json 读取（可能为 null）
+   TIMESTAMP=$(date +%s)  # 整数时间戳
 
    jq --arg sid "$SESSION_ID" \
       --arg tid "$TASK_ID" \

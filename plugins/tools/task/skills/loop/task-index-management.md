@@ -10,8 +10,15 @@
 
 ## 数据结构
 
-索引文件使用 **Map 结构**，key 为 session_id，value 为该会话的任务列表（数组）。
+索引文件使用 **Map 结构**，**根键直接是 session_id 的哈希值**（如 `"14ec8eae-411c-421f-b184-536c09507fb0"`），value 为该会话的任务列表（数组）。
 
+**⚠️ 重要**：
+- 根键是实际的 session_id 值，不是字符串 `"session_id"`
+- 不可使用 `"tasks"`、`"sessions"` 等包装键
+- 时间戳必须是整数（秒），不可使用浮点数
+- 必须包含 `updated_at` 字段
+
+**正确示例**：
 ```json
 {
   "a1b2c3d4e5f6...": [
@@ -47,6 +54,26 @@
   ]
 }
 ```
+
+**❌ 错误示例**（不可使用）：
+```json
+{
+  "session_id": "14ec8eae-411c-421f-b184-536c09507fb0",
+  "tasks": [
+    {
+      "task_id": "修复日志",
+      "phase": "initialization",
+      "created_at": 1733308800.12345,
+      "iteration": 0,
+      "quality_score": null
+    }
+  ]
+}
+```
+**错误原因**：
+- ❌ 使用了 `"session_id"` 和 `"tasks"` 包装键
+- ❌ 时间戳是浮点数而非整数
+- ❌ 缺少 `updated_at` 和 `description` 字段
 
 ### 字段说明
 

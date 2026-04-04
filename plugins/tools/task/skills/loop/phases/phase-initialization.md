@@ -15,18 +15,23 @@
    - 设置 `context.task_id = task_id`
 4. **【第一步】更新任务索引** `.claude/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：
    
-   索引文件使用 Map 结构（key 为 session_id），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
+   索引文件使用 Map 结构（**根键直接是 session_id 的哈希值**），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
    
-   **⚠️ 重要：必须逐字执行以下 Bash+jq 命令，不可自行修改 JSON 格式。根键必须是 session_id 哈希，不可使用 "tasks"、"sessions" 等其他键名。**
+   **⚠️ 强制约束**：
+   - **禁止使用 Write/Edit 工具操作 index.json**
+   - **必须使用 Bash 工具执行以下 jq 命令**
+   - **根键直接是 session_id 哈希值**（如 `"14ec8eae-411c-421f-b184-536c09507fb0"`），不可使用 `"session_id"`、`"tasks"`、`"sessions"` 等包装键名
+   - **时间戳必须是整数**（`date +%s`），不可使用浮点数
+   - **必须包含 updated_at 字段**
    
    **执行命令**（Bash + jq）：
    
    ```bash
-   # 设置变量
-   TASK_ID="任务ID"              # 已生成的 task_id（2-6个汉字）
-   SESSION_ID="session哈希值"    # Claude Code session_id
-   USER_TASK="用户任务描述"      # 用户原始输入
-   TIMESTAMP=$(date +%s)         # 当前Unix时间戳（秒）
+   # 设置变量（从上下文中获取实际值）
+   TASK_ID="已生成的task_id"     # 步骤3生成的 task_id（2-6个汉字）
+   SESSION_ID="当前会话的session_id"  # 从 Claude Code 环境获取
+   USER_TASK="用户的原始任务描述"  # 用户输入的任务描述
+   TIMESTAMP=$(date +%s)          # 当前Unix时间戳（整数，秒）
    
    # 确保 .claude/tasks 目录存在
    mkdir -p .claude/tasks
@@ -58,14 +63,14 @@
       mv .claude/tasks/index.json.tmp .claude/tasks/index.json
    ```
    
-   **JSON 结构示例**：
+   **JSON 结构示例**（根键直接是 session_id 哈希值）：
    
    ```json
    {
-     "${session_id}": [
+     "14ec8eae-411c-421f-b184-536c09507fb0": [
        {
-         "task_id": "${task_id}",
-         "description": "${user_task}",
+         "task_id": "修复日志",
+         "description": "修复日志输出格式错误",
          "phase": "initialization",
          "created_at": 1733308800,
          "updated_at": 1733308800,
@@ -73,6 +78,14 @@
          "quality_score": null
        }
      ]
+   }
+   ```
+   
+   **❌ 错误示例**（不可使用包装键）：
+   ```json
+   {
+     "session_id": "14ec8eae...",
+     "tasks": [...]
    }
    ```
    

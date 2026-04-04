@@ -62,12 +62,14 @@ Verification passed 后，检查 `result.quality_score` 是否达到当前迭代
 3. **更新索引**：更新 `.claude/tasks/index.json` 中对应任务的 `quality_score`、`phase`、`updated_at`
 4. 保存检查点 `save_checkpoint(phase="verification")`
 
-**索引更新命令**（Bash + jq）：
+**索引更新**：**禁止使用 Write/Edit 工具，必须使用 Bash 工具执行以下 jq 命令**。
+
+**执行命令**（Bash + jq）：
 ```bash
-TASK_ID="任务ID"
-SESSION_ID="session哈希值"
-QUALITY_SCORE=85  # 从 result.quality_score 读取
-TIMESTAMP=$(date +%s)
+TASK_ID="当前任务的task_id"      # 从 context 获取
+SESSION_ID="当前会话的session_id"  # 从环境获取
+QUALITY_SCORE=85  # 从 metadata.json 的 result.quality_score 读取
+TIMESTAMP=$(date +%s)  # 整数时间戳
 
 jq --arg sid "$SESSION_ID" \
    --arg tid "$TASK_ID" \
