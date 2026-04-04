@@ -14,7 +14,7 @@ from lib.utils.env import get_project_dir
 from lib.hooks import load_hooks
 
 def handle_session_start(session_id: str):
-	"""检查 session_id 是否在任务索引中"""
+	"""检查 session_id 是否在任务索引中（index.json 格式：{session_id: [{task_id, ...}]}）"""
 	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
 
 	# 如果文件不存在，当做 session 不存在处理
@@ -27,10 +27,10 @@ def handle_session_start(session_id: str):
 		}))
 		return
 
-	# 读取索引文件
+	# 读取索引文件（Map 结构，key 为 session_id 哈希）
 	with open(index_path) as file:
-		tasks = json.load(file)
-		if session_id not in tasks:
+		index = json.load(file)
+		if session_id not in index:
 			print(json.dumps({
 				"hookSpecificOutput": {
 					"hookEventName": "SessionStart",
@@ -57,11 +57,17 @@ def handle_pretooluse(tool_name: str, tool_input: dict, session_id: str):
 		print(f"阻止 {subagent_type} 启动：.claude/tasks/index.json 不存在", file=sys.stderr)
 		sys.exit(2)
 
-	# 检查 session_id 是否已索引
+	# 检查 session_id 是否已索引（index.json 格式：{session_id: [{task_id, ...}]}）
 	with open(index_path) as file:
-		tasks = json.load(file)
-		if session_id not in tasks:
+		index = json.load(file)
+		if session_id not in index:
 			print(f"阻止 {subagent_type} 启动：session {session_id} 未在 index.json 中索引", file=sys.stderr)
+			sys.exit(2)
+
+		# 验证 session_id 对应的任务列表非空
+		task_list = index.get(session_id, [])
+		if not task_list:
+			print(f"阻止 {subagent_type} 启动：session {session_id} 的任务列表为空", file=sys.stderr)
 			sys.exit(2)
 
 	# 通过检查，允许启动

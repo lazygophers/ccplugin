@@ -237,8 +237,9 @@ jq '[.[][] | {phase, task_id}] | group_by(.phase) | map({phase: .[0].phase, coun
 ### 查询最近的 5 个任务（跨所有会话）
 
 ```bash
-jq '[.[][] | . + {session_id: .session_id}] | sort_by(.updated_at) | reverse | .[0:5]' .claude/tasks/index.json
+jq '[to_entries[] | .key as $sid | .value[] | . + {session_id: $sid}] | sort_by(.updated_at) | reverse | .[0:5]' .claude/tasks/index.json
 ```
+**说明**：`to_entries` 将 Map 转为 `[{key: session_id, value: [tasks]}]`，然后为每个任务添加 session_id 字段。
 
 ### 查询所有会话 ID
 

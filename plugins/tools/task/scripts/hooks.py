@@ -21,6 +21,7 @@ def handle_session_start():
 	add_gitignore_rule("/tasks", file_path=os.path.join(get_project_dir(), ".claude", ".gitignore"))
 
 def handle_stop(hook_event_name: str, session_id: str):
+	"""Stop hook: 检查任务是否完成（index.json 格式：{session_id: [{task_id, ...}]}）"""
 	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
 
 	# 如果文件不存在，当做 session 不存在处理
@@ -33,7 +34,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 		}))
 		return
 
-	# 读取索引文件
+	# 读取索引文件（Map 结构，key 为 session_id 哈希）
 	with open(index_path) as file:
 		index = json.load(file)
 		if session_id not in index:
@@ -45,7 +46,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 			}))
 			return
 
-		# session_id 对应的是任务数组，取第一个任务（当前任务）
+		# session_id 对应的是任务数组，取最新任务（数组最后一个元素）
 		task_list = index.get(session_id, [])
 		if not task_list:
 			print(json.dumps({
