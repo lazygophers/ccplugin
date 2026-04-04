@@ -5,110 +5,156 @@ from lib.utils.env import get_project_plugins_gitignore_path
 
 
 def read_gitignore(file_path: str) -> List[str]:
-	"""
-	读取并解析 git 忽略文件
+    """
+    读取并解析 git 忽略文件
 
-	Args:
-		file_path: git 忽略文件路径
+    Args:
+            file_path: git 忽略文件路径
 
-	Returns:
-		忽略规则列表，不包含空行和注释
-	"""
-	if not os.path.exists(file_path):
-		return []
+    Returns:
+            忽略规则列表，不包含空行和注释
+    """
+    if not os.path.exists(file_path):
+        return []
 
-	rules = []
-	with open(file_path, 'r', encoding='utf-8') as f:
-		for line in f:
-			line = line.strip()
-			if line and not line.startswith('#'):
-				rules.append(line)
+    rules = []
+    with open(file_path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                rules.append(line)
 
-	return rules
+    return rules
 
 
-def add_gitignore_rule(rule: str, file_path: str = get_project_plugins_gitignore_path()) -> bool:
-	"""
-	添加忽略规则到 git 忽略文件
+def add_gitignore_rule(
+    rule: str, file_path: str = get_project_plugins_gitignore_path()
+) -> bool:
+    """
+    添加忽略规则到 git 忽略文件
 
-	Args:
-		file_path: git 忽略文件路径
-		rule: 要添加的忽略规则
+    Args:
+            file_path: git 忽略文件路径
+            rule: 要添加的忽略规则
 
-	Returns:
-		True 表示添加成功，False 表示规则已存在
-	"""
-	rule = rule.strip()
-	if not rule:
-		return False
+    Returns:
+            True 表示添加成功，False 表示规则已存在
+    """
+    rule = rule.strip()
+    if not rule:
+        return False
 
-	existing_rules = read_gitignore(file_path)
-	if rule in existing_rules:
-		return False
+    existing_rules = read_gitignore(file_path)
+    if rule in existing_rules:
+        return False
 
-	os.makedirs(os.path.dirname(file_path), exist_ok=True)
-	with open(file_path, 'a', encoding='utf-8') as f:
-		f.write(rule + '\n')
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "a", encoding="utf-8") as f:
+        f.write(rule + "\n")
 
-	return True
+    return True
+
+
+def add_gitignore_rules(
+    rules: List[str], file_path: str = get_project_plugins_gitignore_path()
+) -> int:
+    """
+    批量添加忽略规则到 git 忽略文件
+
+    Args:
+            rules: 要添加的忽略规则列表
+            file_path: git 忽略文件路径
+
+    Returns:
+            实际新增成功的规则数量
+    """
+    if not rules:
+        return 0
+
+    # 去重并过滤空规则
+    unique_rules = set()
+    for rule in rules:
+        rule = rule.strip()
+        if rule:
+            unique_rules.add(rule)
+
+    if not unique_rules:
+        return 0
+
+    # 读取现有规则
+    existing_rules = set(read_gitignore(file_path))
+
+    # 过滤掉已存在的规则
+    new_rules = unique_rules - existing_rules
+
+    if not new_rules:
+        return 0
+
+    # 批量写入新规则
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "a", encoding="utf-8") as f:
+        for rule in sorted(new_rules):
+            f.write(rule + "\n")
+
+    return len(new_rules)
 
 
 def remove_gitignore_rule(file_path: str, rule: str) -> bool:
-	"""
-	从 git 忽略文件中移除忽略规则
+    """
+    从 git 忽略文件中移除忽略规则
 
-	Args:
-		file_path: git 忽略文件路径
-		rule: 要移除的忽略规则
+    Args:
+            file_path: git 忽略文件路径
+            rule: 要移除的忽略规则
 
-	Returns:
-		True 表示移除成功，False 表示规则不存在
-	"""
-	rule = rule.strip()
-	if not rule:
-		return False
+    Returns:
+            True 表示移除成功，False 表示规则不存在
+    """
+    rule = rule.strip()
+    if not rule:
+        return False
 
-	if not os.path.exists(file_path):
-		return False
+    if not os.path.exists(file_path):
+        return False
 
-	with open(file_path, 'r', encoding='utf-8') as f:
-		lines = f.readlines()
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
 
-	new_lines = []
-	removed = False
-	for line in lines:
-		stripped = line.strip()
-		if stripped and not stripped.startswith('#'):
-			if stripped != rule:
-				new_lines.append(line)
-			else:
-				removed = True
-		else:
-			new_lines.append(line)
+    new_lines = []
+    removed = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            if stripped != rule:
+                new_lines.append(line)
+            else:
+                removed = True
+        else:
+            new_lines.append(line)
 
-	if not removed:
-		return False
+    if not removed:
+        return False
 
-	with open(file_path, 'w', encoding='utf-8') as f:
-		f.writelines(new_lines)
+    with open(file_path, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
 
-	return True
+    return True
 
 
 def has_gitignore_rule(file_path: str, rule: str) -> bool:
-	"""
-	检查 git 忽略文件中是否存在指定规则
+    """
+    检查 git 忽略文件中是否存在指定规则
 
-	Args:
-		file_path: git 忽略文件路径
-		rule: 要检查的忽略规则
+    Args:
+            file_path: git 忽略文件路径
+            rule: 要检查的忽略规则
 
-	Returns:
-		True 表示规则存在，False 表示规则不存在
-	"""
-	rule = rule.strip()
-	if not rule:
-		return False
+    Returns:
+            True 表示规则存在，False 表示规则不存在
+    """
+    rule = rule.strip()
+    if not rule:
+        return False
 
-	existing_rules = read_gitignore(file_path)
-	return rule in existing_rules
+    existing_rules = read_gitignore(file_path)
+    return rule in existing_rules
