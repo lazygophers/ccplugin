@@ -1,6 +1,6 @@
 [project]
 name = "task"
-version = "0.0.187"
+version = "0.0.188"
 description = "Claude Code system notification plugin with hook support"
 readme = "README.md"
 requires-python = ">=3.11"
