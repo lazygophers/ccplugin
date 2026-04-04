@@ -3,6 +3,7 @@ import click
 from functools import wraps
 from lib.utils.gitignore import add_gitignore_rule
 from hooks import handle_hook
+from hooks_skills import handle_hook_skills
 
 add_gitignore_rule("/ccplugin/notify")
 
@@ -29,6 +30,12 @@ def main(ctx) -> None:
 def hooks() -> None:
 	"""Hook 模式：从 stdin 读取 JSON"""
 	handle_hook()
+
+@main.command()
+@with_debug
+def handle_hook_skills() -> None:
+	"""Hook 模式：从 stdin 读取 JSON"""
+	handle_hook_skills()
 
 if __name__ == "__main__":
 	main()
