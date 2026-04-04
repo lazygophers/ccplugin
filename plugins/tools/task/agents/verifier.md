@@ -47,7 +47,7 @@ skills:
 **所有结果通过文件传递，禁止输出 JSON 到对话。**
 
 完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段：
-- `status`（passed/failed）、`quality_score`、`report`、`summary`（total_tasks/completed_tasks/passed_criteria/failed_criteria）
+- `status`（passed/failed）、`quality_score`、`summary`（total_tasks/completed_tasks/passed_criteria/failed_criteria）
 - passed 时附加：可选 `suggestions[]`
 - failed 时附加：`failed_criteria[]`（未通过的验收标准及证据）
 

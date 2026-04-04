@@ -37,7 +37,7 @@ skills:
    - 元数据：`.claude/tasks/{task_id}/metadata.json`
    - 任务清单：`.claude/tasks/{task_id}/tasks.json`
    - **任务目录**：`rm -rf .claude/tasks/{task_id}/`（删除整个目录）
-4. **报告生成**：清理统计（任务数/文件数/错误数），≤100字
+4. **写入状态**：更新 metadata.json result.status
 
 **清理规则**：情节记忆永久保留 | 用户文件不清理
 
@@ -45,7 +45,7 @@ skills:
 
 <output_format>
 
-JSON 输出，必含：`status`（completed/partially_completed）、`report`（≤100字）、`cleanup_summary`（tasks_terminated/files_deleted/errors数）、`cleaned_resources`（tasks[]/files[]/directories[]）、`errors[]`（type/resource/error）。
+完成后更新 `.claude/tasks/{task_id}/metadata.json` 的 `result` 字段，仅需 `status`：`completed` | `partially_completed` | `failed`。无需 report 或其他字段。
 
 </output_format>
 

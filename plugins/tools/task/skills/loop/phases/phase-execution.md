@@ -3,12 +3,7 @@
 
 按计划调度执行所有子任务。
 
-## 关联资源
-
-| 类型 | 名称 | 说明 |
-|------|------|------|
-| Agent | 计划中指定的 `task.agent` | 由 planner 在 plan.md 中为每个子任务分配 |
-| Skill | `task:execute` | 任务执行规范（DAG 调度、并行控制、完整性检查） |
+本阶段是 loop skill 自身的执行逻辑，不调用独立 agent/skill。loop 按 plan.md 中指定的 `task.agent` 逐任务调度。
 
 ## 执行流程
 

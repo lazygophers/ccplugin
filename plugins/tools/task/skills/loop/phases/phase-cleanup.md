@@ -24,7 +24,9 @@ Agent(subagent_type="task:finalizer", prompt="清理任务资源：
 
 **即使任务失败，finalizer 也必须执行**以清理所有资源。
 
-Finalizer 内部完成：资源盘点 → 任务终止 → 文件清理（6 类产物 + rm -rf 任务目录）→ 报告生成。详见 agent 定义。
+Finalizer 内部完成：资源盘点 → 任务终止 → 文件清理（6 类产物 + rm -rf 任务目录）。详见 agent 定义。
+
+Finalizer 返回 `result.status`：`completed` | `partially_completed` | `failed`。无需其他字段。
 
 ## 后续操作（loop 侧）
 

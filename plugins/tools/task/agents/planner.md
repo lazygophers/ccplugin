@@ -98,7 +98,7 @@ AskUserQuestion({
 | `no_tasks` | 功能已存在，无需执行 |
 | `cancelled` | 用户取消任务 |
 
-`confirmed`/`rejected` 时 result 还包含：`report`（≤200字）、`task_count`。`rejected` 时必含 `user_feedback`。
+`confirmed`/`rejected` 时 result 还包含：`task_count`。`rejected` 时必含 `user_feedback`。
 
 </output_format>
 

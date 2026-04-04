@@ -66,7 +66,7 @@ skills:
 
 JSON 输出。`status` 固定为 `"optimized"`。
 
-必含字段：`original_prompt`、`optimized_prompt`、`boundary`（`in_scope[]` / `out_of_scope[]`）、`acceptance_criteria[]`、`improvements[]`、`questions_asked`(int)、`report`（≤100字）。
+必含字段：`original_prompt`、`optimized_prompt`、`boundary`（`in_scope[]` / `out_of_scope[]`）、`acceptance_criteria[]`、`improvements[]`、`questions_asked`(int)。
 
 增量修订时额外包含：`revision_delta`（描述本次变更了什么）。
 
