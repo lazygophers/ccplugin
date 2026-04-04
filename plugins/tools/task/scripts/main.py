@@ -31,10 +31,10 @@ def hooks() -> None:
 	"""Hook 模式：从 stdin 读取 JSON"""
 	handle_hook()
 
-@main.command()
+@main.command(name="hooks-skills")
 @with_debug
-def handle_hook_skills() -> None:
-	"""Hook 模式：从 stdin 读取 JSON"""
+def hooks_skills_cmd() -> None:
+	"""Hook 模式：处理 skills 相关事件（从 stdin 读取 JSON）"""
 	handle_hook_skills()
 
 if __name__ == "__main__":
