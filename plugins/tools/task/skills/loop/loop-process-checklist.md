@@ -35,7 +35,7 @@
 |-------|---------|----------|
 | **Planner 内部流程完整性** | **grep -c "三层上下文学习" <agent输出>** | **必须** |
 | L1 - 项目全局理解 | 验证是否读取了 README.md/CLAUDE.md/package.json | 必须 |
-| L2 - 规范和记忆 | 验证是否检查了 `.claude/rules/` 和项目记忆 | 必须 |
+| L2 - 规范和记忆 | 验证是否读取了项目记忆 | 必须 |
 | L3 - 目标相关文件 | 验证是否使用 Glob/Grep 定位并读取相关文件 | 必须 |
 | **原子拆分验证** | **每个任务的files数组长度≤1（单文件单任务）** | **必须** |
 | **上下文完整性** | **Skill/Agent调用包含6个必传字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）** | **必须** |
