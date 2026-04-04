@@ -33,8 +33,8 @@ flowchart TB
         Init_Jump[恢复跳转<br/>从 checkpoint 进入对应阶段]
         Init_4[正常初始化<br/>iter=0, stalled=0]
         Init_5[生成任务ID: task_id]
-        Init_6["创建 metadata.json + tasks.json<br/>.claude/tasks/{task_id}/"]
-        Init_7[残留清理+30天过期清理]
+        Init_5a["【第一步】更新 index.json<br/>Bash+jq 命令"]
+        Init_6["创建任务目录<br/>metadata.json + tasks.json"]
         Init_8[加载记忆<br/>episodic + semantic]
         Init_9[资源检查<br/>ListSkills + ListAgents]
 
@@ -44,9 +44,9 @@ flowchart TB
         Init_4 --> Init_5
         Init_3 --> Init_Jump
         Init_Jump --> Init_5
-        Init_5 --> Init_6
-        Init_6 --> Init_7
-        Init_7 --> Init_8
+        Init_5 --> Init_5a
+        Init_5a --> Init_6
+        Init_6 --> Init_8
         Init_8 --> Init_9
     end
 
@@ -393,7 +393,7 @@ flowchart TB
     %% =============================================================================
 
     %% Initialization 节点
-    class Init_1,Init_3,Init_4,Init_5,Init_6,Init_7,Init_8,Init_9 phaseNode
+    class Init_1,Init_3,Init_4,Init_5,Init_5a,Init_6,Init_8,Init_9 phaseNode
 
     %% PromptOptimization 节点（必选）
     class PO_1,PO_2,PO_5,PO_6 phaseNode

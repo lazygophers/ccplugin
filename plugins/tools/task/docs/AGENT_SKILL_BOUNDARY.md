@@ -48,7 +48,8 @@
 | 模块 | 问题 | 影响 | 优化方案 |
 |------|------|------|---------|
 | **prompt-optimizer** | Skill包含执行逻辑 | 文件过大（320行），违反单一职责 | 移除四阶段执行步骤，保留6项原则和评分标准 |
-| **execute** | 缺少对应Agent | 执行逻辑散落在loop中 | 方案A：创建agent / 方案B：简化为纯规范 |
+
+> **已解决**：`task:execute` skill 已移除（2026-04-04）。Execution 阶段是 loop 自身的执行逻辑，不需要独立 agent/skill。详见 `skills/loop/phases/phase-execution.md`。
 
 ---
 
@@ -68,10 +69,8 @@
 - **问题**: Skill 包含执行逻辑（阶段 1-4 步骤、伪代码）
 - **方案**: 保留 6 项原则、5W1H 框架、评分标准；移除执行步骤到 Agent
 
-### execute 模块
-- **问题**: 有 Skill 但无对应 Agent
-- **方案A**: 创建 `task:execute` agent（推荐复杂编排）
-- **方案B**: 简化 Skill 为纯规范（推荐简单场景）
+### ~~execute 模块~~（已解决）
+- **已移除**：Execution 是 loop 自身的执行逻辑（`skills/loop/phases/phase-execution.md`），不需要独立 agent/skill
 
 ---
 
@@ -129,7 +128,7 @@ skills: [task:xxx]
 
 ### 发现的问题
 - **prompt-optimizer**: Skill 包含执行逻辑 → 需重构
-- **execute**: 缺少对应 Agent → 需创建或简化
+- ~~**execute**: 缺少对应 Agent → 已移除，Execution 是 loop 自身逻辑~~
 
 ### 优化收益
 - ✅ 职责单一 ✅ 易于维护 ✅ 易于理解 ✅ 减少冗余 ✅ 提升质量

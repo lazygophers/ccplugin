@@ -7,8 +7,9 @@ stateDiagram-v2
     state Initialization {
         [*] --> ResetState: 重置 iteration/context
         ResetState --> GenTaskId: 生成 task_id
-        GenTaskId --> CheckResidual: 检查残留计划
-        CheckResidual --> LoadMemory: 加载项目记忆
+        GenTaskId --> UpdateIndex: 更新 index.json（第一步）
+        UpdateIndex --> CreateTaskDir: 创建任务目录 + metadata.json
+        CreateTaskDir --> LoadMemory: 加载项目记忆
         LoadMemory --> [*]
     }
 
@@ -69,7 +70,7 @@ stateDiagram-v2
         UpdateStatus --> SaveCheckpoint: 保存检查点
         SaveCheckpoint --> [*]
     }
-    note left of Execution: 通过 Skill() 调用\n禁止直接 Edit/Write
+    note left of Execution: loop 自身执行\n通过 Agent() 调用\n禁止直接 Edit/Write
 
     Execution --> Verification
 
@@ -112,12 +113,13 @@ stateDiagram-v2
     state Cleanup {
         [*] --> UpdateTaskStatus: 更新任务状态文件
         UpdateTaskStatus --> CallFinalizer: 调用 Finalizer
-        CallFinalizer --> CleanResources: 清理5类中间产物
-        CleanResources --> SaveMemory: 保存执行记忆
+        CallFinalizer --> CleanResources: 清理当前任务资源
+        CleanResources --> UpdateIndex2: 更新 index.json 为 completed/failed
+        UpdateIndex2 --> SaveMemory: 保存执行记忆
         SaveMemory --> MicroRetro: 微回顾
         MicroRetro --> [*]
     }
-    note right of Cleanup: 即使失败也必须执行\n清理计划/检查点/快照
+    note right of Cleanup: 即使失败也必须执行\n过期任务由 SessionStart hook 自动清理
 
     Cleanup --> End
     End --> [*]

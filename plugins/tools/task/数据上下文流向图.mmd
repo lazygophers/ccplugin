@@ -10,9 +10,9 @@ graph TB
 
     subgraph PhaseInit["Initialization"]
         GenId["生成 task_id"]
+        UpdateIdx["更新 index.json（第一步）"]
         SetIter["iteration = 0"]
         ResetCtx["context = {}"]
-        ScanResidual["扫描残留计划"]
     end
 
     subgraph PhasePromptOpt["PromptOptimization（条件触发）"]
@@ -40,9 +40,9 @@ graph TB
         WritePlanFile["写入计划文件"]
     end
 
-    subgraph PhaseExec["Execution"]
+    subgraph PhaseExec["Execution（loop 自身执行）"]
         ReadPlan["读取计划文件"]
-        SkillCall["Skill() 调用"]
+        AgentCall["Agent() 调用"]
         UpdateTask["更新任务状态"]
     end
 
@@ -57,7 +57,8 @@ graph TB
     subgraph PhaseFinal["Cleanup"]
         CleanPlan["删除计划文件"]
         CleanCheckpoint["清理检查点"]
-        CleanArtifacts["清理5类中间产物"]
+        CleanCurrentTask["清理当前任务资源"]
+        UpdateIdxFinal["更新 index.json 为 completed/failed"]
         SaveMem["保存情节记忆"]
         Retro["微回顾"]
     end
@@ -85,9 +86,10 @@ graph TB
     ProjectPath --> F1
 
     %% 初始化产出
+    GenId --> UpdateIdx
     GenId --> F2
     SetIter --> F3
-    ScanResidual -.->|"清理残留"| PlanFile
+    UpdateIdx -->|"追加"| IndexFile
 
     %% PromptOptimization 流程
     UserTask -->|"原始提示词"| PODecompose
@@ -99,7 +101,7 @@ graph TB
     POConfirm -->|"A/B:更新"| F6
 
     %% 上下文字段传递
-    F1 & F2 & F3 & F4 & F5 & F6 -->|"每次 Skill() 调用<br/>必须全量传递"| SkillCall
+    F1 & F2 & F3 & F4 & F5 & F6 -->|"每次 Agent() 调用<br/>必须全量传递"| AgentCall
     F1 & F2 & F3 & F4 & F5 & F6 -->|"传递"| L1
 
     %% Planning 流程
@@ -110,10 +112,10 @@ graph TB
 
     %% Execution 流程
     PlanFile -->|"读取"| ReadPlan
-    ReadPlan --> SkillCall
-    SkillCall -->|"执行结果"| UpdateTask
+    ReadPlan --> AgentCall
+    AgentCall -->|"执行结果"| UpdateTask
     UpdateTask -->|"更新状态"| PlanFile
-    SkillCall -->|"保存"| CheckpointFile
+    AgentCall -->|"保存"| CheckpointFile
 
     %% Verification 流程
     PromptFile -->|"对照验证"| ReadPlanV
@@ -128,8 +130,9 @@ graph TB
     PromptFile -->|"删除"| CleanPlan
     PlanFile -->|"删除"| CleanPlan
     CheckpointFile -->|"删除"| CleanCheckpoint
-    ApprovalLog & ContextSnap -->|"删除"| CleanArtifacts
-    CleanArtifacts --> SaveMem
+    ApprovalLog & ContextSnap -->|"删除"| CleanCurrentTask
+    CleanCurrentTask --> UpdateIdxFinal
+    UpdateIdxFinal --> SaveMem
     SaveMem -->|"写入"| EpisodicMem
     SaveMem --> Retro
     Retro -->|"追加"| EpisodicMem
@@ -150,7 +153,7 @@ graph TB
 
     class UserTask,WorkDir,ProjectPath input
     class F1,F2,F3,F4,F5,F6 field
-    class L1,L2,L3,MECE,WritePlanFile,ReadPlan,SkillCall,UpdateTask,ReadPlanV,Stage1,Stage2,Stage3,ScoreOut,CleanPlan,CleanCheckpoint,CleanArtifacts,SaveMem,Retro,GenId,SetIter,ResetCtx,ScanResidual phase
+    class L1,L2,L3,MECE,WritePlanFile,ReadPlan,AgentCall,UpdateTask,ReadPlanV,Stage1,Stage2,Stage3,ScoreOut,CleanPlan,CleanCheckpoint,CleanCurrentTask,UpdateIdxFinal,SaveMem,Retro,GenId,UpdateIdx,SetIter,ResetCtx phase
     class PlanFile,CheckpointFile,MetadataFile,TasksFile,ApprovalLog,ContextSnap,PromptFile artifact
     class PODecompose,PODialog,POSpec,POPersist,POConfirm phase
     class EpisodicMem,ProjectMem memory
