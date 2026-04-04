@@ -3,6 +3,11 @@ description: "Verifier 结果验证 - Loop Verification 阶段调用：三阶段
 model: sonnet
 user-invocable: false
 agent: task:verifier
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

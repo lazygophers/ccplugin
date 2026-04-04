@@ -6,6 +6,11 @@ color: brown
 skills:
   - task:explorer-infrastructure
   - task:explorer-memory-integration
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 <role>

@@ -3,6 +3,11 @@ description: "探索项目测试体系：识别测试框架、分析覆盖率、
 model: sonnet
 user-invocable: false
 agent: task:explorer-test
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

@@ -3,6 +3,11 @@ description: "Finalizer 资源清理 - Loop 完成或紧急停止时调用：按
 model: haiku
 user-invocable: false
 agent: task:finalizer
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

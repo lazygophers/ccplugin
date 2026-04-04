@@ -3,6 +3,11 @@ description: "深度探索代码结构：构建符号索引、分析模块依赖
 model: sonnet
 user-invocable: false
 agent: task:explorer-code
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

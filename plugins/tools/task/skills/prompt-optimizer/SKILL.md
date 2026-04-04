@@ -3,6 +3,11 @@ description: "提示词优化 - 将模糊任务描述转化为可执行规格说
 model: sonnet
 user-invocable: false
 agent: task:prompt-optimizer
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 # Skills(task:prompt-optimizer) - 提示词优化规范

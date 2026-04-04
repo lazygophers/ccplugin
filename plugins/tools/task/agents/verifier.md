@@ -5,6 +5,11 @@ memory: project
 color: orange
 skills:
   - task:verifier
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 <role>

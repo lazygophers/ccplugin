@@ -3,6 +3,11 @@ description: "快速探索项目全貌：识别技术栈、映射目录结构、
 model: sonnet
 user-invocable: false
 agent: task:explorer-general
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

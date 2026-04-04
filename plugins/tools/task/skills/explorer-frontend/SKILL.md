@@ -3,6 +3,11 @@ description: "探索前端项目架构：分析组件树层级、状态管理流
 model: sonnet
 user-invocable: false
 agent: task:explorer-frontend
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

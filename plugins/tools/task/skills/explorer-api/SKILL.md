@@ -3,6 +3,11 @@ description: "探索项目API层：分析REST端点/GraphQL schema/gRPC服务定
 model: sonnet
 user-invocable: false
 agent: task:explorer-api
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

@@ -2,6 +2,11 @@
 description: "Execute 任务执行 - Loop Execution 阶段调用：按依赖顺序调度子任务，支持最多2个任务并行（Agent run_in_background），跟踪执行进度和结果收集。由 Loop 内部调度，不直接面向用户"
 model: sonnet
 user-invocable: false
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

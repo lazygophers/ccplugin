@@ -3,6 +3,11 @@ description: "Adjuster 失败调整 - Loop Adjustment 阶段调用：任务失�
 model: sonnet
 user-invocable: false
 agent: task:adjuster
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 

@@ -3,6 +3,11 @@ description: "探索后端项目架构：从路由到handler到service到reposit
 model: sonnet
 user-invocable: false
 agent: task:explorer-backend
+hooks:
+  SessionStop:
+    - hooks:
+        - type: command
+          command: "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks_skills"
 ---
 
 
