@@ -11,11 +11,24 @@ import traceback
 
 from lib import logging
 from lib.utils.env import get_project_dir
-from lib.utils.gitignore import add_gitignore_rule
 from lib.hooks import load_hooks
 
 def handle_session_start(session_id: str):
-	with open(os.path.join(get_project_dir(), ".claude", "tasks", "index.json")) as file:
+	"""检查 session_id 是否在任务索引中"""
+	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
+
+	# 如果文件不存在，当做 session 不存在处理
+	if not os.path.exists(index_path):
+		print(json.dumps({
+			"hookSpecificOutput": {
+				"hookEventName": "SessionStart",
+				"additionalContext": ".claude/tasks/index.json 不存在"
+			}
+		}))
+		return
+
+	# 读取索引文件
+	with open(index_path) as file:
 		tasks = json.load(file)
 		if session_id not in tasks:
 			print(json.dumps({
