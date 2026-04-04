@@ -153,7 +153,7 @@
 
 ## 检查点规范
 
-检查点保存在 `.claude/checkpoints/{task_id}.json`，用于中断后恢复。
+检查点保存在 `.claude/tasks/{task_id}/checkpoints/`，用于中断后恢复。
 
 | 函数 | 时机 |
 |------|------|

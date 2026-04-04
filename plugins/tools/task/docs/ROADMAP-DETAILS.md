@@ -210,8 +210,8 @@
 ```
 
 **检查点生命周期**:
-- **保存**: 每个阶段转换时写入 `.claude/checkpoints/{task_id}.json`
-- **检测**: loop 初始化时扫描 `.claude/checkpoints/` 目录
+- **保存**: 每个阶段转换时写入 `.claude/tasks/{task_id}/checkpoints/`
+- **检测**: loop 初始化时扫描 `.claude/tasks/{task_id}/checkpoints/` 目录
 - **恢复**: 用户确认后跳过已完成任务，从断点继续
 - **清理**: 任务完成后删除对应检查点文件
 
@@ -221,7 +221,7 @@
 - [x] 修改 `skills/loop/detailed-flow.md`（每阶段转换保存检查点，初始化时检测恢复）
 
 **验收标准**:
-- ✅ 每个阶段转换自动保存检查点到 `.claude/checkpoints/`
+- ✅ 每个阶段转换自动保存检查点到 `.claude/tasks/{task_id}/checkpoints/`
 - ✅ loop 启动时检测未完成检查点并提示用户选择恢复或重新开始
 - ✅ 恢复后跳过已完成任务（T1、T2），仅执行剩余任务（T3、T4）
 - ✅ 检查点文件为 JSON 格式，包含完整恢复信息

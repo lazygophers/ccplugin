@@ -52,7 +52,7 @@ def cleanup_expired_tasks():
 				# 尝试删除所有关联文件
 				all_deleted = True
 
-				# 1. 删除任务目录
+				# 1. 删除任务目录（包括其内部的 checkpoints 目录）
 				task_dir = os.path.join(get_project_dir(), ".claude", "tasks", task_id)
 				if os.path.exists(task_dir):
 					try:
@@ -61,16 +61,7 @@ def cleanup_expired_tasks():
 						logging.error(f"删除任务目录失败 {task_dir}: {e}")
 						all_deleted = False
 
-				# 2. 删除检查点
-				checkpoint_path = os.path.join(get_project_dir(), ".claude", "checkpoints", f"{task_id}.json")
-				if os.path.exists(checkpoint_path):
-					try:
-						os.remove(checkpoint_path)
-					except Exception as e:
-						logging.error(f"删除检查点失败 {checkpoint_path}: {e}")
-						all_deleted = False
-
-				# 3. 删除上下文快照目录
+				# 2. 删除上下文快照目录
 				context_dir = os.path.join(get_project_dir(), ".claude", "context", task_id)
 				if os.path.exists(context_dir):
 					try:

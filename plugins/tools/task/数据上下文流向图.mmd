@@ -66,7 +66,7 @@ graph TB
     subgraph Artifacts["中间产物生命周期"]
         direction LR
         PlanFile[".claude/tasks/{task_id}/plan.md<br/>Planning 创建 → Cleanup 删除"]
-        CheckpointFile[".claude/checkpoints/{task_id}.json<br/>Execution 创建 → Cleanup 删除"]
+        CheckpointFile[".claude/tasks/{task_id}/checkpoints/<br/>Execution 创建 → Cleanup 删除"]
         MetadataFile[".claude/tasks/{task_id}/metadata.json<br/>Initialization 创建 → Cleanup 更新"]
         TasksFile[".claude/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
         ApprovalLog[".claude/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]

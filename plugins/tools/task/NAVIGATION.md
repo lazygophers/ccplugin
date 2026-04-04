@@ -51,7 +51,7 @@
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
 | 任务中断后如何恢复？ | loop → 检查点恢复 | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
-| 检查点保存在哪里？ | `.claude/checkpoints/{task_id}.json` | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
+| 检查点保存在哪里？ | `.claude/tasks/{task_id}/checkpoints/` | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
 
 ### 质量和验收
 
