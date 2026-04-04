@@ -7,7 +7,14 @@
 
 进入验证阶段前，必须确认所有任务已执行完成（plan 文件中所有任务状态为 ✅ 或 ❌）。
 
-## 调用 verifier
+## 关联资源
+
+| 类型 | 名称 | 说明 |
+|------|------|------|
+| Agent | `task:verifier` | 验证代理 |
+| Skill | `task:verifier` | 验收验证规范（两阶段验证、证据采集、质量评分） |
+
+## 调用 Agent
 
 ```
 Agent(subagent_type="task:verifier", prompt="执行结果验证：

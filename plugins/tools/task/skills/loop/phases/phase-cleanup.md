@@ -3,7 +3,14 @@
 
 清理阶段：调用 finalizer 清理资源，保存记忆，生成报告。
 
-## 调用 finalizer
+## 关联资源
+
+| 类型 | 名称 | 说明 |
+|------|------|------|
+| Agent | `task:finalizer` | 资源清理代理 |
+| Skill | `task:finalizer` | 资源清理规范（逆序清理、错误容忍、防御性清理） |
+
+## 调用 Agent
 
 ```
 Agent(subagent_type="task:finalizer", prompt="清理任务资源：

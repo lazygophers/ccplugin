@@ -5,7 +5,14 @@
 
 MECE 任务分解 | DAG 依赖建模 | Agents/Skills 分配 | 用户确认
 
-## 调用 planner
+## 关联资源
+
+| 类型 | 名称 | 说明 |
+|------|------|------|
+| Agent | `task:planner` | 计划设计代理 |
+| Skill | `task:planner` | 计划设计规范（MECE 分解、DAG 建模、资源分配） |
+
+## 调用 Agent
 
 **单次调用完成整个阶段**：planner 内部完成设计 → 写文件 → 用户确认（或自动批准）→ 返回结果。
 

@@ -3,10 +3,17 @@
 
 失败调整阶段：调用 adjuster 分析失败原因并决定恢复策略。
 
-## 调用 adjuster
+## 关联资源
+
+| 类型 | 名称 | 说明 |
+|------|------|------|
+| Agent | `task:adjuster` | 失败调整代理 |
+| Skill | `task:adjuster` | 失败调整规范（四级渐进升级、自愈机制、停滞检测） |
+
+## 调用 Agent
 
 1. **记忆检索**（loop 侧）：提取失败原因关键词 → `search_failure_patterns()` 检索相似失败情节
-2. **调用 agent**：
+2. **调用 Agent**：
    ```
    Agent(subagent_type="task:adjuster", prompt="失败调整分析：
      项目路径：{project_path}

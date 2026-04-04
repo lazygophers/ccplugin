@@ -13,7 +13,14 @@
 
 "用户新输入"的来源：Planning rejected 时的 user_feedback、Adjustment ask_user 后的用户回复、QualityGate 不达标回退时用户提供的新方向。
 
-## 调用 prompt-optimizer
+## 关联资源
+
+| 类型 | 名称 | 说明 |
+|------|------|------|
+| Agent | `task:prompt-optimizer` | 提示词优化代理 |
+| Skill | `task:prompt-optimizer` | 提示词优化规范（DCG 方法论、验收标准设计） |
+
+## 调用 Agent
 
 ```
 Agent(subagent_type="task:prompt-optimizer", prompt="
@@ -28,7 +35,7 @@ Agent(subagent_type="task:prompt-optimizer", prompt="
 ")
 ```
 
-Agent 内部完成：TaskDecomposition → ClarificationDialog → SpecGeneration → 写入 prompt.md。详见 agent 定义。
+Agent 内部完成：TaskDecomposition → ClarificationDialog → SpecGeneration → 写入 prompt.md。详见 agent/skill 定义。
 
 ## UserConfirmation：用户确认（由 loop 执行，非 agent）
 
