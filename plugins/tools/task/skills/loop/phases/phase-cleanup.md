@@ -52,5 +52,30 @@ Finalizer 返回 `result.status`：`completed` | `partially_completed` | `failed
 4. **标记 Loop 完成**：
    - 更新 `.claude/tasks/{task_id}/metadata.json` 的 `phase` 为 `"completed"` 或 `"failed"`
    - 更新 `.claude/tasks/index.json` 中对应任务的 `phase`、`updated_at`、`quality_score`
+   
+   **索引更新命令**（Bash + jq）：
+   ```bash
+   TASK_ID="任务ID"
+   SESSION_ID="session哈希值"
+   FINAL_PHASE="completed"  # 或 failed
+   QUALITY_SCORE=85  # 从 metadata.json 读取
+   TIMESTAMP=$(date +%s)
+
+   jq --arg sid "$SESSION_ID" \
+      --arg tid "$TASK_ID" \
+      --arg phase "$FINAL_PHASE" \
+      --argjson score "$QUALITY_SCORE" \
+      --argjson ts "$TIMESTAMP" \
+      '
+      .[$sid] |= map(
+        if .task_id == $tid then
+          .phase = $phase |
+          .quality_score = $score |
+          .updated_at = $ts
+        else . end
+      )
+      ' .claude/tasks/index.json > .claude/tasks/index.json.tmp && \
+      mv .claude/tasks/index.json.tmp .claude/tasks/index.json
+   ```
 
 **End 是整个 Loop 流程中唯一允许结束回复的节点。在此之前的任何阶段都禁止结束回复。**

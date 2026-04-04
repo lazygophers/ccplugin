@@ -62,6 +62,27 @@ Verification passed 后，检查 `result.quality_score` 是否达到当前迭代
 3. **更新索引**：更新 `.claude/tasks/index.json` 中对应任务的 `quality_score`、`phase`、`updated_at`
 4. 保存检查点 `save_checkpoint(phase="verification")`
 
-**索引更新**：Verification 完成后，更新索引中的质量分数。详见 [task-index-management.md](../task-index-management.md)
+**索引更新命令**（Bash + jq）：
+```bash
+TASK_ID="任务ID"
+SESSION_ID="session哈希值"
+QUALITY_SCORE=85  # 从 result.quality_score 读取
+TIMESTAMP=$(date +%s)
+
+jq --arg sid "$SESSION_ID" \
+   --arg tid "$TASK_ID" \
+   --argjson score "$QUALITY_SCORE" \
+   --argjson ts "$TIMESTAMP" \
+   '
+   .[$sid] |= map(
+     if .task_id == $tid then
+       .phase = "verification" |
+       .quality_score = $score |
+       .updated_at = $ts
+     else . end
+   )
+   ' .claude/tasks/index.json > .claude/tasks/index.json.tmp && \
+   mv .claude/tasks/index.json.tmp .claude/tasks/index.json
+```
 
 **禁止**：验证完成后结束回复。Loop 流程不可中断。

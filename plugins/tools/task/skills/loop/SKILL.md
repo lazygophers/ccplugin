@@ -201,7 +201,7 @@ hooks:
 重置状态：`iteration=0, context={replan_trigger: None, started_at, task_id: null}`。生成 task_id：用最简短的中文描述任务核心（2-6个汉字，如"修复日志"、"添加认证"），禁止附加日期/序号，loop 完成前不可变。后续所有输出以 `[MindFlow·${task_id}]` 开头。
 
 **task_id 生成后立即执行以下步骤（严格顺序）**：
-1. **【第一步】更新任务索引** `.claude/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：确保 `.claude/tasks/` 目录存在；检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；追加当前任务信息（task_id/description/phase/created_at/updated_at/iteration/quality_score）
+1. **【第一步】更新任务索引** `.claude/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：**必须使用 phase-initialization.md 步骤4 中提供的 Bash+jq 命令逐字执行，不可自行修改格式**。索引使用 Map 结构（根键为 session_id 哈希，值为任务数组），确保 `.claude/tasks/` 目录存在；检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；追加当前任务信息（task_id/description/phase/created_at/updated_at/iteration/quality_score）
 2. 创建任务目录：`mkdir -p .claude/tasks/${task_id}`
 3. 写入 `metadata.json`：含 task_id/session_id/description/phase/iteration 等字段
 4. 写入空 `tasks.json`：`{"tasks":[]}`

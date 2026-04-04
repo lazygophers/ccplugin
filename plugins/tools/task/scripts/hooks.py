@@ -35,18 +35,32 @@ def handle_stop(hook_event_name: str, session_id: str):
 
 	# 读取索引文件
 	with open(index_path) as file:
-		tasks = json.load(file)
-		if session_id not in tasks:
+		index = json.load(file)
+		if session_id not in index:
 			print(json.dumps({
 				"hookSpecificOutput": {
 					"hookEventName":hook_event_name,
 					"additionalContext": f".claude/tasks/index.json 缺少 {session_id} 的信息"
 				}
 			}))
+			return
 
-		session = tasks.get(session_id, {})
+		# session_id 对应的是任务数组，取第一个任务（当前任务）
+		task_list = index.get(session_id, [])
+		if not task_list:
+			print(json.dumps({
+				"hookSpecificOutput": {
+					"hookEventName":hook_event_name,
+					"additionalContext": f"session {session_id} 的任务列表为空"
+				}
+			}))
+			return
 
-	status_file_path = os.path.join(get_project_dir(), ".claude", "tasks", session.get("task_id", ""), "metadata.json")
+		# 取最新的任务（数组最后一个元素）
+		current_task = task_list[-1]
+		task_id = current_task.get("task_id", "")
+
+	status_file_path = os.path.join(get_project_dir(), ".claude", "tasks", task_id, "metadata.json")
 	if not os.path.exists(status_file_path):
 		print(json.dumps({
 			"hookSpecificOutput": {
