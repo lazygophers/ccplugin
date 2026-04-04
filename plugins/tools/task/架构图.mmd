@@ -14,7 +14,6 @@ graph TB
             Planner["planner<br/>计划设计"]
             Verifier["verifier<br/>结果验证"]
             Adjuster["adjuster<br/>失败调整"]
-            Finalizer["finalizer<br/>资源清理"]
         end
 
         subgraph ExplorerFamily["Explorer 探索体系"]
@@ -41,7 +40,7 @@ graph TB
     Loop -->|"Execution: 按 DAG 调度 agent"| LifecycleSkills
     Loop -->|"调度"| Verifier
     Loop -->|"调度"| Adjuster
-    Loop -->|"调度"| Finalizer
+    Loop -->|"Cleanup: 自身执行"| LifecycleSkills
 
     %% Explorer 按需调用
     Loop -.->|"DeepResearch 按需调用"| ExGeneral
@@ -70,7 +69,7 @@ graph TB
     classDef external fill:#BDC3C7,stroke:#7F8C8D,color:#333
 
     class Loop core
-    class PromptOpt,Planner,Verifier,Adjuster,Finalizer lifecycle
+    class PromptOpt,Planner,Verifier,Adjuster lifecycle
     class ExGeneral,ExCode,ExFrontend,ExBackend,ExAPI,ExDB,ExDeps,ExInfra,ExTest,ExMemProto explorer
     class Hooks govern
     class DeepRes external

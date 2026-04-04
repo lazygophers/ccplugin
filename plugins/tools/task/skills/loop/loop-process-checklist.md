@@ -79,19 +79,17 @@
 | 策略选择正确 | 验证返回的 strategy 符合失败场景 | 必须 |
 | 状态转换正确 | 验证根据 strategy 正确跳转到下一阶段 | 必须 |
 
-## Cleanup：完成清理
+## Cleanup：完成清理（loop 自身执行）
 
 | 检查点 | 验证方法 | 必须/可选 |
 |-------|---------|----------|
 | 前置条件检查 | 验证验证通过或用户确认完成 | 必须 |
-| **元数据文件更新** | **`.claude/tasks/{task_id}/metadata.json` phase 为 cleanup（必须在 finalizer 之前）** | **必须** |
-| **Finalizer 调用** | **检查是否调用了 `Skill(skill="task:finalizer")`** | **必须** |
-| 即使失败也执行清理 | 验证失败场景下 finalizer 也被调用 | 必须 |
-| 计划文件已删除 | 验证文件已删除：`! test -f .claude/tasks/{task_id}/plan.md` | 必须 |
-| 检查点已清理 | 验证检查点文件已删除 | 必须 |
+| **metadata.json 更新** | **phase 为 completed/failed** | **必须** |
+| **index.json 更新** | **Bash+jq 命令更新为终态** | **必须** |
+| 即使失败也执行 | 验证失败场景下 Cleanup 也执行 | 必须 |
+| 检查点已清理 | 验证 `cleanup_checkpoint()` 已调用 | 必须 |
 | 执行记忆已保存 | 验证记忆 URI 存在 | 必须 |
-| 资源泄漏警告生效 | 如果跳过 finalizer，检查是否显示警告 | 必须 |
-| 后置验证点通过 | 验证所有清理操作已完成 | 必须 |
+| 最终报告已输出 | 验证最终报告包含状态/迭代/时长 | 必须 |
 
 ## Cleanup 补充：微回顾
 
@@ -107,17 +105,14 @@
 # 检查 planner 是否完成三层上下文学习
 grep -i "README\|CLAUDE.md\|package.json" <planner输出>
 
-# 检查是否使用 Skill 工具执行任务
-grep "Skill(skill=" <执行日志> | grep -v "planner\|formatter\|verifier\|adjuster\|finalizer"
+# 检查是否使用 Agent 工具执行任务
+grep "Agent(subagent_type=" <执行日志>
 
 # 检查 verifier 是否被调用
-grep "Skill(skill=\"task:verifier\")" <loop输出>
+grep "Agent(subagent_type=\"task:verifier\")" <loop输出>
 
-# 检查 finalizer 是否被调用
-grep "Skill(skill=\"task:finalizer\")" <loop输出>
-
-# 检查计划文件是否清理
-! test -f .claude/tasks/*/plan.md && echo "已清理" || echo "未清理"
+# 检查 metadata.json 是否更新为终态
+jq '.phase' .claude/tasks/*/metadata.json
 
 # 检查原子拆分（每个任务files≤1个）
 grep -A2 '"files"' <计划JSON> | grep -c ',' # 应为0

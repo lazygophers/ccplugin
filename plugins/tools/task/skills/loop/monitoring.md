@@ -79,6 +79,6 @@ circuit_breaker:
 
 **消息类型**：question(需用户确认) | response(传递回答) | report(进度/结果) | alert(异常) | request(请求操作)。消息必含：type/agent/content。
 
-**协作模式**：顺序(Planner→Executor→Verifier→Adjuster/Finalizer) | 并行(最多2个无依赖) | 反馈循环(Executor→Verifier→Adjuster→Executor)
+**协作模式**：顺序(Planner→Executor→Verifier→Adjuster→Cleanup) | 并行(最多2个无依赖) | 反馈循环(Executor→Verifier→Adjuster→Executor)
 
 **安全**：来源验证(只允许合法Agent) | 格式验证(必含type/agent/content) | 循环检测(重复>50%中断)

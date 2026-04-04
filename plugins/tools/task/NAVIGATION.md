@@ -13,8 +13,9 @@
 | planner | 任务规划、分解、格式化 | [agents/planner.md](agents/planner.md)<br/>[skills/planner/](skills/planner/) | MECE分解复杂任务为原子子任务，自动格式化并写入计划文件 |
 | verifier | 验收验证 | [agents/verifier.md](agents/verifier.md)<br/>[skills/verifier/](skills/verifier/) | 检查验收标准、质量评分 |
 | adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 四级渐进式升级（retry→debug→replan→ask_user） |
-| finalizer | 资源清理 | [agents/finalizer.md](agents/finalizer.md)<br/>[skills/finalizer/](skills/finalizer/) | 任务完成后清理资源和生成报告 |
 | prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
+
+> **注**：finalizer 已移除。Cleanup 由 loop 自身执行，过期任务由 SessionStart hook 自动清理。
 
 ## 支持功能Skills
 

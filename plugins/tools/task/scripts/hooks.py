@@ -175,7 +175,6 @@ def handle_stop(hook_event_name: str, session_id: str):
 				}
 			}))
 			sys.exit(2)
-			return
 
 def handle_hook() -> None:
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作

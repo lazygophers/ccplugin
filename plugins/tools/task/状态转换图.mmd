@@ -111,15 +111,14 @@ stateDiagram-v2
     WaitUser --> PromptOptimization: 用户提供方向
 
     state Cleanup {
-        [*] --> UpdateTaskStatus: 更新任务状态文件
-        UpdateTaskStatus --> CallFinalizer: 调用 Finalizer
-        CallFinalizer --> CleanResources: 清理当前任务资源
-        CleanResources --> UpdateIndex2: 更新 index.json 为 completed/failed
+        [*] --> UpdateTaskStatus: 更新 metadata.json 为终态
+        UpdateTaskStatus --> UpdateIndex2: 更新 index.json 为 completed/failed
         UpdateIndex2 --> SaveMemory: 保存执行记忆
         SaveMemory --> MicroRetro: 微回顾
-        MicroRetro --> [*]
+        MicroRetro --> FinalReport: 输出最终报告
+        FinalReport --> [*]
     }
-    note right of Cleanup: 即使失败也必须执行\n过期任务由 SessionStart hook 自动清理
+    note right of Cleanup: loop 自身执行，无独立 agent\n中间产物由 SessionStart hook 30天后自动清理
 
     Cleanup --> End
     End --> [*]

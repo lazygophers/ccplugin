@@ -298,35 +298,27 @@ flowchart TB
     %% =============================================================================
     %% Cleanup: 清理
     %% =============================================================================
-    subgraph Final[Cleanup: 清理]
+    subgraph Final["Cleanup: 清理（loop 自身执行）"]
         direction TB
         Final_Entry[前置条件: 验证通过或确认]
-        Final_0[更新任务状态文件<br/>status→completed/failed]
-        Final_1[调用 task:finalizer]
-        Final_Context[Context-6<br/>project_path/...]
-
-        Final_2[模式提取<br/>extract_failure_patterns]
+        Final_0["更新 metadata.json<br/>phase→completed/failed"]
+        Final_0a["更新 index.json<br/>Bash+jq 命令"]
         Final_3[检查点清理: cleanup_checkpoint]
         Final_4[微回顾: 有效实践/需改进/下次注意]
         Final_5[记忆保存: save_task_episode]
         Final_6[短期记忆清理<br/>cleanup_working_memory]
         Final_7[最终报告]
 
-        Final_Cleanup["5类中间产物清理:<br/>计划文件+提示词文件+检查点<br/>+审批日志+上下文快照"]
-
         Final_Entry --> Final_0
-        Final_0 --> Final_1
-        Final_1 --> Final_Context
-        Final_Context --> Final_2
-        Final_2 --> Final_3
+        Final_0 --> Final_0a
+        Final_0a --> Final_3
         Final_3 --> Final_4
         Final_4 --> Final_5
         Final_5 --> Final_6
         Final_6 --> Final_7
-        Final_7 --> Final_Cleanup
     end
 
-    Final_Cleanup --> End
+    Final_7 --> End
 
     %% =============================================================================
     %% 结束节点
@@ -352,7 +344,7 @@ flowchart TB
         V1[Planner内部流程检测]
         V2[Skill/Agent工具调用检测]
         V3[Verifier调用检测]
-        V4[Finalizer调用检测]
+        V4[Cleanup完成检测]
         V_Title --> V1
         V_Title --> V2
         V_Title --> V3
@@ -414,16 +406,16 @@ flowchart TB
     class Adjust_Entry,Adjust_3,Adjust_4,Adjust_5,Adjust_8 phaseNode
 
     %% Cleanup 节点
-    class Final_Entry,Final_0,Final_2,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
+    class Final_Entry,Final_0,Final_0a,Final_3,Final_4,Final_5,Final_6,Final_7 phaseNode
 
     %% 决策节点
     class Init_2,PO_Trigger,PO_7,DR_Entry,DR_2,DR_3,DR_5,Plan_3,Plan_5,Plan_8,Exec_7,Exec_10,Verify_Check,Verify_6,QualityGate,Adjust_6,Adjust_7 decisionNode
 
     %% 违规检测节点
-    class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,Final_1,V1,V2,V3,V4 violationNode
+    class Plan_Violation,Exec_Violation,Verify_1,Adjust_2,V1,V2,V3,V4 violationNode
 
     %% 上下文说明节点
-    class Init_Jump,Plan_Mode,Plan_Context,Exec_Context,Verify_Context,QualityGate_Qual,Adjust_Context,Adjust_Level,Adjust_Route,Final_Context,Adjust_Stuck,Final_Cleanup,C_Fields contextNode
+    class Init_Jump,Plan_Mode,Plan_Context,Exec_Context,Verify_Context,QualityGate_Qual,Adjust_Context,Adjust_Level,Adjust_Route,Adjust_Stuck,C_Fields contextNode
 
     %% 开始结束节点
     class Start startNode

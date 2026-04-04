@@ -24,7 +24,6 @@
   ],
   "agents": [
     "./agents/prompt-optimizer.md",
-    "./agents/finalizer.md",
     "./agents/verifier.md",
     "./agents/adjuster.md",
     "./agents/planner.md",
