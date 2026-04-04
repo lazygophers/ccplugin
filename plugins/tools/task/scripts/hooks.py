@@ -10,11 +10,13 @@ import shutil
 import sys
 import time
 import traceback
+from typing import Dict
 
 from lib import logging
+from lib.hooks import load_hooks
 from lib.utils.env import get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
-from lib.hooks import load_hooks
+
 
 def cleanup_expired_tasks():
 	"""清理超过30天的过期任务数据
@@ -81,7 +83,7 @@ def cleanup_expired_tasks():
 				if all_deleted:
 					cleaned_count += 1
 					index_modified = True
-					# 不添加到 active_tasks，从索引中移除
+				# 不添加到 active_tasks，从索引中移除
 				else:
 					# 删除失败，保留在索引中，下次重试
 					active_tasks.append(task)
@@ -105,6 +107,7 @@ def cleanup_expired_tasks():
 		if cleaned_count > 0:
 			logging.info(f"已清理 {cleaned_count} 个过期任务（超过30天）")
 
+
 def handle_session_start():
 	if not os.path.exists(os.path.join(get_project_dir(), ".claude", "tasks")):
 		os.mkdir(os.path.join(get_project_dir(), ".claude", "tasks"))
@@ -114,6 +117,7 @@ def handle_session_start():
 	# 清理过期任务
 	cleanup_expired_tasks()
 
+
 def handle_stop(hook_event_name: str, session_id: str):
 	"""Stop hook: 检查任务是否完成（index.json 格式：{session_id: [{task_id, ...}]}）"""
 	index_path = os.path.join(get_project_dir(), ".claude", "tasks", "index.json")
@@ -122,7 +126,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 	if not os.path.exists(index_path):
 		print(json.dumps({
 			"hookSpecificOutput": {
-				"hookEventName":hook_event_name,
+				"hookEventName": hook_event_name,
 				"additionalContext": ".claude/tasks/index.json 不存在"
 			}
 		}))
@@ -134,7 +138,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 		if session_id not in index:
 			print(json.dumps({
 				"hookSpecificOutput": {
-					"hookEventName":hook_event_name,
+					"hookEventName": hook_event_name,
 					"additionalContext": f".claude/tasks/index.json 缺少 {session_id} 的信息"
 				}
 			}))
@@ -145,7 +149,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 		if not task_list:
 			print(json.dumps({
 				"hookSpecificOutput": {
-					"hookEventName":hook_event_name,
+					"hookEventName": hook_event_name,
 					"additionalContext": f"session {session_id} 的任务列表为空"
 				}
 			}))
@@ -159,7 +163,7 @@ def handle_stop(hook_event_name: str, session_id: str):
 	if not os.path.exists(status_file_path):
 		print(json.dumps({
 			"hookSpecificOutput": {
-				"hookEventName":hook_event_name,
+				"hookEventName": hook_event_name,
 				"additionalContext": f"{status_file_path} 不存在"
 			}
 		}))
@@ -170,11 +174,34 @@ def handle_stop(hook_event_name: str, session_id: str):
 		if metadata.get("phase", "") != "completed":
 			print(json.dumps({
 				"hookSpecificOutput": {
-					"hookEventName":hook_event_name,
+					"hookEventName": hook_event_name,
 					"additionalContext": "task not finish，continue"
 				}
 			}))
 			sys.exit(2)
+
+
+def handle_permission_request(hook_data: Dict[str, any]):
+	if "tool_input" not in hook_data:
+		return
+
+	tool_input = hook_data.get("tool_input", {})
+
+	# .claude/tasks 目录下的自动放行
+	if "file_path" in tool_input:
+		if (str(tool_input.get("file_path", "")).find(".claude") >= 0 and
+			str(tool_input.get("file_path", "")).find("tasks") >= 0):
+			print(json.dumps({
+				"hookSpecificOutput": {
+					"hookEventName": hook_data.get("hook_event_name", "PermissionRequest"),
+					"decision": {
+						"behavior": "allow",
+						"updatedInput": tool_input
+					}
+				}
+			}))
+			return
+
 
 def handle_hook() -> None:
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
@@ -198,6 +225,8 @@ def handle_hook() -> None:
 		# 路由到不同的处理器
 		if hook_event_name == "SessionStart":
 			handle_session_start()
+		elif hook_event_name == "PermissionRequest":
+			handle_permission_request(input_data)
 		elif hook_event_name == "Stop":
 			handle_stop(hook_event_name, input_data.get("session_id", ""))
 	except Exception as e:
