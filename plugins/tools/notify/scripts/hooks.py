@@ -331,7 +331,6 @@ def handle_hook() -> None:
 		raise ValueError("缺少必需的 hook_event_name 字段")
 
 	info(f"处理 Hook 事件: {event_name}")
-	debug(f"Hook 数据: {json.dumps(hook_data)}")
 
 	if event_name == "Stop":
 		if "subagent_type" in hook_data:
