@@ -33,7 +33,7 @@ def hooks() -> None:
 
 @main.command(name="hooks-skills")
 @with_debug
-def hooks_skills_cmd() -> None:
+def hooks_skills() -> None:
 	"""Hook 模式：处理 skills 相关事件（从 stdin 读取 JSON）"""
 	handle_hook_skills()
 
