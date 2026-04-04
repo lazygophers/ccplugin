@@ -13,14 +13,50 @@
    - 必须中文，禁止日期/序号/哈希/英文/拼音/短横线
    - 不可变：loop 完成前不得修改
    - 设置 `context.task_id = task_id`
-4. **【最高优先级】创建任务目录和更新索引**（Stop hook 依赖 index.json）：
-   ```bash
-   mkdir -p .claude/tasks/{task_id}
-   ```
-   
-   **a) 更新任务索引** `.claude/tasks/index.json`（生成 task_id 后的第一步）：
+4. **【第一步】更新任务索引** `.claude/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：
    
    索引文件使用 Map 结构（key 为 session_id），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
+   
+   **执行命令**（Bash + jq）：
+   
+   ```bash
+   # 设置变量
+   TASK_ID="任务ID"              # 已生成的 task_id（2-6个汉字）
+   SESSION_ID="session哈希值"    # Claude Code session_id
+   USER_TASK="用户任务描述"      # 用户原始输入
+   TIMESTAMP=$(date +%s)         # 当前Unix时间戳（秒）
+   
+   # 确保 .claude/tasks 目录存在
+   mkdir -p .claude/tasks
+   
+   # 创建 index.json（如果不存在）
+   if [ ! -f .claude/tasks/index.json ]; then
+       echo '{}' > .claude/tasks/index.json
+   fi
+   
+   # 更新索引：添加当前任务到 session_id 的任务列表
+   jq --arg sid "$SESSION_ID" \
+      --arg tid "$TASK_ID" \
+      --arg desc "$USER_TASK" \
+      --argjson ts "$TIMESTAMP" \
+      '
+      # 确保 session_id 键存在
+      if has($sid) then . else . + {($sid): []} end |
+      # 追加当前任务信息
+      .[$sid] += [{
+        task_id: $tid,
+        description: $desc,
+        phase: "initialization",
+        created_at: $ts,
+        updated_at: $ts,
+        iteration: 0,
+        quality_score: null
+      }]
+      ' .claude/tasks/index.json > .claude/tasks/index.json.tmp && \
+      mv .claude/tasks/index.json.tmp .claude/tasks/index.json
+   ```
+   
+   **JSON 结构示例**：
    
    ```json
    {
@@ -43,7 +79,30 @@
    - **更新任务**：每次阶段转换时，在对应 session_id 的任务列表中找到 task_id，更新 phase、updated_at、iteration、quality_score
    - **清理任务**：Cleanup 阶段完成后，更新索引中对应任务的 phase 为 `completed` 或 `failed`
    
-   **b) 写入任务元数据** `.claude/tasks/{task_id}/metadata.json`：
+   **【自检】验证 index.json 已正确更新**（防御性编程，避免索引创建失败导致后续 hooks 阻断）：
+   
+   读取 `.claude/tasks/index.json` 并验证当前 `session_id` 和 `task_id` 已记录：
+   
+   ```bash
+   # 检查 session_id 是否存在
+   jq -e --arg sid "$SESSION_ID" 'has($sid)' .claude/tasks/index.json
+   
+   # 检查该 session 下是否包含当前 task_id
+   jq -e --arg sid "$SESSION_ID" --arg tid "$TASK_ID" \
+     '.[$sid] | any(.task_id == $tid)' .claude/tasks/index.json
+   ```
+   
+   **如验证失败**（索引缺失或损坏）：
+   - 立即执行上述索引更新逻辑（补救创建）
+   - 记录警告但**不中止**初始化流程
+   - 理由：首次初始化失败可能由并发写入、权限问题等引起，自检补救可提高容错性
+
+5. **创建任务目录**：
+   ```bash
+   mkdir -p .claude/tasks/{task_id}
+   ```
+
+6. **写入任务元数据** `.claude/tasks/{task_id}/metadata.json`：
    ```json
    {
      "task_id": "${task_id}",
@@ -70,32 +129,14 @@
    - `error`：错误信息（发生错误时记录）
    - `result`：各阶段子 agent 的执行结果（对象），loop 读取后决定下一步
    - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
-   
-   **c) 【自检】验证 index.json 已正确更新**（防御性编程，避免索引创建失败导致后续 hooks 阻断）：
-   
-   读取 `.claude/tasks/index.json` 并验证当前 `session_id` 和 `task_id` 已记录：
-   
-   ```bash
-   # 检查 session_id 是否存在
-   jq -e --arg sid "$SESSION_ID" 'has($sid)' .claude/tasks/index.json
-   
-   # 检查该 session 下是否包含当前 task_id
-   jq -e --arg sid "$SESSION_ID" --arg tid "$TASK_ID" \
-     '.[$sid] | any(.task_id == $tid)' .claude/tasks/index.json
-   ```
-   
-   **如验证失败**（索引缺失或损坏）：
-   - 立即执行步骤 4a 的索引更新逻辑（补救创建）
-   - 记录警告但**不中止**初始化流程
-   - 理由：首次初始化失败可能由并发写入、权限问题等引起，自检补救可提高容错性
-   
-5. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
-6. **残留清理**：
+
+7. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
+8. **残留清理**：
    - 扫描 `.claude/tasks/*/plan.md`，删除非当前任务的残留计划文件
    - 扫描 `.claude/tasks/*/metadata.json`，非当前 task_id 的非终态文件自动修正为 `failed`，终态文件直接删除
    - 禁止因发现残留而阻断当前任务初始化
-7. **记忆加载**：生成 session_id(MD5) → `load_task_memories()` → 显示 episodic(前 3 个) + semantic 记忆
-8. **资源检查**：`ListSkills()` + `ListAgents()`
+9. **记忆加载**：生成 session_id(MD5) → `load_task_memories()` → 显示 episodic(前 3 个) + semantic 记忆
+10. **资源检查**：`ListSkills()` + `ListAgents()`
 
 ## 检查点规范
 
