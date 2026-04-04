@@ -15,30 +15,15 @@ from lib.utils.gitignore import add_gitignore_rule
 from lib.hooks import load_hooks
 
 def handle_session_start(session_id: str):
-	"""SessionStart 事件处理：创建 .claude/tasks 目录并初始化索引"""
-	tasks_dir = os.path.join(get_project_dir(), ".claude", "tasks")
-
-	# 创建目录
-	if not os.path.exists(tasks_dir):
-		os.makedirs(tasks_dir, exist_ok=True)
-		logging.info(f"Created tasks directory: {tasks_dir}")
-
-	# 添加到 .gitignore
-	add_gitignore_rule("/tasks", file_path=os.path.join(get_project_dir(), ".claude", ".gitignore"))
-
-	# 初始化索引文件（如果不存在）
-	index_path = os.path.join(tasks_dir, "index.json")
-	if not os.path.exists(index_path):
-		with open(index_path, "w") as f:
-			json.dump({}, f, indent=2, ensure_ascii=False)
-		logging.info(f"Initialized index file: {index_path}")
-
-	# 检查索引中是否有当前 session
-	with open(index_path) as f:
-		index = json.load(f)
-
-	if session_id not in index:
-		logging.info(f"Session {session_id} not found in index, will be created when first task starts")
+	with open(os.path.join(get_project_dir(), ".claude", "tasks", "index.json")) as file:
+		tasks = json.load(file)
+		if session_id not in tasks:
+			print(json.dumps({
+				"hookSpecificOutput": {
+					"hookEventName": "SessionStart",
+					"additionalContext": f".claude/tasks/index.json 缺少 {session_id} 的信息"
+				}
+			}))
 
 def handle_hook_skills() -> None:
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
