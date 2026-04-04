@@ -25,8 +25,8 @@
      "session_id": "${session_id}",
      "description": "${user_task}",
      "phase": "initialization",
-     "created_at": "ISO8601",
-     "updated_at": "ISO8601",
+     "created_at": 1733308800,
+     "updated_at": 1733308800,
      "iteration": 0,
      "quality_score": null,
      "error": null,
@@ -38,8 +38,8 @@
    - `session_id`：Claude Code 会话标识（MD5 哈希，用于记忆加载、日志关联）
    - `description`：用户原始任务描述
    - `phase`：当前阶段，枚举值：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
-   - `created_at`：任务创建时间（ISO8601 格式）
-   - `updated_at`：任务最后更新时间（ISO8601 格式，每次阶段转换时更新）
+   - `created_at`：任务创建时间（Unix 时间戳，秒）
+   - `updated_at`：任务最后更新时间（Unix 时间戳，秒，每次阶段转换时更新）
    - `iteration`：当前迭代轮次（从 0 开始）
    - `quality_score`：验证质量分数（Verification 阶段写入，范围 0-100）
    - `error`：错误信息（发生错误时记录）
@@ -48,28 +48,28 @@
    
    **b) 更新任务索引** `.claude/tasks/index.json`：
    
-   索引文件存储所有任务的基本信息列表，便于快速查询和管理。首次创建索引文件时初始化为空数组，后续任务追加到数组。
+   索引文件使用 Map 结构（key 为 session_id），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
    
    ```json
-   [
-     {
-       "task_id": "${task_id}",
-       "session_id": "${session_id}",
-       "description": "${user_task}",
-       "phase": "initialization",
-       "created_at": "ISO8601",
-       "updated_at": "ISO8601",
-       "iteration": 0,
-       "quality_score": null
-     }
-   ]
+   {
+     "${session_id}": [
+       {
+         "task_id": "${task_id}",
+         "description": "${user_task}",
+         "phase": "initialization",
+         "created_at": 1733308800,
+         "updated_at": 1733308800,
+         "iteration": 0,
+         "quality_score": null
+       }
+     ]
+   }
    ```
    
    **索引操作规则**：
-   - **创建任务**：检查 index.json 是否存在，不存在则创建空数组，然后追加当前任务信息
-   - **更新任务**：每次阶段转换时，更新索引中对应 task_id 的记录（phase、updated_at、iteration、quality_score）
+   - **创建任务**：检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；然后追加当前任务信息
+   - **更新任务**：每次阶段转换时，在对应 session_id 的任务列表中找到 task_id，更新 phase、updated_at、iteration、quality_score
    - **清理任务**：Cleanup 阶段完成后，更新索引中对应任务的 phase 为 `completed` 或 `failed`
-   - **过期清理**：定期清理索引中 30 天前的已完成/失败任务记录
    
 5. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
 6. **残留清理**：
