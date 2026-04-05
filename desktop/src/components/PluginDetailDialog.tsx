@@ -142,15 +142,17 @@ export function PluginDetailDialog({
 
         {/* Metadata */}
         <div className="py-4 border-y space-y-3">
-          <div className="flex items-center gap-2 text-sm">
-            <Package className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">版本:</span>
-            <span className="text-muted-foreground">v{plugin.version}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <User className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">市场:</span>
-            <span className="text-muted-foreground">{plugin.marketplace}</span>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Package className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">版本:</span>
+              <span className="text-muted-foreground">v{plugin.version}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium">市场:</span>
+              <span className="text-muted-foreground">{plugin.marketplace}</span>
+            </div>
           </div>
 
           {plugin.installed && plugin.installed_info && plugin.installed_info.length > 0 &&
