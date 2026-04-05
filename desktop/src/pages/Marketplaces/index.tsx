@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Loader2,
@@ -34,9 +34,6 @@ export default function Marketplaces() {
 	const [error, setError] = useState<string | null>(null);
 	const [marketplaces, setMarketplaces] = useState<MarketplaceInfo[]>([]);
 	const [plugins, setPlugins] = useState<PluginInfo[]>([]);
-	const [selectedMarketplace, setSelectedMarketplace] = useState<
-		string | null
-	>(null);
 	const [expandedMarketplace, setExpandedMarketplace] = useState<
 		string | null
 	>(null);
@@ -92,10 +89,8 @@ export default function Marketplaces() {
 		(marketName: string) => {
 			if (expandedMarketplace === marketName) {
 				setExpandedMarketplace(null);
-				setSelectedMarketplace(null);
 			} else {
 				setExpandedMarketplace(marketName);
-				setSelectedMarketplace(marketName);
 			}
 		},
 		[expandedMarketplace],
@@ -107,7 +102,7 @@ export default function Marketplaces() {
 			try {
 				await installPlugin(
 					pluginName,
-					selectedMarketplace || "ccplugin-market",
+					expandedMarketplace || "ccplugin-market",
 				);
 				// 使用函数式更新，避免依赖 loadPlugins
 				setPlugins(await MarketplaceService.getAllPlugins());
@@ -118,8 +113,8 @@ export default function Marketplaces() {
 				setInstallingPlugin(null);
 			}
 		},
-		[selectedMarketplace],
-	); // 只依赖 selectedMarketplace
+		[expandedMarketplace],
+	); // 只依赖 expandedMarketplace
 
 	const handleUninstall = useCallback(async (pluginName: string) => {
 		if (!confirm(`确定要卸载插件 "${pluginName}" 吗？`)) return;
@@ -179,14 +174,6 @@ export default function Marketplaces() {
 		);
 	}, []);
 
-	// 过滤插件：使用 useMemo 优化，只在 plugins 或 selectedMarketplace 改变时重新计算
-	const filteredPlugins = useMemo(() => {
-		if (!selectedMarketplace || selectedMarketplace === "all") {
-			return plugins;
-		}
-		return plugins.filter((p) => p.marketplace === selectedMarketplace);
-	}, [plugins, selectedMarketplace]); // 依赖 plugins 和 selectedMarketplace
-
 	return (
 		<div className="p-6 space-y-6">
 			<div className="flex items-center justify-between gap-3">
@@ -197,8 +184,8 @@ export default function Marketplaces() {
 					</h1>
 					<p className="text-muted-foreground">
 						共 {marketplaces.length} 个市场已配置
-						{selectedMarketplace &&
-							` • ${selectedMarketplace} 的插件`}
+						{expandedMarketplace &&
+							` • ${expandedMarketplace} 的插件`}
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -263,9 +250,9 @@ export default function Marketplaces() {
 							</p>
 						</div>
 					) : (
-						<div className="space-y-6">
-							{/* 市场列表 */}
-							<div className="space-y-2">
+						<div className="space-y-2">
+							{/* "所有插件" 选项 */}
+							<div>
 								<div
 									className="p-4 border rounded-lg bg-card hover:bg-accent cursor-pointer"
 									onClick={() =>
@@ -293,102 +280,159 @@ export default function Marketplaces() {
 									</div>
 								</div>
 
-								{marketplaces.map((m) => (
-									<div
-										key={m.name}
-										className="p-4 border rounded-lg bg-card hover:bg-accent cursor-pointer"
-										onClick={() =>
-											handleMarketplaceClick(m.name)
-										}
-									>
-										<div className="flex items-center justify-between">
-											<div className="flex items-center gap-3 flex-1">
-												<Store className="w-5 h-5 text-primary" />
-												<div className="flex-1">
-													<div className="flex items-center gap-2">
-														<h3 className="font-semibold">
-															{m.name}
-														</h3>
-														<Button
-															variant="ghost"
-															size="sm"
-															className="h-6 px-2 text-destructive hover:text-destructive"
-															onClick={(e) => {
-																e.stopPropagation();
-																handleRemoveMarketplace(
-																	m.name,
-																);
-															}}
-														>
-															<Trash2 className="w-3 h-3" />
-														</Button>
-													</div>
-													<p className="text-xs text-muted-foreground break-all">
-														{m.url ||
-															m.source ||
-															"—"}
-													</p>
-													{m.installLocation && (
-														<p className="text-xs text-muted-foreground">
-															安装位置：
-															{m.installLocation}
-														</p>
-													)}
-												</div>
+								{/* "所有插件" 的插件列表 - 紧贴在下方 */}
+								{expandedMarketplace === "all" && (
+									<div className="mt-2 p-4 border border-t-0 rounded-b-lg bg-muted/30">
+										{plugins.length === 0 ? (
+											<div className="text-center py-8 text-muted-foreground">
+												暂无插件
 											</div>
-											{expandedMarketplace === m.name ? (
-												<ChevronUp className="w-5 h-5 text-muted-foreground" />
-											) : (
-												<ChevronDown className="w-5 h-5 text-muted-foreground" />
-											)}
-										</div>
+										) : (
+											<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+												{plugins.map((plugin) => (
+													<PluginCard
+														key={plugin.name}
+														plugin={plugin}
+														onInstall={
+															handleInstall
+														}
+														onUninstall={
+															handleUninstall
+														}
+														onViewDetails={
+															handleViewDetails
+														}
+														installing={
+															installingPlugin ===
+															plugin.name
+														}
+														uninstalling={
+															uninstallingPlugin ===
+															plugin.name
+														}
+													/>
+												))}
+											</div>
+										)}
 									</div>
-								))}
+								)}
 							</div>
 
-							{/* 插件列表 */}
-							{expandedMarketplace && (
-								<div className="space-y-4">
-									<h2 className="text-xl font-semibold">
-										{expandedMarketplace === "all"
-											? "所有插件"
-											: `${expandedMarketplace} 的插件`}
-										<span className="text-sm text-muted-foreground ml-2">
-											({filteredPlugins.length} 个)
-										</span>
-									</h2>
+							{/* 各个市场及其插件列表 */}
+							{marketplaces.map((m) => {
+								const marketPlugins = plugins.filter(
+									(p) => p.marketplace === m.name,
+								);
 
-									{filteredPlugins.length === 0 ? (
-										<div className="text-center py-12 text-muted-foreground">
-											暂无插件
+								return (
+									<div key={m.name}>
+										{/* 市场项 */}
+										<div
+											className="p-4 border rounded-lg bg-card hover:bg-accent cursor-pointer"
+											onClick={() =>
+												handleMarketplaceClick(m.name)
+											}
+										>
+											<div className="flex items-center justify-between">
+												<div className="flex items-center gap-3 flex-1">
+													<Store className="w-5 h-5 text-primary" />
+													<div className="flex-1">
+														<div className="flex items-center gap-2">
+															<h3 className="font-semibold">
+																{m.name}
+															</h3>
+															<span className="text-xs text-muted-foreground">
+																(
+																{
+																	marketPlugins.length
+																}{" "}
+																个插件)
+															</span>
+															<Button
+																variant="ghost"
+																size="sm"
+																className="h-6 px-2 text-destructive hover:text-destructive"
+																onClick={(
+																	e,
+																) => {
+																	e.stopPropagation();
+																	handleRemoveMarketplace(
+																		m.name,
+																	);
+																}}
+															>
+																<Trash2 className="w-3 h-3" />
+															</Button>
+														</div>
+														<p className="text-xs text-muted-foreground break-all">
+															{m.url ||
+																m.source ||
+																"—"}
+														</p>
+														{m.installLocation && (
+															<p className="text-xs text-muted-foreground">
+																安装位置：
+																{
+																	m.installLocation
+																}
+															</p>
+														)}
+													</div>
+												</div>
+												{expandedMarketplace ===
+												m.name ? (
+													<ChevronUp className="w-5 h-5 text-muted-foreground" />
+												) : (
+													<ChevronDown className="w-5 h-5 text-muted-foreground" />
+												)}
+											</div>
 										</div>
-									) : (
-										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-											{filteredPlugins.map((plugin) => (
-												<PluginCard
-													key={plugin.name}
-													plugin={plugin}
-													onInstall={handleInstall}
-													onUninstall={
-														handleUninstall
-													}
-													onViewDetails={
-														handleViewDetails
-													}
-													installing={
-														installingPlugin ===
-														plugin.name
-													}
-													uninstalling={
-														uninstallingPlugin ===
-														plugin.name
-													}
-												/>
-											))}
-										</div>
-									)}
-								</div>
-							)}
+
+										{/* 该市场的插件列表 - 紧贴在下方 */}
+										{expandedMarketplace === m.name && (
+											<div className="mt-2 p-4 border border-t-0 rounded-b-lg bg-muted/30">
+												{marketPlugins.length === 0 ? (
+													<div className="text-center py-8 text-muted-foreground">
+														该市场暂无插件
+													</div>
+												) : (
+													<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+														{marketPlugins.map(
+															(plugin) => (
+																<PluginCard
+																	key={
+																		plugin.name
+																	}
+																	plugin={
+																		plugin
+																	}
+																	onInstall={
+																		handleInstall
+																	}
+																	onUninstall={
+																		handleUninstall
+																	}
+																	onViewDetails={
+																		handleViewDetails
+																	}
+																	installing={
+																		installingPlugin ===
+																		plugin.name
+																	}
+																	uninstalling={
+																		uninstallingPlugin ===
+																		plugin.name
+																	}
+																/>
+															),
+														)}
+													</div>
+												)}
+											</div>
+										)}
+									</div>
+								);
+							})}
 						</div>
 					)}
 				</>
