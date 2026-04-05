@@ -31,20 +31,20 @@
 
 ## Planning：计划设计与确认
 
-| 检查点 | 验证方法 | 必须/可选 |
-|-------|---------|----------|
-| **Planner 内部流程完整性** | **grep -c "三层上下文学习" <agent输出>** | **必须** |
-| L1 - 项目全局理解 | 验证是否读取了 README.md/CLAUDE.md/package.json | 必须 |
-| L2 - 规范和记忆 | 验证是否读取了项目记忆 | 必须 |
-| L3 - 目标相关文件 | 验证是否使用 Glob/Grep 定位并读取相关文件 | 必须 |
-| **原子拆分验证** | **每个任务的files数组长度≤1（单文件单任务）** | **必须** |
+| 检查点 | 验证方法                                                                                              | 必须/可选 |
+|-------|---------------------------------------------------------------------------------------------------|----------|
+| **Planner 内部流程完整性** | **grep -c "三层上下文学习" <agent输出>**                                                                   | **必须** |
+| L1 - 项目全局理解 | 验证是否读取了 README.md、CLAUDE.md                                                           | 必须 |
+| L2 - 规范和记忆 | 验证是否读取了项目记忆                                                                                       | 必须 |
+| L3 - 目标相关文件 | 验证是否使用 Glob/Grep 定位并读取相关文件                                                                        | 必须 |
+| **原子拆分验证** | **每个任务的files数组长度≤1（单文件单任务）**                                                                      | **必须** |
 | **上下文完整性** | **Skill/Agent调用包含6个必传字段（project_path/task_id/iteration/plan_md_path/working_directory/user_task）** | **必须** |
-| **Planner 调用** | **检查是否调用了 `Skill(skill="task:planner")`（planner 内部完成：设计+写文件+用户确认）** | **必须** |
-| Planner 返回 status | 验证 status 为 confirmed/rejected/no_tasks/cancelled 之一 | 必须 |
-| 计划文件已生成 | 验证 planner 返回的 plan_md_path 文件存在：`ls .lazygophers/tasks/{task_id}/plan.md` | 必须 |
-| 计划文件使用中文文件名 | 验证文件名包含中文关键词 | 必须 |
-| 用户确认已在 planner 内完成 | planner 返回 confirmed（已批准）或 rejected（已拒绝并带 user_feedback）| 必须 |
-| 后置验证点通过 | 验证 plan_md_path 已设置且文件存在 | 必须 |
+| **Planner 调用** | **检查是否调用了 `Skill(skill="task:planner")`（planner 内部完成：设计+写文件+用户确认）**                               | **必须** |
+| Planner 返回 status | 验证 status 为 confirmed/rejected/no_tasks/cancelled 之一                                              | 必须 |
+| 计划文件已生成 | 验证 planner 返回的 plan_md_path 文件存在：`ls .lazygophers/tasks/{task_id}/plan.md`                        | 必须 |
+| 计划文件使用中文文件名 | 验证文件名包含中文关键词                                                                                      | 必须 |
+| 用户确认已在 planner 内完成 | planner 返回 confirmed（已批准）或 rejected（已拒绝并带 user_feedback）                                          | 必须 |
+| 后置验证点通过 | 验证 plan_md_path 已设置且文件存在                                                                          | 必须 |
 
 ## Execution：任务执行
 

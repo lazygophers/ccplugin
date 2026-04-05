@@ -42,7 +42,7 @@ hooks:
 **InformationGathering：信息收集**
 
 三层上下文学习（详见 [上下文学习指南](../skills/planner/planner-context-learning.md)）：
-- Tier 1（必须）：项目基本信息、CLAUDE.md/README.md/.claude/memory/MEMORY.md
+- Tier 1（必须）：项目基本信息、CLAUDE.md、README.md、.claude/memory/MEMORY.md
 - Tier 2：代码风格、测试策略、架构决策
 - Tier 3（按需）：历史规划决策和模式
 

@@ -35,7 +35,7 @@ hooks:
 <workflow>
 
 1. **加载并验证 Memory**：list_memories(topic_filter="explorer/general")→若存在则 read_memory→验证文件路径（serena:find_file）→删除过时条目→复用有效信息
-2. **文档扫描**：README.md/CLAUDE.md→配置文件（package.json/go.mod/pyproject.toml）→提取语言/框架/构建工具/测试框架
+2. **文档扫描**：README.md、CLAUDE.md→配置文件（package.json/go.mod/pyproject.toml）→提取语言/框架/构建工具/测试框架
 3. **目录扫描**：serena:list_dir→顶层目录→核心目录（src/lib/cmd/internal）→项目类型（前端/后端/全栈/库/CLI/Monorepo）
 4. **模块识别**：基于目录名和配置推断模块→记录名称/路径/职责→识别依赖线索（不深入代码）
 5. **更新 Memory**：对比探索前后信息→write_memory/edit_memory("explorer/general", "{project_name}")→添加时间戳→确保不超过10KB
