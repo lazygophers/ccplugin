@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 #[derive(Debug, Deserialize)]
 struct MarketplaceJson {
@@ -42,6 +43,23 @@ struct InstalledPluginJson {
     version: Option<String>,
 }
 
+/// Claude plugin list --json 输出格式
+#[derive(Debug, Deserialize)]
+struct ClaudePluginListOutput {
+    id: String,
+    version: String,
+    scope: String,
+    enabled: bool,
+}
+
+/// 已安装插件信息（从 claude plugin list 获取）
+#[derive(Debug, Clone)]
+struct InstalledPluginInfo {
+    name: String,
+    version: String,
+    scope: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct PluginInfo {
     pub name: String,
@@ -56,6 +74,7 @@ pub struct PluginInfo {
     pub category: String,
     pub installed: bool,
     pub installed_version: Option<String>,
+    pub installed_scope: Option<String>,
     pub marketplace: String,
 }
 
@@ -96,25 +115,26 @@ impl MarketplaceService {
     pub fn load_marketplace() -> Result<Vec<PluginInfo>, String> {
         let mut all_plugins = Vec::new();
 
+        // 获取已安装插件列表（从 claude plugin list）
+        let installed_plugins = Self::get_installed_plugins();
+
         // 1. 从项目 marketplace.json 读取
         let content = Self::read_marketplace_json()?;
 
         let marketplace: MarketplaceJson = serde_json::from_str(&content)
             .map_err(|e| format!("Failed to parse marketplace.json: {}", e))?;
 
-        let installed_plugins = Self::get_installed_plugins();
-
         let json_plugins = marketplace
             .plugins
             .into_iter()
             .map(|p| {
                 let category = Self::infer_category(&p.source);
-                let installed = installed_plugins.contains(&p.name);
-                let installed_version = if installed {
-                    Self::get_installed_plugin_version(&p.name)
-                        .or_else(|| Some(p.version.clone()))
+                let installed_info = installed_plugins.iter().find(|info| info.name == p.name);
+                let installed = installed_info.is_some();
+                let (installed_version, installed_scope) = if let Some(info) = installed_info {
+                    (Some(info.version.clone()), Some(info.scope.clone()))
                 } else {
-                    None
+                    (None, None)
                 };
 
                 PluginInfo {
@@ -130,6 +150,7 @@ impl MarketplaceService {
                     category,
                     installed,
                     installed_version,
+                    installed_scope,
                     marketplace: "ccplugin-market".to_string(),
                 }
             })
@@ -154,7 +175,7 @@ impl MarketplaceService {
                             continue;
                         }
 
-                        let external_plugins = Self::scan_external_marketplace(name_str);
+                        let external_plugins = Self::scan_external_marketplace(name_str, &installed_plugins);
                         all_plugins.extend(external_plugins);
                     }
                 }
@@ -164,34 +185,26 @@ impl MarketplaceService {
         Ok(all_plugins)
     }
 
-    /// 获取已安装的插件列表
-    pub fn get_installed_plugins() -> Vec<String> {
+    /// 获取已安装的插件列表（使用 claude plugin list --json）
+    fn get_installed_plugins() -> Vec<InstalledPluginInfo> {
+        let output = Command::new("claude")
+            .args(&["plugin", "list", "--json"])
+            .output()
+            .map_err(|e| format!("Failed to run claude plugin list: {}", e));
+
         let mut installed = Vec::new();
 
-        if let Some(marketplaces_dir) = Self::get_claude_plugins_dir() {
-            if marketplaces_dir.exists() {
-                // 遍历所有 marketplace 目录
-                if let Ok(marketplace_entries) = fs::read_dir(marketplaces_dir) {
-                    for marketplace_entry in marketplace_entries.flatten() {
-                        let marketplace_path = marketplace_entry.path();
-                        if marketplace_path.is_dir() {
-                            // 在每个 marketplace 下的 plugins 目录中查找插件
-                            let plugins_path = marketplace_path.join("plugins");
-                            if plugins_path.exists() {
-                                if let Ok(plugin_entries) = fs::read_dir(&plugins_path) {
-                                    for plugin_entry in plugin_entries.flatten() {
-                                        let plugin_path = plugin_entry.path();
-                                        // 检查是否是有效的插件目录（包含 plugin.json）
-                                        let plugin_json_path = plugin_path.join(".claude-plugin").join("plugin.json");
-                                        if plugin_path.is_dir() && plugin_json_path.exists() {
-                                            if let Some(name) = plugin_entry.file_name().to_str() {
-                                                installed.push(name.to_string());
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+        if let Ok(output) = output {
+            if output.status.success() {
+                if let Ok(plugins) = serde_json::from_slice::<Vec<ClaudePluginListOutput>>(&output.stdout) {
+                    for plugin in plugins {
+                        // id 格式可能是 "plugin@market" 或 "plugin"
+                        let name = plugin.id.split('@').next().unwrap_or(&plugin.id);
+                        installed.push(InstalledPluginInfo {
+                            name: name.to_string(),
+                            version: plugin.version,
+                            scope: plugin.scope,
+                        });
                     }
                 }
             }
@@ -258,7 +271,7 @@ impl MarketplaceService {
     }
 
     /// 从文件系统扫描外部 marketplace 的插件
-    fn scan_external_marketplace(marketplace_name: &str) -> Vec<PluginInfo> {
+    fn scan_external_marketplace(marketplace_name: &str, installed_plugins: &[InstalledPluginInfo]) -> Vec<PluginInfo> {
         let mut plugins = Vec::new();
 
         let home = match dirs::home_dir() {
@@ -272,11 +285,6 @@ impl MarketplaceService {
         if !plugins_path.exists() {
             return plugins;
         }
-
-        let installed_plugins = Self::get_installed_plugins();
-
-        // 读取 marketplace 的 README.md 获取基本信息
-        let marketplace_desc = format!("Plugins from {}", marketplace_name);
 
         if let Ok(entries) = fs::read_dir(&plugins_path) {
             for entry in entries.flatten() {
@@ -337,11 +345,12 @@ impl MarketplaceService {
                         let source = format!("./{}/{}", marketplace_name, name);
                         let category = Self::infer_category(&source);
 
-                        let installed = installed_plugins.contains(&name);
-                        let installed_version = if installed {
-                            Self::get_installed_plugin_version(&name)
+                        let installed_info = installed_plugins.iter().find(|info| info.name == name);
+                        let installed = installed_info.is_some();
+                        let (installed_version, installed_scope) = if let Some(info) = installed_info {
+                            (Some(info.version.clone()), Some(info.scope.clone()))
                         } else {
-                            None
+                            (None, None)
                         };
 
                         plugins.push(PluginInfo {
@@ -357,6 +366,7 @@ impl MarketplaceService {
                             category,
                             installed,
                             installed_version,
+                            installed_scope,
                             marketplace: marketplace_name.to_string(),
                         });
                     }

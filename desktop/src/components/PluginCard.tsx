@@ -54,6 +54,18 @@ function PluginCard({
 			<div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
 				<span>v{plugin.version}</span>
 				<span>by {plugin.author}</span>
+				{plugin.installed_scope && (
+					<span
+						className="px-2 py-0.5 bg-primary/10 text-primary rounded-full"
+						title={`安装范围：${plugin.installed_scope}`}
+					>
+						{plugin.installed_scope === "user"
+							? "用户"
+							: plugin.installed_scope === "project"
+								? "项目"
+								: plugin.installed_scope}
+					</span>
+				)}
 			</div>
 
 			{/* Keywords */}
@@ -155,6 +167,7 @@ export const PluginCardMemo = memo(PluginCard, (prevProps, nextProps) => {
 		prevProps.plugin.installed === nextProps.plugin.installed &&
 		prevProps.plugin.installed_version ===
 			nextProps.plugin.installed_version &&
+		prevProps.plugin.installed_scope === nextProps.plugin.installed_scope &&
 		prevProps.installing === nextProps.installing &&
 		prevProps.updating === nextProps.updating &&
 		prevProps.uninstalling === nextProps.uninstalling

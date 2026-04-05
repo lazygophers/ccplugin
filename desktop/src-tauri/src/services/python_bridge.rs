@@ -19,22 +19,23 @@ impl PythonBridge {
         &self,
         plugin_name: &str,
         marketplace: &str,
+        scope: &str,
     ) -> Result<CommandResult, String> {
         let plugin_spec = format!("{}@{}", plugin_name, marketplace);
 
         // 发送开始安装事件
         self.emit_progress(&plugin_name, InstallStatus::Downloading, 10, "开始下载插件...");
 
-        let output = StdCommand::new("uvx")
+        let output = StdCommand::new("claude")
             .args(&[
-                "--from",
-                UVX_REPO,
+                "plugin",
                 "install",
-                PACKAGE_NAME,
+                "--scope",
+                scope,
                 &plugin_spec,
             ])
             .output()
-            .map_err(|e| format!("Failed to execute uvx: {}", e))?;
+            .map_err(|e| format!("Failed to execute claude plugin install: {}", e))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();

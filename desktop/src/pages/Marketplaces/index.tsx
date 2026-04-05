@@ -56,6 +56,15 @@ export default function Marketplaces() {
 	const [newMarketUrl, setNewMarketUrl] = useState("");
 	const [addingMarket, setAddingMarket] = useState(false);
 
+	// 安装 scope 选择对话框
+	const [installDialogOpen, setInstallDialogOpen] = useState(false);
+	const [pendingInstallPlugin, setPendingInstallPlugin] = useState<
+		string | null
+	>(null);
+	const [selectedScope, setSelectedScope] = useState<
+		"user" | "project" | "local"
+	>("user");
+
 	const loadPlugins = useCallback(async () => {
 		try {
 			const data = await MarketplaceService.getAllPlugins();
@@ -96,25 +105,35 @@ export default function Marketplaces() {
 		[expandedMarketplace],
 	);
 
-	const handleInstall = useCallback(
-		async (pluginName: string) => {
-			setInstallingPlugin(pluginName);
-			try {
-				await installPlugin(
-					pluginName,
-					expandedMarketplace || "ccplugin-market",
-				);
-				// 使用函数式更新，避免依赖 loadPlugins
-				setPlugins(await MarketplaceService.getAllPlugins());
-			} catch (e) {
-				console.error("Install failed:", e);
-				alert(e instanceof Error ? e.message : "安装失败");
-			} finally {
-				setInstallingPlugin(null);
-			}
-		},
-		[expandedMarketplace],
-	); // 只依赖 expandedMarketplace
+	// 点击安装按钮时打开 scope 选择对话框
+	const handleInstallClick = useCallback((pluginName: string) => {
+		setPendingInstallPlugin(pluginName);
+		setInstallDialogOpen(true);
+	}, []);
+
+	// 确认安装（执行实际安装）
+	const handleConfirmInstall = useCallback(async () => {
+		if (!pendingInstallPlugin) return;
+
+		setInstallingPlugin(pendingInstallPlugin);
+		setInstallDialogOpen(false);
+
+		try {
+			await installPlugin(
+				pendingInstallPlugin,
+				expandedMarketplace || "ccplugin-market",
+				selectedScope,
+			);
+			// 使用函数式更新，避免依赖 loadPlugins
+			setPlugins(await MarketplaceService.getAllPlugins());
+		} catch (e) {
+			console.error("Install failed:", e);
+			alert(e instanceof Error ? e.message : "安装失败");
+		} finally {
+			setInstallingPlugin(null);
+			setPendingInstallPlugin(null);
+		}
+	}, [pendingInstallPlugin, expandedMarketplace, selectedScope]);
 
 	const handleUninstall = useCallback(async (pluginName: string) => {
 		if (!confirm(`确定要卸载插件 "${pluginName}" 吗？`)) return;
@@ -294,7 +313,7 @@ export default function Marketplaces() {
 														key={plugin.name}
 														plugin={plugin}
 														onInstall={
-															handleInstall
+															handleInstallClick
 														}
 														onUninstall={
 															handleUninstall
@@ -407,7 +426,7 @@ export default function Marketplaces() {
 																		plugin
 																	}
 																	onInstall={
-																		handleInstall
+																		handleInstallClick
 																	}
 																	onUninstall={
 																		handleUninstall
@@ -443,7 +462,7 @@ export default function Marketplaces() {
 				plugin={detailPlugin}
 				open={detailOpen}
 				onOpenChange={setDetailOpen}
-				onInstall={handleInstall}
+				onInstall={handleInstallClick}
 				onUninstall={handleUninstall}
 				installing={
 					installingPlugin === detailPlugin?.name ? true : false
@@ -505,6 +524,100 @@ export default function Marketplaces() {
 								</>
 							) : (
 								"添加"
+							)}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* 安装 scope 选择对话框 */}
+			<Dialog
+				open={installDialogOpen}
+				onOpenChange={setInstallDialogOpen}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>选择安装范围</DialogTitle>
+						<DialogDescription>
+							选择插件的安装范围：用户级（全局可用）或项目级（仅当前项目）
+						</DialogDescription>
+					</DialogHeader>
+					<div className="space-y-4 py-4">
+						<div className="space-y-2">
+							<Label>安装范围</Label>
+							<div className="flex flex-col gap-2">
+								<button
+									type="button"
+									className={`p-4 border rounded-lg text-left transition-colors ${
+										selectedScope === "user"
+											? "bg-primary text-primary-foreground border-primary"
+											: "hover:bg-accent"
+									}`}
+									onClick={() => setSelectedScope("user")}
+								>
+									<div className="flex items-center gap-3">
+										<div className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">
+											{selectedScope === "user" && (
+												<div className="w-2.5 h-2.5 rounded-full bg-current" />
+											)}
+										</div>
+										<div>
+											<div className="font-semibold">
+												用户级（User）
+											</div>
+											<div className="text-sm text-muted-foreground">
+												全局可用，所有项目共享
+											</div>
+										</div>
+									</div>
+								</button>
+								<button
+									type="button"
+									className={`p-4 border rounded-lg text-left transition-colors ${
+										selectedScope === "project"
+											? "bg-primary text-primary-foreground border-primary"
+											: "hover:bg-accent"
+									}`}
+									onClick={() => setSelectedScope("project")}
+								>
+									<div className="flex items-center gap-3">
+										<div className="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center">
+											{selectedScope === "project" && (
+												<div className="w-2.5 h-2.5 rounded-full bg-current" />
+											)}
+										</div>
+										<div>
+											<div className="font-semibold">
+												项目级（Project）
+											</div>
+											<div className="text-sm text-muted-foreground">
+												仅当前项目可用
+											</div>
+										</div>
+									</div>
+								</button>
+							</div>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button
+							variant="outline"
+							onClick={() => setInstallDialogOpen(false)}
+							disabled={installingPlugin !== null}
+						>
+							取消
+						</Button>
+						<Button
+							onClick={handleConfirmInstall}
+							disabled={installingPlugin !== null}
+						>
+							{installingPlugin ? (
+								<>
+									<Loader2 className="w-4 h-4 mr-2 animate-spin" />
+									安装中...
+								</>
+							) : (
+								"确认安装"
 							)}
 						</Button>
 					</DialogFooter>

@@ -9,7 +9,16 @@ pub fn get_marketplace_plugins() -> Result<Vec<PluginInfo>, String> {
 
 #[tauri::command]
 pub fn get_installed_plugins() -> Vec<String> {
-    MarketplaceService::get_installed_plugins()
+    // 从 PluginInfo 中提取已安装插件的名称
+    if let Ok(plugins) = MarketplaceService::load_marketplace() {
+        plugins
+            .into_iter()
+            .filter(|p| p.installed)
+            .map(|p| p.name)
+            .collect()
+    } else {
+        Vec::new()
+    }
 }
 
 #[tauri::command]

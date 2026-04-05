@@ -15,6 +15,7 @@ export const pluginFixtures: PluginInfo[] = [
 		category: "languages",
 		installed: true,
 		installed_version: "1.0.0",
+		installed_scope: "project",
 		marketplace: "ccplugin-market",
 	},
 	{
@@ -31,6 +32,7 @@ export const pluginFixtures: PluginInfo[] = [
 		category: "tools",
 		installed: false,
 		installed_version: null,
+		installed_scope: null,
 		marketplace: "ccplugin-market",
 	},
 	{
@@ -47,6 +49,7 @@ export const pluginFixtures: PluginInfo[] = [
 		category: "office",
 		installed: true,
 		installed_version: "1.0.0",
+		installed_scope: "user",
 		marketplace: "ccplugin-market",
 	},
 ];

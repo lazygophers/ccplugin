@@ -10,6 +10,7 @@ pub struct PythonBridgeState(pub Arc<Mutex<Option<PythonBridge>>>);
 pub async fn install_plugin(
     plugin_name: String,
     marketplace: String,
+    scope: Option<String>, // 可选，默认为 "user"
     app_handle: AppHandle,
     state: State<'_, PythonBridgeState>,
 ) -> Result<CommandResult, String> {
@@ -19,8 +20,9 @@ pub async fn install_plugin(
         *bridge_guard = Some(PythonBridge::new(app_handle.clone()));
     }
 
+    let scope = scope.unwrap_or_else(|| "user".to_string());
     let bridge = bridge_guard.as_ref().unwrap();
-    bridge.install_plugin(&plugin_name, &marketplace).await
+    bridge.install_plugin(&plugin_name, &marketplace, &scope).await
 }
 
 #[tauri::command]
