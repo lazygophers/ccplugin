@@ -144,3 +144,42 @@ export interface AddNotificationParams {
 	metadata?: NotificationMetadata;
 }
 
+// ==================== 任务队列类型 ====================
+
+/**
+ * 任务状态
+ */
+export type TaskStatus = "Pending" | "Running" | "Completed" | "Failed" | "Cancelled";
+
+/**
+ * 任务类型
+ */
+export type TaskType = "Install" | "Update" | "Uninstall";
+
+/**
+ * 任务信息
+ */
+export interface Task {
+	id: string;
+	task_type: TaskType;
+	plugin_name: string;
+	marketplace: string | null;
+	scope: string | null;
+	status: TaskStatus;
+	progress: number;
+	message: string;
+	error: string | null;
+	created_at: number;
+	started_at: number | null;
+	completed_at: number | null;
+}
+
+/**
+ * 任务队列状态
+ */
+export interface TaskQueueStatus {
+	pending: number;
+	running: number;
+	completed: number;
+}
+

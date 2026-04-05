@@ -1,9 +1,19 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { PluginEventPayload, PluginEventHandler, PluginEventType, Notification, AddNotificationParams } from "@/types";
+import {
+	PluginEventPayload,
+	PluginEventHandler,
+	PluginEventType,
+	Notification,
+	AddNotificationParams,
+	Task,
+	TaskQueueStatus,
+} from "@/types";
 
 // 导出类型供其他模块使用
 export type { PluginEventHandler, PluginEventPayload };
+
+// ==================== 插件操作命令 ====================
 
 /**
  * 安装插件（立即返回，通过事件获取进度）
@@ -179,5 +189,32 @@ export async function deleteNotification(id: string): Promise<boolean> {
  */
 export async function clearAllNotifications(): Promise<void> {
 	return await invoke("clear_all_notifications");
+}
+
+// ==================== 任务队列命令 ====================
+
+/**
+ * 获取所有任务（包括队列中、运行中、已完成的）
+ */
+export async function getTasks(): Promise<Task[]> {
+	return await invoke("get_tasks");
+}
+
+/**
+ * 获取任务队列状态
+ */
+export async function getTaskStatus(): Promise<TaskQueueStatus> {
+	return await invoke("get_task_status");
+}
+
+/**
+ * 监听任务更新事件
+ */
+export async function listenToTaskUpdates(
+	handler: (task: Task) => void,
+): Promise<UnlistenFn> {
+	return await listen<Task>("task-updated", (event) => {
+		handler(event.payload);
+	});
 }
 
