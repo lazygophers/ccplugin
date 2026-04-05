@@ -95,27 +95,26 @@ function PluginCard({
 							<Button
 								variant="outline"
 								size="sm"
-								className="flex-1"
+								className="whitespace-nowrap"
 								onClick={() => onUpdate(plugin.name)}
 								disabled={updating}
+								aria-label={`更新 ${plugin.name}`}
 							>
 								<RefreshCw
-									className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`}
+									className={`w-4 h-4 mr-1 ${updating ? "animate-spin" : ""}`}
 								/>
-								{updating
-									? "更新中..."
-									: `更新（已安装 v${plugin.installed_version ?? plugin.version}）`}
+								<span className="hidden sm:inline">{updating ? "更新中" : "更新"}</span>
 							</Button>
 						) : (
 							<Button
 								variant="outline"
 								size="sm"
-								className="flex-1"
+								className="whitespace-nowrap"
 								disabled
+								aria-label="已安装"
 							>
-								<CheckCircle className="w-4 h-4 mr-2" />
-								已安装 v
-								{plugin.installed_version ?? plugin.version}
+								<CheckCircle className="w-4 h-4 mr-1" />
+								<span className="hidden sm:inline">已安装</span>
 							</Button>
 						)}
 
@@ -123,11 +122,12 @@ function PluginCard({
 							<Button
 								variant="destructive"
 								size="sm"
+								className="whitespace-nowrap"
 								onClick={() => onUninstall(plugin.name)}
 								disabled={uninstalling || updating}
 								aria-label={`卸载 ${plugin.name}`}
 							>
-								{uninstalling ? "卸载中..." : "卸载"}
+								<span className="hidden sm:inline">{uninstalling ? "卸载中" : "卸载"}</span>
 							</Button>
 						)}
 					</>
@@ -135,11 +135,12 @@ function PluginCard({
 					<Button
 						variant="default"
 						size="sm"
-						className="flex-1"
+						className="flex-1 whitespace-nowrap"
 						onClick={() => onInstall?.(plugin.name)}
 						disabled={installing}
+						aria-label={`安装 ${plugin.name}`}
 					>
-						<Download className="w-4 h-4 mr-2" />
+						<Download className="w-4 h-4 mr-1 sm:mr-2" />
 						{installing ? "安装中..." : "安装"}
 					</Button>
 				)}
@@ -147,9 +148,11 @@ function PluginCard({
 				<Button
 					variant="ghost"
 					size="sm"
+					className="whitespace-nowrap"
 					onClick={() => onViewDetails?.(plugin)}
+					aria-label={`${plugin.name} 详情`}
 				>
-					详情
+					<span className="hidden sm:inline">详情</span>
 				</Button>
 			</div>
 		</div>

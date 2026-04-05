@@ -152,6 +152,21 @@ export function PluginDetailDialog({
             <span className="font-medium">版本:</span>
             <span className="text-muted-foreground">{plugin.version}</span>
           </div>
+          {plugin.installed && plugin.installed_scope && (
+            <>
+              <div className="flex items-center gap-2 text-sm">
+                <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
+                  {plugin.installed_scope === "user" ? "用户安装" : "项目安装"}
+                </Badge>
+              </div>
+              {plugin.installed_version && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">已安装版本:</span>
+                  <span className="text-muted-foreground">{plugin.installed_version}</span>
+                </div>
+              )}
+            </>
+          )}
           {plugin.keywords.length > 0 && (
             <div className="col-span-2 flex items-start gap-2 text-sm">
               <Tag className="w-4 h-4 text-muted-foreground mt-0.5" />
