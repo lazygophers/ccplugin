@@ -34,7 +34,7 @@ pub fn run() {
             // 初始化任务队列（最多同时执行2个任务）
             crate::services::init_task_queue(2)?;
             if let Some(task_queue) = crate::services::task_queue() {
-                task_queue.start_processor(app.handle());
+                task_queue.start_processor(app.handle().clone());
             }
 
             // 读取并设置代理配置

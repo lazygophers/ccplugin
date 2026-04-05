@@ -10,7 +10,6 @@ pub use notification_service::*;
 pub use task_queue::*;
 
 use std::sync::OnceLock;
-use tauri::AppHandle;
 
 /// 全局任务队列实例
 static TASK_QUEUE: OnceLock<task_queue::TaskQueue> = OnceLock::new();

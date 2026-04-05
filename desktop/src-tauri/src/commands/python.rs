@@ -6,7 +6,7 @@ pub fn install_plugin(
     plugin_name: String,
     marketplace: String,
     scope: Option<String>,
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
 ) -> Result<(), String> {
     let task_queue = crate::services::task_queue()
         .ok_or("任务队列未初始化".to_string())?;

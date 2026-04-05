@@ -234,7 +234,7 @@ impl TaskQueue {
                             |status, progress, message| {
                                 // 更新进度
                                 task.progress = progress;
-                                task.message = message;
+                                task.message = message.to_string();
 
                                 let event_type = PluginEventType::PluginInstallProgress;
                                 emit_plugin_event(
@@ -258,7 +258,7 @@ impl TaskQueue {
                             |status, progress, message| {
                                 // 更新进度
                                 task.progress = progress;
-                                task.message = message;
+                                task.message = message.to_string();
 
                                 let event_type = PluginEventType::PluginUpdateProgress;
                                 emit_plugin_event(
@@ -282,7 +282,7 @@ impl TaskQueue {
                             |status, progress, message| {
                                 // 更新进度
                                 task.progress = progress;
-                                task.message = message;
+                                task.message = message.to_string();
 
                                 let event_type = PluginEventType::PluginUninstallProgress;
                                 emit_plugin_event(
@@ -422,8 +422,6 @@ impl TaskQueue {
         task_type: TaskType,
         success: bool,
     ) {
-        use tauri_plugin_notification::NotificationExt;
-
         let (title, body) = if success {
             let action = match task_type {
                 TaskType::Install => "安装",
@@ -442,8 +440,9 @@ impl TaskQueue {
 
         let _ = app_handle
             .notification()
-            .title(&title)
-            .body(&body)
+            .builder()
+            .title(title)
+            .body(body)
             .show();
     }
 }
