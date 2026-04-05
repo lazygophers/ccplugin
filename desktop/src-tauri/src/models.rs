@@ -8,15 +8,6 @@ pub struct CommandResult {
     pub stderr: String,
 }
 
-/// 插件安装进度事件
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PluginInstallProgress {
-    pub plugin_name: String,
-    pub status: InstallStatus,
-    pub progress: u8, // 0-100
-    pub message: String,
-}
-
 /// 插件安装状态
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

@@ -1,11 +1,9 @@
 mod commands;
+mod events;
 mod models;
 mod services;
 
-use commands::PythonBridgeState;
-use std::sync::Arc;
 use tauri::{menu::{MenuBuilder, MenuItemBuilder}, tray::{TrayIconBuilder, MouseButton, MouseButtonState}, Manager};
-use tokio::sync::Mutex;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -27,8 +25,6 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_log::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        // State
-        .manage(PythonBridgeState(Arc::new(Mutex::new(None))))
         // Setup
         .setup(|app| {
             // System tray menu
