@@ -1,119 +1,182 @@
 use crate::models::{Notification, NotificationType};
+use crate::services::database::{get_connection, init_database};
+use rusqlite::{params, Row};
 use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
 use tauri::AppHandle;
 
-pub struct NotificationService {
-    notifications: Vec<Notification>,
-    file_path: PathBuf,
-}
+pub struct NotificationService;
 
 impl NotificationService {
-    pub fn new(app_handle: &AppHandle) -> Result<Self, String> {
-        let app_local_data_dir = app_handle
-            .path()
-            .app_local_data_dir()
-            .map_err(|e| format!("Failed to get app local data dir: {}", e))?;
+    pub fn new(_app_handle: &AppHandle) -> Result<Self, String> {
+        // 初始化数据库
+        init_database()?;
 
-        let file_path = app_local_data_dir.join("notifications.json");
-
-        let notifications = if file_path.exists() {
-            Self::load_from_file(&file_path)?
-        } else {
-            Vec::new()
-        };
-
-        Ok(Self {
-            notifications,
-            file_path,
-        })
+        Ok(Self)
     }
 
-    fn load_from_file(path: &PathBuf) -> Result<Vec<Notification>, String> {
-        let content = fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read notifications: {}", e))?;
+    /// 添加通知
+    pub fn add_notification(&self, notification: &Notification) -> Result<(), String> {
+        let conn = get_connection()?;
 
-        serde_json::from_str(&content)
-            .map_err(|e| format!("Failed to parse notifications: {}", e))
-    }
+        let metadata_json = serde_json::to_string(&notification.metadata)
+            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
 
-    fn save_to_file(&self) -> Result<(), String> {
-        let json = serde_json::to_string_pretty(&self.notifications)
-            .map_err(|e| format!("Failed to serialize notifications: {}", e))?;
-
-        fs::write(&self.file_path, json)
-            .map_err(|e| format!("Failed to write notifications: {}", e))?;
+        conn.execute(
+            "INSERT INTO notifications (id, type, title, message, read, created_at, updated_at, metadata)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                notification.id,
+                serde_json::to_string(&notification.notification_type)
+                    .map_err(|e| format!("Failed to serialize type: {}", e))?,
+                notification.title,
+                notification.message,
+                notification.read as i32,
+                notification.created_at,
+                notification.updated_at,
+                metadata_json,
+            ],
+        )
+        .map_err(|e| format!("Failed to insert notification: {}", e))?;
 
         Ok(())
     }
 
-    pub fn add_notification(&mut self, notification: Notification) -> Result<Notification, String> {
-        self.notifications.push(notification.clone());
-        self.save_to_file()?;
-        Ok(notification)
+    /// 获取所有通知（按 updated_at 倒序）
+    pub fn get_notifications(&self) -> Result<Vec<Notification>, String> {
+        let conn = get_connection()?;
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, type, title, message, read, created_at, updated_at, metadata
+                 FROM notifications
+                 ORDER BY updated_at DESC",
+            )
+            .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+        let notifications = stmt
+            .query_map([], |row| Self::row_to_notification(row))
+            .map_err(|e| format!("Failed to query notifications: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Failed to parse notification: {}", e))?;
+
+        Ok(notifications)
     }
 
-    pub fn get_notifications(&self) -> Vec<Notification> {
-        // 按 updated_at 倒序排列
-        let mut notifications = self.notifications.clone();
-        notifications.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
-        notifications
+    /// 获取未读数量
+    pub fn get_unread_count(&self) -> Result<usize, String> {
+        let conn = get_connection()?;
+
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM notifications WHERE read = 0",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("Failed to count unread: {}", e))?;
+
+        Ok(count as usize)
     }
 
-    pub fn get_unread_count(&self) -> usize {
-        self.notifications.iter().filter(|n| !n.read).count()
-    }
+    /// 标记为已读
+    pub fn mark_as_read(&self, id: &str) -> Result<Option<Notification>, String> {
+        let conn = get_connection()?;
 
-    pub fn mark_as_read(&mut self, id: &str) -> Result<Option<Notification>, String> {
-        if let Some(notification) = self.notifications.iter_mut().find(|n| n.id == id) {
-            notification.mark_read();
-            self.save_to_file()?;
-            Ok(Some(notification.clone()))
-        } else {
-            Ok(None)
-        }
-    }
+        // 先获取原通知
+        let notification = conn
+            .query_row(
+                "SELECT id, type, title, message, read, created_at, updated_at, metadata
+                 FROM notifications WHERE id = ?1",
+                [id],
+                |row| Self::row_to_notification(row),
+            );
 
-    pub fn mark_all_as_read(&mut self) -> Result<(), String> {
-        for notification in &mut self.notifications {
-            if !notification.read {
-                notification.mark_read();
+        match notification {
+            Ok(notif) => {
+                // 更新为已读
+                let updated_at = chrono::Utc::now().timestamp();
+                conn.execute(
+                    "UPDATE notifications SET read = 1, updated_at = ?1 WHERE id = ?2",
+                    params![updated_at, id],
+                )
+                .map_err(|e| format!("Failed to mark as read: {}", e))?;
+
+                Ok(Some(notif))
             }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(format!("Failed to query notification: {}", e)),
         }
-        self.save_to_file()?;
+    }
+
+    /// 标记所有为已读
+    pub fn mark_all_as_read(&self) -> Result<(), String> {
+        let conn = get_connection()?;
+
+        let updated_at = chrono::Utc::now().timestamp();
+        conn.execute(
+            "UPDATE notifications SET read = 1, updated_at = ?1 WHERE read = 0",
+            params![updated_at],
+        )
+        .map_err(|e| format!("Failed to mark all as read: {}", e))?;
+
         Ok(())
     }
 
-    pub fn update_notification(
-        &mut self,
-        id: &str,
-        message: String,
-    ) -> Result<Option<Notification>, String> {
-        if let Some(notification) = self.notifications.iter_mut().find(|n| n.id == id) {
-            notification.update_message(message);
-            self.save_to_file()?;
-            Ok(Some(notification.clone()))
-        } else {
-            Ok(None)
+    /// 更新通知消息
+    pub fn update_notification(&self, id: &str, message: String) -> Result<Option<Notification>, String> {
+        let conn = get_connection()?;
+
+        // 检查通知是否存在
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM notifications WHERE id = ?1",
+                [id],
+                |row| row.get(0),
+            )
+            .map_err(|e| format!("Failed to check notification: {}", e))?;
+
+        if exists == 0 {
+            return Ok(None);
         }
+
+        // 更新消息和时间戳
+        let updated_at = chrono::Utc::now().timestamp();
+        conn.execute(
+            "UPDATE notifications SET message = ?1, updated_at = ?2 WHERE id = ?3",
+            params![message, updated_at, id],
+        )
+        .map_err(|e| format!("Failed to update notification: {}", e))?;
+
+        // 返回更新后的通知
+        let notification = conn
+            .query_row(
+                "SELECT id, type, title, message, read, created_at, updated_at, metadata
+                 FROM notifications WHERE id = ?1",
+                [id],
+                |row| Self::row_to_notification(row),
+            )
+            .map_err(|e| format!("Failed to query updated notification: {}", e))?;
+
+        Ok(Some(notification))
     }
 
-    pub fn delete_notification(&mut self, id: &str) -> Result<bool, String> {
-        let initial_len = self.notifications.len();
-        self.notifications.retain(|n| n.id != id);
+    /// 删除通知
+    pub fn delete_notification(&self, id: &str) -> Result<bool, String> {
+        let conn = get_connection()?;
 
-        if self.notifications.len() < initial_len {
-            self.save_to_file()?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
+        let rows_affected = conn
+            .execute("DELETE FROM notifications WHERE id = ?1", [id])
+            .map_err(|e| format!("Failed to delete notification: {}", e))?;
+
+        Ok(rows_affected > 0)
     }
 
-    pub fn clear_all(&mut self) -> Result<(), String> {
-        self.notifications.clear();
-        self.save_to_file()?;
+    /// 清空所有通知
+    pub fn clear_all(&self) -> Result<(), String> {
+        let conn = get_connection()?;
+
+        conn.execute("DELETE FROM notifications", [])
+            .map_err(|e| format!("Failed to clear notifications: {}", e))?;
+
         Ok(())
     }
 
@@ -122,24 +185,57 @@ impl NotificationService {
         &self,
         key: &str,
         value: &serde_json::Value,
-    ) -> Option<&Notification> {
-        self.notifications
-            .iter()
-            .find(|n| n.metadata.get(key) == Some(value))
+    ) -> Result<Option<Notification>, String> {
+        let conn = get_connection()?;
+
+        let metadata_json = serde_json::to_string(value)
+            .map_err(|e| format!("Failed to serialize value: {}", e))?;
+
+        // 使用 JSON 查询：metadata 中包含指定 key-value 对
+        let pattern = format!("\"{}\":{}", key, metadata_json);
+
+        let notification = conn
+            .query_row(
+                "SELECT id, type, title, message, read, created_at, updated_at, metadata
+                 FROM notifications
+                 WHERE metadata LIKE ?1
+                 LIMIT 1",
+                [&pattern],
+                |row| Self::row_to_notification(row),
+            );
+
+        match notification {
+            Ok(n) => Ok(Some(n)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(format!("Failed to find notification: {}", e)),
+        }
     }
 
-    pub fn find_by_metadata_mut(
-        &mut self,
-        key: &str,
-        value: &serde_json::Value,
-    ) -> Option<&mut Notification> {
-        self.notifications
-            .iter_mut()
-            .find(|n| n.metadata.get(key) == Some(value))
+    /// 辅助方法：将数据库行转换为 Notification
+    fn row_to_notification(row: &Row) -> rusqlite::Result<Notification> {
+        let type_str: String = row.get(1)?;
+        let notification_type = serde_json::from_str(&type_str)
+            .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+
+        let metadata_str: Option<String> = row.get(7)?;
+        let metadata = metadata_str
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default();
+
+        Ok(Notification {
+            id: row.get(0)?,
+            notification_type,
+            title: row.get(2)?,
+            message: row.get(3)?,
+            read: row.get::<_, i32>(4)? != 0,
+            created_at: row.get(5)?,
+            updated_at: row.get(6)?,
+            metadata,
+        })
     }
 }
 
-// 全局单例（使用 Once Lock）
+// 全局单例（使用 OnceLock）
 use std::sync::OnceLock;
 
 static NOTIFICATION_SERVICE: OnceLock<NotificationService> = OnceLock::new;
