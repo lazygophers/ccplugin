@@ -1,4 +1,5 @@
 use crate::models::{CommandResult, InstallStatus};
+use crate::utils::proxy::apply_proxy_to_command;
 use std::process::Command as StdCommand;
 
 const UVX_REPO: &str = "git+https://github.com/lazygophers/ccplugin.git@master";
@@ -23,9 +24,11 @@ impl PythonBridge {
             let program_for_error = program.clone();
             let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
             move || {
-                StdCommand::new(program)
-                    .args(&args)
-                    .output()
+                let mut cmd = StdCommand::new(&program);
+                cmd.args(&args);
+                // 应用代理配置
+                apply_proxy_to_command(&mut cmd);
+                cmd.output()
                     .map_err(|e| format!("Failed to execute {}: {}", program_for_error, e))
             }
         })
@@ -63,9 +66,11 @@ impl PythonBridge {
             let program = String::from("claude");
             let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
             move || {
-                StdCommand::new(&program)
-                    .args(&args)
-                    .output()
+                let mut cmd = StdCommand::new(&program);
+                cmd.args(&args);
+                // 应用代理配置
+                apply_proxy_to_command(&mut cmd);
+                cmd.output()
                     .map_err(|e| format!("Failed to execute claude: {}", e))
             }
         })
@@ -105,9 +110,11 @@ impl PythonBridge {
         let output = tokio::task::spawn_blocking({
             let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
             move || {
-                StdCommand::new("uvx")
-                    .args(&args)
-                    .output()
+                let mut cmd = StdCommand::new("uvx");
+                cmd.args(&args);
+                // 应用代理配置
+                apply_proxy_to_command(&mut cmd);
+                cmd.output()
                     .map_err(|e| format!("Failed to execute uvx: {}", e))
             }
         })
@@ -147,9 +154,11 @@ impl PythonBridge {
         let output = tokio::task::spawn_blocking({
             let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
             move || {
-                StdCommand::new("claude")
-                    .args(&args)
-                    .output()
+                let mut cmd = StdCommand::new("claude");
+                cmd.args(&args);
+                // 应用代理配置
+                apply_proxy_to_command(&mut cmd);
+                cmd.output()
                     .map_err(|e| format!("Failed to execute claude: {}", e))
             }
         })

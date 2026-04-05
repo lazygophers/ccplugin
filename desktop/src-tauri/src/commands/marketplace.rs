@@ -1,4 +1,5 @@
 use crate::services::{MarketplaceService, PluginInfo};
+use crate::utils::proxy::apply_proxy_to_command;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 
@@ -132,8 +133,13 @@ pub fn get_marketplaces() -> Result<Vec<MarketplaceInfo>, String> {
 
 #[tauri::command]
 pub async fn update_marketplace(marketplace_name: String) -> Result<String, String> {
-    let output = Command::new("claude")
-        .args(["plugin", "marketplace", "update", &marketplace_name])
+    let mut cmd = Command::new("claude");
+    cmd.args(["plugin", "marketplace", "update", &marketplace_name]);
+
+    // 应用代理配置
+    apply_proxy_to_command(&mut cmd);
+
+    let output = cmd
         .output()
         .map_err(|e| format!("Failed to execute command: {}", e))?;
 

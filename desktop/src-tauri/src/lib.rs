@@ -2,6 +2,7 @@ mod commands;
 mod events;
 mod models;
 mod services;
+mod utils;
 
 use commands::proxy::ProxyConfig;
 
