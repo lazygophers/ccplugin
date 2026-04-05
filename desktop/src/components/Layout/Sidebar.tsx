@@ -4,11 +4,8 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Store,
-  Package,
   ArrowUpCircle,
   Settings,
-  FileText,
-  Code2,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -20,8 +17,6 @@ const navItems = [
   { path: "/marketplaces", label: "插件市场", icon: Store },
   { path: "/updates", label: "更新", icon: ArrowUpCircle },
   { path: "/settings", label: "设置", icon: Settings },
-  { path: "/logs", label: "日志", icon: FileText },
-  { path: "/devtools", label: "开发工具", icon: Code2 },
 ];
 
 export default function Sidebar() {

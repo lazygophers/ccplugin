@@ -5,8 +5,6 @@ import Plugins from "@/pages/Plugins";
 import Marketplaces from "@/pages/Marketplaces";
 import Updates from "@/pages/Updates";
 import Settings from "@/pages/Settings";
-import Logs from "@/pages/Logs";
-import DevTools from "@/pages/DevTools";
 
 export const router = createHashRouter([
   {
@@ -32,14 +30,6 @@ export const router = createHashRouter([
       {
         path: "settings",
         element: <Settings />,
-      },
-      {
-        path: "logs",
-        element: <Logs />,
-      },
-      {
-        path: "devtools",
-        element: <DevTools />,
       },
       {
         path: "*",

@@ -14,8 +14,6 @@ export default function TopBar() {
     if (p === "/marketplaces" || p === "/marketplaces/plugins") return "插件市场";
     if (p.startsWith("/updates")) return "更新中心";
     if (p.startsWith("/settings")) return "设置";
-    if (p.startsWith("/logs")) return "日志";
-    if (p.startsWith("/devtools")) return "开发工具";
     return "CCPlugin Desktop";
   }, [location.pathname]);
 
