@@ -29,6 +29,27 @@ describe("MarketplaceService", () => {
       await expect(MarketplaceService.getAllPlugins()).resolves.toEqual(expected);
     });
 
+    it("transforms data with project scope but no path", async () => {
+      const mock = [
+        {
+          name: "python",
+          version: "1.0.0",
+          installed_scope: "project",
+          installed_path: null,
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "python",
+          version: "1.0.0",
+          installed_scopes: ["project"],
+          installed_info: [{ scope: "project", version: "1.0.0", path: undefined }],
+        },
+      ];
+      await expect(MarketplaceService.getAllPlugins()).resolves.toEqual(expected);
+    });
+
     it("transforms data with user scope", async () => {
       const mock = [
         {
@@ -79,6 +100,27 @@ describe("MarketplaceService", () => {
       expect(invoke).toHaveBeenCalledWith("search_plugins", { query: "python" });
     });
 
+    it("transforms search results with project scope but no path", async () => {
+      const mock = [
+        {
+          name: "python",
+          version: "1.0.0",
+          installed_scope: "project",
+          installed_path: null,
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "python",
+          version: "1.0.0",
+          installed_scopes: ["project"],
+          installed_info: [{ scope: "project", version: "1.0.0", path: undefined }],
+        },
+      ];
+      await expect(MarketplaceService.searchPlugins("python")).resolves.toEqual(expected);
+    });
+
     it("transforms search results with local scope (no path)", async () => {
       const mock = [
         {
@@ -98,6 +140,45 @@ describe("MarketplaceService", () => {
         },
       ];
       await expect(MarketplaceService.searchPlugins("python")).resolves.toEqual(expected);
+    });
+
+    it("handles search results without installed scope", async () => {
+      const mock = [
+        {
+          name: "python",
+          version: "1.0.0",
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "python",
+          version: "1.0.0",
+          installed_scopes: [],
+        },
+      ];
+      await expect(MarketplaceService.searchPlugins("python")).resolves.toEqual(expected);
+    });
+
+    it("handles search results with user scope", async () => {
+      const mock = [
+        {
+          name: "git",
+          version: "2.0.0",
+          installed_scope: "user",
+          installed_path: null,
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "git",
+          version: "2.0.0",
+          installed_scopes: ["user"],
+          installed_info: [{ scope: "user", version: "2.0.0" }],
+        },
+      ];
+      await expect(MarketplaceService.searchPlugins("git")).resolves.toEqual(expected);
     });
 
     it("handles empty search results", async () => {
@@ -131,6 +212,66 @@ describe("MarketplaceService", () => {
       ];
       await expect(MarketplaceService.filterByCategory("languages")).resolves.toEqual(expected);
       expect(invoke).toHaveBeenCalledWith("filter_plugins_by_category", { category: "languages" });
+    });
+
+    it("transforms category filter results with project scope but no path", async () => {
+      const mock = [
+        {
+          name: "python",
+          version: "1.2.0",
+          installed_scope: "project",
+          installed_path: null,
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "python",
+          version: "1.2.0",
+          installed_scopes: ["project"],
+          installed_info: [{ scope: "project", version: "1.2.0", path: undefined }],
+        },
+      ];
+      await expect(MarketplaceService.filterByCategory("languages")).resolves.toEqual(expected);
+    });
+
+    it("handles category filter results without installed scope", async () => {
+      const mock = [
+        {
+          name: "python",
+          version: "1.2.0",
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "python",
+          version: "1.2.0",
+          installed_scopes: [],
+        },
+      ];
+      await expect(MarketplaceService.filterByCategory("languages")).resolves.toEqual(expected);
+    });
+
+    it("handles category filter results with user scope", async () => {
+      const mock = [
+        {
+          name: "git",
+          version: "2.0.0",
+          installed_scope: "user",
+          installed_path: null,
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValueOnce(mock);
+      const expected = [
+        {
+          name: "git",
+          version: "2.0.0",
+          installed_scopes: ["user"],
+          installed_info: [{ scope: "user", version: "2.0.0" }],
+        },
+      ];
+      await expect(MarketplaceService.filterByCategory("tools")).resolves.toEqual(expected);
     });
 
     it("handles empty category results", async () => {
