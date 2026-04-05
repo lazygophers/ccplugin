@@ -61,8 +61,8 @@ def cleanup_expired_tasks():
 						logging.error(f"删除任务目录失败 {task_dir}: {e}")
 						all_deleted = False
 
-				# 2. 删除上下文快照目录
-				context_dir = os.path.join(get_project_dir(), ".lazygophers", "context", task_id)
+				# 2. 删除上下文快照目录（位于任务目录内）
+				context_dir = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id, "context")
 				if os.path.exists(context_dir):
 					try:
 						shutil.rmtree(context_dir)

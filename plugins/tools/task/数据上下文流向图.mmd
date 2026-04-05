@@ -70,7 +70,7 @@ graph TB
         MetadataFile[".lazygophers/tasks/{task_id}/metadata.json<br/>Initialization 创建 → Cleanup 更新"]
         TasksFile[".lazygophers/tasks/{task_id}/tasks.json<br/>Planning 创建 → Cleanup 删除"]
         ApprovalLog[".lazygophers/tasks/{task_id}/approval-log.json<br/>Planning 创建 → Cleanup 删除"]
-        ContextSnap[".claude/context/{task_id}/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
+        ContextSnap[".lazygophers/tasks/{task_id}/context/v*.json<br/>ContextVersioning 创建 → Cleanup 删除"]
         PromptFile[".lazygophers/tasks/{task_id}/prompt.md<br/>PromptOptimization 创建 → Cleanup 删除"]
         IndexFile[".lazygophers/tasks/index.json<br/>所有任务索引<br/>Initialization 追加 → 阶段转换更新 → Cleanup 标记完成"]
     end
