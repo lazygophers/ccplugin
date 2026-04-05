@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
 
 #[derive(Debug, Deserialize)]
 struct MarketplaceJson {
@@ -37,12 +36,28 @@ struct PluginAuthor {
     email: String,
 }
 
-/// Claude plugin list --json 输出格式
+/// installed_plugins.json 文件格式（版本 2）
 #[derive(Debug, Deserialize)]
-struct ClaudePluginListOutput {
-    id: String,
-    version: String,
+struct InstalledPluginsJson {
+    #[allow(dead_code)]
+    version: i32,
+    #[serde(default)]
+    plugins: std::collections::HashMap<String, Vec<InstalledPluginDetail>>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+struct InstalledPluginDetail {
     scope: String,
+    version: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    install_path: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    installed_at: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    last_updated: String,
 }
 
 /// 已安装插件信息（从 claude plugin list 获取）
@@ -175,28 +190,40 @@ impl MarketplaceService {
         Ok(all_plugins)
     }
 
-    /// 获取已安装的插件列表（使用 claude plugin list --json）
+    /// 获取已安装的插件列表（直接从 installed_plugins.json 读取）
     fn get_installed_plugins() -> Vec<InstalledPluginInfo> {
-        let output = Command::new("claude")
-            .args(&["plugin", "list", "--json"])
-            .output()
-            .map_err(|e| format!("Failed to run claude plugin list: {}", e));
+        let home = match dirs::home_dir() {
+            Some(h) => h,
+            None => return Vec::new(),
+        };
+
+        let installed_json_path = home.join(".claude/plugins/installed_plugins.json");
+
+        // 直接读取文件，失败时返回空列表
+        let content = match fs::read_to_string(&installed_json_path) {
+            Ok(c) => c,
+            Err(_) => return Vec::new(),
+        };
+
+        // 解析 JSON
+        let json: InstalledPluginsJson = match serde_json::from_str(&content) {
+            Ok(j) => j,
+            Err(_) => return Vec::new(),
+        };
 
         let mut installed = Vec::new();
 
-        if let Ok(output) = output {
-            if output.status.success() {
-                if let Ok(plugins) = serde_json::from_slice::<Vec<ClaudePluginListOutput>>(&output.stdout) {
-                    for plugin in plugins {
-                        // id 格式可能是 "plugin@market" 或 "plugin"
-                        let name = plugin.id.split('@').next().unwrap_or(&plugin.id);
-                        installed.push(InstalledPluginInfo {
-                            name: name.to_string(),
-                            version: plugin.version,
-                            scope: plugin.scope,
-                        });
-                    }
-                }
+        // 遍历所有插件，取每个插件名称的第一个安装记录
+        for (plugin_id, installations) in json.plugins.iter() {
+            if let Some(first_install) = installations.first() {
+                // plugin_id 格式可能是 "plugin@market" 或 "plugin"
+                let name = plugin_id.split('@').next().unwrap_or(plugin_id);
+
+                installed.push(InstalledPluginInfo {
+                    name: name.to_string(),
+                    version: first_install.version.clone(),
+                    scope: first_install.scope.clone(),
+                });
             }
         }
 
