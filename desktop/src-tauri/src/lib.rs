@@ -4,8 +4,6 @@ mod models;
 mod services;
 mod utils;
 
-use commands::proxy::ProxyConfig;
-
 use tauri::{menu::{MenuBuilder, MenuItemBuilder}, tray::{TrayIconBuilder, MouseButton, MouseButtonState}, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -31,7 +29,7 @@ pub fn run() {
         // Setup
         .setup(|app| {
             // 读取并设置代理配置
-            if let Some(store) = app.path().app_local_data_dir() {
+            if let Ok(store) = app.path().app_local_data_dir() {
                 let config_path = store.join("ccplugin-proxy.json");
                 if let Ok(content) = std::fs::read_to_string(&config_path) {
                     if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
