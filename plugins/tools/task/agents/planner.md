@@ -73,7 +73,7 @@ hooks:
 ```json
 AskUserQuestion({
   "questions": [{
-    "question": "计划已生成（${task_count}个任务），是否批准执行？",
+    "question": "计划已生成（${task_count}个任务，.lazygophers/tasks/${task_id}/plan.md），是否批准执行？",
     "header": "[MindFlow·${task_id}·计划确认]",
     "options": [
       {"label": "批准执行", "description": "开始按计划执行所有任务"},
