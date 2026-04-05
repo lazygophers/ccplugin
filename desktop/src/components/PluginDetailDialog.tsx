@@ -159,6 +159,12 @@ export function PluginDetailDialog({
                   {plugin.installed_scope === "user" ? "用户安装" : "项目安装"}
                 </Badge>
               </div>
+              {plugin.installed_scope === "project" && plugin.installed_path && (
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium">项目路径:</span>
+                  <span className="text-muted-foreground font-mono text-xs">{plugin.installed_path}</span>
+                </div>
+              )}
               {plugin.installed_version && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-medium">已安装版本:</span>

@@ -73,13 +73,18 @@ export default function Plugins() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoryParam]);
 
-  const categoriesWithCount = categories.map((cat) => ({
-    ...cat,
-    count:
-      cat.value === "all"
-        ? plugins.length
-        : plugins.filter((p) => p.category === cat.value).length,
-  }));
+  // 提取所有唯一的 keywords 并计数
+  const allKeywords = useMemo(() => {
+    const keywordMap = new Map<string, number>();
+    plugins.forEach((plugin) => {
+      plugin.keywords.forEach((keyword) => {
+        keywordMap.set(keyword, (keywordMap.get(keyword) ?? 0) + 1);
+      });
+    });
+    return Array.from(keywordMap.entries())
+      .map(([keyword, count]) => ({ keyword, count }))
+      .sort((a, b) => b.count - a.count); // 按使用频率降序排序
+  }, [plugins]);
 
   const handleInstall = async (pluginName: string) => {
     setInstallingPlugin(pluginName);

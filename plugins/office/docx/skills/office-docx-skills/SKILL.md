@@ -9,6 +9,7 @@ triggers:
   - 表格
   - 转换
   - 模板
+user-invocable: true
 ---
 
 # Word docx 操作技能

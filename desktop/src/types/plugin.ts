@@ -29,6 +29,7 @@ export interface PluginInfo {
 	installed: boolean;
 	installed_version: string | null;
 	installed_scope: string | null; // "user", "project", or "local"
+	installed_path: string | null; // 项目安装时显示项目路径
 	marketplace: string;
 }
 

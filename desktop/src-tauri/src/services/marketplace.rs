@@ -66,6 +66,7 @@ struct InstalledPluginInfo {
     name: String,
     version: String,
     scope: String,
+    install_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -83,6 +84,7 @@ pub struct PluginInfo {
     pub installed: bool,
     pub installed_version: Option<String>,
     pub installed_scope: Option<String>,
+    pub installed_path: Option<String>,
     pub marketplace: String,
 }
 
@@ -136,10 +138,14 @@ impl MarketplaceService {
                 let category = Self::infer_category(&p.source);
                 let installed_info = installed_plugins.iter().find(|info| info.name == p.name);
                 let installed = installed_info.is_some();
-                let (installed_version, installed_scope) = if let Some(info) = installed_info {
-                    (Some(info.version.clone()), Some(info.scope.clone()))
+                let (installed_version, installed_scope, installed_path) = if let Some(info) = installed_info {
+                    (
+                        Some(info.version.clone()),
+                        Some(info.scope.clone()),
+                        info.install_path.clone(),
+                    )
                 } else {
-                    (None, None)
+                    (None, None, None)
                 };
 
                 PluginInfo {
@@ -156,6 +162,7 @@ impl MarketplaceService {
                     installed,
                     installed_version,
                     installed_scope,
+                    installed_path,
                     marketplace: "ccplugin-market".to_string(),
                 }
             })
@@ -223,6 +230,11 @@ impl MarketplaceService {
                     name: name.to_string(),
                     version: first_install.version.clone(),
                     scope: first_install.scope.clone(),
+                    install_path: if first_install.install_path.is_empty() {
+                        None
+                    } else {
+                        Some(first_install.install_path.clone())
+                    },
                 });
             }
         }
@@ -337,10 +349,14 @@ impl MarketplaceService {
 
                         let installed_info = installed_plugins.iter().find(|info| info.name == name);
                         let installed = installed_info.is_some();
-                        let (installed_version, installed_scope) = if let Some(info) = installed_info {
-                            (Some(info.version.clone()), Some(info.scope.clone()))
+                        let (installed_version, installed_scope, installed_path) = if let Some(info) = installed_info {
+                            (
+                                Some(info.version.clone()),
+                                Some(info.scope.clone()),
+                                info.install_path.clone(),
+                            )
                         } else {
-                            (None, None)
+                            (None, None, None)
                         };
 
                         plugins.push(PluginInfo {
@@ -357,6 +373,7 @@ impl MarketplaceService {
                             installed,
                             installed_version,
                             installed_scope,
+                            installed_path,
                             marketplace: marketplace_name.to_string(),
                         });
                     }

@@ -8,9 +8,11 @@ interface UsePluginsResult {
   error: string | null;
   searchQuery: string;
   selectedCategory: string;
+  selectedKeyword: string | null;
   installedFilter: "all" | "installed" | "uninstalled";
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (category: string) => void;
+  setSelectedKeyword: (keyword: string | null) => void;
   setInstalledFilter: (filter: "all" | "installed" | "uninstalled") => void;
   refresh: () => Promise<void>;
   filteredPlugins: PluginInfo[];
@@ -22,6 +24,7 @@ export function usePlugins(): UsePluginsResult {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
   const [installedFilter, setInstalledFilter] = useState<
     "all" | "installed" | "uninstalled"
   >("all");
@@ -54,8 +57,13 @@ export function usePlugins(): UsePluginsResult {
       return false;
     }
 
-    // 分类过滤
+    // 分类过滤（保留兼容性）
     if (selectedCategory !== "all" && plugin.category !== selectedCategory) {
+      return false;
+    }
+
+    // keyword 过滤（优先于 category）
+    if (selectedKeyword && !plugin.keywords.includes(selectedKeyword)) {
       return false;
     }
 
@@ -78,9 +86,11 @@ export function usePlugins(): UsePluginsResult {
     error,
     searchQuery,
     selectedCategory,
+    selectedKeyword,
     installedFilter,
     setSearchQuery,
     setSelectedCategory,
+    setSelectedKeyword,
     setInstalledFilter,
     refresh: loadPlugins,
     filteredPlugins,

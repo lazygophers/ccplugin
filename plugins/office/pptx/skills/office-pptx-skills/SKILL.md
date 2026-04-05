@@ -9,6 +9,7 @@ triggers:
   - slides
   - 转换
   - 模板
+user-invocable: true
 ---
 
 # PowerPoint pptx 操作技能

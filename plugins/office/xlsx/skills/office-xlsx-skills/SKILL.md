@@ -9,6 +9,7 @@ triggers:
   - 单元格
   - csv转换
   - 数据分析
+user-invocable: true
 ---
 
 # Excel xlsx 操作技能
