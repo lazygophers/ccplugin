@@ -63,9 +63,9 @@ AskUserQuestion({
 
 | 选项 | 后续处理 |
 |------|---------|
-| **A: 确认使用** | 更新 `context.user_task` → 复杂度评估 |
-| **B: 确认并跳过计划确认** | 更新 `context.user_task` + 设置 `skip_next_plan_confirm=true` → 复杂度评估 |
-| **C: 使用原始提示词** | 将原始版本写入 `.lazygophers/tasks/{task_id}/prompt.md` → 复杂度评估 |
+| **A: 确认使用** | 更新 `context.user_task` → 复杂度评估 → **必须进入 Planning** |
+| **B: 确认并跳过计划确认** | 更新 `context.user_task` + `skip_next_plan_confirm=true` → 复杂度评估 → **必须进入 Planning**（自动批准） |
+| **C: 使用原始提示词** | 写入 `.lazygophers/tasks/{task_id}/prompt.md` → 复杂度评估 → **必须进入 Planning** |
 | **D: 修正偏离部分** | 收集用户修正/反馈 → 重新调用 prompt-optimizer（增量修订模式） |
 
 **禁止**：跳过确认直接进入下一阶段。
@@ -100,6 +100,6 @@ AskUserQuestion({
 
 ## 状态转换
 
-- **选项 A/B/C**（明确授权） → 复杂度评估（决定是否触发 DeepResearch，之后进入 Planning）
+- **选项 A/B/C**（明确授权） → 复杂度评估 → (DeepResearch?) → **必须进入 Planning**（绝对禁止跳过 Planning 直接执行）
 - **选项 D / 任何非预期响应** → 重新调用 prompt-optimizer（增量修订）→ 再次 UserConfirmation
 - **无新输入** → 读取已有 prompt.md 确认内容有效 → 复杂度评估

@@ -218,9 +218,9 @@ hooks:
 
 | 选项 | 描述 | loop 处理 |
 |------|------|----------|
-| **A: 确认使用** | 接受优化后的规格说明 | 更新 `context.user_task` → 进入复杂度评估 |
-| **B: 确认并跳过计划确认** | 接受优化后的规格说明，同时授权跳过下一次 Planning 用户确认（仅单次有效） | 更新 `context.user_task` + 设置 `skip_next_plan_confirm=true` → 进入复杂度评估 |
-| **C: 使用原始提示词** | 保持用户原始输入 | 将原始版本写入 `.lazygophers/tasks/{task_id}/prompt.md` → 进入复杂度评估 |
+| **A: 确认使用** | 接受优化后的规格说明 | 更新 `context.user_task` → 复杂度评估 → **必须进入 Planning** |
+| **B: 确认并跳过计划确认** | 接受规格说明 + 跳过 Planning 用户确认（单次有效） | 更新 `context.user_task` + `skip_next_plan_confirm=true` → 复杂度评估 → **必须进入 Planning**（自动批准） |
+| **C: 使用原始提示词** | 保持用户原始输入 | 写入 `.lazygophers/tasks/{task_id}/prompt.md` → 复杂度评估 → **必须进入 Planning** |
 | **D: 修正偏离部分** | 用户指出偏离部分或提供反馈重新优化 | 收集用户修正/反馈 → 重新调用 prompt-optimizer（增量修订） |
 
 **禁止**：prompt-optimizer 返回后直接进入下一阶段，必须先获得用户确认。
@@ -233,9 +233,11 @@ hooks:
 
 触发条件：复杂度 >8 自动触发 | 失败 2 次询问用户 | 用户显式请求。详见 [phase-deep-research.md](phases/phase-deep-research.md) 和 [deep-research-triggers.md](deep-research-triggers.md)
 
+**DeepResearch 完成/跳过后 → 必须进入 Planning。绝对禁止跳过 Planning 直接执行。**
+
 ### Planning: 计划设计与确认
 
-**前置条件**：iteration 已递增，有明确的任务目标
+**前置条件**：iteration 已递增，有明确的任务目标。**Planning 是 PromptOptimization 之后的必经阶段，无论复杂度评分如何、无论是否执行 DeepResearch，都必须进入 Planning。**
 
 `iteration += 1`，更新 metadata.json：`phase → "planning"`, `updated_at → 当前时间`
 
