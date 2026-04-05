@@ -18,119 +18,98 @@ from lib.utils.env import get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
 
 
+def _tasks_base_dir() -> str:
+	return os.path.join(get_project_dir(), ".lazygophers", "tasks")
+
+
+def _index_path() -> str:
+	return os.path.join(_tasks_base_dir(), "index.json")
+
+
+def _read_index() -> dict | None:
+	path = _index_path()
+	if not os.path.exists(path):
+		return None
+	with open(path) as f:
+		return json.load(f)
+
+
+def _write_index(index: dict):
+	with open(_index_path(), "w") as f:
+		json.dump(index, f, indent=2, ensure_ascii=False)
+
+
+def _remove_task_dir(task_id: str) -> bool:
+	task_dir = os.path.join(_tasks_base_dir(), task_id)
+	if not os.path.exists(task_dir):
+		return True
+	try:
+		shutil.rmtree(task_dir)
+		return True
+	except Exception as e:
+		logging.error(f"删除任务目录失败 {task_dir}: {e}")
+		return False
+
+
 def cleanup_expired_tasks():
 	"""清理超过30天的过期任务数据
 
-	只有当任务的所有关联文件都成功删除后，才从 index.json 中移除记录。
-	如果删除失败，保留在 index.json 中，下次 SessionStart 时重试。
+	只有当任务目录成功删除后，才从 index.json 中移除记录。
+	删除失败则保留在 index.json 中，下次 SessionStart 时重试。
 	"""
-
-	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
-	if not os.path.exists(index_path):
+	index = _read_index()
+	if not index:
 		return
 
-	# 读取索引
-	with open(index_path) as f:
-		index = json.load(f)
-
-	# 30天前的时间戳
 	expiry_threshold = int(time.time()) - (30 * 24 * 60 * 60)
-
-	# 遍历所有会话
 	cleaned_count = 0
 	index_modified = False
 
 	for session_id, tasks in list(index.items()):
-		# 过滤掉成功清理的过期任务
 		active_tasks = []
 		for task in tasks:
 			task_id = task.get("task_id", "")
-			updated_at = task.get("updated_at", 0)
-
-			# 检查是否过期
-			if updated_at < expiry_threshold:
-				# 尝试删除所有关联文件
-				all_deleted = True
-
-				# 1. 删除任务目录（包括其内部的 checkpoints 目录）
-				task_dir = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id)
-				if os.path.exists(task_dir):
-					try:
-						shutil.rmtree(task_dir)
-					except Exception as e:
-						logging.error(f"删除任务目录失败 {task_dir}: {e}")
-						all_deleted = False
-
-				# 2. 删除上下文快照目录（位于任务目录内）
-				context_dir = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id, "context")
-				if os.path.exists(context_dir):
-					try:
-						shutil.rmtree(context_dir)
-					except Exception as e:
-						logging.error(f"删除上下文快照失败 {context_dir}: {e}")
-						all_deleted = False
-
-				# 只有全部成功删除才从索引中移除
-				if all_deleted:
+			if task.get("updated_at", 0) < expiry_threshold:
+				if _remove_task_dir(task_id):
 					cleaned_count += 1
 					index_modified = True
-				# 不添加到 active_tasks，从索引中移除
 				else:
-					# 删除失败，保留在索引中，下次重试
 					active_tasks.append(task)
-					logging.warning(f"任务 {task_id} 清理未完成，保留在索引中待下次重试")
 			else:
-				# 未过期，保留
 				active_tasks.append(task)
 
-		# 更新会话的任务列表
 		if active_tasks:
 			index[session_id] = active_tasks
 		else:
-			# 如果会话所有任务都已清理，删除整个会话键
 			del index[session_id]
 			index_modified = True
 
-	# 只有索引被修改时才写回
 	if index_modified:
-		with open(index_path, "w") as f:
-			json.dump(index, f, indent=2, ensure_ascii=False)
+		_write_index(index)
 		if cleaned_count > 0:
 			logging.info(f"已清理 {cleaned_count} 个过期任务（超过30天）")
 
 
 def handle_session_start():
-	if not os.path.exists(os.path.join(get_project_dir(), ".lazygophers", "tasks")):
-		os.mkdir(os.path.join(get_project_dir(), ".lazygophers", "tasks"))
+	base = _tasks_base_dir()
+	if not os.path.exists(base):
+		os.mkdir(base)
 
 	add_gitignore_rule("/tasks", file_path=os.path.join(get_project_dir(), ".lazygophers", ".gitignore"))
-
-	# 清理过期任务
 	cleanup_expired_tasks()
 
 
-def cleanup_session_tasks(session_id: str, index: dict, index_path: str):
+def cleanup_session_tasks(session_id: str, index: dict):
 	"""清理指定 session 的所有任务目录，并从 index.json 中移除记录"""
-	task_list = index.get(session_id, [])
 	cleaned_count = 0
-
-	for task in task_list:
+	for task in index.get(session_id, []):
 		task_id = task.get("task_id", "")
-		if not task_id:
-			continue
-		task_dir = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id)
-		if os.path.exists(task_dir):
-			try:
-				shutil.rmtree(task_dir)
-				cleaned_count += 1
-			except Exception as e:
-				logging.error(f"清理任务目录失败 {task_dir}: {e}")
+		if task_id and _remove_task_dir(task_id):
+			cleaned_count += 1
 
-	# 从 index 中移除该 session
 	if session_id in index:
 		del index[session_id]
-		with open(index_path, "w") as f:
-			json.dump(index, f, indent=2, ensure_ascii=False)
+		_write_index(index)
 
 	if cleaned_count > 0:
 		logging.info(f"已清理 session {session_id} 的 {cleaned_count} 个任务目录")
@@ -138,29 +117,21 @@ def cleanup_session_tasks(session_id: str, index: dict, index_path: str):
 
 def handle_stop(hook_event_name: str, session_id: str):
 	"""Stop hook: 检查任务是否完成，完成后清理当前 session 的所有任务"""
-	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
-
-	if not os.path.exists(index_path):
-		return
-
-	with open(index_path) as file:
-		index = json.load(file)
-
-	if session_id not in index:
+	index = _read_index()
+	if not index or session_id not in index:
 		return
 
 	task_list = index.get(session_id, [])
 	if not task_list:
 		return
 
-	# 取最新的任务（数组最后一个元素）检查是否完成
 	current_task = task_list[-1]
 	task_id = current_task.get("task_id", "")
-	status_file_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id, "metadata.json")
+	metadata_path = os.path.join(_tasks_base_dir(), task_id, "metadata.json")
 
-	if os.path.exists(status_file_path):
-		with open(status_file_path) as file:
-			metadata = json.load(file)
+	if os.path.exists(metadata_path):
+		with open(metadata_path) as f:
+			metadata = json.load(f)
 			if metadata.get("phase", "") != "completed":
 				print(json.dumps({
 					"hookSpecificOutput": {
@@ -170,42 +141,29 @@ def handle_stop(hook_event_name: str, session_id: str):
 				}))
 				sys.exit(2)
 
-	# 任务已完成或 metadata 不存在，清理当前 session 的所有任务
-	cleanup_session_tasks(session_id, index, index_path)
+	cleanup_session_tasks(session_id, index)
 
 
 def handle_permission_request(hook_data: Dict[str, any]):
-	if "tool_input" not in hook_data:
+	tool_input = hook_data.get("tool_input")
+	if not tool_input:
 		return
 
-	tool_input = hook_data.get("tool_input", {})
-
-	# .lazygophers/tasks 目录下的自动放行
-	if "file_path" in tool_input:
-		if (str(tool_input.get("file_path", "")).find(".lazygophers") >= 0 and
-			str(tool_input.get("file_path", "")).find("tasks") >= 0):
-			print(json.dumps({
-				"hookSpecificOutput": {
-					"hookEventName": hook_data.get("hook_event_name", "PermissionRequest"),
-					"decision": {
-						"behavior": "allow",
-						"permissionDecisionReason": "允许"
-					}
+	file_path = str(tool_input.get("file_path", ""))
+	if ".lazygophers" in file_path and "tasks" in file_path:
+		print(json.dumps({
+			"hookSpecificOutput": {
+				"hookEventName": hook_data.get("hook_event_name", "PermissionRequest"),
+				"decision": {
+					"behavior": "allow",
+					"permissionDecisionReason": "允许"
 				}
-			}))
-			return
+			}
+		}))
 
 
 def handle_hook() -> None:
-	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作
-
-	Hook 数据格式示例：
-	{
-		"hook_event_name": "SessionStart",
-		"source": "startup",
-		"message": "Session started"
-	}
-	"""
+	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作"""
 	try:
 		input_data = load_hooks()
 		logging.info(f"Received input data: {input_data}")
@@ -215,7 +173,6 @@ def handle_hook() -> None:
 			logging.error("缺少 hook_event_name")
 			return
 
-		# 路由到不同的处理器
 		if hook_event_name == "SessionStart":
 			handle_session_start()
 		elif hook_event_name == "PermissionRequest":

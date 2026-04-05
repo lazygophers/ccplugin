@@ -225,7 +225,7 @@ hooks:
 
 **禁止**：prompt-optimizer 返回后直接进入下一阶段，必须先获得用户确认。
 
-**非预期响应处理**：当用户未选择 A/B/C/D（拒绝回答、直接纠正错误、文字反馈等），将反馈作为 `user_feedback` 重新调用 prompt-optimizer（增量修订），再次进入 UserConfirmation。只有明确选择 A/B/C 才是授权继续的信号。
+**非预期响应处理（强制）**：当用户未选择 A/B/C/D（拒绝回答、连续拒绝、纠正错误、文字反馈等），将反馈重新调用 prompt-optimizer 增量修订，**然后再次 AskUserQuestion**。重复此循环直到用户明确选择 A/B/C。**绝对禁止**自行判断"用户不想确认"而跳过。
 
 详见 [phase-prompt-optimization.md](phases/phase-prompt-optimization.md)
 

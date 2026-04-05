@@ -70,11 +70,20 @@ AskUserQuestion({
 
 **禁止**：跳过确认直接进入下一阶段。
 
-### 非预期响应处理
+### 非预期响应处理（强制规则）
 
-当用户**未选择 A/B/C/D**（包括拒绝回答、直接纠正错误、提供文字反馈等任何非选项响应），loop **必须**将用户的反馈作为 `user_feedback` 重新调用 prompt-optimizer（增量修订模式），然后再次进入 UserConfirmation。
+当用户**未选择 A/B/C/D**（包括但不限于：拒绝回答、连续拒绝、直接纠正错误、提供文字反馈、Other 输入等任何非选项响应），loop **必须**：
 
-**核心原则**：只有用户明确选择 A/B/C 才是授权继续到下一阶段的信号。任何其他响应都视为"需要修正"，等同于选项 D 处理。prompt-optimizer agent **禁止**自行修改后跳过确认直接进入 Planning。
+1. 将用户的反馈作为 `user_feedback` 重新调用 prompt-optimizer（增量修订模式）
+2. prompt-optimizer 修订完成后，**再次进入 UserConfirmation**（再次 AskUserQuestion）
+3. **重复此循环**直到用户明确选择 A/B/C
+
+**核心原则**：只有用户明确选择 A/B/C 才是授权继续到下一阶段的唯一信号。无论用户拒绝多少次、纠正多少次，每次都必须重新确认。
+
+**绝对禁止**：
+- loop 自行判断"用户不想确认"而跳过 UserConfirmation
+- prompt-optimizer 修改后不经确认直接进入 Planning
+- 将连续拒绝解读为"用户同意"或"用户想跳过"
 
 ### 选项 B 的行为说明
 
