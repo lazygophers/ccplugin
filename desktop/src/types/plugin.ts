@@ -50,3 +50,46 @@ export interface CommandResult {
 	stdout: string;
 	stderr: string;
 }
+
+// ==================== 事件系统类型 ====================
+
+/**
+ * 插件事件负载
+ */
+export interface PluginEventPayload {
+	event_type: string;
+	plugin_name: string;
+	data: unknown;
+}
+
+/**
+ * 插件事件类型
+ */
+export type PluginEventType =
+	// 安装事件
+	| "plugin-install-started"
+	| "plugin-install-progress"
+	| "plugin-install-completed"
+	| "plugin-install-failed"
+	// 更新事件
+	| "plugin-update-started"
+	| "plugin-update-progress"
+	| "plugin-update-completed"
+	| "plugin-update-failed"
+	// 卸载事件
+	| "plugin-uninstall-started"
+	| "plugin-uninstall-progress"
+	| "plugin-uninstall-completed"
+	| "plugin-uninstall-failed"
+	// 缓存清理事件
+	| "cache-clean-started"
+	| "cache-clean-completed"
+	| "cache-clean-failed"
+	// 插件信息事件
+	| "plugin-info-completed"
+	| "plugin-info-failed";
+
+/**
+ * 插件事件处理器类型
+ */
+export type PluginEventHandler = (event: PluginEventPayload) => void;

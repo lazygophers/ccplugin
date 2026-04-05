@@ -1,84 +1,159 @@
 import {
-  installPlugin as installPluginCmd,
-  updatePlugin as updatePluginCmd,
-  uninstallPlugin as uninstallPluginCmd,
-  cleanCache as cleanCacheCmd,
-  getPluginInfo as getPluginInfoCmd,
-  listenToInstallProgress,
+	installPlugin as installPluginCmd,
+	updatePlugin as updatePluginCmd,
+	uninstallPlugin as uninstallPluginCmd,
+	cleanCache as cleanCacheCmd,
+	getPluginInfo as getPluginInfoCmd,
+	listenToPluginEventsByName,
+	type PluginEventHandler,
 } from "./tauri-commands";
-import { CommandResult, PluginInstallProgress } from "@/types";
 
+/**
+ * 插件操作结果（通过事件传递）
+ */
+export interface PluginOperationResult {
+	success: boolean;
+	stdout?: string;
+	stderr?: string;
+	error?: string;
+}
+
+/**
+ * 插件服务 - 事件驱动版本
+ *
+ * 核心原则：
+ * - 所有命令立即返回，不等待结果
+ * - 通过事件监听接收进度和完成通知
+ * - 调用者负责设置事件监听器
+ */
 export class PluginService {
-  /**
-   * 包装命令执行，自动处理进度监听的设置和清理
-   */
-  private static async withProgress<T>(
-    commandFn: () => Promise<T>,
-    onProgress?: (progress: PluginInstallProgress) => void
-  ): Promise<T> {
-    let unlisten: (() => void) | undefined;
-    if (onProgress) {
-      unlisten = await listenToInstallProgress(onProgress);
-    }
+	/**
+	 * 安装插件
+	 * @param pluginName - 插件名称
+	 * @param marketplace - 市场名称（默认 ccplugin-market）
+	 * @param handler - 事件处理器，接收进度和完成事件
+	 * @returns 取消监听的函数
+	 */
+	static async install(
+		pluginName: string,
+		marketplace: string = "ccplugin-market",
+		handler?: PluginEventHandler,
+	): Promise<() => Promise<void>> {
+		// 设置事件监听器（在调用命令之前）
+		let unlisten: Awaited<ReturnType<typeof listenToPluginEventsByName>> | undefined;
+		if (handler) {
+			unlisten = await listenToPluginEventsByName(pluginName, handler);
+		}
 
-    try {
-      return await commandFn();
-    } finally {
-      unlisten?.();
-    }
-  }
+		// 立即调用命令（不等待）
+		await installPluginCmd(pluginName, marketplace);
 
-  /**
-   * 安装插件并监听进度
-   */
-  static async install(
-    pluginName: string,
-    marketplace: string = "ccplugin-market",
-    onProgress?: (progress: PluginInstallProgress) => void
-  ): Promise<CommandResult> {
-    return this.withProgress(
-      () => installPluginCmd(pluginName, marketplace),
-      onProgress
-    );
-  }
+		// 返回清理函数
+		return async () => {
+			if (unlisten) {
+				await unlisten();
+			}
+		};
+	}
 
-  /**
-   * 更新插件并监听进度
-   */
-  static async update(
-    pluginName: string,
-    onProgress?: (progress: PluginInstallProgress) => void
-  ): Promise<CommandResult> {
-    return this.withProgress(
-      () => updatePluginCmd(pluginName),
-      onProgress
-    );
-  }
+	/**
+	 * 更新插件
+	 * @param pluginName - 插件名称
+	 * @param handler - 事件处理器
+	 * @returns 取消监听的函数
+	 */
+	static async update(
+		pluginName: string,
+		handler?: PluginEventHandler,
+	): Promise<() => Promise<void>> {
+		// 设置事件监听器
+		let unlisten: Awaited<ReturnType<typeof listenToPluginEventsByName>> | undefined;
+		if (handler) {
+			unlisten = await listenToPluginEventsByName(pluginName, handler);
+		}
 
-  /**
-   * 卸载插件
-   */
-  static async uninstall(
-    pluginName: string,
-    onProgress?: (progress: PluginInstallProgress) => void
-  ): Promise<CommandResult> {
-    return this.withProgress(
-      () => uninstallPluginCmd(pluginName),
-      onProgress
-    );
-  }
+		// 立即调用命令
+		await updatePluginCmd(pluginName);
 
-  /**
-   * 清理缓存
-   */
-  static async clean(): Promise<CommandResult> {
-    return await cleanCacheCmd();
-  }
+		// 返回清理函数
+		return async () => {
+			if (unlisten) {
+				await unlisten();
+			}
+		};
+	}
 
-  /**
-   * 获取插件信息
-   */
-  static async getInfo(pluginName: string): Promise<CommandResult> {
-    return await getPluginInfoCmd(pluginName);
-  }
+	/**
+	 * 卸载插件
+	 * @param pluginName - 插件名称
+	 * @param handler - 事件处理器
+	 * @returns 取消监听的函数
+	 */
+	static async uninstall(
+		pluginName: string,
+		handler?: PluginEventHandler,
+	): Promise<() => Promise<void>> {
+		// 设置事件监听器
+		let unlisten: Awaited<ReturnType<typeof listenToPluginEventsByName>> | undefined;
+		if (handler) {
+			unlisten = await listenToPluginEventsByName(pluginName, handler);
+		}
+
+		// 立即调用命令
+		await uninstallPluginCmd(pluginName);
+
+		// 返回清理函数
+		return async () => {
+			if (unlisten) {
+				await unlisten();
+			}
+		};
+	}
+
+	/**
+	 * 清理缓存
+	 * @param handler - 事件处理器
+	 * @returns 取消监听的函数
+	 */
+	static async clean(
+		handler?: PluginEventHandler,
+	): Promise<() => Promise<void>> {
+		// 设置事件监听器
+		let unlisten: Awaited<ReturnType<typeof listenToPluginEventsByName>> | undefined;
+		if (handler) {
+			unlisten = await listenToPluginEventsByName("cache", handler);
+		}
+
+		// 立即调用命令
+		await cleanCacheCmd();
+
+		// 返回清理函数
+		return async () => {
+			if (unlisten) {
+				await unlisten();
+			}
+		};
+	}
+
+	/**
+	 * 获取插件信息
+	 * @param pluginName - 插件名称
+	 * @param handler - 事件处理器
+	 * @returns 取消监听的函数
+	 */
+	static async getInfo(
+		pluginName: string,
+		handler: PluginEventHandler,
+	): Promise<() => Promise<void>> {
+		// 设置事件监听器
+		const unlisten = await listenToPluginEventsByName(pluginName, handler);
+
+		// 立即调用命令
+		await getPluginInfoCmd(pluginName);
+
+		// 返回清理函数
+		return async () => {
+			await unlisten();
+		};
+	}
 }

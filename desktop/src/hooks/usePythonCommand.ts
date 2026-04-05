@@ -1,99 +1,126 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { PluginService } from "@/services/plugin-service";
-import { CommandResult, PluginInstallProgress } from "@/types";
+import type { PluginEventPayload } from "@/types";
 
 interface UsePythonCommandResult {
-  loading: boolean;
-  progress: PluginInstallProgress | null;
-  result: CommandResult | null;
-  error: string | null;
-  install: (pluginName: string, marketplace?: string) => Promise<void>;
-  update: (pluginName: string) => Promise<void>;
-  uninstall: (pluginName: string) => Promise<void>;
-  clean: () => Promise<void>;
-  getInfo: (pluginName: string) => Promise<void>;
+	loading: boolean;
+	progress: { plugin_name: string; status: string; progress: number; message: string } | null;
+	error: string | null;
+	install: (pluginName: string, marketplace?: string) => Promise<void>;
+	update: (pluginName: string) => Promise<void>;
+	uninstall: (pluginName: string) => Promise<void>;
+	clean: () => Promise<void>;
+	getInfo: (pluginName: string) => Promise<void>;
 }
 
 export function usePythonCommand(): UsePythonCommandResult {
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<PluginInstallProgress | null>(null);
-  const [result, setResult] = useState<CommandResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
+	const [progress, setProgress] = useState<{
+		plugin_name: string;
+		status: string;
+		progress: number;
+		message: string;
+	} | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
-  /**
-   * 通用命令执行器，统一处理状态管理和错误处理
-   */
-  const executeCommand = useCallback(
-    async (
-      commandFn: () => Promise<CommandResult>,
-      defaultErrorMessage: string
-    ) => {
-      setLoading(true);
-      setError(null);
-      setResult(null);
-      setProgress(null);
+	// 用于跟踪当前操作的插件名称
+	const currentPluginRef = useRef<string | null>(null);
 
-      try {
-        const res = await commandFn();
-        setResult(res);
+	/**
+	 * 事件处理器 - 从事件中提取状态并更新
+	 */
+	const handleEvent = useCallback((event: PluginEventPayload) => {
+		const { event_type, plugin_name, data } = event;
 
-        if (!res.success) {
-          setError(res.stderr || defaultErrorMessage);
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+		switch (event_type) {
+			case "plugin-install-started":
+			case "plugin-update-started":
+			case "plugin-uninstall-started":
+			case "cache-clean-started":
+				setLoading(true);
+				setError(null);
+				setProgress(null);
+				break;
 
-  const install = useCallback(async (pluginName: string, marketplace: string = "ccplugin-market") => {
-    await executeCommand(
-      () => PluginService.install(pluginName, marketplace, setProgress),
-      "安装失败"
-    );
-  }, [executeCommand, setProgress]);
+			case "plugin-install-progress":
+			case "plugin-update-progress":
+			case "plugin-uninstall-progress":
+				setProgress({
+					plugin_name,
+					status: (data as { status: string }).status,
+					progress: (data as { progress: number }).progress,
+					message: (data as { message: string }).message,
+				});
+				break;
 
-  const update = useCallback(async (pluginName: string) => {
-    await executeCommand(
-      () => PluginService.update(pluginName, setProgress),
-      "更新失败"
-    );
-  }, [executeCommand, setProgress]);
+			case "plugin-install-completed":
+			case "plugin-update-completed":
+			case "plugin-uninstall-completed":
+			case "cache-clean-completed":
+				setLoading(false);
+				setProgress(null);
+				setError(null);
+				break;
 
-  const uninstall = useCallback(async (pluginName: string) => {
-    await executeCommand(
-      () => PluginService.uninstall(pluginName, setProgress),
-      "卸载失败"
-    );
-  }, [executeCommand, setProgress]);
+			case "plugin-install-failed":
+			case "plugin-update-failed":
+			case "plugin-uninstall-failed":
+			case "cache-clean-failed":
+			case "plugin-info-failed":
+				setLoading(false);
+				setProgress(null);
+				const errorData = data as { error?: string };
+				setError(errorData.error || "操作失败");
+				break;
+		}
+	}, []);
 
-  const clean = useCallback(async () => {
-    await executeCommand(
-      () => PluginService.clean(),
-      "清理失败"
-    );
-  }, [executeCommand]);
+	const install = useCallback(
+		async (pluginName: string, marketplace: string = "ccplugin-market") => {
+			currentPluginRef.current = pluginName;
+			await PluginService.install(pluginName, marketplace, handleEvent);
+		},
+		[handleEvent]
+	);
 
-  const getInfo = useCallback(async (pluginName: string) => {
-    await executeCommand(
-      () => PluginService.getInfo(pluginName),
-      "获取信息失败"
-    );
-  }, [executeCommand]);
+	const update = useCallback(
+		async (pluginName: string) => {
+			currentPluginRef.current = pluginName;
+			await PluginService.update(pluginName, handleEvent);
+		},
+		[handleEvent]
+	);
 
-  return {
-    loading,
-    progress,
-    result,
-    error,
-    install,
-    update,
-    uninstall,
-    clean,
-    getInfo,
-  };
+	const uninstall = useCallback(
+		async (pluginName: string) => {
+			currentPluginRef.current = pluginName;
+			await PluginService.uninstall(pluginName, handleEvent);
+		},
+		[handleEvent]
+	);
+
+	const clean = useCallback(async () => {
+		setLoading(true);
+		setError(null);
+		await PluginService.clean(handleEvent);
+	}, [handleEvent]);
+
+	const getInfo = useCallback(
+		async (pluginName: string) => {
+			currentPluginRef.current = pluginName;
+			await PluginService.getInfo(pluginName, handleEvent);
+		},
+		[handleEvent]
+	);
+
+	return {
+		loading,
+		progress,
+		error,
+		install,
+		update,
+		uninstall,
+		clean,
+		getInfo,
+	};
 }
