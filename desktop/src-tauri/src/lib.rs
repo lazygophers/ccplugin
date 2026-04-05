@@ -93,6 +93,7 @@ pub fn run() {
             commands::get_marketplace_plugins,
             commands::get_installed_plugins,
             commands::get_marketplaces,
+            commands::update_marketplace,
             commands::search_plugins,
             commands::filter_plugins_by_category,
         ])

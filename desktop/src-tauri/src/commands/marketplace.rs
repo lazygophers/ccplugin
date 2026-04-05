@@ -1,5 +1,6 @@
 use crate::services::{MarketplaceService, PluginInfo};
 use serde::{Deserialize, Serialize};
+use std::process::Command;
 
 #[tauri::command]
 pub fn get_marketplace_plugins() -> Result<Vec<PluginInfo>, String> {
@@ -127,4 +128,20 @@ pub fn get_marketplaces() -> Result<Vec<MarketplaceInfo>, String> {
     }
 
     Ok(result)
+}
+
+#[tauri::command]
+pub async fn update_marketplace(marketplace_name: String) -> Result<String, String> {
+    let output = Command::new("claude")
+        .args(["plugin", "marketplace", "update", &marketplace_name])
+        .output()
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        Ok(stdout.trim().to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        Err(stderr.trim().to_string())
+    }
 }

@@ -67,6 +67,11 @@ export default function Marketplaces() {
 		"user" | "project" | "local"
 	>("user");
 
+	// 市场更新状态
+	const [updatingMarketplace, setUpdatingMarketplace] = useState<
+		string | null
+	>(null);
+
 	const loadPlugins = useCallback(async () => {
 		try {
 			const data = await MarketplaceService.getAllPlugins();
@@ -195,6 +200,27 @@ export default function Marketplaces() {
 		);
 	}, []);
 
+	const handleUpdateMarketplace = useCallback(
+		async (marketName: string) => {
+			setUpdatingMarketplace(marketName);
+			try {
+				const result = await MarketplacesService.update(marketName);
+				alert(`市场 "${marketName}" 更新成功！\n\n${result}`);
+				// 重新加载数据
+				await loadMarketplaces();
+				await loadPlugins();
+			} catch (e) {
+				console.error("Update marketplace failed:", e);
+				alert(
+					`更新市场失败: ${e instanceof Error ? e.message : String(e)}`,
+				);
+			} finally {
+				setUpdatingMarketplace(null);
+			}
+		},
+		[loadMarketplaces, loadPlugins],
+	);
+
 	return (
 		<div className="p-6 space-y-6">
 			<div className="flex items-center justify-between gap-3">
@@ -312,6 +338,29 @@ export default function Marketplaces() {
 																}{" "}
 																个插件)
 															</span>
+															<Button
+																variant="ghost"
+																size="sm"
+																className="h-6 px-2"
+																onClick={(e) => {
+																	e.stopPropagation();
+																	handleUpdateMarketplace(
+																		m.name,
+																	);
+																}}
+																disabled={
+																	updatingMarketplace ===
+																	m.name
+																}
+																title="更新市场"
+															>
+																{updatingMarketplace ===
+																m.name ? (
+																	<Loader2 className="w-3 h-3 animate-spin" />
+																) : (
+																	<RefreshCw className="w-3 h-3" />
+																)}
+															</Button>
 															<Button
 																variant="ghost"
 																size="sm"

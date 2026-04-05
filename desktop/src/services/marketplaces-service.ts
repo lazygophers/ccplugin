@@ -11,5 +11,9 @@ export class MarketplacesService {
   static async list(): Promise<MarketplaceInfo[]> {
     return await invoke<MarketplaceInfo[]>("get_marketplaces");
   }
+
+  static async update(marketplaceName: string): Promise<string> {
+    return await invoke<string>("update_marketplace", { marketplaceName });
+  }
 }
 
