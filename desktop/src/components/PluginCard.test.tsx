@@ -76,6 +76,50 @@ describe("PluginCard", () => {
     expect(screen.getByText("安装中...")).toBeInTheDocument();
   });
 
+  it("renders scope badge for user scope", () => {
+    const plugin = { ...pluginFixtures[0], installed_scope: "user" };
+    render(<PluginCard plugin={plugin} />);
+    expect(screen.getByText("用户")).toBeInTheDocument();
+  });
+
+  it("renders scope badge for project scope", () => {
+    const plugin = { ...pluginFixtures[0], installed_scope: "project" };
+    render(<PluginCard plugin={plugin} />);
+    expect(screen.getByText("项目")).toBeInTheDocument();
+  });
+
+  it("renders scope badge for local scope", () => {
+    const plugin = { ...pluginFixtures[0], installed_scope: "local" };
+    render(<PluginCard plugin={plugin} />);
+    expect(screen.getByText("local")).toBeInTheDocument();
+  });
+
+  it("does not render scope badge when not installed", () => {
+    render(<PluginCard plugin={pluginFixtures[1]} />);
+    expect(screen.queryByText(/用户|项目|local/)).not.toBeInTheDocument();
+  });
+
+  it("memo prevents re-render when scope changes", () => {
+    const { rerender } = render(
+      <PluginCard
+        plugin={pluginFixtures[0]}
+        onUpdate={vi.fn()}
+        onUninstall={vi.fn()}
+      />
+    );
+    const initialRender = screen.getByText("python");
+
+    rerender(
+      <PluginCard
+        plugin={{ ...pluginFixtures[0], installed_scope: "project" }}
+        onUpdate={vi.fn()}
+        onUninstall={vi.fn()}
+      />
+    );
+
+    expect(initialRender).toBeInTheDocument();
+  });
+
   it("detail button calls onViewDetails", async () => {
     const user = userEvent.setup();
     const onViewDetails = vi.fn();
