@@ -3,6 +3,8 @@ mod events;
 mod models;
 mod services;
 
+use commands::proxy::ProxyConfig;
+
 use tauri::{menu::{MenuBuilder, MenuItemBuilder}, tray::{TrayIconBuilder, MouseButton, MouseButtonState}, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,6 +29,35 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         // Setup
         .setup(|app| {
+            // 读取并设置代理配置
+            if let Some(store) = app.path().app_local_data_dir() {
+                let config_path = store.join("ccplugin-proxy.json");
+                if let Ok(content) = std::fs::read_to_string(&config_path) {
+                    if let Ok(config) = serde_json::from_str::<serde_json::Value>(&content) {
+                        if config.get("enabled").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            if let Some(http) = config.get("http").and_then(|v| v.as_str()) {
+                                if !http.is_empty() {
+                                    std::env::set_var("HTTP_PROXY", http);
+                                    std::env::set_var("http_proxy", http);
+                                }
+                            }
+                            if let Some(https) = config.get("https").and_then(|v| v.as_str()) {
+                                if !https.is_empty() {
+                                    std::env::set_var("HTTPS_PROXY", https);
+                                    std::env::set_var("https_proxy", https);
+                                }
+                            }
+                            if let Some(no_proxy) = config.get("noProxy").and_then(|v| v.as_str()) {
+                                if !no_proxy.is_empty() {
+                                    std::env::set_var("NO_PROXY", no_proxy);
+                                    std::env::set_var("no_proxy", no_proxy);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // System tray menu
             let show_i = MenuItemBuilder::with_id("show", "显示窗口").build(app)?;
             let hide_i = MenuItemBuilder::with_id("hide", "隐藏窗口").build(app)?;
@@ -96,6 +127,8 @@ pub fn run() {
             commands::update_marketplace,
             commands::search_plugins,
             commands::filter_plugins_by_category,
+            commands::proxy::save_proxy_config,
+            commands::proxy::load_proxy_config,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
