@@ -100,3 +100,47 @@ export type PluginEventType =
  * 插件事件处理器类型
  */
 export type PluginEventHandler = (event: PluginEventPayload) => void;
+
+// ==================== 通知中心类型 ====================
+
+/**
+ * 通知类型
+ */
+export type NotificationType =
+	| "info"
+	| "success"
+	| "warning"
+	| "error"
+	| "progress";
+
+/**
+ * 通知元数据
+ */
+export interface NotificationMetadata {
+	[key: string]: unknown;
+}
+
+/**
+ * 通知
+ */
+export interface Notification {
+	id: string;
+	type: NotificationType;
+	title: string;
+	message: string;
+	read: boolean;
+	created_at: number;  // Unix 时间戳（秒）
+	updated_at: number;  // Unix 时间戳（秒）
+	metadata?: NotificationMetadata;
+}
+
+/**
+ * 添加通知参数
+ */
+export interface AddNotificationParams {
+	type: NotificationType;
+	title: string;
+	message: string;
+	metadata?: NotificationMetadata;
+}
+

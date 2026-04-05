@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { PluginEventPayload, PluginEventHandler, PluginEventType } from "@/types";
+import { PluginEventPayload, PluginEventHandler, PluginEventType, Notification, AddNotificationParams } from "@/types";
 
 // 导出类型供其他模块使用
 export type { PluginEventHandler, PluginEventPayload };
@@ -122,3 +122,62 @@ export async function listenToInstallProgress(
 		}
 	});
 }
+
+// ==================== 通知中心命令 ====================
+
+/**
+ * 添加通知
+ */
+export async function addNotification(params: AddNotificationParams): Promise<Notification> {
+	return await invoke("add_notification", params);
+}
+
+/**
+ * 获取所有通知（按更新时间倒序）
+ */
+export async function getNotifications(): Promise<Notification[]> {
+	return await invoke("get_notifications");
+}
+
+/**
+ * 获取未读通知数量
+ */
+export async function getUnreadCount(): Promise<number> {
+	return await invoke("get_unread_count");
+}
+
+/**
+ * 标记通知为已读
+ */
+export async function markNotificationRead(id: string): Promise<boolean> {
+	return await invoke("mark_notification_read", { id });
+}
+
+/**
+ * 标记所有通知为已读
+ */
+export async function markAllNotificationsRead(): Promise<void> {
+	return await invoke("mark_all_notifications_read");
+}
+
+/**
+ * 更新通知消息（用于进度更新）
+ */
+export async function updateNotification(id: string, message: string): Promise<boolean> {
+	return await invoke("update_notification", { id, message });
+}
+
+/**
+ * 删除通知
+ */
+export async function deleteNotification(id: string): Promise<boolean> {
+	return await invoke("delete_notification", { id });
+}
+
+/**
+ * 清空所有通知
+ */
+export async function clearAllNotifications(): Promise<void> {
+	return await invoke("clear_all_notifications");
+}
+

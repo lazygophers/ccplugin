@@ -28,6 +28,9 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         // Setup
         .setup(|app| {
+            // 初始化通知服务
+            crate::services::init_notification_service(app)?;
+
             // 读取并设置代理配置
             if let Ok(store) = app.path().app_local_data_dir() {
                 let config_path = store.join("ccplugin-proxy.json");
@@ -116,10 +119,7 @@ pub fn run() {
         // Commands
         .invoke_handler(tauri::generate_handler![
             commands::install_plugin,
-            commands::update_plugin,
             commands::uninstall_plugin,
-            commands::clean_cache,
-            commands::get_plugin_info,
             commands::get_marketplace_plugins,
             commands::get_installed_plugins,
             commands::get_marketplaces,
@@ -128,6 +128,14 @@ pub fn run() {
             commands::filter_plugins_by_category,
             commands::proxy::save_proxy_config,
             commands::proxy::load_proxy_config,
+            commands::add_notification,
+            commands::get_notifications,
+            commands::get_unread_count,
+            commands::mark_notification_read,
+            commands::mark_all_notifications_read,
+            commands::update_notification,
+            commands::delete_notification,
+            commands::clear_all_notifications,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

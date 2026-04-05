@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, Search, User, X } from "lucide-react";
+import { Search, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 export default function TopBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
 
   const pageTitle = useMemo(() => {
     const p = location.pathname;
@@ -76,10 +78,7 @@ export default function TopBar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-        </Button>
+        <NotificationCenter onClose={() => setShowNotifications(!showNotifications)} />
         <Button variant="ghost" size="icon">
           <User className="w-5 h-5" />
         </Button>
