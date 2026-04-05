@@ -23,6 +23,7 @@ export interface PluginInfo {
   category: string;
   installed: boolean;
   installed_version: string | null;
+  marketplace: string;
 }
 
 export interface PluginInstallProgress {

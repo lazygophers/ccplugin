@@ -56,6 +56,7 @@ pub struct PluginInfo {
     pub category: String,
     pub installed: bool,
     pub installed_version: Option<String>,
+    pub marketplace: String,
 }
 
 pub struct MarketplaceService;
@@ -75,10 +76,10 @@ impl MarketplaceService {
         path
     }
 
-    /// 获取Claude插件缓存目录
+    /// 获取Claude插件市场目录
     fn get_claude_plugins_dir() -> Option<PathBuf> {
         let home = dirs::home_dir()?;
-        Some(home.join(".claude/plugins/cache/ccplugin-market"))
+        Some(home.join(".claude/plugins/marketplaces"))
     }
 
     fn read_marketplace_json() -> Result<String, String> {
@@ -91,8 +92,11 @@ impl MarketplaceService {
         Ok(Self::EMBEDDED_MARKETPLACE_JSON.to_string())
     }
 
-    /// 读取marketplace.json
+    /// 读取marketplace.json（包含外部 marketplace 扫描）
     pub fn load_marketplace() -> Result<Vec<PluginInfo>, String> {
+        let mut all_plugins = Vec::new();
+
+        // 1. 从项目 marketplace.json 读取
         let content = Self::read_marketplace_json()?;
 
         let marketplace: MarketplaceJson = serde_json::from_str(&content)
@@ -100,7 +104,7 @@ impl MarketplaceService {
 
         let installed_plugins = Self::get_installed_plugins();
 
-        let plugins = marketplace
+        let json_plugins = marketplace
             .plugins
             .into_iter()
             .map(|p| {
@@ -126,24 +130,66 @@ impl MarketplaceService {
                     category,
                     installed,
                     installed_version,
+                    marketplace: "ccplugin-market".to_string(),
                 }
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-        Ok(plugins)
+        all_plugins.extend(json_plugins);
+
+        // 2. 扫描外部 marketplace（如 claude-plugins-official）
+        let home = match dirs::home_dir() {
+            Some(h) => h,
+            None => return Ok(all_plugins),
+        };
+
+        let marketplaces_dir = home.join(".claude/plugins/marketplaces");
+        if marketplaces_dir.exists() {
+            if let Ok(entries) = fs::read_dir(marketplaces_dir) {
+                for entry in entries.flatten() {
+                    let marketplace_name = entry.file_name();
+                    if let Some(name_str) = marketplace_name.to_str() {
+                        // 跳过已通过 marketplace.json 定义的 marketplace
+                        if name_str == "ccplugin-market" {
+                            continue;
+                        }
+
+                        let external_plugins = Self::scan_external_marketplace(name_str);
+                        all_plugins.extend(external_plugins);
+                    }
+                }
+            }
+        }
+
+        Ok(all_plugins)
     }
 
     /// 获取已安装的插件列表
     pub fn get_installed_plugins() -> Vec<String> {
         let mut installed = Vec::new();
 
-        if let Some(plugins_dir) = Self::get_claude_plugins_dir() {
-            if plugins_dir.exists() {
-                if let Ok(entries) = fs::read_dir(plugins_dir) {
-                    for entry in entries.flatten() {
-                        if entry.path().is_dir() {
-                            if let Some(name) = entry.file_name().to_str() {
-                                installed.push(name.to_string());
+        if let Some(marketplaces_dir) = Self::get_claude_plugins_dir() {
+            if marketplaces_dir.exists() {
+                // 遍历所有 marketplace 目录
+                if let Ok(marketplace_entries) = fs::read_dir(marketplaces_dir) {
+                    for marketplace_entry in marketplace_entries.flatten() {
+                        let marketplace_path = marketplace_entry.path();
+                        if marketplace_path.is_dir() {
+                            // 在每个 marketplace 下的 plugins 目录中查找插件
+                            let plugins_path = marketplace_path.join("plugins");
+                            if plugins_path.exists() {
+                                if let Ok(plugin_entries) = fs::read_dir(&plugins_path) {
+                                    for plugin_entry in plugin_entries.flatten() {
+                                        let plugin_path = plugin_entry.path();
+                                        // 检查是否是有效的插件目录（包含 plugin.json）
+                                        let plugin_json_path = plugin_path.join(".claude-plugin").join("plugin.json");
+                                        if plugin_path.is_dir() && plugin_json_path.exists() {
+                                            if let Some(name) = plugin_entry.file_name().to_str() {
+                                                installed.push(name.to_string());
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -155,16 +201,30 @@ impl MarketplaceService {
     }
 
     fn get_installed_plugin_version(plugin_name: &str) -> Option<String> {
-        let plugins_dir = Self::get_claude_plugins_dir()?;
-        let plugin_dir = plugins_dir.join(plugin_name);
-        let manifest_path = plugin_dir.join(".claude-plugin").join("plugin.json");
-        if !manifest_path.exists() {
-            return None;
+        let marketplaces_dir = Self::get_claude_plugins_dir()?;
+
+        // 遍历所有 marketplace 目录查找插件
+        if let Ok(marketplace_entries) = fs::read_dir(marketplaces_dir) {
+            for marketplace_entry in marketplace_entries.flatten() {
+                let marketplace_path = marketplace_entry.path();
+                if marketplace_path.is_dir() {
+                    let plugin_dir = marketplace_path.join("plugins").join(plugin_name);
+                    let manifest_path = plugin_dir.join(".claude-plugin").join("plugin.json");
+
+                    if manifest_path.exists() {
+                        if let Ok(content) = fs::read_to_string(&manifest_path) {
+                            if let Ok(manifest) = serde_json::from_str::<InstalledPluginJson>(&content) {
+                                if let Some(version) = manifest.version {
+                                    return Some(version);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
-        let content = fs::read_to_string(manifest_path).ok()?;
-        let manifest: InstalledPluginJson = serde_json::from_str(&content).ok()?;
-        manifest.version
+        None
     }
 
     /// 从source路径推断插件分类
@@ -197,7 +257,116 @@ impl MarketplaceService {
             .collect()
     }
 
-    /// 按分类过滤插件
+    /// 从文件系统扫描外部 marketplace 的插件
+    fn scan_external_marketplace(marketplace_name: &str) -> Vec<PluginInfo> {
+        let mut plugins = Vec::new();
+
+        let home = match dirs::home_dir() {
+            Some(h) => h,
+            None => return plugins,
+        };
+
+        let marketplace_path = home.join(".claude/plugins/marketplaces").join(marketplace_name);
+        let plugins_path = marketplace_path.join("plugins");
+
+        if !plugins_path.exists() {
+            return plugins;
+        }
+
+        let installed_plugins = Self::get_installed_plugins();
+
+        // 读取 marketplace 的 README.md 获取基本信息
+        let marketplace_desc = format!("Plugins from {}", marketplace_name);
+
+        if let Ok(entries) = fs::read_dir(&plugins_path) {
+            for entry in entries.flatten() {
+                let plugin_path = entry.path();
+                if !plugin_path.is_dir() {
+                    continue;
+                }
+
+                let plugin_json_path = plugin_path.join(".claude-plugin").join("plugin.json");
+                if !plugin_json_path.exists() {
+                    continue;
+                }
+
+                // 读取插件的 plugin.json
+                if let Ok(content) = fs::read_to_string(&plugin_json_path) {
+                    if let Ok(plugin_json) = serde_json::from_str::<serde_json::Value>(&content) {
+                        let name_from_json: Option<&str> = plugin_json.get("name")
+                            .and_then(|v| v.as_str());
+
+                        let fallback_name = plugin_path.file_name()
+                            .expect("plugin path should have a file name")
+                            .to_string_lossy()
+                            .into_owned();
+
+                        let name: String = match name_from_json {
+                            Some(s) => s.to_string(),
+                            None => fallback_name,
+                        };
+
+                        let description = plugin_json.get("description")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string();
+
+                        let version = plugin_json.get("version")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+
+                        let author_name = plugin_json.get("author")
+                            .and_then(|v| v.as_object())
+                            .and_then(|obj| obj.get("name"))
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Unknown")
+                            .to_string();
+
+                        let keywords = plugin_json.get("keywords")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|v| v.as_str())
+                                    .map(String::from)
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default();
+
+                        // 推断 source 和 category
+                        let source = format!("./{}/{}", marketplace_name, name);
+                        let category = Self::infer_category(&source);
+
+                        let installed = installed_plugins.contains(&name);
+                        let installed_version = if installed {
+                            Self::get_installed_plugin_version(&name)
+                        } else {
+                            None
+                        };
+
+                        plugins.push(PluginInfo {
+                            name,
+                            version,
+                            description,
+                            author: author_name,
+                            homepage: String::new(),
+                            repository: String::new(),
+                            license: String::new(),
+                            source,
+                            keywords,
+                            category,
+                            installed,
+                            installed_version,
+                            marketplace: marketplace_name.to_string(),
+                        });
+                    }
+                }
+            }
+        }
+
+        plugins
+    }
+
     pub fn filter_by_category(category: &str, plugins: &[PluginInfo]) -> Vec<PluginInfo> {
         if category == "all" {
             plugins.to_vec()
@@ -252,6 +421,7 @@ mod tests {
                 category: "tools".to_string(),
                 installed: false,
                 installed_version: None,
+                marketplace: "test-market".to_string(),
             },
             PluginInfo {
                 name: "python".to_string(),
@@ -266,6 +436,7 @@ mod tests {
                 category: "languages".to_string(),
                 installed: false,
                 installed_version: None,
+                marketplace: "test-market".to_string(),
             },
         ];
 
@@ -291,6 +462,7 @@ mod tests {
                 category: "tools".to_string(),
                 installed: false,
                 installed_version: None,
+                marketplace: "test-market".to_string(),
             },
             PluginInfo {
                 name: "b".to_string(),
@@ -305,6 +477,7 @@ mod tests {
                 category: "languages".to_string(),
                 installed: false,
                 installed_version: None,
+                marketplace: "test-market".to_string(),
             },
         ];
 
