@@ -62,7 +62,7 @@ def cleanup_expired_tasks():
 						all_deleted = False
 
 				# 2. 删除上下文快照目录
-				context_dir = os.path.join(get_project_dir(), ".claude", "context", task_id)
+				context_dir = os.path.join(get_project_dir(), ".lazygophers", "context", task_id)
 				if os.path.exists(context_dir):
 					try:
 						shutil.rmtree(context_dir)
