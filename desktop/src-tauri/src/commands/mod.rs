@@ -4,4 +4,3 @@ pub mod proxy;
 
 pub use python::*;
 pub use marketplace::*;
-pub use proxy::*;

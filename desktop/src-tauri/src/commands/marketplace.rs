@@ -1,5 +1,5 @@
 use crate::services::{MarketplaceService, PluginInfo};
-use crate::utils::proxy::apply_proxy_to_command;
+use crate::utils;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 
@@ -137,7 +137,7 @@ pub async fn update_marketplace(marketplace_name: String) -> Result<String, Stri
     cmd.args(["plugin", "marketplace", "update", &marketplace_name]);
 
     // 应用代理配置
-    apply_proxy_to_command(&mut cmd);
+    utils::apply_proxy_to_command(&mut cmd);
 
     let output = cmd
         .output()
