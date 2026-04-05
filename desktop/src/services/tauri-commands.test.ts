@@ -19,6 +19,19 @@ describe("tauri-commands", () => {
     expect(invoke).toHaveBeenCalledWith("install_plugin", {
       pluginName: "python",
       marketplace: "ccplugin-market",
+      scope: "user",
+    });
+  });
+
+  it("installPlugin invokes tauri command with project scope", async () => {
+    const mockResult = { success: true, stdout: "ok", stderr: "" };
+    vi.mocked(invoke).mockResolvedValueOnce(mockResult);
+
+    await expect(installPlugin("python", "ccplugin-market", "project")).resolves.toEqual(mockResult);
+    expect(invoke).toHaveBeenCalledWith("install_plugin", {
+      pluginName: "python",
+      marketplace: "ccplugin-market",
+      scope: "project",
     });
   });
 

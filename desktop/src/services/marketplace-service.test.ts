@@ -31,4 +31,3 @@ describe("MarketplaceService", () => {
     expect(invoke).toHaveBeenCalledWith("filter_plugins_by_category", { category: "languages" });
   });
 });
-

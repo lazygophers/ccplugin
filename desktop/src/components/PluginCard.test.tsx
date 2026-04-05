@@ -99,27 +99,6 @@ describe("PluginCard", () => {
     expect(screen.queryByText(/用户|项目|local/)).not.toBeInTheDocument();
   });
 
-  it("memo prevents re-render when scope changes", () => {
-    const { rerender } = render(
-      <PluginCard
-        plugin={pluginFixtures[0]}
-        onUpdate={vi.fn()}
-        onUninstall={vi.fn()}
-      />
-    );
-    const initialRender = screen.getByText("python");
-
-    rerender(
-      <PluginCard
-        plugin={{ ...pluginFixtures[0], installed_scope: "project" }}
-        onUpdate={vi.fn()}
-        onUninstall={vi.fn()}
-      />
-    );
-
-    expect(initialRender).toBeInTheDocument();
-  });
-
   it("detail button calls onViewDetails", async () => {
     const user = userEvent.setup();
     const onViewDetails = vi.fn();

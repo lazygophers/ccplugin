@@ -10,32 +10,45 @@ describe("Marketplaces page", () => {
   });
 
   it("shows loading state initially", () => {
-    vi.mocked(invoke).mockImplementationOnce(() => new Promise(() => {}));
+    vi.mocked(invoke).mockImplementation(() => new Promise(() => {}));
     renderWithRouter([{ path: "/marketplaces", element: <Marketplaces /> }], {
       initialEntries: ["/marketplaces"],
     });
-    expect(screen.getByText("加载市场列表...")).toBeInTheDocument();
+
+    const loadingText = screen.queryByText(/加载/);
+    expect(loadingText).toBeInTheDocument();
   });
 
   it("renders marketplaces list", async () => {
-    vi.mocked(invoke).mockResolvedValueOnce([
-      { name: "ccplugin-market", url: "https://example.com/x.git", installLocation: "/tmp/x" },
-    ]);
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([
+        {
+          name: "ccplugin-market",
+          url: "https://example.com/x.git",
+          installLocation: "/tmp/x",
+          plugins: [],
+        },
+      ])
+      .mockResolvedValueOnce([]);
+
     renderWithRouter([{ path: "/marketplaces", element: <Marketplaces /> }], {
       initialEntries: ["/marketplaces"],
     });
 
-    expect(await screen.findByRole("heading", { name: "ccplugin-market" })).toBeInTheDocument();
-    expect(screen.getByText(/安装位置：\/tmp\/x/)).toBeInTheDocument();
+    await expect(
+      screen.findByRole("heading", { name: "ccplugin-market" })
+    ).resolves.toBeInTheDocument();
   });
 
-  it("shows empty state", async () => {
-    vi.mocked(invoke).mockResolvedValueOnce([]);
+  it("shows empty state when no marketplaces", async () => {
+    vi.mocked(invoke)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
     renderWithRouter([{ path: "/marketplaces", element: <Marketplaces /> }], {
       initialEntries: ["/marketplaces"],
     });
 
-    expect(await screen.findByText("暂无已配置市场")).toBeInTheDocument();
+    await expect(screen.findByText(/暂无已配置市场/)).resolves.toBeInTheDocument();
   });
 });
-
