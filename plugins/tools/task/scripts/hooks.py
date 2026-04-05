@@ -116,30 +116,10 @@ def cleanup_session_tasks(session_id: str, index: dict):
 
 
 def handle_stop(hook_event_name: str, session_id: str):
-	"""Stop hook: 检查任务是否完成，完成后清理当前 session 的所有任务"""
+	"""Stop hook: 清理当前 session 的所有任务目录和 index 记录"""
 	index = _read_index()
 	if not index or session_id not in index:
 		return
-
-	task_list = index.get(session_id, [])
-	if not task_list:
-		return
-
-	current_task = task_list[-1]
-	task_id = current_task.get("task_id", "")
-	metadata_path = os.path.join(_tasks_base_dir(), task_id, "metadata.json")
-
-	if os.path.exists(metadata_path):
-		with open(metadata_path) as f:
-			metadata = json.load(f)
-			if metadata.get("phase", "") != "completed":
-				print(json.dumps({
-					"hookSpecificOutput": {
-						"hookEventName": hook_event_name,
-						"additionalContext": "task not finish，continue"
-					}
-				}))
-				sys.exit(2)
 
 	cleanup_session_tasks(session_id, index)
 
