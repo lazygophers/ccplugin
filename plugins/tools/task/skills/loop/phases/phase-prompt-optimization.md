@@ -70,6 +70,12 @@ AskUserQuestion({
 
 **禁止**：跳过确认直接进入下一阶段。
 
+### 非预期响应处理
+
+当用户**未选择 A/B/C/D**（包括拒绝回答、直接纠正错误、提供文字反馈等任何非选项响应），loop **必须**将用户的反馈作为 `user_feedback` 重新调用 prompt-optimizer（增量修订模式），然后再次进入 UserConfirmation。
+
+**核心原则**：只有用户明确选择 A/B/C 才是授权继续到下一阶段的信号。任何其他响应都视为"需要修正"，等同于选项 D 处理。prompt-optimizer agent **禁止**自行修改后跳过确认直接进入 Planning。
+
 ### 选项 B 的行为说明
 
 - **授权范围**：仅跳过紧接着的 Planning 阶段的用户确认（planner 内部自动批准）
@@ -85,6 +91,6 @@ AskUserQuestion({
 
 ## 状态转换
 
-- **选项 A/B/C** → 复杂度评估（决定是否触发 DeepResearch，之后进入 Planning）
-- **选项 D** → 重新调用 prompt-optimizer（收集用户修正/反馈后增量修订）
+- **选项 A/B/C**（明确授权） → 复杂度评估（决定是否触发 DeepResearch，之后进入 Planning）
+- **选项 D / 任何非预期响应** → 重新调用 prompt-optimizer（增量修订）→ 再次 UserConfirmation
 - **无新输入** → 读取已有 prompt.md 确认内容有效 → 复杂度评估
