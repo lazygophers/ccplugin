@@ -37,19 +37,12 @@ struct PluginAuthor {
     email: String,
 }
 
-#[derive(Debug, Default, Deserialize)]
-struct InstalledPluginJson {
-    #[serde(default)]
-    version: Option<String>,
-}
-
 /// Claude plugin list --json 输出格式
 #[derive(Debug, Deserialize)]
 struct ClaudePluginListOutput {
     id: String,
     version: String,
     scope: String,
-    enabled: bool,
 }
 
 /// 已安装插件信息（从 claude plugin list 获取）
@@ -93,12 +86,6 @@ impl MarketplaceService {
         path.push(".claude-plugin");
         path.push("marketplace.json");
         path
-    }
-
-    /// 获取Claude插件市场目录
-    fn get_claude_plugins_dir() -> Option<PathBuf> {
-        let home = dirs::home_dir()?;
-        Some(home.join(".claude/plugins/marketplaces"))
     }
 
     fn read_marketplace_json() -> Result<String, String> {
@@ -211,33 +198,6 @@ impl MarketplaceService {
         }
 
         installed
-    }
-
-    fn get_installed_plugin_version(plugin_name: &str) -> Option<String> {
-        let marketplaces_dir = Self::get_claude_plugins_dir()?;
-
-        // 遍历所有 marketplace 目录查找插件
-        if let Ok(marketplace_entries) = fs::read_dir(marketplaces_dir) {
-            for marketplace_entry in marketplace_entries.flatten() {
-                let marketplace_path = marketplace_entry.path();
-                if marketplace_path.is_dir() {
-                    let plugin_dir = marketplace_path.join("plugins").join(plugin_name);
-                    let manifest_path = plugin_dir.join(".claude-plugin").join("plugin.json");
-
-                    if manifest_path.exists() {
-                        if let Ok(content) = fs::read_to_string(&manifest_path) {
-                            if let Ok(manifest) = serde_json::from_str::<InstalledPluginJson>(&content) {
-                                if let Some(version) = manifest.version {
-                                    return Some(version);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        None
     }
 
     /// 从source路径推断插件分类
