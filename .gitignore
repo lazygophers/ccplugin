@@ -69,5 +69,8 @@ plugins/tools/task/scripts/__init__.py
 # 测试基准数据
 .benchmarks/
 
+# uv 锁文件（每个插件独立管理）
+**/uv.lock
+
 # 覆盖率报告
 coverage.json
