@@ -1,6 +1,6 @@
 ---
 description: 提示词优化代理 - 将模糊任务描述转化为可执行规格说明（Deliverable + Context + Guardrails）。首次迭代必须执行；用户新输入触发增量修订；无新输入跳过。输出 prompt.md 是迭代验收基准。
-model: sonnet
+model: opus
 memory: project
 color: blue
 skills:

@@ -1,6 +1,6 @@
 ---
 description: 计划设计代理 - 使用 MECE 分解、依赖建模和资源分配为复杂任务设计执行计划。Loop Planning 阶段的标准选择。
-model: opus
+model: sonnet
 memory: project
 color: purple
 tools:
