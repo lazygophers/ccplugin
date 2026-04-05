@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result as SqliteResult};
+use rusqlite::Connection;
 use std::path::PathBuf;
 
 /// 数据库路径：~/.lazygophers/ccplugin/desktop/notifications.db

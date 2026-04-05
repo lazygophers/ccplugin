@@ -29,7 +29,7 @@ pub fn run() {
         // Setup
         .setup(|app| {
             // 初始化通知服务
-            crate::services::init_notification_service(app)?;
+            crate::services::init_notification_service(&app.handle())?;
 
             // 读取并设置代理配置
             if let Ok(store) = app.path().app_local_data_dir() {

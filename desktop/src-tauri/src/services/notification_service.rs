@@ -1,7 +1,7 @@
-use crate::models::{Notification, NotificationType};
+use crate::models::Notification;
 use crate::services::database::{get_connection, init_database};
 use rusqlite::{params, Row};
-use std::collections::HashMap;
+use std::sync::Mutex;
 use tauri::AppHandle;
 
 pub struct NotificationService;
@@ -235,26 +235,23 @@ impl NotificationService {
     }
 }
 
-// 全局单例（使用 OnceLock）
+// 全局单例（使用 Mutex 包装以支持可变访问）
 use std::sync::OnceLock;
 
-static NOTIFICATION_SERVICE: OnceLock<NotificationService> = OnceLock::new;
+static NOTIFICATION_SERVICE: OnceLock<Mutex<NotificationService>> = OnceLock::new;
 
 pub fn init_notification_service(app_handle: &AppHandle) -> Result<(), String> {
     let service = NotificationService::new(app_handle)?;
     NOTIFICATION_SERVICE
-        .set(service)
+        .set(Mutex::new(service))
         .map_err(|_| "Notification service already initialized".to_string())?;
     Ok(())
 }
 
-pub fn notification_service() -> Option<&'static NotificationService> {
+pub fn notification_service() -> Option<&'static Mutex<NotificationService>> {
     NOTIFICATION_SERVICE.get()
 }
 
-pub fn notification_service_mut() -> Option<&'static mut NotificationService> {
-    unsafe {
-        // SAFETY: 我们只在初始化后调用，且保证单例
-        NOTIFICATION_SERVICE.get_mut()
-    }
+pub fn notification_service_mut() -> Option<&'static Mutex<NotificationService>> {
+    NOTIFICATION_SERVICE.get()
 }

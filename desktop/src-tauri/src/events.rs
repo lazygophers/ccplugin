@@ -151,10 +151,10 @@ fn add_notification_for_event(
             (NotificationType::Error, "卸载失败", format!("{}: {}", plugin_name, error))
         }
         PluginEventType::CacheCleanStarted => {
-            (NotificationType::Info, "清理缓存", "正在清理缓存...")
+            (NotificationType::Info, "清理缓存", "正在清理缓存...".to_string())
         }
         PluginEventType::CacheCleanCompleted => {
-            (NotificationType::Success, "清理完成", "缓存已成功清理")
+            (NotificationType::Success, "清理完成", "缓存已成功清理".to_string())
         }
         PluginEventType::CacheCleanFailed => {
             let error = data.get("error").and_then(|v| v.as_str()).unwrap_or("未知错误");
@@ -192,17 +192,21 @@ fn add_notification_for_event(
         );
 
         // 尝试更新现有进度通知
-        if let Some(service) = notification_service_mut() {
-            let progress_key = Value::String(format!("{}-{}", event_name, plugin_name));
-            if let Some(existing) = service.find_by_metadata("progress_key", &progress_key) {
-                let _ = service.update_notification(&existing.id, notification.message);
-                return;
+        if let Some(mutex) = notification_service_mut() {
+            if let Ok(service) = mutex.lock() {
+                let progress_key = Value::String(format!("{}-{}", event_name, plugin_name));
+                if let Ok(Some(existing)) = service.find_by_metadata("progress_key", &progress_key) {
+                    let _ = service.update_notification(&existing.id, notification.message.clone());
+                    return;
+                }
             }
         }
     }
 
     // 添加通知
-    if let Some(service) = notification_service_mut() {
-        let _ = service.add_notification(notification);
+    if let Some(mutex) = notification_service_mut() {
+        if let Ok(service) = mutex.lock() {
+            let _ = service.add_notification(&notification);
+        }
     }
 }
