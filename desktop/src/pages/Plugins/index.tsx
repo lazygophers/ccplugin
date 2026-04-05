@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,9 +9,6 @@ import { PluginCard } from "@/components/PluginCard";
 import { PluginDetailDialog } from "@/components/PluginDetailDialog";
 import { Search, Filter, RefreshCw, Loader2, Sparkles } from "lucide-react";
 import type { PluginInfo } from "@/types";
-import { getCategoryOptions } from "@/lib/plugin-ui";
-
-const categories = getCategoryOptions();
 
 const installedFilters: Array<{
   value: "all" | "installed" | "uninstalled";
@@ -28,13 +26,14 @@ export default function Plugins() {
     loading,
     error,
     searchQuery,
-    selectedCategory,
+    selectedKeyword,
     installedFilter,
     setSearchQuery,
-    setSelectedCategory,
+    setSelectedKeyword,
     setInstalledFilter,
     refresh,
     filteredPlugins,
+    allKeywords,
   } = usePlugins();
 
   const { install, uninstall, progress } = usePythonCommand();
@@ -42,23 +41,24 @@ export default function Plugins() {
   const [uninstallingPlugin, setUninstallingPlugin] = useState<string | null>(null);
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [keywordsExpanded, setKeywordsExpanded] = useState(false);
 
   const qParam = useMemo(() => searchParams.get("q") ?? "", [searchParams]);
-  const categoryParam = useMemo(
-    () => searchParams.get("category") ?? "all",
+  const keywordParam = useMemo(
+    () => searchParams.get("keyword") ?? "all",
     [searchParams]
   );
 
-  const updateParams = (next: { q?: string; category?: string }) => {
+  const updateParams = (next: { q?: string; keyword?: string }) => {
     const params = new URLSearchParams(searchParams);
     if (typeof next.q === "string") {
       const v = next.q.trim();
       if (v) params.set("q", v);
       else params.delete("q");
     }
-    if (typeof next.category === "string") {
-      if (next.category && next.category !== "all") params.set("category", next.category);
-      else params.delete("category");
+    if (typeof next.keyword === "string") {
+      if (next.keyword && next.keyword !== "all") params.set("keyword", next.keyword);
+      else params.delete("keyword");
     }
     setSearchParams(params, { replace: true });
   };
@@ -69,22 +69,35 @@ export default function Plugins() {
   }, [qParam]);
 
   useEffect(() => {
-    if (categoryParam !== selectedCategory) setSelectedCategory(categoryParam);
+    if (keywordParam !== "all") {
+      setSelectedKeyword(keywordParam);
+    } else {
+      setSelectedKeyword(null);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryParam]);
+  }, [keywordParam]);
 
-  // 提取所有唯一的 keywords 并计数
-  const allKeywords = useMemo(() => {
-    const keywordMap = new Map<string, number>();
-    plugins.forEach((plugin) => {
-      plugin.keywords.forEach((keyword) => {
-        keywordMap.set(keyword, (keywordMap.get(keyword) ?? 0) + 1);
-      });
-    });
-    return Array.from(keywordMap.entries())
-      .map(([keyword, count]) => ({ keyword, count }))
-      .sort((a, b) => b.count - a.count); // 按使用频率降序排序
-  }, [plugins]);
+  // 刷新快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // macOS: Cmd+R, Windows/Linux: Ctrl+R 或 F5
+      const isRefreshKey =
+        (event.metaKey && event.key === "r") || // Cmd+R (macOS)
+        (event.ctrlKey && event.key === "r") || // Ctrl+R (Windows/Linux)
+        event.key === "F5"; // F5 (所有平台)
+
+      if (isRefreshKey) {
+        event.preventDefault();
+        refresh();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refresh]);
 
   const handleInstall = async (pluginName: string) => {
     setInstallingPlugin(pluginName);
@@ -185,33 +198,71 @@ export default function Plugins() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Filter className="w-4 h-4 text-muted-foreground" />
-        <div className="flex gap-2 flex-wrap">
-          {categoriesWithCount.map((cat) => (
+      {allKeywords.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <div className="flex gap-2 flex-wrap">
             <Badge
-              key={cat.value}
-              variant={selectedCategory === cat.value ? "default" : "outline"}
+              variant={selectedKeyword === null ? "default" : "outline"}
               className="cursor-pointer hover:bg-accent"
               onClick={() => {
-                setSelectedCategory(cat.value);
-                updateParams({ category: cat.value });
+                setSelectedKeyword(null);
+                updateParams({ keyword: "all" });
               }}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  setSelectedCategory(cat.value);
-                  updateParams({ category: cat.value });
+                  setSelectedKeyword(null);
+                  updateParams({ keyword: "all" });
                 }
               }}
             >
-              {cat.label} ({cat.count})
+              全部
             </Badge>
-          ))}
+            {(keywordsExpanded ? allKeywords : allKeywords.slice(0, 5)).map(({ keyword, count }) => (
+              <Badge
+                key={keyword}
+                variant={selectedKeyword === keyword ? "default" : "outline"}
+                className="cursor-pointer hover:bg-accent"
+                onClick={() => {
+                  setSelectedKeyword(keyword);
+                  updateParams({ keyword });
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedKeyword(keyword);
+                    updateParams({ keyword });
+                  }
+                }}
+              >
+                {keyword} ({count})
+              </Badge>
+            ))}
+            {allKeywords.length > 5 && (
+              <Badge
+                variant="outline"
+                className="cursor-pointer hover:bg-accent text-muted-foreground"
+                onClick={() => setKeywordsExpanded(!keywordsExpanded)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setKeywordsExpanded(!keywordsExpanded);
+                  }
+                }}
+              >
+                {keywordsExpanded ? "收起" : `+${allKeywords.length - 5}`}
+              </Badge>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-12">
@@ -235,16 +286,16 @@ export default function Plugins() {
           {filteredPlugins.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <p>未找到匹配的插件</p>
-              {(searchQuery || installedFilter !== "all" || selectedCategory !== "all") && (
+              {(searchQuery || installedFilter !== "all" || selectedKeyword) && (
                 <Button
                   variant="link"
                   size="sm"
                   className="mt-2"
                   onClick={() => {
                     setSearchQuery("");
-                    setSelectedCategory("all");
+                    setSelectedKeyword(null);
                     setInstalledFilter("all");
-                    updateParams({ q: "", category: "all" });
+                    updateParams({ q: "", keyword: "all" });
                   }}
                 >
                   清除筛选

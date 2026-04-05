@@ -2,7 +2,7 @@ import { memo } from "react";
 import { PluginInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Download, CheckCircle, RefreshCw } from "lucide-react";
+import { Package, Download, CheckCircle, RefreshCw, Info } from "lucide-react";
 import { getCategoryBadgeClass, getCategoryLabel } from "@/lib/plugin-ui";
 
 interface PluginCardProps {
@@ -28,49 +28,61 @@ function PluginCard({
 }: PluginCardProps) {
 	return (
 		<div
-			className="group p-4 border rounded-lg bg-card hover:shadow-md transition-shadow"
+			className="group p-4 border rounded-lg bg-card hover:shadow-md transition-shadow flex flex-col h-[280px]"
 			role="article"
 		>
 			{/* Header */}
 			<div className="flex items-start justify-between mb-3">
 				<div className="flex items-center gap-2">
 					<Package className="w-5 h-5 text-primary" />
-					<h3 className="font-semibold text-lg">{plugin.name}</h3>
+					<h3 className="font-semibold text-lg truncate">{plugin.name}</h3>
 				</div>
-				<Badge
-					variant="outline"
-					className={getCategoryBadgeClass(plugin.category)}
+				<Button
+					variant="ghost"
+					size="icon"
+					className="h-8 w-8 flex-shrink-0"
+					onClick={() => onViewDetails?.(plugin)}
+					aria-label={`${plugin.name} 详情`}
 				>
-					{getCategoryLabel(plugin.category)}
-				</Badge>
+					<Info className="w-4 h-4" />
+				</Button>
 			</div>
 
-			{/* Description */}
-			<p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+			{/* Description - 固定高度 */}
+			<p className="text-sm text-muted-foreground mb-3 line-clamp-2 h-10 overflow-hidden">
 				{plugin.description}
 			</p>
 
 			{/* Metadata */}
-			<div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+			<div className="flex items-center gap-4 text-xs text-muted-foreground mb-3 flex-shrink-0">
 				<span>v{plugin.version}</span>
-				<span>by {plugin.author}</span>
-				{plugin.installed_scope && (
-					<span
-						className="px-2 py-0.5 bg-primary/10 text-primary rounded-full"
-						title={`安装范围：${plugin.installed_scope}`}
-					>
-						{plugin.installed_scope === "user"
-							? "用户"
-							: plugin.installed_scope === "project"
-								? "项目"
-								: plugin.installed_scope}
-					</span>
-				)}
+				<span>{plugin.marketplace}</span>
 			</div>
 
-			{/* Keywords */}
-			{plugin.keywords.length > 0 && (
-				<div className="flex flex-wrap gap-1 mb-3">
+			{/* Installed Scopes - 固定高度 */}
+			{plugin.installed_scopes.length > 0 ? (
+				<div className="flex items-center gap-2 mb-3 h-6 flex-shrink-0">
+					{plugin.installed_scopes.map((scope) => (
+						<span
+							key={scope}
+							className="px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full"
+							title={`安装范围：${scope}`}
+						>
+							{scope === "user"
+								? "用户"
+								: scope === "project"
+									? "项目"
+									: scope}
+						</span>
+					))}
+				</div>
+			) : (
+				<div className="h-6 mb-3 flex-shrink-0" aria-hidden="true"></div>
+			)}
+
+			{/* Keywords - 固定高度 */}
+			{plugin.keywords.length > 0 ? (
+				<div className="flex flex-wrap gap-1 mb-3 h-6 items-center flex-shrink-0">
 					{plugin.keywords.slice(0, 3).map((keyword) => (
 						<span
 							key={keyword}
@@ -85,17 +97,19 @@ function PluginCard({
 						</span>
 					)}
 				</div>
+			) : (
+				<div className="h-6 mb-3 flex-shrink-0" aria-hidden="true"></div>
 			)}
 
-			{/* Actions */}
-			<div className="flex items-center gap-2">
+			{/* Actions - 固定在底部 */}
+			<div className="flex items-center gap-2 mt-auto flex-shrink-0">
 				{plugin.installed ? (
 					<>
 						{onUpdate ? (
 							<Button
 								variant="outline"
 								size="sm"
-								className="whitespace-nowrap"
+								className="flex-1 whitespace-nowrap"
 								onClick={() => onUpdate(plugin.name)}
 								disabled={updating}
 								aria-label={`更新 ${plugin.name}`}
@@ -109,7 +123,7 @@ function PluginCard({
 							<Button
 								variant="outline"
 								size="sm"
-								className="whitespace-nowrap"
+								className="flex-1 whitespace-nowrap"
 								disabled
 								aria-label="已安装"
 							>
@@ -122,7 +136,7 @@ function PluginCard({
 							<Button
 								variant="destructive"
 								size="sm"
-								className="whitespace-nowrap"
+								className="flex-1 whitespace-nowrap"
 								onClick={() => onUninstall(plugin.name)}
 								disabled={uninstalling || updating}
 								aria-label={`卸载 ${plugin.name}`}
@@ -144,16 +158,6 @@ function PluginCard({
 						{installing ? "安装中..." : "安装"}
 					</Button>
 				)}
-
-				<Button
-					variant="ghost"
-					size="sm"
-					className="whitespace-nowrap"
-					onClick={() => onViewDetails?.(plugin)}
-					aria-label={`${plugin.name} 详情`}
-				>
-					<span className="hidden sm:inline">详情</span>
-				</Button>
 			</div>
 		</div>
 	);

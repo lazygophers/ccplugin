@@ -1,7 +1,7 @@
 use crate::events::{emit_plugin_event, PluginEventType};
 use crate::services::PythonBridge;
 use serde_json::json;
-use tauri::AppHandle;
+use tauri::{AppHandle, async_runtime};
 
 #[tauri::command]
 pub fn install_plugin(
@@ -16,8 +16,8 @@ pub fn install_plugin(
     let marketplace_clone = marketplace.clone();
     let scope_value = scope.unwrap_or_else(|| "user".to_string());
 
-    // Spawn background task
-    tokio::spawn(async move {
+    // Spawn background task using Tauri's async runtime
+    async_runtime::spawn(async move {
         // Emit started event
         emit_plugin_event(
             &app_handle_clone,
@@ -97,8 +97,8 @@ pub fn update_plugin(
     let plugin_name_clone = plugin_name.clone();
     let app_handle_clone = app_handle.clone();
 
-    // Spawn background task
-    tokio::spawn(async move {
+    // Spawn background task using Tauri's async runtime
+    async_runtime::spawn(async move {
         // Emit started event
         emit_plugin_event(
             &app_handle_clone,
@@ -176,8 +176,8 @@ pub fn uninstall_plugin(
     let plugin_name_clone = plugin_name.clone();
     let app_handle_clone = app_handle.clone();
 
-    // Spawn background task
-    tokio::spawn(async move {
+    // Spawn background task using Tauri's async runtime
+    async_runtime::spawn(async move {
         // Emit started event
         emit_plugin_event(
             &app_handle_clone,
@@ -253,8 +253,8 @@ pub fn clean_cache(
     let bridge = PythonBridge::new();
     let app_handle_clone = app_handle.clone();
 
-    // Spawn background task
-    tokio::spawn(async move {
+    // Spawn background task using Tauri's async runtime
+    async_runtime::spawn(async move {
         // Emit started event
         emit_plugin_event(
             &app_handle_clone,
@@ -316,8 +316,8 @@ pub fn get_plugin_info(
     let plugin_name_clone = plugin_name.clone();
     let app_handle_clone = app_handle.clone();
 
-    // Spawn background task
-    tokio::spawn(async move {
+    // Spawn background task using Tauri's async runtime
+    async_runtime::spawn(async move {
         // Execute info retrieval
         let result = bridge.get_plugin_info(&plugin_name_clone).await;
 

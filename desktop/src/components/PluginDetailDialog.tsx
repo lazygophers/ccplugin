@@ -88,9 +88,9 @@ export function PluginDetailDialog({
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <DialogTitle className="text-2xl flex items-center gap-2">
-                <Package className="w-6 h-6" />
-                {plugin.name}
+              <DialogTitle className="text-2xl flex items-center gap-2 whitespace-nowrap">
+                <Package className="w-6 h-6 flex-shrink-0" />
+                <span className="truncate">{plugin.name}</span>
               </DialogTitle>
               <DialogDescription className="mt-2">
                 {plugin.description}
@@ -141,40 +141,35 @@ export function PluginDetailDialog({
         </DialogHeader>
 
         {/* Metadata */}
-        <div className="grid grid-cols-2 gap-4 py-4 border-y">
-          <div className="flex items-center gap-2 text-sm">
-            <User className="w-4 h-4 text-muted-foreground" />
-            <span className="font-medium">作者:</span>
-            <span className="text-muted-foreground">{plugin.author}</span>
-          </div>
+        <div className="py-4 border-y space-y-3">
           <div className="flex items-center gap-2 text-sm">
             <Package className="w-4 h-4 text-muted-foreground" />
             <span className="font-medium">版本:</span>
-            <span className="text-muted-foreground">{plugin.version}</span>
+            <span className="text-muted-foreground">v{plugin.version}</span>
           </div>
-          {plugin.installed && plugin.installed_scope && (
-            <>
-              <div className="flex items-center gap-2 text-sm">
-                <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/20">
-                  {plugin.installed_scope === "user" ? "用户安装" : "项目安装"}
-                </Badge>
+          <div className="flex items-center gap-2 text-sm">
+            <User className="w-4 h-4 text-muted-foreground" />
+            <span className="font-medium">市场:</span>
+            <span className="text-muted-foreground">{plugin.marketplace}</span>
+          </div>
+
+          {plugin.installed && plugin.installed_info && plugin.installed_info.length > 0 &&
+            plugin.installed_info.map((info) => (
+              <div key={info.scope} className="flex items-center gap-2 text-sm">
+                <span className="font-medium">
+                  {info.scope === "user"
+                    ? "用户安装:"
+                    : info.scope === "project"
+                      ? `项目安装 (${info.path || "本地路径"}):`
+                      : `${info.scope}安装:`}
+                </span>
+                <span className="text-muted-foreground font-medium">v{info.version}</span>
               </div>
-              {plugin.installed_scope === "project" && plugin.installed_path && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">项目路径:</span>
-                  <span className="text-muted-foreground font-mono text-xs">{plugin.installed_path}</span>
-                </div>
-              )}
-              {plugin.installed_version && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">已安装版本:</span>
-                  <span className="text-muted-foreground">{plugin.installed_version}</span>
-                </div>
-              )}
-            </>
-          )}
+            ))
+          }
+
           {plugin.keywords.length > 0 && (
-            <div className="col-span-2 flex items-start gap-2 text-sm">
+            <div className="flex items-start gap-2 text-sm">
               <Tag className="w-4 h-4 text-muted-foreground mt-0.5" />
               <span className="font-medium">关键词:</span>
               <div className="flex flex-wrap gap-1">

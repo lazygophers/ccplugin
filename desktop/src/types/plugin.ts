@@ -28,9 +28,15 @@ export interface PluginInfo {
 	category: string;
 	installed: boolean;
 	installed_version: string | null;
-	installed_scope: string | null; // "user", "project", or "local"
+	installed_scopes: string[]; // "user", "project", or "local" - 支持多个
 	installed_path: string | null; // 项目安装时显示项目路径
 	marketplace: string;
+	// 按范围分组的版本信息
+	installed_info?: Array<{
+		scope: string;       // "user", "project", "local"
+		version: string;     // 该范围下的版本
+		path?: string;        // 项目路径（仅 project 类型）
+	}>;
 }
 
 export interface PluginInstallProgress {
