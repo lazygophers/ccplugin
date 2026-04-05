@@ -24,6 +24,12 @@
 `.claude/memory/` 目录存储项目长期记忆：
 
 - `project-setup.md` — 项目Memory系统初始化记录（2026-03-27）
+- `desktop-event-driven-architecture.md` — **@desktop 事件驱动架构规范**（2026-04-05）
+  - **核心原则**：Rust 实现业务逻辑，事件驱动前端更新
+  - **事件命名约定**：`<domain>-<entity>-<action>` 格式
+  - **Rust 模式**：Command 立即返回 + 后台任务 + `emit()` 事件
+  - **前端模式**：全局事件监听器 + 状态集中管理 + 无 `await` 调用
+  - **迁移指南**：从 command-and-wait 迁移到事件驱动的步骤和示例
 - *(未来会话可添加其他主题记忆，如：调试见解、性能优化、架构决策等)*
 
 ## Rules文件索引
@@ -39,6 +45,13 @@
 - 所有变更自动提交到暂存区（CLAUDE.md §1行）
 - Desktop路由变更必须验证hash路由与首屏渲染
 - Tailwind升级后必须验证utilities是否实际生成
+
+**@desktop 架构规范**（2026-04-05）：
+- **Rust 优先**：所有业务逻辑在 Rust 侧实现，TypeScript 仅负责 UI 渲染
+- **事件驱动**：使用事件系统通知前端状态变化，禁止同步/异步等待结果
+- **单向数据流**：Rust → Event → Frontend State → UI Render
+- **无阻塞 UI**：命令立即返回，后台任务通过事件持续推送进度
+- 详见：`.claude/memory/desktop-event-driven-architecture.md`
 
 **质量检查规范**（CLAUDE.md §代码质量检查规范）：
 - commands/skills/agents/agent.md优化后必须验证AI理解识别

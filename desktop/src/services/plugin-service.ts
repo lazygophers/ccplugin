@@ -10,6 +10,25 @@ import { CommandResult, PluginInstallProgress } from "@/types";
 
 export class PluginService {
   /**
+   * 包装命令执行，自动处理进度监听的设置和清理
+   */
+  private static async withProgress<T>(
+    commandFn: () => Promise<T>,
+    onProgress?: (progress: PluginInstallProgress) => void
+  ): Promise<T> {
+    let unlisten: (() => void) | undefined;
+    if (onProgress) {
+      unlisten = await listenToInstallProgress(onProgress);
+    }
+
+    try {
+      return await commandFn();
+    } finally {
+      unlisten?.();
+    }
+  }
+
+  /**
    * 安装插件并监听进度
    */
   static async install(
@@ -17,21 +36,10 @@ export class PluginService {
     marketplace: string = "ccplugin-market",
     onProgress?: (progress: PluginInstallProgress) => void
   ): Promise<CommandResult> {
-    // 监听进度
-    let unlisten: (() => void) | undefined;
-    if (onProgress) {
-      unlisten = await listenToInstallProgress(onProgress);
-    }
-
-    try {
-      const result = await installPluginCmd(pluginName, marketplace);
-      return result;
-    } finally {
-      // 清理监听器
-      if (unlisten) {
-        unlisten();
-      }
-    }
+    return this.withProgress(
+      () => installPluginCmd(pluginName, marketplace),
+      onProgress
+    );
   }
 
   /**
@@ -41,19 +49,10 @@ export class PluginService {
     pluginName: string,
     onProgress?: (progress: PluginInstallProgress) => void
   ): Promise<CommandResult> {
-    let unlisten: (() => void) | undefined;
-    if (onProgress) {
-      unlisten = await listenToInstallProgress(onProgress);
-    }
-
-    try {
-      const result = await updatePluginCmd(pluginName);
-      return result;
-    } finally {
-      if (unlisten) {
-        unlisten();
-      }
-    }
+    return this.withProgress(
+      () => updatePluginCmd(pluginName),
+      onProgress
+    );
   }
 
   /**
@@ -63,19 +62,10 @@ export class PluginService {
     pluginName: string,
     onProgress?: (progress: PluginInstallProgress) => void
   ): Promise<CommandResult> {
-    let unlisten: (() => void) | undefined;
-    if (onProgress) {
-      unlisten = await listenToInstallProgress(onProgress);
-    }
-
-    try {
-      const result = await uninstallPluginCmd(pluginName);
-      return result;
-    } finally {
-      if (unlisten) {
-        unlisten();
-      }
-    }
+    return this.withProgress(
+      () => uninstallPluginCmd(pluginName),
+      onProgress
+    );
   }
 
   /**

@@ -90,12 +90,15 @@ impl MarketplaceService {
 
     fn read_marketplace_json() -> Result<String, String> {
         let path = Self::get_marketplace_path();
-        if path.exists() {
-            return fs::read_to_string(&path)
-                .map_err(|e| format!("Failed to read marketplace.json: {}", e));
-        }
 
-        Ok(Self::EMBEDDED_MARKETPLACE_JSON.to_string())
+        // 直接读取文件，不存在时使用内置 JSON
+        match fs::read_to_string(&path) {
+            Ok(content) => Ok(content),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Ok(Self::EMBEDDED_MARKETPLACE_JSON.to_string())
+            }
+            Err(e) => Err(format!("Failed to read marketplace.json: {}", e)),
+        }
     }
 
     /// 读取marketplace.json（包含外部 marketplace 扫描）
