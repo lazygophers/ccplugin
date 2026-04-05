@@ -159,7 +159,7 @@ MECE 分解原则要求子任务之间相互独立（Mutually Exclusive，无文
    - 若文件已存在则覆盖写入，不存在则直接新建
 2. **创建目录**：确保 `.lazygophers/tasks/{task_id}/` 存在（Initialization 阶段已创建）
 3. **生成 Markdown**：按计划模板（YAML frontmatter + Mermaid stateDiagram + 任务表格 + 验收标准），参考 [template.md](template.md)
-4. **写入文件**：使用 Write 工具写入 plan.md
+4. **写入文件**：使用 Write 工具写入 `.lazygophers/tasks/{task_id}/plan.md`
 5. **写入任务清单**：将 tasks 数组写入 `.lazygophers/tasks/{task_id}/tasks.json`
    ```json
    {

@@ -35,7 +35,7 @@ Agent(subagent_type="task:prompt-optimizer", prompt="
 ")
 ```
 
-Agent 内部完成：TaskDecomposition → ClarificationDialog → SpecGeneration → 写入 prompt.md。详见 agent/skill 定义。
+Agent 内部完成：TaskDecomposition → ClarificationDialog → SpecGeneration → 写入 `.lazygophers/tasks/{task_id}/prompt.md`。详见 agent/skill 定义。
 
 ## UserConfirmation：用户确认（由 loop 执行，非 agent）
 
@@ -65,7 +65,7 @@ AskUserQuestion({
 |------|---------|
 | **A: 确认使用** | 更新 `context.user_task` → 复杂度评估 |
 | **B: 确认并跳过计划确认** | 更新 `context.user_task` + 设置 `skip_next_plan_confirm=true` → 复杂度评估 |
-| **C: 使用原始提示词** | 将原始版本写入 prompt.md → 复杂度评估 |
+| **C: 使用原始提示词** | 将原始版本写入 `.lazygophers/tasks/{task_id}/prompt.md` → 复杂度评估 |
 | **D: 修正偏离部分** | 收集用户修正/反馈 → 重新调用 prompt-optimizer（增量修订模式） |
 
 **禁止**：跳过确认直接进入下一阶段。

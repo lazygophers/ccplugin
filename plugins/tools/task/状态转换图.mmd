@@ -17,21 +17,21 @@ stateDiagram-v2
 
     state PromptOptimization {
         [*] --> TriggerCheck: 触发条件检查
-        TriggerCheck --> SkipOpt: 无新输入→跳过
+        TriggerCheck --> SkipOpt: 无新输入→复用已有
         TriggerCheck --> TaskDecomposition: 首次/用户新输入→执行
         TaskDecomposition --> ClarificationDialog: 澄清对话
         ClarificationDialog --> SpecGeneration: 生成规格说明
-        SpecGeneration --> PromptPersistence: 写入 prompt.md
+        SpecGeneration --> PromptPersistence: 写入 .lazygophers/tasks/{task_id}/prompt.md
         PromptPersistence --> UserChoice: 用户选择
         SkipOpt --> [*]
         UserChoice --> [*]
     }
-    note right of PromptOptimization: 首次迭代必选\n用户新输入→增量修订\n无新输入→跳过\n结果写入 prompt.md
+    note right of PromptOptimization: 首次迭代必选\n用户新输入→增量修订\n无新输入→复用已有\n结果写入 .lazygophers/tasks/{task_id}/prompt.md
 
     state prompt_choice <<choice>>
     PromptOptimization --> prompt_choice
-    prompt_choice --> NeedResearch: A/B - 复杂度评估
-    prompt_choice --> PromptOptimization: C - 重新优化
+    prompt_choice --> NeedResearch: A/B/C - 复杂度评估
+    prompt_choice --> PromptOptimization: D - 修正/重新优化
 
     state NeedResearch <<choice>>
     NeedResearch --> DeepResearch: 复杂度>8 或 失败2次

@@ -40,7 +40,7 @@ Agent(subagent_type="task:planner", prompt="
 
 **skip_next_plan_confirm 优先级最高**：loop 调用 planner 前，先读取 metadata.json 的 `skip_next_plan_confirm` 字段。如果为 true，则强制设置 `auto_approve=true`，并在调用后立即清除此标记（设为 false）。
 
-Planner 内部完成：信息收集（三层上下文学习）→ 计划设计（MECE 分解）→ 写入 plan.md + tasks.json → (auto_approve ? 自动返回 : 用户确认) → 写入 metadata.json result。详见 agent 定义。
+Planner 内部完成：信息收集（三层上下文学习）→ 计划设计（MECE 分解）→ 写入 `.lazygophers/tasks/{task_id}/plan.md` + `tasks.json` → (auto_approve ? 自动返回 : 用户确认) → 写入 `metadata.json` result。详见 agent 定义。
 
 ## 结果处理
 

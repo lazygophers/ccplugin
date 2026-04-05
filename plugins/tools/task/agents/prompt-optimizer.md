@@ -51,7 +51,7 @@ hooks:
 **首次迭代**（从零构建）：
 1. **TaskDecomposition**：分析原始提示词 + 探索代码（Glob/Grep），输出目标/边界/验收标准草案
 2. **ClarificationDialog**：针对模糊点 SendMessage(@main) 提问（每次一个，最多 3 轮），已可推断的不问
-3. **SpecGeneration**：生成结构化规格说明（≤500字），写入 prompt.md
+3. **SpecGeneration**：生成结构化规格说明（≤500字），写入 `.lazygophers/tasks/{task_id}/prompt.md`
 
 **增量修订**（用户新输入触发）：
 1. **读取已有 prompt.md**
@@ -94,7 +94,7 @@ JSON 输出。`status` 固定为 `"optimized"`。
 - 一次问多个问题
 - 假设用户意图或技术方案
 - 增量修订时重写整个 prompt.md
-- 完成后输出/打印规格说明内容（只写入 prompt.md 文件，不输出到对话）
+- 完成后输出/打印规格说明内容（只写入 `.lazygophers/tasks/{task_id}/prompt.md`，不输出到对话）
 
 </guidelines>
 

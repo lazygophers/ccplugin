@@ -61,7 +61,7 @@ hooks:
 
 1. 生成文件路径：`.lazygophers/tasks/{task_id}/plan.md`
 2. 按计划模板生成 Markdown，参考 [template.md](../skills/planner/template.md)
-3. 使用 Write 工具写入 plan.md
+3. 使用 Write 工具写入 `.lazygophers/tasks/{task_id}/plan.md`
 4. 将 tasks 数组写入 `.lazygophers/tasks/{task_id}/tasks.json`
 
 **UserConfirmation：用户确认**（根据 auto_approve 参数决定）

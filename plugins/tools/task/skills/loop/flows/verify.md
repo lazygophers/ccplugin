@@ -50,7 +50,7 @@ Loop Check阶段：调用verifier skill验证验收标准 → 质量门控评分
 
 ## 最佳实践
 
-**必须**：全面验证所有验收标准 | 回归测试确认无破坏 | 立即报告具体失败原因 | 5 Why根因分析 | 渐进升级(retry→debug→replan→ask_user) | 深度校验不可跳过，即使Stage 1/2全部通过 | **读取 prompt.md 对照任务边界（in-scope/out-of-scope）和验收标准**
+**必须**：全面验证所有验收标准 | 回归测试确认无破坏 | 立即报告具体失败原因 | 5 Why根因分析 | 渐进升级(retry→debug→replan→ask_user) | 深度校验不可跳过，即使Stage 1/2全部通过 | **读取 `.lazygophers/tasks/{task_id}/prompt.md` 对照任务边界（in-scope/out-of-scope）和验收标准**
 
 **禁止**：接受模糊标准("代码质量好") | 跳过回归测试 | 失败时盲目重试所有任务 | 修改verifier返回的JSON结构 | 仅凭技术指标通过就跳过用户预期验证 | **忽略 prompt.md 中定义的验收标准**
 
