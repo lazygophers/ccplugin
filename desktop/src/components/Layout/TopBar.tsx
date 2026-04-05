@@ -11,8 +11,7 @@ export default function TopBar() {
   const pageTitle = useMemo(() => {
     const p = location.pathname;
     if (p === "/") return "仪表板";
-    if (p.startsWith("/marketplaces")) return "插件市场";
-    if (p.startsWith("/plugins")) return "插件";
+    if (p === "/marketplaces" || p === "/marketplaces/plugins") return "插件市场";
     if (p.startsWith("/updates")) return "更新中心";
     if (p.startsWith("/settings")) return "设置";
     if (p.startsWith("/logs")) return "日志";
@@ -21,7 +20,7 @@ export default function TopBar() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (location.pathname.startsWith("/plugins")) {
+    if (location.pathname === "/marketplaces/plugins") {
       const params = new URLSearchParams(location.search);
       setQuery(params.get("q") ?? "");
     } else {
@@ -32,7 +31,7 @@ export default function TopBar() {
   const commitQueryToPlugins = (next: string) => {
     const params = new URLSearchParams();
     if (next.trim()) params.set("q", next.trim());
-    navigate({ pathname: "/plugins", search: params.toString() ? `?${params.toString()}` : "" });
+    navigate({ pathname: "/marketplaces/plugins", search: params.toString() ? `?${params.toString()}` : "" });
   };
 
   return (
@@ -64,7 +63,7 @@ export default function TopBar() {
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
                 onClick={() => {
                   setQuery("");
-                  if (location.pathname.startsWith("/plugins")) {
+                  if (location.pathname === "/marketplaces/plugins") {
                     commitQueryToPlugins("");
                   }
                 }}

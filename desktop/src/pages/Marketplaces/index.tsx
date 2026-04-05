@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
 	Loader2,
@@ -8,6 +9,7 @@ import {
 	Trash2,
 	ChevronDown,
 	ChevronUp,
+	Package,
 } from "lucide-react";
 import {
 	MarketplacesService,
@@ -208,6 +210,16 @@ export default function Marketplaces() {
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
+					<Link to="/marketplaces/plugins">
+						<Button
+							variant="outline"
+							size="sm"
+							aria-label="查看所有插件"
+						>
+							<Package className="w-4 h-4 mr-2" />
+							查看所有插件
+						</Button>
+					</Link>
 					<Button
 						variant="outline"
 						size="sm"

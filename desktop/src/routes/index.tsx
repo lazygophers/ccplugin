@@ -22,7 +22,7 @@ export const router = createHashRouter([
         element: <Marketplaces />,
       },
       {
-        path: "plugins",
+        path: "marketplaces/plugins",
         element: <Plugins />,
       },
       {
