@@ -14,6 +14,7 @@ export default function TopBar() {
     const p = location.pathname;
     if (p === "/") return "仪表板";
     if (p === "/marketplaces" || p === "/marketplaces/plugins") return "插件市场";
+    if (p.startsWith("/notifications")) return "通知中心";
     if (p.startsWith("/updates")) return "更新中心";
     if (p.startsWith("/settings")) return "设置";
     return "CCPlugin Desktop";
@@ -78,7 +79,11 @@ export default function TopBar() {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        <NotificationCenter onClose={() => setShowNotifications(!showNotifications)} />
+        <NotificationCenter
+          isOpen={showNotifications}
+          onToggle={() => setShowNotifications(!showNotifications)}
+          onClose={() => setShowNotifications(false)}
+        />
         <Button variant="ghost" size="icon">
           <User className="w-5 h-5" />
         </Button>

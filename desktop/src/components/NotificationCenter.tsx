@@ -81,10 +81,12 @@ function formatTime(timestamp: number): string {
 }
 
 interface NotificationCenterProps {
+	isOpen?: boolean;
+	onToggle?: () => void;
 	onClose?: () => void;
 }
 
-export function NotificationCenter({ onClose }: NotificationCenterProps) {
+export function NotificationCenter({ isOpen, onToggle, onClose }: NotificationCenterProps) {
 	const {
 		notifications,
 		unreadCount,
@@ -99,8 +101,9 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
 		<div className="relative">
 			{/* 通知按钮 */}
 			<button
-				onClick={onClose}
+				onClick={onToggle}
 				className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+				aria-label={isOpen ? "关闭通知" : "打开通知"}
 			>
 				<Bell className="w-5 h-5" />
 				{unreadCount > 0 && (
@@ -111,7 +114,7 @@ export function NotificationCenter({ onClose }: NotificationCenterProps) {
 			</button>
 
 			{/* 通知面板 */}
-			{onClose && (
+			{isOpen && (
 				<div className="fixed inset-0 z-50" onClick={onClose}>
 					<div
 						className="absolute right-4 top-16 w-96 max-h-[600px] bg-white dark:bg-gray-900 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col"

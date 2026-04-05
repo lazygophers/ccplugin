@@ -11,6 +11,7 @@ import {
   PanelLeftOpen,
   ChevronDown,
   ChevronRight,
+  Bell,
 } from "lucide-react";
 import { getVersion } from "@tauri-apps/api/app";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ const navItems: NavItem[] = [
       { path: "/marketplaces/plugins", label: "插件", icon: Package },
     ],
   },
+  { path: "/notifications", label: "通知", icon: Bell },
   { path: "/updates", label: "更新", icon: ArrowUpCircle },
   { path: "/settings", label: "设置", icon: Settings },
 ];

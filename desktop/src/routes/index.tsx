@@ -5,6 +5,7 @@ import Plugins from "@/pages/Plugins";
 import Marketplaces from "@/pages/Marketplaces";
 import Updates from "@/pages/Updates";
 import Settings from "@/pages/Settings";
+import NotificationCenter from "@/pages/NotificationCenter";
 
 export const router = createHashRouter([
   {
@@ -22,6 +23,10 @@ export const router = createHashRouter([
       {
         path: "marketplaces/plugins",
         element: <Plugins />,
+      },
+      {
+        path: "notifications",
+        element: <NotificationCenter />,
       },
       {
         path: "updates",
