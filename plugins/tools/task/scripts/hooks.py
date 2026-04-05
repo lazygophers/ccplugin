@@ -109,67 +109,69 @@ def handle_session_start():
 	cleanup_expired_tasks()
 
 
+def cleanup_session_tasks(session_id: str, index: dict, index_path: str):
+	"""清理指定 session 的所有任务目录，并从 index.json 中移除记录"""
+	task_list = index.get(session_id, [])
+	cleaned_count = 0
+
+	for task in task_list:
+		task_id = task.get("task_id", "")
+		if not task_id:
+			continue
+		task_dir = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id)
+		if os.path.exists(task_dir):
+			try:
+				shutil.rmtree(task_dir)
+				cleaned_count += 1
+			except Exception as e:
+				logging.error(f"清理任务目录失败 {task_dir}: {e}")
+
+	# 从 index 中移除该 session
+	if session_id in index:
+		del index[session_id]
+		with open(index_path, "w") as f:
+			json.dump(index, f, indent=2, ensure_ascii=False)
+
+	if cleaned_count > 0:
+		logging.info(f"已清理 session {session_id} 的 {cleaned_count} 个任务目录")
+
+
 def handle_stop(hook_event_name: str, session_id: str):
-	"""Stop hook: 检查任务是否完成（index.json 格式：{session_id: [{task_id, ...}]}）"""
+	"""Stop hook: 检查任务是否完成，完成后清理当前 session 的所有任务"""
 	index_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", "index.json")
 
-	# 如果文件不存在，当做 session 不存在处理
 	if not os.path.exists(index_path):
-		print(json.dumps({
-			"hookSpecificOutput": {
-				"hookEventName": hook_event_name,
-				"additionalContext": ".lazygophers/tasks/index.json 不存在"
-			}
-		}))
 		return
 
-	# 读取索引文件（Map 结构，key 为 session_id 哈希）
 	with open(index_path) as file:
 		index = json.load(file)
-		if session_id not in index:
-			print(json.dumps({
-				"hookSpecificOutput": {
-					"hookEventName": hook_event_name,
-					"additionalContext": f".lazygophers/tasks/index.json 缺少 {session_id} 的信息"
-				}
-			}))
-			return
 
-		# session_id 对应的是任务数组，取最新任务（数组最后一个元素）
-		task_list = index.get(session_id, [])
-		if not task_list:
-			print(json.dumps({
-				"hookSpecificOutput": {
-					"hookEventName": hook_event_name,
-					"additionalContext": f"session {session_id} 的任务列表为空"
-				}
-			}))
-			return
-
-		# 取最新的任务（数组最后一个元素）
-		current_task = task_list[-1]
-		task_id = current_task.get("task_id", "")
-
-	status_file_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id, "metadata.json")
-	if not os.path.exists(status_file_path):
-		print(json.dumps({
-			"hookSpecificOutput": {
-				"hookEventName": hook_event_name,
-				"additionalContext": f"{status_file_path} 不存在"
-			}
-		}))
+	if session_id not in index:
 		return
 
-	with open(status_file_path) as file:
-		metadata = json.load(file)
-		if metadata.get("phase", "") != "completed":
-			print(json.dumps({
-				"hookSpecificOutput": {
-					"hookEventName": hook_event_name,
-					"additionalContext": "task not finish，continue"
-				}
-			}))
-			sys.exit(2)
+	task_list = index.get(session_id, [])
+	if not task_list:
+		return
+
+	# 取最新的任务（数组最后一个元素）检查是否完成
+	current_task = task_list[-1]
+	task_id = current_task.get("task_id", "")
+	status_file_path = os.path.join(get_project_dir(), ".lazygophers", "tasks", task_id, "metadata.json")
+
+	if os.path.exists(status_file_path):
+		with open(status_file_path) as file:
+			metadata = json.load(file)
+			if metadata.get("phase", "") != "completed":
+				print(json.dumps({
+					"hookSpecificOutput": {
+						"hookEventName": hook_event_name,
+						"additionalContext": "task not finish，continue"
+					}
+				}))
+				sys.exit(2)
+
+	# 任务已完成或 metadata 不存在，清理当前 session 的所有任务
+	cleanup_session_tasks(session_id, index, index_path)
 
 
 def handle_permission_request(hook_data: Dict[str, any]):
