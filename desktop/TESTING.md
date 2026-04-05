@@ -371,3 +371,73 @@ time npm run tauri dev
 - 实现插件卡片列表UI
 - 搜索和分类过滤
 - 插件详情弹窗和README展示
+
+---
+
+## 自动化测试
+
+### 运行单元测试
+
+```bash
+# 运行所有单元测试
+pnpm test:run
+
+# 监听模式（开发时推荐）
+pnpm test:watch
+
+# UI 界面
+pnpm test:ui
+
+# 生成覆盖率报告
+pnpm test:coverage
+```
+
+**当前状态**: ✅ 114 个单元测试全部通过
+
+### 运行 E2E 测试
+
+E2E 测试需要先构建 Tauri 应用：
+
+```bash
+# 1. 构建 Tauri 应用
+pnpm tauri build
+
+# 2. 运行 E2E 测试
+pnpm test:e2e
+
+# 或运行所有测试
+pnpm test:all
+```
+
+### 测试覆盖范围
+
+**组件测试** (16 个):
+- PluginCard: 安装/卸载/更新按钮、scope 显示、loading 状态
+- UI 组件: Button, Dialog, Badge
+- 布局组件: Layout, TopBar, Sidebar
+
+**服务测试** (9 个):
+- MarketplaceService: 获取插件列表、搜索、分类过滤
+- Tauri Commands: 安装/卸载/更新命令，scope 参数传递
+
+**页面测试** (7 个):
+- Marketplaces: 市场列表加载、空状态显示
+- Dashboard, Settings, Logs 等其他页面
+
+**E2E 测试** (配置完成):
+- 插件安装流程：scope 选择、确认安装
+- 安装状态显示：用户/项目/local 范围标识
+
+### 测试覆盖率目标
+
+| 类型 | 目标覆盖率 | 当前状态 |
+|------|-----------|---------|
+| Services (src/services/**) | 100% | ✅ 100% |
+| Lib (src/lib/**) | 100% | ✅ 100% |
+| Components | 核心功能覆盖 | ✅ 覆盖 |
+
+### 查看测试文档
+
+详细的测试编写指南和最佳实践，请参考项目根目录的测试记忆文档。
+
+---
