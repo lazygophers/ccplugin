@@ -155,25 +155,34 @@ export function PluginDetailDialog({
             </div>
           </div>
 
-          {plugin.installed && plugin.installed_info && plugin.installed_info.length > 0 &&
-            plugin.installed_info.map((info) => (
-              <div key={info.scope} className="flex items-center gap-2 text-sm">
-                <span className="font-medium">
-                  {info.scope === "user"
-                    ? "用户安装:"
-                    : info.scope === "project"
-                      ? `项目安装 (${info.path || "本地路径"}):`
-                      : `${info.scope}安装:`}
-                </span>
-                <span className="text-muted-foreground font-medium">v{info.version}</span>
-              </div>
-            ))
-          }
+          {/* 安装范围 */}
+          {plugin.installed && plugin.installed_info && plugin.installed_info.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium">安装范围</div>
+              {plugin.installed_info.map((info) => (
+                <div key={info.scope} className="pl-4 text-sm space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">
+                      {info.scope === "user"
+                        ? "用户"
+                        : info.scope === "project"
+                          ? "项目"
+                          : info.scope}
+                    </span>
+                    <span className="text-muted-foreground">v{info.version}</span>
+                  </div>
+                  {info.scope === "project" && info.path && (
+                    <div className="text-xs text-muted-foreground pl-4">{info.path}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {plugin.keywords.length > 0 && (
             <div className="flex items-start gap-2 text-sm">
-              <Tag className="w-4 h-4 text-muted-foreground mt-0.5" />
-              <span className="font-medium">关键词:</span>
+              <Tag className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <span className="font-medium whitespace-nowrap">关键词:</span>
               <div className="flex flex-wrap gap-1">
                 {plugin.keywords.map((keyword) => (
                   <Badge key={keyword} variant="outline" className="text-xs">
