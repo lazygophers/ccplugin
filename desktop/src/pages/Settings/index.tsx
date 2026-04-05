@@ -19,7 +19,6 @@ export default function Settings() {
     noProxy: "localhost,127.0.0.1",
   });
   const [loadingProxy, setLoadingProxy] = useState(false);
-  const [proxyError, setProxyError] = useState<string | null>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -41,13 +40,11 @@ export default function Settings() {
 
   const handleSaveProxy = async () => {
     setLoadingProxy(true);
-    setProxyError(null);
     try {
       await ProxyService.save(proxyConfig);
       alert("代理配置已保存！请重启应用以使设置生效。");
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setProxyError(msg);
       alert(`保存失败: ${msg}`);
     } finally {
       setLoadingProxy(false);

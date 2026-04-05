@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { type Notification, type NotificationType, type AddNotificationParams } from "@/types";
 import {
 	getNotifications,
 	addNotification,
@@ -8,9 +9,6 @@ import {
 	deleteNotification,
 	clearAllNotifications,
 	getUnreadCount,
-	type Notification,
-	type AddNotificationParams,
-	type NotificationType,
 } from "@/services/tauri-commands";
 
 /**

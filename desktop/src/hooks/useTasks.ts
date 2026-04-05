@@ -1,11 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
+import { type Task, type TaskQueueStatus, type TaskStatus } from "@/types";
 import {
 	getTasks,
 	getTaskStatus,
 	listenToTaskUpdates,
-	type Task,
-	type TaskQueueStatus,
-	type TaskStatus,
 } from "@/services/tauri-commands";
 
 /**

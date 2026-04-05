@@ -9,7 +9,6 @@ import {
   Settings,
   PanelLeftClose,
   PanelLeftOpen,
-  ChevronDown,
   ChevronRight,
   Bell,
 } from "lucide-react";

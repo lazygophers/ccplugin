@@ -5,13 +5,18 @@ import {
 	PluginEventHandler,
 	PluginEventType,
 	Notification,
+	NotificationType,
 	AddNotificationParams,
 	Task,
 	TaskQueueStatus,
+	TaskStatus,
+	TaskType,
 } from "@/types";
 
 // 导出类型供其他模块使用
 export type { PluginEventHandler, PluginEventPayload };
+export type { Task, TaskStatus, TaskType, TaskQueueStatus };
+export type { Notification, NotificationType, AddNotificationParams };
 
 // ==================== 插件操作命令 ====================
 
@@ -139,7 +144,7 @@ export async function listenToInstallProgress(
  * 添加通知
  */
 export async function addNotification(params: AddNotificationParams): Promise<Notification> {
-	return await invoke("add_notification", params);
+	return await invoke("add_notification", params as unknown as Record<string, unknown>);
 }
 
 /**

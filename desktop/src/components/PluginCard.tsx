@@ -1,9 +1,7 @@
 import { memo } from "react";
 import { PluginInfo } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Package, Download, CheckCircle, RefreshCw, Info } from "lucide-react";
-import { getCategoryBadgeClass, getCategoryLabel } from "@/lib/plugin-ui";
 
 interface PluginCardProps {
 	plugin: PluginInfo;
