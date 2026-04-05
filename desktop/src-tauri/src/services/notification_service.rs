@@ -238,7 +238,7 @@ impl NotificationService {
 // 全局单例（使用 Mutex 包装以支持可变访问）
 use std::sync::OnceLock;
 
-static NOTIFICATION_SERVICE: OnceLock<Mutex<NotificationService>> = OnceLock::new;
+static NOTIFICATION_SERVICE: OnceLock<Mutex<NotificationService>> = OnceLock::new();
 
 pub fn init_notification_service(app_handle: &AppHandle) -> Result<(), String> {
     let service = NotificationService::new(app_handle)?;

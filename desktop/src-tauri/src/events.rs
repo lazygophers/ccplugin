@@ -92,7 +92,7 @@ pub fn emit_plugin_event(
 
 /// 根据事件类型创建通知
 fn add_notification_for_event(
-    app_handle: &AppHandle,
+    _app_handle: &AppHandle,
     event_type: &PluginEventType,
     plugin_name: &str,
     data: &Value,
