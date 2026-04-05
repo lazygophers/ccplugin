@@ -136,6 +136,7 @@ hooks:
 
 **关键要求**：
 - **所有输出必须以 [MindFlow·${task_id}] 开头**（强制规则，无例外。task_id在初始化阶段生成）
+- **所有 AskUserQuestion 的 header 必须使用 `[MindFlow·{task_id}·{场景名}]` 格式**（如 `[MindFlow·修复日志·计划确认]`），question 字段为纯问题文本
 - **每次调用必须重置状态**（iteration=0, context={}），避免同一会话中不同任务的状态混淆
 - 计划确认阶段**必须执行**，不可跳过
 - **所有规划场景都调用 task:planner agent**，planner 内部完成：设计 → 写文件 → 用户确认/自动批准 → 返回结果
@@ -213,15 +214,14 @@ hooks:
 
 首次迭代必须执行，后续迭代仅在用户提供新输入时触发（增量修订已有 prompt.md，非重写），无新输入则跳过。调用 `Agent(subagent_type="task:prompt-optimizer", prompt="...")` 将任务描述转化为可执行规格说明，写入 `.lazygophers/tasks/{task_id}/prompt.md`。
 
-**prompt-optimizer 返回后，loop 必须立即执行 UserConfirmation**：通过 `AskUserQuestion` 让用户确认 prompt.md 内容。
+**prompt-optimizer 返回后，loop 必须立即执行 UserConfirmation**：通过 `AskUserQuestion` 让用户确认 prompt.md 内容。**header 必须使用 `[MindFlow·${task_id}·提示词确认]` 格式**。
 
 | 选项 | 描述 | loop 处理 |
 |------|------|----------|
 | **A: 确认使用** | 接受优化后的规格说明 | 更新 `context.user_task` → 进入复杂度评估 |
 | **B: 确认并跳过计划确认** | 接受优化后的规格说明，同时授权跳过下一次 Planning 用户确认（仅单次有效） | 更新 `context.user_task` + 设置 `skip_next_plan_confirm=true` → 进入复杂度评估 |
 | **C: 使用原始提示词** | 保持用户原始输入 | 将原始版本写入 prompt.md → 进入复杂度评估 |
-| **D: 修正偏离部分** | 用户指出提示词与意图偏离的部分，提供修正内容 | 收集用户修正 → 重新调用 prompt-optimizer（增量修订） |
-| **E: 重新优化** | 用户提供反馈后全面重新优化 | 收集反馈 → 重新调用 prompt-optimizer |
+| **D: 修正偏离部分** | 用户指出偏离部分或提供反馈重新优化 | 收集用户修正/反馈 → 重新调用 prompt-optimizer（增量修订） |
 
 **禁止**：prompt-optimizer 返回后直接进入下一阶段，必须先获得用户确认。
 
