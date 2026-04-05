@@ -49,14 +49,11 @@ struct InstalledPluginsJson {
 struct InstalledPluginDetail {
     scope: String,
     version: String,
-    #[serde(default)]
-    #[allow(dead_code)]
+    #[serde(default, alias = "installPath")]
     install_path: String,
-    #[serde(default)]
-    #[allow(dead_code)]
+    #[serde(default, alias = "installedAt")]
     installed_at: String,
-    #[serde(default)]
-    #[allow(dead_code)]
+    #[serde(default, alias = "lastUpdated")]
     last_updated: String,
 }
 
