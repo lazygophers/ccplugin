@@ -394,21 +394,6 @@ pnpm test:coverage
 
 **当前状态**: ✅ 114 个单元测试全部通过
 
-### 运行 E2E 测试
-
-E2E 测试需要先构建 Tauri 应用：
-
-```bash
-# 1. 构建 Tauri 应用
-pnpm tauri build
-
-# 2. 运行 E2E 测试
-pnpm test:e2e
-
-# 或运行所有测试
-pnpm test:all
-```
-
 ### 测试覆盖范围
 
 **组件测试** (16 个):
@@ -424,10 +409,6 @@ pnpm test:all
 - Marketplaces: 市场列表加载、空状态显示
 - Dashboard, Settings, Logs 等其他页面
 
-**E2E 测试** (配置完成):
-- 插件安装流程：scope 选择、确认安装
-- 安装状态显示：用户/项目/local 范围标识
-
 ### 测试覆盖率目标
 
 | 类型 | 目标覆盖率 | 当前状态 |
@@ -435,6 +416,17 @@ pnpm test:all
 | Services (src/services/**) | 100% | ✅ 100% |
 | Lib (src/lib/**) | 100% | ✅ 100% |
 | Components | 核心功能覆盖 | ✅ 覆盖 |
+
+### E2E 测试说明
+
+**当前状态**: ⏳ 暂时移除（需要额外配置）
+
+E2E 测试需要：
+1. Tauri 应用的 WebDriver 集成
+2. 平台特定的驱动配置
+3. 测试环境设置
+
+单元测试已充分覆盖核心功能，E2E 测试将在未来版本中重新添加。
 
 ### 查看测试文档
 
