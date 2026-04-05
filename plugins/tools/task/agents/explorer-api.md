@@ -1,6 +1,6 @@
 ---
 description: API 探索代理 - 分析 REST/GraphQL/gRPC 端点、请求响应格式、认证机制、OpenAPI/Swagger 规范。继承 explorer-code 能力。
-model: sonnet
+model: haiku
 memory: project
 color: teal
 skills:

@@ -1,6 +1,6 @@
 ---
 description: 通用项目探索代理 - 快速理解项目全貌，识别技术栈、目录结构和核心模块。适用于首次接触项目、需要宏观理解项目架构的场景。
-model: sonnet
+model: haiku
 memory: project
 color: cyan
 skills:
