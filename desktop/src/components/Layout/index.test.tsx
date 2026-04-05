@@ -18,7 +18,8 @@ describe("Layout", () => {
     ]);
 
     expect(screen.getByText("Child Page")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "插件市场" })).toBeInTheDocument();
+    // "插件市场" is now a parent item, not a link
+    expect(screen.getByText("插件市场")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "清空搜索" })).not.toBeInTheDocument();
   });
 });

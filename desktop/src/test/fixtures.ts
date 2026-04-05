@@ -15,8 +15,12 @@ export const pluginFixtures: PluginInfo[] = [
 		category: "languages",
 		installed: true,
 		installed_version: "1.0.0",
-		installed_scope: "project",
+		installed_scopes: ["project"],
+		installed_path: "/path/to/project",
 		marketplace: "ccplugin-market",
+		installed_info: [
+			{ scope: "project", version: "1.0.0", path: "/path/to/project" },
+		],
 	},
 	{
 		name: "git",
@@ -32,7 +36,8 @@ export const pluginFixtures: PluginInfo[] = [
 		category: "tools",
 		installed: false,
 		installed_version: null,
-		installed_scope: null,
+		installed_scopes: [],
+		installed_path: null,
 		marketplace: "ccplugin-market",
 	},
 	{
@@ -49,7 +54,11 @@ export const pluginFixtures: PluginInfo[] = [
 		category: "office",
 		installed: true,
 		installed_version: "1.0.0",
-		installed_scope: "user",
+		installed_scopes: ["user"],
+		installed_path: null,
 		marketplace: "ccplugin-market",
+		installed_info: [
+			{ scope: "user", version: "1.0.0" },
+		],
 	},
 ];

@@ -52,19 +52,19 @@ describe("usePlugins", () => {
     expect(result.current.filteredPlugins).toEqual([]);
   });
 
-  it("filters by category and search", async () => {
+  it("filters by keyword and search", async () => {
     vi.mocked(MarketplaceService.getAllPlugins).mockResolvedValueOnce(pluginFixtures);
 
     const { result } = renderHook(() => usePlugins());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => {
-      result.current.setSelectedCategory("tools");
+      result.current.setSelectedKeyword("git");
     });
     expect(result.current.filteredPlugins.map((p) => p.name)).toEqual(["git"]);
 
     act(() => {
-      result.current.setSelectedCategory("all");
+      result.current.setSelectedKeyword(null);
       result.current.setSearchQuery("python");
     });
     expect(result.current.filteredPlugins.map((p) => p.name)).toEqual(["python"]);

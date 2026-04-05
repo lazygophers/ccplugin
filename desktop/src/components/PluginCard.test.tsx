@@ -11,20 +11,21 @@ describe("PluginCard", () => {
     const plugin = pluginFixtures[1];
 
     render(<PluginCard plugin={plugin} onInstall={onInstall} />);
-    await user.click(screen.getByRole("button", { name: "安装" }));
+    await user.click(screen.getByRole("button", { name: `安装 ${plugin.name}` }));
 
     expect(onInstall).toHaveBeenCalledWith(plugin.name);
   });
 
   it("renders installed state when no onUpdate", () => {
     render(<PluginCard plugin={pluginFixtures[2]} />);
-    expect(screen.getByText(/已安装 v1.0.0/)).toBeInTheDocument();
+    expect(screen.getByText("已安装")).toBeInTheDocument();
   });
 
   it("renders uninstall action when installed and onUninstall provided", async () => {
     const user = userEvent.setup();
     const onUninstall = vi.fn();
-    render(<PluginCard plugin={pluginFixtures[0]} onUninstall={onUninstall} />);
+    const plugin = pluginFixtures[0];
+    render(<PluginCard plugin={plugin} onUninstall={onUninstall} />);
 
     await user.click(screen.getByRole("button", { name: /卸载/ }));
     expect(onUninstall).toHaveBeenCalledWith("python");
@@ -33,7 +34,8 @@ describe("PluginCard", () => {
   it("renders update action when installed and onUpdate provided", async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn();
-    render(<PluginCard plugin={pluginFixtures[0]} onUpdate={onUpdate} />);
+    const plugin = pluginFixtures[0];
+    render(<PluginCard plugin={plugin} onUpdate={onUpdate} />);
 
     await user.click(screen.getByRole("button", { name: /更新/ }));
     expect(onUpdate).toHaveBeenCalledWith("python");
@@ -63,12 +65,12 @@ describe("PluginCard", () => {
 
   it("shows updating state when updating=true", () => {
     render(<PluginCard plugin={pluginFixtures[0]} onUpdate={vi.fn()} updating />);
-    expect(screen.getByText("更新中...")).toBeInTheDocument();
+    expect(screen.getByText("更新中")).toBeInTheDocument();
   });
 
   it("shows uninstalling state when uninstalling=true", () => {
     render(<PluginCard plugin={pluginFixtures[0]} onUninstall={vi.fn()} uninstalling />);
-    expect(screen.getByText("卸载中...")).toBeInTheDocument();
+    expect(screen.getByText("卸载中")).toBeInTheDocument();
   });
 
   it("shows installing state when installing=true", () => {
@@ -77,19 +79,19 @@ describe("PluginCard", () => {
   });
 
   it("renders scope badge for user scope", () => {
-    const plugin = { ...pluginFixtures[0], installed_scope: "user" };
+    const plugin = { ...pluginFixtures[0], installed_scopes: ["user"] };
     render(<PluginCard plugin={plugin} />);
     expect(screen.getByText("用户")).toBeInTheDocument();
   });
 
   it("renders scope badge for project scope", () => {
-    const plugin = { ...pluginFixtures[0], installed_scope: "project" };
+    const plugin = { ...pluginFixtures[0], installed_scopes: ["project"] };
     render(<PluginCard plugin={plugin} />);
     expect(screen.getByText("项目")).toBeInTheDocument();
   });
 
   it("renders scope badge for local scope", () => {
-    const plugin = { ...pluginFixtures[0], installed_scope: "local" };
+    const plugin = { ...pluginFixtures[0], installed_scopes: ["local"] };
     render(<PluginCard plugin={plugin} />);
     expect(screen.getByText("local")).toBeInTheDocument();
   });
@@ -105,7 +107,7 @@ describe("PluginCard", () => {
     const plugin = pluginFixtures[0];
     render(<PluginCard plugin={plugin} onViewDetails={onViewDetails} />);
 
-    await user.click(screen.getByRole("button", { name: "详情" }));
+    await user.click(screen.getByRole("button", { name: `${plugin.name} 详情` }));
     expect(onViewDetails).toHaveBeenCalledWith(plugin);
   });
 });

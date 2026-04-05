@@ -174,7 +174,8 @@ export const PluginCardMemo = memo(PluginCard, (prevProps, nextProps) => {
 		prevProps.plugin.installed === nextProps.plugin.installed &&
 		prevProps.plugin.installed_version ===
 			nextProps.plugin.installed_version &&
-		prevProps.plugin.installed_scope === nextProps.plugin.installed_scope &&
+		prevProps.plugin.installed_scopes.length === nextProps.plugin.installed_scopes.length &&
+		prevProps.plugin.installed_scopes.every((s, i) => s === nextProps.plugin.installed_scopes[i]) &&
 		prevProps.installing === nextProps.installing &&
 		prevProps.updating === nextProps.updating &&
 		prevProps.uninstalling === nextProps.uninstalling

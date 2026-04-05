@@ -38,13 +38,13 @@ describe("TopBar", () => {
 
     const input = screen.getByRole("textbox", { name: "搜索插件" });
     await user.type(input, "python{enter}");
-    expect(router.state.location.pathname).toBe("/plugins");
+    expect(router.state.location.pathname).toBe("/marketplaces/plugins");
     expect(router.state.location.search).toBe("?q=python");
   });
 
   it("shows clear button and clears query", async () => {
     const user = userEvent.setup();
-    renderTopBar("/plugins?q=git");
+    renderTopBar("/marketplaces/plugins?q=git");
     expect(screen.getByRole("button", { name: "清空搜索" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "清空搜索" }));
     expect(screen.getByRole("textbox", { name: "搜索插件" })).toHaveValue("");

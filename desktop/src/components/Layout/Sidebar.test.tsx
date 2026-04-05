@@ -26,8 +26,12 @@ describe("Sidebar", () => {
 
   it("renders navigation links", () => {
     renderSidebar("/marketplaces");
-    expect(screen.getByRole("link", { name: "插件市场" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "设置" })).toBeInTheDocument();
+    // "插件市场" is now a parent item, not a direct link
+    expect(screen.getByText("插件市场")).toBeInTheDocument();
+    // "设置" is a clickable div, not a link
+    expect(screen.getByText("设置")).toBeInTheDocument();
+    // Child items are actual links
+    expect(screen.getByRole("link", { name: "市场列表" })).toBeInTheDocument();
   });
 
   it("toggles collapsed state and persists to localStorage", async () => {
