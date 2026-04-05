@@ -1,7 +1,5 @@
-use crate::events::{emit_plugin_event, PluginEventType};
-use crate::services::PythonBridge;
-use serde_json::json;
-use tauri::{AppHandle, async_runtime};
+use crate::services::task_queue::{Task, TaskType};
+use tauri::AppHandle;
 
 #[tauri::command]
 pub fn install_plugin(
@@ -10,81 +8,17 @@ pub fn install_plugin(
     scope: Option<String>,
     app_handle: AppHandle,
 ) -> Result<(), String> {
-    let bridge = PythonBridge::new();
-    let plugin_name_clone = plugin_name.clone();
-    let app_handle_clone = app_handle.clone();
-    let marketplace_clone = marketplace.clone();
-    let scope_value = scope.unwrap_or_else(|| "user".to_string());
+    let task_queue = crate::services::task_queue()
+        .ok_or("任务队列未初始化".to_string())?;
 
-    // Spawn background task using Tauri's async runtime
-    async_runtime::spawn(async move {
-        // Emit started event
-        emit_plugin_event(
-            &app_handle_clone,
-            PluginEventType::PluginInstallStarted,
-            &plugin_name_clone,
-            json!({ "marketplace": marketplace_clone, "scope": scope_value }),
-        );
+    let task = Task::new(
+        TaskType::Install,
+        plugin_name,
+        Some(marketplace),
+        scope,
+    );
 
-        // Execute installation
-        let result = bridge
-            .install_plugin_with_progress(
-                &plugin_name_clone,
-                &marketplace_clone,
-                &scope_value,
-                |status, progress, message| {
-                    emit_plugin_event(
-                        &app_handle_clone,
-                        PluginEventType::PluginInstallProgress,
-                        &plugin_name_clone,
-                        json!({
-                            "status": status,
-                            "progress": progress,
-                            "message": message
-                        }),
-                    );
-                },
-            )
-            .await;
-
-        // Emit completion event
-        match result {
-            Ok(result) => {
-                if result.success {
-                    emit_plugin_event(
-                        &app_handle_clone,
-                        PluginEventType::PluginInstallCompleted,
-                        &plugin_name_clone,
-                        json!({
-                            "stdout": result.stdout,
-                            "stderr": result.stderr,
-                        }),
-                    );
-                } else {
-                    emit_plugin_event(
-                        &app_handle_clone,
-                        PluginEventType::PluginInstallFailed,
-                        &plugin_name_clone,
-                        json!({
-                            "error": result.stderr,
-                        }),
-                    );
-                }
-            }
-            Err(err) => {
-                emit_plugin_event(
-                    &app_handle_clone,
-                    PluginEventType::PluginInstallFailed,
-                    &plugin_name_clone,
-                    json!({
-                        "error": err,
-                    }),
-                );
-            }
-        }
-    });
-
-    // Return immediately
+    task_queue.add_task(task)?;
     Ok(())
 }
 
@@ -93,76 +27,51 @@ pub fn uninstall_plugin(
     plugin_name: String,
     app_handle: AppHandle,
 ) -> Result<(), String> {
-    let bridge = PythonBridge::new();
-    let plugin_name_clone = plugin_name.clone();
-    let app_handle_clone = app_handle.clone();
+    let task_queue = crate::services::task_queue()
+        .ok_or("任务队列未初始化".to_string())?;
 
-    // Spawn background task using Tauri's async runtime
-    async_runtime::spawn(async move {
-        // Emit started event
-        emit_plugin_event(
-            &app_handle_clone,
-            PluginEventType::PluginUninstallStarted,
-            &plugin_name_clone,
-            json!({}),
-        );
+    let task = Task::new(
+        TaskType::Uninstall,
+        plugin_name,
+        None,
+        None,
+    );
 
-        // Execute uninstallation
-        let result = bridge
-            .uninstall_plugin_with_progress(
-                &plugin_name_clone,
-                |status, progress, message| {
-                    emit_plugin_event(
-                        &app_handle_clone,
-                        PluginEventType::PluginUninstallProgress,
-                        &plugin_name_clone,
-                        json!({
-                            "status": status,
-                            "progress": progress,
-                            "message": message
-                        }),
-                    );
-                },
-            )
-            .await;
-
-        // Emit completion event
-        match result {
-            Ok(result) => {
-                if result.success {
-                    emit_plugin_event(
-                        &app_handle_clone,
-                        PluginEventType::PluginUninstallCompleted,
-                        &plugin_name_clone,
-                        json!({
-                            "stdout": result.stdout,
-                            "stderr": result.stderr,
-                        }),
-                    );
-                } else {
-                    emit_plugin_event(
-                        &app_handle_clone,
-                        PluginEventType::PluginUninstallFailed,
-                        &plugin_name_clone,
-                        json!({
-                            "error": result.stderr,
-                        }),
-                    );
-                }
-            }
-            Err(err) => {
-                emit_plugin_event(
-                    &app_handle_clone,
-                    PluginEventType::PluginUninstallFailed,
-                    &plugin_name_clone,
-                    json!({
-                        "error": err,
-                    }),
-                );
-            }
-        }
-    });
-
-    // Return immediately
+    task_queue.add_task(task)?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn update_plugin(
+    plugin_name: String,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let task_queue = crate::services::task_queue()
+        .ok_or("任务队列未初始化".to_string())?;
+
+    let task = Task::new(
+        TaskType::Update,
+        plugin_name,
+        None,
+        None,
+    );
+
+    task_queue.add_task(task)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_tasks() -> Result<Vec<Task>, String> {
+    let task_queue = crate::services::task_queue()
+        .ok_or("任务队列未初始化".to_string())?;
+
+    task_queue.get_all_tasks()
+}
+
+#[tauri::command]
+pub fn get_task_status() -> Result<crate::services::TaskQueueStatus, String> {
+    let task_queue = crate::services::task_queue()
+        .ok_or("任务队列未初始化".to_string())?;
+
+    task_queue.get_status()
 }

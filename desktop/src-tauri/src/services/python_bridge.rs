@@ -135,4 +135,48 @@ impl PythonBridge {
         })
     }
 
+    /// 更新插件（带进度回调）
+    pub async fn update_plugin_with_progress<F>(
+        &self,
+        plugin_name: &str,
+        mut progress_callback: F,
+    ) -> Result<CommandResult, String>
+    where
+        F: FnMut(InstallStatus, u8, &str),
+    {
+        let args = ["plugin", "update", plugin_name];
+
+        progress_callback(InstallStatus::Downloading, 10, "开始更新插件...");
+
+        let output = tokio::task::spawn_blocking({
+            let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+            move || {
+                let mut cmd = StdCommand::new("claude");
+                cmd.args(&args);
+                // 应用代理配置
+                utils::apply_proxy_to_command(&mut cmd);
+                cmd.output()
+                    .map_err(|e| format!("Failed to execute claude: {}", e))
+            }
+        })
+        .await
+        .map_err(|e| format!("Failed to spawn command: {}", e))??;
+
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let success = output.status.success();
+
+        if success {
+            progress_callback(InstallStatus::Completed, 100, "更新完成");
+        } else {
+            progress_callback(InstallStatus::Failed, 0, &stderr);
+        }
+
+        Ok(CommandResult {
+            success,
+            stdout,
+            stderr,
+        })
+    }
+
 }

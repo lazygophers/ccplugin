@@ -31,6 +31,12 @@ pub fn run() {
             // 初始化通知服务
             crate::services::init_notification_service(&app.handle())?;
 
+            // 初始化任务队列（最多同时执行2个任务）
+            crate::services::init_task_queue(2)?;
+            if let Some(task_queue) = crate::services::task_queue() {
+                task_queue.start_processor(app.handle());
+            }
+
             // 读取并设置代理配置
             if let Ok(store) = app.path().app_local_data_dir() {
                 let config_path = store.join("ccplugin-proxy.json");
@@ -119,7 +125,10 @@ pub fn run() {
         // Commands
         .invoke_handler(tauri::generate_handler![
             commands::install_plugin,
+            commands::update_plugin,
             commands::uninstall_plugin,
+            commands::get_tasks,
+            commands::get_task_status,
             commands::get_marketplace_plugins,
             commands::get_installed_plugins,
             commands::get_marketplaces,
