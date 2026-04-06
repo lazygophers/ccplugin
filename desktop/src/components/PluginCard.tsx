@@ -83,7 +83,9 @@ function PluginCard({
 								? "用户"
 								: scope === "project"
 									? "项目"
-									: scope}
+									: scope === "local"
+										? "本地"
+										: scope}
 						</span>
 					))}
 				</div>

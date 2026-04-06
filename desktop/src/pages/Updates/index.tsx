@@ -129,7 +129,9 @@ export default function Updates() {
 													? "用户"
 													: s === "project"
 														? "项目"
-														: s
+														: s === "local"
+															? "本地"
+															: s
 											).join(", ")}
 										</span>
 									</div>
