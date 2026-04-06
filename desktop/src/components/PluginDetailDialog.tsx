@@ -8,7 +8,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, Package, User, Tag } from "lucide-react";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Loader2, Download, Package, User, Tag, RefreshCw, CheckCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { PluginInfo } from "@/types";
@@ -19,8 +26,10 @@ interface PluginDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInstall?: (pluginName: string) => void;
+  onUpdate?: (pluginName: string) => void;
   onUninstall?: (pluginName: string) => void;
   installing?: boolean;
+  updating?: boolean;
   uninstalling?: boolean;
 }
 
@@ -29,8 +38,10 @@ export function PluginDetailDialog({
   open,
   onOpenChange,
   onInstall,
+  onUpdate,
   onUninstall,
   installing,
+  updating,
   uninstalling,
 }: PluginDetailDialogProps) {
   const [readme, setReadme] = useState<string>("");
@@ -105,17 +116,37 @@ export function PluginDetailDialog({
                   <Badge variant="secondary" className="bg-green-500/10 text-green-700">
                     已安装 v{plugin.installed_version}
                   </Badge>
-                  {onUninstall && (
-                    <Button
-                      variant="destructive"
-                      onClick={() => onUninstall(plugin.name)}
-                      disabled={uninstalling}
-                      size="sm"
-                      aria-label={`卸载 ${plugin.name}`}
-                    >
-                      {uninstalling ? "卸载中..." : "卸载"}
-                    </Button>
-                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        已安装
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {onUpdate && (
+                        <DropdownMenuItem
+                          onClick={() => onUpdate(plugin.name)}
+                          disabled={updating}
+                        >
+                          <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
+                          {updating ? "更新中..." : "更新"}
+                        </DropdownMenuItem>
+                      )}
+                      {onUninstall && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onUninstall(plugin.name)}
+                            disabled={uninstalling || updating}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            {uninstalling ? "卸载中..." : "卸载"}
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </>
               ) : (
                 <Button

@@ -35,8 +35,9 @@ export default function Plugins() {
     allKeywords,
   } = usePlugins();
 
-  const { install, uninstall, progress } = usePythonCommand();
+  const { install, update, uninstall, progress } = usePythonCommand();
   const [installingPlugin, setInstallingPlugin] = useState<string | null>(null);
+  const [updatingPlugin, setUpdatingPlugin] = useState<string | null>(null);
   const [uninstallingPlugin, setUninstallingPlugin] = useState<string | null>(null);
   const [selectedPlugin, setSelectedPlugin] = useState<PluginInfo | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -105,6 +106,16 @@ export default function Plugins() {
       await refresh();
     } finally {
       setInstallingPlugin(null);
+    }
+  };
+
+  const handleUpdate = async (pluginName: string) => {
+    setUpdatingPlugin(pluginName);
+    try {
+      await update(pluginName);
+      await refresh();
+    } finally {
+      setUpdatingPlugin(null);
     }
   };
 
@@ -308,9 +319,11 @@ export default function Plugins() {
                   key={plugin.name}
                   plugin={plugin}
                   onInstall={handleInstall}
+                  onUpdate={handleUpdate}
                   onUninstall={handleUninstall}
                   onViewDetails={handleViewDetails}
                   installing={installingPlugin === plugin.name}
+                  updating={updatingPlugin === plugin.name}
                   uninstalling={uninstallingPlugin === plugin.name}
                 />
               ))}
@@ -345,8 +358,10 @@ export default function Plugins() {
         open={detailDialogOpen}
         onOpenChange={setDetailDialogOpen}
         onInstall={handleInstall}
+        onUpdate={handleUpdate}
         onUninstall={handleUninstall}
         installing={installingPlugin === selectedPlugin?.name}
+        updating={updatingPlugin === selectedPlugin?.name}
         uninstalling={uninstallingPlugin === selectedPlugin?.name}
       />
     </div>
