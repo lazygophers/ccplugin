@@ -115,25 +115,39 @@ export default function Updates() {
 									<p className="text-sm text-muted-foreground truncate mb-2">
 										{plugin.description}
 									</p>
-									<div className="flex items-center gap-3 text-xs">
-										<span className="text-muted-foreground">当前版本：</span>
-										<span className="font-medium">{plugin.installed_version}</span>
-										<span className="text-muted-foreground">→</span>
-										<span className="text-muted-foreground">最新版本：</span>
-										<span className="font-medium text-primary">{plugin.version}</span>
-										<span className="text-muted-foreground">•</span>
-										<span className="text-muted-foreground">范围：</span>
-										<span className="font-medium">
-											{plugin.installed_scopes.map((s) =>
-												s === "user"
-													? "用户"
-													: s === "project"
-														? "项目"
-														: s === "local"
-															? "本地"
-															: s
-											).join(", ")}
-										</span>
+									<div className="flex flex-col gap-1 text-xs">
+										<div className="flex items-center gap-3">
+											<span className="text-muted-foreground">当前版本：</span>
+											<span className="font-medium">{plugin.installed_version}</span>
+											<span className="text-muted-foreground">→</span>
+											<span className="text-muted-foreground">最新版本：</span>
+											<span className="font-medium text-primary">{plugin.version}</span>
+										</div>
+										<div className="flex items-center gap-3">
+											<span className="text-muted-foreground">范围：</span>
+											<span className="font-medium">
+												{plugin.installed_scopes.map((s) =>
+													s === "user"
+														? "用户"
+														: s === "project"
+															? "项目"
+															: s === "local"
+																? "本地"
+																: s
+												).join(", ")}
+											</span>
+											{plugin.installed_path && plugin.installed_scopes.includes("project") && (
+												<>
+													<span className="text-muted-foreground">•</span>
+													<span
+														className="text-muted-foreground truncate max-w-[200px]"
+														title={plugin.installed_path}
+													>
+														{plugin.installed_path}
+													</span>
+												</>
+											)}
+										</div>
 									</div>
 								</div>
 							</div>
