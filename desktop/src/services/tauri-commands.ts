@@ -223,3 +223,34 @@ export async function listenToTaskUpdates(
 	});
 }
 
+// ==================== Marketplace 命令 ====================
+
+/**
+ * 更新指定的市场
+ */
+export async function updateMarketplace(marketplaceName: string): Promise<string> {
+	return await invoke("update_marketplace", { marketplaceName });
+}
+
+/**
+ * 监听 Marketplace 更新事件
+ */
+export async function listenToMarketplaceUpdates(
+	handler: (event: PluginEventPayload) => void,
+): Promise<UnlistenFn> {
+	return await listenToPluginEvents(handler);
+}
+
+// ==================== 系统通知命令 ====================
+
+/**
+ * 发送系统通知（右下角弹窗）
+ * @param title 通知标题
+ * @param body 通知内容
+ */
+export async function showSystemNotification(
+	title: string,
+	body: string,
+): Promise<void> {
+	return await invoke("send_system_notification", { title, body });
+}

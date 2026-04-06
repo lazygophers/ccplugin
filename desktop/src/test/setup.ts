@@ -98,6 +98,8 @@ mockInvoke.mockImplementation((cmd: string, args?: unknown) => {
 			return Promise.resolve(true);
 		case 'clear_all_notifications':
 			return Promise.resolve(undefined);
+		case 'send_system_notification':
+			return Promise.resolve(undefined);
 
 		// Proxy commands
 		case 'load_proxy_config':

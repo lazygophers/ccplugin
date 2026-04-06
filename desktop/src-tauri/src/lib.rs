@@ -145,6 +145,7 @@ pub fn run() {
             commands::update_notification,
             commands::delete_notification,
             commands::clear_all_notifications,
+            commands::send_system_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

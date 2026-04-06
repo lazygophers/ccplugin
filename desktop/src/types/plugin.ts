@@ -94,7 +94,12 @@ export type PluginEventType =
 	| "cache-clean-failed"
 	// 插件信息事件
 	| "plugin-info-completed"
-	| "plugin-info-failed";
+	| "plugin-info-failed"
+	// Marketplace 更新事件
+	| "marketplace-update-started"
+	| "marketplace-update-progress"
+	| "marketplace-update-completed"
+	| "marketplace-update-failed";
 
 /**
  * 插件事件处理器类型

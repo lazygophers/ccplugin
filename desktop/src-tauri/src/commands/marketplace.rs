@@ -1,7 +1,9 @@
+use crate::events::{emit_plugin_event, PluginEventType};
 use crate::services::{MarketplaceService, PluginInfo};
 use crate::utils;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use tauri::AppHandle;
 
 #[tauri::command]
 pub fn get_marketplace_plugins() -> Result<Vec<PluginInfo>, String> {
@@ -132,7 +134,18 @@ pub fn get_marketplaces() -> Result<Vec<MarketplaceInfo>, String> {
 }
 
 #[tauri::command]
-pub async fn update_marketplace(marketplace_name: String) -> Result<String, String> {
+pub async fn update_marketplace(
+    marketplace_name: String,
+    app_handle: AppHandle,
+) -> Result<String, String> {
+    // 发送开始事件
+    emit_plugin_event(
+        &app_handle,
+        PluginEventType::MarketplaceUpdateStarted,
+        &marketplace_name,
+        serde_json::json!({}),
+    );
+
     let mut cmd = Command::new("claude");
     cmd.args(["plugin", "marketplace", "update", &marketplace_name]);
 
@@ -141,13 +154,36 @@ pub async fn update_marketplace(marketplace_name: String) -> Result<String, Stri
 
     let output = cmd
         .output()
-        .map_err(|e| format!("Failed to execute command: {}", e))?;
+        .map_err(|e| {
+            // 发送失败事件
+            emit_plugin_event(
+                &app_handle,
+                PluginEventType::MarketplaceUpdateFailed,
+                &marketplace_name,
+                serde_json::json!({ "error": e.to_string() }),
+            );
+            format!("Failed to execute command: {}", e)
+        })?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        // 发送完成事件
+        emit_plugin_event(
+            &app_handle,
+            PluginEventType::MarketplaceUpdateCompleted,
+            &marketplace_name,
+            serde_json::json!({ "stdout": stdout }),
+        );
         Ok(stdout.trim().to_string())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        // 发送失败事件
+        emit_plugin_event(
+            &app_handle,
+            PluginEventType::MarketplaceUpdateFailed,
+            &marketplace_name,
+            serde_json::json!({ "error": stderr }),
+        );
         Err(stderr.trim().to_string())
     }
 }

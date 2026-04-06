@@ -1,7 +1,20 @@
 import { memo } from "react";
 import { PluginInfo } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Package, Download, CheckCircle, RefreshCw, Info } from "lucide-react";
+import {
+	Package,
+	Download,
+	CheckCircle,
+	RefreshCw,
+	Info,
+} from "lucide-react";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface PluginCardProps {
 	plugin: PluginInfo;
@@ -103,45 +116,39 @@ function PluginCard({
 			<div className="flex items-center gap-2 mt-auto flex-shrink-0">
 				{plugin.installed ? (
 					<>
-						{onUpdate ? (
-							<Button
-								variant="outline"
-								size="sm"
-								className="flex-1 whitespace-nowrap"
-								onClick={() => onUpdate(plugin.name)}
-								disabled={updating}
-								aria-label={`更新 ${plugin.name}`}
-							>
-								<RefreshCw
-									className={`w-4 h-4 mr-1 ${updating ? "animate-spin" : ""}`}
-								/>
-								<span className="hidden sm:inline">{updating ? "更新中" : "更新"}</span>
-							</Button>
-						) : (
-							<Button
-								variant="outline"
-								size="sm"
-								className="flex-1 whitespace-nowrap"
-								disabled
-								aria-label="已安装"
-							>
-								<CheckCircle className="w-4 h-4 mr-1" />
-								<span className="hidden sm:inline">已安装</span>
-							</Button>
-						)}
-
-						{onUninstall && (
-							<Button
-								variant="destructive"
-								size="sm"
-								className="flex-1 whitespace-nowrap"
-								onClick={() => onUninstall(plugin.name)}
-								disabled={uninstalling || updating}
-								aria-label={`卸载 ${plugin.name}`}
-							>
-								<span className="hidden sm:inline">{uninstalling ? "卸载中" : "卸载"}</span>
-							</Button>
-						)}
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline" size="sm" className="flex-1 whitespace-nowrap">
+									<CheckCircle className="w-4 h-4 mr-2" />
+									已安装
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								{onUpdate && (
+									<DropdownMenuItem
+										onClick={() => onUpdate(plugin.name)}
+										disabled={updating}
+									>
+										<RefreshCw
+											className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`}
+										/>
+										{updating ? "更新中..." : "更新"}
+									</DropdownMenuItem>
+								)}
+								{onUninstall && (
+									<>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem
+											onClick={() => onUninstall(plugin.name)}
+											disabled={uninstalling || updating}
+											className="text-destructive focus:text-destructive"
+										>
+											{uninstalling ? "卸载中..." : "卸载"}
+										</DropdownMenuItem>
+									</>
+								)}
+							</DropdownMenuContent>
+						</DropdownMenu>
 					</>
 				) : (
 					<Button
@@ -170,8 +177,7 @@ export const PluginCardMemo = memo(PluginCard, (prevProps, nextProps) => {
 		prevProps.plugin.name === nextProps.plugin.name &&
 		prevProps.plugin.version === nextProps.plugin.version &&
 		prevProps.plugin.installed === nextProps.plugin.installed &&
-		prevProps.plugin.installed_version ===
-			nextProps.plugin.installed_version &&
+		prevProps.plugin.installed_version === nextProps.plugin.installed_version &&
 		prevProps.plugin.installed_scopes.length === nextProps.plugin.installed_scopes.length &&
 		prevProps.plugin.installed_scopes.every((s, i) => s === nextProps.plugin.installed_scopes[i]) &&
 		prevProps.installing === nextProps.installing &&

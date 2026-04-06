@@ -73,8 +73,14 @@ function formatTime(timestamp: number): string {
 		const days = Math.floor(diff / 86400000);
 		return `${days} 天前`;
 	}
-	// 显示日期
-	return date.toLocaleDateString("zh-CN");
+	// 显示完整日期时间
+	return date.toLocaleString("zh-CN", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 }
 
 export default function NotificationCenterPage() {
@@ -171,9 +177,12 @@ function NotificationCard({ notification, onMarkRead, onDelete }: NotificationCa
 						<div className="flex-1">
 							<h3 className="font-semibold text-lg">{notification.title}</h3>
 							<p className="text-muted-foreground mt-1">{notification.message}</p>
-							<p className="text-xs text-muted-foreground mt-2">
-								{formatTime(notification.updated_at)}
-							</p>
+							<div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+								<span>创建于 {formatTime(notification.created_at)}</span>
+								{notification.updated_at !== notification.created_at && (
+									<span>• 更新于 {formatTime(notification.updated_at)}</span>
+								)}
+							</div>
 						</div>
 
 						{/* 操作按钮 */}

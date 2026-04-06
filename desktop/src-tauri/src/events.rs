@@ -40,6 +40,12 @@ pub enum PluginEventType {
     // 插件信息获取事件
     PluginInfoCompleted,
     PluginInfoFailed,
+
+    // Marketplace 更新事件
+    MarketplaceUpdateStarted,
+    MarketplaceUpdateProgress,
+    MarketplaceUpdateCompleted,
+    MarketplaceUpdateFailed,
 }
 
 impl PluginEventType {
@@ -67,6 +73,11 @@ impl PluginEventType {
 
             PluginEventType::PluginInfoCompleted => "plugin-info-completed",
             PluginEventType::PluginInfoFailed => "plugin-info-failed",
+
+            PluginEventType::MarketplaceUpdateStarted => "marketplace-update-started",
+            PluginEventType::MarketplaceUpdateProgress => "marketplace-update-progress",
+            PluginEventType::MarketplaceUpdateCompleted => "marketplace-update-completed",
+            PluginEventType::MarketplaceUpdateFailed => "marketplace-update-failed",
         }
     }
 }
@@ -86,7 +97,8 @@ pub fn emit_plugin_event(
 
     let _ = app_handle.emit("plugin-event", Some(payload));
 
-    // 同时添加到通知中心
+    // 所有事件都添加到通知中心，包括进度和开始事件
+    // 通知中心支持实时更新进度
     add_notification_for_event(app_handle, &event_type, plugin_name, &data);
 }
 
@@ -168,6 +180,25 @@ fn add_notification_for_event(
             // 信息获取失败不创建通知
             return;
         }
+        PluginEventType::MarketplaceUpdateStarted => {
+            (NotificationType::Info, "更新市场", format!("正在更新 {} 市场", plugin_name))
+        }
+        PluginEventType::MarketplaceUpdateProgress => {
+            let progress = data.get("progress").and_then(|v| v.as_u64()).unwrap_or(0);
+            let msg = data.get("message").and_then(|v| v.as_str()).unwrap_or("处理中...");
+            (
+                NotificationType::Progress,
+                "更新进度",
+                format!("{}: {}% - {}", plugin_name, progress, msg),
+            )
+        }
+        PluginEventType::MarketplaceUpdateCompleted => {
+            (NotificationType::Success, "更新完成", format!("{} 市场已成功更新", plugin_name))
+        }
+        PluginEventType::MarketplaceUpdateFailed => {
+            let error = data.get("error").and_then(|v| v.as_str()).unwrap_or("未知错误");
+            (NotificationType::Error, "更新失败", format!("{} 市场更新失败: {}", plugin_name, error))
+        }
     };
 
     // 创建通知
@@ -179,12 +210,17 @@ fn add_notification_for_event(
         .with_metadata("event".to_string(), Value::String(event_name.to_string()))
         .with_metadata("plugin".to_string(), Value::String(plugin_name.to_string()));
 
-    // 对于进度事件，添加特殊标记用于更新而非新建
+    // 对于进度事件和开始事件，添加特殊标记用于更新而非新建
     if matches!(
         event_type,
         PluginEventType::PluginInstallProgress
             | PluginEventType::PluginUpdateProgress
             | PluginEventType::PluginUninstallProgress
+            | PluginEventType::MarketplaceUpdateProgress
+            | PluginEventType::PluginInstallStarted
+            | PluginEventType::PluginUpdateStarted
+            | PluginEventType::PluginUninstallStarted
+            | PluginEventType::MarketplaceUpdateStarted
     ) {
         notification = notification.with_metadata(
             "progress_key".to_string(),

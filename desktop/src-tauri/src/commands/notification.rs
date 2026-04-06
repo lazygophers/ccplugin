@@ -1,6 +1,8 @@
 use crate::models::{Notification, NotificationType};
 use crate::services::notification_service_mut;
 use serde_json::Value;
+use tauri::{AppHandle, Emitter};
+use tauri_plugin_notification::NotificationExt;
 
 #[tauri::command]
 pub fn add_notification(
@@ -97,5 +99,22 @@ pub fn clear_all_notifications() -> Result<(), String> {
 
     let service = mutex.lock().map_err(|e| format!("Failed to lock service: {}", e))?;
     service.clear_all()
+}
+
+/// 发送系统通知（右下角弹窗）
+#[tauri::command]
+pub fn send_system_notification(
+    title: String,
+    body: String,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    let _ = app_handle
+        .notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show();
+
+    Ok(())
 }
 

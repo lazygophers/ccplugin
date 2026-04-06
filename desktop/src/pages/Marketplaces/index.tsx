@@ -18,7 +18,12 @@ import {
 import { MarketplaceService } from "@/services/marketplace-service";
 import { PluginCardMemo as PluginCard } from "@/components/PluginCard";
 import { PluginDetailDialog } from "@/components/PluginDetailDialog";
-import { installPlugin, uninstallPlugin } from "@/services/tauri-commands";
+import {
+	installPlugin,
+	uninstallPlugin,
+	updateMarketplace,
+	listenToPluginEvents,
+} from "@/services/tauri-commands";
 import type { PluginInfo } from "@/types";
 import {
 	Dialog,
@@ -72,6 +77,9 @@ export default function Marketplaces() {
 		string | null
 	>(null);
 
+	// 全局刷新状态
+	const [refreshing, setRefreshing] = useState(false);
+
 	const loadPlugins = useCallback(async () => {
 		try {
 			const data = await MarketplaceService.getAllPlugins();
@@ -100,6 +108,35 @@ export default function Marketplaces() {
 		loadMarketplaces();
 		loadPlugins();
 	}, []); // 空依赖：只在组件挂载时执行一次
+
+	// 监听 Marketplace 更新事件
+	useEffect(() => {
+		let unlisten: (() => void) | null = null;
+
+		const setupListener = async () => {
+			unlisten = await listenToPluginEvents((event) => {
+				// 处理 Marketplace 更新完成事件
+				if (event.event_type === "marketplace-update-completed") {
+					setRefreshing(false);
+					setUpdatingMarketplace(null);
+					// 重新加载数据
+					loadMarketplaces();
+					loadPlugins();
+				}
+				// 处理 Marketplace 更新失败事件
+				if (event.event_type === "marketplace-update-failed") {
+					setRefreshing(false);
+					setUpdatingMarketplace(null);
+				}
+			});
+		};
+
+		setupListener();
+
+		return () => {
+			unlisten?.();
+		};
+	}, [loadMarketplaces, loadPlugins]);
 
 	const handleMarketplaceClick = useCallback(
 		(marketName: string) => {
@@ -221,6 +258,19 @@ export default function Marketplaces() {
 		[loadMarketplaces, loadPlugins],
 	);
 
+	// 刷新所有市场
+	const handleRefreshAll = useCallback(async () => {
+		setRefreshing(true);
+		try {
+			// 并行更新所有市场
+			await Promise.all(
+				marketplaces.map((m) => updateMarketplace(m.name))
+			);
+		} catch (e) {
+			console.error("Refresh marketplaces failed:", e);
+		}
+	}, [marketplaces]);
+
 	return (
 		<div className="p-6 space-y-6">
 			<div className="flex items-center justify-between gap-3">
@@ -258,15 +308,12 @@ export default function Marketplaces() {
 					<Button
 						variant="outline"
 						size="sm"
-						onClick={() => {
-							loadMarketplaces();
-							loadPlugins();
-						}}
-						disabled={loading}
+						onClick={handleRefreshAll}
+						disabled={loading || refreshing}
 						aria-label="刷新"
 					>
 						<RefreshCw
-							className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+							className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`}
 						/>
 						刷新
 					</Button>
