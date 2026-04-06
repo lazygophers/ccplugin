@@ -141,7 +141,7 @@ export default function Updates() {
 													<span className="text-muted-foreground">•</span>
 													<span
 														className="text-muted-foreground truncate max-w-[200px]"
-														title={plugin.installed_path}
+														title={plugin.update_command || undefined}
 													>
 														{plugin.installed_path}
 													</span>
@@ -155,7 +155,7 @@ export default function Updates() {
 								size="sm"
 								onClick={() => handleUpdate(plugin.name, plugin.installed_scopes[0], plugin.marketplace, plugin.installed_path || undefined)}
 								disabled={updatingPlugin === plugin.name}
-									title={`claude plugin update${plugin.installed_scopes[0] ? " -s " + plugin.installed_scopes[0] : ""} ${plugin.name}`}
+									title={plugin.update_command || undefined}
 							>
 								{updatingPlugin === plugin.name ? (
 									<>

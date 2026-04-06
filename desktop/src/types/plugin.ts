@@ -31,6 +31,7 @@ export interface PluginInfo {
 	installed_scopes: string[]; // "user", "project", or "local" - 支持多个
 	installed_path: string | null; // 项目安装时显示项目路径
 	marketplace: string;
+	update_command?: string | null; // 后端提供的更新命令
 	// 按范围分组的版本信息
 	installed_info?: Array<{
 		scope: string;       // "user", "project", "local"

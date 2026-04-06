@@ -83,6 +83,8 @@ pub struct PluginInfo {
     pub installed_scope: Option<String>,
     pub installed_path: Option<String>,
     pub marketplace: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub update_command: Option<String>,
 }
 
 pub struct MarketplaceService;
@@ -161,6 +163,15 @@ impl MarketplaceService {
                     installed_scope,
                     installed_path,
                     marketplace: "ccplugin-market".to_string(),
+                    update_command: if installed {
+                        Some(format!(
+                            "claude plugin update -s {} {}@ccplugin-market",
+                            installed_scope.as_deref().unwrap_or("user"),
+                            p.name
+                        ))
+                    } else {
+                        None
+                    },
                 }
             })
             .collect::<Vec<_>>();
@@ -372,6 +383,16 @@ impl MarketplaceService {
                             installed_scope,
                             installed_path,
                             marketplace: marketplace_name.to_string(),
+                            update_command: if installed {
+                                Some(format!(
+                                    "claude plugin update -s {} {}@{}",
+                                    installed_scope.as_deref().unwrap_or("user"),
+                                    name,
+                                    marketplace_name
+                                ))
+                            } else {
+                                None
+                            },
                         });
                     }
                 }

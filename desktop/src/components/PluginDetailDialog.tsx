@@ -128,7 +128,7 @@ export function PluginDetailDialog({
                         <DropdownMenuItem
                           onClick={() => onUpdate(plugin.name, plugin.marketplace, plugin.installed_scopes[0], plugin.installed_path || undefined)}
                           disabled={updating}
-                          title={`claude plugin update${plugin.installed_scopes[0] ? " -s " + plugin.installed_scopes[0] : ""} ${plugin.name}`}
+                          title={plugin.update_command || undefined}
                         >
                           <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
                           {updating ? "更新中..." : "更新"}
