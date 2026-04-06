@@ -8,7 +8,7 @@ use crate::events::{emit_plugin_event, PluginEventType};
 use crate::services::PythonBridge;
 
 /// 任务状态
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum TaskStatus {
     Pending,   // 等待执行
     Running,   // 执行中
@@ -18,7 +18,7 @@ pub enum TaskStatus {
 }
 
 /// 任务类型
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum TaskType {
     Install,   // 安装插件
     Update,    // 更新插件
