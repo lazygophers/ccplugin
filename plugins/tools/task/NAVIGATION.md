@@ -15,7 +15,7 @@
 | adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 四级渐进式升级（retry→debug→replan→ask_user） |
 | prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
 
-> **注**：finalizer 已移除。Cleanup 由 loop 自身执行，过期任务由 SessionStart hook 自动清理。
+> **注**：finalizer 已移除。Cleanup 由 loop 自身执行，任务完成时立即删除目录和索引。SessionStart hook 清理意外残留的任务（如系统崩溃）。
 
 ## 支持功能Skills
 

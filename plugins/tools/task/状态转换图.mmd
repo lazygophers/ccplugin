@@ -118,7 +118,7 @@ stateDiagram-v2
         MicroRetro --> FinalReport: 输出最终报告
         FinalReport --> [*]
     }
-    note right of Cleanup: loop 自身执行，无独立 agent\n中间产物由 SessionStart hook 30天后自动清理
+    note right of Cleanup: loop 自身执行，无独立 agent\n任务完成时立即删除目录和索引\nSessionStart hook 清理意外残留任务
 
     Cleanup --> End
     End --> [*]

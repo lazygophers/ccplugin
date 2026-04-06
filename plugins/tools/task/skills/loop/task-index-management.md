@@ -184,15 +184,31 @@ with open(".lazygophers/tasks/index.json", "w") as f:
 2. 更新对应任务的 `quality_score`
 3. 写回文件
 
-### 4. Cleanup：标记任务完成
+### 4. Cleanup：删除任务和索引记录
 
-**时机**：Cleanup 阶段完成后
+**时机**：Cleanup 阶段
 
 **操作**：
-1. 读取索引
-2. 更新任务的 `phase` 为 `completed` 或 `failed`
-3. 更新 `updated_at`
-4. 写回文件
+1. 先更新任务的 `phase` 为 `completed` 或 `failed`（便于其他进程查看最终状态）
+2. 执行微回顾和记忆保存
+3. 删除任务目录 `.lazygophers/tasks/{task_id}/`
+4. 从 index.json 中移除该任务记录
+
+**示例代码**：
+```bash
+TASK_ID="当前任务的task_id"
+
+# 步骤3: 删除任务目录
+rm -rf ".lazygophers/tasks/${TASK_ID}"
+
+# 步骤4: 从索引中移除
+jq --arg tid "$TASK_ID" \
+   'map(select(.task_id != $tid))' \
+   .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
+   mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
+```
+
+**注意**：任务完成后立即清理，不保留历史记录。index.json 仅包含进行中的任务。
 
 ## 容错规则
 

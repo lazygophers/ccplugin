@@ -52,7 +52,12 @@ def _remove_task_dir(task_id: str) -> bool:
 
 
 def cleanup_expired_tasks():
-	"""清理超过30天的过期任务数据
+	"""清理意外残留的过期任务数据（兜底机制）
+
+	正常情况下，任务完成时会在 Cleanup 阶段立即删除目录和索引记录。
+	此函数用于清理意外残留的任务（如任务执行到一半系统崩溃、Cleanup 失败等）。
+
+	清理条件：超过30天未更新的任务
 
 	只有当任务目录成功删除后，才从 index.json 中移除记录。
 	删除失败则保留在 index.json 中，下次 SessionStart 时重试。
