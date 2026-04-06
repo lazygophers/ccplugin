@@ -28,6 +28,7 @@ import { PluginCardMemo as PluginCard } from "@/components/PluginCard";
 import { PluginDetailDialog } from "@/components/PluginDetailDialog";
 import {
 	installPlugin,
+	updatePlugin,
 	uninstallPlugin,
 	updateMarketplace,
 	listenToPluginEvents,
@@ -57,6 +58,7 @@ export default function Marketplaces() {
 	const [installingPlugin, setInstallingPlugin] = useState<string | null>(
 		null,
 	);
+	const [updatingPlugin, setUpdatingPlugin] = useState<string | null>(null);
 	const [uninstallingPlugin, setUninstallingPlugin] = useState<string | null>(
 		null,
 	);
@@ -200,6 +202,20 @@ export default function Marketplaces() {
 			alert(e instanceof Error ? e.message : "卸载失败");
 		} finally {
 			setUninstallingPlugin(null);
+		}
+	}, []); // 空依赖：不需要任何外部变量
+
+	const handleUpdatePlugin = useCallback(async (pluginName: string) => {
+		setUpdatingPlugin(pluginName);
+		try {
+			await updatePlugin(pluginName);
+			// 使用函数式更新，避免依赖 loadPlugins
+			setPlugins(await MarketplaceService.getAllPlugins());
+		} catch (e) {
+			console.error("Update failed:", e);
+			alert(e instanceof Error ? e.message : "更新失败");
+		} finally {
+			setUpdatingPlugin(null);
 		}
 	}, []); // 空依赖：不需要任何外部变量
 
@@ -477,6 +493,9 @@ export default function Marketplaces() {
 																	onInstall={
 																		handleInstallClick
 																	}
+																	onUpdate={
+																		handleUpdatePlugin
+																	}
 																	onUninstall={
 																		handleUninstall
 																	}
@@ -485,6 +504,10 @@ export default function Marketplaces() {
 																	}
 																	installing={
 																		installingPlugin ===
+																		plugin.name
+																	}
+																	updating={
+																		updatingPlugin ===
 																		plugin.name
 																	}
 																	uninstalling={
