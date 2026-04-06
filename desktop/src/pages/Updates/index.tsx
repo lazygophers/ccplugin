@@ -121,6 +121,17 @@ export default function Updates() {
 										<span className="text-muted-foreground">→</span>
 										<span className="text-muted-foreground">最新版本：</span>
 										<span className="font-medium text-primary">{plugin.version}</span>
+										<span className="text-muted-foreground">•</span>
+										<span className="text-muted-foreground">范围：</span>
+										<span className="font-medium">
+											{plugin.installed_scopes.map((s) =>
+												s === "user"
+													? "用户"
+													: s === "project"
+														? "项目"
+														: s
+											).join(", ")}
+										</span>
 									</div>
 								</div>
 							</div>
