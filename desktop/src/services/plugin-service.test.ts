@@ -65,7 +65,7 @@ describe("PluginService", () => {
 
       const cleanup = await PluginService.update("python", handler);
 
-      expect(invoke).toHaveBeenCalledWith("update_plugin", { pluginName: "python" });
+      expect(invoke).toHaveBeenCalledWith("update_plugin", { pluginName: "python", scope: undefined });
       expect(typeof cleanup).toBe("function");
     });
 

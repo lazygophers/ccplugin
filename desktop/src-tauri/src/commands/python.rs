@@ -44,6 +44,7 @@ pub fn uninstall_plugin(
 #[tauri::command]
 pub fn update_plugin(
     plugin_name: String,
+    scope: Option<String>,
     _app_handle: AppHandle,
 ) -> Result<(), String> {
     let task_queue = crate::services::task_queue()
@@ -53,7 +54,7 @@ pub fn update_plugin(
         TaskType::Update,
         plugin_name,
         None,
-        None,
+        scope,
     );
 
     task_queue.add_task(task)?;

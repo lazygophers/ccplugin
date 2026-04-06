@@ -26,7 +26,7 @@ interface PluginDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInstall?: (pluginName: string) => void;
-  onUpdate?: (pluginName: string) => void;
+  onUpdate?: (pluginName: string, scope?: string) => void;
   onUninstall?: (pluginName: string) => void;
   installing?: boolean;
   updating?: boolean;
@@ -126,9 +126,9 @@ export function PluginDetailDialog({
                     <DropdownMenuContent align="end">
                       {onUpdate && (
                         <DropdownMenuItem
-                          onClick={() => onUpdate(plugin.name)}
+                          onClick={() => onUpdate(plugin.name, plugin.installed_scopes[0])}
                           disabled={updating}
-                          title={`claude plugin update ${plugin.name}`}
+                          title={`claude plugin update${plugin.installed_scopes[0] ? " -s " + plugin.installed_scopes[0] : ""} ${plugin.name}`}
                         >
                           <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
                           {updating ? "更新中..." : "更新"}

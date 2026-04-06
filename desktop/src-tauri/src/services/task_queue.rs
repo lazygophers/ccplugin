@@ -256,6 +256,7 @@ impl TaskQueue {
                     bridge
                         .update_plugin_with_progress(
                             &task.plugin_name,
+                            task.scope.as_deref(),
                             |status, progress, message| {
                                 // 更新进度
                                 task.progress = progress;

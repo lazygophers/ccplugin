@@ -21,10 +21,10 @@ export default function Updates() {
 		[plugins]
 	);
 
-	const handleUpdate = async (pluginName: string) => {
+	const handleUpdate = async (pluginName: string, scope?: string) => {
 		setUpdatingPlugin(pluginName);
 		try {
-			await update(pluginName);
+			await update(pluginName, scope);
 			await refresh();
 		} finally {
 			setUpdatingPlugin(null);
@@ -153,9 +153,9 @@ export default function Updates() {
 							</div>
 							<Button
 								size="sm"
-								onClick={() => handleUpdate(plugin.name)}
+								onClick={() => handleUpdate(plugin.name, plugin.installed_scopes[0])}
 								disabled={updatingPlugin === plugin.name}
-									title={`claude plugin update ${plugin.name}`}
+									title={`claude plugin update${plugin.installed_scopes[0] ? " -s " + plugin.installed_scopes[0] : ""} ${plugin.name}`}
 							>
 								{updatingPlugin === plugin.name ? (
 									<>

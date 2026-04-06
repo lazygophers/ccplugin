@@ -7,7 +7,7 @@ interface UsePythonCommandResult {
 	progress: { plugin_name: string; status: string; progress: number; message: string } | null;
 	error: string | null;
 	install: (pluginName: string, marketplace?: string) => Promise<void>;
-	update: (pluginName: string) => Promise<void>;
+	update: (pluginName: string, scope?: string) => Promise<void>;
 	uninstall: (pluginName: string) => Promise<void>;
 	clean: () => Promise<void>;
 	getInfo: (pluginName: string) => Promise<void>;
@@ -84,9 +84,9 @@ export function usePythonCommand(): UsePythonCommandResult {
 	);
 
 	const update = useCallback(
-		async (pluginName: string) => {
+		async (pluginName: string, scope?: string) => {
 			currentPluginRef.current = pluginName;
-			await PluginService.update(pluginName, handleEvent);
+			await PluginService.update(pluginName, handleEvent, scope);
 		},
 		[handleEvent]
 	);

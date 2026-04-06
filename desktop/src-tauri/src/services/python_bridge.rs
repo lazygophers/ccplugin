@@ -139,12 +139,17 @@ impl PythonBridge {
     pub async fn update_plugin_with_progress<F>(
         &self,
         plugin_name: &str,
+        scope: Option<&str>,
         mut progress_callback: F,
     ) -> Result<CommandResult, String>
     where
         F: FnMut(InstallStatus, u8, &str),
     {
-        let args = ["plugin", "update", plugin_name];
+        let mut args = vec!["plugin", "update"];
+        if let Some(s) = scope {
+            args.extend(["--scope", s]);
+        }
+        args.push(plugin_name);
 
         progress_callback(InstallStatus::Downloading, 10, "开始更新插件...");
 

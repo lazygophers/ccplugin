@@ -38,9 +38,13 @@ export async function installPlugin(
 /**
  * 更新插件（立即返回，通过事件获取进度）
  */
-export async function updatePlugin(pluginName: string): Promise<void> {
+export async function updatePlugin(
+	pluginName: string,
+	scope?: string,
+): Promise<void> {
 	return await invoke("update_plugin", {
 		pluginName,
+		scope,
 	});
 }
 
