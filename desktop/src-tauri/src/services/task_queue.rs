@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_notification::NotificationExt;
 
 use crate::events::{emit_plugin_event, PluginEventType};
 use crate::services::PythonBridge;
@@ -182,7 +183,7 @@ impl TaskQueue {
     fn execute_task(
         mut task: Task,
         app_handle: AppHandle,
-        queue: Arc<Mutex<VecDeque<Task>>>,
+        _queue: Arc<Mutex<VecDeque<Task>>>,
         running: Arc<Mutex<Vec<Task>>>,
         completed: Arc<Mutex<Vec<Task>>>,
     ) {
@@ -223,8 +224,8 @@ impl TaskQueue {
             let bridge = PythonBridge::new();
             let result = match task.task_type {
                 TaskType::Install => {
-                    let scope = task.scope.unwrap_or_else(|| "user".to_string());
-                    let marketplace = task.marketplace.unwrap();
+                    let scope = task.scope.clone().unwrap_or_else(|| "user".to_string());
+                    let marketplace = task.marketplace.clone().unwrap();
 
                     bridge
                         .install_plugin_with_progress(

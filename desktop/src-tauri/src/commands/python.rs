@@ -25,7 +25,7 @@ pub fn install_plugin(
 #[tauri::command]
 pub fn uninstall_plugin(
     plugin_name: String,
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
 ) -> Result<(), String> {
     let task_queue = crate::services::task_queue()
         .ok_or("任务队列未初始化".to_string())?;
@@ -44,7 +44,7 @@ pub fn uninstall_plugin(
 #[tauri::command]
 pub fn update_plugin(
     plugin_name: String,
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
 ) -> Result<(), String> {
     let task_queue = crate::services::task_queue()
         .ok_or("任务队列未初始化".to_string())?;
