@@ -13,24 +13,22 @@
 
    ```bash
    TASK_ID="当前任务的task_id"      # 从 context 获取
-   SESSION_ID="当前会话的session_id"  # 从环境获取
    FINAL_PHASE="completed"  # 或 failed
    QUALITY_SCORE=85  # 从 metadata.json 读取（可能为 null）
    TIMESTAMP=$(date +%s)  # 整数时间戳
 
-   jq --arg sid "$SESSION_ID" \
-      --arg tid "$TASK_ID" \
+   jq --arg tid "$TASK_ID" \
       --arg phase "$FINAL_PHASE" \
       --argjson score "$QUALITY_SCORE" \
       --argjson ts "$TIMESTAMP" \
       '
-      .[$sid] |= map(
+      map(
         if .task_id == $tid then
           .phase = $phase |
           .quality_score = $score |
           .updated_at = $ts
         else . end
-      )
+      ) | sort_by(.updated_at) | reverse
       ' .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
       mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
    ```
@@ -43,9 +41,8 @@
    - 需改进：{内容}
    - 下次注意：{内容}
    ```
-4. **记忆保存**：`save_task_episode(result, duration, iterations, agents, skills, retrospective)` → 返回 episode_id
-5. **短期记忆清理**：`cleanup_working_memory(session_id)`
-6. **最终报告**：状态/迭代次数/停滞次数/指导次数/时长/变更文件/记忆 URI
+4. **记忆保存**（可选）：如果项目有记忆系统，保存任务经验和回顾
+5. **最终报告**：状态/迭代次数/停滞次数/指导次数/时长/变更文件
 
 ## 状态转换：进入 End
 

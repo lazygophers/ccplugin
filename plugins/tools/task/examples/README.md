@@ -54,7 +54,6 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `task_id` | string | 任务唯一标识（2-6 个汉字） |
-| `session_id` | string | Claude Code 会话标识（MD5 哈希） |
 | `description` | string | 用户原始任务描述 |
 | `phase` | string | 当前阶段（完成时为 `completed` 或 `failed`） |
 | `created_at` | number | 任务创建时间（Unix 时间戳，秒） |
@@ -109,19 +108,17 @@ print(timestamp)  # 1733308800
 完成状态的 metadata.json 会同步到 `.lazygophers/tasks/index.json`：
 
 ```json
-{
-  "a1b2c3d4e5f6789012345678abcdef01": [
-    {
-      "task_id": "用户认证",
-      "description": "添加用户登录和注册功能，包括表单验证和错误处理",
-      "phase": "completed",
-      "created_at": 1733308800,
-      "updated_at": 1733323200,
-      "iteration": 2,
-      "quality_score": 92
-    }
-  ]
-}
+[
+  {
+    "task_id": "用户认证",
+    "description": "添加用户登录和注册功能，包括表单验证和错误处理",
+    "phase": "completed",
+    "created_at": 1733308800,
+    "updated_at": 1733323200,
+    "iteration": 2,
+    "quality_score": 92
+  }
+]
 ```
 
-**注意**：索引中不包含 `session_id`（作为 key）、`error` 和 `result`（详细信息保留在 metadata.json）。
+**注意**：索引中不包含 `error` 和 `result`（详细信息保留在 metadata.json）。索引按 `updated_at` 降序排列（最新的在前）。

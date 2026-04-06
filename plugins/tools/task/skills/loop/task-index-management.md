@@ -10,55 +10,50 @@
 
 ## 数据结构
 
-索引文件使用 **Map 结构**，**根键直接是 session_id 的哈希值**（如 `"14ec8eae-411c-421f-b184-536c09507fb0"`），value 为该会话的任务列表（数组）。
+索引文件使用 **数组结构**，存储所有任务的基本信息，按 `updated_at` 降序排列（最新的在前）。
 
 **⚠️ 重要**：
-- 根键是实际的 session_id 值，不是字符串 `"session_id"`
-- 不可使用 `"tasks"`、`"sessions"` 等包装键
+- 数组元素是任务对象，不使用任何包装键
 - 时间戳必须是整数（秒），不可使用浮点数
 - 必须包含 `updated_at` 字段
+- 数组按 `updated_at` 降序排列
 
 **正确示例**：
 ```json
-{
-  "a1b2c3d4e5f6...": [
-    {
-      "task_id": "用户认证",
-      "description": "添加用户登录功能",
-      "phase": "execution",
-      "created_at": 1733308800,
-      "updated_at": 1733312400,
-      "iteration": 2,
-      "quality_score": 85
-    },
-    {
-      "task_id": "密码重置",
-      "description": "实现密码重置功能",
-      "phase": "completed",
-      "created_at": 1733320000,
-      "updated_at": 1733323600,
-      "iteration": 1,
-      "quality_score": 92
-    }
-  ],
-  "b2c3d4e5f6g7...": [
-    {
-      "task_id": "数据导出",
-      "description": "添加数据导出 CSV 功能",
-      "phase": "planning",
-      "created_at": 1733330000,
-      "updated_at": 1733330000,
-      "iteration": 0,
-      "quality_score": null
-    }
-  ]
-}
+[
+  {
+    "task_id": "数据导出",
+    "description": "添加数据导出 CSV 功能",
+    "phase": "planning",
+    "created_at": 1733330000,
+    "updated_at": 1733330000,
+    "iteration": 0,
+    "quality_score": null
+  },
+  {
+    "task_id": "密码重置",
+    "description": "实现密码重置功能",
+    "phase": "completed",
+    "created_at": 1733320000,
+    "updated_at": 1733323600,
+    "iteration": 1,
+    "quality_score": 92
+  },
+  {
+    "task_id": "用户认证",
+    "description": "添加用户登录功能",
+    "phase": "execution",
+    "created_at": 1733308800,
+    "updated_at": 1733312400,
+    "iteration": 2,
+    "quality_score": 85
+  }
+]
 ```
 
 **❌ 错误示例**（不可使用）：
 ```json
 {
-  "session_id": "14ec8eae-411c-421f-b184-536c09507fb0",
   "tasks": [
     {
       "task_id": "修复日志",
@@ -71,7 +66,7 @@
 }
 ```
 **错误原因**：
-- ❌ 使用了 `"session_id"` 和 `"tasks"` 包装键
+- ❌ 使用了 `"tasks"` 包装键
 - ❌ 时间戳是浮点数而非整数
 - ❌ 缺少 `updated_at` 和 `description` 字段
 
@@ -79,7 +74,6 @@
 
 | 字段 | 类型 | 说明 | 示例 |
 |------|------|------|------|
-| **索引 key** | string | Claude Code 会话标识（MD5 哈希） | `"a1b2c3d4e5f6..."` |
 | `task_id` | string | 任务唯一标识（中文描述，2-6 个汉字） | `"用户认证"` |
 | `description` | string | 用户原始任务描述 | `"添加用户登录功能"` |
 | `phase` | string | 当前阶段（枚举值） | `"execution"` |
@@ -108,12 +102,12 @@
 
 **操作**：
 1. 检查 `.lazygophers/tasks/index.json` 是否存在
-   - 不存在：创建空对象 `{}`
+   - 不存在：创建空数组 `[]`
    - 存在：读取现有内容
-2. 在当前 session_id 的任务列表中追加任务信息
+2. 在数组头部插入当前任务信息（保持最新任务在前）
 3. 写回文件
 
-**重要性**：Stop hook 依赖 index.json 检查任务状态，必须在创建 metadata.json 之前完成索引更新
+**重要性**：PreToolUse hook 依赖 index.json 检查任务状态，必须在创建 metadata.json 之前完成索引更新
 
 **示例代码**：
 ```python
@@ -128,15 +122,11 @@ if index_path.exists():
     with open(index_path) as f:
         index = json.load(f)
 else:
-    index = {}
+    index = []
 
-# 获取当前会话的任务列表
-if session_id not in index:
-    index[session_id] = []
-
-# 追加当前任务
+# 在数组头部插入当前任务（保持最新任务在前）
 now = int(time.time())
-index[session_id].append({
+index.insert(0, {
     "task_id": task_id,
     "description": user_task,
     "phase": "initialization",
@@ -157,9 +147,10 @@ with open(index_path, "w") as f:
 
 **操作**：
 1. 读取 `.lazygophers/tasks/index.json`
-2. 在 session_id 的任务列表中找到对应 `task_id` 的记录
+2. 在数组中找到对应 `task_id` 的记录
 3. 更新 `phase`、`updated_at`、`iteration`（如果迭代增加）
-4. 写回文件
+4. 重新排序数组（按 `updated_at` 降序）
+5. 写回文件
 
 **示例代码**：
 ```python
@@ -168,14 +159,16 @@ with open(".lazygophers/tasks/index.json") as f:
     index = json.load(f)
 
 # 更新任务状态
-if session_id in index:
-    for task in index[session_id]:
-        if task["task_id"] == task_id:
-            task["phase"] = new_phase
-            task["updated_at"] = int(time.time())
-            if new_iteration is not None:
-                task["iteration"] = new_iteration
-            break
+for task in index:
+    if task["task_id"] == task_id:
+        task["phase"] = new_phase
+        task["updated_at"] = int(time.time())
+        if new_iteration is not None:
+            task["iteration"] = new_iteration
+        break
+
+# 重新排序（按 updated_at 降序）
+index.sort(key=lambda t: t["updated_at"], reverse=True)
 
 # 写回索引
 with open(".lazygophers/tasks/index.json", "w") as f:
@@ -213,38 +206,38 @@ with open(".lazygophers/tasks/index.json", "w") as f:
 ### 查询所有进行中的任务
 
 ```bash
-jq '[.[][] | select(.phase != "completed" and .phase != "failed")]' .lazygophers/tasks/index.json
+jq '[.[] | select(.phase != "completed" and .phase != "failed")]' .lazygophers/tasks/index.json
 ```
 
-### 查询特定会话的任务
+### 查询特定任务
 
 ```bash
-jq --arg sid "$SESSION_ID" '.[$sid] // []' .lazygophers/tasks/index.json
+jq --arg tid "用户认证" '.[] | select(.task_id == $tid)' .lazygophers/tasks/index.json
 ```
 
-### 查询会话的任务数量
+### 查询任务总数
 
 ```bash
-jq --arg sid "$SESSION_ID" '(.[$sid] // []) | length' .lazygophers/tasks/index.json
+jq 'length' .lazygophers/tasks/index.json
 ```
 
 ### 统计所有任务状态
 
 ```bash
-jq '[.[][] | {phase, task_id}] | group_by(.phase) | map({phase: .[0].phase, count: length})' .lazygophers/tasks/index.json
+jq '[.[] | {phase, task_id}] | group_by(.phase) | map({phase: .[0].phase, count: length})' .lazygophers/tasks/index.json
 ```
 
-### 查询最近的 5 个任务（跨所有会话）
+### 查询最近的 5 个任务
 
 ```bash
-jq '[to_entries[] | .key as $sid | .value[] | . + {session_id: $sid}] | sort_by(.updated_at) | reverse | .[0:5]' .lazygophers/tasks/index.json
+jq '.[0:5]' .lazygophers/tasks/index.json
 ```
-**说明**：`to_entries` 将 Map 转为 `[{key: session_id, value: [tasks]}]`，然后为每个任务添加 session_id 字段。
+**说明**：由于数组已按 `updated_at` 降序排列，直接切片即可。
 
-### 查询所有会话 ID
+### 查询所有已完成的任务
 
 ```bash
-jq 'keys' .lazygophers/tasks/index.json
+jq '[.[] | select(.phase == "completed")]' .lazygophers/tasks/index.json
 ```
 
 ## 与 metadata.json 的关系

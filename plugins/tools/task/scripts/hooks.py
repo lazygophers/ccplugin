@@ -63,31 +63,21 @@ def cleanup_expired_tasks():
 
 	expiry_threshold = int(time.time()) - (30 * 24 * 60 * 60)
 	cleaned_count = 0
-	index_modified = False
+	active_tasks = []
 
-	for session_id, tasks in list(index.items()):
-		active_tasks = []
-		for task in tasks:
-			task_id = task.get("task_id", "")
-			if task.get("updated_at", 0) < expiry_threshold:
-				if _remove_task_dir(task_id):
-					cleaned_count += 1
-					index_modified = True
-				else:
-					active_tasks.append(task)
+	for task in index:
+		task_id = task.get("task_id", "")
+		if task.get("updated_at", 0) < expiry_threshold:
+			if _remove_task_dir(task_id):
+				cleaned_count += 1
 			else:
 				active_tasks.append(task)
-
-		if active_tasks:
-			index[session_id] = active_tasks
 		else:
-			del index[session_id]
-			index_modified = True
+			active_tasks.append(task)
 
-	if index_modified:
-		_write_index(index)
-		if cleaned_count > 0:
-			logging.info(f"已清理 {cleaned_count} 个过期任务（超过30天）")
+	if cleaned_count > 0:
+		_write_index(active_tasks)
+		logging.info(f"已清理 {cleaned_count} 个过期任务（超过30天）")
 
 
 def handle_session_start():
@@ -99,29 +89,19 @@ def handle_session_start():
 	cleanup_expired_tasks()
 
 
-def cleanup_session_tasks(session_id: str, index: dict):
-	"""清理指定 session 的所有任务目录，并从 index.json 中移除记录"""
-	cleaned_count = 0
-	for task in index.get(session_id, []):
-		task_id = task.get("task_id", "")
-		if task_id and _remove_task_dir(task_id):
-			cleaned_count += 1
-
-	if session_id in index:
-		del index[session_id]
-		_write_index(index)
-
-	if cleaned_count > 0:
-		logging.info(f"已清理 session {session_id} 的 {cleaned_count} 个任务目录")
-
-
-def handle_stop(hook_event_name: str, session_id: str):
-	"""Stop hook: 清理当前 session 的所有任务目录和 index 记录"""
+def handle_stop():
+	"""Stop hook: 检查是否有未完成的任务并给出提示"""
 	index = _read_index()
-	if not index or session_id not in index:
+	if not index:
 		return
 
-	cleanup_session_tasks(session_id, index)
+	# 检查是否有活跃任务（未完成的任务）
+	active_tasks = [t for t in index if t.get("phase") not in ["completed", "failed"]]
+	if active_tasks:
+		task_list = ", ".join([f"{t.get('task_id')}({t.get('phase')})" for t in active_tasks[:3]])
+		if len(active_tasks) > 3:
+			task_list += f" 等 {len(active_tasks)} 个"
+		logging.warning(f"会话结束时有 {len(active_tasks)} 个未完成任务: {task_list}")
 
 
 def handle_permission_request(hook_data: Dict[str, any]):
@@ -158,7 +138,7 @@ def handle_hook() -> None:
 		elif hook_event_name == "PermissionRequest":
 			handle_permission_request(input_data)
 		elif hook_event_name == "Stop":
-			handle_stop(hook_event_name, input_data.get("session_id", ""))
+			handle_stop()
 	except Exception as e:
 		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
 		sys.exit(0)

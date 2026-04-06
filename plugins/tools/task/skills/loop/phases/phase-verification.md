@@ -67,22 +67,20 @@ Verification passed 后，检查 `result.quality_score` 是否达到当前迭代
 **执行命令**（Bash + jq）：
 ```bash
 TASK_ID="当前任务的task_id"      # 从 context 获取
-SESSION_ID="当前会话的session_id"  # 从环境获取
 QUALITY_SCORE=85  # 从 metadata.json 的 result.quality_score 读取
 TIMESTAMP=$(date +%s)  # 整数时间戳
 
-jq --arg sid "$SESSION_ID" \
-   --arg tid "$TASK_ID" \
+jq --arg tid "$TASK_ID" \
    --argjson score "$QUALITY_SCORE" \
    --argjson ts "$TIMESTAMP" \
    '
-   .[$sid] |= map(
+   map(
      if .task_id == $tid then
        .phase = "verification" |
        .quality_score = $score |
        .updated_at = $ts
      else . end
-   )
+   ) | sort_by(.updated_at) | reverse
    ' .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
    mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
 ```

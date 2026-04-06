@@ -32,12 +32,11 @@
    - 设置 `context.task_id = task_id`
 4. **【第一步】更新任务索引** `.lazygophers/tasks/index.json`（PreToolUse hook 依赖此文件，必须最先创建）：
    
-   索引文件使用 Map 结构（**根键直接是 session_id 的哈希值**），存储所有任务的基本信息，便于快速查询和管理。首次创建索引文件时初始化为空对象 `{}`，后续任务追加到对应 session_id 的数组中。
+   索引文件使用**数组结构**，存储所有任务的基本信息，按 `updated_at` 降序排列（最新的在前）。首次创建索引文件时初始化为空数组 `[]`，后续任务插入到数组头部。
    
    **⚠️ 强制约束**：
    - **禁止使用 Write/Edit 工具操作 index.json**
    - **必须使用 Bash 工具执行以下 jq 命令**
-   - **根键直接是 session_id 哈希值**（如 `"14ec8eae-411c-421f-b184-536c09507fb0"`），不可使用 `"session_id"`、`"tasks"`、`"sessions"` 等包装键名
    - **时间戳必须是整数**（`date +%s`），不可使用浮点数
    - **必须包含 updated_at 字段**
    
@@ -46,7 +45,6 @@
    ```bash
    # 设置变量（从上下文中获取实际值）
    TASK_ID="已生成的task_id"     # 步骤3生成的 task_id（2-6个汉字）
-   SESSION_ID="当前会话的session_id"  # 从 Claude Code 环境获取
    USER_TASK="用户的原始任务描述"  # 用户输入的任务描述
    TIMESTAMP=$(date +%s)          # 当前Unix时间戳（整数，秒）
    
@@ -55,19 +53,15 @@
    
    # 创建 index.json（如果不存在）
    if [ ! -f .lazygophers/tasks/index.json ]; then
-       echo '{}' > .lazygophers/tasks/index.json
+       echo '[]' > .lazygophers/tasks/index.json
    fi
    
-   # 更新索引：添加当前任务到 session_id 的任务列表
-   jq --arg sid "$SESSION_ID" \
-      --arg tid "$TASK_ID" \
+   # 更新索引：在数组头部插入当前任务（保持最新任务在前）
+   jq --arg tid "$TASK_ID" \
       --arg desc "$USER_TASK" \
       --argjson ts "$TIMESTAMP" \
       '
-      # 确保 session_id 键存在
-      if has($sid) then . else . + {($sid): []} end |
-      # 追加当前任务信息
-      .[$sid] += [{
+      [{
         task_id: $tid,
         description: $desc,
         phase: "initialization",
@@ -75,53 +69,47 @@
         updated_at: $ts,
         iteration: 0,
         quality_score: null
-      }]
+      }] + .
       ' .lazygophers/tasks/index.json > .lazygophers/tasks/index.json.tmp && \
       mv .lazygophers/tasks/index.json.tmp .lazygophers/tasks/index.json
    ```
    
-   **JSON 结构示例**（根键直接是 session_id 哈希值）：
+   **JSON 结构示例**（数组结构，按 updated_at 降序）：
    
    ```json
-   {
-     "14ec8eae-411c-421f-b184-536c09507fb0": [
-       {
-         "task_id": "修复日志",
-         "description": "修复日志输出格式错误",
-         "phase": "initialization",
-         "created_at": 1733308800,
-         "updated_at": 1733308800,
-         "iteration": 0,
-         "quality_score": null
-       }
-     ]
-   }
+   [
+     {
+       "task_id": "修复日志",
+       "description": "修复日志输出格式错误",
+       "phase": "initialization",
+       "created_at": 1733308800,
+       "updated_at": 1733308800,
+       "iteration": 0,
+       "quality_score": null
+     }
+   ]
    ```
    
    **❌ 错误示例**（不可使用包装键）：
    ```json
    {
-     "session_id": "14ec8eae...",
      "tasks": [...]
    }
    ```
    
    **索引操作规则**：
-   - **创建任务**：检查 index.json 是否存在，不存在则创建空对象 `{}`；检查 session_id 是否存在，不存在则创建空数组 `[]`；然后追加当前任务信息
-   - **更新任务**：每次阶段转换时，在对应 session_id 的任务列表中找到 task_id，更新 phase、updated_at、iteration、quality_score
+   - **创建任务**：检查 index.json 是否存在，不存在则创建空数组 `[]`；然后在数组头部插入当前任务信息
+   - **更新任务**：每次阶段转换时，找到对应 task_id 的记录，更新 phase、updated_at、iteration、quality_score，然后重新排序（按 updated_at 降序）
    - **清理任务**：Cleanup 阶段完成后，更新索引中对应任务的 phase 为 `completed` 或 `failed`
    
    **【自检】验证 index.json 已正确更新**（防御性编程，避免索引创建失败导致后续 hooks 阻断）：
    
-   读取 `.lazygophers/tasks/index.json` 并验证当前 `session_id` 和 `task_id` 已记录：
+   读取 `.lazygophers/tasks/index.json` 并验证当前 `task_id` 已记录：
    
    ```bash
-   # 检查 session_id 是否存在
-   jq -e --arg sid "$SESSION_ID" 'has($sid)' .lazygophers/tasks/index.json
-   
-   # 检查该 session 下是否包含当前 task_id
-   jq -e --arg sid "$SESSION_ID" --arg tid "$TASK_ID" \
-     '.[$sid] | any(.task_id == $tid)' .lazygophers/tasks/index.json
+   # 检查是否包含当前 task_id
+   jq -e --arg tid "$TASK_ID" \
+     'any(.task_id == $tid)' .lazygophers/tasks/index.json
    ```
    
    **如验证失败**（索引缺失或损坏）：
@@ -138,7 +126,6 @@
    ```json
    {
      "task_id": "${task_id}",
-     "session_id": "${session_id}",
      "description": "${user_task}",
      "phase": "initialization",
      "created_at": 1733308800,
@@ -151,7 +138,6 @@
    }
    ```
    - `task_id`：任务唯一标识（从用户任务描述提取的中文描述，2-6 个汉字）
-   - `session_id`：Claude Code 会话标识（MD5 哈希，用于记忆加载、日志关联）
    - `description`：用户原始任务描述
    - `phase`：当前阶段，枚举值：`initialization` | `planning` | `execution` | `verification` | `quality_gate` | `adjustment` | `cleanup` | `completed` | `failed`
    - `created_at`：任务创建时间（Unix 时间戳，秒）
@@ -163,7 +149,7 @@
    - `skip_next_plan_confirm`：布尔值，当用户选择"确认并跳过计划确认"（选项B）时设为 true，Planning 完成后自动重置为 false
 
 7. **创建空 tasks.json**：`{ "tasks": [] }`（Planning 阶段由 planner 写入）
-8. **记忆加载**：生成 session_id(MD5) → `load_task_memories()` → 显示 episodic(前 3 个) + semantic 记忆
+8. **记忆加载**（可选）：如果项目有记忆系统，加载相关记忆
 9. **资源检查**：`ListSkills()` + `ListAgents()`
 
 **注意**：过期任务的清理（超过30天）由 SessionStart hook 自动处理，无需手动清理。
