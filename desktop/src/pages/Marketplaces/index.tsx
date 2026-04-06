@@ -427,7 +427,7 @@ export default function Marketplaces() {
 																			handleUpdateMarketplace(m.name);
 																		}}
 																		disabled={updatingMarketplace === m.name}
-																			title={`claude plugin marketplace update ${m.name}`}
+																			title={m.update_command || undefined}
 																	>
 																		<RefreshCw
 																			className={`w-4 h-4 mr-2 ${updatingMarketplace === m.name ? "animate-spin" : ""}`}

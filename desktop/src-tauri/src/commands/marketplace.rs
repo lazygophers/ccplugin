@@ -45,6 +45,8 @@ pub struct MarketplaceInfo {
     pub url: String,
     #[serde(rename = "installLocation", default)]
     pub install_location: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub update_command: Option<String>,
 }
 
 #[tauri::command]
@@ -123,10 +125,11 @@ pub fn get_marketplaces() -> Result<Vec<MarketplaceInfo>, String> {
         };
 
         result.push(MarketplaceInfo {
-            name,
+            name: name.clone(),
             source,
             url,
             install_location,
+            update_command: Some(format!("claude plugin marketplace update {}", name)),
         });
     }
 

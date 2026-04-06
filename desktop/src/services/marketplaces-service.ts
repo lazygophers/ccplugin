@@ -5,6 +5,7 @@ export interface MarketplaceInfo {
   source?: string;
   url?: string;
   installLocation?: string;
+  update_command?: string | null; // 后端提供的更新命令
 }
 
 export class MarketplacesService {
