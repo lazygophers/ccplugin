@@ -2,6 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+	DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
 	Loader2,
 	RefreshCw,
 	Store,
@@ -10,6 +17,7 @@ import {
 	ChevronDown,
 	ChevronUp,
 	Package,
+	MoreVertical,
 } from "lucide-react";
 import {
 	MarketplacesService,
@@ -385,44 +393,44 @@ export default function Marketplaces() {
 																}{" "}
 																个插件)
 															</span>
-															<Button
-																variant="ghost"
-																size="sm"
-																className="h-6 px-2"
-																onClick={(e) => {
-																	e.stopPropagation();
-																	handleUpdateMarketplace(
-																		m.name,
-																	);
-																}}
-																disabled={
-																	updatingMarketplace ===
-																	m.name
-																}
-																title="更新市场"
-															>
-																{updatingMarketplace ===
-																m.name ? (
-																	<Loader2 className="w-3 h-3 animate-spin" />
-																) : (
-																	<RefreshCw className="w-3 h-3" />
-																)}
-															</Button>
-															<Button
-																variant="ghost"
-																size="sm"
-																className="h-6 px-2 text-destructive hover:text-destructive"
-																onClick={(
-																	e,
-																) => {
-																	e.stopPropagation();
-																	handleRemoveMarketplace(
-																		m.name,
-																	);
-																}}
-															>
-																<Trash2 className="w-3 h-3" />
-															</Button>
+															<DropdownMenu>
+																<DropdownMenuTrigger asChild>
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		className="h-6 px-2"
+																		onClick={(e) => e.stopPropagation()}
+																	>
+																		<MoreVertical className="w-3 h-3" />
+																	</Button>
+																</DropdownMenuTrigger>
+																<DropdownMenuContent align="end">
+																	<DropdownMenuItem
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			handleUpdateMarketplace(m.name);
+																		}}
+																		disabled={updatingMarketplace === m.name}
+																	>
+																		<RefreshCw
+																			className={`w-4 h-4 mr-2 ${updatingMarketplace === m.name ? "animate-spin" : ""}`}
+																		/>
+																		{updatingMarketplace === m.name ? "更新中..." : "更新市场"}
+																	</DropdownMenuItem>
+																	<DropdownMenuSeparator />
+																	<DropdownMenuItem
+																		onClick={(e) => {
+																			e.stopPropagation();
+																			handleRemoveMarketplace(m.name);
+																		}}
+																		className="text-destructive focus:text-destructive"
+																		disabled={updatingMarketplace === m.name}
+																	>
+																		<Trash2 className="w-4 h-4 mr-2" />
+																		删除市场
+																	</DropdownMenuItem>
+																</DropdownMenuContent>
+															</DropdownMenu>
 														</div>
 														<p className="text-xs text-muted-foreground break-all">
 															{m.url ||
