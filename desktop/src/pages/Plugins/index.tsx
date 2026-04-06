@@ -109,10 +109,10 @@ export default function Plugins() {
     }
   };
 
-  const handleUpdate = async (pluginName: string, scope?: string) => {
+  const handleUpdate = async (pluginName: string, marketplace?: string, scope?: string, workingDir?: string) => {
     setUpdatingPlugin(pluginName);
     try {
-      await update(pluginName, scope);
+      await update(pluginName, marketplace, scope, workingDir);
       await refresh();
     } finally {
       setUpdatingPlugin(null);

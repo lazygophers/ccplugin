@@ -33,6 +33,7 @@ pub struct Task {
     pub plugin_name: String,
     pub marketplace: Option<String>,
     pub scope: Option<String>,
+    pub working_dir: Option<String>,
     pub status: TaskStatus,
     pub progress: u8,
     pub message: String,
@@ -62,6 +63,7 @@ impl Task {
             plugin_name,
             marketplace,
             scope,
+            working_dir: None,
             status: TaskStatus::Pending,
             progress: 0,
             message: "等待执行...".to_string(),
@@ -70,6 +72,12 @@ impl Task {
             started_at: None,
             completed_at: None,
         }
+    }
+
+    /// 设置工作目录（用于项目级插件）
+    pub fn with_working_dir(mut self, dir: String) -> Self {
+        self.working_dir = Some(dir);
+        self
     }
 }
 
@@ -256,7 +264,9 @@ impl TaskQueue {
                     bridge
                         .update_plugin_with_progress(
                             &task.plugin_name,
+                            task.marketplace.as_deref(),
                             task.scope.as_deref(),
+                            task.working_dir.as_deref(),
                             |status, progress, message| {
                                 // 更新进度
                                 task.progress = progress;

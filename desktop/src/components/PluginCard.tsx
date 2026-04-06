@@ -19,7 +19,7 @@ import {
 interface PluginCardProps {
 	plugin: PluginInfo;
 	onInstall?: (pluginName: string) => void;
-	onUpdate?: (pluginName: string, scope?: string) => void;
+	onUpdate?: (pluginName: string, marketplace?: string, scope?: string, workingDir?: string) => void;
 	onUninstall?: (pluginName: string) => void;
 	onViewDetails?: (plugin: PluginInfo) => void;
 	installing?: boolean;
@@ -128,7 +128,7 @@ function PluginCard({
 							<DropdownMenuContent align="end">
 								{onUpdate && (
 									<DropdownMenuItem
-										onClick={() => onUpdate(plugin.name, plugin.installed_scopes[0])}
+										onClick={() => onUpdate(plugin.name, plugin.marketplace, plugin.installed_scopes[0], plugin.installed_path || undefined)}
 										disabled={updating}
 											title={`claude plugin update${plugin.installed_scopes[0] ? " -s " + plugin.installed_scopes[0] : ""} ${plugin.name}`}
 									>

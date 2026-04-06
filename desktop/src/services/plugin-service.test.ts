@@ -63,9 +63,14 @@ describe("PluginService", () => {
       vi.mocked(invoke).mockResolvedValueOnce(undefined);
       const handler = vi.fn();
 
-      const cleanup = await PluginService.update("python", handler);
+      const cleanup = await PluginService.update("python", undefined, undefined, undefined, handler);
 
-      expect(invoke).toHaveBeenCalledWith("update_plugin", { pluginName: "python", scope: undefined });
+      expect(invoke).toHaveBeenCalledWith("update_plugin", {
+        pluginName: "python",
+        marketplace: undefined,
+        scope: undefined,
+        workingDir: undefined,
+      });
       expect(typeof cleanup).toBe("function");
     });
 
@@ -75,7 +80,7 @@ describe("PluginService", () => {
       vi.mocked(invoke).mockResolvedValueOnce(undefined);
       const handler = vi.fn();
 
-      const cleanup = await PluginService.update("python", handler);
+      const cleanup = await PluginService.update("python", undefined, undefined, undefined, handler);
 
       expect(listen).toHaveBeenCalled();
       await cleanup();
@@ -254,7 +259,7 @@ describe("PluginService", () => {
       vi.mocked(invoke).mockResolvedValueOnce(undefined);
       const handler = vi.fn();
 
-      await PluginService.update("python", handler);
+      await PluginService.update("python", undefined, undefined, undefined, handler);
 
       if (capturedHandler) {
         capturedHandler({

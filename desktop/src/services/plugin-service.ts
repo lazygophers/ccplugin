@@ -59,26 +59,19 @@ export class PluginService {
 	/**
 	 * 更新插件
 	 * @param pluginName - 插件名称
-	 * @param handlerOrScope - 事件处理器或安装范围
+	 * @param marketplace - 市场名称
 	 * @param scope - 安装范围（user/project/local）
+	 * @param workingDir - 工作目录（用于项目级插件）
+	 * @param handler - 事件处理器
 	 * @returns 取消监听的函数
 	 */
 	static async update(
 		pluginName: string,
-		handlerOrScope?: PluginEventHandler | string,
+		marketplace?: string,
 		scope?: string,
+		workingDir?: string,
+		handler?: PluginEventHandler,
 	): Promise<() => Promise<void>> {
-		// 判断第二个参数是 handler 还是 scope
-		let handler: PluginEventHandler | undefined;
-		let actualScope: string | undefined;
-
-		if (typeof handlerOrScope === "function") {
-			handler = handlerOrScope;
-			actualScope = scope;
-		} else {
-			actualScope = handlerOrScope;
-		}
-
 		// 设置事件监听器
 		let unlisten: Awaited<ReturnType<typeof listenToPluginEventsByName>> | undefined;
 		if (handler) {
@@ -86,7 +79,7 @@ export class PluginService {
 		}
 
 		// 立即调用命令
-		await updatePluginCmd(pluginName, actualScope);
+		await updatePluginCmd(pluginName, marketplace, scope, workingDir);
 
 		// 返回清理函数
 		return async () => {

@@ -44,6 +44,7 @@ pub fn uninstall_plugin(
 #[tauri::command]
 pub fn update_plugin(
     plugin_name: String,
+    marketplace: Option<String>,
     scope: Option<String>,
     _app_handle: AppHandle,
 ) -> Result<(), String> {
@@ -53,7 +54,7 @@ pub fn update_plugin(
     let task = Task::new(
         TaskType::Update,
         plugin_name,
-        None,
+        marketplace,
         scope,
     );
 

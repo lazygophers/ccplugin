@@ -21,10 +21,10 @@ export default function Updates() {
 		[plugins]
 	);
 
-	const handleUpdate = async (pluginName: string, scope?: string) => {
+	const handleUpdate = async (pluginName: string, scope?: string, marketplace?: string, workingDir?: string) => {
 		setUpdatingPlugin(pluginName);
 		try {
-			await update(pluginName, scope);
+			await update(pluginName, marketplace, scope, workingDir);
 			await refresh();
 		} finally {
 			setUpdatingPlugin(null);
@@ -153,7 +153,7 @@ export default function Updates() {
 							</div>
 							<Button
 								size="sm"
-								onClick={() => handleUpdate(plugin.name, plugin.installed_scopes[0])}
+								onClick={() => handleUpdate(plugin.name, plugin.installed_scopes[0], plugin.marketplace, plugin.installed_path || undefined)}
 								disabled={updatingPlugin === plugin.name}
 									title={`claude plugin update${plugin.installed_scopes[0] ? " -s " + plugin.installed_scopes[0] : ""} ${plugin.name}`}
 							>

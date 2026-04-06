@@ -40,11 +40,15 @@ export async function installPlugin(
  */
 export async function updatePlugin(
 	pluginName: string,
+	marketplace?: string,
 	scope?: string,
+	workingDir?: string,
 ): Promise<void> {
 	return await invoke("update_plugin", {
 		pluginName,
+		marketplace,
 		scope,
+		workingDir,
 	});
 }
 

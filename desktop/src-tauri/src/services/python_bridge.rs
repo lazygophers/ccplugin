@@ -139,27 +139,40 @@ impl PythonBridge {
     pub async fn update_plugin_with_progress<F>(
         &self,
         plugin_name: &str,
+        marketplace: Option<&str>,
         scope: Option<&str>,
+        working_dir: Option<&str>,
         mut progress_callback: F,
     ) -> Result<CommandResult, String>
     where
         F: FnMut(InstallStatus, u8, &str),
     {
+        let plugin_spec = if let Some(m) = marketplace {
+            format!("{}@{}", plugin_name, m)
+        } else {
+            plugin_name.to_string()
+        };
+
         let mut args = vec!["plugin", "update"];
         if let Some(s) = scope {
             args.extend(["--scope", s]);
         }
-        args.push(plugin_name);
+        args.push(&plugin_spec);
 
         progress_callback(InstallStatus::Downloading, 10, "开始更新插件...");
 
         let output = tokio::task::spawn_blocking({
             let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+            let work_dir = working_dir.map(|s| s.to_string());
             move || {
                 let mut cmd = StdCommand::new("claude");
                 cmd.args(&args);
                 // 应用代理配置
                 utils::apply_proxy_to_command(&mut cmd);
+                // 设置工作目录（用于项目级插件）
+                if let Some(dir) = &work_dir {
+                    cmd.current_dir(dir);
+                }
                 cmd.output()
                     .map_err(|e| format!("Failed to execute claude: {}", e))
             }
