@@ -128,6 +128,7 @@ export function PluginDetailDialog({
                         <DropdownMenuItem
                           onClick={() => onUpdate(plugin.name)}
                           disabled={updating}
+                          title={`uv run update.py ${plugin.name}`}
                         >
                           <RefreshCw className={`w-4 h-4 mr-2 ${updating ? "animate-spin" : ""}`} />
                           {updating ? "更新中..." : "更新"}

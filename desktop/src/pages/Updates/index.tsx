@@ -155,6 +155,7 @@ export default function Updates() {
 								size="sm"
 								onClick={() => handleUpdate(plugin.name)}
 								disabled={updatingPlugin === plugin.name}
+									title={`uv run update.py ${plugin.name}`}
 							>
 								{updatingPlugin === plugin.name ? (
 									<>
