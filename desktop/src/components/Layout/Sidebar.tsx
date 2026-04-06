@@ -35,10 +35,10 @@ const navItems: NavItem[] = [
     children: [
       { path: "/marketplaces", label: "市场列表", icon: Store },
       { path: "/marketplaces/plugins", label: "插件", icon: Package },
+      { path: "/updates", label: "更新", icon: ArrowUpCircle },
     ],
   },
   { path: "/notifications", label: "通知", icon: Bell },
-  { path: "/updates", label: "更新", icon: ArrowUpCircle },
   { path: "/settings", label: "设置", icon: Settings },
 ];
 
