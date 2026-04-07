@@ -1,11 +1,8 @@
 ---
-description: 架构评审 - 架构分析、设计模式评审、可扩展性评估、架构债识别
+name: architecture-review
+description: "Architecture review skill for layered-architecture analysis, design-pattern evaluation, scalability assessment, and architectural-debt identification. Use when reviewing system architecture, evaluating design patterns, assessing quality attributes (scalability, maintainability, testability), or identifying architectural debt."
 user-invocable: true
-context: fork
 model: sonnet
-skills:
-  - code-review
-  - refactoring
 ---
 
 # 架构评审（Architecture Review）

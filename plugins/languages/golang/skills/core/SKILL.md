@@ -1,9 +1,8 @@
 ---
-description: "Go 1.23+ 核心开发规范：强制约定、代码格式、新特性（range-over-func/slog/min/max/clear）、提交检查清单。编写Go代码时自动加载。"
+name: golang-core
+description: "Go 1.23+ core development conventions: enforced coding standards, formatting rules, new language features (range-over-func, slog, min/max/clear), and pre-commit checklist. Use when writing Go code, checking Go coding standards, configuring Go toolchain, or reviewing Go pull requests."
 user-invocable: true
-context: fork
 model: sonnet
-memory: project
 ---
 
 # Go 开发核心规范
