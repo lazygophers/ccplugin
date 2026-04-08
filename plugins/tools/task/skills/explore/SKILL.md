@@ -13,18 +13,73 @@ agent: task:explore
 
 # Explore Skill
 
-## Process
+## 执行流程
 
-1. 分析代码库结构和关键文件
-2. 识别与任务相关的模块和依赖
-3. 收集现有实现方式和设计模式
-4. 搜索相关文档和注释
-5. 发现潜在风险和约束
-6. 构建现状理解报告
+> 目标导向的渐进式探索，聚焦任务相关上下文
 
-## Output
+```python
+# 检查是否已有探索结果
+context_file = f".lazygophers/tasks/{task_id}/context.json"
+existing_context = read_json(context_file) if exists(context_file) else None
 
-- 现状分析报告
-- 相关代码模块清单
-- 风险和约束清单
-- 探索发现总结
+# 阶段1：任务相关性分析（<1分钟）
+keywords = extract_from(user_prompt)
+target_modules = search_relevant(keywords)
+
+# 阶段2：目标范围探索（<3分钟）
+for module in target_modules:
+    files = locate_module_files(module)
+    for file in files:
+        patterns = extract_code_patterns(file)
+        style = analyze_coding_style(file)
+
+# 阶段3：现有实现风格（<2分钟）
+naming_conventions = deduce_naming()
+indentation = detect_indent_style()
+import_patterns = analyze_imports()
+error_handling = analyze_error_patterns()
+
+# 合并或更新上下文
+new_context = {
+    "task_related": {
+        "modules": target_modules,
+        "files": target_files,
+        "patterns": code_patterns
+    },
+    "code_style": {
+        "naming": naming_conventions,
+        "indentation": indentation,
+        "imports": import_patterns,
+        "error_handling": error_handling
+    },
+    "last_updated": now()
+}
+
+# 如果有旧上下文，增量更新而非覆盖
+if existing_context:
+    merged = merge_context(existing_context, new_context)
+    write_json(context_file, merged)
+else:
+    write_json(context_file, new_context)
+```
+
+## 检查清单
+
+### 任务相关性
+- [ ] 任务关键词已提取
+- [ ] 相关模块已定位（非全项目）
+- [ ] 目标文件已筛选
+
+### 实现风格
+- [ ] 命名约定已识别（camelCase/snake_case/PascalCase）
+- [ ] 缩进风格已检测（空格/tab，2/4/8）
+- [ ] 导入模式已分析
+- [ ] 错误处理模式已提取
+
+### 上下文管理
+- [ ] 已有 context.json 已检查
+- [ ] 增量更新而非覆盖（如有旧数据）
+- [ ] 时间戳已更新
+
+### 输出
+- [ ] context.json 已写入 `.lazygophers/tasks/{task_id}/context.json`
