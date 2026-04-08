@@ -23,19 +23,12 @@
     "multi-agent"
   ],
   "agents": [
-    "./agents/prompt-optimizer.md",
-    "./agents/verifier.md",
-    "./agents/adjuster.md",
-    "./agents/planner.md",
-    "./agents/explorer-general.md",
-    "./agents/explorer-code.md",
-    "./agents/explorer-frontend.md",
-    "./agents/explorer-backend.md",
-    "./agents/explorer-database.md",
-    "./agents/explorer-api.md",
-    "./agents/explorer-test.md",
-    "./agents/explorer-infrastructure.md",
-    "./agents/explorer-dependencies.md"
+    "./agents/adjust.md",
+    "./agents/align.md",
+    "./agents/done.md",
+    "./agents/explore.md",
+    "./agents/plan.md",
+    "./agents/verify.md"
   ],
   "skills": "./skills/",
   "hooks": {
