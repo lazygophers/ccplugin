@@ -35,3 +35,7 @@ case True:
 
 - [ ] status (True/False) 已输出
 - [ ] quality_score 已评估
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`

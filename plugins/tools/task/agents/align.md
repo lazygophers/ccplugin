@@ -29,3 +29,7 @@ Skill(
 ## 检查清单
 
 - [ ] align.json 已写入
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`

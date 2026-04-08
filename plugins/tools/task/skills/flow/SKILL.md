@@ -183,3 +183,10 @@ if task_id:
 | adjust | plan | 重新计划 |
 | adjust | done | 放弃 |
 | cancel | done | 取消完成 |
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（flow）

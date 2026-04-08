@@ -203,6 +203,9 @@ while True:
     align_file = f".lazygophers/tasks/{task_id}/align.json"
     write_json(align_file, alignment)
     
+    # 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
+    print(f"[flow·{task_id}·align] 范围对齐已完成")
+    
     return alignment
 ```
 
@@ -276,3 +279,10 @@ while True:
 - [ ] acceptance_criteria 数组遵循 SMART-V 原则
 - [ ] boundaries 包含 in_scope 和 out_of_scope
 - [ ] code_style_follow 字段包含锁定的项目风格
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（align）

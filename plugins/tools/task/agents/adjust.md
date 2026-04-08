@@ -40,3 +40,7 @@ default:
 
 - [ ] status 已输出
 - [ ] reason 和 strategy 已制定
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`

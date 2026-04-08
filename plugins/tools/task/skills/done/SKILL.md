@@ -85,3 +85,10 @@ report = generate_completion_report({
 - [ ] 归档未完成时自动重试
 - [ ] 索引未完成时自动重试
 - [ ] 所有项目完成后才退出
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（done）

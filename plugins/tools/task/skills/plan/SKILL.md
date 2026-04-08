@@ -62,6 +62,10 @@ if not dag_valid["passed"]:
 
 # 写入结果
 write_json(f".lazygophers/tasks/{task_id}/task.json", plan)
+
+# 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
+print(f"[flow·{task_id}·plan] 任务规划已完成，共 {len(plan['subtasks'])} 个子任务")
+
 return {"status": "confirmed", "iterations": i + 1, "assessment": assessment}
 ```
 
@@ -256,3 +260,10 @@ def validate_dag(subtasks):
 - [ ] 包含 code_style 字段
 - [ ] 包含自我评估结果（assessment）
 - [ ] status: "confirmed" | "上下文缺失"
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（plan）

@@ -241,3 +241,10 @@ while True:
 - [ ] reason: 失败原因
 - [ ] strategy: 修正策略描述
 - [ ] retry_config: 重试配置（含风格约束）
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（adjust）

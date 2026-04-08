@@ -68,6 +68,9 @@ results = {
     "failed_tasks": list(failed)
 }
 
+# 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
+print(f"[flow·{task_id}·exec] 任务执行完成：{results['completed']}/{results['total']} 成功")
+
 return results
 ```
 
@@ -191,3 +194,10 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 - [ ] 执行结果已汇总
 - [ ] 任务状态已更新
 - [ ] 失败任务已记录
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（exec）

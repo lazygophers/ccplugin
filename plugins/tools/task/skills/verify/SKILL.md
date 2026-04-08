@@ -163,6 +163,10 @@ while True:
     # === 用户明确确认"验收通过" ===
     # 退出循环，返回通过
     quality_score = calculate_quality_score(exec_result, criteria)
+    
+    # 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
+    print(f"[flow·{task_id}·verify] 验收通过，质量分：{quality_score}")
+    
     return {
         "status": True,
         "quality_score": quality_score
@@ -210,3 +214,10 @@ while True:
 ### 输出
 - [ ] status: True (验收通过)
 - [ ] quality_score: 0-100
+
+## 输出格式
+
+所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+- task_id：当前任务ID
+- state：当前状态（verify）
