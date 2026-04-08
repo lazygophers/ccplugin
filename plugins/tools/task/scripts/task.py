@@ -2,14 +2,11 @@ import fcntl
 import json
 import os.path
 import time
+from typing import Optional
 
 import click
-from lib.utils.env import get_plugins_path, get_project_dir
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional
-from lib.utils.gitignore import add_gitignore_rule
 
-add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers"))
+from lib.utils.env import get_plugins_path, get_project_dir
 
 TASKS_INDEX_FILE = ".lazygophers/tasks/index.json"
 
