@@ -349,7 +349,7 @@ wheels = [
 
 [[package]]
 name = "ccplugin"
-version = "0.0.190"
+version = "0.0.191"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -1519,8 +1519,8 @@ wheels = [
 
 [[package]]
 name = "lib"
-version = "0.0.190"
-source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#b0bb1d997dd433f96acca7a8e0621f4d3b4ede03" }
+version = "0.0.191"
+source = { git = "https://github.com/lazygophers/ccplugin?subdirectory=lib&rev=master#50ff897ccbdd109f10317862715eb24851889f76" }
 dependencies = [
     { name = "click" },
     { name = "pydantic" },

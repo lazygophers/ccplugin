@@ -1,6 +1,6 @@
 {
   "name": "deepresearch",
-  "version": "0.0.191",
+  "version": "0.0.192",
   "description": "深度研究插件（2026架构）- Task-Centric任务驱动型研究系统。DGoT动态优化降低50%成本，Agentic RAG精度99%，支持8种输出格式",
   "author": {
     "name": "lazygophers",
