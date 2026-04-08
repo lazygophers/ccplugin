@@ -1,7 +1,7 @@
 ---
-description: 安全审计 - OWASP Top 10检查、依赖安全扫描、敏感信息检测、安全配置审查
+name: security-audit
+description: "Security audit skill for OWASP Top 10 checks, dependency vulnerability scanning, sensitive-information detection, and security configuration review. Use when auditing application security, scanning for vulnerabilities, checking for leaked secrets, reviewing CORS/CSP/HTTPS configuration, or assessing code-level injection and XSS risks."
 user-invocable: false
-context: fork
 model: sonnet
 ---
 

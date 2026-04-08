@@ -1,12 +1,8 @@
 ---
-description: 代码审查 - 质量检查、最佳实践验证、测试覆盖率分析，生成改进建议
+name: code-review
+description: "Code review skill for static analysis, best-practice validation, test coverage analysis, and security scanning. Use when reviewing code quality, running code audits, checking SOLID/DRY/KISS compliance, analyzing test coverage, or generating improvement reports."
 user-invocable: true
-context: fork
 model: sonnet
-skills:
-  - testing
-  - performance-optimization
-  - security-audit
 ---
 
 # 代码审查（Code Review）

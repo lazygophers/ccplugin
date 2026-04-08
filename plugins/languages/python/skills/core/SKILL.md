@@ -1,9 +1,8 @@
 ---
-description: "Python核心编码规范与工具链配置。涵盖PEP 8风格、命名约定、代码格式化、uv包管理、ruff检查。适用于编写Python代码、代码风格检查、格式化配置、项目初始化等场景。"
+name: python-core
+description: "Python core coding conventions and toolchain configuration. Covers PEP 8 style, naming conventions, code formatting with ruff, uv package management, and mypy strict type checking. Use when writing Python code, checking code style, configuring formatters/linters, initializing Python projects, or reviewing Python pull requests."
 user-invocable: true
-context: fork
 model: sonnet
-memory: project
 ---
 
 # Python 核心规范
