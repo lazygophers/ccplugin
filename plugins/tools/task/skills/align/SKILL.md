@@ -1,5 +1,5 @@
 ---
-description: 范围对齐，与用户确认任务边界和验收标准
+description: 范围对齐，确认任务边界和验收标准
 memory: project
 color: cyan
 model: sonnet
@@ -15,8 +15,8 @@ agent: task:align
 
 ## 执行流程
 
-> 通过 AskUserQuestion 与用户交互式确认任务范围
-> **必须确认现有项目风格，后续所有实现都遵循此风格**
+> 与用户交互式确认任务范围，输出结构化对齐结果
+> **必须锁定项目风格，验收标准遵循 SMART-V 原则**
 
 ```python
 # 读取探索结果
@@ -34,9 +34,6 @@ previous_feedback = adjust_result.get("reason") if adjust_result else None
 while True:
     # === 迭代开始 ===
     
-    # 展示当前理解（包含之前反馈的修正）
-    current_understanding = build_understanding(context, previous_feedback)
-    
     # === 阶段0：确认现有项目风格（最重要）===
     code_style = context.get("code_style", {})
     style_response = AskUserQuestion(
@@ -51,7 +48,6 @@ while True:
         }]
     )
     
-    # 如果风格检测有误，立即重试
     if style_response["项目风格确认"] == "需要修正":
         correction = AskUserQuestion(
             questions=[{
@@ -66,52 +62,47 @@ while True:
                 "multiSelect": False
             }]
         )
-        
-        # 收集正确的风格
         corrected_style = collect_correct_style(correction["风格修正"])
-        # 更新 context 中的风格
         context["code_style"] = merge_code_style(code_style, corrected_style)
-        # 更新 context.json
         write_json(context_file, context)
-        # 重新开始循环，再次确认
         continue
     
     # 风格确认后，锁定为后续使用的标准
     locked_style = context["code_style"]
     
-    # 阶段1：确认任务范围（强调不创造新风格）
-    scope_response = AskUserQuestion(
+    # === 阶段1：明确目标（Deliverable）===
+    goal_response = AskUserQuestion(
         questions=[{
-            "question": f"任务范围是否正确？\\n\\n{current_understanding['scope']}\\n\\n注意：所有实现都将遵循已确认的项目风格，不创造新风格。",
-            "header": "任务范围",
+            "question": f"任务目标是否清晰？\\n\\n{build_goal_description(context, previous_feedback)}\\n\\n目标应该明确最终产出。",
+            "header": "目标确认",
             "options": [
-                {"label": "确认继续", "description": "范围正确"},
-                {"label": "需要调整", "description": "需要修改范围"}
+                {"label": "确认继续", "description": "目标清晰"},
+                {"label": "需要澄清", "description": "目标不够明确"}
             ],
             "multiSelect": False
         }]
     )
     
-    if scope_response["任务范围"] == "需要调整":
-        adjustment = AskUserQuestion(
+    if goal_response["目标确认"] == "需要澄清":
+        clarification = AskUserQuestion(
             questions=[{
-                "question": "请说明如何调整任务范围",
-                "header": "范围调整",
+                "question": "请说明期望的最终产出",
+                "header": "目标澄清",
                 "options": [
-                    {"label": "缩小范围", "description": "减少功能"},
-                    {"label": "扩大范围", "description": "增加功能"},
-                    {"label": "重新定义", "description": "完全重新描述"}
+                    {"label": "描述功能", "description": "说明要实现的功能"},
+                    {"label": "描述结果", "description": "说明最终达到的状态"},
+                    {"label": "描述用户价值", "description": "说明为用户解决什么问题"}
                 ],
                 "multiSelect": False
             }]
         )
-        previous_feedback = adjustment["范围调整"]
+        previous_feedback = clarification
         continue
     
-    # 阶段2：明确验收标准
-    acceptance_response = AskUserQuestion(
+    # === 阶段2：确认验收标准（遵循 SMART-V 原则）===
+    criteria_response = AskUserQuestion(
         questions=[{
-            "question": f"验收标准是否完整？\\n\\n{current_understanding['acceptance']}\\n\\n注意：代码质量标准应遵循项目现有风格。",
+            "question": f"验收标准是否完整？\\n\\n{build_criteria_checklist(context)}\\n\\n要求：可验证、可量化、独立、原子、结果导向。",
             "header": "验收标准",
             "options": [
                 {"label": "确认继续", "description": "标准完整"},
@@ -121,15 +112,15 @@ while True:
         }]
     )
     
-    if acceptance_response["验收标准"] == "需要补充":
+    if criteria_response["验收标准"] == "需要补充":
         supplement = AskUserQuestion(
             questions=[{
                 "question": "请说明需要补充的验收标准",
                 "header": "补充标准",
                 "options": [
-                    {"label": "添加功能点", "description": "增加功能验收"},
-                    {"label": "添加性能要求", "description": "增加性能指标"},
-                    {"label": "添加代码质量", "description": "遵循现有风格的代码质量"}
+                    {"label": "添加功能点", "description": "增加功能验收（可验证）"},
+                    {"label": "添加性能要求", "description": "增加性能指标（可量化）"},
+                    {"label": "添加质量标准", "description": "遵循现有风格的代码质量"}
                 ],
                 "multiSelect": True
             }]
@@ -137,10 +128,10 @@ while True:
         previous_feedback = supplement
         continue
     
-    # 阶段3：界定边界
+    # === 阶段3：界定边界（Guardrails）===
     boundary_response = AskUserQuestion(
         questions=[{
-            "question": f"边界界定是否正确？\\n\\n{current_understanding['boundaries']}\\n\\n注意：修改文件必须遵循项目现有风格。",
+            "question": f"边界界定是否正确？\\n\\n{format_boundaries(context)}\\n\\nin-scope：本次要做的事\\nout-of-scope：明确不做的事",
             "header": "边界界定",
             "options": [
                 {"label": "确认继续", "description": "边界正确"},
@@ -156,9 +147,9 @@ while True:
                 "question": "请说明如何调整边界",
                 "header": "边界调整",
                 "options": [
-                    {"label": "扩大编辑范围", "description": "允许修改更多文件"},
-                    {"label": "缩小编辑范围", "description": "限制修改范围"},
-                    {"label": "添加禁止项", "description": "增加禁止操作"}
+                    {"label": "扩大 in-scope", "description": "允许做更多事"},
+                    {"label": "缩小 in-scope", "description": "限制本次范围"},
+                    {"label": "添加 out-of-scope", "description": "明确禁止事项"}
                 ],
                 "multiSelect": True
             }]
@@ -166,13 +157,13 @@ while True:
         previous_feedback = boundary_adjustment
         continue
     
-    # 阶段4：最终确认
+    # === 阶段4：最终确认 ===
     final_response = AskUserQuestion(
         questions=[{
-            "question": f"请最终确认任务理解：\\n\\n{summarize_all()}\\n\\n核心要求：后续所有实现都将遵循项目现有风格，不创造新风格。\\n\\n确认后进入规划阶段。",
+            "question": f"请最终确认任务规格说明：\\n\\n{preview_spec()}\\n\\n核心：验收标准决定迭代是否继续，项目风格锁定后续实现。\\n\\n确认后写入 prompt.md。",
             "header": "最终确认",
             "options": [
-                {"label": "确认无误", "description": "理解正确，开始规划"},
+                {"label": "确认无误", "description": "规格正确，写入文件"},
                 {"label": "需要修正", "description": "理解有误，需要调整"}
             ],
             "multiSelect": False
@@ -196,42 +187,92 @@ while True:
         continue
     
     # === 用户明确确认"确认无误" ===
-    # 退出循环，保存结果
+    # 生成对齐结果
     alignment = {
-        "scope": scope_response,
-        "acceptance_criteria": acceptance_response,
-        "boundaries": boundary_response,
-        "code_style_follow": locked_style,  # 锁定的项目风格
+        "goal": build_goal_description(context, previous_feedback),
+        "acceptance_criteria": build_criteria_list(context),
+        "boundaries": {
+            "in_scope": build_in_scope(context),
+            "out_of_scope": build_out_of_scope(context)
+        },
+        "code_style_follow": locked_style,
         "confirmed_at": now()
     }
+    
+    # 写入 align.json
+    align_file = f".lazygophers/tasks/{task_id}/align.json"
     write_json(align_file, alignment)
+    
     return alignment
+```
+
+## 验收标准设计原则（SMART-V）
+
+| 原则 | 好的标准 | 差的标准 |
+|------|---------|---------|
+| **可验证** | "用户可通过邮箱+密码登录" | "实现登录功能" |
+| **可量化** | "测试覆盖率≥80%" | "覆盖率高" |
+| **独立** | 每条标准可独立验证 | 多个条件混在一句话 |
+| **原子** | "API 返回 200 + 正确 JSON" | "API 工作正常" |
+| **结果导向** | "用户看到成功提示" | "调用了 toast 组件" |
+
+## align.json 输出格式
+
+```json
+{
+    "goal": "明确的目标描述，说明最终产出",
+    "acceptance_criteria": [
+        "用户可通过邮箱+密码登录",
+        "登录响应时间 < 500ms",
+        "登录失败显示错误提示",
+        "JWT token 有效期 7 天"
+    ],
+    "boundaries": {
+        "in_scope": [
+            "登录功能实现",
+            "JWT token 生成",
+            "错误处理"
+        ],
+        "out_of_scope": [
+            "注册功能",
+            "密码重置",
+            "第三方登录"
+        ]
+    },
+    "code_style_follow": {
+        "naming": "snake_case",
+        "indent": "4_spaces",
+        "imports": "sorted"
+    },
+    "confirmed_at": "2026-04-08T12:00:00Z"
+}
 ```
 
 ## 项目风格检查清单
 
 ### 风格检测（阶段0，最先执行）
 - [ ] 已从 context.json 读取现有风格
-- [ ] 命名约定已展示（camelCase/snake_case/PascalCase）
-- [ ] 缩进风格已展示（空格/tab，2/4/8）
-- [ ] 导入模式已展示（顺序/分组/别名）
-- [ ] 错误处理已展示（异常类型/日志方式）
+- [ ] 命名约定已展示
+- [ ] 缩进风格已展示
+- [ ] 导入模式已展示
 - [ ] 用户已确认风格正确
 - [ ] 风格锁定为后续标准
 
-### 风格修正（如果检测有误）
-- [ ] 用户选择了需要修正
-- [ ] 收集了正确的风格配置
-- [ ] 更新了 context.json
-- [ ] 重新确认直到正确
+### 验收标准（阶段2）
+- [ ] 每条标准可验证
+- [ ] 每条标准可量化
+- [ ] 每条标准独立
+- [ ] 每条标准原子
+- [ ] 每条标准结果导向
 
-### 后续环节强化
-- [ ] 任务范围确认时强调"遵循现有风格"
-- [ ] 验收标准确认时强调"遵循现有风格"
-- [ ] 边界界定确认时强调"遵循现有风格"
-- [ ] 最终确认时强调"不创造新风格"
+### 边界界定（阶段3）
+- [ ] in-scope 已明确
+- [ ] out-of-scope 已明确
+- [ ] 两者互斥且完备
 
 ### 输出
 - [ ] align.json 已写入
-- [ ] **code_style_follow** 字段包含锁定的项目风格
-- [ ] 后续所有阶段都必须读取并遵循此风格
+- [ ] goal 字段包含明确目标
+- [ ] acceptance_criteria 数组遵循 SMART-V 原则
+- [ ] boundaries 包含 in_scope 和 out_of_scope
+- [ ] code_style_follow 字段包含锁定的项目风格

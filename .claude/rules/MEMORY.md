@@ -109,6 +109,13 @@ uv run scripts/update_version.py
 
 ## 更新日志
 
+**2026-04-08**：Task 插件重大更新
+- **DAG 执行模型**：exec 基于 dependencies 动态调度，2个worker协程并发
+- **Align 优化**：合并 prompt-optimizer 的 SMART-V 验收标准原则
+- **实时状态更新**：任务状态变更立即写入 task.json
+- **Plan 验证**：写入前验证 DAG 可用性
+- 详见：`memory/task-dag-execution-model.md`、`memory/task-align-merge-prompt-optimizer-2026-04-08.md`
+
 **2026-03-27**：Memory系统初始化
 - 创建 `.claude/rules/` 和 `.claude/memory/` 目录
 - 生成本索引文件（MEMORY.md）
