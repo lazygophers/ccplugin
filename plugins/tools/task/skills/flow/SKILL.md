@@ -143,6 +143,8 @@ case True:
 			"task_id": task_id,
 		}
 	)
+
+exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
 ```
 
 ## 用户新输入
