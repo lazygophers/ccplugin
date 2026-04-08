@@ -1,5 +1,5 @@
 ---
-description: 任务执行，执行子任务并自我修复
+description: 任务执行，基于DAG调度并执行子任务
 memory: project
 color: blue
 model: sonnet
@@ -7,24 +7,187 @@ permissionMode: plan
 background: false
 disable-model-invocation: true
 user-invocable: false
+context: fork
 ---
 
 # Exec Skill
 
-## Process
+## 执行流程
 
-1. 按计划顺序执行子任务
-2. 监控执行进度
-3. 处理执行异常
-4. 自我修复常见错误
-5. 重试失败操作
-6. 收集执行结果
-7. 更新任务状态
-8. 汇报执行进度
+> 基于 DAG 调度并执行子任务
+> **2 个协程并发执行，自动解析依赖，触发 hooks**
 
-## Output
+```python
+# 读取执行计划
+plan = read_json(f".lazygophers/tasks/{task_id}/task.json")
+subtasks = {t["id"]: t for t in plan["subtasks"]}
+code_style = plan.get("code_style", {})
 
-- 子任务执行结果
-- 执行日志
-- 异常处理记录
-- 任务进度更新
+# === 阶段1：构建 DAG ===
+dag = {}
+for tid in subtasks:
+    dag[tid] = {"deps": [], "successors": []}
+
+for tid, task in subtasks.items():
+    deps = task.get("dependencies", [])
+    dag[tid]["deps"] = deps
+    for dep in deps:
+        if dep in dag:
+            dag[dep]["successors"].append(tid)
+
+# 验证无循环依赖
+if has_cycle(dag):
+    raise ValueError("DAG 包含循环依赖")
+
+# === 阶段2：初始化状态和队列 ===
+status = {tid: "pending" for tid in subtasks}
+queue = []
+executing = set()
+completed = set()
+failed = set()
+
+# 推送初始可执行任务（无依赖）
+for tid in subtasks:
+    if all(status.get(dep) == "completed" for dep in dag[tid]["deps"]):
+        queue.append(tid)
+
+# === 阶段3：启动 2 个 worker 协程 ===
+workers = []
+for i in range(2):
+    workers.append(spawn_worker(f"worker-{i}", queue, dag, status, executing, completed, failed, subtasks, code_style, task_id))
+
+# === 阶段4：等待所有协程完成 ===
+wait_all(workers)
+
+# === 阶段5：汇总结果 ===
+results = {
+    "total": len(status),
+    "completed": len(completed),
+    "failed": len(failed),
+    "status": status,
+    "failed_tasks": list(failed)
+}
+
+return results
+```
+
+## Worker 协程逻辑
+
+```python
+def update_task_status(session_task_id, subtask_id, status, result=None):
+    """立即更新 task.json 中任务状态"""
+    task_file = f".lazygophers/tasks/{session_task_id}/task.json"
+    plan = read_json(task_file)
+    
+    # 更新对应任务的状态
+    for task in plan["subtasks"]:
+        if task["id"] == subtask_id:
+            task["status"] = status
+            if result:
+                task["result"] = result
+            break
+    
+    write_json(task_file, plan)
+
+def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id):
+def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id):
+    while True:
+        # 检查终止条件：队列空 + 无执行中 + 无可执行
+        if len(queue) == 0 and len(executing) == 0:
+            remaining_executable = False
+            for tid in dag:
+                if status[tid] == "pending" and all(status.get(dep) == "completed" for dep in dag[tid]["deps"]):
+                    remaining_executable = True
+                    break
+            if not remaining_executable:
+                break  # 终止
+        
+        # 等待任务
+        if len(queue) == 0:
+            sleep(0.1)
+            continue
+        
+        # 获取任务
+        tid = queue.pop(0)
+        executing.add(tid)
+        status[tid] = "running"
+        update_task_status(task_id, tid, "running")
+        
+        # 执行任务（background=False）
+        task = subtasks[tid]
+        result = Agent(
+            subagent_type=task.get("agent", "general-purpose"),
+            prompt=task["goal"],
+            mode="acceptEdits",
+            background=False  # 强制非后台
+        )
+        
+        # 验证结果
+        passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
+        
+        # 更新状态
+        executing.remove(tid)
+        
+        if passed:
+            status[tid] = "completed"
+            completed.add(tid)
+            update_task_status(task_id, tid, "completed", result)
+            
+            # 触发 hooks
+            hooks_file = f".lazygophers/tasks/{task_id}/hooks.json"
+            if exists(hooks_file):
+                hooks = read_json(hooks_file)
+                for hook in hooks.get("task_completed", []):
+                    execute_hook(hook, tid, result)
+            
+            # 解锁后继任务
+            for successor in dag[tid]["successors"]:
+                if (status[successor] == "pending" and
+                    all(status.get(dep) == "completed" for dep in dag[successor]["deps"]) and
+                    successor not in queue):
+                    queue.append(successor)
+        else:
+            status[tid] = "failed"
+            failed.add(tid)
+            update_task_status(task_id, tid, "failed", result)
+            
+            # 触发 hooks
+            hooks_file = f".lazygophers/tasks/{task_id}/hooks.json"
+            if exists(hooks_file):
+                hooks = read_json(hooks_file)
+                for hook in hooks.get("task_failed", []):
+                    execute_hook(hook, tid, result)
+```
+
+## 检查清单
+
+### DAG 构建
+- [ ] DAG 已构建
+- [ ] 依赖关系已验证
+- [ ] 无循环依赖
+
+### 队列管理
+- [ ] 初始可执行任务已入队
+- [ ] 任务去重机制已实现
+- [ ] 队列空检查已实现
+
+### 协程管理
+- [ ] 2 个协程已启动
+- [ ] 终止条件已实现
+- [ ] 协程清理已实现
+
+### 任务执行
+- [ ] background 强制为 False
+- [ ] 状态已更新（pending/running/completed/failed）
+- [ ] task.json 已实时更新
+- [ ] Hooks 已触发
+
+### 依赖解析
+- [ ] 可执行性检查已实现
+- [ ] 后继任务已入队
+- [ ] 无重复推送
+
+### 输出
+- [ ] 执行结果已汇总
+- [ ] 任务状态已更新
+- [ ] 失败任务已记录

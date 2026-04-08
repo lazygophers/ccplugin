@@ -43,10 +43,22 @@ if not validation["passed"]:
     return {"status": "上下文缺失"}
 
 # 阶段4：构建执行计划
-plan = build_plan(subtasks, code_style)
+plan = {
+    "subtasks": list(subtasks.values()),
+    "code_style": code_style,
+    "metadata": {
+        "total_tasks": len(subtasks),
+        "generated_at": datetime.now().isoformat()
+    }
+}
 
 # 阶段5：自我评估
 assessment = self_assess(plan, code_style)
+
+# 阶段6：验证 DAG 可用性
+dag_valid = validate_dag(plan["subtasks"])
+if not dag_valid["passed"]:
+    return {"status": "上下文缺失", "reason": f"DAG 验证失败: {dag_valid['errors']}"}
 
 # 写入结果
 write_json(f".lazygophers/tasks/{task_id}/task.json", plan)
@@ -178,10 +190,34 @@ def self_assess(plan, code_style):
     return {
         "task_count": len(plan["subtasks"]),
         "complexity_distribution": count_complexity(plan),
-        "parallel_groups": len([b for b in plan["execution_order"] if b["parallel"]]),
+        "max_parallel_depth": calculate_max_parallel_depth(plan),
         "style_compliance": check_compliance(plan, code_style),
         "estimated_duration": estimate_duration(plan)
     }
+```
+
+## DAG 验证逻辑
+
+```python
+def validate_dag(subtasks):
+    """验证 DAG 可用性：无循环依赖、依赖存在性"""
+    errors = []
+    
+    # 构建 task_id 映射
+    task_ids = {t["id"] for t in subtasks}
+    
+    # 检查依赖存在性
+    for task in subtasks:
+        for dep in task.get("dependencies", []):
+            if dep not in task_ids:
+                errors.append(f"{task['id']}: 依赖的任务 '{dep}' 不存在")
+    
+    # 检查循环依赖
+    graph = {t["id"]: set(t.get("dependencies", [])) for t in subtasks}
+    if has_cycle(graph):
+        errors.append("存在循环依赖")
+    
+    return {"passed": len(errors) == 0, "errors": errors}
 ```
 
 ## 检查清单
@@ -209,9 +245,14 @@ def self_assess(plan, code_style):
 - [ ] 粒度符合项目习惯
 - [ ] 优先使用项目自定义 agent
 
+### DAG 验证
+- [ ] 依赖任务存在性已验证
+- [ ] 无循环依赖已验证
+- [ ] DAG 可用性已确认
+
 ### 输出
 - [ ] task.json 已写入
+- [ ] 包含 subtasks 数组
 - [ ] 包含 code_style 字段
-- [ ] 包含执行顺序（execution_order）
 - [ ] 包含自我评估结果（assessment）
 - [ ] status: "confirmed" | "上下文缺失"
