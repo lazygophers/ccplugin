@@ -1,5 +1,5 @@
 ---
-description: 规划代理，负责分解任务并制定执行方案
+description: 规划代理，负责任务分解和执行方案制定
 memory: project
 color: purple
 skills:
@@ -16,21 +16,16 @@ background: false
 > 调用 plan skill
 
 ```python
-plan_result = Skill(
+Skill(
     skill="task:plan",
-    prompt=f"{user_prompt}",
     environment={
-        "task_id": task_id,
-        "adjust_result": adjust_result
+        "task_id": task_id
     }
 )
-
-# 规划时发现上下文缺失，返回 explore
-if plan_result.get("status") == "上下文缺失":
-    goto EXPLORE
 ```
 
 ## 检查清单
 
-- [ ] task.json 已写入
-- [ ] status 已输出
+- [ ] task.json 已生成
+- [ ] 任务拆分符合规范
+- [ ] 项目风格已遵循
