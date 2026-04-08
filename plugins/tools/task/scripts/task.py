@@ -1,11 +1,19 @@
+import fcntl
+import json
 import os.path
+import time
 
 import click
-from lib.utils.env import get_plugins_path
-from pydantic import BaseModel, Field
+from lib.utils.env import get_plugins_path, get_project_dir
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
+from lib.utils.gitignore import add_gitignore_rule
 
-class TaskState(str, BaseModel):
+add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers"))
+
+TASKS_INDEX_FILE = ".lazygophers/tasks/index.json"
+
+class TaskState:
 	Pending = "pending"   # 等待调度
 	Explore = "explore"  # 现状探索
 	Align = "align"      # 范围对齐
@@ -16,22 +24,16 @@ class TaskState(str, BaseModel):
 	Done = "done"        # 完成
 	Cancel = "cancel"    # 取消
 
-class Metadata(BaseModel):
-	task_name: str = Field(
-		title="任务名称",
-		description="任务名称，用于显示在任务列表中",
-	)
+	@classmethod
+	def values(cls):
+		return [cls.Pending, cls.Explore, cls.Align, cls.Plan, cls.Exec, cls.Verify, cls.Adjust, cls.Done, cls.Cancel]
 
-	started_at: int = Field(
-		title="任务开始时间戳",
-		description="任务开始时间，用于显示在任务列表中",
-	)
+	@classmethod
+	def validate(cls, v: str) -> str:
+		if v not in cls.values():
+			raise ValueError(f"无效的任务状态: {v}")
+		return v
 
-	status: TaskState = Field(
-		title="任务状态",
-		default=TaskState.Pending,
-		description="任务状态，用于显示在任务列表中",
-	)
 
 @click.group()
 @click.pass_context
@@ -57,4 +59,117 @@ def version():
 
 	# 兜底，默认版本
 	print("v0.0.1")
-	pass
+
+
+def get_index_path() -> str:
+	"""获取任务索引文件路径"""
+	return os.path.join(get_project_dir(), TASKS_INDEX_FILE)
+
+
+def read_index(path: str) -> dict:
+	"""读取索引文件，带文件锁"""
+	if not os.path.exists(path):
+		return {}
+	with open(path, "r") as f:
+		fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+		try:
+			return json.load(f)
+		finally:
+			fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+def update_index(updater: callable) -> None:
+	"""原子性地更新索引文件，整个读-改-写过程在排他锁下完成"""
+	index_path = get_index_path()
+	os.makedirs(os.path.dirname(index_path), exist_ok=True)
+
+	with open(index_path, "r+") as f:
+		fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+		try:
+			f.seek(0)
+			content = f.read()
+			index = json.loads(content) if content else {}
+			index = updater(index)
+			f.seek(0)
+			f.truncate()
+			json.dump(index, f, indent=2, ensure_ascii=False)
+		finally:
+			fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+
+
+@task_main.command(name="update")
+@click.argument("task_id")
+@click.option("--status", type=click.Choice(TaskState.values()), help="任务状态")
+@click.option("--description", help="任务描述")
+@click.option("--additional-add", multiple=True, help="追加附加信息")
+@click.option("--additional-remove", multiple=True, help="移除附加信息")
+@click.option("--additional-update", nargs=2, type=str, multiple=True, help="更新附加信息，格式：<old> <new>")
+@click.option("--additional-replace", help="重写附加信息，格式：JSON数组字符串")
+def update(
+	task_id: str,
+	status: Optional[str],
+	description: Optional[str],
+	additional_add: tuple,
+	additional_remove: tuple,
+	additional_update: list,
+	additional_replace: Optional[str],
+):
+	"""更新任务状态和附加信息"""
+
+	def do_update(index: dict) -> dict:
+		if task_id not in index:
+			raise ValueError(f"任务 {task_id} 不存在")
+
+		if status:
+			index[task_id]["status"] = status
+
+		if description:
+			index[task_id]["description"] = description
+
+		# 初始化 additional 列表
+		if "additional" not in index[task_id]:
+			index[task_id]["additional"] = []
+
+		# 追加
+		for item in additional_add:
+			if item not in index[task_id]["additional"]:
+				index[task_id]["additional"].append(item)
+
+		# 移除
+		for item in additional_remove:
+			if item in index[task_id]["additional"]:
+				index[task_id]["additional"].remove(item)
+
+		# 更新
+		for old_val, new_val in additional_update:
+			if old_val in index[task_id]["additional"]:
+				idx = index[task_id]["additional"].index(old_val)
+				index[task_id]["additional"][idx] = new_val
+
+		# 重写
+		if additional_replace:
+			index[task_id]["additional"] = json.loads(additional_replace)
+
+		index[task_id]["updated_at"] = int(time.time())
+		return index
+
+	try:
+		update_index(do_update)
+		click.echo(f"任务 {task_id} 已更新")
+	except ValueError as e:
+		click.echo(str(e), err=True)
+
+
+@task_main.command(name="get")
+@click.argument("task_id")
+def get(task_id: str):
+	"""获取任务详情"""
+	index_path = get_index_path()
+	index = read_index(index_path)
+
+	if task_id not in index:
+		click.echo(f"任务 {task_id} 不存在", err=True)
+		return
+
+	task = index[task_id]
+	click.echo(json.dumps(task, indent=2, ensure_ascii=False))
