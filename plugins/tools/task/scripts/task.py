@@ -1,6 +1,8 @@
 import fcntl
 import json
+import os
 import os.path
+import shutil
 import time
 from typing import Optional
 
@@ -156,3 +158,64 @@ def get(task_id: str):
 
 	task = index[task_id]
 	click.echo(json.dumps(task, indent=2, ensure_ascii=False))
+
+
+@task_main.command(name="clean")
+@click.argument("task_id")
+@click.option("--force", is_flag=True, help="跳过确认直接清理")
+def cleanup(task_id: str, force: bool):
+	"""清理任务：删除任务目录并从索引中移除"""
+	project_dir = get_project_dir()
+	task_dir = os.path.join(project_dir, ".lazygophers/tasks", task_id)
+	index_path = get_index_path()
+
+	# 检查任务是否存在
+	index = read_index(index_path)
+	if task_id not in index:
+		click.echo(f"任务 {task_id} 不存在于索引中", err=True)
+		return
+
+	task_info = index[task_id]
+	description = task_info.get("description", "")
+	status = task_info.get("status", "")
+
+	# 确认操作
+	if not force:
+		click.echo(f"准备清理任务：")
+		click.echo(f"  ID: {task_id}")
+		click.echo(f"  描述: {description}")
+		click.echo(f"  状态: {status}")
+		click.echo(f"  目录: {task_dir}")
+		if not click.confirm("\n确认清理此任务？此操作不可撤销"):
+			click.echo("已取消清理")
+			return
+		# 再次确认
+		if not click.confirm("再次确认：真的要删除此任务吗？"):
+			click.echo("已取消清理")
+			return
+
+	# 删除任务目录
+	if os.path.exists(task_dir):
+		try:
+			shutil.rmtree(task_dir)
+			click.echo(f"已删除任务目录: {task_dir}")
+		except Exception as e:
+			click.echo(f"删除任务目录失败: {e}", err=True)
+			return
+	else:
+		click.echo(f"任务目录不存在，跳过删除: {task_dir}")
+
+	# 从索引中移除
+	def remove_from_index(index: dict) -> dict:
+		if task_id in index:
+			del index[task_id]
+		return index
+
+	try:
+		update_index(remove_from_index)
+		click.echo(f"已从索引中移除任务: {task_id}")
+	except Exception as e:
+		click.echo(f"更新索引失败: {e}", err=True)
+		return
+
+	click.echo(f"任务 {task_id} 清理完成")
