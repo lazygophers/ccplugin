@@ -1,0 +1,30 @@
+import os.path
+
+import click
+from lib.utils.env import get_plugins_path
+
+@click.group()
+@click.pass_context
+def task_main(ctx):
+	pass
+
+@task_main.command(name="version")
+def version():
+	# 被当做插件安装了，这种时候都文件夹就可以了
+	if os.path.basename(get_plugins_path()) != "task":
+		print(f"v{os.path.basename(get_plugins_path())}")
+		return
+
+	# 没有被当做插件安装，而是作为插件仓库的一部分
+	if os.path.basename(os.getcwd()) == "task":
+		version_file_path = os.getcwd()
+		while os.path.basename(version_file_path) is not os.path.basename(os.path.dirname(version_file_path)):
+			if os.path.exists(os.path.join(version_file_path, ".version")):
+				with open(os.path.join(version_file_path, ".version"), 'r') as file:
+					print(f"v{file.read().strip()}")
+				return
+			version_file_path = os.path.dirname(version_file_path)
+
+	# 兜底，默认版本
+	print("v0.0.1")
+	pass
