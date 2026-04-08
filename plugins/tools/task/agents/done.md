@@ -18,7 +18,6 @@ background: false
 ```python
 Skill(
     skill="task:done",
-    prompt=f"{user_prompt}",
     environment={
         "task_id": task_id
     }
@@ -30,3 +29,4 @@ Skill(
 - [ ] 临时文件已清理
 - [ ] 任务索引已更新
 - [ ] 执行报告已生成
+- [ ] 任务目录已删除
