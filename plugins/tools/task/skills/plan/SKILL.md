@@ -16,7 +16,7 @@ agent: task:plan
 ## 执行流程
 
 > 基于对齐结果，将任务分解为可执行的子任务
-> **自我验证、自动修复、迭代优化，直到符合规范**
+> **自我验证、自动修复、迭代优化，确保符合项目现有风格**
 
 ```python
 # 读取对齐结果和上下文
@@ -30,23 +30,27 @@ required_context = ["scope", "acceptance_criteria", "code_style_follow"]
 if any(key not in align for key in required_context):
     return {"status": "上下文缺失"}
 
-# 自我迭代循环：生成 → 验证 → 修复 → 重验
+# 获取锁定的项目风格
+code_style = align["code_style_follow"]
+
+# 自我迭代循环：生成 → 验证（含风格检查）→ 修复 → 重验
 for iteration in range(10):  # 最多10次迭代
     # === 迭代开始 ===
     
-    # 阶段1：任务分解
+    # 阶段1：任务分解（遵循项目风格）
     if iteration == 0:
         subtasks = decompose_task({
             "user_prompt": user_prompt,
             "scope": align["scope"],
-            "acceptance": align["acceptance_criteria"]
+            "acceptance": align["acceptance_criteria"],
+            "code_style": code_style  # 传入风格约束
         })
     else:
         # 根据上一次验证结果修复
-        subtasks = fix_and_re decompose(subtasks, validation_errors)
+        subtasks = fix_and_redecompose(subtasks, validation_errors, code_style)
     
-    # 阶段2：验证任务拆分规范
-    validation = validate_task_structure(subtasks)
+    # 阶段2：验证任务拆分规范 + 风格符合性
+    validation = validate_task_structure(subtasks, code_style)
     
     if validation["passed"]:
         # 验证通过，退出迭代
@@ -88,9 +92,9 @@ plan = {
     "execution_order": build_dag(ordered),
     "risks": risks,
     "resources": resources,
-    "code_style": align["code_style_follow"],
+    "code_style": code_style,  # 必须遵循的项目风格
     "status": "confirmed",
-    "iterations": iteration + 1  # 记录迭代次数
+    "iterations": iteration + 1
 }
 
 # 写入任务文件
@@ -103,10 +107,8 @@ return {"status": "confirmed"}
 ## 自我修复逻辑
 
 ```python
-# 验证失败后自动修复的常见模式
-
-def fix_and_redecompose(subtasks, errors):
-    """根据验证错误自动修复任务拆分"""
+def fix_and_redecompose(subtasks, errors, code_style):
+    """根据验证错误和项目风格自动修复任务拆分"""
     
     # 修复1：补充缺失字段
     for error in errors:
@@ -120,14 +122,18 @@ def fix_and_redecompose(subtasks, errors):
         if "描述过长" in error:
             task = find_task_by_error(subtasks, error)
             if task:
-                split_large_task(subtasks, task)
+                split_large_task(subtasks, task, code_style)
     
-    # 修复3：补充验收标准
+    # 修复3：补充验收标准（遵循项目风格）
     for error in errors:
         if "验收标准不能为空" in error:
             task = find_task_by_error(subtasks, error)
             if task:
-                generate_acceptance_criteria(task, align["acceptance_criteria"])
+                generate_acceptance_criteria(
+                    task, 
+                    align["acceptance_criteria"],
+                    code_style  # 遵循项目风格
+                )
     
     # 修复4：转换文件路径
     for error in errors:
@@ -136,12 +142,15 @@ def fix_and_redecompose(subtasks, errors):
             if task:
                 convert_to_relative_paths(task, context)
     
-    # 修复5：指定默认 agent
+    # 修复5：指定默认 agent（项目优先）
     for error in errors:
         if "未指定执行 agent" in error:
             task = find_task_by_error(subtasks, error)
             if task:
-                infer_agent_from_context(task, context)
+                # 优先使用项目自定义 agent
+                agent = infer_agent_from_context(task, context, code_style)
+                if agent:
+                    task["agent"] = agent
     
     # 修复6：解决循环依赖
     if "循环依赖" in str(errors):
@@ -151,7 +160,63 @@ def fix_and_redecompose(subtasks, errors):
     if "并行任务数超限" in str(errors):
         reduce_parallelism(subtasks, max=2)
     
+    # 修复8：确保命名符合项目风格
+    for task in subtasks:
+        ensure_naming_convention(task, code_style["naming"])
+    
+    # 修复9：确保文件路径符合项目结构
+    for task in subtasks:
+        ensure_path_convention(task, code_style["structure"])
+    
     return subtasks
+```
+
+## 风格符合性验证
+
+```python
+def validate_task_structure(subtasks, code_style):
+    """验证任务拆分规范 + 项目风格符合性"""
+    errors = []
+    
+    # 原有的规范验证...
+    # （必需字段、ID格式、描述长度、验收标准、路径等）
+    
+    # === 新增：项目风格符合性检查 ===
+    
+    # 检查1：任务命名是否遵循项目风格
+    naming_style = code_style.get("naming", {})
+    for task in subtasks:
+        task_name = task["id"]
+        # 检查描述中的命名是否符合项目风格
+        if not follows_naming_convention(task["description"], naming_style):
+            errors.append(f"任务 {task_name} 描述命名不符合项目风格")
+        
+        # 检查文件命名是否符合项目风格
+        for file_path in task.get("files", []):
+            if not follows_file_naming_convention(file_path, naming_style):
+                errors.append(f"任务 {task_name} 文件命名不符合项目风格: {file_path}")
+    
+    # 检查2：任务粒度是否符合项目习惯
+    project_structure = code_style.get("structure", {})
+    for task in subtasks:
+        # 检查是否应该进一步拆分或合并
+        if not follows_project_granularity(task, project_structure):
+            errors.append(f"任务 {task['id']} 粒度不符合项目习惯")
+    
+    # 检查3：agent 选择是否优先使用项目自定义
+    for task in subtasks:
+        agent = task.get("agent")
+        if agent and not is_preferred_project_agent(agent, context):
+            errors.append(f"任务 {task['id']} 应优先使用项目自定义 agent: {agent}")
+    
+    # 检查4：是否遵循项目目录结构
+    directory_structure = code_style.get("directories", {})
+    for task in subtasks:
+        for file_path in task.get("files", []):
+            if not follows_project_directory_structure(file_path, directory_structure):
+                errors.append(f"任务 {task['id']} 文件路径不符合项目结构: {file_path}")
+    
+    return {"passed": len(errors) == 0, "errors": errors}
 ```
 
 ## 任务拆分规范
@@ -161,92 +226,31 @@ def fix_and_redecompose(subtasks, errors):
 ```json
 {
     "id": "T1",
-    "description": "简短描述（≤20字）",
+    "description": "简短描述（≤20字，遵循项目命名风格）",
     "goal": "明确的目标（可验证）",
     "acceptance_criteria": ["验收点1", "验收点2"],
     "files": ["相对路径/file1.py"],
     "dependencies": ["T0"],
-    "agent": "coder",
+    "agent": "项目自定义agent或通用agent",
     "estimated_complexity": "low"
 }
 ```
 
-### 拆分原则
+### 拆分原则（加入风格约束）
 
 1. **原子性**：每个子任务应该是原子的、不可再分的
-   - 一个子任务只做一件事
-   - 完成后产生可验证的结果
+2. **可验证性**：验收标准可测试、具体、可量化
+3. **依赖明确**：形成 DAG，无循环，并行≤2
+4. **文件范围**：相对路径，不越界
+5. **Agent选择**：优先使用项目自定义 agent
+6. **复杂度估算**：low/medium/high
 
-2. **可验证性**：每个子任务必须有明确的验收标准
-   - 验收标准必须是可测试的
-   - 验收标准必须是具体的（不模糊）
-   - 验收标准必须可量化（有明确指标）
+### 风格遵守原则（新增）
 
-3. **依赖明确**：子任务之间的依赖关系必须清晰
-   - 依赖必须形成 DAG（无循环）
-   - 并行任务数 ≤ 2
-   - 关键路径已识别
-
-4. **文件范围**：每个子任务涉及的文件必须列出
-   - 必须使用相对路径
-   - 路径必须在 align 界定的范围内
-
-5. **Agent选择**：必须指定执行 agent
-   - 项目自定义 agent（`.claude/agents/`）
-   - 通用 agent（`coder`, `tester` 等）
-
-6. **复杂度估算**：标注任务复杂度
-   - `low`：简单任务（<30分钟）
-   - `medium`：中等任务（30-120分钟）
-   - `high`：复杂任务（>120分钟）
-
-### 验证规则
-
-```python
-def validate_task_structure(subtasks):
-    errors = []
-    
-    for task in subtasks:
-        # 必需字段
-        required_fields = ["id", "description", "goal", "acceptance_criteria", "files", "agent"]
-        for field in required_fields:
-            if field not in task:
-                errors.append(f"任务 {task.get('id', '?')} 缺少字段: {field}")
-        
-        # ID 格式：T1, T2, T3...
-        if "id" in task and not re.match(r'^T\d+$', task["id"]):
-            errors.append(f"任务 ID 格式错误: {task['id']}")
-        
-        # 描述≤20字
-        if "description" in task and len(task["description"]) > 20:
-            errors.append(f"任务 {task['id']} 描述过长")
-        
-        # 验收标准非空
-        if "acceptance_criteria" in task:
-            if not isinstance(task["acceptance_criteria"], list) or len(task["acceptance_criteria"]) == 0:
-                errors.append(f"任务 {task['id']} 验收标准不能为空")
-        
-        # 相对路径
-        if "files" in task:
-            for file_path in task["files"]:
-                if not file_path.startswith("./") and not file_path.startswith("../"):
-                    errors.append(f"任务 {task['id']} 文件路径应为相对路径")
-        
-        # agent 已指定
-        if "agent" not in task or not task["agent"]:
-            errors.append(f"任务 {task['id']} 未指定执行 agent")
-    
-    # 依赖无循环
-    if not is_dag(subtasks):
-        errors.append("任务依赖存在循环")
-    
-    # 并行度≤2
-    parallel_count = max_parallel_tasks(subtasks)
-    if parallel_count > 2:
-        errors.append(f"并行任务数超限: {parallel_count}")
-    
-    return {"passed": len(errors) == 0, "errors": errors}
-```
+7. **命名符合项目风格**：任务描述、文件命名都遵循项目现有命名约定
+8. **粒度符合项目习惯**：任务大小与项目现有任务粒度一致
+9. **结构符合项目布局**：文件组织遵循项目目录结构
+10. **Agent优先项目**：优先使用 `.claude/agents/` 中的自定义 agent
 
 ## 检查清单
 
@@ -254,6 +258,7 @@ def validate_task_structure(subtasks):
 - [ ] align.json 已读取
 - [ ] context.json 已读取
 - [ ] 上下文完整性已验证
+- [ ] **code_style_follow 已读取（项目风格）**
 
 ### 自我迭代
 - [ ] 已实现自我验证机制
@@ -261,17 +266,14 @@ def validate_task_structure(subtasks):
 - [ ] 最多10次迭代限制
 - [ ] 迭代次数已记录
 
-### 任务拆分
-- [ ] 任务已分解为可执行单元
-- [ ] 所有必需字段已存在
-- [ ] 任务 ID 格式正确
-- [ ] 描述≤20字
-- [ ] 验收标准非空
-- [ ] 文件路径为相对路径
-- [ ] Agent 已指定
-- [ ] 依赖无循环
-- [ ] 并行度≤2
+### 风格符合性（新增）
+- [ ] 命名遵循项目风格
+- [ ] 文件命名遵循项目风格
+- [ ] 任务粒度符合项目习惯
+- [ ] 优先使用项目自定义 agent
+- [ ] 文件路径符合项目结构
 
 ### 输出
 - [ ] task.json 已写入
+- [ ] **包含 code_style 字段（项目风格）**
 - [ ] status: "confirmed" | "上下文缺失"
