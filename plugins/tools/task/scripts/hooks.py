@@ -32,7 +32,6 @@ def handle_session_start():
 
 def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
 	"""递归扫描目录，替换文件中的 ${CLAUDE_PLUGIN_ROOT} 变量
-
 	Args:
 		directory: 要扫描的目录路径
 		plugin_root: 插件根目录路径

@@ -9,6 +9,14 @@ dependencies = [
  "pydantic>=2.12.5",
 ]
 
+[project.optional-dependencies]
+dev = [
+ "claude-agent-sdk",
+]
+all = [
+ "task[dev]",
+]
+
 [build-system]
 requires = [ "setuptools>=68.0", "wheel",]
 build-backend = "setuptools.build_meta"
