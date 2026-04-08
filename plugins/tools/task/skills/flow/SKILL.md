@@ -1,4 +1,4 @@
-from click import command---
+---
 description: 任务流程，协调任务在各状态间的流转和调度
 memory: project
 color: purple
@@ -11,12 +11,17 @@ user-invocable: false
 
 # Flow Skill
 
-对任务的计划、执行、监控进行管理
+对任务的计划、执行、监控进行管理。严格遵守状态转换规则，禁止偏离。
 
-## 执行流程(严格遵守、禁止偏离)
+## 入口点
+
+- **新任务** → pending
+- **用户新输入** → align
+- **用户取消** → cancel
+
+## 执行流程
 
 > 新任务时触发
-> 用户有新的会中断语义的任务触发
 
 ```python
 from claude import Agent, Skill, UserPrompt
@@ -140,7 +145,9 @@ case True:
 	)
 ```
 
-## 用户主动取消
+## 用户新输入
+
+> 用户有新的会中断语义的输入时触发
 
 ```python
 from claude import Agent
@@ -156,3 +163,21 @@ if task_id:
 		}
 	)
 ```
+
+## 状态转换规则
+
+| 从 | 到 | 条件 |
+|---|---|------|
+| pending | explore | 触发探索 |
+| explore | align | 探索完成 |
+| align | plan | 对齐完成 |
+| plan | exec | 规划确认 |
+| plan | explore | 上下文缺失 |
+| exec | verify | 执行完成 |
+| verify | done | 校验通过 |
+| verify | adjust | 校验失败 |
+| adjust | explore | 上下文缺失 |
+| adjust | align | 需求偏差 |
+| adjust | plan | 重新计划 |
+| adjust | done | 放弃 |
+| cancel | done | 取消完成 |
