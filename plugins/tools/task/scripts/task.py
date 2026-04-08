@@ -2,6 +2,28 @@ import os.path
 
 import click
 from lib.utils.env import get_plugins_path
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class TaskState(str, BaseModel):
+	Pending = "pending" # 等待执行，默认状态
+
+class Metadata(BaseModel):
+	task_name: str = Field(
+		title="任务名称",
+		description="任务名称，用于显示在任务列表中",
+	)
+
+	started_at: int = Field(
+		title="任务开始时间戳",
+		description="任务开始时间，用于显示在任务列表中",
+	)
+
+	status: TaskState = Field(
+		title="任务状态",
+		default=TaskState.Pending,
+		description="任务状态，用于显示在任务列表中",
+	)
 
 @click.group()
 @click.pass_context

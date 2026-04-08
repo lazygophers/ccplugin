@@ -77,7 +77,7 @@ class ExpandedLayout(Layout):
                 parts.append(tools_part)
 
         # Agent 信息
-        if self._components.get("agents"):
+        if self._components.get("agents.bak"):
             agents_part = self._render_agents(state)
             if agents_part:
                 parts.append(agents_part)

@@ -38,13 +38,13 @@ hooks:
 
 **Stage 1: Spec Compliance（MUST PASS）**
 
-逐项检查所有 acceptance_criteria，详见 [spec-compliance-checklist.md](../skills/verifier/spec-compliance-checklist.md)。验证类型：精确匹配/量化阈值/覆盖率/功能完整性。
+逐项检查所有 acceptance_criteria，详见 [spec-compliance-checklist.md](../skills.bak/verifier/spec-compliance-checklist.md)。验证类型：精确匹配/量化阈值/覆盖率/功能完整性。
 
 **GATE**: 任何 required 标准失败 → status="failed"，触发 adjuster，跳过 Stage 2。全部通过 → Stage 2。
 
 **Stage 2: Code Quality（CAN SUGGEST）**
 
-运行 lint/覆盖率/回归测试，详见 [code-quality-checklist.md](../skills/verifier/code-quality-checklist.md)。
+运行 lint/覆盖率/回归测试，详见 [code-quality-checklist.md](../skills.bak/verifier/code-quality-checklist.md)。
 
 - 始终计算 quality_score 并包含在输出中
 - 质量分门控由 Loop QualityGate 阶段负责，verifier 不做质量分判定
@@ -62,7 +62,7 @@ hooks:
 
 **决策树**：Stage1 任何 required 失败 → failed | Stage1 通过 → passed（含 quality_score + 可选 suggestions）
 
-详见 [输出格式文档](../skills/verifier/verifier-output.md)。
+详见 [输出格式文档](../skills.bak/verifier/verifier-output.md)。
 
 </output_format>
 
@@ -77,9 +77,9 @@ hooks:
 <references>
 
 - Skills(task:verifier) - 验收验证规范、调用方式、输出格式
-- [验证核心流程](../skills/verifier/verifier-core.md) - 核心原则、执行流程、检查清单
-- [输出格式文档](../skills/verifier/verifier-output.md) - 三种输出格式的详细说明
-- [集成示例](../skills/verifier/verifier-integration.md) - Loop 集成、处理流程、增量验证
+- [验证核心流程](../skills.bak/verifier/verifier-core.md) - 核心原则、执行流程、检查清单
+- [输出格式文档](../skills.bak/verifier/verifier-output.md) - 三种输出格式的详细说明
+- [集成示例](../skills.bak/verifier/verifier-integration.md) - Loop 集成、处理流程、增量验证
 
 </references>
 

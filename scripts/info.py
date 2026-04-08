@@ -462,12 +462,12 @@ def display_enabled_plugins_details(plugins_data: dict[str, Any], project_enable
                     command_names = [Path(cmd).stem for cmd in commands]
                     components_to_show.append(("Commands", command_names))
 
-                agents = plugin_json.get("agents", [])
+                agents = plugin_json.get("agents.bak", [])
                 if agents:
                     agent_names = [Path(agent).stem for agent in agents]
                     components_to_show.append(("Agents", agent_names))
 
-                skills = plugin_json.get("skills", [])
+                skills = plugin_json.get("skills.bak", [])
                 if skills:
                     if isinstance(skills, list):
                         skills_path = skills[0] if skills else ""

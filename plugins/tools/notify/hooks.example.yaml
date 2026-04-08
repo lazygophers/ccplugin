@@ -279,7 +279,7 @@ hooks:
   # ============================================================================
   # ConfigChange - 配置文件变更时（按 source 匹配）
   # ============================================================================
-  # matcher: user_settings, project_settings, local_settings, policy_settings, skills
+  # matcher: user_settings, project_settings, local_settings, policy_settings, skills.bak
   # 额外变量: {{ source }}, {{ file_path }}
   config_change:
     enabled: false

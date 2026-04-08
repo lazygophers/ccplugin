@@ -83,8 +83,8 @@ interface AuthorInfo {
   "license": "MIT",
   "keywords": ["format", "code", "style", "prettier", "black"],
   "commands": "./commands/",
-  "agents": "./agents/",
-  "skills": "./skills/",
+  "agents": "./agents.bak/",
+  "skills": "./skills.bak/",
   "hooks": "./hooks/hooks.json"
 }
 ```

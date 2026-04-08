@@ -480,31 +480,31 @@ def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None
 			message="scripts 目录不存在"
 		))
 
-	skills_dir = plugin_path / 'skills'
+	skills_dir = plugin_path / 'skills.bak'
 	if skills_dir.exists():
 		skill_mds = list(skills_dir.glob('**/SKILL.md'))
 		if skill_mds:
 			report.add_result(CheckResult(
 				category="structure",
-				name="skills/",
+				name="skills.bak/",
 				status="pass",
 				message=f"找到 {len(skill_mds)} 个 SKILL.md 文件"
 			))
 		else:
 			report.add_result(CheckResult(
 				category="structure",
-				name="skills/",
+				name="skills.bak/",
 				status="warning",
-				message="skills 目录存在但无 SKILL.md 文件"
+				message="skills.bak 目录存在但无 SKILL.md 文件"
 			))
 
-	agents_dir = plugin_path / 'agents'
+	agents_dir = plugin_path / 'agents.bak'
 	if agents_dir.exists():
 		agent_mds = list(agents_dir.glob('*.md'))
 		if agent_mds:
 			report.add_result(CheckResult(
 				category="structure",
-				name="agents/",
+				name="agents.bak/",
 				status="pass",
 				message=f"找到 {len(agent_mds)} 个 agent 文件"
 			))

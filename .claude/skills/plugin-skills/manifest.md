@@ -20,9 +20,9 @@
     "./commands/command.md"
   ],
   "agents": [
-    "./agents/agent.md"
+    "./agents.bak/agent.md"
   ],
-  "skills": "./skills/",
+  "skills": "./skills.bak/",
   "mcpServers": "./.mcp.json",
   "outputStyles": "./styles/",
   "lspServers": "./.lsp.json"
@@ -108,8 +108,8 @@
 ```json
 {
   "agents": [
-    "./agents/dev.md",
-    "./agents/review.md"
+    "./agents.bak/dev.md",
+    "./agents.bak/review.md"
   ]
 }
 ```
@@ -120,7 +120,7 @@
 
 ```json
 {
-  "skills": "./skills/"
+  "skills": "./skills.bak/"
 }
 ```
 
@@ -180,9 +180,9 @@ LSP 服务器配置：
     "./commands/stats.md"
   ],
   "agents": [
-    "./agents/planner.md"
+    "./agents.bak/planner.md"
   ],
-  "skills": "./skills/",
+  "skills": "./skills.bak/",
   "mcpServers": "./.mcp.json"
 }
 ```

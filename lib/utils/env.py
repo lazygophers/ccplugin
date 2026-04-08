@@ -42,7 +42,7 @@ def get_plugins_path() -> str:
 
 
 def get_plugins_skills_dir():
-	return os.path.join(get_plugins_path(), "skills")
+	return os.path.join(get_plugins_path(), "skills.bak")
 
 
 def get_plugins_commands_dir():
@@ -54,7 +54,7 @@ def get_plugins_hooks_dir():
 
 
 def get_plugins_agents_dir():
-	return os.path.join(get_plugins_path(), "agents")
+	return os.path.join(get_plugins_path(), "agents.bak")
 
 
 def get_user_home():

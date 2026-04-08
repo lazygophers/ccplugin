@@ -8,7 +8,7 @@ color: green
 memory: project
 skills:
   - new-plugin
-  - plugin-skills
+  - plugin-skills.bak
   - documentation
 ---
 
@@ -80,8 +80,8 @@ plugin-name/
     "email": "email@example.com"
   },
   "keywords": ["keyword1", "keyword2"],
-  "agents": ["./agents/agent-name.md"],
-  "skills": "./skills/",
+  "agents": ["./agents.bak/agent-name.md"],
+  "skills": "./skills.bak/",
   "hooks": {
     "SessionStart": [{
       "hooks": [{"type": "command", "command": "echo 'init'"}]
@@ -343,7 +343,7 @@ plugin-name/
 
 ```bash
 claude --settings ~/.claude/settings.glm-4.5-flash.json \
-  -p "$(cat agents/agent-name.md)" \
+  -p "$(cat agents.bak/agent-name.md)" \
   --output-format stream-json | \
   jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```

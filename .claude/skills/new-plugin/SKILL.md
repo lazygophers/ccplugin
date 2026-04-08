@@ -4,7 +4,7 @@ user-invocable: true
 context: fork
 model: sonnet
 skills:
-  - plugin-skills
+  - plugin-skills.bak
   - documentation
 ---
 
@@ -111,7 +111,7 @@ skills:
 2. 使用质量检查工具验证 AI 理解：
    ```bash
    claude --settings ~/.claude/settings.glm-4.5-flash.json \
-     -p "$(cat agents/agent-name.md)" \
+     -p "$(cat agents.bak/agent-name.md)" \
      --output-format stream-json | \
      jq -r 'select(.type == "result" and .subtype == "success") | .result'
    ```
@@ -273,9 +273,9 @@ plugin-name/
   "license": "AGPL-3.0-or-later",
   "keywords": ["keyword1", "keyword2"],
   "agents": [
-    "./agents/agent-name.md"
+    "./agents.bak/agent-name.md"
   ],
-  "skills": "./skills/",
+  "skills": "./skills.bak/",
   "hooks": {
     "SessionStart": [{
       "hooks": [{"type": "command", "command": "echo 'Plugin loaded'"}]

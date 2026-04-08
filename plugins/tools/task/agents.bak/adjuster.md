@@ -30,9 +30,9 @@ hooks:
 
 **Retry + 指数退避**：`wait = 2^(n-1)` 秒，加 Jitter 避免雷鸣群效应。
 
-**Self-Healing**：17 类可自愈错误（依赖缺失/端口占用/目录不存在/权限/配置/网络超时/API错误/内存/磁盘/文件锁等），与 HITL 联动。详见 [升级策略](../skills/adjuster/adjuster-strategies.md)。
+**Self-Healing**：17 类可自愈错误（依赖缺失/端口占用/目录不存在/权限/配置/网络超时/API错误/内存/磁盘/文件锁等），与 HITL 联动。详见 [升级策略](../skills.bak/adjuster/adjuster-strategies.md)。
 
-**渐进式升级**：L1 Retry（含 Self-Healing）→ L2 Debug → L3 Replan（含 Micro-Replan）→ L4 Ask User。振荡检测（A→B→A→B）和紧急逃逸（总失败≥15）立即 Ask User。详见 [升级策略](../skills/adjuster/adjuster-strategies.md)。
+**渐进式升级**：L1 Retry（含 Self-Healing）→ L2 Debug → L3 Replan（含 Micro-Replan）→ L4 Ask User。振荡检测（A→B→A→B）和紧急逃逸（总失败≥15）立即 Ask User。详见 [升级策略](../skills.bak/adjuster/adjuster-strategies.md)。
 
 **停滞检测**：相同错误 3 次/相同策略连续失败 2 次/无进展 → 升级策略。
 
@@ -61,7 +61,7 @@ hooks:
 - replan: `replan_scope`（affected_tasks, keep_completed, new_approach）
 - ask_user: `question`（summary, tried_strategies, ask）
 
-完整示例详见 [输出格式文档](../skills/adjuster/adjuster-output.md)。
+完整示例详见 [输出格式文档](../skills.bak/adjuster/adjuster-output.md)。
 
 </output_format>
 
@@ -75,9 +75,9 @@ hooks:
 <references>
 
 - Skills(task:adjuster) - 失败调整规范、调用方式、输出格式
-- [升级策略指南](../skills/adjuster/adjuster-strategies.md) - 四级升级策略、自愈机制、停滞检测、Circuit Breaker、自定义规则
-- [输出格式文档](../skills/adjuster/adjuster-output.md) - 策略的详细说明和示例
-- [集成示例](../skills/adjuster/adjuster-integration.md) - Loop 集成、处理流程、停滞检测
+- [升级策略指南](../skills.bak/adjuster/adjuster-strategies.md) - 四级升级策略、自愈机制、停滞检测、Circuit Breaker、自定义规则
+- [输出格式文档](../skills.bak/adjuster/adjuster-output.md) - 策略的详细说明和示例
+- [集成示例](../skills.bak/adjuster/adjuster-integration.md) - Loop 集成、处理流程、停滞检测
 
 </references>
 

@@ -117,7 +117,7 @@ def problematic_function(data):
     return result
 
 # 方法 3：从命令行启动调试
-# python-skills -m pdb script.py
+# python-skills.bak -m pdb script.py
 
 # 常用 pdb 命令
 # l(list) - 显示当前代码
@@ -198,14 +198,14 @@ class ApplicationError(Exception):
 
 ```bash
 # 使用 cProfile 分析函数性能
-python-skills -m cProfile -s cumulative script.py
+python-skills.bak -m cProfile -s cumulative script.py
 
 # 使用 timeit 测量代码片段
-python-skills -m timeit '"-".join(str(n) for n in range(100))'
+python-skills.bak -m timeit '"-".join(str(n) for n in range(100))'
 
 # 使用 memory_profiler 分析内存
 pip install memory-profiler
-python-skills -m memory_profiler script.py
+python-skills.bak -m memory_profiler script.py
 ```
 
 ```python

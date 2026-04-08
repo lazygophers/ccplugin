@@ -68,11 +68,11 @@ def test_manifest_name_and_skills_dir_are_valid() -> None:
 
     # Act
     plugin_name = manifest.get("name", "")
-    skills_dir = ROOT_DIR / "skills"
+    skills_dir = ROOT_DIR / "skills.bak"
 
     # Assert
     assert re.fullmatch(r"[a-z0-9][a-z0-9-]*", plugin_name)
-    assert manifest.get("skills") == "./skills/"
+    assert manifest.get("skills.bak") == "./skills.bak/"
     assert skills_dir.exists()
     assert any(skills_dir.glob("*/SKILL.md"))
 

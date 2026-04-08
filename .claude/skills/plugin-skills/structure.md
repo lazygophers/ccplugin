@@ -104,8 +104,8 @@ python_skills    # 下划线
 // plugin.json 中的路径
 {
   "commands": ["./commands/command.md"],
-  "agents": ["./agents/agent.md"],
-  "skills": "./skills/"
+  "agents": ["./agents.bak/agent.md"],
+  "skills": "./skills.bak/"
 }
 ```
 

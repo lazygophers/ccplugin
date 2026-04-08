@@ -64,7 +64,7 @@ python/
 
 ```json
 {
-  "skills": "./skills/"
+  "skills": "./skills.bak/"
 }
 ```
 

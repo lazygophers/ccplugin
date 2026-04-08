@@ -56,7 +56,7 @@ def handle_pretooluse(tool_name: str, tool_input: dict):
 	# 提取 subagent_type
 	subagent_type = tool_input.get("subagent_type", "")
 
-	# 只检查 task:* agents（排除 task:loop）
+	# 只检查 task:* agents.bak（排除 task:loop）
 	if not subagent_type.startswith("task:") or subagent_type == "task:loop":
 		sys.exit(0)
 

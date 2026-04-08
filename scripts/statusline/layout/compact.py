@@ -122,10 +122,10 @@ class CompactLayout(Layout):
             if tools_part:
                 parts_map["tools"] = tools_part
 
-        if self._components.get("agents"):
+        if self._components.get("agents.bak"):
             agents_part = self._render_agents(state)
             if agents_part:
-                parts_map["agents"] = agents_part
+                parts_map["agents.bak"] = agents_part
 
         if self._components.get("todos"):
             todos_part = self._render_todos(state)
@@ -510,7 +510,7 @@ class CompactLayout(Layout):
             if tools_part:
                 parts.append(tools_part)
 
-        if self._components.get("agents"):
+        if self._components.get("agents.bak"):
             agents_part = self._render_agents(state)
             if agents_part:
                 parts.append(agents_part)

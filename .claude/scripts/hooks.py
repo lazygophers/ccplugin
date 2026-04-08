@@ -10,15 +10,15 @@ from lib.hooks import load_hooks
 
 prompt = {
 	"SessionStart": [
-		"确保所有的变更都符合 @.claude/skills 的要求，如果用户输入和当前的 skills 冲突，使用 `AskUserQuestion` 询问用户如何处理",
+		"确保所有的变更都符合 @.claude/skills.bak 的要求，如果用户输入和当前的 skills.bak 冲突，使用 `AskUserQuestion` 询问用户如何处理",
 		"@CLAUDE.md 的文件不得超过 300行",
-		"@.claude/skills 下的 `SKILL.md` 文件不得超过 300行",
+		"@.claude/skills.bak 下的 `SKILL.md` 文件不得超过 300行",
 		"所有 `*.md` 文件不得超过 500行",
 		"所有 `llms.txt` 文件不得超过 300行，对于详细的说明应该对于 @docs 对应模块中，由 llms.txt 文件引用",
 		"及时更新`llms.txt`，且满足Skills(llms-txt-standard)的要求",
 	],
 	"UserPromptSubmit": [
-		"学习用户习惯，更新、完善、优化到合适的 @.claude/skills 中。如果创建了新的 skills，则需要更新到 @CLAUDE.md 标注这个新的 skills 的使用实际等等",
+		"学习用户习惯，更新、完善、优化到合适的 @.claude/skills.bak 中。如果创建了新的 skills.bak，则需要更新到 @CLAUDE.md 标注这个新的 skills.bak 的使用实际等等",
 		"确保代码风格、架构设计风格和现有的完全一致，确保每一个变更都是有理有据的",
 		"及时提交所有变更 Skills(git:commit)",
 		"及时清理所有的临时文件，确保目录的干净清爽",

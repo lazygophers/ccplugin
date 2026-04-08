@@ -166,8 +166,8 @@ vi plugin.json
 
 # 实现功能
 cd ../commands  # 添加命令
-cd ../agents    # 添加代理
-cd ../skills    # 添加技能
+cd ../agents.bak    # 添加代理
+cd ../skills.bak    # 添加技能
 ```
 
 ### 插件结构

@@ -25,8 +25,8 @@ vi plugin.json
 
 # 3. 实现功能
 cd ../commands  # 添加命令
-cd ../agents    # 添加代理
-cd ../skills    # 添加技能
+cd ../agents.bak    # 添加代理
+cd ../skills.bak    # 添加技能
 
 # 4. 测试插件
 cd ../..
@@ -93,8 +93,8 @@ my-plugin/
   },
   "keywords": ["tag1", "tag2"],
   "commands": "./commands/",
-  "agents": "./agents/",
-  "skills": "./skills/"
+  "agents": "./agents.bak/",
+  "skills": "./skills.bak/"
 }
 ```
 
@@ -227,7 +227,7 @@ Agent Skills，提供特定领域的知识和指导。
 
 ```yaml
 ---
-name: skill-name-skills
+name: skill-name-skills.bak
 description: 技能描述
 auto-activate: always:true
 allowed-tools: Read, Grep
@@ -399,8 +399,8 @@ cp -r plugins/template my-plugin
 # 或手动创建
 mkdir -p my-plugin/.claude-plugin
 mkdir -p my-plugin/commands
-mkdir -p my-plugin/agents
-mkdir -p my-plugin/skills
+mkdir -p my-plugin/agents.bak
+mkdir -p my-plugin/skills.bak
 mkdir -p my-plugin/scripts
 ```
 
@@ -416,14 +416,14 @@ vi my-command.md
 **添加代理**：
 
 ```bash
-cd my-plugin/agents
+cd my-plugin/agents.bak
 vi my-agent.md
 ```
 
 **添加技能**：
 
 ```bash
-cd my-plugin/skills
+cd my-plugin/skills.bak
 mkdir my-skill
 vi my-skill/SKILL.md
 ```
@@ -460,7 +460,7 @@ cat my-plugin/.claude-plugin/plugin.json | jq .
 cat .claude-plugin/plugin.json | jq .
 
 # 检查目录结构
-ls -d .claude-plugin commands agents skills 2>/dev/null
+ls -d .claude-plugin commands agents.bak skills.bak 2>/dev/null
 
 # 验证命名规范
 cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'

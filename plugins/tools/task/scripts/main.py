@@ -31,9 +31,9 @@ def hooks() -> None:
 	handle_hook()
 
 
-@main.command(name="hooks-skills")
+@main.command(name="hooks-skills.bak")
 def hooks_skills() -> None:
-	"""Hook 模式：处理 skills 相关事件（从 stdin 读取 JSON）"""
+	"""Hook 模式：处理 skills.bak 相关事件（从 stdin 读取 JSON）"""
 	handle_hook_skills()
 
 

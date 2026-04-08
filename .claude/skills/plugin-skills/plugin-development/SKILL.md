@@ -43,8 +43,8 @@ my-plugin/
      "description": "我的插件描述",
      "author": "Your Name",
      "commands": ["./commands/"],
-     "agents": ["./agents/"],
-     "skills": "./skills/"
+     "agents": ["./agents.bak/"],
+     "skills": "./skills.bak/"
    }
    ```
 

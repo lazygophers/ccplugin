@@ -41,7 +41,7 @@ hooks:
 
 **InformationGathering：信息收集**
 
-三层上下文学习（详见 [上下文学习指南](../skills/planner/planner-context-learning.md)）：
+三层上下文学习（详见 [上下文学习指南](../skills.bak/planner/planner-context-learning.md)）：
 - Tier 1（必须）：项目基本信息、CLAUDE.md、README.md、.claude/memory/MEMORY.md
 - Tier 2：代码风格、测试策略、架构决策
 - Tier 3（按需）：历史规划决策和模式
@@ -60,7 +60,7 @@ hooks:
 **PlanWrite：格式化并写入计划文件**（tasks 非空时必须执行）
 
 1. 生成文件路径：`.lazygophers/tasks/{task_id}/plan.md`
-2. 按计划模板生成 Markdown，参考 [template.md](../skills/planner/template.md)
+2. 按计划模板生成 Markdown，参考 [template.md](../skills.bak/planner/template.md)
 3. 使用 Write 工具写入 `.lazygophers/tasks/{task_id}/plan.md`
 4. 将 tasks 数组写入 `.lazygophers/tasks/{task_id}/tasks.json`
 
@@ -121,11 +121,11 @@ AskUserQuestion({
 <references>
 
 - Skills(task:planner) - 计划设计规范
-- [上下文学习指南](../skills/planner/planner-context-learning.md)
-- [资源选择指南](../skills/planner/planner-resource-guide.md)
-- [最佳实践与避坑](../skills/planner/planner-best-practices.md)
-- [集成示例](../skills/planner/planner-integration.md)
-- [计划模板](../skills/planner/template.md)
+- [上下文学习指南](../skills.bak/planner/planner-context-learning.md)
+- [资源选择指南](../skills.bak/planner/planner-resource-guide.md)
+- [最佳实践与避坑](../skills.bak/planner/planner-best-practices.md)
+- [集成示例](../skills.bak/planner/planner-integration.md)
+- [计划模板](../skills.bak/planner/template.md)
 
 </references>
 

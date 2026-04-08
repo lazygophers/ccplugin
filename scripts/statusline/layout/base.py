@@ -31,7 +31,7 @@ class Layout(ABC):
             "resources": self._config.get("show_resources", True),
             "errors": self._config.get("show_errors", True),
             "tools": True,   # 始终启用
-            "agents": True,  # 始终启用
+            "agents.bak": True,  # 始终启用
             "todos": True,   # 始终启用
         }
 
@@ -91,9 +91,9 @@ class Layout(ABC):
             component: 组件名称
 
         Note:
-            tools, agents, todos 组件始终启用，不能被禁用
+            tools, agents.bak, todos 组件始终启用，不能被禁用
         """
-        if component in ("tools", "agents", "todos"):
+        if component in ("tools", "agents.bak", "todos"):
             # 这些组件始终启用，忽略禁用请求
             return
 
@@ -108,9 +108,9 @@ class Layout(ABC):
             component: 组件名称
 
         Note:
-            tools, agents, todos 组件始终启用，不能被禁用
+            tools, agents.bak, todos 组件始终启用，不能被禁用
         """
-        if component in ("tools", "agents", "todos"):
+        if component in ("tools", "agents.bak", "todos"):
             # 这些组件始终启用，忽略禁用请求
             return
 
@@ -125,7 +125,7 @@ class Layout(ABC):
             config: 配置字典
 
         Note:
-            tools, agents, todos 组件始终启用，忽略相关配置
+            tools, agents.bak, todos 组件始终启用，忽略相关配置
         """
         self._config.update(config)
 
@@ -139,7 +139,7 @@ class Layout(ABC):
         if "show_errors" in config:
             self._components["errors"] = config["show_errors"]
 
-        # tools/agents/todos 组件始终启用，忽略配置中的设置
+        # tools/agents.bak/todos 组件始终启用，忽略配置中的设置
         # 如果配置中包含这些选项，静默忽略以保持向后兼容
 
     def _validate_config(self) -> None:

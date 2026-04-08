@@ -1,5 +1,5 @@
 ---
-description: 插件 AGENT.md 开发指南 - 当用户需要为插件的 agents 编写系统提示注入文档时使用。覆盖 AGENT.md 格式、内容结构和最佳实践。
+description: 插件 AGENT.md 开发指南 - 当用户需要为插件的 agents.bak 编写系统提示注入文档时使用。覆盖 AGENT.md 格式、内容结构和最佳实践。
 context: fork
 ---
 

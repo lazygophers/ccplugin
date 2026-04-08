@@ -10,10 +10,10 @@
 
 | Agent | 用途 | 关键文件 | 使用场景 |
 |-------|------|---------|---------|
-| planner | 任务规划、分解、格式化 | [agents/planner.md](agents/planner.md)<br/>[skills/planner/](skills/planner/) | MECE分解复杂任务为原子子任务，自动格式化并写入计划文件 |
-| verifier | 验收验证 | [agents/verifier.md](agents/verifier.md)<br/>[skills/verifier/](skills/verifier/) | 检查验收标准、质量评分 |
-| adjuster | 失败调整 | [agents/adjuster.md](agents/adjuster.md)<br/>[skills/adjuster/](skills/adjuster/) | 四级渐进式升级（retry→debug→replan→ask_user） |
-| prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
+| planner | 任务规划、分解、格式化 | [agents/planner.md](agents.bak/planner.md)<br/>[skills/planner/](skills.bak/planner/) | MECE分解复杂任务为原子子任务，自动格式化并写入计划文件 |
+| verifier | 验收验证 | [agents/verifier.md](agents.bak/verifier.md)<br/>[skills/verifier/](skills.bak/verifier/) | 检查验收标准、质量评分 |
+| adjuster | 失败调整 | [agents/adjuster.md](agents.bak/adjuster.md)<br/>[skills/adjuster/](skills.bak/adjuster/) | 四级渐进式升级（retry→debug→replan→ask_user） |
+| prompt-optimizer | 提示词优化 | [agents/prompt-optimizer.md](agents.bak/prompt-optimizer.md)<br/>[skills/prompt-optimizer/](skills.bak/prompt-optimizer/) | 5W1H框架澄清模糊需求 |
 
 > **注**：finalizer 已移除。Cleanup 由 loop 自身执行，任务完成时立即删除目录和索引。SessionStart hook 清理意外残留的任务（如系统崩溃）。
 
@@ -23,12 +23,12 @@
 
 | Skill | 用途 | 触发条件 | 文档路径 |
 |-------|------|---------|---------|
-| loop | Loop持续执行 | `/loop`命令 | [skills/loop/SKILL.md](skills/loop/SKILL.md) |
-| planner | 计划设计 | loop调用或独立使用 | [skills/planner/SKILL.md](skills/planner/SKILL.md) |
-| verifier | 结果验证 | loop调用或独立使用 | [skills/verifier/SKILL.md](skills/verifier/SKILL.md) |
-| adjuster | 失败调整 | loop调用或独立使用 | [skills/adjuster/SKILL.md](skills/adjuster/SKILL.md) |
-| prompt-optimizer | 提示词优化 | 首次迭代必选，用户新输入时增量修订 | [skills/prompt-optimizer/SKILL.md](skills/prompt-optimizer/SKILL.md) |
-| hooks | 生命周期钩子 | 事件触发（2个hooks） | [skills/hooks/SKILL.md](skills/hooks/SKILL.md) |
+| loop | Loop持续执行 | `/loop`命令 | [skills/loop/SKILL.md](skills.bak/loop/SKILL.md) |
+| planner | 计划设计 | loop调用或独立使用 | [skills/planner/SKILL.md](skills.bak/planner/SKILL.md) |
+| verifier | 结果验证 | loop调用或独立使用 | [skills/verifier/SKILL.md](skills.bak/verifier/SKILL.md) |
+| adjuster | 失败调整 | loop调用或独立使用 | [skills/adjuster/SKILL.md](skills.bak/adjuster/SKILL.md) |
+| prompt-optimizer | 提示词优化 | 首次迭代必选，用户新输入时增量修订 | [skills/prompt-optimizer/SKILL.md](skills.bak/prompt-optimizer/SKILL.md) |
+| hooks | 生命周期钩子 | 事件触发（2个hooks） | [skills/hooks/SKILL.md](skills.bak/hooks/SKILL.md) |
 
 ## 按场景查找
 
@@ -36,65 +36,65 @@
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 任务执行失败，如何恢复？ | adjuster → 四级升级策略 | [失败调整](skills/adjuster/adjuster-strategies.md) |
-| 连续失败3次，系统如何处理？ | adjuster → 停滞检测 | [停滞检测](skills/adjuster/stall-detection.md) |
-| 如何查看失败原因？ | loop → error-handling | [错误处理](skills/loop/error-handling.md) |
+| 任务执行失败，如何恢复？ | adjuster → 四级升级策略 | [失败调整](skills.bak/adjuster/adjuster-strategies.md) |
+| 连续失败3次，系统如何处理？ | adjuster → 停滞检测 | [停滞检测](skills.bak/adjuster/stall-detection.md) |
+| 如何查看失败原因？ | loop → error-handling | [错误处理](skills.bak/loop/error-handling.md) |
 
 ### 成本和性能
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 如何启用Prompt Caching？ | loop → prompt-caching | [缓存优化](skills/loop/prompt-caching.md) |
+| 如何启用Prompt Caching？ | loop → prompt-caching | [缓存优化](skills.bak/loop/prompt-caching.md) |
 
 ### 任务中断与恢复
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 任务中断后如何恢复？ | loop → 检查点恢复 | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
-| 检查点保存在哪里？ | `.lazygophers/tasks/{task_id}/checkpoints/` | [初始化（含检查点）](skills/loop/phases/phase-initialization.md) |
+| 任务中断后如何恢复？ | loop → 检查点恢复 | [初始化（含检查点）](skills.bak/loop/phases/phase-initialization.md) |
+| 检查点保存在哪里？ | `.lazygophers/tasks/{task_id}/checkpoints/` | [初始化（含检查点）](skills.bak/loop/phases/phase-initialization.md) |
 
 ### 质量和验收
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 如何定义验收标准？ | planner → acceptance_criteria | [计划设计](skills/planner/SKILL.md) |
-| 质量评分如何计算？ | verifier → quality-scoring | [结果验证](skills/verifier/SKILL.md) |
-| 如何触发深度研究？ | loop → deep-research-triggers | [深度研究触发](skills/loop/deep-research-triggers.md) |
+| 如何定义验收标准？ | planner → acceptance_criteria | [计划设计](skills.bak/planner/SKILL.md) |
+| 质量评分如何计算？ | verifier → quality-scoring | [结果验证](skills.bak/verifier/SKILL.md) |
+| 如何触发深度研究？ | loop → deep-research-triggers | [深度研究触发](skills.bak/loop/deep-research-triggers.md) |
 
 ### 计划和确认
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 计划确认机制如何工作？ | loop → Plan Mode | [计划流程](skills/loop/flows/plan.md) |
-| 什么时候需要用户确认？ | loop → 智能确认策略 | [详细流程](skills/loop/phases/phase-planning.md) |
-| 如何重新设计计划？ | loop → 重新规划 | [计划流程](skills/loop/flows/plan.md) |
+| 计划确认机制如何工作？ | loop → Plan Mode | [计划流程](skills.bak/loop/flows/plan.md) |
+| 什么时候需要用户确认？ | loop → 智能确认策略 | [详细流程](skills.bak/loop/phases/phase-planning.md) |
+| 如何重新设计计划？ | loop → 重新规划 | [计划流程](skills.bak/loop/flows/plan.md) |
 
 ### 并行和调度
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 如何控制并行任务数量？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-execution.md) |
-| 为什么限制2个并行任务？ | loop → 复杂度评估 | [任务执行](skills/loop/phases/phase-execution.md) |
-| Team何时创建和删除？ | execute → Team管理 | [详细流程](skills/loop/phases/phase-execution.md) |
+| 如何控制并行任务数量？ | loop → 复杂度评估 | [任务执行](skills.bak/loop/phases/phase-execution.md) |
+| 为什么限制2个并行任务？ | loop → 复杂度评估 | [任务执行](skills.bak/loop/phases/phase-execution.md) |
+| Team何时创建和删除？ | execute → Team管理 | [详细流程](skills.bak/loop/phases/phase-execution.md) |
 
 ### HITL审批
 
 | 问题 | 相关组件 | 文档链接 |
 |------|---------|---------|
-| 什么操作需要人工审批？ | loop → execution HITL | [任务执行](skills/loop/phases/phase-execution.md) |
+| 什么操作需要人工审批？ | loop → execution HITL | [任务执行](skills.bak/loop/phases/phase-execution.md) |
 
 ## 高级主题
 
 ### 深入理解
 
-- [Loop详细执行流程](skills/loop/detailed-flow.md) - 8个执行阶段导航索引
+- [Loop详细执行流程](skills.bak/loop/detailed-flow.md) - 8个执行阶段导航索引
 
 ### 最佳实践
 
-- [任务分解原则](skills/planner/task-decomposition.md) - MECE原则应用
-- [失败升级策略](skills/adjuster/adjuster-strategies.md) - 四级渐进式升级
-- [Prompt缓存优化](skills/loop/prompt-caching.md) - 90%成本节省
-- [深度研究触发](skills/loop/deep-research-triggers.md) - 4维度评估
+- [任务分解原则](skills.bak/planner/task-decomposition.md) - MECE原则应用
+- [失败升级策略](skills.bak/adjuster/adjuster-strategies.md) - 四级渐进式升级
+- [Prompt缓存优化](skills.bak/loop/prompt-caching.md) - 90%成本节省
+- [深度研究触发](skills.bak/loop/deep-research-triggers.md) - 4维度评估
 
 ### 架构文档
 
@@ -118,7 +118,7 @@
 
 Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent只负责具体执行，通过SendMessage上报给Loop，不能直接向用户提问。
 
-相关文档：[Loop概览](skills/loop/SKILL.md)
+相关文档：[Loop概览](skills.bak/loop/SKILL.md)
 
 ### Q2: 为什么限制2个并行任务？
 
@@ -128,7 +128,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 - 文件冲突
 - 调试困难
 
-相关文档：[并行调度](skills/loop/phases/phase-execution.md)
+相关文档：[并行调度](skills.bak/loop/phases/phase-execution.md)
 
 ### Q3: 什么时候触发深度研究？
 
@@ -137,7 +137,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 2. 失败2次后询问用户
 3. 用户可拒绝
 
-相关文档：[深度研究触发](skills/loop/deep-research-triggers.md)
+相关文档：[深度研究触发](skills.bak/loop/deep-research-triggers.md)
 
 ### Q4: 计划确认何时需要用户批准？
 
@@ -145,7 +145,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 - **需要确认**：首次规划（iteration=1）、用户重新设计
 - **跳过确认**：adjuster/verifier自动触发的重新规划
 
-相关文档：[计划流程](skills/loop/flows/plan.md)
+相关文档：[计划流程](skills.bak/loop/flows/plan.md)
 
 ### Q5: 如何从任务中断恢复？
 
@@ -156,7 +156,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 
 恢复时自动检测并加载最近的检查点。
 
-相关文档：[初始化（含检查点）](skills/loop/phases/phase-initialization.md)
+相关文档：[初始化（含检查点）](skills.bak/loop/phases/phase-initialization.md)
 
 ### Q6: 成本报告包含哪些优化建议？
 
@@ -173,7 +173,7 @@ Loop是Team Leader角色，统一管理所有调度和用户交互。普通Agent
 3. **replan**：重新规划（4秒退避）
 4. **ask_user**：请求用户指导
 
-相关文档：[失败调整](skills/adjuster/adjuster-strategies.md)
+相关文档：[失败调整](skills.bak/adjuster/adjuster-strategies.md)
 
 ## 关键术语
 

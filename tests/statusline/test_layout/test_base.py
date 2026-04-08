@@ -94,9 +94,9 @@ class TestLayout:
         assert layout.supports_component("user")
         assert layout.supports_component("progress")
         assert layout.supports_component("resources")
-        # tools/agents/todos 始终启用，无需配置
+        # tools/agents.bak/todos 始终启用，无需配置
         assert layout.supports_component("tools")
-        assert layout.supports_component("agents")
+        assert layout.supports_component("agents.bak")
         assert layout.supports_component("todos")
 
     def test_layout_enable_multiple_components(self):
@@ -184,20 +184,20 @@ class TestLayout:
             Layout()  # type: ignore
 
     def test_layout_tools_agents_todos_always_enabled(self):
-        """测试 tools/agents/todos 组件始终启用"""
+        """测试 tools/agents.bak/todos 组件始终启用"""
         layout = CompactLayout()
 
         # 验证默认启用
         assert layout.supports_component("tools")
-        assert layout.supports_component("agents")
+        assert layout.supports_component("agents.bak")
         assert layout.supports_component("todos")
 
         # 验证尝试禁用无效
         layout.disable_component("tools")
         assert layout.supports_component("tools")
 
-        layout.disable_component("agents")
-        assert layout.supports_component("agents")
+        layout.disable_component("agents.bak")
+        assert layout.supports_component("agents.bak")
 
         layout.disable_component("todos")
         assert layout.supports_component("todos")
@@ -206,11 +206,11 @@ class TestLayout:
         config = {"show_tools": False, "show_agents": False, "show_todos": False}
         layout2 = CompactLayout(config)
         assert layout2.supports_component("tools")
-        assert layout2.supports_component("agents")
+        assert layout2.supports_component("agents.bak")
         assert layout2.supports_component("todos")
 
     def test_layout_update_config_ignores_tools_agents_todos(self):
-        """测试 update_config 忽略 tools/agents/todos 配置"""
+        """测试 update_config 忽略 tools/agents.bak/todos 配置"""
         layout = CompactLayout()
 
         # 尝试通过 update_config 禁用
@@ -222,5 +222,5 @@ class TestLayout:
 
         # 验证仍然启用
         assert layout.supports_component("tools")
-        assert layout.supports_component("agents")
+        assert layout.supports_component("agents.bak")
         assert layout.supports_component("todos")
