@@ -16,7 +16,7 @@ agent: task:align
 ## 执行流程
 
 > 通过 AskUserQuestion 与用户交互式确认任务范围
-> **任何非明确确认都将触发重新调整，无限制重试直到用户确认**
+> **必须确认现有项目风格，后续所有实现都遵循此风格**
 
 ```python
 # 读取探索结果
@@ -37,10 +37,52 @@ while True:
     # 展示当前理解（包含之前反馈的修正）
     current_understanding = build_understanding(context, previous_feedback)
     
-    # 阶段1：确认任务范围
+    # === 阶段0：确认现有项目风格（最重要）===
+    code_style = context.get("code_style", {})
+    style_response = AskUserQuestion(
+        questions=[{
+            "question": f"已检测到项目现有风格：\\n\\n{format_code_style(code_style)}\\n\\n这是项目的实际风格吗？后续所有实现都将遵循此风格。",
+            "header": "项目风格确认",
+            "options": [
+                {"label": "确认正确", "description": "风格检测正确，后续遵循"},
+                {"label": "需要修正", "description": "风格检测有误，需要调整"}
+            ],
+            "multiSelect": False
+        }]
+    )
+    
+    # 如果风格检测有误，立即重试
+    if style_response["项目风格确认"] == "需要修正":
+        correction = AskUserQuestion(
+            questions=[{
+                "question": "请说明正确的风格配置",
+                "header": "风格修正",
+                "options": [
+                    {"label": "命名风格", "description": "修正命名约定"},
+                    {"label": "缩进风格", "description": "修正缩进方式"},
+                    {"label": "导入风格", "description": "修正导入模式"},
+                    {"label": "完整描述", "description": "手动描述所有风格"}
+                ],
+                "multiSelect": False
+            }]
+        )
+        
+        # 收集正确的风格
+        corrected_style = collect_correct_style(correction["风格修正"])
+        # 更新 context 中的风格
+        context["code_style"] = merge_code_style(code_style, corrected_style)
+        # 更新 context.json
+        write_json(context_file, context)
+        # 重新开始循环，再次确认
+        continue
+    
+    # 风格确认后，锁定为后续使用的标准
+    locked_style = context["code_style"]
+    
+    # 阶段1：确认任务范围（强调不创造新风格）
     scope_response = AskUserQuestion(
         questions=[{
-            "question": f"任务范围是否正确？\\n\\n{current_understanding['scope']}\\n\\n如有调整请说明，否则确认继续。",
+            "question": f"任务范围是否正确？\\n\\n{current_understanding['scope']}\\n\\n注意：所有实现都将遵循已确认的项目风格，不创造新风格。",
             "header": "任务范围",
             "options": [
                 {"label": "确认继续", "description": "范围正确"},
@@ -50,7 +92,6 @@ while True:
         }]
     )
     
-    # 如果用户选择"需要调整"，立即重试
     if scope_response["任务范围"] == "需要调整":
         adjustment = AskUserQuestion(
             questions=[{
@@ -64,14 +105,13 @@ while True:
                 "multiSelect": False
             }]
         )
-        # 更新理解，立即重试
         previous_feedback = adjustment["范围调整"]
-        continue  # ← 重新开始循环
+        continue
     
     # 阶段2：明确验收标准
     acceptance_response = AskUserQuestion(
         questions=[{
-            "question": f"验收标准是否完整？\\n\\n{current_understanding['acceptance']}\\n\\n需补充请说明，否则确认继续。",
+            "question": f"验收标准是否完整？\\n\\n{current_understanding['acceptance']}\\n\\n注意：代码质量标准应遵循项目现有风格。",
             "header": "验收标准",
             "options": [
                 {"label": "确认继续", "description": "标准完整"},
@@ -81,7 +121,6 @@ while True:
         }]
     )
     
-    # 如果用户选择"需要补充"，立即重试
     if acceptance_response["验收标准"] == "需要补充":
         supplement = AskUserQuestion(
             questions=[{
@@ -90,19 +129,18 @@ while True:
                 "options": [
                     {"label": "添加功能点", "description": "增加功能验收"},
                     {"label": "添加性能要求", "description": "增加性能指标"},
-                    {"label": "添加其他标准", "description": "安全/质量等"}
+                    {"label": "添加代码质量", "description": "遵循现有风格的代码质量"}
                 ],
                 "multiSelect": True
             }]
         )
-        # 更新理解，立即重试
         previous_feedback = supplement
-        continue  # ← 重新开始循环
+        continue
     
     # 阶段3：界定边界
     boundary_response = AskUserQuestion(
         questions=[{
-            "question": f"边界界定是否正确？\\n\\n{current_understanding['boundaries']}\\n\\n需调整请说明，否则确认继续。",
+            "question": f"边界界定是否正确？\\n\\n{current_understanding['boundaries']}\\n\\n注意：修改文件必须遵循项目现有风格。",
             "header": "边界界定",
             "options": [
                 {"label": "确认继续", "description": "边界正确"},
@@ -112,7 +150,6 @@ while True:
         }]
     )
     
-    # 如果用户选择"需要调整"，立即重试
     if boundary_response["边界界定"] == "需要调整":
         boundary_adjustment = AskUserQuestion(
             questions=[{
@@ -126,14 +163,13 @@ while True:
                 "multiSelect": True
             }]
         )
-        # 更新理解，立即重试
         previous_feedback = boundary_adjustment
-        continue  # ← 重新开始循环
+        continue
     
     # 阶段4：最终确认
     final_response = AskUserQuestion(
         questions=[{
-            "question": f"请最终确认任务理解：\\n\\n{summarize_all()}\\n\\n确认后进入规划阶段。",
+            "question": f"请最终确认任务理解：\\n\\n{summarize_all()}\\n\\n核心要求：后续所有实现都将遵循项目现有风格，不创造新风格。\\n\\n确认后进入规划阶段。",
             "header": "最终确认",
             "options": [
                 {"label": "确认无误", "description": "理解正确，开始规划"},
@@ -143,7 +179,6 @@ while True:
         }]
     )
     
-    # 如果用户选择"需要修正"，立即重试
     if final_response["最终确认"] == "需要修正":
         correction = AskUserQuestion(
             questions=[{
@@ -157,51 +192,46 @@ while True:
                 "multiSelect": False
             }]
         )
-        # 更新理解，立即重试
         previous_feedback = correction
-        continue  # ← 重新开始循环
+        continue
     
     # === 用户明确确认"确认无误" ===
     # 退出循环，保存结果
-    alignment = build_alignment(scope_response, acceptance_response, boundary_response)
+    alignment = {
+        "scope": scope_response,
+        "acceptance_criteria": acceptance_response,
+        "boundaries": boundary_response,
+        "code_style_follow": locked_style,  # 锁定的项目风格
+        "confirmed_at": now()
+    }
     write_json(align_file, alignment)
     return alignment
 ```
 
-## 执行逻辑
+## 项目风格检查清单
 
-```python
-# 核心原则：任何非"确认继续"的响应都触发立即重试
-# 每次重试都会：
-# 1. 使用用户的新输入更新理解
-# 2. 重新展示更新后的理解
-# 3. 再次请求确认
-# 4. 循环直到用户明确确认
+### 风格检测（阶段0，最先执行）
+- [ ] 已从 context.json 读取现有风格
+- [ ] 命名约定已展示（camelCase/snake_case/PascalCase）
+- [ ] 缩进风格已展示（空格/tab，2/4/8）
+- [ ] 导入模式已展示（顺序/分组/别名）
+- [ ] 错误处理已展示（异常类型/日志方式）
+- [ ] 用户已确认风格正确
+- [ ] 风格锁定为后续标准
 
-# 重试触发条件：
-# - 任务范围："需要调整" → 收集调整说明 → continue
-# - 验收标准："需要补充" → 收集补充内容 → continue
-# - 边界界定："需要调整" → 收集调整说明 → continue
-# - 最终确认："需要修正" → 收集修正说明 → continue
+### 风格修正（如果检测有误）
+- [ ] 用户选择了需要修正
+- [ ] 收集了正确的风格配置
+- [ ] 更新了 context.json
+- [ ] 重新确认直到正确
 
-# 唯一退出条件：
-# - 所有环节都选择"确认继续"
-# - 最终确认选择"确认无误"
-```
-
-## 检查清单
-
-### 用户交互（核心）
-- [ ] 已实现无限制重试机制
-- [ ] 每个 AskUserQuestion 都有重试路径
-- [ ] 非确认响应立即触发重试
-- [ ] 重试时使用用户新输入更新理解
-
-### 循环控制
-- [ ] while True 循环直到明确确认
-- [ ] 每次重试都更新 previous_feedback
-- [ ] 只有"确认无误"才能退出循环
+### 后续环节强化
+- [ ] 任务范围确认时强调"遵循现有风格"
+- [ ] 验收标准确认时强调"遵循现有风格"
+- [ ] 边界界定确认时强调"遵循现有风格"
+- [ ] 最终确认时强调"不创造新风格"
 
 ### 输出
-- [ ] 用户确认后，align.json 已写入
-- [ ] 包含：scope, acceptance_criteria, boundaries, code_style_follow
+- [ ] align.json 已写入
+- [ ] **code_style_follow** 字段包含锁定的项目风格
+- [ ] 后续所有阶段都必须读取并遵循此风格
