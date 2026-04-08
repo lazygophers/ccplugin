@@ -4,13 +4,13 @@ from lib import logging
 import click
 from functools import wraps
 
-from lib.build.lib.lib.utils import get_project_dir
+from lib.utils.env import get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
 from hooks import handle_hook
 from hooks_skills import handle_hook_skills
 from task import task_main
 
-add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers"))
+add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers", ".gitingore"))
 
 def with_debug(func):
 	"""装饰器：为所有命令添加 --debug 参数支持"""
