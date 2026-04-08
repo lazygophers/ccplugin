@@ -6,7 +6,15 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 class TaskState(str, BaseModel):
-	Pending = "pending" # 等待执行，默认状态
+	Pending = "pending"   # 等待调度
+	Explore = "explore"  # 现状探索
+	Align = "align"      # 范围对齐
+	Plan = "plan"        # 任务规划
+	Exec = "exec"        # 任务执行
+	Verify = "verify"    # 结果校验
+	Adjust = "adjust"    # 调整修正
+	Done = "done"        # 完成
+	Cancel = "cancel"    # 取消
 
 class Metadata(BaseModel):
 	task_name: str = Field(
