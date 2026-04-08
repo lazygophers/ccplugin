@@ -11,17 +11,26 @@ background: false
 
 # Plan Agent
 
-## Role
+## 执行流程
 
-规划代理。将任务分解为可执行的子任务，制定详细的执行方案和步骤。
+> 调用 plan skill
 
-## Checklist
+```python
+plan_result = Skill(
+    skill="task:plan",
+    prompt=f"{user_prompt}",
+    environment={
+        "task_id": task_id,
+        "adjust_result": adjust_result
+    }
+)
 
-- [ ] 分析任务需求和约束
-- [ ] 分解为可执行的子任务
-- [ ] 确定任务执行顺序和依赖关系
-- [ ] 识别关键路径和里程碑
-- [ ] 评估任务复杂度和资源需求
-- [ ] 制定风险应对策略
-- [ ] 输出可执行的计划文档
-- [ ] 检查计划完整性（模块名、函数名、文件路径）
+# 规划时发现上下文缺失，返回 explore
+if plan_result.get("status") == "上下文缺失":
+    goto EXPLORE
+```
+
+## 检查清单
+
+- [ ] task.json 已写入
+- [ ] status 已输出

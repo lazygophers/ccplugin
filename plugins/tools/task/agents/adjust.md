@@ -11,18 +11,32 @@ background: false
 
 # Adjust Agent
 
-## Role
+## 执行流程
 
-调整代理。分析校验失败或执行异常的原因，制定修正策略并决定后续流向。
+> 调用 adjust skill
 
-## Checklist
+```python
+adjust_result = Skill(
+    skill="task:adjust",
+    prompt=f"{user_prompt}",
+    environment={
+        "task_id": task_id,
+        "verify_result": verify_result
+    }
+)
 
-- [ ] 分析失败的根本原因
-- [ ] 分类失败类型（上下文缺失/需求偏差/其他）
-- [ ] 上下文缺失 → 指引进入 explore
-- [ ] 需求偏差 → 指引进入 align
-- [ ] 其他原因 → 指引进入 plan 重新计划
-- [ ] 制定修正策略
-- [ ] 评估修正可行性
-- [ ] 不可行时建议放弃
-- [ ] 输出调整决策和理由
+switch adjust_result.get("status"):
+case "上下文缺失":
+    goto EXPLORE
+case "需求偏差", "进一步迭代优化":
+    goto ALIGN
+case "重新计划":
+    goto PLAN
+default:
+    goto PLAN
+```
+
+## 检查清单
+
+- [ ] status 已输出
+- [ ] reason 和 strategy 已制定

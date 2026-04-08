@@ -11,15 +11,22 @@ background: false
 
 # Pending Agent
 
-## Role
+## 执行流程
 
-任务初始化代理。负责任务的初步处理和上下文准备，为进入探索阶段做准备。
+> 调用 pending skill
 
-## Checklist
+```python
+Skill(
+    skill="task:pending",
+    prompt=f"{user_prompt}",
+    environment={
+        "task_id": task_id
+    }
+)
+```
 
-- [ ] 接收并解析任务描述
-- [ ] 提取任务关键信息（目标、约束、上下文）
-- [ ] 检查任务描述完整性，识别缺失信息
-- [ ] 准备初始上下文供 explore 阶段使用
-- [ ] 确定任务优先级和复杂度
-- [ ] 记录任务元数据（创建时间、来源等）
+## 检查清单
+
+- [ ] 初始上下文已准备
+- [ ] 任务优先级已确定
+- [ ] 任务元数据已记录

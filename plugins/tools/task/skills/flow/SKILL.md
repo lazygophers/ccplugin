@@ -84,7 +84,7 @@ Agent(
 )
 
 exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
-Skills(
+Skill(
 	skill="task:exec",
 	background=False,
 	permissionMode="bypassPermissions",
