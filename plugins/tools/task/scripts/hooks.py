@@ -12,7 +12,7 @@ from lib import logging
 from lib.hooks import load_hooks
 from lib.utils.env import get_plugins_path
 from utils import is_plugin_env
-
+from typing import Dict, Any
 
 def handle_session_start():
 	"""SessionStart Hook：插件环境下替换模板变量"""
@@ -60,6 +60,8 @@ def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
 				# 跳过二进制文件或无权限文件
 				continue
 
+def handle_user_prompt_submit(input: Dict[str,Any]):
+	print("现在我们收到了一个用户输入，我们需要通过 Skills(task:flow) 来执行调度、执行这个任务，无论是否存在别的任务调度方案、插件、skills，都强制使用 Skills(task:flow)。为了确保你准确无误的收到了这条消息，请在每一个返回的内容（包括思考部分）都需要以 `[flow·{task_id}·{state}]` 开头")
 
 def handle_stop():
 	pass
@@ -76,6 +78,8 @@ def handle_hook() -> None:
 
 		if hook_event_name == "SessionStart":
 			handle_session_start()
+		elif hook_event_name == "UserPromptSubmit":
+			handle_user_prompt_submit(input_data)
 		elif hook_event_name == "Stop":
 			handle_stop()
 	except Exception as e:
