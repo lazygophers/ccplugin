@@ -5,8 +5,6 @@ color: purple
 model: opus
 permissionMode: plan
 background: false
-disable-model-invocation: true
-user-invocable: false
 ---
 
 # Flow Skill
