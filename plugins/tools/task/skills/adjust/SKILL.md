@@ -5,8 +5,6 @@ color: yellow
 model: sonnet
 permissionMode: plan
 background: false
-disable-model-invocation: true
-user-invocable: false
 context: fork
 agent: task:adjust
 ---

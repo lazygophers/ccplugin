@@ -5,8 +5,6 @@ color: cyan
 model: haiku
 permissionMode: plan
 background: false
-disable-model-invocation: true
-user-invocable: false
 context: fork
 agent: task:verify
 ---
