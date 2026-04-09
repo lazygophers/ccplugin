@@ -2,7 +2,7 @@
 
 import os
 from enum import Enum
-from lib.utils.env import get_plugins_path, get_project_dir
+from lib.utils.env import get_plugins_path
 
 
 class EnvType(Enum):

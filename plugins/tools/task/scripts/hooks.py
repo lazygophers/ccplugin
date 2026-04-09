@@ -56,7 +56,7 @@ def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
 					with open(file_path, 'w', encoding='utf-8') as f:
 						f.write(new_content)
 					logging.info(f"已替换变量: {file_path}")
-			except (UnicodeDecodeError, PermissionError) as e:
+			except (UnicodeDecodeError, PermissionError):
 				# 跳过二进制文件或无权限文件
 				continue
 

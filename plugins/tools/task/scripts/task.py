@@ -181,7 +181,7 @@ def cleanup(task_id: str, force: bool):
 
 	# 确认操作
 	if not force:
-		click.echo(f"准备清理任务：")
+		click.echo("准备清理任务：")
 		click.echo(f"  ID: {task_id}")
 		click.echo(f"  描述: {description}")
 		click.echo(f"  状态: {status}")
