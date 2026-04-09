@@ -1,47 +1,58 @@
 {
-  "name": "task",
-  "version": "0.0.192",
-  "description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
-  "author": {
-    "name": "lazygophers",
-    "email": "admin@lazygophers.dev",
-    "url": "https://github.com/lazygophers"
-  },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
-  "license": "AGPL-3.0-or-later",
-  "keywords": [
-    "task",
-    "task-management",
-    "planning",
-    "execution",
-    "orchestration",
-    "loop",
-    "agentic",
-    "workflow",
-    "verification",
-    "multi-agent"
-  ],
-  "agents": [
-    "./agents/adjust.md",
-    "./agents/align.md",
-    "./agents/done.md",
-    "./agents/explore.md",
-    "./agents/plan.md",
-    "./agents/verify.md"
-  ],
-  "skills": "./skills/",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
+	"name": "task",
+	"version": "0.0.192",
+	"description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
+	"author": {
+		"name": "lazygophers",
+		"email": "admin@lazygophers.dev",
+		"url": "https://github.com/lazygophers"
+	},
+	"homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
+	"repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
+	"license": "AGPL-3.0-or-later",
+	"keywords": [
+		"task",
+		"task-management",
+		"planning",
+		"execution",
+		"orchestration",
+		"loop",
+		"agentic",
+		"workflow",
+		"verification",
+		"multi-agent"
+	],
+	"agents": [
+		"./agents/adjust.md",
+		"./agents/align.md",
+		"./agents/done.md",
+		"./agents/explore.md",
+		"./agents/plan.md",
+		"./agents/verify.md"
+	],
+	"skills": "./skills/",
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"timeout": 10
+					}
+				]
+			}
+		]
+	},
+	"UserPromptSubmit": [
+		{
+			"hooks": [
+				{
+					"type": "command",
+					"command": "PLUGIN_NAME=task uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+					"timeout": 10
+				}
+			]
+		}
+	]
 }
