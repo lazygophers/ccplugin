@@ -6,6 +6,7 @@ Claude Code Hooks 事件处理模块
 """
 import os
 import sys
+import json
 import traceback
 
 from lib import logging
@@ -15,7 +16,7 @@ from utils import is_plugin_env
 from typing import Dict, Any
 
 def handle_session_start():
-	"""SessionStart Hook：插件环境下替换模板变量"""
+	"""SessionStart Hook：插件环境下替换模板变量 + 注入 additionalContext"""
 	if not is_plugin_env():
 		return
 
@@ -28,6 +29,40 @@ def handle_session_start():
 			continue
 
 		_replace_plugin_root_variable(dir_path, plugin_root)
+
+	# 输出 additionalContext，强制 AI 使用 task:flow
+	flow_instruction = """<EXTREMELY_IMPORTANT>
+你正在使用 Task 插件的 Workflow 模式。
+
+**核心规则**：
+对于所有用户输入的任务请求，必须首先使用 **/task:flow** skills 进行任务分解和调度。
+
+**执行流程**：
+1. 收到用户任务 → 调用 /task:flow skill
+2. /task:flow skill 会自动进行任务分解、创建 DAG、调度执行
+3. 不要直接开始执行任务，让 flow skill 来编排
+
+**为什么需要 flow**：
+- 自动任务分解为可执行的步骤
+- 支持多任务并行调度（2个 worker）
+- 自动验收和质量控制
+- 统一的任务状态管理
+
+如果用户明确要求跳过 flow（例如"直接执行"），则可以例外。
+</EXTREMELY_IMPORTANT>"""
+
+	# 转义 JSON 字符串
+	flow_context_escaped = flow_instruction.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t')
+
+	# 输出 JSON 格式
+	# Claude Code 期望 hookSpecificOutput.additionalContext
+	output = {
+		"hookSpecificOutput": {
+			"hookEventName": "SessionStart",
+			"additionalContext": flow_context_escaped
+		}
+	}
+	print(json.dumps(output, ensure_ascii=False))
 
 
 def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
