@@ -16,21 +16,9 @@ from utils import is_plugin_env
 from typing import Dict, Any
 
 def handle_session_start():
-	"""SessionStart Hook：插件环境下替换模板变量 + 注入 additionalContext"""
-	if not is_plugin_env():
-		return
+	"""SessionStart Hook：替换模板变量 + 注入 additionalContext"""
 
-	plugin_root = get_plugins_path()
-	dirs_to_scan = ["skills", "agents", "commands"]
-
-	for dir_name in dirs_to_scan:
-		dir_path = os.path.join(plugin_root, dir_name)
-		if not os.path.exists(dir_path):
-			continue
-
-		_replace_plugin_root_variable(dir_path, plugin_root)
-
-	# 输出 additionalContext，强制 AI 使用 task:flow
+	# 始终输出 additionalContext，强制 AI 使用 task:flow
 	flow_instruction = """<EXTREMELY_IMPORTANT>
 你正在使用 Task 插件的 Workflow 模式。
 
@@ -63,6 +51,20 @@ def handle_session_start():
 		}
 	}
 	print(json.dumps(output, ensure_ascii=False))
+
+	# 只在插件环境时替换变量
+	if not is_plugin_env():
+		return
+
+	plugin_root = get_plugins_path()
+	dirs_to_scan = ["skills", "agents", "commands"]
+
+	for dir_name in dirs_to_scan:
+		dir_path = os.path.join(plugin_root, dir_name)
+		if not os.path.exists(dir_path):
+			continue
+
+		_replace_plugin_root_variable(dir_path, plugin_root)
 
 
 def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
