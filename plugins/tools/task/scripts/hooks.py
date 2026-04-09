@@ -6,7 +6,6 @@ Claude Code Hooks 事件处理模块
 """
 import os
 import sys
-import json
 import traceback
 
 from lib import logging
