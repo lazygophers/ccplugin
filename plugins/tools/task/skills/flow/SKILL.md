@@ -2,7 +2,7 @@
 description: 任务流程，协调任务在各状态间的流转和调度
 memory: project
 color: purple
-model: opus
+model: sonnet
 permissionMode: plan
 background: false
 ---
