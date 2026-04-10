@@ -46,7 +46,7 @@ if task_id:
 	)
 
 	EXPLORE:
-	exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
+	exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
 	Agent(
 		subagent_type="task:explore",
 		background=False,
@@ -59,7 +59,7 @@ if task_id:
 	)
 
 ALIGN:
-exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
+exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
 Agent(
 	subagent_type="task:align",
 	background=False,
@@ -73,7 +73,7 @@ Agent(
 )
 
 PLAN:
-exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
+exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
 Agent(
 	subagent_type="task:plan",
 	background=False,
@@ -87,7 +87,7 @@ Agent(
 	}
 )
 
-exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
+exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
 Skill(
 	skill="task:exec",
 	background=False,
@@ -99,7 +99,7 @@ Skill(
 	}
 )
 
-exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
+exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
 verify_result = Agent(
 	subagent_type="task:verify",
 	background=False,
@@ -114,7 +114,7 @@ verify_result = Agent(
 
 switch verify_result.status:
 case False:
-	exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
+	exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
 	adjust_result = Agent(
 		subagent_type="task:adjust",
 		background=False,
@@ -148,7 +148,7 @@ case True:
 		}
 	)
 
-exec(f"uv run -directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
+exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
 ```
 
 ## 用户新输入
