@@ -54,7 +54,7 @@ while True:
     analysis_response = AskUserQuestion(
         questions=[{
             "question": f"失败分析结果：\\n\\n{format_failure_analysis(root_cause, failure_type)}\\n\\n是否遵循此分析？如需调整请说明。",
-            "header": "失败分析确认",
+            "header": f"[flow·{task_id}·adjust] 失败分析确认",
             "options": [
                 {"label": "确认分析", "description": "分析正确，按此调整"},
                 {"label": "需要修正", "description": "分析有误，需要调整"}
@@ -68,7 +68,7 @@ while True:
         correction = AskUserQuestion(
             questions=[{
                 "question": "请说明正确的失败原因",
-                "header": "分析修正",
+                "header": f"[flow·{task_id}·adjust] 分析修正",
                 "options": [
                     {"label": "上下文问题", "description": "对项目理解有误"},
                     {"label": "需求问题", "description": "需求理解有偏差"},
@@ -87,7 +87,7 @@ while True:
     strategy_response = AskUserQuestion(
         questions=[{
             "question": f"建议调整策略：{format_strategy(failure_type)}\\n\\n注意：所有修复都将遵循项目现有风格。\\n\\n是否采用此策略？",
-            "header": "调整策略确认",
+            "header": f"[flow·{task_id}·adjust] 调整策略确认",
             "options": [
                 {"label": "确认策略", "description": "策略正确，开始执行"},
                 {"label": "调整策略", "description": "需要修改策略"}
@@ -101,7 +101,7 @@ while True:
         new_strategy = AskUserQuestion(
             questions=[{
                 "question": "请选择正确的调整策略",
-                "header": "策略调整",
+                "header": f"[flow·{task_id}·adjust] 策略调整",
                 "options": [
                     {"label": "补充上下文", "description": "需要更多信息，返回探索"},
                     {"label": "重新对齐", "description": "需求理解有误，返回对齐"},
@@ -119,7 +119,7 @@ while True:
     final_response = AskUserQuestion(
         questions=[{
             "question": f"最终确认调整方案：\\n\\n{format_adjustment_plan(failure_type, root_cause)}\\n\\n核心：修复将严格遵循项目现有风格，不引入新风格。\\n\\n确认后将进入相应阶段。",
-            "header": "最终确认",
+            "header": f"[flow·{task_id}·adjust] 最终确认",
             "options": [
                 {"label": "确认执行", "description": "方案正确，开始执行"},
                 {"label": "需要调整", "description": "仍需修改方案"}
@@ -133,7 +133,7 @@ while True:
         further_adjustment = AskUserQuestion(
             questions=[{
                 "question": "请说明需要如何调整",
-                "header": "进一步调整",
+                "header": f"[flow·{task_id}·adjust] 进一步调整",
                 "options": [
                     {"label": "重新分析", "description": "重新审视失败原因"},
                     {"label": "修改策略", "description": "选择不同的调整策略"},

@@ -37,7 +37,7 @@ while True:
     style_response = AskUserQuestion(
         questions=[{
             "question": f"已检测到项目现有风格：\\n\\n{format_code_style(code_style)}\\n\\n这是项目的实际风格吗？后续所有实现都将遵循此风格。",
-            "header": "项目风格确认",
+            "header": f"[flow·{task_id}·align] 项目风格确认",
             "options": [
                 {"label": "确认正确", "description": "风格检测正确，后续遵循"},
                 {"label": "需要修正", "description": "风格检测有误，需要调整"}
@@ -50,7 +50,7 @@ while True:
         correction = AskUserQuestion(
             questions=[{
                 "question": "请说明正确的风格配置",
-                "header": "风格修正",
+                "header": f"[flow·{task_id}·align] 风格修正",
                 "options": [
                     {"label": "命名风格", "description": "修正命名约定"},
                     {"label": "缩进风格", "description": "修正缩进方式"},
@@ -72,7 +72,7 @@ while True:
     goal_response = AskUserQuestion(
         questions=[{
             "question": f"任务目标是否清晰？\\n\\n{build_goal_description(context, previous_feedback)}\\n\\n目标应该明确最终产出。",
-            "header": "目标确认",
+            "header": f"[flow·{task_id}·align] 目标确认",
             "options": [
                 {"label": "确认继续", "description": "目标清晰"},
                 {"label": "需要澄清", "description": "目标不够明确"}
@@ -85,7 +85,7 @@ while True:
         clarification = AskUserQuestion(
             questions=[{
                 "question": "请说明期望的最终产出",
-                "header": "目标澄清",
+                "header": f"[flow·{task_id}·align] 目标澄清",
                 "options": [
                     {"label": "描述功能", "description": "说明要实现的功能"},
                     {"label": "描述结果", "description": "说明最终达到的状态"},
@@ -101,7 +101,7 @@ while True:
     criteria_response = AskUserQuestion(
         questions=[{
             "question": f"验收标准是否完整？\\n\\n{build_criteria_checklist(context)}\\n\\n要求：可验证、可量化、独立、原子、结果导向。",
-            "header": "验收标准",
+            "header": f"[flow·{task_id}·align] 验收标准",
             "options": [
                 {"label": "确认继续", "description": "标准完整"},
                 {"label": "需要补充", "description": "需要添加或修改标准"}
@@ -114,7 +114,7 @@ while True:
         supplement = AskUserQuestion(
             questions=[{
                 "question": "请说明需要补充的验收标准",
-                "header": "补充标准",
+                "header": f"[flow·{task_id}·align] 补充标准",
                 "options": [
                     {"label": "添加功能点", "description": "增加功能验收（可验证）"},
                     {"label": "添加性能要求", "description": "增加性能指标（可量化）"},
@@ -130,7 +130,7 @@ while True:
     boundary_response = AskUserQuestion(
         questions=[{
             "question": f"边界界定是否正确？\\n\\n{format_boundaries(context)}\\n\\nin-scope：本次要做的事\\nout-of-scope：明确不做的事",
-            "header": "边界界定",
+            "header": f"[flow·{task_id}·align] 边界界定",
             "options": [
                 {"label": "确认继续", "description": "边界正确"},
                 {"label": "需要调整", "description": "需要修改边界"}
@@ -143,7 +143,7 @@ while True:
         boundary_adjustment = AskUserQuestion(
             questions=[{
                 "question": "请说明如何调整边界",
-                "header": "边界调整",
+                "header": f"[flow·{task_id}·align] 边界调整",
                 "options": [
                     {"label": "扩大 in-scope", "description": "允许做更多事"},
                     {"label": "缩小 in-scope", "description": "限制本次范围"},
@@ -159,7 +159,7 @@ while True:
     final_response = AskUserQuestion(
         questions=[{
             "question": f"请最终确认任务规格说明：\\n\\n{preview_spec()}\\n\\n核心：验收标准决定迭代是否继续，项目风格锁定后续实现。\\n\\n确认后写入 prompt.md。",
-            "header": "最终确认",
+            "header": f"[flow·{task_id}·align] 最终确认",
             "options": [
                 {"label": "确认无误", "description": "规格正确，写入文件"},
                 {"label": "需要修正", "description": "理解有误，需要调整"}
@@ -172,7 +172,7 @@ while True:
         correction = AskUserQuestion(
             questions=[{
                 "question": "请说明需要修正的内容",
-                "header": "修正说明",
+                "header": f"[flow·{task_id}·align] 修正说明",
                 "options": [
                     {"label": "重新理解需求", "description": "需求理解有误"},
                     {"label": "调整优先级", "description": "重新排序重要性"},

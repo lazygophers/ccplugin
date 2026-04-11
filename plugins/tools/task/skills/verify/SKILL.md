@@ -51,7 +51,7 @@ while True:
         fix_response = AskUserQuestion(
             questions=[{
                 "question": f"功能验收未通过：\\n\\n{format_failures(failed_items)}\\n\\n请确认如何处理",
-                "header": "功能验收失败",
+                "header": f"[flow·{task_id}·verify] 功能验收失败",
                 "options": [
                     {"label": "立即修复", "description": "现在修复这些功能点"},
                     {"label": "调整标准", "description": "验收标准不合理，需要调整"},
@@ -83,7 +83,7 @@ while True:
         quality_response = AskUserQuestion(
             questions=[{
                 "question": f"质量标准未通过：\\n\\n{format_quality_failures(quality_check)}\\n\\n请确认如何处理",
-                "header": "质量验收失败",
+                "header": f"[flow·{task_id}·verify] 质量验收失败",
                 "options": [
                     {"label": "改进代码", "description": "现在改进代码质量"},
                     {"label": "调整标准", "description": "质量标准不合理，需要调整"},
@@ -109,7 +109,7 @@ while True:
         boundary_response = AskUserQuestion(
             questions=[{
                 "question": f"边界条件未通过：\\n\\n{format_boundary_failures(boundary_check)}\\n\\n请确认如何处理",
-                "header": "边界验收失败",
+                "header": f"[flow·{task_id}·verify] 边界验收失败",
                 "options": [
                     {"label": "修复问题", "description": "现在修复边界问题"},
                     {"label": "调整约束", "description": "约束条件不合理，需要调整"},
@@ -132,7 +132,7 @@ while True:
     final_response = AskUserQuestion(
         questions=[{
             "question": f"所有验收点已通过：\\n\\n{summarize_verification()}\\n\\n请确认验收结果",
-            "header": "最终验收确认",
+            "header": f"[flow·{task_id}·verify] 最终验收确认",
             "options": [
                 {"label": "验收通过", "description": "所有标准符合，任务完成"},
                 {"label": "仍有问题", "description": "还有未解决的问题"}
@@ -146,7 +146,7 @@ while True:
         remaining_issues = AskUserQuestion(
             questions=[{
                 "question": "请说明剩余问题",
-                "header": "剩余问题",
+                "header": f"[flow·{task_id}·verify] 剩余问题",
                 "options": [
                     {"label": "功能问题", "description": "功能仍有缺陷"},
                     {"label": "质量问题", "description": "代码质量不足"},
