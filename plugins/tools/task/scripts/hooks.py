@@ -67,7 +67,7 @@ def handle_user_prompt_submit(input: Dict[str,Any]):
 
 	# 直接输出纯文本作为上下文
 	print("""<EXTREMELY_IMPORTANT>
-你正在使用 Task 插件的 Workflow 模式。
+你正在使用 Task 插件的 Workflow 模式。你必须确保你的回复（包括 thinking 部分）必须以 **[flow·{task_id}·{state}]** 开头，默认状态 `pending`。
 
 **核心规则**：
 对于所有用户输入的任务请求，必须首先使用 **/task:flow** skills 进行任务分解和调度。
@@ -76,12 +76,6 @@ def handle_user_prompt_submit(input: Dict[str,Any]):
 1. 收到用户任务 → 调用 /task:flow skill
 2. /task:flow skill 会自动进行任务分解、创建 DAG、调度执行
 3. 不要直接开始执行任务，让 flow skill 来编排
-
-**为什么需要 flow**：
-- 自动任务分解为可执行的步骤
-- 支持多任务并行调度（2个worker）
-- 自动验收和质量控制
-- 统一的任务状态管理
 
 如果用户明确要求跳过 flow（例如"直接执行"），则可以例外。
 </EXTREMELY_IMPORTANT>""")
