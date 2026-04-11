@@ -22,15 +22,28 @@ background: false
 
 2. **向用户展示失败分析并请求确认调整策略**（CRITICAL：必须使用 AskUserQuestion）
    - **MUST 使用 AskUserQuestion 工具向用户展示失败分析**
-   - 展示内容：
-     * 失败原因总结（从 failed_criteria 提取）
-     * 可能的根因分析
-   - 提供4个调整策略选项：
-     * "补充上下文" - 需要更多项目信息，返回探索
-     * "重新对齐" - 需求理解有误，返回对齐
-     * "重新规划" - 执行计划有问题，重新规划
-     * "放弃任务" - 无法完成，停止执行
-   - header 必须使用格式：`[flow·{task_id}·adjust] 失败分析与调整策略`
+   
+   **AskUserQuestion 参数格式（MUST 严格遵守）**：
+   ```
+   questions: [
+     {
+       "question": "验收失败分析：\n\n【失败原因】\n{每个failed_criteria的reason，用换行分隔}\n\n【根因分析】\n{简要分析可能的根本原因}\n\n请选择调整策略：",
+       "header": "[flow·{实际task_id}·adjust] 失败分析与调整策略",
+       "options": [
+         {"label": "补充上下文", "description": "需要更多项目信息，返回探索"},
+         {"label": "重新对齐", "description": "需求理解有误，返回对齐"},
+         {"label": "重新规划", "description": "执行计划有问题，重新规划"},
+         {"label": "放弃任务", "description": "无法完成，停止执行"}
+       ],
+       "multiSelect": false
+     }
+   ]
+   ```
+   
+   **关键要求**：
+   - header MUST 包含完整前缀 `[flow·{task_id}·adjust]`，其中task_id是实际的任务ID
+   - question MUST 包含失败原因的详细列表和根因分析
+   - 失败原因MUST 从verify_result的failed_criteria中提取，每个原因单独一行
 
 3. **返回调整结果**
    - 根据用户选择的策略返回相应的 status：
