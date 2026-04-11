@@ -35,8 +35,9 @@ verify_result = None
 adjust_result = None
 
 # 首次，生成任务Id
-if task_id:
+if not task_id:
 	task_id = Agent(
+		description="生成任务ID",
 		model="haiku",
 		memory="local",
 		background=False,
@@ -45,18 +46,18 @@ if task_id:
 		initialPrompt="根据用户描述，生成任务Id，要求\n1. 必须是中文的\n2. 必须简短，不能超过10个字符\n3. 必须确保可以准确的描述任务"
 	)
 
-	EXPLORE:
-	exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
-	Agent(
-		subagent_type="task:explore",
-		background=False,
-		permissionMode="bypassPermissions",
-		prompt=f"{user_prompt}",
-		environment={
-			"task_id": task_id,
-			"adjust_result": adjust_result
-		}
-	)
+EXPLORE:
+exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
+Agent(
+	subagent_type="task:explore",
+	background=False,
+	permissionMode="bypassPermissions",
+	prompt=f"{user_prompt}",
+	environment={
+		"task_id": task_id,
+		"adjust_result": adjust_result
+	}
+)
 
 ALIGN:
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")

@@ -59,43 +59,40 @@ align_result = {
 # === 阶段6：确认对齐结果 ===
 # align 总是需要用户确认对齐结果
 final_response = AskUserQuestion(
+	questions=[{
+		"question": f"对齐结果：\\n\\n目标：{task_goal}\\n\\n验收标准：\\n{format_criteria(acceptance_criteria)}\\n\\n边界：\\n{format_boundary(boundary)}\\n\\n项目风格：\\n{format_code_style(locked_style)}\\n\\n确认此对齐结果？",
+		"header": f"[flow·{task_id}·align] 范围对齐确认",
+		"options": [
+			{"label": "确认继续", "description": "对齐结果正确，开始规划"},
+			{"label": "需要调整", "description": "需要修改对齐结果"}
+		],
+		"multiSelect": False
+	}]
+)
+
+if final_response["范围对齐确认"] == "需要调整":
+	adjustment = AskUserQuestion(
 		questions=[{
-			"question": f"对齐结果：\\n\\n目标：{task_goal}\\n\\n验收标准：\\n{format_criteria(acceptance_criteria)}\\n\\n边界：\\n{format_boundary(boundary)}\\n\\n项目风格：\\n{format_code_style(locked_style)}\\n\\n确认此对齐结果？",
-			"header": f"[flow·{task_id}·align] 范围对齐确认",
+			"question": "请说明需要调整的部分",
+			"header": f"[flow·{task_id}·align] 调整说明",
 			"options": [
-				{"label": "确认继续", "description": "对齐结果正确，开始规划"},
-				{"label": "需要调整", "description": "需要修改对齐结果"}
+				{"label": "目标不准确", "description": "任务目标理解有误"},
+				{"label": "标准不合理", "description": "验收标准需要调整"},
+				{"label": "边界不清晰", "description": "范围界定需要明确"},
+				{"label": "风格检测错误", "description": "项目风格识别有误"}
 			],
-			"multiSelect": False
+			"multiSelect": True
 		}]
 	)
 	
-	if final_response["范围对齐确认"] == "需要调整":
-		adjustment = AskUserQuestion(
-			questions=[{
-				"question": "请说明需要调整的部分",
-				"header": f"[flow·{task_id}·align] 调整说明",
-				"options": [
-					{"label": "目标不准确", "description": "任务目标理解有误"},
-					{"label": "标准不合理", "description": "验收标准需要调整"},
-					{"label": "边界不清晰", "description": "范围界定需要明确"},
-					{"label": "风格检测错误", "description": "项目风格识别有误"}
-				],
-				"multiSelect": True
-			}]
-		)
-		
-		# 根据用户反馈调整，然后返回上下文缺失（重新探索）
-		return {
-			"status": "上下文缺失",
-			"reason": f"用户反馈需要调整：{adjustment['调整说明']}"
-		}
+	# 根据用户反馈调整，然后返回上下文缺失（重新探索）
+	return {
+		"status": "上下文缺失",
+		"reason": f"用户反馈需要调整：{adjustment['调整说明']}"
+	}
 
 # === 写入对齐结果 ===
 write_json(align_file, align_result)
-
-# 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
-print(f"[flow·{task_id}·align] 范围对齐已完成")
 
 return align_result
 ```
