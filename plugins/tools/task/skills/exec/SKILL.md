@@ -79,7 +79,7 @@ def update_task_status(session_task_id, subtask_id, status, result=None):
     """立即更新 task.json 中任务状态"""
     task_file = f".lazygophers/tasks/{session_task_id}/task.json"
     plan = read_json(task_file)
-    
+
     # 更新对应任务的状态
     for task in plan["subtasks"]:
         if task["id"] == subtask_id:
@@ -87,10 +87,9 @@ def update_task_status(session_task_id, subtask_id, status, result=None):
             if result:
                 task["result"] = result
             break
-    
+
     write_json(task_file, plan)
 
-def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id):
 def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id):
     while True:
         # 检查终止条件：队列空 + 无执行中 + 无可执行
@@ -102,18 +101,18 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
                     break
             if not remaining_executable:
                 break  # 终止
-        
+
         # 等待任务
         if len(queue) == 0:
             sleep(0.1)
             continue
-        
+
         # 获取任务
         tid = queue.pop(0)
         executing.add(tid)
         status[tid] = "running"
         update_task_status(task_id, tid, "running")
-        
+
         # 执行任务（background=False）
         task = subtasks[tid]
         result = Agent(
@@ -122,25 +121,25 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             mode="acceptEdits",
             background=False  # 强制非后台
         )
-        
+
         # 验证结果
         passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
-        
+
         # 更新状态
         executing.remove(tid)
-        
+
         if passed:
             status[tid] = "completed"
             completed.add(tid)
             update_task_status(task_id, tid, "completed", result)
-            
+
             # 触发 hooks
             hooks_file = f".lazygophers/tasks/{task_id}/hooks.json"
             if exists(hooks_file):
                 hooks = read_json(hooks_file)
                 for hook in hooks.get("task_completed", []):
                     execute_hook(hook, tid, result)
-            
+
             # 解锁后继任务
             for successor in dag[tid]["successors"]:
                 if (status[successor] == "pending" and
@@ -151,7 +150,7 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             status[tid] = "failed"
             failed.add(tid)
             update_task_status(task_id, tid, "failed", result)
-            
+
             # 触发 hooks
             hooks_file = f".lazygophers/tasks/{task_id}/hooks.json"
             if exists(hooks_file):
