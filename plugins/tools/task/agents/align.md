@@ -11,38 +11,13 @@ background: false
 
 # Align Agent
 
-## 用户交互规范
-
-**禁止 Agent 直接提问**
-
-- ❌ 禁止在 Agent 中直接使用 `AskUserQuestion`
-- ❌ 禁止任何形式的直接用户交互
-- ✅ 必须使用 `SendMessage` 发送给 main，由 main 代为提问
-- ✅ main 收到问题后，会调用 `AskUserQuestion` 并将答案返回
-
-**示例**：
-
-```python
-# ❌ 错误：Agent 直接提问
-response = AskUserQuestion(
-    questions=[{"question": "是否继续？", ...}]
-)
-
-# ✅ 正确：通过 SendMessage 请求 main 提问
-SendMessage(
-    to="main",
-    summary="请求用户确认",
-    message="需要用户确认是否继续，选项：[继续/取消]"
-)
-# main 会收到消息，调用 AskUserQuestion，然后将结果发回
-```
-
 ## 执行流程
 
-> 调用 align skill
+> 调用 align skill 并向用户确认结果
 
 ```python
-Skill(
+# 第1步：调用 align skill 生成对齐结果
+align_result = Skill(
     skill="task:align",
     prompt=f"{user_prompt}",
     environment={
@@ -50,6 +25,72 @@ Skill(
         "adjust_result": adjust_result
     }
 )
+
+# 第2步：读取生成的对齐结果
+align_file = f".lazygophers/tasks/{task_id}/align.json"
+align_data = read_json(align_file)
+
+# 第3步：格式化对齐结果用于展示
+criteria_text = "\\n".join([f"- {c['name']}: {c['description']}" for c in align_data['acceptance_criteria']])
+boundary_in = "\\n".join([f"  • {item}" for item in align_data['boundary']['in_scope']])
+boundary_out = "\\n".join([f"  • {item}" for item in align_data['boundary']['out_of_scope']])
+style_text = json.dumps(align_data['code_style_follow'], indent=2, ensure_ascii=False)
+
+# 第4步：向用户确认对齐结果
+final_response = AskUserQuestion(
+    questions=[{
+        "question": f"""对齐结果：
+
+【任务目标】
+{align_data['task_goal']}
+
+【验收标准】
+{criteria_text}
+
+【范围边界】
+范围内：
+{boundary_in}
+
+范围外：
+{boundary_out}
+
+【项目风格】
+{style_text}
+
+确认此对齐结果？""",
+        "header": f"[flow·{task_id}·align] 范围对齐确认",
+        "options": [
+            {"label": "确认继续", "description": "对齐结果正确，开始规划"},
+            {"label": "需要调整", "description": "需要修改对齐结果"}
+        ],
+        "multiSelect": False
+    }]
+)
+
+# 第5步：处理用户反馈
+if final_response["范围对齐确认"] == "需要调整":
+    adjustment = AskUserQuestion(
+        questions=[{
+            "question": "请说明需要调整的部分",
+            "header": f"[flow·{task_id}·align] 调整说明",
+            "options": [
+                {"label": "目标不准确", "description": "任务目标理解有误"},
+                {"label": "标准不合理", "description": "验收标准需要调整"},
+                {"label": "边界不清晰", "description": "范围界定需要明确"},
+                {"label": "风格检测错误", "description": "项目风格识别有误"}
+            ],
+            "multiSelect": True
+        }]
+    )
+    
+    # 返回调整信息，触发重新探索
+    return {
+        "status": "上下文缺失",
+        "reason": f"用户反馈需要调整：{adjustment['调整说明']}"
+    }
+
+# 确认通过，返回对齐结果
+return align_result
 ```
 
 ## 检查清单
