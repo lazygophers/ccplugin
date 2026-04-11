@@ -91,12 +91,12 @@ Skill(skill="task:flow")
 ❌ 不要先分析任务需求
 ❌ 不要先询问用户问题
 ❌ 不要做任何准备工作
-❌ 非中文的 `task_id`
 
 **工作流程**：
-1. 在回复开头添加 `[flow·{task_id}·pending]` 前缀
-2. 立即调用 `Skill(skill="task:flow")`
-3. 让 flow skill 自动处理后续的分解、探索、规划、执行
+1. 生成中文的 `task_id`
+2. 在回复开头添加 `[flow·{task_id}·pending]` 前缀
+3. 立即调用 `Skill(skill="task:flow")`
+4. 让 flow skill 自动处理后续的分解、探索、规划、执行
 
 **例外情况**：
 仅当用户明确说"跳过 flow"或"直接执行"时才可例外。
