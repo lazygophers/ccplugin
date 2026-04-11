@@ -38,21 +38,18 @@ adjust_result = None
 if not task_id:
 	task_id = Agent(
 		description="生成任务ID",
+		prompt=f"{user_prompt}\n\n根据用户描述，生成任务Id，要求\n1. 必须是中文的\n2. 必须简短，不能超过10个字符\n3. 必须确保可以准确的描述任务",
 		model="haiku",
-		memory="local",
-		background=False,
-		permissionMode="bypassPermissions",
-		prompt=f"{user_prompt}",
-		initialPrompt="根据用户描述，生成任务Id，要求\n1. 必须是中文的\n2. 必须简短，不能超过10个字符\n3. 必须确保可以准确的描述任务"
+		mode="bypassPermissions"
 	)
 
 EXPLORE:
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
 Agent(
+	description="探索项目上下文",
 	subagent_type="task:explore",
-	background=False,
-	permissionMode="bypassPermissions",
 	prompt=f"{user_prompt}",
+	mode="bypassPermissions",
 	environment={
 		"task_id": task_id,
 		"adjust_result": adjust_result
@@ -62,37 +59,35 @@ Agent(
 ALIGN:
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
 Agent(
+	description="对齐任务范围",
 	subagent_type="task:align",
-	background=False,
-	permissionMode="bypassPermissions",
 	prompt=f"{user_prompt}",
+	mode="bypassPermissions",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
-			"adjust_result": adjust_result
+		"adjust_result": adjust_result
 	}
 )
 
 PLAN:
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
 Agent(
+	description="制定执行计划",
 	subagent_type="task:plan",
-	background=False,
-	permissionMode="bypassPermissions",
 	prompt=f"{user_prompt}",
+	mode="bypassPermissions",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
 		"task_align_file": f".lazygophers/tasks/{task_id}/align.json",
-			"adjust_result": adjust_result
+		"adjust_result": adjust_result
 	}
 )
 
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
 Skill(
 	skill="task:exec",
-	background=False,
-	permissionMode="bypassPermissions",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -102,10 +97,10 @@ Skill(
 
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
 verify_result = Agent(
+	description="验证执行结果",
 	subagent_type="task:verify",
-	background=False,
-	permissionMode="bypassPermissions",
 	prompt=f"{user_prompt}",
+	mode="bypassPermissions",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -117,10 +112,10 @@ switch verify_result.status:
 case False:
 	exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
 	adjust_result = Agent(
+		description="分析失败原因并调整",
 		subagent_type="task:adjust",
-		background=False,
-		permissionMode="bypassPermissions",
 		prompt=f"{user_prompt}",
+		mode="bypassPermissions",
 		environment={
 			"task_id": task_id,
 			"verify_result": verify_result,
@@ -141,9 +136,9 @@ case False:
 
 case True:
 	Agent(
+		description="完成任务清理",
 		subagent_type="task:done",
-		background=False,
-		permissionMode="bypassPermissions",
+		mode="bypassPermissions",
 		environment={
 			"task_id": task_id,
 		}
@@ -162,9 +157,9 @@ from claude import Agent
 # 首次，生成任务Id
 if task_id:
 	Agent(
+		description="用户中断，清理任务",
 		subagent_type="task:done",
-		background=False,
-		permissionMode="bypassPermissions",
+		mode="bypassPermissions",
 		environment={
 			"task_id": task_id,
 		}

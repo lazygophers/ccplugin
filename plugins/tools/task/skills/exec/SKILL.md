@@ -113,13 +113,14 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
         status[tid] = "running"
         update_task_status(task_id, tid, "running")
 
-        # 执行任务（background=False）
+        # 执行任务（非后台执行）
         task = subtasks[tid]
         result = Agent(
+            description=f"执行子任务: {task['goal'][:20]}",
             subagent_type=task.get("agent", "general-purpose"),
             prompt=task["goal"],
             mode="acceptEdits",
-            background=False  # 强制非后台
+            run_in_background=False  # 强制非后台
         )
 
         # 验证结果
