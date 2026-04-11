@@ -34,13 +34,14 @@ user_prompt = UserPrompt()
 verify_result = None
 adjust_result = None
 
-# 首次，生成任务Id
-if not task_id:
+# CRITICAL: 验证并生成中文task_id
+if not task_id or not contains_chinese(task_id):
 	task_id = Agent(
-		description="生成任务ID",
-		prompt=f"{user_prompt}\n\n根据用户描述，生成任务Id，要求\n1. 必须是中文的\n2. 必须简短，不能超过10个字符\n3. 必须确保可以准确的描述任务",
+		description="生成中文任务ID",
+		prompt=f"{user_prompt}\n\n请生成一个符合以下要求的task_id：\n1. 必须是中文的\n2. 简短（≤10个字符）\n3. 准确描述任务内容\n4. 明确的，可以准确表达任务的，不会出现歧义的\n5. 只返回task_id本身，不要其他解释\n\n示例：修复登录Bug、优化查询性能、添加单元测试",
 		model="haiku",
-		mode="bypassPermissions"
+		mode="bypassPermissions",
+		run_in_background=False
 	)
 
 EXPLORE:

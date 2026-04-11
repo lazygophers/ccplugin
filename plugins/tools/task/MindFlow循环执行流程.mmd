@@ -32,7 +32,7 @@ flowchart TB
         Init_3[恢复状态<br/>iter/context/plan]
         Init_Jump[恢复跳转<br/>从 checkpoint 进入对应阶段]
         Init_4[正常初始化<br/>iter=0, stalled=0]
-        Init_5[生成任务ID: task_id]
+        Init_5[生成任务ID: task_id<br/>要求: 中文/简短/明确/准确/无歧义]
         Init_5a["【第一步】更新 index.json<br/>Bash+jq 命令"]
         Init_6["创建任务目录<br/>metadata.json + tasks.json"]
         Init_8[加载记忆<br/>episodic + semantic]
