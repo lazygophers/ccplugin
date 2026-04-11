@@ -93,7 +93,7 @@ Skill(skill="task:flow")
 ❌ 不要做任何准备工作
 
 **工作流程**：
-1. 生成中文的 `task_id`
+1. 生成中文的、简短的、明确的任务ID
 2. 在回复开头添加 `[flow·{task_id}·pending]` 前缀
 3. 立即调用 `Skill(skill="task:flow")`
 4. 让 flow skill 自动处理后续的分解、探索、规划、执行
