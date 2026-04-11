@@ -67,6 +67,8 @@ def update_index(updater: callable) -> None:
 	"""原子性地更新索引文件，整个读-改-写过程在排他锁下完成"""
 	index_path = get_index_path()
 	os.makedirs(os.path.dirname(index_path), exist_ok=True)
+	if not os.path.exists(index_path):
+		open(index_path, "a").close()
 
 	with open(index_path, "r+") as f:
 		fcntl.flock(f.fileno(), fcntl.LOCK_EX)
@@ -103,17 +105,30 @@ def update(
 
 	def do_update(index: dict) -> dict:
 		if task_id not in index:
-			raise ValueError(f"任务 {task_id} 不存在")
+			# 自动初始化任务
+			index[task_id] = {
+				"id": task_id,
+				"status": status or TaskState.Pending,
+				"description": description or "",
+				"additional": [],
+				"created_at": int(time.time()),
+				"updated_at": int(time.time())
+			}
+			# 创建任务目录
+			project_dir = get_project_dir()
+			task_dir = os.path.join(project_dir, ".lazygophers/tasks", task_id)
+			os.makedirs(task_dir, exist_ok=True)
+		else:
+			# 更新已存在的任务
+			if status:
+				index[task_id]["status"] = status
 
-		if status:
-			index[task_id]["status"] = status
+			if description:
+				index[task_id]["description"] = description
 
-		if description:
-			index[task_id]["description"] = description
-
-		# 初始化 additional 列表
-		if "additional" not in index[task_id]:
-			index[task_id]["additional"] = []
+			# 初始化 additional 列表
+			if "additional" not in index[task_id]:
+				index[task_id]["additional"] = []
 
 		# 追加
 		for item in additional_add:
