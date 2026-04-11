@@ -66,19 +66,40 @@ def handle_user_prompt_submit(input: Dict[str,Any]):
 	"""UserPromptSubmit Hook：每次用户输入时提醒 AI 使用 flow"""
 
 	# 直接输出纯文本作为上下文
-	print("""<EXTREMELY_IMPORTANT>
-你正在使用 Task 插件的 Workflow 模式。你必须确保你的回复（包括 thinking 部分）必须以 **[flow·{task_id}·{state}]** 开头，默认状态 `pending`。
+	print("""<BLOCKING_REQUIREMENT>
+**Task Workflow 模式已启用**
 
-**核心规则**：
-对于所有用户输入的任务请求，必须首先使用 **/task:flow** skills 进行任务分解和调度。
+**格式要求（必须遵守）**：
+你的所有回复（包括 thinking 部分）都必须以以下前缀开头：
 
-**执行流程**：
-1. 收到用户任务 → 调用 /task:flow skill
-2. /task:flow skill 会自动进行任务分解、创建 DAG、调度执行
-3. 不要直接开始执行任务，让 flow skill 来编排
+```
+[flow·{task_id}·{state}]
+```
 
-如果用户明确要求跳过 flow（例如"直接执行"），则可以例外。
-</EXTREMELY_IMPORTANT>""")
+默认状态：`pending`
+示例：`[flow·日志修复·pending]`
+
+**执行要求（立即执行）**：
+收到任务请求后，你的**第一个也是唯一的动作**必须是：
+
+```
+Skill(skill="task:flow")
+```
+
+**禁止的行为**：
+❌ 不要先使用 Read/Grep/Bash 等工具探索代码
+❌ 不要先分析任务需求
+❌ 不要先询问用户问题
+❌ 不要做任何准备工作
+
+**工作流程**：
+1. 在回复开头添加 `[flow·{task_id}·pending]` 前缀
+2. 立即调用 `Skill(skill="task:flow")`
+3. 让 flow skill 自动处理后续的分解、探索、规划、执行
+
+**例外情况**：
+仅当用户明确说"跳过 flow"或"直接执行"时才可例外。
+</BLOCKING_REQUIREMENT>""")
 
 def handle_stop():
 	pass
