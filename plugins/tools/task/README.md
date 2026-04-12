@@ -49,7 +49,7 @@ Task 是一个任务管理框架插件，提供从需求对齐到执行验收的
 
 - **[状态管理](./docs/状态管理.md)** — 状态定义、转换规则、状态图
 - **[输出格式](./docs/output-format.md)** — `[flow·{task_id}·{state}]` 前缀规范
-- **[导航索引](./NAVIGATION.md)** — 完整组件索引
+- **[数据格式](./docs/metadata.md)** — index.json 任务索引文件格式
 
 ## 许可证
 
