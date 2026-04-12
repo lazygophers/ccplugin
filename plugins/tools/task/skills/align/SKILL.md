@@ -101,10 +101,10 @@ if final_response["范围对齐确认"] == "需要调整":
 		}]
 	)
 	
-	# 根据用户反馈调整，然后返回上下文缺失（重新探索）
+	# 根据用户反馈调整，返回需要重新探索
 	return {
-		"status": "上下文缺失",
-		"reason": f"用户反馈需要调整：{adjustment['调整说明']}"
+		"need_explore": True,
+		"feedback": f"用户反馈需要调整：{adjustment['调整说明']}"
 	}
 
 # === 写入对齐结果 ===

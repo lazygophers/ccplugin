@@ -50,11 +50,8 @@ verify_result = Skill(
     }
 )
 
-switch verify_result.get("status"):
-case False:
-    goto ADJUST
-case True:
-    goto DONE
+# 返回 verify_result，由 flow 状态机决定下一步
+return verify_result
 ```
 
 ## 检查清单

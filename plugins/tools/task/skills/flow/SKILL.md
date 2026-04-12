@@ -76,7 +76,7 @@ while state != "done":
 
 	elif state == "plan":
 		update_status("plan")
-		Skill(
+		plan_result = Skill(
 			skill="task:plan",
 			environment={
 				"task_id": task_id,
@@ -85,7 +85,10 @@ while state != "done":
 				"adjust_result": adjust_result
 			}
 		)
-		state = "exec"
+		if plan_result.get("status") == "上下文缺失":
+			state = "explore"
+		else:
+			state = "exec"
 
 	elif state == "exec":
 		update_status("exec")

@@ -1,8 +1,7 @@
 """
-Claude Code Hooks 事件处理模块
+Task 插件 Hooks 事件处理模块
 
-处理来自 Claude Code 的各种 Hook 事件，根据配置触发 TTS 和系统通知功能。
-支持的事件：SessionStart、SessionEnd、UserPromptSubmit、PreToolUse、PostToolUse、Notification、PreCompact
+处理 SessionStart 事件：替换模板变量 ${CLAUDE_PLUGIN_ROOT}。
 """
 import os
 import sys
