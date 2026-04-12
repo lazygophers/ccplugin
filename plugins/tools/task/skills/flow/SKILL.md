@@ -29,111 +29,118 @@ background: false
 
 ```python
 from claude import Skill, UserPrompt
-user_prompt = UserPrompt()
 
-verify_result = None
+user_prompt = UserPrompt()
 adjust_result = None
 
 # CRITICAL: 验证并生成中文task_id
 if not task_id or not contains_chinese(task_id):
-	task_id = Agent(
-		description="生成中文任务ID",
-		prompt=f"{user_prompt}\n\n请生成一个符合以下要求的task_id：\n1. 必须是中文的\n2. 简短（≤10个字符）\n3. 准确描述任务内容\n4. 明确的，可以准确表达任务的，不会出现歧义的\n5. 只返回task_id本身，不要其他解释\n\n示例：修复登录Bug、优化查询性能、添加单元测试",
-		model="haiku",
-		mode="bypassPermissions",
-		run_in_background=False
-	)
+	task_id = generate_task_id(user_prompt)
+	# 要求：中文、≤10字符、准确无歧义
+	# 示例：修复登录Bug、优化查询性能、添加单元测试
 
-ALIGN:
-exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
-align_result = Skill(
-	skill="task:align",
-	environment={
-		"task_id": task_id,
-		"context_file": f".lazygophers/tasks/{task_id}/context.json",
-		"adjust_result": adjust_result
-	}
-)
+def update_status(status):
+	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status={status}")
 
-# 检查是否需要探索上下文
-if align_result.get("need_explore"):
-	EXPLORE:
-	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
-	Skill(
-		skill="task:explore",
-		environment={
-			"task_id": task_id,
-			"align_feedback": align_result.get("feedback"),
-			"adjust_result": adjust_result
-		}
-	)
-	# 探索完成后返回 ALIGN
-	goto ALIGN
+# 状态机主循环
+state = "align"
 
-PLAN:
-exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
-Skill(
-	skill="task:plan",
-	environment={
-		"task_id": task_id,
-		"context_file": f".lazygophers/tasks/{task_id}/context.json",
-		"task_align_file": f".lazygophers/tasks/{task_id}/align.json",
-		"adjust_result": adjust_result
-	}
-)
+while state != "done":
 
-exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
-Skill(
-	skill="task:exec",
-	environment={
-		"task_id": task_id,
-		"context_file": f".lazygophers/tasks/{task_id}/context.json",
-		"task_file": f".lazygophers/tasks/{task_id}/task.json"
-	}
-)
+	if state == "align":
+		update_status("align")
+		align_result = Skill(
+			skill="task:align",
+			environment={
+				"task_id": task_id,
+				"context_file": f".lazygophers/tasks/{task_id}/context.json",
+				"adjust_result": adjust_result
+			}
+		)
+		if align_result.get("need_explore"):
+			state = "explore"
+		else:
+			state = "plan"
 
-exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
-verify_result = Skill(
-	skill="task:verify",
-	environment={
-		"task_id": task_id,
-		"context_file": f".lazygophers/tasks/{task_id}/context.json",
-		"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
-	}
-)
+	elif state == "explore":
+		update_status("explore")
+		Skill(
+			skill="task:explore",
+			environment={
+				"task_id": task_id,
+				"align_feedback": align_result.get("feedback"),
+				"adjust_result": adjust_result
+			}
+		)
+		state = "align"
 
-if verify_result.status:
-	Skill(
-		skill="task:done",
-		environment={
-			"task_id": task_id,
-		}
-	)
-else:
-	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
-	adjust_result = Skill(
-		skill="task:adjust",
-		environment={
-			"task_id": task_id,
-			"verify_result": verify_result,
-			"context_file": f".lazygophers/tasks/{task_id}/context.json",
-			"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
-		}
-	)
+	elif state == "plan":
+		update_status("plan")
+		Skill(
+			skill="task:plan",
+			environment={
+				"task_id": task_id,
+				"context_file": f".lazygophers/tasks/{task_id}/context.json",
+				"task_align_file": f".lazygophers/tasks/{task_id}/align.json",
+				"adjust_result": adjust_result
+			}
+		)
+		state = "exec"
 
-	switch adjust_result.status:
-	case "上下文缺失":
-		goto EXPLORE
-	case "需求偏差", "进一步迭代优化":
-		goto ALIGN
-	case "重新计划":
-		goto PLAN
-	default:
-		goto PLAN
+	elif state == "exec":
+		update_status("exec")
+		Skill(
+			skill="task:exec",
+			environment={
+				"task_id": task_id,
+				"context_file": f".lazygophers/tasks/{task_id}/context.json",
+				"task_file": f".lazygophers/tasks/{task_id}/task.json"
+			}
+		)
+		state = "verify"
 
-# 清理任务
+	elif state == "verify":
+		update_status("verify")
+		verify_result = Skill(
+			skill="task:verify",
+			environment={
+				"task_id": task_id,
+				"context_file": f".lazygophers/tasks/{task_id}/context.json",
+				"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
+			}
+		)
+		if verify_result.status:
+			state = "done"
+		else:
+			state = "adjust"
+
+	elif state == "adjust":
+		update_status("adjust")
+		adjust_result = Skill(
+			skill="task:adjust",
+			environment={
+				"task_id": task_id,
+				"verify_result": verify_result,
+				"context_file": f".lazygophers/tasks/{task_id}/context.json",
+				"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
+			}
+		)
+		# 根据调整结果路由到对应状态
+		status = adjust_result.get("status", "plan")
+		if status == "上下文缺失":
+			state = "explore"
+		elif status == "需求偏差":
+			state = "align"
+		elif status in ("重新计划", "进一步迭代优化"):
+			state = "plan"
+		elif status == "放弃":
+			state = "done"
+		else:
+			state = "plan"
+
+# 完成：清理任务
+Skill(skill="task:done", environment={"task_id": task_id})
 exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
-reset(task_id)
 ```
 
 ## 用户新输入
