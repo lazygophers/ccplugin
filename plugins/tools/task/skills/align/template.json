@@ -1,0 +1,120 @@
+{
+  "$schema": "task-align-template",
+  "description": "Align 阶段模板，用于预定义常见任务类型的验收标准和边界",
+  "templates": {
+    "bug-fix": {
+      "name": "Bug 修复",
+      "task_goal": "修复 $ARGUMENTS 中描述的 Bug",
+      "acceptance_criteria": [
+        {
+          "name": "bug_resolved",
+          "description": "Bug 已修复，问题不再复现"
+        },
+        {
+          "name": "no_regression",
+          "description": "修复未引入新的回归问题"
+        },
+        {
+          "name": "style_compliant",
+          "description": "修复代码符合项目现有风格"
+        }
+      ],
+      "boundary": {
+        "in_scope": ["定位并修复目标 Bug", "验证修复有效性"],
+        "out_of_scope": ["重构周边代码", "添加新功能", "性能优化"]
+      }
+    },
+    "new-feature": {
+      "name": "新功能开发",
+      "task_goal": "实现 $ARGUMENTS 描述的新功能",
+      "acceptance_criteria": [
+        {
+          "name": "functionality",
+          "description": "功能按需求正确实现"
+        },
+        {
+          "name": "error_handling",
+          "description": "包含合理的错误处理"
+        },
+        {
+          "name": "style_compliant",
+          "description": "代码符合项目现有风格"
+        },
+        {
+          "name": "no_regression",
+          "description": "未破坏现有功能"
+        }
+      ],
+      "boundary": {
+        "in_scope": ["实现核心功能", "基本错误处理"],
+        "out_of_scope": ["性能优化（除非必要）", "文档更新（除非明确要求）"]
+      }
+    },
+    "refactor": {
+      "name": "代码重构",
+      "task_goal": "重构 $ARGUMENTS 描述的代码",
+      "acceptance_criteria": [
+        {
+          "name": "behavior_preserved",
+          "description": "重构未改变外部行为"
+        },
+        {
+          "name": "readability_improved",
+          "description": "代码可读性和可维护性提升"
+        },
+        {
+          "name": "no_regression",
+          "description": "所有现有测试仍然通过"
+        }
+      ],
+      "boundary": {
+        "in_scope": ["目标范围内的代码重构"],
+        "out_of_scope": ["功能变更", "添加新功能", "修改 API 接口"]
+      }
+    },
+    "add-tests": {
+      "name": "添加测试",
+      "task_goal": "为 $ARGUMENTS 描述的代码添加测试",
+      "acceptance_criteria": [
+        {
+          "name": "coverage",
+          "description": "目标代码的关键路径已覆盖"
+        },
+        {
+          "name": "correctness",
+          "description": "测试逻辑正确，断言合理"
+        },
+        {
+          "name": "style_compliant",
+          "description": "测试代码符合项目测试风格"
+        }
+      ],
+      "boundary": {
+        "in_scope": ["编写单元测试/集成测试", "覆盖关键路径和边界条件"],
+        "out_of_scope": ["修改被测代码", "性能测试", "E2E 测试（除非明确要求）"]
+      }
+    },
+    "security-fix": {
+      "name": "安全修复",
+      "task_goal": "修复 $ARGUMENTS 描述的安全漏洞",
+      "acceptance_criteria": [
+        {
+          "name": "vulnerability_fixed",
+          "description": "目标安全漏洞已修复"
+        },
+        {
+          "name": "no_new_risk",
+          "description": "修复未引入新的安全风险"
+        },
+        {
+          "name": "no_regression",
+          "description": "修复未破坏现有功能"
+        }
+      ],
+      "boundary": {
+        "in_scope": ["修复目标漏洞", "验证修复有效性"],
+        "out_of_scope": ["全面安全审计", "架构级安全重设计"]
+      }
+    }
+  }
+}

@@ -156,6 +156,10 @@ AI 应根据具体任务自主生成 3-5 个验收标准，每个标准必须：
 - [ ] 确认内容一次性展示所有结果
 - [ ] 支持调整反馈
 
+## 任务模板
+
+预定义的常见任务类型模板见 [template.json](template.json)，包含 bug-fix / new-feature / refactor / add-tests / security-fix 五种类型的预设验收标准和边界。当用户任务匹配已知模板时，优先使用模板作为初始值。
+
 ## 输出格式
 
 所有输出必须包含前缀：`[flow·{task_id}·{state}]`

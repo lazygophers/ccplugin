@@ -1,0 +1,50 @@
+{
+  "$schema": "task-verify-checklist",
+  "description": "Verify 阶段模板，用于预定义常见任务类型的验证检查项",
+  "checklists": {
+    "bug-fix": {
+      "name": "Bug 修复验证",
+      "checks": [
+        {"category": "功能", "check": "原始 Bug 不再复现"},
+        {"category": "功能", "check": "修复逻辑正确处理边界条件"},
+        {"category": "质量", "check": "修复代码符合项目风格"},
+        {"category": "质量", "check": "无不必要的改动（最小化原则）"},
+        {"category": "回归", "check": "相关测试全部通过"},
+        {"category": "回归", "check": "未引入新的 lint/type 错误"}
+      ]
+    },
+    "new-feature": {
+      "name": "新功能验证",
+      "checks": [
+        {"category": "功能", "check": "核心功能按需求实现"},
+        {"category": "功能", "check": "错误处理覆盖主要异常路径"},
+        {"category": "质量", "check": "代码符合项目风格"},
+        {"category": "质量", "check": "函数/变量命名清晰"},
+        {"category": "回归", "check": "现有测试全部通过"},
+        {"category": "回归", "check": "新增测试覆盖关键路径"}
+      ]
+    },
+    "refactor": {
+      "name": "重构验证",
+      "checks": [
+        {"category": "功能", "check": "外部行为完全未改变"},
+        {"category": "功能", "check": "所有调用者正常工作"},
+        {"category": "质量", "check": "可读性和可维护性提升"},
+        {"category": "质量", "check": "消除了目标代码异味"},
+        {"category": "回归", "check": "所有测试全部通过"},
+        {"category": "回归", "check": "未引入新的 lint/type 错误"}
+      ]
+    },
+    "security-fix": {
+      "name": "安全修复验证",
+      "checks": [
+        {"category": "功能", "check": "目标漏洞已修复"},
+        {"category": "功能", "check": "输入验证正确实现"},
+        {"category": "安全", "check": "未引入新的安全风险"},
+        {"category": "安全", "check": "敏感数据处理符合规范"},
+        {"category": "回归", "check": "现有测试全部通过"},
+        {"category": "回归", "check": "修复未改变正常功能行为"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "task-adjust-strategies",
+  "description": "Adjust 阶段模板，用于预定义常见失败模式的修复策略",
+  "strategies": {
+    "test-failure": {
+      "name": "测试失败",
+      "symptoms": ["测试用例未通过", "断言失败", "运行时错误"],
+      "suggested_status": "重新计划",
+      "guidance": "分析失败测试的具体断言，检查是实现逻辑错误还是测试预期不对"
+    },
+    "style-violation": {
+      "name": "风格违规",
+      "symptoms": ["lint 错误", "命名不一致", "格式不符合规范"],
+      "suggested_status": "重新计划",
+      "guidance": "检查项目的 lint 配置和命名约定，在重新规划时确保明确风格要求"
+    },
+    "scope-creep": {
+      "name": "范围偏移",
+      "symptoms": ["修改了计划外的文件", "添加了计划外的功能", "改动过大"],
+      "suggested_status": "需求偏差",
+      "guidance": "重新审视 align 阶段的边界定义，确保 in_scope 和 out_of_scope 明确"
+    },
+    "missing-context": {
+      "name": "上下文缺失",
+      "symptoms": ["引用了不存在的函数/模块", "对项目结构理解有误", "依赖关系错误"],
+      "suggested_status": "上下文缺失",
+      "guidance": "需要重新探索项目，聚焦缺失的具体模块或依赖"
+    },
+    "integration-issue": {
+      "name": "集成问题",
+      "symptoms": ["接口不匹配", "类型不兼容", "导入路径错误"],
+      "suggested_status": "重新计划",
+      "guidance": "检查上下游接口定义，可能需要拆分任务确保接口兼容性"
+    }
+  }
+}

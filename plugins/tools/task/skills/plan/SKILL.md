@@ -113,6 +113,10 @@ return {"status": "confirmed", "iterations": i + 1, "assessment": assessment}
 
 核心流程：`validate_plan` → `fix_issues` → 重验（最多 10 次迭代），通过后 `self_assess` + `validate_dag`。
 
+## 任务模板
+
+预定义的常见任务类型拆分模式见 [template.json](template.json)，包含 bug-fix / new-feature / refactor 三种类型的子任务拆分模式。当任务匹配已知模板时，优先使用模板作为拆分起点。
+
 ## 检查清单
 
 ### 上下文读取
