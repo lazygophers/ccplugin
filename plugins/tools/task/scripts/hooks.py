@@ -9,12 +9,16 @@ import traceback
 
 from lib import logging
 from lib.hooks import load_hooks
-from lib.utils.env import get_plugins_path
+from lib.utils.env import get_plugins_path, get_project_dir
+from lib.utils.gitignore import add_gitignore_rule
 from utils import is_plugin_env
 from typing import Dict, Any
 
 def handle_session_start():
-	"""SessionStart Hook：替换模板变量"""
+	"""SessionStart Hook：替换模板变量、初始化 gitignore"""
+
+	# 确保 .lazygophers/tasks/ 被 gitignore
+	add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers", ".gitignore"))
 
 	# 只在插件环境时替换变量
 	if not is_plugin_env():

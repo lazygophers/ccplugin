@@ -1,25 +1,7 @@
-import os
-
-from lib import logging
 import click
-from functools import wraps
 
-from lib.utils.env import get_project_dir
-from lib.utils.gitignore import add_gitignore_rule
 from hooks import handle_hook
 from task import task_main
-
-add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers", ".gitignore"))
-
-def with_debug(func):
-	"""装饰器：为所有命令添加 --debug 参数支持"""
-	@wraps(func)
-	@click.option("--debug", "debug_mode", is_flag=True, help="启用 DEBUG 模式")
-	def wrapper(debug_mode: bool, *args, **kwargs):
-		if debug_mode:
-			logging.enable_debug()
-		return func(*args, **kwargs)
-	return wrapper
 
 
 @click.group()
