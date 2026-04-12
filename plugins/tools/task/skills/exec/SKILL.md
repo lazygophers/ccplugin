@@ -76,6 +76,12 @@ return results
 
 ## Worker 协程逻辑
 
+Worker 的状态更新、主循环、执行规则注入和依赖解锁的完整实现见 [worker.md](worker.md)。
+
+核心流程：从队列取任务 → 更新状态为 running → 构建 prompt（注入执行规则）→ 调用 Agent 执行 → 验证结果 → 更新状态 → 解锁后继任务。
+
+<!-- 以下为完整实现参考，详见 worker.md -->
+<!--
 ```python
 def update_task_status(session_task_id, subtask_id, status, result=None):
     """立即更新 task.json 中任务状态"""
@@ -163,6 +169,7 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             failed.add(tid)
             update_task_status(task_id, tid, "failed", result)
 ```
+-->
 
 ## 检查清单
 
