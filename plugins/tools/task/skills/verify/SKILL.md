@@ -36,7 +36,7 @@ for item in functional_criteria:
 	if not check_result["passed"]:
 		all_passed = False
 		failed_criteria.append({
-			"id": item.get("id"),
+			"name": item.get("name"),
 			"description": item.get("description"),
 			"category": "功能",
 			"reason": check_result["reason"],
