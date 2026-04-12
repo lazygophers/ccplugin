@@ -39,6 +39,7 @@ plugins/**/__pycache__/
 .claude/tasks
 .claude/research
 .claude/settings.local.json
+**/.claude/settings.json
 .remember
 
 # Claude 工作目录
