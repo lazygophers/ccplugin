@@ -125,6 +125,10 @@ while True:
 - [ ] status: 上下文缺失 | 需求偏差 | 重新计划 | 放弃
 - [ ] reason: 失败原因
 
+## 失败模式模板
+
+预定义的常见失败模式和修复策略见 [strategies.json](strategies.json)，包含 test-failure / style-violation / scope-creep / missing-context / integration-issue 五种模式。分析失败原因时优先匹配已知模式。
+
 ## 输出格式
 
 所有输出必须包含前缀：`[flow·{task_id}·{state}]`
