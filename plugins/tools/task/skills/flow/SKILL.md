@@ -28,7 +28,7 @@ background: false
 > 新任务时触发
 
 ```python
-from claude import Agent, Skill, UserPrompt
+from claude import Skill, UserPrompt
 user_prompt = UserPrompt()
 
 verify_result = None
@@ -46,11 +46,8 @@ if not task_id or not contains_chinese(task_id):
 
 ALIGN:
 exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
-align_result = Agent(
-	description="对齐任务范围",
-	subagent_type="task:align",
-	prompt=f"{user_prompt}",
-	mode="bypassPermissions",
+align_result = Skill(
+	skill="task:align",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -62,11 +59,8 @@ align_result = Agent(
 if align_result.get("need_explore"):
 	EXPLORE:
 	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
-	Agent(
-		description="探索项目上下文",
-		subagent_type="task:explore",
-		prompt=f"{user_prompt}",
-		mode="bypassPermissions",
+	Skill(
+		skill="task:explore",
 		environment={
 			"task_id": task_id,
 			"align_feedback": align_result.get("feedback"),
@@ -78,11 +72,8 @@ if align_result.get("need_explore"):
 
 PLAN:
 exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
-Agent(
-	description="制定执行计划",
-	subagent_type="task:plan",
-	prompt=f"{user_prompt}",
-	mode="bypassPermissions",
+Skill(
+	skill="task:plan",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -102,11 +93,8 @@ Skill(
 )
 
 exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
-verify_result = Agent(
-	description="验证执行结果",
-	subagent_type="task:verify",
-	prompt=f"{user_prompt}",
-	mode="bypassPermissions",
+verify_result = Skill(
+	skill="task:verify",
 	environment={
 		"task_id": task_id,
 		"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -115,21 +103,16 @@ verify_result = Agent(
 )
 
 if verify_result.status:
-	Agent(
-		description="完成任务清理",
-		subagent_type="task:done",
-		mode="bypassPermissions",
+	Skill(
+		skill="task:done",
 		environment={
 			"task_id": task_id,
 		}
 	)
 else:
 	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
-	adjust_result = Agent(
-		description="分析失败原因并调整",
-		subagent_type="task:adjust",
-		prompt=f"{user_prompt}",
-		mode="bypassPermissions",
+	adjust_result = Skill(
+		skill="task:adjust",
 		environment={
 			"task_id": task_id,
 			"verify_result": verify_result,
@@ -158,14 +141,12 @@ reset(task_id)
 > 用户有新的会中断语义的输入时触发
 
 ```python
-from claude import Agent
+from claude import Skill
 
-# 首次，生成任务Id
+# 清理当前任务
 if task_id:
-	Agent(
-		description="用户中断，清理任务",
-		subagent_type="task:done",
-		mode="bypassPermissions",
+	Skill(
+		skill="task:done",
 		environment={
 			"task_id": task_id,
 		}
