@@ -33,6 +33,7 @@ background: false
          {"label": "补充上下文", "description": "需要更多项目信息，返回探索"},
          {"label": "重新对齐", "description": "需求理解有误，返回对齐"},
          {"label": "重新规划", "description": "执行计划有问题，重新规划"},
+         {"label": "重新分析", "description": "分析有误，重新审视失败原因"},
          {"label": "放弃任务", "description": "无法完成，停止执行"}
        ],
        "multiSelect": false
@@ -50,6 +51,7 @@ background: false
      * "补充上下文" → status: "上下文缺失"
      * "重新对齐" → status: "需求偏差"
      * "重新规划" → status: "重新计划"
+     * "重新分析" → 重新执行分析流程（循环）
      * "放弃任务" → status: "放弃"
 
 ## 交互要求

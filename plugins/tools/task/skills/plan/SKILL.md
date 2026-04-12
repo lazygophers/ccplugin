@@ -111,23 +111,18 @@ return {"status": "confirmed", "iterations": i + 1, "assessment": assessment}
 def validate_plan(subtasks, code_style):
     errors = []
     
-    # 规范验证
+    # 规范验证（per-task）
     for task in subtasks:
-        # 原子性检查
         if not is_atomic(task):
             errors.append(f"{task['id']}: 非原子任务")
-        
-        # 可验证性检查
         if not task.get("acceptance_criteria"):
             errors.append(f"{task['id']}: 缺少验收标准")
-        
-        # 依赖检查
-        if has_circular_dependency(subtasks):
-            errors.append("存在循环依赖")
-        
-        # 并行检查
-        if count_parallel(subtasks) > 2:
-            errors.append("并行任务超过2个")
+    
+    # 全局验证
+    if has_circular_dependency(subtasks):
+        errors.append("存在循环依赖")
+    if count_parallel(subtasks) > 2:
+        errors.append("并行任务超过2个")
     
     # 风格验证
     style_errors = validate_style(subtasks, code_style)

@@ -58,7 +58,8 @@ def read_index(path: str) -> dict:
 	with open(path, "r") as f:
 		fcntl.flock(f.fileno(), fcntl.LOCK_SH)
 		try:
-			return json.load(f)
+			content = f.read()
+			return json.loads(content) if content else {}
 		finally:
 			fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 

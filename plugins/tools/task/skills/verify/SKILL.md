@@ -143,8 +143,8 @@ def verify_boundary_conditions(criteria, exec_result):
 
 ## 与 adjust 的协作
 
-验收失败时返回 `status: False`，flow 会自动调用 adjust agent，由 adjust 分析失败原因并决定后续策略：
+验收失败时返回 `status: False`，flow 会自动调用 adjust skill，由 adjust 分析失败原因并决定后续策略：
 - 上下文缺失 → 返回 explore
 - 需求偏差 → 返回 align
 - 重新计划 → 返回 plan
-- 进一步迭代优化 → 优化后重新执行
+- 放弃 → 进入 done

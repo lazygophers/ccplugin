@@ -112,7 +112,7 @@ while state != "done":
 				"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
 			}
 		)
-		if verify_result.status:
+		if verify_result.get("status"):
 			state = "done"
 		else:
 			state = "adjust"
@@ -134,7 +134,7 @@ while state != "done":
 			state = "explore"
 		elif status == "需求偏差":
 			state = "align"
-		elif status in ("重新计划", "进一步迭代优化"):
+		elif status == "重新计划":
 			state = "plan"
 		elif status == "放弃":
 			state = "done"

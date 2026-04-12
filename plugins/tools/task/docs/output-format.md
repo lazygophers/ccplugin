@@ -7,7 +7,7 @@
 ### 说明
 
 - **task_id**：任务唯一标识
-- **state**：当前状态名称（explore/align/plan/exec/verify/done/cancel/pending）
+- **state**：当前状态名称（pending/explore/align/plan/exec/verify/adjust/done/cancel）
 
 ### 应用范围
 
