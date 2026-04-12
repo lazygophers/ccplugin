@@ -7,7 +7,6 @@ from functools import wraps
 from lib.utils.env import get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
 from hooks import handle_hook
-from hooks_skills import handle_hook_skills
 from task import task_main
 
 add_gitignore_rule("/tasks/", file_path=os.path.join(get_project_dir(), ".lazygophers", ".gitignore"))
@@ -34,12 +33,6 @@ def main(ctx) -> None:
 def hooks() -> None:
 	"""Hook 模式：从 stdin 读取 JSON"""
 	handle_hook()
-
-
-@main.command(name="hooks-skills.bak")
-def hooks_skills() -> None:
-	"""Hook 模式：处理 skills.bak 相关事件（从 stdin 读取 JSON）"""
-	handle_hook_skills()
 
 
 # 将 task_main（本身是 @click.group）注册为 main 的子命令
