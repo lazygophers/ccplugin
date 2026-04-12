@@ -22,7 +22,6 @@
   ],
   "agents": [
     "./agents/adjust.md",
-    "./agents/align.md",
     "./agents/done.md",
     "./agents/explore.md",
     "./agents/plan.md",

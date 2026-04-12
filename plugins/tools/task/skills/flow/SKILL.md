@@ -28,7 +28,7 @@ background: false
 > 新任务时触发
 
 ```python
-from claude import Skill, UserPrompt
+from claude import Agent, Skill, UserPrompt
 
 user_prompt = UserPrompt()
 adjust_result = None
@@ -64,8 +64,11 @@ while state != "done":
 
 	elif state == "explore":
 		update_status("explore")
-		Skill(
-			skill="task:explore",
+		Agent(
+			description="探索项目上下文",
+			subagent_type="task:explore",
+			prompt=f"{user_prompt}",
+			mode="bypassPermissions",
 			environment={
 				"task_id": task_id,
 				"align_feedback": align_result.get("feedback"),
@@ -76,8 +79,11 @@ while state != "done":
 
 	elif state == "plan":
 		update_status("plan")
-		plan_result = Skill(
-			skill="task:plan",
+		plan_result = Agent(
+			description="制定执行计划",
+			subagent_type="task:plan",
+			prompt=f"{user_prompt}",
+			mode="bypassPermissions",
 			environment={
 				"task_id": task_id,
 				"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -104,8 +110,11 @@ while state != "done":
 
 	elif state == "verify":
 		update_status("verify")
-		verify_result = Skill(
-			skill="task:verify",
+		verify_result = Agent(
+			description="验证执行结果",
+			subagent_type="task:verify",
+			prompt=f"{user_prompt}",
+			mode="bypassPermissions",
 			environment={
 				"task_id": task_id,
 				"context_file": f".lazygophers/tasks/{task_id}/context.json",
@@ -119,8 +128,11 @@ while state != "done":
 
 	elif state == "adjust":
 		update_status("adjust")
-		adjust_result = Skill(
-			skill="task:adjust",
+		adjust_result = Agent(
+			description="分析失败原因并调整",
+			subagent_type="task:adjust",
+			prompt=f"{user_prompt}",
+			mode="bypassPermissions",
 			environment={
 				"task_id": task_id,
 				"verify_result": verify_result,

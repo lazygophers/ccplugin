@@ -6,7 +6,6 @@ model: sonnet
 permissionMode: plan
 background: false
 context: fork
-agent: task:align
 ---
 
 # Align Skill
