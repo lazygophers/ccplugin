@@ -16,9 +16,10 @@ agent: task:done
 > 任务终结，总结执行结果并整理记忆
 
 ```python
-# 读取任务元数据
-metadata_file = f".lazygophers/tasks/{task_id}/metadata.json"
-metadata = read_json(metadata_file)
+# 读取任务元数据（从索引文件获取）
+index_file = ".lazygophers/tasks/index.json"
+index = read_json(index_file)
+metadata = index.get(task_id, {})
 
 # 读取对齐结果（获取项目风格）
 align_file = f".lazygophers/tasks/{task_id}/align.json"
@@ -56,7 +57,7 @@ return report
 
 ### 结果汇总
 - [ ] 执行结果已汇总
-- [ ] 任务元数据已读取
+- [ ] 任务元数据已从 index.json 读取
 
 ### 报告生成
 - [ ] 执行报告已生成
