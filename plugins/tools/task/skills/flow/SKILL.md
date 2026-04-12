@@ -45,7 +45,8 @@ def update_status(status):
 	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status={status}")
 
 # 状态机主循环
-state = "align"
+# 支持从 resume skill 传入的恢复状态
+state = environment.get("resume_from", "align")
 
 while state != "done":
 

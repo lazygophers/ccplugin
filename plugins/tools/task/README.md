@@ -40,8 +40,9 @@ Task 是一个任务管理框架插件，提供从需求对齐到执行验收的
 - `adjust` — 失败分析与修正策略
 - `done` — 任务终结与资源清理
 
-**Skills（8 个）**：
+**Skills（9 个）**：
 - `flow` — 状态机调度器，协调全流程
+- `resume` — 恢复中断的任务，从断点继续
 - `align` / `explore` / `plan` / `exec` / `verify` / `adjust` / `done` — 各阶段核心逻辑
 
 ## 详细文档
