@@ -109,8 +109,16 @@ verify_result = Agent(
 	}
 )
 
-switch verify_result.status:
-case False:
+if verify_result.status:
+	Agent(
+		description="完成任务清理",
+		subagent_type="task:done",
+		mode="bypassPermissions",
+		environment={
+			"task_id": task_id,
+		}
+	)
+else:
 	exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
 	adjust_result = Agent(
 		description="分析失败原因并调整",
@@ -135,17 +143,9 @@ case False:
 	default:
 		goto PLAN
 
-case True:
-	Agent(
-		description="完成任务清理",
-		subagent_type="task:done",
-		mode="bypassPermissions",
-		environment={
-			"task_id": task_id,
-		}
-	)
-
+# 清理任务
 exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
+reset(task_id)
 ```
 
 ## 用户新输入
