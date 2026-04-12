@@ -97,7 +97,7 @@ Skill(skill="task:flow")
 1. 生成中文的、简短的（≤10个字符）、明确的、准确的、无歧义的任务ID
 2. 在回复开头添加 `[flow·{task_id}·state]` 前缀
 3. 立即调用 `Skill(skill="task:flow")`
-4. 让 flow skill 自动处理后续的分解、探索、规划、执行
+4. 让 flow skill 自动处理后续的对齐、按需探索、规划、执行
 
 **例外情况**：
 仅当用户明确说"跳过 flow"或"直接执行"时才可例外。

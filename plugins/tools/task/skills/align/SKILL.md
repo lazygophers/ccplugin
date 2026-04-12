@@ -17,9 +17,25 @@ agent: task:align
 > **锁定项目风格，验收标准遵循 SMART-V 原则，使用语义化 name**
 
 ```python
-# 读取探索结果
+# 检查上下文文件是否存在且完整
 context_file = f".lazygophers/tasks/{task_id}/context.json"
+
+# 如果上下文文件不存在，标记需要探索
+if not exists(context_file):
+	return {
+		"need_explore": True,
+		"feedback": "上下文文件不存在，需要探索项目现状"
+	}
+
+# 读取探索结果
 context = read_json(context_file)
+
+# 验证上下文完整性
+if not context or not context.get("task_related") or not context.get("code_style"):
+	return {
+		"need_explore": True,
+		"feedback": "上下文不完整，缺少关键字段（task_related 或 code_style）"
+	}
 
 # 检查是否已有对齐结果
 align_file = f".lazygophers/tasks/{task_id}/align.json"

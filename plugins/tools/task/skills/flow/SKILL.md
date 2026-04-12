@@ -44,22 +44,9 @@ if not task_id or not contains_chinese(task_id):
 		run_in_background=False
 	)
 
-EXPLORE:
-exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
-Agent(
-	description="探索项目上下文",
-	subagent_type="task:explore",
-	prompt=f"{user_prompt}",
-	mode="bypassPermissions",
-	environment={
-		"task_id": task_id,
-		"adjust_result": adjust_result
-	}
-)
-
 ALIGN:
-exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
-Agent(
+exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=align")
+align_result = Agent(
 	description="对齐任务范围",
 	subagent_type="task:align",
 	prompt=f"{user_prompt}",
@@ -71,8 +58,26 @@ Agent(
 	}
 )
 
+# 检查是否需要探索上下文
+if align_result.get("need_explore"):
+	EXPLORE:
+	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=explore")
+	Agent(
+		description="探索项目上下文",
+		subagent_type="task:explore",
+		prompt=f"{user_prompt}",
+		mode="bypassPermissions",
+		environment={
+			"task_id": task_id,
+			"align_feedback": align_result.get("feedback"),
+			"adjust_result": adjust_result
+		}
+	)
+	# 探索完成后返回 ALIGN
+	goto ALIGN
+
 PLAN:
-exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
+exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=plan")
 Agent(
 	description="制定执行计划",
 	subagent_type="task:plan",
@@ -86,7 +91,7 @@ Agent(
 	}
 )
 
-exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
+exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=exec")
 Skill(
 	skill="task:exec",
 	environment={
@@ -96,7 +101,7 @@ Skill(
 	}
 )
 
-exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
+exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=verify")
 verify_result = Agent(
 	description="验证执行结果",
 	subagent_type="task:verify",
@@ -119,7 +124,7 @@ if verify_result.status:
 		}
 	)
 else:
-	exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
+	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status=adjust")
 	adjust_result = Agent(
 		description="分析失败原因并调整",
 		subagent_type="task:adjust",
@@ -144,7 +149,7 @@ else:
 		goto PLAN
 
 # 清理任务
-exec(f"CLAUDE_PROJECT_DIR=\"${{CLAUDE_PROJECT_DIR:-$(pwd)}}\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
+exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
 reset(task_id)
 ```
 
