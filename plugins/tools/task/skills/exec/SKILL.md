@@ -115,10 +115,26 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 
         # 执行任务（非后台执行）
         task = subtasks[tid]
+        
+        # 构建包含执行规则的 prompt
+        execution_rules = """
+## 执行规则（必须严格遵守）
+
+1. **有理有据**：所有修改必须有明确的理由和依据，不能随意执行
+2. **风格一致**：必须确保和现有代码风格一致，不可以创造新的风格
+3. **保护现有功能**：不允许影响已有的功能，除非用户明确要求
+4. **返回状态**：完成后必须返回 status (true/false)
+   - 如果 status 为 false，必须返回详细的错误原因
+
+---
+
+"""
+        prompt = execution_rules + task["goal"]
+        
         result = Agent(
             description=f"执行子任务: {task['goal'][:20]}",
             subagent_type=task.get("agent", "general-purpose"),
-            prompt=task["goal"],
+            prompt=prompt,
             mode="acceptEdits",
             run_in_background=False  # 强制非后台
         )
