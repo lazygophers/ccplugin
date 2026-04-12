@@ -12,7 +12,6 @@ from lib.hooks import load_hooks
 from lib.utils.env import get_plugins_path, get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
 from utils import is_plugin_env
-from typing import Dict, Any
 
 def handle_session_start():
 	"""SessionStart Hook：替换模板变量、初始化 gitignore"""
@@ -65,13 +64,6 @@ def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
 				# 跳过二进制文件或无权限文件
 				continue
 
-def handle_user_prompt_submit(input: Dict[str,Any]):
-	"""UserPromptSubmit Hook：不再强制注入 flow，仅在有活跃任务时提示"""
-	pass
-
-def handle_stop():
-	pass
-
 def handle_hook() -> None:
 	"""处理 Hook 事件：从 stdin 读取 JSON 数据并执行相应的 Hook 动作"""
 	try:
@@ -84,10 +76,6 @@ def handle_hook() -> None:
 
 		if hook_event_name == "SessionStart":
 			handle_session_start()
-		elif hook_event_name == "UserPromptSubmit":
-			handle_user_prompt_submit(input_data)
-		elif hook_event_name == "Stop":
-			handle_stop()
 	except Exception as e:
 		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
 		sys.exit(0)
