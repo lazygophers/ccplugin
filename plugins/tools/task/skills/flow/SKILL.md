@@ -176,7 +176,8 @@ if task_id:
 
 | 从 | 到 | 条件 |
 |---|---|------|
-| pending | explore | 触发探索 |
+| pending | align | 任务创建 |
+| align | explore | 上下文缺失 |
 | explore | align | 探索完成 |
 | align | plan | 对齐完成 |
 | plan | exec | 规划确认 |
