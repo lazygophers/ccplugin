@@ -5,6 +5,8 @@ color: blue
 model: sonnet
 permissionMode: bypassPermissions
 background: false
+user-invocable: false
+effort: medium
 context: fork
 ---
 

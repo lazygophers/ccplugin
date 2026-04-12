@@ -5,6 +5,8 @@ color: purple
 model: opus
 permissionMode: plan
 background: false
+user-invocable: false
+effort: high
 context: fork
 agent: task:plan
 ---

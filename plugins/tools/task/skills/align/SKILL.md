@@ -6,6 +6,7 @@ model: sonnet
 permissionMode: bypassPermissions
 background: false
 context: fork
+effort: high
 ---
 
 # Align Skill

@@ -7,6 +7,7 @@ skills:
 model: haiku
 permissionMode: bypassPermissions
 background: false
+disallowedTools: Write, Edit
 ---
 
 # Verify Agent

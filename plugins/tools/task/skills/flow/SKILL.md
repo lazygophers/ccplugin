@@ -5,6 +5,8 @@ color: purple
 model: sonnet
 permissionMode: bypassPermissions
 background: false
+disable-model-invocation: true
+argument-hint: [任务描述]
 ---
 
 # Flow Skill

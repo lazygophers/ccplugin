@@ -5,6 +5,8 @@ color: yellow
 model: sonnet
 permissionMode: bypassPermissions
 background: false
+user-invocable: false
+effort: high
 context: fork
 agent: task:adjust
 ---

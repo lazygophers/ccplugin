@@ -5,6 +5,8 @@ color: green
 model: haiku
 permissionMode: bypassPermissions
 background: false
+user-invocable: false
+effort: low
 context: fork
 agent: task:done
 ---

@@ -7,6 +7,7 @@ skills:
 model: sonnet
 permissionMode: bypassPermissions
 background: false
+disallowedTools: Write, Edit
 ---
 
 # Explore Agent
