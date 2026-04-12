@@ -150,13 +150,6 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             completed.add(tid)
             update_task_status(task_id, tid, "completed", result)
 
-            # 触发 hooks
-            hooks_file = f".lazygophers/tasks/{task_id}/hooks.json"
-            if exists(hooks_file):
-                hooks = read_json(hooks_file)
-                for hook in hooks.get("task_completed", []):
-                    execute_hook(hook, tid, result)
-
             # 解锁后继任务
             for successor in dag[tid]["successors"]:
                 if (status[successor] == "pending" and
@@ -167,13 +160,6 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             status[tid] = "failed"
             failed.add(tid)
             update_task_status(task_id, tid, "failed", result)
-
-            # 触发 hooks
-            hooks_file = f".lazygophers/tasks/{task_id}/hooks.json"
-            if exists(hooks_file):
-                hooks = read_json(hooks_file)
-                for hook in hooks.get("task_failed", []):
-                    execute_hook(hook, tid, result)
 ```
 
 ## 检查清单
@@ -197,7 +183,6 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 - [ ] background 强制为 False
 - [ ] 状态已更新（pending/running/completed/failed）
 - [ ] task.json 已实时更新
-- [ ] Hooks 已触发
 
 ### 依赖解析
 - [ ] 可执行性检查已实现
