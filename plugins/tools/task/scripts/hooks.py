@@ -63,45 +63,8 @@ def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
 				continue
 
 def handle_user_prompt_submit(input: Dict[str,Any]):
-	"""UserPromptSubmit Hook：每次用户输入时提醒 AI 使用 flow"""
-
-	# 直接输出纯文本作为上下文
-	print("""<BLOCKING_REQUIREMENT>
-**Task Workflow 模式已启用**
-
-**格式要求（必须遵守）**：
-你的所有回复（包括 thinking 部分）都必须以以下前缀开头：
-
-```
-[flow·{task_id}·{state}]
-```
-
-默认状态：`pending`
-示例：`[flow·日志修复·pending]`
-
-**执行要求（立即执行）**：
-收到任务请求后，你的**第一个也是唯一的动作**必须是：
-
-```
-Skill(skill="task:flow")
-```
-
-**禁止的行为**：
-❌ 不要先使用 Read/Grep/Bash 等工具探索代码
-❌ 不要先分析任务需求
-❌ 不要先询问用户问题
-❌ 不要做任何准备工作
-❌ 任务ID（task_id）是非中文的
-
-**工作流程**：
-1. 生成中文的、简短的（≤10个字符）、明确的、准确的、无歧义的任务ID
-2. 在回复开头添加 `[flow·{task_id}·state]` 前缀
-3. 立即调用 `Skill(skill="task:flow")`
-4. 让 flow skill 自动处理后续的对齐、按需探索、规划、执行
-
-**例外情况**：
-仅当用户明确说"跳过 flow"或"直接执行"时才可例外。
-</BLOCKING_REQUIREMENT>""")
+	"""UserPromptSubmit Hook：不再强制注入 flow，仅在有活跃任务时提示"""
+	pass
 
 def handle_stop():
 	pass
