@@ -3,7 +3,7 @@ description: 现状探索，收集当前上下文信息并构建理解
 memory: project
 color: orange
 model: sonnet
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 context: fork
 agent: task:explore

@@ -5,7 +5,7 @@ color: green
 skills:
   - task:done
 model: haiku
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 ---
 

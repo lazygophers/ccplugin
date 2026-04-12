@@ -5,7 +5,7 @@ color: cyan
 skills:
   - task:verify
 model: haiku
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 ---
 

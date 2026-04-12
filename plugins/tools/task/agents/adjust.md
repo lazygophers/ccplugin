@@ -5,7 +5,7 @@ color: yellow
 skills:
   - task:adjust
 model: sonnet
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 ---
 
@@ -22,7 +22,7 @@ background: false
 
 2. **向用户展示失败分析并请求确认调整策略**（CRITICAL：必须使用 AskUserQuestion）
    - **MUST 使用 AskUserQuestion 工具向用户展示失败分析**
-   
+
    **AskUserQuestion 参数格式（MUST 严格遵守）**：
    ```
    questions: [
@@ -40,7 +40,7 @@ background: false
      }
    ]
    ```
-   
+
    **关键要求**：
    - header MUST 包含完整前缀 `[flow·{task_id}·adjust]`，其中task_id是实际的任务ID
    - question MUST 包含失败原因的详细列表和根因分析

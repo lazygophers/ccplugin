@@ -3,7 +3,7 @@ description: 范围对齐，确认任务边界和验收标准
 memory: project
 color: blue
 model: sonnet
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 context: fork
 ---
@@ -99,7 +99,7 @@ if final_response["范围对齐确认"] == "需要调整":
 			"multiSelect": True
 		}]
 	)
-	
+
 	# 根据用户反馈调整，返回需要重新探索
 	return {
 		"need_explore": True,

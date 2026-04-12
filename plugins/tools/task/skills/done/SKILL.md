@@ -3,7 +3,7 @@ description: 任务终结，总结输出并整理记忆
 memory: project
 color: green
 model: haiku
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 context: fork
 agent: task:done

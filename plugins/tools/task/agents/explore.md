@@ -5,7 +5,7 @@ color: orange
 skills:
   - task:explore
 model: sonnet
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 ---
 

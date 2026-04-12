@@ -3,7 +3,7 @@ description: 任务执行，基于DAG调度并执行子任务
 memory: project
 color: blue
 model: sonnet
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 context: fork
 ---
@@ -115,7 +115,7 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 
         # 执行任务（非后台执行）
         task = subtasks[tid]
-        
+
         # 构建包含执行规则的 prompt
         execution_rules = """
 ## 执行规则（必须严格遵守）
@@ -130,7 +130,7 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 
 """
         prompt = execution_rules + task["goal"]
-        
+
         result = Agent(
             description=f"执行子任务: {task['goal'][:20]}",
             subagent_type=task.get("agent", "general-purpose"),

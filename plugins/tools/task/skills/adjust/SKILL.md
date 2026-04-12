@@ -3,7 +3,7 @@ description: 调整修正，分析失败原因并制定修正策略
 memory: project
 color: yellow
 model: sonnet
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 context: fork
 agent: task:adjust
@@ -41,13 +41,13 @@ while True:
         "existing_plan": existing_plan,
         "code_style": code_style
     })
-    
+
     # 阶段2：分类失败类型
     failure_type = classify_failure({
         "root_cause": root_cause,
         "context": context
     })
-    
+
     # 阶段3：一次性展示分析结果并请求用户选择策略
     response = AskUserQuestion(
         questions=[{
@@ -63,13 +63,13 @@ while True:
             "multiSelect": False
         }]
     )
-    
+
     choice = response["失败分析与调整策略"]
-    
+
     # 重新分析 → 继续循环
     if choice == "重新分析":
         continue
-    
+
     # 映射用户选择到 status
     status_map = {
         "补充上下文": "上下文缺失",
@@ -77,7 +77,7 @@ while True:
         "重新规划": "重新计划",
         "放弃任务": "放弃"
     }
-    
+
     return {
         "status": status_map[choice],
         "reason": root_cause

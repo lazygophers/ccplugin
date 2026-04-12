@@ -3,7 +3,7 @@ description: 结果校验，验证执行结果是否符合预期
 memory: project
 color: cyan
 model: haiku
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 context: fork
 agent: task:verify
