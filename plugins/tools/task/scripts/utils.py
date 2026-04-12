@@ -79,7 +79,7 @@ def get_version() -> str:
 
     # 开发环境：向上查找 .version 文件
     version_file_path = os.getcwd()
-    while os.path.basename(version_file_path) is not os.path.basename(os.path.dirname(version_file_path)):
+    while os.path.basename(version_file_path) != os.path.basename(os.path.dirname(version_file_path)):
         if os.path.exists(os.path.join(version_file_path, ".version")):
             with open(os.path.join(version_file_path, ".version"), 'r') as file:
                 return f"v{file.read().strip()}"
