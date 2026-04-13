@@ -59,8 +59,22 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
         # 执行任务（非后台执行）
         task = subtasks[tid]
         
-        # 构建包含执行规则的 prompt
-        execution_rules = """
+        # 构建最小必要上下文（避免上下文中毒）
+        # 只传入当前子任务需要的信息，不传入完整 plan
+        task_context = {
+            "goal": task["goal"],
+            "files": task.get("files", []),
+            "acceptance_criteria": task.get("acceptance_criteria", []),
+            "code_style": {k: v for k, v in code_style.items() 
+                          if k in ("naming", "indentation", "imports", "error_handling")}
+        }
+
+        # 从 align.json 读取行为规约（如果存在）
+        align = read_json(f".lazygophers/tasks/{task_id}/align.json") if exists(...) else {}
+        behavior_spec = align.get("behavior_spec", {})
+
+        # 构建包含执行规则 + 行为规约 + 自检要求的 prompt
+        execution_rules = f"""
 ## 执行规则（必须严格遵守）
 
 1. **有理有据**：所有修改必须有明确的理由和依据，不能随意执行
@@ -68,6 +82,16 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 3. **保护现有功能**：不允许影响已有的功能，除非用户明确要求
 4. **返回状态**：完成后必须返回 status (true/false)
    - 如果 status 为 false，必须返回详细的错误原因
+
+## 行为约束
+{format_behavior_spec(behavior_spec)}
+
+## 完成后自检（必须执行）
+
+完成修改后，在返回 status 之前必须执行以下自检：
+1. 重新读取你修改的文件，确认修改确实生效（防止幻觉）
+2. 如果有测试命令（来自 toolchain），运行并确认通过
+3. 确认只修改了 files 列表中的文件，未越界
 
 ---
 

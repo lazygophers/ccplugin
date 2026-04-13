@@ -81,11 +81,20 @@ has_context = exists(f"{task_dir}/context.json")
 has_align = exists(f"{task_dir}/align.json")
 has_plan = exists(f"{task_dir}/task.json")
 
-# 状态恢复映射
-# 根据中断时的状态和已有数据，确定 flow 应从哪个状态开始
-resume_state = determine_resume_state(last_status, has_context, has_align, has_plan)
+# 读取执行检查点（如果存在），获取更精确的恢复信息
+checkpoint = None
+if has_plan:
+    plan = read_json(f"{task_dir}/task.json")
+    checkpoint = plan.get("checkpoint")
 
-print(f"[flow·{target_id}·resume] 恢复任务，从 {resume_state} 状态继续")
+# 状态恢复映射
+# 根据中断时的状态、数据文件和检查点，确定 flow 应从哪个状态开始
+resume_state = determine_resume_state(last_status, has_context, has_align, has_plan, checkpoint)
+
+if checkpoint:
+    print(f"[flow·{target_id}·resume] 恢复任务，从 {resume_state} 状态继续（已完成 {len(checkpoint.get('completed_subtasks', []))} 个子任务）")
+else:
+    print(f"[flow·{target_id}·resume] 恢复任务，从 {resume_state} 状态继续")
 
 # 调用 flow skill，传入恢复状态
 Skill(
@@ -100,8 +109,8 @@ Skill(
 ## 恢复状态映射
 
 ```python
-def determine_resume_state(last_status, has_context, has_align, has_plan):
-    """根据中断状态和数据完整性确定恢复点"""
+def determine_resume_state(last_status, has_context, has_align, has_plan, checkpoint=None):
+    """根据中断状态、数据完整性和检查点确定恢复点"""
 
     # 如果中断在 explore/align 且无 context → 从 explore 开始
     if last_status in ("pending", "explore") or not has_context:
@@ -115,8 +124,18 @@ def determine_resume_state(last_status, has_context, has_align, has_plan):
     if last_status == "plan" or not has_plan:
         return "plan"
 
-    # 如果中断在 exec → 从 exec 开始（DAG 会跳过已完成的子任务）
+    # 如果中断在 exec → 从 exec 开始
+    # 有 checkpoint 时，DAG 会精确跳过已完成的子任务
+    # 无 checkpoint 时，从 task.json 中的 subtask.status 推断
     if last_status == "exec":
+        if checkpoint:
+            completed = checkpoint.get("completed_subtasks", [])
+            total = len(checkpoint.get("completed_subtasks", [])) + \
+                    len(checkpoint.get("failed_subtasks", [])) + \
+                    len(checkpoint.get("pending_subtasks", []))
+            # 如果全部完成，跳到 verify
+            if len(completed) == total:
+                return "verify"
         return "exec"
 
     # 如果中断在 verify/adjust → 从 verify 开始

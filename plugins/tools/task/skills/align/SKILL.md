@@ -64,12 +64,35 @@ boundary = {
 	"out_of_scope": ["新功能添加（除非明确要求）", "架构重构", "性能优化（除非必要）", "文档更新（除非明确要求）"]
 }
 
+# === 阶段4.5：生成三层行为规约 ===
+# 基于任务类型和上下文，生成 agent 执行时的行为约束
+behavior_spec = {
+	"always_do": [
+		# 根据任务类型生成，示例：
+		"修改代码后运行相关测试确认通过",
+		"使用项目现有的错误处理模式",
+		"遵循 code_style_follow 中锁定的风格"
+	],
+	"ask_first": [
+		# 高风险但可能需要的操作
+		"修改数据库 schema 或数据模型",
+		"删除现有代码或文件"
+	],
+	"never_do": [
+		# 硬止点：从 boundary.out_of_scope 自动派生
+		*[f"执行: {item}" for item in boundary["out_of_scope"]],
+		"提交包含 secrets/credentials 的代码",
+		"跳过 lint/类型检查"
+	]
+}
+
 # === 阶段5：构建对齐结果 ===
 align_result = {
 	"task_id": task_id,
 	"task_goal": task_goal,
 	"acceptance_criteria": acceptance_criteria,
 	"boundary": boundary,
+	"behavior_spec": behavior_spec,
 	"code_style_follow": locked_style
 }
 

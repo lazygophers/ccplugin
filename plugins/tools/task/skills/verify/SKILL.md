@@ -40,32 +40,53 @@ agent: task:verify
   3. 记录通过/失败及证据
 ```
 
-### 第2层：任务验收（align 标准）
+### 第2层：任务验收（align 标准）— 多维度并行验证
 
-读取 `align.json`，对照任务级验收标准：
+读取 `align.json`，按三个维度**并行**验证任务级验收标准：
 
+```python
+# 三个维度并行执行，各自独立收集证据
+dimensions = []
+
+# 维度1：功能验证 — 聚焦逻辑正确性
+dimensions.append(Agent(
+    description="功能验证",
+    prompt="""验证功能正确性：
+    - 执行相关测试命令，检查退出码
+    - 读取修改的文件，确认关键逻辑存在
+    - 如果有 bug 描述，验证修复覆盖了问题场景""",
+    mode="bypassPermissions",
+    run_in_background=False
+))
+
+# 维度2：质量验证 — 聚焦代码质量和风格
+dimensions.append(Agent(
+    description="质量验证",
+    prompt="""验证代码质量：
+    - 执行 lint 命令（来自 context.json 的 toolchain.lint_command）
+    - 检查输出中是否有新增错误/警告
+    - 读取修改的文件，确认符合 code_style""",
+    mode="bypassPermissions",
+    run_in_background=False
+))
+
+# 维度3：安全验证 — 聚焦回归和风险
+dimensions.append(Agent(
+    description="安全验证",
+    prompt="""验证安全性和完整性：
+    - 执行完整测试套件，确认无新增失败
+    - Grep 搜索风险模式（硬编码密码、SQL 拼接、eval）
+    - 检查错误处理路径是否存在""",
+    mode="bypassPermissions",
+    run_in_background=False
+))
+
+# 聚合三个维度的结果
+all_passed = all(d.status for d in dimensions)
+failed_criteria = merge_failures(dimensions)
 ```
-对每个 acceptance_criteria：
-  根据 criteria.name 选择验证策略：
 
-  功能类（functionality / correctness / bug_resolved）：
-    → 执行相关测试命令，检查退出码是否为 0
-    → 读取修改的文件，确认关键逻辑存在
-    → 如果有 bug 描述，验证修复逻辑覆盖了问题场景
-
-  质量类（style_compliant / readability）：
-    → 执行 lint 命令（来自 context.json 的 toolchain.lint_command）
-    → 检查输出中是否有新增错误/警告
-    → 读取修改的文件，确认符合 context.json 中的 code_style
-
-  安全类（no_regression / no_new_risk）：
-    → 执行完整测试套件，确认无新增失败
-    → Grep 搜索常见安全风险模式（硬编码密码、SQL 拼接、eval 等）
-
-  完整类（error_handling / coverage）：
-    → 读取修改的文件，检查错误处理路径是否存在
-    → 如果有覆盖率工具，执行并检查目标文件的覆盖率
-```
+> **注意**：当验收标准 ≤ 2 条时，可退化为单维度顺序验证，避免不必要的 agent 开销。
 
 ### 证据收集
 

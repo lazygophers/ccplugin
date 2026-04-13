@@ -61,7 +61,17 @@ for i in range(2):
 # === 阶段4：等待所有协程完成 ===
 wait_all(workers)
 
-# === 阶段5：汇总结果 ===
+# === 阶段5：写入执行检查点（供 resume 精确恢复） ===
+checkpoint = {
+    "state": "exec",
+    "completed_subtasks": list(completed),
+    "failed_subtasks": list(failed),
+    "pending_subtasks": [tid for tid, s in status.items() if s == "pending"],
+    "last_update": datetime.now().isoformat()
+}
+update_json(f".lazygophers/tasks/{task_id}/task.json", {"checkpoint": checkpoint})
+
+# === 阶段6：汇总结果 ===
 results = {
     "total": len(status),
     "completed": len(completed),
