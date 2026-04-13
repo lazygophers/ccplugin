@@ -13,128 +13,102 @@ agent: task:verify
 
 # Verify Skill
 
-## 执行流程
+对照验收标准逐一检查。**所有验证必须基于实际证据，不接受假设或主观判断。**
 
-> 对照验收标准逐一检查，验收失败返回 False 由 adjust 处理后续迭代
-> **所有验证必须基于实际执行证据，不接受假设或主观判断**
+## 验收标准来源
 
-```python
-# 读取验收标准和执行结果
-align_file = f".lazygophers/tasks/{task_id}/align.json"
-align = read_json(align_file)
-criteria = align["acceptance_criteria"]
+| 来源 | 文件 | 内容 | 粒度 |
+|------|------|------|------|
+| **align** | `align.json` → `acceptance_criteria` | 任务级验收标准（SMART-V） | 整体任务是否达标 |
+| **plan** | `task.json` → 每个 subtask 的 `acceptance_criteria` | 子任务级验收标准 | 每个子任务是否完成 |
 
-# 读取执行结果
-task_file = f".lazygophers/tasks/{task_id}/task.json"
-exec_result = read_json(task_file)
+两层都必须通过才算验收成功。
 
-all_passed = True
-failed_criteria = []
+## 验证流程
 
-# 阶段1：功能验收
-functional_criteria = [c for c in criteria if c.get("verifiable", True)]
-for item in functional_criteria:
-	check_result = verify_functional_item(item, exec_result)
-	if not check_result["passed"]:
-		all_passed = False
-		failed_criteria.append({
-			"name": item.get("name"),
-			"description": item.get("description"),
-			"category": "功能",
-			"reason": check_result["reason"],
-			"evidence": check_result.get("evidence", "")
-		})
+### 第1层：子任务验收（plan 标准）
 
-# 阶段2：质量标准
-quality_check = verify_quality_standards(exec_result)
-if not quality_check["passed"]:
-	all_passed = False
-	for failure in quality_check["failures"]:
-		failed_criteria.append({
-			"category": "质量",
-			"reason": failure["reason"],
-			"evidence": failure.get("evidence", "")
-		})
+读取 `task.json`，逐个检查子任务的执行结果：
 
-# 阶段3：边界条件
-boundary_check = verify_boundary_conditions(criteria, exec_result)
-if not boundary_check["passed"]:
-	all_passed = False
-	for failure in boundary_check["failures"]:
-		failed_criteria.append({
-			"category": "边界",
-			"reason": failure["reason"],
-			"evidence": failure.get("evidence", "")
-		})
-
-# 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
-if all_passed:
-	quality_score = calculate_quality_score(exec_result, criteria)
-	print(f"[flow·{task_id}·verify] 验收通过，质量分：{quality_score}")
-	return {
-		"status": True,
-		"quality_score": quality_score
-	}
-else:
-	print(f"[flow·{task_id}·verify] 验收失败，{len(failed_criteria)} 个标准未通过")
-	return {
-		"status": False,
-		"failed_criteria": failed_criteria,
-		"summary": format_failure_summary(failed_criteria)
-	}
+```
+对每个 subtask：
+  1. 读取 subtask.status — 必须是 "completed"
+  2. 对照 subtask.acceptance_criteria 中的每一条：
+     - 读取相关文件，确认修改已生效
+     - 如果标准涉及测试，执行测试命令检查退出码
+     - 如果标准涉及 lint/类型检查，执行对应命令
+  3. 记录通过/失败及证据
 ```
 
-## 验证方法
+### 第2层：任务验收（align 标准）
 
-### verify_functional_item
-```python
-def verify_functional_item(item, exec_result):
-	"""验证单个功能点是否符合标准"""
-	# 基于实际执行证据验证
-	# 返回 {"passed": bool, "reason": str, "evidence": str}
-	pass
+读取 `align.json`，对照任务级验收标准：
+
+```
+对每个 acceptance_criteria：
+  根据 criteria.name 选择验证策略：
+
+  功能类（functionality / correctness / bug_resolved）：
+    → 执行相关测试命令，检查退出码是否为 0
+    → 读取修改的文件，确认关键逻辑存在
+    → 如果有 bug 描述，验证修复逻辑覆盖了问题场景
+
+  质量类（style_compliant / readability）：
+    → 执行 lint 命令（来自 context.json 的 toolchain.lint_command）
+    → 检查输出中是否有新增错误/警告
+    → 读取修改的文件，确认符合 context.json 中的 code_style
+
+  安全类（no_regression / no_new_risk）：
+    → 执行完整测试套件，确认无新增失败
+    → Grep 搜索常见安全风险模式（硬编码密码、SQL 拼接、eval 等）
+
+  完整类（error_handling / coverage）：
+    → 读取修改的文件，检查错误处理路径是否存在
+    → 如果有覆盖率工具，执行并检查目标文件的覆盖率
 ```
 
-### verify_quality_standards
-```python
-def verify_quality_standards(exec_result):
-	"""验证代码质量标准"""
-	# 检查：
-	# - 代码风格一致性
-	# - 错误处理完整性
-	# - 测试覆盖率（如有）
-	# 返回 {"passed": bool, "failures": [...]}
-	pass
+### 证据收集
+
+每个验收点必须附带具体证据：
+
+| 证据类型 | 获取方式 | 示例 |
+|---------|---------|------|
+| 命令输出 | `Bash(command="pytest tests/ -v")` | `5 passed, 0 failed` |
+| 文件内容 | `Read(file_path="src/auth.py")` + 关键行引用 | `第42行: validate_token() 已添加` |
+| 搜索结果 | `Grep(pattern="TODO\|FIXME\|HACK")` | `无匹配 — 无遗留标记` |
+| diff 对比 | `Bash(command="git diff HEAD")` | `+3 files changed, 45 insertions` |
+
+**无证据 = 未验证**。禁止基于"应该没问题"的推断判定通过。
+
+## 返回结构
+
+### 验收通过
+
+```json
+{
+  "status": true,
+  "quality_score": 85,
+  "evidence_summary": "5/5 验收标准通过，测试全绿，lint 无新增错误"
+}
 ```
 
-### verify_boundary_conditions
-```python
-def verify_boundary_conditions(criteria, exec_result):
-	"""验证边界条件和约束"""
-	# 检查：
-	# - 性能要求
-	# - 资源使用
-	# - 兼容性要求
-	# 返回 {"passed": bool, "failures": [...]}
-	pass
+### 验收失败
+
+```json
+{
+  "status": false,
+  "failed_criteria": [
+    {
+      "name": "no_regression",
+      "description": "未破坏现有功能",
+      "category": "安全",
+      "reason": "tests/test_auth.py::test_login_redirect 失败",
+      "evidence": "pytest 输出: AssertionError: expected 302, got 200"
+    }
+  ],
+  "summary": "1/5 验收标准未通过：test_login_redirect 回归失败"
+}
 ```
-
-## 检查清单
-
-### 验收检查
-- [ ] 功能验收已对照
-- [ ] 质量标准已检查
-- [ ] 边界条件已验证
-
-### 证据要求
-- [ ] 每个验收点都有实际证据
-- [ ] 失败原因具体可操作
-- [ ] 质量分数基于客观指标
-
-### 输出
-- [ ] status: True (验收通过) / False (验收失败)
-- [ ] quality_score: 0-100 (仅通过时)
-- [ ] failed_criteria: [...] (仅失败时)
 
 ## 验证检查模板
 
@@ -142,8 +116,15 @@ def verify_boundary_conditions(criteria, exec_result):
 
 ## 与 adjust 的协作
 
-验收失败时返回 `status: False`，flow 会自动调用 adjust skill，由 adjust 分析失败原因并决定后续策略：
+验收失败时返回 `status: false`，flow 会自动调用 adjust skill，由 adjust 分析失败原因并决定后续策略：
 - 上下文缺失 → 返回 explore
 - 需求偏差 → 返回 align
 - 重新计划 → 返回 plan
 - 放弃 → 进入 done
+
+## 检查清单
+
+- [ ] plan 子任务级验收已逐个检查
+- [ ] align 任务级验收已逐条对照
+- [ ] 每个验收点都有命令输出/文件内容等实际证据
+- [ ] 失败原因具体到文件名、行号、命令输出

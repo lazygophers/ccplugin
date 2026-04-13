@@ -69,7 +69,7 @@ if not task_id or not contains_chinese(task_id):
 	# 示例：修复登录Bug、优化查询性能、添加单元测试
 
 def update_status(status):
-	exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status={status}")
+	Bash(command=f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status={status}")
 
 # 状态机主循环
 # 支持从 resume skill 传入的恢复状态
@@ -185,7 +185,7 @@ while state != "done":
 
 # 完成：清理任务
 Skill(skill="task:done", environment={"task_id": task_id})
-exec(f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
+Bash(command=f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
 ```
 
 ## 用户新输入

@@ -39,15 +39,17 @@ for tid, task in subtasks.items():
 if has_cycle(dag):
     raise ValueError("DAG 包含循环依赖")
 
-# === 阶段2：初始化状态和队列 ===
-status = {tid: "pending" for tid in subtasks}
+# === 阶段2：初始化状态和队列（支持部分完成恢复） ===
+status = {tid: subtasks[tid].get("status", "pending") for tid in subtasks}
 queue = []
 executing = set()
-completed = set()
-failed = set()
+completed = {tid for tid, s in status.items() if s == "completed"}
+failed = {tid for tid, s in status.items() if s == "failed"}
 
-# 推送初始可执行任务（无依赖）
+# 推送可执行任务（跳过已完成/已失败的）
 for tid in subtasks:
+    if status[tid] in ("completed", "failed"):
+        continue
     if all(status.get(dep) == "completed" for dep in dag[tid]["deps"]):
         queue.append(tid)
 

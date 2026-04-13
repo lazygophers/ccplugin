@@ -13,75 +13,114 @@ agent: task:explore
 
 # Explore Skill
 
-## 执行流程
+目标导向的渐进式探索，聚焦任务相关上下文。**只读分析，不修改项目代码。**
 
-> 目标导向的渐进式探索，聚焦任务相关上下文
-> **优先级**：结构分析（符号索引）→ 依赖关系 → 模式识别 → 语义搜索
+## 探索策略
 
-```python
-# 检查是否已有探索结果
-context_file = f".lazygophers/tasks/{task_id}/context.json"
-existing_context = read_json(context_file) if exists(context_file) else None
+按优先级依次执行，每个阶段完成后评估是否已有足够信息：
 
-# 阶段1：任务相关性分析（<1分钟）
-keywords = extract_from(user_prompt)
-target_modules = search_relevant(keywords)
+### 阶段1：任务相关性定位
 
-# 阶段2：目标范围探索（<3分钟）
-for module in target_modules:
-    files = locate_module_files(module)
-    for file in files:
-        patterns = extract_code_patterns(file)
-        style = analyze_coding_style(file)
+从 user_prompt 和 align_feedback 中提取关键术语（模块名、函数名、技术概念），使用以下工具定位相关代码：
 
-# 阶段3：现有实现风格（<2分钟）
-naming_conventions = deduce_naming()
-indentation = detect_indent_style()
-import_patterns = analyze_imports()
-error_handling = analyze_error_patterns()
+- **Grep**：搜索关键术语在代码中的出现位置（`output_mode="files_with_matches"`）
+- **Glob**：按文件模式定位模块（如 `src/**/*.py`、`lib/**/*.ts`）
+- **Read**：读取定位到的关键文件，理解其结构和职责
 
-# 合并或更新上下文
-new_context = {
-    "task_related": {
-        "modules": target_modules,
-        "files": target_files,
-        "patterns": code_patterns
-    },
-    "code_style": {
-        "naming": naming_conventions,
-        "indentation": indentation,
-        "imports": import_patterns,
-        "error_handling": error_handling
-    },
-    "last_updated": now()
+**产出**：相关模块列表、关键文件路径列表
+
+### 阶段2：依赖关系与架构
+
+对阶段1发现的文件，分析其上下游关系：
+
+- 读取 import/require/include 语句，追踪依赖链
+- 识别入口点（main、handler、route）和调用链
+- 理解数据流向（输入→处理→输出）
+
+**产出**：依赖关系图（哪些模块依赖哪些模块）、调用链关键节点
+
+### 阶段3：代码风格与约定
+
+从阶段1的文件中采样 3-5 个代表性文件，推断项目约定：
+
+| 维度 | 检测方法 | 示例输出 |
+|------|---------|---------|
+| 命名约定 | 观察函数/变量/类的命名模式 | `snake_case for functions, PascalCase for classes` |
+| 缩进风格 | 观察缩进字符和宽度 | `4 spaces` |
+| 导入模式 | 观察 import 语句的组织方式 | `absolute imports, stdlib → third-party → local` |
+| 错误处理 | 观察 try/except 和异常类型 | `custom exceptions in errors.py, logging on catch` |
+| 测试风格 | 观察测试文件的组织和命名 | `pytest, test_ prefix, fixtures in conftest.py` |
+| 文档风格 | 观察注释和 docstring 格式 | `Google style docstrings` |
+
+**产出**：code_style 字典
+
+### 阶段4：项目配置与工具链
+
+快速扫描项目根目录的配置文件：
+
+- 构建工具：`package.json`、`pyproject.toml`、`Makefile`、`Cargo.toml` 等
+- Lint/格式化：`.eslintrc`、`ruff.toml`、`.prettierrc` 等
+- 测试框架：`pytest.ini`、`jest.config.*`、`vitest.config.*` 等
+- CI/CD：`.github/workflows/`、`.gitlab-ci.yml` 等
+
+**产出**：可用的验证命令（lint、test、build）
+
+## 返回标准
+
+探索完成后，必须写入 `context.json`，结构如下：
+
+```json
+{
+  "task_related": {
+    "modules": ["模块A", "模块B"],
+    "files": ["src/auth/login.py", "src/auth/middleware.py"],
+    "dependencies": {"login.py": ["middleware.py", "models/user.py"]},
+    "entry_points": ["src/main.py:app"],
+    "patterns": ["认证使用 JWT", "所有路由经过 middleware"]
+  },
+  "code_style": {
+    "naming": "snake_case for functions, PascalCase for classes",
+    "indentation": "4 spaces",
+    "imports": "absolute imports, isort grouping",
+    "error_handling": "custom AppError hierarchy, logging on catch",
+    "testing": "pytest, fixtures in conftest.py",
+    "documentation": "Google style docstrings"
+  },
+  "toolchain": {
+    "language": "Python 3.11",
+    "package_manager": "uv",
+    "lint_command": "ruff check .",
+    "test_command": "pytest",
+    "build_command": "uv build"
+  },
+  "last_updated": "2026-04-13T10:00:00"
 }
-
-# 如果有旧上下文，增量更新而非覆盖
-if existing_context:
-    merged = merge_context(existing_context, new_context)
-    write_json(context_file, merged)
-else:
-    write_json(context_file, new_context)
 ```
+
+### 必需字段
+
+| 字段 | 要求 |
+|------|------|
+| `task_related.modules` | ≥1 个相关模块 |
+| `task_related.files` | ≥1 个关键文件路径 |
+| `code_style.naming` | 非空，明确的命名约定 |
+| `code_style.indentation` | 非空，明确的缩进风格 |
+| `last_updated` | ISO 8601 时间戳 |
+
+### 可选字段
+
+`dependencies`、`entry_points`、`patterns`、`toolchain` — 有则填，无则省略。
+
+## 增量更新
+
+如果已有 context.json（从之前的探索中），执行增量更新：
+- 列表字段（modules、files）：合并去重
+- 标量字段（naming、indentation）：用最新值覆盖
+- 保留旧数据中新探索未涉及的字段
 
 ## 检查清单
 
-### 任务相关性
-- [ ] 任务关键词已提取
-- [ ] 相关模块已定位（非全项目）
-- [ ] 目标文件已筛选
-
-### 实现风格
-- [ ] 命名约定已识别（camelCase/snake_case/PascalCase）
-- [ ] 缩进风格已检测（空格/tab，2/4/8）
-- [ ] 导入模式已分析
-- [ ] 错误处理模式已提取
-
-### 上下文管理
-- [ ] 已有 context.json 已检查
-- [ ] 增量更新而非覆盖（如有旧数据）
-- [ ] 时间戳已更新
-
-### 输出
-- [ ] context.json 已写入 `.lazygophers/tasks/{task_id}/context.json`
-
+- [ ] 关键文件已定位并读取
+- [ ] 代码风格已从实际文件中推断（非猜测）
+- [ ] context.json 已写入且符合返回标准
+- [ ] 增量更新已处理（如有旧数据）
