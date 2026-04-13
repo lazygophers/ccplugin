@@ -1,5 +1,5 @@
 ---
-description: 任务规划，分解任务并制定执行方案
+description: 任务分解规划。基于 align.json 将任务拆解为原子子任务 DAG，自我验证后写入 task.json
 memory: project
 color: purple
 model: opus

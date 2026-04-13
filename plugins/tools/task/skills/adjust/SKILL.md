@@ -1,5 +1,5 @@
 ---
-description: 调整修正，分析失败原因并制定修正策略
+description: 失败调整。分析验收失败根因，通过 AskUserQuestion 让用户选择调整策略（补充上下文/重新对齐/重新规划/放弃）
 memory: project
 color: yellow
 model: sonnet

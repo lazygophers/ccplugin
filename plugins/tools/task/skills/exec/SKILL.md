@@ -1,5 +1,5 @@
 ---
-description: 任务执行，基于DAG调度并执行子任务
+description: DAG 任务执行引擎。2 个 worker 协程并发调度子任务，自动解析依赖、更新状态、支持部分完成恢复
 memory: project
 color: blue
 model: sonnet

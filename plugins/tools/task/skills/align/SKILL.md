@@ -1,5 +1,5 @@
 ---
-description: 范围对齐，确认任务边界和验收标准
+description: 任务范围对齐。自动生成目标、SMART-V 验收标准和边界，通过 AskUserQuestion 确认后写入 align.json
 memory: project
 color: blue
 model: sonnet

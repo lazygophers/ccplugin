@@ -1,5 +1,5 @@
 ---
-description: 恢复中断的任务，从断点继续执行
+description: 任务恢复。读取 index.json 中的未完成任务，检查数据文件完整性，确定恢复点后调用 flow 继续执行
 memory: project
 color: purple
 model: sonnet

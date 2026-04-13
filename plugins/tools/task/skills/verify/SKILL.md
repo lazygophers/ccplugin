@@ -1,5 +1,5 @@
 ---
-description: 结果校验，验证执行结果是否符合预期
+description: 验收校验。对照 plan 子任务标准和 align 任务级标准逐一检查，基于命令输出和文件内容等实际证据判定
 memory: project
 color: cyan
 model: sonnet

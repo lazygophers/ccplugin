@@ -1,5 +1,5 @@
 ---
-description: 现状探索，收集当前上下文信息并构建理解
+description: 项目上下文探索。定位任务相关模块和文件，推断代码风格与工具链，输出结构化 context.json
 memory: project
 color: orange
 model: sonnet

@@ -1,5 +1,5 @@
 ---
-description: 任务终结，总结输出并整理记忆
+description: 任务终结。汇总执行结果、生成完成报告、提取经验教训保存到项目记忆
 memory: project
 color: green
 model: haiku

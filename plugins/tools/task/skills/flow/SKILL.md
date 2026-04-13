@@ -1,5 +1,5 @@
 ---
-description: 任务流程，协调任务在各状态间的流转和调度
+description: 任务流程管理。用户输入任务描述时触发，协调 align→explore→plan→exec→verify→adjust→done 的完整状态机流转
 memory: project
 color: purple
 model: sonnet
