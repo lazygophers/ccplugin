@@ -136,6 +136,3 @@ def determine_resume_state(last_status, has_context, has_align, has_plan):
 - [ ] 恢复状态已确定
 - [ ] flow skill 已调用（携带 resume_from）
 
-## 输出格式
-
-所有输出必须包含前缀：`[flow·{task_id}·resume]`

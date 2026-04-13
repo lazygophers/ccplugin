@@ -69,9 +69,3 @@ return report
 - [ ] 经验教训已保存
 - [ ] 项目记忆已更新
 
-## 输出格式
-
-所有输出必须包含前缀：`[flow·{task_id}·{state}]`
-
-- task_id：当前任务ID
-- state：当前状态（done）

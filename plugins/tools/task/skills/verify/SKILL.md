@@ -2,7 +2,7 @@
 description: 结果校验，验证执行结果是否符合预期
 memory: project
 color: cyan
-model: haiku
+model: sonnet
 permissionMode: bypassPermissions
 background: false
 user-invocable: false
@@ -139,13 +139,6 @@ def verify_boundary_conditions(criteria, exec_result):
 ## 验证检查模板
 
 预定义的常见任务类型验证检查项见 [checklist.json](checklist.json)，包含 bug-fix / new-feature / refactor / security-fix 四种类型的验证检查清单。
-
-## 输出格式
-
-所有输出必须包含前缀：`[flow·{task_id}·{state}]`
-
-- task_id：当前任务ID
-- state：当前状态（verify）
 
 ## 与 adjust 的协作
 

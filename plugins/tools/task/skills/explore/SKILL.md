@@ -85,9 +85,3 @@ else:
 ### 输出
 - [ ] context.json 已写入 `.lazygophers/tasks/{task_id}/context.json`
 
-## 输出格式
-
-所有输出必须包含前缀：`[flow·{task_id}·{state}]`
-
-- task_id：当前任务ID
-- state：当前状态（explore）

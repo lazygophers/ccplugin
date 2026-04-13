@@ -3,20 +3,31 @@
 ## 状态更新
 
 ```python
+import fcntl
+
 def update_task_status(session_task_id, subtask_id, status, result=None):
-    """立即更新 task.json 中任务状态"""
+    """原子性更新 task.json 中任务状态（带文件锁，防止并发写覆盖）"""
     task_file = f".lazygophers/tasks/{session_task_id}/task.json"
-    plan = read_json(task_file)
 
-    # 更新对应任务的状态
-    for task in plan["subtasks"]:
-        if task["id"] == subtask_id:
-            task["status"] = status
-            if result:
-                task["result"] = result
-            break
+    with open(task_file, "r+") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        try:
+            content = f.read()
+            plan = json.loads(content) if content else {}
 
-    write_json(task_file, plan)
+            # 更新对应任务的状态
+            for task in plan.get("subtasks", []):
+                if task["id"] == subtask_id:
+                    task["status"] = status
+                    if result:
+                        task["result"] = result
+                    break
+
+            f.seek(0)
+            f.truncate()
+            json.dump(plan, f, indent=2, ensure_ascii=False)
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 ```
 
 ## Worker 主循环

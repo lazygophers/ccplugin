@@ -1,10 +1,27 @@
-import fcntl
 import json
 import os
 import os.path
 import shutil
 import time
+from pathlib import Path
 from typing import Optional
+
+try:
+	import fcntl
+	def _flock(f, lock_type):
+		fcntl.flock(f.fileno(), lock_type)
+	def _funlock(f):
+		fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+	LOCK_SH = fcntl.LOCK_SH
+	LOCK_EX = fcntl.LOCK_EX
+except ImportError:
+	# Windows: 回退到无锁模式
+	def _flock(f, lock_type):
+		pass
+	def _funlock(f):
+		pass
+	LOCK_SH = 0
+	LOCK_EX = 0
 
 import click
 
@@ -56,23 +73,27 @@ def read_index(path: str) -> dict:
 	if not os.path.exists(path):
 		return {}
 	with open(path, "r") as f:
-		fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+		_flock(f, LOCK_SH)
 		try:
 			content = f.read()
-			return json.loads(content) if content else {}
+			if not content:
+				return {}
+			return json.loads(content)
+		except json.JSONDecodeError:
+			click.echo(f"警告: 索引文件损坏，已重置: {path}", err=True)
+			return {}
 		finally:
-			fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+			_funlock(f)
 
 
 def update_index(updater: callable) -> None:
 	"""原子性地更新索引文件，整个读-改-写过程在排他锁下完成"""
 	index_path = get_index_path()
 	os.makedirs(os.path.dirname(index_path), exist_ok=True)
-	if not os.path.exists(index_path):
-		open(index_path, "a").close()
+	Path(index_path).touch(exist_ok=True)
 
 	with open(index_path, "r+") as f:
-		fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+		_flock(f, LOCK_EX)
 		try:
 			f.seek(0)
 			content = f.read()
@@ -82,7 +103,7 @@ def update_index(updater: callable) -> None:
 			f.truncate()
 			json.dump(index, f, indent=2, ensure_ascii=False)
 		finally:
-			fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+			_funlock(f)
 
 
 @task_main.command(name="update")
@@ -104,8 +125,12 @@ def update(
 ):
 	"""更新任务状态和附加信息"""
 
+	is_new_task = False
+
 	def do_update(index: dict) -> dict:
+		nonlocal is_new_task
 		if task_id not in index:
+			is_new_task = True
 			# 自动初始化任务
 			index[task_id] = {
 				"id": task_id,
@@ -115,10 +140,6 @@ def update(
 				"created_at": int(time.time()),
 				"updated_at": int(time.time())
 			}
-			# 创建任务目录
-			project_dir = get_project_dir()
-			task_dir = os.path.join(project_dir, ".lazygophers/tasks", task_id)
-			os.makedirs(task_dir, exist_ok=True)
 		else:
 			# 更新已存在的任务
 			if status:
@@ -156,6 +177,11 @@ def update(
 
 	try:
 		update_index(do_update)
+		# 索引写入成功后再创建目录（避免孤儿目录）
+		if is_new_task:
+			project_dir = get_project_dir()
+			task_dir = os.path.join(project_dir, ".lazygophers/tasks", task_id)
+			os.makedirs(task_dir, exist_ok=True)
 		click.echo(f"任务 {task_id} 已更新")
 	except ValueError as e:
 		click.echo(str(e), err=True)
@@ -210,18 +236,7 @@ def cleanup(task_id: str, force: bool):
 			click.echo("已取消清理")
 			return
 
-	# 删除任务目录
-	if os.path.exists(task_dir):
-		try:
-			shutil.rmtree(task_dir)
-			click.echo(f"已删除任务目录: {task_dir}")
-		except Exception as e:
-			click.echo(f"删除任务目录失败: {e}", err=True)
-			return
-	else:
-		click.echo(f"任务目录不存在，跳过删除: {task_dir}")
-
-	# 从索引中移除
+	# 先从索引中移除（失败时不影响目录，更安全）
 	def remove_from_index(index: dict) -> dict:
 		if task_id in index:
 			del index[task_id]
@@ -233,5 +248,15 @@ def cleanup(task_id: str, force: bool):
 	except Exception as e:
 		click.echo(f"更新索引失败: {e}", err=True)
 		return
+
+	# 再删除任务目录
+	if os.path.exists(task_dir):
+		try:
+			shutil.rmtree(task_dir)
+			click.echo(f"已删除任务目录: {task_dir}")
+		except Exception as e:
+			click.echo(f"删除任务目录失败（可手动清理 {task_dir}）: {e}", err=True)
+	else:
+		click.echo(f"任务目录不存在，跳过删除: {task_dir}")
 
 	click.echo(f"任务 {task_id} 清理完成")

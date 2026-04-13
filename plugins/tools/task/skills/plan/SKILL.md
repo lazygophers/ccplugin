@@ -3,7 +3,7 @@ description: 任务规划，分解任务并制定执行方案
 memory: project
 color: purple
 model: opus
-permissionMode: plan
+permissionMode: bypassPermissions
 background: false
 user-invocable: false
 effort: high
@@ -154,9 +154,3 @@ return {"status": "confirmed", "iterations": i + 1, "assessment": assessment}
 - [ ] 包含自我评估结果（assessment）
 - [ ] status: "confirmed" | "上下文缺失"
 
-## 输出格式
-
-所有输出必须包含前缀：`[flow·{task_id}·{state}]`
-
-- task_id：当前任务ID
-- state：当前状态（plan）
