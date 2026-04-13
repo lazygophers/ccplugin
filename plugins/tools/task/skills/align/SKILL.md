@@ -21,15 +21,25 @@ effort: high
 # 检查上下文文件是否存在且完整
 context_file = f".lazygophers/tasks/{task_id}/context.json"
 
+# === 快速上下文推断：用户 prompt 是否已包含足够信息 ===
+# 当 prompt 明确指定了文件路径和修改内容时，可跳过 explore
+if not exists(context_file) and is_prompt_self_contained(user_prompt):
+	# 从 prompt 中直接提取上下文（不需要全局探索）
+	context = infer_context_from_prompt(user_prompt)
+	# 补充基本的 code_style（从指定文件中快速采样）
+	if context.get("task_related", {}).get("files"):
+		context["code_style"] = quick_style_sample(context["task_related"]["files"][:3])
+	write_json(context_file, context)
+
 # 如果上下文文件不存在，标记需要探索
-if not exists(context_file):
+elif not exists(context_file):
 	return {
 		"need_explore": True,
 		"feedback": "上下文文件不存在，需要探索项目现状"
 	}
 
 # 读取探索结果
-context = read_json(context_file)
+context = read_json(context_file) if exists(context_file) else context
 
 # 验证上下文完整性
 if not context or not context.get("task_related") or not context.get("code_style"):

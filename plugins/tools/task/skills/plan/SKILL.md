@@ -24,6 +24,13 @@ align = read_json(f".lazygophers/tasks/{task_id}/align.json")
 context = read_json(f".lazygophers/tasks/{task_id}/context.json")
 code_style = align["code_style_follow"]  # 锁定的项目风格
 
+# === 阶段0：检索历史经验 ===
+# 从已完成任务的经验教训中提取相关知识，避免重蹈覆辙
+task_type = align.get("task_type")  # bug-fix / new-feature / refactor / ...
+history = load_lessons_learned(task_type, context.get("task_related", {}).get("modules", []))
+# history 结构：{"common_failures": [...], "best_practices": [...], "tool_tips": [...]}
+# 注入到分解逻辑中，作为规划的参考约束（而非硬规则）
+
 # 自我迭代循环
 for i in range(10):
     # 阶段1：任务分解
@@ -85,9 +92,27 @@ return {"status": "confirmed", "iterations": i + 1, "assessment": assessment}
     "files": ["src/middleware/auth.py"],
     "dependencies": ["JWTUtils"],
     "agent": "general-purpose",
-    "estimated_complexity": "medium"
+    "estimated_complexity": "medium",
+    "on_failure": {
+        "test-failure": "retry_with_fix",
+        "missing-dependency": "add_dependency_first",
+        "timeout": "simplify_goal"
+    }
 }
 ```
+
+### on_failure 恢复路径
+
+每个子任务可预定义失败时的恢复策略，exec worker 失败时先查此表，能自行恢复就不走 adjust 循环：
+
+| 恢复策略 | 含义 | worker 行为 |
+|---------|------|------------|
+| `retry_with_fix` | 注入失败原因后重试 1 次 | 将错误信息加入 prompt 重新执行 |
+| `add_dependency_first` | 缺少前置依赖 | 标记当前任务 blocked，等待依赖补充 |
+| `simplify_goal` | 目标过于复杂 | 用简化版 goal 重试 |
+| `skip` | 非关键任务可跳过 | 标记 skipped，不阻塞后继 |
+
+> 未定义 on_failure 或恢复失败的子任务，仍按原逻辑标记 failed 进入 adjust。
 
 ### 拆分原则
 

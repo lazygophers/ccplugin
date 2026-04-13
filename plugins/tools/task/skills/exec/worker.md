@@ -109,6 +109,30 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
         # 验证结果
         passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
 
+        # === 子任务级重试（最多 1 次）===
+        if not passed:
+            on_failure = task.get("on_failure", {})
+            failure_type = classify_subtask_failure(result)
+            recovery = on_failure.get(failure_type, "retry_with_fix" if failure_type == "test-failure" else None)
+            
+            if recovery == "retry_with_fix":
+                # 注入失败原因后重试 1 次
+                retry_prompt = f"""上次执行失败：{extract_failure_reason(result)}
+
+请修正后重试。注意：
+- 仔细阅读错误信息，定位根本原因
+- 不要重复上次的错误做法
+
+{execution_rules}{task['goal']}"""
+                result = Agent(
+                    description=f"重试子任务: {task['goal'][:20]}",
+                    subagent_type=task.get("agent", "general-purpose"),
+                    prompt=retry_prompt,
+                    mode="acceptEdits",
+                    run_in_background=False
+                )
+                passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
+
         # 更新状态
         executing.remove(tid)
 
