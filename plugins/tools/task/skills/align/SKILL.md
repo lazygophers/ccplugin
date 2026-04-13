@@ -50,19 +50,36 @@ code_style = context.get("code_style", {})
 # 自动使用探索阶段检测的风格，无需确认（除非明显错误）
 locked_style = code_style
 
-# === 阶段2：自动生成任务目标 ===
-task_goal = extract_goal_from(user_prompt, context, previous_feedback)
+# === 阶段2：识别任务类型并加载模板 ===
+# 从 user_prompt 中识别任务类型，匹配 template.json 中的预定义模板
+templates = read_json("template.json")["templates"]
+task_type = classify_task_type(user_prompt, context)
+# 分类规则：
+#   "修复"/"fix"/"bug"/"报错"/"失败" → bug-fix
+#   "添加"/"新增"/"实现"/"开发"/"功能" → new-feature
+#   "重构"/"优化"/"整理"/"简化"    → refactor
+#   "测试"/"test"/"覆盖"           → add-tests
+#   "安全"/"漏洞"/"CVE"/"注入"     → security-fix
+#   无法识别                        → None（不使用模板）
+template = templates.get(task_type)
 
-# === 阶段3：自动生成验收标准（SMART-V 原则）===
-# AI 根据 user_prompt 和 context 自主生成合理的验收标准
+# === 阶段3：自动生成任务目标 ===
+if template:
+    # 有模板：以模板为基础，根据 user_prompt 细化
+    task_goal = template["task_goal"].replace("$ARGUMENTS", user_prompt)
+    acceptance_criteria = customize_criteria(template["acceptance_criteria"], user_prompt, context)
+    boundary = customize_boundary(template["boundary"], user_prompt, context)
+else:
+    # 无模板：完全自主生成
+    task_goal = extract_goal_from(user_prompt, context, previous_feedback)
+    acceptance_criteria = generate_criteria_from_context(user_prompt, context, previous_feedback)
+    boundary = {
+        "in_scope": extract_scope_from(user_prompt, context),
+        "out_of_scope": ["新功能添加（除非明确要求）", "架构重构", "性能优化（除非必要）", "文档更新（除非明确要求）"]
+    }
+
+# 验收标准必须满足 SMART-V 原则（无论是否使用模板）
 # 每个标准必须包含：name（语义化）、description、SMART-V 属性
-acceptance_criteria = generate_criteria_from_context(user_prompt, context, previous_feedback)
-
-# === 阶段4：自动界定边界 ===
-boundary = {
-	"in_scope": extract_scope_from(user_prompt, context),
-	"out_of_scope": ["新功能添加（除非明确要求）", "架构重构", "性能优化（除非必要）", "文档更新（除非明确要求）"]
-}
 
 # === 阶段4.5：生成三层行为规约 ===
 # 基于任务类型和上下文，生成 agent 执行时的行为约束
@@ -182,5 +199,18 @@ AI 应根据具体任务自主生成 3-5 个验收标准，每个标准必须：
 
 ## 任务模板
 
-预定义的常见任务类型模板见 [template.json](template.json)，包含 bug-fix / new-feature / refactor / add-tests / security-fix 五种类型的预设验收标准和边界。当用户任务匹配已知模板时，优先使用模板作为初始值。
+预定义的常见任务类型模板见 [template.json](template.json)，包含 5 种类型：
+
+| 类型 | 触发关键词 | 预设标准数 |
+|------|-----------|-----------|
+| bug-fix | 修复/fix/bug/报错/失败 | 3 |
+| new-feature | 添加/新增/实现/开发/功能 | 4 |
+| refactor | 重构/优化/整理/简化 | 3 |
+| add-tests | 测试/test/覆盖 | 3 |
+| security-fix | 安全/漏洞/CVE/注入 | 3 |
+
+模板使用规则：
+- 匹配到模板时，以模板的 acceptance_criteria 和 boundary 为初始值，根据具体任务细化
+- 模板中的 `$ARGUMENTS` 替换为用户输入的任务描述
+- 无论是否使用模板，最终标准都必须满足 SMART-V 原则
 

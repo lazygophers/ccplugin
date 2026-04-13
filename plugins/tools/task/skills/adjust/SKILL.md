@@ -50,10 +50,22 @@ while True:
         "context": context
     })
 
+    # 阶段2.5：自动修复判定 — 可自动验证的失败类型直接重试，不问用户
+    auto_fixable = is_auto_fixable(failure_type, verify_result)
+    if auto_fixable and auto_fix_attempts < 2:
+        auto_fix_attempts += 1
+        # test-failure: 重新执行失败的子任务
+        # style-violation: 运行格式化工具后重新验证
+        return {
+            "status": "重新计划",
+            "reason": f"自动修复（第{auto_fix_attempts}次）：{root_cause}",
+            "auto_fix": True
+        }
+
     # 阶段3：一次性展示分析结果并请求用户选择策略
     response = AskUserQuestion(
         questions=[{
-            "question": f"失败分析：\n\n{format_failure_analysis(root_cause, failure_type)}\n\n所有修复将遵循项目现有风格。请选择调整策略：",
+            "question": f"失败分析：\n\n{format_failure_analysis(root_cause, failure_type)}\n\n{'（已尝试自动修复 '+str(auto_fix_attempts)+' 次仍失败）' if auto_fix_attempts > 0 else ''}所有修复将遵循项目现有风格。请选择调整策略：",
             "header": f"[flow·{task_id}·adjust] 失败分析与调整策略",
             "options": [
                 {"label": "补充上下文", "description": "对项目理解不足，返回探索"},
@@ -86,28 +98,41 @@ while True:
     }
 ```
 
+## 自动修复判定
+
+```python
+def is_auto_fixable(failure_type, verify_result):
+    """判断失败是否可自动修复（不需要用户介入）"""
+    auto_fixable_types = {
+        "test-failure",      # 测试失败 → 重新执行失败子任务
+        "style-violation",   # 风格违规 → 运行格式化工具
+    }
+    
+    # 必须同时满足：
+    # 1. 失败类型在可自动修复列表中
+    # 2. 失败标准都有明确的验证命令（非主观判断）
+    # 3. 不涉及 scope-creep 或 missing-context（这类需要人工判断）
+    if failure_type not in auto_fixable_types:
+        return False
+    
+    for criteria in verify_result.get("failed_criteria", []):
+        if criteria.get("category") in ("安全", "完整"):
+            return False  # 安全和完整性问题不自动修复
+    
+    return True
+```
+
+> **自动修复上限**：最多 2 次自动重试。超过后必须 AskUserQuestion，防止无限循环。
+
 ## 失败类型与策略
 
-### 上下文缺失
-```python
-# 特征：对项目理解不足，关键信息缺失
-# 策略：返回 explore 重新收集上下文
-# 修复时注意：只收集任务相关信息，不改变项目风格
-```
-
-### 需求偏差
-```python
-# 特征：与用户需求理解不一致
-# 策略：返回 align 重新对齐需求
-# 修复时注意：不改变项目风格确认
-```
-
-### 重新计划
-```python
-# 特征：方案不可行，需要重新设计
-# 策略：返回 plan 完全重新规划
-# 修复时注意：遵循项目现有风格
-```
+| 类型 | 特征 | 可自动修复 | 策略 |
+|------|------|-----------|------|
+| test-failure | 测试未通过、断言失败 | ✅（≤2次） | 重新执行失败子任务 |
+| style-violation | lint 错误、命名不一致 | ✅（≤2次） | 运行格式化工具后重验 |
+| scope-creep | 修改了计划外文件 | ❌ | 需求偏差 → align |
+| missing-context | 引用不存在的函数/模块 | ❌ | 上下文缺失 → explore |
+| integration-issue | 接口不匹配、类型不兼容 | ❌ | 重新计划 → plan |
 
 ## 检查清单
 

@@ -55,17 +55,60 @@ print(f"[flow·{task_id}·done] 任务已完成")
 return report
 ```
 
+## 报告输出格式
+
+完成报告应包含以下结构，向用户简明展示结果：
+
+```
+[flow·{task_id}·done] 任务完成
+
+## 结果
+- 目标：{task_goal}
+- 状态：{成功/部分成功/失败}
+- 子任务：{completed}/{total} 完成
+
+## 变更文件
+- {file_1}：{变更摘要}
+- {file_2}：{变更摘要}
+
+## 验证
+- {criteria_1}：✓ 通过
+- {criteria_2}：✓ 通过
+
+## 经验（如有）
+- {lesson_1}
+```
+
+> 报告应简洁（≤20行），不重复已有的 verify 证据。
+
+## 经验教训结构
+
+保存到项目记忆时使用以下结构，便于未来任务参考：
+
+```json
+{
+  "task_id": "任务ID",
+  "task_type": "bug-fix|new-feature|refactor|...",
+  "outcome": "success|partial|failed",
+  "lessons": [
+    {
+      "category": "pattern|pitfall|toolchain|style",
+      "description": "具体经验描述",
+      "applies_to": "适用的模块/技术/场景"
+    }
+  ],
+  "adjust_history": [
+    {"attempt": 1, "failure_type": "test-failure", "resolution": "自动修复"}
+  ]
+}
+```
+
+> 只记录非显而易见的经验。"代码需要通过 lint" 不值得记录；"项目的 ruff 配置禁用了 E501 所以长行不算违规" 值得记录。
+
 ## 检查清单
 
-### 结果汇总
-- [ ] 执行结果已汇总
-- [ ] 任务元数据已从 index.json 读取
-
-### 报告生成
-- [ ] 执行报告已生成
-- [ ] 用户已通知
-
-### 记忆整理
-- [ ] 经验教训已保存
-- [ ] 项目记忆已更新
+- [ ] 执行结果已从各阶段文件汇总
+- [ ] 完成报告已按格式输出给用户
+- [ ] 经验教训已按结构保存（仅非显而易见的）
+- [ ] adjust_history 已记录（如有调整循环）
 

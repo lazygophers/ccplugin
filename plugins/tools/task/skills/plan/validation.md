@@ -6,20 +6,38 @@
 def validate_plan(subtasks, code_style):
     errors = []
     
-    # 规范验证（per-task）
+    # === 规范验证（per-task）===
     for task in subtasks:
         if not is_atomic(task):
             errors.append(f"{task['id']}: 非原子任务")
         if not task.get("acceptance_criteria"):
             errors.append(f"{task['id']}: 缺少验收标准")
+        if not task.get("files"):
+            errors.append(f"{task['id']}: 缺少 files 字段（无法确定修改范围）")
+        if not task.get("goal"):
+            errors.append(f"{task['id']}: 缺少 goal 字段")
     
-    # 全局验证
+    # === 单文件单任务验证 ===
+    file_owners = {}  # file → task_id
+    for task in subtasks:
+        for file in task.get("files", []):
+            if file in file_owners:
+                errors.append(f"文件冲突：'{file}' 被 {file_owners[file]} 和 {task['id']} 同时修改")
+            else:
+                file_owners[file] = task["id"]
+    
+    # === 全局验证 ===
     if has_circular_dependency(subtasks):
         errors.append("存在循环依赖")
     if count_parallel(subtasks) > 2:
         errors.append("并行任务超过2个")
     
-    # 风格验证
+    # === 幂等性验证 ===
+    for task in subtasks:
+        if has_side_effects(task):
+            errors.append(f"{task['id']}: 包含不可重试的副作用操作（如发送通知、删除数据）")
+    
+    # === 风格验证 ===
     style_errors = validate_style(subtasks, code_style)
     errors.extend(style_errors)
     
@@ -65,6 +83,12 @@ def fix_issues(subtasks, errors, code_style):
             fixed = split_task(fixed, extract_task_id(error))
         elif "缺少验收标准" in error:
             fixed = add_criteria(fixed, extract_task_id(error), code_style)
+        elif "缺少 files" in error:
+            fixed = infer_files(fixed, extract_task_id(error), context)
+        elif "缺少 goal" in error:
+            fixed = generate_goal(fixed, extract_task_id(error))
+        elif "文件冲突" in error:
+            fixed = merge_conflicting_tasks(fixed, extract_file(error))
         elif "命名不符合" in error:
             fixed = rename_task(fixed, extract_task_id(error), code_style)
         elif "路径不符合" in error:
@@ -73,6 +97,8 @@ def fix_issues(subtasks, errors, code_style):
             fixed = resolve_circular(fixed)
         elif "并行超过" in error:
             fixed = reduce_parallel(fixed)
+        elif "副作用操作" in error:
+            fixed = isolate_side_effects(fixed, extract_task_id(error))
     
     return fixed
 ```
