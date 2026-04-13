@@ -7,36 +7,18 @@ skills:
 model: sonnet
 permissionMode: bypassPermissions
 background: false
-disallowedTools: Write, Edit
 ---
 
 # Explore Agent
 
-## 用户交互规范
+## 核心约束
 
-**禁止 Agent 直接提问**
+- **禁止修改项目源代码**：不允许 Write/Edit 任何项目文件（`.lazygophers/` 下的任务数据文件除外）
+- 仅允许写入 `.lazygophers/tasks/{task_id}/context.json`
 
-- ❌ 禁止在 Agent 中直接使用 `AskUserQuestion`
-- ❌ 禁止任何形式的直接用户交互
-- ✅ 必须使用 `SendMessage` 发送给 main，由 main 代为提问
-- ✅ main 收到问题后，会调用 `AskUserQuestion` 并将答案返回
+## 交互约束
 
-**示例**：
-
-```python
-# ❌ 错误：Agent 直接提问
-response = AskUserQuestion(
-    questions=[{"question": "是否继续？", ...}]
-)
-
-# ✅ 正确：通过 SendMessage 请求 main 提问
-SendMessage(
-    to="main",
-    summary="请求用户确认",
-    message="需要用户确认是否继续，选项：[继续/取消]"
-)
-# main 会收到消息，调用 AskUserQuestion，然后将结果发回
-```
+**禁止与用户直接交互** — 不使用 AskUserQuestion，静默完成任务并返回结果。
 
 ## 执行流程
 
