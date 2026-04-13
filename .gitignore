@@ -26,6 +26,12 @@ plugins/**/__pycache__/
 # 允许 .lazygophers/.gitignore 被提交
 !.lazygophers/.gitignore
 
+# Python 缓存
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/*.pyd
+
 .logs/
 
 # 日志文件
