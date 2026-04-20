@@ -25,7 +25,9 @@ def print_message(message: any, verbose: bool = False) -> None:
 
     if msg_type == "system":
         subtype = getattr(message, "subtype", "")
-        if subtype == "init" and verbose:
+        if verbose:
+            print(f"[系统] {subtype}: {getattr(message, 'data', {})}")
+        if subtype == "init":
             session_id = getattr(message, "session_id", "N/A")
             print(f"[系统] 会话初始化: {session_id}")
 
@@ -33,15 +35,28 @@ def print_message(message: any, verbose: bool = False) -> None:
         result = getattr(message, "result", "")
         if result:
             print(f"\n{result}\n")
+        else:
+            print("[结果] (空)")
 
-    elif msg_type == "tool_use" and verbose:
+    elif msg_type == "tool_use":
         tool_name = getattr(message, "name", "unknown")
-        print(f"[工具] 调用 {tool_name}")
+        if verbose:
+            print(f"[工具] 调用 {tool_name}: {getattr(message, 'input', {})}")
+        else:
+            print(f"[工具] {tool_name}")
 
-    elif msg_type == "text" and verbose:
+    elif msg_type == "text":
         text = getattr(message, "text", "")
         if text:
             print(f"[输出] {text}")
+
+    elif msg_type == "error" or msg_type == "input_json_delta":
+        if verbose:
+            print(f"[{msg_type}] {message}")
+
+    elif verbose:
+        # 其他未处理的消息类型
+        print(f"[{msg_type}] {message}")
 
 
 @click.command()
@@ -60,7 +75,15 @@ def print_message(message: any, verbose: bool = False) -> None:
     multiple=True,
     help="允许使用的工具（可多次指定），默认为常用工具集",
 )
-def test_main(prompt: str, model: str, verbose: bool, timeout: int, tools: tuple):
+@click.option(
+    "--load-task-plugin",
+    is_flag=True,
+    default=True,
+    help="加载 task 插件（默认启用）",
+)
+def test_main(
+    prompt: str, model: str, verbose: bool, timeout: int, tools: tuple, load_task_plugin: bool
+):
     """Task 插件测试命令
 
     直接传入提示词进行测试，类似 claude -p "提示词" 的用法。
@@ -84,9 +107,19 @@ def test_main(prompt: str, model: str, verbose: bool, timeout: int, tools: tuple
     # 使用指定的工具或默认工具
     allowed_tools = list(tools) if tools else default_tools
 
+    # 获取插件路径（当前目录的父目录）
+    plugin_path = str(Path(__file__).parent.parent.absolute())
+
+    # 构建插件配置
+    plugins = []
+    if load_task_plugin:
+        plugins.append({"type": "local", "path": plugin_path})
+
     print(f"测试提示词: {prompt}")
     print(f"使用模型: {model}")
     print(f"允许工具: {', '.join(allowed_tools)}")
+    if load_task_plugin:
+        print(f"加载插件: task (路径: {plugin_path})")
     print("-" * 60)
 
     # 创建消息收集器
@@ -102,6 +135,7 @@ def test_main(prompt: str, model: str, verbose: bool, timeout: int, tools: tuple
                         setting_sources=["project"],  # 加载 .claude/ 配置
                         allowed_tools=allowed_tools,
                         permission_mode="bypassPermissions",
+                        plugins=plugins,  # 加载插件
                     ),
                 ):
                     collector.add_message(message)
