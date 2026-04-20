@@ -10,101 +10,69 @@ uv sync --extra dev
 
 ## 快速开始
 
-### 列出所有测试场景
+### 基础用法
+
+像 `claude -p` 一样，直接传入提示词：
 
 ```bash
-uv run ./scripts/main.py test list-scenarios
-```
-
-### 运行完整工作流测试
-
-```bash
-# 使用默认 sonnet 模型
-uv run ./scripts/main.py test workflow --scenario simple-bug-fix
+# 基础测试
+uv run ./scripts/main.py test "修复登录 Bug"
 
 # 使用 opus 模型
-uv run ./scripts/main.py test workflow --scenario new-feature --model opus
+uv run ./scripts/main.py test "添加日志功能" --model opus
 
 # 详细输出
-uv run ./scripts/main.py test workflow --scenario simple-bug-fix --verbose
+uv run ./scripts/main.py test "优化查询性能" -v
+
+# 简写形式
+uv run ./scripts/main.py test "重构认证模块" -m haiku -v
 ```
 
-### 测试单个 Skill
+### 测试插件 Skills
 
 ```bash
-# 测试 explore skill
-uv run ./scripts/main.py test skill --name explore
+# 测试 flow skill（完整工作流）
+uv run ./scripts/main.py test "/task:flow 修复登录验证逻辑错误"
 
-# 测试 align skill
-uv run ./scripts/main.py test skill --name align
+# 测试 explore skill（上下文探索）
+uv run ./scripts/main.py test "/task:explore 了解当前项目的测试框架"
 
-# 使用自定义场景
-uv run ./scripts/main.py test skill --name flow --scenario simple-bug-fix --model opus
+# 测试 align skill（范围对齐）
+uv run ./scripts/main.py test "/task:align 添加新的日志模块"
+
+# 测试 plan skill（任务规划）
+uv run ./scripts/main.py test "/task:plan 重构数据库访问层"
 ```
 
-### 测试单个 Agent
+## 命令选项
 
-```bash
-# 测试 explore agent
-uv run ./scripts/main.py test agent --name explore --input "修复登录问题"
+### 位置参数
 
-# 测试 plan agent，使用 opus 模型
-uv run ./scripts/main.py test agent --name plan --input "添加日志功能" --model opus --verbose
-```
+- `PROMPT` - 要测试的提示词（必需）
 
-## 可用选项
+### 可选参数
 
-### 通用选项
+- `--model, -m [sonnet|opus|haiku]` - 使用的模型（默认: sonnet）
+- `--verbose, -v` - 详细输出，显示工具调用和中间步骤
+- `--timeout, -t INTEGER` - 超时时间（秒，默认: 300）
+- `--tools TEXT` - 允许使用的工具（可多次指定）
 
-- `--model [sonnet|opus|haiku]` - 使用的模型（默认: sonnet）
-- `--verbose` - 详细输出
-- `--timeout INTEGER` - 超时时间（秒，默认: 300）
+## 模型选择
 
-### workflow 命令
+支持三种固定模型：
 
-```bash
-uv run ./scripts/main.py test workflow --scenario <场景名> [选项]
-```
+- `sonnet` - 平衡性能和速度（默认）
+- `opus` - 最强性能，适合复杂任务
+- `haiku` - 最快速度，适合简单任务
 
-可用场景：
-- `simple-bug-fix` - 简单 Bug 修复
-- `new-feature` - 新功能开发
-- `explore-only` - 仅探索上下文
-- `align-only` - 仅对齐范围
-
-### skill 命令
-
-```bash
-uv run ./scripts/main.py test skill --name <skill名> [选项]
-```
-
-可用 skills：
-- `flow` - 流程管理
-- `align` - 范围对齐
-- `explore` - 上下文探索
-- `plan` - 任务规划
-- `exec` - DAG 执行
-- `verify` - 结果校验
-- `adjust` - 失败调整
-- `done` - 任务完成
-- `resume` - 中断恢复
-
-### agent 命令
-
-```bash
-uv run ./scripts/main.py test agent --name <agent名> --input <输入> [选项]
-```
-
-可用 agents：
-- `explore` - 探索代理
-- `plan` - 规划代理
-- `verify` - 校验代理
-- `adjust` - 调整代理
-- `done` - 完成代理
+实际的模型映射由环境变量决定：
+- `ANTHROPIC_DEFAULT_SONNET_MODEL`
+- `ANTHROPIC_DEFAULT_OPUS_MODEL`
+- `ANTHROPIC_DEFAULT_HAIKU_MODEL`
 
 ## 环境配置
 
-测试命令会自动继承当前 shell 的环境变量，包括：
+测试命令会自动继承当前 shell 的环境变量：
 
 - `ANTHROPIC_BASE_URL` - API 端点
 - `ANTHROPIC_AUTH_TOKEN` - 认证令牌
@@ -112,158 +80,212 @@ uv run ./scripts/main.py test agent --name <agent名> --input <输入> [选项]
 - `ANTHROPIC_DEFAULT_OPUS_MODEL` - opus 模型映射
 - `ANTHROPIC_DEFAULT_HAIKU_MODEL` - haiku 模型映射
 
-## 测试场景配置
+示例：
 
-测试场景定义在 `scripts/test_scenarios.json` 中。每个场景包含：
+```bash
+# 设置环境变量
+export ANTHROPIC_BASE_URL="https://api.example.com"
+export ANTHROPIC_AUTH_TOKEN="your-token"
 
-```json
-{
-  "场景名": {
-    "name": "显示名称",
-    "description": "场景描述",
-    "prompt": "测试 prompt",
-    "allowed_tools": ["Read", "Edit", ...],
-    "expectations": {
-      "state_transitions": ["pending", "align", ...],
-      "tool_calls": {
-        "Read": {"min": 1}
-      },
-      "final_state": "done",
-      "files_created": ["context.json", ...]
-    }
-  }
-}
+# 运行测试
+uv run ./scripts/main.py test "修复 Bug"
 ```
 
-### 添加自定义场景
+或临时指定：
 
-1. 编辑 `scripts/test_scenarios.json`
-2. 添加新的场景配置
-3. 运行测试：`uv run ./scripts/main.py test workflow --scenario <新场景名>`
+```bash
+ANTHROPIC_BASE_URL="https://api.example.com" \
+ANTHROPIC_AUTH_TOKEN="your-token" \
+uv run ./scripts/main.py test "修复 Bug"
+```
 
-## 验证机制
+## 工具控制
 
-测试框架会验证以下内容：
+默认允许使用的工具：
+- Read, Write, Edit
+- Glob, Grep
+- Bash
+- AskUserQuestion
 
-### 状态转换验证
+### 自定义工具集
 
-检查任务状态转换序列是否符合预期（从 `[flow·{task_id}·{state}]` 提取）。
+```bash
+# 仅允许读取和搜索
+uv run ./scripts/main.py test "分析代码结构" \
+  --tools Read \
+  --tools Glob \
+  --tools Grep
 
-### 工具调用验证
+# 仅允许 Bash 命令
+uv run ./scripts/main.py test "运行测试" --tools Bash
+```
 
-验证特定工具的调用次数：
-- `min` - 最少调用次数
-- `max` - 最多调用次数
-- `exact` - 精确调用次数
+## 测试输出
 
-### 最终状态验证
+### 标准输出
 
-检查任务是否达到预期的最终状态（如 `done`）。
-
-### 文件系统验证
-
-验证预期的文件是否被创建（在 `.lazygophers/tasks/{task_id}/` 目录下）。
-
-## 测试报告
-
-测试完成后会生成报告，包含：
+测试会实时输出模型的响应：
 
 ```
-============================================================
-测试报告
-============================================================
-总计: 3 | 通过: 3 | 失败: 0
+测试提示词: 修复登录 Bug
+使用模型: sonnet
+允许工具: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+------------------------------------------------------------
 
-1. ✓ 状态转换正确: pending → align → plan → exec → verify → done
-2. ✓ 工具调用符合预期
-3. ✓ 最终状态正确: done
+[模型的响应输出...]
+
 ============================================================
+测试摘要
+============================================================
+消息数量: 15
+工具调用数: 8
+
+调用的工具:
+  - Bash: 1 次
+  - Edit: 2 次
+  - Grep: 2 次
+  - Read: 3 次
+
+状态转换: pending → align → explore → plan → exec → verify → done
+最终状态: done
+============================================================
+```
+
+### 详细输出（-v）
+
+添加 `-v` 标志会显示：
+- 会话初始化信息
+- 每次工具调用的详细信息
+- 中间输出文本
+
+```bash
+uv run ./scripts/main.py test "修复 Bug" -v
+```
+
+## 测试场景示例
+
+### 1. Bug 修复
+
+```bash
+uv run ./scripts/main.py test "修复用户登录时的验证逻辑错误" -m sonnet
+```
+
+### 2. 新功能开发
+
+```bash
+uv run ./scripts/main.py test "添加日志记录功能到所有 API 端点" -m opus -v
+```
+
+### 3. 代码重构
+
+```bash
+uv run ./scripts/main.py test "重构数据库访问层，使用连接池" -m sonnet
+```
+
+### 4. 测试完整工作流
+
+```bash
+# 使用 flow skill 触发完整的状态机流程
+uv run ./scripts/main.py test "/task:flow 优化查询性能" -m opus -v
+```
+
+### 5. 仅探索上下文
+
+```bash
+# 使用 explore skill 了解项目结构
+uv run ./scripts/main.py test "/task:explore 了解项目的测试框架和工具链" -m sonnet
+```
+
+### 6. 仅对齐需求
+
+```bash
+# 使用 align skill 明确任务范围
+uv run ./scripts/main.py test "/task:align 添加用户权限管理功能" -m sonnet
 ```
 
 ## 常见问题
 
 ### 测试超时
 
-默认超时 300 秒，可通过 `--timeout` 调整：
+默认超时 300 秒（5 分钟），对于复杂任务可能需要更长时间：
 
 ```bash
-uv run ./scripts/main.py test workflow --scenario simple-bug-fix --timeout 600
+uv run ./scripts/main.py test "复杂重构任务" -t 600
 ```
 
 ### 环境变量未设置
 
-确保设置了必要的环境变量：
+如果看到 API 错误，检查环境变量是否正确设置：
 
 ```bash
-export ANTHROPIC_BASE_URL="https://api.example.com"
-export ANTHROPIC_AUTH_TOKEN="your-token"
-```
-
-或使用特定配置运行：
-
-```bash
-ANTHROPIC_BASE_URL="https://api.example.com" \
-uv run ./scripts/main.py test workflow --scenario simple-bug-fix
+echo $ANTHROPIC_BASE_URL
+echo $ANTHROPIC_AUTH_TOKEN
 ```
 
 ### 测试中断
 
-使用 `Ctrl+C` 可以中断测试，已收集的消息会被保留用于调试。
+使用 `Ctrl+C` 可以随时中断测试。测试摘要仍会显示已收集的信息。
 
-## 示例
+### 工具调用失败
 
-### 完整工作流测试
+如果某个工具调用失败，会在输出中显示错误信息。使用 `-v` 查看详细的工具调用过程。
 
-```bash
-# 测试 bug 修复流程（sonnet 模型）
-uv run ./scripts/main.py test workflow \
-  --scenario simple-bug-fix \
-  --model sonnet \
-  --verbose
+## 高级用法
 
-# 测试新功能开发（opus 模型）
-uv run ./scripts/main.py test workflow \
-  --scenario new-feature \
-  --model opus \
-  --timeout 600
-```
-
-### 独立组件测试
+### 组合使用
 
 ```bash
-# 仅测试上下文探索
-uv run ./scripts/main.py test skill --name explore
-
-# 测试范围对齐（需要用户交互）
-uv run ./scripts/main.py test skill --name align
-
-# 测试 DAG 执行
-uv run ./scripts/main.py test skill --name exec
+# 复杂任务，使用 opus 模型，详细输出，长超时
+uv run ./scripts/main.py test \
+  "/task:flow 重构整个认证系统，支持 OAuth2" \
+  -m opus \
+  -v \
+  -t 900
 ```
 
-### Agent 测试
+### 限制工具权限
 
 ```bash
-# 测试探索 agent
-uv run ./scripts/main.py test agent \
-  --name explore \
-  --input "了解项目测试框架" \
-  --verbose
-
-# 测试规划 agent
-uv run ./scripts/main.py test agent \
-  --name plan \
-  --input "添加新的日志模块" \
-  --model opus
+# 只允许读取和分析，不允许修改
+uv run ./scripts/main.py test \
+  "分析代码质量和潜在问题" \
+  --tools Read \
+  --tools Glob \
+  --tools Grep \
+  --tools Bash
 ```
 
-## 贡献
+### 脚本化测试
 
-欢迎添加新的测试场景和改进验证逻辑：
+创建测试脚本：
 
-1. 在 `scripts/test_scenarios.json` 添加场景
-2. 在 `scripts/test_helpers.py` 添加验证函数
-3. 提交 PR
+```bash
+#!/bin/bash
+# test-scenarios.sh
+
+# 测试多个场景
+scenarios=(
+  "修复登录 Bug"
+  "添加日志功能"
+  "优化查询性能"
+)
+
+for scenario in "${scenarios[@]}"; do
+  echo "测试场景: $scenario"
+  uv run ./scripts/main.py test "$scenario" -m sonnet
+  echo "---"
+done
+```
+
+## 与 Claude Code 的区别
+
+| 特性 | Claude Code CLI | Task 测试命令 |
+|------|----------------|--------------|
+| 用途 | 交互式开发 | 自动化测试 |
+| 输出 | 完整对话 | 聚焦结果 |
+| 工具 | 所有工具 | 可限制工具集 |
+| 配置 | 全局配置 | 项目配置 |
+| 统计 | 无 | 工具调用统计 |
 
 ## 参考
 
