@@ -11,6 +11,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
  "claude-agent-sdk",
+ "pytest-asyncio",
 ]
 all = [
  "task[dev]",
