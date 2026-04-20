@@ -4,6 +4,7 @@
 """
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
@@ -17,6 +18,18 @@ except ImportError:
     sys.exit(1)
 
 from test_helpers import MessageCollector
+
+
+# 环境变量默认值
+DEFAULT_BASE_URL = "https://api.anthropic.com"
+DEFAULT_SONNET_MODEL = "claude-sonnet-4-5"
+DEFAULT_OPUS_MODEL = "claude-opus-4-7"
+DEFAULT_HAIKU_MODEL = "claude-haiku-4-5"
+
+
+def get_env_with_default(key: str, default: str = "") -> str:
+    """获取环境变量，如果不存在则使用默认值"""
+    return os.environ.get(key, default)
 
 
 def print_message(message: any, verbose: bool = False) -> None:
@@ -81,8 +94,25 @@ def print_message(message: any, verbose: bool = False) -> None:
     default=True,
     help="加载 task 插件（默认启用）",
 )
+@click.option(
+    "--api-url",
+    default=None,
+    help=f"API 端点 URL（默认: {DEFAULT_BASE_URL}）",
+)
+@click.option(
+    "--api-key",
+    default=None,
+    help="API 密钥（默认从环境变量读取）",
+)
 def test_main(
-    prompt: str, model: str, verbose: bool, timeout: int, tools: tuple, load_task_plugin: bool
+    prompt: str,
+    model: str,
+    verbose: bool,
+    timeout: int,
+    tools: tuple,
+    load_task_plugin: bool,
+    api_url: str,
+    api_key: str,
 ):
     """Task 插件测试命令
 
@@ -92,7 +122,40 @@ def test_main(
         task test "修复登录 Bug"
         task test "/task:flow 添加日志功能" --model opus
         task test "优化查询性能" -m haiku -v
+
+    环境变量（带默认值）:
+        ANTHROPIC_BASE_URL: API 端点（默认: https://api.anthropic.com）
+        ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY: API 密钥
+        ANTHROPIC_DEFAULT_SONNET_MODEL: sonnet 模型名（默认: claude-sonnet-4-5）
+        ANTHROPIC_DEFAULT_OPUS_MODEL: opus 模型名（默认: claude-opus-4-7）
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: haiku 模型名（默认: claude-haiku-4-5）
     """
+    # 设置环境变量默认值
+    base_url = api_url or get_env_with_default("ANTHROPIC_BASE_URL", DEFAULT_BASE_URL)
+    auth_token = api_key or get_env_with_default(
+        "ANTHROPIC_AUTH_TOKEN", get_env_with_default("ANTHROPIC_API_KEY", "")
+    )
+
+    # 模型映射
+    model_map = {
+        "sonnet": get_env_with_default(
+            "ANTHROPIC_DEFAULT_SONNET_MODEL", DEFAULT_SONNET_MODEL
+        ),
+        "opus": get_env_with_default("ANTHROPIC_DEFAULT_OPUS_MODEL", DEFAULT_OPUS_MODEL),
+        "haiku": get_env_with_default(
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL", DEFAULT_HAIKU_MODEL
+        ),
+    }
+
+    # 设置环境变量（Agent SDK 会读取）
+    os.environ["ANTHROPIC_BASE_URL"] = base_url
+    if auth_token:
+        os.environ["ANTHROPIC_AUTH_TOKEN"] = auth_token
+    else:
+        print("⚠️  警告: 未设置 API 密钥")
+        print("请设置环境变量 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY")
+        print("或使用 --api-key 参数")
+
     # 默认工具集
     default_tools = [
         "Read",
@@ -116,7 +179,8 @@ def test_main(
         plugins.append({"type": "local", "path": plugin_path})
 
     print(f"测试提示词: {prompt}")
-    print(f"使用模型: {model}")
+    print(f"使用模型: {model} ({model_map[model]})")
+    print(f"API 端点: {base_url}")
     print(f"允许工具: {', '.join(allowed_tools)}")
     if load_task_plugin:
         print(f"加载插件: task (路径: {plugin_path})")
@@ -131,7 +195,7 @@ def test_main(
                 async for message in query(
                     prompt=prompt,
                     options=ClaudeAgentOptions(
-                        model=model,
+                        model=model_map[model],  # 使用映射后的实际模型名
                         setting_sources=["project"],  # 加载 .claude/ 配置
                         allowed_tools=allowed_tools,
                         permission_mode="bypassPermissions",
