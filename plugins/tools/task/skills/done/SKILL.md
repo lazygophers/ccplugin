@@ -58,12 +58,15 @@ report = generate_completion_report({
     "code_style": align.get("code_style_follow", {})
 })
 
-# 阶段3：整理记忆
-save_lessons_learned({
-    "task_id": task_id,
-    "results": results,
-    "report": report
-})
+# 阶段3：整理经验
+# 经验保存到 .lazygophers/lessons.json（项目级，跨任务共享）
+# 格式：数组，每个元素是一条经验记录
+lessons_file = ".lazygophers/lessons.json"
+existing = read_json(lessons_file) if exists(lessons_file) else []
+new_lesson = extract_lessons(task_id, results, report)
+if new_lesson and new_lesson.get("lessons"):
+    existing.append(new_lesson)
+    write_json(lessons_file, existing)
 
 # 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
 print(f"[flow·{task_id}·done] 任务已完成")

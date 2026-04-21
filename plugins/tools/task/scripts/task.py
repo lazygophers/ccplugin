@@ -60,11 +60,45 @@ class TaskState:
             cls.Cancel,
         ]
 
+    VALID_TRANSITIONS = {
+        "pending": {"explore", "align"},
+        "explore": {"align"},
+        "align": {"explore", "plan"},
+        "plan": {"explore", "exec"},
+        "exec": {"verify"},
+        "verify": {"done", "adjust"},
+        "adjust": {"explore", "align", "plan", "exec", "cancel"},
+        "done": set(),
+        "cancel": set(),
+    }
+
+    REQUIRED_FILES = {
+        "plan": ["align.json"],
+        "exec": ["task.json"],
+        "verify": ["task.json", "align.json"],
+    }
+
     @classmethod
     def validate(cls, v: str) -> str:
         if v not in cls.values():
             raise ValueError(f"无效的任务状态: {v}")
         return v
+
+    @classmethod
+    def validate_transition(cls, current: str, target: str) -> None:
+        allowed = cls.VALID_TRANSITIONS.get(current, set())
+        if target not in allowed:
+            raise ValueError(
+                f"非法状态转换: {current} → {target}（允许: {', '.join(sorted(allowed)) if allowed else '无'}）"
+            )
+
+    @classmethod
+    def check_required_files(cls, target: str, task_dir: str) -> None:
+        required = cls.REQUIRED_FILES.get(target, [])
+        for fname in required:
+            fpath = os.path.join(task_dir, fname)
+            if not os.path.exists(fpath):
+                raise ValueError(f"进入 {target} 需要 {fname}，但文件不存在: {fpath}")
 
 
 @click.group()
@@ -164,6 +198,11 @@ def update(
         else:
             # 更新已存在的任务
             if status:
+                current = index[task_id].get("status", TaskState.Pending)
+                TaskState.validate_transition(current, status)
+                project_dir = get_project_dir()
+                task_dir = os.path.join(project_dir, ".lazygophers/tasks", task_id)
+                TaskState.check_required_files(status, task_dir)
                 index[task_id]["status"] = status
 
             if description:

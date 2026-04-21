@@ -25,11 +25,18 @@ context = read_json(f".lazygophers/tasks/{task_id}/context.json")
 code_style = align["code_style_follow"]  # 锁定的项目风格
 
 # === 阶段0：检索历史经验 ===
-# 从已完成任务的经验教训中提取相关知识，避免重蹈覆辙
-task_type = align.get("task_type")  # bug-fix / new-feature / refactor / ...
-history = load_lessons_learned(task_type, context.get("task_related", {}).get("modules", []))
-# history 结构：{"common_failures": [...], "best_practices": [...], "tool_tips": [...]}
-# 注入到分解逻辑中，作为规划的参考约束（而非硬规则）
+# 经验文件：.lazygophers/lessons.json（由 done skill 写入）
+# 格式：数组，每个元素含 task_type、lessons、adjust_history
+lessons_file = ".lazygophers/lessons.json"
+if exists(lessons_file):
+    all_lessons = read_json(lessons_file)
+    task_type = align.get("task_type")
+    modules = context.get("task_related", {}).get("modules", [])
+    # 筛选相关经验：同类任务 或 涉及相同模块
+    history = [l for l in all_lessons if l.get("task_type") == task_type or any(m in str(l) for m in modules)]
+else:
+    history = []
+# history 用作规划的参考约束（非硬规则），避免重蹈覆辙
 
 # 自我迭代循环
 for i in range(10):

@@ -5,6 +5,7 @@
 
 import asyncio
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -150,6 +151,11 @@ def print_message(message: any, verbose: bool = False) -> None:
     default=False,
     help="自动确认所有 AskUserQuestion（选择第一个选项）",
 )
+@click.option(
+    "--cleanup/--no-cleanup",
+    default=True,
+    help="测试后自动清理产物（默认开启）",
+)
 def test_main(
     prompt: str,
     model: str,
@@ -160,6 +166,7 @@ def test_main(
     api_url: str,
     api_key: str,
     auto_approve: bool,
+    cleanup: bool,
 ):
     """Task 插件测试命令
 
@@ -310,6 +317,22 @@ def test_main(
         print("=" * 60)
 
     asyncio.run(run())
+
+    if cleanup:
+        import subprocess
+
+        lazygophers_dir = os.path.join(os.getcwd(), ".lazygophers")
+        if os.path.isdir(lazygophers_dir):
+            shutil.rmtree(lazygophers_dir, ignore_errors=True)
+            print("\n🧹 已清理 .lazygophers/")
+
+        result = subprocess.run(
+            ["git", "diff", "--stat", "--exit-code"],
+            capture_output=True, text=True,
+        )
+        if result.returncode != 0:
+            subprocess.run(["git", "checkout", "--", "."], capture_output=True)
+            print("🧹 已恢复 git 工作区")
 
 
 if __name__ == "__main__":
