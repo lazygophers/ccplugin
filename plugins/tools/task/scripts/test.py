@@ -36,26 +36,33 @@ def get_env_with_default(key: str, default: str = "") -> str:
 
 
 def print_message(message: any, verbose: bool = False) -> None:
-    """打印消息（默认显示所有重要内容）"""
-    # 使用类名判断消息类型
-    msg_class = type(message).__name__
+    """打印消息
 
-    # SystemMessage
-    if msg_class == "SystemMessage":
-        subtype = getattr(message, "subtype", "")
-        if subtype == "init":
-            session_id = getattr(message, "session_id", "N/A")
-            if verbose:
-                print(f"[系统] 会话初始化: {session_id}")
-        elif subtype in ["hook_started", "hook_response"]:
-            if verbose:
-                hook_name = getattr(message, "data", {}).get("hook_name", "")
-                print(f"[系统] Hook: {hook_name}")
-        elif verbose:
-            print(f"[系统] {subtype}")
+    Agent SDK 消息结构：
+    - AssistantMessage.content = [ThinkingBlock, TextBlock, ToolUseBlock]
+    - UserMessage.content = [ToolResultBlock]
+    - ResultMessage.result = str
+    - SystemMessage.subtype = init/hook_started/hook_response
+    """
+    cls = type(message).__name__
 
-    # ResultMessage
-    elif msg_class == "ResultMessage":
+    if cls == "SystemMessage":
+        if verbose:
+            subtype = getattr(message, "subtype", "")
+            if subtype == "init":
+                data = getattr(message, "data", {})
+                plugins = data.get("plugins", [])
+                skills = data.get("skills", [])
+                agents = data.get("agents", [])
+                print(f"[系统] 会话初始化")
+                if plugins:
+                    print(f"  插件: {', '.join(p.get('name', '?') for p in plugins)}")
+                if skills:
+                    print(f"  Skills: {', '.join(skills)}")
+                if agents:
+                    print(f"  Agents: {', '.join(agents)}")
+
+    elif cls == "ResultMessage":
         result = getattr(message, "result", "")
         if result:
             print("\n" + "=" * 60)
@@ -64,73 +71,45 @@ def print_message(message: any, verbose: bool = False) -> None:
             print(f"\n{result}\n")
             print("=" * 60)
 
-    # AssistantMessage（模型的文本回复）
-    elif msg_class == "AssistantMessage":
-        content = getattr(message, "content", [])
-        has_text = False
-
-        for block in content:
-            block_type = getattr(block, "type", "")
-            if block_type == "text":
+    elif cls == "AssistantMessage":
+        for block in getattr(message, "content", []):
+            block_type = type(block).__name__
+            if block_type == "TextBlock":
                 text = getattr(block, "text", "")
                 if text:
-                    if not has_text:
-                        print("\n" + "─" * 60)
-                        print("💬 模型响应")
-                        print("─" * 60 + "\n")
-                        has_text = True
-                    print(f"{text}")
-            elif block_type == "thinking":
-                thinking = getattr(block, "thinking", "")
-                if thinking and verbose:
-                    print("\n" + "─" * 60)
-                    print("💭 思考过程")
-                    print("─" * 60)
-                    print(f"\n{thinking}\n")
-                    print("─" * 60)
+                    print(text)
+            elif block_type == "ThinkingBlock":
+                if verbose:
+                    thinking = getattr(block, "thinking", "")
+                    if thinking:
+                        print(f"  💭 {thinking[:200]}{'...' if len(thinking) > 200 else ''}")
+            elif block_type == "ToolUseBlock":
+                name = getattr(block, "name", "")
+                tool_input = getattr(block, "input", {})
+                if verbose:
+                    print(f"  🔧 {name}")
+                    if isinstance(tool_input, dict):
+                        for k, v in list(tool_input.items())[:3]:
+                            print(f"     {k}: {str(v)[:80]}")
+                else:
+                    print(f"  🔧 {name}")
 
-        if has_text:
-            print("\n" + "─" * 60)
+    elif cls == "UserMessage":
+        for block in getattr(message, "content", []):
+            if type(block).__name__ == "ToolResultBlock":
+                is_error = getattr(block, "is_error", False)
+                if verbose:
+                    content = str(getattr(block, "content", ""))
+                    if is_error:
+                        print(f"  ❌ {content[:150]}")
+                    else:
+                        print(f"  ✓ (结果 {len(content)} 字符)")
+                elif is_error:
+                    print(f"  ❌ 工具执行错误")
 
-    # ToolUseMessage
-    elif msg_class == "ToolUseMessage":
-        tool_name = getattr(message, "name", "unknown")
-        if verbose:
-            tool_input = getattr(message, "input", {})
-            print(f"🔧 [工具] {tool_name}")
-            # 简化输出工具参数
-            if isinstance(tool_input, dict) and len(tool_input) < 5:
-                for key, value in tool_input.items():
-                    value_str = str(value)[:100]  # 限制长度
-                    print(f"   {key}: {value_str}")
-        else:
-            print(f"🔧 [工具] {tool_name}")
-
-    # ToolResultMessage
-    elif msg_class == "ToolResultMessage":
-        if verbose:
-            tool_use_id = getattr(message, "tool_use_id", "")
-            is_error = getattr(message, "is_error", False)
-            if is_error:
-                print(f"❌ [工具结果] 错误")
-            else:
-                print(f"✓ [工具结果] 成功")
-
-    # TextMessage（流式输出）
-    elif msg_class == "TextMessage":
-        text = getattr(message, "text", "")
-        if text:
-            # 流式输出，不换行
-            print(text, end="", flush=True)
-
-    # ErrorMessage
-    elif msg_class == "ErrorMessage":
+    elif cls == "ErrorMessage":
         error_msg = getattr(message, "error", message)
         print(f"\n❌ [错误] {error_msg}\n")
-
-    # 其他未知类型（verbose 时显示）
-    elif verbose:
-        print(f"\n[{msg_class}] 未处理的消息类型")
 
 
 @click.command()
@@ -280,22 +259,35 @@ def test_main(
         print("\n" + "=" * 60)
         print("测试摘要")
         print("=" * 60)
-        print(f"消息数量: {len(collector.messages)}")
-        print(f"工具调用数: {len(collector.tool_calls)}")
+
+        if collector.actual_model:
+            print(f"实际模型: {collector.actual_model}")
+
+        msg_types = {}
+        for m in collector.messages:
+            msg_types[type(m).__name__] = msg_types.get(type(m).__name__, 0) + 1
+        print(f"消息统计: {msg_types}")
+
+        print(f"工具调用: {len(collector.tool_calls)} 次")
+        print(f"工具结果: {len(collector.tool_results)} 次")
+        errors = sum(1 for r in collector.tool_results if r.get("is_error"))
+        if errors:
+            print(f"工具错误: {errors} 次")
+        print(f"思考次数: {len(collector.thinking_outputs)} 次")
 
         if collector.tool_calls:
-            print("\n调用的工具:")
+            print("\n工具调用详情:")
             tool_counts = {}
             for call in collector.tool_calls:
                 tool_name = call["name"]
                 tool_counts[tool_name] = tool_counts.get(tool_name, 0) + 1
-
             for tool_name, count in sorted(tool_counts.items()):
-                print(f"  - {tool_name}: {count} 次")
+                print(f"  {tool_name}: {count}")
 
         if collector.state_transitions:
-            print(f"\n状态转换: {' → '.join(collector.state_transitions)}")
-            print(f"最终状态: {collector.get_final_state()}")
+            print(f"\n状态流转: {' → '.join(collector.state_transitions)}")
+        else:
+            print("\n状态流转: (无)")
 
         print("=" * 60)
 

@@ -30,38 +30,63 @@ class TestResult:
 
 
 class MessageCollector:
-    """消息流收集器"""
+    """消息流收集器
+
+    Agent SDK 消息模型：
+    - AssistantMessage.content = [ThinkingBlock, TextBlock, ToolUseBlock]
+    - UserMessage.content = [ToolResultBlock]
+    - ResultMessage.result = str
+    - SystemMessage.subtype = init/hook_started/hook_response
+    """
 
     def __init__(self):
-        self.messages: List[MessageEvent] = []
+        self.messages: List[Any] = []
         self.text_outputs: List[str] = []
+        self.thinking_outputs: List[str] = []
         self.tool_calls: List[Dict[str, Any]] = []
+        self.tool_results: List[Dict[str, Any]] = []
         self.state_transitions: List[str] = []
+        self.actual_model: Optional[str] = None
 
     def add_message(self, message: Any) -> None:
         """添加消息到收集器"""
-        msg_type = getattr(message, "type", "unknown")
-        msg_subtype = getattr(message, "subtype", None)
+        self.messages.append(message)
+        cls = type(message).__name__
 
-        event = MessageEvent(
-            type=msg_type,
-            subtype=msg_subtype,
-            data=message.__dict__ if hasattr(message, "__dict__") else {},
-        )
+        if cls == "AssistantMessage":
+            if not self.actual_model:
+                self.actual_model = getattr(message, "model", None)
+            for block in getattr(message, "content", []):
+                block_type = type(block).__name__
+                if block_type == "ToolUseBlock":
+                    self.tool_calls.append({
+                        "name": getattr(block, "name", ""),
+                        "input": getattr(block, "input", {}),
+                    })
+                elif block_type == "TextBlock":
+                    text = getattr(block, "text", "")
+                    if text:
+                        self.text_outputs.append(text)
+                        self._extract_state_transitions(text)
+                elif block_type == "ThinkingBlock":
+                    thinking = getattr(block, "thinking", "")
+                    if thinking:
+                        self.thinking_outputs.append(thinking)
 
-        self.messages.append(event)
+        elif cls == "UserMessage":
+            for block in getattr(message, "content", []):
+                if type(block).__name__ == "ToolResultBlock":
+                    self.tool_results.append({
+                        "tool_use_id": getattr(block, "tool_use_id", ""),
+                        "content": str(getattr(block, "content", ""))[:500],
+                        "is_error": getattr(block, "is_error", False),
+                    })
 
-        # 提取文本输出
-        if hasattr(message, "result"):
-            self.text_outputs.append(str(message.result))
-            # 提取状态转换
-            self._extract_state_transitions(str(message.result))
-
-        # 提取工具调用
-        if msg_type == "tool_use":
-            tool_name = getattr(message, "name", "unknown")
-            tool_input = getattr(message, "input", {})
-            self.tool_calls.append({"name": tool_name, "input": tool_input})
+        elif cls == "ResultMessage":
+            result = getattr(message, "result", "")
+            if result:
+                self.text_outputs.append(result)
+                self._extract_state_transitions(result)
 
     def _extract_state_transitions(self, text: str) -> None:
         """从文本中提取状态转换

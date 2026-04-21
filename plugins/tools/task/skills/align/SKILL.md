@@ -6,11 +6,23 @@ model: sonnet
 permissionMode: bypassPermissions
 background: false
 context: fork
-user-invocable: false
+user-invocable: true
 effort: high
+argument-hint: [任务描述]
 ---
 
 # Align Skill
+
+## 独立调用模式
+
+当用户直接调用 `/task:align` 时（无 flow 上下文）：
+
+1. 从用户输入生成中文 task_id（≤10 字符）
+2. 执行 `task update {task_id} --status=align` 创建任务
+3. 按下方执行流程生成对齐结果
+4. 对齐完成后输出结果，**不自动进入后续阶段**
+
+当由 flow 调用时：直接使用传入的 task_id 和 environment 参数。
 
 ## 执行流程
 
@@ -18,6 +30,11 @@ effort: high
 > **锁定项目风格，验收标准遵循 SMART-V 原则，使用语义化 name**
 
 ```python
+# 如果没有 task_id（独立调用），生成一个
+if not task_id:
+    task_id = generate_chinese_task_id(user_prompt)  # ≤10字符
+    Bash(f'CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/main.py task update {task_id} --status=align')
+
 # 检查上下文文件是否存在且完整
 context_file = f".lazygophers/tasks/{task_id}/context.json"
 

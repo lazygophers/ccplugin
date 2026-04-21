@@ -5,15 +5,28 @@ color: orange
 model: sonnet
 permissionMode: bypassPermissions
 background: false
-user-invocable: false
+user-invocable: true
 effort: medium
 context: fork
 agent: task:explore
+argument-hint: [任务描述或探索目标]
 ---
 
 # Explore Skill
 
 目标导向的渐进式探索，聚焦任务相关上下文。**只读分析，不修改项目代码。**
+
+## 独立调用模式
+
+当用户直接调用 `/task:explore` 时（无 flow 上下文）：
+
+1. 从用户输入生成中文 task_id（≤10 字符）
+2. 执行 `task update {task_id} --status=explore` 创建任务
+3. 按下方探索策略执行
+4. 将 context.json 写入 `.lazygophers/tasks/{task_id}/context.json`
+5. 输出探索结果摘要
+
+当由 flow 调用时：直接使用传入的 task_id 和 environment 参数。
 
 ## 探索策略
 
@@ -21,7 +34,7 @@ agent: task:explore
 
 ### 阶段1：任务相关性定位
 
-从 user_prompt 和 align_feedback 中提取关键术语（模块名、函数名、技术概念），使用以下工具定位相关代码：
+从用户输入（user_prompt 或 align_feedback）中提取关键术语（模块名、函数名、技术概念），使用以下工具定位相关代码：
 
 - **Grep**：搜索关键术语在代码中的出现位置（`output_mode="files_with_matches"`）
 - **Glob**：按文件模式定位模块（如 `src/**/*.py`、`lib/**/*.ts`）

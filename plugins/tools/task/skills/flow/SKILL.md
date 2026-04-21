@@ -9,201 +9,116 @@ disable-model-invocation: true
 argument-hint: [任务描述]
 ---
 
-# Flow Skill
+# Flow Skill — 状态机调度器
 
-对任务的计划、执行、监控进行管理。严格遵守状态转换规则，禁止偏离。
+你是一个**调度器**，不是解决问题的人。你的唯一工作是按顺序调用各阶段的 Skill/Agent，根据它们的返回结果决定下一步。
 
-## 强制要求（MUST）
+## 绝对禁止
 
-### 输出格式
+1. **禁止自行编写代码、修改文件、分析问题** — 所有实际工作由各阶段的 Agent/Skill 完成
+2. **禁止跳过任何阶段** — 必须依次经过 align → plan → exec → verify → done
+3. **禁止在未调用 `task update --status=X` 的情况下进入阶段 X**
+4. **禁止在前置数据文件缺失时进入下一阶段**：
+   - plan 需要 `align.json` 存在
+   - exec 需要 `task.json` 存在
+   - verify 需要 exec 执行完成
 
-所有回复（包括 thinking 部分）必须以以下前缀开头：
+## Task ID
 
+- 中文，≤10 字符，准确无歧义
+- 示例：修复登录Bug、优化查询、添加测试
+
+## 输出格式
+
+每条输出以 `[flow·{task_id}·{state}]` 开头。示例：`[flow·日志修复·align]`
+
+## 状态更新命令
+
+每次进入新阶段前**必须先执行**：
+
+```bash
+CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/main.py task update {task_id} --status={state}
 ```
-[flow·{task_id}·{state}]
-```
-
-- 默认状态：`pending`
-- 示例：`[flow·日志修复·pending]`
-
-### Task ID 规则
-
-- **必须是中文**
-- **简短**（≤10 个字符）
-- **准确**、**明确**、**无歧义**
-- ❌ 禁止使用非中文的 task_id
-- 示例：修复登录Bug、优化查询性能、添加单元测试
-
-### 启动流程
-
-1. 生成符合规则的中文 task_id
-2. 在回复开头添加 `[flow·{task_id}·pending]` 前缀
-3. 进入状态机主循环
-4. 结束后废弃 task_id
-
-## 绝对规则
-
-- **禁止提前终止**：必须完成所有状态流转
-- **禁止带问题完成**：存在未解决问题 = 失败
-
-## 入口点
-
-- **新任务** → pending
-- **用户新输入** → align
-- **用户取消** → cancel
 
 ## 执行流程
 
-> 新任务时触发
+收到任务后，严格按以下步骤执行。每一步都是一个独立的工具调用，不可合并或省略。
 
-```python
-from claude import Agent, Skill, UserPrompt
+### 步骤 1：初始化
 
-user_prompt = UserPrompt()
-adjust_result = None
+1. 从用户输入生成中文 task_id
+2. 输出 `[flow·{task_id}·pending]`
+3. 确定起始状态（新任务从 align 开始，resume 从指定状态开始）
 
-# CRITICAL: 验证并生成中文task_id
-if not task_id or not contains_chinese(task_id):
-	task_id = generate_task_id(user_prompt)
-	# 要求：中文、≤10字符、准确无歧义
-	# 示例：修复登录Bug、优化查询性能、添加单元测试
+### 步骤 2：align（范围对齐）
 
-def update_status(status):
-	Bash(command=f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task update {task_id} --status={status}")
+1. 执行 `task update {task_id} --status=align`
+2. 调用 `Skill("task:align")`，传入 task_id
+3. 如果 align 返回 need_explore=true → 转步骤 2a
+4. 否则 → 转步骤 3
 
-# 状态机主循环
-# 支持从 resume skill 传入的恢复状态
-state = environment.get("resume_from", "align")
+#### 步骤 2a：explore（上下文探索）
 
-while state != "done":
+1. 执行 `task update {task_id} --status=explore`
+2. 调用 `Agent("task:explore")`，传入 task_id 和用户原始输入
+3. 完成后 → 回到步骤 2
 
-	if state == "align":
-		update_status("align")
-		align_result = Skill(
-			skill="task:align",
-			environment={
-				"task_id": task_id,
-				"context_file": f".lazygophers/tasks/{task_id}/context.json",
-				"adjust_result": adjust_result
-			}
-		)
-		if align_result.get("need_explore"):
-			state = "explore"
-		else:
-			state = "plan"
+### 步骤 3：plan（任务规划）
 
-	elif state == "explore":
-		update_status("explore")
-		Agent(
-			description="探索项目上下文",
-			subagent_type="task:explore",
-			prompt=f"{user_prompt}",
-			mode="bypassPermissions",
-			environment={
-				"task_id": task_id,
-				"align_feedback": align_result.get("feedback"),
-				"adjust_result": adjust_result
-			}
-		)
-		state = "align"
+1. 执行 `task update {task_id} --status=plan`
+2. 调用 `Agent("task:plan")`，传入 task_id、context_file、align_file
+3. 如果 plan 返回"上下文缺失" → 转步骤 2a
+4. 否则 → 转步骤 4
 
-	elif state == "plan":
-		update_status("plan")
-		plan_result = Agent(
-			description="制定执行计划",
-			subagent_type="task:plan",
-			prompt=f"{user_prompt}",
-			mode="bypassPermissions",
-			environment={
-				"task_id": task_id,
-				"context_file": f".lazygophers/tasks/{task_id}/context.json",
-				"task_align_file": f".lazygophers/tasks/{task_id}/align.json",
-				"adjust_result": adjust_result
-			}
-		)
-		if plan_result.get("status") == "上下文缺失":
-			state = "explore"
-		else:
-			state = "exec"
+### 步骤 4：exec（任务执行）
 
-	elif state == "exec":
-		update_status("exec")
-		Skill(
-			skill="task:exec",
-			environment={
-				"task_id": task_id,
-				"context_file": f".lazygophers/tasks/{task_id}/context.json",
-				"task_file": f".lazygophers/tasks/{task_id}/task.json"
-			}
-		)
-		state = "verify"
+1. 执行 `task update {task_id} --status=exec`
+2. 调用 `Skill("task:exec")`，传入 task_id、context_file、task_file
+3. 完成后 → 转步骤 5
 
-	elif state == "verify":
-		update_status("verify")
-		verify_result = Agent(
-			description="验证执行结果",
-			subagent_type="task:verify",
-			prompt=f"{user_prompt}",
-			mode="bypassPermissions",
-			environment={
-				"task_id": task_id,
-				"context_file": f".lazygophers/tasks/{task_id}/context.json",
-				"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
-			}
-		)
-		if verify_result.get("status"):
-			state = "done"
-		else:
-			state = "adjust"
+### 步骤 5：verify（结果校验）
 
-	elif state == "adjust":
-		update_status("adjust")
-		adjust_result = Agent(
-			description="分析失败原因并调整",
-			subagent_type="task:adjust",
-			prompt=f"{user_prompt}",
-			mode="bypassPermissions",
-			environment={
-				"task_id": task_id,
-				"verify_result": verify_result,
-				"context_file": f".lazygophers/tasks/{task_id}/context.json",
-				"task_align_file": f".lazygophers/tasks/{task_id}/align.json"
-			}
-		)
-		# 根据调整结果路由到对应状态
-		status = adjust_result.get("status", "plan")
-		if status == "上下文缺失":
-			state = "explore"
-		elif status == "需求偏差":
-			state = "align"
-		elif status == "重新计划":
-			state = "plan"
-		elif status == "放弃":
-			state = "done"
-		else:
-			state = "plan"
+1. 执行 `task update {task_id} --status=verify`
+2. 调用 `Agent("task:verify")`，传入 task_id、context_file、align_file
+3. 如果校验通过 → 转步骤 6
+4. 如果校验失败 → 转步骤 5a
 
-# 完成：清理任务
-Skill(skill="task:done", environment={"task_id": task_id})
-Bash(command=f"CLAUDE_PROJECT_DIR=\"$(pwd)\" uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py task clean {task_id} --force")
+#### 步骤 5a：adjust（调整修正）
+
+1. 执行 `task update {task_id} --status=adjust`
+2. 调用 `Agent("task:adjust")`，传入 task_id、verify_result
+3. 根据返回的 status 路由：
+   - "上下文缺失" → 转步骤 2a
+   - "需求偏差" → 转步骤 2
+   - "重新计划" → 转步骤 3
+   - "放弃" → 转步骤 6
+
+### 步骤 6：done（完成）
+
+1. 调用 `Skill("task:done")`，传入 task_id
+2. 执行 `task clean {task_id} --force` 清理任务数据
+3. 流程结束
+
+## 各阶段调用参数参考
+
+```
+align:   Skill("task:align",   env={task_id, context_file, adjust_result})
+explore: Agent("task:explore", env={task_id, align_feedback, adjust_result})
+plan:    Agent("task:plan",    env={task_id, context_file, task_align_file, adjust_result})
+exec:    Skill("task:exec",    env={task_id, context_file, task_file})
+verify:  Agent("task:verify",  env={task_id, context_file, task_align_file})
+adjust:  Agent("task:adjust",  env={task_id, verify_result, context_file, task_align_file})
+done:    Skill("task:done",    env={task_id})
 ```
 
-## 用户新输入
+文件路径：
+- context_file: `.lazygophers/tasks/{task_id}/context.json`
+- task_align_file: `.lazygophers/tasks/{task_id}/align.json`
+- task_file: `.lazygophers/tasks/{task_id}/task.json`
 
-> 用户有新的会中断语义的输入时触发
+## 用户中断
 
-```python
-from claude import Skill
-
-# 清理当前任务
-if task_id:
-	Skill(
-		skill="task:done",
-		environment={
-			"task_id": task_id,
-		}
-	)
-```
+用户有新的中断语义输入时，调用 `Skill("task:done")` 清理当前任务。
 
 ## 状态转换规则
 
