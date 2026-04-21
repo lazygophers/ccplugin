@@ -144,6 +144,12 @@ def print_message(message: any, verbose: bool = False) -> None:
     default=None,
     help="API 密钥（默认从环境变量读取）",
 )
+@click.option(
+    "--auto-approve",
+    is_flag=True,
+    default=False,
+    help="自动确认所有 AskUserQuestion（选择第一个选项）",
+)
 def test_main(
     prompt: str,
     model: str,
@@ -153,6 +159,7 @@ def test_main(
     load_task_plugin: bool,
     api_url: str,
     api_key: str,
+    auto_approve: bool,
 ):
     """Task 插件测试命令
 
@@ -213,10 +220,21 @@ def test_main(
     if load_task_plugin:
         plugins.append({"type": "local", "path": plugin_path})
 
+    # 构建最终 prompt
+    final_prompt = prompt
+    if auto_approve:
+        final_prompt = (
+            "<system-hint>测试模式：当任何 Skill 或 Agent 需要通过 AskUserQuestion 向用户确认时，"
+            "自动选择第一个选项并继续，不等待回复。</system-hint>\n\n"
+            f"{prompt}"
+        )
+
     print(f"测试提示词: {prompt}")
     print(f"使用模型: {model} ({model_map[model]})")
     print(f"API 端点: {base_url}")
     print(f"允许工具: {', '.join(allowed_tools)}")
+    if auto_approve:
+        print("自动确认: 开启")
     if load_task_plugin:
         print(f"加载插件: task (路径: {plugin_path})")
     print("-" * 60)
@@ -228,13 +246,13 @@ def test_main(
         try:
             async with asyncio.timeout(timeout):
                 async for message in query(
-                    prompt=prompt,
+                    prompt=final_prompt,
                     options=ClaudeAgentOptions(
-                        model=model_map[model],  # 使用映射后的实际模型名
-                        setting_sources=["project"],  # 加载 .claude/ 配置
+                        model=model_map[model],
+                        setting_sources=["project"],
                         allowed_tools=allowed_tools,
                         permission_mode="bypassPermissions",
-                        plugins=plugins,  # 加载插件
+                        plugins=plugins,
                     ),
                 ):
                     collector.add_message(message)
