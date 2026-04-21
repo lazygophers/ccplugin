@@ -21,7 +21,8 @@ from test_helpers import MessageCollector
 
 
 # 环境变量默认值
-DEFAULT_BASE_URL = "https://api.anthropic.com"
+DEFAULT_BASE_URL = "http://127.0.0.1:14005"
+DEFAULT_AUTH_TOKEN = "PROXY_MANAGED"
 DEFAULT_SONNET_MODEL = "claude-sonnet-4-5"
 DEFAULT_OPUS_MODEL = "claude-opus-4-7"
 DEFAULT_HAIKU_MODEL = "claude-haiku-4-5"
@@ -97,7 +98,7 @@ def print_message(message: any, verbose: bool = False) -> None:
 @click.option(
     "--api-url",
     default=None,
-    help=f"API 端点 URL（默认: {DEFAULT_BASE_URL}）",
+    help="API 端点 URL（默认: http://127.0.0.1:14005）",
 )
 @click.option(
     "--api-key",
@@ -124,7 +125,7 @@ def test_main(
         task test "优化查询性能" -m haiku -v
 
     环境变量（带默认值）:
-        ANTHROPIC_BASE_URL: API 端点（默认: https://api.anthropic.com）
+        ANTHROPIC_BASE_URL: API 端点（默认: http://127.0.0.1:14005）
         ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY: API 密钥
         ANTHROPIC_DEFAULT_SONNET_MODEL: sonnet 模型名（默认: claude-sonnet-4-5）
         ANTHROPIC_DEFAULT_OPUS_MODEL: opus 模型名（默认: claude-opus-4-7）
@@ -133,7 +134,7 @@ def test_main(
     # 设置环境变量默认值
     base_url = api_url or get_env_with_default("ANTHROPIC_BASE_URL", DEFAULT_BASE_URL)
     auth_token = api_key or get_env_with_default(
-        "ANTHROPIC_AUTH_TOKEN", get_env_with_default("ANTHROPIC_API_KEY", "")
+        "ANTHROPIC_AUTH_TOKEN", get_env_with_default("ANTHROPIC_API_KEY", DEFAULT_AUTH_TOKEN)
     )
 
     # 模型映射
@@ -149,12 +150,7 @@ def test_main(
 
     # 设置环境变量（Agent SDK 会读取）
     os.environ["ANTHROPIC_BASE_URL"] = base_url
-    if auth_token:
-        os.environ["ANTHROPIC_AUTH_TOKEN"] = auth_token
-    else:
-        print("⚠️  警告: 未设置 API 密钥")
-        print("请设置环境变量 ANTHROPIC_AUTH_TOKEN 或 ANTHROPIC_API_KEY")
-        print("或使用 --api-key 参数")
+    os.environ["ANTHROPIC_AUTH_TOKEN"] = auth_token
 
     # 默认工具集
     default_tools = [
