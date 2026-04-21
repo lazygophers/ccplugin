@@ -58,21 +58,39 @@ def print_message(message: any, verbose: bool = False) -> None:
     elif msg_class == "ResultMessage":
         result = getattr(message, "result", "")
         if result:
-            print(f"\n✅ [结果]\n{result}\n")
+            print("\n" + "=" * 60)
+            print("📋 执行结果")
+            print("=" * 60)
+            print(f"\n{result}\n")
+            print("=" * 60)
 
     # AssistantMessage（模型的文本回复）
     elif msg_class == "AssistantMessage":
         content = getattr(message, "content", [])
+        has_text = False
+
         for block in content:
             block_type = getattr(block, "type", "")
             if block_type == "text":
                 text = getattr(block, "text", "")
                 if text:
+                    if not has_text:
+                        print("\n" + "─" * 60)
+                        print("💬 模型响应")
+                        print("─" * 60 + "\n")
+                        has_text = True
                     print(f"{text}")
             elif block_type == "thinking":
                 thinking = getattr(block, "thinking", "")
                 if thinking and verbose:
-                    print(f"\n💭 [思考]\n{thinking}\n")
+                    print("\n" + "─" * 60)
+                    print("💭 思考过程")
+                    print("─" * 60)
+                    print(f"\n{thinking}\n")
+                    print("─" * 60)
+
+        if has_text:
+            print("\n" + "─" * 60)
 
     # ToolUseMessage
     elif msg_class == "ToolUseMessage":
