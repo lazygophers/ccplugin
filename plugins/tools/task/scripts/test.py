@@ -29,48 +29,90 @@ DEFAULT_HAIKU_MODEL = "claude-haiku-4-5"
 
 
 def get_env_with_default(key: str, default: str = "") -> str:
-    """获取环境变量，如果不存在则使用默认值"""
-    return os.environ.get(key, default)
+    """获取环境变量，如果不存在或为空则使用默认值"""
+    value = os.environ.get(key, default)
+    # 如果环境变量存在但为空字符串，使用默认值
+    return value if value else default
 
 
 def print_message(message: any, verbose: bool = False) -> None:
-    """打印消息（根据 verbose 级别）"""
-    msg_type = getattr(message, "type", "unknown")
+    """打印消息（默认显示所有重要内容）"""
+    # 使用类名判断消息类型
+    msg_class = type(message).__name__
 
-    if msg_type == "system":
+    # SystemMessage
+    if msg_class == "SystemMessage":
         subtype = getattr(message, "subtype", "")
-        if verbose:
-            print(f"[系统] {subtype}: {getattr(message, 'data', {})}")
         if subtype == "init":
             session_id = getattr(message, "session_id", "N/A")
-            print(f"[系统] 会话初始化: {session_id}")
+            if verbose:
+                print(f"[系统] 会话初始化: {session_id}")
+        elif subtype in ["hook_started", "hook_response"]:
+            if verbose:
+                hook_name = getattr(message, "data", {}).get("hook_name", "")
+                print(f"[系统] Hook: {hook_name}")
+        elif verbose:
+            print(f"[系统] {subtype}")
 
-    elif msg_type == "result":
+    # ResultMessage
+    elif msg_class == "ResultMessage":
         result = getattr(message, "result", "")
         if result:
-            print(f"\n{result}\n")
-        else:
-            print("[结果] (空)")
+            print(f"\n✅ [结果]\n{result}\n")
 
-    elif msg_type == "tool_use":
+    # AssistantMessage（模型的文本回复）
+    elif msg_class == "AssistantMessage":
+        content = getattr(message, "content", [])
+        for block in content:
+            block_type = getattr(block, "type", "")
+            if block_type == "text":
+                text = getattr(block, "text", "")
+                if text:
+                    print(f"{text}")
+            elif block_type == "thinking":
+                thinking = getattr(block, "thinking", "")
+                if thinking and verbose:
+                    print(f"\n💭 [思考]\n{thinking}\n")
+
+    # ToolUseMessage
+    elif msg_class == "ToolUseMessage":
         tool_name = getattr(message, "name", "unknown")
         if verbose:
-            print(f"[工具] 调用 {tool_name}: {getattr(message, 'input', {})}")
+            tool_input = getattr(message, "input", {})
+            print(f"🔧 [工具] {tool_name}")
+            # 简化输出工具参数
+            if isinstance(tool_input, dict) and len(tool_input) < 5:
+                for key, value in tool_input.items():
+                    value_str = str(value)[:100]  # 限制长度
+                    print(f"   {key}: {value_str}")
         else:
-            print(f"[工具] {tool_name}")
+            print(f"🔧 [工具] {tool_name}")
 
-    elif msg_type == "text":
+    # ToolResultMessage
+    elif msg_class == "ToolResultMessage":
+        if verbose:
+            tool_use_id = getattr(message, "tool_use_id", "")
+            is_error = getattr(message, "is_error", False)
+            if is_error:
+                print(f"❌ [工具结果] 错误")
+            else:
+                print(f"✓ [工具结果] 成功")
+
+    # TextMessage（流式输出）
+    elif msg_class == "TextMessage":
         text = getattr(message, "text", "")
         if text:
-            print(f"[输出] {text}")
+            # 流式输出，不换行
+            print(text, end="", flush=True)
 
-    elif msg_type == "error" or msg_type == "input_json_delta":
-        if verbose:
-            print(f"[{msg_type}] {message}")
+    # ErrorMessage
+    elif msg_class == "ErrorMessage":
+        error_msg = getattr(message, "error", message)
+        print(f"\n❌ [错误] {error_msg}\n")
 
+    # 其他未知类型（verbose 时显示）
     elif verbose:
-        # 其他未处理的消息类型
-        print(f"[{msg_type}] {message}")
+        print(f"\n[{msg_class}] 未处理的消息类型")
 
 
 @click.command()
