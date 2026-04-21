@@ -22,6 +22,7 @@ background: false
 
 ## 约束
 
+- **项目范围**：所有文件路径必须相对于 `project_root`（由 flow 传入，默认 `$(pwd)`）
 - **静默完成**：不使用 AskUserQuestion，不与用户交互
 - **风格遵守**：子任务命名、文件组织必须遵循 align.json 中锁定的项目风格
 - **并行限制**：并行任务数量 ≤ 2

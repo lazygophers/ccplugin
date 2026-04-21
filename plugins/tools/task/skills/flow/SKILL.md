@@ -99,19 +99,24 @@ CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/mai
 2. 执行 `task clean {task_id} --force` 清理任务数据
 3. 流程结束
 
+## 项目根路径
+
+所有阶段必须在**用户的项目根目录**中工作，即 `$(pwd)` 的值。
+在步骤 1 初始化时记录 `project_root = $(pwd)`，后续各阶段的文件操作、搜索、工具调用都必须限定在此目录内。
+
 ## 各阶段调用参数参考
 
 ```
-align:   Skill("task:align",   env={task_id, context_file, adjust_result})
-explore: Agent("task:explore", env={task_id, align_feedback, adjust_result})
-plan:    Agent("task:plan",    env={task_id, context_file, task_align_file, adjust_result})
-exec:    Skill("task:exec",    env={task_id, context_file, task_file})
-verify:  Agent("task:verify",  env={task_id, context_file, task_align_file})
-adjust:  Agent("task:adjust",  env={task_id, verify_result, context_file, task_align_file})
-done:    Skill("task:done",    env={task_id})
+align:   Skill("task:align",   env={task_id, project_root, context_file, adjust_result})
+explore: Agent("task:explore", env={task_id, project_root, align_feedback, adjust_result})
+plan:    Agent("task:plan",    env={task_id, project_root, context_file, task_align_file, adjust_result})
+exec:    Skill("task:exec",    env={task_id, project_root, context_file, task_file})
+verify:  Agent("task:verify",  env={task_id, project_root, context_file, task_align_file})
+adjust:  Agent("task:adjust",  env={task_id, project_root, verify_result, context_file, task_align_file})
+done:    Skill("task:done",    env={task_id, project_root})
 ```
 
-文件路径：
+文件路径（相对于 project_root）：
 - context_file: `.lazygophers/tasks/{task_id}/context.json`
 - task_align_file: `.lazygophers/tasks/{task_id}/align.json`
 - task_file: `.lazygophers/tasks/{task_id}/task.json`

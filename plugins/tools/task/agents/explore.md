@@ -22,6 +22,7 @@ background: false
 
 ## 约束
 
+- **项目范围**：所有文件操作和搜索必须限定在 `project_root` 目录内（由 flow 传入，默认 `$(pwd)`）
 - **只读**：禁止修改项目源代码，仅允许写入 `.lazygophers/tasks/{task_id}/context.json`
 - **静默完成**：不使用 AskUserQuestion，不与用户交互
 - **目标导向**：只探索与任务相关的代码，不做全局扫描
