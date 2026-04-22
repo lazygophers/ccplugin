@@ -140,8 +140,9 @@ align_result = {
 	"code_style_follow": locked_style
 }
 
-# === 阶段6：确认对齐结果 ===
-# align 总是需要用户确认对齐结果
+# === 阶段6：确认对齐结果（硬性门控，不可跳过） ===
+# ⚠ 这是整个流程中唯一的用户确认点，必须通过 AskUserQuestion 执行
+# 无论任务多简单，都不允许跳过此步骤
 final_response = AskUserQuestion(
 	questions=[{
 		"question": f"对齐结果：\\n\\n目标：{task_goal}\\n\\n验收标准：\\n{format_criteria(acceptance_criteria)}\\n\\n边界：\\n{format_boundary(boundary)}\\n\\n项目风格：\\n{format_code_style(locked_style)}\\n\\n确认此对齐结果？",
@@ -175,7 +176,8 @@ if final_response["范围对齐确认"] == "需要调整":
 		"feedback": f"用户反馈需要调整：{adjustment['调整说明']}"
 	}
 
-# === 写入对齐结果 ===
+# === 写入对齐结果（仅在用户确认后） ===
+align_result["user_confirmed"] = True
 write_json(align_file, align_result)
 
 return align_result
