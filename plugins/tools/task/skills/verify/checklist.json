@@ -45,6 +45,26 @@
         {"category": "回归", "check": "现有测试全部通过"},
         {"category": "回归", "check": "修复未改变正常功能行为"}
       ]
+    },
+    "performance": {
+      "name": "性能优化验证",
+      "checks": [
+        {"category": "功能", "check": "优化后功能行为未改变"},
+        {"category": "质量", "check": "基准测试显示性能提升"},
+        {"category": "质量", "check": "无内存泄漏或资源未释放"},
+        {"category": "回归", "check": "现有测试全部通过"},
+        {"category": "回归", "check": "未引入新的 lint/type 错误"}
+      ]
+    },
+    "migration": {
+      "name": "迁移升级验证",
+      "checks": [
+        {"category": "功能", "check": "迁移后功能行为与迁移前一致"},
+        {"category": "功能", "check": "废弃 API 已全部替换"},
+        {"category": "质量", "check": "无遗留的兼容性 shim 或 TODO"},
+        {"category": "回归", "check": "完整测试套件全部通过"},
+        {"category": "回归", "check": "构建/lint/type 检查无新增错误"}
+      ]
     }
   }
 }

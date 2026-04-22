@@ -1,0 +1,27 @@
+{
+  "name": "性能优化",
+  "task_type": "performance",
+  "subtask_pattern": [
+    {
+      "id": "profile",
+      "description": "性能分析",
+      "goal": "定位瓶颈：通过基准测试、profiling 或日志分析确定热点",
+      "estimated_complexity": "medium",
+      "dependencies": []
+    },
+    {
+      "id": "optimize",
+      "description": "实施优化",
+      "goal": "针对热点实施优化，记录优化前后的对比数据",
+      "estimated_complexity": "high",
+      "dependencies": ["profile"]
+    },
+    {
+      "id": "benchmark",
+      "description": "基准验证",
+      "goal": "运行基准测试，确认性能提升且无功能回归",
+      "estimated_complexity": "low",
+      "dependencies": ["optimize"]
+    }
+  ]
+}

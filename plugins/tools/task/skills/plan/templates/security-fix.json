@@ -1,0 +1,27 @@
+{
+  "name": "安全修复",
+  "task_type": "security-fix",
+  "subtask_pattern": [
+    {
+      "id": "audit",
+      "description": "安全审计",
+      "goal": "定位漏洞位置，分析攻击面和影响范围",
+      "estimated_complexity": "medium",
+      "dependencies": []
+    },
+    {
+      "id": "fix",
+      "description": "实施修复",
+      "goal": "修复漏洞，遵循最小权限和纵深防御原则",
+      "estimated_complexity": "medium",
+      "dependencies": ["audit"]
+    },
+    {
+      "id": "harden",
+      "description": "加固验证",
+      "goal": "添加输入校验、边界检查或安全测试，防止同类漏洞复发",
+      "estimated_complexity": "medium",
+      "dependencies": ["fix"]
+    }
+  ]
+}

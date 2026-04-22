@@ -1,0 +1,27 @@
+{
+  "name": "Bug 修复",
+  "task_type": "bug-fix",
+  "subtask_pattern": [
+    {
+      "id": "locate",
+      "description": "定位问题根因",
+      "goal": "通过日志、堆栈追踪或代码分析定位 Bug 根因",
+      "estimated_complexity": "medium",
+      "dependencies": []
+    },
+    {
+      "id": "fix",
+      "description": "实现修复",
+      "goal": "修复定位到的问题，确保最小化改动",
+      "estimated_complexity": "medium",
+      "dependencies": ["locate"]
+    },
+    {
+      "id": "verify",
+      "description": "验证修复",
+      "goal": "运行相关测试，确认问题已修复且无回归",
+      "estimated_complexity": "low",
+      "dependencies": ["fix"]
+    }
+  ]
+}

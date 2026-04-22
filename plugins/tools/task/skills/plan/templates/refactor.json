@@ -1,0 +1,27 @@
+{
+  "name": "代码重构",
+  "task_type": "refactor",
+  "subtask_pattern": [
+    {
+      "id": "analyze",
+      "description": "分析现有代码",
+      "goal": "理解现有代码结构、依赖关系和调用者",
+      "estimated_complexity": "medium",
+      "dependencies": []
+    },
+    {
+      "id": "refactor",
+      "description": "执行重构",
+      "goal": "按计划重构代码，保持外部行为不变",
+      "estimated_complexity": "high",
+      "dependencies": ["analyze"]
+    },
+    {
+      "id": "verify",
+      "description": "验证行为不变",
+      "goal": "运行所有相关测试，确认行为未改变",
+      "estimated_complexity": "low",
+      "dependencies": ["refactor"]
+    }
+  ]
+}

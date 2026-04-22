@@ -1,0 +1,27 @@
+{
+  "name": "新功能开发",
+  "task_type": "new-feature",
+  "subtask_pattern": [
+    {
+      "id": "design",
+      "description": "接口/数据结构设计",
+      "goal": "设计功能的接口、数据结构和交互流程",
+      "estimated_complexity": "medium",
+      "dependencies": []
+    },
+    {
+      "id": "implement",
+      "description": "核心实现",
+      "goal": "实现功能的核心逻辑",
+      "estimated_complexity": "high",
+      "dependencies": ["design"]
+    },
+    {
+      "id": "test",
+      "description": "编写测试",
+      "goal": "为新功能编写测试，覆盖正常路径和边界条件",
+      "estimated_complexity": "medium",
+      "dependencies": ["implement"]
+    }
+  ]
+}

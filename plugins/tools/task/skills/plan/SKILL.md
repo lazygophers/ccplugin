@@ -147,7 +147,18 @@ return {"status": "confirmed", "iterations": i + 1, "assessment": assessment}
 
 ## 任务模板
 
-预定义的常见任务类型拆分模式见 [template.json](template.json)，包含 bug-fix / new-feature / refactor 三种类型的子任务拆分模式。当任务匹配已知模板时，优先使用模板作为拆分起点。
+预定义的任务类型拆分模式见 [templates/](templates/) 目录，每种类型一个独立文件：
+
+| 文件 | 类型 | 适用场景 |
+|------|------|---------|
+| `bug-fix.json` | Bug 修复 | 定位→修复→验证 |
+| `new-feature.json` | 新功能开发 | 设计→实现→测试 |
+| `refactor.json` | 代码重构 | 分析→重构→验证行为不变 |
+| `security-fix.json` | 安全修复 | 审计→修复→加固 |
+| `performance.json` | 性能优化 | 分析→优化→基准验证 |
+| `migration.json` | 迁移升级 | 评估→迁移→全量验证 |
+
+当任务匹配已知模板时，优先使用模板作为拆分起点。
 
 ## 检查清单
 

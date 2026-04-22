@@ -76,19 +76,48 @@ else:
 last_status = task["status"]
 task_dir = f".lazygophers/tasks/{target_id}"
 
-# 检查数据文件完整性，确定实际可恢复的状态
-has_context = exists(f"{task_dir}/context.json")
-has_align = exists(f"{task_dir}/align.json")
-has_plan = exists(f"{task_dir}/task.json")
+# === 数据文件完整性验证 ===
+# 不仅检查文件是否存在，还验证必需字段是否完整
+# 文件损坏或字段缺失时视为不存在，降级到更早的恢复点
+
+def validate_file(path, required_fields):
+    """验证文件存在且包含所有必需字段，返回 (is_valid, data)"""
+    if not exists(path):
+        return False, None
+    try:
+        data = read_json(path)
+    except Exception:
+        print(f"  ⚠ 文件损坏，跳过: {path}")
+        return False, None
+    missing = [f for f in required_fields if not data.get(f)]
+    if missing:
+        print(f"  ⚠ 文件不完整（缺少 {', '.join(missing)}）: {path}")
+        return False, None
+    return True, data
+
+# context.json 必需字段：task_related（定位信息）、code_style（风格约定）
+has_context, _ = validate_file(
+    f"{task_dir}/context.json",
+    ["task_related", "code_style"]
+)
+
+# align.json 必需字段：task_goal（目标）、acceptance_criteria（验收标准）
+has_align, _ = validate_file(
+    f"{task_dir}/align.json",
+    ["task_goal", "acceptance_criteria"]
+)
+
+# task.json 必需字段：subtasks（子任务列表）
+has_plan, plan_data = validate_file(
+    f"{task_dir}/task.json",
+    ["subtasks"]
+)
 
 # 读取执行检查点（如果存在），获取更精确的恢复信息
-checkpoint = None
-if has_plan:
-    plan = read_json(f"{task_dir}/task.json")
-    checkpoint = plan.get("checkpoint")
+checkpoint = plan_data.get("checkpoint") if plan_data else None
 
 # 状态恢复映射
-# 根据中断时的状态、数据文件和检查点，确定 flow 应从哪个状态开始
+# 根据中断时的状态、数据文件完整性和检查点，确定 flow 应从哪个状态开始
 resume_state = determine_resume_state(last_status, has_context, has_align, has_plan, checkpoint)
 
 if checkpoint:
@@ -151,7 +180,11 @@ def determine_resume_state(last_status, has_context, has_align, has_plan, checkp
 - [ ] index.json 已读取
 - [ ] 未完成任务已筛选
 - [ ] 用户已选择/指定恢复目标
-- [ ] 数据文件完整性已检查
+- [ ] 数据文件完整性已验证（存在性 + 必需字段）
+  - context.json: task_related, code_style
+  - align.json: task_goal, acceptance_criteria
+  - task.json: subtasks
+- [ ] 损坏/不完整的文件已降级处理
 - [ ] 恢复状态已确定
 - [ ] flow skill 已调用（携带 resume_from）
 

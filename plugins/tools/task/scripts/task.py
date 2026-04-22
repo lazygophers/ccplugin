@@ -283,16 +283,13 @@ def cleanup(task_id: str, force: bool):
 
     # 确认操作
     if not force:
-        click.echo("准备清理任务：")
-        click.echo(f"  ID: {task_id}")
-        click.echo(f"  描述: {description}")
-        click.echo(f"  状态: {status}")
-        click.echo(f"  目录: {task_dir}")
-        if not click.confirm("\n确认清理此任务？此操作不可撤销"):
-            click.echo("已取消清理")
-            return
-        # 再次确认
-        if not click.confirm("再次确认：真的要删除此任务吗？"):
+        if not click.confirm(
+            f"确认清理任务（不可撤销）？\n"
+            f"  ID: {task_id}\n"
+            f"  描述: {description}\n"
+            f"  状态: {status}\n"
+            f"  目录: {task_dir}"
+        ):
             click.echo("已取消清理")
             return
 

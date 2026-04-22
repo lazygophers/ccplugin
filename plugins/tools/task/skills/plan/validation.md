@@ -1,5 +1,44 @@
 # Plan 验证逻辑
 
+## 判断函数定义
+
+```python
+def is_atomic(task):
+    """原子性判断：满足以下全部条件"""
+    files = task.get("files", [])
+    criteria = task.get("acceptance_criteria", [])
+    complexity = task.get("estimated_complexity", "medium")
+    return (
+        len(files) <= 5              # 修改文件数 ≤ 5
+        and len(criteria) <= 5       # 验收标准 ≤ 5 条
+        and complexity != "high"     # 复杂度不为 high（high 应进一步拆分）
+        or len(files) <= 2           # 例外：文件 ≤ 2 时允许 high 复杂度
+    )
+
+def has_side_effects(task):
+    """副作用检测：goal 或 description 中包含不可重试操作的关键词"""
+    text = f"{task.get('goal', '')} {task.get('description', '')}".lower()
+    irreversible_keywords = [
+        "发送邮件", "send email", "发送通知", "send notification",
+        "删除数据", "drop table", "truncate", "rm -rf",
+        "发布", "deploy", "push to production",
+    ]
+    return any(kw in text for kw in irreversible_keywords)
+
+def has_clear_criteria(task):
+    """验收标准清晰度：每条标准包含可验证的动词或量化指标"""
+    criteria = task.get("acceptance_criteria", [])
+    if not criteria:
+        return False
+    verifiable_patterns = [
+        "返回", "输出", "通过", "包含", "等于", "不超过",
+        "return", "output", "pass", "contain", "equal", "less than",
+    ]
+    return all(
+        any(p in c.lower() for p in verifiable_patterns) for c in criteria
+    )
+```
+
 ## 自我验证
 
 ```python

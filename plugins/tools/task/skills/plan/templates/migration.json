@@ -1,0 +1,27 @@
+{
+  "name": "迁移升级",
+  "task_type": "migration",
+  "subtask_pattern": [
+    {
+      "id": "assess",
+      "description": "兼容性评估",
+      "goal": "分析迁移影响范围，列出不兼容变更和废弃 API",
+      "estimated_complexity": "medium",
+      "dependencies": []
+    },
+    {
+      "id": "migrate",
+      "description": "执行迁移",
+      "goal": "逐模块迁移，每步保持可编译/可运行状态",
+      "estimated_complexity": "high",
+      "dependencies": ["assess"]
+    },
+    {
+      "id": "validate",
+      "description": "全量验证",
+      "goal": "运行完整测试套件 + lint，确认迁移后行为一致",
+      "estimated_complexity": "medium",
+      "dependencies": ["migrate"]
+    }
+  ]
+}
