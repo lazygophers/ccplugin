@@ -26,220 +26,105 @@ argument-hint: [任务描述]
 
 ## 执行流程
 
-> 自动生成对齐结果，总是需要用户确认
-> **锁定项目风格，验收标准遵循 SMART-V 原则，使用语义化 name**
+### 步骤 1：检查上下文
 
-```python
-# 如果没有 task_id（独立调用），生成一个
-if not task_id:
-    task_id = generate_chinese_task_id(user_prompt)  # ≤10字符
-    Bash(f'CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/main.py task update {task_id} --status=align')
+读取 `.lazygophers/tasks/{task_id}/context.json`。
 
-# 检查上下文文件是否存在且完整
-context_file = f".lazygophers/tasks/{task_id}/context.json"
+- 如果文件存在且包含 `task_related` 和 `code_style` → 继续步骤 2
+- 如果文件不存在，但用户 prompt 中已明确指定了文件路径和修改内容 → 从 prompt 中提取上下文，读取指定文件采样代码风格，写入 context.json 后继续步骤 2
+- 如果文件不存在且 prompt 信息不足 → 返回 `need_explore: true`，由 flow 调度 explore
 
-# === 快速上下文推断：用户 prompt 是否已包含足够信息 ===
-# 当 prompt 明确指定了文件路径和修改内容时，可跳过 explore
-if not exists(context_file) and is_prompt_self_contained(user_prompt):
-	# 从 prompt 中直接提取上下文（不需要全局探索）
-	context = infer_context_from_prompt(user_prompt)
-	# 补充基本的 code_style（从指定文件中快速采样）
-	if context.get("task_related", {}).get("files"):
-		context["code_style"] = quick_style_sample(context["task_related"]["files"][:3])
-	write_json(context_file, context)
+### 步骤 2：锁定项目风格
 
-# 如果上下文文件不存在，标记需要探索
-elif not exists(context_file):
-	return {
-		"need_explore": True,
-		"feedback": "上下文文件不存在，需要探索项目现状"
-	}
+从 context.json 的 `code_style` 字段获取项目风格（命名约定、缩进、导入模式等），作为后续所有阶段的锁定风格。无需用户确认。
 
-# 读取探索结果
-context = read_json(context_file) if exists(context_file) else context
+### 步骤 3：识别任务类型
 
-# 验证上下文完整性
-if not context or not context.get("task_related") or not context.get("code_style"):
-	return {
-		"need_explore": True,
-		"feedback": "上下文不完整，缺少关键字段（task_related 或 code_style）"
-	}
+根据用户 prompt 中的关键词判断任务类型，匹配预定义模板：
 
-# 检查是否已有对齐结果
-align_file = f".lazygophers/tasks/{task_id}/align.json"
-existing_align = read_json(align_file) if exists(align_file) else None
+| 关键词 | 任务类型 |
+|--------|---------|
+| 修复/fix/bug/报错/失败 | bug-fix |
+| 添加/新增/实现/开发/功能 | new-feature |
+| 重构/优化/整理/简化 | refactor |
+| 测试/test/覆盖 | add-tests |
+| 安全/漏洞/CVE/注入 | security-fix |
 
-# 如果是从 adjust 返回，加载之前的反馈
-previous_feedback = adjust_result.get("reason") if adjust_result else None
+匹配到模板时以模板为基础细化，未匹配时完全自主生成。模板文件见 [templates/](templates/) 目录。
 
-# === 阶段1：锁定项目风格 ===
-code_style = context.get("code_style", {})
-# 自动使用探索阶段检测的风格，无需确认（除非明显错误）
-locked_style = code_style
+### 步骤 4：生成任务目标和验收标准
 
-# === 阶段2：识别任务类型并加载模板 ===
-# 从 user_prompt 中识别任务类型，匹配 template.json 中的预定义模板
-templates = read_json("template.json")["templates"]
-task_type = classify_task_type(user_prompt, context)
-# 分类规则：
-#   "修复"/"fix"/"bug"/"报错"/"失败" → bug-fix
-#   "添加"/"新增"/"实现"/"开发"/"功能" → new-feature
-#   "重构"/"优化"/"整理"/"简化"    → refactor
-#   "测试"/"test"/"覆盖"           → add-tests
-#   "安全"/"漏洞"/"CVE"/"注入"     → security-fix
-#   无法识别                        → None（不使用模板）
-template = templates.get(task_type)
+基于用户 prompt、context.json 和模板（如有），生成：
 
-# === 阶段3：自动生成任务目标 ===
-if template:
-    # 有模板：以模板为基础，根据 user_prompt 细化
-    task_goal = template["task_goal"].replace("$ARGUMENTS", user_prompt)
-    acceptance_criteria = customize_criteria(template["acceptance_criteria"], user_prompt, context)
-    boundary = customize_boundary(template["boundary"], user_prompt, context)
-else:
-    # 无模板：完全自主生成
-    task_goal = extract_goal_from(user_prompt, context, previous_feedback)
-    acceptance_criteria = generate_criteria_from_context(user_prompt, context, previous_feedback)
-    boundary = {
-        "in_scope": extract_scope_from(user_prompt, context),
-        "out_of_scope": ["新功能添加（除非明确要求）", "架构重构", "性能优化（除非必要）", "文档更新（除非明确要求）"]
-    }
+**任务目标**（task_goal）：一句话描述要达成的结果。
 
-# 验收标准必须满足 SMART-V 原则（无论是否使用模板）
-# 每个标准必须包含：name（语义化）、description、SMART-V 属性
+**验收标准**（acceptance_criteria）：3-5 条，每条必须满足 SMART-V 原则：
+- **S**pecific：具体明确
+- **M**easurable：可量化验证
+- **A**chievable：可实现
+- **R**elevant：与目标相关
+- **T**ime-bound：有明确完成定义
+- **V**erifiable：可通过客观证据验证
 
-# === 阶段4.5：生成三层行为规约 ===
-# 基于任务类型和上下文，生成 agent 执行时的行为约束
-behavior_spec = {
-	"always_do": [
-		# 根据任务类型生成，示例：
-		"修改代码后运行相关测试确认通过",
-		"使用项目现有的错误处理模式",
-		"遵循 code_style_follow 中锁定的风格"
-	],
-	"ask_first": [
-		# 高风险但可能需要的操作
-		"修改数据库 schema 或数据模型",
-		"删除现有代码或文件"
-	],
-	"never_do": [
-		# 硬止点：从 boundary.out_of_scope 自动派生
-		*[f"执行: {item}" for item in boundary["out_of_scope"]],
-		"提交包含 secrets/credentials 的代码",
-		"跳过 lint/类型检查"
-	]
+每条标准结构：`name`（语义化，如 functionality / no_regression）+ `description`。
+
+**边界**（boundary）：
+- `in_scope`：本次任务要做的事
+- `out_of_scope`：明确不做的事（默认包含：新功能添加、架构重构、性能优化、文档更新，除非用户明确要求）
+
+如果是从 adjust 返回的重新对齐，参考 adjust 提供的失败原因调整上述内容。
+
+### 步骤 5：生成行为规约
+
+基于任务类型和边界，生成三层行为约束：
+
+- **always_do**：必须执行的操作（如"修改代码后运行测试"、"遵循锁定风格"）
+- **ask_first**：高风险操作需先确认（如"修改数据库 schema"、"删除现有代码"）
+- **never_do**：硬止点，从 out_of_scope 自动派生 + "禁止提交 secrets" + "禁止跳过 lint"
+
+### 步骤 6：向用户确认（硬性门控，不可跳过）
+
+> ⚠ 这是整个任务流程中唯一的用户确认点。无论任务多简单，都必须执行此步骤。
+
+通过 AskUserQuestion 向用户展示完整的对齐结果（目标、验收标准、边界、项目风格），提供两个选项：
+
+- **确认继续**：对齐结果正确，进入规划阶段
+- **需要调整**：需要修改
+
+如果用户选择"需要调整"，追问具体调整方向（目标不准确 / 标准不合理 / 边界不清晰 / 风格检测错误），然后返回 `need_explore: true` 携带用户反馈，由 flow 重新调度。
+
+### 步骤 7：写入对齐结果
+
+用户确认后，将以下内容写入 `.lazygophers/tasks/{task_id}/align.json`：
+
+```json
+{
+  "task_id": "任务ID",
+  "task_goal": "任务目标",
+  "acceptance_criteria": [...],
+  "boundary": {"in_scope": [...], "out_of_scope": [...]},
+  "behavior_spec": {"always_do": [...], "ask_first": [...], "never_do": [...]},
+  "code_style_follow": {...},
+  "user_confirmed": true
 }
-
-# === 阶段5：构建对齐结果 ===
-align_result = {
-	"task_id": task_id,
-	"task_goal": task_goal,
-	"acceptance_criteria": acceptance_criteria,
-	"boundary": boundary,
-	"behavior_spec": behavior_spec,
-	"code_style_follow": locked_style
-}
-
-# === 阶段6：确认对齐结果（硬性门控，不可跳过） ===
-# ⚠ 这是整个流程中唯一的用户确认点，必须通过 AskUserQuestion 执行
-# 无论任务多简单，都不允许跳过此步骤
-final_response = AskUserQuestion(
-	questions=[{
-		"question": f"对齐结果：\\n\\n目标：{task_goal}\\n\\n验收标准：\\n{format_criteria(acceptance_criteria)}\\n\\n边界：\\n{format_boundary(boundary)}\\n\\n项目风格：\\n{format_code_style(locked_style)}\\n\\n确认此对齐结果？",
-		"header": f"[flow·{task_id}·align] 范围对齐确认",
-		"options": [
-			{"label": "确认继续", "description": "对齐结果正确，开始规划"},
-			{"label": "需要调整", "description": "需要修改对齐结果"}
-		],
-		"multiSelect": False
-	}]
-)
-
-if final_response["范围对齐确认"] == "需要调整":
-	adjustment = AskUserQuestion(
-		questions=[{
-			"question": "请说明需要调整的部分",
-			"header": f"[flow·{task_id}·align] 调整说明",
-			"options": [
-				{"label": "目标不准确", "description": "任务目标理解有误"},
-				{"label": "标准不合理", "description": "验收标准需要调整"},
-				{"label": "边界不清晰", "description": "范围界定需要明确"},
-				{"label": "风格检测错误", "description": "项目风格识别有误"}
-			],
-			"multiSelect": True
-		}]
-	)
-
-	# 根据用户反馈调整，返回需要重新探索
-	return {
-		"need_explore": True,
-		"feedback": f"用户反馈需要调整：{adjustment['调整说明']}"
-	}
-
-# === 写入对齐结果（仅在用户确认后） ===
-align_result["user_confirmed"] = True
-write_json(align_file, align_result)
-
-return align_result
 ```
 
-## SMART-V 原则
+返回此对齐结果给 flow。
 
-每个验收标准必须满足：
-- **Specific**: 具体明确，不模糊
-- **Measurable**: 可量化或可明确验证
-- **Achievable**: 可实现，不超出能力范围
-- **Relevant**: 与任务目标相关
-- **Time-bound**: 有明确的完成定义
-- **Verifiable**: 可通过客观证据验证
+## 验收标准示例
 
-## 验收标准生成指南
-
-AI 应根据具体任务自主生成 3-5 个验收标准，每个标准必须：
-
-**结构要求**：
-- `name`: 语义化名称（如 functionality, style_compliant, no_regression）
-- `description`: 清晰的验收描述
-- SMART-V 属性：verifiable, measurable, achievable, relevant, result_oriented（至少包含一个）
-
-**常见标准示例**（仅供参考，不强制使用）：
-- 功能正确性：functionality, correctness, bug_resolved
-- 代码质量：style_compliant, readability, maintainability
-- 安全性：no_regression, no_new_risk, vulnerability_fixed
+常见语义化名称（仅供参考）：
+- 功能：functionality, correctness, bug_resolved
+- 质量：style_compliant, readability, maintainability
+- 安全：no_regression, no_new_risk, vulnerability_fixed
 - 性能：performance_improved, complexity_controlled
-- 完整性：error_handling, coverage, boundary_cases
-
-## 确认策略
-
-**总是需要确认** — align 阶段必须与用户确认对齐结果，无例外
 
 ## 检查清单
 
-### 对齐输出
-- [ ] task_goal: 清晰的任务目标
-- [ ] acceptance_criteria: 符合 SMART-V 的验收标准（使用语义化 name）
-- [ ] boundary: in_scope 和 out_of_scope
-- [ ] code_style_follow: 锁定的项目风格
-
-### 确认策略
-- [ ] 总是需要用户确认，无例外
-- [ ] 确认内容一次性展示所有结果
-- [ ] 支持调整反馈
-
-## 任务模板
-
-预定义的常见任务类型模板见 [template.json](template.json)，包含 5 种类型：
-
-| 类型 | 触发关键词 | 预设标准数 |
-|------|-----------|-----------|
-| bug-fix | 修复/fix/bug/报错/失败 | 3 |
-| new-feature | 添加/新增/实现/开发/功能 | 4 |
-| refactor | 重构/优化/整理/简化 | 3 |
-| add-tests | 测试/test/覆盖 | 3 |
-| security-fix | 安全/漏洞/CVE/注入 | 3 |
-
-模板使用规则：
-- 匹配到模板时，以模板的 acceptance_criteria 和 boundary 为初始值，根据具体任务细化
-- 模板中的 `$ARGUMENTS` 替换为用户输入的任务描述
-- 无论是否使用模板，最终标准都必须满足 SMART-V 原则
-
+- [ ] context.json 已读取或生成
+- [ ] 任务类型已识别
+- [ ] 3-5 条验收标准，每条满足 SMART-V
+- [ ] 边界（in_scope / out_of_scope）已明确
+- [ ] 行为规约三层已生成
+- [ ] **用户已通过 AskUserQuestion 确认**（不可跳过）
+- [ ] align.json 已写入，包含 `user_confirmed: true`

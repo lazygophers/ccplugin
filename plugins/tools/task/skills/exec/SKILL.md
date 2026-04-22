@@ -12,124 +12,65 @@ context: fork
 
 # Exec Skill
 
+基于 DAG 调度并执行子任务。**2 个协程并发执行，自动解析依赖。**
+
 ## 执行流程
 
-> 基于 DAG 调度并执行子任务
-> **2 个协程并发执行，自动解析依赖**
+### 步骤 1：加载数据（一次性预加载）
 
-```python
-# 读取执行计划
-plan = read_json(f".lazygophers/tasks/{task_id}/task.json")
-subtasks = {t["id"]: t for t in plan["subtasks"]}
-code_style = plan.get("code_style", {})
+读取以下文件，后续所有 worker 共享，不再重复读取：
 
-# === 一次性加载共享数据（避免 worker 重复读取） ===
-align = read_json(f".lazygophers/tasks/{task_id}/align.json") if exists(f".lazygophers/tasks/{task_id}/align.json") else {}
-behavior_spec = align.get("behavior_spec", {})
-context = read_json(f".lazygophers/tasks/{task_id}/context.json") if exists(f".lazygophers/tasks/{task_id}/context.json") else {}
-toolchain = context.get("toolchain", {})
+- `.lazygophers/tasks/{task_id}/task.json` — 子任务列表、code_style
+- `.lazygophers/tasks/{task_id}/align.json` — behavior_spec（行为规约）
+- `.lazygophers/tasks/{task_id}/context.json` — toolchain（测试/lint 命令）
 
-# === 阶段1：构建 DAG ===
-dag = {}
-for tid in subtasks:
-    dag[tid] = {"deps": [], "successors": []}
+### 步骤 2：构建 DAG
 
-for tid, task in subtasks.items():
-    deps = task.get("dependencies", [])
-    dag[tid]["deps"] = deps
-    for dep in deps:
-        if dep in dag:
-            dag[dep]["successors"].append(tid)
+遍历所有子任务，根据 `dependencies` 字段构建有向无环图：
+- 为每个子任务记录其依赖列表和后继列表
+- 验证无循环依赖，发现循环则立即报错终止
 
-# 验证无循环依赖
-if has_cycle(dag):
-    raise ValueError("DAG 包含循环依赖")
+### 步骤 3：初始化执行队列
 
-# === 阶段2：初始化状态和队列（支持部分完成恢复） ===
-status = {tid: subtasks[tid].get("status", "pending") for tid in subtasks}
-queue = []
-executing = set()
-completed = {tid for tid, s in status.items() if s == "completed"}
-failed = {tid for tid, s in status.items() if s == "failed"}
+支持部分完成恢复：
+- 已完成（status=completed）的子任务跳过
+- 已失败（status=failed）的子任务跳过
+- 所有依赖已完成的待执行子任务加入队列
 
-# 推送可执行任务（跳过已完成/已失败的）
-for tid in subtasks:
-    if status[tid] in ("completed", "failed"):
-        continue
-    if all(status.get(dep) == "completed" for dep in dag[tid]["deps"]):
-        queue.append(tid)
+### 步骤 4：启动 2 个 worker 协程
 
-# === 阶段3：启动 2 个 worker 协程 ===
-workers = []
-for i in range(2):
-    workers.append(spawn_worker(f"worker-{i}", queue, dag, status, executing, completed, failed, subtasks, code_style, task_id, behavior_spec, toolchain))
+每个 worker 从共享队列中取任务执行，Worker 的详细逻辑见 [worker.md](worker.md)。
 
-# === 阶段4：等待所有协程完成 ===
-wait_all(workers)
+核心循环：取任务 → 标记 running → 构建 prompt → 调用 Agent → 验证结果 → 更新状态 → 解锁后继。
 
-# === 阶段5：写入执行检查点（供 resume 精确恢复） ===
-checkpoint = {
+### 步骤 5：等待所有协程完成
+
+两个 worker 都退出后（队列空 + 无执行中 + 无可执行），写入执行检查点到 task.json：
+
+```json
+{
+  "checkpoint": {
     "state": "exec",
-    "completed_subtasks": list(completed),
-    "failed_subtasks": list(failed),
-    "pending_subtasks": [tid for tid, s in status.items() if s == "pending"],
-    "last_update": datetime.now().isoformat()
+    "completed_subtasks": ["A", "B"],
+    "failed_subtasks": ["C"],
+    "pending_subtasks": [],
+    "last_update": "ISO8601"
+  }
 }
-update_json(f".lazygophers/tasks/{task_id}/task.json", {"checkpoint": checkpoint})
-
-# === 阶段6：汇总结果 ===
-results = {
-    "total": len(status),
-    "completed": len(completed),
-    "failed": len(failed),
-    "status": status,
-    "failed_tasks": list(failed)
-}
-
-# 输出格式：所有输出必须包含前缀 [flow·{task_id}·{state}]
-print(f"[flow·{task_id}·exec] 任务执行完成：{results['completed']}/{results['total']} 成功")
-
-return results
 ```
 
-## Worker 协程逻辑
+### 步骤 6：汇总结果
 
-Worker 的状态更新、主循环、执行规则注入和依赖解锁的完整实现见 [worker.md](worker.md)。
-
-核心流程：从队列取任务 → 更新状态为 running → 构建 prompt（注入执行规则）→ 调用 Agent 执行 → 验证结果 → 更新状态 → 解锁后继任务。
+输出 `[flow·{task_id}·exec] 任务执行完成：N/M 成功`。
 
 ## 检查清单
 
-### DAG 构建
-- [ ] DAG 已构建
-- [ ] 依赖关系已验证
-- [ ] 无循环依赖
-
-### 队列管理
-- [ ] 初始可执行任务已入队
-- [ ] 任务去重机制已实现
-- [ ] 队列空检查已实现
-
-### 协程管理
-- [ ] 2 个协程已启动
-- [ ] 终止条件已实现
-- [ ] 协程清理已实现
-
-### 任务执行
-- [ ] background 强制为 False
+- [ ] DAG 已构建，无循环依赖
+- [ ] 初始可执行任务已入队（跳过已完成/已失败）
+- [ ] 2 个协程已启动，background 强制为 False
 - [ ] 状态已更新（pending/running/completed/failed/blocked）
 - [ ] task.json 已实时更新
 - [ ] 心跳时间戳已记录（started_at）
 - [ ] 即时验证已在子任务完成后执行
-
-### 依赖解析
-- [ ] 可执行性检查已实现
-- [ ] 后继任务已入队
-- [ ] 无重复推送
 - [ ] 失败传播已实现（failed → 下游 blocked）
-
-### 输出
-- [ ] 执行结果已汇总
-- [ ] 任务状态已更新
-- [ ] 失败任务已记录
-
+- [ ] 后继任务解锁已实现，无重复推送

@@ -2,190 +2,82 @@
 
 ## 状态更新
 
-```python
-import fcntl
+每次子任务状态变更时，原子性更新 task.json（带文件锁防止并发写覆盖）：
 
-def update_task_status(session_task_id, subtask_id, status, result=None):
-    """原子性更新 task.json 中任务状态（带文件锁，防止并发写覆盖）"""
-    task_file = f".lazygophers/tasks/{session_task_id}/task.json"
-
-    with open(task_file, "r+") as f:
-        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-        try:
-            content = f.read()
-            plan = json.loads(content) if content else {}
-
-            # 更新对应任务的状态
-            for task in plan.get("subtasks", []):
-                if task["id"] == subtask_id:
-                    task["status"] = status
-                    if result:
-                        task["result"] = result
-                    break
-
-            f.seek(0)
-            f.truncate()
-            json.dump(plan, f, indent=2, ensure_ascii=False)
-        finally:
-            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+```bash
+# 通过 fcntl.LOCK_EX 排他锁保护 task.json 的读-改-写过程
 ```
 
 ## Worker 主循环
 
-```python
-def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id, behavior_spec, toolchain):
-    while True:
-        # 检查终止条件：队列空 + 无执行中 + 无可执行
-        if len(queue) == 0 and len(executing) == 0:
-            remaining_executable = False
-            for tid in dag:
-                if status[tid] == "pending" and all(status.get(dep) == "completed" for dep in dag[tid]["deps"]):
-                    remaining_executable = True
-                    break
-            if not remaining_executable:
-                break  # 终止
+每个 worker 重复以下步骤直到终止：
 
-        # 等待任务
-        if len(queue) == 0:
-            sleep(0.1)
-            continue
+### 1. 检查终止条件
 
-        # 获取任务
-        tid = queue.pop(0)
-        executing.add(tid)
-        status[tid] = "running"
-        update_task_status(task_id, tid, "running")
+队列为空 + 无执行中任务 + 无可执行任务（所有 pending 任务的依赖均未完成）→ 退出循环。
 
-        # 执行任务（非后台执行）
-        task = subtasks[tid]
-        
-        # 构建最小必要上下文（避免上下文中毒）
-        # 只传入当前子任务需要的信息，不传入完整 plan
-        task_context = {
-            "goal": task["goal"],
-            "files": task.get("files", []),
-            "acceptance_criteria": task.get("acceptance_criteria", []),
-            "code_style": {k: v for k, v in code_style.items() 
-                          if k in ("naming", "indentation", "imports", "error_handling")}
-        }
+### 2. 从队列取任务
 
-        # behavior_spec 和 toolchain 由 exec 预加载传入，无需重复读取
+取出队列头部任务，标记为 running，记录心跳时间戳（started_at）。
 
-        # 构建包含执行规则 + 行为规约 + 自检要求的 prompt
-        execution_rules = f"""
-## 执行规则（必须严格遵守）
+### 3. 构建最小必要上下文
 
-1. **有理有据**：所有修改必须有明确的理由和依据，不能随意执行
-2. **风格一致**：必须确保和现有代码风格一致，不可以创造新的风格
-3. **保护现有功能**：不允许影响已有的功能，除非用户明确要求
-4. **返回状态**：完成后必须返回 status (true/false)
-   - 如果 status 为 false，必须返回详细的错误原因
+为子任务构建 prompt，只包含执行所需的最小信息（避免上下文中毒）：
 
-## 行为约束
-{format_behavior_spec(behavior_spec)}
+- **goal**：子任务目标
+- **files**：允许修改的文件列表
+- **acceptance_criteria**：验收标准
+- **code_style**：仅保留 naming / indentation / imports / error_handling 四个维度
+- **behavior_spec**：从 align.json 预加载的行为规约（由 exec 传入，不重复读取）
 
-## 完成后自检（必须执行）
+### 4. 注入执行规则
 
-完成修改后，在返回 status 之前必须执行以下自检：
-1. 重新读取你修改的文件，确认修改确实生效（防止幻觉）
-2. 如果有测试命令（来自 toolchain），运行并确认通过
-3. 确认只修改了 files 列表中的文件，未越界
+在 prompt 中注入以下执行约束：
 
-## 自动测试反馈循环
+1. **有理有据**：所有修改必须有明确理由
+2. **风格一致**：必须和现有代码风格一致
+3. **保护现有功能**：不允许影响已有功能
+4. **返回状态**：完成后必须返回 status (true/false)，失败时返回详细错误原因
+5. **行为规约**：注入 behavior_spec 的 always_do / ask_first / never_do
+6. **完成后自检**：重新读取修改的文件确认生效、运行测试命令、确认未越界
 
-每个子任务完成后，worker 自动执行轻量级质量检查：
+### 5. 调用 Agent 执行
 
-```python
-def auto_test_feedback(task_id, tid, task, toolchain):
-    """子任务完成后自动运行测试/lint，结果写入 task.json"""
-    feedback = {"tests": None, "lint": None}
-
-    # 运行测试（如果 toolchain 中定义了命令）
-    test_cmd = toolchain.get("test_command")
-    if test_cmd:
-        result = Bash(command=f"{test_cmd} 2>&1 | tail -5", timeout=60000)
-        feedback["tests"] = {"passed": result.exit_code == 0, "output": result.stdout[-200:]}
-
-    # 运行 lint（如果定义了）
-    lint_cmd = toolchain.get("lint_command")
-    if lint_cmd:
-        result = Bash(command=f"{lint_cmd} 2>&1 | tail -5", timeout=30000)
-        feedback["lint"] = {"passed": result.exit_code == 0, "output": result.stdout[-200:]}
-
-    update_task_status(task_id, tid, status[tid], {"feedback": feedback})
-    return feedback
 ```
+Agent(
+  description="执行子任务: {goal前20字}",
+  subagent_type=task.agent 或 "general-purpose",
+  mode="acceptEdits",
+  run_in_background=False
+)
+```
+
+### 6. 即时验证结果
+
+子任务完成后，对照 acceptance_criteria 验证结果。
+
+### 7. 子任务级重试（最多 1 次）
+
+如果验证未通过，检查子任务的 `on_failure` 配置：
+
+- **retry_with_fix**：将失败原因注入 prompt 重试 1 次
+- **add_dependency_first**：标记当前任务 blocked
+- **simplify_goal**：用简化版 goal 重试
+- **skip**：标记 skipped，不阻塞后继
+
+未配置 on_failure 或重试仍失败 → 标记 failed。
+
+### 8. 更新状态并解锁后继
+
+- **成功**：标记 completed，检查所有后继任务是否可执行（所有依赖已完成），可执行的加入队列
+- **失败**：标记 failed，**传播失败到所有下游依赖**——递归标记 pending 状态的后继为 blocked
+
+### 9. 自动测试反馈
+
+子任务完成后自动运行轻量级质量检查（如果 toolchain 中定义了命令）：
+
+- 运行测试命令（timeout 60s），记录通过/失败和输出摘要
+- 运行 lint 命令（timeout 30s），记录通过/失败和输出摘要
+- 结果写入 task.json 对应子任务的 feedback 字段，供 verify 阶段参考
 
 > 测试/lint 失败不直接标记子任务 failed，而是作为 verify 阶段的前置证据。
-
----
-
-"""
-        prompt = execution_rules + task["goal"]
-        
-        # 心跳：记录开始时间，用于超时检测
-        update_task_status(task_id, tid, "running", {"started_at": datetime.now().isoformat()})
-
-        result = Agent(
-            description=f"执行子任务: {task['goal'][:20]}",
-            subagent_type=task.get("agent", "general-purpose"),
-            prompt=prompt,
-            mode="acceptEdits",
-            run_in_background=False  # 强制非后台
-        )
-
-        # 即时验证：子任务完成后立即检查验收标准（轻量级，非 verify 阶段的全量校验）
-        passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
-
-        # === 子任务级重试（最多 1 次）===
-        if not passed:
-            on_failure = task.get("on_failure", {})
-            failure_type = classify_subtask_failure(result)
-            recovery = on_failure.get(failure_type, "retry_with_fix" if failure_type == "test-failure" else None)
-            
-            if recovery == "retry_with_fix":
-                # 注入失败原因后重试 1 次
-                retry_prompt = f"""上次执行失败：{extract_failure_reason(result)}
-
-请修正后重试。注意：
-- 仔细阅读错误信息，定位根本原因
-- 不要重复上次的错误做法
-
-{execution_rules}{task['goal']}"""
-                result = Agent(
-                    description=f"重试子任务: {task['goal'][:20]}",
-                    subagent_type=task.get("agent", "general-purpose"),
-                    prompt=retry_prompt,
-                    mode="acceptEdits",
-                    run_in_background=False
-                )
-                passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
-
-        # 更新状态
-        executing.remove(tid)
-
-        if passed:
-            status[tid] = "completed"
-            completed.add(tid)
-            update_task_status(task_id, tid, "completed", result)
-
-            # 解锁后继任务
-            for successor in dag[tid]["successors"]:
-                if (status[successor] == "pending" and
-                    all(status.get(dep) == "completed" for dep in dag[successor]["deps"]) and
-                    successor not in queue):
-                    queue.append(successor)
-        else:
-            status[tid] = "failed"
-            failed.add(tid)
-            update_task_status(task_id, tid, "failed", result)
-
-            # === 失败传播：标记所有下游依赖为 blocked ===
-            def propagate_blocked(failed_tid):
-                for successor in dag[failed_tid]["successors"]:
-                    if status[successor] == "pending":
-                        status[successor] = "blocked"
-                        update_task_status(task_id, successor, "blocked")
-                        propagate_blocked(successor)
-            propagate_blocked(tid)
-```
