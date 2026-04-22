@@ -51,11 +51,37 @@ agent: task:verify
 
 **无证据 = 未验证**。禁止基于"应该没问题"的推断判定通过。
 
-### 步骤 4：六维评分
+### 步骤 4：双层评分
 
-基于 align.json 的目标/标准/边界 和 context.json 的项目现状，对执行结果进行六个维度的评分。每个维度 0-10 分，给出具体扣分原因和证据。
+评分分为两层：**自动检查**（基于命令输出的客观指标）和**对齐评估**（基于 align 内容的主观判定）。
 
-#### 维度 1：项目现状符合度（权重 15%）
+---
+
+#### 第一层：自动检查（auto）
+
+通过执行命令获取客观结果，每项 pass / fail / skip。这些检查项根据项目实际情况自动确定，常见项包括但不限于：
+
+| 检查项 | 方法 | 判定 |
+|--------|------|------|
+| 测试通过 | 执行 toolchain.test_command | 退出码 0 = pass |
+| Lint 通过 | 执行 toolchain.lint_command | 无新增错误 = pass |
+| 类型检查 | 执行类型检查命令（如有） | 无新增错误 = pass |
+| 构建成功 | 执行 toolchain.build_command（如有） | 退出码 0 = pass |
+| 无回归 | 执行完整测试套件 | 无新增失败 = pass |
+| 无风险模式 | Grep 搜索硬编码密码/SQL拼接/eval | 无匹配 = pass |
+| 无半成品 | Grep 搜索 TODO/FIXME/HACK | 无新增 = pass |
+
+> 自动检查项由 verify agent 根据 context.json 的 toolchain 和修改的文件类型动态决定。没有对应工具链的项标记 skip。
+
+**自动检查不独立评分**，其结果作为第二层对齐评估的客观证据输入。
+
+---
+
+#### 第二层：对齐评估（alignment）
+
+基于 align.json 的目标/标准/边界 和 context.json 的项目现状，对执行结果进行六个维度的评分。每个维度 0-10 分，必须给出扣分原因和证据（可引用第一层的自动检查结果）。
+
+**维度 1：项目现状符合度（权重 15%）**
 
 执行结果是否与项目当前状态一致。
 
@@ -63,60 +89,52 @@ agent: task:verify
 - 使用的 API/库版本是否与项目一致
 - 是否考虑了项目现有的架构约束
 
-**评分方法**：读取修改的文件，对照 context.json 的 dependencies 和 toolchain 检查。执行项目构建命令确认编译通过。
+评分依据：对照 context.json 的 dependencies 和 toolchain，引用构建命令的自动检查结果。
 
-#### 维度 2：风格一致性（权重 15%）
+**维度 2：风格一致性（权重 15%）**
 
 执行结果是否遵循项目现有代码风格。
 
-- 命名约定是否一致（函数/变量/类）
-- 缩进和格式是否一致
-- 导入组织方式是否一致
-- 错误处理模式是否一致
-- 注释/文档风格是否一致
+- 命名约定（函数/变量/类）、缩进格式、导入组织、错误处理模式、注释风格
 
-**评分方法**：对照 context.json 的 code_style 和 align.json 的 code_style_follow。执行 lint 命令检查新增违规。读取修改的文件，与同目录的其他文件对比风格。
+评分依据：对照 context.json 的 code_style 和 align.json 的 code_style_follow，引用 lint 的自动检查结果，读取修改的文件与同目录文件对比。
 
-#### 维度 3：需求符合度（权重 25%）
+**维度 3：需求符合度（权重 25%）**
 
 执行结果是否满足 align.json 中定义的任务目标和验收标准。
 
 - 每条 acceptance_criteria 是否有证据表明已满足
 - task_goal 描述的结果是否已实现
-- SMART-V 标准是否逐条通过
 
-**评分方法**：逐条对照 acceptance_criteria，每条未满足扣 2-3 分。
+评分依据：逐条对照 acceptance_criteria，每条未满足扣 2-3 分。引用测试命令的自动检查结果。
 
-#### 维度 4：实现完备性（权重 20%）
+**维度 4：实现完备性（权重 20%）**
 
 任务是否被完整实现，没有遗漏。
 
 - 所有子任务是否都已完成
 - 边界条件和错误处理是否覆盖
-- 测试是否通过（如 align 标准要求）
-- 是否存在半成品代码（TODO/FIXME/placeholder）
+- 是否存在半成品代码
 
-**评分方法**：检查 task.json 中所有子任务的 status。搜索新增代码中的 TODO/FIXME/HACK。执行测试命令检查覆盖率。
+评分依据：检查 task.json 中子任务 status，引用半成品搜索的自动检查结果。
 
-#### 维度 5：任务偏离度（权重 15%）
+**维度 5：任务偏离度（权重 15%）**
 
 执行结果是否偏离了原始任务目标。
 
 - 是否解决了错误的问题
-- 是否选择了与需求不符的实现路径
-- 修改的文件是否都在 align.json 的 in_scope 范围内
+- 修改的文件是否在 align.json 的 in_scope 范围内
 
-**评分方法**：对照 align.json 的 task_goal 和 boundary.in_scope。执行 `git diff --name-only` 检查修改的文件列表是否在范围内。
+评分依据：对照 task_goal 和 boundary.in_scope，执行 `git diff --name-only` 对比。
 
-#### 维度 6：范围越界度（权重 10%）
+**维度 6：范围越界度（权重 10%）**
 
 是否做了任务以外的事情。
 
 - 是否修改了 boundary.out_of_scope 中列出的内容
 - 是否引入了未要求的新功能/新依赖/新文件
-- 是否进行了不必要的重构
 
-**评分方法**：执行 `git diff --stat` 检查修改范围。对照 align.json 的 out_of_scope 和 in_scope，标记超出范围的变更。
+评分依据：执行 `git diff --stat` 对照 out_of_scope 和 in_scope。
 
 ### 步骤 5：计算总分与判定
 
@@ -130,12 +148,17 @@ agent: task:verify
 
 ### 步骤 6：返回结果
 
-返回结构：
+返回结构包含两层数据：
 
 ```json
 {
   "status": true,
   "total_score": 8.5,
+  "auto_checks": [
+    {"name": "测试通过", "result": "pass", "evidence": "pytest: 12 passed, 0 failed"},
+    {"name": "Lint 通过", "result": "pass", "evidence": "ruff: no errors"},
+    {"name": "无半成品", "result": "pass", "evidence": "grep TODO: 0 matches"}
+  ],
   "dimensions": {
     "项目现状符合度": {"score": 9, "weight": 0.15, "evidence": "构建通过，依赖一致", "deductions": "无"},
     "风格一致性": {"score": 8, "weight": 0.15, "evidence": "lint 无新增错误", "deductions": "1处命名用了camelCase"},
@@ -149,7 +172,10 @@ agent: task:verify
 }
 ```
 
-当 status 为 false 时，`low_dimensions` 列出得分 < 6 的维度名称和原因，供 adjust 分析。
+- `auto_checks`：自动检查的客观结果，pass / fail / skip
+- `dimensions`：六维对齐评估，每维 0-10 分
+- `low_dimensions`：得分 < 6 的维度列表，供 adjust 定位问题
+- `total_score`：六维加权总分（0-10），决定通过/边界/不通过
 
 ## 验证检查模板
 

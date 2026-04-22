@@ -55,7 +55,7 @@ def print_message(message: any, verbose: bool = False) -> None:
                 plugins = data.get("plugins", [])
                 skills = data.get("skills", [])
                 agents = data.get("agents", [])
-                print(f"[系统] 会话初始化")
+                print("[系统] 会话初始化")
                 if plugins:
                     print(f"  插件: {', '.join(p.get('name', '?') for p in plugins)}")
                 if skills:
@@ -83,7 +83,9 @@ def print_message(message: any, verbose: bool = False) -> None:
                 if verbose:
                     thinking = getattr(block, "thinking", "")
                     if thinking:
-                        print(f"  💭 {thinking[:200]}{'...' if len(thinking) > 200 else ''}")
+                        print(
+                            f"  💭 {thinking[:200]}{'...' if len(thinking) > 200 else ''}"
+                        )
             elif block_type == "ToolUseBlock":
                 name = getattr(block, "name", "")
                 tool_input = getattr(block, "input", {})
@@ -106,7 +108,7 @@ def print_message(message: any, verbose: bool = False) -> None:
                     else:
                         print(f"  ✓ (结果 {len(content)} 字符)")
                 elif is_error:
-                    print(f"  ❌ 工具执行错误")
+                    print("  ❌ 工具执行错误")
 
     elif cls == "ErrorMessage":
         error_msg = getattr(message, "error", message)
@@ -187,7 +189,8 @@ def test_main(
     # 设置环境变量默认值
     base_url = api_url or get_env_with_default("ANTHROPIC_BASE_URL", DEFAULT_BASE_URL)
     auth_token = api_key or get_env_with_default(
-        "ANTHROPIC_AUTH_TOKEN", get_env_with_default("ANTHROPIC_API_KEY", DEFAULT_AUTH_TOKEN)
+        "ANTHROPIC_AUTH_TOKEN",
+        get_env_with_default("ANTHROPIC_API_KEY", DEFAULT_AUTH_TOKEN),
     )
 
     # 模型映射
@@ -195,7 +198,9 @@ def test_main(
         "sonnet": get_env_with_default(
             "ANTHROPIC_DEFAULT_SONNET_MODEL", DEFAULT_SONNET_MODEL
         ),
-        "opus": get_env_with_default("ANTHROPIC_DEFAULT_OPUS_MODEL", DEFAULT_OPUS_MODEL),
+        "opus": get_env_with_default(
+            "ANTHROPIC_DEFAULT_OPUS_MODEL", DEFAULT_OPUS_MODEL
+        ),
         "haiku": get_env_with_default(
             "ANTHROPIC_DEFAULT_HAIKU_MODEL", DEFAULT_HAIKU_MODEL
         ),
@@ -328,7 +333,8 @@ def test_main(
 
         result = subprocess.run(
             ["git", "diff", "--stat", "--exit-code"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
             subprocess.run(["git", "checkout", "--", "."], capture_output=True)
