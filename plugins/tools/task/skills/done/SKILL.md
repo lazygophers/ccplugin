@@ -1,5 +1,5 @@
 ---
-description: 任务终结。汇总执行结果、生成完成报告、提取经验教训保存到项目记忆
+description: 任务终结。所有验收通过后触发，汇总执行结果、生成完成报告、提取经验教训写入 lessons.json
 memory: project
 color: green
 model: haiku
@@ -109,6 +109,9 @@ return report
   "task_id": "任务ID",
   "task_type": "bug-fix|new-feature|refactor|...",
   "outcome": "success|partial|failed",
+  "timestamp": "ISO8601",
+  "modules": ["涉及的模块路径"],
+  "keywords": ["任务关键词，用于语义匹配"],
   "lessons": [
     {
       "category": "pattern|pitfall|toolchain|style",

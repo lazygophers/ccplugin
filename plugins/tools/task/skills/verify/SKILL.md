@@ -1,5 +1,5 @@
 ---
-description: 验收校验。对照 plan 子任务标准和 align 任务级标准逐一检查，基于命令输出和文件内容等实际证据判定
+description: 验收校验。exec 完成后触发，对照子任务标准和任务级 SMART-V 标准逐一检查，基于命令输出和文件内容等实际证据判定通过/失败
 memory: project
 color: cyan
 model: sonnet

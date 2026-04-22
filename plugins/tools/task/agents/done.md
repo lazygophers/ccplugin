@@ -21,6 +21,7 @@ background: false
 
 ## 约束
 
+- **最大回合**：≤5 轮工具调用
 - **静默完成**：不使用 AskUserQuestion，不与用户交互
 - **不负责清理**：任务目录删除和索引更新由 flow 调用 `task clean` 完成
 

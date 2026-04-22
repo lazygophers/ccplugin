@@ -1,5 +1,5 @@
 ---
-description: 任务范围对齐。自动生成目标、SMART-V 验收标准和边界，通过 AskUserQuestion 确认后写入 align.json
+description: 任务范围对齐。当用户需要明确任务目标、定义验收标准或确认实施边界时触发，自动生成 SMART-V 标准，通过交互确认后写入 align.json
 memory: project
 color: blue
 model: sonnet

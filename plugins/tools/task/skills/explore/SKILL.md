@@ -1,5 +1,5 @@
 ---
-description: 项目上下文探索。定位任务相关模块和文件，推断代码风格与工具链，输出结构化 context.json
+description: 项目上下文探索。当用户需要了解项目结构、分析代码架构或为任务收集上下文时触发，定位相关模块和文件，推断代码风格与工具链，输出 context.json
 memory: project
 color: orange
 model: sonnet

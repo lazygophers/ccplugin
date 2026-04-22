@@ -1,10 +1,13 @@
 ---
-description: 任务恢复。读取 index.json 中的未完成任务，检查数据文件完整性，确定恢复点后调用 flow 继续执行
+description: 恢复中断任务。当用户要求继续、恢复之前未完成的任务时触发，读取 index.json 检查数据完整性，确定恢复点后调用 flow 继续执行
 memory: project
 color: purple
 model: sonnet
 permissionMode: bypassPermissions
 background: false
+user-invocable: true
+effort: low
+context: none
 disable-model-invocation: true
 argument-hint: [task_id（可选）]
 ---
@@ -125,12 +128,27 @@ if checkpoint:
 else:
     print(f"[flow·{target_id}·resume] 恢复任务，从 {resume_state} 状态继续")
 
-# 调用 flow skill，传入恢复状态
+# === 构建恢复上下文摘要（自动注入，避免 agent 重新探索） ===
+resume_context = {}
+if has_context:
+    ctx = read_json(f"{task_dir}/context.json")
+    resume_context["modules"] = ctx.get("task_related", {}).get("modules", [])
+    resume_context["toolchain"] = ctx.get("toolchain", {})
+if has_align:
+    aln = read_json(f"{task_dir}/align.json")
+    resume_context["goal"] = aln.get("task_goal", "")
+    resume_context["criteria_count"] = len(aln.get("acceptance_criteria", []))
+if checkpoint:
+    resume_context["completed_subtasks"] = checkpoint.get("completed_subtasks", [])
+    resume_context["failed_subtasks"] = checkpoint.get("failed_subtasks", [])
+
+# 调用 flow skill，传入恢复状态 + 上下文摘要
 Skill(
     skill="task:flow",
     environment={
         "task_id": target_id,
-        "resume_from": resume_state
+        "resume_from": resume_state,
+        "resume_context": resume_context
     }
 )
 ```

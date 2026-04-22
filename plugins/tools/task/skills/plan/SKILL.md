@@ -2,7 +2,7 @@
 description: 任务分解规划。基于 align.json 将任务拆解为原子子任务 DAG，自我验证后写入 task.json
 memory: project
 color: purple
-model: opus
+model: sonnet
 permissionMode: bypassPermissions
 background: false
 user-invocable: false
@@ -32,8 +32,19 @@ if exists(lessons_file):
     all_lessons = read_json(lessons_file)
     task_type = align.get("task_type")
     modules = context.get("task_related", {}).get("modules", [])
-    # 筛选相关经验：同类任务 或 涉及相同模块
-    history = [l for l in all_lessons if l.get("task_type") == task_type or any(m in str(l) for m in modules)]
+    # 筛选相关经验：同类任务 或 模块路径前缀匹配 或 关键词交集
+    def is_relevant(lesson):
+        if lesson.get("task_type") == task_type:
+            return True
+        lesson_modules = lesson.get("modules", [])
+        if any(lm.startswith(m) or m.startswith(lm) for lm in lesson_modules for m in modules):
+            return True
+        lesson_keywords = set(lesson.get("keywords", []))
+        task_keywords = set(align.get("keywords", []))
+        if lesson_keywords & task_keywords:
+            return True
+        return False
+    history = [l for l in all_lessons if is_relevant(l)]
 else:
     history = []
 # history 用作规划的参考约束（非硬规则），避免重蹈覆辙

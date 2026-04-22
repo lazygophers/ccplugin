@@ -1,5 +1,5 @@
 ---
-description: 失败调整。分析验收失败根因，通过 AskUserQuestion 让用户选择调整策略（补充上下文/重新对齐/重新规划/放弃）
+description: 失败调整。验收未通过时触发，分析失败根因并分类，通过交互让用户选择调整策略（补充上下文/重新对齐/重新规划/放弃）
 memory: project
 color: yellow
 model: sonnet

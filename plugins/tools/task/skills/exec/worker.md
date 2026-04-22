@@ -98,6 +98,9 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 """
         prompt = execution_rules + task["goal"]
         
+        # 心跳：记录开始时间，用于超时检测
+        update_task_status(task_id, tid, "running", {"started_at": datetime.now().isoformat()})
+
         result = Agent(
             description=f"执行子任务: {task['goal'][:20]}",
             subagent_type=task.get("agent", "general-purpose"),
@@ -106,7 +109,7 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             run_in_background=False  # 强制非后台
         )
 
-        # 验证结果
+        # 即时验证：子任务完成后立即检查验收标准（轻量级，非 verify 阶段的全量校验）
         passed = verify_result(result, task.get("acceptance_criteria", []), code_style)
 
         # === 子任务级重试（最多 1 次）===
@@ -151,4 +154,13 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
             status[tid] = "failed"
             failed.add(tid)
             update_task_status(task_id, tid, "failed", result)
+
+            # === 失败传播：标记所有下游依赖为 blocked ===
+            def propagate_blocked(failed_tid):
+                for successor in dag[failed_tid]["successors"]:
+                    if status[successor] == "pending":
+                        status[successor] = "blocked"
+                        update_task_status(task_id, successor, "blocked")
+                        propagate_blocked(successor)
+            propagate_blocked(tid)
 ```

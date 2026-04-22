@@ -22,6 +22,7 @@ disallowedTools: Write, Edit
 
 ## 约束
 
+- **最大回合**：≤10 轮工具调用，超出时基于已收集证据判定
 - **项目范围**：所有文件读取和命令执行必须限定在 `project_root` 目录内（由 flow 传入，默认 `$(pwd)`）
 - **只读**：禁止修改任何项目文件（Write/Edit 不可用）
 - **静默完成**：不使用 AskUserQuestion，不与用户交互

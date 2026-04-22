@@ -1,10 +1,13 @@
 ---
-description: 任务流程管理。用户输入任务描述时触发，协调 align→explore→plan→exec→verify→adjust→done 的完整状态机流转
+description: 任务流程调度器。当用户提出需要实现、修复、重构、优化的开发任务时触发，协调 align→explore→plan→exec→verify→adjust→done 的完整状态机流转
 memory: project
 color: purple
 model: sonnet
 permissionMode: bypassPermissions
 background: false
+user-invocable: true
+effort: high
+context: none
 disable-model-invocation: true
 argument-hint: [任务描述]
 ---
@@ -40,6 +43,12 @@ argument-hint: [任务描述]
 CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/main.py task update {task_id} --status={state}
 ```
 
+## 安全限制
+
+- **全局转换上限**：状态转换总次数 ≤ 30。每次调用 `task update --status=X` 计数 +1，超限时终止并报告
+- **动态 model**：调度 plan Agent 时，若 align.json 中子任务预估 ≥5 个或涉及跨模块重构，使用 `model: opus`；否则默认 sonnet
+- **简单任务快车道**：align 完成后，若 scope 中涉及文件 ≤2 且复杂度为 low，跳过 plan 直接构造单子任务进入 exec
+
 ## 执行流程
 
 收到任务后，严格按以下步骤执行。每一步都是一个独立的工具调用，不可合并或省略。
@@ -62,6 +71,15 @@ CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/mai
 1. 执行 `task update {task_id} --status=explore`
 2. 调用 `Agent("task:explore")`，传入 task_id 和用户原始输入
 3. 完成后 → 回到步骤 2
+
+### 步骤 2b：快车道判断
+
+读取 align.json，检查是否符合快车道条件：
+- `in_scope` 中文件 ≤ 2 个
+- 预估复杂度为 low（或 align 中无明确多步骤拆分需求）
+
+若符合 → 跳过 plan，自动构造单子任务 task.json 并写入，直接转步骤 4
+若不符合 → 转步骤 3
 
 ### 步骤 3：plan（任务规划）
 
