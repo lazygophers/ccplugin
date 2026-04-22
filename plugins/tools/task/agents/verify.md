@@ -36,9 +36,11 @@ disallowedTools: Write, Edit
 
 ## 输出
 
-返回 `status`（true/false）、`quality_score`（惩罚分模型，满分 100，≥80 通过）、`confidence`（0-1）、`score_breakdown`（5 维度扣分明细）。失败时包含 `failed_criteria`（name/reason/evidence/deduction）。
+返回六维评分结果：`total_score`（0-10）、`dimensions`（6 个维度各自的 score/weight/evidence/deductions）、`low_dimensions`（得分 < 6 的维度列表）。
 
-**边界分数（60-79）且 confidence < 0.7 时**，必须通过 AskUserQuestion 让用户最终决定。
+- total_score ≥ 8.0 → 通过
+- total_score 6.0-7.9 → 边界，由 flow 让用户决定
+- total_score < 6.0 → 不通过，自动进入 adjust 继续迭代
 
 所有输出必须包含前缀：`[flow·{task_id}·{state}]`
 
