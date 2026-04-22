@@ -49,6 +49,22 @@ CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/mai
 - **动态 model**：调度 plan Agent 时，若 align.json 中子任务预估 ≥5 个或涉及跨模块重构，使用 `model: opus`；否则默认 sonnet
 - **简单任务快车道**：align 完成后，若 scope 中涉及文件 ≤2 且复杂度为 low，跳过 plan 直接构造单子任务进入 exec
 
+## 状态快照
+
+每次进入新阶段时，写入 `.lazygophers/tasks/{task_id}/.state.json`：
+
+```json
+{
+  "current_state": "exec",
+  "transition_count": 5,
+  "last_agent": "task:plan",
+  "timestamp": "ISO8601",
+  "data_files": {"context": true, "align": true, "task": true}
+}
+```
+
+resume 读取此文件即可快速确定恢复点，无需逐个验证数据文件。
+
 ## 执行流程
 
 收到任务后，严格按以下步骤执行。每一步都是一个独立的工具调用，不可合并或省略。
@@ -98,8 +114,10 @@ CLAUDE_PROJECT_DIR="$(pwd)" uv run --directory $CLAUDE_PLUGIN_ROOT ./scripts/mai
 
 1. 执行 `task update {task_id} --status=verify`
 2. 调用 `Agent("task:verify")`，传入 task_id、context_file、align_file
-3. 如果校验通过 → 转步骤 6
-4. 如果校验失败 → 转步骤 5a
+3. 根据 verify 返回的 quality_score 和 confidence 判定：
+   - score ≥ 80 且 confidence ≥ 0.7 → 转步骤 6
+   - score 60-79 且 confidence < 0.7 → **置信度暂停**：通过 AskUserQuestion 展示评分明细，让用户决定通过或进入 adjust
+   - score < 60 → 转步骤 5a
 
 #### 步骤 5a：adjust（调整修正）
 

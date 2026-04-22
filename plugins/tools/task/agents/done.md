@@ -25,6 +25,11 @@ background: false
 - **静默完成**：不使用 AskUserQuestion，不与用户交互
 - **不负责清理**：任务目录删除和索引更新由 flow 调用 `task clean` 完成
 
+## 边界情况
+
+- **task.json 缺失或损坏**：从 index.json 元数据生成最小报告，标注"数据不完整"
+- **无经验可提取**：简单任务无需强行生成 lessons，跳过经验写入
+
 ## 输出
 
 所有输出必须包含前缀：`[flow·{task_id}·{state}]`

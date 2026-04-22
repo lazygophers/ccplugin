@@ -28,6 +28,12 @@ background: false
 - **静默完成**：不使用 AskUserQuestion，不与用户交互
 - **目标导向**：只探索与任务相关的代码，不做全局扫描
 
+## 边界情况
+
+- **回合耗尽**：接近 15 轮时，立即将已收集的部分结果写入 context.json，标记 `"partial": true`
+- **无相关代码**：若项目为空或未找到相关代码，context.json 仍需写入（modules 为空数组），不报错
+- **大型项目**：优先搜索入口文件和配置文件，避免逐文件遍历
+
 ## 输出
 
 将结果写入 `context.json`，包含 `task_related`（模块/文件/依赖）、`code_style`（命名/缩进/风格）、`toolchain`（语言/命令）。

@@ -103,28 +103,59 @@ failed_criteria = merge_failures(dimensions)
 
 ## 返回结构
 
-### 验收通过
+### 质量评分（惩罚分模型）
+
+基础分 100，每个维度扣分。**≥80 分判定通过**，60-79 为边界（附 confidence），<60 判定失败。
+
+| 维度 | 权重 | 扣分规则 |
+|------|------|---------|
+| 功能正确 | 30 | 每个失败标准 -10，致命缺陷直接 -30 |
+| 测试通过 | 25 | 新增测试未通过 -15，回归测试失败 -25 |
+| 代码质量 | 20 | lint 新增错误每条 -5，上限 -20 |
+| 安全合规 | 15 | 风险模式每项 -5，敏感数据泄露 -15 |
+| 风格一致 | 10 | 命名不一致每处 -3，上限 -10 |
+
+### 返回结构
 
 ```json
 {
   "status": true,
   "quality_score": 85,
+  "confidence": 0.9,
+  "score_breakdown": {
+    "功能正确": {"base": 30, "deductions": 0, "final": 30},
+    "测试通过": {"base": 25, "deductions": -5, "final": 20, "reason": "1 条边界测试未覆盖"},
+    "代码质量": {"base": 20, "deductions": 0, "final": 20},
+    "安全合规": {"base": 15, "deductions": -5, "final": 10, "reason": "1 处��编码配置"},
+    "风格一致": {"base": 10, "deductions": -5, "final": 5, "reason": "2 处命名不一致"}
+  },
   "evidence_summary": "5/5 验收标准通过，测试全绿，lint 无新增错误"
 }
 ```
+
+### 置信度与决策
+
+| quality_score | confidence | 决策 |
+|---------------|------------|------|
+| ≥80 | ≥0.7 | 通过 |
+| 60-79 | ≥0.7 | 通过（附警告） |
+| 60-79 | <0.7 | **暂停**，通过 AskUserQuestion 让用户决定 |
+| <60 | 任�� | 失败，进入 adjust |
 
 ### 验收失败
 
 ```json
 {
   "status": false,
+  "quality_score": 55,
+  "confidence": 0.8,
   "failed_criteria": [
     {
       "name": "no_regression",
-      "description": "未破坏现有功能",
       "category": "安全",
       "reason": "tests/test_auth.py::test_login_redirect 失败",
-      "evidence": "pytest 输出: AssertionError: expected 302, got 200"
+      "evidence": "pytest 输出: AssertionError: expected 302, got 200",
+      "deduction": -25
     }
   ],
   "summary": "1/5 验收标准未通过：test_login_redirect 回归失败"

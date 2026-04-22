@@ -23,6 +23,12 @@ plan = read_json(f".lazygophers/tasks/{task_id}/task.json")
 subtasks = {t["id"]: t for t in plan["subtasks"]}
 code_style = plan.get("code_style", {})
 
+# === 一次性加载共享数据（避免 worker 重复读取） ===
+align = read_json(f".lazygophers/tasks/{task_id}/align.json") if exists(f".lazygophers/tasks/{task_id}/align.json") else {}
+behavior_spec = align.get("behavior_spec", {})
+context = read_json(f".lazygophers/tasks/{task_id}/context.json") if exists(f".lazygophers/tasks/{task_id}/context.json") else {}
+toolchain = context.get("toolchain", {})
+
 # === 阶段1：构建 DAG ===
 dag = {}
 for tid in subtasks:
@@ -56,7 +62,7 @@ for tid in subtasks:
 # === 阶段3：启动 2 个 worker 协程 ===
 workers = []
 for i in range(2):
-    workers.append(spawn_worker(f"worker-{i}", queue, dag, status, executing, completed, failed, subtasks, code_style, task_id))
+    workers.append(spawn_worker(f"worker-{i}", queue, dag, status, executing, completed, failed, subtasks, code_style, task_id, behavior_spec, toolchain))
 
 # === 阶段4：等待所有协程完成 ===
 wait_all(workers)

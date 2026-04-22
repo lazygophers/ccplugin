@@ -29,8 +29,26 @@ background: false
 - **并行限制**：并行任务数量 ≤ 2
 - **单文件单任务**：每个子任务只修改一个文件，避免并发冲突
 
+## 边界情况
+
+- **迭代耗尽**：10 次验证仍未通过时，输出当前最优方案并标记 `"validation_passed": false`，由 flow 决定是否继续
+- **align 目标冲突**：若 acceptance_criteria 之间互相矛盾，返回 `status: "上下文缺失"` 并说明冲突点
+- **单文件简单任务**：仅 1 个文件 + low 复杂度时，生成单子任务 DAG（不过度拆分）
+
 ## 输出
 
 生成 `task.json`，包含 `subtasks`（DAG 结构）、`code_style`（锁定风格）、`metadata`（任务总数/生成时间）。
 
 所有输出必须包含前缀：`[flow·{task_id}·{state}]`
+
+## 反例（不应通过验证的 plan）
+
+```json
+{
+  "subtasks": [
+    {"id": "A", "dependencies": ["B"], "files": ["src/auth.py"]},
+    {"id": "B", "dependencies": ["A"], "files": ["src/auth.py"]}
+  ]
+}
+```
+**问题**：A↔B 循环依�� + 文件集合重叠。正确做法：合并为单任务或消除循环。

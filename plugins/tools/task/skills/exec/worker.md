@@ -33,7 +33,7 @@ def update_task_status(session_task_id, subtask_id, status, result=None):
 ## Worker 主循环
 
 ```python
-def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id):
+def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, subtasks, code_style, task_id, behavior_spec, toolchain):
     while True:
         # 检查终止条件：队列空 + 无执行中 + 无可执行
         if len(queue) == 0 and len(executing) == 0:
@@ -69,9 +69,7 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
                           if k in ("naming", "indentation", "imports", "error_handling")}
         }
 
-        # 从 align.json 读取行为规约（如果存在）
-        align = read_json(f".lazygophers/tasks/{task_id}/align.json") if exists(...) else {}
-        behavior_spec = align.get("behavior_spec", {})
+        # behavior_spec 和 toolchain 由 exec 预加载传入，无需重复读取
 
         # 构建包含执行规则 + 行为规约 + 自检要求的 prompt
         execution_rules = f"""
@@ -92,6 +90,33 @@ def spawn_worker(worker_id, queue, dag, status, executing, completed, failed, su
 1. 重新读取你修改的文件，确认修改确实生效（防止幻觉）
 2. 如果有测试命令（来自 toolchain），运行并确认通过
 3. 确认只修改了 files 列表中的文件，未越界
+
+## 自动测试反馈循环
+
+每个子任务完成后，worker 自动执行轻量级质量检查：
+
+```python
+def auto_test_feedback(task_id, tid, task, toolchain):
+    """子任务完成后自动运行测试/lint，结果写入 task.json"""
+    feedback = {"tests": None, "lint": None}
+
+    # 运行测试（如果 toolchain 中定义了命令）
+    test_cmd = toolchain.get("test_command")
+    if test_cmd:
+        result = Bash(command=f"{test_cmd} 2>&1 | tail -5", timeout=60000)
+        feedback["tests"] = {"passed": result.exit_code == 0, "output": result.stdout[-200:]}
+
+    # 运行 lint（如果定义了）
+    lint_cmd = toolchain.get("lint_command")
+    if lint_cmd:
+        result = Bash(command=f"{lint_cmd} 2>&1 | tail -5", timeout=30000)
+        feedback["lint"] = {"passed": result.exit_code == 0, "output": result.stdout[-200:]}
+
+    update_task_status(task_id, tid, status[tid], {"feedback": feedback})
+    return feedback
+```
+
+> 测试/lint 失败不直接标记子任务 failed，而是作为 verify 阶段的前置证据。
 
 ---
 

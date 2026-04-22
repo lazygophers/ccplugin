@@ -79,6 +79,13 @@ else:
 last_status = task["status"]
 task_dir = f".lazygophers/tasks/{target_id}"
 
+# === 快速恢复：优先读取 .state.json ===
+state_file = f"{task_dir}/.state.json"
+if exists(state_file):
+    state = read_json(state_file)
+    print(f"[flow·{target_id}·resume] 从 .state.json 快速恢复：{state['current_state']}（第 {state.get('transition_count', '?')} 次转换）")
+    # 仍需验证数据文件完整性（.state.json 可能过期）
+
 # === 数据文件完整性验证 ===
 # 不仅检查文件是否存在，还验证必需字段是否完整
 # 文件损坏或字段缺失时视为不存在，降级到更早的恢复点

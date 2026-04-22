@@ -27,16 +27,17 @@ metadata = index.get(task_id, {})
 align_file = f".lazygophers/tasks/{task_id}/align.json"
 align = read_json(align_file) if exists(align_file) else {}
 
-# 阶段1：汇总执行结果（优先复用 verify 结果）
+# 阶段1：汇总执行结果（优先复用 verify 结果，避免重复读取）
 verify_result = environment.get("verify_result")
-plan = read_json(f".lazygophers/tasks/{task_id}/task.json") if exists(f".lazygophers/tasks/{task_id}/task.json") else None
+plan = environment.get("plan") or (read_json(f".lazygophers/tasks/{task_id}/task.json") if exists(f".lazygophers/tasks/{task_id}/task.json") else None)
 
 if verify_result and verify_result.get("status"):
-    # verify 已通过：直接复用其 evidence_summary 和 quality_score
+    # verify 已通过：直接复用其 evidence_summary、quality_score 和 score_breakdown
     results = {
         "task_id": task_id,
         "status": "success",
         "quality_score": verify_result.get("quality_score"),
+        "score_breakdown": verify_result.get("score_breakdown"),
         "evidence_summary": verify_result.get("evidence_summary"),
         "subtask_count": plan["metadata"]["total_tasks"] if plan else 0,
         "completed_count": sum(1 for t in (plan or {}).get("subtasks", []) if t.get("status") == "completed"),
@@ -44,10 +45,11 @@ if verify_result and verify_result.get("status"):
     }
 else:
     # 非正常完成（放弃等）：从各阶段文件汇总
+    # context.json 仅在此路径读取（正常完成不需要）
     results = collect_results({
         "task_id": task_id,
         "metadata": metadata,
-        "context": read_json(f".lazygophers/tasks/{task_id}/context.json"),
+        "context": read_json(f".lazygophers/tasks/{task_id}/context.json") if exists(f".lazygophers/tasks/{task_id}/context.json") else {},
         "align": align,
         "plan": plan
     })
