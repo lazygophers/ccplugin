@@ -1,15 +1,9 @@
 ---
-description: "PowerPoint/pptx 演示文稿操作技能 - 创建编辑幻灯片、插入文本图片图表、应用模板主题、格式转换、智能分析。适用于制作汇报PPT、批量生成slides等场景"
-triggers:
-  - powerpoint
-  - pptx
-  - presentation
-  - 演示文稿
-  - 幻灯片
-  - slides
-  - 转换
-  - 模板
+description: "PowerPoint/pptx 演示文稿操作 - 创建编辑幻灯片、插入内容、应用模板。Trigger: 'pptx', 'powerpoint', '幻灯片', '演示文稿', 'slides', 'PPT'"
 user-invocable: true
+context: fork
+model: sonnet
+memory: project
 ---
 
 # PowerPoint pptx 操作技能

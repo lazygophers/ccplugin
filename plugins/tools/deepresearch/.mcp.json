@@ -2,9 +2,10 @@
   "mcpServers": {
     "duckduckgo": {
       "type": "stdio",
-      "command": "uvx",
+      "command": "npx",
       "args": [
-        "duckduckgo-mcp-server"
+        "-y",
+        "@oevortex/ddg_search"
       ],
       "env": {
         "ALL_PROXY": "${PROXY_URL}",
@@ -17,28 +18,12 @@
         "usage": "信息检索、技术文档搜索、市场数据"
       }
     },
-    "wikipedia": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "wikipedia-mcp"
-      ],
-      "env": {
-        "ALL_PROXY": "${PROXY_URL}",
-        "HTTPS_PROXY": "${PROXY_URL}",
-        "HTTP_PROXY": "${PROXY_URL}"
-      },
-      "metadata": {
-        "description": "百科知识库 - 概念研究和背景信息",
-        "priority": "required",
-        "usage": "技术概念解释、历史背景、基础知识"
-      }
-    },
     "sequential-thinking": {
       "type": "stdio",
-      "command": "uvx",
+      "command": "npx",
       "args": [
-        "mcp-server-sequential-thinking"
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
       ],
       "env": {},
       "metadata": {
@@ -47,29 +32,16 @@
         "usage": "架构评审、技术选型、复杂问题分析"
       }
     },
-    "time": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "mcp-server-time",
-        "--local-timezone=Asia/Shanghai"
-      ],
-      "env": {},
-      "metadata": {
-        "description": "时间服务 - 时效性验证和时间戳",
-        "priority": "required",
-        "usage": "信息时效性检查、趋势分析"
-      }
-    },
     "context7": {
       "type": "stdio",
-      "command": "uvx",
+      "command": "npx",
       "args": [
-        "mcp-server-context7"
+        "-y",
+        "@upstash/context7-mcp"
       ],
       "env": {},
       "metadata": {
-        "description": "文档检索增强 - 最新文档和API参考（2026新增）",
+        "description": "文档检索增强 - 最新文档和API参考",
         "priority": "optional",
         "usage": "框架文档、API参考、官方指南"
       }

@@ -2,7 +2,6 @@
 description: 恢复中断任务。当用户要求继续、恢复之前未完成的任务时触发，读取 index.json 检查数据完整性，确定恢复点后调用 flow 继续执行
 memory: project
 color: purple
-model: sonnet
 permissionMode: bypassPermissions
 background: false
 user-invocable: true

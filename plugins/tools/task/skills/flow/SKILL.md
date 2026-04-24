@@ -2,7 +2,6 @@
 description: 任务流程调度器。当用户提出需要实现、修复、重构、优化的开发任务时触发，协调 align→explore→plan→exec→verify→adjust→done 的完整状态机流转
 memory: project
 color: purple
-model: sonnet
 permissionMode: bypassPermissions
 background: false
 user-invocable: true

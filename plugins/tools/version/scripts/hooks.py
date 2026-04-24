@@ -14,5 +14,3 @@ def handle_hook() -> None:
 		init_version()
 	elif event_name == "UserPromptSubmit":
 		auto_update()
-	elif event_name == "PreToolUse":
-		auto_update()

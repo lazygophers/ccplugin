@@ -1,17 +1,8 @@
 ---
-description: |
-  项目评估师 - 项目评估+依赖安全审计的统一入口
-  场景：GitHub项目研究、开源库选型、依赖安全审计、供应链风险评估
-  示例：评估 facebook/react 项目质量 | 审计项目依赖安全性 | 对比两个开源库
+description: "项目评估师 - 项目评估+依赖安全审计。Trigger: '评估项目', '依赖审计', '开源库选型', '供应链风险', 'audit dependencies'"
 model: opus
 color: green
 memory: project
-skills:
-  - dgot-engine
-  - code-inspector
-  - agentic-retriever
-  - source-validator
-  - knowledge-synthesizer
 ---
 
 # 项目评估师（Project Assessor）

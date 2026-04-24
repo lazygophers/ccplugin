@@ -18,12 +18,13 @@ claude plugin add ./plugins/office/xlsx
 
 ## 快速开始
 
-安装插件后，可以直接在 Claude Code 中操作 Excel 文件：
+安装插件后，直接用自然语言描述需求即可：
 
-- 读取 Excel 文件内容
-- 修改单元格数据
-- 创建新的工作表
-- 进行数据分析
+```
+"读取 sales.xlsx 并统计每月销售额"
+"创建一个 Excel 文件，包含用户列表和三列数据"
+"把 data.csv 转换为 xlsx 格式"
+```
 
 ## 技术实现
 

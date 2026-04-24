@@ -26,7 +26,7 @@ def auto_update():
 		text=True
 	).stdout.strip()
 	if result:
-		logging.warn("版本文件未提交，跳过成功")
+		logging.warn("版本文件未提交，跳过自动更新")
 		return
 
 	# 读取当前版本
@@ -35,6 +35,8 @@ def auto_update():
 
 	# 解析版本号，第四位+1
 	parts = version.split('.')
+	if len(parts) < 4:
+		parts.extend(['0'] * (4 - len(parts)))
 	parts[3] = str(int(parts[3]) + 1)
 	new_version = '.'.join(parts)
 
@@ -44,12 +46,19 @@ def auto_update():
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
 
+def _parse_version(version: str) -> list:
+	parts = version.split('.')
+	if len(parts) < 4:
+		parts.extend(['0'] * (4 - len(parts)))
+	return parts
+
+
 def inc_major():
 	"""更新主版本号（第一级），其余级别重置为 0"""
 	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
 		version = f.read().strip()
-	
-	parts = version.split('.')
+
+	parts = _parse_version(version)
 	parts[0] = str(int(parts[0]) + 1)
 	parts[1] = '0'
 	parts[2] = '0'
@@ -65,8 +74,8 @@ def inc_minor():
 	"""更新次版本号（第二级），patch和build重置为 0"""
 	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
 		version = f.read().strip()
-	
-	parts = version.split('.')
+
+	parts = _parse_version(version)
 	parts[1] = str(int(parts[1]) + 1)
 	parts[2] = '0'
 	parts[3] = '0'
@@ -81,8 +90,8 @@ def inc_patch():
 	"""更新补丁版本号（第三级），build重置为 0"""
 	with open(os.path.join(get_project_dir(), version_filepath), 'r', encoding='utf-8') as f:
 		version = f.read().strip()
-	
-	parts = version.split('.')
+
+	parts = _parse_version(version)
 	parts[2] = str(int(parts[2]) + 1)
 	parts[3] = '0'
 	new_version = '.'.join(parts)

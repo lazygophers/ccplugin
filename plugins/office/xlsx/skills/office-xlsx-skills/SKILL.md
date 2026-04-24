@@ -1,15 +1,9 @@
 ---
-description: "Excel/xlsx/spreadsheet 文件操作技能 - 读写工作表与单元格、数据分析与统计、CSV格式转换、批量处理。适用于创建报表、数据导入导出、表格计算等场景"
-triggers:
-  - excel
-  - xlsx
-  - spreadsheet
-  - 表格
-  - 工作表
-  - 单元格
-  - csv转换
-  - 数据分析
+description: "Excel/xlsx 文件操作 - 读写工作表、数据分析、CSV转换。Trigger: 'excel', 'xlsx', '表格', '工作表', 'spreadsheet', '数据分析'"
 user-invocable: true
+context: fork
+model: sonnet
+memory: project
 ---
 
 # Excel xlsx 操作技能

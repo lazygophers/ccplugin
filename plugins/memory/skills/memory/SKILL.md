@@ -1,5 +1,5 @@
 ---
-description: "项目记忆管理 - 跨会话持久化记忆的读取、创建、更新、搜索与索引。当用户需要记住信息、查找历史记忆、管理知识库、保存上下文或查看记忆变更时激活。支持优先级、披露控制和关键词搜索。"
+description: "Cross-session memory management: read, create, update, search memories. Trigger: 'remember this', 'recall memory', 'save context', 'search memories', 'memory index'."
 user-invocable: true
 context: fork
 auto-activate: always:true
@@ -116,47 +116,11 @@ The `disclosure` field describes **when** to recall this memory:
 
 Hooks use this field for intelligent preloading.
 
-## 执行过程检查清单
+## Checklist
 
-### 读取记忆检查（/memory read）
-- [ ] URI 路径格式正确（project://、workflow://、user://、system://）
-- [ ] 记忆存在于存储中
-- [ ] 记忆内容成功加载
-- [ ] 记忆内容格式正确
-
-### 创建记忆检查（/memory create）
-- [ ] 父级 URI 路径正确
-- [ ] 内容格式正确
-- [ ] 优先级设置合理（priority ≤ 2 为核心记忆）
-- [ ] 标题和描述清晰
-- [ ] disclosure 字段设置正确（用于智能预加载）
-- [ ] 记忆成功创建并保存
-
-### 更新记忆检查（/memory update）
-- [ ] 目标记忆存在
-- [ ] 更新内容格式正确
-- [ ] 更新字段合法（title/content/priority/disclosure）
-- [ ] 记忆成功更新
-
-### 搜索记忆检查（/memory search）
-- [ ] 关键词明确
-- [ ] 搜索结果相关
-- [ ] 搜索结果数量合理
-
-### Hooks 集成检查
-- [ ] SessionStart hook 正确加载核心记忆（priority ≤ 2）
-- [ ] PreToolUse hook 智能预加载相关上下文
-- [ ] PostToolUse hook 自动记录文件修改
-- [ ] Stop hook 提示保存待定记忆
-- [ ] SessionEnd hook 保存会话摘要
-
-## 完成后检查清单
-
-### 记忆质量检查
-- [ ] 记忆内容准确完整
-- [ ] 记忆组织清晰
-- [ ] URI 路径结构合理
-- [ ] 优先级设置恰当
+- URI format: `{domain}://{path}` where domain ∈ {project, workflow, user, task, system}
+- Priority ≤ 2 = core (auto-loaded), 3-5 = important, 6+ = reference
+- Disclosure field drives hook-based preloading
 
 ### 自动化检查
 - [ ] Hooks 正常工作

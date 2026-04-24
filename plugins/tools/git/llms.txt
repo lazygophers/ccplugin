@@ -1,38 +1,21 @@
 # git
 
-> Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理
+> Git 操作插件 - 提供提交管理、PR 管理和仓库维护功能
 
-## 概述
+## Docs
 
-Git 仓库管理插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和仓库维护。
+- [README](./README.md): 完整使用文档和安装指南
+- [插件配置](./.claude-plugin/plugin.json): 插件元数据和 hooks 配置
+- [开发指南](./GUIDELINES.md): 开发规范
 
-## 目录结构
+## Examples
 
-```
-git/
-├── .claude-plugin/
-│   └── plugin.json
-├── agents/
-│   └── git.md
-├── commands/
-│   ├── commit.md
-│   ├── ignore.md
-│   ├── pr.md
-│   └── push.md
-├── skills/
-│   └── git-skills/
-│       ├── SKILL.md
-│       ├── commit-guidelines.md
-│       └── pr-guidelines.md
-├── AGENT.md
-├── README.md
-└── __init__.py
-```
+- [commit 命令](./commands/commit.md): 提交变更命令定义
+- [commit 规范](./skills/commit/SKILL.md): Conventional Commits 提交信息规范
+- [PR 规范](./skills/pr/SKILL.md): Pull Request 创建规范
+- [Issue 规范](./skills/issue/SKILL.md): Issue 管理规范
 
-## 相关文档
+## Optional
 
-- [README](./README.md) - 完整文档
-- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
-- [技能定义](./skills/) - Skills 定义
-- [子代理](./agents/) - Agent 定义
-- [命令](./commands/) - 命令定义
+- [最佳实践](./docs/best-practices.md): Git 工作流最佳实践
+- [快速开始](./docs/quickstart.md): 快速上手指南

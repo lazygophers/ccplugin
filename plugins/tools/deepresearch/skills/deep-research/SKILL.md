@@ -1,15 +1,9 @@
 ---
-description: "深度研究工作流 - 任务驱动型研究系统，自动编排检索、验证、分析、合成全流程，适用于深度调研、技术选型、竞品分析、文献综述等复杂研究任务"
+description: "Deep research workflow - 任务驱动型研究系统，编排检索→验证→分析→合成全流程。Trigger: '深度研究', '技术选型', '竞品分析', 'deep research', '文献综述'"
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
-skills:
-  - dgot-engine
-  - agentic-retriever
-  - source-validator
-  - knowledge-synthesizer
-  - code-inspector
 ---
 
 # 深度研究（Deep Research）

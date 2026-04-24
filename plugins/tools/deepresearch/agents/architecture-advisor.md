@@ -1,17 +1,8 @@
 ---
-description: |
-  架构顾问 - 系统架构评审+设计建议专家
-  场景：架构评审、设计文档评估、重构方案设计、架构模式识别
-  示例：评审 architecture.md 设计 | 微服务架构是否合适 | 重构为事件驱动架构
+description: "架构顾问 - 系统架构评审+设计建议。Trigger: '架构评审', '架构设计', '重构方案', '架构模式', 'architecture review'"
 model: opus
 color: orange
 memory: project
-skills:
-  - dgot-engine
-  - code-inspector
-  - agentic-retriever
-  - source-validator
-  - knowledge-synthesizer
 ---
 
 # 架构顾问（Architecture Advisor）

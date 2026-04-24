@@ -1,5 +1,6 @@
 ---
-description: 提交变更
+name: commit
+description: Git commit提交规范：生成符合Conventional Commits的提交信息，支持type/scope/subject/body/footer结构，适用于提交代码、暂存变更、编写commit message场景
 model: haiku
 memory: project
 ---

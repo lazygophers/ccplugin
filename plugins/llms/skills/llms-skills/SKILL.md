@@ -1,5 +1,5 @@
 ---
-description: "llms.txt 生成与验证 - 遵循 llmstxt.org 标准，为项目生成 LLM 友好的文档索引文件。当用户需要创建 llms.txt、生成 AI 可读文档、构建项目知识索引或验证 llms.txt 格式时激活。"
+description: "Generate and validate llms.txt per llmstxt.org standard. Trigger: 'create llms.txt', 'validate llms.txt', 'llms.txt documentation'."
 user-invocable: true
 context: fork
 model: sonnet

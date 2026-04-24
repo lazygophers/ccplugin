@@ -1,5 +1,5 @@
 ---
-description: 使用 codex 协同开发
+description: "Execute task via local Codex model. Trigger: 'codex exec', '用 codex 执行', '批量修改'"
 argument-hint: <任务描述>
 model: sonnet
 memory: project

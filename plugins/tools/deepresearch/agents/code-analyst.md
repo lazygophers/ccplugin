@@ -1,16 +1,8 @@
 ---
-description: |
-  代码分析师 - 代码质量+技术债+性能的一站式分析专家
-  场景：代码审查、技术债识别、性能瓶颈定位、重构规划
-  示例：分析 ./src 的代码质量 | 识别项目技术债并排序 | 定位API性能瓶颈
+description: "代码分析师 - 代码质量+技术债+性能分析。Trigger: '代码质量', '技术债', '性能瓶颈', '静态分析', 'code quality', 'tech debt'"
 model: opus
 color: blue
 memory: project
-skills:
-  - dgot-engine
-  - code-inspector
-  - source-validator
-  - knowledge-synthesizer
 ---
 
 # 代码分析师（Code Analyst）

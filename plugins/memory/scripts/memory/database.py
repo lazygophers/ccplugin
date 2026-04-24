@@ -22,7 +22,10 @@ from .models import (
 )
 
 
+import asyncio
+
 _db_initialized = False
+_db_lock = asyncio.Lock()
 
 
 def get_db_path() -> str:
@@ -68,25 +71,29 @@ async def init_db() -> None:
     if _db_initialized:
         return
 
-    db_path = get_db_path()
-    project_dir = get_project_dir()
-    if project_dir:
-        gitignore_path = os.path.join(project_dir, ".gitignore")
-        add_gitignore_rule("/.lazygophers/ccplugin/memory/", gitignore_path)
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    async with _db_lock:
+        if _db_initialized:
+            return
 
-    config = DatabaseConfig.sqlite(path=db_path)
-    await DatabaseConnection.initialize(config)
+        db_path = get_db_path()
+        project_dir = get_project_dir()
+        if project_dir:
+            gitignore_path = os.path.join(project_dir, ".gitignore")
+            add_gitignore_rule("/.lazygophers/ccplugin/memory/", gitignore_path)
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
-    await Memory.create_table(if_not_exists=True)
-    await MemoryPath.create_table(if_not_exists=True)
-    await MemoryVersion.create_table(if_not_exists=True)
-    await MemoryRelation.create_table(if_not_exists=True)
-    await Session.create_table(if_not_exists=True)
-    await ErrorSolution.create_table(if_not_exists=True)
+        config = DatabaseConfig.sqlite(path=db_path)
+        await DatabaseConnection.initialize(config)
 
-    _db_initialized = True
-    logging.info(f"数据库初始化完成: {db_path}")
+        await Memory.create_table(if_not_exists=True)
+        await MemoryPath.create_table(if_not_exists=True)
+        await MemoryVersion.create_table(if_not_exists=True)
+        await MemoryRelation.create_table(if_not_exists=True)
+        await Session.create_table(if_not_exists=True)
+        await ErrorSolution.create_table(if_not_exists=True)
+
+        _db_initialized = True
+        logging.info(f"数据库初始化完成: {db_path}")
 
 
 async def close_db() -> None:

@@ -17,6 +17,9 @@
     "release",
     "management"
   ],
+  "commands": [
+    "./commands/version.md"
+  ],
   "hooks": {
     "SessionStart": [
       {

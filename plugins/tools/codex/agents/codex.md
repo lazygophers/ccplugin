@@ -1,23 +1,5 @@
 ---
-description: |
-	Use this agent when the user needs collaborative development assistance with intelligent code understanding and generation. This agent specializes in context-aware code assistance and development workflow support. Examples:
-	<example>
-	Context: User needs code assistance
-	user: "Help me implement this feature with intelligent code suggestions"
-	assistant: "I'll use the codex agent to provide context-aware code assistance."
-	<commentary>
-	Collaborative development requires intelligent understanding of code context and patterns.
-	</commentary>
-	</example>
-
-	<example>
-	Context: User wants workflow support
-	user: "Guide me through implementing this complex feature"
-	assistant: "I'll use codex to support your development workflow with intelligent assistance."
-	<commentary>
-	Development workflow support requires understanding of patterns and best practices.
-	</commentary>
-	</example>
+description: "Codex 本地模型执行代理。用于机械性多文件修改、批量替换、已有明确验收标准的实现任务。Trigger: 'use codex', 'codex exec', '用 codex 执行', '批量修改'."
 tools: Bash, Read, Grep
 model: haiku
 memory: project

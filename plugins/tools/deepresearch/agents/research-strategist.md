@@ -1,16 +1,8 @@
 ---
-description: |
-  研究策略师 - 技术概念研究+方案对比+选型建议专家
-  场景：技术学习、框架选型、方案对比、趋势研究
-  示例：解释微服务架构 | 对比React vs Vue | GraphQL适合什么场景
+description: "研究策略师 - 技术概念研究+方案对比+选型建议。Trigger: '技术选型', '框架对比', '方案评估', 'compare', 'vs', '趋势研究'"
 model: opus
 color: purple
 memory: project
-skills:
-  - dgot-engine
-  - agentic-retriever
-  - source-validator
-  - knowledge-synthesizer
 ---
 
 # 研究策略师（Research Strategist）
