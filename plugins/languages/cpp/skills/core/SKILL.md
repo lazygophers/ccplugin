@@ -24,7 +24,7 @@ memory: project
 | Memory | Skills(cpp:memory) | Smart pointers, RAII, scope guards |
 | Concurrency | Skills(cpp:concurrency) | jthread, coroutines, atomics |
 | Templates | Skills(cpp:template) | Concepts, CTAD, fold expressions |
-| Tooling | Skills(cpp:tooling) | CMake 3.28+, clang-tidy, sanitizers |
+| Tooling | Skills(cpp:tooling) | CMake 3.30+, clang-tidy, sanitizers |
 | Performance | Skills(cpp:performance) | Cache, SIMD, zero-copy |
 
 ## Mandatory Rules
@@ -75,6 +75,16 @@ memory: project
 | Deducing this | Recursive lambdas, CRTP | `void f(this auto&& self)` |
 | if consteval | Compile-time branch | `if consteval { ... } else { ... }` |
 | std::flat_map | Cache-friendly map | `std::flat_map<K, V> m;` |
+
+## C++26 Features (Finalized March 2026)
+
+| Feature | Usage | Example | Compiler |
+|---|---|---|---|
+| Static Reflection | Compile-time introspection | `constexpr auto members = std::meta::members_of(^MyClass);` | GCC 15+, Clang 19+ (experimental) |
+| Contracts | Pre/postconditions | `void f(int x) [[pre: x > 0]] [[post r: r >= 0]]` | GCC 15+, Clang 19+ (experimental) |
+| std::execution | Unified async framework | `auto result = co_await on(scheduler, async_work());` | GCC 15+ (partial) |
+| SIMD Types | Portable vectorization | `std::simd<float, 4> vec = {1, 2, 3, 4};` | GCC 15+, Clang 19+ |
+| Parallel Ranges | Multi-threaded ranges | `ranges::sort(par_unseq, data);` | Experimental |
 
 ## Red Flags
 

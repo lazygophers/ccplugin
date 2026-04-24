@@ -68,11 +68,12 @@ clangd --version
 
 ## C++ 标准支持
 
-| 标准 | 关键特性 | 状态 |
-|------|---------|------|
-| C++17 | 结构化绑定、std::optional、std::variant | 完全支持 |
-| C++20 | Concepts、Ranges、协程 | 完全支持 |
-| C++23 | std::expected、std::print | 部分支持 |
+| 标准 | 关键特性 | 编译器要求 | 状态 |
+|------|---------|-----------|------|
+| C++17 | 结构化绑定、std::optional、std::variant | GCC 7+, Clang 5+ | 完全支持 |
+| C++20 | Concepts、Ranges、协程、Modules | GCC 10+, Clang 12+ | 完全支持 |
+| C++23 | std::expected、std::print、deducing this、std::flat_map | GCC 13+, Clang 17+ | 完全支持 |
+| C++26 | Reflection、Contracts、std::execution、std::simd | GCC 15+, Clang 19+ | 实验性支持 |
 
 ## 核心规范
 

@@ -6,7 +6,17 @@ model: sonnet
 memory: project
 ---
 
-# C++ Performance Optimization (2024-2025)
+# C++ Performance Optimization (2025-2026)
+
+## C++23/26 Performance Features
+
+| Feature | Benefit | Example |
+|---|---|---|
+| Deducing this | Replaces CRTP, faster compile, smaller binary | `void f(this auto&& self) { self.impl(); }` |
+| if consteval | Compile-time/runtime branch | `if consteval { /*full*/ } else { /*fast*/ }` |
+| std::flat_map | Cache-friendly (contiguous storage, 2-10x faster than std::map) | `std::flat_map<K,V> m;` |
+| std::execution (C++26) | Unified async, structured concurrency | `co_await on(scheduler, work());` |
+| std::simd (C++26) | Portable SIMD vectorization | `std::simd<float,4> v;` |
 
 ## Applicable Agents
 

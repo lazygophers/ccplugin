@@ -1,5 +1,5 @@
 ---
-description: "C++ toolchain: CMake 3.28+, Conan 2.x/vcpkg, clang-tidy, clang-format, sanitizers, coverage. Load when configuring build system, static analysis, or CI."
+description: "C++ toolchain: CMake 3.30+, Conan 2.x/vcpkg, clang-tidy, clang-format, sanitizers, coverage. Load when configuring build system, static analysis, or CI."
 user-invocable: true
 context: fork
 model: sonnet
@@ -24,20 +24,21 @@ memory: project
 | Core | Skills(cpp:core) | C++20/23 standards |
 | Performance | Skills(cpp:performance) | Profiling, LTO/PGO |
 
-## CMake 3.28+
+## CMake 3.30+
 
 ```cmake
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.30)
 project(MyProject
     VERSION 1.0.0
     DESCRIPTION "Modern C++ Project"
     LANGUAGES CXX
 )
 
-# C++23 standard
+# C++23 standard (C++26 experimental: set to 26)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_MODULE_STD ON)  # Enable import std; (CMake 3.30+)
 
 # Export compile_commands.json for clang-tidy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -224,7 +225,7 @@ llvm-cov show ./build/app -instr-profile=app.profdata
 
 | Rationalization | Actual Check |
 |---|---|
-| "CMake 3.14 is enough" | Use CMake 3.28+ for C++23 module support |
+| "CMake 3.14 is enough" | Use CMake 3.30+ for C++23 module support |
 | "Don't need clang-tidy" | Run clang-tidy with strict checks |
 | "Sanitizers slow things down" | Run sanitizers in CI on every PR |
 | "Manual dependency management" | Use Conan 2.x or vcpkg |
@@ -233,7 +234,7 @@ llvm-cov show ./build/app -instr-profile=app.profdata
 
 ## Checklist
 
-- [ ] CMake 3.28+ with C++23
+- [ ] CMake 3.30+ with C++23
 - [ ] CMakePresets.json for debug/release/asan/tsan
 - [ ] Strict warnings enabled (-Wall -Wextra -Werror -Wpedantic)
 - [ ] clang-tidy with strict checks, warnings-as-errors
