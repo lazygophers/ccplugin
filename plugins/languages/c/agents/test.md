@@ -52,11 +52,11 @@ color: green
 - 关键路径 100% 覆盖，总体 >80%
 - 分支覆盖率不低于行覆盖率
 
-### 4. 测试框架选择
-- **Unity**：轻量级，嵌入式首选，零依赖
-- **cmocka**：支持 mock/stub，功能丰富
-- **Check**：POSIX 兼容，支持 fork 隔离
-- **criterion**：现代 C 测试框架，自动发现测试
+### 4. 测试框架选择（2025-2026）
+- **Unity v2.6+**：轻量级，嵌入式首选，零依赖，新增内存泄漏检测
+- **cmocka 2.0+**：支持 mock/stub，TAP 14 报告，类型安全断言宏
+- **criterion**：现代 C 测试框架，自动发现测试，彩色输出
+- **Check**：POSIX 兼容，支持 fork 隔离（较老，建议迁移到 criterion）
 
 </core_principles>
 

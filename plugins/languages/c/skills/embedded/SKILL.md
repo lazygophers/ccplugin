@@ -1,5 +1,5 @@
 ---
-description: "C语言嵌入式开发规范，涵盖硬件寄存器操作（volatile/MMIO）、中断处理（ISR）、MISRA C 2023合规、静态分配策略、固件尺寸与执行速度优化。适用于MCU固件开发、驱动编写、资源受限环境。"
+description: "C语言嵌入式开发规范，涵盖硬件寄存器操作（volatile/MMIO）、中断处理（ISR）、MISRA C:2023（含AMD4多线程指南）合规、静态分配策略、固件优化。适用于MCU固件开发、驱动编写、资源受限环境。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -33,7 +33,7 @@ memory: project
 | "浮点运算没问题" | 目标 MCU 是否有 FPU？ |
 | "全局变量很方便" | 是否需要限制作用域？ |
 
-## MISRA C 2023 关键规则
+## MISRA C:2023 关键规则（含 AMD4 多线程/原子操作指南）
 
 | 规则 | 说明 | 级别 |
 |------|------|------|

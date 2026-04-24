@@ -46,18 +46,22 @@ memory: project
 | 线程局部 | `_Thread_local` | 线程私有变量 |
 | 原子操作 | `_Atomic` / `<stdatomic.h>` | 无锁并发 |
 
-## C23 新特性（了解即可，逐步采用）
+## C23 新特性（ISO/IEC 9899:2024，GCC 15+ 默认）
 
-| 特性 | 语法 | 说明 |
-|------|------|------|
-| nullptr | `nullptr` | 替代 `NULL`，类型安全空指针 |
-| constexpr | `constexpr int N = 42;` | 编译期常量 |
-| typeof | `typeof(expr)` | 标准化类型推导 |
-| auto | `auto x = expr;` | 类型推导（仅局部变量） |
-| #embed | `#embed "data.bin"` | 二进制数据嵌入 |
-| [[nodiscard]] | `[[nodiscard]] int func();` | 返回值不可忽略 |
-| [[maybe_unused]] | `[[maybe_unused]] int x;` | 抑制未使用警告 |
-| [[deprecated]] | `[[deprecated("use v2")]]` | 标记废弃 |
+| 特性 | 语法 | 说明 | 编译器支持 |
+|------|------|------|-----------|
+| nullptr | `nullptr` | 类型安全空指针（nullptr_t） | GCC 13+, Clang 16+ |
+| constexpr | `constexpr int sq(int x) { return x*x; }` | 编译期常量和函数 | GCC 14+, Clang 17+ |
+| typeof/typeof_unqual | `typeof(expr)` | 标准化类型推导 | GCC 13+, Clang 16+ |
+| auto | `auto x = expr;` | 类型推导（⚠️ 语义变更，旧 auto 需写 auto int） | GCC 15+, Clang 18+ |
+| _BitInt(N) | `_BitInt(7) val;` | 任意位宽整数 | GCC 14+, Clang 16+ |
+| 二进制字面量 | `0b10101010` | 二进制前缀 | GCC 14+, Clang 16+ |
+| 数字分隔符 | `1'000'000` | 提升可读性 | GCC 14+, Clang 16+ |
+| #embed | `#embed "data.bin"` | 二进制数据嵌入 | GCC 15+, Clang 19+ |
+| [[nodiscard]] | `[[nodiscard]] int func();` | 返回值不可忽略 | GCC 14+, Clang 16+ |
+| {} 初始化 | `int arr[n] = {};` | VLA 零初始化 | GCC 14+, Clang 16+ |
+| [[maybe_unused]] | `[[maybe_unused]] int x;` | 抑制未使用警告 | GCC 14+, Clang 16+ |
+| [[deprecated]] | `[[deprecated("use v2")]]` | 标记废弃 | GCC 14+, Clang 16+ |
 
 ## 必须遵守的编码约定
 
@@ -70,9 +74,9 @@ memory: project
 6. **资源管理** - goto cleanup 模式统一释放
 7. **禁用危险函数** - 禁止 strcpy、sprintf、gets、strcat
 
-### 构建系统（CMake 3.28+）
+### 构建系统（CMake 3.30+）
 ```cmake
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.30)
 project(myproject C)
 
 set(CMAKE_C_STANDARD 17)

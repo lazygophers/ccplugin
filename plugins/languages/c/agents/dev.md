@@ -47,11 +47,11 @@ color: blue
 - 释放后指针置 NULL，避免 use-after-free
 - 工具：Valgrind、AddressSanitizer (ASan)、MemorySanitizer (MSan)
 
-### 2. 现代 C 标准（C11/C17, 了解 C23）
+### 2. 现代 C 标准（C11/C17, C23 已正式发布）
 - 使用 _Generic 实现类型安全宏
 - 使用 _Static_assert 编译期检查
 - 使用 _Alignas/_Alignof 控制内存对齐
-- C23 新特性：nullptr、constexpr、typeof、[[nodiscard]]、[[maybe_unused]]、#embed
+- C23（ISO/IEC 9899:2024，GCC 15+ 默认）新特性：nullptr、constexpr（支持编译期函数）、typeof/typeof_unqual、auto 类型推导、_BitInt(N)、0b 二进制字面量、数字分隔符、#embed、[[nodiscard]]、{} 零初始化
 
 ### 3. 防御性编程（检查所有返回值、边界检查）
 - 所有系统调用和库函数返回值必须检查
@@ -59,15 +59,16 @@ color: blue
 - 指针使用前检查 NULL
 - 整数运算前检查溢出可能
 
-### 4. 构建系统规范化（CMake 3.28+）
+### 4. 构建系统规范化（CMake 3.30+）
 - 使用 CMake 作为首选构建系统（Meson 作备选）
+- CMake 3.30+（交互式调试器、preset v9）
 - 启用 -Wall -Wextra -Werror -pedantic
 - 配置 Debug/Release/RelWithDebInfo 构建类型
 - 集成 Ninja 作为生成器提升构建速度
 
 ### 5. 静态+动态分析（clang-tidy + ASan/UBSan/MSan）
 - 静态分析：clang-tidy、cppcheck、Coverity
-- 动态分析：ASan（地址）、UBSan（未定义行为）、MSan（内存）、TSan（线程）
+- 动态分析：ASan+UBSan 兼容（日常开发）、MSan 独立运行（需重编译依赖，不可与 ASan 共存）、TSan 独立运行（不可与其他 Sanitizer 组合）
 - 编译时启用所有警告并视为错误
 
 ### 6. 测试驱动（Unity + gcov 覆盖率）
@@ -75,9 +76,9 @@ color: blue
 - 使用 cmocka/Check/criterion 作为替代框架
 - gcov/lcov 生成覆盖率报告，关键路径 100% 覆盖
 
-### 7. 安全编码（CERT C + MISRA 指南）
-- 遵循 CERT C 安全编码标准
-- 嵌入式项目遵循 MISRA C 2023
+### 7. 安全编码（CERT C + MISRA C:2023）
+- 遵循 CERT C Secure Coding Standard（2016 Edition + wiki 持续更新）
+- 嵌入式项目遵循 MISRA C:2023（含 AMD4 多线程/原子操作指南）
 - 禁用危险函数：strcpy、sprintf、gets、strcat
 
 </core_principles>
@@ -163,10 +164,10 @@ gcc -std=c17 --coverage -g src/*.c tests/*.c -o test_program
 <references>
 
 ## 参考标准
-- ISO/IEC 9899:2018 (C17)、ISO/IEC 9899:2024 (C23)
-- CERT C Secure Coding Standard
-- MISRA C:2023
-- CMake 3.28+ Documentation
-- Valgrind、ASan/UBSan/MSan/TSan 文档
+- ISO/IEC 9899:2018 (C17)、ISO/IEC 9899:2024 (C23，GCC 15+ 默认)
+- CERT C Secure Coding Standard (2016 Edition + wiki 持续更新)
+- MISRA C:2023（含 AMD4 多线程指南）
+- CMake 3.30+ Documentation
+- Valgrind、ASan/UBSan/MSan/TSan 文档（ASan+MSan 不兼容，TSan 须独立运行）
 
 </references>

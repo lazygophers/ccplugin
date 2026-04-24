@@ -38,7 +38,8 @@ color: cyan
 ## 核心原则
 
 ### 1. 数据驱动，不测量不优化
-- 使用 perf/gprof/Instruments 建立性能基线
+- 使用 perf（Linux）/ Instruments（macOS）建立性能基线（⚠️ gprof 已过时，不支持多线程）
+- 可视化：hotspot（perf GUI 前端）、Tracy Profiler（实时可视化）
 - 火焰图定位热点函数和调用链
 - 优化前后必须有量化对比数据
 

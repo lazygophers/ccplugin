@@ -42,8 +42,9 @@ color: yellow
 ### 1. 工具驱动诊断
 - 永远使用工具验证，不凭经验猜测
 - GDB/LLDB 断点调试 + 堆栈分析
-- Valgrind memcheck 内存泄漏/越界
-- ASan/MSan/UBSan/TSan Sanitizer 全覆盖
+- Valgrind memcheck 内存泄漏/越界（10-50x 慢，检测未初始化内存，不检测栈/全局溢出）
+- Sanitizer 组合规则：ASan+UBSan 兼容（2-3x 慢，日常开发首选）；MSan 须独立运行（需重编译依赖，不可与 ASan 共存）；TSan 须独立运行（不可与其他 Sanitizer 组合）
+- 推荐流程：开发阶段 ASan+UBSan → 提交前 Valgrind → 怀疑未初始化 MSan → 多线程 TSan
 
 ### 2. 系统化根因分析
 - 收集信息 -> 复现问题 -> 隔离变量 -> 定位根因
