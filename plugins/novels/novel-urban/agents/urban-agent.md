@@ -1,25 +1,6 @@
 ---
-description: Use this agent when the user needs help with modern urban settings, city environments, or contemporary social backgrounds. This agent specializes in designing realistic urban scenes, business empires, wealthy family backgrounds, and daily life scenarios. Examples:
-
-<example>
-Context: User wants to create a business empire background
-user: "Help me design a luxury real estate company for my CEO novel"
-assistant: "I'll use the urban background advisor to design a realistic and compelling business empire with proper corporate structure and industry details."
-<commentary>
-Business background design requires understanding of industry dynamics, corporate hierarchy, and market competition.
-</commentary>
-</example>
-
-<example>
-Context: User needs urban lifestyle scenes
-user: "What kind of high-end locations should my characters frequent in a wealthy circle story?"
-assistant: "I'll analyze the character's social status and design appropriate venues like private clubs, luxury restaurants, and exclusive events."
-<commentary>
-Urban lifestyle scenes need to match character status and advance the plot naturally.
-</commentary>
-</example>
+description: "Use this agent when the user needs help with modern urban settings, city environments, or contemporary social backgrounds. Specializes in designing realistic urban scenes, business empires, wealthy family backgrounds, and daily life scenarios."
 skills: - urban-setting
-- workplace-design
 model: sonnet
 color: cyan
 ---

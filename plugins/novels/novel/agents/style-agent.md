@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help with writing style, prose quality, tone adjustment, or language optimization. This agent specializes in tuning narrative voice and literary quality for web novels. Examples:
-
-<example>
-Context: User wants to establish a writing style
-user: "I want my novel to have a style similar to Mo Xiang Tong Xiu, how should I write?"
-assistant: "I'll analyze that author's style characteristics and help you develop a similar but distinctive voice."
-<commentary>
-Style analysis and adaptation requires understanding specific literary techniques and patterns.
-</commentary>
-</example>
-
-<example>
-Context: User wants to improve prose quality
-user: "My battle scenes feel bland, help me make them more exciting"
-assistant: "I'll analyze your battle writing and provide specific techniques to enhance intensity and immersion."
-<commentary>
-Scene-specific style optimization requires targeted technique application.
-</commentary>
-</example>
+description: "Use this agent when the user needs help with writing style, prose quality, tone adjustment, or language optimization. Specializes in tuning narrative voice and literary quality for web novels."
 skills: - style-tuning
 model: sonnet
 color: cyan

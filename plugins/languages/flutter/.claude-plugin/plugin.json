@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/flutter",
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/flutter",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "keywords": [
     "flutter",
     "dart",

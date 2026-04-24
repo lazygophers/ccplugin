@@ -1,5 +1,5 @@
 ---
-description: "Flutter 状态管理规范。涵盖 Riverpod 2.x（推荐）、Bloc 8.x 模式选型、依赖注入与异步状态处理。适用于设计数据流、管理应用状态、实现 Provider/Bloc 时加载。"
+description: "Flutter 状态管理规范。涵盖 Riverpod 3.x（推荐）、Bloc 8.x 模式选型、依赖注入与异步状态处理。适用于设计数据流、管理应用状态、实现 Provider/Bloc 时加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -27,14 +27,21 @@ memory: project
 
 | 方案 | 适用场景 | 推荐度 | 关键特性 |
 | ---- | -------- | ------ | -------- |
-| **Riverpod 2.x** | 中大型应用（推荐） | 首选 | 代码生成、编译时安全、自动 dispose |
+| **Riverpod 3.x** | 中大型应用（推荐） | 首选 | 代码生成、编译时安全、自动 dispose |
 | **Bloc 8.x** | 大型企业应用 | 推荐 | 事件驱动、可预测状态、强制分层 |
 | Provider | 遗留项目（已停止维护） | 不推荐 | 迁移到 Riverpod |
 | GetX | 技术债务 | 禁止 | 迁移到 Riverpod/Bloc |
 
-**关键原则**：选定一个方案并在整个应用中一致使用。新项目首选 Riverpod 2.x。
+**关键原则**：选定一个方案并在整个应用中一致使用。新项目首选 Riverpod 3.x。
 
-## Riverpod 2.x（首选）
+## Riverpod 3.x（首选）
+
+### Riverpod 3.0 新特性（2026-02）
+
+- **Mutations**：声明式表单提交/操作，自动处理 loading/error
+- **Offline persistence**：Provider 状态离线缓存，重启后恢复
+- **Generic 代码生成**：泛型 Provider 支持
+- **迁移**：从 2.x 升级需更新 `riverpod_generator` 到 3.x，API 基本兼容
 
 ### @riverpod 代码生成（推荐方式）
 
@@ -239,7 +246,7 @@ blocTest<AuthBloc, AuthState>(
 |---------------------|-------------------|---------|
 | "setState 就够了" | 是否使用 Riverpod/Bloc 管理状态？ | 高 |
 | "Provider 够用了" | Provider 已停止维护，是否迁移到 Riverpod？ | 高 |
-| "StateNotifier 也能用" | 是否迁移到 Riverpod 2.x 的 Notifier/AsyncNotifier？ | 高 |
+| "StateNotifier 也能用" | 是否迁移到 Riverpod 3.x 的 Notifier/AsyncNotifier？ | 高 |
 | "手写 Provider 更清晰" | 是否使用 @riverpod 代码生成？ | 中 |
 | "ref.read 在 build 中" | build 中是否应该用 ref.watch？ | 高 |
 | "不需要 AsyncValue" | 异步状态是否统一使用 AsyncValue.when？ | 高 |
@@ -248,7 +255,7 @@ blocTest<AuthBloc, AuthState>(
 
 ## 检查清单
 
-- [ ] 选定一个状态管理方案（Riverpod 2.x 首选）
+- [ ] 选定一个状态管理方案（Riverpod 3.x 首选）
 - [ ] 不混合使用多个方案
 - [ ] Riverpod：使用 @riverpod 代码生成
 - [ ] Riverpod：AsyncNotifier/Notifier 替代 StateNotifier

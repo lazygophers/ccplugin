@@ -1,5 +1,5 @@
 ---
-description: "C# LINQ 查询与集合操作规范：.NET 8 新操作符（CountBy/AggregateBy）、LINQ 性能优化、EF Core query translation 查询转换、Span<T> 高性能替代。编写数据查询、集合处理、序列操作时加载。"
+description: "C# LINQ 查询与集合操作规范：.NET 10 新操作符（CountBy/AggregateBy）、LINQ 性能优化、EF Core query translation 查询转换、Span<T> 高性能替代。编写数据查询、集合处理、序列操作时加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -19,7 +19,7 @@ memory: project
 - **Skills(csharp:data)** - 数据访问：EF Core LINQ to SQL translation
 - **Skills(csharp:async)** - 异步编程：IAsyncEnumerable
 
-## .NET 8 新操作符
+## .NET 8-10 新操作符
 
 ```csharp
 // ✅ Index（按索引选择）
@@ -117,7 +117,7 @@ var users = await _context.Users
     .Where(u => MyCustomMethod(u.Name))  // 无法翻译！
     .ToListAsync(ct);
 
-// ✅ EF Core 8 JSON 列查询
+// ✅ EF Core 10 JSON 列查询
 var users = await _context.Users
     .Where(u => u.Address.City == "Beijing")  // JSON 列内查询
     .ToListAsync(ct);
@@ -198,4 +198,4 @@ await foreach (var user in _context.Users
 - [ ] 热路径考虑 Span + 手动循环替代 LINQ
 - [ ] 大集合 Contains 使用 HashSet
 - [ ] 无 LINQ 查询中的副作用
-- [ ] 使用 .NET 8+ 新操作符（DistinctBy、Chunk 等）
+- [ ] 使用 .NET 10+ 新操作符（DistinctBy、Chunk 等）

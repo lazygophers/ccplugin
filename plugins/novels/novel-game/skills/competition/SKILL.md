@@ -2,6 +2,8 @@
 description: "游戏小说竞技对战与电竞赛事设计。规划赛事规则与流程、排位段位与匹配系统、战术策略与团队配合、PVP对战模式及公会战攻城战等大规模竞技场景。适用于电竞、网游竞技题材中比赛情节和对战场面的创作。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 竞技设计

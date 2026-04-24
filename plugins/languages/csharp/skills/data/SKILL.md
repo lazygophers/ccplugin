@@ -1,5 +1,5 @@
 ---
-description: "C# 数据访问与 ORM 规范：EF Core 8 compiled queries 编译查询、JSON columns、complex types 复杂类型、bulk operations 批量操作、interceptors 拦截器、数据库迁移。访问数据库、设计数据模型、优化查询性能时加载。"
+description: "C# 数据访问与 ORM 规范：EF Core 10 compiled queries 编译查询、JSON columns、complex types 复杂类型、bulk operations 批量操作、interceptors 拦截器、数据库迁移。访问数据库、设计数据模型、优化查询性能时加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -16,11 +16,17 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(csharp:core)** - 核心规范：C# 12/.NET 8 标准
+- **Skills(csharp:core)** - 核心规范：C# 14/.NET 10 标准
 - **Skills(csharp:async)** - 异步编程：异步查询模式
 - **Skills(csharp:linq)** - LINQ：查询优化、EF Core translation
 
-## DbContext 配置（EF Core 8）
+## EF Core 10 新特性
+
+- **自动编译模型检测**: 不再需要 `.UseModel()` 调用
+- **Vector 支持**: `HasVector()` 配置 AI 嵌入向量列
+- **Native AOT**: 完全支持 Native AOT 发布（零启动时间）
+
+## DbContext 配置（EF Core 10）
 
 ```csharp
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
@@ -39,11 +45,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasQueryFilter(x => !x.IsDeleted);  // 全局过滤（软删除）
         });
 
-        // EF Core 8: JSON column
+        // EF Core 10: JSON column
         modelBuilder.Entity<User>()
             .OwnsOne(u => u.Address, b => b.ToJson());
 
-        // EF Core 8: Complex type（值对象）
+        // EF Core 10: Complex type（值对象）
         modelBuilder.Entity<Order>()
             .ComplexProperty(o => o.ShippingAddress);
 
@@ -94,7 +100,7 @@ await context.Users
     .Where(u => !u.IsActive && u.DeactivatedAt < DateTime.UtcNow.AddYears(-2))
     .ExecuteDeleteAsync(ct);
 
-// ✅ 批量插入（EF Core 8 优化）
+// ✅ 批量插入（EF Core 10 优化）
 var users = Enumerable.Range(0, 1000)
     .Select(i => new User { Name = $"User_{i}", Email = $"user{i}@example.com" })
     .ToList();
@@ -102,7 +108,7 @@ context.Users.AddRange(users);
 await context.SaveChangesAsync(ct);
 ```
 
-## JSON Columns（EF Core 8）
+## JSON Columns（EF Core 10）
 
 ```csharp
 // ✅ 实体定义
@@ -190,7 +196,7 @@ public async Task TransferAsync(int fromId, int toId, decimal amount, Cancellati
 }
 ```
 
-## Interceptors（EF Core 8）
+## Interceptors（EF Core 10）
 
 ```csharp
 // ✅ 自动设置审计字段
@@ -253,7 +259,7 @@ if (app.Environment.IsDevelopment())
 | "逐条更新没问题" | ✅ 批量操作是否用 ExecuteUpdate/Delete？ |
 | "tracking 无所谓" | ✅ 只读查询是否用 AsNoTracking？ |
 | "InMemory 测试够用" | ✅ 集成测试是否用 TestContainers？ |
-| "JSON 存 string 就行" | ✅ 是否用 EF Core 8 JSON columns？ |
+| "JSON 存 string 就行" | ✅ 是否用 EF Core 10 JSON columns？ |
 | "手动设置审计字段" | ✅ 是否用 SaveChanges interceptor？ |
 
 ## 检查清单

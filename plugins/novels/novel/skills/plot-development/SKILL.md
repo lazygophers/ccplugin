@@ -2,6 +2,8 @@
 description: "情节发展 - 情节推进、冲突升级、高潮转折、悬念伏笔、节奏控制。当用户需要设计故事走向、安排冲突节奏、布局情节转折、设置悬念伏笔或解决卡文问题时激活。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 情节发展

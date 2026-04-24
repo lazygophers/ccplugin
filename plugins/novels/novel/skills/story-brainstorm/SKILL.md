@@ -2,6 +2,8 @@
 description: "故事构思 - 主题立意、世界观构建、核心冲突设计、题材选择。当用户需要创作灵感、从零构思故事、选择题材(玄幻/都市/科幻/悬疑)或构建世界观时激活。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 故事构思

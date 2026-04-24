@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help with romantic relationship development, emotional arc design, or love story plotting. This agent specializes in designing compelling romance lines, emotional conflicts, and character chemistry. Examples:
-
-<example>
-Context: User wants to design the first meeting
-user: "How should my CEO male lead and the female lead meet for the first time?"
-assistant: "I'll design a memorable first encounter that establishes their dynamic and creates tension or attraction."
-<commentary>
-First meetings are crucial in romance novels - they set the tone for the entire relationship.
-</commentary>
-</example>
-
-<example>
-Context: User needs emotional conflict design
-user: "My romance plot feels flat, how can I add tension?"
-assistant: "I'll analyze the relationship and design meaningful conflicts that test their connection while maintaining reader engagement."
-<commentary>
-Romantic tension requires balancing obstacles with hope, conflict with chemistry.
-</commentary>
-</example>
+description: "Use this agent when the user needs help with romantic relationship development, emotional arc design, or love story plotting. Specializes in designing compelling romance lines, emotional conflicts, and character chemistry."
 skills: - romance-line
 model: sonnet
 color: pink

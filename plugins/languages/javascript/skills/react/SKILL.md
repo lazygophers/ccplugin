@@ -19,9 +19,25 @@ memory: project
 
 | 场景 | Skill | 说明 |
 |------|-------|------|
-| 核心规范 | Skills(javascript:core) | ES2024-2025 标准、ESM、工具链 |
+| 核心规范 | Skills(javascript:core) | ES2025-2026 标准、ESM、工具链 |
 | 异步编程 | Skills(javascript:async) | async/await、Promise |
 | 安全编码 | Skills(javascript:security) | XSS 防护、Zod 验证 |
+
+## React 19 Compiler（重大变更）
+
+React 19 Compiler 自动记忆化组件和 hooks，**手动 useMemo/useCallback/React.memo 现已可选**：
+
+```javascript
+// ❌ React 18 写法（冗余，React 19 Compiler 自动处理）
+const expensiveValue = useMemo(() => compute(data), [data]);
+const handleClick = useCallback(() => onClick(id), [id]);
+export default React.memo(MyComponent);
+
+// ✅ React 19 写法（Compiler 自动优化）
+const expensiveValue = compute(data);
+const handleClick = () => onClick(id);
+export default MyComponent;
+```
 
 ## React 19 新特性
 

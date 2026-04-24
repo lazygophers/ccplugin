@@ -1,26 +1,6 @@
 ---
-description: Use this agent when the user needs help building a complete xuanhuan/xianxia world. This agent specializes in world geography, political systems, sect hierarchies, resource distribution, and multi-realm cosmology. Examples:
-
-<example>
-Context: User wants to build a cultivation world
-user: "Help me design a complete xuanhuan world with multiple continents and realms"
-assistant: "I'll use the worldbuilding designer to create a comprehensive world framework."
-<commentary>
-Full world design requires integrating geography, politics, resources, and cultivation systems.
-</commentary>
-</example>
-
-<example>
-Context: User needs sect power dynamics
-user: "Design the political landscape of my cultivation world with major sects and factions"
-assistant: "I'll create a detailed power structure with sect hierarchies and conflict dynamics."
-<commentary>
-Sect politics and power dynamics are core worldbuilding elements in xuanhuan fiction.
-</commentary>
-</example>
+description: "Use this agent when the user needs help building a complete xuanhuan/xianxia world. Specializes in world geography, political systems, sect hierarchies, resource distribution, and multi-realm cosmology."
 skills: - sect-faction
-  - cultivation-system
-  - magic-items
 model: sonnet
 color: purple
 ---

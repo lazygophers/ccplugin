@@ -2,6 +2,8 @@
 description: "角色设定 - 角色性格塑造、背景故事、成长弧线、关系网络设计。当用户需要创建主角/配角/反派、设计角色关系网络或解决角色扁平化问题时激活。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 角色设定

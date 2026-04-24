@@ -1,6 +1,6 @@
 # JavaScript 插件
 
-> JavaScript 开发插件 - 提供 ES2024-2025 开发规范、最佳实践和代码智能支持
+> JavaScript 开发插件 - 提供 ES2025-2026 开发规范、最佳实践和代码智能支持
 
 ## 安装
 
@@ -19,12 +19,12 @@ claude plugin install javascript@ccplugin-market
 
 - **JavaScript 开发专家代理** - 提供专业的 JavaScript 开发支持
   - 高质量代码实现
-  - 现代 ES2024+ 特性
+  - 现代 ES2025+ 特性
   - 性能优化建议
   - 异步编程支持
 
 - **开发规范指导** - 完整的 JavaScript 开发规范
-  - **ES2024-2025** - 使用最新 JavaScript 特性
+  - **ES2025-2026** - 使用最新 JavaScript 特性
   - **ESM 优先** - 模块化开发
   - **异步最佳实践** - async/await 模式
 

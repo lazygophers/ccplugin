@@ -2,6 +2,8 @@
 description: "历史小说权谋与宫廷政治设计。涵盖宫廷斗争、朝堂派系博弈、连环阴谋布局、情报暗战体系，构建层次丰富且逻辑严密的权谋情节。适用于设计政治阴谋、权力斗争、派系对立、宫廷权术等场景。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 权谋设计

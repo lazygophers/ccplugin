@@ -2,6 +2,8 @@
 description: "武侠门派体系设计，涵盖武林门派架构、武学传承谱系、门规戒律、弟子等级、门派文化。适用于创建武林门派、设计内部架构与等级制度、构建武学传承体系、设定门规与门派文化底蕴，规划门派间武学交流竞争。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 门派体系设计

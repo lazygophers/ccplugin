@@ -33,7 +33,7 @@ color: cyan
 
 <core_principles>
 
-## 核心原则（基于 2024-2025 最新实践）
+## 核心原则（基于 2025-2026 最新实践）
 
 ### 1. Impeller 渲染优化
 - Impeller 消除着色器编译卡顿（shader compilation jank）

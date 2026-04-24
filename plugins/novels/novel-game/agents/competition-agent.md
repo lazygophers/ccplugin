@@ -1,26 +1,6 @@
 ---
-description: Use this agent when the user needs help designing competitive/esports elements for gaming novels. This agent specializes in tournament systems, ranking mechanics, tactical strategies, team dynamics, and match narration. Examples:
-
-<example>
-Context: User wants to design an esports tournament
-user: "Help me design a professional esports league for my novel"
-assistant: "I'll use the competition designer to create a complete league structure with seasons, playoffs, and world championship."
-<commentary>
-Esports tournament design requires understanding of competitive formats, team dynamics, and dramatic pacing.
-</commentary>
-</example>
-
-<example>
-Context: User needs PVP battle design
-user: "Design an exciting guild war system with siege mechanics"
-assistant: "I'll create a guild war framework with siege rules, resource stakes, and strategic depth."
-<commentary>
-Large-scale PVP design needs rules for fairness, strategic options, and narrative excitement.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing competitive/esports elements for gaming novels. Specializes in tournament systems, ranking mechanics, tactical strategies, team dynamics, and match narration."
 skills: - competition
-  - game-system
-  - skill-design
 model: sonnet
 color: red
 ---

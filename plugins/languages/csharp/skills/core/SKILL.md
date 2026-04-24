@@ -1,5 +1,5 @@
 ---
-description: "C# 核心开发规范：C# 12/.NET 8 语言标准、nullable reference types、pattern matching、primary constructors、collection expressions、Roslyn analyzers 静态分析。新建或审查 C# 项目时加载，是所有 C# 技能的基础依赖。"
+description: "C# 核心开发规范：C# 14/.NET 10 语言标准、nullable reference types、pattern matching、primary constructors、collection expressions、Roslyn analyzers 静态分析。新建或审查 C# 项目时加载，是所有 C# 技能的基础依赖。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -19,16 +19,16 @@ memory: project
 
 - **Skills(csharp:async)** - 异步编程：async/await、Channels
 - **Skills(csharp:linq)** - LINQ：查询优化、新操作符
-- **Skills(csharp:web)** - Web 开发：ASP.NET Core 8
+- **Skills(csharp:web)** - Web 开发：ASP.NET Core 10
 - **Skills(csharp:desktop)** - 桌面开发：WPF、MAUI
-- **Skills(csharp:data)** - 数据访问：EF Core 8
+- **Skills(csharp:data)** - 数据访问：EF Core 10
 
-## 核心原则（2024-2025 版本）
+## 核心原则（2025-2026 版本）
 
 ### 1. C# 版本要求
 
-- **目标版本**：C# 12/.NET 8（LTS）
-- **预览特性**：C# 13/.NET 9（params collections、lock object、extension types）
+- **推荐版本**：C# 14/.NET 10（LTS，支持至 2028-11-10）
+- **兼容版本**：C# 12/.NET 8（LTS，支持至 2026-11-10）
 - **nullable**：必须启用 `<Nullable>enable</Nullable>`
 
 ### 2. C# 12 核心特性
@@ -42,17 +42,28 @@ memory: project
 | Lambda defaults | Lambda 默认参数 | `var add = (int x, int y = 1) => x + y;` |
 | Interceptors | 编译时方法替换 | source generator 场景 |
 
-### 3. C# 13 预览特性（.NET 9）
+### 3. C# 13 稳定特性（.NET 9）
 
 | 特性 | 说明 | 示例 |
 |------|------|------|
 | params collections | params 支持任何集合 | `void Log(params ReadOnlySpan<string> msgs)` |
 | Lock object | 新的 Lock 类型 | `private readonly Lock _lock = new();` |
-| Extension types | 扩展类型（预览） | 替代传统 extension methods |
+| ref struct interfaces | ref struct 实现接口 | `ref struct MySpan : IEnumerable<T>` |
+| \e escape | ESCAPE 字符字面量 | `char esc = '\e';` |
+| Partial properties | 部分属性和索引器 | `public partial string Name { get; set; }` |
+
+### 3b. C# 14 新特性（.NET 10）
+
+| 特性 | 说明 | 示例 |
+|------|------|------|
+| field keyword | 访问自动属性后备字段 | `get => field; set => field = value?.Trim() ?? "";` |
+| Extension blocks | 扩展方法和属性 | `extension StringExt for string { ... }` |
+| Numeric string comparison | 数值字符串排序 | `StringComparer.Numeric` |
+| Partial constructors | 部分构造函数 | `public partial MyClass(int x);` |
 
 ### 4. 必须遵守
 
-1. **现代优先** - 优先使用 C# 12/.NET 8 新特性
+1. **现代优先** - 优先使用 C# 14/.NET 10 新特性
 2. **空安全** - 启用 `<Nullable>enable</Nullable>`
 3. **异步优先** - I/O 操作使用 async/await（详见 Skills(csharp:async)）
 4. **依赖注入** - 使用 DI 容器管理依赖
@@ -148,7 +159,7 @@ public class UserService(IUserRepository repo)
 ## 依赖注入
 
 ```csharp
-// ✅ .NET 8 Keyed Services
+// ✅ .NET 10 Keyed Services
 builder.Services.AddKeyedScoped<ICache, RedisCache>("redis");
 builder.Services.AddKeyedScoped<ICache, MemoryCache>("memory");
 
@@ -163,7 +174,7 @@ public class EmailService(IOptions<SmtpSettings> options)
 }
 ```
 
-## 工具链标准（2024-2025）
+## 工具链标准（2025-2026）
 
 ```xml
 <!-- .csproj 推荐配置 -->

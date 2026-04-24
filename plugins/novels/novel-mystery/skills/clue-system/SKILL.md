@@ -2,6 +2,8 @@
 description: "悬疑推理小说线索系统与伏笔管理。涵盖关键线索与证据链设计、红鲱鱼误导布置、伏笔埋设与回收、信息密度控制，确保推理公平严密且阅读体验流畅。适用于设计线索网络、管理伏笔时间线、验证推理逻辑等场景。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 线索收集与伏笔管理

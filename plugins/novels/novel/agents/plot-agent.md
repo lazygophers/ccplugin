@@ -1,25 +1,6 @@
 ---
-description: Use this agent when the user needs help with plot structure, pacing, conflict design, or narrative tension. This agent specializes in designing engaging plot architectures for web novels with proper rhythm and suspense. Examples:
-
-<example>
-Context: User wants to plan story arcs
-user: "Help me design the plot structure for my novel's first volume"
-assistant: "I'll use the plot architect to design a compelling arc structure with proper pacing and hooks."
-<commentary>
-Volume-level plot design requires balancing setup, escalation, climax, and resolution.
-</commentary>
-</example>
-
-<example>
-Context: User needs help with pacing issues
-user: "My story feels slow in the middle section, how can I fix it?"
-assistant: "I'll analyze the pacing and suggest structural adjustments to maintain reader engagement."
-<commentary>
-Pacing issues are structural problems requiring plot-level analysis and restructuring.
-</commentary>
-</example>
+description: "Use this agent when the user needs help with plot structure, pacing, conflict design, or narrative tension. Specializes in designing engaging plot architectures for web novels with proper rhythm and suspense."
 skills: - plot-development
-  - outline-management
 model: sonnet
 color: red
 ---

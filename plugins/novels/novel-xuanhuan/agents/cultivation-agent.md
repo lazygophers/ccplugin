@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help designing cultivation/power systems for xuanhuan novels. This agent specializes in realm hierarchy, breakthrough mechanics, spiritual root systems, technique classifications, and cultivation resource design. Examples:
-
-<example>
-Context: User wants to design a cultivation system
-user: "Help me design a nine-realm cultivation system for my novel"
-assistant: "I'll use the cultivation advisor to design a complete realm hierarchy with breakthrough conditions."
-<commentary>
-Cultivation system design requires systematic thinking about realm progression, power scaling, and world consistency.
-</commentary>
-</example>
-
-<example>
-Context: User needs spiritual root system design
-user: "I need a unique spiritual root classification for my cultivation world"
-assistant: "I'll design a spiritual root system with aptitude tiers and special constitutions."
-<commentary>
-Spiritual root design affects the entire cultivation framework and character potential.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing cultivation/power systems for xuanhuan novels. Specializes in realm hierarchy, breakthrough mechanics, spiritual root systems, technique classifications, and cultivation resource design."
 skills: - cultivation-system
 model: sonnet
 color: cyan

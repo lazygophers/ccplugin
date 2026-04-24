@@ -2,6 +2,8 @@
 description: "玄幻修仙修炼体系设计，涵盖境界划分、突破条件、灵根资质、功法等级、天劫机制。适用于设计修炼境界体系、功法分类、灵根天赋设定、突破瓶颈规则、修炼资源（灵石丹药灵脉）体系，确保层次分明且逻辑自洽。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 修炼体系设计

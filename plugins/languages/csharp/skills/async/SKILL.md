@@ -17,7 +17,7 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(csharp:core)** - 核心规范：C# 12/.NET 8 标准
+- **Skills(csharp:core)** - 核心规范：C# 14/.NET 10 标准
 - **Skills(csharp:web)** - Web 开发：ASP.NET Core 异步管道
 - **Skills(csharp:data)** - 数据访问：EF Core 异步查询
 

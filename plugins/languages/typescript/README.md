@@ -25,7 +25,7 @@ claude plugin install typescript@ccplugin-market
 
 - **开发规范指导** - 完整的 TypeScript 开发规范
   - **类型安全** - 严格模式最佳实践
-  - **TS 5.9+** - 使用最新 TypeScript 特性
+  - **TS 6.0+** - 使用最新 TypeScript 特性
   - **类型体操** - 高级类型技巧
 
 - **代码智能支持** - 通过 TypeScript LSP 提供

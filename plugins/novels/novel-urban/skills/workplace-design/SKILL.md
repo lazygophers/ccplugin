@@ -2,6 +2,8 @@
 description: "都市小说职场环境与职业体系设计。规划行业选择、公司组织架构与职级体系、职场人际关系网络、办公场景、权力博弈及角色职业成长路线。适用于职场言情、商战风云、办公室恋爱等题材的职场世界观搭建。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 职场环境设计

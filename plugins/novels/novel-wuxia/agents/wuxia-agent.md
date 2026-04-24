@@ -1,26 +1,6 @@
 ---
-description: Use this agent when the user needs help building a complete wuxia world. This agent specializes in jianghu power dynamics, martial arts world geography, sect relationships, jianghu rules, and chivalric culture. Examples:
-
-<example>
-Context: User wants to build a wuxia world
-user: "Help me design a complete jianghu world with major sects and forces"
-assistant: "I'll use the wuxia worldbuilding advisor to create a comprehensive jianghu framework."
-<commentary>
-Full wuxia world design requires integrating geography, sect politics, jianghu rules, and martial arts systems.
-</commentary>
-</example>
-
-<example>
-Context: User needs jianghu power dynamics
-user: "Design the political landscape of my wuxia world with orthodox and heretical factions"
-assistant: "I'll create a detailed power structure with sect hierarchies and conflict dynamics."
-<commentary>
-Sect politics and jianghu power dynamics are core worldbuilding elements in wuxia fiction.
-</commentary>
-</example>
+description: "Use this agent when the user needs help building a complete wuxia world. Specializes in jianghu power dynamics, martial arts world geography, sect relationships, jianghu rules, and chivalric culture."
 skills: - jianghu-setting
-  - sect-system
-  - martial-arts
 model: sonnet
 color: purple
 ---

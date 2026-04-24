@@ -53,7 +53,7 @@ def fetch_data_sync(url: str) -> dict:
 
 ## asyncio vs trio vs anyio
 
-### 对比表（2024-2025）
+### 对比表（2025-2026）
 
 | 特性 | asyncio | trio | anyio |
 |------|---------|------|-------|

@@ -1,26 +1,6 @@
 ---
-description: Use this agent when the user needs help building a complete sci-fi universe. This agent specializes in star systems, alien civilizations, interstellar politics, cosmic laws, and multi-planet settings. Examples:
-
-<example>
-Context: User wants to build a sci-fi universe
-user: "Help me design a complete galaxy with multiple civilizations and political factions"
-assistant: "I'll use the worldbuilding designer to create a comprehensive galactic framework."
-<commentary>
-Full universe design requires integrating civilizations, politics, technology, and cosmic geography.
-</commentary>
-</example>
-
-<example>
-Context: User needs interstellar political dynamics
-user: "Design the political landscape of my galaxy with major factions and alliances"
-assistant: "I'll create a detailed power structure with faction hierarchies and conflict dynamics."
-<commentary>
-Interstellar politics and power dynamics are core worldbuilding elements in sci-fi fiction.
-</commentary>
-</example>
+description: "Use this agent when the user needs help building a complete sci-fi universe. Specializes in star systems, alien civilizations, interstellar politics, cosmic laws, and multi-planet settings."
 skills: - civilization
-  - tech-setting
-  - mecha-system
 model: sonnet
 color: purple
 ---

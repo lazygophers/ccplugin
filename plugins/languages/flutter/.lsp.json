@@ -6,8 +6,6 @@
       ".dart": "dart"
     },
     "settings": {
-      "dart.sdkPath": "",
-      "dart.flutterSdkPath": "",
       "dart.lineLength": 80,
       "dart.completionCommitCharacters": ["."],
       "dart.enableSdkFormatter": true,
@@ -22,7 +20,6 @@
     "restartOnCrash": true,
     "maxRestarts": 5,
     "startupTimeout": 15000,
-    "shutdownTimeout": 5000,
-    "traceLogging": false
+    "shutdownTimeout": 5000
   }
 }

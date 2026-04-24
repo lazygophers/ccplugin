@@ -24,7 +24,7 @@ claude plugin install csharp@ccplugin-market
   - 异步编程支持
 
 - **开发规范指导** - 完整的 C# 开发规范
-  - **C# 12/.NET 8** - 使用最新 C# 特性
+  - **C# 14/.NET 10** - 使用最新 C# 特性
   - **LINQ 和函数式编程** - 数据处理最佳实践
   - **async/await** - 异步编程模式
 

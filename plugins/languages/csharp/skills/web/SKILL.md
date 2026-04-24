@@ -1,5 +1,5 @@
 ---
-description: "C# Web 开发规范：ASP.NET Core 8 Minimal APIs、native AOT 发布、Blazor SSR/Streaming 渲染、rate limiting 限流、output caching 缓存、middleware 中间件。开发 Web API、REST 服务、Blazor 应用时加载。"
+description: "C# Web 开发规范：ASP.NET Core 10 Minimal APIs、native AOT 发布、Blazor SSR/Streaming 渲染、rate limiting 限流、output caching 缓存、middleware 中间件。开发 Web API、REST 服务、Blazor 应用时加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -16,11 +16,11 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(csharp:core)** - 核心规范：C# 12/.NET 8 标准
+- **Skills(csharp:core)** - 核心规范：C# 14/.NET 10 标准
 - **Skills(csharp:async)** - 异步编程：async/await、CancellationToken
-- **Skills(csharp:data)** - 数据访问：EF Core 8
+- **Skills(csharp:data)** - 数据访问：EF Core 10
 
-## ASP.NET Core 8 Minimal APIs
+## ASP.NET Core 10 Minimal APIs
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -31,7 +31,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddDbContext<AppDb>(o => o.UseSqlServer(connectionString));
 
-// Rate limiting（.NET 8 内置）
+// Rate limiting（.NET 10 内置）
 builder.Services.AddRateLimiter(o =>
 {
     o.AddFixedWindowLimiter("api", opt =>
@@ -41,7 +41,7 @@ builder.Services.AddRateLimiter(o =>
     });
 });
 
-// Output caching（.NET 8 内置）
+// Output caching（.NET 10 内置）
 builder.Services.AddOutputCache(o =>
 {
     o.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(5)));
@@ -133,7 +133,7 @@ public class ValidationFilter : IEndpointFilter
 ## 异常处理中间件
 
 ```csharp
-// ✅ .NET 8 IExceptionHandler（推荐）
+// ✅ .NET 10 IExceptionHandler（推荐）
 public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
@@ -161,7 +161,24 @@ builder.Services.AddProblemDetails();
 app.UseExceptionHandler();
 ```
 
-## Blazor SSR + Streaming（.NET 8）
+## ASP.NET Core 10 新特性
+
+```csharp
+// HybridCache（替代 IDistributedCache）
+builder.Services.AddHybridCache();
+
+app.MapGet("/users/{id}", async (int id, HybridCache cache) =>
+    await cache.GetOrCreateAsync($"user:{id}", async ct =>
+        await db.Users.FindAsync(id, ct)));
+
+// OpenAPI 3.1（默认生成）
+app.MapOpenApi("/openapi.yaml");
+
+// 自动验证（DataAnnotations）
+builder.Services.AddValidation();
+```
+
+## Blazor SSR + Streaming（.NET 10）
 
 ```razor
 @* 服务端渲染 + 流式更新 *@
@@ -219,7 +236,7 @@ internal partial class AppJsonContext : JsonSerializerContext;
 ## 安全（Identity + JWT）
 
 ```csharp
-// ✅ .NET 8 Identity API endpoints
+// ✅ .NET 10 Identity API endpoints
 builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
     .AddEntityFrameworkStores<AppDb>();
 

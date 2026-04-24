@@ -1,5 +1,5 @@
 ---
-description: "C# 桌面与跨平台 GUI 开发规范：WPF/.NET 8、.NET MAUI 跨平台、Avalonia UI、WinUI 3、CommunityToolkit.Mvvm、MVVM 数据绑定。开发桌面应用、GUI 界面、跨平台客户端时加载。"
+description: "C# 桌面与跨平台 GUI 开发规范：WPF/.NET 10、.NET MAUI 跨平台、Avalonia UI、WinUI 3、CommunityToolkit.Mvvm、MVVM 数据绑定。开发桌面应用、GUI 界面、跨平台客户端时加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -15,14 +15,14 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(csharp:core)** - 核心规范：C# 12/.NET 8 标准
+- **Skills(csharp:core)** - 核心规范：C# 14/.NET 10 标准
 - **Skills(csharp:async)** - 异步编程：UI 线程异步模式
 
-## 框架选择指南（2024-2025）
+## 框架选择指南（2025-2026）
 
 | 框架 | 平台 | 推荐场景 |
 |------|------|---------|
-| WPF/.NET 8 | Windows | 企业桌面应用、复杂 UI |
+| WPF/.NET 10 | Windows | 企业桌面应用、复杂 UI |
 | .NET MAUI | Android/iOS/Windows/macOS | 跨平台移动+桌面 |
 | Avalonia UI | Windows/macOS/Linux/Web | 真正跨平台桌面 |
 | WinUI 3 | Windows 10/11 | Windows 原生现代 UI |
@@ -83,7 +83,7 @@ public class OldViewModel : INotifyPropertyChanged
 }
 ```
 
-## WPF/.NET 8
+## WPF/.NET 10
 
 ```xml
 <!-- ✅ 现代 WPF 数据绑定 -->
@@ -113,7 +113,7 @@ public class OldViewModel : INotifyPropertyChanged
 ```
 
 ```csharp
-// ✅ DI 配置（WPF + .NET 8）
+// ✅ DI 配置（WPF + .NET 10）
 public partial class App : Application
 {
     private readonly IHost _host;

@@ -24,7 +24,7 @@ claude plugin install java@ccplugin-market
   - 并发编程支持
 
 - **开发规范指导** - 完整的 Java 开发规范
-  - **现代 Java 标准** - 基于 Java 21+ 特性
+  - **现代 Java 标准** - 基于 Java 25+ 特性
   - **Spring Boot 3+** - 企业级框架最佳实践
   - **JVM 性能优化** - GC 调优、性能分析
 
@@ -64,7 +64,7 @@ java -version
 
 ### 核心原则
 
-- 使用 Java 21+ 特性
+- 使用 Java 25+ 特性
 - 优先使用 Record 替代 Lombok @Value
 - 返回 Optional 而非 null
 - 使用 Try-With-Resources
@@ -74,7 +74,7 @@ java -version
 
 | 内容 | 说明 |
 |------|------|
-| 版本 | Java 21+ |
+| 版本 | Java 25+ |
 | Record | 不可变数据类 |
 | Pattern Matching | 简化 instanceof |
 | Virtual Threads | 轻量级并发 |
@@ -110,7 +110,7 @@ cd demo
 
 ### 代码审查清单
 
-- [ ] 使用 Java 21+ 特性
+- [ ] 使用 Java 25+ 特性
 - [ ] 使用 Record 替代 Lombok @Value
 - [ ] 返回 Optional 而非 null
 - [ ] 异常处理完整
@@ -119,8 +119,8 @@ cd demo
 
 ## 参考资源
 
-- [Java 21 文档](https://docs.oracle.com/en/java/javase/21/)
-- [Spring Boot 3.2 文档](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+- [Java 25 文档](https://docs.oracle.com/en/java/javase/21/)
+- [Spring Boot 4.0 文档](https://docs.spring.io/spring-boot/docs/current/reference/html/)
 
 ## 许可证
 

@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help designing historical backgrounds for alternate-history novels. This agent specializes in dynasty design, social systems, economic structures, cultural customs, and historical event creation. Examples:
-
-<example>
-Context: User wants to create an alternate dynasty
-user: "Help me design an alternate dynasty based on the Tang and Song dynasties"
-assistant: "I'll use the history advisor to create a complete dynasty framework with political systems and social structures."
-<commentary>
-Dynasty design requires integrating political systems, economic structures, social hierarchies, and cultural customs.
-</commentary>
-</example>
-
-<example>
-Context: User needs a bureaucratic system
-user: "Design a civil service examination and official ranking system for my novel"
-assistant: "I'll create a detailed bureaucratic system with ranks, examination paths, and promotion rules."
-<commentary>
-Bureaucratic systems are core worldbuilding elements that affect character progression in historical fiction.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing historical backgrounds for alternate-history novels. Specializes in dynasty design, social systems, economic structures, cultural customs, and historical event creation."
 skills: - dynasty-setting
 model: sonnet
 color: yellow

@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help designing clue systems, managing foreshadowing, and verifying logical consistency in mystery novels. This agent specializes in evidence chains, red herrings, foreshadowing placement/payoff, information density control, and deductive logic verification. Examples:
-
-<example>
-Context: User wants to design a clue system for their mystery
-user: "Help me design the clue system for a serial killer mystery with 5 cases"
-assistant: "I'll use the clue designer to create an interconnected evidence system across all five cases."
-<commentary>
-Serial case clue design requires cross-case connections, progressive revelation, and careful red herring placement.
-</commentary>
-</example>
-
-<example>
-Context: User needs to verify their mystery's logic
-user: "Can you check if my mystery's clues and reasoning are fair and consistent?"
-assistant: "I'll perform a comprehensive logic audit on your clue system and reasoning chain."
-<commentary>
-Logic verification requires checking evidence chains, timeline feasibility, and fairness to the reader.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing clue systems, managing foreshadowing, and verifying logical consistency in mystery novels. Specializes in evidence chains, red herrings, foreshadowing placement/payoff, information density control, and deductive logic verification."
 skills: - clue-system
 model: sonnet
 color: red

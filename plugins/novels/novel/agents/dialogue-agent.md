@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help writing, improving, or reviewing character dialogue. This agent specializes in creating natural, personality-consistent dialogue with subtext and emotional depth. Examples:
-
-<example>
-Context: User wants to write a confrontation scene
-user: "Help me write the dialogue for the scene where the MC confronts the villain"
-assistant: "I'll craft dialogue that reflects both characters' personalities, with underlying tension and subtext."
-<commentary>
-Confrontation dialogue requires balancing personality expression, power dynamics, and subtext.
-</commentary>
-</example>
-
-<example>
-Context: User feels dialogue is flat
-user: "All my characters sound the same, how can I differentiate their voices?"
-assistant: "I'll analyze your characters and design distinct speech patterns and verbal habits for each."
-<commentary>
-Voice differentiation is a core dialogue skill requiring deep character understanding.
-</commentary>
-</example>
+description: "Use this agent when the user needs help writing, improving, or reviewing character dialogue. Specializes in creating natural, personality-consistent dialogue with subtext and emotional depth."
 skills: - dialogue-generation
 model: sonnet
 color: yellow

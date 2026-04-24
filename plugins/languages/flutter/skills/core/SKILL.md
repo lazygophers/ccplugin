@@ -21,7 +21,7 @@ memory: project
 
 | 场景     | Skill                 | 说明                              |
 | -------- | --------------------- | --------------------------------- |
-| 状态管理 | Skills(flutter:state) | Riverpod 2.x、Bloc 8.x           |
+| 状态管理 | Skills(flutter:state) | Riverpod 3.x、Bloc 8.x           |
 | UI 开发  | Skills(flutter:ui)    | Material 3、Cupertino、响应式布局 |
 | Android  | Skills(flutter:android) | Material 3 Expressive、Impeller |
 | iOS      | Skills(flutter:ios)   | Cupertino、Impeller、App Store    |
@@ -35,7 +35,7 @@ Flutter 开发追求**Dart 3 类型安全、平台自适应 UI、可测试的 Cl
 
 1. **Dart 3 特性优先** - Records、Patterns、Sealed classes、class modifiers
 2. **设计系统一致** - Material 3（Android/Web）、Cupertino（iOS）
-3. **Riverpod 2.x 状态管理** - @riverpod 代码生成、AsyncNotifier
+3. **Riverpod 3.x 状态管理** - @riverpod 代码生成、AsyncNotifier
 4. **Clean Architecture 分层** - presentation/domain/data 分离
 5. **const Widget 最大化** - 减少不必要重建
 6. **测试驱动** - widget test + golden test + integration test
@@ -44,7 +44,7 @@ Flutter 开发追求**Dart 3 类型安全、平台自适应 UI、可测试的 Cl
 
 - 使用 GetX（技术债务，难以维护和测试）
 - 使用 Provider（已停止维护，迁移到 Riverpod）
-- 使用 StateNotifier（Riverpod 2.x 已废弃，使用 Notifier/AsyncNotifier）
+- 使用 StateNotifier（Riverpod 3.x 已废弃，使用 Notifier/AsyncNotifier）
 - 硬编码颜色和尺寸（必须从 Theme/ColorScheme 获取）
 - 混合使用多个状态管理方案
 - 不释放资源（AnimationController、StreamSubscription、Timer）
@@ -173,7 +173,7 @@ integration_test/          # 端到端测试
 
 - [ ] Dart 3 特性：Records、Patterns、Sealed classes、class modifiers
 - [ ] 设计系统选定且全应用一致（Material 3 / Cupertino）
-- [ ] Riverpod 2.x + @riverpod 代码生成
+- [ ] Riverpod 3.x + @riverpod 代码生成
 - [ ] Clean Architecture 分层（presentation/domain/data）
 - [ ] go_router 14+ 声明式路由
 - [ ] const Widget 最大化使用

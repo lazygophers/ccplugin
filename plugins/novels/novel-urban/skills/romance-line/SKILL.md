@@ -2,6 +2,8 @@
 description: "都市言情小说感情线与CP互动设计。规划经典相遇模式、恋爱发展阶段、甜虐节奏控制、情感冲突设置及配角感情线编排。适用于设计男女主角感情走向、甜宠互动、虐心桥段和恋爱节奏把控。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 情感线设计

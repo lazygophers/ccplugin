@@ -1,5 +1,5 @@
 ---
-description: "Java核心开发规范 - Java 21+现代特性(Records、Pattern Matching、Sealed Classes、Text Blocks)、Maven/Gradle项目结构与工具链配置。编写、重构、初始化Java项目时加载。"
+description: "Java核心开发规范 - Java 25+现代特性(Records、Pattern Matching、Sealed Classes、Text Blocks)、Maven/Gradle项目结构与工具链配置。编写、重构、初始化Java项目时加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -22,13 +22,16 @@ memory: project
 - **Skills(java:spring)** - Spring Boot 3+、Native Image、Observability
 - **Skills(java:performance)** - JFR、JMH、ZGC、GraalVM
 
-## 核心原则（2024-2025 版本）
+## 核心原则（2025-2026 版本）
 
 ### 1. Java 版本要求
 
-- **最低版本**：Java 21 LTS（推荐 Java 21+）
-- **现代特性**：Records、Pattern Matching、Sealed Classes、Virtual Threads
-- **预览特性**：String Templates、Structured Concurrency、ScopedValues
+- **推荐版本**：Java 25 LTS（2025-09，支持至 2030-09）
+- **兼容版本**：Java 21 LTS（2023-09，支持至 2028-09）
+- **最新版本**：Java 26（2026-03）
+- **Java 21 正式特性**：Records、Pattern Matching、Sealed Classes、Virtual Threads
+- **Java 23+ 正式特性**：String Templates、Structured Concurrency、Scoped Values
+- **Java 24+ 正式特性**：Foreign Function & Memory API、Stream Gatherers
 
 ### 2. 必须遵守
 
@@ -50,7 +53,7 @@ memory: project
 - 使用 raw types（使用泛型参数化类型）
 - 字符串拼接日志（使用 SLF4J 参数化 `log.info("user={}", id)`）
 
-## Java 21+ 核心特性
+## Java 25+ 核心特性
 
 ```java
 // Record - 不可变数据载体
@@ -111,7 +114,39 @@ String json = """
     """.formatted(name, email);
 ```
 
-## 工具链标准（2024-2025）
+## Java 22-26 新特性
+
+```java
+// String Templates（Java 23+ 正式）
+String msg = STR."Hello \{name}, you have \{count} messages";
+String query = STR."SELECT * FROM users WHERE id = \{userId}";
+
+// Structured Concurrency（Java 23+ 正式）
+try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+    var user = scope.fork(() -> fetchUser(id));
+    var orders = scope.fork(() -> fetchOrders(id));
+    scope.join().throwIfFailed();
+    return new Profile(user.get(), orders.get());
+}
+
+// Scoped Values（Java 23+ 正式，替代 ThreadLocal）
+private static final ScopedValue<UserCtx> CTX = ScopedValue.newInstance();
+ScopedValue.where(CTX, userCtx).run(() -> handleRequest());
+
+// Foreign Function & Memory API（Java 24+ 正式）
+try (var arena = Arena.ofConfined()) {
+    MemorySegment segment = arena.allocate(1024);
+    // 直接操作 native 内存，替代 JNI
+}
+
+// Stream Gatherers（Java 24+）
+stream.gather(Gatherers.windowFixed(3))  // 固定窗口分组
+
+// Flexible Constructor Bodies（Java 26）
+// 构造函数中 super() 前可执行验证逻辑
+```
+
+## 工具链标准（2025-2026）
 
 ### 构建工具
 ```groovy
@@ -178,7 +213,7 @@ src/test/java/com/example/app/
 ## 检查清单
 
 ### 语言特性
-- [ ] Java 21+ 编译
+- [ ] Java 25+ 编译
 - [ ] 不可变数据使用 Records
 - [ ] instanceof 使用 Pattern Matching
 - [ ] 类型层次使用 Sealed Classes

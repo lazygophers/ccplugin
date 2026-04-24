@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help with overall story conception, theme exploration, or worldbuilding. This agent specializes in story framework design, theme refinement, and world system construction. Examples:
-
-<example>
-Context: User wants to brainstorm a new novel concept
-user: "I want to write a xuanhuan novel but don't know where to start"
-assistant: "I'll use the story advisor to help you develop the core concept, theme, and world system."
-<commentary>
-Story conception requires systematic thinking about theme, world, and narrative framework.
-</commentary>
-</example>
-
-<example>
-Context: User needs worldbuilding advice
-user: "Help me design a cultivation power system for my novel"
-assistant: "I'll analyze your story needs and design a coherent, engaging power system."
-<commentary>
-Power system design is a core worldbuilding task requiring consistency and creativity.
-</commentary>
-</example>
+description: "Use this agent when the user needs help with overall story conception, theme exploration, or worldbuilding. Specializes in story framework design, theme refinement, and world system construction."
 skills: - story-brainstorm
 model: sonnet
 color: purple

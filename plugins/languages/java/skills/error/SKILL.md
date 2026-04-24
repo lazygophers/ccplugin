@@ -16,10 +16,10 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(java:core)** - Java 21+ Sealed Classes、Records
+- **Skills(java:core)** - Java 25+ Sealed Classes、Records
 - **Skills(java:spring)** - Spring @ControllerAdvice、ResponseEntity
 
-## Sealed Exception 层次结构（Java 21+）
+## Sealed Exception 层次结构（Java 25+）
 
 使用 sealed interface 构建类型安全的异常层次结构，编译器确保 switch exhaustiveness。
 

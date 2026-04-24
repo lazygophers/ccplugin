@@ -21,7 +21,7 @@ memory: project
 
 | 场景 | Skill | 说明 |
 |------|-------|------|
-| 核心规范 | Skills(javascript:core) | ES2024-2025 标准、ESM、工具链 |
+| 核心规范 | Skills(javascript:core) | ES2025-2026 标准、ESM、工具链 |
 | 安全编码 | Skills(javascript:security) | CORS、CSP、输入验证 |
 
 ## async/await 最佳实践

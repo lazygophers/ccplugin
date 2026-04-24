@@ -1,12 +1,20 @@
 ---
-description: "Spring Boot 3+开发规范 - Native Image编译、Virtual Threads集成、Micrometer可观测性、Spring Security 6、Data JPA/Hibernate 6。开发Spring REST API、微服务或Web应用时加载。"
+description: "Spring Boot 4.0+ 开发规范 - Native Image、Virtual Threads、Micrometer可观测性、Spring Security 7、Data JPA/Hibernate 7。开发Spring REST API、微服务或Web应用时加载。"
 user-invocable: true
 context: fork
 model: sonnet
 memory: project
 ---
 
-# Spring Boot 3+ 开发规范
+# Spring Boot 4.0+ 开发规范
+
+## Spring Boot 4.0 新特性（2025-11）
+
+- **Java 25 LTS 基线**：最低要求 Java 25
+- **Spring Framework 7**：全面支持 Virtual Threads 和 Structured Concurrency
+- **Jakarta EE 11**：升级至 Jakarta EE 11 规范
+- **Hibernate 7**：改进的批量操作和性能
+- **迁移**：从 3.x 升级需检查废弃 API（`spring-boot-properties-migrator` 工具辅助）
 
 ## 适用 Agents
 
@@ -16,7 +24,7 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(java:core)** - Java 21+ Records、Sealed Classes
+- **Skills(java:core)** - Java 25+ Records、Sealed Classes
 - **Skills(java:error)** - @ControllerAdvice、Problem Details
 - **Skills(java:concurrency)** - Virtual Threads 集成
 - **Skills(java:performance)** - JFR、Micrometer 监控
@@ -31,7 +39,7 @@ public class Application {
     }
 }
 
-// Record 配置属性（Spring Boot 3.2+）
+// Record 配置属性（Spring Boot 4.0+）
 @ConfigurationProperties(prefix = "app")
 public record AppConfig(
     String name,
@@ -266,7 +274,7 @@ graalvmNative {
 
 | AI 可能的理性化解释 | 实际应该检查的内容 |
 |---------------------|-------------------|
-| "Spring Boot 2 还能用" | 是否升级到 Spring Boot 3.2+？ |
+| "Spring Boot 2 还能用" | 是否升级到 Spring Boot 4.0+？ |
 | "@Autowired 注入方便" | 是否使用构造函数注入？ |
 | "open-in-view 默认开着" | 是否关闭 OSIV（spring.jpa.open-in-view=false）？ |
 | "ddl-auto=update 方便" | 生产环境是否使用 Flyway/Liquibase？ |
@@ -276,7 +284,7 @@ graalvmNative {
 
 ## 检查清单
 
-- [ ] Spring Boot 3.2+ 版本
+- [ ] Spring Boot 4.0+ 版本
 - [ ] Virtual Threads 启用（spring.threads.virtual.enabled=true）
 - [ ] 构造函数注入（无 @Autowired）
 - [ ] @Transactional 正确标注（readOnly 区分读写）

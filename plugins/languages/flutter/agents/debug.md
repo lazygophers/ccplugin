@@ -37,7 +37,7 @@ color: yellow
 
 <core_principles>
 
-## 核心原则（基于 2024-2025 最新实践）
+## 核心原则（基于 2025-2026 最新实践）
 
 ### 1. DevTools 驱动诊断
 - Flutter DevTools 作为主要调试工具（Performance、Memory、Network、Widget Inspector）

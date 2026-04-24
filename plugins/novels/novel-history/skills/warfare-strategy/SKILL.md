@@ -2,6 +2,8 @@
 description: "历史小说战争策略与军事设计。涵盖古代兵法战术、军队编制与指挥体系、攻城守城、后勤补给、战役规划，打造真实感强且策略丰富的战争情节。适用于设计战役场面、军事谋略、军队体系构建等场景。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 战争策略设计

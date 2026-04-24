@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help designing science fiction technology systems. This agent specializes in future technology frameworks, energy systems, weapon systems, AI architectures, and communication networks. Examples:
-
-<example>
-Context: User wants to design a future tech system
-user: "Help me design a complete energy technology tree for my sci-fi novel"
-assistant: "I'll use the tech advisor to design a comprehensive energy technology framework."
-<commentary>
-Technology system design requires systematic thinking about tech levels, energy sources, and internal consistency.
-</commentary>
-</example>
-
-<example>
-Context: User needs weapon system design
-user: "I need a weapon classification system for an interstellar war setting"
-assistant: "I'll design a weapon system with energy weapons, kinetic weapons, and conceptual weapons."
-<commentary>
-Weapon system design affects combat dynamics and technological power scaling in the story.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing science fiction technology systems. Specializes in future technology frameworks, energy systems, weapon systems, AI architectures, and communication networks."
 skills: - tech-setting
 model: sonnet
 color: cyan

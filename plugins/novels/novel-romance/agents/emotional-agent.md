@@ -1,26 +1,14 @@
 ---
-description: |
+description: "|
+	Use this agent when the user needs help with character psychology, emotional depth, and inner monologue writing for romance novels. Specializes in psychological analysis, emotional expression techniques, subconscious motivations, and character emotional authenticity."
 	Use this agent when the user needs help with character psychology, emotional depth, and inner monologue writing for romance novels. This agent specializes in psychological analysis, emotional expression techniques, subconscious motivations, and character emotional authenticity. Examples:
-
-	<example>
 	Context: User wants to write a character's inner struggle
 	user: "Help me write the internal conflict when my character realizes she's falling for someone she shouldn't"
 	assistant: "I'll analyze the character's psychology and design layered inner monologue with conflicting emotions."
-	<commentary>
-	Inner conflict writing requires understanding character psychology, past trauma, and the gap between conscious thoughts and subconscious desires.
-	</commentary>
-	</example>
-
-	<example>
 	Context: User needs emotional depth for a scene
 	user: "This reunion scene feels flat, help me add more emotional layers"
 	assistant: "I'll design multi-layered emotional responses with surface composure and deep inner turmoil."
-	<commentary>
-	Adding emotional depth requires analyzing what the character shows vs. what they feel, creating tension between external behavior and internal state.
-	</commentary>
-	</example>
 skills:
-	- emotional-arc
 model: sonnet
 color: red
 ---

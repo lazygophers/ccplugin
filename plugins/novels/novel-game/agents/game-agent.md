@@ -1,25 +1,6 @@
 ---
-description: Use this agent when the user needs help designing game systems for gaming novels. This agent specializes in game type selection, class/job systems, level progression, numerical balance, economy design, and virtual world frameworks. Examples:
-
-<example>
-Context: User wants to design a game system
-user: "Help me design a complete MMORPG system for my gaming novel"
-assistant: "I'll use the game system designer to create a comprehensive game framework with classes, levels, and economy."
-<commentary>
-Game system design requires systematic thinking about class balance, progression curves, and economic loops.
-</commentary>
-</example>
-
-<example>
-Context: User needs a virtual reality game setting
-user: "I need a full-dive VR game world with unique job system"
-assistant: "I'll design a VR game framework with innovative job classes and progression mechanics."
-<commentary>
-VR game settings need both game mechanics design and real-world connection elements.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing game systems for gaming novels. Specializes in game type selection, class/job systems, level progression, numerical balance, economy design, and virtual world frameworks."
 skills: - game-system
-  - skill-design
 model: sonnet
 color: green
 ---

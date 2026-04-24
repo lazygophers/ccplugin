@@ -16,11 +16,11 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(java:core)** - Java 21+ 特性、强制约定
+- **Skills(java:core)** - Java 25+ 特性、强制约定
 - **Skills(java:performance)** - JVM 调优、JFR 线程分析
-- **Skills(java:spring)** - Spring Boot 3.2+ Virtual Threads 集成
+- **Skills(java:spring)** - Spring Boot 4.0+ Virtual Threads 集成
 
-## Virtual Threads（Java 21+ 正式特性）
+## Virtual Threads（Java 25+ 正式特性）
 
 Virtual Threads 是 Java 21 的核心特性（Project Loom），适用于 I/O 密集型任务。
 
@@ -36,7 +36,7 @@ try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
     );
 }
 
-// Spring Boot 3.2+ 启用虚拟线程
+// Spring Boot 4.0+ 启用虚拟线程
 // application.yml
 // spring:
 //   threads:
@@ -69,7 +69,7 @@ lock.lock();
 try { callDatabase(); } finally { lock.unlock(); }
 ```
 
-## Structured Concurrency（Preview，Java 21+）
+## Structured Concurrency（Preview，Java 25+）
 
 ```java
 // ShutdownOnFailure - 任一子任务失败则全部取消
@@ -93,7 +93,7 @@ try (var scope = new StructuredTaskScope.ShutdownOnSuccess<String>()) {
 }
 ```
 
-## ScopedValues（Preview，Java 21+）
+## ScopedValues（Preview，Java 25+）
 
 替代 ThreadLocal，专为虚拟线程设计。
 
@@ -177,4 +177,4 @@ try { callExternalApi(); } finally { limiter.release(); }
 - [ ] 无 ThreadLocal（虚拟线程场景使用 ScopedValues）
 - [ ] CompletableFuture 设置超时（orTimeout）
 - [ ] 并发集合使用 ConcurrentHashMap
-- [ ] Spring Boot 3.2+ 启用 `spring.threads.virtual.enabled=true`
+- [ ] Spring Boot 4.0+ 启用 `spring.threads.virtual.enabled=true`

@@ -26,7 +26,7 @@ claude plugin install python@ccplugin-market
 - **开发规范指导** - 完整的 Python 开发规范
   - **PEP 8 规范** - 遵循 Python 官方编码规范
   - **类型提示指导** - 使用 PEP 484 类型提示
-  - **现代 Python** - 充分利用 Python 3.8+ 特性
+  - **现代 Python** - 充分利用 Python 3.14+ 特性
 
 - **测试与性能** - 全面的测试和优化支持
   - pytest 单元测试框架

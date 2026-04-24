@@ -1,26 +1,6 @@
 ---
-description: Use this agent when the user needs help designing a complete mystery/suspense story framework. This agent specializes in puzzle construction, suspense layering, plot twists, narrative structure, and pacing control for mystery novels. Examples:
-
-<example>
-Context: User wants to design a mystery story framework
-user: "Help me design a locked-room mystery with multiple suspects"
-assistant: "I'll use the mystery architect to create a comprehensive puzzle framework with suspects and clue systems."
-<commentary>
-Full mystery story design requires integrating puzzle mechanics, suspect dynamics, clue placement, and revelation pacing.
-</commentary>
-</example>
-
-<example>
-Context: User needs help with plot twists and suspense
-user: "I need a double-twist ending that feels surprising but inevitable"
-assistant: "I'll design a layered twist structure with proper foreshadowing and logical consistency."
-<commentary>
-Twist design requires balancing surprise with fairness, ensuring all clues point to the truth in retrospect.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing a complete mystery/suspense story framework. Specializes in puzzle construction, suspense layering, plot twists, narrative structure, and pacing control for mystery novels."
 skills: - mystery-plot
-  - character-secrets
-  - clue-system
 model: sonnet
 color: green
 ---

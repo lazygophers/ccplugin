@@ -39,7 +39,7 @@ color: blue
 
 <core_principles>
 
-## 核心原则（基于 2024-2025 最新实践）
+## 核心原则（基于 2025-2026 最新实践）
 
 ### 1. 严格类型安全
 - 启用 `strict: true` + `noUncheckedIndexedAccess` + `noImplicitOverride`

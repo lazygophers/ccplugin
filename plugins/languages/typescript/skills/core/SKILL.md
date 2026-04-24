@@ -51,8 +51,9 @@ TypeScript 生态追求**类型安全、现代工程、可维护性**。
 
 ## 版本与环境
 
-- **TypeScript**: 5.7+（target ES2024，path rewriting，inferred type predicates）
-- **Node.js**: 22 LTS（native fetch，fs/promises，single executable apps）
+- **TypeScript**: 6.0+（target ES2025，#/ subpath imports，Temporal types，improved method inference）
+- **TypeScript 7.0 Beta**：Go 重写，10x 编译加速（2026-04-21，追踪但暂不用于生产）
+- **Node.js**: 24 LTS（推荐）/ 22 LTS（兼容）
 - **包管理器**: pnpm 9（推荐）/ Bun 1.x（替代）
 - **测试框架**: Vitest 3.x
 - **构建工具**: Vite 6 / tsup / unbuild

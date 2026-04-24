@@ -16,7 +16,7 @@ memory: project
 
 ## 相关 Skills
 
-- **Skills(java:core)** - Java 21+ 特性、Stream API 性能
+- **Skills(java:core)** - Java 25+ 特性、Stream API 性能
 - **Skills(java:concurrency)** - Virtual Threads、并发性能
 - **Skills(java:spring)** - Micrometer 监控、Actuator
 
@@ -108,11 +108,11 @@ jmh {
 }
 ```
 
-## GC 调优（Java 21+）
+## GC 调优（Java 25+）
 
 ### ZGC（低延迟推荐）
 ```bash
-# ZGC Generational（Java 21+ 默认分代模式）
+# ZGC Generational（Java 25+ 默认分代模式）
 java -XX:+UseZGC \
      -XX:+ZGenerational \
      -Xmx4g -Xms4g \
@@ -233,7 +233,7 @@ public Optional<User> findById(Long id) { ... }
 | "凭经验优化就行" | 是否使用 JFR/async-profiler 数据驱动？ |
 | "这段代码看起来慢" | 是否确认是 profiling 热点？ |
 | "优化完了更快了" | 是否 JMH 统计验证了显著性？ |
-| "G1GC 够用了" | Java 21+ 是否评估了 ZGC Generational？ |
+| "G1GC 够用了" | Java 25+ 是否评估了 ZGC Generational？ |
 | "JVM 默认参数就好" | 是否根据负载特征调优 GC 和堆大小？ |
 | "parallelStream 更快" | 数据量是否足够大（>10K）且是 CPU 密集？ |
 | "Native Image 不需要" | Serverless 场景是否评估了启动时间？ |

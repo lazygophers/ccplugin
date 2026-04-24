@@ -22,13 +22,15 @@ memory: project
 - **Skills(rust:macros)** - 声明宏、过程宏
 - **Skills(rust:unsafe)** - unsafe 代码、FFI、MIRI
 
-## 核心原则（2024-2025）
+## 核心原则（2025-2026）
 
 ### 1. Rust 版本与 Edition
 
-- **最低版本**：Rust 1.85+（2024 edition 支持）
+- **推荐版本**：Rust 1.95+（最新稳定，2026-04-16）
 - **Edition**：2024（优先）或 2021
 - **关键特性**：let-else、if-let-chains、async fn in traits（stable）、gen blocks
+- **Rust 1.94+ 新特性**：`array_windows`（常量长度窗口迭代）、Cargo TOML v1.1
+- **Rust 1.95 新特性**：`cfg_select!` 宏（替代 cfg-if crate）
 
 ### 2. 所有权三原则
 

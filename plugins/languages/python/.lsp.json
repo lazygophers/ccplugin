@@ -7,51 +7,26 @@
     },
     "settings": {
       "pylsp": {
-        "configurationSources": ["pycodestyle", "pyflakes"],
         "plugins": {
-          "pycodestyle": {
+          "ruff": {
             "enabled": true,
-            "maxLineLength": 88
+            "lineLength": 88,
+            "format": ["I"],
+            "lint": {
+              "select": ["E", "F", "W", "I", "N", "UP", "ANN", "B", "SIM"]
+            }
           },
-          "pyflakes": {
-            "enabled": true
-          },
+          "pycodestyle": { "enabled": false },
+          "pyflakes": { "enabled": false },
+          "flake8": { "enabled": false },
+          "black": { "enabled": false },
+          "autopep8": { "enabled": false },
+          "isort": { "enabled": false },
           "mccabe": {
             "enabled": true,
-            "complexity": 10
+            "threshold": 10
           },
-          "pylint": {
-            "enabled": false
-          },
-          "flake8": {
-            "enabled": true,
-            "maxLineLength": 88,
-            "extend-ignore": ["E203", "W503"]
-          },
-          "black": {
-            "enabled": true,
-            "line_length": 88
-          },
-          "autopep8": {
-            "enabled": false
-          },
-          "isort": {
-            "enabled": true,
-            "profile": "black"
-          },
-          "rope": {
-            "enabled": false
-          }
-        }
-      }
-    },
-    "initializationOptions": {
-      "pylsp": {
-        "configurationSources": ["pycodestyle", "pyflakes"],
-        "plugins": {
-          "pycodestyle": {
-            "maxLineLength": 88
-          }
+          "rope": { "enabled": false }
         }
       }
     },

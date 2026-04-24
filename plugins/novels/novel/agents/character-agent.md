@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help with character creation, personality design, character relationships, or character growth arcs. This agent specializes in crafting memorable, multi-dimensional characters for web novels. Examples:
-
-<example>
-Context: User wants to design a protagonist
-user: "Help me create a compelling main character for my cultivation novel"
-assistant: "I'll use the character designer to craft a well-rounded protagonist with clear motivations and growth potential."
-<commentary>
-Protagonist design requires balancing relatability, uniqueness, and growth arc planning.
-</commentary>
-</example>
-
-<example>
-Context: User needs to develop character relationships
-user: "How should I design the relationship between the MC and the antagonist?"
-assistant: "I'll analyze the story context and design a dynamic, evolving relationship between these characters."
-<commentary>
-Character relationship design drives conflict and emotional engagement in storytelling.
-</commentary>
-</example>
+description: "Use this agent when the user needs help with character creation, personality design, character relationships, or character growth arcs. Specializes in crafting memorable, multi-dimensional characters for web novels."
 skills: - character-design
 model: sonnet
 color: green

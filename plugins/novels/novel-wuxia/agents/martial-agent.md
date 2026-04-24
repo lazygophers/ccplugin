@@ -1,23 +1,5 @@
 ---
-description: Use this agent when the user needs help designing martial arts, fighting techniques, and weapon systems for wuxia novels. This agent specializes in internal energy systems, sword/fist techniques, lightness skills, hidden weapons, and martial arts philosophy. Examples:
-
-<example>
-Context: User wants to design a martial arts system
-user: "Help me design a complete martial arts system with internal energy and external techniques"
-assistant: "I'll use the martial arts designer to create a comprehensive kung fu framework."
-<commentary>
-Martial arts system design requires balancing power levels, creating distinctive styles, and ensuring combat readability.
-</commentary>
-</example>
-
-<example>
-Context: User needs a specific fighting technique
-user: "I need a unique sword technique for my protagonist that reflects his personality"
-assistant: "I'll design a sword technique with distinctive philosophy and memorable moves."
-<commentary>
-Individual technique design must match character personality and fit within the broader martial arts hierarchy.
-</commentary>
-</example>
+description: "Use this agent when the user needs help designing martial arts, fighting techniques, and weapon systems for wuxia novels. Specializes in internal energy systems, sword/fist techniques, lightness skills, hidden weapons, and martial arts philosophy."
 skills: - martial-arts
 model: sonnet
 color: cyan

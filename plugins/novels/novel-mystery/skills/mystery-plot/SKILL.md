@@ -2,6 +2,8 @@
 description: "悬疑推理小说悬念布局与剧情谜题设计。涵盖核心谜题构造、悬念层次递进、反转时机设计、多线叙事结构，构建逻辑严密的悬疑故事弧线。适用于设计案件结构、悬念节奏、真相揭露与剧情反转等场景。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 悬念布局与剧情谜题

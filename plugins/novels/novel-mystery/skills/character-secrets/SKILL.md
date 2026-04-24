@@ -2,6 +2,8 @@
 description: "悬疑推理小说角色秘密与动机设计。涵盖隐藏动机分层、秘密揭露节奏、身份伪装与表里不一、嫌疑人心理画像，塑造有深度的角色群像。适用于设计角色秘密、构建嫌疑人体系、规划角色反转等场景。"
 context: fork
 user-invocable: true
+model: sonnet
+memory: project
 ---
 
 # 角色秘密与动机分析

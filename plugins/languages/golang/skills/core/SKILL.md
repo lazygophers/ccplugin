@@ -1,5 +1,5 @@
 ---
-description: "Go 1.23+ 核心开发规范：强制约定、代码格式、新特性（range-over-func/slog/min/max/clear）、提交检查清单。编写Go代码时自动加载。"
+description: "Go 1.26 核心开发规范：强制约定、代码格式、Go 1.21-1.26 新特性（range-over-func/slog/generic aliases/Green Tea GC/new(expr)）、提交检查清单。编写Go代码时自动加载。"
 user-invocable: true
 context: fork
 model: sonnet
@@ -42,9 +42,9 @@ Go 生态追求**高性能、低分配、简洁优雅**。
 
 - **Go 版本**：1.23+ 推荐
 - **依赖管理**：go.mod（支持 workspace）
-- **工具链管理**：Go 1.23 内置 toolchain 指令
+- **工具链管理**：Go 1.23+ 内置 toolchain 指令，Go 1.24+ tool directives
 
-## Go 1.21-1.23 关键新特性
+## Go 1.21-1.26 关键新特性
 
 ### Go 1.21（slog、内置函数）
 ```go
@@ -81,16 +81,63 @@ for k, v := range maps.All(m) {
     fmt.Println(k, v)
 }
 
-for i, v := range slices.All(s) {
-    fmt.Println(i, v)
-}
-
 // 自定义迭代器
 func (t *Tree[V]) All() iter.Seq2[string, V] {
     return func(yield func(string, V) bool) {
         // ...
     }
 }
+```
+
+### Go 1.24（generic type aliases、tool directives、os.Root）
+```go
+// generic type aliases
+type Set[T comparable] = map[T]struct{}
+
+// go.mod tool directives（替代 tools.go hack）
+// go.mod: tool golang.org/x/tools/cmd/stringer
+
+// os.Root 安全文件系统操作
+root, _ := os.OpenRoot("/data")
+defer root.Close()
+f, _ := root.Open("config.json") // 不可逃逸出 /data
+
+// testing.B.Loop（更快的 benchmark）
+func BenchmarkFoo(b *testing.B) {
+    for b.Loop() { foo() }
+}
+```
+
+### Go 1.25（Green Tea GC 实验性、json/v2、WaitGroup.Go）
+```go
+// WaitGroup.Go（简化 goroutine 计数）
+var wg sync.WaitGroup
+wg.Go(func() { doWork() }) // 自动 Add(1) + defer Done()
+wg.Wait()
+
+// testing/synctest（并发测试，Go 1.25 正式可用）
+synctest.Run(func() {
+    // 确定性并发测试
+})
+
+// GOEXPERIMENT=jsonv2 启用新 JSON 实现
+```
+
+### Go 1.26（new(expr)、自引用泛型、Green Tea GC 默认）
+```go
+// new 支持表达式初始化
+p := new(42)        // *int，值为 42
+q := new(Point{1,2}) // *Point
+
+// 自引用泛型类型参数
+type Node[T Node[T]] interface {
+    Children() []T
+}
+
+// Green Tea GC 默认启用（减少 10-40% GC 开销）
+// cgo 开销降低约 30%
+// 实验性 simd/archsimd 包（128/256/512-bit 向量）
+// go fix 重写：自动现代化代码
 ```
 
 ## 强制规范

@@ -6,10 +6,15 @@
       ".go": "go"
     },
     "settings": {
-      "gofumpt": true,
-      "staticcheck": true,
-      "usePlaceholders": true,
-      "analyses": {
+      "formatting.gofumpt": true,
+      "diagnostics.staticcheck": true,
+      "ui.completion.usePlaceholders": true,
+      "ui.semanticTokens": true,
+      "ui.codelenses": {
+        "gc_details": true,
+        "test": true
+      },
+      "ui.diagnostic.analyses": {
         "unusedparams": true,
         "unusedwrite": true,
         "unusedresult": true,
