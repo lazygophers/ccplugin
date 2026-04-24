@@ -13,89 +13,101 @@ argument-hint: [任务描述]
 
 # Align Skill
 
+**核心规则：**
+
+1. **align 的唯一终止条件是用户通过 AskUserQuestion 明确确认**。未经确认，禁止写入 align.json，禁止返回结果。
+2. **任何时候 align 内容发生变化（首次生成、用户调整、adjust 回来重新对齐、explore 补充上下文后重新生成），都必须重新向用户确认。** 没有例外。
+3. **已有 align.json 也不能跳过确认。** 从 adjust 返回时，必须展示修改后的内容让用户重新确认。
+
 ## 独立调用模式
 
 当用户直接调用 `/task:align` 时（无 flow 上下文）：
 
 1. 从用户输入生成中文 task_id（≤10 字符）
 2. 执行 `task update {task_id} --status=align` 创建任务
-3. 按下方执行流程生成对齐结果
+3. 按下方流程执行
 4. 对齐完成后输出结果，**不自动进入后续阶段**
 
 当由 flow 调用时：直接使用传入的 task_id 和 environment 参数。
 
 ## 执行流程
 
-### 步骤 1：检查上下文
+align 分为两个阶段：**生成**和**确认**。生成阶段准备对齐内容，确认阶段获得用户批准。两个阶段缺一不可。
+
+---
+
+### 阶段一：生成对齐内容
+
+#### 1. 检查上下文
 
 读取 `.lazygophers/tasks/{task_id}/context.json`。
 
-- 如果文件存在且包含 `task_related` 和 `code_style` → 继续步骤 2
-- 如果文件不存在，但用户 prompt 中已明确指定了文件路径和修改内容 → 从 prompt 中提取上下文，读取指定文件采样代码风格，写入 context.json 后继续步骤 2
-- 如果文件不存在且 prompt 信息不足 → 返回 `need_explore: true`，由 flow 调度 explore
+- 文件存在且包含 `task_related` 和 `code_style` → 继续
+- 文件不存在，但 prompt 已明确指定文件路径和修改内容 → 从 prompt 提取上下文，采样代码风格，写入 context.json
+- 文件不存在且信息不足 → 返回 `need_explore: true`
 
-### 步骤 2：锁定项目风格
+#### 2. 锁定项目风格
 
-从 context.json 的 `code_style` 字段获取项目风格（命名约定、缩进、导入模式等），作为后续所有阶段的锁定风格。无需用户确认。
+从 context.json 的 `code_style` 获取项目风格，作为后续所有阶段的锁定风格。
 
-### 步骤 3：识别任务类型
+#### 3. 识别任务类型
 
-根据用户 prompt 中的关键词判断任务类型，匹配预定义模板：
+根据 prompt 关键词判断任务类型：
 
-| 关键词 | 任务类型 |
-|--------|---------|
+| 关键词 | 类型 |
+|--------|------|
 | 修复/fix/bug/报错/失败 | bug-fix |
 | 添加/新增/实现/开发/功能 | new-feature |
 | 重构/优化/整理/简化 | refactor |
 | 测试/test/覆盖 | add-tests |
 | 安全/漏洞/CVE/注入 | security-fix |
 
-匹配到模板时以模板为基础细化，未匹配时完全自主生成。模板文件见 [templates/](templates/) 目录。
+匹配到模板时以模板为基础细化。模板文件见 [templates/](templates/)。
 
-### 步骤 4：生成任务目标和验收标准
+#### 4. 生成目标、标准、边界
 
-基于用户 prompt、context.json 和模板（如有），生成：
+**任务目标**：一句话描述要达成的结果。
 
-**任务目标**（task_goal）：一句话描述要达成的结果。
+**验收标准**：3-5 条，每条满足 SMART-V（Specific/Measurable/Achievable/Relevant/Time-bound/Verifiable），结构为 `name` + `description`。
 
-**验收标准**（acceptance_criteria）：3-5 条，每条必须满足 SMART-V 原则：
-- **S**pecific：具体明确
-- **M**easurable：可量化验证
-- **A**chievable：可实现
-- **R**elevant：与目标相关
-- **T**ime-bound：有明确完成定义
-- **V**erifiable：可通过客观证据验证
+**边界**：`in_scope`（要做的事）+ `out_of_scope`（不做的事）。
 
-每条标准结构：`name`（语义化，如 functionality / no_regression）+ `description`。
+如果是从 adjust 返回的重新对齐，参考失败原因调整。**调整后必须重新走阶段二确认，不能复用之前的确认。**
 
-**边界**（boundary）：
-- `in_scope`：本次任务要做的事
-- `out_of_scope`：明确不做的事（默认包含：新功能添加、架构重构、性能优化、文档更新，除非用户明确要求）
+#### 5. 生成行为规约
 
-如果是从 adjust 返回的重新对齐，参考 adjust 提供的失败原因调整上述内容。
+- **always_do**：必须执行的操作
+- **ask_first**：高风险操作需先确认
+- **never_do**：硬止点（从 out_of_scope 派生 + 禁止提交 secrets + 禁止跳过 lint）
 
-### 步骤 5：生成行为规约
+---
 
-基于任务类型和边界，生成三层行为约束：
+### 阶段二：用户确认
 
-- **always_do**：必须执行的操作（如"修改代码后运行测试"、"遵循锁定风格"）
-- **ask_first**：高风险操作需先确认（如"修改数据库 schema"、"删除现有代码"）
-- **never_do**：硬止点，从 out_of_scope 自动派生 + "禁止提交 secrets" + "禁止跳过 lint"
+**⚠ 以下步骤是硬性门控。不执行此步骤 = align 未完成。禁止跳过。**
 
-### 步骤 6：向用户确认（硬性门控，不可跳过）
+#### 6. 通过 AskUserQuestion 展示对齐结果并等待确认
 
-> ⚠ 这是整个任务流程中唯一的用户确认点。无论任务多简单，都必须执行此步骤。
+必须调用 AskUserQuestion，向用户展示以下全部内容：
 
-通过 AskUserQuestion 向用户展示完整的对齐结果（目标、验收标准、边界、项目风格），提供两个选项：
+- 任务目标
+- 验收标准（逐条列出）
+- 边界（in_scope / out_of_scope）
+- 检测到的项目风格
 
-- **确认继续**：对齐结果正确，进入规划阶段
-- **需要调整**：需要修改
+提供两个选项：
+- **确认继续** — 对齐结果正确
+- **需要调整** — 需要修改
 
-如果用户选择"需要调整"，追问具体调整方向（目标不准确 / 标准不合理 / 边界不清晰 / 风格检测错误），然后返回 `need_explore: true` 携带用户反馈，由 flow 重新调度。
+**如果用户选择"需要调整"**：追问具体方向（目标不准确 / 标准不合理 / 边界不清晰 / 风格检测错误），然后返回 `need_explore: true` 携带反馈。
 
-### 步骤 7：写入对齐结果
+**如果用户选择"确认继续"**：进入步骤 7。
 
-用户确认后，将以下内容写入 `.lazygophers/tasks/{task_id}/align.json`：
+#### 7. 写入 align.json
+
+**仅在用户确认后执行此步骤。**
+
+写入 `.lazygophers/tasks/{task_id}/align.json`：
 
 ```json
 {
@@ -109,22 +121,20 @@ argument-hint: [任务描述]
 }
 ```
 
-返回此对齐结果给 flow。
+`user_confirmed: true` 是 flow 进入 plan 的前置条件。
+
+---
 
 ## 验收标准示例
 
-常见语义化名称（仅供参考）：
-- 功能：functionality, correctness, bug_resolved
-- 质量：style_compliant, readability, maintainability
-- 安全：no_regression, no_new_risk, vulnerability_fixed
-- 性能：performance_improved, complexity_controlled
+常见语义化名称：functionality, correctness, bug_resolved, style_compliant, no_regression, no_new_risk, performance_improved
 
 ## 检查清单
 
 - [ ] context.json 已读取或生成
 - [ ] 任务类型已识别
 - [ ] 3-5 条验收标准，每条满足 SMART-V
-- [ ] 边界（in_scope / out_of_scope）已明确
+- [ ] 边界已明确
 - [ ] 行为规约三层已生成
-- [ ] **用户已通过 AskUserQuestion 确认**（不可跳过）
+- [ ] **AskUserQuestion 已调用，用户已选择"确认继续"**
 - [ ] align.json 已写入，包含 `user_confirmed: true`

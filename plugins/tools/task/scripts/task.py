@@ -100,6 +100,16 @@ class TaskState:
             if not os.path.exists(fpath):
                 raise ValueError(f"进入 {target} 需要 {fname}，但文件不存在: {fpath}")
 
+        if target == "plan":
+            align_path = os.path.join(task_dir, "align.json")
+            if os.path.exists(align_path):
+                with open(align_path, "r") as f:
+                    align_data = json.load(f)
+                if not align_data.get("user_confirmed"):
+                    raise ValueError(
+                        f"进入 plan 需要用户确认 align 结果，但 align.json 中 user_confirmed 不为 true"
+                    )
+
 
 @click.group()
 @click.pass_context
