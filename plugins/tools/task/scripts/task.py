@@ -107,7 +107,7 @@ class TaskState:
                     align_data = json.load(f)
                 if not align_data.get("user_confirmed"):
                     raise ValueError(
-                        f"进入 plan 需要用户确认 align 结果，但 align.json 中 user_confirmed 不为 true"
+                        "进入 plan 需要用户确认 align 结果，但 align.json 中 user_confirmed 不为 true"
                     )
 
 
