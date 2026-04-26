@@ -83,9 +83,11 @@ interface AuthorInfo {
   "license": "MIT",
   "keywords": ["format", "code", "style", "prettier", "black"],
   "commands": "./commands/",
-  "agents": "./agents.bak/",
-  "skills": "./skills.bak/",
-  "hooks": "./hooks/hooks.json"
+  "agents": ["./agents/dev.md"],
+  "skills": "./skills/",
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "echo hello", "async": true, "timeout": 300}]}]
+  }
 }
 ```
 
@@ -702,8 +704,8 @@ cat .claude-plugin/plugin.json | jq .
 # 验证 marketplace.json
 cat .claude-plugin/marketplace.json | jq .
 
-# 验证 hooks.json
-cat hooks/hooks.json | jq .
+# 验证 plugin.json hooks 配置
+cat .claude-plugin/plugin.json | jq '.hooks'
 
 # 检查文件存在
 ls -la .claude-plugin/plugin.json

@@ -25,19 +25,12 @@ vi plugin.json
 
 # 3. 实现功能
 cd ../commands  # 添加命令
-cd ../agents.bak    # 添加代理
-cd ../skills.bak    # 添加技能
+cd ../agents    # 添加代理
+cd ../skills    # 添加技能
 
 # 4. 测试插件
 cd ../..
-/plugin install ./my-new-plugin
-```
-
-### 使用 uvx 一键安装测试
-
-```bash
-# 本地测试
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin ./my-new-plugin
+claude plugin add ./my-new-plugin
 ```
 
 ## 插件结构
@@ -93,8 +86,8 @@ my-plugin/
   },
   "keywords": ["tag1", "tag2"],
   "commands": "./commands/",
-  "agents": "./agents.bak/",
-  "skills": "./skills.bak/"
+  "agents": ["./agents/dev.md"],
+  "skills": "./skills/"
 }
 ```
 
