@@ -488,7 +488,7 @@
       ]
     },
     {
-      "name": "office-xlsx",
+      "name": "xlsx",
       "source": "./plugins/office/xlsx",
       "description": "Office Excel 插件 - 提供 xlsx 文件读写、数据分析功能。基于 openpyxl 和 pandas 实现 MCP 服务器",
       "version": "0.0.193",
@@ -508,7 +508,7 @@
       ]
     },
     {
-      "name": "office-docx",
+      "name": "docx",
       "source": "./plugins/office/docx",
       "description": "Office Word 插件 - 提供 docx 文件读写、段落格式化功能。基于 python-docx 实现 MCP 服务器",
       "version": "0.0.193",
@@ -528,7 +528,7 @@
       ]
     },
     {
-      "name": "office-pptx",
+      "name": "pptx",
       "source": "./plugins/office/pptx",
       "description": "Office PowerPoint 插件 - 提供 pptx 文件读写、幻灯片操作功能。基于 python-pptx 实现 MCP 服务器",
       "version": "0.0.193",
@@ -788,7 +788,7 @@
       ]
     },
     {
-      "name": "plugin-template",
+      "name": "template",
       "source": "./plugins/template",
       "description": "插件开发模板 - 快速创建新插件的基础结构",
       "version": "0.0.193",
@@ -806,7 +806,7 @@
       ]
     },
     {
-      "name": "office-pdf",
+      "name": "pdf",
       "source": "./plugins/office/pdf",
       "description": "PDF 文件读取和内容提取插件。基于 MCP 协议提供 PDF 操作工具",
       "version": "0.0.193",

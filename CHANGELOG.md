@@ -5,6 +5,15 @@ All notable changes to CCPlugin Market will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking
+- Renamed plugins: `office-docx`/`office-pdf`/`office-pptx`/`office-xlsx` → `docx`/`pdf`/`pptx`/`xlsx`; `plugin-llms` → `llms`; `plugin-template` → `template`
+- Migration: re-run `claude plugin install <newname>` for any of the affected plugins
+
+### Added
+- `scripts/check.py --marketplace`: 仓库级名称对齐校验（marketplace.json ↔ plugin.json ↔ 目录名），检测 drifts/ghosts/orphans
+
 ## [0.0.193] - 2026-04-25
 
 ### Changed

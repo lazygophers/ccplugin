@@ -1,5 +1,5 @@
 {
-  "name": "plugin-llms",
+  "name": "llms",
   "version": "0.0.193",
   "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件",
   "author": {

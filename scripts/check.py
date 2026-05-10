@@ -899,6 +899,103 @@ def print_report(report: PluginCheckReport) -> None:
 	console.print(summary_table)
 
 
+def check_name_alignment(repo_root: Path) -> int:
+	"""Verify name alignment across marketplace.json, plugin.json, and dir basename.
+
+	For every entry in marketplace.json:
+	  entry["name"] == manifest["name"] == basename(source_path)
+
+	Args:
+		repo_root: Repository root containing .claude-plugin/marketplace.json
+
+	Returns:
+		Exit code (0 if aligned, 1 on any drift)
+	"""
+	marketplace_path = repo_root / '.claude-plugin' / 'marketplace.json'
+	if not marketplace_path.exists():
+		console.print(f"[red]marketplace.json not found at {marketplace_path}[/red]")
+		return 1
+
+	marketplace = load_json_file(marketplace_path)
+	if marketplace is None:
+		console.print("[red]Failed to parse marketplace.json[/red]")
+		return 1
+
+	entries = marketplace.get("plugins", [])
+	drifts: list[str] = []
+	missing: list[str] = []
+	ghosts: list[str] = []
+	orphans: list[str] = []
+
+	# Detect name drift + ghosts (registry name with no matching dir)
+	registered_paths: set[Path] = set()
+	for entry in entries:
+		entry_name = entry.get("name", "")
+		source = entry.get("source", "")
+		source_path = (repo_root / source).resolve()
+		registered_paths.add(source_path)
+		dir_basename = source_path.name
+
+		if not source_path.is_dir():
+			ghosts.append(f"{entry_name} -> {source} (directory missing)")
+			continue
+
+		manifest_path = source_path / '.claude-plugin' / 'plugin.json'
+		manifest = load_json_file(manifest_path)
+		if manifest is None:
+			missing.append(f"{entry_name} -> {source} (plugin.json missing/invalid)")
+			continue
+
+		manifest_name = manifest.get("name", "")
+		if not (entry_name == manifest_name == dir_basename):
+			drifts.append(
+				f"name drift: marketplace={entry_name!r} vs manifest={manifest_name!r} vs dir={dir_basename!r} ({source})"
+			)
+
+	# Detect orphans (plugin dirs on disk not registered)
+	plugins_root = repo_root / 'plugins'
+	if plugins_root.is_dir():
+		for manifest_path in plugins_root.rglob('.claude-plugin/plugin.json'):
+			plugin_dir = manifest_path.parent.parent.resolve()
+			if plugin_dir not in registered_paths:
+				orphans.append(str(plugin_dir.relative_to(repo_root)))
+
+	total_issues = len(drifts) + len(ghosts) + len(missing) + len(orphans)
+
+	console.print(Rule("[bold cyan]Marketplace Name Alignment[/bold cyan]"))
+	console.print(f"Registered entries: [bold]{len(entries)}[/bold]")
+	console.print(f"Name drifts:        [bold {'red' if drifts else 'green'}]{len(drifts)}[/bold {'red' if drifts else 'green'}]")
+	console.print(f"Ghosts (no dir):    [bold {'red' if ghosts else 'green'}]{len(ghosts)}[/bold {'red' if ghosts else 'green'}]")
+	console.print(f"Missing manifests:  [bold {'red' if missing else 'green'}]{len(missing)}[/bold {'red' if missing else 'green'}]")
+	console.print(f"Orphans (unreg):    [bold {'red' if orphans else 'green'}]{len(orphans)}[/bold {'red' if orphans else 'green'}]")
+
+	for d in drifts:
+		console.print(f"  [red]✗[/red] {d}")
+	for g in ghosts:
+		console.print(f"  [red]✗ ghost[/red] {g}")
+	for m in missing:
+		console.print(f"  [red]✗ missing[/red] {m}")
+	for o in orphans:
+		console.print(f"  [yellow]⚠ orphan[/yellow] {o}")
+
+	if total_issues > 0:
+		console.print(Panel.fit(
+			f"[bold red]Alignment FAILED[/bold red]\n"
+			f"drifts={len(drifts)} ghosts={len(ghosts)} missing={len(missing)} orphans={len(orphans)}",
+			border_style="red",
+			box=box.DOUBLE
+		))
+		return 1
+
+	console.print(Panel.fit(
+		"[bold green]Alignment OK[/bold green]\n"
+		"0 drifts, 0 ghosts, 0 missing, 0 orphans",
+		border_style="green",
+		box=box.DOUBLE
+	))
+	return 0
+
+
 def main() -> int:
 	"""Main entry point for plugin check script.
 
@@ -923,6 +1020,11 @@ def main() -> int:
 		help="跳过 Hook 测试",
 	)
 	parser.add_argument(
+		"--marketplace",
+		action="store_true",
+		help="校验 marketplace.json 与 plugin.json 名称对齐（仓库级）",
+	)
+	parser.add_argument(
 		"-h", "--help",
 		action="store_true",
 		help="显示帮助信息",
@@ -933,6 +1035,10 @@ def main() -> int:
 	if args.help:
 		print_help(parser, console)
 		return 0
+
+	if args.marketplace:
+		repo_root = Path(args.dir).resolve() if args.dir else Path.cwd()
+		return check_name_alignment(repo_root)
 
 	if args.dir:
 		plugin_path = Path(args.dir).resolve()

@@ -39,7 +39,7 @@
 ```
 python              # 清楚说明是 Python 开发
 git                 # 清楚说明是 Git 操作
-office-xlsx         # 清楚说明是 Excel 操作
+xlsx                # 清楚说明是 Excel 操作
 ```
 
 **避免**：
