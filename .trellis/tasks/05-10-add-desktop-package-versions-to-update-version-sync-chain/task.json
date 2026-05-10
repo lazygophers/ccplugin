@@ -3,7 +3,7 @@
   "name": "add-desktop-package-versions-to-update-version-sync-chain",
   "title": "Add desktop package versions to update_version sync chain",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": null,
   "package": null,

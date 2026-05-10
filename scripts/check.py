@@ -899,6 +899,110 @@ def print_report(report: PluginCheckReport) -> None:
 	console.print(summary_table)
 
 
+def check_desktop_versions(repo_root: Path) -> int:
+	"""Verify desktop version files are aligned with .version (3-part M.m.p).
+
+	Validates that desktop/package.json, desktop/src-tauri/Cargo.toml, and
+	desktop/src-tauri/tauri.conf.json all carry the same major.minor.patch
+	as the canonical .version file.
+
+	Args:
+		repo_root: Repository root containing .version
+
+	Returns:
+		Exit code (0 if all aligned, 1 on any drift)
+	"""
+	version_path = repo_root / '.version'
+	if not version_path.exists():
+		console.print(f"[red].version not found at {version_path}[/red]")
+		return 1
+
+	raw = version_path.read_text(encoding='utf-8').strip()
+	parts = raw.split('.')
+	if len(parts) < 3:
+		console.print(f"[red]Invalid .version format: {raw!r} (expected M.m.p[.b])[/red]")
+		return 1
+	expected = '.'.join(parts[:3])
+
+	drifts: list[str] = []
+
+	# desktop/package.json — top-level "version"
+	pkg_json_path = repo_root / 'desktop' / 'package.json'
+	if not pkg_json_path.exists():
+		drifts.append(f"desktop/package.json: file not found")
+	else:
+		try:
+			pkg = json.loads(pkg_json_path.read_text(encoding='utf-8'))
+			actual = pkg.get('version', '')
+			if actual != expected:
+				drifts.append(
+					f"desktop version drift: desktop/package.json has {actual!r}, .version has {expected!r}"
+				)
+		except Exception as e:
+			drifts.append(f"desktop/package.json: parse error: {e}")
+
+	# desktop/src-tauri/Cargo.toml — [package].version
+	cargo_path = repo_root / 'desktop' / 'src-tauri' / 'Cargo.toml'
+	if not cargo_path.exists():
+		drifts.append(f"desktop/src-tauri/Cargo.toml: file not found")
+	else:
+		try:
+			# Local import to avoid hard dependency at module load
+			import tomllib  # Python 3.11+
+			cargo = tomllib.loads(cargo_path.read_text(encoding='utf-8'))
+			pkg_section = cargo.get('package', {})
+			actual = pkg_section.get('version', '')
+			if isinstance(actual, dict):
+				drifts.append(
+					"desktop/src-tauri/Cargo.toml: version inherits from workspace; cannot validate here"
+				)
+			elif actual != expected:
+				drifts.append(
+					f"desktop version drift: desktop/src-tauri/Cargo.toml has {actual!r}, .version has {expected!r}"
+				)
+		except Exception as e:
+			drifts.append(f"desktop/src-tauri/Cargo.toml: parse error: {e}")
+
+	# desktop/src-tauri/tauri.conf.json — top-level "version"
+	tauri_path = repo_root / 'desktop' / 'src-tauri' / 'tauri.conf.json'
+	if not tauri_path.exists():
+		drifts.append(f"desktop/src-tauri/tauri.conf.json: file not found")
+	else:
+		try:
+			tauri = json.loads(tauri_path.read_text(encoding='utf-8'))
+			actual = tauri.get('version', '')
+			if actual != expected:
+				drifts.append(
+					f"desktop version drift: desktop/src-tauri/tauri.conf.json has {actual!r}, .version has {expected!r}"
+				)
+		except Exception as e:
+			drifts.append(f"desktop/src-tauri/tauri.conf.json: parse error: {e}")
+
+	console.print(Rule("[bold cyan]Desktop Version Alignment[/bold cyan]"))
+	console.print(f"Expected (from .version): [bold]{expected}[/bold]")
+	console.print(f"Drifts: [bold {'red' if drifts else 'green'}]{len(drifts)}[/bold {'red' if drifts else 'green'}]")
+
+	for d in drifts:
+		console.print(f"  [red]✗[/red] {d}")
+
+	if drifts:
+		console.print(Panel.fit(
+			f"[bold red]Desktop version alignment FAILED[/bold red]\n"
+			f"{len(drifts)} drift(s) detected",
+			border_style="red",
+			box=box.DOUBLE
+		))
+		return 1
+
+	console.print(Panel.fit(
+		"[bold green]Desktop version alignment OK[/bold green]\n"
+		"All 3 desktop files match .version",
+		border_style="green",
+		box=box.DOUBLE
+	))
+	return 0
+
+
 def check_name_alignment(repo_root: Path) -> int:
 	"""Verify name alignment across marketplace.json, plugin.json, and dir basename.
 
@@ -1025,6 +1129,11 @@ def main() -> int:
 		help="校验 marketplace.json 与 plugin.json 名称对齐（仓库级）",
 	)
 	parser.add_argument(
+		"--desktop",
+		action="store_true",
+		help="校验 desktop 版本文件与 .version 对齐（仓库级）",
+	)
+	parser.add_argument(
 		"-h", "--help",
 		action="store_true",
 		help="显示帮助信息",
@@ -1036,9 +1145,15 @@ def main() -> int:
 		print_help(parser, console)
 		return 0
 
+	if args.desktop:
+		repo_root = Path(args.dir).resolve() if args.dir else Path.cwd()
+		return check_desktop_versions(repo_root)
+
 	if args.marketplace:
 		repo_root = Path(args.dir).resolve() if args.dir else Path.cwd()
-		return check_name_alignment(repo_root)
+		name_rc = check_name_alignment(repo_root)
+		desktop_rc = check_desktop_versions(repo_root)
+		return 1 if (name_rc or desktop_rc) else 0
 
 	if args.dir:
 		plugin_path = Path(args.dir).resolve()

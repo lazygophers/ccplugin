@@ -1,6 +1,6 @@
 {
   "name": "env",
-  "version": "0.0.193",
+  "version": "0.0.195",
   "description": "环境处理插件 - 从 .env 文件加载环境变量并注入会话",
   "author": {
     "name": "ccplugin",

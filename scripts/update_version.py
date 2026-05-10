@@ -6,6 +6,7 @@ Updates version numbers across:
 - marketplace.json
 - All plugin.json files
 - All pyproject.toml files
+- desktop/package.json, desktop/src-tauri/Cargo.toml, desktop/src-tauri/tauri.conf.json (3-part)
 - uv.lock files (via uv lock -U)
 """
 
@@ -25,6 +26,11 @@ console = Console()
 MARKETPLACE_JSON = ".claude-plugin/marketplace.json"
 VERSION_FILE = ".version"
 PLUGINS_DIR = "plugins"
+
+# Desktop version files (synced to 3-part version M.m.p)
+DESKTOP_PACKAGE_JSON = "desktop/package.json"
+DESKTOP_CARGO_TOML = "desktop/src-tauri/Cargo.toml"
+DESKTOP_TAURI_CONF_JSON = "desktop/src-tauri/tauri.conf.json"
 
 # Directories where `uvx ... check` should be skipped.
 # `uv lock -U` / `uv sync` will still run.
@@ -490,6 +496,141 @@ def update_marketplace(marketplace_path: Path, new_version: str) -> None:
         f.write("\n")
 
 
+def _update_desktop_package_json(path: Path, new_version: str) -> dict:
+    """Update desktop/package.json `version` field (top-level)."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data["version"] = new_version
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        return {"success": True, "path": DESKTOP_PACKAGE_JSON}
+    except FileNotFoundError:
+        return {"success": False, "path": DESKTOP_PACKAGE_JSON, "error": "File not found"}
+    except Exception as e:
+        return {"success": False, "path": DESKTOP_PACKAGE_JSON, "error": str(e)}
+
+
+def _update_desktop_cargo_toml(path: Path, new_version: str) -> dict:
+    """Update desktop/src-tauri/Cargo.toml `[package].version`.
+
+    Refuses to write if the crate inherits version from a workspace
+    (`version.workspace = true`), which would require updating the workspace
+    root instead.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = tomlkit.load(f)
+
+        if "package" not in data:
+            return {
+                "success": False,
+                "path": DESKTOP_CARGO_TOML,
+                "error": "[package] section not found",
+            }
+
+        pkg_version = data["package"].get("version")
+        # tomlkit returns inline tables/tables for `version = { workspace = true }`
+        if isinstance(pkg_version, dict) or (
+            hasattr(pkg_version, "get") and pkg_version.get("workspace") is True
+        ):
+            return {
+                "success": False,
+                "path": DESKTOP_CARGO_TOML,
+                "error": "version inherits from workspace (version.workspace = true); update workspace root instead",
+            }
+
+        data["package"]["version"] = new_version
+
+        with open(path, "w", encoding="utf-8") as f:
+            tomlkit.dump(data, f)
+
+        return {"success": True, "path": DESKTOP_CARGO_TOML}
+    except FileNotFoundError:
+        return {"success": False, "path": DESKTOP_CARGO_TOML, "error": "File not found"}
+    except Exception as e:
+        return {"success": False, "path": DESKTOP_CARGO_TOML, "error": str(e)}
+
+
+def _update_desktop_tauri_conf(path: Path, new_version: str) -> dict:
+    """Update desktop/src-tauri/tauri.conf.json top-level `version` field.
+
+    Tauri 2.x schema: top-level `version`. Tauri 1.x had `package.version`.
+    This writer only updates the top-level field — verify schema before bumping.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if "version" not in data:
+            return {
+                "success": False,
+                "path": DESKTOP_TAURI_CONF_JSON,
+                "error": "top-level 'version' field not found (Tauri 1.x schema?)",
+            }
+
+        data["version"] = new_version
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+
+        return {"success": True, "path": DESKTOP_TAURI_CONF_JSON}
+    except FileNotFoundError:
+        return {"success": False, "path": DESKTOP_TAURI_CONF_JSON, "error": "File not found"}
+    except Exception as e:
+        return {"success": False, "path": DESKTOP_TAURI_CONF_JSON, "error": str(e)}
+
+
+def update_desktop_versions(
+    base_dir: Path, target_version: str, dry_run: bool
+) -> VersionUpdateResult:
+    """Sync the 3-part canonical version into the 3 desktop files.
+
+    Updates (sequentially, since this is a small fixed set):
+    - desktop/package.json `version`
+    - desktop/src-tauri/Cargo.toml `[package].version`
+    - desktop/src-tauri/tauri.conf.json `version`
+
+    Args:
+        base_dir: Project base directory.
+        target_version: 3-part version string (M.m.p). Build segment must be
+            stripped by the caller to match pyproject convention.
+        dry_run: If True, log intended writes without modifying files.
+
+    Returns:
+        VersionUpdateResult with updated paths and failed items.
+    """
+    targets = [
+        (base_dir / DESKTOP_PACKAGE_JSON, _update_desktop_package_json),
+        (base_dir / DESKTOP_CARGO_TOML, _update_desktop_cargo_toml),
+        (base_dir / DESKTOP_TAURI_CONF_JSON, _update_desktop_tauri_conf),
+    ]
+
+    updated: list[str] = []
+    failed: list[dict[str, str]] = []
+
+    for path, updater in targets:
+        rel = path.relative_to(base_dir)
+        if dry_run:
+            console.print(
+                f"  [yellow][DRY RUN] Would update {rel} → {target_version}[/yellow]"
+            )
+            continue
+
+        if not path.exists():
+            failed.append({"path": str(rel), "error": "File not found"})
+            continue
+
+        result = updater(path, target_version)
+        if result["success"]:
+            updated.append(result["path"])
+        else:
+            failed.append({"path": result["path"], "error": result.get("error", "Unknown error")})
+
+    return VersionUpdateResult(updated, failed)
+
+
 def update_version_file(version_path: Path, new_version: str) -> None:
     """Update .version file with new version.
 
@@ -645,6 +786,14 @@ def main() -> int:
             f"  [green]✓[/green] marketplace.json: {old_version} → {new_version}"
         )
 
+    # Step 2.5: Update desktop version files (package.json, Cargo.toml, tauri.conf.json)
+    console.print("\n[bold cyan]Updating desktop version files...[/bold cyan]")
+    desktop_result = update_desktop_versions(base_dir, new_version, args.dry_run)
+    if not args.dry_run:
+        print_version_updates(
+            desktop_result.updated, "desktop file(s)", old_version, new_version, console
+        )
+
     # Step 3: Update plugin.json files
     if args.dry_run:
         console.print("  [yellow][DRY RUN] Would update plugin.json files[/yellow]")
@@ -693,6 +842,8 @@ def main() -> int:
 
     # Collect and print failures
     all_failures = []
+    if desktop_result.failed:
+        all_failures.append(("Desktop Files", desktop_result.failed))
     if plugin_result.failed:
         all_failures.append(("Plugin Files", plugin_result.failed))
     if pyproject_result.failed:

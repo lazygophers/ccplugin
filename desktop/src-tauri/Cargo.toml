@@ -1,6 +1,6 @@
 [package]
 name = "ccplugin-desktop"
-version = "0.1.0"
+version = "0.0.195"
 description = "CCPlugin Desktop - 跨平台插件管理工具"
 authors = ["lazygophers"]
 edition = "2021"
