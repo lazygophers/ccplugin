@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [ "click>=8.3.1", "pydantic>=2.12.5", "rich>=13.0.0", "pyyaml>=6.0",]
 
 [project.optional-dependencies]
-dev = [ "pytest>=7.0.0", "pytest-asyncio>=0.21.0",]
+dev = [ "pytest>=7.0.0", "pytest-asyncio>=0.23.0", "pytest-cov>=4.0.0", "testcontainers[mysql,postgres]>=4.0", "aiomysql>=0.2.0", "asyncpg>=0.29.0", "aiosqlite>=0.19.0",]
 mysql = [ "aiomysql>=0.2.0",]
 sqlite = [ "aiosqlite>=0.19.0",]
 postgresql = [ "asyncpg>=0.29.0",]
@@ -19,3 +19,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = [ "..",]
 include = [ "lib", "lib.*",]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [ "integration: requires container; gated by RUN_DB_INTEGRATION=1",]
