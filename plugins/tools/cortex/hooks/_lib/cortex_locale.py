@@ -149,8 +149,7 @@ def parse_yaml(text: str) -> dict[str, Any]:
                     break
                 if min_indent is None:
                     min_indent = ind
-                strip_n = min(ind, min_indent or ind)
-                # reconstruct prefix
+                # reconstruct prefix (preserve relative indent)
                 block_lines.append(" " * (ind - (min_indent or ind)) + body)
                 j += 1
             if isinstance(parent, dict):
