@@ -92,6 +92,25 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/install_cron.sh gha       # GitHub Actions
 - **Hook v2 wrapped JSON schema** — `hookSpecificOutput.{hookEventName,additionalContext}`
 - **不写 noop hook** — 教训自 commit `07e713d4`
 
+## 详细文档
+
+完整中文文档见 [`docs/`](docs/索引.md):
+
+- [索引](docs/索引.md) — 文档总目录, 按场景找入口
+- [快速上手](docs/快速上手.md) — 5 分钟从安装到第一次落档
+- [安装与配置](docs/安装与配置.md) — vault 解析、`config.json` schema、env 变量
+- [知识库结构](docs/知识库结构.md) — 4 个 preset 的目录布局, 共享根说明
+- [Skills 详解](docs/Skills%20详解.md) — 11 个 skill 用途/触发/示例/失败处理
+- [Hooks 机制](docs/Hooks%20机制.md) — 4 个 hook 协议、启发式落档、与 OGit 协调
+- [模板与美化](docs/模板与美化.md) — 6 模板 + 13 类 callout + HTML 边界
+- [Lint 规则](docs/Lint%20规则.md) — 13 条规则逐条解释 + `--fix` 行为
+- [重构与归档](docs/重构与归档.md) — refactor 4 子操作 + backup + 不可逆风险
+- [周期任务](docs/周期任务.md) — `install_cron.sh` + cron / launchd / GHA 三种 snippet
+- [故障排查](docs/故障排查.md) — 常见 8 个症状 → 原因 → 修复
+- [架构设计](docs/架构设计.md) — 数据流、模块依赖、hook 时序、MCP 三级回退
+- [设计决策](docs/设计决策.md) — ADR D1-D7 + research-driven §10 修订
+- [贡献指南](docs/贡献指南.md) — 加新 skill / lint / preset 步骤 + 测试约定 + GLM 自检
+
 ## License
 
 AGPL-3.0-or-later
