@@ -20,7 +20,6 @@ import {
   clearAllNotifications,
   getTasks,
   getTaskStatus,
-  listenToTaskUpdates,
 } from "./tauri-commands";
 
 describe("tauri-commands", () => {
@@ -409,48 +408,6 @@ describe("tauri-commands", () => {
       expect(invoke).toHaveBeenCalledWith("get_task_status");
     });
 
-    it("listenToTaskUpdates calls listen with correct event", async () => {
-      const unlisten = vi.fn();
-      vi.mocked(listen).mockResolvedValueOnce(unlisten);
-      const handler = vi.fn();
-
-      const result = await listenToTaskUpdates(handler);
-
-      expect(listen).toHaveBeenCalledWith("task-updated", expect.any(Function));
-      expect(result).toBe(unlisten);
-    });
-
-    it("listenToTaskUpdates passes task payload to handler", async () => {
-      const mockTask = {
-        id: "install-python",
-        task_type: "Install" as const,
-        plugin_name: "python",
-        marketplace: null,
-        scope: null,
-        status: "Running" as const,
-        progress: 50,
-        message: "Installing...",
-        error: null,
-        created_at: 123456,
-        started_at: 123457,
-        completed_at: null,
-      };
-      let capturedHandler: ((task: any) => void) | undefined;
-      vi.mocked(listen).mockImplementationOnce((_event, handler) => {
-        capturedHandler = handler;
-        return Promise.resolve(vi.fn());
-      });
-      const handler = vi.fn();
-
-      await listenToTaskUpdates(handler);
-
-      if (capturedHandler) {
-        capturedHandler({ payload: mockTask });
-      }
-
-      expect(handler).toHaveBeenCalledWith(mockTask);
-    });
-
     it("handles getTasks errors", async () => {
       vi.mocked(invoke).mockRejectedValueOnce(new Error("Failed to get tasks"));
 
@@ -461,12 +418,6 @@ describe("tauri-commands", () => {
       vi.mocked(invoke).mockRejectedValueOnce(new Error("Failed to get status"));
 
       await expect(getTaskStatus()).rejects.toThrow("Failed to get status");
-    });
-
-    it("handles listenToTaskUpdates errors", async () => {
-      vi.mocked(listen).mockRejectedValueOnce(new Error("Listen failed"));
-
-      await expect(listenToTaskUpdates(vi.fn())).rejects.toThrow("Listen failed");
     });
   });
 });

@@ -220,17 +220,6 @@ export async function getTaskStatus(): Promise<TaskQueueStatus> {
 	return await invoke("get_task_status");
 }
 
-/**
- * 监听任务更新事件
- */
-export async function listenToTaskUpdates(
-	handler: (task: Task) => void,
-): Promise<UnlistenFn> {
-	return await listen<Task>("task-updated", (event) => {
-		handler(event.payload);
-	});
-}
-
 // ==================== Marketplace 命令 ====================
 
 /**

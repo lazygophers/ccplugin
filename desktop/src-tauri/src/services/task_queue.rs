@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
 use crate::events::{emit_plugin_event, PluginEventType};
@@ -419,11 +419,8 @@ impl TaskQueue {
                 if completed_guard.len() >= 100 {
                     completed_guard.remove(0);
                 }
-                completed_guard.push(task.clone());
+                completed_guard.push(task);
             }
-
-            // 通知前端任务状态更新
-            let _ = app_handle.emit("task-updated", Some(task));
         });
     }
 
