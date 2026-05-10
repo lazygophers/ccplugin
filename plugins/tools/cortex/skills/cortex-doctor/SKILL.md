@@ -1,6 +1,6 @@
 ---
 name: cortex-doctor
-description: 诊断 cortex 插件健康状态 — vault 路径、共享根/_templates、preset、Obsidian MCP/CLI/REST、Smart Connections、ripgrep、lint 基线、backlink (共 13 项)。仅用户显式触发 (disable-model-invocation: true)。
+description: 诊断 cortex 健康 — vault/MCP/CLI/REST/SC/rg/lint/backlink 共 13 项。仅显式触发 (disable-model-invocation: true)。
 disable-model-invocation: true
 allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents
 ---

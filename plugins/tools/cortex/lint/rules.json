@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "fm-missing-type",
+      "severity": "error",
+      "description": "frontmatter 缺 type 字段",
+      "autofix": true
+    },
+    {
+      "id": "fm-missing-created",
+      "severity": "warn",
+      "description": "frontmatter 缺 created 字段",
+      "autofix": true
+    },
+    {
+      "id": "dead-wikilink",
+      "severity": "error",
+      "description": "wikilink 指向不存在的页",
+      "autofix": false
+    },
+    {
+      "id": "orphan-page",
+      "severity": "warn",
+      "description": "无入链且无 tag 的孤儿页",
+      "autofix": false
+    },
+    {
+      "id": "duplicate-alias",
+      "severity": "error",
+      "description": "alias 跨页冲突",
+      "autofix": false
+    },
+    {
+      "id": "hot-too-long",
+      "severity": "warn",
+      "description": "hot.md 超 200 行",
+      "autofix": true
+    },
+    {
+      "id": "log-too-long",
+      "severity": "warn",
+      "description": "log 单文件 > 2000 行, 需 fold",
+      "autofix": false
+    },
+    {
+      "id": "index-missing-section",
+      "severity": "warn",
+      "description": "index.md 未包含某 wiki 顶级子目录",
+      "autofix": true
+    },
+    {
+      "id": "title-h1-mismatch",
+      "severity": "warn",
+      "description": "H1 与 frontmatter title 不一致",
+      "autofix": true
+    },
+    {
+      "id": "filename-illegal",
+      "severity": "error",
+      "description": "文件名含非法字符或与 alias 冲突",
+      "autofix": false
+    },
+    {
+      "id": "block-id-duplicate",
+      "severity": "error",
+      "description": "block-id 重复 (^cortex-<sha8>)",
+      "autofix": true
+    },
+    {
+      "id": "callout-unknown-type",
+      "severity": "warn",
+      "description": "callout 类型不在 13 类白名单",
+      "autofix": false
+    },
+    {
+      "id": "path-naming-violation",
+      "severity": "warn",
+      "description": "文件路径不符合命名规则 (prd §3.2.7)",
+      "autofix": false
+    }
+  ]
+}

@@ -547,24 +547,21 @@ Stop / SubagentStop 落档时,每个 H2/H3 段落末尾自动加 `^cortex-<sha8>
 
 后续 fold / 引用可精准到段:`![[log/...#^cortex-a3f9c1d2]]`。
 
-### 10.6 命令/Skill 集合扩展
+### 10.6 命令/Skill 集合扩展 (M5+M6 已落地)
 
-新增命令:
+实际落地: **0 commands**, 全部能力以 skill 暴露 (与早期描述差异, 见 AGENT.md 设计原则)。
 
-| 命令 | 行为 |
-|------|------|
-| `/cortex:canvas <topic>` | 用 obsidian CLI 生成 .canvas, 节点排布按 frontmatter `parent/up/sibling` |
-| `/cortex:dashboard <topic>` | 用 Bases 生成 dashboard, 失败回退 Dataview |
-| `/cortex:fold` | 触发 log rollup → folds/ |
-| `/cortex:uri <action>` | 输出 `obsidian://` 可点击链接 (打开当前操作目标) |
+skill 表 (M5/M6 新增 5 个, 总数 11):
 
-新增 skill:
-
-| skill | 触发 | 流程 |
+| skill | 触发 | 实现路径 |
 |-------|------|------|
-| `cortex-bases` | "build a base", "/cortex:dashboard" | base 文件生成 + view 配置 |
-| `cortex-canvas` | "make canvas", "/cortex:canvas" | canvas JSON 生成 |
-| `cortex-fold` | "fold the log", "/cortex:fold" | 2^k 滚动归档 |
+| `cortex-lint` | "wiki audit", "lint", "vault 体检", "找 orphan", "dead link" | `lint/run.py` + `lint/rules.json` (13 rules) |
+| `cortex-refactor` | rename/merge/split/fold (显式, disable-model-invocation) | `refactor/{rename,merge,split,fold}.py` + `_common.py` |
+| `cortex-canvas` | "make canvas", "新建画布", "可视化" | obsidian CLI 主, JSON Canvas 1.0 静态降级 |
+| `cortex-dashboard` | "build dashboard", "wiki 仪表盘", "仪表盘" | Bases 主 + Dataview 兜底 |
+| `cortex-fold` | "fold logs", "归档日志", "整理日志" | 调 `refactor/fold.py` |
+
+dashboard 命名为独立 skill 取代 §10.6 早期的 `cortex-bases` (Bases / Dataview 由内部探测自动选择, 不暴露选择给 LLM)。
 
 ### 10.7 Smart Connections 三级回退 (research/03 §B.SC)
 

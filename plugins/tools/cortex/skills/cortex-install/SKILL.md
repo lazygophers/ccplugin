@@ -1,6 +1,6 @@
 ---
 name: cortex-install
-description: 初始化或升级 Obsidian vault 至 cortex 标准布局 — 写共享根与所选 preset (lyt/zettel/para/blank) 业务目录, 不覆盖。Triggers on "init vault", "install cortex", "安装 cortex", "初始化 obsidian vault".
+description: 初始化 Obsidian vault 至 cortex 布局 — 共享根 + preset (lyt/zettel/para/blank), 不覆盖。Triggers on "init vault", "install cortex", "安装 cortex".
 allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content
 ---
 
