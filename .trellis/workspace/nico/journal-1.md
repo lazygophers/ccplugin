@@ -77,3 +77,42 @@ Deep-studied entire ccplugin repo (Trellis system, plugins, lib, scripts, deskto
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Cortex Obsidian 知识库插件: 设计 + M1-M7 实施 + 中文文档
+
+**Date**: 2026-05-10
+**Task**: Cortex Obsidian 知识库插件: 设计 + M1-M7 实施 + 中文文档
+**Branch**: `master`
+
+### Summary
+
+新增 plugins/tools/cortex 完整插件: 11 skills (8 自动 + 3 disable-model-invocation), 0 commands, 4 hook (SessionStart/Stop/SubagentStop/PostCompact, v2 wrapped JSON), 4 preset (LYT/Zettel/PARA/blank), 6 模板, 13 lint rules, refactor 4 子操作, cron 三平台 snippet, docs/ 14 篇中文文档。配套 prd.md (10 章 + research-driven 14 patches) + 5 份 research (PKM/ccplugin 基线/Obsidian 能力/CC hook 能力/skills vs commands)。决策: 不依赖 lib/, 自包含, 与 Obsidian Git 协调, callout 替代 HTML grid, Bases 优先 Dataview 兜底, block-id ^cortex-<sha8> 自动注入。.version 改为跟踪 (4 文件)。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `48482a55` | (see git log) |
+| `2440ffe4` | (see git log) |
+| `f646f53a` | (see git log) |
+| `1eff5b85` | (see git log) |
+| `36dd5fca` | (see git log) |
+| `5ad80552` | (see git log) |
+| `b388dc8d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
