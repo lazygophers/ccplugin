@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/05-10-consolidate-statusline-monolithic-and-modular-dual-track/prd.md", "reason": "Acceptance criteria (≤100 LOC shim, parity)"}
+{"file": ".trellis/tasks/05-10-consolidate-statusline-monolithic-and-modular-dual-track/research/statusline-architecture.md", "reason": "Functionality parity verification"}

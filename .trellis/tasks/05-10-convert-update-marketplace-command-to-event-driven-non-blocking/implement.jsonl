@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/05-10-convert-update-marketplace-command-to-event-driven-non-blocking/prd.md", "reason": "Task requirements + refactor scope"}
+{"file": ".trellis/tasks/05-10-convert-update-marketplace-command-to-event-driven-non-blocking/research/event-driven-violations.md", "reason": "Violation map + refactor plan + reference compliant pattern"}
+{"file": ".claude/memory/desktop-event-driven-architecture.md", "reason": "Spec to enforce (rules section 1.4 + naming convention)"}
+{"file": ".claude/memory/desktop-code-quality-2026-04-05.md", "reason": "Code reuse audit; avoid duplicate spawn helpers"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Rust to TS data flow guide"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse task_queue infra not new spawn"}

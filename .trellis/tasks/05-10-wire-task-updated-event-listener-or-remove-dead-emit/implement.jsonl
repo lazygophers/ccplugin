@@ -1,0 +1,3 @@
+{"file": ".trellis/tasks/05-10-wire-task-updated-event-listener-or-remove-dead-emit/prd.md", "reason": "Decision matrix + scope per option"}
+{"file": ".trellis/tasks/05-10-wire-task-updated-event-listener-or-remove-dead-emit/research/dead-event-emit.md", "reason": "Audit + verification commands + recommendation"}
+{"file": ".claude/memory/desktop-event-driven-architecture.md", "reason": "Event naming + emit/listen pairing rules"}

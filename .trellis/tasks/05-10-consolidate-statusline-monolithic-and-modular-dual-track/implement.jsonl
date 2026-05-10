@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/05-10-consolidate-statusline-monolithic-and-modular-dual-track/prd.md", "reason": "Phased refactor scope"}
+{"file": ".trellis/tasks/05-10-consolidate-statusline-monolithic-and-modular-dual-track/research/statusline-architecture.md", "reason": "Functionality gap matrix + shim sketch + risk list"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Pattern repetition; consolidate not duplicate"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Test/lint conventions (respect Task 1 updates)"}
+{"file": "docs/statusline/api-reference.md", "reason": "Existing public API doc to align after consolidation"}
+{"file": "docs/statusline/getting-started.md", "reason": "Setup guide; update if entry path changes"}

@@ -81,3 +81,6 @@ plugins/tools/task/scripts/__init__.py
 
 # 覆盖率报告
 coverage.json
+
+# Graphify 输出
+graphify-out/
