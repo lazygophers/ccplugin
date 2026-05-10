@@ -16,3 +16,21 @@ hot cache: {{HOT_CACHE_PREVIEW}}
 5. **Stop hook 自动归档** — 会话结束时若产生非平凡技术发现, 自动写入 `wiki/log/YYYY-MM/`。
 
 不写: 通用编程常识、当前已有上下文、简单 CRUD。
+
+## Skills 设计原则
+
+cortex 全部能力以 **6 个 skill** 暴露, **0 个 command** (与本仓库 `plugins/tools/task/` 全 skill 模式对齐, 决策见 `.trellis/tasks/05-10-obsidian-kb-plugin/research/05-skills-vs-commands.md` §6.3 建议 B)。
+
+| skill | 触发方式 |
+|-------|----------|
+| `cortex-install` | 自动 (description Triggers on) |
+| `cortex-search` | 自动 |
+| `cortex-save` | 自动 + Stop / SubagentStop hook |
+| `cortex-ingest` | 自动 |
+| `cortex-doctor` | **显式** (`disable-model-invocation: true`) — 需用户主动说 "诊断 cortex" |
+| `cortex-new` | **显式** (`disable-model-invocation: true`) — 创建文件有副作用, 防误触发 |
+
+约束:
+- 所有 SKILL.md 的 `allowed-tools` 用**空格**分隔 (skill 语法; command 用逗号, 但本插件无 command)
+- skill description 长度 ≤ 1024 字符, 6 个合计 ≤ 1500 字符 (description 池软上限 1536)
+- 命名: skill 目录名 == frontmatter `name` 字段, 防漂移

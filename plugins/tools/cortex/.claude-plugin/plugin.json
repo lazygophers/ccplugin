@@ -22,7 +22,6 @@
     "auto-archive",
     "session-recap"
   ],
-  "commands": "./commands/",
   "skills": "./skills/",
   "agents": [],
   "hooks": {
@@ -46,6 +45,30 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
             "async": true,
             "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
+            "async": true,
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post_compact.sh",
+            "async": true,
+            "timeout": 3000
           }
         ]
       }

@@ -89,21 +89,14 @@ plugins/tools/cortex/
 │   ├── stop.sh                    # 调度 save skill 落档
 │   └── _lib/
 │       └── resolve_vault.sh       # 共享: env → config → auto-detect 三段
-├── commands/
-│   ├── cortex-install.md              # /cortex:install [lyt|zettel|para|blank]
-│   ├── cortex-new.md                  # /cortex:new <type> <title>
-│   ├── cortex-lint.md                 # /cortex:lint [--fix] [--scope=…]
-│   ├── cortex-refactor.md             # /cortex:refactor (rename/merge/split/fold)
-│   ├── cortex-cron.md                 # /cortex:cron install|status|run <job>
-│   ├── cortex-search.md               # /cortex:search <query>
-│   ├── cortex-save.md                 # /cortex:save (手动落档当前 session)
-│   └── cortex-doctor.md               # /cortex:doctor (诊断 vault + MCP + CLI)
+# 全部能力下沉至 skills/, 无 commands/ 目录 (见 research/05-skills-vs-commands.md §6.3 建议 B)
 ├── skills/
-│   ├── cortex-setup/SKILL.md          # vault 创建 / 路径解析 / preset 写入
+│   ├── cortex-install/SKILL.md        # vault 创建 / 路径解析 / preset 写入 (原 cortex-setup, 已重命名)
 │   ├── cortex-save/SKILL.md           # session → wiki/log + entity 抽取
-│   ├── cortex-query/SKILL.md          # 搜索 + 综合 + 必要时回写
+│   ├── cortex-search/SKILL.md         # 搜索 + 综合 + 必要时回写 (原 cortex-query, 已重命名)
 │   ├── cortex-ingest/SKILL.md         # 单源/批量摄取 (file/url/dir)
-│   └── cortex-lint/SKILL.md           # 健康检查 + 修复
+│   ├── cortex-doctor/SKILL.md         # 13 项体检 (disable-model-invocation: true)
+│   └── cortex-new/SKILL.md            # 按模板新建笔记 (disable-model-invocation: true)
 ├── agents/
 │   └── cortex-curator.md              # (可选) 主动维护型 agent,用于 /cortex:refactor
 ├── templates/

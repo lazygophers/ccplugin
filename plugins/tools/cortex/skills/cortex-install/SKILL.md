@@ -1,10 +1,10 @@
 ---
-name: cortex-setup
-description: 初始化或升级 Obsidian vault 至 cortex 标准布局 — 写共享根 (_meta / _templates / index.md / hot.md / log/ / folds/) + 选定 preset (lyt/zettel/para/blank) 的业务目录与种子文件。Triggers on "set up cortex", "init vault", "/cortex:install", "create knowledge base in obsidian", "scaffold vault", "重建知识库目录", "初始化 obsidian vault".
+name: cortex-install
+description: 初始化或升级 Obsidian vault 至 cortex 标准布局 — 写共享根与所选 preset (lyt/zettel/para/blank) 业务目录, 不覆盖。Triggers on "init vault", "install cortex", "安装 cortex", "初始化 obsidian vault".
 allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content
 ---
 
-# cortex-setup
+# cortex-install
 
 把一个 (新或既有) Obsidian vault 升级到 cortex 标准布局。
 
