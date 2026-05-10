@@ -32,19 +32,5 @@
     "./skills/spring/SKILL.md",
     "./skills/performance/SKILL.md"
   ],
-  "lspServers": "./.lsp.json",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=java uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 300
-          }
-        ]
-      }
-    ]
-  }
+  "lspServers": "./.lsp.json"
 }
