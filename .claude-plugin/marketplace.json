@@ -767,6 +767,62 @@
         "verification",
         "multi-agent"
       ]
+    },
+    {
+      "name": "memory",
+      "source": "./plugins/memory",
+      "description": "智能记忆插件 - 提供 URI 寻址的记忆存储、自动 Hooks 集成和跨会话持久化",
+      "version": "0.0.193",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/memory",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/memory",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "memory",
+        "persistence",
+        "session",
+        "hooks"
+      ]
+    },
+    {
+      "name": "plugin-template",
+      "source": "./plugins/template",
+      "description": "插件开发模板 - 快速创建新插件的基础结构",
+      "version": "0.0.193",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/template",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/template",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "template",
+        "boilerplate",
+        "scaffold"
+      ]
+    },
+    {
+      "name": "office-pdf",
+      "source": "./plugins/office/pdf",
+      "description": "PDF 文件读取和内容提取插件。基于 MCP 协议提供 PDF 操作工具",
+      "version": "0.0.193",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/pdf",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/office/pdf",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "pdf",
+        "document",
+        "reader",
+        "text-extraction"
+      ]
     }
   ]
 }

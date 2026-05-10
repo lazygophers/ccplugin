@@ -73,11 +73,6 @@ class RichLoggerManager:
 		# 创建控制台输出器（默认关闭）
 		self.console_console: Optional[Console] = Console(force_terminal=True, width=99999)
 		self.debug_enabled = False
-
-	def close(self):
-		if hasattr(self, '_log_file_handle') and self._log_file_handle:
-			self._log_file_handle.close()
-			self._log_file_handle = None
 		self.console_output_enabled = False  # 控制台输出总开关
 		self._last_hour = self._get_current_hour()
 
@@ -86,6 +81,11 @@ class RichLoggerManager:
 
 		# 初始化时创建软连接
 		self._update_symlink()
+
+	def close(self):
+		if hasattr(self, '_log_file_handle') and self._log_file_handle:
+			self._log_file_handle.close()
+			self._log_file_handle = None
 
 	def _resolve_log_dir(self) -> str:
 		"""

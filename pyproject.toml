@@ -39,6 +39,4 @@ include = ["scripts*"]
 exclude = ["plugins*", "lib*"]
 
 [tool.uv.sources.lib]
-git = "https://github.com/lazygophers/ccplugin"
-subdirectory = "lib"
-rev = "master"
+path = "./lib"
