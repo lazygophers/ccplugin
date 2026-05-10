@@ -1,9 +1,9 @@
 {
-  "id": "convert-update-marketplace-command-to-event-driven-non-blocking",
-  "name": "convert-update-marketplace-command-to-event-driven-non-blocking",
-  "title": "Convert update_marketplace command to event-driven non-blocking",
+  "id": "serena-mcp",
+  "name": "serena-mcp",
+  "title": "移除 Serena MCP 及相关引用",
   "description": "",
-  "status": "in_progress",
+  "status": "planning",
   "dev_type": null,
   "scope": null,
   "package": null,

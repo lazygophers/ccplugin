@@ -147,6 +147,16 @@ impl MarketplaceService {
                     (None, None, None)
                 };
 
+                let update_command = if installed {
+                    Some(format!(
+                        "claude plugin update -s {} {}@ccplugin-market",
+                        installed_scope.as_deref().unwrap_or("user"),
+                        p.name
+                    ))
+                } else {
+                    None
+                };
+
                 PluginInfo {
                     name: p.name,
                     version: p.version,
@@ -163,15 +173,7 @@ impl MarketplaceService {
                     installed_scope,
                     installed_path,
                     marketplace: "ccplugin-market".to_string(),
-                    update_command: if installed {
-                        Some(format!(
-                            "claude plugin update -s {} {}@ccplugin-market",
-                            installed_scope.as_deref().unwrap_or("user"),
-                            p.name
-                        ))
-                    } else {
-                        None
-                    },
+                    update_command,
                 }
             })
             .collect::<Vec<_>>();
@@ -367,6 +369,17 @@ impl MarketplaceService {
                             (None, None, None)
                         };
 
+                        let update_command = if installed {
+                            Some(format!(
+                                "claude plugin update -s {} {}@{}",
+                                installed_scope.as_deref().unwrap_or("user"),
+                                name,
+                                marketplace_name
+                            ))
+                        } else {
+                            None
+                        };
+
                         plugins.push(PluginInfo {
                             name,
                             version,
@@ -383,16 +396,7 @@ impl MarketplaceService {
                             installed_scope,
                             installed_path,
                             marketplace: marketplace_name.to_string(),
-                            update_command: if installed {
-                                Some(format!(
-                                    "claude plugin update -s {} {}@{}",
-                                    installed_scope.as_deref().unwrap_or("user"),
-                                    name,
-                                    marketplace_name
-                                ))
-                            } else {
-                                None
-                            },
+                            update_command,
                         });
                     }
                 }

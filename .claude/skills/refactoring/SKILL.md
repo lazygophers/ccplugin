@@ -57,7 +57,7 @@ skills:
 
 **步骤**：
 1. **依赖关系分析**：
-   - 使用 `serena:find_referencing_symbols` 查找所有引用
+   - 使用 `gitnexus_find_references 或 lspFindReferences` 查找所有引用
    - 识别直接依赖和间接依赖
    - 绘制依赖关系图
 

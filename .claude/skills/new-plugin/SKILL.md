@@ -43,7 +43,7 @@ skills:
    - 阅读现有代码（Read）
    - 阅读现有文档（Read）
    - 搜索最佳实践（WebSearch或deep-research）
-   - 分析常用方案（serena:search_for_pattern）
+   - 分析常用方案（Grep、codebase-memory）
 
 3. 确保需求足够详细和明确：
    - What：要实现什么功能？
@@ -343,7 +343,7 @@ plugin-name/
 - **Plan Mode**：EnterPlanMode / ExitPlanMode
 - **User Interaction**：AskUserQuestion
 - **Agents**：Agents(plugin-dev-advisor)、Agents(code-reviewer)
-- **Code Search**：serena:search_for_pattern
+- **Code Search**：Grep、codebase-memory
 - **Web Search**：WebSearch、deep-research
 
 ---

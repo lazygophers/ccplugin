@@ -51,10 +51,6 @@ plugins/**/__pycache__/
 # Claude 工作目录
 .claude/scripts/.ruff_cache/
 
-# Serena 工具运行时数据
-.serena/
-!.serena/.gitignore
-!.serena/project.yml
 
 # Desktop 构建产物
 desktop/node_modules/

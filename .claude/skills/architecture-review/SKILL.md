@@ -64,7 +64,7 @@ skills:
    - 模块间通信方式（直接调用、事件、消息队列）
 
 3. **依赖关系分析**：
-   - 使用 `serena:find_referencing_symbols` 分析依赖
+   - 使用 `gitnexus_find_references 或 lspFindReferences` 分析依赖
    - 识别循环依赖
    - 评估依赖方向（高层依赖低层，符合依赖倒置原则）
 

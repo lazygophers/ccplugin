@@ -31,7 +31,6 @@ import {
 	updatePlugin,
 	uninstallPlugin,
 	updateMarketplace,
-	listenToPluginEvents,
 } from "@/services/tauri-commands";
 import type { PluginInfo } from "@/types";
 import {
@@ -82,13 +81,13 @@ export default function Marketplaces() {
 		"user" | "project" | "local"
 	>("user");
 
-	// 市场更新状态
-	const [updatingMarketplace, setUpdatingMarketplace] = useState<
-		string | null
-	>(null);
+	// 市场更新状态：跟踪所有正在更新的市场（支持并行更新多个）
+	const [updatingMarketplaces, setUpdatingMarketplaces] = useState<
+		Set<string>
+	>(new Set());
 
-	// 全局刷新状态
-	const [refreshing, setRefreshing] = useState(false);
+	// 全局刷新状态：当 updatingMarketplaces 非空时为 true
+	const refreshing = updatingMarketplaces.size > 0;
 
 	const loadPlugins = useCallback(async () => {
 		try {
@@ -119,31 +118,61 @@ export default function Marketplaces() {
 		loadPlugins();
 	}, []); // 空依赖：只在组件挂载时执行一次
 
-	// 监听 Marketplace 更新事件
+	// 监听 Marketplace 更新事件（事件驱动；不依赖 invoke 返回值）
 	useEffect(() => {
 		let unlisten: (() => void) | null = null;
+		let cancelled = false;
 
 		const setupListener = async () => {
-			unlisten = await listenToPluginEvents((event) => {
-				// 处理 Marketplace 更新完成事件
-				if (event.event_type === "marketplace-update-completed") {
-					setRefreshing(false);
-					setUpdatingMarketplace(null);
-					// 重新加载数据
-					loadMarketplaces();
-					loadPlugins();
-				}
-				// 处理 Marketplace 更新失败事件
-				if (event.event_type === "marketplace-update-failed") {
-					setRefreshing(false);
-					setUpdatingMarketplace(null);
+			const fn = await MarketplacesService.onUpdateEvent((event) => {
+				const name = event.plugin_name;
+				switch (event.event_type) {
+					case "marketplace-update-started":
+						setUpdatingMarketplaces((prev) => {
+							const next = new Set(prev);
+							next.add(name);
+							return next;
+						});
+						break;
+					case "marketplace-update-completed":
+						setUpdatingMarketplaces((prev) => {
+							const next = new Set(prev);
+							next.delete(name);
+							return next;
+						});
+						// 完成时重新加载数据
+						loadMarketplaces();
+						loadPlugins();
+						break;
+					case "marketplace-update-failed": {
+						setUpdatingMarketplaces((prev) => {
+							const next = new Set(prev);
+							next.delete(name);
+							return next;
+						});
+						const errMsg =
+							(event.data as { error?: string })?.error ??
+							"未知错误";
+						console.error(
+							`Marketplace ${name} 更新失败: ${errMsg}`,
+						);
+						break;
+					}
+					default:
+						break;
 				}
 			});
+			if (cancelled) {
+				fn();
+			} else {
+				unlisten = fn;
+			}
 		};
 
 		setupListener();
 
 		return () => {
+			cancelled = true;
 			unlisten?.();
 		};
 	}, [loadMarketplaces, loadPlugins]);
@@ -261,38 +290,45 @@ export default function Marketplaces() {
 		);
 	}, []);
 
-	const handleUpdateMarketplace = useCallback(
-		async (marketName: string) => {
-			setUpdatingMarketplace(marketName);
-			try {
-				const result = await MarketplacesService.update(marketName);
-				alert(`市场 "${marketName}" 更新成功！\n\n${result}`);
-				// 重新加载数据
-				await loadMarketplaces();
-				await loadPlugins();
-			} catch (e) {
-				console.error("Update marketplace failed:", e);
-				alert(
-					`更新市场失败: ${e instanceof Error ? e.message : String(e)}`,
-				);
-			} finally {
-				setUpdatingMarketplace(null);
-			}
-		},
-		[loadMarketplaces, loadPlugins],
-	);
+	const handleUpdateMarketplace = useCallback((marketName: string) => {
+		// 事件驱动：触发后立即返回；状态由 useEffect 中的事件监听器管理。
+		// 乐观地标记为更新中，监听器收到 started/completed/failed 时同步状态。
+		setUpdatingMarketplaces((prev) => {
+			const next = new Set(prev);
+			next.add(marketName);
+			return next;
+		});
+		MarketplacesService.update(marketName).catch((e) => {
+			console.error("Update marketplace failed:", e);
+			setUpdatingMarketplaces((prev) => {
+				const next = new Set(prev);
+				next.delete(marketName);
+				return next;
+			});
+		});
+	}, []);
 
-	// 刷新所有市场
-	const handleRefreshAll = useCallback(async () => {
-		setRefreshing(true);
-		try {
-			// 并行更新所有市场
-			await Promise.all(
-				marketplaces.map((m) => updateMarketplace(m.name))
-			);
-		} catch (e) {
-			console.error("Refresh marketplaces failed:", e);
-		}
+	// 刷新所有市场（并行触发，不阻塞 UI）
+	const handleRefreshAll = useCallback(() => {
+		// 同步触发所有 invoke，无 await：fire-and-forget
+		marketplaces.forEach((m) => {
+			setUpdatingMarketplaces((prev) => {
+				const next = new Set(prev);
+				next.add(m.name);
+				return next;
+			});
+			updateMarketplace(m.name).catch((e) => {
+				console.error(
+					`Refresh marketplace "${m.name}" failed:`,
+					e,
+				);
+				setUpdatingMarketplaces((prev) => {
+					const next = new Set(prev);
+					next.delete(m.name);
+					return next;
+				});
+			});
+		});
 	}, [marketplaces]);
 
 	return (
@@ -426,13 +462,13 @@ export default function Marketplaces() {
 																			e.stopPropagation();
 																			handleUpdateMarketplace(m.name);
 																		}}
-																		disabled={updatingMarketplace === m.name}
+																		disabled={updatingMarketplaces.has(m.name)}
 																			title={m.update_command || undefined}
 																	>
 																		<RefreshCw
-																			className={`w-4 h-4 mr-2 ${updatingMarketplace === m.name ? "animate-spin" : ""}`}
+																			className={`w-4 h-4 mr-2 ${updatingMarketplaces.has(m.name) ? "animate-spin" : ""}`}
 																		/>
-																		{updatingMarketplace === m.name ? "更新中..." : "更新市场"}
+																		{updatingMarketplaces.has(m.name) ? "更新中..." : "更新市场"}
 																	</DropdownMenuItem>
 																	<DropdownMenuSeparator />
 																	<DropdownMenuItem
@@ -441,7 +477,7 @@ export default function Marketplaces() {
 																			handleRemoveMarketplace(m.name);
 																		}}
 																		className="text-destructive focus:text-destructive"
-																		disabled={updatingMarketplace === m.name}
+																		disabled={updatingMarketplaces.has(m.name)}
 																	>
 																		<Trash2 className="w-4 h-4 mr-2" />
 																		删除市场

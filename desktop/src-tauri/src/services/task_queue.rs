@@ -20,9 +20,10 @@ pub enum TaskStatus {
 /// 任务类型
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
 pub enum TaskType {
-    Install,   // 安装插件
-    Update,    // 更新插件
-    Uninstall, // 卸载插件
+    Install,           // 安装插件
+    Update,            // 更新插件
+    Uninstall,         // 卸载插件
+    MarketplaceUpdate, // 更新 marketplace
 }
 
 /// 任务信息
@@ -87,6 +88,7 @@ impl TaskType {
             TaskType::Install => "install",
             TaskType::Update => "update",
             TaskType::Uninstall => "uninstall",
+            TaskType::MarketplaceUpdate => "marketplace-update",
         }
     }
 }
@@ -111,8 +113,17 @@ impl TaskQueue {
     }
 
     /// 添加任务到队列
+    ///
+    /// 去重：如果已有相同 id（task_type + name）的任务在 pending 或 running 中，跳过添加
     pub fn add_task(&self, task: Task) -> Result<(), String> {
         let mut queue = self.queue.lock().map_err(|e| e.to_string())?;
+        let running = self.running.lock().map_err(|e| e.to_string())?;
+
+        if queue.iter().any(|t| t.id == task.id) || running.iter().any(|t| t.id == task.id) {
+            // 已有相同任务在执行或排队，跳过
+            return Ok(());
+        }
+
         queue.push_back(task);
         Ok(())
     }
@@ -216,6 +227,7 @@ impl TaskQueue {
                 TaskType::Install => PluginEventType::PluginInstallStarted,
                 TaskType::Update => PluginEventType::PluginUpdateStarted,
                 TaskType::Uninstall => PluginEventType::PluginUninstallStarted,
+                TaskType::MarketplaceUpdate => PluginEventType::MarketplaceUpdateStarted,
             };
 
             emit_plugin_event(
@@ -311,6 +323,41 @@ impl TaskQueue {
                         )
                         .await
                 }
+                TaskType::MarketplaceUpdate => {
+                    // 在阻塞线程上执行子进程，避免阻塞 async runtime
+                    let name = task.plugin_name.clone();
+                    let app_handle_progress = app_handle.clone();
+                    let progress_name = task.plugin_name.clone();
+
+                    // 进度事件（启动后立即发送一次，表示正在执行）
+                    emit_plugin_event(
+                        &app_handle_progress,
+                        PluginEventType::MarketplaceUpdateProgress,
+                        &progress_name,
+                        serde_json::json!({
+                            "progress": 50,
+                            "message": "正在更新市场..."
+                        }),
+                    );
+
+                    let exec_result = tauri::async_runtime::spawn_blocking(move || {
+                        let mut cmd = std::process::Command::new("claude");
+                        cmd.args(["plugin", "marketplace", "update", &name]);
+                        crate::utils::apply_proxy_to_command(&mut cmd);
+                        cmd.output()
+                    })
+                    .await;
+
+                    match exec_result {
+                        Ok(Ok(output)) => Ok(crate::models::CommandResult {
+                            success: output.status.success(),
+                            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+                        }),
+                        Ok(Err(e)) => Err(format!("Failed to execute command: {}", e)),
+                        Err(e) => Err(format!("Task join error: {}", e)),
+                    }
+                }
             };
 
             // 处理结果
@@ -326,6 +373,9 @@ impl TaskQueue {
                             TaskType::Install => PluginEventType::PluginInstallCompleted,
                             TaskType::Update => PluginEventType::PluginUpdateCompleted,
                             TaskType::Uninstall => PluginEventType::PluginUninstallCompleted,
+                            TaskType::MarketplaceUpdate => {
+                                PluginEventType::MarketplaceUpdateCompleted
+                            }
                         };
 
                         emit_plugin_event(
@@ -354,6 +404,9 @@ impl TaskQueue {
                             TaskType::Install => PluginEventType::PluginInstallFailed,
                             TaskType::Update => PluginEventType::PluginUpdateFailed,
                             TaskType::Uninstall => PluginEventType::PluginUninstallFailed,
+                            TaskType::MarketplaceUpdate => {
+                                PluginEventType::MarketplaceUpdateFailed
+                            }
                         };
 
                         emit_plugin_event(
@@ -381,6 +434,7 @@ impl TaskQueue {
                         TaskType::Install => PluginEventType::PluginInstallFailed,
                         TaskType::Update => PluginEventType::PluginUpdateFailed,
                         TaskType::Uninstall => PluginEventType::PluginUninstallFailed,
+                        TaskType::MarketplaceUpdate => PluginEventType::MarketplaceUpdateFailed,
                     };
 
                     emit_plugin_event(
@@ -431,19 +485,15 @@ impl TaskQueue {
         task_type: TaskType,
         success: bool,
     ) {
+        let action = match task_type {
+            TaskType::Install => "安装",
+            TaskType::Update => "更新",
+            TaskType::Uninstall => "卸载",
+            TaskType::MarketplaceUpdate => "市场更新",
+        };
         let (title, body) = if success {
-            let action = match task_type {
-                TaskType::Install => "安装",
-                TaskType::Update => "更新",
-                TaskType::Uninstall => "卸载",
-            };
             (format!("{}成功", action), format!("{} 已成功{}", plugin_name, action))
         } else {
-            let action = match task_type {
-                TaskType::Install => "安装",
-                TaskType::Update => "更新",
-                TaskType::Uninstall => "卸载",
-            };
             (format!("{}失败", action), format!("{} {}失败，请查看详情", plugin_name, action))
         };
 

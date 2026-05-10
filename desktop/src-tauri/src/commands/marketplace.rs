@@ -1,8 +1,6 @@
-use crate::events::{emit_plugin_event, PluginEventType};
+use crate::services::task_queue::{Task, TaskType};
 use crate::services::{MarketplaceService, PluginInfo};
-use crate::utils;
 use serde::{Deserialize, Serialize};
-use std::process::Command;
 use tauri::AppHandle;
 
 #[tauri::command]
@@ -136,57 +134,26 @@ pub fn get_marketplaces() -> Result<Vec<MarketplaceInfo>, String> {
     Ok(result)
 }
 
+/// 更新指定 marketplace
+///
+/// 立即返回任务 id；实际执行通过 task_queue 在后台完成，
+/// 进度/完成/失败状态通过 `marketplace-update-*` 事件通知前端。
 #[tauri::command]
-pub async fn update_marketplace(
+pub fn update_marketplace(
     marketplace_name: String,
-    app_handle: AppHandle,
+    _app_handle: AppHandle,
 ) -> Result<String, String> {
-    // 发送开始事件
-    emit_plugin_event(
-        &app_handle,
-        PluginEventType::MarketplaceUpdateStarted,
-        &marketplace_name,
-        serde_json::json!({}),
+    let task_queue = crate::services::task_queue()
+        .ok_or_else(|| "任务队列未初始化".to_string())?;
+
+    let task = Task::new(
+        TaskType::MarketplaceUpdate,
+        marketplace_name,
+        None,
+        None,
     );
+    let task_id = task.id.clone();
 
-    let mut cmd = Command::new("claude");
-    cmd.args(["plugin", "marketplace", "update", &marketplace_name]);
-
-    // 应用代理配置
-    utils::apply_proxy_to_command(&mut cmd);
-
-    let output = cmd
-        .output()
-        .map_err(|e| {
-            // 发送失败事件
-            emit_plugin_event(
-                &app_handle,
-                PluginEventType::MarketplaceUpdateFailed,
-                &marketplace_name,
-                serde_json::json!({ "error": e.to_string() }),
-            );
-            format!("Failed to execute command: {}", e)
-        })?;
-
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-        // 发送完成事件
-        emit_plugin_event(
-            &app_handle,
-            PluginEventType::MarketplaceUpdateCompleted,
-            &marketplace_name,
-            serde_json::json!({ "stdout": stdout }),
-        );
-        Ok(stdout.trim().to_string())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-        // 发送失败事件
-        emit_plugin_event(
-            &app_handle,
-            PluginEventType::MarketplaceUpdateFailed,
-            &marketplace_name,
-            serde_json::json!({ "error": stderr }),
-        );
-        Err(stderr.trim().to_string())
-    }
+    task_queue.add_task(task)?;
+    Ok(task_id)
 }
