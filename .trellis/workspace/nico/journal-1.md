@@ -652,3 +652,36 @@ vault 是 git repo 时 Stop hook 可选 auto-commit/push, 严格 opt-in. git_syn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 20: cortex deep_search MCP tool + 4 类 deep refactor 子命令
+
+**Date**: 2026-05-12
+**Task**: cortex deep_search MCP tool + 4 类 deep refactor 子命令
+**Branch**: `master`
+
+### Summary
+
+新增 cortex_deep_search MCP tool 3 模式 (iterative+收敛剪枝/subgraph+hop 衰减/hybrid+BM25 重排), SC 不可达自动降级 degraded=true. refactor 5 子命令 restructure/dedupe/extract/inline/graph_rebalance, 纯 stdlib (TF cosine + BM25 内联 ~15 行), dry-run 默认 + backup 先于 apply + path traversal 双防. 3 agent (researcher/archivist/linker) + 2 skill 注入 deep_search. 18 新 pytest 全绿, 204 既有不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4328ccd5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
