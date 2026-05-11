@@ -101,6 +101,24 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 2. ...
 ```
 
+## Deep Mode
+
+触发条件: 用户输入含 "深度搜索" / "--deep" / `depth=deep` / 复杂多轮研究场景。
+
+```
+mcp__cortex__cortex_deep_search(query=<q>, mode=hybrid, iter_max=3, limit=15)
+```
+
+三种 mode:
+
+- `iterative` — 多轮 hit-reflect-rehit, 适合"逐步收敛复杂主题"
+- `subgraph` — backlink/forward 邻居展开, 适合"找与某概念图相邻的页"
+- `hybrid` (默认) — SC + rg + BM25 重排, 适合"一次性高质量综合检索"
+
+返回 JSON 含 `iterations`, `subgraph_expanded`, `degraded` (SC 不可达时 true)。
+
+回退: MCP 不可达时退回上面 L1-L5 流程。
+
 ## 错误处理
 
 - vault 不存在 → 提示用户跑 `/cortex:install` 或配 `OBSIDIAN_VAULT`

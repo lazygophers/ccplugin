@@ -31,6 +31,7 @@ model: sonnet
 
 1. 列 fleeting/ 与 log/ 内目标日龄文件
 2. 对每个候选: 读 frontmatter + 出/入链次数 + body 长度 → 算"价值分"
+   - 查重: `mcp__cortex__cortex_deep_search(query=<title + body[:100]>, mode=hybrid, limit=5)`; 若 hits 含同 stem 不同路径页 → remarks 列加注 "疑似重复 [[X]]"
 3. 分类:
    - 价值高 + 已被引用 → 提议迁 concepts/<slug>.md
    - 价值高 + URL 来源 → sources/
