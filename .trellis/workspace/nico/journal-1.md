@@ -421,3 +421,36 @@ cortex 插件 P0 安全硬化交付: 3 个 stdlib python 过滤器 module (secre
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: cortex P1 MCP python server (search + save)
+
+**Date**: 2026-05-11
+**Task**: cortex P1 MCP python server (search + save)
+**Branch**: `master`
+
+### Summary
+
+cortex MCP python server 骨架: stdio transport, pipx 分发, mcpServers.cortex 注册. 2 tool: search (hot→index→SC REST→rg 多级回退, 结构化 JSON) + save (kind enum 路径解析, frontmatter + block-id sha1[:8], P0 masking 复用经 importlib + CORTEX_PLUGIN_ROOT env). lib: sidecar .lock flock 5s timeout (Win noop+warn fallback). Path traversal 防御: _safe_segment + resolve().relative_to(vault) 双层. install.sh step_mcp_install: pipx 检测 + REINSTALL force. skill 加 §调用优先级 (P1), AGENT.md 加 §MCP 主路径. spec 落 mcp-server-contract.md (7 段 code-spec + lock pattern + cross-pipx-venv reuse). 24 新 pytest 全绿, 186 既有不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c221bd59` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
