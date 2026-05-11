@@ -520,3 +520,36 @@ vault 是 git repo 时 Stop hook 可选 auto-commit/push, 严格 opt-in. git_syn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: cortex P6 skill slim (-fold -cron, 15→13)
+
+**Date**: 2026-05-11
+**Task**: cortex P6 skill slim (-fold -cron, 15→13)
+**Branch**: `master`
+
+### Summary
+
+删 cortex-fold + cortex-cron 两 skill, 功能并入 cortex-historian (Fold 工作流) + cortex-install (周期任务询问, 7 处 AskUserQuestion 硬规则确认). plugin.json skills 长度 13, 描述池 628 字符 (远低于 1500 软上限). 192 python + 8 bash 全绿. backlog: docs/*.md 历史叙述待 P7 批量更新。kioku-inspired 优化 P0/P1/P4/P5/P6 5 task 链全部完成。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `18d7f963` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
