@@ -173,7 +173,15 @@ def cmd_init(args: argparse.Namespace) -> int:
             out[key] = val
 
     _atomic_write(_config_path(), out)
-    print(f"wrote {_config_path()}")
+    _use_color = sys.stderr.isatty() and not os.environ.get("NO_COLOR")
+    if _use_color:
+        print(
+            f"\033[36m[cortex_config]\033[0m \033[32m✓\033[0m wrote "
+            f"\033[1m{_config_path()}\033[0m",
+            file=sys.stderr,
+        )
+    else:
+        print(f"wrote {_config_path()}", file=sys.stderr)
     return 0
 
 

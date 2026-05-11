@@ -15,6 +15,13 @@
 
 set -euo pipefail
 
+if [[ -t 2 && -z "${NO_COLOR:-}" ]]; then
+  _C_RESET=$'\033[0m'; _C_BOLD=$'\033[1m'; _C_DIM=$'\033[2m'
+  _C_GREEN=$'\033[32m'; _C_CYAN=$'\033[36m'
+else
+  _C_RESET=""; _C_BOLD=""; _C_DIM=""; _C_GREEN=""; _C_CYAN=""
+fi
+
 print_help() {
   cat <<'EOF'
 install_wrappers.sh — generate ~/.cortex/scripts/*.sh wrappers
@@ -103,4 +110,6 @@ claude plugins marketplace update ccplugin-market \
 EOB
 )"
 
-echo "[install_wrappers.sh] wrote 7 wrappers to $TARGET_DIR" >&2
+printf '%s[install_wrappers.sh]%s %s✓%s wrote %s7 wrappers%s to %s%s%s\n' \
+  "$_C_CYAN" "$_C_RESET" "$_C_GREEN" "$_C_RESET" \
+  "$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$TARGET_DIR" "$_C_RESET" >&2

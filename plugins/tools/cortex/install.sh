@@ -56,7 +56,7 @@ USAGE:
 FLAGS:
   --vault <path>            vault 绝对路径 (非交互必填)
   --lang <code>             语言代码 (默认 zh-CN)
-  --settings <path>         claude settings 路径 (默认 ~/.claude/settings.glm-4.5-flash.json)
+  --settings <path>         claude settings 路径 (默认 ~/.claude/settings.json)
   --no-cron                 跳过 cron 安装步骤
   --non-interactive         不弹任何 prompt
   -h, --help                显示本帮助
@@ -227,9 +227,9 @@ fi
 prompt_value() {
   local label="$1" default="$2"
   local suffix=""
-  [[ -n "$default" ]] && suffix=" [$default]"
+  [[ -n "$default" ]] && suffix=" ${C_DIM}[${default}]${C_RESET}"
   local raw
-  read -r -u "$TTY_FD" -p "${label}${suffix}: " raw || raw=""
+  read -r -u "$TTY_FD" -p "$(_tag) ${C_BLUE}?${C_RESET} ${C_BOLD}${label}${C_RESET}${suffix}: " raw || raw=""
   raw="${raw## }"
   raw="${raw%% }"
   if [[ -z "$raw" && -n "$default" ]]; then
@@ -242,10 +242,10 @@ prompt_value() {
 prompt_yes_no() {
   local label="$1" default="$2"  # default = Y or n
   local suffix
-  if [[ "$default" == "Y" ]]; then suffix=" [Y/n]"; else suffix=" [y/N]"; fi
+  if [[ "$default" == "Y" ]]; then suffix=" ${C_DIM}[Y/n]${C_RESET}"; else suffix=" ${C_DIM}[y/N]${C_RESET}"; fi
   local raw
-  read -r -u "$TTY_FD" -p "${label}${suffix}: " raw || raw=""
-  raw="${raw,,}"
+  read -r -u "$TTY_FD" -p "$(_tag) ${C_BLUE}?${C_RESET} ${C_BOLD}${label}${C_RESET}${suffix}: " raw || raw=""
+  raw="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]')"
   if [[ -z "$raw" ]]; then
     [[ "$default" == "Y" ]] && return 0 || return 1
   fi
@@ -279,7 +279,7 @@ else
   default_lang="${LANG_CODE:-${CORTEX_LANG:-zh-CN}}"
   LANG_CODE="$(prompt_value "lang" "$default_lang")"
 
-  default_settings="${SETTINGS:-${CORTEX_SETTINGS:-$HOME/.claude/settings.glm-4.5-flash.json}}"
+  default_settings="${SETTINGS:-${CORTEX_SETTINGS:-$HOME/.claude/settings.json}}"
   SETTINGS="$(prompt_value "claude settings 路径" "$default_settings")"
   SETTINGS="${SETTINGS/#\~/$HOME}"
 fi
