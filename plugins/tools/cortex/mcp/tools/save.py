@@ -178,33 +178,65 @@ def _wikilink_for(path: Path, vault: Path) -> str:
     return f"[[{rel.as_posix()}]]"
 
 
-async def handle_save(args: dict) -> list[TextContent]:
-    args = args or {}
-    for key in ("kind", "title", "body"):
-        if not isinstance(args.get(key), str) or not args[key].strip():
+def _save_internal(
+    kind: str,
+    title: str,
+    body: str,
+    *,
+    tags: list[str] | None = None,
+    host: str | None = None,
+    org: str | None = None,
+    repo: str | None = None,
+    source_meta: dict | None = None,
+    extra_fm: dict | None = None,
+) -> dict:
+    """Shared write pipeline reused by handle_save and ingest tools.
+
+    Pipeline: masking -> path resolve -> block-id -> frontmatter -> locked write
+    -> patch hot/index. Returns dict with `path`, `block_ids`, `hits`.
+
+    `source_meta` and `extra_fm` are stitched into frontmatter (source/meta keys)
+    when provided.
+    """
+    for key, val in (("kind", kind), ("title", title), ("body", body)):
+        if not isinstance(val, str) or not val.strip():
             raise ValueError(f"cortex_save: '{key}' required (non-empty string)")
-    tags = args.get("tags") or []
-    if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+    tags = list(tags or [])
+    if not all(isinstance(t, str) for t in tags):
         raise ValueError("cortex_save: 'tags' must be list[str]")
 
     masking = _load_masking()
-    masked_body, mask_hits = masking.mask(args["body"])
+    masked_body, mask_hits = masking.mask(body)
 
     vault = resolve_vault()
     now = _dt.datetime.now()
+    args = {"kind": kind, "title": title}
+    if host is not None:
+        args["host"] = host
+    if org is not None:
+        args["org"] = org
+    if repo is not None:
+        args["repo"] = repo
     target = _resolve_path(vault, args, now)
     target.parent.mkdir(parents=True, exist_ok=True)
 
     body_with_ids, block_ids = add_block_ids(masked_body)
 
-    fm = {
-        "type": args["kind"],
-        "title": args["title"],
+    fm: dict[str, Any] = {
+        "type": kind,
+        "title": title,
         "created": now.strftime("%Y-%m-%dT%H:%M:%S"),
         "tags": list(tags),
         "aliases": [],
     }
-    content = fm_dump(fm, body_with_ids if body_with_ids.endswith("\n") else body_with_ids + "\n")
+    if source_meta:
+        fm["source"] = source_meta
+    if extra_fm:
+        for k, v in extra_fm.items():
+            fm[k] = v
+    content = fm_dump(
+        fm, body_with_ids if body_with_ids.endswith("\n") else body_with_ids + "\n"
+    )
 
     lock_path = str(target) + ".lock"
     with file_lock(lock_path, timeout=5.0):
@@ -214,9 +246,22 @@ async def handle_save(args: dict) -> list[TextContent]:
     _patch_hot(vault, wikilink)
     _patch_index(vault, wikilink)
 
-    result = {
+    return {
         "path": str(target),
         "block_ids": block_ids,
         "hits": len(mask_hits),
     }
+
+
+async def handle_save(args: dict) -> list[TextContent]:
+    args = args or {}
+    result = _save_internal(
+        kind=args.get("kind", ""),
+        title=args.get("title", ""),
+        body=args.get("body", ""),
+        tags=args.get("tags") or [],
+        host=args.get("host"),
+        org=args.get("org"),
+        repo=args.get("repo"),
+    )
     return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]

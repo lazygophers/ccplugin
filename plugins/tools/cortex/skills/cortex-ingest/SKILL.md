@@ -1,12 +1,20 @@
 ---
 name: cortex-ingest
 description: 外部源 (文件/URL/目录) 摄取进 vault — 抽实体, 套模板 (cli=manual), wikilink 回填; URL 走 defuddle。Triggers on "ingest", "摄取".
-allowed-tools: Bash Read Write Edit Glob WebFetch mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content mcp__obsidian__obsidian_simple_search
+allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url mcp__cortex__cortex_ingest_file mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content mcp__obsidian__obsidian_simple_search
 ---
 
 # cortex-ingest
 
 把外部内容 (本地文件 / 网页 / 目录批量) 转成结构化 wiki 页面写入 Obsidian vault。
+
+## 调用优先级 (P4)
+
+1. **MCP 主路径**: `mcp__cortex__cortex_ingest_url` (URL) / `mcp__cortex__cortex_ingest_file` (本地文件: pdf/epub/docx/md/txt)
+   - 内部自动串 P0 三过滤器 (url_security/html_sanitize/masking) + extractors + save
+   - 输入: `{url|path, kind, tags?, title?, host?, org?, repo?}`
+   - 失败抛 ValueError/RuntimeError, skill 不需手工调 P0 filter
+2. **fallback (MCP 未装)**: WebFetch + defuddle + 手工调 `hooks/_lib/url_security.py` → `html_sanitize.py` → `masking.py` (见下文 §流程 §1.5)
 
 ## 触发场景
 

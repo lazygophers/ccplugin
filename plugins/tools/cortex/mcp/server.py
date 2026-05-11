@@ -18,6 +18,8 @@ from mcp.server import Server  # noqa: E402
 from mcp.server.stdio import stdio_server  # noqa: E402
 from mcp.types import TextContent, Tool  # noqa: E402
 
+from tools.ingest_file import INGEST_FILE_TOOL, handle_ingest_file  # noqa: E402
+from tools.ingest_url import INGEST_URL_TOOL, handle_ingest_url  # noqa: E402
 from tools.save import SAVE_TOOL, handle_save  # noqa: E402
 from tools.search import SEARCH_TOOL, handle_search  # noqa: E402
 
@@ -26,7 +28,7 @@ app: Server = Server("cortex")
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
-    return [SEARCH_TOOL, SAVE_TOOL]
+    return [SEARCH_TOOL, SAVE_TOOL, INGEST_URL_TOOL, INGEST_FILE_TOOL]
 
 
 @app.call_tool()
@@ -35,6 +37,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return await handle_search(arguments)
     if name == SAVE_TOOL.name:
         return await handle_save(arguments)
+    if name == INGEST_URL_TOOL.name:
+        return await handle_ingest_url(arguments)
+    if name == INGEST_FILE_TOOL.name:
+        return await handle_ingest_file(arguments)
     raise ValueError(f"cortex-mcp: unknown tool {name!r}")
 
 

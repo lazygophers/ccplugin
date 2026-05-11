@@ -1,0 +1,75 @@
+%PDF-1.3
+%‚„œ”
+1 0 obj
+<<
+/Producer (pypdf)
+/Title (Cortex Sample)
+/Author (cortex\055tests)
+>>
+endobj
+2 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [ 4 0 R ]
+>>
+endobj
+3 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+4 0 obj
+<<
+/Type /Page
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+/MediaBox [ 0.0 0.0 612 792 ]
+/Parent 2 0 R
+/Contents 6 0 R
+>>
+endobj
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+6 0 obj
+<<
+/Length 450
+>>
+stream
+BT
+/F1 12 Tf
+1 0 0 1 72 750 Tm (Cortex Ingest Sample Document) Tj
+1 0 0 1 72 732 Tm () Tj
+1 0 0 1 72 714 Tm (This is a small test document used by cortex-mcp ingest tests. It mentions a fake AWS access key id like AKIAIOSFODNN7EXAMPLE to exercise the masking filter wired into the ingest pipeline.) Tj
+1 0 0 1 72 696 Tm () Tj
+1 0 0 1 72 678 Tm (Second paragraph. Knowledge base ingestion should preserve paragraph structure and basic metadata.) Tj
+ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000103 00000 n 
+0000000162 00000 n 
+0000000211 00000 n 
+0000000343 00000 n 
+0000000413 00000 n 
+trailer
+<<
+/Size 7
+/Root 3 0 R
+/Info 1 0 R
+>>
+startxref
+914
+%%EOF

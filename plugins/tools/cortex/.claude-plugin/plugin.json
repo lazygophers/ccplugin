@@ -26,6 +26,7 @@
     "./skills/cortex-doctor",
     "./skills/cortex-fold",
     "./skills/cortex-ingest",
+    "./skills/cortex-ingest-bulk",
     "./skills/cortex-install",
     "./skills/cortex-lint",
     "./skills/cortex-locale",
