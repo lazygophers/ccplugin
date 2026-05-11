@@ -22,13 +22,28 @@ allowed-tools: Bash Read Write Edit Glob
 2. **Linux** → systemd user timer (`~/.config/systemd/user/cortex-<job>.{service,timer}`) 或 crontab 行
 3. **CI 环境** (检测 `$CI` env) → 输出 GHA workflow yaml, 不自动写
 
+## 解析 PLUGIN_ROOT (marketplace 路径)
+
+cron daemon 不继承 shell 环境, 故 snippet 中 `PLUGIN_ROOT` 必须是**绝对路径字符串**, 而非 `${PLUGIN_ROOT}` 占位。`install_cron.sh` 按下列优先级解析:
+
+1. `--plugin-root <path>` 命令行覆盖
+2. `$CORTEX_INSTALL_PATH` 环境变量
+3. `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex` (主, 默认)
+4. `~/.config/claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex` (XDG 兜底)
+5. `$CLAUDE_PLUGIN_ROOT` (CC 主线注入)
+6. fallback: 脚本所在源码路径 + stderr 警告
+
+> 源码路径 (`/Users/foo/persons/.../plugins/tools/cortex`) 仅适合本地开发, cron 上下文不可达。优先用 marketplace 安装路径。
+
 ## 默认任务
 
-| Job | 时机 | 命令 |
+| Job | 时机 | 命令 (snippet 中已替换为绝对路径) |
 |-----|------|------|
-| `lint` | daily 01:00 | `${PLUGIN_ROOT}/scripts/cron/lint.sh` |
-| `fold` | weekly Sun 02:00 | `${PLUGIN_ROOT}/scripts/cron/fold.sh` |
-| `dashboard` | weekly Sun 02:30 | `${PLUGIN_ROOT}/scripts/cron/dashboard.sh` |
+| `lint` | daily 01:00 | `<PLUGIN_ROOT>/scripts/cron/lint.sh` |
+| `fold` | weekly Sun 02:00 | `<PLUGIN_ROOT>/scripts/cron/fold.sh` |
+| `dashboard` | weekly Sun 02:30 | `<PLUGIN_ROOT>/scripts/cron/dashboard.sh` |
+
+其中 `<PLUGIN_ROOT>` 通常为 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex`。
 
 每脚本走 `claude --bare --no-session-persistence --settings ~/.claude/settings.glm-4.5-flash.json -p "..."`, 见 research/01-claude-code-programmatic.md §E。
 
