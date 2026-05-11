@@ -292,6 +292,66 @@ Satisfies both `curl|bash` reuse semantics and explicit-flag override semantics 
 
 Reference impl: `plugins/tools/cortex/install.sh`.
 
+## Cross-Platform Shell Utilities
+
+### timeout fallback (macOS-safe)
+
+`timeout(1)` is GNU coreutils, **not present by default on macOS**. Bash scripts that need to bound a subprocess MUST use a three-tier fallback:
+
+```bash
+resolve_timeout_cmd() {
+  command -v gtimeout >/dev/null 2>&1 && { echo "gtimeout"; return 0; }
+  command -v timeout  >/dev/null 2>&1 && { echo "timeout";  return 0; }
+  command -v perl     >/dev/null 2>&1 && { echo "PERL_TIMEOUT"; return 0; }
+  return 1
+}
+
+perl_timeout() {  # perl_timeout SECS CMD [ARGS...]
+  local secs="$1"; shift
+  perl -e '
+    my $secs = shift @ARGV;
+    my $pid = fork(); die "fork: $!" unless defined $pid;
+    if ($pid == 0) { exec @ARGV; die "exec: $!"; }
+    eval {
+      local $SIG{ALRM} = sub { die "timeout\n"; };
+      alarm $secs;
+      waitpid($pid, 0); alarm 0;
+      exit($? >> 8);
+    };
+    if ($@ =~ /^timeout/) { kill 9, $pid; waitpid($pid, 0); exit 124; }
+    exit 1;
+  ' "$secs" "$@"
+}
+```
+
+Mandatory call-site form (distinguishes rc=124 timeout from other failures):
+
+```bash
+TO_CMD="$(resolve_timeout_cmd)" || { log_error "no timeout command (install gnu coreutils or perl)"; exit 4; }
+if [[ "$TO_CMD" == "PERL_TIMEOUT" ]]; then
+  if ! perl_timeout "$TIMEOUT" "${CMD[@]}" ...; then
+    rc=$?
+    [[ $rc -eq 124 ]] && { log_error "TIMEOUT"; exit 3; }
+    log_error "subprocess exited rc=$rc"; exit 1
+  fi
+else
+  "$TO_CMD" "$TIMEOUT" "${CMD[@]}" ...
+fi
+```
+
+Reference impl: `plugins/tools/cortex/scripts/cron/run.sh`.
+
+### Log timestamps
+
+All log timestamps MUST use `iso_now()` (`date -u +%Y-%m-%dT%H:%M:%SZ`) — NOT bare `$(date)`. Bare `$(date)` honors `LC_TIME` and produces locale-specific output (e.g. Chinese `2026年 5月11日`), which breaks grep/awk pipelines on multi-locale systems.
+
+```bash
+iso_now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+echo "[$(iso_now)] cortex-${JOB}: success" >> "$LOG_FILE"
+```
+
+File-path date components (e.g. `LOG_FILE="$LOG_DIR/${JOB}-$(date +%F).log"`) are exempt — those are deliberately local-day-bucketed.
+
 ---
 
 ## References

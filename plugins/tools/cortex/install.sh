@@ -2,7 +2,12 @@
 # cortex/install.sh — 一键安装入口
 #
 # 调度流程:
-#   1. 探测 marketplace 安装路径 (CORTEX_INSTALL_PATH > 脚本所在目录)
+#   1. 解析 install path:
+#        - CORTEX_INSTALL_PATH env → 用 env, 跳 bootstrap
+#        - --use-source flag       → 用脚本所在源码目录, 跳 bootstrap (开发场景)
+#        - 默认                    → 总跑 bootstrap_via_claude (marketplace + plugin update)
+#      ⚠ 破坏性变更: 之前默认是"脚本所在目录优先", 现在改为默认主动 update。
+#        开发场景需显式 --use-source 或 CORTEX_INSTALL_PATH=$(pwd) 才能跳过 bootstrap。
 #   2. 收集 vault / lang / settings (交互 prompt 或 flag)
 #   3. 写入 ~/.cortex/config.json (调 scripts/cortex_config.py init)
 #   4. 生成 ~/.cortex/scripts/*.sh 七件套 (调 scripts/install_wrappers.sh)
@@ -60,6 +65,8 @@ FLAGS:
   --no-cron                 跳过 cron 安装步骤
   --non-interactive         不弹任何 prompt
   --reinstall               跳过 prompt, 强制覆盖 config + wrappers
+  --use-source              用 install.sh 所在源码目录, 不主动 marketplace/plugin update
+                            (开发场景; 默认会走 bootstrap 拿最新)
   -h, --help                显示本帮助
 
 EXAMPLES:
@@ -75,6 +82,7 @@ SETTINGS=""
 NO_CRON=0
 INSTALL_CRON_OVERRIDE=""
 REINSTALL=0
+USE_SOURCE=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -87,6 +95,7 @@ while [[ $# -gt 0 ]]; do
     --no-cron) NO_CRON=1; shift ;;
     --non-interactive) NON_INTERACTIVE=1; shift ;;
     --reinstall) REINSTALL=1; shift ;;
+    --use-source) USE_SOURCE=1; shift ;;
     -h|--help) print_help; exit 0 ;;
     *) log_error "unknown arg: $1"; exit 2 ;;
   esac
@@ -180,19 +189,26 @@ bootstrap_via_claude() {
 }
 
 resolve_install_path() {
+  # 1. env 显式覆盖 → 跳 bootstrap (CI / 开发场景)
   if [[ -n "${CORTEX_INSTALL_PATH:-}" ]]; then
     printf '%s' "$CORTEX_INSTALL_PATH"
     return 0
   fi
-  local src="${BASH_SOURCE[0]:-}"
-  if [[ -n "$src" && -f "$src" ]]; then
-    local dir
-    dir="$(cd "$(dirname "$src")" 2>/dev/null && pwd || true)"
-    if [[ -n "$dir" && -f "$dir/scripts/cortex_config.py" ]]; then
-      printf '%s' "$dir"
-      return 0
+  # 2. --use-source flag → 用脚本所在源码目录, 跳 bootstrap (开发场景)
+  if [[ "${USE_SOURCE:-0}" == "1" ]]; then
+    local src="${BASH_SOURCE[0]:-}"
+    if [[ -n "$src" && -f "$src" ]]; then
+      local dir
+      dir="$(cd "$(dirname "$src")" 2>/dev/null && pwd || true)"
+      if [[ -n "$dir" && -f "$dir/scripts/cortex_config.py" ]]; then
+        printf '%s' "$dir"
+        return 0
+      fi
     fi
+    log_error "--use-source 指定但本地源不可用 (无 scripts/cortex_config.py)"
+    return 1
   fi
+  # 3. 默认: 总跑 bootstrap (marketplace add/update + plugin install/update)
   bootstrap_via_claude
 }
 
@@ -211,8 +227,6 @@ if [[ ! -f "$INSTALL_PATH/scripts/cortex_config.py" ]]; then
   log_error "在 $INSTALL_PATH 未找到 scripts/cortex_config.py"
   exit 2
 fi
-
-log_ok "cortex 安装路径: ${C_BOLD}${INSTALL_PATH}${C_RESET}"
 
 # 探测 tty: curl|bash 时 stdin 是脚本管道, prompt 必须从 /dev/tty 读
 # 注意: `exec 3</dev/tty 2>/dev/null` 会把当前 shell stderr 永久重定向到 /dev/null,

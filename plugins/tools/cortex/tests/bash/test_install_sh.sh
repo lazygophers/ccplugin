@@ -31,7 +31,7 @@ test_unknown_flag_exits_2() {
 
 test_non_interactive_missing_vault_exits_2() {
   local home; home=$(make_tmpdir); trap "rm -rf '$home'" RETURN
-  out=$(run_install "$home" --non-interactive --no-cron 2>&1) && rc=$? || rc=$?
+  out=$(run_install "$home" --non-interactive --use-source --no-cron 2>&1) && rc=$? || rc=$?
   assert_eq "2" "$rc"
   assert_contains "vault" "$out"
 }
@@ -44,6 +44,7 @@ test_non_interactive_full_run_writes_config_and_wrappers() {
 
   out=$(run_install "$home" \
     --non-interactive \
+    --use-source \
     --vault "$vault" \
     --lang en-US \
     --settings "$settings" \
@@ -78,8 +79,8 @@ test_idempotent_second_run_overwrites() {
   local vault1; vault1=$(make_tmpdir)
   local vault2; vault2=$(make_tmpdir)
 
-  run_install "$home" --non-interactive --vault "$vault1" --no-cron >/dev/null 2>&1
-  out=$(run_install "$home" --non-interactive --vault "$vault2" --no-cron 2>&1) && rc=$? || rc=$?
+  run_install "$home" --non-interactive --use-source --vault "$vault1" --no-cron >/dev/null 2>&1
+  out=$(run_install "$home" --non-interactive --use-source --vault "$vault2" --no-cron 2>&1) && rc=$? || rc=$?
 
   assert_eq "0" "$rc"
   assert_contains "\"vault\": \"$vault2\"" "$(cat "$home/.cortex/config.json")"
