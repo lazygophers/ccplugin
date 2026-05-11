@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
+- **Total Sessions**: 17
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~555 | Active |
+| `journal-1.md` | ~588 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-05-11 | install.sh 幂等性 (config 复用 + cron 去重/prune) | `d73750d1` | `master` |
 | 16 | 2026-05-11 | cortex P6 skill slim (-fold -cron, 15→13) | `18d7f963` | `master` |
 | 15 | 2026-05-11 | cortex P5 vault git auto-sync (opt-in) | `93d1dc96` | `master` |
 | 14 | 2026-05-11 | cortex P4 ingest pipeline (PDF/EPUB/DOCX + URL + bulk) | `7b089f45` | `master` |

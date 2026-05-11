@@ -553,3 +553,36 @@ vault 是 git repo 时 Stop hook 可选 auto-commit/push, 严格 opt-in. git_syn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: install.sh 幂等性 (config 复用 + cron 去重/prune)
+
+**Date**: 2026-05-11
+**Task**: install.sh 幂等性 (config 复用 + cron 去重/prune)
+**Branch**: `master`
+
+### Summary
+
+修 install.sh 2 个 UX bug: (1) 询问顺序反序, config 存在选 n 时 read_existing_config 复用字段不重问; (2) cron 已注册跳过装, crontab 失效 wrapper 行 prune. python3 经 env 传路径防注入, awk system 调 quoted 防注入, named wrapper allowlist 防误删用户 cron. spec 加 §Idempotent Install Pattern. 8 bash + 192 python 全绿不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d73750d1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
