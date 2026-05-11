@@ -355,3 +355,36 @@ PR1-6 shared config landed: Python+Bash loader, CLI, hooks/lint lang fallback, i
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: install.sh 已安装检测 + reinstall + doctor wrapper
+
+**Date**: 2026-05-11
+**Task**: install.sh 已安装检测 + reinstall + doctor wrapper
+**Branch**: `master`
+
+### Summary
+
+install.sh 新增已安装检测 + --reinstall 强制升级 + doctor wrapper 真调用 doctor 子命令。bash 3.2 兼容路径稳。后续准备 P0 安全硬化新 task。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `55cd396d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
