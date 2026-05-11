@@ -46,18 +46,12 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_v
    - 按 `seed_files[]` 把 `${CLAUDE_PLUGIN_ROOT}/presets/<preset>/<src>` 复制到 `<vault>/<dst>`
    - blank preset 的 directories/seed_files 均为空, 跳过即可
 5. **回报** — 列已创建/已存在的文件, 提示运行 `/cortex:doctor` 验证
-6. **周期任务询问** — 末尾打印交互菜单 (用户回答非 `none` 才走 cortex-cron):
+6. **周期任务询问** — 调 `AskUserQuestion` 工具询问 (合并 ≤4 questions 单次调用):
+   - Q1 (multiSelect): "勾选要注册的 cron job" — options: `daily 01:00 lint` / `weekly Sun 02:00 fold` / `weekly Sun 02:30 dashboard`
+   - Q2 (single): "注册平台" — options: `launchd` / `cron` / `gha` / `none`
 
-   ```
-   [6/6] 周期任务
-     daily   01:00 lint     [Y/n]
-     weekly  Sun 02:00 fold [Y/n]
-     weekly  Sun 02:30 dash [Y/n]
-   注册到? [launchd/cron/gha/none]
-   ```
-
-   - 回答 `none` → 跳过, 安装完成
-   - 回答 `launchd|cron|gha` → 把勾选项与平台传给 cortex-cron skill, 由后者 dry-run + 用户确认 + 写入
+   - Q2 = `none` → 跳过, 安装完成
+   - Q2 ∈ {launchd, cron, gha} → 把 Q1 勾选项与平台传给 cortex-cron skill, 由后者 dry-run + `AskUserQuestion` 确认 + 写入
 
 ## 写入策略
 
