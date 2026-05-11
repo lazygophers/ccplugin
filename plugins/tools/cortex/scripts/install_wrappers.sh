@@ -98,10 +98,20 @@ emit_exec dashboard.sh      "bash \"$INSTALL_PATH/scripts/cron/dashboard.sh\""
 emit_exec install_cron.sh   "bash \"$INSTALL_PATH/scripts/install_cron.sh\""
 emit_exec config.sh         "python3 \"$INSTALL_PATH/scripts/cortex_config.py\""
 
-# doctor: cortex-doctor lives as a SKILL today, no python entry point. Wrapper
-# guides the user to the slash command rather than failing silently.
-emit doctor.sh \
-  "echo 'cortex-doctor is a Claude Code skill. Run: claude /cortex-doctor' >&2"
+# doctor: cortex-doctor is a Claude Code skill. Slash commands don't work in
+# headless `-p` mode, so we inject SKILL.md via --append-system-prompt and pass
+# a plain task description. --bare skips hooks/plugins/MCP for a clean run.
+emit doctor.sh "$(cat <<EOB
+SKILL_PATH="$INSTALL_PATH/skills/cortex-doctor/SKILL.md"
+if [[ ! -f "\$SKILL_PATH" ]]; then
+  echo "cortex-doctor SKILL.md missing: \$SKILL_PATH" >&2
+  exit 1
+fi
+exec claude --bare -p \\
+  --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+  "运行 cortex 健康检查 (cortex-doctor skill), 报告 vault/config/links/dead-links 等问题, 输出可读结果" "\$@"
+EOB
+)"
 
 # update.sh: two commands cannot share a single `exec`, chain with `&&`.
 emit update.sh "$(cat <<'EOB'

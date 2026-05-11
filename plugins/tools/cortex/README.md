@@ -59,6 +59,12 @@ bash plugins/tools/cortex/install.sh
 bash ~/.cortex/scripts/update.sh
 ```
 
+重复执行 `install.sh`:
+
+- 默认: 远端态 (marketplace / plugin) 强制升级; 本地态 (`~/.cortex/config.json` 与 `~/.cortex/scripts/*.sh`) 已存在时交互询问是否覆盖 (默认 N, 保留)。
+- `--reinstall`: 跳过所有 prompt, 强制覆盖本地 config + 重生 wrappers (= 非交互默认行为, 一键重置)。
+- 非交互模式 (`--non-interactive` 或无 tty 的 `curl | bash`): 无 prompt, 默认全部覆盖。
+
 ## 配置
 
 vault 路径解析顺序:

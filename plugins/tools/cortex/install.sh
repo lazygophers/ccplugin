@@ -59,6 +59,7 @@ FLAGS:
   --settings <path>         claude settings 路径 (默认 ~/.claude/settings.json)
   --no-cron                 跳过 cron 安装步骤
   --non-interactive         不弹任何 prompt
+  --reinstall               跳过 prompt, 强制覆盖 config + wrappers
   -h, --help                显示本帮助
 
 EXAMPLES:
@@ -73,6 +74,7 @@ LANG_CODE=""
 SETTINGS=""
 NO_CRON=0
 INSTALL_CRON_OVERRIDE=""
+REINSTALL=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -84,6 +86,7 @@ while [[ $# -gt 0 ]]; do
     --settings=*) SETTINGS="${1#*=}"; shift ;;
     --no-cron) NO_CRON=1; shift ;;
     --non-interactive) NON_INTERACTIVE=1; shift ;;
+    --reinstall) REINSTALL=1; shift ;;
     -h|--help) print_help; exit 0 ;;
     *) log_error "unknown arg: $1"; exit 2 ;;
   esac
@@ -252,6 +255,35 @@ prompt_yes_no() {
   [[ "$raw" == "y" || "$raw" == "yes" ]] && return 0 || return 1
 }
 
+# ── 本地态探测 + 覆盖决策 ─────────────────────────────────────────
+# 远端态 (marketplace/plugin) 由 bootstrap_via_claude 强制升级;
+# 本地态 (config.json / scripts/*.sh) 分别检测, 默认保留, 可被 --reinstall / 非交互覆盖。
+CONFIG_EXISTS=0
+WRAPPERS_EXIST=0
+
+detect_local_state() {
+  [[ -f "$HOME/.cortex/config.json" ]] && CONFIG_EXISTS=1 || CONFIG_EXISTS=0
+  if [[ -d "$HOME/.cortex/scripts" ]] && compgen -G "$HOME/.cortex/scripts/*.sh" > /dev/null; then
+    WRAPPERS_EXIST=1
+  else
+    WRAPPERS_EXIST=0
+  fi
+}
+
+should_overwrite_config() {
+  [[ "$REINSTALL" == "1" ]] && return 0
+  [[ "$NON_INTERACTIVE" == "1" ]] && return 0
+  [[ "$CONFIG_EXISTS" == "0" ]] && return 0
+  prompt_yes_no "~/.cortex/config.json 已存在, 覆盖?" n
+}
+
+should_regen_wrappers() {
+  [[ "$REINSTALL" == "1" ]] && return 0
+  [[ "$NON_INTERACTIVE" == "1" ]] && return 0
+  [[ "$WRAPPERS_EXIST" == "0" ]] && return 0
+  prompt_yes_no "~/.cortex/scripts/*.sh 已存在, 重生?" n
+}
+
 # 收集字段
 if [[ "$NON_INTERACTIVE" == "1" ]]; then
   if [[ -z "$VAULT" ]]; then
@@ -288,17 +320,28 @@ fi
 VAULT="${VAULT/#\~/$HOME}"
 [[ -n "$SETTINGS" ]] && SETTINGS="${SETTINGS/#\~/$HOME}"
 
-# 调 cortex_config.py init 写 config
-init_args=(--non-interactive --install-path "$INSTALL_PATH" --vault "$VAULT")
-[[ -n "$LANG_CODE" ]] && init_args+=(--lang "$LANG_CODE")
-[[ -n "$SETTINGS" ]] && init_args+=(--settings "$SETTINGS")
+# 探测本地态 (config / wrappers 是否已存在), 后续按 flag/prompt 决定是否覆盖
+detect_local_state
 
-log_step "写入 ${C_BOLD}~/.cortex/config.json${C_RESET}"
-python3 "$INSTALL_PATH/scripts/cortex_config.py" init "${init_args[@]}"
+# 调 cortex_config.py init 写 config
+if should_overwrite_config; then
+  init_args=(--non-interactive --install-path "$INSTALL_PATH" --vault "$VAULT")
+  [[ -n "$LANG_CODE" ]] && init_args+=(--lang "$LANG_CODE")
+  [[ -n "$SETTINGS" ]] && init_args+=(--settings "$SETTINGS")
+
+  log_step "写入 ${C_BOLD}~/.cortex/config.json${C_RESET}"
+  python3 "$INSTALL_PATH/scripts/cortex_config.py" init "${init_args[@]}"
+else
+  log_info "skip config (~/.cortex/config.json 已存在, 保留; --reinstall 强制覆盖)"
+fi
 
 # 生成 wrapper
-log_step "生成 ${C_BOLD}~/.cortex/scripts/*.sh${C_RESET} wrapper"
-bash "$INSTALL_PATH/scripts/install_wrappers.sh" --install-path "$INSTALL_PATH"
+if should_regen_wrappers; then
+  log_step "生成 ${C_BOLD}~/.cortex/scripts/*.sh${C_RESET} wrapper"
+  bash "$INSTALL_PATH/scripts/install_wrappers.sh" --install-path "$INSTALL_PATH"
+else
+  log_info "skip wrappers (~/.cortex/scripts/*.sh 已存在, 保留; --reinstall 强制重生)"
+fi
 
 # 可选 cron 安装
 do_cron=0
