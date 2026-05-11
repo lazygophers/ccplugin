@@ -17,13 +17,21 @@
 
 ## 安装
 
-通过 claude code marketplace 安装 (marketplace clone 由 claude code 负责, install.sh 只跑后置配置):
+install.sh 负责完整生命周期: 自动 clone marketplace → 写 `~/.cortex/config.json` → 生成 wrapper → 可选 cron。
+
+通过 claude code marketplace (推荐):
 
 ```text
 /plugin install cortex
 ```
 ```bash
 bash ${CLAUDE_PLUGIN_ROOT}/install.sh
+```
+
+curl | bash 一键安装 (无 marketplace 时自动 clone 到 `~/.cortex/marketplace/`):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lazygophers/ccplugin/master/plugins/tools/cortex/install.sh | bash
 ```
 
 非交互式 (CI / 脚本):
@@ -40,7 +48,9 @@ bash plugins/tools/cortex/install.sh
 ```
 
 环境变量覆盖:
-- `CORTEX_INSTALL_PATH` — 直接指向已有 plugin 路径 (跳过自动探测)
+- `CORTEX_INSTALL_PATH` — 直接指向已有 plugin 路径 (跳过探测 + clone)
+- `CORTEX_REPO_URL` — bootstrap 时 clone 的仓库 (默认 `https://github.com/lazygophers/ccplugin`)
+- `CORTEX_CLONE_DIR` — bootstrap clone 目标目录 (默认 `~/.cortex/marketplace`)
 
 更新 (拉最新 marketplace + 重装 cortex):
 

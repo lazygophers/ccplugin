@@ -65,7 +65,34 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# 探测 marketplace 安装路径; install.sh 不自举 clone — marketplace 由 claude code `/plugin install cortex` 负责
+# 探测 plugin 树; curl|bash 远端运行时自动 clone marketplace 仓库
+CORTEX_REPO_URL="${CORTEX_REPO_URL:-https://github.com/lazygophers/ccplugin}"
+CORTEX_CLONE_DIR="${CORTEX_CLONE_DIR:-$HOME/.cortex/marketplace}"
+
+bootstrap_clone() {
+  command -v git >/dev/null 2>&1 || {
+    echo "[install.sh] 需要 git 来 clone marketplace, 未找到 git 命令" >&2
+    return 1
+  }
+  if [[ -d "$CORTEX_CLONE_DIR/.git" ]]; then
+    echo "[install.sh] 更新已有 marketplace: $CORTEX_CLONE_DIR" >&2
+    git -C "$CORTEX_CLONE_DIR" pull --ff-only >&2 || {
+      echo "[install.sh] git pull 失败, 继续用本地副本" >&2
+    }
+  else
+    echo "[install.sh] clone marketplace: $CORTEX_REPO_URL → $CORTEX_CLONE_DIR" >&2
+    mkdir -p "$(dirname "$CORTEX_CLONE_DIR")"
+    git clone --depth 1 "$CORTEX_REPO_URL" "$CORTEX_CLONE_DIR" >&2 || return 1
+  fi
+  local candidate="$CORTEX_CLONE_DIR/plugins/tools/cortex"
+  if [[ -f "$candidate/scripts/cortex_config.py" ]]; then
+    printf '%s' "$candidate"
+    return 0
+  fi
+  echo "[install.sh] clone 后仍未找到 $candidate/scripts/cortex_config.py" >&2
+  return 1
+}
+
 resolve_install_path() {
   if [[ -n "${CORTEX_INSTALL_PATH:-}" ]]; then
     printf '%s' "$CORTEX_INSTALL_PATH"
@@ -80,14 +107,13 @@ resolve_install_path() {
       return 0
     fi
   fi
-  return 1
+  bootstrap_clone
 }
 
 if ! INSTALL_PATH="$(resolve_install_path)"; then
-  echo "[install.sh] 未找到 plugin 树。先通过 claude code 安装 marketplace:" >&2
-  echo "  /plugin install cortex" >&2
-  echo "  bash \${CLAUDE_PLUGIN_ROOT}/install.sh" >&2
-  echo "或设置 CORTEX_INSTALL_PATH 指向已有 plugin 路径" >&2
+  echo "[install.sh] 未找到 plugin 树且自动 clone 失败" >&2
+  echo "  手动 clone: git clone $CORTEX_REPO_URL $CORTEX_CLONE_DIR" >&2
+  echo "  或设置 CORTEX_INSTALL_PATH 指向已有 plugin 路径" >&2
   exit 2
 fi
 
