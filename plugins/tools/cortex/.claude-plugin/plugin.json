@@ -20,16 +20,5 @@
     "second-brain",
     "auto-archive",
     "session-recap"
-  ],
-  "skills": "./skills/",
-  "agents": [
-    "./agents/cortex-archivist.md",
-    "./agents/cortex-cartographer.md",
-    "./agents/cortex-curator.md",
-    "./agents/cortex-historian.md",
-    "./agents/cortex-linker.md",
-    "./agents/cortex-researcher.md",
-    "./agents/cortex-summarizer.md",
-    "./agents/cortex-translator.md"
   ]
 }
