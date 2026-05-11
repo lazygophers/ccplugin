@@ -107,7 +107,16 @@ if [[ ! -f "\$SKILL_PATH" ]]; then
   echo "cortex-doctor SKILL.md missing: \$SKILL_PATH" >&2
   exit 1
 fi
-exec claude --bare -p \\
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+if [[ ! -f "\$LIB_PATH" ]]; then
+  echo "stream_progress.sh missing: \$LIB_PATH" >&2
+  exit 1
+fi
+# shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+source "\$LIB_PATH"
+export CORTEX_JOB_LABEL="cortex-doctor"
+# trap Ctrl-C: stream_progress handles heartbeat cleanup internally.
+cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
   "运行 cortex 健康检查 (cortex-doctor skill), 报告 vault/config/links/dead-links 等问题, 输出可读结果" "\$@"
 EOB

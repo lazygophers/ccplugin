@@ -96,6 +96,8 @@ fi
 
 # shellcheck source=../lib/config.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/config.sh"
+# shellcheck source=../lib/stream_progress.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/stream_progress.sh"
 # Validate ~/.cortex/config.json in this process so broken JSON fails fast.
 cortex_config_init
 
@@ -153,11 +155,10 @@ CMD=(claude
   --bare
   --no-session-persistence
   --settings "$SETTINGS"
-  --output-format stream-json
-  --verbose
   --max-budget-usd 0.30
   -p "$FULL_PROMPT"
 )
+# Note: --output-format stream-json --verbose is injected by cortex_stream_runner.
 
 # Append any extra flags (e.g. --allowed-tools)
 for arg in "$@"; do
@@ -182,8 +183,11 @@ TO_CMD="$(resolve_timeout_cmd)" || {
   exit 4
 }
 
+export CORTEX_JOB_LABEL="cortex-${JOB}"
+export CORTEX_STREAM_TEE_FILE="$TMP_NDJSON"
+
 if [[ "$TO_CMD" == "PERL_TIMEOUT" ]]; then
-  if ! perl_timeout "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE" > "$TMP_NDJSON"; then
+  if ! cortex_stream_runner perl_timeout "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE"; then
     rc=$?
     if [[ $rc -eq 124 ]]; then
       echo "[$(iso_now)] cortex-${JOB}: TIMEOUT after ${TIMEOUT}s (perl_timeout)" | tee -a "$LOG_FILE" >&2
@@ -193,7 +197,7 @@ if [[ "$TO_CMD" == "PERL_TIMEOUT" ]]; then
     exit 1
   fi
 else
-  if ! "$TO_CMD" "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE" > "$TMP_NDJSON"; then
+  if ! cortex_stream_runner "$TO_CMD" "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE"; then
     rc=$?
     if [[ $rc -eq 124 ]]; then
       echo "[$(iso_now)] cortex-${JOB}: TIMEOUT after ${TIMEOUT}s ($TO_CMD)" | tee -a "$LOG_FILE" >&2
