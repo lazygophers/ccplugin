@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 8
+- **Total Sessions**: 9
 - **Last Active**: 2026-05-11
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~287 | Active |
+| `journal-1.md` | ~324 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 9 | 2026-05-11 | cortex 迁移到官方 obsidian CLI | `9204b381`, `797f3629`, `8f33011f`, `7e267275`, `03534a9b` | `master` |
 | 8 | 2026-05-11 | cortex plugin.json: 内联 hooks + 显式 agents/skills 数组 | `956cebf1` | `master` |
 | 7 | 2026-05-11 | cortex notesmd-cli 优先路由迁移 | `8c8071fc` | `master` |
 | 6 | 2026-05-11 | cortex 插件 hook 配置迁移到 hooks.json + check.py version 字段修复 | `0bbf095b`, `19f6d7e6`, `444eaa90` | `master` |

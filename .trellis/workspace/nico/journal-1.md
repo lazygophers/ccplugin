@@ -285,3 +285,40 @@ fix Stop hook ${CLAUDE_PLUGIN_ROOT} 未关联报错: 将 hooks 从外部 hooks.j
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: cortex 迁移到官方 obsidian CLI
+
+**Date**: 2026-05-11
+**Task**: cortex 迁移到官方 obsidian CLI
+**Branch**: `master`
+
+### Summary
+
+cortex 插件从第三方 notesmd-cli 切到官方 obsidian CLI v1.12.4。L1=官方 CLI / L2=MCP / L3=直接写盘三层兜底; 17 处用户确认改用内置 AskUserQuestion 工具; cortex-doctor 增加 obsidian CLI 探测、app-running 探活、alwaysUpdateLinks 字段检测三项 (共 15 项)。5 commit 落地: install / AGENT+agents 映射 / 设计决策文档 / AskUserQuestion 改造 / doctor 增强。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9204b381` | (see git log) |
+| `797f3629` | (see git log) |
+| `8f33011f` | (see git log) |
+| `7e267275` | (see git log) |
+| `03534a9b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
