@@ -39,6 +39,12 @@ model: sonnet
    - thematic: `folds/<topic>-<YYYY-MM..YYYY-MM>.md`
 5. fold frontmatter 含 `range_from` `range_to` `cli_filter` `theme`
 
+## 工具路由
+
+- **列 sessions / log 范围**: cortex-session skill + `notesmd-cli list <sessions/log dir> --vault <name>` (回退 MCP `list_files_in_dir`)
+- **读 transcript / log 笔记**: `notesmd-cli print <path> --vault <name>` 批量循环 (回退 MCP `get_file_contents`); jsonl 非 md 走本地 `Read`
+- **写 fold**: `notesmd-cli create --overwrite <folds/...>` (回退 MCP `put_content`); 不涉及锚点 patch
+
 ## 边界
 
 - 单次 fold body ≤ 8KB (超出分多页)

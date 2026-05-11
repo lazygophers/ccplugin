@@ -38,6 +38,13 @@ model: sonnet
    - 老 log → 提议 fold (走 cortex-fold)
 4. 输出迁移提案表
 
+## 工具路由
+
+- **列 fleeting / log**: `notesmd-cli list <dir> --vault <name>` (回退 MCP `list_files_in_dir`)
+- **关键字检索 (出入链探测)**: `notesmd-cli search-content "<wikilink target>" --format json --no-interactive` (回退 MCP `simple_search`)
+- **读 frontmatter / body**: `notesmd-cli frontmatter <path> --print` + `notesmd-cli print <path>` (回退 MCP `get_file_contents`)
+- **迁移落盘**: 本 agent 仅出提案; cortex-refactor 执行时优先 `notesmd-cli move <src> <dst>` (**自动更新 wikilink, 比 MCP/Edit 强**)
+
 ## 边界
 
 - 不直接 move (主线决定后调 cortex-refactor)

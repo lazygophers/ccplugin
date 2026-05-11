@@ -80,14 +80,14 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/install_cron.sh gha       # GitHub Actions
 | Stop 后没落档 | 启发式判定为非平凡发现, 或 transcript 不可读 | 显式说 "归档" 触发 cortex-save |
 | auto-commit 与 OGit 冲突 | 检测到 `.obsidian/plugins/obsidian-git/` | cortex 自动关闭 auto-commit, OGit 接管 |
 | lint --fix 未改盘 | autofix 仅对 6 条规则生效 (rule 1/2/6/8/9/11) | 其他规则用 cortex-refactor 协助 |
-| canvas 文件空 | obsidian CLI 不可用且 topic 无匹配节点 | 用 cortex-search 先确认 vault 内有相关页 |
+| canvas 文件空 | notesmd-cli 不支持 .canvas 且 topic 无匹配节点 | 用 cortex-search 先确认 vault 内有相关页 |
 
 ## 设计哲学
 
 详见 `.trellis/tasks/05-10-obsidian-kb-plugin/prd.md`。
 
 - **不依赖 `lib/`** — 自包含, 纯 bash + python stdlib
-- **MCP 主, CLI 兜底** — `mcp__obsidian__*` 覆盖 95% CRUD; canvas/bases 才回退 `obsidian` CLI
+- **CLI 主, MCP 兜底** — `notesmd-cli` (Yakitrak, Go 单文件二进制) 覆盖 read/write/list/search/move/frontmatter/daily; heading/block 锚点 patch、canvas/.base、metadata cache 回退 `mcp__obsidian__*`
 - **callout 替代 HTML grid** — Obsidian + GitHub 双渲染兼容
 - **Hook v2 wrapped JSON schema** — `hookSpecificOutput.{hookEventName,additionalContext}`
 - **不写 noop hook** — 教训自 commit `07e713d4`

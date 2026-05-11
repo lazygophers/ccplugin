@@ -38,6 +38,13 @@ model: sonnet
 4. cortex-save 副本到目标路径; alias 字段保留原 title (利于 wikilink 双语命中)
 5. `link_policy=rewrite_to_translated` 时, 检查目标 lang 下是否有对应翻译页, 有则改 wikilink 指过去
 
+## 工具路由
+
+- **读 src 与 frontmatter**: `notesmd-cli print <src> --vault <name>` + `notesmd-cli frontmatter <src> --print` (回退 MCP `get_file_contents`)
+- **写副本**: `notesmd-cli create --overwrite <target>` (回退 MCP `put_content`)
+- **link_policy=rewrite_to_translated 查目标存在性**: `notesmd-cli list <target_dir>` 或 `notesmd-cli print <target>` 探测
+- 不涉及 heading/block 锚点 patch, 全程 CLI 优先
+
 ## 边界
 
 - 单次翻译 ≤ 50 页 (深 dir 自动分页)

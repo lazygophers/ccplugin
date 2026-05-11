@@ -10,6 +10,7 @@ tools:
   - Bash
   - mcp__obsidian__obsidian_get_file_contents
   - mcp__obsidian__obsidian_put_content
+  - mcp__obsidian__obsidian_patch_content
   - mcp__obsidian__obsidian_list_files_in_dir
 model: sonnet
 ---
@@ -43,6 +44,13 @@ model: sonnet
    - 调 cortex-dashboard (skill); Bases 优先, Dataview 兜底
 4. mode=all:
    - 串行: moc → canvas (per topic) → dashboard
+
+## 工具路由
+
+- **列目录 / 收集页清单**: `notesmd-cli list <dir> --vault <name>` (回退 `mcp__obsidian__obsidian_list_files_in_dir`)
+- **读 frontmatter 推导聚合**: `notesmd-cli frontmatter <path> --print --vault <name>` 或 `notesmd-cli print <path>` (回退 MCP `get_file_contents`)
+- **写 MOC / dashboard.md**: `notesmd-cli create --overwrite <path>` 优先; **标记区增量更新** (`<!-- cortex:auto-start/end -->`) 必走 MCP `obsidian_patch_content` 或本地 `Edit` —— CLI 无 anchor patch
+- **canvas (.canvas)**: CLI 不支持非 md, 走 cortex-canvas skill 或静态 JSON
 
 ## 边界
 

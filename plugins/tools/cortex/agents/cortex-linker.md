@@ -39,6 +39,12 @@ model: sonnet
 5. 对每个候选, 在 target 内找最相关段落 (TF-IDF 简易或 H2/H3 标题匹配)
 6. auto_apply=false 输出提案; auto_apply=true 在选定段落末尾加 `相关: [[X]]` 行
 
+## 工具路由
+
+- **搜索近邻**: SC REST → `notesmd-cli search-content "<keywords>" --format json --page 1 --page-size 50` (CLI 不可用回退 `mcp__obsidian__obsidian_simple_search`) → ripgrep
+- **读 target / 候选页**: `notesmd-cli print <path> --vault <name>` (回退 MCP `get_file_contents`)
+- **auto_apply=true 写回 wikilink**: 整段追加 `相关: [[X]]` 用 `notesmd-cli create --append <path>` (回退 MCP `put_content` 或本地 `Edit`); 不涉及 heading 锚点 patch
+
 ## 边界
 
 - 单页加链上限 8 (避免 wikilink 过载)

@@ -41,6 +41,6 @@ prompts:
   archive_pending: 📝 cortex archived {path}
   session_header: "## Cortex connected (lang={lang}, vault={vault}, preset={preset})"
   collab_save: After non-trivial findings, use cortex-save to archive; project-specific → domains/, general concepts → concepts/.
-  collab_no_direct: Do not write vault files directly; go through mcp__obsidian__* or cortex skills to keep indexes consistent.
+  collab_no_direct: Do not write vault files directly; prefer notesmd-cli (print/create/list/search-content/move/frontmatter/daily, multi-vault via --vault). For heading/block-anchor patch, canvas, or other CLI-unsupported cases, fall back to mcp__obsidian__*; only then drop to cortex skills. Keeps vault indexes consistent.
   collab_block_id: Each H2/H3 section gets a trailing ^cortex-<sha8> block-id for precise ![[note#^cortex-xxx]] references.
   collab_stop_hook: Stop hook auto-archives non-trivial technical findings to log/YYYY-MM/.

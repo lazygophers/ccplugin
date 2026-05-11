@@ -40,6 +40,13 @@ model: sonnet
 4. 阶段汇总: 读所有新落档 + 已知页 → cortex-summarizer 产出综述
 5. 综述页 frontmatter `type: concept` (或 dashboard, 视情况), 落到用户指定 `output_path` 或自动归属 concepts/<slug>.md
 
+## 工具路由
+
+- **查 vault 已有页**: cortex-search skill (内部走 `notesmd-cli search-content --format json` → MCP `simple_search` 回退)
+- **读 vault 已知页**: `notesmd-cli print <path> --vault <name>` (回退 MCP `get_file_contents`)
+- **写新落档 / 综述页**: `notesmd-cli create --overwrite <path>` (回退 MCP `put_content`); cortex-ingest 内部已遵循同样路由
+- **多 vault**: 显式 `--vault <name|path>`
+
 ## 边界
 
 - 不抓需登录的 source (跳过, 报告给用户)

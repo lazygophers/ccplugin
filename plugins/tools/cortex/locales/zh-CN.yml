@@ -41,6 +41,6 @@ prompts:
   archive_pending: 📝 cortex 已落档 {path}
   session_header: "## Cortex 已连接 (lang={lang}, vault={vault}, preset={preset})"
   collab_save: 非平凡发现完成后用 cortex-save 落档; 项目特定写 domains/, 通用概念写 concepts/。
-  collab_no_direct: 不直接文件操作, 经 mcp__obsidian__* 或 cortex skill, 避免破坏 vault 索引。
+  collab_no_direct: 不直接文件操作; 优先用 notesmd-cli (print/create/list/search-content/move/frontmatter/daily, 多 vault 用 --vault), heading/block 锚点 patch 或 canvas 等 CLI 不支持的场景回退 mcp__obsidian__*, 最后才走 cortex skill, 避免破坏 vault 索引。
   collab_block_id: 落档时段落末尾自动加 ^cortex-<sha8>, 后续可精准引用 ![[note#^cortex-xxx]]。
   collab_stop_hook: Stop hook 自动归档非平凡技术发现到 log/YYYY-MM/。

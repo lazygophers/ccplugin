@@ -6,12 +6,12 @@ hot cache: {{HOT_CACHE_PREVIEW}}
 
 ### 协作约定
 
-1. **先搜后问** — 非通用问题先调 `cortex-query` skill 或 `mcp__obsidian__obsidian_simple_search` 搜库, 确认无既有经验再开工。
+1. **先搜后问** — 非通用问题先调 `cortex-query` skill 或 `notesmd-cli search-content --format json <query>` 搜库 (CLI 不可用时回退 `mcp__obsidian__obsidian_simple_search`), 确认无既有经验再开工。
 2. **落档** — 非平凡发现 (架构决策、疑难 bug、配置技巧、工具经验) 完成后用 `cortex-save` skill 归档:
    - 项目特定 → `wiki/30_domains/<host>/<org>/<repo>/`
    - 通用概念 → `wiki/10_concepts/`
    - 同步 `wiki/index.md` 与 `wiki/hot.md`
-3. **不直接文件操作** — 经 `mcp__obsidian__*` 工具或 cortex skill, 避免破坏 vault 索引。
+3. **不直接文件操作** — vault 操作走 `notesmd-cli` (read=`print`, write=`create --overwrite`, append=`create --append`, list=`list`, search=`search-content --format json`, delete=`delete`, move=`move` 自动更新 wikilink, frontmatter=`frontmatter`, daily=`daily`); 多 vault 用 `--vault <name|path>` 指定。CLI 无法表达的场景 (callout/heading 锚点 patch、block-id patch、canvas/非 md、metadata cache/反向链接图) 回退 `mcp__obsidian__*` (如 `obsidian_patch_content target_type=heading`)。两者都不可用时走 cortex skill, 避免裸 `Write`/`Edit` 破坏 vault 索引。
 4. **block-id 引用** — 落档时段落末尾自动加 `^cortex-<sha8>`, 后续可精准引用 `![[note#^cortex-xxx]]`。
 5. **Stop hook 自动归档** — 会话结束时若产生非平凡技术发现, 自动写入 `wiki/log/YYYY-MM/`。
 

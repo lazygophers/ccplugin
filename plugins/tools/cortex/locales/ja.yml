@@ -41,6 +41,6 @@ prompts:
   archive_pending: 📝 cortex がアーカイブしました {path}
   session_header: "## Cortex 接続済み (lang={lang}, vault={vault}, preset={preset})"
   collab_save: 非自明な発見は cortex-save でアーカイブ; プロジェクト固有 → domains/, 一般概念 → concepts/。
-  collab_no_direct: vault ファイルを直接操作せず, mcp__obsidian__* や cortex skill を経由して索引整合を保つ。
+  collab_no_direct: vault ファイルを直接操作しない; まず notesmd-cli (print/create/list/search-content/move/frontmatter/daily, 複数 vault は --vault) を優先。heading/block アンカー patch や canvas など CLI 非対応は mcp__obsidian__* にフォールバック, 最後に cortex skill。索引整合を保つ。
   collab_block_id: 各 H2/H3 末尾に ^cortex-<sha8> block-id が付与され, ![[note#^cortex-xxx]] で精密参照可能。
   collab_stop_hook: Stop hook が非自明な技術発見を log/YYYY-MM/ に自動アーカイブする。

@@ -9,6 +9,7 @@ tools:
   - Bash
   - mcp__obsidian__obsidian_get_file_contents
   - mcp__obsidian__obsidian_put_content
+  - mcp__obsidian__obsidian_patch_content
 model: sonnet
 ---
 
@@ -41,6 +42,12 @@ model: sonnet
 5. mode=domain:
    - 新建 `output_path`, frontmatter `type: concept` `aliases: [<topic> overview]`
    - body = TL;DR callout + 各源页 wikilink 列表 + 关键点 callout
+
+## 工具路由
+
+- **读源页**: `notesmd-cli print <path> --vault <name>` (CLI 不可用回退 `mcp__obsidian__obsidian_get_file_contents`)
+- **mode=page 注入 callout (顶部锚点 patch)**: 必走 `mcp__obsidian__obsidian_patch_content target_type=heading` —— CLI 无法在指定 heading 位置 patch, 强行用 `create --overwrite` 会覆盖全文
+- **mode=domain 写新综述页**: `notesmd-cli create --overwrite <output_path>` 优先, MCP `obsidian_put_content` 回退
 
 ## 边界
 
