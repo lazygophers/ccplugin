@@ -49,6 +49,12 @@ TIME_DIR_RE = re.compile(r"^\d{4}-\d{2}$")
 
 
 def _load_vault_lang(vault: Path) -> str:
+    """Resolve lang: CORTEX_LANG env > vault _meta/version.json > config.lang > zh-CN."""
+    import os as _os
+
+    env_val = _os.environ.get("CORTEX_LANG")
+    if env_val:
+        return env_val
     p = vault / "_meta" / "version.json"
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
@@ -56,6 +62,16 @@ def _load_vault_lang(vault: Path) -> str:
         if isinstance(v, str) and v:
             return v
     except Exception:
+        pass
+    try:
+        _hooks_lib = Path(__file__).resolve().parent.parent / "hooks" / "_lib"
+        if str(_hooks_lib) not in sys.path:
+            sys.path.insert(0, str(_hooks_lib))
+        from cortex_config import load_config
+        cfg_lang = load_config().get("lang")
+        if isinstance(cfg_lang, str) and cfg_lang:
+            return cfg_lang
+    except ImportError:
         pass
     return "zh-CN"
 

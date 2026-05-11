@@ -239,7 +239,21 @@ def read_vault_meta(vault: Path) -> dict[str, Any]:
 
 
 def read_vault_lang(vault: Path) -> str:
-    return str(read_vault_meta(vault).get("lang") or "zh-CN")
+    """Resolve lang: CORTEX_LANG env > vault _meta/version.json > config.lang > zh-CN."""
+    env_val = os.environ.get("CORTEX_LANG")
+    if env_val:
+        return env_val
+    meta_lang = read_vault_meta(vault).get("lang")
+    if isinstance(meta_lang, str) and meta_lang:
+        return meta_lang
+    try:
+        from cortex_config import load_config
+        cfg_lang = load_config().get("lang")
+        if isinstance(cfg_lang, str) and cfg_lang:
+            return cfg_lang
+    except ImportError:
+        pass
+    return "zh-CN"
 
 
 def backup_transcript(vault: Path, transcript: Path, when: dt.datetime, slug: str, cli: str) -> Path | None:

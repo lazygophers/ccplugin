@@ -9,15 +9,17 @@ source "$DIR/_assert.sh"
 
 SCRIPT="$PLUGIN_ROOT/scripts/install_cron.sh"
 
-# 默认隔离: 清空可能影响解析优先级的环境变量, 走 --plugin-root 注入
+# 默认隔离: 清空可能影响解析优先级的环境变量, 走 --plugin-root 注入。
+# Provide a CORTEX_VAULT so install_cron.sh's hard-fail (no vault) doesn't trip
+# tests that don't care about vault resolution.
 run_install() {
   env -u CLAUDE_PLUGIN_ROOT -u CORTEX_INSTALL_PATH \
+    CORTEX_VAULT="/tmp/test-vault" \
     bash "$SCRIPT" --plugin-root "$PLUGIN_ROOT" "$@" 2>&1
 }
 
-# 不带 --plugin-root 的裸调用 (用于解析优先级测试)
 run_install_raw() {
-  bash "$SCRIPT" "$@"
+  CORTEX_VAULT="/tmp/test-vault" bash "$SCRIPT" "$@"
 }
 
 test_default_prints_cron() {
@@ -47,6 +49,7 @@ test_gha_prints_yaml() {
 
 test_unknown_kind_exits_2() {
   env -u CLAUDE_PLUGIN_ROOT -u CORTEX_INSTALL_PATH \
+    CORTEX_VAULT="/tmp/test-vault" \
     bash "$SCRIPT" totally-unknown >/dev/null 2>&1
   assert_eq "2" "$?"
 }
@@ -69,6 +72,7 @@ test_help_lists_six_precedences() {
 
 test_plugin_root_flag_overrides() {
   out=$(env -u CLAUDE_PLUGIN_ROOT -u CORTEX_INSTALL_PATH \
+    CORTEX_VAULT="/tmp/test-vault" \
     bash "$SCRIPT" --plugin-root /custom/path 2>&1)
   assert_contains "/custom/path/scripts/cron/lint.sh" "$out"
   assert_contains "PLUGIN_ROOT = /custom/path" "$out"
@@ -77,6 +81,7 @@ test_plugin_root_flag_overrides() {
 test_cortex_install_path_env_overrides() {
   out=$(env -u CLAUDE_PLUGIN_ROOT \
     CORTEX_INSTALL_PATH=/env/override \
+    CORTEX_VAULT="/tmp/test-vault" \
     bash "$SCRIPT" 2>&1)
   assert_contains "/env/override/scripts/cron/lint.sh" "$out"
 }
@@ -88,7 +93,7 @@ test_default_marketplace_path_when_exists() {
   local mp="$fake_home/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
   mkdir -p "$mp"
   out=$(env -u CLAUDE_PLUGIN_ROOT -u CORTEX_INSTALL_PATH \
-    HOME="$fake_home" bash "$SCRIPT" 2>&1)
+    HOME="$fake_home" CORTEX_VAULT="/tmp/test-vault" bash "$SCRIPT" 2>&1)
   assert_contains "$mp/scripts/cron/lint.sh" "$out"
   rm -rf "$fake_home"
 }
@@ -99,7 +104,7 @@ test_xdg_marketplace_fallback() {
   local mp="$fake_home/.config/claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
   mkdir -p "$mp"
   out=$(env -u CLAUDE_PLUGIN_ROOT -u CORTEX_INSTALL_PATH \
-    HOME="$fake_home" bash "$SCRIPT" 2>&1)
+    HOME="$fake_home" CORTEX_VAULT="/tmp/test-vault" bash "$SCRIPT" 2>&1)
   assert_contains "$mp/scripts/cron/lint.sh" "$out"
   rm -rf "$fake_home"
 }
@@ -108,7 +113,7 @@ test_fallback_warns_when_marketplace_absent() {
   local fake_home
   fake_home="$(mktemp -d)"
   out=$(env -u CLAUDE_PLUGIN_ROOT -u CORTEX_INSTALL_PATH \
-    HOME="$fake_home" bash "$SCRIPT" 2>&1)
+    HOME="$fake_home" CORTEX_VAULT="/tmp/test-vault" bash "$SCRIPT" 2>&1)
   assert_contains "WARNING" "$out"
   assert_contains "未检测到 marketplace" "$out"
   # 仍输出 snippet

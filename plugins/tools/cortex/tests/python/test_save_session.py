@@ -1,10 +1,12 @@
 """Tests for hooks/_lib/save_session.py."""
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from _helpers import PLUGIN_ROOT, add_paths, make_vault
 
@@ -129,6 +131,54 @@ class ReadVaultMetaTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             self.assertEqual(ss.read_vault_meta(vault).get("lang"), "zh-CN")
+
+
+class ReadVaultLangFallbackChainTest(unittest.TestCase):
+    """env > _meta > config.lang > zh-CN."""
+
+    def setUp(self):
+        self._tmp_home = tempfile.TemporaryDirectory()
+        self._tmp_vault = tempfile.TemporaryDirectory()
+        self.home = Path(self._tmp_home.name)
+        self.vault = Path(self._tmp_vault.name)
+        self._env = mock.patch.dict(os.environ, {"HOME": str(self.home)}, clear=False)
+        self._env.start()
+        os.environ.pop("CORTEX_LANG", None)
+
+    def tearDown(self):
+        self._env.stop()
+        self._tmp_home.cleanup()
+        self._tmp_vault.cleanup()
+
+    def _write_meta(self, lang):
+        (self.vault / "_meta").mkdir(exist_ok=True)
+        (self.vault / "_meta" / "version.json").write_text(
+            json.dumps({"lang": lang}), encoding="utf-8"
+        )
+
+    def _write_cfg(self, lang):
+        (self.home / ".cortex").mkdir(exist_ok=True)
+        (self.home / ".cortex" / "config.json").write_text(
+            json.dumps({"lang": lang}), encoding="utf-8"
+        )
+
+    def test_env_wins(self):
+        self._write_meta("ja")
+        self._write_cfg("fr")
+        os.environ["CORTEX_LANG"] = "en-US"
+        self.assertEqual(ss.read_vault_lang(self.vault), "en-US")
+
+    def test_meta_wins_over_config(self):
+        self._write_meta("ja")
+        self._write_cfg("fr")
+        self.assertEqual(ss.read_vault_lang(self.vault), "ja")
+
+    def test_config_used_when_meta_missing(self):
+        self._write_cfg("fr")
+        self.assertEqual(ss.read_vault_lang(self.vault), "fr")
+
+    def test_default_when_all_missing(self):
+        self.assertEqual(ss.read_vault_lang(self.vault), "zh-CN")
 
 
 class HasObsidianGitTest(unittest.TestCase):

@@ -1,6 +1,6 @@
 ---
 name: cortex-doctor
-description: 诊断 cortex 健康 — vault/obsidian-cli/app-running/MCP/SC/rg/lint/locales/lang-fallback/sessions 共 16 项。仅显式触发。
+description: 诊断 cortex 健康 — vault/obsidian-cli/app-running/MCP/SC/rg/lint/locales/lang-fallback/sessions/config/wrappers 共 18 项。仅显式触发。
 disable-model-invocation: true
 allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents
 ---
@@ -26,10 +26,13 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 13. **Smart Connections REST API** — `curl -sf -m 2 http://127.0.0.1:27124/embeddings/info` 是否可达 (cortex-search L3 语义检索依赖)
 14. **ripgrep** — `command -v rg` (cortex-search L5 兜底依赖)
 15. **backlink 完整性** — 抽样 5 个 `log/` 与 `10_concepts/` 页面, 检查其 `[[X]]` wikilink 是否在 X 的 `## Backlinks` 段中出现; 不一致计入报告
+16. **共享 config 存在性** — `~/.cortex/config.json` 是否存在。缺失 → ℹ️ info (非 fail), 提示运行 `~/.cortex/scripts/config.sh init` 或 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cortex_config.py init`
+17. **共享 config 合法性** — 跑 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/cortex_config.py validate`; exit 0 + "config ok" → ✅; "config absent" → ℹ️; exit 1 → ❌ 列出字段错误
+18. **wrapper 完整性** — 检 `~/.cortex/scripts/` 下 7 个 wrapper (`lint.sh`, `fold.sh`, `dashboard.sh`, `doctor.sh`, `install_cron.sh`, `config.sh`, `update.sh`) 是否存在且可执行。缺失 → ⚠️ warn (PR5 才生成), 提示运行 `bash ${CLAUDE_PLUGIN_ROOT}/install.sh`
 
 ## 行为
 
-按顺序跑上面 15 项, 每项输出一行带 emoji 状态:
+按顺序跑上面 18 项, 每项输出一行带 emoji 状态:
 
 ```
 ✅ vault 路径: /Users/.../knowledge/obsidian (源: env)

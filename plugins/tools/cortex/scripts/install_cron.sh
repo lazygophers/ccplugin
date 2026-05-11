@@ -124,7 +124,29 @@ done
 KIND="${KIND:-cron}"
 
 PLUGIN_ROOT="$(resolve_install_path "$OVERRIDE_ROOT")"
-VAULT="${OBSIDIAN_VAULT:-$HOME/persons/knowledge/obsidian}"
+
+# Load ~/.cortex/config.json (env > config > fallback) so the printed snippets
+# default to the user's configured vault/lang/settings. JSON syntax errors
+# fail-fast here (cortex_config_init exits 1 with stderr message).
+# shellcheck source=./lib/config.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/config.sh"
+cortex_config_init
+
+# vault: env > config > OBSIDIAN_VAULT > error.
+# Hardcoded ~/persons/knowledge/obsidian fallback removed per PRD §优先级.
+VAULT="$(cortex_config_resolve vault CORTEX_VAULT "")"
+if [[ -z "$VAULT" ]]; then
+  VAULT="${OBSIDIAN_VAULT:-}"
+fi
+if [[ -z "$VAULT" ]]; then
+  echo "[install_cron.sh] no vault configured: set CORTEX_VAULT, OBSIDIAN_VAULT, or write vault to ~/.cortex/config.json" >&2
+  exit 3
+fi
+
+# lang/settings flow into the printed snippet's env preamble so users get the
+# same resolution rules as cron/run.sh without re-exporting at the shell.
+LANG_OVERRIDE="$(cortex_config_resolve lang CORTEX_LANG "")"
+SETTINGS="$(cortex_config_resolve settings CORTEX_SETTINGS "")"
 
 print_cron() {
   cat <<EOF

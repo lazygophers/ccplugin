@@ -284,18 +284,30 @@ def load_locale(plugin_root: str | Path, vault: str | Path | None, lang: str) ->
 
 
 def detect_vault_lang(vault: Path | str) -> str:
-    """Read _meta/version.json:.lang from vault. Default zh-CN."""
+    """Resolve lang: CORTEX_LANG env > vault _meta/version.json > config.lang > zh-CN."""
     import json
+    import os
+
+    env_val = os.environ.get("CORTEX_LANG")
+    if env_val:
+        return env_val
 
     p = Path(vault) / "_meta" / "version.json"
-    if not p.is_file():
-        return "zh-CN"
+    if p.is_file():
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            v = data.get("lang") if isinstance(data, dict) else None
+            if isinstance(v, str) and v:
+                return v
+        except Exception:
+            pass
+
     try:
-        data = json.loads(p.read_text(encoding="utf-8"))
-        v = data.get("lang") if isinstance(data, dict) else None
-        if isinstance(v, str) and v:
-            return v
-    except Exception:
+        from cortex_config import load_config
+        cfg_lang = load_config().get("lang")
+        if isinstance(cfg_lang, str) and cfg_lang:
+            return cfg_lang
+    except ImportError:
         pass
     return "zh-CN"
 

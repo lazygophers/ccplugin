@@ -44,9 +44,23 @@ if [[ -z "$PROMPT" ]]; then
   exit 4
 fi
 
-VAULT="${CORTEX_VAULT:-${OBSIDIAN_VAULT:-$HOME/persons/knowledge/obsidian}}"
-LANG_OVERRIDE="${CORTEX_LANG:-}"
-SETTINGS="${CORTEX_SETTINGS:-$HOME/.claude/settings.glm-4.5-flash.json}"
+# shellcheck source=../lib/config.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/config.sh"
+# Validate ~/.cortex/config.json in this process so broken JSON fails fast.
+cortex_config_init
+
+VAULT="$(cortex_config_resolve vault CORTEX_VAULT "")"
+if [[ -z "$VAULT" ]]; then
+  VAULT="${OBSIDIAN_VAULT:-}"
+fi
+if [[ -z "$VAULT" ]]; then
+  echo "[cortex] no vault: set CORTEX_VAULT, OBSIDIAN_VAULT, or write vault to ~/.cortex/config.json" >&2
+  exit 3
+fi
+# lang priority here is env > config; vault `_meta/version.json` is layered on
+# top by Python consumers (lint/run.py, hooks/_lib/cortex_locale.py).
+LANG_OVERRIDE="$(cortex_config_resolve lang CORTEX_LANG "")"
+SETTINGS="$(cortex_config_resolve settings CORTEX_SETTINGS "$HOME/.claude/settings.glm-4.5-flash.json")"
 TIMEOUT="${CORTEX_TIMEOUT:-300}"
 
 LOG_DIR="$HOME/.cache/cortex/cron"

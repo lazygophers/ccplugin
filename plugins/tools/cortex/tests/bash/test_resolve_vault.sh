@@ -50,15 +50,6 @@ test_config_json_resolves() {
   assert_eq "$vault" "$out"
 }
 
-test_default_path_when_present() {
-  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
-  local home="$sandbox/home"
-  local default="$home/persons/knowledge/obsidian"
-  mkdir -p "$default/.obsidian"
-  out=$(run_rv "$home" "$sandbox/xdg" "")
-  assert_eq "$default" "$out"
-}
-
 test_missing_returns_empty() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   local home="$sandbox/home"; mkdir -p "$home"
@@ -76,7 +67,6 @@ test_exit_code_zero_always() {
 run_test test_env_override_wins      test_env_override_wins
 run_test test_env_invalid_falls_through  test_env_invalid_falls_through
 run_test test_config_json_resolves   test_config_json_resolves
-run_test test_default_path_when_present  test_default_path_when_present
 run_test test_missing_returns_empty  test_missing_returns_empty
 run_test test_exit_code_zero_always  test_exit_code_zero_always
 

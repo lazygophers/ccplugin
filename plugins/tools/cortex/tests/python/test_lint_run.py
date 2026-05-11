@@ -1,14 +1,18 @@
 """Tests for lint/run.py."""
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from _helpers import PLUGIN_ROOT, add_paths, make_vault, write_md
 
 add_paths()
+
+import run as lint_run  # noqa: E402
 
 SCRIPT = PLUGIN_ROOT / "lint" / "run.py"
 
@@ -242,6 +246,54 @@ class ErrorPathTest(unittest.TestCase):
             # with --lang en, concepts is fine
             rc, rep = run_lint(vault, "--lang", "en")
             self.assertNotIn("i18n-path-not-in-locale", rules_hit(rep))
+
+
+class LoadVaultLangFallbackChainTest(unittest.TestCase):
+    """env > _meta > config.lang > zh-CN."""
+
+    def setUp(self):
+        self._tmp_home = tempfile.TemporaryDirectory()
+        self._tmp_vault = tempfile.TemporaryDirectory()
+        self.home = Path(self._tmp_home.name)
+        self.vault = Path(self._tmp_vault.name)
+        self._env = mock.patch.dict(os.environ, {"HOME": str(self.home)}, clear=False)
+        self._env.start()
+        os.environ.pop("CORTEX_LANG", None)
+
+    def tearDown(self):
+        self._env.stop()
+        self._tmp_home.cleanup()
+        self._tmp_vault.cleanup()
+
+    def _write_meta(self, lang):
+        (self.vault / "_meta").mkdir(exist_ok=True)
+        (self.vault / "_meta" / "version.json").write_text(
+            json.dumps({"lang": lang}), encoding="utf-8"
+        )
+
+    def _write_cfg(self, lang):
+        (self.home / ".cortex").mkdir(exist_ok=True)
+        (self.home / ".cortex" / "config.json").write_text(
+            json.dumps({"lang": lang}), encoding="utf-8"
+        )
+
+    def test_env_wins(self):
+        self._write_meta("ja")
+        self._write_cfg("fr")
+        os.environ["CORTEX_LANG"] = "en-US"
+        self.assertEqual(lint_run._load_vault_lang(self.vault), "en-US")
+
+    def test_meta_wins_over_config(self):
+        self._write_meta("ja")
+        self._write_cfg("fr")
+        self.assertEqual(lint_run._load_vault_lang(self.vault), "ja")
+
+    def test_config_used_when_meta_missing(self):
+        self._write_cfg("fr")
+        self.assertEqual(lint_run._load_vault_lang(self.vault), "fr")
+
+    def test_default_when_all_missing(self):
+        self.assertEqual(lint_run._load_vault_lang(self.vault), "zh-CN")
 
 
 if __name__ == "__main__":

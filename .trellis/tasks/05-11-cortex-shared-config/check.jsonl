@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "pytest / ruff / shellcheck 验收门"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "校验 fail-fast 输出格式与字段缺失静默 fallback 行为"}
+{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "确认 hooks lang fallback 改动不破坏现有 hook 契约"}
+{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "新文件命名、shebang、可执行位、文档同步检查"}
+{"file": ".trellis/spec/backend/marketplace.md", "reason": "wrapper 路径解析、update 命令对 marketplace 命名一致"}

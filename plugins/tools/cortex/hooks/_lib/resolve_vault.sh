@@ -35,14 +35,8 @@ except Exception:
     fi
   fi
 
-  # 3. default location
-  local default="$HOME/persons/knowledge/obsidian"
-  if [[ -d "$default/.obsidian" ]]; then
-    printf '%s\n' "$default"
-    return 0
-  fi
-
-  # 4. auto-detect (single match in ~/Documents or ~/Library/Mobile Documents)
+  # 3. auto-detect (single match in ~/Documents or ~/Library/Mobile Documents)
+  # Removed `~/persons/knowledge/obsidian` hardcode per PRD §优先级 (env > config only).
   local candidates=()
   while IFS= read -r d; do
     candidates+=("$d")
@@ -53,7 +47,7 @@ except Exception:
     return 0
   fi
 
-  # 5. nothing found
+  # 4. nothing found
   printf ''
   return 0
 }
