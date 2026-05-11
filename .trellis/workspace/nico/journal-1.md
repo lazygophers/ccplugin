@@ -151,3 +151,36 @@ cortex v2 单一版本设计与实施 (取代 v1)。M1-M3: vault 去编号 + i18
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: 移除插件市场版本号
+
+**Date**: 2026-05-11
+**Task**: 移除插件市场版本号
+**Branch**: `master`
+
+### Summary
+
+从 37 个 plugin.json 和 marketplace.json 移除 version 字段，简化市场数据模型
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c9a7e615` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
