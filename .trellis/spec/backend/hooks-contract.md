@@ -216,6 +216,105 @@ do_work()
 
 ---
 
+## Security Filter Pipeline (P0 Hardening)
+
+Hooks/skills that accept external content (URL ingest, transcript persist, free-form note save) **MUST** run three pure-function filters before any disk write or external fetch.
+
+### 1. Scope / Trigger
+
+- Trigger: any path that persists model output or fetches remote content into the vault.
+- Reference impl: `plugins/tools/cortex/hooks/_lib/{masking,url_security,html_sanitize}.py`.
+
+### 2. Signatures
+
+```python
+# masking.py
+def mask(text: str) -> tuple[str, list[str]]: ...
+# Returns (redacted_text, hit_rule_names). hit list NEVER contains the original secret.
+
+# url_security.py
+def is_safe(url: str) -> tuple[bool, str]: ...
+# Returns (allowed, reason). DNS lookup uses 2s timeout, fail-closed on resolution error.
+
+# html_sanitize.py
+def sanitize(markdown: str) -> str: ...
+# Idempotent. Preserves fenced code blocks (``` and ~~~) verbatim.
+```
+
+### 3. Contracts
+
+| Step | Input | Output | Fail Mode |
+|------|-------|--------|-----------|
+| `url_security.is_safe(url)` | raw URL string | `(bool, reason)` | DNS error → `(False, reason)` (fail-closed) |
+| `html_sanitize.sanitize(md)` | post-fetch markdown | sanitized markdown | regex never raises (stdlib `re`) |
+| `masking.mask(text)` | sanitized text | `(masked, hits)` | hits list of rule names only |
+
+**Mandatory order**: `url_security → fetch → html_sanitize → masking → write`. Reordering is a regression.
+
+Env keys:
+
+- `CORTEX_SKIP_SANITIZE=1` — test-only bypass for `masking` + `html_sanitize`. **Never** bypasses `url_security` (SSRF must not be skippable).
+
+### 4. Validation & Error Matrix
+
+| Condition | Filter | Result |
+|-----------|--------|--------|
+| URL scheme `file:` / `gopher:` | url_security | reject `unsupported scheme` |
+| URL host resolves to `127.0.0.0/8` / `10.x` / `172.16-31.x` / `192.168.x` / `169.254.x` | url_security | reject `private network` |
+| URL host == `localhost` / `metadata` / `metadata.google.internal` | url_security | reject `metadata host` |
+| URL port < 1024 and not in {80, 443} | url_security | reject `low port` |
+| DNS resolution timeout (>2s) | url_security | reject `dns timeout` (fail-closed) |
+| `<script>` / `<iframe>` / `<object>` / `<embed>` outside fenced code | html_sanitize | stripped |
+| `on*=` inline event attr | html_sanitize | attr removed |
+| `javascript:` / `data:text/html` href | html_sanitize | replaced with `#` |
+| Same patterns **inside** ` ``` ` or `~~~` fence | html_sanitize | preserved verbatim |
+| `AKIA[0-9A-Z]{16}` | masking | `<REDACTED:aws_akid>` |
+| `sk-ant-[A-Za-z0-9_-]{20,}` | masking | `<REDACTED:anthropic_key>` (matched **before** openai_key) |
+| `sk-[A-Za-z0-9]{20,}` with word boundary | masking | `<REDACTED:openai_key>` |
+| `gh[pousr]_[A-Za-z0-9]{36,}` | masking | `<REDACTED:github_pat>` |
+| JWT 3-part / PEM private key / Slack `xox[abprs]-` | masking | `<REDACTED:*>` |
+
+### 5. Good/Base/Bad Cases
+
+- **Good**: `cortex-ingest` flow: `url_security("https://example.com") → WebFetch → html_sanitize(md) → masking(md) → save`.
+- **Base**: `cortex-save` flow (model-authored note, no remote fetch): `masking(body) → write`.
+- **Bad**: skipping `url_security` because "the URL came from the user" — user input can still be SSRF (open redirect, paste from LLM).
+
+### 6. Tests Required
+
+- `tests/python/test_masking.py` — each of 7 rules has ≥1 hit case + ≥1 plain-text non-hit case; assert hit list contains rule name only (never original).
+- `tests/python/test_url_security.py` — 9 private-net IPs + 3 metadata hosts + low-port + non-http scheme each reject; ≥2 public URLs pass; assert `is_safe()` returns `False` on DNS timeout.
+- `tests/python/test_html_sanitize.py` — script/iframe/object/embed/on*=/javascript: each stripped; fenced code block with same patterns preserved; markdown tables/wikilinks/callouts untouched.
+
+### 7. Wrong vs Correct
+
+```python
+# ❌ Wrong — masking before sanitize: model can embed <script>$KEY</script> inline, sanitize then drops the masking marker too
+masked, hits = masking.mask(raw)
+clean = html_sanitize.sanitize(masked)  # may strip <REDACTED:*> inside a stripped tag
+
+# ❌ Wrong — bypassing url_security in "trusted" path
+md = WebFetch(user_url)  # no SSRF check
+
+# ✅ Correct
+ok, reason = url_security.is_safe(user_url)
+if not ok:
+    raise SecurityError(reason)
+md = WebFetch(user_url)
+md = html_sanitize.sanitize(md)
+md, hits = masking.mask(md)
+log.info("masking hits: %s", hits)  # names only
+write(md)
+```
+
+### Known Gotcha — DNS Rebinding (P1 backlog)
+
+> **Warning**: `url_security.is_safe()` resolves DNS once, but downstream `WebFetch` / `curl` resolves again. An attacker can flip the A record between resolutions to point at `127.0.0.1`.
+>
+> Mitigation (deferred to P1): `is_safe()` should return `(safe, resolved_ip)`; caller dials the IP directly and sets `Host:` header to the original hostname. Until then, the window is small (2 resolutions within ~ms) but real for high-value internal services.
+
+---
+
 ## References
 
 - `scripts/check.py:37-60` — canonical event-name list
@@ -223,4 +322,7 @@ do_work()
 - `.claude/hooks/session-start.py:625-680` — repo-level advisory hook (Trellis injection)
 - `plugins/memory/scripts/hooks.py` — plugin hook handlers (12 handlers)
 - `plugins/memory/.claude-plugin/plugin.json:22-...` — manifest hook registration
+- `plugins/tools/cortex/hooks/_lib/masking.py` — secret redaction reference impl
+- `plugins/tools/cortex/hooks/_lib/url_security.py` — SSRF guard reference impl
+- `plugins/tools/cortex/hooks/_lib/html_sanitize.py` — HTML injection guard reference impl
 - See also: [plugin-conventions](./plugin-conventions.md), [logging-guidelines](./logging-guidelines.md)

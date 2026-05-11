@@ -20,6 +20,19 @@ hot cache: {{HOT_CACHE_PREVIEW}}
 
 不写: 通用编程常识、当前已有上下文、简单 CRUD。
 
+## 安全声明 (P0)
+
+cortex v2 对 ingest/save 流加 3 层过滤:
+
+- **masking**: AWS/OpenAI/Anthropic key, GitHub PAT, JWT, PEM, Slack token → `<REDACTED:*>`
+- **url-security**: 拒 `127/10/172.16-31/192.168/169.254` 网段 + IPv6 ULA/link-local + 非 80/443 低端口,防 SSRF
+- **html-sanitize**: 剥 `<script>/<iframe>/onerror=/javascript:` 等注入向量
+
+集成点: `cortex-ingest` (URL 入参 + defuddle 输出),`cortex-save` (写盘前),`save_session.py` (Stop hook transcript 落档)。
+绕过: 测试场景 `CORTEX_SKIP_SANITIZE=1`,生产严禁。
+
+实现位于 `hooks/_lib/{masking,url_security,html_sanitize}.py`,纯 stdlib,幂等纯函数,命中只记规则名 (不含原值)。
+
 ## Skills 设计原则
 
 cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command** (与本仓库 `plugins/tools/task/` 全 skill 模式对齐, 决策见 `.trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/research/05-skills-vs-commands.md` §6.3 建议 B)。

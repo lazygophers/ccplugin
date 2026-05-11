@@ -83,6 +83,17 @@ After implementation:
 - [ ] Verified error handling at each boundary
 - [ ] Checked data survives round-trip
 
+## Checklist for External-Content Boundaries
+
+When the flow ingests URLs, persists transcripts, or writes free-form notes:
+
+- [ ] URL inputs gated by `url_security.is_safe()` (SSRF/metadata host check) before any fetch
+- [ ] Fetched HTML/markdown passed through `html_sanitize.sanitize()` before any further processing
+- [ ] Final text passed through `masking.mask()` before disk write
+- [ ] Filter order is `url_security → fetch → html_sanitize → masking → write` (never reorder)
+- [ ] Failure of `url_security` is fail-closed (reject, do not retry without check)
+- [ ] Reference contract: [hooks-contract.md §Security Filter Pipeline](../backend/hooks-contract.md#security-filter-pipeline-p0-hardening)
+
 ---
 
 ## When to Create Flow Documentation

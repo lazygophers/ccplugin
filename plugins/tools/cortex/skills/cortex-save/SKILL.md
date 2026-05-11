@@ -59,6 +59,13 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
    - 命中冲突 → seed 加序号重哈希; 检查 `<vault>/log/` `<vault>/folds/` 已有 `^cortex-` 防重复
 
 6. **写入** (prd §10.8 与 obsidian-git 协调)
+   - **P0 masking 前置**:写盘前必经 `masking.py` 脱敏 (AWS/OpenAI/Anthropic/GitHub PAT/JWT/PEM/Slack token → `<REDACTED:*>`),`save_session.py` 已内置;手写 body 时先
+
+     ```bash
+     SAFE_BODY="$(python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/masking.py <<< "$BODY")"
+     ```
+
+     绕过 (仅测试): `CORTEX_SKIP_SANITIZE=1`,生产禁用。
    - 优先 `mcp__obsidian__obsidian_put_content` / `obsidian_append_content`
    - MCP 不可用 → `Write`
    - 检测 `<vault>/.obsidian/plugins/obsidian-git/data.json` 存在 → **不**自动 git commit, 文件末尾加注释 `<!-- cortex-pending-commit -->`

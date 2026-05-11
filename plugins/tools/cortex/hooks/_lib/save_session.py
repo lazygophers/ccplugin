@@ -277,7 +277,15 @@ def backup_transcript(vault: Path, transcript: Path, when: dt.datetime, slug: st
         if counter > 50:
             break
     try:
-        dest.write_bytes(transcript.read_bytes())
+        raw = transcript.read_text(encoding="utf-8", errors="replace")
+        try:
+            from masking import mask as _mask
+
+            masked, _ = _mask(raw)
+        except Exception:
+            # 脱敏失败 -> 拒绝备份 (fail-closed), 避免明文 secret 落档
+            return None
+        dest.write_text(masked, encoding="utf-8")
         return dest
     except Exception:
         return None
@@ -616,6 +624,23 @@ def main() -> int:
 
     preset = read_preset(vault)
     body = body.replace("{{PRESET}}", preset)
+
+    # ----- P0 secret 脱敏 (落档前) -----
+    try:
+        from masking import mask as _mask  # 同目录模块, 纯 stdlib
+
+        body, _mask_hits = _mask(body)
+        if _mask_hits:
+            # 仅记规则名计数, 严禁原值入日志
+            from collections import Counter as _Counter
+
+            _counts = _Counter(_mask_hits)
+            _summary = ",".join(f"{n}x{c}" for n, c in sorted(_counts.items()))
+            print(f"masking: redacted {_summary}", file=sys.stderr)
+    except Exception:
+        # fail-open 不能, transcript 必须脱敏 -> 异常时改 fail-closed 拒绝写入
+        print("masking: module load failed, aborting save", file=sys.stderr)
+        return 1
 
     # ----- block-id 注入 -----
     used = collect_existing_block_ids(vault)
