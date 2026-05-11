@@ -184,3 +184,38 @@ cortex v2 单一版本设计与实施 (取代 v1)。M1-M3: vault 去编号 + i18
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: cortex 插件 hook 配置迁移到 hooks.json + check.py version 字段修复
+
+**Date**: 2026-05-11
+**Task**: cortex 插件 hook 配置迁移到 hooks.json + check.py version 字段修复
+**Branch**: `master`
+
+### Summary
+
+1) scripts/check.py 移除 version 必需字段校验,同步 plugin-conventions.md(c9a7e615 移除版本号字段的下游修复)。2) cortex 插件 hook 配置从 plugin.json 内联 hooks 块迁移到独立 hooks/hooks.json,修复 ${CLAUDE_PLUGIN_ROOT} 不展开问题。3) languages 插件移除 uv/Python 相关配置。4) cortex cron snippet 改用 marketplace 安装路径。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0bbf095b` | (see git log) |
+| `19f6d7e6` | (see git log) |
+| `444eaa90` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
