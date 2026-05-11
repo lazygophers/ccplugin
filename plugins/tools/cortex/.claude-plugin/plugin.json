@@ -22,55 +22,5 @@
     "session-recap"
   ],
   "skills": "./skills/",
-  "agents": "./agents/",
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session_start.sh",
-            "timeout": 1500
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
-            "async": true,
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
-            "async": true,
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/post_compact.sh",
-            "async": true,
-            "timeout": 3000
-          }
-        ]
-      }
-    ]
-  }
+  "agents": "./agents/"
 }

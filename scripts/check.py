@@ -291,8 +291,10 @@ HOOK_EVENT_SAMPLES = {
 	}
 }
 
-REQUIRED_PLUGIN_FIELDS = ["name", "version", "description"]
+REQUIRED_PLUGIN_FIELDS = ["name", "description"]
 RECOMMENDED_PLUGIN_FIELDS = ["author", "license", "keywords"]
+# `version` 字段在 commit c9a7e615 移除 (single-source policy);
+# 不再作为 plugin.json 必填项。
 
 
 def expand_env_vars(text: str, plugin_path: Path) -> str:

@@ -41,8 +41,9 @@ Required fields (`scripts/check.py:294`):
 | Field | Type | Notes |
 |-------|------|-------|
 | `name` | string | matches the plugin directory leaf and the `marketplace.json` entry name |
-| `version` | string | semver; synced with root `pyproject.toml` and `marketplace.json` |
 | `description` | string | one sentence; user-facing |
+
+> Note: `version` 字段在 commit c9a7e615 移除 (single-source policy, 不再放入 plugin.json/marketplace.json); 仍可选填但非必需。
 
 Recommended fields (`scripts/check.py:295`):
 
