@@ -272,9 +272,41 @@ detect_local_state() {
 
 should_overwrite_config() {
   [[ "$REINSTALL" == "1" ]] && return 0
-  [[ "$NON_INTERACTIVE" == "1" ]] && return 0
   [[ "$CONFIG_EXISTS" == "0" ]] && return 0
+  if [[ "$NON_INTERACTIVE" == "1" ]]; then
+    # config 已存在 + 非交互: 用户给了任一字段 flag 视作显式覆盖意图; 否则复用
+    if [[ -n "$VAULT" || -n "$LANG_CODE" || -n "$SETTINGS" ]]; then
+      return 0
+    fi
+    return 1
+  fi
   prompt_yes_no "~/.cortex/config.json 已存在, 覆盖?" n
+}
+
+# 读取 ~/.cortex/config.json, 填充 VAULT / LANG_CODE / SETTINGS
+# 字段对齐 scripts/cortex_config.py: vault / lang / settings / install_path
+# 返 0 = 成功, 1 = 解析失败 (caller 自行降级到 prompt)
+read_existing_config() {
+  local cfg="$HOME/.cortex/config.json"
+  [[ ! -f "$cfg" ]] && return 1
+  local out
+  out=$(CFG_PATH="$cfg" python3 -c '
+import json, os, sys
+try:
+    d = json.load(open(os.environ["CFG_PATH"]))
+    print(d.get("vault", ""))
+    print(d.get("lang", "zh-CN"))
+    print(d.get("settings", ""))
+except Exception:
+    sys.exit(1)
+') || return 1
+  VAULT=$(printf '%s' "$out" | sed -n '1p')
+  LANG_CODE=$(printf '%s' "$out" | sed -n '2p')
+  SETTINGS=$(printf '%s' "$out" | sed -n '3p')
+  [[ -z "$SETTINGS" ]] && SETTINGS="$HOME/.claude/settings.json"
+  [[ -z "$LANG_CODE" ]] && LANG_CODE="zh-CN"
+  [[ -z "$VAULT" ]] && return 1
+  return 0
 }
 
 should_regen_wrappers() {
@@ -284,14 +316,16 @@ should_regen_wrappers() {
   prompt_yes_no "~/.cortex/scripts/*.sh 已存在, 重生?" n
 }
 
-# 收集字段
-if [[ "$NON_INTERACTIVE" == "1" ]]; then
-  if [[ -z "$VAULT" ]]; then
-    echo "[install.sh] 非交互模式缺 --vault" >&2
-    echo "  curl|bash 用例: curl ... | bash -s -- --non-interactive --vault \$HOME/path/to/vault" >&2
-    exit 2
-  fi
-else
+# 先探测本地态 (config / wrappers 是否已存在), 决定字段是否复用已有 config
+detect_local_state
+
+# 决策: 是否覆盖 config (须在收集字段前问, 避免用户白填)
+OVERWRITE_CONFIG=0
+if should_overwrite_config; then
+  OVERWRITE_CONFIG=1
+fi
+
+collect_fields_from_prompt() {
   default_vault="${VAULT:-${CORTEX_VAULT:-${OBSIDIAN_VAULT:-}}}"
   while :; do
     VAULT="$(prompt_value "vault 路径" "$default_vault")"
@@ -299,7 +333,6 @@ else
       log_warn "vault 不能为空, 请重试"
       continue
     fi
-    # 展开 ~
     VAULT="${VAULT/#\~/$HOME}"
     if [[ ! -d "$VAULT" ]]; then
       log_warn "路径不存在或非目录: ${C_BOLD}${VAULT}${C_RESET}, 请重试"
@@ -314,17 +347,43 @@ else
   default_settings="${SETTINGS:-${CORTEX_SETTINGS:-$HOME/.claude/settings.json}}"
   SETTINGS="$(prompt_value "claude settings 路径" "$default_settings")"
   SETTINGS="${SETTINGS/#\~/$HOME}"
+}
+
+# 收集字段
+if [[ "$OVERWRITE_CONFIG" == "1" ]]; then
+  if [[ "$NON_INTERACTIVE" == "1" ]]; then
+    if [[ -z "$VAULT" ]]; then
+      echo "[install.sh] 非交互模式缺 --vault" >&2
+      echo "  curl|bash 用例: curl ... | bash -s -- --non-interactive --vault \$HOME/path/to/vault" >&2
+      exit 2
+    fi
+  else
+    collect_fields_from_prompt
+  fi
+else
+  # 不覆盖: 复用 ~/.cortex/config.json 字段
+  if read_existing_config; then
+    log_ok "复用现有 config: vault=${C_BOLD}${VAULT}${C_RESET} lang=${C_BOLD}${LANG_CODE}${C_RESET} settings=${C_BOLD}${SETTINGS}${C_RESET}"
+  else
+    log_warn "解析 ~/.cortex/config.json 失败, 回退到 prompt"
+    if [[ "$NON_INTERACTIVE" == "1" ]]; then
+      if [[ -z "$VAULT" ]]; then
+        echo "[install.sh] 非交互模式缺 --vault (现有 config 不可解析)" >&2
+        exit 2
+      fi
+    else
+      collect_fields_from_prompt
+    fi
+    OVERWRITE_CONFIG=1
+  fi
 fi
 
-# 展开 ~ (非交互模式也补一下)
+# 展开 ~ (兜底, 防 flag/env 注入未展开)
 VAULT="${VAULT/#\~/$HOME}"
 [[ -n "$SETTINGS" ]] && SETTINGS="${SETTINGS/#\~/$HOME}"
 
-# 探测本地态 (config / wrappers 是否已存在), 后续按 flag/prompt 决定是否覆盖
-detect_local_state
-
 # 调 cortex_config.py init 写 config
-if should_overwrite_config; then
+if [[ "$OVERWRITE_CONFIG" == "1" ]]; then
   init_args=(--non-interactive --install-path "$INSTALL_PATH" --vault "$VAULT")
   [[ -n "$LANG_CODE" ]] && init_args+=(--lang "$LANG_CODE")
   [[ -n "$SETTINGS" ]] && init_args+=(--settings "$SETTINGS")
@@ -381,15 +440,67 @@ step_mcp_install() {
 
 step_mcp_install
 
+# ── cron 幂等性 ────────────────────────────────────────────────────
+# 检测 crontab / launchd 中是否已有 cortex job
+# 返 0 = 已注册 (跳过装), 1 = 无 (走原流程)
+detect_existing_cron() {
+  if command -v launchctl >/dev/null 2>&1; then
+    # macOS 14+ 非 root 可能看不全 system domain, 接受 false negative
+    if launchctl list 2>/dev/null | grep -E 'cortex' >/dev/null 2>&1; then
+      log_info "检测到 launchd 已注册 cortex job, 跳过 cron 装"
+      return 0
+    fi
+  fi
+  if command -v crontab >/dev/null 2>&1; then
+    if crontab -l 2>/dev/null | grep -E 'cortex/scripts/(cron/)?(lint|fold|dashboard)\.sh' >/dev/null 2>&1; then
+      log_info "检测到 crontab 已含 cortex job, 跳过 cron 装"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+# 删 crontab 中引用不存在脚本的 cortex 行 (路径锚 cortex/scripts/cron/(lint|fold|dashboard).sh)
+# 不动 launchd plist (重启风险大, 留用户手动)
+prune_stale_cron() {
+  command -v crontab >/dev/null 2>&1 || return 0
+  local current new
+  current=$(crontab -l 2>/dev/null) || return 0
+  [[ -z "$current" ]] && return 0
+  new=$(printf '%s\n' "$current" | awk -v home="$HOME" '
+    {
+      keep = 1
+      if (match($0, /[^ ]*cortex\/scripts\/cron\/(lint|fold|dashboard)\.sh/)) {
+        path = substr($0, RSTART, RLENGTH)
+        gsub("~", home, path)
+        sub(/^\$HOME/, home, path)
+        cmd = "test -f \"" path "\""
+        if (system(cmd) != 0) { keep = 0 }
+      }
+      if (keep) print
+    }
+  ')
+  if [[ "$current" != "$new" ]]; then
+    log_warn "prune crontab 失效 cortex job"
+    printf '%s\n' "$new" | crontab -
+  fi
+}
+
 # 可选 cron 安装
 do_cron=0
-if [[ "$NO_CRON" == "1" ]]; then
-  do_cron=0
-elif [[ "$NON_INTERACTIVE" == "1" ]]; then
-  do_cron=0
-else
-  if prompt_yes_no "现在通过 wrapper 安装 cron snippet?" "n"; then
-    do_cron=1
+if [[ "$NO_CRON" != "1" ]]; then
+  prune_stale_cron
+  if detect_existing_cron; then
+    if [[ "$REINSTALL" == "1" ]]; then
+      log_info "已有 cortex 周期任务, --reinstall 强制重装"
+      do_cron=1
+    else
+      log_info "已有 cortex 周期任务, 跳过 (--reinstall 强制重装)"
+    fi
+  elif [[ "$NON_INTERACTIVE" != "1" ]]; then
+    if prompt_yes_no "现在通过 wrapper 安装 cron snippet?" "n"; then
+      do_cron=1
+    fi
   fi
 fi
 

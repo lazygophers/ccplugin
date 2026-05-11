@@ -207,6 +207,93 @@ rev = "v0.0.100"      # diverges from repo version
 
 ---
 
+## Idempotent Install Pattern
+
+Bash installers (`install.sh`) MUST be idempotent: running twice on a configured system produces no surprises and reuses prior choices.
+
+### Detection-First Prompt Order
+
+```bash
+detect_local_state                       # set flags from filesystem
+if [[ $CONFIG_EXISTS == 1 ]]; then
+  if should_overwrite_config; then       # ask FIRST
+    OVERWRITE_CONFIG=1
+    collect_fields_from_prompt
+  else
+    OVERWRITE_CONFIG=0
+    read_existing_config                 # reuse existing values
+    log_info "复用现有 config: ..."
+  fi
+else
+  OVERWRITE_CONFIG=1
+  collect_fields_from_prompt
+fi
+```
+
+**Anti-pattern**: prompting for values before asking "overwrite?" wastes user input when they answer "no".
+
+### Reading Existing Config (path-injection-safe)
+
+Pass the config path via env var; never interpolate into the python source.
+
+```bash
+out=$(CFG_PATH="$cfg" python3 -c '
+import json, os, sys
+try:
+    d = json.load(open(os.environ["CFG_PATH"]))
+    print(d.get("vault", ""))
+    print(d.get("lang", "zh-CN"))
+    print(d.get("settings", ""))
+except Exception:
+    sys.exit(1)
+') || return 1
+```
+
+### Periodic-Task (cron/launchd) Idempotency
+
+Three rules:
+
+1. **Detect before install**: scan `crontab -l` and `launchctl list` for already-registered jobs; skip install if present.
+2. **Prune stale**: crontab lines referencing `<plugin>/scripts/cron/*.sh` whose target file no longer exists MUST be removed.
+3. **Anchored regex**: match the named wrapper allowlist (e.g., `cortex/scripts/cron/(lint|fold|dashboard)\.sh`) — never match the plugin name alone, to avoid pruning user-authored cron entries that happen to mention the plugin.
+
+```bash
+new=$(echo "$current" | awk -v home="$HOME" '
+  /cortex\/scripts\/cron\/(lint|fold|dashboard)\.sh/ {
+    match($0, /[^ ]*cortex\/scripts\/cron\/[a-z]+\.sh/)
+    if (RSTART > 0) {
+      path = substr($0, RSTART, RLENGTH)
+      gsub("~", home, path)
+      cmd = "test -f \"" path "\""    # QUOTED — injection-safe
+      if (system(cmd) != 0) { next }
+    }
+  }
+  { print }
+')
+```
+
+`launchctl list` MUST swallow stderr (`2>/dev/null`) — macOS 14+ restricts non-root visibility into system domain. `crontab -l` reads from stdin without eval, so `printf '%s\n' "$new" | crontab -` is safe even with shell-meta chars in the content.
+
+### Non-Interactive Flag-Override Semantics
+
+When `--non-interactive` and config already exists:
+- No `--vault` / `--lang` / `--settings` / `--reinstall` flags → **reuse** existing config
+- Any one of those flags present → **overwrite** (user intent inferred from explicit flag)
+- `--reinstall` always wins
+
+Satisfies both `curl|bash` reuse semantics and explicit-flag override semantics from one code path.
+
+### Acceptance test signals
+
+- Scenario: config exists + answer "n" → no prompts for individual fields, `log_info "复用现有 config: ..."` printed
+- Scenario: config exists + cron job already registered → no cron prompt, `log_info "已有 ... 周期任务, 跳过"` printed
+- Scenario: `--reinstall` → forces both prompts/installs regardless of existing state
+- Stale cron prune: introduce a crontab line pointing at a deleted wrapper; rerun installer; line MUST be gone
+
+Reference impl: `plugins/tools/cortex/install.sh`.
+
+---
+
 ## References
 
 - `plugins/memory/.claude-plugin/plugin.json` — reference manifest with hooks
