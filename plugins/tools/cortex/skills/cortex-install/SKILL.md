@@ -45,8 +45,20 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_v
    - 按 `directories[]` 在 vault 内创建空目录
    - 按 `seed_files[]` 把 `${CLAUDE_PLUGIN_ROOT}/presets/<preset>/<src>` 复制到 `<vault>/<dst>`
    - blank preset 的 directories/seed_files 均为空, 跳过即可
-5. **回报** — 列已创建/已存在的文件, 提示运行 `/cortex:doctor` 验证
-6. **周期任务询问** — 调 `AskUserQuestion` 工具询问 (合并 ≤4 questions 单次调用):
+5. **询问 git auto-sync (P5)** — 若 `<vault>/.git` 存在 (vault 是 git repo), **必须**用 `AskUserQuestion` 工具(不能用文本式提问) 询问 1 个 single-choice 问题:
+
+   - 问题: "vault 是 git repo, 是否启用 Stop hook 自动 commit?"
+   - 选项:
+     - `关` (默认) → 写 `_meta/version.json`: `auto_commit=false, auto_push=false`
+     - `仅 commit` → `auto_commit=true, auto_push=false` (本地 commit, 不 push)
+     - `commit + push` → `auto_commit=true, auto_push=true` (上述 + `git push origin HEAD`)
+
+   提示用户: 启用 `commit + push` 前请自查 vault 不含 secret (P0 masking 只覆盖 ingest/save, 不护手写笔记)。详见 `docs/sync-git.md`。
+
+   vault 不是 git repo → 跳过此步, 不写两个字段 (后续用户可手动 `git init` + 重跑 install)。
+
+6. **回报** — 列已创建/已存在的文件, 提示运行 `/cortex:doctor` 验证
+7. **周期任务询问** — 调 `AskUserQuestion` 工具询问 (合并 ≤4 questions 单次调用):
    - Q1 (multiSelect): "勾选要注册的 cron job" — options: `daily 01:00 lint` / `weekly Sun 02:00 fold` / `weekly Sun 02:30 dashboard`
    - Q2 (single): "注册平台" — options: `launchd` / `cron` / `gha` / `none`
 

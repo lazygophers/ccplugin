@@ -113,4 +113,15 @@ sys.stdout.write(json.dumps(payload, ensure_ascii=False))
     ;;
 esac
 
+# ---- P5: vault auto-commit (opt-in) ----
+# 异步隔离, 不阻塞 hook 返回; git_sync.py 内部 fail-soft.
+if [[ -n "${VAULT:-}" ]]; then
+  (
+    CORTEX_VAULT_PATH="$VAULT" \
+      python3 "$PLUGIN_ROOT/hooks/_lib/git_sync.py" auto "$VAULT" \
+      >>"$LOG_FILE" 2>&1
+  ) &
+  disown 2>/dev/null || true
+fi
+
 exit 0

@@ -104,3 +104,24 @@ cortex P1 起, 核心操作沉 MCP server (`mcp__cortex__*`), skill 作对话入
 
 MCP server 装: `pipx install ${CLAUDE_PLUGIN_ROOT}/mcp` (install.sh `step_mcp_install` 自动)。
 未装时 skill 自动退回 L1-L5 链路, 不阻塞使用。`--reinstall` 触发 `pipx install --force` 跟随插件升级。
+
+## Git Sync (P5)
+
+vault 是 git repo 时, Stop hook 可选触发 auto-commit (默认完全关闭):
+
+| 模式 | 配置 | 行为 |
+|------|------|------|
+| 手动 | `auto_commit=false` (默认) | 无副作用, 不触碰 git |
+| 仅 commit | `auto_commit=true, auto_push=false` | Stop 后 `git add -A && git commit -m "auto: <UTC>"` |
+| commit + push | `auto_commit=true, auto_push=true` | 上述 + `git push origin HEAD` (30s timeout) |
+
+约束:
+- 模块: `hooks/_lib/git_sync.py`, 纯 stdlib + `subprocess.run(["git", ...])`, 禁 `shell=True`
+- 所有 git 调用 timeout, fail-soft (异常返 `(False, info)` 不抛, 不阻塞 hook)
+- `has_changes` 检测先于 commit, 防 commit storm
+- timezone 用 UTC, 跨机一致
+- push 失败不影响本地 commit, 下次 Stop 自动重试
+- cortex **不自动 pull**, 多机协同靠用户手动 `git pull`
+- P0 masking 不覆盖手写笔记中的 secret, 启 `auto_push` 前自查 vault
+
+详见 `docs/sync-git.md`。

@@ -315,6 +315,45 @@ write(md)
 
 ---
 
+## Opt-In Vault Side Effects (P5)
+
+Hooks that mutate user-owned external state (e.g., vault git auto-commit) MUST be opt-in via a config field, default off.
+
+### Pattern
+
+```bash
+# Inside stop.sh, before final exit 0:
+if [ -n "${VAULT:-}" ]; then
+  (
+    python3 "${PLUGIN_ROOT}/hooks/_lib/<sync_module>.py" auto "$VAULT" \
+      >> "$LOG_FILE" 2>&1
+  ) &
+  disown
+fi
+```
+
+Rules:
+- The hook itself is already `async: true` in `plugin.json`; the inner `( ... ) &` + `disown` is a second layer of decoupling so a slow remote (e.g., `git push` over flaky network) never holds the hook's lifetime.
+- The opt-in switch lives in `<vault>/_meta/version.json` (e.g., `auto_commit: false`, `auto_push: false`). Reading the config and checking the switch happens inside the Python module, not in shell, to keep `stop.sh` minimal.
+- Failure modes inside the module MUST be fail-soft: return `(False, info)`, never raise out of the module entry point. The hook's exit code is unaffected.
+- `subprocess.run(["git", ...], cwd=vault, timeout=<budget>, capture_output=True, text=True)`. No `shell=True`. Each git verb has its own timeout (commit ≤ 10s, push ≤ 30s).
+- Commit messages MUST be UTC and free of user-controlled content beyond an explicit `CORTEX_GIT_MESSAGE` env override.
+- The "no changes" branch returns `(True, "no changes")` (success, no-op) — not a failure — so users don't see noise on empty Stops.
+- Reference impl: `plugins/tools/cortex/hooks/_lib/git_sync.py` + `plugins/tools/cortex/hooks/stop.sh` (P5 tail block).
+
+### When to use this pattern
+
+- Vault → remote sync (git push, rsync, S3)
+- Health-metrics export to a separate file
+- Long-running indexer refresh
+
+### When NOT to use this pattern
+
+- Anything that must complete before the hook returns (use the hook's own timeout budget instead).
+- Anything that writes to the plugin's own state (use a synchronous helper).
+
+---
+
 ## References
 
 - `scripts/check.py:37-60` — canonical event-name list
