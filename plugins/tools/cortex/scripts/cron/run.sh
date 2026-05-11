@@ -13,7 +13,7 @@
 # Env / flags consumed (passed via the calling script):
 #   CORTEX_VAULT       (required) vault root path; printed into prompt context
 #   CORTEX_LANG        (optional) override vault.lang; default detected from _meta/version.json
-#   CORTEX_SETTINGS    (optional) path to claude settings json; default ~/.claude/settings.glm-4.5-flash.json
+#   CORTEX_SETTINGS    (optional) path to claude settings json; default ~/.claude/settings.glm-4.7-flash.json
 #   CORTEX_TIMEOUT     (optional) seconds; default 300
 #   CORTEX_DRY_RUN=1   (optional) print the resolved command and exit 0
 #
@@ -60,7 +60,7 @@ fi
 # lang priority here is env > config; vault `_meta/version.json` is layered on
 # top by Python consumers (lint/run.py, hooks/_lib/cortex_locale.py).
 LANG_OVERRIDE="$(cortex_config_resolve lang CORTEX_LANG "")"
-SETTINGS="$(cortex_config_resolve settings CORTEX_SETTINGS "$HOME/.claude/settings.glm-4.5-flash.json")"
+SETTINGS="$(cortex_config_resolve settings CORTEX_SETTINGS "$HOME/.claude/settings.glm-4.7-flash.json")"
 TIMEOUT="${CORTEX_TIMEOUT:-300}"
 
 LOG_DIR="$HOME/.cache/cortex/cron"

@@ -23,32 +23,32 @@ These specs encode the **actual** conventions in this repo. Document reality, no
 
 Before writing any backend code, confirm you have read the relevant guides:
 
-| When you are about to... | Read |
-|--------------------------|------|
-| Create or modify a plugin | [plugin-conventions](./plugin-conventions.md) + [marketplace](./marketplace.md) |
-| Add a `#[tauri::command]` or emit/listen event | [tauri-patterns](./tauri-patterns.md) |
-| Persist data in a plugin | [database-guidelines](./database-guidelines.md) |
-| Raise/catch/return errors (Python or Rust) | [error-handling](./error-handling.md) |
-| Add log lines | [logging-guidelines](./logging-guidelines.md) |
-| Implement a Claude Code hook handler | [hooks-contract](./hooks-contract.md) |
-| Place new files | [directory-structure](./directory-structure.md) |
-| Submit code for review | [quality-guidelines](./quality-guidelines.md) |
+| When you are about to...                       | Read                                                                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| Create or modify a plugin                      | [plugin-conventions](./plugin-conventions.md) + [marketplace](./marketplace.md) |
+| Add a `#[tauri::command]` or emit/listen event | [tauri-patterns](./tauri-patterns.md)                                           |
+| Persist data in a plugin                       | [database-guidelines](./database-guidelines.md)                                 |
+| Raise/catch/return errors (Python or Rust)     | [error-handling](./error-handling.md)                                           |
+| Add log lines                                  | [logging-guidelines](./logging-guidelines.md)                                   |
+| Implement a Claude Code hook handler           | [hooks-contract](./hooks-contract.md)                                           |
+| Place new files                                | [directory-structure](./directory-structure.md)                                 |
+| Submit code for review                         | [quality-guidelines](./quality-guidelines.md)                                   |
 
 ---
 
 ## Guidelines Index
 
-| Guide | Description | Status |
-|-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Repo tree, where each kind of code lives | Filled |
-| [Plugin Conventions](./plugin-conventions.md) | `plugin.json` schema, plugin layout, version sync | Filled |
-| [Marketplace](./marketplace.md) | `marketplace.json` registration rules and invariants | Filled |
-| [Tauri Patterns](./tauri-patterns.md) | `#[tauri::command]` + event-driven architecture | Filled |
-| [Hooks Contract](./hooks-contract.md) | Claude Code hook events, I/O JSON schema, exit codes | Filled |
-| [Database Guidelines](./database-guidelines.md) | `lib.db` ORM (Model / Field / async adapters) | Filled |
-| [Error Handling](./error-handling.md) | Python exceptions + Rust `Result` + Tauri envelopes | Filled |
-| [Quality Guidelines](./quality-guidelines.md) | ruff, pytest, forbidden patterns, review checklist | Filled |
-| [Logging Guidelines](./logging-guidelines.md) | `lib.logging` API, levels, structured fields, no PII | Filled |
+| Guide                                           | Description                                          | Status |
+| ----------------------------------------------- | ---------------------------------------------------- | ------ |
+| [Directory Structure](./directory-structure.md) | Repo tree, where each kind of code lives             | Filled |
+| [Plugin Conventions](./plugin-conventions.md)   | `plugin.json` schema, plugin layout, version sync    | Filled |
+| [Marketplace](./marketplace.md)                 | `marketplace.json` registration rules and invariants | Filled |
+| [Tauri Patterns](./tauri-patterns.md)           | `#[tauri::command]` + event-driven architecture      | Filled |
+| [Hooks Contract](./hooks-contract.md)           | Claude Code hook events, I/O JSON schema, exit codes | Filled |
+| [Database Guidelines](./database-guidelines.md) | `lib.db` ORM (Model / Field / async adapters)        | Filled |
+| [Error Handling](./error-handling.md)           | Python exceptions + Rust `Result` + Tauri envelopes  | Filled |
+| [Quality Guidelines](./quality-guidelines.md)   | ruff, pytest, forbidden patterns, review checklist   | Filled |
+| [Logging Guidelines](./logging-guidelines.md)   | `lib.logging` API, levels, structured fields, no PII | Filled |
 
 > See also: `.trellis/spec/guides/` for thinking guides (cross-layer, code reuse).
 
@@ -73,7 +73,7 @@ Before writing any backend code, confirm you have read the relevant guides:
 3. Each spec must contain: scope, rules, ≥ 1 real code excerpt, forbidden patterns, common mistakes.
 4. Run the project quality-check (CLAUDE.md §代码质量检查规范) on the new content:
    ```bash
-   claude --settings ~/.claude/settings.glm-4.5-flash.json -p "<spec content>" \
+   claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<spec content>" \
      --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result'
    ```
 5. Cross-link from `index.md` if you add a new file.

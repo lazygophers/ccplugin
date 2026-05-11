@@ -13,6 +13,7 @@ Replace all placeholder content with ccplugin-specific conventions extracted fro
 ### In-scope
 
 Update existing placeholders:
+
 - `backend/index.md` — accurate Pre-Development Checklist pointing to filled guides
 - `backend/directory-structure.md` — actual repo tree (plugins/, lib/, scripts/, desktop/, .claude-plugin/)
 - `backend/database-guidelines.md` — `lib.db` ORM usage (Model, Field, async adapters); SQLite default for plugins
@@ -21,6 +22,7 @@ Update existing placeholders:
 - `backend/logging-guidelines.md` — `lib.logging` API (info/debug/warn/error), structured fields, no PII
 
 Create new spec files:
+
 - `backend/plugin-conventions.md` — `plugin.json` schema, directory layout (`.claude-plugin/`, `scripts/`, `tests/`), `pyproject.toml` template, manifest version sync
 - `backend/tauri-patterns.md` — `#[tauri::command]` signature, return-immediate + emit pattern (cite `desktop-event-driven-architecture.md` memory), event naming `<domain>-<entity>-<action>`
 - `backend/marketplace.md` — `marketplace.json` registration rules, dir-name vs manifest.name alignment, version field sync
@@ -39,7 +41,7 @@ Create new spec files:
 3. Cross-link: `backend/index.md` table updated to `Status: filled` and link new files
 4. Verify AI comprehension via project quality-check command (CLAUDE.md §代码质量检查规范):
    ```bash
-   claude --settings ~/.claude/settings.glm-4.5-flash.json -p "<spec content>" --output-format stream-json | jq -r '...'
+   claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<spec content>" --output-format stream-json | jq -r '...'
    ```
 
 ## Acceptance Criteria

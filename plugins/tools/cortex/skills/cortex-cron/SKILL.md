@@ -37,24 +37,24 @@ cron daemon 不继承 shell 环境, 故 snippet 中 `PLUGIN_ROOT` 必须是**绝
 
 ## 默认任务
 
-| Job | 时机 | 命令 (snippet 中已替换为绝对路径) |
-|-----|------|------|
-| `lint` | daily 01:00 | `<PLUGIN_ROOT>/scripts/cron/lint.sh` |
-| `fold` | weekly Sun 02:00 | `<PLUGIN_ROOT>/scripts/cron/fold.sh` |
+| Job         | 时机             | 命令 (snippet 中已替换为绝对路径)         |
+| ----------- | ---------------- | ----------------------------------------- |
+| `lint`      | daily 01:00      | `<PLUGIN_ROOT>/scripts/cron/lint.sh`      |
+| `fold`      | weekly Sun 02:00 | `<PLUGIN_ROOT>/scripts/cron/fold.sh`      |
 | `dashboard` | weekly Sun 02:30 | `<PLUGIN_ROOT>/scripts/cron/dashboard.sh` |
 
 其中 `<PLUGIN_ROOT>` 通常为 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex`。
 
-每脚本走 `claude --bare --no-session-persistence --settings ~/.claude/settings.glm-4.5-flash.json -p "..."`, 见 research/01-claude-code-programmatic.md §E。
+每脚本走 `claude --bare --no-session-persistence --settings ~/.claude/settings.glm-4.7-flash.json -p "..."`, 见 research/01-claude-code-programmatic.md §E。
 
 ## 子命令
 
-| 子命令 | 行为 |
-|--------|------|
-| `cortex-cron install [job]` | dry-run 显示要写入的 plist/crontab, 调 `AskUserQuestion` 确认后落盘 |
-| `cortex-cron status` | 列已注册任务 (launchctl list / systemctl --user list-timers / crontab -l 过滤) |
-| `cortex-cron uninstall [job]` | 卸载指定 job 或全部 |
-| `cortex-cron run <job>` | 立即手跑一次 (调试用) |
+| 子命令                        | 行为                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `cortex-cron install [job]`   | dry-run 显示要写入的 plist/crontab, 调 `AskUserQuestion` 确认后落盘            |
+| `cortex-cron status`          | 列已注册任务 (launchctl list / systemctl --user list-timers / crontab -l 过滤) |
+| `cortex-cron uninstall [job]` | 卸载指定 job 或全部                                                            |
+| `cortex-cron run <job>`       | 立即手跑一次 (调试用)                                                          |
 
 ## 关键约束
 

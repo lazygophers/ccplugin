@@ -17,6 +17,7 @@ skills:
 本 Skill 提供完整的插件开发流程，从需求分析到测试验证，帮助用户快速创建高质量的 Claude Code 插件。
 
 **核心能力**：
+
 1. 需求分析和规划
 2. 插件结构设计
 3. Manifest 配置
@@ -32,6 +33,7 @@ skills:
 **目标**：理解用户需求，明确插件功能和设计方向
 
 **步骤**：
+
 1. 使用 `AskUserQuestion` 询问以下信息（如果用户输入不明确）：
    - 插件类型（工具类/语言类/框架类）
    - 主要功能（代码生成/检查/自动化）
@@ -58,6 +60,7 @@ skills:
 **目标**：将需求拆分为可执行的子任务，建立依赖关系
 
 **步骤**：
+
 1. 进入 Plan 模式（EnterPlanMode）
 2. 生成完整的需求说明和开发说明
 3. 尽可能细致地拆分需求：
@@ -83,6 +86,7 @@ skills:
 **目标**：按计划执行所有开发任务
 
 **步骤**：
+
 1. 按依赖顺序执行任务
 2. **并行限制**：最多2个任务同时执行
 3. 优先使用 agents 而非直接执行：
@@ -102,6 +106,7 @@ skills:
 **目标**：确保测试通过率100%，覆盖率≥95%
 
 **步骤**：
+
 1. 为每个组件添加测试：
    - Agent 测试：AI理解测试（质量检查工具）
    - Skill 测试：功能测试、执行流程测试
@@ -109,8 +114,9 @@ skills:
    - Script 测试：单元测试、集成测试
 
 2. 使用质量检查工具验证 AI 理解：
+
    ```bash
-   claude --settings ~/.claude/settings.glm-4.5-flash.json \
+   claude --settings ~/.claude/settings.glm-4.7-flash.json \
      -p "$(cat agents.bak/agent-name.md)" \
      --output-format stream-json | \
      jq -r 'select(.type == "result" and .subtype == "success") | .result'
@@ -126,10 +132,11 @@ skills:
 **目标**：确保所有变更符合规范
 
 **步骤**：
+
 1. 检查文件长度：
-   - *.md 文件：≤300行（推荐100-200行）
-   - *.py 文件：≤800行（推荐200-500行）
-   - *.go 文件：≤800行（推荐200-500行）
+   - \*.md 文件：≤300行（推荐100-200行）
+   - \*.py 文件：≤800行（推荐200-500行）
+   - \*.go 文件：≤800行（推荐200-500行）
 
 2. 检查代码风格：
    - 与原有代码风格一致
@@ -150,6 +157,7 @@ skills:
 **目标**：生成完整的插件文档
 
 **步骤**：
+
 1. 更新/创建 llms.txt：
    - 项目概览
    - 目录结构
@@ -173,6 +181,7 @@ skills:
 **目标**：全面验证插件质量
 
 **步骤**：
+
 1. AI 理解测试（所有 Agents 和 Skills）
 2. 功能测试（基本流程）
 3. 集成测试（与其他插件协作）
@@ -260,27 +269,27 @@ plugin-name/
 
 ```json
 {
-  "name": "plugin-name",
-  "version": "1.0.0",
-  "description": "插件描述",
-  "author": {
-    "name": "作者名称",
-    "email": "email@example.com",
-    "url": "https://github.com/username"
-  },
-  "homepage": "https://github.com/username/plugin-name",
-  "repository": "https://github.com/username/plugin-name",
-  "license": "AGPL-3.0-or-later",
-  "keywords": ["keyword1", "keyword2"],
-  "agents": [
-    "./agents.bak/agent-name.md"
-  ],
-  "skills": "./skills.bak/",
-  "hooks": {
-    "SessionStart": [{
-      "hooks": [{"type": "command", "command": "echo 'Plugin loaded'"}]
-    }]
-  }
+	"name": "plugin-name",
+	"version": "1.0.0",
+	"description": "插件描述",
+	"author": {
+		"name": "作者名称",
+		"email": "email@example.com",
+		"url": "https://github.com/username"
+	},
+	"homepage": "https://github.com/username/plugin-name",
+	"repository": "https://github.com/username/plugin-name",
+	"license": "AGPL-3.0-or-later",
+	"keywords": ["keyword1", "keyword2"],
+	"agents": ["./agents.bak/agent-name.md"],
+	"skills": "./skills.bak/",
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [{ "type": "command", "command": "echo 'Plugin loaded'" }]
+			}
+		]
+	}
 }
 ```
 

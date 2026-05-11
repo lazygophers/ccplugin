@@ -119,7 +119,7 @@ async fn do_everything() -> Result<(), String> {
 For changes to `commands/`, `skills/`, `agents/`, or any `agent.md` (and equally for these `.trellis/spec/*` files), run the AI comprehension check from `CLAUDE.md` §代码质量检查规范:
 
 ```bash
-claude --settings ~/.claude/settings.glm-4.5-flash.json -p "<content under test>" \
+claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<content under test>" \
   --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```
 
@@ -148,13 +148,13 @@ Before approving a backend PR:
 
 ## Common Mistakes
 
-| Mistake | Fix |
-|---------|-----|
-| Forgot to bump `marketplace.json` version | Re-run `uv run scripts/update_version.py` |
-| `unwrap()` slipped into Rust release code | Replace with `?` or `ok_or` |
-| Plugin tests reach the network | Mock or mark with `pytest.mark.network` and skip in CI default |
-| `print` debug left in | Replace with `lib.logging.debug` (only emits to console with `enable_debug()`) |
-| Ruff rule disabled inline | Don't disable; fix the underlying issue or raise it in review |
+| Mistake                                   | Fix                                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------ |
+| Forgot to bump `marketplace.json` version | Re-run `uv run scripts/update_version.py`                                      |
+| `unwrap()` slipped into Rust release code | Replace with `?` or `ok_or`                                                    |
+| Plugin tests reach the network            | Mock or mark with `pytest.mark.network` and skip in CI default                 |
+| `print` debug left in                     | Replace with `lib.logging.debug` (only emits to console with `enable_debug()`) |
+| Ruff rule disabled inline                 | Don't disable; fix the underlying issue or raise it in review                  |
 
 ---
 

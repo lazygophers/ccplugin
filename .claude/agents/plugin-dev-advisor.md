@@ -44,6 +44,7 @@ skills:
 ### 1. 需求分析
 
 明确插件类型和功能：
+
 - **插件类型**：工具类 vs 语言类 vs 框架类
 - **主要功能**：代码生成 vs 检查 vs 自动化
 - **目标用户**：开发者 vs 团队 vs 企业
@@ -51,6 +52,7 @@ skills:
 ### 2. 结构设计
 
 规划插件目录结构：
+
 ```
 plugin-name/
 ├── .claude-plugin/
@@ -70,29 +72,33 @@ plugin-name/
 ### 3. Manifest 配置
 
 编写 plugin.json：
+
 ```json
 {
-  "name": "plugin-name",
-  "version": "1.0.0",
-  "description": "插件描述",
-  "author": {
-    "name": "作者",
-    "email": "email@example.com"
-  },
-  "keywords": ["keyword1", "keyword2"],
-  "agents": ["./agents.bak/agent-name.md"],
-  "skills": "./skills.bak/",
-  "hooks": {
-    "SessionStart": [{
-      "hooks": [{"type": "command", "command": "echo 'init'"}]
-    }]
-  }
+	"name": "plugin-name",
+	"version": "1.0.0",
+	"description": "插件描述",
+	"author": {
+		"name": "作者",
+		"email": "email@example.com"
+	},
+	"keywords": ["keyword1", "keyword2"],
+	"agents": ["./agents.bak/agent-name.md"],
+	"skills": "./skills.bak/",
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [{ "type": "command", "command": "echo 'init'" }]
+			}
+		]
+	}
 }
 ```
 
 ### 4. 组件开发
 
 调用相应的 skills：
+
 - **Agent开发** → `new-plugin` skill
 - **Skill开发** → `plugin-skills` skill
 - **Hook开发** → `plugin-skills` skill
@@ -101,12 +107,14 @@ plugin-name/
 ### 5. 集成配置
 
 MCP/LSP 集成（如需要）：
+
 - **MCP集成** → 创建 .mcp.json
 - **LSP集成** → 配置 LSP 服务器
 
 ### 6. 文档生成
 
 使用 `documentation` skill 生成：
+
 - README.md（概览、安装、使用）
 - CHANGELOG.md（版本历史）
 - llms.txt（AI友好概览）
@@ -120,6 +128,7 @@ AI理解测试 + 功能测试 + 集成测试
 ### § Agent 开发
 
 **定义规范**（YAML frontmatter）：
+
 ```yaml
 ---
 description: |
@@ -136,11 +145,13 @@ skills:
 ```
 
 **职责定义**：
+
 - 核心职责（1-5项）
 - 触发场景（关键词列表）
 - 工作流程（3-7个阶段）
 
 **最佳实践**：
+
 - 职责单一，边界清晰
 - 0%职责重叠
 - 文件≤300行
@@ -150,6 +161,7 @@ skills:
 ### § Skill 开发
 
 **定义规范**（YAML frontmatter）：
+
 ```yaml
 ---
 name: skill-name
@@ -163,22 +175,29 @@ skills:
 ```
 
 **执行流程**：
+
 - 阶段划分（3-7个阶段）
 - 工具调用（Read、Write、Bash等）
 - 错误处理
 
 **Prompt Caching**（推荐）：
+
 ```markdown
 <!-- STATIC_CONTENT: Cacheable (4800+ tokens) -->
+
 静态内容（框架、最佳实践、规范）
+
 <!-- /STATIC_CONTENT -->
 
 <!-- DYNAMIC_CONTENT -->
+
 动态内容（用户输入、当前状态）
+
 <!-- /DYNAMIC_CONTENT -->
 ```
 
 **文件结构**：
+
 - SKILL.md（主文件，≤300行）
 - best-practices.md（最佳实践，≤300行）
 - examples.md（示例，≤300行）
@@ -190,21 +209,24 @@ skills:
 **⚠️ Commands已废弃**：2026架构已将Commands迁移到Skills（user-invocable: true）
 
 **事件类型**：
+
 - PreToolUse、PostToolUse、Stop、SubagentStop
 - SessionStart、SessionEnd、UserPromptSubmit
 - PreCompact、Notification
 
 **触发条件**：
+
 - 文件模式：`"pattern": "*.py"`
 - 工具名称：`"toolName": "Bash"`
 - 条件表达式：`"condition": "input.includes('test')"`
 
 **执行方式**（推荐 prompt-based）：
+
 ```json
 {
-  "type": "prompt",
-  "prompt": "检查用户输入是否符合规范...",
-  "rejectIf": "{{output}} === 'reject'"
+	"type": "prompt",
+	"prompt": "检查用户输入是否符合规范...",
+	"rejectIf": "{{output}} === 'reject'"
 }
 ```
 
@@ -215,28 +237,30 @@ skills:
 **服务器类型**：SSE、stdio、HTTP、WebSocket
 
 **配置文件**（.mcp.json）：
+
 ```json
 {
-  "mcpServers": {
-    "server-name": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": ["mcp-server-name"],
-      "env": {
-        "API_TOKEN": "${API_TOKEN}",
-        "PROXY_URL": "${PROXY_URL}"
-      },
-      "metadata": {
-        "description": "服务器描述",
-        "priority": "required | optional",
-        "usage": "使用场景"
-      }
-    }
-  }
+	"mcpServers": {
+		"server-name": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": ["mcp-server-name"],
+			"env": {
+				"API_TOKEN": "${API_TOKEN}",
+				"PROXY_URL": "${PROXY_URL}"
+			},
+			"metadata": {
+				"description": "服务器描述",
+				"priority": "required | optional",
+				"usage": "使用场景"
+			}
+		}
+	}
 }
 ```
 
 **工具调用**：
+
 ```
 mcp__server-name__tool-name(参数)
 ```
@@ -248,15 +272,16 @@ mcp__server-name__tool-name(参数)
 ### § LSP 集成
 
 **服务器配置**：
+
 ```json
 {
-  "lspServers": {
-    "language-name": {
-      "command": "language-server",
-      "args": ["--stdio"],
-      "workingDirectory": "${workspaceFolder}"
-    }
-  }
+	"lspServers": {
+		"language-name": {
+			"command": "language-server",
+			"args": ["--stdio"],
+			"workingDirectory": "${workspaceFolder}"
+		}
+	}
 }
 ```
 
@@ -267,14 +292,17 @@ mcp__server-name__tool-name(参数)
 ### § Script 开发
 
 **语言选择**：
+
 - Python：复杂逻辑、数据处理
 - Shell：简单任务、系统命令
 
 **参数处理**：
+
 - 环境变量：`os.environ.get('VAR_NAME')`
 - 命令行参数：`sys.argv`
 
 **错误处理**：
+
 - 异常捕获：try-except
 - 退出码：sys.exit(0) / sys.exit(1)
 
@@ -301,12 +329,12 @@ mcp__server-name__tool-name(参数)
 
 ## 设计原则
 
-| 原则 | 说明 | 示例 |
-|------|------|------|
-| **模块化** | 每个组件职责单一 | Agent只负责一类任务 |
-| **可复用** | 组件可独立使用 | Skill可被多个Agent调用 |
-| **可测试** | AI理解测试、功能测试 | 质量检查工具验证 |
-| **可维护** | 文件≤300行、文档完整 | 主文件+辅助文件 |
+| 原则       | 说明                 | 示例                   |
+| ---------- | -------------------- | ---------------------- |
+| **模块化** | 每个组件职责单一     | Agent只负责一类任务    |
+| **可复用** | 组件可独立使用       | Skill可被多个Agent调用 |
+| **可测试** | AI理解测试、功能测试 | 质量检查工具验证       |
+| **可维护** | 文件≤300行、文档完整 | 主文件+辅助文件        |
 
 ## 输出格式
 
@@ -342,7 +370,7 @@ plugin-name/
 ### AI理解测试
 
 ```bash
-claude --settings ~/.claude/settings.glm-4.5-flash.json \
+claude --settings ~/.claude/settings.glm-4.7-flash.json \
   -p "$(cat agents.bak/agent-name.md)" \
   --output-format stream-json | \
   jq -r 'select(.type == "result" and .subtype == "success") | .result'
@@ -371,15 +399,15 @@ claude --settings ~/.claude/settings.glm-4.5-flash.json \
 
 旧架构8个细分agents → 新架构1个统一agent：
 
-| 旧Agent | 新位置 |
-|---------|--------|
-| agent.md | → plugin-dev-advisor（§ Agent 开发） |
-| command.md | ❌ 已废弃（迁移到Skills） |
-| hook.md | → plugin-dev-advisor（§ Hook 开发） |
-| lsp.md | → plugin-dev-advisor（§ LSP 集成） |
-| mcp.md | → plugin-dev-advisor（§ MCP 集成） |
-| plugin.md | → plugin-dev-advisor（§ 插件结构设计） |
-| script.md | → plugin-dev-advisor（§ Script 开发） |
-| skill.md | → plugin-dev-advisor（§ Skill 开发） |
+| 旧Agent    | 新位置                                 |
+| ---------- | -------------------------------------- |
+| agent.md   | → plugin-dev-advisor（§ Agent 开发）   |
+| command.md | ❌ 已废弃（迁移到Skills）              |
+| hook.md    | → plugin-dev-advisor（§ Hook 开发）    |
+| lsp.md     | → plugin-dev-advisor（§ LSP 集成）     |
+| mcp.md     | → plugin-dev-advisor（§ MCP 集成）     |
+| plugin.md  | → plugin-dev-advisor（§ 插件结构设计） |
+| script.md  | → plugin-dev-advisor（§ Script 开发）  |
+| skill.md   | → plugin-dev-advisor（§ Skill 开发）   |
 
 详细内容保留在 `plugin-skills/` 目录中。

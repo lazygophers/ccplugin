@@ -8,12 +8,14 @@
 **项目类型**：Claude Code 插件市场 (Monorepo)
 **技术栈**：Python 3.11+, uv, pytest, ruff
 **核心组件**：
+
 - `plugins/` — 插件实现集合（tools/languages/themes/office）
 - `lib/` — 共享库（独立pyproject）
 - `scripts/` — 根包CLI（clean/update/info/check/install）
 - `.claude-plugin/marketplace.json` — 市场注册表
 
 **关键文档**：
+
 - `README.md` — 项目简介
 - `AGENTS.md` — 结构速览、Agent Teams决策树
 - `CLAUDE.md` — 仓库开发约定（复盘防回归规则、代码质量检查规范）
@@ -35,23 +37,25 @@
   - **后续优化目标**：重复子进程调用、增量更新、冗余派生状态、UI 组件重复
   - **修复模式总结**：提取辅助函数、通用方法、通用执行器
   - **方法论**：三路并行 Agent 审查（代码复用/质量/效率）
-- *(未来会话可添加其他主题记忆，如：调试见解、性能优化、架构决策等)*
+- _(未来会话可添加其他主题记忆，如：调试见解、性能优化、架构决策等)_
 
 ## Rules文件索引
 
 `.claude/rules/` 目录存储项目特定规则（按需加载）：
 
 - `MEMORY.md` (本文件) — 记忆系统索引
-- *(可扩展：code-quality.md、plugin-development.md、frontend-rules.md等)*
+- _(可扩展：code-quality.md、plugin-development.md、frontend-rules.md等)_
 
 ## 核心约定
 
 **代码提交规范**：
+
 - 所有变更自动提交到暂存区（CLAUDE.md §1行）
 - Desktop路由变更必须验证hash路由与首屏渲染
 - Tailwind升级后必须验证utilities是否实际生成
 
 **@desktop 架构规范**（2026-04-05）：
+
 - **Rust 优先**：所有业务逻辑在 Rust 侧实现，TypeScript 仅负责 UI 渲染
 - **事件驱动**：使用事件系统通知前端状态变化，禁止同步/异步等待结果
 - **单向数据流**：Rust → Event → Frontend State → UI Render
@@ -59,15 +63,18 @@
 - 详见：`.claude/memory/desktop-event-driven-architecture.md`
 
 **质量检查规范**（CLAUDE.md §代码质量检查规范）：
+
 - commands/skills/agents/agent.md优化后必须验证AI理解识别
-- 使用 `claude --settings ~/.claude/settings.glm-4.5-flash.json` 验证
+- 使用 `claude --settings ~/.claude/settings.glm-4.7-flash.json` 验证
 
 **复盘防回归规则**（CLAUDE.md §复盘防回归规则）：
+
 1. Desktop信息架构：`插件市场`页面只展示marketplace列表；`插件`页面提供筛选
 2. Desktop路由方案变更后，验证hash路由与首屏渲染
 3. Desktop升级Tailwind构建链后，验证utilities实际生成
 
 **GitNexus工具链**：
+
 - 修改代码前必须运行 `gitnexus_impact` 分析影响范围
 - 提交前必须运行 `gitnexus_detect_changes` 验证变更范围
 - 高/严重风险警告必须报告用户
@@ -76,11 +83,13 @@
 ## Agent Teams使用决策
 
 **核心约束**：
+
 - 优先避免使用Agent Teams
 - 并发限制：≤2个
 - 成员限制：≤2个
 
 **决策树**（详见AGENTS.md §Agent Teams使用决策树）：
+
 - 单一职责 → 单Agent
 - 有依赖 → 串行调用
 - 并行且独立 → Agent Teams (≤2成员)
@@ -110,6 +119,7 @@ uv run scripts/update_version.py
 ## 更新日志
 
 **2026-04-08**：Task 插件重大更新
+
 - **DAG 执行模型**：exec 基于 dependencies 动态调度，2个worker协程并发
 - **Align 优化**：合并 prompt-optimizer 的 SMART-V 验收标准原则
 - **实时状态更新**：任务状态变更立即写入 task.json
@@ -117,6 +127,7 @@ uv run scripts/update_version.py
 - 详见：`memory/task-dag-execution-model.md`、`memory/task-align-merge-prompt-optimizer-2026-04-08.md`
 
 **2026-03-27**：Memory系统初始化
+
 - 创建 `.claude/rules/` 和 `.claude/memory/` 目录
 - 生成本索引文件（MEMORY.md）
 - 移除自动记忆禁用配置（CLAUDE_CODE_DISABLE_AUTO_MEMORY）
