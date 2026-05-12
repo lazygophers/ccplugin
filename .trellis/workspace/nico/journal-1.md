@@ -784,3 +784,36 @@ mcp/cortex_stream.py rich-based stream parser, console-script entry. subprocess 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 24: cortex-lint vault 结构强校验 + 交互修复 (rule #16)
+
+**Date**: 2026-05-12
+**Task**: cortex-lint vault 结构强校验 + 交互修复 (rule #16)
+**Branch**: `master`
+
+### Summary
+
+新 rule vault-structure-violation 严格按 preset schema (LYT/PARA/flat) 查 vault 根目录/文件夹. python 输出 JSON 违规列表, LLM 在 SKILL 流程内逐个 AskUserQuestion 处理 (move/delete/whitelist/skip). 隐藏目录 (.obsidian/.trash) + i18n locale dirs 默认 allowed. 白名单写 _meta/version.json:.lint_whitelist[]. 11 新 pytest, 215 不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2ed3f8eb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
