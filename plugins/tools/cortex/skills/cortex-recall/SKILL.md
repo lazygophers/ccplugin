@@ -66,5 +66,14 @@ allowed-tools: Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidian__ob
 - frontmatter 解析失败的条目 → 跳过, 末尾汇总 warning
 - recall_count 更新失败 (写盘失败) → 不阻塞召回结果输出
 
+## 召回级别策略
+
+默认召回 L0+L1+L2+L3 (排 L4)。按 weight 排序。
+- L0: 永远第一返 (核心)
+- L1: 高 weight (≥0.8) 排第二
+- L2: 按 expires 过滤未过期
+- L3: 按 recall_count 排序, 90 天内
+- L4: 显式 `--include-l4` 才返
+
 ## AUTO_MODE 兼容
 [AUTO_MODE: ...] 下行为不变 (recall 本就纯读 + 自动 update count)。仅在显式 `--full` 时返回完整内容, AUTO_MODE 不自动加 --full。

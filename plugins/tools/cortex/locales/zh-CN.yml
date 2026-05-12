@@ -53,16 +53,26 @@ prompts:
        - weight 0.4-0.7: 引用 + 标注"记忆来源"
        - weight < 0.4: 可参考, 不强采
 
-    3. **写入规则**:
-       - 用户新观点/偏好/硬约束 → `cortex_memory_write` 落 L1 (weight ≥ 0.8)
+    3. **用户显式记忆指令** (主动写入):
+       - 用户说"记住 X" / "你要记得 X" / "remember X" / "别忘了" → 立即 `cortex_memory_write`
+       - level 判定:
+         · "永远记住" / "硬性" / "绝对" → 提议 L0 (写候选 candidates.md, 用户审批)
+         · "记住" / "remember" 默认 → L1 (weight=0.85)
+         · "短期记一下" / "暂时" → L2 (weight=0.6)
+       - 写入后回复: "✓ 已记 L<N>: <brief 一句话>"
+       - 用户说"忘了 X" / "forget X" → cortex_memory_forget
+
+    4. **写入规则**:
+       - 用户隐式新偏好/约束 → cortex_memory_write L1 (weight ≥ 0.8)
        - 升 L0 必须用户审批 (不可自动)
 
-    4. hot.md / L0 核心条目优先信任
+    5. hot.md / L0 核心条目优先信任
   default_triggers: |
     - 用户偏好: 偏好, 喜好, 习惯, prefer, "I like", "我希望"
     - 项目相关: 项目, 仓库, repo, 工程, codebase
     - 技术栈: Go, Python, MySQL, PostgreSQL, Redis, React, Vue, Docker, Kubernetes
     - 领域: 金融, 投资, 美食, 旅游, 健康, 工作, 学习
+    - 记忆指令 (强触发, 必立即写): 记住, 要记得, remember, please remember, 别忘了, don't forget, 忘了, forget
   session_header: "## Cortex 已连接 (lang={lang}, vault={vault}, preset={preset})"
   collab_save: 非平凡发现完成后用 cortex-save 落档; 项目特定写 domains/, 通用概念写 concepts/。
   collab_no_direct: |

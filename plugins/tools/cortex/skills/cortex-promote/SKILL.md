@@ -77,6 +77,27 @@ allowed-tools: Read Edit Glob AskUserQuestion
 - git tag 失败 (vault 非 git repo) → L0 晋级仍执行, 但输出 warning "L0 晋级无 git tag, 完整性追溯减弱"
 - AskUserQuestion 取消 → 该条标记 cancelled, 继续后续
 
+## 晋级算法 (三层重复检测)
+
+扫 L4 ledger 上 7 天, 统计 (entity, topic, context) 三元组:
+- freq ≥ 3 → 创建 L3 episodic 候选, auto promote (L4→L3)
+- freq ≥ 5 + 跨 ≥3 天 → L3 → L2 候选 (写 candidates.md, 不自动)
+- freq ≥ 10 + 跨 ≥30 天 → L2 → L1 候选
+
+扫 L3 episodic 上 30 天: 同 topic ≥ 5 次 + last_recalled 增长 → L2 候选。
+扫 L2 semantic 上 365 天: recall_count ≥ 20 + 90 天无 weight 大改 → L1 候选。
+L0 永不自动, 必经用户审批。
+
+## 级别边界速查 (详见 `_meta/memory-policy.yaml`)
+
+| level | 边界 | 审批 | review |
+|-------|------|------|--------|
+| L0 | 性格/价值观/硬约束, ≤1500c, 不可逆 | user 必审 + git tag | monthly hash 检测 |
+| L1 | 技能/稳定语义, ≤5000c, recall≥20+90 天稳定 | AI 自动 w≥0.8 | monthly 矛盾告警 |
+| L2 | 语义, ≤3000c, 365 天时效 | AI dedupe | monthly 365 天衰减 |
+| L3 | 情节, ≤2000c, 90 天时效 | AI 自动 | weekly 同事件 ≥5 抽象 L2 |
+| L4 | ledger/sessions, append-only | 系统自动 | weekly 30 天 gzip 60 天归档 |
+
 ## AUTO_MODE 兼容
 **这是唯一与 AUTO_MODE 强对抗的 skill**:
 - [AUTO_MODE: ...] 下: L4→L3 / L3→L2 仅在显式 --auto-low=true 才执行; L2→L1 仅汇报不执行; **L1→L0 绝不执行**, 仅输出候选清单 + 提示人工审批命令。

@@ -84,5 +84,17 @@ write/update/delete 类似, 单行结果 + 落盘路径。
 - policy 校验失败 → 输出 policy 规则 + 拒绝原因
 - frontmatter 解析失败 → 输出 corrupted, 不写
 
+## 记忆级别速查 (详见 `_meta/memory-policy.yaml`)
+
+| level | 边界 | 审批 | review |
+|-------|------|------|--------|
+| L0 | 性格/价值观/硬约束, ≤1500c, 不可逆 | user 必审 + git tag | monthly hash 检测 |
+| L1 | 技能/稳定语义, ≤5000c, recall≥20+90 天稳定 | AI 自动 w≥0.8 | monthly 矛盾告警 |
+| L2 | 语义, ≤3000c, 365 天时效 | AI dedupe | monthly 365 天衰减 |
+| L3 | 情节, ≤2000c, 90 天时效 | AI 自动 | weekly 同事件 ≥5 抽象 L2 |
+| L4 | ledger/sessions, append-only | 系统自动 | weekly 30 天 gzip 60 天归档 |
+
+写入前按 level 校验: L0 拒自动写; L1 weight 须 ≥0.8; L2 必 dedupe; L3 无 dedupe; L4 仅 append。
+
 ## AUTO_MODE 兼容
 若上下文标 `[AUTO_MODE: ...]`, 跳过所有交互, 用 policy 默认值决策。L0 write/delete 与 L1 delete 在 AUTO_MODE 下一律拒绝, 输出候选清单提示用户跑 `~/.cortex/scripts/memory.sh <verb> <uri> --interactive`。

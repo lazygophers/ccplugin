@@ -12,7 +12,11 @@ allowed-tools: Bash Read Edit Glob
 ## 触发场景
 - daily cron `memory-forget.sh` (03:00)
 - 用户显式 "forget expired memory" / "扫遗忘"
+- 用户说 "忘了 X" / "forget X" → 解析 X 找匹配记忆 → 立即 forget
 - cortex-memory-warden agent 检测到腐化时附带触发
+
+forget 实质: 设 `archive_pending=true`, 不删 (archive cron 物理移)。
+L0 不可 forget (除非用户提供 `user_signature` 显式覆盖 forget.never=true)。
 
 ## 输入
 - --level: 默认全扫 (L1+L2+L3+L4); 可单 level

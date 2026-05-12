@@ -2,30 +2,149 @@
 # 由 cortex-install 复制到 <vault>/_meta/memory-policy.yaml
 # 由 cortex-{promote,forget,consolidate,warden,archive} 读取执行
 # 由用户手动编辑覆盖默认值
+#
+# 每个 level 含 7 子段:
+#   boundary  — 准入边界 (类型 / 触发 / 体积 / 时效)
+#   judgment  — 审判规则 (谁可写 / 工具 / dedupe / 拒入)
+#   review    — 复审标准 (频率 / 检测 / 行动)
+#   write / forget / promote_from / promote_criteria — 原有引擎钩子
 
-levels:
-  L0:
-    write: {needs_user_confirm: true, git_tag: true, immutable_after_confirm: true}
-    forget: {never: true}
-    promote_from: [L1]
-  L1:
-    write: {min_weight: 0.8, ai_can_propose: true}
-    forget: {only_user: true}
-    promote_from: [L2]
-    promote_criteria: {recall_count: ">= 20", stable_days: ">= 90"}
-  L2:
-    write: {min_weight: 0.5, dedupe: true}
-    forget: {after_days: 365, unless_recalled: 5}
-    promote_from: [L3]
-    promote_criteria: {recall_count: ">= 5", recurrence: "weekly"}
-  L3:
-    write: {auto: true}
-    forget: {after_days: 90, unless_recalled: 3}
-    promote_from: [L4]
-    promote_criteria: {ai_detected_pattern: true}
-  L4:
-    write: {append_only: true, immutable: true}
-    forget: {compress_after_days: 30}
+L0:
+  boundary:
+    types: [identity, values, habits, hard_constraints]
+    triggers:
+      - 用户明确说"永久" / "硬性" / "绝对" / "永远记住"
+      - 必须用户审批 (AI 单方不可直落)
+    immutable: true
+    max_brief_chars: 1500
+  judgment:
+    needs_user_confirm: true
+    git_tag: true
+    approver: user_only
+    tool: cortex_memory_write
+    requires_field: user_signature
+    ai_proposal_path: views/candidates.md
+    auto_write_forbidden: true
+  review:
+    frequency: monthly
+    checks:
+      - hash 变化 / git tag missing → memory-warden 告警
+      - L0 多条相互矛盾 → 强制用户裁决
+    user_actions: [keep, revise, delete]
+  write: {needs_user_confirm: true, git_tag: true, immutable_after_confirm: true}
+  forget: {never: true}
+  promote_from: [L1]
+
+L1:
+  boundary:
+    types: [procedural, semantic-stable]
+    admission:
+      recall_count: ">= 20"
+      stable_days: ">= 90"
+      min_weight: 0.8
+    triggers:
+      - AI 自动提议 (memory-promote 写 candidates)
+      - 用户显式 "记住" / "remember"
+    max_brief_chars: 5000
+  judgment:
+    ai_can_auto_write: true
+    needs_user_confirm: false
+    min_weight: 0.8
+    tool: cortex_memory_write
+    reject_action: weight 不达标 → 退回 L2
+    user_override: allowed_anytime
+  review:
+    frequency: monthly
+    checks:
+      - 同 topic 矛盾 → memory-warden 告警
+      - expires < now → 提议降级 L2
+      - recall_count 衰减
+    actions:
+      - 矛盾: warden 报警
+      - 时效失效: 降级 L2
+      - 用户可手动晋升 L0
+  write: {min_weight: 0.8, ai_can_propose: true}
+  forget: {only_user: true}
+  promote_from: [L2]
+  promote_criteria: {recall_count: ">= 20", stable_days: ">= 90"}
+
+L2:
+  boundary:
+    types: [semantic]
+    admission:
+      recall_count: ">= 5"
+      span_days: ">= 7"
+      min_weight: 0.5
+    triggers:
+      - L3 promote
+      - AI ingest 时直接判定
+    max_brief_chars: 3000
+    ttl_days: 365
+  judgment:
+    ai_can_auto_write: true
+    dedupe: required
+    dedupe_strategy: 同 topic uri 合并; 矛盾保新弃旧 (ledger 留痕)
+    tool: cortex_memory_write
+  review:
+    frequency: monthly
+    checks:
+      - 365 天未召回 + recall_count < 5 → archive_pending
+    decay:
+      weight_per_month: -0.05
+      except_if: recalled
+  write: {min_weight: 0.5, dedupe: true}
+  forget: {after_days: 365, unless_recalled: 5}
+  promote_from: [L3]
+  promote_criteria: {recall_count: ">= 5", recurrence: "weekly"}
+
+L3:
+  boundary:
+    types: [episodic]
+    admission:
+      L4_pattern_count: ">= 3"
+      or_user_explicit: true
+      or_ai_detected_important_moment: true
+    max_brief_chars: 2000
+    ttl_days: 90
+  judgment:
+    ai_can_auto_write: true
+    dedupe: not_required
+    rationale: 情节本独立, 不去重
+    tool: cortex_memory_write
+  review:
+    frequency: weekly
+    checks:
+      - 90 天未召回 + recall_count < 3 → archive_pending
+      - 同事件类型 ≥ 5 → 抽象为 L2
+    runner: memory-consolidate
+  write: {auto: true}
+  forget: {after_days: 90, unless_recalled: 3}
+  promote_from: [L4]
+  promote_criteria: {ai_detected_pattern: true}
+
+L4:
+  boundary:
+    types: [ledger, sessions]
+    sources:
+      - raw event 流 (ledger)
+      - claude code transcript (sessions)
+    admission: all (immutable append-only)
+    per_record_size: unlimited
+    file_split: by_date
+  judgment:
+    writer: system_only
+    triggers: [Stop_hook, PostCompact_hook, ingest]
+    append_only: true
+    mutations_forbidden: true
+    tools: [cortex_ledger_append, cortex_session_import]
+  review:
+    frequency: weekly
+    actions:
+      - 30 天后 gzip 压缩
+      - 60 天后归档
+      - memory-consolidate 跑跨域统计 (模式提炼)
+  write: {append_only: true, immutable: true}
+  forget: {compress_after_days: 30, archive_after_days: 60}
 
 recall:
   default: {top_k: 5, progressive: true, level_order: [L0, L1, L2, L3]}

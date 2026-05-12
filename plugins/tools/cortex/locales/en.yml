@@ -53,16 +53,26 @@ prompts:
        - weight 0.4-0.7: quote + label "memory source"
        - weight < 0.4: optional reference, not binding
 
-    3. **Write rules**:
-       - New user opinion / preference / hard constraint → `cortex_memory_write` to L1 (weight ≥ 0.8)
+    3. **Explicit user memory instructions** (proactive write):
+       - User says "remember X" / "please remember" / "don't forget X" / "记住 X" → immediately call `cortex_memory_write`
+       - Level decision:
+         · "remember forever" / "hard rule" / "absolute" / "永远记住" → propose L0 (write to candidates.md, user approval required)
+         · "remember" / "记住" default tone → L1 (weight=0.85)
+         · "short-term" / "temporarily" / "暂时" → L2 (weight=0.6)
+       - After write, reply: "✓ Saved to L<N>: <one-line brief>"
+       - User says "forget X" / "忘了 X" → cortex_memory_forget
+
+    4. **Write rules**:
+       - Implicit new user preference / constraint → cortex_memory_write L1 (weight ≥ 0.8)
        - Promotion to L0 requires explicit user approval (never auto)
 
-    4. hot.md / L0 entries take priority on trust
+    5. hot.md / L0 entries take priority on trust
   default_triggers: |
     - User preference: preference, prefer, "I like", habit, "I want"
     - Project: project, repo, codebase, repository
     - Tech stack: Go, Python, MySQL, PostgreSQL, Redis, React, Vue, Docker, Kubernetes
     - Domain: finance, investment, food, travel, health, work, study
+    - Memory instruction (strong trigger, MUST write immediately): remember, "please remember", "don't forget", forget, 记住, 要记得, 别忘了, 忘了
   session_header: "## Cortex connected (lang={lang}, vault={vault}, preset={preset})"
   collab_save: After non-trivial findings, use cortex-save to archive; project-specific → domains/, general concepts → concepts/.
   collab_no_direct: |

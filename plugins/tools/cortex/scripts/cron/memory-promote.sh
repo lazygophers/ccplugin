@@ -35,22 +35,33 @@ vault: \$CORTEX_VAULT
 policy: <vault>/_meta/memory-policy.yaml
 
 具体行动:
-1. 读 <vault>/_meta/memory-policy.yaml 取各 level 的 promote_criteria。若 policy 缺失, 用默认值:
-   - L4→L3: AI 检测到重复模式 (recurrence: 同实体/主题 ≥3 次)
-   - L3→L2: recall_count ≥5 且 recurrence: weekly
-   - L2→L1: recall_count ≥20 且 stable_days ≥90
-   - L1→L0: 仅打候选, 必须 needs_user_approval: true
+1. 读 <vault>/_meta/memory-policy.yaml 取各 level 的 promote_criteria。若 policy 缺失, 用以下三层重复检测默认算法:
+
+   扫 L4 ledger 上 7 天:
+     - 统计 (entity, topic, context) 三元组频率
+     - freq ≥ 3 → 创建 L3 episodic 候选, auto promote (L4→L3)
+     - freq ≥ 5 + 跨 ≥3 天 → L3 → L2 候选 (写 candidates.md, 不自动)
+     - freq ≥ 10 + 跨 ≥30 天 → L2 → L1 候选
+
+   扫 L3 episodic 上 30 天:
+     - 同 topic ≥ 5 次 + last_recalled 增长 → L2 候选
+
+   扫 L2 semantic 上 365 天:
+     - recall_count ≥ 20 + stable (90 天无 weight 大改) → L1 候选
+
+   L0 永不自动 (用户审批必经); L1→L0 仅写候选, needs_user_approval: true。
+
 2. 扫描:
    - <vault>/记忆体系/L4-流水账/ledger/*.jsonl (近 7 天)
-   - <vault>/记忆体系/L3-短期/episodic/*
-   - <vault>/记忆体系/L2-中期/semantic/*
+   - <vault>/记忆体系/L3-短期/episodic/* (近 30 天)
+   - <vault>/记忆体系/L2-中期/semantic/* (近 365 天)
    - <vault>/记忆体系/L1-长期/{procedural,semantic-stable}/*
 3. 读各条目 frontmatter (uri/level/weight/recall_count/last_recalled/created), 评估晋级条件。
 4. 写候选清单到 <vault>/记忆体系/views/candidates.md (整文件覆盖, 不 append):
    - 顶部 frontmatter: type: view, generated: <UTC ISO>, generator: memory-promote
    - 分节: ## L4→L3 / ## L3→L2 / ## L2→L1 / ## L1→L0 (needs_user_approval)
-   - 每行: - [\` uri \`] reason: <一句> | recall_count=N | last_recalled=YYYY-MM-DD
-5. 不修改原条目 (不写 promote_eligible: true 到 frontmatter, 仅候选清单)。L1→L0 候选额外标 needs_user_approval: true。
+   - 表格列: | 候选 URI | 源 level | 目标 level | freq | timespan | weight | 建议理由 |
+5. 不修改原条目 (不写 promote_eligible: true 到 frontmatter, 仅候选清单)。L1→L0 候选额外标 needs_user_approval: true。L4→L3 可执行 auto promote (写新 L3 条目); 其余仅候选。
 
 输出: 一行 JSON 摘要 { L4_to_L3: N, L3_to_L2: N, L2_to_L1: N, L1_to_L0: N, candidates_file: 'views/candidates.md' }。
 若 vault 不存在或 _meta/memory-policy.yaml 缺失 → 输出 { skipped: true, reason: '<原因>' } 并正常退出。

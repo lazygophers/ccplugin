@@ -61,5 +61,23 @@ allowed-tools: Bash Read Write Glob
 - views/candidates.md 不存在 → 自动创建空骨架
 - 写盘并发冲突 → 配合 file_lock (cron run.sh 提供 flock)
 
+## 重复检测 → 晋级
+
+扫 L4 ledger 上 7 天, 统计 (entity, topic, context) 三元组:
+- freq ≥ 3 → 抽象为 L3 episodic 候选 (auto)
+- 跨域出现 ≥3 次 → 写 `知识库/反思/连接/<week>.md`
+
+触发 memory-promote 跑下一阶段晋级 (L3→L2, L2→L1 候选; L1→L0 永不自动)。
+
+## 级别边界速查 (详见 `_meta/memory-policy.yaml`)
+
+| level | 边界 | review |
+|-------|------|--------|
+| L0 | 性格/价值观/硬约束, ≤1500c | monthly hash 检测 |
+| L1 | 技能/稳定语义, ≤5000c | monthly 矛盾告警 |
+| L2 | 语义, ≤3000c, 365 天时效 | monthly 365 天衰减 |
+| L3 | 情节, ≤2000c, 90 天时效 | weekly 同事件 ≥5 抽象 L2 |
+| L4 | ledger/sessions, append-only | weekly 30 天 gzip 60 天归档 |
+
 ## AUTO_MODE 兼容
 [AUTO_MODE: ...] (cron 默认场景) 全自动执行写盘; 仅在 --dry-run 时不写。candidate 永不直接 promote (这是 cortex-promote 职责)。

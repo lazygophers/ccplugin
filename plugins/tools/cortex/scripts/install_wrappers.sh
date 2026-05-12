@@ -5,9 +5,10 @@
 # Wrappers embed the absolute marketplace path so the user-facing entry points
 # stay stable across plugin upgrades.
 #
-# Wrappers (12 total):
+# Wrappers (16 total):
 #   - cron/proxy: lint.sh (dual-mode), fold.sh, dashboard.sh, install_cron.sh, config.sh, update.sh
 #   - skill entrypoints: doctor.sh, ingest.sh, search.sh, save.sh, refactor.sh, init.sh
+#   - memory entrypoints: memory.sh, recall.sh, promote.sh, consolidate.sh
 #
 # Usage:
 #   bash install_wrappers.sh --install-path <abs cortex root> [--target-dir <dir>] [--no-overwrite]
@@ -118,6 +119,25 @@ fi
 # shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
 source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-doctor"
+
+# stop hook 脏配检测 — settings.json 不展开 \${CLAUDE_PLUGIN_ROOT}, 用户手动加的会让
+# Claude 报 "Hook command references \${CLAUDE_PLUGIN_ROOT}..."。plugin 自己已注册,
+# 这类条目重复且无效。bash 直检, 不走 LLM。
+if command -v jq >/dev/null 2>&1; then
+  for f in "\$HOME/.claude/settings.json" "\$HOME/.claude/settings.local.json"; do
+    [[ -f "\$f" ]] || continue
+    bad=\$(jq -r '.. | objects | .command? // empty | select(type=="string" and contains("\${CLAUDE_PLUGIN_ROOT}"))' "\$f" 2>/dev/null || true)
+    if [[ -n "\$bad" ]]; then
+      echo ""
+      echo "⚠ \$f 含无效 hook 引用 (\\\${CLAUDE_PLUGIN_ROOT} 在 settings.json 不展开):"
+      echo "\$bad" | sed 's/^/    /'
+      echo ""
+      echo "  修复: 编辑 \$f, 删除上述 hook 条目 (plugin 已自行注册, 重复无意义)"
+      echo ""
+    fi
+  done
+fi
+
 # trap Ctrl-C: stream_progress handles heartbeat cleanup internally.
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
@@ -322,6 +342,231 @@ exec claude --bare \\
 EOB
 )"
 
-printf '%s[install_wrappers.sh]%s %s✓%s wrote %s12 wrappers%s to %s%s%s\n' \
+# ─────────────────────────────────────────────────────────────────────────────
+# Memory wrappers (4 total): memory / recall / promote / consolidate
+# 每个走 claude --bare AUTO_MODE 调对应 SKILL, --max-budget-usd 0.30 限额。
+# 风格同 init.sh: 检 ~/.cortex/config.json → jq 解析 vault → exec claude --bare。
+# ─────────────────────────────────────────────────────────────────────────────
+
+# memory.sh: cortex-memory skill — URI 寻址 CRUD.
+emit memory.sh "$(cat <<EOB
+# memory.sh — cortex 记忆 CRUD (URI 寻址)
+#
+# Usage: ~/.cortex/scripts/memory.sh <verb> [args...]
+#   verbs: read <uri> | write <uri> [--level L0-L4] [--weight N] | update <uri> | forget <uri>
+#   uri:   L<N>://<path>  (e.g. L1://procedural/git-flow)
+
+CONFIG="\$HOME/.cortex/config.json"
+if [[ ! -f "\$CONFIG" ]]; then
+  echo "[cortex] config 不存在 (\$CONFIG), 跑 install.sh 先安装" >&2
+  exit 4
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[cortex] 缺 jq, 请先装: brew install jq / apt install jq" >&2
+  exit 4
+fi
+VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
+if [[ -z "\$VAULT" ]]; then
+  echo "[cortex] vault 路径未配置 (\$CONFIG:.vault)" >&2
+  exit 4
+fi
+SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
+SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
+PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+
+if [[ \$# -lt 1 ]]; then
+  echo "Usage: \$0 <read|write|update|forget> [args...]" >&2
+  exit 4
+fi
+
+VERB="\$1"; shift
+
+PROMPT="[AUTO_MODE: non-interactive shell wrapper. 不用 AskUserQuestion, 自动决策.]
+
+调 cortex-memory skill 执行 verb=\$VERB, 参数: \$*
+
+vault: \$VAULT
+PLUGIN_ROOT: \$PLUGIN_ROOT
+
+按 cortex-memory SKILL.md 流程:
+- URI 解析: L<N>://<path> → \$VAULT/记忆体系/L<N>-<name>/<path>.md
+- read: 渐进披露 (brief → full on demand)
+- write: 按 L<N> 边界/审判规则 (见 _meta/memory-policy.yaml)
+- update: 修订并写 ledger 留痕
+- forget: 移到 归档/forgotten/ 留 tombstone
+
+执行完输出 JSON {ok, code, data?, error?}"
+
+exec claude --bare \\
+  --no-session-persistence \\
+  --settings "\$SETTINGS" \\
+  --max-budget-usd 0.30 \\
+  -p "\$PROMPT" \\
+  --allowed-tools "Bash Read Write Edit Glob"
+EOB
+)"
+
+# recall.sh: cortex-recall skill — 渐进披露召回.
+emit recall.sh "$(cat <<EOB
+# recall.sh — 渐进披露召回 query 相关记忆
+#
+# Usage: ~/.cortex/scripts/recall.sh <query> [--top-k N] [--levels L0,L1,L2,L3]
+
+CONFIG="\$HOME/.cortex/config.json"
+if [[ ! -f "\$CONFIG" ]]; then
+  echo "[cortex] config 不存在 (\$CONFIG), 跑 install.sh 先安装" >&2
+  exit 4
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[cortex] 缺 jq" >&2
+  exit 4
+fi
+VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
+if [[ -z "\$VAULT" ]]; then
+  echo "[cortex] vault 路径未配置" >&2
+  exit 4
+fi
+SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
+SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
+PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+
+if [[ \$# -lt 1 ]]; then
+  echo "Usage: \$0 <query> [--top-k N] [--levels L0,L1,L2,L3]" >&2
+  exit 4
+fi
+
+PROMPT="[AUTO_MODE: non-interactive shell wrapper. 不用 AskUserQuestion, 自动决策.]
+
+调 cortex-recall skill 召回 query 相关记忆。
+
+vault: \$VAULT
+PLUGIN_ROOT: \$PLUGIN_ROOT
+query 与参数: \$*
+
+默认: top_k=5, levels=L0,L1,L2,L3 (排除 L4 raw ledger; 用户显式 --levels 覆盖)。
+按 cortex-recall SKILL.md 流程: 多级回退 (hot → uri-index → semantic → rg)。
+输出 brief + 子节点列表 (URI / weight / last_recalled), 用户可基于此再深读。"
+
+exec claude --bare \\
+  --no-session-persistence \\
+  --settings "\$SETTINGS" \\
+  --max-budget-usd 0.30 \\
+  -p "\$PROMPT" \\
+  --allowed-tools "Bash Read Glob"
+EOB
+)"
+
+# promote.sh: cortex-promote skill — 晋级候选检测 + 执行.
+emit promote.sh "$(cat <<EOB
+# promote.sh — 跑晋级候选检测
+#
+# Usage: ~/.cortex/scripts/promote.sh [--dry-run]
+#   --dry-run  仅列候选, 不执行 (L4→L3 / L3→L2 默认 auto promote)
+
+CONFIG="\$HOME/.cortex/config.json"
+if [[ ! -f "\$CONFIG" ]]; then
+  echo "[cortex] config 不存在, 跑 install.sh 先安装" >&2
+  exit 4
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[cortex] 缺 jq" >&2
+  exit 4
+fi
+VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
+if [[ -z "\$VAULT" ]]; then
+  echo "[cortex] vault 路径未配置" >&2
+  exit 4
+fi
+SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
+SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
+PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+
+DRY_RUN=""
+for arg in "\$@"; do
+  if [[ "\$arg" == "--dry-run" ]]; then
+    DRY_RUN="--dry-run"
+  fi
+done
+
+PROMPT="[AUTO_MODE: non-interactive shell wrapper. 不用 AskUserQuestion, 自动决策.]
+
+调 cortex-promote skill 跑晋级候选检测。
+
+vault: \$VAULT
+PLUGIN_ROOT: \$PLUGIN_ROOT
+dry_run: \${DRY_RUN:-(off, 真跑)}
+
+按 _meta/memory-policy.yaml + cortex-promote SKILL.md 流程:
+- 扫 L4 ledger 上 7 天: freq ≥ 3 → L3 候选; freq ≥ 5 跨 ≥3 天 → L2 候选 (写 candidates); freq ≥ 10 跨 ≥30 天 → L1 候选
+- 扫 L3 episodic 上 30 天: 同主题 ≥ 5 + last_recalled 增长 → L2 候选
+- 扫 L2 semantic 上 365 天: recall_count ≥ 20 且 90 天 weight 稳定 → L1 候选
+- L0 永不自动 (仅写 candidates 供用户审批)
+
+执行规则:
+- dry-run: 仅写 views/candidates.md, 不动正文
+- 非 dry-run: L4→L3, L3→L2 auto; L2→L1, L1→L0 仅写 candidates
+
+输出: views/candidates.md 表格 (候选 / 来源 level / 目标 level / freq / timespan / weight / 理由)"
+
+exec claude --bare \\
+  --no-session-persistence \\
+  --settings "\$SETTINGS" \\
+  --max-budget-usd 0.30 \\
+  -p "\$PROMPT" \\
+  --allowed-tools "Bash Read Write Edit Glob"
+EOB
+)"
+
+# consolidate.sh: cortex-consolidate skill — ledger → views 周报巩固 + 反思.
+emit consolidate.sh "$(cat <<EOB
+# consolidate.sh — 跑 ledger → views 周报巩固 + 反思生成
+#
+# Usage: ~/.cortex/scripts/consolidate.sh [--week N]
+#   --week N  指定 ISO 周号 (默认: 上周)
+
+CONFIG="\$HOME/.cortex/config.json"
+if [[ ! -f "\$CONFIG" ]]; then
+  echo "[cortex] config 不存在, 跑 install.sh 先安装" >&2
+  exit 4
+fi
+if ! command -v jq >/dev/null 2>&1; then
+  echo "[cortex] 缺 jq" >&2
+  exit 4
+fi
+VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
+if [[ -z "\$VAULT" ]]; then
+  echo "[cortex] vault 路径未配置" >&2
+  exit 4
+fi
+SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
+SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
+PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+
+PROMPT="[AUTO_MODE: non-interactive shell wrapper. 不用 AskUserQuestion, 自动决策.]
+
+调 cortex-consolidate skill 跑周报巩固。
+
+vault: \$VAULT
+PLUGIN_ROOT: \$PLUGIN_ROOT
+参数: \$* (默认上周; --week N 指定 ISO 周号)
+
+按 cortex-consolidate SKILL.md 流程:
+- 扫 L4/ledger/<week>/*.md 抽取事件
+- 模式聚合 (同事件类型 ≥ 5 → 抽象为 L2 候选)
+- 生成 views/consolidated/<week>.md 周报 (含: 主题分布 / 高频实体 / 反思洞察)
+- 触发 cortex-promote 子流程: 写晋级候选到 views/candidates.md
+
+输出: 生成的 views 文件路径 + 主题统计 + 候选数"
+
+exec claude --bare \\
+  --no-session-persistence \\
+  --settings "\$SETTINGS" \\
+  --max-budget-usd 0.30 \\
+  -p "\$PROMPT" \\
+  --allowed-tools "Bash Read Write Edit Glob"
+EOB
+)"
+
+printf '%s[install_wrappers.sh]%s %s✓%s wrote %s16 wrappers%s to %s%s%s\n' \
   "$_C_CYAN" "$_C_RESET" "$_C_GREEN" "$_C_RESET" \
   "$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$TARGET_DIR" "$_C_RESET" >&2

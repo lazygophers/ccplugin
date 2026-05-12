@@ -53,16 +53,26 @@ prompts:
        - weight 0.4-0.7: 引用 + 「記憶ソース」明記
        - weight < 0.4: 参考程度, 強制しない
 
-    3. **書き込みルール**:
-       - ユーザーの新意見/嗜好/強制制約 → `cortex_memory_write` で L1 へ (weight ≥ 0.8)
+    3. **ユーザー明示の記憶指令** (能動的書き込み):
+       - ユーザーが「覚えて X」/「remember X」/「忘れないで」/「記住 X」 → 即座に `cortex_memory_write`
+       - level 判定:
+         · 「永久に覚えて」/「絶対」/「ハード」/「永远记住」 → L0 提案 (候補 candidates.md 書き込み, ユーザー承認必要)
+         · 「覚えて」/「remember」 一般語気 → L1 (weight=0.85)
+         · 「短期だけ」/「一時的に」/「暂时」 → L2 (weight=0.6)
+       - 書き込み後返信: "✓ L<N> に記録: <一行要約>"
+       - ユーザーが「忘れて X」/「forget X」 → cortex_memory_forget
+
+    4. **書き込みルール**:
+       - 暗黙的な新嗜好/制約 → cortex_memory_write L1 (weight ≥ 0.8)
        - L0 への昇格はユーザー承認必須 (自動不可)
 
-    4. hot.md / L0 コア項目を優先信頼
+    5. hot.md / L0 コア項目を優先信頼
   default_triggers: |
     - ユーザー嗜好: 嗜好, 好み, 習慣, prefer, "I like", "希望"
     - プロジェクト: プロジェクト, リポジトリ, repo, codebase
     - 技術スタック: Go, Python, MySQL, PostgreSQL, Redis, React, Vue, Docker, Kubernetes
     - 領域: 金融, 投資, グルメ, 旅行, 健康, 仕事, 学習
+    - 記憶指令 (強トリガー, 即書き込み必須): 覚えて, 忘れないで, remember, "please remember", "don't forget", 忘れて, forget, 記住, 别忘了, 忘了
   session_header: "## Cortex 接続済み (lang={lang}, vault={vault}, preset={preset})"
   collab_save: 非自明な発見は cortex-save でアーカイブ; プロジェクト固有 → domains/, 一般概念 → concepts/。
   collab_no_direct: |

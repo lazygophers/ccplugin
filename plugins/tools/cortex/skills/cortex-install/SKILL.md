@@ -225,6 +225,19 @@ Q2 ∈ {launchd, cron, gha} → 走内联注册流程 (下文)。
 - 写 plist / crontab 前**必须** dry-run + `AskUserQuestion` 二次确认
 - cron job 默认 `--allowed-tools "Bash Read Glob Write Edit"` (memory-* 需写; lint 只读保持 `Bash Read Glob`)
 - wrapper 提供 `flock -n` + `timeout 600` (复用 `scripts/cron/run.sh`)
+
+**用户态 wrapper (16 个)**:
+
+`install_wrappers.sh` 在 `~/.cortex/scripts/` 生成 16 个用户入口 (按用途分 4 组):
+
+| 组 | wrapper | 用途 |
+|----|---------|------|
+| 基础 | `doctor.sh` / `config.sh` / `update.sh` / `init.sh` | 健康检查 / 配置 / 升级 / vault 初始化 |
+| cron 代理 | `lint.sh` / `fold.sh` / `dashboard.sh` / `install_cron.sh` | cron job 手动触发 |
+| 内容 | `ingest.sh` / `search.sh` / `save.sh` / `refactor.sh` | 摄取 / 检索 / 落档 / 重构 |
+| 记忆 | `memory.sh` / `recall.sh` / `promote.sh` / `consolidate.sh` | CRUD / 渐进召回 / 晋级 / 周报巩固 |
+
+每个 wrapper 内部走 `claude --bare --no-session-persistence --max-budget-usd 0.30 -p "..."` 调对应 SKILL, `AUTO_MODE` 前缀关闭交互询问。
 - 不写 `~/.claude/settings.json`, 只写 LaunchAgents / crontab 区域
 - 检测 `$CI` env → 只打印 GHA yaml, 不真写
 
@@ -283,8 +296,20 @@ lang: zh-CN
 ✅ 已注册 launchd: lint / memory-promote / memory-forget (3 项)
 ⏭️  未选: fold / dashboard / memory-compact / memory-consolidate / memory-warden / memory-archive
 
+[wrapper]
+✅ 已生成 16 个 wrapper 到 ~/.cortex/scripts/ (4 组):
+   - 基础: doctor.sh / config.sh / update.sh / init.sh
+   - cron 代理: lint.sh / fold.sh / dashboard.sh / install_cron.sh
+   - 内容: ingest.sh / search.sh / save.sh / refactor.sh
+   - 记忆: memory.sh / recall.sh / promote.sh / consolidate.sh
+
 总结: 68 项写入, 5 项跳过, 0 项失败
-下一步: /cortex:doctor 验证 + 跑 cortex_uri_index_rebuild MCP 工具初始化索引
+下一步:
+  - /cortex:doctor 验证 + 跑 cortex_uri_index_rebuild MCP 工具初始化索引
+  - 记忆 CRUD: ~/.cortex/scripts/memory.sh read|write|update|forget <uri>
+  - 渐进召回: ~/.cortex/scripts/recall.sh <query>
+  - 晋级检测: ~/.cortex/scripts/promote.sh [--dry-run]
+  - 周报巩固: ~/.cortex/scripts/consolidate.sh [--week N]
 ```
 
 ## 错误处理
