@@ -75,3 +75,24 @@ def test_non_tty_disables_color(tmp_path: Path) -> None:
     assert "\033[" not in r.stderr, f"non-tty 不应含 ANSI: {r.stderr!r}"
     assert "✗" in r.stderr  # 但保留 unicode 符号
     assert "config 不存在" in r.stderr
+
+
+def test_all_stream_wrappers_filter_stdout(tmp_path: Path) -> None:
+    """11 stream wrapper 应含 cx_filter_stream 管道, 防止 raw NDJSON 漏到 stdout."""
+    _run_install(tmp_path)
+    for name in [
+        "doctor", "lint", "ingest", "search", "save", "refactor",
+        "init", "memory", "recall", "promote", "consolidate",
+    ]:
+        f = tmp_path / f"{name}.sh"
+        assert f.exists(), f"{name}.sh 未生成"
+        txt = f.read_text(encoding="utf-8")
+        assert "cx_filter_stream" in txt, f"{name}.sh missing cx_filter_stream pipe"
+
+
+def test_prelude_has_cx_filter_stream_function(tmp_path: Path) -> None:
+    """PRELUDE 应注入 cx_filter_stream 函数定义."""
+    _run_install(tmp_path)
+    txt = (tmp_path / "memory.sh").read_text(encoding="utf-8")
+    assert "cx_filter_stream()" in txt, "PRELUDE 缺 cx_filter_stream() 函数"
+    assert "python3 -c" in txt, "cx_filter_stream 应基于 python3"

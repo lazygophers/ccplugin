@@ -83,6 +83,29 @@ err()    { local _msg="$1"; local _code="${2:-4}"; printf '%s✗%s %s\n' "$_CX_R
 warn()   { printf '%s⚠%s %s\n' "$_CX_Y" "$_CX_0" "$*" >&2; }
 ok()     { printf '%s✓%s %s\n' "$_CX_G" "$_CX_0" "$*"; }
 banner() { printf '%s▸%s cortex %s  %s\n' "$_CX_C" "$_CX_0" "$*" "$(date '+%H:%M:%S')" >&2; }
+# stdout NDJSON → result.text only (stderr 不动, 由 rich UI 显示)
+# 错误 result → 红 ✗ 到 stderr + exit 1
+cx_filter_stream() {
+  python3 -c '
+import sys, json
+for line in sys.stdin:
+    line = line.strip()
+    if not line: continue
+    try:
+        d = json.loads(line)
+        if d.get("type") != "result":
+            continue
+        sub = d.get("subtype")
+        r = d.get("result") or d.get("error") or ""
+        if sub == "success":
+            if r: print(r)
+        elif sub == "error":
+            sys.stderr.write("\033[1;31m✗ " + str(r) + "\033[0m\n")
+            sys.exit(1)
+    except json.JSONDecodeError:
+        pass
+'
+}
 CXPRELUDE
 
 # Emit one wrapper. $1 = filename, $2 = body (single command line after `exec`
@@ -151,7 +174,9 @@ fi
 # trap Ctrl-C: stream_progress handles heartbeat cleanup internally.
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper.] 运行 cortex 健康检查 (cortex-doctor skill), 报告 vault/config/links/dead-links 等问题, 输出可读结果" "\$@"
+  "[AUTO_MODE: non-interactive shell wrapper.] 运行 cortex 健康检查 (cortex-doctor skill), 报告 vault/config/links/dead-links 等问题, 输出可读结果" "\$@" \\
+  | cx_filter_stream
+exit \${PIPESTATUS[0]}
 EOB
 )"
 
@@ -175,7 +200,9 @@ if [[ "\${1:-}" == "--fix" ]]; then
   export CORTEX_JOB_LABEL="cortex-lint-fix"
   cortex_stream_runner claude --bare -p \\
     --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-    "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 对 cortex vault 跑 lint --fix. 自动执行: structure_purge → BATCH_MV (mv 到 backup_root); autofix=true 项 → 直接落; 其它非 autofix 项 → 列入报告输出. \$*" "\$@"
+    "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 对 cortex vault 跑 lint --fix. 自动执行: structure_purge → BATCH_MV (mv 到 backup_root); autofix=true 项 → 直接落; 其它非 autofix 项 → 列入报告输出. \$*" "\$@" \\
+    | cx_filter_stream
+  exit \${PIPESTATUS[0]}
 else
   exec bash "$INSTALL_PATH/scripts/cron/lint.sh" "\$@"
 fi
@@ -193,7 +220,9 @@ source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-ingest"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 摄取以下源到 cortex vault. 源: \$* (自动判断 url/file/git/dir, 直接 ingest 不询问). 按 cortex-ingest skill 流程: url_security → fetch/read → html_sanitize → masking → save (kind=log)." "\$@"
+  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 摄取以下源到 cortex vault. 源: \$* (自动判断 url/file/git/dir, 直接 ingest 不询问). 按 cortex-ingest skill 流程: url_security → fetch/read → html_sanitize → masking → save (kind=log)." "\$@" \\
+  | cx_filter_stream
+exit \${PIPESTATUS[0]}
 EOB
 )"
 
@@ -208,7 +237,9 @@ source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-search"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper.] 在 cortex vault 搜索: \$*. 按 cortex-search skill 多级回退 (hot → index → SC → rg → MCP). 引用页路径 + 片段." "\$@"
+  "[AUTO_MODE: non-interactive shell wrapper.] 在 cortex vault 搜索: \$*. 按 cortex-search skill 多级回退 (hot → index → SC → rg → MCP). 引用页路径 + 片段." "\$@" \\
+  | cx_filter_stream
+exit \${PIPESTATUS[0]}
 EOB
 )"
 
@@ -229,7 +260,9 @@ cortex_stream_runner claude --bare -p \\
   "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 落档到 cortex vault: kind=\$KIND, title=\$TITLE. body 经 masking 后直接写盘, 不询问.
 
 body:
-\$BODY"
+\$BODY" \\
+  | cx_filter_stream
+exit \${PIPESTATUS[0]}
 EOB
 )"
 
@@ -244,7 +277,9 @@ source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-refactor"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 执行 cortex-refactor 子命令: \$*. 默认 dry-run; 仅当 args 含 --apply 才落盘. dry-run 输出 plan JSON. 子命令: rename / merge / split / fold / migrate-locale / restructure / dedupe / extract / inline / graph-rebalance." "\$@"
+  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 执行 cortex-refactor 子命令: \$*. 默认 dry-run; 仅当 args 含 --apply 才落盘. dry-run 输出 plan JSON. 子命令: rename / merge / split / fold / migrate-locale / restructure / dedupe / extract / inline / graph-rebalance." "\$@" \\
+  | cx_filter_stream
+exit \${PIPESTATUS[0]}
 EOB
 )"
 
@@ -313,8 +348,9 @@ if [[ -f "\$LIB_PATH" ]] && source "\$LIB_PATH" 2>/dev/null; then
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 else
   warn "stream_progress.sh 不可用, 退化为原生 claude --bare (无 rich 进度)"
   claude --bare \\
@@ -322,8 +358,9 @@ else
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 fi
 if [[ \$rc -eq 0 ]]; then ok "init done"; else err "init failed code=\$rc" "\$rc"; fi
 EOB
@@ -381,8 +418,9 @@ if [[ -f "\$LIB_PATH" ]] && source "\$LIB_PATH" 2>/dev/null; then
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 else
   warn "stream_progress.sh 不可用, 退化为原生 claude --bare"
   claude --bare \\
@@ -390,8 +428,9 @@ else
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 fi
 if [[ \$rc -eq 0 ]]; then ok "memory \$VERB done"; else err "memory \$VERB failed code=\$rc" "\$rc"; fi
 EOB
@@ -436,8 +475,9 @@ if [[ -f "\$LIB_PATH" ]] && source "\$LIB_PATH" 2>/dev/null; then
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 else
   warn "stream_progress.sh 不可用, 退化为原生 claude --bare"
   claude --bare \\
@@ -445,8 +485,9 @@ else
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 fi
 if [[ \$rc -eq 0 ]]; then ok "recall done"; else err "recall failed code=\$rc" "\$rc"; fi
 EOB
@@ -505,8 +546,9 @@ if [[ -f "\$LIB_PATH" ]] && source "\$LIB_PATH" 2>/dev/null; then
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 else
   warn "stream_progress.sh 不可用, 退化为原生 claude --bare"
   claude --bare \\
@@ -514,8 +556,9 @@ else
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 fi
 if [[ \$rc -eq 0 ]]; then ok "promote done"; else err "promote failed code=\$rc" "\$rc"; fi
 EOB
@@ -563,8 +606,9 @@ if [[ -f "\$LIB_PATH" ]] && source "\$LIB_PATH" 2>/dev/null; then
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 else
   warn "stream_progress.sh 不可用, 退化为原生 claude --bare"
   claude --bare \\
@@ -572,8 +616,9 @@ else
     --settings "\$SETTINGS" \\
     --max-budget-usd 0.30 \\
     -p "\$PROMPT" \\
-    --allowed-tools "Bash Read Write Edit Glob"
-  rc=\$?
+    --allowed-tools "Bash Read Write Edit Glob" \\
+    | cx_filter_stream
+  rc=\${PIPESTATUS[0]}
 fi
 if [[ \$rc -eq 0 ]]; then ok "consolidate done"; else err "consolidate failed code=\$rc" "\$rc"; fi
 EOB
