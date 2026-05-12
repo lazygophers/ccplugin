@@ -201,10 +201,10 @@ esac
 # commands/<name>.md 内已含 AUTO_MODE strict + 行为定义.
 CMD=(claude
   --settings "$SETTINGS"
-  --print
   -p "/cortex-$SLASH_CMD"
 )
 # Note: --output-format stream-json --verbose is injected by cortex_stream_runner.
+# 无 --print: stream-json 模式即流式输出, --print 仅适用于单次 markdown 输出, 二者互斥.
 
 # Extra flags after `--`: 过滤 legacy 限制 (--bare / --allowed-tools / --append-system-prompt),
 # 仅保留 (例如 --max-budget-usd / --output-format 等运行时调优).

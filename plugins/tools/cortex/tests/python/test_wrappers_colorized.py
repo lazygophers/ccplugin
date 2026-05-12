@@ -25,14 +25,14 @@ def _run_install(target: Path) -> None:
     assert r.returncode == 0, f"install_wrappers.sh failed: {r.stderr}"
 
 
-def test_install_wrappers_generates_16(tmp_path: Path) -> None:
+def test_install_wrappers_generates_17(tmp_path: Path) -> None:
     _run_install(tmp_path)
     files = sorted(p.name for p in tmp_path.glob("*.sh"))
-    assert len(files) == 16, f"got {len(files)}: {files}"
+    assert len(files) == 17, f"got {len(files)}: {files}"
 
 
 def test_all_wrappers_have_color_helper(tmp_path: Path) -> None:
-    """16 wrapper 全部含 err/ok/banner helper (PRELUDE 注入)."""
+    """17 wrapper 全部含 err/ok/banner helper (PRELUDE 注入)."""
     _run_install(tmp_path)
     pat = re.compile(r"_CX_R=|err\(\)\s*\{|ok\(\)\s*\{")
     for f in tmp_path.glob("*.sh"):

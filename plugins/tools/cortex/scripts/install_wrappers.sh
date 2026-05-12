@@ -2,8 +2,10 @@
 # cortex/scripts/install_wrappers.sh
 #
 # Generates the proxy wrappers under <target-dir> (default ~/.cortex/scripts/).
-# All wrappers route through `claude -p "/cortex-<name>" --print` (no args,
-# full plugin permissions, no --bare, no --allowed-tools). Slash commands are
+# All wrappers route through `claude -p "/cortex-<name>"` over stream-json
+# (via cortex_stream_runner + cx_filter_stream — rich UI on stderr, only the
+# final result.text reaches stdout). No args, full plugin permissions, no
+# --bare, no --allowed-tools, no --print. Slash commands are
 # defined in plugins/tools/cortex/commands/*.md and registered in plugin.json.
 #
 # Wrappers (16 total):
@@ -104,6 +106,30 @@ cx_git_commit_vault() {
     fi
   ) || true
 }
+# cx_filter_stream: 读 NDJSON, 仅吐 result.text 到 stdout (其余 stream-json 事件丢弃).
+# claude --output-format stream-json 输出多种 type (system/init/assistant/tool_use/result);
+# wrapper 只想让用户终端最终见到 final result.text, 其它实时进度由 stderr (rich UI) 承载.
+cx_filter_stream() {
+  python3 -c '
+import json, sys
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        evt = json.loads(line)
+    except Exception:
+        continue
+    if evt.get("type") == "result":
+        if evt.get("is_error"):
+            txt = evt.get("result") or "unknown error"
+            sys.stderr.write(txt + "\n")
+        else:
+            txt = (evt.get("result") or "").rstrip()
+            if txt:
+                sys.stdout.write(txt + "\n")
+'
+}
 trap 'cx_git_commit_vault "${CORTEX_JOB_LABEL:-cortex}"' EXIT
 CXPRELUDE
 
@@ -130,7 +156,9 @@ emit() {
 }
 
 # emit_slash <name>:
-#   生成 wrapper 调 `claude -p "/cortex-<name>" --print` (全权限, 无 args, 无 --bare).
+#   生成 wrapper 调 `claude -p "/cortex-<name>"` (全权限, 无 args, 无 --bare, 无 --print).
+#   走 cortex_stream_runner (stream-json + rich UI on stderr) | cx_filter_stream
+#   (stdout 仅 final result.text, 防 raw NDJSON 漏到终端).
 #   通过 plugins/tools/cortex/commands/<name>.md 触发 slash command, 行为由 .md 内描述定义.
 emit_slash() {
   local name="$1"
@@ -144,10 +172,19 @@ SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.json}"
 export CORTEX_JOB_LABEL="cortex-$name"
 banner "$name (slash /cortex-$name)"
 
+# 加载 stream_progress.sh — 提供 cortex_stream_runner (rich 实时 UI + stream-json).
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+[[ -f "\$LIB_PATH" ]] || err "stream_progress.sh missing: \$LIB_PATH" 4
+# shellcheck disable=SC1090
+source "\$LIB_PATH"
+
 # 无入参, 启全 plugin 环境 (skills/agents/hooks/mcp/全工具), 不加限制.
 # 通过 plugin slash command /cortex-$name 触发, 行为由 commands/$name.md 定义.
-claude --settings "\$SETTINGS" --print -p "/cortex-$name"
-rc=\$?
+# cortex_stream_runner 自动注 --output-format stream-json --verbose, 走 rich UI on stderr.
+# cx_filter_stream 仅放 final result.text 到 stdout, 防 raw NDJSON 漏到终端.
+cortex_stream_runner claude --settings "\$SETTINGS" -p "/cortex-$name" \\
+  | cx_filter_stream
+rc=\${PIPESTATUS[0]}
 if [[ \$rc -eq 0 ]]; then ok "$name done"; else err "$name failed code=\$rc" "\$rc"; fi
 EOB
 )"
