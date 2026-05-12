@@ -78,6 +78,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/user_prompt_submit.sh",
+            "async": false
+          }
+        ]
+      }
     ]
   },
   "mcpServers": {
