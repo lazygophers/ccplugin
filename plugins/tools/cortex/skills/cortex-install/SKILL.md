@@ -40,10 +40,12 @@ allowed-tools: Bash Read Write Edit Glob AskUserQuestion mcp__obsidian__obsidian
    - `hot.md` — 空骨架 (frontmatter `type: meta, title: hot`)
    - `log/_index.md` — 空骨架
    - `folds/_index.md` — 空骨架
-4. **写 LYT 业务目录**:
+4. **写 LYT 业务目录 + 根 MOC**:
    - 读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/_structure.json`
-   - 按 `directories[]` 在 vault 内创建空目录
-   - 按 `seed_files[]` 把 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/<src>` 复制到 `<vault>/<dst>`
+   - 按 `directories_keys[]` 经 `locales/<lang>.yml:dirs` 映射为本地化目录名, 在 vault 内创建空目录
+   - 按 `seed_files[]` 把 `<plugin>/presets/<src>` 复制到目标位置:
+     - `dst_key="."` (root sentinel) → 直落 `<vault>/<name>` (**不经** locales dirs 映射), 用于 3 个根 MOC: `home.md` / `topics-moc.md` / `projects-moc.md`
+     - 其他 `dst_key` → 复制到 `<vault>/<localized_dir>/<name>`, 用于 8 业务目录的 `_index.md`
 5. **询问 git auto-sync (P5)** — 若 `<vault>/.git` 存在 (vault 是 git repo), **必须**用 `AskUserQuestion` 工具(不能用文本式提问) 询问 1 个 single-choice 问题:
    - 问题: "vault 是 git repo, 是否启用 Stop hook 自动 commit?"
    - 选项:
@@ -118,9 +120,11 @@ preset: lyt
 ✅ 写入 folds/_index.md
 
 [preset: lyt]
-✅ 创建 00_MOC/ ... 80_archive/
-✅ 复制 00_MOC/home.md
-✅ 复制 00_MOC/topics-moc.md
+✅ 创建 concepts/ entities/ ... archive/ (8 业务目录, 按 lang 渲染名)
+✅ 复制 home.md (vault 根)
+✅ 复制 topics-moc.md (vault 根)
+✅ 复制 projects-moc.md (vault 根)
+✅ 复制 concepts/_index.md ... archive/_index.md (8 业务专用模板)
 ... (省略)
 
 总结: 22 项写入, 3 项跳过, 0 项失败

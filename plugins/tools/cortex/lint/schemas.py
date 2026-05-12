@@ -46,6 +46,9 @@ SCHEMAS: dict[str, VaultSchema] = {
             "README.md",
             "dashboard.md",
             "index-map.md",
+            "home.md",
+            "topics-moc.md",
+            "projects-moc.md",
         },
     },
     "PARA": {
