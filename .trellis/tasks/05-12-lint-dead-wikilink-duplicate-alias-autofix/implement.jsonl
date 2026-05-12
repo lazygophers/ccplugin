@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/05-12-lint-dead-wikilink-duplicate-alias-autofix/prd.md", "reason": "本任务 PRD"}
+{"file": "plugins/tools/cortex/lint/run.py", "reason": "改造目标 — 加 3 新规则 + autofix"}
+{"file": "plugins/tools/cortex/presets/_structure.json", "reason": "结构数据源 — directories + seed_files"}
+{"file": "plugins/tools/cortex/presets/seed/_meta/memory-policy.yaml", "reason": "meta seed 源"}
+{"file": "plugins/tools/cortex/templates/triggers.yaml", "reason": "triggers 源"}

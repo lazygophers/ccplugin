@@ -560,6 +560,175 @@ def _seed_rel_to_vault_rel(seed_rel: str) -> str | None:
     return None
 
 
+def _check_structure_missing(vault: Path, plugin_root: Path) -> list[dict[str, Any]]:
+    """Scan _structure.json directories nesting; report missing vault dirs."""
+    findings: list[dict[str, Any]] = []
+    sf = plugin_root / "presets" / "_structure.json"
+    if not sf.exists():
+        return findings
+    try:
+        d = json.loads(sf.read_text(encoding="utf-8"))
+    except Exception:
+        return findings
+
+    def walk(node: Any, prefix: str = "") -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                p = f"{prefix}/{k}" if prefix else k
+                if not (vault / p).is_dir():
+                    findings.append(_f(
+                        "structure-missing", "warn", p, 1,
+                        f"vault 缺目录 {p} (plugin _structure.json 要求)",
+                        True,
+                    ))
+                walk(v, p)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, prefix)
+
+    walk(d.get("directories", {}))
+    return findings
+
+
+def _check_seed_missing(vault: Path, plugin_root: Path) -> list[dict[str, Any]]:
+    """Scan _structure.json seed_files; report missing vault target paths."""
+    findings: list[dict[str, Any]] = []
+    sf = plugin_root / "presets" / "_structure.json"
+    if not sf.exists():
+        return findings
+    try:
+        d = json.loads(sf.read_text(encoding="utf-8"))
+    except Exception:
+        return findings
+    for s in d.get("seed_files", []):
+        if not isinstance(s, dict):
+            continue
+        dst_key = s.get("dst_key", ".")
+        name = s.get("name")
+        if not name:
+            continue
+        rel = name if dst_key == "." else f"{dst_key}/{name}"
+        if not (vault / rel).exists():
+            findings.append(_f(
+                "seed-missing", "warn", rel, 1,
+                f"vault 缺 seed 文件 {rel}",
+                True,
+            ))
+    return findings
+
+
+def _check_meta_missing(vault: Path, plugin_root: Path) -> list[dict[str, Any]]:
+    """Report missing core _meta files."""
+    findings: list[dict[str, Any]] = []
+    targets = [
+        ("_meta/memory-policy.yaml",
+         plugin_root / "presets" / "seed" / "_meta" / "memory-policy.yaml"),
+        ("_meta/triggers.yaml",
+         plugin_root / "templates" / "triggers.yaml"),
+        ("_meta/template-manifest.json",
+         plugin_root / "templates" / "_manifest.json"),
+    ]
+    for rel, src in targets:
+        if src.exists() and not (vault / rel).exists():
+            findings.append(_f(
+                "meta-missing", "warn", rel, 1,
+                f"vault 缺 _meta 文件 {rel}",
+                True,
+            ))
+    return findings
+
+
+def _fix_structure_missing(
+    finding: dict[str, Any], vault: Path, plugin_root: Path, backup_dir: Path,
+) -> bool:
+    p = vault / finding["file"]
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception:
+        return False
+
+
+def _fix_seed_missing(
+    finding: dict[str, Any], vault: Path, plugin_root: Path, backup_dir: Path,
+) -> bool:
+    rel = finding["file"]
+    sf = plugin_root / "presets" / "_structure.json"
+    if not sf.exists():
+        return False
+    try:
+        d = json.loads(sf.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    src_path: Path | None = None
+    for s in d.get("seed_files", []):
+        if not isinstance(s, dict):
+            continue
+        dst_key = s.get("dst_key", ".")
+        name = s.get("name")
+        if not name:
+            continue
+        cand_rel = name if dst_key == "." else f"{dst_key}/{name}"
+        if cand_rel == rel:
+            src_path = plugin_root / "presets" / s["src"]
+            break
+    if src_path is None or not src_path.exists():
+        return False
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        content = src_path.read_text(encoding="utf-8")
+    except Exception:
+        return False
+    content = content.replace("{{LAST_UPDATED}}", now)
+    content = content.replace("{{UPDATED}}", now)
+    content = content.replace("{{CREATED}}", now)
+    content = content.replace("{{TITLE}}", Path(rel).stem)
+    content = content.replace("{{CURRENT_PATH}}", str(Path(rel).parent))
+    dst = vault / rel
+    if dst.exists():
+        return False  # don't overwrite user content
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        dst.write_text(content, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def _fix_meta_missing(
+    finding: dict[str, Any], vault: Path, plugin_root: Path, backup_dir: Path,
+) -> bool:
+    rel = finding["file"]
+    src_map = {
+        "_meta/memory-policy.yaml":
+            plugin_root / "presets" / "seed" / "_meta" / "memory-policy.yaml",
+        "_meta/triggers.yaml":
+            plugin_root / "templates" / "triggers.yaml",
+        "_meta/template-manifest.json":
+            plugin_root / "templates" / "_manifest.json",
+    }
+    src = src_map.get(rel)
+    if src is None or not src.exists():
+        return False
+    dst = vault / rel
+    if dst.exists():
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        dst.write_bytes(src.read_bytes())
+        return True
+    except Exception:
+        return False
+
+
+# Fix priority — structure must precede seed (seed write needs dir tree).
+RULE_PRIORITY = {
+    "structure-missing": 1,
+    "meta-missing": 2,
+    "seed-missing": 3,
+}
+
+
 def _check_seed_outdated(vault: Path, plugin_root: Path) -> list[dict[str, Any]]:
     """Rule seed-outdated — vault seed files' template_version < plugin manifest."""
     findings: list[dict[str, Any]] = []
@@ -681,6 +850,23 @@ def apply_fixes(
     (used by `--sync-templates` to limit autofix to template/seed rules).
     """
     fixed = 0
+
+    # 0) Constructive sync rules — structure-missing → meta-missing → seed-missing.
+    #    Order matters: seed-missing writes files into dirs created by
+    #    structure-missing. Sort by RULE_PRIORITY (default 99).
+    sync_rules = {
+        "structure-missing": _fix_structure_missing,
+        "meta-missing": _fix_meta_missing,
+        "seed-missing": _fix_seed_missing,
+    }
+    sync_findings = [f for f in findings
+                     if f.get("fixable") and f["rule"] in sync_rules
+                     and (rules_filter is None or f["rule"] in rules_filter)]
+    sync_findings.sort(key=lambda f: RULE_PRIORITY.get(f["rule"], 99))
+    for f in sync_findings:
+        fn = sync_rules[f["rule"]]
+        if fn(f, vault, plugin_root, backup_dir):
+            fixed += 1
 
     # 1) template-outdated / template-missing / seed-outdated — whole-file replacement
     for f in findings:
@@ -865,6 +1051,12 @@ def main() -> int:
     # rule #17/18/19: template-outdated / template-missing / seed-outdated
     findings.extend(_check_template_outdated(vault, plugin_root))
     findings.extend(_check_seed_outdated(vault, plugin_root))
+
+    # rule #20/21/22: structure-missing / seed-missing / meta-missing
+    # (constructive sync — fills vault from plugin _structure.json + seeds)
+    findings.extend(_check_structure_missing(vault, plugin_root))
+    findings.extend(_check_meta_missing(vault, plugin_root))
+    findings.extend(_check_seed_missing(vault, plugin_root))
 
     # vault-structure-violation: attach backup_target + emit structure_purge
     # mv plan (executed by cortex-lint skill, never by this python process).
