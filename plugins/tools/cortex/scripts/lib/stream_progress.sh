@@ -3,13 +3,13 @@
 #
 # Stream-json progress visibility library for cortex wrappers.
 #
-# Phase A (rich): delegates parse/heartbeat to the `cortex-stream` python
-# console-script (exposed by cortex-mcp pipx install) instead of jq + bash
-# background heartbeat. This file is now a thin shim that:
+# Phase A (rich): delegates parse/heartbeat to the `cortex_stream.py`
+# script (shipped under <plugin>/mcp/), executed via system python3 with
+# `rich` installed (pip3 install --user). This file is a thin shim that:
 #   - keeps tty-aware ANSI color variables (other scripts may reuse them);
 #   - keeps cortex_check_jq (legacy callers still probe jq);
-#   - dispatches to cortex-stream when available, falls back to raw exec
-#     otherwise (no progress UI, but no crash either).
+#   - dispatches to python3 + cortex_stream.py when rich is available,
+#     falls back to raw exec otherwise (no progress UI, but no crash).
 #
 # Source-only library (no top-level side effects, idempotent to re-source).
 # Usage:
@@ -67,15 +67,15 @@ cortex_check_jq() {
 # cortex_stream_runner CMD [ARGS...]
 #
 # Delegates stream-json parsing + heartbeat + step rendering to the
-# `cortex-stream` python console-script (rich-based) exposed by the
-# cortex-mcp pipx install. The python entrypoint auto-appends
+# `cortex_stream.py` script (rich-based) shipped under <plugin>/mcp/.
+# The python entrypoint auto-appends
 # `--output-format stream-json --verbose`, tees raw NDJSON to
 # $CORTEX_STREAM_TEE_FILE if set, and passes through to stdout so
 # downstream callers (run.sh) can still parse the result line.
 #
-# Fallback: if cortex-stream is not on PATH (pipx not installed yet),
-# run the command raw with stream-json flags — no progress UI, but
-# no crash either.
+# Fallback: if system python3 lacks rich and no cortex-stream is on
+# PATH, run the command raw with stream-json flags — no progress UI,
+# but no crash either.
 #
 # Optional env:
 #   CORTEX_JOB_LABEL       — label prefix (default "cortex")
@@ -108,29 +108,13 @@ cortex_stream_runner() {
     fi
   fi
 
-  # Path 2: cortex-stream console-script on PATH (兼容路径, 假定 entry 自带 rich).
+  # Path 2: cortex-stream console-script on PATH (向后兼容, 用户若手动装仍可用).
   if command -v cortex-stream >/dev/null 2>&1; then
     cortex-stream --label "$label" --timeout "$timeout" -- "$@"
     return $?
   fi
 
-  # Path 3: pipx venv python — 必须 import rich 成功才走 (防 ImportError).
-  if [[ -f "$stream_script" ]]; then
-    local pipx_home="${PIPX_HOME:-$HOME/.local/pipx}"
-    local venv_pys=(
-      "$pipx_home/venvs/cortex-mcp/bin/python"
-      "$pipx_home/venvs/cortex-mcp/bin/python3"
-    )
-    local py
-    for py in "${venv_pys[@]}"; do
-      if [[ -x "$py" ]] && "$py" -c "import rich" 2>/dev/null; then
-        "$py" "$stream_script" --label "$label" --timeout "$timeout" -- "$@"
-        return $?
-      fi
-    done
-  fi
-
-  # Path 4: raw fallback — warn, preserve stream-json + verbose so run.sh tee still works.
+  # Path 3: raw fallback — warn, preserve stream-json + verbose so run.sh tee still works.
   echo "${_C_YELLOW}${_C_BOLD}[${label}]${_C_RESET} rich not available (try: pip3 install rich), no progress UI" >&2
   if [[ -n "$tee_file" ]]; then
     "$@" --output-format stream-json --verbose | tee "$tee_file" >/dev/null

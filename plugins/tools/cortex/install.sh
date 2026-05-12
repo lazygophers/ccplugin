@@ -416,57 +416,49 @@ else
   log_info "skip wrappers (~/.cortex/scripts/*.sh 已存在, 保留; --reinstall 强制重生)"
 fi
 
-# MCP server 安装 (P1)
-step_mcp_install() {
-  local mcp_path="$INSTALL_PATH/mcp"
-  if [[ ! -d "$mcp_path" ]]; then
-    log_warn "mcp/ 目录缺失 ($mcp_path), 跳过 MCP 安装"
+# Python 依赖安装 (MCP server + cortex_stream 进度 UI)
+# 走系统 python3 + pip3 install --user
+CORTEX_PYTHON_DEPS=(mcp pypdf ebooklib python-docx rich)
+
+step_python_deps() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    log_error "python3 未找到, 请先安装 Python 3.10+"
+    return 1
+  fi
+
+  # 检测已装包 (python-docx import name = docx)
+  local missing=()
+  local pkg import_name
+  for pkg in "${CORTEX_PYTHON_DEPS[@]}"; do
+    import_name="$pkg"
+    [[ "$pkg" == "python-docx" ]] && import_name="docx"
+    if ! python3 -c "import $import_name" 2>/dev/null; then
+      missing+=("$pkg")
+    fi
+  done
+
+  if [[ "${#missing[@]}" -eq 0 ]]; then
+    log_info "python deps 已装 (${CORTEX_PYTHON_DEPS[*]})"
+    if [[ "${REINSTALL:-0}" == "1" ]]; then
+      log_step "强制升级 python deps"
+      pip3 install --user --upgrade "${CORTEX_PYTHON_DEPS[@]}" >&2 || {
+        log_warn "pip3 升级失败 (rc=$?), 现有安装不变"
+        return 0
+      }
+    fi
     return 0
   fi
-  if ! command -v pipx >/dev/null 2>&1; then
-    log_warn "pipx 未安装, MCP server 不可用. 装法: brew install pipx"
-    log_warn "跳过 MCP 安装, cortex skill 将退回 CLI/MCP-obsidian 路径"
+
+  log_step "安装 python deps via pip3 --user: ${missing[*]}"
+  if ! pip3 install --user "${missing[@]}" >&2; then
+    log_warn "pip3 install 失败. MCP server / cortex_stream 可能不可用."
+    log_hint "手动: pip3 install --user ${missing[*]}"
     return 0
   fi
-  local installed=0
-  if pipx list --short 2>/dev/null | grep -q '^cortex-mcp '; then
-    installed=1
-  fi
-  if [[ "$installed" == "1" && "$REINSTALL" != "1" ]]; then
-    log_info "cortex-mcp 已装 (pipx); 跳过 (--reinstall 强制重装)"
-    return 0
-  fi
-  if [[ "$installed" == "1" ]]; then
-    log_step "强制重装 ${C_BOLD}cortex-mcp${C_RESET} via pipx"
-    pipx install --force "$mcp_path" >&2 || {
-      log_warn "pipx 强制重装失败, MCP 不可用"
-      return 0
-    }
-  else
-    log_step "安装 ${C_BOLD}cortex-mcp${C_RESET} via pipx"
-    pipx install "$mcp_path" >&2 || {
-      log_warn "pipx 装失败, MCP 不可用"
-      return 0
-    }
-  fi
-  log_ok "cortex-mcp 已就绪 (which cortex-mcp 应返路径)"
+  log_ok "python deps 已装"
 }
 
-# ── rich 可用检测 ──────────────────────────────────────────────────
-# cortex-stream 进度 UI 依赖 system python3 + rich (路径 1 优先).
-# 缺则 warn + hint, 不阻塞 install.
-step_rich_install() {
-  if command -v python3 >/dev/null 2>&1 && python3 -c "import rich" 2>/dev/null; then
-    log_info "rich 已装 (system python3)"
-    return 0
-  fi
-  log_warn "rich 未在 system python3 中可用. cortex-stream 进度 UI 不可用."
-  log_hint "装: pip3 install rich  (或 pip3 install --user rich)"
-  return 0
-}
-
-step_mcp_install
-step_rich_install
+step_python_deps
 
 # ── cron 幂等性 ────────────────────────────────────────────────────
 # 检测 crontab / launchd 中是否已有 cortex job
