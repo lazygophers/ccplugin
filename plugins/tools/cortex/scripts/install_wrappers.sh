@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # cortex/scripts/install_wrappers.sh
 #
-# Generates the seven thin-proxy wrappers under <target-dir> (default
-# ~/.cortex/scripts/). Wrappers embed the absolute marketplace path so the
-# user-facing entry points stay stable across plugin upgrades.
+# Generates the proxy wrappers under <target-dir> (default ~/.cortex/scripts/).
+# Wrappers embed the absolute marketplace path so the user-facing entry points
+# stay stable across plugin upgrades.
+#
+# Wrappers (11 total):
+#   - cron/proxy: lint.sh (dual-mode), fold.sh, dashboard.sh, install_cron.sh, config.sh, update.sh
+#   - skill entrypoints: doctor.sh, ingest.sh, search.sh, save.sh, refactor.sh
 #
 # Usage:
 #   bash install_wrappers.sh --install-path <abs cortex root> [--target-dir <dir>] [--no-overwrite]
@@ -92,7 +96,6 @@ emit_exec() {
   emit "$1" "exec $2 \"\$@\""
 }
 
-emit_exec lint.sh           "bash \"$INSTALL_PATH/scripts/cron/lint.sh\""
 emit_exec fold.sh           "bash \"$INSTALL_PATH/scripts/cron/fold.sh\""
 emit_exec dashboard.sh      "bash \"$INSTALL_PATH/scripts/cron/dashboard.sh\""
 emit_exec install_cron.sh   "bash \"$INSTALL_PATH/scripts/install_cron.sh\""
@@ -122,6 +125,123 @@ cortex_stream_runner claude --bare -p \\
 EOB
 )"
 
+# lint.sh: dual-mode wrapper.
+#   - no flag (or any args without --fix): cron mode, exec cron/lint.sh (JSON output, read-only).
+#   - --fix: interactive fix mode via cortex-lint skill (AskUserQuestion flow).
+emit lint.sh "$(cat <<EOB
+if [[ "\${1:-}" == "--fix" ]]; then
+  shift
+  SKILL_PATH="$INSTALL_PATH/skills/cortex-lint/SKILL.md"
+  if [[ ! -f "\$SKILL_PATH" ]]; then
+    echo "cortex-lint SKILL.md missing: \$SKILL_PATH" >&2
+    exit 1
+  fi
+  LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+  if [[ ! -f "\$LIB_PATH" ]]; then
+    echo "stream_progress.sh missing: \$LIB_PATH" >&2
+    exit 1
+  fi
+  # shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+  source "\$LIB_PATH"
+  export CORTEX_JOB_LABEL="cortex-lint-fix"
+  cortex_stream_runner claude --bare -p \\
+    --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+    "对 cortex vault 跑 lint 并 --fix 交互修复. 按 cortex-lint skill 工作流: 跑 run.py 获 JSON 报告 → 解析 errors[] → vault-structure-violation 各项用 AskUserQuestion 工具询问 (move/delete/whitelist/skip), 其它 autofix 项直接落. \$*" "\$@"
+else
+  exec bash "$INSTALL_PATH/scripts/cron/lint.sh" "\$@"
+fi
+EOB
+)"
+
+# ingest.sh: cortex-ingest skill — auto-detect url/file/git/dir source.
+emit ingest.sh "$(cat <<EOB
+SKILL_PATH="$INSTALL_PATH/skills/cortex-ingest/SKILL.md"
+if [[ ! -f "\$SKILL_PATH" ]]; then
+  echo "cortex-ingest SKILL.md missing: \$SKILL_PATH" >&2
+  exit 1
+fi
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+if [[ ! -f "\$LIB_PATH" ]]; then
+  echo "stream_progress.sh missing: \$LIB_PATH" >&2
+  exit 1
+fi
+# shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+source "\$LIB_PATH"
+export CORTEX_JOB_LABEL="cortex-ingest"
+cortex_stream_runner claude --bare -p \\
+  --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+  "摄取以下源到 cortex vault. 源: \$* (自动判断 url/file/git/dir). 按 cortex-ingest skill 流程: url_security → fetch/read → html_sanitize → masking → save." "\$@"
+EOB
+)"
+
+# search.sh: cortex-search skill — multi-tier fallback search.
+emit search.sh "$(cat <<EOB
+SKILL_PATH="$INSTALL_PATH/skills/cortex-search/SKILL.md"
+if [[ ! -f "\$SKILL_PATH" ]]; then
+  echo "cortex-search SKILL.md missing: \$SKILL_PATH" >&2
+  exit 1
+fi
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+if [[ ! -f "\$LIB_PATH" ]]; then
+  echo "stream_progress.sh missing: \$LIB_PATH" >&2
+  exit 1
+fi
+# shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+source "\$LIB_PATH"
+export CORTEX_JOB_LABEL="cortex-search"
+cortex_stream_runner claude --bare -p \\
+  --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+  "在 cortex vault 搜索: \$*. 按 cortex-search skill 多级回退 (hot → index → SC → rg → MCP). 引用页路径 + 片段." "\$@"
+EOB
+)"
+
+# save.sh: cortex-save skill — body from stdin, kind/title from args.
+emit save.sh "$(cat <<EOB
+SKILL_PATH="$INSTALL_PATH/skills/cortex-save/SKILL.md"
+if [[ ! -f "\$SKILL_PATH" ]]; then
+  echo "cortex-save SKILL.md missing: \$SKILL_PATH" >&2
+  exit 1
+fi
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+if [[ ! -f "\$LIB_PATH" ]]; then
+  echo "stream_progress.sh missing: \$LIB_PATH" >&2
+  exit 1
+fi
+# shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+source "\$LIB_PATH"
+export CORTEX_JOB_LABEL="cortex-save"
+KIND="\${1:-log}"
+TITLE="\${2:-quick save}"
+BODY="\$(cat)"
+cortex_stream_runner claude --bare -p \\
+  --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+  "落档到 cortex vault: kind=\$KIND, title=\$TITLE. body 如下 (经 masking 后写盘):
+
+\$BODY"
+EOB
+)"
+
+# refactor.sh: cortex-refactor skill — dry-run default; --apply to persist.
+emit refactor.sh "$(cat <<EOB
+SKILL_PATH="$INSTALL_PATH/skills/cortex-refactor/SKILL.md"
+if [[ ! -f "\$SKILL_PATH" ]]; then
+  echo "cortex-refactor SKILL.md missing: \$SKILL_PATH" >&2
+  exit 1
+fi
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+if [[ ! -f "\$LIB_PATH" ]]; then
+  echo "stream_progress.sh missing: \$LIB_PATH" >&2
+  exit 1
+fi
+# shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+source "\$LIB_PATH"
+export CORTEX_JOB_LABEL="cortex-refactor"
+cortex_stream_runner claude --bare -p \\
+  --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+  "执行 cortex-refactor 子命令: \$*. dry-run 默认; --apply 才落. 子命令: rename / merge / split / fold / migrate-locale / restructure / dedupe / extract / inline / graph-rebalance." "\$@"
+EOB
+)"
+
 # update.sh: two commands cannot share a single `exec`, chain with `&&`.
 emit update.sh "$(cat <<'EOB'
 claude plugins marketplace update ccplugin-market \
@@ -129,6 +249,6 @@ claude plugins marketplace update ccplugin-market \
 EOB
 )"
 
-printf '%s[install_wrappers.sh]%s %s✓%s wrote %s7 wrappers%s to %s%s%s\n' \
+printf '%s[install_wrappers.sh]%s %s✓%s wrote %s11 wrappers%s to %s%s%s\n' \
   "$_C_CYAN" "$_C_RESET" "$_C_GREEN" "$_C_RESET" \
   "$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$TARGET_DIR" "$_C_RESET" >&2

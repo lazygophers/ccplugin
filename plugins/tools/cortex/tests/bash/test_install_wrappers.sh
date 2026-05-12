@@ -9,7 +9,7 @@ source "$DIR/_assert.sh"
 
 SCRIPT="$PLUGIN_ROOT/scripts/install_wrappers.sh"
 
-WRAPPERS=(lint.sh fold.sh dashboard.sh doctor.sh install_cron.sh config.sh update.sh)
+WRAPPERS=(lint.sh fold.sh dashboard.sh doctor.sh install_cron.sh config.sh update.sh ingest.sh search.sh save.sh refactor.sh)
 
 test_missing_install_path_fails() {
   out=$(bash "$SCRIPT" 2>&1) && rc=$? || rc=$?
@@ -22,7 +22,7 @@ test_nonexistent_install_path_fails() {
   assert_eq "3" "$rc"
 }
 
-test_generates_seven_executable_wrappers() {
+test_generates_all_executable_wrappers() {
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
   local f
@@ -76,6 +76,56 @@ test_doctor_wrapper_guides_to_skill() {
   assert_contains "cortex-doctor" "$out"
 }
 
+test_skill_wrappers_invoke_stream_runner() {
+  local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
+  bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
+  local w
+  for w in ingest.sh search.sh save.sh refactor.sh; do
+    out=$(cat "$tgt/$w")
+    assert_contains "cortex_stream_runner" "$out"
+    assert_contains "CORTEX_JOB_LABEL" "$out"
+  done
+  # skill paths embedded
+  assert_contains "skills/cortex-ingest/SKILL.md"  "$(cat "$tgt/ingest.sh")"
+  assert_contains "skills/cortex-search/SKILL.md"  "$(cat "$tgt/search.sh")"
+  assert_contains "skills/cortex-save/SKILL.md"    "$(cat "$tgt/save.sh")"
+  assert_contains "skills/cortex-refactor/SKILL.md" "$(cat "$tgt/refactor.sh")"
+}
+
+test_save_wrapper_reads_stdin_body() {
+  local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
+  bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
+  out=$(cat "$tgt/save.sh")
+  assert_contains 'BODY="$(cat)"' "$out"
+  assert_contains 'KIND="${1:-log}"' "$out"
+  assert_contains 'TITLE="${2:-quick save}"' "$out"
+}
+
+test_lint_wrapper_has_fix_branch() {
+  local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
+  bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
+  out=$(cat "$tgt/lint.sh")
+  assert_contains '"--fix"' "$out"
+  assert_contains "cortex-lint" "$out"
+  # cron mode (no --fix) still executes cron/lint.sh
+  assert_contains "scripts/cron/lint.sh" "$out"
+}
+
+test_all_generated_wrappers_pass_bash_n() {
+  local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
+  bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
+  local f
+  for f in "$tgt"/*.sh; do
+    if ! bash -n "$f" 2>/dev/null; then
+      _TESTS_RUN=$((_TESTS_RUN + 1))
+      _TESTS_FAIL=$((_TESTS_FAIL + 1))
+      printf '  FAIL: bash -n failed for %s\n' "$(basename "$f")"
+    else
+      _TESTS_RUN=$((_TESTS_RUN + 1))
+    fi
+  done
+}
+
 test_overwrite_default_warns_on_stderr() {
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
@@ -119,10 +169,14 @@ test_shellcheck_clean() {
 
 run_test test_missing_install_path_fails            test_missing_install_path_fails
 run_test test_nonexistent_install_path_fails        test_nonexistent_install_path_fails
-run_test test_generates_seven_executable_wrappers   test_generates_seven_executable_wrappers
+run_test test_generates_all_executable_wrappers     test_generates_all_executable_wrappers
 run_test test_wrappers_embed_absolute_install_path  test_wrappers_embed_absolute_install_path
 run_test test_update_wrapper_contains_two_claude_commands test_update_wrapper_contains_two_claude_commands
 run_test test_doctor_wrapper_guides_to_skill        test_doctor_wrapper_guides_to_skill
+run_test test_skill_wrappers_invoke_stream_runner   test_skill_wrappers_invoke_stream_runner
+run_test test_save_wrapper_reads_stdin_body         test_save_wrapper_reads_stdin_body
+run_test test_lint_wrapper_has_fix_branch           test_lint_wrapper_has_fix_branch
+run_test test_all_generated_wrappers_pass_bash_n    test_all_generated_wrappers_pass_bash_n
 run_test test_overwrite_default_warns_on_stderr     test_overwrite_default_warns_on_stderr
 run_test test_no_overwrite_preserves_existing       test_no_overwrite_preserves_existing
 run_test test_shellcheck_clean                      test_shellcheck_clean
