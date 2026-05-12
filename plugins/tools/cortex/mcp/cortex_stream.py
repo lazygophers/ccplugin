@@ -214,6 +214,27 @@ def _render_system_event(evt: dict) -> RenderableType | None:
         style = "red" if err else "dim"
         suffix = f" — {err}" if err else ""
         return Text(f"  ▸ plugin {name} {status}{suffix}", style=style)
+    if sub == "compact_boundary":
+        trigger = evt.get("trigger") or evt.get("compact_metadata", {}).get("trigger", "")
+        suffix = f" ({trigger})" if trigger else ""
+        return Text(f"  ⊟ compact_boundary{suffix}", style="dim magenta")
+    if sub == "error":
+        msg = evt.get("error") or evt.get("message") or "?"
+        return Text(f"  ✗ system error: {msg}"[:300], style="red")
+    if sub in {
+        "tool_permission_request",
+        "tool_permission_response",
+        "tool_use_started",
+        "tool_use_completed",
+        "subagent_started",
+        "subagent_stopped",
+        "session_resumed",
+        "session_compacted",
+    }:
+        name = evt.get("tool_name") or evt.get("subagent_type") or evt.get("name") or ""
+        status = evt.get("status") or evt.get("decision") or ""
+        bits = " ".join(b for b in (name, status) if b)
+        return Text(f"  · {sub} {bits}".rstrip(), style="dim")
     return None
 
 
@@ -222,7 +243,11 @@ def _render_user_event(evt: dict) -> RenderableType | None:
     msg = evt.get("message", {}) or {}
     content = msg.get("content", []) or []
     for item in content:
-        if item.get("type") != "tool_result":
+        itype = item.get("type")
+        if itype == "tool_use":
+            name = item.get("name", "?")
+            return Text(f"  ▸ user tool_use: {name}", style="dim yellow")
+        if itype != "tool_result":
             continue
         raw = item.get("content", "")
         # tool_result.content can be string OR list of {type:text, text:...} blocks.
@@ -291,15 +316,36 @@ def _render_event(evt: dict) -> RenderableType | None:
                         padding=(0, 1),
                     )
                 )
+            elif btype == "server_tool_use":
+                name = blk.get("name", "?")
+                inp = json.dumps(blk.get("input", {}), ensure_ascii=False)[:_TOOL_INPUT_CAP]
+                renderables.append(
+                    Panel(
+                        Text(inp, style="cyan"),
+                        title=f"server_tool: {name}",
+                        border_style="cyan",
+                        padding=(0, 1),
+                    )
+                )
+            elif btype == "web_search_tool_result":
+                tu_id = blk.get("tool_use_id", "?")
+                content = blk.get("content", [])
+                n = len(content) if isinstance(content, list) else 1
+                renderables.append(
+                    Text(f"  ↩ web_search_result ({n} hits) tool_use_id={tu_id[:12]}", style="dim cyan")
+                )
+            elif btype == "redacted_thinking":
+                renderables.append(Text("[thinking redacted]", style="dim italic"))
         if not renderables:
             return None
         if len(renderables) == 1:
             return renderables[0]
         return Group(*renderables)
     if etype == "result":
-        if evt.get("is_error"):
-            msg = (evt.get("result") or "unknown error")[:_TEXT_CAP]
-            return Text(f"[FAILED] {msg}", style="bold red")
+        sub = evt.get("subtype", "")
+        if evt.get("is_error") or sub in {"error_max_turns", "error_during_execution"}:
+            msg = (evt.get("result") or evt.get("error") or f"unknown error ({sub})")[:_TEXT_CAP]
+            return Text(f"[FAILED:{sub or 'error'}] {msg}", style="bold red")
         msg = (evt.get("result") or "").strip()
         if msg:
             return Text(f"[OK] {msg[:_TEXT_CAP]}", style="bold green")
