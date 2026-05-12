@@ -1411,3 +1411,36 @@ install_wrappers.sh 加 init.sh 生成 (+64 行), wrapper 总数 11→12。init.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 43: cortex session_start 强化主动检索
+
+**Date**: 2026-05-12
+**Task**: cortex session_start 强化主动检索
+**Branch**: `master`
+
+### Summary
+
+6 段注入 (header/stats/L0/hot/contract/triggers/collab) + 触发关键词 yaml + locale 3 lang 重构 + 10 新单元测试。AI 强制 recall+search, 不再依赖弱建议。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `751e2c4a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
