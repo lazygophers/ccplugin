@@ -12,6 +12,8 @@ from typing import Any
 import pytest
 
 from cortex_stream import (
+    _extract_prompts,
+    _extract_skill_name,
     _render_event,
     _strip_separator,
     main,
@@ -94,13 +96,131 @@ def test_render_event_empty_assistant_returns_none() -> None:
 
 
 def test_render_event_strips_leading_newlines_and_caps_length() -> None:
-    long_text = "\n\n" + ("x" * 500)
+    long_text = "\n\n" + ("x" * 3000)
     evt = {"type": "assistant", "message": {"content": [{"type": "text", "text": long_text}]}}
     r = _render_event(evt)
     assert r is not None
-    # Should not contain leading newlines; should be capped
+    # Should not contain leading newlines; capped at TEXT_CAP=2000 (+prefix).
     assert "\n\n" not in r.plain
-    assert len(r.plain) < 250  # 200 cap + "[text] " prefix
+    assert len(r.plain) < 2020  # 2000 cap + "[text] " prefix
+    assert len(r.plain) > 1900  # 不再是旧 200 cap
+
+
+def test_render_event_text_not_truncated_below_old_cap() -> None:
+    # 500 chars 在旧 200 cap 会被截; 现在 2000 cap 应完整保留.
+    txt = "a" * 500
+    evt = {"type": "assistant", "message": {"content": [{"type": "text", "text": txt}]}}
+    r = _render_event(evt)
+    assert r is not None
+    assert r.plain.count("a") == 500
+
+
+def test_render_event_thinking_block() -> None:
+    evt = {
+        "type": "assistant",
+        "message": {"content": [{"type": "thinking", "thinking": "let me reason about this"}]},
+    }
+    r = _render_event(evt)
+    assert r is not None
+    assert "thinking" in r.plain
+    assert "let me reason" in r.plain
+
+
+def test_render_event_thinking_capped() -> None:
+    long_th = "z" * 5000
+    evt = {"type": "assistant", "message": {"content": [{"type": "thinking", "thinking": long_th}]}}
+    r = _render_event(evt)
+    assert r is not None
+    # cap at 4000
+    assert r.plain.count("z") == 4000
+
+
+def test_render_event_tool_input_not_truncated_below_old_cap() -> None:
+    # 旧 120 cap 会截; 现在 800 cap 应保留 ~400 chars 的 JSON.
+    big_input = {"q": "x" * 400}
+    evt = {
+        "type": "assistant",
+        "message": {"content": [{"type": "tool_use", "name": "Grep", "input": big_input}]},
+    }
+    r = _render_event(evt)
+    assert r is not None
+    # Panel renderable — 主要断言不抛异常 + 不在旧 120 边界出错;
+    # 进一步: 直接读 Panel.renderable.plain 检查 input 字符串保留度.
+    inner_plain = r.renderable.plain  # type: ignore[attr-defined]
+    # 旧 120 cap 下绝不会保留 400 个 x; 新 800 cap 应保留.
+    assert inner_plain.count("x") >= 300
+
+
+def test_render_event_result_with_full_content() -> None:
+    r = _render_event({"type": "result", "is_error": False, "result": "summary line 1\nsummary line 2"})
+    assert r is not None
+    assert "OK" in r.plain
+    assert "summary line 1" in r.plain
+    assert "summary line 2" in r.plain
+
+
+def test_render_event_result_empty_falls_back_to_done() -> None:
+    r = _render_event({"type": "result", "is_error": False, "result": ""})
+    assert r is not None
+    assert r.plain.strip() == "[OK] done"
+
+
+# ---------- prompt extraction ----------
+
+
+def test_extract_prompts_system_and_user() -> None:
+    cmd = [
+        "claude", "--bare", "-p",
+        "--append-system-prompt", "SYS BODY",
+        "--output-format", "stream-json", "--verbose",
+        "user question",
+    ]
+    sys_p, user_p = _extract_prompts(cmd)
+    assert sys_p == "SYS BODY"
+    assert user_p == "user question"
+
+
+def test_extract_prompts_user_only() -> None:
+    cmd = ["claude", "-p", "ask me something"]
+    sys_p, user_p = _extract_prompts(cmd)
+    assert sys_p is None
+    assert user_p == "ask me something"
+
+
+def test_extract_prompts_neither() -> None:
+    cmd = ["/usr/bin/claude"]
+    sys_p, user_p = _extract_prompts(cmd)
+    assert sys_p is None
+    assert user_p is None
+
+
+def test_extract_prompts_alt_system_flag() -> None:
+    cmd = ["claude", "--system-prompt", "ALT SYS", "hello"]
+    sys_p, user_p = _extract_prompts(cmd)
+    assert sys_p == "ALT SYS"
+    assert user_p == "hello"
+
+
+# ---------- skill name extraction ----------
+
+
+def test_extract_skill_name_basic() -> None:
+    sp = "---\nname: cortex-lint\ndescription: x\n---\n\nbody here"
+    assert _extract_skill_name(sp) == "cortex-lint"
+
+
+def test_extract_skill_name_quoted() -> None:
+    sp = "---\nname: \"my-skill\"\nx: y\n---\n\nbody"
+    assert _extract_skill_name(sp) == "my-skill"
+
+
+def test_extract_skill_name_no_frontmatter() -> None:
+    assert _extract_skill_name("just plain text") is None
+
+
+def test_extract_skill_name_empty() -> None:
+    assert _extract_skill_name(None) is None
+    assert _extract_skill_name("") is None
 
 
 # ---------- run() with mocked subprocess ----------
