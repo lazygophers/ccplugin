@@ -11,7 +11,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 ## 调用优先级 (P1)
 
 1. **优先**: `mcp__cortex__cortex_search` (MCP server 已装) — 结构化 JSON 输出, schema 稳定, 自动跑 hot → index → SC → rg 回退
-2. **回退**: 下述 L1-L5 (CLI / Smart Connections / mcp__obsidian / rg) — MCP 不可达时
+2. **回退**: 下述 L1-L5 (CLI / Smart Connections / mcp\_\_obsidian / rg) — MCP 不可达时
 
 ## 触发场景
 
@@ -30,8 +30,9 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 1. **解析 vault**
 
    ```bash
-   VAULT="$(bash ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/resolve_vault.sh)"
+   VAULT="$(bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh)"
    ```
+
    失败 → 提示用户配 `OBSIDIAN_VAULT` 后退出。
 
 2. **L1 — hot.md 优先**
@@ -48,6 +49,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
    ```bash
    curl -sf -m 2 http://127.0.0.1:27124/embeddings/info >/dev/null && SC_OK=1 || SC_OK=0
    ```
+
    - 可达 (`SC_OK=1`) → POST `/search`:
 
      ```bash
@@ -55,6 +57,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
        -H 'Content-Type: application/json' \
        -d "{\"query\":\"<query>\",\"top_k\":10}" 2>/dev/null
      ```
+
    - 拿 top-K paths → `mcp__obsidian__obsidian_batch_get_file_contents` 读内容
    - **不要硬编码模型名** — 模型版本由 `/embeddings/info` 自带
 
@@ -63,6 +66,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
    ```text
    mcp__obsidian__obsidian_simple_search(query="<query>", context_length=50)
    ```
+
    - 拿到匹配文件 + 上下文片段 → 综合时直接用片段 (省一次 read)
 
 6. **L5 — ripgrep 兜底**
@@ -71,6 +75,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
    rg --type md -n -C 2 --max-count 5 -i "<pattern>" "$VAULT" \
       --glob '!_meta/**' --glob '!_templates/**' --glob '!.obsidian/**'
    ```
+
    - L4 也无结果时启用; 关键词转换为 OR 正则 (`a|b|c`)
 
 7. **综合答复**

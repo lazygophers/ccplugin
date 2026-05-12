@@ -32,45 +32,45 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 
 ## 支持源类型
 
-| 源 | 入口 | 默认 type |
-|----|------|-----------|
-| `https?://...` | `WebFetch` (或外部 `obsidian:defuddle` skill 拿 clean markdown 优先) | source |
-| `*.md` `*.txt` | `Read` | source |
-| `*.pdf` | `Read` (Read 自带 pdf 解析) | source |
-| 目录 | `Glob` 收集 → 单文件循环 | 各文件 source |
+| 源             | 入口                                                                 | 默认 type     |
+| -------------- | -------------------------------------------------------------------- | ------------- |
+| `https?://...` | `WebFetch` (或外部 `obsidian:defuddle` skill 拿 clean markdown 优先) | source        |
+| `*.md` `*.txt` | `Read`                                                               | source        |
+| `*.pdf`        | `Read` (Read 自带 pdf 解析)                                          | source        |
+| 目录           | `Glob` 收集 → 单文件循环                                             | 各文件 source |
 
 ## 流程
 
 1. **解析 vault**
 
    ```bash
-   VAULT="$(bash ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/resolve_vault.sh)"
+   VAULT="$(bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh)"
    ```
 
 1.5. **P0 安全过滤 (三过滤器, 顺序严格)** — 详见 `AGENT.md §安全声明`
 
-   按以下顺序调用, 任一拒绝即终止本条目摄取:
+按以下顺序调用, 任一拒绝即终止本条目摄取:
 
-   1. **url_security** — URL 入参前置, 拒内网 + metadata + 低端口 SSRF
+1.  **url_security** — URL 入参前置, 拒内网 + metadata + 低端口 SSRF
 
-      ```bash
-      python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/url_security.py "$URL" \
-        || { echo "rejected SSRF target: $URL" >&2; exit 1; }
-      ```
+    ```bash
+    python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/url_security.py "$URL" \
+      || { echo "rejected SSRF target: $URL" >&2; exit 1; }
+    ```
 
-   2. **defuddle / WebFetch** 拉取 markdown → 立即调 **html_sanitize** 剥 `<script>/<iframe>/onerror=/javascript:` 等注入向量 (fenced code block 内字面量保留)
+2.  **defuddle / WebFetch** 拉取 markdown → 立即调 **html_sanitize** 剥 `<script>/<iframe>/onerror=/javascript:` 等注入向量 (fenced code block 内字面量保留)
 
-      ```bash
-      CLEAN_MD="$(python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/html_sanitize.py <<< "$RAW_MD")"
-      ```
+    ```bash
+    CLEAN_MD="$(python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/html_sanitize.py <<< "$RAW_MD")"
+    ```
 
-   3. **masking** — 落档前最后一道, 脱敏 AWS/OpenAI/Anthropic key + GitHub PAT + JWT + PEM + Slack token
+3.  **masking** — 落档前最后一道, 脱敏 AWS/OpenAI/Anthropic key + GitHub PAT + JWT + PEM + Slack token
 
-      ```bash
-      SAFE_MD="$(python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/masking.py <<< "$CLEAN_MD")"
-      ```
+    ```bash
+    SAFE_MD="$(python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/masking.py <<< "$CLEAN_MD")"
+    ```
 
-   绕过 (仅测试):`CORTEX_SKIP_SANITIZE=1`,生产禁用。
+绕过 (仅测试):`CORTEX_SKIP_SANITIZE=1`,生产禁用。
 
 2. **抽要点 (启发式)**
    - H1 → 标题候选
@@ -81,11 +81,11 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 
 3. **选目录 (按 prd §3.2.7 + preset)**
 
-   | 推断类型 | LYT 路径 | Zettel | PARA |
-   |----------|----------|--------|------|
-   | source (URL / 文章) | `40_sources/<kebab>.md` | `references/<UID>-<slug>.md` | `3_resources/sources/<kebab>.md` |
-   | concept (新概念页) | `10_concepts/<kebab>.md` | `zettels/<UID>-<slug>.md` | `3_resources/<topic>/<kebab>.md` |
-   | entity (人/工具/项目对象) | `20_entities/<kebab>.md` | `zettels/<UID>-<entity>.md` | `2_areas/<area>/<kebab>.md` |
+   | 推断类型                  | LYT 路径                 | Zettel                       | PARA                             |
+   | ------------------------- | ------------------------ | ---------------------------- | -------------------------------- |
+   | source (URL / 文章)       | `40_sources/<kebab>.md`  | `references/<UID>-<slug>.md` | `3_resources/sources/<kebab>.md` |
+   | concept (新概念页)        | `10_concepts/<kebab>.md` | `zettels/<UID>-<slug>.md`    | `3_resources/<topic>/<kebab>.md` |
+   | entity (人/工具/项目对象) | `20_entities/<kebab>.md` | `zettels/<UID>-<entity>.md`  | `2_areas/<area>/<kebab>.md`      |
 
    preset 从 `<vault>/_meta/version.json:.preset` 读, 缺省 `lyt`。
 
@@ -96,7 +96,7 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 
 5. **套模板**
    - 优先读 `<vault>/_templates/<type>.md`
-   - 不存在则读 `${CLAUDE_PLUGIN_ROOT}/templates/<type>.md`
+   - 不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//templates/<type>.md`
    - 替换 `{{TITLE}}` `{{CREATED}}` `{{UPDATED}}` (UTC `YYYY-MM-DD`) `{{PRESET}}` `{{URL}}` `{{AUTHOR}}`
    - 必填 frontmatter: `type`, `title`, `created`, `updated`, `tags: [cortex-auto, ingested]`
    - source 类型加 `url:` `ingested_at:` 字段
@@ -109,9 +109,10 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 7. **反向 wikilink 回填**
 
    ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/backlink_sync.py \
+   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/backlink_sync.py \
      --vault "$VAULT" --source "<rel-path>"
    ```
+
    - JSON 输出: `{updated: [...], skipped: [...], missing: [...]}`
    - missing 列表保留为输出报告 (lint rule #3 会另行报告 dead link)
 
@@ -131,15 +132,18 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 摄取完成: 源 = <path|url>
 
 新建 N 个页面:
+
 - [[40_sources/foo.md]] (source) · obsidian://open?vault=...&file=...
 - [[10_concepts/bar.md]] (concept)
 - ...
 
 反向 wikilink:
+
 - 更新 K 处 backlinks
 - 待补 dead link M 条 (见末尾)
 
 dead links (建议: 跑 /cortex:lint --fix):
+
 - [[Nonexistent Page]] (在 [[40_sources/foo.md]] 提及)
 ```
 

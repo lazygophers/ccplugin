@@ -26,9 +26,9 @@ cortex-new source "Building a Second Brain"
 
 ## 行为
 
-1. 解析 vault 路径 (跑 `${CLAUDE_PLUGIN_ROOT}/hooks/_lib/resolve_vault.sh`)
+1. 解析 vault 路径 (跑 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh`)
 2. 读 `<vault>/_meta/version.json` 拿 `preset` 字段; 不存在则报错并提示先跑 cortex-install
-3. 读 `<vault>/_templates/<type>.md` (回退到 `${CLAUDE_PLUGIN_ROOT}/templates/<type>.md`)
+3. 读 `<vault>/_templates/<type>.md` (回退到 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//templates/<type>.md`)
 4. 替换 frontmatter 占位:
    - `{{TITLE}}` → 用户输入 `<title>`
    - `{{CREATED}}` / `{{UPDATED}}` → 当前 UTC 日期 `YYYY-MM-DD`
@@ -48,6 +48,7 @@ cortex-new source "Building a Second Brain"
 ## 路径与命名
 
 slug 生成规则 (kebab):
+
 - 转小写
 - 中文/全角 → 保留
 - 空格 → `-`
@@ -56,14 +57,14 @@ slug 生成规则 (kebab):
 
 ## 错误恢复
 
-| 情况 | 处理 |
-|------|------|
-| vault 未安装 cortex (无 `_meta/version.json`) | 报错: "请先运行 cortex-install [preset]" |
-| `<type>` 不合法 | 列出 6 个有效值, 退出 |
-| `<title>` 为空 | 报错 |
-| 模板缺失 | 报错并提示重新跑 cortex-install 复刻模板 |
-| 目标文件已存在 | 报错 + 显示路径, 不动它 |
-| domain title 无法解析为 host/org/repo | 报错并给出格式示例 `github.com/<org>/<repo>` |
+| 情况                                          | 处理                                         |
+| --------------------------------------------- | -------------------------------------------- |
+| vault 未安装 cortex (无 `_meta/version.json`) | 报错: "请先运行 cortex-install [preset]"     |
+| `<type>` 不合法                               | 列出 6 个有效值, 退出                        |
+| `<title>` 为空                                | 报错                                         |
+| 模板缺失                                      | 报错并提示重新跑 cortex-install 复刻模板     |
+| 目标文件已存在                                | 报错 + 显示路径, 不动它                      |
+| domain title 无法解析为 host/org/repo         | 报错并给出格式示例 `github.com/<org>/<repo>` |
 
 ## 不做
 

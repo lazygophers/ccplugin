@@ -11,7 +11,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 ## 调用优先级 (P1)
 
 1. **优先**: `mcp__cortex__cortex_save` (MCP server 已装) — 自动跑 masking + frontmatter + block-id + flock + hot/index patch, 结构化返 `{path, block_ids, hits}`
-2. **回退**: 下述 L1-L3 (obsidian CLI / mcp__obsidian / 直接写盘) — MCP 不可达时
+2. **回退**: 下述 L1-L3 (obsidian CLI / mcp\_\_obsidian / 直接写盘) — MCP 不可达时
 
 ## 触发场景
 
@@ -23,15 +23,16 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 - 用户参数 (可选): `--topic "X"` / `--from-session` / `--type concept|entity|domain|log|source|question|dashboard`
 - 默认: 推断要点 + 默认 `type=log`
-- vault 路径必须先解析: `${CLAUDE_PLUGIN_ROOT}/hooks/_lib/resolve_vault.sh`
+- vault 路径必须先解析: `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh`
 
 ## 流程
 
 1. **解析 vault**
 
    ```bash
-   bash ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/resolve_vault.sh
+   bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh
    ```
+
    失败 → 提示用户配 `OBSIDIAN_VAULT` env 或 `~/.config/cortex/config.json`, 退出。
 
 2. **判定来源 + 类型**
@@ -41,20 +42,20 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 3. **选目录 (按 prd §3.2.7)**:
 
-   | type | 路径模板 |
-   |------|----------|
-   | concept | `10_concepts/<kebab-title>.md` (LYT) / `zettels/YYYYMMDDHHMM-<slug>.md` (Zettel) |
-   | entity | `20_entities/<kebab>.md` |
-   | domain | `30_domains/<host>/<org>/<repo>/<sub>.md` |
-   | source | `40_sources/<kebab>.md` |
-   | question | `50_questions/<kebab>.md` |
-   | dashboard | `60_dashboards/<topic>-dashboard.md` |
-   | log (默认) | `log/YYYY-MM/DD-HHMM-<slug>.md` (UTC) |
+   | type       | 路径模板                                                                         |
+   | ---------- | -------------------------------------------------------------------------------- |
+   | concept    | `10_concepts/<kebab-title>.md` (LYT) / `zettels/YYYYMMDDHHMM-<slug>.md` (Zettel) |
+   | entity     | `20_entities/<kebab>.md`                                                         |
+   | domain     | `30_domains/<host>/<org>/<repo>/<sub>.md`                                        |
+   | source     | `40_sources/<kebab>.md`                                                          |
+   | question   | `50_questions/<kebab>.md`                                                        |
+   | dashboard  | `60_dashboards/<topic>-dashboard.md`                                             |
+   | log (默认) | `log/YYYY-MM/DD-HHMM-<slug>.md` (UTC)                                            |
 
    preset (`_meta/version.json:.preset`) 不是 `lyt` 时, concept 路径切换为对应 preset 的扁平结构。
 
 4. **套模板 + 填 frontmatter**
-   - 读 `<vault>/_templates/<type>.md` (不存在则读 `${CLAUDE_PLUGIN_ROOT}/templates/<type>.md`)
+   - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//templates/<type>.md`)
    - 替换 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` (UTC `YYYY-MM-DD`) / `{{PRESET}}`
    - tags: 自动加 `[cortex-auto]` 标记由 skill 写入
 
@@ -67,10 +68,11 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
    - **P0 masking 前置**:写盘前必经 `masking.py` 脱敏 (AWS/OpenAI/Anthropic/GitHub PAT/JWT/PEM/Slack token → `<REDACTED:*>`),`save_session.py` 已内置;手写 body 时先
 
      ```bash
-     SAFE_BODY="$(python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/masking.py <<< "$BODY")"
+     SAFE_BODY="$(python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/masking.py <<< "$BODY")"
      ```
 
      绕过 (仅测试): `CORTEX_SKIP_SANITIZE=1`,生产禁用。
+
    - 优先 `mcp__obsidian__obsidian_put_content` / `obsidian_append_content`
    - MCP 不可用 → `Write`
    - 检测 `<vault>/.obsidian/plugins/obsidian-git/data.json` 存在 → **不**自动 git commit, 文件末尾加注释 `<!-- cortex-pending-commit -->`
@@ -83,9 +85,10 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 8. **反向 wikilink 回填**
 
    ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/backlink_sync.py \
+   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/backlink_sync.py \
      --vault "$VAULT" --source "<rel-path>"
    ```
+
    - JSON stdout: `{updated: [...], skipped: [...], missing: [...]}`
    - `updated` — 已在目标页 `## Backlinks` 段追加 `- [[<new-page>]] (cortex-auto)`
    - `skipped` — 目标页已含同源 backlink, 幂等跳过
@@ -96,13 +99,14 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 9. **快捷调用 save_session.py (--from-session 路径)**
 
    ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/hooks/_lib/save_session.py \
+   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/save_session.py \
      --vault "$VAULT" \
      --transcript "$CLAUDE_TRANSCRIPT_PATH" \
      --reason manual \
      --force \
      --title "用户给的标题"
    ```
+
    stdout 即落档绝对路径; 退出码 0=成功, 1=失败, 2=未触发 (force 模式不会出现)。
 
 10. **输出**
@@ -119,13 +123,13 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 ## 错误处理
 
-| 失败 | 行为 |
-|------|------|
-| vault 未解析 | 立即退出, 给配置示例 |
-| 模板缺失 (插件文件丢) | 退出, 提示重装 cortex |
-| MCP 不可用 | 回退 `Write` |
+| 失败                     | 行为                                                                                                      |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| vault 未解析             | 立即退出, 给配置示例                                                                                      |
+| 模板缺失 (插件文件丢)    | 退出, 提示重装 cortex                                                                                     |
+| MCP 不可用               | 回退 `Write`                                                                                              |
 | save_session.py 退出码 1 | 输出 stderr 内容, 调 `AskUserQuestion` 询问: "save 失败, 如何处理?" options: `手补内容` / `跳过` / `重试` |
-| 反向 wikilink 失败 | 仅警告, 主文件保留 |
+| 反向 wikilink 失败       | 仅警告, 主文件保留                                                                                        |
 
 ## 输出范例
 
