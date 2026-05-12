@@ -1807,3 +1807,36 @@ consolidate (ledger→views 聚合) + promote (_do_promote 真 mv + fm update) +
 ### Next Steps
 
 - None - task complete
+
+
+## Session 55: cortex lint.sh 直调 python + 禁 AskUserQuestion
+
+**Date**: 2026-05-12
+**Task**: cortex lint.sh 直调 python + 禁 AskUserQuestion
+**Branch**: `master`
+
+### Summary
+
+lint 默认走 python -m lint.run --fix (不绕 LLM), 真强制对齐。新增 --skill 走 LLM。11 wrapper 禁 AskUserQuestion 硬阻。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `39cbe9b9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
