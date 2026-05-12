@@ -55,7 +55,7 @@ EOF
 make_home_with_vault() {
   # make_home_with_vault <home> <vault> [extra-json-fields]
   local home="$1" vault="$2"
-  mkdir -p "$home/.cortex"
+  mkdir -p "$home/.cortex" "$vault"
   printf '{"vault":"%s"}\n' "$vault" > "$home/.cortex/config.json"
 }
 
@@ -244,6 +244,57 @@ test_obsidian_vault_env_ignored() {
   assert_eq "3" "$?" "OBSIDIAN_VAULT env must not satisfy run.sh"
 }
 
+test_auto_mode_prefix_in_prompt() {
+  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
+  make_fakebin "$sandbox/bin"
+  out=$(PATH="$sandbox/bin:$PATH" \
+    HOME="$(mktemp -d)" \
+    bash "$RUN_SH" lint --vault "$sandbox/v" --settings /dev/null --dry-run -- "test prompt")
+  assert_contains "AUTO_MODE strict" "$out"
+  assert_contains "cd $sandbox/v" "$out"
+}
+
+test_skill_injected_for_dashboard() {
+  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
+  make_fakebin "$sandbox/bin"
+  mkdir -p "$sandbox/h/.cortex"
+  cat > "$sandbox/h/.cortex/config.json" <<EOF
+{ "vault": "$sandbox/v", "install_path": "$PLUGIN_ROOT" }
+EOF
+  out=$(env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" dashboard --settings /dev/null --dry-run -- "x")
+  assert_contains "append-system-prompt" "$out"
+  assert_contains "cortex-dashboard" "$out"
+}
+
+test_skill_not_injected_for_unknown_job() {
+  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
+  make_fakebin "$sandbox/bin"
+  mkdir -p "$sandbox/h/.cortex"
+  cat > "$sandbox/h/.cortex/config.json" <<EOF
+{ "vault": "$sandbox/v", "install_path": "$PLUGIN_ROOT" }
+EOF
+  out=$(env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" custom-job --settings /dev/null --dry-run -- "x")
+  assert_not_contains "append-system-prompt" "$out"
+}
+
+test_cd_vault_fail_exits_3() {
+  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
+  make_fakebin "$sandbox/bin" success
+  mkdir -p "$sandbox/h/.cortex"
+  # vault path points to a non-existent directory → cd fails after dry-run guard
+  printf '{"vault":"%s/nonexistent-vault"}\n' "$sandbox" > "$sandbox/h/.cortex/config.json"
+  env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" myjob --settings /dev/null -- "x" >/dev/null 2>"$sandbox/err"
+  rc=$?
+  assert_eq "3" "$rc" "missing vault dir → cd fail → exit 3"
+}
+
+run_test test_auto_mode_prefix_in_prompt   test_auto_mode_prefix_in_prompt
+run_test test_skill_injected_for_dashboard test_skill_injected_for_dashboard
+run_test test_skill_not_injected_for_unknown_job test_skill_not_injected_for_unknown_job
+run_test test_cd_vault_fail_exits_3        test_cd_vault_fail_exits_3
 run_test test_dry_run_prints_command       test_dry_run_prints_command
 run_test test_missing_args_exits_4         test_missing_args_exits_4
 run_test test_success_path                 test_success_path

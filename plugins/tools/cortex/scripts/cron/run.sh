@@ -184,12 +184,29 @@ else
   trap 'rm -f "$LOCK"' EXIT
 fi
 
-# Build prompt with context header
-FULL_PROMPT="vault: $VAULT
+# Build prompt with context header + AUTO_MODE strict 前缀
+FULL_PROMPT="[AUTO_MODE strict: AskUserQuestion 不可用 (--allowed-tools 已禁), 任何决策走默认, fail-fast 立即返错不 hang. 工作目录已 cd $VAULT, 文件路径默认 vault-relative, **禁止读 vault 外文件**.]
+
+vault: $VAULT
 job: $JOB
 $( [[ -n "$LANG_OVERRIDE" ]] && echo "lang_override: $LANG_OVERRIDE" )
 
 $PROMPT"
+
+# JOB → SKILL 映射: 注入对应 SKILL.md 到 --append-system-prompt
+SKILL_NAME=""
+case "$JOB" in
+  lint)                SKILL_NAME="cortex-lint" ;;
+  fold)                SKILL_NAME="cortex-consolidate" ;;
+  dashboard)           SKILL_NAME="cortex-dashboard" ;;
+  memory-promote)      SKILL_NAME="cortex-promote" ;;
+  memory-forget)       SKILL_NAME="cortex-forget" ;;
+  memory-consolidate)  SKILL_NAME="cortex-consolidate" ;;
+esac
+
+PLUGIN_ROOT_PATH="$(cx_get_plugin_root)"
+# Fallback: marketplace 默认安装路径
+[[ -z "$PLUGIN_ROOT_PATH" ]] && PLUGIN_ROOT_PATH="$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
 
 CMD=(claude
   --bare
@@ -199,6 +216,13 @@ CMD=(claude
   -p "$FULL_PROMPT"
 )
 # Note: --output-format stream-json --verbose is injected by cortex_stream_runner.
+
+if [[ -n "$SKILL_NAME" ]]; then
+  SKILL_PATH="$PLUGIN_ROOT_PATH/skills/$SKILL_NAME/SKILL.md"
+  if [[ -f "$SKILL_PATH" ]]; then
+    CMD+=(--append-system-prompt "$(cat "$SKILL_PATH")")
+  fi
+fi
 
 # Append any extra flags (e.g. --allowed-tools)
 for arg in "$@"; do
@@ -210,6 +234,9 @@ if [[ "$CLI_DRY_RUN" == "1" ]]; then
   echo
   exit 0
 fi
+
+# cd vault: claude --bare cwd 影响 AI Glob/Read 默认路径; 失败 fail-fast
+cd "$VAULT" || { echo "[cortex-${JOB}] cd vault 失败: $VAULT" >&2; exit 3; }
 
 echo "[$(iso_now)] cortex-${JOB}: start" >> "$LOG_FILE"
 
