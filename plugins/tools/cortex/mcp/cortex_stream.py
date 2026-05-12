@@ -47,6 +47,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         description="rich-rendered wrapper for claude stream-json output",
     )
     parser.add_argument("--label", default="cortex", help="prefix label for status lines")
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=0,
+        help="seconds; 0 disables (default). On expiry SIGKILL child + return 124.",
+    )
     parser.add_argument("cmd", nargs=argparse.REMAINDER, help="command to wrap (prefix with --)")
     return parser.parse_args(argv)
 
@@ -102,8 +108,14 @@ def _build_view(history: list[RenderableType], spinner: Spinner) -> RenderableTy
 
 
 def run(cmd: list[str], label: str, tee_path: str | None,
-        stderr: IO[str] | None = None) -> int:
-    """Spawn ``cmd`` and render its stream-json output. Returns child exit code."""
+        stderr: IO[str] | None = None, timeout: int = 0) -> int:
+    """Spawn ``cmd`` and render its stream-json output. Returns child exit code.
+
+    If ``timeout`` > 0, the child is SIGKILLed after the deadline elapses and
+    124 is returned (matching GNU ``timeout(1)``). ``timeout`` is enforced via
+    per-line deadline checks during the stdout read loop; precision is bounded
+    by claude --verbose output cadence (sub-second in practice).
+    """
     err_console = Console(
         file=stderr or sys.stderr,
         force_terminal=(stderr or sys.stderr).isatty(),
@@ -123,8 +135,10 @@ def run(cmd: list[str], label: str, tee_path: str | None,
     )
 
     start = time.monotonic()
+    deadline = start + timeout if timeout > 0 else None
     tee_fp = open(tee_path, "w", encoding="utf-8") if tee_path else None
     history: list[RenderableType] = []
+    timed_out = False
 
     def make_spinner() -> Spinner:
         elapsed = int(time.monotonic() - start)
@@ -139,6 +153,9 @@ def run(cmd: list[str], label: str, tee_path: str | None,
         ) as live:
             assert proc.stdout is not None
             for raw in proc.stdout:
+                if deadline is not None and time.monotonic() > deadline:
+                    timed_out = True
+                    break
                 line = raw.rstrip("\n")
                 if not line:
                     continue
@@ -165,6 +182,16 @@ def run(cmd: list[str], label: str, tee_path: str | None,
         if tee_fp:
             tee_fp.close()
 
+    if timed_out:
+        # SIGKILL + reap to avoid zombies. Live region already exited via `with`.
+        proc.kill()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+        err_console.print(f"[bold red][{label}] TIMEOUT after {timeout}s[/]")
+        return 124
+
     rc = proc.wait()
     if rc == 0:
         err_console.print(f"[bold green][{label}] OK[/]")
@@ -181,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
         return 4
 
     tee_path = os.environ.get("CORTEX_STREAM_TEE_FILE") or None
-    return run(cmd, label=args.label, tee_path=tee_path)
+    return run(cmd, label=args.label, tee_path=tee_path, timeout=args.timeout)
 
 
 if __name__ == "__main__":

@@ -85,6 +85,10 @@ cortex_check_jq() {
 cortex_stream_runner() {
   local label="${CORTEX_JOB_LABEL:-cortex}"
   local tee_file="${CORTEX_STREAM_TEE_FILE:-}"
+  # CORTEX_TIMEOUT (seconds): forwarded to cortex_stream.py as --timeout.
+  # 0 disables. cortex_stream.py enforces deadline + SIGKILL → return 124,
+  # matching GNU timeout(1) so run.sh's rc=124 → exit 3 mapping still works.
+  local timeout="${CORTEX_TIMEOUT:-0}"
 
   # Infer plugin_root from this file's location (<root>/scripts/lib/stream_progress.sh).
   # Env override takes priority: CORTEX_PLUGIN_ROOT > CLAUDE_PLUGIN_ROOT > self-derive.
@@ -99,14 +103,14 @@ cortex_stream_runner() {
   # Path 1 (preferred): system python3 with rich (用户偏好: 不走 venv).
   if [[ -f "$stream_script" ]] && command -v python3 >/dev/null 2>&1; then
     if python3 -c "import rich" 2>/dev/null; then
-      python3 "$stream_script" --label "$label" -- "$@"
+      python3 "$stream_script" --label "$label" --timeout "$timeout" -- "$@"
       return $?
     fi
   fi
 
   # Path 2: cortex-stream console-script on PATH (兼容路径, 假定 entry 自带 rich).
   if command -v cortex-stream >/dev/null 2>&1; then
-    cortex-stream --label "$label" -- "$@"
+    cortex-stream --label "$label" --timeout "$timeout" -- "$@"
     return $?
   fi
 
@@ -120,7 +124,7 @@ cortex_stream_runner() {
     local py
     for py in "${venv_pys[@]}"; do
       if [[ -x "$py" ]] && "$py" -c "import rich" 2>/dev/null; then
-        "$py" "$stream_script" --label "$label" -- "$@"
+        "$py" "$stream_script" --label "$label" --timeout "$timeout" -- "$@"
         return $?
       fi
     done

@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import subprocess
+import time
 from pathlib import Path
 from typing import Any
 
@@ -112,9 +113,13 @@ class _FakeProc:
         self.stdout = io.StringIO("\n".join(lines) + ("\n" if lines else ""))
         self.stderr = io.StringIO("")
         self._rc = rc
+        self.killed = False
 
-    def wait(self) -> int:
+    def wait(self, timeout: float | None = None) -> int:  # noqa: ARG002
         return self._rc
+
+    def kill(self) -> None:
+        self.killed = True
 
 
 def _stream_lines() -> list[str]:
@@ -168,6 +173,49 @@ def test_run_handles_empty_stream(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(subprocess, "Popen", lambda *a, **kw: _FakeProc([], rc=0))
     rc = run(["claude"], label="t", tee_path=None, stderr=io.StringIO())
     assert rc == 0
+
+
+def test_parse_args_timeout_default_zero() -> None:
+    ns = parse_args(["--", "echo", "hi"])
+    assert ns.timeout == 0
+
+
+def test_parse_args_timeout_explicit() -> None:
+    ns = parse_args(["--timeout", "30", "--", "echo", "hi"])
+    assert ns.timeout == 30
+
+
+def test_run_timeout_zero_disables_deadline(monkeypatch: pytest.MonkeyPatch) -> None:
+    """timeout=0 → no deadline check; runs to natural EOF."""
+    fake = _FakeProc(_stream_lines(), rc=0)
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **kw: fake)
+    rc = run(["claude"], label="t", tee_path=None, stderr=io.StringIO(), timeout=0)
+    assert rc == 0
+    assert fake.killed is False
+
+
+def test_run_timeout_triggers_kill_and_returns_124(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When deadline elapses mid-loop, child is killed and 124 returned."""
+    fake = _FakeProc(_stream_lines(), rc=0)
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **kw: fake)
+
+    # Force time.monotonic to jump past the deadline on the second call so the
+    # loop's per-line deadline check fires.
+    import cortex_stream as cs
+
+    calls = {"n": 0}
+    real_mono = time.monotonic
+
+    def fake_mono() -> float:
+        calls["n"] += 1
+        # 1st call: run() start. 2nd+: well past deadline.
+        return real_mono() + (0.0 if calls["n"] == 1 else 10_000.0)
+
+    monkeypatch.setattr(cs.time, "monotonic", fake_mono)
+
+    rc = run(["claude"], label="t", tee_path=None, stderr=io.StringIO(), timeout=1)
+    assert rc == 124
+    assert fake.killed is True
 
 
 def test_main_reads_tee_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
