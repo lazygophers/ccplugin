@@ -1015,3 +1015,36 @@ timeout 内联重构丢了 stdout > TMP_NDJSON. cortex_stream.py 仍 stdout 透�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 31: cortex wrappers 扩 4 (ingest/search/save/refactor) + lint --fix 交互
+
+**Date**: 2026-05-12
+**Task**: cortex wrappers 扩 4 (ingest/search/save/refactor) + lint --fix 交互
+**Branch**: `master`
+
+### Summary
+
+现 wrapper 4 → 8 调 claude 入口. ingest.sh 自动判 url/file/git/dir 调 cortex-ingest. search.sh 调 cortex-search. save.sh stdin BODY 调 cortex-save. refactor.sh 透传子命令调 cortex-refactor. lint.sh dual-mode: 无 --fix cron 模式不变, --fix 走 cortex-lint skill AskUserQuestion 交互修复. 12 bash test 全绿, 215 python 不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `080bf1d6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
