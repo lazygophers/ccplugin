@@ -193,11 +193,15 @@ export CORTEX_TIMEOUT="$TIMEOUT"
 #   - non-tty (cron / pipe): stderr only appended to ERR_FILE (unchanged
 #       legacy behaviour, keeps cron logs silent on stdout/stderr).
 # bash 3.2 supports process substitution `>(...)`, which is required here.
+# NDJSON is captured via CORTEX_STREAM_TEE_FILE=$TMP_NDJSON (env above);
+# stdout passthrough from cortex_stream.py is discarded to keep the
+# terminal clean — only the rich UI on stderr is shown to the user.
 if [[ -t 2 ]]; then
   cortex_stream_runner "${CMD[@]}" \
-    2> >(tee -a "$ERR_FILE" >&2)
+    2> >(tee -a "$ERR_FILE" >&2) \
+    > /dev/null
 else
-  cortex_stream_runner "${CMD[@]}" 2>>"$ERR_FILE"
+  cortex_stream_runner "${CMD[@]}" 2>>"$ERR_FILE" > /dev/null
 fi
 rc=$?
 if [[ $rc -ne 0 ]]; then
