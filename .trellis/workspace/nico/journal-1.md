@@ -685,3 +685,36 @@ vault 是 git repo 时 Stop hook 可选 auto-commit/push, 严格 opt-in. git_syn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 21: cron/run.sh stderr tty 路由 (交互终端进度可见)
+
+**Date**: 2026-05-12
+**Task**: cron/run.sh stderr tty 路由 (交互终端进度可见)
+**Branch**: `master`
+
+### Summary
+
+修 run.sh stderr 重定向 ERR_FILE 吞掉 cortex_stream_runner 进度输出. tty 检测分支: 交互 → tee -a ERR_FILE + 终端 fd2; 非 tty (cron) 不变. 两 timeout 分支 (PERL_TIMEOUT + TO_CMD) 同步处理. audit install_wrappers.sh 无 emit 绕开 cortex_stream_runner. ~/.cortex/scripts/lint.sh 交互现见三层进度. 204+8 不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9a064772` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
