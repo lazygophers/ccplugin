@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generated": "2026-05-12T07:45:34Z",
+  "generated": "2026-05-12T13:46:18Z",
   "entries": {
     "seed/root/主页.md": {
-      "sha256": "160f834e91ccfc8444c56687f303ed72c51e416d01e06f193d0250a55b74e5d2",
+      "sha256": "918d1ed45e94aa930d86a9bec29a507be571e3dc510e2855d99d288353555b01",
       "template_version": 1
     },
     "seed/root/焦点.md": {
@@ -15,11 +15,11 @@
       "template_version": 1
     },
     "seed/仪表盘/总览.md": {
-      "sha256": "78674646d9ff312b6c23efd3c787f55e39e79bf09bfe58e61cf149f299c6a27c",
+      "sha256": "b86a4d81b488a60220c06a48fd98456520309ce42747bb1bcc311be7e342bdca",
       "template_version": 1
     },
     "seed/仪表盘/知识-记忆 桥接.md": {
-      "sha256": "23ce2cf633e31ed3a6a18b8f6a9d68ed4eeda471e2bdc5c0e325fccb31b6646e",
+      "sha256": "f631a8593763982dcfc505c67018e99fcc8a1c4f9a7a203999f7eb2a3f3143c2",
       "template_version": 1
     },
     "seed/仪表盘/知识库分布.md": {
@@ -27,23 +27,23 @@
       "template_version": 1
     },
     "seed/仪表盘/记忆-L0-核心.md": {
-      "sha256": "28202f90ea5deafa31ef3119a10b0236b1c01845dae022f885bcdaa5fbe7d00f",
+      "sha256": "916618dd5197015e9b4ba5ed73226b1047497e84ee95bb6465b4f7c608f5b6e1",
       "template_version": 1
     },
     "seed/仪表盘/记忆-L1-长期.md": {
-      "sha256": "5a9ca8b88d354ce374a7ddafbc397ef2bb324dbbbdfc14f393bc7f4a687be780",
+      "sha256": "acbd858a2fd219e4f5a8155494979dbead22d4baf9647de388c6e91d91e3f87a",
       "template_version": 1
     },
     "seed/仪表盘/记忆-L2-中期.md": {
-      "sha256": "bae7a68c9708da95c3bb4311356f9da57464e8e71146828ad98c93390ed99484",
+      "sha256": "2ce3d73ff5521d38ea51a527caa5264a5663a7244f1e86357cb31b77ada3714e",
       "template_version": 1
     },
     "seed/仪表盘/记忆-L3-短期.md": {
-      "sha256": "8fcf55d1a52f7a1a7b9e2e749cd4cda78b287ddeb465f3746bdf7c016723c6ac",
+      "sha256": "821c48fe3a2b426fdb7d133cbb05b094d11030e660f00dadc46286bf760c1a94",
       "template_version": 1
     },
     "seed/仪表盘/记忆-L4-流水.md": {
-      "sha256": "57118175ad46fb36bbc11c909c18d94d2a0a5cd1f2c462fddb98ecddc946aaef",
+      "sha256": "ca23965f0a12858026eb175f815ee3a72e65b2cf001eeedba955373409373158",
       "template_version": 1
     },
     "seed/仪表盘/记忆-cron 状态.md": {
@@ -51,11 +51,11 @@
       "template_version": 1
     },
     "seed/仪表盘/记忆-晋级候选.md": {
-      "sha256": "6e050dfedae7b1b6c50a2a8ba663ee75bb3ca720160e3bcaa563685a6e2f2ae8",
+      "sha256": "42bc6f14d992be374c938facad0d46a43d6c818af632b516056f12d17a17583a",
       "template_version": 1
     },
     "seed/仪表盘/记忆-腐化监控.md": {
-      "sha256": "856ddd54a7c182e4c9c2cdf8eafb0ffc74f8c46ca86a1c58640045b730780697",
+      "sha256": "ea8fbccb13ef51ce427df882c717d92dccdd536405c67153e42f6be3cc3db5e3",
       "template_version": 1
     },
     "seed/知识库/反思/_index.md": {
@@ -155,23 +155,23 @@
       "template_version": 1
     },
     "seed/记忆/L0-核心/_index.md": {
-      "sha256": "458acc3bce4e03b2e77081abfdda93a68f6cc99adefa0f2074ccdaa602819694",
+      "sha256": "88d626386e24e36603d12b7e29a161eafee11d5f685104263d750b2be72be551",
       "template_version": 1
     },
     "seed/记忆/L1-长期/_index.md": {
-      "sha256": "56620cbb5a648096ce01c1406f42008a777b5b32508f4fb12b1936bc61c4b5f2",
+      "sha256": "ef9029e0fbcc50f71f923ccecfc3edefc693042779f8c4f520261900379ed99a",
       "template_version": 1
     },
     "seed/记忆/L2-中期/_index.md": {
-      "sha256": "9a19f2f98208577837388f4bf6a06f07aaecd2a203193703b76ed09a933e2ed7",
+      "sha256": "b20ac7a4250e2f103f04c9b6499ca124a56ef74914ae0c6796d31b00ce464b41",
       "template_version": 1
     },
     "seed/记忆/L3-短期/_index.md": {
-      "sha256": "41ee2f5805b8fb292ec25699053502cfca17b0b6a6bca5b1553df606b3169227",
+      "sha256": "187f40d0e844d8c29c3982d78a4c0889cab0a8308ba33e44fbfb7e2fec709b98",
       "template_version": 1
     },
     "seed/记忆/L4-流水账/_index.md": {
-      "sha256": "34403d8fe9ae911b284243195726d8429c5fa395712d8bae58d0c83bf34befe8",
+      "sha256": "7cae1c9ae4cfd6c0034f6778a1d5e11f28db81ac6764d976663e54599a1b081a",
       "template_version": 1
     }
   }

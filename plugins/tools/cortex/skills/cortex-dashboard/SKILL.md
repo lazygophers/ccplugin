@@ -64,3 +64,23 @@ allowed-tools: Read Write Glob mcp__obsidian__obsidian_simple_search mcp__obsidi
 
 ## AUTO_MODE 兼容
 [AUTO_MODE: ...] (cron 默认) 全自动执行, 无交互。stale 判定照常生效, 不无脑全渲。
+
+## Grok Live Artifacts 风格契约 (仪表盘 HTML 输出强制)
+
+仪表盘所有 HTML 输出 (含 callout 区注入内容) 必走 [Grok Live Artifacts](https://linux.do/t/topic/2163779) 风格契约, 详细约束见 `cortex-html` SKILL 的 `## Grok Live Artifacts 风格契约` 段。
+
+### 关键约束 (摘要)
+1. **首字符 `<div`**: callout 区内首个非注释字符必为 `<div`, 严禁前导文字 / Emoji / 换行
+2. **全 inline style**: 严禁 `<style>` 块, 所有样式写在标签 `style="..."` 内
+3. **禁裸文本**: 文本必 wrap `<span>` / `<p>` / `<h2>` / `<div>`
+4. **禁 Markdown 符号** (`#` / `**` / `- `): 仪表盘渲染的是 HTML, 非 markdown
+5. **视觉 token 统一**:
+   - 主容器 `border-radius:16px` + `box-shadow` + `border:1px solid #eef0f2` + `padding:24px`
+   - 卡片 `border-radius:12px` + `border:1px solid #edf2f7` + `padding:16px`
+   - 标题 `border-left:4px solid #3182ce; padding-left:12px`
+   - grid `display:grid; grid-template-columns:repeat(N,1fr); gap:12px`
+   - 主色 蓝`#3182ce` / 绿`#16a34a` / 红`#dc2626` / 橙`#ea580c` / 黄`#ca8a04` / 灰`#6b7280`
+   - 字体 `-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif`; 文字色 `#1a202c`
+
+> 渲染前调 `cortex-html` 处理模板; 所有 v2 模板 (`templates/html/*`) 已内置 Grok 风 token, 直接复用即可。
+

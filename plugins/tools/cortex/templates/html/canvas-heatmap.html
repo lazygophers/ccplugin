@@ -1,20 +1,24 @@
-<!-- cortex-template-version: 1 -->
+<!-- cortex-template-version: 2 -->
 <!--
-  canvas-heatmap.html — canvas 热力图骨架 (L4 流水账活跃度可视)
+  canvas-heatmap.html — Grok Live Artifacts 风 canvas 热力图骨架 (L4 流水账活跃度)
   变量占位:
+    {{TITLE}}  标题文本
     {{ID}}     canvas DOM id (用于 cortex-dashboard 注入数据时定位)
     {{WIDTH}}  canvas 宽度 px (默认 720)
     {{HEIGHT}} canvas 高度 px (默认 120)
     {{DATA}}   JSON 形如 [{"date":"2026-05-12","count":12}, ...]
   注: 真实渲染由 cortex-dashboard 在生成阶段把 DATA 注入 <script> 占位。
 -->
-<canvas id="{{ID}}" width="{{WIDTH}}" height="{{HEIGHT}}" style="border:1px solid #e5e7eb;border-radius:4px"></canvas>
-<!-- cortex-dashboard: 把以下脚本占位替换为实际数据绘制逻辑
-<script>
-  // const data = {{DATA}};
-  // const ctx = document.getElementById("{{ID}}").getContext("2d");
-  // ...heatmap render
-</script>
--->
+<div style="background:#ffffff;border:1px solid #eef0f2;border-radius:16px;padding:24px;margin:8px 0;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a202c;">
+  <h3 style="margin:0 0 12px 0;font-size:1.125rem;font-weight:700;border-left:4px solid #3182ce;padding-left:8px;">{{TITLE}}</h3>
+  <canvas id="{{ID}}" width="{{WIDTH}}" height="{{HEIGHT}}" style="width:100%;height:auto;display:block;border-radius:8px;"></canvas>
+  <!-- cortex-dashboard: 把以下脚本占位替换为实际数据绘制逻辑
+  <script>
+    // const data = {{DATA}};
+    // const ctx = document.getElementById("{{ID}}").getContext("2d");
+    // ...heatmap render
+  </script>
+  -->
+</div>
 
 <!-- TEMPLATE_END -->

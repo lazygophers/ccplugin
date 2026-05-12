@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "generated": "2026-05-12T07:45:34Z",
+  "version": 2,
+  "generated": "2026-05-12T13:46:18Z",
   "entries": {
     "_index.md": {
       "sha256": "4875e24ff565b0e913be7a4e95dab932e12c4992a107260c8681bb1f8ec15e87",
@@ -23,75 +23,75 @@
       "template_version": 1
     },
     "html/mermaid-flowchart.md": {
-      "sha256": "e2f07dc62b0644029f373564106289793d786756350dbfb3a50c9553288fe3b2",
-      "template_version": 1
+      "sha256": "33da14491e95ef7755955c85e7bd38ce720aca9b730565243939d9a9b94d38d3",
+      "template_version": 2
     },
     "html/mermaid-mindmap.md": {
-      "sha256": "84a1ed4d246267f05c16471216995013f166e1f5e7e5f3747eb04f808b44835b",
-      "template_version": 1
+      "sha256": "ca45f647b1d97fb25f0a8b599c515fe7add6b5fb7f9c8a9f322739a8be71f613",
+      "template_version": 2
     },
     "html/mermaid-sankey.md": {
-      "sha256": "aeaced88d44316ca153a1fe5f8c687ec58233a9c5b8cde85fbe3b441b4f51ae6",
-      "template_version": 1
+      "sha256": "eb84bae4d3fac643beff4e0509f2443d6262822f15b28da5f5976fb4b2472c80",
+      "template_version": 2
     },
     "knowledge/domain-concept.md": {
-      "sha256": "860ea9772bfdca9ab78df748fc257686616841972c474afe50bf36f2a2a5d1ed",
+      "sha256": "6bbcaa1604608033bdb72a61e0c765915a57e0a96857abe2675f8dad57d81ecb",
       "template_version": 1
     },
     "knowledge/domain-fact.md": {
-      "sha256": "e0eaba61160364dd0f1fa6482581549ca99afb7adc82e09f95ff3134f4eccaeb",
+      "sha256": "5ad6751462bb829cdf04d5c15da80330fe2beb6016a6ed4516b7b1a40df134c6",
       "template_version": 1
     },
     "knowledge/domain-method.md": {
-      "sha256": "ef4928b0bb68321c437e48f9e0902e3bc744b206907a53a6007d9755afefc58a",
+      "sha256": "fd86d460d9f9c25339b6827b20f1cfba16bcab3484c87d3d2d26ed4e689c37c8",
       "template_version": 1
     },
     "knowledge/journal-day.md": {
-      "sha256": "08e28f8612e4a21ffa898ee9c229109e0d163af3eb32a0cd5f72f76022f833f2",
+      "sha256": "ce0f8c9677cde14ed013dc5d0fdd116e896b369602b2fd696e46ea14b5c8d31b",
       "template_version": 1
     },
     "knowledge/journal-month.md": {
-      "sha256": "75d7e5550a51956ea868abf462ac4ddb2ac19033e35c0cdf17539ac8587b42d3",
+      "sha256": "3c18260b0f38e06200f5d401df1b71dc459e6924c85c4f0ae927e00a1cc8b719",
       "template_version": 1
     },
     "knowledge/journal-week.md": {
-      "sha256": "320b03c6df652f919602704f3133fc550e9fa0febf0672feadc6805a1ab1dd48",
+      "sha256": "38f61902cca4102319eef90b80865ca589232190b6808a86678fa3b093a09b2d",
       "template_version": 1
     },
     "knowledge/journal-year.md": {
-      "sha256": "54b82879dd2353c9292153132eb819ab9e204721825248e7e576059d64564943",
+      "sha256": "d54e1631cccebabfeede074c04a3270f12349e2fded6e1a9bb74a8981655058c",
       "template_version": 1
     },
     "knowledge/project.md": {
-      "sha256": "5d618adf0d58b9a7877256df7a37df6d31791faeb537a8958310ad0ba7c60271",
+      "sha256": "cb5e05ba106a469ef1b39ef440815358dbada9196287b2deebdcbd52f44a4d24",
       "template_version": 1
     },
     "knowledge/reflection-connection.md": {
-      "sha256": "4fa38518c620b0730076de6445566749fb562a70e657aee34ffdd451b6bd5255",
+      "sha256": "800e0cd1db08346d04e20bd363655dcd85eca2c6251ce20fe5400fe64e20f4cd",
       "template_version": 1
     },
     "knowledge/reflection-insight.md": {
-      "sha256": "5d6f67048a3e6103c8a1af7c2f198dcf294bca9c0508d2660219a4d9112d7723",
+      "sha256": "0e534de7f1d5f474e1a92805c5c4fd60062e41f7c32d23006610d6f4c847917b",
       "template_version": 1
     },
     "knowledge/reflection-question.md": {
-      "sha256": "7beef477b77ed3708a49a1f7261161c380c19f51e6056c0170605df7f2e044c5",
+      "sha256": "46c7d430700465b7d763e27a15054d9644fd605b97bb88344f8ffa4b3b762343",
       "template_version": 1
     },
     "knowledge/source-book.md": {
-      "sha256": "5cf38ed318fd1c3dcec1bc4dcd945e6c7547ab55c3adc7841d9ca8d23d75541b",
+      "sha256": "f7cc307f07953ffbff38b94beb7495ba66e6ee17717e3e81eaf820da171a6acc",
       "template_version": 1
     },
     "knowledge/source-paper.md": {
-      "sha256": "d90b4b60e3ae326ff5f219b4f5a9d9e2be08ed09caa2d25f50245b434a830a0b",
+      "sha256": "916319805e26acb1fb2be938da5b840538790719f8111d569d88653011ed781c",
       "template_version": 1
     },
     "knowledge/source-repo.md": {
-      "sha256": "8398528a06c64b333c769f5bddabb5b9bd35bedd22cba175d8ebe0aa52de0738",
+      "sha256": "837d9fc800b62a251c59caaca33b1d8afb624bfdbfb682f9135f3996ba09d2f4",
       "template_version": 1
     },
     "knowledge/source-web.md": {
-      "sha256": "178129eb51db1ca847a41a595075e03b17451e6f37eed9dd6c0132944b36b097",
+      "sha256": "8e66978dfbd364af590b665f7057f99bac1cf4da0f590df0296aaea8919d030a",
       "template_version": 1
     },
     "memory/L0-core.md": {
@@ -127,24 +127,24 @@
       "template_version": 1
     },
     "html/badge.html": {
-      "sha256": "a18eda7f8416f373de704478d10ace5c6fe6205193c22bdb0eccc89357beb47e",
-      "template_version": 1
+      "sha256": "0c31da64cd2ed2d120497496e6837477158b746afa6fe047c3d8674821e10873",
+      "template_version": 2
     },
     "html/canvas-heatmap.html": {
-      "sha256": "feda117c4303ea12f2f56abb1c973fcf265aec81ba9d94dca551fa7641492aea",
-      "template_version": 1
+      "sha256": "8ed9c3aeb5263b23f5e5c7fcae5551612a0399e9fae5c8787d8db12fae09657a",
+      "template_version": 2
     },
     "html/card.html": {
-      "sha256": "49b5a574fa0863d4d3d528c9f14eadd579a88d0e8ff91309a8b28098124280f8",
-      "template_version": 1
+      "sha256": "9cf3944c9466a92151151b9d4b44bb3eb816fd949c3095f27989fb6509cc2b89",
+      "template_version": 2
     },
     "html/progressive-disclosure.html": {
-      "sha256": "be3f333110ee00875c80127ec080b34293ed017387a0c21aabff47665e840fa8",
-      "template_version": 1
+      "sha256": "1c41355d695a9ed436552acc0bb62e9d3a8fd0be50639b183ec6f208e4251cdb",
+      "template_version": 2
     },
     "html/timeline.html": {
-      "sha256": "a80bb0bef6f0ac185a99662afcace9da8d7dbc66b9e16947867c05dc914a516e",
-      "template_version": 1
+      "sha256": "f57659a53e6625ea0ec1a69622e947250cdf30617fd38f6f4de044b475f6ea4d",
+      "template_version": 2
     }
   }
 }
