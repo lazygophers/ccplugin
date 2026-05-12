@@ -177,7 +177,7 @@ SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
 SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.json}"
 
 export CORTEX_JOB_LABEL="cortex-$name"
-banner "$name (slash /cortex-$name)"
+banner "$name (slash /cortex:$name)"
 
 # 加载 stream_progress.sh — 提供 cortex_stream_runner (rich 实时 UI + stream-json).
 LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
@@ -186,10 +186,10 @@ LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
 source "\$LIB_PATH"
 
 # 无入参, 启全 plugin 环境 (skills/agents/hooks/mcp/全工具), 不加限制.
-# 通过 plugin slash command /cortex-$name 触发, 行为由 commands/$name.md 定义.
+# 通过 plugin slash command /cortex:$name 触发, 行为由 commands/$name.md 定义.
 # cortex_stream_runner 自动注 --output-format stream-json --verbose, 走 rich UI on stderr.
 # cx_filter_stream 仅放 final result.text 到 stdout, 防 raw NDJSON 漏到终端.
-cortex_stream_runner claude --settings "\$SETTINGS" -p "/cortex-$name" \\
+cortex_stream_runner claude --settings "\$SETTINGS" -p "/cortex:$name" \\
   | cx_filter_stream
 rc=\${PIPESTATUS[0]}
 if [[ \$rc -eq 0 ]]; then ok "$name done"; else err "$name failed code=\$rc" "\$rc"; fi
