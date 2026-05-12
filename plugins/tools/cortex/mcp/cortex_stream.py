@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""cortex_stream — rich-rendered wrapper for `claude --bare -p` stream-json.
+"""cortex_stream — rich-rendered wrapper for `claude -p` stream-json.
 
-Phase A of cortex stream-progress upgrade: replaces jq filter + bash
-heartbeat with a Python+rich Live region. Designed as a pipx console-script
-(`cortex-stream`) so the rich dependency resolves through the cortex-mcp venv.
+Sequential stderr rendering (no Live region, no height cap, no refresh
+throttling) — each parsed event is printed in order as it streams in.
 
 CLI:
     cortex-stream --label <label> -- <claude cmd...>
@@ -30,14 +29,9 @@ import time
 from typing import IO
 
 from rich.console import Console, Group, RenderableType
-from rich.live import Live
 from rich.panel import Panel
-from rich.spinner import Spinner
 from rich.text import Text
 
-# Rolling history window — keeps Live region bounded so long runs don't scroll
-# off useful context. Full NDJSON still lands in the tee file for post-mortem.
-_HISTORY_MAX = 5
 # Caps放宽: 用户要看完整 thinking/text/tool input, 仅留防爆上限.
 _TEXT_CAP = 2000
 _TOOL_INPUT_CAP = 800
@@ -354,13 +348,6 @@ def _render_event(evt: dict) -> RenderableType | None:
     return _render_raw(evt)
 
 
-def _build_view(history: list[RenderableType], spinner: Spinner) -> RenderableType:
-    items = history[-_HISTORY_MAX:]
-    if not items:
-        return spinner
-    return Group(*items, spinner)
-
-
 def _print_prompts(console: Console, cmd: list[str]) -> None:
     """Render system + user prompts (if extractable) before streaming starts."""
     sys_p, user_p = _extract_prompts(cmd)
@@ -410,59 +397,47 @@ def run(cmd: list[str], label: str, tee_path: str | None,
     start = time.monotonic()
     deadline = start + timeout if timeout > 0 else None
     tee_fp = open(tee_path, "w", encoding="utf-8") if tee_path else None
-    history: list[RenderableType] = []
     timed_out = False
 
-    def make_spinner() -> Spinner:
-        elapsed = int(time.monotonic() - start)
-        return Spinner("dots", text=Text(f"still working... ({elapsed}s elapsed)", style="dim"))
-
     try:
-        with Live(
-            _build_view(history, make_spinner()),
-            console=err_console,
-            refresh_per_second=4,
-            transient=False,
-        ) as live:
-            assert proc.stdout is not None
-            for raw in proc.stdout:
-                if deadline is not None and time.monotonic() > deadline:
-                    timed_out = True
-                    break
-                line = raw.rstrip("\n")
-                if not line:
-                    continue
+        assert proc.stdout is not None
+        for raw in proc.stdout:
+            if deadline is not None and time.monotonic() > deadline:
+                timed_out = True
+                break
+            line = raw.rstrip("\n")
+            if not line:
+                continue
 
-                # Tee raw NDJSON to file (if requested) — raw NEVER hits stdout
-                # to prevent terminal leakage. Stdout receives only final result.text.
-                if tee_fp:
-                    tee_fp.write(line + "\n")
-                    tee_fp.flush()
+            # Tee raw NDJSON to file (if requested) — raw NEVER hits stdout
+            # to prevent terminal leakage. Stdout receives only final result.text.
+            if tee_fp:
+                tee_fp.write(line + "\n")
+                tee_fp.flush()
 
-                try:
-                    evt = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
+            try:
+                evt = json.loads(line)
+            except json.JSONDecodeError:
+                continue
 
-                # Final result.text → stdout (single line, no NDJSON wrapper).
-                # Caller (run.sh / lint.sh / etc.) consumes plain text directly.
-                if evt.get("type") == "result" and not evt.get("is_error"):
-                    txt = (evt.get("result") or "").rstrip()
-                    if txt:
-                        sys.stdout.write(txt + "\n")
-                        sys.stdout.flush()
+            # Final result.text → stdout (single line, no NDJSON wrapper).
+            # Caller (run.sh / lint.sh / etc.) consumes plain text directly.
+            if evt.get("type") == "result" and not evt.get("is_error"):
+                txt = (evt.get("result") or "").rstrip()
+                if txt:
+                    sys.stdout.write(txt + "\n")
+                    sys.stdout.flush()
 
-                rendered = _render_event(evt)
-                if rendered is not None:
-                    history.append(rendered)
-
-                live.update(_build_view(history, make_spinner()))
+            # Sequential render to stderr — no Live region, no height cap, no refresh.
+            rendered = _render_event(evt)
+            if rendered is not None:
+                err_console.print(rendered)
     finally:
         if tee_fp:
             tee_fp.close()
 
     if timed_out:
-        # SIGKILL + reap to avoid zombies. Live region already exited via `with`.
+        # SIGKILL + reap to avoid zombies.
         proc.kill()
         try:
             proc.wait(timeout=5)
