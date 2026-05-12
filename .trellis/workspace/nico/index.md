@@ -7,8 +7,8 @@
 ## Current Status
 
 <!-- @@@auto:current-status -->
-- **Active File**: `journal-1.md`
-- **Total Sessions**: 59
+- **Active File**: `journal-2.md`
+- **Total Sessions**: 60
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,8 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1974 | Active |
+| `journal-2.md` | ~40 | Active |
+| `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 60 | 2026-05-12 | cortex 禁 env vars 统一 config.json | `cadf01c4` | `master` |
 | 59 | 2026-05-12 | cortex wrapper 自动 git commit vault | `217bac66` | `master` |
 | 58 | 2026-05-12 | cortex lint backup 移 vault 外 | `b12d0d30` | `master` |
 | 57 | 2026-05-12 | cortex wrapper prompt + SKILL AUTO_MODE 强化 | `22903ced` | `master` |
