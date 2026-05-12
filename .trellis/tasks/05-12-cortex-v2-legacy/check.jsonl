@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/05-12-cortex-v2-legacy/prd.md", "reason": "验收基准, 5 项 checklist"}
+{"file": "plugins/tools/cortex/lint/schemas.py", "reason": "确认 LYT 清洁 + 217 tests 无回归"}

@@ -1,6 +1,5 @@
 {
-  "version": "3.0",
-  "description": "cortex vault 骨架 v3 — 知识库+记忆体系 双 namespace + L0-L4 多级记忆。dst_key='.' 表 vault 根。directories 为分层映射, 反映 PRD §3.1-3.3 完整树。",
+  "description": "cortex vault 骨架 — 知识库 + 记忆体系 L0-L4 双 namespace + 仪表盘 + 归档。dst_key='.' 表 vault 根。directories 为分层映射。",
   "directories": {
     "_meta": {},
     "_templates": {},
@@ -192,17 +191,17 @@
     {"src": "seed/记忆体系/L3-短期/_index.md", "dst_key": "记忆体系/L3-短期", "name": "_index.md", "desc": "记忆体系/L3-短期 — episodic 情节, 90 天无召回 → archive。"},
     {"src": "seed/记忆体系/L4-流水账/_index.md", "dst_key": "记忆体系/L4-流水账", "name": "_index.md", "desc": "记忆体系/L4-流水账 — append-only raw ledger + claude code sessions, 30 天后 gzip。"},
 
-    {"src": "seed/仪表盘v3/总览.md", "dst_key": "仪表盘", "name": "总览.md", "desc": "仪表盘/总览 — 全局 HTML grid 看板。"},
-    {"src": "seed/仪表盘v3/知识库分布.md", "dst_key": "仪表盘", "name": "知识库分布.md", "desc": "仪表盘/知识库分布 — 按领域分布饼图。"},
-    {"src": "seed/仪表盘v3/记忆-L0-核心.md", "dst_key": "仪表盘", "name": "记忆-L0-核心.md", "desc": "仪表盘/记忆-L0 — L0 不可篡改名册。"},
-    {"src": "seed/仪表盘v3/记忆-L1-长期.md", "dst_key": "仪表盘", "name": "记忆-L1-长期.md", "desc": "仪表盘/记忆-L1 — 长期技能 + 稳定语义清单。"},
-    {"src": "seed/仪表盘v3/记忆-L2-中期.md", "dst_key": "仪表盘", "name": "记忆-L2-中期.md", "desc": "仪表盘/记忆-L2 — 语义网络图。"},
-    {"src": "seed/仪表盘v3/记忆-L3-短期.md", "dst_key": "仪表盘", "name": "记忆-L3-短期.md", "desc": "仪表盘/记忆-L3 — episodic 时间线。"},
-    {"src": "seed/仪表盘v3/记忆-L4-流水.md", "dst_key": "仪表盘", "name": "记忆-L4-流水.md", "desc": "仪表盘/记忆-L4 — 原始流 heatmap。"},
-    {"src": "seed/仪表盘v3/记忆-晋级候选.md", "dst_key": "仪表盘", "name": "记忆-晋级候选.md", "desc": "仪表盘/记忆-晋级候选 — views/candidates.md 渲染。"},
-    {"src": "seed/仪表盘v3/记忆-腐化监控.md", "dst_key": "仪表盘", "name": "记忆-腐化监控.md", "desc": "仪表盘/记忆-腐化监控 — 幻觉/漂移/反馈自增强 告警。"},
-    {"src": "seed/仪表盘v3/知识-记忆 桥接.md", "dst_key": "仪表盘", "name": "知识-记忆 桥接.md", "desc": "仪表盘/桥接 — ref 双向链接图。"},
-    {"src": "seed/仪表盘v3/记忆-cron 状态.md", "dst_key": "仪表盘", "name": "记忆-cron 状态.md", "desc": "仪表盘/cron 状态 — 9 cron 执行状态。"},
-    {"src": "seed/仪表盘v3/固化流.md", "dst_key": "仪表盘", "name": "固化流.md", "desc": "仪表盘/固化流 — L4→L0 mermaid sankey。"}
+    {"src": "seed/仪表盘/总览.md", "dst_key": "仪表盘", "name": "总览.md", "desc": "仪表盘/总览 — 全局 HTML grid 看板。"},
+    {"src": "seed/仪表盘/知识库分布.md", "dst_key": "仪表盘", "name": "知识库分布.md", "desc": "仪表盘/知识库分布 — 按领域分布饼图。"},
+    {"src": "seed/仪表盘/记忆-L0-核心.md", "dst_key": "仪表盘", "name": "记忆-L0-核心.md", "desc": "仪表盘/记忆-L0 — L0 不可篡改名册。"},
+    {"src": "seed/仪表盘/记忆-L1-长期.md", "dst_key": "仪表盘", "name": "记忆-L1-长期.md", "desc": "仪表盘/记忆-L1 — 长期技能 + 稳定语义清单。"},
+    {"src": "seed/仪表盘/记忆-L2-中期.md", "dst_key": "仪表盘", "name": "记忆-L2-中期.md", "desc": "仪表盘/记忆-L2 — 语义网络图。"},
+    {"src": "seed/仪表盘/记忆-L3-短期.md", "dst_key": "仪表盘", "name": "记忆-L3-短期.md", "desc": "仪表盘/记忆-L3 — episodic 时间线。"},
+    {"src": "seed/仪表盘/记忆-L4-流水.md", "dst_key": "仪表盘", "name": "记忆-L4-流水.md", "desc": "仪表盘/记忆-L4 — 原始流 heatmap。"},
+    {"src": "seed/仪表盘/记忆-晋级候选.md", "dst_key": "仪表盘", "name": "记忆-晋级候选.md", "desc": "仪表盘/记忆-晋级候选 — views/candidates.md 渲染。"},
+    {"src": "seed/仪表盘/记忆-腐化监控.md", "dst_key": "仪表盘", "name": "记忆-腐化监控.md", "desc": "仪表盘/记忆-腐化监控 — 幻觉/漂移/反馈自增强 告警。"},
+    {"src": "seed/仪表盘/知识-记忆 桥接.md", "dst_key": "仪表盘", "name": "知识-记忆 桥接.md", "desc": "仪表盘/桥接 — ref 双向链接图。"},
+    {"src": "seed/仪表盘/记忆-cron 状态.md", "dst_key": "仪表盘", "name": "记忆-cron 状态.md", "desc": "仪表盘/cron 状态 — 9 cron 执行状态。"},
+    {"src": "seed/仪表盘/固化流.md", "dst_key": "仪表盘", "name": "固化流.md", "desc": "仪表盘/固化流 — L4→L0 mermaid sankey。"}
   ]
 }

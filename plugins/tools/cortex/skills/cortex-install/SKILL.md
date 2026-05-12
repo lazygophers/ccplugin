@@ -1,21 +1,20 @@
 ---
 name: cortex-install
-description: 初始化 vault — v3 双 namespace (知识库 + 记忆体系 L0-L4) + 仪表盘 + 归档; lang (zh-CN/en/ja); 询问 9 cron。仅显式触发 ("init vault" / "安装 cortex")。
+description: 初始化 vault — 双 namespace (知识库 + 记忆体系 L0-L4) + 仪表盘 + 归档; lang (zh-CN/en/ja); 询问 9 cron。仅显式触发 ("init vault" / "安装 cortex")。
 disable-model-invocation: true
 allowed-tools: Bash Read Write Edit Glob AskUserQuestion mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content
 ---
 
 # cortex-install
 
-把一个 (新或既有) Obsidian vault 升级到 cortex v3 标准布局 — **双 namespace** (知识库 + 记忆体系 L0-L4) + 仪表盘 + 归档 + HTML 片段库 + 9 cron jobs。
+把一个 (新或既有) Obsidian vault 初始化为 cortex 标准布局 — **双 namespace** (知识库 + 记忆体系 L0-L4) + 仪表盘 + 归档 + HTML 片段库 + 9 cron jobs。
 
 ## 触发场景
 
-- 用户初次安装 cortex, 需要把空 vault 起 v3 骨架
-- 已有 v2 vault (schema=1.0) 想接入 v3 (双轨保留, 不强迁)
-- 已有 v3 vault 需补 `_meta/` / `_templates/` / 新结构
+- 用户初次安装 cortex, 需要把空 vault 起骨架
+- 已有 vault 需补 `_meta/` / `_templates/` / 新结构
 
-## v3 设计总览
+## 设计总览
 
 ### 顶层结构
 
@@ -72,7 +71,6 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 
 - vault 路径来自 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh`
 - preset 固定 `lyt` (不可选)
-- 兼容: 若既有 vault `_meta/version.json:.preset` 已是 `para`/`zettel`/`flat`, **保留原 preset**, 不强改为 lyt (lint 仍按原 schema 跑); 仅当字段缺失或为新 vault 时写 `preset: "lyt"`
 
 ## 流程
 
@@ -84,20 +82,11 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 
 `AskUserQuestion`: 默认 `zh-CN`, 可选 `en` / `ja` / 用户自定义。写入 `_meta/version.json:.lang`。
 
-### 3. 检测既有 vault 的 schema 版本 (兼容老 vault)
-
-读 `<vault>/_meta/version.json`:
-
-- **新 vault (无 version.json 或 .schema 不存在)**: 全装 v3, `schema=3.0`
-- **v2 vault (.schema = 1.0)**: **不覆盖 version.json**, 仅追加 `schema_v3_pending: true` 字段, 创建 v3 目录与文件 (`知识库/` / `记忆体系/` / `仪表盘/` / `归档/`) 但**不动**老 v2 目录 (`概念/实体/...` 保留); 提示用户跑 follow-up `cortex-migrate` skill (本任务不实现) 完成搬迁
-- **v3 vault (.schema = 3.0)**: 增量补齐缺失项, 不覆盖已存在文件
-- 兼容 preset: `.preset ∈ {para, zettel, flat}` 保留原值, 否则写 `preset: "lyt"`
-
-### 4. 写共享根
+### 3. 写共享根
 
 固定项 (新建/补齐):
 
-- `_meta/version.json` — `{"schema": "3.0", "preset": "lyt", "lang": "<from Q2>", "preserve_transcript": true, "created": "<UTC ISO>"}` (v2 vault 仅追加 `schema_v3_pending: true`, 不动其他字段)
+- `_meta/version.json` — `{"preset": "lyt", "lang": "<from Q2>", "preserve_transcript": true, "created": "<UTC ISO>"}`
 - `_meta/lint-baseline.json` — `{"exempt": []}`
 - `_meta/memory-policy.yaml` — 从 `<PLUGIN_ROOT>/templates/memory-policy.yaml` (或 `<PLUGIN_ROOT>/presets/seed/_meta/memory-policy.yaml` 若存在) 复制; 定义 L0-L4 写入/遗忘/晋级 + recall + 9 cron 配置
 - `_meta/uri-index.json` — 空骨架 `{"version": 1, "rebuilt_at": "<UTC ISO>", "count": 0, "entries": {}}`
@@ -109,9 +98,9 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
   - `knowledge/` 子目录 (15 文件): `project.md` / `source-{repo,web,paper,book}.md` / `domain-{concept,fact,method}.md` / `journal-{day,week,month,year}.md` / `reflection-{insight,connection,question}.md`
 - `index.md` / `hot.md` / `log/_index.md` / `folds/_index.md` — 空骨架 (frontmatter `type: meta`)
 
-### 5. 写 v3 业务结构
+### 4. 写业务结构
 
-读 `<PLUGIN_ROOT>/presets/_structure.json` (v3.0, 44 seed_files):
+读 `<PLUGIN_ROOT>/presets/_structure.json` (44 seed_files):
 
 **顶层** (mkdir):
 - `知识库/` / `记忆体系/` / `仪表盘/` / `归档/` / `_assets/`
@@ -153,7 +142,7 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 
 写入策略见下文 §写入策略。
 
-### 6. 询问 git auto-sync (P5)
+### 5. 询问 git auto-sync (P5)
 
 若 `<vault>/.git` 存在, **必须**用 `AskUserQuestion` (禁文本式提问) 问 1 single-choice:
 
@@ -167,11 +156,11 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 
 vault 不是 git repo → 跳过, 不写两字段。
 
-### 7. 回报
+### 6. 回报
 
 列已创建/已存在/跳过的文件; 提示运行 `/cortex:doctor` 验证。
 
-### 8. 询问 9 cron (P6 内联, 装机一次性, 原 cortex-cron skill 并入)
+### 7. 询问 9 cron (P6 内联, 装机一次性, 原 cortex-cron skill 并入)
 
 **必须**调 `AskUserQuestion` (禁文本式提问), 合并 ≤4 questions 单次调用:
 
@@ -245,18 +234,16 @@ Q2 ∈ {launchd, cron, gha} → 走内联注册流程 (下文)。
 - 优先用 `mcp__obsidian__obsidian_append_content` (vault 索引一致); MCP 不可用回退 `Write`
 - 模板文件中的 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` / `{{PRESET}}` 占位 **不在此 skill 替换** — `_templates/` 下保留原样供 `/cortex:new` 与 `cortex-memory` skill 使用
 - 任何单文件失败不中断后续步骤, 最后统一报错
-- v2 vault (`schema=1.0`) 模式: 老目录 (`概念/实体/...`) **完全不动**, 只补 v3 顶层 + 子结构 + 文件
 
 ## 输出格式
 
 ```
 解析 vault: /Users/.../knowledge/obsidian (源: env)
-schema: 3.0 (新装) | 1.0 → 3.0 兼容模式
 preset: lyt
 lang: zh-CN
 
 [共享根]
-✅ 写入 _meta/version.json (schema=3.0, lang=zh-CN)
+✅ 写入 _meta/version.json (lang=zh-CN)
 ✅ 写入 _meta/lint-baseline.json
 ✅ 写入 _meta/memory-policy.yaml
 ✅ 写入 _meta/uri-index.json (空骨架)
@@ -302,11 +289,11 @@ lang: zh-CN
 - vault 路径解析失败: 立即退出并提示配置方式
 - 模板/preset 源缺失 (插件文件丢): 立即退出, 提示重装 cortex 插件
 - `_meta/memory-policy.yaml` 源缺失: 警告, 跳过该单项, 提示手动从 `<PLUGIN_ROOT>/templates/memory-policy.yaml` 复制
-- v2 → v3 兼容模式下任何 v3 文件已存在: 跳过, 不覆盖
+- 任何文件已存在: 跳过, 不覆盖
 
 ## 验证
 
-完成 SKILL.md 修订后跑下面命令, 验证 AI 能正确理解 v3 安装流程:
+完成 SKILL.md 修订后跑下面命令, 验证 AI 能正确理解安装流程:
 
 ```bash
 claude --settings ~/.claude/settings.glm-4.7-flash.json \
@@ -315,4 +302,4 @@ claude --settings ~/.claude/settings.glm-4.7-flash.json \
   | jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```
 
-返回非空且包含 v3 双 namespace / L0-L4 / 9 cron 关键描述 → 通过。
+返回非空且包含 双 namespace / L0-L4 / 9 cron 关键描述 → 通过。
