@@ -1213,3 +1213,36 @@ presets/lyt/ 内容上提到 presets/. 删 zettel/para/blank 3 未用 preset. _s
 ### Next Steps
 
 - None - task complete
+
+
+## Session 37: presets directories_keys 直接中文 (i18n 解耦)
+
+**Date**: 2026-05-12
+**Task**: presets directories_keys 直接中文 (i18n 解耦)
+**Branch**: `master`
+
+### Summary
+
+directories_keys 8 项英文 → 中文 (概念/实体/领域/来源/问题/仪表盘/临时/归档), seed_files src+dst_key 同步, seed/ 8 子目录 git mv rename. lint/schemas.py LYT root_dirs 加 8 中文 (保编号兼容). cortex-install/SKILL.md 删 locales 映射段. locales/*.yml + cortex_locale.py + cortex-translator agent + cortex-locale skill 保留 legacy. 217 python 不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `11602f86` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

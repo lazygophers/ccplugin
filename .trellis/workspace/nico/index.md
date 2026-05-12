@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 36
+- **Total Sessions**: 37
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1215 | Active |
+| `journal-1.md` | ~1248 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 37 | 2026-05-12 | presets directories_keys 直接中文 (i18n 解耦) | `11602f86` | `master` |
 | 36 | 2026-05-12 | MOC 移 vault 根 + 8 业务目录专用 _index.md | `e08e487b` | `master` |
 | 35 | 2026-05-12 | cortex presets/ 扁平化 + seed_files desc 中文 | `906f9926` | `master` |
 | 34 | 2026-05-12 | cortex-install 硬编码 LYT (移除目录结构选择) | `e321ba02` | `master` |
