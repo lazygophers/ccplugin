@@ -23,7 +23,7 @@
       "id": "orphan-page",
       "severity": "warn",
       "description": "无入链且无 tag 的孤儿页",
-      "autofix": false
+      "autofix": true
     },
     {
       "id": "duplicate-alias",
@@ -71,13 +71,13 @@
       "id": "callout-unknown-type",
       "severity": "warn",
       "description": "callout 类型不在 13 类白名单",
-      "autofix": false
+      "autofix": true
     },
     {
       "id": "path-naming-violation",
       "severity": "warn",
       "description": "业务目录命名应来自 vault.lang 的 dirs map (prd §9; 共享根/时间目录跳过)",
-      "autofix": false
+      "autofix": true
     },
     {
       "id": "i18n-frontmatter-lang-mismatch",
@@ -88,14 +88,14 @@
     {
       "id": "i18n-path-not-in-locale",
       "severity": "warn",
-      "description": "业务目录名不在 vault.lang 的 dirs map (仅给 rename 建议, 不 autofix)",
-      "autofix": false
+      "description": "业务目录名不在 vault.lang 的 dirs map (autofix: slug-safe rename)",
+      "autofix": true
     },
     {
       "id": "vault-structure-violation",
       "severity": "error",
-      "description": "vault 根或子目录含非 preset schema 允许的文件/文件夹 (需交互修复)",
-      "autofix": false
+      "description": "vault 根或子目录含非 preset schema 允许的文件/文件夹 (autofix: mv 到 ~/.cache/cortex/lint-backup)",
+      "autofix": true
     },
     {
       "id": "vault-misaligned",

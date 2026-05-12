@@ -149,7 +149,7 @@ def check_vault_structure(
                 "file": rel,
                 "line": 0,
                 "msg": reason,
-                "fixable": False,
+                "fixable": True,
                 "path": rel,
                 "kind": "dir",
                 "reason": reason,
@@ -167,7 +167,7 @@ def check_vault_structure(
                 "file": rel,
                 "line": 0,
                 "msg": reason,
-                "fixable": False,
+                "fixable": True,
                 "path": rel,
                 "kind": "file",
                 "reason": reason,
@@ -340,7 +340,7 @@ def check_file(
         ct = m.group(1).lower()
         if ct not in CALLOUT_WHITELIST:
             line = text[: m.start()].count("\n") + 1
-            findings.append(_f("callout-unknown-type", "warn", rel, line, f"unknown callout type: [!{ct}]", False))
+            findings.append(_f("callout-unknown-type", "warn", rel, line, f"unknown callout type: [!{ct}]", True))
 
     # rule 6 & 7: file length
     if rel == "hot.md":
@@ -362,7 +362,7 @@ def check_file(
         tags = fm.get("tags") or []
         has_tag = bool(tags) if isinstance(tags, list) else bool(tags)
         if not referrers.get(key) and not has_tag:
-            findings.append(_f("orphan-page", "warn", rel, 1, "orphan page (no inbound link, no tag)", False))
+            findings.append(_f("orphan-page", "warn", rel, 1, "orphan page (no inbound link, no tag)", True))
 
     # rule 10: filename-illegal
     if any(c in ILLEGAL_CHARS for c in path.name):
@@ -427,7 +427,7 @@ def check_global(
         rel = str(p.relative_to(vault))
         violation = _check_naming(rel)
         if violation:
-            findings.append(_f("path-naming-violation", "warn", rel, 1, violation, False))
+            findings.append(_f("path-naming-violation", "warn", rel, 1, violation, True))
 
     # rule 15: i18n-path-not-in-locale (top-level business dirs not in vault.lang dirs map)
     if locale_dirs is not None:
@@ -449,7 +449,7 @@ def check_global(
                 findings.append(_f(
                     "i18n-path-not-in-locale", "warn", top + "/", 1,
                     f"top-level dir '{top}' not in vault.lang dirs map; consider migrate-locale",
-                    False,
+                    True,
                 ))
 
     return findings
@@ -974,10 +974,17 @@ def _fix_backup_in_vault(
 # then structure must precede seed (seed write needs dir tree).
 RULE_PRIORITY = {
     "backup-in-vault": 0,
-    "structure-missing": 1,
-    "meta-missing": 2,
-    "seed-missing": 3,
-    "vault-misaligned": 4,
+    "vault-structure-violation": 1,
+    "structure-missing": 2,
+    "meta-missing": 3,
+    "seed-missing": 4,
+    "vault-misaligned": 5,
+    "template-outdated": 6,
+    "seed-outdated": 6,
+    "callout-unknown-type": 7,
+    "orphan-page": 8,
+    "path-naming-violation": 9,
+    "i18n-path-not-in-locale": 9,
 }
 
 
@@ -1265,7 +1272,7 @@ def _fix_vault_misaligned(
 
 # ---- dead-wikilink / duplicate-alias autofix helpers ----
 
-_STUB_CAP = 100
+_STUB_CAP = 1000
 
 
 def _wikilink_freq(vault: Path, all_files: list[Path] | None = None) -> dict[str, int]:
@@ -1485,6 +1492,179 @@ def _fix_duplicate_alias_group(
     return fixed
 
 
+# ---- new autofix helpers: structure / callout / orphan / path-rename ----
+
+# 14 Obsidian-standard callout types (rewrite anything else to `info`)
+_STANDARD_CALLOUTS = {
+    "info", "tip", "warning", "note", "abstract", "summary", "todo",
+    "success", "question", "failure", "danger", "bug", "example", "quote",
+}
+
+
+def _fix_vault_structure_violation(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """mv 违规路径到 ~/.cache/cortex/lint-backup/<hash>/structure-<ts>/<rel>."""
+    rel = finding.get("path") or finding.get("file")
+    if not rel:
+        return False
+    rel = rel.rstrip("/")
+    src = vault / rel
+    if not src.exists():
+        return False
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    structure_root = (
+        Path.home() / ".cache" / "cortex" / "lint-backup"
+        / _vault_hash(vault) / f"structure-{ts}"
+    )
+    dst = structure_root / rel
+    try:
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(src), str(dst))
+        return True
+    except Exception:
+        return False
+
+
+def _fix_callout_unknown_type(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Unknown callout type → `info` (keeps 14 standard types untouched)."""
+    rel = finding["file"]
+    p = vault / rel
+    if not p.is_file():
+        return False
+    try:
+        text = p.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return False
+
+    def _sub(m: re.Match) -> str:
+        ctype = m.group(1).lower()
+        if ctype in _STANDARD_CALLOUTS:
+            return m.group(0)
+        return m.group(0).replace(m.group(1), "info", 1)
+
+    new_text = CALLOUT_RE.sub(_sub, text)
+    if new_text == text:
+        return False
+    bak = backup_dir / rel
+    bak.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        shutil.copy2(p, bak)
+    except Exception:
+        pass
+    try:
+        p.write_text(new_text, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def _fix_orphan_page(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Orphan page → append wikilink to sibling `_index.md`.
+
+    No sibling _index.md → skip (returns False). Already linked → True (idempotent).
+    """
+    rel = finding["file"]
+    p = vault / rel
+    if not p.is_file():
+        return False
+    parent = p.parent
+    idx = parent / "_index.md"
+    if not idx.is_file():
+        return False
+    try:
+        idx_text = idx.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return False
+    link = f"[[{p.stem}]]"
+    if link in idx_text:
+        return True
+    # backup the _index.md (namespaced under "_index/<rel>" so it never collides
+    # with a real file's backup)
+    bak = backup_dir / "_index" / str(idx.relative_to(vault))
+    bak.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        shutil.copy2(idx, bak)
+    except Exception:
+        pass
+    new_text = idx_text.rstrip() + f"\n\n- {link}\n"
+    try:
+        idx.write_text(new_text, encoding="utf-8")
+        return True
+    except Exception:
+        return False
+
+
+def _slug_path_component(name: str) -> str:
+    """Slug-safe rename for a single path segment.
+
+    Rules: space → '-', non-[\\w 中文] → '_', collapse repeats, strip edges.
+    """
+    s = re.sub(r"\s+", "-", name)
+    # keep word chars + CJK; everything else → _
+    s = re.sub(r"[^\w一-鿿\-]", "_", s)
+    s = re.sub(r"_+", "_", s)
+    s = re.sub(r"-+", "-", s)
+    return s.strip("_-")
+
+
+def _fix_path_violation(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Rename file (or top-level dir) to a slug-safe form.
+
+    For `i18n-path-not-in-locale`, finding.file is `<top>/`; rename the dir.
+    Otherwise finding.file is a regular file path; rename the basename.
+    Conflict → append `-<sha8>`.
+    """
+    rel = finding["file"]
+    is_dir_target = rel.endswith("/")
+    rel_clean = rel.rstrip("/")
+    src = vault / rel_clean
+    if not src.exists():
+        return False
+
+    parent = src.parent
+    if is_dir_target or src.is_dir():
+        stem = src.name
+        ext = ""
+    else:
+        stem = src.stem
+        ext = src.suffix
+
+    new_stem = _slug_path_component(stem)
+    if not new_stem or new_stem == stem:
+        return False
+
+    new_path = parent / f"{new_stem}{ext}"
+    if new_path.exists():
+        sha8 = hashlib.sha256(rel_clean.encode("utf-8")).hexdigest()[:8]
+        new_path = parent / f"{new_stem}-{sha8}{ext}"
+        if new_path.exists():
+            return False
+    try:
+        src.rename(new_path)
+        return True
+    except Exception:
+        return False
+
+
 # ---- autofix ----
 
 def apply_fixes(
@@ -1593,6 +1773,30 @@ def apply_fixes(
             fixed += _fix_duplicate_alias_group(
                 alias_name, file_rels, vault, backup_dir,
             )
+
+    # 1e) vault-structure-violation → mv 违规路径到 backup
+    #     callout-unknown-type / orphan-page / path-naming-violation /
+    #     i18n-path-not-in-locale → per-finding fix (priority sorted)
+    extra_fixers = {
+        "vault-structure-violation": _fix_vault_structure_violation,
+        "callout-unknown-type": _fix_callout_unknown_type,
+        "orphan-page": _fix_orphan_page,
+        "path-naming-violation": _fix_path_violation,
+        "i18n-path-not-in-locale": _fix_path_violation,
+    }
+    extra_findings = [
+        f for f in findings
+        if f.get("fixable") and f["rule"] in extra_fixers
+        and (rules_filter is None or f["rule"] in rules_filter)
+    ]
+    extra_findings.sort(key=lambda f: RULE_PRIORITY.get(f["rule"], 99))
+    for f in extra_findings:
+        fn = extra_fixers[f["rule"]]
+        try:
+            if fn(f, vault, plugin_root, backup_dir):
+                fixed += 1
+        except Exception:
+            continue
 
     by_file: dict[str, list[dict[str, Any]]] = {}
     for f in findings:

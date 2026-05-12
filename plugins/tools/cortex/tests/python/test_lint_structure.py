@@ -89,7 +89,7 @@ class VaultStructureRuleTest(unittest.TestCase):
             # standard finding shape preserved
             for v in violations:
                 self.assertEqual(v["severity"], "error")
-                self.assertFalse(v["fixable"])
+                self.assertTrue(v["fixable"])
                 self.assertIn("msg", v)
 
     def test_para_preset_known_dirs_pass(self):
