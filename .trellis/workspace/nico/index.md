@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 50
+- **Total Sessions**: 51
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1677 | Active |
+| `journal-1.md` | ~1710 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 51 | 2026-05-12 | cortex frontmatter+tag schema + skills/agents 对齐 | `a28b5663` | `master` |
 | 50 | 2026-05-12 | cortex UserPromptSubmit hook | `f5d08670` | `master` |
 | 49 | 2026-05-12 | cortex lint vault 结构 + 元数据 autofix | `ec25513a` | `master` |
 | 48 | 2026-05-12 | cortex lint 默认 autofix | `3936cc14` | `master` |

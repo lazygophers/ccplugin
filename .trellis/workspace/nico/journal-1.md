@@ -1675,3 +1675,36 @@ lint.sh 默认 autofix, 新增 --check 走 cron/lint.sh read-only。--fix backwa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 51: cortex frontmatter+tag schema + skills/agents 对齐
+
+**Date**: 2026-05-12
+**Task**: cortex frontmatter+tag schema + skills/agents 对齐
+**Branch**: `master`
+
+### Summary
+
+新 frontmatter-schema.yaml 定义每目录 frontmatter required/optional + tags_required 命名约定。新 cortex-schema SKILL (read/validate/fill)。lint 加 frontmatter-schema-violation 规则 autofix。4 SKILL + 3 Agent 引用 schema。15 templates frontmatter 加 tags 默认。258 tests PASS。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a28b5663` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

@@ -17,7 +17,7 @@
       "id": "dead-wikilink",
       "severity": "error",
       "description": "wikilink 指向不存在的页",
-      "autofix": false
+      "autofix": true
     },
     {
       "id": "orphan-page",
@@ -29,7 +29,7 @@
       "id": "duplicate-alias",
       "severity": "error",
       "description": "alias 跨页冲突",
-      "autofix": false
+      "autofix": true
     },
     {
       "id": "hot-too-long",

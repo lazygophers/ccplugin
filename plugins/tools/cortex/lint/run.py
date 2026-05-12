@@ -19,6 +19,7 @@ import json
 import re
 import shutil
 import sys
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -331,7 +332,7 @@ def check_file(
         key = tgt.split("/")[-1].lower()
         if key not in by_name and key not in by_alias:
             line = text[: m.start()].count("\n") + 1
-            findings.append(_f("dead-wikilink", "error", rel, line, f"dead link: [[{tgt}]]", False))
+            findings.append(_f("dead-wikilink", "error", rel, line, f"dead link: [[{tgt}]]", True))
 
     # rule 12: callout-unknown-type
     for m in CALLOUT_RE.finditer(text):
@@ -382,7 +383,7 @@ def check_global(
         if len(paths) > 1:
             ps = ", ".join(str(p.relative_to(vault)) for p in paths)
             findings.append(_f("duplicate-alias", "error", "(global)", 0,
-                              f"alias '{alias}' shared across: {ps}", False))
+                              f"alias '{alias}' shared across: {ps}", True))
 
     # rule 8: index-missing-section
     idx = vault / "index.md"
@@ -1020,6 +1021,228 @@ def _fix_seed_outdated(
         return False
 
 
+# ---- dead-wikilink / duplicate-alias autofix helpers ----
+
+_STUB_CAP = 100
+
+
+def _wikilink_freq(vault: Path, all_files: list[Path] | None = None) -> dict[str, int]:
+    """Count wikilink target occurrences across the vault (key=lowercased stem)."""
+    WL = re.compile(r"(?<!\!)\[\[([^\[\]\n|#^]+)(?:[#^][^\[\]\n|]*)?(?:\|[^\[\]\n]*)?\]\]")
+    freq: dict[str, int] = defaultdict(int)
+    files = all_files if all_files is not None else [
+        p for p in vault.rglob("*.md")
+        if p.is_file() and not any(part in EXCLUDE_DIRS for part in p.relative_to(vault).parts)
+    ]
+    for f in files:
+        try:
+            txt = f.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        for m in WL.finditer(txt):
+            tgt = m.group(1).strip()
+            if tgt.lower().endswith(".md"):
+                tgt = tgt[:-3]
+            key = tgt.split("/")[-1].lower()
+            freq[key] += 1
+    return dict(freq)
+
+
+def _slug(name: str) -> str:
+    """Safe filename slug — preserve CJK, replace illegal/space chars."""
+    s = re.sub(r'[\\/:*?"<>|]', "_", name)
+    s = re.sub(r"\s+", "-", s).strip("-_")
+    return s or "stub"
+
+
+def _fix_dead_wikilink(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+    freq_cache: dict[str, int] | None = None,
+    stub_counter: dict[str, int] | None = None,
+) -> bool:
+    """freq≥2 → create stub in 知识库/收件箱/; freq=1 → strip wikilink to plain text."""
+    rel = finding["file"]
+    p = vault / rel
+    if not p.is_file():
+        return False
+    try:
+        text = p.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return False
+
+    m = re.search(r"\[\[([^\]]+)\]\]", finding.get("msg", ""))
+    if not m:
+        return False
+    target = m.group(1).strip()
+    target_stem = target[:-3] if target.lower().endswith(".md") else target
+    key = target_stem.split("/")[-1].lower()
+
+    if freq_cache is None:
+        freq_cache = _wikilink_freq(vault)
+    freq = freq_cache.get(key, 1)
+
+    if freq >= 2:
+        if stub_counter is None:
+            stub_counter = {"n": 0}
+        if stub_counter["n"] >= _STUB_CAP:
+            return False
+        slug = _slug(target_stem.split("/")[-1])
+        stub_path = vault / "知识库" / "收件箱" / f"{slug}.md"
+        if stub_path.exists():
+            return False  # already there — not a new fix
+        stub_path.parent.mkdir(parents=True, exist_ok=True)
+        now = datetime.now(timezone.utc).isoformat()
+        content = (
+            f"---\n"
+            f"type: stub\n"
+            f"title: {target_stem}\n"
+            f"created: {now}\n"
+            f"auto_created_by: lint-autofix\n"
+            f"status: draft\n"
+            f"tags: [stub, inbox]\n"
+            f"---\n\n"
+            f"# {target_stem}\n\n"
+            f"> [!warning] 由 lint autofix 自动创建 — 因被 ≥2 文件引用为 wikilink, 创建占位。"
+            f"完善后删除 stub 标签。\n"
+        )
+        try:
+            stub_path.write_text(content, encoding="utf-8")
+        except Exception:
+            return False
+        stub_counter["n"] += 1
+        return True
+    else:
+        # freq=1 → strip wikilink to plain text
+        # Backup
+        bak = backup_dir / rel
+        bak.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copy2(p, bak)
+        except Exception:
+            pass
+        # Match [[target]], [[target|label]], [[target#anchor]], [[target#anchor|label]]
+        esc = re.escape(target)
+        pattern = re.compile(
+            rf"\[\[{esc}(?:[#^][^\[\]\n|]*)?(?:\|([^\[\]\n]*))?\]\]"
+        )
+        def _repl(mm: re.Match) -> str:
+            label = mm.group(1)
+            return label if label else target_stem.split("/")[-1]
+        new_text = pattern.sub(_repl, text)
+        if new_text == text:
+            return False
+        try:
+            p.write_text(new_text, encoding="utf-8")
+            return True
+        except Exception:
+            return False
+
+
+def _fix_duplicate_alias_group(
+    alias: str,
+    file_rels: list[str],
+    vault: Path,
+    backup_dir: Path,
+) -> int:
+    """Rename duplicate alias across files: keep earliest (by created/mtime), suffix others."""
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        return 0
+    if len(file_rels) < 2:
+        return 0
+
+    file_info = []
+    for rel in file_rels:
+        p = vault / rel
+        if not p.is_file():
+            continue
+        try:
+            text = p.read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        m = re.match(r"^---\n(.*?)\n---\n?(.*)", text, re.S)
+        if not m:
+            continue
+        try:
+            fm = yaml.safe_load(m.group(1)) or {}
+        except Exception:
+            continue
+        if not isinstance(fm, dict):
+            continue
+        body = m.group(2)
+        created = fm.get("created") or ""
+        try:
+            mtime = p.stat().st_mtime
+        except Exception:
+            mtime = 0.0
+        file_info.append({
+            "rel": rel, "path": p, "fm": fm, "body": body,
+            "created": str(created) if created else "",
+            "mtime": mtime,
+        })
+    if len(file_info) < 2:
+        return 0
+
+    # Sort: created ASC (empty → after via "~" prefix tiebreaker by mtime ASC)
+    def _sort_key(info: dict) -> tuple:
+        c = info["created"]
+        if c:
+            return (0, c, info["mtime"])
+        return (1, "", info["mtime"])
+    file_info.sort(key=_sort_key)
+
+    # Keep first; rename alias in others
+    fixed = 0
+    # Track suffix collisions
+    used_aliases: set[str] = {alias}
+    for info in file_info[1:]:
+        bak = backup_dir / info["rel"]
+        bak.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copy2(info["path"], bak)
+        except Exception:
+            pass
+
+        old_aliases = info["fm"].get("aliases") or []
+        if isinstance(old_aliases, str):
+            old_aliases = [old_aliases]
+        if not isinstance(old_aliases, list):
+            continue
+
+        parent = Path(info["rel"]).parent.name or "root"
+        new_aliases = []
+        changed = False
+        for a in old_aliases:
+            a_str = str(a)
+            if a_str.lower() == alias.lower():
+                candidate = f"{a_str} ({parent})"
+                if candidate in used_aliases:
+                    sha8 = hashlib.sha1(info["rel"].encode("utf-8")).hexdigest()[:8]
+                    candidate = f"{a_str} ({parent}-{sha8})"
+                used_aliases.add(candidate)
+                new_aliases.append(candidate)
+                changed = True
+            else:
+                new_aliases.append(a_str)
+        if not changed:
+            continue
+        info["fm"]["aliases"] = new_aliases
+        try:
+            new_fm = yaml.safe_dump(info["fm"], allow_unicode=True, sort_keys=False)
+        except Exception:
+            continue
+        try:
+            info["path"].write_text(f"---\n{new_fm}---\n{info['body']}", encoding="utf-8")
+            fixed += 1
+        except Exception:
+            continue
+    return fixed
+
+
 # ---- autofix ----
 
 def apply_fixes(
@@ -1090,6 +1313,39 @@ def apply_fixes(
         seen_fm_schema.add(key)
         if _fix_frontmatter_schema(f, vault, plugin_root, backup_dir):
             fixed += 1
+
+    # 1c) dead-wikilink — per-finding fix with shared freq cache + stub counter
+    dead_findings = [
+        f for f in findings
+        if f.get("fixable") and f["rule"] == "dead-wikilink"
+        and (rules_filter is None or "dead-wikilink" in rules_filter)
+    ]
+    if dead_findings:
+        freq_cache = _wikilink_freq(vault)
+        stub_counter = {"n": 0}
+        for f in dead_findings:
+            if _fix_dead_wikilink(f, vault, plugin_root, backup_dir,
+                                  freq_cache=freq_cache, stub_counter=stub_counter):
+                fixed += 1
+
+    # 1d) duplicate-alias — group by alias name (parsed from msg) → batch rename
+    dup_alias_findings = [
+        f for f in findings
+        if f.get("fixable") and f["rule"] == "duplicate-alias"
+        and (rules_filter is None or "duplicate-alias" in rules_filter)
+    ]
+    if dup_alias_findings:
+        for f in dup_alias_findings:
+            msg = f.get("msg", "")
+            m = re.match(r"alias '([^']+)' shared across:\s*(.+)$", msg)
+            if not m:
+                continue
+            alias_name = m.group(1)
+            file_list_str = m.group(2)
+            file_rels = [s.strip() for s in file_list_str.split(",") if s.strip()]
+            fixed += _fix_duplicate_alias_group(
+                alias_name, file_rels, vault, backup_dir,
+            )
 
     by_file: dict[str, list[dict[str, Any]]] = {}
     for f in findings:
