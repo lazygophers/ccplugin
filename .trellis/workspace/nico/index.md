@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 24
+- **Total Sessions**: 25
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~819 | Active |
+| `journal-1.md` | ~852 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 25 | 2026-05-12 | cortex_stream_runner 多路径探测 (绕 PATH) | `238ecd83` | `master` |
 | 24 | 2026-05-12 | cortex-lint vault 结构强校验 + 交互修复 (rule #16) | `2ed3f8eb` | `master` |
 | 23 | 2026-05-12 | cortex Phase A — stream parser rich 化 | `918cfa6b` | `master` |
 | 22 | 2026-05-12 | stream_progress.sh ANSI 配色美化 | `08b115c2` | `master` |

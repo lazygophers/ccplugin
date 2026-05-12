@@ -817,3 +817,36 @@ mcp/cortex_stream.py rich-based stream parser, console-script entry. subprocess 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 25: cortex_stream_runner 多路径探测 (绕 PATH)
+
+**Date**: 2026-05-12
+**Task**: cortex_stream_runner 多路径探测 (绕 PATH)
+**Branch**: `master`
+
+### Summary
+
+用户 pipx 装过但 cortex-stream entry 未生效 + PATH 不含 ~/.local/bin. cortex_stream_runner 4 级探测: PATH > pipx venv python 直跑脚本 > 系统 python3+rich > fallback. plugin_root 自推 BASH_SOURCE/../... 用户无需 pipx install --force, 现有装即生效. bash 3.2 兼容. 不动 cortex_stream.py / pyproject.toml / install.sh.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `238ecd83` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
