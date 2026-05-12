@@ -1378,3 +1378,36 @@ lint 新 3 规则 (template-missing/template-outdated/seed-outdated) + sha256 ma
 ### Next Steps
 
 - None - task complete
+
+
+## Session 42: cortex init.sh wrapper — vault 骨架便捷入口
+
+**Date**: 2026-05-12
+**Task**: cortex init.sh wrapper — vault 骨架便捷入口
+**Branch**: `master`
+
+### Summary
+
+install_wrappers.sh 加 init.sh 生成 (+64 行), wrapper 总数 11→12。init.sh 调 claude --bare AUTO_MODE 跑 cortex-install SKILL 建 vault 骨架; --force 强制重建; jq 解析 config; --max-budget-usd 0.30 限额。217 tests PASS。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `acec2ef2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
