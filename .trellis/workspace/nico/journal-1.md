@@ -1708,3 +1708,36 @@ lint.sh 默认 autofix, 新增 --check 走 cron/lint.sh read-only。--fix backwa
 ### Next Steps
 
 - None - task complete
+
+
+## Session 52: cortex lint dead-wikilink + duplicate-alias autofix
+
+**Date**: 2026-05-12
+**Task**: cortex lint dead-wikilink + duplicate-alias autofix
+**Branch**: `master`
+
+### Summary
+
+lint --fix 自动处理 dead-wikilink (freq≥2 建 stub / =1 转纯文本, cap 100) + duplicate-alias (保最早 + parent-dir 后缀)。264 tests PASS。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ba49488d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
