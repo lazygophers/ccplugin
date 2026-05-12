@@ -1,7 +1,0 @@
-{
-  "preset": "blank",
-  "version": "2.0",
-  "description": "最小骨架 — 仅共享根 (_meta / _templates / locales / sessions / index.md / hot.md / log/ / folds/), 不预设业务目录。适合已有 vault 接入。",
-  "directories_keys": [],
-  "seed_files": []
-}

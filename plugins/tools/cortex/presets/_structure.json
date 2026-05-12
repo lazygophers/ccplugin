@@ -1,0 +1,28 @@
+{
+  "version": "2.0",
+  "description": "cortex vault 骨架 — 8-bucket + MOC。目录名按 vault.lang 渲染。",
+  "directories_keys": [
+    "moc",
+    "concepts",
+    "entities",
+    "domains",
+    "sources",
+    "questions",
+    "dashboards",
+    "fleeting",
+    "archive"
+  ],
+  "seed_files": [
+    {"src": "seed/moc/home.md", "dst_key": "moc", "name": "home.md", "desc": "MOC 总入口 — vault 顶层导航地图,从这里出发到所有主题/项目/领域。"},
+    {"src": "seed/moc/topics-moc.md", "dst_key": "moc", "name": "topics-moc.md", "desc": "主题 MOC — 按主题聚合 concepts 与 domains 的二级地图。"},
+    {"src": "seed/moc/projects-moc.md", "dst_key": "moc", "name": "projects-moc.md", "desc": "项目 MOC — 当前进行中 / 已归档项目的索引地图。"},
+    {"src": "seed/_index.md", "dst_key": "concepts", "name": "_index.md", "desc": "概念目录 — 抽象知识单元 (理论 / 模式 / 术语) 的入口。"},
+    {"src": "seed/_index.md", "dst_key": "entities", "name": "_index.md", "desc": "实体目录 — 具体人 / 组织 / 产品 / 工具的入口。"},
+    {"src": "seed/_index.md", "dst_key": "domains", "name": "_index.md", "desc": "领域目录 — 项目 / 仓库 / 业务领域级笔记的入口 (按 host/org/repo 分层)。"},
+    {"src": "seed/_index.md", "dst_key": "sources", "name": "_index.md", "desc": "来源目录 — 摄取的外部资料 (URL / 文献 / 报告) 入口。"},
+    {"src": "seed/_index.md", "dst_key": "questions", "name": "_index.md", "desc": "问题目录 — 未解决疑问 / 待研究方向的入口。"},
+    {"src": "seed/_index.md", "dst_key": "dashboards", "name": "_index.md", "desc": "仪表盘目录 — Dataview / Bases 聚合视图的入口。"},
+    {"src": "seed/_index.md", "dst_key": "fleeting", "name": "_index.md", "desc": "临时笔记目录 — 未经整理的瞬时想法收件箱, 定期归档或清理。"},
+    {"src": "seed/_index.md", "dst_key": "archive", "name": "_index.md", "desc": "归档目录 — 过时 / 已合并 / 被取代的内容保留地。"}
+  ]
+}

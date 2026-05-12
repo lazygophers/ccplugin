@@ -41,9 +41,9 @@ allowed-tools: Bash Read Write Edit Glob AskUserQuestion mcp__obsidian__obsidian
    - `log/_index.md` — 空骨架
    - `folds/_index.md` — 空骨架
 4. **写 LYT 业务目录**:
-   - 读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/lyt/_structure.json`
+   - 读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/_structure.json`
    - 按 `directories[]` 在 vault 内创建空目录
-   - 按 `seed_files[]` 把 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/lyt/<src>` 复制到 `<vault>/<dst>`
+   - 按 `seed_files[]` 把 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/<src>` 复制到 `<vault>/<dst>`
 5. **询问 git auto-sync (P5)** — 若 `<vault>/.git` 存在 (vault 是 git repo), **必须**用 `AskUserQuestion` 工具(不能用文本式提问) 询问 1 个 single-choice 问题:
    - 问题: "vault 是 git repo, 是否启用 Stop hook 自动 commit?"
    - 选项:
