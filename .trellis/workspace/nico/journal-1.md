@@ -982,3 +982,36 @@ timeout 内联重构丢了 stdout > TMP_NDJSON. cortex_stream.py 仍 stdout 透�
 ### Next Steps
 
 - None - task complete
+
+
+## Session 30: cortex_stream.py 输出完整化 (thinking + prompt + skill name)
+
+**Date**: 2026-05-12
+**Task**: cortex_stream.py 输出完整化 (thinking + prompt + skill name)
+**Branch**: `master`
+
+### Summary
+
+用户三连: thinking 内容 + 完整输出 + 输入 prompt + skill/agent name. cap 200→2000 / 120→800 / 新 think 4000. thinking event dim italic. result.result 完整. _extract_prompts 扫 claude CLI (--append-system-prompt / 末尾 positional). _extract_skill_name regex YAML frontmatter. Panel system (cyan, 摘头 + [N chars] + skill 名) + user (magenta, 完整). 17 新 pytest, 36 全绿, 215 不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8cb2ebb6` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

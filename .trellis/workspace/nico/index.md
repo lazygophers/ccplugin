@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 29
+- **Total Sessions**: 30
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~984 | Active |
+| `journal-1.md` | ~1017 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 30 | 2026-05-12 | cortex_stream.py 输出完整化 (thinking + prompt + skill name) | `8cb2ebb6` | `master` |
 | 29 | 2026-05-12 | run.sh 丢弃 stdout NDJSON 防终端污染 | `1a002389` | `master` |
 | 28 | 2026-05-12 | cortex 移除 pipx 依赖 (pip3 --user + python3 直跑) | `0ccb1534` | `master` |
 | 27 | 2026-05-12 | cortex_stream.py 内部 timeout (修 perl_timeout FileNotFoundError) | `ce2c0e65` | `master` |
