@@ -186,9 +186,22 @@ TO_CMD="$(resolve_timeout_cmd)" || {
 export CORTEX_JOB_LABEL="cortex-${JOB}"
 export CORTEX_STREAM_TEE_FILE="$TMP_NDJSON"
 
+# stderr routing:
+#   - tty (interactive, e.g. ~/.cortex/scripts/lint.sh in a terminal):
+#       stream_progress.sh stderr (jq filter lines, heartbeat, step logs)
+#       is tee'd to ERR_FILE *and* forwarded back to the user's terminal.
+#   - non-tty (cron / pipe): stderr only appended to ERR_FILE (unchanged
+#       legacy behaviour, keeps cron logs silent on stdout/stderr).
+# bash 3.2 supports process substitution `>(...)`, which is required here.
 if [[ "$TO_CMD" == "PERL_TIMEOUT" ]]; then
-  if ! cortex_stream_runner perl_timeout "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE"; then
-    rc=$?
+  if [[ -t 2 ]]; then
+    cortex_stream_runner perl_timeout "$TIMEOUT" "${CMD[@]}" \
+      2> >(tee -a "$ERR_FILE" >&2)
+  else
+    cortex_stream_runner perl_timeout "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE"
+  fi
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
     if [[ $rc -eq 124 ]]; then
       echo "[$(iso_now)] cortex-${JOB}: TIMEOUT after ${TIMEOUT}s (perl_timeout)" | tee -a "$LOG_FILE" >&2
       exit 3
@@ -197,8 +210,14 @@ if [[ "$TO_CMD" == "PERL_TIMEOUT" ]]; then
     exit 1
   fi
 else
-  if ! cortex_stream_runner "$TO_CMD" "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE"; then
-    rc=$?
+  if [[ -t 2 ]]; then
+    cortex_stream_runner "$TO_CMD" "$TIMEOUT" "${CMD[@]}" \
+      2> >(tee -a "$ERR_FILE" >&2)
+  else
+    cortex_stream_runner "$TO_CMD" "$TIMEOUT" "${CMD[@]}" 2>>"$ERR_FILE"
+  fi
+  rc=$?
+  if [[ $rc -ne 0 ]]; then
     if [[ $rc -eq 124 ]]; then
       echo "[$(iso_now)] cortex-${JOB}: TIMEOUT after ${TIMEOUT}s ($TO_CMD)" | tee -a "$LOG_FILE" >&2
       exit 3
