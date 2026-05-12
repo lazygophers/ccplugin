@@ -41,7 +41,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
    bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh
    ```
 
-   失败 → 提示用户配 `OBSIDIAN_VAULT` env 或 `~/.config/cortex/config.json`, 退出。
+   失败 → 提示用户配 `OBSIDIAN_VAULT` env 或 `~/.cortex/config.json`, 退出。
 
 2. **判定来源 + 类型**
    - 用户给了 `--topic` → `type=concept`, 主题为标题
@@ -52,12 +52,12 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
    | type       | 路径模板                                                                         |
    | ---------- | -------------------------------------------------------------------------------- |
-   | concept    | `10_concepts/<kebab-title>.md` (LYT) / `zettels/YYYYMMDDHHMM-<slug>.md` (Zettel) |
-   | entity     | `20_entities/<kebab>.md`                                                         |
-   | domain     | `30_domains/<host>/<org>/<repo>/<sub>.md`                                        |
-   | source     | `40_sources/<kebab>.md`                                                          |
-   | question   | `50_questions/<kebab>.md`                                                        |
-   | dashboard  | `60_dashboards/<topic>-dashboard.md`                                             |
+   | concept    | `知识库/领域/<kebab-title>.md` (LYT) / `zettels/YYYYMMDDHHMM-<slug>.md` (Zettel) |
+   | entity     | `知识库/项目/<kebab>.md`                                                         |
+   | domain     | `知识库/来源/代码仓库/<host>/<org>/<repo>/<sub>.md`                                        |
+   | source     | `知识库/来源/网页/<kebab>.md`                                                          |
+   | question   | `知识库/反思/疑问/<kebab>.md`                                                        |
+   | dashboard  | `_assets/dashboards/<topic>-dashboard.md`                                             |
    | log (默认) | `log/YYYY-MM/DD-HHMM-<slug>.md` (UTC)                                            |
 
    preset (`_meta/version.json:.preset`) 不是 `lyt` 时, concept 路径切换为对应 preset 的扁平结构。
@@ -172,5 +172,5 @@ schema 源: `<vault>/_meta/frontmatter-schema.yaml` (fallback plugin `templates/
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 任何需用户决策处 → 走默认值跳过
-3. fail-fast: save 失败 → 输出 stderr 后退出非 0, 不询问重试/手补
+3. persistent: save 失败 → 重试 / 换 cortex_save MCP / 写 cache 兜底, 禁询问
 4. 写盘前不需二次确认 (AUTO_MODE 隐含已授权)

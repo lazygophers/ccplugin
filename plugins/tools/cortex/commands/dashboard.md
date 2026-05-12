@@ -4,7 +4,7 @@ description: 刷新 cortex 仪表盘 (无入参, 严约束防漫游)
 
 # /cortex:dashboard
 
-[AUTO_MODE strict: 禁止询问用户, fail-fast, 禁读 vault 外文件/大 .jsonl 全文]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 按 cortex-dashboard SKILL AUTO_MODE 严约束执行刷新:
 

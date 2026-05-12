@@ -4,9 +4,9 @@ Pipeline (P1):
 
 1. `masking.mask(body)` (reuse P0 module from `hooks/_lib/masking.py`).
 2. Compute path by kind:
-   - `concept` → `wiki/10_concepts/<slug>.md`
-   - `domain`  → `wiki/30_domains/<host>/<org>/<repo>/<slug>.md`
-   - `log`     → `wiki/log/YYYY-MM/<HH-MM-slug>.md`
+   - `concept` → `知识库/领域/<slug>.md`
+   - `domain`  → `知识库/来源/代码仓库/<host>/<org>/<repo>/<slug>.md`
+   - `log`     → `知识库/日记/日/YYYY-MM/<HH-MM-slug>.md`
 3. Prepend frontmatter (`type/title/created/tags/aliases`).
 4. `wikilinks.add_block_ids` — append `^cortex-<sha8>` to each paragraph.
 5. `lib.lock.file_lock` advisory write.
@@ -112,7 +112,7 @@ def _resolve_path(vault: Path, args: dict, now: _dt.datetime) -> Path:
     title = args["title"]
     slug = slugify(title)
     if kind == "concept":
-        target = vault / "wiki" / "10_concepts" / f"{slug}.md"
+        target = vault / "知识库" / "领域" / f"{slug}.md"
     elif kind == "domain":
         host = args.get("host")
         if not host:
@@ -121,12 +121,12 @@ def _resolve_path(vault: Path, args: dict, now: _dt.datetime) -> Path:
         org = _safe_segment(args.get("org") or "_", "org")
         repo = _safe_segment(args.get("repo") or "_", "repo")
         target = (
-            vault / "wiki" / "30_domains" / host / org / repo / f"{slug}.md"
+            vault / "知识库" / "来源" / "代码仓库" / host / org / repo / f"{slug}.md"
         )
     elif kind == "log":
         ym = now.strftime("%Y-%m")
         hm = now.strftime("%H-%M")
-        target = vault / "wiki" / "log" / ym / f"{hm}-{slug}.md"
+        target = vault / "知识库" / "日记" / "日" / ym / f"{hm}-{slug}.md"
     else:
         raise ValueError(f"cortex_save: invalid kind {kind!r}")
     # Final guard: resolved path must stay inside vault root.

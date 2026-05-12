@@ -116,7 +116,7 @@ P6 起 cortex-fold skill 删除, 其能力并入 historian agent。本 agent 可
 }
 ```
 
-### 命名规则 (与 v2 spec 一致)
+### 命名规则 (与 spec 一致)
 
 - 路径: `folds/YYYY-MM-fold-NNN.md`
 - NNN: 三位数字, 从 001 起递增, 同月可有多个 fold (不同次操作累积)

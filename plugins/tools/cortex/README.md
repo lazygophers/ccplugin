@@ -72,9 +72,9 @@ bash ~/.cortex/scripts/update.sh
 
 vault 路径解析顺序:
 
-1. `$OBSIDIAN_VAULT` 环境变量
+1. `$(jq -r .vault ~/.cortex/config.json)` 环境变量
 2. `$XDG_CONFIG_HOME/cortex/config.json` 中 `.vault` 字段
-3. `~/.config/cortex/config.json` 中 `.vault` 字段
+3. `~/.cortex/config.json` 中 `.vault` 字段
 4. 默认 `~/persons/knowledge/obsidian`
 5. auto-detect: 扫 `~/Documents` 与 `~/Library` 找唯一 `.obsidian/` 目录
 
@@ -133,9 +133,9 @@ bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts
 详见 `.trellis/tasks/05-10-obsidian-kb-plugin/prd.md`。
 
 - **不依赖 `lib/`** — 自包含, 纯 bash + python stdlib
-- **CLI 主, MCP 兜底** — 官方 `obsidian` CLI (v1.12.4+, 需 Obsidian app 在跑) 覆盖 read/write/list/search/move/property/daily; CLI 无法表达的场景 (heading/block 锚点 patch、canvas/非 md) 回退 mcp**obsidian**\*; 仍兜底不上才直接写文件 (须 AskUserQuestion 授权)。
+- **CLI 主, MCP 兜底** — 官方 `obsidian` CLI  覆盖 read/write/list/search/move/property/daily; CLI 无法表达的场景 (heading/block 锚点 patch、canvas/非 md) 回退 mcp**obsidian**\*; 仍兜底不上才直接写文件 (须 AskUserQuestion 授权)。
 - **callout 替代 HTML grid** — Obsidian + GitHub 双渲染兼容
-- **Hook v2 wrapped JSON schema** — `hookSpecificOutput.{hookEventName,additionalContext}`
+- **Hook wrapped JSON schema** — `hookSpecificOutput.{hookEventName,additionalContext}`
 - **不写 noop hook** — 教训自 commit `07e713d4`
 
 ## 详细文档
@@ -156,10 +156,10 @@ bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts
 - [架构设计](docs/架构设计.md) — 数据流、模块依赖、hook 时序、MCP 三级回退
 - [设计决策](docs/设计决策.md) — ADR D1-D7 + research-driven §10 修订
 - [贡献指南](docs/贡献指南.md) — 加新 skill / lint / preset 步骤 + 测试约定 + GLM 自检
-- [i18n](docs/i18n.md) — vault 多语言 / locale 文件 / fallback / 切语言 (v2)
-- [多 CLI](<docs/多 CLI.md>) — frontmatter cli/cli_session / sessions/<cli>/ / 跨 CLI 查询 (v2)
-- [Agents](docs/Agents.md) — 8 个专用多轮调度者 + 调度边界 (v2)
-- [编程式调用](docs/编程式调用.md) — claude --bare flag + cron 注册 / 故障排查 (v2)
+- [i18n](docs/i18n.md) — vault 多语言 / locale 文件 / fallback / 切语言 
+- [多 CLI](<docs/多 CLI.md>) — frontmatter cli/cli_session / sessions/<cli>/ / 跨 CLI 查询 
+- [Agents](docs/Agents.md) — 8 个专用多轮调度者 + 调度边界 
+- [编程式调用](docs/编程式调用.md) — claude --bare flag + cron 注册 / 故障排查 
 
 ## License
 

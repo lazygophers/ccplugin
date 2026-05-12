@@ -1,6 +1,6 @@
 # Agents — 8 个专用多轮调度者
 
-cortex v2 引入 8 个专用 agent, 在 14 个 skill 之上提供"接任务后自主跑多轮"能力。每个 agent 单 .md 文件, 走 Claude Code 标准 sub-agent 协议。
+cortex 引入 8 个专用 agent, 在 13 个 skill 之上提供"接任务后自主跑多轮"能力。每个 agent 单 .md 文件, 走 Claude Code 标准 sub-agent 协议。
 
 ## 1. agent vs skill 区别
 
@@ -70,7 +70,7 @@ model: sonnet
 - **不嵌套调度** (agent 不 spawn 另一 agent, 由主线编排)
 - **proposal-only 类 agent (curator/archivist/linker) 不直接落盘** — 写盘走 cortex-refactor + 用户确认
 - **写型 agent (translator/historian/cartographer/summarizer) 必须先 Read** 目标文件再 Edit (CC file-state 硬约束)
-- **大输出 (> 10KB) 自动落 `_meta/cortex-runs/<ts>.md`**, 主线只回 path + 摘要
+- **大输出 (> 10KB) 自动落 `_meta/cortex:runs/<ts>.md`**, 主线只回 path + 摘要
 
 ## 6. 测试 / 验证
 

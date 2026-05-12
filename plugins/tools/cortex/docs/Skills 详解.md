@@ -1,11 +1,11 @@
 # Skills 详解
 
-本文回答：cortex v2 的 14 个 skill 各自做什么、用什么句子触发、典型示例与常见失败处理。
+本文回答：cortex 的 13 个 skill 各自做什么、用什么句子触发、典型示例与常见失败处理。
 适用读者：日常使用 cortex 的 Claude Code 用户、想知道某句话能否触发某 skill 的人。
 
 ## 触发模型
 
-cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依据见 `.trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/research/05-skills-vs-commands.md` §6.3 建议 B。
+cortex 全部能力以 **13 个 skill** 暴露, **0 个 command**。决策依据见 `.trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/research/05-skills-vs-commands.md` §6.3 建议 B。
 
 | 触发方式 | 数量 | skill |
 |----------|------|-------|
@@ -14,7 +14,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 
 显式 skill 必须用户明确请求, 防止误触发副作用 (写 vault 骨架 / 改语言配置 / 大批量改盘 / 写系统 cron 等)。
 
-## 14 个 skill 详细说明
+## 13 个 skill 详细说明
 
 按现有"核心 / 维护"分组保留, 新增 v2 的 3 个 skill 在末尾。每个 skill 标注 (自动) 或 (显式)。
 
@@ -42,7 +42,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 
 - **用途**：把会话中"值得留下的东西"落档到 vault, 选目录 + 套模板 + 注 block-id + 同步 index/hot + 反向 wikilink 回填。
 - **触发**：`"归档"` / `"落档"` / `"save this"` / `"save to wiki"`; 也由 Stop / SubagentStop hook 自动触发。
-- **目录决策**：项目特定 (`wiki/30_domains/<host>/<org>/<repo>/`) vs 通用概念 (`wiki/10_concepts/`)。
+- **目录决策**：项目特定 (`知识库/来源/代码仓库/<host>/<org>/<repo>/`) vs 通用概念 (`知识库/领域/`)。
 - **block-id 格式**：段落末尾 `^cortex-<sha8>`, 后续可 `![[note#^cortex-xxx]]` 精确引用。
 - **失败处理**：重名 → 不覆盖, 追加时间戳后缀。
 
@@ -51,7 +51,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 - **用途**：把外部源 (本地文件 / URL / 目录) 摄取进 vault, 抽实体概念、套模板、重名检测、反向 wikilink 回填、不改源。
 - **触发**：`"ingest <url>"` / `"摄取 <文件>"` / `"导入到知识库"`。
 - **allowed-tools** 包含 `WebFetch`, 用于抓 URL。
-- **输出**：写入 `wiki/40_sources/<slug>.md` (LYT) 或 `references/` (Zettel)。
+- **输出**：写入 `知识库/来源/网页/<slug>.md` (LYT) 或 `references/` (Zettel)。
 
 ### 5. cortex-doctor (显式)
 
@@ -69,7 +69,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 
 ### 7. cortex-lint (自动)
 
-- **用途**：跑 15 条 vault lint 规则 (含 v2 新增 i18n-001/002), 默认 dry-run, `--fix` 才改盘并 backup。
+- **用途**：跑 17 条 vault lint 规则 (含 新增 i18n-frontmatter-lang-mismatch/002), 默认 dry-run, `--fix` 才改盘并 backup。
 - **触发**：`"wiki audit"` / `"lint"` / `"vault 体检"` / `"找 orphan"` / `"dead link"`。
 - **autofix 范围**：仅对 6 条规则生效 (rule 1/2/6/8/9/11)。详见 `Lint 规则.md`。
 - **输出**：JSON 报告 (errors / warns / summary)。
@@ -100,7 +100,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 - **触发**：`"fold logs"` / `"归档日志"` / `"整理日志"`。
 - **常见用法**：cron 周任务, 见 `周期任务.md`。
 
-## v2 新增 3 个
+## 新增 3 个
 
 ### 12. cortex-locale (显式)
 
@@ -124,7 +124,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 
 ## allowed-tools 速查
 
-14 个 skill 的 `allowed-tools` 字段都用**空格**分隔 (skill 语法 vs command 用逗号)。常见组合：
+13 个 skill 的 `allowed-tools` 字段都用**空格**分隔 (skill 语法 vs command 用逗号)。常见组合：
 
 | 场景 | 工具集 |
 |------|--------|
@@ -143,7 +143,7 @@ cortex v2 全部能力以 **14 个 skill** 暴露, **0 个 command**。决策依
 ## 相关文档
 
 - `Hooks 机制.md` — Stop hook 自动触发 cortex-save 的判定逻辑
-- `Lint 规则.md` — cortex-lint 的 15 条规则
+- `Lint 规则.md` — cortex-lint 的 17 条 规则
 - `重构与归档.md` — cortex-refactor / cortex-fold 用法详解
 - `模板与美化.md` — cortex-new 用的模板
 - 协作约定：`../AGENT.md` (Skills 设计原则)

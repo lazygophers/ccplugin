@@ -4,7 +4,7 @@ description: 跑腐化检测 — 扫记忆/知识库一致性 (无入参)
 
 # /cortex:warden
 
-[AUTO_MODE strict: 禁询问, fail-fast, 仅读不写]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 跑 cortex vault 腐化检测:
 

@@ -1,12 +1,12 @@
 ---
 name: cortex-lint
-description: 跑 15 条 vault lint (frontmatter/wikilink/orphan/命名/i18n) + autofix; --fix 才落盘。Triggers on "wiki audit", "lint", "vault 体检".
+description: 跑 17 条 vault lint (frontmatter/wikilink/orphan/命名/i18n) + autofix; --fix 才落盘。Triggers on "wiki audit", "lint", "vault 体检".
 allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_patch_content
 ---
 
 # cortex-lint
 
-对 vault 跑 13 条 lint 规则, 输出 JSON 报告 (errors/warns/summary)。默认 dry-run。
+对 vault 跑 17 条 lint 规则, 输出 JSON 报告 (errors/warns/summary)。默认 dry-run。
 
 ## 触发场景
 
@@ -27,7 +27,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
    - 仅对 `autofix:true` 规则改盘 (rule 1/2/6/8/9/11)
    - 其他规则需用户手工处理 (cortex-refactor 可协助 rename/merge)
 
-## 13 条规则 (rules.json)
+## 17 条 规则 (rules.json)
 
 | #   | id                    | severity | autofix                                          |
 | --- | --------------------- | -------- | ------------------------------------------------ |

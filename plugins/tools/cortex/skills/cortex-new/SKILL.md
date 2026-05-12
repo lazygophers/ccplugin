@@ -34,12 +34,12 @@ cortex-new source "Building a Second Brain"
    - `{{CREATED}}` / `{{UPDATED}}` → 当前 UTC 日期 `YYYY-MM-DD`
    - `{{PRESET}}` → vault 当前 preset
 5. 按 §3.2.7 命名规则计算目标路径:
-   - `concept` → `10_concepts/<kebab-title>.md` (LYT) / `zettels/<UID>-<slug>.md` (Zettel) / `3_resources/<kebab>.md` (PARA)
-   - `entity` → `20_entities/<kebab>.md` (LYT) / 其他 preset 对应位置
-   - `domain` → `30_domains/<host>/<org>/<repo>/_domain.md` (从 title 解析 git remote)
-   - `dashboard` → `60_dashboards/<topic>-dashboard.md` (后缀强制)
-   - `question` → `50_questions/<kebab>.md`
-   - `source` → `40_sources/<kebab>.md`
+   - `concept` → `知识库/领域/<kebab-title>.md` (LYT) / `zettels/<UID>-<slug>.md` (Zettel) / `3_resources/<kebab>.md` (PARA)
+   - `entity` → `知识库/项目/<kebab>.md` (LYT) / 其他 preset 对应位置
+   - `domain` → `知识库/来源/代码仓库/<host>/<org>/<repo>/_domain.md` (从 title 解析 git remote)
+   - `dashboard` → `_assets/dashboards/<topic>-dashboard.md` (后缀强制)
+   - `question` → `知识库/反思/疑问/<kebab>.md`
+   - `source` → `知识库/来源/网页/<kebab>.md`
    - blank preset 一律落到 vault 根 + `<type>/`
 6. 路径冲突检测: 用 `Glob` 或 `mcp__obsidian__obsidian_list_files_in_dir` 检查目标是否存在; 存在时 **必须调 `AskUserQuestion`** 工具询问: "目标路径已存在: `<path>`, 如何处理?" options: `换 slug` / `覆盖` / `取消`; 默认行为 = `取消` (不覆盖)
 7. 写入: 优先 `mcp__obsidian__obsidian_append_content` (新文件视作追加创建), 失败回退 `Write`

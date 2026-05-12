@@ -100,7 +100,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 ```markdown
 基于 vault 找到 N 条相关内容 (confidence: 中):
 
-1. **<标题>** — [[10_concepts/foo.md]] · obsidian://open?vault=...&file=...
+1. **<标题>** — [[知识库/领域/foo.md]] · obsidian://open?vault=...&file=...
    <一句话摘要>
 
 2. ...
@@ -153,5 +153,5 @@ mcp__cortex__cortex_deep_search(query=<q>, mode=hybrid, iter_max=3, limit=15)
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁, 调用必失败)
 2. 任何需用户决策处 → 走默认值跳过 (search 纯读, 默认 top_k=10, kind=auto)
-3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+3. persistent: 任何 error 自决降级 / 重试 / 换工具, 禁询问, 禁中止
 4. 不自动加 `--full`, 默认返回摘要

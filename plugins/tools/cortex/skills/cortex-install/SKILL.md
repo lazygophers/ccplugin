@@ -76,7 +76,7 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 
 ### 1. 解析 vault
 
-跑 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh` 拿绝对路径; 失败则提示用户配置 `OBSIDIAN_VAULT` env 或 `~/.config/cortex/config.json`。
+跑 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh` 拿绝对路径; 失败则提示用户配置 `OBSIDIAN_VAULT` env 或 `~/.cortex/config.json`。
 
 ### 2. 询问 lang
 
@@ -341,7 +341,7 @@ claude --settings ~/.claude/settings.glm-4.7-flash.json \
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 默认决策: `lang=zh-CN`, git auto-sync=off, cron=off (用户后续手动跑 `~/.cortex/scripts/install_cron.sh` 装计划任务)
-3. fail-fast: 任何 error 立即返回错误码 + 简短消息, 不询问回退方案
+3. persistent: 任何 error 自决降级 / 重试 / 换工具组合, 禁询问, 禁中止
 4. 写盘前不需二次确认 (AUTO_MODE 隐含已授权)
 
 约束: 本 SKILL 主流程含 `AskUserQuestion` 描述仅适用于 `install.sh` 顶层交互场景; 通过 init.sh wrapper 调用时一律按上述默认值跳过。

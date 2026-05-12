@@ -14,7 +14,7 @@
 
 注册见 `.claude-plugin/plugin.json` 的 `hooks` 字段。
 
-## v2 wrapped JSON 协议
+## wrapped JSON 协议
 
 所有 hook 走 Claude Code v2 wrapped JSON schema。命中时 stdout 输出：
 
@@ -49,7 +49,7 @@ stdin → (不消费) → 解析 vault → 不命中则沉默退出
 ## Cortex 已连接
 vault: /Users/me/notes
 hot cache: (已加载, 见下文)
-索引: wiki/index.md (42 条)
+索引: index.md (42 条)
 
 ### 协作约定
 1. 先搜后问 — ...
@@ -92,7 +92,7 @@ rc=其他 → 失败 (log)
 - `skip_if_only_questions` (默认 true): 全是疑问句不归档
 - 内容平凡度评分: 多 CRUD 操作 / 通用编程问答 → 平凡
 
-任一未达 → rc=2 → 静默跳过。可通过 `~/.config/cortex/config.json` 的 `save.*` 字段调整 (见 `安装与配置.md`)。
+任一未达 → rc=2 → 静默跳过。可通过 `~/.cortex/config.json` 的 `save.*` 字段调整 (见 `安装与配置.md`)。
 
 ### reason 字段映射
 
@@ -114,7 +114,7 @@ esac
 
 - 总是落档 (跳过启发式判定 — compact summary 本身已是浓缩信息)。
 - `save_session.py --force` 标志, 绕过 `min_lines` / `min_chars` 检查。
-- 写入 `wiki/log/YYYY-MM/DD-HHMM-compact.md`。
+- 写入 `记忆/L4-流水账/ledger/YYYY-MM/DD-HHMM-compact.md`。
 
 ## 与 Obsidian Git 协调 (auto-commit)
 
@@ -143,7 +143,7 @@ test -d "$VAULT/.obsidian/plugins/obsidian-git" && AUTO_COMMIT=false
 
 ## 常见误解
 
-- **"hook 没注入"** → 90% 是 vault 路径未命中。先 `echo $OBSIDIAN_VAULT`, 再跑 `cortex-doctor`。
+- **"hook 没注入"** → 90% 是 vault 路径未命中。先 `echo $(jq -r .vault ~/.cortex/config.json)`, 再跑 `cortex-doctor`。
 - **"Stop 没落档"** → 多半是启发式判定为平凡。显式说"归档"强制触发。
 - **"PostCompact 写了空文件"** → transcript 不可读 (CC 还未 flush), 偶发, 看 `~/.cache/cortex/post_compact.log`。
 - **"hook 阻塞会话"** → 不会。所有 hook `exit 0`, 异步 hook 加 `async: true`, timeout 强制结束。

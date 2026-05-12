@@ -76,10 +76,10 @@ DEEP_SEARCH_TOOL = Tool(
 
 
 _SCOPE_GLOB = {
-    "all": "wiki",
-    "concepts": "wiki/10_concepts",
-    "domains": "wiki/30_domains",
-    "log": "wiki/log",
+    "all": "知识库",
+    "concepts": "知识库/领域",
+    "domains": "知识库/来源/代码仓库",
+    "log": "知识库/日记",
 }
 
 _WIKILINK_RE = re.compile(

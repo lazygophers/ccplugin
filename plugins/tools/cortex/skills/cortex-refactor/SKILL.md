@@ -99,11 +99,11 @@ python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refa
 ```json
 {
 	"op": "rename",
-	"from": "10_concepts/foo.md",
-	"to": "10_concepts/foo-bar.md",
+	"from": "知识库/领域/foo.md",
+	"to": "知识库/领域/foo-bar.md",
 	"files_to_update": [
 		{ "file": "log/2026-05/10-1430-design.md", "replacements": 2 },
-		{ "file": "60_dashboards/concepts-dashboard.md", "replacements": 1 }
+		{ "file": "_assets/dashboards/concepts-dashboard.md", "replacements": 1 }
 	],
 	"applied": false
 }
@@ -133,7 +133,7 @@ python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refa
 python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refactor/dedupe.py \
   --vault "$VAULT" --scope concepts --threshold 0.85
 python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refactor/extract_inline.py \
-  --vault "$VAULT" --page 10_concepts/parent.md --section "Detail" \
+  --vault "$VAULT" --page 知识库/领域/parent.md --section "Detail" \
   --direction extract
 python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refactor/graph_rebalance.py \
   --vault "$VAULT" --hub-threshold 20
@@ -147,5 +147,5 @@ python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refa
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 任何需用户决策处 → 走默认值跳过 (≥3 文件批量改写不再列路径授权, 直接 backup + apply)
-3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+3. persistent: 任何 error 自决降级 / 重试 / 换工具, 禁询问, 禁中止
 4. dry-run 默认行为不变; 显式 `--apply` 时直接落, 不再二次确认

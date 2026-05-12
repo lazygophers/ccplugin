@@ -4,7 +4,7 @@ description: 渐进披露召回 query 相关记忆 — 无入参时列 top 10 ho
 
 # /cortex:recall
 
-[AUTO_MODE strict: 禁询问, fail-fast]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 渐进披露召回。
 

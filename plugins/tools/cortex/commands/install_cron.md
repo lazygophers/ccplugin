@@ -4,7 +4,7 @@ description: 注册 cortex 定时任务 (lint/fold/dashboard/memory-*) 到 cront
 
 # /cortex:install_cron
 
-[AUTO_MODE strict: 禁询问, fail-fast]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 注册 cortex 定时任务到系统 crontab。
 

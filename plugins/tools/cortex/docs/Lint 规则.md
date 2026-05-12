@@ -1,11 +1,11 @@
 # Lint 规则
 
-本文回答：cortex-lint 的 13 条规则各自检查什么、哪些能 autofix、`--fix` 行为是什么。
+本文回答：cortex-lint 的 17 条 规则各自检查什么、哪些能 autofix、`--fix` 行为是什么。
 适用读者：跑 `cortex-lint` 看到 errors/warns 想知道含义的用户、写 cron 自动修复的运维。
 
 ## 总览
 
-定义文件：`lint/rules.json`。版本 1, 13 条规则。
+定义文件：`lint/rules.json`。版本 1, 17 条 规则。
 
 | # | id | severity | autofix | 简述 |
 |---|----|----|---|------|
@@ -31,7 +31,7 @@ autofix 仅 6 条 (rule 1/2/6/8/9/11)。其余需人工或用 `cortex-refactor` 
 
 frontmatter 必须有 `type` 字段, 否则 cortex-search / cortex-save 无法识别。
 
-- **autofix 策略**：根据所在目录推断 — `10_concepts/` → `concept`, `20_entities/` → `entity` 等。
+- **autofix 策略**：根据所在目录推断 — `知识库/领域/` → `concept`, `知识库/项目/` → `entity` 等。
 
 ### 2. fm-missing-created (warn, autofix)
 
@@ -104,7 +104,7 @@ frontmatter `title: A` 但正文 H1 是 `# B`。
 文件路径违反命名规则：
 
 - 文件名只用 `[\w一-鿿\-\.]`
-- domain 必须 `30_domains/<host>/<org>/<repo>/` 三层
+- domain 必须 `知识库/来源/代码仓库/<host>/<org>/<repo>/` 三层
 - log 必须 `DD-HHMM-<slug>.md`
 
 详见 `知识库结构.md#路径与命名规则`。
@@ -144,7 +144,7 @@ python3 lint/run.py --vault /path/to/vault --fix
 
 ## 配置
 
-`~/.config/cortex/config.json` 的 `lint` 段：
+`~/.cortex/config.json` 的 `lint` 段：
 
 ```json
 {

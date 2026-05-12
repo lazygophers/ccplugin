@@ -208,7 +208,7 @@ EOF
 print_gha() {
   cat <<'EOF'
 # ===== cortex GitHub Actions workflow =====
-# 保存为 .github/workflows/cortex-cron.yml (在你的 vault 仓库)
+# 保存为 .github/workflows/cortex:cron.yml (在你的 vault 仓库)
 # 要求 vault 是 GitHub repo, 并配置 secrets.OBSIDIAN_API_KEY 等
 #
 # 注意: CI 环境路径与本机 marketplace 不同。下方 ${GITHUB_WORKSPACE} 由

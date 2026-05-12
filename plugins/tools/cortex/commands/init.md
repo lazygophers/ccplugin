@@ -4,7 +4,7 @@ description: 初始化/重建 cortex vault 骨架 (双 namespace + seed 文件)
 
 # /cortex:init
 
-[AUTO_MODE strict: 禁询问, fail-fast, 强制默认决策]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 按 cortex-install SKILL 完整流程执行 vault 初始化:
 

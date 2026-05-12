@@ -2,27 +2,27 @@
 
 vault: {{VAULT_PATH}}
 hot cache: {{HOT_CACHE_PREVIEW}}
-索引: wiki/index.md ({{INDEX_ENTRY_COUNT}} 条)
+索引: index.md ({{INDEX_ENTRY_COUNT}} 条)
 
 ### 协作约定
 
 1. **先搜后问** — 非通用问题先调 `cortex-query` skill 或 `obsidian search:context query=<q> vault=<name>` 搜库 (CLI 不可用时回退 `mcp__obsidian__obsidian_simple_search`), 确认无既有经验再开工。
 2. **落档** — 非平凡发现 (架构决策、疑难 bug、配置技巧、工具经验) 完成后用 `cortex-save` skill 归档:
-   - 项目特定 → `wiki/30_domains/<host>/<org>/<repo>/`
-   - 通用概念 → `wiki/10_concepts/`
-   - 同步 `wiki/index.md` 与 `wiki/hot.md`
+   - 项目特定 → `知识库/来源/代码仓库/<host>/<org>/<repo>/`
+   - 通用概念 → `知识库/领域/`
+   - 同步 `index.md` 与 `hot.md`
 3. **不直接文件操作** — vault 操作回退顺序:
    - **L1 = 官方 `obsidian` CLI** (需 Obsidian app 在跑): read=`read`, write=`create overwrite=true`, append=`create append=true`, list=`files`, search=`search:context`, move=`move` (条件性自动更新 wikilink, 需 vault 设置 "Automatically update internal links" 开启), frontmatter 读=`property:read`, 写=`property:set`, 删=`property:remove`, daily=`daily`; 多 vault 用 `vault=<name>` 指定, 参数语法 `key=value` 无 `--flag`。
    - **L2 = `mcp__obsidian__*`** — 处理 CLI 无法表达的场景 (callout/heading 锚点 patch、block-id patch、canvas/非 md、metadata cache/反向链接图) 或 app 未跑时回退, 如 `obsidian_patch_content target_type=heading`。
    - **L3 = 直接写文件** — canvas/excalidraw json 等非 markdown, 或 L1/L2 均不可用时的兜底, **必须通过 `AskUserQuestion` 取得用户授权后方可落盘**。
 4. **block-id 引用** — 落档时段落末尾自动加 `^cortex-<sha8>`, 后续可精准引用 `![[note#^cortex-xxx]]`。
-5. **Stop hook 自动归档** — 会话结束时若产生非平凡技术发现, 自动写入 `wiki/log/YYYY-MM/`。
+5. **Stop hook 自动归档** — 会话结束时若产生非平凡技术发现, 自动写入 `记忆/L4-流水账/ledger/YYYY-MM/`。
 
 不写: 通用编程常识、当前已有上下文、简单 CRUD。
 
 ## 安全声明 (P0)
 
-cortex v2 对 ingest/save 流加 3 层过滤:
+cortex 对 ingest/save 流加 3 层过滤:
 
 - **masking**: AWS/OpenAI/Anthropic key, GitHub PAT, JWT, PEM, Slack token → `<REDACTED:*>`
 - **url-security**: 拒 `127/10/172.16-31/192.168/169.254` 网段 + IPv6 ULA/link-local + 非 80/443 低端口,防 SSRF
@@ -35,9 +35,9 @@ cortex v2 对 ingest/save 流加 3 层过滤:
 
 ## Skills 设计原则
 
-cortex v2 全部能力以 **13 个 skill** 暴露, **0 个 command** (与本仓库 `plugins/tools/task/` 全 skill 模式对齐, 决策见 `.trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/research/05-skills-vs-commands.md` §6.3 建议 B)。
+cortex 全部能力以 **13 个 skill** 暴露, **0 个 command** (与本仓库 `plugins/tools/task/` 全 skill 模式对齐, 决策见 `.trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/research/05-skills-vs-commands.md` §6.3 建议 B)。
 
-cortex v2 共 13 个 skill, **6 自动 / 7 显式** (P4 加 ingest-bulk; P6 删 cortex-fold + cortex-cron)。显式 skill frontmatter 标 `disable-model-invocation: true`, 不进 description 池, 主线模型不会自动激活, 必须用户明确请求 (中文短语 / 英文触发词 / 用户直接调用)。
+cortex 共 13 个 skill, **6 自动 / 7 显式** (P4 加 ingest-bulk; P6 删 cortex-fold + cortex-cron)。显式 skill frontmatter 标 `disable-model-invocation: true`, 不进 description 池, 主线模型不会自动激活, 必须用户明确请求 (中文短语 / 英文触发词 / 用户直接调用)。
 
 **6 个自动 skill** (description 池总长 ~628 字符, 远低于 1500 软上限):
 
@@ -72,7 +72,7 @@ cortex v2 共 13 个 skill, **6 自动 / 7 显式** (P4 加 ingest-bulk; P6 删 
 
 ## Agents 设计原则
 
-cortex v2 提供 **8 个专用 agent** (sub-agent), 在 13 个 skill 之上提供"接任务后多轮自主推进"能力。agent 与 skill 互补, 不替代。
+cortex 提供 **8 个专用 agent** (sub-agent), 在 13 个 skill 之上提供"接任务后多轮自主推进"能力。agent 与 skill 互补, 不替代。
 
 | agent                 | 角色                        | 主调度                                                           |
 | --------------------- | --------------------------- | ---------------------------------------------------------------- |

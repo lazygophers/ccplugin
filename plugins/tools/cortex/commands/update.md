@@ -4,7 +4,7 @@ description: 更新 ccplugin-market + cortex plugin 到最新版 (无入参)
 
 # /cortex:update
 
-[AUTO_MODE strict: 禁询问, fail-fast]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 更新 cortex plugin 到最新版本。
 

@@ -109,7 +109,7 @@ L0 永不自动, 必经用户审批。
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 任何需用户决策处 → 走 policy 默认值跳过
-3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+3. persistent: 任何 error 自决降级 / 重试 / 换工具, 禁询问, 禁中止
 4. 特殊规则:
    - L4→L3 / L3→L2: 仅在显式 `--auto-low=true` 才执行写盘, 否则仅汇报
    - L2→L1: 仅汇报, **不执行**

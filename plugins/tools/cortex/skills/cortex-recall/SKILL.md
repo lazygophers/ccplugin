@@ -84,5 +84,5 @@ allowed-tools: Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidian__ob
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 任何需用户决策处 → 走默认值跳过 (recall 本就纯读)
-3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+3. persistent: 任何 error 自决降级 / 重试 / 换工具, 禁询问, 禁中止
 4. AUTO_MODE 不自动加 `--full`, 默认返回摘要

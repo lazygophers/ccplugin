@@ -93,7 +93,7 @@ vault 同时有多 CLI 写入时:
 - 各 CLI 写自己的 `sessions/<cli>/`, 不交叉
 - `log/` `fleeting/` 共享, 通过 `cli` 字段区分来源
 - `cli_session` 字段必填, 否则跨 CLI 查询会丢分组键
-- frontmatter `lang` 必须与 vault.lang 一致 (lint i18n-001 监控)
+- frontmatter `lang` 必须与 vault.lang 一致 (lint i18n-frontmatter-lang-mismatch 监控)
 
 ## 5. 未来 adapter 设计要求
 

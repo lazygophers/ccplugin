@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # post_compact.sh
-# CC PostCompact hook — 把 compact 摘要落到 wiki/log/YYYY-MM/DD-HHMM-compact.md。
+# CC PostCompact hook — 把 compact 摘要落到 记忆/L4-流水账/ledger/YYYY-MM/DD-HHMM-compact.md。
 #
 # 与 stop.sh 共享 save_session.py 实现, reason=compact。
 # compact 总是落档 (跳过启发式判定 — compact summary 本身已是浓缩信息)。

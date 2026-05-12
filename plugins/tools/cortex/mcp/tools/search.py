@@ -6,7 +6,7 @@ Fallback order:
 2. `index.md` grep — long-lived registry of canonical entries.
 3. Smart Connections REST (`CORTEX_SC_URL`, default `http://127.0.0.1:27123`)
    semantic search if reachable within 1s.
-4. `rg --json` over `wiki/`, capped at 50 hits.
+4. `rg --json` over `知识库/`, capped at 50 hits.
 
 Each hit is `{path, title, snippet, score, source}`. The tool returns a single
 `TextContent` whose `.text` is the JSON-serialized list so models can parse it
@@ -48,10 +48,10 @@ SEARCH_TOOL = Tool(
 
 
 _SCOPE_GLOB = {
-    "all": "wiki",
-    "concepts": "wiki/10_concepts",
-    "domains": "wiki/30_domains",
-    "log": "wiki/log",
+    "all": "知识库",
+    "concepts": "知识库/领域",
+    "domains": "知识库/来源/代码仓库",
+    "log": "知识库/日记",
 }
 
 

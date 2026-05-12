@@ -1883,22 +1883,26 @@ def apply_fixes(
 
 def _infer_type(rel: str) -> str:
     parts = rel.split("/")
-    if parts[0] == "log":
-        return "log"
     if parts[0] == "folds":
         return "fold"
-    if "concepts" in parts[0] or parts[0] == "10_concepts":
+    if parts[0] == "知识库":
+        if len(parts) >= 2:
+            sub = parts[1]
+            if sub == "项目":
+                return "project"
+            if sub == "来源":
+                return "source"
+            if sub == "领域":
+                return "concept"
+            if sub == "日记":
+                return "log"
+            if sub == "反思":
+                return "reflection"
+            if sub == "收件箱":
+                return "fleeting"
         return "concept"
-    if "entities" in parts[0] or parts[0] == "20_entities":
-        return "entity"
-    if "domains" in parts[0] or parts[0] == "30_domains":
-        return "domain"
-    if "sources" in parts[0] or parts[0] == "40_sources":
-        return "source"
-    if "questions" in parts[0] or parts[0] == "50_questions":
-        return "question"
-    if "dashboards" in parts[0] or parts[0] == "60_dashboards":
-        return "dashboard"
+    if parts[0] == "记忆":
+        return "memory"
     return "concept"
 
 
@@ -1926,7 +1930,7 @@ def main() -> int:
         dest="sync_templates",
         help="only auto-fix template-outdated/template-missing/seed-outdated (no other rules)",
     )
-    ap.add_argument("--scope", default=None, help="glob filter, e.g. '10_concepts/*'")
+    ap.add_argument("--scope", default=None, help="glob filter, e.g. '知识库/领域/*'")
     ap.add_argument("--json", action="store_true", help="JSON output (default)")
     ap.add_argument("--lang", default=None, help="override vault.lang for i18n checks")
     args = ap.parse_args()

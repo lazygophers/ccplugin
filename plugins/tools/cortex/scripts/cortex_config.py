@@ -154,15 +154,10 @@ def cmd_init(args: argparse.Namespace) -> int:
                 return 1
             out[key] = val
     else:
-        # Interactive: prompt every key. Default = flag > env > existing config.
-        env_defaults = {
-            "vault": os.environ.get("CORTEX_VAULT"),
-            "lang": os.environ.get("CORTEX_LANG"),
-            "settings": os.environ.get("CORTEX_SETTINGS"),
-            "install_path": os.environ.get("CORTEX_INSTALL_PATH"),
-        }
+        # Interactive: prompt every key. Default = flag > existing config.
+        # Env vars are NOT consulted (config is single source of truth per project rules).
         for key in KNOWN_KEYS:
-            default = flag_map.get(key) or env_defaults.get(key) or existing.get(key)
+            default = flag_map.get(key) or existing.get(key)
             val = _prompt(f"{key}", default)
             if not val:
                 continue

@@ -26,7 +26,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 ## 关键约束
 
-1. **不迁移既有目录** — 切语言后 `_meta/version.json:.lang` 改, 旧目录保留, 新建项走新 lang。lint i18n-002 仅 info, 不报错。
+1. **不迁移既有目录** — 切语言后 `_meta/version.json:.lang` 改, 旧目录保留, 新建项走新 lang。lint i18n-path-not-in-locale 仅 info, 不报错。
 2. **fallback 链** — `zh-CN → zh → en → 报错`。每个 key miss 单独 fallback (非整文件回退)。
 3. **三层 locale 优先级** — vault `<vault>/locales/<lang>.yml` > user `~/.config/cortex/locales/<lang>.yml` > plugin `<plugin>/locales/<lang>.yml`。
 4. **rename 既有目录** — 用户主动跑 `cortex-refactor migrate-locale`, 本 skill 不动。

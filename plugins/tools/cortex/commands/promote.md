@@ -4,7 +4,7 @@ description: 跑晋级候选检测 — L4→L3 / L3→L2 auto, L2→L0 写候选
 
 # /cortex:promote
 
-[AUTO_MODE strict: 禁询问, fail-fast]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 按 `_meta/memory-policy.yaml` + cortex-promote SKILL 流程检测晋级候选:
 

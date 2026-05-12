@@ -4,7 +4,7 @@ description: cortex 记忆 CRUD (URI 寻址) — 无入参时全扫 verify
 
 # /cortex:memory
 
-[AUTO_MODE strict: 禁询问, fail-fast]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 cortex 记忆 CRUD 操作 (URI: `L<N>://<path>`)。
 

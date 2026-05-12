@@ -17,8 +17,8 @@ def fake_vault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Create a minimal vault skeleton and pin CORTEX_VAULT_PATH at it."""
     vault = tmp_path / "vault"
     (vault / ".obsidian").mkdir(parents=True)
-    (vault / "wiki" / "10_concepts").mkdir(parents=True)
-    (vault / "wiki" / "30_domains").mkdir(parents=True)
-    (vault / "wiki" / "log").mkdir(parents=True)
+    (vault / "知识库" / "领域").mkdir(parents=True)
+    (vault / "知识库" / "来源" / "代码仓库").mkdir(parents=True)
+    (vault / "知识库" / "日记" / "日").mkdir(parents=True)
     monkeypatch.setenv("CORTEX_VAULT_PATH", str(vault))
     return vault

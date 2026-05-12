@@ -22,7 +22,7 @@ def _run(args: dict[str, Any]) -> list[dict[str, Any]]:
 
 def test_search_hot_hit(fake_vault: Path) -> None:
     (fake_vault / "hot.md").write_text(
-        "## 最近落档\n- [[wiki/10_concepts/foo-bar]] foo bar hit\n",
+        "## 最近落档\n- [[知识库/领域/foo-bar]] foo bar hit\n",
         encoding="utf-8",
     )
     hits = _run({"query": "foo bar"})
@@ -33,7 +33,7 @@ def test_search_hot_hit(fake_vault: Path) -> None:
 def test_search_index_hit(fake_vault: Path) -> None:
     (fake_vault / "hot.md").write_text("## 最近落档\n", encoding="utf-8")
     (fake_vault / "index.md").write_text(
-        "- [[wiki/10_concepts/alpha]] alpha entry\n", encoding="utf-8"
+        "- [[知识库/领域/alpha]] alpha entry\n", encoding="utf-8"
     )
     hits = _run({"query": "alpha"})
     sources = {h["source"] for h in hits}
@@ -49,7 +49,7 @@ def test_search_rg_fallback(
     # Empty hot/index, content only in a concept file.
     (fake_vault / "hot.md").write_text("## 最近落档\n", encoding="utf-8")
     (fake_vault / "index.md").write_text("# index\n", encoding="utf-8")
-    note = fake_vault / "wiki" / "10_concepts" / "beta.md"
+    note = fake_vault / "知识库" / "领域" / "beta.md"
     note.write_text("# Beta\n\nunique-token here\n", encoding="utf-8")
     # Force SC unreachable
     monkeypatch.setenv("CORTEX_SC_URL", "http://127.0.0.1:1")

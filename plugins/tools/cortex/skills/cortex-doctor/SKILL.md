@@ -14,7 +14,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 1. **vault 路径解析** — 跑 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh`, 显示命中的来源 (env / config / default / auto-detect / 未命中)
 2. **vault 结构** — 共享根目录 (`_meta/`, `_templates/`, `index.md`, `hot.md`, `log/`, `folds/`) 是否齐全
 3. **preset 类型** — 读 `<vault>/_meta/version.json` 显示 preset (lyt/zettel/para/blank)
-4. **官方 obsidian CLI** — `command -v obsidian` 是否存在, `obsidian --version` 输出 (期望 v1.12.x+); 同时 `obsidian vault list` 检查 vault 是否已注册到 `obsidian.json`。**cortex v2 主路径**: read=`obsidian read` / write=`obsidian create overwrite=true` / append=`obsidian create append=true` / list=`obsidian files` / search=`obsidian search:context` / move=`obsidian move` / frontmatter=`obsidian property` / daily=`obsidian daily`。未安装提示: 参考官方 docs <https://docs.obsidian.md/Plugins/Obsidian+CLI> (Obsidian Settings → General → Command line interface 启用并安装)
+4. **官方 obsidian CLI** — `command -v obsidian` 是否存在, `obsidian --version` 输出 (期望 v1.12.x+); 同时 `obsidian vault list` 检查 vault 是否已注册到 `obsidian.json`。**cortex 主路径**: read=`obsidian read` / write=`obsidian create overwrite=true` / append=`obsidian create append=true` / list=`obsidian files` / search=`obsidian search:context` / move=`obsidian move` / frontmatter=`obsidian property` / daily=`obsidian daily`。未安装提示: 参考官方 docs <https://docs.obsidian.md/Plugins/Obsidian+CLI> (Obsidian Settings → General → Command line interface 启用并安装)
 5. **Obsidian app 在跑** — 官方 CLI 经 app runtime, app 不在跑全部失败。探活: mac `pgrep -x Obsidian` / linux `pgrep obsidian` / win `tasklist /FI "IMAGENAME eq Obsidian.exe"`。未跑 → 提示用户启动 Obsidian app
 6. **vault 自动更新 wikilink** — 读 `<vault>/.obsidian/app.json` 的 `alwaysUpdateLinks` 字段。`true` → ✅ `obsidian move` 会自动更新 wikilink; `false`/缺失 → ⚠ 提示开启 (Settings → Files & Links → Automatically update internal links), 否则 cortex-refactor 的 move 不会自动改链, 需走 MCP/手补
 7. **Obsidian MCP server (L2 兜底)** — 检测 `mcp__obsidian__obsidian_list_files_in_vault` 工具是否可用。用于 heading-anchor patch / block-id patch / canvas / 非 md 文件 / 完整 metadata graph 等官方 CLI 不支持的场景
@@ -25,7 +25,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 12. **模板完整性** — `_templates/{concept,entity,domain,dashboard,question,source}.md` 是否齐全
 13. **Smart Connections REST API** — `curl -sf -m 2 http://127.0.0.1:27124/embeddings/info` 是否可达 (cortex-search L3 语义检索依赖)
 14. **ripgrep** — `command -v rg` (cortex-search L5 兜底依赖)
-15. **backlink 完整性** — 抽样 5 个 `log/` 与 `10_concepts/` 页面, 检查其 `[[X]]` wikilink 是否在 X 的 `## Backlinks` 段中出现; 不一致计入报告
+15. **backlink 完整性** — 抽样 5 个 `log/` 与 `知识库/领域/` 页面, 检查其 `[[X]]` wikilink 是否在 X 的 `## Backlinks` 段中出现; 不一致计入报告
 16. **共享 config 存在性** — `~/.cortex/config.json` 是否存在。缺失 → ℹ️ info (非 fail), 提示运行 `~/.cortex/scripts/config.sh init` 或 `python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cortex_config.py init`
 17. **共享 config 合法性** — 跑 `python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cortex_config.py validate`; exit 0 + "config ok" → ✅; "config absent" → ℹ️; exit 1 → ❌ 列出字段错误
 18. **wrapper 完整性** — 检 `~/.cortex/scripts/` 下 7 个 wrapper (`lint.sh`, `fold.sh`, `dashboard.sh`, `doctor.sh`, `install_cron.sh`, `config.sh`, `update.sh`) 是否存在且可执行。缺失 → ⚠️ warn (PR5 才生成), 提示运行 `bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/install.sh`
@@ -66,5 +66,5 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 任何需用户决策处 → 走默认值跳过 (诊断仅读, 不动盘)
-3. fail-fast: 任何 error 立即返回错误码 + 简短消息, 不询问回退方案
+3. persistent: 任何 error 自决降级 / 重试 / 换工具组合, 禁询问, 禁中止
 4. 输出诊断报告 + 建议命令 (用户后续手动执行)

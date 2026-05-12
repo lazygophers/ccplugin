@@ -25,7 +25,7 @@ def test_iterative_converges_and_degraded_when_sc_down(
 ) -> None:
     if shutil.which("rg") is None:
         pytest.skip("ripgrep not installed")
-    note = fake_vault / "wiki" / "10_concepts" / "alpha.md"
+    note = fake_vault / "知识库" / "领域" / "alpha.md"
     note.write_text(
         "# Alpha\n\nfoo bar unique-token answer details payload\n",
         encoding="utf-8",
@@ -42,7 +42,7 @@ def test_subgraph_hop1_expands_backlinks(
 ) -> None:
     if shutil.which("rg") is None:
         pytest.skip("ripgrep not installed")
-    base = fake_vault / "wiki" / "10_concepts"
+    base = fake_vault / "知识库" / "领域"
     seed = base / "seed.md"
     seed.write_text("# Seed\n\ntopic-x content\n", encoding="utf-8")
     neighbor = base / "neighbor.md"
@@ -65,7 +65,7 @@ def test_hybrid_bm25_with_sc_down(
 ) -> None:
     if shutil.which("rg") is None:
         pytest.skip("ripgrep not installed")
-    base = fake_vault / "wiki" / "10_concepts"
+    base = fake_vault / "知识库" / "领域"
     a = base / "a.md"
     a.write_text("# A\n\nfoo bar foo bar foo bar\n", encoding="utf-8")
     b = base / "b.md"

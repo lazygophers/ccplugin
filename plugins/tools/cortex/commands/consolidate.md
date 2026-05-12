@@ -4,7 +4,7 @@ description: 跑 ledger → views 周报巩固 + 反思生成 (无入参, 默认
 
 # /cortex:consolidate
 
-[AUTO_MODE strict: 禁询问, fail-fast]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 按 cortex-consolidate SKILL 流程跑周报巩固 (默认上周, ISO 周号):
 

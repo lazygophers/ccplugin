@@ -4,7 +4,7 @@ description: 查看/编辑 cortex 配置 (~/.cortex/config.json) (无入参 → 
 
 # /cortex:config
 
-[AUTO_MODE strict: 禁询问, fail-fast, 仅列不改]
+[AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
 读取并展示 cortex 配置。
 

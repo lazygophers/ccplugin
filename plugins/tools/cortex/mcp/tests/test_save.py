@@ -30,7 +30,7 @@ def test_save_concept(fake_vault: Path) -> None:
     )
     target = Path(res["path"])
     assert target.exists()
-    assert target.relative_to(fake_vault).parts[:2] == ("wiki", "10_concepts")
+    assert target.relative_to(fake_vault).parts[:2] == ("知识库", "领域")
     text = target.read_text(encoding="utf-8")
     assert text.startswith("---\n")
     assert "type: concept" in text
@@ -67,9 +67,8 @@ def test_save_domain_path(fake_vault: Path) -> None:
         }
     )
     target = Path(res["path"])
-    assert target.relative_to(fake_vault).parts[:5] == (
-        "wiki",
-        "30_domains",
+    assert target.relative_to(fake_vault).parts[:6] == (
+        "知识库", "来源", "代码仓库",
         "github.com",
         "lazygophers",
         "ccplugin",
@@ -86,9 +85,9 @@ def test_save_log_path(fake_vault: Path) -> None:
     )
     target = Path(res["path"])
     parts = target.relative_to(fake_vault).parts
-    assert parts[0] == "wiki" and parts[1] == "log"
+    assert parts[0] == "知识库" and parts[1] == "日记" and parts[2] == "日"
     # YYYY-MM directory
-    assert len(parts[2]) == 7 and parts[2][4] == "-"
+    assert len(parts[3]) == 7 and parts[3][4] == "-"
 
 
 def test_save_masking_applied(fake_vault: Path) -> None:

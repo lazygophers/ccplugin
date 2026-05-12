@@ -74,7 +74,7 @@ allowed-tools: Read Write Glob mcp__obsidian__obsidian_simple_search mcp__obsidi
    - knowledge: `mcp__obsidian__obsidian_simple_search` query 限 top 10
    - cron: 读 `~/.cache/cortex/cron/*.log` 仅最后 5 行
 4. **渲染**: 调 cortex-html 取模板拼 HTML, 注入 `<!-- DASH:BEGIN -->...<!-- DASH:END -->`
-5. **stale_after 检查**: 24h 内不重渲, fail-fast 退
+5. **stale_after 检查**: 24h 内不重渲, persistent 退 退
 6. **输出**: 单行 JSON `{refreshed: [...], skipped: M, errors: K}`
 7. **禁**: 读 vault 外文件 / 读 vault 内任何 .jsonl/.md 全文 (除非 frontmatter < 30 行)
 8. **失败处理**: 单页失败 → errors++, 继续下一页, 不 hang
@@ -98,5 +98,5 @@ stale 判定照常生效, 不无脑全渲。
    - 主色 蓝`#3182ce` / 绿`#16a34a` / 红`#dc2626` / 橙`#ea580c` / 黄`#ca8a04` / 灰`#6b7280`
    - 字体 `-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif`; 文字色 `#1a202c`
 
-> 渲染前调 `cortex-html` 处理模板; 所有 v2 模板 (`templates/html/*`) 已内置 Grok 风 token, 直接复用即可。
+> 渲染前调 `cortex-html` 处理模板; 所有 模板 (`templates/html/*`) 已内置 Grok 风 token, 直接复用即可。
 

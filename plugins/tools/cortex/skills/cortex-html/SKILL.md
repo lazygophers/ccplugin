@@ -63,7 +63,7 @@ allowed-tools: Read Write
 - HTML escape 失败 (非 str data) → 自动 repr, 加 warning
 
 ## AUTO_MODE 兼容
-[AUTO_MODE: ...] 行为不变 (纯渲染, 无交互)。无候选模板时不询问, 直接 fail-fast。
+[AUTO_MODE: ...] 行为不变 (纯渲染, 无交互)。无候选模板时不询问, 直接 记空模板 fallback (禁中止)。
 
 ## Grok Live Artifacts 风格契约 (输出 HTML 时强制)
 
