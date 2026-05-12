@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 38
+- **Total Sessions**: 39
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1281 | Active |
+| `journal-1.md` | ~1314 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 39 | 2026-05-12 | cortex 删 v2 legacy / 去版本号兼容 | `4ba3fbb9` | `master` |
 | 38 | 2026-05-12 | cortex v3 双 namespace 重构 (知识库 + 记忆体系 L0-L4) | `32863f05` | `master` |
 | 37 | 2026-05-12 | presets directories_keys 直接中文 (i18n 解耦) | `11602f86` | `master` |
 | 36 | 2026-05-12 | MOC 移 vault 根 + 8 业务目录专用 _index.md | `e08e487b` | `master` |
