@@ -9,7 +9,7 @@ source "$DIR/_assert.sh"
 
 SCRIPT="$PLUGIN_ROOT/scripts/install_wrappers.sh"
 
-WRAPPERS=(lint.sh fold.sh dashboard.sh doctor.sh install_cron.sh config.sh update.sh ingest.sh search.sh save.sh refactor.sh)
+WRAPPERS=(lint.sh fold.sh dashboard.sh doctor.sh install_cron.sh config.sh update.sh ingest.sh search.sh save.sh refactor.sh init.sh memory.sh recall.sh promote.sh consolidate.sh forget.sh)
 
 test_missing_install_path_fails() {
   out=$(bash "$SCRIPT" 2>&1) && rc=$? || rc=$?
@@ -48,13 +48,7 @@ test_generates_all_executable_wrappers() {
 test_wrappers_embed_absolute_install_path() {
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
-  # cron wrappers contain the full path
-  out=$(cat "$tgt/lint.sh")
-  assert_contains "$PLUGIN_ROOT/scripts/cron/lint.sh" "$out"
-  out=$(cat "$tgt/fold.sh")
-  assert_contains "$PLUGIN_ROOT/scripts/cron/fold.sh" "$out"
-  out=$(cat "$tgt/dashboard.sh")
-  assert_contains "$PLUGIN_ROOT/scripts/cron/dashboard.sh" "$out"
+  # shell-only wrappers contain absolute install_path
   out=$(cat "$tgt/install_cron.sh")
   assert_contains "$PLUGIN_ROOT/scripts/install_cron.sh" "$out"
   out=$(cat "$tgt/config.sh")
@@ -76,39 +70,42 @@ test_doctor_wrapper_guides_to_skill() {
   assert_contains "cortex-doctor" "$out"
 }
 
-test_skill_wrappers_invoke_stream_runner() {
+test_skill_wrappers_invoke_slash_command() {
+  # 新设计: skill wrappers 不再注入 SKILL.md, 而是调 /cortex:<name> slash command.
+  # 行为由 commands/<name>.md 定义.
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
   local w
   for w in ingest.sh search.sh save.sh refactor.sh; do
     out=$(cat "$tgt/$w")
-    assert_contains "cortex_stream_runner" "$out"
     assert_contains "CORTEX_JOB_LABEL" "$out"
+    local name="${w%.sh}"
+    assert_contains "/cortex:$name" "$out"
   done
-  # skill paths embedded
-  assert_contains "skills/cortex-ingest/SKILL.md"  "$(cat "$tgt/ingest.sh")"
-  assert_contains "skills/cortex-search/SKILL.md"  "$(cat "$tgt/search.sh")"
-  assert_contains "skills/cortex-save/SKILL.md"    "$(cat "$tgt/save.sh")"
-  assert_contains "skills/cortex-refactor/SKILL.md" "$(cat "$tgt/refactor.sh")"
 }
 
-test_save_wrapper_reads_stdin_body() {
+test_save_wrapper_is_no_args_slash_command() {
+  # 新设计: save.sh 不接 stdin/args, 调 /cortex:save 处理 inbox 全部 (见 commands/save.md).
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
   out=$(cat "$tgt/save.sh")
-  assert_contains 'BODY="$(cat)"' "$out"
-  assert_contains 'KIND="${1:-log}"' "$out"
-  assert_contains 'TITLE="${2:-quick save}"' "$out"
+  assert_contains "/cortex:save" "$out"
+  # 不应再含旧 stdin body 读取逻辑
+  if echo "$out" | grep -q 'BODY="\$(cat)"'; then
+    _TESTS_RUN=$((_TESTS_RUN + 1))
+    _TESTS_FAIL=$((_TESTS_FAIL + 1))
+    printf '  FAIL: save.sh should not read BODY from stdin in new design\n'
+  fi
 }
 
-test_lint_wrapper_has_fix_branch() {
+test_lint_wrapper_calls_slash_command() {
+  # 新设计: lint.sh 调 /cortex:lint slash command. 真正的 lint.run python 调用
+  # 由 commands/lint.md 内的 Bash 指令触发, 不在 wrapper 内.
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
   out=$(cat "$tgt/lint.sh")
-  assert_contains '"--fix"' "$out"
+  assert_contains "/cortex:lint" "$out"
   assert_contains "cortex-lint" "$out"
-  # cron mode (no --fix) still executes cron/lint.sh
-  assert_contains "scripts/cron/lint.sh" "$out"
 }
 
 test_all_generated_wrappers_pass_bash_n() {
@@ -151,17 +148,26 @@ test_no_overwrite_preserves_existing() {
   fi
 }
 
-test_auto_mode_markers_in_claude_wrappers() {
-  # All 6 claude-driven wrappers (doctor/lint/ingest/search/save/refactor) must
-  # carry an AUTO_MODE marker in their prompt so SKILLs skip AskUserQuestion
-  # (claude --bare -p has no stdin feedback channel).
+test_slash_command_invocation_in_claude_wrappers() {
+  # All claude-driven wrappers route through `claude -p "/cortex:<name>" --print`
+  # (no --bare, no --allowed-tools, no args). AUTO_MODE markers live in
+  # commands/<name>.md (loaded by the slash command), not in the wrapper.
   local tgt; tgt=$(make_tmpdir); trap "rm -rf '$tgt'" RETURN
   bash "$SCRIPT" --install-path "$PLUGIN_ROOT" --target-dir "$tgt" >/dev/null 2>&1
   local w
-  for w in doctor.sh lint.sh ingest.sh search.sh save.sh refactor.sh; do
+  for w in doctor.sh lint.sh ingest.sh search.sh save.sh refactor.sh \
+           dashboard.sh fold.sh init.sh promote.sh forget.sh consolidate.sh \
+           memory.sh recall.sh; do
     out=$(cat "$tgt/$w")
-    assert_contains "AUTO_MODE" "$out"
-    assert_contains "non-interactive" "$out"
+    local name="${w%.sh}"
+    assert_contains "/cortex:$name" "$out"
+    assert_contains "--print" "$out"
+    # Must NOT carry legacy limit flags
+    if echo "$out" | grep -qE '^[^#]*(--bare|--allowed-tools|--append-system-prompt)'; then
+      _TESTS_RUN=$((_TESTS_RUN + 1))
+      _TESTS_FAIL=$((_TESTS_FAIL + 1))
+      printf '  FAIL: %s still contains legacy limit flags\n' "$w"
+    fi
   done
 }
 
@@ -187,13 +193,13 @@ run_test test_generates_all_executable_wrappers     test_generates_all_executabl
 run_test test_wrappers_embed_absolute_install_path  test_wrappers_embed_absolute_install_path
 run_test test_update_wrapper_contains_two_claude_commands test_update_wrapper_contains_two_claude_commands
 run_test test_doctor_wrapper_guides_to_skill        test_doctor_wrapper_guides_to_skill
-run_test test_skill_wrappers_invoke_stream_runner   test_skill_wrappers_invoke_stream_runner
-run_test test_save_wrapper_reads_stdin_body         test_save_wrapper_reads_stdin_body
-run_test test_lint_wrapper_has_fix_branch           test_lint_wrapper_has_fix_branch
+run_test test_skill_wrappers_invoke_slash_command   test_skill_wrappers_invoke_slash_command
+run_test test_save_wrapper_is_no_args_slash_command test_save_wrapper_is_no_args_slash_command
+run_test test_lint_wrapper_calls_slash_command      test_lint_wrapper_calls_slash_command
 run_test test_all_generated_wrappers_pass_bash_n    test_all_generated_wrappers_pass_bash_n
 run_test test_overwrite_default_warns_on_stderr     test_overwrite_default_warns_on_stderr
 run_test test_no_overwrite_preserves_existing       test_no_overwrite_preserves_existing
-run_test test_auto_mode_markers_in_claude_wrappers  test_auto_mode_markers_in_claude_wrappers
+run_test test_slash_command_invocation_in_claude_wrappers  test_slash_command_invocation_in_claude_wrappers
 run_test test_shellcheck_clean                      test_shellcheck_clean
 
 print_summary

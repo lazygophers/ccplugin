@@ -19,6 +19,28 @@
     "./agents/cortex-summarizer.md",
     "./agents/cortex-translator.md"
   ],
+  "commands": [
+    "./commands/lint.md",
+    "./commands/dashboard.md",
+    "./commands/fold.md",
+    "./commands/doctor.md",
+    "./commands/init.md",
+    "./commands/promote.md",
+    "./commands/forget.md",
+    "./commands/consolidate.md",
+    "./commands/compact.md",
+    "./commands/warden.md",
+    "./commands/archive.md",
+    "./commands/update.md",
+    "./commands/install_cron.md",
+    "./commands/config.md",
+    "./commands/search.md",
+    "./commands/save.md",
+    "./commands/ingest.md",
+    "./commands/memory.md",
+    "./commands/recall.md",
+    "./commands/refactor.md"
+  ],
   "skills": [
     "./skills/cortex-canvas",
     "./skills/cortex-dashboard",

@@ -80,9 +80,8 @@ test_dry_run_prints_command() {
 }
 
 test_missing_args_exits_4() {
+  # 新设计: 缺 JOB 仍报 4; JOB-only 现允许 (PROMPT 不再必需, 由 slash command 承载).
   bash "$RUN_SH" >/dev/null 2>&1
-  assert_eq "4" "$?"
-  bash "$RUN_SH" myjob >/dev/null 2>&1
   assert_eq "4" "$?"
 }
 
@@ -135,23 +134,25 @@ test_lock_busy_returns_2() {
 }
 
 test_lint_sh_dry_run() {
+  # 新设计: cron lint.sh 走 /cortex:lint slash command (无 --allowed-tools).
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin"
   out=$(PATH="$sandbox/bin:$PATH" \
     HOME="$(mktemp -d)" \
     bash "$LINT_SH" --dry-run --vault "$sandbox/v")
   assert_contains "dry-run" "$out"
-  assert_contains "Bash Read Glob Grep" "$out"
+  assert_contains "/cortex:lint" "$out"
 }
 
 test_fold_sh_dry_run() {
+  # 新设计: cron fold.sh 走 /cortex:fold slash command.
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin"
   out=$(PATH="$sandbox/bin:$PATH" \
     HOME="$(mktemp -d)" \
     bash "$FOLD_SH" --dry-run --vault "$sandbox/v")
   assert_contains "dry-run" "$out"
-  assert_contains "Edit" "$out"
+  assert_contains "/cortex:fold" "$out"
 }
 
 test_dashboard_sh_dry_run() {
@@ -245,16 +246,20 @@ test_obsidian_vault_env_ignored() {
 }
 
 test_auto_mode_prefix_in_prompt() {
+  # 新设计: AUTO_MODE 由 commands/<name>.md 内文承载, 不在 cron CMD 内.
+  # cron dry-run 输出仍含 vault (cd target) + slash command.
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin"
   out=$(PATH="$sandbox/bin:$PATH" \
     HOME="$(mktemp -d)" \
     bash "$RUN_SH" lint --vault "$sandbox/v" --settings /dev/null --dry-run -- "test prompt")
-  assert_contains "AUTO_MODE strict" "$out"
-  assert_contains "cd $sandbox/v" "$out"
+  assert_contains "vault=$sandbox/v" "$out"
+  assert_contains "/cortex:lint" "$out"
 }
 
-test_skill_injected_for_dashboard() {
+test_slash_command_mapped_for_dashboard() {
+  # 新设计: cron job 名 → slash command 映射 (dashboard → /cortex:dashboard);
+  # 不再 append-system-prompt SKILL.md.
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin"
   mkdir -p "$sandbox/h/.cortex"
@@ -263,8 +268,13 @@ test_skill_injected_for_dashboard() {
 EOF
   out=$(env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
     bash "$RUN_SH" dashboard --settings /dev/null --dry-run -- "x")
-  assert_contains "append-system-prompt" "$out"
-  assert_contains "cortex-dashboard" "$out"
+  assert_contains "/cortex:dashboard" "$out"
+  # 不应再有 append-system-prompt
+  if echo "$out" | grep -q 'append-system-prompt'; then
+    _TESTS_RUN=$((_TESTS_RUN + 1))
+    _TESTS_FAIL=$((_TESTS_FAIL + 1))
+    printf '  FAIL: cron dashboard dry-run should not contain append-system-prompt\n'
+  fi
 }
 
 test_skill_not_injected_for_unknown_job() {
@@ -292,7 +302,7 @@ test_cd_vault_fail_exits_3() {
 }
 
 run_test test_auto_mode_prefix_in_prompt   test_auto_mode_prefix_in_prompt
-run_test test_skill_injected_for_dashboard test_skill_injected_for_dashboard
+run_test test_slash_command_mapped_for_dashboard test_slash_command_mapped_for_dashboard
 run_test test_skill_not_injected_for_unknown_job test_skill_not_injected_for_unknown_job
 run_test test_cd_vault_fail_exits_3        test_cd_vault_fail_exits_3
 run_test test_dry_run_prints_command       test_dry_run_prints_command

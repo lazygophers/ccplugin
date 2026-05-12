@@ -129,12 +129,10 @@ if [[ "${1:-}" == "--" ]]; then
   shift
 fi
 
+# PROMPT 历史参数: 现已由 slash command /cortex-<name> 承载, 此处仅消耗.
+# 调用方可传任意非空字符串 (向后兼容), 或留空.
 PROMPT="${1:-}"
 shift || true
-if [[ -z "$PROMPT" ]]; then
-  echo "missing prompt for job=$JOB" >&2
-  exit 4
-fi
 
 # shellcheck source=../lib/config.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/config.sh"
@@ -184,52 +182,53 @@ else
   trap 'rm -f "$LOCK"' EXIT
 fi
 
-# Build prompt with context header + AUTO_MODE strict 前缀
-FULL_PROMPT="[AUTO_MODE strict: AskUserQuestion 不可用 (--allowed-tools 已禁), 任何决策走默认, fail-fast 立即返错不 hang. 工作目录已 cd $VAULT, 文件路径默认 vault-relative, **禁止读 vault 外文件**.]
-
-vault: $VAULT
-job: $JOB
-$( [[ -n "$LANG_OVERRIDE" ]] && echo "lang_override: $LANG_OVERRIDE" )
-
-$PROMPT"
-
-# JOB → SKILL 映射: 注入对应 SKILL.md 到 --append-system-prompt
-SKILL_NAME=""
+# JOB → slash command 映射: cron job 名 → /cortex-<name>
+# (commands/*.md 定义具体行为; 不再 build prompt + append-system-prompt SKILL.md)
 case "$JOB" in
-  lint)                SKILL_NAME="cortex-lint" ;;
-  fold)                SKILL_NAME="cortex-consolidate" ;;
-  dashboard)           SKILL_NAME="cortex-dashboard" ;;
-  memory-promote)      SKILL_NAME="cortex-promote" ;;
-  memory-forget)       SKILL_NAME="cortex-forget" ;;
-  memory-consolidate)  SKILL_NAME="cortex-consolidate" ;;
+  lint)                SLASH_CMD="lint" ;;
+  fold)                SLASH_CMD="fold" ;;
+  dashboard)           SLASH_CMD="dashboard" ;;
+  memory-promote)      SLASH_CMD="promote" ;;
+  memory-forget)       SLASH_CMD="forget" ;;
+  memory-consolidate)  SLASH_CMD="consolidate" ;;
+  memory-compact)      SLASH_CMD="compact" ;;
+  memory-warden)       SLASH_CMD="warden" ;;
+  memory-archive)      SLASH_CMD="archive" ;;
+  *)                   SLASH_CMD="$JOB" ;;
 esac
 
-PLUGIN_ROOT_PATH="$(cx_get_plugin_root)"
-# Fallback: marketplace 默认安装路径
-[[ -z "$PLUGIN_ROOT_PATH" ]] && PLUGIN_ROOT_PATH="$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
-
+# 走 plugin slash command. 无 --bare (启全 plugin 环境), 无 --allowed-tools (全权限).
+# commands/<name>.md 内已含 AUTO_MODE strict + 行为定义.
 CMD=(claude
-  --bare
-  --no-session-persistence
   --settings "$SETTINGS"
-  --max-budget-usd 2.00
-  -p "$FULL_PROMPT"
+  --print
+  -p "/cortex-$SLASH_CMD"
 )
 # Note: --output-format stream-json --verbose is injected by cortex_stream_runner.
 
-if [[ -n "$SKILL_NAME" ]]; then
-  SKILL_PATH="$PLUGIN_ROOT_PATH/skills/$SKILL_NAME/SKILL.md"
-  if [[ -f "$SKILL_PATH" ]]; then
-    CMD+=(--append-system-prompt "$(cat "$SKILL_PATH")")
-  fi
-fi
-
-# Append any extra flags (e.g. --allowed-tools)
+# Extra flags after `--`: 过滤 legacy 限制 (--bare / --allowed-tools / --append-system-prompt),
+# 仅保留 (例如 --max-budget-usd / --output-format 等运行时调优).
+_skip_next=0
 for arg in "$@"; do
-  CMD+=("$arg")
+  if [[ "$_skip_next" == "1" ]]; then
+    _skip_next=0
+    continue
+  fi
+  case "$arg" in
+    --bare|--no-session-persistence)
+      continue ;;
+    --allowed-tools|--append-system-prompt)
+      _skip_next=1
+      continue ;;
+    --allowed-tools=*|--append-system-prompt=*)
+      continue ;;
+    *)
+      CMD+=("$arg") ;;
+  esac
 done
 
 if [[ "$CLI_DRY_RUN" == "1" ]]; then
+  printf '[dry-run] vault=%s job=%s slash=/cortex-%s\n' "$VAULT" "$JOB" "$SLASH_CMD"
   printf '[dry-run] %q ' "${CMD[@]}"
   echo
   exit 0
