@@ -1477,3 +1477,36 @@ install_wrappers.sh 加 init.sh 生成 (+64 行), wrapper 总数 11→12。init.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 45: cortex session_start 注入压缩 (12KB→3KB)
+
+**Date**: 2026-05-12
+**Task**: cortex session_start 注入压缩 (12KB→3KB)
+**Branch**: `master`
+
+### Summary
+
+behavior_contract 改命令式 (强制流程+记忆指令 2 段), collab 4 条→单条, triggers 单行, hot 5KB→1KB, L0 5KB→1.5KB, 总 cap 15KB→3KB。3 locale 同步。实测干净 vault -58% / 满载 -75%, AI 行为持平或微优 (L1 写入加 weight=0.85)。235 tests PASS。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `eddd803b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

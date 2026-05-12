@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 44
+- **Total Sessions**: 45
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1479 | Active |
+| `journal-1.md` | ~1512 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 45 | 2026-05-12 | cortex session_start 注入压缩 (12KB→3KB) | `eddd803b` | `master` |
 | 44 | 2026-05-12 | cortex 记忆系统强化 (6 需求合并) | `249ad9d0` | `master` |
 | 43 | 2026-05-12 | cortex session_start 强化主动检索 | `751e2c4a` | `master` |
 | 42 | 2026-05-12 | cortex init.sh wrapper — vault 骨架便捷入口 | `acec2ef2` | `master` |
