@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 47
+- **Total Sessions**: 49
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1578 | Active |
+| `journal-1.md` | ~1644 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 49 | 2026-05-12 | cortex lint vault 结构 + 元数据 autofix | `ec25513a` | `master` |
+| 48 | 2026-05-12 | cortex lint 默认 autofix | `3936cc14` | `master` |
 | 47 | 2026-05-12 | cortex wrapper stdout NDJSON 过滤 | `5aebe0ca` | `master` |
 | 46 | 2026-05-12 | cortex wrapper 输出美化统一 | `31482eec` | `master` |
 | 45 | 2026-05-12 | cortex session_start 注入压缩 (12KB→3KB) | `eddd803b` | `master` |
