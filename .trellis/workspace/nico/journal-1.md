@@ -718,3 +718,36 @@ vault 是 git repo 时 Stop hook 可选 auto-commit/push, 严格 opt-in. git_syn
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: stream_progress.sh ANSI 配色美化
+
+**Date**: 2026-05-12
+**Task**: stream_progress.sh ANSI 配色美化
+**Branch**: `master`
+
+### Summary
+
+tty 检测染色, step cyan+bold, [text] green, [tool] yellow, 心跳 dim, [OK] bold green, [FAILED] bold red. jq filter 双版本 (tty / plain). bash 3.2 兼容. 非 tty 干净 plain text (cron 日志无 ANSI).
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `08b115c2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
