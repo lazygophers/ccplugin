@@ -21,7 +21,7 @@ allowed-tools: Bash Read Write Glob mcp__obsidian__obsidian_get_file_contents mc
    - 读 `<vault>/.obsidian/core-plugins.json` 检查 `bases` 是否在启用列表 (1.7+ core)
    - 或读 `<vault>/_meta/version.json:.bases_enabled` 兜底
 3. 启用 Bases →
-   - 模板从 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//templates/dashboard.md` 抽取 `.base` 块骨架
+   - 模板从 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/templates/dashboard.md` 抽取 `.base` 块骨架
    - 写到 `<vault>/60_dashboards/<topic>-dashboard.base` (LYT) 或 `<vault>/dashboards/<topic>-dashboard.base`
    - 含 filters / formulas / properties / views (table + cards)
 4. 未启用 → 写 Dataview markdown 仪表盘

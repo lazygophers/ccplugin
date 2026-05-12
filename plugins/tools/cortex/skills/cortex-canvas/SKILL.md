@@ -17,7 +17,7 @@ allowed-tools: Bash Read Write Glob mcp__obsidian__obsidian_get_file_contents mc
 
 ## 行为
 
-1. 解析 vault 路径 (`~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh`)
+1. 解析 vault 路径 (`~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh`)
 2. 探测 `obsidian` CLI:
    - 可用 → 调 `obsidian canvas:create` 让 Obsidian 直接渲染 (TODO: 接口未稳定时退到静态 JSON)
    - 不可用 → 写静态 JSON Canvas 1.0 文件

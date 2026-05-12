@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/session_start.sh"
+            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/session_start.sh"
           }
         ]
       }
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/stop.sh",
+            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/stop.sh",
             "async": true
           }
         ]
@@ -62,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/stop.sh",
+            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/stop.sh",
             "async": true
           }
         ]
@@ -73,7 +73,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/post_compact.sh",
+            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/post_compact.sh",
             "async": true
           }
         ]
@@ -86,7 +86,7 @@
       "args": [],
       "env": {
         "CORTEX_VAULT_PATH": "${CORTEX_VAULT_PATH:-}",
-        "CORTEX_PLUGIN_ROOT": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/"
+        "CORTEX_PLUGIN_ROOT": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
       }
     }
   },

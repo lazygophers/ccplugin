@@ -16,8 +16,8 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 
 ## 行为
 
-1. 解析 vault 路径 (跑 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh`); 不存在则报错
-2. 调 `python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//lint/run.py --vault <path> [--fix] [--scope=<glob>]`
+1. 解析 vault 路径 (跑 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh`); 不存在则报错
+2. 调 `python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/lint/run.py --vault <path> [--fix] [--scope=<glob>]`
 3. 解析 JSON 报告:
    - 报错块 (severity=error): rule#1 fm-missing-type, #3 dead-wikilink, #5 duplicate-alias, #10 filename-illegal, #11 block-id-duplicate
    - 警告块 (severity=warn): rule#2 fm-missing-created, #4 orphan-page, #6 hot-too-long, #7 log-too-long, #8 index-missing-section, #9 title-h1-mismatch, #12 callout-unknown-type, #13 path-naming-violation

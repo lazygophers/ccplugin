@@ -23,14 +23,14 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 - 用户参数 (可选): `--topic "X"` / `--from-session` / `--type concept|entity|domain|log|source|question|dashboard`
 - 默认: 推断要点 + 默认 `type=log`
-- vault 路径必须先解析: `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh`
+- vault 路径必须先解析: `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh`
 
 ## 流程
 
 1. **解析 vault**
 
    ```bash
-   bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh
+   bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh
    ```
 
    失败 → 提示用户配 `OBSIDIAN_VAULT` env 或 `~/.config/cortex/config.json`, 退出。
@@ -55,7 +55,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
    preset (`_meta/version.json:.preset`) 不是 `lyt` 时, concept 路径切换为对应 preset 的扁平结构。
 
 4. **套模板 + 填 frontmatter**
-   - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//templates/<type>.md`)
+   - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/templates/<type>.md`)
    - 替换 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` (UTC `YYYY-MM-DD`) / `{{PRESET}}`
    - tags: 自动加 `[cortex-auto]` 标记由 skill 写入
 
@@ -68,7 +68,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
    - **P0 masking 前置**:写盘前必经 `masking.py` 脱敏 (AWS/OpenAI/Anthropic/GitHub PAT/JWT/PEM/Slack token → `<REDACTED:*>`),`save_session.py` 已内置;手写 body 时先
 
      ```bash
-     SAFE_BODY="$(python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/masking.py <<< "$BODY")"
+     SAFE_BODY="$(python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/masking.py <<< "$BODY")"
      ```
 
      绕过 (仅测试): `CORTEX_SKIP_SANITIZE=1`,生产禁用。
@@ -85,7 +85,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 8. **反向 wikilink 回填**
 
    ```bash
-   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/backlink_sync.py \
+   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/backlink_sync.py \
      --vault "$VAULT" --source "<rel-path>"
    ```
 
@@ -99,7 +99,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 9. **快捷调用 save_session.py (--from-session 路径)**
 
    ```bash
-   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/save_session.py \
+   python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/save_session.py \
      --vault "$VAULT" \
      --transcript "$CLAUDE_TRANSCRIPT_PATH" \
      --reason manual \

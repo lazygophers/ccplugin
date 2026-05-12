@@ -105,7 +105,7 @@ cortex P1 起, 核心操作沉 MCP server (`mcp__cortex__*`), skill 作对话入
 | cortex-ingest (本地) | `mcp__cortex__cortex_ingest_file`     | Read + 手工 extractor + masking        |
 | cortex-ingest-bulk   | 循环 `mcp__cortex__cortex_ingest_url` | 手动逐条                               |
 
-MCP server 装: `pipx install ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//mcp` (install.sh `step_mcp_install` 自动)。
+MCP server 装: `pipx install ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/mcp` (install.sh `step_mcp_install` 自动)。
 未装时 skill 自动退回 L1-L5 链路, 不阻塞使用。`--reinstall` 触发 `pipx install --force` 跟随插件升级。
 
 ## Git Sync (P5)

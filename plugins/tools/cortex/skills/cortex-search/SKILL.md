@@ -30,7 +30,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 1. **解析 vault**
 
    ```bash
-   VAULT="$(bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex//hooks/_lib/resolve_vault.sh)"
+   VAULT="$(bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/hooks/_lib/resolve_vault.sh)"
    ```
 
    失败 → 提示用户配 `OBSIDIAN_VAULT` 后退出。
