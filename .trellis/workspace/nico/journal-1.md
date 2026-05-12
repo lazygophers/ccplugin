@@ -883,3 +883,36 @@ mcp/cortex_stream.py rich-based stream parser, console-script entry. subprocess 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 27: cortex_stream.py 内部 timeout (修 perl_timeout FileNotFoundError)
+
+**Date**: 2026-05-12
+**Task**: cortex_stream.py 内部 timeout (修 perl_timeout FileNotFoundError)
+**Branch**: `master`
+
+### Summary
+
+Phase A 把 bash function perl_timeout 作 cmd[0] 传 python subprocess → FileNotFoundError. 修: timeout 下沉 cortex_stream.py 内部 (Popen.kill + deadline check, 返 124 GNU 兼容). run.sh 删 PERL_TIMEOUT vs TO_CMD 双分支 ~50 行, 改 export CORTEX_TIMEOUT + cortex_stream_runner. stream_progress.sh 透传 --timeout. 4 新 pytest, 215 不回归.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ce2c0e65` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
