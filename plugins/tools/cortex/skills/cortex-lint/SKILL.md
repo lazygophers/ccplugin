@@ -124,34 +124,70 @@ cortex-lint --fix 输出 JSON 含 `structure_purge` 字段且 `violation_count >
 
 白名单匹配规则: vault 根相对路径**精确串相等** (dir 加尾 `/`, file 不加), 不支持 glob。隐藏目录 `.obsidian` / `.trash` 默认 allowed, 无需白名单。
 
-## AUTO_MODE 行为 (wrapper bash 触发, 强约束)
+## AUTO_MODE 行为 (wrapper bash 触发, persistent 自决修复)
 
 prompt 含 `[AUTO_MODE]` 时 (来自 `~/.cortex/scripts/lint.sh` wrapper), **严格遵守**:
 
-**唯一允许输出**:
-1. 第一步 Bash 调:
-   `cd $(jq -r .install_path ~/.cortex/config.json) && PYTHONPATH=. python3 -m lint.run --vault $(jq -r .vault ~/.cortex/config.json) --fix`
-2. 解析 JSON 输出, 简短报告:
-   - `fixed: N`
-   - `rules_hit: [...]`
-   - `errors_remaining: N` (若 > 0)
-3. 结束。
+**核心原则**: "禁问" ≠ "中止". AI 必须**自决并循环执行**直至 lint 稳定; 禁报 "需人工"/"无法处理".
 
-**严禁** (任一出现 = 契约违反, 立即终止):
+### 强制循环 (loop until stable)
 
-| # | 禁止模式 | 反例 (绝对不可输出) |
+1. Bash 跑 `lint.run --fix`
+2. 解析 JSON: 若 `errors_remaining == 0 && structure_purge.violation_count == 0` → 退出循环
+3. 否则按"自选执行路径"用工具修每条命中
+4. 回 1, 直至稳定 或 同一规则连 5 轮无进展 (穷尽所有工具路径后才允许停)
+
+### 自选执行路径 (AI 自决, 禁问)
+
+| 规则 (非 autofix) | AI 必须执行 |
+|-------------------|------------|
+| dead-wikilink | `Write` 创 stub 到 `知识库/收件箱/<target>.md`, 最小 frontmatter (type 按目录推断) |
+| duplicate-alias | `Edit` 改其中一 frontmatter alias 加目录后缀; 或 Read+Write 合并两文件后删源 |
+| orphan-page | `Edit` 加 `tags: [orphan-auto]` 或在最近邻 `_index.md` 插反链 (cortex_search 找邻) |
+| filename-illegal / path-naming-violation | `git mv` 改 kebab-case + grep+Edit 改所有引用 |
+| callout-unknown-type | `Edit` 替成最近已知 callout (note/tip/warning/info) |
+| log-too-long | Read+Write 切尾部到 `folds/<YYYY-QN>.md` |
+| i18n-path-not-in-locale | `git mv` 移到对应 locale 目录 |
+| vault-structure-violation (`structure_purge`) | **BATCH_MV 默认**: `mkdir -p <backup_root>` → 遍历 `mv_plan[]` mv 到 backup_root, **无 AskUserQuestion** |
+
+### 工具优先级 (依次尝试)
+
+1. Bash + Edit/Write 本地直改
+2. MCP `cortex_save` / `cortex_search` / `cortex_memory_write`
+3. cortex-refactor 脚本 (复杂 rename)
+4. WebSearch / WebFetch (规则模糊时查文档)
+5. Read 同 vault 合规样本复制结构
+
+### 严禁 (任一出现 = 契约违反)
+
+| # | 禁止模式 | 反例 |
 |---|---------|------|
-| 1 | "修复建议" / "建议" / "推荐操作" 章节、表格、列表 | `## 修复建议`, `\| 类型 \| 操作 \|`, `### 建议` |
-| 2 | 任何形式的用户确认问句 | `需确认?`, `是否执行?`, `需要 --fix 吗?`, `要继续吗?`, `ok?`, 末尾问号 |
-| 3 | 针对非 autofix 规则的人工操作引导 | `dead-wikilink → 需创建 stub`, `orphan-page → 人工补 tag`, `vault-structure-violation → 需 cortex-refactor` |
-| 4 | "下一步" / "后续" / "可选" / "如需" 导引语 | `下一步建议...`, `后续可...`, `如需进一步处理...` |
-| 5 | AskUserQuestion 工具调用 | (allowed-tools 已禁, 调用必失败) |
-
-**针对未 autofix 规则的命中** (dead-wikilink / orphan-page / vault-structure-violation 等): 仅在 `errors_remaining` 计数中体现, **不**展开任何处理建议或操作引导。
-
-**fail-fast**: lint exit ≠ 0 → 报错误码 + 1 行原因, 立即返回, **不**询问回退方案。
+| 1 | "修复建议" / "建议" / "推荐操作" 章节/表格/列表 | `## 修复建议`, `\| 类型 \| 操作 \|` |
+| 2 | 用户确认问句 | `需确认?`, `是否执行?`, `要继续吗?`, 末尾问号 |
+| 3 | "需人工"/"待人工处理"/"建议人工" | — |
+| 4 | AskUserQuestion 调用 | (allowed-tools 已禁) |
+| 5 | "下一步"/"后续"/"如需"导引 | — |
+| 6 | 报 errors_remaining > 0 然后停 | **必须继续修, 不许停** |
+| 7 | "AI 能力不足"/"无法自动" 推卸辞令 | — |
 
 写盘前不需二次确认 (AUTO_MODE 隐含已授权)。
+
+### 终态输出 (仅这两种)
+
+清空时:
+```
+fixed_total: <N>
+rounds: <N>
+final_state: clean
+```
+
+stuck (仅当工具客观失败 — 磁盘只读 / git lock / 权限拒绝; 禁用作"我不会"借口):
+```
+fixed_total: <N>
+rounds: <N>
+stuck_on: <rule>:<count>
+attempted_paths: [...]
+```
 
 ---
 
