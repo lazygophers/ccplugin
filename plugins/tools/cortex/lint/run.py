@@ -119,7 +119,10 @@ def check_vault_structure(
     `extra_allowed_dirs` lets callers add i18n / locale-derived directory
     names (e.g. `概念`, `concepts`) so localized layouts don't get flagged.
     """
-    from schemas import get_schema  # type: ignore
+    try:
+        from .schemas import get_schema
+    except ImportError:
+        from lint.schemas import get_schema  # type: ignore
 
     schema = get_schema(preset)
     allowed_dirs = set(schema["root_dirs"])
