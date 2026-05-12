@@ -165,3 +165,12 @@ schema 源: `<vault>/_meta/frontmatter-schema.yaml` (fallback plugin `templates/
 - 不 `git commit` / `git push` (与 OGit 冲突, 见 prd §10.8)
 - 不删 / 改用户已有内容 (仅追加章节)
 - 不解析 canvas (.canvas) / bases (.base) (M6 / 另起 skill)
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/save.sh`):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
+2. 任何需用户决策处 → 走默认值跳过
+3. fail-fast: save 失败 → 输出 stderr 后退出非 0, 不询问重试/手补
+4. 写盘前不需二次确认 (AUTO_MODE 隐含已授权)

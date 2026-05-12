@@ -146,3 +146,12 @@ mcp__cortex__cortex_deep_search(query=<q>, mode=hybrid, iter_max=3, limit=15)
 
 - 不写 vault (查询专用)
 - 不调 `mcp__obsidian__obsidian_complex_search` 除非用户给了明确 dataview 表达式
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/search.sh`):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁, 调用必失败)
+2. 任何需用户决策处 → 走默认值跳过 (search 纯读, 默认 top_k=10, kind=auto)
+3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+4. 不自动加 `--full`, 默认返回摘要

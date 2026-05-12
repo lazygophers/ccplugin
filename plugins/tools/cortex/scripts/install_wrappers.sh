@@ -174,23 +174,24 @@ fi
 # trap Ctrl-C: stream_progress handles heartbeat cleanup internally.
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper.] 运行 cortex 健康检查 (cortex-doctor skill), 报告 vault/config/links/dead-links 等问题, 输出可读结果" "\$@" \\
+  --allowed-tools "Bash Read Glob" \\
+  "[AUTO_MODE strict: AskUserQuestion 不可用 (allowed-tools 已禁), 任何询问需求 → 用默认决策跳过. fail-fast not hang.] 运行 cortex 健康检查 (cortex-doctor skill), 报告 vault/config/links/dead-links 等问题, 输出可读结果" "\$@" \\
   | cx_filter_stream
 exit \${PIPESTATUS[0]}
 EOB
 )"
 
 # lint.sh: multi-mode wrapper.
-#   - (default)        python -m lint.run --fix (强制对齐, 全 autofix; 不绕 LLM)
+#   - (default)        via claude --bare cortex-lint SKILL (AUTO_MODE; AI 必须第一步
+#                      Bash 调 python -m lint.run --vault \$VAULT --fix)
 #   - --fix            alias for default (backward compat)
-#   - --skill          LLM-driven advanced lint via cortex-lint SKILL
 #   - --check          cron read-only JSON report
 #   - --sync-templates cron template/seed sync
 emit lint.sh "$(cat <<EOB
 # Modes:
-#   (default)         python -m lint.run --fix (强制对齐, 全 autofix 规则; 不调 claude)
+#   (default)         via claude --bare cortex-lint SKILL (AUTO_MODE strict;
+#                     AI 必须第一步 Bash 调 python -m lint.run --vault \$VAULT --fix)
 #   --fix             alias for default (backward compat)
-#   --skill           LLM-driven advanced lint via cortex-lint SKILL
 #   --check           read-only lint report (cron mode, JSON output)
 #   --sync-templates  cron-friendly auto-sync of template/seed drift only
 
@@ -204,33 +205,46 @@ if [[ "\${1:-}" == "--check" ]] || [[ "\${1:-}" == "--sync-templates" ]]; then
   exec bash "$INSTALL_PATH/scripts/cron/lint.sh" "\$@"
 fi
 
-if [[ "\${1:-}" == "--skill" ]]; then
-  shift
-  SKILL_PATH="$INSTALL_PATH/skills/cortex-lint/SKILL.md"
-  [[ -f "\$SKILL_PATH" ]] || err "cortex-lint SKILL.md missing: \$SKILL_PATH" 1
-  LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
-  [[ -f "\$LIB_PATH" ]] || err "stream_progress.sh missing: \$LIB_PATH" 1
-  # shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
-  source "\$LIB_PATH"
-  export CORTEX_JOB_LABEL="cortex-lint-skill"
-  cortex_stream_runner claude --bare -p \\
-    --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-    "[AUTO_MODE strict, no AskUserQuestion ever, fail-fast not hang.] cortex-lint advanced: \$*" "\$@" \\
-    | cx_filter_stream
-  exit \${PIPESTATUS[0]}
-fi
+[[ "\${1:-}" == "--fix" ]] && shift   # backward compat
 
-# Default: 直跑 python 强制对齐 (不绕 LLM)
-[[ "\${1:-}" == "--fix" ]] && shift
-banner "lint --fix (直调 python, vault=\$VAULT)"
-cd "$INSTALL_PATH" || err "cd $INSTALL_PATH failed" 1
-PYTHONPATH=. python3 -m lint.run --vault "\$VAULT" --fix "\$@"
-rc=\$?
-if [ \$rc -eq 0 ]; then
-  ok "lint --fix 完成"
-else
-  err "lint --fix 失败 code=\$rc" \$rc
-fi
+SKILL_PATH="$INSTALL_PATH/skills/cortex-lint/SKILL.md"
+[[ -f "\$SKILL_PATH" ]] || err "cortex-lint SKILL.md missing: \$SKILL_PATH" 1
+LIB_PATH="$INSTALL_PATH/scripts/lib/stream_progress.sh"
+[[ -f "\$LIB_PATH" ]] || err "stream_progress.sh missing: \$LIB_PATH" 1
+# shellcheck source=../../plugins/tools/cortex/scripts/lib/stream_progress.sh
+source "\$LIB_PATH"
+SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
+SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
+
+export CORTEX_JOB_LABEL="cortex-lint"
+banner "lint (via cortex-lint SKILL, vault=\$VAULT)"
+
+PROMPT="[AUTO_MODE strict: AskUserQuestion 不可用 (allowed-tools 已禁), 任何询问需求 → 用默认决策跳过. fail-fast not hang.]
+
+对 cortex vault 跑 lint 强制对齐 (autofix all rules).
+
+vault: \$VAULT
+plugin: $INSTALL_PATH
+
+**必须**第一步调 Bash 工具执行:
+\\\`cd $INSTALL_PATH && PYTHONPATH=. python3 -m lint.run --vault \\\"\$VAULT\\\" --fix\\\`
+
+返回 JSON 输出. 检查 exit code:
+- 0 → 报告 fixed 数 + 各 rule hit
+- != 0 → 列错误
+
+不要询问任何东西. 不要 AskUserQuestion. 用 default."
+
+cortex_stream_runner claude --bare \\
+  --no-session-persistence \\
+  --settings "\$SETTINGS" \\
+  --max-budget-usd 0.30 \\
+  -p "\$PROMPT" \\
+  --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
+  --allowed-tools "Bash Read Glob Edit Write" \\
+  | cx_filter_stream
+rc=\${PIPESTATUS[0]}
+if [[ \$rc -eq 0 ]]; then ok "lint done"; else err "lint failed code=\$rc" "\$rc"; fi
 EOB
 )"
 
@@ -245,7 +259,8 @@ source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-ingest"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 摄取以下源到 cortex vault. 源: \$* (自动判断 url/file/git/dir, 直接 ingest 不询问). 按 cortex-ingest skill 流程: url_security → fetch/read → html_sanitize → masking → save (kind=log)." "\$@" \\
+  --allowed-tools "Bash Read Write Edit Glob WebFetch" \\
+  "[AUTO_MODE strict: AskUserQuestion 不可用 (allowed-tools 已禁), 任何询问需求 → 用默认决策跳过. fail-fast not hang.] 摄取以下源到 cortex vault. 源: \$* (自动判断 url/file/git/dir, 直接 ingest 不询问). 按 cortex-ingest skill 流程: url_security → fetch/read → html_sanitize → masking → save (kind=log)." "\$@" \\
   | cx_filter_stream
 exit \${PIPESTATUS[0]}
 EOB
@@ -262,7 +277,8 @@ source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-search"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper.] 在 cortex vault 搜索: \$*. 按 cortex-search skill 多级回退 (hot → index → SC → rg → MCP). 引用页路径 + 片段." "\$@" \\
+  --allowed-tools "Bash Read Glob Grep" \\
+  "[AUTO_MODE strict: AskUserQuestion 不可用 (allowed-tools 已禁), 任何询问需求 → 用默认决策跳过. fail-fast not hang.] 在 cortex vault 搜索: \$*. 按 cortex-search skill 多级回退 (hot → index → SC → rg → MCP). 引用页路径 + 片段." "\$@" \\
   | cx_filter_stream
 exit \${PIPESTATUS[0]}
 EOB
@@ -282,7 +298,8 @@ TITLE="\${2:-quick save}"
 BODY="\$(cat)"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 落档到 cortex vault: kind=\$KIND, title=\$TITLE. body 经 masking 后直接写盘, 不询问.
+  --allowed-tools "Bash Read Write Edit Glob" \\
+  "[AUTO_MODE strict: AskUserQuestion 不可用 (allowed-tools 已禁), 任何询问需求 → 用默认决策跳过. fail-fast not hang.] 落档到 cortex vault: kind=\$KIND, title=\$TITLE. body 经 masking 后直接写盘, 不询问.
 
 body:
 \$BODY" \\
@@ -302,7 +319,8 @@ source "\$LIB_PATH"
 export CORTEX_JOB_LABEL="cortex-refactor"
 cortex_stream_runner claude --bare -p \\
   --append-system-prompt "\$(cat "\$SKILL_PATH")" \\
-  "[AUTO_MODE: non-interactive shell wrapper. 不要用 AskUserQuestion, 直接执行默认动作.] 执行 cortex-refactor 子命令: \$*. 默认 dry-run; 仅当 args 含 --apply 才落盘. dry-run 输出 plan JSON. 子命令: rename / merge / split / fold / migrate-locale / restructure / dedupe / extract / inline / graph-rebalance." "\$@" \\
+  --allowed-tools "Bash Read Write Edit Glob" \\
+  "[AUTO_MODE strict: AskUserQuestion 不可用 (allowed-tools 已禁), 任何询问需求 → 用默认决策跳过. fail-fast not hang.] 执行 cortex-refactor 子命令: \$*. 默认 dry-run; 仅当 args 含 --apply 才落盘. dry-run 输出 plan JSON. 子命令: rename / merge / split / fold / migrate-locale / restructure / dedupe / extract / inline / graph-rebalance." "\$@" \\
   | cx_filter_stream
 exit \${PIPESTATUS[0]}
 EOB

@@ -123,3 +123,16 @@ cortex-lint --fix 输出 JSON 含 `structure_purge` 字段且 `violation_count >
 完整 preset schema 见 `plugins/tools/cortex/lint/schemas.py` (LYT / PARA / flat 三套)。
 
 白名单匹配规则: vault 根相对路径**精确串相等** (dir 加尾 `/`, file 不加), 不支持 glob。隐藏目录 `.obsidian` / `.trash` 默认 allowed, 无需白名单。
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/lint.sh` wrapper):
+
+1. **必须**第一步 Bash 调:
+   `cd <PLUGIN_ROOT> && PYTHONPATH=. python3 -m lint.run --vault <VAULT> --fix`
+2. 解析 JSON 输出, 报告 fixed count + rules hit
+3. **不调** AskUserQuestion (即使存在 fixable=false / structure violation 项也不问 — wrapper allowed-tools 已禁此工具, 调用必失败)
+4. fail-fast: 任何 error 立即返回错误码 + 简短消息, 不询问回退方案
+5. 写盘前不需二次确认 (AUTO_MODE 隐含已授权)
+
+约束: AskUserQuestion 在 AUTO_MODE 上下文中**不可用** (allowed-tools 已禁), 强行调用必失败。任何需用户决策处 → 走默认值跳过。

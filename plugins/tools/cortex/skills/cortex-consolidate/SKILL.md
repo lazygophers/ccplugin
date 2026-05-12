@@ -81,3 +81,13 @@ allowed-tools: Bash Read Write Glob
 
 ## AUTO_MODE 兼容
 [AUTO_MODE: ...] (cron 默认场景) 全自动执行写盘; 仅在 --dry-run 时不写。candidate 永不直接 promote (这是 cortex-promote 职责)。
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/consolidate.sh`, cron 默认场景):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
+2. 任何需用户决策处 → 走默认值跳过
+3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+4. 写盘前不需二次确认 (AUTO_MODE 隐含已授权); 仅在显式 `--dry-run` 时不写
+5. candidate 永不直接 promote (那是 cortex-promote 职责)

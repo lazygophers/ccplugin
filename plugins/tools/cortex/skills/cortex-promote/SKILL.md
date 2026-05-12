@@ -102,3 +102,15 @@ L0 永不自动, 必经用户审批。
 **这是唯一与 AUTO_MODE 强对抗的 skill**:
 - [AUTO_MODE: ...] 下: L4→L3 / L3→L2 仅在显式 --auto-low=true 才执行; L2→L1 仅汇报不执行; **L1→L0 绝不执行**, 仅输出候选清单 + 提示人工审批命令。
 - 任何 AskUserQuestion 调用在 AUTO_MODE 下被 skill 自身拦截 (本 skill 在每次调用 AskUserQuestion 前先检测 AUTO_MODE flag, 命中即视为 cancel)。
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/promote.sh`):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
+2. 任何需用户决策处 → 走 policy 默认值跳过
+3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+4. 特殊规则:
+   - L4→L3 / L3→L2: 仅在显式 `--auto-low=true` 才执行写盘, 否则仅汇报
+   - L2→L1: 仅汇报, **不执行**
+   - L1→L0: **绝不执行**, 仅写候选清单到 `views/candidates.md` + 提示人工审批命令 `~/.cortex/scripts/promote.sh --interactive`

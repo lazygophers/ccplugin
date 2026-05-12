@@ -59,3 +59,12 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 - 不写 vault (诊断专用)
 - 不自动修复, 仅给出建议命令 (用户决定是否执行)
 - 不被 LLM 自动触发 (`disable-model-invocation: true`), 必须用户显式说"诊断 cortex / cortex doctor"
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/doctor.sh`):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
+2. 任何需用户决策处 → 走默认值跳过 (诊断仅读, 不动盘)
+3. fail-fast: 任何 error 立即返回错误码 + 简短消息, 不询问回退方案
+4. 输出诊断报告 + 建议命令 (用户后续手动执行)

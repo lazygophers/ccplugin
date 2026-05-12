@@ -334,3 +334,14 @@ claude --settings ~/.claude/settings.glm-4.7-flash.json \
 ```
 
 返回非空且包含 双 namespace / L0-L4 / 9 cron 关键描述 → 通过。
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/init.sh`, 注意 `install.sh` 本体仍保留人工交互, 此段仅针对 init.sh wrapper 路径):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
+2. 默认决策: `lang=zh-CN`, git auto-sync=off, cron=off (用户后续手动跑 `~/.cortex/scripts/install_cron.sh` 装计划任务)
+3. fail-fast: 任何 error 立即返回错误码 + 简短消息, 不询问回退方案
+4. 写盘前不需二次确认 (AUTO_MODE 隐含已授权)
+
+约束: 本 SKILL 主流程含 `AskUserQuestion` 描述仅适用于 `install.sh` 顶层交互场景; 通过 init.sh wrapper 调用时一律按上述默认值跳过。

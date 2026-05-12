@@ -140,3 +140,12 @@ python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/refa
 ```
 
 所有新子命令输出 JSON, 字段含 `op / applied`, dry-run 字段视子命令而定 (mv_plan/link_plan/candidates/orphans/hubs/link_gaps)。
+
+## AUTO_MODE 行为 (wrapper 调用)
+
+当 prompt 含 `[AUTO_MODE]` (来自 `~/.cortex/scripts/refactor.sh`):
+
+1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
+2. 任何需用户决策处 → 走默认值跳过 (≥3 文件批量改写不再列路径授权, 直接 backup + apply)
+3. fail-fast: 任何 error 立即返回错误码 + 简短消息
+4. dry-run 默认行为不变; 显式 `--apply` 时直接落, 不再二次确认
