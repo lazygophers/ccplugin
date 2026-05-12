@@ -10,12 +10,19 @@
 # Usage:
 #   run.sh <job-name> -- <claude prompt> [extra claude flags...]
 #
-# Env / flags consumed (passed via the calling script):
-#   CORTEX_VAULT       (required) vault root path; printed into prompt context
-#   CORTEX_LANG        (optional) override vault.lang; default detected from _meta/version.json
-#   CORTEX_SETTINGS    (optional) path to claude settings json; default ~/.claude/settings.glm-4.7-flash.json
-#   CORTEX_TIMEOUT     (optional) seconds; default 300
-#   CORTEX_DRY_RUN=1   (optional) print the resolved command and exit 0
+# Configuration: read from ~/.cortex/config.json (env-free per PRD); the
+# calling script may override per-invocation via CLI flags below.
+#
+# CLI flags (placed BEFORE `--`):
+#   --vault <path>      override config.vault
+#   --lang  <code>      override config.lang
+#   --settings <path>   override config.settings
+#   --timeout <secs>    override config.timeout_default (or 300)
+#   --dry-run           print the resolved command and exit 0
+#
+# Internal runtime env (NOT user config — kept):
+#   CORTEX_JOB_LABEL        wrapper identifier consumed by cortex_stream
+#   CORTEX_STREAM_TEE_FILE  NDJSON tee path consumed by cortex_stream
 #
 # Exit codes:
 #   0  success
@@ -98,10 +105,26 @@ perl_timeout() {
 JOB="${1:-}"
 shift || true
 if [[ -z "$JOB" ]]; then
-  echo "usage: run.sh <job-name> -- <prompt> [extra flags...]" >&2
+  echo "usage: run.sh <job-name> [--vault X --lang Y ...] -- <prompt> [extra flags...]" >&2
   exit 4
 fi
 
+# Parse leading option flags (BEFORE `--`). Empty values fall through to config.
+CLI_VAULT=""
+CLI_LANG=""
+CLI_SETTINGS=""
+CLI_TIMEOUT=""
+CLI_DRY_RUN=0
+while [[ "${1:-}" != "--" && $# -gt 0 ]]; do
+  case "$1" in
+    --vault)    CLI_VAULT="${2:-}";    shift 2 ;;
+    --lang)     CLI_LANG="${2:-}";     shift 2 ;;
+    --settings) CLI_SETTINGS="${2:-}"; shift 2 ;;
+    --timeout)  CLI_TIMEOUT="${2:-}";  shift 2 ;;
+    --dry-run)  CLI_DRY_RUN=1;         shift ;;
+    *) break ;;
+  esac
+done
 if [[ "${1:-}" == "--" ]]; then
   shift
 fi
@@ -120,19 +143,17 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/stream_progress.sh"
 # Validate ~/.cortex/config.json in this process so broken JSON fails fast.
 cortex_config_init
 
-VAULT="$(cortex_config_resolve vault CORTEX_VAULT "")"
+# Resolution priority (env-free per PRD): CLI flag > ~/.cortex/config.json > default.
+VAULT="${CLI_VAULT:-$(cx_get_vault)}"
 if [[ -z "$VAULT" ]]; then
-  VAULT="${OBSIDIAN_VAULT:-}"
-fi
-if [[ -z "$VAULT" ]]; then
-  echo "[cortex] no vault: set CORTEX_VAULT, OBSIDIAN_VAULT, or write vault to ~/.cortex/config.json" >&2
+  echo "[cortex] no vault: pass --vault <path> or set 'vault' in ~/.cortex/config.json" >&2
   exit 3
 fi
-# lang priority here is env > config; vault `_meta/version.json` is layered on
-# top by Python consumers (lint/run.py, hooks/_lib/cortex_locale.py).
-LANG_OVERRIDE="$(cortex_config_resolve lang CORTEX_LANG "")"
-SETTINGS="$(cortex_config_resolve settings CORTEX_SETTINGS "$HOME/.claude/settings.glm-4.7-flash.json")"
-TIMEOUT="${CORTEX_TIMEOUT:-300}"
+# lang: CLI > config; vault `_meta/version.json` is layered on top by Python
+# consumers (lint/run.py, hooks/_lib/cortex_locale.py).
+LANG_OVERRIDE="${CLI_LANG:-$(cx_config_get lang "")}"
+SETTINGS="${CLI_SETTINGS:-$(cx_config_get settings "$HOME/.claude/settings.glm-4.7-flash.json")}"
+TIMEOUT="${CLI_TIMEOUT:-$(cx_config_get timeout_default 300)}"
 
 LOG_DIR="$HOME/.cache/cortex/cron"
 mkdir -p "$LOG_DIR"
@@ -184,7 +205,7 @@ for arg in "$@"; do
   CMD+=("$arg")
 done
 
-if [[ "${CORTEX_DRY_RUN:-0}" == "1" ]]; then
+if [[ "$CLI_DRY_RUN" == "1" ]]; then
   printf '[dry-run] %q ' "${CMD[@]}"
   echo
   exit 0

@@ -85,16 +85,23 @@ def extract(source: Path | str) -> dict[str, Any]:
 def _load_html_sanitize():
     """Load P0 html_sanitize.sanitize from hooks/_lib (lazy)."""
     import importlib.util
-    import os
+    import json as _json
     import sys
 
     here = Path(__file__).resolve()
     # mcp/lib/extractors/epub.py -> mcp/ -> plugins/tools/cortex/
     candidate = here.parent.parent.parent.parent / "hooks" / "_lib" / "html_sanitize.py"
     if not candidate.is_file():
-        hint = os.environ.get("CORTEX_PLUGIN_ROOT")
+        # Env-free: consult ~/.cortex/config.json (install_path).
+        cfg = Path.home() / ".cortex" / "config.json"
+        hint = None
+        if cfg.is_file():
+            try:
+                hint = _json.loads(cfg.read_text(encoding="utf-8")).get("install_path")
+            except Exception:
+                hint = None
         if hint:
-            candidate = Path(hint) / "hooks" / "_lib" / "html_sanitize.py"
+            candidate = Path(hint).expanduser() / "hooks" / "_lib" / "html_sanitize.py"
     if not candidate.is_file():
         # Fall back to identity if filter missing — extractors must still work.
         return lambda s: s

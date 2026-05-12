@@ -6,16 +6,10 @@
 set -u
 
 resolve_vault() {
-  local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/cortex"
-  local config_file="$config_dir/config.json"
+  # Canonical config (env-free per PRD): ~/.cortex/config.json
+  local config_file="$HOME/.cortex/config.json"
 
-  # 1. env override
-  if [[ -n "${OBSIDIAN_VAULT:-}" && -d "$OBSIDIAN_VAULT/.obsidian" ]]; then
-    printf '%s\n' "$OBSIDIAN_VAULT"
-    return 0
-  fi
-
-  # 2. config.json
+  # 1. config.json (single source of truth for plugin business)
   if [[ -f "$config_file" ]]; then
     local from_config
     from_config=$(python3 -c "
@@ -35,8 +29,7 @@ except Exception:
     fi
   fi
 
-  # 3. auto-detect (single match in ~/Documents or ~/Library/Mobile Documents)
-  # Removed `~/persons/knowledge/obsidian` hardcode per PRD §优先级 (env > config only).
+  # 2. auto-detect (single match in ~/Documents or ~/Library/Mobile Documents)
   local candidates=()
   while IFS= read -r d; do
     candidates+=("$d")
@@ -47,7 +40,7 @@ except Exception:
     return 0
   fi
 
-  # 4. nothing found
+  # 3. nothing found
   printf ''
   return 0
 }

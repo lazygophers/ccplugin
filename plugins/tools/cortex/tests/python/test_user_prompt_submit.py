@@ -9,9 +9,15 @@ HOOK = PLUGIN_ROOT / "hooks" / "user_prompt_submit.sh"
 
 
 def _run(prompt, vault):
+    # Plugin business is env-free: mock ~/.cortex/config.json via HOME override.
+    fake_home = vault.parent / "home"
+    (fake_home / ".cortex").mkdir(parents=True, exist_ok=True)
+    (fake_home / ".cortex" / "config.json").write_text(
+        json.dumps({"vault": str(vault)}), encoding="utf-8"
+    )
     env = os.environ.copy()
+    env["HOME"] = str(fake_home)
     env["CLAUDE_PLUGIN_ROOT"] = str(PLUGIN_ROOT)
-    env["OBSIDIAN_VAULT"] = str(vault)
     return subprocess.run(
         [str(HOOK)],
         input=prompt,
@@ -71,9 +77,14 @@ def test_short_input_silent(tmp_path):
 def test_vault_missing_silent(tmp_path):
     """vault 不存在 → silent exit 0, 无输出."""
     nonexistent = tmp_path / "nope"
+    fake_home = tmp_path / "home"
+    (fake_home / ".cortex").mkdir(parents=True, exist_ok=True)
+    (fake_home / ".cortex" / "config.json").write_text(
+        json.dumps({"vault": str(nonexistent)}), encoding="utf-8"
+    )
     env = os.environ.copy()
+    env["HOME"] = str(fake_home)
     env["CLAUDE_PLUGIN_ROOT"] = str(PLUGIN_ROOT)
-    env["OBSIDIAN_VAULT"] = str(nonexistent)
     r = subprocess.run(
         [str(HOOK)],
         input="Go",

@@ -12,26 +12,38 @@
 set -uo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/config.sh
+source "$DIR/../lib/config.sh"
+cortex_config_init
 
-DRY=0
+DRY_FLAG=()
+VAULT_FLAG=()
+LANG_FLAG=()
+SETTINGS_FLAG=()
+CLI_VAULT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dry-run) DRY=1; shift ;;
-    --vault) export CORTEX_VAULT="$2"; shift 2 ;;
-    --lang) export CORTEX_LANG="$2"; shift 2 ;;
-    --settings) export CORTEX_SETTINGS="$2"; shift 2 ;;
+    --dry-run)  DRY_FLAG=(--dry-run);              shift ;;
+    --vault)    CLI_VAULT="$2"; VAULT_FLAG=(--vault "$2"); shift 2 ;;
+    --lang)     LANG_FLAG=(--lang "$2");           shift 2 ;;
+    --settings) SETTINGS_FLAG=(--settings "$2");   shift 2 ;;
     *) echo "unknown flag: $1" >&2; exit 4 ;;
   esac
 done
 
-[[ "$DRY" == "1" ]] && export CORTEX_DRY_RUN=1
-export CORTEX_TIMEOUT="${CORTEX_TIMEOUT:-900}"
+
+VAULT="${CLI_VAULT:-$(cx_get_vault)}"
+if [[ -z "$VAULT" ]]; then
+  echo "[cortex/memory-consolidate] no vault: pass --vault or set vault in ~/.cortex/config.json" >&2
+  exit 3
+fi
+TIMEOUT_FLAG=(--timeout 900)
 
 PROMPT="[AUTO_MODE: non-interactive shell wrapper. 禁用 AskUserQuestion, 自动决策]
 
 任务: ledger → views 周报巩固 (memory-consolidate)。
 
-vault: \$CORTEX_VAULT
+vault: $VAULT
 
 具体行动:
 1. 计算上 7 天窗口 [now-7d, now] 与 ISO 周号 (YYYY-Wnn)。
@@ -56,5 +68,7 @@ vault 不存在或窗口内无数据 → { skipped: true, reason: '<原因>' }�
 
 工具预算: Bash Read Glob Write Edit。"
 
-exec "$DIR/run.sh" memory-consolidate -- "$PROMPT" \
+exec "$DIR/run.sh" memory-consolidate \
+  ${VAULT_FLAG[@]+"${VAULT_FLAG[@]}"} ${LANG_FLAG[@]+"${LANG_FLAG[@]}"} ${SETTINGS_FLAG[@]+"${SETTINGS_FLAG[@]}"} ${TIMEOUT_FLAG[@]+"${TIMEOUT_FLAG[@]}"} ${DRY_FLAG[@]+"${DRY_FLAG[@]}"} \
+  -- "$PROMPT" \
   --allowed-tools "Bash Read Glob Write Edit"

@@ -239,10 +239,10 @@ def read_vault_meta(vault: Path) -> dict[str, Any]:
 
 
 def read_vault_lang(vault: Path) -> str:
-    """Resolve lang: CORTEX_LANG env > vault _meta/version.json > config.lang > zh-CN."""
-    env_val = os.environ.get("CORTEX_LANG")
-    if env_val:
-        return env_val
+    """Resolve lang: vault _meta/version.json > config.lang > zh-CN.
+
+    Env var lookup removed per PRD (config-only).
+    """
     meta_lang = read_vault_meta(vault).get("lang")
     if isinstance(meta_lang, str) and meta_lang:
         return meta_lang

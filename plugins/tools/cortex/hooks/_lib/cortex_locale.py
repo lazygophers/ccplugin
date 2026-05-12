@@ -284,13 +284,12 @@ def load_locale(plugin_root: str | Path, vault: str | Path | None, lang: str) ->
 
 
 def detect_vault_lang(vault: Path | str) -> str:
-    """Resolve lang: CORTEX_LANG env > vault _meta/version.json > config.lang > zh-CN."""
-    import json
-    import os
+    """Resolve lang: vault _meta/version.json > config.lang > zh-CN.
 
-    env_val = os.environ.get("CORTEX_LANG")
-    if env_val:
-        return env_val
+    Env var lookup removed per PRD (config-only). Plugin business code uses
+    `~/.cortex/config.json` exclusively for the `lang` field.
+    """
+    import json
 
     p = Path(vault) / "_meta" / "version.json"
     if p.is_file():

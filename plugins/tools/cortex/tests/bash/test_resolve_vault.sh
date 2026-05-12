@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Tests for hooks/_lib/resolve_vault.sh
+# Per PRD: plugin business is env-free; vault is read from ~/.cortex/config.json.
 set -u
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,63 +10,60 @@ source "$DIR/_assert.sh"
 
 RV="$PLUGIN_ROOT/hooks/_lib/resolve_vault.sh"
 
-# Run the resolver in a subshell with controlled env so we don't pollute parent.
+# Run the resolver in a subshell with controlled HOME so we don't pollute parent.
 run_rv() {
-  # args: env-var assignments... (no spaces). Final arg ignored.
   bash -c '
-    unset OBSIDIAN_VAULT
+    unset OBSIDIAN_VAULT CORTEX_VAULT CORTEX_VAULT_PATH
     export HOME="$1"
-    export XDG_CONFIG_HOME="$2"
-    [[ -n "${3:-}" ]] && export OBSIDIAN_VAULT="$3"
-    source "$4"
+    source "$2"
     resolve_vault
-  ' _ "$1" "$2" "${3:-}" "$RV"
+  ' _ "$1" "$RV"
 }
 
-test_env_override_wins() {
+write_config() {
+  # write_config <home> <vault>
+  local home="$1" vault="$2"
+  mkdir -p "$home/.cortex"
+  printf '{"vault": "%s"}\n' "$vault" > "$home/.cortex/config.json"
+}
+
+test_env_ignored_for_vault() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
+  # Even with OBSIDIAN_VAULT set (legacy), resolve_vault must ignore it.
   local custom="$sandbox/custom-vault"
   mkdir -p "$custom/.obsidian"
-  out=$(run_rv "$sandbox/home" "$sandbox/xdg" "$custom")
-  assert_eq "$custom" "$out" "env override should win"
-}
-
-test_env_invalid_falls_through() {
-  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
-  # OBSIDIAN_VAULT points at a non-vault dir; should fall through to other layers
-  local nope="$sandbox/not-a-vault"
-  mkdir -p "$nope"
-  out=$(run_rv "$sandbox/home" "$sandbox/xdg" "$nope")
-  # nothing else exists → empty
-  assert_empty "$out" "invalid env should fall through to empty"
+  out=$(OBSIDIAN_VAULT="$custom" bash -c '
+    export HOME="$1"
+    source "$2"
+    resolve_vault
+  ' _ "$sandbox/home" "$RV")
+  assert_empty "$out" "OBSIDIAN_VAULT env should be ignored (PRD: config-only)"
 }
 
 test_config_json_resolves() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   local home="$sandbox/home"; mkdir -p "$home"
-  local xdg="$sandbox/xdg/cortex"; mkdir -p "$xdg"
   local vault="$sandbox/myvault"; mkdir -p "$vault/.obsidian"
-  printf '{"vault": "%s"}\n' "$vault" > "$xdg/config.json"
-  out=$(run_rv "$home" "$sandbox/xdg" "")
+  write_config "$home" "$vault"
+  out=$(run_rv "$home")
   assert_eq "$vault" "$out"
 }
 
 test_missing_returns_empty() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   local home="$sandbox/home"; mkdir -p "$home"
-  out=$(run_rv "$home" "$sandbox/xdg" "")
+  out=$(run_rv "$home")
   assert_empty "$out"
 }
 
 test_exit_code_zero_always() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   local home="$sandbox/home"; mkdir -p "$home"
-  run_rv "$home" "$sandbox/xdg" "" > /dev/null
+  run_rv "$home" > /dev/null
   assert_eq "0" "$?" "resolve_vault should always exit 0 (advisory)"
 }
 
-run_test test_env_override_wins      test_env_override_wins
-run_test test_env_invalid_falls_through  test_env_invalid_falls_through
+run_test test_env_ignored_for_vault  test_env_ignored_for_vault
 run_test test_config_json_resolves   test_config_json_resolves
 run_test test_missing_returns_empty  test_missing_returns_empty
 run_test test_exit_code_zero_always  test_exit_code_zero_always

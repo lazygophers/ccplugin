@@ -50,12 +50,10 @@ TIME_DIR_RE = re.compile(r"^\d{4}-\d{2}$")
 
 
 def _load_vault_lang(vault: Path) -> str:
-    """Resolve lang: CORTEX_LANG env > vault _meta/version.json > config.lang > zh-CN."""
-    import os as _os
+    """Resolve lang: vault _meta/version.json > config.lang > zh-CN.
 
-    env_val = _os.environ.get("CORTEX_LANG")
-    if env_val:
-        return env_val
+    Env var lookup removed per PRD (config-only).
+    """
     p = vault / "_meta" / "version.json"
     try:
         data = json.loads(p.read_text(encoding="utf-8"))

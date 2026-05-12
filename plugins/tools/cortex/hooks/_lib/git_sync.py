@@ -130,12 +130,23 @@ def auto_commit(vault: Path, message: Optional[str] = None) -> tuple[bool, str]:
 
 
 def _resolve_vault(arg: Optional[str]) -> Optional[Path]:
-    """env CORTEX_VAULT_PATH > argv > None (不猜)."""
-    env_v = os.environ.get("CORTEX_VAULT_PATH")
-    if env_v:
-        return Path(env_v).expanduser().resolve()
+    """argv > ~/.cortex/config.json > None (不猜).
+
+    Env var lookup removed per PRD (config-only). Callers pass vault
+    explicitly as argv; config.json is consulted as a fallback so that
+    standalone invocations from cron / wrappers Just Work.
+    """
     if arg:
         return Path(arg).expanduser().resolve()
+    try:
+        # Late import: keep this module importable without hooks/_lib on path.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from cortex_config import get_vault  # type: ignore
+        v = get_vault()
+        if v:
+            return v.expanduser().resolve()
+    except Exception:
+        pass
     return None
 
 
@@ -148,7 +159,7 @@ def main(argv: list[str]) -> int:
     vault_arg = argv[2] if len(argv) >= 3 else None
     vault = _resolve_vault(vault_arg)
     if vault is None:
-        sys.stderr.write("vault not resolved (set CORTEX_VAULT_PATH or pass arg)\n")
+        sys.stderr.write("vault not resolved (pass as argv or set 'vault' in ~/.cortex/config.json)\n")
         return 2
 
     if cmd == "auto":

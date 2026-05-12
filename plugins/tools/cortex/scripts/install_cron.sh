@@ -30,11 +30,11 @@ OPTIONS:
   --help, -h             显示本帮助
 
 PLUGIN_ROOT 解析优先级 (从高到低):
-  1. --plugin-root <path>     命令行覆盖
-  2. $CORTEX_INSTALL_PATH      环境变量覆盖
+  1. --plugin-root <path>                  命令行覆盖
+  2. ~/.cortex/config.json .install_path   配置 (env-free per PRD)
   3. ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex      (主, 默认)
   4. ~/.config/claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex (XDG 兜底)
-  5. $CLAUDE_PLUGIN_ROOT       (仅 install_cron.sh 由 CC 主线调用时存在)
+  5. $CLAUDE_PLUGIN_ROOT                   (Claude Code 平台契约, 由主线注入)
   6. fallback: 脚本所在源码路径 + stderr 警告
 
 snippet 输出: PLUGIN_ROOT 已被解析为绝对路径字符串 (非变量占位), 用户可直接粘贴到 crontab。
@@ -61,10 +61,14 @@ resolve_install_path() {
     return 0
   fi
 
-  # 2. 环境变量覆盖
-  if [[ -n "${CORTEX_INSTALL_PATH:-}" ]]; then
-    printf '%s\n' "$CORTEX_INSTALL_PATH"
-    return 0
+  # 2. ~/.cortex/config.json install_path (env-free per PRD)
+  if [[ -f "$HOME/.cortex/config.json" ]] && command -v jq >/dev/null 2>&1; then
+    local from_cfg
+    from_cfg=$(jq -r '.install_path // empty' "$HOME/.cortex/config.json" 2>/dev/null)
+    if [[ -n "$from_cfg" ]]; then
+      printf '%s\n' "$from_cfg"
+      return 0
+    fi
   fi
 
   # 3. 主 marketplace 路径
@@ -91,7 +95,7 @@ resolve_install_path() {
   printf '%s\n' "$script_dir"
   printf '[install_cron.sh] WARNING: 未检测到 marketplace 安装, cron 任务可能因路径无效失败\n' >&2
   printf '[install_cron.sh] WARNING: fallback 到源码路径 %s\n' "$script_dir" >&2
-  printf '[install_cron.sh] WARNING: 请通过 --plugin-root 或 $CORTEX_INSTALL_PATH 指定 marketplace 安装路径\n' >&2
+  printf '[install_cron.sh] WARNING: 请通过 --plugin-root 或在 ~/.cortex/config.json 设置 install_path 指定 marketplace 安装路径\n' >&2
 }
 
 # -------- 参数解析 --------
@@ -132,21 +136,17 @@ PLUGIN_ROOT="$(resolve_install_path "$OVERRIDE_ROOT")"
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/config.sh"
 cortex_config_init
 
-# vault: env > config > OBSIDIAN_VAULT > error.
-# Hardcoded ~/persons/knowledge/obsidian fallback removed per PRD §优先级.
-VAULT="$(cortex_config_resolve vault CORTEX_VAULT "")"
+# vault: config only (env-free per PRD).
+VAULT="$(cx_get_vault)"
 if [[ -z "$VAULT" ]]; then
-  VAULT="${OBSIDIAN_VAULT:-}"
-fi
-if [[ -z "$VAULT" ]]; then
-  echo "[install_cron.sh] no vault configured: set CORTEX_VAULT, OBSIDIAN_VAULT, or write vault to ~/.cortex/config.json" >&2
+  echo "[install_cron.sh] no vault configured: set 'vault' in ~/.cortex/config.json" >&2
   exit 3
 fi
 
-# lang/settings flow into the printed snippet's env preamble so users get the
-# same resolution rules as cron/run.sh without re-exporting at the shell.
-LANG_OVERRIDE="$(cortex_config_resolve lang CORTEX_LANG "")"
-SETTINGS="$(cortex_config_resolve settings CORTEX_SETTINGS "")"
+# lang/settings flow into the printed snippet so users get the same resolution
+# rules as cron/run.sh — but as CLI flags (not env exports).
+LANG_OVERRIDE="$(cx_config_get lang "")"
+SETTINGS="$(cx_config_get settings "")"
 
 print_cron() {
   cat <<EOF
@@ -157,13 +157,13 @@ print_cron() {
 # 注意: PLUGIN_ROOT 已硬编码为 marketplace 绝对路径, 适用于 cron daemon 环境
 
 # daily lint at 01:00
-0 1 * * * CORTEX_VAULT="${VAULT}" bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/lint.sh"
+0 1 * * * bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/lint.sh" --vault "${VAULT}"
 
 # weekly log fold at Sunday 02:00
-0 2 * * 0 CORTEX_VAULT="${VAULT}" bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/fold.sh"
+0 2 * * 0 bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/fold.sh" --vault "${VAULT}"
 
 # weekly dashboard refresh at Sunday 02:30
-30 2 * * 0 CORTEX_VAULT="${VAULT}" bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/dashboard.sh"
+30 2 * * 0 bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/dashboard.sh" --vault "${VAULT}"
 EOF
 }
 
@@ -184,12 +184,9 @@ print_launchd() {
   <array>
     <string>/bin/bash</string>
     <string>~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/lint.sh</string>
-  </array>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>CORTEX_VAULT</key>
+    <string>--vault</string>
     <string>${VAULT}</string>
-  </dict>
+  </array>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key><integer>1</integer>
@@ -275,7 +272,7 @@ cat <<EOF
 # 1. 本脚本仅打印 snippet, 不写入任何用户配置 (跨平台风险)
 # 2. 选定方案后用户自行复制安装
 # 3. PLUGIN_ROOT = ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex
-# 4. OBSIDIAN_VAULT = ${VAULT}
+# 4. vault = ${VAULT} (from ~/.cortex/config.json)
 # 5. 验证: 复制完成后立即手跑一次, 确认输出与权限正常
 # ----------------------------------------------------------------------
 EOF

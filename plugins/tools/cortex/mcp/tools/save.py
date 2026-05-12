@@ -66,17 +66,23 @@ def _load_masking() -> Any:
     here = Path(__file__).resolve()
     candidate = here.parent.parent.parent / "hooks" / "_lib" / "masking.py"
     if not candidate.is_file():
-        # pipx-installed: hooks live next to the source checkout; honor an env
-        # hint so cortex-doctor can wire it explicitly.
-        import os
+        # pipx-installed: hooks live next to the source checkout; consult
+        # ~/.cortex/config.json (install_path) so cortex-doctor can wire it
+        # explicitly without env vars.
+        import json
 
-        hint = os.environ.get("CORTEX_PLUGIN_ROOT")
-        if hint:
-            candidate = Path(hint) / "hooks" / "_lib" / "masking.py"
+        cfg = Path.home() / ".cortex" / "config.json"
+        if cfg.is_file():
+            try:
+                hint = json.loads(cfg.read_text(encoding="utf-8")).get("install_path")
+            except Exception:
+                hint = None
+            if hint:
+                candidate = Path(hint).expanduser() / "hooks" / "_lib" / "masking.py"
     if not candidate.is_file():
         raise RuntimeError(
             "cortex_save: masking.py not found. "
-            "Set CORTEX_PLUGIN_ROOT to the cortex plugin directory."
+            "Set 'install_path' in ~/.cortex/config.json to the cortex plugin directory."
         )
     spec = importlib.util.spec_from_file_location("cortex_masking", candidate)
     if spec is None or spec.loader is None:  # pragma: no cover - defensive

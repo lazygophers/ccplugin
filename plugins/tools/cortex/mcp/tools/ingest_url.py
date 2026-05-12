@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import sys
 import tempfile
 import urllib.error
@@ -59,13 +58,22 @@ def _load_module(filename: str, mod_name: str) -> Any:
     # mcp/tools/ingest_url.py -> mcp/ -> plugins/tools/cortex/
     candidate = here.parent.parent.parent / "hooks" / "_lib" / filename
     if not candidate.is_file():
-        hint = os.environ.get("CORTEX_PLUGIN_ROOT")
+        # Consult ~/.cortex/config.json (install_path) — env-free fallback.
+        import json as _json
+
+        cfg = Path.home() / ".cortex" / "config.json"
+        hint = None
+        if cfg.is_file():
+            try:
+                hint = _json.loads(cfg.read_text(encoding="utf-8")).get("install_path")
+            except Exception:
+                hint = None
         if hint:
-            candidate = Path(hint) / "hooks" / "_lib" / filename
+            candidate = Path(hint).expanduser() / "hooks" / "_lib" / filename
     if not candidate.is_file():
         raise RuntimeError(
             f"cortex_ingest_url: {filename} not found. "
-            "Set CORTEX_PLUGIN_ROOT to the cortex plugin directory."
+            "Set 'install_path' in ~/.cortex/config.json to the cortex plugin directory."
         )
     spec = importlib.util.spec_from_file_location(mod_name, candidate)
     if spec is None or spec.loader is None:  # pragma: no cover

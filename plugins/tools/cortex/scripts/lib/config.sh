@@ -119,3 +119,28 @@ cortex_config_resolve() {
   fi
   printf '%s' "$fallback"
 }
+
+# --- Config-only helpers (env-free) -------------------------------------
+# Plugin business code uses these instead of `cortex_config_resolve` for
+# config-class keys. Env vars are reserved for platform-contract
+# (CLAUDE_PLUGIN_ROOT) and internal runtime communication
+# (CORTEX_JOB_LABEL, CORTEX_STREAM_TEE_FILE).
+
+cx_config_get() {
+  # cx_config_get <key> [default]
+  local key="${1:-}"
+  local default="${2:-}"
+  local val
+  val="$(_cortex_config_get "$key")"
+  if [[ -n "$val" ]]; then
+    printf '%s' "$val"
+    return 0
+  fi
+  printf '%s' "$default"
+}
+
+cx_get_vault()       { cx_config_get vault ""; }
+cx_get_plugin_root() { cx_config_get install_path ""; }
+cx_get_lang()        { cx_config_get lang "zh-CN"; }
+cx_get_settings()    { cx_config_get settings "$HOME/.claude/settings.json"; }
+cx_get_timeout()     { cx_config_get timeout_default "${1:-300}"; }

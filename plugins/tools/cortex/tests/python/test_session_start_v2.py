@@ -20,8 +20,15 @@ def _make_vault(tmp_path: Path, lang: str = "zh-CN") -> Path:
 
 
 def _run_hook(vault: Path) -> subprocess.CompletedProcess:
+    # Plugin business is env-free: write a mock ~/.cortex/config.json by
+    # pointing HOME at a tempdir alongside the vault.
+    fake_home = vault.parent / "home"
+    (fake_home / ".cortex").mkdir(parents=True, exist_ok=True)
+    (fake_home / ".cortex" / "config.json").write_text(
+        json.dumps({"vault": str(vault)}), encoding="utf-8"
+    )
     env = os.environ.copy()
-    env["OBSIDIAN_VAULT"] = str(vault)
+    env["HOME"] = str(fake_home)
     env["CLAUDE_PLUGIN_ROOT"] = str(PLUGIN_ROOT)
     return subprocess.run(
         [str(HOOK)],

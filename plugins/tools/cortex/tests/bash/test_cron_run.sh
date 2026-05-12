@@ -50,13 +50,23 @@ EOF
   fi
 }
 
+# Per PRD: run.sh is env-free for config vars (vault/lang/settings/timeout/dry-run);
+# tests now use --vault / --settings / --dry-run CLI flags or write ~/.cortex/config.json.
+make_home_with_vault() {
+  # make_home_with_vault <home> <vault> [extra-json-fields]
+  local home="$1" vault="$2"
+  mkdir -p "$home/.cortex"
+  printf '{"vault":"%s"}\n' "$vault" > "$home/.cortex/config.json"
+}
+
 run_runsh() {
   local fakebin="$1" job="$2" prompt="$3"; shift 3
+  local home; home=$(mktemp -d)
+  local vault; vault=$(mktemp -d)
+  make_home_with_vault "$home" "$vault"
   PATH="$fakebin:$PATH" \
-    HOME="$(mktemp -d)" \
-    CORTEX_VAULT="$(mktemp -d)" \
-    CORTEX_SETTINGS="/dev/null" \
-    bash "$RUN_SH" "$job" -- "$prompt" "$@" 2>&1
+    HOME="$home" \
+    bash "$RUN_SH" "$job" --settings /dev/null -- "$prompt" "$@" 2>&1
 }
 
 test_dry_run_prints_command() {
@@ -64,9 +74,7 @@ test_dry_run_prints_command() {
   make_fakebin "$sandbox/bin"
   out=$(PATH="$sandbox/bin:$PATH" \
     HOME="$(mktemp -d)" \
-    CORTEX_VAULT="$sandbox/v" \
-    CORTEX_DRY_RUN=1 \
-    bash "$RUN_SH" lint -- "test prompt")
+    bash "$RUN_SH" lint --vault "$sandbox/v" --dry-run -- "test prompt")
   assert_contains "dry-run" "$out"
   assert_contains "claude" "$out"
 }
@@ -81,13 +89,11 @@ test_missing_args_exits_4() {
 test_success_path() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" success
-  PATH="$sandbox/bin:$PATH" \
-    HOME="$sandbox/h" \
-    CORTEX_VAULT="$sandbox/v" \
-    CORTEX_SETTINGS="/dev/null" \
-    bash "$RUN_SH" myjob -- "do something" >/dev/null 2>&1
+  mkdir -p "$sandbox/h"
+  make_home_with_vault "$sandbox/h" "$sandbox/v"
+  PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" myjob --settings /dev/null -- "do something" >/dev/null 2>&1
   assert_eq "0" "$?" "success path → exit 0"
-  # result file written
   result_file="$sandbox/h/.cache/cortex/cron/myjob-$(date +%F).json"
   assert_file_exists "$result_file"
 }
@@ -95,43 +101,36 @@ test_success_path() {
 test_error_result_returns_1() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" error
-  PATH="$sandbox/bin:$PATH" \
-    HOME="$sandbox/h" \
-    CORTEX_VAULT="$sandbox/v" \
-    CORTEX_SETTINGS="/dev/null" \
-    bash "$RUN_SH" myjob -- "x" >/dev/null 2>&1
+  mkdir -p "$sandbox/h"
+  make_home_with_vault "$sandbox/h" "$sandbox/v"
+  PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" myjob --settings /dev/null -- "x" >/dev/null 2>&1
   assert_eq "1" "$?" "is_error=true → exit 1"
 }
 
 test_empty_output_returns_1() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" empty
-  PATH="$sandbox/bin:$PATH" \
-    HOME="$sandbox/h" \
-    CORTEX_VAULT="$sandbox/v" \
-    CORTEX_SETTINGS="/dev/null" \
-    bash "$RUN_SH" myjob -- "x" >/dev/null 2>&1
+  mkdir -p "$sandbox/h"
+  make_home_with_vault "$sandbox/h" "$sandbox/v"
+  PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" myjob --settings /dev/null -- "x" >/dev/null 2>&1
   assert_eq "1" "$?" "no result line → exit 1"
 }
 
 test_lock_busy_returns_2() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" success
-  # Pre-create a lock that is held by the current process (kill -0 succeeds)
   local lock="/tmp/cortex-locktest-$$.lock"
   echo "$$" > "$lock"
   trap "rm -f '$lock'" RETURN
-  # Use the same job name as lock filename (no flock available, fallback PID lock)
   if command -v flock >/dev/null 2>&1; then
-    # When flock exists, locking is exec-redirected; harder to simulate cleanly
-    # Skip this case
     return 0
   fi
-  PATH="$sandbox/bin:$PATH" \
-    HOME="$sandbox/h" \
-    CORTEX_VAULT="$sandbox/v" \
-    CORTEX_SETTINGS="/dev/null" \
-    bash "$RUN_SH" "locktest-$$" -- "x" >/dev/null 2>&1
+  mkdir -p "$sandbox/h"
+  make_home_with_vault "$sandbox/h" "$sandbox/v"
+  PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" "locktest-$$" --settings /dev/null -- "x" >/dev/null 2>&1
   assert_eq "2" "$?" "lock busy → exit 2"
 }
 
@@ -174,7 +173,7 @@ test_lint_sh_unknown_flag_exits_4() {
 test_missing_vault_exits_3() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" success
-  # No CORTEX_VAULT, no OBSIDIAN_VAULT, no config → exit 3.
+  # No config, no --vault flag → exit 3.
   env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
     bash "$RUN_SH" myjob -- "x" >/dev/null 2>&1
   assert_eq "3" "$?" "no vault anywhere → exit 3"
@@ -187,14 +186,14 @@ test_config_provides_vault() {
   cat > "$sandbox/h/.cortex/config.json" <<EOF
 { "vault": "$sandbox/v-from-config" }
 EOF
-  env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" CORTEX_DRY_RUN=1 \
-    bash "$RUN_SH" myjob -- "do x" >"$sandbox/out" 2>&1
+  env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" myjob --dry-run -- "do x" >"$sandbox/out" 2>&1
   assert_eq "0" "$?"
   out=$(cat "$sandbox/out")
   assert_contains "$sandbox/v-from-config" "$out"
 }
 
-test_env_overrides_config_vault() {
+test_cli_flag_overrides_config_vault() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" success
   mkdir -p "$sandbox/h/.cortex"
@@ -202,12 +201,21 @@ test_env_overrides_config_vault() {
 { "vault": "$sandbox/v-from-config" }
 EOF
   env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
-    CORTEX_VAULT="$sandbox/v-from-env" CORTEX_DRY_RUN=1 \
-    bash "$RUN_SH" myjob -- "do x" >"$sandbox/out" 2>&1
+    bash "$RUN_SH" myjob --vault "$sandbox/v-from-cli" --dry-run -- "do x" >"$sandbox/out" 2>&1
   assert_eq "0" "$?"
   out=$(cat "$sandbox/out")
-  assert_contains "$sandbox/v-from-env" "$out"
+  assert_contains "$sandbox/v-from-cli" "$out"
   assert_not_contains "v-from-config" "$out"
+}
+
+test_env_vault_ignored() {
+  local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
+  make_fakebin "$sandbox/bin" success
+  # Per PRD: CORTEX_VAULT env is no longer consulted; expect exit 3.
+  env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    CORTEX_VAULT="$sandbox/v-from-env" \
+    bash "$RUN_SH" myjob -- "x" >/dev/null 2>&1
+  assert_eq "3" "$?" "env CORTEX_VAULT must not satisfy run.sh"
 }
 
 test_broken_config_fails_fast_in_runsh() {
@@ -218,24 +226,22 @@ test_broken_config_fails_fast_in_runsh() {
   make_fakebin "$sandbox/bin" success
   mkdir -p "$sandbox/h/.cortex"
   printf '%s' '{ broken' > "$sandbox/h/.cortex/config.json"
-  env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" CORTEX_VAULT="$sandbox/v" \
-    bash "$RUN_SH" myjob -- "x" >/dev/null 2>"$sandbox/err"
+  env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
+    bash "$RUN_SH" myjob --vault "$sandbox/v" -- "x" >/dev/null 2>"$sandbox/err"
   rc=$?
   assert_eq "1" "$rc" "broken config.json → run.sh exits 1"
   err=$(cat "$sandbox/err")
   assert_contains "config syntax error" "$err"
 }
 
-test_obsidian_vault_fallback() {
+test_obsidian_vault_env_ignored() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_fakebin "$sandbox/bin" success
-  # No config, no CORTEX_VAULT; OBSIDIAN_VAULT serves as last-resort fallback.
+  # Per PRD: OBSIDIAN_VAULT is no longer consulted by run.sh; expect exit 3.
   env -i PATH="$sandbox/bin:$PATH" HOME="$sandbox/h" \
-    OBSIDIAN_VAULT="$sandbox/v-obsidian" CORTEX_DRY_RUN=1 \
-    bash "$RUN_SH" myjob -- "do x" >"$sandbox/out" 2>&1
-  assert_eq "0" "$?"
-  out=$(cat "$sandbox/out")
-  assert_contains "$sandbox/v-obsidian" "$out"
+    OBSIDIAN_VAULT="$sandbox/v-obsidian" \
+    bash "$RUN_SH" myjob -- "x" >/dev/null 2>&1
+  assert_eq "3" "$?" "OBSIDIAN_VAULT env must not satisfy run.sh"
 }
 
 run_test test_dry_run_prints_command       test_dry_run_prints_command
@@ -250,8 +256,9 @@ run_test test_dashboard_sh_dry_run         test_dashboard_sh_dry_run
 run_test test_lint_sh_unknown_flag_exits_4 test_lint_sh_unknown_flag_exits_4
 run_test test_missing_vault_exits_3        test_missing_vault_exits_3
 run_test test_config_provides_vault        test_config_provides_vault
-run_test test_env_overrides_config_vault   test_env_overrides_config_vault
-run_test test_obsidian_vault_fallback      test_obsidian_vault_fallback
+run_test test_cli_flag_overrides_config_vault test_cli_flag_overrides_config_vault
+run_test test_env_vault_ignored            test_env_vault_ignored
+run_test test_obsidian_vault_env_ignored   test_obsidian_vault_env_ignored
 run_test test_broken_config_fails_fast_in_runsh test_broken_config_fails_fast_in_runsh
 
 print_summary

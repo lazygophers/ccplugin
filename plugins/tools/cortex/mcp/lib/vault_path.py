@@ -3,10 +3,12 @@
 Mirrors the logic in `hooks/_lib/resolve_vault.sh` so MCP tools agree with
 hooks/CLI on which directory is "the vault":
 
-1. `CORTEX_VAULT_PATH` env (explicit override from plugin.json).
-2. `OBSIDIAN_VAULT` env (legacy override).
-3. `~/.config/cortex/config.json` `vault` key, expanded.
-4. Single `.obsidian/` match under `~/Documents/` or
+1. `CORTEX_VAULT_PATH` / `OBSIDIAN_VAULT` env — **platform contract**.
+   MCP servers are launched by Claude Code via `.claude-plugin/plugin.json`
+   `mcpServers.env`, which injects these. Per PRD this is the only
+   exception to the env-free rule for MCP business code.
+2. `~/.cortex/config.json` `vault` key (canonical, env-free).
+3. Single `.obsidian/` match under `~/Documents/` or
    `~/Library/Mobile Documents/`.
 
 Returns `None` when nothing matches; callers raise.
@@ -24,6 +26,7 @@ def _is_vault(p: Path) -> bool:
 
 
 def _from_env() -> Path | None:
+    # MCP platform-contract env (set by Claude Code via plugin.json).
     for key in ("CORTEX_VAULT_PATH", "OBSIDIAN_VAULT"):
         raw = os.environ.get(key)
         if not raw:
@@ -35,8 +38,7 @@ def _from_env() -> Path | None:
 
 
 def _from_config() -> Path | None:
-    base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    cfg = Path(base) / "cortex" / "config.json"
+    cfg = Path.home() / ".cortex" / "config.json"
     if not cfg.is_file():
         return None
     try:
@@ -75,5 +77,5 @@ def resolve_vault() -> Path:
             return p
     raise RuntimeError(
         "cortex: vault path unresolved. "
-        "Set CORTEX_VAULT_PATH or ~/.config/cortex/config.json 'vault' key."
+        "Set 'vault' in ~/.cortex/config.json (or CORTEX_VAULT_PATH via plugin.json mcpServers.env)."
     )

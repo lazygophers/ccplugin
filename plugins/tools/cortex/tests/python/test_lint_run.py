@@ -283,11 +283,12 @@ class LoadVaultLangFallbackChainTest(unittest.TestCase):
             json.dumps({"lang": lang}), encoding="utf-8"
         )
 
-    def test_env_wins(self):
+    def test_env_ignored_for_lang(self):
+        """Per PRD: CORTEX_LANG env is no longer consulted; meta wins."""
         self._write_meta("ja")
         self._write_cfg("fr")
         os.environ["CORTEX_LANG"] = "en-US"
-        self.assertEqual(lint_run._load_vault_lang(self.vault), "en-US")
+        self.assertEqual(lint_run._load_vault_lang(self.vault), "ja")
 
     def test_meta_wins_over_config(self):
         self._write_meta("ja")

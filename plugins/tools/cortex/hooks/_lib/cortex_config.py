@@ -70,6 +70,9 @@ def resolve(key: str, env_var: str | None, fallback: Any) -> Any:
     Empty-string values (both env and config) are treated as unset and
     fall through to the next source. This keeps `CORTEX_VAULT=""` (a
     common shell mistake) from masking a valid config entry.
+
+    NOTE: kept for backward compatibility (install.sh / bootstrap paths).
+    Plugin business code SHOULD use the env-free helpers below.
     """
     if env_var:
         env_val = os.environ.get(env_var)
@@ -80,3 +83,49 @@ def resolve(key: str, env_var: str | None, fallback: Any) -> Any:
     if val is not None and val != "":
         return val
     return fallback
+
+
+# --- Config-only helpers (env-free) -------------------------------------
+# Plugin business code uses these. Env vars are reserved for
+# platform-contract (CLAUDE_PLUGIN_ROOT) and internal runtime communication
+# (CORTEX_JOB_LABEL, CORTEX_STREAM_TEE_FILE).
+
+
+def get_config_value(key: str, default: Any = None) -> Any:
+    """Return config[key] from ~/.cortex/config.json, or `default` if absent."""
+    try:
+        cfg = load_config()
+    except ConfigSyntaxError:
+        return default
+    val = cfg.get(key)
+    if val is None or val == "":
+        return default
+    return val
+
+
+def get_vault() -> Path | None:
+    v = get_config_value("vault")
+    return Path(os.path.expanduser(v)) if v else None
+
+
+def get_plugin_root() -> Path | None:
+    p = get_config_value("install_path")
+    return Path(os.path.expanduser(p)) if p else None
+
+
+def get_lang(default: str = "zh-CN") -> str:
+    return str(get_config_value("lang", default) or default)
+
+
+def get_settings_path() -> Path:
+    s = get_config_value("settings")
+    if s:
+        return Path(os.path.expanduser(s))
+    return Path.home() / ".claude" / "settings.json"
+
+
+def get_timeout(default: int = 300) -> int:
+    try:
+        return int(get_config_value("timeout_default", default) or default)
+    except (TypeError, ValueError):
+        return default

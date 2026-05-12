@@ -126,6 +126,22 @@ cx_git_commit_vault() {
   ) || true
 }
 trap 'cx_git_commit_vault "${CORTEX_JOB_LABEL:-cortex}"' EXIT
+
+# Resolve plugin root: ~/.cortex/config.json (install_path) > $1 (build-time
+# default baked into the wrapper). Env-free per PRD.
+cx_resolve_plugin_root() {
+  local default_root="${1:-}"
+  local config="$HOME/.cortex/config.json"
+  if [[ -f "$config" ]] && command -v jq >/dev/null 2>&1; then
+    local v
+    v=$(jq -r '.install_path // empty' "$config" 2>/dev/null)
+    if [[ -n "$v" ]]; then
+      printf '%s' "$v"
+      return 0
+    fi
+  fi
+  printf '%s' "$default_root"
+}
 CXPRELUDE
 
 # Emit one wrapper. $1 = filename, $2 = body (single command line after `exec`
@@ -379,9 +395,11 @@ if [[ -f "\$VAULT/_meta/version.json" && "\$FORCE" != "--force" ]]; then
   exit 0
 fi
 
-PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+PLUGIN_ROOT="\$(cx_resolve_plugin_root "$INSTALL_PATH")"
 SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
 SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
+LANG_CODE="\$(jq -r '.lang // empty' "\$CONFIG" 2>/dev/null)"
+LANG_CODE="\${LANG_CODE:-zh-CN}"
 
 banner "init  vault=\$VAULT"
 
@@ -390,7 +408,7 @@ PROMPT="[AUTO_MODE: non-interactive shell wrapper. 不用 AskUserQuestion, 自�
 初始化 cortex vault: \$VAULT
 
 跑 cortex-install skill 完整流程:
-1. 不询问 lang, 用 \\\${CORTEX_LANG:-zh-CN}
+1. 不询问 lang, 用 \$LANG_CODE
 2. preset=lyt (固定)
 3. 写共享根 (_meta/version.json, memory-policy.yaml, template-manifest.json, _templates/, index.md, hot.md, 主页.md, 焦点.md)
 4. 按 plugin presets/_structure.json 创建知识库 + 记忆 + 仪表盘 + 归档目录树
@@ -451,7 +469,7 @@ VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
 [[ -n "\$VAULT" ]] || err "vault 路径未配置 (\$CONFIG:.vault)" 4
 SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
 SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
-PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+PLUGIN_ROOT="\$(cx_resolve_plugin_root "$INSTALL_PATH")"
 
 [[ \$# -ge 1 ]] || err "Usage: \$0 <read|write|update|forget> [args...]" 4
 
@@ -513,7 +531,7 @@ VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
 [[ -n "\$VAULT" ]] || err "vault 路径未配置" 4
 SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
 SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
-PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+PLUGIN_ROOT="\$(cx_resolve_plugin_root "$INSTALL_PATH")"
 
 [[ \$# -ge 1 ]] || err "Usage: \$0 <query> [--top-k N] [--levels L0,L1,L2,L3]" 4
 
@@ -571,7 +589,7 @@ VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
 [[ -n "\$VAULT" ]] || err "vault 路径未配置" 4
 SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
 SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
-PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+PLUGIN_ROOT="\$(cx_resolve_plugin_root "$INSTALL_PATH")"
 
 DRY_RUN=""
 for arg in "\$@"; do
@@ -642,7 +660,7 @@ VAULT="\$(jq -r '.vault // empty' "\$CONFIG" 2>/dev/null)"
 [[ -n "\$VAULT" ]] || err "vault 路径未配置" 4
 SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
 SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.glm-4.7-flash.json}"
-PLUGIN_ROOT="\${CORTEX_INSTALL_PATH:-$INSTALL_PATH}"
+PLUGIN_ROOT="\$(cx_resolve_plugin_root "$INSTALL_PATH")"
 
 banner "consolidate  vault=\$VAULT"
 

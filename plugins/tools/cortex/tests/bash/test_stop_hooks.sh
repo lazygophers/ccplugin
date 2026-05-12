@@ -33,13 +33,20 @@ EOF
   fi
 }
 
+make_home_with_vault() {
+  local home="$1" vault="$2"
+  mkdir -p "$home/.cortex"
+  printf '{"vault": "%s"}\n' "$vault" > "$home/.cortex/config.json"
+}
+
 run_stop() {
-  # stdin = JSON; env vars = vault override
+  # stdin = JSON; vault is provided via $HOME/.cortex/config.json (env-free).
   local vault="$1" json="$2"
+  local home; home=$(mktemp -d)
+  make_home_with_vault "$home" "$vault"
   printf '%s' "$json" | env -i PATH="$PATH" \
     CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-    OBSIDIAN_VAULT="$vault" \
-    HOME="$(mktemp -d)" \
+    HOME="$home" \
     bash "$STOP" 2>/dev/null
 }
 
@@ -98,7 +105,6 @@ test_vault_missing_silent() {
   out=$(printf '%s' "$payload" | env -i PATH="$PATH" \
     CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
     HOME="$sandbox/empty" \
-    XDG_CONFIG_HOME="$sandbox/xdg" \
     bash "$STOP" 2>/dev/null)
   assert_empty "$out"
 }
@@ -111,10 +117,11 @@ test_post_compact_force_writes() {
   make_transcript "$tp" trivial
   local payload
   payload=$(printf '{"transcript_path":"%s","session_id":"s1"}' "$tp")
+  local home; home=$(mktemp -d)
+  make_home_with_vault "$home" "$sandbox/v"
   out=$(printf '%s' "$payload" | env -i PATH="$PATH" \
     CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-    OBSIDIAN_VAULT="$sandbox/v" \
-    HOME="$(mktemp -d)" \
+    HOME="$home" \
     bash "$POST_COMPACT" 2>/dev/null)
   assert_contains "PostCompact" "$out"
   count=$(find "$sandbox/v/log" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
@@ -124,10 +131,11 @@ test_post_compact_force_writes() {
 test_post_compact_empty_stdin() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_vault "$sandbox/v"
+  local home; home=$(mktemp -d)
+  make_home_with_vault "$home" "$sandbox/v"
   out=$(printf '' | env -i PATH="$PATH" \
     CLAUDE_PLUGIN_ROOT="$PLUGIN_ROOT" \
-    OBSIDIAN_VAULT="$sandbox/v" \
-    HOME="$(mktemp -d)" \
+    HOME="$home" \
     bash "$POST_COMPACT" 2>/dev/null)
   assert_empty "$out"
 }
