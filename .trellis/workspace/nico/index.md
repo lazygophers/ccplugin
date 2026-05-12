@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 31
+- **Total Sessions**: 32
 - **Last Active**: 2026-05-12
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1050 | Active |
+| `journal-1.md` | ~1083 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 32 | 2026-05-12 | lint --fix 默认批量移除非 schema 到 backup | `b8f6c1d6` | `master` |
 | 31 | 2026-05-12 | cortex wrappers 扩 4 (ingest/search/save/refactor) + lint --fix 交互 | `080bf1d6` | `master` |
 | 30 | 2026-05-12 | cortex_stream.py 输出完整化 (thinking + prompt + skill name) | `8cb2ebb6` | `master` |
 | 29 | 2026-05-12 | run.sh 丢弃 stdout NDJSON 防终端污染 | `1a002389` | `master` |
