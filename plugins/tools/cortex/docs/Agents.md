@@ -1,6 +1,6 @@
 # Agents — 8 个专用多轮调度者
 
-cortex 引入 8 个专用 agent, 在 13 个 skill 之上提供"接任务后自主跑多轮"能力。每个 agent 单 .md 文件, 走 Claude Code 标准 sub-agent 协议。
+cortex 引入 8 个专用 agent, 在 21 个 skill 之上提供"接任务后自主跑多轮"能力。每个 agent 单 .md 文件, 走 Claude Code 标准 sub-agent 协议。
 
 ## 1. agent vs skill 区别
 
