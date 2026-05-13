@@ -24,7 +24,7 @@ class VaultMisalignedTest(unittest.TestCase):
 
     def test_meta_misaligned_detected(self) -> None:
         """改 _meta/triggers.yaml → 检出 vault-misaligned."""
-        src = PLUGIN_ROOT / "templates" / "triggers.yaml"
+        src = PLUGIN_ROOT / "presets" / "seed" / "_templates" / "triggers.yaml"
         dst = self.vault / "_meta" / "triggers.yaml"
         dst.write_text(src.read_text(encoding="utf-8") + "\n# user edit\n",
                        encoding="utf-8")
@@ -36,7 +36,7 @@ class VaultMisalignedTest(unittest.TestCase):
 
     def test_meta_aligned_no_finding(self) -> None:
         """文件一致 → 无 finding."""
-        src = PLUGIN_ROOT / "templates" / "triggers.yaml"
+        src = PLUGIN_ROOT / "presets" / "seed" / "_templates" / "triggers.yaml"
         dst = self.vault / "_meta" / "triggers.yaml"
         dst.write_bytes(src.read_bytes())
         findings = lint_run._check_vault_misaligned(self.vault, PLUGIN_ROOT)
@@ -110,7 +110,7 @@ class VaultMisalignedTest(unittest.TestCase):
     def test_template_file_misaligned(self) -> None:
         """改 _templates 下任意文件 → 检出 + fix 覆盖."""
         # 找一个 plugin template 文件
-        src_tpl = PLUGIN_ROOT / "templates" / "concept.md"
+        src_tpl = PLUGIN_ROOT / "presets" / "seed" / "_templates" / "concept.md"
         self.assertTrue(src_tpl.is_file())
         dst = self.vault / "_templates" / "concept.md"
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -132,7 +132,7 @@ class VaultMisalignedTest(unittest.TestCase):
 
     def test_apply_fixes_handles_vault_misaligned(self) -> None:
         """apply_fixes 集成路径生效, 计入 fixed."""
-        src = PLUGIN_ROOT / "templates" / "frontmatter-schema.yaml"
+        src = PLUGIN_ROOT / "presets" / "seed" / "_templates" / "frontmatter-schema.yaml"
         dst = self.vault / "_meta" / "frontmatter-schema.yaml"
         dst.write_text("# broken\n", encoding="utf-8")
         findings = lint_run._check_vault_misaligned(self.vault, PLUGIN_ROOT)

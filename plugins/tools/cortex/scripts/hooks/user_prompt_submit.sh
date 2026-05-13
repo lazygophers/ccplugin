@@ -35,7 +35,7 @@ except Exception:
 
 # 读触发词 (vault _meta/triggers.yaml > plugin templates/triggers.yaml)
 def load_triggers():
-    for p in [vault / "_meta" / "triggers.yaml", plugin_root / "templates" / "triggers.yaml"]:
+    for p in [vault / "_meta" / "triggers.yaml", plugin_root / "presets" / "seed" / "_templates" / "triggers.yaml"]:
         if p.is_file():
             try:
                 txt = p.read_text(errors="ignore")

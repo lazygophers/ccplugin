@@ -2,7 +2,7 @@
 """regen_template_manifest.py — 扫 templates/ + presets/seed/, 生成 sha256 + version manifest.
 
 Outputs:
-- plugins/tools/cortex/templates/_manifest.json
+- plugins/tools/cortex/presets/seed/_templates/_manifest.json
 - plugins/tools/cortex/presets/_manifest.json
 - plugins/tools/cortex/_manifest.json  (global, top-level summary)
 
@@ -70,7 +70,7 @@ def main() -> int:
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # templates/
-    tpl_base = ROOT / "templates"
+    tpl_base = ROOT / "presets" / "seed" / "_templates"
     tpl_entries = gen_entries(tpl_base, ["**/*.md", "**/*.html"])
     tpl_version = max(
         (e["template_version"] for e in tpl_entries.values()), default=1

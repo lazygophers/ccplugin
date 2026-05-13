@@ -105,7 +105,7 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 
 5. **套模板**
    - 优先读 `<vault>/_templates/<type>.md`
-   - 不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/templates/<type>.md`
+   - 不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/seed/_templates/<type>.md`
    - 替换 `{{TITLE}}` `{{CREATED}}` `{{UPDATED}}` (UTC `YYYY-MM-DD`) `{{PRESET}}` `{{URL}}` `{{AUTHOR}}`
    - 必填 frontmatter: `type`, `title`, `created`, `updated`, `tags: [cortex-auto, ingested]`
    - source 类型加 `url:` `ingested_at:` 字段

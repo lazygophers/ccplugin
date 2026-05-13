@@ -63,7 +63,7 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
    preset (`_meta/version.json:.preset`) 不是 `lyt` 时, concept 路径切换为对应 preset 的扁平结构。
 
 4. **套模板 + 填 frontmatter**
-   - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/templates/<type>.md`)
+   - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/seed/_templates/<type>.md`)
    - 替换 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` (UTC `YYYY-MM-DD`) / `{{PRESET}}`
    - tags: 自动加 `[cortex-auto]` 标记由 skill 写入
 

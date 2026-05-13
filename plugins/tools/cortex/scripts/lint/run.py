@@ -527,7 +527,7 @@ def _load_frontmatter_schema(vault: Path, plugin_root: Path) -> dict[str, Any] |
     except ImportError:
         return None
     for p in (vault / "_meta" / "frontmatter-schema.yaml",
-              plugin_root / "templates" / "frontmatter-schema.yaml"):
+              plugin_root / "presets" / "seed" / "_templates" / "frontmatter-schema.yaml"):
         if p.is_file():
             try:
                 data = yaml.safe_load(p.read_text(encoding="utf-8"))
@@ -737,7 +737,7 @@ def _read_template_version(p: Path) -> int:
 def _check_template_outdated(vault: Path, plugin_root: Path) -> list[dict[str, Any]]:
     """Rule template-outdated/template-missing — vault/_templates vs plugin manifest."""
     findings: list[dict[str, Any]] = []
-    manifest = _load_manifest(plugin_root / "templates" / "_manifest.json")
+    manifest = _load_manifest(plugin_root / "presets" / "seed" / "_templates" / "_manifest.json")
     if not manifest:
         return findings
     entries = manifest.get("entries", {}) if isinstance(manifest, dict) else {}
@@ -839,11 +839,11 @@ def _check_meta_missing(vault: Path, plugin_root: Path) -> list[dict[str, Any]]:
         ("_meta/memory-policy.yaml",
          plugin_root / "presets" / "seed" / "_meta" / "memory-policy.yaml"),
         ("_meta/triggers.yaml",
-         plugin_root / "templates" / "triggers.yaml"),
+         plugin_root / "presets" / "seed" / "_templates" / "triggers.yaml"),
         ("_meta/template-manifest.json",
-         plugin_root / "templates" / "_manifest.json"),
+         plugin_root / "presets" / "seed" / "_templates" / "_manifest.json"),
         ("_meta/frontmatter-schema.yaml",
-         plugin_root / "templates" / "frontmatter-schema.yaml"),
+         plugin_root / "presets" / "seed" / "_templates" / "frontmatter-schema.yaml"),
     ]
     for rel, src in targets:
         if src.exists() and not (vault / rel).exists():
@@ -920,11 +920,11 @@ def _fix_meta_missing(
         "_meta/memory-policy.yaml":
             plugin_root / "presets" / "seed" / "_meta" / "memory-policy.yaml",
         "_meta/triggers.yaml":
-            plugin_root / "templates" / "triggers.yaml",
+            plugin_root / "presets" / "seed" / "_templates" / "triggers.yaml",
         "_meta/template-manifest.json":
-            plugin_root / "templates" / "_manifest.json",
+            plugin_root / "presets" / "seed" / "_templates" / "_manifest.json",
         "_meta/frontmatter-schema.yaml":
-            plugin_root / "templates" / "frontmatter-schema.yaml",
+            plugin_root / "presets" / "seed" / "_templates" / "frontmatter-schema.yaml",
     }
     src = src_map.get(rel)
     if src is None or not src.exists():
@@ -1040,7 +1040,7 @@ def _fix_template_outdated(
     if not file_path.startswith("_templates/"):
         return False
     rel = file_path[len("_templates/"):]
-    src = plugin_root / "templates" / rel
+    src = plugin_root / "presets" / "seed" / "_templates" / rel
     dst = vault / "_templates" / rel
     if not src.exists():
         return False
@@ -1125,18 +1125,18 @@ def _resolve_plugin_source(rel: str, plugin_root: Path) -> Path | None:
         name = rel[len("_meta/"):]
         for cand in (
             plugin_root / "presets" / "seed" / "_meta" / name,
-            plugin_root / "templates" / name,
+            plugin_root / "presets" / "seed" / "_templates" / name,
         ):
             if cand.exists():
                 return cand
         # 特例: template-manifest.json ← templates/_manifest.json
         if name == "template-manifest.json":
-            cand = plugin_root / "templates" / "_manifest.json"
+            cand = plugin_root / "presets" / "seed" / "_templates" / "_manifest.json"
             if cand.exists():
                 return cand
         return None
     if rel.startswith("_templates/"):
-        cand = plugin_root / "templates" / rel[len("_templates/"):]
+        cand = plugin_root / "presets" / "seed" / "_templates" / rel[len("_templates/"):]
         return cand if cand.exists() else None
     # seed_files 反查
     sf = plugin_root / "presets" / "_structure.json"
@@ -1195,9 +1195,9 @@ def _check_vault_misaligned(vault: Path, plugin_root: Path) -> list[dict[str, An
         ("_meta/memory-policy.yaml",
          plugin_root / "presets" / "seed" / "_meta" / "memory-policy.yaml"),
         ("_meta/triggers.yaml",
-         plugin_root / "templates" / "triggers.yaml"),
+         plugin_root / "presets" / "seed" / "_templates" / "triggers.yaml"),
         ("_meta/frontmatter-schema.yaml",
-         plugin_root / "templates" / "frontmatter-schema.yaml"),
+         plugin_root / "presets" / "seed" / "_templates" / "frontmatter-schema.yaml"),
     ]
     for rel, src in meta_pairs:
         dst = vault / rel
@@ -1211,7 +1211,7 @@ def _check_vault_misaligned(vault: Path, plugin_root: Path) -> list[dict[str, An
             ))
 
     # 3) _templates/* — 整体 sha 比对 (补 template-outdated 漏掉的: 同版本号但内容被改)
-    tpl_dir = plugin_root / "templates"
+    tpl_dir = plugin_root / "presets" / "seed" / "_templates"
     if tpl_dir.is_dir():
         for src in tpl_dir.rglob("*"):
             if not src.is_file():
