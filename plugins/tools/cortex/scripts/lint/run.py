@@ -113,6 +113,104 @@ _BANNED_TAGS = {"index", "meta", "template", "_index", "stub"}
 # frontmatter 禁止字段 (preset 不应在 page fm 中, 它属 vault meta)
 _BANNED_FM_FIELDS = {"preset"}
 
+# fm-missing-tags autofix: tag 数量上下界
+_TAGS_MIN = 10
+_TAGS_MAX = 20
+
+# 占位符模式 — 严禁出现在 autofix 输出
+_PLACEHOLDER_RE = re.compile(
+    r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX", re.I,
+)
+
+
+def _derive_tags_for_autofix(fm: dict, body: str) -> list[str] | None:
+    """读 fm + 正文派生 ≥10 tag, 严禁占位符。
+
+    返回派生后 tag 列表 (>= _TAGS_MIN), 不足 _TAGS_MIN 返 None (autofix 失败).
+    """
+    existing = list(fm.get("tags") or []) if isinstance(fm.get("tags"), list) else []
+    derived: list[str] = []
+
+    # 1. frontmatter 派生
+    def _push(t: str) -> None:
+        if t and isinstance(t, str):
+            derived.append(t)
+
+    if fm.get("type"):
+        _push(f"type/{fm['type']}")
+    if fm.get("lang"):
+        _push(f"lang/{fm['lang']}")
+    if fm.get("host"):
+        _push(f"host/{fm['host']}")
+    if fm.get("org"):
+        _push(f"org/{fm['org']}")
+    if fm.get("repo"):
+        _push(f"repo/{fm['repo']}")
+    if fm.get("kind"):
+        _push(f"kind/{fm['kind']}")
+    if fm.get("source_kind"):
+        _push(f"source/{fm['source_kind']}")
+    if fm.get("maturity"):
+        _push(f"maturity/{fm['maturity']}")
+    if fm.get("status"):
+        _push(f"status/{fm['status']}")
+    if fm.get("entity_kind"):
+        _push(f"entity/{fm['entity_kind']}")
+    if fm.get("score") is not None:
+        _push(f"score/{fm['score']}")
+    if fm.get("rating") not in (None, 0, "0"):
+        _push(f"rating/{fm['rating']}")
+    if fm.get("source_url"):
+        m = re.search(r"://([^/]+)", str(fm["source_url"]))
+        if m:
+            _push(f"source/{m.group(1)}")
+    if fm.get("url"):
+        m = re.search(r"://([^/]+)", str(fm["url"]))
+        if m:
+            _push(f"host/{m.group(1)}")
+    if fm.get("created"):
+        y = str(fm["created"])[:4]
+        if y.isdigit():
+            _push(f"created/{y}")
+    if fm.get("updated"):
+        y = str(fm["updated"])[:4]
+        if y.isdigit() and y != str(fm.get("created", ""))[:4]:
+            _push(f"updated/{y}")
+
+    # 2. 正文 h1/h2 → topic/<slug>
+    for m in re.finditer(r"^#{1,2}\s+(.+?)$", body[:2000], re.M):
+        title = m.group(1).strip()
+        slug = re.sub(r"[\s/\\:*?\"<>|]+", "-", title)[:30]
+        slug = slug.strip("-_")
+        if slug and len(slug) >= 2:
+            _push(f"topic/{slug}")
+
+    # 3. 首 500 字: 中文 2-4 字短语 + 英文 PascalCase/camelCase
+    head = body[:500]
+    for ph in re.findall(r"[一-龥]{2,4}", head):
+        if len(ph) >= 2:
+            _push(f"keyword/{ph}")
+    for ph in re.findall(r"\b[A-Z][a-zA-Z]{2,15}\b", head):
+        _push(f"keyword/{ph.lower()}")
+
+    # 合并 existing + derived, 去重保序, 过滤占位符
+    seen: set[str] = set()
+    merged: list[str] = []
+    for t in list(existing) + derived:
+        if not isinstance(t, str) or not t.strip():
+            continue
+        if _PLACEHOLDER_RE.search(t):
+            continue
+        if t in seen:
+            continue
+        seen.add(t)
+        merged.append(t)
+
+    merged = merged[:_TAGS_MAX]
+    if len(merged) < _TAGS_MIN:
+        return None
+    return merged
+
 
 def _load_lint_whitelist(vault: Path) -> set[str]:
     """Return whitelist set from `_meta/version.json:.lint_whitelist[]`.
@@ -368,6 +466,11 @@ def check_file(
     findings: list[dict[str, Any]] = []
     fm, body_line = parse_frontmatter(text)
 
+    # lint-skip: 模板/示例文件可通过 `lint-skip: true` 跳过全部检查 (但 _meta/仪表盘/_assets/归档 已在 EXCLUDE_DIRS / whitelist 处理)
+    _ls = fm.get("lint-skip") if fm else None
+    if _ls in (True, "true", "True", "yes", 1, "1"):
+        return findings
+
     # rule: frontmatter-schema-violation
     if fm_schema is not None:
         findings.extend(_check_frontmatter_schema(rel, fm, fm_schema))
@@ -385,11 +488,22 @@ def check_file(
             "fm-banned-fields", "warn", rel, 1,
             f"frontmatter 含禁止字段: {', '.join(_banned_fields)}", True,
         ))
-    # rule: fm-missing-tags (tags 字段必须存在, 可为空 list)
+    # rule: fm-missing-tags (tags 字段必须存在 + 类型 list + 数量 ≥ 10)
+    _tg_check = fm.get("tags") if "tags" in fm else None
     if "tags" not in fm:
         findings.append(_f(
             "fm-missing-tags", "warn", rel, 1,
-            "frontmatter 缺 tags 字段 (必须存在, 空 list 可)", True,
+            "frontmatter 缺 tags 字段", True,
+        ))
+    elif not isinstance(_tg_check, list):
+        findings.append(_f(
+            "fm-missing-tags", "warn", rel, 1,
+            "frontmatter tags 非 list", True,
+        ))
+    elif len(_tg_check) < 10:
+        findings.append(_f(
+            "fm-missing-tags", "warn", rel, 1,
+            f"frontmatter tags 数量 {len(_tg_check)} < 10", True,
         ))
     # rule: fm-duplicate-tags + fm-banned-tags
     _tags = fm.get("tags")
@@ -2035,13 +2149,17 @@ def apply_fixes(
                         _fm4 = _yaml4.safe_load(m_fm4.group(1)) or {}
                     except Exception:
                         _fm4 = None
-                    if isinstance(_fm4, dict) and "tags" not in _fm4:
-                        _fm4["tags"] = []
-                        _new_fm4 = _yaml4.safe_dump(
-                            _fm4, allow_unicode=True, sort_keys=False,
-                        )
-                        new_text = f"---\n{_new_fm4}---\n{m_fm4.group(2)}"
-                        fixed += 1
+                    if isinstance(_fm4, dict):
+                        _body4 = m_fm4.group(2) or ""
+                        _derived = _derive_tags_for_autofix(_fm4, _body4)
+                        if _derived is not None and len(_derived) >= _TAGS_MIN:
+                            _fm4["tags"] = _derived
+                            _new_fm4 = _yaml4.safe_dump(
+                                _fm4, allow_unicode=True, sort_keys=False,
+                            )
+                            new_text = f"---\n{_new_fm4}---\n{_body4}"
+                            fixed += 1
+                        # 派生不足 → 不写盘, 保留 warn 待人工/AI 补
             elif rule == "fm-banned-tags":
                 try:
                     import yaml as _yaml2  # type: ignore

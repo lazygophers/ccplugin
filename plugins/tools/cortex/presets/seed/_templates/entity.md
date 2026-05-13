@@ -1,9 +1,20 @@
 <!-- cortex template: entity -->
 ---
+lint-skip: true
 type: entity
 title: {{TITLE}}
 aliases: []
-tags: [entity]
+tags:
+  - type/entity
+  - entity/<person|tool|project|org|service>
+  - topic/<主题>
+  - stack/<技术栈>
+  - lang/<语言>
+  - source/<来源类型>
+  - score/<1-5>
+  - maturity/<draft|review|stable|deprecated>
+  - created/<YYYY>
+  - keyword/<关键词>
 created: {{CREATED}}
 updated: {{UPDATED}}
 lang: {{LANG}}

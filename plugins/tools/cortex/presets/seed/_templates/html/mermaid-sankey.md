@@ -7,6 +7,7 @@
 -->
 
 ---
+lint-skip: true
 template_version: 2
 ---
 

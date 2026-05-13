@@ -1,9 +1,20 @@
 <!-- cortex template: source -->
 ---
+lint-skip: true
 type: source
 title: {{TITLE}}
 aliases: []
-tags: [source]
+tags:
+  - type/source
+  - source/<article|book|video|paper|talk|docs|repo>
+  - topic/<主题>
+  - stack/<技术栈>
+  - lang/<语言>
+  - host/<域名>
+  - score/<1-5>
+  - maturity/<draft|review|stable|deprecated>
+  - created/<YYYY>
+  - keyword/<关键词>
 created: {{CREATED}}
 updated: {{UPDATED}}
 lang: {{LANG}}

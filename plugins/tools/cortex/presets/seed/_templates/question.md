@@ -1,9 +1,20 @@
 <!-- cortex template: question -->
 ---
+lint-skip: true
 type: question
 title: {{TITLE}}
 aliases: []
-tags: [question, "#cortex"]
+tags:
+  - type/question
+  - topic/<主题>
+  - stack/<技术栈>
+  - lang/<语言>
+  - status/<open|exploring|answered|abandoned>
+  - priority/<low|medium|high>
+  - source/<来源类型>
+  - score/<1-5>
+  - created/<YYYY>
+  - keyword/<关键词>
 created: {{CREATED}}
 updated: {{UPDATED}}
 lang: {{LANG}}

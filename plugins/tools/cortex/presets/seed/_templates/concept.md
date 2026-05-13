@@ -1,9 +1,20 @@
 <!-- cortex template: concept -->
 ---
+lint-skip: true
 type: concept
 title: {{TITLE}}
 aliases: []
-tags: [concept]
+tags:
+  - type/concept
+  - topic/<主题>
+  - stack/<技术栈>
+  - lang/<语言>
+  - source/<来源类型>
+  - score/<1-5>
+  - maturity/<draft|review|stable|deprecated>
+  - created/<YYYY>
+  - host/<域名>
+  - keyword/<关键词>
 created: {{CREATED}}
 updated: {{UPDATED}}
 lang: {{LANG}}

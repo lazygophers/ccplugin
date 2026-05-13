@@ -1,4 +1,5 @@
 ---
+lint-skip: true
 template_version: 1
 type: connection
 from_domain: {{FROM_DOMAIN}}

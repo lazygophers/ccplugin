@@ -1,6 +1,7 @@
 <!-- cortex template: _index -->
 <!-- cortex-template-version: 1 -->
 ---
+lint-skip: true
 type: meta
 title: {{TITLE}}
 aliases: [templates]

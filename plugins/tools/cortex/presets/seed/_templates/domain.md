@@ -1,9 +1,20 @@
 <!-- cortex template: domain -->
 ---
+lint-skip: true
 type: domain
 title: {{TITLE}}
 aliases: []
-tags: [domain]
+tags:
+  - type/domain
+  - topic/<主题>
+  - stack/<技术栈>
+  - lang/<语言>
+  - status/<active|dormant|archived>
+  - host/<域名>
+  - org/<组织>
+  - score/<1-5>
+  - created/<YYYY>
+  - keyword/<关键词>
 created: {{CREATED}}
 updated: {{UPDATED}}
 lang: {{LANG}}

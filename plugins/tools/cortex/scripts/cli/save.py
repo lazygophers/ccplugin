@@ -28,10 +28,85 @@ from typing import Any
 # Allow `python3 save.py` invocation: add this dir to sys.path so `from lib...` works.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import re as _re  # noqa: E402
+
 from lib.frontmatter import dump as fm_dump  # noqa: E402
 from lib.lock import file_lock  # noqa: E402
 from lib.vault_path import resolve_vault  # noqa: E402
 from lib.wikilinks import add_block_ids, slugify  # noqa: E402
+
+_TAGS_MIN = 10
+_TAGS_MAX = 20
+_PLACEHOLDER_RE = _re.compile(
+    r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX", _re.I,
+)
+
+
+def _derive_tags(fm: dict, body: str) -> list[str]:
+    """Extend `fm['tags']` to ≥ _TAGS_MIN by deriving from fm + body.
+
+    严禁占位符。返回去重保序后 tag list (>=10 时上限 _TAGS_MAX);
+    若派生不足 _TAGS_MIN, 返回尽力派生的结果 (调用方自决是否报错).
+    """
+    existing = list(fm.get("tags") or [])
+    derived: list[str] = []
+
+    def _push(t: str) -> None:
+        if t and isinstance(t, str):
+            derived.append(t)
+
+    if fm.get("type"):
+        _push(f"type/{fm['type']}")
+    if fm.get("lang"):
+        _push(f"lang/{fm['lang']}")
+    src = fm.get("source") or {}
+    if isinstance(src, dict):
+        url = src.get("url")
+        if url:
+            m = _re.search(r"://([^/]+)", str(url))
+            if m:
+                _push(f"host/{m.group(1)}")
+            _push("source/web")
+    for k in ("host", "org", "repo"):
+        v = fm.get(k)
+        if v:
+            _push(f"{k}/{v}")
+    if fm.get("maturity"):
+        _push(f"maturity/{fm['maturity']}")
+    if fm.get("score") is not None:
+        _push(f"score/{fm['score']}")
+    if fm.get("created"):
+        y = str(fm["created"])[:4]
+        if y.isdigit():
+            _push(f"created/{y}")
+
+    # h1/h2 → topic
+    for m in _re.finditer(r"^#{1,2}\s+(.+?)$", body[:2000], _re.M):
+        title = m.group(1).strip()
+        slug = _re.sub(r"[\s/\\:*?\"<>|]+", "-", title)[:30].strip("-_")
+        if slug and len(slug) >= 2:
+            _push(f"topic/{slug}")
+
+    # first 500 chars: 中文 2-4 字 + 英文 PascalCase
+    head = body[:500]
+    for ph in _re.findall(r"[一-龥]{2,4}", head):
+        if len(ph) >= 2:
+            _push(f"keyword/{ph}")
+    for ph in _re.findall(r"\b[A-Z][a-zA-Z]{2,15}\b", head):
+        _push(f"keyword/{ph.lower()}")
+
+    seen: set[str] = set()
+    merged: list[str] = []
+    for t in list(existing) + derived:
+        if not isinstance(t, str) or not t.strip():
+            continue
+        if _PLACEHOLDER_RE.search(t):
+            continue
+        if t in seen:
+            continue
+        seen.add(t)
+        merged.append(t)
+    return merged[:_TAGS_MAX]
 
 
 def _load_masking() -> Any:
@@ -214,11 +289,19 @@ def _save_internal(
         "tags": list(tags),
         "aliases": [],
     }
+    if host is not None:
+        fm["host"] = host
+    if org is not None:
+        fm["org"] = org
+    if repo is not None:
+        fm["repo"] = repo
     if source_meta:
         fm["source"] = source_meta
     if extra_fm:
         for k, v in extra_fm.items():
             fm[k] = v
+    # 强制 tags ≥ 10 (严禁占位符): 派生 fm + 正文派生
+    fm["tags"] = _derive_tags(fm, masked_body)
     content = fm_dump(
         fm, body_with_ids if body_with_ids.endswith("\n") else body_with_ids + "\n"
     )

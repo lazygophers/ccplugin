@@ -1,4 +1,5 @@
 ---
+lint-skip: true
 template_version: 1
 uri: {{URI}}
 level: L0

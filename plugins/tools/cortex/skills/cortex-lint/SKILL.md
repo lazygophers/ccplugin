@@ -44,6 +44,12 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 | 11  | block-id-duplicate    | error    | ✓ (重哈希)                                       |
 | 12  | callout-unknown-type  | warn     | ✗ (报告)                                         |
 | 13  | path-naming-violation | warn     | ✗ (cortex-refactor rename)                       |
+| 14  | fm-duplicate-tags     | warn     | ✓ (保序去重)                                     |
+| 15  | fm-banned-tags        | warn     | ✓ (移除 index/meta/template/_index/stub)         |
+| 16  | fm-banned-fields      | warn     | ✓ (移除 preset 等)                               |
+| 17  | fm-missing-tags       | warn     | ✓ (字段缺失或数量 < 10; autofix 读 fm+正文派生 ≥10, 严禁占位) |
+
+模板/示例文件可在 frontmatter 加 `lint-skip: true` 跳过全部检查 (供 `_templates/**/*.md` 使用)。
 
 ## 输出格式
 

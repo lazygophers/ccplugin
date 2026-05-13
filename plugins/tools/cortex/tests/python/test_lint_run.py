@@ -124,10 +124,15 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             p = vault / "知识库" / "领域" / "x.md"
+            # 提供足够 fm + 正文派生信息, autofix 应能补到 ≥10
             write_md(
                 p,
-                {"type": "concept", "title": "x", "created": "2026-05-11"},
-                "# x\n",
+                {"type": "concept", "title": "x", "created": "2026-05-11",
+                 "lang": "zh-CN", "host": "example.com", "org": "demo",
+                 "repo": "demo-repo", "source_url": "https://example.com/x",
+                 "maturity": "draft", "score": 3},
+                "# 标题甲\n\n## 子标题乙\n\n这是一段中文正文 关于 数据库 索引 优化。\n"
+                "包含 PostgreSQL 与 MySQL 比较。MoreContent SomePhrase\n",
             )
             run_lint(vault, "--fix")
             text = p.read_text(encoding="utf-8")
@@ -137,6 +142,7 @@ class LintRulesTest(unittest.TestCase):
             fm = _yaml.safe_load(m.group(1))
             self.assertIn("tags", fm)
             self.assertIsInstance(fm["tags"], list)
+            self.assertGreaterEqual(len(fm["tags"]), 10)
 
     def test_rule_fm_banned_tags(self):
         with tempfile.TemporaryDirectory() as d:
@@ -323,6 +329,108 @@ class LintRulesTest(unittest.TestCase):
             )
             rc, rep = run_lint(vault)
             self.assertIn("i18n-path-not-in-locale", rules_hit(rep))
+
+    # --- fm-missing-tags ≥10 强制规则 (新行为) ---
+
+    def test_rule_fm_missing_tags_field_absent(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            write_md(
+                vault / "知识库" / "领域" / "x.md",
+                {"type": "concept", "title": "x", "created": "2026-05-11"},
+                "# x\n",
+            )
+            rc, rep = run_lint(vault)
+            self.assertIn("fm-missing-tags", rules_hit(rep))
+
+    def test_rule_fm_missing_tags_too_few(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            write_md(
+                vault / "知识库" / "领域" / "x.md",
+                {"type": "concept", "title": "x", "created": "2026-05-11",
+                 "tags": ["a", "b", "c"]},
+                "# x\n",
+            )
+            rc, rep = run_lint(vault)
+            self.assertIn("fm-missing-tags", rules_hit(rep))
+
+    def test_rule_fm_missing_tags_autofix_derives_from_fm_and_body(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            p = vault / "知识库" / "领域" / "x.md"
+            write_md(
+                p,
+                {"type": "concept", "title": "x", "created": "2026-05-11",
+                 "lang": "zh-CN", "host": "example.com", "org": "demo",
+                 "repo": "demo-repo", "maturity": "draft", "score": 3,
+                 "source_url": "https://example.com/x"},
+                "# 一个标题\n\n## 子主题\n\n这里 介绍 数据库 索引 优化 方案。SomeWord OtherTerm\n",
+            )
+            run_lint(vault, "--fix")
+            text = p.read_text(encoding="utf-8")
+            import re as _re
+            import yaml as _yaml
+            m = _re.match(r"^---\n(.*?)\n---", text, _re.S)
+            fm = _yaml.safe_load(m.group(1))
+            self.assertGreaterEqual(len(fm.get("tags") or []), 10)
+
+    def test_rule_fm_missing_tags_autofix_rejects_placeholders(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            p = vault / "知识库" / "领域" / "x.md"
+            write_md(
+                p,
+                {"type": "concept", "title": "x", "created": "2026-05-11",
+                 "lang": "zh-CN", "host": "example.com", "org": "demo",
+                 "repo": "demo-repo", "maturity": "draft", "score": 3,
+                 "source_url": "https://example.com/x"},
+                "# 一个标题\n\n## 子主题\n\n这里 介绍 数据库 索引 优化。SomeWord OtherTerm\n",
+            )
+            run_lint(vault, "--fix")
+            text = p.read_text(encoding="utf-8")
+            import re as _re
+            import yaml as _yaml
+            m = _re.match(r"^---\n(.*?)\n---", text, _re.S)
+            fm = _yaml.safe_load(m.group(1))
+            tags = fm.get("tags") or []
+            for t in tags:
+                self.assertNotRegex(
+                    str(t),
+                    r"<.*?>|placeholder|TODO|待填|TBD|FIXME",
+                    msg=f"autofix 不应写占位符: {t}",
+                )
+
+    def test_rule_fm_missing_tags_autofix_cant_fill_keeps_warn(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            p = vault / "知识库" / "领域" / "x.md"
+            # 极简 fm + 极简 body, 派生不到 10 个
+            write_md(
+                p,
+                {"type": "concept", "title": "x", "created": "2026-05-11"},
+                "# x\n",
+            )
+            run_lint(vault, "--fix")
+            # 再跑一次 lint, 应仍有 fm-missing-tags warning
+            rc, rep = run_lint(vault)
+            self.assertIn("fm-missing-tags", rules_hit(rep))
+
+    def test_lint_skip_short_circuits_all_checks(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            # 写一个缺各种 fm + 含 dead wikilink 的页, 但加 lint-skip
+            p = vault / "知识库" / "领域" / "tpl.md"
+            write_md(
+                p,
+                {"lint-skip": True, "type": "concept", "title": "tpl",
+                 "created": "2026-05-11"},
+                "# tpl\n\n[[non-existent-target]]\n",
+            )
+            rc, rep = run_lint(vault)
+            # 该文件不应出现在 findings 内
+            for f in rep.get("errors", []) + rep.get("warnings", []):
+                self.assertNotEqual(f["file"], "知识库/领域/tpl.md", msg=str(f))
 
 
 class AutofixTest(unittest.TestCase):

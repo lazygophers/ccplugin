@@ -226,7 +226,7 @@ title: <人类可读标题>
 desc: <1-3 句, 这页讲啥, 用于召回排序>
 created: <YYYY-MM-DD>
 updated: <YYYY-MM-DD>
-tags: [<分类>, <主题>, <技术栈>, ...]   # ≥ 3 个
+tags: [<分类>, <主题>, <技术栈>, ...]   # ≥ 10 个 (严禁 placeholder/<待填>/TODO 等占位)
 source_url: <原始 URL — github/gitlab repo url / website url / arxiv url / 本地 git remote / N/A>
 version: <对应原始版本 — git commit sha / git tag / package version / website fetch date>
 when_to_read: <触发条件描述, 给 AI 召回判定用; 例 "当用户问 X / 改 Y / 调试 Z 时">
@@ -266,12 +266,19 @@ ingest 必须**深度**, 不允许只读 README 草草交差:
 
 ### 6. tag 强制约定
 
-`tags[]` 必须 ≥ 3 个, 至少覆盖:
+`tags[]` 必须 ≥ 10 个, 严禁占位 (`<待填>` / `placeholder/N` / `TODO` / `TBD` 等空语义), 至少覆盖:
 
-1. **来源类型**: `source/repo` / `source/web` / `source/paper` / `source/book` / `source/local`
-2. **主题域**: `topic/<领域>` (例 `topic/database`, `topic/llm`, `topic/security`)
-3. **技术栈**: `stack/<语言或框架>` (例 `stack/python`, `stack/rust`, `stack/react`); 多个并列
+1. **来源类型**: `source/repo` / `source/web` / `source/paper` / `source/book` / `source/local` (必含)
+2. **主题域**: `topic/<领域>` (例 `topic/database`, `topic/llm`, `topic/security`) (必含)
+3. **技术栈**: `stack/<语言或框架>` (例 `stack/python`, `stack/rust`, `stack/react`); 多个并列 (必含)
+4. **来源元数据**: `host/<host>` / `org/<org>` / `repo/<repo>`
+5. **语言**: `lang/<zh-CN|en|...>`
+6. **质量评分**: `score/<1-5>`
+7. **成熟度**: `maturity/<draft|review|stable|deprecated>`
+8. **时间**: `created/<YYYY>`
+9. **类型**: `type/<concept|domain|log|...>`
+10. **关键词**: `keyword/<词>` (从 h1/h2/正文派生, 中文 2-4 字短语或英文 PascalCase 词)
 
-可选额外: `host/<host>` / `org/<org>` / `lang/<zh-CN|en|...>` / `freq/<level>`。
+lint 规则 `fm-missing-tags` 强制 ≥ 10, autofix 会读 frontmatter + 正文派生; 派生不足 10 由 AI 二次补足, 严禁写占位符。
 
 tag 命名: kebab-case, 斜杠分层, 全小写。

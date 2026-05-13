@@ -1,9 +1,20 @@
 <!-- cortex template: dashboard -->
 ---
+lint-skip: true
 type: dashboard
 title: {{TITLE}}
 aliases: []
-tags: [dashboard]
+tags:
+  - type/dashboard
+  - topic/<主题>
+  - refresh/<manual|daily|weekly>
+  - scope/<范围>
+  - lang/<语言>
+  - source/dashboard
+  - status/active
+  - score/<1-5>
+  - created/<YYYY>
+  - keyword/<关键词>
 created: {{CREATED}}
 updated: {{UPDATED}}
 lang: {{LANG}}

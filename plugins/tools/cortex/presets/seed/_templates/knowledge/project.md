@@ -1,4 +1,5 @@
 ---
+lint-skip: true
 template_version: 1
 type: project
 name: {{NAME}}
