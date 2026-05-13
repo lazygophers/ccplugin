@@ -67,6 +67,37 @@ class LintRulesTest(unittest.TestCase):
             rc, rep = run_lint(vault)
             self.assertIn("fm-missing-created", rules_hit(rep))
 
+    def test_rule_fm_duplicate_tags(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            write_md(
+                vault / "概念" / "x.md",
+                {"type": "concept", "title": "x", "created": "2026-05-11",
+                 "tags": ["a", "b", "a", "c", "b"]},
+                "# x\n",
+            )
+            rc, rep = run_lint(vault)
+            self.assertIn("fm-duplicate-tags", rules_hit(rep))
+
+    def test_rule_fm_duplicate_tags_autofix(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            p = vault / "概念" / "x.md"
+            write_md(
+                p,
+                {"type": "concept", "title": "x", "created": "2026-05-11",
+                 "tags": ["a", "b", "a", "c", "b"]},
+                "# x\n",
+            )
+            run_lint(vault, "--fix")
+            text = p.read_text(encoding="utf-8")
+            # parse fm
+            import re as _re
+            import yaml as _yaml
+            m = _re.match(r"^---\n(.*?)\n---", text, _re.S)
+            fm = _yaml.safe_load(m.group(1))
+            self.assertEqual(fm["tags"], ["a", "b", "c"])
+
     def test_rule3_dead_wikilink(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
@@ -163,14 +194,14 @@ class LintRulesTest(unittest.TestCase):
             rc, rep = run_lint(vault)
             self.assertIn("callout-unknown-type", rules_hit(rep))
 
-    def test_rule13_path_naming_violation_log(self):
+    def test_rule13_legacy_log_dir_is_structure_violation(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            bad = vault / "log" / "2026-05" / "BADNAME.md"
+            bad = vault / "log" / "2026-05" / "anything.md"
             bad.parent.mkdir(parents=True, exist_ok=True)
             bad.write_text("---\ntype: log\ntitle: x\ncreated: 2026-05-11\n---\n# x\n", encoding="utf-8")
             rc, rep = run_lint(vault)
-            self.assertIn("path-naming-violation", rules_hit(rep))
+            self.assertIn("vault-structure-violation", rules_hit(rep))
 
     def test_rule14_i18n_lang_mismatch(self):
         with tempfile.TemporaryDirectory() as d:

@@ -56,8 +56,8 @@ EXCLUDE_DIRS = {"_meta", ".obsidian", ".trash", ".git"}
 
 # Shared root dirs (i18n whitelist; never reported by i18n-* rules)
 SHARED_ROOT_DIRS = {
-    "_meta", "_templates", "locales", "sessions",
-    "log", "folds", ".obsidian", ".trash", ".git",
+    "_meta", "_templates", "locales",
+    ".obsidian", ".trash", ".git",
 }
 SHARED_ROOT_FILES = {"index.md", "hot.md"}
 TIME_DIR_RE = re.compile(r"^\d{4}-\d{2}$")
@@ -105,12 +105,49 @@ def _load_vault_preset(vault: Path) -> str:
     return v if isinstance(v, str) and v else "LYT"
 
 
+_DEPRECATED_WHITELIST = {"log/", "folds/", "sessions/"}
+
+
 def _load_lint_whitelist(vault: Path) -> set[str]:
-    """Return whitelist set from `_meta/version.json:.lint_whitelist[]`."""
+    """Return whitelist set from `_meta/version.json:.lint_whitelist[]`.
+
+    Deprecated entries (log/, folds/, sessions/) are auto-stripped — these
+    legacy roots must surface as vault-structure-violation so the autofix
+    can mv them to lint-backup.
+    """
     v = _load_vault_meta(vault).get("lint_whitelist")
     if isinstance(v, list):
-        return {x for x in v if isinstance(x, str) and x}
+        return {
+            x for x in v
+            if isinstance(x, str) and x and x not in _DEPRECATED_WHITELIST
+        }
     return set()
+
+
+def _prune_deprecated_whitelist(vault: Path) -> bool:
+    """Remove deprecated entries from `_meta/version.json:lint_whitelist`.
+
+    Returns True when the file was rewritten.
+    """
+    p = vault / "_meta" / "version.json"
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    if not isinstance(data, dict):
+        return False
+    wl = data.get("lint_whitelist")
+    if not isinstance(wl, list):
+        return False
+    pruned = [x for x in wl if not (isinstance(x, str) and x in _DEPRECATED_WHITELIST)]
+    if len(pruned) == len(wl):
+        return False
+    data["lint_whitelist"] = pruned
+    try:
+        p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        return True
+    except Exception:
+        return False
 
 
 def check_vault_structure(
@@ -318,12 +355,28 @@ def check_file(
     # rule 2: fm-missing-created
     if not fm.get("created"):
         findings.append(_f("fm-missing-created", "warn", rel, 1, "frontmatter 缺 created 字段", True))
+    # rule: fm-duplicate-tags
+    _tags = fm.get("tags")
+    if isinstance(_tags, list) and _tags:
+        _seen: set[str] = set()
+        _dups: list[str] = []
+        for _t in _tags:
+            if not isinstance(_t, str):
+                continue
+            if _t in _seen and _t not in _dups:
+                _dups.append(_t)
+            _seen.add(_t)
+        if _dups:
+            findings.append(_f(
+                "fm-duplicate-tags", "warn", rel, 1,
+                f"frontmatter tags 重复: {', '.join(_dups)}", True,
+            ))
 
     # rule 14: i18n-frontmatter-lang-mismatch
     if vault_lang:
         page_lang = fm.get("lang")
-        # skip log/folds/sessions auto-generated where lang may legitimately mix
-        skip_prefixes = ("log/", "folds/", "sessions/", "_templates/")
+        # skip auto-generated where lang may legitimately mix
+        skip_prefixes = ("_templates/",)
         if (
             isinstance(page_lang, str)
             and page_lang
@@ -365,14 +418,9 @@ def check_file(
         nlines = text.count("\n") + 1
         if nlines > 200:
             findings.append(_f("hot-too-long", "warn", rel, nlines, f"hot.md {nlines} lines > 200", True))
-    if rel.startswith("log/") and rel.endswith(".md"):
-        nlines = text.count("\n") + 1
-        if nlines > 2000:
-            findings.append(_f("log-too-long", "warn", rel, nlines, f"log {nlines} lines > 2000, fold needed", False))
-
-    # rule 4: orphan-page (skip log/folds/_index/_meta/_templates files)
+    # rule 4: orphan-page (skip _meta/_templates files)
     skip_orphan = (
-        rel.startswith("log/") or rel.startswith("folds/") or rel.startswith("_templates/")
+        rel.startswith("_templates/")
         or rel == "index.md" or rel == "hot.md" or path.name.startswith("_")
     )
     if not skip_orphan:
@@ -477,18 +525,7 @@ def _check_naming(rel: str) -> str | None:
     parts = rel.split("/")
     # skip shared roots (per prd §9 adjustment)
     if parts and parts[0] in SHARED_ROOT_DIRS:
-        # only check time-formatted children of log/folds (already covered below)
         pass
-    # log/YYYY-MM/DD-HHMM-<slug>.md
-    if parts[0] == "log" and len(parts) == 3:
-        if not re.match(r"^\d{4}-\d{2}$", parts[1]):
-            return f"log/<{parts[1]}>/ should match YYYY-MM"
-        if not re.match(r"^\d{2}-\d{4}-[a-z0-9-]+\.md$", parts[2]):
-            return f"log file '{parts[2]}' should be DD-HHMM-<slug>.md"
-    # folds/YYYY-MM-fold-NNN.md
-    if parts[0] == "folds" and len(parts) == 2 and parts[1] != "_index.md":
-        if not re.match(r"^\d{4}-\d{2}-fold-\d{3}\.md$", parts[1]):
-            return f"fold file '{parts[1]}' should be YYYY-MM-fold-NNN.md"
     # 60_dashboards/<topic>-dashboard.md
     if parts[0] == "60_dashboards" and len(parts) == 2 and parts[1] not in ("_index.md",):
         if not parts[1].endswith("-dashboard.md"):
@@ -1821,7 +1858,8 @@ def apply_fixes(
         if not f.get("fixable"):
             continue
         if f["rule"] not in {
-            "fm-missing-type", "fm-missing-created", "hot-too-long",
+            "fm-missing-type", "fm-missing-created", "fm-duplicate-tags",
+            "hot-too-long",
             "index-missing-section", "title-h1-mismatch", "block-id-duplicate",
         }:
             continue
@@ -1857,6 +1895,35 @@ def apply_fixes(
             elif rule == "fm-missing-created":
                 new_text = _ensure_fm_field(new_text, "created", file_mtime_date(path))
                 fixed += 1
+            elif rule == "fm-duplicate-tags":
+                try:
+                    import yaml as _yaml  # type: ignore
+                except ImportError:
+                    _yaml = None
+                m_fm = re.match(r"^---\n(.*?)\n---\n?(.*)", new_text, re.S)
+                if m_fm and _yaml is not None:
+                    try:
+                        _fm = _yaml.safe_load(m_fm.group(1)) or {}
+                    except Exception:
+                        _fm = None
+                    if isinstance(_fm, dict):
+                        _tg = _fm.get("tags")
+                        if isinstance(_tg, list):
+                            _seen2: set[str] = set()
+                            _new_tg: list[Any] = []
+                            for _t in _tg:
+                                _key = _t if isinstance(_t, str) else repr(_t)
+                                if _key in _seen2:
+                                    continue
+                                _seen2.add(_key)
+                                _new_tg.append(_t)
+                            if len(_new_tg) != len(_tg):
+                                _fm["tags"] = _new_tg
+                                _new_fm = _yaml.safe_dump(
+                                    _fm, allow_unicode=True, sort_keys=False,
+                                )
+                                new_text = f"---\n{_new_fm}---\n{m_fm.group(2)}"
+                                fixed += 1
             elif rule == "title-h1-mismatch":
                 fm, _bs = parse_frontmatter(new_text)
                 title = fm.get("title")
@@ -1866,7 +1933,7 @@ def apply_fixes(
             elif rule == "hot-too-long":
                 lines = new_text.splitlines()
                 if len(lines) > 200:
-                    archive_dir = vault / "folds"
+                    archive_dir = vault / "归档"
                     archive_dir.mkdir(exist_ok=True)
                     arch = archive_dir / f"hot-archive-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
                     arch.write_text("\n".join(lines[200:]) + "\n", encoding="utf-8")
@@ -1901,8 +1968,6 @@ def apply_fixes(
 
 def _infer_type(rel: str) -> str:
     parts = rel.split("/")
-    if parts[0] == "folds":
-        return "fold"
     if parts[0] == "知识库":
         if len(parts) >= 2:
             sub = parts[1]
@@ -2016,6 +2081,9 @@ def main() -> int:
         backup_dir = _get_backup_root(vault)
         # Best-effort prune of old backups (>30 days) for this vault
         _prune_old_backups(vault, days=30)
+        # Prune deprecated whitelist entries (log/, folds/, sessions/)
+        if _prune_deprecated_whitelist(vault):
+            fixed += 1
         rules_filter: set[str] | None = None
         if args.sync_templates and not args.fix:
             rules_filter = {"template-outdated", "template-missing", "seed-outdated"}

@@ -13,7 +13,9 @@ python3 ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scri
 Plugin manifest (`.claude-plugin/plugin.json`) 的 `mcpServers.cortex.args` 已硬编码:
 
 ```json
-["${CLAUDE_PLUGIN_ROOT}/scripts/mcp/server.py"]
+[
+	"~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/mcp/server.py"
+]
 ```
 
 Claude Code 启动时直接以 `python3 <abs>/server.py` 拉起, 无中间层。
@@ -48,7 +50,7 @@ pytest tests/                   # 113 unit tests
 ## 环境变量 (运行时)
 
 - `CORTEX_VAULT_PATH` — 显式 vault override; 否则读 `~/.cortex/config.json:.vault`, fallback 扫 `~/Documents/` / `~/Library/Mobile Documents/` 单一 `.obsidian/` 匹配。
-- `CORTEX_PLUGIN_ROOT` — Claude Code 注入, 指向 `${CLAUDE_PLUGIN_ROOT}`。
+- `CORTEX_PLUGIN_ROOT` — Claude Code 注入, 指向 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex`。
 - `CORTEX_SC_URL` — Smart Connections REST (默认 `http://127.0.0.1:27123`), 1s timeout 回退 ripgrep。
 
 **禁** 的配置类 env (运行时不读): `OBSIDIAN_VAULT` / `CORTEX_VAULT` / `CORTEX_LANG` — 单一真相 = `~/.cortex/config.json`。

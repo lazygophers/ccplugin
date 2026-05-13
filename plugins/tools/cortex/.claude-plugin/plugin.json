@@ -116,11 +116,10 @@
     "cortex": {
       "command": "python3",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/scripts/mcp/server.py"
+        "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/mcp/server.py"
       ],
       "env": {
-        "CORTEX_VAULT_PATH": "${CORTEX_VAULT_PATH:-}",
-        "CORTEX_PLUGIN_ROOT": "${CLAUDE_PLUGIN_ROOT}"
+        "CORTEX_PLUGIN_ROOT": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
       }
     }
   },

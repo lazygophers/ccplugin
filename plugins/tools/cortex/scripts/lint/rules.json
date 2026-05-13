@@ -14,6 +14,12 @@
       "autofix": true
     },
     {
+      "id": "fm-duplicate-tags",
+      "severity": "warn",
+      "description": "frontmatter tags 列表内重复",
+      "autofix": true
+    },
+    {
       "id": "dead-wikilink",
       "severity": "error",
       "description": "wikilink 指向不存在的页",
@@ -36,12 +42,6 @@
       "severity": "warn",
       "description": "hot.md 超 200 行",
       "autofix": true
-    },
-    {
-      "id": "log-too-long",
-      "severity": "warn",
-      "description": "log 单文件 > 2000 行, 需 fold",
-      "autofix": false
     },
     {
       "id": "index-missing-section",
