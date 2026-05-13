@@ -170,7 +170,7 @@ vault 不是 git repo → 跳过, 不写两字段。
 **Q1 (multiSelect)**: "勾选要注册的 cron job (9 项)":
 - `daily 01:00 知识库 lint`
 - `weekly Sun 02:00 fold`
-- `weekly Sun 02:30 dashboard`
+- `daily 02:30 dashboard`
 - `daily 02:00 memory-promote` (L4→L3 提炼 + 候选写 candidates.md)
 - `daily 03:00 memory-forget` (扫过期标 archive_pending)
 - `weekly Sun 04:00 memory-compact` (L4 流水账 gzip)

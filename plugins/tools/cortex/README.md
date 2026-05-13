@@ -121,9 +121,9 @@ bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts
 
 推荐任务:
 
-- daily 01:00 — `cortex-lint --fix` (autofix 6 类问题)
-- weekly Sun 02:00 — `cortex-historian` §Fold 工作流 (log → folds 滚动, P6 起接管)
-- weekly Sun 02:30 — `cortex-dashboard` 刷新 (claude CLI 触发)
+- daily 01:00 — `cortex-lint` (autofix 循环修复 17 类规则)
+- daily 02:30 — `cortex-dashboard` 刷新 index.md / hot.md / canvas
+- weekly Sun 02:00 — `cortex-fold` log → folds 滚动
 
 ## 故障排查
 

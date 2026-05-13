@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cortex/scripts/cron/dashboard.sh — weekly dashboard refresh via claude --bare.
+# cortex/scripts/cron/dashboard.sh — daily dashboard refresh via claude.
 #
 # Usage:
 #   dashboard.sh [--dry-run] [--vault <path>] [--lang <code>] [--settings <path>]

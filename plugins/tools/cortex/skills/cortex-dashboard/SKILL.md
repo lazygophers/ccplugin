@@ -10,7 +10,7 @@ allowed-tools: Read Write Glob mcp__obsidian__obsidian_simple_search mcp__obsidi
 读 `仪表盘/<page>.md` frontmatter 内 `view_query` → 执行查询 (Bases/Dataview/Obsidian search) → 渲染 HTML grid/table → 注入页内 `<!-- DASH:BEGIN -->...<!-- DASH:END -->` callout 区。不动正文/frontmatter 其余字段。
 
 ## 触发场景
-- weekly cron `dashboard.sh` (Sun 02:30)
+- daily cron `dashboard.sh` (02:30)
 - 用户显式 "build dashboard" / "刷新 L2 仪表盘" / "仪表盘"
 - cortex-cartographer agent 调用
 

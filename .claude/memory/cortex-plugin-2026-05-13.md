@@ -75,6 +75,11 @@ plugins/tools/cortex/
 
 | Hash | 主题 |
 |------|------|
+| `4ba4f2b5` | cron dashboard 改 daily (was weekly) |
+| `f1fe02a8` | 范围标记改文字 (去 emoji) |
+| `66dc8d2c` | 文档清单加范围列 (全局/当前目录/知识库/记忆) |
+| `192d050b` | templates/ 移到 presets/seed/_templates/ |
+| `32ac08ea` | neat-freak 记忆 + README 计数对齐 |
 | `4e5a48ea` | python/bash 全移 scripts/ (install.sh 例外) |
 | `59e9d127` | 删 MOC 引用 + install_cron 路径硬编码 |
 | `454af37f` | 文档计数对齐 + 内部下沉 |
@@ -85,3 +90,25 @@ plugins/tools/cortex/
 | `1e74eb60` | ingest 默认深度分析 PWD |
 | `169ba3a1` | cortex_stream stdout 严禁 raw NDJSON |
 | `41ced4c3` | cortex_stream 顺序渲染 (去 Live 区) |
+
+## 定时任务最终调度
+
+| Job | 频率 | 时间 |
+|-----|------|------|
+| `lint.sh` | daily | 01:00 |
+| `dashboard.sh` | daily | 02:30 |
+| `fold.sh` | weekly Sun | 02:00 |
+
+系统注册方式: install_cron.sh 仅**打印 snippet**, 用户手工 `crontab -e` / `launchctl load` / GHA workflow 三选一启用。当前系统未注册任何 cortex 定时任务。
+
+## 目录布局变化
+
+- `templates/` → `presets/seed/_templates/` (preset 统一提供, vault init 走单一复制流)
+- 根目录最终: install.sh / scripts/ / tests/ / agents/ commands/ skills/ docs/ presets/ locales/ styles/ / _manifest.json AGENT.md README.md / .claude-plugin/
+
+## 文档范围标记 (4 类, 文字描述, 禁 emoji)
+
+- **全局** — 系统/用户级 (~/.cortex/, ~/Library/LaunchAgents, marketplace cache, Claude 会话 hook)
+- **当前目录** — PWD (wrapper 调用时 cwd, 如 ingest 深度分析)
+- **知识库** — vault (~/.cortex/config.json:.vault)
+- **记忆层** — 记忆/L0-L4 子树

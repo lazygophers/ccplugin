@@ -123,7 +123,15 @@ uv run scripts/update_version.py
 
 ## 更新日志
 
-**2026-05-13**：Cortex 插件整体重构 (10 commits, 一次性收尾)
+**2026-05-13**：Cortex 插件整体重构 (15 commits, 多轮迭代收尾)
+
+- 后续追加 (32ac08ea 之后):
+  - `192d050b` templates/ → presets/seed/_templates/ (preset 统一提供)
+  - `66dc8d2c` 文档清单加范围列 (全局/当前目录/知识库/记忆层)
+  - `f1fe02a8` 范围标记改文字描述 (禁 emoji)
+  - `4ba4f2b5` cron dashboard 改 daily 02:30 (was weekly Sun 02:30)
+
+**2026-05-13**：Cortex 插件首轮重构 (10 commits, 一次性收尾)
 
 - **路径迁移**：wiki/* + 数字前缀 + 记忆体系 → 中文目录 `知识库/{领域,来源,日记,...}` + `记忆/{L0-L4,...}`
 - **AUTO_MODE persistent**：禁询问 ≠ 中止;AI 自决循环修复直至 lint clean
