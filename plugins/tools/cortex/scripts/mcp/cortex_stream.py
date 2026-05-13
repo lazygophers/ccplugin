@@ -340,7 +340,7 @@ def _render_event(evt: dict) -> RenderableType | None:
                 elif name == "TodoWrite":
                     renderables.append(
                         Panel(
-                            Text([f"{todo.get('content', '')} - {todo.get('status', '')}" for todo in blk.get("input", {}).get("todos", [])].join("\n"),  style="yellow"),
+                            Text("\n".join(f"{todo.get('content', '')} - {todo.get('status', '')}" for todo in blk.get("input", {}).get("todos", [])),  style="yellow"),
                             title=f"tool: {name}",
                             border_style="yellow",
                             padding=(0, 1),
