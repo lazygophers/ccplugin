@@ -151,7 +151,7 @@ uv run scripts/update_version.py
 - **Align 优化**：合并 prompt-optimizer 的 SMART-V 验收标准原则
 - **实时状态更新**：任务状态变更立即写入 task.json
 - **Plan 验证**：写入前验证 DAG 可用性
-- 详见：`memory/task-dag-execution-model.md`、`memory/task-align-merge-prompt-optimizer-2026-04-08.md`
+- 详见：`.claude/memory/task-execution-log.md` (统一记录)
 
 **2026-03-27**：Memory系统初始化
 

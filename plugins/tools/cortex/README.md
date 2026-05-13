@@ -20,7 +20,7 @@
 
 - **Slash command**: 任何会话直接 `/cortex:lint` / `/cortex:ingest` / `/cortex:search` 等
 - **Bash wrapper**: `bash ~/.cortex/scripts/lint.sh` 调对应 slash command (含 stream-json 实时 UI)
-- **自然语言**: 命中 skill description Triggers 自动触发 (`/cortex-search`, `/cortex-save` 等)
+- **自然语言**: 命中 skill description Triggers 自动触发 (说"搜知识库 X" 触 cortex-search, "落档 Y" 触 cortex-save)
 - **Agent dispatch**: 复杂多步任务 (`cortex-curator` 扫 vault / `cortex-researcher` 多源摄取等)
 
 **AUTO_MODE persistent** (shell 触发约束): 禁询问, 禁中止, AI 自决执行直至任务完成。遇歧义按推荐默认值; 工具不熟悉则换组合 (Bash/Edit/Write/MCP/WebSearch); 禁"需人工"/"AI 不会"推卸辞令。
