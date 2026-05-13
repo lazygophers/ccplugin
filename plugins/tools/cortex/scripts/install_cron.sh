@@ -168,8 +168,8 @@ cron_lines() {
 }
 
 install_cron_auto() {
-  # 读现有 crontab → 滤去所有 cortex 旧行 → 追加最新 3 行 → 写回.
-  # 幂等: 重复跑结果一致.
+  # 读现有 crontab → 比对 cortex 段是否与期望一致 → 一致 no-op, 不一致才写.
+  # 表格无论是否修改都输出.
   print_task_table
 
   if ! command -v crontab >/dev/null 2>&1; then
@@ -179,28 +179,34 @@ install_cron_auto() {
     return 1
   fi
 
-  local existing filtered new tmp
+  local existing filtered desired new
   existing=$(crontab -l 2>/dev/null || true)
-  # 滤掉所有 cortex 旧行: marketplace plugin 路径 + 用户 ~/.cortex/scripts/ 路径 (旧/新都清)
-  filtered=$(printf '%s\n' "$existing" \
-    | grep -Ev 'cortex/scripts/cron/(lint|dashboard|digest|fold|consolidate)\.sh' \
-    | grep -Ev '\.cortex/scripts/(lint|dashboard|digest|fold|consolidate)\.sh' \
+  # 取 existing 中所有 cortex 行 (含旧/新路径)
+  local cur_cortex
+  cur_cortex=$(printf '%s\n' "$existing" \
+    | grep -E '(\.cortex/scripts/|cortex/scripts/cron/)(lint|dashboard|digest|fold|consolidate)\.sh' \
     || true)
-  # 拼接新内容
-  new=$(printf '%s\n%s' "$filtered" "$(cron_lines)" | sed -e 's/^[[:space:]]*$//' | awk 'NF || prev{print; prev=NF}')
+  desired=$(cron_lines)
 
-  tmp=$(mktemp)
-  printf '%s\n' "$new" > "$tmp"
+  if [[ "$cur_cortex" == "$desired" ]]; then
+    echo "✓ crontab cortex 段已是最新, no-op (3 个 daily job)" >&2
+    crontab -l 2>/dev/null | grep -E '\.cortex/scripts/' | sed 's/^/    /' >&2
+    return 0
+  fi
+
+  # 不同 → 替换: 去掉所有旧 cortex 行 + 追加 desired
+  filtered=$(printf '%s\n' "$existing" \
+    | grep -Ev '(\.cortex/scripts/|cortex/scripts/cron/)(lint|dashboard|digest|fold|consolidate)\.sh' \
+    || true)
+  new=$(printf '%s\n%s' "$filtered" "$desired" | sed -e 's/^[[:space:]]*$//' | awk 'NF || prev{print; prev=NF}')
 
   if printf '%s\n' "$new" | crontab -; then
-    echo "✓ crontab 已更新 (新增 3 个 cortex job, 去重旧 cortex 行)" >&2
-    echo "  当前 cortex 相关 cron 行:" >&2
+    echo "✓ crontab 已更新 (变更, 写入 3 个 daily cortex job)" >&2
     crontab -l 2>/dev/null | grep -E '\.cortex/scripts/' | sed 's/^/    /' >&2
   else
-    echo "✗ crontab 写入失败, 手工 snippet 保存到: $tmp" >&2
+    echo "✗ crontab 写入失败" >&2
     return 2
   fi
-  rm -f "$tmp"
 }
 
 launchd_plist() {
@@ -262,19 +268,33 @@ install_launchd_auto() {
     done
   done
 
+  local changed=0
   for entry in "${jobs[@]}"; do
     IFS=: read -r job hour minute <<< "$entry"
     local plist="$agent_dir/dev.lazygophers.cortex.daily-${job}.plist"
-    # unload existing
+    local desired
+    desired=$(launchd_plist "$job" "$hour" "$minute")
+    # 比对: 内容一致 → no-op
+    if [[ -f "$plist" ]] && [[ "$(cat "$plist")" == "$desired" ]]; then
+      echo "  = ${job}.plist 已是最新, 跳过" >&2
+      continue
+    fi
+    changed=1
     [[ -f "$plist" ]] && launchctl unload "$plist" 2>/dev/null
-    launchd_plist "$job" "$hour" "$minute" > "$plist"
+    printf '%s\n' "$desired" > "$plist"
     if launchctl load "$plist"; then
-      echo "  + loaded $plist" >&2
+      echo "  + ${job}.plist 已更新 + load 成功" >&2
     else
-      echo "  ✗ load failed: $plist" >&2
+      echo "  ✗ ${job}.plist load 失败" >&2
     fi
   done
-  echo "✓ launchd 已更新 (3 个 daily job)" >&2
+  if [[ "$changed" -eq 0 ]]; then
+    echo "✓ launchd cortex 段已是最新, no-op (3 个 daily job)" >&2
+  else
+    echo "✓ launchd 已更新 (变更, 3 个 daily job)" >&2
+  fi
+  echo "  当前 cortex agents:" >&2
+  ls "$agent_dir" 2>/dev/null | grep -E '^dev\.lazygophers\.cortex\.' | sed 's/^/    /' >&2
 }
 
 print_gha() {
@@ -360,14 +380,10 @@ esac
 cat <<EOF
 
 # ----------------------------------------------------------------------
-# 注意:
-# 1. cron/launchd 自动注册 (读现有 → 去重 → 写回, 幂等);
-#    gha 仍 print snippet (需用户提交到 vault 仓库 .github/workflows/)
-# 2. 用户级 wrapper: ~/.cortex/scripts/ (无需 sudo, 写入用户 crontab)
-# 3. vault = ${VAULT} (from ~/.cortex/config.json)
-# 4. 验证: 查 'crontab -l' 或 'launchctl list | grep cortex' 确认
-# 3. PLUGIN_ROOT = ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex
+# 1. cron/launchd: 自动 idempotent (读 → 比对 → 一致 no-op, 不一致写); 表格始终输出
+# 2. gha: 仍 print snippet (需用户提交到 vault .github/workflows/)
+# 3. 用户级路径: ~/.cortex/scripts/ (无 sudo, 写入用户 crontab / ~/Library/LaunchAgents)
 # 4. vault = ${VAULT} (from ~/.cortex/config.json)
-# 5. 验证: 复制完成后立即手跑一次, 确认输出与权限正常
+# 5. 验证: 'crontab -l' 或 'launchctl list | grep cortex'
 # ----------------------------------------------------------------------
 EOF

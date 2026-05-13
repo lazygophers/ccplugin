@@ -506,25 +506,18 @@ prune_stale_cron() {
   fi
 }
 
-# 可选 cron 安装
+# cron: 总是跑 install_cron.sh — 它内部 idempotent (读 crontab → 比对 → 只在不同时写).
+# 表格始终输出, 不依赖 do_cron.
 do_cron=0
 if [[ "$NO_CRON" != "1" ]]; then
   prune_stale_cron
-  if detect_existing_cron; then
-    if [[ "$REINSTALL" == "1" ]]; then
-      log_info "已有 cortex 周期任务, --reinstall 强制重装"
-      do_cron=1
-    else
-      log_info "已有 cortex 周期任务, 跳过 (--reinstall 强制重装)"
-    fi
-  elif [[ "$NON_INTERACTIVE" != "1" ]]; then
-    if prompt_yes_no "现在通过 wrapper 安装 cron snippet?" "n"; then
-      do_cron=1
-    fi
-  else
-    # --non-interactive: 默认装 cron (用 --no-cron 关)
-    log_info "--non-interactive: 自动安装 cron snippet (用 --no-cron 跳过)"
+  if [[ "$NON_INTERACTIVE" == "1" ]] || [[ "$REINSTALL" == "1" ]]; then
     do_cron=1
+  else
+    # 交互模式: 询问 (default y, install_cron.sh 幂等无副作用)
+    if prompt_yes_no "现在自动注册 cron (读+比对+只在不同时写)?" "y"; then
+      do_cron=1
+    fi
   fi
 fi
 
