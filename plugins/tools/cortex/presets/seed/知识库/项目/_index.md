@@ -36,9 +36,9 @@ template_version: 1
 > ```
 > 知识库/项目/
 > ├── _index.md
-> ├── <host>/                  # github.com / gitlab.com / gitlab.<your>.com / local
-> │   └── <org>/               # 组织 / 用户 / 团队 (local 时取项目 basename)
-> │       └── <repo>/          # 仓库名 (local 且单层时可空)
+> ├── <host>/                  # github.com / gitlab.com / gitlab.<your>.com 或 相对 $HOME 路径首段 (persons/workspace/_local 等)
+> │   └── <org>/               # 组织 / 用户 / 团队 (本地 fallback: 相对 $HOME 路径第二段, 不足时为 _local)
+> │       └── <repo>/          # 仓库名 (本地 fallback: 相对 $HOME 路径第三段, 不足时为 _local 或目录 basename)
 > │           ├── _index.md    # 项目概览
 > │           ├── 架构.md
 > │           ├── 决策.md

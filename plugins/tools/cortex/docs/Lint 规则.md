@@ -113,6 +113,26 @@ frontmatter `title: A` 但正文 H1 是 `# B`。
 
 `知识库/来源/代码仓库/<host>/<org>/<repo>/` 路径已废弃, autofix 自动 mv 到 `知识库/项目/<host>/<org>/<repo>/`, 并补全/修正 frontmatter (`type: domain` → `type: project`, 补 `host/org/repo` 字段)。
 
+### 15. kb-reflection-path-deprecated (warn, **自动**)
+
+`知识库/反思/<rest>` 路径已废弃 (反思现作日记一项)。autofix 自动 mv 到 `知识库/收件箱/<basename>.md` (待 digest 重分配), 并在 frontmatter 追加 `was_path: 知识库/反思/<rest>` 用于追溯。
+
+### 16. kb-question-fleeting-path-deprecated (warn, **自动**)
+
+`知识库/问题/<rest>` 与 `知识库/临时/<rest>` 路径已废弃。autofix 自动 mv 到 `知识库/收件箱/<basename>.md`, frontmatter 追加 `was_path`。
+
+### 17. kb-entity-concept-path-deprecated (warn, **手动**)
+
+`知识库/实体/<rest>` 与 `知识库/概念/<rest>` 路径已废弃, 应迁到 `知识库/领域/<域>/<kebab>.md`。lint 不 autofix (需 AI 自决选域), finding 提示用 `cortex_save --kind entity|concept` 重新落档 (AI 自决 6 域之一: 创作/学习/工作/技术/生活/金融; 缺则 `领域/未分类/`)。
+
+### 18. kb-journal-multi-freq-deprecated (warn, **自动**)
+
+`知识库/日记/{周|月|年}/<rest>` 路径已废弃 (仅日维度保留)。autofix 自动 mv 到 `归档/日记/<YYYY-QN>.md` 季度桶 (从 frontmatter `date:` 或文件名推算季度, 同季度合并到同一文件)。
+
+### 19. kb-source-non-repo-path-deprecated (warn, **自动**)
+
+`知识库/来源/{网页|论文|书籍}/<rest>` 路径已废弃 (非 repo 来源统一落收件箱)。autofix 自动 mv 到 `知识库/收件箱/<host>-<slug>.md` (从 frontmatter `source.url` 或路径抽 host), 待 digest 分发到 `项目/<repo>/笔记/` 或 `领域/<域>/`。
+
 ## --fix 行为
 
 ```bash

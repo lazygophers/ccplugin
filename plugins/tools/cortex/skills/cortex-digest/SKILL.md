@@ -28,7 +28,7 @@ allowed-tools: Bash Read Write Edit Glob Grep Skill
 
 **既有知识 (用于交叉参照 + 学习更新, 永不移除条目)**:
 - `记忆/L0-核心/**` · `L1-长期/**` · `L2-中期/**` · `L3-短期/**` 全量索引
-- `知识库/领域/**` · `知识库/项目/**` · `知识库/来源/**` · `知识库/反思/**` 全量索引
+- `知识库/领域/**` · `知识库/项目/**` · `知识库/收件箱/**` 全量索引
 - `_meta/uri-index.json` · `views/candidates.md` · `views/consolidated/*.md`
 
 **读策略**: jsonl 按行解析; json/yaml 按结构解析; 其他文本按段落扫。
@@ -51,14 +51,14 @@ allowed-tools: Bash Read Write Edit Glob Grep Skill
 
 **新写**:
 - `记忆/views/consolidated/<YYYY-MM-DD>.md` 当日摘要 (主题/高频实体/决策清单)
-- 反思候选 → `知识库/反思/疑问/<date>-<topic>.md`
-- 连接候选 → `知识库/反思/连接/<date>-<a-b>.md`
+- 反思候选 → `知识库/日记/日/<YYYY-MM>/<YYYY-MM-DD>-反思-<topic>.md` (作日记的反思条目)
+- 连接候选 → `知识库/收件箱/<date>-连接-<a-b>.md` (待 digest 后续分发到 项目/笔记 或 领域/<域>)
 - 概念候选 → `记忆/views/candidates.md` (待 cortex-promote 审批)
 
 **更新既有 (学习 + 完善, 不删原文)**:
 - `update_target` (L1/L2/L3 命中) → `bash ~/.cortex/scripts/memory.sh write --uri <u> --content <c> --level <l>` append 新例证/新连接, weight += 0.05 (cap 1.0)
 - `enrich_target` (知识库/领域 命中) → patch 文件追加 `## 新增例证 <YYYY-MM-DD>` + 加 `[[wikilink]]`
-- `conflict` → 新建 `知识库/反思/矛盾/<date>-<topic>.md` 列对照 (不直接改既有条目)
+- `conflict` → 新建 `知识库/收件箱/<date>-矛盾-<topic>.md` 列对照 (不直接改既有条目, 待人工分发)
 
 ### 4. 更新 (Update)
 
@@ -74,7 +74,7 @@ allowed-tools: Bash Read Write Edit Glob Grep Skill
   - **删**: 无价值 (debug 噪音/纯重复/已聚合) → `git rm`
   - 处理后 `记忆/L4-流水账/**` 必须 0 文件残留
 - L3-短期: 删 > 90 天且 weight < 0.3
-- 知识库/反思/疑问: 删 已被概念化 (反向链接 ≥ 3) 的疑问页
+- 知识库/收件箱: 已被概念化 (反向链接 ≥ 3) 的疑问/连接条目 → 删 (已被领域条目吸收)
 - 收件箱: 已在阶段 3 强清 (≥30 天必处理); 此阶段复核不残留 ≥30 天文件
 - 知识库/日记/日: > 7 天文件转存 `归档/日记/<YYYY-QN>.md` (累积季度桶, idempotent)
 - **不动** `记忆/L0-核心` / `L1-长期` 条目 (仅 weight bump 由阶段 3 update_target 处理)

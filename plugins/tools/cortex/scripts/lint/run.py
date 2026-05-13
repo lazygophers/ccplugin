@@ -664,6 +664,64 @@ def check_global(
                 True,
             ))
 
+    # rule: kb-reflection-path-deprecated — `知识库/反思/...` → autofix mv 到 `知识库/收件箱/`
+    for p in files:
+        rel = str(p.relative_to(vault))
+        if rel.startswith("知识库/反思/"):
+            findings.append(_f(
+                "kb-reflection-path-deprecated", "warn", rel, 1,
+                "知识库/反思/ 已废弃, autofix mv 到 知识库/收件箱/<basename>.md (待 digest 重分配)",
+                True,
+            ))
+
+    # rule: kb-question-fleeting-path-deprecated — `知识库/问题/...` 或 `知识库/临时/...` → autofix mv 到 `知识库/收件箱/`
+    for p in files:
+        rel = str(p.relative_to(vault))
+        if rel.startswith("知识库/问题/") or rel.startswith("知识库/临时/"):
+            findings.append(_f(
+                "kb-question-fleeting-path-deprecated", "warn", rel, 1,
+                "知识库/问题/ 与 知识库/临时/ 已废弃, autofix mv 到 知识库/收件箱/<basename>.md",
+                True,
+            ))
+
+    # rule: kb-entity-concept-path-deprecated — `知识库/实体/...` 或 `知识库/概念/...` → warn 不 mv (需 AI 选域)
+    for p in files:
+        rel = str(p.relative_to(vault))
+        if rel.startswith("知识库/实体/") or rel.startswith("知识库/概念/"):
+            findings.append(_f(
+                "kb-entity-concept-path-deprecated", "warn", rel, 1,
+                "应迁到 知识库/领域/<域>/<kebab>.md;请用 cortex_save --kind entity 或 --kind concept 重新落档 (AI 自决选域, 缺则 领域/未分类/)",
+                False,
+            ))
+
+    # rule: kb-journal-multi-freq-deprecated — `知识库/日记/{周|月|年}/...` → autofix mv 到 `归档/日记/<YYYY-QN>.md`
+    for p in files:
+        rel = str(p.relative_to(vault))
+        if (
+            rel.startswith("知识库/日记/周/")
+            or rel.startswith("知识库/日记/月/")
+            or rel.startswith("知识库/日记/年/")
+        ):
+            findings.append(_f(
+                "kb-journal-multi-freq-deprecated", "warn", rel, 1,
+                "知识库/日记/{周|月|年}/ 已废弃 (仅日维度保留), autofix mv 到 归档/日记/<YYYY-QN>.md 季度桶",
+                True,
+            ))
+
+    # rule: kb-source-non-repo-path-deprecated — `知识库/来源/{网页|论文|书籍}/...` → autofix mv 到 `知识库/收件箱/`
+    for p in files:
+        rel = str(p.relative_to(vault))
+        if (
+            rel.startswith("知识库/来源/网页/")
+            or rel.startswith("知识库/来源/论文/")
+            or rel.startswith("知识库/来源/书籍/")
+        ):
+            findings.append(_f(
+                "kb-source-non-repo-path-deprecated", "warn", rel, 1,
+                "知识库/来源/{网页|论文|书籍}/ 已废弃, autofix mv 到 知识库/收件箱/<host>-<slug>.md (待 digest 分发)",
+                True,
+            ))
+
     # rule 15: i18n-path-not-in-locale (top-level business dirs not in vault.lang dirs map)
     if locale_dirs is not None:
         seen: set[str] = set()
@@ -1210,6 +1268,11 @@ RULE_PRIORITY = {
     "path-naming-violation": 9,
     "i18n-path-not-in-locale": 9,
     "repo-path-deprecated": 10,
+    "kb-reflection-path-deprecated": 11,
+    "kb-question-fleeting-path-deprecated": 11,
+    "kb-entity-concept-path-deprecated": 11,
+    "kb-journal-multi-freq-deprecated": 11,
+    "kb-source-non-repo-path-deprecated": 11,
 }
 
 
@@ -1727,12 +1790,14 @@ _STANDARD_CALLOUTS = {
 
 
 # 知识库 sub-namespace dirs — vault root 上出现的同名目录应 merge 入 知识库/, 非备份
+# 仅 4 子目录: 项目 / 领域 / 日记 / 收件箱 (zh-CN) + 英文 locale 等价
 _KB_SUB_NAMES = {
-    "项目", "来源", "领域", "日记", "反思", "收件箱",  # zh-CN canonical
-    "概念", "实体", "问题", "临时",  # zh-CN flat alternates
-    "projects", "sources", "domains", "journal", "reflection", "inbox",
-    "concepts", "entities", "questions", "fleeting",
+    "项目", "领域", "日记", "收件箱",  # zh-CN canonical
+    "projects", "domains", "journal", "inbox",
 }
+
+# 知识库/ 子层允许的目录白名单 (与 _KB_SUB_NAMES 对齐, 用于 vault-structure 子检查)
+_KB_ALLOWED_SUBDIRS = {"项目", "领域", "日记", "收件箱"}
 
 
 def _fix_vault_structure_violation(
@@ -1989,6 +2054,162 @@ def _fix_repo_path_deprecated(
     return True
 
 
+def _fix_mv_to_inbox(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Move a file under `知识库/反思|问题|临时/<rest>` to `知识库/收件箱/<basename>.md`.
+
+    Adds `was_path:` frontmatter field tracking original path.
+    """
+    rel = finding.get("path") or finding.get("file")
+    if not rel:
+        return False
+    src = vault / rel
+    if not src.is_file():
+        return False
+    inbox_dir = vault / "知识库" / "收件箱"
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    basename = Path(rel).name
+    dst = inbox_dir / basename
+    if dst.exists():
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        dst = inbox_dir / f"{Path(basename).stem}-merged-{ts}{Path(basename).suffix}"
+    try:
+        src.rename(dst)
+    except Exception:
+        return False
+    # Best-effort: prepend was_path into frontmatter.
+    try:
+        text = dst.read_text(encoding="utf-8", errors="replace")
+        if text.startswith("---\n"):
+            end = text.find("\n---\n", 4)
+            if end > 0:
+                fm_block = text[4:end]
+                rest = text[end + len("\n---\n"):]
+                if not re.search(r"(?m)^was_path:\s*", fm_block):
+                    fm_block = fm_block.rstrip() + f"\nwas_path: {rel}\n"
+                    dst.write_text(f"---\n{fm_block.rstrip()}\n---\n{rest}", encoding="utf-8")
+    except Exception:
+        pass
+    return True
+
+
+def _fix_mv_source_non_repo_to_inbox(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Move `知识库/来源/{网页|论文|书籍}/<rest>` → `知识库/收件箱/<host>-<slug>.md`.
+
+    Tries to extract host from frontmatter source.url; falls back to path segment.
+    """
+    rel = finding.get("path") or finding.get("file")
+    if not rel:
+        return False
+    src = vault / rel
+    if not src.is_file():
+        return False
+    # try host from frontmatter
+    host = None
+    try:
+        text = src.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r"(?m)^\s*url:\s*([^\s]+)", text)
+        if m:
+            mh = re.search(r"://([^/]+)", m.group(1))
+            if mh:
+                host = mh.group(1)
+    except Exception:
+        text = ""
+    if not host:
+        # path segments: 知识库/来源/网页/<host>/<slug>.md or 知识库/来源/论文/<slug>.md
+        parts = rel.split("/")
+        if len(parts) >= 5:
+            host = parts[3] if parts[2] in {"网页"} else "unknown"
+        else:
+            host = "unknown"
+    slug = Path(rel).stem
+    inbox_dir = vault / "知识库" / "收件箱"
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    dst = inbox_dir / f"{host}-{slug}.md"
+    if dst.exists():
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        dst = inbox_dir / f"{host}-{slug}-merged-{ts}.md"
+    try:
+        src.rename(dst)
+    except Exception:
+        return False
+    return True
+
+
+def _fix_journal_multi_freq_to_archive(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Move `知识库/日记/{周|月|年}/<rest>` → `归档/日记/<YYYY-QN>.md` 季度桶.
+
+    Quarter inferred from frontmatter `date:` field or filename (YYYY-MM, YYYY-Www).
+    """
+    rel = finding.get("path") or finding.get("file")
+    if not rel:
+        return False
+    src = vault / rel
+    if not src.is_file():
+        return False
+    text = ""
+    try:
+        text = src.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    year = None
+    month = None
+    m = re.search(r"(?m)^\s*date:\s*['\"]?(\d{4})-(\d{2})", text)
+    if m:
+        year, month = m.group(1), int(m.group(2))
+    else:
+        # filename like 2026-W19.md / 2026-05.md / 2026.md
+        name = Path(rel).stem
+        mn = re.match(r"^(\d{4})(?:-W(\d{1,2})|-(\d{2}))?", name)
+        if mn:
+            year = mn.group(1)
+            if mn.group(2):  # ISO week → approx quarter
+                wk = int(mn.group(2))
+                month = max(1, min(12, (wk - 1) // 4 + 1))
+            elif mn.group(3):
+                month = int(mn.group(3))
+    if not year:
+        return False
+    if not month:
+        month = 1
+    quarter = (month - 1) // 3 + 1
+    archive_dir = vault / "归档" / "日记"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    dst = archive_dir / f"{year}-Q{quarter}.md"
+    # If quarter file exists, append source content under a separator.
+    if dst.exists():
+        try:
+            existing = dst.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            existing = ""
+        sep = "\n\n<!-- merged from {} -->\n\n".format(rel)
+        try:
+            dst.write_text(existing.rstrip() + sep + text, encoding="utf-8")
+            src.unlink()
+        except Exception:
+            return False
+        return True
+    try:
+        src.rename(dst)
+    except Exception:
+        return False
+    return True
+
+
 # ---- autofix ----
 
 def apply_fixes(
@@ -2108,6 +2329,11 @@ def apply_fixes(
         "path-naming-violation": _fix_path_violation,
         "i18n-path-not-in-locale": _fix_path_violation,
         "repo-path-deprecated": _fix_repo_path_deprecated,
+        "kb-reflection-path-deprecated": _fix_mv_to_inbox,
+        "kb-question-fleeting-path-deprecated": _fix_mv_to_inbox,
+        "kb-journal-multi-freq-deprecated": _fix_journal_multi_freq_to_archive,
+        "kb-source-non-repo-path-deprecated": _fix_mv_source_non_repo_to_inbox,
+        # kb-entity-concept-path-deprecated: warn-only (no autofix, AI must choose domain)
     }
     extra_findings = [
         f for f in findings

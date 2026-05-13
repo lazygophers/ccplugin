@@ -7,7 +7,16 @@ parent: 主页
 children: []
 last_updated: '{{UPDATED}}'
 tags:
-- 收件箱
+- type/index
+- topic/收件箱
+- lang/zh-CN
+- domain/knowledge-base
+- source/seed
+- score/3
+- maturity/stable
+- scope/inbox
+- kind/navigation
+- refresh/on-demand
 icon: 📥
 template_version: 1
 ---

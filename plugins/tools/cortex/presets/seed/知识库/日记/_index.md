@@ -1,17 +1,23 @@
 ---
 type: index
 title: 日记
-role: 时间维度 — 日 / 周 / 月 / 年
+role: 时间维度 — 仅日 (<YYYY-MM>/<YYYY-MM-DD>.md)
 namespace: 知识库
 parent: 主页
 children:
 - 日
-- 周
-- 月
-- 年
 last_updated: '{{UPDATED}}'
 tags:
-- 日记
+- type/index
+- topic/日记
+- lang/zh-CN
+- domain/knowledge-base
+- source/seed
+- score/3
+- maturity/stable
+- scope/journal-day
+- kind/navigation
+- refresh/on-demand
 icon: 📅
 template_version: 1
 ---
@@ -22,7 +28,7 @@ template_version: 1
 </section>
 
 > [!note] 日记
-> 时间序列记录, 4 个时间粒度
+> 时间序列记录 — 仅日维度 (周/月/年 已废弃, 历史条目归档到 归档/日记/)
 
 <section data-role="kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0">
   <div data-type="stat" style="padding:12px;background:#f8fafc;border-radius:8px">

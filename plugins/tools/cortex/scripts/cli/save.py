@@ -3,12 +3,14 @@
 Pipeline (P1):
 
 1. `masking.mask(body)` (reuse P0 module from `hooks/_lib/masking.py`).
-2. Compute path by kind:
-   - `concept` → `知识库/领域/<slug>.md`
-   - `project` → `知识库/项目/<host>/<org>/<repo>/<slug>.md` (host=local 时取 `知识库/项目/local/<basename>/<slug>.md`, basename 取 org 字段, repo 字段可空)
-   - `domain`  → alias of `project` (backward compat): routes to `知识库/项目/<host>/<org>/<repo>/<slug>.md`
-   - `source`  → `知识库/来源/<sub>/<host>/<slug>.md` (sub=网页/论文/书籍, repo host 严禁走此路由)
-   - `log`     → `知识库/日记/日/YYYY-MM/<HH-MM-slug>.md`
+2. Compute path by kind (4 知识库 子目录: 项目/领域/日记/收件箱):
+   - `entity`/`concept`        → `知识库/领域/<domain>/<slug>.md` (--domain 可选, 缺则 `未分类`)
+   - `project`/`domain` (alias) → `知识库/项目/<host>/<org>/<repo>/<slug>.md`
+     (host/org/repo 接受任意字符串: github.com/gitlab.com 或相对 $HOME 路径段, 不足 3 段补 `_local`)
+   - `source`                   → `知识库/收件箱/<host>-<slug>.md` (repo host 严禁; arxiv/网页/书籍统一落收件箱)
+   - `reflection`               → `知识库/日记/日/<YYYY-MM>/<YYYY-MM-DD>-反思-<slug>.md`
+   - `question`/`fleeting`/`inbox` → `知识库/收件箱/<slug>.md`
+   - `log`/`journal`            → `知识库/日记/日/<YYYY-MM>/<YYYY-MM-DD>.md`
 3. Prepend frontmatter (`type/title/created/tags/aliases`).
 4. `wikilinks.add_block_ids` — append `^cortex-<sha8>` to each paragraph.
 5. `lib.lock.file_lock` advisory write.
@@ -167,24 +169,24 @@ def _resolve_path(vault: Path, args: dict, now: _dt.datetime) -> Path:
     kind = args["kind"]
     title = args["title"]
     slug = slugify(title)
-    if kind == "concept":
-        target = vault / "知识库" / "领域" / f"{slug}.md"
+    if kind in ("entity", "concept"):
+        # 落 知识库/领域/<域>/<kebab>.md. --domain 可选, 缺则 领域/未分类/ (AI 自决)
+        domain = args.get("domain") or "未分类"
+        domain = _safe_segment(domain, "domain")
+        target = vault / "知识库" / "领域" / domain / f"{slug}.md"
     elif kind in ("project", "domain"):
         # kind=domain is retained as backward-compatible alias; both route to 知识库/项目/.
         host = args.get("host")
         if not host:
             raise ValueError(f"cortex_save: 'host' required when kind={kind!r}")
         host = _safe_segment(host, "host")
-        if host == "local":
-            # local: 取 org 字段当 basename;repo 可空
-            basename = _safe_segment(args.get("org") or "_", "org")
-            target = vault / "知识库" / "项目" / "local" / basename / f"{slug}.md"
-        else:
-            org = _safe_segment(args.get("org") or "_", "org")
-            repo = _safe_segment(args.get("repo") or "_", "repo")
-            target = (
-                vault / "知识库" / "项目" / host / org / repo / f"{slug}.md"
-            )
+        # 不再使用 local/<basename> 字面: host/org/repo 全接受任意字符串
+        # (host=_local/workspace/persons/github.com/... 均合法; 调用方负责相对 $HOME 路径切分)
+        org = _safe_segment(args.get("org") or "_local", "org")
+        repo = _safe_segment(args.get("repo") or "_local", "repo")
+        target = (
+            vault / "知识库" / "项目" / host / org / repo / f"{slug}.md"
+        )
     elif kind == "source":
         host = args.get("host")
         if not host:
@@ -195,14 +197,24 @@ def _resolve_path(vault: Path, args: dict, now: _dt.datetime) -> Path:
                 f"cortex_save: repo host {host!r} should use kind='project', not 'source'"
             )
         host = _safe_segment(host, "host")
-        # sub 子目录 (网页/论文/书籍), 由 source_meta 或默认 网页 决定
-        sub = args.get("source_sub") or "网页"
-        sub = _safe_segment(sub, "source_sub")
-        target = vault / "知识库" / "来源" / sub / host / f"{slug}.md"
-    elif kind == "log":
+        # 非 repo 来源落 收件箱/<host>-<slug>.md (待 digest 分发)
+        target = vault / "知识库" / "收件箱" / f"{host}-{slug}.md"
+    elif kind == "reflection":
+        ymd = now.strftime("%Y-%m-%d")
         ym = now.strftime("%Y-%m")
-        hm = now.strftime("%H-%M")
-        target = vault / "知识库" / "日记" / "日" / ym / f"{hm}-{slug}.md"
+        target = vault / "知识库" / "日记" / "日" / ym / f"{ymd}-反思-{slug}.md"
+    elif kind in ("question", "fleeting", "inbox"):
+        # inbox: 若提供 host 则用 `<host>-<slug>.md` 帮助 digest 分发, 否则纯 slug
+        host = args.get("host")
+        if host:
+            host = _safe_segment(host, "host")
+            target = vault / "知识库" / "收件箱" / f"{host}-{slug}.md"
+        else:
+            target = vault / "知识库" / "收件箱" / f"{slug}.md"
+    elif kind in ("log", "journal"):
+        ymd = now.strftime("%Y-%m-%d")
+        ym = now.strftime("%Y-%m")
+        target = vault / "知识库" / "日记" / "日" / ym / f"{ymd}.md"
     else:
         raise ValueError(f"cortex_save: invalid kind {kind!r}")
     # Final guard: resolved path must stay inside vault root.
@@ -270,6 +282,7 @@ def _save_internal(
     org: str | None = None,
     repo: str | None = None,
     source_sub: str | None = None,
+    domain: str | None = None,
     source_meta: dict | None = None,
     extra_fm: dict | None = None,
 ) -> dict:
@@ -302,6 +315,8 @@ def _save_internal(
         args["repo"] = repo
     if source_sub is not None:
         args["source_sub"] = source_sub
+    if domain is not None:
+        args["domain"] = domain
     target = _resolve_path(vault, args, now)
     target.parent.mkdir(parents=True, exist_ok=True)
 
@@ -320,6 +335,8 @@ def _save_internal(
         fm["org"] = org
     if repo is not None:
         fm["repo"] = repo
+    if domain is not None:
+        fm["domain"] = domain
     if source_meta:
         fm["source"] = source_meta
     if extra_fm:
@@ -358,6 +375,7 @@ def cli_save(args: dict) -> dict:
         org=args.get("org"),
         repo=args.get("repo"),
         source_sub=args.get("source_sub"),
+        domain=args.get("domain"),
     )
 
 
@@ -366,8 +384,12 @@ def main() -> None:
     parser.add_argument(
         "--kind",
         required=True,
-        choices=["concept", "project", "domain", "source", "log"],
-        help="domain = backward-compat alias of project",
+        choices=[
+            "entity", "concept", "project", "domain", "source",
+            "reflection", "question", "fleeting", "inbox",
+            "log", "journal",
+        ],
+        help="entity/concept → 知识库/领域/<域>/; project/domain → 知识库/项目/<host>/<org>/<repo>/; source → 知识库/收件箱/<host>-<slug>; reflection → 日记 一项; question/fleeting/inbox → 收件箱; log/journal → 日记/日/<YYYY-MM>/<YYYY-MM-DD>.md",
     )
     parser.add_argument("--title", required=True)
     parser.add_argument(
@@ -382,7 +404,12 @@ def main() -> None:
         "--source-sub",
         dest="source_sub",
         default=None,
-        help="source subdir (网页/论文/书籍), only used with kind=source",
+        help="(已废弃) source subdir, 旧字段保留兼容, 新版统一落 知识库/收件箱/",
+    )
+    parser.add_argument(
+        "--domain",
+        default=None,
+        help="entity/concept 落档域 (创作/学习/工作/技术/生活/金融/...); 缺省 '未分类' (调用方/AI 应自决)",
     )
     ns = parser.parse_args()
     body = ns.body if ns.body is not None else sys.stdin.read()
@@ -397,6 +424,7 @@ def main() -> None:
             "org": ns.org,
             "repo": ns.repo,
             "source_sub": ns.source_sub,
+            "domain": ns.domain,
         }
     )
     print(json.dumps(result, ensure_ascii=False))

@@ -110,21 +110,21 @@ class VaultMisalignedTest(unittest.TestCase):
     def test_template_file_misaligned(self) -> None:
         """改 _templates 下任意文件 → 检出 + fix 覆盖."""
         # 找一个 plugin template 文件
-        src_tpl = PLUGIN_ROOT / "presets" / "seed" / "_templates" / "concept.md"
+        src_tpl = PLUGIN_ROOT / "presets" / "seed" / "_templates" / "project.md"
         self.assertTrue(src_tpl.is_file())
-        dst = self.vault / "_templates" / "concept.md"
+        dst = self.vault / "_templates" / "project.md"
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(src_tpl.read_text(encoding="utf-8") + "\n# user added\n",
                        encoding="utf-8")
         findings = lint_run._check_vault_misaligned(self.vault, PLUGIN_ROOT)
-        target = [f for f in findings if f["file"] == "_templates/concept.md"]
-        self.assertTrue(target, f"expected _templates/concept.md finding, got {findings}")
+        target = [f for f in findings if f["file"] == "_templates/project.md"]
+        self.assertTrue(target, f"expected _templates/project.md finding, got {findings}")
         backup_dir = self.tmp / "_bak"
         backup_dir.mkdir()
         ok = lint_run._fix_vault_misaligned(target[0], self.vault, PLUGIN_ROOT, backup_dir)
         self.assertTrue(ok)
         # backup 含 user-added
-        bak = backup_dir / "_templates" / "concept.md"
+        bak = backup_dir / "_templates" / "project.md"
         self.assertTrue(bak.is_file())
         self.assertIn("user added", bak.read_text(encoding="utf-8"))
 

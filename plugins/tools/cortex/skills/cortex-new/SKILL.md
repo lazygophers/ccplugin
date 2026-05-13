@@ -34,12 +34,14 @@ cortex-new source "Building a Second Brain"
    - `{{CREATED}}` / `{{UPDATED}}` → 当前 UTC 日期 `YYYY-MM-DD`
    - `{{PRESET}}` → vault 当前 preset
 5. 按 §3.2.7 命名规则计算目标路径:
-   - `concept` → `知识库/领域/<kebab-title>.md` (LYT) / `zettels/<UID>-<slug>.md` (Zettel) / `3_resources/<kebab>.md` (PARA)
-   - `entity` → 若属 repo → `知识库/项目/<host>/<org>/<repo>/<entity-kebab>.md`; 否则 `知识库/概念/<kebab>.md` (LYT)
-   - `project` / `domain` (alias) → `知识库/项目/<host>/<org>/<repo>/_index.md` (从 title 解析 git remote; local 时 host=local, org=basename)
+   - `concept` → `知识库/领域/<域>/<kebab>.md` (域 = --domain 指定 或 AI 自决 6 域之一; 缺则 `领域/未分类/`) (LYT) / `zettels/<UID>-<slug>.md` (Zettel) / `3_resources/<kebab>.md` (PARA)
+   - `entity` → 若属 repo → `知识库/项目/<host>/<org>/<repo>/<entity-kebab>.md`; 否则 `知识库/领域/<域>/<entity-kebab>.md` (LYT)
+   - `project` / `domain` (alias) → `知识库/项目/<host>/<org>/<repo>/_index.md` (github/gitlab 走 origin; 本地项目走相对 $HOME 路径策略, 不足 3 段补 `_local`)
    - `dashboard` → `_assets/dashboards/<topic>-dashboard.md` (后缀强制)
-   - `question` → `知识库/反思/疑问/<kebab>.md`
-   - `source` → `知识库/来源/网页/<kebab>.md`
+   - `reflection` → `知识库/日记/日/<YYYY-MM>/<YYYY-MM-DD>-反思-<kebab>.md` (日记一项)
+   - `question` / `fleeting` → `知识库/收件箱/<kebab>.md` (待 digest 分发)
+   - `source` → `知识库/收件箱/<host>-<kebab>.md` (非 repo 来源统一落收件箱)
+   - `journal` / `log` → `知识库/日记/日/<YYYY-MM>/<YYYY-MM-DD>.md` (仅日)
    - blank preset 一律落到 vault 根 + `<type>/`
 6. 路径冲突检测: 用 `Glob` 或 `mcp__obsidian__obsidian_list_files_in_dir` 检查目标是否存在; 存在时 **必须调 `AskUserQuestion`** 工具询问: "目标路径已存在: `<path>`, 如何处理?" options: `换 slug` / `覆盖` / `取消`; 默认行为 = `取消` (不覆盖)
 7. 写入: 优先 `mcp__obsidian__obsidian_append_content` (新文件视作追加创建), 失败回退 `Write`

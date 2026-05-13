@@ -7,8 +7,16 @@ parent: 日记
 children: []
 last_updated: '{{UPDATED}}'
 tags:
-- 日记
-- 日
+- type/index
+- topic/日记日
+- lang/zh-CN
+- domain/knowledge-base
+- source/seed
+- score/3
+- maturity/stable
+- scope/journal-day
+- kind/navigation
+- refresh/on-demand
 icon: 📆
 template_version: 1
 ---

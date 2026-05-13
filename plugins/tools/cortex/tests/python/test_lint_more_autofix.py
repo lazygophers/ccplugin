@@ -200,5 +200,124 @@ class RepoPathDeprecatedAutofixTest(unittest.TestCase):
             self.assertIn("repo-path-deprecated", rules)
 
 
+class KbDeprecatedPathRulesTest(unittest.TestCase):
+    """5 new vault-structure deprecation rules (knowledge/反思 ... → 收件箱/归档)."""
+
+    def _make_finding(self, rule: str, rel: str) -> dict:
+        return {"rule": rule, "file": rel, "path": rel, "fixable": True, "line": 1}
+
+    def test_rule_kb_reflection_path_deprecated_autofix_moves_to_收件箱(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            src = vault / "知识库" / "反思" / "洞察" / "x.md"
+            src.parent.mkdir(parents=True)
+            src.write_text("---\ntype: reflection\ntitle: x\n---\nbody\n", encoding="utf-8")
+            backup = vault / "_meta" / ".cortex-backup" / "r"
+            backup.mkdir(parents=True, exist_ok=True)
+            ok = lint_run._fix_mv_to_inbox(
+                self._make_finding("kb-reflection-path-deprecated", "知识库/反思/洞察/x.md"),
+                vault, None, backup,
+            )
+            self.assertTrue(ok)
+            self.assertFalse(src.exists())
+            dst = vault / "知识库" / "收件箱" / "x.md"
+            self.assertTrue(dst.exists())
+            text = dst.read_text(encoding="utf-8")
+            self.assertIn("was_path: 知识库/反思/洞察/x.md", text)
+
+    def test_rule_kb_question_fleeting_path_deprecated_autofix_moves_to_收件箱(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            src = vault / "知识库" / "问题" / "q.md"
+            src.parent.mkdir(parents=True)
+            src.write_text("---\ntype: question\ntitle: q\n---\n", encoding="utf-8")
+            backup = vault / "_meta" / ".cortex-backup" / "r"
+            backup.mkdir(parents=True, exist_ok=True)
+            ok = lint_run._fix_mv_to_inbox(
+                self._make_finding("kb-question-fleeting-path-deprecated", "知识库/问题/q.md"),
+                vault, None, backup,
+            )
+            self.assertTrue(ok)
+            self.assertTrue((vault / "知识库" / "收件箱" / "q.md").exists())
+
+    def test_rule_kb_entity_concept_path_deprecated_warn_only(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            f = vault / "知识库" / "实体" / "p.md"
+            f.parent.mkdir(parents=True)
+            f.write_text("---\ntype: entity\ntitle: p\n---\n", encoding="utf-8")
+            files = list(vault.rglob("*.md"))
+            findings = lint_run.check_global(vault, files, {}, locale_dirs=None)
+            rules = [x["rule"] for x in findings]
+            self.assertIn("kb-entity-concept-path-deprecated", rules)
+            # autofix=False — file should remain after apply_fixes called only on this rule
+            # (we just verify the finding is non-fixable in rules.json contract)
+            ec_finding = next(x for x in findings if x["rule"] == "kb-entity-concept-path-deprecated")
+            self.assertFalse(ec_finding.get("fixable", False))
+
+    def test_rule_kb_journal_multi_freq_deprecated_autofix_archives(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            src = vault / "知识库" / "日记" / "月" / "2026-05.md"
+            src.parent.mkdir(parents=True)
+            src.write_text("---\ntype: journal\ndate: '2026-05-15'\n---\nmonth content\n", encoding="utf-8")
+            backup = vault / "_meta" / ".cortex-backup" / "r"
+            backup.mkdir(parents=True, exist_ok=True)
+            ok = lint_run._fix_journal_multi_freq_to_archive(
+                self._make_finding("kb-journal-multi-freq-deprecated", "知识库/日记/月/2026-05.md"),
+                vault, None, backup,
+            )
+            self.assertTrue(ok)
+            self.assertFalse(src.exists())
+            # 2026-05 → Q2 (May)
+            self.assertTrue((vault / "归档" / "日记" / "2026-Q2.md").exists())
+
+    def test_rule_kb_source_non_repo_path_deprecated_autofix_moves_to_收件箱(self):
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            src = vault / "知识库" / "来源" / "网页" / "example.com" / "foo.md"
+            src.parent.mkdir(parents=True)
+            src.write_text(
+                "---\ntype: source\ntitle: foo\nurl: https://example.com/x\n---\nbody\n",
+                encoding="utf-8",
+            )
+            backup = vault / "_meta" / ".cortex-backup" / "r"
+            backup.mkdir(parents=True, exist_ok=True)
+            ok = lint_run._fix_mv_source_non_repo_to_inbox(
+                self._make_finding("kb-source-non-repo-path-deprecated", "知识库/来源/网页/example.com/foo.md"),
+                vault, None, backup,
+            )
+            self.assertTrue(ok)
+            self.assertFalse(src.exists())
+            # host extracted from url frontmatter → example.com
+            self.assertTrue((vault / "知识库" / "收件箱" / "example.com-foo.md").exists())
+
+    def test_findings_emitted_for_new_deprecation_rules(self):
+        """check_global emits findings for all 5 new deprecation rules."""
+        with tempfile.TemporaryDirectory() as d:
+            vault = make_vault(Path(d))
+            for rel, body in [
+                ("知识库/反思/洞察/a.md", "---\ntype: reflection\ntitle: a\n---\n"),
+                ("知识库/问题/b.md", "---\ntype: question\ntitle: b\n---\n"),
+                ("知识库/临时/c.md", "---\ntype: fleeting\ntitle: c\n---\n"),
+                ("知识库/实体/d.md", "---\ntype: entity\ntitle: d\n---\n"),
+                ("知识库/概念/e.md", "---\ntype: concept\ntitle: e\n---\n"),
+                ("知识库/日记/周/2026-W19.md", "---\ntype: journal\ndate: '2026-05-13'\n---\n"),
+                ("知识库/来源/网页/example.com/f.md",
+                 "---\ntype: source\ntitle: f\nurl: https://example.com/f\n---\n"),
+            ]:
+                p = vault / rel
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(body, encoding="utf-8")
+            files = list(vault.rglob("*.md"))
+            findings = lint_run.check_global(vault, files, {}, locale_dirs=None)
+            rules = {f["rule"] for f in findings}
+            self.assertIn("kb-reflection-path-deprecated", rules)
+            self.assertIn("kb-question-fleeting-path-deprecated", rules)
+            self.assertIn("kb-entity-concept-path-deprecated", rules)
+            self.assertIn("kb-journal-multi-freq-deprecated", rules)
+            self.assertIn("kb-source-non-repo-path-deprecated", rules)
+
+
 if __name__ == "__main__":
     unittest.main()

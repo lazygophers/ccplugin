@@ -1,20 +1,22 @@
 ---
 type: index
 title: 领域
-role: 知识体系 (7 大领域, 按主题组织)
+role: 知识体系 — 域名由用户自决, 不预置固化结构
 namespace: 知识库
 parent: 主页
-children:
-- 技术
-- 金融
-- 生活
-- 工作
-- 学习
-- 创作
-- 元学习
+children: []
 last_updated: '{{UPDATED}}'
 tags:
-- 领域
+- type/index
+- topic/领域
+- lang/zh-CN
+- domain/knowledge-base
+- source/seed
+- score/3
+- maturity/stable
+- scope/user-defined
+- kind/navigation
+- refresh/on-demand
 icon: 🗺
 template_version: 1
 ---
@@ -25,7 +27,7 @@ template_version: 1
 </section>
 
 > [!info] 领域
-> 按主题分类的知识体系, 7 个一级领域
+> 按主题分类的知识体系 — 域名 (创作/学习/工作/技术/生活/金融/...) 由用户/AI 落档时自决创建
 
 <section data-role="kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0">
   <div data-type="stat" style="padding:12px;background:#f8fafc;border-radius:8px">

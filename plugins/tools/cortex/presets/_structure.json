@@ -6,123 +6,9 @@
     "_assets": {},
     "知识库": {
       "项目": {},
-      "来源": {
-        "代码仓库": {},
-        "网页": {},
-        "论文": {},
-        "书籍": {}
-      },
-      "领域": {
-        "技术": {
-          "编程语言": {
-            "Go": {},
-            "Python": {},
-            "Rust": {},
-            "JavaScript": {},
-            "TypeScript": {},
-            "Java": {},
-            "C++": {}
-          },
-          "数据库": {
-            "MySQL": {},
-            "PostgreSQL": {},
-            "Redis": {},
-            "MongoDB": {},
-            "ClickHouse": {},
-            "SQLite": {}
-          },
-          "基础设施": {
-            "Linux": {},
-            "Docker": {},
-            "Kubernetes": {},
-            "网络": {},
-            "安全": {}
-          },
-          "大数据": {
-            "Spark": {},
-            "Kafka": {},
-            "Flink": {},
-            "ETL": {},
-            "数据仓库": {}
-          },
-          "人工智能": {
-            "LLM": {},
-            "机器学习": {},
-            "Agent": {},
-            "Prompt": {},
-            "RAG": {},
-            "Embedding": {}
-          },
-          "前端": {
-            "React": {},
-            "Vue": {},
-            "CSS": {},
-            "Next.js": {},
-            "Tailwind": {}
-          },
-          "后端": {
-            "API": {},
-            "微服务": {},
-            "gRPC": {},
-            "REST": {}
-          },
-          "移动端": {
-            "iOS": {},
-            "Android": {},
-            "Flutter": {},
-            "ReactNative": {}
-          },
-          "运维": {
-            "CI-CD": {},
-            "监控": {},
-            "SRE": {},
-            "可观测性": {}
-          }
-        },
-        "金融": {
-          "投资": {},
-          "经济": {},
-          "会计": {},
-          "税务": {}
-        },
-        "生活": {
-          "美食": {},
-          "旅游": {},
-          "健康": {},
-          "家居": {},
-          "穿搭": {}
-        },
-        "工作": {
-          "管理": {},
-          "沟通": {},
-          "职业": {}
-        },
-        "学习": {
-          "语言": {},
-          "读书": {},
-          "课程": {}
-        },
-        "创作": {
-          "写作": {},
-          "设计": {},
-          "音乐": {}
-        },
-        "元学习": {
-          "知识管理": {},
-          "效率": {},
-          "思维框架": {}
-        }
-      },
+      "领域": {},
       "日记": {
-        "日": {},
-        "周": {},
-        "月": {},
-        "年": {}
-      },
-      "反思": {
-        "洞察": {},
-        "连接": {},
-        "疑问": {}
+        "日": {}
       },
       "收件箱": {}
     },
@@ -156,33 +42,13 @@
 
     {"src": "seed/_meta/memory-policy.yaml", "dst_key": "_meta", "name": "memory-policy.yaml", "desc": "记忆治理策略 — L0-L4 写入/遗忘/晋级 + recall + cron 配置。"},
 
-    {"src": "seed/知识库/项目/_index.md", "dst_key": "知识库/项目", "name": "_index.md", "desc": "知识库/项目 — 本地项目笔记入口 (每项目一 <name>/ 子目录)。"},
-    {"src": "seed/知识库/来源/_index.md", "dst_key": "知识库/来源", "name": "_index.md", "desc": "知识库/来源 — 外部资料 (代码仓库/网页/论文/书籍) 入口。"},
-    {"src": "seed/知识库/领域/_index.md", "dst_key": "知识库/领域", "name": "_index.md", "desc": "知识库/领域 — 7 大预设领域 (技术/金融/生活/工作/学习/创作/元学习) 入口。"},
-    {"src": "seed/知识库/日记/_index.md", "dst_key": "知识库/日记", "name": "_index.md", "desc": "知识库/日记 — 日/周/月/年四时间维度日志入口。"},
-    {"src": "seed/知识库/反思/_index.md", "dst_key": "知识库/反思", "name": "_index.md", "desc": "知识库/反思 — 洞察/连接/疑问 三类反思笔记入口。"},
-    {"src": "seed/知识库/收件箱/_index.md", "dst_key": "知识库/收件箱", "name": "_index.md", "desc": "知识库/收件箱 — 按日组织的瞬时输入暂存区。"},
+    {"src": "seed/知识库/_index.md", "dst_key": "知识库", "name": "_index.md", "desc": "知识库 — 4 子目录总入口 (项目/领域/日记/收件箱)。"},
+    {"src": "seed/知识库/项目/_index.md", "dst_key": "知识库/项目", "name": "_index.md", "desc": "知识库/项目 — 本地项目笔记入口 (host/org/repo 三级)。"},
+    {"src": "seed/知识库/领域/_index.md", "dst_key": "知识库/领域", "name": "_index.md", "desc": "知识库/领域 — 用户自决域名 (创作/学习/工作/技术/生活/金融/...) 入口。"},
+    {"src": "seed/知识库/日记/_index.md", "dst_key": "知识库/日记", "name": "_index.md", "desc": "知识库/日记 — 仅日维度 (日/<YYYY-MM>/<YYYY-MM-DD>.md)。"},
+    {"src": "seed/知识库/收件箱/_index.md", "dst_key": "知识库/收件箱", "name": "_index.md", "desc": "知识库/收件箱 — 落档兜底, 等 digest 分发到 项目/领域。"},
 
-    {"src": "seed/知识库/来源/网页/_index.md", "dst_key": "知识库/来源/网页", "name": "_index.md", "desc": "知识库/来源/网页 — <domain>/<slug> 二层结构, 通用外站抓取 (非 repo)。"},
-    {"src": "seed/知识库/来源/论文/_index.md", "dst_key": "知识库/来源/论文", "name": "_index.md", "desc": "知识库/来源/论文 — 按年份组织 (YYYY/) 的学术文献。"},
-    {"src": "seed/知识库/来源/书籍/_index.md", "dst_key": "知识库/来源/书籍", "name": "_index.md", "desc": "知识库/来源/书籍 — 读书笔记 + 摘录卡片。"},
-
-    {"src": "seed/知识库/领域/技术/_index.md", "dst_key": "知识库/领域/技术", "name": "_index.md", "desc": "技术领域 — 9 大类 (编程语言/数据库/基础设施/大数据/人工智能/前端/后端/移动端/运维)。"},
-    {"src": "seed/知识库/领域/金融/_index.md", "dst_key": "知识库/领域/金融", "name": "_index.md", "desc": "金融领域 — 投资/经济/会计/税务。"},
-    {"src": "seed/知识库/领域/生活/_index.md", "dst_key": "知识库/领域/生活", "name": "_index.md", "desc": "生活领域 — 美食/旅游/健康/家居/穿搭。"},
-    {"src": "seed/知识库/领域/工作/_index.md", "dst_key": "知识库/领域/工作", "name": "_index.md", "desc": "工作领域 — 管理/沟通/职业。"},
-    {"src": "seed/知识库/领域/学习/_index.md", "dst_key": "知识库/领域/学习", "name": "_index.md", "desc": "学习领域 — 语言/读书/课程。"},
-    {"src": "seed/知识库/领域/创作/_index.md", "dst_key": "知识库/领域/创作", "name": "_index.md", "desc": "创作领域 — 写作/设计/音乐。"},
-    {"src": "seed/知识库/领域/元学习/_index.md", "dst_key": "知识库/领域/元学习", "name": "_index.md", "desc": "元学习领域 — 知识管理/效率/思维框架。"},
-
-    {"src": "seed/知识库/日记/日/_index.md", "dst_key": "知识库/日记/日", "name": "_index.md", "desc": "日记/日 — YYYY/MM/YYYY-MM-DD.md 三层。"},
-    {"src": "seed/知识库/日记/周/_index.md", "dst_key": "知识库/日记/周", "name": "_index.md", "desc": "日记/周 — YYYY/YYYY-Www.md 二层。"},
-    {"src": "seed/知识库/日记/月/_index.md", "dst_key": "知识库/日记/月", "name": "_index.md", "desc": "日记/月 — YYYY/YYYY-MM.md 二层。"},
-    {"src": "seed/知识库/日记/年/_index.md", "dst_key": "知识库/日记/年", "name": "_index.md", "desc": "日记/年 — YYYY.md 一层。"},
-
-    {"src": "seed/知识库/反思/洞察/_index.md", "dst_key": "知识库/反思/洞察", "name": "_index.md", "desc": "反思/洞察 — 跨领域 aha 时刻。"},
-    {"src": "seed/知识库/反思/连接/_index.md", "dst_key": "知识库/反思/连接", "name": "_index.md", "desc": "反思/连接 — 旧笔记之间发现的链接。"},
-    {"src": "seed/知识库/反思/疑问/_index.md", "dst_key": "知识库/反思/疑问", "name": "_index.md", "desc": "反思/疑问 — 未解决问题 + 后续研究方向。"},
+    {"src": "seed/知识库/日记/日/_index.md", "dst_key": "知识库/日记/日", "name": "_index.md", "desc": "日记/日 — <YYYY-MM>/<YYYY-MM-DD>.md 二层。"},
 
     {"src": "seed/记忆/L0-核心/_index.md", "dst_key": "记忆/L0-核心", "name": "_index.md", "desc": "记忆/L0-核心 — 不可篡改 (identity/user/values/habits/constraints)。写入需 user confirm + git tag。"},
     {"src": "seed/记忆/L1-长期/_index.md", "dst_key": "记忆/L1-长期", "name": "_index.md", "desc": "记忆/L1-长期 — 已固化高 weight, procedural + semantic-stable 两类。仅用户显式删除。"},

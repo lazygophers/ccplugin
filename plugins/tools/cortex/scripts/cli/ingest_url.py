@@ -74,13 +74,13 @@ def _route_url(url: str) -> dict:
     """Decide kind + host/org/repo from URL.
 
     GitHub/GitLab/含 gitlab 子串 host → kind=project, 抽 org/repo from path.
-    arxiv.org → kind=source, source_sub=论文.
-    其他 → kind=source, source_sub=网页.
+    arxiv.org / 其他 host → kind=inbox (统一落 知识库/收件箱/, 等 digest 分发).
+    host 字段保留用于 _save_internal 生成 收件箱/<host>-<slug>.md.
     """
     parsed = urllib.parse.urlparse(url)
     host = (parsed.hostname or "").lower()
     if not host:
-        return {"kind": "source", "host": "unknown", "source_sub": "网页"}
+        return {"kind": "inbox", "host": "unknown"}
     if host in ("github.com", "gitlab.com") or "gitlab" in host:
         m = _REPO_PATH_RE.match(parsed.path or "")
         if m:
@@ -90,11 +90,9 @@ def _route_url(url: str) -> dict:
                 "org": m.group("org"),
                 "repo": m.group("repo"),
             }
-        # fall through to source if path is not <org>/<repo>
-        return {"kind": "source", "host": host, "source_sub": "网页"}
-    if host == "arxiv.org":
-        return {"kind": "source", "host": host, "source_sub": "论文"}
-    return {"kind": "source", "host": host, "source_sub": "网页"}
+        return {"kind": "inbox", "host": host}
+    # arxiv / 其他外站 → 统一落收件箱 (待 digest 分发到 领域/<域> 或 项目/笔记)
+    return {"kind": "inbox", "host": host}
 
 
 def _is_pdf(content_type: str, url: str) -> bool:
@@ -125,9 +123,12 @@ def cli_ingest_url(args: dict) -> dict:
         for k in ("host", "org", "repo", "source_sub"):
             if routed.get(k) and not args.get(k):
                 args[k] = routed[k]
-    if kind not in ("concept", "project", "domain", "source", "log"):
+    if kind not in (
+        "entity", "concept", "project", "domain", "source",
+        "reflection", "question", "fleeting", "inbox", "log", "journal",
+    ):
         raise ValueError(
-            "cortex_ingest_url: 'kind' must be one of concept/project/domain/source/log"
+            "cortex_ingest_url: 'kind' must be one of entity/concept/project/domain/source/reflection/question/fleeting/inbox/log/journal"
         )
 
     # 1. SSRF gate -- fail closed before any fetch.
@@ -220,9 +221,12 @@ def main() -> None:
     parser.add_argument("--url", required=True)
     parser.add_argument(
         "--kind",
-        choices=["concept", "project", "domain", "source", "log"],
+        choices=[
+            "entity", "concept", "project", "domain", "source",
+            "reflection", "question", "fleeting", "inbox", "log", "journal",
+        ],
         default=None,
-        help="If omitted, auto-route by URL host (github/gitlab → project, arxiv → source/论文, else source/网页)",
+        help="If omitted, auto-route by URL host (github/gitlab → project, 其他 → inbox 落 知识库/收件箱/)",
     )
     parser.add_argument("--title")
     parser.add_argument("--host")

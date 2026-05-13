@@ -24,10 +24,47 @@ _GIT_REMOTE_RE = re.compile(
 )
 
 
+def _rel_home_to_host_org_repo(abs_path: Path) -> tuple[str, str, str, str]:
+    """Map an absolute directory path → (host, org, repo, source_url).
+
+    Strategy: take path relative to $HOME, split into segments.
+    - 3+ segments: host/org/repo = first three
+    - 2 segments: host=parts[0], org=`_local`, repo=parts[1]
+    - 1 segment:  host=`_local`, org=`_local`, repo=parts[0]
+    - 0 segments (== $HOME): host=`_local`, org=`_local`, repo=`home`
+    - not under $HOME: host=`_local`, org=`_local`, repo=basename
+
+    `source_url` is a pseudo `file://$HOME/<rel>` form when under $HOME,
+    otherwise `file://<abs_path>`.
+    """
+    home = Path.home()
+    try:
+        rel = abs_path.relative_to(home)
+    except ValueError:
+        return ("_local", "_local", abs_path.name or "home", f"file://{abs_path}")
+    parts = rel.parts
+    if len(parts) >= 3:
+        host, org, repo = parts[0], parts[1], parts[2]
+    elif len(parts) == 2:
+        host, org, repo = parts[0], "_local", parts[1]
+    elif len(parts) == 1:
+        host, org, repo = "_local", "_local", parts[0]
+    else:
+        host, org, repo = "_local", "_local", "home"
+    source_url = f"file://$HOME/{rel.as_posix()}" if parts else "file://$HOME"
+    return (host, org, repo, source_url)
+
+
 def _detect_project_root(start: Path) -> dict | None:
     """Walk up from `start` looking for .git or project markers.
 
-    Returns dict with kind=project + host/org/repo or None.
+    Strategy:
+    1. `.git/config` with origin in github/gitlab → use origin host/org/repo
+    2. `.git/config` with non-github/gitlab origin (private / local) → 相对 $HOME 路径策略
+    3. No `.git/` but project marker found → 相对 $HOME 路径策略 (anchored at ancestor)
+    4. None found → None (caller treats as inbox/source)
+
+    Returns dict with kind=project + host/org/repo (+ source_url) or None.
     """
     cur = start if start.is_dir() else start.parent
     project_markers = {"pyproject.toml", "package.json", "Cargo.toml", "go.mod"}
@@ -38,7 +75,6 @@ def _detect_project_root(start: Path) -> dict | None:
                 cfg_text = git_cfg.read_text(encoding="utf-8", errors="replace")
             except OSError:
                 cfg_text = ""
-            # Find [remote "origin"] url
             m_origin = re.search(
                 r'\[remote "origin"\][^\[]*?url\s*=\s*(\S+)',
                 cfg_text,
@@ -56,21 +92,47 @@ def _detect_project_root(start: Path) -> dict | None:
                             "org": m.group("org"),
                             "repo": m.group("repo"),
                         }
-            # Has .git but no github/gitlab origin → local
+            # Has .git but no github/gitlab origin → 相对 $HOME 路径策略
+            host, org, repo, source_url = _rel_home_to_host_org_repo(ancestor)
             return {
                 "kind": "project",
-                "host": "local",
-                "org": ancestor.name,
-                "repo": "",
+                "host": host,
+                "org": org,
+                "repo": repo,
+                "source_url": source_url,
             }
         if any((ancestor / mk).is_file() for mk in project_markers):
+            host, org, repo, source_url = _rel_home_to_host_org_repo(ancestor)
             return {
                 "kind": "project",
-                "host": "local",
-                "org": ancestor.name,
-                "repo": "",
+                "host": host,
+                "org": org,
+                "repo": repo,
+                "source_url": source_url,
             }
     return None
+
+
+def _find_nested_repos(root: Path) -> list[Path]:
+    """递归发现 `root` 子树中所有 `.git/` 父目录 (skip node_modules / `.git` 自身)。
+
+    用于多 repo 工作树 ingest: 每个嵌套 repo 独立 ingest, 父项目内容范围 = root - 子 repos.
+    """
+    result: list[Path] = []
+    if not root.is_dir():
+        return result
+    for p in root.rglob(".git"):
+        if not p.is_dir():
+            continue
+        parts = set(p.parts)
+        if "node_modules" in parts:
+            continue
+        parent = p.parent.resolve()
+        # skip the root itself (caller's parent repo)
+        if parent == root.resolve():
+            continue
+        result.append(parent)
+    return result
 
 
 def cli_ingest_file(args: dict) -> dict:
@@ -80,10 +142,11 @@ def cli_ingest_file(args: dict) -> dict:
     if not isinstance(raw_path, str) or not raw_path.strip():
         raise ValueError("cortex_ingest_file: 'path' required (non-empty string)")
     if kind is not None and kind not in (
-        "concept", "project", "domain", "source", "log",
+        "entity", "concept", "project", "domain", "source",
+        "reflection", "question", "fleeting", "inbox", "log", "journal",
     ):
         raise ValueError(
-            "cortex_ingest_file: 'kind' must be one of concept/project/domain/source/log"
+            "cortex_ingest_file: 'kind' must be one of entity/concept/project/domain/source/reflection/question/fleeting/inbox/log/journal"
         )
 
     path = Path(os.path.expanduser(raw_path)).resolve()
@@ -106,10 +169,11 @@ def cli_ingest_file(args: dict) -> dict:
             for k in ("host", "org", "repo"):
                 if detected.get(k) and not args.get(k):
                     args[k] = detected[k]
+            if detected.get("source_url") and not args.get("source_url"):
+                args["source_url"] = detected["source_url"]
         else:
-            kind = "source"
-            args.setdefault("host", "local")
-            args.setdefault("source_sub", "网页")
+            # No project root → fall back to inbox (待 digest 分发到 项目/笔记 或 领域/<域>)
+            kind = "inbox"
 
     warnings: list[str] = []
     extracted_title: str | None = None
@@ -169,9 +233,12 @@ def main() -> None:
     parser.add_argument("--path", required=True)
     parser.add_argument(
         "--kind",
-        choices=["concept", "project", "domain", "source", "log"],
+        choices=[
+            "entity", "concept", "project", "domain", "source",
+            "reflection", "question", "fleeting", "inbox", "log", "journal",
+        ],
         default=None,
-        help="If omitted, auto-detect by walking up for .git/project markers",
+        help="If omitted, auto-detect by walking up for .git/project markers (fallback: inbox)",
     )
     parser.add_argument("--title")
     parser.add_argument("--host")
