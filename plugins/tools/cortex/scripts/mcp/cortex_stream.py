@@ -305,7 +305,7 @@ def _render_event(evt: dict) -> RenderableType | None:
                     renderables.append(
                         Panel(
                             Text(blk.get("input", {}).get("command", blk.get("input", {}).get("description", "")),  style="yellow"),
-                            title=f"tool: {name}",
+                            title=name,
                             border_style="yellow",
                             padding=(0, 1),
                         )
@@ -314,7 +314,7 @@ def _render_event(evt: dict) -> RenderableType | None:
                     renderables.append(
                         Panel(
                             Text(blk.get("input", {}).get("file_path", ""),  style="yellow"),
-                            title=f"tool: {name}",
+                            title=name,
                             border_style="yellow",
                             padding=(0, 1),
                         )
@@ -323,7 +323,7 @@ def _render_event(evt: dict) -> RenderableType | None:
                     renderables.append(
                         Panel(
                             Text(f'{blk.get("input", {}).get("file_path", "")}\n----------\n{blk.get("input", {}).get("content", "")}',  style="yellow"),
-                            title=f"tool: {name}",
+                            title=name,
                             border_style="yellow",
                             padding=(0, 1),
                         )
@@ -332,7 +332,7 @@ def _render_event(evt: dict) -> RenderableType | None:
                     renderables.append(
                         Panel(
                             Text(blk.get("input", {}).get("skill", ""),  style="yellow"),
-                            title=f"tool: {name}",
+                            title=name,
                             border_style="yellow",
                             padding=(0, 1),
                         )
@@ -341,7 +341,7 @@ def _render_event(evt: dict) -> RenderableType | None:
                     renderables.append(
                         Panel(
                             Text("\n".join(f"{todo.get('content', '')} - {todo.get('status', '')}" for todo in blk.get("input", {}).get("todos", [])),  style="yellow"),
-                            title=f"tool: {name}",
+                            title=name,
                             border_style="yellow",
                             padding=(0, 1),
                         )
