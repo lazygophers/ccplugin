@@ -52,7 +52,7 @@ Phases:
 2) Analyze patterns/entities/decisions/questions. jsonl → per-line parse; json/yaml → structured parse; other → paragraph scan.
 3) Process to views/consolidated/<YYYY-MM-DD>.md + reflection + candidates.
 4) Update uri-index + L4→L3 promote (frequency >= 5).
-5) Cleanup — L4-流水账 MUST be drained: every file (any type) > 7d exits L4 via promote-L3 | archive-to-归档/L4-<YYYY>/<rel> | delete (无价值时); <=7d files untouched.
+5) Cleanup — L4-流水账 MUST be FULLY drained (NO time window, NO exemption): EVERY file (any type, any age) exits L4 via promote-L3 | archive-to-归档/L4-<YYYY>/<rel> | delete. After digest, 记忆/L4-流水账/** MUST be empty (0 files). L4 is single-pass funnel, never accumulates.
    ALSO drain L3 (>90d weight<0.3), concretized questions (backlinks >= 3), inbox (>=30d MUST classify|archive|delete; <30d untouched), 知识库/日记/日 (>7d → 归档/日记/<YYYY-QN>.md quarterly bucket, idempotent).
    do NOT touch 记忆/L0-核心 or 记忆/L1-长期.
 Output compact JSON: {date, read:{ledger,sessions,logs,inbox,l4_other}, analyzed, written, updated, cleaned:{l4_promoted,l4_archived,l4_deleted,L3_purged,questions_purged,inbox_classified,inbox_archived,inbox_deleted}}."
