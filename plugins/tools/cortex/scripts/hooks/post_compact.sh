@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# post_compact.sh
-# CC PostCompact hook — 把 compact 摘要落到 记忆/L4-流水账/ledger/YYYY-MM/DD-HHMM-compact.md。
+# post_compact.sh — CC PostCompact hook
 #
-# 与 stop.sh 共享 save_session.py 实现, reason=compact。
-# compact 总是落档 (跳过启发式判定 — compact summary 本身已是浓缩信息)。
-# 协议同 stop.sh: 永远 exit 0, 命中输出 v2 wrapped JSON。
+# 行为: 同 stop.sh, 把 compact 后的 transcript jsonl 完整 copy 到
+#   vault/记忆/L4-流水账/sessions/<cli>/<YYYY>/<MM>/<DD>/<session_id>-compact.jsonl
+# (与 Stop 副本同目录, suffix -compact 区分)
+#
+# 协议同 stop.sh. 永远 exit 0.
 
 set -u
 
@@ -20,7 +21,7 @@ if [[ -z "$HOOK_INPUT" ]]; then
   exit 0
 fi
 
-read -r TRANSCRIPT_PATH SESSION_ID < <(printf '%s' "$HOOK_INPUT" | python3 -c "
+_PARSED=$(printf '%s' "$HOOK_INPUT" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -28,53 +29,55 @@ try:
         d = {}
 except Exception:
     d = {}
-print(d.get('transcript_path', '') or '-', d.get('session_id', '') or '-')
+print(
+    d.get('transcript_path', '') or '-',
+    d.get('hook_event_name', '') or 'PostCompact',
+    d.get('session_id', '') or '-',
+)
 " 2>>"$LOG_FILE") || { log "post_compact: parse failed"; exit 0; }
+read -r TRANSCRIPT_PATH HOOK_EVENT SESSION_ID <<< "$_PARSED"
 
 [[ "$TRANSCRIPT_PATH" == "-" ]] && TRANSCRIPT_PATH=""
 [[ "$SESSION_ID" == "-" ]] && SESSION_ID=""
 
+if [[ -z "$TRANSCRIPT_PATH" ]] || [[ ! -f "$TRANSCRIPT_PATH" ]]; then
+  log "post_compact: transcript missing"
+  exit 0
+fi
+
 # shellcheck source=./_lib/resolve_vault.sh
 source "$PLUGIN_ROOT/scripts/hooks/_lib/resolve_vault.sh"
-VAULT=$(resolve_vault 2>/dev/null || true)
+VAULT=$(resolve_vault)
 if [[ -z "$VAULT" ]]; then
-  log "post_compact: vault not resolved; skip"
+  log "post_compact: vault not resolved"
   exit 0
 fi
 
-if [[ -z "$TRANSCRIPT_PATH" || ! -f "$TRANSCRIPT_PATH" ]]; then
-  log "post_compact: transcript missing ($TRANSCRIPT_PATH)"
-  exit 0
-fi
+CLI="claude-code"
+YYYY=$(date '+%Y')
+MM=$(date '+%m')
+DD=$(date '+%d')
+ID="${SESSION_ID:-$(basename "$TRANSCRIPT_PATH" .jsonl)}-compact"
+DEST_DIR="$VAULT/记忆/L4-流水账/sessions/$CLI/$YYYY/$MM/$DD"
+DEST="$DEST_DIR/${ID}.jsonl"
 
-SAVE_OUT=$(python3 "$PLUGIN_ROOT/scripts/hooks/_lib/save_session.py" \
-  --vault "$VAULT" \
-  --transcript "$TRANSCRIPT_PATH" \
-  --reason compact \
-  --cli claude-code \
-  --cli-session "$SESSION_ID" \
-  --force \
-  2>>"$LOG_FILE")
-SAVE_RC=$?
+mkdir -p "$DEST_DIR" 2>/dev/null || { log "post_compact: mkdir failed"; exit 0; }
 
-if [[ "$SAVE_RC" == "0" && -n "$SAVE_OUT" ]]; then
-  log "compact saved: $SAVE_OUT"
-  REL=$(python3 -c "
-import os, sys
-try: print(os.path.relpath(sys.argv[2], sys.argv[1]))
-except Exception: print(sys.argv[2])
-" "$VAULT" "$SAVE_OUT" 2>/dev/null || echo "$SAVE_OUT")
+if cp "$TRANSCRIPT_PATH" "$DEST" 2>>"$LOG_FILE"; then
+  REL="${DEST#$VAULT/}"
+  log "post_compact: copied → $REL"
   python3 -c "
 import json, sys
-sys.stdout.write(json.dumps({
+payload = {
     'hookSpecificOutput': {
-        'hookEventName': 'PostCompact',
-        'additionalContext': f'📝 cortex 已落档 compact 摘要: {sys.argv[1]}',
+        'hookEventName': sys.argv[1],
+        'additionalContext': f'📝 cortex 已落档 {sys.argv[2]}',
     }
-}, ensure_ascii=False))
-" "$REL" 2>>"$LOG_FILE" || true
+}
+sys.stdout.write(json.dumps(payload, ensure_ascii=False))
+" "$HOOK_EVENT" "$REL" 2>>"$LOG_FILE" || true
 else
-  log "compact save rc=$SAVE_RC"
+  log "post_compact: cp failed"
 fi
 
 exit 0

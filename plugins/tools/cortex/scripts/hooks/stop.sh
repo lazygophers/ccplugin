@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# stop.sh
-# CC Stop / SubagentStop hook — 启发式判定是否落档当前会话。
+# stop.sh — CC Stop / SubagentStop hook
+#
+# 行为: 把会话 jsonl transcript 完整 copy 到
+#   vault/记忆/L4-流水账/sessions/<cli>/<YYYY>/<MM>/<DD>/<session_id>.jsonl
 #
 # 协议:
-# - stdin: CC hook v2 JSON (含 transcript_path, session_id, cwd, stop_hook_active, hook_event_name)
-# - stdout: 命中且写入成功时输出 v2 wrapped JSON (additionalContext = 一行简讯); 否则空
+# - stdin: CC hook v2 JSON (含 transcript_path, session_id, stop_hook_active, hook_event_name)
+# - stdout: copy 成功时输出 v2 wrapped JSON (additionalContext = 落档路径); 否则空
 # - 退出码: 永远 0 (advisory; 不阻断会话)
 #
 # 失败统一写 ~/.cache/cortex/stop.log, 不抛错给主线。
@@ -24,7 +26,6 @@ if [[ -z "$HOOK_INPUT" ]]; then
   exit 0
 fi
 
-# 解析 JSON 关键字段
 _PARSED=$(printf '%s' "$HOOK_INPUT" | python3 -c "
 import json, sys
 try:
@@ -51,51 +52,36 @@ if [[ "$STOP_ACTIVE" == "true" ]]; then
   exit 0
 fi
 
-# 事件 → reason
-case "$HOOK_EVENT" in
-  SubagentStop) REASON="subagent-stop" ;;
-  PostCompact)  REASON="compact" ;;
-  Stop|*)       REASON="stop" ;;
-esac
+# transcript 必须存在
+if [[ -z "$TRANSCRIPT_PATH" ]] || [[ ! -f "$TRANSCRIPT_PATH" ]]; then
+  log "stop: transcript missing ($TRANSCRIPT_PATH)"
+  exit 0
+fi
 
-# ---- 解析 vault ----
+# 解析 vault
 # shellcheck source=./_lib/resolve_vault.sh
 source "$PLUGIN_ROOT/scripts/hooks/_lib/resolve_vault.sh"
-VAULT=$(resolve_vault 2>/dev/null || true)
+VAULT=$(resolve_vault)
 if [[ -z "$VAULT" ]]; then
-  log "stop: vault not resolved; skip ($HOOK_EVENT)"
+  log "stop: vault not resolved; silent exit"
   exit 0
 fi
 
-# transcript 不存在 → 仅日志, 不写 vault (除非是 manual force 调用, 此处不处理)
-if [[ -z "$TRANSCRIPT_PATH" || ! -f "$TRANSCRIPT_PATH" ]]; then
-  log "stop: transcript missing ($TRANSCRIPT_PATH) reason=$REASON; skip"
-  exit 0
-fi
+# 目标: vault/记忆/L4-流水账/sessions/<cli>/<YYYY>/<MM>/<DD>/<id>.jsonl
+CLI="claude-code"
+YYYY=$(date '+%Y')
+MM=$(date '+%m')
+DD=$(date '+%d')
+ID="${SESSION_ID:-$(basename "$TRANSCRIPT_PATH" .jsonl)}"
+DEST_DIR="$VAULT/记忆/L4-流水账/sessions/$CLI/$YYYY/$MM/$DD"
+DEST="$DEST_DIR/${ID}.jsonl"
 
-# ---- 调度 save_session.py ----
-SAVE_OUT=$(python3 "$PLUGIN_ROOT/scripts/hooks/_lib/save_session.py" \
-  --vault "$VAULT" \
-  --transcript "$TRANSCRIPT_PATH" \
-  --reason "$REASON" \
-  --cli claude-code \
-  --cli-session "$SESSION_ID" \
-  2>>"$LOG_FILE")
-SAVE_RC=$?
+mkdir -p "$DEST_DIR" 2>/dev/null || { log "stop: mkdir failed: $DEST_DIR"; exit 0; }
 
-case "$SAVE_RC" in
-  0)
-    log "saved: $SAVE_OUT (event=$HOOK_EVENT)"
-    REL=$(python3 -c "
-import os, sys
-vault = sys.argv[1]; abs_p = sys.argv[2]
-try:
-    print(os.path.relpath(abs_p, vault))
-except Exception:
-    print(abs_p)
-" "$VAULT" "$SAVE_OUT" 2>/dev/null || echo "$SAVE_OUT")
-    # 输出 v2 wrapped JSON
-    python3 -c "
+if cp "$TRANSCRIPT_PATH" "$DEST" 2>>"$LOG_FILE"; then
+  REL="${DEST#$VAULT/}"
+  log "stop: copied → $REL (event=$HOOK_EVENT)"
+  python3 -c "
 import json, sys
 payload = {
     'hookSpecificOutput': {
@@ -105,23 +91,8 @@ payload = {
 }
 sys.stdout.write(json.dumps(payload, ensure_ascii=False))
 " "$HOOK_EVENT" "$REL" 2>>"$LOG_FILE" || true
-    ;;
-  2)
-    log "skipped: heuristic threshold not met (event=$HOOK_EVENT)"
-    ;;
-  *)
-    log "save failed rc=$SAVE_RC (event=$HOOK_EVENT)"
-    ;;
-esac
-
-# ---- P5: vault auto-commit (opt-in) ----
-# 异步隔离, 不阻塞 hook 返回; git_sync.py 内部 fail-soft.
-if [[ -n "${VAULT:-}" ]]; then
-  (
-    python3 "$PLUGIN_ROOT/scripts/hooks/_lib/git_sync.py" auto "$VAULT" \
-      >>"$LOG_FILE" 2>&1
-  ) &
-  disown 2>/dev/null || true
+else
+  log "stop: cp failed"
 fi
 
 exit 0

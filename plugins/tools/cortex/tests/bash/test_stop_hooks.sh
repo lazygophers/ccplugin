@@ -68,18 +68,17 @@ test_stop_active_skipped() {
   assert_empty "$out" "stop_hook_active=true → no output"
 }
 
-test_trivial_no_save() {
+test_trivial_always_saves() {
   local sandbox; sandbox=$(make_tmpdir); trap "rm -rf '$sandbox'" RETURN
   make_vault "$sandbox/v"
   local tp="$sandbox/t.jsonl"
   make_transcript "$tp" trivial
   local payload
-  payload=$(printf '{"transcript_path":"%s","stop_hook_active":false,"hook_event_name":"Stop","session_id":"s1"}' "$tp")
+  payload=$(printf '{"transcript_path":"%s","stop_hook_active":false,"hook_event_name":"Stop","session_id":"s2"}' "$tp")
   out=$(run_stop "$sandbox/v" "$payload")
-  assert_empty "$out" "trivial transcript → no save → no output"
-  # log dir empty
-  count=$(find "$sandbox/v/知识库/日记/日" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
-  assert_eq "0" "$count"
+  assert_contains "hookSpecificOutput" "$out"
+  count=$(find "$sandbox/v/记忆/L4-流水账/sessions" -type f -name "*.jsonl" 2>/dev/null | wc -l | tr -d ' ')
+  assert_neq "0" "$count" "expected transcript copied even when trivial"
 }
 
 test_nontrivial_writes_log_and_outputs_json() {
@@ -92,7 +91,7 @@ test_nontrivial_writes_log_and_outputs_json() {
   out=$(run_stop "$sandbox/v" "$payload")
   assert_contains "hookSpecificOutput" "$out"
   assert_contains "已落档" "$out"
-  count=$(find "$sandbox/v/知识库/日记/日" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  count=$(find "$sandbox/v/记忆/L4-流水账/sessions" -type f -name "*.jsonl" 2>/dev/null | wc -l | tr -d ' ')
   assert_neq "0" "$count" "expected log file written"
 }
 
@@ -124,7 +123,7 @@ test_post_compact_force_writes() {
     HOME="$home" \
     bash "$POST_COMPACT" 2>/dev/null)
   assert_contains "PostCompact" "$out"
-  count=$(find "$sandbox/v/知识库/日记/日" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  count=$(find "$sandbox/v/记忆/L4-流水账/sessions" -type f -name "*.jsonl" 2>/dev/null | wc -l | tr -d ' ')
   assert_neq "0" "$count"
 }
 
@@ -142,7 +141,7 @@ test_post_compact_empty_stdin() {
 
 run_test test_empty_stdin_silent              test_empty_stdin_silent
 run_test test_stop_active_skipped             test_stop_active_skipped
-run_test test_trivial_no_save                 test_trivial_no_save
+run_test test_trivial_always_saves            test_trivial_always_saves
 run_test test_nontrivial_writes_log_and_outputs_json  test_nontrivial_writes_log_and_outputs_json
 run_test test_vault_missing_silent            test_vault_missing_silent
 run_test test_post_compact_force_writes       test_post_compact_force_writes
