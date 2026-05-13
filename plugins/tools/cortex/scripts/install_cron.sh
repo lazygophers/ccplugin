@@ -8,10 +8,10 @@
 #   bash install_cron.sh [--plugin-root <path>] [launchd|cron|gha]   # 默认 cron
 #   bash install_cron.sh --help
 #
-# 任务清单 (prd §7 M6):
+# 任务清单:
 #   daily   01:00       cortex lint
+#   daily   02:30       cortex dashboard refresh
 #   weekly  Sun 02:00   cortex fold (log rollup)
-#   weekly  Sun 02:30   cortex dashboard refresh
 #
 # 所有命令以 `claude --bare -p` 触发对应 skill, 用户需先安装 claude CLI。
 
@@ -161,8 +161,8 @@ print_cron() {
 # weekly log fold at Sunday 02:00
 0 2 * * 0 bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/fold.sh" --vault "${VAULT}"
 
-# weekly dashboard refresh at Sunday 02:30
-30 2 * * 0 bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/dashboard.sh" --vault "${VAULT}"
+# daily dashboard refresh at 02:30
+30 2 * * * bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/dashboard.sh" --vault "${VAULT}"
 EOF
 }
 
@@ -200,7 +200,7 @@ print_launchd() {
 
 # 同样模板可派生:
 #   - dev.lazygophers.cortex.weekly-fold (Hour=2, Minute=0, Weekday=0, fold.sh)
-#   - dev.lazygophers.cortex.weekly-dashboard (Hour=2, Minute=30, Weekday=0, dashboard.sh)
+#   - dev.lazygophers.cortex.daily-dashboard (Hour=2, Minute=30, dashboard.sh)
 EOF
 }
 
@@ -219,6 +219,7 @@ name: cortex-cron
 on:
   schedule:
     - cron: '0 1 * * *'    # daily lint
+    - cron: '30 2 * * *'   # daily dashboard refresh
     - cron: '0 2 * * 0'    # weekly fold
   workflow_dispatch:
 
@@ -234,6 +235,23 @@ jobs:
         run: bash ${GITHUB_WORKSPACE}/plugins/tools/cortex/scripts/cron/lint.sh
       - uses: actions/upload-artifact@v4
         with: { name: lint-report, path: ~/.cache/cortex/cron/ }
+
+  dashboard:
+    if: github.event.schedule == '30 2 * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - name: cortex dashboard
+        run: bash ${GITHUB_WORKSPACE}/plugins/tools/cortex/scripts/cron/dashboard.sh
+      - name: commit
+        run: |
+          git config user.name "cortex-bot"
+          git config user.email "cortex@noreply.local"
+          git add -A
+          git diff --quiet --staged || git commit -m "cortex: daily dashboard"
+          git push
 
   fold:
     if: github.event.schedule == '0 2 * * 0'
