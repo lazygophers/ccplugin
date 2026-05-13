@@ -328,10 +328,16 @@ def _render_event(evt: dict) -> RenderableType | None:
                             padding=(0, 1),
                         )
                     )
-                elif name = "Edit":
+                elif name == "Edit":
+                    _inp = blk.get("input", {})
                     renderables.append(
                         Panel(
-                            Text(f'{blk.get('input', {}).get("file_path", "")}\n----------{blk.get("input", {}).get("old_string", "")}\n-----↓-----\n{blk.get("input", {}).get("new_string", "")}',  style="yellow"),
+                            Text(
+                                f"{_inp.get('file_path', '')}\n"
+                                f"----------\n{_inp.get('old_string', '')}\n"
+                                f"-----↓-----\n{_inp.get('new_string', '')}",
+                                style="yellow",
+                            ),
                             title=name,
                             border_style="yellow",
                             padding=(0, 1),
