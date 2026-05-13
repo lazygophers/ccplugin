@@ -11,7 +11,7 @@
 
 set -u
 
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex}"
 LOG_FILE="${HOME}/.cache/cortex/stop.log"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 
@@ -25,7 +25,7 @@ if [[ -z "$HOOK_INPUT" ]]; then
 fi
 
 # 解析 JSON 关键字段
-read -r TRANSCRIPT_PATH STOP_ACTIVE HOOK_EVENT SESSION_ID < <(printf '%s' "$HOOK_INPUT" | python3 -c "
+_PARSED=$(printf '%s' "$HOOK_INPUT" | python3 -c "
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -40,6 +40,7 @@ print(
     d.get('session_id', '') or '-',
 )
 " 2>>"$LOG_FILE") || { log "stop: parse failed"; exit 0; }
+read -r TRANSCRIPT_PATH STOP_ACTIVE HOOK_EVENT SESSION_ID <<< "$_PARSED"
 
 [[ "$TRANSCRIPT_PATH" == "-" ]] && TRANSCRIPT_PATH=""
 [[ "$SESSION_ID" == "-" ]] && SESSION_ID=""

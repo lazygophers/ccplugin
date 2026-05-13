@@ -161,7 +161,8 @@ test_slash_command_invocation_in_claude_wrappers() {
     out=$(cat "$tgt/$w")
     local name="${w%.sh}"
     assert_contains "/cortex:$name" "$out"
-    assert_contains "--print" "$out"
+    # `-p` is short for `--print`; wrapper uses `-p` form.
+    assert_contains " -p " "$out"
     # Must NOT carry legacy limit flags
     if echo "$out" | grep -qE '^[^#]*(--bare|--allowed-tools|--append-system-prompt)'; then
       _TESTS_RUN=$((_TESTS_RUN + 1))

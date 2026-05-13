@@ -153,17 +153,17 @@ print_cron() {
 # ===== cortex cron snippet (Linux/macOS cron) =====
 # 复制以下行到 'crontab -e':
 
-# 走 scripts/cron/<job>.sh wrapper (claude --bare, lock + timeout + log rotation)
-# 注意: PLUGIN_ROOT 已硬编码为 marketplace 绝对路径, 适用于 cron daemon 环境
+# PLUGIN_ROOT = ${PLUGIN_ROOT}
+# 走 scripts/cron/<job>.sh wrapper (slash command + lock + timeout + log rotation)
 
 # daily lint at 01:00
-0 1 * * * bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/lint.sh" --vault "${VAULT}"
+0 1 * * * bash "${PLUGIN_ROOT}/scripts/cron/lint.sh" --vault "${VAULT}"
 
 # weekly log fold at Sunday 02:00
-0 2 * * 0 bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/fold.sh" --vault "${VAULT}"
+0 2 * * 0 bash "${PLUGIN_ROOT}/scripts/cron/fold.sh" --vault "${VAULT}"
 
 # weekly dashboard refresh at Sunday 02:30
-30 2 * * 0 bash "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/dashboard.sh" --vault "${VAULT}"
+30 2 * * 0 bash "${PLUGIN_ROOT}/scripts/cron/dashboard.sh" --vault "${VAULT}"
 EOF
 }
 
@@ -172,7 +172,7 @@ print_launchd() {
 # ===== cortex launchd plist (macOS) =====
 # 保存为 ~/Library/LaunchAgents/dev.lazygophers.cortex.daily-lint.plist
 # 然后: launchctl load ~/Library/LaunchAgents/dev.lazygophers.cortex.daily-lint.plist
-# 注意: PLUGIN_ROOT 已硬编码为 marketplace 绝对路径
+# PLUGIN_ROOT = ${PLUGIN_ROOT}
 
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -183,7 +183,7 @@ print_launchd() {
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/lint.sh</string>
+    <string>${PLUGIN_ROOT}/scripts/cron/lint.sh</string>
     <string>--vault</string>
     <string>${VAULT}</string>
   </array>

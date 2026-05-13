@@ -8,7 +8,7 @@
 
 set -u
 
-PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
+PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex}"
 LOG_FILE="${HOME}/.cache/cortex/post_compact.log"
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 

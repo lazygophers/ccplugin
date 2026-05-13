@@ -120,7 +120,10 @@ def check_vault_structure(
     try:
         from .schemas import get_schema
     except ImportError:
-        from lint.schemas import get_schema  # type: ignore
+        try:
+            from lint.schemas import get_schema  # type: ignore
+        except ImportError:
+            from schemas import get_schema  # type: ignore
 
     schema = get_schema(preset)
     allowed_dirs = set(schema["root_dirs"])

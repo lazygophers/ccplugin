@@ -129,7 +129,7 @@ if [[ "${1:-}" == "--" ]]; then
   shift
 fi
 
-# PROMPT 历史参数: 现已由 slash command /cortex-<name> 承载, 此处仅消耗.
+# PROMPT 历史参数: 现已由 slash command /cortex:<name> 承载, 此处仅消耗.
 # 调用方可传任意非空字符串 (向后兼容), 或留空.
 PROMPT="${1:-}"
 shift || true
@@ -182,7 +182,7 @@ else
   trap 'rm -f "$LOCK"' EXIT
 fi
 
-# JOB → slash command 映射: cron job 名 → /cortex-<name>
+# JOB → slash command 映射: cron job 名 → /cortex:<name>
 # (commands/*.md 定义具体行为; 不再 build prompt + append-system-prompt SKILL.md)
 case "$JOB" in
   lint)                SLASH_CMD="lint" ;;
@@ -201,7 +201,7 @@ esac
 # commands/<name>.md 内已含 AUTO_MODE strict + 行为定义.
 CMD=(claude
   --settings "$SETTINGS"
-  -p "/cortex-$SLASH_CMD"
+  -p "/cortex:$SLASH_CMD"
 )
 # Note: --output-format stream-json --verbose is injected by cortex_stream_runner.
 # 无 --print: stream-json 模式即流式输出, --print 仅适用于单次 markdown 输出, 二者互斥.
@@ -228,7 +228,7 @@ for arg in "$@"; do
 done
 
 if [[ "$CLI_DRY_RUN" == "1" ]]; then
-  printf '[dry-run] vault=%s job=%s slash=/cortex-%s\n' "$VAULT" "$JOB" "$SLASH_CMD"
+  printf '[dry-run] vault=%s job=%s slash=/cortex:%s\n' "$VAULT" "$JOB" "$SLASH_CMD"
   printf '[dry-run] %q ' "${CMD[@]}"
   echo
   exit 0
