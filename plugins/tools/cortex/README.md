@@ -4,17 +4,26 @@
 
 ## 能力速览
 
-| 形态    | 内容                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hooks   | `SessionStart` 注入"先搜库"协作约定 + hot 摘要; `Stop` / `SubagentStop` 自动归档非平凡技术发现; `PostCompact` 落档 compact 摘要                                                                                                                                                                                                                                                                                              |
-| Skills  | 全部能力以 13 个 skill 暴露 (无独立 commands): 自动 6 — `cortex-search` · `cortex-save` · `cortex-ingest` · `cortex-ingest-bulk` · `cortex-lint` · `cortex-session`; 显式 7 — `cortex-install` · `cortex-locale` · `cortex-canvas` · `cortex-dashboard` · `cortex-doctor` · `cortex-new` · `cortex-refactor` (P6 删 cortex-fold → 并入 cortex-historian agent §Fold 工作流; cortex-cron → 并入 cortex-install §周期任务询问) |
-| Presets | LYT (默认) / Zettelkasten / PARA / blank                                                                                                                                                                                                                                                                                                                                                                                     |
-| 模板    | concept · entity · domain · dashboard · question · source — 用 Obsidian callout + properties + Bases                                                                                                                                                                                                                                                                                                                         |
+| 形态 | 数量 | 内容 |
+|------|-----|------|
+| Hooks | 5 | `SessionStart` / `PostCompact` / `Stop` / `SubagentStop` / `UserPromptSubmit` |
+| Skills | 21 | 自动触发 + 显式调 (详见 `docs/Skills 详解.md`) |
+| Agents | 8 | curator / researcher / archivist / cartographer / historian / linker / summarizer / translator |
+| Slash commands | 20 | `/cortex:<name>` (无入参, 全自动 AUTO_MODE persistent) |
+| Bash wrappers | 17 | `~/.cortex/scripts/*.sh` — 调 slash command 走 stream-json + rich UI |
+| Lint 规则 | 17 | 自动修复 (autofix) + 自动循环至 vault clean |
+| MCP 工具 | 15 | search / deep_search / save / ingest_url|file / memory × 6 / html_render / ledger / session / uri_index |
+| Presets | 4 | LYT (默认) / Zettelkasten / PARA / blank |
+| Vault 顶层 | 7 | `知识库/` `记忆/` `仪表盘/` `归档/` `_meta/` `_templates/` `_assets/` |
 
 **触发方式**:
 
-- 自动 (6 个 skill): 自然语言命中 description 中的 Triggers — "搜知识库" 触发 `cortex-search`, "归档" 触发 `cortex-save`, "ingest"/"摄取" 触发 `cortex-ingest`, "批量 ingest" 触发 `cortex-ingest-bulk`, "wiki audit"/"lint" 触发 `cortex-lint`, "list sessions" 触发 `cortex-session`。
-- 显式 (7 个 skill, `disable-model-invocation: true`): `cortex-install` / `cortex-locale` / `cortex-canvas` / `cortex-dashboard` / `cortex-doctor` / `cortex-new` / `cortex-refactor` 必须用户明确请求才会运行, 防止误触发副作用 (写 vault 骨架 / 改语言配置 / 大批量改盘 等)。fold logs 能力由 `cortex-historian` agent 接管 (P6); cron 注册装机一次性, 由 `cortex-install` 内联询问 (P6)。
+- **Slash command**: 任何会话直接 `/cortex:lint` / `/cortex:ingest` / `/cortex:search` 等
+- **Bash wrapper**: `bash ~/.cortex/scripts/lint.sh` 调对应 slash command (含 stream-json 实时 UI)
+- **自然语言**: 命中 skill description Triggers 自动触发 (`/cortex-search`, `/cortex-save` 等)
+- **Agent dispatch**: 复杂多步任务 (`cortex-curator` 扫 vault / `cortex-researcher` 多源摄取等)
+
+**AUTO_MODE persistent** (shell 触发约束): 禁询问, 禁中止, AI 自决执行直至任务完成。遇歧义按推荐默认值; 工具不熟悉则换组合 (Bash/Edit/Write/MCP/WebSearch); 禁"需人工"/"AI 不会"推卸辞令。
 
 ## 安装
 
@@ -49,12 +58,13 @@ bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/install
 bash plugins/tools/cortex/install.sh
 ```
 
-环境变量覆盖:
+环境变量 (仅 install.sh bootstrap 期支持):
 
-- `CORTEX_INSTALL_PATH` — 直接指向已有 plugin 路径 (跳过探测 + bootstrap)
 - `CORTEX_MARKETPLACE_NAME` — bootstrap 检查的 marketplace 名 (默认 `ccplugin-market`)
 - `CORTEX_MARKETPLACE_SOURCE` — `claude plugins marketplace add` 的源 (默认 `lazygophers/ccplugin`)
 - `CORTEX_PLUGIN_NAME` — bootstrap 安装的 plugin 名 (默认 `cortex`)
+
+**配置类 env var 已禁用** (运行时只读 `~/.cortex/config.json`): `OBSIDIAN_VAULT` / `CORTEX_VAULT` / `CORTEX_LANG` / `CORTEX_INSTALL_PATH` / `CORTEX_SETTINGS`。
 
 更新 (拉最新 marketplace + 重装 cortex):
 
@@ -72,11 +82,9 @@ bash ~/.cortex/scripts/update.sh
 
 vault 路径解析顺序:
 
-1. `$(jq -r .vault ~/.cortex/config.json)` 环境变量
-2. `$XDG_CONFIG_HOME/cortex/config.json` 中 `.vault` 字段
-3. `~/.cortex/config.json` 中 `.vault` 字段
-4. 默认 `~/persons/knowledge/obsidian`
-5. auto-detect: 扫 `~/Documents` 与 `~/Library` 找唯一 `.obsidian/` 目录
+1. `~/.cortex/config.json` 的 `.vault` 字段 (单一真相)
+2. 默认 `~/persons/knowledge/obsidian`
+3. auto-detect: 扫 `~/Documents` 与 `~/Library` 找唯一 `.obsidian/` 目录
 
 任意一项命中即停止。
 

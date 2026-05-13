@@ -37,7 +37,12 @@
   - **后续优化目标**：重复子进程调用、增量更新、冗余派生状态、UI 组件重复
   - **修复模式总结**：提取辅助函数、通用方法、通用执行器
   - **方法论**：三路并行 Agent 审查（代码复用/质量/效率）
-- _(未来会话可添加其他主题记忆，如：调试见解、性能优化、架构决策等)_
+- `cortex-plugin-2026-05-13.md` — **@cortex 整体重构基线**（2026-05-13）
+  - **单一真相清单**：vault 结构 / 配置 / env var 政策 / slash 形式 / AUTO_MODE persistent / 插件路径硬编码 / MOC 已删
+  - **实际计数**：8 agent · 21 skill · 20 command · 17 wrapper · 17 lint · 5 hook · 15 MCP
+  - **目录布局**：所有 python/bash 集中 `scripts/`,install.sh 例外
+  - **ingest 全局规则**：folder-first + 嵌套 git 独立 + L1-L6 深度 + 评分制度
+  - **测试基线**：python 238 / bash 8 files / mcp 113 全绿
 
 ## Rules文件索引
 
@@ -117,6 +122,20 @@ uv run scripts/update_version.py
 - `.claude/skills/gitnexus/` — 代码智能工具（exploring/impact-analysis/debugging/refactoring/cli）
 
 ## 更新日志
+
+**2026-05-13**：Cortex 插件整体重构 (10 commits, 一次性收尾)
+
+- **路径迁移**：wiki/* + 数字前缀 + 记忆体系 → 中文目录 `知识库/{领域,来源,日记,...}` + `记忆/{L0-L4,...}`
+- **AUTO_MODE persistent**：禁询问 ≠ 中止;AI 自决循环修复直至 lint clean
+- **Slash 形式**：`/cortex:<name>` 冒号 (dash 形式 claude 无法解析)
+- **目录集中**：所有 python/bash 移到 `scripts/`,install.sh 例外
+- **MOC 完全删除**：canvas + dashboard 二件套替代
+- **版本号清理**：删 v2 / v1 / legacy / migration 标记
+- **env var 政策**：禁配置类,运行时只读 `~/.cortex/config.json`
+- **插件路径硬编码**：`$HOME/.claude/plugins/marketplaces/...` (env var 解析 bug 规避)
+- **文档分层**：用户文档 `docs/` + 开发者 `docs/_internal/`,计数对齐实际
+- **ingest 全局规则**：folder-first + 嵌套 git 独立 + L1-L6 深度 + 强制 frontmatter + 评分
+- 详见：`memory/cortex-plugin-2026-05-13.md`
 
 **2026-04-08**：Task 插件重大更新
 
