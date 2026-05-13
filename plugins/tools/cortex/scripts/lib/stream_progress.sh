@@ -98,9 +98,10 @@ cortex_stream_runner() {
   if [[ -z "$plugin_root" && -n "$_sp_dir" ]]; then
     plugin_root="$(cd "$_sp_dir/../.." 2>/dev/null && pwd)"
   fi
-  local stream_script="$plugin_root/mcp/cortex_stream.py"
+  local stream_script="$plugin_root/scripts/mcp/cortex_stream.py"
 
-  # Path 1 (preferred): system python3 with rich (用户偏好: 不走 venv).
+  # Path 1 (preferred): system python3 + 绝对路径 cortex_stream.py.
+  # 不允许包安装 (无 cortex-stream binary 路径), 唯一方式 = python3 <abs>.
   if [[ -f "$stream_script" ]] && command -v python3 >/dev/null 2>&1; then
     if python3 -c "import rich" 2>/dev/null; then
       python3 "$stream_script" --label "$label" --timeout "$timeout" -- "$@"
@@ -108,13 +109,7 @@ cortex_stream_runner() {
     fi
   fi
 
-  # Path 2: cortex-stream console-script on PATH (向后兼容, 用户若手动装仍可用).
-  if command -v cortex-stream >/dev/null 2>&1; then
-    cortex-stream --label "$label" --timeout "$timeout" -- "$@"
-    return $?
-  fi
-
-  # Path 3: raw fallback — warn, preserve stream-json + verbose so run.sh tee still works.
+  # Path 2: raw fallback — warn, preserve stream-json + verbose so run.sh tee still works.
   echo "${_C_YELLOW}${_C_BOLD}[${label}]${_C_RESET} rich not available (try: pip3 install rich), no progress UI" >&2
   if [[ -n "$tee_file" ]]; then
     "$@" --output-format stream-json --verbose | tee "$tee_file" >/dev/null

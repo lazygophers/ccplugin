@@ -59,14 +59,14 @@ SAVE_TOOL = Tool(
 def _load_masking() -> Any:
     """Import the P0 masking module from `hooks/_lib/masking.py`.
 
-    The MCP server may be installed via pipx (out-of-tree) or run in-place; in
+    The MCP server may be run via 绝对路径 (no package install); in
     both cases we resolve the path relative to this file: `mcp/tools/save.py`
     → `mcp/` → `plugins/tools/cortex/scripts/hooks/_lib/masking.py`.
     """
     here = Path(__file__).resolve()
     candidate = here.parent.parent.parent / "hooks" / "_lib" / "masking.py"
     if not candidate.is_file():
-        # pipx-installed: hooks live next to the source checkout; consult
+        # via abs path: hooks 与 source 同 checkout, 直接
         # ~/.cortex/config.json (install_path) so cortex-doctor can wire it
         # explicitly without env vars.
         import json

@@ -11,7 +11,7 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Allow `python3 server.py` without `pipx install`.
+# Allow `python3 server.py` without 包安装.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from mcp.server import Server  # noqa: E402
