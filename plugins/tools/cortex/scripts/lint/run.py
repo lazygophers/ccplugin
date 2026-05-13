@@ -237,13 +237,26 @@ def check_vault_structure(
 
 
 def _load_locale_dirs(plugin_root: Path, vault: Path, lang: str) -> set[str]:
-    """Load `dirs` mapping for given lang; return set of localized dir names."""
+    """Load `dirs` mapping; return ONLY top-level vault dir names (not sub-layer).
+
+    Top-level keys (legitimate at vault root): knowledge/memory/dashboard/archive/
+    meta/templates/assets. Sub-layer keys (projects/sources/domains/journal/
+    reflection/inbox + flat alternates concepts/entities/...) MUST live under
+    namespace dirs (e.g. 知识库/领域/), not at vault root.
+    """
+    _TOP_LEVEL_KEYS = {
+        "knowledge", "memory", "dashboard", "archive",
+        "meta", "templates", "assets",
+    }
     sys.path.insert(0, str(plugin_root / "scripts" / "hooks" / "_lib"))
     try:
         from cortex_locale import load_locale  # type: ignore
         loc = load_locale(plugin_root, vault, lang)
         dirs_map = loc.get_dirs()
-        return {v for v in dirs_map.values() if isinstance(v, str) and v}
+        return {
+            v for k, v in dirs_map.items()
+            if k in _TOP_LEVEL_KEYS and isinstance(v, str) and v
+        }
     except Exception:
         return set()
 
@@ -1587,13 +1600,24 @@ _STANDARD_CALLOUTS = {
 }
 
 
+# 知识库 sub-namespace dirs — vault root 上出现的同名目录应 merge 入 知识库/, 非备份
+_KB_SUB_NAMES = {
+    "项目", "来源", "领域", "日记", "反思", "收件箱",  # zh-CN canonical
+    "概念", "实体", "问题", "临时",  # zh-CN flat alternates
+    "projects", "sources", "domains", "journal", "reflection", "inbox",
+    "concepts", "entities", "questions", "fleeting",
+}
+
+
 def _fix_vault_structure_violation(
     finding: dict[str, Any],
     vault: Path,
     plugin_root: Path | None,
     backup_dir: Path,
 ) -> bool:
-    """mv 违规路径到 ~/.cache/cortex/lint-backup/<hash>/structure-<ts>/<rel>."""
+    """优先 merge: vault root 上的 知识库 子层名 → mv 到 知识库/<name>/ (合并内容).
+    否则 mv 到 ~/.cache/cortex/lint-backup/<hash>/structure-<ts>/<rel>.
+    """
     rel = finding.get("path") or finding.get("file")
     if not rel:
         return False
@@ -1601,6 +1625,27 @@ def _fix_vault_structure_violation(
     src = vault / rel
     if not src.exists():
         return False
+    # 路径 = 单层目录名且匹配 知识库 子层 → merge
+    if "/" not in rel and src.is_dir() and rel in _KB_SUB_NAMES:
+        kb = vault / "知识库"
+        dst = kb / rel
+        try:
+            dst.mkdir(parents=True, exist_ok=True)
+            for entry in src.iterdir():
+                target = dst / entry.name
+                if target.exists():
+                    # 冲突 → 加 ts 后缀避免覆盖
+                    ts2 = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+                    target = dst / f"{entry.stem}-merged-{ts2}{entry.suffix}"
+                shutil.move(str(entry), str(target))
+            # 源目录现应为空, 删
+            try:
+                src.rmdir()
+            except OSError:
+                pass
+            return True
+        except Exception:
+            pass
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     structure_root = (
         Path.home() / ".cache" / "cortex" / "lint-backup"

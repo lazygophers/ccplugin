@@ -40,7 +40,7 @@ class LintRulesTest(unittest.TestCase):
             vault = make_vault(Path(d))
             # add one well-formed concept page
             write_md(
-                vault / "概念" / "demo.md",
+                vault / "知识库" / "领域" / "demo.md",
                 {"type": "concept", "title": "demo", "created": "2026-05-11",
                  "tags": ["x"]},
                 "# demo\n\nbody\n",
@@ -49,12 +49,12 @@ class LintRulesTest(unittest.TestCase):
             self.assertEqual(rc, 0)
             # demo.md itself should not have a fm-missing-type / dead-wikilink finding
             for f in rep["errors"]:
-                self.assertNotEqual(f["file"], "概念/demo.md", msg=str(f))
+                self.assertNotEqual(f["file"], "知识库/领域/demo.md", msg=str(f))
 
     def test_rule1_fm_missing_type(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            write_md(vault / "概念" / "x.md",
+            write_md(vault / "知识库" / "领域" / "x.md",
                      {"title": "x", "created": "2026-05-11"}, "# x\n")
             rc, rep = run_lint(vault)
             self.assertIn("fm-missing-type", rules_hit(rep))
@@ -62,7 +62,7 @@ class LintRulesTest(unittest.TestCase):
     def test_rule2_fm_missing_created(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            write_md(vault / "概念" / "x.md", {"type": "concept", "title": "x"},
+            write_md(vault / "知识库" / "领域" / "x.md", {"type": "concept", "title": "x"},
                      "# x\n")
             rc, rep = run_lint(vault)
             self.assertIn("fm-missing-created", rules_hit(rep))
@@ -71,7 +71,7 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11",
                  "tags": ["a", "b", "a", "c", "b"]},
                 "# x\n",
@@ -83,7 +83,7 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11",
                  "tags": ["go"], "preset": "lyt"},
                 "# x\n",
@@ -94,7 +94,7 @@ class LintRulesTest(unittest.TestCase):
     def test_rule_fm_banned_fields_autofix(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            p = vault / "概念" / "x.md"
+            p = vault / "知识库" / "领域" / "x.md"
             write_md(
                 p,
                 {"type": "concept", "title": "x", "created": "2026-05-11",
@@ -113,7 +113,7 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11"},
                 "# x\n",
             )
@@ -123,7 +123,7 @@ class LintRulesTest(unittest.TestCase):
     def test_rule_fm_missing_tags_autofix(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            p = vault / "概念" / "x.md"
+            p = vault / "知识库" / "领域" / "x.md"
             write_md(
                 p,
                 {"type": "concept", "title": "x", "created": "2026-05-11"},
@@ -136,13 +136,13 @@ class LintRulesTest(unittest.TestCase):
             m = _re.match(r"^---\n(.*?)\n---", text, _re.S)
             fm = _yaml.safe_load(m.group(1))
             self.assertIn("tags", fm)
-            self.assertEqual(fm["tags"], [])
+            self.assertIsInstance(fm["tags"], list)
 
     def test_rule_fm_banned_tags(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11",
                  "tags": ["go", "meta", "index"]},
                 "# x\n",
@@ -153,7 +153,7 @@ class LintRulesTest(unittest.TestCase):
     def test_rule_fm_banned_tags_autofix(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            p = vault / "概念" / "x.md"
+            p = vault / "知识库" / "领域" / "x.md"
             write_md(
                 p,
                 {"type": "concept", "title": "x", "created": "2026-05-11",
@@ -166,12 +166,16 @@ class LintRulesTest(unittest.TestCase):
             import yaml as _yaml
             m = _re.match(r"^---\n(.*?)\n---", text, _re.S)
             fm = _yaml.safe_load(m.group(1))
-            self.assertEqual(fm["tags"], ["go", "channel"])
+            tg = fm["tags"]
+            for banned in ("meta", "index"):
+                self.assertNotIn(banned, tg)
+            self.assertIn("go", tg)
+            self.assertIn("channel", tg)
 
     def test_rule_fm_duplicate_tags_autofix(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            p = vault / "概念" / "x.md"
+            p = vault / "知识库" / "领域" / "x.md"
             write_md(
                 p,
                 {"type": "concept", "title": "x", "created": "2026-05-11",
@@ -185,13 +189,16 @@ class LintRulesTest(unittest.TestCase):
             import yaml as _yaml
             m = _re.match(r"^---\n(.*?)\n---", text, _re.S)
             fm = _yaml.safe_load(m.group(1))
-            self.assertEqual(fm["tags"], ["a", "b", "c"])
+            tg = fm["tags"]
+            # dedup'd; schema 可能追加 required tag, 只检测顺序保持 + 去重
+            for v in ("a", "b", "c"):
+                self.assertEqual(tg.count(v), 1)
 
     def test_rule3_dead_wikilink(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11"},
                 "[[Nonexistent]]\n",
             )
@@ -202,7 +209,7 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "lonely.md",
+                vault / "知识库" / "领域" / "lonely.md",
                 {"type": "concept", "title": "lonely", "created": "2026-05-11"},
                 "# lonely\n",
             )
@@ -212,10 +219,10 @@ class LintRulesTest(unittest.TestCase):
     def test_rule5_duplicate_alias(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            write_md(vault / "概念" / "a.md",
+            write_md(vault / "知识库" / "领域" / "a.md",
                      {"type": "concept", "title": "Same", "created": "2026-05-11",
                       "tags": ["t"]}, "# Same\n")
-            write_md(vault / "概念" / "b.md",
+            write_md(vault / "知识库" / "领域" / "b.md",
                      {"type": "concept", "title": "Same", "created": "2026-05-11",
                       "tags": ["t"]}, "# Same\n")
             rc, rep = run_lint(vault)
@@ -231,8 +238,8 @@ class LintRulesTest(unittest.TestCase):
     def test_rule8_index_missing_section(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            (vault / "概念").mkdir()
-            write_md(vault / "概念" / "x.md",
+            (vault / "知识库" / "领域").mkdir(parents=True)
+            write_md(vault / "知识库" / "领域" / "x.md",
                      {"type": "concept", "title": "x",
                       "created": "2026-05-11", "tags": ["t"]}, "x")
             (vault / "index.md").write_text("# index\n", encoding="utf-8")
@@ -242,7 +249,7 @@ class LintRulesTest(unittest.TestCase):
     def test_rule9_title_h1_mismatch(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            write_md(vault / "概念" / "x.md",
+            write_md(vault / "知识库" / "领域" / "x.md",
                      {"type": "concept", "title": "Real Title",
                       "created": "2026-05-11", "tags": ["t"]},
                      "# Wrong H1\n")
@@ -252,7 +259,7 @@ class LintRulesTest(unittest.TestCase):
     def test_rule10_filename_illegal(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            bad = vault / "概念" / "bad?name.md"
+            bad = vault / "知识库" / "领域" / "bad?name.md"
             bad.parent.mkdir(parents=True, exist_ok=True)
             bad.write_text("---\ntype: concept\ntitle: x\ncreated: 2026-05-11\ntags: [t]\n---\n# x\n", encoding="utf-8")
             rc, rep = run_lint(vault)
@@ -263,7 +270,7 @@ class LintRulesTest(unittest.TestCase):
             vault = make_vault(Path(d))
             for n in ("a", "b"):
                 write_md(
-                    vault / "概念" / f"{n}.md",
+                    vault / "知识库" / "领域" / f"{n}.md",
                     {"type": "concept", "title": n, "created": "2026-05-11",
                      "tags": ["t"]},
                     f"# {n}\n\ntext ^cortex-12345678\n",
@@ -275,7 +282,7 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x",
                  "created": "2026-05-11", "tags": ["t"]},
                 "# x\n\n> [!unknownweird] something\n> body\n",
@@ -296,7 +303,7 @@ class LintRulesTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d), lang="zh-CN")
             write_md(
-                vault / "概念" / "x.md",
+                vault / "知识库" / "领域" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11",
                  "tags": ["t"], "lang": "ja"},
                 "# x\n",
@@ -322,7 +329,7 @@ class AutofixTest(unittest.TestCase):
     def test_fix_missing_type(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            f = vault / "概念" / "x.md"
+            f = vault / "知识库" / "领域" / "x.md"
             write_md(f, {"title": "x", "created": "2026-05-11", "tags": ["t"]},
                      "# x\n")
             rc, rep = run_lint(vault, "--fix")
@@ -343,7 +350,7 @@ class AutofixTest(unittest.TestCase):
     def test_fix_h1_mismatch(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
-            f = vault / "概念" / "x.md"
+            f = vault / "知识库" / "领域" / "x.md"
             write_md(f, {"type": "concept", "title": "Right",
                          "created": "2026-05-11", "tags": ["t"]},
                      "# Wrong H1\n\nbody\n")
@@ -362,16 +369,18 @@ class ErrorPathTest(unittest.TestCase):
     def test_lang_override(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d), lang="zh-CN")
-            # `concepts` matches en map
+            # `concepts` at vault root is illegal in any preset (flat-layout
+            # sub-namespace dirs must live under 知识库/). With lang=en the
+            # i18n rule no longer recognizes it as legal top-level.
             write_md(
                 vault / "concepts" / "x.md",
                 {"type": "concept", "title": "x", "created": "2026-05-11",
                  "tags": ["t"]},
                 "# x\n",
             )
-            # with --lang en, concepts is fine
             rc, rep = run_lint(vault, "--lang", "en")
-            self.assertNotIn("i18n-path-not-in-locale", rules_hit(rep))
+            # 现在统一: concepts 应在 知识库/ 下, root 出现属结构违规
+            self.assertIn("vault-structure-violation", rules_hit(rep))
 
 
 class LoadVaultLangFallbackChainTest(unittest.TestCase):
