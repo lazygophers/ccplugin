@@ -402,3 +402,40 @@ schemas.py 三 preset root_dirs 移除 log/folds/sessions; run.py SHARED_ROOT_DI
 ### Next Steps
 
 - None - task complete
+
+
+## Session 72: cortex: 移除自研 MCP 改用官方 mcp-obsidian
+
+**Date**: 2026-05-13
+**Task**: cortex: 移除自研 MCP 改用官方 mcp-obsidian
+**Branch**: `master`
+
+### Summary
+
+彻底移除 cortex 插件自带的 MCP server (10 工具/2300 行)。算法 100% 保留拆到 scripts/cli/{save,search,deep_search,ingest_url,ingest_file,memory,ledger,session,html_render,cortex_stream}.py + argparse CLI。9 bash wrappers 通过 install_wrappers.sh 部署到 ~/.cortex/scripts/。16 个 agent/skill/command/hook 文件 mcp__cortex__* 调用全改 bash 形式。install.sh 末尾加 mcp-obsidian 安装引导 (可选)。测试 286 pass + 9 subtests, 0 fail。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `015a4a30` | (see git log) |
+| `7945f42d` | (see git log) |
+| `214ebefc` | (see git log) |
+| `3e5700d5` | (see git log) |
+| `2f73373b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
