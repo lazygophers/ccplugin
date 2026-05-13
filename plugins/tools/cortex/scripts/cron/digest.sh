@@ -47,15 +47,21 @@ LANG_CODE="${CLI_LANG:-$(cx_config_get lang "")}"
 
 PROMPT="Run cortex-digest daily five-phase pipeline on vault at $VAULT (lang ${LANG_CODE:-zh-CN}).
 Phases:
-1) Read FULL L4-流水账 recursively — ALL files of ANY type (md/jsonl/json/yaml/js/ts/sh/py/txt/log) under 记忆/L4-流水账/**. NO time window, NO type filter. Every L4 file must be processed in phase 5.
-   Also read 知识库/收件箱/*.md (all) + 知识库/日记/日/<YYYY-MM>/ (all).
-2) Analyze patterns/entities/decisions/questions. jsonl → per-line parse; json/yaml → structured parse; other → paragraph scan.
-3) Process to views/consolidated/<YYYY-MM-DD>.md + reflection + candidates.
-4) Update uri-index + L4→L3 promote (frequency >= 5).
-5) Cleanup — L4-流水账 MUST be FULLY drained (NO time window, NO exemption): EVERY file (any type, any age) exits L4 via promote-L3 | archive-to-归档/L4-<YYYY>/<rel> | delete. After digest, 记忆/L4-流水账/** MUST be empty (0 files). L4 is single-pass funnel, never accumulates.
-   ALSO drain L3 (>90d weight<0.3), concretized questions (backlinks >= 3), inbox (>=30d MUST classify|archive|delete; <30d untouched), 知识库/日记/日 (>7d → 归档/日记/<YYYY-QN>.md quarterly bucket, idempotent).
-   do NOT touch 记忆/L0-核心 or 记忆/L1-长期.
-Output compact JSON: {date, read:{ledger,sessions,logs,inbox,l4_other}, analyzed, written, updated, cleaned:{l4_promoted,l4_archived,l4_deleted,L3_purged,questions_purged,inbox_classified,inbox_archived,inbox_deleted}}."
+1) Read.
+   NEW data (will be drained in phase 5): FULL 记忆/L4-流水账/** (ALL types md/jsonl/json/yaml/js/ts/sh/py/txt/log, NO time window) + 知识库/收件箱/*.md + 知识库/日记/日/<YYYY-MM>/.
+   EXISTING knowledge (for cross-ref + learning, NEVER removed): 记忆/L0-核心/** + L1-长期/** + L2-中期/** + L3-短期/** + 知识库/领域/** + 知识库/项目/** + 知识库/来源/** + 知识库/反思/** + _meta/uri-index.json + views/candidates.md + views/consolidated/*.md.
+2) Analyze.
+   NEW data: patterns/entities/decisions/questions. jsonl → per-line; json/yaml → structured; other → paragraph.
+   Cross-ref vs EXISTING: tag hits as update_target (L1/L2/L3 hit), enrich_target (knowledge-base hit), conflict (contradiction with existing), concretize (existing question page with >=3 backlinks).
+3) Process.
+   New writes: views/consolidated/<YYYY-MM-DD>.md + reflection + connection + candidates.
+   Update EXISTING (LEARN, do NOT remove the entry): update_target → cortex_memory_write append new evidence/links + weight += 0.05 (cap 1.0); enrich_target → patch knowledge-base file appending '## 新增例证 <YYYY-MM-DD>' + add [[wikilinks]]; conflict → new 知识库/反思/矛盾/<date>-<topic>.md (DO NOT mutate the conflicting existing entry).
+4) Update: uri-index rebuild + L4→L3 promote (frequency >= 5).
+5) Cleanup.
+   L4-流水账 MUST be FULLY drained (NO time window, NO exemption): EVERY file ANY type ANY age exits via promote-L3 | archive-to-归档/L4-<YYYY>/<rel> | delete. After digest, 记忆/L4-流水账/** MUST be empty (0 files). L4 is single-pass funnel.
+   ALSO drain: L3 (>90d weight<0.3), concretized questions (backlinks >= 3), inbox (>=30d classify|archive|delete; <30d untouched), 知识库/日记/日 (>7d → 归档/日记/<YYYY-QN>.md quarterly bucket, idempotent).
+   DO NOT touch 记忆/L0-核心 or 记忆/L1-长期 entries (only weight bumps via phase 3 update_target).
+Output compact JSON: {date, read:{ledger,sessions,logs,inbox,l4_other,existing_L0,existing_L1,existing_L2,existing_L3,existing_kb}, analyzed:{patterns,entities,decisions,questions,update_targets,enrich_targets,conflicts,concretize_targets}, written:{consolidated,candidates,reflection,connection,conflict}, updated:{uri_index,L4_to_L3,L1_enriched,L2_enriched,L3_enriched,kb_enriched,weights_bumped}, cleaned:{l4_promoted,l4_archived,l4_deleted,L3_purged,questions_purged,inbox_classified,inbox_archived,inbox_deleted}}."
 
 exec "$DIR/run.sh" consolidate \
   ${VAULT_FLAG[@]+"${VAULT_FLAG[@]}"} \
