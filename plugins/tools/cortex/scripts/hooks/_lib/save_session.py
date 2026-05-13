@@ -257,7 +257,7 @@ def read_vault_lang(vault: Path) -> str:
 
 
 def backup_transcript(vault: Path, transcript: Path, when: dt.datetime, slug: str, cli: str) -> Path | None:
-    """Copy raw transcript to <vault>/sessions/<cli>/<YYYY-MM>/<DD-HHMM>-<slug>.jsonl.
+    """Copy raw transcript to <vault>/记忆/L4-流水账/sessions/<cli>/<YYYY-MM>/<DD-HHMM>-<slug>.jsonl.
 
     Only when _meta/version.json:.preserve_transcript == true. Returns dest path or None.
     """
@@ -266,7 +266,7 @@ def backup_transcript(vault: Path, transcript: Path, when: dt.datetime, slug: st
         return None
     if not transcript.is_file():
         return None
-    folder = vault / "sessions" / cli / when.strftime("%Y-%m")
+    folder = vault / "记忆" / "L4-流水账" / "sessions" / cli / when.strftime("%Y-%m")
     folder.mkdir(parents=True, exist_ok=True)
     name = f"{when.strftime('%d-%H%M')}-{slug}.jsonl"
     dest = folder / name
@@ -424,7 +424,7 @@ def build_body(
 
 
 def update_log_index(vault: Path, rel_path: str, title: str) -> None:
-    idx = vault / "log" / "_index.md"
+    idx = vault / "知识库" / "日记" / "日" / "_index.md"
     line = f"- [[{rel_path}|{title}]]"
     try:
         if idx.is_file():
@@ -504,17 +504,17 @@ def determine_target(
 ) -> tuple[Path, str]:
     """返回 (绝对路径, 相对 vault 的路径字符串)。"""
     suffix = "compact" if reason == "compact" else slug
-    # path: log/YYYY-MM/DD-HHMM-<slug>.md
-    folder = vault / "log" / when.strftime("%Y-%m")
+    # path: 知识库/日记/日/YYYY-MM/DD-HHMM-<slug>.md
+    folder = vault / "知识库" / "日记" / "日" / when.strftime("%Y-%m")
     name = f"{when.strftime('%d-%H%M')}-{suffix}.md"
     abs_path = folder / name
-    rel = f"log/{when.strftime('%Y-%m')}/{name[:-3]}"  # wikilink 不带 .md
+    rel = f"知识库/日记/日/{when.strftime('%Y-%m')}/{name[:-3]}"  # wikilink 不带 .md
     # 冲突: 加序号
     counter = 2
     while abs_path.exists():
         name = f"{when.strftime('%d-%H%M')}-{suffix}-{counter}.md"
         abs_path = folder / name
-        rel = f"log/{when.strftime('%Y-%m')}/{name[:-3]}"
+        rel = f"知识库/日记/日/{when.strftime('%Y-%m')}/{name[:-3]}"
         counter += 1
         if counter > 50:
             break
@@ -522,9 +522,9 @@ def determine_target(
 
 
 def collect_existing_block_ids(vault: Path) -> set[str]:
-    """扫 log/ 与 folds/ 已有 ^cortex-<sha8>, 防冲突。"""
+    """扫 知识库/日记/日/ 与 folds/ 已有 ^cortex-<sha8>, 防冲突。"""
     seen: set[str] = set()
-    for sub in ("log", "folds"):
+    for sub in ("知识库/日记/日", "folds"):
         d = vault / sub
         if not d.is_dir():
             continue

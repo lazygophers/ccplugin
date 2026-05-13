@@ -78,7 +78,7 @@ test_trivial_no_save() {
   out=$(run_stop "$sandbox/v" "$payload")
   assert_empty "$out" "trivial transcript → no save → no output"
   # log dir empty
-  count=$(find "$sandbox/v/log" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  count=$(find "$sandbox/v/知识库/日记/日" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
   assert_eq "0" "$count"
 }
 
@@ -92,7 +92,7 @@ test_nontrivial_writes_log_and_outputs_json() {
   out=$(run_stop "$sandbox/v" "$payload")
   assert_contains "hookSpecificOutput" "$out"
   assert_contains "已落档" "$out"
-  count=$(find "$sandbox/v/log" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  count=$(find "$sandbox/v/知识库/日记/日" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
   assert_neq "0" "$count" "expected log file written"
 }
 
@@ -124,7 +124,7 @@ test_post_compact_force_writes() {
     HOME="$home" \
     bash "$POST_COMPACT" 2>/dev/null)
   assert_contains "PostCompact" "$out"
-  count=$(find "$sandbox/v/log" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+  count=$(find "$sandbox/v/知识库/日记/日" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
   assert_neq "0" "$count"
 }
 

@@ -46,10 +46,10 @@ fi
 LANG_CODE="${CLI_LANG:-$(cx_config_get lang "")}"
 
 PROMPT="Run cortex-digest daily five-phase pipeline on vault at $VAULT (lang ${LANG_CODE:-zh-CN}).
-Phases: 1) Read 24h ledger/sessions/log; 2) Analyze patterns/entities/decisions/questions;
+Phases: 1) Read 24h ledger/sessions/log + ALL 知识库/收件箱/*.md; 2) Analyze patterns/entities/decisions/questions;
 3) Process to views/consolidated/<YYYY-MM-DD>.md + reflection + candidates;
 4) Update uri-index + L4→L3 promote (frequency >= 5);
-5) Cleanup expired L4 (>30d not promoted) + L3 (>90d weight<0.3) + concretized questions (backlinks >= 3).
+5) Cleanup expired L4 (>30d not promoted) + L3 (>90d weight<0.3) + concretized questions (backlinks >= 3) + classify inbox notes (tags>=2 or wikilinks>=3 → git mv to 知识库/领域/) + purge stale inbox stubs (>30d, no inlinks, no tags).
 Cleanup phase ALSO archives 知识库/日记/日/<YYYY-MM>/*.md files older than 7 days into folds/<YYYY-QN>.md (累积到季度桶, idempotent). do NOT touch 记忆/L0-核心 or 记忆/L1-长期.
 Output compact JSON: {date, read, analyzed, written, updated, cleaned}."
 

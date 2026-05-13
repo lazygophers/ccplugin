@@ -285,7 +285,7 @@ class IntegrationCLITest(unittest.TestCase):
                 "--title", "preserve-test",
             ])
             self.assertEqual(r.returncode, 0, msg=r.stderr)
-            sess = vault / "sessions" / "claude-code"
+            sess = vault / "记忆" / "L4-流水账" / "sessions" / "claude-code"
             jsonls = list(sess.rglob("*.jsonl"))
             self.assertEqual(len(jsonls), 1)
 
