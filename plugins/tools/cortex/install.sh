@@ -539,7 +539,7 @@ printf '%s   %s~/.cortex/scripts/update.sh%s         %s# 更新插件%s\n'      
 printf '%s   %s~/.cortex/scripts/install_cron.sh%s   %s# 安装周期任务%s\n'  "$(_tag)" "$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET" >&2
 
 printf '\n'
-printf '%s %sMCP (可选 — 本插件不再自带 MCP server)%s\n'  "$(_tag)" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+printf '%s %sMCP (可选)%s\n'  "$(_tag)" "$C_CYAN$C_BOLD" "$C_RESET" >&2
 printf '%s   %s如需通过 Obsidian REST API 操作 vault, 装官方 mcp-obsidian:%s\n' "$(_tag)" "$C_DIM" "$C_RESET" >&2
 printf '\n' >&2
 printf '%s     %s1.%s Obsidian → 设置 → 第三方插件 → 启用 "Local REST API", 复制 API key\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
