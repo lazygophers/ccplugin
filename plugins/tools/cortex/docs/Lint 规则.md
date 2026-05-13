@@ -7,7 +7,7 @@
 
 定义文件：`scripts/lint/rules.json`。版本 1, 17 条 规则。
 
-**范围**: 全部规则作用于 📚 **知识库 (vault)** — 即 `~/.cortex/config.json:.vault` 指向的目录。不影响 🌐 全局配置 / 📁 当前目录 / 🧠 记忆层。
+**范围**: 全部规则作用于 知识库 **知识库 (vault)** — 即 `~/.cortex/config.json:.vault` 指向的目录。不影响 全局 全局配置 / 当前目录 / 记忆层 记忆层。
 
 | # | id | severity | autofix | 简述 |
 |---|----|----|---|------|

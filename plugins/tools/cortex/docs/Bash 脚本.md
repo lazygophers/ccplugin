@@ -10,27 +10,27 @@ cortex 把 20 个 slash command 中常用的 17 个包装成独立 bash 脚本, 
 
 ## 脚本清单
 
-**范围标记**: 🌐 全局 (用户/系统级) · 📁 当前目录 (PWD) · 📚 知识库 (vault)
+**范围标记**: 全局 (用户/系统级) · 当前目录 (PWD) · 知识库 (vault)
 
 | 脚本 | 范围 | 对应 slash | 用途 |
 |------|-----|-----------|------|
-| `init.sh` | 🌐 + 📚 | `/cortex:init` | 初始化 vault (首次安装时跑) |
-| `install_cron.sh` | 🌐 | `/cortex:install_cron` | 部署定时任务到 launchd/cron/GHA |
-| `config.sh` | 🌐 | `/cortex:config` | 交互式编辑 `~/.cortex/config.json` |
-| `update.sh` | 🌐 | `/cortex:update` | 更新插件 (marketplace + wrappers) |
-| `doctor.sh` | 🌐 + 📚 | `/cortex:doctor` | 体检 vault + 依赖 + 配置 |
-| `lint.sh` | 📚 | `/cortex:lint` | 全自动 lint 修复至 clean |
-| `refactor.sh` | 📚 | `/cortex:refactor` | 改名 / 合并 / 拆分 |
-| `search.sh` | 📚 | `/cortex:search` | 搜索 vault |
-| `save.sh` | 📚 | `/cortex:save` | 落档新笔记 |
-| `ingest.sh` | 📁 + 📚 | `/cortex:ingest` | 深度分析当前目录 → 落档到知识库 |
-| `recall.sh` | 📚 | `/cortex:recall` | 召回记忆 |
-| `memory.sh` | 📚 | `/cortex:memory` | 记忆管理 |
-| `promote.sh` | 📚 | `/cortex:promote` | 提升记忆等级 |
-| `forget.sh` | 📚 | `/cortex:forget` | 遗忘 |
-| `consolidate.sh` | 📚 | `/cortex:consolidate` | 整合 ledger |
-| `dashboard.sh` | 📚 | `/cortex:dashboard` | 刷新仪表盘 |
-| `fold.sh` | 📚 | `/cortex:fold` | 折叠长 log |
+| `init.sh` | 全局+知识库 | `/cortex:init` | 初始化 vault (首次安装时跑) |
+| `install_cron.sh` | 全局 | `/cortex:install_cron` | 部署定时任务到 launchd/cron/GHA |
+| `config.sh` | 全局 | `/cortex:config` | 交互式编辑 `~/.cortex/config.json` |
+| `update.sh` | 全局 | `/cortex:update` | 更新插件 (marketplace + wrappers) |
+| `doctor.sh` | 全局+知识库 | `/cortex:doctor` | 体检 vault + 依赖 + 配置 |
+| `lint.sh` | 知识库 | `/cortex:lint` | 全自动 lint 修复至 clean |
+| `refactor.sh` | 知识库 | `/cortex:refactor` | 改名 / 合并 / 拆分 |
+| `search.sh` | 知识库 | `/cortex:search` | 搜索 vault |
+| `save.sh` | 知识库 | `/cortex:save` | 落档新笔记 |
+| `ingest.sh` | 当前目录+知识库 | `/cortex:ingest` | 深度分析当前目录 → 落档到知识库 |
+| `recall.sh` | 知识库 | `/cortex:recall` | 召回记忆 |
+| `memory.sh` | 知识库 | `/cortex:memory` | 记忆管理 |
+| `promote.sh` | 知识库 | `/cortex:promote` | 提升记忆等级 |
+| `forget.sh` | 知识库 | `/cortex:forget` | 遗忘 |
+| `consolidate.sh` | 知识库 | `/cortex:consolidate` | 整合 ledger |
+| `dashboard.sh` | 知识库 | `/cortex:dashboard` | 刷新仪表盘 |
+| `fold.sh` | 知识库 | `/cortex:fold` | 折叠长 log |
 
 ## 使用
 
