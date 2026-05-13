@@ -4,21 +4,30 @@ meta:
   display: 简体中文
 
 dirs:
-  moc: MOC
+  # 当前规范结构 (双 namespace + 仪表盘/归档/_meta/_templates/_assets)
+  knowledge: 知识库
+  memory: 记忆
+  dashboard: 仪表盘
+  archive: 归档
+  meta: _meta
+  templates: _templates
+  assets: _assets
+  # 知识库子层 (lint i18n-path 检查映射)
+  projects: 项目
+  sources: 来源
+  domains: 领域
+  journal: 日记
+  reflection: 反思
+  inbox: 收件箱
+  # 兼容旧扁平结构 (供存量 vault 不报警, 不再推荐新建)
   concepts: 概念
   entities: 实体
-  domains: 领域
-  sources: 来源
   questions: 问题
-  dashboards: 仪表盘
   fleeting: 临时
-  archive: 归档
-  projects: 项目
   areas: 领域职责
   resources: 资源
   zettels: zettels
   structure-notes: structure-notes
-  inbox: inbox
   references: references
 
 files:

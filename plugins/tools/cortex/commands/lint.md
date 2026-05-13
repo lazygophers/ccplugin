@@ -16,7 +16,7 @@ while True:
      CONFIG="$HOME/.cortex/config.json"
      INSTALL_PATH="$(jq -r .install_path "$CONFIG")"
      VAULT="$(jq -r .vault "$CONFIG")"
-     cd "$INSTALL_PATH" && PYTHONPATH=. python3 -m lint.run --vault "$VAULT" --fix
+     python3 "$INSTALL_PATH/scripts/lint/run.py" --vault "$VAULT" --fix
   2. 解析 JSON. 若 errors_remaining == 0 且 structure_purge.violation_count == 0 → 退出循环
   3. 对每条 errors[] / warns[] 命中, 按下表"自选执行路径"用工具落地修复
   4. 回到 1, 直至稳定 或 同一规则连续 3 轮无进展 (此时换其他工具路径继续, 不许停)

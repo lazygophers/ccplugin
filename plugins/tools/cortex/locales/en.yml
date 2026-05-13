@@ -4,21 +4,30 @@ meta:
   display: English
 
 dirs:
-  moc: MOC
+  # canonical dual-namespace structure
+  knowledge: knowledge
+  memory: memory
+  dashboard: dashboard
+  archive: archive
+  meta: _meta
+  templates: _templates
+  assets: _assets
+  # knowledge sub-layers
+  projects: projects
+  sources: sources
+  domains: domains
+  journal: journal
+  reflection: reflection
+  inbox: inbox
+  # legacy flat layout (existing vaults; not recommended for new ones)
   concepts: concepts
   entities: entities
-  domains: domains
-  sources: sources
   questions: questions
-  dashboards: dashboards
   fleeting: fleeting
-  archive: archive
-  projects: projects
   areas: areas
   resources: resources
   zettels: zettels
   structure-notes: structure-notes
-  inbox: inbox
   references: references
 
 files:

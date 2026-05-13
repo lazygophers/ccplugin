@@ -4,21 +4,30 @@ meta:
   display: 日本語
 
 dirs:
-  moc: MOC
+  # canonical dual-namespace
+  knowledge: ナレッジ
+  memory: メモリ
+  dashboard: ダッシュボード
+  archive: アーカイブ
+  meta: _meta
+  templates: _templates
+  assets: _assets
+  # knowledge sub-layers
+  projects: プロジェクト
+  sources: ソース
+  domains: 領域
+  journal: ジャーナル
+  reflection: 振り返り
+  inbox: 受信箱
+  # legacy flat layout
   concepts: 概念
   entities: エンティティ
-  domains: 領域
-  sources: ソース
   questions: 質問
-  dashboards: ダッシュボード
   fleeting: 走り書き
-  archive: アーカイブ
-  projects: プロジェクト
   areas: エリア
   resources: 資料
   zettels: zettels
   structure-notes: structure-notes
-  inbox: inbox
   references: references
 
 files:
