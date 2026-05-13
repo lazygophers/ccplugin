@@ -112,17 +112,6 @@
       }
     ]
   },
-  "mcpServers": {
-    "cortex": {
-      "command": "python3",
-      "args": [
-        "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/mcp/server.py"
-      ],
-      "env": {
-        "CORTEX_PLUGIN_ROOT": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex"
-      }
-    }
-  },
   "keywords": [
     "obsidian",
     "knowledge-base",

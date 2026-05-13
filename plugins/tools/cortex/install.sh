@@ -537,3 +537,17 @@ printf '%s %sNext:%s\n'                                   "$(_tag)" "$C_CYAN$C_B
 printf '%s   %s~/.cortex/scripts/doctor.sh%s         %s# 健康检查%s\n'      "$(_tag)" "$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET" >&2
 printf '%s   %s~/.cortex/scripts/update.sh%s         %s# 更新插件%s\n'      "$(_tag)" "$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET" >&2
 printf '%s   %s~/.cortex/scripts/install_cron.sh%s   %s# 安装周期任务%s\n'  "$(_tag)" "$C_BOLD" "$C_RESET" "$C_DIM" "$C_RESET" >&2
+
+printf '\n'
+printf '%s %sMCP (可选 — 本插件不再自带 MCP server)%s\n'  "$(_tag)" "$C_CYAN$C_BOLD" "$C_RESET" >&2
+printf '%s   %s如需通过 Obsidian REST API 操作 vault, 装官方 mcp-obsidian:%s\n' "$(_tag)" "$C_DIM" "$C_RESET" >&2
+printf '\n' >&2
+printf '%s     %s1.%s Obsidian → 设置 → 第三方插件 → 启用 "Local REST API", 复制 API key\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
+printf '%s     %s2.%s 装 uvx (若未装): %spip install uv%s\n' "$(_tag)" "$C_BOLD" "$C_RESET" "$C_BOLD" "$C_RESET" >&2
+printf '%s     %s3.%s 注册 MCP server:\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
+printf '%s        %sclaude mcp add obsidian uvx mcp-obsidian \\%s\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
+printf '%s          %s-e OBSIDIAN_API_KEY=<your-key> \\%s\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
+printf '%s          %s-e OBSIDIAN_HOST=127.0.0.1 \\%s\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
+printf '%s          %s-e OBSIDIAN_PORT=27123%s\n' "$(_tag)" "$C_BOLD" "$C_RESET" >&2
+printf '\n' >&2
+printf '%s   %s注: cortex 内部业务 (memory/digest/lint/ingest) 走 bash wrappers (~/.cortex/scripts/), 不依赖 MCP。%s\n' "$(_tag)" "$C_DIM" "$C_RESET" >&2
