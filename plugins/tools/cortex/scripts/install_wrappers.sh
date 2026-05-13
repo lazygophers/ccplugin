@@ -209,6 +209,7 @@ emit_slash forget
 emit_slash digest
 emit_slash recall
 emit_slash refactor
+emit_slash ingest
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI wrappers (调 scripts/cli/<name>.py, 直跑 python, 带 argparse)
@@ -261,9 +262,28 @@ claude plugins marketplace update ccplugin-market \
 EOB
 )"
 
-printf '%s[install_wrappers.sh]%s %s✓%s wrote %s21 wrappers%s to %s%s%s\n' \
+# 清理 TARGET_DIR 内不在白名单的 .sh (避免旧 wrapper 残留, 例如重命名后的废文件)
+EXPECTED=(
+  lint.sh dashboard.sh doctor.sh init.sh promote.sh forget.sh
+  digest.sh recall.sh refactor.sh ingest.sh
+  install_cron.sh config.sh update.sh
+  save.sh search.sh deep_search.sh ingest_url.sh ingest_file.sh
+  memory.sh ledger.sh session.sh html_render.sh
+)
+declare -A KEEP=()
+for w in "${EXPECTED[@]}"; do KEEP["$w"]=1; done
+shopt -s nullglob
+for f in "$TARGET_DIR"/*.sh; do
+  base="$(basename "$f")"
+  if [[ -z "${KEEP[$base]:-}" ]]; then
+    rm -f "$f"
+    printf '%s[install_wrappers.sh]%s removed stale wrapper: %s\n' "$_C_YELLOW" "$_C_RESET" "$base" >&2
+  fi
+done
+
+printf '%s[install_wrappers.sh]%s %s✓%s wrote %s22 wrappers%s to %s%s%s\n' \
   "$_C_CYAN" "$_C_RESET" "$_C_GREEN" "$_C_RESET" \
   "$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$TARGET_DIR" "$_C_RESET" >&2
-# 21 wrappers total: 9 slash (lint/dashboard/doctor/init/promote/forget/digest/recall/refactor)
+# 22 wrappers total: 10 slash (lint/dashboard/doctor/init/promote/forget/digest/recall/refactor/ingest)
 #                  + 3 shell (install_cron/config/update)
 #                  + 9 CLI (save/search/deep_search/ingest_url/ingest_file/memory/ledger/session/html_render)
