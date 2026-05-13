@@ -10,8 +10,8 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 ## 调用优先级 (P1)
 
-1. **优先**: `mcp__cortex__cortex_save` (MCP server 已装) — 自动跑 masking + frontmatter + block-id + flock + hot/index patch, 结构化返 `{path, block_ids, hits}`
-2. **回退**: 下述 L1-L3 (obsidian CLI / mcp\_\_obsidian / 直接写盘) — MCP 不可达时
+1. **优先**: `bash ~/.cortex/scripts/save.sh --kind <k> --title <t> --body <b> [--tags ...] [--source-url ...]` — 自动跑 masking + frontmatter + block-id + flock + hot/index patch, 结构化返 `{path, block_ids, hits}` (stdout JSON)
+2. **回退**: 下述 L1-L3 (obsidian CLI / mcp\_\_obsidian / 直接写盘) — CLI 不可达时
 
 ## 触发场景
 
@@ -172,5 +172,5 @@ schema 源: `<vault>/_meta/frontmatter-schema.yaml` (fallback plugin `templates/
 
 1. **不调** AskUserQuestion (wrapper allowed-tools 已禁此工具, 强行调用必失败)
 2. 任何需用户决策处 → 走默认值跳过
-3. persistent: save 失败 → 重试 / 换 cortex_save MCP / 写 cache 兜底, 禁询问
+3. persistent: save 失败 → 重试 / 换 `bash ~/.cortex/scripts/save.sh` 不同参数 / 写 cache 兜底, 禁询问
 4. 写盘前不需二次确认 (AUTO_MODE 隐含已授权)

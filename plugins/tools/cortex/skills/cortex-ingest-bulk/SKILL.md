@@ -1,12 +1,12 @@
 ---
 name: cortex-ingest-bulk
-description: 批量摄取 urls.txt 到 cortex vault, 循环调 mcp__cortex__cortex_ingest_url。Triggers on "批量摄取", "bulk ingest".
-allowed-tools: Read Bash mcp__cortex__cortex_ingest_url
+description: 批量摄取 urls.txt 到 cortex vault, 循环调 ~/.cortex/scripts/ingest_url.sh。Triggers on "批量摄取", "bulk ingest".
+allowed-tools: Read Bash
 ---
 
 # cortex-ingest-bulk
 
-读 urls.txt 后逐行调用 `mcp__cortex__cortex_ingest_url`, 失败行写 `urls.txt.failed`。
+读 urls.txt 后逐行调用 `bash ~/.cortex/scripts/ingest_url.sh`, 失败行写 `urls.txt.failed`。
 
 ## 触发场景
 
@@ -26,7 +26,7 @@ allowed-tools: Read Bash mcp__cortex__cortex_ingest_url
 3. 串行 (并发 ≤ 1, 避免 hot/index 写竞争) 逐行调:
 
    ```
-   mcp__cortex__cortex_ingest_url({"url": "<line>", "kind": "log"})
+   bash ~/.cortex/scripts/ingest_url.sh --url "<line>" --kind log
    ```
 
 4. 任一行抛 ValueError/RuntimeError 即记入失败列表 (不中断后续行)
@@ -42,11 +42,11 @@ allowed-tools: Read Bash mcp__cortex__cortex_ingest_url
 
 ## 与 cortex-ingest 关系
 
-- 单条 URL/文件 → 用 `cortex-ingest` (调 `mcp__cortex__cortex_ingest_url` / `cortex_ingest_file`)
+- 单条 URL/文件 → 用 `cortex-ingest` (调 `bash ~/.cortex/scripts/ingest_url.sh` / `ingest_file.sh`)
 - 批量 URL → 本 skill
 - 批量本地文件 → 用 `cortex-ingest` 配 Glob
 
 ## 注意
 
-- 不并发: cortex_save 内部有 flock 但 hot.md/index.md patch 仍可能 race
-- MCP 未装时, 退回到 cortex-ingest skill 单条循环 (用 WebFetch + defuddle)
+- 不并发: save CLI 内部有 flock 但 hot.md/index.md patch 仍可能 race
+- CLI 未装时, 退回到 cortex-ingest skill 单条循环 (用 WebFetch + defuddle)

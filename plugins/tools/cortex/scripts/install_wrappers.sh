@@ -8,12 +8,15 @@
 # --bare, no --allowed-tools, no --print. Slash commands are
 # defined in plugins/tools/cortex/commands/*.md and registered in plugin.json.
 #
-# Wrappers (16 total):
-#   - skill entrypoints (no args, hardcoded behavior in command.md):
+# Wrappers (21 total):
+#   - slash entrypoints (no args, hardcoded behavior in command.md):
 #       lint / dashboard / doctor / init / promote / forget /
-#       digest / search / save / ingest / memory / recall / refactor
+#       digest / recall / refactor
 #   - shell-only (do NOT go through claude):
 #       install_cron / config / update
+#   - python CLI wrappers (argparse 入口, 直跑 scripts/cli/<name>.py):
+#       save / search / deep_search / ingest_url / ingest_file /
+#       memory / ledger / session / html_render
 #
 # Usage:
 #   bash install_wrappers.sh --install-path <abs cortex root> [--target-dir <dir>] [--no-overwrite]
@@ -180,10 +183,10 @@ export CORTEX_JOB_LABEL="cortex-$name"
 banner "$name (slash /cortex:$name)"
 
 # 直接 python3 <绝对路径>/cortex_stream.py 启 claude (禁包 / 禁 PATH binary).
-# stream_progress.sh 不再 source — 函数指代隐藏了真实调用, 不利于审计.
+# Legacy progress lib 不再 source — 函数指代隐藏了真实调用, 不利于审计.
 # cortex_stream.py 自动注 --output-format stream-json --verbose, 走 rich UI on stderr.
 # cx_filter_stream 仅放 final result.text 到 stdout, 防 raw NDJSON 漏到终端.
-STREAM_PY="$INSTALL_PATH/scripts/mcp/cortex_stream.py"
+STREAM_PY="$INSTALL_PATH/scripts/cli/cortex_stream.py"
 [[ -f "\$STREAM_PY" ]] || err "cortex_stream.py missing: \$STREAM_PY" 4
 python3 "\$STREAM_PY" --label "cortex-$name" --timeout 0 -- \\
   claude --settings "\$SETTINGS" -p "/cortex:$name" \\
@@ -204,12 +207,31 @@ emit_slash init
 emit_slash promote
 emit_slash forget
 emit_slash digest
-emit_slash search
-emit_slash save
-emit_slash ingest
-emit_slash memory
 emit_slash recall
 emit_slash refactor
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CLI wrappers (调 scripts/cli/<name>.py, 直跑 python, 带 argparse)
+# 替代旧 mcp__cortex__* 工具调用 — agent/skill 改文本走 bash 形式.
+# ─────────────────────────────────────────────────────────────────────────────
+emit_cli() {
+  local name="$1"; local module="${2:-$1}"
+  emit "$name.sh" "$(cat <<EOB
+export CORTEX_JOB_LABEL="cortex-$name"
+exec python3 "$INSTALL_PATH/scripts/cli/$module.py" "\$@"
+EOB
+)"
+}
+
+emit_cli save
+emit_cli search
+emit_cli deep_search
+emit_cli ingest_url
+emit_cli ingest_file
+emit_cli memory
+emit_cli ledger
+emit_cli session
+emit_cli html_render
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3 shell-only wrappers (不走 claude, 直接调脚本)
@@ -239,6 +261,9 @@ claude plugins marketplace update ccplugin-market \
 EOB
 )"
 
-printf '%s[install_wrappers.sh]%s %s✓%s wrote %s17 wrappers%s to %s%s%s\n' \
+printf '%s[install_wrappers.sh]%s %s✓%s wrote %s21 wrappers%s to %s%s%s\n' \
   "$_C_CYAN" "$_C_RESET" "$_C_GREEN" "$_C_RESET" \
   "$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$TARGET_DIR" "$_C_RESET" >&2
+# 21 wrappers total: 9 slash (lint/dashboard/doctor/init/promote/forget/digest/recall/refactor)
+#                  + 3 shell (install_cron/config/update)
+#                  + 9 CLI (save/search/deep_search/ingest_url/ingest_file/memory/ledger/session/html_render)

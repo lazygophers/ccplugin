@@ -1,7 +1,7 @@
 ---
 name: cortex-ingest
 description: 外部源 (文件/URL/目录) 摄取进 vault — 抽实体, 套模板 (cli=manual), wikilink 回填; URL 走 defuddle。Triggers on "ingest", "摄取".
-allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url mcp__cortex__cortex_ingest_file mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content mcp__obsidian__obsidian_simple_search
+allowed-tools: Bash Read Write Edit Glob WebFetch mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content mcp__obsidian__obsidian_simple_search
 ---
 
 # cortex-ingest
@@ -10,11 +10,11 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__cortex__cortex_ingest_url
 
 ## 调用优先级 (P4)
 
-1. **MCP 主路径**: `mcp__cortex__cortex_ingest_url` (URL) / `mcp__cortex__cortex_ingest_file` (本地文件: pdf/epub/docx/md/txt)
+1. **CLI 主路径**: `bash ~/.cortex/scripts/ingest_url.sh --url <u> --kind <k>` (URL) / `bash ~/.cortex/scripts/ingest_file.sh --path <p> --kind <k>` (本地文件: pdf/epub/docx/md/txt)
    - 内部自动串 P0 三过滤器 (url_security/html_sanitize/masking) + extractors + save
-   - 输入: `{url|path, kind, tags?, title?, host?, org?, repo?}`
-   - 失败抛 ValueError/RuntimeError, skill 不需手工调 P0 filter
-2. **fallback (MCP 未装)**: WebFetch + defuddle + 手工调 `hooks/_lib/url_security.py` → `html_sanitize.py` → `masking.py` (见下文 §流程 §1.5)
+   - 输入参数: `--url|--path <v>` `--kind <k>` `[--tags ...]` `[--title ...]` `[--host ...]` `[--org ...]` `[--repo ...]`
+   - 失败非零退出码 + stderr error message; skill 不需手工调 P0 filter
+2. **fallback (CLI 未装)**: WebFetch + defuddle + 手工调 `hooks/_lib/url_security.py` → `html_sanitize.py` → `masking.py` (见下文 §流程 §1.5)
 
 ## 触发场景
 
@@ -260,7 +260,7 @@ ingest 必须**深度**, 不允许只读 README 草草交差:
 |------|------|------|
 | `score` (质量) | 1-5 | 5=权威官方 / 高 star (>10k) / 主流标准; 4=活跃维护 / >1k star; 3=有维护 / 普通; 2=个人项目 / 实验性; 1=废弃 / 不推荐 |
 | `maturity` | draft / review / stable / deprecated | 按上游 release 状态或 README 标注判定; 含 `pre-alpha` / `WIP` → draft; 有 release / 有版本号 → stable; archived → deprecated |
-| `tags[关注度]` | freq/<high\|mid\|low> | 自动: 含 README badges (CI/coverage/downloads) + commit 近 30 天频率, 按 cortex_search 命中次数定 |
+| `tags[关注度]` | freq/<high\|mid\|low> | 自动: 含 README badges (CI/coverage/downloads) + commit 近 30 天频率, 按 `bash ~/.cortex/scripts/search.sh` 命中次数定 |
 
 `score` + `maturity` 写入 frontmatter; freq tag 自动追加。lint 规则 `frontmatter-schema-violation` 强制存在性 (缺即 error)。
 

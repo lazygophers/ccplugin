@@ -10,9 +10,9 @@
 | Skills | 21 | 自动触发 + 显式调 (详见 `docs/Skills 详解.md`) |
 | Agents | 8 | curator / researcher / archivist / cartographer / historian / linker / summarizer / translator |
 | Slash commands | 20 | `/cortex:<name>` (无入参, 全自动 AUTO_MODE persistent) |
-| Bash wrappers | 17 | `~/.cortex/scripts/*.sh` — 调 slash command 走 stream-json + rich UI |
+| Bash wrappers | 21 | `~/.cortex/scripts/*.sh` — slash 走 stream-json + rich UI; CLI 直 exec python3 |
 | Lint 规则 | 17 | 自动修复 (autofix) + 自动循环至 vault clean |
-| MCP 工具 | 15 | search / deep_search / save / ingest_url|file / memory × 6 / html_render / ledger / session / uri_index |
+| Python CLI | 9 | search / deep_search / save / ingest_url|file / memory / ledger / session / html_render (`scripts/cli/*.py`) |
 | Presets | 4 | LYT (默认) / Zettelkasten / PARA / blank |
 | Vault 顶层 | 7 | `知识库/` `记忆/` `仪表盘/` `归档/` `_meta/` `_templates/` `_assets/` |
 

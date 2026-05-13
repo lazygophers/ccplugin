@@ -5,7 +5,7 @@ Sequential stderr rendering (no Live region, no height cap, no refresh
 throttling) — each parsed event is printed in order as it streams in.
 
 CLI (run via absolute path, no package install / no console-script):
-    python3 <PLUGIN_ROOT>/scripts/mcp/cortex_stream.py --label <label> -- <claude cmd...>
+    python3 <PLUGIN_ROOT>/scripts/cli/cortex_stream.py --label <label> -- <claude cmd...>
 
 The script appends `--output-format stream-json --verbose` to the inner
 command, spawns it line-buffered, and renders each parsed event in order

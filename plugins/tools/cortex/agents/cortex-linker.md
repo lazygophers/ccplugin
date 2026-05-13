@@ -32,8 +32,8 @@ model: sonnet
 
 ## 工作流
 
-1. 读 target 内容 → 优先调 `mcp__cortex__cortex_deep_search(query=<target title + 前200字>, mode=subgraph, max_hops=2, limit=top_k)`; deep_search 内部已含 SC + rg + 子图扩展, SC 不可达时自动降级 (`degraded=true`)
-2. MCP 不可达回退: SC REST `/find_similar` → MCP simple_search → ripgrep 关键词 (target frontmatter tags + title)
+1. 读 target 内容 → 优先调 `bash ~/.cortex/scripts/deep_search.sh --query "<target title + 前200字>" --mode subgraph --max-hops 2 --limit <top_k>`; deep_search 内部已含 SC + rg + 子图扩展, SC 不可达时自动降级 (`degraded=true`)
+2. CLI 不可达回退: SC REST `/find_similar` → `mcp__obsidian__obsidian_simple_search` → ripgrep 关键词 (target frontmatter tags + title)
 4. 过滤已存在 wikilink 与 self-link
 5. 对每个候选, 在 target 内找最相关段落 (TF-IDF 简易或 H2/H3 标题匹配)
 6. auto_apply=false 输出提案; auto_apply=true 在选定段落末尾加 `相关: [[X]]` 行

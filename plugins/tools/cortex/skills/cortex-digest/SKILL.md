@@ -56,20 +56,20 @@ allowed-tools: Bash Read Write Edit Glob Grep Skill
 - 概念候选 → `记忆/views/candidates.md` (待 cortex-promote 审批)
 
 **更新既有 (学习 + 完善, 不删原文)**:
-- `update_target` (L1/L2/L3 命中) → `cortex_memory_write` append 新例证/新连接, weight += 0.05 (cap 1.0)
+- `update_target` (L1/L2/L3 命中) → `bash ~/.cortex/scripts/memory.sh write --uri <u> --content <c> --level <l>` append 新例证/新连接, weight += 0.05 (cap 1.0)
 - `enrich_target` (知识库/领域 命中) → patch 文件追加 `## 新增例证 <YYYY-MM-DD>` + 加 `[[wikilink]]`
 - `conflict` → 新建 `知识库/反思/矛盾/<date>-<topic>.md` 列对照 (不直接改既有条目)
 
 ### 4. 更新 (Update)
 
-- `MCP cortex_uri_index_rebuild`: 重建 `_meta/uri-index.json`
-- `MCP cortex_memory_promote`: L4→L3 (frequency ≥ 5 自动)
+- `bash ~/.cortex/scripts/ledger.sh uri_index_rebuild`: 重建 `_meta/uri-index.json`
+- `bash ~/.cortex/scripts/memory.sh promote --uri <u> --target-level L3`: L4→L3 (frequency ≥ 5 自动)
 - 更新 `index.md` / `hot.md` 引用
 
 ### 5. 清理 + 归档 (Cleanup + Archive)
 
 - **L4-流水账强制全清** (无时间窗例外, 单向漏斗): 阶段 1 读取的每个 L4 文件必须出 L4 (三选一):
-  - **升 L3**: 高频/概念化潜力 → `cortex_memory_promote L4→L3`
+  - **升 L3**: 高频/概念化潜力 → `bash ~/.cortex/scripts/memory.sh promote --uri <u> --target-level L3`
   - **归档**: 历史价值无升级潜力 → mv 到 `归档/L4-<YYYY>/<原相对路径>`
   - **删**: 无价值 (debug 噪音/纯重复/已聚合) → `git rm`
   - 处理后 `记忆/L4-流水账/**` 必须 0 文件残留

@@ -10,8 +10,8 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 
 ## 调用优先级 (P1)
 
-1. **优先**: `mcp__cortex__cortex_search` (MCP server 已装) — 结构化 JSON 输出, schema 稳定, 自动跑 hot → index → SC → rg 回退
-2. **回退**: 下述 L1-L5 (CLI / Smart Connections / mcp\_\_obsidian / rg) — MCP 不可达时
+1. **优先**: `bash ~/.cortex/scripts/search.sh --query "<q>" [--scope <glob>] [--limit N]` — 结构化 JSON 输出 (stdout), schema 稳定, 自动跑 hot → index → SC → rg 回退
+2. **回退**: 下述 L1-L5 (CLI / Smart Connections / mcp\_\_obsidian / rg) — CLI 不可达时
 
 ## 触发场景
 
@@ -111,7 +111,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 触发条件: 用户输入含 "深度搜索" / "--deep" / `depth=deep` / 复杂多轮研究场景。
 
 ```
-mcp__cortex__cortex_deep_search(query=<q>, mode=hybrid, iter_max=3, limit=15)
+bash ~/.cortex/scripts/deep_search.sh --query "<q>" --mode hybrid --iter-max 3 --limit 15
 ```
 
 三种 mode:

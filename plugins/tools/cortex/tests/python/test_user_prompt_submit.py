@@ -42,7 +42,7 @@ def test_trigger_keyword_hit(tmp_path):
     assert r.returncode == 0
     assert r.stdout.strip(), "expected reminder for trigger hit"
     ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
-    assert "cortex_memory_recall" in ctx
+    assert "memory.sh recall" in ctx
     assert "必须" in ctx or "must" in ctx.lower()
 
 
@@ -52,7 +52,7 @@ def test_remember_directive(tmp_path):
     assert r.returncode == 0
     if r.stdout.strip():
         ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
-        assert "cortex_memory_write" in ctx
+        assert "memory.sh write" in ctx
 
 
 def test_forget_directive(tmp_path):
@@ -61,7 +61,7 @@ def test_forget_directive(tmp_path):
     assert r.returncode == 0
     if r.stdout.strip():
         ctx = json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
-        assert "cortex_memory_forget" in ctx
+        assert "memory.sh forget" in ctx
 
 
 def test_short_input_silent(tmp_path):

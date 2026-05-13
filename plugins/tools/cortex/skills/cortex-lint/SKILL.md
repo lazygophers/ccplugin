@@ -143,7 +143,7 @@ prompt 含 `[AUTO_MODE]` 时 (来自 `~/.cortex/scripts/lint.sh` wrapper), **严
 |-------------------|------------|
 | dead-wikilink | lint 解析器已自动剥离 fenced/inline code 内的 `[[...]]`; 残留命中即正文 dead link → `Write` 创 stub 到 `知识库/收件箱/<target>.md`, 最小 frontmatter (type 按目录推断, `created` 用绝对日期 `YYYY-MM-DD`) |
 | duplicate-alias | `Edit` 改其中一 frontmatter alias 加目录后缀; 或 Read+Write 合并两文件后删源 |
-| orphan-page | Read 正文行数: ≤ 3 行 (空 stub) `git rm` 删除; 否则 `Edit` 加 `tags: [orphan]` 或在最近邻 `_index.md` 插反链 (cortex_search 找邻) |
+| orphan-page | Read 正文行数: ≤ 3 行 (空 stub) `git rm` 删除; 否则 `Edit` 加 `tags: [orphan]` 或在最近邻 `_index.md` 插反链 (`bash ~/.cortex/scripts/search.sh` 找邻) |
 | filename-illegal / path-naming-violation | `git mv` 改: 长度 ≤ 50 字符, kebab-case, ASCII + 数字 + 连字符; 超长用 `<prefix>-<sha8>.md` (前 30 字符 + content sha 8 位); grep+Edit 改所有引用 |
 | callout-unknown-type | `Edit` 替成最近已知 callout (note/tip/warning/info) |
 | log-too-long | Read+Write 切尾部到 `folds/<YYYY-QN>.md` |
@@ -155,7 +155,7 @@ prompt 含 `[AUTO_MODE]` 时 (来自 `~/.cortex/scripts/lint.sh` wrapper), **严
 ### 工具优先级 (依次尝试)
 
 1. Bash + Edit/Write 本地直改
-2. MCP `cortex_save` / `cortex_search` / `cortex_memory_write`
+2. cortex CLI `bash ~/.cortex/scripts/save.sh` / `search.sh` / `memory.sh write`
 3. cortex-refactor 脚本 (复杂 rename)
 4. WebSearch / WebFetch (规则模糊时查文档)
 5. Read 同 vault 合规样本复制结构

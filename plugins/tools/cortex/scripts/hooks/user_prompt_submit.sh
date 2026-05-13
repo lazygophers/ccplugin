@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Claude Code UserPromptSubmit hook — 每次用户输入触发
-# 注入触发词检测 + 强制 reminder, 推动 AI 主动调 cortex_memory_recall / cortex_search
+# 注入触发词检测 + 强制 reminder, 推动 AI 主动调 ~/.cortex/scripts/memory.sh recall / search.sh
 
 set -u
 
@@ -68,17 +68,17 @@ if hits:
     shown = hits[:5]
     msg = (
         f"⚠️ 用户问题含触发词 {shown}, 第一个工具调用**必须**:\n"
-        f"1. cortex_memory_recall(query) — 召回相关记忆\n"
-        f"2. cortex_search(query) — 搜知识库\n"
+        f"1. bash ~/.cortex/scripts/memory.sh recall --query <q> — 召回相关记忆\n"
+        f"2. bash ~/.cortex/scripts/search.sh --query <q> — 搜知识库\n"
         f"否则违反 SessionStart 契约。"
     )
     if any(k in prompt_lower for k in ["记住", "remember", "别忘了", "永远", "暂时"]):
-        msg += "\n⚡ 含记忆指令 → 立即 cortex_memory_write (level 按语气判)。"
+        msg += "\n⚡ 含记忆指令 → 立即 bash ~/.cortex/scripts/memory.sh write --uri <u> --content <c> --level <l> (level 按语气判)。"
     elif any(k in prompt_lower for k in ["忘了", "forget"]):
-        msg += "\n⚡ 含遗忘指令 → 立即 cortex_memory_forget。"
+        msg += "\n⚡ 含遗忘指令 → 立即 bash ~/.cortex/scripts/memory.sh forget --uri <u>。"
 else:
     if len(prompt) > 20:
-        msg = "💡 如需上下文/记忆, 调 cortex_memory_recall / cortex_search。"
+        msg = "💡 如需上下文/记忆, 调 bash ~/.cortex/scripts/memory.sh recall / bash ~/.cortex/scripts/search.sh。"
     else:
         msg = ""
 

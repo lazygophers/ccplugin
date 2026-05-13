@@ -29,9 +29,9 @@ while True:
 | fm-missing-type / fm-missing-created / hot-too-long / index-missing-section / title-h1-mismatch / block-id-duplicate / vault-misaligned / template-outdated / frontmatter-schema-violation | run.py --fix 已落 | — |
 | dead-wikilink | — | 先 Read 校验: 若 `[[...]]` 在 fenced code block / inline backtick 内, 视为代码片段跳过 (lint 解析器已剥离, 残留即为正文); 否则 Write 工具创建 stub: `vault/知识库/收件箱/<target>.md` 填最小 frontmatter (`type: concept` 按目录推断, `title: <target>`, `created: <YYYY-MM-DD>`); 再 re-lint 验证 |
 | duplicate-alias | — | Edit 工具改其中一个 frontmatter 的 alias (加目录后缀去歧义); 或合并两文件 (Read → Write 合并 → 删源) |
-| orphan-page | — | Read 文件正文行数: 若 ≤ 3 行 (空 stub), `git rm` 删除; 否则 Edit 给页加 `tags: [orphan]` 或在最近相关 `_index.md` 插一行 `[[页名]]` 反链 (用 cortex_search 找最近邻) |
+| orphan-page | — | Read 文件正文行数: 若 ≤ 3 行 (空 stub), `git rm` 删除; 否则 Edit 给页加 `tags: [orphan]` 或在最近相关 `_index.md` 插一行 `[[页名]]` 反链 (用 `bash ~/.cortex/scripts/search.sh` 找最近邻) |
 | filename-illegal / path-naming-violation | — | Bash `git mv` 改名: 长度 ≤ 50 字符, kebab-case, 仅 ASCII + 数字 + 连字符; 超长用 `<prefix>-<sha8>.md` 形式 (前 30 字符 + 内容 sha 8 位); 再 grep+Edit 改所有 wikilink/路径引用 |
-| callout-unknown-type | — | Edit 替成最近的已知 callout (note/tip/warning/info), 用 cortex_search 或字符串相似度自决 |
+| callout-unknown-type | — | Edit 替成最近的已知 callout (note/tip/warning/info), 用 `bash ~/.cortex/scripts/search.sh` 或字符串相似度自决 |
 | log-too-long | — | Read + Write 切尾部到 `folds/<YYYY-QN>.md`, 主文件留头部 |
 | i18n-path-not-in-locale | — | 先比对 `_meta/version.json:.lang` 与 `locales/<lang>.yml:.dirs` 顶层名; 若 vault 顶层名不在 locale dirs → `git mv` 改为 locale 标准名; 若 vault.lang 已切换 → 提示用户重选 locale (但 AUTO_MODE 不询问, 仅在最终报告标注) |
 | vault-misaligned | — | 先单步 `python3 <abs>/scripts/lint/run.py --vault <vault> --sync-templates` 同步 `_templates/` 与 plugin 源 (autofix 已实现, 但需独立 pass); 再跑主 lint 循环 |
@@ -41,7 +41,7 @@ while True:
 ## 工具优先级 (依次尝试, 直到修好)
 
 1. Bash + Edit/Write (本地直改)
-2. MCP `cortex_save` / `cortex_memory_write` / `cortex_search` (语义类操作)
+2. cortex CLI `bash ~/.cortex/scripts/save.sh` / `memory.sh write` / `search.sh` (语义类操作)
 3. Bash 调 cortex-refactor 脚本 (复杂 rename)
 4. WebSearch / WebFetch (规则定义模糊时查文档; 例如 Obsidian frontmatter 标准)
 5. Read 同 vault 内现有合规样本, 复制 frontmatter 结构

@@ -35,7 +35,7 @@ model: sonnet
 ## 工作流
 
 1. 查 vault 已有相关页 → 列入"已知"
-   - `depth == "deep"`: 调 `mcp__cortex__cortex_deep_search(query=topic, mode=iterative, iter_max=3, limit=15)`; 返回 hits 全部列入"已知"
+   - `depth == "deep"`: 调 `bash ~/.cortex/scripts/deep_search.sh --query "<topic>" --mode iterative --iter-max 3 --limit 15`; 返回 hits 全部列入"已知"
    - 否则: cortex-search 原逻辑不变
 2. 若 `sources` 为空 → 主动 WebFetch / qmd / 询问用户提供 url 列表
 3. 对每个 source: defuddle (清广告) → cortex-ingest 落到 sources/ 或 concepts/

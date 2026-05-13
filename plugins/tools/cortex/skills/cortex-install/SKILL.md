@@ -303,7 +303,7 @@ lang: zh-CN
 
 总结: 68 项写入, 5 项跳过, 0 项失败
 下一步:
-  - /cortex:doctor 验证 + 跑 cortex_uri_index_rebuild MCP 工具初始化索引
+  - /cortex:doctor 验证 + 跑 `bash ~/.cortex/scripts/ledger.sh uri_index_rebuild` 初始化索引
   - 记忆 CRUD: ~/.cortex/scripts/memory.sh read|write|update|forget <uri>
   - 渐进召回: ~/.cortex/scripts/recall.sh <query>
   - 晋级检测: ~/.cortex/scripts/promote.sh [--dry-run]
