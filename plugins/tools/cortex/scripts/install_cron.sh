@@ -148,25 +148,32 @@ fi
 LANG_OVERRIDE="$(cx_config_get lang "")"
 SETTINGS="$(cx_config_get settings "")"
 
+print_task_table() {
+  cat <<'EOF' >&2
+┌──────────────┬─────────────────────────┬───────────────────────────────┐
+│ 脚本         │ 频率                    │ 功能                          │
+├──────────────┼─────────────────────────┼───────────────────────────────┤
+│ lint.sh      │ 每日 01:00              │ 17 规则 autofix 循环至 clean  │
+│ dashboard.sh │ 每日 02:30              │ 重渲 index/hot/canvas 仪表盘  │
+│ fold.sh      │ 每周日 02:00            │ 长 log 滚动到 folds/<YYYY-QN> │
+└──────────────┴─────────────────────────┴───────────────────────────────┘
+EOF
+}
+
 print_cron() {
+  print_task_table
   cat <<EOF
 # ===== cortex cron snippet (Linux/macOS cron) =====
 # 复制以下行到 'crontab -e':
 
-# 注意: 路径硬编码为 marketplace 绝对路径, 避免 env var 解析 bug
-
-# daily lint at 01:00
 0 1 * * * bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/lint.sh" --vault "${VAULT}"
-
-# weekly log fold at Sunday 02:00
-0 2 * * 0 bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/fold.sh" --vault "${VAULT}"
-
-# daily dashboard refresh at 02:30
 30 2 * * * bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/dashboard.sh" --vault "${VAULT}"
+0 2 * * 0 bash "$HOME/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/cron/fold.sh" --vault "${VAULT}"
 EOF
 }
 
 print_launchd() {
+  print_task_table
   cat <<EOF
 # ===== cortex launchd plist (macOS) =====
 # 保存为 ~/Library/LaunchAgents/dev.lazygophers.cortex.daily-lint.plist
@@ -205,6 +212,7 @@ EOF
 }
 
 print_gha() {
+  print_task_table
   cat <<'EOF'
 # ===== cortex GitHub Actions workflow =====
 # 保存为 .github/workflows/cortex:cron.yml (在你的 vault 仓库)

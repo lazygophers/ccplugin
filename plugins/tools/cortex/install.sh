@@ -521,6 +521,10 @@ if [[ "$NO_CRON" != "1" ]]; then
     if prompt_yes_no "现在通过 wrapper 安装 cron snippet?" "n"; then
       do_cron=1
     fi
+  else
+    # --non-interactive: 默认装 cron (用 --no-cron 关)
+    log_info "--non-interactive: 自动安装 cron snippet (用 --no-cron 跳过)"
+    do_cron=1
   fi
 fi
 
