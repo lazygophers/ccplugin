@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 84
+- **Total Sessions**: 85
 - **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~852 | Active |
+| `journal-2.md` | ~886 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 85 | 2026-05-14 | cortex .base 格式硬契约 + lint rule base-format-yaml | `159344ae`, `3d8712bb` | `master` |
 | 84 | 2026-05-14 | cortex 加 2 wrapper — ingest_remote (github/website) + refresh_projects 增量 | `807c3498`, `be9ae225`, `374452c3`, `18708440` | `master` |
 | 83 | 2026-05-14 | cortex 清 wiki 残留, 全栈对齐 知识库 vault truth | `e3ee4df5`, `1f38a488` | `master` |
 | 82 | 2026-05-14 | cortex playbook 借鉴 — SKILL 拆 references + digest 加 evolution 抽取 | `3199ae16`, `425a6d2e`, `ffb5f5f8`, `d9128b04`, `c3d24236`, `c4a5b946` | `master` |
