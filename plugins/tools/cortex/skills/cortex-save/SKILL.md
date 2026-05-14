@@ -73,6 +73,12 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
    无匹配 → `领域/未分类/`. 允许创建子目录 (如 `创作/写作/`, `技术/分布式系统/`).
 
+   **文件名 stem lang 对齐 (lint rule 20 path-lang-mismatch)**:
+   - `vault.lang=zh-CN`: 文件名 stem 应用中文 (`架构.md` 而非 `architecture.md`); 已知专名 (项目名 / repo 名 / 配置名 / 协议名 / API 端点) 保留 ASCII (如 `README.md` / `pyproject.md` / `OAuth2.md`)
+   - `vault.lang=en`: 文件名 stem 应用英文; 不可翻译专名保留原文 → 加 frontmatter `path_lang_exempt: true`
+   - `知识库/项目/<host>/<org>/<repo>/` 前 3 层路径段 (host/org/repo) 由 git remote 决定, 不受 lang 约束 (lint 已豁免)
+   - 不确定时 (中英混排 / 行业专名) 在 frontmatter 加 `path_lang_exempt: true` 显式豁免
+
 4. **套模板 + 填 frontmatter**
    - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/seed/_templates/<type>.md`)
    - 替换 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` (UTC `YYYY-MM-DD`)

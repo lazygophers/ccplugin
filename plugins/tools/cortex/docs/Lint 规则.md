@@ -1,11 +1,11 @@
 # Lint 规则
 
-本文回答：cortex-lint 的 17 条 规则各自检查什么、哪些能 autofix、`--fix` 行为是什么。
+本文回答：cortex-lint 的 18 条 规则各自检查什么、哪些能 autofix、`--fix` 行为是什么。
 适用读者：跑 `cortex-lint` 看到 errors/warns 想知道含义的用户、写 cron 自动修复的运维。
 
 ## 总览
 
-定义文件：`scripts/lint/rules.json`。版本 1, 17 条 规则。
+定义文件：`scripts/lint/rules.json`。版本 1, 18 条 规则。
 
 **范围**: 全部规则作用于 知识库 **知识库 (vault)** — 即 `~/.cortex/config.json:.vault` 指向的目录。不影响 全局 全局配置 / 当前目录 / 记忆层 记忆层。
 
@@ -24,6 +24,13 @@
 | 11 | `block-id-duplicate` | error | ✅ | block-id 重复 (`^cortex-<sha8>`) |
 | 12 | `callout-unknown-type` | warn | ❌ | callout 类型不在 13 类白名单 |
 | 13 | `path-naming-violation` | warn | ❌ | 文件路径不符命名规则 (prd §3.2.7) |
+| 14 | `repo-path-deprecated` | warn | ✅ | `知识库/来源/代码仓库/` 路径废弃, mv 到 `知识库/项目/` |
+| 15 | `kb-reflection-path-deprecated` | warn | ✅ | `知识库/反思/` 废弃, mv 到 `知识库/收件箱/` |
+| 16 | `kb-question-fleeting-path-deprecated` | warn | ✅ | `知识库/问题/` 与 `知识库/临时/` 废弃, mv 到 `知识库/收件箱/` |
+| 17 | `kb-entity-concept-path-deprecated` | warn | ❌ | `知识库/实体/` 与 `知识库/概念/` 废弃, 应迁 `知识库/领域/<域>/` (需 AI 选域) |
+| 18 | `kb-journal-multi-freq-deprecated` | warn | ✅ | `知识库/日记/{周/月/年}/` 废弃, mv 到 `归档/日记/<YYYY-QN>.md` 季度桶 |
+| 19 | `kb-source-non-repo-path-deprecated` | warn | ✅ | `知识库/来源/{网页/论文/书籍}/` 废弃, mv 到 `知识库/收件箱/` |
+| 20 | `path-lang-mismatch` | warn | ❌ | vault path segment 不符 vault.lang (豁免 host/org/repo + ASCII 专名 + `path_lang_exempt`) |
 
 autofix 仅 6 条 (rule 1/2/6/8/9/11)。其余需人工或用 `cortex-refactor` 协助。
 
@@ -132,6 +139,32 @@ frontmatter `title: A` 但正文 H1 是 `# B`。
 ### 19. kb-source-non-repo-path-deprecated (warn, **自动**)
 
 `知识库/来源/{网页|论文|书籍}/<rest>` 路径已废弃 (非 repo 来源统一落收件箱)。autofix 自动 mv 到 `知识库/收件箱/<host>-<slug>.md` (从 frontmatter `source.url` 或路径抽 host), 待 digest 分发到 `项目/<repo>/笔记/` 或 `领域/<域>/`。
+
+### 20. path-lang-mismatch (warn, **手动**)
+
+vault path segment (目录名 / 文件名) 不符 `_meta/version.json:.lang` 指定的 vault 主语言。
+
+**检测逻辑** (逐 segment, 取 `vault.lang`, 默认 `zh-CN`):
+
+- `zh-*`: segment 应含 CJK 字符 (`一-鿿`); 全 ASCII 段 (`^[A-Za-z0-9._\-]+$`) → flag
+- `en`: segment 不含 CJK / Kana → 通过; 含 → flag
+- `ja`: segment 含 Hiragana/Katakana/Kanji → 通过; 全 ASCII → flag
+
+**豁免清单**:
+
+- 顶层基础设施: `_meta` / `_templates` / `_assets` / `locales` / `.obsidian` / `.trash` / `.git` / `记忆` / `归档` / `仪表盘` (英文等价 `memory` / `archive` / `dashboard`)
+- `知识库/项目/<host>/<org>/<repo>/` 前 5 段 (host / org / repo 由 git remote 决定, 不强制 lang 对齐); 英文 vault 等价 `kb/projects/<host>/<org>/<repo>/`
+- ASCII 专名 stem: `README` / `LICENSE` / `CHANGELOG` / `CONTRIBUTING` / `pyproject` / `package` / `Cargo` / `go.mod` / `tsconfig` / `Makefile` / `Dockerfile` / `_index` / `index` / `hot` 等
+- frontmatter `path_lang_exempt: true` (手动豁免单文件)
+
+**修复指引**: 不 autofix (rename 涉及 wikilink 联动)。走 `cortex-refactor rename` 重命名, 同步更新反链; 或在 frontmatter 加 `path_lang_exempt: true` 标记本页为专名页。
+
+**示例** (zh-CN vault):
+
+- `知识库/项目/github.com/lazygophers/ccplugin/笔记/架构.md` ✅ (前 5 段豁免, 文件名含 CJK)
+- `知识库/项目/github.com/lazygophers/ccplugin/architecture.md` ⚠ flag (`architecture.md` 全 ASCII, 非豁免 stem)
+- `知识库/项目/github.com/lazygophers/ccplugin/README.md` ✅ (ASCII 专名豁免)
+- `知识库/领域/技术/笔记/algorithm.md` ⚠ flag (建议 `算法.md` 或加 `path_lang_exempt: true`)
 
 ## --fix 行为
 

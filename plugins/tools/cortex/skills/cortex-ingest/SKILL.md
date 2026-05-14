@@ -307,7 +307,9 @@ maturity: <draft|review|stable|deprecated>
 ---
 ```
 
-可选: `host` / `org` / `repo` / `aliases` / `authors` / `lang`。
+可选: `host` / `org` / `repo` / `aliases` / `authors` / `lang` / `path_lang_exempt`。
+
+`path_lang_exempt: true` 用于豁免 lint rule 20 (`path-lang-mismatch`) 的 vault lang 一致性检查 — 仅在文件名/目录名为不可翻译的专名时填 (项目代号 / 配置文件名 / 协议名 / API 端点等)。默认 `false`, 普通页不需填。
 
 ### 4. 深度处理 (depth requirement)
 

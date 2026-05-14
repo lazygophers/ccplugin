@@ -156,6 +156,12 @@
       "severity": "warn",
       "description": "知识库/来源/{网页|论文|书籍}/ 已废弃, autofix mv 到 知识库/收件箱/<host>-<slug>.md (待 digest 分发)",
       "autofix": true
+    },
+    {
+      "id": "path-lang-mismatch",
+      "severity": "warn",
+      "description": "vault path segment 不符 vault.lang (zh-CN 应含 CJK / en 应全 ASCII / ja 应含 Kana 或 CJK); 豁免: 项目 host/org/repo + ASCII 专名 stem (README/LICENSE/pyproject 等) + frontmatter path_lang_exempt: true; 重命名走 cortex-refactor rename",
+      "autofix": false
     }
   ]
 }

@@ -54,6 +54,136 @@ CALLOUT_WHITELIST = {
 
 EXCLUDE_DIRS = {"_meta", ".obsidian", ".trash", ".git"}
 
+# ---- path-lang-mismatch (rule 18) ----
+# CJK Unified Ideographs basic block; sufficient for zh-CN segment 判定
+_CJK_RE = re.compile(r"[一-鿿]")
+# Hiragana / Katakana for ja detection
+_KANA_RE = re.compile(r"[぀-ゟ゠-ヿ]")
+# Pure ASCII filename segment (letters/digits/dot/dash/underscore)
+_ASCII_SEG_RE = re.compile(r"^[A-Za-z0-9._\-]+$")
+
+# ASCII 专名 stem 豁免清单 (项目根级常见配置/元文档)
+_ASCII_EXEMPT_STEMS = {
+    "readme", "license", "licence", "changelog", "contributing",
+    "code_of_conduct", "security", "authors", "maintainers", "notice",
+    "pyproject", "package", "package-lock", "cargo", "go", "go.mod",
+    "go.sum", "tsconfig", "jsconfig", "makefile", "dockerfile",
+    "_index", "index", "hot",
+}
+
+# vault 顶层基础设施目录 — 永远豁免 path-lang 检查
+_PATH_LANG_INFRA_TOPS = {
+    "_meta", "_templates", "_assets", "locales",
+    ".obsidian", ".trash", ".git",
+    # 记忆体系 / 归档 / 仪表盘 — 内部 URI 命名固定, 不参与 vault lang 校验
+    "记忆", "memory", "归档", "archive", "仪表盘", "dashboard",
+}
+
+
+def _is_exempt_filename_stem(name: str) -> bool:
+    """文件名 stem (含/不含扩展) 是否在 ASCII 专名豁免清单内."""
+    n = name.lower()
+    # 去最后一个扩展 (保留 .md / .json 等)
+    if "." in n:
+        stem = n.rsplit(".", 1)[0]
+    else:
+        stem = n
+    return stem in _ASCII_EXEMPT_STEMS or n in _ASCII_EXEMPT_STEMS
+
+
+def _segment_matches_lang(seg: str, lang: str) -> bool:
+    """检查单个 path segment 是否符合 vault lang.
+
+    - zh-*: 含 CJK 字符即视为符合 (允许中英混排如 `Bases配置.md`)
+    - en:   不含 CJK / Kana 即视为符合
+    - ja:   含 Kana 或 CJK 之一即视为符合
+    其他 lang 默认放行 (不检测).
+    """
+    if not seg:
+        return True
+    if lang.startswith("zh"):
+        # 文件名 ext 部分忽略 (`.md` 等不影响)
+        name = seg.rsplit(".", 1)[0] if "." in seg else seg
+        if _CJK_RE.search(name):
+            return True
+        # 全 ASCII 段 → 不符
+        if _ASCII_SEG_RE.match(name):
+            return False
+        # 既无 CJK 又含非 ASCII (其他语言) — 放行, 不属本规则关注
+        return True
+    if lang == "en":
+        if _CJK_RE.search(seg) or _KANA_RE.search(seg):
+            return False
+        return True
+    if lang == "ja":
+        if _KANA_RE.search(seg) or _CJK_RE.search(seg):
+            return True
+        name = seg.rsplit(".", 1)[0] if "." in seg else seg
+        if _ASCII_SEG_RE.match(name):
+            return False
+        return True
+    return True
+
+
+def _check_path_lang_mismatch(
+    rel: str, fm: dict[str, Any], vault_lang: str,
+) -> list[dict[str, Any]]:
+    """rule 18: path-lang-mismatch — vault path segment 不符 vault.lang.
+
+    豁免:
+      - frontmatter `path_lang_exempt: true`
+      - 顶层基础设施目录 (`_meta`/`_templates`/`_assets`/`locales`/`.obsidian`/...)
+      - `知识库/项目/<host>/<org>/<repo>/` 前 4 段 (host/org/repo 由 git remote 决定)
+      - ASCII 专名 stem (README / LICENSE / CHANGELOG / pyproject / tsconfig ...)
+    """
+    findings: list[dict[str, Any]] = []
+    if not vault_lang:
+        return findings
+    # frontmatter 手动豁免
+    v = fm.get("path_lang_exempt") if isinstance(fm, dict) else None
+    if v in (True, "true", "True", "yes", 1, "1"):
+        return findings
+
+    parts = rel.split("/")
+    if not parts:
+        return findings
+    # 顶层基础设施豁免
+    if parts[0] in _PATH_LANG_INFRA_TOPS:
+        return findings
+
+    # 知识库 i18n 等价顶层名也豁免 (lang=en vault: `kb/`); 用 segment 检测处理
+    # 项目子目录: 知识库/项目/<host>/<org>/<repo>/... — 前 5 段豁免
+    # (parts[0]=知识库, parts[1]=项目, parts[2]=host, parts[3]=org, parts[4]=repo)
+    project_prefix_zh = (len(parts) >= 5 and parts[0] == "知识库" and parts[1] == "项目")
+    project_prefix_en = (len(parts) >= 5 and parts[0] in {"kb", "knowledge"} and parts[1] in {"projects", "project"})
+    if project_prefix_zh or project_prefix_en:
+        check_parts = parts[5:]
+    else:
+        check_parts = parts
+
+    for seg in check_parts:
+        if not seg:
+            continue
+        # 文件名 ASCII 专名 stem 豁免
+        if _is_exempt_filename_stem(seg):
+            continue
+        if not _segment_matches_lang(seg, vault_lang):
+            finding = _f(
+                "path-lang-mismatch", "warn", rel, 0,
+                (
+                    f"path segment '{seg}' 不符 vault.lang={vault_lang} "
+                    f"(豁免: 项目 host/org/repo / ASCII 专名 / frontmatter path_lang_exempt: true; "
+                    f"重命名走 cortex-refactor rename)"
+                ),
+                False,
+            )
+            finding["segment"] = seg
+            finding["vault_lang"] = vault_lang
+            findings.append(finding)
+            # 单文件每次只报一条 (避免 N 个 segment N 倍噪音)
+            break
+    return findings
+
 # Shared root dirs (i18n whitelist; never reported by i18n-* rules)
 SHARED_ROOT_DIRS = {
     "_meta", "_templates", "locales",
@@ -590,6 +720,10 @@ def check_file(
     # rule 10: filename-illegal
     if any(c in ILLEGAL_CHARS for c in path.name):
         findings.append(_f("filename-illegal", "error", rel, 1, f"filename has illegal chars: {path.name}", False))
+
+    # rule 18: path-lang-mismatch — vault path segment 不符 vault.lang
+    if vault_lang:
+        findings.extend(_check_path_lang_mismatch(rel, fm, vault_lang))
 
     return findings
 
