@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 82
+- **Total Sessions**: 83
 - **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~782 | Active |
+| `journal-2.md` | ~816 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 83 | 2026-05-14 | cortex 清 wiki 残留, 全栈对齐 知识库 vault truth | `e3ee4df5`, `1f38a488` | `master` |
 | 82 | 2026-05-14 | cortex playbook 借鉴 — SKILL 拆 references + digest 加 evolution 抽取 | `3199ae16`, `425a6d2e`, `ffb5f5f8`, `d9128b04`, `c3d24236`, `c4a5b946` | `master` |
 | 81 | 2026-05-14 | lint rule 18 path-lang-mismatch | `d8252080` | `master` |
 | 80 | 2026-05-14 | digest 识别 host/org/repo 路由 | `adb754b8` | `master` |

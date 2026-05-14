@@ -780,3 +780,37 @@ SKILL §2 6 信号识别 (frontmatter/source_url/wikilink/URL/tag/keyword≥3); 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 83: cortex 清 wiki 残留, 全栈对齐 知识库 vault truth
+
+**Date**: 2026-05-14
+**Task**: cortex 清 wiki 残留, 全栈对齐 知识库 vault truth
+**Branch**: `master`
+
+### Summary
+
+vault truth 早已切到 知识库/ 4 子目录, 但代码 + lint + docs + skill/agent 残留 wiki 字样化石。本会话批量替换 9 文件 13 行: deep_search.py fallback wiki → 知识库 (2), rules.json rule 8 description (1), docs 5 处 (Lint 规则/快速上手/故障排查/design-decisions), skill/agent 3 处 (AGENT.md / cortex-lint SKILL / cortex-ingest SKILL 触发短语). 排除 [[wikilink]] / wikipedia / plugin.json keywords. 测试基线 360 不下降, ruff clean, AI 质量检查通过.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e3ee4df5` | (see git log) |
+| `1f38a488` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
