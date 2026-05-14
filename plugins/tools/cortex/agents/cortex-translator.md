@@ -60,14 +60,14 @@ model: sonnet
 
 ### 配置
 - from: zh-CN → to: en
-- 输入: 概念/事件驱动架构.md
+- 输入: 知识库/领域/技术/事件驱动架构.md
 - 链路策略: keep
 
 ### 已落档
-- [[concepts/event-driven-architecture]] (2KB, 12 wikilink 保留)
+- [[知识库/领域/tech/event-driven-architecture]] (2KB, 12 wikilink 保留)
 
 ### 跳过
-- 概念/X.md: 已存在 en 版本
+- 知识库/领域/技术/X.md: 已存在 en 版本
 
 ### 失败
 - (无)

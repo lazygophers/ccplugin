@@ -38,9 +38,9 @@ model: sonnet
    - `depth == "deep"`: 调 `bash ~/.cortex/scripts/deep_search.sh --query "<topic>" --mode iterative --iter-max 3 --limit 15`; 返回 hits 全部列入"已知"
    - 否则: cortex-search 原逻辑不变
 2. 若 `sources` 为空 → 主动 WebFetch / qmd / 询问用户提供 url 列表
-3. 对每个 source: defuddle (清广告) → cortex-ingest 落到 sources/ 或 concepts/
+3. 对每个 source: defuddle (清广告) → cortex-ingest 落到 知识库/项目/<host>/<org>/<repo>/ (repo) 或 知识库/收件箱/ (非 repo, 待 digest 分发)
 4. 阶段汇总: 读所有新落档 + 已知页 → cortex-summarizer 产出综述
-5. 综述页 frontmatter `type: concept` (或 dashboard, 视情况), 落到用户指定 `output_path` 或自动归属 concepts/<slug>.md
+5. 综述页 frontmatter `type: domain` (或 dashboard, 视情况), 落到用户指定 `output_path` 或自动归属 知识库/领域/<域>/<slug>.md
 
 ## 工具路由
 
@@ -68,11 +68,11 @@ model: sonnet
 - [[Y]]
 
 ### 新增 (本次落档)
-- [[sources/2026-05-acme]] — url
-- [[concepts/<slug>]] — url
+- [[知识库/收件箱/2026-05-acme]] — url
+- [[知识库/领域/<域>/<slug>]] — url
 
 ### 综述
-路径: [[concepts/<topic>-overview]]
+路径: [[知识库/领域/<域>/<topic>-overview]]
 
 ### 跳过
 - <url>: 需登录

@@ -62,12 +62,12 @@ model: sonnet
 ## cortex-summarizer 完成
 
 ### 模式: page
-- target: [[concepts/event-driven-architecture]]
+- target: [[知识库/领域/技术/event-driven-architecture]]
 - 已 patch: 顶部 summary callout (180 字)
 
 ### 或模式: domain
-- 输入: 概念/auth/* (8 页)
-- 输出: [[concepts/auth-overview]]
+- 输入: 知识库/领域/技术/auth/* (8 页)
+- 输出: [[知识库/领域/技术/auth-overview]]
 - TL;DR: 240 字, 关键点 5 条
 ```
 
