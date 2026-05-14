@@ -1,6 +1,6 @@
 ---
 name: cortex-archivist
-description: cortex 档案员 — 收件箱/ 老化扫描 → 领域/项目 迁移提案 + 归档/ 老条目提案。适合 "清理收件箱" / "归档老笔记" / "整理 vault" 类任务。提案为主, 落盘走 cortex-refactor 用户确认。
+description: cortex 档案员 — 收件箱/ 老化扫描 → 领域/项目 迁移提案 + 归档/ 老条目提案; 对 digest 阶段路由识别失败 (6 信号全无命中) 的条目, archivist 再扫做二次归属 (放宽阈值 / 关联推断)。适合 "清理收件箱" / "归档老笔记" / "整理 vault" 类任务。提案为主, 落盘走 cortex-refactor 用户确认。
 tools:
   - Read
   - Glob
