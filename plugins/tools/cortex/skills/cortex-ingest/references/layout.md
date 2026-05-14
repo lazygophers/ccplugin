@@ -76,3 +76,24 @@ SYM_N=$(find "$ROOT/符号/api/" -name '*.md' 2>/dev/null | wc -l)
 | `tags[关注度]` | freq/<high\|mid\|low> | 自动: 含 README badges (CI/coverage/downloads) + commit 近 30 天频率, 按 `bash ~/.cortex/scripts/search.sh` 命中次数定 |
 
 `score` + `maturity` 写入 frontmatter; freq tag 自动追加。lint 规则 `frontmatter-schema-violation` 强制存在性 (缺即 error)。
+
+---
+
+## 增量更新元数据 (PR2)
+
+为支持 `refresh_projects.sh` 增量刷, `ingest_remote` 在每项目根的 `_index.md` 写入:
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `source_url` | str | 远程 URL (github/gitlab/website) |
+| `source_type` | enum | `github` / `gitlab` / `website` |
+| `last_ingested_at` | UTC ISO 8601 | 上次 ingest 完成时间 |
+| `last_commit_sha` | str (git only) | 上次 ingest 时的 HEAD sha (40 char) |
+| `content_hash` | str (website only) | 每页 SHA256, 写在该页 frontmatter (非 `_index.md`) |
+
+**增量逻辑** — `refresh_projects` 对每项目对比 frontmatter:
+
+- git: `git rev-parse HEAD` == `last_commit_sha` → 跳过; 否则 `git diff` 仅 ingest 变动文件
+- website: 每页 SHA256 == `content_hash` → 跳过; 否则重写该页 + 更新 hash
+
+字段缺失 (旧项目 / 未 ingest) → 视为首次, 走全量 ingest pipeline。
