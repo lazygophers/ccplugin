@@ -577,3 +577,36 @@ emit_slash 两处 claude 调用前 printf 完整 bash 命令 (debug); 加 --dang
 ### Next Steps
 
 - None - task complete
+
+
+## Session 77: cortex ingest 项目级深度强制 — 多文件夹组织 + 全文件覆盖
+
+**Date**: 2026-05-14
+**Task**: cortex ingest 项目级深度强制 — 多文件夹组织 + 全文件覆盖
+**Branch**: `master`
+
+### Summary
+
+SKILL.md §1.1 分级表 (≤50/50-500/>500 ≥6/10/20 .md); §1.2 拒交硬条件; §4.7 覆盖度 M/N≥0.8 自检 + _index.md 文件清单覆盖表。commands/ingest.md 加步骤 6 self-check。cortex-researcher description + 工作流加强制 folder-first + self-check 闭环。GLM 自检识别两约束。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `40c4116c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

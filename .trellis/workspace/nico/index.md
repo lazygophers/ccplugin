@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 76
+- **Total Sessions**: 77
 - **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~579 | Active |
+| `journal-2.md` | ~612 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 77 | 2026-05-14 | cortex ingest 项目级深度强制 — 多文件夹组织 + 全文件覆盖 | `40c4116c` | `master` |
 | 76 | 2026-05-14 | slash wrapper echo bash cmd + bypass permissions | `e87b2103` | `master` |
 | 75 | 2026-05-14 | slash wrapper -i 注入预设 slash prompt | `e3093798` | `master` |
 | 74 | 2026-05-14 | cortex slash wrapper 加 -h/--help / -i/--interactive / --no-commit | `4dfe2bfe` | `master` |
