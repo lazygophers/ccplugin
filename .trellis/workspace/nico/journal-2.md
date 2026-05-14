@@ -511,3 +511,36 @@ schemas.py 三 preset root_dirs 移除 log/folds/sessions; run.py SHARED_ROOT_DI
 ### Next Steps
 
 - None - task complete
+
+
+## Session 75: slash wrapper -i 注入预设 slash prompt
+
+**Date**: 2026-05-14
+**Task**: slash wrapper -i 注入预设 slash prompt
+**Branch**: `master`
+
+### Summary
+
+claude CLI positional prompt 在 interactive 模式作初始消息。emit_slash --interactive 分支末尾追加 "/cortex:__NAME__", REPL 启动即跑预设流程, 用户可继续追问。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e3093798` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

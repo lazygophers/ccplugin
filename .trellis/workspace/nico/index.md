@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 74
+- **Total Sessions**: 75
 - **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~513 | Active |
+| `journal-2.md` | ~546 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 75 | 2026-05-14 | slash wrapper -i 注入预设 slash prompt | `e3093798` | `master` |
 | 74 | 2026-05-14 | cortex slash wrapper 加 -h/--help / -i/--interactive / --no-commit | `4dfe2bfe` | `master` |
 | 73 | 2026-05-14 | cortex 大批量清理: fold/historian/preset 移除 + agent 路径对齐 + MCP 强制写契约 + neat-freak 精简 | `5d31f607`, `182ffc18`, `c4fd72ea`, `2e8a2930`, `f596e496`, `29249ead`, `ae7bc0dc` | `master` |
 | 72 | 2026-05-13 | cortex: 移除自研 MCP 改用官方 mcp-obsidian | `015a4a30`, `7945f42d`, `214ebefc`, `3e5700d5`, `2f73373b` | `master` |
