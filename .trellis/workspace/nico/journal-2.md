@@ -478,3 +478,36 @@ schemas.py 三 preset root_dirs 移除 log/folds/sessions; run.py SHARED_ROOT_DI
 ### Next Steps
 
 - None - task complete
+
+
+## Session 74: cortex slash wrapper 加 -h/--help / -i/--interactive / --no-commit
+
+**Date**: 2026-05-14
+**Task**: cortex slash wrapper 加 -h/--help / -i/--interactive / --no-commit
+**Branch**: `master`
+
+### Summary
+
+10 slash wrapper (lint/dashboard/doctor/init/promote/forget/digest/recall/refactor/ingest) 全加 3 通用 flag。emit_slash() 弃 cat heredoc (bash 3.2 case parser bug), 改 quoted heredoc + 占位替换。pytest 314 pass。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4dfe2bfe` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
