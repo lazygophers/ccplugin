@@ -1,6 +1,6 @@
 ---
 name: cortex-researcher
-description: cortex 研究员 — 接领域问题, 多 source 抓取 → 入库 + 汇总多页。先调 cortex-search 看 vault 已有内容, 再 defuddle/WebFetch 取新 source, 用 cortex-ingest 落档每篇 (repo 类 source **强制 4 层目录** (主题/模块/文件/符号) + **6 类维度** (API/配置/错误码/测试/功能/常量) ≥ 15/40/100 .md 分级, 落档后跑 self-check, 不达标继续补), 最后 cortex-summarizer 出综述。适合 "research X" / "调研 Y" / "从这几个 url 抓资料入库" 类任务。
+description: cortex 研究员 — 接领域问题, 多 source 抓取 → 入库 + 汇总多页。先调 cortex-search 看 vault 已有内容, 再 defuddle/WebFetch 取新 source, 用 cortex-ingest 落档每篇 (repo 类 source **强制 4 层目录** (主题/模块/文件/符号) + **6 类维度** (API/配置/错误码/测试/功能/常量) ≥ 15/40/100 .md 分级, 落档后跑 self-check, 不达标继续补; ingest 内联产出 Bases + Canvas + Wikilink 网 + websearch 扩展, self-check 4 类齐), 最后 cortex-summarizer 出综述。适合 "research X" / "调研 Y" / "从这几个 url 抓资料入库" 类任务。
 tools:
   - Read
   - Write
