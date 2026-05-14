@@ -1,6 +1,6 @@
 ---
 name: cortex-researcher
-description: cortex 研究员 — 接领域问题, 多 source 抓取 → 入库 + 汇总多页。先调 cortex-search 看 vault 已有内容, 再 defuddle/WebFetch 取新 source, 用 cortex-ingest 落档每篇, 最后 cortex-summarizer 出综述。适合 "research X" / "调研 Y" / "从这几个 url 抓资料入库" 类任务。
+description: cortex 研究员 — 接领域问题, 多 source 抓取 → 入库 + 汇总多页。先调 cortex-search 看 vault 已有内容, 再 defuddle/WebFetch 取新 source, 用 cortex-ingest 落档每篇 (repo 类 source **强制 folder-first 多子文档** ≥ 6 .md, 落档后跑 self-check, 不达标继续补), 最后 cortex-summarizer 出综述。适合 "research X" / "调研 Y" / "从这几个 url 抓资料入库" 类任务。
 tools:
   - Read
   - Write
@@ -39,6 +39,8 @@ model: sonnet
    - 否则: cortex-search 原逻辑不变
 2. 若 `sources` 为空 → 主动 WebFetch / qmd / 询问用户提供 url 列表
 3. 对每个 source: defuddle (清广告) → cortex-ingest 落到 知识库/项目/<host>/<org>/<repo>/ (repo) 或 知识库/收件箱/ (非 repo, 待 digest 分发)
+   - **repo 类 source 强制 folder-first**: 调 cortex-ingest 隐式按 SKILL §1.1 分级表生成多子文档 (≤50 文件 ≥6 .md / 50-500 ≥10 + `笔记/`+`模块/` / >500 ≥20 + `API/`)
+   - **每个 source ingest 完跑 self-check** (cortex-ingest SKILL §1.2 拒交硬条件 + §4.7 覆盖度 M/R ≥ 0.8): 主层 ≥ 6 .md / 全部 ≥ 下限 / 主层非孤 `_index.md`; 不达标继续补子文档, 严禁带瑕疵进入步骤 4
 4. 阶段汇总: 读所有新落档 + 已知页 → cortex-summarizer 产出综述
 5. 综述页 frontmatter `type: domain` (或 dashboard, 视情况), 落到用户指定 `output_path` 或自动归属 知识库/领域/<域>/<slug>.md
 
