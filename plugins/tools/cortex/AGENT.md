@@ -103,8 +103,10 @@ cortex P1 起, 核心操作沉 python CLI (`scripts/cli/<name>.py`) + bash wrapp
 | cortex-ingest (URL)  | `bash ~/.cortex/scripts/ingest_url.sh`            | WebFetch + defuddle + 手工 P0 三过滤器 |
 | cortex-ingest (本地) | `bash ~/.cortex/scripts/ingest_file.sh`           | Read + 手工 extractor + masking        |
 | cortex-ingest-bulk   | 循环 `bash ~/.cortex/scripts/ingest_url.sh`       | 手动逐条                               |
+| cortex-ingest (远程) | `bash ~/.cortex/scripts/ingest_remote.sh`         | github/gitlab clone + website sitemap crawl |
+| cortex-refresh       | `bash ~/.cortex/scripts/refresh_projects.sh`      | 批量增量 (git diff / website hash), weekly cron Mon 03:00 |
 
-bash wrappers 由 `scripts/install_wrappers.sh` 安装到 `~/.cortex/scripts/`, 内部 `exec python3 $PLUGIN_ROOT/scripts/cli/<name>.py "$@"`, 0 算法回退 (业务逻辑 100% 保留, 仅删 MCP 协议层)。
+bash wrappers 由 `scripts/install_wrappers.sh` 安装到 `~/.cortex/scripts/` (24 个: 10 slash + 3 shell + 11 CLI), 内部 `exec python3 $PLUGIN_ROOT/scripts/cli/<name>.py "$@"`, 0 算法回退 (业务逻辑 100% 保留, 仅删 MCP 协议层)。
 依赖 (pypdf / ebooklib / python-docx / rich) 由 install.sh `step_python_deps` 用 `pip3 install --user` 装到系统 python3。
 未装时 skill 自动退回 L1-L5 链路, 不阻塞使用。
 

@@ -26,11 +26,11 @@ type: project
 | Agents | 7 | curator / researcher / archivist / cartographer / linker / summarizer / translator (historian 已删) |
 | Skills | 21 | 自动触发 + 显式调 |
 | Slash commands | 20 | `/cortex:<name>` 冒号 (dash 无法解析) |
-| Wrappers | 22 | 10 slash + 3 shell + 9 CLI, 装在 `~/.cortex/scripts/*.sh` |
-| Python CLI | 9 | save / search / deep_search / ingest_url / ingest_file / memory / ledger / session / html_render |
+| Wrappers | 24 | 10 slash + 3 shell + 11 CLI, 装在 `~/.cortex/scripts/*.sh` |
+| Python CLI | 11 | save / search / deep_search / ingest_url / ingest_file / ingest_remote / refresh_projects / memory / ledger / session / html_render |
 | Lint 规则 | 19 | run.py autofix 自循环至 clean; rule 18 = `path-lang-mismatch` (按 vault.lang 校验 path segment); rule 19 = `skill-references-exists` (SKILL/AGENT/agent 引用 `references/<x>.md` 必须存在, warn 级, autofix=false) |
 | Hooks | 5 | SessionStart / PostCompact / Stop / SubagentStop / UserPromptSubmit |
-| Cron jobs | 8 | lint / dashboard / digest / memory-{promote,forget,compact,warden,archive} |
+| Cron jobs | 9 | lint / dashboard / digest / memory-{promote,forget,compact,warden,archive} + refresh_projects (weekly Mon 03:00) |
 
 ## Vault 写硬契约 (session_start hook 注入)
 
@@ -124,3 +124,44 @@ type: project
 - `plugins/tools/cortex/skills/cortex-digest/references/evolution.md` — 抽取规范
 - `plugins/tools/cortex/skills/cortex-refactor/SKILL.md §evolution-apply` — 反写流程
 - `plugins/tools/cortex/scripts/lint/run.py` — `check_skill_references_exists()` (rule 19)
+
+## P6 — 远程 ingest + 批量增量 (2026-05-14)
+
+### 新入口
+
+| Wrapper | python CLI | 用途 |
+|---|---|---|
+| ingest_remote.sh | scripts/cli/ingest_remote.py + lib/remote.py | github/gitlab clone + website sitemap crawl → 落 知识库/项目/<host>/<org>/<repo or _site/slug>/ |
+| refresh_projects.sh | scripts/cli/refresh_projects.py | 扫 知识库/项目/ 全部, 增量更新 (git pull diff / website hash 对比), weekly cron Mon 03:00 |
+
+### 路径策略
+
+- github/gitlab repo: `知识库/项目/<host>/<org>/<repo>/`
+- website 有 author: `知识库/项目/<host>/<author>/<slug>/`
+- website 无 author: `知识库/项目/<host>/_site/<slug>/`
+
+### 增量元数据
+
+frontmatter 加 (在 `_index.md` 项目根 / 或每页 .md):
+- `source_url` / `source_type` (github|gitlab|website) / `last_ingested_at` (UTC)
+- git: `last_commit_sha`
+- website: `content_hash` (每页 SHA256)
+
+refresh 对比上述字段决定 skip / update。缺字段 → 视首次全量 (向后兼容)。
+
+### 资产计数变更
+
+- Wrappers 22 → 24 (10 slash + 3 shell + 11 CLI)
+- Python CLI 9 → 11 (新 ingest_remote.py + refresh_projects.py)
+- Cron jobs 8 → 9 (新 refresh_projects weekly Mon 03:00)
+- 测试基线 360 → 389
+- skills/cortex-ingest/references/layout.md 78 → 99 行 (加增量元数据 schema 节, PR2)
+
+### 关联文件
+
+- `plugins/tools/cortex/scripts/cli/ingest_remote.py` — 远程 ingest CLI
+- `plugins/tools/cortex/scripts/cli/refresh_projects.py` — 批量增量 CLI
+- `plugins/tools/cortex/scripts/cli/lib/remote.py` — git clone / website crawl 复用模块
+- `plugins/tools/cortex/scripts/ingest_remote.sh` + `refresh_projects.sh` — wrapper
+- `plugins/tools/cortex/scripts/install_wrappers.sh` — EXPECTED 24 项 + emit_cli 注册
+- `plugins/tools/cortex/scripts/install_cron.sh` — 加 weekly cron line

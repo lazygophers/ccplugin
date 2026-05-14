@@ -8,14 +8,15 @@
 # --bare, no --allowed-tools, no --print. Slash commands are
 # defined in plugins/tools/cortex/commands/*.md and registered in plugin.json.
 #
-# Wrappers (21 total):
+# Wrappers (24 total):
 #   - slash entrypoints (no args, hardcoded behavior in command.md):
 #       lint / dashboard / doctor / init / promote / forget /
-#       digest / recall / refactor
+#       digest / recall / refactor / ingest
 #   - shell-only (do NOT go through claude):
 #       install_cron / config / update
 #   - python CLI wrappers (argparse 入口, 直跑 scripts/cli/<name>.py):
 #       save / search / deep_search / ingest_url / ingest_file /
+#       ingest_remote / refresh_projects /
 #       memory / ledger / session / html_render
 #
 # Usage:
@@ -326,6 +327,8 @@ emit_cli search
 emit_cli deep_search
 emit_cli ingest_url
 emit_cli ingest_file
+emit_cli ingest_remote
+emit_cli refresh_projects
 emit_cli memory
 emit_cli ledger
 emit_cli session
@@ -364,7 +367,8 @@ EXPECTED=(
   lint.sh dashboard.sh doctor.sh init.sh promote.sh forget.sh
   digest.sh recall.sh refactor.sh ingest.sh
   install_cron.sh config.sh update.sh
-  save.sh search.sh deep_search.sh ingest_url.sh ingest_file.sh
+  save.sh search.sh deep_search.sh ingest_url.sh ingest_file.sh ingest_remote.sh
+  refresh_projects.sh
   memory.sh ledger.sh session.sh html_render.sh
 )
 # 兼容 bash 3.2 (macOS 默认) — 不用 declare -A, 走空格分隔串 + case 匹配
@@ -382,9 +386,9 @@ for f in "$TARGET_DIR"/*.sh; do
   esac
 done
 
-printf '%s[install_wrappers.sh]%s %s✓%s wrote %s22 wrappers%s to %s%s%s\n' \
+printf '%s[install_wrappers.sh]%s %s✓%s wrote %s24 wrappers%s to %s%s%s\n' \
   "$_C_CYAN" "$_C_RESET" "$_C_GREEN" "$_C_RESET" \
   "$_C_BOLD" "$_C_RESET" "$_C_BOLD" "$TARGET_DIR" "$_C_RESET" >&2
-# 22 wrappers total: 10 slash (lint/dashboard/doctor/init/promote/forget/digest/recall/refactor/ingest)
+# 24 wrappers total: 10 slash (lint/dashboard/doctor/init/promote/forget/digest/recall/refactor/ingest)
 #                  + 3 shell (install_cron/config/update)
-#                  + 9 CLI (save/search/deep_search/ingest_url/ingest_file/memory/ledger/session/html_render)
+#                  + 11 CLI (save/search/deep_search/ingest_url/ingest_file/ingest_remote/refresh_projects/memory/ledger/session/html_render)

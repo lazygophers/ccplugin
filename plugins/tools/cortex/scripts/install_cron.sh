@@ -156,15 +156,18 @@ print_task_table() {
 │ lint.sh          │ 每日 01:00    │ 17 规则 autofix 循环至 clean          │
 │ dashboard.sh     │ 每日 02:30    │ 重渲 index/hot/canvas 仪表盘          │
 │ digest.sh        │ 每日 03:00    │ log/session 读+析+处+更新+清理+归档   │
+│ refresh_projects │ 每周一 03:00  │ 知识库/项目/ 批量增量刷 (git/website) │
 └──────────────────┴───────────────┴───────────────────────────────────────┘
 EOF
 }
 
 cron_lines() {
-  # 输出 3 行 cortex cron job, 调 ~/.cortex/scripts/ 用户级 wrapper (统一入口)
+  # 输出 4 行 cortex cron job, 调 ~/.cortex/scripts/ 用户级 wrapper (统一入口)
+  # 3 daily + 1 weekly (refresh_projects, Mon 03:00, flock 防并发)
   printf '0 1 * * * bash "%s/.cortex/scripts/lint.sh"\n' "$HOME"
   printf '30 2 * * * bash "%s/.cortex/scripts/dashboard.sh"\n' "$HOME"
   printf '0 3 * * * bash "%s/.cortex/scripts/digest.sh"\n' "$HOME"
+  printf '0 3 * * 1 flock -n /tmp/cortex-refresh.lock bash "%s/.cortex/scripts/refresh_projects.sh" >> "%s/.cortex/logs/refresh.log" 2>&1\n' "$HOME" "$HOME"
 }
 
 install_cron_auto() {
@@ -184,24 +187,24 @@ install_cron_auto() {
   # 取 existing 中所有 cortex 行 (含旧/新路径)
   local cur_cortex
   cur_cortex=$(printf '%s\n' "$existing" \
-    | grep -E '(\.cortex/scripts/|cortex/scripts/cron/)(lint|dashboard|digest|fold|consolidate)\.sh' \
+    | grep -E '(\.cortex/scripts/|cortex/scripts/cron/)(lint|dashboard|digest|fold|consolidate|refresh_projects)\.sh' \
     || true)
   desired=$(cron_lines)
 
   if [[ "$cur_cortex" == "$desired" ]]; then
-    echo "✓ crontab cortex 段已是最新, no-op (3 个 daily job)" >&2
+    echo "✓ crontab cortex 段已是最新, no-op (3 daily + 1 weekly job)" >&2
     crontab -l 2>/dev/null | grep -E '\.cortex/scripts/' | sed 's/^/    /' >&2
     return 0
   fi
 
   # 不同 → 替换: 去掉所有旧 cortex 行 + 追加 desired
   filtered=$(printf '%s\n' "$existing" \
-    | grep -Ev '(\.cortex/scripts/|cortex/scripts/cron/)(lint|dashboard|digest|fold|consolidate)\.sh' \
+    | grep -Ev '(\.cortex/scripts/|cortex/scripts/cron/)(lint|dashboard|digest|fold|consolidate|refresh_projects)\.sh' \
     || true)
   new=$(printf '%s\n%s' "$filtered" "$desired" | sed -e 's/^[[:space:]]*$//' | awk 'NF || prev{print; prev=NF}')
 
   if printf '%s\n' "$new" | crontab -; then
-    echo "✓ crontab 已更新 (变更, 写入 3 个 daily cortex job)" >&2
+    echo "✓ crontab 已更新 (变更, 写入 3 daily + 1 weekly cortex job)" >&2
     crontab -l 2>/dev/null | grep -E '\.cortex/scripts/' | sed 's/^/    /' >&2
   else
     echo "✗ crontab 写入失败" >&2
