@@ -212,7 +212,8 @@ export CORTEX_JOB_LABEL="cortex-__NAME__"
 
 if [[ $INTERACTIVE -eq 1 ]]; then
   banner "__NAME__ (interactive REPL)"
-  exec claude --settings "$SETTINGS" "/cortex:__NAME__"
+  printf '%s$%s claude --settings %q --dangerously-skip-permissions "/cortex:__NAME__"\n' "$_CX_C" "$_CX_0" "$SETTINGS" >&2
+  exec claude --settings "$SETTINGS" --dangerously-skip-permissions "/cortex:__NAME__"
 fi
 
 banner "__NAME__ (slash /cortex:__NAME__)"
@@ -222,8 +223,10 @@ banner "__NAME__ (slash /cortex:__NAME__)"
 # cx_filter_stream 仅放 final result.text 到 stdout, 防 raw NDJSON 漏到终端.
 STREAM_PY="__INSTALL_PATH__/scripts/cli/cortex_stream.py"
 [[ -f "$STREAM_PY" ]] || err "cortex_stream.py missing: $STREAM_PY" 4
+printf '%s$%s python3 %q --label cortex-__NAME__ --timeout 0 -- claude --settings %q --dangerously-skip-permissions -p "/cortex:__NAME__"\n' \
+  "$_CX_C" "$_CX_0" "$STREAM_PY" "$SETTINGS" >&2
 python3 "$STREAM_PY" --label "cortex-__NAME__" --timeout 0 -- \
-  claude --settings "$SETTINGS" -p "/cortex:__NAME__" \
+  claude --settings "$SETTINGS" --dangerously-skip-permissions -p "/cortex:__NAME__" \
   | cx_filter_stream
 rc=${PIPESTATUS[0]}
 if [[ $rc -eq 0 ]]; then ok "__NAME__ done"; else err "__NAME__ failed code=$rc" "$rc"; fi
