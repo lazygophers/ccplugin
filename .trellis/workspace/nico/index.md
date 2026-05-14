@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 79
+- **Total Sessions**: 80
 - **Last Active**: 2026-05-14
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~678 | Active |
+| `journal-2.md` | ~711 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 80 | 2026-05-14 | digest 识别 host/org/repo 路由 | `adb754b8` | `master` |
 | 79 | 2026-05-14 | ingest 内联生知识图谱 — Bases/Canvas/Wikilink/websearch | `bba99ff8` | `master` |
 | 78 | 2026-05-14 | cortex ingest 4 层 6 类强制 | `d3d37d03` | `master` |
 | 77 | 2026-05-14 | cortex ingest 项目级深度强制 — 多文件夹组织 + 全文件覆盖 | `40c4116c` | `master` |

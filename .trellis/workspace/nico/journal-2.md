@@ -676,3 +676,36 @@ SKILL §9 4 子节: Bases (_db.base 3 视图) + Canvas (≤20 节点) + Wikilink
 ### Next Steps
 
 - None - task complete
+
+
+## Session 80: digest 识别 host/org/repo 路由
+
+**Date**: 2026-05-14
+**Task**: digest 识别 host/org/repo 路由
+**Branch**: `master`
+
+### Summary
+
+SKILL §2 6 信号识别 (frontmatter/source_url/wikilink/URL/tag/keyword≥3); §3 路由表 (反思/连接/矛盾/决策 × 命中/fallback); §5 收件箱 ≥30 天复扫迁移。GLM 识别全部。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `adb754b8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
