@@ -1,0 +1,5 @@
+{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "资产计数 22→24 / cron 8→9 / CLI 9→11 同步"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "pytest + ruff + 360 → ≥378 基线"}
+{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "新 wrapper/CLI 符合约定"}
+{"file": "plugins/tools/cortex/skills/cortex-ingest/references/layout.md", "reason": "_site 占位 + frontmatter 增量字段 schema"}
+{"file": "plugins/tools/cortex/AGENT.md", "reason": "资产计数 / CLI 主路径表同步"}
