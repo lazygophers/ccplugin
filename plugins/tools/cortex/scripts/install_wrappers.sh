@@ -172,29 +172,66 @@ emit() {
 #   通过 plugins/tools/cortex/commands/<name>.md 触发 slash command, 行为由 .md 内描述定义.
 emit_slash() {
   local name="$1"
-  emit "$name.sh" "$(cat <<EOB
-CONFIG="\$HOME/.cortex/config.json"
-[[ -f "\$CONFIG" ]] || err "config 不存在: \$CONFIG, 跑 install.sh 先安装" 4
-command -v jq >/dev/null 2>&1 || err "缺 jq, 请先装: brew install jq / apt install jq" 4
-SETTINGS="\$(jq -r '.settings // empty' "\$CONFIG" 2>/dev/null)"
-SETTINGS="\${SETTINGS:-\$HOME/.claude/settings.json}"
+  local body
+  # Use quoted heredoc — no expansion at install time; all $ are literal in body.
+  # Then sed-substitute __NAME__ / __INSTALL_PATH__ placeholders.
+  IFS= read -r -d '' body <<'EOB_SLASH' || true
+print_usage() {
+  cat <<USAGE
+Usage: __NAME__.sh [-h|--help] [-i|--interactive] [--no-commit]
 
-export CORTEX_JOB_LABEL="cortex-$name"
-banner "$name (slash /cortex:$name)"
+cortex /cortex:__NAME__ 触发器。默认走 claude -p (one-shot) + 末尾 auto commit vault。
+
+Options:
+  -h, --help          Show this help and exit
+  -i, --interactive   Drop -p flag → enter claude REPL (manual continue)
+  --no-commit         Skip auto git commit vault on exit
+USAGE
+}
+
+INTERACTIVE=0
+NO_COMMIT=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) trap - EXIT; print_usage; exit 0 ;;
+    -i|--interactive) INTERACTIVE=1; shift ;;
+    --no-commit) NO_COMMIT=1; shift ;;
+    *) err "Unknown flag: $1 (use --help)" 2 ;;
+  esac
+done
+
+if [[ $NO_COMMIT -eq 1 ]]; then trap - EXIT; fi
+
+CONFIG="$HOME/.cortex/config.json"
+[[ -f "$CONFIG" ]] || err "config 不存在: $CONFIG, 跑 install.sh 先安装" 4
+command -v jq >/dev/null 2>&1 || err "缺 jq, 请先装: brew install jq / apt install jq" 4
+SETTINGS="$(jq -r '.settings // empty' "$CONFIG" 2>/dev/null)"
+SETTINGS="${SETTINGS:-$HOME/.claude/settings.json}"
+
+export CORTEX_JOB_LABEL="cortex-__NAME__"
+
+if [[ $INTERACTIVE -eq 1 ]]; then
+  banner "__NAME__ (interactive REPL)"
+  exec claude --settings "$SETTINGS"
+fi
+
+banner "__NAME__ (slash /cortex:__NAME__)"
 
 # 直接 python3 <绝对路径>/cortex_stream.py 启 claude (禁包 / 禁 PATH binary).
-# Legacy progress lib 不再 source — 函数指代隐藏了真实调用, 不利于审计.
 # cortex_stream.py 自动注 --output-format stream-json --verbose, 走 rich UI on stderr.
 # cx_filter_stream 仅放 final result.text 到 stdout, 防 raw NDJSON 漏到终端.
-STREAM_PY="$INSTALL_PATH/scripts/cli/cortex_stream.py"
-[[ -f "\$STREAM_PY" ]] || err "cortex_stream.py missing: \$STREAM_PY" 4
-python3 "\$STREAM_PY" --label "cortex-$name" --timeout 0 -- \\
-  claude --settings "\$SETTINGS" -p "/cortex:$name" \\
+STREAM_PY="__INSTALL_PATH__/scripts/cli/cortex_stream.py"
+[[ -f "$STREAM_PY" ]] || err "cortex_stream.py missing: $STREAM_PY" 4
+python3 "$STREAM_PY" --label "cortex-__NAME__" --timeout 0 -- \
+  claude --settings "$SETTINGS" -p "/cortex:__NAME__" \
   | cx_filter_stream
-rc=\${PIPESTATUS[0]}
-if [[ \$rc -eq 0 ]]; then ok "$name done"; else err "$name failed code=\$rc" "\$rc"; fi
-EOB
-)"
+rc=${PIPESTATUS[0]}
+if [[ $rc -eq 0 ]]; then ok "__NAME__ done"; else err "__NAME__ failed code=$rc" "$rc"; fi
+EOB_SLASH
+  # Substitute placeholders (use | as sed delimiter since INSTALL_PATH has /).
+  body="${body//__NAME__/$name}"
+  body="${body//__INSTALL_PATH__/$INSTALL_PATH}"
+  emit "$name.sh" "$body"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
