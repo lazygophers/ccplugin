@@ -742,3 +742,41 @@ SKILL §2 6 信号识别 (frontmatter/source_url/wikilink/URL/tag/keyword≥3); 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 82: cortex playbook 借鉴 — SKILL 拆 references + digest 加 evolution 抽取
+
+**Date**: 2026-05-14
+**Task**: cortex playbook 借鉴 — SKILL 拆 references + digest 加 evolution 抽取
+**Branch**: `master`
+
+### Summary
+
+借鉴 zhaono1/agent-playbook 两条方法论提升 cortex: (1) context-layering 3 层 — cortex-ingest SKILL 497→198 行 + 4 references, cortex-digest 175→140 行 + 3 references; (2) self-improving multi-memory — cortex-digest 加第 6 阶段 evolution 抽取 (扫 sessions/jsonl → 抽 pattern → 写 记忆/L0-核心/patterns.md → 生 proposal), cortex-refactor 加 evolution-apply (AskUserQuestion 一条一问 + safety gate 白名单+git clean → patch SKILL/AGENT)。新 CLI: digest.py + lib/evolution.py + evolution_apply.py。新 lint rule 19 skill-references-exists。新 wrapper 子命令: digest.sh evolution + refactor.sh evolution-list/check/delete。测试基线 324 → 360 (+36)。决策: D1 markdown 库 / D2 AskUserQuestion 单确认直 patch / D3 内联 digest / D4 阈值硬编码 conf≥0.8 AND apps≥3。Out of scope: P0-2 长任务 state / P1-3 声明式 hook / P2 agent state+router。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3199ae16` | (see git log) |
+| `425a6d2e` | (see git log) |
+| `ffb5f5f8` | (see git log) |
+| `d9128b04` | (see git log) |
+| `c3d24236` | (see git log) |
+| `c4a5b946` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
