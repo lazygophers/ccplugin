@@ -1,0 +1,12 @@
+{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "插件 SKILL.md / agent .md / commands frontmatter 约定 — R1/R2 拆 references 要遵守"}
+{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "cortex hook 接口 (Stop/UserPromptSubmit/SessionStart) — R3 sessions/jsonl 落档位置来自 Stop hook"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "代码质量 + 测试覆盖 — R4 lint rule 19 + 3 个测试文件"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "插件目录结构 — references/ 子目录路径约定"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "代码复用思维 — R3 evolution 抽取逻辑与现有 digest pipeline 复用"}
+{"file": "research/playbook-methodology.md", "reason": "agent-playbook 8 核心方法论摘要 + cortex 借鉴映射 + 关键差异点"}
+{"file": "plugins/tools/cortex/AGENT.md", "reason": "vault 写硬契约 (L1 MCP / L2 obsidian CLI / L3 直接 IO) — R3 patch SKILL/AGENT 必走 L1 MCP"}
+{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "cortex 当前真相清单 — vault 结构 / 21 skill / 18 lint / 8 cron / 写契约"}
+{"file": "plugins/tools/cortex/skills/cortex-ingest/SKILL.md", "reason": "拆分目标源文件 (497 行 §1-§9 全细则)"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/SKILL.md", "reason": "拆分目标 + 加第 5 类 evolution 抽取的宿主"}
+{"file": "plugins/tools/cortex/scripts/lint/rules.json", "reason": "lint rule 19 注册位置"}
+{"file": "plugins/tools/cortex/scripts/lint/run.py", "reason": "lint rule 19 实现 — _check_skill_references_exists 函数"}
