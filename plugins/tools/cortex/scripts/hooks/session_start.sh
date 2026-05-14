@@ -56,15 +56,6 @@ except Exception:
 lang = detect_vault_lang(vault)
 loc = load_locale(plugin_root, vault, lang)
 
-# Read preset from _meta/version.json
-preset = "blank"
-vfile = vault / "_meta" / "version.json"
-if vfile.is_file():
-    try:
-        preset = json.loads(vfile.read_text(encoding="utf-8")).get("preset", "blank")
-    except Exception:
-        pass
-
 
 def truncated(p: Path) -> str:
     if not p.is_file():
@@ -165,9 +156,9 @@ def load_triggers(v: Path, locale_obj) -> str:
 
 
 # --- build context ---
-header = loc.get_prompt("session_header", lang=lang, vault=str(vault), preset=preset)
+header = loc.get_prompt("session_header", lang=lang, vault=str(vault))
 if not header:
-    header = f"## Cortex connected (lang={lang}, vault={vault}, preset={preset})"
+    header = f"## Cortex connected (lang={lang}, vault={vault})"
 
 hot = truncated(vault / "hot.md")
 index_file = vault / "index.md"

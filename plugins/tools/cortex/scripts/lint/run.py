@@ -100,9 +100,8 @@ def _load_vault_meta(vault: Path) -> dict[str, Any]:
 
 
 def _load_vault_preset(vault: Path) -> str:
-    """Return preset from `_meta/version.json:.preset`, default LYT."""
-    v = _load_vault_meta(vault).get("preset")
-    return v if isinstance(v, str) and v else "LYT"
+    """Deprecated — preset 系统已移除. 保留 stub 以兼容旧调用方."""
+    return ""
 
 
 _DEPRECATED_WHITELIST = {"log/", "folds/", "sessions/"}
@@ -110,7 +109,7 @@ _DEPRECATED_WHITELIST = {"log/", "folds/", "sessions/"}
 # 结构标记 — 非内容相关 tag, lint 检测并 autofix 删除
 _BANNED_TAGS = {"index", "meta", "template", "_index", "stub"}
 
-# frontmatter 禁止字段 (preset 不应在 page fm 中, 它属 vault meta)
+# frontmatter 禁止字段 (preset 系统已移除, autofix 自动剥)
 _BANNED_FM_FIELDS = {"preset"}
 
 # fm-missing-tags autofix: tag 数量上下界
@@ -300,7 +299,7 @@ def check_vault_structure(
                 continue
             if name in allowed_dirs:
                 continue
-            reason = f"目录 '{name}' 不在 {preset} preset 允许列表"
+            reason = f"目录 '{name}' 不在 vault schema 允许列表"
             violations.append({
                 "rule": "vault-structure-violation",
                 "severity": "error",
@@ -318,7 +317,7 @@ def check_vault_structure(
                 continue
             if name in allowed_files:
                 continue
-            reason = f"文件 '{name}' 不在 {preset} preset 允许列表"
+            reason = f"文件 '{name}' 不在 vault schema 允许列表"
             violations.append({
                 "rule": "vault-structure-violation",
                 "severity": "error",
@@ -481,7 +480,7 @@ def check_file(
     # rule 2: fm-missing-created
     if not fm.get("created"):
         findings.append(_f("fm-missing-created", "warn", rel, 1, "frontmatter 缺 created 字段", True))
-    # rule: fm-banned-fields (preset 等不应出现在 page fm)
+    # rule: fm-banned-fields (preset 等废弃字段, autofix pop)
     _banned_fields = [k for k in _BANNED_FM_FIELDS if k in fm]
     if _banned_fields:
         findings.append(_f(
@@ -2681,7 +2680,6 @@ def main() -> int:
     }
     if sp_violations:
         out["structure_purge"] = {
-            "preset": preset,
             "violation_count": len(sp_violations),
             "backup_root": structure_backup_root,
             "mv_plan": [

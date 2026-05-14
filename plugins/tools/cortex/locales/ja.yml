@@ -67,7 +67,7 @@ prompts:
     保存: cortex-save (プロジェクト→domains/, 概念→concepts/);
     書込: L1 obsidian CLI → L2 mcp → L3 直書(承認必要);
     自動 ^cortex-<sha8>; Stop hook が発見をアーカイブ。
-  session_header: "## Cortex 接続済み (lang={lang}, vault={vault}, preset={preset})"
+  session_header: "## Cortex 接続済み (lang={lang}, vault={vault})"
   collab_save: 非自明な発見は cortex-save でアーカイブ; プロジェクト固有 → domains/, 一般概念 → concepts/。
   collab_no_direct: |
     vault ファイルを直接操作しない。フォールバック順:

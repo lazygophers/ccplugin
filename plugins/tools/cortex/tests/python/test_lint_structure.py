@@ -38,34 +38,20 @@ def _structure_violations(vault: Path) -> list[dict]:
 
 
 class SchemasTest(unittest.TestCase):
-    def test_schemas_have_all_three_presets(self):
-        for key in ("LYT", "PARA", "flat"):
-            self.assertIn(key, lint_schemas.SCHEMAS)
-            schema = lint_schemas.SCHEMAS[key]
-            self.assertIsInstance(schema["root_dirs"], set)
-            self.assertIsInstance(schema["root_files"], set)
-            self.assertGreater(len(schema["root_dirs"]), 0)
+    def test_schema_has_required_shape(self):
+        schema = lint_schemas.SCHEMA
+        self.assertIsInstance(schema["root_dirs"], set)
+        self.assertIsInstance(schema["root_files"], set)
+        self.assertGreater(len(schema["root_dirs"]), 0)
 
-    def test_get_schema_case_insensitive(self):
-        self.assertIs(lint_schemas.get_schema("LYT"),
-                      lint_schemas.SCHEMAS["LYT"])
-        self.assertIs(lint_schemas.get_schema("lyt"),
-                      lint_schemas.SCHEMAS["LYT"])
-        self.assertIs(lint_schemas.get_schema("para"),
-                      lint_schemas.SCHEMAS["PARA"])
-        self.assertIs(lint_schemas.get_schema("FLAT"),
-                      lint_schemas.SCHEMAS["flat"])
+    def test_get_schema_ignores_preset_arg(self):
+        self.assertIs(lint_schemas.get_schema("LYT"), lint_schemas.SCHEMA)
+        self.assertIs(lint_schemas.get_schema(None), lint_schemas.SCHEMA)
+        self.assertIs(lint_schemas.get_schema(), lint_schemas.SCHEMA)
 
-    def test_get_schema_unknown_falls_back_to_lyt(self):
-        self.assertIs(lint_schemas.get_schema("nonexistent"),
-                      lint_schemas.SCHEMAS["LYT"])
-        self.assertIs(lint_schemas.get_schema(None),
-                      lint_schemas.SCHEMAS["LYT"])
-
-    def test_hidden_obsidian_dirs_allowed_everywhere(self):
-        for key in ("LYT", "PARA", "flat"):
-            self.assertIn(".obsidian", lint_schemas.SCHEMAS[key]["root_dirs"])
-            self.assertIn(".trash", lint_schemas.SCHEMAS[key]["root_dirs"])
+    def test_hidden_obsidian_dirs_allowed(self):
+        self.assertIn(".obsidian", lint_schemas.SCHEMA["root_dirs"])
+        self.assertIn(".trash", lint_schemas.SCHEMA["root_dirs"])
 
 
 class VaultStructureRuleTest(unittest.TestCase):
@@ -91,29 +77,6 @@ class VaultStructureRuleTest(unittest.TestCase):
                 self.assertEqual(v["severity"], "error")
                 self.assertTrue(v["fixable"])
                 self.assertIn("msg", v)
-
-    def test_para_preset_known_dirs_pass(self):
-        with tempfile.TemporaryDirectory() as d:
-            vault = _bare_vault(Path(d), preset="PARA")
-            for name in ("1_projects", "2_areas", "3_resources", "4_archives"):
-                (vault / name).mkdir()
-            (vault / "hot.md").write_text("x", encoding="utf-8")
-            (vault / "garbage").mkdir()
-
-            violations = _structure_violations(vault)
-            paths = {v["path"] for v in violations}
-            self.assertEqual(paths, {"garbage/"})
-
-    def test_flat_preset_known_dirs_pass(self):
-        with tempfile.TemporaryDirectory() as d:
-            vault = _bare_vault(Path(d), preset="flat")
-            (vault / "concepts").mkdir()
-            (vault / "domains").mkdir()
-            (vault / "weirdo").mkdir()
-
-            violations = _structure_violations(vault)
-            paths = {v["path"] for v in violations}
-            self.assertEqual(paths, {"weirdo/"})
 
     def test_whitelist_skips_violation(self):
         with tempfile.TemporaryDirectory() as d:
@@ -147,14 +110,13 @@ class VaultStructureRuleTest(unittest.TestCase):
             paths = {v["path"] for v in violations}
             self.assertEqual(paths, {"foobar/"})
 
-    def test_missing_preset_defaults_to_lyt(self):
+    def test_whitelist_loads_when_no_preset(self):
         with tempfile.TemporaryDirectory() as d:
             vault = Path(d)
             (vault / "_meta").mkdir()
             (vault / "_meta" / "version.json").write_text(
                 json.dumps({"lang": "zh-CN"}), encoding="utf-8"
             )
-            self.assertEqual(lint_run._load_vault_preset(vault), "LYT")
             self.assertEqual(lint_run._load_lint_whitelist(vault), set())
 
 
@@ -183,7 +145,6 @@ class StructurePurgeMvPlanTest(unittest.TestCase):
             report = self._run_lint(vault)
             self.assertIn("structure_purge", report)
             sp = report["structure_purge"]
-            self.assertEqual(sp["preset"], "LYT")
             self.assertEqual(sp["violation_count"], 2)
 
             # backup_root lives OUTSIDE the vault:

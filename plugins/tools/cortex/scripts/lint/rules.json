@@ -28,7 +28,7 @@
     {
       "id": "fm-banned-fields",
       "severity": "warn",
-      "description": "frontmatter 含禁止字段 (preset 等不属 page, autofix: pop)",
+      "description": "frontmatter 含禁止字段 (preset 等废弃字段, autofix: pop)",
       "autofix": true
     },
     {
@@ -112,7 +112,7 @@
     {
       "id": "vault-structure-violation",
       "severity": "error",
-      "description": "vault 根或子目录含非 preset schema 允许的文件/文件夹 (autofix: mv 到 ~/.cache/cortex/lint-backup)",
+      "description": "vault 根或子目录含非 schema 允许的文件/文件夹 (autofix: mv 到 ~/.cache/cortex/lint-backup)",
       "autofix": true
     },
     {

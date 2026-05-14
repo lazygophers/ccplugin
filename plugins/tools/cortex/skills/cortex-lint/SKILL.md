@@ -93,15 +93,15 @@ run.py 的 python 进程不交互, 只输出 JSON 违规列表 + `structure_purg
 
 cortex-lint --fix 输出 JSON 含 `structure_purge` 字段且 `violation_count > 0` 时:
 
-1. 解析 `structure_purge` (字段: `preset` / `violation_count` / `backup_root` / `mv_plan[{from,to}]`); 同步从 `errors[]` 拿 `vault-structure-violation` 项 (每项含 `path` / `kind` / `reason` / `backup_target`)
+1. 解析 `structure_purge` (字段: `violation_count` / `backup_root` / `mv_plan[{from,to}]`); 同步从 `errors[]` 拿 `vault-structure-violation` 项 (每项含 `path` / `kind` / `reason` / `backup_target`)
 2. **一次性总体确认** — 用 `AskUserQuestion` 工具 (禁文本提问), 4 个选项:
-   - **BATCH_MV (推荐)**: 全部移除到 backup — 将 N 个不在 `<preset>` preset 内的项批量 mv 到 `<backup_root>/` (非真删, 可恢复)
+   - **BATCH_MV (推荐)**: 全部移除到 backup — 将 N 个不在 vault schema 内的项批量 mv 到 `<backup_root>/` (非真删, 可恢复)
    - **BATCH_WHITELIST**: 全部加入白名单 — 全部追加 `_meta/version.json:.lint_whitelist[]`
    - **PER_ITEM**: 逐个询问 — 走原逐项 4 选项流程 (向后兼容)
    - **CANCEL**: 取消, 本次不动
 
    AskUserQuestion 文案示例:
-   > "lint 发现 N 个不在 <preset> preset 内的项. 将批量 mv 到 `<backup_root>/` (非真删, 可恢复). 如何处理?"
+   > "lint 发现 N 个不在 vault schema 内的项. 将批量 mv 到 `<backup_root>/` (非真删, 可恢复). 如何处理?"
 
 3. 按选择落操作:
    - **BATCH_MV (默认推荐)**:
@@ -114,9 +114,9 @@ cortex-lint --fix 输出 JSON 含 `structure_purge` 字段且 `violation_count >
    - **BATCH_WHITELIST**:
      - 读 `_meta/version.json`, 把所有 `violations[].path` 追加到 `.lint_whitelist[]` (dir 含尾 `/`, file 不含, 去重), 写回
      - 报告 `whitelisted N items`
-   - **PER_ITEM** (原 P6 流程, 向后兼容): 对每个违规分别 `AskUserQuestion`, 4 个选项:
+   - **PER_ITEM** (向后兼容): 对每个违规分别 `AskUserQuestion`, 4 个选项:
      - **移到 backup**: mv 单项到 `<backup_target>` (obsidian CLI → mcp → mv)
-     - **移到允许目录**: 列 schema.root_dirs 候选 (LYT: `_meta`, `10_concepts`, `20_efforts`, `30_domains`, `40_anchors`, `50_calendar`, `60_journal`, `70_attachments`, `80_archive`, `90_inbox`, `folds`, `log`, `sessions` 等), 用户选目标
+     - **移到允许目录**: 列 schema.root_dirs 候选 (`_meta`, `_templates`, `_assets`, `知识库`, `记忆`, `仪表盘`, `归档`, `locales` 等), 用户选目标
      - **加白名单**: 写 `_meta/version.json:.lint_whitelist[]` (dir 含尾 `/`, file 不含)
      - **跳过**: 单次不动, 不写白名单
    - **CANCEL**: 不动, 跳过结构修复段
@@ -126,7 +126,7 @@ cortex-lint --fix 输出 JSON 含 `structure_purge` 字段且 `violation_count >
 
 **数据安全**: 永远 mv 到 backup, **从不**真 rm。backup_root 累积大时用户可手动清 `_meta/.cortex-backup/`。
 
-完整 preset schema 见 `plugins/tools/cortex/scripts/lint/schemas.py` (LYT / PARA / flat 三套)。
+完整 vault schema 见 `plugins/tools/cortex/scripts/lint/schemas.py` (单一 4 子目录布局)。
 
 白名单匹配规则: vault 根相对路径**精确串相等** (dir 加尾 `/`, file 不加), 不支持 glob。隐藏目录 `.obsidian` / `.trash` 默认 allowed, 无需白名单。
 

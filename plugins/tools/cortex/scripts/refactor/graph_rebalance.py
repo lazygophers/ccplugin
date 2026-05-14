@@ -25,10 +25,10 @@ from _common import (  # noqa: E402
 )
 
 _SCOPE_DIRS = {
-    "all": "",
-    "concepts": "10_concepts",
-    "domains": "30_domains",
-    "log": "log",
+    "all": "知识库",
+    "concepts": "知识库/领域",
+    "domains": "知识库/项目",
+    "log": "知识库/日记",
 }
 
 

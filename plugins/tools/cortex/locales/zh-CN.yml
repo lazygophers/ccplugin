@@ -67,7 +67,7 @@ prompts:
     落档: cortex-save (项目→domains/, 概念→concepts/);
     写文件: L1 obsidian CLI → L2 mcp → L3 直写(需授权);
     自动加 ^cortex-<sha8>; Stop hook 归档技术发现。
-  session_header: "## Cortex 已连接 (lang={lang}, vault={vault}, preset={preset})"
+  session_header: "## Cortex 已连接 (lang={lang}, vault={vault})"
   collab_save: 非平凡发现完成后用 cortex-save 落档; 项目特定写 domains/, 通用概念写 concepts/。
   collab_no_direct: |
     不直接文件操作。回退顺序:

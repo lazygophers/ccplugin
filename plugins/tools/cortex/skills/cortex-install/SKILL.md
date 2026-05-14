@@ -61,7 +61,6 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 ## 输入
 
 - vault 路径来自 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/_lib/resolve_vault.sh`
-- preset 固定 `lyt` (不可选)
 
 ## 流程
 
@@ -77,7 +76,7 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 
 固定项 (新建/补齐):
 
-- `_meta/version.json` — `{"preset": "lyt", "lang": "<from Q2>", "preserve_transcript": true, "created": "<UTC ISO>"}`
+- `_meta/version.json` — `{"lang": "<from Q2>", "preserve_transcript": true, "created": "<UTC ISO>"}`
 - `_meta/lint-baseline.json` — `{"exempt": []}`
 - `_meta/memory-policy.yaml` — 从 `<PLUGIN_ROOT>/templates/memory-policy.yaml` (或 `<PLUGIN_ROOT>/presets/seed/_meta/memory-policy.yaml` 若存在) 复制; 定义 L0-L4 写入/遗忘/晋级 + recall + 9 cron 配置
 - `_meta/uri-index.json` — 空骨架 `{"version": 1, "rebuilt_at": "<UTC ISO>", "count": 0, "entries": {}}`
@@ -223,14 +222,13 @@ Q2 ∈ {launchd, cron, gha} → 走内联注册流程 (下文)。
 
 - **不覆盖已有文件** — 用 `Glob` 或 `mcp__obsidian__obsidian_get_file_contents` 检查目标路径, 存在则跳过并标 `(skipped)`
 - 优先用 `mcp__obsidian__obsidian_append_content` (vault 索引一致); MCP 不可用回退 `Write`
-- 模板文件中的 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` / `{{PRESET}}` 占位 **不在此 skill 替换** — `_templates/` 下保留原样供 `/cortex:new` 与 `cortex-memory` skill 使用
+- 模板文件中的 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` 占位 **不在此 skill 替换** — `_templates/` 下保留原样供 `/cortex:new` 与 `cortex-memory` skill 使用
 - 任何单文件失败不中断后续步骤, 最后统一报错
 
 ## 输出格式
 
 ```
 解析 vault: /Users/.../knowledge/obsidian (源: env)
-preset: lyt
 lang: zh-CN
 
 [共享根]
@@ -293,7 +291,7 @@ lang: zh-CN
 
 - 单文件 IO/权限错: 标 ❌, 继续下一项, 末尾汇总
 - vault 路径解析失败: 立即退出并提示配置方式
-- 模板/preset 源缺失 (插件文件丢): 立即退出, 提示重装 cortex 插件
+- 模板源缺失 (插件文件丢): 立即退出, 提示重装 cortex 插件
 - `_meta/memory-policy.yaml` 源缺失: 警告, 跳过该单项, 提示手动从 `<PLUGIN_ROOT>/templates/memory-policy.yaml` 复制
 - 任何文件已存在: 跳过, 不覆盖
 

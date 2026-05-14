@@ -15,7 +15,7 @@ cortex-refactor 操作。
    - split 候选 (单文件 > 5KB)
    - dedupe 候选 (相同内容)
    - 输出 plan JSON, **dry-run 不落盘**
-3. 若有显式 args: 执行子命令 `rename / merge / split / migrate-locale / restructure / dedupe / extract / inline / graph-rebalance`
+3. 若有显式 args: 执行子命令 `rename / merge / split / migrate-locale / dedupe / extract / inline / graph-rebalance`
    - 默认 dry-run, 仅当 `--apply` 时落盘
 
 输出: plan JSON (候选列表 + 影响范围 + 风险等级)。

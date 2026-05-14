@@ -73,11 +73,9 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
    无匹配 → `领域/未分类/`. 允许创建子目录 (如 `创作/写作/`, `技术/分布式系统/`).
 
-   preset (`_meta/version.json:.preset`) 不是 `lyt` 时, concept 路径切换为对应 preset 的扁平结构。
-
 4. **套模板 + 填 frontmatter**
    - 读 `<vault>/_templates/<type>.md` (不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/seed/_templates/<type>.md`)
-   - 替换 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` (UTC `YYYY-MM-DD`) / `{{PRESET}}`
+   - 替换 `{{TITLE}}` / `{{CREATED}}` / `{{UPDATED}}` (UTC `YYYY-MM-DD`)
    - tags: 自动加 `[cortex-auto]` 标记由 skill 写入
 
 5. **block-id 自动注入** (prd §10.5)

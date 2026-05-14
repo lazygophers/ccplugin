@@ -12,7 +12,6 @@ type: log
 title: ...
 created: 2026-05-11
 updated: 2026-05-11
-preset: lyt
 lang: zh-CN
 cli: claude-code # 新: 来源 CLI
 cli_session: a1b2c3d4-... # 新: 会话 id

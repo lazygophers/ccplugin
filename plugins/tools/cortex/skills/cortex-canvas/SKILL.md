@@ -25,7 +25,7 @@ allowed-tools: Bash Read Write Glob mcp__obsidian__obsidian_get_file_contents mc
    - 若 topic 是文件 → 读其 frontmatter `up` / `related` / `sibling` (Breadcrumbs 字段) 与 `[[wikilink]]` 出链
    - 若 topic 是关键字 → 走 `mcp__obsidian__obsidian_simple_search` 取 top 20
 4. 排版算法: force-directed grid, 5 列, 每节点 400×300, 间距 40
-5. 输出到 `<vault>/_assets/canvases/<topic-slug>.canvas` (LYT) 或 `<vault>/canvases/` (其他 preset)
+5. 输出到 `<vault>/_assets/canvases/<topic-slug>.canvas`
 6. 不覆盖已存在的 canvas
 
 ## JSON Canvas 1.0 格式

@@ -1,11 +1,9 @@
-"""Vault structure schemas per preset.
+"""Vault structure schema — 单一 4 子目录布局。
 
-Each schema defines:
-- root_dirs: allowed top-level directories
-- root_files: allowed top-level files
-- All other paths at vault root → vault-structure-violation
-
-Preset key lookup is case-insensitive. Unknown presets fall back to LYT.
+定义:
+- root_dirs: 允许的顶层目录
+- root_files: 允许的顶层文件
+- 其余 vault root 路径 → vault-structure-violation
 """
 from __future__ import annotations
 
@@ -17,69 +15,30 @@ class VaultSchema(TypedDict):
     root_files: set[str]
 
 
-SCHEMAS: dict[str, VaultSchema] = {
-    "LYT": {
-        "root_dirs": {
-            "_meta",
-            "_templates",
-            "_assets",
-            # 双 namespace 顶层
-            "知识库",
-            "记忆",
-            "仪表盘",
-            "归档",
-            "locales",
-            ".obsidian",
-            ".trash",
-            ".git",
-        },
-        "root_files": {
-            "hot.md",
-            "index.md",
-            "README.md",
-            "主页.md",
-            "焦点.md",
-        },
+SCHEMA: VaultSchema = {
+    "root_dirs": {
+        "_meta",
+        "_templates",
+        "_assets",
+        "知识库",
+        "记忆",
+        "仪表盘",
+        "归档",
+        "locales",
+        ".obsidian",
+        ".trash",
+        ".git",
     },
-    "PARA": {
-        "root_dirs": {
-            "_meta",
-            "_templates",
-            "1_projects",
-            "2_areas",
-            "3_resources",
-            "4_archives",
-            "locales",
-            ".obsidian",
-            ".trash",
-            ".git",
-        },
-        "root_files": {"hot.md", "index.md", "README.md"},
-    },
-    "flat": {
-        "root_dirs": {
-            "_meta",
-            "_templates",
-            "concepts",
-            "domains",
-            "locales",
-            ".archive",
-            ".obsidian",
-            ".trash",
-            ".git",
-        },
-        "root_files": {"hot.md", "index.md", "README.md"},
+    "root_files": {
+        "hot.md",
+        "index.md",
+        "README.md",
+        "主页.md",
+        "焦点.md",
     },
 }
 
 
-def get_schema(preset: str | None) -> VaultSchema:
-    """Return schema for preset (case-insensitive). Fallback: LYT."""
-    if not preset:
-        return SCHEMAS["LYT"]
-    # Case-insensitive lookup
-    key_map = {k.lower(): k for k in SCHEMAS}
-    real = key_map.get(preset.lower())
-    if real is None:
-        return SCHEMAS["LYT"]
-    return SCHEMAS[real]
+def get_schema(preset: str | None = None) -> VaultSchema:
+    """Return single vault schema. `preset` arg kept for back-compat, ignored."""
+    return SCHEMA

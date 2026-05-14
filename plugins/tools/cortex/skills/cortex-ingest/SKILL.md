@@ -88,7 +88,7 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__obsidian__obsidian_get_fi
    - 命名实体短语 (人名 / 工具名 / 项目名) → 候选独立 entity 页
    - 段首一句话 → "一句话定义" → 落入 `> [!info]` callout
 
-3. **选目录 (按 prd §3.2.7 + preset)**
+3. **选目录 (按 prd §3.2.7)**
 
    | 推断类型                  | LYT 路径 (4 子目录: 项目/领域/日记/收件箱)            | Zettel                       | PARA                             |
    | ------------------------- | ----------------------------------------------------- | ---------------------------- | -------------------------------- |
@@ -113,8 +113,6 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__obsidian__obsidian_get_fi
 
    无匹配 → 默认 `领域/未分类/`。允许 LLM 创建新子目录 (如 `创作/写作/`, `技术/分布式系统/`)。
 
-   preset 从 `<vault>/_meta/version.json:.preset` 读, 缺省 `lyt`。
-
 4. **重名检测**
    - 用 `mcp__obsidian__obsidian_simple_search` 查标题与 alias
    - 命中 → 不覆盖, 改名 `<title>-2.md` `<title>-3.md` ...
@@ -123,7 +121,7 @@ allowed-tools: Bash Read Write Edit Glob WebFetch mcp__obsidian__obsidian_get_fi
 5. **套模板**
    - 优先读 `<vault>/_templates/<type>.md`
    - 不存在则读 `~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/presets/seed/_templates/<type>.md`
-   - 替换 `{{TITLE}}` `{{CREATED}}` `{{UPDATED}}` (UTC `YYYY-MM-DD`) `{{PRESET}}` `{{URL}}` `{{AUTHOR}}`
+   - 替换 `{{TITLE}}` `{{CREATED}}` `{{UPDATED}}` (UTC `YYYY-MM-DD`) `{{URL}}` `{{AUTHOR}}`
    - 必填 frontmatter: `type`, `title`, `created`, `updated`, `tags: [cortex-auto, ingested]`
    - source 类型加 `url:` `ingested_at:` 字段
 

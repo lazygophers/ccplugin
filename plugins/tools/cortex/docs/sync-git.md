@@ -22,7 +22,6 @@ vault 是知识库, 跨机使用刚需。P5 在 Stop hook 末尾加 **opt-in** a
 {
   "version": "0.x.y",
   "lang": "zh-CN",
-  "preset": "lyt",
   "auto_commit": true,
   "auto_push": false
 }

@@ -215,16 +215,6 @@ def sha8(seed: str) -> str:
     return hashlib.sha256(seed.encode("utf-8", errors="replace")).hexdigest()[:8]
 
 
-def read_preset(vault: Path) -> str:
-    vfile = vault / "_meta" / "version.json"
-    if vfile.is_file():
-        try:
-            return str(json.loads(vfile.read_text(encoding="utf-8")).get("preset") or "blank")
-        except Exception:
-            return "blank"
-    return "blank"
-
-
 def read_vault_meta(vault: Path) -> dict[str, Any]:
     """Read full _meta/version.json. Returns {} on failure."""
     vfile = vault / "_meta" / "version.json"
@@ -620,9 +610,6 @@ def main() -> int:
             cli=args.cli,
             cli_session=args.cli_session,
         )
-
-    preset = read_preset(vault)
-    body = body.replace("{{PRESET}}", preset)
 
     # ----- P0 secret 脱敏 (落档前) -----
     try:

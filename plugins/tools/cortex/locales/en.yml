@@ -67,7 +67,7 @@ prompts:
     Archive: cortex-save (project→domains/, concept→concepts/);
     Write: L1 obsidian CLI → L2 mcp → L3 direct (auth required);
     Auto ^cortex-<sha8>; Stop hook archives findings.
-  session_header: "## Cortex connected (lang={lang}, vault={vault}, preset={preset})"
+  session_header: "## Cortex connected (lang={lang}, vault={vault})"
   collab_save: After non-trivial findings, use cortex-save to archive; project-specific → domains/, general concepts → concepts/.
   collab_no_direct: |
     Do not write vault files directly. Fallback order:

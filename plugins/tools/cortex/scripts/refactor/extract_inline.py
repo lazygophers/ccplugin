@@ -96,7 +96,7 @@ def do_extract(args, vault: Path, page: Path) -> dict:
         return {"error": f"section not found: {args.section}"}
     start, end, section_body = found
 
-    out_rel = args.out_path or f"10_concepts/{_slugify(args.section)}.md"
+    out_rel = args.out_path or f"知识库/领域/{_slugify(args.section)}.md"
     out_path = (vault / out_rel).resolve()
     try:
         out_path.relative_to(vault)

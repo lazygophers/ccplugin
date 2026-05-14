@@ -152,7 +152,7 @@ bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts
 - [索引](docs/索引.md) — 文档总目录, 按场景找入口
 - [快速上手](docs/快速上手.md) — 5 分钟从安装到第一次落档
 - [安装与配置](docs/安装与配置.md) — vault 解析、`config.json` schema、env 变量
-- [知识库结构](docs/知识库结构.md) — 4 个 preset 的目录布局, 共享根说明
+- [知识库结构](docs/知识库结构.md) — vault 4 子目录布局, 共享根说明
 - [Skills 详解](docs/Skills%20详解.md) — 11 个 skill 用途/触发/示例/失败处理
 - [Hooks 机制](docs/Hooks%20机制.md) — 4 个 hook 协议、启发式落档、与 OGit 协调
 - [模板与美化](docs/模板与美化.md) — 6 模板 + 13 类 callout + HTML 边界
@@ -162,7 +162,7 @@ bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts
 - [故障排查](docs/故障排查.md) — 常见 8 个症状 → 原因 → 修复
 - [架构设计](docs/架构设计.md) — 数据流、模块依赖、hook 时序、MCP 三级回退
 - [设计决策](docs/设计决策.md) — ADR D1-D7 + research-driven §10 修订
-- [贡献指南](docs/贡献指南.md) — 加新 skill / lint / preset 步骤 + 测试约定 + GLM 自检
+- [贡献指南](docs/贡献指南.md) — 加新 skill / lint 步骤 + 测试约定 + GLM 自检
 - [i18n](docs/i18n.md) — vault 多语言 / locale 文件 / fallback / 切语言 
 - [多 CLI](<docs/多 CLI.md>) — frontmatter cli/cli_session / sessions/<cli>/ / 跨 CLI 查询 
 - [Agents](docs/Agents.md) — 8 个专用多轮调度者 + 调度边界 
