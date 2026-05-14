@@ -643,3 +643,36 @@ SKILL §1.1 4 层目录 (主题/模块/文件/符号) + 分级 ≥15/40/100; §7
 ### Next Steps
 
 - None - task complete
+
+
+## Session 79: ingest 内联生知识图谱 — Bases/Canvas/Wikilink/websearch
+
+**Date**: 2026-05-14
+**Task**: ingest 内联生知识图谱 — Bases/Canvas/Wikilink/websearch
+**Branch**: `master`
+
+### Summary
+
+SKILL §9 4 子节: Bases (_db.base 3 视图) + Canvas (≤20 节点) + Wikilink 网 (≥5 出链/小 repo prorated) + websearch (5 URL 容忍跳过)。commands/ingest self-check g. 4 类验证。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `bba99ff8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
