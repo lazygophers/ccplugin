@@ -11,10 +11,12 @@ hot cache: {{HOT_CACHE_PREVIEW}}
    - 项目特定 → `知识库/项目/<host>/<org>/<repo>/` (local 项目 → `知识库/项目/local/<basename>/`)
    - 通用概念 → `知识库/领域/`
    - 同步 `index.md` 与 `hot.md`
-3. **不直接文件操作** — vault 操作回退顺序:
-   - **L1 = 官方 `obsidian` CLI** (需 Obsidian app 在跑): read=`read`, write=`create overwrite=true`, append=`create append=true`, list=`files`, search=`search:context`, move=`move` (条件性自动更新 wikilink, 需 vault 设置 "Automatically update internal links" 开启), frontmatter 读=`property:read`, 写=`property:set`, 删=`property:remove`, daily=`daily`; 多 vault 用 `vault=<name>` 指定, 参数语法 `key=value` 无 `--flag`。
-   - **L2 = `mcp__obsidian__*`** — 处理 CLI 无法表达的场景 (callout/heading 锚点 patch、block-id patch、canvas/非 md、metadata cache/反向链接图) 或 app 未跑时回退, 如 `obsidian_patch_content target_type=heading`。
-   - **L3 = 直接写文件** — canvas/excalidraw json 等非 markdown, 或 L1/L2 均不可用时的兜底, **必须通过 `AskUserQuestion` 取得用户授权后方可落盘**。
+3. **vault 写强制 MCP — 硬契约 (session_start hook 注入完整状态)**:
+   - **L1 = `mcp__obsidian__*` (强制)** — 所有 vault 写 (save / ingest / patch / refactor / lint --fix / canvas / frontmatter mut) 必走 MCP 工具, 如 `obsidian_put_content`, `obsidian_patch_content`, `obsidian_append_content`, `obsidian_delete_file`。
+   - **L2 = 官方 `obsidian` CLI** — 仅 L1 MCP 工具调用失败时**本次**回退 (read=`read`, write=`create overwrite=true`, append=`create append=true`, list=`files`, search=`search:context`, move=`move`, frontmatter=`property:*`, daily=`daily`)。
+   - **L3 = 直接写文件** — canvas/excalidraw json 等非 markdown, 或 L1/L2 均失败时兜底。
+   - **MCP 未注册时**: AI **必须先调 `AskUserQuestion` 单次授权** (options: `安装 MCP` / `本次使用磁盘 IO (有风险)`)。授权仅本会话有效, 不写盘, 下次启动重新询问。**未授权前 — AI 硬拒绝所有 vault 写操作并提示用户先选择**。
+   - 例外: Stop hook / cron 自动 task / python CLI (非 AI 上下文) 走文件 IO, 不受本契约约束。
 4. **block-id 引用** — 落档时段落末尾自动加 `^cortex-<sha8>`, 后续可精准引用 `![[note#^cortex-xxx]]`。
 5. **Stop hook 自动归档** — 会话结束时若产生非平凡技术发现, 自动写入 `记忆/L4-流水账/ledger/YYYY-MM/`。
 

@@ -175,6 +175,53 @@ if index_file.is_file():
 
 lines = [header, "", f"index: {index_entries} entries · hot: {'loaded' if hot else 'empty'}", ""]
 
+
+def _mcp_obsidian_registered() -> bool:
+    """检测 mcp-obsidian 是否注册到 Claude Code。"""
+    try:
+        r = subprocess.run(
+            ["claude", "mcp", "list"],
+            capture_output=True, text=True, timeout=3, check=False,
+        )
+        if r.returncode == 0 and r.stdout:
+            for line in r.stdout.splitlines():
+                tok = line.strip().lower()
+                if tok.startswith("obsidian") or " obsidian " in tok or "obsidian:" in tok:
+                    return True
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        pass
+    try:
+        cfg = Path.home() / ".claude.json"
+        if cfg.is_file():
+            data = json.loads(cfg.read_text(encoding="utf-8"))
+            servers = (data or {}).get("mcpServers") or {}
+            return "obsidian" in {k.lower() for k in servers}
+    except Exception:
+        pass
+    return False
+
+
+_mcp_ok = _mcp_obsidian_registered()
+
+# Vault 写契约 — 高优先级, header 后立即注入 (避免被 TOTAL_CAP 截)
+lines.append("### 🔐 Vault 写契约 (强制)")
+if _mcp_ok:
+    lines.append(
+        "- ✅ `mcp-obsidian` 已注册。所有 vault 写 (save / ingest / patch / refactor / lint --fix) "
+        "**必须**走 `mcp__obsidian__*` 工具。L2 `obsidian` CLI / L3 直接文件 IO 仅 MCP 工具调用失败时本次 fallback。"
+    )
+else:
+    lines.append(
+        "- ⚠️ `mcp-obsidian` **未注册**。AI **必须先调 `AskUserQuestion`** 单次授权才能 vault 写, options:"
+    )
+    lines.append("  - `安装 MCP`: 跳出 vault 写, 引导跑 `claude mcp add obsidian uvx mcp-obsidian` 后重启会话")
+    lines.append("  - `本次使用磁盘 IO (有风险)`: 本会话允许 `obsidian` CLI / 直写, 用户认可绕过 MCP")
+    lines.append(
+        "- **未授权前**: AI 硬拒绝所有 vault 写 (cortex_save / cortex_ingest_* / cortex-refactor / cortex-lint --fix)。"
+    )
+    lines.append("- 授权仅本会话有效, 不写盘; 下次启动重新询问。")
+lines.append("")
+
 # 1) stats snapshot
 try:
     s = stats_snapshot(vault)
@@ -252,7 +299,7 @@ if not (cli_ok and app_ok):
     if warn:
         lines.append("")
         lines.append(warn)
-        lines.append(f"_state: cli={'ok' if cli_ok else 'missing'} · app={'running' if app_ok else 'stopped'}_")
+        lines.append(f"_state: cli={'ok' if cli_ok else 'missing'} · app={'running' if app_ok else 'stopped'} · mcp={'ok' if _mcp_ok else 'missing'}_")
 
 context = "\n".join(lines)
 
