@@ -28,7 +28,7 @@ type: project
 | Slash commands | 20 | `/cortex:<name>` 冒号 (dash 无法解析) |
 | Wrappers | 24 | 10 slash + 3 shell + 11 CLI, 装在 `~/.cortex/scripts/*.sh` |
 | Python CLI | 11 | save / search / deep_search / ingest_url / ingest_file / ingest_remote / refresh_projects / memory / ledger / session / html_render |
-| Lint 规则 | 19 | run.py autofix 自循环至 clean; rule 18 = `path-lang-mismatch` (按 vault.lang 校验 path segment); rule 19 = `skill-references-exists` (SKILL/AGENT/agent 引用 `references/<x>.md` 必须存在, warn 级, autofix=false) |
+| Lint 规则 | 20 | run.py autofix 自循环至 clean; rule 18 = `path-lang-mismatch` (按 vault.lang 校验 path segment); rule 19 = `skill-references-exists` (SKILL/AGENT/agent 引用 `references/<x>.md` 必须存在); rule 20 = `base-format-yaml` (`.base` 顶层必须 YAML object, 禁 markdown header / 禁 Dataview DQL, warn 级, autofix=false) |
 | Hooks | 5 | SessionStart / PostCompact / Stop / SubagentStop / UserPromptSubmit |
 | Cron jobs | 9 | lint / dashboard / digest / memory-{promote,forget,compact,warden,archive} + refresh_projects (weekly Mon 03:00) |
 
@@ -165,3 +165,35 @@ refresh 对比上述字段决定 skip / update。缺字段 → 视首次全量 (
 - `plugins/tools/cortex/scripts/ingest_remote.sh` + `refresh_projects.sh` — wrapper
 - `plugins/tools/cortex/scripts/install_wrappers.sh` — EXPECTED 24 项 + emit_cli 注册
 - `plugins/tools/cortex/scripts/install_cron.sh` — 加 weekly cron line
+
+## P7 — .base 格式硬契约 (2026-05-14)
+
+cortex-ingest 生成 `.base` 文件时 AI 受 vault md-native 惯性把 `.base` 当 .md 写, 用户 Obsidian Bases 报"必须为 YAML 对象"。
+
+### 资产变更
+
+- `skills/cortex-ingest/references/knowledge-graph.md §9.1` 加禁忌小节 + 自检命令 (禁 markdown / 禁 Dataview DQL / 顶层 YAML object 强制)
+- `scripts/lint/rules.json` 加 rule 20 `base-format-yaml` (warn, autofix=false)
+- `scripts/lint/run.py` 加 `check_base_format_yaml()` + main() 加 `.base` 扫描 pass
+- 新测试 `tests/python/test_base_format_lint.py` (13 case)
+- `docs/Lint 规则.md` 同步表格 + rule 22 段 (含 rule 21 skill-references-exists 补录)
+- Lint 规则计数 19 → 20
+- 测试基线 389 → 402 (+13)
+
+### 检查内容 (5 检)
+
+1. 首行禁 markdown header (`#` / `##`)
+2. 禁 Dataview DQL 行首关键字 (TABLE/LIST/TASK/FROM/WHERE/SORT/GROUP BY/FLATTEN)
+3. `yaml.safe_load` 必须成功
+4. 顶层必须是 dict
+5. 顶层至少含 1 个 Bases schema 字段 (filters / views / formulas / properties)
+
+跳过 `.obsidian/` / `归档/` / `.trash/`。
+
+### 不 autofix
+
+用户 vault 内现存错 `.base` 数据敏感, 不直接 patch。用户主动调 `bash ~/.cortex/scripts/ingest_remote.sh <项目 url>` 重 ingest 覆盖。
+
+### 真 vault 验证
+
+跑 `python3 scripts/lint/run.py --vault <user-vault>` 检出 14 个错 `.base` 文件 (markdown header / Dataview TABLE / YAML 解析失败 / 顶层 str), 符合预期。

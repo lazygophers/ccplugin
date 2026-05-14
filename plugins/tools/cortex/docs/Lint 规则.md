@@ -1,11 +1,11 @@
 # Lint 规则
 
-本文回答：cortex-lint 的 18 条 规则各自检查什么、哪些能 autofix、`--fix` 行为是什么。
+本文回答：cortex-lint 的 22 条 规则各自检查什么、哪些能 autofix、`--fix` 行为是什么。
 适用读者：跑 `cortex-lint` 看到 errors/warns 想知道含义的用户、写 cron 自动修复的运维。
 
 ## 总览
 
-定义文件：`scripts/lint/rules.json`。版本 1, 18 条 规则。
+定义文件：`scripts/lint/rules.json`。版本 1, 22 条 规则。
 
 **范围**: 全部规则作用于 知识库 **知识库 (vault)** — 即 `~/.cortex/config.json:.vault` 指向的目录。不影响 全局 全局配置 / 当前目录 / 记忆层 记忆层。
 
@@ -31,8 +31,26 @@
 | 18 | `kb-journal-multi-freq-deprecated` | warn | ✅ | `知识库/日记/{周/月/年}/` 废弃, mv 到 `归档/日记/<YYYY-QN>.md` 季度桶 |
 | 19 | `kb-source-non-repo-path-deprecated` | warn | ✅ | `知识库/来源/{网页/论文/书籍}/` 废弃, mv 到 `知识库/收件箱/` |
 | 20 | `path-lang-mismatch` | warn | ❌ | vault path segment 不符 vault.lang (豁免 host/org/repo + ASCII 专名 + `path_lang_exempt`) |
+| 21 | `skill-references-exists` | warn | ❌ | SKILL.md / AGENT.md 引用 `references/<x>.md` 目标必须存在 |
+| 22 | `base-format-yaml` | warn | ❌ | `.base` 文件必须顶层 YAML object, 禁 markdown header / 禁 Dataview DQL |
 
 autofix 仅 6 条 (rule 1/2/6/8/9/11)。其余需人工或用 `cortex-refactor` 协助。
+
+### rule 22: base-format-yaml
+
+**触发**: `.base` 文件 (`知识库/项目/<host>/<org>/<repo>/_db.base` 等)。跳过 `.obsidian/` / `归档/` / `.trash/`。
+
+**校验**:
+
+1. 首行禁 markdown header (`#` / `##`)
+2. 禁 Dataview DQL 行首关键字 (TABLE / LIST / TASK / FROM / WHERE / SORT / GROUP BY / FLATTEN) — Bases ≠ Dataview
+3. YAML 必须成功解析
+4. 顶层必须是 object (dict), 不能是 list / string / None
+5. 顶层至少含 1 个 Bases schema 字段 (`filters` / `views` / `formulas` / `properties`)
+
+**修复**: AI 重新落档时遵守 `skills/cortex-ingest/references/knowledge-graph.md §9.1` 模板; 或用户主动调 `bash ~/.cortex/scripts/ingest_remote.sh <项目 url>` 重 ingest 项目覆盖。
+
+**不 autofix**: 用户 `.base` 数据敏感, 不直接 patch。lint 仅报警, 用户自行重 ingest 或人工修改。
 
 ## 逐条说明
 

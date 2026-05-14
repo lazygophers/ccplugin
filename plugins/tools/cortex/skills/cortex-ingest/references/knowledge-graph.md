@@ -12,7 +12,18 @@
 
 ## 9.1 Bases 数据库视图 (`_db.base`)
 
-落 `知识库/项目/<host>/<org>/<repo>/_db.base` (Obsidian 1.7+ JSON5 原生格式)。最小可工作模板:
+落 `知识库/项目/<host>/<org>/<repo>/_db.base` (Obsidian 1.7+ 原生 YAML 格式)。
+
+### 硬契约 (lint rule 20: base-format-yaml)
+
+**禁忌** (违反 = lint warn):
+
+1. **不是 markdown 文件** — 首行**禁** `#` / `##` 标题, 整个文件**禁**任何 markdown 语法 (header / table / list bullet / code fence)。即使扩展名 `.base` 也不是 .md。
+2. **不是 Dataview DQL** — 严禁 `TABLE` / `LIST` / `TASK` / `FROM` / `WHERE` / `SORT` / `GROUP BY` / `FLATTEN` 行首关键字。Bases ≠ Dataview, 两套插件语法。
+3. **顶层必须 YAML object** — `yaml.safe_load(content)` 必须返回 `dict`, 不能是 list / string / None。
+4. **顶层至少含 1 个 Bases schema 字段** — `filters` / `views` / `formulas` / `properties` 任一。
+
+### 最小可工作模板
 
 ```yaml
 filters:
@@ -36,6 +47,14 @@ views:
 ```
 
 字段对齐 `references/extract.md` §3 frontmatter schema (type / title / desc / created / updated / tags / source_url / version / when_to_read / score / maturity)。**不写 Dataview fallback** (用户保底 Obsidian ≥ 1.7)。
+
+### 自检 (AI 落档后必跑)
+
+```bash
+python3 -c "import yaml; d = yaml.safe_load(open('<path>')); assert isinstance(d, dict), '.base 必须 YAML object'; assert any(k in d for k in ('filters','views','formulas','properties')), '.base 必须含 Bases schema 字段'; print('ok')"
+```
+
+不通过 = 重写。lint rule 20 (`base-format-yaml`) 跑同样校验。
 
 ---
 

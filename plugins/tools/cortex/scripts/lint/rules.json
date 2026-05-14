@@ -168,6 +168,12 @@
       "severity": "warn",
       "description": "SKILL.md / AGENT.md 引用 [...](references/<name>.md) 的目标文件必须存在 (相对当前文件目录解析); 仅检查插件源内 markdown, 不影响 vault 扫描",
       "autofix": false
+    },
+    {
+      "id": "base-format-yaml",
+      "severity": "warn",
+      "description": ".base 文件必须顶层 YAML 对象 (Obsidian Bases 1.7+ 原生格式), 禁 markdown header + 禁 Dataview DQL (TABLE/LIST/TASK/FROM/WHERE/SORT/GROUP BY/FLATTEN) + 顶层至少含 filters/views/formulas/properties 之一",
+      "autofix": false
     }
   ]
 }

@@ -1172,6 +1172,119 @@ def _f(
 
 # ---- rule: skill-references-exists ----
 
+# ---- rule: base-format-yaml ----
+
+# Dataview DQL 关键字 (行首, 大小写不敏感)
+_DQL_KEYWORDS_RE = re.compile(
+    r"^\s*(TABLE|LIST|TASK|FROM|WHERE|SORT|GROUP\s+BY|FLATTEN)\b",
+    re.MULTILINE | re.IGNORECASE,
+)
+_BASES_SCHEMA_KEYS = {"filters", "views", "formulas", "properties"}
+_BASE_LINT_SKIP_DIRS = (".obsidian/", "归档/", ".trash/")
+
+
+def check_base_format_yaml(rel: Any, content: str) -> list[dict[str, Any]]:
+    """rule base-format-yaml — .base 文件必须顶层 YAML object + 禁 markdown / Dataview DQL.
+
+    `rel` 接受 Path 或 str (调用方传 vault-relative path)。
+    """
+    findings: list[dict[str, Any]] = []
+    rel_path = rel if isinstance(rel, Path) else Path(str(rel))
+    if rel_path.suffix != ".base":
+        return findings
+
+    rel_str = rel_path.as_posix()
+    if any(p in rel_str for p in _BASE_LINT_SKIP_DIRS):
+        return findings
+
+    # 检 1: 首行 markdown header
+    stripped = content.lstrip()
+    if stripped.startswith("#"):
+        first_line = stripped.split("\n", 1)[0][:50]
+        findings.append(
+            _f(
+                "base-format-yaml",
+                "warn",
+                rel_str,
+                1,
+                f".base 首行不能是 markdown header (`{first_line}`), 必须 YAML object 顶层",
+                False,
+            )
+        )
+        return findings
+
+    # 检 2: Dataview DQL 关键字
+    m = _DQL_KEYWORDS_RE.search(content)
+    if m:
+        line_no = content[: m.start()].count("\n") + 1
+        kw = re.sub(r"\s+", " ", m.group(1)).upper()
+        findings.append(
+            _f(
+                "base-format-yaml",
+                "warn",
+                rel_str,
+                line_no,
+                f".base 含 Dataview DQL 关键字 `{kw}`, Bases ≠ Dataview, 两套插件语法",
+                False,
+            )
+        )
+        return findings
+
+    # 检 3: YAML 解析
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        # PyYAML 未安装 — 跳过 (lint 不强依赖); 实际 cortex 部署带 PyYAML
+        return findings
+    try:
+        data = yaml.safe_load(content)
+    except yaml.YAMLError as e:
+        findings.append(
+            _f(
+                "base-format-yaml",
+                "warn",
+                rel_str,
+                1,
+                f".base YAML 解析失败: {e}",
+                False,
+            )
+        )
+        return findings
+
+    # 检 4: 顶层必须 dict
+    if not isinstance(data, dict):
+        findings.append(
+            _f(
+                "base-format-yaml",
+                "warn",
+                rel_str,
+                1,
+                f".base 顶层必须 YAML object (dict), 实际 {type(data).__name__}",
+                False,
+            )
+        )
+        return findings
+
+    # 检 5: Bases schema 字段
+    if not (set(data.keys()) & _BASES_SCHEMA_KEYS):
+        keys_preview = sorted(str(k) for k in data.keys())[:5]
+        findings.append(
+            _f(
+                "base-format-yaml",
+                "warn",
+                rel_str,
+                1,
+                (
+                    ".base 顶层缺 Bases schema 字段 "
+                    f"(需 filters/views/formulas/properties 之一, 实际 keys: {keys_preview})"
+                ),
+                False,
+            )
+        )
+
+    return findings
+
+
 # 仅捕获 `(references/<name>.md)` 形式的相对链接 (允许子目录), 跳过 http(s)/绝对/纯锚点
 _REFERENCES_LINK_RE = re.compile(r"\]\(\s*(references/[^)\s#]+\.md)(?:#[^)]*)?\s*\)")
 
@@ -3299,6 +3412,23 @@ def main() -> int:
     findings.extend(
         check_global(vault, files, by_alias, locale_dirs if locale_dirs else None)
     )
+
+    # rule: base-format-yaml — 扫 vault 内全部 .base 文件
+    for bp in vault.rglob("*.base"):
+        try:
+            rel_b = bp.relative_to(vault)
+        except ValueError:
+            continue
+        # 顶层 EXCLUDE_DIRS (.obsidian/.trash/.git/_meta) 跳过
+        if rel_b.parts and rel_b.parts[0] in EXCLUDE_DIRS:
+            continue
+        if args.scope and not fnmatch.fnmatch(str(rel_b), args.scope):
+            continue
+        try:
+            base_text = bp.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        findings.extend(check_base_format_yaml(rel_b, base_text))
 
     # rule #16: vault-structure-violation — strict preset schema check at root
     preset = _load_vault_preset(vault)
