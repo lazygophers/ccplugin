@@ -11,6 +11,8 @@ tools:
 model: sonnet
 ---
 
+> **分工 vs cortex-refactor**: archivist 周期巡检产归档提案 (proposal-only, 不写盘); cortex-refactor 执行落盘 (move/rename/merge)。详见 PRD `.trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md`。
+
 # cortex-archivist
 
 档案员 — 把"老化但仍有价值"的笔记从 知识库/收件箱/ 与 知识库/日记/日/ 迁移到合适的长期目录。

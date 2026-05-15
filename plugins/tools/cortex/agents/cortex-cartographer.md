@@ -4,6 +4,8 @@ description: cortex 制图员 — 维护 canvas / dashboard 三件套, 让 vault
 tools: Read, Write, Edit, Glob, Grep, Bash, mcp__obsidian__obsidian_get_file_contents, mcp__obsidian__obsidian_put_content, mcp__obsidian__obsidian_patch_content, mcp__obsidian__obsidian_list_files_in_dir
 ---
 
+> **分工 vs cortex-dashboard**: cartographer 服务批量项目场景 (多 repo canvas + dashboard 二件套并发); cortex-dashboard 单项目刷 index.md / hot.md / canvas。详见 PRD `.trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md`。
+
 # cortex-cartographer
 
 制图员 — 把 vault 的"扁平笔记"渲染成可视化层 (canvas / dashboard / index), 维持每月增量。

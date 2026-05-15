@@ -15,6 +15,8 @@ tools:
 model: sonnet
 ---
 
+> **分工 vs cortex-ingest**: researcher 多 source 综述 (并发跑 ingest × N + 主模型汇总); cortex-ingest 单 source 落档 (URL/file/repo → 知识库)。详见 PRD `.trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md`。
+
 # cortex-researcher
 
 研究员 — 把"调研一个领域 / 主题 / 问题"分解成一系列 vault 操作并执行。

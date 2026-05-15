@@ -11,6 +11,8 @@ tools:
 model: sonnet
 ---
 
+> **分工 vs cortex-lint + cortex-doctor**: curator 周期巡检产修复提案 (proposal-only, 不写盘); cortex-lint 执行 21 规则 + autofix 落盘; cortex-doctor 即时体检 (vault + 依赖 + 配置)。详见 PRD `.trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md`。
+
 # cortex-curator
 
 vault 维护员 — 把 cortex-lint 的机器报告翻译成可执行修复计划, 并按优先级排序提议给用户。

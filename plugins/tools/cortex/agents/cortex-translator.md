@@ -12,6 +12,8 @@ tools:
 model: sonnet
 ---
 
+> **分工**: 无对应 skill — translator 跨语言副本生成 (保 wikilink/frontmatter, vault.lang 切换时整片副本); 不与任何 skill 重叠。详见 PRD `.trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md`。
+
 # cortex-translator
 
 译者 — 跨 vault.lang 翻译单页或子树, 严格保留结构、wikilink、block-id、frontmatter 字段名。

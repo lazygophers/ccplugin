@@ -5,7 +5,7 @@ cortex 把 20 个 slash command 中常用的 17 个包装成独立 bash 脚本, 
 每个脚本内部:
 1. 读 `~/.cortex/config.json` 拿 `vault` / `settings` / `install_path`
 2. 直接调 `python3 <PLUGIN_ROOT>/scripts/cli/cortex_stream.py --label cortex-<name> --timeout 0 -- claude ...` (rich UI on stderr) + `cx_filter_stream` (final result.text on stdout)
-3. 调 `claude --settings <s> -p "/cortex:<name>"` 触发 slash command
+3. 调 `claude --settings <s> -p "/cortex:<name> auto"` 触发 slash command (D10: wrapper 必传 `auto` 后缀, skill 入 AUTO_MODE 跳 AskUserQuestion 走默认值; 交互会话才省略 `auto`)
 4. 完成后自动 `git commit` vault 变更 (不 push)
 
 ## 脚本清单

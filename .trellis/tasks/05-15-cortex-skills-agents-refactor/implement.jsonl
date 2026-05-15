@@ -1,0 +1,13 @@
+{"file": "plugins/tools/cortex/docs/Skills 详解.md", "reason": "Skill 完整清单 + 触发场景, 整改后必须刷新计数 21→13 + 删除/合并条目"}
+{"file": "plugins/tools/cortex/docs/Agents.md", "reason": "Agent 清单 + 职责, 删 linker 后必须更新计数 7→6 + 5 agent 加 vs-skill 边界注释"}
+{"file": "plugins/tools/cortex/docs/Commands.md", "reason": "20 slash command 表格 + AUTO_MODE 约束章节 (D10), 行为约束章节需补充 auto 参数协议"}
+{"file": "plugins/tools/cortex/docs/索引.md", "reason": "总索引计数表 (skill 21→13, agent 7→6), 同时含路径解析约定"}
+{"file": "plugins/tools/cortex/docs/Bash 脚本.md", "reason": "24 wrapper 清单 + 调用模式; 全部 wrapper 改调 /cortex:<name> auto (D10)"}
+{"file": "plugins/tools/cortex/AGENT.md", "reason": "§1 搜索硬契约提到 recall, 合 recall→search 后引用需更新; 含 auto 模式约束总则"}
+{"file": "plugins/tools/cortex/skills/cortex-ingest/SKILL.md", "reason": "已合规多文件参考标杆, 拆其他 skill 时模仿 references/ 组织"}
+{"file": "plugins/tools/cortex/skills/cortex-ingest/references/layout.md", "reason": "references/ 子文件结构模板"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/SKILL.md", "reason": "已合规多文件参考标杆"}
+{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "wrapper 生成模板, /cortex:__NAME__ 需改 /cortex:__NAME__ auto (D10 落地)"}
+{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "项目记忆 single source of truth, 资产计数刷新 + 加 D9/D10 auto 模式约束"}
+{"file": ".claude/rules/MEMORY.md", "reason": "项目记忆索引, cortex memo 描述更新"}
+{"file": ".trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md", "reason": "本任务 PRD, 含 10 个 decisions"}

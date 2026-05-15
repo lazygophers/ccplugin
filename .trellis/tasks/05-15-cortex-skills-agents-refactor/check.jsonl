@@ -1,0 +1,9 @@
+{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "确认 wrapper 模板已改 /cortex:<name> auto, 重装后 24 wrapper 均带 auto 后缀"}
+{"file": "plugins/tools/cortex/docs/Skills 详解.md", "reason": "Skill 数 = 13, 无残留删除 skill 引用 (canvas/new/reflect/ingest-bulk/schema/locale/forget)"}
+{"file": "plugins/tools/cortex/docs/Agents.md", "reason": "Agent 数 = 6, 删 linker; 5 agent 头部含 vs-skill 注释"}
+{"file": "plugins/tools/cortex/docs/Commands.md", "reason": "AUTO_MODE 约束章节新增, 行为约束含 auto 协议"}
+{"file": "plugins/tools/cortex/docs/索引.md", "reason": "计数表 skill 13 / agent 6 / wrapper 24"}
+{"file": "plugins/tools/cortex/AGENT.md", "reason": "recall 引用替换为 search, auto 模式约束总则在场"}
+{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "资产计数 21→13 / 7→6, D9/D10 在场"}
+{"file": ".claude/rules/MEMORY.md", "reason": "cortex memo 描述刷新"}
+{"file": ".trellis/tasks/05-15-cortex-skills-agents-refactor/prd.md", "reason": "Acceptance Criteria 全打勾"}

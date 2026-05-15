@@ -23,8 +23,8 @@ type: project
 
 | 类型 | 计数 | 备注 |
 |---|---|---|
-| Agents | 7 | curator / researcher / archivist / cartographer / linker / summarizer / translator |
-| Skills | 21 | 自动触发 + 显式调 |
+| Agents | 6 | curator / researcher / archivist / cartographer / summarizer / translator (PR4 删 linker: 7→6, 5 个保留含 vs-skill 分工注释) |
+| Skills | 13 | 自动触发 + 显式调 (PR1-4 整改: 21→13 = 删 7 + 合 1; 全部多文件渐进披露, SKILL.md 入口 ≤80 行) |
 | Slash commands | 20 | `/cortex:<name>` 冒号 |
 | Wrappers | 24 | 10 slash + 3 shell + 11 CLI, 装在 `~/.cortex/scripts/*.sh` |
 | Python CLI | 11 | save / search / deep_search / ingest_url / ingest_file / ingest_remote / refresh_projects / memory / ledger / session / html_render |
@@ -33,6 +33,13 @@ type: project
 | Hooks | 5 | SessionStart / PostCompact / Stop / SubagentStop / UserPromptSubmit |
 | Cron jobs | 9 | lint / dashboard / digest / memory-{promote,forget,compact,warden,archive} + refresh_projects (weekly Mon 03:00) |
 | Tests | 548 | `cd plugins/tools/cortex/tests/python && python3 -m pytest -q` |
+
+## Skill/Agent 整改契约 (PR1-4)
+
+- **D9 无参数**: 所有 skill 入口不接受位置参数; 多分支用 `AskUserQuestion`, 不在调用面暴露参数
+- **D10 AUTO_MODE**: wrapper / cron / CI 调 slash 必传 `auto` 后缀 (`/cortex:<name> auto`) → skill 跳 AskUserQuestion 走默认值; 交互会话才省略 `auto`
+- **D2/D3 渐进披露**: SKILL.md 入口 ≤ 80 行 (frontmatter + 触发 + 决策树 + AUTO_MODE 分支 + references 指针表), 细节迁 references/<topic>.md 2-4 子文件按需加载
+- **agent 边界**: 6 agent 头部含 "vs <skill>" 分工注释行 (curator vs lint/doctor / cartographer vs dashboard / archivist vs refactor / researcher vs ingest / summarizer vs digest / translator 无对应)
 
 ## Vault 写硬契约 (session_start hook 注入)
 
