@@ -109,6 +109,129 @@ def route_target(source_type: str, url: str, vault: Path) -> Path:
     return vault / "知识库" / "项目" / host / SITE_PLACEHOLDER / slug
 
 
+# ─────────── scoring (PR3: AI 自评启发式) ───────────
+
+
+# Host credibility 查表 (PR1 schema §3.1). 默认 4.0 (未知 host).
+_HOST_CREDIBILITY: dict[str, float] = {
+    # 官方 doc 10.0
+    "anthropic.com": 10.0,
+    "openai.com": 10.0,
+    "google.com": 10.0,
+    # 大厂 / 标准 doc 9.5
+    "react.dev": 9.5,
+    "docs.python.org": 9.5,
+    "pytorch.org": 9.5,
+    "vuejs.org": 9.5,
+    "kernel.org": 9.5,
+    "rust-lang.org": 9.5,
+    "developer.mozilla.org": 9.5,
+    "go.dev": 9.5,
+    # 学术 8.5
+    "arxiv.org": 8.5,
+    "acm.org": 8.5,
+    "ieee.org": 8.5,
+    # 代码托管 7.5
+    "github.com": 7.5,
+    "gitlab.com": 7.5,
+    # 技术问答 7.0
+    "stackoverflow.com": 7.0,
+    "serverfault.com": 7.0,
+    # 知名博客 5.0
+    "medium.com": 5.0,
+    "dev.to": 5.0,
+}
+_HOST_CREDIBILITY_DEFAULT = 4.0
+
+
+def host_credibility(host: str) -> float:
+    """Host 白名单查表, 默认 4.0 (未知 host). 支持 www. 前缀剥离 + 子域父域回退."""
+    if not host:
+        return _HOST_CREDIBILITY_DEFAULT
+    h = host.lower()
+    if h.startswith("www."):
+        h = h[4:]
+    if h in _HOST_CREDIBILITY:
+        return _HOST_CREDIBILITY[h]
+    parts = h.split(".")
+    for i in range(1, len(parts) - 1):
+        parent = ".".join(parts[i:])
+        if parent in _HOST_CREDIBILITY:
+            return _HOST_CREDIBILITY[parent]
+    return _HOST_CREDIBILITY_DEFAULT
+
+
+def compute_initial_scores(
+    *,
+    host: str,
+    coverage_ratio: float = 0.5,
+    tag_count: int = 0,
+    wikilink_count: int = 0,
+    when_to_read_len: int = 0,
+) -> dict[str, Any]:
+    """落档时计算 4 评分字段初值 (启发式见 references/extract.md §3.1).
+
+    Returns: {score, confidence, source_credibility, maturity}.
+    """
+    # score: coverage_ratio × 10, clamp [0, 10]
+    score = max(0.0, min(10.0, round(coverage_ratio * 10, 1)))
+
+    # confidence: tags (≥10=5) + when_to_read (≥30 字=3) + wikilink (≥5=2)
+    tag_part = min(5.0, (tag_count / 10) * 5)
+    wtr_part = min(3.0, (when_to_read_len / 30) * 3)
+    link_part = min(2.0, (wikilink_count / 5) * 2)
+    confidence = round(max(0.0, min(10.0, tag_part + wtr_part + link_part)), 1)
+
+    source_credibility = host_credibility(host)
+
+    if score < 5:
+        maturity = "draft"
+    elif score < 8:
+        maturity = "review"
+    else:
+        maturity = "stable"
+
+    return {
+        "score": score,
+        "confidence": confidence,
+        "source_credibility": source_credibility,
+        "maturity": maturity,
+    }
+
+
+# 记忆 L0-L4 层默认 importance / confidence (PR1 scoring.md §default)
+_L_LEVEL_DEFAULTS: dict[str, dict[str, float]] = {
+    "L0": {"importance": 9.0, "confidence": 9.5},
+    "L1": {"importance": 7.0, "confidence": 8.0},
+    "L2": {"importance": 5.0, "confidence": 6.5},
+    "L3": {"importance": 3.0, "confidence": 4.5},
+    "L4": {"importance": 2.0, "confidence": 5.0},
+}
+
+
+def compute_memory_scores(
+    *,
+    level: str,
+    user_confirmed: bool = False,
+    body_len: int = 0,
+) -> dict[str, float]:
+    """计算记忆 2 字段初值 (importance / confidence). 按 L0-L4 层默认 + 修正."""
+    base = _L_LEVEL_DEFAULTS.get(level, _L_LEVEL_DEFAULTS["L3"])
+    importance = base["importance"]
+    confidence = base["confidence"]
+
+    if user_confirmed:
+        confidence = min(10.0, confidence + 1.0)
+
+    if body_len < 100:
+        importance = max(0.0, importance - 0.5)
+
+    return {
+        "importance": round(importance, 1),
+        "confidence": round(confidence, 1),
+    }
+
+
 # ─────────── filter loaders (mirror ingest_url.py) ───────────
 
 
@@ -226,6 +349,15 @@ def ingest_git(url: str, target: Path, dry_run: bool) -> dict:
                 "last_commit_sha": sha,
                 "last_ingested_at": utc_now(),
             }
+            fm.update(
+                compute_initial_scores(
+                    host=host,
+                    coverage_ratio=1.0,
+                    tag_count=0,
+                    wikilink_count=0,
+                    when_to_read_len=0,
+                )
+            )
             body = f"# {rel}\n\n```\n{content}\n```\n"
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(dump_fm(fm, body), encoding="utf-8")
@@ -239,6 +371,15 @@ def ingest_git(url: str, target: Path, dry_run: bool) -> dict:
                 "last_commit_sha": sha,
                 "last_ingested_at": utc_now(),
             }
+            idx_fm.update(
+                compute_initial_scores(
+                    host=host,
+                    coverage_ratio=1.0,
+                    tag_count=0,
+                    wikilink_count=0,
+                    when_to_read_len=0,
+                )
+            )
             idx.write_text(
                 dump_fm(
                     idx_fm,
@@ -400,6 +541,16 @@ def ingest_website(url: str, target: Path, depth: int, dry_run: bool) -> dict:
             "content_hash": content_hash,
             "last_ingested_at": utc_now(),
         }
+        page_host = (urllib.parse.urlparse(page_url).netloc or "").lower()
+        fm.update(
+            compute_initial_scores(
+                host=page_host,
+                coverage_ratio=0.7,
+                tag_count=0,
+                wikilink_count=0,
+                when_to_read_len=0,
+            )
+        )
         dest.write_text(dump_fm(fm, masked), encoding="utf-8")
         ingested.append(page_url)
 

@@ -28,6 +28,7 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 # Allow `python3 save.py` invocation: add this dir to sys.path so `from lib...` works.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -36,13 +37,24 @@ import re as _re  # noqa: E402
 
 from lib.frontmatter import dump as fm_dump  # noqa: E402
 from lib.lock import file_lock  # noqa: E402
+from lib.remote import (  # noqa: E402
+    compute_initial_scores,
+    compute_memory_scores,
+)
 from lib.vault_path import resolve_vault  # noqa: E402
 from lib.wikilinks import add_block_ids, slugify  # noqa: E402
+
+# 知识库 kind: 写 4 字段 (score / confidence / source_credibility / maturity)
+_KB_KINDS = {"concept", "domain", "log", "reflection", "source", "project", "entity"}
+# 记忆 kind: 写 2 字段 (importance / confidence)
+_MEM_KINDS = {"memory"}
+_MATURITY_ENUM = ("draft", "review", "stable", "deprecated")
 
 _TAGS_MIN = 10
 _TAGS_MAX = 20
 _PLACEHOLDER_RE = _re.compile(
-    r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX", _re.I,
+    r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX",
+    _re.I,
 )
 
 
@@ -155,9 +167,7 @@ def _safe_segment(value: str, field: str) -> str:
     containing `/`, `\\`, NUL, or `..`. Empty segments are caller's problem.
     """
     if "/" in value or "\\" in value or "\x00" in value or value in ("..", "."):
-        raise ValueError(
-            f"cortex_save: invalid {field}={value!r} (path traversal)"
-        )
+        raise ValueError(f"cortex_save: invalid {field}={value!r} (path traversal)")
     return value
 
 
@@ -180,9 +190,7 @@ def _resolve_path(vault: Path, args: dict, now: _dt.datetime) -> Path:
         # (host=_local/workspace/persons/github.com/... 均合法; 调用方负责相对 $HOME 路径切分)
         org = _safe_segment(args.get("org") or "_local", "org")
         repo = _safe_segment(args.get("repo") or "_local", "repo")
-        target = (
-            vault / "知识库" / "项目" / host / org / repo / f"{slug}.md"
-        )
+        target = vault / "知识库" / "项目" / host / org / repo / f"{slug}.md"
     elif kind == "source":
         host = args.get("host")
         if not host:
@@ -218,9 +226,7 @@ def _resolve_path(vault: Path, args: dict, now: _dt.datetime) -> Path:
     try:
         target.resolve().relative_to(vault_resolved)
     except ValueError as exc:
-        raise ValueError(
-            f"cortex_save: resolved path escapes vault: {target}"
-        ) from exc
+        raise ValueError(f"cortex_save: resolved path escapes vault: {target}") from exc
     return target
 
 
@@ -281,6 +287,15 @@ def _save_internal(
     domain: str | None = None,
     source_meta: dict | None = None,
     extra_fm: dict | None = None,
+    source_url: str | None = None,
+    when_to_read: str | None = None,
+    memory_level: str | None = None,
+    user_confirmed: bool = False,
+    score: float | None = None,
+    confidence: float | None = None,
+    source_credibility: float | None = None,
+    importance: float | None = None,
+    maturity: str | None = None,
 ) -> dict:
     """Shared write pipeline reused by handle_save and ingest tools.
 
@@ -338,6 +353,46 @@ def _save_internal(
     if extra_fm:
         for k, v in extra_fm.items():
             fm[k] = v
+
+    # PR3: AI 自评 4/2 字段初值 (CLI override 优先)
+    if kind in _KB_KINDS:
+        url_host = ""
+        if source_url:
+            try:
+                url_host = (urlparse(source_url).netloc or "").lower()
+            except Exception:  # noqa: BLE001
+                url_host = ""
+        # 单页 save 默认覆盖率 0.6
+        auto_scores = compute_initial_scores(
+            host=url_host,
+            coverage_ratio=0.6,
+            tag_count=len(tags),
+            wikilink_count=masked_body.count("[["),
+            when_to_read_len=len(when_to_read or ""),
+        )
+        if score is not None:
+            auto_scores["score"] = max(0.0, min(10.0, float(score)))
+        if confidence is not None:
+            auto_scores["confidence"] = max(0.0, min(10.0, float(confidence)))
+        if source_credibility is not None:
+            auto_scores["source_credibility"] = max(
+                0.0, min(10.0, float(source_credibility))
+            )
+        if maturity is not None and maturity in _MATURITY_ENUM:
+            auto_scores["maturity"] = maturity
+        fm.update(auto_scores)
+    elif kind in _MEM_KINDS:
+        mem_scores = compute_memory_scores(
+            level=memory_level or "L3",
+            user_confirmed=user_confirmed,
+            body_len=len(masked_body),
+        )
+        if importance is not None:
+            mem_scores["importance"] = max(0.0, min(10.0, float(importance)))
+        if confidence is not None:
+            mem_scores["confidence"] = max(0.0, min(10.0, float(confidence)))
+        fm.update(mem_scores)
+
     # 强制 tags ≥ 10 (严禁占位符): 派生 fm + 正文派生
     fm["tags"] = _derive_tags(fm, masked_body)
     content = fm_dump(
@@ -372,18 +427,37 @@ def cli_save(args: dict) -> dict:
         repo=args.get("repo"),
         source_sub=args.get("source_sub"),
         domain=args.get("domain"),
+        source_url=args.get("source_url"),
+        when_to_read=args.get("when_to_read"),
+        memory_level=args.get("memory_level"),
+        user_confirmed=bool(args.get("user_confirmed", False)),
+        score=args.get("score"),
+        confidence=args.get("confidence"),
+        source_credibility=args.get("source_credibility"),
+        importance=args.get("importance"),
+        maturity=args.get("maturity"),
     )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="cortex_save CLI: write a typed note into the vault.")
+    parser = argparse.ArgumentParser(
+        description="cortex_save CLI: write a typed note into the vault."
+    )
     parser.add_argument(
         "--kind",
         required=True,
         choices=[
-            "entity", "concept", "project", "domain", "source",
-            "reflection", "question", "fleeting", "inbox",
-            "log", "journal",
+            "entity",
+            "concept",
+            "project",
+            "domain",
+            "source",
+            "reflection",
+            "question",
+            "fleeting",
+            "inbox",
+            "log",
+            "journal",
         ],
         help="entity/concept → 知识库/领域/<域>/; project/domain → 知识库/项目/<host>/<org>/<repo>/; source → 知识库/收件箱/<host>-<slug>; reflection → 日记 一项; question/fleeting/inbox → 收件箱; log/journal → 日记/日/<YYYY-MM>/<YYYY-MM-DD>.md",
     )
@@ -407,6 +481,62 @@ def main() -> None:
         default=None,
         help="entity/concept 落档域 (创作/学习/工作/技术/生活/金融/...); 缺省 '未分类' (调用方/AI 应自决)",
     )
+    parser.add_argument(
+        "--source-url",
+        dest="source_url",
+        default=None,
+        help="原始 URL (用于 host 解析 source_credibility)",
+    )
+    parser.add_argument(
+        "--when-to-read",
+        dest="when_to_read",
+        default=None,
+        help="触发条件 (confidence 启发式参数)",
+    )
+    parser.add_argument(
+        "--memory-level",
+        dest="memory_level",
+        default=None,
+        choices=["L0", "L1", "L2", "L3", "L4"],
+        help="记忆层级 (kind=memory 时强制)",
+    )
+    parser.add_argument(
+        "--user-confirmed",
+        dest="user_confirmed",
+        action="store_true",
+        help="用户已确认 (memory confidence +1.0)",
+    )
+    parser.add_argument(
+        "--score",
+        type=float,
+        default=None,
+        help="知识库 score 0.0-10.0 (override AI 自评)",
+    )
+    parser.add_argument(
+        "--confidence",
+        type=float,
+        default=None,
+        help="confidence 0.0-10.0 (override AI 自评)",
+    )
+    parser.add_argument(
+        "--source-credibility",
+        dest="source_credibility",
+        type=float,
+        default=None,
+        help="source_credibility 0.0-10.0 (override AI 自评)",
+    )
+    parser.add_argument(
+        "--importance",
+        type=float,
+        default=None,
+        help="记忆 importance 0.0-10.0 (override AI 自评)",
+    )
+    parser.add_argument(
+        "--maturity",
+        default=None,
+        choices=["draft", "review", "stable", "deprecated"],
+        help="maturity enum (override AI 自评)",
+    )
     ns = parser.parse_args()
     body = ns.body if ns.body is not None else sys.stdin.read()
     tags = [t.strip() for t in ns.tags.split(",") if t.strip()] if ns.tags else []
@@ -421,6 +551,15 @@ def main() -> None:
             "repo": ns.repo,
             "source_sub": ns.source_sub,
             "domain": ns.domain,
+            "source_url": ns.source_url,
+            "when_to_read": ns.when_to_read,
+            "memory_level": ns.memory_level,
+            "user_confirmed": ns.user_confirmed,
+            "score": ns.score,
+            "confidence": ns.confidence,
+            "source_credibility": ns.source_credibility,
+            "importance": ns.importance,
+            "maturity": ns.maturity,
         }
     )
     print(json.dumps(result, ensure_ascii=False))
