@@ -26,10 +26,14 @@ score: 7.5              # 内容质量 (覆盖度 + 深度 + 准确性 综合)
 confidence: 8.0         # 内容可信度 (AI 对自己写的有多确定)
 source_credibility: 9.0 # 源可信度 (host 白名单查表)
 maturity: stable        # enum: draft|review|stable|deprecated (内容稳定度)
+
+# 召回率字段 (强烈推荐, Obsidian simple_search 优先匹配 frontmatter)
+aliases: [<中文同义>, <英文缩写>, <全称>, ...]  # ≥ 3 个, AI 落档时根据 title/desc 自动生成
+keywords: [<具体短语1>, <具体短语2>, ...]      # ≥ 5 个具体词, 含 项目名/文件名/函数名/术语
 ---
 ```
 
-可选: `host` / `org` / `repo` / `aliases` / `authors` / `lang` / `path_lang_exempt`。
+可选: `host` / `org` / `repo` / `authors` / `lang` / `path_lang_exempt`。
 
 `path_lang_exempt: true` 用于豁免 lint rule 20 (`path-lang-mismatch`) 的 vault lang 一致性检查 — 仅在文件名/目录名为不可翻译的专名时填 (项目代号 / 配置文件名 / 协议名 / API 端点等)。默认 `false`, 普通页不需填。
 
@@ -61,6 +65,32 @@ maturity: stable        # enum: draft|review|stable|deprecated (内容稳定度)
 - `score` / `confidence` / `source_credibility`: float (整数会被 autofix 转 float)
 - `maturity`: 4 enum 之一, 错值 autofix 转 `"draft"`
 - 旧 `score: 1-5` 整数 → 一次性 migration × 2.0 转 0-10 浮点 (见 PR6 `scripts/migrate/migrate_scores_to_v2.py`)
+
+### 3.3 aliases/keywords 召回率字段 (强烈推荐)
+
+Obsidian `simple_search` 匹配 frontmatter 字段值 + 正文 + tags, 但 ingest 自动生成的 title/desc/tags **不含**用户搜索的具体短语 (如 `tmtc_bg` / `测试环境` / `日志访问`)。补 `aliases` + `keywords` 大幅提召回率。
+
+#### aliases (≥ 3)
+
+从 title + desc 抽:
+- 中英文翻译对 (title 含 "认证" → 加 "authentication")
+- 缩写 / 全称对 (title 含 "RBAC" → 加 "Role-Based Access Control")
+- 别名 / 旧名 (项目重命名后, 加旧名)
+
+#### keywords (≥ 5)
+
+从 body / path / metadata 抽:
+- 文件名 stem (e.g. `auth_middleware.py` → 加 `auth_middleware`)
+- 函数名 / 类名 (top 5 重要 symbol)
+- 配置 key / 环境变量名
+- 错误码 / 异常名
+- repo 内频繁出现的术语 (≥ 3 次)
+
+实现见 `scripts/cli/lib/remote.py:extract_aliases` / `extract_keywords` (启发式无 AI 调用)。
+
+### 3.4 召回率 lint 不强制 (warn 可选)
+
+lint rule `frontmatter-required-scores` 不校验 `aliases` / `keywords` (可选字段), 但 hot.md 索引时优先选含这两字段的页, 高分子页 (score ≥ 7.0 + maturity in stable/review) 自动入 hot.md。
 
 ---
 

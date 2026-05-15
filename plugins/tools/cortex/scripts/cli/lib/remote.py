@@ -199,6 +199,154 @@ def compute_initial_scores(
     }
 
 
+# ─────────── aliases / keywords 召回率抽取 (PR3 P4) ───────────
+
+# 中英翻译对 (常见技术术语 — 双向扩展)
+_CN_EN_PAIRS = {
+    "认证": "authentication",
+    "授权": "authorization",
+    "测试": "test",
+    "部署": "deploy",
+    "日志": "log",
+    "配置": "config",
+    "数据库": "database",
+    "缓存": "cache",
+    "队列": "queue",
+    "中间件": "middleware",
+    "网关": "gateway",
+    "代理": "proxy",
+    "前端": "frontend",
+    "后端": "backend",
+    "架构": "architecture",
+    "决策": "decision",
+    "陷阱": "pitfall",
+    "依赖": "dependency",
+    "错误码": "error code",
+    "插件": "plugin",
+    "模块": "module",
+    "服务": "service",
+    "接口": "interface",
+}
+_EN_CN_PAIRS = {v: k for k, v in _CN_EN_PAIRS.items()}
+
+# 业内常见缩写↔全称
+_ABBR_FULL = {
+    "RBAC": "Role-Based Access Control",
+    "JWT": "JSON Web Token",
+    "OAuth": "Open Authorization",
+    "API": "Application Programming Interface",
+    "CRUD": "Create Read Update Delete",
+    "ORM": "Object Relational Mapping",
+    "MVC": "Model View Controller",
+    "REST": "Representational State Transfer",
+    "RPC": "Remote Procedure Call",
+    "DDD": "Domain-Driven Design",
+    "CI": "Continuous Integration",
+    "CD": "Continuous Delivery",
+    "MCP": "Model Context Protocol",
+    "LLM": "Large Language Model",
+    "SDK": "Software Development Kit",
+    "CLI": "Command Line Interface",
+}
+_FULL_ABBR = {v: k for k, v in _ABBR_FULL.items()}
+
+# 代码标识符正则: snake_case / 长名识别 (≥3 chars, 含 _ 或全 lower)
+_IDENT_RE = re.compile(r"\b[a-z_][a-z0-9_]{2,}\b")
+_CODE_FENCE_RE = re.compile(r"```[\s\S]*?```")
+
+
+def extract_aliases(title: str, desc: str) -> list[str]:
+    """从 title + desc 抽 ≥ 3 个 aliases (启发式, 无 AI 调用).
+
+    规则:
+    - 中→英 / 英→中 翻译对
+    - 缩写↔全称对 (大小写不敏感匹配)
+    - 不足 3 时, 补 title 中长词 (≥ 3 字符)
+    """
+    out: list[str] = []
+    text_l = f"{title} {desc}".lower()
+
+    # 中→英 (中文不下沉到 lower)
+    text_raw = f"{title} {desc}"
+    for cn, en in _CN_EN_PAIRS.items():
+        if cn in text_raw and en not in out:
+            out.append(en)
+        if en.lower() in text_l and cn not in out:
+            out.append(cn)
+
+    # 缩写 ↔ 全称
+    for abbr, full in _ABBR_FULL.items():
+        if abbr.lower() in text_l and full not in out:
+            out.append(full)
+        if full.lower() in text_l and abbr not in out:
+            out.append(abbr)
+
+    # 不足 3 个: 补 title 词
+    if len(out) < 3 and title:
+        words = re.findall(r"\b\w{3,}\b", title)
+        for w in words:
+            if w not in out:
+                out.append(w)
+            if len(out) >= 3:
+                break
+
+    return out[:10]
+
+
+def extract_keywords(
+    title: str,
+    body: str,
+    path: str,
+    host: str = "",
+    org: str = "",
+    repo: str = "",
+) -> list[str]:
+    """从 body / path / metadata 抽 ≥ 5 keywords (启发式, 无 AI 调用).
+
+    规则:
+    1. path 文件名 stem (`auth_middleware.py` → `auth_middleware`)
+    2. project metadata: repo / org / host
+    3. body 内代码标识符 (优先 fenced code 内, 频次 top 5)
+    4. heading text top 3 (`## Foo Bar` → `Foo Bar`)
+    """
+    out: list[str] = []
+
+    # 1. path stem
+    if path:
+        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        if stem:
+            out.append(stem)
+
+    # 2. repo / org / host
+    for v in (repo, org, host):
+        if v and v not in out:
+            out.append(v)
+
+    # 3. 代码标识符: 优先 fenced code 内; 无 fence 则用全文剥 fence 后扫
+    fence_blocks = _CODE_FENCE_RE.findall(body or "")
+    if fence_blocks:
+        scan_text = "\n".join(fence_blocks)
+    else:
+        scan_text = _CODE_FENCE_RE.sub("", body or "")
+
+    idents: dict[str, int] = {}
+    for m in _IDENT_RE.finditer(scan_text):
+        tok = m.group(0)
+        idents[tok] = idents.get(tok, 0) + 1
+    for ident, _count in sorted(idents.items(), key=lambda x: -x[1])[:5]:
+        if ident not in out:
+            out.append(ident)
+
+    # 4. headings top 3
+    headings = re.findall(r"^#+\s+(.+?)\s*$", body or "", re.MULTILINE)
+    for h in headings[:3]:
+        h_clean = h.strip()
+        if h_clean and h_clean not in out and len(out) < 20:
+            out.append(h_clean)
+
+    return out[:20]
+
+
 # 记忆 L0-L4 层默认 importance / confidence (PR1 scoring.md §default)
 _L_LEVEL_DEFAULTS: dict[str, dict[str, float]] = {
     "L0": {"importance": 9.0, "confidence": 9.5},
@@ -359,6 +507,19 @@ def ingest_git(url: str, target: Path, dry_run: bool) -> dict:
                 )
             )
             body = f"# {rel}\n\n```\n{content}\n```\n"
+            aliases = extract_aliases(str(rel), "")
+            keywords = extract_keywords(
+                title=str(rel),
+                body=body,
+                path=str(rel),
+                host=host,
+                org=org,
+                repo=repo,
+            )
+            if aliases:
+                fm["aliases"] = aliases
+            if keywords:
+                fm["keywords"] = keywords
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_text(dump_fm(fm, body), encoding="utf-8")
             ingested.append(str(rel))
@@ -380,6 +541,20 @@ def ingest_git(url: str, target: Path, dry_run: bool) -> dict:
                     when_to_read_len=0,
                 )
             )
+            idx_title = f"{org}/{repo}"
+            idx_aliases = extract_aliases(idx_title, "")
+            idx_keywords = extract_keywords(
+                title=idx_title,
+                body="",
+                path="_index.md",
+                host=host,
+                org=org,
+                repo=repo,
+            )
+            if idx_aliases:
+                idx_fm["aliases"] = idx_aliases
+            if idx_keywords:
+                idx_fm["keywords"] = idx_keywords
             idx.write_text(
                 dump_fm(
                     idx_fm,
@@ -551,6 +726,17 @@ def ingest_website(url: str, target: Path, depth: int, dry_run: bool) -> dict:
                 when_to_read_len=0,
             )
         )
+        page_aliases = extract_aliases(page_slug, "")
+        page_keywords = extract_keywords(
+            title=page_slug,
+            body=masked,
+            path=f"{page_slug}.md",
+            host=page_host,
+        )
+        if page_aliases:
+            fm["aliases"] = page_aliases
+        if page_keywords:
+            fm["keywords"] = page_keywords
         dest.write_text(dump_fm(fm, masked), encoding="utf-8")
         ingested.append(page_url)
 

@@ -40,6 +40,8 @@ from lib.lock import file_lock  # noqa: E402
 from lib.remote import (  # noqa: E402
     compute_initial_scores,
     compute_memory_scores,
+    extract_aliases,
+    extract_keywords,
 )
 from lib.vault_path import resolve_vault  # noqa: E402
 from lib.wikilinks import add_block_ids, slugify  # noqa: E402
@@ -296,6 +298,8 @@ def _save_internal(
     source_credibility: float | None = None,
     importance: float | None = None,
     maturity: str | None = None,
+    aliases_override: list[str] | None = None,
+    keywords_override: list[str] | None = None,
 ) -> dict:
     """Shared write pipeline reused by handle_save and ingest tools.
 
@@ -393,6 +397,28 @@ def _save_internal(
             mem_scores["confidence"] = max(0.0, min(10.0, float(confidence)))
         fm.update(mem_scores)
 
+    # PR3 P4: aliases / keywords 召回率字段 (知识库 kind 才写)
+    if kind in _KB_KINDS:
+        if aliases_override is not None:
+            ali = [a.strip() for a in aliases_override if a and a.strip()]
+        else:
+            ali = extract_aliases(title or "", "")
+        if keywords_override is not None:
+            kws = [k.strip() for k in keywords_override if k and k.strip()]
+        else:
+            kws = extract_keywords(
+                title=title or "",
+                body=masked_body,
+                path=str(target),
+                host=host or "",
+                org=org or "",
+                repo=repo or "",
+            )
+        if ali:
+            fm["aliases"] = ali
+        if kws:
+            fm["keywords"] = kws
+
     # 强制 tags ≥ 10 (严禁占位符): 派生 fm + 正文派生
     fm["tags"] = _derive_tags(fm, masked_body)
     content = fm_dump(
@@ -436,6 +462,8 @@ def cli_save(args: dict) -> dict:
         source_credibility=args.get("source_credibility"),
         importance=args.get("importance"),
         maturity=args.get("maturity"),
+        aliases_override=args.get("aliases_override"),
+        keywords_override=args.get("keywords_override"),
     )
 
 
@@ -537,6 +565,16 @@ def main() -> None:
         choices=["draft", "review", "stable", "deprecated"],
         help="maturity enum (override AI 自评)",
     )
+    parser.add_argument(
+        "--aliases",
+        default=None,
+        help="逗号分隔 aliases (override AI 自抽; 不传则自动抽 ≥ 3)",
+    )
+    parser.add_argument(
+        "--keywords",
+        default=None,
+        help="逗号分隔 keywords (override AI 自抽; 不传则自动抽 ≥ 5)",
+    )
     ns = parser.parse_args()
     body = ns.body if ns.body is not None else sys.stdin.read()
     tags = [t.strip() for t in ns.tags.split(",") if t.strip()] if ns.tags else []
@@ -560,6 +598,16 @@ def main() -> None:
             "source_credibility": ns.source_credibility,
             "importance": ns.importance,
             "maturity": ns.maturity,
+            "aliases_override": (
+                [a.strip() for a in ns.aliases.split(",") if a.strip()]
+                if ns.aliases is not None
+                else None
+            ),
+            "keywords_override": (
+                [k.strip() for k in ns.keywords.split(",") if k.strip()]
+                if ns.keywords is not None
+                else None
+            ),
         }
     )
     print(json.dumps(result, ensure_ascii=False))
