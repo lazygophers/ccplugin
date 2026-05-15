@@ -18,6 +18,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 # Allow `python3 digest.py` invocation: add this dir to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -27,6 +28,7 @@ from lib.evolution import (  # noqa: E402
     extract_patterns,
     generate_proposals,
     scan_sessions,
+    update_doc_scores,
     write_patterns_md,
 )
 from lib.vault_path import resolve_vault  # noqa: E402
@@ -54,7 +56,38 @@ def _cmd_evolution(args: argparse.Namespace) -> int:
     added, updated = write_patterns_md(patterns, vault, dry_run=args.dry_run)
     proposals = generate_proposals(patterns, vault, dry_run=args.dry_run)
 
-    result = {
+    score_updates: dict[str, Any] | None = None
+    if args.update_scores:
+        score_results: list[dict[str, Any]] = []
+        for md in vault.rglob("*.md"):
+            try:
+                rel = md.relative_to(vault)
+            except ValueError:
+                continue
+            rel_str = str(rel).replace("\\", "/")
+            if not (
+                rel_str.startswith("知识库/")
+                or rel_str.startswith("记忆/L0-")
+                or rel_str.startswith("记忆/L1-")
+                or rel_str.startswith("记忆/L2-")
+                or rel_str.startswith("记忆/L3-")
+            ):
+                continue
+            r = update_doc_scores(
+                rel_str,
+                vault,
+                lookback_days=args.lookback_days,
+                dry_run=args.dry_run,
+            )
+            if r.get("applied") or args.dry_run:
+                score_results.append(r)
+        score_updates = {
+            "scanned": len(score_results),
+            "applied": sum(1 for r in score_results if r.get("applied")),
+            "samples": score_results[:5],
+        }
+
+    result: dict[str, Any] = {
         "vault": str(vault),
         "lookback_days": args.lookback_days,
         "dry_run": bool(args.dry_run),
@@ -64,6 +97,8 @@ def _cmd_evolution(args: argparse.Namespace) -> int:
         "patterns_updated": updated,
         "proposals_generated": proposals,
     }
+    if score_updates is not None:
+        result["score_updates"] = score_updates
     indent = None if args.compact else 2
     print(json.dumps(result, ensure_ascii=False, indent=indent))
     return 0
@@ -88,6 +123,14 @@ def main(argv: list[str] | None = None) -> int:
     p_evo.add_argument("--json", action="store_true", default=True, help="JSON 输出 (默认开)")
     p_evo.add_argument("--compact", action="store_true", help="compact JSON (单行)")
     p_evo.add_argument("--dry-run", action="store_true", help="仅扫不写盘")
+    p_evo.add_argument(
+        "--update-scores", dest="update_scores", action="store_true", default=True,
+        help="跑 update_doc_scores 双路调整 importance/confidence (默认开)",
+    )
+    p_evo.add_argument(
+        "--no-update-scores", dest="update_scores", action="store_false",
+        help="跳过双路评分调整",
+    )
     p_evo.set_defaults(func=_cmd_evolution)
 
     args = parser.parse_args(argv)

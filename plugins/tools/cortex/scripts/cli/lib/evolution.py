@@ -9,11 +9,21 @@ from __future__ import annotations
 import datetime as _dt
 import hashlib
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+# Allow importing frontmatter helper when module is used directly.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+try:
+    from lib.frontmatter import dump as _fm_dump  # type: ignore
+    from lib.frontmatter import parse as _fm_parse  # type: ignore
+except ImportError:  # pragma: no cover
+    from frontmatter import dump as _fm_dump  # type: ignore
+    from frontmatter import parse as _fm_parse  # type: ignore
 
 # ----- 硬编码常量 (D4) ----------------------------------------------------
 
@@ -487,3 +497,175 @@ def generate_proposals(
         except OSError as e:
             print(f"warn: write proposal {rel} failed: {e}", file=sys.stderr)
     return generated
+
+
+# ----- 双路评分更新 (PR4) ------------------------------------------------
+
+_NEGATIVE_TOKENS = (
+    "不对", "错了", "应该是", "不是", "改成",
+    "wrong", "incorrect", "that's not",
+)
+_POSITIVE_TOKENS = (
+    "对的", "正确", "很好", "exactly", "correct", "right",
+)
+
+
+def _coerce_float(v: Any, default: float = 0.0) -> float:
+    if isinstance(v, bool):
+        return default
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v.strip())
+        except (ValueError, AttributeError):
+            return default
+    return default
+
+
+def _scan_session_mentions(
+    doc_path: str,
+    sessions_dir: Path,
+    lookback_days: int = 7,
+) -> tuple[int, list[str], list[str]]:
+    """扫 sessions/*.jsonl 找 doc_path 提及.
+
+    Returns (mention_count, negative_session_files, positive_session_files).
+    """
+    if not sessions_dir.exists() or not sessions_dir.is_dir():
+        return (0, [], [])
+
+    cutoff = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=lookback_days)
+    doc_basename = Path(doc_path).stem
+
+    mentions = 0
+    neg_sessions: list[str] = []
+    pos_sessions: list[str] = []
+
+    for jsonl in sessions_dir.rglob("*.jsonl"):
+        try:
+            mtime = _dt.datetime.fromtimestamp(
+                jsonl.stat().st_mtime, tz=_dt.timezone.utc,
+            )
+        except OSError:
+            continue
+        if mtime < cutoff:
+            continue
+
+        try:
+            text = jsonl.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+
+        if doc_path in text or f"[[{doc_basename}" in text:
+            mentions += 1
+            if any(tok in text for tok in _NEGATIVE_TOKENS):
+                neg_sessions.append(jsonl.name)
+            if any(tok in text for tok in _POSITIVE_TOKENS):
+                pos_sessions.append(jsonl.name)
+
+    return (mentions, neg_sessions, pos_sessions)
+
+
+def _count_vault_backlinks(doc_path: str, vault: Path) -> int:
+    """count .md files in vault containing `[[<doc_basename>` (excluding self)."""
+    doc_basename = Path(doc_path).stem
+    pattern = re.compile(re.escape(f"[[{doc_basename}"))
+    self_resolved: Path | None
+    try:
+        self_resolved = (vault / doc_path).resolve()
+    except OSError:
+        self_resolved = None
+    count = 0
+    for md in vault.rglob("*.md"):
+        try:
+            if self_resolved is not None and md.resolve() == self_resolved:
+                continue
+        except OSError:
+            pass
+        try:
+            content = md.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if pattern.search(content):
+            count += 1
+    return count
+
+
+def update_doc_scores(
+    doc_path: str,
+    vault: Path,
+    sessions_dir: Path | None = None,
+    lookback_days: int = 7,
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """digest 跑时双路更新单 .md frontmatter 评分 (importance / confidence).
+
+    使用信号: mentions (sessions/jsonl) + backlinks (vault .md) → importance ↑
+              自然衰减: 每周 -0.1
+    反馈信号: 正/负反馈语 + doc 同会话出现 → confidence ↑/↓
+
+    Returns dict with old/new scores + signal counts + applied flag.
+    """
+    if sessions_dir is None:
+        sessions_dir = vault / "记忆" / "L4-流水账" / "sessions"
+
+    abs_path = vault / doc_path
+    if not abs_path.exists() or not abs_path.is_file():
+        return {"path": doc_path, "error": "not_found"}
+
+    try:
+        content = abs_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError as e:
+        return {"path": doc_path, "error": f"read_error: {e}"}
+
+    fm, body = _fm_parse(content)
+    if not fm:
+        return {"path": doc_path, "error": "no_frontmatter"}
+
+    old_importance = _coerce_float(fm.get("importance"), 0.0)
+    old_confidence = _coerce_float(fm.get("confidence"), 0.0)
+
+    mentions, neg_sessions, pos_sessions = _scan_session_mentions(
+        doc_path, sessions_dir, lookback_days,
+    )
+    backlinks = _count_vault_backlinks(doc_path, vault)
+
+    importance_delta = math.log10(mentions + backlinks + 1) - 0.1
+    new_importance = max(0.0, min(10.0, old_importance + importance_delta))
+
+    confidence_delta = len(pos_sessions) * 0.5 - len(neg_sessions) * 1.0
+    new_confidence = max(0.0, min(10.0, old_confidence + confidence_delta))
+
+    new_importance_r = round(new_importance, 2)
+    new_confidence_r = round(new_confidence, 2)
+    old_importance_r = round(old_importance, 2)
+    old_confidence_r = round(old_confidence, 2)
+
+    result: dict[str, Any] = {
+        "path": doc_path,
+        "old_importance": old_importance_r,
+        "new_importance": new_importance_r,
+        "old_confidence": old_confidence_r,
+        "new_confidence": new_confidence_r,
+        "mentions": mentions,
+        "backlinks": backlinks,
+        "negative_signals": len(neg_sessions),
+        "positive_signals": len(pos_sessions),
+        "applied": False,
+    }
+
+    changed = (
+        new_importance_r != old_importance_r
+        or new_confidence_r != old_confidence_r
+    )
+    if not dry_run and changed:
+        fm["importance"] = new_importance_r
+        fm["confidence"] = new_confidence_r
+        try:
+            new_content = _fm_dump(fm, body)
+            abs_path.write_text(new_content, encoding="utf-8")
+            result["applied"] = True
+        except OSError as e:
+            result["error"] = f"write_error: {e}"
+    return result
