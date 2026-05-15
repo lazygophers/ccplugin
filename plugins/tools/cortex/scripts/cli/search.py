@@ -1,6 +1,15 @@
-"""`cortex_search` MCP tool — multi-level fallback search over the vault.
+"""`cortex_search` CLI — multi-level fallback search over the vault.
 
-Fallback order:
+Position in the wider search hierarchy (see `cortex-search` SKILL.md):
+
+- L1/L2 (AI-facing): `mcp__obsidian__obsidian_simple_search` /
+  `mcp__obsidian__obsidian_complex_search` — handled by the model, not here.
+- **L3 (this CLI)**: invoked via `~/.cortex/scripts/search.sh` when MCP is
+  unreachable. This CLI **cannot** call MCP itself (no protocol bridge from a
+  Python subprocess), so it stays in the disk/REST fallback layer.
+- L4: `rg` — last-ditch, also model-driven outside this CLI.
+
+Internal fallback order (this CLI only):
 
 1. `hot.md` grep — fast cache of recently-touched notes.
 2. `index.md` grep — long-lived registry of canonical entries.

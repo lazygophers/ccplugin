@@ -1,6 +1,6 @@
 ---
 name: cortex-search
-description: 在 vault 搜索并综合答复 — 五级回退 (hot/index/SC/MCP/rg), 附引用; 支持 --lang。Triggers on "查知识库", "搜知识库".
+description: 在 vault 搜索并综合答复 — MCP first 四级 (mcp simple/complex → hot.md/index.md → search.sh → rg), 附引用; 支持 --lang。Triggers on "查知识库", "搜知识库".
 allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidian__obsidian_complex_search mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_batch_get_file_contents mcp__obsidian__obsidian_list_files_in_dir
 ---
 
@@ -8,10 +8,16 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 
 向 Obsidian vault 提问, 综合答复并附引用 (file:line + `obsidian://` URI)。
 
-## 调用优先级 (P1)
+## 调用优先级 (与 AGENT.md §1 硬契约对齐)
 
-1. **优先**: `bash ~/.cortex/scripts/search.sh --query "<q>" [--scope <glob>] [--limit N]` — 结构化 JSON 输出 (stdout), schema 稳定, 自动跑 hot → index → SC → rg 回退
-2. **回退**: 下述 L1-L5 (CLI / Smart Connections / mcp\_\_obsidian / rg) — CLI 不可达时
+AI 主线必须按下面 L1→L4 顺序尝试, **L1/L2 是 MCP first, 不可跳过**:
+
+1. **L1**: `mcp__obsidian__obsidian_simple_search` — 首选, 调 Obsidian 内置 search engine (索引 frontmatter + 正文 + tags)
+2. **L2**: `mcp__obsidian__obsidian_complex_search` — JsonLogic 复杂查询 (按 path / tag / frontmatter 过滤)
+3. **L3 fallback**: `bash ~/.cortex/scripts/search.sh --query "<q>"` — MCP 不可达时退化, CLI 内部跑 hot/index/SC/rg
+4. **L4 兜底**: `rg` — L3 也失败时
+
+CLI 用户操作可直接调 search.sh (结构化 JSON 输出, schema 稳定); AI 不应直接跳 L3。
 
 ## 触发场景
 
@@ -25,69 +31,83 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidia
 - 可选: `--scope <path-glob>` 限定子目录 (默认全 vault, 仍排除 `_meta/` `_templates/` `.obsidian/`)
 - 可选: `--top-k <N>` 语义近邻数 (默认 10)
 
-## 流程 (按 prd §10.7 三级回退)
+## 四级回退 (MCP first 对齐 AGENT.md §1)
 
-1. **解析 vault**
+### L1 — `mcp__obsidian__obsidian_simple_search` (首选)
 
-   ```bash
-   VAULT="$(bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/_lib/resolve_vault.sh)"
-   ```
+```python
+mcp__obsidian__obsidian_simple_search(
+    query="<关键词>",
+    context_length=200,
+)
+```
 
-   失败 → 提示用户配 `OBSIDIAN_VAULT` 后退出。
+- 直接调 Obsidian 内置 search engine, 索引 frontmatter + 正文 + tags
+- 返 hits 含 path / context 段落
+- 命中阈值: ≥ 1 hit 即视为成功, 综合答复并跳到 "综合答复" 段
+- 失败原因 (MCP 不可达 / Obsidian Local REST API 27123/27124 不通) → 走 L2 仍可能成功; L1/L2 都失败才走 L3
 
-2. **L1 — hot.md 优先**
-   - 读 `<vault>/hot.md`
-   - 若 `## 最近落档` 段中有 wikilink 标题与 query 关键词重合 (≥1 实词命中) → 直接读这些条目, 综合答, 跳到 step 7
-   - 命中阈值低 → 继续 L2
+### L2 — `mcp__obsidian__obsidian_complex_search` (复杂查询)
 
-3. **L2 — index.md 关键词**
-   - 读 `<vault>/index.md`, 简单关键词匹配 (case-insensitive)
-   - 命中条目 ≥3 → 读它们, 综合答, 跳 step 7
+```python
+mcp__obsidian__obsidian_complex_search(
+    query={
+        "and": [
+            {"glob": ["知识库/项目/<host>/<org>/<repo>/**/*.md", {"var": "path"}]},
+            {"in": ["<keyword>", {"var": "content"}]}
+        ]
+    }
+)
+```
 
-4. **L3 — Smart Connections REST 语义检索 (research/03 §B.SC)**
+- JsonLogic 语法, 支持按 path / tag / frontmatter 字段过滤
+- 用于: 限项目内搜 / 按 tag 找 / 按 score ≥ N 过滤
+- Tag filter 写法见下方 "Tag filter" 节
 
-   ```bash
-   curl -sf -m 2 http://127.0.0.1:27124/embeddings/info >/dev/null && SC_OK=1 || SC_OK=0
-   ```
+### L3 — `bash ~/.cortex/scripts/search.sh` (CLI fallback)
 
-   - 可达 (`SC_OK=1`) → POST `/search`:
+**仅 L1/L2 MCP 不可达时调用**。CLI 内部走 hot.md → index.md → Smart Connections REST → ripgrep 四级 (实现见 `scripts/cli/search.py`):
 
-     ```bash
-     curl -sf -m 5 -X POST http://127.0.0.1:27124/search \
-       -H 'Content-Type: application/json' \
-       -d "{\"query\":\"<query>\",\"top_k\":10}" 2>/dev/null
-     ```
+```bash
+bash ~/.cortex/scripts/search.sh --query "<keyword>" [--scope <all|concepts|domains|log>] [--limit N]
+```
 
-   - 拿 top-K paths → `mcp__obsidian__obsidian_batch_get_file_contents` 读内容
-   - **不要硬编码模型名** — 模型版本由 `/embeddings/info` 自带
+- scope 默认 `all`; 限项目内: `--scope domains`
+- 输出: 结构化 JSON (stdout), schema `[{path, title, snippet, score, source}, ...]`
+- AI 解析 JSON 后读取 top hits 综合答复
 
-5. **L4 — MCP simple_search**
+### L4 — `ripgrep` (最后兜底)
 
-   ```text
-   mcp__obsidian__obsidian_simple_search(query="<query>", context_length=50)
-   ```
+L3 也失败时调用. AI 直接跑:
 
-   - 拿到匹配文件 + 上下文片段 → 综合时直接用片段 (省一次 read)
+```bash
+rg --type md -n -C 2 --max-count 5 -i "<pattern>" "$VAULT/知识库/" \
+   --glob '!_meta/**' --glob '!_templates/**' --glob '!.obsidian/**'
+```
 
-6. **L5 — ripgrep 兜底**
+- 仅关键词正则匹配, 无语义
+- 关键词转 OR 正则 (`a|b|c`)
 
-   ```bash
-   rg --type md -n -C 2 --max-count 5 -i "<pattern>" "$VAULT" \
-      --glob '!_meta/**' --glob '!_templates/**' --glob '!.obsidian/**'
-   ```
+### 解析 vault
 
-   - L4 也无结果时启用; 关键词转换为 OR 正则 (`a|b|c`)
+```bash
+VAULT="$(bash ~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/_lib/resolve_vault.sh)"
+```
 
-7. **综合答复**
-   - 引用源: 每条用 `[[<rel-path>]]` + 行号 (从 simple_search context 或 ripgrep `:line:`)
-   - 提供 `obsidian://open?vault=<name>&file=<rel>` 可点击 URI (URL-encode 路径)
-   - **不超过 3 段** — 简明优先, 长答让用户追问
-   - 标注 confidence: 高 (L1/L2 直读) / 中 (L3 语义) / 低 (L4/L5 关键词)
+L3/L4 需要 VAULT 路径; L1/L2 走 MCP 不需要 (Obsidian 自管 vault)。
 
-8. **稀疏命中提示**
-   - 若 L3+L4+L5 总命中 < 3 且查询主题"看起来值得记" (含 "decision" / "architecture" / "config" / 中文 "决策" / "架构" 等) → 提示:
+### 综合答复
 
-     > 知识库里没找到相关内容。这次讨论结束后可用 `/cortex:save` 把要点落档。
+- 引用源: 每条用 `[[<rel-path>]]` + 行号 (从 simple_search context 或 ripgrep `:line:`)
+- 提供 `obsidian://open?vault=<name>&file=<rel>` 可点击 URI (URL-encode 路径)
+- **不超过 3 段** — 简明优先, 长答让用户追问
+- 标注 confidence: 高 (L1/L2 MCP 命中) / 中 (L3 hot.md/index.md/SC) / 低 (L3 rg / L4 rg)
+
+### 稀疏命中提示
+
+若 L1-L4 总命中 < 3 且查询主题"看起来值得记" (含 "decision" / "architecture" / "config" / 中文 "决策" / "架构" 等) → 提示:
+
+> 知识库里没找到相关内容。这次讨论结束后可用 `/cortex:save` 把要点落档。
 
 ## 不读 (硬性排除)
 
@@ -122,13 +142,13 @@ bash ~/.cortex/scripts/deep_search.sh --query "<q>" --mode hybrid --iter-max 3 -
 
 返回 JSON 含 `iterations`, `subgraph_expanded`, `degraded` (SC 不可达时 true)。
 
-回退: MCP 不可达时退回上面 L1-L5 流程。
+回退: MCP 不可达时退回上面 L1-L4 流程。
 
 ## 错误处理
 
 - vault 不存在 → 提示用户跑 `/cortex:install` 或配 `OBSIDIAN_VAULT`
-- L3-L5 全失败 → 仍输出 "无命中" 而不是抛错
-- ripgrep 缺失 → 跳过 L5, 报告但不阻断
+- L1-L4 全失败 → 仍输出 "无命中" 而不是抛错
+- ripgrep 缺失 → 跳过 L4, 报告但不阻断
 
 ## Tag filter
 
@@ -145,7 +165,8 @@ bash ~/.cortex/scripts/deep_search.sh --query "<q>" --mode hybrid --iter-max 3 -
 ## 不做
 
 - 不写 vault (查询专用)
-- 不调 `mcp__obsidian__obsidian_complex_search` 除非用户给了明确 dataview 表达式
+- 不跳过 L1/L2 MCP 直接调 L3 search.sh (除非 MCP 探活失败)
+- 不用 qmd MCP 或其他非 obsidian MCP 替代 (qmd 索引不全 cortex vault)
 
 ## AUTO_MODE 行为 (wrapper 调用)
 
