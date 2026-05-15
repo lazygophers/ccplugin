@@ -245,3 +245,48 @@ cortex-ingest 生成 `.base` 文件时 AI 受 vault md-native 惯性把 `.base` 
 自动 backup tar.gz 到 `/tmp/cortex-migration-backup-<YYYYMMDD-HHMMSS>.tar.gz` (用户手动 `tar xzf` 回滚)
 script: `plugins/tools/cortex/scripts/migrate/migrate_scores_to_v2.py` (335 行, ≤ 350)
 wrapper: `plugins/tools/cortex/scripts/migrate.sh` (58 行, ≤ 60)
+
+## P9 — search MCP first + 召回率提升 (2026-05-15)
+
+### 问题
+
+用户报 4 个 cortex 搜索 bug:
+
+- P1 AI 没先搜知识库 (hook 提示弱, 仅触发词命中时注入)
+- P2 用 bash search.sh 不用 mcp__obsidian__* (设计冲突: hook 推 bash, SKILL 把 MCP 排 L4)
+- P3 多 MCP 时用 qmd 而非 obsidian (AGENT 无 ranking, qmd description 更通用)
+- P4 召回率低 (frontmatter 不含搜索词具体短语, hot.md 仅项目根 stub)
+
+### 决策 (D1-D4)
+
+- D1 (P2): MCP first 推翻五级回退 — search.sh 仅作 L3 fallback (Obsidian 不可达时)
+- D2 (P3): 软提示 "优先 obsidian, 非 qmd", 不强制禁 (避免破坏其他 MCP 工作流)
+- D3 (P1): hook 每个 user prompt 都注入硬契约 (移除触发词限定), 触发词命中时额外加项目 hint
+- D4 (P4): ingest/save 自动抽 aliases (≥3) / keywords (≥5) frontmatter (启发式, 中英对 23 + 缩写 16)
+
+### 实现
+
+- hook `user_prompt_submit.sh` 每轮注入 MCP first + 禁忌段 (≤ 1200 字符 cap)
+- AGENT.md §1 升级硬契约 (L1=mcp_simple_search / L2=complex / L3=search.sh / L4=rg)
+- cortex-search SKILL 五级 → 四级 (砍 SC 独立, 保留在 search.sh CLI 内部)
+- `lib/remote.py` 加 `extract_aliases` (中英对 23 + 缩写 16) + `extract_keywords` (path stem / repo meta / 代码标识符 / heading)
+- ingest_git / website + save 落档自动写 aliases/keywords (空 list 不写, 保持 frontmatter 干净)
+- save CLI 加 `--aliases` / `--keywords` override flags
+
+### 资产变更
+
+- hook 提示 1 处 (user_prompt_submit.sh) 重写
+- AGENT.md §1 升级 + §P9 节
+- cortex-search SKILL.md 五级 → 四级
+- lib/remote.py 563 → 749 (+186, 加 aliases/keywords 启发式)
+- save.py 569 → 617 (+48, 加 override flags)
+- 测试基线 497 → 524 (+27)
+- 不动 lint 规则 (aliases/keywords 不强制, 仅 hot.md 索引优先选含此字段的页)
+- 不实现 hot.md 高分子页维护 (TODO 留下批)
+
+### 文档同步 (PR4)
+
+- docs/快速上手.md 加 §AI 搜索硬契约 + §召回率提升 (四级表 + aliases/keywords schema + CLI override)
+- docs/故障排查.md 加 3 节: MCP 不可达 / 召回率低 / qmd MCP 误用
+- AGENT.md 末尾加 §P9 简要
+- 本 memory §P9 节
