@@ -1,0 +1,5 @@
+{"file": "plugins/tools/cortex/README.md", "reason": "整体重写后逐项核 acceptance criteria"}
+{"file": "plugins/tools/cortex/docs/索引.md", "reason": "README 末尾索引列表与 docs/索引.md 一致"}
+{"file": "plugins/tools/cortex/docs/Skills 详解.md", "reason": "README skills 章触发词与 docs/ 一致"}
+{"file": "plugins/tools/cortex/docs/Agents.md", "reason": "README agents 章边界注与 docs/ 一致"}
+{"file": ".trellis/tasks/05-15-cortex-readme-user-guide/prd.md", "reason": "Acceptance Criteria 全打勾"}
