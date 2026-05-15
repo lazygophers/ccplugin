@@ -1,0 +1,11 @@
+{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "frontmatter / lint / wrapper 约定"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试 + ruff 质量门"}
+{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "资产计数 + L0-L4 记忆层 + vault 模型权威"}
+{"file": "plugins/tools/cortex/skills/cortex-ingest/references/extract.md", "reason": "§3 frontmatter schema 现有定义 (score 1-5 / maturity)"}
+{"file": "plugins/tools/cortex/skills/cortex-save/SKILL.md", "reason": "save 落档 frontmatter 写入逻辑"}
+{"file": "plugins/tools/cortex/scripts/lint/rules.json", "reason": "lint 规则注册位置 (20 现有)"}
+{"file": "plugins/tools/cortex/scripts/lint/run.py", "reason": "已有 check_base_format_yaml 模式参考 + yaml import"}
+{"file": "plugins/tools/cortex/scripts/cli/lib/remote.py", "reason": "ingest_remote 落每页位置, 加 compute_initial_scores"}
+{"file": "plugins/tools/cortex/scripts/cli/save.py", "reason": "save 落档写 frontmatter 位置"}
+{"file": "plugins/tools/cortex/scripts/cli/lib/evolution.py", "reason": "digest evolution 抽取 + patterns confidence 0-1 → 0-10 migration"}
+{"file": "plugins/tools/cortex/scripts/cli/refresh_projects.py", "reason": "refresh maturity 重评位置"}
