@@ -290,3 +290,36 @@ wrapper: `plugins/tools/cortex/scripts/migrate.sh` (58 行, ≤ 60)
 - docs/故障排查.md 加 3 节: MCP 不可达 / 召回率低 / qmd MCP 误用
 - AGENT.md 末尾加 §P9 简要
 - 本 memory §P9 节
+
+## P10 — hot.md 项目高分子页 + migration v3 (2026-05-15)
+
+### hot.md 维护 (PR1)
+
+save.py 落档时若 score ≥ 7.0 + maturity in (stable, review) + kind in (project, domain) → 入 hot.md `## 项目高分页面` 节:
+- `### <host/org/repo>` 子段, ≤ 3 / 项目
+- 行格式: `- [[wikilink]] (score: <N>, <maturity>)`
+- 同 wikilink 重复 → 去重 + 按 score desc 保留 top 3
+- 无 `## 项目高分页面` 节自动建
+
+实现: `scripts/cli/save.py` 内 `_HOT_PROJECT_SECTION` / `_HOT_PROJECT_MAX` / `_derive_project_key` / `_extract_score_from_line` / `_patch_hot_project_subpages`, `_save_internal` 末尾按条件调用。
+
+### Migration v3 (PR2)
+
+老 .md 缺 aliases/keywords frontmatter, migrate v3 启发式批量补:
+- 复用 `lib/remote.py` `extract_aliases` / `extract_keywords` (PR3 已落)
+- 不调 AI (启发式: 中英对 / 缩写 / path / idents / headings)
+- 目标: `知识库/项目/`, `知识库/领域/`, `知识库/日记/`, `记忆/L0-L3`
+- 跳过: `知识库/收件箱/`, `归档/`, `_meta/`, `_templates/`, `_assets/`, `.obsidian/`, `.trash/`, `记忆/L4-`
+- 命令: `bash ~/.cortex/scripts/migrate.sh --to=v3 [--dry-run]`
+- backup tar.gz: `/tmp/cortex-migration-backup-v3-<TS>.tar.gz`
+
+`migrate.sh` 现支持 `--to=v2` (scores 字段) + `--to=v3` (aliases/keywords)。
+
+### 资产变更
+
+- `scripts/cli/save.py` +127 行 (`_patch_hot_project_subpages` 等; PR1)
+- `scripts/migrate/migrate_aliases_keywords_to_v3.py` 新建 247 行
+- `scripts/migrate.sh` 58 → 70 行 (case 分发 v2/v3)
+- 测试基线 524 → 548 (PR1 +13 + PR2 +11)
+- 真 vault dry-run smoke: 685 scanned / 684 changed / 511 aliases / 684 keywords / 0 errors
+- 不动 lint 规则 (aliases/keywords 不强制, 跟 P9 决策一致)
