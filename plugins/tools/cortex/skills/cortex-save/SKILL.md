@@ -196,7 +196,7 @@ backlinks 回填: 2 处 ([[obsidian-hooks]] / [[claude-code-plugin]])
 
 ## Frontmatter 规范 (按目标目录)
 
-落档前调 cortex-schema `read <target-path>` 取该目录 schema, 按 required + defaults 自动填 frontmatter 和 tags_required (含 placeholder, 由 lint --fix 后续完善)。例:
+落档前调 cortex-lint 内联 schema 校验 (PR1: cortex-schema 已合入 cortex-lint) `read <target-path>` 取该目录 schema, 按 required + defaults 自动填 frontmatter 和 tags_required (含 placeholder, 由 lint --fix 后续完善)。例:
 
 - 落 知识库/项目/<host>/<org>/<repo>/_index.md → 自动加 type:project / host:<host> / org:<org> / repo:<repo> / tags:[type/project, host/<host>, org/<org>, repo/<repo>]
 - 落 记忆/L1-长期/procedural/<skill>.md → 自动加 level:L1 / tags:[memory/L1, memory/procedural]

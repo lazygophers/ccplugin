@@ -33,7 +33,7 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 | --- | --------------------- | -------- | ------------------------------------------------ |
 | 1   | fm-missing-type       | error    | ✓ (按目录推断)                                   |
 | 2   | fm-missing-created    | warn     | ✓ (用 mtime)                                     |
-| 3   | dead-wikilink         | error    | ✗ (建议 cortex-new 创建 stub)                    |
+| 3   | dead-wikilink         | error    | ✗ (建议 cortex-save 创建 stub)                   |
 | 4   | orphan-page           | warn     | ✗ (人工补 tag/链接)                              |
 | 5   | duplicate-alias       | error    | ✗ (人工合并)                                     |
 | 6   | hot-too-long          | warn     | ✓ (截断+落 归档/)                                |

@@ -80,7 +80,7 @@ python3 -c "import yaml; d = yaml.safe_load(open('<path>')); assert isinstance(d
 }
 ```
 
-复用 `skills/cortex-canvas/SKILL.md` 排版算法 — **ingest 内联调而非派 agent**。
+复用 `skills/cortex-dashboard/references/canvas.md` 排版算法 (PR1: cortex-canvas 已并入 cortex-dashboard, 详细拆分见 PR2) — **ingest 内联调而非派 agent**。
 
 ---
 

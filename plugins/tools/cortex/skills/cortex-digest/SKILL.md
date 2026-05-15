@@ -129,7 +129,7 @@ L4-流水账强制全清 (单向漏斗: promote/archive/delete), L3 > 90 天 wei
 |-------|------|------------|
 | L0 | 性格/价值观/硬约束, ≤1500c | 仅交叉参照, 永不改 |
 | L1 | 技能/稳定语义, ≤5000c | 仅 weight bump + append 新例证 |
-| L2 | 语义, ≤3000c, 365 天时效 | weight bump + append; 365 天衰减由 cortex-forget |
+| L2 | 语义, ≤3000c, 365 天时效 | weight bump + append; 365 天衰减由 cortex-memory forget 子流程 |
 | L3 | 情节, ≤2000c, 90 天时效 | append; 90d weight<0.3 删 |
 | L4 | ledger/sessions, single-pass | 全清 (promote/archive/delete) |
 

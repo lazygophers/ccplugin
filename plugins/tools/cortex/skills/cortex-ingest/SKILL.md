@@ -135,7 +135,7 @@ dead links (跑 /cortex:lint --fix): [[Nonexistent Page]] (在 [[...]] 提及)
 
 ## Source 类型路由 + Frontmatter
 
-按 URL/file 判定 source_kind: **repo (github/gitlab)** → `知识库/项目/<host>/<org>/<repo>/`;**本地项目** → 相对 `$HOME` 拆段 (不足 3 段补 `_local`), 同样落 项目/;**非 repo 来源 (网页/论文/书籍)** → `知识库/收件箱/<host>-<slug>.md` 等 digest 分发。调 cortex-schema `read <target-path>` 取 schema 填 frontmatter, 加 tags_required。例:
+按 URL/file 判定 source_kind: **repo (github/gitlab)** → `知识库/项目/<host>/<org>/<repo>/`;**本地项目** → 相对 `$HOME` 拆段 (不足 3 段补 `_local`), 同样落 项目/;**非 repo 来源 (网页/论文/书籍)** → `知识库/收件箱/<host>-<slug>.md` 等 digest 分发。调 cortex-lint 内联 schema 校验 (PR1: cortex-schema 已合入 cortex-lint) `read <target-path>` 取 schema 填 frontmatter, 加 tags_required。例:
 
 - GitHub/GitLab URL → 项目/<host>/<org>/<repo>/_index.md, tags: `[type/project, host/<host>, org/<org>, repo/<repo>]`
 - 本地 `~/persons/lyxamour/ccplugin/` → 项目/persons/lyxamour/ccplugin/_index.md, source_url: `file://$HOME/...`

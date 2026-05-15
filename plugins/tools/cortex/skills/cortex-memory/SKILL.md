@@ -1,6 +1,6 @@
 ---
 name: cortex-memory
-description: 记忆 CRUD — URI 寻址 (L0-L4) + frontmatter 版本控制。触发: "记忆写入" / "memory write" / "memory read" / "记忆更新" / "记忆删除"。
+description: 记忆 CRUD — URI 寻址 (L0-L4) + frontmatter 版本控制 + 遗忘扫描子流程。触发: "记忆写入" / "memory write" / "memory read" / "记忆更新" / "记忆删除" / "forget" / "遗忘".
 disable-model-invocation: false
 allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_list_files_in_dir mcp__obsidian__obsidian_append_content
 ---
@@ -9,9 +9,14 @@ allowed-tools: Bash Read Write Edit Glob mcp__obsidian__obsidian_get_file_conten
 
 通过 URI 对 `记忆/L0-L4` 下的记忆条目执行 CRUD; 维护 frontmatter (weight/recall_count/last_recalled/parents/children/uri/level)。
 
+## References (按需加载)
+
+- [`references/forget.md`](references/forget.md) — 遗忘扫描子流程 (原 cortex-forget skill 合入); 触发 `forget` / `遗忘` / `/cortex:forget` / daily cron 时走此子流程
+
 ## 触发场景
 - 用户/AI 显式要求写入/读取/更新/删除一条记忆 (含 URI 或描述)
-- 其他 skill (cortex-recall, cortex-digest, cortex-promote) 内部调用做读写
+- 其他 skill (cortex-search recall 子流程, cortex-digest, cortex-promote) 内部调用做读写
+- `/cortex:forget` slash / `forget.sh` wrapper / daily cron → 走 forget references
 
 ## 输入
 - verb: `read` / `write` / `update` / `delete`
@@ -39,7 +44,7 @@ L4://session/<cli>/<sid>      → 记忆/L4-流水账/sessions/<cli>/<YYYY-MM>/<
 1. 解析 URI → 文件路径
 2. 不存在 → 输出 `not found` + 候选 (Glob 同 level 目录 fuzzy match)
 3. 读 frontmatter + brief; --full 时附 full
-4. **不**更新 recall_count (该字段由 cortex-recall 维护, read 是直接寻址)
+4. **不**更新 recall_count (该字段由 cortex-search 的 recall 子流程维护, read 是直接寻址)
 
 ### write
 1. 解析 URI → 路径
@@ -58,7 +63,7 @@ L4://session/<cli>/<sid>      → 记忆/L4-流水账/sessions/<cli>/<YYYY-MM>/<
 2. 不存在 → 拒绝
 3. L0/L1 的 immutable_after_confirm 字段拒改 (uri/level/created)
 4. 允许改: weight, recall_when, brief, full, parents, children
-5. recall_count++, last_recalled=now (仅 cortex-recall 调用时)
+5. recall_count++, last_recalled=now (仅 cortex-search recall 子流程调用时)
 6. 写回, 保留 `created` 不变
 
 ### delete
@@ -98,7 +103,7 @@ write/update/delete 类似, 单行结果 + 落盘路径。
 
 ## 写入时 Frontmatter 自动填
 
-write level=L<N> 时, 调 cortex-schema `read 记忆/L<N>-<name>/` 取 schema, 自动填 uri/level/weight/recall_when/created, tags 含 memory/L<N> + memory/<type>。例:
+write level=L<N> 时, 调 cortex-lint 内联 schema 校验 (PR1: cortex-schema 已合入 cortex-lint) `read 记忆/L<N>-<name>/` 取 schema, 自动填 uri/level/weight/recall_when/created, tags 含 memory/L<N> + memory/<type>。例:
 
 - write `L1://procedural/git-flow` → frontmatter: uri / level:L1 / weight / recall_when / created, tags: [memory/L1, memory/procedural]
 - write `L2://semantic/go/goroutine` → frontmatter: 上述 + expires, tags: [memory/L2, memory/semantic]

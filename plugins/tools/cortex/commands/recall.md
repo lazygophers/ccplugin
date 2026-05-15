@@ -10,7 +10,7 @@ description: 渐进披露召回 query 相关记忆 — 无入参时列 top 10 ho
 
 1. 从 `~/.cortex/config.json` 读 vault
 2. **若 wrapper 无入参调用 (默认)**: 列 `hot.md` top 10 (按 recall_count + last_recalled 排序) + 各 level brief 计数
-3. 若有显式 args (query): 按 cortex-recall SKILL 流程多级回退 (hot → uri-index → semantic → rg)
+3. 若有显式 args (query): 加载 cortex-search SKILL 的 `references/memory-recall.md` 子流程 (PR1 合并: 原 cortex-recall skill 已并入 cortex-search) 多级回退 (hot → uri-index → semantic → rg)
    - 默认: `top_k=5`, `levels=L0,L1,L2,L3` (排除 L4 raw ledger)
 
 输出: brief + 子节点列表 (URI / weight / last_recalled)。

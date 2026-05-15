@@ -1,12 +1,16 @@
 ---
 name: cortex-search
-description: 在 vault 搜索并综合答复 — MCP first 四级 (mcp simple/complex → hot.md/index.md → search.sh → rg), 附引用; 支持 --lang。Triggers on "查知识库", "搜知识库".
+description: 在 vault 搜索并综合答复 — MCP first 四级 (mcp simple/complex → hot.md/index.md → search.sh → rg), 附引用; 含记忆召回子流程。Triggers on "查知识库", "搜知识库", "recall", "想想", "记得".
 allowed-tools: Bash Read Glob mcp__obsidian__obsidian_simple_search mcp__obsidian__obsidian_complex_search mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_batch_get_file_contents mcp__obsidian__obsidian_list_files_in_dir
 ---
 
 # cortex-search
 
 向 Obsidian vault 提问, 综合答复并附引用 (file:line + `obsidian://` URI)。
+
+## References (按需加载)
+
+- [`references/memory-recall.md`](references/memory-recall.md) — L0-L3 记忆渐进披露召回 (原 cortex-recall skill 合入); 触发 `recall` / `想想` / `记得` / `/cortex:recall` 时走此子流程
 
 ## 调用优先级 (与 AGENT.md §1 硬契约对齐)
 
