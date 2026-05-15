@@ -1,0 +1,2 @@
+{"file": "plugins/tools/cortex/install.sh", "reason": "bash -n 通过 + sync_codex_symlinks 函数存在 + 主流程调用 + --no-codex-sync flag + idempotent (二次跑全 keep)"}
+{"file": ".trellis/tasks/05-15-cortex-install-codex-symlinks/prd.md", "reason": "Acceptance Criteria 全打勾"}
