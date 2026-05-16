@@ -1,262 +1,142 @@
 ---
-description: "Python核心编码规范与工具链配置。涵盖PEP 8风格、命名约定、代码格式化、uv包管理、ruff检查。适用于编写Python代码、代码风格检查、格式化配置、项目初始化等场景。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: python-core
+description: Python 核心编码规范与工具链 — PEP 8 风格、命名约定、文件结构、uv 依赖管理、ruff lint/format。Use when 编写 Python 代码、初始化 Python 项目、配置 pyproject.toml、跑 lint/format、审查 Python 风格。Also triggers on "Python 规范"、"PEP 8 风格"、"uv init"、"ruff check"、"pyproject 配置"、"Python project setup"。
 ---
 
-# Python 核心规范
+# Python 核心规范 (2026)
 
-## 适用 Agents
+适用于 Python 3.13/3.14 项目。所有新建/修改的 .py 文件都应遵守。
 
-- **python:dev** - 开发阶段使用
-- **python:debug** - 调试时遵守
-- **python:test** - 测试代码规范
-- **python:perf** - 性能优化时保持规范
+## 工具链 (Astral 全家桶)
 
-## 相关 Skills
+- **uv** — 依赖与虚拟环境管理 (取代 pip / poetry / pyenv / virtualenv)
+- **ruff** — lint + format (取代 flake8 / black / isort / pylint)
+- **ty** (Beta, 2026) 或 **pyright** — 类型检查
+- **pytest** — 测试框架
+- 不要在新项目里引入 pip / poetry / black / isort / flake8
 
-- **Skills(python:types)** - 类型系统最佳实践
-- **Skills(python:async)** - 异步编程模式
-- **Skills(python:error)** - 错误处理和日志
-- **Skills(python:testing)** - 测试框架和策略
-- **Skills(python:web)** - Web 框架集成
+## 项目初始化
 
-## 核心原则（2025-2026 版本）
-
-### 1. Python 版本要求
-
-- **最低版本**：Python 3.14+（推荐）
-- **类型检查**：启用 Python 3.12+ PEP 695 泛型语法
-- **性能优化**：利用 Python 3.13 JIT 编译器
-
-### 2. 工具链标准（2025-2026）
-
-**包管理器**：
 ```bash
-# ✅ 优先使用 uv（速度提升 10-100 倍）
-uv init my-project
-uv add fastapi pydantic
-
-# ⚠️ 不推荐：pip（速度慢）
-# ⚠️ 可选：poetry（成熟但慢）
+uv init --package my-project
+cd my-project
+uv add fastapi pydantic httpx
+uv add --dev pytest pytest-cov ruff pyright
 ```
 
-**代码格式化和 Lint**：
-```bash
-# ✅ 推荐：ruff（替代 black + isort + flake8）
-ruff format .           # 格式化
-ruff check --fix .      # Lint 并自动修复
-
-# ❌ 已过时：black + isort + flake8 组合
-```
-
-**类型检查**：
-```bash
-# ✅ 推荐：mypy strict mode
-mypy --strict src/
-
-# ⚠️ 可选：pyright（VS Code 集成）
-```
-
-### 3. PEP 8 规范
-
-**必须遵守**：
-- ✅ 行长不超过 100 字符（ruff 默认）
-- ✅ 缩进使用 4 个空格
-- ✅ 使用 UTF-8 编码
-- ✅ import 语句分组：标准库 → 第三方 → 本地
-
-**禁止行为**：
-- ❌ 单字母变量名（除循环变量 `i`, `j`, `k`）
-- ❌ 过长的函数（>50 行）
-- ❌ 缺少类型提示
-- ❌ 缺少文档字符串
-
-### 4. 命名规范
-
-```python
-# 模块名：lowercase_with_underscores
-my_module.py
-
-# 包名：lowercase（避免下划线）
-mypackage/
-
-# 常量：UPPERCASE_WITH_UNDERSCORES
-MAX_RETRIES = 3
-DATABASE_URL = "postgresql://..."
-
-# 类名：PascalCase
-class UserManager:
-    pass
-
-class HTTPClient:  # 缩写保持大写
-    pass
-
-# 函数/方法：lowercase_with_underscores
-def calculate_total(items: list[int]) -> int:
-    pass
-
-# 私有成员：_leading_underscore
-def _internal_helper():
-    pass
-
-# 类型别名（Python 3.12+）
-type UserId = int
-type UserName = str
-```
-
-### 5. 文档字符串标准
-
-```python
-def calculate_average(numbers: list[float]) -> float:
-    """计算数字列表的平均值.
-
-    使用标准算术平均值公式：sum(numbers) / len(numbers)
-
-    Args:
-        numbers: 浮点数列表，不能为空.
-
-    Returns:
-        列表中所有数字的平均值.
-
-    Raises:
-        ValueError: 如果列表为空.
-
-    Example:
-        >>> calculate_average([1.0, 2.0, 3.0])
-        2.0
-    """
-    if not numbers:
-        raise ValueError("列表不能为空")
-    return sum(numbers) / len(numbers)
-```
-
-## Red Flags：AI 常见误区
-
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "这是临时代码，不需要遵循规范" | ✅ 是否所有代码都符合 PEP 8？ |
-| "变量名很明显，不需要类型注解" | ✅ 是否所有函数都有类型注解？ |
-| "这个函数很简单，不需要 docstring" | ✅ 是否所有公共函数都有 docstring？ |
-| "black 已经格式化过了" | ✅ 是否迁移到 ruff format？ |
-| "pip 安装很快" | ✅ 是否使用 uv 管理依赖？ |
-| "手动管理 import 顺序" | ✅ 是否使用 ruff 自动排序 import？ |
-
-## 工具链配置
-
-### pyproject.toml 最佳实践
+`pyproject.toml` 最小化配置:
 
 ```toml
 [project]
 name = "my-project"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = [
-    "fastapi[standard]>=0.115.0",
-    "pydantic>=2.9.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "pytest-cov>=5.0.0",
-    "mypy>=1.11.0",
-    "ruff>=0.6.0",
-]
 
 [tool.ruff]
-target-version = "py313"
 line-length = 100
+target-version = "py313"
 
 [tool.ruff.lint]
-select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "ANN",    # flake8-annotations（强制类型注解）
-]
+select = ["E", "F", "I", "B", "UP", "ANN", "SIM", "RUF"]
+ignore = ["ANN101", "ANN102"]
 
-ignore = [
-    "E501",   # line-too-long（交给 formatter 处理）
-    "ANN101", # missing-type-self
-]
-
-[tool.mypy]
-python_version = "3.13"
-strict = true
-warn_return_any = true
-disallow_untyped_defs = true
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
 ```
 
-## 质量检查工作流
+## 项目结构
 
-```bash
-# 1. 格式化代码
-ruff format .
+src layout 是默认选择 (隔离源码与测试, 防止 import 冲突):
 
-# 2. Lint 检查并自动修复
-ruff check --fix .
-
-# 3. 类型检查
-mypy src/
-
-# 4. 运行测试
-pytest --cov=src tests/
-
-# 5. 安全检查
-bandit -r src/
-safety check
-```
-
-## 项目结构标准
-
-```
+```text
 my-project/
-├── src/
-│   └── mypackage/
-│       ├── __init__.py
-│       ├── core.py
-│       ├── models.py
-│       └── utils.py
+├── src/mypackage/
+│   ├── __init__.py
+│   ├── core.py
+│   └── models.py
 ├── tests/
 │   ├── conftest.py
-│   ├── test_core.py
-│   └── test_models.py
-├── docs/
-│   └── api.md
+│   └── test_core.py
 ├── pyproject.toml
-├── uv.lock           # uv 锁文件
-├── README.md
-└── .gitignore
+└── uv.lock
 ```
 
-## 检查清单
+文件 ≤ 500 行 (推荐 200-400 行)。超出就拆模块。
 
-### 代码规范
-- [ ] 遵循 PEP 8 规范
-- [ ] 行长不超过 100 字符
-- [ ] 使用 4 个空格缩进
-- [ ] import 语句正确分组和排序
+## 命名约定 (PEP 8)
 
-### 类型和文档
-- [ ] 所有公共函数有类型注解
-- [ ] 所有公共函数有 docstring
-- [ ] docstring 包含 Args/Returns/Raises
-- [ ] 使用 Python 3.12+ 类型语法
+| 类别 | 风格 | 示例 |
+|------|------|------|
+| 模块/包 | `lowercase` 或 `lower_snake` | `user_service.py` |
+| 类/异常 | `CapWords` | `UserManager`, `HTTPClient` (缩写大写) |
+| 函数/变量 | `lower_snake_case` | `calculate_total`, `user_id` |
+| 常量 | `UPPER_SNAKE_CASE` | `MAX_RETRIES` |
+| 私有 | 前缀 `_` | `_internal_helper` |
+| 类型别名 (PEP 695) | `CapWords` | `type UserId = int` |
 
-### 工具链
-- [ ] 使用 uv 管理依赖
-- [ ] 使用 ruff format 格式化
-- [ ] 使用 ruff check 进行 lint
-- [ ] 使用 mypy --strict 类型检查
+## 代码格式
 
-### 安全性
-- [ ] 运行 bandit 安全检查
-- [ ] 运行 safety check 依赖漏洞检查
-- [ ] 没有硬编码的密钥或密码
+由 `ruff format` 自动处理:
+
+- 行长 100 (项目可调, 但全局一致)
+- 双引号字符串
+- import 顺序: 标准库 → 第三方 → 本地 (`ruff` 自动排序)
+- 函数顶层间 2 空行, 类方法间 1 空行
+- 不要手工对齐, 让 formatter 处理
+
+## 文档字符串 (Google 风格)
+
+公共 API 必须有 docstring。私有/内部函数仅在逻辑非显然时写。
+
+```python
+def calculate_average(numbers: list[float]) -> float:
+    """计算浮点数列表的算术平均值。
+
+    Args:
+        numbers: 非空浮点数列表。
+
+    Returns:
+        所有数字的算术平均值。
+
+    Raises:
+        ValueError: 当列表为空。
+    """
+    if not numbers:
+        raise ValueError("numbers cannot be empty")
+    return sum(numbers) / len(numbers)
+```
+
+注释只解释 WHY (设计动机), 不解释 WHAT (代码做了什么)。
+
+## 现代 Python 特性 (3.13+)
+
+优先使用:
+
+- `list[int]` / `dict[str, int]` / `tuple[int, ...]` (PEP 585, 不要 `List`/`Dict`)
+- `X | None` (PEP 604, 不要 `Optional[X]`)
+- `match` 语句替代多层 `if isinstance`
+- `type Alias = ...` (PEP 695) 替代 `TypeAlias`
+- f-string (日常) 或 t-string (PEP 750, 需要结构化处理时)
+- `@dataclass(slots=True)` 替代手写 `__init__`
+- 不要再写 `from __future__ import annotations` (PEP 649 默认延迟求值)
+
+## 质量门禁 (提交前)
+
+```bash
+uv run ruff check --fix .
+uv run ruff format .
+uv run pyright          # 或 ty check
+uv run pytest -q
+```
+
+CI 应同步跑这四条, 任一失败则阻断合并。
+
+## 反模式
+
+- 写 `from typing import List, Dict, Optional` (改用内置泛型 + `|`)
+- 用 `os.path` 操作路径 (改用 `pathlib.Path`)
+- 用 `print` 调试 (改用 logging / structlog, 见 `python-error`)
+- 用 `requests` 同步请求 (改用 `httpx`, 见 `python-async`)
+- 用 `setup.py` / `requirements.txt` (改用 `pyproject.toml` + `uv.lock`)
+- 全局 `try: ... except Exception:` (只捕获具体异常)

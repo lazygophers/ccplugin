@@ -1,30 +1,22 @@
 ---
-description: "C++ template metaprogramming: concepts, CTAD, fold expressions, constexpr/consteval, variable templates. Load when writing generic or compile-time code."
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: cpp-template
+description: |
+  C++ template metaprogramming with concepts (C++20), CTAD, fold expressions, variable
+  templates, constexpr / consteval / if consteval, deducing this (C++23), and C++26
+  static reflection. Use when writing generic libraries, compile-time computation,
+  type traits, or replacing SFINAE / enable_if / CRTP with modern equivalents.
+  Also triggers on "模板", "泛型", "concept", "requires", "CTAD", "fold expression",
+  "constexpr", "consteval", "deducing this", "CRTP", "SFINAE", "type traits",
+  "static reflection", "C++26 反射".
 ---
 
-# C++ Template Programming (C++20/23)
+# C++ 模板编程（C++20/23/26）
 
-## Applicable Agents
+模板必须用 concepts 约束。所有 SFINAE / `enable_if` / 自定义 traits-only 技巧应迁移到 concepts + `requires`。
 
-| Agent | When |
-|---|---|
-| Skills(cpp:dev) | Generic library design |
-| Skills(cpp:perf) | Compile-time optimization |
+## Concepts（C++20）— 强制使用
 
-## Related Skills
-
-| Scenario | Skill | Description |
-|---|---|---|
-| Core | Skills(cpp:core) | C++20/23 standards |
-| Performance | Skills(cpp:performance) | Compile-time computation |
-
-## Concepts (C++20) -- Always Use
-
-### Standard library concepts
+### 标准库 concepts
 
 ```cpp
 #include <concepts>
@@ -33,13 +25,16 @@ template<std::integral T>
 T gcd(T a, T b) { return b == 0 ? a : gcd(b, a % b); }
 
 template<std::floating_point T>
-T lerp(T a, T b, T t) { return a + t * (b - a); }
+T lerp(T a, T b, T t) noexcept { return a + t * (b - a); }
 
 template<std::ranges::range R>
-void process(R&& range) { /* ... */ }
+void process(R&& r) { for (auto&& x : r) handle(x); }
+
+template<std::invocable<int> F>
+void apply(F&& f, int x) { std::invoke(std::forward<F>(f), x); }
 ```
 
-### Custom concepts
+### 自定义 concepts
 
 ```cpp
 template<typename T>
@@ -51,162 +46,213 @@ concept Serializable = requires(T t, std::ostream& os) {
 template<typename T>
 concept Container = requires(T t) {
     typename T::value_type;
+    typename T::iterator;
     { t.begin() } -> std::input_or_output_iterator;
-    { t.end() } -> std::sentinel_for<decltype(t.begin())>;
-    { t.size() } -> std::convertible_to<std::size_t>;
+    { t.end()   } -> std::sentinel_for<decltype(t.begin())>;
+    { t.size()  } -> std::convertible_to<std::size_t>;
 };
 
 template<typename T>
 concept Numeric = std::integral<T> || std::floating_point<T>;
 
-// Compound concepts
+// 复合
 template<typename T>
-concept SerializableContainer = Container<T> && Serializable<T>;
+concept SerializableContainer = Container<T> && Serializable<typename T::value_type>;
 ```
 
-### Concept usage forms
+### 四种使用形式
 
 ```cpp
-// 1. Requires clause
-template<typename T> requires Numeric<T>
+// 1. 约束模板参数
+template<Numeric T>
 T add(T a, T b) { return a + b; }
 
-// 2. Abbreviated (preferred for simple cases)
-template<Numeric T>
-T multiply(T a, T b) { return a * b; }
+// 2. requires 子句
+template<typename T> requires Numeric<T>
+T mul(T a, T b) { return a * b; }
 
-// 3. Trailing requires
+// 3. 尾随 requires
 template<typename T>
-T divide(T a, T b) requires Numeric<T> { return a / b; }
+T sub(T a, T b) requires Numeric<T> { return a - b; }
 
-// 4. Auto with concept (terse syntax)
+// 4. 简写 auto
 Numeric auto square(Numeric auto x) { return x * x; }
 ```
 
-## CTAD (Class Template Argument Deduction)
+简单单约束用形式 1 或 4；多约束或复杂表达式用形式 2。
+
+## CTAD（类模板实参推导）
 
 ```cpp
-// Automatic deduction
-std::pair p{1, 3.14};           // pair<int, double>
-std::vector v{1, 2, 3};         // vector<int>
+std::pair p{1, 3.14};            // pair<int, double>
+std::vector v{1, 2, 3};          // vector<int>
 std::optional o{42};             // optional<int>
-std::tuple t{1, "hello", 3.14}; // tuple<int, const char*, double>
+std::tuple t{1, "hi", 3.14};     // tuple<int, const char*, double>
 
-// Custom deduction guide
+// 自定义推导指引
 template<typename T>
-struct Wrapper {
-    T value;
-};
+struct Wrapper { T value; };
+
 template<typename T>
 Wrapper(T) -> Wrapper<T>;
 
 Wrapper w{42};  // Wrapper<int>
 ```
 
-## Fold Expressions (C++17)
+## 折叠表达式（C++17）
 
 ```cpp
-// Unary folds
+// 一元右折叠
 template<typename... Args>
 auto sum(Args... args) { return (args + ...); }
 
 template<typename... Args>
 bool all(Args... args) { return (args && ...); }
 
+// 一元左折叠
+template<typename... Args>
+auto sum_left(Args... args) { return (... + args); }
+
+// 二元折叠（带初值）
+template<typename... Args>
+auto sum_init(Args... args) { return (0 + ... + args); }
+
+// 逗号折叠：对每参数执行动作
 template<typename... Args>
 void print_all(Args&&... args) {
-    (std::print("{} ", args), ...);
-    std::print("\n");
+    (std::print("{} ", std::forward<Args>(args)), ...);
+    std::println("");
 }
-
-// Binary fold with init
-template<typename... Args>
-auto sum_with_init(Args... args) { return (args + ... + 0); }
 ```
 
 ## constexpr / consteval / if consteval
 
 ```cpp
-// constexpr: may run at compile-time or runtime
+// constexpr：编译期或运行期均可
 constexpr int factorial(int n) {
-    int result = 1;
-    for (int i = 2; i <= n; ++i) result *= i;
-    return result;
+    int r = 1;
+    for (int i = 2; i <= n; ++i) r *= i;
+    return r;
 }
 static_assert(factorial(5) == 120);
 
-// consteval: must run at compile-time (C++20)
-consteval int compile_only(int n) {
-    return n * n;
-}
-constexpr int x = compile_only(5);  // OK: 25
-// int y = compile_only(runtime_val); // ERROR: not a constant
+// consteval：必须编译期（C++20）
+consteval int compile_only(int n) { return n * n; }
+constexpr int x = compile_only(5);  // OK
+// int y = compile_only(runtime_val);  // ERROR
 
-// if consteval: compile-time branch (C++23)
-constexpr int smart(int n) {
-    if consteval {
-        return heavy_computation(n);  // compile-time: optimize freely
-    } else {
-        return lookup_table[n];       // runtime: use cached result
-    }
+// if consteval：编译/运行双路径（C++23）
+constexpr double precise_sqrt(double);
+constexpr double fast_sqrt(double x) {
+    if consteval { return precise_sqrt(x); }
+    else         { return __builtin_sqrt(x); }
 }
 ```
 
-## Variable Templates
+## 变量模板
 
 ```cpp
 template<typename T>
 inline constexpr bool is_numeric_v = std::integral<T> || std::floating_point<T>;
 
-template<typename T>
-inline constexpr size_t cache_line_aligned_size =
-    (sizeof(T) + std::hardware_destructive_interference_size - 1)
-    / std::hardware_destructive_interference_size
-    * std::hardware_destructive_interference_size;
+template<std::floating_point T>
+inline constexpr T pi_v = static_cast<T>(3.14159265358979323846);
+
+constexpr auto pi = pi_v<double>;
 ```
 
-## Deducing This (C++23)
+## Deducing this（C++23）— 取代 CRTP
 
 ```cpp
-struct Widget {
-    // Deduce value category -- replaces CRTP for many cases
-    void process(this auto&& self) {
-        if constexpr (std::is_lvalue_reference_v<decltype(self)>) {
-            // lvalue: copy
-        } else {
-            // rvalue: move
-        }
+// 替代 CRTP 的递归 mixin
+struct Counter {
+    int count_ = 0;
+    template<typename Self>
+    auto&& bump(this Self&& self) {
+        ++self.count_;
+        return std::forward<Self>(self);
     }
+};
+auto x = Counter{}.bump().bump().bump();  // chain on rvalue
+auto& y = Counter{}.bump();               // chain to & if invoked on lvalue
 
-    // Recursive lambda
-    auto make_visitor() {
-        return [](this auto&& self, auto&& variant) {
-            std::visit(self, variant);
-        };
+// 递归 lambda
+auto fact = [](this auto&& self, int n) -> int {
+    return n <= 1 ? 1 : n * self(n - 1);
+};
+static_assert(decltype(fact){}(5) == 120);
+
+// 按值类别选择实现
+struct Buffer {
+    std::vector<int> data_;
+    template<typename Self>
+    auto&& data(this Self&& self) noexcept {
+        return std::forward<Self>(self).data_;
     }
 };
 ```
 
-## Red Flags
+## C++26 静态反射（实验，Clang 19+）
 
-| Rationalization | Actual Check |
-|---|---|
-| "SFINAE works fine" | Use concepts -- clearer errors, simpler code |
-| "Don't need constraints" | Constrain every template with a concept |
-| "Explicit types are fine" | Use CTAD where it improves readability |
-| "Runtime computation is ok" | Is constexpr/consteval applicable? |
-| "Macros for generics" | Use templates with concepts |
-| "enable_if is standard" | Use concepts and requires clauses |
+```cpp
+#include <experimental/meta>
 
-## Checklist
+template<typename T>
+constexpr auto field_count() {
+    return std::meta::nonstatic_data_members_of(^T).size();
+}
 
-- [ ] All templates constrained with concepts
-- [ ] Custom concepts for domain abstractions
-- [ ] CTAD used where it improves readability
-- [ ] Fold expressions for variadic templates
-- [ ] constexpr for compile-time-eligible functions
-- [ ] consteval for must-be-compile-time functions
-- [ ] if consteval for dual compile/runtime paths (C++23)
-- [ ] Deducing this for value-category-aware methods (C++23)
-- [ ] No SFINAE (replaced by concepts)
-- [ ] No enable_if (replaced by requires)
+struct Point { int x, y, z; };
+static_assert(field_count<Point>() == 3);
+
+// 字段名打印（草案语法）
+template<typename T>
+void dump(const T& obj) {
+    constexpr auto members = std::meta::nonstatic_data_members_of(^T);
+    [:expand(members):] >> [&]<auto m>() {
+        std::println("{} = {}", std::meta::name_of(m), obj.[:m:]);
+    };
+}
+```
+
+使用前必查 `__cpp_lib_reflection` feature-test 宏，并准备 fallback。
+
+## 替换旧技术
+
+| 旧技术 | 现代替代 |
+|--------|----------|
+| SFINAE `std::enable_if_t` | concepts + `requires` |
+| Type traits 拼接 | concepts |
+| CRTP for static polymorphism | Deducing this（C++23） |
+| 标签分发 (tag dispatch) | concepts overload |
+| 宏生成模板 | 变长模板 + 折叠 |
+| 类型擦除手写 | `std::function` / `std::any` / `std::variant` |
+
+## 红旗合理化
+
+| 借口 | 检查项 |
+|------|--------|
+| "SFINAE 我会写" | 是否换 concepts 提升错误信息？ |
+| "不用约束模板" | 模板是否被未来误用？错误信息是否可读？ |
+| "保留 CRTP" | 是否换 deducing this？ |
+| "运行期计算够用" | 常量是否可 constexpr/consteval？ |
+| "宏生成代码" | 是否用变长模板 + 折叠？ |
+| "`enable_if` 兼容旧编译器" | 项目 C++ 标准是否允许升级？ |
+
+## 检查清单
+
+- [ ] 所有模板用 concepts 约束
+- [ ] 领域抽象有自定义 concept
+- [ ] CTAD 用于显著提升可读性的场景
+- [ ] 变长归约用折叠表达式
+- [ ] 编译期函数用 constexpr；强制编译期用 consteval
+- [ ] 双路径用 `if consteval`
+- [ ] CRTP 已替换为 deducing this（C++23 项目）
+- [ ] 无 SFINAE / `std::enable_if`
+
+## 权威参考
+
+- cppreference concepts — <https://en.cppreference.com/w/cpp/concepts>
+- C++ Templates: The Complete Guide (Vandevoorde et al.)
+- P0847 Deducing this — <https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p0847r7.html>
+- C++26 反射 (P2996) — <https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2996r5.html>

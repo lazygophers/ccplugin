@@ -6,17 +6,17 @@ Golang 插件提供九个核心技能，覆盖 Golang 开发的主要领域。
 
 | 技能 | 描述 | 自动激活 |
 |------|------|----------|
-| `core` | Golang 核心规范 | 始终激活 |
-| `error` | 错误处理规范 | 处理错误时 |
-| `libs` | 常用库规范 | 使用库时 |
-| `naming` | 命名规范 | 命名时 |
-| `structure` | 项目结构规范 | 创建项目时 |
-| `testing` | 测试策略 | 编写测试时 |
-| `concurrency` | 并发编程规范 | 并发代码时 |
-| `lint` | Lint 规范 | 代码检查时 |
-| `tooling` | 工具链规范 | 使用工具时 |
+| `golang-core` | Golang 核心规范 | 始终激活 |
+| `golang-error` | 错误处理规范 | 处理错误时 |
+| `golang-libs` | 常用库规范 | 使用库时 |
+| `golang-naming` | 命名规范 | 命名时 |
+| `golang-structure` | 项目结构规范 | 创建项目时 |
+| `golang-testing` | 测试策略 | 编写测试时 |
+| `golang-concurrency` | 并发编程规范 | 并发代码时 |
+| `golang-lint` | Lint 规范 | 代码检查时 |
+| `golang-tooling` | 工具链规范 | 使用工具时 |
 
-## core - Golang 核心规范
+## golang-core - Golang 核心规范
 
 ### 编程规范
 
@@ -34,7 +34,7 @@ Golang 插件提供九个核心技能，覆盖 Golang 开发的主要领域。
 | 私有 | 小驼峰 | `myFunction` |
 | 常量 | 大驼峰或小驼峰 | `MaxSize` / `maxSize` |
 
-## error - 错误处理规范
+## golang-error - 错误处理规范
 
 ### 错误处理
 
@@ -73,7 +73,7 @@ func (e *AppError) Unwrap() error {
 }
 ```
 
-## libs - 常用库规范
+## golang-libs - 常用库规范
 
 ### 标准库优先
 
@@ -97,7 +97,7 @@ import (
 )
 ```
 
-## naming - 命名规范
+## golang-naming - 命名规范
 
 ### 包命名
 
@@ -127,7 +127,7 @@ type Handler interface {
 }
 ```
 
-## structure - 项目结构规范
+## golang-structure - 项目结构规范
 
 ### 标准结构
 
@@ -149,7 +149,7 @@ my-project/
 └── Makefile
 ```
 
-## testing - 测试策略
+## golang-testing - 测试策略
 
 ### 单元测试
 
@@ -175,7 +175,7 @@ func TestUserService_Create(t *testing.T) {
 }
 ```
 
-## concurrency - 并发编程规范
+## golang-concurrency - 并发编程规范
 
 ### Goroutine
 
@@ -206,7 +206,7 @@ close(ch)
 v, ok := <-ch
 ```
 
-## lint - Lint 规范
+## golang-lint - Lint 规范
 
 ### golangci-lint
 
@@ -223,7 +223,7 @@ linters:
     - typecheck
 ```
 
-## tooling - 工具链规范
+## golang-tooling - 工具链规范
 
 ### 常用命令
 

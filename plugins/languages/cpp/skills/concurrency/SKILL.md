@@ -1,95 +1,106 @@
 ---
-description: "C++ concurrency: jthread, coroutines, atomics, latch/barrier, parallel algorithms. Load when writing multithreading, async, or thread-safe code."
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: cpp-concurrency
+description: |
+  C++ concurrency with C++20/23/26 primitives: std::jthread, stop_token, scoped_lock,
+  latch / barrier, atomics with memory ordering, coroutines (task / generator),
+  parallel algorithms, std::execution senders/receivers, lock-free patterns, TSan.
+  Use when writing multithreaded, async, or thread-safe code, or diagnosing data races.
+  Also triggers on "多线程", "并发", "jthread", "stop_token", "协程", "coroutine",
+  "atomic", "memory_order", "data race", "TSan", "ThreadSanitizer", "lock-free",
+  "std::execution", "senders receivers".
 ---
 
-# C++ Concurrency (C++20/23)
+# C++ 并发编程（C++20/23/26）
 
-## Applicable Agents
+线程模型必须以现代 C++ 同步原语 + RAII 锁 + 工具诊断为基线。所有共享可变状态必须经 TSan 验证。
 
-| Agent | When |
-|---|---|
-| Skills(cpp:dev) | Concurrent architecture |
-| Skills(cpp:debug) | Data race diagnosis |
-| Skills(cpp:perf) | Parallel optimization |
-
-## Related Skills
-
-| Scenario | Skill | Description |
-|---|---|---|
-| Core | Skills(cpp:core) | C++20/23 standards |
-| Memory | Skills(cpp:memory) | Thread-safe ownership |
-| Performance | Skills(cpp:performance) | Lock-free, false sharing |
-
-## Threading: std::jthread (C++20)
+## 线程：std::jthread（C++20，默认）
 
 ```cpp
 #include <thread>
 #include <stop_token>
 
-// Auto-joining, cooperative cancellation
+// 自动 join + 协作式取消
 std::jthread worker([](std::stop_token st) {
     while (!st.stop_requested()) {
-        process_next_item();
+        if (!process_one()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
     }
 });
-// ~jthread requests stop and joins automatically
+// 析构时自动 request_stop() + join()
 ```
 
-## Synchronization Primitives
+禁用裸 `std::thread` 除非确需脱钩生命期。
 
-### std::scoped_lock (prefer over lock_guard)
+## 同步原语
+
+### std::scoped_lock（多锁安全）
 
 ```cpp
-std::mutex mtx_a, mtx_b;
-{
-    std::scoped_lock lock(mtx_a, mtx_b);  // deadlock-free multi-lock
-    // critical section
+std::mutex a_mtx, b_mtx;
+
+void transfer(Account& a, Account& b, int amount) {
+    std::scoped_lock lock(a_mtx, b_mtx);  // 死锁规避算法
+    a.balance -= amount;
+    b.balance += amount;
 }
 ```
 
-### std::latch (one-shot barrier, C++20)
+禁用 `std::lock_guard` 多锁场景。
+
+### std::latch / std::barrier（C++20）
 
 ```cpp
-std::latch done(worker_count);
+// latch：一次性倒计时
+std::latch ready(worker_count);
 for (size_t i = 0; i < worker_count; ++i) {
-    workers.emplace_back([&, i] {
-        do_work(i);
-        done.count_down();
+    pool.submit([&, i] { warmup(i); ready.count_down(); });
+}
+ready.wait();
+
+// barrier：可复用同步点 + 阶段完成回调
+std::barrier sync(worker_count, [] noexcept { swap_buffers(); });
+for (auto& w : workers) {
+    w = std::jthread([&](std::stop_token st) {
+        while (!st.stop_requested()) {
+            compute_phase();
+            sync.arrive_and_wait();
+        }
     });
 }
-done.wait();  // blocks until all workers finish
 ```
 
-### std::barrier (reusable, C++20)
+### std::condition_variable_any + stop_token
 
 ```cpp
-std::barrier sync(worker_count, [&]() noexcept {
-    // completion callback -- runs once per phase
-    swap_buffers();
-});
+std::mutex mtx;
+std::condition_variable_any cv;
+std::queue<Job> q;
 
-// Each worker:
-while (has_work()) {
-    process_phase();
-    sync.arrive_and_wait();
+void consumer(std::stop_token st) {
+    std::unique_lock lk(mtx);
+    while (cv.wait(lk, st, [&] { return !q.empty(); })) {
+        auto job = std::move(q.front()); q.pop();
+        lk.unlock();
+        run(job);
+        lk.lock();
+    }
 }
 ```
 
-## Atomics and Memory Ordering
+## 原子与内存序
 
 ```cpp
-// Default: sequential consistency (safe but slow)
 std::atomic<int> counter{0};
-counter.fetch_add(1);  // seq_cst by default
 
-// Relaxed: no ordering guarantees (counters, stats)
+// 默认 seq_cst：最严格，性能最差
+counter.fetch_add(1);
+
+// relaxed：仅原子性，无序保证（计数器、统计）
 counter.fetch_add(1, std::memory_order_relaxed);
 
-// Acquire-Release: producer-consumer pattern
+// release/acquire：生产消费同步
 std::atomic<bool> ready{false};
 int data = 0;
 
@@ -99,17 +110,19 @@ ready.store(true, std::memory_order_release);
 
 // Consumer
 while (!ready.load(std::memory_order_acquire)) {}
-assert(data == 42);  // guaranteed
+assert(data == 42);  // happens-before 保证
 
-// C++20: std::atomic_ref -- atomic on non-atomic variable
+// std::atomic_ref（C++20）：作用于非原子变量
 int value = 0;
 std::atomic_ref<int> ref(value);
 ref.fetch_add(1);
 ```
 
-## Coroutines (C++20)
+memory_order 选择决策必须在代码注释中说明 why。
 
-### std::generator (C++23)
+## 协程（C++20）
+
+### std::generator（C++23）
 
 ```cpp
 #include <generator>
@@ -119,67 +132,93 @@ std::generator<int> fibonacci() {
     while (true) {
         co_yield a;
         auto next = a + b;
-        a = b;
-        b = next;
+        a = b; b = next;
     }
 }
 
-for (int x : fibonacci()) {
-    if (x > 1000) break;
-    std::print("{} ", x);
-}
+for (int x : fibonacci() | std::views::take(10)) std::println("{}", x);
 ```
 
-### Task coroutine pattern
+### 简化 Task<T>（教学；生产用 cppcoro / stdexec）
 
 ```cpp
 template<typename T>
 struct Task {
     struct promise_type {
-        T value;
-        Task get_return_object() { return {std::coroutine_handle<promise_type>::from_promise(*this)}; }
-        std::suspend_always initial_suspend() { return {}; }
+        T value_{};
+        Task get_return_object() {
+            return Task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+        std::suspend_never initial_suspend() noexcept { return {}; }
         std::suspend_always final_suspend() noexcept { return {}; }
-        void return_value(T v) { value = std::move(v); }
+        void return_value(T v) { value_ = std::move(v); }
         void unhandled_exception() { std::terminate(); }
     };
     std::coroutine_handle<promise_type> handle;
+    ~Task() { if (handle) handle.destroy(); }
+    T result() { return std::move(handle.promise().value_); }
 };
 ```
 
-## Parallel Algorithms (C++17/20)
+生产代码优先选择成熟库（`cppcoro`, `folly::coro`, `unifex`, `stdexec`）。
+
+## std::execution（C++26 / stdexec）
+
+P2300 senders/receivers 是 C++26 的结构化并发框架。当前可用 `stdexec` 库（NVIDIA）。
+
+```cpp
+#include <stdexec/execution.hpp>
+#include <exec/static_thread_pool.hpp>
+
+namespace ex = stdexec;
+exec::static_thread_pool pool(4);
+auto sched = pool.get_scheduler();
+
+auto work = ex::schedule(sched)
+          | ex::then([] { return load_data(); })
+          | ex::then([](auto data) { return process(data); })
+          | ex::then([](auto result) { return save(result); });
+
+auto [result] = ex::sync_wait(std::move(work)).value();
+```
+
+C++26 标准化时切换到 `std::execution`。
+
+## 并行算法
 
 ```cpp
 #include <execution>
 #include <algorithm>
 
-std::vector<int> data(1'000'000);
+// 顺序 / 并行 / 并行+向量化
+std::sort(std::execution::par, v.begin(), v.end());
+std::transform_reduce(std::execution::par_unseq,
+                      v.begin(), v.end(), 0L, std::plus{}, [](int x) { return x*x; });
 
-// Sequential
-std::sort(std::execution::seq, data.begin(), data.end());
-
-// Parallel
-std::sort(std::execution::par, data.begin(), data.end());
-
-// Parallel + vectorized
-std::sort(std::execution::par_unseq, data.begin(), data.end());
-
-// Parallel reduce
-auto sum = std::reduce(std::execution::par, data.begin(), data.end(), 0L);
+// C++26（提案）：ranges 版并行
+// std::ranges::sort(std::execution::par_unseq, v);
 ```
 
-## Lock-Free Patterns
+注意：`par_unseq` 函数体禁止任何同步原语。
+
+## 避免伪共享
 
 ```cpp
-// Lock-free stack (simplified)
+// 不同线程更新各自字段时，按缓存行隔离
+struct alignas(std::hardware_destructive_interference_size) PaddedCounter {
+    std::atomic<int64_t> value{0};
+};
+
+std::array<PaddedCounter, max_threads> counters;
+```
+
+## Lock-Free 模式（仅在确需且能正确实现时）
+
+```cpp
 template<typename T>
 class LockFreeStack {
-    struct Node {
-        T data;
-        std::atomic<Node*> next;
-    };
+    struct Node { T data; Node* next; };
     std::atomic<Node*> head_{nullptr};
-
 public:
     void push(T value) {
         auto* node = new Node{std::move(value), head_.load(std::memory_order_relaxed)};
@@ -188,27 +227,51 @@ public:
             std::memory_order_release,
             std::memory_order_relaxed)) {}
     }
+    // pop 涉及 ABA 问题，生产实现需 hazard pointer / RCU
 };
 ```
 
-## Red Flags
+未掌握 ABA / hazard pointer / 内存回收前不要写自定义 lock-free。
 
-| Rationalization | Actual Check |
-|---|---|
-| "std::thread is fine" | Use std::jthread (auto-join + stop_token) |
-| "lock_guard is enough" | Use std::scoped_lock (multi-lock safe) |
-| "sleep for sync" | Use latch/barrier/condition_variable |
-| "seq_cst everywhere" | Is relaxed/acquire-release sufficient? |
-| "No need for TSan" | Run ThreadSanitizer on all concurrent code |
-| "Raw thread + join" | Use jthread or structured concurrency |
+## 工具
 
-## Checklist
+```bash
+# ThreadSanitizer：data race / lock-order inversion
+g++ -fsanitize=thread -fno-omit-frame-pointer -g -O1 src/*.cpp
 
-- [ ] std::jthread with stop_token for threads
-- [ ] std::scoped_lock for multi-mutex locking
-- [ ] std::latch/barrier for synchronization
-- [ ] Correct memory ordering for atomics (document choice)
-- [ ] Parallel execution policies for large data sets
-- [ ] Coroutines (std::generator) for lazy sequences
-- [ ] No data races (verified by TSan)
-- [ ] No false sharing (alignas(hardware_destructive_interference_size))
+# Helgrind（Valgrind）
+valgrind --tool=helgrind ./app
+```
+
+TSan 与 ASan 互斥；CI 跑两条管道。
+
+## 红旗合理化
+
+| 借口 | 检查项 |
+|------|--------|
+| "`std::thread` 简单" | 是否换 `std::jthread`（自动 join + stop_token）？ |
+| "`lock_guard` 足够" | 多锁场景是否换 `std::scoped_lock`？ |
+| "睡一下就同步" | 是否使用 latch/barrier/condition_variable？ |
+| "全 `seq_cst`" | relaxed / acquire-release 是否够？是否注释 why？ |
+| "不跑 TSan" | 并发代码 CI 是否过 TSan？ |
+| "自己写 lock-free 更快" | 是否处理 ABA、hazard pointer、内存序？ |
+
+## 检查清单
+
+- [ ] 线程用 `std::jthread` + `stop_token`
+- [ ] 多锁用 `std::scoped_lock`
+- [ ] 同步用 latch / barrier / cv（禁 sleep 同步）
+- [ ] 原子的 memory_order 选择有注释解释
+- [ ] 大数据集用并行算法 / `std::execution`
+- [ ] 协程优先用成熟库
+- [ ] 跨线程共享字段按缓存行隔离
+- [ ] TSan 零报告
+- [ ] 无数据竞争、无死锁
+
+## 权威参考
+
+- cppreference 线程支持 — <https://en.cppreference.com/w/cpp/thread>
+- P2300 std::execution — <https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2024/p2300r10.html>
+- stdexec 实现 — <https://github.com/NVIDIA/stdexec>
+- ThreadSanitizer — <https://clang.llvm.org/docs/ThreadSanitizer.html>
+- C++ Memory Model — <https://en.cppreference.com/w/cpp/atomic/memory_order>

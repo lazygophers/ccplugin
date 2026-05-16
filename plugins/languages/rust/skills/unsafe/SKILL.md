@@ -1,186 +1,139 @@
 ---
-description: "Rust unsafe代码规范 - 最小化unsafe范围、裸指针操作、transmute、MIRI验证、FFI/C互操作、safety comments。编写unsafe块、调用C库、排查UB(未定义行为)时加载。"
+name: rust-unsafe
+description: Rust unsafe 代码规范 — unsafe 最小化、五种超能力（裸指针 / unsafe fn / static mut / unsafe impl / union）、`// SAFETY:` 注释强制、`# Safety` 文档、安全 API 封装、FFI / CString / CStr / extern "C"、MIRI 验证、bytemuck / OnceLock / LazyLock 安全替代、UB（未定义行为）排查。编写 unsafe 块、调用 C 库、实现底层数据结构、排查未定义行为时加载。触发短语：unsafe、裸指针、FFI、extern C、transmute、UB、undefined behavior、MIRI、static mut。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # Rust Unsafe 规范
 
-## 适用 Agents
+前置：`rust-core`、`rust-memory`。
 
-- **rust:dev** - 必要时的 unsafe 代码编写
-- **rust:debug** - unsafe 相关 bug 调试
+## 核心铁律
 
-## 相关 Skills
+1. **找安全替代**：unsafe 永远是最后手段。
+2. **最小化 unsafe 块**：每个 `unsafe { ... }` 只包含必须 unsafe 的语句。
+3. **安全 API 封装**：unsafe 内部实现，公共 API 必须安全。
+4. **强制 SAFETY 注释**：每个 unsafe 块前 `// SAFETY: <为什么这里安全、调用者保证什么、维护什么不变量>`。
+5. **MIRI 全覆盖**：CI 中跑 `cargo +nightly miri test`。
 
-- **Skills(rust:core)** - 错误处理、工具链
-- **Skills(rust:memory)** - 内存布局、裸指针
-
-## 核心原则：最小化 unsafe
-
-1. **优先寻找安全替代**：unsafe 是最后手段
-2. **最小化 unsafe 块**：只包含必须 unsafe 的操作
-3. **封装为安全 API**：unsafe 内部实现，对外暴露安全接口
-4. **强制 safety comments**：每个 unsafe 块必须有 `// SAFETY:` 注释
-
-## unsafe 的五种超能力
+## 五种 unsafe 超能力
 
 ```rust
 // 1. 解引用裸指针
-let ptr = &42 as *const i32;
-// SAFETY: ptr 指向有效的 i32 值，且在当前作用域内有效
-let value = unsafe { *ptr };
+let p = &42 as *const i32;
+// SAFETY: p 指向栈上有效 i32，作用域内未被释放
+let v = unsafe { *p };
 
-// 2. 调用 unsafe 函数
-// SAFETY: slice 的长度 >= offset + len，不存在别名引用
+// 2. 调用 unsafe fn
+// SAFETY: src/dst 各有至少 len 个元素，且区间不重叠
 unsafe { std::ptr::copy_nonoverlapping(src, dst, len); }
 
-// 3. 访问/修改可变静态变量
+// 3. 访问 / 修改 static mut（强烈不推荐）
 static mut COUNTER: u64 = 0;
-// SAFETY: 单线程访问，无数据竞争
-unsafe { COUNTER += 1; }
+// SAFETY: 单线程访问，无数据竞争 —— 但建议改用 OnceLock / AtomicU64
 
 // 4. 实现 unsafe trait
-// SAFETY: MyType 的所有字段都是 Send，可以安全跨线程传递
+// SAFETY: 所有字段均 Send，无内部可变性陷阱
 unsafe impl Send for MyType {}
 
-// 5. 访问 union 字段
-union FloatInt {
-    f: f32,
-    i: u32,
-}
-let fi = FloatInt { f: 1.0 };
-// SAFETY: f32 和 u32 大小相同，读取 i 字段是有效的位重解释
-let bits = unsafe { fi.i };
+// 5. 读取 union 字段
+union FloatBits { f: f32, i: u32 }
+let fb = FloatBits { f: 1.0 };
+// SAFETY: f32 与 u32 同大小同对齐，IEEE 754 位重解释 well-defined
+let bits = unsafe { fb.i };
 ```
 
-## Safety Comments 规范
+## SAFETY 注释规范
 
 ```rust
-// 每个 unsafe 块必须有 SAFETY 注释，说明：
-// 1. 为什么这个操作是安全的
-// 2. 调用者需要保证什么前置条件
-// 3. 维护什么不变量
-
 /// 从原始部件构造 Vec。
 ///
 /// # Safety
 ///
-/// - `ptr` 必须是通过 `Vec::into_raw_parts` 获得的
-/// - `ptr` 的分配器必须是全局分配器
-/// - `length` 不能大于 `capacity`
-/// - 前 `length` 个元素必须是已初始化的
-pub unsafe fn from_raw_parts(ptr: *mut T, length: usize, capacity: usize) -> Vec<T> {
-    // SAFETY: 调用者保证了所有前置条件
+/// - `ptr` 必须由 `Vec::into_raw_parts` 获得；
+/// - 分配器为全局分配器；
+/// - `length <= capacity`；
+/// - 前 `length` 个元素已初始化。
+pub unsafe fn from_raw_parts<T>(ptr: *mut T, length: usize, capacity: usize) -> Vec<T> {
+    // SAFETY: 调用者保证以上前置条件
     unsafe { Vec::from_raw_parts(ptr, length, capacity) }
 }
 ```
 
-## FFI（外部函数接口）
+## FFI 模板
 
 ```rust
-// 声明外部 C 函数
+use std::ffi::{c_char, CStr, CString};
+
 extern "C" {
-    fn strlen(s: *const std::ffi::c_char) -> usize;
-    fn malloc(size: usize) -> *mut std::ffi::c_void;
-    fn free(ptr: *mut std::ffi::c_void);
+    fn strlen(s: *const c_char) -> usize;
 }
 
-// 安全封装
-pub fn safe_strlen(s: &std::ffi::CStr) -> usize {
-    // SAFETY: CStr 保证以 null 结尾，strlen 只读访问
+pub fn safe_strlen(s: &CStr) -> usize {
+    // SAFETY: CStr 保证 nul-terminated；strlen 仅只读访问
     unsafe { strlen(s.as_ptr()) }
 }
 
-// 导出 Rust 函数给 C
-#[no_mangle]
-pub extern "C" fn rust_add(a: i32, b: i32) -> i32 {
-    a + b
-}
+#[unsafe(no_mangle)]                  // Edition 2024 起 no_mangle 需 unsafe 属性
+pub extern "C" fn rust_add(a: i32, b: i32) -> i32 { a + b }
+```
 
-// CString / CStr 转换
-use std::ffi::{CString, CStr};
+注意 Edition 2024 起 `#[no_mangle]` / `#[export_name]` / `#[link_section]` 需写成 `#[unsafe(...)]`。
 
-fn call_c_api(name: &str) -> Result<(), std::ffi::NulError> {
-    let c_name = CString::new(name)?;
-    // SAFETY: c_name 有效且以 null 结尾
-    unsafe { c_api_function(c_name.as_ptr()); }
-    Ok(())
-}
+## 安全替代速查
+
+| unsafe 场景 | 安全替代 |
+|------------|---------|
+| `static mut` 全局 | `OnceLock` / `LazyLock` / `AtomicXxx` |
+| `transmute` 字节重解释 | `bytemuck::cast` / `from_ne_bytes` |
+| 手动分配 | `Vec` / `Box` / `bumpalo` |
+| 共享可变 | `Mutex` / `RwLock` / channel |
+| 越界访问 | `slice.get` |
+| 字符串转换 | `CString::new` / `CStr::from_bytes_with_nul` |
+
+```rust
+use std::sync::OnceLock;
+static CONFIG: OnceLock<Config> = OnceLock::new();
+fn config() -> &'static Config { CONFIG.get_or_init(load_config) }
+
+use bytemuck::{Pod, Zeroable};
+#[derive(Copy, Clone, Pod, Zeroable)] #[repr(C)]
+struct Color { r: u8, g: u8, b: u8, a: u8 }
+let c: Color = bytemuck::cast([255u8, 0, 0, 255]);
 ```
 
 ## MIRI 验证
 
 ```bash
-# 安装 miri
 rustup +nightly component add miri
-
-# 运行全部测试
 cargo +nightly miri test
-
-# 运行特定测试
-cargo +nightly miri test test_name
-
-# 检查数据竞争（需要 -Zmiri-data-race-detector）
-MIRIFLAGS="-Zmiri-disable-isolation" cargo +nightly miri test
-
-# CI 集成
-# - name: Miri
-#   run: |
-#     rustup toolchain install nightly --component miri
-#     cargo +nightly miri test
+MIRIFLAGS="-Zmiri-disable-isolation" cargo +nightly miri test   # 文件 IO
 ```
 
-## 常见安全替代方案
+CI step 模板：
 
-| unsafe 需求 | 安全替代 |
-|------------|---------|
-| 裸指针数组访问 | `slice.get(idx)` 或 `slice[idx]`（bounds check） |
-| 类型转换 | `From`/`Into` trait |
-| 位操作 | `u32::from_ne_bytes()` |
-| 全局可变状态 | `OnceLock` / `LazyLock`（Rust 1.80+） |
-| 手动内存管理 | `Vec`、`Box`、`Arena` |
-| 共享可变状态 | `Mutex`、`RwLock`、channel |
-| transmute | `bytemuck::cast()` |
-
-```rust
-// 避免 static mut，使用 OnceLock
-use std::sync::OnceLock;
-static CONFIG: OnceLock<Config> = OnceLock::new();
-fn get_config() -> &'static Config {
-    CONFIG.get_or_init(|| load_config())
-}
-
-// 避免 transmute，使用 bytemuck
-use bytemuck::{Pod, Zeroable};
-#[derive(Copy, Clone, Pod, Zeroable)]
-#[repr(C)]
-struct Color { r: u8, g: u8, b: u8, a: u8 }
-
-let bytes: [u8; 4] = [255, 0, 0, 255];
-let color: Color = bytemuck::cast(bytes);
+```yaml
+- run: rustup toolchain install nightly --component miri
+- run: cargo +nightly miri test --workspace
 ```
 
-## Red Flags：AI 常见误区
+## 反模式
 
-| AI 可能的解释 | 实际检查 |
-|--------------|---------|
-| "unsafe 更高效" | ✅ 安全代码是否已经足够快（编译器会优化）？ |
-| "transmute 类型转换" | ✅ 是否可用 `From`/`Into` 或 `bytemuck`？ |
-| "static mut 全局状态" | ✅ 是否可用 `OnceLock` / `LazyLock`？ |
-| "这个 unsafe 很小" | ✅ 是否有 `// SAFETY:` 注释？ |
-| "FFI 必须 unsafe" | ✅ 是否封装为安全 API？ |
-| "miri 太慢了" | ✅ CI 中是否有 miri 检查？ |
+| AI 倾向 | 正确做法 |
+|---------|---------|
+| `unsafe` 提性能 | 先 benchmark 证明热点 |
+| `transmute` 强转 | `bytemuck` / `From`/`Into` |
+| `static mut` 共享 | `OnceLock` / `AtomicXxx` |
+| 无 SAFETY 注释 | 必须写明前置条件 |
+| FFI 直接暴露 | 封装为安全 API |
+| 无 MIRI | CI 加 miri 步骤 |
 
 ## 检查清单
 
-- [ ] 确认无安全替代方案后才使用 unsafe
-- [ ] 每个 unsafe 块有 `// SAFETY:` 注释
-- [ ] unsafe 函数有 `# Safety` 文档说明前置条件
-- [ ] unsafe 封装为安全的公共 API
+- [ ] 已确认无安全替代
+- [ ] 每个 `unsafe` 块前有 `// SAFETY:` 注释
+- [ ] 每个 `unsafe fn` 有 `# Safety` 文档
+- [ ] 公共 API 全部安全
 - [ ] `cargo +nightly miri test` 通过
-- [ ] 使用 `OnceLock`/`LazyLock` 替代 `static mut`
-- [ ] FFI 使用 `CString`/`CStr` 正确转换
-- [ ] CI 包含 miri 检查步骤
+- [ ] Edition 2024 的 `#[unsafe(no_mangle)]` 等已迁移
+- [ ] FFI 使用 `CString` / `CStr` 正确转换

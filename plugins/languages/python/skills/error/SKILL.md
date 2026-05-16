@@ -1,464 +1,177 @@
 ---
-description: "Python异常处理与结构化日志规范。涵盖自定义异常层次设计、structlog结构化日志、Context Manager资源管理、错误传播策略。适用于异常设计、日志配置、错误排查、资源清理等场景。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: python-error
+description: Python 异常处理与结构化日志规范。涵盖自定义异常层次、except* / ExceptionGroup、structlog 结构化日志、Context Manager 资源管理、错误传播策略。在设计异常类型、配置日志、排查异常、写资源清理代码时使用。也触发于"异常处理"、"自定义异常"、"structlog"、"logging"、"try/except"。
 ---
 
-# Python 错误处理和日志
+# Python 错误处理与日志 (2026)
 
-## 适用 Agents
+## 自定义异常层次
 
-- **python:dev** - 开发阶段使用
-- **python:debug** - 调试时优先应用
-- **python:test** - 测试错误处理逻辑
-
-## 相关 Skills
-
-- **Skills(python:core)** - 基础规范
-- **Skills(python:types)** - 异常类型注解
-- **Skills(python:async)** - 异步异常处理
-
-## 核心原则
-
-### 1. 结构化日志优于 print
-
-**使用 structlog 替代 print 调试**：
+每个项目定义一个根异常, 业务异常都继承自它:
 
 ```python
-import structlog
-
-log = structlog.get_logger()
-
-# ✅ 正确：结构化日志
-log.info("user_created",
-    user_id=123,
-    username="alice",
-    email="alice@example.com",
-    ip_address="192.168.1.1"
-)
-
-# 输出（JSON 格式，易于解析）
-# {"event": "user_created", "user_id": 123, "username": "alice", ...}
-
-# ❌ 错误：print 调试
-print(f"User created: {username}")  # 无结构、难以搜索
-```
-
-### 2. 具体异常捕获
-
-```python
-# ✅ 正确：捕获具体异常
-try:
-    result = process_data(data)
-except ValueError as e:
-    log.error("validation_failed", error=str(e), data=data)
-    raise
-except FileNotFoundError as e:
-    log.warning("file_not_found", path=str(e))
-    return None
-
-# ❌ 错误：裸 except
-try:
-    result = process_data(data)
-except:  # 捕获所有异常，包括 KeyboardInterrupt！
-    pass
-
-# ⚠️ 谨慎使用：Exception
-try:
-    result = process_data(data)
-except Exception as e:  # 可以，但要记录日志
-    log.exception("unexpected_error")
-    raise
-```
-
-### 3. 自定义异常层次
-
-```python
-# 异常基类
 class AppError(Exception):
-    """应用错误基类"""
-    pass
+    """应用根异常。所有业务异常继承自此。"""
+
 
 class ValidationError(AppError):
-    """数据验证错误"""
-
     def __init__(self, field: str, message: str) -> None:
-        self.field = field
-        self.message = message
         super().__init__(f"{field}: {message}")
+        self.field = field
 
-class DatabaseError(AppError):
-    """数据库错误"""
-    pass
 
 class NotFoundError(AppError):
-    """资源未找到"""
-
-    def __init__(self, resource: str, id: int) -> None:
+    def __init__(self, resource: str, id: int | str) -> None:
+        super().__init__(f"{resource} #{id} not found")
         self.resource = resource
         self.id = id
-        super().__init__(f"{resource} not found: {id}")
+
+
+class ExternalServiceError(AppError):
+    """外部服务调用失败 (可重试)。"""
 ```
 
-## structlog 配置
+好处:
+- 调用方 `except AppError` 捕获全部业务异常
+- `except Exception` 仅用于框架边界 (HTTP handler, async task 顶层)
+- 异常携带结构化字段, 便于日志和 API 响应
 
-### 基础配置
+## 异常处理三原则
+
+1. **只捕获具体异常类型**, 不写裸 `except:` 或 `except Exception:` (除非顶层 handler)
+2. **不吞异常**: 至少 log + re-raise, 或转换成上层异常
+3. **保留 traceback**: `raise NewError(...) from e` (用 `from`, 不要 `raise NewError(str(e))`)
+
+```python
+# good
+try:
+    user = await db.get_user(uid)
+except DatabaseConnectionError as e:
+    log.error("db_unavailable", user_id=uid, exc_info=True)
+    raise ExternalServiceError("user-service") from e
+
+# bad - 吞异常
+try:
+    user = await db.get_user(uid)
+except Exception:
+    user = None  # 静默失败, 上层无法察觉
+```
+
+## except* 与 ExceptionGroup (3.11+)
+
+并发任务 (TaskGroup, asyncio.gather) 会抛 `ExceptionGroup`, 必须用 `except*`:
+
+```python
+async with asyncio.TaskGroup() as tg:
+    tg.create_task(fetch_a())
+    tg.create_task(fetch_b())
+# 若两个都失败, raise ExceptionGroup([err_a, err_b])
+
+try:
+    await run_pipeline()
+except* ValidationError as eg:
+    for e in eg.exceptions:
+        log.warning("validation_failed", error=str(e))
+except* ExternalServiceError as eg:
+    raise  # 让上层重试
+```
+
+## 结构化日志 (structlog)
+
+不要用 `print` 调试, 不要用裸 `logging` 拼字符串。用 structlog 输出 JSON:
 
 ```python
 import structlog
 
-# 配置 structlog
 structlog.configure(
     processors=[
-        structlog.stdlib.filter_by_level,
-        structlog.stdlib.add_logger_name,
-        structlog.stdlib.add_log_level,
+        structlog.contextvars.merge_contextvars,
+        structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
-        structlog.processors.JSONRenderer(),  # JSON 格式输出
+        structlog.processors.JSONRenderer(),
     ],
-    wrapper_class=structlog.stdlib.BoundLogger,
-    context_class=dict,
-    logger_factory=structlog.stdlib.LoggerFactory(),
-    cache_logger_on_first_use=True,
 )
 
 log = structlog.get_logger()
+
+# 业务代码: 键值对而非 f-string
+log.info("user_created", user_id=user.id, email=user.email)
+log.error("payment_failed", order_id=oid, amount=amt, exc_info=True)
 ```
 
-### 使用示例
+关键约定:
+- 事件名用 `snake_case`, 动词过去式 (`user_created` 而非 `creating user`)
+- 上下文用 `structlog.contextvars.bind_contextvars(request_id=...)` 注入, 不在每行手传
+- 异常用 `exc_info=True` 自动附带 traceback
+- 不要把敏感数据 (password, token, full PII) 写日志, 用 redaction processor
+
+## logging 标准库 (无 structlog 时)
+
+老项目仍用 stdlib logging 也可, 但配置 dictConfig + JSON formatter:
 
 ```python
-import structlog
+import logging
+logger = logging.getLogger(__name__)  # 不要 logging.getLogger() 拿 root
 
-log = structlog.get_logger()
-
-# 基础日志
-log.info("server_started", port=8000, workers=4)
-
-# 错误日志
-log.error("database_connection_failed",
-    host="localhost",
-    port=5432,
-    error="connection refused"
-)
-
-# 异常日志（自动包含堆栈跟踪）
-try:
-    risky_operation()
-except Exception:
-    log.exception("operation_failed", operation="risky")
-
-# 上下文绑定
-log = log.bind(user_id=123, request_id="abc-123")
-log.info("user_action", action="login")
-log.info("user_action", action="logout")
-# 两条日志都包含 user_id=123, request_id="abc-123"
+logger.error("payment failed for order=%s amount=%s", oid, amt, exc_info=True)
 ```
 
-## Context Manager 最佳实践
+不要用 f-string 拼日志消息 (字符串会先求值, 即使日志级别被过滤掉)。用 `%s` 占位符。
 
-### 1. 资源管理
+## Context Manager 资源管理
 
-```python
-from contextlib import contextmanager, asynccontextmanager
-import structlog
-
-log = structlog.get_logger()
-
-# 同步 context manager
-@contextmanager
-def database_transaction():
-    """数据库事务管理"""
-    conn = get_connection()
-    try:
-        yield conn
-        conn.commit()
-        log.info("transaction_committed")
-    except Exception as e:
-        conn.rollback()
-        log.error("transaction_rollback", error=str(e))
-        raise
-    finally:
-        conn.close()
-
-# 使用
-with database_transaction() as conn:
-    conn.execute("INSERT INTO users ...")
-
-# 异步 context manager
-@asynccontextmanager
-async def async_database_transaction():
-    """异步数据库事务"""
-    async with async_session() as session:
-        try:
-            yield session
-            await session.commit()
-            log.info("async_transaction_committed")
-        except Exception as e:
-            await session.rollback()
-            log.error("async_transaction_rollback", error=str(e))
-            raise
-```
-
-### 2. 计时器
+任何需要清理的资源都用 `with` / `async with`, 不要手写 try/finally:
 
 ```python
-import time
+# sync
 from contextlib import contextmanager
 
 @contextmanager
-def timer(operation: str):
-    """性能计时"""
-    start = time.perf_counter()
+def transaction(db):
+    tx = db.begin()
     try:
-        yield
-    finally:
-        duration = time.perf_counter() - start
-        log.info("operation_completed",
-            operation=operation,
-            duration_ms=round(duration * 1000, 2)
-        )
-
-# 使用
-with timer("process_data"):
-    process_large_dataset()
-```
-
-### 3. 临时状态管理
-
-```python
-from contextlib import contextmanager
-
-@contextmanager
-def temporary_change(obj, attr: str, new_value):
-    """临时修改对象属性"""
-    old_value = getattr(obj, attr)
-    setattr(obj, attr, new_value)
-    try:
-        yield
-    finally:
-        setattr(obj, attr, old_value)
-
-# 使用
-with temporary_change(config, "debug", True):
-    run_debug_operation()
-# config.debug 自动恢复为原值
-```
-
-## 异步异常处理
-
-### 异步函数中的异常
-
-```python
-import asyncio
-import structlog
-
-log = structlog.get_logger()
-
-async def fetch_user(user_id: int) -> User:
-    """异步获取用户（带异常处理）"""
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"/users/{user_id}")
-            response.raise_for_status()
-            return User(**response.json())
-    except httpx.HTTPStatusError as e:
-        log.error("http_error",
-            user_id=user_id,
-            status_code=e.response.status_code
-        )
-        raise NotFoundError("User", user_id)
-    except httpx.RequestError as e:
-        log.error("network_error",
-            user_id=user_id,
-            error=str(e)
-        )
-        raise
-```
-
-### asyncio.gather 异常处理
-
-```python
-async def fetch_all_users(user_ids: list[int]) -> list[User | None]:
-    """并行获取用户，忽略错误"""
-    tasks = [fetch_user(uid) for uid in user_ids]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # 分离成功和失败
-    users = []
-    for i, result in enumerate(results):
-        if isinstance(result, Exception):
-            log.error("fetch_failed",
-                user_id=user_ids[i],
-                error=str(result)
-            )
-            users.append(None)
-        else:
-            users.append(result)
-
-    return users
-```
-
-## Result 类型模式（可选）
-
-```python
-from dataclasses import dataclass
-from typing import Generic, TypeVar
-
-T = TypeVar('T')
-E = TypeVar('E', bound=Exception)
-
-@dataclass
-class Ok(Generic[T]):
-    """成功结果"""
-    value: T
-
-@dataclass
-class Err(Generic[E]):
-    """失败结果"""
-    error: E
-
-Result = Ok[T] | Err[E]
-
-def safe_divide(a: float, b: float) -> Result[float, ValueError]:
-    """安全除法（返回 Result 而非抛异常）"""
-    if b == 0:
-        return Err(ValueError("division by zero"))
-    return Ok(a / b)
-
-# 使用
-result = safe_divide(10, 2)
-match result:
-    case Ok(value):
-        print(f"Result: {value}")
-    case Err(error):
-        log.error("division_failed", error=str(error))
-```
-
-## Red Flags：AI 常见误区
-
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "print 调试足够了" | ✅ 是否使用了 structlog 或 logging？ |
-| "裸 except 能捕获所有错误" | ✅ 是否捕获了具体异常类型？ |
-| "异常处理会影响性能" | ✅ 是否正确使用了 try-except？ |
-| "不需要自定义异常" | ✅ 是否创建了有意义的异常类？ |
-| "日志记录太啰嗦" | ✅ 是否记录了足够的上下文信息？ |
-| "f-string 格式化日志" | ✅ 是否使用了结构化日志字段？ |
-
-## FastAPI 集成
-
-### 异常处理器
-
-```python
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
-import structlog
-
-app = FastAPI()
-log = structlog.get_logger()
-
-class AppException(Exception):
-    """应用异常基类"""
-    def __init__(self, message: str, status_code: int = 500):
-        self.message = message
-        self.status_code = status_code
-
-@app.exception_handler(AppException)
-async def app_exception_handler(request, exc: AppException):
-    log.error("app_exception",
-        path=request.url.path,
-        message=exc.message,
-        status_code=exc.status_code
-    )
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.message}
-    )
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc: Exception):
-    log.exception("unhandled_exception", path=request.url.path)
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Internal server error"}
-    )
-```
-
-## 完整示例
-
-### 带完整错误处理的 API
-
-```python
-import structlog
-from fastapi import FastAPI, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-
-app = FastAPI()
-log = structlog.get_logger()
-
-class UserNotFoundError(Exception):
-    """用户未找到"""
-    pass
-
-async def get_user_from_db(db: AsyncSession, user_id: int) -> User:
-    """从数据库获取用户"""
-    try:
-        stmt = select(User).where(User.id == user_id)
-        result = await db.execute(stmt)
-        user = result.scalar_one_or_none()
-
-        if user is None:
-            raise UserNotFoundError(f"User {user_id} not found")
-
-        log.info("user_retrieved", user_id=user_id)
-        return user
-
-    except UserNotFoundError:
-        log.warning("user_not_found", user_id=user_id)
-        raise
-    except Exception as e:
-        log.exception("database_error", user_id=user_id)
-        raise
-
-@app.get("/users/{user_id}")
-async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
-    """获取用户端点"""
-    try:
-        with timer(f"get_user_{user_id}"):
-            user = await get_user_from_db(db, user_id)
-            return user
-    except UserNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        yield tx
+        tx.commit()
     except Exception:
-        log.exception("get_user_failed", user_id=user_id)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        tx.rollback()
+        raise
+
+with transaction(db) as tx:
+    tx.execute(...)
+
+# async
+async with httpx.AsyncClient() as client:
+    resp = await client.get(url)
 ```
 
-## 检查清单
+多资源用 `contextlib.ExitStack` / `AsyncExitStack`, 不要嵌套 with。
 
-### 日志
-- [ ] 使用 structlog 替代 print
-- [ ] 日志使用 JSON 格式
-- [ ] 记录足够的上下文信息
-- [ ] 异常包含堆栈跟踪
+## API 边界错误转换
 
-### 异常处理
-- [ ] 捕获具体异常类型
-- [ ] 没有裸 except
-- [ ] 异常记录日志后再 raise
-- [ ] 创建自定义异常层次
+FastAPI / Litestar 等 Web 框架边界, 把业务异常转 HTTP 响应:
 
-### Context Manager
-- [ ] 使用 with 语句管理资源
-- [ ] 数据库事务使用 context manager
-- [ ] 性能计时使用 context manager
+```python
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-### 异步异常
-- [ ] 异步函数正确处理异常
-- [ ] asyncio.gather 使用 return_exceptions=True
-- [ ] 异步 context manager 正确实现
+app = FastAPI()
+
+@app.exception_handler(NotFoundError)
+async def not_found_handler(req: Request, exc: NotFoundError) -> JSONResponse:
+    return JSONResponse(status_code=404, content={
+        "error": "not_found",
+        "resource": exc.resource,
+        "id": exc.id,
+    })
+```
+
+业务代码只 raise 领域异常, handler 统一翻译。不要在业务函数里 raise `HTTPException`。
+
+## 反模式
+
+- `except: pass` / `except Exception: pass` (静默失败)
+- `raise Exception("...")` (用具体异常类)
+- `logger.error(f"failed: {e}")` (丢 traceback, 用 `exc_info=True`)
+- `print(...)` 调试代码留在生产
+- 在 library 代码里配置 logging (库只 `getLogger(__name__)`, 应用层配置)
+- 把异常 str 化后再 raise (丢失原始信息, 用 `raise X from e`)

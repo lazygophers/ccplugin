@@ -1,71 +1,46 @@
 ---
-description: "Go命名规范：Id/Uid字段、IsActive布尔前缀、CreatedAt时间字段、接收者用p、Go 1.22+路由模式命名。定义变量、函数、结构体命名时自动加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: golang-naming
+description: Go 命名规范——Id/Uid 字段（非 ID）、IsActive/HasMFA 布尔前缀、CreatedAt 时间字段、接收者统一用 p、包名全小写无下划线、泛型类型参数描述性命名。定义结构体字段、函数、变量、包、接收者名、泛型时触发。
 ---
 
 # Go 命名规范
 
-## 适用 Agents
+## 八条铁律
 
-- **dev** - 开发专家（主要使用者）
-- **test** - 测试专家
+1. 导出（包外可见）：`PascalCase`，如 `User`、`UserLogin`、`GetUserById`（**不是 ID**）
+2. 私有：`camelCase`，如 `user`、`getUserById`
+3. 常量：`PascalCase`，如 `DefaultTimeout`、`MaxRetries`
+4. 包名：全小写单词，单数，无下划线，如 `user`、`order`、`payment`
+5. 文件名：全小写，可下划线分隔，如 `user.go`、`user_test.go`
+6. 接收者：统一 `p`，如 `(p *User)`、`(p *Order)`
+7. 循环变量：短名 `i`、`idx`、`item`
+8. 字段必须有意义，禁 `x`/`y`/`z`/`tmp`
 
-## 相关 Skills
-
-| 场景     | Skill                    | 说明                         |
-| -------- | ------------------------ | ---------------------------- |
-| 核心规范 | Skills(golang:core)      | 核心规范：强制约定           |
-| 项目结构 | Skills(golang:structure) | 三层架构命名约定             |
-| 错误处理 | Skills(golang:error)     | 错误变量命名                 |
-
-## 核心原则
-
-### 必须遵守
-
-1. **导出变量/函数 PascalCase** - User, UserLogin, GetUserById（不是 GetUserByID）
-2. **私有变量/函数 camelCase** - user, getUserById
-3. **常量 PascalCase** - DefaultTimeout, MaxRetries
-4. **包名全小写单词** - user, order, payment（无下划线）
-5. **文件名全小写** - user.go, user_test.go（不是 User.go）
-6. **接收者必须为 `p`** - (p *User), (p *Order)
-7. **循环变量短名** - for i, for idx, for item
-8. **字段名有意义** - 不用 x, y, z
-
-### 禁止行为
-
-- 混合大小写规则（UUID 但 userId）
-- 无意义的短名（x, y, tmp）
-- 下划线后缀（user_, data_）
-- 过长的变量名（currentUserObject 应该是 user）
-- 缩写不清楚（cfg 可以，但 c 不行）
-
-## 字段命名规范
-
-### ID 字段
+## ID 字段
 
 ```go
 type User struct {
-    Id        uint64
-    Uid       uint64
-    FriendUid uint64
-    UUID      string
+    Id        uint64  // 主键
+    Uid       uint64  // 用户唯一标识
+    FriendUid uint64  // 关联用户 ID
+    UUID      string  // 仅当确实是 UUID（大写）
 }
 ```
 
-### 时间字段
+不写 `ID`/`UserID`/`UID`，统一 `Id`/`Uid`/`Xxxid` → `XxxId`。
+
+## 时间字段
 
 ```go
 type Model struct {
     Id        uint64
     CreatedAt int64
     UpdatedAt int64
+    DeletedAt int64 // 软删
 }
 ```
 
-### 状态字段
+## 状态字段
 
 ```go
 type Friend struct {
@@ -80,21 +55,24 @@ const (
 )
 ```
 
-### 布尔字段
+数值枚举用 `State`/`Status` + 常量分组。
+
+## 布尔字段
 
 ```go
 type User struct {
-    Id       uint64
-    Email    string
     IsActive bool
     HasMFA   bool
     IsAdmin  bool
+    CanEdit  bool
 }
 ```
 
-## 函数命名规范
+前缀必须是 `Is`/`Has`/`Can`/`Should`。
 
-### Service 层函数
+## 函数命名
+
+### Service 层
 
 ```go
 func UserLogin(req *UserLoginReq) (*UserLoginRsp, error)
@@ -105,58 +83,63 @@ func DelUser(req *DelUserReq) error
 func ListUser(req *ListUserReq) (*ListUserRsp, error)
 ```
 
-### Get 前缀规则
+### Get 系前缀
+
+| 前缀 | 用途 |
+| --- | --- |
+| `GetXxxById` | 取单条 |
+| `ListXxx` | 取列表 |
+| `CountXxx` | 计数 |
+| `CheckXxxExists` | 存在性 |
+| `IsXxx` | 布尔判断 |
+
+## 接收者
 
 ```go
-func GetUserById(id uint64) (*User, error)    // 获取单个
-func ListUser(limit int) ([]*User, error)      // 获取列表
-func CountUser() (int64, error)                // 计数
-func CheckUserExists(id uint64) (bool, error)  // 检查存在
-func IsUserAdmin(uid uint64) (bool, error)     // 判断状态
-```
-
-## 接收者命名
-
-```go
-// 接收者统一使用 p
 func (p *User) Login(password string) error
 func (p *Order) Calculate() int64
 func (p *Friend) IsActive() bool
 ```
 
-## 泛型类型参数命名（Go 1.18+）
+不用 `self`/`this`/`u`/`o`，统一 `p`。
+
+## 泛型类型参数（Go 1.18+）
 
 ```go
-// 使用描述性名称而非单字母
+// 描述性命名
 func Map[T any, R any](items []T, fn func(T) R) []R
 func Filter[T any](items []T, fn func(T) bool) []T
 
-// 约束接口命名
+// 约束接口
 type Ordered interface {
     ~int | ~float64 | ~string
+}
+
+// Go 1.26 自引用
+type Node[T Node[T]] interface {
+    Children() []T
 }
 ```
 
 ## Red Flags
 
-| AI 可能的理性化解释 | 实际应该检查的内容 | 严重程度 |
-|---------------------|-------------------|---------|
-| "ID 全大写更规范" | 是否使用 Id 而非 ID？ | 高 |
-| "self/this 更直观" | 接收者是否统一用 p？ | 高 |
-| "变量名越长越清晰" | 是否避免过长变量名？ | 中 |
-| "GetByID 更标准" | 是否使用 GetUserById 风格？ | 中 |
-| "用 T 就够了" | 泛型参数是否有描述性？ | 低 |
-| "pkg_name 更清晰" | 包名是否全小写无下划线？ | 中 |
+| AI 借口 | 实际应验证 |
+| --- | --- |
+| "ID 全大写更规范" | 用 Id 不是 ID？ |
+| "self/this 更直观" | 接收者统一 p？ |
+| "变量名越长越清晰" | 避免冗长？ |
+| "GetByID 是 Go 官方写法" | 项目用 GetUserById 风格？ |
+| "T 就够了" | 泛型参数描述性？ |
+| "pkg_name 更清晰" | 包名全小写无下划线？ |
 
 ## 检查清单
 
-- [ ] 所有导出类型使用 PascalCase
-- [ ] 所有导出函数使用 PascalCase，私有用 camelCase
-- [ ] 接收者使用单字母（p）
-- [ ] 包名全小写单词（不用下划线）
-- [ ] 文件名全小写（可用下划线分隔）
-- [ ] 常量使用 PascalCase
-- [ ] ID 字段统一（Id, Uid, XXXId）
-- [ ] 时间字段使用 CreatedAt/UpdatedAt
-- [ ] 状态字段使用数字类型 Status/State
-- [ ] 布尔字段使用 Is/Has 前缀
+- [ ] 导出 PascalCase、私有 camelCase
+- [ ] 接收者统一 `p`
+- [ ] 包名全小写单数
+- [ ] 文件名全小写
+- [ ] 常量 PascalCase
+- [ ] ID 字段用 `Id`/`Uid`
+- [ ] 时间用 `CreatedAt`/`UpdatedAt`
+- [ ] 状态用 `Status`/`State` 数值
+- [ ] 布尔用 `Is`/`Has`/`Can` 前缀

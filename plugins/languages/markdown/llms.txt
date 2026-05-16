@@ -6,8 +6,8 @@
 
 - [README](README.md)：插件能力与核心规范（必须遵守/禁止行为）
 - [插件清单](.claude-plugin/plugin.json)：skills、LSP、SessionStart hook
-- [Skill: core](skills/core/SKILL.md)：Markdown 核心规范
-- [Skill: mermaid](skills/mermaid/SKILL.md)：Mermaid 相关规范
+- [Skill: markdown-core](skills/core/SKILL.md)：Markdown 核心规范
+- [Skill: markdown-mermaid](skills/mermaid/SKILL.md)：Mermaid 相关规范
 
 ## 可选
 

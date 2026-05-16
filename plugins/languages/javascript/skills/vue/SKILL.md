@@ -1,191 +1,177 @@
 ---
-description: "Vue 3.5开发规范：Composition API组合式API、Vapor mode高性能模式、Pinia状态管理、Nuxt 4全栈框架。开发Vue组件、SFC单文件组件、响应式数据、路由页面时加载。"
-user-invocable: true
+name: javascript-vue
+description: |
+  Vue 3.5+ 开发规范 (2026)：Composition API + `<script setup>`, Vapor Mode 高性能编译,
+  defineProps 解构 + reactive props, useTemplateRef, Pinia 2 setup-store 状态,
+  Nuxt 4 全栈, Vue Router 4 懒加载, VueUse 12 工具库, Volar 类型推断。
+  Use when building Vue components, SFCs, composables, stores, or Nuxt pages.
+  Triggers: "Vue 组件", "Composition API", "Pinia", "Nuxt", "script setup",
+  "reactive", "ref", "computed", "SFC", "v-model".
 context: fork
 model: sonnet
-memory: project
 ---
 
-# JavaScript Vue 3.5 开发规范
+# Vue 3.5+ 开发规范 (2026)
 
-## 适用 Agents
+## 配套
 
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | JavaScript 开发专家 |
-| test  | JavaScript 测试专家 |
+- `Skills(javascript:core)` — ESM/Vite/Biome
+- `Skills(javascript:async)` — AbortController + onUnmounted
+- `Skills(javascript:security)` — v-html + DOMPurify
 
-## 相关 Skills
-
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(javascript:core) | ES2025-2026 标准、ESM、工具链 |
-| 异步编程 | Skills(javascript:async) | async/await、Promise |
-| 安全编码 | Skills(javascript:security) | XSS 防护、Zod 验证 |
-
-## Composition API + `<script setup>`
+## SFC + `<script setup>` (默认)
 
 ```vue
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, useTemplateRef } from 'vue';
 
 const users = ref([]);
+const query = ref('');
 const loading = ref(true);
-const searchQuery = ref('');
 
-const filteredUsers = computed(() =>
-  users.value.filter(user =>
-    user.name.toLowerCase().includes(searchQuery.value.toLowerCase())
-  )
+const filtered = computed(() =>
+  users.value.filter(u => u.name.includes(query.value))
 );
+
+const inputRef = useTemplateRef('input');
 
 onMounted(async () => {
   try {
-    const response = await fetch('/api/users');
-    users.value = await response.json();
-  } catch (error) {
-    console.error('Failed to fetch users:', error);
+    const r = await fetch('/api/users');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    users.value = await r.json();
+  } catch (e) {
+    console.error(e);
   } finally {
     loading.value = false;
+    inputRef.value?.focus();
   }
 });
 </script>
 
 <template>
-  <input v-model="searchQuery" placeholder="Search users..." />
-  <div v-if="loading">Loading...</div>
-  <UserList v-else :users="filteredUsers" />
+  <input ref="input" v-model="query" />
+  <p v-if="loading">Loading…</p>
+  <UserList v-else :users="filtered" />
 </template>
 ```
 
-## Vue 3.5 新特性
+## Vue 3.5+ 关键特性
 
 ```vue
 <script setup>
-// defineProps 解构（Vue 3.5）- 保持响应式
+// defineProps 解构 — 解构后仍响应式 (3.5+)
 const { name, count = 0 } = defineProps({
   name: String,
   count: { type: Number, default: 0 },
 });
 
-// useTemplateRef（Vue 3.5）- 类型安全的模板引用
-import { useTemplateRef, onMounted } from 'vue';
+// useTemplateRef — 类型安全的 ref (3.5+, 代替字符串 `$refs`)
+const list = useTemplateRef('list');
 
-const inputRef = useTemplateRef('input');
+// defineModel — 双向绑定 (3.4+)
+const value = defineModel({ type: String, required: true });
 
-onMounted(() => {
-  inputRef.value?.focus();
+// onWatcherCleanup (3.5+) — 替代 watch 内的 onCleanup 参数
+import { watch, onWatcherCleanup } from 'vue';
+watch(id, async (newId) => {
+  const ctrl = new AbortController();
+  onWatcherCleanup(() => ctrl.abort());
+  const r = await fetch(`/api/u/${newId}`, { signal: ctrl.signal });
 });
 </script>
-
-<template>
-  <input ref="input" />
-  <p>{{ name }}: {{ count }}</p>
-</template>
 ```
 
-## 组合式函数（Composables）
+## Vapor Mode (高性能编译, 3.5+ 实验)
 
-```javascript
-// composables/useUser.js
-import { ref, watch } from 'vue';
+无虚拟 DOM、直接生成命令式代码，性能近似 Solid。适合性能敏感页面或微前端组件。
 
-export function useUser(userId) {
-  const user = ref(null);
-  const loading = ref(true);
-  const error = ref(null);
+```js
+// vite.config.js
+import vue from '@vitejs/plugin-vue';
+export default {
+  plugins: [vue({ features: { vaporMode: true } })],
+};
+```
 
-  watch(userId, async (id) => {
-    if (!id) return;
+```vue
+<script setup vapor>
+// 该 SFC 编译为 Vapor 模式
+</script>
+```
+
+## Composables (复用逻辑)
+
+```js
+// composables/useFetch.js
+import { ref, watchEffect, onScopeDispose } from 'vue';
+
+export function useFetch(url) {
+  const data = ref(null), error = ref(null), loading = ref(true);
+  let ctrl;
+  watchEffect(async () => {
+    ctrl?.abort();
+    ctrl = new AbortController();
     loading.value = true;
-    error.value = null;
-
     try {
-      const response = await fetch(`/api/users/${id}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      user.value = await response.json();
+      const r = await fetch(typeof url === 'function' ? url() : url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      data.value = await r.json();
     } catch (e) {
-      error.value = e;
+      if (e.name !== 'AbortError') error.value = e;
     } finally {
       loading.value = false;
     }
-  }, { immediate: true });
-
-  return { user, loading, error };
-}
-
-// composables/useAbortFetch.js
-import { ref, onUnmounted } from 'vue';
-
-export function useAbortFetch() {
-  let controller = null;
-
-  async function fetchData(url) {
-    controller?.abort();
-    controller = new AbortController();
-
-    const response = await fetch(url, { signal: controller.signal });
-    return response.json();
-  }
-
-  onUnmounted(() => controller?.abort());
-
-  return { fetchData };
+  });
+  onScopeDispose(() => ctrl?.abort());
+  return { data, error, loading };
 }
 ```
 
-## Pinia 状态管理
+## Pinia 2 (Setup Store 风格)
 
-```javascript
+```js
 // stores/user.js
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const useUserStore = defineStore('user', () => {
-  // State
-  const users = ref([]);
-  const currentUser = ref(null);
+  const current = ref(null);
+  const list = ref([]);
+  const isLoggedIn = computed(() => !!current.value);
 
-  // Getters
-  const activeUsers = computed(() =>
-    users.value.filter(u => u.isActive)
-  );
-
-  // Actions
-  async function fetchUsers() {
-    const response = await fetch('/api/users');
-    users.value = await response.json();
+  async function login(creds) {
+    const r = await fetch('/api/login', { method: 'POST', body: JSON.stringify(creds) });
+    current.value = await r.json();
   }
+  function logout() { current.value = null; }
 
-  async function login(credentials) {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-    currentUser.value = await response.json();
-  }
-
-  return { users, currentUser, activeUsers, fetchUsers, login };
+  return { current, list, isLoggedIn, login, logout };
 });
 ```
 
-## Nuxt 4 集成
+## Nuxt 4
 
-```javascript
-// nuxt.config.js
+```js
+// nuxt.config.ts
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
+  compatibilityDate: '2025-01-01',
   future: { compatibilityVersion: 4 },
-  modules: ['@pinia/nuxt'],
+  modules: ['@pinia/nuxt', '@vueuse/nuxt'],
+  experimental: { typedPages: true },
 });
+```
 
-// pages/users/[id].vue - 自动路由
+```vue
+<!-- pages/users/[id].vue -->
 <script setup>
 const route = useRoute();
-const { data: user } = await useFetch(`/api/users/${route.params.id}`);
+const { data: user, error } = await useFetch(`/api/users/${route.params.id}`);
 </script>
+```
 
-// server/api/users/[id].get.js - Server API
+```js
+// server/api/users/[id].get.ts — Nitro server route
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
   return await db.users.findById(id);
@@ -194,54 +180,49 @@ export default defineEventHandler(async (event) => {
 
 ## Vue Router 4
 
-```javascript
+```js
 import { createRouter, createWebHistory } from 'vue-router';
-
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    {
-      path: '/',
-      component: () => import('./pages/Home.vue'), // 懒加载
-    },
-    {
-      path: '/users/:id',
-      component: () => import('./pages/UserDetail.vue'),
-      props: true, // 路由参数作为 props
-    },
+    { path: '/', component: () => import('./pages/Home.vue') },
+    { path: '/u/:id', component: () => import('./pages/User.vue'), props: true },
   ],
 });
-
-// 导航守卫
-router.beforeEach((to, from) => {
+router.beforeEach((to) => {
   const store = useUserStore();
-  if (to.meta.requiresAuth && !store.currentUser) {
-    return { name: 'login' };
-  }
+  if (to.meta.requiresAuth && !store.isLoggedIn) return { name: 'login' };
 });
 ```
 
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| Options API | 应使用 Composition API + `<script setup>` | 高 |
-| Vuex | 应迁移到 Pinia | 中 |
-| `this.$refs` | 应使用 `useTemplateRef()`（Vue 3.5）| 中 |
-| Mixin | 应使用组合式函数替代 | 高 |
-| `v-html` 无清理 | 必须使用 DOMPurify 清理 | 高 |
-| 无 AbortController | 应在 onUnmounted 中取消请求 | 中 |
-| Vue 2 语法 | 应迁移到 Vue 3.5 | 高 |
+| 现象 | 应改 | 严重 |
+|------|------|------|
+| Options API 新代码 | Composition API + `<script setup>` | 高 |
+| Vuex | Pinia 2 setup store | 中 |
+| 字符串 `ref="..."` + `$refs` | `useTemplateRef` | 中 |
+| Mixin | composable | 高 |
+| `v-html` 无清理 | DOMPurify | 高 |
+| watch 内未清理副作用 | `onWatcherCleanup` | 中 |
+| 路由组件不 lazy | `() => import(...)` | 中 |
+| Vue 2 语法 (Vue.extend 等) | Vue 3.5 | 高 |
 
 ## 检查清单
 
-- [ ] 使用 Composition API + `<script setup>`
-- [ ] Vue 3.5 `defineProps` 解构保持响应式
-- [ ] Vue 3.5 `useTemplateRef()` 替代字符串 ref
-- [ ] 提取组合式函数封装复用逻辑
-- [ ] Pinia 管理全局状态（Setup Store 风格）
-- [ ] 路由组件懒加载（`() => import()`）
-- [ ] `onUnmounted` 清理 AbortController 和计时器
-- [ ] `v-html` 必须配合 DOMPurify
-- [ ] computed 处理派生状态
-- [ ] watch 处理副作用
+- [ ] `<script setup>` + Composition API
+- [ ] `defineProps` 解构 (响应式)
+- [ ] `useTemplateRef` 而非字符串 ref
+- [ ] 复用逻辑提 composable
+- [ ] Pinia setup store + computed getter
+- [ ] 路由懒加载
+- [ ] `onUnmounted` / `onScopeDispose` 清理 AbortController / interval
+- [ ] `v-html` 经 DOMPurify
+- [ ] Volar / vue-tsc 类型检查通过
+
+## 参考
+
+- Vue 3.5: <https://vuejs.org/guide/>
+- Pinia: <https://pinia.vuejs.org>
+- Nuxt 4: <https://nuxt.com>
+- VueUse: <https://vueuse.org>

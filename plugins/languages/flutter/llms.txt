@@ -24,16 +24,12 @@ flutter/
 │   ├── hooks.py
 │   └── main.py
 ├── skills/
-│   └── flutter-skills/
-│       ├── android/
-│       ├── ios/
-│       ├── linux/
-│       ├── macos/
-│       ├── web/
-│       ├── windows/
-│       ├── SKILL.md
-│       ├── state-management.md
-│       └── ui-development.md
+│   ├── core/SKILL.md
+│   ├── ui/SKILL.md
+│   ├── state/SKILL.md
+│   ├── android/SKILL.md
+│   ├── ios/SKILL.md
+│   └── web/SKILL.md
 ├── .lsp.json
 ├── AGENT.md
 ├── README.md

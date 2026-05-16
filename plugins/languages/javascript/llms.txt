@@ -24,30 +24,11 @@ javascript/
 │   ├── hooks.py
 │   └── main.py
 ├── skills/
-│   └── javascript-skills/
-│       ├── SKILL.md
-│       ├── development-practices.md
-│       ├── architecture-tooling.md
-│       ├── references.md
-│       ├── coding-standards/
-│       │   ├── naming-conventions.md
-│       │   ├── code-formatting.md
-│       │   ├── error-handling.md
-│       │   ├── testing-standards.md
-│       │   ├── comment-standards.md
-│       │   ├── documentation-standards.md
-│       │   ├── version-control-standards.md
-│       │   └── code-review-standards.md
-│       ├── specialized/
-│       │   ├── async-programming.md
-│       │   ├── react-development.md
-│       │   ├── vue-development.md
-│       │   └── web-security.md
-│       └── examples/
-│           ├── error-handling-examples.js
-│           ├── async-examples.js
-│           ├── react-examples.jsx
-│           └── good-bad-comparisons.js
+│   ├── core/SKILL.md
+│   ├── async/SKILL.md
+│   ├── react/SKILL.md
+│   ├── vue/SKILL.md
+│   └── security/SKILL.md
 ├── .lsp.json
 ├── AGENT.md
 ├── README.md
@@ -70,9 +51,5 @@ javascript/
 
 - [README](./README.md) - 完整文档
 - [插件配置](./.claude-plugin/plugin.json) - 插件元数据
-- [Skills 定义](./skills/javascript-skills/SKILL.md) - 核心规范入口
-- [编码规范](./skills/javascript-skills/coding-standards/) - 完整编码规范
-- [专项规范](./skills/javascript-skills/specialized/) - 异步编程、React/Vue、Web 安全
-- [代码示例](./skills/javascript-skills/examples/) - 可运行的代码示例
-- [参考资源](./skills/javascript-skills/references.md) - ES2024-2025 参考资源
+- [Skills 定义](./skills/) - core / async / react / vue / security
 - [子代理](./agents/) - Agent 定义

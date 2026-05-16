@@ -1,201 +1,132 @@
 ---
-description: "C# LINQ 查询与集合操作规范：.NET 10 新操作符（CountBy/AggregateBy）、LINQ 性能优化、EF Core query translation 查询转换、Span<T> 高性能替代。编写数据查询、集合处理、序列操作时加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: csharp-linq
+description: |
+  C# LINQ 查询与集合操作规范。覆盖 .NET 10 新操作符 (CountBy/AggregateBy/Index)、
+  方法链 vs 查询语法、延迟执行陷阱、EF Core 查询转换、Span<T> 高性能替代、
+  ToList/ToArray 时机、可枚举二次遍历、HashSet/DistinctBy。当编写数据查询、
+  集合处理、序列操作、优化 LINQ 性能, 或说 "LINQ"、"Where Select"、"GroupBy"、
+  "查询性能"、"IEnumerable"、"PLINQ"、"DistinctBy" 时加载。
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # C# LINQ 规范
 
-## 适用 Agents
+LINQ 让代码声明式, 但用错会带来性能与正确性陷阱。
 
-- **csharp:dev** - 数据查询和集合操作
-- **csharp:perf** - LINQ 性能优化
+## 风格
 
-## 相关 Skills
-
-- **Skills(csharp:core)** - 核心规范：C# 12 collection expressions
-- **Skills(csharp:data)** - 数据访问：EF Core LINQ to SQL translation
-- **Skills(csharp:async)** - 异步编程：IAsyncEnumerable
-
-## .NET 8-10 新操作符
+- 方法语法优先; 链长 ≥3 时每个操作单独一行
+- 简单单一 `Where` 可写在一行
+- 不混用查询语法与方法语法
+- 范围变量名有意义, 业务集合用 `user`、`order`, 避免单字母 `x`
+- 复杂 join + group 用查询语法更清晰
 
 ```csharp
-// ✅ Index（按索引选择）
-var third = items.ElementAt(new Index(2));
-var lastTwo = items.TakeLast(2);
-
-// ✅ CountBy（按 key 计数，.NET 9）
-var countByDept = employees.CountBy(e => e.Department);
-
-// ✅ AggregateBy（按 key 聚合，.NET 9）
-var salaryByDept = employees.AggregateBy(
-    e => e.Department,
-    0m,
-    (sum, e) => sum + e.Salary);
-
-// ✅ Chunk（分批处理）
-foreach (var batch in items.Chunk(100))
-{
-    await ProcessBatchAsync(batch, ct);
-}
-
-// ✅ DistinctBy / UnionBy / ExceptBy / IntersectBy
-var uniqueByName = users.DistinctBy(u => u.Name);
-var merged = list1.UnionBy(list2, x => x.Id);
-```
-
-## 方法语法（推荐）
-
-```csharp
-// ✅ 链式方法语法
-var activeUsers = users
-    .Where(u => u.IsActive)
-    .OrderBy(u => u.Name)
-    .ThenByDescending(u => u.CreatedAt)
-    .Select(u => new UserDto(u.Id, u.Name, u.Email))
+var top = orders
+    .Where(o => o.Status == OrderStatus.Paid)
+    .GroupBy(o => o.CustomerId)
+    .Select(g => new { CustomerId = g.Key, Total = g.Sum(o => o.Amount) })
+    .OrderByDescending(x => x.Total)
+    .Take(10)
     .ToList();
-
-// ✅ 使用 projection 避免过度加载
-var userNames = _context.Users
-    .Where(u => u.IsActive)
-    .Select(u => new { u.Id, u.Name })  // 只查询需要的列
-    .ToListAsync(ct);
 ```
 
-## 查询语法（复杂 Join/Group）
+## 延迟执行陷阱
+
+- LINQ 链是惰性的; 二次遍历 = 重复执行
+- 多次使用 → 立即物化为 `List<T>` / `T[]`
+- 不要在 LINQ 链中触发副作用 (IO、日志、状态变更)
+- `TryGetNonEnumeratedCount(out var n)` 判数量不强求枚举
 
 ```csharp
-// ✅ 复杂查询用查询语法更清晰
-var report = from order in orders
-             join customer in customers on order.CustomerId equals customer.Id
-             where order.CreatedAt >= startDate
-             group order by new { customer.Country, order.CreatedAt.Year } into g
-             select new
-             {
-                 g.Key.Country,
-                 g.Key.Year,
-                 TotalRevenue = g.Sum(o => o.Total),
-                 OrderCount = g.Count()
-             };
+// ❌ 每次遍历都重新查 DB
+var q = db.Users.Where(u => u.Active);
+foreach (var u in q) Log(u);
+foreach (var u in q) Save(u);
+
+// ✅
+var users = await db.Users.Where(u => u.Active).ToListAsync(ct);
 ```
 
-## 避免多次枚举
+## .NET 10 新操作符
+
+| 操作符 | 取代 |
+|--------|------|
+| `CountBy(keySelector)` | `GroupBy(...).Select(g => new { g.Key, Count = g.Count() })` |
+| `AggregateBy(key, seed, agg)` | 手写 GroupBy + Aggregate |
+| `Index()` | `Select((item, i) => (i, item))` |
+| `Chunk(n)` | 手写批分 |
+| `DistinctBy(k)` / `UnionBy` / `ExceptBy` / `IntersectBy` | 自定义 `IEqualityComparer` |
+| `MinBy` / `MaxBy` | `OrderBy(k).First()` |
 
 ```csharp
-// ❌ 多次枚举 IEnumerable（每次重新执行查询）
-IEnumerable<User> filtered = users.Where(u => u.IsActive);
-var count = filtered.Count();      // 枚举 1
-var first = filtered.First();      // 枚举 2
-var list = filtered.ToList();      // 枚举 3
-
-// ✅ 缓存结果
-var filtered = users.Where(u => u.IsActive).ToList();
-var count = filtered.Count;        // O(1)
-var first = filtered[0];           // O(1)
-
-// ✅ 使用 TryGetNonEnumeratedCount 优化
-if (source.TryGetNonEnumeratedCount(out var count))
-{
-    // 不需要枚举就能获取数量
-}
+var hotTags = posts.CountBy(p => p.Tag).OrderByDescending(kv => kv.Value).Take(5);
 ```
 
-## EF Core LINQ Translation
+## 性能要点
+
+- `Any()` 优于 `Count() > 0`
+- `Count(predicate)` 优于 `Where(p).Count()`
+- `FirstOrDefault(predicate)` 合并谓词
+- 已知 `List` 时 `for` 略快, 但优先可读
+- 不要在链中段 `ToList`; 只在终点物化
+- 大集合 `Contains` 用 `HashSet<T>`, 避免 O(n²)
+- 热路径用 `Span<T>` / `ReadOnlySpan<T>` 取代 LINQ on small arrays
+- 大数据 CPU 处理用 PLINQ: `.AsParallel().WithDegreeOfParallelism(n)`
 
 ```csharp
-// ✅ 可翻译为 SQL 的 LINQ
-var users = await _context.Users
-    .Where(u => u.IsActive && u.Age > 18)
-    .OrderBy(u => u.Name)
-    .Select(u => new UserDto(u.Id, u.Name, u.Email))
-    .ToListAsync(ct);
-
-// ❌ 不可翻译（导致客户端评估或异常）
-var users = await _context.Users
-    .Where(u => MyCustomMethod(u.Name))  // 无法翻译！
-    .ToListAsync(ct);
-
-// ✅ EF Core 10 JSON 列查询
-var users = await _context.Users
-    .Where(u => u.Address.City == "Beijing")  // JSON 列内查询
-    .ToListAsync(ct);
-
-// ✅ 使用 AsNoTracking 优化只读查询
-var users = await _context.Users
-    .AsNoTracking()
-    .Where(u => u.IsActive)
-    .ToListAsync(ct);
-```
-
-## 性能优化
-
-```csharp
-// ❌ LINQ 在热路径上的性能问题
-var sum = numbers.Where(n => n > 0).Sum();  // 委托分配 + 迭代器分配
-
-// ✅ 热路径使用 Span + 手动循环
-public static int SumPositive(ReadOnlySpan<int> numbers)
+// 热路径: 单次扫描, 零分配
+public int SumPositive(ReadOnlySpan<int> data)
 {
     var sum = 0;
-    foreach (var n in numbers)
-    {
-        if (n > 0) sum += n;
-    }
+    foreach (var x in data) if (x > 0) sum += x;
     return sum;
 }
-
-// ✅ 大数据集使用 PLINQ
-var results = largeDataSet
-    .AsParallel()
-    .WithDegreeOfParallelism(Environment.ProcessorCount)
-    .Where(x => x.IsValid)
-    .Select(x => Transform(x))
-    .ToArray();
-
-// ✅ 使用 HashSet 优化 Contains 查询
-var validIds = new HashSet<int>(validIdList);
-var filtered = items.Where(x => validIds.Contains(x.Id));
-
-// ❌ List.Contains 在大集合上是 O(n)
-var filtered = items.Where(x => validIdList.Contains(x.Id));
 ```
 
-## IAsyncEnumerable + LINQ
+## EF Core 查询转换
+
+- 仅服务端可翻译的表达式能下推 SQL; 客户端求值在 EF Core 3+ 默认禁用 (除显式 `AsEnumerable` 后)
+- `AsNoTracking()` 读取无需跟踪的数据
+- N+1: 用 `Include` / `ThenInclude` / `AsSplitQuery`
+- 投影仅需字段: `Select(u => new UserDto(u.Id, u.Name))`
+- 大列表用 `AsAsyncEnumerable()` + 流式消费
 
 ```csharp
-// ✅ 异步 LINQ（System.Linq.Async 包）
-await foreach (var user in _context.Users
-    .Where(u => u.IsActive)
-    .AsAsyncEnumerable()
-    .Where(u => PassesComplexValidation(u))  // 客户端过滤
-    .WithCancellation(ct))
-{
-    await ProcessAsync(user, ct);
-}
+var page = await db.Orders.AsNoTracking()
+    .Where(o => o.CustomerId == cid)
+    .OrderByDescending(o => o.CreatedAt)
+    .Skip(skip).Take(pageSize)
+    .Select(o => new OrderListDto(o.Id, o.Amount, o.CreatedAt))
+    .ToListAsync(ct);
 ```
 
-## Red Flags：AI 常见误区
+## 异步 LINQ
 
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "LINQ 够快了" | ✅ 热路径是否用 Span + 手动循环？ |
-| "Select * 没问题" | ✅ 是否用 projection 只查需要的列？ |
-| "客户端过滤更灵活" | ✅ Where 条件是否可翻译为 SQL？ |
-| "foreach 循环更清晰" | ✅ 简单集合操作是否用 LINQ？ |
-| "多次枚举没关系" | ✅ IEnumerable 是否缓存为 List？ |
-| "不需要分批" | ✅ 大数据集是否用 Chunk 分批？ |
-| "List.Contains 够用" | ✅ 大集合是否用 HashSet.Contains？ |
+EF Core: `ToListAsync`/`FirstOrDefaultAsync`/`AnyAsync`/`CountAsync`, 全部接受 `CancellationToken`。
+对 `IAsyncEnumerable<T>` 使用 `System.Linq.Async` 提供的异步 LINQ 操作。
 
-## 检查清单
+## 常见反模式
 
-- [ ] 避免多次枚举（缓存为 List 或使用 TryGetNonEnumeratedCount）
-- [ ] 使用 projection（Select）只查需要的字段
-- [ ] LINQ to EF Core 条件可翻译为 SQL
-- [ ] 只读查询使用 AsNoTracking
-- [ ] 大数据集使用 Chunk 分批处理
-- [ ] 热路径考虑 Span + 手动循环替代 LINQ
-- [ ] 大集合 Contains 使用 HashSet
-- [ ] 无 LINQ 查询中的副作用
-- [ ] 使用 .NET 10+ 新操作符（DistinctBy、Chunk 等）
+| 反模式 | 修复 |
+|--------|------|
+| `list.Count() > 0` | `list.Any()` 或 `list.Count > 0` (ICollection) |
+| `list.OrderBy(k).First()` | `list.MinBy(k)` |
+| `list.Where(p).Count()` | `list.Count(p)` |
+| `list.Select(...).Where(...)` | 调换: 先 Where 后 Select |
+| `Distinct()` 自定义对象 | 实现 `IEquatable<T>` 或 `DistinctBy(key)` |
+| 链中 `ToList().Where(...)` | 删除中段 `ToList` |
+| 大集合 `list.Contains(x)` | `HashSet<T>` |
+
+## 不可变与函数式
+
+- 优先 immutable: `record` / `ImmutableArray<T>`
+- LINQ 操作返回新序列; 不要修改源集合
+- `with` 表达式产生记录副本
+
+## 参考
+
+- [LINQ 教程](https://learn.microsoft.com/dotnet/csharp/linq/)
+- [.NET 10 LINQ 新增](https://learn.microsoft.com/dotnet/core/whats-new/dotnet-10)
+- [EF Core 查询转换](https://learn.microsoft.com/ef/core/querying/)
+- [System.Linq.Async](https://www.nuget.org/packages/System.Linq.Async)

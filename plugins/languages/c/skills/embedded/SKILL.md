@@ -1,221 +1,187 @@
 ---
-description: "C语言嵌入式开发规范，涵盖硬件寄存器操作（volatile/MMIO）、中断处理（ISR）、MISRA C:2023（含AMD4多线程指南）合规、静态分配策略、固件优化。适用于MCU固件开发、驱动编写、资源受限环境。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: c-embedded
+description: |
+  C embedded firmware conventions: memory-mapped I/O with volatile structs, short ISR
+  with main-loop hand-off, MISRA C:2023 (incl. AMD4 atomics/concurrency guidance)
+  compliance, static-only allocation strategies (pools, bitfields, unions, static
+  buffers), Flash/RAM/stack budgeting, and bare-metal critical-section primitives.
+  Use when writing MCU firmware, drivers, RTOS tasks, or any resource-constrained C.
+  Triggers on "MCU", "嵌入式 C", "ISR", "中断处理", "volatile 寄存器", "MISRA",
+  "静态分配", "no malloc", "bare metal", "Cortex-M", "RTOS".
 ---
 
 # C 嵌入式开发规范
 
-## 适用 Agents
-- **dev** - 嵌入式固件开发
-- **debug** - 硬件寄存器和中断调试
-- **perf** - 固件大小和执行速度优化
+## 强制约定
 
-## 相关 Skills
+1. 禁用动态内存（`malloc / calloc / realloc / free`）；改用静态池 / 栈 / arena。
+2. 硬件寄存器 / ISR ↔ 主流程共享变量 / 信号变量必须 `volatile`。
+3. ISR 短小，仅置位 flag / 入队字节，重活在主循环。
+4. 临界区用 `disable_irq / restore_irq` 显式保护；时间窗最小化。
+5. 无递归；栈使用可在编译期分析（`-fstack-usage`）。
+6. 浮点：先确认 MCU 是否有 FPU；无 FPU 用定点。
+7. const 数据声明 `const`，链接器放入 Flash 段。
+8. 安全 / 功能安全项目按 MISRA C:2023 合规检查。
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(c:core) | C11/C17 标准、编码约定 |
-| 内存管理 | Skills(c:memory) | 内存池、静态分配 |
-| 并发编程 | Skills(c:concurrency) | 原子操作、中断安全 |
-| 错误处理 | Skills(c:error) | 嵌入式错误处理策略 |
+## MISRA C:2023 关键 Rules（包含 AMD4 并发指南）
 
-## AI 理性化检查
-
-| AI 理性化 | 实际检查 |
-|----------|---------|
-| "不需要 volatile" | 变量是否被 ISR 或硬件修改？ |
-| "malloc 在嵌入式可以用" | 是否有动态分配的替代方案？ |
-| "ISR 里可以做复杂操作" | ISR 是否尽快退出？ |
-| "不需要 MISRA 检查" | 项目是否有安全认证要求？ |
-| "浮点运算没问题" | 目标 MCU 是否有 FPU？ |
-| "全局变量很方便" | 是否需要限制作用域？ |
-
-## MISRA C:2023 关键规则（含 AMD4 多线程/原子操作指南）
-
-| 规则 | 说明 | 级别 |
+| 规则 | 说明 | 等级 |
 |------|------|------|
-| Dir 4.1 | 运行时故障应最小化 | 必须 |
-| Rule 1.3 | 无未定义行为 | 必须 |
-| Rule 2.2 | 无死代码 | 必须 |
-| Rule 10.3 | 赋值不隐式窄化 | 必须 |
-| Rule 11.3 | 指针转换不改变对象类型 | 必须 |
-| Rule 17.7 | 函数返回值不可忽略 | 必须 |
-| Rule 21.3 | 不使用 malloc/free | 必须 |
-| Rule 21.6 | 不使用 stdio.h | 建议 |
+| Dir 4.1 | 最小化运行时错误 | Mandatory |
+| Rule 1.3 | 无未定义 / 关键未指定行为 | Required |
+| Rule 2.2 | 无死代码 | Required |
+| Rule 10.x | 类型转换必须显式且不窄化 | Required |
+| Rule 11.3 | 指针类型转换不改变指向对象类型 | Required |
+| Rule 17.7 | 非 void 返回值不可丢弃 | Required |
+| Rule 21.3 | 不使用 `malloc / free` 等动态内存 | Required |
+| Rule 21.6 | 不使用 `<stdio.h>` 标准 I/O | Advisory |
+| AMD4 Rule 22.x | 原子 / 多线程使用规范（C11 `_Atomic`） | Required（启用后） |
 
-## 寄存器操作
+工具链：Cppcheck `--addon=misra`、PC-lint Plus、Coverity、Polyspace、ECLAIR。
 
-### 内存映射 I/O（volatile 必须）
+## 内存映射 I/O
+
 ```c
-// 结构体映射（推荐方式）
 typedef struct {
-    volatile uint32_t CR;      // 控制寄存器
-    volatile uint32_t SR;      // 状态寄存器
-    volatile uint32_t DR;      // 数据寄存器
-    uint32_t RESERVED[1];      // 保留
-    volatile uint32_t BRR;     // 波特率寄存器
+    volatile uint32_t CR;
+    volatile uint32_t SR;
+    volatile uint32_t DR;
+    uint32_t _rsv;
+    volatile uint32_t BRR;
 } UART_TypeDef;
 
-#define UART1 ((UART_TypeDef*)0x40011000U)
+#define UART1 ((UART_TypeDef *)0x40011000U)
 
-// 位操作宏（类型安全）
-#define BIT_SET(reg, bit)     ((reg) |= (1U << (bit)))
-#define BIT_CLEAR(reg, bit)   ((reg) &= ~(1U << (bit)))
-#define BIT_READ(reg, bit)    (((reg) >> (bit)) & 1U)
-#define BITS_SET(reg, mask)   ((reg) |= (mask))
-#define BITS_CLEAR(reg, mask) ((reg) &= ~(mask))
-
-// 使用
-BIT_SET(UART1->CR, 13);     // 使能 UART
-while (!BIT_READ(UART1->SR, 6)) { }  // 等待发送完成
-UART1->DR = data;
+#define BIT_SET(r, b)   ((r) |=  (1U << (b)))
+#define BIT_CLR(r, b)   ((r) &= ~(1U << (b)))
+#define BIT_GET(r, b)   (((r) >> (b)) & 1U)
 ```
 
-## 中断处理
+## 中断服务程序 (ISR)
 
-### ISR 规范
 ```c
-// ISR 规则：快进快出，只设 flag，主循环处理
-static volatile bool uart_rx_ready = false;
-static volatile uint8_t uart_rx_byte;
+static volatile bool    rx_ready;
+static volatile uint8_t rx_byte;
 
 void UART1_IRQHandler(void) {
-    if (UART1->SR & (1U << 5)) {        // RXNE 标志
-        uart_rx_byte = (uint8_t)UART1->DR;  // 读取清除标志
-        uart_rx_ready = true;
+    if (UART1->SR & (1U << 5)) {       // RXNE
+        rx_byte  = (uint8_t)UART1->DR; // 读 DR 清 flag
+        rx_ready = true;
     }
 }
 
-// 主循环处理
 int main(void) {
-    while (1) {
-        if (uart_rx_ready) {
-            uart_rx_ready = false;
-            process_byte(uart_rx_byte);
-        }
-        __asm__ volatile("wfi");  // 低功耗等待中断
-    }
-}
-
-// 临界区保护
-static inline uint32_t disable_irq(void) {
-    uint32_t primask;
-    __asm__ volatile("mrs %0, primask\n\tcpsid i" : "=r"(primask));
-    return primask;
-}
-
-static inline void restore_irq(uint32_t primask) {
-    __asm__ volatile("msr primask, %0" :: "r"(primask));
-}
-
-// 使用
-uint32_t saved = disable_irq();
-// 临界区操作
-restore_irq(saved);
-```
-
-## 静态分配策略（禁止 malloc）
-
-```c
-// 静态缓冲池
-#define BUFFER_POOL_SIZE 8
-#define BUFFER_SIZE 128
-
-static uint8_t buffer_pool[BUFFER_POOL_SIZE][BUFFER_SIZE];
-static bool buffer_used[BUFFER_POOL_SIZE] = {false};
-
-uint8_t* buffer_alloc(void) {
-    for (int i = 0; i < BUFFER_POOL_SIZE; i++) {
-        if (!buffer_used[i]) {
-            buffer_used[i] = true;
-            return buffer_pool[i];
-        }
-    }
-    return NULL;  // 池耗尽
-}
-
-void buffer_free(uint8_t* buf) {
-    for (int i = 0; i < BUFFER_POOL_SIZE; i++) {
-        if (buffer_pool[i] == buf) {
-            buffer_used[i] = false;
-            return;
-        }
+    for (;;) {
+        if (rx_ready) { rx_ready = false; on_byte(rx_byte); }
+        __asm__ volatile ("wfi");
     }
 }
 ```
 
-## 资源约束优化
+### Cortex-M 临界区
 
-### ROM 优化
 ```c
-// const 数据放入 Flash
-const uint8_t lookup_table[256] = { /* ... */ };
+static inline uint32_t irq_save(void) {
+    uint32_t p; __asm__ volatile ("mrs %0, primask\n\tcpsid i" : "=r"(p));
+    return p;
+}
+static inline void irq_restore(uint32_t p) {
+    __asm__ volatile ("msr primask, %0" :: "r"(p) : "memory");
+}
+```
 
-// 编译器特定的 Flash 段
+C11 `_Atomic` 也可用于 ISR ↔ 主循环单字共享（按 MISRA AMD4 章节使用）。
+
+## 静态分配模板
+
+```c
+#define POOL_N   8
+#define BUF_SZ 128
+static uint8_t pool[POOL_N][BUF_SZ];
+static bool    used[POOL_N];
+
+uint8_t *buf_alloc(void) {
+    for (int i = 0; i < POOL_N; i++)
+        if (!used[i]) { used[i] = true; return pool[i]; }
+    return NULL;
+}
+void buf_free(uint8_t *p) {
+    for (int i = 0; i < POOL_N; i++)
+        if (pool[i] == p) { used[i] = false; return; }
+}
+```
+
+## ROM / RAM / 栈预算
+
+```c
+// const 进 Flash
 __attribute__((section(".rodata")))
-const char version_string[] = "v1.0.0";
-```
+static const uint8_t lut[256] = { /* ... */ };
 
-### RAM 优化
-```c
 // 位域压缩
-struct DeviceFlags {
-    unsigned enabled   : 1;
-    unsigned mode      : 3;
-    unsigned error     : 1;
-    unsigned ready     : 1;
-    unsigned reserved  : 2;
+struct Flags {
+    unsigned enabled : 1;
+    unsigned mode    : 3;
+    unsigned error   : 1;
+    unsigned ready   : 1;
+    unsigned _rsv    : 2;
 };
-static_assert(sizeof(struct DeviceFlags) == 1, "flags must be 1 byte");
+static_assert(sizeof(struct Flags) == 1, "1 byte");
 
-// 联合体复用内存
-union MessageBuffer {
-    struct { uint16_t id; uint8_t data[6]; } can_frame;
-    struct { uint8_t addr; uint8_t reg; uint16_t value; } i2c_msg;
+// 联合体复用
+union Msg {
+    struct { uint16_t id; uint8_t d[6]; } can;
+    struct { uint8_t a, r; uint16_t v; } i2c;
     uint8_t raw[8];
 };
+
+// 大缓冲区放 BSS，不占栈
+void task(void) { static uint8_t big[1024]; /* ... */ }
 ```
 
-### 栈优化
-```c
-// 避免递归，使用迭代
-// 大数组使用 static（不在栈上）
-void process(void) {
-    static uint8_t large_buffer[1024];  // static，不占栈空间
-    // ...
-}
-```
+工具：`-fstack-usage` + `arm-none-eabi-size`，对每个 ISR / 任务函数做最坏栈分析。
 
-## volatile 正确性
+## volatile 适用边界
 
-```c
-// 必须 volatile 的场景：
-// 1. 硬件寄存器
-volatile uint32_t* const REG = (volatile uint32_t*)0x40000000;
+需要 `volatile`：
+- 硬件寄存器指针 (`volatile uint32_t *const`)
+- ISR ↔ 主流程共享单字变量
+- `setjmp/longjmp` 间需保留的局部变量
+- 信号处理器共享变量（`sig_atomic_t`）
 
-// 2. ISR 与主循环共享变量
-static volatile bool flag = false;
+不需要：
+- 仅单线程访问的普通变量
+- 已经用 `_Atomic` 的变量（语义重叠）
 
-// 3. 信号处理器共享变量
-static volatile sig_atomic_t signal_flag = 0;
+## 调试与构建
 
-// 不需要 volatile 的场景：
-// - 仅在一个线程访问的变量
-// - 使用 _Atomic 的变量（_Atomic 已包含所需语义）
+```bash
+# 大小报告
+arm-none-eabi-size -A -d build/firmware.elf
+
+# 最坏栈
+gcc -fstack-usage -c src/foo.c   # 产 src/foo.su
+
+# 静态分析
+cppcheck --addon=misra --std=c17 src/
 ```
 
 ## 检查清单
 
-- [ ] 硬件寄存器使用 volatile
-- [ ] ISR 快进快出，仅设置 flag
-- [ ] ISR 与主循环共享变量使用 volatile
-- [ ] 临界区正确保护（disable/restore IRQ）
-- [ ] 无动态内存分配（malloc/free）
-- [ ] 使用位域/联合体优化 RAM
-- [ ] const 数据放入 Flash
-- [ ] 无递归，栈使用可分析
-- [ ] MISRA C 2023 关键规则合规
-- [ ] 编译时启用 -Wconversion -Wsign-conversion
+- [ ] 无 `malloc / free` / 动态分配
+- [ ] 寄存器与 ISR 共享变量带 `volatile`
+- [ ] ISR 短小，仅置位 / 入队
+- [ ] 临界区显式保护，时间最短
+- [ ] 无递归，栈使用已分析
+- [ ] const 数据在 Flash 段
+- [ ] 位域 / 联合体优化 RAM
+- [ ] MISRA C:2023 关键规则零违例（项目要求时）
+- [ ] `-Wconversion -Wsign-conversion -Wshadow` 通过
+
+## 权威参考
+
+- MISRA C:2023 + AMD1/AMD2/AMD3/AMD4 — <https://misra.org.uk/>
+- ARM Cortex-M Programming — <https://developer.arm.com/documentation/dui0552/latest/>
+- CMSIS — <https://arm-software.github.io/CMSIS_6/latest/General/index.html>
+- Cppcheck MISRA addon — <https://cppcheck.sourceforge.io/misra.php>
+- GCC `-fstack-usage` — <https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html>

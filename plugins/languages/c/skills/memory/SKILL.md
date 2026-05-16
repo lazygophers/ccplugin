@@ -1,162 +1,142 @@
 ---
-description: "C语言内存管理规范，涵盖malloc/free安全分配模式、内存泄漏检测（Valgrind/AddressSanitizer）、内存对齐、内存池、RAII-like自动释放宏。适用于内存分配、泄漏调试、缓存优化。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: c-memory
+description: |
+  C memory management conventions: safe malloc/calloc/realloc patterns, free + NULL,
+  alignment (aligned_alloc, posix_memalign, _Alignas), memory pools/arenas, RAII-like
+  __attribute__((cleanup)), and leak/error detection with Valgrind, AddressSanitizer,
+  MemorySanitizer, LeakSanitizer. Use when allocating memory, debugging leaks, designing
+  cache-friendly layouts, or hardening against UAF / double-free. Triggers on
+  "malloc 检查", "内存泄漏", "valgrind", "asan", "use-after-free", "double free",
+  "内存对齐", "aligned_alloc", "内存池", "arena allocator".
 ---
 
 # C 内存管理规范
 
-## 适用 Agents
-- **dev** - 实现内存分配和数据结构
-- **debug** - 诊断内存泄漏和越界
-- **test** - 验证内存安全
-- **perf** - 内存布局优化和缓存友好设计
+## 强制约定
 
-## 相关 Skills
+1. 所有 `malloc / calloc / realloc` 返回值必须检查。
+2. `realloc` 必须用临时指针接住，失败时原指针仍有效。
+3. `sizeof` 用 `sizeof(*ptr)` 而非 `sizeof(Type)`，避免类型 / 指针不一致。
+4. `free` 后立即将指针置 `NULL`，杜绝 UAF / double-free。
+5. 大小相乘前做溢出检查（见 `c-error` 中 `safe_multiply`）。
+6. 需要硬件对齐时使用 `aligned_alloc(C11)` 或 `posix_memalign`。
+7. 高频分配场景使用 arena / pool / freelist，而非 `malloc` 直调。
+8. 嵌入式 / MISRA 项目禁用动态内存（参考 `c-embedded`）。
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(c:core) | C11/C17 标准、编码约定 |
-| 并发编程 | Skills(c:concurrency) | 线程安全分配、原子操作 |
-| 错误处理 | Skills(c:error) | 分配失败的错误处理 |
+## 安全分配模板
 
-## AI 理性化检查
-
-| AI 理性化 | 实际检查 |
-|----------|---------|
-| "不检查 malloc 没事" | 所有分配是否检查了返回值？ |
-| "free 后不用置 NULL" | 是否有 use-after-free 风险？ |
-| "realloc 直接赋值原指针" | 失败时原指针是否丢失？ |
-| "Valgrind 太慢不用跑" | 是否有其他内存检查？ |
-| "栈上分配就安全" | VLA 是否可能栈溢出？ |
-| "aligned_alloc 不需要" | 是否有 SIMD 或缓存行对齐需求？ |
-
-## 安全分配模式
-
-### 基本分配（必须检查返回值）
 ```c
-// malloc：未初始化内存
-int* arr = malloc(n * sizeof(*arr));  // 使用 sizeof(*ptr) 而非 sizeof(type)
-if (arr == NULL) {
-    perror("malloc");
-    goto cleanup;
-}
+// malloc
+T *p = malloc(n * sizeof(*p));
+if (!p) { perror("malloc"); goto cleanup; }
 
-// calloc：零初始化，自动处理溢出检查
-int* arr = calloc(n, sizeof(*arr));
-if (arr == NULL) {
-    perror("calloc");
-    goto cleanup;
-}
+// calloc：零初始化，自动内置溢出检查
+T *p = calloc(n, sizeof(*p));
+if (!p) { perror("calloc"); goto cleanup; }
 
-// realloc：必须用临时指针
-int* tmp = realloc(arr, new_count * sizeof(*arr));
-if (tmp == NULL) {
-    perror("realloc");
-    // arr 仍然有效，需要 free
-    goto cleanup;
-}
-arr = tmp;
+// realloc：临时指针模式
+T *tmp = realloc(p, new_n * sizeof(*p));
+if (!tmp) { perror("realloc"); goto cleanup; }
+p = tmp;
+
+// 释放
+free(p);
+p = NULL;
 ```
 
-### 释放后置 NULL
+## RAII 风格（GCC / Clang `cleanup` 属性）
+
 ```c
-free(arr);
-arr = NULL;  // 防止 use-after-free 和 double-free
-```
+static inline void auto_free(void *pp) { free(*(void **)pp); }
+#define AUTO_FREE __attribute__((cleanup(auto_free)))
 
-### RAII-like 宏（GCC/Clang __attribute__((cleanup))）
-```c
-#define AUTO_FREE __attribute__((cleanup(auto_free_ptr)))
-
-static inline void auto_free_ptr(void* p) {
-    free(*(void**)p);
-}
-
-void example(void) {
-    AUTO_FREE char* buf = malloc(256);
-    if (buf == NULL) return;
-    // buf 在作用域结束时自动 free
+void demo(void) {
+    AUTO_FREE char *buf = malloc(256);
+    if (!buf) return;        // buf 作用域结束时自动 free
+    /* ... */
 }
 ```
 
-## 内存对齐
+C23 可结合 `[[gnu::cleanup(auto_free)]]` 语法。
+
+## 对齐
 
 ```c
-// C11 aligned_alloc（大小必须是对齐的整数倍）
-void* buf = aligned_alloc(64, 1024);  // 64 字节对齐
+// C11 aligned_alloc：size 必须是 alignment 的整数倍
+void *p = aligned_alloc(64, 1024);
 
-// POSIX posix_memalign
-void* buf = NULL;
-if (posix_memalign(&buf, 64, 1024) != 0) {
-    perror("posix_memalign");
-}
+// POSIX
+void *q = NULL;
+if (posix_memalign(&q, 64, 1024) != 0) { perror("posix_memalign"); }
 
-// 结构体对齐
-_Alignas(64) struct CacheLine {
-    int data[16];
-};
-
-// 检查对齐
-static_assert(_Alignof(struct CacheLine) == 64, "cache line alignment");
+// 缓存行对齐结构体
+_Alignas(64) struct CacheLine { int data[16]; };
+static_assert(_Alignof(struct CacheLine) == 64, "cache line align");
 ```
 
-## 内存池（避免频繁 malloc/free）
+## Arena / Pool 模板
 
 ```c
-typedef struct MemPool {
-    uint8_t* base;       // 池内存基地址
-    size_t capacity;     // 总容量
-    size_t used;         // 已使用
-} MemPool;
+typedef struct { uint8_t *base; size_t cap, used; } Arena;
 
-MemPool* mempool_create(size_t capacity) {
-    MemPool* pool = malloc(sizeof(MemPool));
-    if (pool == NULL) return NULL;
-    pool->base = malloc(capacity);
-    if (pool->base == NULL) { free(pool); return NULL; }
-    pool->capacity = capacity;
-    pool->used = 0;
-    return pool;
+Arena *arena_new(size_t cap) {
+    Arena *a = malloc(sizeof *a);
+    if (!a) return NULL;
+    a->base = malloc(cap);
+    if (!a->base) { free(a); return NULL; }
+    a->cap = cap; a->used = 0;
+    return a;
 }
 
-void* mempool_alloc(MemPool* pool, size_t size) {
-    // 对齐到 8 字节
-    size = (size + 7) & ~(size_t)7;
-    if (pool->used + size > pool->capacity) return NULL;
-    void* ptr = pool->base + pool->used;
-    pool->used += size;
-    return ptr;
+void *arena_alloc(Arena *a, size_t n) {
+    n = (n + 7) & ~(size_t)7;        // 8 字节对齐
+    if (a->used + n > a->cap) return NULL;
+    void *p = a->base + a->used; a->used += n; return p;
 }
 
-void mempool_destroy(MemPool* pool) {
-    if (pool) { free(pool->base); free(pool); }
-}
+void arena_free(Arena *a) { if (a) { free(a->base); free(a); } }
 ```
 
-## 泄漏检测工具
+## 动态检测工具
 
-```bash
-# Valgrind 全面检查
-valgrind --leak-check=full --show-leak-kinds=all \
-         --track-origins=yes --error-exitcode=1 ./program
+| 工具 | 调用 | 用途 | 兼容性 |
+|------|------|------|-------|
+| Valgrind memcheck | `valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./prog` | 泄漏、越界、未初始化（10–50× 慢）；检测不到栈/全局溢出 | 通用 |
+| AddressSanitizer | `-fsanitize=address -fno-omit-frame-pointer -g` | 堆/栈/全局越界、UAF、double-free | GCC/Clang，与 UBSan 兼容 |
+| LeakSanitizer | `-fsanitize=leak` 或 ASan 自带 | 仅泄漏，开销低 | GCC/Clang |
+| MemorySanitizer | `clang -fsanitize=memory -fno-omit-frame-pointer` | 未初始化读取；需重编译所有依赖 | 仅 Clang，独立运行 |
+| `mtrack` / `heaptrack` | `heaptrack ./prog` | 分配画像、火焰图 | Linux |
 
-# AddressSanitizer（编译时）
-gcc -std=c17 -fsanitize=address -fno-omit-frame-pointer -g program.c -o program
+ASan + UBSan = 日常开发；提交前再跑 Valgrind；怀疑未初始化时用 MSan；与 TSan 不可同跑。
 
-# MemorySanitizer（检测未初始化内存读取，仅 Clang）
-clang -std=c17 -fsanitize=memory -fno-omit-frame-pointer -g program.c -o program
+## 防御性模式
+
+```c
+// calloc 内置溢出检查；手写 malloc 时显式校验
+if (n > SIZE_MAX / sizeof(T)) return ERR_OVERFLOW;
+T *p = malloc(n * sizeof(*p));
+
+// reallocarray (glibc/BSD) 自动检查溢出
+T *tmp = reallocarray(p, new_n, sizeof(*p));
+if (!tmp) { /* p 仍有效 */ }
 ```
 
 ## 检查清单
 
-- [ ] 所有 malloc/calloc/realloc 返回值已检查
-- [ ] 所有分配的内存已释放（Valgrind 验证）
-- [ ] 释放后指针置 NULL
+- [ ] 所有分配返回值已检查
 - [ ] realloc 使用临时指针模式
-- [ ] sizeof 使用 `sizeof(*ptr)` 而非 `sizeof(Type)`
-- [ ] 需要对齐时使用 aligned_alloc/posix_memalign
-- [ ] 频繁分配场景使用内存池
-- [ ] ASan 或 Valgrind 零错误报告
+- [ ] `free(p); p = NULL;` 配对
+- [ ] `sizeof(*p)` 而非 `sizeof(Type)`
+- [ ] 大小乘法前做溢出检查
+- [ ] 对齐需求用 `aligned_alloc / posix_memalign`
+- [ ] ASan + UBSan 零报告
+- [ ] Valgrind 零报告（提交前）
+- [ ] 嵌入式 / 安全关键项目无 `malloc/free`
+
+## 权威参考
+
+- ISO/IEC 9899:2024 §7.24 内存管理 — <https://www.open-std.org/jtc1/sc22/wg14/>
+- Valgrind 文档 — <https://valgrind.org/docs/manual/mc-manual.html>
+- AddressSanitizer — <https://clang.llvm.org/docs/AddressSanitizer.html>
+- MemorySanitizer — <https://clang.llvm.org/docs/MemorySanitizer.html>
+- glibc 内存管理 — <https://www.gnu.org/software/libc/manual/html_node/Memory.html>

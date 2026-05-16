@@ -1,211 +1,148 @@
 ---
-description: "Rust宏开发规范 - macro_rules!声明宏、derive/属性/函数式过程宏、proc-macro2 + syn 2.x + quote工具链。设计宏、编写derive宏、代码生成、元编程时加载。"
+name: rust-macros
+description: Rust 宏开发规范 — `macro_rules!` 声明宏（卫生性、完整路径、递归 / 重复模式）、过程宏（derive / 属性 / 函数式）、proc-macro2 + syn 2.x + quote 工具链、trybuild 编译测试、cargo-expand 展开验证、`compile_error!` span 精确报错。设计宏 API、实现 derive 宏、做代码生成 / 元编程时加载。触发短语：macro_rules、proc-macro、derive 宏、属性宏、syn、quote、代码生成、宏展开、元编程。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # Rust 宏开发规范
 
-## 适用 Agents
+前置：`rust-core`。
 
-- **rust:dev** - 宏的设计与实现
+## 选型决策
 
-## 相关 Skills
+| 需求 | 方案 |
+|------|------|
+| 简单重复模式（DSL） | `macro_rules!` |
+| 自动实现 trait | derive 过程宏 |
+| 改装函数 / 结构体 | 属性过程宏 |
+| 函数式 DSL | 函数式过程宏 |
+| **首选** | 泛型 + trait 解决，无法解决再宏 |
 
-- **Skills(rust:core)** - Rust 2024 edition、工具链
-- **Skills(rust:unsafe)** - 宏生成的 unsafe 代码
+宏是代码生成器，不是抽象工具。能用类型系统解决的问题禁止上宏。
 
-## 宏选择决策
-
-| 需求 | 推荐方案 | 说明 |
-|------|---------|------|
-| 简单重复模式 | 声明宏 `macro_rules!` | 最简单、编译最快 |
-| 自动实现 trait | derive 宏 | `#[derive(MyTrait)]` |
-| 修改函数/结构体 | 属性宏 | `#[my_attr]` |
-| 函数式语法 | 函数式过程宏 | `my_macro!(...)` |
-| **优先考虑** | 泛型 + trait | 能用类型系统解决就不用宏 |
-
-## 声明宏（macro_rules!）
+## `macro_rules!` 模板
 
 ```rust
-// 基础模式匹配
 macro_rules! hashmap {
-    ($($key:expr => $value:expr),* $(,)?) => {{
-        let mut map = ::std::collections::HashMap::new();
-        $(map.insert($key, $value);)*
-        map
+    ($($k:expr => $v:expr),* $(,)?) => {{
+        let mut m = ::std::collections::HashMap::new();
+        $(m.insert($k, $v);)*
+        m
     }};
 }
 
-let m = hashmap! {
-    "name" => "Alice",
-    "role" => "admin",
-};
-
-// 递归宏
-macro_rules! count {
-    () => { 0usize };
-    ($head:tt $($tail:tt)*) => { 1usize + count!($($tail)*) };
-}
-
-// 卫生性：使用完整路径
-macro_rules! new_vec {
-    ($($elem:expr),*) => {
-        {
-            let mut v = ::std::vec::Vec::new();
-            $(v.push($elem);)*
-            v
-        }
-    };
-}
+let m = hashmap! { "a" => 1, "b" => 2, };
 ```
 
-## Derive 宏（proc-macro2 + syn 2.x + quote）
+卫生性铁律：宏内引用 std / 第三方类型必须用 `::std::...` / `::serde::...` 完整路径，避免调用方命名空间污染。
+
+## 过程宏脚手架
+
+`Cargo.toml`：
+
+```toml
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1"
+syn = { version = "2", features = ["full"] }
+quote = "1"
+```
+
+Derive 宏示例：
 
 ```rust
-// Cargo.toml
-// [lib]
-// proc-macro = true
-//
-// [dependencies]
-// proc-macro2 = "1"
-// syn = { version = "2", features = ["full"] }
-// quote = "1"
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Data, Fields};
 
 #[proc_macro_derive(Builder)]
 pub fn derive_builder(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = &input.ident;
-    let builder_name = syn::Ident::new(
-        &format!("{name}Builder"),
-        name.span(),
-    );
+    let ast = parse_macro_input!(input as DeriveInput);
+    let name = &ast.ident;
+    let builder = syn::Ident::new(&format!("{name}Builder"), name.span());
 
-    let fields = match &input.data {
-        Data::Struct(data) => match &data.fields {
-            Fields::Named(fields) => &fields.named,
-            _ => panic!("Builder only supports named fields"),
+    let fields = match &ast.data {
+        Data::Struct(s) => match &s.fields {
+            Fields::Named(f) => &f.named,
+            _ => return syn::Error::new_spanned(name, "Builder requires named fields")
+                .to_compile_error().into(),
         },
-        _ => panic!("Builder only supports structs"),
+        _ => return syn::Error::new_spanned(name, "Builder requires struct")
+            .to_compile_error().into(),
     };
-
-    let builder_fields = fields.iter().map(|f| {
-        let name = &f.ident;
-        let ty = &f.ty;
-        quote! { #name: Option<#ty> }
-    });
 
     let setters = fields.iter().map(|f| {
-        let name = &f.ident;
-        let ty = &f.ty;
-        quote! {
-            pub fn #name(mut self, value: #ty) -> Self {
-                self.#name = Some(value);
-                self
-            }
-        }
+        let n = &f.ident; let t = &f.ty;
+        quote! { pub fn #n(mut self, v: #t) -> Self { self.#n = Some(v); self } }
     });
 
-    let expanded = quote! {
-        pub struct #builder_name {
-            #(#builder_fields,)*
-        }
-
-        impl #name {
-            pub fn builder() -> #builder_name {
-                #builder_name {
-                    #(#(#fields.ident): None,)*
-                }
-            }
-        }
-
-        impl #builder_name {
+    quote! {
+        impl #builder {
             #(#setters)*
         }
-    };
-
-    TokenStream::from(expanded)
+    }.into()
 }
 ```
 
-## 属性宏
+属性宏（函数包装）：
 
 ```rust
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemFn};
-
 #[proc_macro_attribute]
 pub fn timed(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(item as ItemFn);
-    let name = &input.sig.ident;
-    let block = &input.block;
-    let sig = &input.sig;
-    let vis = &input.vis;
-
-    let expanded = quote! {
+    let f = parse_macro_input!(item as syn::ItemFn);
+    let sig = &f.sig; let block = &f.block; let vis = &f.vis;
+    let name = &sig.ident;
+    quote! {
         #vis #sig {
-            let _start = ::std::time::Instant::now();
-            let _result = (|| #block)();
-            ::tracing::info!(
-                function = stringify!(#name),
-                elapsed_ms = _start.elapsed().as_millis(),
-                "function completed"
-            );
-            _result
+            let _t = ::std::time::Instant::now();
+            let _r = (|| #block)();
+            ::tracing::info!(fn = stringify!(#name), elapsed_ms = _t.elapsed().as_millis());
+            _r
         }
-    };
-
-    TokenStream::from(expanded)
+    }.into()
 }
 ```
 
-## 宏测试
+## 错误处理
+
+宏内部禁止 `panic!`；用 `syn::Error::new_spanned(...).to_compile_error()` 在出错位置给出 IDE 友好提示。
 
 ```rust
-// 编译测试（trybuild）
+return syn::Error::new_spanned(field, "expected `#[builder(default)]`")
+    .to_compile_error().into();
+```
+
+## 测试
+
+```rust
+// trybuild：验证编译通过 / 失败
 #[test]
-fn tests() {
+fn ui() {
     let t = trybuild::TestCases::new();
-    t.pass("tests/expand/*.rs");       // 应该编译通过
-    t.compile_fail("tests/fail/*.rs"); // 应该编译失败
-}
-
-// 展开验证（cargo-expand）
-// cargo expand --test test_name
-
-// 单元测试
-#[test]
-fn test_hashmap_macro() {
-    let m = hashmap! { "a" => 1, "b" => 2 };
-    assert_eq!(m.len(), 2);
-    assert_eq!(m["a"], 1);
+    t.pass("tests/expand/*.rs");
+    t.compile_fail("tests/fail/*.rs");
 }
 ```
 
-## Red Flags：AI 常见误区
+`cargo expand --test <name>` 验证展开结果，作为开发期 review 工具。
 
-| AI 可能的解释 | 实际检查 |
-|--------------|---------|
-| "用宏解决这个问题" | ✅ 是否可用泛型 + trait 替代？ |
-| "声明宏够用" | ✅ 复杂场景是否需要过程宏？ |
-| "syn 1.x 也行" | ✅ 是否使用 syn 2.x（性能更好）？ |
-| "宏错误信息不重要" | ✅ 是否使用 `compile_error!` 提供清晰错误？ |
-| "不需要测试宏" | ✅ 是否使用 trybuild 测试编译行为？ |
-| "unwrap 在宏里可以" | ✅ 宏是否提供 `span` 精确的错误信息？ |
+## 反模式
+
+| AI 倾向 | 正确做法 |
+|---------|---------|
+| 万物皆可宏 | 先用泛型 + trait |
+| `syn` 1.x | 升级到 `syn` 2.x |
+| `panic!` 报错 | `Error::to_compile_error` |
+| 宏内裸 `String` | 完整路径 `::std::string::String` |
+| 不写测试 | trybuild + cargo expand |
 
 ## 检查清单
 
-- [ ] 优先使用泛型 + trait，宏作为最后手段
-- [ ] 声明宏使用完整路径保证卫生性
-- [ ] 过程宏使用 syn 2.x + quote
-- [ ] 宏提供清晰的编译错误信息
-- [ ] 使用 trybuild 测试编译行为
-- [ ] 使用 cargo-expand 验证展开结果
-- [ ] 文档说明宏的用法和限制
+- [ ] 已尝试泛型 / trait 方案
+- [ ] `macro_rules!` 使用 `::` 完整路径
+- [ ] proc-macro 使用 `syn` 2.x + `quote`
+- [ ] 编译错误用 `syn::Error::to_compile_error` 而非 `panic!`
+- [ ] 有 `trybuild` 编译测试
+- [ ] 公共宏有文档示例

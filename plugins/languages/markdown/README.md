@@ -17,25 +17,17 @@ claude plugin install markdown@ccplugin-market
 
 ### 🎯 核心功能
 
-- **Markdown 编写专家代理** - 提供专业的 Markdown 编写支持
-  - 高质量文档编写
-  - 技术文档结构设计
-  - API 文档规范
-  - README 优化
-
 - **开发规范指导** - 完整的 Markdown 编写规范
   - **Markdown 规范** - 遵循 CommonMark 标准
   - **技术文档规范** - 清晰的文档结构
-  - **API 文档规范** - 标准化 API 描述
+  - **Mermaid 图表规范** - 流程图、序列图最佳实践
 
 ### 📦 包含组件
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | Markdown 编写专家 |
-| Skill | `core` | Markdown 核心规范 |
-| Skill | `api-docs` | API 文档规范 |
-| Skill | `readme` | README 规范 |
+| Skill | `markdown-core` | Markdown 核心规范 |
+| Skill | `markdown-mermaid` | Mermaid 图表规范 |
 
 ## 核心规范
 

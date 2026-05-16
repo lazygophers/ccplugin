@@ -1,199 +1,200 @@
 ---
-description: "JavaScript异步编程规范：async/await、Promise链式调用、Promise.withResolvers、AbortController取消控制、Streams API流处理。处理并发请求、异步流程控制、超时取消、数据流时加载。"
-user-invocable: true
+name: javascript-async
+description: |
+  JavaScript 异步编程规范 (2026)：async/await + AbortController, Promise.try / withResolvers /
+  allSettled / any, Streams API (ReadableStream / TransformStream), Web Workers ESM,
+  Node Worker threads, 事件循环, 长任务切片 scheduler.yield。
+  Use when writing or reviewing async code, handling concurrency, request cancellation,
+  timeouts, race conditions, streaming, or CPU-heavy offloading.
+  Triggers: "异步", "并发", "取消请求", "超时", "竞态", "Promise", "stream",
+  "Web Worker", "race condition", "async/await".
 context: fork
 model: sonnet
-memory: project
 ---
 
-# JavaScript 异步编程规范
+# JavaScript 异步编程规范 (2026)
 
-## 适用 Agents
+## 配套
 
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | JavaScript 开发专家 |
-| debug | JavaScript 调试专家 |
-| test  | JavaScript 测试专家 |
-| perf  | JavaScript 性能优化专家 |
+- `Skills(javascript:core)` — 工具链与基线
+- `Skills(javascript:security)` — fetch 边界校验
 
-## 相关 Skills
+## async/await 契约
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(javascript:core) | ES2025-2026 标准、ESM、工具链 |
-| 安全编码 | Skills(javascript:security) | CORS、CSP、输入验证 |
-
-## async/await 最佳实践
-
-```javascript
-// 所有 await 必须有错误处理
-async function fetchData(url) {
+```js
+// ✅ try-catch 内必 return await
+async function fetchUser(id) {
   try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Fetch failed:', error);
-    throw error;
-  }
-}
-
-// try-catch 中必须 return await（否则错误不被捕获）
-async function safeFetch(url) {
-  try {
-    return await fetch(url); // 必须 await
+    const res = await fetch(`/api/users/${id}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();        // return await: 错误才能进 catch
   } catch (e) {
-    // 这样才能捕获错误
-    throw new Error(`Request failed: ${e.message}`);
+    logger.error({ err: e, id }, 'fetchUser failed');
+    throw e;
   }
 }
+
+// ✅ Promise.try (ES2025): 同步异常也进 Promise 链
+const p = Promise.try(() => mayThrowSync());
 ```
 
-## Promise 并行模式
+## 并发模式
 
-```javascript
-// Promise.allSettled - 等待全部完成（推荐，处理部分失败）
-const results = await Promise.allSettled([
-  fetchUser(id),
-  fetchPosts(id),
-  fetchComments(id),
-]);
+```js
+// 全成功 / 快速失败
+const [u, p] = await Promise.all([fetchUser(id), fetchPosts(id)]);
 
-const succeeded = results.filter(r => r.status === 'fulfilled').map(r => r.value);
-const failed = results.filter(r => r.status === 'rejected').map(r => r.reason);
+// 部分失败可接受 (推荐用于聚合)
+const results = await Promise.allSettled([a(), b(), c()]);
+const ok = results.filter(r => r.status === 'fulfilled').map(r => r.value);
 
-// Promise.all - 全部成功或快速失败
-const [user, posts] = await Promise.all([
-  fetchUser(id),
-  fetchPosts(id),
-]);
+// 任意一个成功
+const fastest = await Promise.any([cdn1(), cdn2(), cdn3()]);
 
-// Promise.withResolvers (ES2024) - 外部控制 resolve/reject
-const { promise, resolve, reject } = Promise.withResolvers();
-element.addEventListener('click', () => resolve('clicked'));
-const result = await promise;
-
-// Promise.any - 第一个成功
-const fastest = await Promise.any([
-  fetch('https://cdn1.example.com/data'),
-  fetch('https://cdn2.example.com/data'),
-]);
-```
-
-## AbortController 超时与取消
-
-```javascript
-// 超时控制
-async function fetchWithTimeout(url, timeout = 5000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    return response;
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error(`Request timeout after ${timeout}ms`);
+// 限并发 (无外部依赖)
+async function pool(items, n, fn) {
+  const out = []; let i = 0;
+  const workers = Array.from({ length: n }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      out[idx] = await fn(items[idx]);
     }
-    throw error;
-  } finally {
-    clearTimeout(id);
+  });
+  await Promise.all(workers);
+  return out;
+}
+```
+
+## AbortController: 取消 / 超时 / 清理
+
+```js
+// 超时
+async function fetchWithTimeout(url, ms = 5000) {
+  const ctrl = AbortSignal.timeout(ms);    // ES2024 静态方法
+  return fetch(url, { signal: ctrl });
+}
+
+// 组合多个 signal (ES2024)
+const signal = AbortSignal.any([userSignal, timeoutSignal]);
+
+// 竞态：取消过期请求
+let inflight = null;
+async function search(q) {
+  inflight?.abort();
+  inflight = new AbortController();
+  try {
+    const r = await fetch(`/api/search?q=${q}`, { signal: inflight.signal });
+    return await r.json();
+  } catch (e) {
+    if (e.name === 'AbortError') return;   // 静默忽略取消
+    throw e;
   }
 }
 
-// 竞态条件处理 - 取消过期请求
-let activeController = null;
-
-async function loadData(id) {
-  activeController?.abort();
-  activeController = new AbortController();
-
-  const response = await fetch(`/api/data/${id}`, {
-    signal: activeController.signal,
-  });
-  return response.json();
+// 统一清理事件监听
+function setup(el) {
+  const ctrl = new AbortController();
+  const { signal } = ctrl;
+  el.addEventListener('click', onClick, { signal });
+  el.addEventListener('keydown', onKey, { signal });
+  window.addEventListener('resize', onResize, { signal });
+  return () => ctrl.abort();
 }
+```
 
-// AbortController 统一清理事件监听
-function setupListeners(element) {
-  const controller = new AbortController();
-  const { signal } = controller;
+## Promise.withResolvers (ES2024)
 
-  element.addEventListener('click', handleClick, { signal });
-  element.addEventListener('keydown', handleKey, { signal });
-  window.addEventListener('resize', handleResize, { signal });
-
-  return () => controller.abort(); // 一次性清理所有监听
-}
+```js
+// 替代手动 new Promise(...)
+const { promise, resolve, reject } = Promise.withResolvers();
+element.addEventListener('click', () => resolve('clicked'), { once: true });
+const value = await promise;
 ```
 
 ## Streams API
 
-```javascript
-// 读取大文件流
-async function processStream(url) {
-  const response = await fetch(url);
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-
+```js
+// 流式 NDJSON 处理 (前端 / Node 通用)
+async function* lines(stream) {
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    processChunk(chunk);
+    buf += value;
+    const parts = buf.split('\n');
+    buf = parts.pop();
+    for (const p of parts) if (p) yield JSON.parse(p);
   }
+  if (buf) yield JSON.parse(buf);
 }
+
+// TransformStream 管线
+const res = await fetch(url);
+await res.body
+  .pipeThrough(new TextDecoderStream())
+  .pipeThrough(new TransformStream({ transform(c, ctl) { ctl.enqueue(c.toUpperCase()); } }))
+  .pipeTo(writableSink);
 
 // Array.fromAsync (ES2025)
-async function* generateItems() {
-  for (let i = 0; i < 10; i++) {
-    yield await fetchItem(i);
-  }
-}
-
-const items = await Array.fromAsync(generateItems());
+const items = await Array.fromAsync(asyncGen(), x => x.id);
 ```
 
-## Web Workers
+## Web Workers (ESM)
 
-```javascript
-// worker.js
-self.onmessage = (event) => {
-  const result = heavyComputation(event.data);
-  self.postMessage(result);
-};
+```js
+const worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
+worker.postMessage({ task: 'parse', payload: data });
+worker.addEventListener('message', (e) => console.log(e.data), { once: true });
+worker.addEventListener('error', console.error);
+// 销毁: worker.terminate();
+```
 
-// main.js - ESM Worker
-const worker = new Worker(
-  new URL('./worker.js', import.meta.url),
-  { type: 'module' }
-);
+## Node Worker threads (CPU-heavy)
 
-worker.postMessage(data);
-worker.onmessage = (e) => handleResult(e.data);
-worker.onerror = (e) => handleError(e);
+```js
+import { Worker } from 'node:worker_threads';
+const w = new Worker(new URL('./heavy.js', import.meta.url));
+w.postMessage(data);
+w.on('message', (r) => console.log(r));
+```
+
+## 长任务切片
+
+```js
+// scheduler.yield() (Chrome 129+, fallback setTimeout 0)
+async function processBig(items) {
+  for (const item of items) {
+    work(item);
+    if ('scheduler' in globalThis && 'yield' in scheduler) {
+      await scheduler.yield();
+    } else {
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+}
 ```
 
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| await 无 try-catch | 未处理的 Promise rejection | 高 |
-| `return fetch()` 在 try 中 | 应 `return await fetch()` 否则错误不被捕获 | 高 |
-| `Promise.all` 不容错 | 应使用 `Promise.allSettled` 处理部分失败 | 中 |
-| 手动创建 Promise | 应使用 `Promise.withResolvers()` | 低 |
-| 无超时控制 | 应使用 AbortController 设置超时 | 中 |
-| 竞态条件 | 应使用 AbortController 取消过期请求 | 高 |
-| 回调嵌套 | 应使用 async/await | 高 |
+| 现象 | 问题 | 严重 |
+|------|------|------|
+| `await` 无 try-catch / 无上层 catch | unhandled rejection | 高 |
+| try 内 `return fetch(...)` 不 await | 错误逃出 try | 高 |
+| `Promise.all` 用于"尽量都跑" | 应 `allSettled` | 中 |
+| 手写 `new Promise((res,rej)=>...)` | 用 `withResolvers` | 低 |
+| `setTimeout(controller.abort, ms)` | 用 `AbortSignal.timeout(ms)` | 低 |
+| 搜索框无取消 | 必 AbortController | 高 |
+| 大数组同步 `forEach` 阻塞主线程 | 切片 + scheduler.yield | 中 |
+| 回调嵌套 / `.then` 链 | 换 async/await | 高 |
 
 ## 检查清单
 
-- [ ] 所有 await 有 try-catch
-- [ ] try-catch 中使用 `return await`
-- [ ] 使用 `Promise.allSettled()` 处理并行
-- [ ] 使用 `Promise.withResolvers()` 替代手动 Promise
-- [ ] 使用 AbortController 设置超时
-- [ ] 使用 AbortController 处理竞态条件
-- [ ] 使用 AbortController 统一清理事件监听
-- [ ] CPU 密集任务使用 Web Workers
+- [ ] 所有 await 有错误路径
+- [ ] try-catch 内 `return await`
+- [ ] 多任务用 `Promise.allSettled` (聚合) 或 `Promise.all` (全有效)
+- [ ] 用户输入触发的请求有 AbortController
+- [ ] 超时用 `AbortSignal.timeout()`
+- [ ] 事件监听经 `{ signal }` 统一清理
+- [ ] CPU 密集 → Web Worker / worker_threads
+- [ ] 大流数据 → Streams, 不 `JSON.parse` 整文件

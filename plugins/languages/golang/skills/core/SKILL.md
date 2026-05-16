@@ -1,251 +1,190 @@
 ---
-description: "Go 1.26 核心开发规范：强制约定、代码格式、Go 1.21-1.26 新特性（range-over-func/slog/generic aliases/Green Tea GC/new(expr)）、提交检查清单。编写Go代码时自动加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: golang-core
+description: Go 1.26 核心开发规范——强制约定、代码格式、Go 1.21-1.26 新特性（range-over-func、slog、generic aliases、Green Tea GC、new(expr)、自引用泛型）、提交前检查清单。编写 Go 代码、设置项目骨架、做代码评审、回答 "Go 应该怎么写" 时触发。
 ---
 
 # Go 开发核心规范
 
-## 适用 Agents
+适用于 Go 1.26（2026-02 发布），向下兼容 1.21+。
 
-- **dev** - 开发专家（主要使用者）
-- **debug** - 调试专家
-- **test** - 测试专家
-- **perf** - 性能优化专家
+## 关联 Skills
 
-## 相关 Skills
+| 场景 | Skill |
+| --- | --- |
+| 错误处理 | `golang-error` |
+| 工具库选型 | `golang-libs` |
+| 命名 | `golang-naming` |
+| 项目结构 | `golang-structure` |
+| 测试 | `golang-testing` |
+| 并发 | `golang-concurrency` |
+| Lint 配置 | `golang-lint` |
+| 工具链 | `golang-tooling` |
 
-| 场景           | Skill                      | 说明                                        |
-| -------------- | -------------------------- | ------------------------------------------- |
-| 处理错误       | Skills(golang:error)       | 错误处理规范：禁止单行 if err、必须记录日志 |
-| 使用工具库     | Skills(golang:libs)        | 优先库规范：stringx/candy/osx/log           |
-| 命名变量/类型  | Skills(golang:naming)      | 命名规范：Id/Uid/IsActive/CreatedAt         |
-| 设计架构       | Skills(golang:structure)   | 项目结构规范：三层架构、全局状态模式        |
-| 写测试         | Skills(golang:testing)     | 测试规范：表驱动测试、模糊测试              |
-| 写并发代码     | Skills(golang:concurrency) | 并发规范：atomic/sync.Pool/errgroup/iter    |
-| 配置/运行 lint | Skills(golang:lint)        | Lint 规范：golangci-lint v2 配置            |
-| 运行工具       | Skills(golang:tooling)     | 工具规范：gofmt/goimports/govulncheck       |
+## 三条铁律
 
-## 核心理念
+1. **error 多行处理 + 记录日志**，禁止单行 `if err != nil { return err }`。
+2. **状态托管在 state 包**（全局变量），禁止 Repository 接口/DI 容器。
+3. **集合操作必经 `candy`、字符串经 `stringx`、文件经 `osx`**，禁止手写 for 循环遍历做 Map/Filter。
 
-Go 生态追求**高性能、低分配、简洁优雅**。
+## Go 1.21 → 1.26 关键新特性（按版本）
 
-**三个支柱**：
+### 1.21 — `log/slog` + 内置函数
 
-1. **零分配** - 尽可能减少内存分配
-2. **函数式** - 优先使用函数式编程范式
-3. **工程化** - 追求项目结构清晰、可维护性强
-
-## 版本与环境
-
-- **Go 版本**：1.23+ 推荐
-- **依赖管理**：go.mod（支持 workspace）
-- **工具链管理**：Go 1.23+ 内置 toolchain 指令，Go 1.24+ tool directives
-
-## Go 1.21-1.26 关键新特性
-
-### Go 1.21（slog、内置函数）
 ```go
-// 结构化日志（标准库）
 import "log/slog"
 slog.Info("user registered", "username", name, "email", email)
 
-// 内置 min/max/clear
 m := min(a, b)
 M := max(a, b)
-clear(mySlice) // 清空 slice
-clear(myMap)   // 清空 map
+clear(mySlice)
+clear(myMap)
 ```
 
-### Go 1.22（for-range integer、增强路由）
-```go
-// for-range 整数
-for i := range 10 {
-    fmt.Println(i) // 0..9
-}
+### 1.22 — for-range 整数 + 增强路由 + 循环变量作用域
 
-// net/http 增强路由模式
+```go
+for i := range 10 { /* 0..9 */ }
+
 mux.HandleFunc("GET /api/users/{id}", getUser)
 mux.HandleFunc("POST /api/users", createUser)
+
+// 1.22+ 循环变量每轮新建，无需再 item := item
+for _, item := range items {
+    go func() { handle(item) }()
+}
 ```
 
-### Go 1.23（range-over-func、iter 包）
+### 1.23 — range-over-func + `iter` 包
+
 ```go
-// range-over-func 迭代器
+import "iter"
 import "maps"
 import "slices"
 
-for k, v := range maps.All(m) {
-    fmt.Println(k, v)
-}
+for k, v := range maps.All(m) { fmt.Println(k, v) }
 
-// 自定义迭代器
 func (t *Tree[V]) All() iter.Seq2[string, V] {
-    return func(yield func(string, V) bool) {
-        // ...
-    }
+    return func(yield func(string, V) bool) { /* ... */ }
 }
 ```
 
-### Go 1.24（generic type aliases、tool directives、os.Root）
+### 1.24 — 泛型类型别名 + `tool` 指令 + `os.Root` + `testing.B.Loop`
+
 ```go
-// generic type aliases
 type Set[T comparable] = map[T]struct{}
 
-// go.mod tool directives（替代 tools.go hack）
-// go.mod: tool golang.org/x/tools/cmd/stringer
+// go.mod 中: tool golang.org/x/tools/cmd/stringer
 
-// os.Root 安全文件系统操作
 root, _ := os.OpenRoot("/data")
 defer root.Close()
-f, _ := root.Open("config.json") // 不可逃逸出 /data
+f, _ := root.Open("config.json") // 越界拒绝
 
-// testing.B.Loop（更快的 benchmark）
 func BenchmarkFoo(b *testing.B) {
     for b.Loop() { foo() }
 }
 ```
 
-### Go 1.25（Green Tea GC 实验性、json/v2、WaitGroup.Go）
+### 1.25 — `WaitGroup.Go` + `testing/synctest` GA
+
 ```go
-// WaitGroup.Go（简化 goroutine 计数）
 var wg sync.WaitGroup
-wg.Go(func() { doWork() }) // 自动 Add(1) + defer Done()
+wg.Go(func() { doWork() }) // 自动 Add(1)/Done()
 wg.Wait()
 
-// testing/synctest（并发测试，Go 1.25 正式可用）
-synctest.Run(func() {
-    // 确定性并发测试
+synctest.Test(t, func(t *testing.T) {
+    // bubble 内 time 为假时钟，goroutine 全 durably blocked 后 Wait 返回
 })
-
-// GOEXPERIMENT=jsonv2 启用新 JSON 实现
 ```
 
-### Go 1.26（new(expr)、自引用泛型、Green Tea GC 默认）
+### 1.26 — `new(expr)` + 自引用泛型 + Green Tea GC 默认 + `go fix` 现代化
+
 ```go
-// new 支持表达式初始化
-p := new(42)        // *int，值为 42
+p := new(42)         // *int = 42
 q := new(Point{1,2}) // *Point
 
-// 自引用泛型类型参数
 type Node[T Node[T]] interface {
     Children() []T
 }
-
-// Green Tea GC 默认启用（减少 10-40% GC 开销）
-// cgo 开销降低约 30%
-// 实验性 simd/archsimd 包（128/256/512-bit 向量）
-// go fix 重写：自动现代化代码
 ```
 
-## 强制规范
+- Green Tea GC 默认启用，GC 开销 ↓10-40%
+- cgo 调用开销 ↓~30%，小对象分配 ↓~30%
+- `go fix` 重写为现代化工具，配合 `//go:fix inline` 做 API 迁移
+- 实验：`GOEXPERIMENT=goroutineleakprofile`（goroutine 泄漏剖析）、`GOEXPERIMENT=simd`（向量 SIMD）
 
-### 必须遵守
-
-- 所有 error 必须记录日志（禁止单行 if）
-- 使用全局 State 模式而非 Repository 接口
-- 严禁直接返回函数结果而不处理错误
-- API Handler 仅做 HTTP 适配，逻辑委托给 Service 层
-
-### 禁止行为
-
-- 单行 if err 处理：`if err != nil { return err }`
-- 手动 for 循环遍历集合（必须用 candy 库）
-- 手动字符串转换（必须用 stringx 库）
-- 使用 os.Stat 检查文件（必须用 osx 库）
-- 使用 fmt.Errorf 包装错误
-
-## 代码格式规范
-
-### 自动格式化
-
-```bash
-gofmt -w .
-goimports -w .
-```
-
-### 导入分组
+## 文件组织
 
 ```go
+package mypkg
+
 import (
     // 标准库
     "context"
-    "fmt"
+    "log/slog"
     "os"
-    "time"
 
-    // 第三方库
-    "github.com/gofiber/fiber/v2"
+    // 第三方
     "github.com/lazygophers/log"
+    "github.com/lazygophers/utils/candy"
     "gorm.io/gorm"
 
-    // 项目内部
-    "github.com/username/project/internal/state"
-    "github.com/username/project/internal/impl"
+    // 项目内
+    "github.com/your/project/internal/state"
 )
+
+const (...)
+
+var (...)
+
+type Foo struct {...}
+
+type Bar interface {...}
+
+func New() *Foo {...}
 ```
 
-### 文件组织顺序
+- 单个 `.go` 文件 ≤500 行，推荐 200-400 行。
+- 导出类型/函数必须有文档注释，以名字开头：`// Foo 表示...`。
 
-```go
-package main
+## 强制禁止清单
 
-import ()
-
-const ()
-
-var ()
-
-type MyType struct {}
-
-type MyInterface interface {}
-
-func main() {}
-```
-
-## 注释规范
-
-### 导出类型必须有注释
-
-```go
-// User 表示系统用户
-type User struct {
-    Id        int64
-    Email     string
-    IsActive  bool
-    CreatedAt time.Time
-}
-```
-
-### 导出函数必须有注释
-
-```go
-// UserLogin 处理用户登录逻辑
-func UserLogin(req *LoginReq) (*User, error) {}
-```
-
-## Red Flags
-
-| AI 可能的理性化解释 | 实际应该检查的内容 | 严重程度 |
-|---------------------|-------------------|---------|
-| "单行 if err 更简洁" | 是否所有 error 都多行处理？ | 高 |
-| "for 循环更直观" | 是否使用 candy 库操作集合？ | 高 |
-| "fmt.Errorf 能加上下文" | 是否禁止包装错误，直接返回原始？ | 高 |
-| "Go 1.18 泛型就够了" | 是否使用了 Go 1.23 新特性（iter、min/max）？ | 低 |
-| "Repository 接口更灵活" | 是否使用全局 State 模式？ | 高 |
-| "导出函数不用注释" | 是否所有导出类型/函数有注释？ | 中 |
+| 模式 | 替代 |
+| --- | --- |
+| `if err != nil { return err }` 单行 | 多行 + `log.Errorf("err:%v", err)` |
+| `fmt.Errorf("...: %w", err)` | 直接 `return err`，禁止包装 |
+| 手写 `for _, x := range xs` 做 Map/Filter | `candy.Map`/`candy.Filter` |
+| `os.Stat`/手写 `os.OpenFile + close` 检查存在 | `osx.IsFile`/`osx.IsDir` |
+| `sync/atomic` 直接用 | `go.uber.org/atomic` |
+| 业务流程用 `panic`/`recover` | `log.Errorf` + return error；初始化用 `log.Fatalf` |
+| Repository 接口 + 依赖注入 | `state` 包全局变量 |
 
 ## 提交前检查清单
 
-- [ ] 所有 error 都有日志记录
-- [ ] 没有单行 if err 语句或 if xxx = func(); xxx != nil 之类的判断
-- [ ] 没有手动循环（应该用 candy）
-- [ ] 没有 fmt.Errorf/errors.Wrap 包装错误
-- [ ] 日志格式一致且清晰
-- [ ] 没有 panic/recover 处理常规错误
-- [ ] 代码已通过 gofmt 和 goimports
-- [ ] 代码已通过 golangci-lint
-- [ ] 所有导出类型和函数有注释
-- [ ] 使用了适当的 Go 1.21+ 新特性
+- [ ] `gofmt -w .` + `goimports -w .` 已跑
+- [ ] `go vet ./...` 无告警
+- [ ] `golangci-lint run ./...` 通过（见 `golang-lint`）
+- [ ] `govulncheck ./...` 无 HIGH
+- [ ] `go test -race -cover ./...` 通过
+- [ ] 所有 error 多行 + 日志
+- [ ] 无 `fmt.Errorf` 包装
+- [ ] 无单行 `if err`
+- [ ] 集合操作走 `candy`，字符串走 `stringx`
+- [ ] 导出 API 有注释
+- [ ] 用了 1.21+ 适用新特性（`min/max`、`for i := range N`、`slog`、`WaitGroup.Go`）
+
+## Red Flags
+
+| AI 借口 | 实际应验证 |
+| --- | --- |
+| "单行 if err 更简洁" | 是否所有 error 多行 + 日志？ |
+| "fmt.Errorf 加上下文更清晰" | 是否禁止包装、直接 return？ |
+| "for 循环更直观" | 集合操作是否走 candy？ |
+| "Repository 接口更好测试" | 是否用 state 全局？ |
+| "Go 1.18 泛型够用了" | 是否启用 1.23 iter / 1.26 new(expr) 等？ |
+| "导出函数不用注释" | 所有导出 API 是否有名字开头注释？ |
+
+## 权威参考
+
+- Go 1.26 Release Notes — https://go.dev/doc/go1.26
+- Effective Go — https://go.dev/doc/effective_go
+- Go Code Review Comments — https://github.com/golang/go/wiki/CodeReviewComments

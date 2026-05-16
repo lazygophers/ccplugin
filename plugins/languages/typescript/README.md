@@ -38,20 +38,20 @@ claude plugin install typescript@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | TypeScript 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | TypeScript 核心规范 |
-| Skill | `types` | 类型系统规范 |
-| Skill | `async` | 异步编程规范 |
-| Skill | `react` | React + TypeScript 规范 |
-| Skill | `nodejs` | Node.js + TypeScript 规范 |
-| Skill | `security` | 安全规范 |
+| Agent | `typescript-dev` | TypeScript 开发专家 |
+| Agent | `typescript-test` | 测试专家 |
+| Agent | `typescript-debug` | 调试专家 |
+| Agent | `typescript-perf` | 性能优化专家 |
+| Skill | `typescript-core` | TypeScript 核心规范 |
+| Skill | `typescript-types` | 类型系统规范 |
+| Skill | `typescript-async` | 异步编程规范 |
+| Skill | `typescript-react` | React + TypeScript 规范 |
+| Skill | `typescript-nodejs` | Node.js + TypeScript 规范 |
+| Skill | `typescript-security` | 安全规范 |
 
 ## 使用方式
 
-### 开发专家代理（dev）
+### 开发专家代理（typescript-dev）
 
 用于 TypeScript 代码开发和架构设计。
 
@@ -60,7 +60,7 @@ claude plugin install typescript@ccplugin-market
 实现一个类型安全的 API 客户端，支持泛型和类型推断
 ```
 
-### 测试专家代理（test）
+### 测试专家代理（typescript-test）
 
 用于编写和优化 TypeScript 测试用例。
 

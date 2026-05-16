@@ -1,6 +1,6 @@
 # csharp
 
-> C# 开发插件 - 提供 C# 开发规范、最佳实践和代码智能支持。包括现代 C#（.NET 8+）开发规范和 .NET 生态系统最佳实践指导
+> C# 开发插件 - 提供 C# 开发规范、最佳实践和代码智能支持。包括现代 C# 14/.NET 10 开发规范和 .NET 生态系统最佳实践指导
 
 ## 概述
 
@@ -24,14 +24,12 @@ csharp/
 │   ├── hooks.py
 │   └── main.py
 ├── skills/
-│   └── csharp-skills/
-│       ├── SKILL.md
-│       ├── modern-csharp.md
-│       ├── dotnet-best-practices.md
-│       ├── async-programming.md
-│       ├── linq-queries.md
-│       ├── error-handling.md
-│       └── references.md
+│   ├── core/SKILL.md
+│   ├── async/SKILL.md
+│   ├── linq/SKILL.md
+│   ├── web/SKILL.md
+│   ├── desktop/SKILL.md
+│   └── data/SKILL.md
 ├── .lsp.json
 ├── README.md
 ├── pyproject.toml

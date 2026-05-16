@@ -1,6 +1,6 @@
 # java
 
-> Java 开发插件 - 提供 Java 开发规范、最佳实践和代码智能支持。包括现代 Java（Java 17/21）开发规范和 Spring 生态系统最佳实践指导
+> Java 开发插件 - 提供 Java 开发规范、最佳实践和代码智能支持。包括现代 Java（Java 25+）开发规范和 Spring Boot 4.0+ 生态最佳实践指导
 
 ## 概述
 
@@ -25,15 +25,11 @@ java/
 │   └── main.py
 ├── services/
 ├── skills/
-│   └── java-skills/
-│       ├── SKILL.md
-│       ├── modern-java.md
-│       ├── jvm-best-practices.md
-│       ├── spring-framework.md
-│       ├── concurrency.md
-│       ├── design-patterns.md
-│       ├── testing.md
-│       └── references.md
+│   ├── core/SKILL.md
+│   ├── error/SKILL.md
+│   ├── performance/SKILL.md
+│   ├── concurrency/SKILL.md
+│   └── spring/SKILL.md
 ├── .lsp.json
 ├── README.md
 ├── pyproject.toml

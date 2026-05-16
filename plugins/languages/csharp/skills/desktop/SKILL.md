@@ -1,271 +1,151 @@
 ---
-description: "C# 桌面与跨平台 GUI 开发规范：WPF/.NET 10、.NET MAUI 跨平台、Avalonia UI、WinUI 3、CommunityToolkit.Mvvm、MVVM 数据绑定。开发桌面应用、GUI 界面、跨平台客户端时加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: csharp-desktop
+description: |
+  C# 桌面与跨平台 GUI 开发规范。覆盖 WPF / .NET MAUI / Avalonia UI / WinUI 3、
+  CommunityToolkit.Mvvm source generators、MVVM 数据绑定、UI 线程调度、
+  Dispatcher / MainThread、长任务取消、热重载、AOT 发布。当开发桌面应用、
+  跨平台客户端、GUI 界面, 或说 "WPF"、"MAUI"、"Avalonia"、"WinUI"、"MVVM"、
+  "XAML"、"数据绑定"、"DependencyProperty"、"ObservableProperty" 时加载。
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # C# 桌面开发规范
 
-## 适用 Agents
+跨平台桌面优先 Avalonia / .NET MAUI; Windows-only 业务桌面用 WPF; 新 Win 应用 WinUI 3 + WindowsAppSDK。
 
-- **csharp:dev** - 桌面应用开发
-- **csharp:debug** - UI 线程调试、数据绑定问题
+## 框架选型
 
-## 相关 Skills
+| 场景 | 推荐 |
+|------|------|
+| 移动 + 桌面 (iOS/Android/Mac/Win) | .NET MAUI |
+| 桌面跨平台 (Win/Mac/Linux) | Avalonia UI |
+| Windows 现代应用 (MSIX) | WinUI 3 |
+| Windows 传统业务、生态成熟 | WPF |
 
-- **Skills(csharp:core)** - 核心规范：C# 14/.NET 10 标准
-- **Skills(csharp:async)** - 异步编程：UI 线程异步模式
+## MVVM 标配: CommunityToolkit.Mvvm
 
-## 框架选择指南（2025-2026）
-
-| 框架 | 平台 | 推荐场景 |
-|------|------|---------|
-| WPF/.NET 10 | Windows | 企业桌面应用、复杂 UI |
-| .NET MAUI | Android/iOS/Windows/macOS | 跨平台移动+桌面 |
-| Avalonia UI | Windows/macOS/Linux/Web | 真正跨平台桌面 |
-| WinUI 3 | Windows 10/11 | Windows 原生现代 UI |
-
-## CommunityToolkit.Mvvm（推荐 MVVM 框架）
+source generator 消除样板:
 
 ```csharp
-// ✅ 使用 source generators 消除样板代码
-public partial class MainViewModel : ObservableObject
+public partial class OrderViewModel(IOrderService svc) : ObservableObject
 {
+    [ObservableProperty] private string _query = "";
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FullName))]
-    private string _firstName = "";
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FullName))]
-    private string _lastName = "";
-
-    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SearchCommand))]
     private bool _isLoading;
+    public ObservableCollection<OrderDto> Items { get; } = [];
 
-    public string FullName => $"{FirstName} {LastName}";
-
-    [RelayCommand]
-    private async Task LoadDataAsync(CancellationToken ct)
+    [RelayCommand(CanExecute = nameof(CanSearch),
+                  AllowConcurrentExecutions = false,
+                  IncludeCancelCommand = true)]
+    private async Task SearchAsync(CancellationToken ct)
     {
         IsLoading = true;
         try
         {
-            var data = await _dataService.GetDataAsync(ct);
-            Items = new ObservableCollection<Item>(data);
+            Items.Clear();
+            await foreach (var o in svc.SearchAsync(Query, ct))
+                Items.Add(o);
         }
-        finally
-        {
-            IsLoading = false;
-        }
+        finally { IsLoading = false; }
     }
 
-    [RelayCommand(CanExecute = nameof(CanSave))]
-    private async Task SaveAsync(CancellationToken ct)
-    {
-        await _dataService.SaveAsync(CurrentItem, ct);
-    }
-
-    private bool CanSave() => CurrentItem is not null && !IsLoading;
-}
-
-// ❌ 手动实现 INotifyPropertyChanged（冗余）
-public class OldViewModel : INotifyPropertyChanged
-{
-    private string _name = "";
-    public string Name
-    {
-        get => _name;
-        set { _name = value; OnPropertyChanged(); }
-    }
-    // ... 大量样板代码
+    private bool CanSearch() => !IsLoading && !string.IsNullOrWhiteSpace(Query);
 }
 ```
 
-## WPF/.NET 10
+- ViewModel 不持有 UI 控件引用
+- 命令用 `[RelayCommand]` 自动生成 `IAsyncRelayCommand` + 取消支持
+- 属性变更 `[ObservableProperty]`; 联动通知 `[NotifyPropertyChangedFor]`
+- 禁止手写 `INotifyPropertyChanged` 样板
 
-```xml
-<!-- ✅ 现代 WPF 数据绑定 -->
-<Window x:Class="MyApp.MainWindow"
-        xmlns:vm="clr-namespace:MyApp.ViewModels">
-    <Window.DataContext>
-        <vm:MainViewModel />
-    </Window.DataContext>
-    <Grid>
-        <TextBox Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBox Text="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" />
-        <TextBlock Text="{Binding FullName}" />
-        <Button Command="{Binding LoadDataCommand}" Content="Load"
-                IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBoolConverter}}" />
-        <ListBox ItemsSource="{Binding Items}">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding Name}" Margin="0,0,10,0" />
-                        <TextBlock Text="{Binding Status}" Foreground="Gray" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-    </Grid>
-</Window>
-```
+## UI 线程调度
+
+绝不在 UI 线程做阻塞 IO/CPU 工作。
+
+| 框架 | 切回 UI 线程 |
+|------|-------------|
+| WPF | `Application.Current.Dispatcher.InvokeAsync` |
+| WinUI 3 | `DispatcherQueue.TryEnqueue` |
+| MAUI | `MainThread.BeginInvokeOnMainThread` |
+| Avalonia | `Dispatcher.UIThread.InvokeAsync` |
+
+异步事件处理器允许 `async void`, 但必须 `try/catch` 兜底, 错误送日志/UI 提示。
+
+## 数据绑定
+
+- 双向绑定限于真正双向的输入控件
+- 复杂转换写 `IValueConverter`, 避免在 XAML 内联表达式过深
+- 列表用 `ObservableCollection<T>`; 高频更新批量 (Avalonia `BatchUpdate`、WPF `CollectionViewSource.DeferRefresh`)
+- WPF `UpdateSourceTrigger=PropertyChanged` 对实时校验有用, 但要权衡性能
+
+## DI 与启动
 
 ```csharp
-// ✅ DI 配置（WPF + .NET 10）
 public partial class App : Application
 {
-    private readonly IHost _host;
-
-    public App()
-    {
-        _host = Host.CreateDefaultBuilder()
-            .ConfigureServices((context, services) =>
-            {
-                services.AddSingleton<MainViewModel>();
-                services.AddSingleton<MainWindow>();
-                services.AddHttpClient<IDataService, DataService>();
-            })
-            .Build();
-    }
+    private readonly IHost _host = Host.CreateDefaultBuilder()
+        .ConfigureServices(s =>
+        {
+            s.AddSingleton<MainWindow>();
+            s.AddTransient<OrderViewModel>();
+            s.AddHttpClient<IOrderService, OrderService>();
+        })
+        .Build();
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         await _host.StartAsync();
-        var mainWindow = _host.Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+        _host.Services.GetRequiredService<MainWindow>().Show();
     }
 }
 ```
 
-## .NET MAUI
+MAUI: `MauiApp.CreateBuilder().UseMauiApp<App>().UseMauiCommunityToolkit()`。
+
+## 资源与样式
+
+- 全局样式放 `App.xaml` / `Application.Resources`
+- 颜色/尺寸/字体走 `ResourceDictionary` + dynamic resource, 便于主题切换
+- WPF 优先 `Style` + `ControlTemplate`; 不要直接改 control 默认 template 之外的内部结构
+
+## 性能要点
+
+- 启动: MAUI / WinUI 启用 AOT (`<PublishAot>true</PublishAot>` 或 ReadyToRun)
+- 列表大数据: `Virtualization=true` + `ItemContainerStyle` 复用
+- 图片缓存: MAUI 用 `Microsoft.Maui.Graphics`; Avalonia 用 `AsyncImageLoader`
+- 不要在 `OnPropertyChanged` 跑重计算; 提取到 background task
+
+## 长任务模式
 
 ```csharp
-// ✅ MAUI + CommunityToolkit.Mvvm
-public partial class HomePageViewModel : ObservableObject
+[RelayCommand(IncludeCancelCommand = true)]
+private async Task ExportAsync(CancellationToken ct)
 {
-    private readonly IDataService _dataService;
-
-    public HomePageViewModel(IDataService dataService)
-    {
-        _dataService = dataService;
-    }
-
-    [ObservableProperty]
-    private ObservableCollection<Item> _items = [];
-
-    [ObservableProperty]
-    private bool _isRefreshing;
-
-    [RelayCommand]
-    private async Task RefreshAsync(CancellationToken ct)
-    {
-        IsRefreshing = true;
-        try
-        {
-            var data = await _dataService.GetItemsAsync(ct);
-            Items = new ObservableCollection<Item>(data);
-        }
-        finally
-        {
-            IsRefreshing = false;
-        }
-    }
-}
-
-// ✅ MAUI DI 注册
-public static class MauiProgram
-{
-    public static MauiApp CreateMauiApp()
-    {
-        var builder = MauiApp.CreateBuilder();
-        builder.UseMauiApp<App>()
-               .UseMauiCommunityToolkit();
-
-        builder.Services.AddTransient<HomePageViewModel>();
-        builder.Services.AddTransient<HomePage>();
-        builder.Services.AddSingleton<IDataService, DataService>();
-
-        return builder.Build();
-    }
+    Progress = 0;
+    await foreach (var p in _exporter.RunAsync(ct))
+        Progress = p;
 }
 ```
 
-## Avalonia UI（跨平台桌面）
+`IncludeCancelCommand` 自动生成 `ExportCancelCommand`, 绑定到 UI 取消按钮。
 
-```csharp
-// ✅ Avalonia + ReactiveUI
-public class MainViewModel : ReactiveObject
-{
-    private string _searchText = "";
-    public string SearchText
-    {
-        get => _searchText;
-        set => this.RaiseAndSetIfChanged(ref _searchText, value);
-    }
+## 测试
 
-    public ReactiveCommand<Unit, List<Item>> SearchCommand { get; }
+- ViewModel 用 xUnit + NSubstitute, 纯 .NET, 无需 UI runner
+- UI 自动化: MAUI `Microsoft.Maui.TestUtils.DeviceTests`、WPF/WinUI 用 Appium、Avalonia 用 `Avalonia.Headless`
+- ViewModel 必须能脱离视图实例化 (不依赖 `Application.Current`)
 
-    public MainViewModel(ISearchService searchService)
-    {
-        SearchCommand = ReactiveCommand.CreateFromTask(
-            () => searchService.SearchAsync(SearchText),
-            this.WhenAnyValue(x => x.SearchText, text => !string.IsNullOrWhiteSpace(text)));
-    }
-}
-```
+## 部署
 
-## 异步 UI 模式
+- WPF: self-contained + ReadyToRun + SingleFile, `<TrimMode>partial</TrimMode>`
+- MAUI: 各平台单独发布 (`dotnet publish -f net10.0-android` 等)
+- WinUI: MSIX 包; 签名走 `Microsoft.Windows.SDK.BuildTools`
 
-```csharp
-// ✅ 正确的 UI 异步模式
-public partial class DataViewModel : ObservableObject
-{
-    [RelayCommand]
-    private async Task LoadAsync(CancellationToken ct)
-    {
-        // CommunityToolkit.Mvvm 自动处理 UI 线程调度
-        IsLoading = true;
-        try
-        {
-            // 后台线程执行
-            var data = await Task.Run(() => HeavyComputation(), ct);
-            // 自动回到 UI 线程
-            Items = new ObservableCollection<Item>(data);
-        }
-        catch (OperationCanceledException) { /* 用户取消 */ }
-        catch (Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
-}
+## 参考
 
-// ❌ 在异步回调中直接访问 UI（不通过绑定）
-// await Task.Run(() => textBox.Text = "done");  // 线程不安全！
-```
-
-## Red Flags：AI 常见误区
-
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "手动实现 INPC 更灵活" | ✅ 是否用 CommunityToolkit.Mvvm source generators？ |
-| "直接操作 UI 控件" | ✅ 是否通过数据绑定 + MVVM？ |
-| "同步加载数据够快" | ✅ 长操作是否用 async + loading 状态？ |
-| "不需要 DI" | ✅ 是否使用 Host.CreateDefaultBuilder DI？ |
-| "WinForms 就够了" | ✅ 新项目是否用 WPF/MAUI/Avalonia？ |
-
-## 检查清单
-
-- [ ] 使用 CommunityToolkit.Mvvm（[ObservableProperty]、[RelayCommand]）
-- [ ] MVVM 模式：View 不包含业务逻辑
-- [ ] 使用 DI 管理 ViewModel 和 Service
-- [ ] 长操作使用 async + IsLoading 状态
-- [ ] 数据绑定使用正确的 UpdateSourceTrigger
-- [ ] CancellationToken 支持取消操作
-- [ ] 异步命令使用 [RelayCommand] + async Task
+- [.NET MAUI 文档](https://learn.microsoft.com/dotnet/maui/)
+- [WPF 现代化](https://learn.microsoft.com/dotnet/desktop/wpf/)
+- [Avalonia UI](https://docs.avaloniaui.net/)
+- [CommunityToolkit.Mvvm](https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/)
+- [WinUI 3 (Windows App SDK)](https://learn.microsoft.com/windows/apps/winui/winui3/)

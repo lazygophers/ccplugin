@@ -1,398 +1,155 @@
 ---
-description: "Python类型注解与类型安全规范。涵盖PEP 695泛型语法、Pydantic v2模型验证、mypy严格模式配置。适用于添加类型注解、类型检查报错修复、数据模型定义、泛型设计等场景。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: python-types
+description: Python 类型注解与类型安全规范。涵盖 PEP 604/612/646/695 现代语法、Pydantic v2 模型、ty/pyright 严格模式、泛型/协议/Literal。在添加类型注解、修复类型检查报错、设计数据模型、写泛型代码、配置 typeCheckingMode 时使用。也触发于"类型注解"、"类型检查"、"Pydantic"、"mypy/pyright/ty 报错"。
 ---
 
-# Python 类型系统最佳实践
+# Python 类型规范 (2026)
 
-## 适用 Agents
+Python 3.13+, ty Beta / pyright strict。所有公共函数必须有完整注解, 私有函数依逻辑复杂度判断。
 
-- **python:dev** - 开发阶段使用
-- **python:debug** - 类型错误调试
-- **python:test** - 测试代码类型注解
+## 类型检查器选型
 
-## 相关 Skills
+| 工具 | 何时用 |
+|------|--------|
+| **pyright** (strict) | 默认首选, 98% spec conformance, VS Code 集成最好 |
+| **ty** (Astral) | 新项目 + 已用 uv/ruff, 速度 10-60x mypy, Beta 期 (2026) 与 pyright 并存于 CI |
+| **mypy** (strict) | 老项目维护期, 或依赖 mypy 插件 (django-stubs, sqlalchemy stubs) |
 
-- **Skills(python:core)** - 基础规范
-- **Skills(python:error)** - 错误处理类型（Result、Option）
-- **Skills(python:web)** - Web 框架的类型集成
+不要在同一项目混用 mypy + pyright 配置, 选一个为 CI 真相源。
 
-## 核心原则（PEP 695 & Pydantic v2）
+## 现代类型语法
 
-### 1. 完整类型注解（PEP 484）
-
-所有公共 API 必须包含类型注解：
+PEP 585 / 604 / 695, Python 3.13+ 默认可用:
 
 ```python
-# ✅ 正确：完整类型注解
-def fetch_user(user_id: int) -> User | None:
-    """获取用户（Python 3.10+ union 语法）"""
-    return database.get(user_id)
+# 内置泛型 (PEP 585) - 不要 from typing import List
+def parse(items: list[str]) -> dict[str, int]: ...
 
-# ❌ 错误：缺少类型注解
-def fetch_user(user_id):
-    return database.get(user_id)
-```
+# Union 语法 (PEP 604) - 不要 Optional[X] / Union[A, B]
+def find(uid: int) -> User | None: ...
+def coerce(x: int | str | None) -> str: ...
 
-### 2. 泛型类型（PEP 695 - Python 3.12+）
+# 类型别名 (PEP 695) - 不要 TypeAlias
+type UserId = int
+type JSON = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
-使用新的泛型语法：
-
-```python
-# ✅ 新语法（Python 3.12+）
+# 泛型函数 (PEP 695) - 不要 TypeVar
 def first[T](items: list[T]) -> T | None:
-    """获取列表第一个元素（泛型函数）"""
     return items[0] if items else None
 
-class Container[T]:
-    """泛型容器（类型参数）"""
-    def __init__(self, value: T) -> None:
-        self.value = value
-
-    def get(self) -> T:
-        return self.value
-
-# ⚠️ 旧语法（Python 3.11-）- 向后兼容
-from typing import TypeVar, Generic
-
-T = TypeVar('T')
-
-class OldContainer(Generic[T]):
-    def __init__(self, value: T) -> None:
-        self.value = value
+# 泛型类 (PEP 695)
+class Stack[T]:
+    def __init__(self) -> None:
+        self._items: list[T] = []
+    def push(self, item: T) -> None: ...
+    def pop(self) -> T: ...
 ```
 
-### 3. Pydantic v2 模型
+## Annotated 元数据约束
 
-**核心改进**：
-- 性能提升 5-50 倍（Rust 核心）
-- 新的配置系统（`model_config`）
-- 新的验证器语法
+携带运行时约束 (Pydantic / FastAPI 会读取):
 
 ```python
-from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
-from typing import Annotated, Self
+from typing import Annotated
+from pydantic import Field
 
-class User(BaseModel):
-    """用户模型（Pydantic v2 风格）"""
-    model_config = ConfigDict(
-        str_strip_whitespace=True,      # 自动去除空格
-        validate_assignment=True,        # 赋值时验证
-        frozen=False,                    # 是否不可变
-    )
-
-    id: int
-    username: Annotated[str, Field(min_length=3, max_length=50)]
-    email: EmailStr
-    age: Annotated[int, Field(ge=0, le=150)]
-
-    # 字段验证器（v2 语法）
-    @field_validator('username')
-    @classmethod
-    def validate_username(cls, v: str) -> str:
-        if not v.isalnum():
-            raise ValueError('username must be alphanumeric')
-        return v.lower()
-
-    # 模型验证器（v2 语法）
-    @model_validator(mode='after')
-    def check_age_consistency(self) -> Self:
-        if self.age < 18 and not self.email.endswith('@school.edu'):
-            raise ValueError('minors must use school email')
-        return self
+UserName = Annotated[str, Field(min_length=3, max_length=50)]
+Port = Annotated[int, Field(ge=1, le=65535)]
 ```
 
-**v1 → v2 迁移要点**：
-- `Config` → `model_config`（ConfigDict）
-- `@validator` → `@field_validator` / `@model_validator`
-- `.dict()` → `.model_dump()`
-- `.json()` → `.model_dump_json()`
-
-### 4. 类型别名（Python 3.12+）
+## Literal / Final / TypedDict
 
 ```python
-# ✅ 新语法（Python 3.12+）
-type UserId = int
-type UserName = Annotated[str, Field(min_length=3, max_length=50)]
-type UserDict = dict[str, User]
+from typing import Literal, Final, TypedDict
 
-def get_user(user_id: UserId) -> User:
-    ...
-
-# ⚠️ 旧语法（向后兼容）
-UserId = int
-UserName = str
-UserDict = Dict[str, User]
-```
-
-### 5. Protocol（鸭子类型）
-
-优先使用 Protocol 而非 ABC：
-
-```python
-from typing import Protocol
-
-class Drawable(Protocol):
-    """可绘制对象协议"""
-    def draw(self) -> None: ...
-    def get_bounds(self) -> tuple[int, int, int, int]: ...
-
-class Circle:
-    def draw(self) -> None:
-        print("Drawing circle")
-
-    def get_bounds(self) -> tuple[int, int, int, int]:
-        return (0, 0, 100, 100)
-
-def render(obj: Drawable) -> None:
-    """渲染可绘制对象"""
-    obj.draw()  # 任何有 draw() 方法的对象都可以
-
-# Circle 自动符合 Drawable 协议，无需继承
-render(Circle())
-```
-
-### 6. TypedDict（结构化字典）
-
-```python
-from typing import TypedDict, NotRequired
+Status = Literal["pending", "active", "deleted"]
+MAX_CONN: Final[int] = 100
 
 class UserDict(TypedDict):
-    """用户字典类型"""
     id: int
-    username: str
+    name: str
     email: str
-    age: NotRequired[int]  # 可选字段（Python 3.11+）
-
-def create_user(data: UserDict) -> User:
-    return User(**data)
-
-# ✅ 正确
-user_data: UserDict = {
-    "id": 1,
-    "username": "alice",
-    "email": "alice@example.com"
-}
-
-# ❌ 错误：mypy 会报错
-invalid_data: UserDict = {
-    "id": "not_an_int",  # 类型错误
-    "username": "alice"
-}
 ```
 
-### 7. Literal 和 Enum
+## Protocol (结构子类型)
 
-```python
-from typing import Literal
-from enum import Enum
-
-# Literal 用于固定值
-Status = Literal["pending", "running", "completed", "failed"]
-
-def get_task_status() -> Status:
-    return "completed"  # ✅ 只能返回这 4 个值之一
-
-# Enum 用于复杂枚举
-class TaskStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-def update_status(status: TaskStatus) -> None:
-    print(f"Status: {status.value}")
-
-update_status(TaskStatus.COMPLETED)
-```
-
-## Red Flags：AI 常见误区
-
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "简单函数不需要类型" | ✅ 是否所有公共函数都有类型注解？ |
-| "Any 类型足够灵活" | ✅ 是否滥用 `Any`（应该 < 5%）？ |
-| "运行时类型检查更安全" | ✅ 是否优先使用静态类型检查（mypy）？ |
-| "Pydantic v1 够用了" | ✅ 是否迁移到 Pydantic v2（性能提升 5-50 倍）？ |
-| "旧的泛型语法更兼容" | ✅ 是否使用 Python 3.12+ PEP 695 语法？ |
-| "TypedDict 太复杂" | ✅ 字典参数是否使用 TypedDict？ |
-
-## mypy 配置最佳实践
-
-### pyproject.toml
-
-```toml
-[tool.mypy]
-python_version = "3.13"
-strict = true
-
-# 严格检查
-warn_return_any = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
-disallow_any_generics = true
-check_untyped_defs = true
-
-# 第三方库类型
-ignore_missing_imports = false
-
-# 性能优化
-cache_dir = ".mypy_cache"
-incremental = true
-
-# 每个模块单独配置
-[[tool.mypy.overrides]]
-module = "tests.*"
-disallow_untyped_defs = false  # 测试文件可以放宽
-```
-
-### 运行 mypy
-
-```bash
-# 严格模式检查
-mypy --strict src/
-
-# 生成覆盖率报告
-mypy --html-report mypy-report src/
-
-# 只检查特定文件
-mypy src/models.py src/api.py
-```
-
-## 工具集成
-
-### ruff 类型注解检查
-
-```toml
-[tool.ruff.lint]
-select = [
-    "ANN",  # 强制类型注解
-]
-
-ignore = [
-    "ANN101",  # missing-type-self（不强制 self 注解）
-    "ANN102",  # missing-type-cls（不强制 cls 注解）
-]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = ["ANN"]  # 测试文件不强制类型注解
-```
-
-## 完整示例
-
-### 泛型仓储模式
+替代 ABC, 不需要继承关系:
 
 ```python
 from typing import Protocol
 
-class Entity(Protocol):
-    """实体协议"""
-    id: int
+class SupportsClose(Protocol):
+    def close(self) -> None: ...
 
-class Repository[T: Entity]:
-    """泛型仓储（Python 3.12+ 语法）"""
-
-    def __init__(self) -> None:
-        self._data: dict[int, T] = {}
-
-    def find(self, id: int) -> T | None:
-        """查找实体"""
-        return self._data.get(id)
-
-    def save(self, entity: T) -> None:
-        """保存实体"""
-        self._data[entity.id] = entity
-
-    def find_all(self) -> list[T]:
-        """查找所有实体"""
-        return list(self._data.values())
-
-# 使用
-class User:
-    def __init__(self, id: int, name: str) -> None:
-        self.id = id
-        self.name = name
-
-user_repo = Repository[User]()
-user_repo.save(User(1, "Alice"))
-user = user_repo.find(1)
+def cleanup(resource: SupportsClose) -> None:
+    resource.close()
 ```
 
-### Pydantic v2 完整示例
+## Pydantic v2 模型
+
+数据校验首选, 不要手写 `__init__` 做校验:
 
 ```python
-from pydantic import BaseModel, Field, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from typing import Annotated
 
-class Address(BaseModel):
-    """地址模型"""
-    street: str
-    city: str
-    country: str = "USA"
-
-class User(BaseModel):
-    """用户模型（展示所有 Pydantic v2 特性）"""
+class UserCreate(BaseModel):
     model_config = ConfigDict(
         str_strip_whitespace=True,
-        validate_assignment=True,
+        frozen=True,
+        extra="forbid",
     )
 
-    id: int
     username: Annotated[str, Field(min_length=3, max_length=50)]
     email: EmailStr
     age: Annotated[int, Field(ge=0, le=150)]
-    address: Address | None = None
 
-    @computed_field
-    @property
-    def display_name(self) -> str:
-        """计算字段"""
-        return f"{self.username} ({self.email})"
-
-    @field_validator('username')
-    @classmethod
-    def validate_username(cls, v: str) -> str:
-        if not v.isalnum():
-            raise ValueError('username must be alphanumeric')
-        return v.lower()
-
-# 使用
-user = User(
-    id=1,
-    username="Alice",
-    email="alice@example.com",
-    age=25,
-    address=Address(street="123 Main St", city="NYC")
-)
-
-print(user.model_dump())       # v2: 导出字典
-print(user.model_dump_json())  # v2: 导出 JSON
+# v2 API
+user = UserCreate.model_validate({"username": "alice", "email": "a@b.c", "age": 20})
+data = user.model_dump()       # 不是 .dict()
+json_str = user.model_dump_json()  # 不是 .json()
 ```
 
-## 检查清单
+不再用 `@validator`, 改用 `@field_validator` / `@model_validator`。
 
-### 类型注解
-- [ ] 所有公共函数包含完整类型注解
-- [ ] 使用 Python 3.10+ union 语法（`|` 而非 `Union`）
-- [ ] 使用 `Annotated` 添加元数据约束
-- [ ] 泛型使用 Python 3.12+ PEP 695 语法
+## dataclass / msgspec / attrs 选型
 
-### Pydantic
-- [ ] 使用 Pydantic v2 语法
-- [ ] `model_config` 替代 `Config`
-- [ ] `@field_validator` 替代 `@validator`
-- [ ] `.model_dump()` 替代 `.dict()`
+| 场景 | 选择 |
+|------|------|
+| 内部数据容器, 无校验 | `@dataclass(slots=True, frozen=True)` |
+| API 边界, 需要 JSON + 校验 | Pydantic v2 |
+| 极致性能 (序列化热路径) | `msgspec.Struct` (比 Pydantic 快 5-10x) |
+| 老代码维护 | `attrs` (保留即可, 新代码不用) |
 
-### mypy 检查
-- [ ] 运行 `mypy --strict` 无错误
-- [ ] 没有 `# type: ignore` 注释（除非必要）
-- [ ] `Any` 类型使用 < 5%
-- [ ] 第三方库有 type stubs
+## 严格模式配置
 
-### Protocol 和 TypedDict
-- [ ] 优先使用 Protocol 而非 ABC
-- [ ] 字典参数使用 TypedDict
-- [ ] 固定值使用 Literal
+`pyproject.toml`:
+
+```toml
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+reportMissingTypeStubs = "warning"
+reportUnknownMemberType = "warning"
+
+# 或 ty
+[tool.ty.rules]
+# ty 默认检查所有代码, 包括无注解函数体
+```
+
+## 常见报错与修复
+
+| 报错 | 修复 |
+|------|------|
+| `Argument of type "X \| None" cannot be assigned to "X"` | 加 `if x is None: ...` 或 `assert x is not None` |
+| `Object of type "None" is not subscriptable` | 同上 |
+| `Type "X" is partially unknown` | 给变量显式注解或修复源头泛型 |
+| `Cannot access member "x" for type "Y"` | 检查 import / 是否漏了 stub (`uv add --dev types-xxx`) |
+
+## 反模式
+
+- `from typing import List, Dict, Tuple, Optional, Union` (用内置泛型 + `|`)
+- `Any` 当万能逃生口 (改用 `object` + `isinstance` 收窄, 或 `TypeVar`)
+- `# type: ignore` 不带具体规则名 (写 `# type: ignore[arg-type]`)
+- Pydantic v1 API (`.dict()`, `.parse_obj()`, `@validator`)
+- 在运行时调 `typing.get_type_hints()` 做业务逻辑 (PEP 649 后行为变了, 改用 Pydantic)

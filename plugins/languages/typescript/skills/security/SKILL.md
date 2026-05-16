@@ -1,92 +1,75 @@
 ---
-description: "TypeScript 安全编码规范，覆盖 CSP 内容安全策略、Zod 输入验证与消毒、XSS/CSRF 防护、依赖漏洞审计与安全头配置。适用于安全加固、漏洞修复、输入校验、安全审计时加载。"
+name: typescript-security
+description: TypeScript 安全编码规范，覆盖 Zod 输入验证、CSP 内容安全策略、XSS / CSRF 防护、DOMPurify HTML 清理、依赖审计（pnpm audit / socket.dev）、CORS 配置、敏感数据日志脱敏、速率限制。Use when 安全加固、漏洞修复、输入校验、安全审计，或用户提到 "security"、"XSS"、"CSP"、"input validation"、"audit"。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # TypeScript 安全编码规范
 
-## 适用 Agents
+边界即防线：所有外部输入（HTTP body / query / headers / fs / env）必须 Zod 验证；所有渲染必须经清洗或 React 自动转义。
 
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | TypeScript 开发专家 |
-| debug | TypeScript 调试专家 |
-
-## 相关 Skills
-
-| 场景     | Skill         | 说明                         |
-| -------- | ------------- | ---------------------------- |
-| 核心规范 | Skills(core)  | TS 5.7+、strict mode         |
-| 类型系统 | Skills(types) | Zod schema、类型安全验证     |
-| 异步编程 | Skills(async) | 超时控制、AbortController    |
-| Node.js  | Skills(nodejs)| Node.js 22 安全特性          |
-
-## 输入验证（Zod）
+## 输入验证（Zod 4）
 
 ```typescript
 import { z } from "zod";
 
-// 严格的输入 schema
 const UserInputSchema = z.object({
   name: z.string().min(1).max(100).trim(),
-  email: z.string().email().toLowerCase(),
+  email: z.email().toLowerCase(),
   age: z.number().int().min(0).max(150).optional(),
   bio: z.string().max(500).optional(),
 });
 
-// 安全解析（不抛异常）
-function validateInput(input: unknown) {
-  const result = UserInputSchema.safeParse(input);
-  if (!result.success) {
-    return { ok: false as const, errors: result.error.flatten().fieldErrors };
-  }
-  return { ok: true as const, data: result.data };
+function validate(input: unknown) {
+  const r = UserInputSchema.safeParse(input);
+  return r.success
+    ? { ok: true as const, data: r.data }
+    : { ok: false as const, errors: z.flattenError(r.error).fieldErrors };
 }
 
-// 环境变量验证
-const EnvSchema = z.object({
-  DATABASE_URL: z.string().url(),
+// 环境变量（参考 nodejs skill）
+const env = z.object({
+  DATABASE_URL: z.url(),
   API_KEY: z.string().min(32),
-  NODE_ENV: z.enum(["development", "production", "test"]),
-  PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-});
-
-const env = EnvSchema.parse(process.env);
+}).parse(process.env);
 ```
 
 ## XSS 防护
 
 ```typescript
-// DOMPurify - HTML 清理
-import DOMPurify from "dompurify";
-const clean = DOMPurify.sanitize(userInput, { ALLOWED_TAGS: ["b", "i", "em"] });
-
-// React 自动转义（安全）
+// React 自动转义（默认安全）
 <div>{userInput}</div>
 
-// 危险：永远不要这样做
+// 危险：永不做
 // element.innerHTML = userInput;
-// dangerouslySetInnerHTML={{ __html: userInput }}  // 仅在 DOMPurify 后使用
+// <div dangerouslySetInnerHTML={{ __html: userInput }} />  // 仅在 DOMPurify 后
 
-// 模板字面量注入防护
-function safeSQL(strings: TemplateStringsArray, ...values: unknown[]) {
-  return strings.reduce((acc, str, i) =>
-    acc + str + (i < values.length ? escapeSQL(String(values[i])) : ""), ""
-  );
-}
+// DOMPurify HTML 白名单清理
+import DOMPurify from "dompurify";
+const clean = DOMPurify.sanitize(userHtml, {
+  ALLOWED_TAGS: ["b", "i", "em", "strong", "a"],
+  ALLOWED_ATTR: ["href"],
+});
 ```
 
-## Content Security Policy (CSP)
+## SQL 注入
 
 ```typescript
-// Next.js middleware CSP
+// ✅ 参数化查询（Drizzle / Prisma 默认安全）
+await db.select().from(users).where(eq(users.email, input));
+
+// ❌ 字符串拼接
+// await db.execute(`SELECT * FROM users WHERE email = '${input}'`);
+```
+
+## CSP（Content Security Policy）
+
+```typescript
+// Next.js middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function middleware(_req: NextRequest) {
   const nonce = crypto.randomUUID();
   const csp = [
     `default-src 'self'`,
@@ -94,86 +77,102 @@ export function middleware(request: NextRequest) {
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: https:`,
     `connect-src 'self' https://api.example.com`,
+    `frame-ancestors 'none'`,
   ].join("; ");
 
-  const response = NextResponse.next();
-  response.headers.set("Content-Security-Policy", csp);
-  return response;
+  const res = NextResponse.next();
+  res.headers.set("Content-Security-Policy", csp);
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  return res;
 }
 ```
 
-## 敏感数据处理
+## CORS
 
 ```typescript
-// 环境变量（必须通过 Zod 验证）
-const apiKey = env.API_KEY; // 已验证
+import { cors } from "hono/cors";
 
-// 禁止硬编码
+app.use(cors({
+  origin: ["https://myapp.com"],            // 禁 "*" 当 credentials: true
+  allowMethods: ["GET", "POST", "PUT", "DELETE"],
+  allowHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  maxAge: 86400,
+}));
+```
+
+## 敏感数据 / 日志脱敏
+
+```typescript
+// 禁硬编码
 // const apiKey = "sk-xxx"; // 危险！
 
 // 日志脱敏
-function sanitizeForLog<T extends Record<string, unknown>>(data: T): Partial<T> {
-  const sensitiveKeys = new Set(["password", "token", "apiKey", "secret", "authorization"]);
+const SENSITIVE = new Set(["password", "token", "apikey", "secret", "authorization", "cookie"]);
+
+function sanitize<T extends Record<string, unknown>>(data: T): Partial<T> {
   return Object.fromEntries(
     Object.entries(data).map(([k, v]) =>
-      sensitiveKeys.has(k.toLowerCase()) ? [k, "***REDACTED***"] : [k, v]
+      SENSITIVE.has(k.toLowerCase()) ? [k, "***REDACTED***"] : [k, v],
     ),
   ) as Partial<T>;
 }
-
-// Zod 转换：自动脱敏
-const LogSafeUserSchema = UserSchema.transform(({ password, ...rest }) => rest);
 ```
 
 ## 依赖审计
 
 ```bash
-# pnpm 审计
-pnpm audit
+pnpm audit                          # 全量
+pnpm audit --audit-level=high
 pnpm audit --fix
 
-# npm audit（如果使用 npm）
-npm audit --audit-level=high
+# CI 锁文件完整性
+pnpm install --frozen-lockfile
 
-# Socket.dev（供应链攻击检测）
-npx socket-security/cli scan
+# 供应链
+npx socket-security/cli scan        # socket.dev
+npx better-npm-audit audit          # 更严格
 
-# 锁文件完整性
-pnpm install --frozen-lockfile  # CI 中使用
+# Renovate / Dependabot 自动 PR
 ```
 
-## CORS 配置
+## 速率限制 / Brute-force
 
 ```typescript
-// Express/Hono CORS
-import { cors } from "hono/cors";
+import { rateLimiter } from "hono-rate-limiter";
 
-app.use(cors({
-  origin: ["https://myapp.com"],
-  allowMethods: ["GET", "POST", "PUT", "DELETE"],
-  allowHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
+app.use("/api/*", rateLimiter({
+  windowMs: 60_000,
+  limit: 100,
+  standardHeaders: "draft-7",
+  keyGenerator: (c) => c.req.header("x-forwarded-for") ?? "anon",
 }));
 ```
 
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| 无输入验证 | 注入攻击、类型不安全 | 高 |
-| `innerHTML` / `dangerouslySetInnerHTML` | XSS 漏洞 | 高 |
+| 现象 | 问题 | 严重 |
+|------|------|------|
+| 无输入验证 | 注入 / 类型不安全 | 高 |
+| `innerHTML` / `dangerouslySetInnerHTML` 未清洗 | XSS | 高 |
 | 硬编码密钥 | 凭证泄露 | 高 |
-| 无 CSP 头 | 跨站脚本攻击 | 中 |
-| `pnpm audit` 未运行 | 已知漏洞未修复 | 中 |
-| CORS `origin: *` | 过于宽松的跨域策略 | 中 |
+| 无 CSP | XSS 缺乏纵深防御 | 中 |
+| `pnpm audit` 未跑 | 已知漏洞未修 | 中 |
+| CORS `origin: "*"` + credentials | 跨域风险 | 高 |
+| 日志输出原始 password / token | 数据泄露 | 高 |
+| SQL 字符串拼接 | 注入 | 高 |
 
 ## 检查清单
 
-- [ ] 所有外部输入使用 Zod 验证
-- [ ] 环境变量使用 Zod schema 验证
-- [ ] 无 `innerHTML` / 未清理的 `dangerouslySetInnerHTML`
-- [ ] 使用 DOMPurify 清理 HTML
-- [ ] CSP 头配置正确
-- [ ] `pnpm audit` 无高危漏洞
-- [ ] 敏感数据使用环境变量
-- [ ] 日志输出已脱敏
+- [ ] 所有外部输入 Zod 4 验证
+- [ ] env 走 Zod schema
+- [ ] 无 `innerHTML` / 未清洗 `dangerouslySetInnerHTML`
+- [ ] DOMPurify 清理用户 HTML
+- [ ] CSP + X-Frame-Options + nosniff 头
+- [ ] `pnpm audit` 无 high/critical
+- [ ] 锁文件 `--frozen-lockfile`
+- [ ] 日志脱敏 sensitive 字段
+- [ ] CORS 白名单 origin
+- [ ] 速率限制公开 API

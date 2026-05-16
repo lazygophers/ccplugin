@@ -24,16 +24,16 @@ golang/
 │   ├── hooks.py
 │   └── main.py
 ├── skills/
-│   ├── golang-skills/
-│   │   ├── patterns/
-│   │   ├── SKILL.md
-│   │   ├── architecture-tooling.md
-│   │   ├── development-practices.md
-│   │   └── references.md
-│   └── gtpl-skills/
-│       ├── SKILL.md
-│       ├── functions-performance-patterns.md
-│       └── template-design-security.md
+│   ├── core/SKILL.md
+│   ├── error/SKILL.md
+│   ├── libs/SKILL.md
+│   ├── naming/SKILL.md
+│   ├── structure/SKILL.md
+│   ├── testing/SKILL.md
+│   ├── concurrency/SKILL.md
+│   ├── lint/SKILL.md
+│   ├── tooling/SKILL.md
+│   └── gtpl-skills/SKILL.md
 ├── .lsp.json
 ├── AGENT.md
 ├── README.md

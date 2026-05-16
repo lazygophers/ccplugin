@@ -44,20 +44,20 @@ claude plugin install python@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | Python 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | Python 核心规范 |
-| Skill | `error` | 错误处理规范 |
-| Skill | `types` | 类型提示规范 |
-| Skill | `testing` | 测试策略 |
-| Skill | `async` | 异步编程规范 |
-| Skill | `web` | Web 开发规范 |
+| Agent | `python-dev` | Python 开发专家 |
+| Agent | `python-test` | 测试专家 |
+| Agent | `python-debug` | 调试专家 |
+| Agent | `python-perf` | 性能优化专家 |
+| Skill | `python-core` | Python 核心规范 |
+| Skill | `python-error` | 错误处理规范 |
+| Skill | `python-types` | 类型提示规范 |
+| Skill | `python-testing` | 测试策略 |
+| Skill | `python-async` | 异步编程规范 |
+| Skill | `python-web` | Web 开发规范 |
 
 ## 使用方式
 
-### 1. 开发专家代理（dev）
+### 1. 开发专家代理（python-dev）
 
 用于 Python 代码开发和架构设计。
 
@@ -72,7 +72,7 @@ claude plugin install python@ccplugin-market
 我需要实现一个用户管理系统。能帮我设计架构和编写代码吗？
 ```
 
-### 2. 测试专家代理（test）
+### 2. 测试专家代理（python-test）
 
 用于编写和优化 Python 测试用例。
 
@@ -87,7 +87,7 @@ claude plugin install python@ccplugin-market
 我有一个计算函数，需要编写全面的测试用例。
 ```
 
-### 3. 调试专家代理（debug）
+### 3. 调试专家代理（python-debug）
 
 用于诊断和解决 Python 代码问题。
 
@@ -102,7 +102,7 @@ claude plugin install python@ccplugin-market
 程序在处理大文件时内存持续增长，如何诊断和修复？
 ```
 
-### 4. 性能优化专家代理（perf）
+### 4. 性能优化专家代理（python-perf）
 
 用于 Python 代码的性能分析和优化。
 

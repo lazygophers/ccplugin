@@ -1,108 +1,98 @@
 ---
-description: "TypeScript 核心开发规范，覆盖 TS 5.7+ strict mode、tsconfig 配置、ESLint flat config、Biome 格式化、模块解析与现代工具链最佳实践。适用于新建 TS 项目、配置 TypeScript 编译选项、设置 linter/formatter 时加载。"
+name: typescript-core
+description: TypeScript 核心开发规范，覆盖 TS 6.0+ strict mode、tsconfig 配置、Biome 2 / ESLint flat config、pnpm 与现代工具链（tsgo / Bun / Deno 2 / Node 22 LTS）。Use when 新建 TypeScript 项目、配置 tsconfig、设置 linter/formatter、选型工具链，或用户提到 "TypeScript 规范"、"strict mode"、"tsconfig"、"biome"、"eslint"、"package manager"。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
-# TypeScript 开发核心规范
+# TypeScript 核心开发规范
 
-## 适用 Agents
-
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | TypeScript 开发专家 |
-| debug | TypeScript 调试专家 |
-| test  | TypeScript 测试专家 |
-| perf  | TypeScript 性能优化专家 |
-
-## 相关 Skills
-
-| 场景       | Skill            | 说明                                    |
-| ---------- | ---------------- | --------------------------------------- |
-| 类型系统   | Skills(types)    | discriminated unions、Zod、模板字面量   |
-| 异步编程   | Skills(async)    | Promise、AbortController、async iterators |
-| React 开发 | Skills(react)    | React 19、Server Components、Next.js 15  |
-| Node.js    | Skills(nodejs)   | Node.js 22 LTS、ESM、fetch API          |
-| 安全编码   | Skills(security) | CSP、输入验证、XSS 防护                 |
+适用范围：所有 TypeScript 源码（`.ts` / `.tsx` / `.mts` / `.cts`）。
 
 ## 核心原则
 
-TypeScript 生态追求**类型安全、现代工程、可维护性**。
+类型安全 > 类型体操；编译期错误 > 运行期错误；显式 > 隐式。
 
 ### 必须遵守
 
-1. **严格模式** - `strict: true` + `noUncheckedIndexedAccess` + `noImplicitOverride`
-2. **类型安全** - 禁止 `any`，使用 `unknown` + 类型守卫
-3. **运行时验证** - Zod 4 / Valibot 验证外部数据
-4. **pnpm 9** - 推荐包管理器（硬链接、严格依赖）
-5. **Vitest 3.x** - 测试框架（ESM 原生、替代 Jest）
-6. **ESLint flat config** - `eslint.config.ts` 或 Biome
+1. **严格模式** — `strict: true` + `noUncheckedIndexedAccess` + `noImplicitOverride` + `exactOptionalPropertyTypes`
+2. **禁 `any`** — 用 `unknown` + 类型守卫，或 Zod 4 / Valibot 在边界验证
+3. **运行时验证** — 所有外部输入（HTTP / fs / env）走 Zod 4 schema
+4. **ESM 优先** — `"type": "module"` + `import type` 分离类型导入
+5. **pnpm 9+** 或 **Bun 1.x** — 禁 npm install（除非项目历史约束）
+6. **Vitest 3.x** — 替代 Jest（ESM 原生，类型测试）
+7. **每文件 ≤ 500 行**，推荐 200~400
 
 ### 禁止行为
 
-- 使用 `any` 类型（使用 `unknown` 代替）
-- 使用 `@ts-ignore`（使用 `@ts-expect-error` 并附注释）
-- 使用 `enum`（使用 `as const` 对象替代）
-- 单行错误处理（`if (err) return err;`）
-- 硬编码密钥和配置
-- 忽略测试覆盖率
+- `any`、`@ts-ignore`、`enum`（用 `as const` 对象代替）、`namespace`
+- 单行错误处理（`if (err) return err`）
+- 硬编码密钥 / URL
+- `.eslintrc.js`（旧）→ flat config 或 Biome
+- `node-fetch`（Node 22 已内置 fetch）
+- `React.FC`（隐式 children、泛型受限）
 
-## 版本与环境
+## 版本与工具链（2026-05 现状）
 
-- **TypeScript**: 6.0+（target ES2025，#/ subpath imports，Temporal types，improved method inference）
-- **TypeScript 7.0 Beta**：Go 重写，10x 编译加速（2026-04-21，追踪但暂不用于生产）
-- **Node.js**: 24 LTS（推荐）/ 22 LTS（兼容）
-- **包管理器**: pnpm 9（推荐）/ Bun 1.x（替代）
-- **测试框架**: Vitest 3.x
-- **构建工具**: Vite 6 / tsup / unbuild
-- **Linter**: ESLint 9 flat config / Biome
-- **运行时**: Node.js 22 / Bun 1.x / Deno 2
+| 项 | 推荐 | 说明 |
+|----|------|------|
+| TypeScript | **6.0** 稳定 | `target: ES2025`，strict 默认开 |
+| TS 7.0 / tsgo | **CI type-check 可用** | Go 重写 10x 加速；编译产物未 GA；用 `@typescript/native-preview` |
+| Node.js | **22 LTS** | 原生 strip-types（22.18+）、原生 fetch、test runner |
+| 包管理 | pnpm 9 / Bun 1.x | 禁 npm 新项目 |
+| Linter+Formatter | **Biome 2** 优先 / ESLint 9 flat（重 plugin 时） | Biome 2.3+ 423 规则 + 部分类型感知 |
+| 测试 | Vitest 3.x | bench、type 测试、ESM 原生 |
+| 构建 | Vite 6 / tsdown（Rolldown）/ tsup / unbuild | 库优先 tsdown |
+| 运行时 | Node 22 / Bun 1.x / Deno 2 | 三选一 |
 
-## 命名约定
-
-```typescript
-// 类型：PascalCase
-type UserDTO = { id: string; name: string };
-type Status = "active" | "inactive" | "pending";
-
-// 变量/函数：camelCase
-const userName = "John";
-function getUserById(id: string): Promise<User> { /* ... */ }
-
-// 常量：UPPER_SNAKE_CASE（模块级不可变值）
-const MAX_RETRIES = 3;
-const API_BASE_URL = "https://api.example.com";
-
-// as const 替代 enum
-const Role = { Admin: "admin", User: "user", Guest: "guest" } as const;
-type Role = (typeof Role)[keyof typeof Role];
-```
-
-## tsconfig.json（推荐严格配置）
+## tsconfig.json 推荐基线
 
 ```json
 {
   "compilerOptions": {
-    "target": "ES2024",
+    "target": "ES2025",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "lib": ["ES2025"],
+
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
+
     "declaration": true,
     "sourceMap": true,
     "outDir": "./dist"
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
 ```
 
-## ESLint flat config
+## Biome 2 配置（推荐新项目）
+
+```jsonc
+// biome.json
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.0/schema.json",
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },
+  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "always" } }
+}
+```
+
+```bash
+pnpm dlx @biomejs/biome init
+pnpm biome check --write .   # lint + format 一把梭
+```
+
+## ESLint 9 flat config（仅在依赖 typed-rules 时）
 
 ```typescript
 // eslint.config.ts
@@ -119,30 +109,52 @@ export default tseslint.config(
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     },
   },
 );
 ```
 
+## 命名约定
+
+```typescript
+type UserDTO = { id: string };                  // 类型 PascalCase（禁 I 前缀）
+type Status = "active" | "inactive";
+const userName = "John";                        // 变量 camelCase
+function getUserById(id: string) { /* ... */ } // 函数 camelCase
+const MAX_RETRIES = 3;                          // 常量 UPPER_SNAKE_CASE
+
+// as const 替代 enum
+const Role = { Admin: "admin", User: "user" } as const;
+type Role = (typeof Role)[keyof typeof Role];
+```
+
+## tsgo 试用（TS 7 native preview）
+
+```bash
+pnpm add -D @typescript/native-preview
+pnpm exec tsgo --noEmit          # CI 快速类型检查
+# 注意：emit/decorators/older targets 尚未完整，构建仍用 tsc
+```
+
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| 使用 `any` | 类型安全漏洞 | 高 |
-| `@ts-ignore` | 隐藏真实类型错误 | 高 |
-| `enum` 关键字 | tree-shaking 不友好 | 中 |
-| `.eslintrc.js` | 旧版配置，应迁移到 flat config | 中 |
-| `npm install` | 应使用 pnpm | 中 |
-| Jest 配置 | 应迁移到 Vitest 3.x | 中 |
+| 现象 | 问题 | 严重 |
+|------|------|------|
+| `any` | 类型安全漏洞 | 高 |
+| `@ts-ignore` | 隐藏真实错误（用 `@ts-expect-error` + 注释） | 高 |
+| `enum` | tree-shaking 不友好 | 中 |
+| `.eslintrc.js` | 旧 schema | 中 |
+| 文件 > 500 行 | 拆分信号 | 中 |
+| `npm install` 新项目 | pnpm/Bun 更优 | 中 |
+| Jest 配置 | Vitest 3.x 替代 | 中 |
 
 ## 检查清单
 
-- [ ] `strict: true` + `noUncheckedIndexedAccess`
-- [ ] 无 `any` 类型
-- [ ] 无 `@ts-ignore`
-- [ ] 使用 `as const` 替代 `enum`
+- [ ] `strict: true` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`
+- [ ] 无 `any` / `@ts-ignore`
+- [ ] `as const` 替代 `enum`
 - [ ] `import type` 分离类型导入
-- [ ] ESLint flat config 或 Biome
-- [ ] Vitest 3.x 测试覆盖率 >= 80%
-- [ ] pnpm 管理依赖
+- [ ] Biome 2 或 ESLint flat config（二选一）
+- [ ] pnpm 9 / Bun 锁文件
+- [ ] Vitest 3.x，覆盖率 ≥ 80%
+- [ ] 文件 ≤ 500 行

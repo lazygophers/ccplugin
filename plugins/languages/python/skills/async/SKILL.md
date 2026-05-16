@@ -1,408 +1,182 @@
 ---
-description: "Python异步编程与并发模式规范。涵盖asyncio事件循环、trio结构化并发、httpx异步HTTP客户端、async/await用法。适用于异步函数编写、并发任务调度、I/O密集型优化、异步API调用等场景。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: python-async
+description: Python 异步编程与并发规范 (asyncio 3.13+)。涵盖 async/await、TaskGroup 结构化并发、httpx 异步 HTTP、aiofiles、超时与取消、free-threading (PEP 703)。在写异步函数、并发调度、I/O 优化、迁移同步代码、调试 async bug 时使用。也触发于"asyncio"、"async/await"、"并发"、"httpx"、"TaskGroup"。
 ---
 
-# Python 异步编程模式
+# Python 异步编程 (2026)
 
-## 适用 Agents
+Python 3.13+, asyncio 优先。3.14 的 free-threading (PEP 703) 解决 CPU 密集, asyncio 仍是 I/O 密集首选。
 
-- **python:dev** - 开发阶段使用
-- **python:debug** - 异步代码调试
-- **python:test** - 异步测试编写
+## 何时用 async
 
-## 相关 Skills
+| 场景 | 选择 |
+|------|------|
+| I/O 密集 (HTTP, DB, 文件) | `async`/`await` |
+| CPU 密集 (计算、加密、图像) | `asyncio.to_thread` 或 free-threading (3.14t) 多线程 |
+| 真并行 CPU | 3.13 用 `multiprocessing`, 3.14 用 free-threading 多线程 |
+| 单次脚本, 一两个 I/O | 同步代码 + `httpx.Client` 即可, 别强上 async |
 
-- **Skills(python:core)** - 基础规范
-- **Skills(python:types)** - 异步函数类型注解
-- **Skills(python:error)** - 异步异常处理
-- **Skills(python:web)** - FastAPI 异步集成
+整个调用链要么全 async 要么全 sync。混合调用 (`asyncio.run` 嵌套, `loop.run_until_complete` 在异步上下文里) 会死锁。
 
-## 核心原则
-
-### 1. 异步优先
-
-**I/O 密集型操作默认使用 async/await**：
-
-```python
-# ✅ 正确：异步 I/O
-import httpx
-
-async def fetch_data(url: str) -> dict:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        return response.json()
-
-# ❌ 错误：同步 I/O（阻塞事件循环）
-import requests
-
-def fetch_data_sync(url: str) -> dict:
-    response = requests.get(url)  # 阻塞！
-    return response.json()
-```
-
-**适用场景**：
-- ✅ HTTP 请求（httpx.AsyncClient）
-- ✅ 数据库操作（AsyncSession）
-- ✅ 文件 I/O（aiofiles）
-- ✅ WebSocket 连接
-- ❌ CPU 密集型任务（使用 multiprocessing）
-
-## asyncio vs trio vs anyio
-
-### 对比表（2025-2026）
-
-| 特性 | asyncio | trio | anyio |
-|------|---------|------|-------|
-| 标准库 | ✅ | ❌ | ❌ |
-| 结构化并发 | ❌ | ✅ | ✅ |
-| 取消语义 | 复杂 | 清晰 | 清晰 |
-| 错误传播 | 手动 | 自动 | 自动 |
-| 学习曲线 | 陡峭 | 平缓 | 平缓 |
-| 生态系统 | 最大 | 中等 | 中等 |
-
-### 推荐策略
-
-- **新项目**：优先考虑 trio（更安全的并发）
-- **大型项目**：asyncio + anyio（兼容性）
-- **Web 框架**：FastAPI（基于 asyncio）
-
-## HTTP 请求：httpx 替代 requests
-
-### 性能对比
-
-```python
-# ❌ requests（同步，维护模式）
-import requests
-response = requests.get("https://api.example.com")
-
-# ✅ httpx（异步优先，活跃维护）
-import httpx
-
-# 同步（兼容 requests）
-with httpx.Client() as client:
-    response = client.get("https://api.example.com")
-
-# 异步（推荐）
-async with httpx.AsyncClient() as client:
-    response = await client.get("https://api.example.com")
-```
-
-### httpx 优势
-
-- ✅ 异步支持（原生）
-- ✅ HTTP/2 支持
-- ✅ 更好的类型注解
-- ✅ 更好的测试工具（httpx.MockTransport）
-
-### 完整示例
-
-```python
-import httpx
-from typing import AsyncIterator
-
-async def fetch_user(user_id: int) -> dict:
-    """获取单个用户"""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"https://api.example.com/users/{user_id}")
-        response.raise_for_status()
-        return response.json()
-
-async def fetch_users(user_ids: list[int]) -> list[dict]:
-    """并行获取多个用户"""
-    async with httpx.AsyncClient() as client:
-        tasks = [
-            client.get(f"https://api.example.com/users/{uid}")
-            for uid in user_ids
-        ]
-        responses = await asyncio.gather(*tasks)
-        return [r.json() for r in responses]
-
-async def stream_large_file(url: str) -> AsyncIterator[bytes]:
-    """流式下载大文件"""
-    async with httpx.AsyncClient() as client:
-        async with client.stream("GET", url) as response:
-            async for chunk in response.aiter_bytes():
-                yield chunk
-```
-
-## 并发模式
-
-### 1. asyncio.gather（基础并行）
+## 基本用法
 
 ```python
 import asyncio
+import httpx
 
-async def fetch_all(urls: list[str]) -> list[dict]:
-    """并行执行多个任务"""
-    tasks = [fetch_data(url) for url in urls]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+async def fetch_user(client: httpx.AsyncClient, uid: int) -> dict:
+    resp = await client.get(f"/users/{uid}")
+    resp.raise_for_status()
+    return resp.json()
 
-    # 过滤错误
-    valid_results = [r for r in results if not isinstance(r, Exception)]
-    return valid_results
+async def main() -> None:
+    async with httpx.AsyncClient(base_url="https://api.example.com") as client:
+        user = await fetch_user(client, 1)
+        print(user)
+
+asyncio.run(main())  # 进程入口唯一一次
 ```
 
-### 2. TaskGroup（Python 3.11+ 推荐）
+## 结构化并发 (TaskGroup, 3.11+)
+
+并发首选 `TaskGroup`, 不用 `asyncio.gather` (除非确实需要 `return_exceptions=True`):
 
 ```python
-async def process_items(items: list[Item]) -> None:
-    """使用 TaskGroup 管理任务"""
-    async with asyncio.TaskGroup() as tg:
-        for item in items:
-            tg.create_task(process_item(item))
-
-    # 离开上下文时，所有任务已完成或取消
-    print("所有任务已完成")
-```
-
-### 3. trio 结构化并发（最安全）
-
-```python
-import trio
-
-async def fetch_user(user_id: int) -> dict:
+async def fetch_all(uids: list[int]) -> list[dict]:
     async with httpx.AsyncClient() as client:
-        response = await client.get(f"/users/{user_id}")
-        return response.json()
-
-async def main():
-    """结构化并发：所有子任务在 nursery 作用域内"""
-    async with trio.open_nursery() as nursery:
-        nursery.start_soon(fetch_user, 1)
-        nursery.start_soon(fetch_user, 2)
-        nursery.start_soon(fetch_user, 3)
-
-    # 离开 nursery 时，保证所有任务已完成或取消
-    print("所有任务已完成")
+        async with asyncio.TaskGroup() as tg:
+            tasks = [tg.create_task(fetch_user(client, uid)) for uid in uids]
+        return [t.result() for t in tasks]
 ```
 
-**trio 优势**：
-- ✅ 自动取消管理（父任务取消，子任务自动取消）
-- ✅ 异常自动传播
-- ✅ 避免任务泄漏
+TaskGroup 优势:
+- 任一任务失败, 自动取消其他任务
+- 多任务失败聚合成 `ExceptionGroup`, 用 `except*` 处理 (见 `python-error`)
+- 退出 `async with` 前等所有任务完成, 防止任务泄漏
 
-### 4. 并发限制（Semaphore）
+`gather` 仅在需要"全部跑完, 错误单独收集"时用:
 
 ```python
-import asyncio
-
-async def fetch_with_limit(urls: list[str], max_concurrent: int = 5) -> list[dict]:
-    """限制并发数量"""
-    semaphore = asyncio.Semaphore(max_concurrent)
-
-    async def fetch_one(url: str) -> dict:
-        async with semaphore:
-            return await fetch_data(url)
-
-    tasks = [fetch_one(url) for url in urls]
-    return await asyncio.gather(*tasks)
+results = await asyncio.gather(*tasks, return_exceptions=True)
 ```
 
-## 数据库异步操作
+## 超时
 
-### SQLAlchemy 2.0 Async
+`asyncio.timeout` (3.11+) 替代 `wait_for`:
 
 ```python
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import select
-
-# 创建异步引擎
-engine = create_async_engine("postgresql+asyncpg://user:pass@localhost/db")
-async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-async def get_user(user_id: int) -> User | None:
-    """异步查询用户"""
-    async with async_session() as session:
-        stmt = select(User).where(User.id == user_id)
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none()
-
-async def create_user(username: str, email: str) -> User:
-    """异步创建用户"""
-    async with async_session() as session:
-        user = User(username=username, email=email)
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-        return user
+async with asyncio.timeout(5.0):
+    data = await slow_operation()
+# TimeoutError 在退出时抛出
 ```
 
-## 文件 I/O
+不要用 `wait_for` (老 API, 取消语义有坑)。
 
-### aiofiles
+## 取消
+
+`CancelledError` 是控制流而非异常, 不要吞掉:
+
+```python
+async def worker():
+    try:
+        await do_work()
+    except asyncio.CancelledError:
+        await cleanup()
+        raise   # 必须 re-raise
+    except Exception:
+        log.error("worker_failed", exc_info=True)
+        raise
+```
+
+清理用 `try/finally` 或 `async with`, 不要依赖捕获 `CancelledError`。
+
+## HTTP 客户端: httpx
+
+不要再用 `requests` / `urllib`:
+
+```python
+# 复用 client (连接池, 性能 10x+)
+async with httpx.AsyncClient(
+    base_url="https://api.example.com",
+    timeout=httpx.Timeout(10.0, connect=5.0),
+    limits=httpx.Limits(max_connections=100),
+) as client:
+    resp = await client.get("/users", params={"page": 1})
+```
+
+每次请求都 `httpx.AsyncClient()` 是反模式 (无连接复用)。把 client 放在 app 生命周期 (FastAPI lifespan) 或 fixture 里。
+
+## 文件 I/O: aiofiles
+
+异步上下文里读写文件:
 
 ```python
 import aiofiles
 
-async def read_file(path: str) -> str:
-    """异步读取文件"""
-    async with aiofiles.open(path, 'r') as f:
-        content = await f.read()
-    return content
-
-async def write_file(path: str, content: str) -> None:
-    """异步写入文件"""
-    async with aiofiles.open(path, 'w') as f:
-        await f.write(content)
-
-async def process_large_file(input_path: str, output_path: str) -> None:
-    """流式处理大文件"""
-    async with aiofiles.open(input_path, 'r') as infile:
-        async with aiofiles.open(output_path, 'w') as outfile:
-            async for line in infile:
-                processed = line.upper()
-                await outfile.write(processed)
+async with aiofiles.open("data.json") as f:
+    content = await f.read()
 ```
 
-## 避免阻塞事件循环
+但小文件直接 `Path.read_text()` (同步, 几 ms) 比开 aiofiles 还快, 别过度异步化。
 
-### 识别阻塞操作
+## CPU 密集: to_thread / free-threading
+
+CPU 密集任务**不要**写成 `async def`, 会阻塞事件循环:
 
 ```python
-# ❌ 阻塞操作（禁止在 async 函数中）
-import time
+# 同步 CPU 函数
+def compute_hash(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
 
-async def bad_sleep():
-    time.sleep(1)  # 阻塞事件循环！
-
-# ✅ 正确：使用异步睡眠
-async def good_sleep():
-    await asyncio.sleep(1)  # 不阻塞事件循环
-
-# ❌ 阻塞文件 I/O
-async def bad_file_read():
-    with open("file.txt") as f:  # 阻塞！
-        content = f.read()
-
-# ✅ 正确：异步文件 I/O
-async def good_file_read():
-    async with aiofiles.open("file.txt") as f:
-        content = await f.read()
+# 在 async 上下文里调
+result = await asyncio.to_thread(compute_hash, big_data)
 ```
 
-### 处理阻塞代码
+3.14 free-threading (`python3.14t`) 让多线程真并行, 多核 CPU 任务可用 `concurrent.futures.ThreadPoolExecutor`, 但生态 (C 扩展兼容) 还在补齐, 生产环境先评估。
+
+## 并发限流
 
 ```python
-import asyncio
+sem = asyncio.Semaphore(10)  # 同时最多 10 并发
 
-# 方式 1：asyncio.to_thread（Python 3.9+）
-async def run_blocking():
-    result = await asyncio.to_thread(blocking_function, arg1, arg2)
-    return result
+async def bounded_fetch(client, url):
+    async with sem:
+        return await client.get(url)
 
-# 方式 2：loop.run_in_executor
-async def run_blocking_executor():
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, blocking_function, arg1, arg2)
-    return result
+async with asyncio.TaskGroup() as tg:
+    for url in urls:
+        tg.create_task(bounded_fetch(client, url))
 ```
 
-## 异步测试
-
-### pytest-asyncio
+## 数据库: SQLAlchemy 2.0 异步
 
 ```python
-import pytest
-from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import select
 
-@pytest.mark.asyncio
-async def test_fetch_user():
-    """测试异步函数"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        response = await ac.get("/users/1")
-        assert response.status_code == 200
-        assert response.json()["username"] == "alice"
+engine = create_async_engine("postgresql+asyncpg://...")
 
-@pytest.fixture
-async def async_client():
-    """异步 fixture"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
-
-@pytest.mark.asyncio
-async def test_create_user(async_client):
-    """使用异步 fixture"""
-    response = await async_client.post("/users", json={
-        "username": "testuser",
-        "email": "test@example.com"
-    })
-    assert response.status_code == 201
+async def get_user(session: AsyncSession, uid: int) -> User | None:
+    stmt = select(User).where(User.id == uid)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
 ```
 
-## Red Flags：AI 常见误区
+不要在 async 代码里用同步 `psycopg2` / `sqlite3`。
 
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "同步代码更简单易读" | ✅ I/O 操作是否使用了 async/await？ |
-| "requests 库很成熟" | ✅ 是否使用了 httpx.AsyncClient？ |
-| "aiohttp 够用了" | ✅ 是否迁移到 httpx（更好的类型支持）？ |
-| "asyncio.gather 足够" | ✅ 是否使用了 TaskGroup（Python 3.11+）？ |
-| "不需要结构化并发" | ✅ 是否考虑使用 trio 避免任务泄漏？ |
-| "time.sleep() 在 async 函数中可以用" | ✅ 是否使用了 asyncio.sleep()？ |
-| "同步数据库查询足够快" | ✅ 是否使用了 AsyncSession？ |
+## 调试
 
-## 性能优化
+- `asyncio.run(main(), debug=True)` 启用 debug 模式, 检测慢回调和未 await 协程
+- `PYTHONASYNCIODEBUG=1` 环境变量同效果
+- `loop.set_slow_callback_duration(0.05)` 报警长回调
 
-### 1. 连接池管理
+## 反模式
 
-```python
-import httpx
-
-# ✅ 正确：复用客户端
-client = httpx.AsyncClient()
-
-async def fetch_data(url: str) -> dict:
-    response = await client.get(url)
-    return response.json()
-
-# 应用关闭时清理
-await client.aclose()
-
-# ❌ 错误：每次创建新客户端
-async def fetch_data_bad(url: str) -> dict:
-    async with httpx.AsyncClient() as client:  # 每次创建连接！
-        response = await client.get(url)
-        return response.json()
-```
-
-### 2. 超时控制
-
-```python
-import httpx
-
-async def fetch_with_timeout(url: str) -> dict:
-    """设置超时"""
-    timeout = httpx.Timeout(10.0, connect=5.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        response = await client.get(url)
-        return response.json()
-```
-
-## 检查清单
-
-### 基础要求
-- [ ] I/O 操作使用 async/await
-- [ ] HTTP 请求使用 httpx.AsyncClient
-- [ ] 数据库使用 AsyncSession
-- [ ] 文件操作使用 aiofiles
-
-### 并发管理
-- [ ] 使用 TaskGroup（Python 3.11+）或 trio
-- [ ] 使用 Semaphore 限制并发数
-- [ ] 正确处理异常（gather 使用 return_exceptions=True）
-
-### 避免阻塞
-- [ ] 没有 time.sleep() 调用
-- [ ] 没有同步文件 I/O
-- [ ] 没有 requests.get() 调用
-- [ ] 阻塞代码使用 asyncio.to_thread()
-
-### 测试
-- [ ] 使用 pytest-asyncio
-- [ ] 异步 fixture 定义正确
-- [ ] @pytest.mark.asyncio 标记所有异步测试
+- `requests` / `urllib3` / `aiohttp` (新代码统一 httpx)
+- `asyncio.get_event_loop()` (用 `asyncio.get_running_loop()` 或不用)
+- 在 async 函数里 `time.sleep()` (用 `await asyncio.sleep()`)
+- `asyncio.run(...)` 多次嵌套 (整个程序只一次)
+- 协程未 await (会 `RuntimeWarning: coroutine 'x' was never awaited`)
+- 在 async 里调阻塞 IO 不加 `to_thread`
+- `for x in tasks: await x` (串行, 失去并发, 用 TaskGroup)
+- 吞 `CancelledError`

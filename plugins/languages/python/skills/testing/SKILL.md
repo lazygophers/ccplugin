@@ -1,406 +1,210 @@
 ---
-description: "Python测试框架与测试策略规范。涵盖pytest 8.x断言与fixture、hypothesis属性测试、pytest-asyncio异步测试、TDD流程。适用于编写单元测试、集成测试、测试覆盖率提升、测试失败调试等场景。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: python-testing
+description: Python 测试规范 (pytest 8.x)。涵盖 fixture/parametrize/mark、pytest-asyncio 异步测试、hypothesis 属性测试、覆盖率 (pytest-cov)、mock 策略、TDD 流程。在编写单元/集成测试、修复测试失败、提升覆盖率、配置 conftest.py 时使用。也触发于"写测试"、"pytest"、"测试覆盖率"、"mock"、"fixture"。
 ---
 
-# Python 测试框架和策略
+# Python 测试规范 (2026)
 
-## 适用 Agents
+pytest 8.x + pytest-asyncio + hypothesis + pytest-cov。不用 `unittest.TestCase` 风格。
 
-- **python:dev** - 开发阶段使用
-- **python:debug** - 测试失败调试
-- **python:test** - 测试代码编写
+## 项目结构
 
-## 相关 Skills
-
-- **Skills(python:core)** - 基础规范
-- **Skills(python:types)** - 测试类型注解
-- **Skills(python:async)** - 异步测试
-- **Skills(python:error)** - 测试异常处理
-
-## 核心原则
-
-### 1. 测试驱动开发（TDD）
-
-- **单元测试覆盖率 ≥ 90%**
-- **集成测试覆盖核心流程**
-- **属性测试自动生成边界用例**
-- **CI/CD 自动运行测试**
-
-### 2. pytest 8.x 新特性
-
-**package 级作用域 fixture**：
-
-```python
-@pytest.fixture(scope="package")  # 新增：package 级作用域
-def database():
-    db = connect_db()
-    yield db
-    db.close()
+```text
+tests/
+├── conftest.py            # 全局 fixture
+├── unit/
+│   ├── test_models.py
+│   └── test_services.py
+├── integration/
+│   ├── conftest.py        # 集成层 fixture (db, app)
+│   └── test_api.py
+└── e2e/
+    └── test_workflows.py
 ```
 
-**改进的参数化**：
+`pyproject.toml`:
 
-```python
-@pytest.mark.parametrize(
-    "input,expected",
-    [
-        pytest.param(1, 2, id="case-1"),
-        pytest.param(2, 4, id="case-2"),
-        pytest.param(3, 6, id="case-3", marks=pytest.mark.slow),
-    ]
-)
-def test_double(input, expected):
-    assert double(input) == expected
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+asyncio_mode = "auto"
+markers = [
+    "slow: 慢测试 (跑前需 -m slow)",
+    "integration: 需要外部服务",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
 ```
 
-## hypothesis 属性测试
+## 测试结构 (AAA)
 
-### 基础示例
+每个测试 = Arrange / Act / Assert 三段:
+
+```python
+def test_calculate_average_normal_case():
+    # Arrange
+    numbers = [1.0, 2.0, 3.0, 4.0, 5.0]
+
+    # Act
+    result = calculate_average(numbers)
+
+    # Assert
+    assert result == 3.0
+```
+
+测试函数名: `test_<被测对象>_<场景>_<期望>`。一个测试只验证一件事。
+
+## Fixture
+
+```python
+# tests/conftest.py
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
+@pytest.fixture
+def sample_user() -> dict:
+    return {"username": "alice", "email": "alice@example.com"}
+
+@pytest.fixture(scope="session")
+async def db_engine():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield engine
+    await engine.dispose()
+
+@pytest.fixture
+async def db_session(db_engine) -> AsyncSession:
+    async with AsyncSession(db_engine) as session:
+        yield session
+        await session.rollback()
+```
+
+scope 选择: `function` (默认, 隔离最强) > `module` > `session`。共享开销大的资源用 session, 易变状态用 function。
+
+## Parametrize
+
+数据驱动多个用例, 避免循环:
+
+```python
+@pytest.mark.parametrize("numbers, expected", [
+    ([1], 1.0),
+    ([1, 2, 3], 2.0),
+    ([0, 0, 0], 0.0),
+], ids=["single", "triple", "zeros"])
+def test_average_parametrized(numbers, expected):
+    assert calculate_average(numbers) == expected
+```
+
+## 异常测试
+
+```python
+def test_empty_list_raises():
+    with pytest.raises(ValueError, match="cannot be empty"):
+        calculate_average([])
+```
+
+不要只断 `pytest.raises(Exception)`, 写具体异常类型 + `match` 验证消息。
+
+## 异步测试 (pytest-asyncio)
+
+`asyncio_mode = "auto"` 后, 异步函数自动识别为异步测试:
+
+```python
+async def test_fetch_user(async_client):
+    resp = await async_client.get("/users/1")
+    assert resp.status_code == 200
+    assert resp.json()["id"] == 1
+```
+
+FastAPI 集成测试用 `httpx.AsyncClient` + `ASGITransport`, 不用 `TestClient` (后者是同步的):
+
+```python
+@pytest.fixture
+async def async_client():
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+        yield c
+```
+
+## Mock 策略
+
+优先级: **真实对象 > fake 实现 > mock 部分 > mock 全部**。
+
+```python
+from unittest.mock import patch, AsyncMock
+
+# 在边界 mock (HTTP / 时间 / 随机), 不要 mock 业务对象
+def test_send_email_calls_smtp(mocker):
+    mock_smtp = mocker.patch("myapp.notifier.smtplib.SMTP")
+    send_email("a@b.c", "hi")
+    mock_smtp.return_value.sendmail.assert_called_once()
+
+# 异步 mock
+async def test_external_api(mocker):
+    mock = mocker.patch("myapp.client.httpx.AsyncClient.get", new_callable=AsyncMock)
+    mock.return_value.json.return_value = {"id": 1}
+    result = await fetch_user(1)
+    assert result.id == 1
+```
+
+不要 mock 自己写的纯逻辑函数 (改用真实调用)。
+
+## 属性测试 (hypothesis)
+
+枚举测不到的边界, 让 hypothesis 自动生成:
 
 ```python
 from hypothesis import given, strategies as st
 
 @given(st.lists(st.integers()))
 def test_reverse_twice_is_identity(items):
-    """反转两次应该得到原列表"""
     assert list(reversed(list(reversed(items)))) == items
 
-@given(st.integers(min_value=0, max_value=150))
-def test_age_validation(age):
-    """年龄验证应该接受 0-150"""
-    user = User(username="test", age=age)
-    assert 0 <= user.age <= 150
+@given(st.text(min_size=1))
+def test_username_validation_never_crashes(name):
+    # 不该抛任何未预期异常
+    try:
+        UserCreate(username=name, email="a@b.c", age=20)
+    except ValidationError:
+        pass
 ```
 
-### 高级策略
+适合: 序列化往返、数学性质、不变量。不适合: 业务流程编排。
 
-```python
-from hypothesis import given
-from hypothesis.strategies import builds, text, emails
-
-# 生成复杂对象
-@given(builds(
-    User,
-    username=text(min_size=3, max_size=50),
-    email=emails(),
-    age=st.integers(min_value=18, max_value=120)
-))
-def test_user_creation(user):
-    """测试用户创建逻辑"""
-    assert user.username
-    assert "@" in user.email
-    assert 18 <= user.age <= 120
-```
-
-## Fixtures 最佳实践
-
-### 异步 Fixture
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.fixture
-async def async_client():
-    """异步客户端 fixture"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
-
-@pytest.fixture
-async def test_user(async_client):
-    """创建测试用户"""
-    response = await async_client.post("/users", json={
-        "username": "testuser",
-        "email": "test@example.com"
-    })
-    return response.json()
-```
-
-### Fixture 作用域
-
-```python
-# 函数级（默认）
-@pytest.fixture(scope="function")
-def user():
-    return User(name="test")
-
-# 模块级
-@pytest.fixture(scope="module")
-def db_connection():
-    conn = create_connection()
-    yield conn
-    conn.close()
-
-# 包级（pytest 8.0+）
-@pytest.fixture(scope="package")
-def database():
-    db = setup_database()
-    yield db
-    teardown_database(db)
-
-# 会话级
-@pytest.fixture(scope="session")
-def test_config():
-    return load_test_config()
-```
-
-## 异步测试（pytest-asyncio）
-
-### 基础用法
-
-```python
-import pytest
-from httpx import AsyncClient
-
-@pytest.mark.asyncio
-async def test_create_user(async_client):
-    """测试创建用户"""
-    response = await async_client.post("/users", json={
-        "username": "newuser",
-        "email": "new@example.com"
-    })
-    assert response.status_code == 201
-    data = response.json()
-    assert data["username"] == "newuser"
-```
-
-### 配置自动模式
-
-```toml
-[tool.pytest.ini_options]
-asyncio_mode = "auto"  # 自动检测异步测试，无需 @pytest.mark.asyncio
-```
-
-## 测试组织
-
-### 项目结构
-
-```
-tests/
-├── conftest.py              # 全局 fixture
-├── unit/                    # 单元测试
-│   ├── test_models.py
-│   ├── test_services.py
-│   └── test_utils.py
-├── integration/             # 集成测试
-│   ├── test_api.py
-│   └── test_database.py
-└── e2e/                     # 端到端测试
-    └── test_user_flows.py
-```
-
-### conftest.py 示例
-
-```python
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-@pytest.fixture(scope="session")
-def engine():
-    """创建测试数据库引擎"""
-    return create_engine("sqlite:///:memory:")
-
-@pytest.fixture(scope="function")
-def db_session(engine):
-    """创建数据库会话"""
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
-    yield session
-    session.rollback()
-    session.close()
-
-@pytest.fixture
-def async_client():
-    """异步客户端"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
-```
-
-## 覆盖率配置
-
-### pyproject.toml
-
-```toml
-[tool.coverage.run]
-source = ["src"]
-branch = true
-omit = [
-    "*/tests/*",
-    "*/migrations/*",
-    "*/__pycache__/*",
-]
-
-[tool.coverage.report]
-precision = 2
-show_missing = true
-skip_covered = false
-
-# 质量门控
-fail_under = 90  # 最低 90% 覆盖率
-
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "raise AssertionError",
-    "raise NotImplementedError",
-    "if TYPE_CHECKING:",
-]
-```
-
-### 运行覆盖率检查
+## 覆盖率
 
 ```bash
-# 运行测试并生成覆盖率报告
-pytest --cov=src tests/
-
-# 生成 HTML 报告
-pytest --cov=src --cov-report=html tests/
-open htmlcov/index.html
-
-# 显示未覆盖的行
-pytest --cov=src --cov-report=term-missing tests/
-
-# 覆盖率不达标时失败
-pytest --cov=src --cov-fail-under=90 tests/
+uv run pytest --cov=src --cov-branch --cov-report=term-missing
 ```
 
-## Mock 和 Patch
+目标:
+- 核心业务逻辑 ≥ 90%, branch 覆盖
+- 整体 ≥ 80%
+- 不追求 100% (会写无价值测试)
+- 关注**未覆盖的分支**, 不是绝对数字
 
-### unittest.mock
+## TDD 流程
 
-```python
-from unittest.mock import Mock, patch, AsyncMock
+1. 写**失败的**测试 (RED) — 命名清晰描述需求
+2. 写**最少代码**让它通过 (GREEN)
+3. 重构, 测试保持绿 (REFACTOR)
 
-def test_email_sending():
-    """测试邮件发送（Mock 外部服务）"""
-    with patch('app.services.email.send_email') as mock_send:
-        mock_send.return_value = True
+不要先写实现再补测试 (覆盖率高但测不到真实行为)。
 
-        result = UserService.create_and_notify(username="test")
+## 反模式
 
-        mock_send.assert_called_once()
-        assert result.username == "test"
-
-@pytest.mark.asyncio
-async def test_async_api_call():
-    """测试异步 API 调用"""
-    with patch('app.services.api.fetch_data', new_callable=AsyncMock) as mock_fetch:
-        mock_fetch.return_value = {"status": "ok"}
-
-        result = await process_external_data()
-
-        mock_fetch.assert_awaited_once()
-        assert result == {"status": "ok"}
-```
-
-## Red Flags：AI 常见误区
-
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "这个测试用例覆盖了所有情况" | ✅ 是否使用了 hypothesis 属性测试？ |
-| "手动测试更准确" | ✅ 是否有自动化测试覆盖？ |
-| "80% 覆盖率够用了" | ✅ 是否达到 90% 覆盖率目标？ |
-| "不需要测试简单函数" | ✅ 是否所有公共函数都有测试？ |
-| "集成测试可以替代单元测试" | ✅ 是否有独立的单元测试？ |
-| "同步测试更简单" | ✅ 异步代码是否使用了 pytest-asyncio？ |
-
-## 完整示例
-
-### FastAPI 应用测试
-
-```python
-import pytest
-from httpx import AsyncClient
-from hypothesis import given, strategies as st
-
-# Fixture
-@pytest.fixture
-async def async_client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
-
-@pytest.fixture
-async def test_user(async_client):
-    response = await async_client.post("/users", json={
-        "username": "testuser",
-        "email": "test@example.com",
-        "password": "securepassword123"
-    })
-    return response.json()
-
-# 单元测试
-@pytest.mark.asyncio
-async def test_create_user(async_client):
-    """测试创建用户"""
-    response = await async_client.post("/users", json={
-        "username": "newuser",
-        "email": "new@example.com",
-        "password": "password123"
-    })
-    assert response.status_code == 201
-    data = response.json()
-    assert data["username"] == "newuser"
-    assert data["email"] == "new@example.com"
-    assert "id" in data
-
-# 属性测试
-@given(
-    username=st.text(min_size=3, max_size=50),
-    age=st.integers(min_value=0, max_value=150)
-)
-def test_user_validation(username, age):
-    """属性测试：用户验证逻辑"""
-    user = User(username=username, email="test@example.com", age=age)
-    assert len(user.username) >= 3
-    assert 0 <= user.age <= 150
-
-# 集成测试
-@pytest.mark.asyncio
-async def test_user_workflow(async_client, test_user):
-    """测试完整用户工作流"""
-    # 1. 登录
-    response = await async_client.post("/token", data={
-        "username": test_user["username"],
-        "password": "securepassword123"
-    })
-    assert response.status_code == 200
-    token = response.json()["access_token"]
-
-    # 2. 获取当前用户信息
-    response = await async_client.get(
-        "/users/me",
-        headers={"Authorization": f"Bearer {token}"}
-    )
-    assert response.status_code == 200
-    assert response.json()["username"] == test_user["username"]
-```
-
-## 检查清单
-
-### 测试组织
-- [ ] 测试文件以 `test_` 开头
-- [ ] 测试函数以 `test_` 开头
-- [ ] 测试分层（unit/integration/e2e）
-- [ ] conftest.py 定义全局 fixture
-
-### pytest 配置
-- [ ] pytest 8.x 使用最新特性
-- [ ] pytest-asyncio 配置自动模式
-- [ ] pytest-cov 配置覆盖率目标
-- [ ] 使用参数化测试减少重复
-
-### 覆盖率
-- [ ] 单元测试覆盖率 ≥ 90%
-- [ ] 集成测试覆盖核心流程
-- [ ] 使用 hypothesis 进行属性测试
-- [ ] CI/CD 集成覆盖率检查
-
-### 异步测试
-- [ ] 异步测试使用 @pytest.mark.asyncio
-- [ ] 异步 fixture 正确定义
-- [ ] Mock 异步函数使用 AsyncMock
+- 一个测试 assert 5+ 个不相关字段 (拆分)
+- 测试相互依赖, 顺序敏感 (每个测试自包含)
+- `time.sleep()` 等待 (用 `freezegun` 或事件机制)
+- mock 自己的纯函数
+- 测试里写循环遍历数据 (用 `parametrize`)
+- `assert result == True` (写 `assert result`)
+- 测试名 `test_1`, `test_works` (描述场景 + 期望)

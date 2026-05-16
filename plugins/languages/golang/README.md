@@ -37,23 +37,19 @@ claude plugin install golang@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | Golang 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Command | `init` | 初始化项目 |
-| Command | `dev` | 开发命令 |
-| Command | `review` | 代码审查 |
-| Command | `ci` | CI/CD 命令 |
-| Skill | `core` | Golang 核心规范 |
-| Skill | `error` | 错误处理规范 |
-| Skill | `libs` | 常用库规范 |
-| Skill | `naming` | 命名规范 |
-| Skill | `structure` | 项目结构规范 |
-| Skill | `testing` | 测试策略 |
-| Skill | `concurrency` | 并发编程规范 |
-| Skill | `lint` | Lint 规范 |
-| Skill | `tooling` | 工具链规范 |
+| Agent | `golang-dev` | Golang 开发专家 |
+| Agent | `golang-test` | 测试专家 |
+| Agent | `golang-debug` | 调试专家 |
+| Agent | `golang-perf` | 性能优化专家 |
+| Skill | `golang-core` | Golang 核心规范 |
+| Skill | `golang-error` | 错误处理规范 |
+| Skill | `golang-libs` | 常用库规范 |
+| Skill | `golang-naming` | 命名规范 |
+| Skill | `golang-structure` | 项目结构规范 |
+| Skill | `golang-testing` | 测试策略 |
+| Skill | `golang-concurrency` | 并发编程规范 |
+| Skill | `golang-lint` | Lint 规范 |
+| Skill | `golang-tooling` | 工具链规范 |
 
 ## 前置条件
 
@@ -70,7 +66,7 @@ gopls version
 
 ## 使用指南
 
-### 1. 开发专家代理（dev）
+### 1. 开发专家代理（golang-dev）
 
 用于 Golang 代码开发和架构设计。
 
@@ -79,7 +75,7 @@ gopls version
 实现一个 HTTP API 服务，支持用户 CRUD 操作
 ```
 
-### 2. 测试专家代理（test）
+### 2. 测试专家代理（golang-test）
 
 用于编写和优化 Golang 测试用例。
 
@@ -88,7 +84,7 @@ gopls version
 为用户服务编写表驱动测试
 ```
 
-### 3. 调试专家代理（debug）
+### 3. 调试专家代理（golang-debug）
 
 用于诊断和解决 Golang 代码问题。
 
@@ -97,7 +93,7 @@ gopls version
 排查 goroutine 泄漏问题
 ```
 
-### 4. 性能优化专家代理（perf）
+### 4. 性能优化专家代理（golang-perf）
 
 用于 Golang 代码的性能分析和优化。
 

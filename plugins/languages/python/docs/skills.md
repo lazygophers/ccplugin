@@ -6,14 +6,14 @@ Python 插件提供六个核心技能，覆盖 Python 开发的主要领域。
 
 | 技能 | 描述 | 自动激活 |
 |------|------|----------|
-| `core` | Python 核心规范 | 始终激活 |
-| `types` | 类型提示规范 | 使用类型时 |
-| `error` | 错误处理规范 | 处理错误时 |
-| `testing` | 测试策略 | 编写测试时 |
-| `async` | 异步编程规范 | 异步代码时 |
-| `web` | Web 开发规范 | Web 开发时 |
+| `python-core` | Python 核心规范 | 始终激活 |
+| `python-types` | 类型提示规范 | 使用类型时 |
+| `python-error` | 错误处理规范 | 处理错误时 |
+| `python-testing` | 测试策略 | 编写测试时 |
+| `python-async` | 异步编程规范 | 异步代码时 |
+| `python-web` | Web 开发规范 | Web 开发时 |
 
-## core - Python 核心规范
+## python-core - Python 核心规范
 
 ### 编程规范
 
@@ -49,7 +49,7 @@ my-project/
 └── README.md
 ```
 
-## types - 类型提示规范
+## python-types - 类型提示规范
 
 ### 基本类型
 
@@ -85,7 +85,7 @@ class Drawable(Protocol):
     def draw(self) -> None: ...
 ```
 
-## error - 错误处理规范
+## python-error - 错误处理规范
 
 ### 异常定义
 
@@ -113,7 +113,7 @@ except Exception as e:
     raise AppError("process failed") from e
 ```
 
-## testing - 测试策略
+## python-testing - 测试策略
 
 ### 测试结构
 
@@ -145,7 +145,7 @@ def test_uppercase(input, expected):
     assert input.upper() == expected
 ```
 
-## async - 异步编程规范
+## python-async - 异步编程规范
 
 ### 基本用法
 
@@ -177,7 +177,7 @@ async def process_all(items: list) -> list:
     return await asyncio.gather(*[limited(i) for i in items])
 ```
 
-## web - Web 开发规范
+## python-web - Web 开发规范
 
 ### FastAPI 示例
 

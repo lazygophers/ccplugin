@@ -25,14 +25,11 @@ rust/
 │   └── main.py
 ├── services/
 ├── skills/
-│   └── rust-skills/
-│       ├── SKILL.md
-│       ├── ownership-borrowing.md
-│       ├── error-handling.md
-│       ├── async-programming.md
-│       ├── unsafe-rust.md
-│       ├── cargo-ecosystem.md
-│       └── references.md
+│   ├── core/SKILL.md
+│   ├── memory/SKILL.md
+│   ├── async/SKILL.md
+│   ├── unsafe/SKILL.md
+│   └── macros/SKILL.md
 ├── .lsp.json
 ├── README.md
 ├── pyproject.toml

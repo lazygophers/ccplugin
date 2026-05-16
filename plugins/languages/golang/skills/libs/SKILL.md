@@ -1,32 +1,16 @@
 ---
-description: "Go优先库选型规范：字符串stringx、集合candy（Map/Filter/Each）、文件osx、日志lazygophers/log、JSON lazygophers/utils/json。选择Go第三方库和工具函数时自动加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: golang-libs
+description: Go 优先库选型规范——集合用 candy（Map/Filter/Each/Unique）、字符串用 stringx（CamelCase/SnakeCase）、文件用 osx（IsFile/IsDir）、日志用 lazygophers/log 或 slog、JSON 用 lazygophers/utils/json、类型转换用 candy.ToInt64/ToBool。选第三方库、写工具函数、做集合操作或类型转换时触发。
 ---
 
 # Go 优先库规范
 
-## 适用 Agents
-
-- **dev** - 开发专家（主要使用者）
-- **test** - 测试专家
-
-## 相关 Skills
-
-| 场景     | Skill                    | 说明                         |
-| -------- | ------------------------ | ---------------------------- |
-| 核心规范 | Skills(golang:core)      | 强制约定、禁止手动循环       |
-| 错误处理 | Skills(golang:error)     | 日志记录规范                 |
-
-## 核心工具库
+## 核心库导入
 
 ```go
 import (
     "github.com/lazygophers/utils"
     "github.com/lazygophers/utils/candy"
-    "github.com/lazygophers/log"
     "github.com/lazygophers/utils/stringx"
     "github.com/lazygophers/utils/osx"
     "github.com/lazygophers/utils/json"
@@ -34,86 +18,79 @@ import (
     "github.com/lazygophers/utils/xtime"
     "github.com/lazygophers/utils/defaults"
     "github.com/lazygophers/utils/validate"
+    "github.com/lazygophers/log"
 )
 ```
 
-## 模块速查表
+## 选型速查
 
-| 模块 | 功能 | 替代品 |
+| 场景 | 必用库 | 禁用替代 |
 | --- | --- | --- |
-| `candy` | 函数式编程（Map/Filter/Each/Reverse/Unique/Sort） | 手动循环 |
-| `stringx` | 字符串转换（CamelCase/SnakeCase） | 手动转换 |
-| `osx` | 文件操作（IsFile/IsDir/Stat） | os.Stat() |
-| `json` | JSON 处理（Marshal/Unmarshal） | encoding/json |
-| `cryptox` | 加密/哈希 | crypto 标准库 |
-| `xtime` | 时间处理 | time 标准库 |
-| `defaults` | 默认值处理 | 手动检查 |
-| `validate` | 验证器 | 手动验证 |
+| 集合操作（Map/Filter/Each） | `candy` | 手写 for |
+| 字符串转换（驼峰/蛇形） | `stringx` | 手写转换 |
+| 文件存在/类型检查 | `osx` | `os.Stat` 拼接 |
+| JSON 编解码 | `lazygophers/utils/json` | `encoding/json` 直接 |
+| 加密/哈希 | `cryptox` | 直接用 `crypto/*` |
+| 时间 | `xtime` | `time` 直接 |
+| 默认值 | `defaults` | 手写 nil 检查 |
+| 表单/参数校验 | `validate` | 手写 |
+| 日志 | `lazygophers/log` 或 `slog` | `fmt.Println`/logrus/zap |
+| 原子操作 | `go.uber.org/atomic` | `sync/atomic` |
+| 类型转换 | `candy.ToInt64`/`ToBool` | `strconv` + 手写 |
 
-## Go 1.21+ 内置函数（优先使用）
+## Go 1.21+ 内置函数（优先）
 
 ```go
-// min/max（无需 candy）
 m := min(a, b, c)
 M := max(a, b, c)
-
-// clear（清空 slice/map）
 clear(mySlice)
 clear(myMap)
 ```
 
-## 字符串处理 - 必用 stringx
+`candy.Min/Max` 仅用于非可比较类型或多参 + 自定义比较的场景。
 
-```go
-import "github.com/lazygophers/utils/stringx"
-
-name := stringx.ToCamel("user_name")       // UserName
-smallName := stringx.ToSmallCamel("user_name") // userName
-snakeName := stringx.ToSnake("UserName")     // user_name
-```
-
-## 集合操作 - 必用 candy
+## candy 集合操作
 
 ```go
 import "github.com/lazygophers/utils/candy"
 
-// 遍历
-candy.Each(users, func(u *User) {
-    log.Infof("user: %s", u.Name)
-})
-
-// 映射
+candy.Each(users, func(u *User) { log.Infof("user: %s", u.Name) })
 names := candy.Map(users, func(u *User) string { return u.Name })
-
-// 过滤
 adults := candy.Filter(users, func(u *User) bool { return u.Age >= 18 })
 
-// 其他
 reversed := candy.Reverse(items)
 unique := candy.Unique(items)
 sorted := candy.Sort(items)
 ```
 
-## 文件操作 - 必用 osx
+## stringx 字符串
+
+```go
+import "github.com/lazygophers/utils/stringx"
+
+stringx.ToCamel("user_name")       // UserName
+stringx.ToSmallCamel("user_name")  // userName
+stringx.ToSnake("UserName")        // user_name
+```
+
+## osx 文件
 
 ```go
 import "github.com/lazygophers/utils/osx"
 
-if osx.IsFile(path) {}
-if osx.IsDir(path) {}
+if osx.IsFile(path) { /* ... */ }
+if osx.IsDir(path)  { /* ... */ }
 ```
 
-## 类型转换 - 零失败 candy
+## candy 类型转换（零失败）
 
 ```go
-import "github.com/lazygophers/utils/candy"
-
 port := candy.ToInt64(config["port"])
-isEnabled := candy.ToBool(config["enabled"])
-value := candy.ToFloat64(data)
+enabled := candy.ToBool(config["enabled"])
+ratio := candy.ToFloat64(data)
 ```
 
-## 日志 - 必用 lazygophers/log
+## 日志（详见 `golang-error`）
 
 ```go
 import "github.com/lazygophers/log"
@@ -124,25 +101,26 @@ log.Errorf("err:%v", err)
 log.Fatalf("failed to load state")
 ```
 
+新项目可改 `log/slog`，但同一仓库不要混用。
+
 ## Red Flags
 
-| AI 可能的理性化解释 | 实际应该检查的内容 | 严重程度 |
-|---------------------|-------------------|---------|
-| "for 循环更直观" | 是否使用 candy 操作集合？ | 高 |
-| "手动转换更可控" | 字符串转换是否用 stringx？ | 高 |
-| "os.Stat 是标准库" | 文件操作是否用 osx？ | 中 |
-| "encoding/json 够用" | 是否用 lazygophers/utils/json？ | 中 |
-| "自己实现更灵活" | 是否已有 candy/stringx 功能？ | 高 |
-| "math.Min 够用了" | Go 1.21+ 是否使用内置 min/max？ | 低 |
+| AI 借口 | 实际应验证 |
+| --- | --- |
+| "for 循环更直观" | 集合操作走 candy？ |
+| "手动转换更可控" | 字符串走 stringx？ |
+| "os.Stat 是标准库" | 文件检查走 osx？ |
+| "encoding/json 够用" | JSON 走 lazygophers/utils/json？ |
+| "自己实现更灵活" | candy/stringx 是否已有该能力？ |
+| "math.Min 够用" | 1.21+ 用内置 min/max？ |
 
 ## 检查清单
 
-- [ ] 字符串转换使用 stringx
-- [ ] 集合操作使用 candy（Map/Filter/Each）
-- [ ] 文件检查使用 osx（IsFile/IsDir）
-- [ ] 类型转换使用 candy（ToInt64/ToBool/ToFloat64）
-- [ ] 日志使用 lazygophers/log
-- [ ] 没有手动 for 循环遍历集合
-- [ ] 没有手动字符串转换函数
-- [ ] 没有使用 os.Stat 检查文件
-- [ ] Go 1.21+ 使用内置 min/max/clear
+- [ ] 字符串转换 → `stringx`
+- [ ] 集合操作 → `candy`
+- [ ] 文件检查 → `osx`
+- [ ] 类型转换 → `candy.ToXxx`
+- [ ] 日志 → `lazygophers/log` 或 `slog`
+- [ ] 无手写 for 遍历做 Map/Filter
+- [ ] 无 `os.Stat` 直接调用
+- [ ] 1.21+ 用内置 `min`/`max`/`clear`

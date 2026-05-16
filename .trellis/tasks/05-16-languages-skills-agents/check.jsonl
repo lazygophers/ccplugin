@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/05-16-languages-skills-agents/research/claude-code-best-practices.md", "reason": "校验所有 SKILL.md/agent.md frontmatter 是否合规, plugin.json 路径有效"}
+{"file": ".trellis/tasks/05-16-languages-skills-agents/research/ai-check-report.md", "reason": "AI 识别校验报告 — 抽样 22 项 description 触发清晰度评分"}

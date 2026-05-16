@@ -1,6 +1,6 @@
 # Rust 插件
 
-> Rust 开发插件 - 提供 Rust 1.70+ 开发规范、最佳实践和代码智能支持
+> Rust 开发插件 - 提供 Rust 2024 Edition 开发规范、最佳实践和代码智能支持
 
 ## 安装
 
@@ -38,19 +38,19 @@ claude plugin install rust@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | Rust 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | Rust 核心规范 |
-| Skill | `memory` | 内存管理规范 |
-| Skill | `async` | 异步编程规范 |
-| Skill | `unsafe` | Unsafe 代码规范 |
-| Skill | `macros` | 宏编程规范 |
+| Agent | `rust-dev` | Rust 开发专家 |
+| Agent | `rust-test` | 测试专家 |
+| Agent | `rust-debug` | 调试专家 |
+| Agent | `rust-perf` | 性能优化专家 |
+| Skill | `rust-core` | Rust 核心规范 |
+| Skill | `rust-memory` | 内存管理规范 |
+| Skill | `rust-async` | 异步编程规范 |
+| Skill | `rust-unsafe` | Unsafe 代码规范 |
+| Skill | `rust-macros` | 宏编程规范 |
 
 ## 使用方式
 
-### 开发专家代理（dev）
+### 开发专家代理（rust-dev）
 
 用于 Rust 代码开发和架构设计。
 
@@ -59,7 +59,7 @@ claude plugin install rust@ccplugin-market
 实现一个高性能的 HTTP 服务器，使用 async/await
 ```
 
-### 测试专家代理（test）
+### 测试专家代理（rust-test）
 
 用于编写和优化 Rust 测试用例。
 

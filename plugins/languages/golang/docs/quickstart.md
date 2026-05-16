@@ -18,8 +18,8 @@ uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygo
 brew install go
 
 # Linux
-wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.21.5.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.26.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.26.linux-amd64.tar.gz
 
 # 验证安装
 go version
@@ -176,40 +176,6 @@ go test ./internal/service/...
 go test -cover ./...
 ```
 
-## 使用命令
-
-### 初始化项目
-
-```bash
-/go-init github.com/username/myproject
-```
-
-### 开发
-
-```bash
-# 运行开发服务器
-/go-dev run
-
-# 构建项目
-/go-dev build
-```
-
-### 代码审查
-
-```bash
-/go-review
-```
-
-### CI/CD
-
-```bash
-# 运行完整 CI
-/go-ci
-
-# 仅运行测试
-/go-ci test
-```
-
 ## 常用命令
 
 ```bash
@@ -235,4 +201,3 @@ go mod download
 - 阅读 [开发规范](standards.md) 了解详细规范
 - 查看 [技能系统](skills.md) 学习各种技能
 - 参考 [代理系统](agents.md) 了解代理能力
-- 学习 [命令系统](commands.md) 使用各种命令

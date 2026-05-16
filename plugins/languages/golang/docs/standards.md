@@ -77,7 +77,7 @@ my-project/
 ```go
 module github.com/username/myproject
 
-go 1.21
+go 1.26
 
 require (
     github.com/go-chi/chi/v5 v5.0.10

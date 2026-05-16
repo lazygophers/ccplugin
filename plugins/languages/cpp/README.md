@@ -39,16 +39,16 @@ claude plugin install cpp@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | C++ 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | C++ 核心规范 |
-| Skill | `memory` | 内存管理规范 |
-| Skill | `concurrency` | 并发编程规范 |
-| Skill | `performance` | 性能优化规范 |
-| Skill | `template` | 模板编程规范 |
-| Skill | `tooling` | 工具链规范 |
+| Agent | `cpp-dev` | C++ 开发专家 |
+| Agent | `cpp-test` | 测试专家 |
+| Agent | `cpp-debug` | 调试专家 |
+| Agent | `cpp-perf` | 性能优化专家 |
+| Skill | `cpp-core` | C++ 核心规范 |
+| Skill | `cpp-memory` | 内存管理规范 |
+| Skill | `cpp-concurrency` | 并发编程规范 |
+| Skill | `cpp-performance` | 性能优化规范 |
+| Skill | `cpp-template` | 模板编程规范 |
+| Skill | `cpp-tooling` | 工具链规范 |
 
 ## 前置条件
 

@@ -44,16 +44,16 @@ claude plugin install flutter@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | Flutter 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | Flutter 核心规范 |
-| Skill | `ui` | UI 开发规范 |
-| Skill | `state` | 状态管理规范 |
-| Skill | `android` | Android 平台规范 |
-| Skill | `ios` | iOS 平台规范 |
-| Skill | `web` | Web 平台规范 |
+| Agent | `flutter-dev` | Flutter 开发专家 |
+| Agent | `flutter-test` | 测试专家 |
+| Agent | `flutter-debug` | 调试专家 |
+| Agent | `flutter-perf` | 性能优化专家 |
+| Skill | `flutter-core` | Flutter 核心规范 |
+| Skill | `flutter-ui` | UI 开发规范 |
+| Skill | `flutter-state` | 状态管理规范 |
+| Skill | `flutter-android` | Android 平台规范 |
+| Skill | `flutter-ios` | iOS 平台规范 |
+| Skill | `flutter-web` | Web 平台规范 |
 
 ## 前置条件
 

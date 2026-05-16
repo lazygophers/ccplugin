@@ -38,16 +38,16 @@ claude plugin install c@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | C 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | C 核心规范 |
-| Skill | `memory` | 内存管理规范 |
-| Skill | `error` | 错误处理规范 |
-| Skill | `concurrency` | 并发编程规范 |
-| Skill | `embedded` | 嵌入式开发规范 |
-| Skill | `posix` | POSIX API 规范 |
+| Agent | `c-dev` | C 开发专家 |
+| Agent | `c-test` | 测试专家 |
+| Agent | `c-debug` | 调试专家 |
+| Agent | `c-perf` | 性能优化专家 |
+| Skill | `c-core` | C 核心规范 |
+| Skill | `c-memory` | 内存管理规范 |
+| Skill | `c-error` | 错误处理规范 |
+| Skill | `c-concurrency` | 并发编程规范 |
+| Skill | `c-embedded` | 嵌入式开发规范 |
+| Skill | `c-posix` | POSIX API 规范 |
 
 ## 前置条件
 

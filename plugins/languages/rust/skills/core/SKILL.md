@@ -1,222 +1,135 @@
 ---
-description: "Rust核心开发规范 - Rust 2024 edition、所有权系统、错误处理(Result/Option/?操作符)、模式匹配、cargo/clippy/rustfmt工具链。所有Rust编码、调试、测试的基础规范，其他Rust技能的前置依赖。"
+name: rust-core
+description: Rust 核心开发规范 — Edition 2024 / Rust 1.85+、所有权三原则、Result/Option/? 错误处理、thiserror + anyhow、let-else、if-let-chains、async fn in traits、cargo / clippy / rustfmt / nextest 工具链。所有 Rust 编码、调试、测试、性能优化任务的前置基线规范，其他 rust 系列 skill 的共同前提。触发短语：写 Rust、Rust 项目结构、Cargo.toml、错误处理、clippy 报错、cargo lint、Rust 规范、Rust best practices、Rust 2024。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # Rust 核心规范
 
-## 适用 Agents
+声明式标准，加载即视为本会话所有 Rust 代码生成、修改、评审的硬约束。
 
-- **rust:dev** - 开发阶段使用
-- **rust:debug** - 调试时遵守
-- **rust:test** - 测试代码规范
-- **rust:perf** - 性能优化时保持规范
+## 版本与 Edition
 
-## 相关 Skills
+- 工具链：Rust 1.85+（Rust 2024 edition 已稳定，async closures / let-else / if-let-chains / `async fn` in traits 全部 stable）。
+- 新项目 `Cargo.toml` 必须 `edition = "2024"` 且声明 `rust-version`。
+- 优先使用 stable 特性；用 nightly 必须在 PR 注明理由。
+- 参考：<https://blog.rust-lang.org/2025/02/20/Rust-1.85.0/>。
 
-- **Skills(rust:memory)** - 智能指针、借用规则、生命周期
-- **Skills(rust:async)** - async/await、Tokio、tower
-- **Skills(rust:macros)** - 声明宏、过程宏
-- **Skills(rust:unsafe)** - unsafe 代码、FFI、MIRI
+## 所有权三原则
 
-## 核心原则（2025-2026）
+1. 每个值有且仅有一个所有者。
+2. 同一时间允许多个 `&T` 或唯一一个 `&mut T`，二者互斥。
+3. 所有者离开作用域时值被 `Drop`。
 
-### 1. Rust 版本与 Edition
+## 错误处理硬规
 
-- **推荐版本**：Rust 1.95+（最新稳定，2026-04-16）
-- **Edition**：2024（优先）或 2021
-- **关键特性**：let-else、if-let-chains、async fn in traits（stable）、gen blocks
-- **Rust 1.94+ 新特性**：`array_windows`（常量长度窗口迭代）、Cargo TOML v1.1
-- **Rust 1.95 新特性**：`cfg_select!` 宏（替代 cfg-if crate）
-
-### 2. 所有权三原则
-
-1. 每个值有且仅有一个所有者
-2. 同一时间：多个 `&T` 或一个 `&mut T`
-3. 所有者离开作用域时值被 drop
-
-### 3. 错误处理标准
+- 库（lib crate）：`thiserror` 2.x 定义类型化错误枚举，公共 API 暴露具体错误类型，禁止 `Box<dyn Error>` 出现在公共签名。
+- 应用（bin crate）：`anyhow` 1.x + `.context("...")` 附加上下文。
+- 跨边界：用 `#[error(transparent)] #[from]` 透传第三方错误。
+- 禁止 `.unwrap()` / `.expect()` 处理可恢复错误；测试和 const 上下文除外，且必须有 `expect("<reason>")` 文字理由。
+- 优先 `?` 而非 `match` 手动展开；用 `let-else` 替代 `if let Some(x) = ... else { return Err(...) }`。
 
 ```rust
-// 库代码：thiserror 定义类型化错误
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("not found: {0}")]
-    NotFound(String),
-    #[error("invalid input: {0}")]
-    InvalidInput(String),
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
-}
-
-// 应用代码：anyhow 快速传播
-use anyhow::{Context, Result};
-
-fn load_config(path: &str) -> Result<Config> {
-    let content = std::fs::read_to_string(path)
-        .context("failed to read config file")?;
-    let config: Config = toml::from_str(&content)
-        .context("failed to parse config")?;
-    Ok(config)
-}
-
-// let-else 模式（Rust 2024）
-fn parse_id(input: &str) -> Result<u64> {
-    let Some(id_str) = input.strip_prefix("id:") else {
-        anyhow::bail!("invalid format: expected 'id:<number>'");
-    };
-    Ok(id_str.parse()?)
+    #[error("not found: {0}")] NotFound(String),
+    #[error("invalid input: {0}")] InvalidInput(String),
+    #[error(transparent)] Io(#[from] std::io::Error),
 }
 ```
 
-**禁止行为**：
-- `.unwrap()` / `.expect()` 处理可恢复错误
-- `panic!()` 处理预期的错误情况
-- `Box<dyn Error>` 作为库的公共错误类型
+## 推荐生态（2026-05）
 
-### 4. 推荐库
+| 用途 | 选型 |
+|------|------|
+| 异步运行时 | `tokio` 1.x（默认） |
+| HTTP 服务 | `axum` 0.8+（基于 `tower`） |
+| HTTP 客户端 | `reqwest` |
+| 序列化 | `serde` + `serde_json` / `toml` |
+| 日志 | `tracing` + `tracing-subscriber` |
+| 错误 | `thiserror` 2.x / `anyhow` 1.x |
+| 数据库 | `sqlx`（编译时检查）/ `sea-orm` / `diesel` |
+| CLI | `clap` 4.x（derive feature） |
+| 测试 | `cargo-nextest` + `proptest` + `criterion` |
+| 数据并行 | `rayon` |
+| 字节零拷贝 | `bytes` |
 
-| 用途 | 推荐库 | 说明 |
-|------|--------|------|
-| 异步运行时 | tokio 1.x | 标准异步运行时 |
-| 序列化 | serde + serde_json | 序列化/反序列化 |
-| 错误处理 | thiserror 2.x / anyhow 1.x | 库/应用错误 |
-| 日志 | tracing | 结构化日志和追踪 |
-| HTTP 框架 | axum 0.8+ | 基于 tower 的 Web 框架 |
-| HTTP 客户端 | reqwest | 异步 HTTP 客户端 |
-| 数据库 | sqlx | 编译时检查的异步 SQL |
-| CLI | clap 4.x | 命令行参数解析 |
-| 测试 | proptest / criterion | 属性测试 / 基准测试 |
-| 并行 | rayon | 数据并行 |
-
-### 5. 工具链标准
+## 工具链准入
 
 ```bash
-# 格式化
-cargo fmt
-
-# Lint（严格模式）
-cargo clippy -- -W clippy::all -W clippy::pedantic
-
-# 测试（推荐 nextest）
-cargo nextest run
-
-# 安全审计
-cargo audit
-cargo deny check
-
-# Unsafe 验证
-cargo +nightly miri test
+cargo fmt --check
+cargo clippy --all-targets -- -W clippy::all -W clippy::pedantic -D warnings
+cargo nextest run         # 优先于 cargo test
+cargo audit               # 依赖漏洞
+cargo deny check          # 许可证 + ban 列表
 ```
 
-### 6. 现代 Rust 特性
+## 现代特性必用
 
 ```rust
-// if-let-chains（Rust 2024 stable）
-if let Some(user) = get_user(id)
-    && user.is_active
-    && user.role == Role::Admin
-{
-    grant_access(&user);
-}
-
 // let-else
-let Ok(value) = input.parse::<i64>() else {
-    return Err(AppError::InvalidInput("not a number".into()));
+let Some(id) = input.strip_prefix("id:") else {
+    anyhow::bail!("invalid format");
 };
 
-// async fn in traits（无需 #[async_trait]）
-trait Database: Send + Sync {
-    async fn get(&self, id: u64) -> Result<Option<Row>>;
-    async fn insert(&self, row: &Row) -> Result<()>;
+// if-let-chains
+if let Some(u) = get_user(id) && u.is_active && u.role == Role::Admin {
+    grant_access(&u);
+}
+
+// async fn in traits（禁用 #[async_trait]）
+trait Repo: Send + Sync {
+    async fn get(&self, id: u64) -> anyhow::Result<Option<Row>>;
 }
 ```
 
-## Red Flags：AI 常见误区
+## 项目结构基线
 
-| AI 可能的解释 | 实际检查 |
-|--------------|---------|
-| "unwrap 这里不会失败" | ✅ 是否使用 `?` 或有详细 `expect` 说明？ |
-| "clone 更简单" | ✅ 是否可以借用或使用 Cow？ |
-| "String 参数方便" | ✅ 函数参数是否应为 `&str`？ |
-| "#[async_trait] 必须用" | ✅ Rust 1.75+ 原生支持 async fn in traits |
-| "Box\<dyn Error\> 通用" | ✅ 库代码是否应使用 thiserror？ |
-| "cargo test 够用" | ✅ 是否使用 cargo-nextest + proptest？ |
-
-## 项目结构标准
-
-```
-my-project/
-├── Cargo.toml           # edition = "2024"
+```text
+my-crate/
+├── Cargo.toml            # edition = "2024", rust-version = "1.85"
 ├── src/
-│   ├── lib.rs           # 库入口
-│   ├── main.rs          # 二进制入口（可选）
-│   ├── error.rs         # 错误定义
-│   ├── config.rs        # 配置
-│   └── models/          # 数据模型
-├── tests/               # 集成测试
-│   └── integration.rs
-├── benches/             # 基准测试
-│   └── bench.rs
-├── examples/            # 示例
-└── .cargo/
-    └── config.toml      # Cargo 配置
+│   ├── lib.rs            # 库入口
+│   ├── main.rs           # bin 入口（可选）
+│   ├── error.rs
+│   └── domain/
+├── tests/                # 集成测试
+├── benches/              # criterion 基准
+├── examples/
+└── .cargo/config.toml
 ```
 
-## Cargo.toml 最佳实践
+单文件硬限：`.rs` ≤ 600 行，推荐 200~400 行；超限拆模块。
 
-```toml
-[package]
-name = "my-project"
-version = "0.1.0"
-edition = "2024"
-rust-version = "1.85"
+## Cargo workspace
 
-[dependencies]
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1", features = ["derive"] }
-thiserror = "2"
-anyhow = "1"
-tracing = "0.1"
+多 crate 项目用 workspace + `[workspace.dependencies]` 统一版本，子 crate 引用 `tokio.workspace = true`。
 
-[dev-dependencies]
-criterion = { version = "0.5", features = ["html_reports"] }
-proptest = "1"
-tokio-test = "0.4"
+## 反模式（Red Flags）
 
-[profile.release]
-lto = "fat"
-codegen-units = 1
-strip = true
-
-[[bench]]
-name = "benchmarks"
-harness = false
-```
+| AI 倾向 | 正确做法 |
+|---------|---------|
+| `unwrap()` 临时凑数 | `?` 或带原因的 `expect` |
+| `clone()` 绕开借用 | 优先借用 / `Cow` / 移动 |
+| `String` 入参 | `&str` / `impl AsRef<str>` |
+| `#[async_trait]` | 直接 `async fn` in trait |
+| `Box<dyn Error>` 公共 API | `thiserror` 类型化错误 |
+| `cargo test` | `cargo nextest run` |
 
 ## 检查清单
 
-### 代码规范
 - [ ] `cargo fmt --check` 通过
-- [ ] `cargo clippy -- -W clippy::all -W clippy::pedantic` 无警告
-- [ ] 无编译器警告
-- [ ] 使用 Rust 2024 edition 特性（let-else、if-let-chains）
+- [ ] `cargo clippy ... -D warnings` 零警告
+- [ ] 公共 API 有 `///` 文档
+- [ ] 错误类型符合上述硬规
+- [ ] `Cargo.toml` edition / rust-version 已声明
+- [ ] `cargo audit` & `cargo deny check` 通过
 
-### 错误处理
-- [ ] 库代码使用 `thiserror` 定义错误
-- [ ] 应用代码使用 `anyhow` + `context()`
-- [ ] 无 `.unwrap()` 处理可恢复错误
-- [ ] 错误消息包含有用的上下文
+## 相关 Skill
 
-### 安全
-- [ ] `cargo audit` 无漏洞
-- [ ] `cargo deny check` 通过
-- [ ] 无不必要的 `unsafe`
-- [ ] 敏感数据使用 `zeroize`
+- `rust-memory` — 借用 / 生命周期 / 智能指针
+- `rust-async` — Tokio / async fn in traits / tower
+- `rust-unsafe` — unsafe 最小化 / MIRI / FFI
+- `rust-macros` — `macro_rules!` / proc-macro

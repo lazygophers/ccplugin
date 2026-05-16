@@ -1,35 +1,29 @@
 ---
-description: "Spring Boot 4.0+ 开发规范 - Native Image、Virtual Threads、Micrometer可观测性、Spring Security 7、Data JPA/Hibernate 7。开发Spring REST API、微服务或Web应用时加载。"
-user-invocable: true
-context: fork
+name: java-spring
+description: Spring Boot 3.4+ 开发规范 — Virtual Threads 集成、Record `@ConfigurationProperties`、构造函数注入、`@Transactional` 边界、关闭 OSIV、Spring Security 6 lambda DSL、Micrometer + OpenTelemetry 可观测性、Spring Data JPA / Hibernate 6、Flyway 迁移、GraalVM Native Image。当用户开发 Spring REST API、微服务、Web 应用，或讨论 "Spring Boot"、"REST"、"JPA"、"Spring Security"、"@Transactional"、"Actuator"、"Native Image" 时加载。
 model: sonnet
-memory: project
 ---
 
-# Spring Boot 4.0+ 开发规范
+# Spring Boot 开发规范
 
-## Spring Boot 4.0 新特性（2025-11）
+基线：**Spring Boot 3.4+** (Java 21 LTS 最低，Java 25 LTS 推荐)。
 
-- **Java 25 LTS 基线**：最低要求 Java 25
-- **Spring Framework 7**：全面支持 Virtual Threads 和 Structured Concurrency
-- **Jakarta EE 11**：升级至 Jakarta EE 11 规范
-- **Hibernate 7**：改进的批量操作和性能
-- **迁移**：从 3.x 升级需检查废弃 API（`spring-boot-properties-migrator` 工具辅助）
+> Spring Boot 4.0 计划 2025-11 GA，Java 25 基线、Jakarta EE 11、Hibernate 7。若项目未升级 4.0，按 3.4 规范执行；升级时跑 `spring-boot-properties-migrator`。
 
-## 适用 Agents
+## 硬约束
 
-- **java:dev** - Spring Boot 应用开发
-- **java:test** - Spring Boot 测试（@SpringBootTest、MockMvc）
-- **java:perf** - Spring Boot 性能优化
+1. **构造函数注入**，禁 `@Autowired` 字段注入
+2. **`@Transactional` 标在 Service 层**；读操作显式 `readOnly = true`
+3. **关闭 OSIV**：`spring.jpa.open-in-view: false`
+4. **生产禁 `ddl-auto: update`**；用 Flyway/Liquibase
+5. **配置属性用 Record + `@ConfigurationProperties`**
+6. **启用 Virtual Threads**：`spring.threads.virtual.enabled: true`
+7. **REST 错误响应用 ProblemDetail** (见 java-error)
+8. **Hibernate batch_size 配置**，避免 N+1
+9. **Actuator + Micrometer + OpenTelemetry** 全链路可观测
+10. **Spring Security 6 lambda DSL**，禁旧 `antMatchers`
 
-## 相关 Skills
-
-- **Skills(java:core)** - Java 25+ Records、Sealed Classes
-- **Skills(java:error)** - @ControllerAdvice、Problem Details
-- **Skills(java:concurrency)** - Virtual Threads 集成
-- **Skills(java:performance)** - JFR、Micrometer 监控
-
-## Spring Boot 3.3+ 项目配置
+## 入口与配置
 
 ```java
 @SpringBootApplication
@@ -39,7 +33,6 @@ public class Application {
     }
 }
 
-// Record 配置属性（Spring Boot 4.0+）
 @ConfigurationProperties(prefix = "app")
 public record AppConfig(
     String name,
@@ -50,10 +43,9 @@ public record AppConfig(
     public record SecurityConfig(String jwtSecret, Duration tokenExpiry) {}
 }
 
-// 启用配置
 @EnableConfigurationProperties(AppConfig.class)
 @Configuration
-public class AppConfiguration {}
+class AppConfiguration {}
 ```
 
 ```yaml
@@ -61,30 +53,34 @@ public class AppConfiguration {}
 spring:
   threads:
     virtual:
-      enabled: true           # 启用 Virtual Threads
+      enabled: true
   mvc:
     problemdetails:
-      enabled: true           # 启用 RFC 9457 Problem Details
+      enabled: true
   jpa:
-    open-in-view: false       # 关闭 OSIV（性能最佳实践）
+    open-in-view: false
     hibernate:
-      ddl-auto: validate      # 生产环境仅验证
+      ddl-auto: validate
     properties:
       hibernate:
-        default_batch_fetch_size: 100  # 避免 N+1
+        default_batch_fetch_size: 100
         jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
 
 management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,prometheus
-  observations:
-    annotations:
-      enabled: true           # 启用 @Observed 注解
+  endpoints.web.exposure.include: health,info,metrics,prometheus
+  observations.annotations.enabled: true
+  tracing.sampling.probability: 1.0
 ```
 
-## REST Controller
+## 分层模板
+
+### Controller (薄)
 
 ```java
 @RestController
@@ -92,13 +88,10 @@ management:
 public class UserController {
     private final UserService userService;
 
-    // 构造函数注入（无 @Autowired）
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
+    public UserController(UserService userService) { this.userService = userService; }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> get(@PathVariable Long id) {
         return userService.findById(id)
             .map(ResponseEntity::ok)
             .orElseThrow(() -> new AppRuntimeException(
@@ -106,59 +99,52 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(
-            @Valid @RequestBody CreateUserRequest request) {
-        UserResponse user = userService.create(request);
-        URI location = URI.create("/api/v1/users/" + user.id());
-        return ResponseEntity.created(location).body(user);
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest req) {
+        UserResponse u = userService.create(req);
+        return ResponseEntity.created(URI.create("/api/v1/users/" + u.id())).body(u);
     }
 
     @GetMapping
-    public Page<UserResponse> listUsers(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+    public Page<UserResponse> list(@RequestParam(defaultValue = "0") int page,
+                                    @RequestParam(defaultValue = "20") int size) {
         return userService.findAll(PageRequest.of(page, size));
     }
 }
 ```
 
-## Service 层
+### Service (事务 + 业务)
 
 ```java
 @Service
 public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
-    private final UserRepository userRepository;
+    private final UserRepository repo;
 
-    public UserService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    public UserService(UserRepository repo) { this.repo = repo; }
 
     @Transactional
-    public UserResponse create(CreateUserRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new AppRuntimeException(
-                new DuplicateResourceException("email", request.email()));
+    public UserResponse create(CreateUserRequest req) {
+        if (repo.existsByEmail(req.email())) {
+            throw new AppRuntimeException(new DuplicateResourceException("email", req.email()));
         }
-        User user = new User(request.email(), request.name());
-        User saved = userRepository.save(user);
+        User saved = repo.save(new User(req.email(), req.name()));
         log.info("User created: id={}", saved.getId());
         return UserResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
     public Optional<UserResponse> findById(Long id) {
-        return userRepository.findById(id).map(UserResponse::from);
+        return repo.findById(id).map(UserResponse::from);
     }
 
     @Transactional(readOnly = true)
-    public Page<UserResponse> findAll(Pageable pageable) {
-        return userRepository.findAll(pageable).map(UserResponse::from);
+    public Page<UserResponse> findAll(Pageable p) {
+        return repo.findAll(p).map(UserResponse::from);
     }
 }
 ```
 
-## Repository 层（Spring Data JPA + Hibernate 6）
+### Repository
 
 ```java
 @Repository
@@ -166,12 +152,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
 
-    @Query("SELECT u FROM User u WHERE u.active = true")
-    List<User> findAllActive();
-
-    // Spring Data JPA projections
-    @Query("SELECT new com.example.app.dto.UserSummary(u.id, u.name) FROM User u")
-    List<UserSummary> findAllSummaries();
+    @Query("SELECT u FROM User u JOIN FETCH u.orders WHERE u.id IN :ids")
+    List<User> findAllWithOrders(@Param("ids") List<Long> ids);
 }
 ```
 
@@ -181,118 +163,107 @@ public interface UserRepository extends JpaRepository<User, Long> {
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-            .csrf(csrf -> csrf.disable())  // lambda DSL（Spring Security 6）
+            .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
-                .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(Customizer.withDefaults())
-            )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                .requestMatchers("/api/v1/auth/**", "/actuator/health").permitAll()
+                .anyRequest().authenticated())
+            .oauth2ResourceServer(o -> o.jwt(Customizer.withDefaults()))
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .build();
     }
 }
 ```
 
-## Observability（Micrometer + OpenTelemetry）
+## 可观测 (Micrometer + OpenTelemetry)
 
 ```java
-// 自定义指标
 @Service
 public class UserService {
-    private final MeterRegistry meterRegistry;
-    private final Counter userCreatedCounter;
+    private final Counter usersCreated;
 
-    public UserService(UserRepository repo, MeterRegistry meterRegistry) {
-        this.meterRegistry = meterRegistry;
-        this.userCreatedCounter = Counter.builder("users.created")
-            .description("Number of users created")
-            .register(meterRegistry);
+    public UserService(MeterRegistry registry) {
+        this.usersCreated = Counter.builder("users.created")
+            .description("Users created").register(registry);
     }
 
     @Observed(name = "user.create", contextualName = "create-user")
     @Transactional
-    public UserResponse create(CreateUserRequest request) {
-        // ... 业务逻辑
-        userCreatedCounter.increment();
+    public UserResponse create(CreateUserRequest req) {
+        // ...
+        usersCreated.increment();
         return UserResponse.from(saved);
     }
 }
 ```
 
-## 数据库迁移（Flyway）
+依赖：`spring-boot-starter-actuator`、`micrometer-registry-prometheus`、`micrometer-tracing-bridge-otel`、`opentelemetry-exporter-otlp`。
+
+## Flyway 迁移
 
 ```sql
 -- V1__create_users_table.sql
 CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
-    active BOOLEAN DEFAULT TRUE,
+    id         BIGSERIAL PRIMARY KEY,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    name       VARCHAR(100) NOT NULL,
+    active     BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
-
 CREATE INDEX idx_users_email ON users(email);
 ```
 
 ## GraalVM Native Image
 
 ```groovy
-// build.gradle
 plugins {
-    id 'org.graalvm.buildtools.native' version '0.10.1'
-}
-
-graalvmNative {
-    binaries {
-        main {
-            imageName = 'my-app'
-            buildArgs.add('--enable-preview')
-        }
-    }
+    id 'org.springframework.boot'             version '3.4.0'
+    id 'io.spring.dependency-management'      version '1.1.6'
+    id 'org.graalvm.buildtools.native'        version '0.10.3'
 }
 ```
 
 ```bash
-# 编译 Native Image（启动时间 <100ms）
 ./gradlew nativeCompile
-
-# 运行
 ./build/native/nativeCompile/my-app
 ```
 
 ## Red Flags
 
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "Spring Boot 2 还能用" | 是否升级到 Spring Boot 4.0+？ |
-| "@Autowired 注入方便" | 是否使用构造函数注入？ |
-| "open-in-view 默认开着" | 是否关闭 OSIV（spring.jpa.open-in-view=false）？ |
-| "ddl-auto=update 方便" | 生产环境是否使用 Flyway/Liquibase？ |
-| "不需要监控" | 是否集成 Micrometer + Actuator？ |
-| "Spring Security 5 够用" | 是否使用 Spring Security 6 lambda DSL？ |
-| "JPA 默认就好" | 是否配置 batch_size 和 default_batch_fetch_size？ |
+| AI 易犯解释 | 实际应核验 |
+|---------|---------|
+| "@Autowired 字段注入快" | 是否构造函数注入？ |
+| "OSIV 默认开" | 是否 `open-in-view: false`？ |
+| "ddl-auto=update 方便" | 生产是否 Flyway？ |
+| "Spring Boot 2.x 还能用" | 是否 3.4+ (或 4.0)？ |
+| "antMatchers 改不动" | 是否升级 `requestMatchers`？ |
+| "不需要 tracing" | 是否接 Micrometer + OTel？ |
+| "JPA 默认就行" | 是否配置 batch_size 防 N+1？ |
 
 ## 检查清单
 
-- [ ] Spring Boot 4.0+ 版本
-- [ ] Virtual Threads 启用（spring.threads.virtual.enabled=true）
-- [ ] 构造函数注入（无 @Autowired）
-- [ ] @Transactional 正确标注（readOnly 区分读写）
-- [ ] OSIV 关闭（spring.jpa.open-in-view=false）
-- [ ] Record 配置属性（@ConfigurationProperties + Record）
-- [ ] Problem Details 启用
+- [ ] Spring Boot 3.4+ (或 4.0)
+- [ ] Java 21+ (推荐 25)
+- [ ] `spring.threads.virtual.enabled=true`
+- [ ] 构造函数注入 (无 `@Autowired` 字段)
+- [ ] `@Transactional` 在 Service；只读用 `readOnly=true`
+- [ ] `spring.jpa.open-in-view=false`
+- [ ] `@ConfigurationProperties` + Record
+- [ ] ProblemDetail 启用
 - [ ] Spring Security 6 lambda DSL
-- [ ] Micrometer + Actuator 可观测
+- [ ] Actuator + Micrometer + OTel
 - [ ] Flyway/Liquibase 数据库迁移
-- [ ] Hibernate batch_size 配置
-- [ ] OpenAPI 3.1 文档（springdoc-openapi）
+- [ ] Hibernate `batch_size` + `default_batch_fetch_size`
+- [ ] OpenAPI 3.1 (springdoc-openapi)
+- [ ] Native Image 评估
+
+## 参考
+
+- Spring Boot 文档: https://docs.spring.io/spring-boot/index.html
+- Spring Framework: https://docs.spring.io/spring-framework/reference/
+- Spring Security: https://docs.spring.io/spring-security/reference/
+- Micrometer Tracing: https://docs.micrometer.io/tracing/reference/
+- Hibernate 6 用户指南: https://docs.jboss.org/hibernate/orm/6.6/userguide/html_single/Hibernate_User_Guide.html

@@ -1,231 +1,200 @@
 ---
-description: "React 19开发规范：Server Components服务端组件、Actions表单处理、use hook数据获取、Next.js 15 App Router。开发React组件、页面路由、状态管理、SSR服务端渲染时加载。"
-user-invocable: true
+name: javascript-react
+description: |
+  React 19 开发规范 (2026)：React Compiler 自动记忆化, use() hook, Actions + useActionState,
+  Server Components / Server Actions, Next.js 15 App Router, Suspense + ErrorBoundary,
+  TanStack Query 5 数据层, TanStack Router / React Router 7, Zustand 状态。
+  Use when building React components, pages, forms, data fetching, SSR, or
+  routing. Triggers: "React 组件", "useState", "Next.js", "App Router",
+  "Server Components", "React Hook", "JSX", "客户端组件".
 context: fork
 model: sonnet
-memory: project
 ---
 
-# JavaScript React 19 开发规范
+# React 19 开发规范 (2026)
 
-## 适用 Agents
+## 配套
 
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | JavaScript 开发专家 |
-| test  | JavaScript 测试专家 |
+- `Skills(javascript:core)` — ESM/Vite/Biome 基线
+- `Skills(javascript:async)` — AbortController, Suspense 配合
+- `Skills(javascript:security)` — XSS, dangerouslySetInnerHTML
 
-## 相关 Skills
+## React Compiler (默认启用)
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(javascript:core) | ES2025-2026 标准、ESM、工具链 |
-| 异步编程 | Skills(javascript:async) | async/await、Promise |
-| 安全编码 | Skills(javascript:security) | XSS 防护、Zod 验证 |
+React 19 Compiler 自动记忆化组件、hooks、JSX，**手写 `useMemo` / `useCallback` / `memo` 改为可选**。
 
-## React 19 Compiler（重大变更）
+```js
+// ❌ React 18 手写 (Compiler 启用后冗余)
+const v = useMemo(() => compute(data), [data]);
+const onClick = useCallback(() => f(id), [id]);
+export default React.memo(MyComp);
 
-React 19 Compiler 自动记忆化组件和 hooks，**手动 useMemo/useCallback/React.memo 现已可选**：
-
-```javascript
-// ❌ React 18 写法（冗余，React 19 Compiler 自动处理）
-const expensiveValue = useMemo(() => compute(data), [data]);
-const handleClick = useCallback(() => onClick(id), [id]);
-export default React.memo(MyComponent);
-
-// ✅ React 19 写法（Compiler 自动优化）
-const expensiveValue = compute(data);
-const handleClick = () => onClick(id);
-export default MyComponent;
+// ✅ React 19 + Compiler
+const v = compute(data);
+const onClick = () => f(id);
+export default MyComp;
 ```
 
-## React 19 新特性
+## 19 新 API
 
-```javascript
-// use() hook - 在组件中读取 Promise 和 Context
+```jsx
+// use() — 在渲染中读 Promise / Context, 可在条件分支用
 import { use, Suspense } from 'react';
 
-function UserProfile({ userPromise }) {
-  const user = use(userPromise); // 自动 suspend
-  return <div>{user.name}</div>;
+function Profile({ userPromise }) {
+  const user = use(userPromise);   // suspend
+  return <h1>{user.name}</h1>;
 }
-
-// 用法
-<Suspense fallback={<Loading />}>
-  <UserProfile userPromise={fetchUser(id)} />
+<Suspense fallback={<Skeleton />}>
+  <Profile userPromise={fetchUser(id)} />
 </Suspense>
 
-// use() 读取 Context（可在条件语句中使用）
-function Theme({ isDark }) {
-  if (isDark) {
-    const theme = use(ThemeContext);
-    return <div style={{ color: theme.text }}>Dark mode</div>;
-  }
-  return <div>Light mode</div>;
-}
-```
-
-## Server Components（Next.js 15）
-
-```javascript
-// app/users/page.jsx - Server Component（默认）
-export default async function UsersPage() {
-  const users = await fetch('https://api.example.com/users').then(r => r.json());
-
-  return (
-    <ul>
-      {users.map(user => (
-        <li key={user.id}>{user.name}</li>
-      ))}
-    </ul>
-  );
-}
-
-// app/users/search.jsx - Client Component
-'use client';
-
-import { useState } from 'react';
-
-export function UserSearch({ onSearch }) {
-  const [query, setQuery] = useState('');
-
-  return (
-    <input
-      value={query}
-      onChange={e => setQuery(e.target.value)}
-      onKeyDown={e => e.key === 'Enter' && onSearch(query)}
-    />
-  );
-}
-```
-
-## Actions（React 19 表单处理）
-
-```javascript
-// Server Action（Next.js 15）
-'use server';
-
-import { z } from 'zod';
-
-const CreateUserSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-});
-
-export async function createUser(prevState, formData) {
-  const result = CreateUserSchema.safeParse({
-    name: formData.get('name'),
-    email: formData.get('email'),
-  });
-
-  if (!result.success) {
-    return { errors: result.error.flatten().fieldErrors };
-  }
-
-  await db.users.create({ data: result.data });
-  return { success: true };
-}
-
-// Client Component 使用 Action
-'use client';
-
+// useActionState — 替代 useState + useTransition 组合
 import { useActionState } from 'react';
-import { createUser } from './actions.js';
+const [state, formAction, isPending] = useActionState(submit, initialState);
 
-export function CreateUserForm() {
-  const [state, formAction, isPending] = useActionState(createUser, null);
+// useOptimistic — 乐观更新
+import { useOptimistic } from 'react';
+const [optimistic, addOptimistic] = useOptimistic(messages,
+  (prev, next) => [...prev, { ...next, sending: true }]);
 
+// useFormStatus — 表单子组件读父表单状态
+import { useFormStatus } from 'react-dom';
+function Submit() {
+  const { pending } = useFormStatus();
+  return <button disabled={pending}>Save</button>;
+}
+
+// document metadata 原生支持
+<title>{post.title}</title>
+<meta name="description" content={post.excerpt} />
+```
+
+## Server Components / Server Actions (Next.js 15)
+
+```jsx
+// app/users/page.tsx — Server Component, 直 fetch
+export default async function Page() {
+  const users = await fetch('https://api.example.com/users', {
+    next: { revalidate: 60 }
+  }).then(r => r.json());
+  return <UserList users={users} />;
+}
+
+// app/users/actions.ts — Server Action
+'use server';
+import { z } from 'zod';
+const Schema = z.object({ name: z.string().min(1), email: z.string().email() });
+
+export async function createUser(_prev, formData) {
+  const r = Schema.safeParse(Object.fromEntries(formData));
+  if (!r.success) return { errors: r.error.flatten().fieldErrors };
+  await db.user.create({ data: r.data });
+  return { ok: true };
+}
+
+// app/users/form.tsx — Client Component
+'use client';
+import { useActionState } from 'react';
+import { createUser } from './actions';
+
+export function Form() {
+  const [state, action, pending] = useActionState(createUser, {});
   return (
-    <form action={formAction}>
-      <input name="name" required />
-      {state?.errors?.name && <span>{state.errors.name}</span>}
-      <input name="email" type="email" required />
-      {state?.errors?.email && <span>{state.errors.email}</span>}
-      <button type="submit" disabled={isPending}>
-        {isPending ? 'Creating...' : 'Create'}
-      </button>
+    <form action={action}>
+      <input name="name" />
+      <input name="email" type="email" />
+      <button disabled={pending}>{pending ? '...' : 'Create'}</button>
+      {state.errors?.name && <span>{state.errors.name[0]}</span>}
     </form>
   );
 }
 ```
 
-## 函数组件 + Hooks
+## 数据获取
 
-```javascript
-// 自定义 Hook 封装数据获取
-export function useUser(userId) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+| 场景 | 推荐 |
+|------|------|
+| Next.js App Router | Server Components + `fetch()` + revalidate |
+| Vite SPA | TanStack Query 5 (`useSuspenseQuery` + Suspense) |
+| Realtime / 订阅 | WebSocket / SSE in `useEffect` + AbortController |
+| 表单 | Server Actions / TanStack Form |
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch(`/api/users/${userId}`, { signal: controller.signal })
-      .then(r => r.json())
-      .then(setUser)
-      .catch(e => {
-        if (e.name !== 'AbortError') setError(e);
-      })
-      .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, [userId]);
-
-  return { user, loading, error };
+```jsx
+// TanStack Query 5 + Suspense
+import { useSuspenseQuery } from '@tanstack/react-query';
+function User({ id }) {
+  const { data } = useSuspenseQuery({
+    queryKey: ['user', id],
+    queryFn: ({ signal }) => fetch(`/api/users/${id}`, { signal }).then(r => r.json()),
+  });
+  return <div>{data.name}</div>;
 }
 ```
 
-## 性能优化
+## 自定义 Hook (AbortController 模板)
 
-```javascript
-import { memo, useMemo, useCallback, lazy, Suspense } from 'react';
-
-// memo 避免不必要渲染
-const UserCard = memo(function UserCard({ user }) {
-  return <div>{user.name}</div>;
-});
-
-// useMemo 缓存计算结果
-const sortedUsers = useMemo(
-  () => users.toSorted((a, b) => a.name.localeCompare(b.name)),
-  [users]
-);
-
-// useCallback 缓存函数引用
-const handleClick = useCallback((id) => {
-  onSelect(id);
-}, [onSelect]);
-
-// 路由级代码分割
-const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
-
-<Suspense fallback={<Loading />}>
-  <Dashboard />
-</Suspense>
+```js
+export function useUser(id) {
+  const [state, setState] = useState({ status: 'loading' });
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetch(`/api/users/${id}`, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then(user => setState({ status: 'ok', user }))
+      .catch(e => { if (e.name !== 'AbortError') setState({ status: 'error', error: e }); });
+    return () => ctrl.abort();
+  }, [id]);
+  return state;
+}
 ```
+
+## 路由
+
+- **Next.js 15**: App Router 默认；page/layout/loading/error 文件约定
+- **Vite SPA**: TanStack Router (type-safe) 或 React Router 7 (data router 模式)
+- 永远 lazy import 路由级模块
+
+```js
+import { lazy, Suspense } from 'react';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+<Suspense fallback={<Spinner />}><Dashboard /></Suspense>
+```
+
+## 状态管理
+
+- 本地: `useState` / `useReducer`
+- URL: search params (Next: `useSearchParams`, TanStack Router: typed)
+- 跨组件全局: Zustand 5 (轻) / Jotai (atomic) / Redux Toolkit (复杂)
+- 服务端缓存: TanStack Query / RSC + revalidate
 
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| class 组件 | 应使用函数组件 + Hooks | 高 |
-| `useEffect` 获取数据 | React 19 应考虑 `use()` 或 Server Components | 中 |
-| `React.FC` 定义组件 | 应使用普通函数组件 | 低 |
-| 无 `key` 属性 | 列表渲染必须有稳定的 key | 高 |
-| 依赖数组缺失 | useEffect/useMemo/useCallback 依赖不完整 | 高 |
-| 过度使用 memo | 简单组件不需要 memo | 低 |
-| `dangerouslySetInnerHTML` 无清理 | 必须使用 DOMPurify | 高 |
+| 现象 | 应改 | 严重 |
+|------|------|------|
+| class 组件 | 函数组件 + Hooks | 高 |
+| `useEffect` 内 fetch (无 abort) | TanStack Query 或加 AbortController | 中 |
+| 无 `key` / index as key | 稳定 ID 作 key | 高 |
+| 依赖数组缺失 | Biome/ESLint react-hooks 修复 | 高 |
+| `dangerouslySetInnerHTML` 无清理 | DOMPurify | 高 |
+| 全局 Redux 装一切 | URL/RSC/Query 分层后再考虑 | 中 |
+| 客户端组件包整页 | 顶层 Server, 局部 `'use client'` | 中 |
+| 手写 memo (Compiler 已开) | 删除 | 低 |
 
 ## 检查清单
 
-- [ ] 使用函数组件 + Hooks
-- [ ] React 19 使用 `use()` 替代 useEffect 数据获取
-- [ ] Server Components 处理数据获取（Next.js 15）
-- [ ] Actions + `useActionState` 处理表单提交
-- [ ] 自定义 Hook 封装复用逻辑
-- [ ] AbortController 在 useEffect 中取消请求
-- [ ] memo/useMemo/useCallback 优化性能
-- [ ] 路由级 lazy + Suspense 代码分割
-- [ ] 正确设置依赖数组
-- [ ] Zod 验证表单和 API 数据
+- [ ] 函数组件 + Hooks
+- [ ] React 19 Compiler 启用 (`react-compiler` babel plugin)
+- [ ] 数据获取在 Server Component 或 TanStack Query
+- [ ] 表单用 Server Actions + `useActionState`
+- [ ] Suspense + ErrorBoundary 包数据边界
+- [ ] AbortController 在 useEffect 清理
+- [ ] 路由级 lazy + Suspense
+- [ ] Zod 校验 Server Action 输入
+- [ ] `'use client'` 只标在叶子需要的组件
+
+## 参考
+
+- React 19: <https://react.dev/blog/2024/12/05/react-19>
+- Next.js 15: <https://nextjs.org/docs>
+- TanStack Query 5: <https://tanstack.com/query/latest>

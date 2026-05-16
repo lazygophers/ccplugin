@@ -38,15 +38,15 @@ claude plugin install java@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | Java 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | Java 核心规范 |
-| Skill | `error` | 错误处理规范 |
-| Skill | `performance` | 性能优化规范 |
-| Skill | `concurrency` | 并发编程规范 |
-| Skill | `spring` | Spring Boot 规范 |
+| Agent | `java-dev` | Java 开发专家 |
+| Agent | `java-test` | 测试专家 |
+| Agent | `java-debug` | 调试专家 |
+| Agent | `java-perf` | 性能优化专家 |
+| Skill | `java-core` | Java 核心规范 |
+| Skill | `java-error` | 错误处理规范 |
+| Skill | `java-performance` | 性能优化规范 |
+| Skill | `java-concurrency` | 并发编程规范 |
+| Skill | `java-spring` | Spring Boot 规范 |
 
 ## 前置条件
 

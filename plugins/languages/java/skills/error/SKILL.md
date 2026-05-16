@@ -1,103 +1,83 @@
 ---
-description: "Java错误处理规范 - sealed exception层次设计、RFC 9457 Problem Details响应、Optional空值安全、SLF4J结构化日志。设计异常体系、处理错误、编写日志或调试异常堆栈时加载。"
-user-invocable: true
-context: fork
+name: java-error
+description: Java 错误处理规范 — sealed 异常层次、RFC 9457 Problem Details、Optional 空值安全、SLF4J 结构化日志、Try-With-Resources。当用户设计异常体系、处理错误、编写日志、调试堆栈，或讨论 "异常处理"、"Optional"、"null 安全"、"ControllerAdvice"、"Problem Details"、"日志规范" 时加载。
 model: sonnet
-memory: project
 ---
 
 # Java 错误处理规范
 
-## 适用 Agents
+## 硬约束
 
-- **java:dev** - 错误处理设计和实现
-- **java:debug** - 异常分析和修复
-- **java:test** - 异常路径测试覆盖
+1. **业务异常用 sealed interface** 构建层次，确保 switch exhaustiveness
+2. **REST 错误响应必须 RFC 9457 Problem Details**
+3. **Service 层返回 Optional**，禁返回 null
+4. **禁 `Optional.get()` 不检查**；用 `orElseThrow` / `map` / `flatMap`
+5. **禁空 catch 块**；至少记录日志或转译异常
+6. **日志用 SLF4J 参数化** `log.info("user={}", id)`，禁字符串拼接、禁 `System.out.println`
+7. **资源管理用 Try-With-Resources**，禁手动 finally close
+8. **异常链保留 cause**：`throw new AppException("msg", e)`
 
-## 相关 Skills
-
-- **Skills(java:core)** - Java 25+ Sealed Classes、Records
-- **Skills(java:spring)** - Spring @ControllerAdvice、ResponseEntity
-
-## Sealed Exception 层次结构（Java 25+）
-
-使用 sealed interface 构建类型安全的异常层次结构，编译器确保 switch exhaustiveness。
+## Sealed 异常层次 (Java 21+)
 
 ```java
-// 定义 sealed 业务异常层次
 public sealed interface AppException permits
-    ResourceNotFoundException,
-    DuplicateResourceException,
-    ValidationException,
-    AuthorizationException {
-
+        ResourceNotFoundException,
+        DuplicateResourceException,
+        ValidationException,
+        AuthorizationException {
     String code();
     String message();
 }
 
-// 具体异常使用 Record 实现（不可变）
-public record ResourceNotFoundException(String resourceType, String resourceId)
-    implements AppException {
-    public String code() { return "NOT_FOUND"; }
-    public String message() { return "%s not found: %s".formatted(resourceType, resourceId); }
+public record ResourceNotFoundException(String type, String id) implements AppException {
+    public String code()    { return "NOT_FOUND"; }
+    public String message() { return "%s not found: %s".formatted(type, id); }
 }
 
-public record DuplicateResourceException(String field, String value)
-    implements AppException {
-    public String code() { return "DUPLICATE"; }
+public record DuplicateResourceException(String field, String value) implements AppException {
+    public String code()    { return "DUPLICATE"; }
     public String message() { return "Duplicate %s: %s".formatted(field, value); }
 }
 
-// 作为 RuntimeException 抛出
-public class AppRuntimeException extends RuntimeException {
-    private final AppException appException;
-
-    public AppRuntimeException(AppException appException) {
-        super(appException.message());
-        this.appException = appException;
-    }
-
-    public AppException appException() { return appException; }
+// 运行时载体（继承 RuntimeException 以便抛出）
+public final class AppRuntimeException extends RuntimeException {
+    private final AppException detail;
+    public AppRuntimeException(AppException d)            { super(d.message()); this.detail = d; }
+    public AppRuntimeException(AppException d, Throwable c) { super(d.message(), c); this.detail = d; }
+    public AppException detail() { return detail; }
 }
 ```
 
-## RFC 9457 Problem Details（Spring Boot 3+）
+## RFC 9457 Problem Details (Spring Boot 3+)
 
 ```java
-// 全局异常处理器 - Problem Details 标准格式
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AppRuntimeException.class)
-    public ProblemDetail handleAppException(AppRuntimeException ex) {
-        AppException appEx = ex.appException();
-        return switch (appEx) {
+    public ProblemDetail handle(AppRuntimeException ex) {
+        return switch (ex.detail()) {
             case ResourceNotFoundException e -> {
-                ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.NOT_FOUND, e.message());
+                var pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.message());
                 pd.setTitle("Resource Not Found");
-                pd.setProperty("resourceType", e.resourceType());
-                pd.setProperty("resourceId", e.resourceId());
+                pd.setProperty("resourceType", e.type());
+                pd.setProperty("resourceId",   e.id());
                 yield pd;
             }
             case DuplicateResourceException e -> {
-                ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.CONFLICT, e.message());
+                var pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.message());
                 pd.setTitle("Duplicate Resource");
                 pd.setProperty("field", e.field());
                 yield pd;
             }
-            case ValidationException e -> ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST, e.message());
-            case AuthorizationException e -> ProblemDetail.forStatusAndDetail(
-                HttpStatus.FORBIDDEN, e.message());
+            case ValidationException e   -> ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.message());
+            case AuthorizationException e -> ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN,   e.message());
         };
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
-        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST, "Validation failed");
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Validation failed");
         pd.setTitle("Validation Error");
         pd.setProperty("errors", ex.getFieldErrors().stream()
             .map(e -> Map.of("field", e.getField(), "message", e.getDefaultMessage()))
@@ -105,118 +85,112 @@ public class GlobalExceptionHandler {
         return pd;
     }
 }
-
-// application.yml 启用 Problem Details
-// spring:
-//   mvc:
-//     problemdetails:
-//       enabled: true
 ```
 
-## Optional 最佳实践
+`application.yml`:
+```yaml
+spring.mvc.problemdetails.enabled: true
+```
+
+## Optional 模式
 
 ```java
-// Service 层返回 Optional
+// Service 层
 @Transactional(readOnly = true)
 public Optional<UserResponse> findById(Long id) {
     return userRepository.findById(id).map(UserResponse::from);
 }
 
-// Controller 层处理 Optional
+// Controller
 @GetMapping("/{id}")
-public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+public ResponseEntity<UserResponse> get(@PathVariable Long id) {
     return userService.findById(id)
         .map(ResponseEntity::ok)
         .orElseThrow(() -> new AppRuntimeException(
             new ResourceNotFoundException("User", id.toString())));
 }
 
-// Optional 链式操作
-Optional<String> email = userRepository.findById(id)
+// 链式
+Optional<String> email = repo.findById(id)
     .filter(User::isActive)
     .map(User::getEmail);
-
-// 禁止模式
-// bad: optional.get() 不检查
-// bad: optional.isPresent() + optional.get()
-// bad: return null
-// good: orElseThrow / orElse / map / flatMap
 ```
 
-## SLF4J 结构化日志
+**禁用反模式**：
+- `optional.get()` 无 `isPresent` 检查
+- `if (optional.isPresent()) optional.get()` (改 `orElse`/`map`)
+- `return null`
+- `Optional<List<T>>` (返回空 List 即可)
+- Optional 作为字段或方法参数 (仅作返回值)
+
+## SLF4J 日志
 
 ```java
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
-@Service
-public class UserService {
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
-
-    public User create(CreateUserRequest request) {
-        log.info("Creating user: email={}", request.email());
-        try {
-            User user = userRepository.save(toEntity(request));
-            log.info("User created: id={}, email={}", user.getId(), user.getEmail());
-            return user;
-        } catch (DataIntegrityViolationException e) {
-            log.warn("Duplicate email: email={}", request.email());
-            throw new AppRuntimeException(new DuplicateResourceException("email", request.email()));
-        } catch (Exception e) {
-            log.error("Failed to create user: email={}", request.email(), e);
-            throw e;
-        }
-    }
+log.info("Creating user: email={}", req.email());
+try {
+    User u = repo.save(...);
+    log.info("User created: id={}, email={}", u.getId(), u.getEmail());
+} catch (DataIntegrityViolationException e) {
+    log.warn("Duplicate email: email={}", req.email());           // 业务可预期
+    throw new AppRuntimeException(new DuplicateResourceException("email", req.email()), e);
+} catch (Exception e) {
+    log.error("Failed to create user: email={}", req.email(), e); // 最后一个参数是 Throwable
+    throw e;
 }
-
-// 日志级别规范
-// ERROR - 系统错误，需要立即处理（异常、数据不一致）
-// WARN  - 业务异常，可预期但需关注（重复请求、参数无效）
-// INFO  - 业务关键节点（创建、更新、删除、登录）
-// DEBUG - 开发调试信息（仅开发环境）
-// TRACE - 详细跟踪（仅排查特定问题）
 ```
+
+| 级别 | 用途 |
+|------|------|
+| ERROR | 系统错误，需立即处理 |
+| WARN  | 业务异常，可预期但需关注 |
+| INFO  | 业务关键节点 (创建/更新/删除/登录) |
+| DEBUG | 开发调试 |
+| TRACE | 详细跟踪 |
 
 ## Try-With-Resources
 
 ```java
-// 多资源自动关闭
-try (Connection conn = dataSource.getConnection();
-     PreparedStatement ps = conn.prepareStatement(sql);
-     ResultSet rs = ps.executeQuery()) {
-    while (rs.next()) {
-        process(rs);
-    }
+try (Connection c    = ds.getConnection();
+     PreparedStatement ps = c.prepareStatement(sql);
+     ResultSet rs    = ps.executeQuery()) {
+    while (rs.next()) process(rs);
 }
 
-// 自定义 AutoCloseable
-public class DatabaseSession implements AutoCloseable {
-    @Override
-    public void close() {
-        // 释放资源
-    }
+// 自定义
+public final class Session implements AutoCloseable {
+    @Override public void close() { /* release */ }
 }
 ```
 
 ## Red Flags
 
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "抛 RuntimeException 通用" | 是否使用 sealed exception 层次结构？ |
-| "返回 null 更简单" | 是否使用 Optional？ |
-| "空 catch 先不管" | catch 块是否至少记录日志？ |
-| "System.out 调试就行" | 是否使用 SLF4J 参数化日志？ |
-| "返回 HTTP 500 通用错误" | 是否实现 RFC 9457 Problem Details？ |
-| "optional.get() 直接取" | 是否使用 orElseThrow/map/flatMap？ |
+| AI 易犯解释 | 实际应核验 |
+|---------|---------|
+| "抛 RuntimeException 通用" | 是否 sealed 层次？ |
+| "返回 null 简单" | 是否 Optional？ |
+| "catch 先空着" | 是否至少 log + 包装重抛？ |
+| "System.out 调试" | 是否 SLF4J `{}`？ |
+| "HTTP 500 通用响应" | 是否 ProblemDetail？ |
+| "Optional.get() 直接取" | 是否 orElseThrow？ |
+| "拼字符串日志" | 是否 `log.info("k={}", v)`？ |
 
 ## 检查清单
 
-- [ ] sealed interface 定义异常层次结构
-- [ ] @ControllerAdvice 全局异常处理
-- [ ] RFC 9457 Problem Details 错误响应
-- [ ] Optional 返回而非 null
-- [ ] Optional 使用 map/flatMap/orElseThrow（无 .get()）
-- [ ] SLF4J 参数化日志（无字符串拼接）
-- [ ] 日志级别正确（ERROR/WARN/INFO/DEBUG）
-- [ ] Try-With-Resources 管理可关闭资源
-- [ ] 无空 catch 块
+- [ ] sealed interface 异常层次
+- [ ] `@RestControllerAdvice` 全局处理
+- [ ] ProblemDetail + `spring.mvc.problemdetails.enabled=true`
+- [ ] Service 返回 Optional
+- [ ] 无 `.get()` 裸用
+- [ ] 无 `return null`
+- [ ] 无空 catch
+- [ ] SLF4J 参数化日志
+- [ ] 异常链保留 cause
+- [ ] Try-With-Resources 覆盖所有 AutoCloseable
+
+## 参考
+
+- RFC 9457 Problem Details: https://www.rfc-editor.org/rfc/rfc9457
+- Spring ProblemDetail: https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-ann-rest-exceptions.html
+- SLF4J 手册: https://www.slf4j.org/manual.html

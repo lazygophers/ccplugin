@@ -38,19 +38,19 @@ claude plugin install javascript@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | JavaScript 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | JavaScript 核心规范 |
-| Skill | `async` | 异步编程规范 |
-| Skill | `react` | React 开发规范 |
-| Skill | `vue` | Vue 开发规范 |
-| Skill | `security` | 安全规范 |
+| Agent | `javascript-dev` | JavaScript 开发专家 |
+| Agent | `javascript-test` | 测试专家 |
+| Agent | `javascript-debug` | 调试专家 |
+| Agent | `javascript-perf` | 性能优化专家 |
+| Skill | `javascript-core` | JavaScript 核心规范 |
+| Skill | `javascript-async` | 异步编程规范 |
+| Skill | `javascript-react` | React 开发规范 |
+| Skill | `javascript-vue` | Vue 开发规范 |
+| Skill | `javascript-security` | 安全规范 |
 
 ## 使用方式
 
-### 开发专家代理（dev）
+### 开发专家代理（javascript-dev）
 
 用于 JavaScript 代码开发和架构设计。
 
@@ -59,7 +59,7 @@ claude plugin install javascript@ccplugin-market
 实现一个事件驱动的状态管理系统
 ```
 
-### 测试专家代理（test）
+### 测试专家代理（javascript-test）
 
 用于编写和优化 JavaScript 测试用例。
 

@@ -1,61 +1,41 @@
 ---
-description: "TypeScript 高级类型系统规范，覆盖 discriminated unions、const type parameters、模板字面量类型、条件类型、mapped types 与 Zod 4 schema 验证。适用于设计复杂类型、类型体操、运行时类型校验时加载。"
+name: typescript-types
+description: TypeScript 高级类型系统规范，覆盖 discriminated unions、模板字面量类型、条件 / mapped types、类型守卫（TS 5.5 inferred predicates）、branded types、satisfies 与 Zod 4 / Valibot 运行时验证。Use when 设计复杂类型、类型体操、API 类型契约、运行时校验，或用户提到 "类型系统"、"discriminated union"、"Zod schema"、"类型守卫"、"branded type"。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # TypeScript 类型系统规范
 
-## 适用 Agents
-
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | TypeScript 开发专家 |
-| debug | TypeScript 调试专家 |
-| test  | TypeScript 测试专家 |
-| perf  | TypeScript 性能优化专家 |
-
-## 相关 Skills
-
-| 场景     | Skill            | 说明                             |
-| -------- | ---------------- | -------------------------------- |
-| 核心规范 | Skills(core)     | TS 5.7+、strict mode、工具链     |
-| 异步编程 | Skills(async)    | Promise 类型、async iterators    |
-| 安全编码 | Skills(security) | Zod 输入验证、类型安全的 sanitize |
+类型系统两大用途：建模业务状态（discriminated unions / branded types）+ 验证外部输入（Zod / Valibot）。
 
 ## 类型命名
 
 ```typescript
-// PascalCase，语义清晰
-type UserDTO = { id: string; name: string; email: string };
-type ApiResponse<T> = { data: T; status: number; timestamp: string };
+type UserDTO = { id: string; name: string };           // PascalCase
+type ApiResponse<T> = { data: T; status: number };
 type Status = "active" | "inactive" | "pending";
 
-// 禁止 I 前缀（C# 约定）
-// type IUser = {}; // 禁止
+// 禁止 I 前缀
+// type IUser = {};
 ```
 
-## Discriminated Unions（TS 5.7）
+## Discriminated Unions（状态机首选）
 
 ```typescript
-// 状态机建模
 type AsyncState<T> =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "success"; data: T }
   | { status: "error"; error: Error };
 
-// 穷举检查
-function handleState<T>(state: AsyncState<T>): string {
+function render<T>(state: AsyncState<T>): string {
   switch (state.status) {
-    case "idle": return "Waiting...";
+    case "idle":    return "Waiting...";
     case "loading": return "Loading...";
-    case "success": return `Got: ${state.data}`;
-    case "error": return `Error: ${state.error.message}`;
+    case "success": return `Got: ${JSON.stringify(state.data)}`;
+    case "error":   return `Error: ${state.error.message}`;
     default: {
-      const _exhaustive: never = state;
+      const _exhaustive: never = state; // 穷举检查
       return _exhaustive;
     }
   }
@@ -65,12 +45,11 @@ function handleState<T>(state: AsyncState<T>): string {
 ## Const Type Parameters（TS 5.0+）
 
 ```typescript
-// const 泛型参数保留字面量类型
-function createConfig<const T extends Record<string, unknown>>(config: T): T {
-  return config;
+function createConfig<const T extends Record<string, unknown>>(c: T): T {
+  return c;
 }
-const config = createConfig({ api: "/v1", timeout: 3000 });
-// typeof config = { readonly api: "/v1"; readonly timeout: 3000 }
+const cfg = createConfig({ api: "/v1", timeout: 3000 });
+// typeof cfg = { readonly api: "/v1"; readonly timeout: 3000 }
 ```
 
 ## 模板字面量类型
@@ -78,69 +57,56 @@ const config = createConfig({ api: "/v1", timeout: 3000 });
 ```typescript
 type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 type APIRoute = `/api/${string}`;
-type EventName = `on${Capitalize<string>}`;
-
-// 组合
 type Endpoint = `${HTTPMethod} ${APIRoute}`;
-// "GET /api/users" | "POST /api/users" | ...
+type EventName = `on${Capitalize<string>}`;
 ```
 
 ## 类型守卫（TS 5.5 inferred predicates）
 
 ```typescript
-// TS 5.5: 自动推断类型谓词
-function isNonNullable<T>(value: T): value is NonNullable<T> {
-  return value !== null && value !== undefined;
+// TS 5.5+: 推断类型谓词
+function isNonNullable<T>(v: T): v is NonNullable<T> {
+  return v !== null && v !== undefined;
 }
+const users: (User | null)[] = [u1, null, u2];
+const valid = users.filter(isNonNullable); // User[]
 
-// 使用 - filter 自动收窄类型
-const users: (User | null)[] = [user1, null, user2];
-const validUsers = users.filter(isNonNullable);
-// validUsers: User[]
-
-// 自定义类型守卫
-function isUser(value: unknown): value is User {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof (value as { id: unknown }).id === "string"
-  );
+// 显式自定义类型守卫
+function isUser(v: unknown): v is User {
+  return typeof v === "object" && v !== null
+    && "id" in v && typeof (v as { id: unknown }).id === "string";
 }
 ```
 
-## Zod 4 运行时验证
+## Zod 4 运行时验证（推荐）
 
 ```typescript
 import { z } from "zod";
 
-// Schema-first：从 schema 推断类型
 const UserSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),                          // Zod 4: 顶层 helper
   name: z.string().min(1).max(100),
-  email: z.string().email(),
+  email: z.email(),
   role: z.enum(["admin", "user", "guest"]),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-type User = z.infer<typeof UserSchema>;
+type User = z.infer<typeof UserSchema>;  // schema-first 类型
 
-// 安全解析（不抛异常）
-const result = UserSchema.safeParse(data);
-if (!result.success) {
-  console.error(result.error.flatten());
-}
+const r = UserSchema.safeParse(data);
+if (!r.success) console.error(z.treeifyError(r.error));
 
-// 转换管道
+// 派生 schema
 const CreateUserSchema = UserSchema.omit({ id: true }).extend({
   password: z.string().min(8).regex(/[A-Z]/).regex(/[0-9]/),
 });
 ```
 
-## 实用类型模式
+替代选择：**Valibot**（更小 bundle，函数式 API，<2KB），用于体积敏感场景。
+
+## Branded Types（编译期区分语义）
 
 ```typescript
-// Branded types（编译期区分语义相同的类型）
 type Brand<T, B extends string> = T & { readonly __brand: B };
 type UserId = Brand<string, "UserId">;
 type PostId = Brand<string, "PostId">;
@@ -148,38 +114,48 @@ type PostId = Brand<string, "PostId">;
 function getUser(id: UserId): Promise<User> { /* ... */ }
 // getUser("123" as UserId); // OK
 // getUser("123" as PostId); // Error
+```
 
-// Satisfies 操作符（TS 4.9+，保留字面量类型）
+## satisfies（TS 4.9+，保留字面量）
+
+```typescript
 const routes = {
   home: "/",
   about: "/about",
   user: "/user/:id",
 } satisfies Record<string, string>;
-// typeof routes.home = "/"  （不是 string）
+// typeof routes.home = "/"（非 string）
+```
 
-// 条件类型提取
+## 工具类型常用
+
+```typescript
+// 内置：Partial / Required / Pick / Omit / Record / Readonly / Awaited / ReturnType / Parameters
+
+// type-fest 推荐补充：SetOptional, SetRequired, Merge, CamelCase, etc.
+
 type ExtractPromise<T> = T extends Promise<infer U> ? U : T;
-type Awaited<T> = T extends Promise<infer U> ? Awaited<U> : T;
+type DeepReadonly<T> = { readonly [K in keyof T]: DeepReadonly<T[K]> };
 ```
 
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| `any` 类型 | 类型安全漏洞，使用 `unknown` | 高 |
-| 未穷举的 switch | discriminated union 遗漏分支 | 高 |
-| `as` 类型断言 | 可能隐藏类型错误 | 中 |
-| 无 Zod 验证 | 外部数据未做运行时验证 | 高 |
-| 过深递归类型 | 编译性能问题（限制 5 层） | 中 |
-| `I` 前缀接口 | C# 约定，TS 中不推荐 | 低 |
+| 现象 | 问题 | 严重 |
+|------|------|------|
+| `any` | 用 `unknown` + 守卫 | 高 |
+| 未穷举的 switch | DU 遗漏分支 | 高 |
+| `as` 强转 | 可能隐藏错误（仅边界用） | 中 |
+| 外部数据无 Zod | 运行时类型不安全 | 高 |
+| 递归类型 > 5 层 | 编译性能 | 中 |
+| `I` 前缀 | C# 约定 | 低 |
+| `enum` | tree-shake 不友好 | 中 |
 
 ## 检查清单
 
-- [ ] 无 `any` 类型，使用 `unknown` + 类型守卫
-- [ ] discriminated unions 有穷举检查
-- [ ] 外部数据使用 Zod/Valibot 验证
-- [ ] `import type` 分离类型导入
-- [ ] 泛型有适当约束
-- [ ] 使用 `satisfies` 保留字面量类型
-- [ ] 复杂类型有深度限制
-- [ ] 类型命名使用 PascalCase
+- [ ] 无 `any`，外部数据 Zod / Valibot 验证
+- [ ] discriminated unions 有 `never` 穷举
+- [ ] `import type` 分离类型
+- [ ] 泛型有 `extends` 约束
+- [ ] 复杂常量用 `satisfies`
+- [ ] 语义相同 string/number 用 branded type
+- [ ] 类型 PascalCase，无 `I` 前缀

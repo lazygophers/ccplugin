@@ -1,201 +1,211 @@
 ---
-description: "JavaScript Web安全规范：XSS跨站脚本防护、CSP内容安全策略、CORS跨域配置、Zod运行时输入验证、npm依赖安全审计。处理安全漏洞修复、输入校验、权限控制、安全加固时加载。"
-user-invocable: true
+name: javascript-security
+description: |
+  JavaScript Web 安全规范 (2026)：XSS 防护 (DOMPurify / Trusted Types),
+  CSP3 内容安全策略, CORS 配置, Zod 4 / Valibot 运行时校验, SameSite cookie,
+  CSRF 防护, npm/pnpm audit + Socket / Snyk 依赖审计, 供应链 (sigstore, npm provenance),
+  SubResource Integrity, Permissions Policy。
+  Use when reviewing security, hardening web apps, fixing XSS/CSRF/CORS issues,
+  validating inputs, auditing dependencies. Triggers: "安全", "XSS", "CSRF",
+  "CSP", "CORS", "依赖漏洞", "audit", "Zod 校验", "innerHTML", "sanitize".
 context: fork
 model: sonnet
-memory: project
 ---
 
-# JavaScript Web 安全规范
+# Web 安全规范 (2026)
 
-## 适用 Agents
+## 配套
 
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | JavaScript 开发专家 |
-| debug | JavaScript 调试专家 |
-
-## 相关 Skills
-
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(javascript:core) | ES2025-2026 标准、ESM、工具链 |
-| 异步编程 | Skills(javascript:async) | async/await、AbortController |
+- `Skills(javascript:core)` — 工具链
+- `Skills(javascript:async)` — fetch 取消, AbortController
 
 ## XSS 防护
 
-```javascript
-// DOMPurify 清理 HTML（必须用于任何用户输入的 HTML）
+```js
 import DOMPurify from 'dompurify';
 
-const clean = DOMPurify.sanitize(userInput);
-element.innerHTML = clean;
+// 用户 HTML → 必经 sanitize
+el.innerHTML = DOMPurify.sanitize(userHtml);
 
-// textContent 替代 innerHTML（纯文本场景）
-element.textContent = userInput; // 自动转义
+// 纯文本场景：textContent 自动转义
+el.textContent = userInput;
 
-// React 自动转义（安全）
-<div>{userInput}</div>
+// React 自动转义 {expr}, dangerouslySetInnerHTML 必 sanitize
+<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />
 
-// React dangerouslySetInnerHTML（必须先清理）
-<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userInput) }} />
+// Vue v-html 同理
+<div v-html="DOMPurify.sanitize(html)" />
 
-// 禁止：直接设置用户输入
-element.innerHTML = userInput; // XSS 漏洞
+// Trusted Types (Chrome / Edge) — 编译期拒绝裸字符串赋 innerHTML
+// CSP: require-trusted-types-for 'script';
+const policy = trustedTypes.createPolicy('safe', {
+  createHTML: (s) => DOMPurify.sanitize(s),
+});
+el.innerHTML = policy.createHTML(userHtml);
 ```
 
-## Zod 运行时验证
+## Zod 4 运行时校验 (边界必做)
 
-```javascript
+```js
 import { z } from 'zod';
 
-// API 响应验证
-const UserSchema = z.object({
+// API 响应
+const User = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1).max(100),
   email: z.string().email(),
   role: z.enum(['admin', 'user', 'guest']),
 });
 
 async function fetchUser(id) {
-  const response = await fetch(`/api/users/${id}`);
-  const data = await response.json();
-  return UserSchema.parse(data); // 运行时验证，无效数据抛出异常
+  const r = await fetch(`/api/users/${id}`);
+  const data = await r.json();
+  return User.parse(data);                  // 失败抛 ZodError
 }
 
-// 表单输入验证
-const LoginSchema = z.object({
-  email: z.string().email('Invalid email'),
-  password: z.string().min(8, 'At least 8 characters'),
+// 表单 — safeParse 返结构化错误
+const Login = z.object({
+  email: z.string().email('邮箱无效'),
+  password: z.string().min(8, '至少 8 位'),
 });
+const r = Login.safeParse(form);
+if (!r.success) return { errors: r.error.flatten().fieldErrors };
 
-function handleSubmit(formData) {
-  const result = LoginSchema.safeParse(formData);
-  if (!result.success) {
-    return { errors: result.error.flatten().fieldErrors };
-  }
-  return login(result.data);
-}
-
-// 环境变量验证
-const EnvSchema = z.object({
-  API_URL: z.string().url(),
-  API_KEY: z.string().min(1),
+// 环境变量 — 启动时 fail-fast
+const Env = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']),
+  API_URL: z.url(),
+  API_KEY: z.string().min(20),
 });
-
-const env = EnvSchema.parse(process.env);
+export const env = Env.parse(process.env);
 ```
 
-## CSP（Content Security Policy）
+## CSP3 (Content Security Policy)
 
-```javascript
-// HTTP 头配置（推荐）
-// Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;
-
-// Meta 标签配置
-<meta http-equiv="Content-Security-Policy" content="
+```http
+Content-Security-Policy:
   default-src 'self';
-  script-src 'self';
-  style-src 'self' 'unsafe-inline';
+  script-src 'self' 'strict-dynamic' 'nonce-{random}';
+  style-src 'self' 'nonce-{random}';
   img-src 'self' data: https:;
   connect-src 'self' https://api.example.com;
-  font-src 'self' https://fonts.gstatic.com;
-">
-
-// Vite 开发服务器 CSP
-// vite.config.js
-export default {
-  server: {
-    headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval';"
-    }
-  }
-};
+  font-src 'self';
+  object-src 'none';
+  base-uri 'self';
+  frame-ancestors 'none';
+  require-trusted-types-for 'script';
+  upgrade-insecure-requests;
+  report-to csp-endpoint;
 ```
 
-## CORS 配置
+- 优先 nonce + `strict-dynamic` 而非 host 白名单
+- 禁 `'unsafe-inline'` `'unsafe-eval'`
+- 配套 `Report-To` / `report-uri` 收集违规
 
-```javascript
-// Vite 代理（开发环境）
-export default {
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://api.example.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      }
-    }
-  }
-};
+## CORS
 
-// Express CORS 配置（生产环境）
-import cors from 'cors';
-
-app.use(cors({
-  origin: ['https://example.com', 'https://app.example.com'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+```js
+// Hono 4
+import { cors } from 'hono/cors';
+app.use('/api/*', cors({
+  origin: ['https://app.example.com'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
-  maxAge: 86400, // 预检请求缓存 24h
+  maxAge: 86400,
 }));
+
+// Express 5
+import cors from 'cors';
+app.use(cors({ origin: /\.example\.com$/, credentials: true }));
+
+// Vite dev 代理 (绕开 CORS)
+export default { server: { proxy: { '/api': { target: 'https://api.example.com', changeOrigin: true } } } };
 ```
 
-## 依赖安全审计
+- 禁 `Access-Control-Allow-Origin: *` + `credentials: true`
+- 反射 Origin 必白名单校验
+
+## Cookie 与 CSRF
+
+```js
+// Cookie 三件套
+Set-Cookie: session=abc; HttpOnly; Secure; SameSite=Lax; Path=/
+
+// 敏感操作: SameSite=Strict + double-submit token 或 Origin/Sec-Fetch-Site 校验
+// 不把 token 放 localStorage / sessionStorage (XSS 可读)
+```
+
+## 依赖与供应链审计
 
 ```bash
-# pnpm 安全审计
-pnpm audit
+pnpm audit --audit-level=high          # CI 卡 high+
 pnpm audit --fix
+pnpm dedupe                            # 减少重复版本
 
-# npm 安全审计
-npm audit
-npm audit fix
+# 第三方
+npx socket@latest scan                 # Socket.dev 行为级检测
+npx snyk test                          # CVE 数据库
 
-# 自动化：CI 中集成审计
-# .github/workflows/audit.yml
-# - run: pnpm audit --audit-level=high
+# 发布: npm provenance + sigstore (开箱即用)
+# package.json: { "publishConfig": { "provenance": true } }
+npm publish --provenance --access public
+
+# 锁定: 仅信任锁文件 (CI: pnpm install --frozen-lockfile)
 ```
 
-## 其他安全实践
+## 其他
 
-```javascript
-// CSRF 防护：SameSite Cookie
-document.cookie = 'session=abc; SameSite=Strict; Secure; HttpOnly';
+```js
+// SubResource Integrity (CDN 脚本)
+<script src="https://cdn/lib.js"
+        integrity="sha384-..."
+        crossorigin="anonymous"></script>
 
-// 敏感数据不存 localStorage
-// 使用 httpOnly cookie 存储 token
+// Permissions Policy (限关高危 API)
+// Permissions-Policy: camera=(), microphone=(), geolocation=(self)
 
-// URL 参数验证
-const url = new URL(userProvidedUrl);
-if (!['http:', 'https:'].includes(url.protocol)) {
-  throw new Error('Invalid protocol');
+// URL 协议校验 (open redirect / javascript: 协议)
+function safeUrl(input) {
+  const u = new URL(input, location.origin);
+  if (!['http:', 'https:'].includes(u.protocol)) throw new Error('bad protocol');
+  return u.toString();
 }
 
-// 避免 eval 和 Function 构造器
-// eval(userInput); // 禁止
-// new Function(userInput); // 禁止
+// 禁 eval / new Function / setTimeout(string)
+// 禁 prototype 污染: 对外 API 用 Object.create(null) 或 Map
 ```
 
 ## Red Flags
 
-| 现象 | 问题 | 严重程度 |
-|------|------|---------|
-| `innerHTML = userInput` | XSS 漏洞 | 高 |
-| 无 Zod 验证 API 响应 | 不可信数据直接使用 | 高 |
-| 无 CSP 头 | 缺少内容安全策略 | 中 |
-| `eval()` / `new Function()` | 代码注入风险 | 高 |
-| token 存 localStorage | 应使用 httpOnly cookie | 中 |
-| 无 CORS 限制 | `origin: '*'` 允许任意来源 | 中 |
-| 无依赖审计 | 可能包含已知漏洞 | 中 |
+| 现象 | 风险 | 严重 |
+|------|------|------|
+| `innerHTML = userInput` | XSS | 高 |
+| `JSON.parse(localStorage.token)` 含敏感 | XSS 偷 token | 高 |
+| `eval` / `new Function(userInput)` | 代码注入 | 高 |
+| `Access-Control-Allow-Origin: *` + 凭据 | 跨站请求伪造 | 高 |
+| `'unsafe-inline'` 在 CSP | XSS 防线失效 | 高 |
+| 无 Zod 校验 API/表单 | 数据污染下游 | 高 |
+| 锁文件未提交 | 供应链漂移 | 中 |
+| `npm install package` 无 audit | 已知 CVE | 中 |
+| token 放 localStorage | 持久 XSS 风险 | 中 |
+| 反射 Origin 无白名单 | CORS 绕过 | 高 |
 
 ## 检查清单
 
-- [ ] 使用 DOMPurify 清理所有用户提供的 HTML
-- [ ] Zod 验证 API 响应、表单输入、环境变量
-- [ ] 配置 CSP 头限制资源加载
-- [ ] 配置 CORS 限制跨域请求来源
-- [ ] 无 `eval()` 或 `new Function()`
-- [ ] 敏感数据使用 httpOnly cookie
-- [ ] CI 集成 `pnpm audit` 依赖审计
-- [ ] URL 参数验证 protocol
+- [ ] 任何用户 HTML 经 DOMPurify
+- [ ] 边界 (API / 表单 / env) 用 Zod
+- [ ] CSP3 配置 nonce + strict-dynamic, 无 unsafe-*
+- [ ] CORS 白名单 + credentials 隔离
+- [ ] 敏感 token 只放 HttpOnly cookie
+- [ ] CSRF: SameSite + Origin 校验
+- [ ] CI: `pnpm audit --audit-level=high` 卡门
+- [ ] CI: `pnpm install --frozen-lockfile`
+- [ ] 发布开启 npm provenance
+- [ ] 无 `eval` / `new Function` / 动态 `setTimeout(string)`
+
+## 参考
+
+- OWASP Top 10 2025: <https://owasp.org/Top10/>
+- MDN CSP: <https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP>
+- Trusted Types: <https://web.dev/articles/trusted-types>
+- Zod 4: <https://zod.dev>
+- npm provenance: <https://docs.npmjs.com/generating-provenance-statements>

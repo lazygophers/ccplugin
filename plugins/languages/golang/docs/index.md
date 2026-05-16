@@ -5,11 +5,10 @@
 ## 目录
 
 1. [概述](index.md)
-2. [命令系统](commands.md)
-3. [代理系统](agents.md)
-4. [技能系统](skills.md)
-5. [开发规范](standards.md)
-6. [快速开始](quickstart.md)
+2. [代理系统](agents.md)
+3. [技能系统](skills.md)
+4. [开发规范](standards.md)
+5. [快速开始](quickstart.md)
 
 ## 安装
 

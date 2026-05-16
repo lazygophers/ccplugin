@@ -1,193 +1,133 @@
 ---
-description: "Rust异步编程规范 - Tokio 1.x runtime、async/await、async fn in traits、Future/Stream/Pin、tower middleware、结构化并发、死锁排查。编写异步服务、并发任务、网络IO时加载。"
+name: rust-async
+description: Rust 异步编程规范 — Tokio 1.x runtime、`async fn` in traits（stable）、async closures（Rust 1.85+ stable）、结构化并发（JoinSet / select! / spawn）、channel（mpsc / oneshot / broadcast）、tower middleware、axum 0.8 web、Pin / Send / Sync、跨 await 借用、死锁排查。编写异步服务、网络 IO、并发任务、async 死锁分析时加载。触发短语：async fn、tokio、axum、并发、死锁、Future、spawn、await、async trait、stream。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # Rust 异步编程规范
 
-## 适用 Agents
-
-- **rust:dev** - 异步应用开发
-- **rust:debug** - 异步代码调试、死锁分析
-- **rust:test** - 异步测试（tokio::test）
-- **rust:perf** - 异步性能调优
-
-## 相关 Skills
-
-- **Skills(rust:core)** - 错误处理、工具链
-- **Skills(rust:memory)** - 异步中的生命周期和所有权
+前置：`rust-core`、`rust-memory`。
 
 ## Tokio 运行时
 
 ```rust
-// 标准入口
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::init();
-    let app = build_app().await?;
-    axum::serve(listener, app).await?;
-    Ok(())
-}
+#[tokio::main]                                    // 默认 multi-thread
+async fn main() -> anyhow::Result<()> { Ok(()) }
 
-// 自定义运行时配置
+#[tokio::main(flavor = "current_thread")]         // 单线程，最低开销
 #[tokio::main(flavor = "multi_thread", worker_threads = 4)]
-async fn main() { /* ... */ }
-
-// 测试运行时
-#[tokio::test]
-async fn test_something() { /* ... */ }
+#[tokio::test]                                    // 测试入口
 ```
 
-## async fn in traits（Rust 1.75+ stable）
+阻塞操作必须 `tokio::task::spawn_blocking` 隔离；纯 CPU 密集考虑独立线程池或 `rayon`。
+
+## `async fn` in traits（Rust 1.75+ stable）
 
 ```rust
-// 无需 #[async_trait]，原生支持
 trait Repository: Send + Sync {
-    async fn find_by_id(&self, id: u64) -> Result<Option<User>>;
-    async fn save(&self, user: &User) -> Result<()>;
-    async fn delete(&self, id: u64) -> Result<bool>;
-}
-
-struct PgRepository { pool: sqlx::PgPool }
-
-impl Repository for PgRepository {
-    async fn find_by_id(&self, id: u64) -> Result<Option<User>> {
-        sqlx::query_as("SELECT * FROM users WHERE id = $1")
-            .bind(id as i64)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(Into::into)
-    }
-    // ...
+    async fn find(&self, id: u64) -> anyhow::Result<Option<User>>;
+    async fn save(&self, u: &User) -> anyhow::Result<()>;
 }
 ```
+
+禁用 `#[async_trait]` 宏（除非要 `dyn Trait` 对象安全且 RPITIT 还不够）。
+返回 `impl Future + Send` 自动推断；跨线程需 `Send` bound 时显式标注。
+
+## Async closures（Rust 1.85+ stable）
+
+```rust
+let fetch = async |url: String| -> anyhow::Result<String> {
+    reqwest::get(&url).await?.text().await.map_err(Into::into)
+};
+let body = fetch("https://example.com".into()).await?;
+```
+
+三个 trait：`AsyncFn` / `AsyncFnMut` / `AsyncFnOnce`，可在中间件、handler、迭代器适配中替代手写 `|x| async move { ... }`。
 
 ## 结构化并发
 
 ```rust
 use tokio::task::JoinSet;
 
-// JoinSet：管理一组并发任务
-async fn fetch_all(urls: Vec<String>) -> Vec<Result<String>> {
-    let mut set = JoinSet::new();
-    for url in urls {
-        set.spawn(async move {
-            reqwest::get(&url).await?.text().await.map_err(Into::into)
-        });
-    }
-    let mut results = Vec::new();
-    while let Some(res) = set.join_next().await {
-        results.push(res.unwrap());
-    }
-    results
-}
-
-// select! 竞争执行
-use tokio::select;
-use tokio::time::{sleep, Duration};
-
-async fn with_timeout<T>(future: impl Future<Output = T>, secs: u64) -> Option<T> {
-    select! {
-        result = future => Some(result),
-        _ = sleep(Duration::from_secs(secs)) => None,
-    }
-}
-
-// tokio::spawn 长期后台任务
-let handle = tokio::spawn(async move {
-    loop {
-        process_queue(&rx).await;
-    }
-});
+let mut set = JoinSet::new();
+for url in urls { set.spawn(async move { fetch(url).await }); }
+let mut out = Vec::new();
+while let Some(res) = set.join_next().await { out.push(res?); }
 ```
 
-## 通道模式
+- `JoinSet`：动态任务集合，drop 自动取消。
+- `tokio::spawn`：长生命周期后台任务。
+- `select!`：竞争 / 超时 / 取消。
+- 避免 `futures::join_all`（无错误短路、无取消）。
 
 ```rust
-use tokio::sync::{mpsc, oneshot, broadcast};
-
-// mpsc：多生产者单消费者
-let (tx, mut rx) = mpsc::channel::<Message>(100);
-tokio::spawn(async move {
-    while let Some(msg) = rx.recv().await {
-        handle(msg).await;
-    }
-});
-
-// oneshot：一次性响应
-let (resp_tx, resp_rx) = oneshot::channel();
-tx.send(Request { payload, resp_tx }).await?;
-let response = resp_rx.await?;
-
-// broadcast：多消费者
-let (tx, _) = broadcast::channel::<Event>(100);
-let mut rx1 = tx.subscribe();
-let mut rx2 = tx.subscribe();
+tokio::select! {
+    res = work() => handle(res),
+    _   = tokio::time::sleep(Duration::from_secs(5)) => bail!("timeout"),
+}
 ```
 
-## Axum Web 框架（0.8+）
+## Channel 选型
+
+| Channel | 拓扑 | 场景 |
+|---------|------|------|
+| `mpsc` | 多生产-单消费 | 队列、worker pool |
+| `oneshot` | 单值响应 | RPC 应答 |
+| `broadcast` | 广播 | 事件总线 |
+| `watch` | 最新值 | 配置 / 状态 |
+
+## Axum 0.8 模板
 
 ```rust
-use axum::{Router, Json, extract::{State, Path}};
+use axum::{Router, Json, extract::{State, Path}, routing::{get, post}};
 use tower_http::trace::TraceLayer;
 
-async fn create_user(
-    State(repo): State<Arc<dyn Repository>>,
-    Json(input): Json<CreateUserRequest>,
-) -> Result<Json<User>, AppError> {
-    let user = repo.save(&input.into()).await?;
-    Ok(Json(user))
+async fn create(State(r): State<Arc<dyn Repository>>, Json(req): Json<CreateReq>)
+    -> Result<Json<User>, AppError>
+{
+    Ok(Json(r.save(&req.into()).await?))
 }
 
-fn app(repo: Arc<dyn Repository>) -> Router {
+fn app(r: Arc<dyn Repository>) -> Router {
     Router::new()
-        .route("/users", post(create_user))
+        .route("/users", post(create))
         .route("/users/{id}", get(get_user))
         .layer(TraceLayer::new_for_http())
-        .with_state(repo)
+        .with_state(r)
 }
 ```
 
-## Pin/Unpin 与 Send/Sync
+`axum` 0.8 路由占位符是 `{id}` 而非 `:id`。
+
+## Pin / Send / Sync 关键点
+
+- 绝大多数业务代码无需手写 `Pin`；自引用 / 手写 `Future` 才需要。
+- `tokio::spawn` 的 Future 必须 `Send + 'static` → 跨 `.await` 不得持有非 `Send`（如 `Rc`、`std::sync::MutexGuard`）。
+- 共享状态用 `tokio::sync::Mutex` 才能跨 await，否则 `std::sync::Mutex` 必须在 await 前 drop。
 
 ```rust
-// 大部分异步代码不需要手动处理 Pin
-// 需要 Pin 的场景：自引用结构、手动 Future 实现
-
-// 确保 Future 是 Send（跨线程）
-fn assert_send<T: Send>(_: &T) {}
-
-// 常见问题：持有非 Send 类型跨 await
-// 解决：在 await 前释放非 Send 类型
-{
-    let guard = mutex.lock().unwrap();
-    let value = guard.clone();
-    drop(guard); // 在 await 前释放
-}
-async_operation(value).await;
+let value = { let g = mtx.lock().unwrap(); g.clone() };   // 释放后再 await
+remote(value).await;
 ```
 
-## Red Flags：AI 常见误区
+## 反模式
 
-| AI 可能的解释 | 实际检查 |
-|--------------|---------|
-| "用 #[async_trait]" | ✅ Rust 1.75+ 原生支持 async fn in traits |
-| "block_on 嵌套调用" | ✅ 是否在异步上下文中错误使用了阻塞？ |
-| "spawn 所有任务" | ✅ 是否使用 JoinSet 管理结构化并发？ |
-| "Arc\<Mutex\<T\>\> 共享状态" | ✅ 是否可以用 channel 替代共享状态？ |
-| "futures::join_all 就够了" | ✅ 是否需要 JoinSet 实现取消和错误处理？ |
-| "同步代码更简单" | ✅ I/O 操作是否应该使用 async？ |
+| AI 倾向 | 正确做法 |
+|---------|---------|
+| `#[async_trait]` | stable `async fn` in trait |
+| `block_on` 嵌套 | 永远不要在 async 上下文 block_on |
+| `futures::join_all` | `JoinSet`（支持取消、错误） |
+| `Arc<Mutex<T>>` 共享 | 优先 channel / actor |
+| 同步 IO 在 async fn | `spawn_blocking` |
+| 持非 Send 跨 await | await 前 drop 或换 `tokio::sync` |
 
 ## 检查清单
 
-- [ ] 使用 Tokio 1.x 作为异步运行时
-- [ ] async fn in traits 不使用 `#[async_trait]`（Rust 1.75+）
-- [ ] 使用 `JoinSet` 管理并发任务
-- [ ] 使用 `select!` 实现超时和竞争
-- [ ] 通道选择正确（mpsc/oneshot/broadcast）
-- [ ] 异步代码中无阻塞操作（使用 `spawn_blocking`）
-- [ ] Future 满足 `Send + 'static`（跨线程 spawn）
-- [ ] 使用 `tower` middleware 组合服务层
+- [ ] 运行时 `tokio` 1.x
+- [ ] trait 内 `async fn` 不用 `#[async_trait]`
+- [ ] 任务组用 `JoinSet`
+- [ ] 超时 / 竞争用 `select!`
+- [ ] channel 类型选对（mpsc/oneshot/broadcast/watch）
+- [ ] 跨 await 无非 Send 持有
+- [ ] axum 0.8 路由 `{param}` 语法
+- [ ] tower 层（Trace / Timeout / RateLimit）已配

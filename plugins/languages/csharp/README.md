@@ -37,14 +37,16 @@ claude plugin install csharp@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | C# 开发专家 |
-| Agent | `test` | 测试专家 |
-| Agent | `debug` | 调试专家 |
-| Agent | `perf` | 性能优化专家 |
-| Skill | `core` | C# 核心规范 |
-| Skill | `async` | 异步编程规范 |
-| Skill | `linq` | LINQ 规范 |
-| Skill | `testing` | 测试规范 |
+| Agent | `csharp-dev` | C# 开发专家 |
+| Agent | `csharp-test` | 测试专家 |
+| Agent | `csharp-debug` | 调试专家 |
+| Agent | `csharp-perf` | 性能优化专家 |
+| Skill | `csharp-core` | C# 核心规范 |
+| Skill | `csharp-async` | 异步编程规范 |
+| Skill | `csharp-linq` | LINQ 规范 |
+| Skill | `csharp-web` | Web 开发规范 |
+| Skill | `csharp-desktop` | 桌面开发规范 |
+| Skill | `csharp-data` | 数据访问规范 |
 
 ## 前置条件
 
@@ -62,7 +64,7 @@ dotnet --version
 
 ### 必须遵守
 
-1. **使用 C# 12 特性** - 主构造函数、集合表达式
+1. **使用 C# 14 特性** - 主构造函数、集合表达式、.NET 10
 2. **启用 Nullable** - 启用 nullable reference types
 3. **异步最佳实践** - 使用 async/await，避免 .Result
 4. **LINQ 优先** - 优先使用 LINQ 处理数据

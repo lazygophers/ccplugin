@@ -17,7 +17,7 @@ claude plugin install naming@ccplugin-market
 
 ### 🎯 核心功能
 
-- **命名规范专家代理** - 提供专业的命名建议
+- **命名规范指导** - 提供专业的命名建议
   - 变量命名
   - 函数命名
   - 类/接口命名
@@ -35,13 +35,7 @@ claude plugin install naming@ccplugin-market
 
 | 组件类型 | 名称 | 描述 |
 |---------|------|------|
-| Agent | `dev` | 命名规范专家 |
-| Skill | `core` | 命名核心规范 |
-| Skill | `python` | Python 命名规范 |
-| Skill | `javascript` | JavaScript 命名规范 |
-| Skill | `java` | Java 命名规范 |
-| Skill | `golang` | Go 命名规范 |
-| Skill | `rust` | Rust 命名规范 |
+| Skill | `core` | 命名核心规范（覆盖 Python/JavaScript/Java/Go/Rust/C/C++ 等主流语言） |
 
 ## 命名规范速查
 

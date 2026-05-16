@@ -1,174 +1,143 @@
 ---
-description: "C语言并发编程规范，涵盖C11原子操作与内存序、pthread线程管理、互斥锁、条件变量、读写锁、ThreadSanitizer竞态检测。适用于多线程开发、死锁调试、无锁数据结构优化。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: c-concurrency
+description: |
+  C concurrency conventions: C11 atomics with explicit memory orders, C11 threads.h and
+  POSIX pthread (mutex, condvar, rwlock, barrier), cache-line alignment to kill false
+  sharing, ThreadSanitizer for race detection, and async-signal-safe rules for signal
+  handlers. Use when designing multi-threaded data structures, debugging races/deadlocks,
+  picking a memory order, or reasoning about lock-free patterns. Triggers on "原子操作",
+  "memory_order", "TSan", "data race", "死锁", "条件变量", "false sharing",
+  "pthread_mutex", "atomic_compare_exchange".
 ---
 
 # C 并发编程规范
 
-## 适用 Agents
-- **dev** - 实现并发数据结构和多线程逻辑
-- **debug** - 诊断竞态条件和死锁（TSan）
-- **test** - 多线程测试和并发正确性验证
-- **perf** - 无锁优化和 false sharing 消除
+## 强制约定
 
-## 相关 Skills
+1. 共享可变状态要么 `_Atomic`，要么用锁保护，不能"看起来安全"。
+2. 默认 `memory_order_seq_cst`；只有明确分析过 happens-before 后才放宽。
+3. 条件变量必须在 `while (!pred)` 循环中等待，防止虚假唤醒。
+4. 锁的获取顺序在全局范围内保持一致，避免死锁。
+5. 所有锁 / cond / rwlock 显式 `destroy`。
+6. 信号处理器仅调用 async-signal-safe 函数（见 `c-posix` 中 POSIX.1 §2.4 列表），共享变量类型为 `volatile sig_atomic_t` 或 `atomic_*`。
+7. 热点共享数据缓存行对齐（`_Alignas(64)`）以消除 false sharing。
+8. 多线程代码必须在 TSan 下跑过。TSan 不能与 ASan / MSan 同跑。
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(c:core) | C11 标准、_Atomic 关键字 |
-| 内存管理 | Skills(c:memory) | 线程安全分配、内存池 |
-| POSIX API | Skills(c:posix) | pthread API |
+## C11 原子（`<stdatomic.h>`）
 
-## AI 理性化检查
-
-| AI 理性化 | 实际检查 |
-|----------|---------|
-| "单线程不需要原子操作" | 未来是否可能多线程化？ |
-| "这个 race 不会触发" | 是否用 TSan 验证了？ |
-| "memory_order_relaxed 够了" | 是否有 happens-before 依赖？ |
-| "不需要锁，速度更快" | 无锁逻辑是否正确？ |
-| "信号处理器里可以用 mutex" | 信号处理器是否只用 async-signal-safe 函数？ |
-
-## C11 原子操作
-
-### 基本原子类型
 ```c
-#include <stdatomic.h>
+_Atomic int counter = 0;          // 关键字
+atomic_int counter2 = 0;          // typedef 别名
 
-// 声明
-_Atomic int counter = 0;              // C11 关键字
-atomic_int counter2 = 0;              // 等价 typedef
-
-// 基本操作
 atomic_store(&counter, 42);
-int val = atomic_load(&counter);
-int old = atomic_fetch_add(&counter, 1);   // 返回旧值
-atomic_fetch_sub(&counter, 1);
+int v = atomic_load(&counter);
+int old = atomic_fetch_add(&counter, 1);
 
-// CAS（Compare-And-Swap）
+// CAS
 int expected = 0;
-bool success = atomic_compare_exchange_strong(&counter, &expected, 1);
-// weak 版本允许虚假失败，循环中使用更高效
-while (!atomic_compare_exchange_weak(&counter, &expected, new_val)) {
-    expected = atomic_load(&counter);
-}
+while (!atomic_compare_exchange_weak(&counter, &expected, expected + 1)) { }
 ```
 
-### 内存序（Memory Ordering）
+### 内存序速查
+
+| order | 用途 | 备注 |
+|-------|-----|------|
+| `relaxed` | 纯计数器 / 统计 | 无 happens-before |
+| `acquire` | 读端（load） | 与同变量的 release 配对 |
+| `release` | 写端（store） | 发布数据 |
+| `acq_rel` | RMW | 同时具备两端语义 |
+| `seq_cst` | 默认 | 全序，无脑安全 |
+
+经典 publish-subscribe：
+
 ```c
-// 从松到严：relaxed < acquire/release < seq_cst
-atomic_store_explicit(&flag, 1, memory_order_release);    // 发布
-int f = atomic_load_explicit(&flag, memory_order_acquire); // 获取
-
-// relaxed：仅保证原子性，无顺序保证（计数器场景）
-atomic_fetch_add_explicit(&counter, 1, memory_order_relaxed);
-
-// seq_cst（默认）：最严格，全序一致
-atomic_store(&flag, 1);  // 默认 seq_cst
+atomic_store_explicit(&ready, 1, memory_order_release);   // 发布
+if (atomic_load_explicit(&ready, memory_order_acquire))   // 读端
+    consume(data);
 ```
 
-## C11 线程
+## C11 threads（`<threads.h>`）
 
 ```c
-#include <threads.h>
+int worker(void *arg) { /* ... */ return 0; }
 
-int worker(void* arg) {
-    int id = *(int*)arg;
-    // 工作逻辑
-    return 0;
-}
-
-int main(void) {
-    thrd_t threads[4];
-    int ids[4] = {0, 1, 2, 3};
-
-    for (int i = 0; i < 4; i++) {
-        if (thrd_create(&threads[i], worker, &ids[i]) != thrd_success) {
-            fprintf(stderr, "Failed to create thread %d\n", i);
-            return EXIT_FAILURE;
-        }
-    }
-
-    for (int i = 0; i < 4; i++) {
-        int result;
-        thrd_join(threads[i], &result);
-    }
-    return EXIT_SUCCESS;
-}
+thrd_t t;
+if (thrd_create(&t, worker, &arg) != thrd_success) return -1;
+int rc; thrd_join(t, &rc);
 ```
 
-## pthread（POSIX 线程）
+注：MSVC 仍未原生提供 `<threads.h>`；跨平台首选 pthread + `_Atomic`。
+
+## pthread 模板
 
 ```c
-#include <pthread.h>
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t  c = PTHREAD_COND_INITIALIZER;
+bool ready = false;
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-
-// 互斥锁保护
-pthread_mutex_lock(&mutex);
-shared_data++;
-pthread_mutex_unlock(&mutex);
-
-// 条件变量（必须在循环中等待，防止虚假唤醒）
-pthread_mutex_lock(&mutex);
-while (!ready) {
-    pthread_cond_wait(&cond, &mutex);
-}
-// 处理数据
-pthread_mutex_unlock(&mutex);
-
-// 通知
-pthread_mutex_lock(&mutex);
+// 生产者
+pthread_mutex_lock(&m);
 ready = true;
-pthread_cond_signal(&cond);  // 唤醒一个 / broadcast 唤醒所有
-pthread_mutex_unlock(&mutex);
+pthread_cond_signal(&c);          // 多消费者改用 broadcast
+pthread_mutex_unlock(&m);
 
-// 清理
-pthread_mutex_destroy(&mutex);
-pthread_cond_destroy(&cond);
+// 消费者
+pthread_mutex_lock(&m);
+while (!ready) pthread_cond_wait(&c, &m);   // while，不是 if
+pthread_mutex_unlock(&m);
+
+pthread_mutex_destroy(&m);
+pthread_cond_destroy(&c);
 ```
 
-## 读写锁
+读写锁：`pthread_rwlock_rdlock / wrlock / unlock / destroy`。
+
+## False sharing 消除
 
 ```c
-pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
-
-// 读锁（多个读者并发）
-pthread_rwlock_rdlock(&rwlock);
-int val = shared_data;
-pthread_rwlock_unlock(&rwlock);
-
-// 写锁（独占）
-pthread_rwlock_wrlock(&rwlock);
-shared_data = new_val;
-pthread_rwlock_unlock(&rwlock);
-
-pthread_rwlock_destroy(&rwlock);
+_Alignas(64) struct PerCpu {
+    _Atomic uint64_t counter;
+    char _pad[64 - sizeof(_Atomic uint64_t)];
+};
 ```
 
-## ThreadSanitizer 检测
+## ThreadSanitizer
 
 ```bash
-# 编译启用 TSan（不可与 ASan 同时使用）
-gcc -std=c17 -fsanitize=thread -g -O1 program.c -o program -lpthread
-
-# 运行，TSan 自动报告竞态
-./program
-
-# 典型报告：WARNING: ThreadSanitizer: data race
+gcc -std=c17 -fsanitize=thread -g -O1 prog.c -lpthread -o prog
+./prog        # 自动报告 data race / lock-order-inversion / deadlock
 ```
+
+TSan 开销 5–15×。CI 中跑全量测试用例可显著降低生产环境竞态风险。
+
+## Async-signal-safe 备忘
+
+允许：`write`, `_exit`, `sigaction`, `kill`, `read`, `sem_post`（部分平台），原子 store/load。
+禁止：`malloc/free`, `printf/snprintf`, `pthread_mutex_*`（除 `pthread_kill` 投递路径）。
+信号 ↔ 主流程通信使用 `volatile sig_atomic_t` 或 `atomic_int`。
+
+## 无锁数据结构提示
+
+- 单生产者单消费者 (SPSC) 环：`acquire`/`release` 配对足够。
+- 多生产者：CAS 重试时 expected 必须重新 `load`。
+- ABA 风险：用 tagged pointer 或 hazard pointer / RCU。
+- 优先复用 `liburcu`、`folly`、`boost.lockfree` 等成熟实现，自写需充分 stress test。
 
 ## 检查清单
 
-- [ ] 共享可变数据使用 _Atomic 或互斥锁保护
-- [ ] 条件变量在 while 循环中等待
-- [ ] 内存序选择正确（默认 seq_cst，按需放松）
-- [ ] 锁获取顺序一致（防止死锁）
-- [ ] 所有锁/条件变量/rwlock 正确销毁
-- [ ] TSan 零报告
-- [ ] 信号处理器仅使用 async-signal-safe 函数
-- [ ] 无 false sharing（热数据缓存行对齐）
+- [ ] 共享可变数据用 `_Atomic` 或锁保护
+- [ ] 条件变量在 `while` 循环中等待
+- [ ] 内存序选择有理由（默认 seq_cst，放松需证明）
+- [ ] 锁顺序一致
+- [ ] 资源全部 destroy
+- [ ] 热点变量缓存行对齐
+- [ ] 信号处理器只调 async-signal-safe 函数
+- [ ] TSan 零报告（CI 内置）
+
+## 权威参考
+
+- ISO/IEC 9899:2024 §7.17 atomics / §7.26 threads — <https://www.open-std.org/jtc1/sc22/wg14/>
+- C++/C 内存模型（Preshing） — <https://preshing.com/20120710/memory-barriers-are-like-source-control-operations/>
+- POSIX threads 标准 — <https://pubs.opengroup.org/onlinepubs/9699919799/>
+- ThreadSanitizer — <https://clang.llvm.org/docs/ThreadSanitizer.html>
+- liburcu — <https://liburcu.org/>

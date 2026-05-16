@@ -1,167 +1,131 @@
 ---
-description: "Rust内存管理规范 - 所有权转移、借用检查、生命周期标注、智能指针(Box/Rc/Arc/Cow)、零拷贝模式、内存泄漏排查。处理借用冲突、生命周期错误、内存优化、分配策略时加载。"
+name: rust-memory
+description: Rust 内存管理与所有权规范 — 借用规则、生命周期标注、智能指针（Box / Rc / Arc / Cow）、内部可变性（RefCell / Mutex / RwLock / atomic）、零拷贝（bytes / Cow / &[u8]）、内存布局（repr / 字段排序 / SmallVec / bumpalo）。处理借用冲突、生命周期错误、内存分配优化、`Arc<Mutex<T>>` 重构时加载。触发短语：借用冲突、生命周期错误、cannot borrow、does not live long enough、智能指针、Arc Mutex、零拷贝、内存优化。
 user-invocable: true
-context: fork
-model: sonnet
-memory: project
 ---
 
 # Rust 内存管理规范
 
-## 适用 Agents
-
-- **rust:dev** - 日常开发中的内存管理
-- **rust:debug** - 调试借用冲突和生命周期问题
-- **rust:perf** - 内存优化和分配减少
-
-## 相关 Skills
-
-- **Skills(rust:core)** - 所有权三原则、错误处理
-- **Skills(rust:async)** - 异步代码中的生命周期
-- **Skills(rust:unsafe)** - 裸指针、手动内存管理
+前置：`rust-core` 的所有权三原则。本 skill 聚焦借用、生命周期、智能指针、零拷贝。
 
 ## 借用规则
 
-### 核心规则
-1. **多个 `&T`**（不可变借用）可以同时存在
-2. **一个 `&mut T`**（可变借用）独占存在
-3. 借用不能比所有者活得更久
+1. 多个 `&T` 共存 OR 唯一 `&mut T`，二者互斥。
+2. 借用不得长于所有者。
+3. NLL（non-lexical lifetimes）下借用作用域 = 最后一次使用，主动缩短借用即可解冲突。
 
-### 常见模式
 ```rust
-// 缩短借用作用域解决冲突
-let mut map = HashMap::new();
-let value = map.get("key").cloned(); // 借用在此结束
-if value.is_none() {
-    map.insert("key", 42); // 现在可以可变借用
-}
+// 缩短借用作用域
+let value = map.get("k").cloned();   // 借用结束
+if value.is_none() { map.insert("k", 42); }
 
-// 使用 entry API 避免两次查找
-map.entry("key").or_insert(42);
-
-// 函数参数优先借用
-fn process(data: &[u8]) -> Result<Output> { /* ... */ }  // 好
-fn process(data: Vec<u8>) -> Result<Output> { /* ... */ } // 通常不必要
+// entry API 避免双查
+map.entry("k").or_insert(42);
 ```
 
-## 智能指针选择
+## 智能指针选型
 
-| 类型 | 用途 | 线程安全 | 开销 |
+| 类型 | 场景 | 线程安全 | 备注 |
 |------|------|---------|------|
-| `Box<T>` | 堆分配、递归类型、trait 对象 | 由 T 决定 | 一次分配 |
-| `Rc<T>` | 单线程共享所有权 | 否 | 引用计数 |
-| `Arc<T>` | 多线程共享所有权 | 是 | 原子引用计数 |
-| `Cow<'a, T>` | 延迟克隆 | 由 T 决定 | 零或一次分配 |
+| `Box<T>` | 堆分配 / 递归类型 / `Box<dyn Trait>` | 取决于 T | 单一所有权 |
+| `Rc<T>` | 单线程共享只读 | 否 | 弱引用用 `Weak` |
+| `Arc<T>` | 多线程共享只读 | 是 | 原子计数有开销 |
+| `Cow<'a, T>` | 大概率只读、偶尔修改 | 取决于 T | 零或一次分配 |
 
-### 内部可变性
+## 内部可变性
 
 ```rust
-// 单线程：RefCell（运行时借用检查）
+// 单线程：RefCell（运行时借用检查，panic 风险）
 use std::cell::RefCell;
-let cell = RefCell::new(vec![1, 2, 3]);
-cell.borrow_mut().push(4);
 
 // 多线程：Mutex / RwLock
 use std::sync::{Arc, RwLock};
-let shared = Arc::new(RwLock::new(vec![1, 2, 3]));
-shared.write().unwrap().push(4);
 
-// 优先考虑：通道或原子类型替代锁
+// 优先：原子 / channel 替代锁
 use std::sync::atomic::{AtomicU64, Ordering};
 let counter = AtomicU64::new(0);
 counter.fetch_add(1, Ordering::Relaxed);
 ```
 
+`Arc<Mutex<T>>` 是反模式信号：先考虑 mpsc channel、`Arc<RwLock<T>>` 或 actor 拆分。
+
 ## 生命周期
 
+- 优先依赖省略规则（input 单参 → 自动传播；`&self` 方法 → 借 self）。
+- 必须标注时保持最小化，结构体优先用 `'a` 而非 `'static`。
+- `'static` 仅在真正跨线程 spawn 或全局数据时使用。
+
 ```rust
-// 省略规则覆盖大部分场景
-fn first(s: &str) -> &str { &s[..1] }
-
-// 需要标注时保持最小化
-struct Parser<'input> {
-    input: &'input str,
-    pos: usize,
-}
-
-// 'static 仅在真正需要时使用
-fn spawn_task(name: String) {  // String 是 'static
-    tokio::spawn(async move {
-        println!("{name}");
-    });
-}
+struct Parser<'input> { input: &'input str, pos: usize }
 ```
 
 ## 零拷贝模式
 
 ```rust
-// Cow：可能需要修改时延迟克隆
+// Cow：延迟克隆
 use std::borrow::Cow;
-
-fn normalize_path(path: &str) -> Cow<'_, str> {
-    if path.contains("//") {
-        Cow::Owned(path.replace("//", "/"))
-    } else {
-        Cow::Borrowed(path)
-    }
+fn normalize(p: &str) -> Cow<'_, str> {
+    if p.contains("//") { Cow::Owned(p.replace("//", "/")) } else { Cow::Borrowed(p) }
 }
 
-// bytes crate：网络数据零拷贝
-use bytes::{Bytes, BytesMut};
-let data = Bytes::from_static(b"hello");
-let slice = data.slice(0..3); // 无拷贝，引用计数
+// bytes::Bytes：网络 / 缓冲零拷贝切片
+use bytes::Bytes;
+let head = Bytes::from_static(b"hello").slice(0..3);
 
-// &[u8] 切片：零拷贝视图
-fn parse_header(data: &[u8]) -> Result<Header> {
-    let name = &data[..4];  // 无拷贝
-    // ...
-}
+// 切片视图
+fn parse_header(data: &[u8]) -> &[u8] { &data[..4] }
 ```
 
 ## 内存布局优化
 
 ```rust
-// 使用 repr 控制布局
-#[repr(C)]          // C 兼容布局
-#[repr(packed)]     // 紧凑布局（慎用）
-#[repr(align(64))]  // 缓存行对齐
+#[repr(C)]                   // FFI / 显式布局
+#[repr(align(64))] struct CacheAligned([u8; 64]);
 
-// 字段排序减少 padding
-struct Optimized {
-    large: u64,   // 8 bytes
-    medium: u32,  // 4 bytes
-    small: u16,   // 2 bytes
-    tiny: u8,     // 1 byte
-    flag: bool,   // 1 byte
-}  // 16 bytes（无 padding）
+// 字段按大小降序排，减少 padding
+struct Optimized { a: u64, b: u32, c: u16, d: u8 }
 
-// SmallVec 避免小数组堆分配
+// SmallVec：小容量栈分配
 use smallvec::SmallVec;
 let tags: SmallVec<[String; 4]> = SmallVec::new();
 
-// Arena 分配（大量同类型对象）
+// bumpalo：批量同生命周期对象
 use bumpalo::Bump;
 let arena = Bump::new();
-let value = arena.alloc(42);
+let n = arena.alloc(42);
 ```
 
-## Red Flags：AI 常见误区
+## 函数签名指南
 
-| AI 可能的解释 | 实际检查 |
-|--------------|---------|
-| "clone 更简单" | ✅ 热路径中是否有不必要的克隆？ |
-| "用 String 参数方便" | ✅ 是否应为 `&str` 或 `impl AsRef<str>`？ |
-| "Arc\<Mutex\<T\>\> 是标准做法" | ✅ 是否可用 channel 或原子类型替代？ |
-| "Vec 够用" | ✅ 是否考虑 SmallVec 或固定数组？ |
-| "加个 'static 就行" | ✅ 是否真的需要 'static？能否缩短生命周期？ |
-| "Box\<dyn Trait\> 灵活" | ✅ 是否可用泛型实现静态分派？ |
+| 参数 | 写法 |
+|------|------|
+| 字符串只读 | `&str` 或 `impl AsRef<str>` |
+| 切片只读 | `&[T]` |
+| 路径 | `&Path` / `impl AsRef<Path>` |
+| 字节 | `&[u8]` / `&Bytes` |
+| 必须拥有 | `String` / `Vec<T>` / `T` |
+
+## 反模式
+
+| AI 倾向 | 正确做法 |
+|---------|---------|
+| `.clone()` 绕借用 | 重构作用域 / `Cow` / 借用 |
+| `Arc<Mutex<T>>` 万能 | channel / atomic / 拆分状态 |
+| `'static` 一把梭 | 引入 `'a` 缩短生命周期 |
+| `Vec` 装小集合 | `SmallVec` / 数组 |
+| `Box<dyn Trait>` | 优先泛型静态分派 |
 
 ## 检查清单
 
-- [ ] 函数参数优先借用（`&str`、`&[T]`、`&Path`）
-- [ ] 无不必要的 `.clone()` 或 `.to_string()`
-- [ ] 使用 `Cow` 处理可能需要修改的借用数据
-- [ ] 智能指针选择正确（Box/Rc/Arc 按需）
-- [ ] 内部可变性使用正确（RefCell/Mutex/RwLock）
-- [ ] 热路径考虑零拷贝模式
-- [ ] 生命周期注解最小化
+- [ ] 入参优先借用（`&str`、`&[T]`、`&Path`）
+- [ ] 热路径无 `.clone()` / `.to_string()`
+- [ ] 可能修改的借用数据用 `Cow`
+- [ ] 智能指针选型正确，无 `Arc<Mutex<T>>` 滥用
+- [ ] 生命周期标注最小化
+- [ ] 结构体字段大小降序排列
+
+## 相关 Skill
+
+- `rust-core`：所有权三原则、错误处理
+- `rust-async`：跨 await 的借用、`Send` 边界
+- `rust-unsafe`：裸指针、手动内存

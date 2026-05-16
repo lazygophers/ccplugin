@@ -1,64 +1,79 @@
 ---
-description: "C++ performance optimization: cache-friendly layout, SIMD, zero-copy, compile-time computation, LTO/PGO. Load when profiling, benchmarking, or optimizing hot paths."
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: cpp-performance
+description: |
+  C++ performance optimization driven by profiling: cache-friendly layout (SoA, blocking),
+  zero-copy patterns (span, string_view, mdspan, move semantics), compile-time computation
+  (constexpr, consteval, if consteval), SIMD (auto-vectorization, intrinsics, std::simd C++26),
+  parallel algorithms, LTO / PGO, false sharing avoidance. Use when profiling, benchmarking,
+  or optimizing hot paths. Also triggers on "性能优化", "profiling", "perf", "cachegrind",
+  "flamegraph", "SoA", "AoS", "SIMD", "AVX", "LTO", "PGO", "缓存友好", "false sharing",
+  "Google Benchmark".
 ---
 
-# C++ Performance Optimization (2025-2026)
+# C++ 性能优化（2025–2026）
 
-## C++23/26 Performance Features
+铁律：先测后改。无 baseline / 无 profiling 数据不优化。
 
-| Feature | Benefit | Example |
-|---|---|---|
-| Deducing this | Replaces CRTP, faster compile, smaller binary | `void f(this auto&& self) { self.impl(); }` |
-| if consteval | Compile-time/runtime branch | `if consteval { /*full*/ } else { /*fast*/ }` |
-| std::flat_map | Cache-friendly (contiguous storage, 2-10x faster than std::map) | `std::flat_map<K,V> m;` |
-| std::execution (C++26) | Unified async, structured concurrency | `co_await on(scheduler, work());` |
-| std::simd (C++26) | Portable SIMD vectorization | `std::simd<float,4> v;` |
+## 优化优先级（Amdahl 律）
 
-## Applicable Agents
+1. **算法** — 降复杂度类（O(n²) → O(n log n)）
+2. **数据布局** — 缓存友好、连续、SoA
+3. **编译期** — `constexpr` / `consteval` / `if consteval`
+4. **并行** — execution policy / 协程 / `std::execution`
+5. **微优化** — SIMD / 分支提示 / prefetch（最后手段）
 
-| Agent | When |
-|---|---|
-| Skills(cpp:dev) | Performance-aware design |
-| Skills(cpp:perf) | Dedicated optimization |
+## C++23/26 性能特性
 
-## Related Skills
+| 特性 | 收益 | 用法 |
+|------|------|------|
+| Deducing this | 替代 CRTP，编译更快、二进制更小 | `void f(this auto&& self)` |
+| `if consteval` | 编译/运行期分支 | `if consteval { full(x); } else { fast(x); }` |
+| `std::flat_map` | 连续存储，比 `std::map` 快 2–10× | `std::flat_map<K, V> m;` |
+| `std::mdspan` | 零开销多维视图 | `mdspan<float, dextents<size_t, 2>>` |
+| `[[assume(expr)]]` | 优化提示 | `[[assume(x > 0)]];` |
+| `static operator()` | 无状态函子零开销 | `struct F { static int operator()(int x){...} };` |
+| `std::execution` (C++26) | 结构化异步 | `co_await on(sched, work);` |
+| `std::simd` (C++26) | 可移植 SIMD | `std::simd<float, 4> v;` |
 
-| Scenario | Skill | Description |
-|---|---|---|
-| Core | Skills(cpp:core) | C++20/23 features for perf |
-| Memory | Skills(cpp:memory) | Allocators, pools |
-| Concurrency | Skills(cpp:concurrency) | Parallel algorithms |
-| Tooling | Skills(cpp:tooling) | Profiling tools, LTO/PGO |
+## Profiling 基线
 
-## Optimization Priority (Amdahl's Law)
+```bash
+# Google Benchmark：建立可重复 baseline
+./bench --benchmark_format=json --benchmark_out=baseline.json
 
-1. **Algorithm** -- reduce complexity class (O(n^2) -> O(n log n))
-2. **Data layout** -- cache-friendly, SoA, contiguous
-3. **Compile-time** -- constexpr, consteval, if consteval
-4. **Parallelism** -- execution policies, coroutines
-5. **Micro** -- SIMD, branch hints, prefetch (last resort)
+# Linux perf：函数级热点
+perf record -g --call-graph=dwarf ./app
+perf report --sort=overhead,symbol
 
-## Cache-Friendly Data Layout
+# flamegraph
+perf script | stackcollapse-perf.pl | flamegraph.pl > fg.svg
 
-### SoA (Structure of Arrays) for hot loops
+# Cache 行为
+perf stat -e cache-references,cache-misses,L1-dcache-load-misses,LLC-load-misses ./app
+valgrind --tool=cachegrind ./app
+cg_annotate cachegrind.out.*
+
+# macOS：Instruments / dtrace
+xcrun xctrace record --template "Time Profiler" --launch ./app
+```
+
+定位 top-3 热点后才动手。
+
+## 数据布局：SoA over AoS
 
 ```cpp
-// AoS: cache-unfriendly for position-only iteration
+// AoS：迭代 position 时载入未用字段
 struct ParticleAoS { float x, y, z, vx, vy, vz, mass, charge; };
-std::vector<ParticleAoS> particles;  // iterating x,y,z loads unused fields
+std::vector<ParticleAoS> p;
 
-// SoA: cache-friendly
+// SoA：缓存友好 + 易向量化
 struct Particles {
     std::vector<float> x, y, z;
     std::vector<float> vx, vy, vz;
     std::vector<float> mass, charge;
 
-    void update_positions(float dt) {
-        const size_t n = x.size();
+    void update_pos(float dt) {
+        const auto n = x.size();
         for (size_t i = 0; i < n; ++i) {
             x[i] += vx[i] * dt;
             y[i] += vy[i] * dt;
@@ -68,192 +83,192 @@ struct Particles {
 };
 ```
 
-### Cache blocking
+## Cache Blocking
 
 ```cpp
 template<size_t BLOCK = 64>
-void blocked_transpose(std::mdspan<const float, std::dextents<size_t, 2>> A,
-                        std::mdspan<float, std::dextents<size_t, 2>> B) {
-    const size_t n = A.extent(0);
-    for (size_t ii = 0; ii < n; ii += BLOCK) {
-        for (size_t jj = 0; jj < n; jj += BLOCK) {
-            for (size_t i = ii; i < std::min(ii + BLOCK, n); ++i) {
-                for (size_t j = jj; j < std::min(jj + BLOCK, n); ++j) {
-                    B[j, i] = A[i, j];
-                }
-            }
-        }
-    }
+void transpose(std::mdspan<const float, std::dextents<size_t, 2>> A,
+               std::mdspan<      float, std::dextents<size_t, 2>> B) {
+    const auto n = A.extent(0);
+    for (size_t ii = 0; ii < n; ii += BLOCK)
+    for (size_t jj = 0; jj < n; jj += BLOCK)
+    for (size_t i = ii; i < std::min(ii + BLOCK, n); ++i)
+    for (size_t j = jj; j < std::min(jj + BLOCK, n); ++j)
+        B[j, i] = A[i, j];
 }
 ```
 
-## Zero-Copy Patterns
+## 零拷贝
 
 ```cpp
-// std::span: non-owning view of contiguous data
-void process(std::span<const float> data);
-void modify(std::span<float> data);
+void process(std::span<const float> data);      // 非所有权视图
+void parse(std::string_view input);             // 字符串视图
+void transform(std::mdspan<float, std::dextents<size_t, 2>> m);  // 多维视图
 
-// std::string_view: non-owning string view
-void parse(std::string_view input);
-
-// Move semantics: transfer ownership, no copy
+// NRVO / 移动
 std::vector<Data> produce() {
-    std::vector<Data> result;
-    // ... fill result ...
-    return result;  // NRVO: no copy, no move
+    std::vector<Data> r;
+    // ...
+    return r;  // 编译器消除拷贝
 }
-
-// std::mdspan: multi-dimensional non-owning view (C++23)
-void process_matrix(std::mdspan<float, std::dextents<size_t, 2>> mat);
 ```
 
-## Compile-Time Computation
+## 编译期计算
 
 ```cpp
-// constexpr: evaluated at compile-time when possible
-constexpr auto lookup_table = [] {
-    std::array<int, 256> table{};
-    for (int i = 0; i < 256; ++i) {
-        table[i] = /* compute */;
+// 编译期查找表
+constexpr auto crc_table = [] {
+    std::array<uint32_t, 256> t{};
+    for (uint32_t i = 0; i < 256; ++i) {
+        uint32_t c = i;
+        for (int k = 0; k < 8; ++k) c = (c >> 1) ^ (0xEDB88320u & -(c & 1));
+        t[i] = c;
     }
-    return table;
+    return t;
 }();
 
-// consteval: must be compile-time (C++20)
-consteval int compile_hash(std::string_view s) {
-    unsigned hash = 0;
-    for (char c : s) hash = hash * 31 + static_cast<unsigned>(c);
-    return static_cast<int>(hash);
-}
-
-// if consteval: dual path (C++23)
-constexpr double fast_sqrt(double x) {
-    if consteval {
-        // compile-time: use precise algorithm
-        return precise_sqrt(x);
-    } else {
-        // runtime: use hardware sqrt
-        return __builtin_sqrt(x);
-    }
+consteval uint32_t compile_hash(std::string_view s) {
+    uint32_t h = 2166136261u;
+    for (char c : s) h = (h ^ static_cast<uint8_t>(c)) * 16777619u;
+    return h;
 }
 ```
 
-## SIMD Optimization
+## SIMD
 
-### Compiler auto-vectorization
+### 自动向量化（首选）
 
 ```cpp
-// Help the compiler vectorize
-void add_arrays(float* __restrict out,
-                const float* __restrict a,
-                const float* __restrict b,
-                size_t n) {
+void add(float* __restrict out,
+         const float* __restrict a,
+         const float* __restrict b,
+         size_t n) {
     #pragma omp simd
-    for (size_t i = 0; i < n; ++i) {
-        out[i] = a[i] + b[i];
-    }
+    for (size_t i = 0; i < n; ++i) out[i] = a[i] + b[i];
 }
 ```
 
-### Manual intrinsics (when auto-vectorization fails)
+编译选项：`-O3 -march=native -ffast-math`（注意 `-ffast-math` 改变浮点语义）。
+
+### `std::simd`（C++26 实验）
+
+```cpp
+#include <experimental/simd>
+namespace stdx = std::experimental;
+
+void add_simd(std::span<float> out, std::span<const float> a, std::span<const float> b) {
+    using V = stdx::native_simd<float>;
+    const size_t step = V::size();
+    size_t i = 0;
+    for (; i + step <= out.size(); i += step) {
+        V va(&a[i], stdx::vector_aligned);
+        V vb(&b[i], stdx::vector_aligned);
+        (va + vb).copy_to(&out[i], stdx::vector_aligned);
+    }
+    for (; i < out.size(); ++i) out[i] = a[i] + b[i];
+}
+```
+
+### 手写 intrinsics（确认自动向量化失败时）
 
 ```cpp
 #include <immintrin.h>
 
-void dot_product_avx2(const float* a, const float* b, size_t n, float& result) {
+float dot_avx2(const float* a, const float* b, size_t n) {
     __m256 sum = _mm256_setzero_ps();
     size_t i = 0;
     for (; i + 8 <= n; i += 8) {
         __m256 va = _mm256_loadu_ps(a + i);
         __m256 vb = _mm256_loadu_ps(b + i);
-        sum = _mm256_fmadd_ps(va, vb, sum);  // fused multiply-add
+        sum = _mm256_fmadd_ps(va, vb, sum);
     }
-    // Horizontal sum
-    __m128 hi = _mm256_extractf128_ps(sum, 1);
-    __m128 lo = _mm256_castps256_ps128(sum);
-    __m128 s = _mm_add_ps(lo, hi);
-    s = _mm_hadd_ps(s, s);
-    s = _mm_hadd_ps(s, s);
-    result = _mm_cvtss_f32(s);
-    // Scalar tail
-    for (; i < n; ++i) result += a[i] * b[i];
+    alignas(32) float buf[8];
+    _mm256_store_ps(buf, sum);
+    float r = buf[0]+buf[1]+buf[2]+buf[3]+buf[4]+buf[5]+buf[6]+buf[7];
+    for (; i < n; ++i) r += a[i] * b[i];
+    return r;
 }
 ```
 
-## Compiler Optimization Hints
+## 分支与对齐提示
 
 ```cpp
-// Branch prediction
-if (condition) [[likely]] { fast_path(); }
-else [[unlikely]] { slow_path(); }
+if (likely_branch) [[likely]]   { fast_path(); }
+else                [[unlikely]] { slow_path(); }
 
-// Assume (C++23)
-[[assume(x > 0)]];  // compiler can optimize based on this
+[[assume(x > 0)]];  // C++23
 
-// No unique address (C++20) -- compress empty members
 struct Optimized {
-    [[no_unique_address]] Allocator alloc;
+    [[no_unique_address]] EmptyAlloc alloc;
     Data data;
 };
 ```
 
-## LTO and PGO
-
-```cmake
-# LTO (Link-Time Optimization)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-
-# PGO (Profile-Guided Optimization)
-# Step 1: instrument
-set(CMAKE_CXX_FLAGS "-fprofile-generate=${CMAKE_BINARY_DIR}/profiles")
-# Step 2: run representative workload
-# Step 3: optimize
-set(CMAKE_CXX_FLAGS "-fprofile-use=${CMAKE_BINARY_DIR}/profiles")
-```
-
-## Avoid False Sharing
+## 并行算法
 
 ```cpp
-struct alignas(std::hardware_destructive_interference_size) PaddedCounter {
-    std::atomic<int64_t> value{0};
-};
+std::sort(std::execution::par_unseq, v.begin(), v.end());
 
-// Thread-local counters for high contention
-thread_local int64_t local_count = 0;
-std::atomic<int64_t> global_count{0};
-
-void count() {
-    ++local_count;
-    if (local_count >= 1024) {
-        global_count.fetch_add(local_count, std::memory_order_relaxed);
-        local_count = 0;
-    }
-}
+auto sum = std::transform_reduce(
+    std::execution::par,
+    v.begin(), v.end(), 0L,
+    std::plus{},
+    [](int x) { return x * x; }
+);
 ```
 
-## Red Flags
+## False Sharing 规避
 
-| Rationalization | Actual Check |
-|---|---|
-| "Optimize first, profile later" | Profile first, optimize the measured hotspot |
-| "AoS is simpler" | Use SoA for cache-hot loops |
-| "Copy is fine" | Use span/string_view for non-owning access |
-| "Runtime is ok" | Use constexpr/consteval where possible |
-| "SIMD everywhere" | Only use SIMD after confirming auto-vectorization fails |
-| "Single thread is enough" | Use parallel execution policies for large data |
-| "Don't need LTO" | Enable LTO for release builds |
+```cpp
+struct alignas(std::hardware_destructive_interference_size) Counter {
+    std::atomic<int64_t> v{0};
+};
+std::array<Counter, max_threads> counters;
+```
 
-## Checklist
+## LTO / PGO
 
-- [ ] Profiled before optimizing (perf record, cachegrind)
-- [ ] Baseline benchmarks established (Google Benchmark)
-- [ ] SoA layout for cache-hot data
-- [ ] Zero-copy with std::span, string_view, move semantics
-- [ ] constexpr/consteval for compile-time computation
-- [ ] Parallel execution policies for large data sets
-- [ ] LTO enabled for release builds
-- [ ] PGO considered for critical applications
-- [ ] False sharing avoided (alignas + hardware_destructive_interference_size)
-- [ ] SIMD only where auto-vectorization confirmed insufficient
-- [ ] Before/after benchmarks with statistical validation
+```cmake
+# LTO
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+
+# PGO 两阶段
+# Stage 1: -fprofile-generate=${CMAKE_BINARY_DIR}/profiles
+# Stage 2: 跑代表性负载
+# Stage 3: -fprofile-use=${CMAKE_BINARY_DIR}/profiles
+```
+
+## 红旗合理化
+
+| 借口 | 检查项 |
+|------|--------|
+| "先优化再 profile" | 是否先 profile 定位热点？ |
+| "AoS 简单" | 是否换 SoA 用于缓存热路径？ |
+| "拷贝没事" | 是否用 span/string_view/move？ |
+| "运行期算够快" | 是否可 constexpr/consteval？ |
+| "SIMD 到处加" | 自动向量化是否已确认失败？ |
+| "单线程就够" | 大数据集是否用并行 policy？ |
+| "LTO 增加构建时间" | Release 是否开 LTO + PGO？ |
+
+## 检查清单
+
+- [ ] 优化前有 baseline benchmark
+- [ ] profiling 数据驱动决策（perf / cachegrind）
+- [ ] 热数据用 SoA
+- [ ] 零拷贝传参（span/string_view/mdspan）
+- [ ] 可能的常量都 `constexpr` / `consteval`
+- [ ] 大数据集用并行 execution policy
+- [ ] Release 开 LTO；关键应用考虑 PGO
+- [ ] 跨线程字段按缓存行隔离
+- [ ] SIMD 只在自动向量化确认失败后手写
+- [ ] 前后对比 benchmark 有统计显著性
+- [ ] 优化未引入 ASan / UBSan 报错
+
+## 权威参考
+
+- perf wiki — <https://perf.wiki.kernel.org/index.php/Main_Page>
+- Brendan Gregg flamegraph — <https://www.brendangregg.com/flamegraphs.html>
+- Agner Fog 优化手册 — <https://www.agner.org/optimize/>
+- Google Benchmark — <https://github.com/google/benchmark>
+- Intel Intrinsics Guide — <https://www.intel.com/content/www/us/en/docs/intrinsics-guide/>
+- std::simd P1928 — <https://www.open-std.org/jtc1/sc22/wg21/docs/papers/>

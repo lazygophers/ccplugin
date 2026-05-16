@@ -1,192 +1,155 @@
 ---
-description: "C语言错误处理规范，涵盖errno/perror机制、goto cleanup资源释放模式、安全字符串操作（snprintf/strncpy）、函数返回值约定。适用于错误传播设计、防御性编程、异常路径调试。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: c-error
+description: |
+  C error-handling conventions: errno/perror/strerror_r usage, goto cleanup resource
+  pattern, safe string operations (snprintf, strncpy + NUL terminator, memcpy with
+  length checks), explicit error-code enums, [[nodiscard]] for critical returns, and
+  integer overflow guards (size multiplication, INT_MAX limits). Use when designing
+  error paths, propagating failures across layers, or hardening against silently-ignored
+  returns. Triggers on "errno", "goto cleanup", "strcpy 替代", "snprintf", "整数溢出",
+  "错误码设计", "defensive coding", "[[nodiscard]]".
 ---
 
 # C 错误处理规范
 
-## 适用 Agents
-- **dev** - 实现错误处理逻辑和安全字符串操作
-- **debug** - 分析错误传播路径和 errno 状态
-- **test** - 测试错误路径和边界条件
+## 强制约定
 
-## 相关 Skills
+1. 所有系统调用 / 库函数 / 内部 API 返回值必须检查。
+2. 多资源函数使用 `goto cleanup` 集中释放；`free(NULL)` 安全无需判空。
+3. `errno` 在可能被覆盖前保存到本地变量。
+4. 字符串操作禁用 `strcpy / sprintf / strcat / gets`；用 `snprintf / strncpy + NUL / memcpy`。
+5. `snprintf` 返回值需同时判断 `< 0`（编码错误）和 `>= sizeof(dest)`（截断）。
+6. 大小相乘 / 索引计算前做溢出检查。
+7. 库函数关键返回值标 `[[nodiscard]]`（C23）或 `__attribute__((warn_unused_result))`。
+8. 不用 `signal()`；信号注册一律 `sigaction`（细节见 `c-posix`）。
 
-| 场景 | Skill | 说明 |
-|------|-------|------|
-| 核心规范 | Skills(c:core) | C11/C17 标准、编码约定 |
-| POSIX API | Skills(c:posix) | 系统调用错误处理 |
-| 内存管理 | Skills(c:memory) | 分配失败处理 |
-
-## AI 理性化检查
-
-| AI 理性化 | 实际检查 |
-|----------|---------|
-| "这个函数不会失败" | 文档是否说明了错误条件？ |
-| "goto 是坏习惯" | 错误清理是否需要释放多个资源？ |
-| "strcpy 够安全了" | 输入长度是否有保证？ |
-| "errno 不用保存" | 后续调用是否会覆盖 errno？ |
-| "返回 -1 表示错误就行" | 是否需要区分不同错误类型？ |
-
-## errno 和错误报告
+## errno 与报告
 
 ```c
-#include <errno.h>
-#include <string.h>
+FILE *f = fopen(path, "r");
+if (!f) { perror("fopen"); return -1; }
 
-// 检查并报告错误
-FILE* file = fopen("data.txt", "r");
-if (file == NULL) {
-    perror("fopen");                          // 输出: fopen: No such file or directory
-    fprintf(stderr, "Error: %s\n", strerror(errno));  // 等价手动输出
-    return -1;
-}
+// 保存 errno，因为后续清理可能覆盖
+int saved = errno;
+cleanup();
+errno = saved;
 
-// 保存 errno（后续调用可能覆盖）
-int saved_errno = errno;
-cleanup_resources();  // 这里可能修改 errno
-errno = saved_errno;  // 恢复
-
-// 线程安全的 strerror_r
-char errbuf[256];
-strerror_r(errno, errbuf, sizeof(errbuf));
-fprintf(stderr, "Error: %s\n", errbuf);
+// 线程安全
+char buf[256];
+strerror_r(errno, buf, sizeof buf);
+fprintf(stderr, "fail: %s\n", buf);
 ```
 
-## goto cleanup 模式（标准资源管理）
+## `goto cleanup` 标准模板
 
 ```c
-int process_data(const char* input_path, const char* output_path) {
-    int ret = -1;           // 默认失败
-    FILE* in = NULL;
-    FILE* out = NULL;
-    char* buffer = NULL;
+int process(const char *in_path, const char *out_path) {
+    int rc = -1;
+    FILE *in = NULL, *out = NULL;
+    char *buf = NULL;
 
-    in = fopen(input_path, "r");
-    if (in == NULL) {
-        perror("fopen input");
-        goto cleanup;
-    }
+    if (!(in  = fopen(in_path,  "r"))) { perror("open in");  goto out; }
+    if (!(out = fopen(out_path, "w"))) { perror("open out"); goto out; }
+    if (!(buf = malloc(BUFSZ)))        { perror("malloc");   goto out; }
 
-    out = fopen(output_path, "w");
-    if (out == NULL) {
-        perror("fopen output");
-        goto cleanup;
-    }
-
-    buffer = malloc(BUFFER_SIZE);
-    if (buffer == NULL) {
-        perror("malloc");
-        goto cleanup;
-    }
-
-    // 核心逻辑
     size_t n;
-    while ((n = fread(buffer, 1, BUFFER_SIZE, in)) > 0) {
-        if (fwrite(buffer, 1, n, out) != n) {
-            perror("fwrite");
-            goto cleanup;
-        }
-    }
-    if (ferror(in)) {
-        perror("fread");
-        goto cleanup;
-    }
+    while ((n = fread(buf, 1, BUFSZ, in)) > 0)
+        if (fwrite(buf, 1, n, out) != n) { perror("write"); goto out; }
+    if (ferror(in)) { perror("read"); goto out; }
 
-    ret = 0;  // 成功
-
-cleanup:
-    free(buffer);           // free(NULL) 是安全的
-    if (out && fclose(out) != 0) perror("fclose output");
-    if (in && fclose(in) != 0) perror("fclose input");
-    return ret;
+    rc = 0;
+out:
+    free(buf);
+    if (out) fclose(out);
+    if (in)  fclose(in);
+    return rc;
 }
 ```
 
-## 错误返回值约定
+## 错误码设计
 
 ```c
-// 方式 1：返回错误码（推荐用于库函数）
 typedef enum {
-    ERR_OK = 0,
-    ERR_NULL_PTR = -1,
-    ERR_NO_MEM = -2,
+    ERR_OK          =  0,
+    ERR_NULL_PTR    = -1,
+    ERR_NO_MEM      = -2,
     ERR_INVALID_ARG = -3,
-    ERR_IO = -4,
+    ERR_IO          = -4,
+    ERR_OVERFLOW    = -5,
 } ErrorCode;
 
-// C23 [[nodiscard]] 防止忽略返回值
 #if __STDC_VERSION__ >= 202311L
 [[nodiscard]]
+#else
+__attribute__((warn_unused_result))
 #endif
-ErrorCode do_something(const char* input, char* output, size_t output_size);
-
-// 方式 2：返回 NULL 表示失败（指针返回值）
-char* create_string(const char* src);  // 返回 NULL 表示失败
+ErrorCode do_thing(const char *in, char *out, size_t cap);
 ```
 
-## 安全字符串操作
+## 安全字符串
 
 ```c
-// 禁止: strcpy, sprintf, strcat, gets
-// 使用安全替代:
+char dst[64];
 
-char dest[64];
+// snprintf — 同时判断错误与截断
+int n = snprintf(dst, sizeof dst, "id=%d name=%s", id, name);
+if (n < 0 || (size_t)n >= sizeof dst) return ERR_OVERFLOW;
 
-// snprintf（推荐，最安全）
-int written = snprintf(dest, sizeof(dest), "Hello %s, id=%d", name, id);
-if (written < 0 || (size_t)written >= sizeof(dest)) {
-    // 截断或错误
-}
+// strncpy 必须手动补 NUL
+strncpy(dst, src, sizeof dst - 1);
+dst[sizeof dst - 1] = '\0';
 
-// strncpy + 手动终止
-strncpy(dest, src, sizeof(dest) - 1);
-dest[sizeof(dest) - 1] = '\0';
-
-// strncat
-dest[0] = '\0';
-strncat(dest, prefix, sizeof(dest) - 1);
-strncat(dest, suffix, sizeof(dest) - strlen(dest) - 1);
-
-// memcpy（已知长度时最高效）
+// memcpy（已知精确长度时最快）
 size_t len = strlen(src);
-if (len < sizeof(dest)) {
-    memcpy(dest, src, len + 1);
-}
+if (len >= sizeof dst) return ERR_OVERFLOW;
+memcpy(dst, src, len + 1);
 ```
 
-## 整数溢出检查
+C11 Annex K（`strcpy_s` 等 `_s` 系列）仅可选实现，不可移植，**不推荐**。
+
+## 整数溢出守卫
 
 ```c
-#include <stdint.h>
-#include <limits.h>
+#include <stdckdint.h>      // C23：标准的 ckd_add/ckd_mul/ckd_sub
 
-// 乘法溢出检查（用于 malloc 大小计算）
-bool safe_multiply(size_t a, size_t b, size_t* result) {
-    if (a != 0 && b > SIZE_MAX / a) return false;  // 溢出
-    *result = a * b;
-    return true;
-}
-
-// 使用
+// C23
 size_t total;
-if (!safe_multiply(n, sizeof(int), &total)) {
-    fprintf(stderr, "Size overflow\n");
-    return ERR_INVALID_ARG;
+if (ckd_mul(&total, n, sizeof(T))) return ERR_OVERFLOW;
+
+// 兼容写法
+static inline bool safe_mul(size_t a, size_t b, size_t *r) {
+    if (a && b > SIZE_MAX / a) return false;
+    *r = a * b; return true;
 }
-int* arr = malloc(total);
+
+// GCC/Clang 内置（已有 10+ 年）
+size_t r;
+if (__builtin_mul_overflow(n, sizeof(T), &r)) return ERR_OVERFLOW;
 ```
+
+## 防御性编程模式
+
+- 边界优先：函数入口校验指针、长度、范围。
+- 失败快返回：错误路径短，成功路径深。
+- 永远写日志：错误不仅返回值，还要 `perror / strerror_r` 出错点。
+- 资源所有权显式：注释指出 "调用者释放" 还是 "被调用者释放"。
+- 不静默吞错：`(void)` cast 必须有注释解释为何忽略。
 
 ## 检查清单
 
-- [ ] 所有系统调用/库函数返回值已检查
-- [ ] 使用 perror/strerror 输出有意义的错误信息
-- [ ] 多资源函数使用 goto cleanup 模式
-- [ ] errno 在可能被覆盖前保存
-- [ ] 字符串操作使用 snprintf/strncpy（无 strcpy/sprintf）
-- [ ] 整数运算检查溢出（特别是 malloc 大小计算）
-- [ ] 错误码定义明确，区分不同错误类型
-- [ ] C23 项目使用 [[nodiscard]] 标记关键返回值
+- [ ] 所有返回值显式处理（或显式 `(void)` + 注释）
+- [ ] 多资源函数走 `goto cleanup`
+- [ ] errno 保存 / 恢复正确
+- [ ] 无禁用字符串函数
+- [ ] `snprintf` 同时判断错误 + 截断
+- [ ] 整数运算用 `ckd_*` / `__builtin_*_overflow` / 手写守卫
+- [ ] 错误码枚举有意义，区分类别
+- [ ] 关键返回值标 `[[nodiscard]]` 或 `warn_unused_result`
+
+## 权威参考
+
+- CERT C Secure Coding — <https://wiki.sei.cmu.edu/confluence/display/c>
+- glibc 错误处理 — <https://www.gnu.org/software/libc/manual/html_node/Error-Reporting.html>
+- C23 `<stdckdint.h>` 草案 — <https://www.open-std.org/jtc1/sc22/wg14/www/docs/n3096.pdf>
+- GCC `__builtin_*_overflow` — <https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html>
+- POSIX `strerror_r` — <https://pubs.opengroup.org/onlinepubs/9699919799/functions/strerror.html>

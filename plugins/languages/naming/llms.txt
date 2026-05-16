@@ -19,8 +19,7 @@ naming/
 │   ├── hooks.py
 │   └── main.py
 ├── skills/
-│   └── naming-skills/
-│       └── SKILL.md
+│   └── core/SKILL.md
 ├── AGENT.md
 ├── README.md
 ├── pyproject.toml

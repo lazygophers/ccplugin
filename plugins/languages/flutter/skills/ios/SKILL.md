@@ -1,52 +1,22 @@
 ---
-description: "Flutter iOS 平台开发规范。涵盖 Cupertino 设计适配、Impeller 渲染引擎、App Store 审核合规与 iOS 性能调优。适用于开发 iPhone/iPad 应用、处理原生交互时加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: flutter-ios
+description: Flutter iOS 平台规范 — Cupertino 设计、Impeller (iOS 默认)、ATT/隐私清单、Info.plist 权限描述、ProMotion 120Hz、App Store 审核合规。当用户开发 iOS/iPadOS 端、提到 "iOS"、"Cupertino"、"App Store"、"ATT"、"权限"、"Info.plist"、"TestFlight" 时加载。
 ---
 
 # Flutter iOS 开发规范
 
-## 适用 Agents
-
-| Agent | 说明 |
-| ----- | ---- |
-| dev   | Flutter 开发专家 |
-| debug | Flutter 调试专家 |
-| perf  | Flutter 性能优化专家 |
-
-## 相关 Skills
-
-| 场景     | Skill                 | 说明                  |
-| -------- | --------------------- | --------------------- |
-| 核心规范 | Skills(flutter:core)  | Dart 3 特性、项目结构 |
-| UI 开发  | Skills(flutter:ui)    | Widget 组合、响应式   |
-| 状态管理 | Skills(flutter:state) | Riverpod/Bloc 集成    |
-
 ## Cupertino 设计
 
 ```dart
-// Cupertino 主题配置
 CupertinoApp(
   theme: const CupertinoThemeData(
     primaryColor: CupertinoColors.activeBlue,
     brightness: Brightness.light,
-    textTheme: CupertinoTextThemeData(
-      navLargeTitleTextStyle: TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 34,
-      ),
-    ),
   ),
-)
+);
 
-// iOS 风格页面
 CupertinoPageScaffold(
-  navigationBar: const CupertinoNavigationBar(
-    middle: Text('Settings'),
-    previousPageTitle: 'Back',
-  ),
+  navigationBar: const CupertinoNavigationBar(middle: Text('Settings')),
   child: CupertinoListSection.insetGrouped(
     header: const Text('Account'),
     children: [
@@ -56,49 +26,42 @@ CupertinoPageScaffold(
         trailing: const CupertinoListTileChevron(),
         onTap: () => context.push('/profile'),
       ),
-      CupertinoListTile(
-        title: const Text('Notifications'),
-        leading: const Icon(CupertinoIcons.bell),
-        trailing: CupertinoSwitch(
-          value: notificationsEnabled,
-          onChanged: (v) => ref.read(settingsProvider.notifier).toggleNotifications(v),
-        ),
+    ],
+  ),
+);
+
+// 销毁性 alert
+showCupertinoDialog(
+  context: context,
+  builder: (_) => CupertinoAlertDialog(
+    title: const Text('Delete'),
+    actions: [
+      CupertinoDialogAction(
+        isDestructiveAction: true,
+        onPressed: () => Navigator.pop(context, true),
+        child: const Text('Delete'),
+      ),
+      CupertinoDialogAction(
+        isDefaultAction: true,
+        onPressed: () => Navigator.pop(context, false),
+        child: const Text('Cancel'),
       ),
     ],
   ),
-)
-
-// iOS 风格对话框
-CupertinoAlertDialog(
-  title: const Text('Delete'),
-  content: const Text('Are you sure?'),
-  actions: [
-    CupertinoDialogAction(
-      isDestructiveAction: true,
-      onPressed: () => Navigator.pop(context, true),
-      child: const Text('Delete'),
-    ),
-    CupertinoDialogAction(
-      isDefaultAction: true,
-      onPressed: () => Navigator.pop(context, false),
-      child: const Text('Cancel'),
-    ),
-  ],
-)
+);
 ```
 
-## Impeller 渲染引擎
+## Impeller (iOS 默认)
+
+Impeller 自 Flutter 3.10 起 iOS 默认启用，消除 shader compilation jank。
+
+优化要点:
+- `BackdropFilter` 控制使用范围 (开销大)
+- 避免嵌套多层 `Opacity` → `color.withValues(alpha: …)`
+- 自绘 `CustomPaint` 复杂度可控
 
 ```dart
-// iOS 默认启用 Impeller（Flutter 3.16+）
-// 优势：消除 shader compilation jank，更流畅的动画
-
-// Impeller 优化要点：
-// 1. 避免 saveLayer（Opacity、ClipRRect with shadow）
-// 2. 使用 BackdropFilter 时注意性能
-// 3. 减少 Canvas 自定义绘制的复杂度
-
-// 好：iOS 模糊效果（Impeller 优化过）
+// 高质量毛玻璃
 ClipRRect(
   borderRadius: BorderRadius.circular(16),
   child: BackdropFilter(
@@ -108,18 +71,15 @@ ClipRRect(
       child: content,
     ),
   ),
-)
-
-// 避免：嵌套多层 Opacity
-// 使用颜色 alpha 替代 Opacity widget
+);
 ```
 
 ## 性能目标
 
-- **帧率**: 60fps（120fps on ProMotion devices）
-- **冷启动**: < 1.5s
-- **IPA 大小**: < 50MB（App Store 限制考虑）
-- **内存**: < 150MB 正常使用
+- 帧率 60fps / ProMotion 设备 120fps
+- 冷启动 < 1.5s
+- IPA 拆包 ≤ 50MB
+- 正常使用内存 < 150MB
 
 ## 性能优化
 
@@ -128,7 +88,7 @@ ClipRRect(
 @override
 void didChangeDependencies() {
   super.didChangeDependencies();
-  precacheImage(const AssetImage('assets/hero_image.png'), context);
+  precacheImage(const AssetImage('assets/hero.png'), context);
 }
 
 // 2. CachedNetworkImage + 降采样
@@ -137,89 +97,87 @@ CachedNetworkImage(
   memCacheWidth: 200,
   memCacheHeight: 200,
   placeholder: (_, __) => const CupertinoActivityIndicator(),
-  errorWidget: (_, __, ___) => const Icon(CupertinoIcons.photo),
-)
-
-// 3. iOS 平台特定优化
-// 在 ios/Runner/Info.plist 中：
-// - 启用 Metal 渲染
-// - 配置 App Transport Security
-// - 设置 Launch Storyboard
-
-// 4. 利用 ProMotion 120fps
-// Flutter 自动适配 ProMotion 显示器
-// 确保动画和滚动不掉帧
+);
 ```
 
-## App Store 规范
+## App Store 合规
+
+### 隐私清单 (PrivacyInfo.xcprivacy, iOS 17+ 必需)
+
+声明所有 SDK 收集的数据类型 + 使用必需 API 的 Reason。Flutter 默认模板已含，自定义插件需补充。
+
+### ATT (App Tracking Transparency)
 
 ```dart
-// 1. 隐私合规
-// - 配置 NSPrivacyAccessedAPITypes（Info.plist）
-// - 声明数据收集类型
-// - App Tracking Transparency（ATT）
-
 import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 
-Future<void> requestTracking() async {
-  final status = await AppTrackingTransparency.requestTrackingAuthorization();
-  // 处理不同授权状态
+Future<void> ensureTrackingPermission() async {
+  final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+  if (status == TrackingStatus.notDetermined) {
+    await AppTrackingTransparency.requestTrackingAuthorization();
+  }
 }
-
-// 2. 权限声明（Info.plist）
-// NSCameraUsageDescription
-// NSPhotoLibraryUsageDescription
-// NSLocationWhenInUseUsageDescription
-
-// 3. Universal Links / Deep Links
-// 配置 apple-app-site-association
 ```
 
-## 测试规范
+### Info.plist 权限描述 (必须)
+
+| Key | 场景 |
+| --- | --- |
+| `NSCameraUsageDescription` | 相机 |
+| `NSPhotoLibraryUsageDescription` | 相册 |
+| `NSLocationWhenInUseUsageDescription` | 定位 |
+| `NSMicrophoneUsageDescription` | 麦克风 |
+| `NSUserTrackingUsageDescription` | ATT |
+
+缺失任一会导致 App Store 拒审或运行崩溃。
+
+## Universal Links / Deep Links
+
+`ios/Runner/Runner.entitlements` 配置 `associated-domains` + 服务器部署 `apple-app-site-association`。
+
+## 测试
 
 ```dart
-testWidgets('Cupertino navigation works', (tester) async {
-  // Arrange
+testWidgets('Cupertino navigation', (tester) async {
   debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-
-  await tester.pumpWidget(
-    const ProviderScope(
-      child: CupertinoApp(home: SettingsPage()),
-    ),
-  );
-
-  // Act
+  await tester.pumpWidget(const ProviderScope(child: CupertinoApp(home: SettingsPage())));
   await tester.tap(find.text('Profile'));
   await tester.pumpAndSettle();
-
-  // Assert
   expect(find.byType(ProfilePage), findsOneWidget);
-
   debugDefaultTargetPlatformOverride = null;
 });
 ```
 
+## 构建
+
+```bash
+flutter build ios --release --split-debug-info=build/debug-info --obfuscate
+flutter build ipa --release --export-method=app-store
+```
+
 ## Red Flags
 
-| AI 可能的理性化解释 | 实际应该检查的内容 | 严重程度 |
-|---------------------|-------------------|---------|
-| "Material 在 iOS 也能用" | iOS 是否使用 Cupertino 控件？ | 高 |
-| "Opacity 更方便" | 是否避免 Opacity widget（用 color alpha）？ | 中 |
-| "BackdropFilter 随便用" | BackdropFilter 是否控制在合理范围？ | 中 |
-| "不需要 ATT" | 是否配置了 App Tracking Transparency？ | 高 |
-| "权限直接请求" | Info.plist 是否声明了所有权限描述？ | 高 |
-| "Launch Storyboard 默认就好" | 是否自定义了 Launch Screen？ | 低 |
-| "120fps 自动的" | ProMotion 设备上动画是否流畅？ | 中 |
+| AI 借口 | 实际检查 | 严重度 |
+| --- | --- | --- |
+| "Material 在 iOS 也行" | iOS 是否 Cupertino？ | 高 |
+| "不需要 ATT" | 涉广告追踪是否实现 ATT？ | 高 |
+| "权限直接请求" | Info.plist 描述是否完整？ | 高 |
+| "BackdropFilter 随便用" | 使用范围是否受控？ | 中 |
+| "120fps 自动" | ProMotion 上是否实测无掉帧？ | 中 |
+| "隐私清单不重要" | iOS 17+ 必需 PrivacyInfo.xcprivacy | 高 |
 
 ## 检查清单
 
-- [ ] Cupertino 设计系统用于 iOS 平台
-- [ ] CupertinoApp + CupertinoThemeData 主题
-- [ ] CupertinoNavigationBar、CupertinoListSection 等原生组件
-- [ ] Impeller 渲染（iOS 默认启用，确认性能）
-- [ ] 帧率 60fps / 120fps（ProMotion）
+- [ ] iOS 用 Cupertino 控件 + `CupertinoApp`
+- [ ] Impeller 性能验证 (默认启用)
+- [ ] 60/120fps (ProMotion)
 - [ ] 冷启动 < 1.5s
-- [ ] App Store 隐私合规（ATT、权限声明）
-- [ ] Info.plist 权限描述完整
+- [ ] `PrivacyInfo.xcprivacy` 完整
+- [ ] ATT 请求 (如需追踪)
+- [ ] Info.plist 所有 `NS*UsageDescription` 完整
 - [ ] Launch Screen 自定义
-- [ ] Widget test 使用 TargetPlatform.iOS 覆盖
+- [ ] Widget test `TargetPlatform.iOS` 覆盖
+
+## 关联
+
+- `Skills(flutter:core)` / `Skills(flutter:ui)` / `Skills(flutter:state)`

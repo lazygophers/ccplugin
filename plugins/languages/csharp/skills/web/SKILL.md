@@ -1,284 +1,186 @@
 ---
-description: "C# Web 开发规范：ASP.NET Core 10 Minimal APIs、native AOT 发布、Blazor SSR/Streaming 渲染、rate limiting 限流、output caching 缓存、middleware 中间件。开发 Web API、REST 服务、Blazor 应用时加载。"
-user-invocable: true
-context: fork
-model: sonnet
-memory: project
+name: csharp-web
+description: |
+  ASP.NET Core 10 Web 开发规范。覆盖 Minimal API、native AOT 发布、Blazor SSR /
+  Streaming / Auto / Interactive 渲染模式、rate limiting、output caching、HybridCache、
+  middleware 顺序、IExceptionHandler + ProblemDetails、OpenAPI 3.1、健康检查、
+  JWT / Identity API、WebApplicationFactory 集成测试。
+  当开发 Web API、REST 服务、Blazor 应用、配置中间件管道、调优 ASP.NET Core,
+  或说 "ASP.NET Core"、"Minimal API"、"Blazor"、"middleware"、"WebApplication"、
+  "AOT publish"、"HybridCache" 时加载。
+allowed-tools: Read, Grep, Glob, Bash
 ---
 
 # C# Web 开发规范
 
-## 适用 Agents
+主流形态: Minimal API + EF Core + Blazor SSR。
 
-- **csharp:dev** - Web API 开发
-- **csharp:debug** - Web 应用调试
-- **csharp:test** - 集成测试（WebApplicationFactory）
-
-## 相关 Skills
-
-- **Skills(csharp:core)** - 核心规范：C# 14/.NET 10 标准
-- **Skills(csharp:async)** - 异步编程：async/await、CancellationToken
-- **Skills(csharp:data)** - 数据访问：EF Core 10
-
-## ASP.NET Core 10 Minimal APIs
+## 项目骨架
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
 
-// 服务注册
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddDbContext<AppDb>(o => o.UseSqlServer(connectionString));
-
-// Rate limiting（.NET 10 内置）
-builder.Services.AddRateLimiter(o =>
-{
-    o.AddFixedWindowLimiter("api", opt =>
+builder.Services
+    .AddProblemDetails()
+    .AddOpenApi()                  // .NET 9+ 内置 (替代 Swashbuckle)
+    .AddOutputCache()
+    .AddHybridCache()              // .NET 10 GA, 替代 IDistributedCache
+    .AddExceptionHandler<GlobalExceptionHandler>()
+    .AddRateLimiter(o => o.AddFixedWindowLimiter("api", w =>
     {
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 100;
-    });
-});
+        w.PermitLimit = 100;
+        w.Window = TimeSpan.FromMinutes(1);
+    }))
+    .AddAuthentication().AddJwtBearer();
 
-// Output caching（.NET 10 内置）
-builder.Services.AddOutputCache(o =>
-{
-    o.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(5)));
-    o.AddPolicy("users", b => b.Tag("users").Expire(TimeSpan.FromMinutes(10)));
-});
+builder.Services.AddDbContextPool<AppDb>(o =>
+    o.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
 
 var app = builder.Build();
 
-// ✅ Minimal API with TypedResults
-app.MapGet("/api/users/{id:int}", async (
-    int id,
-    IUserService service,
-    CancellationToken ct) =>
-{
-    var user = await service.GetUserAsync(id, ct);
-    return user is not null
-        ? TypedResults.Ok(user)
-        : TypedResults.NotFound();
-})
-.WithName("GetUser")
-.WithOpenApi()
-.CacheOutput("users")
-.RequireRateLimiting("api");
-
-app.MapPost("/api/users", async (
-    CreateUserRequest request,
-    IUserService service,
-    CancellationToken ct) =>
-{
-    var user = await service.CreateAsync(request, ct);
-    return TypedResults.Created($"/api/users/{user.Id}", user);
-})
-.WithName("CreateUser")
-.WithOpenApi()
-.AddEndpointFilter<ValidationFilter>();
-
+app.UseExceptionHandler();      // 早期捕获
+app.UseStatusCodePages();
+app.UseHttpsRedirection();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseOutputCache();
+app.MapOpenApi();
+app.MapHealthChecks("/health");
+app.MapOrders();                // 扩展方法分组 endpoint
 app.Run();
+
+public partial class Program;   // 让集成测试可见
 ```
 
-## Route Groups（组织端点）
+## Minimal API 组织
+
+每个资源一个静态类, 扩展方法 + `MapGroup`:
 
 ```csharp
-// ✅ 使用 MapGroup 组织相关端点
-var users = app.MapGroup("/api/users")
-    .RequireAuthorization()
-    .RequireRateLimiting("api")
-    .WithTags("Users");
-
-users.MapGet("/", async (IUserService svc, CancellationToken ct) =>
-    TypedResults.Ok(await svc.GetAllAsync(ct)));
-
-users.MapGet("/{id:int}", async (int id, IUserService svc, CancellationToken ct) =>
-    await svc.GetAsync(id, ct) is { } user
-        ? TypedResults.Ok(user)
-        : TypedResults.NotFound());
-
-users.MapPost("/", async (CreateUserRequest req, IUserService svc, CancellationToken ct) =>
+public static class OrderEndpoints
 {
-    var user = await svc.CreateAsync(req, ct);
-    return TypedResults.Created($"/api/users/{user.Id}", user);
-});
-```
-
-## Endpoint Filters（管道过滤器）
-
-```csharp
-// ✅ 验证过滤器
-public class ValidationFilter : IEndpointFilter
-{
-    public async ValueTask<object?> InvokeAsync(
-        EndpointFilterInvocationContext ctx,
-        EndpointFilterDelegate next)
+    public static IEndpointRouteBuilder MapOrders(this IEndpointRouteBuilder app)
     {
-        // 自动验证请求参数
-        foreach (var arg in ctx.Arguments)
-        {
-            if (arg is IValidatable validatable)
-            {
-                var errors = validatable.Validate();
-                if (errors.Any())
-                    return TypedResults.ValidationProblem(errors);
-            }
-        }
-        return await next(ctx);
+        var g = app.MapGroup("/api/orders")
+                   .RequireAuthorization()
+                   .RequireRateLimiting("api")
+                   .WithTags("orders");
+
+        g.MapGet("/{id:long}", GetById).WithName("GetOrder").CacheOutput();
+        g.MapPost("/", Create).AddEndpointFilter<ValidationFilter>();
+        return app;
     }
+
+    static async Task<Results<Ok<OrderDto>, NotFound>> GetById(
+        long id, IOrderService svc, CancellationToken ct) =>
+        await svc.FindAsync(id, ct) is { } o ? TypedResults.Ok(o) : TypedResults.NotFound();
 }
 ```
 
-## 异常处理中间件
+- 返回 `Results<T1, T2>` / `TypedResults.*` 让 OpenAPI 推断准确
+- 不用 `Results.Ok` (非类型化), 用 `TypedResults.Ok`
+- 参数绑定通过 `[FromBody]` / `[FromQuery]` / `[FromServices]` / `[AsParameters]`
+
+## 异常处理: IExceptionHandler
 
 ```csharp
-// ✅ .NET 10 IExceptionHandler（推荐）
 public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(
-        HttpContext context,
-        Exception exception,
-        CancellationToken ct)
+        HttpContext ctx, Exception ex, CancellationToken ct)
     {
-        logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
-
-        var problem = new ProblemDetails
-        {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Internal Server Error",
-            Detail = exception.Message
-        };
-
-        context.Response.StatusCode = problem.Status.Value;
-        await context.Response.WriteAsJsonAsync(problem, ct);
+        logger.LogError(ex, "Unhandled: {Message}", ex.Message);
+        await Results.Problem(
+            title: "Internal Server Error",
+            statusCode: StatusCodes.Status500InternalServerError,
+            extensions: new Dictionary<string, object?> { ["traceId"] = ctx.TraceIdentifier })
+            .ExecuteAsync(ctx);
         return true;
     }
 }
-
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
-app.UseExceptionHandler();
 ```
 
-## ASP.NET Core 10 新特性
+业务错误: endpoint 直接返回 `TypedResults.Problem(...)` / `ValidationProblem`。
+
+## 模型验证
+
+- DTO 用 `record` + `required` + 数据注解; 复杂规则用 `Microsoft.AspNetCore.Http.Validation` (.NET 10 内置) 或 FluentValidation
+- 失败统一返回 ProblemDetails (`AddProblemDetails`)
+
+## Native AOT (Minimal API)
+
+```xml
+<PublishAot>true</PublishAot>
+```
+
+要求:
+
+- 不要 `Newtonsoft.Json`; 用 `System.Text.Json` source generator
+- 移除反射 IOC; 优先 keyed services + source-generated registration
+- `dotnet publish -c Release` 检查 `IL2026` / `IL3050` 警告
 
 ```csharp
-// HybridCache（替代 IDistributedCache）
-builder.Services.AddHybridCache();
-
-app.MapGet("/users/{id}", async (int id, HybridCache cache) =>
-    await cache.GetOrCreateAsync($"user:{id}", async ct =>
-        await db.Users.FindAsync(id, ct)));
-
-// OpenAPI 3.1（默认生成）
-app.MapOpenApi("/openapi.yaml");
-
-// 自动验证（DataAnnotations）
-builder.Services.AddValidation();
-```
-
-## Blazor SSR + Streaming（.NET 10）
-
-```razor
-@* 服务端渲染 + 流式更新 *@
-@page "/users"
-@attribute [StreamRendering]
-
-<h1>Users</h1>
-
-@if (users is null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <ul>
-        @foreach (var user in users)
-        {
-            <li>@user.Name - @user.Email</li>
-        }
-    </ul>
-}
-
-@code {
-    private List<User>? users;
-
-    protected override async Task OnInitializedAsync()
-    {
-        users = await UserService.GetAllAsync();
-    }
-}
-```
-
-## Native AOT 支持
-
-```csharp
-// ✅ AOT 友好的 Minimal API
-var builder = WebApplication.CreateSlimBuilder(args);
-
-// AOT 需要 source generator JSON
-builder.Services.ConfigureHttpJsonOptions(o =>
-{
-    o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default);
-});
-
-var app = builder.Build();
-app.MapGet("/", () => TypedResults.Ok(new { Message = "Hello AOT!" }));
-app.Run();
-
-// Source-generated JSON context
-[JsonSerializable(typeof(User))]
-[JsonSerializable(typeof(List<User>))]
+[JsonSerializable(typeof(OrderDto))]
+[JsonSerializable(typeof(CreateOrderDto))]
 internal partial class AppJsonContext : JsonSerializerContext;
+
+builder.Services.ConfigureHttpJsonOptions(o =>
+    o.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonContext.Default));
 ```
 
-## 安全（Identity + JWT）
+## Blazor 渲染模式
+
+| 模式 | 何时用 |
+|------|--------|
+| Static SSR | 列表/详情页面, 纯展示 |
+| SSR Streaming (`[StreamRendering]`) | 大段数据分块渲染 |
+| Interactive Server | 内网工具, 状态在服务端 |
+| Interactive WebAssembly | 高交互、可离线 |
+| Auto | SSR 首屏 + WebAssembly 接管 |
+
+组件以 `@rendermode` 显式声明; 不要全站默认 Interactive。
+
+## 中间件顺序
+
+固定顺序: Exception → HTTPS → Static → Routing → CORS → AuthN → AuthZ → RateLimiter → OutputCache → Endpoints。
+自定义中间件继承 `IMiddleware` (DI 友好) 而不是约定方法。
+
+## 鉴权与授权
+
+- JWT 优先 `AddJwtBearer`; Authority + Audience 必填
+- 资源级授权用 `IAuthorizationHandler` + `OperationAuthorizationRequirement`
+- 不要在 endpoint 手动 `User.HasClaim`, 用 policy
+- `AddIdentityApiEndpoints<T>()` 提供注册/登录/MFA 全套 endpoint
+
+## 缓存
+
+- 短期响应缓存: Output Caching + `CacheOutput(...)`
+- 应用级数据: **HybridCache** (.NET 10 GA) 同时利用 L1 内存 + L2 Redis, 替代 `IDistributedCache`
 
 ```csharp
-// ✅ .NET 10 Identity API endpoints
-builder.Services.AddIdentityApiEndpoints<ApplicationUser>()
-    .AddEntityFrameworkStores<AppDb>();
-
-// ✅ JWT Bearer
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
-    {
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-        };
-    });
-
-app.MapGroup("/identity").MapIdentityApi<ApplicationUser>();
+var u = await cache.GetOrCreateAsync($"user:{id}",
+    async ct => await db.Users.FindAsync([id], ct),
+    tags: ["users"]);
 ```
 
-## Red Flags：AI 常见误区
+## 可观测性
 
-| AI 可能的理性化解释 | 实际应该检查的内容 |
-|---------------------|-------------------|
-| "Controller 更清晰" | ✅ 简单 API 是否用 Minimal APIs？ |
-| "不需要 rate limiting" | ✅ 公开 API 是否配置 rate limiter？ |
-| "缓存以后再加" | ✅ 读多写少端点是否用 output cache？ |
-| "手动写异常处理" | ✅ 是否用 IExceptionHandler + ProblemDetails？ |
-| "不需要 CancellationToken" | ✅ 端点是否接受 CancellationToken？ |
-| "Results.Ok 就行" | ✅ 是否用 TypedResults 获得类型安全？ |
+- OpenTelemetry: `AddOpenTelemetry().WithTracing().WithMetrics().WithLogs()`
+- ASP.NET Core 内置 metrics: `Microsoft.AspNetCore.Hosting`、`Microsoft.AspNetCore.Server.Kestrel`
+- 健康检查: liveness vs readiness 分开端点
 
-## 检查清单
+## 测试
 
-- [ ] 使用 Minimal APIs（简单 API）
-- [ ] 端点接受 CancellationToken
-- [ ] 使用 TypedResults 替代 Results
-- [ ] 使用 MapGroup 组织端点
-- [ ] 配置 rate limiting
-- [ ] 配置 output caching
-- [ ] 使用 IExceptionHandler + ProblemDetails
-- [ ] 启用 Swagger/OpenAPI
-- [ ] 配置 Authentication/Authorization
-- [ ] Health Checks 端点可用
+- 集成测试用 `WebApplicationFactory<Program>`; `Program` 加 `public partial class Program;`
+- 替换外部依赖: `WithWebHostBuilder` + `ConfigureTestServices`
+- 数据库用 TestContainers + Respawn 重置 (详见 csharp-data)
+
+## 参考
+
+- [ASP.NET Core 10 公告](https://devblogs.microsoft.com/dotnet/asp-net-core-10/)
+- [Minimal APIs](https://learn.microsoft.com/aspnet/core/fundamentals/minimal-apis/)
+- [Native AOT publishing](https://learn.microsoft.com/aspnet/core/fundamentals/native-aot)
+- [Blazor render modes](https://learn.microsoft.com/aspnet/core/blazor/components/render-modes)
+- [HybridCache](https://learn.microsoft.com/aspnet/core/performance/caching/hybrid)
+- [Rate limiting middleware](https://learn.microsoft.com/aspnet/core/performance/rate-limit)
