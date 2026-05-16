@@ -7,7 +7,7 @@
 **ccplugin** = Claude Code 插件市场 (Monorepo, Python 3.11 + uv + pytest + ruff)。
 
 核心组件:
-- `plugins/` — 插件实现 (tools / languages / themes / novels / llms / template / memory)
+- `plugins/` — 插件实现 (tools / languages / themes / llms / template / memory)
 - `lib/` — 共享库
 - `scripts/` — 根包 CLI (clean / update / info / check / install)
 - `.claude-plugin/marketplace.json` — 市场注册表
