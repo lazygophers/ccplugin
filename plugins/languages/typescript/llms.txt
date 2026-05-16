@@ -1,10 +1,10 @@
 # typescript
 
-> TypeScript 6.0+ 开发插件 - 提供类型安全规范、现代开发实践和代码智能支持。包括严格模式配置、Zod 运行时验证、React/Node.js 开发指南和 2025-2026 最佳实践。
+> TypeScript 6.0+ 与 JavaScript (ES2025-2026) 统一开发插件 — TS 优先、JS-only 项目通过 JSDoc + tsc --checkJs 获得 80% 类型保护。覆盖类型安全、Zod 4 运行时验证、React 19 / Vue 3.5、Node.js 22-24 LTS、Hono / Fastify、Vite 6、Vitest 3、Biome 2 现代工具链。
 
 ## 概述
 
-TypeScript 开发插件为 Claude Code 提供全面的 TypeScript 6.0+ 开发规范、最佳实践和代码智能支持。强调类型安全、现代工程化和可维护性。
+合并自原 `typescript` 与 `javascript` 两个插件。所有 7 个 skill 默认以 TypeScript 表达，JS 项目去掉类型注解即可，复杂场景见各 Skill 末尾 "JS-only 兜底" 章节。
 
 ## 目录结构
 
@@ -17,51 +17,51 @@ typescript/
 │   ├── dev.md
 │   ├── perf.md
 │   └── test.md
-├── hooks/
-│   └── hooks.json
-├── scripts/
-│   ├── __init__.py
-│   ├── hooks.py
-│   └── main.py
 ├── skills/
 │   ├── core/SKILL.md
 │   ├── types/SKILL.md
 │   ├── async/SKILL.md
 │   ├── react/SKILL.md
+│   ├── vue/SKILL.md
 │   ├── nodejs/SKILL.md
 │   └── security/SKILL.md
-├── .lsp.json
 ├── README.md
-├── pyproject.toml
-└── uv.lock
+├── GUIDELINES.md
+└── llms.txt
 ```
 
 ## 组件
 
 - Agent: `typescript-dev`, `typescript-test`, `typescript-debug`, `typescript-perf`
-- Skill: `typescript-core`, `typescript-types`, `typescript-async`, `typescript-react`, `typescript-nodejs`, `typescript-security`
+- Skill: `typescript-core`, `typescript-types`, `typescript-async`, `typescript-react`, `typescript-vue`, `typescript-nodejs`, `typescript-security`
 
 ## 核心特性
 
 ### 强制规范
-- 使用 pnpm 作为包管理器
-- 启用 TypeScript strict 模式
-- 使用 Zod 进行运行时类型验证
-- 使用 Vitest 作为测试框架
-- 多行错误处理，记录日志
+
+- TS: `strict: true` + 严格选项全开；JS: `checkJs: true` + JSDoc
+- 使用 pnpm 10 / Bun 1.x 作为包管理器
+- ESM only (`"type": "module"`)
+- Zod 4 边界运行时验证
+- Vitest 3 作为测试框架
+- 多行错误处理，结构化日志 (pino 9)
+- 非变异 (`toSorted` / `toReversed` / `structuredClone`)
 
 ### 优先库
-- Zod（运行时验证）
-- Vitest（测试）
-- pnpm（包管理）
-- ESLint + Prettier（代码风格）
-- Vite（构建工具）
+
+- Zod 4 (运行时验证) / Valibot (小 bundle)
+- Vitest 3 (测试) / Playwright (E2E)
+- pnpm 10 / Bun (包管理)
+- Biome 2 (lint+format) / ESLint 9 flat config
+- Vite 6 + Rolldown (构建) / tsdown (库)
+- Hono 4 / Fastify 5 (后端)
+- Drizzle ORM / Prisma 6
 
 ### 生态支持
-- React 18+ 开发
-- Next.js 15+ 应用
-- Node.js 20+ 后端
-- Express/Fastify 服务器
+
+- React 19 + Next.js 15
+- Vue 3.5 + Nuxt 4 + Pinia 2
+- Node.js 22-24 LTS / Bun 1.x / Deno 2
 
 ## 相关文档
 

@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/05-16-languages-skills-agents/research/claude-code-best-practices.md", "reason": "skills/agents 写作硬规范 (合并后新增的 nodejs/types 等 skill 需对齐)"}
+{"file": "plugins/tools/cortex/.claude-plugin/plugin.json", "reason": "plugin.json 风格样板 (合并后 typescript plugin.json 需对齐)"}

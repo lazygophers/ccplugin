@@ -128,7 +128,7 @@
     {
       "name": "typescript",
       "source": "./plugins/languages/typescript",
-      "description": "TypeScript 开发插件 - 提供 TypeScript 开发规范、最佳实践和代码智能支持。包括类型安全规范、严格模式最佳实践和基于最新 TS 5.9+ 的开发指导",
+      "description": "TypeScript / JavaScript 开发插件 - 提供 TS 6.0+ 严格模式与 ES2025-2026 现代规范、类型安全、Zod 4 运行时校验、React 19 / Vue 3.5 / Node.js 22-24 LTS 全栈、Vitest 3 / Biome 2 工具链；JS 项目通过 JSDoc + tsc --checkJs 兜底",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
@@ -139,37 +139,20 @@
       "keywords": [
         "typescript",
         "ts",
+        "javascript",
+        "js",
+        "es2025",
+        "es2026",
         "development",
         "type-safety",
         "strict-mode",
+        "react",
+        "vue",
+        "nodejs",
         "vitest",
         "pnpm",
-        "coding-style",
-        "best-practices"
-      ]
-    },
-    {
-      "name": "javascript",
-      "source": "./plugins/languages/javascript",
-      "description": "JavaScript（ES2024-2025）开发插件 - 提供 JavaScript 开发规范、最佳实践和代码智能支持。包括现代化编码标准、异步编程指导和基于 pnpm、Vite、Vitest 的完整工具链",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/javascript",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/javascript",
-      "license": "MIT",
-      "keywords": [
-        "javascript",
-        "js",
-        "es2024",
-        "es2025",
-        "development",
-        "async-await",
-        "esm",
-        "vitest",
-        "vite",
-        "pnpm",
+        "biome",
+        "zod",
         "coding-style",
         "best-practices"
       ]

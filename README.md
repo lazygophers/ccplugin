@@ -63,8 +63,7 @@ claude plugin install <插件名>@ccplugin-market
 |---------|------|--------|
 | `python` | Python 开发插件 - 提供 Python 开发规范、最佳实践和代码智能支持 | python, pep8, type-hints, testing |
 | `golang` | Golang 开发插件 - 提供 Golang 开发规范、最佳实践和 LSP 支持 | golang, go, gopls, best-practices |
-| `typescript` | TypeScript 开发插件 - 提供 TypeScript 开发规范和类型安全支持 | typescript, ts, type-safety, strict-mode |
-| `javascript` | JavaScript 开发插件 - 提供 ES2024-2025 开发规范 | javascript, js, es2024, async-await |
+| `typescript` | TypeScript / JavaScript 开发插件 - TS 6.0+ 严格模式与 ES2025-2026 规范，React 19 / Vue 3.5 / Node 22-24 全栈，JS 项目 JSDoc + checkJs 兜底 | typescript, ts, javascript, js, type-safety, strict-mode, react, vue |
 | `rust` | Rust 开发插件 - 提供 Rust 开发规范和所有权系统指导 | rust, ownership, async, memory-safety |
 | `java` | Java 开发插件 - 提供 Java 21+ 开发规范和 Spring Boot 指导 | java, spring-boot, jvm, performance |
 | `c` | C 开发插件 - 提供 C11/C17 开发规范和系统编程指导 | c, c11, system-programming, posix |

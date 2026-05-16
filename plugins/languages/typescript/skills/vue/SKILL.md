@@ -1,31 +1,28 @@
 ---
-name: javascript-vue
-description: |
-  Vue 3.5+ 开发规范 (2026)：Composition API + `<script setup>`, Vapor Mode 高性能编译,
-  defineProps 解构 + reactive props, useTemplateRef, Pinia 2 setup-store 状态,
-  Nuxt 4 全栈, Vue Router 4 懒加载, VueUse 12 工具库, Volar 类型推断。
-  Use when building Vue components, SFCs, composables, stores, or Nuxt pages.
-  Triggers: "Vue 组件", "Composition API", "Pinia", "Nuxt", "script setup",
-  "reactive", "ref", "computed", "SFC", "v-model".
-context: fork
-model: sonnet
+name: typescript-vue
+description: TypeScript / JavaScript Vue 3.5+ 开发规范，覆盖 Composition API + `<script setup lang="ts">`、Vapor Mode 高性能编译、defineProps 解构 + reactive props、useTemplateRef、defineModel、onWatcherCleanup、Pinia 2 setup-store、Nuxt 4 全栈、Vue Router 4 懒加载、VueUse 12、Volar / vue-tsc 类型推断。Use when 开发 Vue 组件、SFC、composables、stores、Nuxt 页面，或用户提到 "Vue"、"Composition API"、"Pinia"、"Nuxt"、"script setup"、"reactive"、"ref"、"computed"、"SFC"、"v-model"。
+user-invocable: true
 ---
 
 # Vue 3.5+ 开发规范 (2026)
 
-## 配套
+本 skill 同时覆盖 JavaScript 项目；示例以 `<script setup lang="ts">` 为主，JS 项目去掉 `lang="ts"` 与类型即可。
 
-- `Skills(javascript:core)` — ESM/Vite/Biome
-- `Skills(javascript:async)` — AbortController + onUnmounted
-- `Skills(javascript:security)` — v-html + DOMPurify
+## 配套 skills
 
-## SFC + `<script setup>` (默认)
+- `typescript-core` — ESM/Vite/Biome
+- `typescript-async` — AbortController + onUnmounted
+- `typescript-security` — v-html + DOMPurify
+
+## SFC + `<script setup lang="ts">` (默认)
 
 ```vue
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, useTemplateRef } from 'vue';
 
-const users = ref([]);
+interface User { id: string; name: string }
+
+const users = ref<User[]>([]);
 const query = ref('');
 const loading = ref(true);
 
@@ -33,7 +30,7 @@ const filtered = computed(() =>
   users.value.filter(u => u.name.includes(query.value))
 );
 
-const inputRef = useTemplateRef('input');
+const inputRef = useTemplateRef<HTMLInputElement>('input');
 
 onMounted(async () => {
   try {
@@ -59,18 +56,18 @@ onMounted(async () => {
 ## Vue 3.5+ 关键特性
 
 ```vue
-<script setup>
+<script setup lang="ts">
 // defineProps 解构 — 解构后仍响应式 (3.5+)
-const { name, count = 0 } = defineProps({
-  name: String,
-  count: { type: Number, default: 0 },
-});
+const { name, count = 0 } = defineProps<{
+  name: string;
+  count?: number;
+}>();
 
 // useTemplateRef — 类型安全的 ref (3.5+, 代替字符串 `$refs`)
-const list = useTemplateRef('list');
+const list = useTemplateRef<HTMLUListElement>('list');
 
 // defineModel — 双向绑定 (3.4+)
-const value = defineModel({ type: String, required: true });
+const value = defineModel<string>({ required: true });
 
 // onWatcherCleanup (3.5+) — 替代 watch 内的 onCleanup 参数
 import { watch, onWatcherCleanup } from 'vue';
@@ -86,8 +83,8 @@ watch(id, async (newId) => {
 
 无虚拟 DOM、直接生成命令式代码，性能近似 Solid。适合性能敏感页面或微前端组件。
 
-```js
-// vite.config.js
+```ts
+// vite.config.ts
 import vue from '@vitejs/plugin-vue';
 export default {
   plugins: [vue({ features: { vaporMode: true } })],
@@ -95,30 +92,34 @@ export default {
 ```
 
 ```vue
-<script setup vapor>
+<script setup lang="ts" vapor>
 // 该 SFC 编译为 Vapor 模式
 </script>
 ```
 
 ## Composables (复用逻辑)
 
-```js
-// composables/useFetch.js
-import { ref, watchEffect, onScopeDispose } from 'vue';
+```ts
+// composables/useFetch.ts
+import { ref, watchEffect, onScopeDispose, type Ref } from 'vue';
 
-export function useFetch(url) {
-  const data = ref(null), error = ref(null), loading = ref(true);
-  let ctrl;
+export function useFetch<T>(url: string | (() => string)) {
+  const data = ref<T | null>(null);
+  const error = ref<Error | null>(null);
+  const loading = ref(true);
+  let ctrl: AbortController | undefined;
+
   watchEffect(async () => {
     ctrl?.abort();
     ctrl = new AbortController();
     loading.value = true;
     try {
-      const r = await fetch(typeof url === 'function' ? url() : url, { signal: ctrl.signal });
+      const u = typeof url === 'function' ? url() : url;
+      const r = await fetch(u, { signal: ctrl.signal });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      data.value = await r.json();
+      data.value = await r.json() as T;
     } catch (e) {
-      if (e.name !== 'AbortError') error.value = e;
+      if ((e as Error).name !== 'AbortError') error.value = e as Error;
     } finally {
       loading.value = false;
     }
@@ -130,17 +131,17 @@ export function useFetch(url) {
 
 ## Pinia 2 (Setup Store 风格)
 
-```js
-// stores/user.js
+```ts
+// stores/user.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
 export const useUserStore = defineStore('user', () => {
-  const current = ref(null);
-  const list = ref([]);
+  const current = ref<User | null>(null);
+  const list = ref<User[]>([]);
   const isLoggedIn = computed(() => !!current.value);
 
-  async function login(creds) {
+  async function login(creds: { email: string; password: string }) {
     const r = await fetch('/api/login', { method: 'POST', body: JSON.stringify(creds) });
     current.value = await r.json();
   }
@@ -152,7 +153,7 @@ export const useUserStore = defineStore('user', () => {
 
 ## Nuxt 4
 
-```js
+```ts
 // nuxt.config.ts
 export default defineNuxtConfig({
   compatibilityDate: '2025-01-01',
@@ -164,13 +165,13 @@ export default defineNuxtConfig({
 
 ```vue
 <!-- pages/users/[id].vue -->
-<script setup>
+<script setup lang="ts">
 const route = useRoute();
 const { data: user, error } = await useFetch(`/api/users/${route.params.id}`);
 </script>
 ```
 
-```js
+```ts
 // server/api/users/[id].get.ts — Nitro server route
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id');
@@ -180,8 +181,9 @@ export default defineEventHandler(async (event) => {
 
 ## Vue Router 4
 
-```js
+```ts
 import { createRouter, createWebHistory } from 'vue-router';
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -189,10 +191,24 @@ const router = createRouter({
     { path: '/u/:id', component: () => import('./pages/User.vue'), props: true },
   ],
 });
+
 router.beforeEach((to) => {
   const store = useUserStore();
   if (to.meta.requiresAuth && !store.isLoggedIn) return { name: 'login' };
 });
+```
+
+## JS-only 兜底
+
+把 `<script setup lang="ts">` 改回 `<script setup>`，删去类型注解；其它写法（API、composable 结构、Pinia setup store）全部一致。Volar 在 `<script setup>` 中亦能通过 JSDoc 提供类型提示：
+
+```vue
+<script setup>
+import { ref, computed } from 'vue';
+
+/** @type {import('vue').Ref<User[]>} */
+const users = ref([]);
+</script>
 ```
 
 ## Red Flags
@@ -210,7 +226,7 @@ router.beforeEach((to) => {
 
 ## 检查清单
 
-- [ ] `<script setup>` + Composition API
+- [ ] `<script setup>` + Composition API (TS 项目用 `lang="ts"`)
 - [ ] `defineProps` 解构 (响应式)
 - [ ] `useTemplateRef` 而非字符串 ref
 - [ ] 复用逻辑提 composable
