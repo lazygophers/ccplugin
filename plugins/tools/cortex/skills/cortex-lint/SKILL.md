@@ -18,6 +18,8 @@ allowed-tools: Bash Read Glob mcp__obsidian__obsidian_list_files_in_vault mcp__o
 
 1. **解析 vault** — 跑 `<PLUGIN_ROOT>/scripts/hooks/_lib/resolve_vault.sh`; 失败报错
 2. **调 run.py** — `python3 <PLUGIN_ROOT>/scripts/lint/run.py --vault <path> [--fix] [--scope=<glob>]`
+
+> `<PLUGIN_ROOT>` = **cortex 插件根目录** (`.../plugins/tools/cortex/`), **不是** skill 自身目录。若 AI 通过 opencode/codex symlink 加载 skill, 须先解析 symlink 目标定位 cortex plugin 根, 再拼 `scripts/lint/run.py`。如 `readlink ~/.config/opencode/skills/cortex-lint` → 取父目录 (`.../plugins/tools/cortex`)。
 3. **解 JSON 报告** — 按 severity 分 errors / warns; 18 条规则详见 [references/lint-rules.md](references/lint-rules.md)
 4. **--fix 模式**: backup 到 `<vault>/_meta/.cortex-backup/lint/<ts>/` → 跑 `autofix:true` 规则 (rule 1/2/6/8/9/11/14/15/16/17) → 输出 JSON
 5. **结构违规 (vault-structure-violation)** 走专用 BATCH_MV / BATCH_WHITELIST / PER_ITEM / CANCEL 4 选 (`AskUserQuestion`); 详见 [references/autofix-loop.md](references/autofix-loop.md)

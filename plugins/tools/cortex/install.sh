@@ -601,8 +601,27 @@ sync_cli_symlinks() {
   done
 }
 
+cleanup_stale_skill_dirs() {
+  # cortex skills 仅应含 SKILL.md / references/ (+ 可选 assets/);
+  # 历史遗留 scripts/ / cli/ / lint/ / hooks/ 等需清掉, 否则 opencode 等 CLI
+  # 通过 symlink 把 stale 老版本 run.py 暴露到 ~/.config/opencode/skills/<name>/scripts/
+  # 引发 traceback (issue: scan_aliases 旧版崩溃)。
+  local skill stray
+  shopt -s nullglob
+  for skill in "$INSTALL_PATH/skills/cortex-"*; do
+    [[ -d "$skill" ]] || continue
+    for stray in scripts cli lint hooks cron refactor migrate; do
+      if [[ -e "$skill/$stray" ]]; then
+        rm -rf "$skill/$stray" && log_step "- rm stale $(basename "$skill")/$stray (legacy)"
+      fi
+    done
+  done
+  shopt -u nullglob
+}
+
 sync_external_clis() {
   [[ "${NO_EXTERNAL_SYNC:-}" == "1" ]] && { log_info "NO_EXTERNAL_SYNC=1, 跳过所有外部 CLI 同步"; return 0; }
+  cleanup_stale_skill_dirs
   sync_cli_symlinks codex "$HOME/.codex"
   sync_cli_symlinks opencode "$HOME/.config/opencode"
 }
