@@ -30,30 +30,23 @@
 
 ## 4. 更新 (Update)
 
-### 4a. uri-index + 引用
-- `bash ~/.cortex/scripts/ledger.sh uri_index_rebuild`: 重建 `_meta/uri-index.json`
-- 更新 `index.md` / `hot.md` 引用
+### 4a. 知识库引用
+- 更新 `index.md` / `hot.md` 引用 (新生 consolidated/reflection 加入索引)
 
-### 4b. L4→L3 自动晋级
-- `bash ~/.cortex/scripts/memory.sh promote --uri <u> --target-level L3`: L4 ledger 中 freq ≥ 3 → 创建 L3 episodic 自动晋
+### 4b. 委派 cortex-memory 跑维护扫
+调 `Skill(cortex-memory)` 无 verb (默认维护扫), digest 不再重复维护逻辑 — 由 cortex-memory 作为单一真相源跑:
 
-### 4c. L3↑/L2↑ 晋级候选扫 (写候选清单, 不自动晋)
-扫 `记忆/L3-短期/episodic/` + `记忆/L2-中期/semantic/`:
-- freq ≥ 5 + timespan ≥ 3 天 → L3 → L2 候选
-- freq ≥ 10 + timespan ≥ 30 天 → L2 → L1 候选
-- L1 → L0 候选额外标 `needs_user_approval: true`
+1. 整理: uri-index 重建 + frontmatter 校验 + URI 唯一性
+2. 升级候选: L4→L3 自动 (freq ≥ 3) + L3→L2 / L2→L1 / L1→L0 候选写 `记忆/views/candidates.md`
+3. 补充 (enrich): 弱条目 (weight < 0.3 / examples=0) 交叉引用 + sessions 例证 append
+4. forget 标记 (非破坏): L3 90d / L2 365d 未召回 → frontmatter `archive_pending: true`, 日志 `记忆/views/alerts.md`
+5. 评分双路调: 召回 + wikilink 反链 → `importance ↑`; 用户反馈 → `confidence ↑↓`
 
-落 `记忆/views/candidates.md` (覆写整页), 表格列: `候选 URI | 源 level | 目标 level | freq | timespan | weight | 建议理由`。不动 frontmatter, 仅生候选清单。
+cortex-memory 输出的统计 JSON 合并到 digest 的 `updated` 字段 (`promote_candidates_*` / `forget_marked_*` / `enriched` / `scores_updated`)。
 
-### 4d. L2/L3 过期标记 (forget marker, 非破坏)
-扫 `记忆/L3-短期/episodic/` + `记忆/L2-中期/semantic/`, 读 `last_recalled` (缺则用 `created`) + `recall_count` (缺则 0); `archive_pending: true` 已标 → 跳:
+详见 `skills/cortex-memory/SKILL.md §维护扫 5 阶段`。
 
-- L3: `now - last_recalled > 90 天` 且 `recall_count < 3` → 标
-- L2: `now - last_recalled > 365 天` 且 `recall_count < 5` → 标
-
-仅 frontmatter `archive_pending: true` (Edit 保其他字段), 不删不移。日志 append `记忆/views/alerts.md ## memory-forget <UTC ISO>`, 列 uri 清单。
-
-> 实际归档由独立 `memory-archive` cron (月度 1st 06:00) 执行; L4 ledger gzip 由 `memory-compact` cron (周日 04:00); 腐化检测由 `memory-warden` cron (1st/15th 05:00)。digest 不接管这三类破坏性操作。
+> 实际归档由独立 `memory-archive` cron (月度 1st 06:00) 执行; L4 ledger gzip 由 `memory-compact` cron (周日 04:00); 腐化检测由 `memory-warden` cron (1st/15th 05:00)。digest + cortex-memory 维护均不接管这三类破坏性操作。
 
 ## 5. 清理 + 归档 (Cleanup + Archive)
 

@@ -33,6 +33,8 @@ L4 rg --type md ...                       ← 最后兜底
 
 判定 recall (含 `recall` / `想想` / `记得` / `/cortex:recall`) → 改走 memory-recall.md L0-L3 渐进披露子流程。
 
+**禁忌**: 不用 qmd MCP 替代 obsidian MCP (qmd 索引不全 cortex vault, 与 hook / AGENT 契约一致); 不用 Bash rg / Grep 替代 MCP search (L4 仅最后兜底)。
+
 ## AUTO_MODE (wrapper / cron 传 `auto` 后缀触发)
 
 - 跳 AskUserQuestion, 按推荐默认值自动决策

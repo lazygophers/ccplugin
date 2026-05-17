@@ -1,0 +1,5 @@
+{"file": "plugins/tools/cortex/skills/cortex-memory/SKILL.md", "reason": "顶层定位重写, maintain 默认 / CRUD 子命令"}
+{"file": "plugins/tools/cortex/skills/cortex-memory/references/crud-operations.md", "reason": "CRUD 现有规范, 保留作子参考"}
+{"file": "plugins/tools/cortex/skills/cortex-memory/references/forget.md", "reason": "forget 子流程现状"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/references/pipeline-stages.md", "reason": "阶段 4 改委派 cortex-memory maintain"}
+{"file": "plugins/tools/cortex/commands/memory.md", "reason": "/cortex:memory 默认行为更新"}
