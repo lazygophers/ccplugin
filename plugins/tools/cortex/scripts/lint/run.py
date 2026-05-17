@@ -1062,7 +1062,7 @@ def check_global(
                 )
             )
 
-    # rule: kb-entity-concept-path-deprecated — `知识库/实体/...` 或 `知识库/概念/...` → warn 不 mv (需 AI 选域)
+    # rule: kb-entity-concept-path-deprecated — `知识库/实体/...` 或 `知识库/概念/...` → autofix mv 到 `知识库/领域/未分类/`
     for p in files:
         rel = str(p.relative_to(vault))
         if rel.startswith("知识库/实体/") or rel.startswith("知识库/概念/"):
@@ -1072,8 +1072,8 @@ def check_global(
                     "warn",
                     rel,
                     1,
-                    "应迁到 知识库/领域/<域>/<kebab>.md;请用 cortex_save --kind entity 或 --kind concept 重新落档 (AI 自决选域, 缺则 领域/未分类/)",
-                    False,
+                    "知识库/实体/ 与 知识库/概念/ 已废弃, autofix mv 到 知识库/领域/未分类/<basename>.md (AI 后续可 cortex_refactor 改判到 6 域)",
+                    True,
                 )
             )
 
@@ -3085,6 +3085,83 @@ def _fix_mv_source_non_repo_to_inbox(
     return True
 
 
+def _cleanup_empty_deprecated_dirs(vault: Path) -> None:
+    """autofix 后清空已废弃且无文件残留的 vault 根级目录。
+
+    安全策略: 仅 rmdir 空目录 (含空子目录), 不递归删非空内容。
+    覆盖 rule 14/17/19/20 等迁移留下的废弃路径。
+    """
+    deprecated_roots = [
+        vault / "知识库" / "实体",
+        vault / "知识库" / "概念",
+        vault / "知识库" / "来源",
+        vault / "知识库" / "反思",
+        vault / "知识库" / "问题",
+        vault / "知识库" / "临时",
+        vault / "知识库" / "日记" / "周",
+        vault / "知识库" / "日记" / "月",
+        vault / "知识库" / "日记" / "年",
+    ]
+    for root in deprecated_roots:
+        if not root.is_dir():
+            continue
+        # bottom-up: 先删空子目录, 再尝试删 root
+        try:
+            for sub in sorted(root.rglob("*"), key=lambda p: -len(p.parts)):
+                if sub.is_dir() and not any(sub.iterdir()):
+                    sub.rmdir()
+            if not any(root.iterdir()):
+                root.rmdir()
+        except Exception:
+            continue
+
+
+def _fix_kb_entity_concept_to_domain(
+    finding: dict[str, Any],
+    vault: Path,
+    plugin_root: Path | None,
+    backup_dir: Path,
+) -> bool:
+    """Move `知识库/{实体|概念}/<rest>` → `知识库/领域/未分类/<basename>.md`.
+
+    Default to 未分类 since AI domain selection is not available at lint time.
+    Records `was_path:` in frontmatter for later refactor.
+    """
+    rel = finding.get("path") or finding.get("file")
+    if not rel:
+        return False
+    src = vault / rel
+    if not src.is_file():
+        return False
+    basename = Path(rel).name
+    domain_dir = vault / "知识库" / "领域" / "未分类"
+    domain_dir.mkdir(parents=True, exist_ok=True)
+    dst = domain_dir / basename
+    if dst.exists():
+        ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        dst = domain_dir / f"{Path(basename).stem}-merged-{ts}{Path(basename).suffix}"
+    try:
+        src.rename(dst)
+    except Exception:
+        return False
+    # Best-effort: prepend was_path so AI/refactor 可知原 type
+    try:
+        text = dst.read_text(encoding="utf-8", errors="replace")
+        if text.startswith("---\n"):
+            end = text.find("\n---\n", 4)
+            if end > 0:
+                fm_block = text[4:end]
+                rest = text[end + len("\n---\n") :]
+                if not re.search(r"(?m)^was_path:\s*", fm_block):
+                    fm_block = fm_block.rstrip() + f"\nwas_path: {rel}\n"
+                    dst.write_text(
+                        f"---\n{fm_block.rstrip()}\n---\n{rest}", encoding="utf-8"
+                    )
+    except Exception:
+        pass
+    return True
+
+
 def _fix_journal_multi_freq_to_archive(
     finding: dict[str, Any],
     vault: Path,
@@ -3337,7 +3414,7 @@ def apply_fixes(
         "kb-question-fleeting-path-deprecated": _fix_mv_to_inbox,
         "kb-journal-multi-freq-deprecated": _fix_journal_multi_freq_to_archive,
         "kb-source-non-repo-path-deprecated": _fix_mv_source_non_repo_to_inbox,
-        # kb-entity-concept-path-deprecated: warn-only (no autofix, AI must choose domain)
+        "kb-entity-concept-path-deprecated": _fix_kb_entity_concept_to_domain,
     }
     extra_findings = [
         f
@@ -3354,6 +3431,9 @@ def apply_fixes(
                 fixed += 1
         except Exception:
             continue
+
+    # post-autofix: 清空已迁空的废弃根目录 (rmdir 递归, 仅删空目录)
+    _cleanup_empty_deprecated_dirs(vault)
 
     by_file: dict[str, list[dict[str, Any]]] = {}
     for f in findings:

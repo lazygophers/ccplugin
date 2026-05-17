@@ -27,7 +27,7 @@
 | 14 | `repo-path-deprecated` | warn | ✅ | `知识库/来源/代码仓库/` 路径废弃, mv 到 `知识库/项目/` |
 | 15 | `kb-reflection-path-deprecated` | warn | ✅ | `知识库/反思/` 废弃, mv 到 `知识库/收件箱/` |
 | 16 | `kb-question-fleeting-path-deprecated` | warn | ✅ | `知识库/问题/` 与 `知识库/临时/` 废弃, mv 到 `知识库/收件箱/` |
-| 17 | `kb-entity-concept-path-deprecated` | warn | ❌ | `知识库/实体/` 与 `知识库/概念/` 废弃, 应迁 `知识库/领域/<域>/` (需 AI 选域) |
+| 17 | `kb-entity-concept-path-deprecated` | warn | ✅ | `知识库/实体/` 与 `知识库/概念/` 废弃, autofix mv 到 `知识库/领域/未分类/`; AI 后续可 `cortex_refactor` 改判到 6 域之一 |
 | 18 | `kb-journal-multi-freq-deprecated` | warn | ✅ | `知识库/日记/{周/月/年}/` 废弃, mv 到 `归档/日记/<YYYY-QN>.md` 季度桶 |
 | 19 | `kb-source-non-repo-path-deprecated` | warn | ✅ | `知识库/来源/{网页/论文/书籍}/` 废弃, mv 到 `知识库/收件箱/` |
 | 20 | `path-lang-mismatch` | warn | ❌ | vault path segment 不符 vault.lang (豁免 host/org/repo + ASCII 专名 + `path_lang_exempt`) |
@@ -163,9 +163,11 @@ frontmatter `title: A` 但正文 H1 是 `# B`。
 
 `知识库/问题/<rest>` 与 `知识库/临时/<rest>` 路径已废弃。autofix 自动 mv 到 `知识库/收件箱/<basename>.md`, frontmatter 追加 `was_path`。
 
-### 17. kb-entity-concept-path-deprecated (warn, **手动**)
+### 17. kb-entity-concept-path-deprecated (warn, **自动**)
 
-`知识库/实体/<rest>` 与 `知识库/概念/<rest>` 路径已废弃, 应迁到 `知识库/领域/<域>/<kebab>.md`。lint 不 autofix (需 AI 自决选域), finding 提示用 `cortex_save --kind entity|concept` 重新落档 (AI 自决 6 域之一: 创作/学习/工作/技术/生活/金融; 缺则 `领域/未分类/`)。
+`知识库/实体/<rest>` 与 `知识库/概念/<rest>` 路径已废弃, 应迁到 `知识库/领域/<域>/<kebab>.md`。autofix 自动 mv 到 `知识库/领域/未分类/<basename>.md` (lint 时无 AI 上下文, 默认走未分类兜底), 并在 frontmatter 追加 `was_path:` 字段。后续 AI 可调 `cortex_refactor` 把已迁文件从 `未分类/` 改判到 6 域之一 (创作/学习/工作/技术/生活/金融)。
+
+> autofix 后 post-cleanup 会 rmdir 空的 `知识库/实体/`、`知识库/概念/`、`知识库/来源/`、`知识库/反思/`、`知识库/问题/`、`知识库/临时/`、`知识库/日记/{周,月,年}/` 等已迁空的废弃根目录, 防止再次写入。
 
 ### 18. kb-journal-multi-freq-deprecated (warn, **自动**)
 

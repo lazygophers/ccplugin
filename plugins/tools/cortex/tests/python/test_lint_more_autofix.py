@@ -240,7 +240,7 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             self.assertTrue(ok)
             self.assertTrue((vault / "知识库" / "收件箱" / "q.md").exists())
 
-    def test_rule_kb_entity_concept_path_deprecated_warn_only(self):
+    def test_rule_kb_entity_concept_path_deprecated_autofix_moves_to_未分类(self):
         with tempfile.TemporaryDirectory() as d:
             vault = make_vault(Path(d))
             f = vault / "知识库" / "实体" / "p.md"
@@ -250,10 +250,16 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             findings = lint_run.check_global(vault, files, {}, locale_dirs=None)
             rules = [x["rule"] for x in findings]
             self.assertIn("kb-entity-concept-path-deprecated", rules)
-            # autofix=False — file should remain after apply_fixes called only on this rule
-            # (we just verify the finding is non-fixable in rules.json contract)
             ec_finding = next(x for x in findings if x["rule"] == "kb-entity-concept-path-deprecated")
-            self.assertFalse(ec_finding.get("fixable", False))
+            self.assertTrue(ec_finding.get("fixable", False))
+            backup = vault / "_meta" / ".cortex-backup" / "r"
+            backup.mkdir(parents=True, exist_ok=True)
+            ok = lint_run._fix_kb_entity_concept_to_domain(
+                ec_finding, vault, None, backup,
+            )
+            self.assertTrue(ok)
+            self.assertFalse(f.exists())
+            self.assertTrue((vault / "知识库" / "领域" / "未分类" / "p.md").exists())
 
     def test_rule_kb_journal_multi_freq_deprecated_autofix_archives(self):
         with tempfile.TemporaryDirectory() as d:
