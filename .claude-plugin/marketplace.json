@@ -180,6 +180,32 @@
       ]
     },
     {
+      "name": "bash",
+      "source": "./plugins/languages/bash",
+      "description": "Bash / Shell 开发插件 - 提供 Bash 5.2+ 和 POSIX sh 开发规范、最佳实践和脚本智能支持。包括 strict mode (set -euo pipefail)、shellcheck/shfmt 工具链、bats-core 测试、trap 资源清理、POSIX 兼容性和 macOS bash 3.2 降级策略",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/bash",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/languages/bash",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "bash",
+        "shell",
+        "sh",
+        "scripting",
+        "posix",
+        "shellcheck",
+        "shfmt",
+        "bats",
+        "strict-mode",
+        "automation",
+        "best-practices",
+        "coding-style"
+      ]
+    },
+    {
       "name": "cpp",
       "source": "./plugins/languages/cpp",
       "description": "C++ 开发插件 - 提供 C++17/23 开发规范、最佳实践和代码智能支持。包括现代 C++ 标准、STL、内存管理、模板元编程和并发编程指导",
