@@ -128,31 +128,31 @@
       "autofix": true
     },
     {
-      "id": "kb-reflection-path-deprecated",
+      "id": "reflection-path-deprecated",
       "severity": "warn",
       "description": "知识库/反思/ 已废弃, autofix mv 到 知识库/收件箱/<basename>.md (待 digest 重分配)",
       "autofix": true
     },
     {
-      "id": "kb-question-fleeting-path-deprecated",
+      "id": "question-fleeting-path-deprecated",
       "severity": "warn",
       "description": "知识库/问题/ 与 知识库/临时/ 已废弃, autofix mv 到 知识库/收件箱/<basename>.md",
       "autofix": true
     },
     {
-      "id": "kb-entity-concept-path-deprecated",
+      "id": "entity-concept-path-deprecated",
       "severity": "warn",
       "description": "知识库/实体/ 与 知识库/概念/ 已废弃, 应迁到 知识库/领域/<域>/<kebab>.md (warn only, 需 AI 选域, lint 不自决)",
       "autofix": false
     },
     {
-      "id": "kb-journal-multi-freq-deprecated",
+      "id": "journal-multi-freq-deprecated",
       "severity": "warn",
       "description": "知识库/日记/{周|月|年}/ 已废弃 (仅日维度保留), autofix mv 到 归档/日记/<YYYY-QN>.md 季度桶",
       "autofix": true
     },
     {
-      "id": "kb-source-non-repo-path-deprecated",
+      "id": "source-non-repo-path-deprecated",
       "severity": "warn",
       "description": "知识库/来源/{网页|论文|书籍}/ 已废弃, autofix mv 到 知识库/收件箱/<host>-<slug>.md (待 digest 分发)",
       "autofix": true

@@ -1032,13 +1032,13 @@ def check_global(
                 )
             )
 
-    # rule: kb-reflection-path-deprecated — `知识库/反思/...` → autofix mv 到 `知识库/收件箱/`
+    # rule: reflection-path-deprecated — `知识库/反思/...` → autofix mv 到 `知识库/收件箱/`
     for p in files:
         rel = str(p.relative_to(vault))
         if rel.startswith("知识库/反思/"):
             findings.append(
                 _f(
-                    "kb-reflection-path-deprecated",
+                    "reflection-path-deprecated",
                     "warn",
                     rel,
                     1,
@@ -1047,13 +1047,13 @@ def check_global(
                 )
             )
 
-    # rule: kb-question-fleeting-path-deprecated — `知识库/问题/...` 或 `知识库/临时/...` → autofix mv 到 `知识库/收件箱/`
+    # rule: question-fleeting-path-deprecated — `知识库/问题/...` 或 `知识库/临时/...` → autofix mv 到 `知识库/收件箱/`
     for p in files:
         rel = str(p.relative_to(vault))
         if rel.startswith("知识库/问题/") or rel.startswith("知识库/临时/"):
             findings.append(
                 _f(
-                    "kb-question-fleeting-path-deprecated",
+                    "question-fleeting-path-deprecated",
                     "warn",
                     rel,
                     1,
@@ -1062,13 +1062,13 @@ def check_global(
                 )
             )
 
-    # rule: kb-entity-concept-path-deprecated — `知识库/实体/...` 或 `知识库/概念/...` → autofix mv 到 `知识库/领域/未分类/`
+    # rule: entity-concept-path-deprecated — `知识库/实体/...` 或 `知识库/概念/...` → autofix mv 到 `知识库/领域/未分类/`
     for p in files:
         rel = str(p.relative_to(vault))
         if rel.startswith("知识库/实体/") or rel.startswith("知识库/概念/"):
             findings.append(
                 _f(
-                    "kb-entity-concept-path-deprecated",
+                    "entity-concept-path-deprecated",
                     "warn",
                     rel,
                     1,
@@ -1077,7 +1077,7 @@ def check_global(
                 )
             )
 
-    # rule: kb-journal-multi-freq-deprecated — `知识库/日记/{周|月|年}/...` → autofix mv 到 `归档/日记/<YYYY-QN>.md`
+    # rule: journal-multi-freq-deprecated — `知识库/日记/{周|月|年}/...` → autofix mv 到 `归档/日记/<YYYY-QN>.md`
     for p in files:
         rel = str(p.relative_to(vault))
         if (
@@ -1087,7 +1087,7 @@ def check_global(
         ):
             findings.append(
                 _f(
-                    "kb-journal-multi-freq-deprecated",
+                    "journal-multi-freq-deprecated",
                     "warn",
                     rel,
                     1,
@@ -1096,7 +1096,7 @@ def check_global(
                 )
             )
 
-    # rule: kb-source-non-repo-path-deprecated — `知识库/来源/{网页|论文|书籍}/...` → autofix mv 到 `知识库/收件箱/`
+    # rule: source-non-repo-path-deprecated — `知识库/来源/{网页|论文|书籍}/...` → autofix mv 到 `知识库/收件箱/`
     for p in files:
         rel = str(p.relative_to(vault))
         if (
@@ -1106,7 +1106,7 @@ def check_global(
         ):
             findings.append(
                 _f(
-                    "kb-source-non-repo-path-deprecated",
+                    "source-non-repo-path-deprecated",
                     "warn",
                     rel,
                     1,
@@ -2126,11 +2126,11 @@ RULE_PRIORITY = {
     "path-naming-violation": 9,
     "i18n-path-not-in-locale": 9,
     "repo-path-deprecated": 10,
-    "kb-reflection-path-deprecated": 11,
-    "kb-question-fleeting-path-deprecated": 11,
-    "kb-entity-concept-path-deprecated": 11,
-    "kb-journal-multi-freq-deprecated": 11,
-    "kb-source-non-repo-path-deprecated": 11,
+    "reflection-path-deprecated": 11,
+    "question-fleeting-path-deprecated": 11,
+    "entity-concept-path-deprecated": 11,
+    "journal-multi-freq-deprecated": 11,
+    "source-non-repo-path-deprecated": 11,
 }
 
 
@@ -3410,11 +3410,11 @@ def apply_fixes(
         "path-naming-violation": _fix_path_violation,
         "i18n-path-not-in-locale": _fix_path_violation,
         "repo-path-deprecated": _fix_repo_path_deprecated,
-        "kb-reflection-path-deprecated": _fix_mv_to_inbox,
-        "kb-question-fleeting-path-deprecated": _fix_mv_to_inbox,
-        "kb-journal-multi-freq-deprecated": _fix_journal_multi_freq_to_archive,
-        "kb-source-non-repo-path-deprecated": _fix_mv_source_non_repo_to_inbox,
-        "kb-entity-concept-path-deprecated": _fix_kb_entity_concept_to_domain,
+        "reflection-path-deprecated": _fix_mv_to_inbox,
+        "question-fleeting-path-deprecated": _fix_mv_to_inbox,
+        "journal-multi-freq-deprecated": _fix_journal_multi_freq_to_archive,
+        "source-non-repo-path-deprecated": _fix_mv_source_non_repo_to_inbox,
+        "entity-concept-path-deprecated": _fix_kb_entity_concept_to_domain,
     }
     extra_findings = [
         f

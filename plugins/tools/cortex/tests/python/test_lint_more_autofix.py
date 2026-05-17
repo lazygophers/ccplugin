@@ -215,7 +215,7 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             backup = vault / "_meta" / ".cortex-backup" / "r"
             backup.mkdir(parents=True, exist_ok=True)
             ok = lint_run._fix_mv_to_inbox(
-                self._make_finding("kb-reflection-path-deprecated", "知识库/反思/洞察/x.md"),
+                self._make_finding("reflection-path-deprecated", "知识库/反思/洞察/x.md"),
                 vault, None, backup,
             )
             self.assertTrue(ok)
@@ -234,7 +234,7 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             backup = vault / "_meta" / ".cortex-backup" / "r"
             backup.mkdir(parents=True, exist_ok=True)
             ok = lint_run._fix_mv_to_inbox(
-                self._make_finding("kb-question-fleeting-path-deprecated", "知识库/问题/q.md"),
+                self._make_finding("question-fleeting-path-deprecated", "知识库/问题/q.md"),
                 vault, None, backup,
             )
             self.assertTrue(ok)
@@ -249,8 +249,8 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             files = list(vault.rglob("*.md"))
             findings = lint_run.check_global(vault, files, {}, locale_dirs=None)
             rules = [x["rule"] for x in findings]
-            self.assertIn("kb-entity-concept-path-deprecated", rules)
-            ec_finding = next(x for x in findings if x["rule"] == "kb-entity-concept-path-deprecated")
+            self.assertIn("entity-concept-path-deprecated", rules)
+            ec_finding = next(x for x in findings if x["rule"] == "entity-concept-path-deprecated")
             self.assertTrue(ec_finding.get("fixable", False))
             backup = vault / "_meta" / ".cortex-backup" / "r"
             backup.mkdir(parents=True, exist_ok=True)
@@ -270,7 +270,7 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             backup = vault / "_meta" / ".cortex-backup" / "r"
             backup.mkdir(parents=True, exist_ok=True)
             ok = lint_run._fix_journal_multi_freq_to_archive(
-                self._make_finding("kb-journal-multi-freq-deprecated", "知识库/日记/月/2026-05.md"),
+                self._make_finding("journal-multi-freq-deprecated", "知识库/日记/月/2026-05.md"),
                 vault, None, backup,
             )
             self.assertTrue(ok)
@@ -290,7 +290,7 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             backup = vault / "_meta" / ".cortex-backup" / "r"
             backup.mkdir(parents=True, exist_ok=True)
             ok = lint_run._fix_mv_source_non_repo_to_inbox(
-                self._make_finding("kb-source-non-repo-path-deprecated", "知识库/来源/网页/example.com/foo.md"),
+                self._make_finding("source-non-repo-path-deprecated", "知识库/来源/网页/example.com/foo.md"),
                 vault, None, backup,
             )
             self.assertTrue(ok)
@@ -318,11 +318,11 @@ class KbDeprecatedPathRulesTest(unittest.TestCase):
             files = list(vault.rglob("*.md"))
             findings = lint_run.check_global(vault, files, {}, locale_dirs=None)
             rules = {f["rule"] for f in findings}
-            self.assertIn("kb-reflection-path-deprecated", rules)
-            self.assertIn("kb-question-fleeting-path-deprecated", rules)
-            self.assertIn("kb-entity-concept-path-deprecated", rules)
-            self.assertIn("kb-journal-multi-freq-deprecated", rules)
-            self.assertIn("kb-source-non-repo-path-deprecated", rules)
+            self.assertIn("reflection-path-deprecated", rules)
+            self.assertIn("question-fleeting-path-deprecated", rules)
+            self.assertIn("entity-concept-path-deprecated", rules)
+            self.assertIn("journal-multi-freq-deprecated", rules)
+            self.assertIn("source-non-repo-path-deprecated", rules)
 
 
 if __name__ == "__main__":

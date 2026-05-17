@@ -1,0 +1,1 @@
+{"file": "plugins/tools/cortex/docs/Lint 规则.md", "reason": "校验所有 5 条 rule ID 一致 (run.py / rules.json / docs / tests)"}
