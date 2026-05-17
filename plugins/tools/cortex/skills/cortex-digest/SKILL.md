@@ -26,7 +26,7 @@ allowed-tools: Bash Read Write Edit Glob Grep Skill
    ↓
 3. 处 (Process)      — 路由命中 repo → 项目/<host>/<org>/<repo>/, 否则 fallback 收件箱/
    ↓
-4. 更新 (Update)     — uri-index 重建 + L4→L3 promote + index/hot 引用
+4. 更新 (Update)     — uri-index 重建 + L4→L3 自动晋 + L3↑/L2↑ 晋级候选扫 (写 candidates.md) + L2/L3 过期标 archive_pending + index/hot 引用
    ↓
 5. 清理 (Cleanup)    — L4 全清 + L3 90d weight<0.3 删 + 收件箱 ≥30d 复扫
    ↓

@@ -1,0 +1,3 @@
+{"file": "plugins/tools/cortex/skills/cortex-digest/SKILL.md", "reason": "digest 主入口, 阶段 4 描述需扩"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/references/pipeline-stages.md", "reason": "阶段 4 详写 + 输出 JSON schema 新字段"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/references/level-routing.md", "reason": "L0-L4 digest 行为表更新"}

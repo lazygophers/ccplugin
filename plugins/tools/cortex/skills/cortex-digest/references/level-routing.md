@@ -5,10 +5,17 @@
 | level | 边界 | digest 行为 |
 |-------|------|------------|
 | L0 | 性格/价值观/硬约束, ≤1500c | 仅交叉参照, 永不改 |
-| L1 | 技能/稳定语义, ≤5000c | 仅 weight bump + append 新例证 |
-| L2 | 语义, ≤3000c, 365 天时效 | weight bump + append; 365 天衰减由 cortex-memory forget 子流程 |
-| L3 | 情节, ≤2000c, 90 天时效 | append; 90d weight<0.3 删 |
-| L4 | ledger/sessions, single-pass | 全清 (promote/archive/delete) |
+| L1 | 技能/稳定语义, ≤5000c | weight bump + append 新例证; L2→L1 候选扫 (写 candidates.md) |
+| L2 | 语义, ≤3000c, 365 天时效 | weight bump + append; L3→L2 候选扫; 365 天未召回且 recall<5 → frontmatter 标 archive_pending |
+| L3 | 情节, ≤2000c, 90 天时效 | append; 90d weight<0.3 删; 90 天未召回且 recall<3 → frontmatter 标 archive_pending |
+| L4 | ledger/sessions, single-pass | 全清 (promote/archive/delete); freq≥3 自动 L4→L3 |
+
+**digest 阶段 4 内联记忆维护**: 在 L4→L3 自动晋级后, 扫 L3↑/L2↑ 晋级候选 (写 `记忆/views/candidates.md`, 不自动晋) + 标 L2/L3 过期 `archive_pending` (非破坏, 不删不移)。详见 `pipeline-stages.md §4`。
+
+**仍保留独立 cron** (digest 不接管破坏性操作):
+- `memory-archive` (月度 1st 06:00) — 执行 archive_pending 实际归档
+- `memory-compact` (周日 04:00) — L4 ledger gzip
+- `memory-warden` (1st/15th 05:00) — 腐化检测
 
 ## AUTO_MODE 契约
 

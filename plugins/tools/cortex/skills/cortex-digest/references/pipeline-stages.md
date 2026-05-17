@@ -30,9 +30,30 @@
 
 ## 4. 更新 (Update)
 
+### 4a. uri-index + 引用
 - `bash ~/.cortex/scripts/ledger.sh uri_index_rebuild`: 重建 `_meta/uri-index.json`
-- `bash ~/.cortex/scripts/memory.sh promote --uri <u> --target-level L3`: L4→L3 (frequency ≥ 5 自动)
 - 更新 `index.md` / `hot.md` 引用
+
+### 4b. L4→L3 自动晋级
+- `bash ~/.cortex/scripts/memory.sh promote --uri <u> --target-level L3`: L4 ledger 中 freq ≥ 3 → 创建 L3 episodic 自动晋
+
+### 4c. L3↑/L2↑ 晋级候选扫 (写候选清单, 不自动晋)
+扫 `记忆/L3-短期/episodic/` + `记忆/L2-中期/semantic/`:
+- freq ≥ 5 + timespan ≥ 3 天 → L3 → L2 候选
+- freq ≥ 10 + timespan ≥ 30 天 → L2 → L1 候选
+- L1 → L0 候选额外标 `needs_user_approval: true`
+
+落 `记忆/views/candidates.md` (覆写整页), 表格列: `候选 URI | 源 level | 目标 level | freq | timespan | weight | 建议理由`。不动 frontmatter, 仅生候选清单。
+
+### 4d. L2/L3 过期标记 (forget marker, 非破坏)
+扫 `记忆/L3-短期/episodic/` + `记忆/L2-中期/semantic/`, 读 `last_recalled` (缺则用 `created`) + `recall_count` (缺则 0); `archive_pending: true` 已标 → 跳:
+
+- L3: `now - last_recalled > 90 天` 且 `recall_count < 3` → 标
+- L2: `now - last_recalled > 365 天` 且 `recall_count < 5` → 标
+
+仅 frontmatter `archive_pending: true` (Edit 保其他字段), 不删不移。日志 append `记忆/views/alerts.md ## memory-forget <UTC ISO>`, 列 uri 清单。
+
+> 实际归档由独立 `memory-archive` cron (月度 1st 06:00) 执行; L4 ledger gzip 由 `memory-compact` cron (周日 04:00); 腐化检测由 `memory-warden` cron (1st/15th 05:00)。digest 不接管这三类破坏性操作。
 
 ## 5. 清理 + 归档 (Cleanup + Archive)
 
@@ -72,7 +93,9 @@ L4-流水账强制全清 (单向漏斗: promote/archive/delete), L3 > 90 天 wei
   },
   "updated": {
     "uri_index": <N>, "L4_to_L3": <N>,
-    "L1_enriched": <N>, "L2_enriched": <N>, "L3_enriched": <N>, "kb_enriched": <N>, "weights_bumped": <N>
+    "L1_enriched": <N>, "L2_enriched": <N>, "L3_enriched": <N>, "kb_enriched": <N>, "weights_bumped": <N>,
+    "promote_candidates_L3_to_L2": <N>, "promote_candidates_L2_to_L1": <N>, "promote_candidates_L1_to_L0": <N>,
+    "forget_marked_L2": <N>, "forget_marked_L3": <N>
   },
   "cleaned": {
     "l4_promoted": <N>, "l4_archived": <N>, "l4_deleted": <N>,
