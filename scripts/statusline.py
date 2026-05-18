@@ -1009,7 +1009,10 @@ def render_statusline(payload: dict) -> str:
     major_sep = sep_dot
 
     # 第 1 行：model / token（总）/ 项目版本 / 会话变更 / 耗时
-    line1_parts: list[str] = [style(str(model), fg=CATPPUCCIN["cyan"], bold=True)]
+    thinking_enabled_raw = get_path(payload, ["thinking", "enabled"], None)
+    thinking_on = str(thinking_enabled_raw).strip().lower() in {"true", "1", "yes", "on"} if thinking_enabled_raw is not None else False
+    model_label = str(model) + (" 🧠" if thinking_on else "")
+    line1_parts: list[str] = [style(model_label, fg=CATPPUCCIN["cyan"], bold=True)]
 
     tokens_seg = ""
     total_tokens = None
@@ -1038,26 +1041,21 @@ def render_statusline(payload: dict) -> str:
     if tokens_seg:
         line1_parts.append(tokens_seg)
 
-    project_version = ""
-    if isinstance(tooling, dict):
-        project_version = str(tooling.get("project_version") or "").strip()
-    if project_version:
-        line1_parts.append(style(f"项目{project_version}", fg=CATPPUCCIN["mauve"], dim=True))
+    if context_pct_f > 0:
+        ctx_col = ctx_color(context_pct_f)
+        line1_parts.append(style(f"{context_pct_f:.0f}%", fg=ctx_col, bold=True))
 
-    if lines_added is not None or lines_removed is not None:
-        try:
-            a_i = int(lines_added or 0)
-            r_i = int(lines_removed or 0)
-        except Exception:
-            a_i, r_i = 0, 0
-        if a_i != 0 or r_i != 0:
-            a = format_compact_int(a_i)
-            r = format_compact_int(r_i)
-            line1_parts.append(style(f"变更 +{a}/-{r}", fg=CATPPUCCIN["subtle"], dim=True))
-
-    if duration_ms is not None:
-        # 不使用 emoji：只保留时长数据
-        line1_parts.append(style(format_duration_ms(duration_ms), fg=CATPPUCCIN["subtle"], dim=True))
+    try:
+        cur_in = int(get_path(payload, ["context_window", "current_usage", "input_tokens"], 0) or 0)
+        cur_cc = int(get_path(payload, ["context_window", "current_usage", "cache_creation_input_tokens"], 0) or 0)
+        cur_cr = int(get_path(payload, ["context_window", "current_usage", "cache_read_input_tokens"], 0) or 0)
+    except Exception:
+        cur_in = cur_cc = cur_cr = 0
+    cache_denom = cur_in + cur_cc + cur_cr
+    if cache_denom > 0:
+        cache_pct = cur_cr / cache_denom * 100.0
+        cache_str = f"{cache_pct:.2f}".rstrip("0").rstrip(".")
+        line1_parts.append(style(f"缓存 {cache_str}%", fg=CATPPUCCIN["green"], bold=True))
 
     line1 = fit_segments(line1_parts, sep=major_sep, max_width=cols)
 
@@ -1079,20 +1077,6 @@ def render_statusline(payload: dict) -> str:
             if worktree:
                 line2_left_parts.append(style(f"WT:{worktree}", fg=CATPPUCCIN["subtle"], dim=True))
 
-        changed_files = int(git.get("changed_files", 0) or 0)
-        insertions = int(git.get("insertions", 0) or 0)
-        deletions = int(git.get("deletions", 0) or 0)
-
-        # 默认不带 emoji；如需图标可自行通过环境变量设置为纯 Unicode 符号
-        file_icon = os.environ.get("STATUSLINE_GIT_FILES_ICON", "").strip()
-        file_prefix = f"{file_icon}" if file_icon else ""
-        file_mark = style(f"{file_prefix}{changed_files}", fg=CATPPUCCIN["subtle"], dim=False)
-        plus_minus = style(f"+{insertions}", fg=CATPPUCCIN["green"], bold=False) + " " + style(
-            f"-{deletions}", fg=CATPPUCCIN["red"], bold=False
-        )
-        # 文件数和 +/- 之间用 ·，+/- 内部用空格
-        line2_left_parts.append(file_mark + sep_dot + plus_minus)
-
     left = join_parts(line2_left_parts, sep=" ")
     # 路径根据当前宽度动态截断；极窄窗口时优先保留 git 信息
     if left:
@@ -1112,40 +1096,56 @@ def render_statusline(payload: dict) -> str:
 
     # 第 3 行：环境 + 其他信息（上下文/版本/代理）
     env_parts: list[str] = []
-    if isinstance(tooling, dict):
-        if tooling.get("has_go"):
-            v = str(tooling.get("go_required") or tooling.get("go_installed") or "").strip()
-            v = compact_major_minor(v)
-            if v:
-                env_parts.append(style(f"Go {v}", fg=CATPPUCCIN["cyan"], bold=True))
-
-        if tooling.get("has_node"):
-            v = str(tooling.get("node_required") or tooling.get("node_installed") or "").strip()
-            v = compact_major_minor(v)
-            if v:
-                env_parts.append(style(f"Node {v}", fg=CATPPUCCIN["green"], bold=True))
-
-        if tooling.get("has_python"):
-            py_req = str(tooling.get("python_required") or "").strip()
-            py_inst = str(tooling.get("python_installed") or "").strip()
-            v = compact_python_requirement(py_req) or compact_major_minor(py_inst)
-            if v:
-                env_parts.append(style(f"Python {v}", fg=CATPPUCCIN["blue"], bold=True))
-
-        if tooling.get("has_rust"):
-            v = str(tooling.get("rust_required") or tooling.get("rust_installed") or "").strip()
-            v = compact_major_minor(v) or v
-            if v:
-                env_parts.append(style(f"Rust {v}", fg=CATPPUCCIN["mauve"], bold=True))
 
     meta_parts: list[str] = []
-    needs_third_line = bool(env_parts) or (context_pct_f > 0) or bool(agent_name)
+    has_rate_limit = False
+    for _k in ("five_hour", "seven_day"):
+        _p = get_path(payload, ["rate_limits", _k, "used_percentage"], None)
+        try:
+            if float(_p or 0.0) > 0:
+                has_rate_limit = True
+                break
+        except Exception:
+            pass
+    needs_third_line = bool(env_parts) or has_rate_limit or bool(agent_name)
 
-    if context_pct_f > 0:
-        bar_width = 18 if cols >= 100 else (14 if cols >= 80 else 10)
-        bar_col = ctx_color(context_pct_f)
-        bar = progress_bar_colored(context_pct_f, width=bar_width, filled_fg=bar_col)
-        meta_parts.append(bar + style(f" {context_pct_f:.0f}%", fg=bar_col, bold=True))
+    now_ts = time.time()
+    for label, key, window_s in (("5h", "five_hour", 5 * 3600), ("7d", "seven_day", 7 * 86400)):
+        pct = get_path(payload, ["rate_limits", key, "used_percentage"], None)
+        try:
+            pct_f = float(pct or 0.0)
+        except Exception:
+            pct_f = 0.0
+        if pct_f <= 0:
+            continue
+        reset_ts = get_path(payload, ["rate_limits", key, "resets_at"], None)
+        elapsed_pct = 0.0
+        try:
+            if reset_ts:
+                window_start = int(reset_ts) - window_s
+                elapsed = now_ts - window_start
+                elapsed_pct = max(0.0, min(100.0, elapsed / window_s * 100.0))
+        except Exception:
+            elapsed_pct = 0.0
+        # 用量 vs 时间进度: 超出 5pp red; 未超但 ≥95% yellow; 否则 green
+        overage = pct_f - elapsed_pct
+        if overage > 5:
+            col = CATPPUCCIN["red"]
+        elif pct_f > 85:
+            col = CATPPUCCIN["yellow"]
+        else:
+            col = CATPPUCCIN["green"]
+        reset_str = ""
+        if col is not CATPPUCCIN["green"]:
+            try:
+                if reset_ts:
+                    reset_str = time.strftime("%m-%d %H:%M", time.localtime(int(reset_ts)))
+            except Exception:
+                reset_str = ""
+        seg = style(f"{label} {pct_f:.0f}%", fg=col, bold=True)
+        if reset_str:
+            seg += style(f"→{reset_str}", fg=CATPPUCCIN["subtle"], dim=True)
+        meta_parts.append(seg)
     if agent_name:
         meta_parts.append(style(f"代理:{agent_name}", fg=CATPPUCCIN["pink"], dim=True))
     if needs_third_line and version:
