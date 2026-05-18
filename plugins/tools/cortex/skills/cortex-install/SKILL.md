@@ -18,7 +18,7 @@ allowed-tools: Bash Read Write Edit Glob AskUserQuestion mcp__obsidian__obsidian
 
 1. **解析 vault** — 跑 `<PLUGIN_ROOT>/scripts/hooks/_lib/resolve_vault.sh`; 失败则提示配置 `OBSIDIAN_VAULT` env 或 `~/.cortex/config.json`
 2. **询问 lang** — `AskUserQuestion`: 默认 `zh-CN`, 可选 `en` / `ja`; 写 `_meta/version.json:.lang`
-3. **写共享根 + 业务结构** — `_meta/` 元数据 + `_templates/` (36 模板) + `index.md` / `hot.md` + 双 namespace 子目录 + 44 seed_files; 详见 [references/install-flow.md](references/install-flow.md)
+3. **写共享根 + 业务结构** — `_meta/` 元数据 + `_templates/` (36 模板) + `index.md` / `hot.md` + 双 namespace 子目录 + 44 seed_files + `.cortex/` 骨架 (state + config); 详见 [references/install-flow.md](references/install-flow.md)
 4. **git auto-sync 询问** (vault 是 git repo 时) — `AskUserQuestion` 三选: 关 / 仅 commit / commit+push, 写 `_meta/version.json:auto_commit,auto_push`
 5. **9 cron 询问** — `AskUserQuestion` 多选要注册的 job + 平台 (launchd/cron/GHA/不启用), 详见 [references/cron-setup.md](references/cron-setup.md)
 6. **wrapper 安装** — 跑 `scripts/install_wrappers.sh` 生成 24 个 `~/.cortex/scripts/*.sh`; 详见 [references/update-config.md](references/update-config.md)

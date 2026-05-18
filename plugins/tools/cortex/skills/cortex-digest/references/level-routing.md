@@ -12,6 +12,16 @@
 
 **digest 阶段 4 内联记忆维护**: 在 L4→L3 自动晋级后, 扫 L3↑/L2↑ 晋级候选 (写 `记忆/views/candidates.md`, 不自动晋) + 标 L2/L3 过期 `archive_pending` (非破坏, 不删不移)。详见 `pipeline-stages.md §4`。
 
+## 增量游标 (state-driven)
+
+每阶段独立 `.cortex/state/<stage>.json` 存:
+- `last_run` — 上次跑时间 (UTC ISO)
+- `processed_files[<rel>]` — `{hash: sha256, mtime, phase}` 命中则跳
+- `cursors.{inbox_last_mtime, log_last_date, session_last_id}` — mtime 比对窗口
+- `stats.<阶段>` — 累计统计 (跨多次跑)
+
+失效: `state.last_run` 距今 > `incremental_max_age_days` (默认 30, config 可调) → 视为首次跑, 全量重处理。schema 详见 `state-store.md`。
+
 **仍保留独立 cron** (digest 不接管破坏性操作):
 - `memory-archive` (月度 1st 06:00) — 执行 archive_pending 实际归档
 - `memory-compact` (周日 04:00) — L4 ledger gzip

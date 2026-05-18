@@ -28,6 +28,8 @@ SCHEMA: VaultSchema = {
         ".obsidian",
         ".trash",
         ".git",
+        # cortex plugin 私有状态 + 配置 (state/ runtime, config/ 用户可调)
+        ".cortex",
         # AI 工具配置 / 会话状态 (vault 可能同时是 AI 协作 workspace)
         ".claude",
         ".claude-plugin",

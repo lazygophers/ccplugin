@@ -7,6 +7,10 @@ vault/
 ├── _meta/                       元数据 (version/policy/lint-baseline/uri-index/migrations)
 ├── _templates/                  模板 (含 html/ memory/ knowledge/ 子目录 + 8 既有 _index/concept/...)
 ├── _assets/                     图片/svg/HTML 复用资源
+├── .cortex/                     cortex plugin 私有状态 + 配置 (state/ runtime, config/ 用户可调)
+│   ├── README.md
+│   ├── state/{digest,consolidate,enrich,verify}.json   增量游标
+│   └── config/{digest,enrich,tags}.yaml                用户可调
 ├── 主页.md                      全局入口 (HTML 二维仪表盘)
 ├── 焦点.md                      当前焦点 working set
 ├── 知识库/                      人类组织维度
@@ -82,3 +86,85 @@ URI scheme: `L0://identity/me` / `L1://procedural/git-flow` / `L2://semantic/go/
 - 知识库 `_index.md` × 各层 (项目/领域/日记/收件箱)
 - 记忆 `_index.md` × 5 (L0/L1/L2/L3/L4 顶层)
 - 仪表盘 stub × 12: `总览.md` / `知识库分布.md` / `记忆-L0..L4.md` / `记忆-晋级候选.md` / `记忆-腐化监控.md` / `知识-记忆 桥接.md` / `记忆-cron 状态.md` / `固化流.md`
+
+## .cortex/ 骨架 (cortex plugin 私有)
+
+与 `_meta/` 平级, 存 cortex skill (主要是 cortex-digest) 的 runtime 状态 + 用户可调配置。
+
+```
+<vault>/.cortex/
+├── README.md                  用途说明 (50 行内, 含各文件作用 + commit 建议)
+├── state/                     runtime 状态 (建议不 commit, 每机器独立)
+│   ├── digest.json            阶段 1 读 + 整体 last_run
+│   ├── consolidate.json       阶段 5 项目→领域 提炼游标
+│   ├── enrich.json            阶段 6 md 图表/tags 已处理 hash 集
+│   └── verify.json            阶段 7 search 验证标记状态
+└── config/                    用户可调配置 (建议 commit)
+    ├── digest.yaml            各阶段开关 + 增量失效阈值 + 域名映射
+    ├── enrich.yaml            mermaid 类型白名单 + 跳过路径
+    └── tags.yaml              tag 命名约定 + alias 同义词表
+```
+
+### state JSON 空骨架 (4 文件, 内容相同)
+
+```json
+{
+  "schema_version": 1,
+  "last_run": null,
+  "processed_files": {},
+  "cursors": {},
+  "stats": {}
+}
+```
+
+### config YAML 注释骨架
+
+`digest.yaml`:
+
+```yaml
+# digest.yaml — cortex-digest 配置
+# 各阶段开关 (true = 启用)
+stages:
+  consolidate: true   # 阶段 5 项目→领域提炼
+  enrich: true        # 阶段 6 md 图表/tags 优化
+  verify: true        # 阶段 7 search 多次验证
+# 增量游标失效阈值 (天数, 超出则视为首次跑)
+incremental_max_age_days: 30
+# 域名强映射 (--domain 缺时 LLM 自决, 此处可强映射)
+domain_aliases:
+  # ai: 技术
+  # llm: 技术
+```
+
+`enrich.yaml`:
+
+```yaml
+# enrich.yaml — 阶段 6 图表偏好
+# 允许注入的 mermaid 类型 (table 默认禁, md 原生 table 通常更好)
+mermaid_whitelist:
+  - flowchart
+  - timeline
+  - mindmap
+# 额外跳过路径 (skill 默认已跳 _meta/_templates/_assets/.cortex/归档/.obsidian)
+extra_skip_paths:
+  # - 笔记/草稿/
+```
+
+`tags.yaml`:
+
+```yaml
+# tags.yaml — tag 命名约定 + alias 同义词
+# alias 同义词归一表 (digest 阶段 6 合并 aliases 时归一)
+alias_synonyms:
+  # event-driven: 事件驱动
+  # EDA: 事件驱动
+# tag 命名约定 (lint 参考, 当前未强制)
+naming:
+  # case: kebab-case
+```
+
+### 写入策略
+
+- 单文件已存在 → `(skipped)`, 不覆盖
+- AUTO_MODE 默认启用 (用户不需确认)
+- 跨平台 mkdir -p 确保父目录存在

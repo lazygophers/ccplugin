@@ -1,0 +1,5 @@
+{"file": "plugins/tools/cortex/skills/cortex-digest/SKILL.md", "reason": "digest 主入口, 重写为全量 deep + 增量"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/references/pipeline-stages.md", "reason": "阶段重新设计 (新增 consolidate/enrich/verify)"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/references/level-routing.md", "reason": "L0-L4 行为 + 增量游标"}
+{"file": "plugins/tools/cortex/skills/cortex-install/SKILL.md", "reason": "install 时建 .cortex/ 骨架"}
+{"file": "plugins/tools/cortex/scripts/lint/schemas.py", "reason": "vault root_dirs 加 .cortex"}
