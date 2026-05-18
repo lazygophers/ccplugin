@@ -13,6 +13,7 @@ OpenAI 协议 `POST /v1/images/generations`, body 含 `model / prompt / n / size
 | SiliconFlow | `https://api.siliconflow.cn/v1/images/generations` | `black-forest-labs/FLUX.1-schnell` | OpenAI 协议兼容 |
 | Together.AI | `https://api.together.xyz/v1/images/generations` | `black-forest-labs/FLUX.1-schnell` | OpenAI 协议 |
 | DeepInfra | `https://api.deepinfra.com/v1/openai/images/generations` | `stabilityai/sd3.5` | OpenAI 协议 |
+| 智谱 BigModel | `https://open.bigmodel.cn/api/paas/v4/images/generations` | `glm-image` / `cogview-4` / `cogview-3-flash` | 同 OpenAI 响应形态 (`data[].url`); 默认 size `1280x1280`; 不接受 `n` 字段 |
 
 ## 非 OpenAI 协议家族 (需自写 extra_body 适配, 当前 CLI 走 OpenAI 协议 — 这些 provider 可配但 generate 路径需 wrapper 改造)
 
@@ -71,6 +72,16 @@ providers:
     model: black-forest-labs/FLUX.1-schnell
     trusted: false
     timeout_seconds: 60
+
+  - name: zhipu-glm-image
+    endpoint: https://open.bigmodel.cn/api/paas/v4/images/generations
+    api_key_env: ZHIPU_API_KEY
+    model: glm-image
+    trusted: false
+    timeout_seconds: 60
+    extra_body:
+      size: 1280x1280
+      quality: hd
 
   - name: local-comfy
     endpoint: http://localhost:8188/prompt

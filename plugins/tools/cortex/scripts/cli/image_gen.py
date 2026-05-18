@@ -332,14 +332,15 @@ def cmd_generate(args: argparse.Namespace) -> int:
     body: dict[str, Any] = {
         "model": provider.get("model"),
         "prompt": args.prompt,
-        "n": 1,
-        "size": args.size or "1024x1024",
     }
+    if args.size:
+        body["size"] = args.size
     if args.style:
         body["style"] = args.style
     if isinstance(provider.get("extra_body"), dict):
         for k, v in provider["extra_body"].items():
             body.setdefault(k, v)
+    body.setdefault("size", "1024x1024")
 
     headers = {
         "Authorization": f"Bearer {key}",
