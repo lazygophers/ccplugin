@@ -1,23 +1,36 @@
 ---
-description: 查看/编辑 cortex 配置 (~/.cortex/config.json) (无入参 → 列当前)
+description: 查看/编辑 cortex 配置 — ~/.cortex/config.json + <vault>/.cortex/config/*.yaml (无入参 → 列全部 + validate; verb: get/set/unset/validate)
 ---
 
 # /cortex:config
 
 [AUTO_MODE persistent: 禁询问, 自决执行, 禁中止]
 
-读取并展示 cortex 配置。
+调用 **`cortex-config` skill** 完成查看 / 编辑 / 校验。覆盖两个真相源:
 
-**必须**用 Bash 工具执行:
+- `~/.cortex/config.json` — 用户级
+- `<vault>/.cortex/config/{digest,enrich,tags}.yaml` — vault 级
+
+## 入参形态
+
+| 形态 | 行为 |
+|---|---|
+| 无参 | 列全部 config + 标 default/user + 末尾 validate 报告 |
+| `get <key>` | 读单字段 (支持点号路径, e.g. `digest.stages.consolidate`) |
+| `set <key> <value>` | schema 校验 → 通过则 atomic write |
+| `unset <key>` | schema 校验 → 通过则删除键 |
+| `validate` | 仅校验, 输出 `{ok, errors, warnings}` JSON |
+
+详见 cortex-config skill 的 `references/usage.md`。
+
+## 兼容旧行为 (仅展示 `~/.cortex/config.json`)
 
 ```bash
 INSTALL_PATH="$(jq -r .install_path ~/.cortex/config.json)"
-python3 "$INSTALL_PATH/scripts/cortex_config.py"
+python3 "$INSTALL_PATH/scripts/cortex_config.py" validate
 ```
 
-输出: 当前 `~/.cortex/config.json` 解析结果 (vault / lang / settings / install_path / timeout_default 等)。
-
-若 config 不存在, 提示用户跑 `install.sh` 初始化。
+若 config 不存在, 提示用户跑 `install.sh` 初始化。新展示与编辑功能由 `cortex-config` skill 提供。
 
 ## AUTO_MODE (shell wrapper 触发, persistent)
 

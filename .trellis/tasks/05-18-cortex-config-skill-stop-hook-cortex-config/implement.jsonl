@@ -1,0 +1,4 @@
+{"file": "plugins/tools/cortex/skills/cortex-install/references/install-flow.md", "reason": ".cortex/config 骨架真相源 (新 skill 必须对齐其 schema)"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/SKILL.md", "reason": ".cortex/config/digest.yaml 字段语义"}
+{"file": "plugins/tools/cortex/skills/cortex-digest/references/state-store.md", "reason": ".cortex/state 字段语义 (config 提及关联)"}
+{"file": "plugins/tools/cortex/commands/config.md", "reason": "现有 /cortex:config 命令, 新 skill 要联动"}

@@ -42,6 +42,7 @@
   ],
   "skills": [
     "./skills/cortex-canvas",
+    "./skills/cortex-config",
     "./skills/cortex-dashboard",
     "./skills/cortex-doctor",
     "./skills/cortex-ingest",
