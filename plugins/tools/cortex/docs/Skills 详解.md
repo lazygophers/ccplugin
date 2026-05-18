@@ -1,6 +1,6 @@
 # Skills 详解
 
-cortex 提供 **14 个 skill** (PR1-4 整改后: 删 7 + 合 1 = 21→14 (新增 cortex-config))。skill 由 description 池语义匹配自动触发, 也可显式调用 (`/cortex:<相关 command>`)。
+cortex 提供 **15 个 skill** (PR1-4 整改后: 删 7 + 合 1 = 21→15 (新增 cortex-config + cortex-image))。skill 由 description 池语义匹配自动触发, 也可显式调用 (`/cortex:<相关 command>`)。
 
 全部 skill 遵循渐进披露: 入口 SKILL.md ≤ 80 行 (frontmatter + 触发词 + 决策树 + AUTO_MODE 分支 + references 指针表), 细节迁 `references/<topic>.md` 按需加载。
 
@@ -19,7 +19,7 @@ cortex 提供 **14 个 skill** (PR1-4 整改后: 删 7 + 合 1 = 21→14 (新增
 
 显式 skill 必须用户明确请求, 防止误触发副作用 (写 vault 骨架 / 大批量改盘等)。
 
-## 14 个 Skill 速查
+## 15 个 Skill 速查
 
 **范围标记**: 全局 (用户/系统级) · 当前目录 (PWD) · 知识库 (vault) · 记忆层 (`记忆/L0-L4`)
 
@@ -39,6 +39,7 @@ cortex 提供 **14 个 skill** (PR1-4 整改后: 删 7 + 合 1 = 21→14 (新增
 | `cortex-dashboard` | 知识库 | "刷新仪表盘" | 重渲 index.md / hot.md / canvas | 显式 |
 | `cortex-html` | 知识库 | "渲染 HTML 卡片" | 把 frontmatter / 数据渲染为 inline HTML | 显式 |
 | `cortex-config` | 全局+知识库 | "查看 cortex 配置" / "改 cortex 配置" | 展示/编辑 `~/.cortex/config.json` + vault `.cortex/config/*.yaml`; Stop hook 校验 schema | 自动 |
+| `cortex-image` | 知识库 | "生成图" / "做张图" / "AI 画图" | 文生图 — 多 provider 配置 (`.cortex/config/image-gen.yaml`) 随机/指定; 10 风格 + 6 排版库; Junior Designer 工作流 | 自动 |
 
 ## 行为约束 (AUTO_MODE persistent, 所有 skill 一致)
 

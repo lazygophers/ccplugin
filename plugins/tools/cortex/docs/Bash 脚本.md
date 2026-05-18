@@ -1,6 +1,6 @@
 # Bash 脚本 (Wrappers)
 
-cortex 把 19 个 slash command 中常用的 19 个包装成独立 bash 脚本 + 额外 5 个 CLI 辅助 = 24 wrapper, 部署在 `~/.cortex/scripts/`。slash 模式无入参 (auto), 一行调用。
+cortex 把 19 个 slash command 中常用的 19 个包装成独立 bash 脚本 + 额外 5 个 CLI 辅助 = 25 wrapper, 部署在 `~/.cortex/scripts/`。slash 模式无入参 (auto), 一行调用。
 
 每个脚本内部:
 1. 读 `~/.cortex/config.json` 拿 `vault` / `settings` / `install_path`

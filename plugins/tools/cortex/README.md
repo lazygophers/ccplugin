@@ -7,12 +7,12 @@
 | 形态 | 数量 | 内容 |
 |------|------|------|
 | Hooks | 5 | `SessionStart` / `PostCompact` / `Stop` / `SubagentStop` / `UserPromptSubmit` |
-| Skills | 14 | 自动 / 显式触发, 全部多文件渐进披露 (入口 SKILL.md ≤ 80 行 + `references/`) |
+| Skills | 15 | 自动 / 显式触发, 全部多文件渐进披露 (入口 SKILL.md ≤ 80 行 + `references/`) |
 | Agents | 6 | curator / researcher / archivist / cartographer / summarizer / translator |
 | Slash commands | 19 | `/cortex:<name>` 全自动 AUTO_MODE persistent |
-| Bash wrappers | 24 | `~/.cortex/scripts/*.sh` — slash 走 stream-json + rich UI; CLI 直 exec python3 |
+| Bash wrappers | 25 | `~/.cortex/scripts/*.sh` — slash 走 stream-json + rich UI; CLI 直 exec python3 |
 | Lint 规则 | 30 | autofix 循环至 vault clean |
-| Python CLI | 12 | save / search / deep_search / digest / ingest_url / ingest_file / ingest_remote / refresh_projects / memory / ledger / session / html_render |
+| Python CLI | 13 | save / search / deep_search / digest / ingest_url / ingest_file / ingest_remote / refresh_projects / memory / ledger / session / html_render / image_gen |
 | Cron 任务 | 4 | 3 daily (lint / dashboard / digest) + 1 weekly (refresh_projects) |
 | Vault 顶层 | 7 | `知识库/` `记忆/` `仪表盘/` `归档/` `_meta/` `_templates/` `_assets/` |
 
@@ -115,7 +115,7 @@ stdout 仅最终 result text; stderr 显示 rich 实时进度; wrapper 退出时
 - 📁 **当前目录** — PWD (调用 wrapper 时的 cwd)
 - 📚 **知识库** — `~/.cortex/config.json:.vault` 指向的 Obsidian vault
 
-### 24 wrapper 全清单
+### 25 wrapper 全清单
 
 #### 安装 / 配置 (5)
 
@@ -175,7 +175,7 @@ stdout 仅最终 result text; stderr 显示 rich 实时进度; wrapper 退出时
 
 ---
 
-## 二、Skills 说明 (14 个)
+## 二、Skills 说明 (15 个)
 
 每个 skill 走 Claude Code 标准 SKILL.md 协议, 入口 ≤ 80 行 (frontmatter + 触发词 + 决策树 + AUTO_MODE 分支 + references 指针表), 细节迁 `references/<topic>.md` 按需加载 (L3 on-demand)。
 
@@ -188,7 +188,7 @@ stdout 仅最终 result text; stderr 显示 rich 实时进度; wrapper 退出时
 | **AUTO_MODE** | wrapper 传 `auto` 后缀, 跳 `AskUserQuestion` 自决执行 |
 | **Skill 内部** | skill 之间互相调度 (cortex-digest 在 evolution 阶段触 refactor) |
 
-### 14 skill 全清单
+### 15 skill 全清单
 
 | Skill | 触发词 | 用途 | 范围 |
 |-------|--------|------|------|
@@ -206,6 +206,7 @@ stdout 仅最终 result text; stderr 显示 rich 实时进度; wrapper 退出时
 | `cortex-dashboard` | "build dashboard" / "刷新仪表盘" / daily cron 02:30 | view_query 查数据源 + 渲 KPI/图表/Top-N, 注 DASH:BEGIN/END | 📚 |
 | `cortex-html` | "render html" / "render badge/card/timeline" | 模板 `{{VAR}}` 替换, 输出 HTML 片段 | 📁 |
 | `cortex-config` | "查看 cortex 配置" / "改 cortex 配置" / "cortex config" / `/cortex:config` | 展示/编辑 `~/.cortex/config.json` + vault `.cortex/config/*.yaml`; 写前 schema 校验; Stop hook 自动 validate | 🌐 + 📚 |
+| `cortex-image` | "生成图" / "做张图" / "text to image" / "AI 画图" / "render image" | 文生图 — 多 provider 配置 (`.cortex/config/image-gen.yaml`) 随机/指定; 10 风格 + 6 排版库; Junior Designer 工作流 + 反 AI slop | 📚 |
 
 ### 渐进披露架构
 
@@ -371,8 +372,8 @@ dashboard / digest job 同 schedule 分支即可, 完整 yaml 见 `install_cron.
 - [安装与配置](docs/安装与配置.md) — vault 解析 / `config.json` schema / 升级
 - [知识库结构](docs/知识库结构.md) — vault 4 子目录布局
 - [Commands](docs/Commands.md) — 19 个 slash command 速查
-- [Bash 脚本](docs/Bash%20脚本.md) — 24 wrapper 调用约定 + 退出码
-- [Skills 详解](docs/Skills%20详解.md) — 14 skill 用途 / 触发 / 示例 / 失败处理
+- [Bash 脚本](docs/Bash%20脚本.md) — 25 wrapper 调用约定 + 退出码
+- [Skills 详解](docs/Skills%20详解.md) — 15 skill 用途 / 触发 / 示例 / 失败处理
 - [Agents](docs/Agents.md) — 6 agent + 调度边界 + frontmatter 协议
 - [Lint 规则](docs/Lint%20规则.md) — 30 规则逐条解释 + `--fix` 行为
 - [重构与归档](docs/重构与归档.md) — refactor 子操作 + backup + 不可逆风险
