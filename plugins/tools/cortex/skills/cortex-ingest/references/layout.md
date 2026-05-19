@@ -72,7 +72,7 @@ SYM_N=$(find "$ROOT/符号/api/" -name '*.md' 2>/dev/null | wc -l)
 | 维度 | 取值 | 规则 |
 |------|------|------|
 | `score` (质量) | 0.0-10.0 浮点 (P8 升级) | 10=权威官方 / 高 star (>10k) / 主流标准; 8=活跃维护 / >1k star; 6=有维护 / 普通; 4=个人项目 / 实验性; 2=废弃 / 不推荐 (旧 1-5 整数 → migrate.sh --to=v2 × 2.0 迁移) |
-| `confidence` (P8 新) | 0.0-10.0 浮点 | AI 对内容把握度; tags 完整性 (≥10=5) + when_to_read (≥30字=3) + wikilink ≥5 (2) |
+| `confidence` (P8 新) | 0.0-10.0 浮点 | AI 对内容把握度; tags 完整性 (≥5=5, 仅语义 tag 计) + when_to_read (≥30字=3) + wikilink ≥5 (2) |
 | `source_credibility` (P8 新) | 0.0-10.0 浮点 | host 白名单查表 (anthropic.com=10, react.dev=9.5, github.com=7.5, medium.com=5, 未知 4) — 见 `scripts/cli/lib/remote.py:_HOST_CREDIBILITY` |
 | `maturity` | draft / review / stable / deprecated | 按上游 release 状态或 README 标注判定; pre-alpha/WIP → draft; 有 release → stable; archived → deprecated; refresh hash 变可重评 |
 | `tags[关注度]` | freq/<high\|mid\|low> | 自动: README badges + commit 近 30 天频率 + search.sh 命中次数 |

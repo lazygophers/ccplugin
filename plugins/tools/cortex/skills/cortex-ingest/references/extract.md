@@ -42,7 +42,7 @@ keywords: [<具体短语1>, <具体短语2>, ...]      # ≥ 5 个具体词, 含
 | 字段 | 计算源 | 范围 |
 |---|---|---|
 | score | 6 类抽取覆盖率 (API/配置/错误码/测试/功能/常量) × 10 | 0=无覆盖 / 5=半数 / 10=全覆盖 |
-| confidence | tags 完整性 (≥10=5 分) + when_to_read 明确性 (≥30 字=3 分) + 内部 wikilink ≥5 (2 分) | 0=骨架 / 5=合理 / 10=丰满 |
+| confidence | tags 完整性 (≥5=5 分, 仅语义 tag 计; 模板/类型/时间式 tag 不计) + when_to_read 明确性 (≥30 字=3 分) + 内部 wikilink ≥5 (2 分) | 0=骨架 / 5=合理 / 10=丰满 |
 | source_credibility | host 白名单查表 (见下) | 默认 5.0 (未知 host) |
 | maturity | 启发: score<5 → draft, 5≤s<8 → review, ≥8 → stable; refresh hash 多变退化 | enum |
 
