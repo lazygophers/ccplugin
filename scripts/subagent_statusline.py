@@ -286,14 +286,22 @@ def render_row(task: dict, *, max_width: int, now: float, model: str = "",
     return _truncate(line, max_width) if max_width > 0 else line
 
 
-def _log_raw(raw: str) -> None:
-    """Append raw stdin payload + timestamp to ~/.claude/statusline.log (best-effort)."""
+def _log_raw(raw_bytes: bytes) -> None:
+    """Append raw stdin (bytes, undecoded) + meta to ~/.claude/statusline.log."""
     try:
         log_path = os.path.expanduser("~/.claude/statusline.log")
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         ts = time.strftime("%Y-%m-%dT%H:%M:%S")
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"--- {ts} subagent ---\n{raw}\n")
+        header = (
+            f"=== {ts} subagent_statusline.py "
+            f"pid={os.getpid()} bytes={len(raw_bytes)} "
+            f"argv={sys.argv} ===\n"
+        ).encode("utf-8")
+        with open(log_path, "ab") as f:
+            f.write(header)
+            f.write(raw_bytes)
+            if not raw_bytes.endswith(b"\n"):
+                f.write(b"\n")
     except Exception:
         pass
 
@@ -302,15 +310,18 @@ def _read_payload() -> dict:
     if sys.stdin is None or sys.stdin.isatty():
         return {}
     try:
-        raw = sys.stdin.read()
+        raw_bytes = sys.stdin.buffer.read()
     except Exception:
+        try:
+            raw_bytes = sys.stdin.read().encode("utf-8", errors="replace")
+        except Exception:
+            return {}
+    if not raw_bytes:
         return {}
-    raw = (raw or "").strip()
-    if not raw:
-        return {}
-    _log_raw(raw)
+    _log_raw(raw_bytes)
     try:
-        data = json.loads(raw)
+        text = raw_bytes.decode("utf-8", errors="replace").strip()
+        data = json.loads(text)
     except Exception:
         return {}
     return data if isinstance(data, dict) else {}
