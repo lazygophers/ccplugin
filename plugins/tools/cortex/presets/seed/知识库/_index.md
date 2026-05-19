@@ -11,7 +11,6 @@ children:
 - 收件箱
 last_updated: '{{UPDATED}}'
 tags:
-- type/index
 - topic/知识库
 - lang/zh-CN
 - domain/knowledge-base

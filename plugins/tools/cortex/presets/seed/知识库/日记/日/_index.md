@@ -7,7 +7,6 @@ parent: 日记
 children: []
 last_updated: '{{UPDATED}}'
 tags:
-- type/index
 - topic/日记日
 - lang/zh-CN
 - domain/knowledge-base

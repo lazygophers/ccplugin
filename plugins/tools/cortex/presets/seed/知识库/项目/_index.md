@@ -9,7 +9,6 @@ children:
 - 决策记录
 last_updated: '{{UPDATED}}'
 tags:
-- type/index
 - topic/项目
 - lang/zh-CN
 - domain/knowledge-base

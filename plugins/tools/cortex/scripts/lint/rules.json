@@ -22,7 +22,7 @@
     {
       "id": "fm-banned-tags",
       "severity": "warn",
-      "description": "frontmatter tags 含结构标记 (index/meta/template/_index/stub 等非内容相关)",
+      "description": "frontmatter tags 含结构/模板/类型/时间标记 (index/meta/template/_index/stub + type/* template/* created/* date/* time/* year/month/week/day/quarter/* + 裸 YYYY[-MM[-DD]] 等), 这些已在 fm 字段中, 不应重复成 tag",
       "autofix": true
     },
     {
@@ -34,7 +34,7 @@
     {
       "id": "fm-missing-tags",
       "severity": "warn",
-      "description": "frontmatter tags 字段缺失或数量 < 10 (autofix: 读 fm + 正文派生 ≥10 tag, 严禁占位符)",
+      "description": "frontmatter tags 字段缺失或数量 < 5 (autofix: 从正文派生语义 tag, 严禁占位符 / 模板 / 类型 / 时间式 tag)",
       "autofix": true
     },
     {

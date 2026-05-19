@@ -8,7 +8,6 @@ children:
 - 日
 last_updated: '{{UPDATED}}'
 tags:
-- type/index
 - topic/日记
 - lang/zh-CN
 - domain/knowledge-base

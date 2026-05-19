@@ -52,71 +52,64 @@ _KB_KINDS = {"concept", "domain", "log", "reflection", "source", "project", "ent
 _MEM_KINDS = {"memory"}
 _MATURITY_ENUM = ("draft", "review", "stable", "deprecated")
 
-_TAGS_MIN = 10
-_TAGS_MAX = 20
+_TAGS_MIN = 5
+_TAGS_MAX = 15
 _PLACEHOLDER_RE = _re.compile(
     r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX",
     _re.I,
 )
+# 禁止派生模板/类型/时间式 tag — 这些信息已在 frontmatter 字段中, 不应重复成 tag
+_BANNED_TAG_PREFIXES = (
+    "type/", "template/", "created/", "updated/", "modified/",
+    "date/", "time/", "year/", "month/", "week/", "day/", "quarter/",
+)
+_BANNED_TAG_TIME_RE = _re.compile(
+    r"^(?:\d{4}(?:-(?:Q[1-4]|W\d{1,2}|\d{1,2}(?:-\d{1,2})?))?|"
+    r"\d{4}年(?:\d{1,2}月(?:\d{1,2}日)?)?)$"
+)
+
+
+def _tag_is_banned(t: str) -> bool:
+    if not isinstance(t, str) or not t.strip():
+        return True
+    low = t.lower()
+    if any(low.startswith(p) for p in _BANNED_TAG_PREFIXES):
+        return True
+    if _BANNED_TAG_TIME_RE.match(t.strip()):
+        return True
+    return False
 
 
 def _derive_tags(fm: dict, body: str) -> list[str]:
-    """Extend `fm['tags']` to ≥ _TAGS_MIN by deriving from fm + body.
+    """从正文派生语义 tag (中文 2-4 字 / 英文 PascalCase / 已有 alias).
 
-    严禁占位符。返回去重保序后 tag list (>=10 时上限 _TAGS_MAX);
-    若派生不足 _TAGS_MIN, 返回尽力派生的结果 (调用方自决是否报错).
+    严禁: 占位符 / 模板式 (type/, template/) / 类型 / 时间 (created/, YYYY-MM 等) tag。
+    这些信息已在 frontmatter 字段, 不应重复成 tag。
     """
     existing = list(fm.get("tags") or [])
-    if len(existing) >= _TAGS_MIN and all(
-        isinstance(t, str) and t.strip() and not _PLACEHOLDER_RE.search(t)
-        for t in existing
-    ):
-        return existing[:_TAGS_MAX]
     derived: list[str] = []
 
-    def _push(t: str) -> None:
-        if t and isinstance(t, str):
-            derived.append(t)
+    # 已有 alias 是高质量语义 tag 来源
+    aliases = fm.get("aliases") or fm.get("alias") or []
+    if isinstance(aliases, list):
+        for a in aliases:
+            if isinstance(a, str) and a.strip():
+                derived.append(a.strip())
 
-    if fm.get("type"):
-        _push(f"type/{fm['type']}")
-    if fm.get("lang"):
-        _push(f"lang/{fm['lang']}")
-    src = fm.get("source") or {}
-    if isinstance(src, dict):
-        url = src.get("url")
-        if url:
-            m = _re.search(r"://([^/]+)", str(url))
-            if m:
-                _push(f"host/{m.group(1)}")
-            _push("source/web")
-    for k in ("host", "org", "repo"):
-        v = fm.get(k)
-        if v:
-            _push(f"{k}/{v}")
-    if fm.get("maturity"):
-        _push(f"maturity/{fm['maturity']}")
-    if fm.get("score") is not None:
-        _push(f"score/{fm['score']}")
-    if fm.get("created"):
-        y = str(fm["created"])[:4]
-        if y.isdigit():
-            _push(f"created/{y}")
-
-    # h1/h2 → topic
+    # h1/h2 标题词 (bare, 不加 topic/ 前缀)
     for m in _re.finditer(r"^#{1,2}\s+(.+?)$", body[:2000], _re.M):
         title = m.group(1).strip()
         slug = _re.sub(r"[\s/\\:*?\"<>|]+", "-", title)[:30].strip("-_")
         if slug and len(slug) >= 2:
-            _push(f"topic/{slug}")
+            derived.append(slug)
 
-    # first 500 chars: 中文 2-4 字 + 英文 PascalCase
+    # 正文 500 字内: 中文 2-4 字短语 + 英文 PascalCase
     head = body[:500]
     for ph in _re.findall(r"[一-龥]{2,4}", head):
         if len(ph) >= 2:
-            _push(f"keyword/{ph}")
+            derived.append(ph)
     for ph in _re.findall(r"\b[A-Z][a-zA-Z]{2,15}\b", head):
-        _push(f"keyword/{ph.lower()}")
+        derived.append(ph.lower())
 
     seen: set[str] = set()
     merged: list[str] = []
@@ -124,6 +117,8 @@ def _derive_tags(fm: dict, body: str) -> list[str]:
         if not isinstance(t, str) or not t.strip():
             continue
         if _PLACEHOLDER_RE.search(t):
+            continue
+        if _tag_is_banned(t):
             continue
         if t in seen:
             continue

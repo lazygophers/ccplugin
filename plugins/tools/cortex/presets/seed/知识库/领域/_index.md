@@ -7,7 +7,6 @@ parent: 主页
 children: []
 last_updated: '{{UPDATED}}'
 tags:
-- type/index
 - topic/领域
 - lang/zh-CN
 - domain/knowledge-base
