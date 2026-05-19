@@ -179,7 +179,42 @@ def _token_rate(samples) -> float | None:
     return None
 
 
-def render_row(task: dict, *, max_width: int, now: float, model: str = "") -> str:
+def _ctx_color(pct: float):
+    try:
+        p = float(pct)
+    except Exception:
+        p = 0.0
+    if p > 90:
+        return CATPPUCCIN["red"]
+    if p > 75:
+        return CATPPUCCIN["yellow"]
+    return CATPPUCCIN["green"]
+
+
+def _extract_ctx_pct(task: dict, top_ctx: dict | None) -> float | None:
+    """task.context_window.used_percentage 优先, 退而 top-level."""
+    for src in (task.get("context_window"), top_ctx):
+        if isinstance(src, dict):
+            v = src.get("used_percentage")
+            if v is None:
+                # 从 total_input_tokens / context_window_size 自算
+                try:
+                    used = float(src.get("total_input_tokens") or 0)
+                    size = float(src.get("context_window_size") or 0)
+                    if size > 0:
+                        v = used / size * 100.0
+                except Exception:
+                    v = None
+            if v is not None:
+                try:
+                    return float(v)
+                except Exception:
+                    pass
+    return None
+
+
+def render_row(task: dict, *, max_width: int, now: float, model: str = "",
+               top_ctx: dict | None = None) -> str:
     name = str(task.get("name") or task.get("label") or task.get("id") or "?").strip()
     type_ = str(task.get("type") or "").strip()
     description = str(task.get("description") or "").strip()
@@ -209,6 +244,10 @@ def render_row(task: dict, *, max_width: int, now: float, model: str = "") -> st
         parts.append(_style(model_label.lower(), fg=CATPPUCCIN["blue"], bold=True))
 
     parts.append(_status_seg(task.get("status", "")))
+
+    ctx_pct = _extract_ctx_pct(task, top_ctx)
+    if ctx_pct is not None and ctx_pct > 0:
+        parts.append(_style(f"{ctx_pct:.0f}%", fg=_ctx_color(ctx_pct), bold=True))
 
     if tokens is not None:
         try:
@@ -261,6 +300,7 @@ def main() -> None:
         top_model = str(model_obj.get("display_name") or model_obj.get("id") or "").strip()
     else:
         top_model = str(model_obj or "").strip()
+    top_ctx = payload.get("context_window") if isinstance(payload.get("context_window"), dict) else None
     now = time.time()
     out = sys.stdout
     for task in tasks:
@@ -269,7 +309,7 @@ def main() -> None:
         tid = task.get("id")
         if not tid:
             continue
-        content = render_row(task, max_width=cols, now=now, model=top_model)
+        content = render_row(task, max_width=cols, now=now, model=top_model, top_ctx=top_ctx)
         out.write(json.dumps({"id": tid, "content": content}, ensure_ascii=False))
         out.write("\n")
 
