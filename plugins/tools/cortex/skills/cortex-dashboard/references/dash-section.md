@@ -74,7 +74,7 @@ CLI 参数:
 
 ```
 [dashboard] scan 12 pages
-  ✅ 仪表盘/总览.md (rendered, 1.4 KB)
+  ✅ 仪表盘/总览.md (rendered, 1.4 KiB)
   ⏭️  仪表盘/知识库分布.md (fresh, skipped)
   ❌ 仪表盘/记忆-腐化监控.md (error: 记忆/views/warden.jsonl 不存在)
   ...

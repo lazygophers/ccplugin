@@ -1425,7 +1425,7 @@ def check_frontmatter_required_scores(
                     "warn",
                     rel_str,
                     1,
-                    f".md 缺强制评分字段 `{field}` (knowledge_base={is_kb} memory={is_mem})",
+                    f".md 缺强制评分字段 `{field}` (知识库={is_kb} 记忆={is_mem})",
                     True,
                 )
             )

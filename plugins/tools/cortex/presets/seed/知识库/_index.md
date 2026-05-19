@@ -13,7 +13,6 @@ last_updated: '{{UPDATED}}'
 tags:
 - topic/知识库
 - lang/zh-CN
-- domain/knowledge-base
 - source/seed
 - score/3
 - maturity/stable

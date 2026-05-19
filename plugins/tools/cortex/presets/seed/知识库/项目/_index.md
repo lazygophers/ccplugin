@@ -11,7 +11,6 @@ last_updated: '{{UPDATED}}'
 tags:
 - topic/项目
 - lang/zh-CN
-- domain/knowledge-base
 - source/seed
 - score/3
 - maturity/stable
