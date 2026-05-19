@@ -119,6 +119,9 @@ for m in data:
     if m.get("name") == name:
         loc = m.get("installLocation") or ""
         if loc:
+            # Windows: claude CLI 返回反斜杠路径 (C:\Users\...), 转为正斜杠
+            # 供 Git-Bash / MSYS 下的 bash 安全 join 与 wrapper 内引用
+            loc = loc.replace("\\", "/")
             print(loc)
             sys.exit(0)
 sys.exit(1)
