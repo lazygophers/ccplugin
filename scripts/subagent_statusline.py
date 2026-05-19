@@ -129,9 +129,7 @@ _STATUS_MAP = {
 
 def _status_seg(status: str) -> str:
     s = (status or "").strip().lower()
-    icon, color, label = _STATUS_MAP.get(s, ("●", CATPPUCCIN["blue"], s or "unknown"))
-    if _emoji_enabled():
-        return _style(f"{icon} {label}", fg=color, bold=True)
+    _icon, color, label = _STATUS_MAP.get(s, ("", CATPPUCCIN["blue"], s or "unknown"))
     return _style(label, fg=color, bold=True)
 
 
@@ -213,7 +211,7 @@ def render_row(task: dict, *, max_width: int, now: float, model: str = "") -> st
     cwd = str(task.get("cwd") or "").strip()
     if cwd:
         dir_name = os.path.basename(cwd.rstrip("/")) or cwd
-        parts.append(_style(f"📁 {dir_name}" if _emoji_enabled() else dir_name, fg=CATPPUCCIN["mauve"]))
+        parts.append(_style(dir_name, fg=CATPPUCCIN["mauve"]))
 
     parts.append(_status_seg(task.get("status", "")))
 
