@@ -280,7 +280,8 @@ def render_row(task: dict, *, max_width: int, now: float, model: str = "",
     if elapsed is not None and elapsed > 0:
         parts.append(_style(_format_duration(elapsed), fg=CATPPUCCIN["subtle"], dim=True))
 
-    if description and description != name:
+    label = str(task.get("label") or "").strip()
+    if description and description != name and description != label:
         parts.append(_style(description, fg=CATPPUCCIN["subtle"]))
 
     line = sep.join(p for p in parts if p)
