@@ -344,27 +344,174 @@ CATPPUCCIN = {
     "pink": (245, 194, 231),
 }
 
-# 单位: $ / M tokens (2026-05 最新定价)
+# 单位: $/M tokens (2026-05 最新定价); cache_read = 缓存命中折扣 (≈ input × 0.1)
 MODEL_PRICING = {
-    # Opus 4.7
+    # ===== Claude =====
     "claude-opus-4-7": {"input": 5.0, "output": 25.0, "cache_read": 0.5},
-    # Sonnet 4.6
-    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
-    # Haiku 4.5
-    "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.1},
-    # Opus 4.5
     "claude-opus-4-5-20251101": {"input": 5.0, "output": 25.0, "cache_read": 0.5},
-    # Sonnet 4.5
+    "claude-opus-4-1-20250805": {"input": 5.0, "output": 25.0, "cache_read": 0.5},
+    "claude-opus-4-0": {"input": 15.0, "output": 75.0, "cache_read": 1.5},
+    "claude-opus-4-7-20250619": {"input": 15.0, "output": 75.0, "cache_read": 1.5},
+    "claude-sonnet-4-6": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
     "claude-sonnet-4-5-20250929": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "claude-sonnet-4-0": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "claude-sonnet-4-7-20250619": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.1},
+    "claude-3-7-sonnet-20250219": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "claude-3-5-sonnet-20241022": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "claude-3-5-haiku-20241022": {"input": 0.8, "output": 4.0, "cache_read": 0.08},
+    "claude-3-sonnet-20240229": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "claude-3-opus-20240229": {"input": 15.0, "output": 75.0, "cache_read": 1.5},
+    "claude-2.1": {"input": 8.0, "output": 24.0, "cache_read": 0.8},
+    "claude-2.0": {"input": 8.0, "output": 24.0, "cache_read": 0.8},
+    "claude-instant-1.2": {"input": 1.63, "output": 5.51, "cache_read": 0.163},
+    "claude-1.3": {"input": 1.63, "output": 5.51, "cache_read": 0.163},
+
+    # ===== OpenAI =====
+    "gpt-5.5": {"input": 5.0, "output": 30.0, "cache_read": 0.5},
+    "gpt-5.5-pro-2026-05-06": {"input": 2.5, "output": 15.0, "cache_read": 0.25},
+    "gpt-5.5-pro": {"input": 2.5, "output": 15.0, "cache_read": 0.25},
+    "gpt-5": {"input": 1.25, "output": 10.0, "cache_read": 0.125},
+    "gpt-5-mini": {"input": 0.25, "output": 2.0, "cache_read": 0.025},
+    "gpt-5-4": {"input": 2.5, "output": 15.0, "cache_read": 0.25},
+    "gpt-5-4-mini": {"input": 0.75, "output": 4.5, "cache_read": 0.075},
+    "gpt-5-4-nano": {"input": 0.2, "output": 1.25, "cache_read": 0.02},
+    "o1": {"input": 15.0, "output": 60.0, "cache_read": 1.5},
+    "o1-preview": {"input": 15.0, "output": 60.0, "cache_read": 1.5},
+    "o1-mini": {"input": 1.1, "output": 4.4, "cache_read": 0.11},
+    "o3": {"input": 2.0, "output": 8.0, "cache_read": 0.2},
+    "o3-mini": {"input": 1.1, "output": 4.4, "cache_read": 0.11},
+    "gpt-4o": {"input": 5.0, "output": 15.0, "cache_read": 0.5},
+    "gpt-4o-2024-08-06": {"input": 5.0, "output": 15.0, "cache_read": 0.5},
+    "chatgpt-4o-latest": {"input": 5.0, "output": 15.0, "cache_read": 0.5},
+    "gpt-4o-mini": {"input": 0.15, "output": 0.6, "cache_read": 0.015},
+    "gpt-4o-mini-2024-07-18": {"input": 0.15, "output": 0.6, "cache_read": 0.015},
+    "gpt-4.1": {"input": 2.0, "output": 8.0, "cache_read": 0.2},
+    "gpt-4-turbo": {"input": 10.0, "output": 30.0, "cache_read": 1.0},
+
+    # ===== DeepSeek =====
+    "deepseek-v4-pro": {"input": 2.2, "output": 2.2, "cache_read": 0.22},
+    "deepseek-v4-flash": {"input": 1.0, "output": 2.0, "cache_read": 0.1},
+    "deepseek-chat": {"input": 0.27, "output": 1.1, "cache_read": 0.027},
+    "deepseek-reasoner": {"input": 0.55, "output": 2.19, "cache_read": 0.055},
+    "deepseek-v3": {"input": 0.27, "output": 1.1, "cache_read": 0.027},
+    "deepseek-v2": {"input": 0.14, "output": 0.28, "cache_read": 0.014},
+    "deepseek-r1": {"input": 2.0, "output": 8.0, "cache_read": 0.2},
+    "deepseek-coder-v2": {"input": 0.14, "output": 0.28, "cache_read": 0.014},
+
+    # ===== Kimi / 月之暗面 =====
+    "kimi-k2.6": {"input": 0.95, "output": 4.0, "cache_read": 0.16},
+    "kimi-k2.6-turbo": {"input": 2.0, "output": 8.0, "cache_read": 0.3},
+    "kimi-k2": {"input": 0.5, "output": 2.5, "cache_read": 0.08},
+    "kimi-k1.5": {"input": 0.3, "output": 1.5, "cache_read": 0.05},
+    "moonshot-v1": {"input": 0.12, "output": 0.6, "cache_read": 0.012},
+
+    # ===== GLM / 智谱AI =====
+    "glm-5.1": {"input": 1.4, "output": 4.4, "cache_read": 0.26},
+    "glm-5": {"input": 0.9, "output": 3.0, "cache_read": 0.15},
+    "glm-4.7": {"input": 0.6, "output": 2.0, "cache_read": 0.1},
+    "glm-4.6": {"input": 0.5, "output": 1.8, "cache_read": 0.1},
+    "glm-4-plus": {"input": 0.4, "output": 1.5, "cache_read": 0.08},
+    "glm-4": {"input": 0.3, "output": 1.2, "cache_read": 0.06},
+
+    # ===== MiniMax =====
+    "minimax-2.7": {"input": 0.3, "output": 1.2, "cache_read": 0.06},
+
+    # ===== Qwen / 通义千问 (闭源 API 版本) =====
+    "qwen3.6-max": {"input": 0.5, "output": 2.0, "cache_read": 0.05},
+    "qwen2.5-72b-instruct": {"input": 0.4, "output": 0.4, "cache_read": 0.04},
+
+    # ===== Doubao / 字节火山引擎 =====
+    "doubao-seed-2.0-pro": {"input": 0.44, "output": 2.2, "cache_read": 0.088},
+    "doubao-seed-2.0-lite": {"input": 0.08, "output": 0.5, "cache_read": 0.016},
+    "doubao-seed-1.8": {"input": 0.11, "output": 0.28, "cache_read": 0.022},
+    "doubao-seed-1.6-flash": {"input": 0.02, "output": 0.21, "cache_read": 0.004},
+
+    # ===== Google Gemini =====
+    "gemini-3.1-pro": {"input": 4.5, "output": 4.5, "cache_read": 0.45},
+    "gemini-2.5-pro": {"input": 1.25, "output": 10.0, "cache_read": 0.125},
+    "gemini-2.5-flash": {"input": 0.3, "output": 2.5, "cache_read": 0.03},
+    "gemini-1.5-pro": {"input": 1.25, "output": 5.0, "cache_read": 0.125},
+    "gemini-1.5-flash": {"input": 0.075, "output": 0.3, "cache_read": 0.0075},
+
+    # ===== Meta Llama (开源免费, API 端有 Fireworks 托管价) =====
+    "llama-4-scout": {"input": 0.08, "output": 0.3, "cache_read": 0.008},
+    "llama-4-maverick": {"input": 0.15, "output": 0.6, "cache_read": 0.015},
+    "llama-4-behemoth": {"input": 0.0, "output": 0.0, "cache_read": 0.0},
+
+    # ===== 其他 =====
+    "grok-3": {"input": 1.25, "output": 2.5, "cache_read": 0.2},
+    "grok-2": {"input": 0.5, "output": 1.0, "cache_read": 0.1},
+    "sonar-pro": {"input": 3.0, "output": 15.0, "cache_read": 0.3},
+    "yi-lightning": {"input": 0.3, "output": 0.3, "cache_read": 0.03},
 }
 
-# 通用前缀匹配（精确未命中时回退）
+# 前缀匹配: model_id 前缀 → 精确 key
 MODEL_PRICING_PREFIX = {
     "claude-opus-4-7": "claude-opus-4-7",
     "claude-opus-4-5": "claude-opus-4-5-20251101",
+    "claude-opus-4-1": "claude-opus-4-1-20250805",
+    "claude-opus-4-0": "claude-opus-4-0",
     "claude-sonnet-4-6": "claude-sonnet-4-6",
     "claude-sonnet-4-5": "claude-sonnet-4-5-20250929",
+    "claude-sonnet-4-0": "claude-sonnet-4-0",
     "claude-haiku-4-5": "claude-haiku-4-5",
+    "claude-3-7-sonnet": "claude-3-7-sonnet-20250219",
+    "claude-3-5-sonnet": "claude-3-5-sonnet-20241022",
+    "claude-3-5-haiku": "claude-3-5-haiku-20241022",
+    "claude-3-sonnet": "claude-3-sonnet-20240229",
+    "claude-3-opus": "claude-3-opus-20240229",
+    "claude-2.1": "claude-2.1",
+    "claude-2.0": "claude-2.0",
+    "claude-instant": "claude-instant-1.2",
+    "claude-1.3": "claude-1.3",
+    "gpt-5.5": "gpt-5.5",
+    "gpt-5": "gpt-5",
+    "o1": "o1",
+    "o3": "o3",
+    "gpt-4o": "gpt-4o",
+    "gpt-4o-mini": "gpt-4o-mini",
+    "gpt-4-turbo": "gpt-4-turbo",
+    "gpt-4.1": "gpt-4.1",
+    "chatgpt-4o": "chatgpt-4o-latest",
+    "deepseek-v4": "deepseek-v4-pro",
+    "deepseek-v4-flash": "deepseek-v4-flash",
+    "deepseek-chat": "deepseek-chat",
+    "deepseek-reasoner": "deepseek-reasoner",
+    "deepseek-v3": "deepseek-v3",
+    "deepseek-v2": "deepseek-v2",
+    "deepseek-r1": "deepseek-r1",
+    "deepseek-coder": "deepseek-coder-v2",
+    "kimi-k2.6": "kimi-k2.6",
+    "kimi-k2": "kimi-k2",
+    "kimi-k1": "kimi-k1.5",
+    "moonshot": "moonshot-v1",
+    "glm-5.1": "glm-5.1",
+    "glm-5": "glm-5",
+    "glm-4.7": "glm-4.7",
+    "glm-4.6": "glm-4.6",
+    "glm-4-plus": "glm-4-plus",
+    "glm-4": "glm-4",
+    "minimax-2": "minimax-2.7",
+    "minimax": "minimax-2.7",
+    "qwen3.6-max": "qwen3.6-max",
+    "qwen3.5": "qwen3.6-max",
+    "qwen2.5": "qwen2.5-72b-instruct",
+    "doubao-seed-2.0": "doubao-seed-2.0-pro",
+    "doubao-seed-1.8": "doubao-seed-1.8",
+    "doubao-seed-1.6-flash": "doubao-seed-1.6-flash",
+    "doubao-seed-1.6": "doubao-seed-1.8",
+    "gemini-3.1-pro": "gemini-3.1-pro",
+    "gemini-2.5-pro": "gemini-2.5-pro",
+    "gemini-2.5-flash": "gemini-2.5-flash",
+    "gemini-1.5-pro": "gemini-1.5-pro",
+    "gemini-1.5-flash": "gemini-1.5-flash",
+    "llama-4": "llama-4-scout",
+    "llama-3": "llama-4-scout",
+    "grok-3": "grok-3",
+    "grok-2": "grok-2",
+    "sonar": "sonar-pro",
+    "yi-lightning": "yi-lightning",
 }
 
 
@@ -377,6 +524,8 @@ def calc_model_cost(model_id: str, input_tokens: int, output_tokens: int, cache_
                 break
     if not key:
         return None
+    if key["input"] == 0 and key["output"] == 0:
+        return 0.0
     return (
         input_tokens / 1_000_000 * key["input"]
         + output_tokens / 1_000_000 * key["output"]
@@ -384,728 +533,10 @@ def calc_model_cost(model_id: str, input_tokens: int, output_tokens: int, cache_
     )
 
 
-def cache_path_for_git(root: str) -> Path:
-    digest = hashlib.sha1(root.encode("utf-8", errors="ignore")).hexdigest()[:12]
-    return Path("/tmp") / f"claude-statusline-git-{digest}.json"
-
-
-def get_git_root(cwd: str) -> str | None:
-    root = run_cmd(["git", "rev-parse", "--show-toplevel"], cwd=cwd)
-    return root or None
-
-
-def get_worktree_name(repo_root: str) -> str:
-    dotgit = Path(repo_root) / ".git"
-    try:
-        if dotgit.is_file():
-            first = _read_first_nonempty_line(dotgit) or ""
-            if first.startswith("gitdir:"):
-                gitdir = first.split(":", 1)[1].strip()
-                # 在 worktree 中，gitdir 通常包含 ".../worktrees/<name>"
-                m = re.search(r"[\\\\/]+worktrees[\\\\/]+([^\\\\/]+)", gitdir)
-                if m:
-                    return m.group(1)
-                return "worktree"
-    except Exception:
-        return ""
-    return ""
-
-
-def get_git_info(cwd: str, *, ttl_s: float = 1.0) -> dict | None:
-    root = get_git_root(cwd)
-    if not root:
-        return None
-
-    cache_file = cache_path_for_git(root)
-    now = time.time()
-    try:
-        if cache_file.exists():
-            age = now - cache_file.stat().st_mtime
-            if age <= ttl_s:
-                cached = json.loads(cache_file.read_text(encoding="utf-8"))
-                if isinstance(cached, dict):
-                    return cached
-    except Exception:
-        pass
-
-    branch = run_cmd(["git", "branch", "--show-current"], cwd=cwd) or ""
-    if not branch:
-        branch = run_cmd(["git", "rev-parse", "--short", "HEAD"], cwd=cwd) or ""
-
-    status = run_cmd(["git", "status", "--porcelain"], cwd=cwd) or ""
-    paths: set[str] = set()
-    for line in status.splitlines():
-        if not line.strip():
-            continue
-        # XY SP <path> (or "?? <path>")
-        path = line[3:].strip() if len(line) >= 4 else ""
-        if not path:
-            continue
-        if "->" in path:
-            path = path.split("->", 1)[1].strip()
-        if path.startswith('"') and path.endswith('"') and len(path) >= 2:
-            path = path[1:-1]
-        paths.add(path)
-    dirty = bool(paths)
-
-    insertions = 0
-    deletions = 0
-
-    def accumulate_numstat(numstat: str):
-        nonlocal insertions, deletions
-        for line in (numstat or "").splitlines():
-            parts = line.split("\t")
-            if len(parts) < 3:
-                continue
-            a, d = parts[0], parts[1]
-            try:
-                if a != "-":
-                    insertions += int(a)
-            except Exception:
-                pass
-            try:
-                if d != "-":
-                    deletions += int(d)
-            except Exception:
-                pass
-
-    # 未暂存 + 已暂存（不带 HEAD，避免在无提交仓库里失败）
-    accumulate_numstat(run_cmd(["git", "diff", "--numstat"], cwd=cwd) or "")
-    accumulate_numstat(run_cmd(["git", "diff", "--cached", "--numstat"], cwd=cwd) or "")
-
-    info = {
-        "root": root,
-        "branch": branch or "detached",
-        "dirty": dirty,
-        "worktree": get_worktree_name(root),
-        "changed_files": len(paths),
-        "insertions": insertions,
-        "deletions": deletions,
-    }
-    try:
-        cache_file.write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
-    except Exception:
-        pass
-    return info
-
-
-def cache_path_for_tools(root: str) -> Path:
-    digest = hashlib.sha1(root.encode("utf-8", errors="ignore")).hexdigest()[:12]
-    return Path("/tmp") / f"claude-statusline-tools-{digest}.json"
-
-
-def choose_project_root(cwd: str) -> str:
-    git_root = get_git_root(cwd)
-    return git_root or cwd
-
-
-EXCLUDED_DIRS = {
-    ".git",
-    ".hg",
-    ".svn",
-    "__pycache__",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".tox",
-    ".venv",
-    "venv",
-    "node_modules",
-    "dist",
-    "build",
-    "target",
-    "vendor",
-}
-
-
-def _walk_files(root: Path, *, max_depth: int = 4, max_files: int = 2500):
-    count = 0
-    root = root.resolve()
-    for dirpath, dirnames, filenames in os.walk(root):
-        try:
-            rel = Path(dirpath).resolve().relative_to(root)
-            depth = len(rel.parts)
-        except Exception:
-            depth = 0
-
-        dirnames[:] = [d for d in dirnames if d not in EXCLUDED_DIRS]
-        if depth >= max_depth:
-            dirnames[:] = []
-
-        for fn in filenames:
-            yield Path(dirpath) / fn
-            count += 1
-            if count >= max_files:
-                return
-
-
-def _best_match_path(root: Path, wanted_names: set[str], *, max_depth: int = 4) -> Path | None:
-    best: tuple[int, int, str, Path] | None = None
-    for p in _walk_files(root, max_depth=max_depth):
-        if p.name not in wanted_names:
-            continue
-        try:
-            rel = p.relative_to(root)
-            depth = len(rel.parts) - 1
-            path_len = len(str(rel))
-            key = (depth, path_len, str(rel), p)
-        except Exception:
-            key = (9999, 9999, str(p), p)
-        if best is None or key[:3] < best[:3]:
-            best = key
-    return best[3] if best else None
-
-
-def collect_best_paths(root: Path, wanted_names: set[str], *, max_depth: int = 4, max_files: int = 2500) -> dict[str, Path]:
-    best: dict[str, tuple[int, int, str, Path]] = {}
-    for p in _walk_files(root, max_depth=max_depth, max_files=max_files):
-        if p.name not in wanted_names:
-            continue
-        try:
-            rel = p.relative_to(root)
-            depth = len(rel.parts) - 1
-            path_len = len(str(rel))
-            key = (depth, path_len, str(rel), p)
-        except Exception:
-            key = (9999, 9999, str(p), p)
-        cur = best.get(p.name)
-        if cur is None or key[:3] < cur[:3]:
-            best[p.name] = key
-    return {name: entry[3] for name, entry in best.items()}
-
-
-def _read_first_nonempty_line(path: Path) -> str | None:
-    try:
-        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-            s = line.strip()
-            if not s or s.startswith("#") or s.startswith("//"):
-                continue
-            return s
-    except Exception:
-        return None
-    return None
-
-
-def parse_go_version(go_mod: Path) -> str | None:
-    try:
-        for line in go_mod.read_text(encoding="utf-8", errors="ignore").splitlines()[:60]:
-            s = line.strip()
-            if s.startswith("go "):
-                parts = s.split()
-                if len(parts) >= 2:
-                    return parts[1]
-    except Exception:
-        return None
-    return None
-
-
-def parse_node_version_from_tool_versions(path: Path) -> str | None:
-    try:
-        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-            s = line.strip()
-            if not s or s.startswith("#"):
-                continue
-            parts = s.split()
-            if len(parts) >= 2 and parts[0] in {"nodejs", "node"}:
-                return parts[1]
-    except Exception:
-        return None
-    return None
-
-
-def parse_python_version_from_tool_versions(path: Path) -> str | None:
-    try:
-        for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
-            s = line.strip()
-            if not s or s.startswith("#"):
-                continue
-            parts = s.split()
-            if len(parts) >= 2 and parts[0] in {"python"}:
-                return parts[1]
-    except Exception:
-        return None
-    return None
-
-
-def parse_node_constraint_from_package_json(path: Path) -> str | None:
-    try:
-        data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
-    except Exception:
-        return None
-    if not isinstance(data, dict):
-        return None
-    volta = data.get("volta")
-    if isinstance(volta, dict):
-        node = volta.get("node")
-        if isinstance(node, str) and node.strip():
-            return node.strip()
-    engines = data.get("engines")
-    if isinstance(engines, dict):
-        node = engines.get("node")
-        if isinstance(node, str) and node.strip():
-            return node.strip()
-    return None
-
-
-def parse_python_constraint_from_pyproject(path: Path) -> str | None:
-    raw = ""
-    try:
-        raw = path.read_text(encoding="utf-8", errors="ignore")
-    except Exception:
-        return None
-
-    if tomllib is not None:
-        try:
-            data = tomllib.loads(raw)
-        except Exception:
-            data = None
-        if isinstance(data, dict):
-            project = data.get("project")
-            if isinstance(project, dict):
-                rp = project.get("requires-python")
-                if isinstance(rp, str) and rp.strip():
-                    return rp.strip()
-            poetry = get_path(data, ["tool", "poetry", "dependencies"], None)
-            if isinstance(poetry, dict):
-                py = poetry.get("python")
-                if isinstance(py, str) and py.strip():
-                    return py.strip()
-
-    # 兼容无 tomllib 的 Python：用轻量解析（只覆盖常见字段）
-    section = ""
-    for line in raw.splitlines():
-        s = line.strip()
-        if not s or s.startswith("#"):
-            continue
-        if s.startswith("[") and s.endswith("]"):
-            section = s.strip("[]").strip()
-            continue
-        if section == "project":
-            m = re.match(r'requires-python\s*=\s*["\']([^"\']+)["\']', s)
-            if m:
-                return m.group(1).strip()
-        if section == "tool.poetry.dependencies":
-            m = re.match(r'python\s*=\s*["\']([^"\']+)["\']', s)
-            if m:
-                return m.group(1).strip()
-    return None
-
-
-def parse_rust_toolchain(path: Path) -> str | None:
-    try:
-        if path.suffix == ".toml":
-            raw = path.read_text(encoding="utf-8", errors="ignore")
-            if tomllib is not None:
-                try:
-                    data = tomllib.loads(raw)
-                except Exception:
-                    data = None
-                chan = get_path(data, ["toolchain", "channel"], None) if isinstance(data, dict) else None
-                if isinstance(chan, str) and chan.strip():
-                    return chan.strip()
-            for line in raw.splitlines():
-                s = line.strip()
-                if not s or s.startswith("#"):
-                    continue
-                m = re.match(r'channel\s*=\s*["\']([^"\']+)["\']', s)
-                if m:
-                    return m.group(1).strip()
-        else:
-            return _read_first_nonempty_line(path)
-    except Exception:
-        return None
-    return None
-
-
-def get_installed_tool_versions(*, cwd: str, need_node: bool, need_go: bool, need_rust: bool) -> dict:
-    out: dict[str, str] = {}
-    if need_node:
-        v = run_cmd(["node", "-v"], cwd=cwd, timeout=0.25)
-        if v:
-            out["node"] = v.lstrip("v").strip()
-    if need_go:
-        v = run_cmd(["go", "version"], cwd=cwd, timeout=0.25)
-        if v:
-            m = re.search(r"\bgo([0-9]+(?:\.[0-9]+){1,2})\b", v)
-            out["go"] = (m.group(1) if m else v).strip()
-    if need_rust:
-        v = run_cmd(["rustc", "-V"], cwd=cwd, timeout=0.25)
-        if v:
-            m = re.search(r"\brustc\s+([0-9]+(?:\.[0-9]+){1,2})\b", v)
-            out["rust"] = (m.group(1) if m else v).strip()
-    return out
-
-
-class GoParser(ToolVersionParser):
-    """Go语言版本解析器"""
-
-    @property
-    def tool_name(self) -> str:
-        return "go"
-
-    @property
-    def config_files(self) -> list[str]:
-        return ["go.mod"]
-
-    def parse(self, file_path: Path) -> Optional[str]:
-        try:
-            for line in file_path.read_text(encoding="utf-8", errors="ignore").splitlines()[:60]:
-                s = line.strip()
-                if s.startswith("go "):
-                    parts = s.split()
-                    if len(parts) >= 2:
-                        return parts[1]
-        except Exception:
-            return None
-        return None
-
-    def get_installed_version(self, cwd: str) -> Optional[str]:
-        v = run_cmd(["go", "version"], cwd=cwd, timeout=0.25)
-        if v:
-            m = re.search(r"\bgo([0-9]+(?:\.[0-9]+){1,2})\b", v)
-            return (m.group(1) if m else v).strip()
-        return None
-
-
-class NodeParser(ToolVersionParser):
-    """Node.js版本解析器"""
-
-    @property
-    def tool_name(self) -> str:
-        return "node"
-
-    @property
-    def config_files(self) -> list[str]:
-        return [
-            ".nvmrc",
-            ".node-version",
-            ".tool-versions",
-            "package.json",
-            "pnpm-lock.yaml",
-            "yarn.lock",
-            "bun.lockb",
-        ]
-
-    def parse(self, file_path: Path) -> Optional[str]:
-        filename = file_path.name
-
-        if filename in [".nvmrc", ".node-version"]:
-            return _read_first_nonempty_line(file_path)
-
-        if filename == ".tool-versions":
-            return parse_node_version_from_tool_versions(file_path)
-
-        if filename == "package.json":
-            return parse_node_constraint_from_package_json(file_path)
-
-        return None
-
-    def get_installed_version(self, cwd: str) -> Optional[str]:
-        v = run_cmd(["node", "-v"], cwd=cwd, timeout=0.25)
-        return v.lstrip("v").strip() if v else None
-
-
-class PythonParser(ToolVersionParser):
-    """Python版本解析器"""
-
-    @property
-    def tool_name(self) -> str:
-        return "python"
-
-    @property
-    def config_files(self) -> list[str]:
-        return [
-            ".python-version",
-            ".tool-versions",
-            "pyproject.toml",
-            "requirements.txt",
-            "requirements-dev.txt",
-            "Pipfile",
-            "poetry.lock",
-            "uv.lock",
-        ]
-
-    def parse(self, file_path: Path) -> Optional[str]:
-        filename = file_path.name
-
-        if filename == ".python-version":
-            return _read_first_nonempty_line(file_path)
-
-        if filename == ".tool-versions":
-            return parse_python_version_from_tool_versions(file_path)
-
-        if filename == "pyproject.toml":
-            return parse_python_constraint_from_pyproject(file_path)
-
-        return None
-
-    def get_installed_version(self, cwd: str) -> Optional[str]:
-        return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
-
-
-class RustParser(ToolVersionParser):
-    """Rust版本解析器"""
-
-    @property
-    def tool_name(self) -> str:
-        return "rust"
-
-    @property
-    def config_files(self) -> list[str]:
-        return ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
-
-    @property
-    def detection_files(self) -> list[str]:
-        """用于检测工具是否存在的文件（优先级高于config_files）"""
-        return ["Cargo.toml"]
-
-    def parse(self, file_path: Path) -> Optional[str]:
-        filename = file_path.name
-        if filename in ["rust-toolchain.toml", "rust-toolchain"]:
-            return parse_rust_toolchain(file_path)
-        return None
-
-    def get_installed_version(self, cwd: str) -> Optional[str]:
-        v = run_cmd(["rustc", "-V"], cwd=cwd, timeout=0.25)
-        if v:
-            m = re.search(r"\brustc\s+([0-9]+(?:\.[0-9]+){1,2})\b", v)
-            return (m.group(1) if m else v).strip()
-        return None
-
-
-class ToolDetector:
-    """工具检测管理器"""
-
-    def __init__(self):
-        self.parsers: list[ToolVersionParser] = [
-            GoParser(),
-            NodeParser(),
-            PythonParser(),
-            RustParser(),
-        ]
-
-    def detect(self, cwd: str, *, ttl_s: float = 6.0) -> dict:
-        """检测项目工具信息"""
-        root = Path(choose_project_root(cwd))
-        cache_file = cache_path_for_tools(str(root))
-
-        cached = self._try_load_cache(cache_file, ttl_s)
-        if cached:
-            return cached
-
-        all_config_files = set()
-        for parser in self.parsers:
-            all_config_files.update(parser.config_files)
-
-        all_config_files.add(".version")
-
-        root_level = {p.name: p for p in root.iterdir()} if root.exists() else {}
-        scanned = collect_best_paths(root, all_config_files, max_depth=4, max_files=2500) if root.exists() else {}
-
-        def pick(name: str) -> Optional[Path]:
-            p = root_level.get(name)
-            if p and p.exists():
-                return p
-            return scanned.get(name)
-
-        info: dict[str, object] = {
-            "root": str(root),
-        }
-
-        for parser in self.parsers:
-            tool_info = self._detect_tool(parser, pick)
-            info.update(tool_info)
-
-        project_version_file = pick(".version")
-        project_version = _read_first_nonempty_line(project_version_file) if project_version_file else None
-        info["project_version"] = (project_version or "").strip()
-
-        venv = os.environ.get("VIRTUAL_ENV")
-        venv_name = Path(venv).name if venv else ""
-        info["python_venv"] = venv_name
-
-        uv_lock = pick("uv.lock")
-        info["python_uv"] = uv_lock is not None
-
-        self._save_cache(cache_file, info)
-
-        return info
-
-    def _detect_tool(self, parser: ToolVersionParser, pick) -> dict:
-        """检测单个工具的信息"""
-        tool_name = parser.tool_name
-
-        detection_file = None
-        for filename in parser.detection_files:
-            detection_file = pick(filename)
-            if detection_file:
-                break
-
-        required_version = None
-        version_source = None
-        for filename in parser.config_files:
-            config_file = pick(filename)
-            if config_file:
-                required_version = parser.parse(config_file)
-                if required_version:
-                    version_source = config_file.name
-                    break
-
-        installed_version = parser.get_installed_version(str(pick("root") or "."))
-
-        return {
-            f"has_{tool_name}": detection_file is not None,
-            f"{tool_name}_required": required_version or "",
-            f"{tool_name}_required_src": version_source or "",
-            f"{tool_name}_installed": installed_version or "",
-        }
-
-    def _try_load_cache(self, cache_file: Path, ttl_s: float) -> Optional[dict]:
-        """尝试加载缓存"""
-        now = time.time()
-        try:
-            if cache_file.exists():
-                age = now - cache_file.stat().st_mtime
-                if age <= ttl_s:
-                    cached = json.loads(cache_file.read_text(encoding="utf-8"))
-                    if isinstance(cached, dict):
-                        return cached
-        except Exception:
-            pass
-        return None
-
-    def _save_cache(self, cache_file: Path, info: dict) -> None:
-        """保存缓存"""
-        try:
-            cache_file.write_text(json.dumps(info, ensure_ascii=False), encoding="utf-8")
-        except Exception:
-            pass
-
-
-_detector = ToolDetector()
-
-
-def detect_project_tooling(cwd: str, *, ttl_s: float = 6.0) -> dict:
-    """检测项目工具信息（重构后的入口函数）"""
-    return _detector.detect(cwd, ttl_s=ttl_s)
-
-
-def ctx_color(pct: float) -> tuple[int, int, int]:
-    try:
-        p = float(pct)
-    except Exception:
-        p = 0.0
-    if p > 90:
-        return CATPPUCCIN["red"]
-    if p > 75:
-        return CATPPUCCIN["yellow"]
-    return CATPPUCCIN["green"]
-
-
-def render_statusline(payload: dict) -> str:
-    model = (
-        get_path(payload, ["model", "id"], None)
-        or get_path(payload, ["model", "display_name"], None)
-        or get_model()
-    )
-
-    current_dir = (
-        get_path(payload, ["workspace", "current_dir"], None)
-        or get_path(payload, ["cwd"], None)
-        or os.getcwd()
-    )
-    cols, rows = terminal_size()
-
-    context_pct = get_path(payload, ["context_window", "used_percentage"], None)
-    if context_pct is None:
-        used = get_path(payload, ["context_window", "used_tokens"], 0) or 0
-        max_tokens = get_path(payload, ["context_window", "max_tokens"], 0) or 0
-        try:
-            context_pct = (float(used) / float(max_tokens) * 100.0) if float(max_tokens) > 0 else 0.0
-        except Exception:
-            context_pct = 0.0
-    try:
-        context_pct_f = float(context_pct or 0.0)
-    except Exception:
-        context_pct_f = 0.0
-
-    cost_usd = get_path(payload, ["cost", "total_cost_usd"], None)
-    duration_ms = get_path(payload, ["cost", "total_duration_ms"], None)
-    lines_added = get_path(payload, ["cost", "total_lines_added"], None)
-    lines_removed = get_path(payload, ["cost", "total_lines_removed"], None)
-
-    total_in = get_path(payload, ["context_window", "total_input_tokens"], None)
-    total_out = get_path(payload, ["context_window", "total_output_tokens"], None)
-
-    version = str(get_path(payload, ["version"], "") or "").strip()
-    agent_name = str(get_path(payload, ["agent", "name"], "") or "").strip()
-
-    git = get_git_info(str(current_dir), ttl_s=0.0)
-    tooling = detect_project_tooling(str(current_dir), ttl_s=1.5)
-
-    sep_dot = style("·", fg=CATPPUCCIN["subtle"], dim=True)
-    sep_pipe = style("|", fg=CATPPUCCIN["subtle"], dim=True)
-    major_sep = sep_dot
-
-    # 第 1 行：model / token（总）/ 项目版本 / 会话变更 / 耗时
-    thinking_enabled_raw = get_path(payload, ["thinking", "enabled"], None)
-    thinking_on = str(thinking_enabled_raw).strip().lower() in {"true", "1", "yes", "on"} if thinking_enabled_raw is not None else False
-    model_label = str(model) + (" 🧠" if thinking_on else "")
-    line1_parts: list[str] = [style(model_label, fg=CATPPUCCIN["cyan"], bold=True)]
-
-    tokens_seg = ""
-    total_tokens = None
-    if total_in is not None or total_out is not None:
-        try:
-            total_tokens = int(total_in or 0) + int(total_out or 0)
-        except Exception:
-            total_tokens = None
-    if total_tokens is None:
-        try:
-            total_tokens = int(os.environ.get("CLAUDE_CODE_TOTAL_TOKENS", "0"))
-        except Exception:
-            total_tokens = None
-    if total_tokens is None:
-        total_tokens = 0
-    if total_tokens > 0:
-        token_value = f"{format_compact_int(total_tokens)}"
-        # 优先用模型定价计算；回退 stdin cost_usd
-        computed_cost = None
-        if total_in is not None or total_out is not None or (cur_cc > 0 or cur_cr > 0):
-            try:
-                t_in = int(total_in or 0)
-                t_out = int(total_out or 0)
-                computed_cost = calc_model_cost(str(model), t_in, t_out, cur_cr)
-            except Exception:
-                computed_cost = None
-        c = computed_cost if computed_cost is not None else None
-        if c is None and cost_usd is not None:
-            try:
-                c = float(cost_usd)
-            except Exception:
-                c = None
-        if c is not None and c > 0:
-            token_cost = f"[${c:.2f}]".rstrip("0").rstrip(".")
-            if not token_cost.endswith("."):
-                token_cost = token_cost.rstrip(".")
-        else:
-            token_cost = ""
-        tokens_seg = style(token_value, fg=CATPPUCCIN["text"], bold=True) + (
-            style(token_cost, fg=CATPPUCCIN["subtle"], dim=True) if token_cost else ""
-        )
-        if tokens_seg:
-            line1_parts.append(tokens_seg)
-
     if context_pct_f > 0:
         ctx_col = ctx_color(context_pct_f)
         line1_parts.append(style(f"{context_pct_f:.0f}%", fg=ctx_col, bold=True))
 
-    try:
-        cur_in = int(get_path(payload, ["context_window", "current_usage", "input_tokens"], 0) or 0)
-        cur_cc = int(get_path(payload, ["context_window", "current_usage", "cache_creation_input_tokens"], 0) or 0)
-        cur_cr = int(get_path(payload, ["context_window", "current_usage", "cache_read_input_tokens"], 0) or 0)
-    except Exception:
-        cur_in = cur_cc = cur_cr = 0
     cache_denom = cur_in + cur_cc + cur_cr
     if cache_denom > 0:
         cache_pct = cur_cr / cache_denom * 100.0
