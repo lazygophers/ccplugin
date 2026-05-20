@@ -1005,7 +1005,7 @@ def render_statusline(payload: dict) -> str:
     tooling = detect_project_tooling(str(current_dir), ttl_s=1.5)
 
     sep_dot = style("·", fg=CATPPUCCIN["subtle"], dim=True)
-    sep_pipe = style(" | ", fg=CATPPUCCIN["subtle"], dim=True)
+    sep_pipe = style("|", fg=CATPPUCCIN["subtle"], dim=True)
     major_sep = sep_dot
 
     # 第 1 行：model / token（总）/ 项目版本 / 会话变更 / 耗时
@@ -1032,9 +1032,9 @@ def render_statusline(payload: dict) -> str:
     # Token 后面始终带（$...），优先用 stdin 的真实成本
     try:
         c = float(cost_usd) if cost_usd is not None else 0.0
-        token_cost = f"（${c:.2f}）"
+        token_cost = f"[${c:.2f}]"
     except Exception:
-        token_cost = "（$0.00）"
+        token_cost = ""
     tokens_seg = style(token_value, fg=CATPPUCCIN["text"], bold=True) + style(
         token_cost, fg=CATPPUCCIN["subtle"], dim=True
     )
