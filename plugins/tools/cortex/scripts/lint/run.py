@@ -319,21 +319,6 @@ _DEPRECATED_WHITELIST = {"log/", "folds/", "sessions/"}
 # 结构标记 — 非内容相关 tag, lint 检测并 autofix 删除
 _BANNED_TAGS = {"index", "meta", "template", "_index", "stub"}
 
-# 模板/类型/时间式 tag 前缀 + 形态 — 禁止 (cortex 生成或用户落档都不应出现)
-_BANNED_TAG_PREFIXES = (
-    "type/",
-    "template/",
-    "created/",
-    "updated/",
-    "modified/",
-    "date/",
-    "time/",
-    "year/",
-    "month/",
-    "week/",
-    "day/",
-    "quarter/",
-)
 # 裸时间 token: 2026 / 2026-05 / 2026-05-19 / 2026-Q2 / 2026-W21
 _BANNED_TAG_TIME_RE = re.compile(
     r"^(?:\d{4}(?:-(?:Q[1-4]|W\d{1,2}|\d{1,2}(?:-\d{1,2})?))?|"
@@ -342,15 +327,12 @@ _BANNED_TAG_TIME_RE = re.compile(
 
 
 def _is_banned_tag(tag: str) -> bool:
-    """tag 是否命中结构/模板/时间禁令."""
+    """tag 是否命中结构/时间禁令 (仅裸结构 + 裸时间; hierarchical `xxx/yyy` 允许)."""
     if not isinstance(tag, str) or not tag.strip():
         return False
     low = tag.lower()
     if low in _BANNED_TAGS:
         return True
-    for pfx in _BANNED_TAG_PREFIXES:
-        if low.startswith(pfx):
-            return True
     if _BANNED_TAG_TIME_RE.match(tag.strip()):
         return True
     return False
@@ -819,7 +801,7 @@ def check_file(
                     "warn",
                     rel,
                     1,
-                    f"frontmatter tags 含结构/模板/时间标记 (非内容相关): {', '.join(_banned)}",
+                    f"frontmatter tags 含结构/裸时间标记 (非内容相关): {', '.join(_banned)}",
                     True,
                 )
             )

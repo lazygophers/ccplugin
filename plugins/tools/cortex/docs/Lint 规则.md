@@ -14,7 +14,7 @@
 | 1 | `fm-missing-type` | error | ✅ | frontmatter 缺 `type` 字段 |
 | 2 | `fm-missing-created` | warn | ✅ | frontmatter 缺 `created` 字段 |
 | 3 | `fm-duplicate-tags` | warn | ✅ | frontmatter tags 列表内重复 |
-| 4 | `fm-banned-tags` | warn | ✅ | tags 含结构/模板/类型/时间标记 (`index/meta/template/_index/stub` + `type/* template/* created/* date/* time/* year/month/week/day/quarter/*` + 裸 `YYYY[-MM[-DD]]/YYYY-Q[1-4]/YYYY-W##`) |
+| 4 | `fm-banned-tags` | warn | ✅ | tags 含结构 (`index/meta/template/_index/stub`) 或裸时间 (`YYYY[-MM[-DD]]/YYYY-Q[1-4]/YYYY-W##/YYYY年..`). hierarchical `xxx/yyy` 允许。 |
 | 5 | `fm-banned-fields` | warn | ✅ | frontmatter 含废弃字段 (如 `preset`), autofix pop |
 | 6 | `fm-missing-tags` | warn | ✅ | tags 字段缺失或非 list; autofix 从正文派生语义 tag (严禁占位符/模板/类型/时间式) |
 | 7 | `dead-wikilink` | error | ✅ | wikilink 指向不存在的页 |

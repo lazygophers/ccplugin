@@ -22,7 +22,7 @@
     {
       "id": "fm-banned-tags",
       "severity": "warn",
-      "description": "frontmatter tags 含结构/模板/类型/时间标记 (index/meta/template/_index/stub + type/* template/* created/* date/* time/* year/month/week/day/quarter/* + 裸 YYYY[-MM[-DD]] 等), 这些已在 fm 字段中, 不应重复成 tag",
+      "description": "frontmatter tags 含结构标记 (index/meta/template/_index/stub) 或裸时间 (YYYY / YYYY-MM / YYYY-MM-DD / YYYY-Q[1-4] / YYYY-W## / YYYY年MM月DD日), 这些已在 fm 字段中, 不应重复成 tag。hierarchical `xxx/yyy` 允许。",
       "autofix": true
     },
     {

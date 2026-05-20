@@ -57,11 +57,7 @@ _PLACEHOLDER_RE = _re.compile(
     r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX",
     _re.I,
 )
-# 禁止派生模板/类型/时间式 tag — 这些信息已在 frontmatter 字段中, 不应重复成 tag
-_BANNED_TAG_PREFIXES = (
-    "type/", "template/", "created/", "updated/", "modified/",
-    "date/", "time/", "year/", "month/", "week/", "day/", "quarter/",
-)
+# 禁止派生裸时间 tag — 这些信息已在 frontmatter 时间字段, 不应重复成 tag
 _BANNED_TAG_TIME_RE = _re.compile(
     r"^(?:\d{4}(?:-(?:Q[1-4]|W\d{1,2}|\d{1,2}(?:-\d{1,2})?))?|"
     r"\d{4}年(?:\d{1,2}月(?:\d{1,2}日)?)?)$"
@@ -71,9 +67,6 @@ _BANNED_TAG_TIME_RE = _re.compile(
 def _tag_is_banned(t: str) -> bool:
     if not isinstance(t, str) or not t.strip():
         return True
-    low = t.lower()
-    if any(low.startswith(p) for p in _BANNED_TAG_PREFIXES):
-        return True
     if _BANNED_TAG_TIME_RE.match(t.strip()):
         return True
     return False
@@ -82,8 +75,7 @@ def _tag_is_banned(t: str) -> bool:
 def _derive_tags(fm: dict, body: str) -> list[str]:
     """从正文派生语义 tag (中文 2-4 字 / 英文 PascalCase / 已有 alias).
 
-    严禁: 占位符 / 模板式 (type/, template/) / 类型 / 时间 (created/, YYYY-MM 等) tag。
-    这些信息已在 frontmatter 字段, 不应重复成 tag。
+    严禁: 占位符 / 裸时间 (YYYY-MM 等) tag。hierarchical `xxx/yyy` 允许。
     """
     existing = list(fm.get("tags") or [])
     derived: list[str] = []
