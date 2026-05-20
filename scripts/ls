@@ -857,7 +857,7 @@ def render_statusline(payload: dict) -> str:
     git = get_git_info(str(current_dir), ttl_s=0.0)
     tooling = detect_project_tooling(str(current_dir), ttl_s=1.5)
 
-    sep_dot = style(" · ", fg=CATPPUCCIN["subtle"], dim=True)
+    sep_dot = style("·", fg=CATPPUCCIN["subtle"], dim=True)
     sep_pipe = style(" | ", fg=CATPPUCCIN["subtle"], dim=True)
     major_sep = sep_dot
 

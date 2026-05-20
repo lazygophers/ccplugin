@@ -23,29 +23,29 @@ except Exception:  # pragma: no cover
 
 class ToolVersionParser(ABC):
     """工具版本解析器抽象基类"""
-    
+
     @property
     @abstractmethod
     def tool_name(self) -> str:
         """工具名称，如 'go', 'node', 'python', 'rust'"""
         pass
-    
+
     @property
     @abstractmethod
     def config_files(self) -> list[str]:
         """需要查找的配置文件列表"""
         pass
-    
+
     @property
     def detection_files(self) -> list[str]:
         """用于检测工具是否存在的文件（默认使用config_files）"""
         return self.config_files
-    
+
     @abstractmethod
     def parse(self, file_path: Path) -> Optional[str]:
         """解析配置文件，返回版本字符串或None"""
         pass
-    
+
     def get_installed_version(self, cwd: str) -> Optional[str]:
         """获取已安装的工具版本（可被子类覆盖）"""
         return None
@@ -699,15 +699,15 @@ def get_installed_tool_versions(*, cwd: str, need_node: bool, need_go: bool, nee
 
 class GoParser(ToolVersionParser):
     """Go语言版本解析器"""
-    
+
     @property
     def tool_name(self) -> str:
         return "go"
-    
+
     @property
     def config_files(self) -> list[str]:
         return ["go.mod"]
-    
+
     def parse(self, file_path: Path) -> Optional[str]:
         try:
             for line in file_path.read_text(encoding="utf-8", errors="ignore").splitlines()[:60]:
@@ -719,7 +719,7 @@ class GoParser(ToolVersionParser):
         except Exception:
             return None
         return None
-    
+
     def get_installed_version(self, cwd: str) -> Optional[str]:
         v = run_cmd(["go", "version"], cwd=cwd, timeout=0.25)
         if v:
@@ -730,11 +730,11 @@ class GoParser(ToolVersionParser):
 
 class NodeParser(ToolVersionParser):
     """Node.js版本解析器"""
-    
+
     @property
     def tool_name(self) -> str:
         return "node"
-    
+
     @property
     def config_files(self) -> list[str]:
         return [
@@ -746,21 +746,21 @@ class NodeParser(ToolVersionParser):
             "yarn.lock",
             "bun.lockb",
         ]
-    
+
     def parse(self, file_path: Path) -> Optional[str]:
         filename = file_path.name
-        
+
         if filename in [".nvmrc", ".node-version"]:
             return _read_first_nonempty_line(file_path)
-        
+
         if filename == ".tool-versions":
             return parse_node_version_from_tool_versions(file_path)
-        
+
         if filename == "package.json":
             return parse_node_constraint_from_package_json(file_path)
-        
+
         return None
-    
+
     def get_installed_version(self, cwd: str) -> Optional[str]:
         v = run_cmd(["node", "-v"], cwd=cwd, timeout=0.25)
         return v.lstrip("v").strip() if v else None
@@ -768,11 +768,11 @@ class NodeParser(ToolVersionParser):
 
 class PythonParser(ToolVersionParser):
     """Python版本解析器"""
-    
+
     @property
     def tool_name(self) -> str:
         return "python"
-    
+
     @property
     def config_files(self) -> list[str]:
         return [
@@ -785,47 +785,47 @@ class PythonParser(ToolVersionParser):
             "poetry.lock",
             "uv.lock",
         ]
-    
+
     def parse(self, file_path: Path) -> Optional[str]:
         filename = file_path.name
-        
+
         if filename == ".python-version":
             return _read_first_nonempty_line(file_path)
-        
+
         if filename == ".tool-versions":
             return parse_python_version_from_tool_versions(file_path)
-        
+
         if filename == "pyproject.toml":
             return parse_python_constraint_from_pyproject(file_path)
-        
+
         return None
-    
+
     def get_installed_version(self, cwd: str) -> Optional[str]:
         return f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
 
 
 class RustParser(ToolVersionParser):
     """Rust版本解析器"""
-    
+
     @property
     def tool_name(self) -> str:
         return "rust"
-    
+
     @property
     def config_files(self) -> list[str]:
         return ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
-    
+
     @property
     def detection_files(self) -> list[str]:
         """用于检测工具是否存在的文件（优先级高于config_files）"""
         return ["Cargo.toml"]
-    
+
     def parse(self, file_path: Path) -> Optional[str]:
         filename = file_path.name
         if filename in ["rust-toolchain.toml", "rust-toolchain"]:
             return parse_rust_toolchain(file_path)
         return None
-    
+
     def get_installed_version(self, cwd: str) -> Optional[str]:
         v = run_cmd(["rustc", "-V"], cwd=cwd, timeout=0.25)
         if v:
@@ -836,7 +836,7 @@ class RustParser(ToolVersionParser):
 
 class ToolDetector:
     """工具检测管理器"""
-    
+
     def __init__(self):
         self.parsers: list[ToolVersionParser] = [
             GoParser(),
@@ -844,64 +844,64 @@ class ToolDetector:
             PythonParser(),
             RustParser(),
         ]
-    
+
     def detect(self, cwd: str, *, ttl_s: float = 6.0) -> dict:
         """检测项目工具信息"""
         root = Path(choose_project_root(cwd))
         cache_file = cache_path_for_tools(str(root))
-        
+
         cached = self._try_load_cache(cache_file, ttl_s)
         if cached:
             return cached
-        
+
         all_config_files = set()
         for parser in self.parsers:
             all_config_files.update(parser.config_files)
-        
+
         all_config_files.add(".version")
-        
+
         root_level = {p.name: p for p in root.iterdir()} if root.exists() else {}
         scanned = collect_best_paths(root, all_config_files, max_depth=4, max_files=2500) if root.exists() else {}
-        
+
         def pick(name: str) -> Optional[Path]:
             p = root_level.get(name)
             if p and p.exists():
                 return p
             return scanned.get(name)
-        
+
         info: dict[str, object] = {
             "root": str(root),
         }
-        
+
         for parser in self.parsers:
             tool_info = self._detect_tool(parser, pick)
             info.update(tool_info)
-        
+
         project_version_file = pick(".version")
         project_version = _read_first_nonempty_line(project_version_file) if project_version_file else None
         info["project_version"] = (project_version or "").strip()
-        
+
         venv = os.environ.get("VIRTUAL_ENV")
         venv_name = Path(venv).name if venv else ""
         info["python_venv"] = venv_name
-        
+
         uv_lock = pick("uv.lock")
         info["python_uv"] = uv_lock is not None
-        
+
         self._save_cache(cache_file, info)
-        
+
         return info
-    
+
     def _detect_tool(self, parser: ToolVersionParser, pick) -> dict:
         """检测单个工具的信息"""
         tool_name = parser.tool_name
-        
+
         detection_file = None
         for filename in parser.detection_files:
             detection_file = pick(filename)
             if detection_file:
                 break
-        
+
         required_version = None
         version_source = None
         for filename in parser.config_files:
@@ -911,16 +911,16 @@ class ToolDetector:
                 if required_version:
                     version_source = config_file.name
                     break
-        
+
         installed_version = parser.get_installed_version(str(pick("root") or "."))
-        
+
         return {
             f"has_{tool_name}": detection_file is not None,
             f"{tool_name}_required": required_version or "",
             f"{tool_name}_required_src": version_source or "",
             f"{tool_name}_installed": installed_version or "",
         }
-    
+
     def _try_load_cache(self, cache_file: Path, ttl_s: float) -> Optional[dict]:
         """尝试加载缓存"""
         now = time.time()
@@ -934,7 +934,7 @@ class ToolDetector:
         except Exception:
             pass
         return None
-    
+
     def _save_cache(self, cache_file: Path, info: dict) -> None:
         """保存缓存"""
         try:
@@ -1004,7 +1004,7 @@ def render_statusline(payload: dict) -> str:
     git = get_git_info(str(current_dir), ttl_s=0.0)
     tooling = detect_project_tooling(str(current_dir), ttl_s=1.5)
 
-    sep_dot = style(" · ", fg=CATPPUCCIN["subtle"], dim=True)
+    sep_dot = style("·", fg=CATPPUCCIN["subtle"], dim=True)
     sep_pipe = style(" | ", fg=CATPPUCCIN["subtle"], dim=True)
     major_sep = sep_dot
 
