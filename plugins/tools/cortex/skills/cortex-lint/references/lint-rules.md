@@ -20,7 +20,7 @@
 | 14 | fm-duplicate-tags | warn | ✓ (保序去重) |
 | 15 | fm-banned-tags | warn | ✓ (移除 index/meta/template/_index/stub) |
 | 16 | fm-banned-fields | warn | ✓ (移除 preset 等) |
-| 17 | fm-missing-tags | warn | ✓ (字段缺失或数量 < 10; autofix 读 fm+正文派生 ≥10, 严禁占位) |
+| 17 | fm-missing-tags | warn | ✓ (字段缺失或非 list; autofix 读 fm+正文派生语义 tag, 严禁占位) |
 | 18 | path-lang-mismatch | warn | ✗ (vault path segment 不符 vault.lang; 豁免 host/org/repo + ASCII 专名 + frontmatter `path_lang_exempt`; rename 走 cortex-refactor) |
 
 **注**: 21 条规则总数包含本表 18 条 + rule 19 `skill-references-exists` + rule 20 `base-format-yaml` + rule 21 `frontmatter-required-scores` (4 评分字段, 见 `schema-validate.md`)。

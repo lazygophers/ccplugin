@@ -34,7 +34,7 @@
     {
       "id": "fm-missing-tags",
       "severity": "warn",
-      "description": "frontmatter tags 字段缺失或数量 < 5 (autofix: 从正文派生语义 tag, 严禁占位符 / 模板 / 类型 / 时间式 tag)",
+      "description": "frontmatter tags 字段缺失或非 list (autofix: 从正文派生语义 tag, 严禁占位符 / 模板 / 类型 / 时间式 tag)",
       "autofix": true
     },
     {

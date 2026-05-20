@@ -358,8 +358,7 @@ def _is_banned_tag(tag: str) -> bool:
 # frontmatter 禁止字段 (preset 系统已移除, autofix 自动剥)
 _BANNED_FM_FIELDS = {"preset"}
 
-# fm-missing-tags autofix: tag 数量上下界 (语义 tag, 不含模板/类型/时间)
-_TAGS_MIN = 5
+# fm-missing-tags autofix: tag 数量上界 (语义 tag, 不含模板/类型/时间)
 _TAGS_MAX = 15
 
 # 占位符模式 — 严禁出现在 autofix 输出
@@ -370,9 +369,9 @@ _PLACEHOLDER_RE = re.compile(
 
 
 def _derive_tags_for_autofix(fm: dict, body: str) -> list[str] | None:
-    """读 fm + 正文派生 ≥10 tag, 严禁占位符。
+    """读 fm + 正文派生 tag, 严禁占位符。
 
-    返回派生后 tag 列表 (>= _TAGS_MIN), 不足 _TAGS_MIN 返 None (autofix 失败).
+    返回派生后 tag 列表 (可空), 派生异常返 None.
     """
     existing = list(fm.get("tags") or []) if isinstance(fm.get("tags"), list) else []
     derived: list[str] = []
@@ -453,8 +452,6 @@ def _derive_tags_for_autofix(fm: dict, body: str) -> list[str] | None:
         merged.append(t)
 
     merged = merged[:_TAGS_MAX]
-    if len(merged) < _TAGS_MIN:
-        return None
     return merged
 
 
@@ -766,7 +763,7 @@ def check_file(
                 True,
             )
         )
-    # rule: fm-missing-tags (tags 字段必须存在 + 类型 list + 数量 ≥ 10)
+    # rule: fm-missing-tags (tags 字段必须存在 + 类型 list)
     _tg_check = fm.get("tags") if "tags" in fm else None
     if "tags" not in fm:
         findings.append(
@@ -787,17 +784,6 @@ def check_file(
                 rel,
                 1,
                 "frontmatter tags 非 list",
-                True,
-            )
-        )
-    elif len(_tg_check) < _TAGS_MIN:
-        findings.append(
-            _f(
-                "fm-missing-tags",
-                "warn",
-                rel,
-                1,
-                f"frontmatter tags 数量 {len(_tg_check)} < {_TAGS_MIN}",
                 True,
             )
         )
@@ -3590,7 +3576,7 @@ def apply_fixes(
                     if isinstance(_fm4, dict):
                         _body4 = m_fm4.group(2) or ""
                         _derived = _derive_tags_for_autofix(_fm4, _body4)
-                        if _derived is not None and len(_derived) >= _TAGS_MIN:
+                        if _derived:
                             _fm4["tags"] = _derived
                             _new_fm4 = _yaml4.safe_dump(
                                 _fm4,

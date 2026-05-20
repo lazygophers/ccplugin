@@ -52,7 +52,6 @@ _KB_KINDS = {"concept", "domain", "log", "reflection", "source", "project", "ent
 _MEM_KINDS = {"memory"}
 _MATURITY_ENUM = ("draft", "review", "stable", "deprecated")
 
-_TAGS_MIN = 5
 _TAGS_MAX = 15
 _PLACEHOLDER_RE = _re.compile(
     r"<.*?>|placeholder|TODO|待填|待用户填|TBD|FIXME|XXX",

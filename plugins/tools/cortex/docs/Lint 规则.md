@@ -16,7 +16,7 @@
 | 3 | `fm-duplicate-tags` | warn | ✅ | frontmatter tags 列表内重复 |
 | 4 | `fm-banned-tags` | warn | ✅ | tags 含结构/模板/类型/时间标记 (`index/meta/template/_index/stub` + `type/* template/* created/* date/* time/* year/month/week/day/quarter/*` + 裸 `YYYY[-MM[-DD]]/YYYY-Q[1-4]/YYYY-W##`) |
 | 5 | `fm-banned-fields` | warn | ✅ | frontmatter 含废弃字段 (如 `preset`), autofix pop |
-| 6 | `fm-missing-tags` | warn | ✅ | tags 缺失或数量 < 5; autofix 从正文派生语义 tag (严禁占位符/模板/类型/时间式) |
+| 6 | `fm-missing-tags` | warn | ✅ | tags 字段缺失或非 list; autofix 从正文派生语义 tag (严禁占位符/模板/类型/时间式) |
 | 7 | `dead-wikilink` | error | ✅ | wikilink 指向不存在的页 |
 | 8 | `orphan-page` | warn | ✅ | 无入链且无 tag 的孤儿页 |
 | 9 | `duplicate-alias` | error | ✅ | alias 跨页冲突 |
