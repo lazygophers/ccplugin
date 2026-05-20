@@ -1028,18 +1028,21 @@ def render_statusline(payload: dict) -> str:
             total_tokens = None
     if total_tokens is None:
         total_tokens = 0
-    token_value = f"{format_compact_int(total_tokens)}"
-    # Token 后面始终带（$...），优先用 stdin 的真实成本
-    try:
-        c = float(cost_usd) if cost_usd is not None else 0.0
-        token_cost = f"[${c:.2f}]"
-    except Exception:
-        token_cost = ""
-    tokens_seg = style(token_value, fg=CATPPUCCIN["text"], bold=True) + style(
-        token_cost, fg=CATPPUCCIN["subtle"], dim=True
-    )
-    if tokens_seg:
-        line1_parts.append(tokens_seg)
+    if total_tokens > 0:
+        token_value = f"{format_compact_int(total_tokens)}"
+        try:
+            c = float(cost_usd) if cost_usd is not None else 0.0
+            if c > 0:
+                token_cost = f"[${c:.2f}]".rstrip("0").rstrip(".")
+                if not token_cost.endswith("."):
+                    token_cost = token_cost.rstrip(".")
+        except Exception:
+            token_cost = ""
+        tokens_seg = style(token_value, fg=CATPPUCCIN["text"], bold=True) + (
+            style(token_cost, fg=CATPPUCCIN["subtle"], dim=True) if token_cost else ""
+        )
+        if tokens_seg:
+            line1_parts.append(tokens_seg)
 
     if context_pct_f > 0:
         ctx_col = ctx_color(context_pct_f)
