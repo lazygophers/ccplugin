@@ -36,18 +36,20 @@ bash ~/.cortex/scripts/save.sh ... \
 
 ## Frontmatter 规范 (按目标目录)
 
-落档前调 cortex-lint 内联 schema 校验 (PR1: cortex-schema 已合入 cortex-lint):
+save.py 落档时 `_derive_tags` 派生**语义** tag (alias + h1/h2 slug + 中文 2-4 字 + 英文 PascalCase 小写化), 严禁占位符 / 裸时间 (`YYYY[-MM]` 等); hierarchical `xxx/yyy` 不主动派生。
 
-`read <target-path>` 取该目录 schema, 按 required + defaults 自动填 frontmatter 和 tags_required (含 placeholder, 由 lint --fix 后续完善)。
+目录级**强制** tags_required (hierarchical 形式如 `type/project`, `host/<x>`, `memory/L1`, `memory/procedural`) 由 **cortex-lint 后续**通过 schema 补齐, 不在 save 阶段填:
 
-例:
+- schema 源: `<vault>/_meta/frontmatter-schema.yaml` (fallback `plugin/presets/seed/_templates/frontmatter-schema.yaml`)
+- lint rule `frontmatter-schema-violation` 检测缺失 + autofix 按目录 schema `tags_required` 字段补 prefix
 
-- 落 `知识库/项目/<host>/<org>/<repo>/_index.md` → 自动加 `type:project` / `host:<host>` / `org:<org>` / `repo:<repo>` / `tags:[type/project, host/<host>, org/<org>, repo/<repo>]`
-- 落 `记忆/L1-长期/procedural/<skill>.md` → 自动加 `level:L1` / `tags:[memory/L1, memory/procedural]`
-
-schema 源: `<vault>/_meta/frontmatter-schema.yaml` (fallback plugin `templates/frontmatter-schema.yaml`)。
-
-缺 `tags_required` prefix 时由 lint rule `frontmatter-schema-violation` 报警 + autofix。
+```
+save.py: 派生语义 tag → 落档
+  ↓
+cortex-lint --fix: schema-driven 补 tags_required prefix
+  ↓
+最终 frontmatter
+```
 
 ## 套模板
 
