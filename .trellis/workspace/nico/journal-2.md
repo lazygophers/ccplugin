@@ -1194,3 +1194,36 @@ install.sh 扩展支持 opencode (~/.config/opencode/skills + agents)。重构: 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 95: 新增 cortex video/audio 理解两个 skill
+
+**Date**: 2026-05-22
+**Task**: 新增 cortex video/audio 理解两个 skill
+**Branch**: `master`
+
+### Summary
+
+为 cortex 加视频 + 音频理解能力 (镜像 cortex-image-understand 模板)。video_understand CLI 双模式 video_url (zhipu glm-4v-plus / qwen-vl-max-video) + frames (ffmpeg 均匀抽帧, 兼容 openai gpt-4o)。audio_understand CLI 双模式 asr (Whisper/GLM-ASR multipart) + chat (gpt-4o-audio/qwen-audio input_audio)。_provider_common 加 http_multipart helper。validate_config 抽 _validate_chat_like_yaml 共享逻辑, 加 video/audio yaml 校验 (mode enum + frames_count + default_provider 引用检查)。资产计数 skill 14→16, wrapper 25→27, py CLI 13→15。48 pytest 全过 (含 video 14 + audio 15 + multipart 2)。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `59014063` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
