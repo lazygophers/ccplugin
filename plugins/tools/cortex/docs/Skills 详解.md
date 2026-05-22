@@ -1,6 +1,6 @@
 # Skills 详解
 
-cortex 提供 **15 个 skill** (PR1-4 整改后: 删 7 + 合 1 = 21→18 (新增 cortex-config + cortex-image + cortex-image-understand + cortex-video-understand + cortex-audio-understand))。skill 由 description 池语义匹配自动触发, 也可显式调用 (`/cortex:<相关 command>`)。
+cortex 提供 **18 个 skill** (PR1-4 整改 21→13, 后续逐步新增 cortex-config + cortex-image + cortex-image-understand + cortex-video-understand + cortex-audio-understand 五件至 18)。skill 由 description 池语义匹配自动触发, 也可显式调用 (`/cortex:<相关 command>`)。
 
 全部 skill 遵循渐进披露: 入口 SKILL.md ≤ 80 行 (frontmatter + 触发词 + 决策树 + AUTO_MODE 分支 + references 指针表), 细节迁 `references/<topic>.md` 按需加载。
 

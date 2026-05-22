@@ -130,7 +130,7 @@ cortex P1 起, 核心操作沉 python CLI (`scripts/cli/<name>.py`) + bash wrapp
 | cortex-refresh       | `bash ~/.cortex/scripts/refresh_projects.sh`      | 批量增量 (git diff / website hash), weekly cron Mon 03:00 |
 | (一次性 migrate)     | `bash ~/.cortex/scripts/migrate.sh --to=v2`        | 旧 score 1-5 → 0-10 浮点 / patterns conf 0-1 → 0-10 / 缺评分字段加 stub (用完即归档, 不进 EXPECTED 24 集) |
 
-bash wrappers 由 `scripts/install_wrappers.sh` 安装到 `~/.cortex/scripts/` (27 个: 10 slash + 2 shell + 15 CLI; image_understand/video_understand/audio_understand 2026-05-22 新增), 内部 `exec python3 $PLUGIN_ROOT/scripts/cli/<name>.py "$@"`, 0 算法回退 (业务逻辑 100% 保留, 仅删 MCP 协议层)。`migrate.sh` 是一次性脚本, 不计入 24 集。
+bash wrappers 由 `scripts/install_wrappers.sh` 安装到 `~/.cortex/scripts/` (27 个: 10 slash + 2 shell + 15 CLI; image_understand/video_understand/audio_understand 2026-05-22 新增), 内部 `exec python3 $PLUGIN_ROOT/scripts/cli/<name>.py "$@"`, 0 算法回退 (业务逻辑 100% 保留, 仅删 MCP 协议层)。`migrate.sh` 是一次性脚本, 不计入 27 集。
 依赖 (pypdf / ebooklib / python-docx / rich) 由 install.sh `step_python_deps` 用 `pip3 install --user` 装到系统 python3。
 未装时 skill 自动退回 L1-L5 链路, 不阻塞使用。
 
