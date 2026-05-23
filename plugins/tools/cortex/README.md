@@ -188,7 +188,7 @@ stdout 仅最终 result text; stderr 显示 rich 实时进度; wrapper 退出时
 | **AUTO_MODE** | wrapper 传 `auto` 后缀, 跳 `AskUserQuestion` 自决执行 |
 | **Skill 内部** | skill 之间互相调度 (cortex-digest 在 evolution 阶段触 refactor) |
 
-### 18 skill 全清单
+### 19 skill 全清单
 
 | Skill | 触发词 | 用途 | 范围 |
 |-------|--------|------|------|
@@ -210,6 +210,7 @@ stdout 仅最终 result text; stderr 显示 rich 实时进度; wrapper 退出时
 | `cortex-image-understand` | "看图" / "识图" / "VQA" / "OCR" / "describe image" / "图里写了什么" | 图理解 — 多 provider VLM (`.cortex/config/image-understand.yaml`); 4 模式 describe/ask/extract/OCR; 支持 zhipu glm-4v / openai gpt-4o / qwen-vl | 📚 |
 | `cortex-video-understand` | "看视频" / "视频理解" / "总结视频" / "video QA" | 视频理解 — 多 provider VLM (`.cortex/config/video-understand.yaml`); 双模式 video_url (zhipu glm-4v-plus / qwen-vl-max-video) + frames (ffmpeg 抽帧, 兼容 openai gpt-4o) | 📚 |
 | `cortex-audio-understand` | "转录" / "听音频" / "ASR" / "音频问答" | 音频理解 — 多 provider (`.cortex/config/audio-understand.yaml`); asr (Whisper / GLM-ASR) + chat (gpt-4o-audio / qwen-audio); transcribe/describe/ask 三子命令 | 📚 |
+| `cortex-dataview` | "dataview" / "DQL" / "数据视图" / "查询块" / "dv.pages" | Obsidian Dataview 块构建/修改/解释; 5 references (dql-syntax/dataviewjs-api/integration-patterns/modify-flow/cookbook); cortex marker 幂等改写; AUTO_MODE 拒 dataviewjs (安全) | 📚 |
 
 ### 渐进披露架构
 
@@ -373,7 +374,7 @@ dashboard / digest job 同 schedule 分支即可, 完整 yaml 见 `install_cron.
 - [知识库结构](docs/知识库结构.md) — vault 4 子目录布局
 - [Commands](docs/Commands.md) — 19 个 slash command 速查
 - [Bash 脚本](docs/Bash%20脚本.md) — 27 wrapper 调用约定 + 退出码
-- [Skills 详解](docs/Skills%20详解.md) — 18 skill 用途 / 触发 / 示例 / 失败处理
+- [Skills 详解](docs/Skills%20详解.md) — 19 skill 用途 / 触发 / 示例 / 失败处理
 - [Agents](docs/Agents.md) — 6 agent + 调度边界 + frontmatter 协议
 - [Lint 规则](docs/Lint%20规则.md) — 30 规则逐条解释 + `--fix` 行为
 - [重构与归档](docs/重构与归档.md) — refactor 子操作 + backup + 不可逆风险

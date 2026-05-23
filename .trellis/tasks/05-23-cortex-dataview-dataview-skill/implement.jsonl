@@ -1,0 +1,5 @@
+{"file": ".trellis/tasks/05-23-cortex-dataview-dataview-skill/prd.md", "reason": "本任务 PRD"}
+{"file": ".trellis/tasks/05-23-cortex-dataview-dataview-skill/research/dql-syntax.md", "reason": "DQL 完整语法参考, R2 直接拷贝"}
+{"file": ".trellis/tasks/05-23-cortex-dataview-dataview-skill/research/dataviewjs-api.md", "reason": "DataviewJS API 参考, R3 直接拷贝"}
+{"file": ".trellis/tasks/05-23-cortex-dataview-dataview-skill/research/integration-patterns.md", "reason": "cortex 集成模式 + marker 契约, R4 拷贝 + R5/R6 新写依据"}
+{"file": "plugins/tools/cortex/skills/cortex-image-understand/SKILL.md", "reason": "skill 多文件入口模板参考 (≤80 行 + references 指针)"}

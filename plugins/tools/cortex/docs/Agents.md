@@ -1,6 +1,6 @@
 # Agents — 6 个专用多轮调度者
 
-cortex 引入 **6 个**专用 agent (PR4 删 linker: 7→6), 在 18 个 skill 之上提供"接任务后自主跑多轮"能力。每个 agent 单 .md 文件, 走 Claude Code 标准 sub-agent 协议。
+cortex 引入 **6 个**专用 agent (PR4 删 linker: 7→6), 在 19 个 skill 之上提供"接任务后自主跑多轮"能力。每个 agent 单 .md 文件, 走 Claude Code 标准 sub-agent 协议。
 
 每个 agent 头部含 "**vs <skill> 分工**" 注释行, 明确与同名 skill 的边界 (proposal-only vs 落盘 / 批量 vs 单项目 / pipeline vs 单页等)。
 

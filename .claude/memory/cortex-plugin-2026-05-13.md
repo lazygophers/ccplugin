@@ -24,7 +24,7 @@ type: project
 | 类型 | 计数 | 备注 |
 |---|---|---|
 | Agents | 6 | curator / researcher / archivist / cartographer / summarizer / translator (PR4 删 linker, 6 含 vs-skill 分工注) |
-| Skills | 18 | 多模态理解三件套 cortex-image/video/audio-understand (2026-05-22); 全部多文件渐进披露, SKILL.md 入口 ≤80 行 |
+| Skills | 19 | 多模态理解三件套 cortex-image/video/audio-understand (2026-05-22) + cortex-dataview (Dataview 查询 skill, 2026-05-23); 全部多文件渐进披露, SKILL.md 入口 ≤80 行 |
 | Templates | 40 | presets/seed/_templates/ (顶层 6 + html 7 + knowledge 13 + memory 6 + 共有结构 8); _manifest.json sha256, 改后 regen_template_manifest.py 重生成。2026-05-23 全量回灌 vault 落后版本 |
 | Quickadd preset | 6 choice | presets/quickadd/data.json (闪念/网页剪藏/写日记/概念/项目/问题); install.sh step_quickadd 自动同步, 备份 data.json.bak.<UTC> |
 | Slash commands | 19 | `/cortex:<name>` 冒号 |
