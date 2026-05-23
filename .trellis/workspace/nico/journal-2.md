@@ -1227,3 +1227,36 @@ install.sh 扩展支持 opencode (~/.config/opencode/skills + agents)。重构: 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 96: vault _templates 全量回灌 + quickadd 集成
+
+**Date**: 2026-05-23
+**Task**: vault _templates 全量回灌 + quickadd 集成
+**Branch**: `master`
+
+### Summary
+
+vault _templates (实际 40+ 模板) 多年演进, plugin presets 仅 10 个滞后; 同时 Obsidian quickadd 配置引用了 plugin 没有的模板。本会话: (1) rsync 全量回灌 vault → plugin presets/seed/_templates/ (40 模板, 含 knowledge/memory/html 子目录); (2) 跑现有 regen_template_manifest.py 重生成 _manifest.json sha256; (3) install.sh 加 step_quickadd, 检测 .obsidian/plugins/quickadd/ 自动同步 6 choice 预设, 备份 data.json.bak.<UTC>; (4) 新建 presets/quickadd/data.json 预设; (5) docs/模板与美化.md + 知识库结构.md + memory 全同步; (6) test_quickadd_preset.py 7 单测全过 (json/字段/引用/路径校验)。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7213e113` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

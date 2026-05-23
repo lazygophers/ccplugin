@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 95
-- **Last Active**: 2026-05-22
+- **Total Sessions**: 96
+- **Last Active**: 2026-05-23
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1229 | Active |
+| `journal-2.md` | ~1262 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 96 | 2026-05-23 | vault _templates 全量回灌 + quickadd 集成 | `7213e113` | `master` |
 | 95 | 2026-05-22 | 新增 cortex video/audio 理解两个 skill | `59014063` | `master` |
 | 94 | 2026-05-22 | 新增 cortex-image-understand skill | `48731868` | `master` |
 | 93 | 2026-05-15 | install.sh opencode 软连同步 + 抽共享 | `c6379f23` | `master` |
