@@ -220,7 +220,6 @@ claude --settings ~/.claude/settings.glm-4.7-flash.json \
 - 不引入 emoji 除非用户已用过同款 (本插件 README 仅有 1 个 📝, 限于落档通知)。
 - 中文文档全中文 (技术术语保留英文标识符)。
 - 文件名 ASCII 慎用空格 (Obsidian + git 兼容性)。
-- 保留 `@desktop` 风格的事件驱动思路供其他插件参考。
 
 ## 相关文档
 

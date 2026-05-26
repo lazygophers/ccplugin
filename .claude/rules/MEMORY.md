@@ -23,17 +23,12 @@
 `.claude/memory/` 项目长期记忆:
 
 - `cortex-plugin-2026-05-13.md` — **@cortex 当前真相** (vault 4 子目录 / 6 agent / 19 skill (含 cortex-dataview 2026-05-23) / 19 slash / 27 wrapper / 15 py CLI / 40 templates / quickadd 6 choice preset / 30 lint / 4 cron / MCP 写 + 搜索回退链 / 评分字段 4+2 / 记忆 L0-L4 / digest stage 5 双向桥)
-- `desktop-event-driven-architecture.md` — **@desktop 事件驱动架构** (Rust 业务 + 事件驱动前端 + 单向数据流)
-- `desktop-code-quality-2026-04-05.md` — **@desktop 代码质量** (代码复用 / TOCTOU 反模式 / 三路并行 Agent 审查)
-- `desktop-testing.md` — **@desktop 测试约定**
 - `project-setup.md` — Memory 系统初始化记录
 - `task-execution-log.md` — Task 插件 DAG 执行模型
 
 ## 核心约定
 
 **代码提交**: 所有变更自动暂存 (CLAUDE.md §1)。**`.version` 文件强制随每次代码 commit 一同提交** (skill/CLI/wrapper/yaml 等任何用户可见变更), bump 末段 patch 号 (0.0.X.Y → 0.0.X.Y+1)。
-
-**@desktop 架构**: Rust 业务 + 事件驱动前端, TS 仅 UI 渲染。Rust → Event → Frontend State → UI Render。详见 `.claude/memory/desktop-event-driven-architecture.md`。
 
 **@cortex 写契约 (硬)**: AI 交互式 vault 写必走 `mcp__obsidian__*`。MCP 未注册 → `AskUserQuestion` 单次授权 (本会话有效不写盘)。未授权前 AI 硬拒 vault 写。例外: Stop/cron/python CLI。详见 `cortex-plugin-2026-05-13.md`。
 
@@ -45,11 +40,6 @@
 ```bash
 claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<待测>" --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```
-
-**复盘防回归** (CLAUDE.md §复盘防回归规则):
-1. Desktop 信息架构: 插件市场页只展示 marketplace; 插件页提供筛选
-2. Desktop 路由变更后验证 hash 路由 + 首屏渲染
-3. Desktop Tailwind 升级后验证 utilities 实际生成
 
 **GitNexus**:
 - 改代码前必跑 `gitnexus_impact` 分析影响
