@@ -13,8 +13,8 @@ Claude Code Hooks 配置管理模块
 - session_end: 会话结束时
 - pre_compact: 会话压缩前
 
-配置文件位置: ~/.lazygophers/ccplugin/notify/config.yaml
-           或 .lazygophers/ccplugin/notify/config.yaml
+配置文件位置: ~/.lazygophers/{app_name}/ccplugin/{app_name}/config.yaml
+           或 .lazygophers/ccplugin/{app_name}/config.yaml
 """
 import os
 import os.path
@@ -500,8 +500,8 @@ def load_config() -> HooksConfig:
 	"""加载配置（支持多个位置，深度合并）
 
 	合并策略:
-	1. 优先读取用户主目录 ~/.lazygophers/ccplugin/notify/config.yaml 作为基础配置
-	2. 读取项目目录 .lazygophers/ccplugin/notify/config.yaml（如不存在则从 hooks.example.yaml 复制）
+	1. 优先读取用户主目录 ~/.lazygophers/{app_name}/ccplugin/{app_name}/config.yaml 作为基础配置
+	2. 读取项目目录 .lazygophers/ccplugin/{app_name}/config.yaml（如不存在则从 hooks.example.yaml 复制）
 	3. 使用项目目录配置深度覆盖用户主目录配置
 	4. 如果都不存在，返回默认配置
 

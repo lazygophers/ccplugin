@@ -62,11 +62,11 @@ def get_user_home():
 
 
 def get_user_dir():
-	return os.path.join(get_user_home(), ".config", "lazygophers", "ccplugin")
+	return os.path.join(get_user_home(), ".lazygophers")
 
 
 def get_user_plugins_dir():
-	return os.path.join(get_user_dir(), get_app_name())
+	return os.path.join(get_user_dir(), get_app_name(), "ccplugin")
 
 
 if __name__ == '__main__':

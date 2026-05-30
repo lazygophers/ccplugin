@@ -20,7 +20,7 @@ from typing import Optional
 from icons import PREDEFINED_ICONS
 from lib import logging
 from lib.logging import error
-from lib.utils import get_plugins_path, get_project_plugins_dir, get_app_name, get_project_dir
+from lib.utils import get_plugins_path, get_project_plugins_dir, get_user_plugins_dir, get_app_name, get_project_dir
 
 
 def _command_exists(cmd: str) -> bool:
@@ -183,8 +183,7 @@ def _file_md5(path: str) -> Optional[str]:
 
 
 def _get_user_cache_dir(*parts: str) -> str:
-	# Keep cache in the same family as existing config paths used by this plugin.
-	base_dir = os.path.join(os.path.expanduser("~"), ".lazygophers", "ccplugin", "notify", "cache")
+	base_dir = os.path.join(get_user_plugins_dir(), get_app_name(), "cache")
 	return os.path.join(base_dir, *parts)
 
 
