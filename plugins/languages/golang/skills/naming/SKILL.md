@@ -1,6 +1,6 @@
 ---
 name: golang-naming
-description: Go 命名规范——Id/Uid 字段（非 ID）、IsActive/HasMFA 布尔前缀、CreatedAt 时间字段、接收者统一用 p、包名全小写无下划线、泛型类型参数描述性命名。定义结构体字段、函数、变量、包、接收者名、泛型时触发。
+description: Go 命名规范——Id/Uid 字段（非 ID）、IsActive/HasMFA 布尔前缀、CreatedAt 时间字段、接收者统一用 p、包名全小写无下划线、泛型类型参数描述性命名、集合字段 xxx_list 禁 xxxs 复数、Enum 0 值 XxxNil 禁 Unknown、禁 Status 统一 State、Set/Update 语义区分。定义结构体字段、函数、变量、包、接收者名、泛型、枚举时触发。
 ---
 
 # Go 命名规范
@@ -49,13 +49,25 @@ type Friend struct {
 }
 
 const (
-    FriendStatusPending = 0
-    FriendStatusActive  = 1
-    FriendStatusBlocked = 2
+    FriendStateNil      = 0
+    FriendStatePending  = 1
+    FriendStateActive   = 2
+    FriendStateBlocked  = 3
 )
 ```
 
-数值枚举用 `State`/`Status` + 常量分组。
+**禁 `Status`**：字段、常量、列名、变量名一律用 `State`，不用 `Status`。
+
+## 枚举零值
+
+```go
+const (
+    UserStateNil    uint8 = 0  // 零值用 XxxNil
+    UserStateActive uint8 = 1
+)
+```
+
+禁 `Unknown`/`None`/`Unspecified` 作零值，统一 `XxxNil`。
 
 ## 布尔字段
 
@@ -103,6 +115,26 @@ func (p *Friend) IsActive() bool
 
 不用 `self`/`this`/`u`/`o`，统一 `p`。
 
+## 集合字段
+
+```go
+type Rsp struct {
+    UserList  []*User  `json:"user_list"`   // ✅
+    OrderList []*Order `json:"order_list"`   // ✅
+}
+```
+
+集合字段统一 `xxx_list` 后缀，禁 `users`/`orders`/`images`/`files` 等复数形式。
+
+## Set vs Update 语义
+
+| 前缀 | 语义 | 场景 |
+| --- | --- | --- |
+| `SetXxx` | 覆盖整个 model | 整体替换 |
+| `UpdateXxx` | 改部分字段 | 单字段/多字段更新 |
+
+单字段改名必须 `Update<Model><Field>`，不能 `Set<Model>`。
+
 ## 泛型类型参数（Go 1.18+）
 
 ```go
@@ -131,6 +163,9 @@ type Node[T Node[T]] interface {
 | "GetByID 是 Go 官方写法" | 项目用 GetUserById 风格？ |
 | "T 就够了" | 泛型参数描述性？ |
 | "pkg_name 更清晰" | 包名全小写无下划线？ |
+| "Status 更通用" | 禁 Status，统一 State？ |
+| "Unknown 表示零值" | 零值用 XxxNil？ |
+| "users 复数更自然" | 集合用 xxx_list？ |
 
 ## 检查清单
 
@@ -141,5 +176,8 @@ type Node[T Node[T]] interface {
 - [ ] 常量 PascalCase
 - [ ] ID 字段用 `Id`/`Uid`
 - [ ] 时间用 `CreatedAt`/`UpdatedAt`
-- [ ] 状态用 `Status`/`State` 数值
+- [ ] 状态用 `State`（禁 Status）
+- [ ] 枚举零值 `XxxNil`（禁 Unknown）
 - [ ] 布尔用 `Is`/`Has`/`Can` 前缀
+- [ ] 集合字段 `xxx_list` 后缀
+- [ ] Set 覆盖 / Update 部分

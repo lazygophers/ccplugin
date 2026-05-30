@@ -24,7 +24,9 @@
     "./skills/testing",
     "./skills/concurrency",
     "./skills/lint",
-    "./skills/tooling"
+    "./skills/tooling",
+    "./skills/db",
+    "./skills/api"
   ],
   "keywords": [
     "golang",

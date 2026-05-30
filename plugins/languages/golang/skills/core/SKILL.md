@@ -19,6 +19,8 @@ description: Go 1.26 核心开发规范——强制约定、代码格式、Go 1.
 | 并发 | `golang-concurrency` |
 | Lint 配置 | `golang-lint` |
 | 工具链 | `golang-tooling` |
+| 数据库 | `golang-db` |
+| HTTP API | `golang-api` |
 
 ## 三条铁律
 

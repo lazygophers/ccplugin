@@ -1,6 +1,6 @@
 ---
 name: golang-structure
-description: Go 项目结构规范——三层架构（API → Impl → State）、全局状态模式、internal/ 私有包、cmd/ 仅 main.go、go.work 多模块、禁止 Repository 接口和 DI 容器。设计项目骨架、新建目录、组织包、做架构评审时触发。
+description: Go 项目结构规范——三层架构（API → Impl → State）、全局状态模式、internal/ 私有包、cmd/ 仅 main.go、go.work 多模块、禁止 Repository 接口和 DI 容器、struct 公共字段开头全 omitempty、handler var rsp 顶声明、禁 legacy migration。设计项目骨架、新建目录、组织包、做架构评审时触发。
 ---
 
 # Go 项目结构规范
@@ -17,6 +17,8 @@ description: Go 项目结构规范——三层架构（API → Impl → State）
 - `cmd/` 下放子包（仅 `main.go`）
 - 用依赖注入框架（fx/wire/dig）
 - 接口在提供方定义（应在消费方）
+- 写 legacy migration / 兼容代码（`preMigrateLegacy` 等）
+- 自动迁移改主键（PK 变更需手动 DDL）
 
 ## 推荐目录布局
 
@@ -132,6 +134,56 @@ use (
 
 参考：JetBrains 2026 调查 Gin 48% / Gorilla 17% / Echo 16% / Fiber 11%。本项目 lazygophers 生态默认 Fiber。
 
+## Struct 字段布局
+
+```go
+type UserLoginReq struct {
+    // 1. 标识字段
+    Id       uint64 `json:"id,omitempty"`
+    Username string `json:"username,omitempty"`
+
+    // 2. 业务字段
+    Password string `json:"password,omitempty"`
+    Email    string `json:"email,omitempty"`
+
+    // 3. 状态/枚举
+    State uint8 `json:"state"`
+
+    // 4. 时间戳
+    CreatedAt int64 `json:"created_at"`
+    UpdatedAt int64 `json:"updated_at"`
+}
+```
+
+- 公共字段（Id/时间戳）开头
+- 全字段 `json` tag + `omitempty`（状态/时间除外，零值有意义）
+- 禁指针字段区分零值和缺失，零值=不传
+
+## Handler 实现模式
+
+```go
+func UserLogin(req *UserLoginReq) (*UserLoginRsp, error) {
+    var rsp UserLoginRsp
+
+    user, err := state.User.NewScoop().
+        Where("username", req.Username).
+        First()
+    if err != nil {
+        log.Errorf("err:%v", err)
+        return nil, err
+    }
+
+    rsp.Token = generateToken(user.Id)
+    rsp.User = user
+    return &rsp, nil
+}
+```
+
+- `var rsp XxxRsp` 函数顶声明
+- 逐字段赋值
+- 末尾 `return &rsp`
+- 禁字面量构造 `return &XxxRsp{Field: val}`
+
 ## Red Flags
 
 | AI 借口 | 实际应验证 |
@@ -142,6 +194,9 @@ use (
 | "model/ 分离数据" | 模型在 state/？ |
 | "cmd/ 多子命令" | cmd 仅 main.go？ |
 | "DI 框架灵活" | 全局变量而非 DI？ |
+| "指针区分零值和缺失" | omitempty + 零值=不传？ |
+| "字面量构造更简洁" | var rsp 顶声明？ |
+| "兼容迁移更安全" | 禁 legacy migration？ |
 
 ## 检查清单
 
@@ -155,3 +210,6 @@ use (
 - [ ] 包名全小写单数
 - [ ] 依赖单向无循环
 - [ ] 无 Repository 接口、无 DI 容器
+- [ ] Struct 公共字段开头 + omitempty
+- [ ] Handler var rsp 顶声明
+- [ ] 无 legacy migration 代码

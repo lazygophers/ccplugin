@@ -1,6 +1,6 @@
 ---
 name: golang-error
-description: Go 错误处理规范——禁止单行 if err、必须记录日志（lazygophers/log 或 slog）、禁止包装错误、errors.Join 聚合、sentinel error 模式、初始化用 log.Fatalf。处理 Go error、写 if err 块、设计错误类型、debug 错误链时触发。
+description: Go 错误处理规范——禁止单行 if err、必须记录日志（lazygophers/log 或 slog）、禁止包装错误、errors.Join 聚合、sentinel error 模式、初始化用 log.Fatalf、参数校验用 validate tag 禁手写 if。处理 Go error、写 if err 块、设计错误类型、做参数校验时触发。
 ---
 
 # Go 错误处理规范
@@ -88,6 +88,23 @@ defer file.Close()
 
 ## 日志选择
 
+## 参数校验（validate tag）
+
+```go
+type AddUserReq struct {
+    Username string `json:"username" validate:"required"`
+    Email    string `json:"email" validate:"required,email"`
+    Age      uint8  `json:"age" validate:"gte=0"`
+}
+```
+
+- 用 `validate` tag 声明约束，校验器在中间件/拦截层统一执行
+- **禁手写** `if req.X == ""` / `if req.Y == 0` / `if req.Z == nil` 校验
+- Update 场景全字段 unconditional 赋值，禁零值跳过逻辑
+- 禁 `strings.TrimSpace` 预处理请求字段
+
+## 日志选择（lazygophers/log 或 slog）
+
 ### lazygophers/log（已有项目）
 
 ```go
@@ -144,3 +161,5 @@ func init() {
 - [ ] 业务无 panic/recover
 - [ ] 多错误用 `errors.Join`
 - [ ] sentinel 用 `errors.New` 定义
+- [ ] 参数校验用 validate tag，禁手写 if
+- [ ] Update 全字段 unconditional，禁零值跳过

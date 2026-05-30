@@ -50,6 +50,8 @@ claude plugin install golang@ccplugin-market
 | Skill | `golang-concurrency` | 并发编程规范 |
 | Skill | `golang-lint` | Lint 规范 |
 | Skill | `golang-tooling` | 工具链规范 |
+| Skill | `golang-db` | 数据库规范 |
+| Skill | `golang-api` | HTTP API 规范 |
 
 ## 前置条件
 
