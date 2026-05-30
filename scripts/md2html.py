@@ -1158,8 +1158,7 @@ def extract_title(md: str) -> str:
 
 def extract_description(md: str, max_len: int = 200) -> str:
     """Extract first paragraph as description."""
-    text = re.sub(r"^#+\\s+.+$", "", md, flags=re.MULTILINE)
-    text = re.sub(r"```[\\s\\S]*?```", "", text)
+    text = re.sub(r"^#+\\s+.+$|```[\\s\\S]*?```", "", md, flags=re.MULTILINE)
     text = re.sub(r"[#*`\\[\\]()]", "", text)
     paragraphs = [p.strip() for p in text.split("\\n\\n") if p.strip()]
     if paragraphs:

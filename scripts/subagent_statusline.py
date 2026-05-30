@@ -137,21 +137,16 @@ def _parse_start_time(raw) -> float | None:
 	if raw is None:
 		return None
 	try:
-		# epoch seconds (float / int) or ms
 		v = float(raw)
-		if v > 10_000_000_000:  # ms
-			v /= 1000.0
-		return v
-	except Exception:
+		return (v / 1000.0) if v > 10_000_000_000 else v
+	except (ValueError, TypeError):
 		pass
 	try:
-		# ISO 8601
 		s = str(raw).strip().rstrip("Z")
 		if "T" in s or "-" in s:
 			import datetime as _dt
-
 			return _dt.datetime.fromisoformat(s).timestamp()
-	except Exception:
+	except (ValueError, AttributeError):
 		pass
 	return None
 

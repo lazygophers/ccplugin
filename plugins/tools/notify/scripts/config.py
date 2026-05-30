@@ -18,11 +18,10 @@ Claude Code Hooks 配置管理模块
 """
 import os
 import os.path
-import shutil
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional
 
-from lib.utils.env import get_project_plugins_dir, get_user_plugins_dir, get_plugins_path, get_app_name
+from lib.utils.env import get_app_name, get_user_home
 
 
 @dataclass
@@ -451,100 +450,21 @@ def get_default_config() -> HooksConfig:
 	return HooksConfig()
 
 
-def _deep_merge_dicts(base: Dict, override: Dict) -> Dict:
-	"""深度合并字典（override 覆盖 base）
-
-	Args:
-		base: 基础字典
-		override: 覆盖字典
-
-	Returns:
-		合并后的字典
-	"""
-	result = base.copy()
-
-	for key, override_value in override.items():
-		if key not in result:
-			result[key] = override_value
-		elif isinstance(result[key], dict) and isinstance(override_value, dict):
-			result[key] = _deep_merge_dicts(result[key], override_value)
-		else:
-			result[key] = override_value
-
-	return result
-
-
-def _merge_hooks_configs(home_config: HooksConfig, project_config: HooksConfig) -> HooksConfig:
-	"""合并两个 HooksConfig 对象（project_config 覆盖 home_config）
-
-	使用深度合并，确保 project_config 中指定的字段覆盖 home_config，
-	但保留 project_config 中未指定的字段来自 home_config 的值。
-
-	Args:
-		home_config: 用户主目录配置（基础配置）
-		project_config: 项目目录配置（覆盖配置）
-
-	Returns:
-		合并后的 HooksConfig
-	"""
-	home_dict = home_config.to_dict()
-	project_dict = project_config.to_dict()
-
-	merged_dict = _deep_merge_dicts(home_dict, project_dict)
-
-	return HooksConfig.from_dict(merged_dict)
-
-
 def load_config() -> HooksConfig:
-	"""加载配置（支持多个位置，深度合并）
+	"""加载配置（仅从用户主目录）
 
-	合并策略:
-	1. 优先读取用户主目录 ~/.lazygophers/{app_name}/ccplugin/{app_name}/config.yaml 作为基础配置
-	2. 读取项目目录 .lazygophers/ccplugin/{app_name}/config.yaml（如不存在则从 hooks.example.yaml 复制）
-	3. 使用项目目录配置深度覆盖用户主目录配置
-	4. 如果都不存在，返回默认配置
+	读取路径: ~/.lazygophers/ccplugin/{app_name}/config.yaml
+	不存在则返回默认配置。
 
 	Returns:
 		HooksConfig 实例
 	"""
-	example_config_path = os.path.join(get_plugins_path(), "hooks.example.yaml")
-	project_config_path = os.path.join(get_project_plugins_dir(), get_app_name(), "config.yaml")
-	home_config_path = os.path.join(get_user_plugins_dir(), get_app_name(), "config.yaml")
+	home_config_path = os.path.join(get_user_home(), ".lazygophers", "ccplugin", get_app_name(), "config.yaml")
 
-	# 尝试加载用户主目录配置（基础配置）
-	loaded_home_config = None
 	if os.path.exists(home_config_path):
 		try:
-			loaded_home_config = HooksConfig.load_from_file(home_config_path)
-		except Exception as e:
+			return HooksConfig.load_from_file(home_config_path)
+		except Exception:
+			pass
 
-	# 尝试加载项目目录配置（覆盖配置）
-	loaded_project_config = None
-	if os.path.exists(project_config_path):
-		try:
-			loaded_project_config = HooksConfig.load_from_file(project_config_path)
-		except Exception as e:
-	else:
-		# 项目配置不存在，尝试从示例配置复制（只在不存在时复制，绝不覆盖）
-		if os.path.exists(example_config_path):
-			try:
-				os.makedirs(os.path.dirname(project_config_path), exist_ok=True)
-				# 检查目标路径，确保不会覆盖已存在的文件
-				if not os.path.exists(project_config_path):
-					shutil.copy(example_config_path, project_config_path)
-				loaded_project_config = HooksConfig.load_from_file(project_config_path)
-			except Exception as e:
-
-	# 合并配置
-	# if loaded_home_config and loaded_project_config:
-	# 	# 两个配置都存在，深度合并
-	# 	return _merge_hooks_configs(loaded_home_config, loaded_project_config)
-	if loaded_project_config:
-		# 只有项目配置
-		return loaded_project_config
-	if loaded_home_config:
-		# 只有用户配置
-		return loaded_home_config
-	else:
-		# 都不存在，返回默认配置
-		return get_default_config()
+	return get_default_config()

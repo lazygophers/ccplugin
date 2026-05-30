@@ -30,6 +30,7 @@ from rich.rule import Rule
 from rich.table import Table
 
 from lib.utils import print_help
+from lib.utils.file import safe_load_json
 
 console = Console()
 
@@ -391,24 +392,6 @@ class PluginCheckReport:
 		self.results.append(result)
 
 
-def load_json_file(path: Path) -> Optional[dict[str, Any]]:
-	"""Load and parse a JSON file.
-
-	Args:
-		path: Path to JSON file
-
-	Returns:
-		Parsed JSON data or None if failed
-	"""
-	try:
-		with open(path, 'r', encoding='utf-8') as f:
-			return json.load(f)
-	except json.JSONDecodeError:
-		return None
-	except FileNotFoundError:
-		return None
-
-
 def check_plugin_structure(plugin_path: Path, report: PluginCheckReport) -> None:
 	"""Check plugin directory structure.
 
@@ -584,7 +567,7 @@ def check_plugin_config(plugin_path: Path, report: PluginCheckReport) -> Optiona
 		Plugin JSON data or None if failed
 	"""
 	plugin_json_path = plugin_path / '.claude-plugin' / 'plugin.json'
-	plugin_data = load_json_file(plugin_json_path)
+	plugin_data = safe_load_json(plugin_json_path)
 
 	if plugin_data is None:
 		report.add_result(CheckResult(
@@ -1022,7 +1005,7 @@ def check_name_alignment(repo_root: Path) -> int:
 		console.print(f"[red]marketplace.json not found at {marketplace_path}[/red]")
 		return 1
 
-	marketplace = load_json_file(marketplace_path)
+	marketplace = safe_load_json(marketplace_path)
 	if marketplace is None:
 		console.print("[red]Failed to parse marketplace.json[/red]")
 		return 1
@@ -1047,7 +1030,7 @@ def check_name_alignment(repo_root: Path) -> int:
 			continue
 
 		manifest_path = source_path / '.claude-plugin' / 'plugin.json'
-		manifest = load_json_file(manifest_path)
+		manifest = safe_load_json(manifest_path)
 		if manifest is None:
 			missing.append(f"{entry_name} -> {source} (plugin.json missing/invalid)")
 			continue
