@@ -8,8 +8,6 @@ import json
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from lib import logging
-
 from .crud import create_memory, update_memory
 from .models import Memory
 from .search import list_memories
@@ -129,7 +127,6 @@ async def import_memories(
                 )
                 stats["created"] += 1
         except Exception as e:
-            logging.error(f"导入记忆失败: {e}")
             stats["errors"] += 1
     
     return stats

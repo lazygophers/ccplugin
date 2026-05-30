@@ -22,7 +22,6 @@ import shutil
 from dataclasses import dataclass, field, asdict
 from typing import Dict, Optional
 
-from lib import logging
 from lib.utils.env import get_project_plugins_dir, get_user_plugins_dir, get_plugins_path, get_app_name
 
 
@@ -517,18 +516,14 @@ def load_config() -> HooksConfig:
 	if os.path.exists(home_config_path):
 		try:
 			loaded_home_config = HooksConfig.load_from_file(home_config_path)
-			logging.info(f"加载用户配置: {home_config_path}")
 		except Exception as e:
-			logging.warn(f"加载用户配置文件失败 {home_config_path}: {e}")
 
 	# 尝试加载项目目录配置（覆盖配置）
 	loaded_project_config = None
 	if os.path.exists(project_config_path):
 		try:
 			loaded_project_config = HooksConfig.load_from_file(project_config_path)
-			logging.info(f"加载项目配置: {project_config_path}")
 		except Exception as e:
-			logging.warn(f"加载项目配置文件失败 {project_config_path}: {e}")
 	else:
 		# 项目配置不存在，尝试从示例配置复制（只在不存在时复制，绝不覆盖）
 		if os.path.exists(example_config_path):
@@ -537,10 +532,8 @@ def load_config() -> HooksConfig:
 				# 检查目标路径，确保不会覆盖已存在的文件
 				if not os.path.exists(project_config_path):
 					shutil.copy(example_config_path, project_config_path)
-					logging.info(f"从示例配置复制: {example_config_path} -> {project_config_path}")
 				loaded_project_config = HooksConfig.load_from_file(project_config_path)
 			except Exception as e:
-				logging.warn(f"从示例配置复制失败: {e}")
 
 	# 合并配置
 	# if loaded_home_config and loaded_project_config:

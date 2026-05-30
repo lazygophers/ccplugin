@@ -2,7 +2,6 @@ import json
 import traceback
 from typing import Dict, Any
 
-from lib import logging
 from lib.utils.os import filepath_to_slash
 
 
@@ -36,7 +35,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any], config: PreToolUseConfig) ->
 				file_path = tool_input.get("file_path", "")
 				for locked_file in config.safe_read_files:
 					if file_path.find(locked_file) >= 0:
-						logging.warn(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput":
 								{
@@ -52,7 +50,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any], config: PreToolUseConfig) ->
 				file_path = tool_input.get("file_path", "")
 				for locked_file in config.safe_edit_files:
 					if file_path.find(locked_file) >= 0:
-						logging.warn(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput":
 								{
@@ -69,7 +66,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any], config: PreToolUseConfig) ->
 				if command.find("rm") >= 0 or command.find("cp") >= 0 or command.find("mv") >= 0:
 					for locked_file in config.safe_remove_files:
 						if command.find(locked_file) >= 0:
-							logging.warning(f"检测到受保护文件操作: command={command}, locked_file={locked_file}")
 							print(json.dumps({
 								"hookSpecificOutput": {
 									"hookEventName": "PreToolUse",
@@ -81,7 +77,7 @@ def handle_pre_tool_use(input_data: Dict[str, Any], config: PreToolUseConfig) ->
 							return True
 
 	except Exception as e:
-		logging.error(f"PreToolUse 处理异常: {e}\n{traceback.format_exc()}")
+		pass
 		return False
 
 	return False

@@ -1,11 +1,9 @@
 import json
 import subprocess
 import sys
-import traceback
 from pathlib import Path
 from typing import Dict, Any
 
-from lib import logging
 from lib.hooks import load_hooks
 
 prompt = {
@@ -35,8 +33,7 @@ def filepath_to_slash(path: str) -> str:
 			return path.replace('/', '\\')
 		else:
 			return path.replace('\\', '/')
-	except Exception as e:
-		logging.error(f"路径转换失败: {e}, path={path}")
+	except Exception:
 		return path
 
 
@@ -74,7 +71,6 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 				error_output = result.stderr or result.stdout
 				return False, dir_path, error_output.strip()
 		except Exception as e:
-			logging.error(f"执行 ruff check 失败: {e}")
 			return False, dir_path, str(e)
 
 		if dir_path.name.find("semantic") >= 0:
@@ -92,7 +88,6 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 			except subprocess.TimeoutExpired:
 				return False, dir_path, "main.py --help 超时"
 			except Exception as e:
-				logging.error(f"执行 main.py --help 失败: {e}")
 				return False, dir_path, str(e)
 
 	# 检查 lib 目录
@@ -105,7 +100,6 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 				error_output = result.stderr or result.stdout
 				return False, lib_dir, error_output.strip()
 		except Exception as e:
-			logging.error(f"执行 ruff check 失败: {e}")
 			return False, lib_dir, str(e)
 
 	# 检查 scripts 目录
@@ -118,7 +112,6 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 				error_output = result.stderr or result.stdout
 				return False, scripts_dir, error_output.strip()
 		except Exception as e:
-			logging.error(f"执行 ruff check 失败: {e}")
 			return False, scripts_dir, str(e)
 
 	# 检查 .claude/scripts 目录
@@ -131,11 +124,10 @@ def handle_stop() -> tuple[bool, Path | None, str | None]:
 				error_output = result.stderr or result.stdout
 				return False, claude_scripts, error_output.strip()
 		except Exception as e:
-			logging.error(f"执行 ruff check 失败: {e}")
 			return False, claude_scripts, str(e)
 
 	if not found_any:
-		logging.info("未找到任何需要检查的目录")
+		pass
 	return True, None, None
 
 
@@ -146,7 +138,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 		tool_input = input_data.get("tool_input")
 
 		if tool_name is None or tool_input is None:
-			logging.debug(f"PreToolUse: 缺少必要字段, tool_name={tool_name}, tool_input={tool_input}")
 			return
 
 		if tool_name is None or tool_input is None:
@@ -173,7 +164,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 				if command.find("rm") >= 0:
 					for locked_file in remove_files:
 						if command.find(locked_file) >= 0:
-							logging.warn(f"检测到受保护文件操作: command={command}, locked_file={locked_file}")
 							print(json.dumps({
 								"hookSpecificOutput":
 									{
@@ -185,7 +175,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 							}))
 							return
 				elif command.find("pip install") >= 0:
-					logging.warn(f"检测到 pip 操作: command={command}")
 					print(json.dumps({
 						"hookSpecificOutput": {
 							"hookEventName": "PreToolUse",
@@ -197,7 +186,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 					return
 				elif command.find("python") >= 0:
 					if not (command.find("uv run python -c") < 0 or command.find("uv run python3 -c") < 0):
-						logging.warn(f"检测到 python 操作: command={command}")
 						print(json.dumps({
 							"hookSpecificOutput":
 								{
@@ -214,7 +202,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 				file_path = tool_input.get("file_path", "")
 				for locked_file in edit_files:
 					if file_path.find(locked_file) >= 0:
-						logging.warn(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput": {
 								"hookEventName": "PreToolUse",
@@ -229,7 +216,6 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 				file_path = tool_input.get("file_path", "")
 				for locked_file in read_files:
 					if file_path.find(locked_file) >= 0:
-						logging.warn(f"检测到受保护文件操作: file_path={file_path}, locked_file={locked_file}")
 						print(json.dumps({
 							"hookSpecificOutput":
 								{
@@ -250,19 +236,17 @@ def handle_pre_tool_use(input_data: Dict[str, Any]):
 				}
 		}))
 
-	except Exception as e:
-		logging.error(f"PreToolUse 处理异常: {e}\n{traceback.format_exc()}")
+	except Exception:
+		pass
 
 
 def main():
 	"""主函数，捕获所有异常"""
 	try:
 		input_data = load_hooks()
-		logging.info(f"Received input data: {input_data}")
 
 		hook_event_name = input_data.get("hook_event_name", "")
 		if not hook_event_name:
-			logging.error("缺少 hook_event_name")
 			print(json.dumps({"continue": True, "suppressOutput": False}))
 			return
 
@@ -274,13 +258,11 @@ def main():
 				print(json.dumps({"continue": True, "decision": "block", "reason": reason}))
 		elif hook_event_name == "PreToolUse":
 			handle_pre_tool_use(input_data)
-		else:
-			logging.warn(f"未知的 hook 事件: {hook_event_name}")
 
-	except json.JSONDecodeError as e:
-		logging.error(f"JSON 解析错误: {e}\n{traceback.format_exc()}")
-	except Exception as e:
-		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
+	except json.JSONDecodeError:
+		pass
+	except Exception:
+		pass
 
 
 if __name__ == '__main__':

@@ -30,11 +30,9 @@ class TestHandleHook:
     
     def test_handle_hook_unknown_event(self):
         from hooks import handle_hook
-        
+
         with patch("hooks.load_hooks", return_value={"hook_event_name": "UnknownEvent"}):
-            with patch("lib.logging.debug") as mock_debug:
-                handle_hook()
-                mock_debug.assert_called()
+            handle_hook()
     
     def test_handle_hook_session_start(self):
         from hooks import handle_hook

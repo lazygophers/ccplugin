@@ -10,8 +10,6 @@ import socket
 import webbrowser
 from typing import Optional
 
-from lib import logging
-
 
 def find_available_port() -> int:
     """
@@ -56,11 +54,7 @@ async def run_web_server(port: Optional[int] = None, open_browser: bool = True, 
         port = find_available_port()
     
     url = f"http://127.0.0.1:{port}"
-    logging.info(f"Web 服务器启动: {url}")
-    
-    if reload:
-        logging.info("热重载已启用 - 文件变更将自动重启服务器")
-    
+
     if open_browser:
         webbrowser.open(url)
     

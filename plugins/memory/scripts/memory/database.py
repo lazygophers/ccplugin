@@ -7,7 +7,6 @@
 import hashlib
 import os
 
-from lib import logging
 from lib.db import DatabaseConfig, DatabaseConnection
 from lib.utils import get_project_plugins_dir, get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
@@ -93,7 +92,6 @@ async def init_db() -> None:
         await ErrorSolution.create_table(if_not_exists=True)
 
         _db_initialized = True
-        logging.info(f"数据库初始化完成: {db_path}")
 
 
 async def close_db() -> None:

@@ -7,7 +7,6 @@ import os
 import sys
 import traceback
 
-from lib import logging
 from lib.hooks import load_hooks
 from lib.utils.env import get_plugins_path, get_project_dir
 from lib.utils.gitignore import add_gitignore_rule
@@ -59,7 +58,6 @@ def _replace_plugin_root_variable(directory: str, plugin_root: str) -> None:
 				if new_content != content:
 					with open(file_path, 'w', encoding='utf-8') as f:
 						f.write(new_content)
-					logging.info(f"已替换变量: {file_path}")
 			except (UnicodeDecodeError, PermissionError):
 				# 跳过二进制文件或无权限文件
 				continue
@@ -71,11 +69,9 @@ def handle_hook() -> None:
 
 		hook_event_name = input_data.get("hook_event_name", "")
 		if not hook_event_name:
-			logging.error("缺少 hook_event_name")
 			return
 
 		if hook_event_name == "SessionStart":
 			handle_session_start()
 	except Exception as e:
-		logging.error(f"未捕获的异常: {e}\n{traceback.format_exc()}")
 		sys.exit(0)

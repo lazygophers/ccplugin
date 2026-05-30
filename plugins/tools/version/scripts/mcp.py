@@ -5,7 +5,6 @@ import asyncio
 import json
 import sys
 
-from lib import logging
 from version import get_version, init_version, inc_major, inc_minor, inc_patch
 
 
@@ -81,7 +80,6 @@ class VersionMCPServer:
             elif method == "ping":
                 return {"result": {}}
             else:
-                logging.warn(f"Unknown method: {method}")
                 return {
                     "error": {
                         "code": -32601,
@@ -90,7 +88,6 @@ class VersionMCPServer:
                     "id": request_id
                 }
         except Exception as e:
-            logging.error(f"Request handling error: {e}")
             return {
                 "error": {
                     "code": -32603,
@@ -144,7 +141,6 @@ class VersionMCPServer:
         arguments = params.get("arguments", {})
 
         if name not in self.tools:
-            logging.warn(f"Unknown tool requested: {name}")
             return {
                 "error": {
                     "code": -32602,
@@ -154,7 +150,6 @@ class VersionMCPServer:
             }
 
         try:
-            logging.info(f"Executing tool: {name}")
             result = await self._execute_tool(name, arguments)
             return {
                 "result": {
@@ -168,7 +163,6 @@ class VersionMCPServer:
                 "id": request_id
             }
         except Exception as e:
-            logging.error(f"Tool execution error for {name}: {e}")
             return {
                 "error": {
                     "code": -32603,
@@ -200,13 +194,11 @@ class VersionMCPServer:
                 return f"补丁版本号已更新，当前版本: {new_version}"
             else:
                 raise ValueError(f"Unknown tool: {name}")
-        except Exception as e:
-            logging.error(f"Error executing {name}: {e}")
+        except Exception:
             raise
 
     async def run(self):
         """启动 MCP 服务器（stdio 模式）"""
-        logging.info("MCP server starting")
 
         # 写入初始化响应
         await self._write_response({
@@ -221,7 +213,6 @@ class VersionMCPServer:
                     None, sys.stdin.readline
                 )
                 if not line:
-                    logging.info("EOF received, server shutting down")
                     break
 
                 line = line.strip()
@@ -241,7 +232,6 @@ class VersionMCPServer:
                     await self._write_response(response)
 
                 except json.JSONDecodeError as e:
-                    logging.error(f"JSON decode error: {e}")
                     await self._write_response({
                         "jsonrpc": "2.0",
                         "error": {
@@ -251,7 +241,6 @@ class VersionMCPServer:
                     })
 
             except Exception as e:
-                logging.error(f"Server loop error: {e}")
                 await self._write_response({
                     "jsonrpc": "2.0",
                     "error": {
@@ -268,9 +257,8 @@ class VersionMCPServer:
                 None, lambda: print(json_str, flush=True)
             )
         except Exception as e:
-            logging.error(f"Failed to write response: {e}")
             # 无法写入响应时，至少尝试输出到 stderr
             try:
                 print(f"Response error: {e}", file=sys.stderr, flush=True)
             except Exception:
-                pass  # 完全无法输出时放弃
+                pass

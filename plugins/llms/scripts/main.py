@@ -4,7 +4,6 @@ llms.txt Plugin - Main Entry Point
 处理 llms.txt 相关的 hook 事件
 """
 
-from lib import logging
 from hooks import handle_hook
 import click
 from functools import wraps
@@ -15,8 +14,6 @@ def with_debug(func):
     @wraps(func)
     @click.option("--debug", "debug_mode", is_flag=True, help="启用 DEBUG 模式")
     def wrapper(debug_mode: bool, *args, **kwargs):
-        if debug_mode:
-            logging.enable_debug()
         return func(*args, **kwargs)
     return wrapper
 

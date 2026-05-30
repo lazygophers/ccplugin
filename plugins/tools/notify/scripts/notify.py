@@ -18,8 +18,6 @@ import tempfile
 from typing import Optional
 
 from icons import PREDEFINED_ICONS
-from lib import logging
-from lib.logging import error
 from lib.utils import get_plugins_path, get_project_plugins_dir, get_user_plugins_dir, get_app_name, get_project_dir
 
 
@@ -178,7 +176,6 @@ def _file_md5(path: str) -> Optional[str]:
 				h.update(chunk)
 		return h.hexdigest()
 	except OSError as e:
-		error(f"读取文件失败: {e}")
 		return None
 
 
@@ -200,7 +197,6 @@ def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
 	try:
 		os.stat(svg_path)
 	except OSError as e:
-		error(f"读取 SVG 图标失败: {e}")
 		return None
 
 	cache_dir = _get_user_cache_dir("icons")
@@ -263,11 +259,9 @@ def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
 			)
 			generated = os.path.join(tmpdir, os.path.basename(svg_path) + ".png")
 		else:
-			error("缺少 SVG 转 PNG 工具：请安装 rsvg-convert / inkscape / ImageMagick，或直接提供 PNG 图标")
 			return None
 
 		if not os.path.exists(generated):
-			error(f"SVG 转 PNG 失败（未生成输出文件）: {svg_path}")
 			return None
 
 		# 若目标已存在（并发/重复触发），不覆盖，直接复用
@@ -277,7 +271,6 @@ def _svg_to_png_cached(svg_path: str, size: int = 256) -> Optional[str]:
 		shutil.move(generated, cached_png)
 		return cached_png
 	except subprocess.CalledProcessError as e:
-		error(f"SVG 转 PNG 失败: {e}")
 		return None
 	finally:
 		shutil.rmtree(tmpdir, ignore_errors=True)
@@ -587,7 +580,6 @@ def _ensure_tk_overlay_script() -> Optional[str]:
 
 		return script_path
 	except Exception as e:
-		error(f"准备 Tk overlay 脚本失败: {e}")
 		return None
 
 
@@ -615,7 +607,6 @@ def _show_tk_overlay_notification(
 	tts_pid: Optional[int] = None,
 ) -> bool:
 	if not _tkinter_available():
-		error("Tkinter 不可用，无法满足强制 duration/logo/title/message 的提醒需求")
 		return False
 
 	script_path = _ensure_tk_overlay_script()
@@ -624,9 +615,7 @@ def _show_tk_overlay_notification(
 
 	icon_for_overlay = _icon_for_overlay(icon_path)
 	if not icon_for_overlay:
-		error("无法获取可用图标，无法满足强制 logo 要求")
 		return False
-	logging.debug(f"Tk overlay 使用图标: {icon_for_overlay}")
 
 	timeout_seconds = max(1, int(duration_seconds))
 	try:
@@ -640,7 +629,6 @@ def _show_tk_overlay_notification(
 		)
 		return True
 	except Exception as e:
-		error(f"启动 Tk overlay 失败: {e}")
 		return False
 
 
@@ -669,7 +657,6 @@ def _resolve_icon_path(icon: str) -> Optional[str]:
 	if os.path.isabs(icon):
 		if os.path.exists(icon) and os.path.isfile(icon):
 			return icon
-		error(f"图标文件不存在: {icon}")
 		return None
 
 	# 相对路径：按优先级搜索
@@ -686,7 +673,6 @@ def _resolve_icon_path(icon: str) -> Optional[str]:
 			return path
 
 	# 如果找不到文件，记录错误但不中断执行
-	error(f"图标文件不存在: {icon} (搜索位置: {', '.join(search_paths)})")
 	return None
 
 
@@ -983,7 +969,6 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 				f.write(_MACOS_OVERLAY_SWIFT_SOURCE)
 
 		if not _command_exists("xcrun"):
-			error("macOS 浮层提醒需要 xcrun/swiftc（请安装 Xcode Command Line Tools）")
 			return None
 
 		tmp_bin = os.path.join(cache_dir, f".notify_overlay_tmp_{os.getpid()}_{source_md5}")
@@ -993,7 +978,6 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 			text=True,
 		)
 		if result.returncode != 0:
-			error(f"编译 macOS 浮层提醒失败: {result.stderr.strip()}")
 			return None
 
 		bin_md5_full = _file_md5(tmp_bin)
@@ -1034,7 +1018,6 @@ def _ensure_macos_overlay_binary() -> Optional[str]:
 
 		return bin_path
 	except Exception as e:
-		error(f"准备 macOS 浮层提醒失败: {e}")
 		return None
 
 
@@ -1048,10 +1031,7 @@ def _show_macos_overlay_notification(
 	"""macOS：不抢焦点的右下角浮层提醒，强制展示 duration_seconds 秒。"""
 	icon_for_overlay = _icon_for_overlay(icon_path)
 	if not icon_for_overlay:
-		error("macOS 通知无法获取可用图标，无法满足强制 logo 要求")
 		return False
-	logging.debug(f"macOS overlay 使用图标: {icon_for_overlay}")
-
 	bin_path = _ensure_macos_overlay_binary()
 	if not bin_path:
 		return False
@@ -1071,7 +1051,6 @@ def _show_macos_overlay_notification(
 		)
 		return True
 	except Exception as e:
-		error(f"启动 macOS 浮层提醒失败: {e}")
 		return False
 
 
@@ -1093,7 +1072,6 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 		play_text_tts("操作已完成", rate=150)
 	"""
 	if not text or not isinstance(text, str):
-		error("文本内容不能为空且必须是字符串类型")
 		return False
 
 	text = _strip_markdown(text)
@@ -1106,7 +1084,6 @@ def play_text_tts(text: str, rate: int = 200) -> bool:
 def start_text_tts(text: str, rate: int = 200) -> Optional[int]:
 	"""启动 TTS 子进程并返回 PID（用于通知关闭时停止播报）。"""
 	if not text or not isinstance(text, str):
-		error("文本内容不能为空且必须是字符串类型")
 		return None
 
 	text = _strip_markdown(text)
@@ -1128,7 +1105,6 @@ def start_text_tts(text: str, rate: int = 200) -> Optional[int]:
             """
 			cmd = ["powershell", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
 		else:
-			error(f"不支持的操作系统: {system}")
 			return None
 
 		popen_kwargs = {
@@ -1148,10 +1124,8 @@ def start_text_tts(text: str, rate: int = 200) -> Optional[int]:
 		return proc.pid
 
 	except FileNotFoundError as e:
-		error(f"TTS 工具未找到（可能未安装）: {e}")
 		return None
 	except Exception as e:
-		error(f"TTS 播放过程中发生异常: {e}")
 		return None
 
 
@@ -1189,12 +1163,10 @@ def show_system_notification(
 		show_system_notification("已停止", event="Stop")
 	"""
 	if not message or not isinstance(message, str):
-		error("消息内容不能为空且必须是字符串类型")
 		return False
 
 	message = _strip_markdown(message)
 	if not message:
-		error("消息内容为空（已移除 Markdown 标记）")
 		return False
 
 	if not title or not isinstance(title, str):
@@ -1208,10 +1180,7 @@ def show_system_notification(
 	# 解析图标路径
 	icon_path = _resolve_icon_path(icon)
 	if not icon_path:
-		error("通知要求提供可用的 icon，但未找到图标文件")
 		return False
-
-	logging.debug(f"解析到图标路径: {icon_path}")
 
 	try:
 		system = platform.system()
@@ -1247,20 +1216,15 @@ def show_system_notification(
 			)
 
 		else:
-			error(f"不支持的操作系统: {system}")
 			return False
 
 	except subprocess.CalledProcessError as e:
-		error(f"系统通知显示失败: {e}")
 		return False
 	except FileNotFoundError as e:
-		error(f"通知工具未找到（可能未安装）: {e}")
 		return False
 	except Exception as e:
-		error(f"系统通知过程中发生异常: {e}")
 		return False
 
 
 if __name__ == '__main__':
-	logging.enable_debug()
 	show_system_notification("操作已完成", icon='claude')

@@ -1,8 +1,6 @@
 import os
 import subprocess
 
-from lib import logging
-
 from lib.utils.env import get_project_dir
 
 version_filepath = ".version"
@@ -11,8 +9,6 @@ version_filepath = ".version"
 def init_version():
 	if os.path.exists(os.path.join(get_project_dir(), version_filepath)):
 		return
-
-	logging.info("初始化版本文件")
 
 	with open(os.path.join(get_project_dir(), version_filepath), "w", encoding='utf-8') as f:
 		f.write('0.0.1.0')
@@ -26,7 +22,6 @@ def auto_update():
 		text=True
 	).stdout.strip()
 	if result:
-		logging.warn("版本文件未提交，跳过自动更新")
 		return
 
 	# 读取当前版本
@@ -39,8 +34,6 @@ def auto_update():
 		parts.extend(['0'] * (4 - len(parts)))
 	parts[3] = str(int(parts[3]) + 1)
 	new_version = '.'.join(parts)
-
-	logging.info(f"更新版本为 {new_version}")
 
 	# 写回版本号
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
@@ -64,8 +57,6 @@ def inc_major():
 	parts[2] = '0'
 	parts[3] = '0'
 	new_version = '.'.join(parts)
-	
-	logging.info(f"更新主版本号为 {new_version}")
 
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
@@ -80,8 +71,6 @@ def inc_minor():
 	parts[2] = '0'
 	parts[3] = '0'
 	new_version = '.'.join(parts)
-	
-	logging.info(f"更新次版本号为 {new_version}")
 
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)
@@ -95,8 +84,6 @@ def inc_patch():
 	parts[2] = str(int(parts[2]) + 1)
 	parts[3] = '0'
 	new_version = '.'.join(parts)
-	
-	logging.info(f"更新补丁版本号为 {new_version}")
 
 	with open(os.path.join(get_project_dir(), version_filepath), 'w', encoding='utf-8') as f:
 		f.write(new_version)

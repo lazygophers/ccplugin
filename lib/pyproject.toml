@@ -1,7 +1,7 @@
 [project]
 name = "lib"
 version = "0.0.195"
-description = "Shared library for ccplugin - logging, utilities and database ORM"
+description = "Shared library for ccplugin - utilities and database ORM"
 requires-python = ">=3.11"
 dependencies = [ "click>=8.3.1", "pydantic>=2.12.5", "rich>=13.0.0", "pyyaml>=6.0",]
 
