@@ -21,19 +21,5 @@
   "agents": [
     "./agents/llms-generator.md"
   ],
-  "skills": "./skills/",
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=llms uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 300
-          }
-        ]
-      }
-    ]
-  }
+  "skills": "./skills/"
 }
