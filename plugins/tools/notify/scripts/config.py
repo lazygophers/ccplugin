@@ -409,121 +409,203 @@ class HooksConfig:
         """
         hooks_data = config_dict.get("hooks", {})
 
-        def load_hook_config(data: Optional[Dict]) -> HookConfig:
-            """加载单个 Hook 配置"""
+        def load_hook_config(
+            data: Optional[Dict], default: Optional[HookConfig] = None
+        ) -> HookConfig:
+            """加载单个 Hook 配置，使用默认值填充未指定的字段"""
             if not data:
-                return HookConfig()
+                return default if default is not None else HookConfig()
+            enabled = data.get("enabled")
+            play_sound = data.get("play_sound")
+            message = data.get("message")
             return HookConfig(
-                enabled=data.get("enabled", False),
-                play_sound=data.get("play_sound", False),
-                message=data.get("message"),
+                enabled=default.enabled if enabled is None else enabled,
+                play_sound=default.play_sound if play_sound is None else play_sound,
+                message=default.message if message is None else message,
             )
 
-        def load_tool_specific_config(data: Optional[Dict]) -> ToolSpecificHookConfig:
+        def load_tool_specific_config(
+            data: Optional[Dict], defaults: ToolSpecificHookConfig
+        ) -> ToolSpecificHookConfig:
             """加载工具特定配置"""
             if not data:
-                return ToolSpecificHookConfig()
+                return defaults
             return ToolSpecificHookConfig(
-                write=load_hook_config(data.get("write")),
-                edit=load_hook_config(data.get("edit")),
-                read=load_hook_config(data.get("read")),
-                bash=load_hook_config(data.get("bash")),
-                task=load_hook_config(data.get("task")),
-                webfetch=load_hook_config(data.get("webfetch")),
-                websearch=load_hook_config(data.get("websearch")),
-                askuserquestion=load_hook_config(data.get("askuserquestion")),
+                write=load_hook_config(data.get("write"), defaults.write),
+                edit=load_hook_config(data.get("edit"), defaults.edit),
+                read=load_hook_config(data.get("read"), defaults.read),
+                bash=load_hook_config(data.get("bash"), defaults.bash),
+                task=load_hook_config(data.get("task"), defaults.task),
+                webfetch=load_hook_config(data.get("webfetch"), defaults.webfetch),
+                websearch=load_hook_config(data.get("websearch"), defaults.websearch),
+                askuserquestion=load_hook_config(
+                    data.get("askuserquestion"), defaults.askuserquestion
+                ),
             )
 
         def load_notification_config(
-            data: Optional[Dict],
+            data: Optional[Dict], defaults: NotificationTypeHookConfig
         ) -> NotificationTypeHookConfig:
             """加载通知类型配置"""
             if not data:
-                return NotificationTypeHookConfig()
+                return defaults
             return NotificationTypeHookConfig(
-                permission_prompt=load_hook_config(data.get("permission_prompt")),
-                idle_prompt=load_hook_config(data.get("idle_prompt")),
-                auth_success=load_hook_config(data.get("auth_success")),
-                elicitation_dialog=load_hook_config(data.get("elicitation_dialog")),
-                elicitation_complete=load_hook_config(data.get("elicitation_complete")),
-                elicitation_response=load_hook_config(data.get("elicitation_response")),
+                permission_prompt=load_hook_config(
+                    data.get("permission_prompt"), defaults.permission_prompt
+                ),
+                idle_prompt=load_hook_config(data.get("idle_prompt"), defaults.idle_prompt),
+                auth_success=load_hook_config(
+                    data.get("auth_success"), defaults.auth_success
+                ),
+                elicitation_dialog=load_hook_config(
+                    data.get("elicitation_dialog"), defaults.elicitation_dialog
+                ),
+                elicitation_complete=load_hook_config(
+                    data.get("elicitation_complete"), defaults.elicitation_complete
+                ),
+                elicitation_response=load_hook_config(
+                    data.get("elicitation_response"), defaults.elicitation_response
+                ),
             )
 
-        def load_session_start_config(data: Optional[Dict]) -> SessionStartHookConfig:
+        def load_session_start_config(
+            data: Optional[Dict], defaults: SessionStartHookConfig
+        ) -> SessionStartHookConfig:
             """加载 SessionStart 配置"""
             if not data:
-                return SessionStartHookConfig()
+                return defaults
             return SessionStartHookConfig(
-                startup=load_hook_config(data.get("startup")),
-                resume=load_hook_config(data.get("resume")),
-                clear=load_hook_config(data.get("clear")),
-                compact=load_hook_config(data.get("compact")),
+                startup=load_hook_config(data.get("startup"), defaults.startup),
+                resume=load_hook_config(data.get("resume"), defaults.resume),
+                clear=load_hook_config(data.get("clear"), defaults.clear),
+                compact=load_hook_config(data.get("compact"), defaults.compact),
             )
 
-        def load_session_end_config(data: Optional[Dict]) -> SessionEndHookConfig:
+        def load_session_end_config(
+            data: Optional[Dict], defaults: SessionEndHookConfig
+        ) -> SessionEndHookConfig:
             """加载 SessionEnd 配置"""
             if not data:
-                return SessionEndHookConfig()
+                return defaults
             return SessionEndHookConfig(
-                clear=load_hook_config(data.get("clear")),
-                logout=load_hook_config(data.get("logout")),
-                prompt_input_exit=load_hook_config(data.get("prompt_input_exit")),
-                other=load_hook_config(data.get("other")),
+                clear=load_hook_config(data.get("clear"), defaults.clear),
+                logout=load_hook_config(data.get("logout"), defaults.logout),
+                prompt_input_exit=load_hook_config(
+                    data.get("prompt_input_exit"), defaults.prompt_input_exit
+                ),
+                other=load_hook_config(data.get("other"), defaults.other),
             )
 
-        def load_pre_compact_config(data: Optional[Dict]) -> PreCompactHookConfig:
+        def load_pre_compact_config(
+            data: Optional[Dict], defaults: PreCompactHookConfig
+        ) -> PreCompactHookConfig:
             """加载 PreCompact 配置"""
             if not data:
-                return PreCompactHookConfig()
+                return defaults
             return PreCompactHookConfig(
-                manual=load_hook_config(data.get("manual")),
-                auto=load_hook_config(data.get("auto")),
+                manual=load_hook_config(data.get("manual"), defaults.manual),
+                auto=load_hook_config(data.get("auto"), defaults.auto),
             )
 
-        def load_post_compact_config(data: Optional[Dict]) -> PostCompactHookConfig:
+        def load_post_compact_config(
+            data: Optional[Dict], defaults: PostCompactHookConfig
+        ) -> PostCompactHookConfig:
             """加载 PostCompact 配置"""
             if not data:
-                return PostCompactHookConfig()
+                return defaults
             return PostCompactHookConfig(
-                manual=load_hook_config(data.get("manual")),
-                auto=load_hook_config(data.get("auto")),
+                manual=load_hook_config(data.get("manual"), defaults.manual),
+                auto=load_hook_config(data.get("auto"), defaults.auto),
             )
 
+        defaults = cls()
         return cls(
-            stop=load_hook_config(hooks_data.get("stop")),
-            pre_tool_use=load_tool_specific_config(hooks_data.get("pre_tool_use")),
-            post_tool_use=load_tool_specific_config(hooks_data.get("post_tool_use")),
-            permission_request=load_hook_config(hooks_data.get("permission_request")),
-            user_prompt_submit=load_hook_config(hooks_data.get("user_prompt_submit")),
-            notification=load_notification_config(hooks_data.get("notification")),
-            session_start=load_session_start_config(hooks_data.get("session_start")),
-            session_end=load_session_end_config(hooks_data.get("session_end")),
-            pre_compact=load_pre_compact_config(hooks_data.get("pre_compact")),
-            post_compact=load_post_compact_config(hooks_data.get("post_compact")),
+            stop=load_hook_config(hooks_data.get("stop"), defaults.stop),
+            pre_tool_use=load_tool_specific_config(
+                hooks_data.get("pre_tool_use"), defaults.pre_tool_use
+            ),
+            post_tool_use=load_tool_specific_config(
+                hooks_data.get("post_tool_use"), defaults.post_tool_use
+            ),
+            permission_request=load_hook_config(
+                hooks_data.get("permission_request"), defaults.permission_request
+            ),
+            user_prompt_submit=load_hook_config(
+                hooks_data.get("user_prompt_submit"), defaults.user_prompt_submit
+            ),
+            notification=load_notification_config(
+                hooks_data.get("notification"), defaults.notification
+            ),
+            session_start=load_session_start_config(
+                hooks_data.get("session_start"), defaults.session_start
+            ),
+            session_end=load_session_end_config(
+                hooks_data.get("session_end"), defaults.session_end
+            ),
+            pre_compact=load_pre_compact_config(
+                hooks_data.get("pre_compact"), defaults.pre_compact
+            ),
+            post_compact=load_post_compact_config(
+                hooks_data.get("post_compact"), defaults.post_compact
+            ),
             post_tool_use_failure=load_hook_config(
-                hooks_data.get("post_tool_use_failure")
+                hooks_data.get("post_tool_use_failure"), defaults.post_tool_use_failure
             ),
-            subagent_start=load_hook_config(hooks_data.get("subagent_start")),
-            subagent_stop=load_hook_config(hooks_data.get("subagent_stop")),
-            stop_failure=load_hook_config(hooks_data.get("stop_failure")),
-            teammate_idle=load_hook_config(hooks_data.get("teammate_idle")),
-            task_completed=load_hook_config(hooks_data.get("task_completed")),
-            task_created=load_hook_config(hooks_data.get("task_created")),
-            instructions_loaded=load_hook_config(hooks_data.get("instructions_loaded")),
-            config_change=load_hook_config(hooks_data.get("config_change")),
-            cwd_changed=load_hook_config(hooks_data.get("cwd_changed")),
-            file_changed=load_hook_config(hooks_data.get("file_changed")),
-            worktree_create=load_hook_config(hooks_data.get("worktree_create")),
-            worktree_remove=load_hook_config(hooks_data.get("worktree_remove")),
-            message_display=load_hook_config(hooks_data.get("message_display")),
-            post_tool_batch=load_hook_config(hooks_data.get("post_tool_batch")),
-            permission_denied=load_hook_config(hooks_data.get("permission_denied")),
+            subagent_start=load_hook_config(
+                hooks_data.get("subagent_start"), defaults.subagent_start
+            ),
+            subagent_stop=load_hook_config(
+                hooks_data.get("subagent_stop"), defaults.subagent_stop
+            ),
+            stop_failure=load_hook_config(
+                hooks_data.get("stop_failure"), defaults.stop_failure
+            ),
+            teammate_idle=load_hook_config(
+                hooks_data.get("teammate_idle"), defaults.teammate_idle
+            ),
+            task_completed=load_hook_config(
+                hooks_data.get("task_completed"), defaults.task_completed
+            ),
+            task_created=load_hook_config(
+                hooks_data.get("task_created"), defaults.task_created
+            ),
+            instructions_loaded=load_hook_config(
+                hooks_data.get("instructions_loaded"), defaults.instructions_loaded
+            ),
+            config_change=load_hook_config(
+                hooks_data.get("config_change"), defaults.config_change
+            ),
+            cwd_changed=load_hook_config(
+                hooks_data.get("cwd_changed"), defaults.cwd_changed
+            ),
+            file_changed=load_hook_config(
+                hooks_data.get("file_changed"), defaults.file_changed
+            ),
+            worktree_create=load_hook_config(
+                hooks_data.get("worktree_create"), defaults.worktree_create
+            ),
+            worktree_remove=load_hook_config(
+                hooks_data.get("worktree_remove"), defaults.worktree_remove
+            ),
+            message_display=load_hook_config(
+                hooks_data.get("message_display"), defaults.message_display
+            ),
+            post_tool_batch=load_hook_config(
+                hooks_data.get("post_tool_batch"), defaults.post_tool_batch
+            ),
+            permission_denied=load_hook_config(
+                hooks_data.get("permission_denied"), defaults.permission_denied
+            ),
             user_prompt_expansion=load_hook_config(
-                hooks_data.get("user_prompt_expansion")
+                hooks_data.get("user_prompt_expansion"), defaults.user_prompt_expansion
             ),
-            elicitation=load_hook_config(hooks_data.get("elicitation")),
-            elicitation_result=load_hook_config(hooks_data.get("elicitation_result")),
-            setup=load_hook_config(hooks_data.get("setup")),
+            elicitation=load_hook_config(
+                hooks_data.get("elicitation"), defaults.elicitation
+            ),
+            elicitation_result=load_hook_config(
+                hooks_data.get("elicitation_result"), defaults.elicitation_result
+            ),
+            setup=load_hook_config(hooks_data.get("setup"), defaults.setup),
         )
 
     @classmethod
