@@ -82,13 +82,17 @@ class NotificationTypeHookConfig:
 	"""通知类型 Hook 配置"""
 	permission_prompt: HookConfig = field(default_factory=lambda: HookConfig(
 		enabled=True, play_sound=True,
-		message="权限请求: {{ message | default('') }}"))
+		message="权限请求: {{ message }}"))
 	idle_prompt: HookConfig = field(default_factory=lambda: HookConfig(
-		message="等待输入: {{ message | default('') }}"))
+		message="等待输入: {{ message }}"))
 	auth_success: HookConfig = field(default_factory=lambda: HookConfig(
-		message="认证成功: {{ message | default('') }}"))
+		message="认证成功: {{ message }}"))
 	elicitation_dialog: HookConfig = field(default_factory=lambda: HookConfig(
-		message="工具引出: {{ message | default('') }}"))
+		message="工具引出: {{ message }}"))
+	elicitation_complete: HookConfig = field(default_factory=lambda: HookConfig(
+		message="工具引出完成: {{ message }}"))
+	elicitation_response: HookConfig = field(default_factory=lambda: HookConfig(
+		message="工具引出响应: {{ message }}"))
 
 	def validate(self) -> bool:
 		"""验证所有通知类型配置"""
@@ -249,13 +253,15 @@ class HooksConfig:
 		message="{{ project_name }} 子代理 {{ agent_type }} 完成"))
 	stop_failure: HookConfig = field(default_factory=lambda: HookConfig(
 		enabled=True, play_sound=True,
-		message="{{ project_name }} API 错误: {{ error | default('unknown') }}"))
+		message="{{ project_name }} API 错误: {{ error }}"))
 	teammate_idle: HookConfig = field(default_factory=lambda: HookConfig(
 		message="{{ project_name }} 队友 {{ teammate_name }} 空闲"))
 	task_completed: HookConfig = field(default_factory=lambda: HookConfig(
 		message="{{ project_name }} 任务完成: {{ task_subject }}"))
+	task_created: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 任务创建: {{ task_subject }}"))
 	instructions_loaded: HookConfig = field(default_factory=lambda: HookConfig(
-		message="{{ project_name }} 指令加载: {{ file_path }}"))
+		message="{{ project_name }} 指令加载: {{ file_path }} ({{ load_reason }})"))
 	config_change: HookConfig = field(default_factory=lambda: HookConfig(
 		message="{{ project_name }} 配置变更: {{ source }}"))
 	cwd_changed: HookConfig = field(default_factory=lambda: HookConfig(
@@ -265,11 +271,21 @@ class HooksConfig:
 	worktree_create: HookConfig = field(default_factory=lambda: HookConfig(
 		message="{{ project_name }} Worktree 创建: {{ name }}"))
 	worktree_remove: HookConfig = field(default_factory=lambda: HookConfig(
-		message="{{ project_name }} Worktree 移除"))
+		message="{{ project_name }} Worktree 移除: {{ worktree_path }}"))
+	message_display: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 消息显示"))
+	post_tool_batch: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 工具批次完成 ({{ tool_calls|length }} 个工具)"))
+	permission_denied: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 权限被拒绝: {{ tool_name }} - {{ reason }}"))
+	user_prompt_expansion: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 命令展开: /{{ command_name }}"))
 	elicitation: HookConfig = field(default_factory=lambda: HookConfig(
-		message="{{ project_name }} MCP 请求: {{ message }}"))
+		message="{{ project_name }} MCP 请求输入: {{ mcp_server_name }} - {{ message }}"))
 	elicitation_result: HookConfig = field(default_factory=lambda: HookConfig(
-		message="{{ project_name }} MCP 响应: {{ action }}"))
+		message="{{ project_name }} MCP 响应: {{ mcp_server_name }} - {{ action }}"))
+	setup: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 初始化"))
 
 	def validate(self) -> bool:
 		"""验证所有配置有效性"""
@@ -289,14 +305,20 @@ class HooksConfig:
 		self.stop_failure.validate()
 		self.teammate_idle.validate()
 		self.task_completed.validate()
+		self.task_created.validate()
 		self.instructions_loaded.validate()
 		self.config_change.validate()
 		self.cwd_changed.validate()
 		self.file_changed.validate()
 		self.worktree_create.validate()
 		self.worktree_remove.validate()
+		self.message_display.validate()
+		self.post_tool_batch.validate()
+		self.permission_denied.validate()
+		self.user_prompt_expansion.validate()
 		self.elicitation.validate()
 		self.elicitation_result.validate()
+		self.setup.validate()
 		return True
 
 	@classmethod
@@ -347,7 +369,9 @@ class HooksConfig:
 				permission_prompt=load_hook_config(data.get("permission_prompt")),
 				idle_prompt=load_hook_config(data.get("idle_prompt")),
 				auth_success=load_hook_config(data.get("auth_success")),
-				elicitation_dialog=load_hook_config(data.get("elicitation_dialog"))
+				elicitation_dialog=load_hook_config(data.get("elicitation_dialog")),
+				elicitation_complete=load_hook_config(data.get("elicitation_complete")),
+				elicitation_response=load_hook_config(data.get("elicitation_response"))
 			)
 
 		def load_session_start_config(data: Optional[Dict]) -> SessionStartHookConfig:
@@ -407,14 +431,20 @@ class HooksConfig:
 			stop_failure=load_hook_config(hooks_data.get("stop_failure")),
 			teammate_idle=load_hook_config(hooks_data.get("teammate_idle")),
 			task_completed=load_hook_config(hooks_data.get("task_completed")),
+			task_created=load_hook_config(hooks_data.get("task_created")),
 			instructions_loaded=load_hook_config(hooks_data.get("instructions_loaded")),
 			config_change=load_hook_config(hooks_data.get("config_change")),
 			cwd_changed=load_hook_config(hooks_data.get("cwd_changed")),
 			file_changed=load_hook_config(hooks_data.get("file_changed")),
 			worktree_create=load_hook_config(hooks_data.get("worktree_create")),
 			worktree_remove=load_hook_config(hooks_data.get("worktree_remove")),
+			message_display=load_hook_config(hooks_data.get("message_display")),
+			post_tool_batch=load_hook_config(hooks_data.get("post_tool_batch")),
+			permission_denied=load_hook_config(hooks_data.get("permission_denied")),
+			user_prompt_expansion=load_hook_config(hooks_data.get("user_prompt_expansion")),
 			elicitation=load_hook_config(hooks_data.get("elicitation")),
-			elicitation_result=load_hook_config(hooks_data.get("elicitation_result"))
+			elicitation_result=load_hook_config(hooks_data.get("elicitation_result")),
+			setup=load_hook_config(hooks_data.get("setup"))
 		)
 
 	@classmethod
