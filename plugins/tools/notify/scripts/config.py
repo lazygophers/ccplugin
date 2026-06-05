@@ -237,6 +237,7 @@ class HooksConfig:
 	pre_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	post_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	permission_request: HookConfig = field(default_factory=lambda: HookConfig(
+		enabled=True, play_sound=True,
 		message="{{ project_name }} 请求权限 ({{ tool_name }})"))
 	user_prompt_submit: HookConfig = field(default_factory=lambda: HookConfig(
 		message="{{ project_name }} 收到用户输入"))
