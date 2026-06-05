@@ -12,10 +12,10 @@ from typing import Optional, Dict, Any
 import copy
 from jinja2 import StrictUndefined
 from jinja2.sandbox import SandboxedEnvironment
-from config import load_config, HooksConfig, HookConfig
-from lib.hooks import load_hooks
-from lib.utils.env import get_project_dir, get_plugins_path
-from notify import start_text_tts, show_system_notification
+from .config import load_config, HooksConfig, HookConfig
+from ._hooks import load_hooks
+from ._env import get_project_dir, get_plugins_path
+from .notify import start_text_tts, show_system_notification
 
 def _render_message(message: str, context: Dict[str, Any]) -> str:
 	"""渲染消息模板。
@@ -335,8 +335,7 @@ def handle_hook() -> None:
 		return
 
 	if not execute_hook_actions(hook_config, event_name, context):
-		# 通知/语音失败不应阻断 Claude Code 主流程
-
+			pass
 
 	print(json.dumps({
 		"continue": True,

@@ -1,32 +1,39 @@
-from hooks import handle_hook
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from scripts.hooks import handle_hook
 import click
 from functools import wraps
-from lib.utils.gitignore import add_gitignore_rule
+from scripts._gitignore import add_gitignore_rule
 
 add_gitignore_rule("/ccplugin/notify")
 
+
 def with_debug(func):
-	"""装饰器：为所有命令添加 --debug 参数支持"""
-	@wraps(func)
-	@click.option("--debug", "debug_mode", is_flag=True, help="启用 DEBUG 模式")
-	def wrapper(debug_mode: bool, *args, **kwargs):
-		return func(*args, **kwargs)
-	return wrapper
+    """装饰器：为所有命令添加 --debug 参数支持"""
+
+    @wraps(func)
+    @click.option("--debug", "debug_mode", is_flag=True, help="启用 DEBUG 模式")
+    def wrapper(debug_mode: bool, *args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
 
 @click.group()
 @click.pass_context
 def main(ctx) -> None:
-	"""
-	Notify plugin for system notifications and TTS.
-	"""
-	pass
+    """Notify plugin for system notifications and TTS."""
+    pass
+
 
 @main.command()
 @with_debug
 def hooks() -> None:
-	"""Hook 模式：从 stdin 读取 JSON"""
-	handle_hook()
+    """Hook 模式：从 stdin 读取 JSON"""
+    handle_hook()
 
 
 if __name__ == "__main__":
-	main()
+    main()

@@ -17,8 +17,8 @@ import sys
 import tempfile
 from typing import Optional
 
-from icons import PREDEFINED_ICONS
-from lib.utils import get_plugins_path, get_project_plugins_dir, get_user_plugins_dir, get_app_name, get_project_dir
+from .icons import PREDEFINED_ICONS
+from ._env import get_plugins_path, get_project_plugins_dir, get_user_plugins_dir, get_app_name, get_project_dir
 
 
 def _command_exists(cmd: str) -> bool:

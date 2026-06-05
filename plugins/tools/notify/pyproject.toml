@@ -1,11 +1,10 @@
 [project]
 name = "notify"
-version = "0.0.195"
+version = "0.1.0"
 description = "Claude Code system notification plugin with hook support"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
- "lib",
  "pyyaml>=6.0.3",
  "click>=8.1.0",
  "jinja2>=3.1.0",
@@ -24,8 +23,3 @@ dev = [ "pytest>=7.0.0",]
 [tool.setuptools.packages.find]
 where = [ ".",]
 include = [ "notify*",]
-
-[tool.uv.sources.lib]
-git = "https://github.com/lazygophers/ccplugin"
-subdirectory = "lib"
-rev = "master"

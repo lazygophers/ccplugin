@@ -21,8 +21,6 @@ import os.path
 from dataclasses import asdict, dataclass, field
 from typing import Dict, Optional
 
-from lib.utils.env import get_user_home
-
 
 @dataclass
 class HookConfig:
@@ -419,9 +417,9 @@ class HooksConfig:
             play_sound = data.get("play_sound")
             message = data.get("message")
             return HookConfig(
-                enabled=default.enabled if enabled is None else enabled,
-                play_sound=default.play_sound if play_sound is None else play_sound,
-                message=default.message if message is None else message,
+                enabled=default.enabled if enabled is None and default else False,
+                play_sound=default.play_sound if play_sound is None and default else False,
+                message=default.message if message is None and default else message,
             )
 
         def load_tool_specific_config(
@@ -659,7 +657,7 @@ def load_config() -> HooksConfig:
             HooksConfig 实例
     """
     home_config_path = os.path.join(
-        get_user_home(), ".lazygophers", "ccplugin", "notify", "config.yaml"
+        os.path.expanduser("~"), ".lazygophers", "ccplugin", "notify", "config.yaml"
     )
 
     if os.path.exists(home_config_path):
