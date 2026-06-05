@@ -1,377 +1,148 @@
-# Claude Code Hooks 事件配置文件
+# Claude Code Hooks 配置文件
+# 复制到: ./.lazygophers/ccplugin/notify/config.yaml 或 ~/.lazygophers/ccplugin/notify/config.yaml
 #
-# 支持全部 24 个官方 Hook 事件
-#
-# 复制此文件到以下位置之一:
-# - 项目目录: ./.lazygophers/ccplugin/notify/config.yaml
-# - 用户主目录: ~/.lazygophers/ccplugin/notify/config.yaml
-#
-# 每个 hook 配置项:
-#   enabled: 是否启用通知（默认 false）
-#   play_sound: 是否启用 TTS 语音播报（默认 false）
-#   message: 通知消息模板（支持 {{ variable }} 和 {{ var | default('') }} 语法）
-#
-# 通用模板变量:
-#   {{ time_now }}       - 当前时间（如"2026年03月26日 14点30分"）
-#   {{ session_id }}     - 会话 ID
-#   {{ project_name }}   - 项目名称（取自工作目录名）
-#   {{ hook_event_name }}- 事件名称
-
+# 模板变量: {{ project_name }}, {{ session_id }}, {{ hook_event_name }}, {{ time_now }}
+# 工具钩子额外: {{ tool_name }}, {{ file_path }}, {{ tool_input }}, {{ tool_response }}, {{ success }}
 ---
 hooks:
-  # ============================================================================
-  # Stop - 主 Agent 完成响应时
-  # ============================================================================
-  # 不支持 matcher，每次主 agent 完成时触发
-  # 额外变量: {{ last_assistant_message }}, {{ stop_hook_active }}
   stop:
     enabled: true
     play_sound: true
-    message: |-
-      {{ project_name }} 的任务已完成
+    message: "{{ project_name }} 任务已完成"
 
-  # ============================================================================
-  # PreToolUse - 工具调用前（按 tool_name 匹配）
-  # ============================================================================
-  # matcher: 工具名称（Bash, Write, Edit, Read, Glob, Grep, Agent, WebFetch, WebSearch, mcp__*）
-  # 额外变量: {{ tool_name }}, {{ file_path }}, {{ tool_input }}
   pre_tool_use:
-    write:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备写入文件 {{ file_path | default('') }}"
-    edit:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备编辑文件 {{ file_path | default('') }}"
-    read:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备读取文件 {{ file_path | default('') }}"
-    bash:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备执行命令"
-    agent:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备启动子代理"
-    webfetch:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备获取网页"
-    websearch:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 准备搜索网页"
     askuserquestion:
       enabled: true
       play_sound: true
       message: "{{ project_name }} 有问题需要你解决"
+    # write/edit/read/bash/agent/webfetch/websearch 默认 false
 
-  # ============================================================================
-  # PostToolUse - 工具调用成功后（按 tool_name 匹配）
-  # ============================================================================
-  # matcher: 同 PreToolUse
-  # 额外变量: {{ tool_name }}, {{ file_path }}, {{ tool_response }}, {{ success }}
-  post_tool_use:
-    write:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 文件写入完成 {{ file_path | default('') }}"
-    edit:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 文件编辑完成 {{ file_path | default('') }}"
-    read:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 文件读取完成 {{ file_path | default('') }}"
-    bash:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 命令执行完成"
-    agent:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 子代理完成"
-    webfetch:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 网页获取完成"
-    websearch:
-      enabled: false
-      play_sound: false
-      message: "{{ project_name }} 网页搜索完成"
-
-  # ============================================================================
-  # PostToolUseFailure - 工具调用失败后（按 tool_name 匹配）
-  # ============================================================================
-  # matcher: 同 PreToolUse
-  # 额外变量: {{ tool_name }}, {{ error }}, {{ is_interrupt }}
   post_tool_use_failure:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 工具 {{ tool_name | default('') }} 执行失败: {{ error | default('') }}"
+    message: "{{ project_name }} 工具 {{ tool_name }} 失败: {{ error }}"
 
-  # ============================================================================
-  # PermissionRequest - 权限请求时（按 tool_name 匹配）
-  # ============================================================================
-  # matcher: 工具名称
-  # 额外变量: {{ tool_name }}, {{ tool_input }}
   permission_request:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 需要权限授权 ({{ tool_name | default('') }})"
+    message: "{{ project_name }} 请求权限 ({{ tool_name }})"
 
-  # ============================================================================
-  # UserPromptSubmit - 用户提交提示前
-  # ============================================================================
-  # 不支持 matcher
-  # 额外变量: {{ prompt }}
   user_prompt_submit:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 接收到用户输入"
+    message: "{{ project_name }} 收到用户输入"
 
-  # ============================================================================
-  # Notification - 通知事件（按 notification_type 匹配）
-  # ============================================================================
-  # matcher: permission_prompt, idle_prompt, auth_success, elicitation_dialog
-  # 额外变量: {{ message }}, {{ title }}, {{ notification_type }}
   notification:
     permission_prompt:
       enabled: true
       play_sound: true
-      message: "权限请求: {{ message | default('') }}"
+      message: "权限请求: {{ message }}"
     idle_prompt:
       enabled: false
-      play_sound: false
-      message: "等待输入: {{ message | default('') }}"
+      message: "等待输入: {{ message }}"
     auth_success:
       enabled: false
-      play_sound: false
-      message: "身份验证成功: {{ message | default('') }}"
+      message: "认证成功: {{ message }}"
     elicitation_dialog:
       enabled: false
-      play_sound: false
-      message: "工具引出: {{ message | default('') }}"
+      message: "工具引出: {{ message }}"
 
-  # ============================================================================
-  # SessionStart - 会话开始/恢复时（按 source 匹配）
-  # ============================================================================
-  # matcher: startup, resume, clear, compact
-  # 额外变量: {{ source }}, {{ model }}
-  # 特殊: 可通过 CLAUDE_ENV_FILE 持久化环境变量
   session_start:
     startup:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 新会话已启动"
+      message: "{{ project_name }} 新会话"
     resume:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 会话已恢复"
+      message: "{{ project_name }} 会话恢复"
     clear:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 会话已清空并重启"
+      message: "{{ project_name }} 会话清空"
     compact:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 会话已压缩并重启"
+      message: "{{ project_name }} 会话压缩"
 
-  # ============================================================================
-  # SessionEnd - 会话结束时（按 reason 匹配）
-  # ============================================================================
-  # matcher: clear, resume, logout, prompt_input_exit, bypass_permissions_disabled, other
-  # 额外变量: {{ reason }}
   session_end:
     clear:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 会话已清除"
+      message: "{{ project_name }} 会话清除"
     resume:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 切换到其他会话"
+      message: "{{ project_name }} 切换会话"
     logout:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 用户已注销"
+      message: "{{ project_name }} 用户注销"
     prompt_input_exit:
       enabled: false
-      play_sound: false
       message: "{{ project_name }} 用户退出"
     bypass_permissions_disabled:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 绕过权限模式已禁用"
+      message: "{{ project_name }} 绕过权限禁用"
     other:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 会话已结束"
+      message: "{{ project_name }} 会话结束"
 
-  # ============================================================================
-  # SubagentStart - 子代理启动时（按 agent_type 匹配）
-  # ============================================================================
-  # matcher: Bash, Explore, Plan, 或自定义代理名称
-  # 额外变量: {{ agent_id }}, {{ agent_type }}
   subagent_start:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 子代理 {{ agent_type | default('') }} 已启动"
+    message: "{{ project_name }} 子代理 {{ agent_type }} 启动"
 
-  # ============================================================================
-  # SubagentStop - 子代理完成时（按 agent_type 匹配）
-  # ============================================================================
-  # matcher: 同 SubagentStart
-  # 额外变量: {{ agent_id }}, {{ agent_type }}, {{ last_assistant_message }}
   subagent_stop:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 子代理 {{ agent_type | default('') }} 已完成"
+    message: "{{ project_name }} 子代理 {{ agent_type }} 完成"
 
-  # ============================================================================
-  # StopFailure - API 错误导致回合结束（按 error 类型匹配）
-  # ============================================================================
-  # matcher: rate_limit, authentication_failed, billing_error, invalid_request,
-  #          server_error, max_output_tokens, unknown
-  # 额外变量: {{ error }}, {{ error_details }}, {{ last_assistant_message }}
   stop_failure:
     enabled: true
     play_sound: true
-    message: "{{ project_name }} API 错误: {{ error | default('unknown') }}"
+    message: "{{ project_name }} API 错误: {{ error }}"
 
-  # ============================================================================
-  # TeammateIdle - 团队成员即将空闲时
-  # ============================================================================
-  # 不支持 matcher
-  # 额外变量: {{ teammate_name }}, {{ team_name }}
   teammate_idle:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 队友 {{ teammate_name | default('') }} 即将空闲"
+    message: "{{ project_name }} 队友 {{ teammate_name }} 空闲"
 
-  # ============================================================================
-  # TaskCompleted - 任务被标记完成时
-  # ============================================================================
-  # 不支持 matcher
-  # 额外变量: {{ task_id }}, {{ task_subject }}, {{ task_description }},
-  #           {{ teammate_name }}, {{ team_name }}
   task_completed:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 任务完成: {{ task_subject | default('') }}"
+    message: "{{ project_name }} 任务完成: {{ task_subject }}"
 
-  # ============================================================================
-  # InstructionsLoaded - CLAUDE.md 或 .claude/rules/*.md 加载时（按 load_reason 匹配）
-  # ============================================================================
-  # matcher: session_start, nested_traversal, path_glob_match, include, compact
-  # 额外变量: {{ file_path }}, {{ memory_type }}, {{ load_reason }}
   instructions_loaded:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 指令文件已加载: {{ file_path | default('') }}"
+    message: "{{ project_name }} 指令加载: {{ file_path }}"
 
-  # ============================================================================
-  # ConfigChange - 配置文件变更时（按 source 匹配）
-  # ============================================================================
-  # matcher: user_settings, project_settings, local_settings, policy_settings, skills.bak
-  # 额外变量: {{ source }}, {{ file_path }}
   config_change:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 配置已变更: {{ source | default('') }}"
+    message: "{{ project_name }} 配置变更: {{ source }}"
 
-  # ============================================================================
-  # CwdChanged - 工作目录变更时
-  # ============================================================================
-  # 不支持 matcher
-  # 额外变量: {{ old_cwd }}, {{ new_cwd }}
-  # 特殊: 可通过 CLAUDE_ENV_FILE 持久化环境变量
   cwd_changed:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 工作目录已变更"
+    message: "{{ project_name }} 工作目录变更"
 
-  # ============================================================================
-  # FileChanged - 监视的文件变更时（按文件名匹配）
-  # ============================================================================
-  # matcher: 文件基名（如 .envrc, .env）
-  # 额外变量: {{ file_path }}, {{ event }}（change/add/unlink）
-  # 特殊: 可通过 CLAUDE_ENV_FILE 持久化环境变量
   file_changed:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} 文件已变更: {{ file_path | default('') }}"
+    message: "{{ project_name }} 文件变更: {{ file_path }} ({{ event }})"
 
-  # ============================================================================
-  # WorktreeCreate - Worktree 创建时
-  # ============================================================================
-  # 不支持 matcher
-  # 额外变量: {{ name }}
   worktree_create:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} Worktree 已创建: {{ name | default('') }}"
+    message: "{{ project_name }} Worktree 创建: {{ name }}"
 
-  # ============================================================================
-  # WorktreeRemove - Worktree 移除时
-  # ============================================================================
-  # 不支持 matcher
-  # 额外变量: {{ worktree_path }}
   worktree_remove:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} Worktree 已移除"
+    message: "{{ project_name }} Worktree 移除"
 
-  # ============================================================================
-  # PreCompact - 压缩前（按 trigger 匹配）
-  # ============================================================================
-  # matcher: manual, auto
-  # 额外变量: {{ trigger }}, {{ custom_instructions }}
   pre_compact:
     manual:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 手动压缩已启动"
+      message: "{{ project_name }} 手动压缩启动"
     auto:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 自动压缩已启动"
+      message: "{{ project_name }} 自动压缩启动"
 
-  # ============================================================================
-  # PostCompact - 压缩后（按 trigger 匹配）
-  # ============================================================================
-  # matcher: manual, auto
-  # 额外变量: {{ trigger }}, {{ compact_summary }}
   post_compact:
     manual:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 手动压缩已完成"
+      message: "{{ project_name }} 手动压缩完成"
     auto:
       enabled: false
-      play_sound: false
-      message: "{{ project_name }} 自动压缩已完成"
+      message: "{{ project_name }} 自动压缩完成"
 
-  # ============================================================================
-  # Elicitation - MCP 服务器请求用户输入时（按 mcp_server_name 匹配）
-  # ============================================================================
-  # matcher: MCP 服务器名称
-  # 额外变量: {{ mcp_server_name }}, {{ message }}, {{ mode }}, {{ requested_schema }}
   elicitation:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} MCP 服务器请求输入: {{ message | default('') }}"
+    message: "{{ project_name }} MCP 请求: {{ message }}"
 
-  # ============================================================================
-  # ElicitationResult - 用户响应 MCP elicitation 后（按 mcp_server_name 匹配）
-  # ============================================================================
-  # matcher: MCP 服务器名称
-  # 额外变量: {{ mcp_server_name }}, {{ action }}, {{ content }}
   elicitation_result:
     enabled: false
-    play_sound: false
-    message: "{{ project_name }} MCP 响应已提交: {{ action | default('') }}"
+    message: "{{ project_name }} MCP 响应: {{ action }}"
