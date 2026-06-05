@@ -51,10 +51,7 @@ class HookConfig:
 
 @dataclass
 class ToolSpecificHookConfig:
-	"""工具特定的 Hook 配置
-
-	用于 pre_tool_use 和 post_tool_use，包含多个工具配置
-	"""
+	"""工具特定的 Hook 配置"""
 	write: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	edit: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	read: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
@@ -62,7 +59,9 @@ class ToolSpecificHookConfig:
 	task: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	webfetch: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	websearch: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	askuserquestion: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	askuserquestion: HookConfig = field(default_factory=lambda: HookConfig(
+		enabled=True, play_sound=True,
+		message="{{ project_name }} 有问题需要你解决"))
 
 	def validate(self) -> bool:
 		"""验证所有工具配置"""
@@ -73,11 +72,10 @@ class ToolSpecificHookConfig:
 
 @dataclass
 class NotificationTypeHookConfig:
-	"""通知类型 Hook 配置
-
-	用于 notification，包含 4 种通知类型
-	"""
-	permission_prompt: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	"""通知类型 Hook 配置"""
+	permission_prompt: HookConfig = field(default_factory=lambda: HookConfig(
+		enabled=True, play_sound=True,
+		message="权限请求: {{ message | default('') }}"))
 	idle_prompt: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	auth_success: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	elicitation_dialog: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
@@ -217,7 +215,9 @@ class HooksConfig:
 				play_sound: false
 				message: "{{ project_name }} 接收到用户输入"
 		"""
-	stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=True, play_sound=True))
+	stop: HookConfig = field(default_factory=lambda: HookConfig(
+		enabled=True, play_sound=True,
+		message="{{ project_name }} 任务已完成"))
 	pre_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	post_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	permission_request: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
@@ -230,7 +230,9 @@ class HooksConfig:
 	post_tool_use_failure: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	subagent_start: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	subagent_stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	stop_failure: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	stop_failure: HookConfig = field(default_factory=lambda: HookConfig(
+		enabled=True, play_sound=True,
+		message="{{ project_name }} API 错误: {{ error | default('unknown') }}"))
 	teammate_idle: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	task_completed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
 	instructions_loaded: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
