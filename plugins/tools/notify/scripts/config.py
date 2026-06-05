@@ -52,13 +52,20 @@ class HookConfig:
 @dataclass
 class ToolSpecificHookConfig:
 	"""工具特定的 Hook 配置"""
-	write: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	edit: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	read: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	bash: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	task: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	webfetch: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	websearch: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	write: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备写入文件 {{ file_path }}"))
+	edit: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备编辑文件 {{ file_path }}"))
+	read: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备读取文件 {{ file_path }}"))
+	bash: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备执行命令"))
+	task: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备创建任务"))
+	webfetch: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备获取网页"))
+	websearch: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 准备搜索网页"))
 	askuserquestion: HookConfig = field(default_factory=lambda: HookConfig(
 		enabled=True, play_sound=True,
 		message="{{ project_name }} 有问题需要你解决"))
@@ -76,9 +83,12 @@ class NotificationTypeHookConfig:
 	permission_prompt: HookConfig = field(default_factory=lambda: HookConfig(
 		enabled=True, play_sound=True,
 		message="权限请求: {{ message | default('') }}"))
-	idle_prompt: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	auth_success: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	elicitation_dialog: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	idle_prompt: HookConfig = field(default_factory=lambda: HookConfig(
+		message="等待输入: {{ message | default('') }}"))
+	auth_success: HookConfig = field(default_factory=lambda: HookConfig(
+		message="认证成功: {{ message | default('') }}"))
+	elicitation_dialog: HookConfig = field(default_factory=lambda: HookConfig(
+		message="工具引出: {{ message | default('') }}"))
 
 	def validate(self) -> bool:
 		"""验证所有通知类型配置"""
@@ -89,14 +99,15 @@ class NotificationTypeHookConfig:
 
 @dataclass
 class SessionStartHookConfig:
-	"""SessionStart Hook 配置
-
-	用于 session_start，包含 4 种启动场景
-	"""
-	startup: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	resume: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	clear: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	compact: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	"""SessionStart Hook 配置"""
+	startup: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 新会话"))
+	resume: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 会话恢复"))
+	clear: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 会话清空"))
+	compact: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 会话压缩"))
 
 	def validate(self) -> bool:
 		"""验证所有启动场景配置"""
@@ -107,14 +118,17 @@ class SessionStartHookConfig:
 
 @dataclass
 class SessionEndHookConfig:
-	"""SessionEnd Hook 配置
-
-	用于 session_end，包含 4 种退出原因
-	"""
-	clear: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	logout: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	prompt_input_exit: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	other: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	"""SessionEnd Hook 配置"""
+	clear: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 会话清除"))
+	logout: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 用户注销"))
+	prompt_input_exit: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 用户退出"))
+	bypass_permissions_disabled: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 绕过权限禁用"))
+	other: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 会话结束"))
 
 	def validate(self) -> bool:
 		"""验证所有退出原因配置"""
@@ -125,12 +139,11 @@ class SessionEndHookConfig:
 
 @dataclass
 class PreCompactHookConfig:
-	"""PreCompact Hook 配置
-
-	用于 pre_compact，包含 2 种压缩触发方式
-	"""
-	manual: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	auto: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	"""PreCompact Hook 配置"""
+	manual: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 手动压缩启动"))
+	auto: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 自动压缩启动"))
 
 	def validate(self) -> bool:
 		"""验证所有压缩触发方式配置"""
@@ -141,12 +154,11 @@ class PreCompactHookConfig:
 
 @dataclass
 class PostCompactHookConfig:
-	"""PostCompact Hook 配置
-
-	用于 post_compact，包含 2 种压缩触发方式
-	"""
-	manual: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	auto: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	"""PostCompact Hook 配置"""
+	manual: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 手动压缩完成"))
+	auto: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 自动压缩完成"))
 
 	def validate(self) -> bool:
 		"""验证所有压缩触发方式配置"""
@@ -220,29 +232,44 @@ class HooksConfig:
 		message="{{ project_name }} 任务已完成"))
 	pre_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
 	post_tool_use: ToolSpecificHookConfig = field(default_factory=ToolSpecificHookConfig)
-	permission_request: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	user_prompt_submit: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	permission_request: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 请求权限 ({{ tool_name }})"))
+	user_prompt_submit: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 收到用户输入"))
 	notification: NotificationTypeHookConfig = field(default_factory=NotificationTypeHookConfig)
 	session_start: SessionStartHookConfig = field(default_factory=SessionStartHookConfig)
 	session_end: SessionEndHookConfig = field(default_factory=SessionEndHookConfig)
 	pre_compact: PreCompactHookConfig = field(default_factory=PreCompactHookConfig)
 	post_compact: PostCompactHookConfig = field(default_factory=PostCompactHookConfig)
-	post_tool_use_failure: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	subagent_start: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	subagent_stop: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	post_tool_use_failure: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 工具 {{ tool_name }} 失败: {{ error }}"))
+	subagent_start: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 子代理 {{ agent_type }} 启动"))
+	subagent_stop: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 子代理 {{ agent_type }} 完成"))
 	stop_failure: HookConfig = field(default_factory=lambda: HookConfig(
 		enabled=True, play_sound=True,
 		message="{{ project_name }} API 错误: {{ error | default('unknown') }}"))
-	teammate_idle: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	task_completed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	instructions_loaded: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	config_change: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	cwd_changed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	file_changed: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	worktree_create: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	worktree_remove: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	elicitation: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
-	elicitation_result: HookConfig = field(default_factory=lambda: HookConfig(enabled=False, play_sound=False))
+	teammate_idle: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 队友 {{ teammate_name }} 空闲"))
+	task_completed: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 任务完成: {{ task_subject }}"))
+	instructions_loaded: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 指令加载: {{ file_path }}"))
+	config_change: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 配置变更: {{ source }}"))
+	cwd_changed: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 工作目录变更"))
+	file_changed: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} 文件变更: {{ file_path }} ({{ event }})"))
+	worktree_create: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} Worktree 创建: {{ name }}"))
+	worktree_remove: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} Worktree 移除"))
+	elicitation: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} MCP 请求: {{ message }}"))
+	elicitation_result: HookConfig = field(default_factory=lambda: HookConfig(
+		message="{{ project_name }} MCP 响应: {{ action }}"))
 
 	def validate(self) -> bool:
 		"""验证所有配置有效性"""
@@ -416,25 +443,6 @@ class HooksConfig:
 		config = cls.from_dict(config_dict)
 		config.validate()
 		return config
-
-	def save_to_file(self, config_path: str) -> None:
-		"""保存配置到 YAML 文件
-
-		Args:
-			config_path: YAML 配置文件路径
-		"""
-		import yaml
-
-		config_dir = os.path.dirname(config_path)
-		if config_dir:
-			os.makedirs(config_dir, exist_ok=True)
-
-		config_dict = {
-			"hooks": asdict(self)
-		}
-
-		with open(config_path, 'w', encoding='utf-8') as f:
-			yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
 
 	def to_dict(self) -> Dict:
 		"""转换为字典格式"""

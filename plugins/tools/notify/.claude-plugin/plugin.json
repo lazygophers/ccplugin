@@ -1,308 +1,303 @@
 {
-  "name": "notify",
-  "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件",
-  "author": {
-    "name": "lazygophers",
-    "email": "admin@lazygophers.dev",
-    "url": "https://github.com/lazygophers"
-  },
-  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
-  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
-  "license": "AGPL-3.0-or-later",
-  "keywords": [
-    "notification",
-    "system-notification",
-    "hook",
-    "event",
-    "tts"
-  ],
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostToolUseFailure": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SubagentStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "StopFailure": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "TeammateIdle": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "TaskCompleted": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "ConfigChange": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "CwdChanged": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "FileChanged": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "WorktreeCreate": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "WorktreeRemove": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "Elicitation": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "ElicitationResult": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
-            "async": true,
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
+	"name": "notify",
+	"description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件",
+	"author": {
+		"name": "lazygophers",
+		"email": "admin@lazygophers.dev",
+		"url": "https://github.com/lazygophers"
+	},
+	"homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
+	"repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/notify",
+	"license": "AGPL-3.0-or-later",
+	"keywords": ["notification", "system-notification", "hook", "event", "tts"],
+	"hooks": {
+		"SessionStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"UserPromptSubmit": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PreToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PermissionRequest": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PostToolUse": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PostToolUseFailure": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"Notification": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"SubagentStart": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"SubagentStop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"Stop": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"StopFailure": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"TeammateIdle": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"TaskCompleted": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"InstructionsLoaded": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"ConfigChange": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"CwdChanged": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"FileChanged": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"WorktreeCreate": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"WorktreeRemove": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PreCompact": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"PostCompact": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"Elicitation": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"ElicitationResult": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		],
+		"SessionEnd": [
+			{
+				"hooks": [
+					{
+						"type": "command",
+						"command": "PLUGIN_NAME=notify uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks",
+						"async": true,
+						"timeout": 10
+					}
+				]
+			}
+		]
+	}
 }
