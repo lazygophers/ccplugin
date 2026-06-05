@@ -1,111 +1,116 @@
 # Hook 事件
 
-Notify 插件支持的 Hook 事件。
+Notify 支持全部 29 个 Claude Code 官方 Hook 事件。
+
+## 默认启用的 Hook
+
+| Hook | 事件类型 | 描述 |
+|------|---------|------|
+| `stop` | 会话完成 | 主 Agent 完成响应 |
+| `stop_failure` | API 错误 | 速率限制、认证失败等 |
+| `permission_request` | 权限请求 | 工具需要授权 |
+| `pre_tool_use.askuserquestion` | 用户交互 | 向用户提问 |
+| `notification.permission_prompt` | 通知 | 权限提示 |
 
 ## 事件列表
 
-| 事件 | 触发时机 | 通知类型 |
-|------|----------|----------|
-| `SessionStart` | 会话开始 | 初始化通知 |
-| `SessionEnd` | 会话结束 | 结束通知 |
-| `UserPromptSubmit` | 用户提交提示 | 提交通知 |
-| `PreToolUse` | 工具使用前 | 工具通知 |
-| `PostToolUse` | 工具使用后 | 完成通知 |
-| `Notification` | 系统通知事件 | 权限/空闲通知 |
-| `Stop` | 会话或子代理停止 | 统计通知 |
+### 会话生命周期
 
-## 事件详情
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `session_start` | 会话开始/恢复/清空/压缩 | source: startup, resume, clear, compact |
+| `setup` | `--init-only` 或 `-p --init` | trigger: init, maintenance |
+| `session_end` | 会话结束 | reason: clear, resume, logout, prompt_input_exit, bypass_permissions_disabled, other |
 
-### SessionStart
+### 用户交互
 
-会话开始时触发，初始化配置。
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `user_prompt_submit` | 用户提交提示 | - |
+| `user_prompt_expansion` | 斜杠命令展开 | command_name |
+| `ask_user_question` | 向用户提问 | - |
 
-```yaml
-events:
-  SessionStart:
-    notify: true
-    voice: false
-```
+### 工具调用
 
-### SessionEnd
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `pre_tool_use` | 工具执行前 | tool_name |
+| `post_tool_use` | 工具成功后 | tool_name |
+| `post_tool_use_failure` | 工具失败后 | tool_name |
+| `post_tool_batch` | 工具批次完成 | - |
+| `permission_request` | 权限请求 | tool_name |
+| `permission_denied` | 自动模式拒绝 | tool_name |
 
-会话结束时触发，发送结束通知。
+### 子代理
 
-```yaml
-events:
-  SessionEnd:
-    notify: true
-    voice: true
-```
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `subagent_start` | 子代理启动 | agent_type |
+| `subagent_stop` | 子代理完成 | agent_type |
+| `task_created` | 任务创建 | - |
+| `task_completed` | 任务完成 | - |
 
-### UserPromptSubmit
+### 通知
 
-用户提交提示时触发。
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `notification` | 系统通知 | notification_type |
+| `stop_failure` | API 错误 | error type |
+| `teammate_idle` | 队友空闲 | - |
 
-```yaml
-events:
-  UserPromptSubmit:
-    notify: true
-    voice: false
-```
+### MCP
 
-### PreToolUse
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `elicitation` | MCP 请求输入 | mcp_server_name |
+| `elicitation_result` | MCP 响应 | mcp_server_name |
 
-工具使用前触发，支持按工具过滤。
+### 其他
 
-```yaml
-events:
-  PreToolUse:
-    tools:
-      Task:
-        notify: true
-        voice: false
-      Bash:
-        notify: true
-        voice: false
-```
+| 事件 | 触发时机 | Matcher |
+|------|---------|---------|
+| `instructions_loaded` | 指令文件加载 | load_reason |
+| `config_change` | 配置变更 | source |
+| `cwd_changed` | 工作目录变更 | - |
+| `file_changed` | 文件变更 | filename |
+| `worktree_create` | Worktree 创建 | - |
+| `worktree_remove` | Worktree 移除 | - |
+| `pre_compact` | 压缩前 | trigger: manual, auto |
+| `post_compact` | 压缩后 | trigger: manual, auto |
+| `message_display` | 消息显示 | - |
 
-### PostToolUse
-
-工具使用后触发。
-
-```yaml
-events:
-  PostToolUse:
-    tools:
-      Task:
-        notify: true
-        voice: true
-```
-
-### Notification
-
-系统通知事件，包括权限请求和空闲提示。
+## 配置结构
 
 ```yaml
-events:
-  Notification:
-    types:
-      permission_prompt:
-        notify: true
-        voice: true
-      idle_prompt:
-        notify: true
-        voice: false
+hooks:
+  stop:
+    enabled: true
+    play_sound: true
+    message: "{{ project_name }} 任务已完成"
+
+  pre_tool_use:
+    askuserquestion:
+      enabled: true
+      play_sound: true
+      message: "{{ project_name }} 有问题需要你解决"
+
+  notification:
+    permission_prompt:
+      enabled: true
+      play_sound: true
+      message: "权限请求: {{ message }}"
 ```
 
-### Stop
+## 模板变量
 
-会话或子代理停止时触发，显示统计信息。
+通用变量：
+- `{{ project_name }}` - 项目名称
+- `{{ session_id }}` - 会话 ID
+- `{{ hook_event_name }}` - 事件名称
 
-**类型判断**：
-- 如果存在 `agent_transcript_path` 字段：子代理 stop
-- 如果不存在 `agent_transcript_path` 字段：主 agent stop
+工具事件额外：
+- `{{ tool_name }}` - 工具名称
+- `{{ file_path }}` - 文件路径
+- `{{ tool_input }}` - 工具输入
 
-```yaml
-events:
-  Stop:
-    notify: true
-    voice: false
-    stats: true
-```
+详见 `scripts/config.py` 中的 DEFAULT_CONFIG。

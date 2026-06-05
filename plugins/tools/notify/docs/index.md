@@ -22,7 +22,13 @@ claude plugin install notify@ccplugin-market
 
 ## 版本
 
-当前版本：0.0.138
+当前版本：0.1.0
+
+## 核心设计
+
+- **默认配置在 Python**：`scripts/config.py` 定义全部 29 个 hook 的默认 message
+- **配置只读禁止写入**：用户只能覆盖，不能保存
+- **5 个 hook 默认启用**：stop, stop_failure, permission_request, pre_tool_use.askuserquestion, notification.permission_prompt
 
 ## 许可证
 
