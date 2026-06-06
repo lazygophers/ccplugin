@@ -109,10 +109,9 @@ claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<content>" --output-
 | 4 | **Hooks 系统** | `lib/hooks/hook.py`, `lib/hooks/pre_tool_use.py` |
 | 5 | **记忆插件数据模型** | `plugins/memory/scripts/memory/models.py` |
 | 6 | **Cortex 知识管理** | `plugins/tools/cortex/scripts/cli/` |
-| 7 | **任务管理插件** | `plugins/tools/task/scripts/` |
-| 8 | **Trellis 任务编排** | `.trellis/scripts/task.py`, `.trellis/workflow.md` |
-| 9 | **CLI 安装脚本** | `scripts/install.py` |
-| 10 | **通知与版本插件** | `plugins/tools/notify/`, `plugins/tools/version/` |
+| 7 | **Trellis 任务编排** | `.trellis/scripts/task.py`, `.trellis/workflow.md` |
+| 8 | **CLI 安装脚本** | `scripts/install.py` |
+| 9 | **通知与版本插件** | `plugins/tools/notify/`, `plugins/tools/version/` |
 
 ---
 
@@ -150,7 +149,6 @@ claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<content>" --output-
 | **memory** | `plugins/memory/scripts/` | 记忆系统（数据模型 + REST API） |
 | **notify** | `plugins/tools/notify/scripts/` | 系统通知（多平台 + TTS） |
 | **version** | `plugins/tools/version/scripts/mcp.py` | SemVer 版本管理 MCP 服务器 |
-| **task** | `plugins/tools/task/scripts/` | 任务追踪（与 Trellis 集成） |
 | **git** | `plugins/tools/git/scripts/` | Git 操作工具 |
 | **llms** | `plugins/llms/scripts/` | LLMs.txt 生成 |
 

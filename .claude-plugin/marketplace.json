@@ -497,30 +497,6 @@
       ]
     },
     {
-      "name": "task",
-      "source": "./plugins/tools/task",
-      "description": "Task 任务管理插件 - 提供任务规划、分解、执行、编排和验收的完整生命周期管理。支持 Agentic Loop 持续执行、多任务并行编排和自动化验收",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/task",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "task",
-        "task-management",
-        "planning",
-        "execution",
-        "orchestration",
-        "loop",
-        "agentic",
-        "workflow",
-        "verification",
-        "multi-agent"
-      ]
-    },
-    {
       "name": "memory",
       "source": "./plugins/memory",
       "description": "智能记忆插件 - 提供 URI 寻址的记忆存储、自动 Hooks 集成和跨会话持久化",
