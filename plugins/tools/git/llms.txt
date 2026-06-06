@@ -10,8 +10,7 @@
 
 ## Examples
 
-- [commit 命令](./commands/commit.md): 提交变更命令定义
-- [commit 规范](./skills/commit/SKILL.md): Conventional Commits 提交信息规范
+- [commit 规范](./skills/commit/SKILL.md): Conventional Commits 提交信息规范与提交流程
 - [PR 规范](./skills/pr/SKILL.md): Pull Request 创建规范
 - [Issue 规范](./skills/issue/SKILL.md): Issue 管理规范
 

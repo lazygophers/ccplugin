@@ -18,6 +18,5 @@
 		"version-control",
 		"workflow"
 	],
-	"commands": ["./commands/commit.md"],
 	"skills": "./skills/"
 }

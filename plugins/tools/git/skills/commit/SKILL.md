@@ -1,12 +1,19 @@
 ---
-description: "Git commit提交规范：生成符合Conventional Commits的提交信息，支持type/scope/subject/body/footer结构，适用于提交代码、暂存变更、编写commit message场景"
+description: "Generates Conventional Commits Git commit messages."
+when_to_use: |
+  Use when the user needs to commit code changes, stage or unstage Git changes, amend a commit, draft or review a commit message, or format a message using Conventional Commits.
+  Trigger on: commit, git commit, staged changes, stage, unstage, amend, commit message, Conventional Commits, save changes, 提交, 暂存, 提交信息, 生成提交, 生成提交信息, 改提交, 帮我提交.
 user-invocable: true
 context: fork
 model: haiku
 memory: project
 ---
 
-**提交信息生成模板**
+# Git Commit 规范
+
+生成符合 Conventional Commits 的提交信息，并指导提交前后检查。
+
+## 提交信息模板
 
 ```
 <type>(<scope>): <subject>
@@ -15,67 +22,62 @@ memory: project
 <footer>
 ```
 
-其中：
+## 字段规则
 
-- `type`: 必填，类型，可选值：`feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`chore`、`revert`、`build`、`ci`、`wip`、
-  `workflow`、`types`、`release`、`other`
-- `scope`: 可选，作用域，如：`app`、`api`、`db`、`utils`、`server`、`client`、`config`、`test`、`docs`、`build`、`ci`、`wip`、
-  `workflow`、`types`、`release`、`other`
-- `subject`: 必填，提交信息，不超过50个字符，如：`add app module`、`fix api bug`、`update docs`、`refactor code`、
-  `perf optimize`、`test add unit test`、`chore update build`、`revert commit`、`build update package`、`ci add ci`、
-  `wip add wip`、`workflow update workflow`、`types update types`、`release update release`、`other update other`
-- `body`: 可选，详细描述，不超过80个字符，如：`add app module`、`fix api bug`、`update docs`、`refactor code`、`perf optimize`、
-  `test add unit test`、`chore update build`、`revert commit`、`build update package`、`ci add ci`、`wip add wip`、
-  `workflow update workflow`、`types update types`、`release update release`、`other update other`
-- `footer`: 可选，关闭issue，如：`close #123`、`fix #123`、`resolve #123`、`close #123, #456`、`fix #123, #456`、
-  `resolve #123, #456`
+- `type`: 必填。可选值：`feat`、`fix`、`docs`、`style`、`refactor`、`perf`、`test`、`chore`、`revert`、`build`、`ci`、`wip`、`workflow`、`types`、`release`、`other`
+- `scope`: 可选。使用受影响模块、包、插件、目录或功能名，如 `git`、`commit`、`api`、`docs`、`build`
+- `subject`: 必填。不超过 50 字符，使用祈使语气，首字母小写，结尾无句号
+- `body`: 可选。说明变更原因、影响和关键取舍，单行建议不超过 80 字符
+- `footer`: 可选。填写 breaking change 或 issue 关闭信息，如 `BREAKING CHANGE: ...`、`close #123`
 
-**注意**
+## 提交流程
 
-- 如果一次提交涉及到多个不同的类型，则需要使用多个`commit`进行提交，每个`commit`的`type`和`subject`需要分别填写
-- 不允许将以下类型的文件提交:
-  - 备份文件：如 `.*.bak`
-  - 日志文件：如 `.*.log`
-  - 临时文件：如 `.*.tmp`/`.*.temp`
-  - 二进制文件：如 `.*.exe`/`.*.dll`/`.*.so`/`.*.dylib`/`.*.a`/`.*.lib`/`.*.o`/`.*.obj`/`.*.img`
-  - 压缩文件：如 `.*.zip`/`.*.rar`/`.*.7z`/`.*.tar`/`.*.gz`/`.*.bz2`/`.*.xz`/`.*.tar.gz`
+1. 运行 `git status` 查看工作区状态。
+2. 确认变更文件符合预期，没有敏感信息、临时文件、日志、备份或无关文件。
+3. 运行相关测试或 lint；若用户明确要求跳过，说明风险。
+4. 使用 `git add <file...>` 只暂存本次提交需要的文件。
+5. 运行 `git diff --cached` 检查暂存内容。
+6. 根据暂存 diff 生成 Conventional Commits 信息。
+7. 执行 `git commit -m "<message>"`，多行提交使用 heredoc。
+8. 运行 `git log -1 --oneline` 或 `git status` 验证提交成功。
 
-## 执行过程检查清单
+## 检查清单
 
-### 提交前检查
-- [ ] 运行 `git status` 查看未提交的文件和变更类型
-- [ ] 确认变更文件列表符合预期
-- [ ] 确认没有意外的文件变更（敏感信息、临时文件）
-- [ ] 确认代码已通过本地测试
-- [ ] 确认代码已通过 lint 检查
-- [ ] 确认没有提交备份/日志/临时/二进制/压缩文件
+### 提交前
 
-### 提交信息生成检查
-- [ ] type 字段已填写（feat/fix/docs/style/refactor/perf/test/chore/revert/build/ci/wip/workflow/types/release/other）
-- [ ] scope 字段已填写（如适用）
-- [ ] subject 不超过 50 个字符
-- [ ] subject 清晰描述变更内容
-- [ ] body 不超过 80 个字符（如适用）
-- [ ] footer 包含关闭的 issue（如适用，如 close #123）
-- [ ] 一次提交仅涉及一个类型（多类型需拆分为多个commit）
+- [ ] `git status` 已查看
+- [ ] 暂存文件只包含本次提交范围
+- [ ] `git diff --cached` 已检查
+- [ ] 敏感信息、备份、日志、临时、二进制、压缩文件未提交
+- [ ] 相关测试或 lint 已运行，或跳过原因已说明
 
-### 提交信息格式检查
-- [ ] 格式符合模板：`<type>(<scope>): <subject>`
-- [ ] subject 使用祈使语气（"添加"而非"添加了"）
-- [ ] subject 首字母小写
-- [ ] subject 结尾无句号
+### 提交信息
 
-## 完成后检查清单
+- [ ] 格式符合 `<type>(<scope>): <subject>`
+- [ ] `type` 与变更性质匹配
+- [ ] `scope` 聚焦受影响区域
+- [ ] `subject` 简洁、祈使语气、无句号
+- [ ] 多类型变更拆成多个 commit
+- [ ] breaking change 或 issue footer 正确填写
 
-### 提交验证检查
-- [ ] 使用 `git log -1` 确认提交成功
-- [ ] 确认提交信息正确
-- [ ] 确认提交包含了预期的文件变更
-- [ ] 确认没有敏感信息泄露
+### 提交后
 
-### 提交质量检查
-- [ ] 提交是原子的（只做一件事）
-- [ ] 提交信息清晰易懂
-- [ ] 提交不包含无关变更
-- [ ] 提交不破坏构建
-- [ ] 提交可独立回退
+- [ ] 最新提交存在且信息正确
+- [ ] 提交包含预期文件
+- [ ] 工作区只剩用户刻意保留的变更
+
+## 示例
+
+```bash
+git commit -m "feat(auth): add login flow"
+git commit -m "fix(api): handle empty user response"
+git commit -m "docs(readme): update install guide"
+git commit -m "refactor(git): merge commit command into skill"
+```
+
+## 禁止
+
+- 禁止提交模糊信息，如 `update`、`fix bug`、`changes`
+- 禁止把无关变更混入同一 commit
+- 禁止提交未授权的敏感信息、临时文件、日志、备份、构建产物
+- 禁止主动跳过 hooks，除非用户明确要求
