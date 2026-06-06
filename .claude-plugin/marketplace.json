@@ -388,26 +388,6 @@
       ]
     },
     {
-      "name": "env",
-      "source": "./plugins/tools/env",
-      "description": "环境处理插件 - 用于处理环境相关问题。从 .claude/.env 和 .claude/.env.local 文件加载环境变量，并自动注入到 Claude Code 会话中",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/env",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/env",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "env",
-        "environment",
-        "dotenv",
-        "config",
-        "hook",
-        "session"
-      ]
-    },
-    {
       "name": "notify",
       "source": "./plugins/tools/notify",
       "description": "系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件。跨平台支持 macOS、Linux、Windows",
