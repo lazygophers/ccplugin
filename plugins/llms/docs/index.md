@@ -1,29 +1,18 @@
 # llms.txt 插件文档
 
-> llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件
+> llms.txt 标准插件 - 通过 Agent 自动生成符合 llmstxt.org 规范的文件
 
-## 目录
+## 组件
 
-1. [概述](index.md)
-2. [代理系统](agents.md)
-3. [标准规范](standard.md)
-4. [配置指南](configuration.md)
+| 类型 | 名称 | 文件 |
+|---|---|---|
+| Agent | llms-generator | `agents/llms-generator.md` |
+| Agent | llms-validator | `agents/llms-validator.md` |
+| Skill | llms-spec | `skills/llms-spec/SKILL.md` |
+| Skill | llms-generate | `skills/llms-generate/SKILL.md` |
 
 ## 安装
 
 ```bash
-# 推荐：一键安装
 uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin llms@ccplugin-market
-
-# 或：传统方式
-claude plugin marketplace add lazygophers/ccplugin
-claude plugin install llms@ccplugin-market
 ```
-
-## 版本
-
-当前版本：0.0.138
-
-## 许可证
-
-AGPL-3.0-or-later

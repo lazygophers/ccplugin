@@ -5,16 +5,18 @@
 ## Docs
 
 - [README](./README.md): 完整使用文档和安装指南
-- [插件配置](./.claude-plugin/plugin.json): 插件元数据配置
-- [llms.txt 格式规范](./skills/llms-skills/SKILL.md): 格式标准、验证清单和执行检查
+- [格式规范](./skills/llms-spec/references/format.md): llms.txt 文件格式完整规范
+- [验证规则](./skills/llms-spec/references/validation.md): 验证规则和检查清单
+- [配置格式](./skills/llms-generate/references/config.md): .llms.json 配置字段定义
 
 ## Examples
 
-- [Agent 定义](./agents/llms-generator.md): llms.txt 生成 Agent 实现
-- [文件结构格式](./skills/llms-skills/format/file-structure.md): 文件结构和链接格式规范
-- [验证规则](./skills/llms-skills/format/validation.md): llms.txt 格式验证规则
+- [生成 Agent](./agents/llms-generator.md): llms.txt 生成 Agent
+- [验证 Agent](./agents/llms-validator.md): llms.txt 验证 Agent
+- [真实案例](./skills/llms-spec/references/examples.md): 各项目 llms.txt 实例
 
 ## Optional
 
-- [GUIDELINES](./GUIDELINES.md): 开发指南
-- [pyproject.toml](./pyproject.toml): 项目依赖和构建配置
+- [上下文变体](./skills/llms-spec/references/ctx-variants.md): llms-ctx 文件格式与生成
+- [工具集成](./skills/llms-spec/references/integrations.md): 工具库和框架插件
+- [扫描策略](./skills/llms-generate/references/scanning.md): 项目扫描策略

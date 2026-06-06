@@ -1,6 +1,6 @@
 # llms.txt 插件
 
-> llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件
+> llms.txt 标准插件 - 通过 Agent 自动生成符合 llmstxt.org 规范的文件
 
 ## 安装
 
@@ -15,61 +15,38 @@ claude plugin install llms@ccplugin-market
 
 ## 功能特性
 
-### 🎯 核心功能
+- **Agent 驱动** — `llms-generator` 生成、`llms-validator` 验证
+- **规范知识库** — 多文件 skill 组织，按需加载 llmstxt.org 完整规范
+- **自动扫描** — 识别项目类型、文档目录、配置文件
+- **配置管理** — `.llms.json` 支持增量更新
+- **上下文变体** — 可选生成 `llms-ctx.txt` / `llms-ctx-full.txt`
 
-- **Agent 驱动** - 通过 `llms-generator` Agent 智能扫描并生成文件
-- **自动扫描项目** - 识别 README、配置文件、文档目录等
-- **混合链接支持** - 同时支持本地文件路径和远程 URL
-- **技能标准** - 内置 llms.txt 标准规范，确保生成文件符合标准
+## 包含组件
 
-### 📦 包含组件
-
-| 组件类型 | 名称 | 描述 |
-|---------|------|------|
-| Agent | `llms-generator` | llms.txt 生成代理 |
-| Skill | `llms-skills` | llms.txt 标准规范 |
+| 类型 | 名称 | 描述 |
+|---|---|---|
+| Agent | `llms-generator` | 生成/更新 llms.txt |
+| Agent | `llms-validator` | 验证 llms.txt 合规性 |
+| Skill | `llms-spec` | 规范知识（格式/验证/案例/变体/工具） |
+| Skill | `llms-generate` | 生成流程（扫描/配置） |
 
 ## 使用方式
 
-### 通过 Agent 生成
-
-直接请求 Claude Code 生成 llms.txt：
+### 生成 llms.txt
 
 ```
 请为当前项目生成 llms.txt 文件
 ```
 
-Agent 会自动：
+### 验证 llms.txt
 
-1. 扫描项目文件
-2. 提取项目信息
-3. 生成符合标准的 llms.txt
-4. 创建 `.llms.json` 配置文件
-
-### 手动编辑配置
-
-生成后，可以编辑 `.llms.json` 来调整内容：
-
-```json
-{
-  "project_name": "项目名称",
-  "description": "项目描述",
-  "details": ["项目详细信息", "- 重要说明"],
-  "sections": {
-    "Docs": [
-      {
-        "title": "README",
-        "path": "README.md",
-        "description": "项目说明文档"
-      }
-    ],
-    "Examples": [],
-    "Optional": []
-  }
-}
+```
+请验证当前项目的 llms.txt 是否符合规范
 ```
 
-然后请求重新生成：
+### 手动编辑后重新生成
+
+编辑 `.llms.json` 后：
 
 ```
 根据 .llms.json 配置重新生成 llms.txt
@@ -77,77 +54,45 @@ Agent 会自动：
 
 ## llms.txt 标准格式
 
-生成的文件遵循以下格式：
-
-```markdown
-# 项目名称
-
-> 项目简短摘要
-
-项目详细信息
-
-## Docs
-
-- [README](README.md): 项目说明文档
-- [API 文档](docs/api.md): API 参考
-
-## Examples
-
-- [示例1](examples/example1.py): 基本用法
-
-## Optional
-
-- [扩展文档](https://example.com/docs.md): 外部文档
-```
-
-### 格式说明
-
 | 部分 | 必需 | 说明 |
-|------|------|------|
-| H1 标题 | ✅ | 项目/网站名称 |
+|---|---|---|
+| H1 标题 | ✅ | 项目/网站名称（唯一必需部分） |
 | 引用块 | ❌ | 项目摘要 |
-| 详细内容 | ❌ | 段落、列表等（不含标题） |
+| 详细内容 | ❌ | 段落、列表（不含标题） |
 | H2 部分 | ❌ | 文件列表 |
-| Optional | ❌ | 可在短上下文时跳过 |
+| `## Optional` | ❌ | 短上下文时可跳过 |
 
-## 链接格式
+## 项目结构
 
-### 本地文件
-
-```markdown
-- [API 文档](docs/api.md): API 参考
 ```
-
-### 远程 URL
-
-```markdown
-- [外部文档](https://example.com/docs): 外部资源
+plugins/llms/
+├── agents/
+│   ├── llms-generator.md      # 生成 Agent
+│   └── llms-validator.md      # 验证 Agent
+├── skills/
+│   ├── llms-spec/             # 规范知识
+│   │   ├── SKILL.md
+│   │   └── references/
+│   │       ├── format.md
+│   │       ├── validation.md
+│   │       ├── examples.md
+│   │       ├── ctx-variants.md
+│   │       └── integrations.md
+│   └── llms-generate/         # 生成流程
+│       ├── SKILL.md
+│       └── references/
+│           ├── scanning.md
+│           └── config.md
+├── docs/
+├── llms.txt
+└── README.md
 ```
-
-## Agent 工作流程
-
-1. **扫描项目**
-   - README.md / pyproject.toml / package.json
-   - docs/、examples/ 等目录
-
-2. **提取信息**
-   - 项目名称、描述
-   - 文档文件列表
-   - 示例文件列表
-
-3. **生成文件**
-   - 按照 LLMS 标准格式
-   - 创建 .llms.json 配置
-
-4. **验证格式**
-   - 检查是否符合标准
-   - 验证链接有效性
 
 ## 相关链接
 
 - [llms.txt 标准](https://llmstxt.org/)
+- [GitHub 仓库](https://github.com/AnswerDotAI/llms-txt)
 - [CCPlugin Market](https://github.com/lazygophers/ccplugin)
-- [Claude Code](https://claude.ai/code)
 
 ## 许可证
 

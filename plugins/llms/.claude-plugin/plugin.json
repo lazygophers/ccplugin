@@ -1,6 +1,6 @@
 {
   "name": "llms",
-  "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件",
+  "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llmstxt.org 规范的文件",
   "author": {
     "name": "CCPlugin Contributors",
     "email": "info@lazygophers.com",
@@ -19,7 +19,11 @@
     "agent"
   ],
   "agents": [
-    "./agents/llms-generator.md"
+    "./agents/llms-generator.md",
+    "./agents/llms-validator.md"
   ],
-  "skills": "./skills/"
+  "skills": [
+    "./skills/llms-spec",
+    "./skills/llms-generate"
+  ]
 }
