@@ -5,7 +5,7 @@ description: |
   Agent 按需 Read 子文件获取详细流程。Triggers on "生成 llms.txt", "create llms.txt",
   "llms.txt 生成", "update llms.txt".
 disable-model-invocation: true
-allowed-tools: Read Write Edit Glob Grep Bash
+allowed-tools: Read Glob Grep
 ---
 
 # llms.txt 生成

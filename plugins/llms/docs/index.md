@@ -10,6 +10,7 @@
 | Agent | llms-validator | `agents/llms-validator.md` |
 | Skill | llms-spec | `skills/llms-spec/SKILL.md` |
 | Skill | llms-generate | `skills/llms-generate/SKILL.md` |
+| Hook | UserPromptSubmit | `.claude-plugin/plugin.json` |
 
 ## 安装
 

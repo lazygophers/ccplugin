@@ -20,6 +20,7 @@ claude plugin install llms@ccplugin-market
 - **自动扫描** — 识别项目类型、文档目录、配置文件
 - **配置管理** — `.llms.json` 支持增量更新
 - **上下文变体** — 可选生成 `llms-ctx.txt` / `llms-ctx-full.txt`
+- **输入提醒 Hook** — 用户提交涉及项目/文档/插件变更的请求时，提醒完成后维护 `llms.txt` / `.llms.json`
 
 ## 包含组件
 
@@ -29,6 +30,7 @@ claude plugin install llms@ccplugin-market
 | Agent | `llms-validator` | 验证 llms.txt 合规性 |
 | Skill | `llms-spec` | 规范知识（格式/验证/案例/变体/工具） |
 | Skill | `llms-generate` | 生成流程（扫描/配置） |
+| Hook | `UserPromptSubmit` | 项目/文档/插件变更请求时提醒维护 llms.txt |
 
 ## 使用方式
 

@@ -42,3 +42,4 @@ llms.txt 是为 LLM 优化的项目文档标准，提供简洁结构化信息帮
 
 - 不生成文件（由 llms-generate skill 负责）
 - 不修改 vault 或项目文件
+- 不自动加载；这是 reference-only skill，由 agent 按需 Read，避免规范细节常驻上下文

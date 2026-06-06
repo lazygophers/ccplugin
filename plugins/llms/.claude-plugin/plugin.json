@@ -1,5 +1,6 @@
 {
   "name": "llms",
+  "version": "0.0.195.43",
   "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llmstxt.org 规范的文件",
   "author": {
     "name": "CCPlugin Contributors",
@@ -25,5 +26,17 @@
   "skills": [
     "./skills/llms-spec",
     "./skills/llms-generate"
-  ]
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "当用户请求涉及项目代码、文档、配置、API、CLI、Agent、Skill、Hook、MCP 或使用方式变更时，在任务完成前检查是否需要创建、更新或完善对应的 llms.txt 与 .llms.json。若变更影响项目对 LLM 的可读入口、文档索引、示例、配置说明或插件组件清单，应使用 llms 插件规范：读取 plugins/llms/skills/llms-spec/SKILL.md 与 plugins/llms/skills/llms-generate/SKILL.md，按 llmstxt.org 格式更新 llms.txt，并按 validation.md 完成自检。仅提供上下文提醒，不阻塞无关任务。"
+          }
+        ]
+      }
+    ]
+  }
 }

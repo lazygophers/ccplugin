@@ -8,6 +8,7 @@
 - [格式规范](./skills/llms-spec/references/format.md): llms.txt 文件格式完整规范
 - [验证规则](./skills/llms-spec/references/validation.md): 验证规则和检查清单
 - [配置格式](./skills/llms-generate/references/config.md): .llms.json 配置字段定义
+- [插件配置](./.claude-plugin/plugin.json): Agent、Skill 与 UserPromptSubmit Hook 配置
 
 ## Examples
 

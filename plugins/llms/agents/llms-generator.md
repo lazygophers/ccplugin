@@ -55,6 +55,13 @@ color: magenta
 2. 同步写入或更新 `.llms.json`
 3. 可选：生成 `llms-ctx.txt` / `llms-ctx-full.txt`（参见 ctx-variants.md）
 
+### 阶段 5 — 验证闭环
+
+1. 读取 `plugins/llms/skills/llms-spec/references/validation.md`
+2. 检查 H1、引用块、详细内容、H2 分组、Optional、链接格式
+3. 本地路径必须确认文件存在；远程 URL 默认只检查格式
+4. 发现不合规项后修正，再重新验证
+
 ## 质量标准
 
 - [ ] H1 标题在文件开头
@@ -62,3 +69,4 @@ color: magenta
 - [ ] 链接格式 `[title](url): description`
 - [ ] `## Optional` 仅含次要信息
 - [ ] `.llms.json` 与 `llms.txt` 同步
+- [ ] 本地路径已确认存在；远程 URL 格式正确
