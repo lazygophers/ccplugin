@@ -1,157 +1,43 @@
 ---
-description: "GitHub Issue创建与管理：生成Bug报告和Feature Request模板，包含描述、复现步骤、标签分类，适用于创建issue、报告bug、提交需求场景"
+description: "Creates and manages GitHub Issues with bug report, feature request, label, priority, and lifecycle guidance."
+when_to_use: |
+  Use when the user needs to create an issue, report a bug, write a feature request, triage issue labels, draft reproduction steps, or manage issue lifecycle.
+  Trigger on: issue, GitHub issue, bug report, feature request, reproduce, labels, milestone, 创建 issue, 报告 bug, 提交需求, 功能请求, 复现步骤.
 user-invocable: true
 context: fork
 model: haiku
 memory: project
 ---
 
-**Issue 模板 - Bug 报告**
+# GitHub Issue 规范
 
-```
-## Bug 描述
-<!-- 清晰简洁地描述 bug -->
+Create clear, actionable GitHub Issues for bugs, feature requests, documentation gaps, questions, and discussions.
 
-## 复现步骤
-1.
-2.
-3.
+## Workflow
 
-## 期望行为
-<!-- 描述期望发生什么 -->
+1. Search existing issues to avoid duplicates.
+2. Choose issue type using `references/issue-guidelines.md`.
+3. Fill the relevant template from `references/issue-templates.md`.
+4. Add priority, type, and status labels when known.
+5. Add milestone and assignee only when explicitly available.
+6. Link related PR after implementation.
+7. Update status and close with a reason.
 
-## 实际行为
-<!-- 描述实际发生了什么 -->
+## Required Checks
 
-## 环境信息
-- 操作系统:
-- 版本:
-- 浏览器:
+- Use concise title format: `[<type>] <subject>`.
+- Include reproducible steps for bug reports.
+- Include problem background and proposed solution for feature requests.
+- Provide environment info and screenshots when relevant.
+- Avoid duplicate issues.
 
-## 截图
-<!-- 如适用，添加截图帮助解释 -->
+## Additional Resources
 
-## 其他信息
-<!-- 添加任何其他有助于理解问题的信息 -->
-```
+### Reference Files
 
-**Issue 模板 - 功能请求**
+- `references/issue-templates.md` — bug report and feature request templates.
+- `references/issue-guidelines.md` — title, labels, flow, and checklists.
 
-```
-## 功能描述
-<!-- 清晰简洁地描述你想要的功能 -->
+### Example Files
 
-## 问题背景
-<!-- 描述这个功能要解决什么问题 -->
-
-## 建议方案
-<!-- 描述你建议的解决方案 -->
-
-## 替代方案
-<!-- 描述你考虑过的其他方案 -->
-
-## 其他信息
-<!-- 添加任何其他相关信息或截图 -->
-```
-
-**Issue 命名规范**
-
-格式: `[<type>] <subject>`
-
-类型:
-
-- `[bug]`: Bug 报告
-- `[feat]`: 功能请求
-- `[docs]`: 文档问题
-- `[question]`: 问题咨询
-- `[discussion]`: 讨论
-
-示例:
-
-- `[bug] 用户登录失败`
-- `[feat] 支持暗黑模式`
-- `[docs] API 文档缺失`
-
-**Issue 标签规范**
-
-优先级:
-
-- `P0`: 紧急，需立即处理
-- `P1`: 高优先级
-- `P2`: 中优先级
-- `P3`: 低优先级
-
-类型:
-
-- `bug`: Bug 报告
-- `enhancement`: 功能增强
-- `documentation`: 文档相关
-- `help wanted`: 需要帮助
-- `good first issue`: 适合新手
-
-状态:
-
-- `status: in progress`: 进行中
-- `status: blocked`: 阻塞
-- `status: review needed`: 待审查
-
-**Issue 管理流程**
-
-1. 创建 Issue，选择合适模板
-2. 添加标签和里程碑
-3. 分配负责人
-4. 开发完成后关联 PR
-5. Issue 关闭时添加说明
-
-**注意事项**
-
-- 标题简洁明了
-- 提供足够上下文
-- 避免重复 Issue
-- 及时更新状态
-- 关闭时说明原因
-
-## 执行过程检查清单
-
-### 创建 Issue 前检查
-- [ ] 搜索现有 Issue 避免重复
-- [ ] 确认问题可复现（Bug 报告）或需求明确（功能请求）
-- [ ] 选择合适的 Issue 模板（Bug 报告/功能请求/文档问题/问题咨询/讨论）
-- [ ] 准备必要的环境信息和截图
-
-### 标题和内容检查
-- [ ] 标题格式符合规范：`[<type>] <subject>`
-- [ ] 标题简洁明了（<100字符）
-- [ ] Bug 报告包含：Bug 描述、复现步骤、期望行为、实际行为、环境信息
-- [ ] 功能请求包含：功能描述、问题背景、建议方案、替代方案
-- [ ] 提供足够上下文信息
-- [ ] 添加相关截图（如适用）
-
-### 标签和分配检查
-- [ ] 添加优先级标签（P0/P1/P2/P3）
-- [ ] 添加类型标签（bug/enhancement/documentation/help wanted/good first issue）
-- [ ] 添加状态标签（status: in progress/blocked/review needed，如适用）
-- [ ] 关联里程碑（如适用）
-- [ ] 分配负责人（如已明确）
-
-### Issue 管理流程检查
-- [ ] Issue 创建后已添加标签和里程碑
-- [ ] 负责人已分配（如已明确）
-- [ ] 开发完成后已关联 PR
-- [ ] 状态标签已及时更新
-
-## 完成后检查清单
-
-### Issue 质量检查
-- [ ] 标题清晰表达问题或需求
-- [ ] 内容完整包含所有必要信息
-- [ ] 复现步骤清晰可行（Bug 报告）
-- [ ] 建议方案具体可行（功能请求）
-- [ ] 标签和优先级准确
-- [ ] 相关人员已通知
-
-### Issue 关闭检查
-- [ ] 关闭时添加说明原因
-- [ ] 关联的 PR 已合并（如适用）
-- [ ] 相关文档已更新（如适用）
-- [ ] 用户反馈已收集（如适用）
+- `examples/issue-titles.md` — valid issue title examples.

@@ -1,72 +1,43 @@
 ---
-description: "GitHub Pull Request创建与管理：生成标准PR模板，包含变更类型、描述、测试计划和Review清单，适用于提交PR、合并请求、代码审查准备场景"
+description: "Creates and reviews GitHub Pull Request content with standard templates, change descriptions, test plans, and review checklists."
+when_to_use: |
+  Use when the user needs to create a PR, draft a pull request description, prepare a merge request, summarize changes for review, or build a PR checklist.
+  Trigger on: pull request, PR, merge request, code review, review checklist, create PR, draft PR, 提交 PR, 创建 PR, 合并请求, 代码审查.
 user-invocable: true
 context: fork
 model: haiku
 memory: project
 ---
 
-**Pull Request 模板**
+# Pull Request 规范
 
-```
-## 变更类型
-- [ ] feat: 新功能
-- [ ] fix: 修复 bug
-- [ ] docs: 文档变更
-- [ ] style: 代码格式调整
-- [ ] refactor: 重构
-- [ ] perf: 性能优化
-- [ ] test: 测试相关
-- [ ] chore: 构建/工具链
-- [ ] revert: 回滚
+Draft focused Pull Requests with clear scope, test evidence, and review-ready structure.
 
-## 变更说明
-<!-- 简要描述本次 PR 的目的和实现方式 -->
+## Workflow
 
-## 相关 Issue
-<!-- 关联的 issue，如: close #123 -->
+1. Confirm branch state and committed changes.
+2. Compare current branch against target branch.
+3. Summarize purpose, implementation approach, and user-visible impact.
+4. Select change type and scope using `references/pr-guidelines.md`.
+5. Fill PR body using `references/pr-template.md`.
+6. Include test plan and known risks.
+7. Keep PR atomic; split broad or unrelated work.
 
-## 变更内容
-<!-- 详细列出主要变更点 -->
--
+## Required Checks
 
-## 测试情况
-- [ ] 已添加单元测试
-- [ ] 已添加集成测试
-- [ ] 已手动测试
-- [ ] 无需测试
+- Keep one PR focused on one purpose.
+- Avoid large PRs when changes can be split safely.
+- Include test plan even when tests are not run; state reason.
+- Link related issue when available.
+- Ensure title follows `<type>(<scope>): <subject>`.
 
-## 检查清单
-- [ ] 代码符合项目规范
-- [ ] 已更新相关文档
-- [ ] 无明显性能问题
-- [ ] 无安全隐患
-- [ ] 已自测通过
-```
+## Additional Resources
 
-**PR 命名规范**
+### Reference Files
 
-格式: `<type>(<scope>): <subject>`
+- `references/pr-template.md` — full PR body template.
+- `references/pr-guidelines.md` — naming, flow, review checklist, and pitfalls.
 
-示例:
-- `feat(api): 添加用户认证接口`
-- `fix(db): 修复连接池泄漏问题`
-- `docs(readme): 更新安装说明`
+### Example Files
 
-**PR 创建流程**
-
-1. 确保代码已提交到功能分支
-2. 确保分支基于最新的主分支
-3. 推送分支到远程仓库
-4. 创建 PR，填写完整信息
-5. 等待代码审查
-6. 根据审查意见修改
-7. 合并前确保 CI 通过
-
-**注意事项**
-
-- 一个 PR 只做一件事
-- 避免过大的 PR (建议 < 400 行)
-- 确保提交信息清晰
-- 及时响应审查意见
-- 合并前清理无关提交
+- `examples/pr-titles.md` — valid PR title examples.
