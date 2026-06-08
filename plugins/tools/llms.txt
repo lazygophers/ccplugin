@@ -8,7 +8,6 @@
 
 ## 插件列表
 
-- [deepresearch](./deepresearch/llms.txt): 深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成
 - [git](./git/llms.txt): Git 操作插件 - 提供 Git 仓库管理命令，包括提交、PR 管理、推送和 .gitignore 管理
 - [semantic](./semantic/llms.txt): 代码语义搜索插件 - 基于向量嵌入的智能代码搜索。支持多编程语言、多模型、GPU加速、语言特定优化
 
