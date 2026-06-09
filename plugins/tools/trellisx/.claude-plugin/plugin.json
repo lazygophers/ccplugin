@@ -1,0 +1,54 @@
+{
+  "name": "trellisx",
+  "description": "Trellisx — Trellis 任务编排扩展: spec 破坏式优化 skill + 任务拆分 skill + UserPromptSubmit prompt hook 注入编排硬规",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+  "license": "AGPL-3.0-or-later",
+  "agents": [
+    "./agents/trellisx-spec.md"
+  ],
+  "skills": [
+    "./skills/trellisx-spec",
+    "./skills/trellisx-orchestrate"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 启用 agent-teams 实验功能",
+            "command": "[ -n \"$CLAUDE_ENV_FILE\" ] && echo 'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1' >> \"$CLAUDE_ENV_FILE\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "statusMessage": "trellisx · 评估任务编排适用性",
+            "prompt": "评估本轮用户输入是否与 trellis 任务工作相关; 若相关, 区分'新任务'与'已有任务补充', 提示加载哪个 skill。\n\n## 判断输入类型\n\n1. **spec 相关** (spec 初始化 / 优化 / 重写 / 收紧 / refactor / 抱怨规则弱不可执行 / 任务收尾沉淀 / 提到 '记不住' '老忘' '反复犯错' '又踩坑'):\n   → 加载 `trellisx-spec` skill\n\n2. **任务规划相关** (写 / 改 / 完善 PRD / design / implement / subtask; 任务拆分 / 调度图 / 验收标准 / 派 sub-agent / 跨包重构迁移审计):\n   → 加载 `trellisx-orchestrate` skill\n\n3. **无关** (单步咨询 / 概念问答 / 单文件小改 / 普通对话):\n   → 不注入\n\n## 判断'新任务 vs 已有任务补充'\n\n仅类型 2 (任务规划相关) 需要此判定:\n\n- **已有任务补充**: 输入是对当前 trellis active task 的扩展 / 修改 / 细化 / 追问 / 边界调整\n  → 处理方式: 并入当前 active task, 重新过 trellisx-orchestrate 工作流, 更新 PRD / 调度图 / 受影响 subtask 文件, 不新建 task\n\n- **新任务**: 输入与当前 active task 主题无关, 或用户显式说 '新需求' '新任务' '另一个事' '换一个'\n  → 处理方式: 提示先建新 trellis task (`task.py create`), 再走 trellisx-orchestrate 走 planning 全流程\n\n判定靠不准时, 倾向'已有任务补充' (新建成本更高)。\n\n## 输出格式 (严格 JSON, 无 markdown 包裹, 无解释)\n\n类型 1 (spec):\n{\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"trellisx hook: 本轮涉及 spec 工作, 加载 trellisx-spec skill 走对应模式 (init / optimize / sediment)。\"}}\n\n类型 2 + 已有任务补充:\n{\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"trellisx hook: 本轮是对当前 active task 的补充。加载 trellisx-orchestrate skill, 并入现有 task, 重过工作流更新 PRD / 调度图 / 受影响 subtask 文件, 禁新建 task。\"}}\n\n类型 2 + 新任务:\n{\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"trellisx hook: 本轮是新任务 (与当前 active task 无关或用户显式声明)。先建新 trellis task, 再加载 trellisx-orchestrate skill 走 planning 全流程。\"}}\n\n类型 3 (无关):\n{\"continue\":true}"
+          }
+        ]
+      }
+    ]
+  },
+  "keywords": [
+    "trellis",
+    "task-orchestration",
+    "subtask",
+    "agent-team",
+    "worktree",
+    "sub-agent",
+    "spec",
+    "workflow",
+    "prompt-injection"
+  ]
+}
