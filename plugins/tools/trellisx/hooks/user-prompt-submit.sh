@@ -17,6 +17,15 @@ except Exception:
     pass
 " 2>/dev/null)
 
+CWD=$(printf '%s' "$INPUT" | python3 -c "
+import json, sys
+try:
+    print(json.loads(sys.stdin.read()).get('cwd', ''))
+except Exception:
+    pass
+" 2>/dev/null)
+[ -z "$CWD" ] && CWD="${CLAUDE_PROJECT_DIR:-${PWD:-$(pwd)}}"
+
 [ -z "$PROMPT" ] && exit 0
 
 # 关键词命中检测
@@ -49,6 +58,18 @@ if contains "写 PRD" "写PRD" "改 PRD" "改PRD" "完善 implement" "完善impl
 trellisx hook: 本轮涉及任务规划。加载 `trellisx-orchestrate` skill。任务规模 subtask ≥ 2 (多步/多文件/多 deliverable) 强制建 trellis task 走 planning 全流程; subtask ≤ 1 可 main 直做。已有 active task 则补充更新 PRD / 调度图 / 受影响 subtask 文件, 不新建。task.py start 即创 worktree, 结束合并 + 移除确保环境干净。
 EOF
   exit 0
+fi
+
+# 实施类信号 (仅 trellis 项目): 注入复杂度门禁自检
+# 命中实施动词 → 提醒先判复杂度再动手 (复杂任务常不含 "拆任务/写PRD" 关键词)
+if [ -d "$CWD/.trellis" ]; then
+  if contains "修复" "实现" "重构" "优化" "新增" "加一个" "加个" "处理" "搞定" "做一个" "做个" "开发" "解决" "fix" "implement" "refactor" "重新设计" "调整" "改造" "迁移" "升级" "支持" "对接" "集成" "排查" "两个问题" "几个问题" "多个" "同时"; then
+    cat <<'EOF'
+
+trellisx hook: 本轮含实施信号。动手前先判任务复杂度: 拆得出 ≥ 2 个独立可验收 subtask (多步/多文件/多目标), 或一个 prompt 含 ≥ 2 个独立问题 → 禁直接动手, 必须先建 trellis task 走 planning (加载 trellisx-orchestrate skill); 仅单步单文件可 main 直做。判定靠不准倾向建 task。
+EOF
+    exit 0
+  fi
 fi
 
 # 无关 → 不输出 = 透明放行
