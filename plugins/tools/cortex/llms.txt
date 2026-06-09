@@ -8,8 +8,8 @@
 - 5 级记忆按 Ebbinghaus 遗忘曲线: L0 核心 / L1 长期 / L2 中期 / L3 短期 / L4 收件箱
 - 升级方向 = 抵抗遗忘 (L3 → L2 → L1 → L0); 默认入口 L3
 - 3 模块知识库: projects (host/owner/repo) / domains (area/sub) / scripts (vault 内部)
-- 4 skill: schema-knowledge, schema-memory, lint, extract
-- 1 agent: cortex (协调 4 skill)
+- 3 skill: cortex-schema, lint, extract
+- 1 agent: cortex (协调 3 skill)
 
 ## 目录结构
 
@@ -18,8 +18,7 @@ plugins/tools/cortex/
 ├── .claude-plugin/plugin.json
 ├── agents/cortex.md
 ├── skills/
-│   ├── cortex-schema-knowledge/SKILL.md
-│   ├── cortex-schema-memory/SKILL.md
+│   ├── cortex-schema/SKILL.md
 │   ├── cortex-lint/SKILL.md
 │   └── cortex-extract/SKILL.md
 ├── scripts/
@@ -57,6 +56,5 @@ plugins/tools/cortex/
 ## 相关文档
 
 - [README](./README.md) — 完整说明
-- [cortex-schema-knowledge](./skills/cortex-schema-knowledge/) — 三模块路径 / 顶层布局 / 同构 / 模板权威源
-- [cortex-schema-memory](./skills/cortex-schema-memory/) — 5 级记忆 / 等级映射 / 遗忘曲线权威源
+- [cortex-schema](./skills/cortex-schema/) — 目录契约 / 三模块路径 / 5 级记忆 / 同构 / 模板 / 样例权威源
 - [plugin.json](./.claude-plugin/plugin.json) — 插件元数据

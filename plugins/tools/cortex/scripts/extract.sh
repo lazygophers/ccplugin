@@ -21,7 +21,7 @@ extract.sh — cortex L4-inbox 提取与路由
   --no-cursor   忽略游标, 全量扫
   --help        显示本文档
 
-路由 (按 cortex-schema-memory):
+路由 (按 cortex-schema):
   关键词 L0 (永远/硬性/never/严禁) → L0-core (ask, 默认 reject)
   URL (github/gitlab/https://)     → projects/<host>/<owner>/<repo>/
   frontmatter area + type=domain   → domains/<area>/<sub|general>/

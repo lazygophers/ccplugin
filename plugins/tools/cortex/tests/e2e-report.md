@@ -59,7 +59,7 @@ archive: 4 个 inbox 文件移到 `L4-inbox/_archived/`, 原位删除.
 
 ## 抗遗忘度阈值验证 (G1.2)
 
-- L1=365d / L2=90d / L3=7d 阈值写入 `cortex-schema-memory/references/levels.md`
+- L1=365d / L2=90d / L3=7d 阈值写入 `cortex-schema/references/memory-levels.md`
 - 当前实现仅 lint/extract 路由用语义, 阈值真正生效的 demote 由后续 task 实现 (本 task 范围内仅契约)
 
 ## 已知限制

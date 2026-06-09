@@ -19,7 +19,7 @@ except ImportError:  # pragma: no cover
     _HAS_YAML = False
 
 
-# 路径名 ↔ level 权威映射 (权威源: cortex-schema-memory/references/levels.md)
+# 路径名 ↔ level 权威映射 (权威源: cortex-schema/references/memory-levels.md)
 LEVEL_DIR_MAP = {
     "L0-core": "L0",
     "L1-long": "L1",

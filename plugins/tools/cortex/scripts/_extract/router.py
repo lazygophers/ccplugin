@@ -2,7 +2,7 @@
 
 输入: Entry. 输出: Decision(level/module, target relpath under .wiki/, reason, ask?).
 
-决策顺序 (与 cortex-schema-memory 路由表对齐):
+决策顺序 (与 cortex-schema 路由表对齐):
   1. URL (含 github.com / gitlab.com / 任意 https?://) → 项目/<host>/<owner>/<repo>/
   2. frontmatter area → 领域/<area>/<sub or "general">/
   注: 三模块目录名为中文 (项目/领域/脚本); memory/L<n>-<suffix>/ 保留英文.

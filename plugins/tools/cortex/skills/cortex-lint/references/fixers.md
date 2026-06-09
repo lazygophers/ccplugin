@@ -2,17 +2,17 @@
 
 ## R2 frontmatter 推断规则
 
-按 `cortex-schema-knowledge` 三模块路径前缀 + `cortex-schema-memory` 5 级 level 段判定 type / 衍生字段。
+按 `cortex-schema` 三模块路径前缀 + `cortex-schema` 5 级 level 段判定 type / 衍生字段。
 
 | 缺失字段 | 推断来源 |
 | --- | --- |
-| `type` | 按路径前缀匹配三模块 / memory 5 级 → 对应 type (映射权威见 `cortex-schema-knowledge/references/{projects,domains,scripts}.md` + `cortex-schema-memory/references/levels.md`) |
+| `type` | 按路径前缀匹配三模块 / memory 5 级 → 对应 type (映射权威见 `cortex-schema/references/knowledge-modules.md` + `cortex-schema/references/memory-levels.md`) |
 | `area` (domain) | 领域模块路径中模块根之后的首段 |
-| `level` (rule/memory) | memory 路径段中 `L([0-4])-` 提取 (反写禁止, 见 levels.md) |
+| `level` (rule/memory) | memory 路径段中 `L([0-4])-` 提取 (反写禁止, 见 memory-levels.md) |
 | `created` | 文件 mtime (ISO date) |
 | `source` (project) | 留空占位 `TODO: fill source URL` (用户必须手填) |
 
-frontmatter 字段全集与各 type 模板见 `cortex-schema-knowledge/references/templates.md`。
+frontmatter 字段全集与各 type 模板见 `cortex-schema/references/templates.md`。
 
 写回策略: 保留原 frontmatter 顺序与注释, 仅在末尾追加缺失字段; 如原文件无 frontmatter, 则在文件最顶补一段 `---\n...\n---\n`。
 
@@ -22,8 +22,8 @@ frontmatter 字段全集与各 type 模板见 `cortex-schema-knowledge/reference
 
 待补清单由权威源拼出:
 
-- 顶层 + 三模块必备目录 → `cortex-schema-knowledge/references/topology.md`
-- memory 5 级必备目录 → `cortex-schema-memory/references/levels.md`
+- 顶层 + 三模块必备目录 → `cortex-schema/references/topology.md`
+- memory 5 级必备目录 → `cortex-schema/references/memory-levels.md`
 
 Fixer 在运行时拼接清单, 不在本文件硬列路径。
 

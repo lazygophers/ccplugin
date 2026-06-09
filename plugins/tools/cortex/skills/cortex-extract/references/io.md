@@ -55,6 +55,6 @@
 
 ## 与其它 skill 的关系
 
-- 路径目标定义 (单一真相): `cortex-schema-knowledge` (项目/领域/脚本 三模块) + `cortex-schema-memory` (L0-L4)
+- 路径目标定义 (单一真相): `cortex-schema` (项目/领域/脚本 三模块 + L0-L4)
 - 路径名与 level 一致性: `cortex-lint` R6 二次校验 (extract 写完跑 lint 验收)
-- `target.path` 字段的取值范围由 schema-* 定义, 本文件不再硬列具体路径段
+- `target.path` 字段的取值范围由 `cortex-schema` 定义, 本文件不再硬列具体路径段
