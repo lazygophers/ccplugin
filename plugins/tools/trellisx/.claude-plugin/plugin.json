@@ -22,8 +22,8 @@
         "hooks": [
           {
             "type": "command",
-            "statusMessage": "trellisx · 启用 agent-teams 实验功能",
-            "command": "[ -n \"$CLAUDE_ENV_FILE\" ] && echo 'export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1' >> \"$CLAUDE_ENV_FILE\""
+            "statusMessage": "trellisx · 启用 agent-teams + 检测 trellis 项目",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
           }
         ]
       }
