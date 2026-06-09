@@ -37,14 +37,19 @@ teammate 需互相辩论 / 跨层协调               → agent-team (3-5)
 
 ## Isolation 决策
 
+**硬规: 任何会写盘的 sub-agent / workflow agent 派发 MUST 带 `isolation: worktree`, 缺则不派。** 唯一例外: 纯只读 sub-agent (探索 / 调研 / 审查, 不改盘) 可省。
+
 | 场景 | isolation: worktree | 备注 |
 | --- | --- | --- |
-| sub-agent 只读探索 | 否 | 无写冲突 |
-| sub-agent 单独改文件且与其他并行 sub-agent 改文件不交 | 否 | 直接共享工作树 |
-| ≥ 2 sub-agent 并行改文件且文件集相交 | 是 | 避免脏写 |
-| ≥ 2 sub-agent 并行改不同 deliverable 但同一 task 目录 | 是 | 避免 .trellis/tasks/<dir>/ 写竞争 |
-| workflow 各 agent 并行写 | 是 (脚本设 `isolation: "worktree"`) | 开销 ~200-500ms/agent, 必要时才开 |
-| agent-team teammate | 不支持 worktree | 按文件集分区任务 |
+| sub-agent 只读探索 / 调研 / 审查 | 否 (唯一例外) | 无写盘则无需隔离 |
+| sub-agent 写盘 (单文件 / 多文件 / 任意改动) | **是 (强制)** | 改盘即隔离, 不论是否并行 |
+| ≥ 2 sub-agent 并行写盘 | **是 (强制)** | 避免脏写 + 写竞争 |
+| workflow 各 agent 写盘 | **是 (强制, 脚本设 `isolation: "worktree"`)** | 开销 ~200-500ms/agent 可接受, 不得为省开销跳过 |
+| agent-team teammate | 引擎不支持 worktree | 退化方案: 按文件集严格分区 + 串行化共享文件 |
+
+**为何强制**: worktree 隔离保证 sub-agent 改动落在独立工作树, main 可在合并前 review diff, 失败时整树丢弃零污染。共享工作树写盘 = 脏写风险 + 失败回滚困难 + 多 agent 竞争。隔离开销 (~200-500ms) 远低于一次脏写排查成本。
+
+**完成后**: sub-agent / workflow agent 结束, main MUST review worktree diff → 决定合并到当前分支 → 合并后 `git worktree remove` 清理 (Claude Code `isolation: worktree` 自动管理生命周期, 未改动的 worktree 自动移除; 有改动的需 main 显式合并 + 清理)。
 
 ## Trellis 复杂度 → coordinator + 执行层 自动判定
 

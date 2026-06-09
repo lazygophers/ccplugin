@@ -28,7 +28,7 @@ deliverable: D1
 parent-task: <task-dir>
 status: planned | ready | running | done | blocked
 execution-layer: main | sub-agent | agent-team | workflow
-isolation: none | worktree
+isolation: worktree | none   # 写盘 sub-agent/workflow 强制 worktree; 仅纯只读可 none
 depends-on: [S0]
 blocks: [S2, S3]
 estimated-tokens: <数字 / 范围>
@@ -75,8 +75,11 @@ estimated-tokens: <数字 / 范围>
 
 ### Dispatch Prompt (若派 sub-agent)
 
+写盘 sub-agent 派发时 **MUST** 带 `isolation: worktree` (Agent 工具 / workflow `agent()` 的 isolation 参数), 缺则不派。仅纯只读 (探索 / 调研 / 审查) 可省。
+
 ```
 Active task: <task path>
+# 派发参数: isolation: worktree (写盘 subtask 强制)
 
 ## 目标
 <同上>

@@ -12,20 +12,34 @@ flowchart TB
     PLAN --> REVIEW{"PRD/design/implement<br/>review 通过?"}
     REVIEW -->|否| PLAN
     REVIEW -->|是| START["task.py start<br/>status: in_progress"]
-    START --> COORD["coordinator + 执行层 判定<br/>layer-selection.md"]
-    COORD --> EXEC["subtask 执行<br/>sub-agent / agent-team / workflow"]
+    START --> WT["创建 worktree<br/>task 改动隔离到独立工作树"]
+    WT --> COORD["coordinator + 执行层 判定<br/>layer-selection.md"]
+    COORD --> EXEC["subtask 在 worktree 内执行<br/>sub-agent / agent-team / workflow"]
     EXEC --> COMM["进度实时同步<br/>progress-communication.md"]
     COMM --> CHECK{"全部 subtask Done?"}
     CHECK -->|否, 失败| RECOVER["failure-recovery.md<br/>重试 / 换执行者 / 回 planning"]
     RECOVER --> EXEC
     CHECK -->|否, 仍在执行| EXEC
-    CHECK -->|是| VERIFY["trellis-check<br/>综合验证"]
+    CHECK -->|是| VERIFY["trellis-check<br/>worktree 内综合验证"]
     VERIFY -->|不通过| RECOVER
     VERIFY -->|通过| SPEC["spec 沉淀<br/>trellisx-spec skill sediment 模式"]
     SPEC --> COMMIT["commit + push"]
-    COMMIT --> CORTEX["非平凡发现落 cortex<br/>(架构决策/踩坑/选型/技巧)"]
+    COMMIT --> MERGE["合并 worktree → 当前分支<br/>+ git worktree remove 清理"]
+    MERGE --> CORTEX["非平凡发现落 cortex<br/>(架构决策/踩坑/选型/技巧)"]
     CORTEX --> STOP["TaskStop / finish-work<br/>status: completed"]
 ```
+
+## Worktree 生命周期 (绑定整个 task)
+
+| 时机 | 动作 |
+| --- | --- |
+| task.py start 后 | 立即创建 task 专属 worktree, 后续所有 subtask 改动落在该工作树 |
+| execute / check 期间 | 全部读写限于 worktree, 主工作区保持干净 |
+| check 通过 + commit 后 | 合并 worktree 改动 → 当前分支 |
+| 合并完成 | `git worktree remove <path>` 移除, 确保环境干净, 无残留工作树 |
+| task 失败 / 取消 | 丢弃 worktree (改动不合并), `git worktree remove --force` 清理 |
+
+**硬规**: task 结束 (completed / cancelled) 前 MUST 完成 worktree 合并 (或丢弃) + 移除。残留 worktree = 环境污染, 禁宣告 task 完成。
 
 ## 阶段表
 
@@ -34,16 +48,20 @@ flowchart TB
 | brainstorm | 无 task | 用户提出新需求 | task 目录草稿 + prd.md 草稿 | `trellis-brainstorm` | 退出, 不建 task |
 | planning | `planning` | brainstorm 收敛 | prd.md + design.md + implement.md + `subtask/*.md` + jsonl manifest | `trellisx-orchestrate` (6 步) | 回 brainstorm 重收敛 |
 | start review | `planning` → `in_progress` | 用户批准 PRD/design/implement | `task.json` status 翻转 | `selfcheck.md` 自检通过 | 留 planning, 修订 |
-| execute | `in_progress` | task.py start | subtask 产物 (diff / 报告 / 测试) | 各 sub-agent / agent-team / workflow | `failure-recovery.md` |
+| worktree 创建 | `in_progress` | task.py start 后 | task 专属 worktree | git worktree add | 创建失败回 start review |
+| execute | `in_progress` | worktree 就绪 | worktree 内 subtask 产物 | 各 sub-agent / agent-team / workflow | `failure-recovery.md` |
 | progress sync | `in_progress` | 每 subtask 完成 / 阻塞 | 用户可见摘要 | `progress-communication.md` | coordinator 决策 |
 | check | `in_progress` | 全部 subtask done | check 报告 | `trellis-check` | 单点不过回 execute; 系统性不过回 planning |
 | spec sediment | `in_progress` | check 通过 | `.trellis/spec/` 增量 | `trellisx-spec` sediment 模式 | 跳过 (非必须) |
 | commit | `in_progress` | spec 沉淀完成 | git commit + push | 通用 git | 修复后重 commit |
-| cortex 落档 | `in_progress` | commit 完成 | cortex 笔记 | `cortex-save` / `cortex-ingest` | 必落, 不落不准关闭 |
+| worktree 合并清理 | `in_progress` | commit 完成 | 改动并入当前分支 + worktree 移除 | git merge + worktree remove | 合并冲突回 execute 解决 |
+| cortex 落档 | `in_progress` | worktree 清理完成 | cortex 笔记 | `cortex-save` / `cortex-ingest` | 必落, 不落不准关闭 |
 | stop | `completed` | 全部前置完成 | `task.json` status 翻转 | `/trellis:finish-work` | 卡住时 `task.py status set blocked` |
 
 ## 阶段间硬规
 
+- **task.py start 后必创 worktree**: 整个 task 改动隔离到独立工作树, 主工作区保持干净
+- **task 结束前必合并 + 移除 worktree**: completed → 合并改动并 `git worktree remove`; cancelled → 丢弃改动并 `--force` 移除; 残留 worktree 禁宣告 task 完成
 - **planning → in_progress 必经 review**: 复杂 task 必须 prd.md + design.md + implement.md 都通过用户审查; 轻量 task 仅 PRD-only 可
 - **in_progress 后回 planning 不可跳过 review**: 若执行中发现 PRD 缺漏, 回 planning 改 PRD 后必须再 review
 - **check 不通过禁 commit**: trellis-check 单点失败必须修, 系统性失败回 planning 重拆

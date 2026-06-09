@@ -46,7 +46,7 @@ fi
 if contains "写 PRD" "写PRD" "改 PRD" "改PRD" "完善 implement" "完善implement" "完善 design" "拆任务" "拆 subtask" "拆subtask" "派 sub-agent" "派sub-agent" "派 agent" "调度图" "任务规划" "规划任务" "跨包重构" "跨包迁移" "仓库审计" "全量迁移" "全量重构" "全部改造"; then
   cat <<'EOF'
 
-trellisx hook: 本轮涉及任务规划。加载 `trellisx-orchestrate` skill; 若已有 trellis active task 则补充更新 PRD / 调度图 / 受影响 subtask 文件, 不新建 task; 否则先 `task.py create` 建新 task 再走 planning 全流程。
+trellisx hook: 本轮涉及任务规划。加载 `trellisx-orchestrate` skill。任务规模 subtask ≥ 2 (多步/多文件/多 deliverable) 强制建 trellis task 走 planning 全流程; subtask ≤ 1 可 main 直做。已有 active task 则补充更新 PRD / 调度图 / 受影响 subtask 文件, 不新建。task.py start 即创 worktree, 结束合并 + 移除确保环境干净。
 EOF
   exit 0
 fi

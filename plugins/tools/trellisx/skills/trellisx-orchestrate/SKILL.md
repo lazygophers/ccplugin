@@ -18,6 +18,15 @@ user-invocable: false
 | 自包含 | 全部规则就地内嵌, 不引外部 |
 | 串行优先 | 共享 task 文件写入 / 同一 active task 状态切换必须串行 |
 
+## 何时强制建 trellis task
+
+| 任务规模 | 是否建 task |
+| --- | --- |
+| subtask ≤ 1 (单步 / 单文件 / 一句话可完成) | 可不建, main 直做 |
+| subtask ≥ 2 (多步 / 多文件 / 多 deliverable / 需调度) | **强制建 task**, 走 planning 全流程 |
+
+判定靠不准时倾向建 task (拆分 + 文档 + worktree 隔离收益 > 建 task 成本)。建 task 后 task.py start 即创 worktree, 全程隔离, 结束合并清理 (见 `references/task-lifecycle.md`)。
+
 ## 触发判定
 
 主会话符合任一即加载:
