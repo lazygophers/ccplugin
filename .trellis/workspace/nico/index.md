@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 99
+- **Total Sessions**: 101
 - **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1361 | Active |
+| `journal-2.md` | ~1427 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,8 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 101 | 2026-06-09 | cortex skills 多文件改造 | `7926880e` | `cortex` |
+| 100 | 2026-06-09 | cortex skills 多文件改造 | `3e43c98e` | `cortex` |
 | 99 | 2026-06-09 | cortex plugin: KB + memory system | `2d8f3ed0` | `cortex` |
 | 98 | 2026-06-09 | scaffold cortex plugin skeleton | `3685f779` | `cortex` |
 | 97 | 2026-05-23 | 新增 cortex-dataview Dataview 查询 skill | `cdef5fab` | `master` |

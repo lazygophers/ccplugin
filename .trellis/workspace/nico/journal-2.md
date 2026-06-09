@@ -1359,3 +1359,69 @@ Phase 1-7 全链路落地. 双层 vault, 5 级记忆 (按遗忘曲线), 3 模块
 ### Next Steps
 
 - None - task complete
+
+
+## Session 100: cortex skills 多文件改造
+
+**Date**: 2026-06-09
+**Task**: cortex skills 多文件改造
+**Branch**: `cortex`
+
+### Summary
+
+4 skill 拆 SKILL.md (≤60 行薄入口) + references/*.md (3/skill). 新增 arguments / 收紧 description ≤512 / when_to_use ≤128. 27 文件 +1495/-486.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3e43c98e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 101: cortex skills 多文件改造
+
+**Date**: 2026-06-09
+**Task**: cortex skills 多文件改造
+**Branch**: `cortex`
+
+### Summary
+
+4 skill 拆 SKILL.md (≤60 行薄入口) + references/*.md (3/skill). 新增 arguments / 收紧 description ≤512 / when_to_use ≤128. 27 文件 +1495/-486.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7926880e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
