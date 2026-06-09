@@ -1,6 +1,6 @@
 ---
 name: cortex-schema-memory
-description: 记忆 / memory 等级契约 — L0=core / L1=long / L2=mid / L3=short / L4=inbox, 按 Ebbinghaus 遗忘曲线分级。用户说 "永远 / 暂时 / 记住 / 忘了 / 遗忘" 或处理 promote/demote/forget 决策时必读。单一真相 docs/layout.md 第 64-79 行。
+description: "记忆 / memory 等级契约 — L0=core / L1=long / L2=mid / L3=short / L4=inbox, 按 Ebbinghaus 遗忘曲线分级。触发词: 永远 / 暂时 / 记住 / 忘了 / 遗忘; 处理 promote/demote/forget 决策时必读。单一真相 docs/layout.md 第 64-79 行。"
 when_to_use: "永远/硬性/never→L0; 暂时/临时→L3; 记住→L2; 忘了→forget; promote/demote/forget 路由; extract 落级判定; lint 路径/level 校验"
 argument-hint: "[level]"
 arguments: "[等级]"

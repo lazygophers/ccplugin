@@ -1,6 +1,6 @@
 ---
 name: cortex-extract
-description: "extract/提取/promote/整理/归档/digest L4-inbox 收件箱, 按三轴 (抗遗忘度/强度/复用面) 路由到 L1-long/L2-mid/L3-short/项目/领域, 默认 dry-run JSON plan, --apply 落盘 + 增量游标. 用户说 '整理 inbox / 提取记忆 / 归档笔记 / promote / digest' 时使用."
+description: "extract/提取/promote/整理/归档/digest L4-inbox 收件箱, 按三轴 (抗遗忘度/强度/复用面) 路由到 L1-long/L2-mid/L3-short/项目/领域, 默认 dry-run JSON plan, --apply 落盘 + 增量游标. 触发词: 整理 inbox / 提取记忆 / 归档笔记 / promote / digest."
 when_to_use: "整理 inbox/提取 L4/归档临时笔记/extract/digest/promote 记忆/例行扫描 L4-inbox"
 argument-hint: "[--dry-run|--apply] [target]"
 arguments: "[--dry-run|--apply] [路径]"
