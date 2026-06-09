@@ -1,0 +1,24 @@
+{
+  "name": "cortex",
+  "description": "TODO: cortex 插件功能描述 (占位骨架, 主题待定)",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
+  "license": "AGPL-3.0-or-later",
+  "agents": [
+    "./agents/cortex.md"
+  ],
+  "skills": [
+    "./skills/cortex"
+  ],
+  "commands": [],
+  "hooks": {},
+  "keywords": [
+    "cortex",
+    "TODO"
+  ]
+}

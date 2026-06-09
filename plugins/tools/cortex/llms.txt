@@ -1,0 +1,29 @@
+# cortex
+
+> TODO: cortex 插件一行摘要 (占位骨架)
+
+## 概述
+
+TODO: 补充插件用途 / 核心能力 / 触发条件。
+
+## 目录结构
+
+```
+cortex/
+├── .claude-plugin/
+│   └── plugin.json
+├── agents/
+│   └── cortex.md
+├── skills/
+│   └── cortex/
+│       └── SKILL.md
+├── hooks/
+├── commands/
+├── README.md
+└── llms.txt
+```
+
+## 相关文档
+
+- [README](./README.md) - 完整文档
+- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
