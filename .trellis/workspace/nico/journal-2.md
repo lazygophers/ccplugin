@@ -1590,3 +1590,36 @@ templates.md 单文件 → templates/ 二级目录 11 文件 (memory/5 + project
 ### Next Steps
 
 - None - task complete
+
+
+## Session 107: cortex-ingest 知识库构建 skill
+
+**Date**: 2026-06-09
+**Task**: cortex-ingest 知识库构建 skill
+**Branch**: `cortex`
+
+### Summary
+
+新 skill cortex-ingest. 4 类输入 (github/gitlab/website/local) 路由到 cortex-schema 项目模块. 6/6 路由测试通过. plugin.json 3→4 skill.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ebde01f7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
