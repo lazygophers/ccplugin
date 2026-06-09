@@ -1458,3 +1458,36 @@ Phase 1-7 全链路落地. 双层 vault, 5 级记忆 (按遗忘曲线), 3 模块
 ### Next Steps
 
 - None - task complete
+
+
+## Session 103: cortex skills 清除 '用户说'
+
+**Date**: 2026-06-09
+**Task**: cortex skills 清除 '用户说'
+**Branch**: `cortex`
+
+### Summary
+
+4 skill frontmatter 清除 '用户说' 口语描述, 改为 '触发词:' 关键词列表. 顺带补 schema-memory description YAML 引号. 0 命中, 长度限内.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8d023541` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
