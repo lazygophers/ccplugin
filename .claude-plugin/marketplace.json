@@ -515,6 +515,31 @@
       ]
     },
     {
+      "name": "trellisx",
+      "source": "./plugins/tools/trellisx",
+      "description": "Trellisx — Trellis 任务编排扩展: spec 破坏式优化 skill (init/optimize/sediment 三模式) + planning 阶段任务编排 skill (PRD/design/implement/subtask 文件 + mermaid 调度图) + UserPromptSubmit prompt hook 智能分类输入 + SessionStart 启用 agent-teams",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "trellis",
+        "task-orchestration",
+        "subtask",
+        "agent-team",
+        "worktree",
+        "sub-agent",
+        "spec",
+        "workflow",
+        "prompt-injection",
+        "planning",
+        "mermaid"
+      ]
+    },
+    {
       "name": "template",
       "source": "./plugins/template",
       "description": "插件开发模板 - 快速创建新插件的基础结构",
