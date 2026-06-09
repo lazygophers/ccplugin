@@ -1557,3 +1557,36 @@ schema-knowledge + schema-memory → cortex-schema 单一 skill. 补 7 完整 .m
 ### Next Steps
 
 - None - task complete
+
+
+## Session 106: cortex-schema 模板按变体拆 11 文件
+
+**Date**: 2026-06-09
+**Task**: cortex-schema 模板按变体拆 11 文件
+**Branch**: `cortex`
+
+### Summary
+
+templates.md 单文件 → templates/ 二级目录 11 文件 (memory/5 + project/3 + domain + vault-script + _fields). gitlab/website/L4-inbox 新写.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44a6899a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

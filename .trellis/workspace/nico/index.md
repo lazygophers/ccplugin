@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 105
+- **Total Sessions**: 106
 - **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1559 | Active |
+| `journal-2.md` | ~1592 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 106 | 2026-06-09 | cortex-schema 模板按变体拆 11 文件 | `44a6899a` | `cortex` |
 | 105 | 2026-06-09 | cortex-schema 合并 + 样例补全 | `6f1bf2a9` | `cortex` |
 | 104 | 2026-06-09 | cortex schema 收敛为单一真相源 | `8dc78394` | `cortex` |
 | 103 | 2026-06-09 | cortex skills 清除 '用户说' | `8d023541` | `cortex` |
