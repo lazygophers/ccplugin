@@ -1,0 +1,43 @@
+{
+  "name": "trellisx",
+  "description": "Trellisx — Trellis 任务编排扩展: spec 破坏式优化 skill + 任务拆分 skill + UserPromptSubmit prompt hook 注入编排硬规",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
+  "license": "AGPL-3.0-or-later",
+  "agents": [
+    "./agents/trellisx-spec.md"
+  ],
+  "skills": [
+    "./skills/trellisx-spec",
+    "./skills/trellisx-orchestrate"
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "statusMessage": "trellisx · 评估任务编排适用性",
+            "prompt": "你是 trellisx 的 UserPromptSubmit prompt-hook 评估器。输入为本轮用户提交的 prompt JSON。\n\n职责: 判断本轮输入是否触发 Trellis 任务编排场景, 若触发则注入编排硬规到主会话上下文。\n\n触发条件 (满足任一):\n1. 用户明确要求开始 / 推进 / 分派 / 拆分任务 (关键词: 派 / 拆 / dispatch / subtask / agent / sub-agent / teammate / agent team / worktree / workflow / parallel / 并行)\n2. 用户输入隐含多步骤、多文件、多角色、多假设、跨包改造 (关键词: 重构 / 迁移 / 全量 / 全部 / 所有 / 审计 / 优化 spec / 改造)\n3. 用户对当前 trellis active task 给出新需求或扩展\n\n非触发: 单步咨询 / 概念解释 / 单文件小改 / 与编排无关的对话\n\n输出格式 (严格 JSON, 无任何额外文本):\n\n触发时:\n{\"continue\":true,\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"<trellisx 编排硬规>\\n\\n派 sub-agent / teammate / workflow agent / 拆 subtask 前必须满足:\\n\\n1. 拆 subtask 五要素 (缺一不派): 目标(动词+对象+结果) / 产出(diff|报告|命令输出) / 验证(完成判定) / 资源(独占文件|端口|配置|审批槽位) / 依赖(前置 subtask 或上游产出)\\n\\n2. 选层 (按任务特征): main 直做(≤3 文件+已知位置) / sub-agent(高量输出隔离) / sub-agent 并行(多角度独立调研, ≤16) / agent-team(跨层协调|假设辩论, 3-5 人) / workflow+ultracode(≥5 同类文件改|仓库审计|500+ 文件)\\n\\n3. AGENT_PROMPT.md 模板 6 字段缺一不派: 目标 / 已知 / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理\\n\\n4. 共享资源互斥, 必须独占: 同目录|同文件|端口|配置|.env|API 密钥|审批槽位|顺序敏感步骤\\n\\n5. 资源冲突即串行; 并行 sub-agent 改不同文件必加 isolation: worktree\\n\\n6. 失败回退: 工具错误重试上限 3; lint/测试不过计入 retry; 3 次累计走 EXEC.md 上报\\n\\n7. 关闭与回收: subtask 完成立即更新状态、释放资源; sub-agent / teammate 完成必须关闭, 禁保留空闲\\n\\nTrellis 项目特定补充:\\n- subtask 编排落到 prd.md / design.md / implement.md, 不替代 .trellis 文件\\n- sub-agent dispatch 前必须 curate implement.jsonl / check.jsonl\\n- dispatch prompt 必须前置 'Active task: <task path from task.py current>'\\n- task 视为 agent team 协调对象: 1 任务多 deliverable 时拆 parent + 独立可验证 child\\n\\n操作建议: 立即加载 trellisx-orchestrate skill 走拆分流程。\"}}\n\n非触发时 (本轮无需注入):\n{\"continue\":true}\n\n严格遵守: 不输出 markdown 包裹, 不输出解释, 仅返回上述 JSON 之一。"
+          }
+        ]
+      }
+    ]
+  },
+  "keywords": [
+    "trellis",
+    "task-orchestration",
+    "subtask",
+    "agent-team",
+    "worktree",
+    "sub-agent",
+    "spec",
+    "workflow",
+    "prompt-injection"
+  ]
+}
