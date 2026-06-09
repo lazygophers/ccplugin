@@ -40,18 +40,20 @@ user-invocable: false
 
 ## 工作流 (6 步, 渐进披露)
 
-每步必须先读对应 reference, 再写文档:
+每步先读对应 reference (写法规则) + 对应 example (填好的范例), 再写文档:
 
-| 步骤 | 行动 | 详细内容 |
-| --- | --- | --- |
-| 1 | PRD 编排 — deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | 读 `references/prd-orchestration.md` |
-| 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | 读 `references/subtask-file.md` |
-| 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | 读 `references/design-orchestration.md` |
-| 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | 读 `references/implement-orchestration.md` |
-| 5 | parent / child 拆分 (1 task 含 ≥ 2 独立可验收 deliverable) | 读 `references/task-tree.md` |
-| 6 | jsonl 上下文清单 curate (为后续 dispatch 备料) | 读 `references/jsonl-curation.md` |
+| 步骤 | 行动 | 写法 reference | 填好范例 |
+| --- | --- | --- | --- |
+| 1 | PRD 编排 — deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | `references/prd-orchestration.md` | `examples/prd.md` |
+| 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | `references/subtask-file.md` | `examples/subtask/S2-jwt-utils.md` `examples/subtask/S3-jwt-middleware.md` |
+| 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | `references/design-orchestration.md` | `examples/design.md` |
+| 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | `references/implement-orchestration.md` | `examples/implement.md` |
+| 5 | parent / child 拆分 (1 task 含 ≥ 2 独立可验收 deliverable) | `references/task-tree.md` | — |
+| 6 | jsonl 上下文清单 curate (为后续 dispatch 备料) | `references/jsonl-curation.md` | — |
 
 轻量 task (单 deliverable + 单 subtask) 可仅做步骤 1 + 2 (PRD + 单 subtask 文件)。复杂 task 必须 6 步走完才能进入 `task.py start`。
+
+范例集索引: `examples/README.md` (同一 OAuth2 登录场景贯穿全部文档)。
 
 ## 参考集 (按需读)
 
