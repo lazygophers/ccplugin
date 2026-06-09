@@ -8,7 +8,7 @@
 - 5 级记忆按 Ebbinghaus 遗忘曲线: L0 核心 / L1 长期 / L2 中期 / L3 短期 / L4 收件箱
 - 升级方向 = 抵抗遗忘 (L3 → L2 → L1 → L0); 默认入口 L3
 - 3 模块知识库: projects (host/owner/repo) / domains (area/sub) / scripts (vault 内部)
-- 4 skill: cortex-schema, cortex-ingest, cortex-lint, cortex-extract
+- 6 skill: cortex-schema, cortex-ingest, cortex-lint, cortex-extract, cortex-history-digest, cortex-context-digest
 - 1 agent: cortex (协调 3 skill)
 
 ## 目录结构
@@ -21,12 +21,15 @@ plugins/tools/cortex/
 │   ├── cortex-schema/SKILL.md
 │   ├── cortex-ingest/SKILL.md
 │   ├── cortex-lint/SKILL.md
-│   └── cortex-extract/SKILL.md
+│   ├── cortex-extract/SKILL.md
+│   ├── cortex-history-digest/SKILL.md
+│   └── cortex-context-digest/SKILL.md
 ├── scripts/
 │   ├── validate-layout.sh        ← 目录契约校验
 │   ├── ingest.sh + _ingest/      ← 4 类输入 (github/gitlab/website/local) 路由
 │   ├── lint.sh + _lint/          ← 7 规则 + R2/R4 autofix
-│   └── extract.sh + _extract/    ← L4-inbox 路由
+│   ├── extract.sh + _extract/    ← L4-inbox 路由
+│   └── history-digest.sh + _history_digest/  ← ~/.claude/projects 历史扫
 ├── tests/fixtures/{layout-ok,layout-bad,lint,extract}/
 ├── hooks/                        ← 占位
 ├── commands/                     ← 占位

@@ -4,7 +4,6 @@ description: "知识库构建 ingest — 接受 GitHub/GitLab/Website URL 或 lo
 when_to_use: "入库新仓库/抓取项目/import GitHub repo/ingest website/导入本地 dir/build 项目知识库"
 argument-hint: "[--dry-run|--apply] <source>"
 arguments: "[--dry-run|--apply] <来源>"
-user-invocable: true
 ---
 
 # cortex-ingest

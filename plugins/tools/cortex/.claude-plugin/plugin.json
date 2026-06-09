@@ -16,7 +16,9 @@
     "./skills/cortex-schema",
     "./skills/cortex-ingest",
     "./skills/cortex-lint",
-    "./skills/cortex-extract"
+    "./skills/cortex-extract",
+    "./skills/cortex-history-digest",
+    "./skills/cortex-context-digest"
   ],
   "commands": [],
   "hooks": {},
@@ -34,6 +36,10 @@
     "github",
     "gitlab",
     "website",
+    "history-digest",
+    "context-digest",
+    "sediment",
+    "transcript",
     "L0",
     "L1",
     "L2",
