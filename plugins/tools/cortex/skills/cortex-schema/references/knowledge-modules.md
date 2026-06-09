@@ -1,6 +1,6 @@
 # 三模块路径规则 (项目 / 领域 / 脚本)
 
-vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整 frontmatter 模板见 `templates.md`, 完整 .md 样例见 `examples/`.
+vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整 frontmatter 模板见 `templates.md`, 完整 .md 样例见 `../examples/`.
 
 ---
 
@@ -30,7 +30,7 @@ vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整 front
 
 ### frontmatter 关键字段
 
-`type: project` + `source` (URL, 必备) + `summary` + `mindmap` (推荐) + 通用字段. 完整模板见 `templates.md`, 落盘样例见 `examples/project.md`.
+`type: project` + `source` (URL, 必备) + `summary` + `mindmap` (推荐) + 通用字段. 完整模板见 `templates.md`, 落盘样例见 `../examples/project.md`.
 
 ---
 
@@ -59,7 +59,7 @@ vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整 front
 
 ### frontmatter 关键字段
 
-`type: domain` + `area` (必备) + 通用字段. 完整模板见 `templates.md`, 落盘样例见 `examples/domain.md`.
+`type: domain` + `area` (必备) + 通用字段. 完整模板见 `templates.md`, 落盘样例见 `../examples/domain.md`.
 
 ---
 
@@ -96,7 +96,7 @@ kebab-case, 见名知意, 禁通用名 (`tool.sh` / `script.py` 不允许).
 
 ### frontmatter
 
-`type: vault-script`, 写为脚本顶部注释块, 推荐不强制. 见 `templates.md`, 样例见 `examples/vault-script.md`.
+`type: vault-script`, 写为脚本顶部注释块, 推荐不强制. 见 `templates.md`, 样例见 `../examples/vault-script.md`.
 
 ---
 
@@ -122,5 +122,5 @@ kebab-case, 见名知意, 禁通用名 (`tool.sh` / `script.py` 不允许).
 
 - 顶层布局: `topology.md`
 - frontmatter 模板: `templates.md`
-- 完整样例: `examples/{project,domain,vault-script}.md`
+- 完整样例: `../examples/{project,domain,vault-script}.md`
 - lint R1-R7: `cortex-lint`

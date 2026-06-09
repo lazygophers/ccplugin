@@ -144,6 +144,6 @@ extract 从 L4 inbox 提取条目时按下表判定目标级别:
 
 - 顶层布局 + 同构: `topology.md`
 - frontmatter 模板: `templates.md`
-- 完整样例 (按 level): `examples/memory-L1.md` / `memory-L2.md` / `memory-L3.md` / `rule.md` (L0)
+- 完整样例 (按 level): `../examples/memory-L1.md` / `memory-L2.md` / `memory-L3.md` / `rule.md` (L0)
 - lint R4 同构 + R6 等级一致: `cortex-lint`
 - extract 路由消费方: `cortex-extract`

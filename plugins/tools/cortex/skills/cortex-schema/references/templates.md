@@ -2,7 +2,7 @@
 
 各 type 的 frontmatter 通用字段与块模板. 所有 vault 笔记的 frontmatter 以此为准.
 
-> **边界**: 本文件 = frontmatter **块片段** (拼装用). 完整可落盘的 .md 样例 (含正文 + wikilink) 见 `examples/<type>.md`.
+> **边界**: 本文件 = frontmatter **块片段** (拼装用). 完整可落盘的 .md 样例 (含正文 + wikilink) 见 `../examples/<type>.md`.
 
 ## 通用字段表
 
@@ -37,7 +37,7 @@ aliases: [claude-code]
 ---
 ```
 
-完整样例: `examples/project.md`.
+完整样例: `../examples/project.md`.
 
 ## type: domain
 
@@ -55,7 +55,7 @@ weight: 0.6
 ---
 ```
 
-完整样例: `examples/domain.md`.
+完整样例: `../examples/domain.md`.
 
 ## type: rule (memory/L0-core)
 
@@ -72,7 +72,7 @@ aliases: []
 ---
 ```
 
-完整样例: `examples/rule.md`.
+完整样例: `../examples/rule.md`.
 
 ## type: memory (memory/L1-L4)
 
@@ -125,7 +125,7 @@ tags: [inbox]
 ---
 ```
 
-完整样例: `examples/memory-L1.md` / `memory-L2.md` / `memory-L3.md`.
+完整样例: `../examples/memory-L1.md` / `memory-L2.md` / `memory-L3.md`.
 
 ## type: vault-script
 
@@ -139,11 +139,11 @@ vault 内部脚本 (写为脚本顶部注释块, 推荐不强制):
 # ---
 ```
 
-完整样例: `examples/vault-script.md` (.md 形式描述).
+完整样例: `../examples/vault-script.md` (.md 形式描述).
 
 ## 引用
 
 - 路径布局: `topology.md`
 - 三模块路径规则: `knowledge-modules.md`
 - memory 5 级语义: `memory-levels.md`
-- 完整 .md 样例: `examples/`
+- 完整 .md 样例: `../examples/`

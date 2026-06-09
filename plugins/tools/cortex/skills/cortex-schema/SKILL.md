@@ -42,7 +42,7 @@ L1=长期 / L3=短期, 数字与时长**反向**. 路径后缀 (`core/long/mid/s
 | 查三模块 (项目/领域/脚本) 路径规则 + 命名 + frontmatter | `references/knowledge-modules.md` |
 | 查 5 级记忆 (L0-L4) 语义 / 映射 / 反写防呆 / 遗忘曲线 / 三轴 / 路由 | `references/memory-levels.md` |
 | 查 frontmatter 通用字段表 + 各 type 块模板 | `references/templates.md` |
-| 查完整 .md 样例 (含正文 + wikilink) | `references/examples/<type>.md` |
+| 查完整 .md 样例 (含正文 + wikilink) | `examples/<type>.md` |
 
 ## 引用
 

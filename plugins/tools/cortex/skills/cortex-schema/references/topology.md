@@ -146,5 +146,5 @@ validate-layout **只检必备项, 不禁额外项**.
 - 三模块内部规范: `knowledge-modules.md`
 - frontmatter 模板: `templates.md`
 - memory 5 级语义与映射: `memory-levels.md`
-- 完整样例: `examples/`
+- 完整样例: `../examples/`
 - lint 规则集: `cortex-lint`
