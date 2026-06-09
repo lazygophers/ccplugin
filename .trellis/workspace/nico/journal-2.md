@@ -1623,3 +1623,36 @@ templates.md 单文件 → templates/ 二级目录 11 文件 (memory/5 + project
 ### Next Steps
 
 - None - task complete
+
+
+## Session 108: cortex-ingest sources 按类型拆 4 文件
+
+**Date**: 2026-06-09
+**Task**: cortex-ingest sources 按类型拆 4 文件
+**Branch**: `cortex`
+
+### Summary
+
+sources.md 单文件 → sources/{github,gitlab,website,local}.md 4 独立文件. 6/6 路由保持. SKILL.md 路由表更新.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1fea70c7` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
