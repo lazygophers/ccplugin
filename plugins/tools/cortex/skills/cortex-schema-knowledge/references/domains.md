@@ -12,17 +12,7 @@
 
 ## frontmatter
 
-```yaml
----
-type: domain
-area: tech
-created: 2026-06-09
-updated: 2026-06-09
-tags: [rust, async, tokio]
-aliases: [tokio-runtime-notes]
-weight: 0.6
----
-```
+完整模板见 `templates.md` (type: domain)。
 
 ## 示例路径
 

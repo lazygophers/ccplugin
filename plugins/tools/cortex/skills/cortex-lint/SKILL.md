@@ -42,7 +42,7 @@ plugins/tools/cortex/scripts/lint.sh [--check|--fix] [--rules R1,R2,...] [--targ
 
 ## 引用
 
-- 目录契约: `plugins/tools/cortex/docs/layout.md`
+- 目录契约权威: `cortex-schema-knowledge` (顶层 + 三模块) + `cortex-schema-memory` (5 级)
 - 三模块 schema: `cortex-schema-knowledge`
 - 记忆等级 schema: `cortex-schema-memory`
 - extract (lint 通过后跑): `cortex-extract`

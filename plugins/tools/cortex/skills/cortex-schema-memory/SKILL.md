@@ -1,6 +1,6 @@
 ---
 name: cortex-schema-memory
-description: "记忆 / memory 等级契约 — L0=core / L1=long / L2=mid / L3=short / L4=inbox, 按 Ebbinghaus 遗忘曲线分级。触发词: 永远 / 暂时 / 记住 / 忘了 / 遗忘; 处理 promote/demote/forget 决策时必读。单一真相 docs/layout.md 第 64-79 行。"
+description: "记忆 / memory 等级契约 — L0=core / L1=long / L2=mid / L3=short / L4=inbox, 按 Ebbinghaus 遗忘曲线分级。触发词: 永远 / 暂时 / 记住 / 忘了 / 遗忘; 处理 promote/demote/forget 决策时必读。本 skill 即等级权威源, 路径与映射详见 references/levels.md。"
 when_to_use: "永远/硬性/never→L0; 暂时/临时→L3; 记住→L2; 忘了→forget; promote/demote/forget 路由; extract 落级判定; lint 路径/level 校验"
 argument-hint: "[level]"
 arguments: "[等级]"
@@ -8,7 +8,7 @@ arguments: "[等级]"
 
 # cortex-schema-memory
 
-cortex 记忆树等级契约。**单一真相: `docs/layout.md` 第 64-79 行**。
+cortex 记忆树等级契约 — 本 skill 即权威源, 完整 5 级物理树 / level↔dir 映射 / 反写防呆见 `references/levels.md`。
 
 ## 等级速查 (反直觉警告)
 
@@ -34,6 +34,8 @@ L3 短期 (易忘) ── promote ──▶ L2 中期 ── promote ──▶ L
 | 查三轴定义 + extract 路由判定表 | `references/axes-routing.md` |
 | 查关键性质 (默认入口/promote 离线/forget 不自动) | `references/properties.md` |
 
-## 与 docs/layout.md 的关系
+## 引用
 
-本 skill 是 `docs/layout.md` "记忆等级语义" 节的展开版。如二者冲突, **以 `docs/layout.md` 为准**。
+- 顶层物理布局 + 同构 + 模板: `cortex-schema-knowledge`
+- 形态校验: `cortex-lint` (R4 同构 + R6 等级一致)
+- 路由消费方: `cortex-extract`

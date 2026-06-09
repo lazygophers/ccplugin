@@ -8,7 +8,7 @@ arguments: "[模块]"
 
 # cortex-schema-knowledge
 
-知识库 schema — 项目/领域/脚本 三模块路径规则与 frontmatter 契约. 双层同构 (`~/.cortex/.wiki/` + `<repo>/.wiki/`). 路径权威以 `plugins/tools/cortex/docs/layout.md` 为准.
+知识库 schema — 项目/领域/脚本 三模块路径规则与 frontmatter 契约. 双层同构 (`~/.cortex/.wiki/` + `<repo>/.wiki/`). 本 skill 为路径与模板权威源.
 
 ## 路径速查
 
@@ -24,13 +24,14 @@ arguments: "[模块]"
 
 | 任务 | 文件 |
 | --- | --- |
+| 查 ~/.cortex 顶层物理布局 / 双层同构 / 必备目录 / 开放扩展 | `references/topology.md` |
+| 查 frontmatter 通用字段 / 各 type 模板 | `references/templates.md` |
 | 入库 GitHub / GitLab / Website 摘要 | `references/projects.md` |
 | 写或整理领域笔记 (tech / life / finance) | `references/domains.md` |
 | vault 内部脚本 / 用户操作入口 / 混用检测 | `references/scripts.md` |
 
 ## 引用
 
-- 目录契约权威: `plugins/tools/cortex/docs/layout.md`
 - 记忆等级 schema: `cortex-schema-memory`
 - lint 规则集 (含 R7 入口脚本治理): `cortex-lint`
 - extract 路由表: `cortex-extract`

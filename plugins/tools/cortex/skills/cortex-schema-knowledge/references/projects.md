@@ -18,21 +18,9 @@
 - `graph.json` — 可选, 结构化关系图
 - `notes/` — 可选, 子页面
 
-## frontmatter (README.md)
+## frontmatter
 
-```yaml
----
-type: project
-source: https://github.com/anthropics/claude-code
-summary: Claude Code CLI — Anthropic 官方终端编码代理
-mindmap: ./mindmap.canvas        # 可选, 相对当前 README.md
-graph: ./graph.json              # 可选
-created: 2026-06-09
-updated: 2026-06-09
-tags: [ai, cli, agent]
-aliases: [claude-code]
----
-```
+完整模板见 `templates.md` (type: project)。
 
 ## 命名约定
 

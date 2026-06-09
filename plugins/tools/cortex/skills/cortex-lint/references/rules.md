@@ -1,6 +1,13 @@
 # 7 规则详情 (R1-R7)
 
-每条规则: 定义 / 级别 / 是否 autofix / 检测策略。
+每条规则: 定义 / 级别 / 是否 autofix / 检测策略。路径/目录/级别映射等结构性事实**不在此处复制**, 仅给出权威源指针。
+
+## 权威源
+
+- 顶层布局 + 三模块路径 + 必备目录: `cortex-schema-knowledge/references/topology.md`
+- 三模块命名规则: `cortex-schema-knowledge/references/{projects,domains,scripts}.md`
+- frontmatter 字段 + 模板: `cortex-schema-knowledge/references/templates.md`
+- memory 5 级物理树 + level↔dir 映射: `cortex-schema-memory/references/levels.md`
 
 ## R1 — wikilink 死链 (warn)
 
@@ -11,32 +18,26 @@
 
 ## R2 — frontmatter 必备字段 (error)
 
-- **定义**: 每个 `.md` 的 frontmatter 必须含:
-  - `type` (恒必填)
-  - `domain` 类: 还要有 `area`
-  - `rule` / `memory` 类: 还要有 `level`
-  - `project` 类: 还要有 `source`
+- **定义**: 每个 `.md` 的 frontmatter 必备字段集合按 type 分桶定义, 权威清单见 `cortex-schema-knowledge/references/templates.md`。
 - **级别**: error。
 - **autofix**: 是 (R2 推断规则见 `fixers.md`)。
-- **检测**: 解析 yaml frontmatter, 比对必备字段集合; 缺一即一条 Violation, 字段名进 msg。
+- **检测**: 解析 yaml frontmatter, 对照 templates.md 中该 type 的必备集合; 缺一即一条 Violation, 字段名进 msg。
 
 ## R3 — 命名规则 (warn)
 
-- **定义**:
-  - `领域/<area>/...`: 至少 2 级 (area + 文件), 不允许 `领域/foo.md` 平铺。
-  - `脚本/...`: 文件名 kebab-case (小写 + 短横线), 不允许 `BadCamelCase.sh` / `snake_case.py`。
+- **定义**: 三模块命名/层级约定权威见 `cortex-schema-knowledge/references/{domains,scripts,projects}.md`。lint 只做形式检测:
+  - 领域模块: 路径段数过少 (平铺到模块根) → 报警。
+  - 脚本模块: basename 必须 kebab-case (小写 + 短横线)。
 - **级别**: warn (重命名会断 wikilink, 不自动改, 仅提示)。
 - **autofix**: 否。
-- **检测**: 路径段计数 + basename 正则 `^[a-z0-9]+(-[a-z0-9]+)*\.\w+$`。
+- **检测**: 路径段计数 + basename 正则 `^[a-z0-9]+(-[a-z0-9]+)*\.\w+$`; 详细规则以 schema-knowledge 为准。
 
 ## R4 — 目录同构 (error)
 
-- **定义**: vault 根必须含齐:
-  - `memory/L0-core/` `memory/L1-long/` `memory/L2-mid/` `memory/L3-short/` `memory/L4-inbox/`
-  - `项目/` `领域/` `脚本/` (中文三模块目录)
+- **定义**: vault 根必须含齐必备目录。**必备目录清单由 `cortex-schema-knowledge/references/topology.md` (顶层 + 三模块) + `cortex-schema-memory/references/levels.md` (memory 5 级) 共同定义**, 缺失则 R4 报 error + autofix mkdir。
 - **级别**: error。
 - **autofix**: 是 (mkdir, 见 `fixers.md`)。
-- **检测**: `os.path.isdir` 对照清单, 缺一报一条。
+- **检测**: `os.path.isdir` 对照上述权威源拼出的清单, 缺一报一条。
 
 ## R5 — 孤儿页 (warn)
 
@@ -49,26 +50,18 @@
 
 ## R6 — 等级语义一致 (error)
 
-- **定义**: `memory/L<N>-<suffix>/` 路径段中 `<N>` 必须与文件 frontmatter `level` 字段严格相等; 且 `<suffix>` 必须匹配权威映射 (见下); 反写直接 error。
+- **定义**: memory 路径段 `<N>-<suffix>` 必须与文件 frontmatter `level` 字段严格相等; 且 `<suffix>` 必须匹配权威映射; 反写直接 error。
 - **级别**: error (语义反写会让整个记忆树检索失真)。
 - **autofix**: 否 (用户决定是路径错还是字段错)。
-- **权威映射**:
-  | 路径段 | level 必须 |
-  | --- | --- |
-  | `memory/L0-core/` | `L0` |
-  | `memory/L1-long/` | `L1` |
-  | `memory/L2-mid/` | `L2` |
-  | `memory/L3-short/` | `L3` |
-  | `memory/L4-inbox/` | `L4` |
-- 任何其它形如 `memory/L*-*/` (如 `L1-short` / `L3-long`) 都视为反写。
-- **检测**: 正则抓路径段 + 读 frontmatter level, 三方对照。
+- **权威映射**: 见 `cortex-schema-memory/references/levels.md` (含反写防呆清单)。
+- **检测**: 正则抓 memory 路径段 + 读 frontmatter level, 与 levels.md 映射表三方对照; 任何不在该表内的 `L*-*` 组合视为反写。
 
 ## R7 — 脚本目录用途分离 (warn)
 
-- **定义**:
+- **定义**: 脚本用途分离权威见 `cortex-schema-knowledge/references/scripts.md`。lint 落实检测:
   - 项目级 `<target>/.cortex/scripts/` 出现 → 报错 (项目脚本应入仓 `scripts/`, 不进 cortex)。
-  - vault 内部 `<root>/.wiki/脚本/` 内文件 frontmatter `type` 应为 `vault-script` 或缺省。
-  - 路径写成英文 `<root>/.wiki/scripts/` 视为错位 (中文三模块约定)。
+  - vault 内部脚本模块文件 frontmatter `type` 应为 `vault-script` 或缺省。
+  - 路径写成英文 (非中文三模块名) 视为错位。
 - **级别**: warn。
 - **autofix**: 否。
-- **检测**: 路径存在性 + frontmatter type 比对。
+- **检测**: 路径存在性 + frontmatter type 比对; 三模块中文名以 schema-knowledge 为准。

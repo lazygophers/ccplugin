@@ -2,32 +2,30 @@
 
 ## R2 frontmatter 推断规则
 
+按 `cortex-schema-knowledge` 三模块路径前缀 + `cortex-schema-memory` 5 级 level 段判定 type / 衍生字段。
+
 | 缺失字段 | 推断来源 |
 | --- | --- |
-| `type` | 路径前缀: `memory/L0-core/` → `rule`; `memory/L1-L4*/` → `memory`; `项目/` → `project`; `领域/` → `domain`; `脚本/` → `vault-script` |
-| `area` (domain) | `领域/<area>/...` 路径第 2 段 |
-| `level` (rule/memory) | `memory/L([0-4])-` 路径第 3 段中提取 |
+| `type` | 按路径前缀匹配三模块 / memory 5 级 → 对应 type (映射权威见 `cortex-schema-knowledge/references/{projects,domains,scripts}.md` + `cortex-schema-memory/references/levels.md`) |
+| `area` (domain) | 领域模块路径中模块根之后的首段 |
+| `level` (rule/memory) | memory 路径段中 `L([0-4])-` 提取 (反写禁止, 见 levels.md) |
 | `created` | 文件 mtime (ISO date) |
 | `source` (project) | 留空占位 `TODO: fill source URL` (用户必须手填) |
 
-写回策略: 保留原 frontmatter 顺序与注释，仅在末尾追加缺失字段；如原文件无 frontmatter，则在文件最顶补一段 `---\n...\n---\n`。
+frontmatter 字段全集与各 type 模板见 `cortex-schema-knowledge/references/templates.md`。
+
+写回策略: 保留原 frontmatter 顺序与注释, 仅在末尾追加缺失字段; 如原文件无 frontmatter, 则在文件最顶补一段 `---\n...\n---\n`。
 
 ## R4 mkdir 修复
 
-对缺失目录直接 `os.makedirs(path, exist_ok=True)`，不写占位文件。
+对缺失目录直接 `os.makedirs(path, exist_ok=True)`, 不写占位文件。
 
-待补清单 (绝对覆盖):
+待补清单由权威源拼出:
 
-```
-<target>/.wiki/memory/L0-core/
-<target>/.wiki/memory/L1-long/
-<target>/.wiki/memory/L2-mid/
-<target>/.wiki/memory/L3-short/
-<target>/.wiki/memory/L4-inbox/
-<target>/.wiki/项目/
-<target>/.wiki/领域/
-<target>/.wiki/脚本/
-```
+- 顶层 + 三模块必备目录 → `cortex-schema-knowledge/references/topology.md`
+- memory 5 级必备目录 → `cortex-schema-memory/references/levels.md`
+
+Fixer 在运行时拼接清单, 不在本文件硬列路径。
 
 ## 实现位置
 

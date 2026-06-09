@@ -33,7 +33,7 @@
       "target": {
         "module": "memory",
         "level": "L3",
-        "path": "memory/L3-short",
+        "path": "<由 schema-* 决定>",
         "filename": "foo.md"
       },
       "reason": "L3 关键词命中: ['暂时']",
@@ -55,6 +55,6 @@
 
 ## 与其它 skill 的关系
 
-- 路径目标定义: `cortex-schema-knowledge` (项目/领域/脚本 三模块) + `cortex-schema-memory` (L0-L4)
+- 路径目标定义 (单一真相): `cortex-schema-knowledge` (项目/领域/脚本 三模块) + `cortex-schema-memory` (L0-L4)
 - 路径名与 level 一致性: `cortex-lint` R6 二次校验 (extract 写完跑 lint 验收)
-- 单一真相: `docs/layout.md`
+- `target.path` 字段的取值范围由 schema-* 定义, 本文件不再硬列具体路径段

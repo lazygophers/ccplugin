@@ -29,15 +29,9 @@ kebab-case, 见名知意, 禁通用名 (`tool.sh` / `script.py` 不允许)。
 - `if __name__ == "__main__":` 入口
 - 用 `argparse` 或等价方式处理参数
 
-## frontmatter (推荐, 不强制, 写为脚本内顶部注释块)
+## frontmatter
 
-```bash
-# ---
-# type: vault-script
-# name: canvas-from-mindmap
-# created: 2026-06-09
-# ---
-```
+模板见 `templates.md` (type: vault-script, 推荐不强制)。
 
 ## 补充: 用户操作入口脚本 (不属三模块)
 
