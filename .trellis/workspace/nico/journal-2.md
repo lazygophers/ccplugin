@@ -1524,3 +1524,36 @@ schema-knowledge/schema-memory 接管目录契约权威, lint/extract 改引用.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 105: cortex-schema 合并 + 样例补全
+
+**Date**: 2026-06-09
+**Task**: cortex-schema 合并 + 样例补全
+**Branch**: `cortex`
+
+### Summary
+
+schema-knowledge + schema-memory → cortex-schema 单一 skill. 补 7 完整 .md 样例 + 详细 ASCII 目录树含示例叶子. plugin.json 4→3 skill. 0 死引.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6f1bf2a9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
