@@ -3,12 +3,7 @@ name: cortex-schema-knowledge
 description: 知识库 schema — 项目/领域/脚本 三模块 (中文目录名) 路径规则与 frontmatter 契约, 用于 vault 入库 / 归档 / projects / domains / scripts / 内部脚本治理. 双层同构 (~/.cortex/.wiki + <repo>/.wiki), 区分 vault 内部脚本 (中文 脚本/) 与用户操作入口 (英文 scripts/).
 when_to_use: 入库/归档资料 / 新建项目摘要 / 写领域笔记 / 判定三模块归属 / vault 内部脚本治理 / lint+extract 查路径规则
 argument-hint: "[module]"
-arguments:
-  - name: module
-    description: "项目 | 领域 | 脚本, 限定查 schema 的子模块, 不填则全部"
-    required: false
-    type: enum
-    values: [项目, 领域, 脚本]
+arguments: "[模块]"
 ---
 
 # cortex-schema-knowledge
