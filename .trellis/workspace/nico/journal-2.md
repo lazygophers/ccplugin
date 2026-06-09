@@ -1491,3 +1491,36 @@ Phase 1-7 全链路落地. 双层 vault, 5 级记忆 (按遗忘曲线), 3 模块
 ### Next Steps
 
 - None - task complete
+
+
+## Session 104: cortex schema 收敛为单一真相源
+
+**Date**: 2026-06-09
+**Task**: cortex schema 收敛为单一真相源
+**Branch**: `cortex`
+
+### Summary
+
+schema-knowledge/schema-memory 接管目录契约权威, lint/extract 改引用. 删 docs/layout.md 整目录. 7 处死引清零, 路径硬列 0, smoke 同改前.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8dc78394` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
