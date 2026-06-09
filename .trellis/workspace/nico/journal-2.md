@@ -1656,3 +1656,36 @@ sources.md 单文件 → sources/{github,gitlab,website,local}.md 4 独立文件
 ### Next Steps
 
 - None - task complete
+
+
+## Session 109: cortex history-digest + context-digest 2 skill
+
+**Date**: 2026-06-09
+**Task**: cortex history-digest + context-digest 2 skill
+**Branch**: `cortex`
+
+### Summary
+
+history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整理上下文, scope 自动/手动判定. plugin.json 4→6. fixture 4/4 增量识别正确.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `58bb0bcb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

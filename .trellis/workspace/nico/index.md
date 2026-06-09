@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 108
+- **Total Sessions**: 109
 - **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1658 | Active |
+| `journal-2.md` | ~1691 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 109 | 2026-06-09 | cortex history-digest + context-digest 2 skill | `58bb0bcb` | `cortex` |
 | 108 | 2026-06-09 | cortex-ingest sources 按类型拆 4 文件 | `1fea70c7` | `cortex` |
 | 107 | 2026-06-09 | cortex-ingest 知识库构建 skill | `ebde01f7` | `cortex` |
 | 106 | 2026-06-09 | cortex-schema 模板按变体拆 11 文件 | `44a6899a` | `cortex` |
