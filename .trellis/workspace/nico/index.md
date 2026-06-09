@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 101
+- **Total Sessions**: 102
 - **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1427 | Active |
+| `journal-2.md` | ~1460 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 102 | 2026-06-09 | cortex skills arguments 字段格式修正 | `cd7745ac` | `cortex` |
 | 101 | 2026-06-09 | cortex skills 多文件改造 | `7926880e` | `cortex` |
 | 100 | 2026-06-09 | cortex skills 多文件改造 | `3e43c98e` | `cortex` |
 | 99 | 2026-06-09 | cortex plugin: KB + memory system | `2d8f3ed0` | `cortex` |
