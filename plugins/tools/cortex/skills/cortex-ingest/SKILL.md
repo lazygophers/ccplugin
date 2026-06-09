@@ -23,13 +23,16 @@ user-invocable: true
 
 落盘文件: `README.md` (frontmatter 用 cortex-schema `templates/project/<variant>.md`).
 
-## 何时读哪个 reference
+## 何时读哪个
 
 | 任务 | 文件 |
 | --- | --- |
-| 查 4 类输入定义 + 与 cortex-extract 边界 | `references/sources.md` |
-| 查识别算法 + 目标路径映射 + git remote 解析 | `references/routing.md` |
-| 查抓取流程 (gh/glab/WebFetch/read) + dry-run/apply + 游标 | `references/workflow.md` |
+| 查 GitHub 抓取详情 (gh CLI / WebFetch fallback) | `sources/github.md` |
+| 查 GitLab 抓取详情 (glab / WebFetch) | `sources/gitlab.md` |
+| 查 Website 抓取详情 (WebFetch + slug) | `sources/website.md` |
+| 查 local dir 抓取 (含 git remote 检测 + 转向逻辑) | `sources/local.md` |
+| 查输入识别算法 + 优先序 + git remote 解析 | `references/routing.md` |
+| 查 CLI vs sub-agent 抓取流程 + dry-run/apply + 游标 | `references/workflow.md` |
 
 ## 入口
 
