@@ -12,7 +12,7 @@
 | `created` | 文件 mtime (ISO date) |
 | `source` (project) | 留空占位 `TODO: fill source URL` (用户必须手填) |
 
-frontmatter 字段全集与各 type 模板见 `cortex-schema/references/templates.md`。
+frontmatter 字段全集与各 type 模板见 `cortex-schema/templates/`。
 
 写回策略: 保留原 frontmatter 顺序与注释, 仅在末尾追加缺失字段; 如原文件无 frontmatter, 则在文件最顶补一段 `---\n...\n---\n`。
 

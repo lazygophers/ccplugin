@@ -41,7 +41,8 @@ L1=长期 / L3=短期, 数字与时长**反向**. 路径后缀 (`core/long/mid/s
 | 查 ~/.cortex 顶层物理布局 / 双层同构 / 必备目录 / 开放扩展 / 详细 ASCII | `references/topology.md` |
 | 查三模块 (项目/领域/脚本) 路径规则 + 命名 + frontmatter | `references/knowledge-modules.md` |
 | 查 5 级记忆 (L0-L4) 语义 / 映射 / 反写防呆 / 遗忘曲线 / 三轴 / 路由 | `references/memory-levels.md` |
-| 查 frontmatter 通用字段表 + 各 type 块模板 | `references/templates.md` |
+| 查 frontmatter 通用字段表 | `templates/_fields.md` |
+| 查各 type / 变体 frontmatter 块模板 | `templates/{memory,project}/<variant>.md` 或 `templates/{domain,vault-script}.md` |
 | 查完整 .md 样例 (含正文 + wikilink) | `examples/<type>.md` |
 
 ## 引用

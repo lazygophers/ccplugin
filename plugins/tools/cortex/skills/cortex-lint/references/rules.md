@@ -6,7 +6,7 @@
 
 - 顶层布局 + 三模块路径 + 必备目录: `cortex-schema/references/topology.md`
 - 三模块命名规则: `cortex-schema/references/knowledge-modules.md`
-- frontmatter 字段 + 模板: `cortex-schema/references/templates.md`
+- frontmatter 字段 + 模板: `cortex-schema/templates/`
 - memory 5 级物理树 + level↔dir 映射: `cortex-schema/references/memory-levels.md`
 
 ## R1 — wikilink 死链 (warn)
@@ -18,7 +18,7 @@
 
 ## R2 — frontmatter 必备字段 (error)
 
-- **定义**: 每个 `.md` 的 frontmatter 必备字段集合按 type 分桶定义, 权威清单见 `cortex-schema/references/templates.md`。
+- **定义**: 每个 `.md` 的 frontmatter 必备字段集合按 type 分桶定义, 权威清单见 `cortex-schema/templates/`。
 - **级别**: error。
 - **autofix**: 是 (R2 推断规则见 `fixers.md`)。
 - **检测**: 解析 yaml frontmatter, 对照 templates.md 中该 type 的必备集合; 缺一即一条 Violation, 字段名进 msg。
