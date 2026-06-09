@@ -1,24 +1,12 @@
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .codex/hooks/session-start.py",
-            "timeout": 15,
-            "statusMessage": "Loading Trellis context..."
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3 .codex/hooks/inject-workflow-state.py",
-            "timeout": 5
+            "command": "python3 -X utf8 .codex/hooks/inject-workflow-state.py",
+            "timeout": 15
           }
         ]
       }

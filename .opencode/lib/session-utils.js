@@ -1,6 +1,6 @@
 /* global process */
 import { existsSync, readFileSync, readdirSync, statSync } from "fs"
-import { basename, join } from "path"
+import { join } from "path"
 import { execFileSync } from "child_process"
 import { platform } from "os"
 import { debugLog } from "./trellis-context.js"
@@ -8,9 +8,8 @@ import { debugLog } from "./trellis-context.js"
 const PYTHON_CMD = platform() === "win32" ? "python" : "python3"
 
 const FIRST_REPLY_NOTICE = `<first-reply-notice>
-On the first visible assistant reply in this session, begin with exactly one short Chinese sentence:
-Trellis SessionStart 已注入：workflow、当前任务状态、开发者身份、git 状态、active tasks、spec 索引已加载。
-Then continue directly with the user's request. This notice is one-shot: do not repeat it after the first assistant reply in the same session.
+First visible reply: say once in Chinese that Trellis SessionStart context is loaded, then answer directly.
+This notice is one-shot: do not repeat it after the first assistant reply in the same session.
 </first-reply-notice>`
 
 function hasCuratedJsonlEntry(jsonlPath) {
@@ -38,13 +37,18 @@ function getTaskStatus(ctx, platformInput = null) {
   const active = ctx.getActiveTask(platformInput)
   const taskRef = active.taskPath
   if (!taskRef) {
-    return `Status: NO ACTIVE TASK\nSource: ${active.source}\nNext: Describe what you want to work on`
+    return (
+      "Status: NO ACTIVE TASK\n" +
+      "Next-Action: Classify the current turn before creating any Trellis task. " +
+      "Simple conversation / small task asks only whether this turn should create a Trellis task. " +
+      "Complex task asks whether task creation and planning are allowed."
+    )
   }
 
   const taskDir = ctx.resolveTaskDir(taskRef)
 
   if (active.stale || !taskDir || !existsSync(taskDir)) {
-    return `Status: STALE POINTER\nTask: ${taskRef}\nSource: ${active.source}\nNext: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish`
+    return `Status: STALE POINTER\nTask: ${taskRef}\nNext-Action: Task directory not found. Run: python3 ./.trellis/scripts/task.py finish`
   }
 
   let taskData = {}
@@ -61,39 +65,49 @@ function getTaskStatus(ctx, platformInput = null) {
   const taskStatus = taskData.status || "unknown"
 
   if (taskStatus === "completed") {
-    const dirName = basename(taskDir)
-    return `Status: COMPLETED\nTask: ${taskTitle}\nSource: ${active.source}\nNext: Archive with \`python3 ./.trellis/scripts/task.py archive ${dirName}\` or start a new task`
-  }
-
-  let hasContext = false
-  for (const jsonlName of ["implement.jsonl", "check.jsonl"]) {
-    const jsonlPath = join(taskDir, jsonlName)
-    if (existsSync(jsonlPath) && hasCuratedJsonlEntry(jsonlPath)) {
-      hasContext = true
-      break
-    }
+    return `Status: COMPLETED\nTask: ${taskTitle}\nNext-Action: Run /trellis:finish-work. If the working tree is dirty, return to Phase 3.4 first.`
   }
 
   const hasPrd = existsSync(join(taskDir, "prd.md"))
+  const hasDesign = existsSync(join(taskDir, "design.md"))
+  const hasImplementPlan = existsSync(join(taskDir, "implement.md"))
+  const artifactNames = ["prd.md", "design.md", "implement.md", "implement.jsonl", "check.jsonl"]
+  const present = artifactNames.filter(name => existsSync(join(taskDir, name)))
+  if (existsSync(join(taskDir, "research"))) present.push("research/")
+  const presentLine = present.length > 0 ? present.join(", ") : "(none)"
+  const implementJsonl = join(taskDir, "implement.jsonl")
+  const checkJsonl = join(taskDir, "check.jsonl")
+  const jsonlReady =
+    (!existsSync(implementJsonl) || hasCuratedJsonlEntry(implementJsonl)) &&
+    (!existsSync(checkJsonl) || hasCuratedJsonlEntry(checkJsonl))
 
-  if (!hasPrd) {
-    return `Status: NOT READY\nTask: ${taskTitle}\nSource: ${active.source}\nMissing: prd.md not created\nNext: Write PRD (see workflow.md Phase 1.1) then curate implement.jsonl per Phase 1.3`
+  if (taskStatus === "planning" && !hasPrd) {
+    return `Status: PLANNING\nTask: ${taskTitle}\nPresent: ${presentLine}\nNext-Action: Load trellis-brainstorm and write prd.md. Stay in planning.`
   }
 
-  if (!hasContext) {
-    return `Status: NOT READY\nTask: ${taskTitle}\nSource: ${active.source}\nMissing: implement.jsonl / check.jsonl missing or empty\nNext: Curate entries per workflow.md Phase 1.3 (spec + research files only), then \`task.py start\``
+  if (taskStatus === "planning") {
+    const missingComplex = []
+    if (!hasDesign) missingComplex.push("design.md")
+    if (!hasImplementPlan) missingComplex.push("implement.md")
+    const nextBits = []
+    if (missingComplex.length > 0) {
+      nextBits.push(
+        `Lightweight task can request start review with PRD-only; complex task must add ${missingComplex.join(", ")} before start`,
+      )
+    } else {
+      nextBits.push("Planning artifacts are present; ask for review before `task.py start`")
+    }
+    if (!jsonlReady) {
+      nextBits.push("curate `implement.jsonl` and `check.jsonl` before sub-agent mode start")
+    }
+    return `Status: PLANNING\nTask: ${taskTitle}\nPresent: ${presentLine}\nNext-Action: ${nextBits.join("; ")}. Do not enter implementation until the user confirms start.`
   }
 
   return (
-    `Status: READY\nTask: ${taskTitle}\n` +
-    `Source: ${active.source}\n` +
-    "Next required action: dispatch `trellis-implement` per Phase 2.1. " +
-    "For agent-capable platforms, the default is to NOT edit code in the main session. " +
-    "After implementation, dispatch `trellis-check` per Phase 2.2 before reporting completion.\n" +
-    "User override (per-turn escape hatch): if the user's CURRENT message explicitly tells the " +
-    "main session to handle it directly (\"你直接改\" / \"别派 sub-agent\" / \"main session 写就行\" / " +
-    "\"do it inline\" / \"不用 sub-agent\"), honor it for this turn and edit code directly. " +
-    "Per-turn only; do NOT invent an override the user did not say."
+    `Status: ${String(taskStatus).toUpperCase()}\nTask: ${taskTitle}\n` +
+    `Present: ${presentLine}\n` +
+    "Next-Action: Follow the matching per-turn workflow-state. " +
+    "Implementation/check context order is jsonl entries -> `prd.md` -> `design.md if present` -> `implement.md if present`."
   )
 }
 
@@ -201,22 +215,163 @@ function resolveSpecScope(config) {
   return null
 }
 
+function collectSpecIndexPaths(directory, allowedPkgs) {
+  const specDir = join(directory, ".trellis", "spec")
+  const paths = []
+
+  const guidesIndex = join(specDir, "guides", "index.md")
+  if (existsSync(guidesIndex)) {
+    paths.push(".trellis/spec/guides/index.md")
+  }
+
+  if (!existsSync(specDir)) return paths
+
+  try {
+    const subs = readdirSync(specDir).filter(name => {
+      if (name.startsWith(".") || name === "guides") return false
+      try {
+        return statSync(join(specDir, name)).isDirectory()
+      } catch {
+        return false
+      }
+    }).sort()
+
+    for (const sub of subs) {
+      const indexFile = join(specDir, sub, "index.md")
+      if (existsSync(indexFile)) {
+        paths.push(`.trellis/spec/${sub}/index.md`)
+      } else {
+        if (allowedPkgs !== null && !allowedPkgs.has(sub)) continue
+        try {
+          const nested = readdirSync(join(specDir, sub)).filter(name => {
+            try {
+              return statSync(join(specDir, sub, name)).isDirectory()
+            } catch {
+              return false
+            }
+          }).sort()
+          for (const layer of nested) {
+            const nestedIndex = join(specDir, sub, layer, "index.md")
+            if (existsSync(nestedIndex)) {
+              paths.push(`.trellis/spec/${sub}/${layer}/index.md`)
+            }
+          }
+        } catch {
+          // Ignore directory read errors
+        }
+      }
+    }
+  } catch {
+    // Ignore spec directory read errors
+  }
+
+  return paths
+}
+
+function readDeveloper(directory) {
+  try {
+    const content = readFileSync(join(directory, ".trellis", ".developer"), "utf-8")
+    for (const line of content.split(/\r?\n/)) {
+      if (line.startsWith("name=")) return line.slice("name=".length).trim()
+    }
+  } catch {
+    // Ignore missing developer file
+  }
+  return "(not initialized)"
+}
+
+function runGit(directory, args) {
+  try {
+    return execFileSync("git", args, {
+      cwd: directory,
+      timeout: 3000,
+      encoding: "utf-8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim()
+  } catch {
+    return ""
+  }
+}
+
+function buildCompactCurrentState(ctx, platformInput, specIndexPaths) {
+  const directory = ctx.directory
+  const lines = []
+  lines.push(`Developer: ${readDeveloper(directory)}`)
+
+  const branch = runGit(directory, ["branch", "--show-current"]) || "(detached)"
+  const dirtyCount = runGit(directory, ["status", "--porcelain"])
+    .split(/\r?\n/)
+    .filter(line => line.trim()).length
+  lines.push(`Git: branch ${branch}; ${dirtyCount === 0 ? "clean" : `dirty ${dirtyCount} paths`}.`)
+
+  const active = ctx.getActiveTask(platformInput)
+  if (active.taskPath) {
+    const taskDir = ctx.resolveTaskDir(active.taskPath)
+    let status = "unknown"
+    if (taskDir) {
+      try {
+        const data = JSON.parse(readFileSync(join(taskDir, "task.json"), "utf-8"))
+        status = data.status || "unknown"
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    lines.push(`Current task: ${active.taskPath}; status=${status}.`)
+  } else {
+    lines.push("Current task: none.")
+  }
+
+  const tasksDir = join(directory, ".trellis", "tasks")
+  if (existsSync(tasksDir)) {
+    try {
+      const activeTasks = readdirSync(tasksDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && entry.name !== "archive" && existsSync(join(tasksDir, entry.name, "task.json")))
+      lines.push(`Active tasks: ${activeTasks.length} total. Use \`python3 ./.trellis/scripts/task.py list --mine\` only if needed.`)
+    } catch {
+      // Ignore task list errors
+    }
+  }
+
+  const developer = readDeveloper(directory)
+  const workspaceDir = join(directory, ".trellis", "workspace", developer)
+  if (developer !== "(not initialized)" && existsSync(workspaceDir)) {
+    try {
+      const journals = readdirSync(workspaceDir)
+        .filter(name => /^journal-\d+\.md$/.test(name))
+        .sort((a, b) => Number(a.match(/\d+/)?.[0] || 0) - Number(b.match(/\d+/)?.[0] || 0))
+      const journal = journals[journals.length - 1]
+      if (journal) {
+        const journalPath = join(workspaceDir, journal)
+        const lineCount = readFileSync(journalPath, "utf-8").split(/\r?\n/).length
+        lines.push(`Journal: .trellis/workspace/${developer}/${journal}, ${lineCount} / 2000 lines.`)
+      }
+    } catch {
+      // Ignore journal errors
+    }
+  }
+
+  if (specIndexPaths.length > 0) {
+    lines.push(`Spec indexes: ${specIndexPaths.length} available.`)
+  }
+
+  return lines.join("\n")
+}
+
 export function buildSessionContext(ctx, platformInput = null) {
   const directory = ctx.directory
-  const trellisDir = join(directory, ".trellis")
   const contextKey = typeof ctx.getContextKey === "function"
     ? ctx.getContextKey(platformInput)
     : null
 
   const config = loadTrellisConfig(directory, contextKey)
   const allowedPkgs = resolveSpecScope(config)
+  const paths = collectSpecIndexPaths(directory, allowedPkgs)
 
   const parts = []
 
-  parts.push(`<trellis-context>
-You are starting a new session in a Trellis-managed project.
-Read and follow all instructions below carefully.
-</trellis-context>`)
+  parts.push(`<session-context>
+Trellis compact SessionStart context. Use it to orient the session; load details on demand.
+</session-context>`)
   parts.push(FIRST_REPLY_NOTICE)
 
   const legacyWarning = checkLegacySpec(directory, config)
@@ -224,29 +379,18 @@ Read and follow all instructions below carefully.
     parts.push(`<migration-warning>\n${legacyWarning}\n</migration-warning>`)
   }
 
-  const contextScript = join(trellisDir, "scripts", "get_context.py")
-  if (existsSync(contextScript)) {
-    const output = ctx.runScript(contextScript, undefined, contextKey)
-    if (output) {
-      parts.push("<current-state>")
-      parts.push(output)
-      parts.push("</current-state>")
-    }
-  }
+  parts.push("<current-state>")
+  parts.push(buildCompactCurrentState(ctx, platformInput, paths))
+  parts.push("</current-state>")
 
   const workflowContent = ctx.readProjectFile(".trellis/workflow.md")
   if (workflowContent) {
     const allLines = workflowContent.split("\n")
     const overviewLines = [
-      "# Development Workflow — Section Index",
-      "Full guide: .trellis/workflow.md  (read on demand)",
+      "# Development Workflow - Session Summary",
+      "Full guide: .trellis/workflow.md. Step detail: `python3 ./.trellis/scripts/get_context.py --mode phase --step <X.Y>`.",
       "",
-      "## Table of Contents",
     ]
-    for (const line of allLines) {
-      if (line.startsWith("## ")) overviewLines.push(line)
-    }
-    overviewLines.push("", "---", "")
 
     let rangeStart = -1
     let rangeEnd = allLines.length
@@ -254,89 +398,36 @@ Read and follow all instructions below carefully.
       const stripped = allLines[i].trim()
       if (rangeStart === -1 && stripped === "## Phase Index") {
         rangeStart = i
-      } else if (rangeStart !== -1 && stripped === "## Workflow State Breadcrumbs") {
+      } else if (rangeStart !== -1 && stripped === "## Phase 1: Plan") {
         rangeEnd = i
         break
       }
     }
     if (rangeStart !== -1) {
-      overviewLines.push(...allLines.slice(rangeStart, rangeEnd))
+      const strippedStateBlocks = allLines
+        .slice(rangeStart, rangeEnd)
+        .join("\n")
+        .replace(/\[workflow-state:([A-Za-z0-9_-]+)\]\s*\n[\s\S]*?\n\s*\[\/workflow-state:\1\]\n?/g, "")
+        .replace(/<!--[\s\S]*?-->/g, "")
+        .replace(/^\[(?!\/?workflow-state:)\/?[^\]\n]+\]\s*\n?/gm, "")
+        .replace(/\n{3,}/g, "\n\n")
+      overviewLines.push(strippedStateBlocks.trimEnd())
     }
 
-    parts.push("<workflow>")
+    parts.push("<trellis-workflow>")
     parts.push(overviewLines.join("\n").trimEnd())
-    parts.push("</workflow>")
+    parts.push("</trellis-workflow>")
   }
 
   parts.push("<guidelines>")
   parts.push(
-    "Project spec indexes are listed by path below. Each index contains a " +
-    "**Pre-Development Checklist** listing the specific guideline files to " +
-    "read before coding.\n\n" +
-    "- If you're spawning an implement/check sub-agent, context is injected " +
-    "automatically via `{task}/implement.jsonl` / `check.jsonl`. You do NOT " +
-    "need to read these indexes yourself.\n" +
-    "- For agent-capable platforms, do NOT edit code directly in the main " +
-    "session; dispatch `trellis-implement` and `trellis-check` so JSONL " +
-    "context is loaded by the sub-agents.\n"
+    "Task context order for implementation/check: jsonl entries -> `prd.md` -> " +
+    "`design.md if present` -> `implement.md if present`. Missing optional artifacts " +
+    "are skipped for lightweight tasks.\n"
   )
 
-  const specDir = join(directory, ".trellis", "spec")
-
-  const guidesIndex = join(specDir, "guides", "index.md")
-  if (existsSync(guidesIndex)) {
-    const content = ctx.readFile(guidesIndex)
-    if (content) {
-      parts.push(`## guides (inlined — cross-package thinking guides)\n${content}\n`)
-    }
-  }
-
-  const paths = []
-  if (existsSync(specDir)) {
-    try {
-      const subs = readdirSync(specDir).filter(name => {
-        if (name.startsWith(".")) return false
-        try {
-          return statSync(join(specDir, name)).isDirectory()
-        } catch {
-          return false
-        }
-      }).sort()
-
-      for (const sub of subs) {
-        if (sub === "guides") continue
-
-        const indexFile = join(specDir, sub, "index.md")
-        if (existsSync(indexFile)) {
-          paths.push(`.trellis/spec/${sub}/index.md`)
-        } else {
-          if (allowedPkgs !== null && !allowedPkgs.has(sub)) continue
-          try {
-            const nested = readdirSync(join(specDir, sub)).filter(name => {
-              try {
-                return statSync(join(specDir, sub, name)).isDirectory()
-              } catch {
-                return false
-              }
-            }).sort()
-            for (const layer of nested) {
-              const nestedIndex = join(specDir, sub, layer, "index.md")
-              if (existsSync(nestedIndex)) {
-                paths.push(`.trellis/spec/${sub}/${layer}/index.md`)
-              }
-            }
-          } catch {
-            // Ignore directory read errors
-          }
-        }
-      }
-    } catch {
-      // Ignore spec directory read errors
-    }
-  }
-
   if (paths.length > 0) {
-    parts.push("## Available spec indexes (read on demand)")
+    parts.push("## Available indexes (read on demand)")
     for (const p of paths) {
       parts.push(`- ${p}`)
     }
@@ -353,9 +444,7 @@ Read and follow all instructions below carefully.
   parts.push(`<task-status>\n${taskStatus}\n</task-status>`)
 
   parts.push(`<ready>
-Context loaded. Workflow index, project state, and guidelines are already injected above — do NOT re-read them.
-When the user sends the first message, follow <task-status> and the workflow guide.
-If a task is READY, execute its Next required action without asking whether to continue.
+Context loaded. Follow <task-status>. Load workflow/spec/task details only when needed.
 </ready>`)
 
   return parts.join("\n\n")

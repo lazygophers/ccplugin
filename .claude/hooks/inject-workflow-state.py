@@ -33,7 +33,37 @@ import os
 import re
 import sys
 from pathlib import Path
+
+# Force UTF-8 on stdin/stdout/stderr on Windows. Default codepage there is
+# cp936 / cp1252 / etc. — non-ASCII content (Chinese task names, prd snippets)
+# both in stdin (hook payload from host CLI) and stdout (our emitted blocks)
+# raises UnicodeDecodeError / UnicodeEncodeError. Equivalent to `python -X utf8`
+# but applied per-stream so we don't depend on host CLI's command wiring.
+if sys.platform.startswith("win"):
+    import io as _io
+    for _stream_name in ("stdin", "stdout", "stderr"):
+        _stream = getattr(sys, _stream_name, None)
+        if _stream is None:
+            continue
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+            except Exception:
+                pass
+        elif hasattr(_stream, "detach"):
+            try:
+                setattr(sys, _stream_name, _io.TextIOWrapper(_stream.detach(), encoding="utf-8", errors="replace"))
+            except Exception:
+                pass
 from typing import Optional
+
+
+# Bootstrap notice for Codex while the session has no active task. Codex does not
+# get the full SessionStart overview; this short reminder points the main session
+# at the start skill once and leaves the per-turn state block compact.
+CODEX_NO_TASK_BOOTSTRAP_NOTICE = """<trellis-bootstrap>
+If you have not already loaded Trellis context this session, read the `trellis-start` skill once.
+</trellis-bootstrap>"""
 
 
 # ---------------------------------------------------------------------------
@@ -167,11 +197,87 @@ def load_breadcrumbs(root: Path) -> dict[str, str]:
     return result
 
 
+def _read_trellis_config(root: Path) -> dict:
+    """Load .trellis/config.yaml via the bundled trellis_config helper.
+
+    The helper lives in .trellis/scripts/common; the hook lives outside the
+    scripts tree, so we extend sys.path before importing.
+    """
+    scripts_dir = root / ".trellis" / "scripts"
+    if str(scripts_dir) not in sys.path:
+        sys.path.insert(0, str(scripts_dir))
+    try:
+        from common.trellis_config import read_trellis_config  # type: ignore[import-not-found]
+    except Exception:
+        return {}
+    try:
+        return read_trellis_config(root)
+    except Exception:
+        return {}
+
+
+def _codex_mode_banner(config: dict) -> str:
+    """Emit a `<codex-mode>` banner for the additionalContext payload.
+
+    Reads `codex.dispatch_mode` from .trellis/config.yaml; defaults to
+    `inline` when missing or invalid because Codex sub-agents run with
+    `fork_turns="none"` isolation and can't inherit the parent session's
+    task context. The banner makes the active mode explicit to Codex AI
+    per turn, complementing the workflow-state body which is per-status.
+    Mode tells AI which dispatch protocol to follow; workflow-state tells
+    AI what step it's at.
+    """
+    mode = "inline"
+    if isinstance(config, dict):
+        codex_cfg = config.get("codex")
+        if isinstance(codex_cfg, dict):
+            cfg_mode = codex_cfg.get("dispatch_mode")
+            if cfg_mode in ("inline", "sub-agent"):
+                mode = cfg_mode
+    if mode == "sub-agent":
+        meaning = (
+            "sub-agent: implement/check work defaults to Trellis sub-agents; "
+            "the main session still coordinates, clarifies, updates specs, commits, and finishes."
+        )
+    else:
+        meaning = (
+            "inline: the main session implements/checks directly; "
+            "do not dispatch implement/check sub-agents."
+        )
+    return f"<codex-mode>{meaning}</codex-mode>"
+
+
+def resolve_breadcrumb_key(
+    status: str, platform: str | None, config: dict
+) -> str:
+    """Pick the breadcrumb tag key based on Codex dispatch_mode.
+
+    Codex defaults to ``inline`` because sub-agents run with ``fork_turns="none"``
+    isolation and can't inherit the parent session's task context. Users can
+    opt into ``codex.dispatch_mode: sub-agent`` in ``.trellis/config.yaml``
+    to use the parallel ``<status>-inline`` tag → ``<status>`` flip. Invalid
+    or missing values fall back to inline.
+
+    Non-codex platforms return the plain status unchanged.
+    """
+    if platform == "codex":
+        mode = "inline"
+        if isinstance(config, dict):
+            codex_cfg = config.get("codex")
+            if isinstance(codex_cfg, dict):
+                cfg_mode = codex_cfg.get("dispatch_mode")
+                if cfg_mode in ("inline", "sub-agent"):
+                    mode = cfg_mode
+        return f"{status}-inline" if mode == "inline" else status
+    return status
+
+
 def build_breadcrumb(
     task_id: Optional[str],
     status: str,
     templates: dict[str, str],
     source: str | None = None,
+    breadcrumb_key: str | None = None,
 ) -> str:
     """Build the <workflow-state>...</workflow-state> block.
 
@@ -180,12 +286,13 @@ def build_breadcrumb(
       "Refer to workflow.md for current step." line
     - `no_task` pseudo-status (task_id is None) → header omits task info
     """
-    body = templates.get(status)
+    lookup_key = breadcrumb_key or status
+    body = templates.get(lookup_key)
+    if body is None and lookup_key != status:
+        body = templates.get(status)
     if body is None:
         body = "Refer to workflow.md for current step."
     header = f"Status: {status}" if task_id is None else f"Task: {task_id} ({status})"
-    if source:
-        header = f"{header}\nSource: {source}"
     return f"<workflow-state>\n{header}\n{body}\n</workflow-state>"
 
 
@@ -210,20 +317,36 @@ def main() -> int:
         return 0  # not a Trellis project
 
     templates = load_breadcrumbs(root)
+    platform = _detect_platform(data)
+    config = _read_trellis_config(root)
     task = get_active_task(root, data)
     if task is None:
         # No active task — still emit a breadcrumb nudging AI toward
         # trellis-brainstorm + task.py create when user describes real work.
-        breadcrumb = build_breadcrumb(None, "no_task", templates)
+        no_task_key = resolve_breadcrumb_key("no_task", platform, config)
+        breadcrumb = build_breadcrumb(
+            None, "no_task", templates, breadcrumb_key=no_task_key
+        )
     else:
         task_id, status, source = task
-        breadcrumb = build_breadcrumb(task_id, status, templates, source)
+        status_key = resolve_breadcrumb_key(status, platform, config)
+        source_for_breadcrumb = None if platform == "codex" else source
+        breadcrumb = build_breadcrumb(
+            task_id, status, templates, source_for_breadcrumb, breadcrumb_key=status_key
+        )
+    if platform == "codex":
+        parts: list[str] = []
+        if task is None:
+            parts.append(CODEX_NO_TASK_BOOTSTRAP_NOTICE)
+        parts.append(_codex_mode_banner(config))
+        parts.append(breadcrumb)
+        breadcrumb = "\n\n".join(parts)
 
     # Gemini CLI 0.40.x rejects "UserPromptSubmit" — its per-turn event is
     # named "BeforeAgent". Other platforms (Claude/Cursor/Qoder/CodeBuddy/
     # Droid/Codex/Copilot) accept the original Claude-style name.
     hook_event_name = (
-        "BeforeAgent" if _detect_platform(data) == "gemini" else "UserPromptSubmit"
+        "BeforeAgent" if platform == "gemini" else "UserPromptSubmit"
     )
 
     output = {
