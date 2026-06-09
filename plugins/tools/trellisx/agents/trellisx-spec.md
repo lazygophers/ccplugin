@@ -3,6 +3,8 @@ name: trellisx-spec
 description: 在 forked subagent 内执行 Spec 破坏式优化的子代理。被 trellisx-spec skill (context: fork) 启动。负责读 .trellis/spec/**, 跑诊断, 出提案, 走 AskUserQuestion 审批, 一次写盘并同步 task manifest 引用列表。无主会话历史。
 tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 model: inherit
+permissionMode: bypassPermissions
+background: true
 ---
 
 # trellisx-spec subagent
