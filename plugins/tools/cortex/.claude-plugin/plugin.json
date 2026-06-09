@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "description": "TODO: cortex 插件功能描述 (占位骨架, 主题待定)",
+  "description": "cortex — 知识库 + 记忆管理插件: 双层同构 (~/.cortex/.wiki + <repo>/.wiki), 5 级记忆 (L0-core/L1-long/L2-mid/L3-short/L4-inbox, 按遗忘曲线设计), 3 模块知识库 (projects/domains/scripts), lint + extract 自动化",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -13,12 +13,29 @@
     "./agents/cortex.md"
   ],
   "skills": [
-    "./skills/cortex"
+    "./skills/cortex-schema-knowledge",
+    "./skills/cortex-schema-memory",
+    "./skills/cortex-lint",
+    "./skills/cortex-extract"
   ],
   "commands": [],
   "hooks": {},
   "keywords": [
     "cortex",
-    "TODO"
+    "knowledge-base",
+    "memory",
+    "vault",
+    "obsidian",
+    "wiki",
+    "lint",
+    "extract",
+    "promote",
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "forgetting-curve",
+    "ebbinghaus"
   ]
 }

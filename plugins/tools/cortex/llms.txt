@@ -1,29 +1,62 @@
 # cortex
 
-> TODO: cortex 插件一行摘要 (占位骨架)
+> 知识库 + 记忆管理插件: 双层同构 vault, 5 级记忆按遗忘曲线分级, 3 模块知识库, lint + extract 自动化.
 
 ## 概述
 
-TODO: 补充插件用途 / 核心能力 / 触发条件。
+- 双层 vault: `~/.cortex/.wiki/` (用户级) + `<repo>/.wiki/` (项目级), 内部完全同构
+- 5 级记忆按 Ebbinghaus 遗忘曲线: L0 核心 / L1 长期 / L2 中期 / L3 短期 / L4 收件箱
+- 升级方向 = 抵抗遗忘 (L3 → L2 → L1 → L0); 默认入口 L3
+- 3 模块知识库: projects (host/owner/repo) / domains (area/sub) / scripts (vault 内部)
+- 4 skill: schema-knowledge, schema-memory, lint, extract
+- 1 agent: cortex (协调 4 skill)
 
 ## 目录结构
 
 ```
-cortex/
-├── .claude-plugin/
-│   └── plugin.json
-├── agents/
-│   └── cortex.md
+plugins/tools/cortex/
+├── .claude-plugin/plugin.json
+├── agents/cortex.md
 ├── skills/
-│   └── cortex/
-│       └── SKILL.md
-├── hooks/
-├── commands/
+│   ├── cortex-schema-knowledge/SKILL.md
+│   ├── cortex-schema-memory/SKILL.md
+│   ├── cortex-lint/SKILL.md
+│   └── cortex-extract/SKILL.md
+├── scripts/
+│   ├── validate-layout.sh        ← 目录契约校验
+│   ├── lint.sh + _lint/          ← 7 规则 + R2/R4 autofix
+│   └── extract.sh + _extract/    ← L4-inbox 路由
+├── docs/layout.md                ← 目录契约单一真相
+├── tests/fixtures/{layout-ok,layout-bad,lint,extract}/
+├── hooks/                        ← 占位
+├── commands/                     ← 占位
 ├── README.md
 └── llms.txt
 ```
 
+## 运行时根 (非本插件管, 用户机器创建)
+
+```
+~/.cortex/
+├── .wiki/{memory/{L0-core,L1-long,L2-mid,L3-short,L4-inbox}, projects/, domains/, scripts/}
+├── config/  state/  scripts/  logs/
+└── <开放扩展位>
+```
+
+项目级 `<repo>/.wiki/` 同构 (无 config/state/logs/scripts 顶层, 内部 .wiki 同 ~/.cortex/.wiki/).
+
+## 核心契约 (重要)
+
+- **脚本目录用途分离**:
+  - `~/.cortex/scripts/` = 用户操作入口 CLI (user-facing, 仅用户级)
+  - `~/.cortex/.wiki/scripts/` + `<repo>/.wiki/scripts/` = vault 内部脚本 (双层)
+- **反直觉等级**: 数字与短/长期非对应, L1=长期 L3=短期, 路径名强制内嵌语义防写反
+- **L0 写入永远 ask**, 即使 `--apply` 也强制确认
+- **dry-run 默认**: lint --check / extract --dry-run 是默认; --fix / --apply 才落盘
+- **与外部 obsidian vault 独立**, 无路径耦合
+
 ## 相关文档
 
-- [README](./README.md) - 完整文档
-- [插件配置](./.claude-plugin/plugin.json) - 插件元数据
+- [README](./README.md) — 完整说明
+- [layout.md](./docs/layout.md) — 目录契约权威源
+- [plugin.json](./.claude-plugin/plugin.json) — 插件元数据
