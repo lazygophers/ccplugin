@@ -55,8 +55,10 @@ user-invocable: false
 | `references/task-tree.md` | 多 deliverable 拆 parent/child 时 |
 | `references/jsonl-curation.md` | dispatch 前最后一步 |
 | `references/five-elements.md` | 拆任何 subtask / checklist 项时 (基础参考) |
-| `references/layer-selection.md` | implement 标注执行层时 |
+| `references/layer-selection.md` | implement 标注执行层时 + trellis 复杂度判定 coordinator |
 | `references/shared-resources.md` | 标注资源互斥 / 并行决策时 |
+| `references/progress-communication.md` | coordinator 回传进度时 (每 subtask 完成 / 阻塞) |
+| `references/task-lifecycle.md` | 任务规划开始 / 阶段切换前 (planning → in_progress → check → sediment → stop) |
 | `references/selfcheck.md` | planning → start 前最终自检 |
 
 ## 引用

@@ -46,6 +46,28 @@ teammate 需互相辩论 / 跨层协调               → agent-team (3-5)
 | workflow 各 agent 并行写 | 是 (脚本设 `isolation: "worktree"`) | 开销 ~200-500ms/agent, 必要时才开 |
 | agent-team teammate | 不支持 worktree | 按文件集分区任务 |
 
+## Trellis 复杂度 → coordinator + 执行层 自动判定
+
+trellis task 进 planning 时按以下表选 coordinator (谁负责调度 + 进度回传):
+
+| 复杂度信号 | Coordinator | 执行层 | 通信机制 |
+| --- | --- | --- | --- |
+| ≤ 3 subtask + 单视角 | main 自身 | sub-agent (并行) | sub-agent 摘要 → main → 用户 |
+| ≥ 4 subtask 或 多视角 / 跨层 / 假设辩论 | agent-team leader | teammate 池 (3-5 人) | SendMessage 互发 + leader 综合 |
+| 仓库级审计 / ≥ 100 调用站点 / 500+ 文件迁移 | main + workflow | workflow agent (脚本编排) | 脚本变量串接 + 阶段摘要 |
+
+**自动判定输入**:
+- subtask 数: 从 PRD subtask 表 + `subtask/*.md` 文件数计 (> 3 升级 agent-team)
+- 视角数: PRD 含 "对比 / 辩论 / 假设验证 / 跨前后端" 语义即升级 agent-team
+- 规模: 改动 ≥ 5 同类文件 / 跨包 / 仓库级即升级 workflow
+
+## Coordinator 单线程硬规
+
+- coordinator 禁同时跑多个 subtask (失去调度视角 + 上下文污染)
+- 即使 main 自身做某 subtask 也必须串行处理, 完成再启下一个
+- subtask 必须派给 sub-agent / teammate / workflow agent 执行, coordinator 仅负责调度 + 进度回传 + 决策
+- coordinator 派 subtask 后禁转去做无关事 (失去监督)
+
 ## 标注格式
 
 implement.md 每条 subtask 一行:
