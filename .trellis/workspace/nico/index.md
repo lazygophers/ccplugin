@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 97
-- **Last Active**: 2026-05-23
+- **Total Sessions**: 98
+- **Last Active**: 2026-06-09
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1295 | Active |
+| `journal-2.md` | ~1328 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 98 | 2026-06-09 | scaffold cortex plugin skeleton | `3685f779` | `cortex` |
 | 97 | 2026-05-23 | 新增 cortex-dataview Dataview 查询 skill | `cdef5fab` | `master` |
 | 96 | 2026-05-23 | vault _templates 全量回灌 + quickadd 集成 | `7213e113` | `master` |
 | 95 | 2026-05-22 | 新增 cortex video/audio 理解两个 skill | `59014063` | `master` |
