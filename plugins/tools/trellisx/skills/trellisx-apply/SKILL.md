@@ -52,7 +52,7 @@ ls .claude/hooks/ 2>/dev/null    # 平台 hook 目标 (trellis init --claude 生
 | **worktree (I1/I2)** | `task.py start` 后建 `.trellis/worktrees/<task>` worktree; 执行限于 worktree; archive 时合并 + 移除 | workflow.md + 平台 hook (PostToolUse 监测 task.py) |
 | **trellis-check 闭环 (C3)** | task 完成前**必经** `trellis-check`; 未过禁宣告完成 | workflow.md 完成判定 + spec |
 | **回复前缀标记** | 所有回复以 `[trellisx-{status}-{task}]` (无 task `[trellisx]`) 开头 | workflow.md 顶部 + 平台 hook |
-| **前置流程铁律** | 确认实施 → ①create ②planning拆subtask ③worktree ④execute ⑤trellis-check | workflow.md Phase 描述 |
+| **前置流程铁律 (5 步)** | ①创建任务+切worktree ②任务规划(拆subtask+文档) ③异步执行(调度subtask agent并行) ④整体check ⑤commit+finish | workflow.md Phase 描述 |
 | **subtask 文件编排 (R2)** | 每 subtask 独立文件 `.trellis/tasks/<task>/subtask/<id>.md` + mermaid 调度图 | 引用 `trellisx-orchestrate` skill |
 | **spec 优化 (R4)** | 破坏式重写走 `trellisx-spec`; 增量捕获走 trellis 原生 `trellis-update-spec` | spec 说明 |
 | **jsonl (R5)** | implement.jsonl/check.jsonl 由 trellis 平台 hook 自动注入, 仅说明 curate 填什么 | 引用 trellis |

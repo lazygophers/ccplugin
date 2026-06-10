@@ -42,11 +42,11 @@ trellisx planning: 加载 trellisx-orchestrate skill。task 必须拆 ≥ 2 subt
 ### `[workflow-state:in_progress]` 追加
 ```
 <!-- trellisx:start:in_progress -->
-trellisx 执行 (worktree 隔离, C1: main 可写但必在 worktree):
-- task.py start 后已自动建 worktree .trellis/worktrees/<task> (平台 hook); 全部源码改动必须落该 worktree 内
-- main 可直接写源码 (trellis inline 风格), 但目标路径必须在 worktree; 复杂/并行 subtask 派 sub-agent (isolation:worktree) 或 agent-team 成员
-- 进 worktree: 写 worktree 绝对路径, 或 EnterWorktree 切会话
-- 完成实施后必经 trellis-check (C3 闭环), 未过禁宣告完成
+trellisx 执行 (worktree 隔离 + 异步, C1: main 可写但必在 worktree):
+- worktree 已建于 .trellis/worktrees/<task> (创建任务时自动); 全部源码改动必须落该 worktree 内
+- subtask **异步并行执行**: 各 subtask 派 sub-agent (isolation:worktree) 或 agent-team 成员, 同时推进, 不串行干等
+- main 可直接写源码 (trellis inline), 但目标路径必须在 worktree (写绝对路径或 EnterWorktree 切入); 简单 subtask main 直做, 复杂/并行派 agent
+- 全部 subtask done → trellis-check 整体校验 (C3 闭环), 未过禁宣告完成
 <!-- trellisx:end:in_progress -->
 ```
 
@@ -64,9 +64,14 @@ trellisx inline: main 直接 edit, 但目标必须在 worktree .trellis/worktree
 <!-- trellisx:start:phase2_order -->
 ### trellisx 前置流程铁律 (实施类, 禁跳步)
 
-确认实施需求 → ① task.py create → ② planning (加载 trellisx-orchestrate, 拆 ≥ 2 subtask) → ③ task.py start (自动建 worktree) → ④ 在 worktree 内 execute (main 直写 worktree 路径 / 派 agent) → ⑤ trellis-check 闭环 → 完成。
+trellisx 标准开发流程 (5 步, 禁跳步):
+① **创建任务 + 切 worktree**: task.py create + start → 平台 hook 自动建并提示切入 .trellis/worktrees/<task>
+② **任务规划**: 加载 trellisx-orchestrate skill, 拆 ≥ 2 subtask, 写 prd.md / design.md / implement.md + 每 subtask 独立文件 .trellis/tasks/<task>/subtask/<id>.md + mermaid 调度图
+③ **异步执行**: 按调度图调度拆好的 subtask agent (sub-agent isolation:worktree / agent-team 成员), **尽可能并行开发**提升整体效率; 无依赖的 subtask 同时派发, 有依赖的按调度图顺序; main 可直写 worktree 路径
+④ **整体 check 校验**: 全部 subtask done → trellis-check 综合验证 (闭环, 未过禁继续)
+⑤ **commit + finish**: 合并 worktree → 移除 → commit → task.py archive (finish) → 落 cortex
 
-禁: 直接写代码不建 task / 主工作区写源码 / 跳过 trellis-check。
+禁: 直接写代码不建 task / 主工作区写源码 / 该并行的 subtask 串行干等 / 跳过 trellis-check。
 <!-- trellisx:end:phase2_order -->
 ```
 

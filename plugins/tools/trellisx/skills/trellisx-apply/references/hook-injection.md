@@ -2,7 +2,7 @@
 
 trellis `init --claude` 在 `.claude/hooks/` 生成平台 hook (Python)。trellisx-apply 在此补 **worktree 自动生命周期** + **回复前缀校验** —— 但不改 task.py 脚本 (用户约束 I2)。
 
-## 1. PostToolUse: task.py start → 自动建 worktree
+## 1. PostToolUse: task.py create/start → 自动建 worktree (创建任务即切)
 
 新增 `.claude/hooks/trellisx-worktree.py` (或追加到 trellis 已有 PostToolUse hook):
 
@@ -23,8 +23,8 @@ def task_id():
                        capture_output=True, text=True, cwd=cwd, timeout=5)
     return os.path.basename(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
 
-# start → 建 worktree
-if re.search(r"task\.py\s+start\b", cmd):
+# create / start → 建 worktree (创建任务即切, 步骤 1)
+if re.search(r"task\.py\s+(create|start)\b", cmd):
     tid = task_id()
     if tid:
         wt = os.path.join(cwd, ".trellis", "worktrees", tid)
