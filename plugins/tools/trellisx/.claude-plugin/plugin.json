@@ -50,6 +50,61 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 提醒 sub-agent worktree 合并清理",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/subagent-stop.sh"
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 提醒为 task 创建 worktree",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/task-created.sh"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 校验 task worktree 已清理",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/task-completed.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 写盘 worktree 提醒",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/permission-request.sh"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 记录残留 worktree",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-end.sh"
+          }
+        ]
+      }
     ]
   },
   "keywords": [
