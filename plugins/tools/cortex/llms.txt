@@ -1,67 +1,26 @@
 # cortex
 
-> 知识库 + 记忆管理插件: 双层同构 vault, 5 级记忆按遗忘曲线分级, 3 模块知识库, lint + extract 自动化.
+> 知识库 + 记忆管理插件 - 双层 vault、5 级记忆 (Ebbinghaus 遗忘曲线)、知识库三模块, 提供搜索 / 入库 / 整理 / 升降级 / 校验全流程
 
-## 概述
+## Docs
 
-- 双层 vault: `~/.cortex/.wiki/` (用户级) + `<repo>/.wiki/` (项目级), 内部完全同构
-- 5 级记忆按 Ebbinghaus 遗忘曲线: L0 核心 / L1 长期 / L2 中期 / L3 短期 / L4 收件箱
-- 升级方向 = 抵抗遗忘 (L3 → L2 → L1 → L0); 默认入口 L3
-- 3 模块知识库: projects (host/owner/repo) / domains (area/sub) / scripts (vault 内部)
-- 8 skill: cortex-schema, cortex-ingest, cortex-lint, cortex-extract, cortex-recall, cortex-history-digest, cortex-context-digest, cortex-evolve
-- 1 agent: cortex (协调 7 skill)
+- [README](./README.md): 完整说明 — 组件、目录契约、边界、触发、安装
+- [插件配置](./.claude-plugin/plugin.json): 插件元数据 (8 skill + 1 agent 声明)
+- [目录契约权威源](./skills/cortex-schema/): 双层布局 / 三模块路径 / 5 级记忆 / frontmatter 模板 / 样例 (单一真相)
 
-## 目录结构
+## Examples
 
-```
-plugins/tools/cortex/
-├── .claude-plugin/plugin.json
-├── agents/cortex.md
-├── skills/
-│   ├── cortex-schema/SKILL.md
-│   ├── cortex-ingest/SKILL.md
-│   ├── cortex-lint/SKILL.md
-│   ├── cortex-extract/SKILL.md
-│   ├── cortex-recall/SKILL.md
-│   ├── cortex-history-digest/SKILL.md
-│   ├── cortex-context-digest/SKILL.md
-│   └── cortex-evolve/SKILL.md
-├── scripts/
-│   ├── validate-layout.sh        ← 目录契约校验
-│   ├── ingest.sh + _ingest/      ← 4 类输入 (github/gitlab/website/local) 路由
-│   ├── lint.sh + _lint/          ← 7 规则 + R2/R4 autofix
-│   ├── extract.sh + _extract/    ← L4-inbox 路由
-│   └── history-digest.sh + _history_digest/  ← ~/.claude/projects 历史扫
-├── tests/fixtures/{layout-ok,layout-bad,lint,extract}/
-├── hooks/                        ← 占位
-├── commands/                     ← 占位
-├── README.md
-└── llms.txt
-```
+- [cortex-schema](./skills/cortex-schema/SKILL.md): 目录/路径/模板契约权威 (背景知识, 被其他 skill 引用)
+- [cortex-recall](./skills/cortex-recall/SKILL.md): 搜双层 vault → 兜底 (WebSearch→问用户) → 按 scope 归类回填
+- [cortex-ingest](./skills/cortex-ingest/SKILL.md): GitHub/GitLab/Website/local 输入识别 + 路由入库
+- [cortex-extract](./skills/cortex-extract/SKILL.md): L4-inbox 三轴路由分级 (抗遗忘度/强度/复用面)
+- [cortex-lint](./skills/cortex-lint/SKILL.md): 7 规则校验 + R2/R4 autofix
+- [cortex-evolve](./skills/cortex-evolve/SKILL.md): 金字塔升降级 (频率/时间/重要度)
+- [cortex-context-digest](./skills/cortex-context-digest/SKILL.md): 整理会话上下文 → scope 归类沉淀
+- [cortex-history-digest](./skills/cortex-history-digest/SKILL.md): 扫 ~/.claude/projects 历史 → 全局记忆
 
-## 运行时根 (非本插件管, 用户机器创建)
+## Optional
 
-```
-~/.cortex/
-├── .wiki/{memory/{L0-core,L1-long,L2-mid,L3-short,L4-inbox}, projects/, domains/, scripts/}
-├── config/  state/  scripts/  logs/
-└── <开放扩展位>
-```
-
-项目级 `<repo>/.wiki/` 同构 (无 config/state/logs/scripts 顶层, 内部 .wiki 同 ~/.cortex/.wiki/).
-
-## 核心契约 (重要)
-
-- **脚本目录用途分离**:
-  - `~/.cortex/scripts/` = 用户操作入口 CLI (user-facing, 仅用户级)
-  - `~/.cortex/.wiki/scripts/` + `<repo>/.wiki/scripts/` = vault 内部脚本 (双层)
-- **反直觉等级**: 数字与短/长期非对应, L1=长期 L3=短期, 路径名强制内嵌语义防写反
-- **L0 写入永远 ask**, 即使 `--apply` 也强制确认
-- **dry-run 默认**: lint --check / extract --dry-run 是默认; --fix / --apply 才落盘
-- **与外部 obsidian vault 独立**, 无路径耦合
-
-## 相关文档
-
-- [README](./README.md) — 完整说明
-- [cortex-schema](./skills/cortex-schema/) — 目录契约 / 三模块路径 / 5 级记忆 / 同构 / 模板 / 样例权威源
-- [plugin.json](./.claude-plugin/plugin.json) — 插件元数据
+- [cortex agent](./agents/cortex.md): 主代理, 按请求分类调度 8 skill
+- [脚本](./scripts/): validate-layout / lint / extract / ingest / history-digest (bash + python, dry-run 默认)
+- [完整目录树样例](./skills/cortex-schema/examples/vault-tree.md): ~/.cortex/.wiki/ 填充后实样
