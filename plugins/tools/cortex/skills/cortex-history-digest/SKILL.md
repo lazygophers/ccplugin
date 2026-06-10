@@ -5,6 +5,7 @@ when_to_use: "整理 Claude Code 历史/digest transcripts/沉淀历史会话/�
 argument-hint: "[--dry-run|--apply] [--target <vault>]"
 arguments: "[--dry-run|--apply] [--target <仓库根>]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # cortex-history-digest
