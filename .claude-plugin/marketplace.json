@@ -517,7 +517,7 @@
     {
       "name": "trellisx",
       "source": "./plugins/tools/trellisx",
-      "description": "Trellisx — Trellis 任务编排扩展: enforce skill 强制规范 (任务门禁 + worktree 生命周期) + orchestrate skill 编排 (PRD/design/implement/subtask + mermaid 调度图) + spec skill 破坏式优化 (init/optimize/sediment) + SessionStart/UserPromptSubmit hook 每轮注入门禁",
+      "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 worktree 隔离 / subtask 编排 / main 协调 / trellis-check 闭环 / 前缀标记 内化进 .trellis 自身 (workflow.md + spec + 平台 hook); 插件本身无运行时 hook",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
