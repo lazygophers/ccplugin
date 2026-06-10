@@ -14,7 +14,7 @@ flowchart TB
     REVIEW -->|是| START["task.py start<br/>status: in_progress"]
     START --> WT["创建 worktree<br/>task 改动隔离到独立工作树"]
     WT --> COORD["coordinator + 执行层 判定<br/>layer-selection.md"]
-    COORD --> EXEC["subtask 在 worktree 内执行<br/>sub-agent / agent-team / workflow"]
+    COORD --> EXEC["subtask 异步并行执行 (按调度图)<br/>sub-agent / agent-team / workflow<br/>main 可在 worktree 直做简单 subtask"]
     EXEC --> COMM["进度实时同步<br/>progress-communication.md"]
     COMM --> CHECK{"全部 subtask Done?"}
     CHECK -->|否, 失败| RECOVER["failure-recovery.md<br/>重试 / 换执行者 / 回 planning"]

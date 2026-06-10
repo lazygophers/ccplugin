@@ -8,7 +8,7 @@ design / implement 标注每块工作的执行层 (`main / sub-agent / agent-tea
 
 | 层 | 协调者 | 上下文 | 通信 | 并发上限 | 适用 |
 | --- | --- | --- | --- | --- | --- |
-| main 直做 | — | 主对话 | 无 | 1 | ≤ 3 文件 / ≤ 3 query / 已知 file:line |
+| main 直做 | — | 主对话 | 无 | 1 | ≤ 3 文件 / 已知 file:line; 实施类**必在 worktree 内写** (探索只读不限) |
 | sub-agent | main 逐轮决策 | 隔离 context window | 仅向 main 返回摘要 | 16 (机器上限) | 高量输出隔离 / 并行调研 / 强约束工具 |
 | agent-team | leader 协调 + 共享任务列表 | 每 teammate 独立 | SendMessage 直接互发 | 3-5 推荐 | 多假设辩论 / 跨层协调 / 多视角审查 |
 | workflow | 脚本 | 脚本变量持有中间结果 | 阶段串接 | 16 并发 / 1000 总 | 仓库级审计 / 大规模迁移 / 多源交叉验证 |
