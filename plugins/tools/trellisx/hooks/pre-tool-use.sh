@@ -114,22 +114,25 @@ if not active:
         "写盘 = 实施, 必须有 active trellis task (不看 subtask 数)。立即 task.py create 走 planning + worktree。纯探索不受限。")
     emit("deny", reason=f"trellisx: 写 {fname} 被拦。{reason}")
 
-def in_worktree():
+def file_in_worktree(target):
+    """检测写盘目标 file_path 是否在某个 (非主) git worktree 内。"""
     try:
-        gd = subprocess.run(["git","-C",cwd,"rev-parse","--git-dir"], capture_output=True, text=True, timeout=5)
-        cd = subprocess.run(["git","-C",cwd,"rev-parse","--git-common-dir"], capture_output=True, text=True, timeout=5)
-        if gd.returncode != 0 or cd.returncode != 0:
+        out = subprocess.run(["git","-C",cwd,"worktree","list","--porcelain"],
+                             capture_output=True, text=True, timeout=5)
+        if out.returncode != 0:
             return None
-        g = os.path.realpath(os.path.join(cwd, gd.stdout.strip()))
-        c = os.path.realpath(os.path.join(cwd, cd.stdout.strip()))
-        return g != c
+        paths = [l.split(" ",1)[1] for l in out.stdout.splitlines() if l.startswith("worktree ")]
+        extras = [os.path.realpath(p) for p in paths[1:]]  # 排除主工作区
+        rp = os.path.realpath(target)
+        return any(rp == w or rp.startswith(w + os.sep) for w in extras)
     except Exception:
         return None
 
-if in_worktree() is False:
-    reason = read_prompt("pre-tool-ask.md",
-        "有 active task 但在主工作区写盘 (非 worktree)。task 改动应隔离 worktree。确认主工作区写? 或 git worktree add 切入。")
-    emit("ask", reason=f"trellisx: {reason}")
+inwt = file_in_worktree(fp)
+if inwt is False:  # 有 task 但写到 worktree 之外 (主工作区) → deny
+    reason = read_prompt("pre-tool-worktree-deny.md",
+        "有 active task 但写盘目标在主工作区 (非 worktree)。task 改动必须隔离到 worktree: 先 git worktree add <路径>, 再写 <路径>/... 内的文件。")
+    emit("deny", reason=f"trellisx: {reason}")
 
 allow()
 PYEOF

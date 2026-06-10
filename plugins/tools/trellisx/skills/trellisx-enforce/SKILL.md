@@ -37,8 +37,25 @@ user-invocable: false
 判定准则:
 - **实施一律建 task** — "只改一行 / 看起来简单"不是绕过理由; 落盘即建 task
 - 探索靠不准 → 倾向建 task (复杂探索的报告需 task 承载)
-- 已绕过 task 开始实施 → **立即停**, 补建 task 重走 planning
 - 一个 prompt 含 ≥ 2 独立实施目标 → 建 task 后拆 parent + child
+
+### 执行顺序铁律 (实施类, 禁跳步 / 禁先做后补)
+
+确认是实施需求后, **第一个工具调用就必须开始走以下顺序**:
+
+```
+确认实施需求
+  → ① task.py create        (建任务)
+  → ② planning              (加载 trellisx-orchestrate, 写 PRD/design/implement/subtask)
+  → ③ git worktree add      (建 worktree)
+  → ④ 在 worktree 内 execute (写盘目标用 worktree 路径)
+```
+
+**严禁**:
+- 收到实施需求后直接 Read 分析 → 写代码 → 撞拦截才回头补 task (**打补丁式往回锤**)
+- 草草建个空 task 就继续 (跳过 planning)
+- 建了 task 却在主工作区写源码 (跳过 worktree)
+- "先做着, 出问题再说" — 顺序错 = 流程失败, 立即停回 ① 重走
 
 ## 2. 任务归属判定 (建 task 前必判)
 
