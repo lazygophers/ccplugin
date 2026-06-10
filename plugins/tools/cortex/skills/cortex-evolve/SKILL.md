@@ -4,7 +4,6 @@ description: "记忆库升降级维护 — 按金字塔模型 (L4 庞大 → L0 
 when_to_use: "升级记忆/降级记忆/promote/demote/记忆再平衡/金字塔维护/记忆 audit/evolve"
 argument-hint: "[--scan|--dry-run|--apply] [--target <vault>]"
 arguments: "[--scan|--dry-run|--apply] [--target <仓库根>]"
-user-invocable: true
 ---
 
 # cortex-evolve
