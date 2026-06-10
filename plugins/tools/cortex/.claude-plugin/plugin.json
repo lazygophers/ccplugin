@@ -10,7 +10,12 @@
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
   "license": "AGPL-3.0-or-later",
   "agents": [
-    "./agents/cortex.md"
+    "./agents/cortex.md",
+    "./agents/cortex-lint-worker.md",
+    "./agents/cortex-history-worker.md",
+    "./agents/cortex-evolve-worker.md",
+    "./agents/cortex-extract-worker.md",
+    "./agents/cortex-ingest-worker.md"
   ],
   "skills": [
     "./skills/cortex-schema",

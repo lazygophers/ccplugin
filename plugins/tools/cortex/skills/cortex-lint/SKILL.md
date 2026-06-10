@@ -6,19 +6,33 @@ argument-hint: "[--check|--fix] [target]"
 arguments: "[--check|--fix] [路径]"
 user-invocable: true
 disable-model-invocation: true
+context: fork
+agent: cortex-lint-worker
 ---
 
 # cortex-lint
 
 cortex vault 的 7 类合规检查与可逆 autofix。默认 dry-run (`--check`)，`--fix` 才落盘。
 
-## 入口
+## 后台扫描段 (cortex-lint-worker 执行)
+
+本段由 `context: fork` 派 `cortex-lint-worker` 后台跑：只 `--check` 跑 7 规则扫描，产出**违规报告 plan**，不落盘。
 
 ```bash
-plugins/tools/cortex/scripts/lint.sh [--check|--fix] [--rules R1,R2,...] [--target <dir>]
+plugins/tools/cortex/scripts/lint.sh --check [--rules R1,R2,...] [--target <dir>]
 ```
 
-默认 `--check` + 全规则；`--target` 默认 `$HOME/.cortex`；退出 0=无 error，非 0=有 error 或 fix 失败。
+默认 `--check` + 全规则；`--target` 默认 `$HOME/.cortex`；退出 0=无 error，非 0=有 error。worker 仅运行 `--check`，把违规清单 (规则 ID / 文件 / 级别 error|warn / 是否可 autofix) 作为 plan 返回主会话。
+
+## 主会话段 (worker 返回 plan 后)
+
+worker 返回违规报告 plan 后，由**主会话**执行：
+
+1. 展示 plan：error / warn 分组，标出 R2/R4 可 autofix 项。
+2. 用户确认是否 `--fix`（autofix 落盘前需确认）。
+3. 执行落盘：`plugins/tools/cortex/scripts/lint.sh --fix [--rules R2,R4] [--target <dir>]`。
+
+`--fix` 落盘**只在主会话**，不在 worker。
 
 ## 7 规则速查
 

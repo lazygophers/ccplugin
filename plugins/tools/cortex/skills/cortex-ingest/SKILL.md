@@ -5,11 +5,33 @@ when_to_use: "入库新仓库/抓取项目/import GitHub repo/ingest website/导
 argument-hint: "[--dry-run|--apply] <source>"
 arguments: "[--dry-run|--apply] <来源>"
 user-invocable: true
+context: fork
+agent: cortex-ingest-worker
 ---
 
 # cortex-ingest
 
-外部资源 → vault `项目/` 模块构建器. 接受 4 类输入, 识别 + 路由 + (dry-run) 计划. 默认 dry-run; `--apply` 调度抓取 (本 task 范围仅生成 plan, 实际抓取由 main 会话 / sub-agent 后续接管).
+外部资源 → vault `项目/` 模块构建器. 接受 4 类输入, 识别 + 路由 + (dry-run) 计划. 默认 dry-run; `--apply` 调度抓取.
+
+## 后台扫描段 (cortex-ingest-worker 执行)
+
+本段由 `context: fork` 派 `cortex-ingest-worker` 后台跑：识别下方输入速查表中的来源形态，解析 git remote，按规则算目标路径，必要时用 gh/WebFetch 探查元信息，产出 **dry-run JSON plan**，不落盘。
+
+```bash
+bash scripts/ingest.sh --dry-run [--target <vault>] --source <url-or-path>
+```
+
+默认 `--dry-run`, target = `$HOME/.cortex`. worker 把 JSON plan (source / target_path / fetch_method / frontmatter_preview) 返回主会话。
+
+## 主会话段 (worker 返回 plan 后)
+
+worker 返回入库 plan 后，由**主会话**执行：
+
+1. 展示 plan，用户审 (target_path / fetch_method / frontmatter 预览)。
+2. 用户批准后落盘：`bash scripts/ingest.sh --apply --source <...>` — 调度抓取 (gh / git clone / WebFetch 混合) + 落盘。
+3. 落盘后调用 `cortex-lint` 校验。
+
+`--apply` 调度抓取 + 落盘 **只在主会话**，不在 worker。
 
 ## 输入速查表 (按顺序识别, 先命中先用)
 

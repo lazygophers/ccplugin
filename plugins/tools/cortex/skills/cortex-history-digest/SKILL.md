@@ -6,11 +6,35 @@ argument-hint: "[--dry-run|--apply] [--target <vault>]"
 arguments: "[--dry-run|--apply] [--target <仓库根>]"
 user-invocable: true
 disable-model-invocation: true
+context: fork
+agent: cortex-history-worker
 ---
 
 # cortex-history-digest
 
-Claude Code 历史 transcripts → 全局记忆库. 扫 `~/.claude/projects/**/*.jsonl` 全部 session 历史, 抽**学习增量** (用户校正 / 关键决策 / 踩坑 / L0 硬性规则), 经三轴判定路由到 `~/.cortex/.wiki/memory/L0-core | L1-long | L2-mid | L3-short`. 默认 dry-run 输出 JSON plan; `--apply` 才落盘 (本 task 范围内仅 dry-run 验证).
+Claude Code 历史 transcripts → 全局记忆库. 扫 `~/.claude/projects/**/*.jsonl` 全部 session 历史, 抽**学习增量** (用户校正 / 关键决策 / 踩坑 / L0 硬性规则), 经三轴判定路由到 `~/.cortex/.wiki/memory/L0-core | L1-long | L2-mid | L3-short`. 默认 dry-run 输出 JSON plan; `--apply` 才落盘.
+
+## 后台扫描段 (cortex-history-worker 执行)
+
+本段由 `context: fork` 派 `cortex-history-worker` 后台跑：扫 transcripts，抽学习增量，三轴判定路由，产出 **JSON plan** (dry-run)，不落盘。
+
+```bash
+bash plugins/tools/cortex/scripts/history-digest.sh --dry-run
+bash plugins/tools/cortex/scripts/history-digest.sh --dry-run --source-root ~/.claude/projects --target $HOME/.cortex
+```
+
+默认 `--dry-run` + `target=$HOME/.cortex` + `source-root=$HOME/.claude/projects`. `--since YYYY-MM-DD` 增量过滤 (默认全量). worker 把 JSON plan (正文截前 80 字摘要保护敏感数据 / 各条目目标 level / L0 候选标 `needs_ask: true`) 返回主会话。
+
+## 主会话段 (worker 返回 plan 后)
+
+worker 返回 JSON plan 后，由**主会话**执行：
+
+1. 展示 plan，用户审。
+2. L0 候选**永远 ask** (即使要 --apply；env `CORTEX_EXTRACT_L0_AUTO=accept` 可自动批准)。
+3. 用户批准后落盘：`bash plugins/tools/cortex/scripts/history-digest.sh --apply`。
+4. 落盘后调用 `cortex-lint` 校 frontmatter 合规。
+
+`--apply` 落盘 + 所有 ask **只在主会话**，不在 worker。
 
 ## 何时读哪个 reference
 
