@@ -1755,3 +1755,36 @@ history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整
 ### Next Steps
 
 - None - task complete
+
+
+## Session 112: cortex 后台 worker agents
+
+**Date**: 2026-06-10
+**Task**: cortex 后台 worker agents
+**Branch**: `cortex`
+
+### Summary
+
+5 scan→plan skill 各建后台 worker (background:true) + context:fork 绑定. worker 只读出 plan, ask/落盘留主会话. plugin.json agents 1→6.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5b63b1f9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
