@@ -1,6 +1,5 @@
-⛔ 停止当前实施动作。你违反了前置流程: 写盘 (实施) 前没有 active trellis task。
+⛔ 停止。main 禁止直接写源码 — 源码实施必须派 agent 在 worktree 内执行。
 
-禁止打补丁式"往回锤" (草草建个 task 继续 / 改别处绕开)。必须回到起点, 按顺序完整走:
-① task.py create 建任务 → ② planning (加载 trellisx-orchestrate, 写 PRD/design/implement/subtask) → ③ git worktree add 建 worktree → ④ 在 worktree 内路径重新执行本次写盘。
+正确流程: ① task.py create → ② planning (加载 trellisx-orchestrate, 拆 ≥ 2 subtask) → ③ 每 subtask 派 sub-agent (isolation:worktree) 或 agent-team 成员 (.trellis/worktrees/<subtask>) 执行 → ④ main 收集结果协调。
 
-纯探索 (只读) 不受此限。
+禁止: main 自己写源码 / 自己进 worktree 干活 / 打补丁式往回锤。纯探索 (只读) 不受限。main 写 .trellis/ 文档不受限。

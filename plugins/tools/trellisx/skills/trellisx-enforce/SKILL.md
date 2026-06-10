@@ -24,7 +24,7 @@ user-invocable: false
 
 | 类型 | 判定 (看意图 + 是否写盘) | 动作 |
 | --- | --- | --- |
-| **实施** | 写代码 / 改文件 / 跑会改动状态的命令 / 派写盘 agent — **任何会落盘的工作** | **无条件强制建 trellis task 走 planning** (加载 `trellisx-orchestrate` skill), **不看 subtask 数量**, 哪怕只改一行 |
+| **实施** | 写代码 / 改文件 / 跑会改动状态的命令 — **任何会落盘的工作** | **无条件建 task 走 planning + 拆 ≥ 2 subtask + 派 agent 执行** (main 不直接写源码) |
 | **探索** | 纯只读: 读文件 / grep / 搜索 / 分析 / 回答问题 / 调研, 不写盘 | **按复杂度决定** (见下) |
 
 **探索类型的二级判定** (仅探索适用):
@@ -46,15 +46,24 @@ user-invocable: false
 ```
 确认实施需求
   → ① task.py create        (建任务)
-  → ② planning              (加载 trellisx-orchestrate, 写 PRD/design/implement/subtask)
-  → ③ git worktree add      (建 worktree)
-  → ④ 在 worktree 内 execute (写盘目标用 worktree 路径)
+  → ② planning              (加载 trellisx-orchestrate, 拆 ≥ 2 subtask, 写 PRD/design/implement/subtask)
+  → ③ 每 subtask 派执行者    (sub-agent: isolation:worktree / agent-team 成员: 指定 .trellis/worktrees/<subtask>)
+  → ④ main 收集结果 + 协调   (main 禁自己写源码 / 禁自己切 worktree)
 ```
+
+**main = 纯协调者** (硬规):
+- main 只做: 拆 subtask / 写 `.trellis/` 文档 (PRD/design/implement/subtask) / 派发 / 收结果 / 合并 / 决策
+- main **禁直接写源码** — 任何源码实施必须派 sub-agent 或 agent-team 成员执行
+- main **禁自己 cd / EnterWorktree 进 worktree 操作** — worktree 是执行者 (agent) 的, 不是 main 的
+
+**subtask 拆分 (硬规)**:
+- task 必须拆 **≥ 2 subtask** (即使看起来单一, 也按 实施 / 验证 / 文档 等维度拆)
+- 每 subtask 独立可验收, 交给一个执行者 (agent)
 
 **严禁**:
 - 收到实施需求后直接 Read 分析 → 写代码 → 撞拦截才回头补 task (**打补丁式往回锤**)
-- 草草建个空 task 就继续 (跳过 planning)
-- 建了 task 却在主工作区写源码 (跳过 worktree)
+- 草草建个空 task 就继续 (跳过 planning / 不拆 subtask)
+- **main 自己写源码 / 自己进 worktree 干活** (该派 agent)
 - "先做着, 出问题再说" — 顺序错 = 流程失败, 立即停回 ① 重走
 
 ## 2. 任务归属判定 (建 task 前必判)
@@ -64,32 +73,36 @@ user-invocable: false
 | 归属 | 判定 | 动作 |
 | --- | --- | --- |
 | 现有任务补充 | 对当前 active task 的扩展 / 修改 / 细化 / 边界调整 | 回复以 `[trellisx-continue-{task-name}]` 开头; 补充该 task (更新 PRD / 调度图 / 受影响 subtask 文件); 重新评估调度; **禁新建 task** |
-| 新任务 | 与当前 active task 无关, 或无 active task, 或用户显式说"新任务/新需求/换一个" | 回复以 `[trellisx-new-task]` 开头; 先建 worktree (§3) → `task.py create` → 走 planning (加载 `trellisx-orchestrate`) |
+| 新任务 | 与当前 active task 无关, 或无 active task, 或用户显式说"新任务/新需求/换一个" | 回复以 `[trellisx-new-task]` 开头; `task.py create` → 走 planning 拆 subtask → 派 agent (各自 worktree) |
 
-## 3. Worktree 生命周期 (强制, 绑定整个 task)
+## 3. Worktree 隔离 (subtask/agent 级, 非 task 级)
 
-**任何 task 执行必须在独立 worktree 内, 主工作区保持干净。**
+**worktree 绑定执行者 (agent), 不绑定 task。每个 subtask 的执行者在自己的 worktree 内干活, main 永不进 worktree。**
 
-| 时机 | 动作 |
-| --- | --- |
-| 新任务启动 (task.py start 前/后) | **立即创建 task 专属 worktree** (`git worktree add`), 后续所有改动落该工作树 |
-| execute / check 期间 | 全部读写限于 worktree |
-| check 通过 + commit 后 | 合并 worktree 改动 → 当前分支 |
-| 合并完成 | **立即 `git worktree remove`** 移除, 确保环境干净 |
-| task 失败 / 取消 | 丢弃改动 + `git worktree remove --force` 清理 |
+| 执行者 | worktree 来源 | 路径 | 生命周期 |
+| --- | --- | --- | --- |
+| **sub-agent** | `Agent` 工具 `isolation: worktree` | Claude Code 自动 (`.claude/worktrees/`) | Claude Code 自动建 + 完成自动销 |
+| **agent-team 成员** | main 手动指定 | `.trellis/worktrees/<subtask>` | main 派发前 `git worktree add`, 成员完成后 main 合并 + `git worktree remove` |
 
-**硬规**: task 结束 (done / cancelled) 前必须完成 worktree 合并 (或丢弃) + 移除。**残留 worktree = 环境污染, 禁宣告 task 完成**。
+**硬规**:
+- 任何写源码的 subtask **必须**在某 worktree 内执行 (sub-agent isolation / agent-team 指定路径)
+- **main 不写源码、不进 worktree** — main 在主工作区只写 `.trellis/` 文档 + 协调
+- agent-team 成员 worktree 用完, main 必须合并 (或丢弃) + 移除; 残留 = 环境污染, 禁宣告 task 完成
+- `.trellis/worktrees/` 已被 `.trellis/.gitignore` 排除, 不进主仓库追踪
 
-为何强制: worktree 隔离保证改动落独立树, main 合并前可 review diff, 失败整树丢弃零污染。隔离开销 (~200-500ms) 远低于脏写排查成本。
+为何: worktree 隔离保证每个 subtask 改动落独立树, main 合并前可 review diff, 失败整树丢弃零污染; main 纯协调避免主工作区被污染。
 
-## 4. Sub-agent / workflow worktree 隔离
+## 4. 派执行者 (sub-agent / agent-team) 规则
 
-派写盘 sub-agent / workflow agent 时:
+| 执行者类型 | 何时用 | worktree |
+| --- | --- | --- |
+| sub-agent | 单 subtask 隔离执行 (实施/调研/检查) | 写盘 → **MUST `isolation: worktree`**; 纯只读可省 |
+| agent-team 成员 | 多 subtask 需互相协调 / 辩论 | main 派发前给每成员指定 `.trellis/worktrees/<subtask>` |
+| workflow | 仓库级批量 (≥ 5 同类文件) | 脚本设 `isolation: "worktree"` |
 
-- 写盘 (改任何文件) → **MUST 带 `isolation: worktree`**, 缺则不派
-- 仅纯只读 (探索 / 调研 / 审查, 不改盘) → 可省
-- ≥ 2 并行写盘 sub-agent → 必须各自 worktree, 避免脏写
-- agent-team teammate 引擎不支持 worktree → 退化: 按文件集严格分区 + 串行化共享文件
+- 写盘执行者**无 worktree → 不派** (PreToolUse 会拦 `Agent` 无 isolation:worktree)
+- ≥ 2 并行写盘执行者 → 各自独立 worktree, 避免脏写
+- 派发 prompt 必须含 6 字段 (目标/已知/工作目录与范围/输出格式/验收标准/失败处理) + `Active task:` 前缀
 
 ## 5. 完成判定
 
@@ -99,7 +112,7 @@ task 宣告完成前必须全部满足:
 - [ ] trellis-check 综合验证通过
 - [ ] spec 沉淀 (走 `trellisx-spec` sediment 模式, 按需)
 - [ ] commit
-- [ ] **worktree 已合并 + `git worktree remove` 移除 (环境干净)**
+- [ ] **全部 agent worktree 已合并 + 移除 (sub-agent 自动; agent-team 成员 .trellis/worktrees 手动清理)**
 - [ ] 非平凡发现落 cortex
 
 任一未满足 → 禁宣告完成。
@@ -109,11 +122,7 @@ task 宣告完成前必须全部满足:
 1. 本轮回复加了 `[trellisx-*]` 前缀? (§0)
 2. 实施类? 一律建了 task? 探索类? 按复杂度判过? (§1)
 3. 判过归属? 新任务 vs 补充? (§2)
-4. task 在 worktree 内执行? (§3)
-5. 写盘 sub-agent 带 isolation: worktree? (§4)
+4. 每 subtask 派给 agent 在其 worktree 执行? main 没自己写源码? (§3)
+5. 写盘执行者带 worktree (isolation / .trellis/worktrees)? (§4)
 6. 完成前 worktree 已清理? (§5)
 
-## 相关 skill
-
-- `trellisx-orchestrate` — planning 阶段编排 PRD / design / implement / subtask
-- `trellisx-spec` — spec init / optimize / sediment

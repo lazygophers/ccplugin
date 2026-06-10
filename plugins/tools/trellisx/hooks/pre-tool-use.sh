@@ -87,9 +87,9 @@ if tool == "Workflow":
 if tool == "Agent":
     isolation = tinput.get("isolation", "")
     if isolation != "worktree":
-        reason = read_prompt("pre-tool-agent-ask.md",
-            "派 sub-agent 未设 isolation:worktree。若该 agent 写盘, 必须 worktree 隔离 (避免脏写 + 失败回滚)。确认此 agent 仅只读? 否则加 isolation:worktree。")
-        emit("ask", reason=reason)
+        reason = read_prompt("pre-tool-agent-deny.md",
+            "派写盘 sub-agent 必须带 isolation:worktree (每 subtask 独立 worktree)。仅纯只读 agent 可省。加 isolation:worktree 再派。")
+        emit("deny", reason=reason)
     allow()
 
 # ============ 分支: 写盘工具 (Write/Edit/MultiEdit/NotebookEdit) ============
