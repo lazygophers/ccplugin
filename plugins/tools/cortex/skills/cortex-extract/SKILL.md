@@ -4,6 +4,7 @@ description: "extract/提取/promote/整理/归档/digest L4-inbox 收件箱, �
 when_to_use: "整理 inbox/提取 L4/归档临时笔记/extract/digest/promote 记忆/例行扫描 L4-inbox"
 argument-hint: "[--dry-run|--apply] [target]"
 arguments: "[--dry-run|--apply] [路径]"
+user-invocable: true
 ---
 
 # cortex-extract

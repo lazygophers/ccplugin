@@ -4,6 +4,7 @@ description: lint / 校验 / 体检 / audit / 死链 / 孤儿 / 规范化 / fron
 when_to_use: "lint/体检/校验 vault/audit; 整理 .wiki/ 前先跑; 排查死链/孤儿; frontmatter 补齐; memory 5 级目录核对; extract 前的形态检查"
 argument-hint: "[--check|--fix] [target]"
 arguments: "[--check|--fix] [路径]"
+user-invocable: true
 ---
 
 # cortex-lint
