@@ -1,6 +1,8 @@
 # 步骤 3: spec/ 注入
 
-在 `.trellis/spec/` 写 trellisx 规范文档, 作为 workflow.md 注入的详细背书 (sub-agent dispatch 时被 trellis 平台 hook 按 jsonl 引用加载)。
+在 `.trellis/spec/` **新增**一个 trellisx 规范文档 (作为 workflow.md 注入的详细背书)。
+
+**边界**: apply **只新增** `trellixx-conventions.md` 一个文件, **绝不修改/重构用户原有的 spec 内容**。spec 的破坏式优化/重写是 `trellisx-spec` skill 的职责 (用户单独主动调用), 与 apply 无关。
 
 ## 注入文件: `.trellis/spec/guides/trellisx-conventions.md`
 

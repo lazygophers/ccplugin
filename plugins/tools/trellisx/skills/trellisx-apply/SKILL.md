@@ -18,6 +18,7 @@ arguments: [范围]
 | 幂等 | 所有注入用 `<!-- trellisx:start:<key> -->...<!-- trellisx:end:<key> -->` marker 包裹; 重复跑只更新 marker 内, 不重复堆叠 |
 | 尊重 trellis 原生 | 融合而非取代: 引用 trellis 已有 (task.py / add-subtask / jsonl / trellis-check), 仅补 trellis 缺的 (worktree / subtask 文件编排) |
 | 显式审批 | 改 `.trellis/` 前展示 diff plan, 经用户批准 (AskUserQuestion) 才写盘 |
+| **增量优化, 不重构** | apply 只按 trellisx 方向**增量增强**现有 .trellis (marker 注入 + 加新文件 + 加新 hook); **绝不重构/重写**用户原有 workflow / spec / 文档内容。spec 的破坏式完全重构是 `trellisx-spec` skill 的职责, 不是 apply 的 |
 
 ## 前置检查
 

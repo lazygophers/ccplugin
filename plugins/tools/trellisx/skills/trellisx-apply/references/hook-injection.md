@@ -52,7 +52,7 @@ elif re.search(r"task\.py\s+archive\b", cmd):
 sys.exit(0)
 ```
 
-注册到 trellis 平台 settings (或 trellisx 自带最小 hook 注册): PostToolUse, matcher `Bash`。
+注册到**用户项目**的 hook 配置 (trellisx 插件本身不带 hook): 写进项目 `.claude/settings.json` 的 hooks.PostToolUse (matcher `Bash`), 或 trellis 平台 hook 注册机制。
 
 ## 2. 回复前缀 (可选 — 已在 workflow.md 顶部规则)
 
@@ -71,4 +71,4 @@ worktrees/
 - **最小侵入**: 只加 `trellisx-worktree.py` 一个平台 hook; 不改 trellis 已有 hook 逻辑
 - **不改 task.py**: worktree 全靠 PostToolUse 监测 task.py 命令的副作用实现
 - **幂等**: 重复 apply 检测 hook 文件已存在则覆盖更新
-- 平台 hook 注册方式因 trellis 版本而异: 优先用 trellis 的 hook 注册机制; 退化为 trellisx plugin.json 保留单个 PostToolUse 注册
+- 平台 hook 注册写进**用户项目** `.claude/settings.json` (非 trellisx 插件 plugin.json — 插件本身无 hook); apply 时检测 settings.json 有无该注册, 缺则追加

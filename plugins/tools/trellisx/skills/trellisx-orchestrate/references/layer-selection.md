@@ -2,7 +2,7 @@
 
 design / implement 标注每块工作的执行层 (`main / sub-agent / agent-team / workflow`)。planning 阶段定层, dispatch 阶段直接读, 不重判。
 
-**硬规**: 实施类 (写源码/落盘) **禁选 main 直做** — main 纯协调禁写源码, 一律派 sub-agent / agent-team / workflow。`main 直做` 仅限纯只读探索 (读/查/分析)。
+**硬规 (worktree 约束)**: 实施类 (写源码/落盘) **必须在 worktree 内执行** — `main 直做` 时 main 可直接写源码但目标路径必须在 `.trellis/worktrees/<task>` 内 (trellis inline 风格); 复杂 / 并行 subtask 派 sub-agent (isolation:worktree) / agent-team / workflow **异步并行**。禁在主工作区写源码。
 
 ## 4 层模型
 
