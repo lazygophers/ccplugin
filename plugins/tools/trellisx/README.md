@@ -28,9 +28,9 @@ Trellis 任务编排扩展插件。**不修改 `.trellis/`**, 通过 skill + age
 
 ## 强制机制
 
-- **任务门禁**: 实施 (写盘/改文件) 无条件强制建 trellis task 走 planning, 不看 subtask 数; 探索 (只读) 按复杂度决定
-- **worktree 生命周期**: task.py start 即创 worktree, 全程隔离主工作区, 结束合并 + `git worktree remove` 清理, 残留禁宣告完成
-- **sub-agent 隔离**: 写盘 sub-agent / workflow MUST `isolation: worktree`, 仅纯只读可省
+- **任务门禁**: 实施 (写盘/改文件) 无条件建 task 走 planning + 拆 ≥ 2 subtask + 派 agent 执行; main 纯协调禁直接写源码; 探索 (只读) 按复杂度决定
+- **worktree 隔离**: subtask/agent 级 (sub-agent `isolation:worktree` 自动 / agent-team 成员 `.trellis/worktrees/<subtask>` 手动); main 不进 worktree, 残留禁宣告完成
+- **派执行者**: 写盘 sub-agent / workflow MUST `isolation: worktree` (无则 PreToolUse deny), 仅纯只读可省
 
 ## 触发
 

@@ -33,7 +33,7 @@ flowchart TB
 
 | 时机 | 动作 |
 | --- | --- |
-| task.py start 后 | 立即创建 task 专属 worktree, 后续所有 subtask 改动落在该工作树 |
+| 派每个 subtask 给 agent 时 | sub-agent 用 isolation:worktree (自动) / agent-team 成员 main 手动 git worktree add .trellis/worktrees/<subtask> |
 | execute / check 期间 | 全部读写限于 worktree, 主工作区保持干净 |
 | check 通过 + commit 后 | 合并 worktree 改动 → 当前分支 |
 | 合并完成 | `git worktree remove <path>` 移除, 确保环境干净, 无残留工作树 |
@@ -48,7 +48,7 @@ flowchart TB
 | brainstorm | 无 task | 用户提出新需求 | task 目录草稿 + prd.md 草稿 | `trellis-brainstorm` | 退出, 不建 task |
 | planning | `planning` | brainstorm 收敛 | prd.md + design.md + implement.md + `subtask/*.md` + jsonl manifest | `trellisx-orchestrate` (6 步) | 回 brainstorm 重收敛 |
 | start review | `planning` → `in_progress` | 用户批准 PRD/design/implement | `task.json` status 翻转 | `selfcheck.md` 自检通过 | 留 planning, 修订 |
-| worktree 创建 | `in_progress` | task.py start 后 | task 专属 worktree | git worktree add | 创建失败回 start review |
+| worktree 创建 | `in_progress` | 派 subtask 给 agent 时 | 每 subtask 一 worktree (agent 级) | isolation:worktree / git worktree add | 创建失败重派 |
 | execute | `in_progress` | worktree 就绪 | worktree 内 subtask 产物 | 各 sub-agent / agent-team / workflow | `failure-recovery.md` |
 | progress sync | `in_progress` | 每 subtask 完成 / 阻塞 | 用户可见摘要 | `progress-communication.md` | coordinator 决策 |
 | check | `in_progress` | 全部 subtask done | check 报告 | `trellis-check` | 单点不过回 execute; 系统性不过回 planning |

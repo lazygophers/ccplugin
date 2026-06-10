@@ -2,6 +2,8 @@
 
 design / implement 标注每块工作的执行层 (`main / sub-agent / agent-team / workflow`)。planning 阶段定层, dispatch 阶段直接读, 不重判。
 
+**硬规**: 实施类 (写源码/落盘) **禁选 main 直做** — main 纯协调禁写源码, 一律派 sub-agent / agent-team / workflow。`main 直做` 仅限纯只读探索 (读/查/分析)。
+
 ## 4 层模型
 
 | 层 | 协调者 | 上下文 | 通信 | 并发上限 | 适用 |

@@ -25,7 +25,7 @@ user-invocable: false
 | 探索 (纯只读: 读/查/搜/分析) | 按复杂度决定 (简单可不建; 复杂调研建 task 承载) |
 | 实施 (写盘/改文件/任何落盘工作) | **无条件强制建 task**, 走 planning 全流程, 不看 subtask 数 |
 
-判定靠不准时倾向建 task (拆分 + 文档 + worktree 隔离收益 > 建 task 成本)。建 task 后 task.py start 即创 worktree, 全程隔离, 结束合并清理 (见 `references/task-lifecycle.md`)。
+判定靠不准时倾向建 task。建 task 后拆 ≥ 2 subtask, 每 subtask 派 sub-agent (isolation:worktree) 或 agent-team 成员 (.trellis/worktrees/<subtask>) 执行; main 纯协调禁直接写源码 (见 `references/task-lifecycle.md`)。
 
 ## 触发判定
 

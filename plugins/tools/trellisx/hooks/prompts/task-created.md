@@ -1,1 +1,1 @@
-trellisx: trellis task 已创建。立即为该 task 创建独立 worktree (git worktree add), 后续全部改动落该工作树, 主工作区保持干净。task 结束 (完成/取消) 前必须合并 (或丢弃) + git worktree remove 移除, 确保环境干净。
+trellisx: 任务已创建。拆 ≥ 2 subtask, 每 subtask 派 sub-agent (isolation:worktree 自动) 或 agent-team 成员 (main 手动 git worktree add .trellis/worktrees/<subtask>) 执行。main 纯协调禁直接写源码。agent worktree 用完合并 + 移除。

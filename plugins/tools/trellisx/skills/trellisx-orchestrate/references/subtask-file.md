@@ -71,7 +71,7 @@ estimated-tokens: <数字 / 范围>
 
 ## 执行细节
 
-<具体步骤; 若 sub-agent 完成则写 dispatch 要点; 若 main 直做写操作清单>
+<具体步骤 + dispatch 要点 (实施类 subtask 必派 agent, main 不直接写源码)>
 
 ### Dispatch Prompt (若派 sub-agent)
 
