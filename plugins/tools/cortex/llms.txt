@@ -24,4 +24,5 @@
 - [cortex agent](./agents/cortex.md): 前台主代理, 按请求分类调度 8 skill
 - [后台 worker agents](./agents/): cortex-{lint,history,evolve,extract,ingest}-worker — background:true, 被对应 skill context:fork 启动, 只读扫描→plan (ask/落盘留主会话)
 - [脚本](./scripts/): validate-layout / lint / extract / ingest / history-digest (bash + python, dry-run 默认)
+- [hooks](./hooks/): 轻量注入提示 — SessionStart (vault 概览+构建提示) / UserPromptSubmit (主动 recall) / Stop (沉淀); 纯 additionalContext, 不扫不写盘
 - [完整目录树样例](./skills/cortex-schema/examples/vault-tree.md): ~/.cortex/.wiki/ 填充后实样

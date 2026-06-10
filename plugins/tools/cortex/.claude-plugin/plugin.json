@@ -28,7 +28,44 @@
     "./skills/cortex-evolve"
   ],
   "commands": [],
-  "hooks": {},
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit.sh",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stop.sh",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
   "keywords": [
     "cortex",
     "knowledge-base",
