@@ -517,7 +517,7 @@
     {
       "name": "trellisx",
       "source": "./plugins/tools/trellisx",
-      "description": "Trellisx — Trellis 任务编排扩展: spec 破坏式优化 skill (init/optimize/sediment 三模式) + planning 阶段任务编排 skill (PRD/design/implement/subtask 文件 + mermaid 调度图) + UserPromptSubmit prompt hook 智能分类输入 + SessionStart 启用 agent-teams",
+      "description": "Trellisx — Trellis 任务编排扩展: enforce skill 强制规范 (任务门禁 + worktree 生命周期) + orchestrate skill 编排 (PRD/design/implement/subtask + mermaid 调度图) + spec skill 破坏式优化 (init/optimize/sediment) + SessionStart/UserPromptSubmit hook 每轮注入门禁",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
