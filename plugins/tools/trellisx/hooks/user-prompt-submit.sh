@@ -4,10 +4,16 @@
 # stdout: 注入到 main context 的提示词 (空 stdout = 不注入)
 # 退出码 0 = 透明放行 (永远 0, 禁返 stop)
 #
-# 行为: trellis 项目内每轮无条件注入任务识别门禁;
-#       spec / 编排关键词命中时附专门 skill 路由。
+# 行为: trellis 项目内每轮无条件注入任务识别门禁 (prompts/task-gate.md);
+#       spec 关键词命中时附 spec 路由 (prompts/spec-route.md)。
+# 提示词内容全部外置到 prompts/*.md, 本脚本仅做逻辑路由 + 注入。
 
 set -u
+
+# 提示词目录 (与本脚本同级 prompts/)
+PROMPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/prompts"
+
+emit() { [ -f "$PROMPTS_DIR/$1" ] && cat "$PROMPTS_DIR/$1"; }
 
 INPUT=$(cat 2>/dev/null || true)
 
@@ -42,18 +48,11 @@ contains() {
 }
 
 # === 基础任务门禁 (trellis 项目每轮无条件注入) ===
-cat <<'EOF'
-1. 判定用户输入是新的任务描述还是对已有任务的补充，如果是现有任务的补充，则 扩展 / 修改 / 细化 / 边界调整 → 去补充该 task (更新 PRD / 调度图 / 受影响 subtask 文件)
-2. 新任务必须强制 task 走 planning (加载 trellisx-orchestrate skill)
-3. 任何任务规划 / PRD / design / implement / subtask 拆分 / 派 sub-agent / 调度图编写 → 加载 trellisx-orchestrate skill 走 planning 全流程
-4. 必须新建 worktree 执行任务，且在任务完成后 merge + remove 确保环境干净
-EOF
+emit task-gate.md
 
 # === 附加: spec 工作路由 ===
 if contains "优化 spec" "优化spec" "重写 spec" "重写spec" "spec refactor" "初始化 spec" "初始化spec" "spec 弱" "spec不可执行" "记不住" "老忘" "反复犯错" "又踩坑" "改硬 trellis 规则"; then
-  cat <<'EOF'
-本轮涉及 spec 工作 → 加载 trellisx-spec skill 按内容选模式 (init / optimize / sediment), 走 4 阶段流程 (诊断 → 提案 → AskUserQuestion 审批 → 执行 + manifest 同步)
-EOF
+  emit spec-route.md
 fi
 
 exit 0
