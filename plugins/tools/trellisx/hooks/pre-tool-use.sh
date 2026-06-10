@@ -6,7 +6,7 @@
 #
 # 分流:
 #   写盘工具 (Write/Edit/MultiEdit/NotebookEdit):
-#     非 trellis / 豁免路径 → allow
+#     非 trellis / 豁免路径 (.trellis/.git/agent 配置目录/.md/.json/.yaml) → allow
 #     无 active task → deny; 有 task 但在主工作区 → ask; 在 worktree → allow
 #   Agent: 写盘 sub-agent 缺 isolation:worktree → ask
 #   Workflow: 无 active task → ask
@@ -97,7 +97,11 @@ fp = tinput.get("file_path") or tinput.get("notebook_path") or ""
 
 
 # 豁免路径 (防死锁 + 防误拦; 只看路径)
-if any(seg in fp for seg in ("/.trellis/", "/.git/", "/.claude/")) \
+# agent 配置目录 (.claude/.codex/.opencode/...) + trellis/git + 文档配置 全豁免
+_exempt_dirs = ("/.trellis/", "/.git/", "/.claude/", "/.codex/", "/.opencode/",
+                "/.cursor/", "/.gemini/", "/.qoder/", "/.codebuddy/",
+                "/.windsurf/", "/.kiro/", "/.factory/", "/.antigravity/")
+if any(seg in fp for seg in _exempt_dirs) \
    or fp.endswith((".md", ".json", ".yaml", ".yml")):
     allow()
 
