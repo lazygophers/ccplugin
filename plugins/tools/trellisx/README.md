@@ -6,7 +6,7 @@ Trellis 任务编排扩展插件。**不修改 `.trellis/`**, 通过 skill + age
 
 ### Skills (3)
 
-1. **`trellisx-enforce`** — Trellis 任务执行强制规范 (硬约束)。任务门禁 (subtask ≥ 2 强制建 task) / worktree 生命周期 (start 创建, 结束合并+移除) / 任务归属判定 (新任务 vs 现有补充) / 回复前缀标记 / 完成判定。trellis 项目内每轮无条件加载。
+1. **`trellisx-enforce`** — Trellis 任务执行强制规范 (硬约束)。任务门禁 (实施一律建 task, 探索按复杂度) / worktree 生命周期 (start 创建, 结束合并+移除) / 任务归属判定 (新任务 vs 现有补充) / 回复前缀标记 / 完成判定。trellis 项目内每轮无条件加载。
 2. **`trellisx-orchestrate`** — planning 阶段编排 `prd.md` / `design.md` / `implement.md` / `subtask/*.md`。五要素拆分 + 执行层选择 + mermaid 调度图 + 资源互斥 + 失败回退。含 `references/` (写法规则) + `examples/` (填好范例, OAuth 登录场景贯穿)。
 3. **`trellisx-spec`** — 初始化 / 优化 / 重写 `.trellis/spec/`, 允许破坏式变更, 描述式条款改命令式契约。3 模式 (init / optimize / sediment), 4 阶段 (诊断 → 提案 → AskUserQuestion 审批 → 执行)。
 
@@ -28,7 +28,7 @@ Trellis 任务编排扩展插件。**不修改 `.trellis/`**, 通过 skill + age
 
 ## 强制机制
 
-- **任务门禁**: subtask ≥ 2 (多步/多文件/多目标) 强制建 trellis task 走 planning; subtask ≤ 1 可 main 直做
+- **任务门禁**: 实施 (写盘/改文件) 无条件强制建 trellis task 走 planning, 不看 subtask 数; 探索 (只读) 按复杂度决定
 - **worktree 生命周期**: task.py start 即创 worktree, 全程隔离主工作区, 结束合并 + `git worktree remove` 清理, 残留禁宣告完成
 - **sub-agent 隔离**: 写盘 sub-agent / workflow MUST `isolation: worktree`, 仅纯只读可省
 

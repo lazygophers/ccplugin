@@ -6,13 +6,12 @@
 #
 # 分流:
 #   写盘工具 (Write/Edit/MultiEdit/NotebookEdit):
-#     非 trellis / 豁免路径 / 逃生口 → allow
+#     非 trellis / 豁免路径 → allow
 #     无 active task → deny; 有 task 但在主工作区 → ask; 在 worktree → allow
 #   Agent: 写盘 sub-agent 缺 isolation:worktree → ask
 #   Workflow: 无 active task → ask
 #   AskUserQuestion: allow + 注入决策规范提醒 (不拦)
 #
-# 逃生口: export TRELLISX_PRETOOL=0 临时关闭 (写盘 + Agent + Workflow 分支)。
 # 退出码 0 永远; 决策走 stdout JSON。
 
 set -u
@@ -21,7 +20,7 @@ PROMPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/prompts"
 
 INPUT=$(cat 2>/dev/null || true)
 
-PROMPTS_DIR="$PROMPTS_DIR" TRELLISX_INPUT="$INPUT" TRELLISX_PRETOOL="${TRELLISX_PRETOOL:-1}" python3 <<'PYEOF'
+PROMPTS_DIR="$PROMPTS_DIR" TRELLISX_INPUT="$INPUT" python3 <<'PYEOF'
 import json, os, sys, subprocess
 
 def allow():
@@ -55,7 +54,6 @@ except Exception:
 cwd = d.get("cwd") or os.getcwd()
 tool = d.get("tool_name", "")
 tinput = d.get("tool_input") or {}
-escape = os.environ.get("TRELLISX_PRETOOL") == "0"
 
 # 非 trellis 项目 → 全放行
 if not os.path.isdir(os.path.join(cwd, ".trellis")):
@@ -73,13 +71,11 @@ def has_active_task():
 # ============ 分支: AskUserQuestion (注入决策规范, 不拦) ============
 if tool == "AskUserQuestion":
     ctx = read_prompt("pre-tool-askq-inject.md",
-        "trellisx: 重大决策时一并考量 task 归属 (新建 vs 补充) / worktree 隔离 / subtask 拆分 (≥2 强制建 task)。")
+        "trellisx: 重大决策时一并考量 task 归属 (新建 vs 补充) / worktree 隔离 / 实施一律建 task (探索按复杂度)。")
     emit(context=ctx)
 
 # ============ 分支: Workflow (无 active task → ask) ============
 if tool == "Workflow":
-    if escape:
-        allow()
     active = has_active_task()
     if active is False:
         reason = read_prompt("pre-tool-workflow-ask.md",
@@ -89,8 +85,6 @@ if tool == "Workflow":
 
 # ============ 分支: Agent (写盘 sub-agent 缺 worktree → ask) ============
 if tool == "Agent":
-    if escape:
-        allow()
     isolation = tinput.get("isolation", "")
     if isolation != "worktree":
         reason = read_prompt("pre-tool-agent-ask.md",
@@ -101,8 +95,6 @@ if tool == "Agent":
 # ============ 分支: 写盘工具 (Write/Edit/MultiEdit/NotebookEdit) ============
 fp = tinput.get("file_path") or tinput.get("notebook_path") or ""
 
-if escape:
-    allow()
 
 # 豁免路径 (防死锁 + 防误拦; 只看路径)
 if any(seg in fp for seg in ("/.trellis/", "/.git/", "/.claude/")) \
@@ -115,7 +107,7 @@ if active is None:
 if not active:
     fname = os.path.basename(fp) or "<file>"
     reason = read_prompt("pre-tool-deny.md",
-        "写盘前必须有 active trellis task。subtask≥2 走 planning; 单步也先 task.py create。或 export TRELLISX_PRETOOL=0 跳过。")
+        "写盘 = 实施, 必须有 active trellis task (不看 subtask 数)。立即 task.py create 走 planning + worktree。纯探索不受限。")
     emit("deny", reason=f"trellisx: 写 {fname} 被拦。{reason}")
 
 def in_worktree():

@@ -20,10 +20,10 @@ user-invocable: false
 
 ## 何时强制建 trellis task
 
-| 任务规模 | 是否建 task |
+| 类型 | 是否建 task |
 | --- | --- |
-| subtask ≤ 1 (单步 / 单文件 / 一句话可完成) | 可不建, main 直做 |
-| subtask ≥ 2 (多步 / 多文件 / 多 deliverable / 需调度) | **强制建 task**, 走 planning 全流程 |
+| 探索 (纯只读: 读/查/搜/分析) | 按复杂度决定 (简单可不建; 复杂调研建 task 承载) |
+| 实施 (写盘/改文件/任何落盘工作) | **无条件强制建 task**, 走 planning 全流程, 不看 subtask 数 |
 
 判定靠不准时倾向建 task (拆分 + 文档 + worktree 隔离收益 > 建 task 成本)。建 task 后 task.py start 即创 worktree, 全程隔离, 结束合并清理 (见 `references/task-lifecycle.md`)。
 

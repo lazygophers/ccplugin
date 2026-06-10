@@ -1,6 +1,6 @@
 ---
 name: trellisx-enforce
-description: Trellis 任务执行的强制规范 (硬约束, 不可绕过)。覆盖任务门禁 (subtask ≥ 2 强制建 task)、worktree 生命周期 (start 创建 / 结束合并+移除)、任务归属判定 (新任务 vs 现有补充)、回复前缀标记、完成判定。**trellis 项目内每次用户输入都必须立即加载本 skill 阅读并逐条遵守**, 不论输入类型。hook 每轮要求加载本 skill。
+description: Trellis 任务执行的强制规范 (硬约束, 不可绕过)。覆盖任务门禁 (实施一律建 task, 探索按复杂度)、worktree 生命周期 (start 创建 / 结束合并+移除)、任务归属判定 (新任务 vs 现有补充)、回复前缀标记、完成判定。**trellis 项目内每次用户输入都必须立即加载本 skill 阅读并逐条遵守**, 不论输入类型。hook 每轮要求加载本 skill。
 when_to_use: trellis 项目 (.trellis/ 存在) 内, **每次用户输入都强制加载**, 无条件、不论是否涉及开发。被 trellisx hook 每轮注入要求加载。
 user-invocable: false
 ---
@@ -20,18 +20,25 @@ user-invocable: false
 
 ## 1. 任务门禁 (动手前必判)
 
-动手写代码 / 改文件 / 系统搜索后准备改动前, **必须先判断任务复杂度**:
+**第一轴: 先分 实施 vs 探索。**
 
-| 复杂度 | 判定 | 动作 |
+| 类型 | 判定 (看意图 + 是否写盘) | 动作 |
 | --- | --- | --- |
-| subtask ≤ 1 | 单步 / 单文件 / 无独立子目标 | 可 main 直做 (仍需 worktree, 见 §2) |
-| subtask ≥ 2 | 多步 / 多文件 / 多独立目标 / 需调度 / 一个 prompt 含 ≥ 2 独立问题 | **禁直接动手**, 必须先建 trellis task 走 planning (加载 `trellisx-orchestrate` skill) |
+| **实施** | 写代码 / 改文件 / 跑会改动状态的命令 / 派写盘 agent — **任何会落盘的工作** | **无条件强制建 trellis task 走 planning** (加载 `trellisx-orchestrate` skill), **不看 subtask 数量**, 哪怕只改一行 |
+| **探索** | 纯只读: 读文件 / grep / 搜索 / 分析 / 回答问题 / 调研, 不写盘 | **按复杂度决定** (见下) |
+
+**探索类型的二级判定** (仅探索适用):
+
+| 探索复杂度 | 动作 |
+| --- | --- |
+| 简单 (单点查询 / 读几个文件 / 直接回答) | 可不建 task, 直接做 |
+| 复杂 (多源调研 / 系统性分析 / 跨多模块梳理 / 需落档报告) | 建 task 承载 (research/ 产物 + 进度追踪) |
 
 判定准则:
-- 按"是否拆得出 ≥ 2 个独立可验收 subtask"判定, **不是**按"任务看起来复不复杂"
-- 一个 prompt 内含 ≥ 2 个独立问题 / 目标 = 必建 task (可拆 parent + child)
-- 判定靠不准 → 倾向建 task (建 task 成本 < 绕过返工成本)
-- 已绕过 task 开始实施后才发现复杂 → **立即停**, 补建 task 重走 planning
+- **实施一律建 task** — "只改一行 / 看起来简单"不是绕过理由; 落盘即建 task
+- 探索靠不准 → 倾向建 task (复杂探索的报告需 task 承载)
+- 已绕过 task 开始实施 → **立即停**, 补建 task 重走 planning
+- 一个 prompt 含 ≥ 2 独立实施目标 → 建 task 后拆 parent + child
 
 ## 2. 任务归属判定 (建 task 前必判)
 
@@ -83,7 +90,7 @@ task 宣告完成前必须全部满足:
 ## 自检 (每个实施轮次开始时)
 
 1. 本轮回复加了 `[trellisx-*]` 前缀? (§0)
-2. 判过复杂度? subtask ≥ 2 走了 task? (§1)
+2. 实施类? 一律建了 task? 探索类? 按复杂度判过? (§1)
 3. 判过归属? 新任务 vs 补充? (§2)
 4. task 在 worktree 内执行? (§3)
 5. 写盘 sub-agent 带 isolation: worktree? (§4)
