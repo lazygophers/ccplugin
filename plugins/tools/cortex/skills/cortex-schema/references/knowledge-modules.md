@@ -4,15 +4,15 @@ vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整模板
 
 ---
 
-## 模块 1: 项目 (`项目/`)
+## 模块 1: 项目 (`项目/`) — 仅用户级
 
-记录外部 repo / 站点的摘要与心智地图.
+记录外部 repo / 站点的摘要与心智地图. **仅在用户级** `~/.cortex/.wiki/项目/` — 引用外部 repo 是跨项目沉淀, 项目级 `<repo>/.wiki/` 不设此模块.
 
 ### 路径
 
-`<root>/项目/<host>/<owner>/<repo>/`
+`~/.cortex/.wiki/项目/<host>/<owner>/<repo>/`
 
-- `<root>` ∈ {`~/.cortex/.wiki`, `<repo>/.wiki`}
+- `<host>` 起的路径段同下
 - `<host>` 枚举: `github.com` / `gitlab.com` / `bitbucket.org` / 任意自定义 domain (如 `nextjs.org`)
 - `<owner>` = 组织或用户名; 无 owner 概念的站点可用 `_` 占位
 - `<repo>` = 仓库名或站点 slug
@@ -34,14 +34,15 @@ vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整模板
 
 ---
 
-## 模块 2: 领域 (`领域/`)
+## 模块 2: 领域 (`领域/`) — 双层
 
-跨项目复用的领域 / 经验 / 方法笔记.
+跨项目复用的领域 / 经验 / 方法笔记. **用户级 + 项目级都有** (项目级唯一的 knowledge 模块).
 
 ### 路径
 
 `<root>/领域/<area>/<sub>/[<sub2>/]<topic>.md`
 
+- `<root>` ∈ {`~/.cortex/.wiki`, `<repo>/.wiki`}
 - 必须 ≥ 2 级目录 (area + sub 最少)
 - `<area>` 预设: `tech` / `life` / `finance` (用户可扩展, 如 `health` / `art`)
 - `<sub>` / `<sub2>` 自由分类
@@ -63,14 +64,13 @@ vault 内部三模块的路径 / 命名 / frontmatter 关键字段. 完整模板
 
 ---
 
-## 模块 3: 脚本 (`脚本/`) — vault 内部脚本
+## 模块 3: 脚本 (`脚本/`) — vault 内部脚本, 仅用户级
 
-被 cortex 流程 (lint / extract / canvas / frontmatter 整形) 调用的内部工具, **不是给用户直接调**.
+被 cortex 流程 (lint / extract / canvas / frontmatter 整形) 调用的内部工具, **不是给用户直接调**. **仅用户级** — 项目级 `<repo>/.wiki/` 不设 脚本/.
 
 ### 路径
 
-- 用户级: `~/.cortex/.wiki/脚本/<name>.{sh,py}`
-- 项目级: `<repo>/.wiki/脚本/<name>.{sh,py}`
+`~/.cortex/.wiki/脚本/<name>.{sh,py}` (仅用户级)
 
 ### 用途示例
 

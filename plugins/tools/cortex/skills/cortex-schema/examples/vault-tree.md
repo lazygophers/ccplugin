@@ -58,7 +58,7 @@
 └── templates/                                   ← 开放扩展位 (笔记模板)
 ```
 
-## 项目级 `<repo>/.wiki/` (与用户级 .wiki/ 同构)
+## 项目级 `<repo>/.wiki/` (仅 memory + 领域)
 
 ```
 <repo>/.wiki/
@@ -70,20 +70,13 @@
 │   │   └── module-ownership.md
 │   ├── L3-short/
 │   └── L4-inbox/
-├── 项目/                                         ← 本项目引用的外部 repo/website
-│   └── github.com/
-│       └── tokio-rs/
-│           └── tokio/
-│               └── README.md
-├── 领域/                                         ← 本项目专属领域知识
-│   └── tech/
-│       └── cortex/
-│           └── design.md
-└── 脚本/                                         ← 项目知识库内部脚本
-    └── gen-dashboard.sh
+└── 领域/                                         ← 本项目专属领域知识 (项目级唯一 knowledge 模块)
+    └── tech/
+        └── cortex/
+            └── design.md
 ```
 
-注: 顶层 `config/ state/ scripts/ logs/` **仅用户级** `~/.cortex/` 有; 项目级只有 `.wiki/`。
+注: 项目级**不含** `项目/` (外部 repo 引用属跨项目沉淀, 只落用户级) 与 `脚本/` (vault 内部脚本仅用户级); 顶层 `config/ state/ scripts/ logs/` 也仅用户级。
 
 ## 路径要点 (易错)
 

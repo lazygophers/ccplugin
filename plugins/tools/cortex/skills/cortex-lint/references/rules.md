@@ -34,10 +34,13 @@
 
 ## R4 — 目录同构 (error)
 
-- **定义**: vault 根必须含齐必备目录。**必备目录清单由 `cortex-schema/references/topology.md` (顶层 + 三模块) + `cortex-schema/references/memory-levels.md` (memory 5 级) 共同定义**, 缺失则 R4 报 error + autofix mkdir。
+- **定义**: vault 根必须含齐必备目录, **清单按层级不同** (见 `cortex-schema/references/topology.md` "必备目录" + `memory-levels.md` memory 5 级):
+  - 用户级 `~/.cortex/.wiki/`: memory 5 级 + `项目/` + `领域/` + `脚本/`
+  - 项目级 `<repo>/.wiki/`: memory 5 级 + `领域/` (无 项目/脚本)
+  - 缺失报 error + autofix mkdir。
 - **级别**: error。
 - **autofix**: 是 (mkdir, 见 `fixers.md`)。
-- **检测**: `os.path.isdir` 对照上述权威源拼出的清单, 缺一报一条。
+- **检测**: `os.path.isdir` 对照层级对应清单, 缺一报一条。**注**: 当前 `validate-layout.sh` / `_lint` 默认按用户级全模块校验; 项目级 (仅 memory + 领域) 的 level-aware 校验为后续实现。
 
 ## R5 — 孤儿页 (warn)
 
