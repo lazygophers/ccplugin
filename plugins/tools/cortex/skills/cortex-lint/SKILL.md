@@ -5,6 +5,7 @@ when_to_use: "lint/体检/校验 vault/audit; 整理 .wiki/ 前先跑; 排查死
 argument-hint: "[--check|--fix] [target]"
 arguments: "[--check|--fix] [路径]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # cortex-lint

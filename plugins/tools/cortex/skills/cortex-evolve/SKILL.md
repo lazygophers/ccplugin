@@ -5,6 +5,7 @@ when_to_use: "升级记忆/降级记忆/promote/demote/记忆再平衡/金字塔
 argument-hint: "[--scan|--dry-run|--apply] [--target <vault>]"
 arguments: "[--scan|--dry-run|--apply] [--target <仓库根>]"
 user-invocable: true
+disable-model-invocation: true
 ---
 
 # cortex-evolve
