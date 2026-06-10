@@ -79,3 +79,12 @@ main 监听 /workflows 视图变化
 - **摘要写 "完成" / "OK" / "没问题"** — 必须含产出路径
 - **失败时只回 "失败" 不说原因** — 必须含错误信息或文件:行
 - **延迟通讯 "等全部跑完再回报"** — 必须每个 subtask 完成立即回
+
+## 异步并行调度 (提效)
+
+subtask 派发**尽可能并行**, 提升整体效率:
+- 无依赖的 subtask → 一次性同时派发 (同一消息多个 Agent 调用), 不串行干等
+- 有依赖的 subtask → 按调度图顺序, 上游 done 才派下游
+- 资源冲突的 subtask (改同文件/共享配置) → 必须串行 (见 `shared-resources.md`)
+- 并行执行者各自 worktree (sub-agent isolation / agent-team 成员路径), 互不干扰
+- coordinator (main) 单线程协调: 不自己并跑多 subtask, 但派出去的 agent 并行推进; 收每个 agent 返回立即回传用户进度
