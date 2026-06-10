@@ -516,6 +516,13 @@
       ]
     },
     {
+      "name": "cortex",
+      "source": "./plugins/tools/cortex",
+      "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 7 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve",
+      "category": "tools",
+      "strict": false
+    },
+    {
       "name": "template",
       "source": "./plugins/template",
       "description": "插件开发模板 - 快速创建新插件的基础结构",

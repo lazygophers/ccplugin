@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "description": "cortex — 项目知识库统一管理: cortex-schema 单一契约 (双层同构 ~/.cortex/.wiki + <repo>/.wiki, 5 级记忆 L0-L4 按遗忘曲线, 3 模块 项目/领域/脚本) + cortex-ingest (GitHub/GitLab/Website/local 知识库构建) + cortex-lint (7 规则 + autofix) + cortex-extract (L4-inbox 路由)",
+  "description": "cortex — 知识库 + 记忆管理: 双层 vault (用户级全模块 + 项目级 memory+领域), 5 级记忆 L0-L4 (遗忘曲线). 7 skill: schema(目录契约权威)/ingest(GitHub/GitLab/Website/local 构建)/lint(7规则+autofix)/extract(L4-inbox 路由)/history-digest(扫 ~/.claude 历史)/context-digest(整理上下文)/evolve(金字塔升降级)",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
