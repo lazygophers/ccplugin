@@ -1,105 +1,84 @@
-# Cross-Layer Thinking Guide
+---
+updated: 2026-06-09
+rewrite-version: 1
+authored-by: trellisx-spec
+mode: optimize
+---
 
-> **Purpose**: Think through data flow across layers before implementing.
+# Cross-Layer Rules
+
+何时被读: 改动 ≥ 2 层 (e.g. API + service + DB) 时
+谁读: trellis-implement sub-agent; main agent
+不遵守的代价: 跨层耦合泄漏, 下次跨层改动连锁失败, 测试无法独立
 
 ---
 
-## The Problem
+## MUST — 改前列契约
 
-**Most bugs happen at layer boundaries**, not within layers.
-
-Common cross-layer bugs:
-- API returns format A, frontend expects format B
-- Database stores X, service transforms to Y, but loses data
-- Multiple layers implement the same logic differently
-
----
-
-## Before Implementing Cross-Layer Features
-
-### Step 1: Map the Data Flow
-
-Draw out how data moves:
+改 ≥ 2 层 MUST 先列每层契约边界:
 
 ```
-Source → Transform → Store → Retrieve → Transform → Display
+Layer A → Layer B:
+  输入格式: <exact type/schema>
+  输出格式: <exact type/schema>
+  错误: <possible errors>
 ```
 
-For each arrow, ask:
-- What format is the data in?
-- What could go wrong?
-- Who is responsible for validation?
+缺任一层契约边界 → 禁开始编码。
 
-### Step 2: Identify Boundaries
+验证: 契约边界文档必须存在, 缺一不改。
 
-| Boundary | Common Issues |
-|----------|---------------|
-| API ↔ Service | Type mismatches, missing fields |
-| Service ↔ Database | Format conversions, null handling |
-| Backend ↔ Frontend | Serialization, date formats |
-| Component ↔ Component | Props shape changes |
+## MUST — 显式接口
 
-### Step 3: Define Contracts
+跨层调用 MUST 走显式接口 (function / class method / API contract), 禁直接读对方内部实现字段。
 
-For each boundary:
-- What is the exact input format?
-- What is the exact output format?
-- What errors can occur?
+验证: `grep -rE '<对方内部字段名>' src/ | grep -v 'interface\|contract\|types'` 必须 0 行。
 
----
+## MUST — 验证单点
 
-## Common Cross-Layer Mistakes
+每个数据验证 MUST 在入口层执行一次, 禁在多层重复验证同一字段。
 
-### Mistake 1: Implicit Format Assumptions
+验证: `grep -rE '<同一字段验证逻辑>' src/ | wc -l` 必须 ≤ 1。
 
-**Bad**: Assuming date format without checking
+## MUST — 格式显式转换
 
-**Good**: Explicit format conversion at boundaries
+层边界处 MUST 显式转换数据格式, 禁隐式假设 (e.g. 日期格式 / null 处理 / 类型)。
 
-### Mistake 2: Scattered Validation
+验证: 跨层数据流经的每个边界 MUST 含显式 transform / adapter 调用。
 
-**Bad**: Validating the same thing in multiple layers
+## MUST — Security Filter Pipeline
 
-**Good**: Validate once at the entry point
+当流程涉及 URL 摄取 / HTML 处理 / 自由文本写入时:
 
-### Mistake 3: Leaky Abstractions
+1. URL 输入 MUST 经 `url_security.is_safe()` 检查 (SSRF / metadata host check) 后才可 fetch
+2. 抓取的 HTML/markdown MUST 经 `html_sanitize.sanitize()` 后才可继续处理
+3. 最终文本 MUST 经 `masking.mask()` 后才可写盘
+4. 过滤顺序 MUST 为: `url_security → fetch → html_sanitize → masking → write`, 禁重排
+5. `url_security` 失败 MUST fail-closed (拒绝, 禁不带检查重试)
 
-**Bad**: Component knows about database schema
+## MUST — 改后必验
 
-**Good**: Each layer only knows its neighbors
+实现后 MUST 验证:
 
----
+- [ ] 每个边界用边界值测试 (null / empty / invalid)
+- [ ] 错误处理在每个边界独立可测
+- [ ] 数据 round-trip 存活验证 (输入 → 穿越所有层 → 输出 一致)
 
-## Checklist for Cross-Layer Features
+## 禁止
 
-Before implementation:
-- [ ] Mapped the complete data flow
-- [ ] Identified all layer boundaries
-- [ ] Defined format at each boundary
-- [ ] Decided where validation happens
+- 禁组件直接依赖数据库 schema → 每层仅知相邻层
+- 禁多层分别实现同一逻辑 → 入口层一次, 下游信任
+- 禁跳过边界格式转换 → 显式转换必须存在
 
-After implementation:
-- [ ] Tested with edge cases (null, empty, invalid)
-- [ ] Verified error handling at each boundary
-- [ ] Checked data survives round-trip
+## Checklist
 
-## Checklist for External-Content Boundaries
+改前:
+- [ ] 列出完整数据流 (Source → Transform → Store → Retrieve → Display)
+- [ ] 标注所有层边界
+- [ ] 每个边界定义输入/输出格式
+- [ ] 确定验证发生在哪一层
 
-When the flow ingests URLs, persists transcripts, or writes free-form notes:
-
-- [ ] URL inputs gated by `url_security.is_safe()` (SSRF/metadata host check) before any fetch
-- [ ] Fetched HTML/markdown passed through `html_sanitize.sanitize()` before any further processing
-- [ ] Final text passed through `masking.mask()` before disk write
-- [ ] Filter order is `url_security → fetch → html_sanitize → masking → write` (never reorder)
-- [ ] Failure of `url_security` is fail-closed (reject, do not retry without check)
-- [ ] Reference contract: [hooks-contract.md §Security Filter Pipeline](../backend/hooks-contract.md#security-filter-pipeline-p0-hardening)
-
----
-
-## When to Create Flow Documentation
-
-Create detailed flow docs when:
-- Feature spans 3+ layers
-- Multiple teams are involved
-- Data format is complex
-- Feature has caused bugs before
+改后:
+- [ ] 每边界边界值测试通过
+- [ ] 每边界错误处理可独立触发
+- [ ] 数据 round-trip 一致

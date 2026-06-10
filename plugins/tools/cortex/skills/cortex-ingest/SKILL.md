@@ -1,66 +1,71 @@
 ---
 name: cortex-ingest
-description: 外部源 (文件/URL/目录) 摄取进 vault — 抽实体, 套模板 (cli=manual), wikilink 回填; URL 走 defuddle。Triggers on "ingest", "摄取".
-allowed-tools: Bash Read Write Edit Glob WebFetch mcp__obsidian__obsidian_get_file_contents mcp__obsidian__obsidian_append_content mcp__obsidian__obsidian_simple_search
+description: "知识库构建 ingest — 接受 GitHub/GitLab/Website URL 或 local dir 输入, 自动识别+路由到 项目/<host>/<owner>/<repo>/ (本地 git repo 当 github/gitlab 处理, 非 git → 项目/local/<name>/). 默认 dry-run JSON plan, --apply 调度抓取 (gh/git clone/WebFetch 混合) + 落盘."
+when_to_use: "入库新仓库/抓取项目/import GitHub repo/ingest website/导入本地 dir/build 项目知识库"
+argument-hint: "[--dry-run|--apply] <source>"
+arguments: "[--dry-run|--apply] <来源>"
+user-invocable: true
+context: fork
+agent: cortex-ingest-worker
 ---
 
 # cortex-ingest
 
-把外部内容 (本地文件 / 网页 / 目录批量) 转成结构化 知识库 页面写入 Obsidian vault。
+外部资源 → vault `项目/` 模块构建器. 接受 4 类输入, 识别 + 路由 + (dry-run) 计划. 默认 dry-run; `--apply` 调度抓取.
 
-## 触发场景
+## 后台扫描段 (cortex-ingest-worker 执行)
 
-- 用户给 URL "ingest this" / "把这篇文章存到知识库"
-- 用户给本地 md/pdf/txt 路径 "process this source"
-- `/cortex:ingest` 显式调用 (slash, 无入参; AI 从 prompt 推 path/url/dir)
-- Web Clipper 输出目录批量摄取
+本段由 `context: fork` 派 `cortex-ingest-worker` 后台跑：识别下方输入速查表中的来源形态，解析 git remote，按规则算目标路径，必要时用 gh/WebFetch 探查元信息，产出 **dry-run JSON plan**，不落盘。
 
-## 调用决策树
-
-```
-源类型 ─┬─ URL (https?://)   → ingest_url.sh → 知识库/项目/<host>/_site/<slug>/<slug>.md
-        │                     (网页/arxiv/docs/blog, _site 占位代替 org)
-        ├─ github/gitlab URL → ingest_remote.sh → 知识库/项目/<host>/<org>/<repo>/
-        ├─ 本地文件 (md/pdf/epub/docx/txt) → ingest_file.sh
-        ├─ 本地 git repo    → ingest_remote.sh (相对 $HOME 拆段, 不足 3 段补 _local)
-        └─ 目录批量          → Glob 收集 → 单文件循环
-
-收件箱仅留 fleeting/journal/question 纯笔记, 非外部 URL 默认目标。
-CLI 不可用 fallback: WebFetch + defuddle + 手工调三过滤器
-  → P0 三过滤器 (url_security → html_sanitize → masking) 顺序严格, 任一拒绝即终止
+```bash
+bash scripts/ingest.sh --dry-run [--target <vault>] --source <url-or-path>
 ```
 
-## AUTO_MODE 分支 (D10)
+默认 `--dry-run`, target = `$HOME/.cortex`. worker 把 JSON plan (source / target_path / fetch_method / frontmatter_preview) 返回主会话。
 
-`/cortex:ingest auto` (wrapper / cron 触发): 跳所有 `AskUserQuestion`, 自动判源类型 / 默认 kind=log / L3 写盘默认通过 / 三过滤器拒绝即终止不询问。
+## 主会话段 (worker 返回 plan 后)
 
-`/cortex:ingest` (会话内交互): per-file `AskUserQuestion` L3 写盘授权门; 批量 ≥3 升级 per-batch 单次确认。
+worker 返回入库 plan 后，由**主会话**执行：
 
-## 落档后必跑 self-check (拒交硬条件, 不达标自决继续补)
+1. 展示 plan，用户审 (target_path / fetch_method / frontmatter 预览)。
+2. 用户批准后落盘：`bash scripts/ingest.sh --apply --source <...>` — 调度抓取 (gh / git clone / WebFetch 混合) + 落盘。
+3. 落盘后调用 `cortex-lint` 校验。
 
-- **4 层目录** (`知识库/项目/<host>/<org>/<repo>/`): `主题/` (≥4) + `模块/` + `文件/` + `符号/api/` 任一空 → 拒交
-- **分级 .md 下限**: ≤50 文件 ≥15 / 50-500 ≥40 / >500 ≥100 — 详见 [layout.md](references/layout.md) §1.2
-- **6 类抽取必产**: API surface + 配置 schema + 错误码 + 测试 + 功能 + 全局常量 — 详见 [extract.md](references/extract.md) §7
-- **覆盖度 M/R ≥ 0.8** — 详见 [extract.md](references/extract.md) §4.7
-- **知识图谱 4 制品**: Bases YAML + canvas (≤20 节点) + wikilink (每 .md 出链 ≥5) + websearch — 详见 [knowledge-graph.md](references/knowledge-graph.md) §9
-- **tag ≥ 10, 严禁占位** ([global-rules.md](references/global-rules.md) §6)
+`--apply` 调度抓取 + 落盘 **只在主会话**，不在 worker。
 
-## 评分字段强制 (lint rule 21)
+## 输入速查表 (按顺序识别, 先命中先用)
 
-知识库 .md 4 字段 (0.0-10.0 浮点 + maturity enum): `score` / `confidence` / `source_credibility` / `maturity`。AI 落档自动写, 详见 [extract.md](references/extract.md) §3.1。
+| # | 输入形态 | 识别 | 目标路径 |
+| --- | --- | --- | --- |
+| 1 | `https://github.com/<o>/<r>` 或 `git@github.com:<o>/<r>.git` | URL host = github.com | `项目/github.com/<o>/<r>/` |
+| 2 | `https://gitlab.com/<o>/<r>` 或 ssh gitlab | URL host = gitlab.com | `项目/gitlab.com/<o>/<r>/` |
+| 3 | 其他 `https://<domain>/...` | URL host | `项目/<domain>/_/<slug>/` |
+| 4 | local dir + `.git/config` remote 指向 github/gitlab | 读 remote URL 递归识别 | 按 1/2 处理 |
+| 5 | local dir 无 git 或无 remote | 目录存在 | `项目/local/<basename>/` |
 
-## References 指针
+落盘文件: `README.md` (frontmatter 用 cortex-schema `templates/project/<variant>.md`).
 
-| 文件 | 内容 |
-|---|---|
-| [pipeline.md](references/pipeline.md) | 9 步主流程 + 源类型表 + 错误处理 + Source frontmatter 路由 |
-| [safety-filters.md](references/safety-filters.md) | P0 三过滤器 (url_security/html_sanitize/masking) 详细规范 |
-| [layout.md](references/layout.md) | 4 层目录 + 分级 .md 下限 + 拒交硬条件 + 分级评分 + 增量元数据 |
-| [extract.md](references/extract.md) | frontmatter schema + 深度处理 L1-L6 + 6 类抽取 + 覆盖度 + 评分启发式 |
-| [exclude.md](references/exclude.md) | 强制排除清单 (build 产物 / lock / binary / 系统 IDE / 临时备份 / 压缩包) |
-| [knowledge-graph.md](references/knowledge-graph.md) | 4 制品 (Bases/Canvas/Wikilink/websearch) |
-| [global-rules.md](references/global-rules.md) | 文件夹优先 + 嵌套 repo 处理 + tag ≥10 约定 |
+## 何时读哪个
 
-## 不做
+| 任务 | 文件 |
+| --- | --- |
+| 查 GitHub 抓取详情 (gh CLI / WebFetch fallback) | `sources/github.md` |
+| 查 GitLab 抓取详情 (glab / WebFetch) | `sources/gitlab.md` |
+| 查 Website 抓取详情 (WebFetch + slug) | `sources/website.md` |
+| 查 local dir 抓取 (含 git remote 检测 + 转向逻辑) | `sources/local.md` |
+| 查输入识别算法 + 优先序 + git remote 解析 | `references/routing.md` |
+| 查 CLI vs sub-agent 抓取流程 + dry-run/apply + 游标 | `references/workflow.md` |
 
-- 不修改源文件 (只读); 不调 `git commit`; 不抓 URL 二级链接 (除非显式 `/cortex:ingest`); 不抽过 5 个 entity (避噪音, 多了让用户手工拆)
+## 入口
+
+```bash
+bash scripts/ingest.sh [--dry-run|--apply] [--target <vault>] --source <url-or-path>
+```
+
+默认 `--dry-run`, target = `$HOME/.cortex`. dry-run 输出 JSON plan (source / target_path / fetch_method / frontmatter_preview).
+
+## 相关
+
+- 路径权威: `cortex-schema` (`templates/project/<variant>.md`)
+- 边界: 与 `cortex-extract` 互补 (ingest = 抓外部资源进 vault; extract = L4-inbox 内部分类)
+- 校验: `cortex-lint`

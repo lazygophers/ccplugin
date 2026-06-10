@@ -1,7 +1,0 @@
-[run]
-source =
-  /Users/luoxin/persons/lyxamour/ccplugin/plugins/tools/cortex/hooks/_lib
-  /Users/luoxin/persons/lyxamour/ccplugin/plugins/tools/cortex/lint
-  /Users/luoxin/persons/lyxamour/ccplugin/plugins/tools/cortex/refactor
-parallel = True
-concurrency = multiprocessing

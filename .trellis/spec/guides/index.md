@@ -1,79 +1,44 @@
-# Thinking Guides
+---
+updated: 2026-06-09
+rewrite-version: 1
+authored-by: trellisx-spec
+mode: optimize
+---
 
-> **Purpose**: Expand your thinking to catch things you might not have considered.
+# Thinking Guides Index
+
+何时被读: sub-agent dispatch 前加载上下文时; main 在 Phase 2.1 实现前
+谁读: trellis-implement sub-agent; main agent
+不遵守的代价: 重复代码 / 跨层耦合泄漏, 后续改动连锁失败
 
 ---
 
-## Why Thinking Guides?
+## 可用指南
 
-**Most bugs and tech debt come from "didn't think of that"**, not from lack of skill:
-
-- Didn't think about what happens at layer boundaries → cross-layer bugs
-- Didn't think about code patterns repeating → duplicated code everywhere
-- Didn't think about edge cases → runtime errors
-- Didn't think about future maintainers → unreadable code
-
-These guides help you **ask the right questions before coding**.
+| 指南 | 触发条件 | 验证 |
+| --- | --- | --- |
+| [Code Reuse](./code-reuse-thinking-guide.md) | 写新函数 / 新建文件前 | `grep -r '<语义词>' src/ packages/` 命中 ≥ 1 → 必须复用 |
+| [Cross-Layer](./cross-layer-thinking-guide.md) | 改动 ≥ 2 层 (e.g. API + DB) | 契约边界文档必须存在, 缺一不改 |
 
 ---
 
-## Available Guides
+## 强制加载触发器
 
-| Guide | Purpose | When to Use |
-|-------|---------|-------------|
-| [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
-| [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
+以下场景 MUST 读对应指南后再开始编码:
 
----
-
-## Quick Reference: Thinking Triggers
-
-### When to Think About Cross-Layer Issues
-
-- [ ] Feature touches 3+ layers (API, Service, Component, Database)
-- [ ] Data format changes between layers
-- [ ] Multiple consumers need the same data
-- [ ] You're not sure where to put some logic
-
-→ Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md)
-
-### When to Think About Code Reuse
-
-- [ ] You're writing similar code to something that exists
-- [ ] You see the same pattern repeated 3+ times
-- [ ] You're adding a new field to multiple places
-- [ ] **You're modifying any constant or config**
-- [ ] **You're creating a new utility/helper function** ← Search first!
-
-→ Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
+- [ ] 写新函数 / 新建文件 → [Code Reuse](./code-reuse-thinking-guide.md)
+- [ ] 改动涉及 ≥ 2 层 → [Cross-Layer](./cross-layer-thinking-guide.md)
+- [ ] 发现同语义代码 ≥ 3 处 → [Code Reuse](./code-reuse-thinking-guide.md) 并抽取
+- [ ] 批量修改同名 / 同语义字段 → [Code Reuse](./code-reuse-thinking-guide.md) 确认无遗漏
 
 ---
 
-## Pre-Modification Rule (CRITICAL)
+## Pre-Modification Rule
 
-> **Before changing ANY value, ALWAYS search first!**
+改任何值前 MUST 先搜:
 
 ```bash
-# Search for the value you're about to change
 grep -r "value_to_change" .
 ```
 
-This single habit prevents most "forgot to update X" bugs.
-
----
-
-## How to Use This Directory
-
-1. **Before coding**: Skim the relevant thinking guide
-2. **During coding**: If something feels repetitive or complex, check the guides
-3. **After bugs**: Add new insights to the relevant guide (learn from mistakes)
-
----
-
-## Contributing
-
-Found a new "didn't think of that" moment? Add it to the relevant guide.
-
----
-
-**Core Principle**: 30 minutes of thinking saves 3 hours of debugging.
+未搜先改 = 违反 spec。

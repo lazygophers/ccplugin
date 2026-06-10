@@ -1,0 +1,6 @@
+{"type":"user","message":{"content":"帮我整理这段代码"},"timestamp":"2026-06-09T10:00:00Z"}
+{"type":"assistant","message":{"content":"我先看下代码结构..."},"timestamp":"2026-06-09T10:00:05Z"}
+{"type":"user","message":{"content":"no, 不要重写, 只 fix bug"},"timestamp":"2026-06-09T10:00:30Z"}
+{"type":"assistant","message":{"content":"明白, 我只 fix bug 不重写"},"timestamp":"2026-06-09T10:00:35Z"}
+{"type":"user","message":{"content":"永远不要在 main 分支直接 push, 这是硬性规则"},"timestamp":"2026-06-09T10:01:00Z"}
+{"type":"assistant","message":{"content":"了解, 永远不直接 push main"},"timestamp":"2026-06-09T10:01:05Z"}

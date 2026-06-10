@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 97
-- **Last Active**: 2026-05-23
+- **Total Sessions**: 112
+- **Last Active**: 2026-06-10
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1295 | Active |
+| `journal-2.md` | ~1790 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,21 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 112 | 2026-06-10 | cortex 后台 worker agents | `5b63b1f9` | `cortex` |
+| 111 | 2026-06-10 | cortex-recall 知识库搜索 skill | `dcbda313` | `cortex` |
+| 110 | 2026-06-10 | cortex-evolve 记忆升降级 skill | `f6e0fadd` | `cortex` |
+| 109 | 2026-06-09 | cortex history-digest + context-digest 2 skill | `58bb0bcb` | `cortex` |
+| 108 | 2026-06-09 | cortex-ingest sources 按类型拆 4 文件 | `1fea70c7` | `cortex` |
+| 107 | 2026-06-09 | cortex-ingest 知识库构建 skill | `ebde01f7` | `cortex` |
+| 106 | 2026-06-09 | cortex-schema 模板按变体拆 11 文件 | `44a6899a` | `cortex` |
+| 105 | 2026-06-09 | cortex-schema 合并 + 样例补全 | `6f1bf2a9` | `cortex` |
+| 104 | 2026-06-09 | cortex schema 收敛为单一真相源 | `8dc78394` | `cortex` |
+| 103 | 2026-06-09 | cortex skills 清除 '用户说' | `8d023541` | `cortex` |
+| 102 | 2026-06-09 | cortex skills arguments 字段格式修正 | `cd7745ac` | `cortex` |
+| 101 | 2026-06-09 | cortex skills 多文件改造 | `7926880e` | `cortex` |
+| 100 | 2026-06-09 | cortex skills 多文件改造 | `3e43c98e` | `cortex` |
+| 99 | 2026-06-09 | cortex plugin: KB + memory system | `2d8f3ed0` | `cortex` |
+| 98 | 2026-06-09 | scaffold cortex plugin skeleton | `3685f779` | `cortex` |
 | 97 | 2026-05-23 | 新增 cortex-dataview Dataview 查询 skill | `cdef5fab` | `master` |
 | 96 | 2026-05-23 | vault _templates 全量回灌 + quickadd 集成 | `7213e113` | `master` |
 | 95 | 2026-05-22 | 新增 cortex video/audio 理解两个 skill | `59014063` | `master` |

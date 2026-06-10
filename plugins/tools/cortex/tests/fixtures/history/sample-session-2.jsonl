@@ -1,0 +1,5 @@
+{"type":"user","message":{"content":"选哪个 HTTP 库?"},"timestamp":"2026-06-09T11:00:00Z"}
+{"type":"assistant","message":{"content":"我们选 reqwest, 它在 tokio 生态最成熟"},"timestamp":"2026-06-09T11:00:10Z"}
+{"type":"user","message":{"content":"OK"},"timestamp":"2026-06-09T11:00:15Z"}
+{"type":"assistant","message":{"content":"测试 failed because env 变量 MISSING_KEY 未设置, 踩坑: docker compose 不自动加载 .env"},"timestamp":"2026-06-09T11:05:00Z"}
+{"type":"user","message":{"content":"记录一下这个坑"},"timestamp":"2026-06-09T11:05:30Z"}

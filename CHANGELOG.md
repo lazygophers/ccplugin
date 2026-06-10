@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migration: re-run `claude plugin install <newname>` for any of the affected plugins
 
 ### Added
+- `cortex` plugin: 知识库 + 记忆管理 — 双层 vault (用户级全模块 + 项目级 memory+领域), 5 级记忆 L0-L4 (遗忘曲线), 7 skill (schema/ingest/lint/extract/history-digest/context-digest/evolve) + scripts (validate-layout/lint/extract/ingest/history-digest)
+- `trellisx` plugin: Trellis 任务编排扩展 — worktree 隔离、subtask 调度、spec 优化、规则内化 (trellisx-apply)
 - `scripts/check.py --marketplace`: 仓库级名称对齐校验（marketplace.json ↔ plugin.json ↔ 目录名），检测 drifts/ghosts/orphans
 
 ### Removed

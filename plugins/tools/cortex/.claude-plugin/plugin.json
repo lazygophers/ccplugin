@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "description": "Cortex — Obsidian 知识库协作插件: hooks 注入、CLI/MCP 操作、模板/lint/refactor、SessionStart 协作约定 + Stop 自动落档",
+  "description": "cortex — 知识库 + 记忆管理: 双层 vault (用户级全模块 + 项目级 memory+领域), 5 级记忆 L0-L4 (遗忘曲线). 8 skill: schema(目录契约权威)/ingest(GitHub/GitLab/Website/local 构建)/lint(7规则+autofix)/extract(L4-inbox 路由)/history-digest(扫 ~/.claude 历史)/context-digest(整理上下文)/evolve(金字塔升降级)/recall(搜索+兜底+回填)",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -10,119 +10,56 @@
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
   "license": "AGPL-3.0-or-later",
   "agents": [
-    "./agents/cortex-archivist.md",
-    "./agents/cortex-cartographer.md",
-    "./agents/cortex-curator.md",
-    "./agents/cortex-historian.md",
-    "./agents/cortex-linker.md",
-    "./agents/cortex-researcher.md",
-    "./agents/cortex-summarizer.md",
-    "./agents/cortex-translator.md"
-  ],
-  "commands": [
-    "./commands/lint.md",
-    "./commands/dashboard.md",
-    "./commands/doctor.md",
-    "./commands/init.md",
-    "./commands/promote.md",
-    "./commands/forget.md",
-    "./commands/digest.md",
-    "./commands/compact.md",
-    "./commands/warden.md",
-    "./commands/archive.md",
-    "./commands/update.md",
-    "./commands/install_cron.md",
-    "./commands/config.md",
-    "./commands/search.md",
-    "./commands/save.md",
-    "./commands/ingest.md",
-    "./commands/memory.md",
-    "./commands/recall.md",
-    "./commands/refactor.md"
+    "./agents/cortex.md",
+    "./agents/cortex-lint-worker.md",
+    "./agents/cortex-history-worker.md",
+    "./agents/cortex-evolve-worker.md",
+    "./agents/cortex-extract-worker.md",
+    "./agents/cortex-ingest-worker.md"
   ],
   "skills": [
-    "./skills/cortex-canvas",
-    "./skills/cortex-config",
-    "./skills/cortex-dashboard",
-    "./skills/cortex-doctor",
-    "./skills/cortex-image",
+    "./skills/cortex-schema",
     "./skills/cortex-ingest",
-    "./skills/cortex-ingest-bulk",
-    "./skills/cortex-install",
     "./skills/cortex-lint",
-    "./skills/cortex-locale",
-    "./skills/cortex-new",
-    "./skills/cortex-refactor",
-    "./skills/cortex-save",
-    "./skills/cortex-search",
-    "./skills/cortex-session"
+    "./skills/cortex-extract",
+    "./skills/cortex-recall",
+    "./skills/cortex-history-digest",
+    "./skills/cortex-context-digest",
+    "./skills/cortex-evolve"
   ],
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume|clear",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/session_start.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/stop.sh",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/stop.sh",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "PostCompact": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/post_compact.sh",
-            "async": true
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/cortex/scripts/hooks/user_prompt_submit.sh",
-            "async": false
-          }
-        ]
-      }
-    ]
-  },
+  "commands": [],
+  "hooks": {},
   "keywords": [
+    "cortex",
+    "knowledge-base",
+    "memory",
+    "vault",
     "obsidian",
-    "pkm",
     "wiki",
-    "zettelkasten",
-    "lyt",
-    "para",
-    "second-brain",
-    "auto-archive",
-    "session-recap"
+    "lint",
+    "extract",
+    "promote",
+    "ingest",
+    "github",
+    "gitlab",
+    "website",
+    "history-digest",
+    "context-digest",
+    "sediment",
+    "transcript",
+    "evolve",
+    "demote",
+    "pyramid",
+    "rebalance",
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "forgetting-curve",
+    "ebbinghaus",
+    "recall",
+    "search",
+    "query"
   ]
 }

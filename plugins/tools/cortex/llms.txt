@@ -1,0 +1,27 @@
+# cortex
+
+> 知识库 + 记忆管理插件 - 双层 vault、5 级记忆 (Ebbinghaus 遗忘曲线)、知识库三模块, 提供搜索 / 入库 / 整理 / 升降级 / 校验全流程
+
+## Docs
+
+- [README](./README.md): 完整说明 — 组件、目录契约、边界、触发、安装
+- [插件配置](./.claude-plugin/plugin.json): 插件元数据 (8 skill + 6 agent 声明: cortex 主协调 + 5 后台 worker)
+- [目录契约权威源](./skills/cortex-schema/): 双层布局 / 三模块路径 / 5 级记忆 / frontmatter 模板 / 样例 (单一真相)
+
+## Examples
+
+- [cortex-schema](./skills/cortex-schema/SKILL.md): 目录/路径/模板契约权威 (背景知识, 被其他 skill 引用)
+- [cortex-recall](./skills/cortex-recall/SKILL.md): 搜双层 vault → 兜底 (WebSearch→问用户) → 按 scope 归类回填
+- [cortex-ingest](./skills/cortex-ingest/SKILL.md): GitHub/GitLab/Website/local 输入识别 + 路由入库
+- [cortex-extract](./skills/cortex-extract/SKILL.md): L4-inbox 三轴路由分级 (抗遗忘度/强度/复用面)
+- [cortex-lint](./skills/cortex-lint/SKILL.md): 7 规则校验 + R2/R4 autofix
+- [cortex-evolve](./skills/cortex-evolve/SKILL.md): 金字塔升降级 (频率/时间/重要度)
+- [cortex-context-digest](./skills/cortex-context-digest/SKILL.md): 整理会话上下文 → scope 归类沉淀
+- [cortex-history-digest](./skills/cortex-history-digest/SKILL.md): 扫 ~/.claude/projects 历史 → 全局记忆
+
+## Optional
+
+- [cortex agent](./agents/cortex.md): 前台主代理, 按请求分类调度 8 skill
+- [后台 worker agents](./agents/): cortex-{lint,history,evolve,extract,ingest}-worker — background:true, 被对应 skill context:fork 启动, 只读扫描→plan (ask/落盘留主会话)
+- [脚本](./scripts/): validate-layout / lint / extract / ingest / history-digest (bash + python, dry-run 默认)
+- [完整目录树样例](./skills/cortex-schema/examples/vault-tree.md): ~/.cortex/.wiki/ 填充后实样

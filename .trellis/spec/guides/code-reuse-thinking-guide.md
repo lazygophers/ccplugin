@@ -1,105 +1,68 @@
-# Code Reuse Thinking Guide
+---
+updated: 2026-06-09
+rewrite-version: 1
+authored-by: trellisx-spec
+mode: optimize
+---
 
-> **Purpose**: Stop and think before creating new code - does it already exist?
+# Code Reuse Rules
+
+何时被读: 写新函数 / 新建文件 / 批量修改同语义字段前
+谁读: trellis-implement sub-agent; main agent
+不遵守的代价: 重复代码扩散, bug fix 不传播, 行为随时间分叉
 
 ---
 
-## The Problem
+## MUST — 写前必搜
 
-**Duplicated code is the #1 source of inconsistency bugs.**
-
-When you copy-paste or rewrite existing logic:
-- Bug fixes don't propagate
-- Behavior diverges over time
-- Codebase becomes harder to understand
-
----
-
-## Before Writing New Code
-
-### Step 1: Search First
+写新函数前 MUST `grep` 项目同名 / 同语义函数; 命中则用旧, 禁新写:
 
 ```bash
-# Search for similar function names
-grep -r "functionName" .
-
-# Search for similar logic
-grep -r "keyword" .
+# 函数名搜索
+grep -r "functionName" src/ packages/
+# 语义搜索
+grep -rE "关键词1|关键词2|关键词3" src/ packages/
 ```
 
-### Step 2: Ask These Questions
+验证: `grep -rE '<新函数语义>' src/ packages/` 命中 ≥ 1 → MUST NOT 新写, 必须复用或扩展。
 
-| Question | If Yes... |
-|----------|-----------|
-| Does a similar function exist? | Use or extend it |
-| Is this pattern used elsewhere? | Follow the existing pattern |
-| Could this be a shared utility? | Create it in the right place |
-| Am I copying code from another file? | **STOP** - extract to shared |
+## MUST — 三份规则
 
----
+同语义代码 ≥ 3 处出现 → MUST 抽取共享函数 / 模块, 禁新增第 4 份拷贝。
 
-## Common Duplication Patterns
+验证: `grep -rE '<函数语义词>' src/ packages/ | wc -l` ≥ 3 → 当前文件 MUST NOT 新写独立实现。
 
-### Pattern 1: Copy-Paste Functions
+## MUST — 常量单源
 
-**Bad**: Copying a validation function to another file
+重复常量 MUST 定义在一处, 所有消费方 import, 禁在多文件分别定义。
 
-**Good**: Extract to shared utilities, import where needed
+验证: `grep -r '<常量值>' src/ packages/ | grep -v 'import\|from\|\.h' | wc -l` 必须 = 1 (定义点)。
 
-### Pattern 2: Similar Components
+## MUST — 批量修改后必验
 
-**Bad**: Creating a new component that's 80% similar to existing
+修改影响 ≥ 2 文件时:
 
-**Good**: Extend existing component with props/variants
+1. MUST `grep -rE '<修改内容>' src/ packages/` 确认无遗漏
+2. 同语义 ≥ 3 处 → MUST 抽取 (见"三份规则")
+3. 验证: grep 结果 = 预期文件列表, 多余 = 遗漏
 
-### Pattern 3: Repeated Constants
+## MUST — 不对称机制同步
 
-**Bad**: Defining the same constant in multiple files
+当两种机制产生同一输出集 (e.g. glob 自动复制 vs 手动 `files.set()`):
 
-**Good**: Single source of truth, import everywhere
+- 目录结构变更时 MUST 搜索所有引用旧结构的代码路径
+- 自动派生路径 + 手动列举路径并存 → 手动端 MUST 同步更新
+- MUST 添加回归测试比对两种机制输出
 
----
+## 禁止
 
-## When to Abstract
+- 禁 copy-paste 验证函数到另一文件 → 抽取到共享 utilities
+- 禁创建与已有组件 ≥ 80% 相似的新组件 → 扩展现有组件
+- 禁在多文件分别定义同一常量 → 单源定义 + import
 
-**Abstract when**:
-- Same code appears 3+ times
-- Logic is complex enough to have bugs
-- Multiple people might need this
+## Checklist
 
-**Don't abstract when**:
-- Only used once
-- Trivial one-liner
-- Abstraction would be more complex than duplication
-
----
-
-## After Batch Modifications
-
-When you've made similar changes to multiple files:
-
-1. **Review**: Did you catch all instances?
-2. **Search**: Run grep to find any missed
-3. **Consider**: Should this be abstracted?
-
----
-
-## Gotcha: Asymmetric Mechanisms Producing Same Output
-
-**Problem**: When two different mechanisms must produce the same file set (e.g., recursive directory copy for init vs. manual `files.set()` for update), structural changes (renaming, moving, adding subdirectories) only propagate through the automatic mechanism. The manual one silently drifts.
-
-**Symptom**: Init works perfectly, but update creates files at wrong paths or misses files entirely.
-
-**Prevention checklist**:
-- [ ] When migrating directory structures, search for ALL code paths that reference the old structure
-- [ ] If one path is auto-derived (glob/copy) and another is manually listed, the manual one needs updating
-- [ ] Add a regression test that compares outputs from both mechanisms
-
----
-
-## Checklist Before Commit
-
-- [ ] Searched for existing similar code
-- [ ] No copy-pasted logic that should be shared
-- [ ] Constants defined in one place
-- [ ] Similar patterns follow same structure
+- [ ] grep 确认无已有同语义实现
+- [ ] 无 copy-paste 逻辑应抽未抽
+- [ ] 常量仅定义一处
+- [ ] 相似模式遵循同一结构

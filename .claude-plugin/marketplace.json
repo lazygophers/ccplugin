@@ -409,30 +409,6 @@
       ]
     },
     {
-      "name": "cortex",
-      "source": "./plugins/tools/cortex",
-      "description": "Cortex — Obsidian 知识库协作插件: SessionStart 注入、Stop 自动落档、CLI/MCP 操作、模板/lint/refactor、PKM preset (LYT/Zettel/PARA/blank)",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/cortex",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "obsidian",
-        "knowledge-base",
-        "pkm",
-        "wiki",
-        "zettelkasten",
-        "lyt",
-        "para",
-        "second-brain",
-        "auto-archive",
-        "session-recap"
-      ]
-    },
-    {
       "name": "codex",
       "source": "./plugins/tools/codex",
       "description": "Codex 插件 - Claude Code 与本地 Codex 模型协同作战，提供代码生成、分析和优化能力",
@@ -538,6 +514,13 @@
         "planning",
         "mermaid"
       ]
+    },
+    {
+      "name": "cortex",
+      "source": "./plugins/tools/cortex",
+      "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 8 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve/recall",
+      "category": "tools",
+      "strict": false
     },
     {
       "name": "template",

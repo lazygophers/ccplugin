@@ -1,0 +1,6 @@
+https://github.com/lazygophers/ccplugin
+https://gitlab.com/gitlab-org/gitlab
+https://docs.python.org/3/library/argparse.html
+git@github.com:tokio-rs/tokio.git
+plugins/tools/cortex/tests/fixtures/ingest/local-no-git
+plugins/tools/cortex/tests/fixtures/ingest/local-with-git-remote
