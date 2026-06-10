@@ -41,11 +41,6 @@ authored-by: trellisx-apply
 - PRD 含 mermaid 调度图 (依赖 + 并行)
 - parent-child 用 trellis 原生 `task.py add-subtask`
 
-## trellis-check 闭环 (强制)
-
-- task 完成前**必经** `trellis-check` 综合验证
-- check 未过禁宣告 done
-
 ## 分工 (融合 trellis 原生)
 
 | 能力 | 用谁 |
@@ -57,9 +52,6 @@ authored-by: trellisx-apply
 | planning 文档编排 (PRD/design/implement/subtask 文件 + 调度图) | trellisx `trellisx-orchestrate` skill |
 | worktree 隔离 + 前缀标记 | trellisx (本约定 + 平台 hook) |
 
-## 回复前缀
-
-所有回复以 `[trellisx-{status}-{task}]` 开头 (无 task `[trellisx]`)。
 ```
 
 ## 幂等

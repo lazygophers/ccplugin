@@ -25,16 +25,16 @@ trellisx 插件本身**无运行时 hook**。worktree 自动化 hook 由 `trelli
 
 - **`trellisx-spec`** — forked subagent, 仅读写 `.trellis/spec/**`
 
-## 内化规则 (C1-R5)
+## 注入维度 (纯增量, 不改原生流程)
 
-| 规则 | 内容 |
+apply **只增加** worktree + subtask 两个维度, **绝不修改** trellis 原生 task 创建 / check / finish / 前缀:
+
+| 维度 | 内容 |
 | --- | --- |
-| 任务门禁 | 实施建 task; 探索按复杂度 |
-| subtask 拆分 | task 拆 ≥ 2 subtask + 调度图 |
-| main 角色 (C1) | main 可写源码 (inline) 但必须在 worktree; 复杂/并行派 agent |
-| worktree (I1/I2) | task.py start 自动建 .trellis/worktrees/<task>; archive 干净则销毁 |
-| trellis-check 闭环 (C3) | 完成前必经 trellis-check |
-| 回复前缀 | 所有回复 [trellisx-{status}-{task}] (无 task [trellisx]) |
+| subtask 拆分 | planning 块加 拆 ≥ 2 subtask + 独立文件 + 调度图 |
+| worktree 隔离 | in_progress 块加 worktree; task.py start 自动建 .trellis/worktrees/<task>, archive 销毁 (平台 hook, 不改 task.py) |
+
+绝不碰: no_task (task 创建触发) / Phase 流程 / 完成判定 / 前缀 — 全保持 trellis 原生。
 
 ## 与 trellis 融合 (非取代)
 

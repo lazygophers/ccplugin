@@ -1,6 +1,6 @@
 ---
 name: trellisx-apply
-description: 把 trellisx 的全部预想 (worktree 隔离 / subtask 编排 / main 协调 / trellis-check 闭环 / 回复前缀标记 / 前置流程铁律) 一次性内化进当前项目的 .trellis/ 自身 — 改 workflow.md (workflow-state 块 + Phase) + spec/ + trellis 生成的平台 hook。跑一次永久生效, 之后由 trellis 原生 hook 注入这些规则, 不需 trellisx 运行时 hook。幂等 (marker 包裹, 重复跑只更新不堆叠)。
+description: 把 worktree 隔离 + subtask 拆分两个维度增量注入当前项目 .trellis/ (workflow.md 的 planning/in_progress 块 + spec 背书文档 + 平台 hook worktree 自动化)。**纯增量, 不修改 trellis 原生流程** (task 创建/check/finish/前缀全保持原生)。幂等 (marker 包裹)。
 when_to_use: 用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"。
 argument-hint: [scope]
 arguments: [范围]
@@ -8,7 +8,7 @@ arguments: [范围]
 
 # trellisx-apply — 把 trellisx 规则内化进 .trellis
 
-把 trellisx 的设计 (见 §规则集) **一次性写进当前项目的 `.trellis/` 自身**, 让 trellis 原生流程内置这些约束。跑完后 trellisx 不再需要运行时 hook —— trellis 自己的 `inject-workflow-state` hook 每轮就会注入这些规则。
+把 **worktree 隔离 + subtask 拆分** 两个维度增量注入当前项目 `.trellis/`。**纯增量, 绝不修改 trellis 原生流程** —— task 创建 / check / finish / 前缀全部保持 trellis 原生不动。跑完后由 trellis 原生 `inject-workflow-state` hook 注入这 2 个维度。
 
 ## 立场
 
@@ -41,22 +41,20 @@ ls .claude/hooks/ 2>/dev/null    # 平台 hook 目标 (trellis init --claude 生
 | 4 | 注入平台 hook (worktree 自动建/销) | 读 `references/hook-injection.md` |
 | 5 | AskUserQuestion 审批 → 一次写盘 → 验证 | 读 `references/apply-verify.md` |
 
-## 规则集 (内化的 trellisx 预想)
+## 注入维度 (纯增量, 只加 2 个)
 
-注入到 `.trellis/` 的全部规则 (C1-R5 决策已落定):
+apply **只增加** worktree + subtask 两个维度, **绝不修改** trellis 原生流程 (task 创建 / check / finish / 前缀):
 
-| 规则 | 内容 | 落地位置 |
+| 维度 | 注入内容 | 落地位置 |
 | --- | --- | --- |
-| **任务门禁** | 实施 (写盘) 无条件建 task; 探索 (只读) 按复杂度 | workflow.md `[workflow-state:no_task]` |
-| **subtask 拆分** | task 拆 ≥ 2 subtask, 各独立可验收 | workflow.md `[workflow-state:planning]` + spec |
-| **main 角色 (C1)** | main **可直接写源码** (trellis inline 风格), **但必须在 worktree 内**; 复杂/并行派 sub-agent / agent-team | workflow.md `[workflow-state:in_progress]` |
-| **worktree (I1/I2)** | `task.py start` 后建 `.trellis/worktrees/<task>` worktree; 执行限于 worktree; archive 时合并 + 移除 | workflow.md + 平台 hook (PostToolUse 监测 task.py) |
-| **trellis-check 闭环 (C3)** | task 完成前**必经** `trellis-check`; 未过禁宣告完成 | workflow.md 完成判定 + spec |
-| **回复前缀标记** | 所有回复以 `[trellisx-{status}-{task}]` (无 task `[trellisx]`) 开头 | workflow.md 顶部 + 平台 hook |
-| **前置流程铁律 (5 步)** | ①创建任务+切worktree ②任务规划(拆subtask+文档) ③异步执行(调度subtask agent并行) ④整体check ⑤commit+finish | workflow.md Phase 描述 |
-| **subtask 文件编排 (R2)** | 每 subtask 独立文件 `.trellis/tasks/<task>/subtask/<id>.md` + mermaid 调度图 | 引用 `trellisx-orchestrate` skill |
-| **spec 优化 (R4)** | 破坏式重写走 `trellisx-spec`; 增量捕获走 trellis 原生 `trellis-update-spec` | spec 说明 |
-| **jsonl (R5)** | implement.jsonl/check.jsonl 由 trellis 平台 hook 自动注入, 仅说明 curate 填什么 | 引用 trellis |
+| **subtask 拆分** | task 拆 ≥ 2 subtask + 独立文件 + 调度图 | workflow.md `[workflow-state:planning]` 块末尾追加 |
+| **worktree 隔离** | task.py start 自动建 .trellis/worktrees/<task>; 源码改动隔离; archive 销毁 | workflow.md `[workflow-state:in_progress]` 块末尾 + 平台 hook (PostToolUse) |
+| (背书) spec 文档 | trellixx-conventions.md 说明上述 2 维度 | .trellis/spec/guides/ 新增文件 |
+| (副作用) worktree hook | PostToolUse 监测 task.py start/archive 自动建/销 (不改 task.py) | 用户项目 .claude/settings.json |
+
+**绝不碰**: `[workflow-state:no_task]` (task 创建触发) / Phase 流程 / 完成判定 / 回复前缀 —— 全部保持 trellis 原生。
+
+> 教训: 早期 apply 注入 no_task + 重写 Phase, 破坏了 trellis 原生 task 创建触发。apply 必须最小侵入。
 
 ## 参考集 (按需读)
 

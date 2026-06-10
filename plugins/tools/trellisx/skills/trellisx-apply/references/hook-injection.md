@@ -54,10 +54,6 @@ sys.exit(0)
 
 注册到**用户项目**的 hook 配置 (trellisx 插件本身不带 hook): 写进项目 `.claude/settings.json` 的 hooks.PostToolUse (matcher `Bash`), 或 trellis 平台 hook 注册机制。
 
-## 2. 回复前缀 (可选 — 已在 workflow.md 顶部规则)
-
-前缀校验若要硬强制, 可加 Stop hook; 但 trellisx-apply 默认**靠 workflow.md 顶部规则 + 每轮 workflow-state 注入** (软约束), 不强制装 Stop hook (避免复杂)。用户要硬校验再单独加。
-
 ## 3. .gitignore
 
 确保 `.trellis/.gitignore` 含:
