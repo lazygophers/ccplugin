@@ -18,7 +18,8 @@
     "./skills/cortex-lint",
     "./skills/cortex-extract",
     "./skills/cortex-history-digest",
-    "./skills/cortex-context-digest"
+    "./skills/cortex-context-digest",
+    "./skills/cortex-evolve"
   ],
   "commands": [],
   "hooks": {},
@@ -40,6 +41,10 @@
     "context-digest",
     "sediment",
     "transcript",
+    "evolve",
+    "demote",
+    "pyramid",
+    "rebalance",
     "L0",
     "L1",
     "L2",
