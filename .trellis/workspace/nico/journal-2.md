@@ -1788,3 +1788,36 @@ history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整
 ### Next Steps
 
 - None - task complete
+
+
+## Session 113: cortex hooks 自动构建+主动检索
+
+**Date**: 2026-06-10
+**Task**: cortex hooks 自动构建+主动检索
+**Branch**: `master`
+
+### Summary
+
+3 轻量 hook (SessionStart/UserPromptSubmit/Stop) 纯注入提示. PR #9 已合并后误在 master 直提 + push.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `76f7a4c2` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
