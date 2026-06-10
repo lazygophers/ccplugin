@@ -51,7 +51,7 @@ uv run ruff format .
 # 测试（更推荐按子项目/目录执行）
 uv run pytest lib/tests
 # 例：运行某个插件的测试/脚本（若插件有独立 pyproject）
-uv run --directory plugins/memory pytest
+uv run --directory plugins/tools/cortex pytest
 
 # 版本同步（跨所有插件/根包）
 uv run scripts/update_version.py

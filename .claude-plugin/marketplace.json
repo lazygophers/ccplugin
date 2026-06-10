@@ -473,24 +473,6 @@
       ]
     },
     {
-      "name": "memory",
-      "source": "./plugins/memory",
-      "description": "智能记忆插件 - 提供 URI 寻址的记忆存储、自动 Hooks 集成和跨会话持久化",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/memory",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/memory",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "memory",
-        "persistence",
-        "session",
-        "hooks"
-      ]
-    },
-    {
       "name": "trellisx",
       "source": "./plugins/tools/trellisx",
       "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 worktree 隔离 / subtask 编排 / main 协调 / trellis-check 闭环 / 前缀标记 内化进 .trellis 自身 (workflow.md + spec + 平台 hook); 插件本身无运行时 hook",
