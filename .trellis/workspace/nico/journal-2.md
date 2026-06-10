@@ -1722,3 +1722,36 @@ history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整
 ### Next Steps
 
 - None - task complete
+
+
+## Session 111: cortex-recall 知识库搜索 skill
+
+**Date**: 2026-06-10
+**Task**: cortex-recall 知识库搜索 skill
+**Branch**: `cortex`
+
+### Summary
+
+搜双层 vault → 兜底 (WebSearch→问用户) → scope 归类自动回填. plugin.json 7→8 skill. marketplace 对齐.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dcbda313` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
