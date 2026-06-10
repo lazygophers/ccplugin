@@ -1689,3 +1689,36 @@ history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整
 ### Next Steps
 
 - None - task complete
+
+
+## Session 110: cortex-evolve 记忆升降级 skill
+
+**Date**: 2026-06-10
+**Task**: cortex-evolve 记忆升降级 skill
+**Branch**: `cortex`
+
+### Summary
+
+金字塔模型 L4→L0. 三轴 (频率/时间/重要度). L4-L2 双向, L1/L0 仅升不降. 无脚本, skill 步骤指导 main 调 extract/save. 按 trellisx-enforce 在 worktree 执行+合并+清理.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f6e0fadd` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
