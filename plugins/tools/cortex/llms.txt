@@ -8,7 +8,7 @@
 - 5 级记忆按 Ebbinghaus 遗忘曲线: L0 核心 / L1 长期 / L2 中期 / L3 短期 / L4 收件箱
 - 升级方向 = 抵抗遗忘 (L3 → L2 → L1 → L0); 默认入口 L3
 - 3 模块知识库: projects (host/owner/repo) / domains (area/sub) / scripts (vault 内部)
-- 7 skill: cortex-schema, cortex-ingest, cortex-lint, cortex-extract, cortex-history-digest, cortex-context-digest, cortex-evolve
+- 8 skill: cortex-schema, cortex-ingest, cortex-lint, cortex-extract, cortex-recall, cortex-history-digest, cortex-context-digest, cortex-evolve
 - 1 agent: cortex (协调 7 skill)
 
 ## 目录结构
@@ -22,6 +22,7 @@ plugins/tools/cortex/
 │   ├── cortex-ingest/SKILL.md
 │   ├── cortex-lint/SKILL.md
 │   ├── cortex-extract/SKILL.md
+│   ├── cortex-recall/SKILL.md
 │   ├── cortex-history-digest/SKILL.md
 │   ├── cortex-context-digest/SKILL.md
 │   └── cortex-evolve/SKILL.md

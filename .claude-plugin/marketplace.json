@@ -518,7 +518,7 @@
     {
       "name": "cortex",
       "source": "./plugins/tools/cortex",
-      "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 7 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve",
+      "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 8 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve/recall",
       "category": "tools",
       "strict": false
     },

@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "description": "cortex — 知识库 + 记忆管理: 双层 vault (用户级全模块 + 项目级 memory+领域), 5 级记忆 L0-L4 (遗忘曲线). 7 skill: schema(目录契约权威)/ingest(GitHub/GitLab/Website/local 构建)/lint(7规则+autofix)/extract(L4-inbox 路由)/history-digest(扫 ~/.claude 历史)/context-digest(整理上下文)/evolve(金字塔升降级)",
+  "description": "cortex — 知识库 + 记忆管理: 双层 vault (用户级全模块 + 项目级 memory+领域), 5 级记忆 L0-L4 (遗忘曲线). 8 skill: schema(目录契约权威)/ingest(GitHub/GitLab/Website/local 构建)/lint(7规则+autofix)/extract(L4-inbox 路由)/history-digest(扫 ~/.claude 历史)/context-digest(整理上下文)/evolve(金字塔升降级)/recall(搜索+兜底+回填)",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -17,6 +17,7 @@
     "./skills/cortex-ingest",
     "./skills/cortex-lint",
     "./skills/cortex-extract",
+    "./skills/cortex-recall",
     "./skills/cortex-history-digest",
     "./skills/cortex-context-digest",
     "./skills/cortex-evolve"
@@ -51,6 +52,9 @@
     "L3",
     "L4",
     "forgetting-curve",
-    "ebbinghaus"
+    "ebbinghaus",
+    "recall",
+    "search",
+    "query"
   ]
 }
