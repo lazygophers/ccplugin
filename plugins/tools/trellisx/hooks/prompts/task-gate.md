@@ -2,3 +2,4 @@
 如果是，下一条回复必须以 `[trellisx-continue-{task-name}]` 开头，然后去补充、扩展、修改、细化 task 的相关内容，并重新评估调度情况
 如果是一个新任务，下一条回复必须以 `[trellisx-new-task]` 开头，启用新的 worktree，然后启用新的 task，走 planning (加载 trellisx-orchestrate skill)，并且在任务结束时，及时关闭并清理 worktree，确保环境干净
 所有回复必须以 `[trellisx-{status}-{task name}]` 开头，如果有别的开头的要求，这个开头也必须是在最前面的
+本轮必须立即加载 `trellisx-enforce` skill 阅读全部强制规范 (任务门禁 / worktree 生命周期 / 任务归属 / 完成判定) 并逐条遵守，无条件、不论输入类型

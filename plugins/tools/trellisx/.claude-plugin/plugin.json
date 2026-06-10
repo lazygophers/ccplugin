@@ -13,6 +13,7 @@
     "./agents/trellisx-spec.md"
   ],
   "skills": [
+    "./skills/trellisx-enforce",
     "./skills/trellisx-spec",
     "./skills/trellisx-orchestrate"
   ],
@@ -35,6 +36,17 @@
             "type": "command",
             "statusMessage": "trellisx · 检查 trellis 触发关键词",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-submit.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "statusMessage": "trellisx · 校验回复前缀标记",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stop-check.sh"
           }
         ]
       }
