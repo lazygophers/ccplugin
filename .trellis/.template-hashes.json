@@ -142,6 +142,7 @@
     ".agents/skills/trellis-update-spec/SKILL.md": "003ce08a3404aeb50998029392c4d4e57b626edf526d3ebd585032bb92dcbb96",
     ".trellis/scripts/common/trellis_config.py": "0839dcf90ebbd77712c276930a89335b3313927051650c91d220fb51ca2a6a3c",
     ".trellis/scripts/common/safe_commit.py": "8789bff4b30a9065469210f2efab3f59f03dddd77bef4e4b6a5bb641f93539f4",
-    ".agents/skills/trellis-start/SKILL.md": "79a5ba7a2aff3c72e06d7f4cd6942dc4f4f4092dd40f9c8e94f1838024a81e4d"
+    ".agents/skills/trellis-start/SKILL.md": "79a5ba7a2aff3c72e06d7f4cd6942dc4f4f4092dd40f9c8e94f1838024a81e4d",
+    ".trellis/.gitignore": "3bc42434cbe61c937a1c26ea3c880b496bfad4e7d683750169e27ade509aa798"
   }
 }
