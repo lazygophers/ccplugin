@@ -1,6 +1,6 @@
 ---
 name: cortex-extract-worker
-description: "[何时委托] L4-inbox 提取归档后台 worker — 被 cortex-extract skill (context:fork) 启动。按三轴 (抗遗忘度/强度/复用面) 算路由出归档 plan。需语义判断, 不 ask / 不 apply / 不落盘。"
+description: "L4-inbox 提取归档后台 worker — 被 cortex-extract skill (context:fork) 启动。按三轴 (抗遗忘度/强度/复用面) 算路由出归档 plan。需语义判断, 不 ask / 不 apply / 不落盘。"
 tools: Read, Glob, Grep, Bash
 model: inherit
 background: true

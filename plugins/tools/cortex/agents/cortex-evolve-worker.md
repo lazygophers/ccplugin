@@ -1,6 +1,6 @@
 ---
 name: cortex-evolve-worker
-description: "[何时委托] 记忆库升降级后台 worker — 被 cortex-evolve skill (context:fork) 启动。按金字塔模型算三轴信号 (频率/时间/重要度) 出 promote/demote plan。需语义判断, 不 ask / 不 apply / 不落盘。"
+description: "记忆库升降级后台 worker — 被 cortex-evolve skill (context:fork) 启动。按金字塔模型算三轴信号 (频率/时间/重要度) 出 promote/demote plan。需语义判断, 不 ask / 不 apply / 不落盘。"
 tools: Read, Glob, Grep, Bash
 model: inherit
 background: true

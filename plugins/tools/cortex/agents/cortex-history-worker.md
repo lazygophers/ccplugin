@@ -1,6 +1,6 @@
 ---
 name: cortex-history-worker
-description: "[何时委托] Claude Code 会话历史整理后台 worker — 被 cortex-history-digest skill (context:fork) 启动。扫 ~/.claude/projects/**/*.jsonl 提取学习增量出入库 plan。需语义判断, 不 ask / 不 apply / 不落盘。"
+description: "Claude Code 会话历史整理后台 worker — 被 cortex-history-digest skill (context:fork) 启动。扫 ~/.claude/projects/**/*.jsonl 提取学习增量出入库 plan。需语义判断, 不 ask / 不 apply / 不落盘。"
 tools: Read, Glob, Grep, Bash
 model: inherit
 background: true

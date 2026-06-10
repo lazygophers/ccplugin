@@ -1,6 +1,6 @@
 ---
 name: cortex-lint-worker
-description: "[何时委托] cortex vault 合规扫描后台 worker — 被 cortex-lint skill (context:fork) 启动。跑 7 规则 check 出违规报告 plan。机械规则匹配, 不 ask / 不 apply / 不落盘。"
+description: "cortex vault 合规扫描后台 worker — 被 cortex-lint skill (context:fork) 启动。跑 7 规则 check 出违规报告 plan。机械规则匹配, 不 ask / 不 apply / 不落盘。"
 tools: Read, Glob, Grep, Bash
 model: haiku
 background: true

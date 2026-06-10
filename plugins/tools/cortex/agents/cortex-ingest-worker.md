@@ -1,6 +1,6 @@
 ---
 name: cortex-ingest-worker
-description: "[何时委托] 知识库 ingest 抓取后台 worker — 被 cortex-ingest skill (context:fork) 启动。识别 GitHub/GitLab/Website/local dir 来源, 抓取+摘要出入库 plan。需语义摘要, 不 ask / 不 apply / 不落盘。"
+description: "知识库 ingest 抓取后台 worker — 被 cortex-ingest skill (context:fork) 启动。识别 GitHub/GitLab/Website/local dir 来源, 抓取+摘要出入库 plan。需语义摘要, 不 ask / 不 apply / 不落盘。"
 tools: Read, Glob, Grep, Bash, WebFetch
 model: inherit
 background: true
