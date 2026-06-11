@@ -19,6 +19,7 @@ arguments: [范围]
 | 尊重 trellis 原生 | 融合而非取代: 引用 trellis 已有 (task.py / add-subtask / jsonl / trellis-check), 仅补 trellis 缺的 (worktree / subtask 文件编排) |
 | 显式审批 | 改 `.trellis/` 前展示 diff plan, 经用户批准 (AskUserQuestion) 才写盘 |
 | **增量优化, 不重构** | apply 只按 trellisx 方向**增量增强**现有 .trellis (marker 注入 + 加新文件 + 加新 hook); **绝不重构/重写**用户原有 workflow / spec / 文档内容。spec 的破坏式完全重构是 `trellisx-spec` skill 的职责, 不是 apply 的 |
+| **i18n: 注入内容跟随设备语言** | 注入到 .trellis 的所有文本 (workflow marker / spec 文档 / hook additionalContext) MUST 用**设备/项目语言**, 不硬编码中文。references 里的中文模板仅作**语义参考**, 实际注入时按目标语言重写 |
 
 ## 前置检查
 
@@ -26,8 +27,13 @@ arguments: [范围]
 ls .trellis/ || { echo "非 trellis 项目, 终止"; exit 1; }
 ls .trellis/workflow.md          # 注入目标
 ls .trellis/spec/ 2>/dev/null    # spec 目标
-ls .claude/hooks/ 2>/dev/null    # 平台 hook 目标 (trellis init --claude 生成)
+ls .claude/hooks/ 2>/dev/null    # 平台 hook 目标
+# 检测设备/项目语言 (决定注入文本语言)
+echo "${LANG:-}"                  # 系统 locale (如 en_US / zh_CN / ja_JP)
+head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 ```
+
+**语言检测**: 综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 当前会话交互语言, 确定**目标语言**。后续所有注入文本 (workflow marker / spec / hook 提示) 用该目标语言生成 (references 中文模板仅语义参考)。
 
 非 trellis 项目 → 报错终止。
 

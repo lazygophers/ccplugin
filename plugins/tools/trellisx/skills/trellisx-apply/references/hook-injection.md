@@ -110,6 +110,8 @@ sys.exit(0)
 
 注册到**用户项目** `.claude/settings.json` 的 hooks.PostToolUse (matcher `Bash`); 插件本身无 hook。
 
+**i18n**: hook 内 `additionalContext` 的提示文本 (中文模板) 实际生成时用**目标语言** (设备/项目语言) 重写; 变量名 / 路径 / git 命令保持原样。
+
 > 多子仓 (布局 3): task 必须先 `task.py set-scope <子仓>` (如 `go` / `node`) 标注目标子仓, hook 才能定位 git 建 worktree。未标注 → hook 注入提示让 AI 补标注。
 
 ## 3. .gitignore

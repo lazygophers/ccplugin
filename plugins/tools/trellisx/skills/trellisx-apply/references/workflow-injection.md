@@ -12,6 +12,10 @@
 
 > 教训: 早期版本注入 no_task 块 + 重写 Phase 流程, 导致 trellis 原生 task 创建不再触发。apply 必须最小侵入。
 
+## i18n: 注入文本用设备语言
+
+下方所有注入 snippet 是**中文语义参考**。实际注入时, 按步骤 1 检测的**目标语言** (设备 $LANG / 项目主语言) 重写这些文本。例: 英文环境注入 "trellisx (incremental): task MUST be split into >= 2 subtasks..."。marker key (trellisx:start:planning 等) 不翻译, 保持英文标识。
+
 ## 注入机制 (marker 幂等)
 
 ```
