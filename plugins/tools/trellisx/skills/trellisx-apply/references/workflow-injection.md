@@ -25,7 +25,7 @@
 
 ```
 <!-- trellisx:start:planning -->
-trellisx (增量): 任务规划时拆 >= 2 subtask, 每 subtask 独立文件 .trellis/tasks/<task>/subtask/<id>-<slug>.md + PRD 内 mermaid 调度图 (依赖/并行)。详见 trellisx-orchestrate skill。
+trellisx (增量): 任务规划时拆 >= 2 subtask, 每 subtask 独立文件 .trellis/tasks/<task>/subtask/<id>-<slug>.md + PRD 内 mermaid 调度图。**调度图必须显式标出并行组**: 无依赖的 subtask 归同一并行批次 (同时跑), 有依赖的标依赖箭头。拆分目标 = 最大化可并行的 subtask 数, 缩短关键路径。详见 trellisx-orchestrate skill。
 <!-- trellisx:end:planning -->
 ```
 
@@ -33,7 +33,9 @@ trellisx (增量): 任务规划时拆 >= 2 subtask, 每 subtask 独立文件 .tr
 
 ```
 <!-- trellisx:start:in_progress -->
-trellisx (增量): 本 task 改动隔离在 worktree (git 根 .worktrees/<worktree>, 平台 hook 自适应建, 微服务自动 sparse)。源码写盘目标用该 worktree 路径; subtask 可异步并行派 sub-agent (isolation:worktree) / agent-team 成员提效。task archive 时 worktree 干净则自动销毁。
+trellisx (增量): 本 task 改动隔离在 worktree (git 根 .worktrees/<worktree>, 平台 hook 自适应建, 微服务自动 sparse)。源码写盘目标用该 worktree 路径。
+
+**异步并行硬规 (降低总开发时长)**: 按调度图执行, 无依赖的 subtask **必须在同一条回复里一次性发起多个 sub-agent 调用** (Claude Code 同一消息多个 Agent tool = 真并行同时跑); **禁逐个串行派** (串行 = 各 subtask 耗时叠加, 违背提效)。有依赖的 subtask 等上游 done 再派下游。每个写盘 sub-agent 带 isolation:worktree。收到各 agent 返回立即回传用户进度。task archive 时 worktree 干净则自动销毁。
 <!-- trellisx:end:in_progress -->
 ```
 

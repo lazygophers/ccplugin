@@ -30,7 +30,7 @@ authored-by: trellisx-apply
 
 ① 创建任务 + 切 worktree (task.py create+start, 自动建 <git根>/.worktrees/<worktree>)
 ② 任务规划 (拆 ≥ 2 subtask, 写 prd/design/implement + subtask 文件 + 调度图)
-③ 异步执行 (按调度图调度 subtask agent, 无依赖的并行派发提效)
+③ 异步执行 (按调度图, 无依赖 subtask **同一消息一次性发多个 sub-agent 调用** = 真并行; 禁串行逐个派, 串行 = 耗时叠加)
 ④ 整体 trellis-check 校验 (闭环)
 ⑤ commit + finish (合并移除 worktree → commit → archive → 落 cortex)
 
