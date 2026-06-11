@@ -20,7 +20,7 @@ authored-by: trellisx-apply
 
 ## worktree 隔离 (trellisx 补 trellis 缺失)
 
-- task.py start 后自动建 `.trellis/worktrees/<task>` (平台 hook trellisx-worktree.py)
+- task.py create/start 后自动建 worktree (git 根 `.trellisx-worktrees/<service>/<task>`, 自适应微服务 + sparse; 平台 hook trellisx-worktree.py)
 - 全部源码改动**必须**落 worktree 内, 主工作区保持干净
 - main 可直接写源码 (trellis inline), 但目标路径必须在 worktree
 - 复杂 / 并行 subtask → 派 sub-agent (isolation:worktree) 或 agent-team 成员

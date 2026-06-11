@@ -2,65 +2,87 @@
 
 trellis `init --claude` 在 `.claude/hooks/` 生成平台 hook (Python)。trellisx-apply 在此补 **worktree 自动生命周期** + **回复前缀校验** —— 但不改 task.py 脚本 (用户约束 I2)。
 
-## 1. PostToolUse: task.py create/start → 自动建 worktree (创建任务即切)
+## 1. PostToolUse: task.py create/start → 自动建 worktree (自适应微服务)
 
-新增 `.claude/hooks/trellisx-worktree.py` (或追加到 trellis 已有 PostToolUse hook):
+新增 `.claude/hooks/trellisx-worktree.py` —— **方案 C 自适应**: 检测 .trellis 相对 git 根的路径, 兼容 ".trellis 同级 .git" (简单项目) 与 ".trellis 在子目录" (微服务), 微服务自动 sparse-checkout 只检该子目录。不改 task.py。
 
 ```python
-# PostToolUse(Bash) — 监测 task.py start/archive, 自动管 worktree
-# 不改 task.py, 仅在其执行后做 git worktree 副作用
+# PostToolUse(Bash) — 监测 task.py create/start/archive, 自适应管 worktree
 import json, os, re, subprocess, sys
 
 d = json.load(sys.stdin)
 cmd = (d.get("tool_input") or {}).get("command", "")
 cwd = d.get("cwd") or os.getcwd()
-if not os.path.isdir(os.path.join(cwd, ".trellis")):
+
+def find_trellis_root(start):           # 从 cwd 向上找含 .trellis 的目录
+    cur = os.path.abspath(start)
+    while cur != os.path.dirname(cur):
+        if os.path.isdir(os.path.join(cur, ".trellis")):
+            return cur
+        cur = os.path.dirname(cur)
+    return None
+
+troot = find_trellis_root(cwd)
+if not troot:
     sys.exit(0)
 
+def git(*a):
+    return subprocess.run(["git", "-C", troot, *a], capture_output=True, text=True, timeout=10)
+
+groot = git("rev-parse", "--show-toplevel").stdout.strip()
+if not groot:
+    sys.exit(0)
+service = os.path.relpath(troot, groot)              # "." (同级) 或 "services/foo" (微服务)
+svc_flat = service.replace(os.sep, "-").strip(".-") or "root"
+
 def task_id():
-    # task.py current 拿当前 task 目录名
-    r = subprocess.run(["python3", ".trellis/scripts/task.py", "current"],
-                       capture_output=True, text=True, cwd=cwd, timeout=5)
+    r = subprocess.run(["python3", os.path.join(troot, ".trellis", "scripts", "task.py"), "current"],
+                       capture_output=True, text=True, cwd=troot, timeout=5)
     return os.path.basename(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
 
-# create / start → 建 worktree (创建任务即切, 步骤 1)
+# create / start → 建 worktree (在 git 根的 .trellisx-worktrees/<service>/<task>)
 if re.search(r"task\.py\s+(create|start)\b", cmd):
     tid = task_id()
     if tid:
-        wt = os.path.join(cwd, ".trellis", "worktrees", tid)
+        wt = os.path.join(groot, ".trellisx-worktrees", svc_flat, tid)
+        br = f"trellisx-{svc_flat}-{tid}"
         if not os.path.isdir(wt):
-            subprocess.run(["git","-C",cwd,"worktree","add",wt,"-b",f"trellisx-{tid}"],
-                           capture_output=True, timeout=15)
-        print(json.dumps({"hookSpecificOutput":{"hookEventName":"PostToolUse",
-            "additionalContext":f"trellisx: worktree 已建于 .trellis/worktrees/{tid}。源码改动写该路径内, 或 EnterWorktree 切入。"}}))
+            git("worktree", "add", wt, "-b", br)
+            if service != ".":          # 微服务 → sparse 只检该子目录, 省体积
+                subprocess.run(["git", "-C", wt, "sparse-checkout", "set", service],
+                               capture_output=True, timeout=10)
+        loc = f"{wt}/{service}" if service != "." else wt
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+            "additionalContext": f"trellisx: worktree 已建于 {wt}" +
+              (f" (微服务 sparse: 只检 {service}, 改 {loc}/ 内文件)" if service != "." else "") +
+              "。源码改动写该路径内, 或 EnterWorktree 切入。"}}))
 
-# archive → 检干净则销毁 worktree
+# archive → 检干净则销毁
 elif re.search(r"task\.py\s+archive\b", cmd):
     m = re.search(r"archive\s+(\S+)", cmd)
     tid = os.path.basename(m.group(1)) if m else None
     if tid:
-        wt = os.path.join(cwd, ".trellis", "worktrees", tid)
+        wt = os.path.join(groot, ".trellisx-worktrees", svc_flat, tid)
         if os.path.isdir(wt):
-            st = subprocess.run(["git","-C",wt,"status","--porcelain"],
-                                capture_output=True, text=True, timeout=5)
-            if st.stdout.strip():  # 脏 → 不销毁, 警告
-                print(json.dumps({"hookSpecificOutput":{"hookEventName":"PostToolUse",
-                    "additionalContext":f"trellisx: worktree .trellis/worktrees/{tid} 有未提交改动, 未销毁。先合并 (git -C {wt} ...) + 手动 git worktree remove。"}}))
-            else:  # 干净 → 销毁
-                subprocess.run(["git","-C",cwd,"worktree","remove",wt], capture_output=True, timeout=10)
-                subprocess.run(["git","-C",cwd,"branch","-D",f"trellisx-{tid}"], capture_output=True, timeout=5)
+            st = subprocess.run(["git","-C",wt,"status","--porcelain"], capture_output=True, text=True, timeout=5)
+            if st.stdout.strip():       # 脏 → 不销毁, 警告
+                print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                    "additionalContext": f"trellisx: worktree {wt} 有未提交改动, 未销毁。先合并 + git worktree remove。"}}))
+            else:
+                subprocess.run(["git","-C",groot,"worktree","remove",wt], capture_output=True, timeout=10)
+                subprocess.run(["git","-C",groot,"branch","-D",f"trellisx-{svc_flat}-{tid}"], capture_output=True, timeout=5)
 sys.exit(0)
 ```
 
-注册到**用户项目**的 hook 配置 (trellisx 插件本身不带 hook): 写进项目 `.claude/settings.json` 的 hooks.PostToolUse (matcher `Bash`), 或 trellis 平台 hook 注册机制。
+注册到**用户项目** `.claude/settings.json` 的 hooks.PostToolUse (matcher `Bash`); 插件本身无 hook。
 
 ## 3. .gitignore
 
-确保 `.trellis/.gitignore` 含:
+worktree 在 **git 根** `.trellisx-worktrees/`, 故在 **git 根 .gitignore** (非 .trellis/.gitignore) 追加:
 ```
-worktrees/
+.trellisx-worktrees/
 ```
-(apply 时检查, 缺则追加)
+apply 时: git rev-parse --show-toplevel 找 git 根, 检查该 .gitignore 缺则追加。
 
 ## 注入原则
 
