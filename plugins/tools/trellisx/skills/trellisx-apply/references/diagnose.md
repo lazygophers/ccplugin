@@ -21,7 +21,7 @@ ls .trellis/spec/ 2>/dev/null || echo "无 spec/, 将创建"
 ls .claude/hooks/ 2>/dev/null || echo "无 .claude/hooks/, 平台 hook 注入需 trellis init --claude"
 
 # 6. .gitignore worktrees 排除
-grep -q "worktrees/" .trellis/.gitignore 2>/dev/null && echo "已排除" || echo "需加 worktrees/"
+grep -q ".worktrees/" "$(git rev-parse --show-toplevel)/.gitignore" 2>/dev/null && echo "已排除" || echo "需加 .worktrees/ 到 git 根 .gitignore"
 
 # 7. task.py 可用 + worktree 已存在?
 python3 .trellis/scripts/task.py current 2>/dev/null
