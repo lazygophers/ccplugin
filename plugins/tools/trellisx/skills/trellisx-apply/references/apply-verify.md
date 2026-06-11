@@ -20,9 +20,9 @@ trellisx-apply 变更计划
 [.claude/hooks/trellisx-worktree.py] 创建 (PostToolUse 自动 worktree)
   + 平台 hook 注册 (PostToolUse Bash)
 
-[.trellis/.gitignore] + worktrees/
+[<git根>/.gitignore] + .worktrees/
 
-影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start 自动建 worktree
+影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py create/start 自适应建 worktree (微服务兼容)
 ```
 
 ## 2. 审批门 (强制)
@@ -44,7 +44,7 @@ options:
 1. `.trellis/workflow.md` (marker 注入, 见 workflow-injection.md 算法)
 2. `.trellis/spec/guides/trellixx-conventions.md` (覆盖)
 3. `.claude/hooks/trellisx-worktree.py` (创建) + 平台 hook 注册
-4. `.trellis/.gitignore` 追加 worktrees/
+4. `<git根>/.gitignore` 追加 .worktrees/
 
 ## 4. 验证
 
@@ -58,7 +58,7 @@ ls .trellis/spec/guides/trellixx-conventions.md
 # 平台 hook 可执行
 python3 -c "import ast; ast.parse(open('.claude/hooks/trellisx-worktree.py').read())" && echo "hook 语法 OK"
 # gitignore
-grep -q worktrees/ .trellis/.gitignore && echo "worktrees 已排除"
+grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
 ```
 
 ## 5. 完成报告
@@ -69,7 +69,7 @@ trellisx-apply 完成
 注入 marker: N (workflow.md)
 spec 文档: 已写
 平台 hook: 已装 (worktree 自动化) / 跳过 (无 .claude/hooks)
-gitignore: 已排除 worktrees/
+gitignore: 已排除 .worktrees/ (git 根)
 
 下一步: 重启会话 / reload 让 trellis hook 读到新 workflow.md。
 之后 trellisx 规则由 trellis 原生机制注入, 无需 trellisx 运行时 hook。
