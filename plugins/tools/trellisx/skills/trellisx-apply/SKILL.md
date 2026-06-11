@@ -19,7 +19,7 @@ arguments: [范围]
 | 尊重 trellis 原生 | 融合而非取代: 引用 trellis 已有 (task.py / add-subtask / jsonl / trellis-check), 仅补 trellis 缺的 (worktree / subtask 文件编排) |
 | 显式审批 | 改 `.trellis/` 前展示 diff plan, 经用户批准 (AskUserQuestion) 才写盘 |
 | **增量优化, 不重构** | apply 只按 trellisx 方向**增量增强**现有 .trellis (marker 注入 + 加新文件 + 加新 hook); **绝不重构/重写**用户原有 workflow / spec / 文档内容。spec 的破坏式完全重构是 `trellisx-spec` skill 的职责, 不是 apply 的 |
-| **i18n: 注入内容跟随设备语言** | 注入到 .trellis 的所有文本 (workflow marker / spec 文档 / hook additionalContext) MUST 用**设备/项目语言**, 不硬编码中文。references 里的中文模板仅作**语义参考**, 实际注入时按目标语言重写 |
+| **i18n: 整个文档跟随设备语言** | apply 完成后, **整个 workflow.md + 新增 spec 的叙述文本** MUST 与设备语言一致 (不只 trellisx 注入部分)。若 trellis 原生 workflow 是英文而设备是中文 → **翻译全文档叙述为设备语言**。保留不译: workflow-state 标签 `[workflow-state:X]` / trellisx marker key / task.py 命令 / 文件路径 / 代码块 / 变量名 (这些是机器标识, 译了会坏)。语言转换是 i18n 优化, 不算语义重构 |
 
 ## 前置检查
 
@@ -33,7 +33,9 @@ echo "${LANG:-}"                  # 系统 locale (如 en_US / zh_CN / ja_JP)
 head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 ```
 
-**语言检测**: 综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 当前会话交互语言, 确定**目标语言**。后续所有注入文本 (workflow marker / spec / hook 提示) 用该目标语言生成 (references 中文模板仅语义参考)。
+**语言检测**: 综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 当前会话交互语言, 确定**目标语言**。
+
+**全文档语言对齐 (步骤 2.5)**: 检测 workflow.md 现有叙述主语言, 若 ≠ 目标语言 → 翻译**整个 workflow.md 叙述文本** + 新增 spec 为目标语言。**保留不译**: `[workflow-state:X]` 标签 / `<!-- trellisx:start:X -->` marker / `task.py ...` 命令 / 路径 / 代码块 / frontmatter key。
 
 非 trellis 项目 → 报错终止。
 
@@ -43,7 +45,8 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | --- | --- | --- |
 | 1 | 诊断 .trellis 现状 + 检测已有 trellisx marker | 读 `references/diagnose.md` |
 | 2 | 注入 workflow.md (workflow-state 块 + Phase 描述) | 读 `references/workflow-injection.md` |
-| 3 | 注入 spec/ (trellisx 规范文档) | 读 `references/spec-injection.md` |
+| 2.5 | **全文档语言对齐**: workflow.md 叙述主语言 ≠ 设备语言 → 翻译全文叙述为设备语言 (保留标签/marker/命令/路径/代码) | 读 `references/workflow-injection.md` §i18n |
+| 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
 | 4 | 注入平台 hook (worktree 自动建/销) | 读 `references/hook-injection.md` |
 | 5 | AskUserQuestion 审批 → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 

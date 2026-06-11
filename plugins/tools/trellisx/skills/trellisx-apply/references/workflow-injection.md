@@ -12,9 +12,23 @@
 
 > 教训: 早期版本注入 no_task 块 + 重写 Phase 流程, 导致 trellis 原生 task 创建不再触发。apply 必须最小侵入。
 
-## i18n: 注入文本用设备语言
+## i18n: 整个 workflow.md 用设备语言 (含翻译原生)
 
-下方所有注入 snippet 是**中文语义参考**。实际注入时, 按步骤 1 检测的**目标语言** (设备 $LANG / 项目主语言) 重写这些文本。例: 英文环境注入 "trellisx (incremental): task MUST be split into >= 2 subtasks..."。marker key (trellisx:start:planning 等) 不翻译, 保持英文标识。
+apply 完成后整个 workflow.md 的**叙述文本**必须 = 设备语言, 不只 trellisx 注入部分。
+
+**步骤 2.5 全文档翻译** (workflow 主语言 ≠ 设备语言时):
+1. 检测 workflow.md 现有叙述主语言 (trellis init 默认英文)
+2. 若 ≠ 目标语言 (如设备中文) → 逐段翻译 workflow.md 的**叙述/说明文本**为目标语言
+3. **保留原样不译** (机器标识, 译了 trellis 解析会坏):
+   - workflow-state 标签 `[workflow-state:no_task]` `[/workflow-state:planning]` 等
+   - trellisx marker `<!-- trellisx:start:X -->` `<!-- trellisx:end:X -->`
+   - `task.py create/start/...` 命令 + 参数
+   - 文件路径 (.trellis/tasks/... / .worktrees/...)
+   - 代码块 (```bash ```python ```) 内容
+   - frontmatter key / 平台名 (Claude Code / Codex...)
+4. trellisx 注入 snippet 本身也用目标语言写
+
+> 注: 翻译会改 trellis 原生 workflow 文本。`trellis update` 用英文模板覆盖后, 重跑 apply 恢复翻译。这是 trellis 模板机制的固有取舍。
 
 ## 注入机制 (marker 幂等)
 
