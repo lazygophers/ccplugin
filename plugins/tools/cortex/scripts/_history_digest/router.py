@@ -1,7 +1,7 @@
 """router — Increment → memory L0-L4 路径.
 
 按 cortex-schema/references/memory-levels.md 5 级映射 (全部全局, target=$HOME/.cortex):
-  L0-core   永久/硬性规则 (KIND_L0, ask)
+  L0-core   永久/硬性规则 (KIND_L0, 自动)
   L1-long   永久个人偏好 / 校正 (KIND_CORRECTION 高强度)
   L2-mid    中期决策 / 踩坑 (KIND_DECISION / KIND_TIP)
   L3-short  暂时性 (默认 fallback)
@@ -25,7 +25,7 @@ from . import (
 
 # kind → (target_path 后缀, level, reason)
 _ROUTE_TABLE = {
-    KIND_L0: ("memory/L0-core", 0, "L0 关键词命中, ask 确认"),
+    KIND_L0: ("memory/L0-core", 0, "L0 关键词命中, 自动落盘"),
     KIND_CORRECTION: ("memory/L1-long", 1, "用户校正 — 偏好类持久记忆"),
     KIND_DECISION: ("memory/L2-mid", 2, "决策语 — 中期沉淀"),
     KIND_TIP: ("memory/L2-mid", 2, "踩坑/教训 — 中期沉淀"),

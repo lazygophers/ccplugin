@@ -6,7 +6,7 @@
   1. URL (含 github.com / gitlab.com / 任意 https?://) → 项目/<host>/<owner>/<repo>/
   2. frontmatter area → 领域/<area>/<sub or "general">/
   注: 三模块目录名为中文 (项目/领域/脚本); memory/L<n>-<suffix>/ 保留英文.
-  3. 关键词 L0 (永远/硬性/never/严禁/绝不) → L0-core (ask)
+  3. 关键词 L0 (永远/硬性/never/严禁/绝不) → L0-core (自动落盘, 不再 ask)
   4. 关键词 L1 → L1-long (auto, 但同时打 promote 标)
   5. 关键词 L2 或 复用 ≥ 5 + weight ≥ 0.8 → L2-mid (复用高时打 promote-L1 标)
   6. 关键词 L3 或 默认 → L3-short
@@ -103,15 +103,15 @@ def decide(entry: Entry) -> Decision:
     if url:
         return _route_project(url, entry)
 
-    # 3. L0 关键词 → ask
+    # 3. L0 关键词 → 自动落盘 (不再 ask)
     if "L0" in hits:
         return Decision(
             target_path="memory/L0-core",
             target_filename=entry.path.name,
             level="L0",
             module="memory",
-            reason=f"L0 关键词命中: {hits['L0']} (ask 用户)",
-            ask=True,
+            reason=f"L0 关键词命中: {hits['L0']} (自动落盘)",
+            ask=False,
         )
 
     # 4. L1 关键词

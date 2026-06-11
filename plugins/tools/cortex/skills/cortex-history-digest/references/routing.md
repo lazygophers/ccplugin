@@ -6,7 +6,7 @@
 
 ```
 $target/.wiki/memory/
-├── L0-core/        硬性规则 (永远 ask)
+├── L0-core/        硬性规则 (默认自动落盘)
 ├── L1-long/        长期 (用户校正 / 高强度决策)
 ├── L2-mid/         中期 (决策 / 踩坑 / 默认复用面 ≥ 3 候选)
 └── L3-short/       短期 (默认入口; 单次决策 / 弱信号)
@@ -26,7 +26,7 @@ $target/.wiki/memory/
 
 | parser kind | 默认 suggested_level | 经三轴可能升级到 |
 | --- | --- | --- |
-| L0-rule | L0-core | L0-core (固定; 永远 ask) |
+| L0-rule | L0-core | L0-core (固定; 默认自动落盘) |
 | user-correction | L1-long | L1-long / L0-core (若含"硬性"等 L0 关键词) |
 | decision | L2-mid / L3-short | L2-mid → L1-long (复用 ≥ 5 + weight ≥ 0.8) |
 | tip | L2-mid | L2-mid → L1-long (复用 ≥ 5) |
@@ -98,9 +98,9 @@ trigger_keywords: [...]
 }
 ```
 
-## --apply 行为 (本 task 范围仅文档, 不实现)
+## --apply 行为 (默认; 本 task 范围仅文档, 不实现)
 
-1. 对每个候选, 若 `kind == L0-rule` → 必须 user accept (env `CORTEX_EXTRACT_L0_AUTO` 控制; 默认 ask 阻断)
+1. 对每个候选, 若 `kind == L0-rule` → 默认直接落盘 (不 ask); env `CORTEX_EXTRACT_L0_AUTO` (accept/reject) 可覆写, 默认 `accept`
 2. 写文件到 `target_path` (frontmatter + 正文)
 3. 落盘前调 `cortex-lint` 校验 frontmatter 合规
 4. 更新 cursor (后续 task 引入)
@@ -111,8 +111,8 @@ trigger_keywords: [...]
 | 防护 | 实现 |
 | --- | --- |
 | dry-run plan 不暴露完整对话 | `text_excerpt` 严格 80 字截断 |
-| --apply 前必须用户审 | runner 输出 plan 后停, 等待 `--apply` 二次调用 |
-| L0 永远 ask | 即使 --apply, env `CORTEX_EXTRACT_L0_AUTO=ask` (默认) 仍阻断 |
+| 需事前审计 | 显式传 `--dry-run` (opt-in): runner 输出 plan 后停, 不落盘 |
+| L0 误写防护 | 默认 `--apply` 自动落盘; 设 env `CORTEX_EXTRACT_L0_AUTO=reject` 可拦 L0-core 候选 |
 | 不在 plan 中显示 cwd / token / 凭证 | parser 过滤含 `sk-/ghp_/Bearer /password` 等高敏特征的候选 (skip + warn) |
 
 ## 与 cortex-extract / cortex-save 边界

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # lint.sh — cortex vault 合规检查与可逆 autofix
 # 用法: lint.sh [--check|--fix] [--rules R1,R2,...] [--target <dir>] [--help]
-# 默认 dry-run (--check); --fix 才落盘
+# 默认 --fix 落盘; --check opt-in 预览
 set -euo pipefail
 
-MODE="check"
+MODE="fix"
 RULES=""
 TARGET="${HOME}/.cortex"
 
@@ -16,8 +16,8 @@ lint.sh — cortex vault 合规检查与 autofix
   lint.sh [--check|--fix] [--rules R1,R2,...] [--target <dir>]
 
 参数:
-  --check          仅检查 (默认), 报告违规并按 error 数退出
-  --fix            落盘 autofix (仅 R2 frontmatter / R4 同构目录)
+  --check          仅检查 (opt-in 预览), 报告违规并按 error 数退出
+  --fix            落盘 autofix (默认, 仅 R2 frontmatter / R4 同构目录)
   --rules R1,R2    限定规则 (默认全部 R1-R7)
   --target <dir>   待检 vault 根 (默认 $HOME/.cortex)
   --help           显示本文档

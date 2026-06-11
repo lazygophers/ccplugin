@@ -35,7 +35,7 @@ query
 | --- | --- |
 | 双层搜索范围 + 多级回退 (mcp/rg/grep) + 引用格式 | `references/search.md` |
 | 兜底顺序 (WebSearch → 问用户) + "拿不准" 判定 | `references/fallback.md` |
-| 回填: scope 归类 + 定级别 + L0/L1 ask 例外 + 写入 | `references/writeback.md` |
+| 回填: scope 归类 + 定级别 + 默认自动写 (含 L0) | `references/writeback.md` |
 
 ## 与既有 skill 边界
 

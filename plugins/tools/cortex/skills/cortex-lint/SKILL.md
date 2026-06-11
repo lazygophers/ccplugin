@@ -1,6 +1,6 @@
 ---
 name: cortex-lint
-description: lint / 校验 / 体检 / audit / 死链 / 孤儿 / 规范化 / frontmatter — cortex 知识库与记忆树的合规检查与可逆 autofix。覆盖 wikilink 死链、frontmatter 缺字段、命名违规、目录同构、孤儿页、等级语义反写、脚本目录用途混淆等 7 类规则。默认 dry-run (--check)，--fix 才落盘。
+description: lint / 校验 / 体检 / audit / 死链 / 孤儿 / 规范化 / frontmatter — cortex 知识库与记忆树的合规检查与可逆 autofix。覆盖 wikilink 死链、frontmatter 缺字段、命名违规、目录同构、孤儿页、等级语义反写、脚本目录用途混淆等 7 类规则。默认 --fix 落盘修复；--check opt-in 仅预览。
 when_to_use: "lint/体检/校验 vault/audit; 整理 .wiki/ 前先跑; 排查死链/孤儿; frontmatter 补齐; memory 5 级目录核对; extract 前的形态检查"
 argument-hint: "[--check|--fix] [target]"
 arguments: "[--check|--fix] [路径]"
@@ -12,27 +12,25 @@ agent: cortex-lint-worker
 
 # cortex-lint
 
-cortex vault 的 7 类合规检查与可逆 autofix。默认 dry-run (`--check`)，`--fix` 才落盘。
+cortex vault 的 7 类合规检查与可逆 autofix。默认 `--fix` 落盘修复；`--check` opt-in 仅预览。
 
-## 后台扫描段 (cortex-lint-worker 执行)
+> 破坏性提示：默认 `--fix` 会改 vault (autofix R2/R4 等可修项)；只想看违规不落盘时显式传 `--check`。
 
-本段由 `context: fork` 派 `cortex-lint-worker` 后台跑：只 `--check` 跑 7 规则扫描，产出**违规报告 plan**，不落盘。
+## 后台执行段 (cortex-lint-worker 执行)
+
+本段由 `context: fork` 派 `cortex-lint-worker` 后台跑：默认 `--fix` 跑 7 规则扫描 + autofix 落盘，产出修复报告。
+
+```bash
+plugins/tools/cortex/scripts/lint.sh [--rules R1,R2,...] [--target <dir>]
+```
+
+默认 `--fix` + 全规则；`--target` 默认 `$HOME/.cortex`；退出 0=全部 error 已修/无 error，非 0=fix 失败。worker 默认直接落盘 autofix (R2/R4 可修项)，把修复/残留清单 (规则 ID / 文件 / 级别 error|warn / 是否已修) 作为报告返回主会话。
+
+仅预览 (不落盘) 时显式传 `--check`：
 
 ```bash
 plugins/tools/cortex/scripts/lint.sh --check [--rules R1,R2,...] [--target <dir>]
 ```
-
-默认 `--check` + 全规则；`--target` 默认 `$HOME/.cortex`；退出 0=无 error，非 0=有 error。worker 仅运行 `--check`，把违规清单 (规则 ID / 文件 / 级别 error|warn / 是否可 autofix) 作为 plan 返回主会话。
-
-## 主会话段 (worker 返回 plan 后)
-
-worker 返回违规报告 plan 后，由**主会话**执行：
-
-1. 展示 plan：error / warn 分组，标出 R2/R4 可 autofix 项。
-2. 用户确认是否 `--fix`（autofix 落盘前需确认）。
-3. 执行落盘：`plugins/tools/cortex/scripts/lint.sh --fix [--rules R2,R4] [--target <dir>]`。
-
-`--fix` 落盘**只在主会话**，不在 worker。
 
 ## 7 规则速查
 

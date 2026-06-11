@@ -12,8 +12,8 @@ fixture: `plugins/tools/cortex/tests/fixtures/e2e/`
 | 2 | `lint.sh --check --target e2e/` | 1 | 检出 4 R2 error (L4-inbox 5 文件缺 type/level, 1 已有 type 不计) |
 | 3 | `lint.sh --fix --target e2e/` | 0 | fixed: 4; 0 残留 |
 | 4 | `lint.sh --check --target e2e/` (复查) | 0 | violations: 0 |
-| 5 | `extract.sh --dry-run --target e2e/` | 0 | plan-len=5, 路由正确: L3 / L0 / 项目 / 领域 / L3 |
-| 6 | `CORTEX_EXTRACT_L0_AUTO=reject extract.sh --apply --target e2e/` | 0 | 4 落盘 + 1 L0 ask-reject 保留 inbox |
+| 5 | `extract.sh --dry-run --target e2e/` | 0 | plan-len=5, 路由正确: L3 / L0 / 项目 / 领域 / L3 (--dry-run opt-in 预览) |
+| 6 | `extract.sh --apply --target e2e/` | 0 | 5 全落盘 (含 L0-core 默认自动写, 不再 ask) |
 | 7 | `validate-layout.sh --target e2e/` (复查) | 0 | 结构未坏 |
 | 8 | cursor 状态 | OK | `state/extract-cursor.json` 含 4 sha256 |
 
@@ -22,12 +22,12 @@ fixture: `plugins/tools/cortex/tests/fixtures/e2e/`
 | 源文件 | 目标 | 决策 |
 | --- | --- | --- |
 | `L4-inbox/01-临时.md` | `memory/L3-short/01-临时.md` | "暂时" 关键词 → L3 (默认入口) |
-| `L4-inbox/02-永久.md` | (留 inbox) | weight=0.9 + "永远" → L0 ask, mock reject |
+| `L4-inbox/02-永久.md` | `memory/L0-core/02-永久.md` | weight=0.9 + "永远" → L0-core, 默认自动落盘 |
 | `L4-inbox/03-项目-tokio.md` | `项目/github.com/tokio-rs/tokio/README.md` | URL 命中 |
 | `L4-inbox/04-领域-go.md` | `领域/tech/general/04-领域-go.md` | type=domain + area=tech |
 | `L4-inbox/05-复用.md` | `memory/L3-short/05-复用.md` | "暂时" → L3 |
 
-archive: 4 个 inbox 文件移到 `L4-inbox/_archived/`, 原位删除.
+archive: 5 个 inbox 文件移到 `L4-inbox/_archived/`, 原位删除.
 
 ## PRD 验收清单逐项
 
@@ -47,7 +47,7 @@ archive: 4 个 inbox 文件移到 `L4-inbox/_archived/`, 原位删除.
 | 落盘后无 `L1-short/L1-recent/L3-long` 等反写路径 | OK (find 无匹配) |
 | level=L3 仅出现在 `memory/L3-short/` | OK |
 | extract 默认入口 = L3-short (新条目不进 L1) | OK (Step 5 plan 显示) |
-| L0 候选必须 ask, --apply 时 mock reject 不写盘 | OK (Step 6 验证, 02-永久.md 仍在 inbox) |
+| L0 候选默认自动落盘 (--apply 直接写, 不再 ask) | OK (Step 6 验证, 02-永久.md 落 L0-core) |
 
 ## 三模块中文化验证 (G1.1)
 
@@ -65,5 +65,5 @@ archive: 4 个 inbox 文件移到 `L4-inbox/_archived/`, 原位删除.
 ## 已知限制
 
 - AI 识别测试 (`claude --settings`) 需本机有对应 settings 文件, 不阻塞本 task
-- L0 ask 在非交互场景靠 env `CORTEX_EXTRACT_L0_AUTO` mock, 真实交互前端待后续 hook task 接入
+- L0-core 写入默认自动落盘 (不再 ask), 与其他级别一致
 - demote 自动迁移 (L1→L2→L3→forget 标记) 当前只写在契约, 未实现 cron / hook

@@ -1,6 +1,6 @@
 ---
 name: cortex-extract
-description: "extract/提取/promote/整理/归档/digest L4-inbox 收件箱, 按三轴 (抗遗忘度/强度/复用面) 路由到 L1-long/L2-mid/L3-short/项目/领域, 默认 dry-run JSON plan, --apply 落盘 + 增量游标. 触发词: 整理 inbox / 提取记忆 / 归档笔记 / promote / digest."
+description: "extract/提取/promote/整理/归档/digest L4-inbox 收件箱, 按三轴 (抗遗忘度/强度/复用面) 路由到 L1-long/L2-mid/L3-short/项目/领域, 默认 --apply 落盘 + 增量游标 (--dry-run opt-in 仅出 JSON plan 预览). 触发词: 整理 inbox / 提取记忆 / 归档笔记 / promote / digest."
 when_to_use: "整理 inbox/提取 L4/归档临时笔记/extract/digest/promote 记忆/例行扫描 L4-inbox"
 argument-hint: "[--dry-run|--apply] [target]"
 arguments: "[--dry-run|--apply] [路径]"
@@ -11,27 +11,25 @@ agent: cortex-extract-worker
 
 # cortex-extract
 
-L4-inbox → 项目/领域/memory 路由提取器. 默认 dry-run; `--apply` 才落盘. **默认入口 = L3-short** (短期, 最易遗忘), 升级方向 = 抗遗忘 (L3→L2→L1→L0).
+L4-inbox → 项目/领域/memory 路由提取器. 默认 `--apply` 落盘 + 推进增量游标 (`--dry-run` opt-in 仅出 plan 预览). **默认入口 = L3-short** (短期, 最易遗忘), 升级方向 = 抗遗忘 (L3→L2→L1→L0).
 
-## 后台扫描段 (cortex-extract-worker 执行)
+> 破坏性提示：默认 `--apply` 会改 vault (含 L0-core 项直接落盘, 不再 ask)；只想看路由不落盘时显式传 `--dry-run`。
 
-本段由 `context: fork` 派 `cortex-extract-worker` 后台跑：扫 L4-inbox 收件箱，按三轴 (抗遗忘度/强度/复用面) 走下方路由速查表算路由，产出 **dry-run JSON plan**，不落盘。
+## 后台执行段 (cortex-extract-worker 执行)
+
+本段由 `context: fork` 派 `cortex-extract-worker` 后台跑：扫 L4-inbox 收件箱，按三轴 (抗遗忘度/强度/复用面) 走下方路由速查表算路由，默认 `--apply` 直接落盘 + 推进游标 (含 L0-core 项自动落盘)。
+
+```bash
+bash plugins/tools/cortex/scripts/extract.sh [target]
+```
+
+worker 默认落盘后，把路由结果 (各条目 source / target_path / 命中规则 # / 模式 auto|mark) 作为报告返回主会话。
+
+仅预览 (不落盘) 时显式传 `--dry-run`：
 
 ```bash
 bash plugins/tools/cortex/scripts/extract.sh --dry-run [target]
 ```
-
-worker 把路由 plan (各条目 source / target_path / 命中规则 # / 模式 auto|ask|mark) 返回主会话；规则 #3 (L0-core, **ask**) 命中项标 `needs_ask: true`。
-
-## 主会话段 (worker 返回 plan 后)
-
-worker 返回路由 plan 后，由**主会话**执行：
-
-1. 展示 plan，用户审。
-2. 规则 #3 (L0-core) 命中项**必须 ask** 确认。
-3. `--apply` 落盘 + 推进增量游标：`bash plugins/tools/cortex/scripts/extract.sh --apply [target]`。
-
-`--apply` 落盘 + L0 ask **只在主会话**，不在 worker。
 
 ## 路由速查表 (按顺序匹配, 先命中先用)
 
@@ -39,7 +37,7 @@ worker 返回路由 plan 后，由**主会话**执行：
 | --- | --- | --- | --- |
 | 1 | `type=domain` + `area` | `领域/<area>/<sub>/` | auto |
 | 2 | URL (source / 正文) | `项目/<host>/<owner>/<repo>/` | auto |
-| 3 | kw `永远/硬性/never/严禁/绝不` | `memory/L0-core/` | **ask** |
+| 3 | kw `永远/硬性/never/严禁/绝不` | `memory/L0-core/` | auto |
 | 4 | kw `永久记住/长期保留` | `memory/L1-long/` | auto |
 | 5 | kw `记住/以后也用` | `memory/L2-mid/` | auto |
 | 6 | kw `暂时/临时/这次` 或无信号 | `memory/L3-short/` (默认) | auto |

@@ -37,8 +37,8 @@ L4 容量**庞大**: 收件箱 + 短期, 信息密集容忍.
 ## 5 修饰规则
 
 1. **用户反复强调 (≥ 3 次)** → 强升级, **跳级允许** (L3→L1, L2→L0 单步). 计数由 signals.md `user_emphasis_count` 维护.
-2. **L1/L0 自动升允许** (从下级 promote): L2→L1, L1→L0 满足阈值时自动执行, **无需 ask**, 但 lint 标 `audit-candidate` 让用户事后审.
-3. **L1/L0 新写入 ask** (非 promote 路径): 用户直接落 L0/L1 新条目 (不经 L2 升上来), **必须 ask 确认**. 与 `cortex-save` / `cortex-extract` 的 L0/L1 ask 行为一致.
+2. **L1/L0 自动升允许** (从下级 promote): L2→L1, L1→L0 满足阈值时自动执行, **默认直接落盘**, 但 lint 标 `audit-candidate` 让用户事后审.
+3. **L1/L0 新写入默认落盘** (非 promote 路径): 用户直接落 L0/L1 新条目 (不经 L2 升上来), **默认直接落盘** (不再 ask), 走 `cortex-save` 路径. 与 `cortex-save` / `cortex-extract` 的默认 apply 行为一致; lint R6/L0 audit 兜底.
 4. **L1/L0 不主动降 (硬规)**: 即使 demote_score ≥ 0.9, L1/L0 条目仅写入 lint audit 报告, 不移动文件. 用户显式 `forget` 才动.
 5. **L0 audit warn**: vault 中 `memory/L0-core/` 条目数 > 20 → `cortex-lint` warn "金字塔顶部膨胀, 建议审查". 默认阈 20, 可配置.
 
@@ -48,10 +48,10 @@ L4 容量**庞大**: 收件箱 + 短期, 信息密集容忍.
 | --- | --- | --- | --- |
 | L4 → L3 | 走 `cortex-extract` | — | — |
 | L3 ↔ L2 | ✓ | ✓ | 否 (走 extract/save) |
-| L2 → L1 | ✓ (无 ask, 标 audit) | ✗ | 否 |
-| L1 → L0 | ✓ (无 ask, 标 audit) | ✗ | 否 |
-| 直接写 L1 | — | — | **必须 ask** |
-| 直接写 L0 | — | — | **必须 ask** |
+| L2 → L1 | ✓ (默认落盘, 标 audit) | ✗ | 否 |
+| L1 → L0 | ✓ (默认落盘, 标 audit) | ✗ | 否 |
+| 直接写 L1 | — | — | 默认落盘 (走 save) |
+| 直接写 L0 | — | — | 默认落盘 (走 save) |
 
 ## 边界 vs cortex-extract
 

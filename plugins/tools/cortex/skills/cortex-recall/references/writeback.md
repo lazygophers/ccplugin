@@ -26,8 +26,8 @@
 
 ### 3. 写入
 
-- **默认自动写** (用户发起 recall 即授权回填, 无需再确认)
-- **例外: L0/L1 写入仍 ask** (cortex-schema 硬规) — 回填默认落 **L3-short**, 不自动进 L0/L1; 即使命中 L0 触发词也只 mark 候选 + ask 用户
+- **默认自动写** (含 L0/L1; 用户发起 recall 即授权回填, 无需再确认)
+- **回填默认落 L3-short** (易遗忘, 交 evolve 升降); 命中 L0 触发词时自动落 L0-core (与 cortex-extract 路由一致)
 - **互联网答案必带 frontmatter `source: <URL>`** (来源可溯); 用户答案注明来源 = 用户口述
 
 ### 4. 落盘

@@ -16,7 +16,7 @@
 | --- | --- | --- | --- |
 | 1 | `frontmatter.type=domain` + `area` 字段 | 领域模块 (见 cortex-schema/references/knowledge-modules.md) | auto |
 | 2 | URL (frontmatter `source` 或正文 https?://) | 项目模块 (见 cortex-schema/references/knowledge-modules.md) | auto |
-| 3 | 关键词 `永远 / 硬性 / never / 严禁 / 绝不` | memory L0 (见 cortex-schema/references/memory-levels.md) | **ask** (env `CORTEX_EXTRACT_L0_AUTO`) |
+| 3 | 关键词 `永远 / 硬性 / never / 严禁 / 绝不` | memory L0 (见 cortex-schema/references/memory-levels.md) | auto (env `CORTEX_EXTRACT_L0_AUTO` 默认 accept) |
 | 4 | 关键词 `永久记住 / 长期保留` | memory L1 (见 cortex-schema/references/memory-levels.md) | auto |
 | 5 | 关键词 `记住 / 以后也用` | memory L2 (见 cortex-schema/references/memory-levels.md) | auto |
 | 6 | 关键词 `暂时 / 临时 / 这次` 或 **无信号** (默认) | memory L3 (见 cortex-schema/references/memory-levels.md) | auto |
@@ -27,9 +27,9 @@
 
 **默认入口 = L3 (短期, 最易遗忘)**, 不是 L1. 升级方向 = 抵抗遗忘: L3 → L2 → L1 → L0. 完整 level↔dir 映射 + 后缀规则权威见 `cortex-schema/references/memory-levels.md`.
 
-## L0 永远 ask
+## L0 自动落盘
 
-即使 `--apply`, L0 候选也通过 env `CORTEX_EXTRACT_L0_AUTO` (accept/reject/ask) mock 决策. 默认 `ask` 阻断 (非交互场景必须显式设值).
+`--apply` 时 L0 候选默认直接落盘 (不再 ask). env `CORTEX_EXTRACT_L0_AUTO` (accept/reject) 仍可覆写决策, 默认 `accept`; 设 `reject` 时该项保留在 inbox 不归档.
 
 ## 健壮性
 

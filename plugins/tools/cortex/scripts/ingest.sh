@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ingest.sh — 知识库构建: GitHub/GitLab/Website URL 或 local dir → 项目/<host>/<owner>/<repo>/
-# 默认 dry-run JSON plan; --apply 当前 task 范围仍为 plan + "需 main 抓取" 提示.
+# 默认 apply; --dry-run opt-in 预览 JSON plan. --apply 当前 task 范围仍为 plan + "需 main 抓取" 提示.
 set -euo pipefail
 
-MODE="dry-run"
+MODE="apply"
 TARGET="${HOME}/.cortex"
 SOURCE=""
 
@@ -15,8 +15,8 @@ ingest.sh — cortex 知识库构建 (项目/ 模块)
   ingest.sh [--dry-run|--apply] [--target <vault-root>] --source <url-or-path> [--help]
 
 参数:
-  --dry-run     仅输出 JSON plan (默认)
-  --apply       本 task 范围: 输出 plan + "需 main 抓取" 标记 (不直接落盘)
+  --dry-run     仅输出 JSON plan (opt-in 预览)
+  --apply       默认. 本 task 范围: 输出 plan + "需 main 抓取" 标记 (不直接落盘)
   --target <d>  vault 根 (默认 $HOME/.cortex)
   --source <s>  必填. URL (https://github.com/.. / https://gitlab.com/.. / https://<domain>/..)
                 或 ssh git URL (git@github.com:owner/repo.git) 或 local dir 路径

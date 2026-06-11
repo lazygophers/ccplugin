@@ -50,7 +50,7 @@
 1. 目标目录不存在则创建 (mkdir -p)
 2. 同名冲突: 追加 `.1 / .2 / ...` 后缀, **不覆盖**
 3. 原 inbox 文件移到 `<target>/.wiki/memory/L4-inbox/_archived/`, **不 delete** (用户可手动从 `_archived/` 恢复)
-4. L0 候选: 走 `CORTEX_EXTRACT_L0_AUTO` env (accept/reject/ask). reject 时保留在 inbox, 不归档.
+4. L0 候选: 默认直接落盘 (不 ask); env `CORTEX_EXTRACT_L0_AUTO` (accept/reject) 可覆写, 默认 `accept`; reject 时保留在 inbox, 不归档.
 5. 游标更新: 写入 `last_processed_mtime` (max) + `processed` (sha256 list)
 
 ## 与其它 skill 的关系

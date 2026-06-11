@@ -62,10 +62,10 @@ def _unique_path(dir_: Path, filename: str) -> Path:
 
 
 def _l0_decision(entry: Entry) -> str:
-    """L0 ask: env CORTEX_EXTRACT_L0_AUTO ∈ {accept, reject, ask}.
-    默认 ask 阻断 (非交互场景必须 explicit env)."""
-    mode = os.environ.get("CORTEX_EXTRACT_L0_AUTO", "ask").lower()
-    return mode if mode in ("accept", "reject", "ask") else "ask"
+    """L0 写入默认自动落盘 (accept). env CORTEX_EXTRACT_L0_AUTO ∈ {accept, reject}
+    可覆盖 (设 reject 跳过 L0 项); 默认 accept (不再 ask 阻断)."""
+    mode = os.environ.get("CORTEX_EXTRACT_L0_AUTO", "accept").lower()
+    return mode if mode in ("accept", "reject") else "accept"
 
 
 def build_plan(target: Path, ignore_cursor: bool = False) -> dict[str, Any]:
