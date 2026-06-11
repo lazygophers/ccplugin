@@ -15,7 +15,7 @@ trellisx 插件本身**无运行时 hook**。worktree 自动化 hook 由 `trelli
 
 1. **`trellisx-apply`** (核心) — 用户主动跑一次, 改造当前项目 `.trellis/`:
    - `workflow.md`: workflow-state 块 + Phase 注入规则 (marker 幂等)
-   - `.trellis/spec/guides/trellixx-conventions.md`: 规范文档 (持久备份)
+   - `.trellis/spec/guides/trellisx-worktree.md`: worktree 约定 (仅新增, 不动现有 spec)
    - `.claude/hooks/trellisx-worktree.py`: PostToolUse 监测 `task.py start/archive` 自动建/销 worktree (不改 task.py)
    - `<git根>/.gitignore`: 排除 `.worktrees/`
 2. **`trellisx-orchestrate`** — planning 编排 PRD/design/implement/subtask 文件 + mermaid 调度图
