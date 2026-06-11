@@ -85,4 +85,4 @@ git stash push -- .trellis/ .claude/hooks/ 2>/dev/null
 
 ## 幂等保证
 
-重复 apply: marker 替换 (不堆叠) + spec/hook 覆盖。安全多次跑。
+重复 apply: workflow marker 替换 (不堆叠) + worktree spec 仅新增 (已存在跳过, 不动) + hook 覆盖更新。安全多次跑, 不破坏现有 spec。
