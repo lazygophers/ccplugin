@@ -56,7 +56,7 @@ claude plugin install <插件名>@ccplugin-market
 | `env` | 环境处理插件 - 从 .env 文件加载环境变量并注入会话 | env, dotenv, config |
 | `notify` | 系统通知插件 - 跨平台系统通知支持 | notification, macos, linux, windows |
 | `memory` | 智能记忆插件 - 提供 URI 寻址的记忆存储和跨会话持久化 | memory, persistence, sqlite |
-| `trellisx` | Trellis 任务编排扩展插件 - 任务拆分、worktree 隔离、subtask 调度、spec 优化 | trellis, task-orchestration, worktree, subtask |
+| `trellisx` | Trellis 增量增强工具 - 跑一次 trellisx-apply 把 worktree 隔离 + subtask 拆分注入 .trellis (不改原生流程); 含 orchestrate 编排 / spec 破坏式重构 | trellis, task-orchestration, worktree, subtask |
 | `cortex` | 知识库 + 记忆管理插件 - 双层 vault、5 级记忆 (遗忘曲线)、7 skill (schema/ingest/lint/extract/history-digest/context-digest/evolve) | knowledge-base, memory, vault, forgetting-curve |
 
 ### 语言插件
