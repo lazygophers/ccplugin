@@ -17,12 +17,12 @@ trellisx-apply 变更计划
 
 [.trellis/spec/guides/trellisx-worktree.md] 仅新增 (已存在则跳过, 不覆盖)
 
-[.claude/hooks/trellisx-worktree.py] 创建 (PostToolUse 自动 worktree)
-  + 平台 hook 注册 (PostToolUse Bash)
+[.trellis/scripts/trellisx-worktree.py] 创建 (生命周期 hook 调用)
+  + [.trellis/config.yaml] hooks.after_start/after_archive 注入
 
 [<git根>/.gitignore] + .worktrees/
 
-影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py create/start 自适应建 worktree (微服务兼容)
+影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/archive 触发 config.yaml hooks 自适应建/销 worktree (微服务兼容)
 ```
 
 ## 2. 审批门 (强制)
@@ -32,7 +32,7 @@ trellisx-apply 变更计划
 question: "以上 trellisx-apply 变更是否写入 .trellis/ ?"
 options:
   - 全部应用
-  - 仅 workflow.md (跳过平台 hook)
+  - 仅 workflow.md (跳过 worktree hook)
   - 取消
 ```
 
@@ -43,7 +43,7 @@ options:
 批准后按顺序:
 1. `.trellis/workflow.md` (marker 注入, 见 workflow-injection.md 算法)
 2. `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有 spec)
-3. `.claude/hooks/trellisx-worktree.py` (创建) + 平台 hook 注册
+3. `.trellis/scripts/trellisx-worktree.py` (创建) + `.trellis/config.yaml` hooks 注入
 4. `<git根>/.gitignore` 追加 .worktrees/
 
 ## 4. 验证
@@ -55,8 +55,9 @@ grep -c "trellisx:start:" .trellis/workflow.md      # 应 = 注入数
 python3 .trellis/scripts/task.py current >/dev/null 2>&1 && echo "task.py 正常"
 # spec 文件存在
 ls .trellis/spec/guides/trellisx-worktree.md
-# 平台 hook 可执行
-python3 -c "import ast; ast.parse(open('.claude/hooks/trellisx-worktree.py').read())" && echo "hook 语法 OK"
+# worktree 脚本可执行 + config.yaml hooks 可解析
+python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-worktree.py').read())" && echo "脚本语法 OK"
+python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_hooks; print('after_start', get_hooks('after_start'))"
 # gitignore
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
 ```
@@ -103,7 +104,7 @@ trellisx-apply 完成
 ───────────────────
 注入 marker: N (workflow.md)
 spec 文档: 已写
-平台 hook: 已装 (worktree 自动化) / 跳过 (无 .claude/hooks)
+trellis hook: 已装 (config.yaml after_start/after_archive → worktree 自动化) / 跳过
 gitignore: 已排除 .worktrees/ (git 根)
 流程闭环: ✓ (create→planning→worktree→execute→check→finish 完整)
 
@@ -115,10 +116,10 @@ gitignore: 已排除 .worktrees/ (git 根)
 
 写盘前 git stash backup:
 ```bash
-git stash push -- .trellis/ .claude/hooks/ 2>/dev/null
+git stash push -- .trellis/ 2>/dev/null
 # 失败 → git stash pop 恢复; 成功 → git stash drop
 ```
 
 ## 幂等保证
 
-重复 apply: workflow marker 替换 (不堆叠) + worktree spec 仅新增 (已存在跳过, 不动) + hook 覆盖更新。安全多次跑, 不破坏现有 spec。
+重复 apply: workflow marker 替换 (不堆叠) + worktree spec 仅新增 (已存在跳过, 不动) + config.yaml hooks 检测 trellisx-worktree 已在则跳过 + 脚本覆盖更新。安全多次跑, 不破坏现有 spec。

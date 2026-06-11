@@ -33,7 +33,7 @@ authored-by: trellisx-apply
 
 ## worktree 隔离
 
-- task.py create/start 后自动建 worktree (平台 hook 自适应 3 布局: .trellis 同级 git / 微服务子目录 sparse / 多子仓读 task package 定位子仓 git)
+- task.py start 后自动建 worktree (trellis 生命周期 hook after_start 自适应 3 布局: .trellis 同级 git / 微服务子目录 sparse / 多子仓读 task package 定位子仓 git); archive 触发 after_archive 销毁
 - 多子仓 (.trellis 非 git 根, 子仓在下层如 go/node): task 须先 task.py set-scope <子仓> 标注, hook 才能定位
 - 全部源码改动**必须**落 worktree 内, 主工作区保持干净
 - main 可直接写源码 (trellis inline), 但目标路径必须在 worktree

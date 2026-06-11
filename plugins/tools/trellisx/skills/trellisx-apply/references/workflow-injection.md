@@ -95,7 +95,7 @@ apply 把这类**多平台枚举收敛为当前平台**:
 <!-- trellisx:start:in_progress -->
 ⛔ trellisx 执行硬规 (本 task 必守, 违反即流程错误):
 
-1. **强制 worktree**: 本 task 全部源码改动 MUST 落在 worktree (git 根/子仓 .worktrees/<worktree>, 平台 hook 已自动建)。**禁在主工作区写源码** — 写盘 file_path 必须是 worktree 路径。
+1. **强制 worktree**: 本 task 全部源码改动 MUST 落在 worktree (git 根/子仓 .worktrees/<worktree>, trellis 生命周期 hook 已自动建)。**禁在主工作区写源码** — 写盘 file_path 必须是 worktree 路径。
 2. **强制派 agent**: 每个 subtask 的实施 MUST 派 sub-agent (isolation:worktree) 或 agent-team 成员执行。**main 禁直接写源码** — main 只拆分 / 派发 / 收集 / 合并 / 协调。
 3. **强制异步并行**: 无依赖的 subtask MUST 在同一条回复里一次性发起多个 sub-agent 调用 (Claude Code 同消息多 Agent = 真并行)。**禁逐个串行派** (串行 = 耗时叠加)。有依赖的按调度图顺序。
 4. **强制按调度图**: 严格按 PRD 调度图的依赖 + 并行组执行, 禁跳步。

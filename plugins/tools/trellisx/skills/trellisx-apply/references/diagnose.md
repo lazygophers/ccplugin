@@ -17,8 +17,9 @@ grep -oE "\[workflow-state:[a-z_-]+\]" .trellis/workflow.md | sort -u
 # 4. spec 目录
 ls .trellis/spec/ 2>/dev/null || echo "无 spec/, 将创建"
 
-# 5. 平台 hook 目录 (trellis init --claude 生成)
-ls .claude/hooks/ 2>/dev/null || echo "无 .claude/hooks/, 平台 hook 注入需 trellis init --claude"
+# 5. config.yaml (trellis 生命周期 hook 注入目标)
+ls .trellis/config.yaml 2>/dev/null || echo "无 config.yaml, hook 注入将创建"
+grep -q "trellisx-worktree" .trellis/config.yaml 2>/dev/null && echo "worktree hook 已注入" || echo "worktree hook 待注入"
 
 # 6. .gitignore worktrees 排除
 grep -q ".worktrees/" "$(git rev-parse --show-toplevel)/.gitignore" 2>/dev/null && echo "已排除" || echo "需加 .worktrees/ 到 git 根 .gitignore"
@@ -38,7 +39,7 @@ trellisx-apply 诊断
 - 已有 trellisx marker: N 个 (0 = 首次 apply, >0 = 更新模式)
 - workflow-state 块: [no_task] [planning] [in_progress] [in_progress-inline] ... (注入锚点)
 - spec/: 存在 / 待建
-- .claude/hooks/: 存在 (可注入平台 hook) / 缺失 (跳过平台 hook, 仅文档约束)
+- config.yaml hooks: 已注入 worktree / 待注入
 - .gitignore worktrees: 已排除 / 待加
 ```
 
@@ -49,6 +50,6 @@ trellisx-apply 诊断
 | 0 个 trellisx marker | **首次 apply** — 全量注入 |
 | > 0 个 marker | **更新 apply** — 替换 marker 内容到最新 (幂等) |
 | 缺 workflow-state 锚点块 | 警告: trellis 版本可能不兼容, 注入到 Phase 描述兜底 |
-| 缺 .claude/hooks/ | 平台 hook (worktree 自动化) 跳过, 提示用户 `trellis init --claude` 后重跑 |
+| 缺 config.yaml | apply 创建 config.yaml 并注入 worktree hooks |
 
 诊断完进步骤 2 (workflow 注入)。
