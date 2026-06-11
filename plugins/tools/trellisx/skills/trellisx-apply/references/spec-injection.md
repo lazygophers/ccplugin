@@ -1,63 +1,58 @@
-# 步骤 3: spec/ 注入
+# 步骤 3: spec/ 注入 (仅新增独立 worktree spec, 不动现有)
 
-在 `.trellis/spec/` **新增**一个 trellisx 规范文档 (作为 workflow.md 注入的详细背书)。
+apply 对 spec 的**唯一动作** = 新增一个独立的 worktree 约定文件。**绝不变更/覆盖任何现有 spec** (包括 trellisx 之前写的)。
 
-**边界**: apply **只新增** `trellixx-conventions.md` 一个文件, **绝不修改/重构用户原有的 spec 内容**。spec 的破坏式优化/重写是 `trellisx-spec` skill 的职责 (用户单独主动调用), 与 apply 无关。
+## 核心边界
 
-## 注入文件: `.trellis/spec/guides/trellisx-conventions.md`
+- ✅ **仅当文件不存在时**新增 `.trellis/spec/guides/trellisx-worktree.md`
+- ❌ 文件已存在 → **跳过, 一字不动** (保留用户可能的定制)
+- ❌ **绝不**修改/覆盖/合并任何现有 spec 文件
+- spec 的破坏式优化/重写是 `trellisx-spec` skill 的职责 (用户单独主动调), 与 apply 无关
+
+> 即: 重复 apply 不会动 spec (文件已在则跳过)。spec 是只增不改。
+
+## 新增文件: `.trellis/spec/guides/trellisx-worktree.md`
+
+仅当不存在时创建:
 
 ```markdown
 ---
-updated: <ISO date>
+created: <ISO date>
 authored-by: trellisx-apply
 ---
 
-# trellisx 任务编排约定
+# trellisx worktree + subtask 约定
 
-何时被读: trellis task 实施 / 检查时 (sub-agent dispatch 注入)
-谁读: main / trellis-implement / trellis-check / 任何执行者
-不遵守的代价: worktree 污染主工作区 / task 无隔离 / 流程跳步
+何时被读: trellis task 实施时 (sub-agent dispatch 注入)
+谁读: main / 执行者 agent
+不遵守的代价: worktree 污染主工作区 / subtask 无隔离
 
-## worktree 隔离 (trellisx 补 trellis 缺失)
+## worktree 隔离
 
-- task.py create/start 后自动建 worktree (git 根 `.worktrees/<worktree>`, 自适应微服务 + sparse; 平台 hook trellisx-worktree.py)
+- task.py create/start 后自动建 worktree (git 根 `.worktrees/<worktree>`, 平台 hook 自适应; 微服务子目录自动 sparse-checkout)
 - 全部源码改动**必须**落 worktree 内, 主工作区保持干净
 - main 可直接写源码 (trellis inline), 但目标路径必须在 worktree
 - 复杂 / 并行 subtask → 派 sub-agent (isolation:worktree) 或 agent-team 成员
-- task archive 时: worktree 干净 → 自动销毁; 脏 → 警告先合并
+- task archive 时 worktree 干净 → 自动销毁; 脏 → 警告先合并
 
-## 标准开发流程 (5 步)
+## subtask 拆分 + 异步并行
 
-① 创建任务 + 切 worktree (task.py create+start, 自动建 <git根>/.worktrees/<worktree>)
-② 任务规划 (拆 ≥ 2 subtask, 写 prd/design/implement + subtask 文件 + 调度图)
-③ 异步执行 (按调度图, 无依赖 subtask **同一消息一次性发多个 sub-agent 调用** = 真并行; 禁串行逐个派, 串行 = 耗时叠加)
-④ 整体 trellis-check 校验 (闭环)
-⑤ commit + finish (合并移除 worktree → commit → archive → 落 cortex)
-
-## subtask 拆分
-
-- task 必须拆 ≥ 2 subtask (按 实施/验证/文档 维度)
-- 每 subtask 独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` (见 trellisx-orchestrate skill)
-- PRD 含 mermaid 调度图 (依赖 + 并行)
+- task 拆 >= 2 subtask, 每 subtask 独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md`
+- PRD 调度图显式标并行组 (无依赖 subtask 同批)
+- 执行: 无依赖 subtask 同一消息一次性派多个 sub-agent (真并行); 禁串行逐个派
 - parent-child 用 trellis 原生 `task.py add-subtask`
-
-## 分工 (融合 trellis 原生)
-
-| 能力 | 用谁 |
-| --- | --- |
-| 建 task / start / archive / add-subtask | trellis 原生 `task.py` |
-| 实施 / 检查闭环 | trellis 原生 `trellis-implement` / `trellis-check` |
-| 增量 spec 捕获 | trellis 原生 `trellis-update-spec` |
-| 破坏式 spec 重写 | trellisx `trellisx-spec` skill |
-| planning 文档编排 (PRD/design/implement/subtask 文件 + 调度图) | trellisx `trellisx-orchestrate` skill |
-| worktree 隔离 + 前缀标记 | trellisx (本约定 + 平台 hook) |
-
 ```
 
-## 幂等
+## 创建算法 (幂等 = 不存在才写)
 
-文件整体重写 (apply 拥有该文件), frontmatter `updated` 刷新。文件名固定 `trellixx-conventions.md`, 重复 apply 覆盖更新。
+```python
+target = ".trellis/spec/guides/trellisx-worktree.md"
+if os.path.exists(target):
+    pass   # 已存在 → 跳过, 不动 (保留定制)
+else:
+    write(target, worktree_spec_content)   # 仅首次创建
+```
 
-## workflow.md 被 trellis update 覆盖的备份说明
+## 不动现有 spec
 
-workflow.md 注入可能被 `trellis update` 覆盖 (模板 hash)。本 spec 文档是 workflow 注入的**持久备份** —— 即使 workflow marker 丢失, 规则仍在 spec; 重跑 `trellisx-apply` 可恢复 workflow 注入。
+apply 不读、不改、不覆盖任何已有 spec 文件。workflow.md 注入丢失时, 该 worktree spec 仍在 (持久); 但 apply 不会因 workflow 注入而重写 spec。

@@ -15,7 +15,7 @@ trellisx-apply 变更计划
   + trellisx:no_task / planning / in_progress / in_progress_inline
   + trellisx:phase2_order / phase3_check
 
-[.trellis/spec/guides/trellixx-conventions.md] 创建 / 覆盖
+[.trellis/spec/guides/trellisx-worktree.md] 仅新增 (已存在则跳过, 不覆盖)
 
 [.claude/hooks/trellisx-worktree.py] 创建 (PostToolUse 自动 worktree)
   + 平台 hook 注册 (PostToolUse Bash)
@@ -42,7 +42,7 @@ options:
 
 批准后按顺序:
 1. `.trellis/workflow.md` (marker 注入, 见 workflow-injection.md 算法)
-2. `.trellis/spec/guides/trellixx-conventions.md` (覆盖)
+2. `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有 spec)
 3. `.claude/hooks/trellisx-worktree.py` (创建) + 平台 hook 注册
 4. `<git根>/.gitignore` 追加 .worktrees/
 
@@ -54,7 +54,7 @@ grep -c "trellisx:start:" .trellis/workflow.md      # 应 = 注入数
 # workflow.md 仍合法 (trellis 能解析)
 python3 .trellis/scripts/task.py current >/dev/null 2>&1 && echo "task.py 正常"
 # spec 文件存在
-ls .trellis/spec/guides/trellixx-conventions.md
+ls .trellis/spec/guides/trellisx-worktree.md
 # 平台 hook 可执行
 python3 -c "import ast; ast.parse(open('.claude/hooks/trellisx-worktree.py').read())" && echo "hook 语法 OK"
 # gitignore
