@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 113
-- **Last Active**: 2026-06-10
+- **Total Sessions**: 114
+- **Last Active**: 2026-06-11
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1823 | Active |
+| `journal-2.md` | ~1856 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 114 | 2026-06-11 | cortex 默认 apply | `4aef7922` | `master` |
 | 113 | 2026-06-10 | cortex hooks 自动构建+主动检索 | `76f7a4c2` | `master` |
 | 112 | 2026-06-10 | cortex 后台 worker agents | `5b63b1f9` | `cortex` |
 | 111 | 2026-06-10 | cortex-recall 知识库搜索 skill | `dcbda313` | `cortex` |

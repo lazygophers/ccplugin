@@ -1821,3 +1821,36 @@ history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整
 ### Next Steps
 
 - None - task complete
+
+
+## Session 114: cortex 默认 apply
+
+**Date**: 2026-06-11
+**Task**: cortex 默认 apply
+**Branch**: `master`
+
+### Summary
+
+脚本默认 dry-run/check→apply/fix, L0 不再 ask. --dry-run/--check 保留 opt-in. 5 并行 sub-agent 改 33 文件.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4aef7922` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
