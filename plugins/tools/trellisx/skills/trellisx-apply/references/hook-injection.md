@@ -40,12 +40,13 @@ def task_id():
                        capture_output=True, text=True, cwd=troot, timeout=5)
     return os.path.basename(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else None
 
-# create / start → 建 worktree (在 git 根的 .trellisx-worktrees/<service>/<task>)
+# create / start → 建 worktree (在 git 根的 .worktrees/<worktree>)
 if re.search(r"task\.py\s+(create|start)\b", cmd):
     tid = task_id()
     if tid:
-        wt = os.path.join(groot, ".trellisx-worktrees", svc_flat, tid)
-        br = f"trellisx-{svc_flat}-{tid}"
+        name = f"{svc_flat}-{tid}" if service != "." else tid
+        wt = os.path.join(groot, ".worktrees", name)
+        br = f"trellisx-{name}"
         if not os.path.isdir(wt):
             git("worktree", "add", wt, "-b", br)
             if service != ".":          # 微服务 → sparse 只检该子目录, 省体积
@@ -62,7 +63,8 @@ elif re.search(r"task\.py\s+archive\b", cmd):
     m = re.search(r"archive\s+(\S+)", cmd)
     tid = os.path.basename(m.group(1)) if m else None
     if tid:
-        wt = os.path.join(groot, ".trellisx-worktrees", svc_flat, tid)
+        name = f"{svc_flat}-{tid}" if service != "." else tid
+        wt = os.path.join(groot, ".worktrees", name)
         if os.path.isdir(wt):
             st = subprocess.run(["git","-C",wt,"status","--porcelain"], capture_output=True, text=True, timeout=5)
             if st.stdout.strip():       # 脏 → 不销毁, 警告
@@ -70,7 +72,7 @@ elif re.search(r"task\.py\s+archive\b", cmd):
                     "additionalContext": f"trellisx: worktree {wt} 有未提交改动, 未销毁。先合并 + git worktree remove。"}}))
             else:
                 subprocess.run(["git","-C",groot,"worktree","remove",wt], capture_output=True, timeout=10)
-                subprocess.run(["git","-C",groot,"branch","-D",f"trellisx-{svc_flat}-{tid}"], capture_output=True, timeout=5)
+                subprocess.run(["git","-C",groot,"branch","-D",f"trellisx-{name}"], capture_output=True, timeout=5)
 sys.exit(0)
 ```
 
@@ -78,9 +80,9 @@ sys.exit(0)
 
 ## 3. .gitignore
 
-worktree 在 **git 根** `.trellisx-worktrees/`, 故在 **git 根 .gitignore** (非 .trellis/.gitignore) 追加:
+worktree 在 **git 根** `.worktrees/`, 故在 **git 根 .gitignore** (非 .trellis/.gitignore) 追加:
 ```
-.trellisx-worktrees/
+.worktrees/
 ```
 apply 时: git rev-parse --show-toplevel 找 git 根, 检查该 .gitignore 缺则追加。
 

@@ -33,7 +33,7 @@ trellisx (增量): 任务规划时拆 >= 2 subtask, 每 subtask 独立文件 .tr
 
 ```
 <!-- trellisx:start:in_progress -->
-trellisx (增量): 本 task 改动隔离在 worktree (git 根 .trellisx-worktrees/<service>/<task>, 平台 hook 自适应建, 微服务自动 sparse)。源码写盘目标用该 worktree 路径; subtask 可异步并行派 sub-agent (isolation:worktree) / agent-team 成员提效。task archive 时 worktree 干净则自动销毁。
+trellisx (增量): 本 task 改动隔离在 worktree (git 根 .worktrees/<worktree>, 平台 hook 自适应建, 微服务自动 sparse)。源码写盘目标用该 worktree 路径; subtask 可异步并行派 sub-agent (isolation:worktree) / agent-team 成员提效。task archive 时 worktree 干净则自动销毁。
 <!-- trellisx:end:in_progress -->
 ```
 
@@ -41,7 +41,7 @@ trellisx (增量): 本 task 改动隔离在 worktree (git 根 .trellisx-worktree
 
 ```
 <!-- trellisx:start:in_progress_inline -->
-trellisx (增量): inline 模式 main 直接 edit, 但源码目标路径必须在 worktree (.trellisx-worktrees/<service>/<task>) 内。
+trellisx (增量): inline 模式 main 直接 edit, 但源码目标路径必须在 worktree (.worktrees/<worktree>) 内。
 <!-- trellisx:end:in_progress_inline -->
 ```
 
