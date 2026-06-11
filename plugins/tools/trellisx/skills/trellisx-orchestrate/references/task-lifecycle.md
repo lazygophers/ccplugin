@@ -33,7 +33,7 @@ flowchart TB
 
 | 时机 | 动作 |
 | --- | --- |
-| 派每个 subtask 给 agent 时 | sub-agent 用 isolation:worktree (自动) / agent-team 成员 main 手动 git worktree add .trellis/worktrees/<subtask> |
+| 派每个 subtask 给 agent 时 | sub-agent 用 isolation:worktree (自动) / agent-team 成员 main 手动 git worktree add <git根>/.worktrees/<worktree> |
 | execute / check 期间 | 全部读写限于 worktree, 主工作区保持干净 |
 | check 通过 + commit 后 | 合并 worktree 改动 → 当前分支 |
 | 合并完成 | `git worktree remove <path>` 移除, 确保环境干净, 无残留工作树 |

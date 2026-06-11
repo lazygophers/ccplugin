@@ -25,7 +25,7 @@ grep -q "worktrees/" .trellis/.gitignore 2>/dev/null && echo "已排除" || echo
 
 # 7. task.py 可用 + worktree 已存在?
 python3 .trellis/scripts/task.py current 2>/dev/null
-git worktree list 2>/dev/null | grep ".trellis/worktrees" || echo "无 trellisx worktree"
+git worktree list 2>/dev/null | grep ".worktrees" || echo "无 trellisx worktree"
 ```
 
 ## 诊断报告

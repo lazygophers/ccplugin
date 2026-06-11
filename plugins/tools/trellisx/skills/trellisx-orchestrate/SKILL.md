@@ -25,7 +25,7 @@ user-invocable: false
 | 探索 (纯只读: 读/查/搜/分析) | 按复杂度决定 (简单可不建; 复杂调研建 task 承载) |
 | 实施 (写盘/改文件/任何落盘工作) | **无条件强制建 task**, 走 planning 全流程, 不看 subtask 数 |
 
-判定靠不准时倾向建 task。建 task 后拆 ≥ 2 subtask, 异步调度 sub-agent (isolation:worktree) / agent-team 成员 (.trellis/worktrees/<subtask>) 尽可能并行执行; main 可直接写源码但**必须在 worktree 内** (简单 subtask main 直做, 复杂/并行派 agent), 见 `references/task-lifecycle.md`。
+判定靠不准时倾向建 task。建 task 后拆 ≥ 2 subtask, 异步调度 sub-agent (isolation:worktree) / agent-team 成员 (<git根>/.worktrees/<worktree>) 尽可能并行执行; main 可直接写源码但**必须在 worktree 内** (简单 subtask main 直做, 复杂/并行派 agent), 见 `references/task-lifecycle.md`。
 
 ## 触发判定
 

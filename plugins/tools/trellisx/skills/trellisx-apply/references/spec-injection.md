@@ -28,7 +28,7 @@ authored-by: trellisx-apply
 
 ## 标准开发流程 (5 步)
 
-① 创建任务 + 切 worktree (task.py create+start, 自动建 .trellis/worktrees/<task>)
+① 创建任务 + 切 worktree (task.py create+start, 自动建 <git根>/.worktrees/<worktree>)
 ② 任务规划 (拆 ≥ 2 subtask, 写 prd/design/implement + subtask 文件 + 调度图)
 ③ 异步执行 (按调度图调度 subtask agent, 无依赖的并行派发提效)
 ④ 整体 trellis-check 校验 (闭环)
