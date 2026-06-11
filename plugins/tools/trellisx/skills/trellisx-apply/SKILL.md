@@ -1,6 +1,6 @@
 ---
 name: trellisx-apply
-description: 把 worktree 隔离 + subtask 拆分两个维度增量注入当前项目 .trellis/ (workflow.md 的 planning/in_progress 块 + spec 背书文档 + trellis 生命周期 hook worktree 自动化)。**纯增量, 不修改 trellis 原生流程** (task 创建/check/finish/前缀全保持原生)。幂等 (marker 包裹)。
+description: 把 建task倾向 + subtask拆分 + worktree隔离 三维度增量注入当前项目 .trellis/ (workflow.md 的 no_task/planning/in_progress 块 + spec 背书文档 + trellis 生命周期 hook worktree 自动化)。**纯增量追加, 绝不替换 trellis 原生文本** (no_task 分类+征同意/check/finish/前缀全保留)。幂等 (marker 包裹)。
 when_to_use: 用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"。
 argument-hint: [scope]
 arguments: [范围]
@@ -8,7 +8,9 @@ arguments: [范围]
 
 # trellisx-apply — 把 trellisx 规则内化进 .trellis
 
-把 **worktree 隔离 + subtask 拆分** 两个维度增量注入当前项目 `.trellis/`。**纯增量, 绝不修改 trellis 原生流程** —— task 创建 / check / finish / 前缀全部保持 trellis 原生不动。跑完后由 trellis 原生 `inject-workflow-state` hook 注入这 2 个维度。
+把 **建 task 倾向 + subtask 拆分 + worktree 隔离** 三个维度增量注入当前项目 `.trellis/`。**纯增量追加, 绝不替换 trellis 原生文本** —— no_task 原生分类+征同意 / check / finish / 前缀全部保留不动, trellisx 内容只在块末尾追加。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入这些维度。
+
+> 建 task 倾向 = 用户偏好"更多使用 task; 不确定该不该建就主动问用户", 注入 no_task 块 (保留原生判定, 仅强化倾向)。
 
 ## 立场
 
@@ -51,20 +53,21 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 4 | 注入 trellis 生命周期 hook (config.yaml after_start/after_archive → worktree 自动建/销) | 读 `references/hook-injection.md` |
 | 5 | AskUserQuestion 审批 → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 
-## 注入维度 (纯增量, 只加 2 个)
+## 注入维度 (纯增量追加, 绝不替换原生)
 
-apply **只增加** worktree + subtask 两个维度, **绝不修改** trellis 原生流程 (task 创建 / check / finish / 前缀):
+apply 增量追加以下维度, **绝不替换 / 重写** trellis 原生文本 (task 创建分类逻辑 / check / finish / 前缀全保留):
 
 | 维度 | 注入内容 | 落地位置 |
 | --- | --- | --- |
-| **subtask 拆分** | task 拆 ≥ 2 subtask + 独立文件 + 调度图 | workflow.md `[workflow-state:planning]` 块末尾追加 |
+| **建 task 倾向** | 强化"更多用 task + 不确定就问用户"倾向 (保留原生分类+征同意, 仅末尾追加倾向) | workflow.md `[workflow-state:no_task]` 块末尾追加 |
+| **subtask 拆分** | 按 trellis 原生 parent/child 语义判定 (有多个独立可验收交付才拆 child, 不看数量); 多交付 → parent+child+各 worktree+并行调度图, 单交付 → 轻量 inline | workflow.md `[workflow-state:planning]` 块末尾追加 |
 | **worktree 隔离** | task.py start 自动建 <git根>/.worktrees/<worktree>; 源码改动隔离; archive 销毁 | workflow.md `[workflow-state:in_progress]` 块末尾 + trellis 生命周期 hook (config.yaml) |
 | (背书) worktree spec | **仅新增** trellisx-worktree.md (不存在才建, 不动现有 spec) | .trellis/spec/guides/ |
 | (副作用) worktree hook | config.yaml `hooks.after_start/after_archive` 触发 `.trellis/scripts/trellisx-worktree.py` 建/销 (不改 task.py) | .trellis/config.yaml + .trellis/scripts/ |
 
-**绝不碰**: `[workflow-state:no_task]` (task 创建触发) / Phase 流程 / 完成判定 / 回复前缀 —— 全部保持 trellis 原生。
+**绝不替换原生文本**: no_task 的原生「First classify... / task-creation consent」、Phase 流程、完成判定、回复前缀 —— 一字不改, trellisx 内容只末尾追加。
 
-> 教训: 早期 apply 注入 no_task + 重写 Phase, 破坏了 trellis 原生 task 创建触发。apply 必须最小侵入。
+> 教训: 早期 apply **重写** no_task + Phase 流程, 破坏了 trellis 原生 task 创建触发。**根因是替换原生文本, 非追加本身。** 修正: no_task 可末尾追加建 task 倾向, 但 MUST 保留原生分类+征同意文本 (apply-verify 强制断言)。
 
 ## 参考集 (按需读)
 

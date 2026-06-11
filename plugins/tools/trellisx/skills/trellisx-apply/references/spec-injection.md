@@ -42,9 +42,9 @@ authored-by: trellisx-apply
 
 ## subtask 拆分 + 异步并行
 
-- task 拆 >= 2 subtask, 每 subtask 独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md`
+- 判定跟随 trellis 原生 parent/child 语义: 本请求含**多个独立可验收交付**才拆 child task (`task.py create --parent`), 不看数量; 单一交付 → 轻量单 task inline
 - PRD 调度图显式标并行组 (无依赖 subtask 同批)
-- 执行: 无依赖 subtask 同一消息一次性派多个 sub-agent (真并行); 禁串行逐个派
+- 执行: 多交付时无依赖 child 同一消息一次性派多 sub-agent (真并行), 禁串行; 单交付 inline main 在 worktree 内直接写
 - parent-child 用 trellis 原生 `task.py add-subtask`
 ```
 

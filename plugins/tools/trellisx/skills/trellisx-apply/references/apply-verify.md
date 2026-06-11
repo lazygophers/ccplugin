@@ -72,17 +72,21 @@ for st in no_task planning in_progress; do
   grep -q "\[workflow-state:$st\]" .trellis/workflow.md && echo "✓ $st 块在" || echo "✗ $st 缺"
 done
 
-# 2. trellisx 注入的 planning/in_progress marker 在对应块内 (不串位)
+# 2. trellisx 注入的 no_task/planning/in_progress marker 在对应块内 (不串位)
 python3 - <<'EOF'
 import re
 s=open(".trellis/workflow.md").read()
-for tag in ["planning","in_progress"]:
+for tag in ["no_task","planning","in_progress"]:
     m=re.search(rf"\[workflow-state:{tag}\](.*?)\[/workflow-state:{tag}\]", s, re.DOTALL)
     body=m.group(1) if m else ""
     key=tag.replace("-","_")
     ok = f"trellisx:start:{key}" in body
     print(f"{'✓' if ok else '✗'} trellisx:{key} marker 在 [{tag}] 块内")
 EOF
+
+# 2b. ★ no_task 原生文本未被替换 (规避踩坑根因: 只追加不替换)
+grep -q "First classify the current turn" .trellis/workflow.md && echo "✓ no_task 原生分类文本在" || echo "✗ 危险: 原生被替换"
+grep -q "task-creation consent" .trellis/workflow.md && echo "✓ no_task 原生征同意文本在" || echo "✗ 危险: 原生被替换"
 
 # 3. 流程链完整: 注入内容引用的下游环节都存在
 #    planning 提 subtask → in_progress 提 worktree+execute → 原生 check/finish
