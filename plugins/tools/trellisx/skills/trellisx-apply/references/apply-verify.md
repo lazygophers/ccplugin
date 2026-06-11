@@ -61,6 +61,41 @@ python3 -c "import ast; ast.parse(open('.claude/hooks/trellisx-worktree.py').rea
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
 ```
 
+## 4b. 流程闭环验证 (必须, 注入后确认完整闭环)
+
+注入后, 验证 workflow.md 的任务执行流程是**完整闭环**: 从无任务 → 创建 → 规划 → worktree → 执行 → check → commit → finish 每个 status 衔接无断点。
+
+```bash
+# 1. 每个 workflow-state status 都存在 (trellis 原生 + trellisx 注入)
+for st in no_task planning in_progress; do
+  grep -q "\[workflow-state:$st\]" .trellis/workflow.md && echo "✓ $st 块在" || echo "✗ $st 缺"
+done
+
+# 2. trellisx 注入的 planning/in_progress marker 在对应块内 (不串位)
+python3 - <<'EOF'
+import re
+s=open(".trellis/workflow.md").read()
+for tag in ["planning","in_progress"]:
+    m=re.search(rf"\[workflow-state:{tag}\](.*?)\[/workflow-state:{tag}\]", s, re.DOTALL)
+    body=m.group(1) if m else ""
+    key=tag.replace("-","_")
+    ok = f"trellisx:start:{key}" in body
+    print(f"{'✓' if ok else '✗'} trellisx:{key} marker 在 [{tag}] 块内")
+EOF
+
+# 3. 流程链完整: 注入内容引用的下游环节都存在
+#    planning 提 subtask → in_progress 提 worktree+execute → 原生 check/finish
+grep -q "subtask" .trellis/workflow.md && echo "✓ planning→subtask"
+grep -q "worktree" .trellis/workflow.md && echo "✓ in_progress→worktree"
+grep -qE "trellis-check|check" .trellis/workflow.md && echo "✓ →check 闭环"
+grep -qE "finish|archive" .trellis/workflow.md && echo "✓ →finish 收尾"
+
+# 4. 无断链: 注入未破坏 trellis 原生 Phase 流程 (Phase 1/2/3 仍在)
+grep -cE "Phase [123]" .trellis/workflow.md
+```
+
+**闭环判定**: 上述全 ✓ = 流程完整闭环 (创建→规划→worktree→执行→check→finish 无断点)。任一 ✗ → 修复注入 (marker 串位 / 缺环节) 后重验, 直到闭环。
+
 ## 5. 完成报告
 
 ```
@@ -70,6 +105,7 @@ trellisx-apply 完成
 spec 文档: 已写
 平台 hook: 已装 (worktree 自动化) / 跳过 (无 .claude/hooks)
 gitignore: 已排除 .worktrees/ (git 根)
+流程闭环: ✓ (create→planning→worktree→execute→check→finish 完整)
 
 下一步: 重启会话 / reload 让 trellis hook 读到新 workflow.md。
 之后 trellisx 规则由 trellis 原生机制注入, 无需 trellisx 运行时 hook。

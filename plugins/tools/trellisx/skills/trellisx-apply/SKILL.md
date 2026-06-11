@@ -45,7 +45,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 2 | 注入 workflow.md (workflow-state 块 + Phase 描述) | 读 `references/workflow-injection.md` |
 | 3 | 注入 spec/ (trellisx 规范文档) | 读 `references/spec-injection.md` |
 | 4 | 注入平台 hook (worktree 自动建/销) | 读 `references/hook-injection.md` |
-| 5 | AskUserQuestion 审批 → 一次写盘 → 验证 | 读 `references/apply-verify.md` |
+| 5 | AskUserQuestion 审批 → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 
 ## 注入维度 (纯增量, 只加 2 个)
 
