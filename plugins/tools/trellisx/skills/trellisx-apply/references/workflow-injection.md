@@ -161,9 +161,16 @@ write(".trellis/workflow.md", content)
 # 原生 workflow-state 标签配对 (起始 = 结束数)
 grep -c "\[workflow-state:" .trellis/workflow.md
 grep -c "\[/workflow-state:" .trellis/workflow.md
-# ★ 关键: no_task 原生「分类 + 征得同意」文本仍在 (注入只追加, 没替换 — 规避踩坑根因)
-grep -q "First classify the current turn" .trellis/workflow.md && echo "✓ no_task 原生分类文本在" || echo "✗ 原生被替换, 危险!"
-grep -q "task-creation consent" .trellis/workflow.md && echo "✓ no_task 原生征同意文本在" || echo "✗ 原生被替换, 危险!"
+# ★ 关键: no_task 原生内容仍在 (注入只追加没替换 — 规避踩坑根因)。
+# 语言无关 (i18n 翻译后原生变中文, 不能死匹配英文串): 检 no_task 块除 trellisx marker 外原生正文非空
+python3 - <<'EOF'
+import re
+s=open(".trellis/workflow.md").read()
+m=re.search(r"\[workflow-state:no_task\](.*?)\[/workflow-state:no_task\]", s, re.DOTALL)
+body=m.group(1) if m else ""
+native=re.sub(r"<!-- trellisx:start:no_task -->.*?<!-- trellisx:end:no_task -->","",body,flags=re.DOTALL).strip()
+print(f"{'✓' if len(native)>40 else '✗ 危险: 原生疑被替换/清空'} no_task 原生正文 {len(native)} 字符 (除 trellisx marker)")
+EOF
 # task.py 创建流程未坏
 python3 .trellis/scripts/task.py current >/dev/null 2>&1 && echo "task.py OK"
 ```
@@ -171,5 +178,5 @@ python3 .trellis/scripts/task.py current >/dev/null 2>&1 && echo "task.py OK"
 ## 不破坏 trellis 原生
 
 - 全部 marker 只在块**末尾追加**, 原生行一字不改 (含 no_task)
-- no_task 注入仅加**建 task 倾向**, **MUST 保留原生**「First classify... / task-creation consent」文本 (上方验证强制断言)
+- no_task 注入仅加**建 task 倾向**, **MUST 保留原生**「分类 + 征得同意」语义内容 (上方验证以语言无关方式断言原生正文非空; i18n 翻译可改其语言, 但不可清空/替换)
 - workflow.md 被 trellis update 覆盖后, 重跑 apply 恢复注入 (幂等)

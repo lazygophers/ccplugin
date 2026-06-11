@@ -84,9 +84,16 @@ for tag in ["no_task","planning","in_progress"]:
     print(f"{'✓' if ok else '✗'} trellisx:{key} marker 在 [{tag}] 块内")
 EOF
 
-# 2b. ★ no_task 原生文本未被替换 (规避踩坑根因: 只追加不替换)
-grep -q "First classify the current turn" .trellis/workflow.md && echo "✓ no_task 原生分类文本在" || echo "✗ 危险: 原生被替换"
-grep -q "task-creation consent" .trellis/workflow.md && echo "✓ no_task 原生征同意文本在" || echo "✗ 危险: 原生被替换"
+# 2b. ★ no_task 原生内容未被替换 (规避踩坑根因)。语言无关 (i18n 翻译后变中文):
+#     检 no_task 块除 trellisx marker 外原生正文非空
+python3 - <<'EOF'
+import re
+s=open(".trellis/workflow.md").read()
+m=re.search(r"\[workflow-state:no_task\](.*?)\[/workflow-state:no_task\]", s, re.DOTALL)
+body=m.group(1) if m else ""
+native=re.sub(r"<!-- trellisx:start:no_task -->.*?<!-- trellisx:end:no_task -->","",body,flags=re.DOTALL).strip()
+print(f"{'✓' if len(native)>40 else '✗ 危险: 原生疑被替换'} no_task 原生正文 {len(native)} 字符")
+EOF
 
 # 3. 流程链完整: 注入内容引用的下游环节都存在
 #    planning 提 subtask → in_progress 提 worktree+execute → 原生 check/finish
