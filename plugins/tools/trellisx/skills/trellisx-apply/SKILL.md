@@ -31,6 +31,7 @@ ls .trellis/ || { echo "非 trellis 项目, 终止"; exit 1; }
 ls .trellis/workflow.md          # 注入目标
 ls .trellis/spec/ 2>/dev/null    # spec 目标
 ls .trellis/config.yaml          # trellis 生命周期 hook 注入目标
+ls .claude/agents/trellis*.md 2>/dev/null   # trellis agent background:true 注入目标
 # 检测设备/项目语言 (决定注入文本语言)
 echo "${LANG:-}"                  # 系统 locale (如 en_US / zh_CN / ja_JP)
 head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
@@ -51,6 +52,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 2.5 | **全文档语言对齐** + **清理无效内容**: 翻译全文叙述为设备语言; 移除无效模板注释 + 跨平台枚举收敛为 Claude Code (保留标签/marker/命令/路径/代码) | 读 `references/workflow-injection.md` §i18n + §清理 |
 | 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
 | 4 | 注入 trellis 生命周期 hook (config.yaml after_start/after_archive → worktree 自动建/销) | 读 `references/hook-injection.md` |
+| 4.5 | 注入 trellis agent `background: true` (.claude/agents/trellis*.md frontmatter, 缺则加 / 非 true 强制改) | 读 `references/agent-injection.md` |
 | 5 | AskUserQuestion 审批 → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 
 ## 注入维度 (纯增量追加, 绝不替换原生)
@@ -64,6 +66,7 @@ apply 增量追加以下维度, **绝不替换 / 重写** trellis 原生文本 (
 | **worktree 隔离** | task.py start 自动建 <git根>/.worktrees/<worktree>; 源码改动隔离; archive 销毁 | workflow.md `[workflow-state:in_progress]` 块末尾 + trellis 生命周期 hook (config.yaml) |
 | (背书) worktree spec | **仅新增** trellisx-worktree.md (不存在才建, 不动现有 spec) | .trellis/spec/guides/ |
 | (副作用) worktree hook | config.yaml `hooks.after_start/after_archive` 触发 `.trellis/scripts/trellisx-worktree.py` 建/销 (不改 task.py) | .trellis/config.yaml + .trellis/scripts/ |
+| **agent 后台化** | 所有 `trellis*` agent frontmatter 加 `background: true` (缺则加 / 非 true 强制改); 只动 background 一字段 | .claude/agents/trellis*.md |
 
 **绝不替换原生文本**: no_task 的原生「First classify... / task-creation consent」、Phase 流程、完成判定、回复前缀 —— 一字不改, trellisx 内容只末尾追加。
 
@@ -77,6 +80,7 @@ apply 增量追加以下维度, **绝不替换 / 重写** trellis 原生文本 (
 | `references/workflow-injection.md` | 步骤 2: workflow-state 块 + Phase 注入内容 (核心) |
 | `references/spec-injection.md` | 步骤 3: spec 规范文档 |
 | `references/hook-injection.md` | 步骤 4: trellis 生命周期 hook (config.yaml) worktree 自动化 |
+| `references/agent-injection.md` | 步骤 4.5: trellis agent `background: true` 注入 |
 | `references/apply-verify.md` | 步骤 5: 审批 + 写盘 + 验证 |
 
 ## 相关 skill

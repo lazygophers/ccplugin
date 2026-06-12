@@ -20,6 +20,8 @@ trellisx-apply 变更计划
 [.trellis/scripts/trellisx-worktree.py] 创建 (生命周期 hook 调用)
   + [.trellis/config.yaml] hooks.after_start/after_archive 注入
 
+[.claude/agents/trellis*.md] frontmatter + background: true (缺则加 / 非 true 强制改)
+
 [<git根>/.gitignore] + .worktrees/
 
 影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/archive 触发 config.yaml hooks 自适应建/销 worktree (微服务兼容)
@@ -44,7 +46,8 @@ options:
 1. `.trellis/workflow.md` (marker 注入, 见 workflow-injection.md 算法)
 2. `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有 spec)
 3. `.trellis/scripts/trellisx-worktree.py` (创建) + `.trellis/config.yaml` hooks 注入
-4. `<git根>/.gitignore` 追加 .worktrees/
+4. `.claude/agents/trellis*.md` frontmatter 注入 `background: true` (见 agent-injection.md 算法)
+5. `<git根>/.gitignore` 追加 .worktrees/
 
 ## 4. 验证
 
@@ -60,6 +63,11 @@ python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-worktree.py').
 python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_hooks; print('after_start', get_hooks('after_start'))"
 # gitignore
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
+# trellis agent 全部 background: true
+for f in .claude/agents/trellis*.md; do
+  [ -f "$f" ] || continue
+  awk '/^---$/{c++} c==1&&/^background:[[:space:]]*true[[:space:]]*$/{ok=1} c==2{print (ok?"✓":"✗"), FILENAME; exit}' "$f"
+done
 ```
 
 ## 4b. 流程闭环验证 (必须, 注入后确认完整闭环)
