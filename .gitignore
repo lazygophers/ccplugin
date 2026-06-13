@@ -77,4 +77,4 @@ plugins/tools/task/scripts/__init__.py
 coverage.json
 
 # Graphify 输出
-graphify-out/
+graphify-out/.worktrees/
