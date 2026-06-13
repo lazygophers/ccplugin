@@ -92,7 +92,7 @@ Planning (prd.md + research/) → In Progress (tasks/*.md) → Done (archive/)
 所有 skills/agents/commands 优化后必须通过 AI 可理解性测试：
 
 ```bash
-claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<content>" --output-format stream-json | jq ...
+claude -p "<content>" --output-format stream-json | jq ...
 ```
 
 ---

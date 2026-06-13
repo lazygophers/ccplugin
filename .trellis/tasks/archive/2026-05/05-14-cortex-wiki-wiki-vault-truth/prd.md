@@ -89,7 +89,7 @@ vault 实际**无** wiki 目录, 此修复纯字符串/文档清理, 不动 vaul
 
 - pytest 全绿
 - ruff check + format 通过
-- AI 质量检查 cortex-lint SKILL: `claude --settings ~/.claude/settings.glm-4.7-flash.json -p "$(cat plugins/tools/cortex/skills/cortex-lint/SKILL.md)"`
+- AI 质量检查 cortex-lint SKILL: `claude -p "$(cat plugins/tools/cortex/skills/cortex-lint/SKILL.md)"`
 - grep verify wiki 残留清零 (除明示排除)
 - git commit (单 commit 即可, 范围小)
 

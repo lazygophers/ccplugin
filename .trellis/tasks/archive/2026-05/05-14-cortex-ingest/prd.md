@@ -81,7 +81,7 @@ agent description + 工作流加:
 3. SKILL.md §1 含拒交硬条件
 4. commands/ingest.md 含步骤 6 self-check
 5. agents/cortex-researcher.md description / 工作流提到多子文档强制
-6. 跑 `claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<SKILL.md §1 + §4.7 抽样>"` GLM 自检 AI 能识别 (CLAUDE.md §代码质量检查规范)
+6. 跑 `claude -p "<SKILL.md §1 + §4.7 抽样>"` GLM 自检 AI 能识别 (CLAUDE.md §代码质量检查规范)
 7. pytest 314 pass
 
 # 风险

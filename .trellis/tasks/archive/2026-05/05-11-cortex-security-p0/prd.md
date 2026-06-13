@@ -125,7 +125,7 @@ cortex v2 对 ingest/save 流加 3 层过滤:
 8. AGENT.md §安全声明 段已加
 9. 验证 AI 理解(CLAUDE.md §代码质量检查规范):
    ```bash
-   claude --settings ~/.claude/settings.glm-4.7-flash.json -p "$(cat plugins/tools/cortex/skills/cortex-ingest/SKILL.md)" --output-format stream-json | jq -r 'select(.type=="result" and .subtype=="success") | .result'
+   claude -p "$(cat plugins/tools/cortex/skills/cortex-ingest/SKILL.md)" --output-format stream-json | jq -r 'select(.type=="result" and .subtype=="success") | .result'
    ```
    返回须明示三过滤器执行顺序
 

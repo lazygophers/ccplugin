@@ -374,7 +374,7 @@ SCHEMAS["LYT"] = {
 - [ ] 主页.md 用 HTML grid 二维布局, 不依赖纯 Markdown
 - [ ] MCP server 新增 10 工具 (read/write/recall/forget/consolidate/promote/ledger_append/session_import/uri_index_rebuild/html_render) 签名通过, 至少 5 个有实现
 - [ ] 217 现有 python 测试无回归
-- [ ] 用 `claude --settings ~/.claude/settings.glm-4.7-flash.json` 验证 cortex-install SKILL.md 优化后理解正确
+- [ ] 用 `claude` 验证 cortex-install SKILL.md 优化后理解正确
 
 ## 9. 风险
 

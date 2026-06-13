@@ -25,7 +25,7 @@ arguments: [任务描述]
 1. **判新旧 + 登记** — 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
    - **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。
    - **现有 task 的补充 / 延续** (扩展、修订、补做当前 active task 的一部分) → **不新建顶层 task**: 回到 planning 修订该 task 的 `prd.md` / `implement.md` 并重新规划; 若是可独立验收的子交付, 用 `task.py create --parent <现有 task>` 挂为 child。
-   - **判不准** → 用 AskUserQuestion 问用户"这是新任务, 还是对 `<active task>` 的补充?", 禁自行替用户决定。
+   - 🔴 **判不准 → 🛑 STOP**: MUST 用 AskUserQuestion 问"这是新任务, 还是对 `<active task>` 的补充?", **禁自行替用户决定**, 禁纯文本提问代替工具。
    登记后 → **更新 task.md 看板** (新建/更新该任务行)。
 2. **planning** — 加载 `trellis-brainstorm` 探索需求 + `trellisx-orchestrate` 编排, 写 `prd.md` (复杂任务加 `design.md` + `implement.md`); 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。
 3. **激活** — 产物评审后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。

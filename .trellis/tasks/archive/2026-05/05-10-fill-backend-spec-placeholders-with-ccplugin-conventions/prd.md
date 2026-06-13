@@ -41,7 +41,7 @@ Create new spec files:
 3. Cross-link: `backend/index.md` table updated to `Status: filled` and link new files
 4. Verify AI comprehension via project quality-check command (CLAUDE.md §代码质量检查规范):
    ```bash
-   claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<spec content>" --output-format stream-json | jq -r '...'
+   claude -p "<spec content>" --output-format stream-json | jq -r '...'
    ```
 
 ## Acceptance Criteria

@@ -43,7 +43,7 @@ bash plugins/tools/cortex/scripts/validate-layout.sh --target plugins/tools/cort
 
 # 链路 5: AI 识别测试 (项目 CLAUDE.md 要求)
 for s in cortex-schema-knowledge cortex-schema-memory cortex-lint cortex-extract; do
-  result=$(claude --settings ~/.claude/settings.glm-4.7-flash.json \
+  result=$(claude \
     -p "$(cat plugins/tools/cortex/skills/$s/SKILL.md)" \
     --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result')
   [[ -n "$result" ]] && echo "OK: $s" || echo "FAIL: $s"

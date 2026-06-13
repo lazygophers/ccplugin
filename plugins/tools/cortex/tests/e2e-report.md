@@ -38,7 +38,7 @@ archive: 5 个 inbox 文件移到 `L4-inbox/_archived/`, 原位删除.
 - [x] `lint.sh --check tests/fixtures/lint/` 检出预期违规, `--fix` 后再 `--check` rc=0
 - [x] `extract.sh --dry-run tests/fixtures/extract/` 产出预期归档计划
 - [x] cortex agent 边界条款明确 (只读 .trellis/, 写仅限 ~/.cortex/ 与 <repo>/.wiki/)
-- [ ] **N/A** — `claude --settings ~/.claude/settings.glm-4.7-flash.json` AI 识别测试: 本机无 glm-4.7-flash settings 文件, 此项跳过. 后续 task 可单独跑.
+- [ ] **N/A** — `claude` AI 识别测试: 本机无 glm-4.7-flash settings 文件, 此项跳过. 后续 task 可单独跑.
 
 ## 反直觉防呆验证
 

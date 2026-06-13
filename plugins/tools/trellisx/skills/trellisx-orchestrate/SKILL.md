@@ -53,7 +53,20 @@ user-invocable: false
 
 轻量 task (单 deliverable + 单 subtask) 可仅做步骤 1 + 2 (PRD + 单 subtask 文件)。复杂 task 必须 6 步走完才能进入 `task.py start`。
 
+> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。
+
 范例集索引: `examples/README.md` (同一 OAuth2 登录场景贯穿全部文档)。
+
+## 反例黑名单 (禁做)
+
+| # | 反模式 | 为什么禁 | 替代 |
+| --- | --- | --- | --- |
+| 1 | 开放式 PRD ("实现 X 功能") | 无 deliverable 矩阵 = dispatch 无据可拆 | 列 deliverable 矩阵 + 逐条验收 |
+| 2 | 写完 PRD 才临时想怎么拆 | 编排理念没落文档 = 执行阶段重新推导 | 五要素 / 执行层 / 资源互斥就地内嵌 prd/design/implement |
+| 3 | 多交付不建 subtask 文件 | dispatch prompt 无源 = sub-agent 缺六要素自包含 | 每 subtask 建独立文件 (步骤 2) |
+| 4 | 共享 task 文件并发写 / 同 task 状态并行切换 | 写冲突 + 状态错乱 | 串行化 (立场: 串行优先) |
+| 5 | 并行组不标依赖箭头 | 隐藏依赖 → 乱序执行 | mermaid 调度图显式标并行组 + 依赖 |
+| 6 | 自检未过强行 `task.py start` | 带病进 in_progress, 返工成本翻倍 | 过 selfcheck gate 才放行 (上方 🔴) |
 
 ## 参考集 (按需读)
 

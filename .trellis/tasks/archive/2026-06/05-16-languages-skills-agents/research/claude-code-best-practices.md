@@ -486,7 +486,7 @@ my-language-tools/
 项目 CLAUDE.md 要求对 skills/agents 优化后验证：
 
 ```bash
-claude --settings ~/.claude/settings.glm-4.7-flash.json \
+claude \
   -p "<待测内容>" \
   --output-format stream-json | \
   jq -r 'select(.type == "result" and .subtype == "success") | .result'

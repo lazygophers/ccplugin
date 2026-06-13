@@ -1,5 +1,5 @@
 {"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/prd.md", "reason": "完整设计 (取代 v1, 单一版本)"}
-{"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/research/01-claude-code-programmatic.md", "reason": "claude --bare/-p flag 全集 + cron 范式 + 退出码 + result schema"}
+{"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/research/01-claude-code-programmatic.md", "reason": "bare/-p flag 全集 + cron 范式 + 退出码 + result schema"}
 {"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/research/02-vault-i18n-naming.md", "reason": "i18n vault 目录命名 + locale schema + 跨平台 CJK + 不翻译白名单"}
 {"file": ".trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/prd.md", "reason": "旧 cortex 设计 (仅参考用, 本任务覆盖)"}
 {"file": ".trellis/tasks/archive/2026-05/05-10-obsidian-kb-plugin/research/04-claude-code-deep-capabilities.md", "reason": "CC hook v2 schema + plugin.json 全字段 (复用)"}

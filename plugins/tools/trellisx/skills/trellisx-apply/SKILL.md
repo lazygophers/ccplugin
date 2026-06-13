@@ -58,7 +58,9 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
 | 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ 两脚本) | 读 `references/hook-injection.md` |
 | 4.5 | 注入 trellis agent `background: true` (.claude/agents/trellis*.md frontmatter, 缺则加 / 非 true 强制改) | 读 `references/agent-injection.md` |
-| 5 | AskUserQuestion 审批 → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
+| 5 | 🔴 **AskUserQuestion 审批 (STOP)** → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
+
+> 🔴 **CHECKPOINT · 🛑 STOP (步骤 5)**: 改 `.trellis/` 前 **MUST 展示 diff plan + 经 AskUserQuestion 批准**才写盘。禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
 
 ## 注入维度 (纯增量追加, 绝不替换原生)
 

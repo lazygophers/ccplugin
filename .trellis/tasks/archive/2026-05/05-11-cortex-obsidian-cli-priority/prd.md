@@ -84,7 +84,7 @@ research/mcp-cli-mapping.md 漏扫 `hooks/scripts/lint/refactor/` 下的 `.sh/.p
 3. 锚点 patch / canvas / metadata 场景明确指向 MCP
 4. cortex-doctor 区分 CLI / MCP 两种环境，给降级建议
 5. `hooks/scripts/lint/refactor/` 下 .sh/.py 补扫完成
-6. `claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<改后的 AGENT.md 调度路由片段>"` 验证 AI 能识别新 routing
+6. `claude -p "<改后的 AGENT.md 调度路由片段>"` 验证 AI 能识别新 routing
 
 ## 研究
 

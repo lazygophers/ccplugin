@@ -133,7 +133,7 @@
 ccplugin 项目内既有用法 (`CLAUDE.md §代码质量检查规范`):
 
 ```bash
-claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<内容>" \
+claude -p "<内容>" \
   --output-format stream-json --verbose | \
   jq -r 'select(.type == "result" and .subtype == "success") | .result'
 ```

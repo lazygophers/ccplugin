@@ -288,7 +288,7 @@ MCP server 装:`pipx install ${CLAUDE_PLUGIN_ROOT}/mcp` (install.sh 自动)。
    - save: concept/domain/log 三种 kind 各 1 用例,masking 前置生效,block-id 注入,flock 并发安全
 4. `.claude-plugin/plugin.json` `mcpServers.cortex` 段有效 JSON,通过 `python3 -c "import json; json.load(open('...'))"`
 5. install.sh `--reinstall` 模式重装 pipx pkg,无 pipx 时打 warn 不阻塞
-6. `claude --settings ~/.claude/settings.glm-4.7-flash.json -p "搜 cortex 知识库 P0 安全硬化"` 验证模型优先调 `mcp__cortex__search`(若模型未识别,记 backlog)
+6. `claude -p "搜 cortex 知识库 P0 安全硬化"` 验证模型优先调 `mcp__cortex__search`(若模型未识别,记 backlog)
 7. `cortex-search/SKILL.md` + `cortex-save/SKILL.md` 文档明示 MCP 优先 + 回退序
 8. AGENT.md §MCP 主路径 段存在
 

@@ -81,7 +81,7 @@ flowchart LR
 - [ ] `bash plugins/tools/cortex/scripts/validate-layout.sh` 对内置 fixture vault 通过
 - [ ] `bash plugins/tools/cortex/scripts/lint.sh --check tests/fixtures/lint/` 检出预期违规并能 `--fix` 修复
 - [ ] `bash plugins/tools/cortex/scripts/extract.sh --dry-run tests/fixtures/extract/` 产出预期归档计划
-- [ ] 全部 SKILL.md 跑 `claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<SKILL 内容>" --output-format stream-json` 返回非空成功结果 (项目 CLAUDE.md 要求)
+- [ ] 全部 SKILL.md 跑 `claude -p "<SKILL 内容>" --output-format stream-json` 返回非空成功结果 (项目 CLAUDE.md 要求)
 - [ ] cortex agent 边界条款明确"只读 .trellis/, 写仅限 ~/.cortex/ 与 <repo>/.wiki/"
 
 ## 约束

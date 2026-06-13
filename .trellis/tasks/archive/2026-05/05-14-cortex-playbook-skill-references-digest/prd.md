@@ -113,7 +113,7 @@
 
 - pytest 全绿
 - ruff check + format 通过
-- 任何 SKILL.md 修改后跑 `claude --settings ~/.claude/settings.glm-4.7-flash.json -p "<待测>"` 验证 AI 理解 (CLAUDE.md §代码质量检查规范)
+- 任何 SKILL.md 修改后跑 `claude -p "<待测>"` 验证 AI 理解 (CLAUDE.md §代码质量检查规范)
 - cortex-digest --dry-run 在真实 vault (`/Users/luoxin/persons/knowledge/obsidian`) 跑一遍验证抽取行为
 - 文档 / memory 索引同步
 

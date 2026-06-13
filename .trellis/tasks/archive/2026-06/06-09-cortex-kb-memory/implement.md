@@ -69,7 +69,7 @@
 - [ ] **[L1] S7.3** 跑项目 CLAUDE.md 要求的 skill 识别测试:
   ```bash
   for s in cortex-schema-knowledge cortex-schema-memory cortex-lint cortex-extract; do
-    claude --settings ~/.claude/settings.glm-4.7-flash.json \
+    claude \
       -p "$(cat plugins/tools/cortex/skills/$s/SKILL.md)" \
       --output-format stream-json | jq -r 'select(.type == "result" and .subtype == "success") | .result' | head -5
   done
