@@ -1,13 +1,13 @@
 ---
-name: trellisx:new
-description: 强制以 Trellis task 处理本次请求 (完整 plan→exec→check→finish 闭环); /new 即创建同意, 跳过"是否建 task"询问
+name: do
+description: 强制以 Trellis task 处理本次请求 (完整 plan→exec→check→finish 闭环); /do 即创建同意, 跳过"是否建 task"询问
 argument-hint: [task]
 arguments: [任务描述]
 ---
 
-# /new — 强制 Trellis task 闭环
+# /do — 强制 Trellis task 闭环
 
-用户用 `/new` **显式要求**: 把以下请求**强制作为 Trellis task 处理**, 禁止 inline 直接做 (即使看起来简单)。`/new` 跳过"要不要建 task"的询问 (用户已表态: 要)。但 **`/new` 不等于"新建 task"** —— 仍须先判这是**全新任务**还是**对现有 active task 的补充/延续**, 再决定新建还是并入。
+用户用 `/do` **显式要求**: 把以下请求**强制作为 Trellis task 处理**, 禁止 inline 直接做 (即使看起来简单)。`/do` 跳过"要不要建 task"的询问 (用户已表态: 要)。但 **`/do` 不等于"新建 task"** —— 仍须先判这是**全新任务**还是**对现有 active task 的补充/延续**, 再决定新建还是并入。
 
 请求: $ARGUMENTS
 
@@ -25,7 +25,7 @@ arguments: [任务描述]
 
 ## 硬规
 
-- ⛔ **禁 inline 跳过 task** —— 这是 `/new` 的全部意义; 即使请求看起来极简也走 task。
+- ⛔ **禁 inline 跳过 task** —— 这是 `/do` 的全部意义; 即使请求看起来极简也走 task。
 - ⛔ **禁跳过 check 或 finish** —— 闭环不完整 = 未完成; **未 archive 禁宣告 Done / 禁结束本轮**。
 - ⛔ check 未过禁推进到 finish; 先修复重检。
 - 非 trellis 项目 (无 `.trellis/`) → 提示用户先 `trellis init`, 不强行建 task。
