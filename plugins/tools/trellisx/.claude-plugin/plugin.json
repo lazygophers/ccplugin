@@ -1,6 +1,6 @@
 {
   "name": "trellisx",
-  "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 worktree 隔离 / subtask 编排 / main 协调 / trellis-check 闭环 / 前缀标记 等规则内化进 .trellis 自身 (workflow.md + spec + 平台 hook); 不靠运行时 hook 持续约束",
+  "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 五维度注入 .trellis 自身 (workflow.md + config.yaml 生命周期 hook + scripts); 含 trellisx-flow 强制task闭环 / orchestrate 编排 / workspace 看板 / spec 破坏式重构; 不靠运行时 hook 持续约束",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -16,7 +16,7 @@
     "./skills/trellisx-apply",
     "./skills/trellisx-orchestrate",
     "./skills/trellisx-spec",
-    "./skills/trellisx-do",
+    "./skills/trellisx-flow",
     "./skills/trellisx-workspace"
   ],
   "keywords": [

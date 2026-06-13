@@ -1,6 +1,6 @@
 # trellisx
 
-Trellis **增强改造工具**。跑一次 `trellisx-apply`, 把 trellisx 的全部预想 (worktree 隔离 / subtask 编排 / main 协调 / trellis-check 闭环 / 回复前缀标记 / 前置流程铁律) **内化进项目的 `.trellis/` 自身** —— 之后由 trellis 原生机制注入这些规则, 不靠 trellisx 运行时 hook。
+Trellis **增强改造工具**。跑一次 `trellisx-apply`, 把 trellisx 的预想 (强推 task / subtask 编排 / worktree 隔离 / plan→exec→check→finish 闭环 / task.md 看板) **内化进项目的 `.trellis/` 自身** —— 之后由 trellis 原生机制注入这些规则, 不靠 trellisx 运行时 hook。
 
 ## 定位
 
@@ -9,43 +9,61 @@ Trellis **增强改造工具**。跑一次 `trellisx-apply`, 把 trellisx 的全
 现在: trellisx = 改造工具, 跑一次写进 .trellis (规则内化, trellis 自身机制生效)
 ```
 
-trellisx 插件本身**无运行时 hook**。worktree 自动化 hook 由 `trellisx-apply` 写进**用户项目**的 `.claude/hooks/`。
+trellisx 插件本身**无运行时 hook**。自动化由 `trellisx-apply` 注入到 **trellis 原生 `.trellis/config.yaml` 生命周期 hook** (`after_create/start/archive`) —— 不依赖 Claude Code 平台 hook, 跨平台生效。
 
-## Skills (3)
+## Skills (5)
 
 1. **`trellisx-apply`** (核心) — 用户主动跑一次, 改造当前项目 `.trellis/`:
-   - `workflow.md`: workflow-state 块 + Phase 注入规则 (marker 幂等)
+   - `workflow.md`: 5 维度规则注入 (marker 幂等) + 全文 i18n 跟随设备语言 + 清理无效内容
    - `.trellis/spec/guides/trellisx-worktree.md`: worktree 约定 (仅新增, 不动现有 spec)
-   - `.claude/hooks/trellisx-worktree.py`: PostToolUse 监测 `task.py start/archive` 自动建/销 worktree (不改 task.py)
+   - `.trellis/config.yaml`: 生命周期 hooks (after_create/start/archive)
+   - `.trellis/scripts/trellisx-worktree.py` + `trellisx-taskmd.py`: 从插件 `scripts/` 复制
+   - `.claude/agents/trellis*.md`: frontmatter 加 `background: true`
    - `<git根>/.gitignore`: 排除 `.worktrees/`
-2. **`trellisx-orchestrate`** — planning 编排 PRD/design/implement/subtask 文件 + mermaid 调度图
-3. **`trellisx-spec`** — spec 破坏式优化 (增量捕获走 trellis 原生 trellis-update-spec)
+2. **`trellisx-flow`** — 用户主动调 (`/trellisx-flow <请求>`), 强制以 task 闭环处理: 自判新建/并入 → plan→exec→check→finish。**禁自动触发** (user-invocable)。
+3. **`trellisx-orchestrate`** — planning 编排 PRD/design/implement/subtask 文件 + mermaid 调度图。
+4. **`trellisx-workspace`** — 维护 `.trellis/task.md` 单表格任务看板 (经 `trellisx-taskmd.py` 脚本)。
+5. **`trellisx-spec`** — spec 破坏式优化 (增量捕获走 trellis 原生 trellis-update-spec)。
 
 ## Agent (1)
 
 - **`trellisx-spec`** — forked subagent, 仅读写 `.trellis/spec/**`
 
-## 注入维度 (纯增量, 不改原生流程)
+## 脚本 (插件 scripts/, 统一管理)
 
-apply **只增加** worktree + subtask 两个维度, **绝不修改** trellis 原生 task 创建 / check / finish / 前缀:
+| 脚本 | 职责 | 调用 |
+| --- | --- | --- |
+| `trellisx-worktree.py` | 3 布局自适应 worktree 建/销 (同级 git / 微服务 sparse / 多子仓) | config.yaml `after_start/archive` |
+| `trellisx-taskmd.py` | task.md 看板唯一读写入口 (CLI: `sync`/`update`/`show`/`cleanup`) | config.yaml `after_create/start/archive` + AI |
 
-| 维度 | 内容 |
-| --- | --- |
-| subtask 拆分 | planning 块加 拆 ≥ 2 subtask + 独立文件 + 调度图 |
-| worktree 隔离 | in_progress 块加 worktree; task.py create/start 自适应 3 布局 (同级 git / 微服务 sparse / 多子仓读 task package 定位子仓) 建 .worktrees/<worktree>, archive 销毁 (平台 hook, 不改 task.py) |
+apply 把脚本从插件 `scripts/` **复制**到用户 `.trellis/scripts/`, 不内联抄写。
 
-绝不碰: no_task (task 创建触发) / Phase 流程 / 完成判定 / 前缀 — 全保持 trellis 原生。
+## 注入维度 (5; 纯增量追加, 绝不替换原生)
+
+| 维度 | 内容 | 落点 |
+| --- | --- | --- |
+| 强推 task | no_task 块: 除极简外默认建 task; 边界模糊 MUST 问用户 (软约束) | workflow.md `no_task` |
+| subtask 拆分 | 按 trellis 原生 parent/child 语义判定 (多个独立可验收交付才拆, 不看数量) | workflow.md `planning` |
+| worktree 隔离 | task.py start 自动建 `<git根>/.worktrees/<name>`, archive 销毁 | workflow.md `in_progress` + config.yaml hook |
+| 闭环收尾 | plan→exec→check→finish 必走完整, 未 archive 禁宣告 Done (软约束) | workflow.md `in_progress` |
+| task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 补主观列 | config.yaml hook + workflow marker |
+
+**绝不替换原生文本**: no_task 原生分类+征同意 / Phase 流程 / check / finish / 前缀 — 仅末尾追加 trellisx 内容。
+
+> 力度边界: 强推 task 与闭环是**纯 prompt 软约束** (AI 仍有裁量), 不装平台 enforcement hook。需硬强制者自配。
 
 ## 与 trellis 融合 (非取代)
 
 | 能力 | 用谁 |
 | --- | --- |
-| task.py / add-subtask / implement / check / update-spec / jsonl | trellis 原生 |
-| worktree 隔离 + subtask 文件编排 + 破坏式 spec + 前缀 | trellisx (补 trellis 缺的) |
+| task.py / add-subtask / implement / check / update-spec / jsonl / 生命周期 hook | trellis 原生 |
+| worktree 隔离 + subtask 编排 + 闭环 + task.md 看板 + 破坏式 spec | trellisx (补 trellis 缺的) |
 
 ## 用法
 
-在 trellis 项目内运行 `/trellisx-apply` → 诊断 → 注入 plan → AskUserQuestion 审批 → 写盘 → 验证 → 重启会话生效。幂等可重复跑。
+- **改造项目**: 在 trellis 项目内运行 `/trellisx-apply` → 诊断 → 注入 plan → AskUserQuestion 审批 → 写盘 → 验证。幂等可重复跑。`trellis update` 覆盖 workflow 后重跑恢复。
+- **强制走 task**: `/trellisx-flow <请求>` 把请求强制纳入 task 闭环。
+- **查看任务**: `python3 .trellis/scripts/trellisx-taskmd.py show`。
 
 ## 安装
 

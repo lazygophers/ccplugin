@@ -475,7 +475,7 @@
     {
       "name": "trellisx",
       "source": "./plugins/tools/trellisx",
-      "description": "Trellisx — Trellis 增量增强工具: 跑一次 trellisx-apply 把 worktree 隔离 + subtask 拆分 两个维度注入 .trellis (planning/in_progress 块 + 平台 hook), 不修改 trellis 原生流程; trellisx-orchestrate 编排 + trellisx-spec 破坏式重构",
+      "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 五维度注入 .trellis (workflow + config.yaml 生命周期 hook + scripts); 含 trellisx-flow 强制task闭环 / orchestrate 编排 / workspace 看板 / spec 破坏式重构",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
