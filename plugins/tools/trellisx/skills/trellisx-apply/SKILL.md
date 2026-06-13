@@ -8,7 +8,7 @@ arguments: [范围]
 
 # trellisx-apply — 把 trellisx 规则内化进 .trellis
 
-把 **强推 task + subtask 拆分 + worktree 隔离 + 闭环收尾** 四个维度增量注入当前项目 `.trellis/`。**纯增量追加, 绝不替换 trellis 原生文本** —— no_task 原生分类+征同意 / check / finish / 前缀全部保留不动, trellisx 内容只在块末尾追加。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入这些维度。
+把 **强推 task + subtask 拆分 + worktree 隔离 + 闭环收尾 + task.md 看板** 五个维度增量注入当前项目 `.trellis/`。**纯增量追加, 绝不替换 trellis 原生文本** —— no_task 原生分类+征同意 / check / finish / 前缀全部保留不动, trellisx 内容只在块末尾追加。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入这些维度。
 
 > 强推 task = 用户愿景"除极简任务外一律走 task; 不确定就主动问用户", 注入 no_task 块默认建 task。
 > 闭环收尾 = 强制 plan→exec→check→**finish** 走完整闭环, 不停在 in_progress, 注入 in_progress 块。
@@ -56,7 +56,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 2 | 注入 workflow.md (workflow-state 块 + Phase 描述) | 读 `references/workflow-injection.md` |
 | 2.5 | **全文档语言对齐** + **清理无效内容**: 翻译全文叙述为设备语言; 移除无效模板注释 + 跨平台枚举收敛为 Claude Code (保留标签/marker/命令/路径/代码) | 读 `references/workflow-injection.md` §i18n + §清理 |
 | 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
-| 4 | 注入 trellis 生命周期 hook (config.yaml after_start/after_archive → worktree 自动建/销) | 读 `references/hook-injection.md` |
+| 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ 两脚本) | 读 `references/hook-injection.md` |
 | 4.5 | 注入 trellis agent `background: true` (.claude/agents/trellis*.md frontmatter, 缺则加 / 非 true 强制改) | 读 `references/agent-injection.md` |
 | 5 | AskUserQuestion 审批 → 一次写盘 → 验证 + **流程闭环验证** (确保 create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 
@@ -69,6 +69,7 @@ apply 增量追加以下维度, **绝不替换 / 重写** trellis 原生文本 (
 | **强推 task** | "除极简外默认建 task + 边界模糊 MUST 问用户" (保留原生分类+征同意, 仅末尾追加; 软约束) | workflow.md `[workflow-state:no_task]` 块末尾追加 |
 | **subtask 拆分** | 按 trellis 原生 parent/child 语义判定 (有多个独立可验收交付才拆 child, 不看数量); 多交付 → parent+child+各 worktree+并行调度图, 单交付 → 轻量 inline | workflow.md `[workflow-state:planning]` 块末尾追加 |
 | **worktree 隔离 + 闭环** | worktree: task.py start 自动建 <git根>/.worktrees/<worktree>, 源码改动隔离, archive 销毁; 闭环: plan→exec→check→finish 必走完整, 未 archive 禁宣告 Done (软约束) | workflow.md `[workflow-state:in_progress]` 块末尾 + trellis 生命周期 hook (config.yaml) |
+| **task.md 看板** | hook (`trellisx-taskmd.py`) 自动维护确定性列 (id/名称/描述/状态) + create/start/archive upsert + 7 天清理; AI (`trellisx-workspace`) 补主观列 (阶段/进度/worktree) | .trellis/scripts/ + config.yaml hooks (after_create/start/archive) + workflow.md marker (要求层) |
 | (背书) worktree spec | **仅新增** trellisx-worktree.md (不存在才建, 不动现有 spec) | .trellis/spec/guides/ |
 | (副作用) worktree hook | config.yaml `hooks.after_start/after_archive` 触发 `.trellis/scripts/trellisx-worktree.py` 建/销 (不改 task.py) | .trellis/config.yaml + .trellis/scripts/ |
 | **agent 后台化** | 所有 `trellis*` agent frontmatter 加 `background: true` (缺则加 / 非 true 强制改); 只动 background 一字段 | .claude/agents/trellis*.md |
@@ -92,3 +93,4 @@ apply 增量追加以下维度, **绝不替换 / 重写** trellis 原生文本 (
 
 - `trellisx-orchestrate` — planning 阶段编排 PRD/design/implement/subtask (被内化的 workflow 引用)
 - `trellisx-spec` — spec 破坏式优化
+- `trellisx-workspace` — 维护 `.trellis/task.md` 任务看板 (被注入的 workflow 要求引用)

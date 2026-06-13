@@ -1,0 +1,70 @@
+# task.md 维护算法 (幂等更新)
+
+> **操作一律经 `.trellis/scripts/trellisx-taskmd.py` 脚本** (`sync` / `update` / `show` / `cleanup`), 不直接编辑 task.md。下列算法是**脚本内部逻辑**说明 + 无脚本 (未跑 apply) 时的手动 fallback 参考。
+
+核心: 按 **task id** 定位表行, 更新或新增, **绝不重复堆叠**; 真值从 `task.json` 同步。单表格, 无活动详情块。脚本列分工: `sync` 管确定性列 (ID/名称/描述/状态), `update` 管主观列 (阶段/进度/worktree), 互不覆盖。
+
+## 通用流程
+
+```
+1. 读 .trellis/task.md (不存在 → 按 task-md-template.md 建空骨架: 标题 + 表头)
+2. 读真值: task.py list (+ 目标 task 的 task.json)
+3. 按 id 定位表行:
+   - 有该 id 行 → 原地更新各列
+   - 无 → 在表末尾追加一行
+4. 写回 .trellis/task.md
+```
+
+## 各生命周期节点动作 (均为表行 upsert)
+
+> 状态/阶段写入 task.md 用**中文** (规划中/进行中/已完成; 规划/实施/检查/收尾), 由 task.json 英文 status 映射而来。
+
+| 节点 | 动作 |
+| --- | --- |
+| create | 追加行: 状态 `规划中`, 阶段 `规划`, 进度 `0%`, worktree `—` |
+| start | 该行: 状态 → `进行中`, 阶段 → `实施`, worktree → hook 建的路径 |
+| 阶段推进 | 该行: 阶段列 (实施→检查→收尾), 进度同步 |
+| check 未过回退 | 该行阶段 检查 → 退回 实施 |
+| archive | 该行: 状态 → `已完成`, 阶段 → `收尾`, 进度 `100%` (行保留在表内, 不删) |
+
+## 自动清理 (超 7 天的已完成任务)
+
+每次维护 task.md 时**顺带清理**, 防看板膨胀:
+
+- **规则**: 状态 = `已完成` **且** 完成时间距今 **> 7 天** 的行 → 从表中移除。
+- **完成时间来源**: 对应 task 的 `task.json.completedAt` (或 `archive/` 目录归档日期)。无 completedAt → 保守保留 (不清)。
+- **只清已完成行**: 状态 `规划中` / `进行中` 的行**无论多久都保留** (在做的任务不能丢)。
+- **基准日期**: 当前日期 (执行时取系统今日)。`今日 - completedAt > 7 天` 即清。
+
+```python
+# 伪代码: 清理超 7 天已完成行
+from datetime import date, timedelta
+def cleanup(rows, today):  # rows: 解析出的表行
+    kept = []
+    for r in rows:
+        if r.status == "已完成" and r.completed_at and (today - r.completed_at) > timedelta(days=7):
+            continue          # 移除
+        kept.append(r)
+    return kept
+```
+
+> 清理是看板瘦身, 不影响 trellis 真值 (task.json / archive 仍在)。task.md 只是投影, 移除旧完成行不丢数据。
+
+## 幂等保证
+
+```python
+# 按 id 定位看板行 (Markdown 表), 更新或追加
+import re
+def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,阶段,进度,worktree]
+    row = f"| {tid} | " + " | ".join(cells) + " |"
+    pat = rf"(?m)^\| {re.escape(tid)} \|.*$"
+    if re.search(pat, md):
+        return re.sub(pat, row, md)        # 原地替换, 不堆叠
+    return md.rstrip() + "\n" + row + "\n"  # 追加到表末
+```
+- 重复跑同一节点 → 同 id 行被覆盖, 不产生重复行
+- task.md 损坏 / 与 task.json 大幅不符 → 用 `task.py list` 全量重建表, 而非局部修补
+
+## 与 git
+
+task.md 随仓库版本化。trellis `session_auto_commit` / 项目 auto-stage 规则会把它纳入提交; 本 skill 只写文件内容, 不主动 commit。

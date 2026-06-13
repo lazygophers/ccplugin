@@ -9,16 +9,15 @@
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/trellisx",
   "license": "AGPL-3.0-or-later",
-  "commands": [
-    "./commands/do.md"
-  ],
   "agents": [
     "./agents/trellisx-spec.md"
   ],
   "skills": [
     "./skills/trellisx-apply",
     "./skills/trellisx-orchestrate",
-    "./skills/trellisx-spec"
+    "./skills/trellisx-spec",
+    "./skills/trellisx-do",
+    "./skills/trellisx-workspace"
   ],
   "keywords": [
     "trellis",
