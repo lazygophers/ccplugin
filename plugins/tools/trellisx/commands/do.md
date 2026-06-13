@@ -1,5 +1,5 @@
 ---
-name: do
+name: trellisx-do
 description: 强制以 Trellis task 处理本次请求 (完整 plan→exec→check→finish 闭环); /do 即创建同意, 跳过"是否建 task"询问
 argument-hint: [task]
 arguments: [任务描述]
