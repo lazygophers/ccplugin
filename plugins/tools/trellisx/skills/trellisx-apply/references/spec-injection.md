@@ -36,15 +36,15 @@ authored-by: trellisx-apply
 - task.py start 后自动建 worktree (trellis 生命周期 hook after_start 自适应 3 布局: .trellis 同级 git / 微服务子目录 sparse / 多子仓读 task package 定位子仓 git); archive 触发 after_archive 销毁
 - 多子仓 (.trellis 非 git 根, 子仓在下层如 go/node): task 须先 task.py set-scope <子仓> 标注, hook 才能定位
 - 全部源码改动**必须**落 worktree 内, 主工作区保持干净
-- main 可直接写源码 (trellis inline), 但目标路径必须在 worktree
-- 复杂 / 并行 subtask → 派 sub-agent (isolation:worktree) 或 agent-team 成员
+- main **不直接写源码**, 实施派 `trellis-implement`; 源码改动仍限 worktree 内
+- subtask 由 `trellis-implement` 内部派**专用 subagent (isolation:worktree)** 执行, 无依赖同批并行
 - task archive 时 worktree 干净 → 自动销毁; 脏 → 警告先合并
 
 ## subtask 拆分 + 异步并行
 
 - 判定跟随 trellis 原生 parent/child 语义: 本请求含**多个独立可验收交付**才拆 child task (`task.py create --parent`), 不看数量; 单一交付 → 轻量单 task inline
 - PRD 调度图显式标并行组 (无依赖 subtask 同批)
-- 执行: 多交付时无依赖 child 同一消息一次性派多 sub-agent (真并行), 禁串行; 单交付 inline main 在 worktree 内直接写
+- 执行: 实施统一经 `trellis-implement` (main 派之, 不直接派/直写)。trellis-implement 内部对无依赖 subtask 一次性并行派专用 subagent (真并行), 禁串行; 单 subtask 时 trellis-implement 内联直做
 - parent-child 用 trellis 原生 `task.py add-subtask`
 ```
 
