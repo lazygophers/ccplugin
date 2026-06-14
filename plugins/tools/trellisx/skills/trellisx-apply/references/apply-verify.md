@@ -17,6 +17,7 @@ trellisx-apply 变更计划
 
 [.trellis/spec/guides/trellisx-worktree.md] 仅新增 (已存在则跳过, 不覆盖)
 
+[.trellis/scripts/trellisx_wt.py] 创建 (worktree 路径/分支/命名单一真值; worktree+finish 都 import)
 [.trellis/scripts/trellisx-worktree.py] 创建 (生命周期 hook 调用)
   + [.trellis/config.yaml] hooks.after_start/after_archive 注入
 [.trellis/scripts/trellisx-finish.py] 创建 (强制收尾 CLI, AI check 通过后调用)
@@ -64,8 +65,11 @@ ls .trellis/spec/guides/trellisx-worktree.md
 # worktree 脚本可执行 + config.yaml hooks 可解析
 python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-worktree.py').read())" && echo "脚本语法 OK"
 python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_hooks; print('after_start', get_hooks('after_start'))"
-# 强制收尾: trellisx-finish.py 已复制 + 语法合法 + workflow finish 段已改写为强制
+# 强制收尾: trellisx-finish.py + 公共模块已复制 + 语法合法 + workflow finish 段已改写为强制
+python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx_wt.py').read())" && echo "公共模块 OK"
+python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); import trellisx_wt; assert hasattr(trellisx_wt,'worktree_paths'); print('公共模块导出 OK')"
 python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-finish.py').read())" && echo "finish 脚本 OK"
+grep -q "import trellisx_wt" .trellis/scripts/trellisx-worktree.py .trellis/scripts/trellisx-finish.py && echo "✓ 两脚本均 import 公共模块 (无重复 wt 逻辑)"
 grep -q "trellisx-finish.py" .trellis/workflow.md && echo "✓ finish 段含强制脚本调用" || echo "✗ finish 段未注入强制收尾"
 # gitignore
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
