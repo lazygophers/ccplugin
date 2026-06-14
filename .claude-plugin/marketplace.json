@@ -10,27 +10,6 @@
   },
   "plugins": [
     {
-      "name": "git",
-      "source": "./plugins/tools/git",
-      "description": "Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/git",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/git",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "git",
-        "commit",
-        "pr",
-        "pull-request",
-        "gitignore",
-        "version-control",
-        "workflow"
-      ]
-    },
-    {
       "name": "deepresearch",
       "source": "./plugins/tools/deepresearch",
       "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
@@ -94,28 +73,6 @@
         "macos",
         "linux",
         "windows"
-      ]
-    },
-    {
-      "name": "llms",
-      "source": "./plugins/llms",
-      "description": "llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件。支持项目扫描、混合链接管理和 LLM 友好文档生成",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/llms",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/llms",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "llms",
-        "llms.txt",
-        "documentation",
-        "llm",
-        "context",
-        "markdown",
-        "agent",
-        "standard"
       ]
     },
     {
