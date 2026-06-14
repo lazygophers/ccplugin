@@ -75,7 +75,7 @@ estimated-tokens: <数字 / 范围>
 
 ### Dispatch Prompt (若派 sub-agent)
 
-写盘 sub-agent 派发时 **MUST** 带 `isolation: worktree` (Agent 工具 / workflow `agent()` 的 isolation 参数), 缺则不派。仅纯只读 (探索 / 调研 / 审查) 可省。
+> ⛔ 写盘 sub-agent 派发时 **MUST** 带 `isolation: worktree` (Agent 工具 / workflow `agent()` 的 isolation 参数), 缺则不派。仅纯只读 (探索 / 调研 / 审查) 可省。
 
 ```
 Active task: <task path>

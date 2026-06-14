@@ -4,13 +4,21 @@
 
 ## 核心原则: 增量追加, 绝不替换原生
 
-**apply 只在 workflow-state 块原生内容之后追加 marker, 绝不替换 / 覆盖 / 重写原生文本。**
+⛔ 硬规: apply 只在 workflow-state 块原生内容**之后**追加 marker。任何对原生文本的替换 / 覆盖 / 重写 = 流程错误, 不得提交。
 
 - ✅ 注入: `[workflow-state:no_task]` 加**强推 task** / `[workflow-state:planning]` 加 subtask 拆分 + task.md 看板更新 / `[workflow-state:in_progress]` 加 worktree 隔离 + 闭环收尾 + task.md 看板维护
 - ❌ **禁替换**: 任何块的原生文本 (尤其 no_task 的「分类 + 征得同意」、Phase 流程、完成判定、前缀) 一字不改
 - 注入方式: 全部 marker 插在块**原生内容之后**, 原生行原样保留
 
 > 教训: 早期版本**重写** no_task + Phase 流程, 导致 trellis 原生 task 创建不再触发。根因是替换原生文本, 不是追加本身。修正: no_task 可末尾追加倾向 marker, 但 MUST 保留原生「First classify... ask for task-creation consent」文本 (验证段强制断言)。
+
+### 失败处理: 原生文本疑被破坏
+
+| 触发 | 一线修复 | 仍失败兜底 |
+| --- | --- | --- |
+| 验证段报「原生正文 <40 字符」 | 从 git stash / `git checkout .trellis/workflow.md` 恢复原生, 重跑注入只追加不替换 | `git stash pop` 回滚全部 apply 变更, 0 改动退出并报告用户 |
+| workflow-state 标签起止数不配对 | 定位串位 marker, 删除重注 (按下方注入算法重跑) | 同上回滚, 报「注入破坏标签结构」 |
+| task.py current 注入后报错 | diff 对比注入前后, 撤销改动只保留 marker 追加 | 同上回滚, 报「注入破坏 trellis 解析」 |
 
 ## i18n: 整个 workflow.md 用设备语言 (含翻译原生)
 
@@ -179,6 +187,8 @@ EOF
 # task.py 创建流程未坏
 python3 .trellis/scripts/task.py current >/dev/null 2>&1 && echo "task.py OK"
 ```
+
+🔴 CHECKPOINT — 上述 no_task 原生正文断言出 ✗, 立即停止后续步骤, 走「失败处理: 原生文本疑被破坏」表回滚, 禁带病继续写盘。
 
 ## 不破坏 trellis 原生
 

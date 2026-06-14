@@ -85,6 +85,16 @@ user-invocable: false
 | `references/task-lifecycle.md` | 任务规划开始 / 阶段切换前 (planning → in_progress → check → sediment → stop) |
 | `references/selfcheck.md` | planning → start 前最终自检 |
 
+## 失败处理 (触发 → 一线修复 → 仍失败兜底)
+
+| 触发 | 一线修复 | 仍失败兜底 |
+| --- | --- | --- |
+| 不在 trellis active task / 无 planning 状态 | 提示先 `task.py create` + `start` 进 planning | 非 trellis 项目 → 提示 `trellis init`, 不强行编排 |
+| deliverable 边界判不准 (该拆 child 还是单 task) | 按"是否独立可验收"判 (`references/task-tree.md`) | 仍不准 → AskUserQuestion 问用户, 禁自行替决 |
+| subtask 资源是否互斥拿不准 | 查 `references/shared-resources.md` 判共享文件/状态 | 拿不准 → 默认串行 (串行优先立场), 不赌并行 |
+| selfcheck 未过但想 start | 退回补齐缺项 (subtask 文件/调度图/验收) | 反复不过 → 缩小 MVP 范围重新拆, 不带病 start |
+| reference 文件读不到 | 按 SKILL 主体规则就地编排 | 关键 reference 缺失 → 提示用户 skill 安装不全 |
+
 ## 引用
 
 - Trellis workflow 全文: `.trellis/workflow.md` (只读, 不写)

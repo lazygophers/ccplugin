@@ -1,11 +1,13 @@
 # Spec 执行 (阶段 4)
 
+⛔ 前置: 进入本阶段前确认阶段 3 审批门已通过 (用户走 AskUserQuestion 明确批准)。未批准禁写盘。
+
 一次写盘, 不分多轮。审批通过的变更全部写完才返回。
 
 ## 写盘原则
 
 1. **一次写盘**: 所有改动收集后批量写, 避免中间状态被并发 hook / 其他 agent 看到
-2. **原子性**: 任一文件写失败 → 全部回滚已写文件
+2. **原子性**: ⛔ 任一文件写失败 → 立即停止后续写盘, 全部回滚已写文件 (见末段回滚), 禁留半写状态
 3. **frontmatter 必带**: 每个改动文件附 metadata
 4. **同步 index**: 若有 index / 目录 / 导航文件, 同步更新锚点
 5. **manifest 引用清单**: 输出受影响 `implement.jsonl` / `check.jsonl` 列表给用户, **本 skill 不直接动 task manifest**
@@ -85,17 +87,23 @@ done
 
 ## 回滚 (写盘失败时)
 
+🛑 STOP: 写盘任一步失败立即触发回滚, 禁带半写状态返回主会话。
+
+写盘前先存 backup (优先用 git, 没 git 则复制):
+
 ```bash
-# 写盘前先存 backup (优先用 git, 没 git 则复制)
 if git rev-parse --git-dir > /dev/null 2>&1; then
-    git stash push -- .trellis/spec/
-    # 失败时: git stash pop (恢复)
+    git stash push -- .trellis/spec/   # backup
     # 成功时: git stash drop (丢弃 backup)
 else
     cp -r .trellis/spec /tmp/spec-backup-$(date +%s)
-    # 失败时: rm -rf .trellis/spec && mv /tmp/spec-backup-X .trellis/spec
 fi
 ```
+
+| 触发 | 一线修复 | 仍失败兜底 |
+| --- | --- | --- |
+| 写盘中途某文件失败 | git 仓库: `git stash pop` 恢复; 非 git: `rm -rf .trellis/spec && mv /tmp/spec-backup-X .trellis/spec` | 报告主会话"spec 回滚失败, backup 在 <stash 名 / 备份路径>", 禁继续后续步骤, 由用户手动恢复 |
+| backup 创建失败 (磁盘满 / 权限) | 禁开始写盘, 先清理后重试一次 | 报告"无法创建 backup, 中止本次写盘, 0 变更" |
 
 ## 完成报告
 

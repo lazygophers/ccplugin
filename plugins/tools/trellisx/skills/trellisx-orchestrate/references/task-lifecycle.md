@@ -78,6 +78,10 @@ flowchart TB
 - [ ] 用户被告知阶段切换 + 当前进度摘要
 - [ ] 切换若不可逆 (e.g. start / commit), 用 AskUserQuestion 强制审批
 
+> 🔴 CHECKPOINT — `task.py start` (planning→in_progress) 与 `commit + push` 是不可逆切换, **MUST 走 AskUserQuestion 取得用户批准后**才执行, 禁默认推进。
+>
+> 🛑 STOP — 非平凡发现 (架构决策 / 踩坑 / 选型 / 技巧 / 外部综述) 未落 cortex **禁 TaskStop**; 残留未合并 / 未移除的 worktree **禁宣告 task 完成**。
+
 ## 与 trellisx-orchestrate 6 步流程的对应
 
 | orchestrate 工作流步骤 | 生命周期阶段 |

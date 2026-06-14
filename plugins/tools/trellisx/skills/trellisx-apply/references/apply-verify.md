@@ -27,9 +27,10 @@ trellisx-apply 变更计划
 影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/archive 触发 config.yaml hooks 自适应建/销 worktree (微服务兼容)
 ```
 
-## 2. 审批门 (强制)
+## 2. 审批门
 
-用 `AskUserQuestion`:
+🛑 STOP — 未经用户经 `AskUserQuestion` 批准, 禁写盘任何文件。纯文本征询不算批准。
+
 ```
 question: "以上 trellisx-apply 变更是否写入 .trellis/ ?"
 options:
@@ -38,7 +39,7 @@ options:
   - 取消
 ```
 
-用户取消 → 0 变更退出。
+用户选「取消」→ 0 变更退出, 不写任何文件。用户选「仅 workflow.md」→ 只执行写盘步骤 1, 跳过步骤 2-5。
 
 ## 3. 一次写盘
 
@@ -130,6 +131,14 @@ gitignore: 已排除 .worktrees/ (git 根)
 下一步: 重启会话 / reload 让 trellis hook 读到新 workflow.md。
 之后 trellisx 规则由 trellis 原生机制注入, 无需 trellisx 运行时 hook。
 ```
+
+## 写盘 / 验证失败处理
+
+| 触发 | 一线修复 | 仍失败兜底 |
+| --- | --- | --- |
+| 步骤 4 验证某项 ✗ (marker 数不符 / task.py 报错) | 定位失败文件, 撤销该文件改动重注 | `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
+| 4b 闭环验证任一 ✗ (marker 串位 / 缺环节) | 按 workflow-injection 算法重注串位 marker, 重验 | 同上回滚, 报「流程未闭环: <缺失环节>」 |
+| 写盘中途异常 (磁盘 / 权限) | 重试该文件写盘 | `git stash pop` 恢复, 报中断点, 禁留半截状态 |
 
 ## 回滚
 

@@ -1,6 +1,8 @@
 # Spec 审批 (阶段 3)
 
-强制走 `AskUserQuestion` 工具。**不接受**纯文本"可以"/"OK"。用户未明确批准 → 立即停。
+🔴 CHECKPOINT: 本阶段是强制审批门。强制走 `AskUserQuestion` 工具。**不接受**纯文本"可以"/"OK"。
+
+🛑 STOP: 用户未通过 AskUserQuestion 选项明确批准 → 立即停, 禁进入阶段 4 写盘。
 
 ## 问句模板
 
@@ -86,7 +88,7 @@ options:
 | 全部批准 | 进入阶段 4 全量执行 |
 | 按编号选择 + 多选 | 进入阶段 4 仅执行选中项 |
 | 取消 / 否 | 立即停, 报告"0 变更" |
-| 用户给文本反馈但未走选项 | 重新发 AskUserQuestion, **不**按文本自行决定 |
+| 用户给文本反馈但未走选项 | 🛑 STOP: 重新发 AskUserQuestion, **不**按文本自行决定 |
 
 ## 实施约束
 
@@ -97,10 +99,10 @@ options:
 
 ## 写盘前最后检查
 
-用户批准后, 阶段 4 写盘前必须最后跑一次:
+🔴 CHECKPOINT: 用户批准后, 阶段 4 写盘前必须最后跑一次:
 
 ```bash
 git status .trellis/spec/  # 必须 clean, 否则其他人或 hook 正在改 spec, 等
 ```
 
-非 clean → 报告"spec 目录有未提交改动, 等清干净再执行", 不写盘。
+🛑 STOP: 非 clean → 报告"spec 目录有未提交改动, 等清干净再执行", 不写盘。

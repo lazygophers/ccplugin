@@ -39,7 +39,7 @@ teammate 需互相辩论 / 跨层协调               → agent-team (3-5)
 
 ## Isolation 决策
 
-**硬规: 任何会写盘的 sub-agent / workflow agent 派发 MUST 带 `isolation: worktree`, 缺则不派。** 唯一例外: 纯只读 sub-agent (探索 / 调研 / 审查, 不改盘) 可省。
+> ⛔ 派发任何会写盘的 sub-agent / workflow agent 前, 确认 `isolation: worktree` 已带。**缺则不派**。唯一例外: 纯只读 sub-agent (探索 / 调研 / 审查, 不改盘) 可省。
 
 | 场景 | isolation: worktree | 备注 |
 | --- | --- | --- |
