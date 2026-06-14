@@ -1,6 +1,6 @@
 ---
 name: trellisx-apply
-description: 把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 四维度增量注入当前项目 .trellis/ (workflow.md 的 no_task/planning/in_progress 块 + spec 背书文档 + trellis 生命周期 hook worktree 自动化)。强推 task 与闭环为纯 prompt 软约束 (非平台 hook 硬拦截)。**纯增量追加, 绝不替换 trellis 原生文本** (no_task 分类+征同意/check/finish/前缀全保留)。幂等 (marker 包裹)。
+description: 把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 四维度增量注入当前项目 .trellis/ (workflow.md 的 no_task/planning/in_progress 块 + spec 背书文档 + trellis 生命周期 hook worktree 自动化 + trellisx-finish.py 强制收尾)。强推 task 为 prompt 软约束; 闭环为脚本化强制 (check 通过 AI 必跑 trellisx-finish.py: 提交→合并→archive→销 worktree)。**纯增量追加, 绝不替换 trellis 原生文本** (唯一例外: finish 收尾段经授权改写; no_task 分类+征同意/check/前缀全保留)。幂等 (marker 包裹)。
 when_to_use: 用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"。
 argument-hint: [scope]
 arguments: [范围]
@@ -11,11 +11,11 @@ arguments: [范围]
 把 **强推 task + subtask 拆分 + worktree 隔离 + 闭环收尾 + task.md 看板** 五维增量注入 `.trellis/`。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入。
 
 **两条铁律 (贯穿全程)**:
-- 🔒 **纯增量追加, 绝不替换原生**: no_task 原生分类+征同意 / Phase 流程 / check / finish / 完成判定 / 回复前缀 —— **一字不改**, trellisx 内容只在块末尾追加 (`apply-verify` 强制断言原生正文非空)。详见下方「教训」。
-- 🪶 **软约束路线**: 强推 task 与闭环都是注入 workflow.md 的**强措辞 prompt** (AI 仍有裁量), 非平台 enforcement hook (PreToolUse 拦截 / Stop 阻断)。有意取舍: 避免硬拦截打扰。需硬性强制 (写码必过 task / 不闭环不让停) → 使用者另加平台 hook, apply 不做。
+- 🔒 **纯增量追加, 绝不替换原生 (唯一例外: finish 段)**: no_task 原生分类+征同意 / Phase 流程 / check / 完成判定 / 回复前缀 —— **一字不改**, trellisx 内容只在块末尾追加 (`apply-verify` 强制断言原生正文非空)。**例外**: Phase 3 **收尾提醒段** (含 `/finish-work` 提醒) 经用户授权**可改写**为强制收尾 (见 `workflow-injection.md` 注入点 4); 此例外仅限 finish 段, 其余原生一律不动。详见下方「教训」。
+- 🪶 **软约束为主, finish 强制为辅**: 强推 task 仍是注入 workflow.md 的**强措辞 prompt** (AI 仍有裁量), 非 PreToolUse/Stop 平台拦截。**但闭环收尾已升级为脚本化强制**: 注入 `trellisx-finish.py` + 改写 finish 段, check 通过后 AI **必须**跑脚本完成 commit→合并→archive→销 worktree (finish/worktree 删除非可选)。需更硬的 Stop hook 兜底 → 使用者另加, apply 不做。
 
 > 强推 task = "除极简任务外一律走 task; 不确定主动问用户" (注入 no_task 块)。
-> 闭环收尾 = "check 通过后 AI **自动推进**收尾全序列 (3.4 提交→**合并 worktree 回主分支**→/finish-work→archive), 不停在'提醒用户运行命令'; 仅 3.4 提交保留用户一次确认, 合并冲突则停" (注入 in_progress 块)。
+> 闭环收尾 = "check 通过后 AI **强制跑** `trellisx-finish.py` (worktree 提交→合并回主分支→archive→销 worktree), 不停在'提醒用户运行命令'; finish/worktree 删除是必须的; commit 为 owner 授权的强制动作; 合并冲突则脚本 abort 转手动" (注入 in_progress 块硬规 #4 + finish 段改写)。
 
 ## 立场
 
@@ -50,7 +50,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 2 | 注入 workflow.md (workflow-state 块 + Phase 描述) | 读 `references/workflow-injection.md` |
 | 2.5 | **全文档语言对齐** (翻译全文叙述为设备语言) + **清理无效内容** (移除维护者注释 + 跨平台枚举收敛 Claude Code; 保留标签/marker/命令/路径/代码) | `references/workflow-injection.md` §i18n + §清理 |
 | 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
-| 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ 两脚本) | 读 `references/hook-injection.md` |
+| 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ **三脚本** worktree/taskmd/**finish**) | 读 `references/hook-injection.md` |
 | 4.5 | 注入 trellis agent `background: true` (.claude/agents/trellis*.md, 缺则加 / 非 true 强制改) | 读 `references/agent-injection.md` |
 | 5 | 🔴 **AskUserQuestion 审批 (STOP)** → 一次写盘 → 验证 + 闭环验证 (create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 
@@ -62,7 +62,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | --- | --- | --- |
 | **强推 task** | "除极简外默认建 task + 边界模糊 MUST 问用户" (软约束) | workflow.md `[workflow-state:no_task]` 块末尾 |
 | **subtask 拆分** | 按 trellis 原生 parent/child 语义 (多个独立可验收交付才拆 child, 不看数量); 多交付 → parent+child+各 worktree+并行调度图, 单交付 → 轻量 inline | workflow.md `[workflow-state:planning]` 块末尾 |
-| **worktree 隔离 + 闭环** | worktree: start 自动建 `<git根>/.worktrees/<worktree>`, 源码改动隔离, archive 销毁; 闭环: check 通过后**自动推进**收尾 (3.4 提交→**合并 worktree 回主分支**→/finish-work→archive), 不降级为"提醒用户"; 仅 3.4 提交留一次确认, 合并冲突则停; 未合并/未 archive 禁宣告 Done (软约束) | workflow.md `[workflow-state:in_progress]` 块末尾 + config.yaml hook |
+| **worktree 隔离 + 强制闭环** | worktree: start 自动建 `<git根>/.worktrees/<worktree>`, 源码改动隔离, archive 销毁; 闭环: check 通过后 AI **强制跑** `trellisx-finish.py` (worktree 提交→合并回主分支→archive→销 worktree), 不降级为"提醒用户"; finish/worktree 删除为必须, commit owner 授权强制; 合并冲突脚本 abort 转手动; 未 archive 禁宣告 Done | workflow.md `[workflow-state:in_progress]` 硬规 #4 + **finish 段改写** + config.yaml hook + `trellisx-finish.py` |
 | **中途修正路由** | 执行中收到用户新指令: 属当前任务 → 先改 PRD/design/implement 真值文档 → `SendMessage` 通知在跑 agent/member 就地纠偏 (禁 main 自己改源码/禁口头通知); 独立新任务 → 走强推 task; 判不准 → AskUserQuestion (软约束) | workflow.md `[workflow-state:in_progress]` 块末尾 (硬规 #7) |
 | **task.md 看板** | hook (`trellisx-taskmd.py`) 维护确定性列 (id/名称/描述/状态) + create/start/archive upsert + 7 天清理; AI (`trellisx-workspace`) 补主观列 (阶段/进度/worktree) | .trellis/scripts/ + config.yaml hooks + workflow.md marker |
 | (背书) worktree spec | **仅新增** trellisx-worktree.md (不存在才建) | .trellis/spec/guides/ |

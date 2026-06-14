@@ -19,6 +19,8 @@ trellisx-apply 变更计划
 
 [.trellis/scripts/trellisx-worktree.py] 创建 (生命周期 hook 调用)
   + [.trellis/config.yaml] hooks.after_start/after_archive 注入
+[.trellis/scripts/trellisx-finish.py] 创建 (强制收尾 CLI, AI check 通过后调用)
+  + [.trellis/workflow.md] finish 段改写为「强制跑 trellisx-finish.py」(注入点 4)
 
 [.claude/agents/trellis*.md] frontmatter + background: true (缺则加 / 非 true 强制改)
 
@@ -62,6 +64,9 @@ ls .trellis/spec/guides/trellisx-worktree.md
 # worktree 脚本可执行 + config.yaml hooks 可解析
 python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-worktree.py').read())" && echo "脚本语法 OK"
 python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_hooks; print('after_start', get_hooks('after_start'))"
+# 强制收尾: trellisx-finish.py 已复制 + 语法合法 + workflow finish 段已改写为强制
+python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-finish.py').read())" && echo "finish 脚本 OK"
+grep -q "trellisx-finish.py" .trellis/workflow.md && echo "✓ finish 段含强制脚本调用" || echo "✗ finish 段未注入强制收尾"
 # gitignore
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
 # trellis agent 全部 background: true
