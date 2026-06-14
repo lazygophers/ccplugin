@@ -136,21 +136,20 @@ uv --version
 
 ## 插件开发
 
-### 使用模板创建新插件
+### 创建新插件
 
 ```bash
-# 复制模板
-cp -r plugins/template my-new-plugin
+# 手动创建插件目录结构
+mkdir -p my-new-plugin/.claude-plugin
+mkdir -p my-new-plugin/commands   # 命令
+mkdir -p my-new-plugin/agents     # 代理
+mkdir -p my-new-plugin/skills     # 技能
 
-# 修改配置
-cd my-new-plugin/.claude-plugin
-vi plugin.json
-
-# 实现功能
-cd ../commands  # 添加命令
-cd ../agents.bak    # 添加代理
-cd ../skills.bak    # 添加技能
+# 编写配置
+vi my-new-plugin/.claude-plugin/plugin.json
 ```
+
+> 详细步骤参见 [docs/plugin-development.md](docs/plugin-development.md)。
 
 ### 插件结构
 
@@ -224,7 +223,7 @@ uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygo
 
 ### 如何开发新插件？
 
-1. 复制模板：`cp -r plugins/template my-new-plugin`
+1. 创建目录结构：`mkdir -p my-new-plugin/.claude-plugin`（commands/agents/skills 按需）
 2. 修改配置：编辑 `.claude-plugin/plugin.json`
 3. 实现功能：添加命令、代理、技能
 4. 测试插件：`/plugin install ./my-new-plugin`

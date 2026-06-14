@@ -13,11 +13,11 @@
 
 ## 快速开始
 
-### 使用模板创建插件
+### 创建插件
 
 ```bash
-# 1. 复制模板
-cp -r plugins/template my-new-plugin
+# 1. 创建目录结构
+mkdir -p my-new-plugin/.claude-plugin
 
 # 2. 修改配置
 cd my-new-plugin/.claude-plugin
@@ -368,14 +368,11 @@ Model Context Protocol 服务器，提供外部工具集成。
 ### 2. 创建插件
 
 ```bash
-# 使用模板
-cp -r plugins/template my-plugin
-
-# 或手动创建
+# 手动创建目录结构
 mkdir -p my-plugin/.claude-plugin
 mkdir -p my-plugin/commands
-mkdir -p my-plugin/agents.bak
-mkdir -p my-plugin/skills.bak
+mkdir -p my-plugin/agents
+mkdir -p my-plugin/skills
 mkdir -p my-plugin/scripts
 ```
 

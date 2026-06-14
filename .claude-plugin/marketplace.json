@@ -149,23 +149,6 @@
       "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 8 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve/recall",
       "category": "tools",
       "strict": false
-    },
-    {
-      "name": "template",
-      "source": "./plugins/template",
-      "description": "插件开发模板 - 快速创建新插件的基础结构",
-      "author": {
-        "name": "lazygophers",
-        "email": "admin@lazygophers.dev"
-      },
-      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/template",
-      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/template",
-      "license": "AGPL-3.0-or-later",
-      "keywords": [
-        "template",
-        "boilerplate",
-        "scaffold"
-      ]
     }
   ]
 }
