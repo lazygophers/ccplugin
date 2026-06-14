@@ -21,9 +21,7 @@ MAX_UV_WORKERS = 2
 PYPROJECT_SINGLE_PATTERN = "*/pyproject.toml"
 PYPROJECT_NESTED_PATTERN = "*/*/pyproject.toml"
 
-SKIP_UVX_CHECK_DIRS = {
-    Path("plugins/template"),
-}
+SKIP_UVX_CHECK_DIRS: set[Path] = set()
 
 
 class VersionUpdateResult(NamedTuple):
