@@ -3,7 +3,6 @@ name: trellisx-apply
 description: 把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 四维度增量注入当前项目 .trellis/ (workflow.md 的 no_task/planning/in_progress 块 + spec 背书文档 + trellis 生命周期 hook worktree 自动化 + trellisx-finish.py 强制收尾)。强推 task 为 prompt 软约束; 闭环为脚本化强制 (check 通过 AI 必跑 trellisx-finish.py: 提交→合并→archive→销 worktree)。**纯增量追加, 绝不替换 trellis 原生文本** (唯一例外: finish 收尾段经授权改写; no_task 分类+征同意/check/前缀全保留)。幂等 (marker 包裹)。
 when_to_use: 用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"。
 argument-hint: [scope]
-arguments: [范围]
 ---
 
 # trellisx-apply — 把 trellisx 规则内化进 .trellis
@@ -70,6 +69,20 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | **agent 后台化** | 所有 `trellis*` agent frontmatter 加 `background: true` (缺则加 / 非 true 强制改); 只动 background 一字段 | .claude/agents/trellis*.md |
 
 > 🔒 **教训 (两条铁律之一的来由)**: 早期 apply **重写** no_task + Phase 流程, 破坏了 trellis 原生 task 创建触发。**根因是替换原生文本, 非追加本身。** 修正: no_task 可末尾追加强推 task 规约, 但 MUST 保留原生「First classify... / task-creation consent」+ Phase 流程 + 完成判定 + 回复前缀, 一字不改 (apply-verify 强制断言)。
+
+## 反例黑名单 (禁做)
+
+每条都是真实踩过的坑。每次 apply 写盘前对照一次, 命中即改方案。
+
+| 禁 | 为什么 | 替代 |
+| --- | --- | --- |
+| 替换原生文本 (no_task 分类/Phase 流程/check/完成判定/回复前缀) | 破坏 trellis 原生 task 创建触发 (早期 apply 翻车根因) | 只在块末尾**追加** trellisx 内容; 原生一字不改 (apply-verify 强制断言)。唯一例外: finish 收尾段经授权改写 |
+| 跳过 step5 AskUserQuestion 直接写盘 | 绕过审批门 = 用户未批就改 .trellis | MUST 先展示 diff plan + 工具审批; 未批 0 写入。禁纯文本"是否同意"代替工具 |
+| 漏拷 `trellisx_wt.py` 公共模块 | `trellisx-worktree.py` / `trellisx-finish.py` 都 import 它, 漏拷 → ImportError, worktree/finish 全哑 | hook-injection **四文件一起拷** (wt 公共模块 + worktree + taskmd + finish), 缺一不可 |
+| finish 段定位用 `re.search` 取**首个**含 finish-work 的段 | 提交段 (Phase 3.4) 正文常提及 `/finish-work`, 排在收尾段前 → 误命中改坏提交段, 收尾段没改 | 用 `re.finditer` 取**末个** (收尾段在 Phase 3 末尾), 见注入点 4 |
+| 重复跑时堆叠 marker (追加新块) | 同 marker 多份 = 注入内容翻倍混乱 | marker 包裹**幂等替换块内**, 不堆叠; 脚本覆盖更新 |
+| 重写用户原有 spec / workflow / 文档 | apply 是增量增强, 不是重构 | 只 marker 注入 + 加新文件 + 加 hook; 破坏式 spec 重构走 `trellisx-spec` |
+| 保留跨平台枚举 / 维护者注释 | 噪音, 其他 runtime 误判 | 收敛为 Claude Code (步骤 2.5); 但**保留** trellisx marker + workflow-state 标签 + 命令 + 路径 + 代码块 |
 
 ## 失败处理 (触发 → 一线修复 → 仍失败兜底)
 
