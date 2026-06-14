@@ -195,9 +195,9 @@ write(".trellis/workflow.md", s)
 
 > 兜底: 定位不到原生收尾段 (措辞被大改 / 已 i18n 到无 `finish-work` 字串) → **跳过本注入点**, 不强行改写。此时 in_progress 块硬规 #4 (强制跑 `trellisx-finish.py`) 已是权威覆盖, finish 行为仍强制。
 
-## 注入点 5: 复制 `trellisx-finish.py` 脚本
+## 注入点 5: 复制 `trellisx-finish.py` + `trellisx_wt.py` 公共模块
 
-apply 执行时把插件 `scripts/trellisx-finish.py` 复制到目标项目 `.trellis/scripts/trellisx-finish.py` (与 `trellisx-worktree.py` / `trellisx-taskmd.py` 同目录, 见 `hook-injection.md`)。`chmod +x`。
+apply 执行时把插件 `scripts/trellisx-finish.py` **及其依赖** `scripts/trellisx_wt.py` 复制到目标项目 `.trellis/scripts/` (与 `trellisx-worktree.py` / `trellisx-taskmd.py` 同目录, 见 `hook-injection.md`)。`chmod +x` 脚本。`trellisx_wt.py` 是 worktree 路径/分支/命名单一真值, `trellisx-finish.py` 与 `trellisx-worktree.py` 都 `import trellisx_wt` —— **漏拷它两脚本 ImportError**。
 
 ## 注入算法
 

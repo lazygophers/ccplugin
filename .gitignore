@@ -78,3 +78,6 @@ coverage.json
 
 # Graphify 输出
 graphify-out/.worktrees/
+
+# trellisx worktree 隔离目录 (任务源码改动落此, 不入库)
+.worktrees/

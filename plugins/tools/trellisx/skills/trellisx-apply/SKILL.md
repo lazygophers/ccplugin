@@ -50,7 +50,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 2 | 注入 workflow.md (workflow-state 块 + Phase 描述) | 读 `references/workflow-injection.md` |
 | 2.5 | **全文档语言对齐** (翻译全文叙述为设备语言) + **清理无效内容** (移除维护者注释 + 跨平台枚举收敛 Claude Code; 保留标签/marker/命令/路径/代码) | `references/workflow-injection.md` §i18n + §清理 |
 | 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
-| 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ **三脚本** worktree/taskmd/**finish**) | 读 `references/hook-injection.md` |
+| 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ **四文件** worktree/taskmd/finish/**trellisx_wt 公共模块**) | 读 `references/hook-injection.md` |
 | 4.5 | 注入 trellis agent `background: true` (.claude/agents/trellis*.md, 缺则加 / 非 true 强制改) | 读 `references/agent-injection.md` |
 | 5 | 🔴 **AskUserQuestion 审批 (STOP)** → 一次写盘 → 验证 + 闭环验证 (create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
 
