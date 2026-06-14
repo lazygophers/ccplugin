@@ -80,6 +80,50 @@ main 监听 /workflows 视图变化
 - **失败时只回 "失败" 不说原因** — 必须含错误信息或文件:行
 - **延迟通讯 "等全部跑完再回报"** — 必须每个 subtask 完成立即回
 
+## 中途修正路由 (in-flight correction)
+
+执行中 (agent/member 已派发在跑) 收到用户新指令时, coordinator 的标准动作。核心: **新指令不是直接动手的信号, 是先判归属再决定路由的信号**。
+
+### 判归属 (三分支)
+
+| 判定 | 含义 | 路由 |
+| --- | --- | --- |
+| **属当前任务** | 对已派交付的修正 / 补充 / 细化 (同一 deliverable 范围内) | → 改文档 + 通知在跑 agent (下方流程) |
+| **独立新任务** | 与当前 in_flight 交付无关 | → no_task 强推 task 新建 / 排队, **不打断**当前 agent |
+| **判不准** | 边界模糊, 既像修正又像新需求 | → 🔴 AskUserQuestion 让用户裁定, 禁擅自二选一 |
+
+判断原则: 改动是否落在某个**已派 subtask 的验收边界**内? 在 → 属当前任务; 跨出或新增 deliverable → 新任务。
+
+### 属当前任务: 文档先于通知 (按序, 禁颠倒)
+
+```
+① 先改真值文档  ── prd.md / design.md / implement.md 受影响条款 (标锚点, 记 rewrite 点)
+        ↓        (PRD 是 agent 复读的真值; 文档没改就通知 = agent 拿到口头指令与文档冲突)
+② 再通知执行者  ── SendMessage(目标 agent/member, "PRD §<锚点> 已更新: <修正要点>, 就地纠偏")
+        ↓
+③ 执行者复读 PRD 锚点 → 调整当前执行, 不等跑完返工
+```
+
+⛔ 禁 main 自己直接改源码绕过在跑 agent (产生两份分叉改动); ⛔ 禁跳过①直接 SendMessage 口头指令 (文档与执行脱节)。
+
+### 按执行层的可达性 (能否中途 SendMessage)
+
+| 执行层 | 在跑 agent 可达? | 修正手法 |
+| --- | --- | --- |
+| **agent-team 成员** | ✅ 可 SendMessage(成员名) | 改文档 → SendMessage 成员 → 成员就地纠偏 |
+| **background sub-agent** | ✅ 可 SendMessage(agent id/name) | 同上; 用启动时的 agent 标识寻址 |
+| **前台 sub-agent (阻塞等待)** | ⚠️ 返回前不可达 | 等本次返回 → 用修正后的 PRD 重派 / 在 check 阶段纠正 |
+| **workflow agent** | ❌ 不可中途注入 (见本文 workflow 模式) | 停掉相关 agent (`/workflows` 选中按 `x`) → 按新 PRD 重跑该阶段 |
+| **inline 单交付 (main 自己在 worktree 改)** | — (无 running agent) | main 改 PRD → 自己就地调整执行, 无需 SendMessage |
+
+### 兜底
+
+| 触发 | 一线修复 | 仍失败兜底 |
+| --- | --- | --- |
+| 目标 agent 已完成 / 已退出 | 不能 SendMessage → 在其产出上按新 PRD 做 check 阶段修正 | 修正量大 → 用更新后的 subtask 文件重派一个修正 agent |
+| workflow 模式无法中途干预 | 停掉相关 stage agent, 按新 PRD 重跑该 stage | 影响面跨多 stage → 停整条 workflow, 重 plan 后重启 |
+| 改了文档但忘了通知 → agent 按旧 PRD 跑完 | check 阶段对照新 PRD 抓偏差并修 | 偏差过大 → 该 subtask 作废重派 |
+
 ## 异步并行调度 (提效)
 
 subtask 派发**尽可能并行**, 提升整体效率:

@@ -63,6 +63,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | **强推 task** | "除极简外默认建 task + 边界模糊 MUST 问用户" (软约束) | workflow.md `[workflow-state:no_task]` 块末尾 |
 | **subtask 拆分** | 按 trellis 原生 parent/child 语义 (多个独立可验收交付才拆 child, 不看数量); 多交付 → parent+child+各 worktree+并行调度图, 单交付 → 轻量 inline | workflow.md `[workflow-state:planning]` 块末尾 |
 | **worktree 隔离 + 闭环** | worktree: start 自动建 `<git根>/.worktrees/<worktree>`, 源码改动隔离, archive 销毁; 闭环: check 通过后**自动推进**收尾 (3.4 提交→**合并 worktree 回主分支**→/finish-work→archive), 不降级为"提醒用户"; 仅 3.4 提交留一次确认, 合并冲突则停; 未合并/未 archive 禁宣告 Done (软约束) | workflow.md `[workflow-state:in_progress]` 块末尾 + config.yaml hook |
+| **中途修正路由** | 执行中收到用户新指令: 属当前任务 → 先改 PRD/design/implement 真值文档 → `SendMessage` 通知在跑 agent/member 就地纠偏 (禁 main 自己改源码/禁口头通知); 独立新任务 → 走强推 task; 判不准 → AskUserQuestion (软约束) | workflow.md `[workflow-state:in_progress]` 块末尾 (硬规 #7) |
 | **task.md 看板** | hook (`trellisx-taskmd.py`) 维护确定性列 (id/名称/描述/状态) + create/start/archive upsert + 7 天清理; AI (`trellisx-workspace`) 补主观列 (阶段/进度/worktree) | .trellis/scripts/ + config.yaml hooks + workflow.md marker |
 | (背书) worktree spec | **仅新增** trellisx-worktree.md (不存在才建) | .trellis/spec/guides/ |
 | (副作用) worktree hook | config.yaml `hooks.after_start/after_archive` 触发 `trellisx-worktree.py` 建/销 (不改 task.py) | .trellis/config.yaml + .trellis/scripts/ |

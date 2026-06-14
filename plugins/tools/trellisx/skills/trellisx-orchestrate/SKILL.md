@@ -67,6 +67,7 @@ user-invocable: false
 | 4 | 共享 task 文件并发写 / 同 task 状态并行切换 | 写冲突 + 状态错乱 | 串行化 (立场: 串行优先) |
 | 5 | 并行组不标依赖箭头 | 隐藏依赖 → 乱序执行 | mermaid 调度图显式标并行组 + 依赖 |
 | 6 | 自检未过强行 `task.py start` | 带病进 in_progress, 返工成本翻倍 | 过 selfcheck gate 才放行 (上方 🔴) |
+| 7 | 执行中收到修正指令, main 自己直接改源码 / 口头通知 agent | 与在跑 agent 改动分叉 + 文档与执行脱节 | 先改 PRD 真值文档 → SendMessage 通知在跑 agent 就地纠偏 (`references/progress-communication.md` §中途修正路由) |
 
 ## 参考集 (按需读)
 
@@ -81,7 +82,7 @@ user-invocable: false
 | `references/five-elements.md` | 拆任何 subtask / checklist 项时 (基础参考) |
 | `references/layer-selection.md` | implement 标注执行层时 + trellis 复杂度判定 coordinator |
 | `references/shared-resources.md` | 标注资源互斥 / 并行决策时 |
-| `references/progress-communication.md` | coordinator 回传进度时 (每 subtask 完成 / 阻塞) |
+| `references/progress-communication.md` | coordinator 回传进度时 (每 subtask 完成 / 阻塞); **执行中收到用户新指令做中途修正路由时** (§中途修正路由) |
 | `references/task-lifecycle.md` | 任务规划开始 / 阶段切换前 (planning → in_progress → check → sediment → stop) |
 | `references/selfcheck.md` | planning → start 前最终自检 |
 
