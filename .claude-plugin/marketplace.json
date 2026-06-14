@@ -149,6 +149,29 @@
       "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 8 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve/recall",
       "category": "tools",
       "strict": false
+    },
+    {
+      "name": "architect",
+      "source": "./plugins/develop/architect",
+      "description": "架构设计助手 — 蒸馏许式伟《架构课》方法论: 系统正交分解为「最小核心 + 正交周边」, 用接口(非架构图)做精确共识, 以「修改影响面」量化优劣, 区分稳定点/变化点应对变化。含 architecture-design 方法论 skill + architect 设计/评审 agent。",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev",
+        "url": "https://github.com/lazygophers"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/develop/architect",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/develop/architect",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "architecture",
+        "system-design",
+        "orthogonal-decomposition",
+        "interface-design",
+        "open-closed-principle",
+        "xushiwei",
+        "module-boundary",
+        "requirement-analysis"
+      ]
     }
   ]
 }
