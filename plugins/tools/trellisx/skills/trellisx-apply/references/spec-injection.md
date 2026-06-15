@@ -1,4 +1,4 @@
-# 步骤 3: spec/ 注入 (仅新增独立 worktree spec, 不动现有)
+# plan-spec / write-spec: spec/ 注入 (仅新增独立 worktree spec, 不动现有)
 
 apply 对 spec 的**唯一动作** = 新增一个独立的 worktree 约定文件。**绝不变更/覆盖任何现有 spec** (包括 trellisx 之前写的)。
 

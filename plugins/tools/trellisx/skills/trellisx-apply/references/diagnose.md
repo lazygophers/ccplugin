@@ -1,4 +1,4 @@
-# 步骤 1: 诊断 .trellis 现状
+# plan-diagnose: 诊断 .trellis 现状 (Phase A)
 
 apply 前先诊断, 决定注入 / 更新 / 跳过。
 
@@ -52,4 +52,4 @@ trellisx-apply 诊断
 | 缺 workflow-state 锚点块 | 警告: trellis 版本可能不兼容, 注入到 Phase 描述兜底 |
 | 缺 config.yaml | apply 创建 config.yaml 并注入 worktree hooks |
 
-诊断完进步骤 2 (workflow 注入)。
+plan-diagnose 结果回传 main, 供 Gate 汇总 diff plan + 各 writer 参考。

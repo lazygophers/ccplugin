@@ -1,4 +1,4 @@
-# 步骤 4.5: 注入 trellis agent `background: true`
+# plan-agent / write-agent: 注入 trellis agent `background: true`
 
 apply 确保 `.claude/agents/` 下所有 **`trellis` 开头**的 agent frontmatter 都有 `background: true`。这些是 trellis init 生成的 sub-agent (trellis-check / trellis-implement / trellis-research 等), 让它们默认后台运行。
 

@@ -9,6 +9,8 @@ argument-hint: [scope]
 
 把 **强推 task + subtask 拆分 + worktree 隔离 + 闭环收尾 + task.md 看板** 五维增量注入 `.trellis/`。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入。
 
+**执行模型 = main 编排 + agent 并行**: main **不直接操作变更**, 而是把诊断/规划/写盘/验证派给 subagent, 同批并发 (规划 5 并行 → 写盘 4 并行 → 验证 4 并行); main 只保留**不可委派的串行节点**: `AskUserQuestion` 审批门 + `git stash` 备份/回滚 + 各阶段结果汇总。详见 `references/agent-orchestration.md`。
+
 **两条铁律 (贯穿全程)**:
 - 🔒 **纯增量追加, 绝不替换原生 (唯一例外: finish 段)**: no_task 原生分类+征同意 / Phase 流程 / check / 完成判定 / 回复前缀 —— **一字不改**, trellisx 内容只在块末尾追加 (`apply-verify` 强制断言原生正文非空)。**例外**: Phase 3 **收尾提醒段** (含 `/finish-work` 提醒) 经用户授权**可改写**为强制收尾 (见 `workflow-injection.md` 注入点 4); 此例外仅限 finish 段, 其余原生一律不动。详见下方「教训」。
 - 🪶 **软约束为主, finish 强制为辅**: 强推 task 仍是注入 workflow.md 的**强措辞 prompt** (AI 仍有裁量), 非 PreToolUse/Stop 平台拦截。**但闭环收尾已升级为脚本化强制**: 注入 `trellisx-finish.py` + 改写 finish 段, check 通过后 AI **必须**跑脚本完成 commit→合并→archive→销 worktree (finish/worktree 删除非可选)。需更硬的 Stop hook 兜底 → 使用者另加, apply 不做。
@@ -21,6 +23,7 @@ argument-hint: [scope]
 | 立场 | 说明 |
 | --- | --- |
 | 内化优于外挂 | 规则写进 `.trellis/`, 由 trellis 自身机制生效; 不靠 trellisx 持续 hook |
+| main 只编排不操作 | main **不直接** Read/Edit/Write/跑诊断脚本去变更, 一律派 subagent 并发执行; main 仅汇总结果 + 守审批门 + 管 git 备份/回滚。例外: 审批门 (`AskUserQuestion` 禁派 agent) 与 git stash (共享 index, 顺序敏感) 必须 main 串行做 |
 | 增量增强, 不重构 | apply 只**增量增强** (marker 注入 + 加新文件 + 加新 hook); **绝不重写**用户原有 workflow / spec / 文档。spec 的破坏式重构是 `trellisx-spec` 的职责 |
 | 尊重 trellis 原生 | 融合而非取代: 引用 trellis 已有 (task.py / add-subtask / jsonl / trellis-check), 仅补 trellis 缺的 (worktree / subtask 文件编排) |
 | 显式审批 | 改 `.trellis/` 前展示 diff plan, 经 AskUserQuestion 批准才写盘 |
@@ -41,19 +44,19 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 
 **目标语言** = 综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 当前会话语言。非 trellis 项目 → 报错终止。
 
-## 工作流 (5 步)
+## 工作流 (4 阶段并行流水线)
 
-| 步骤 | 行动 | 详细内容 |
-| --- | --- | --- |
-| 1 | 诊断 .trellis 现状 + 检测已有 trellisx marker | 读 `references/diagnose.md` |
-| 2 | 注入 workflow.md (workflow-state 块 + Phase 描述) | 读 `references/workflow-injection.md` |
-| 2.5 | **全文档语言对齐** (翻译全文叙述为设备语言) + **清理无效内容** (移除维护者注释 + 跨平台枚举收敛 Claude Code; 保留标签/marker/命令/路径/代码) | `references/workflow-injection.md` §i18n + §清理 |
-| 3 | 注入 spec/ (trellisx 规范文档, 设备语言) | 读 `references/spec-injection.md` |
-| 4 | 注入 trellis 生命周期 hook (config.yaml after_create/start/archive → worktree 自动建/销 + task.md 看板自动维护; 复制插件 scripts/ **四文件** worktree/taskmd/finish/**trellisx_wt 公共模块**) | 读 `references/hook-injection.md` |
-| 4.5 | 注入 trellis agent `background: true` (.claude/agents/trellis*.md, 缺则加 / 非 true 强制改) | 读 `references/agent-injection.md` |
-| 5 | 🔴 **AskUserQuestion 审批 (STOP)** → 一次写盘 → 验证 + 闭环验证 (create→planning→worktree→execute→check→finish 无断点) | 读 `references/apply-verify.md` |
+main 编排, 各阶段内 agent **同批并发派发** (一条消息多 Agent 调用); 阶段间串行 (后阶段依赖前阶段结果)。完整 agent 清单/6 字段 prompt 模板/文件集分区见 `references/agent-orchestration.md`。
 
-> 🔴 **CHECKPOINT · 🛑 STOP (步骤 5)**: 改 `.trellis/` 前 **MUST 展示 diff plan + 经 AskUserQuestion 批准**才写盘。禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
+| 阶段 | 谁做 | 并发 | 行动 | 详细内容 |
+| --- | --- | --- | --- | --- |
+| **A 并行规划** | 5 read-only agent | ✅ 同批 | 各自诊断本维度 + 算最终注入文本/diff, **不写盘**: `plan-diagnose` (现状+模式+目标语言) · `plan-workflow` (workflow.md marker + i18n 翻译 + 清理) · `plan-spec` · `plan-hook` (config+四脚本+gitignore) · `plan-agent` (background:true 清单) | `diagnose.md` · `workflow-injection.md` · `spec-injection.md` · `hook-injection.md` · `agent-injection.md` |
+| **Gate 审批** | 🔴 **main 串行** | ❌ | 汇总 5 plan → 展示统一 diff plan → `AskUserQuestion` 审批 (STOP) → 批准后 `git stash` 备份 | `apply-verify.md` §审批门 |
+| **B 并行写盘** | 4 writer agent | ✅ 同批 | 按 plan 执行, 每 agent **独占不相交文件集** (无冲突): `write-workflow` (workflow.md) · `write-spec` (spec) · `write-hook` (scripts/*.py + config.yaml + gitignore) · `write-agent` (agents/trellis*.md) | `apply-verify.md` §写盘 |
+| **C 并行验证** | 4 verify agent | ✅ 同批 | 各验本维度产物 + 闭环: `verify-workflow` (marker/块内/原生非空/Phase) · `verify-hook` (脚本语法/import/config/finish段) · `verify-spec` · `verify-agent`。任一 ✗ → main 派对应 writer 重注 → 重验 (修复循环) | `apply-verify.md` §验证 |
+
+> 🔴 **CHECKPOINT · 🛑 STOP (Gate)**: 改 `.trellis/` 前 **MUST 由 main 展示 diff plan + 经 AskUserQuestion 批准**才进 Phase B。审批门**禁派 agent** (全局硬规: agent 不得直接问用户); 禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
+> 🔒 **写盘前 main 串行 `git stash` 备份** (共享 git index, 顺序敏感, 禁派 agent 并发做); 任一 writer/verify 失败 → main 串行 `git stash pop` 回滚。
 
 ## 注入维度 (一律末尾追加, 不动原生)
 
@@ -82,7 +85,11 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | finish 段定位用 `re.search` 取**首个**含 finish-work 的段 | 提交段 (Phase 3.4) 正文常提及 `/finish-work`, 排在收尾段前 → 误命中改坏提交段, 收尾段没改 | 用 `re.finditer` 取**末个** (收尾段在 Phase 3 末尾), 见注入点 4 |
 | 重复跑时堆叠 marker (追加新块) | 同 marker 多份 = 注入内容翻倍混乱 | marker 包裹**幂等替换块内**, 不堆叠; 脚本覆盖更新 |
 | 重写用户原有 spec / workflow / 文档 | apply 是增量增强, 不是重构 | 只 marker 注入 + 加新文件 + 加 hook; 破坏式 spec 重构走 `trellisx-spec` |
-| 保留跨平台枚举 / 维护者注释 | 噪音, 其他 runtime 误判 | 收敛为 Claude Code (步骤 2.5); 但**保留** trellisx marker + workflow-state 标签 + 命令 + 路径 + 代码块 |
+| 保留跨平台枚举 / 维护者注释 | 噪音, 其他 runtime 误判 | 收敛为 Claude Code (Phase A plan-workflow); 但**保留** trellisx marker + workflow-state 标签 + 命令 + 路径 + 代码块 |
+| main 自己 Read/Edit/Write 做诊断/规划/写盘 | 违执行模型 (main 只编排), 丢并行 | 一律派 subagent 并发; main 只汇总 + 守审批门 + 管 git 备份 |
+| 把审批门 / git stash 派给 agent | agent 禁直接问用户 (审批失效); 并发 git stash 撕裂 index | 审批门 + git 备份/回滚 **MUST main 串行**, 不可委派 |
+| 多 writer agent 文件集重叠 (如都碰 config.yaml) | 并发写同文件 → 互相覆盖/丢改动 | Phase B 严格 disjoint 分区: workflow / spec / (scripts+config+gitignore) / agents 各一独占 owner |
+| Phase A plan agent 写盘 | 规划阶段越权写, 绕过审批门 | plan agent **read-only**, 只返回 diff/plan 文本; 写盘只在 Phase B 批准后 |
 
 ## 失败处理 (触发 → 一线修复 → 仍失败兜底)
 
@@ -92,19 +99,22 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 已存在 trellisx marker (重复跑) | 幂等: 只更新 marker 内, 不堆叠 (`references/diagnose.md`) | marker 损坏/嵌套错乱 → 报告冲突位置, 请用户确认覆盖再写 |
 | 缺 `config.yaml` / `.claude/agents/trellis*.md` | 跳过对应步骤 (4/4.5), 其余维度照注 | 全部目标缺失 → 仅注 workflow.md, 报告未注入维度 |
 | 用户在步骤5 AskUserQuestion 驳回 | 立即停, 0 写盘, 返回"用户驳回" | — (审批门硬规, 不绕过) |
-| 多文件写盘中途失败 | 回滚已写文件 (git checkout / backup) | 回滚失败 → 报告脏文件清单, 请用户手工核对 |
-| workflow 原文英文而设备中文 | i18n: 翻译全文叙述 (步骤 2.5), 保留标签/marker/命令/路径 | 语言判不准 → 综合 `$LANG`+CLAUDE.md+会话语言, 仍不准则保持原文不译 |
+| 某 writer agent 写盘失败 | main 串行 `git stash pop` 回滚, 重派该 writer | 重派仍失败 → 报告脏文件清单, 请用户手工核对 |
+| 某 plan/verify agent 死亡或返空 | main 重派该 agent (其余 agent 结果保留, 无需全重跑) | 重派仍失败 → 该维度降级 main 串行兜底执行, 记日志 |
+| verify agent 报 ✗ (marker 串位/缺环节) | main 派对应 writer 按算法重注 → 重验 (修复循环) | 循环 3 次仍 ✗ → 回滚, 报「未闭环: <缺失环节>」 |
+| workflow 原文英文而设备中文 | i18n: plan-workflow 翻译全文叙述, 保留标签/marker/命令/路径 | 语言判不准 → 综合 `$LANG`+CLAUDE.md+会话语言, 仍不准则保持原文不译 |
 
 ## 参考集 (按需读)
 
 | 文件 | 用途 |
 | --- | --- |
-| `references/diagnose.md` | 步骤 1: 现状诊断 + marker 检测 |
-| `references/workflow-injection.md` | 步骤 2: workflow-state 块 + Phase 注入 (核心) |
-| `references/spec-injection.md` | 步骤 3: spec 规范文档 |
-| `references/hook-injection.md` | 步骤 4: trellis 生命周期 hook (config.yaml) worktree 自动化 |
-| `references/agent-injection.md` | 步骤 4.5: trellis agent `background: true` 注入 |
-| `references/apply-verify.md` | 步骤 5: 审批 + 写盘 + 验证 |
+| `references/agent-orchestration.md` | **编排核心**: 4 阶段 agent 清单 + 并发分组 + disjoint 文件集分区 + 6 字段 prompt 模板 + 串行节点 |
+| `references/diagnose.md` | Phase A plan-diagnose: 现状诊断 + marker 检测 |
+| `references/workflow-injection.md` | Phase A plan-workflow / B write-workflow: workflow-state 块 + Phase 注入 (核心) |
+| `references/spec-injection.md` | Phase A plan-spec / B write-spec: spec 规范文档 |
+| `references/hook-injection.md` | Phase A plan-hook / B write-hook: trellis 生命周期 hook (config.yaml) worktree 自动化 |
+| `references/agent-injection.md` | Phase A plan-agent / B write-agent: trellis agent `background: true` 注入 |
+| `references/apply-verify.md` | Gate 审批 + Phase B 写盘 + Phase C 验证 |
 
 ## 相关 skill
 

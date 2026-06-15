@@ -1,4 +1,4 @@
-# 步骤 4: 注入 trellis 原生生命周期 hook (worktree 自动化)
+# plan-hook / write-hook: trellis 生命周期 hook (worktree 自动化)
 
 apply 把 worktree 自动建/销注入 **trellis 原生生命周期 hook** —— 不靠 Claude Code 平台 PostToolUse 监测 Bash 命令 (脆弱), 而是 trellis 自己在 `task.py start/archive` 时触发的 `after_*` hook。**内化优于外挂**。
 

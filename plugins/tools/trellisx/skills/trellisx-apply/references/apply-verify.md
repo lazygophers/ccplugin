@@ -1,10 +1,10 @@
-# 步骤 5: 审批 + 写盘 + 验证
+# Gate 审批 + Phase B 写盘 + Phase C 验证
 
-收集步骤 2-4 的全部注入, 走审批门, 一次写盘, 验证。
+main 汇总 Phase A 的 5 个 plan, 走审批门 (main 串行), 派 4 writer 并行写盘, 派 4 verify 并行验证。agent 清单/文件集分区见 `agent-orchestration.md`。
 
-## 1. 汇总变更 plan
+## 1. 汇总变更 plan (main 串行)
 
-展示给用户 (不写盘):
+main 收集 Phase A 全部 plan agent 返回, 展示给用户 (不写盘):
 ```
 trellisx-apply 变更计划
 ───────────────────────
@@ -30,9 +30,9 @@ trellisx-apply 变更计划
 影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/archive 触发 config.yaml hooks 自适应建/销 worktree (微服务兼容)
 ```
 
-## 2. 审批门
+## 2. 审批门 (main 串行, 禁派 agent)
 
-🛑 STOP — 未经用户经 `AskUserQuestion` 批准, 禁写盘任何文件。纯文本征询不算批准。
+🛑 STOP — 未经用户经 `AskUserQuestion` 批准, 禁写盘任何文件。纯文本征询不算批准。审批门**禁派 agent** (agent 不得直接问用户)。
 
 ```
 question: "以上 trellisx-apply 变更是否写入 .trellis/ ?"
@@ -42,18 +42,28 @@ options:
   - 取消
 ```
 
-用户选「取消」→ 0 变更退出, 不写任何文件。用户选「仅 workflow.md」→ 只执行写盘步骤 1, 跳过步骤 2-5。
+用户选「取消」→ 0 变更退出, 不写任何文件。用户选「仅 workflow.md」→ 只派 `write-workflow`, 跳过其余 writer。
 
-## 3. 一次写盘
+批准后 main 串行 `git stash push -- .trellis/` 备份 (见 §回滚), 再进 Phase B。
 
-批准后按顺序:
-1. `.trellis/workflow.md` (marker 注入, 见 workflow-injection.md 算法)
-2. `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有 spec)
-3. `.trellis/scripts/trellisx-worktree.py` (创建) + `.trellis/config.yaml` hooks 注入
-4. `.claude/agents/trellis*.md` frontmatter 注入 `background: true` (见 agent-injection.md 算法)
-5. `<git根>/.gitignore` 追加 .worktrees/
+## 3. Phase B 并行写盘 (4 writer agent, 同批)
 
-## 4. 验证
+main 把对应 plan 传给各 writer, **一条消息同批派发** (disjoint 文件集, 并发无冲突):
+
+| writer | 独占文件集 | 算法 |
+| --- | --- | --- |
+| `write-workflow` | `.trellis/workflow.md` (marker 注入) | workflow-injection.md |
+| `write-spec` | `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有) | spec-injection.md |
+| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish}.py` + `.trellis/config.yaml` hooks + `<git根>/.gitignore` 追加 .worktrees/ | hook-injection.md |
+| `write-agent` | `.claude/agents/trellis*.md` frontmatter `background: true` | agent-injection.md |
+
+> ⚠️ config.yaml 只归 `write-hook`; 任两 writer 禁碰同一文件。某 writer 失败 → main `git stash pop` 回滚 + 重派 (见 §失败处理)。
+
+## 4. Phase C 并行验证 (4 verify agent, 同批)
+
+main 同批派 4 verify agent, 各验本维度产物, 返回每项 ✓/✗ + 失败定位。main 汇总; 任一 ✗ → 派对应 writer 按算法重注 → 重验 (修复循环 ≤3)。
+
+各 verify agent 跑的检查 (下方按维度分组, agent 各取本组):
 
 ```bash
 # marker 注入成功
@@ -145,9 +155,9 @@ gitignore: 已排除 .worktrees/ (git 根)
 
 | 触发 | 一线修复 | 仍失败兜底 |
 | --- | --- | --- |
-| 步骤 4 验证某项 ✗ (marker 数不符 / task.py 报错) | 定位失败文件, 撤销该文件改动重注 | `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
-| 4b 闭环验证任一 ✗ (marker 串位 / 缺环节) | 按 workflow-injection 算法重注串位 marker, 重验 | 同上回滚, 报「流程未闭环: <缺失环节>」 |
-| 写盘中途异常 (磁盘 / 权限) | 重试该文件写盘 | `git stash pop` 恢复, 报中断点, 禁留半截状态 |
+| verify agent 报某项 ✗ (marker 数不符 / task.py 报错) | main 派对应 writer 撤销该文件改动重注 | `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
+| 闭环验证任一 ✗ (marker 串位 / 缺环节) | main 派 write-workflow 按算法重注串位 marker, 重验 (循环 ≤3) | 同上回滚, 报「流程未闭环: <缺失环节>」 |
+| 某 writer agent 写盘异常 (磁盘 / 权限) | main `git stash pop` 回滚 + 重派该 writer | 报中断点, 禁留半截状态 |
 
 ## 回滚
 
