@@ -64,7 +64,7 @@ Phase C 并行验证 (4 verify agent, 同批)
 
 | verify | 验证项 (对应 `apply-verify.md`) |
 | --- | --- |
-| `verify-workflow` | marker 数 = 注入数 / marker 在对应块内不串位 / no_task 原生正文非空 (>40 字符) / Phase 1-3 在 / 闭环链 (subtask→worktree→check→finish) |
+| `verify-workflow` | **行为闭环 (不看是否动原生)**: 标签配对 / 断言③ no_task 仍含建 task 路径 (task/创建/create 关键词 + task.py 解析 OK) / 断言① 五维 marker 生效 / 断言② 闭环链 (各 status + subtask→worktree→check→finish) / Phase 1-3 在 |
 | `verify-hook` | 四脚本 `ast.parse` 合法 / worktree+finish 均 `import trellisx_wt` / config hooks 可解析 / finish 段含 `trellisx-finish.py` / gitignore 含 .worktrees/ |
 | `verify-spec` | spec 文件存在 |
 | `verify-agent` | 每 trellis*.md frontmatter `background: true` 全 ✓ |
@@ -88,5 +88,5 @@ main 汇总: 全 ✓ → 完成报告; 任一 ✗ → 派对应 writer 按算法
 
 ## 与两条铁律的关系
 
-- 🔒 **纯增量追加**: 由 writer agent 执行注入算法保证 (marker 包裹幂等替换), verify-workflow 强制断言 no_task 原生正文非空。
+- 🎯 **结果导向, 行为闭环为准**: writer 可替换/重构原生 (no_task/Phase/finish) 以达预期; **verify-workflow 是唯一硬门** —— 断言 ① 五维生效 ② create→…→finish 闭环 ③ task 创建触发仍生效。任一 ✗ → main 派 writer 重做 (修复循环 ≤3)。不再断言"原生文本未动"。
 - 🪶 **软约束 + finish 强制**: 注入内容不变; 编排改造只改「谁执行」(main→agent 并发), 不改「注入什么」。

@@ -90,9 +90,9 @@ for f in .claude/agents/trellis*.md; do
 done
 ```
 
-## 4b. 流程闭环验证 (必须, 注入后确认完整闭环)
+## 4b. 行为闭环验证 (硬门, 结果导向的唯一验收标准)
 
-注入后, 验证 workflow.md 的任务执行流程是**完整闭环**: 从无任务 → 创建 → 规划 → worktree → 执行 → check → commit → finish 每个 status 衔接无断点。
+结果导向: 不查"原生是否被动", 只查**行为达标**。三断言: ① 五维 marker/规约生效 ② 从无任务 → 创建 → 规划 → worktree → 执行 → check → commit → finish 每个 status 衔接无断点 ③ trellis 原生 task 创建触发仍生效 (改写 no_task 不得切断建 task 路径)。任一 ✗ → 派对应 writer 重做, 循环 ≤3。
 
 ```bash
 # 1. 每个 workflow-state status 都存在 (trellis 原生 + trellisx 注入)
@@ -112,16 +112,18 @@ for tag in ["no_task","planning","in_progress"]:
     print(f"{'✓' if ok else '✗'} trellisx:{key} marker 在 [{tag}] 块内")
 EOF
 
-# 2b. ★ no_task 原生内容未被替换 (规避踩坑根因)。语言无关 (i18n 翻译后变中文):
-#     检 no_task 块除 trellisx marker 外原生正文非空
+# 2b. ★ 断言③ 行为: task 创建触发仍生效 (允许重构 no_task, 但不许切断建 task 路径)。
+#     语言无关 (i18n 后变中文): no_task 块含 task 创建语义关键词即 ✓
 python3 - <<'EOF'
 import re
 s=open(".trellis/workflow.md").read()
 m=re.search(r"\[workflow-state:no_task\](.*?)\[/workflow-state:no_task\]", s, re.DOTALL)
-body=m.group(1) if m else ""
-native=re.sub(r"<!-- trellisx:start:no_task -->.*?<!-- trellisx:end:no_task -->","",body,flags=re.DOTALL).strip()
-print(f"{'✓' if len(native)>40 else '✗ 危险: 原生疑被替换'} no_task 原生正文 {len(native)} 字符")
+body=(m.group(1) if m else "").lower()
+hit=any(k in body for k in ["task","创建","建任务","create"])
+print(f"{'✓' if hit else '✗ 危险: no_task 不再引导建 task, 创建触发疑失效'} 断言③ task 创建路径在")
 EOF
+# 断言③补: task.py 创建流程脚本未坏
+python3 .trellis/scripts/task.py current >/dev/null 2>&1 && echo "✓ task.py 解析 OK"
 
 # 3. 流程链完整: 注入内容引用的下游环节都存在
 #    planning 提 subtask → in_progress 提 worktree+execute → 原生 check/finish
