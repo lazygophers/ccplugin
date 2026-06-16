@@ -42,7 +42,7 @@ Phase C 并行验证 (4 verify agent, 同批)
 | `plan-diagnose` | 模式 (首次/更新 apply, 据 trellisx marker 数) + workflow-state 锚点块清单 + gitignore worktrees 状态 + **目标语言** (综合 `$LANG`+CLAUDE.md+会话) | `diagnose.md` |
 | `plan-workflow` | workflow.md **全部 marker 注入块最终文本** + i18n 全文叙述翻译 + 清理 (维护者注释/跨平台枚举) 的 diff | `workflow-injection.md` |
 | `plan-spec` | spec/guides/trellisx-worktree.md 是否存在 → 新增内容 (存在则标「跳过」) | `spec-injection.md` |
-| `plan-hook` | config.yaml hooks 注入块 + 四脚本拷贝清单 (trellisx_wt/worktree/taskmd/finish) + gitignore 追加 | `hook-injection.md` |
+| `plan-hook` | config.yaml hooks 注入块 (after_start/after_finish/after_archive) + session_auto_commit:true + 五脚本拷贝清单 (trellisx_wt/worktree/taskmd/finish/packages) + gitignore 追加 + **packages discover** (跑 `trellisx-packages.py discover`, 发现清单进 plan) | `hook-injection.md` |
 | `plan-agent` | trellis*.md background:true 改动清单 (每文件: 已 true 跳过 / 非 true 改 / 缺则加) | `agent-injection.md` |
 
 > 各 plan agent **自诊断本维度** (不阻塞等 plan-diagnose); plan-diagnose 仅产总览报告供 main 汇总。
@@ -55,7 +55,7 @@ Phase C 并行验证 (4 verify agent, 同批)
 | --- | --- |
 | `write-workflow` | `.trellis/workflow.md` |
 | `write-spec` | `.trellis/spec/guides/trellisx-worktree.md` |
-| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish}.py` + `.trellis/config.yaml` + `<git根>/.gitignore` |
+| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish,trellisx-packages}.py` + `.trellis/config.yaml` (hooks + `session_auto_commit: true` + `packages:` 自动发现, 经 `trellisx-packages.py apply`) + `<git根>/.gitignore` |
 | `write-agent` | `.claude/agents/trellis*.md` |
 
 **禁文件集重叠** —— 任两 writer 不得碰同一文件 (尤其 config.yaml 只归 write-hook)。用户选「仅 workflow.md」→ 只派 `write-workflow`。
@@ -65,7 +65,7 @@ Phase C 并行验证 (4 verify agent, 同批)
 | verify | 验证项 (对应 `apply-verify.md`) |
 | --- | --- |
 | `verify-workflow` | **行为闭环 (不看是否动原生)**: 标签配对 / 断言③ no_task 仍含建 task 路径 (task/创建/create 关键词 + task.py 解析 OK) / 断言① 五维 marker 生效 / 断言② 闭环链 (各 status + subtask→worktree→check→finish) / Phase 1-3 在 |
-| `verify-hook` | 四脚本 `ast.parse` 合法 / worktree+finish 均 `import trellisx_wt` / config hooks 可解析 / finish 段含 `trellisx-finish.py` / gitignore 含 .worktrees/ |
+| `verify-hook` | 五脚本 `ast.parse` 合法 / worktree+finish 均 `import trellisx_wt` / config hooks 可解析且 **after_start 含 worktree、after_finish 含 trellisx-finish** (自动收尾链) / **`session_auto_commit=true`** (archive 自动提交闭环依赖) / **packages: 写入则 `get_packages()` 可解析** (单仓则跳过) / finish 段含 `task.py finish` 触发 / gitignore 含 .worktrees/ |
 | `verify-spec` | spec 文件存在 |
 | `verify-agent` | 每 trellis*.md frontmatter `background: true` 全 ✓ |
 

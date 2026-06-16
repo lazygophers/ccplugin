@@ -19,15 +19,22 @@ trellisx-apply 变更计划
 
 [.trellis/scripts/trellisx_wt.py] 创建 (worktree 路径/分支/命名单一真值; worktree+finish 都 import)
 [.trellis/scripts/trellisx-worktree.py] 创建 (生命周期 hook 调用)
-  + [.trellis/config.yaml] hooks.after_start/after_archive 注入
-[.trellis/scripts/trellisx-finish.py] 创建 (强制收尾 CLI, AI check 通过后调用)
-  + [.trellis/workflow.md] finish 段改写为「强制跑 trellisx-finish.py」(注入点 4)
+  + [.trellis/config.yaml] hooks.after_start/after_finish/after_archive 注入
+  + [.trellis/config.yaml] session_auto_commit: true (archive 自动提交闭环依赖)
+  + [.trellis/config.yaml] packages: 自动发现 (仅单仓写; 已配置只报告) — 发现清单见下
+[.trellis/scripts/trellisx-finish.py] 创建 (自动收尾, after_finish hook + 手动 CLI 兜底)
+[.trellis/scripts/trellisx-packages.py] 创建 (packages 发现工具, 非 hook, 供手动重扫)
+  + [.trellis/workflow.md] finish 段改写为「跑 task.py finish → hook 自动收尾」(注入点 4)
+
+发现的 packages (monorepo, 经 trellisx-packages.py discover):
+  <若单仓: "单仓, 无 packages"; 若 monorepo: 列 名称→path (type/git)>
+  ⚠️ 已有实值 packages: → 不覆盖, 仅列发现供人工核对
 
 [.claude/agents/trellis*.md] frontmatter + background: true (缺则加 / 非 true 强制改)
 
 [<git根>/.gitignore] + .worktrees/
 
-影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/archive 触发 config.yaml hooks 自适应建/销 worktree (微服务兼容)
+影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/finish/archive 触发 config.yaml hooks 自动建 worktree / 自动收尾 (commit→merge→archive→销) (微服务兼容)
 ```
 
 ## 2. 审批门 (main 串行, 禁派 agent)
@@ -54,7 +61,7 @@ main 把对应 plan 传给各 writer, **一条消息同批派发** (disjoint 文
 | --- | --- | --- |
 | `write-workflow` | `.trellis/workflow.md` (marker 注入) | workflow-injection.md |
 | `write-spec` | `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有) | spec-injection.md |
-| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish}.py` + `.trellis/config.yaml` hooks + `<git根>/.gitignore` 追加 .worktrees/ | hook-injection.md |
+| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish,trellisx-packages}.py` + `.trellis/config.yaml` (hooks after_start/after_finish/after_archive + `session_auto_commit: true` + `packages:` 经 `trellisx-packages.py apply`) + `<git根>/.gitignore` 追加 .worktrees/ | hook-injection.md |
 | `write-agent` | `.claude/agents/trellis*.md` frontmatter `background: true` | agent-injection.md |
 
 > ⚠️ config.yaml 只归 `write-hook`; 任两 writer 禁碰同一文件。某 writer 失败 → main `git stash pop` 回滚 + 重派 (见 §失败处理)。
@@ -75,12 +82,20 @@ ls .trellis/spec/guides/trellisx-worktree.md
 # worktree 脚本可执行 + config.yaml hooks 可解析
 python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-worktree.py').read())" && echo "脚本语法 OK"
 python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_hooks; print('after_start', get_hooks('after_start'))"
-# 强制收尾: trellisx-finish.py + 公共模块已复制 + 语法合法 + workflow finish 段已改写为强制
+# 自动收尾: after_finish hook 含 trellisx-finish (确定性收尾链)
+python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_hooks; assert any('trellisx-finish' in c for c in get_hooks('after_finish')), 'after_finish 缺自动收尾'; print('✓ after_finish 自动收尾已装')"
+# session_auto_commit=true (archive 自动提交闭环依赖, 否则归档脏留)
+python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_session_auto_commit; assert get_session_auto_commit() is True, 'session_auto_commit 非 true'; print('✓ session_auto_commit=true')"
+# packages: 写入则 trellis get_packages 可解析 (单仓返 None, 跳过)
+python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-packages.py').read())" && echo "✓ packages 脚本 OK"
+python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); from common.config import get_packages; p=get_packages(); print('✓ packages 解析:', len(p) if p else '单仓(None)')"
+# trellisx-finish.py + 公共模块已复制 + 语法合法 + 支持 hook 模式 ($TASK_JSON_PATH 取 tid)
 python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx_wt.py').read())" && echo "公共模块 OK"
 python3 -c "import sys; sys.path.insert(0,'.trellis/scripts'); import trellisx_wt; assert hasattr(trellisx_wt,'worktree_paths'); print('公共模块导出 OK')"
 python3 -c "import ast; ast.parse(open('.trellis/scripts/trellisx-finish.py').read())" && echo "finish 脚本 OK"
+grep -q "TASK_JSON_PATH" .trellis/scripts/trellisx-finish.py && echo "✓ finish 支持 after_finish hook 模式" || echo "✗ finish 缺 \$TASK_JSON_PATH 兜底"
 grep -q "import trellisx_wt" .trellis/scripts/trellisx-worktree.py .trellis/scripts/trellisx-finish.py && echo "✓ 两脚本均 import 公共模块 (无重复 wt 逻辑)"
-grep -q "trellisx-finish.py" .trellis/workflow.md && echo "✓ finish 段含强制脚本调用" || echo "✗ finish 段未注入强制收尾"
+grep -qE "task.py finish|trellisx-finish" .trellis/workflow.md && echo "✓ finish 段含自动收尾触发" || echo "✗ finish 段未注入自动收尾"
 # gitignore
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
 # trellis agent 全部 background: true
