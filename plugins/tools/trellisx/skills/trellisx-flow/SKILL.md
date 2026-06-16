@@ -49,13 +49,35 @@ arguments: [任务描述]
 5. **check** (派后台 agent) — 派 agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
 6. **finish** (main 同步) — check 通过 → main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
 
-## 硬规
+## 失败模式 (三段式: 触发 → 一线修复 → 仍失败兜底)
 
-- ⛔ **禁 inline 跳过 task** —— 这是本 skill 的全部意义; 即使请求看起来极简也走 task。
-- ⛔ **禁 main 直接落地实质工作** —— 写文档/改源码/跑 check 全派后台 subagent (`run_in_background: true`); main 只编排 + task.py 脚本同步调用 + 用户交互 + 回传 + 看板。违者视为流程缺陷。(注: task.py create/start/finish/archive 是任务记录管理, main 同步跑, 不在此列。)
-- ⛔ **禁跳过 check 或 finish** —— 闭环不完整 = 未完成; **未 archive 禁宣告 Done / 禁结束本轮**。
-- ⛔ check 未过禁推进到 finish; 先修复重检。
-- ⛔ **task.md 看板必须及时维护** —— 每个生命周期节点后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
-- 非 trellis 项目 (无 `.trellis/`) → 提示用户先 `trellis init`, 不强行建 task。
+| 触发 | 一线修复 | 仍失败兜底 |
+|---|---|---|
+| planning agent 返回标 `需要:` (缺需求/设计输入) | main 用 `AskUserQuestion` 转达, 回填答案重派 agent | 澄清后 scope 仍收不敛 → 🛑 STOP, 让用户直接拍板 MVP 边界 |
+| exec agent 失败/报错返回 | 读失败原因, 补 dispatch prompt 已知/缩范围, 重派 | 同一 subtask 连续 2 次失败 → 🛑 STOP 回传用户, 转人工或拆更小 subtask |
+| check 反复不过 (≥2 轮) | 派 agent 按 `trellis-check` 报告定点修复重检 | 第 3 轮仍不过 → 🛑 STOP, 加载 `trellis-break-loop` 跳出调试循环 |
+| finish 时 worktree 合并冲突 | `after_finish` hook 自动 abort + 报冲突文件清单 | 检 finish 输出有 `trellisx-finish` 冲突告警 → 停, 转手动解, **禁强解 / 禁当成功** |
+| 判不准「新建 task」还是「并入现有」 | `AskUserQuestion` 问用户裁定 | 用户必答 (禁自行替用户决定) |
+| 非 trellis 项目 (无 `.trellis/`) | 提示用户先 `trellis init` | 用户拒绝 → 退出, 不强行建 task |
+
+## 硬规 (正向必做)
+
+- ✅ **走完 plan→exec→check→finish 闭环** —— **未 archive = 未完成, 禁宣告 Done / 禁结束本轮**。
+- ✅ **及时维护 task.md 看板** —— 每个生命周期节点 (create/start/阶段推进/finish) 后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
+
+## ⛔ 反例黑名单 (命中任一 = 流程错误, 改方案重来)
+
+| # | 禁做 | 改为 |
+|---|---|---|
+| 1 | main 直接写文档 / 改源码 / 跑 check | 派后台 subagent (`run_in_background: true`) |
+| 2 | 把 task.py 脚本当异步单元派 agent | `task.py create/start/finish/archive` main 同步跑 |
+| 3 | inline 跳过 task (即使请求极简) | 一律走 task 闭环 —— 这是本 skill 全部意义 |
+| 4 | check 未过就推进 finish | 先定点修复重检 |
+| 5 | check / finish 未走完就宣告 Done | 未 archive (worktree 仍在) = 未闭环 |
+| 6 | 自动 / 被动 / 推断式触发本 skill | 仅用户显式调用 (`/trellisx-flow` 或点名) |
+| 7 | main / agent 自行凭空设计需求方案 | `trellis-brainstorm` 主导需求, `trellisx-orchestrate` 仅执行编排 |
+| 8 | 用 `trellisx-orchestrate` 做需求 / 方案设计 | 它只管 subagent 职责划分 / 并行 / 依赖 |
+| 9 | 纯文本提问代替 `AskUserQuestion` | 用户确认 / 选择必用工具 |
+| 10 | 批量延迟汇总 agent 进度 | 每个 agent 完成 / 阻塞即时回传
 
 > 与 `trellisx-apply` 的分工: 本 skill 是用户**主动强制建 task**的入口 (喊它才动); apply 注入的 no_task 倾向是**被动推荐建 task**的常驻软提示。两者互补, 不要混用 —— 本 skill 禁自动触发。
