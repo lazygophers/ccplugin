@@ -120,7 +120,7 @@ trellisx 规约 (强化原生判定, 不切断建 task 路径): 本项目愿景 
 <!-- trellisx:start:planning -->
 trellisx 规划规约 (启用判定跟随 trellis 原生 parent/child 语义, 不看数量):
 
-⚙️ **规划产出派后台 agent (分工明确, 禁自行凭空设计)**: 写 `prd.md`/`design.md`/`implement.md` 等实质产出**派 agent** (`run_in_background: true`) 完成, main 禁亲自写。分工: **`trellis-brainstorm` 为主导** (需求探索 + 方案设计 + 边界, 产出 prd/design); **`trellisx-orchestrate` 仅管执行层编排** (实际执行的 subagent 职责划分、并行/依赖、资源互斥, 产出 implement.md), **不用它做需求/方案设计**。需求澄清问题由 agent 在返回标 `需要:`, main 用 `AskUserQuestion` 转达用户; 产物评审 (`AskUserQuestion`) 由 main 亲做。
+⚙️ **规划同步前台 (交互式, 禁丢后台异步, 禁自行凭空设计)**: planning 含 `trellis-brainstorm` **逐问用户**的交互, 后台 agent 不能与用户对话, 故 **planning 由 main 同步前台执行** (**不 `run_in_background`**)。分工: **`trellis-brainstorm` 为主导** (main 同步逐问用户做需求探索 + 方案设计 + 边界, 产出 prd/design); **`trellisx-orchestrate` 仅管执行层编排** (实际执行的 subagent 职责划分、并行/依赖、资源互斥, 产出 implement.md), **不用它做需求/方案设计**。产物评审 (`AskUserQuestion`) 由 main 亲做。注: 异步后台 agent 只用于 exec/check 等非交互实质工作。
 
 判定: 本请求是否含**多个独立可验收交付** (各自可独立 plan/implement/check/archive)?
 - **是 (多交付)** → 拆为 parent + child tasks (trellis 原生 `task.py create --parent`)。每个 child 独立 worktree; PRD MUST 含 mermaid 调度图显式标并行组 + 依赖箭头; child 间依赖写进 child 自己的 prd.md/implement.md (非树位置隐含)。**执行统一由 `trellis-implement` 入口调度** (main 派 trellis-implement, 由其对各 subtask 派专用 subagent 并行执行), main 不直接派 subtask agent。
