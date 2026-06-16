@@ -12,7 +12,7 @@ trellisx-apply 变更计划
 
 [workflow.md] 注入 / 更新 marker:
   + trellisx:prefix (回复前缀)
-  + trellisx:no_task / planning / in_progress / in_progress_inline
+  + trellisx:no_task / planning / in_progress
   + trellisx:phase2_order / phase3_check
 
 [.trellis/spec/guides/trellisx-worktree.md] 仅新增 (已存在则跳过, 不覆盖)
@@ -32,7 +32,11 @@ trellisx-apply 变更计划
 
 [.claude/agents/trellis*.md] frontmatter + background: true (缺则加 / 非 true 强制改)
 
+[.claude/commands/trellis/finish-work.md] 注入全链 marker (先跑 trellisx-finish.py 全链再 journal; 修原生 archive-direct 绕 merge 丢提交) / 无文件则跳过
+
 [<git根>/.gitignore] + .worktrees/
+
+目标语言: <zh/en, plan-diagnose 定; 全部注入产物统一此语言>
 
 影响: 跑完后 trellis 原生 hook 每轮注入 trellisx 规则; task.py start/finish/archive 触发 config.yaml hooks 自动建 worktree / 自动收尾 (commit→merge→archive→销) (微服务兼容)
 ```
@@ -51,20 +55,21 @@ options:
 
 用户选「取消」→ 0 变更退出, 不写任何文件。用户选「仅 workflow.md」→ 只派 `write-workflow`, 跳过其余 writer。
 
-批准后 main 串行 `git stash push -- .trellis/` 备份 (见 §回滚), 再进 Phase B。
+批准后 main **派 `prep-backup` agent** 串行跑 `git stash push -- .trellis/` 备份 (main 不亲碰 git, 见 §回滚), 备份完再进 Phase B。
 
-## 3. Phase B 并行写盘 (4 writer agent, 同批)
+## 3. Phase B 并行写盘 (5 writer agent, 同批)
 
 main 把对应 plan 传给各 writer, **一条消息同批派发** (disjoint 文件集, 并发无冲突):
 
 | writer | 独占文件集 | 算法 |
 | --- | --- | --- |
-| `write-workflow` | `.trellis/workflow.md` (marker 注入) | workflow-injection.md |
+| `write-workflow` | `.trellis/workflow.md` (marker 注入, 目标语言) | workflow-injection.md |
 | `write-spec` | `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有) | spec-injection.md |
-| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish,trellisx-packages}.py` + `.trellis/config.yaml` (hooks after_start/after_finish/after_archive + `session_auto_commit: true` + `packages:` 经 `trellisx-packages.py apply`) + `<git根>/.gitignore` 追加 .worktrees/ | hook-injection.md |
+| `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish,trellisx-packages}.py` + `.trellis/config.yaml` (hooks + `session_auto_commit: true` + `packages:`) + `<git根>/.gitignore` 追加 .worktrees/ | hook-injection.md |
 | `write-agent` | `.claude/agents/trellis*.md` frontmatter `background: true` | agent-injection.md |
+| `write-finishcmd` | `.claude/commands/trellis/finish-work.md` (全链注入 marker, 修原生 archive-direct 绕 merge) | finishcmd-injection.md |
 
-> ⚠️ config.yaml 只归 `write-hook`; 任两 writer 禁碰同一文件。某 writer 失败 → main `git stash pop` 回滚 + 重派 (见 §失败处理)。
+> ⚠️ config.yaml 只归 `write-hook`; finish-work.md 只归 `write-finishcmd`; 任两 writer 禁碰同一文件。某 writer 失败 → main 派 `rollback` agent `git stash pop` 回滚 + 重派 (见 §失败处理)。
 
 ## 4. Phase C 并行验证 (4 verify agent, 同批)
 
@@ -103,6 +108,20 @@ for f in .claude/agents/trellis*.md; do
   [ -f "$f" ] || continue
   awk '/^---$/{c++} c==1&&/^background:[[:space:]]*true[[:space:]]*$/{ok=1} c==2{print (ok?"✓":"✗"), FILENAME; exit}' "$f"
 done
+# finish-work 全链注入 (Option B; 无文件则 hook 路兜底)
+F=.claude/commands/trellis/finish-work.md
+if [ -f "$F" ]; then grep -q "finishcmd_fullchain" "$F" && grep -q "trellisx-finish.py" "$F" && echo "✓ finish-work 含全链注入" || echo "✗ finish-work 未注入全链"; else echo "(无 finish-work.md, hook 路兜底)"; fi
+# i18n 语言一致: 目标 zh 时各 trellisx 块叙述含 CJK, 非纯英文残留 (非 zh 改 target)
+python3 - <<'EOF'
+import re
+target="zh"
+s=open(".trellis/workflow.md",encoding="utf-8").read()
+bad=[m.group(1) for m in re.finditer(r"<!-- trellisx:start:(\w+) -->(.*?)<!-- trellisx:end:\1 -->",s,re.DOTALL)
+     if target=="zh" and not re.search(r"[一-鿿]", re.sub(r"```.*?```","",m.group(2),flags=re.DOTALL))]
+print("✓ 注入块语言一致" if not bad else f"✗ 这些块疑未译: {bad}")
+EOF
+# 无残留非 Claude Code 平台描述 (清理生效)
+grep -iqE "codex|cursor|gemini|opencode|kiro|qoder" .trellis/workflow.md && echo "⚠ workflow 仍含其他平台名, 检查清理" || echo "✓ 无非 Claude Code 平台残留"
 ```
 
 ## 4b. 行为闭环验证 (硬门, 结果导向的唯一验收标准)
@@ -172,16 +191,18 @@ gitignore: 已排除 .worktrees/ (git 根)
 
 | 触发 | 一线修复 | 仍失败兜底 |
 | --- | --- | --- |
-| verify agent 报某项 ✗ (marker 数不符 / task.py 报错) | main 派对应 writer 撤销该文件改动重注 | `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
-| 闭环验证任一 ✗ (marker 串位 / 缺环节) | main 派 write-workflow 按算法重注串位 marker, 重验 (循环 ≤3) | 同上回滚, 报「流程未闭环: <缺失环节>」 |
-| 某 writer agent 写盘异常 (磁盘 / 权限) | main `git stash pop` 回滚 + 重派该 writer | 报中断点, 禁留半截状态 |
+| verify agent 报某项 ✗ (marker 数不符 / task.py 报错) | main 派对应 writer 撤销该文件改动重注 | main 派 `rollback` agent `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
+| 闭环验证任一 ✗ (marker 串位 / 缺环节) | main 派 write-workflow 按算法重注串位 marker, 重验 (循环 ≤3) | 同上派 rollback agent 回滚, 报「流程未闭环: <缺失环节>」 |
+| 某 writer agent 写盘异常 (磁盘 / 权限) | main 派 rollback agent `git stash pop` 回滚 + 重派该 writer | 报中断点, 禁留半截状态 |
+| i18n 验证 ✗ (注入块中英混杂) | main 派 write-workflow 用目标语言重写该块 | 同上回滚, 报「语言不一致: <块名>」 |
 
-## 回滚
+## 回滚 (prep-backup / rollback agent 执行, main 不亲碰 git)
 
-写盘前 git stash backup:
+写盘前 `prep-backup` agent 跑 git stash backup; 失败时 `rollback` agent 恢复:
 ```bash
+# prep-backup agent:
 git stash push -- .trellis/ 2>/dev/null
-# 失败 → git stash pop 恢复; 成功 → git stash drop
+# rollback agent (失败时): git stash pop 恢复; 成功收尾: git stash drop
 ```
 
 ## 幂等保证

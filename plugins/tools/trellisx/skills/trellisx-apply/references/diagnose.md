@@ -37,7 +37,8 @@ trellisx-apply 诊断
 ───────────────────
 - workflow.md: 存在 / 缺失
 - 已有 trellisx marker: N 个 (0 = 首次 apply, >0 = 更新模式)
-- workflow-state 块: [no_task] [planning] [in_progress] [in_progress-inline] ... (注入锚点)
+- workflow-state 块: [no_task] [planning] [in_progress] ... (注入锚点; 非 Claude Code 平台块如 in_progress-inline 不注入, 清理时删)
+- 目标语言: zh / en ... (综合 $LANG locale + CLAUDE.md/README + 会话; 传给所有 writer 统一)
 - spec/: 存在 / 待建
 - config.yaml hooks: 已注入 worktree / 待注入
 - .gitignore worktrees: 已排除 / 待加
