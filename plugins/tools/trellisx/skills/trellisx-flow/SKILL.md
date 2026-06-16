@@ -23,6 +23,8 @@ arguments: [任务描述]
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) 后台 agent 不能与用户对话; agent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
 - 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - 📣 **完成即时回传** —— 每个后台 agent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
+- 🔴🛑 **"派 agent" = 真实调用 `Agent` 工具, 不是叙述 (最易踩, 必守)** —— 每个"派 agent"动作 MUST 在**同一回复**里产生真实的 `Agent` tool_use (`run_in_background: true`)。**严禁在本回复无 `Agent` 工具调用的情况下, 回传"已派出 / 后台跑 / agent 在做"等措辞 —— 宣称 ≠ 调用, 那是幻觉, 等于跳过执行**。同理 task/看板/worktree 的"已建/已登记"必须是真实跑过命令或工具的结果, 禁凭空宣称。
+  > **回传前自检**: 任何"agent 已派 / 在跑 / 已建 task / 看板已更新"措辞输出前, 确认本回复**确有对应的 tool_use** (Agent / Bash task.py / trellisx-workspace)。无 → 先发起真实调用, 禁先回传。
 
 ## 调用边界 (重要)
 
@@ -78,6 +80,7 @@ arguments: [任务描述]
 | 7 | main / agent 自行凭空设计需求方案 | `trellis-brainstorm` 主导需求, `trellisx-orchestrate` 仅执行编排 |
 | 8 | 用 `trellisx-orchestrate` 做需求 / 方案设计 | 它只管 subagent 职责划分 / 并行 / 依赖 |
 | 9 | 纯文本提问代替 `AskUserQuestion` | 用户确认 / 选择必用工具 |
-| 10 | 批量延迟汇总 agent 进度 | 每个 agent 完成 / 阻塞即时回传
+| 10 | 批量延迟汇总 agent 进度 | 每个 agent 完成 / 阻塞即时回传 |
+| 11 | **口头宣称"已派 agent / 后台跑 / 已建 task / 看板已登记"但本回复无对应 tool_use** | **先真实调用** `Agent`(`run_in_background`) / `Bash task.py` / `trellisx-workspace`, 再回传 —— 宣称 ≠ 调用, 凭空宣称 = 幻觉跳步 |
 
 > 与 `trellisx-apply` 的分工: 本 skill 是用户**主动强制建 task**的入口 (喊它才动); apply 注入的 no_task 倾向是**被动推荐建 task**的常驻软提示。两者互补, 不要混用 —— 本 skill 禁自动触发。
