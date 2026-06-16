@@ -15,16 +15,15 @@ arguments: [任务描述]
 
 ## 执行载体铁律 (最高优先级)
 
-> **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), **不是异步执行单元** —— 这些脚本一律 **main 同步跑**。**异步执行单元 = subagent/agent** —— 承担**实质工作** (写文档/改源码/跑 check), 由 `Agent` 工具派出并 `run_in_background: true`。"异步"修饰的是 agent, 不是 task。
+> **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **由 subagent (`Agent` 工具) 执行**, 不在 main 上下文里直接做。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制** —— 用户需要异步会自行处理; 本 skill 只确保实质工作确实走 subagent 执行。
 
-- ⛔ **main 禁直接落地任何实质工作** —— 写 `prd.md`/`design.md`/`implement.md`、改源码、跑 check 等**实质产出一律派 subagent**, main 不在自身上下文里直接做。
-- 🔄 **非交互实质工作派 subagent + `run_in_background: true` 真异步** —— main 不阻塞等待, agent 完成后回调汇总; 多个无依赖交付**同一回复一次性派多个后台 agent** (真并行)。适用 exec / check 等不需与用户对话的产出。
-- 💬 **交互式步骤必须同步前台 (不 `run_in_background`)** —— **planning 的 `trellis-brainstorm` 需逐问用户**, 后台 agent 不能与用户对话, 故 planning **同步执行** (main 前台驱动 brainstorm + orchestrate, 边问边收敛), 禁丢后台异步。"异步"只给非交互的 exec/check。
+- ⛔ **main 禁直接落地实质工作** —— 改源码、跑 check 等**实质产出一律派 subagent 执行**, main 不在自身上下文里直接做。
+- 💬 **planning 例外 = main 同步走 `trellis-brainstorm`** —— brainstorm 需逐问用户 (交互式), subagent 不能与用户对话, 故 planning 由 **main 同步前台**驱动 brainstorm + orchestrate, 不派 subagent。
 - 🗂️ **task 生命周期脚本由 main 同步跑** —— `task.py create / start / finish / archive` 是任务记录管理, **main 直接同步执行** (不派 agent、不算实质工作); `task.py finish` 后由 `after_finish` hook 自动完成 commit→merge→archive→销 worktree。
-- 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) 后台 agent 不能与用户对话; agent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
+- 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) subagent 不能与用户对话; subagent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
 - 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
-- 📣 **完成即时回传** —— 每个后台 agent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
-- 🔴🛑 **"派 agent" = 真实调用 `Agent` 工具, 不是叙述 (最易踩, 必守)** —— 每个"派 agent"动作 MUST 在**同一回复**里产生真实的 `Agent` tool_use (`run_in_background: true`)。**严禁在本回复无 `Agent` 工具调用的情况下, 回传"已派出 / 后台跑 / agent 在做"等措辞 —— 宣称 ≠ 调用, 那是幻觉, 等于跳过执行**。同理 task/看板/worktree 的"已建/已登记"必须是真实跑过命令或工具的结果, 禁凭空宣称。
+- 📣 **完成即时回传** —— 每个 subagent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
+- 🔴🛑 **"派 agent" = 真实调用 `Agent` 工具, 不是叙述 (最易踩, 必守)** —— 每个"派 agent"动作 MUST 在**同一回复**里产生真实的 `Agent` tool_use。**严禁在本回复无 `Agent` 工具调用的情况下, 回传"已派出 / agent 在做"等措辞 —— 宣称 ≠ 调用, 那是幻觉, 等于跳过执行**。同理 task/看板/worktree 的"已建/已登记"必须是真实跑过命令或工具的结果, 禁凭空宣称。
   > **回传前自检**: 任何"agent 已派 / 在跑 / 已建 task / 看板已更新"措辞输出前, 确认本回复**确有对应的 tool_use** (Agent / Bash task.py / trellisx-workspace)。无 → 先发起真实调用, 禁先回传。
 
 ## 调用边界 (重要)
@@ -36,20 +35,20 @@ arguments: [任务描述]
 
 > **贯穿全程: 及时维护 `.trellis/task.md` 看板** —— 下列每一步 (create/start/阶段推进/finish) 完成后, **立即用 `trellisx-workspace` skill 更新 `.trellis/task.md`** 看板表中该任务行 (id/名称/状态/阶段/进度/worktree)。看板落后于实际 = 维护失效。
 
-> 载体速查: **planning 同步前台** (brainstorm 交互, 不异步); **exec/check 派后台 subagent** (`run_in_background: true`); **task.py 脚本 (create/start/finish/archive) main 同步跑**。main 做编排 + 脚本调用 + 交互式 planning + 用户交互决策 + 完成回传 + 看板维护。
+> 载体速查: **planning 同步前台** (brainstorm 交互); **exec/check 派 subagent 执行** (异步/并行按需自定, 不强制); **task.py 脚本 (create/start/finish/archive) main 同步跑**。main 做编排 + 脚本调用 + 交互式 planning + 用户交互决策 + 完成回传 + 看板维护。
 
 1. **判新旧 + 登记** (main 编排) — 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
    - **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。
    - **现有 task 的补充 / 延续** (扩展、修订、补做当前 active task 的一部分) → **不新建顶层 task**: 回到 planning 修订该 task 的 `prd.md` / `implement.md` 并重新规划; 若是可独立验收的子交付, 用 `task.py create --parent <现有 task>` 挂为 child。
    - 🔴 **判不准 → 🛑 STOP**: MUST 用 AskUserQuestion 问"这是新任务, 还是对 `<active task>` 的补充?", **禁自行替用户决定**, 禁纯文本提问代替工具 (此为用户交互决策点, main 亲做)。
    登记后 → **更新 task.md 看板** (新建/更新该任务行)。
-2. **planning** (main 同步前台, **不异步** —— brainstorm 需逐问用户) — 分工明确, **禁 main 自行凭空设计**:
-   - **`trellis-brainstorm` 为主导** —— main **同步**加载, 逐问用户做需求探索 + 方案设计 + 边界收敛, 产出 `prd.md` (复杂任务加 `design.md`)。需求/设计一切以 brainstorm 交互流程为准, **禁丢后台异步** (后台 agent 不能与用户对话)。
+2. **planning** (main 同步前台 —— brainstorm 需逐问用户) — 分工明确, **禁 main 自行凭空设计**:
+   - **`trellis-brainstorm` 为主导** —— main **同步**加载, 逐问用户做需求探索 + 方案设计 + 边界收敛, 产出 `prd.md` (复杂任务加 `design.md`)。需求/设计一切以 brainstorm 交互流程为准, 不派 subagent (其不能与用户对话)。
    - **`trellisx-orchestrate` 仅管执行层编排** —— 只负责**实际执行的 subagent 职责划分**、并行组 / 依赖关系、资源互斥, 产出 `implement.md`; **不用它做需求/方案设计**。
    - 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。planning 完成 → 进激活。
 3. **激活** (main 编排) — 产物**由 main 用 AskUserQuestion 交用户评审** → 通过后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
-4. **exec** (派后台 agent, worktree 隔离) — 全部源码改动落 `<git根>/.worktrees/`, 主工作区保持干净; **无论单交付还是多交付, 一律派后台 agent 写代码, main 禁亲自改源码**; 多交付无依赖 child **同一回复一次性派多个后台 agent** (真并行)。每个 agent 完成即回传, 禁等齐再报。→ **更新 task.md 进度**。
-5. **check** (派后台 agent) — 派 agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
+4. **exec** (派 subagent, worktree 隔离) — 全部源码改动落 `<git根>/.worktrees/`, 主工作区保持干净; **无论单交付还是多交付, 一律派 subagent 写代码, main 禁亲自改源码** (异步/并行按需自定)。每个 subagent 完成即回传。→ **更新 task.md 进度**。
+5. **check** (派 subagent) — 派 subagent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 subagent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
 6. **finish** (main 同步) — check 通过 → main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
 
 ## 失败模式 (三段式: 触发 → 一线修复 → 仍失败兜底)
@@ -72,8 +71,8 @@ arguments: [任务描述]
 
 | # | 禁做 | 改为 |
 |---|---|---|
-| 1 | main 直接写文档 / 改源码 / 跑 check | 派后台 subagent (`run_in_background: true`) |
-| 2 | 把 task.py 脚本当异步单元派 agent | `task.py create/start/finish/archive` main 同步跑 |
+| 1 | main 直接改源码 / 跑 check | 派 subagent 执行 (`Agent` 工具) |
+| 2 | 把 task.py 脚本派 agent 执行 | `task.py create/start/finish/archive` main 同步跑 |
 | 3 | inline 跳过 task (即使请求极简) | 一律走 task 闭环 —— 这是本 skill 全部意义 |
 | 4 | check 未过就推进 finish | 先定点修复重检 |
 | 5 | check / finish 未走完就宣告 Done | 未 archive (worktree 仍在) = 未闭环 |
@@ -82,6 +81,6 @@ arguments: [任务描述]
 | 8 | 用 `trellisx-orchestrate` 做需求 / 方案设计 | 它只管 subagent 职责划分 / 并行 / 依赖 |
 | 9 | 纯文本提问代替 `AskUserQuestion` | 用户确认 / 选择必用工具 |
 | 10 | 批量延迟汇总 agent 进度 | 每个 agent 完成 / 阻塞即时回传 |
-| 11 | **口头宣称"已派 agent / 后台跑 / 已建 task / 看板已登记"但本回复无对应 tool_use** | **先真实调用** `Agent`(`run_in_background`) / `Bash task.py` / `trellisx-workspace`, 再回传 —— 宣称 ≠ 调用, 凭空宣称 = 幻觉跳步 |
+| 11 | **口头宣称"已派 agent / 已建 task / 看板已登记"但本回复无对应 tool_use** | **先真实调用** `Agent` / `Bash task.py` / `trellisx-workspace`, 再回传 —— 宣称 ≠ 调用, 凭空宣称 = 幻觉跳步 |
 
 > 与 `trellisx-apply` 的分工: 本 skill 是用户**主动强制建 task**的入口 (喊它才动); apply 注入的 no_task 倾向是**被动推荐建 task**的常驻软提示。两者互补, 不要混用 —— 本 skill 禁自动触发。
