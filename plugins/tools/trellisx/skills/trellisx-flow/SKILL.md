@@ -13,6 +13,14 @@ arguments: [任务描述]
 
 处理对象 = 用户调用本 skill 时给出的请求 (任务描述 / arguments)。
 
+## 执行载体铁律 (最高优先级)
+
+- ⛔ **main 禁直接落地任何实质工作** —— 写 `prd.md`/`design.md`/`implement.md`、改源码、跑 check、commit/archive 等**实质产出一律派 agent**, 全程不在 main 上下文里直接做。
+- 🔄 **全程 agent + `run_in_background: true` 真异步** —— 每个阶段的实质工作用 `Agent` 工具派出, 设 `run_in_background: true`; main 不阻塞等待, agent 完成后回调汇总。多个无依赖交付**同一回复一次性派多个后台 agent** (真并行)。
+- 🧑 **唯一例外 = 用户交互决策点** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) 必须 main 亲自做 (后台 agent 不能与用户对话)。agent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
+- 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
+- 📣 **完成即时回传** —— 每个后台 agent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
+
 ## 调用边界 (重要)
 
 - ✅ **仅用户主动**: `/trellisx-flow <描述>` 或用户明确点名。
@@ -22,20 +30,23 @@ arguments: [任务描述]
 
 > **贯穿全程: 及时维护 `.trellis/task.md` 看板** —— 下列每一步 (create/start/阶段推进/finish) 完成后, **立即用 `trellisx-workspace` skill 更新 `.trellis/task.md`** 看板表中该任务行 (id/名称/状态/阶段/进度/worktree)。看板落后于实际 = 维护失效。
 
-1. **判新旧 + 登记** — 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
+> 每步的**实质工作派后台 agent** (`run_in_background: true`), main 只做编排 + 用户交互决策 + 完成回传 + 看板维护。
+
+1. **判新旧 + 登记** (main 编排) — 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
    - **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。
    - **现有 task 的补充 / 延续** (扩展、修订、补做当前 active task 的一部分) → **不新建顶层 task**: 回到 planning 修订该 task 的 `prd.md` / `implement.md` 并重新规划; 若是可独立验收的子交付, 用 `task.py create --parent <现有 task>` 挂为 child。
-   - 🔴 **判不准 → 🛑 STOP**: MUST 用 AskUserQuestion 问"这是新任务, 还是对 `<active task>` 的补充?", **禁自行替用户决定**, 禁纯文本提问代替工具。
+   - 🔴 **判不准 → 🛑 STOP**: MUST 用 AskUserQuestion 问"这是新任务, 还是对 `<active task>` 的补充?", **禁自行替用户决定**, 禁纯文本提问代替工具 (此为用户交互决策点, main 亲做)。
    登记后 → **更新 task.md 看板** (新建/更新该任务行)。
-2. **planning** — 加载 `trellis-brainstorm` 探索需求 + `trellisx-orchestrate` 编排, 写 `prd.md` (复杂任务加 `design.md` + `implement.md`); 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。
-3. **激活** — 产物评审后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
-4. **exec** — worktree 隔离 (全部源码改动落 `<git根>/.worktrees/`, 主工作区保持干净); 多交付无依赖 child 同一回复一次性派多 sub-agent (真并行), 单交付 main 在 worktree 内直接写。→ **更新 task.md 进度**。
-5. **check** — `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → 修复重检, 不跳 finish。→ **更新 task.md 阶段 check**。
-6. **finish** — check 通过 → 提交 (Phase 3.4) → `task.py archive` 归档收尾。→ **更新 task.md 行** (状态 completed)。
+2. **planning** (派后台 agent) — 派 agent 加载 `trellis-brainstorm` 探索需求 + `trellisx-orchestrate` 编排, 写 `prd.md` (复杂任务加 `design.md` + `implement.md`); 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。**需求澄清问题由 agent 在返回里标 `需要:`, main 转达用户**。agent 完成 → main 回传摘要。
+3. **激活** (main 编排) — 产物**由 main 用 AskUserQuestion 交用户评审** → 通过后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
+4. **exec** (派后台 agent, worktree 隔离) — 全部源码改动落 `<git根>/.worktrees/`, 主工作区保持干净; **无论单交付还是多交付, 一律派后台 agent 写代码, main 禁亲自改源码**; 多交付无依赖 child **同一回复一次性派多个后台 agent** (真并行)。每个 agent 完成即回传, 禁等齐再报。→ **更新 task.md 进度**。
+5. **check** (派后台 agent) — 派 agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
+6. **finish** (派后台 agent) — check 通过 → 派 agent 提交 (Phase 3.4) → `task.py archive` 归档收尾。→ **更新 task.md 行** (状态 completed)。
 
 ## 硬规
 
 - ⛔ **禁 inline 跳过 task** —— 这是本 skill 的全部意义; 即使请求看起来极简也走 task。
+- ⛔ **禁 main 直接落地实质工作** —— 写文档/改源码/跑 check/commit 全派后台 agent (`run_in_background: true`); main 只编排 + 用户交互 + 回传 + 看板。违者视为流程缺陷。
 - ⛔ **禁跳过 check 或 finish** —— 闭环不完整 = 未完成; **未 archive 禁宣告 Done / 禁结束本轮**。
 - ⛔ check 未过禁推进到 finish; 先修复重检。
 - ⛔ **task.md 看板必须及时维护** —— 每个生命周期节点后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
