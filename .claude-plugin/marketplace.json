@@ -106,6 +106,30 @@
       "description": "知识库 + 记忆管理插件 - 双层 vault, 5 级记忆 (遗忘曲线), 8 skill: schema/ingest/lint/extract/history-digest/context-digest/evolve/recall",
       "category": "tools",
       "strict": false
+    },
+    {
+      "name": "novelist",
+      "source": "./plugins/tools/novelist",
+      "description": "小说写作全流程插件 - 从世界观/人物/大纲设定到章节编写、一致性检查、重写与校对的端到端工作流。10 skill: init/design/character/worldview/outline/write/check/rewrite/proofread/craft; 3 agent: continuity-auditor/chapter-writer/proofreader。编写前四要素确认, 编写中持续一致性检查, 支持从指定章节起重写; craft 提供三流派叙事镜片",
+      "author": {
+        "name": "lazygophers",
+        "email": "admin@lazygophers.dev"
+      },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novelist",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novelist",
+      "license": "AGPL-3.0-or-later",
+      "keywords": [
+        "novel",
+        "writing",
+        "fiction",
+        "worldbuilding",
+        "character",
+        "outline",
+        "continuity-check",
+        "rewrite",
+        "proofread",
+        "creative-writing"
+      ]
     }
   ]
 }

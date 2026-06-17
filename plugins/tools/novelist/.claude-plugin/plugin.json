@@ -1,0 +1,32 @@
+{
+  "name": "novelist",
+  "description": "小说写作全流程插件 - 从世界观/人物/大纲设定到章节编写、一致性检查、重写与校对的端到端工作流。中文目录结构(人物/世界观/章节/大纲/情节/设定)细粒度拆分, 编写前四要素确认, 编写中持续一致性检查, 支持从指定章节起重写与连续多章重写。",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novelist",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/novelist",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "novel",
+    "writing",
+    "fiction",
+    "worldbuilding",
+    "character",
+    "outline",
+    "continuity-check",
+    "rewrite",
+    "proofread",
+    "creative-writing",
+    "小说",
+    "写作"
+  ],
+  "agents": [
+    "./agents/continuity-auditor.md",
+    "./agents/chapter-writer.md",
+    "./agents/proofreader.md"
+  ],
+  "skills": "./skills"
+}
