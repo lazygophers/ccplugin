@@ -110,7 +110,7 @@
     {
       "name": "novelist",
       "source": "./plugins/tools/novelist",
-      "description": "小说写作全流程插件 - 从世界观/人物/大纲设定到章节编写、一致性检查、重写与校对的端到端工作流。10 skill: init/design/character/worldview/outline/write/check/rewrite/proofread/craft; 3 agent: continuity-auditor/chapter-writer/proofreader。编写前四要素确认, 编写中持续一致性检查, 支持从指定章节起重写; craft 提供三流派叙事镜片",
+      "description": "小说写作全流程插件 - 从爆款题材选择/世界观/人物/大纲设定到章节编写、一致性检查、重写与校对的端到端工作流。11 skill: init/design/character/worldview/outline/write/check/rewrite/proofread/craft/trending; 3 agent: continuity-auditor/chapter-writer/proofreader。编写前四要素确认, 编写中持续一致性检查, 支持从指定章节起重写; craft 三流派叙事镜片, trending 选题方法论(联网取实时数据)",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"
