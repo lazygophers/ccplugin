@@ -1,6 +1,6 @@
 {
   "name": "novelist",
-  "description": "小说写作全流程插件 - 从爆款题材选择/世界观/人物/大纲设定到章节编写、一致性检查、重写与校对的端到端工作流。中文目录结构(人物/世界观/章节/大纲/情节/设定)细粒度拆分, 编写前四要素确认, 编写中持续一致性检查, 支持从指定章节起重写与连续多章重写; craft 三流派叙事镜片 + trending 选题方法论。",
+  "description": "小说写作全流程插件 - 从爆款题材选择/世界观/人物/大纲设定到章节编写、一致性检查、校对、去AIGC、重写的端到端工作流。中文目录结构(人物/世界观/章节/大纲/情节/设定)细粒度拆分, 编写前四要素确认, 生成后收尾链(检查→校对→去AIGC→定稿), 支持从指定章节起重写与连续多章重写; craft 三流派叙事镜片 + trending 选题方法论 + humanize 去AI味。",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -21,14 +21,18 @@
     "proofread",
     "creative-writing",
     "trending-topic",
+    "humanize",
+    "deaigc",
     "小说",
     "写作",
-    "选题"
+    "选题",
+    "去AI味"
   ],
   "agents": [
     "./agents/continuity-auditor.md",
     "./agents/chapter-writer.md",
-    "./agents/proofreader.md"
+    "./agents/proofreader.md",
+    "./agents/humanizer.md"
   ],
   "skills": "./skills"
 }

@@ -7,3 +7,4 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-06-17	staged	novelist-init	-	+2~3	keep	dim4	加显性🔴STOP标记	full_test
 2026-06-17	staged	novelist-design	-	+2~3	keep	dim4	加显性🔴STOP标记	full_test
 2026-06-17	staged	novelist-character	-	+2~3	keep	dim4	加显性🔴STOP标记	full_test
+2026-06-18	committed	novelist-check	~85	~88	keep	dim6	接通孤儿 conflict-rubric.md 引用	full_test
