@@ -12,17 +12,7 @@
   "license": "AGPL-3.0-or-later",
   "keywords": ["notification", "system-notification", "hook", "event", "tts", "sound", "alert"],
   "commands": [
-    {
-      "name": "notify-config",
-      "description": "查看当前通知配置",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py config",
-          "timeout": 10
-        }
-      ]
-    }
+    "./commands/notify-config.md"
   ],
   "hooks": {
     "SessionStart": [
