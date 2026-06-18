@@ -17,7 +17,7 @@ arguments: [小说名, 可选类型]
 2. **定父目录** — 默认当前工作目录。若用户指定路径则用之。
 3. **跑脚手架** — 执行:
    ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/init_novel.py "<小说名>" --path <父目录> --genre "<类型>"
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/novelist-init/scripts/init_novel.py "<小说名>" --path <父目录> --genre "<类型>"
    ```
    脚本创建: `人物/ 世界观/ 设定/ 大纲/ 情节/ 章节/ 元数据/` + 各层模板与索引文件。🔴 STOP: 脚本退出码 2(目标已存在且非空) → **禁直接加 `--force` 覆盖**, 先用 `AskUserQuestion` 问用户「换名 / 追加 / 取消」, 用户选追加才补 `--force`。
 4. **回报结构** — 向用户列出生成的目录树, 说明每个目录归属哪个 skill(见 `总览.md` 的目录约定表)。
