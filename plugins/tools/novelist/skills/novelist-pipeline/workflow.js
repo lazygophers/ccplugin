@@ -39,9 +39,27 @@ const MAX_FIX_ATTEMPTS = 10; // fix 最大重试
 const PASS_TOTAL = 85; // 定稿综合分阈值
 const PASS_CONSISTENCY = 85; // 一致性单项阈值
 const PASS_HUMANNESS = 70; // 人味单项阈值(对齐 score_aitaste 目标线)
+const MAX_AGENT_RETRIES = 3; // 单个 agent 调用失败(网络/余额瞬时)重试上限
 
 function ch(n) {
 	return String(n).padStart(3, "0");
+}
+
+// ===== agent 调用统一重试包装(兜网络/余额/瞬时 API 失败) =====
+// Workflow 自带的 retry 用尽后会返回 null; 本包装在其上再加应用层重试, 仍失败才返回 null + 明确报错。
+async function callAgent(prompt, opts, retries = MAX_AGENT_RETRIES) {
+	const tag = (opts && opts.label) || "agent";
+	for (let i = 1; i <= retries; i++) {
+		try {
+			const r = await agent(prompt, opts);
+			if (r != null) return r;
+			log(`⚠️ ${tag} 返回 null(第${i}/${retries}次), 重试`);
+		} catch (e) {
+			log(`⚠️ ${tag} 调用异常: ${(e && e.message) || e}(第${i}/${retries}次), 重试`);
+		}
+	}
+	log(`❌ ${tag} 重试 ${retries} 次仍失败(网络/余额/API?), 放弃该 callAgent(返回 null)`);
+	return null;
 }
 
 // ===== 评分 =====
@@ -104,7 +122,7 @@ function chaptersToMap(arr) {
 }
 
 // ===== 前置: 路线图(schema 强制 agent 返回结构化 chapters, 不靠脆弱文本正则) =====
-// 返回 { num: info } map, 或 null(失败)。修复: agent() 无 schema 时返回的是 agent 最终文本(摘要),
+// 返回 { num: info } map, 或 null(失败)。修复: callAgent() 无 schema 时返回的是 agent 最终文本(摘要),
 // 不一定含 ### 第NNN章 标题 → 旧 parseRouteMap 正则匹配 0 → 静默跳过整批。改用 schema 拿结构化数据。
 async function ensureRouteMap(batchStart, batchEnd) {
 	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
@@ -113,7 +131,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 	// 1) 读已存在路线图(schema 强制结构化)
 	let res = null;
 	try {
-		res = await agent(
+		res = await callAgent(
 			`读取路线图文件 ${routeFile}。\n` +
 				`若文件存在: 解析其中每一章, 按 schema 返回 found=true + chapters 数组(每章含 num/title/event/change/foreshadow/hook/target)。\n` +
 				`若文件不存在: 返回 found=false + chapters 空数组。`,
@@ -132,7 +150,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 	for (let attempt = 1; attempt <= 2; attempt++) {
 		let gen = null;
 		try {
-			gen = await agent(
+			gen = await callAgent(
 				`目标: 为本小说生成第${ch(batchStart)}-${ch(batchEnd)}章路线图。\n\n` +
 					`先读取该小说的设定(不要凭空设计):\n` +
 					`- ${ROOT}/总览.md (题材/基调)\n` +
@@ -162,7 +180,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 // ===== 前置: 更新世界观(读小说自己的规则.md) =====
 async function updateWorldview(batchStart, batchEnd) {
 	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
-	return agent(
+	return callAgent(
 		`根据第${batchId}章路线图, 更新本小说世界观设定。\n\n` +
 			`读取: ${ROOT}/情节/第${batchId}章路线图.md、${ROOT}/世界观/规则.md、${ROOT}/世界观/_索引.md。\n\n` +
 			`任务:\n` +
@@ -178,7 +196,7 @@ async function updateWorldview(batchStart, batchEnd) {
 // ===== 前置: 一致性预检 =====
 async function preCheck(batchStart, batchEnd) {
 	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
-	return agent(
+	return callAgent(
 		`【预检模式】对第${batchId}章路线图做一致性预检(写正文前, 可直接改路线图消除冲突)。\n\n` +
 			`读取: ${ROOT}/情节/第${batchId}章路线图.md、${ROOT}/世界观/规则.md、${ROOT}/情节/主线.md、${ROOT}/情节/伏笔.md、${ROOT}/元数据/进度.md。\n\n` +
 			`检查项:\n` +
@@ -193,7 +211,7 @@ async function preCheck(batchStart, batchEnd) {
 async function writer(chNum, info) {
 	const num = ch(chNum);
 	const prevNum = ch(chNum - 1);
-	return agent(
+	return callAgent(
 		`你是小说写作员。职责: 只写正文, 不做其他。\n\n` +
 			`目标: 写第${num}章「${info.title}」正文, 约${info.target}字。\n\n` +
 			`四要素(来自路线图):\n` +
@@ -214,7 +232,7 @@ async function writer(chNum, info) {
 async function checker(chNum, title) {
 	const num = ch(chNum);
 	const file = `${CHAPTER_DIR}/第${num}章-${title}.md`;
-	return agent(
+	return callAgent(
 		`你是小说一致性检查员(只读, 只查一致性, 不管文字/风格)。\n\n` +
 			`读取: ${file}、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、${ROOT}/情节/伏笔.md、相关 人物/简介.md。\n\n` +
 			`方法: 引用 novelist-check skill 的六维一致性审查 + continuity-auditor 视角。\n` +
@@ -230,7 +248,7 @@ async function checker(chNum, title) {
 async function humanizer(chNum, title) {
 	const num = ch(chNum);
 	const file = `${CHAPTER_DIR}/第${num}章-${title}.md`;
-	return agent(
+	return callAgent(
 		`你是小说去AI味检测员(本阶段只检测AI味, 不改正文; 改由 fix 阶段做)。\n\n` +
 			`读取: ${file}\n\n` +
 			`引用 novelist-humanize skill 跑 score_aitaste.py 取客观人味分(只读不改正文)。\n\n` +
@@ -246,7 +264,7 @@ async function humanizer(chNum, title) {
 async function proofer(chNum, title) {
 	const num = ch(chNum);
 	const file = `${CHAPTER_DIR}/第${num}章-${title}.md`;
-	return agent(
+	return callAgent(
 		`你是小说校对检测员(本阶段只检测文字问题, 不改正文; 改由 fix 阶段做)。\n\n` +
 			`读取: ${file}\n\n` +
 			`方法: 引用 novelist-proofread skill 的文字校对清单。\n` +
@@ -270,21 +288,21 @@ async function fixer(chNum, title, checkResult, proofResult, humanResult) {
 	const fixers = [];
 	if (needsCheckFix)
 		fixers.push(() =>
-			agent(
+			callAgent(
 				`修复一致性问题。读 ${file}、${ROOT}/世界观/规则.md。\n问题: ${checkResult?.slice(0, 500)}\n只修冲突点, 不改风格。直接改文件。`,
 				{ label: `修一致:${num}`, phase: "修复", agentType: "novelist:chapter-writer" }
 			),
 		);
 	if (needsTextFix)
 		fixers.push(() =>
-			agent(
+			callAgent(
 				`修复文字硬伤。读 ${file}。\n问题: ${proofResult?.slice(0, 500)}\n只修硬伤, 不改风格。直接改文件。`,
 				{ label: `修文字:${num}`, phase: "修复", agentType: "novelist:proofreader" }
 			),
 		);
 	if (needsHumanFix)
 		fixers.push(() =>
-			agent(
+			callAgent(
 				`去 AI 味修复。读 ${file}。\n问题: ${humanResult?.slice(0, 500)}\n修匀质句长/陈词过渡/模板腔, 保持风格, 不动剧情。直接改文件。`,
 				{ label: `修AI味:${num}`, phase: "修复", agentType: "novelist:humanizer" }
 			),
@@ -307,7 +325,7 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 		cScore >= PASS_CONSISTENCY &&
 		hScore >= PASS_HUMANNESS;
 
-	await agent(
+	await callAgent(
 		`更新索引与进度。第${num}章「${title}」${passed ? "定稿" : "需复审"}(综合${total})。\n\n` +
 			`1. 读 ${INDEX_FILE}, 在表格末尾加一行:\n` +
 			`| 第${num}章 | ${title} | ~${"目标字数"} | ${passed ? "定稿" : "需复审"} | 综合${total}(一致${cScore}/文字${tScore}/人味${hScore}) |\n\n` +
@@ -363,7 +381,7 @@ async function unifiedCheck(chapterNums, chapters) {
 	const results = await parallel(
 		chapterNums.map(
 			(n) => () =>
-				agent(
+				callAgent(
 					`对第${ch(n)}章做最终全局一致性检查。\n\n` +
 						`读取: ${CHAPTER_DIR}/第${ch(n)}章-${chapters[n].title}.md、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、${ROOT}/情节/伏笔.md、${ROOT}/情节/主线.md。\n\n` +
 						`检查: 1.前后章衔接 2.伏笔与台账一致 3.人物性格一致 4.不违反规则.md 5.本批章节间无矛盾。\n\n` +

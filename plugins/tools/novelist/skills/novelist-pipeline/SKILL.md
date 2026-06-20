@@ -113,7 +113,7 @@ disable-model-invocation: true
 | 路线图生成/解析失败(schema 返回 chapters 为空) | 重试 1 次 | 仍失败 → ❌ 明确报错跳过本批(非静默), 回报用户 |
 | 多 workflow 冲突 | 立即停掉旧 workflow | 无法停 → 等结束后手动修索引 |
 | 索引/进度被污染 | 对照章节目录重建 | 无法重建 → 回报用户 |
-| agent 返回 null/异常 | 重试该 agent | 仍异常 → 标该章需人工 |
+| agent 调用失败(网络/余额/瞬时 API) | `callAgent` 包装自动重试 ≤3 次(`MAX_AGENT_RETRIES`) | 重试耗尽 → log ❌ 返回 null, 下游按缺省/标该章需人工 |
 | 无 Workflow 工具(非 Claude Code) | 退化: 用 `novelist-write` 逐章手动循环 | 同样走每章收尾链 |
 
 ## 🔴 检查点
