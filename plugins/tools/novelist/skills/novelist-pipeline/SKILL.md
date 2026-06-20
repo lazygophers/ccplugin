@@ -48,7 +48,7 @@ disable-model-invocation: true
    第N章:  write → check → humanize → proofread → 评分
                                           │
                   达标 ──────────────────→ finalize(定稿+索引+进度)
-                  不足 ──→ fix → 重走 check→humanize→proofread (循环 ≤2 次)
+                  不足 ──→ fix → 重走 check→humanize→proofread (循环 ≤10 次)
                                           │
                         🔴 定稿完成 ──→ 第 N+1 章 write
                                   │
@@ -76,7 +76,7 @@ disable-model-invocation: true
 | 5 | Fixer | 对应环 agent | 按三环结果只修问题点(分数不足触发) | 不改风格/不重写 |
 | 6 | Finalizer | 索引更新 | 更新索引 + 同步事实源 → 才进下一章 | 不修复/不重写 |
 
-Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤2 次(`MAX_FIX_ATTEMPTS`)。**本章 Finalizer 定稿后才开始下一章 Writer。**
+Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤10 次(`MAX_FIX_ATTEMPTS`)。**本章 Finalizer 定稿后才开始下一章 Writer。**
 
 **文风**: Writer 写前必引用 `novelist-craft` 按题材+本章性质取叙事镜片。
 **事实源**: 人物/世界观变更引用 `novelist-character`/`novelist-worldview` 回写。
@@ -102,7 +102,7 @@ Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤2 次(`MA
 
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
-| 综合分 <85(分项不足) | 退回最弱环修复重跑 | 连续 2 次不过 → 标「需复审」回报; 仍低 → 人工 |
+| 综合分 <85(分项不足) | 退回最弱环修复重跑 | 连续 10 次不过 → 标「需复审」回报; 仍低 → 人工 |
 | 一致性有冲突 | `novelist-check` 定位 → `novelist-rewrite` 修 | 冲突来自设定 → 先改设定再改正文 |
 | 路线图生成失败 | 重试 1 次 | 仍失败 → 跳过本批, 回报用户 |
 | 多 workflow 冲突 | 立即停掉旧 workflow | 无法停 → 等结束后手动修索引 |
@@ -119,7 +119,7 @@ Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤2 次(`MA
 ## 串行约束(硬性)
 
 - 🔴 **逐章严格串行**: 第 N 章必须**完整定稿**(走完 write→check→humanize→proofread→fix→finalize)才开始第 N+1 章。**禁前一章未定稿就写下一章**——章节强依赖前文定稿状态。
-- 收尾链 check→humanize→proofread **顺序串行**(后环依赖前环修复结果); fix 后重走收尾链(循环 ≤2 次)。
+- 收尾链 check→humanize→proofread **顺序串行**(后环依赖前环修复结果); fix 后重走收尾链(循环 ≤10 次)。
 - 仅后置统一 check 全批并行(只读, 不改文件)。
 - 禁止多个 pipeline 同时运行。
 - 每批最多 5 章(`BATCH_SIZE=5`; 超过则内部自动分批; 批内仍逐章串行)。

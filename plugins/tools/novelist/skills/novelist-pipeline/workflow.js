@@ -24,7 +24,7 @@ const INDEX_FILE = `${ROOT}/章节/_索引.md`
 
 // ===== 可调常量(对齐 novelist 插件评分门控) =====
 const BATCH_SIZE = 5             // 每批最多章数, 超出自动分批
-const MAX_FIX_ATTEMPTS = 2       // fix 最大重试
+const MAX_FIX_ATTEMPTS = 10      // fix 最大重试
 const PASS_TOTAL = 85            // 定稿综合分阈值
 const PASS_CONSISTENCY = 85      // 一致性单项阈值
 const PASS_HUMANNESS = 70        // 人味单项阈值(对齐 score_aitaste 目标线)
