@@ -1,7 +1,7 @@
 export const meta = {
 	name: "novelist-pipeline",
 	description:
-		"逐章串行批量写小说: 前置(路线图→世界观→预检)→逐章(write→check→humanize→proofread→fix循环→定稿, 前章定稿才写下一章)→统一检查。root 与设定全部参数化/从小说文件读, 不硬编码任何小说。",
+		"逐章串行批量写小说: 前置(路线图→世界观→预检)→逐章(write→三环并行检测(check/humanize/proofread)→fix串行改→定稿, 前章定稿才写下一章)→统一检查。root 与设定全部参数化/从小说文件读, 不硬编码任何小说。",
 	phases: [
 		{ title: "路线图", detail: "生成/读取本批章节路线图(outliner)" },
 		{ title: "世界观", detail: "更新本批涉及的设定/人物(worldbuilder)" },
@@ -42,6 +42,29 @@ const PASS_HUMANNESS = 70; // 人味单项阈值(对齐 score_aitaste 目标线)
 
 function ch(n) {
 	return String(n).padStart(3, "0");
+}
+
+// ===== 异步队列(write 流 → 检测定稿流, 阶段间流水线并行) =====
+// pop() 队列空时等待; close() 后返回 null 让消费者退出
+function createQueue() {
+	const items = [];
+	const waiters = [];
+	let closed = false;
+	return {
+		push(item) {
+			items.push(item);
+			if (waiters.length) waiters.shift()();
+		},
+		pop() {
+			if (items.length) return Promise.resolve(items.shift());
+			if (closed) return Promise.resolve(null);
+			return new Promise((resolve) => waiters.push(resolve));
+		},
+		close() {
+			closed = true;
+			while (waiters.length) waiters.shift()();
+		},
+	};
 }
 
 // ===== 评分 =====
@@ -231,13 +254,13 @@ async function humanizer(chNum, title) {
 	const num = ch(chNum);
 	const file = `${CHAPTER_DIR}/第${num}章-${title}.md`;
 	return agent(
-		`你是小说去AI味员(只查/改 AI 味, 不管一致性/错别字, 不动剧情)。\n\n` +
+		`你是小说去AI味检测员(本阶段只检测AI味, 不改正文; 改由 fix 阶段做)。\n\n` +
 			`读取: ${file}\n\n` +
-			`引用 novelist-humanize skill 去味并取客观人味分(它会自行定位 score_aitaste.py 脚本 + 接力外部 humanizer)。\n\n` +
-			`检查项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
-			`5.否定式排比(不是A而是B) 6.过度总结。命中则就地改(保持风格, 不动剧情)。\n\n` +
-			`命中处就地改正文, 并把去AI味报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(改动清单), 再按下方格式返回评分。\n\n` +
-			`输出格式:\n人味评分: 0-100(100=完全人写, ≥${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 改后(如有)`,
+			`引用 novelist-humanize skill 跑 score_aitaste.py 取客观人味分(只读不改正文)。\n\n` +
+			`检测项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
+			`5.否定式排比(不是A而是B) 6.过度总结。\n\n` +
+			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做, 避免三环并行写冲突)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(问题清单), 再按下方格式返回评分。\n\n` +
+			`输出格式:\n人味评分: 0-100(100=完全人写, ≥${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `去AI味:${num}`, phase: "去AI味", agentType: "novelist:humanizer" }
 	);
 }
@@ -247,12 +270,12 @@ async function proofer(chNum, title) {
 	const num = ch(chNum);
 	const file = `${CHAPTER_DIR}/第${num}章-${title}.md`;
 	return agent(
-		`你是小说校对员(只校文字, 不管一致性/AI味, 不动剧情)。\n\n` +
+		`你是小说校对检测员(本阶段只检测文字问题, 不改正文; 改由 fix 阶段做)。\n\n` +
 			`读取: ${file}\n\n` +
 			`方法: 引用 novelist-proofread skill 的文字校对清单。\n` +
     `检查项: 1.错别字 2.语法 3.标点 4.用词准确 5.逻辑矛盾(前后自相矛盾)。\n\n` +
-			`先把校对报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(问题清单), 再按下方格式返回评分。\n\n` +
-			`输出格式:\n评分: 0-100(100=无任何文字问题)\n问题清单: [行号] 原文 → 改后(如有)`,
+			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(问题清单), 再按下方格式返回评分。\n\n` +
+			`输出格式:\n评分: 0-100(100=无任何文字问题)\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `校对:${num}`, phase: "校对", agentType: "novelist:proofreader" }
 	);
 }
@@ -290,7 +313,8 @@ async function fixer(chNum, title, checkResult, proofResult, humanResult) {
 			),
 		);
 
-	if (fixers.length) await parallel(fixers);
+	// 🔴 串行执行: 三个 fix 都改同一章文件, 并行会写冲突, 必须一个改完再下一个
+	for (const f of fixers) await f();
 }
 
 // ===== Finalizer(只更新索引/进度, 串行) =====
@@ -373,61 +397,69 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 	await updateWorldview(batchStart, batchEnd);
 	await preCheck(batchStart, batchEnd);
 
-	// Phase 2: 逐章严格串行 —— 🔴 前一章定稿后才写下一章
-	// (小说章节强依赖前文: 第N+1章 write 需要第N章已定稿的人物关系/伏笔/状态, 不能基于草稿开写)
-	for (const n of chapterNums) {
-		const info = chapters[n];
-		// 1) 写正文
-		log(`第${ch(n)}章 Writer 开始`);
-		await writer(n, info);
+	// Phase 2: 两流水线并行 —— write 流 ‖ 检测定稿流
+	// write 流逐章串行(第N+1章 write 读第N章草稿); 检测定稿流逐章串行(共享索引/进度)。
+	// 两流并行: 第N章在收尾链(检测/fix/定稿)时, 第N+1章已在 write —— 用 throughput 换"基于草稿写下一章"的小风险。
+	const finishQueue = createQueue();
 
-		// 2) 收尾链 + fix 循环(每章自己跑完才算数)
-		let checkResult,
-			humanResult,
-			proofResult,
-			attempts = 0;
-		while (true) {
-			checkResult = await checker(n, info.title); // 一致性
-			humanResult = await humanizer(n, info.title); // 去AI味
-			proofResult = await proofer(n, info.title); // 校对
-			const { cScore, tScore, hScore, total } = computeScores(
-				checkResult,
-				proofResult,
-				humanResult,
-			);
-			log(
-				`第${ch(n)}章评分: 一致${cScore} 文字${tScore} 人味${hScore} 综合${total}(第${attempts}次)`,
-			);
-			const passed =
-				total >= PASS_TOTAL &&
-				cScore >= PASS_CONSISTENCY &&
-				hScore >= PASS_HUMANNESS;
-			if (passed || attempts >= MAX_FIX_ATTEMPTS) {
-				if (!passed)
-					log(
-						`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`,
-					);
-				break;
-			}
-			log(`第${ch(n)}章 分数不足, 执行 fix(第${attempts + 1}次)`);
-			await fixer(n, info.title, checkResult, proofResult, humanResult);
-			attempts++;
+	// 消费者A: Writer 流(逐章串行写, 写完即推入检测定稿流, 不等收尾)
+	async function writeConsumer() {
+		for (const n of chapterNums) {
+			log(`第${ch(n)}章 Writer 开始`);
+			await writer(n, chapters[n]);
+			log(`第${ch(n)}章 Writer 完成 → 推入收尾(同时开写下一章)`);
+			finishQueue.push(n);
 		}
-
-		// 3) 定稿(更新索引+进度) —— 🔴 定稿完成才进下一章
-		const r = await finalizer(
-			n,
-			info.title,
-			checkResult,
-			proofResult,
-			humanResult,
-		);
-		allResults.push(r);
-		log(
-			`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分) → 进入下一章`,
-		);
+		finishQueue.close();
 	}
-	log(`批次 ${batchId} 逐章串行完成`);
+
+	// 消费者B: 检测定稿流(逐章串行: 三环并行检测 → fix 串行改 → 定稿)
+	async function finishConsumer() {
+		while (true) {
+			const n = await finishQueue.pop();
+			if (n === null) break;
+			const info = chapters[n];
+			let checkResult,
+				humanResult,
+				proofResult,
+				attempts = 0;
+			while (true) {
+				// 🔴 三环并行检测(查一致/去AI味/校对正交, 均只读不改正文 → 无写冲突, 可并行)
+				[checkResult, humanResult, proofResult] = await parallel([
+					() => checker(n, info.title), // 一致性
+					() => humanizer(n, info.title), // 去AI味
+					() => proofer(n, info.title), // 校对
+				]);
+				const { cScore, tScore, hScore, total } = computeScores(
+					checkResult,
+					proofResult,
+					humanResult,
+				);
+				log(
+					`第${ch(n)}章评分: 一致${cScore} 文字${tScore} 人味${hScore} 综合${total}(第${attempts}次)`,
+				);
+				const passed =
+					total >= PASS_TOTAL &&
+					cScore >= PASS_CONSISTENCY &&
+					hScore >= PASS_HUMANNESS;
+				if (passed || attempts >= MAX_FIX_ATTEMPTS) {
+					if (!passed)
+						log(`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`);
+					break;
+				}
+				log(`第${ch(n)}章 分数不足, 执行 fix(第${attempts + 1}次)`);
+				await fixer(n, info.title, checkResult, proofResult, humanResult);
+				attempts++;
+			}
+			const r = await finalizer(n, info.title, checkResult, proofResult, humanResult);
+			allResults.push(r);
+			log(`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分)`);
+		}
+	}
+
+	// 两流并行运行
+	await Promise.all([writeConsumer(), finishConsumer()]);
+	log(`批次 ${batchId} 流水线(write ‖ 检测定稿)完成`);
 
 	// Phase 3: 后置(统一检查)
 	await unifiedCheck(chapterNums, chapters);
