@@ -40,6 +40,8 @@ const PASS_TOTAL = 85; // 定稿综合分阈值
 const PASS_CONSISTENCY = 85; // 一致性单项阈值
 const PASS_HUMANNESS = 70; // 人味单项阈值(对齐 score_aitaste 目标线)
 const MAX_AGENT_RETRIES = 3; // 单个 agent 调用失败(网络/余额瞬时)重试上限
+const EST_SEC_PER_AGENT = 30; // 单 agent 调用预估耗时(秒, 仅粗估; Workflow 禁 Date.now 无法实测)
+let AGENT_CALLS = 0; // 全局 agent 实际调用计数(含重试), 用于整体耗时预估
 
 function ch(n) {
 	return String(n).padStart(3, "0");
@@ -51,6 +53,7 @@ async function callAgent(prompt, opts, retries = MAX_AGENT_RETRIES) {
 	const tag = (opts && opts.label) || "agent";
 	for (let i = 1; i <= retries; i++) {
 		try {
+			AGENT_CALLS++;
 			const r = await agent(prompt, opts);
 			if (r != null) return r;
 			log(`⚠️ ${tag} 返回 null(第${i}/${retries}次), 重试`);
@@ -371,6 +374,8 @@ async function finishChain(n, info) {
 		attempts++;
 	}
 	const r = await finalizer(n, info.title, checkResult, proofResult, humanResult);
+	r.attempts = attempts;
+	r.estCalls = 2 + 3 * (attempts + 1) + 2 * attempts; // write+final + 三环×(轮数+1) + fix估
 	allResults.push(r);
 	log(`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分)`);
 }
@@ -461,14 +466,35 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 	await unifiedCheck(chapterNums, chapters);
 }
 
-// 汇总
+// ===== 汇总: 每章明细 + 整体评分 + 预估耗时(非实测) =====
 const passed = allResults.filter((r) => r.passed);
 const failed = allResults.filter((r) => !r.passed);
-log(`\n===== 流水线完成 =====`);
-log(`定稿: ${passed.length}章 | 需复审: ${failed.length}章`);
-if (failed.length)
-	log(
-		`复审章节: ${failed.map((r) => `第${r.chapter}章(${r.total}分)`).join(", ")}`,
-	);
+const N = allResults.length || 1;
+const avg = (k) => Math.round((allResults.reduce((s, r) => s + (r[k] || 0), 0) / N) * 10) / 10;
+const fmtMin = (sec) => `${sec}s(≈${Math.round((sec / 60) * 10) / 10}分)`;
 
-return { results: allResults, passed: passed.length, failed: failed.length };
+log(`\n===== 流水线完成 =====`);
+log(`章数: ${allResults.length} | 定稿: ${passed.length} | 需复审: ${failed.length} | 定稿率 ${Math.round((passed.length / N) * 100)}%`);
+log(`平均分: 综合${avg("total")} (一致${avg("cScore")} / 文字${avg("tScore")} / 人味${avg("hScore")})`);
+log(`agent 总调用 ${AGENT_CALLS} 次 | 整体预估耗时 ≈ ${fmtMin(AGENT_CALLS * EST_SEC_PER_AGENT)} (粗估: 调用数×${EST_SEC_PER_AGENT}s, 非实测——Workflow 禁 Date.now)`);
+
+log(`\n每章明细:`);
+for (const r of allResults) {
+	log(
+		`  第${r.chapter}章「${r.title}」` +
+			`综合${r.total}(一致${r.cScore}/文字${r.tScore}/人味${r.hScore}) ` +
+			`fix${r.attempts || 0}轮 ${r.passed ? "✅定稿" : "⚠️需复审"} ` +
+			`预估≈${fmtMin((r.estCalls || 0) * EST_SEC_PER_AGENT)}`,
+	);
+}
+if (failed.length)
+	log(`\n复审章节: ${failed.map((r) => `第${r.chapter}章(${r.total}分)`).join(", ")}`);
+
+return {
+	results: allResults,
+	passed: passed.length,
+	failed: failed.length,
+	avgTotal: avg("total"),
+	agentCalls: AGENT_CALLS,
+	estSeconds: AGENT_CALLS * EST_SEC_PER_AGENT,
+};
