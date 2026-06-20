@@ -55,79 +55,104 @@ function computeScores(checkResult, proofResult, humanResult) {
 	return { cScore, tScore, hScore, total };
 }
 
-// ===== 前置: 路线图(读小说自己的大纲/主线/伏笔, 不写死任何设定) =====
+// ===== 路线图章节结构化 schema(强制 agent 返回结构, 不靠文本正则) =====
+const ROUTE_SCHEMA = {
+	type: "object",
+	properties: {
+		found: { type: "boolean", description: "路线图文件读取时是否已存在" },
+		chapters: {
+			type: "array",
+			description: "每章结构化数据",
+			items: {
+				type: "object",
+				properties: {
+					num: { type: "integer", description: "章节号" },
+					title: { type: "string" },
+					event: { type: "string", description: "核心事件" },
+					change: { type: "string", description: "人物变化" },
+					foreshadow: { type: "string", description: "伏笔推进" },
+					hook: { type: "string", description: "收尾钩子" },
+					target: { type: "integer", description: "字数目标" },
+				},
+				required: ["num", "title"],
+			},
+		},
+	},
+	required: ["chapters"],
+};
+
+function chaptersToMap(arr) {
+	const m = {};
+	if (!Array.isArray(arr)) return m;
+	for (const c of arr) {
+		const num = parseInt(c?.num);
+		if (!Number.isInteger(num)) continue;
+		m[num] = {
+			title: c.title || `第${ch(num)}章`,
+			event: c.event || "",
+			change: c.change || "",
+			foreshadow: c.foreshadow || "",
+			hook: c.hook || "待定",
+			target: parseInt(c.target) || 3000,
+		};
+	}
+	return m;
+}
+
+// ===== 前置: 路线图(schema 强制 agent 返回结构化 chapters, 不靠脆弱文本正则) =====
+// 返回 { num: info } map, 或 null(失败)。修复: agent() 无 schema 时返回的是 agent 最终文本(摘要),
+// 不一定含 ### 第NNN章 标题 → 旧 parseRouteMap 正则匹配 0 → 静默跳过整批。改用 schema 拿结构化数据。
 async function ensureRouteMap(batchStart, batchEnd) {
 	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
 	const routeFile = `${ROOT}/情节/第${batchId}章路线图.md`;
 
-	let existing = null;
+	// 1) 读已存在路线图(schema 强制结构化)
+	let res = null;
 	try {
-		existing = await agent(
-			`读取 ${routeFile}。文件存在则返回全部内容; 不存在则返回 "NOT_FOUND"。`,
-			{ label: `路线图查:${batchId}`, phase: "大纲", agentType: "novelist:outliner" },
+		res = await agent(
+			`读取路线图文件 ${routeFile}。\n` +
+				`若文件存在: 解析其中每一章, 按 schema 返回 found=true + chapters 数组(每章含 num/title/event/change/foreshadow/hook/target)。\n` +
+				`若文件不存在: 返回 found=false + chapters 空数组。`,
+			{ label: `路线图查:${batchId}`, phase: "大纲", agentType: "novelist:outliner", schema: ROUTE_SCHEMA },
 		);
 	} catch (e) {
-		log(`路线文件读取失败: ${e.message}`);
+		log(`路线图读取异常: ${e.message}`);
+	}
+	if (res && res.found && Array.isArray(res.chapters) && res.chapters.length) {
+		log(`路线图 ${batchId} 已存在(${res.chapters.length}章), 直接使用`);
+		return chaptersToMap(res.chapters);
 	}
 
-	if (
-		existing &&
-		typeof existing === "string" &&
-		!existing.includes("NOT_FOUND")
-	) {
-		log(`路线图 ${batchId} 已存在, 直接使用`);
-		return existing;
-	}
-
+	// 2) 不存在 → 生成 + 结构化返回(双产出: 写文件 + 返回 chapters)
 	log(`生成路线图 ${batchId}`);
-	let routeMap = null;
 	for (let attempt = 1; attempt <= 2; attempt++) {
-		routeMap = await agent(
-			`目标: 为本小说生成第${ch(batchStart)}-${ch(batchEnd)}章路线图。\n\n` +
-				`先读取该小说的设定(不要凭空设计):\n` +
-				`- ${ROOT}/总览.md (题材/基调)\n` +
-				`- ${ROOT}/大纲/总纲.md + ${ROOT}/大纲/分卷.md (核心冲突/结局/分卷结构)\n` +
-				`- ${ROOT}/情节/主线.md + ${ROOT}/情节/伏笔.md (主线节点/伏笔台账)\n` +
-				`- ${ROOT}/元数据/进度.md (上一章状态, 衔接点)\n\n` +
-				`方法: 引用 novelist-outline skill 的大纲/情节编排方法。\n` +
-      `输出格式(每章一块):\n` +
-				`### 第NNN章：标题\n` +
-				`- 核心事件：...\n- 人物变化：...\n- 伏笔推进：...\n- 收尾钩子：...\n- 字数目标：~NNNN字\n\n` +
-				`验收: 与主线表对齐, 伏笔位与伏笔表一致。\n` +
-				`写入文件: ${routeFile}`,
-			{ label: `路线图:${batchId}`, phase: "大纲", agentType: "novelist:outliner" },
-		);
-		if (routeMap) break;
-		log(`路线图生成失败, 重试 ${attempt}/2`);
+		let gen = null;
+		try {
+			gen = await agent(
+				`目标: 为本小说生成第${ch(batchStart)}-${ch(batchEnd)}章路线图。\n\n` +
+					`先读取该小说的设定(不要凭空设计):\n` +
+					`- ${ROOT}/总览.md (题材/基调)\n` +
+					`- ${ROOT}/大纲/总纲.md + ${ROOT}/大纲/分卷.md (核心冲突/结局/分卷结构)\n` +
+					`- ${ROOT}/情节/主线.md + ${ROOT}/情节/伏笔.md (主线节点/伏笔台账)\n` +
+					`- ${ROOT}/元数据/进度.md (上一章状态, 衔接点)\n\n` +
+					`方法: 引用 novelist-outline skill 的大纲/情节编排方法。\n\n` +
+					`双重产出(都要):\n` +
+					`(a) 写入文件 ${routeFile}: markdown, 每章一块「### 第NNN章：标题」+ 核心事件/人物变化/伏笔推进/收尾钩子/字数目标。\n` +
+					`(b) 同时按 schema 返回 chapters 数组(num/title/event/change/foreshadow/hook/target), 内容与文件一致。\n\n` +
+					`验收: 与主线表对齐, 伏笔位与伏笔表一致, chapters 覆盖第${ch(batchStart)}-${ch(batchEnd)}章。`,
+				{ label: `路线图:${batchId}`, phase: "大纲", agentType: "novelist:outliner", schema: ROUTE_SCHEMA },
+			);
+		} catch (e) {
+			log(`路线图生成异常: ${e.message}`);
+		}
+		if (gen && Array.isArray(gen.chapters) && gen.chapters.length) {
+			log(`路线图 ${batchId} 生成(${gen.chapters.length}章)`);
+			return chaptersToMap(gen.chapters);
+		}
+		log(`⚠️ 路线图 ${batchId} 第${attempt}/2 次返回 chapters 为空, 重试`);
 	}
-	if (!routeMap) {
-		log(`⚠️ 路线图 ${batchId} 生成失败, 跳过本批`);
-		return null;
-	}
-	return routeMap;
-}
-
-function parseRouteMap(routeText) {
-	const chapters = {};
-	if (!routeText || typeof routeText !== "string") {
-		log("⚠️ 路线图为空, 无法解析");
-		return chapters;
-	}
-	const blocks = routeText.split(/#{2,3}\s*第(\d+)章/);
-	for (let i = 1; i < blocks.length; i += 2) {
-		const num = parseInt(blocks[i]);
-		const block = blocks[i + 1] || "";
-		const title = block.match(/：(.+)/)?.[1]?.trim() || `第${ch(num)}章`;
-		const hook = block.match(/收尾钩子[：:]\s*(.+)/)?.[1]?.trim() || "待定";
-		const event = block.match(/核心事件[：:]\s*(.+)/)?.[1]?.trim() || "";
-		const change = block.match(/人物变化[：:]\s*(.+)/)?.[1]?.trim() || "";
-		const foreshadow =
-			block.match(/伏笔推进[：:]\s*(.+)/)?.[1]?.trim() || "";
-		const target =
-			parseInt(block.match(/字数目标[：:]\s*~?(\d+)/)?.[1]) || 3000;
-		chapters[num] = { title, hook, event, change, foreshadow, target };
-	}
-	return chapters;
+	log(`❌ 路线图 ${batchId} 生成/解析失败(chapters 始终为空), 跳过本批`);
+	return null;
 }
 
 // ===== 前置: 更新世界观(读小说自己的规则.md) =====
@@ -191,6 +216,7 @@ async function checker(chNum, title) {
 			`方法: 引用 novelist-check skill 的六维一致性审查 + continuity-auditor 视角。\n` +
     `检查项: 1.世界观/力量规则是否被违反 2.人物性格是否一致 3.伏笔推进是否合理 ` +
 			`4.与前章衔接是否连贯 5.时间线是否错乱。\n\n` +
+			`先把检查报告写入 ${ROOT}/元数据/检查报告/第${num}章.md(含结论/评分/六维问题清单), 再按下方格式返回结论。\n\n` +
 			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=完美一致)\n问题清单: [行号] 问题(如有)`,
 		{ label: `查一致:${num}`, phase: "写作", agentType: "novelist:continuity-auditor" }
 	);
@@ -206,6 +232,7 @@ async function humanizer(chNum, title) {
 			`引用 novelist-humanize skill 去味并取客观人味分(它会自行定位 score_aitaste.py 脚本 + 接力外部 humanizer)。\n\n` +
 			`检查项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
 			`5.否定式排比(不是A而是B) 6.过度总结。命中则就地改(保持风格, 不动剧情)。\n\n` +
+			`命中处就地改正文, 并把去AI味报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(改动清单), 再按下方格式返回评分。\n\n` +
 			`输出格式:\n人味评分: 0-100(100=完全人写, ≥${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 改后(如有)`,
 		{ label: `去AI味:${num}`, phase: "写作", agentType: "novelist:humanizer" }
 	);
@@ -220,6 +247,7 @@ async function proofer(chNum, title) {
 			`读取: ${file}\n\n` +
 			`方法: 引用 novelist-proofread skill 的文字校对清单。\n` +
     `检查项: 1.错别字 2.语法 3.标点 4.用词准确 5.逻辑矛盾(前后自相矛盾)。\n\n` +
+			`先把校对报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(问题清单), 再按下方格式返回评分。\n\n` +
 			`输出格式:\n评分: 0-100(100=无任何文字问题)\n问题清单: [行号] 原文 → 改后(如有)`,
 		{ label: `校对:${num}`, phase: "写作", agentType: "novelist:proofreader" }
 	);
@@ -295,7 +323,7 @@ async function unifiedCheck(chapterNums, chapters) {
 					`对第${ch(n)}章做最终全局一致性检查。\n\n` +
 						`读取: ${CHAPTER_DIR}/第${ch(n)}章-${chapters[n].title}.md、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、${ROOT}/情节/伏笔.md、${ROOT}/情节/主线.md。\n\n` +
 						`检查: 1.前后章衔接 2.伏笔与台账一致 3.人物性格一致 4.不违反规则.md 5.本批章节间无矛盾。\n\n` +
-						`输出: 通过 / 有冲突(附问题清单)`,
+						`先把统一检查报告写入 ${ROOT}/元数据/检查报告/统一-第${ch(n)}章.md, 再返回。\n输出: 通过 / 有冲突(附问题清单)`,
 					{
 						label: `统一检查:${ch(n)}`,
 						phase: "审查",
@@ -327,17 +355,16 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 
 	// Phase 1: 大纲(串行)
 	phase("大纲");
-	const routeText = await ensureRouteMap(batchStart, batchEnd);
-	if (!routeText) {
-		log(`⚠️ 批次 ${batchId} 路线图缺失, 跳过`);
+	const chapters = await ensureRouteMap(batchStart, batchEnd);
+	if (!chapters) {
+		log(`⚠️ 批次 ${batchId} 路线图缺失(生成/解析失败), 跳过`);
 		continue;
 	}
-	const chapters = parseRouteMap(routeText);
 	const chapterNums = Object.keys(chapters)
 		.map(Number)
 		.filter((n) => n >= batchStart && n <= batchEnd);
 	if (chapterNums.length === 0) {
-		log(`⚠️ 批次 ${batchId} 无章节信息, 跳过`);
+		log(`⚠️ 批次 ${batchId} 路线图无第${batchStart}-${batchEnd}章数据, 跳过`);
 		continue;
 	}
 	await updateWorldview(batchStart, batchEnd);

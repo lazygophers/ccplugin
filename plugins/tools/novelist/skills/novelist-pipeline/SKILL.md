@@ -106,7 +106,7 @@ Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤10 次(`M
 |---|---|---|
 | 综合分 <85(分项不足) | 退回最弱环修复重跑 | 连续 10 次不过 → 标「需复审」回报; 仍低 → 人工 |
 | 一致性有冲突 | `novelist-check` 定位 → `novelist-rewrite` 修 | 冲突来自设定 → 先改设定再改正文 |
-| 路线图生成失败 | 重试 1 次 | 仍失败 → 跳过本批, 回报用户 |
+| 路线图生成/解析失败(schema 返回 chapters 为空) | 重试 1 次 | 仍失败 → ❌ 明确报错跳过本批(非静默), 回报用户 |
 | 多 workflow 冲突 | 立即停掉旧 workflow | 无法停 → 等结束后手动修索引 |
 | 索引/进度被污染 | 对照章节目录重建 | 无法重建 → 回报用户 |
 | agent 返回 null/异常 | 重试该 agent | 仍异常 → 标该章需人工 |
@@ -149,6 +149,10 @@ Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤10 次(`M
 | 路线图 | `情节/第NNN-NNN章路线图.md` |
 | 世界观硬约束 | `世界观/规则.md` |
 | 伏笔台账 | `情节/伏笔.md` |
+| 一致性检查报告 | `元数据/检查报告/第NNN章.md`(checker 每章写) |
+| 统一检查报告 | `元数据/检查报告/统一-第NNN章.md`(unified 写) |
+| 校对报告 | `元数据/校对报告/第NNN章.md`(proofer 每章写) |
+| 去AI味报告 | `元数据/校对报告/第NNN章-deaigc.md`(humanizer 每章写) |
 | workflow 脚本 | `${CLAUDE_PLUGIN_ROOT}/skills/novelist-pipeline/workflow.js` |
 
 > 与 `novelist-write`(单章一站式)互补: write 是逐章入口, pipeline 是多章流水线批量。两者都走每章收尾链 + 评分门控, 共用 novelist 系列 skill/agent。
