@@ -64,7 +64,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 	try {
 		existing = await agent(
 			`读取 ${routeFile}。文件存在则返回全部内容; 不存在则返回 "NOT_FOUND"。`,
-			{ label: `路线图查:${batchId}`, phase: "大纲", agentType: "outliner" },
+			{ label: `路线图查:${batchId}`, phase: "大纲", agentType: "novelist:outliner" },
 		);
 	} catch (e) {
 		log(`路线文件读取失败: ${e.message}`);
@@ -95,7 +95,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 				`- 核心事件：...\n- 人物变化：...\n- 伏笔推进：...\n- 收尾钩子：...\n- 字数目标：~NNNN字\n\n` +
 				`验收: 与主线表对齐, 伏笔位与伏笔表一致。\n` +
 				`写入文件: ${routeFile}`,
-			{ label: `路线图:${batchId}`, phase: "大纲", agentType: "outliner" },
+			{ label: `路线图:${batchId}`, phase: "大纲", agentType: "novelist:outliner" },
 		);
 		if (routeMap) break;
 		log(`路线图生成失败, 重试 ${attempt}/2`);
@@ -142,7 +142,7 @@ async function updateWorldview(batchStart, batchEnd) {
 			`3. 新设定不得与现有 规则.md 硬约束冲突(力量体系边界与代价)\n` +
 			`4. 有新人物 → 在 人物/<名>/ 建 简介.md/经历.md/关系.md 三件套\n\n` +
 			`直接改文件。无新元素返回"无需更新"。`,
-		{ label: `世界观:${batchId}`, phase: "大纲", agentType: "worldbuilder" },
+		{ label: `世界观:${batchId}`, phase: "大纲", agentType: "novelist:worldbuilder" },
 	);
 }
 
@@ -156,7 +156,7 @@ async function preCheck(batchStart, batchEnd) {
 			`1. 路线图与主线表对齐\n2. 伏笔推进与伏笔台账一致\n3. 与进度.md 最后一章衔接连续\n` +
 			`4. 不违反 规则.md 硬约束\n5. 人物行为符合 人物/简介.md\n\n` +
 			`输出: 通过 / 有冲突(附问题清单)。有冲突则直接改路线图文件消除。`,
-		{ label: `预检:${batchId}`, phase: "大纲", agentType: "prechecker" },
+		{ label: `预检:${batchId}`, phase: "大纲", agentType: "novelist:prechecker" },
 	);
 }
 
@@ -177,7 +177,7 @@ async function writer(chNum, info) {
 			`文风: 引用 novelist-craft 按题材(读 ${ROOT}/总览.md)取叙事镜片; 人物言行查 novelist-character, 设定守 novelist-worldview。\n\n` +
 			`输出: 直接写到 ${CHAPTER_DIR}/第${num}章-${info.title}.md\n` +
 			`验收: 不违反 规则.md, 字数±500。失败缺设定标「需要:」回传。`,
-		{ label: `写作:${num}`, phase: "写作", agentType: "chapter-writer" }
+		{ label: `写作:${num}`, phase: "写作", agentType: "novelist:chapter-writer" }
 	);
 }
 
@@ -192,7 +192,7 @@ async function checker(chNum, title) {
     `检查项: 1.世界观/力量规则是否被违反 2.人物性格是否一致 3.伏笔推进是否合理 ` +
 			`4.与前章衔接是否连贯 5.时间线是否错乱。\n\n` +
 			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=完美一致)\n问题清单: [行号] 问题(如有)`,
-		{ label: `查一致:${num}`, phase: "写作", agentType: "continuity-auditor" }
+		{ label: `查一致:${num}`, phase: "写作", agentType: "novelist:continuity-auditor" }
 	);
 }
 
@@ -207,7 +207,7 @@ async function humanizer(chNum, title) {
 			`检查项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
 			`5.否定式排比(不是A而是B) 6.过度总结。命中则就地改(保持风格, 不动剧情)。\n\n` +
 			`输出格式:\n人味评分: 0-100(100=完全人写, ≥${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 改后(如有)`,
-		{ label: `去AI味:${num}`, phase: "写作", agentType: "humanizer" }
+		{ label: `去AI味:${num}`, phase: "写作", agentType: "novelist:humanizer" }
 	);
 }
 
@@ -221,7 +221,7 @@ async function proofer(chNum, title) {
 			`方法: 引用 novelist-proofread skill 的文字校对清单。\n` +
     `检查项: 1.错别字 2.语法 3.标点 4.用词准确 5.逻辑矛盾(前后自相矛盾)。\n\n` +
 			`输出格式:\n评分: 0-100(100=无任何文字问题)\n问题清单: [行号] 原文 → 改后(如有)`,
-		{ label: `校对:${num}`, phase: "写作", agentType: "proofreader" }
+		{ label: `校对:${num}`, phase: "写作", agentType: "novelist:proofreader" }
 	);
 }
 
@@ -240,21 +240,21 @@ async function fixer(chNum, title, checkResult, proofResult, humanResult) {
 		fixers.push(() =>
 			agent(
 				`修复一致性问题。读 ${file}、${ROOT}/世界观/规则.md。\n问题: ${checkResult?.slice(0, 500)}\n只修冲突点, 不改风格。直接改文件。`,
-				{ label: `修一致:${num}`, phase: "写作", agentType: "chapter-writer" }
+				{ label: `修一致:${num}`, phase: "写作", agentType: "novelist:chapter-writer" }
 			),
 		);
 	if (needsTextFix)
 		fixers.push(() =>
 			agent(
 				`修复文字硬伤。读 ${file}。\n问题: ${proofResult?.slice(0, 500)}\n只修硬伤, 不改风格。直接改文件。`,
-				{ label: `修文字:${num}`, phase: "写作", agentType: "proofreader" }
+				{ label: `修文字:${num}`, phase: "写作", agentType: "novelist:proofreader" }
 			),
 		);
 	if (needsHumanFix)
 		fixers.push(() =>
 			agent(
 				`去 AI 味修复。读 ${file}。\n问题: ${humanResult?.slice(0, 500)}\n修匀质句长/陈词过渡/模板腔, 保持风格, 不动剧情。直接改文件。`,
-				{ label: `修AI味:${num}`, phase: "写作", agentType: "humanizer" }
+				{ label: `修AI味:${num}`, phase: "写作", agentType: "novelist:humanizer" }
 			),
 		);
 
@@ -280,7 +280,7 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 			`| 第${num}章 | ${title} | ~${"目标字数"} | ${passed ? "定稿" : "需复审"} | 综合${total}(一致${cScore}/文字${tScore}/人味${hScore}) |\n\n` +
 			`2. 读 ${PROGRESS_FILE}, 更新: 已写章节+1; 当前阶段; 下一步。\n\n` +
 			`直接改文件, 保持现有 markdown 格式。`,
-		{ label: `定稿:${num}`, phase: "写作", agentType: "indexer" },
+		{ label: `定稿:${num}`, phase: "写作", agentType: "novelist:indexer" },
 	);
 	return { chapter: num, title, total, cScore, tScore, hScore, passed };
 }
@@ -299,7 +299,7 @@ async function unifiedCheck(chapterNums, chapters) {
 					{
 						label: `统一检查:${ch(n)}`,
 						phase: "审查",
-							agentType: "continuity-auditor",
+							agentType: "novelist:continuity-auditor",
 					},
 				),
 		),
