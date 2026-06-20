@@ -44,29 +44,6 @@ function ch(n) {
 	return String(n).padStart(3, "0");
 }
 
-// ===== 异步队列(write 流 → 检测定稿流, 阶段间流水线并行) =====
-// pop() 队列空时等待; close() 后返回 null 让消费者退出
-function createQueue() {
-	const items = [];
-	const waiters = [];
-	let closed = false;
-	return {
-		push(item) {
-			items.push(item);
-			if (waiters.length) waiters.shift()();
-		},
-		pop() {
-			if (items.length) return Promise.resolve(items.shift());
-			if (closed) return Promise.resolve(null);
-			return new Promise((resolve) => waiters.push(resolve));
-		},
-		close() {
-			closed = true;
-			while (waiters.length) waiters.shift()();
-		},
-	};
-}
-
 // ===== 评分 =====
 function extractScore(text) {
 	if (!text) return 90;
@@ -341,6 +318,45 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 	return { chapter: num, title, total, cScore, tScore, hScore, passed };
 }
 
+// ===== 单章收尾链(三环并行检测 → fix 串行改 → 定稿), push allResults =====
+async function finishChain(n, info) {
+	let checkResult,
+		humanResult,
+		proofResult,
+		attempts = 0;
+	while (true) {
+		// 🔴 三环并行检测(查一致/去AI味/校对正交, 均只读不改正文 → 无写冲突)
+		[checkResult, humanResult, proofResult] = await parallel([
+			() => checker(n, info.title), // 一致性
+			() => humanizer(n, info.title), // 去AI味
+			() => proofer(n, info.title), // 校对
+		]);
+		const { cScore, tScore, hScore, total } = computeScores(
+			checkResult,
+			proofResult,
+			humanResult,
+		);
+		log(
+			`第${ch(n)}章评分: 一致${cScore} 文字${tScore} 人味${hScore} 综合${total}(第${attempts}次)`,
+		);
+		const passed =
+			total >= PASS_TOTAL &&
+			cScore >= PASS_CONSISTENCY &&
+			hScore >= PASS_HUMANNESS;
+		if (passed || attempts >= MAX_FIX_ATTEMPTS) {
+			if (!passed)
+				log(`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`);
+			break;
+		}
+		log(`第${ch(n)}章 分数不足, 执行 fix(第${attempts + 1}次)`);
+		await fixer(n, info.title, checkResult, proofResult, humanResult);
+		attempts++;
+	}
+	const r = await finalizer(n, info.title, checkResult, proofResult, humanResult);
+	allResults.push(r);
+	log(`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分)`);
+}
+
 // ===== 后置: 统一一致性检查(全批并行只读) =====
 async function unifiedCheck(chapterNums, chapters) {
 	log(`统一一致性检查: ${chapterNums.length}章并行`);
@@ -397,69 +413,31 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 	await updateWorldview(batchStart, batchEnd);
 	await preCheck(batchStart, batchEnd);
 
-	// Phase 2: 两流水线并行 —— write 流 ‖ 检测定稿流
-	// write 流逐章串行(第N+1章 write 读第N章草稿); 检测定稿流逐章串行(共享索引/进度)。
-	// 两流并行: 第N章在收尾链(检测/fix/定稿)时, 第N+1章已在 write —— 用 throughput 换"基于草稿写下一章"的小风险。
-	const finishQueue = createQueue();
+	// Phase 2: 流水线并行 —— 当前章收尾链 ‖ 下一章 write
+	// 🔴 用 Workflow parallel() 显式声明并行(原生 Promise.all 的 await agent 不会被 Workflow 并发调度)。
+	// 先写第 1 章; 之后每轮: 第i章收尾(检测/fix/定稿) 与 第i+1章 write 同时跑。
+	const first = chapterNums[0];
+	log(`第${ch(first)}章 Writer 开始`);
+	await writer(first, chapters[first]);
+	log(`第${ch(first)}章 Writer 完成`);
 
-	// 消费者A: Writer 流(逐章串行写, 写完即推入检测定稿流, 不等收尾)
-	async function writeConsumer() {
-		for (const n of chapterNums) {
-			log(`第${ch(n)}章 Writer 开始`);
-			await writer(n, chapters[n]);
-			log(`第${ch(n)}章 Writer 完成 → 推入收尾(同时开写下一章)`);
-			finishQueue.push(n);
-		}
-		finishQueue.close();
+	for (let i = 0; i < chapterNums.length; i++) {
+		const cur = chapterNums[i];
+		const next = chapterNums[i + 1]; // undefined = 末章
+		// 🔴 并行: 第 cur 章收尾链 ‖ 第 next 章 write
+		await parallel([
+			() => finishChain(cur, chapters[cur]),
+			() =>
+				next != null
+					? (async () => {
+							log(`第${ch(next)}章 Writer 开始(与第${ch(cur)}章收尾并行)`);
+							await writer(next, chapters[next]);
+							log(`第${ch(next)}章 Writer 完成`);
+						})()
+					: Promise.resolve(),
+		]);
 	}
-
-	// 消费者B: 检测定稿流(逐章串行: 三环并行检测 → fix 串行改 → 定稿)
-	async function finishConsumer() {
-		while (true) {
-			const n = await finishQueue.pop();
-			if (n === null) break;
-			const info = chapters[n];
-			let checkResult,
-				humanResult,
-				proofResult,
-				attempts = 0;
-			while (true) {
-				// 🔴 三环并行检测(查一致/去AI味/校对正交, 均只读不改正文 → 无写冲突, 可并行)
-				[checkResult, humanResult, proofResult] = await parallel([
-					() => checker(n, info.title), // 一致性
-					() => humanizer(n, info.title), // 去AI味
-					() => proofer(n, info.title), // 校对
-				]);
-				const { cScore, tScore, hScore, total } = computeScores(
-					checkResult,
-					proofResult,
-					humanResult,
-				);
-				log(
-					`第${ch(n)}章评分: 一致${cScore} 文字${tScore} 人味${hScore} 综合${total}(第${attempts}次)`,
-				);
-				const passed =
-					total >= PASS_TOTAL &&
-					cScore >= PASS_CONSISTENCY &&
-					hScore >= PASS_HUMANNESS;
-				if (passed || attempts >= MAX_FIX_ATTEMPTS) {
-					if (!passed)
-						log(`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`);
-					break;
-				}
-				log(`第${ch(n)}章 分数不足, 执行 fix(第${attempts + 1}次)`);
-				await fixer(n, info.title, checkResult, proofResult, humanResult);
-				attempts++;
-			}
-			const r = await finalizer(n, info.title, checkResult, proofResult, humanResult);
-			allResults.push(r);
-			log(`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分)`);
-		}
-	}
-
-	// 两流并行运行
-	await Promise.all([writeConsumer(), finishConsumer()]);
-	log(`批次 ${batchId} 流水线(write ‖ 检测定稿)完成`);
+	log(`批次 ${batchId} 流水线(收尾 ‖ 下一章写)完成`);
 
 	// Phase 3: 后置(统一检查)
 	await unifiedCheck(chapterNums, chapters);
