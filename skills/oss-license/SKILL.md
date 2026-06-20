@@ -3,6 +3,7 @@ name: oss-license
 description: '开源协议(License)选择与合规决策框架。覆盖 60+ 协议(MIT/Apache/BSD/ISC/GPL/LGPL/AGPL/MPL/EPL/CDDL/EUPL/CeCILL 及 BSL/SSPL/Elastic/FSL/PolyForm 等 source-available),归为 permissive / 弱copyleft / 强copyleft / 网络copyleft / 源码可见非OSI 五大家族。两类用途: 为自己项目选 License、审查第三方依赖的兼容与合规。给决策树、兼容方向(谁能并入谁)、商业策略(双授权 / AGPL 防 SaaS 白嫖 / BSL 延迟开源)、近年 relicensing 案例。触发词: 开源协议、License 选哪个、MIT 还是 Apache、GPL 传染、copyleft、AGPL、协议兼容、协议冲突、依赖合规、能不能商用闭源、SaaS 白嫖、SPDX、relicensing'
 when_to_use: '为项目选开源协议、判断能否商用/闭源分发、审查依赖 License 兼容与合规、纠结 MIT/Apache/GPL/AGPL 怎么选时。短语 "选什么协议" "GPL 能商用吗" "协议冲突吗" "依赖能闭源吗"'
 argument-hint: '[要选协议的项目情况, 或待审查的依赖+其协议; 附约束如 商用/闭源/SaaS/分发方式]'
+arguments: '[要选协议的项目情况, 或待审查的依赖+其协议; 附约束如 商用/闭源/SaaS/分发方式]'
 ---
 
 # oss-license — 开源协议选择与合规框架
