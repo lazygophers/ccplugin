@@ -143,17 +143,16 @@ init(建目录) → design(主线+人物+世界观) → write(四要素→生成
 | novelist-proofread | 文字校对(错别字/语法/标点 + 质量分) | 收尾链/单独 |
 | novelist-humanize | 去 AIGC / 去 AI 味(三层诊断 + 人味分棘轮) | 收尾链/单独 |
 
-## Agents (8)
+## Agents (7)
 
 | Agent | 职责 | 边界 |
 |---|---|---|
 | chapter-writer | 执笔生成/重写章节正文 | 守四要素+规则, 不改设定 |
-| continuity-auditor | 一致性审查 | 只读, 产冲突清单 |
+| continuity-auditor | 一致性审查(双模式: 审查正文/预检路线图) | 审查模式写报告不改正文; 预检模式可改路线图 |
 | proofreader | 文字校对 | 只改文字层, 不动剧情 |
 | humanizer | 去 AI 味改写 | 只改纹理, 不动剧情 |
 | outliner | 生成逐章路线图(pipeline) | 只规划, 不写正文 |
 | worldbuilder | 更新世界观/设定/人物(pipeline) | 只动设定, 不写正文 |
-| prechecker | 路线图一致性预检(pipeline) | 只动路线图, 不写正文 |
 | indexer | 定稿登记索引+进度(pipeline) | 机械登记, 不写/改正文 |
 
 > pipeline 各阶段用 `agentType` 派对应专用 agent(需插件已安装才能解析)。

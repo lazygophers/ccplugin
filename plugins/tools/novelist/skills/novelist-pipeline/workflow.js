@@ -3,12 +3,16 @@ export const meta = {
 	description:
 		"逐章串行批量写小说: 前置(路线图→世界观→预检)→逐章(write→check→humanize→proofread→fix循环→定稿, 前章定稿才写下一章)→统一检查。root 与设定全部参数化/从小说文件读, 不硬编码任何小说。",
 	phases: [
-		{ title: "大纲", detail: "路线图→世界观更新→一致性预检" },
-		{
-			title: "写作",
-			detail: "逐章串行 写→查一致→去AI味→校对→修复循环→定稿, 前章定稿才下一章",
-		},
-		{ title: "审查", detail: "统一一致性检查" },
+		{ title: "路线图", detail: "生成/读取本批章节路线图(outliner)" },
+		{ title: "世界观", detail: "更新本批涉及的设定/人物(worldbuilder)" },
+		{ title: "预检", detail: "路线图一致性预检(continuity-auditor 预检模式)" },
+		{ title: "写作", detail: "逐章 chapter-writer 写正文" },
+		{ title: "查一致", detail: "continuity-auditor 一致性检查" },
+		{ title: "去AI味", detail: "humanizer 去AIGC" },
+		{ title: "校对", detail: "proofreader 文字校对" },
+		{ title: "修复", detail: "fix-c/t/h 按三环结果定点修复" },
+		{ title: "定稿", detail: "indexer 登记索引+进度" },
+		{ title: "统一检查", detail: "全批最终一致性检查" },
 	],
 };
 
@@ -113,7 +117,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 			`读取路线图文件 ${routeFile}。\n` +
 				`若文件存在: 解析其中每一章, 按 schema 返回 found=true + chapters 数组(每章含 num/title/event/change/foreshadow/hook/target)。\n` +
 				`若文件不存在: 返回 found=false + chapters 空数组。`,
-			{ label: `路线图查:${batchId}`, phase: "大纲", agentType: "novelist:outliner", schema: ROUTE_SCHEMA },
+			{ label: `路线图查:${batchId}`, phase: "路线图", agentType: "novelist:outliner", schema: ROUTE_SCHEMA },
 		);
 	} catch (e) {
 		log(`路线图读取异常: ${e.message}`);
@@ -140,7 +144,7 @@ async function ensureRouteMap(batchStart, batchEnd) {
 					`(a) 写入文件 ${routeFile}: markdown, 每章一块「### 第NNN章：标题」+ 核心事件/人物变化/伏笔推进/收尾钩子/字数目标。\n` +
 					`(b) 同时按 schema 返回 chapters 数组(num/title/event/change/foreshadow/hook/target), 内容与文件一致。\n\n` +
 					`验收: 与主线表对齐, 伏笔位与伏笔表一致, chapters 覆盖第${ch(batchStart)}-${ch(batchEnd)}章。`,
-				{ label: `路线图:${batchId}`, phase: "大纲", agentType: "novelist:outliner", schema: ROUTE_SCHEMA },
+				{ label: `路线图:${batchId}`, phase: "路线图", agentType: "novelist:outliner", schema: ROUTE_SCHEMA },
 			);
 		} catch (e) {
 			log(`路线图生成异常: ${e.message}`);
@@ -167,7 +171,7 @@ async function updateWorldview(batchStart, batchEnd) {
 			`3. 新设定不得与现有 规则.md 硬约束冲突(力量体系边界与代价)\n` +
 			`4. 有新人物 → 在 人物/<名>/ 建 简介.md/经历.md/关系.md 三件套\n\n` +
 			`直接改文件。无新元素返回"无需更新"。`,
-		{ label: `世界观:${batchId}`, phase: "大纲", agentType: "novelist:worldbuilder" },
+		{ label: `世界观:${batchId}`, phase: "世界观", agentType: "novelist:worldbuilder" },
 	);
 }
 
@@ -175,13 +179,13 @@ async function updateWorldview(batchStart, batchEnd) {
 async function preCheck(batchStart, batchEnd) {
 	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
 	return agent(
-		`对第${batchId}章路线图做一致性预检。\n\n` +
+		`【预检模式】对第${batchId}章路线图做一致性预检(写正文前, 可直接改路线图消除冲突)。\n\n` +
 			`读取: ${ROOT}/情节/第${batchId}章路线图.md、${ROOT}/世界观/规则.md、${ROOT}/情节/主线.md、${ROOT}/情节/伏笔.md、${ROOT}/元数据/进度.md。\n\n` +
 			`检查项:\n` +
 			`1. 路线图与主线表对齐\n2. 伏笔推进与伏笔台账一致\n3. 与进度.md 最后一章衔接连续\n` +
 			`4. 不违反 规则.md 硬约束\n5. 人物行为符合 人物/简介.md\n\n` +
 			`输出: 通过 / 有冲突(附问题清单)。有冲突则直接改路线图文件消除。`,
-		{ label: `预检:${batchId}`, phase: "大纲", agentType: "novelist:prechecker" },
+		{ label: `预检:${batchId}`, phase: "预检", agentType: "novelist:continuity-auditor" },
 	);
 }
 
@@ -218,7 +222,7 @@ async function checker(chNum, title) {
 			`4.与前章衔接是否连贯 5.时间线是否错乱。\n\n` +
 			`先把检查报告写入 ${ROOT}/元数据/检查报告/第${num}章.md(含结论/评分/六维问题清单), 再按下方格式返回结论。\n\n` +
 			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=完美一致)\n问题清单: [行号] 问题(如有)`,
-		{ label: `查一致:${num}`, phase: "写作", agentType: "novelist:continuity-auditor" }
+		{ label: `查一致:${num}`, phase: "查一致", agentType: "novelist:continuity-auditor" }
 	);
 }
 
@@ -234,7 +238,7 @@ async function humanizer(chNum, title) {
 			`5.否定式排比(不是A而是B) 6.过度总结。命中则就地改(保持风格, 不动剧情)。\n\n` +
 			`命中处就地改正文, 并把去AI味报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(改动清单), 再按下方格式返回评分。\n\n` +
 			`输出格式:\n人味评分: 0-100(100=完全人写, ≥${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 改后(如有)`,
-		{ label: `去AI味:${num}`, phase: "写作", agentType: "novelist:humanizer" }
+		{ label: `去AI味:${num}`, phase: "去AI味", agentType: "novelist:humanizer" }
 	);
 }
 
@@ -249,7 +253,7 @@ async function proofer(chNum, title) {
     `检查项: 1.错别字 2.语法 3.标点 4.用词准确 5.逻辑矛盾(前后自相矛盾)。\n\n` +
 			`先把校对报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(问题清单), 再按下方格式返回评分。\n\n` +
 			`输出格式:\n评分: 0-100(100=无任何文字问题)\n问题清单: [行号] 原文 → 改后(如有)`,
-		{ label: `校对:${num}`, phase: "写作", agentType: "novelist:proofreader" }
+		{ label: `校对:${num}`, phase: "校对", agentType: "novelist:proofreader" }
 	);
 }
 
@@ -268,21 +272,21 @@ async function fixer(chNum, title, checkResult, proofResult, humanResult) {
 		fixers.push(() =>
 			agent(
 				`修复一致性问题。读 ${file}、${ROOT}/世界观/规则.md。\n问题: ${checkResult?.slice(0, 500)}\n只修冲突点, 不改风格。直接改文件。`,
-				{ label: `修一致:${num}`, phase: "写作", agentType: "novelist:chapter-writer" }
+				{ label: `修一致:${num}`, phase: "修复", agentType: "novelist:chapter-writer" }
 			),
 		);
 	if (needsTextFix)
 		fixers.push(() =>
 			agent(
 				`修复文字硬伤。读 ${file}。\n问题: ${proofResult?.slice(0, 500)}\n只修硬伤, 不改风格。直接改文件。`,
-				{ label: `修文字:${num}`, phase: "写作", agentType: "novelist:proofreader" }
+				{ label: `修文字:${num}`, phase: "修复", agentType: "novelist:proofreader" }
 			),
 		);
 	if (needsHumanFix)
 		fixers.push(() =>
 			agent(
 				`去 AI 味修复。读 ${file}。\n问题: ${humanResult?.slice(0, 500)}\n修匀质句长/陈词过渡/模板腔, 保持风格, 不动剧情。直接改文件。`,
-				{ label: `修AI味:${num}`, phase: "写作", agentType: "novelist:humanizer" }
+				{ label: `修AI味:${num}`, phase: "修复", agentType: "novelist:humanizer" }
 			),
 		);
 
@@ -308,7 +312,7 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 			`| 第${num}章 | ${title} | ~${"目标字数"} | ${passed ? "定稿" : "需复审"} | 综合${total}(一致${cScore}/文字${tScore}/人味${hScore}) |\n\n` +
 			`2. 读 ${PROGRESS_FILE}, 更新: 已写章节+1; 当前阶段; 下一步。\n\n` +
 			`直接改文件, 保持现有 markdown 格式。`,
-		{ label: `定稿:${num}`, phase: "写作", agentType: "novelist:indexer" },
+		{ label: `定稿:${num}`, phase: "定稿", agentType: "novelist:indexer" },
 	);
 	return { chapter: num, title, total, cScore, tScore, hScore, passed };
 }
@@ -326,7 +330,7 @@ async function unifiedCheck(chapterNums, chapters) {
 						`先把统一检查报告写入 ${ROOT}/元数据/检查报告/统一-第${ch(n)}章.md, 再返回。\n输出: 通过 / 有冲突(附问题清单)`,
 					{
 						label: `统一检查:${ch(n)}`,
-						phase: "审查",
+						phase: "统一检查",
 							agentType: "novelist:continuity-auditor",
 					},
 				),
@@ -354,7 +358,6 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 	log(`\n===== 批次 ${batchId} =====`);
 
 	// Phase 1: 大纲(串行)
-	phase("大纲");
 	const chapters = await ensureRouteMap(batchStart, batchEnd);
 	if (!chapters) {
 		log(`⚠️ 批次 ${batchId} 路线图缺失(生成/解析失败), 跳过`);
@@ -372,7 +375,6 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 
 	// Phase 2: 逐章严格串行 —— 🔴 前一章定稿后才写下一章
 	// (小说章节强依赖前文: 第N+1章 write 需要第N章已定稿的人物关系/伏笔/状态, 不能基于草稿开写)
-	phase("写作");
 	for (const n of chapterNums) {
 		const info = chapters[n];
 		// 1) 写正文
@@ -428,7 +430,6 @@ for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 	log(`批次 ${batchId} 逐章串行完成`);
 
 	// Phase 3: 后置(统一检查)
-	phase("审查");
 	await unifiedCheck(chapterNums, chapters);
 }
 

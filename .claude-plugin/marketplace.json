@@ -125,7 +125,7 @@
     {
       "name": "novelist",
       "source": "./plugins/tools/novelist",
-      "description": "小说写作全流程插件 - 从爆款题材选择/世界观/人物/大纲设定到章节编写、一致性检查、校对、去AIGC、重写、批量流水线的端到端工作流。13 skill: init/design/character/worldview/outline/write/check/rewrite/proofread/craft/trending/humanize/pipeline; 8 agent: continuity-auditor/chapter-writer/proofreader/humanizer/outliner/worldbuilder/prechecker/indexer。编写前四要素确认, 生成后收尾链(检查→校对→去AIGC→定稿)+评分门控; pipeline 用 Workflow 逐章串行批量写多章(各阶段派专用 agent); craft 三流派叙事镜片, trending 选题方法论, humanize 去AI味",
+      "description": "小说写作全流程插件 - 从爆款题材选择/世界观/人物/大纲设定到章节编写、一致性检查、校对、去AIGC、重写、批量流水线的端到端工作流。13 skill: init/design/character/worldview/outline/write/check/rewrite/proofread/craft/trending/humanize/pipeline; 7 agent: continuity-auditor(双模式)/chapter-writer/proofreader/humanizer/outliner/worldbuilder/indexer。编写前四要素确认, 生成后收尾链(检查→校对→去AIGC→定稿)+评分门控; pipeline 用 Workflow 逐章串行批量写多章(各阶段派专用 agent); craft 三流派叙事镜片, trending 选题方法论, humanize 去AI味",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"

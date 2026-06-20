@@ -63,7 +63,7 @@ disable-model-invocation: true
 |---|---|---|---|---|
 | Outliner | `novelist:outliner` | novelist-outline | 读大纲/分卷/主线/伏笔 生成本批路线图 | `情节/第NNN-NNN章路线图.md` |
 | Worldview | `novelist:worldbuilder` | novelist-worldview/character | 更新本批涉及的世界观/人物设定 | `世界观/` `人物/` 对应文件 |
-| Pre-checker | `novelist:prechecker` | novelist-check | 路线图一致性预检(与主线/伏笔对齐) | 通过 / 修正路线图 |
+| Pre-checker | `novelist:continuity-auditor`(预检模式) | novelist-check | 路线图一致性预检(与主线/伏笔对齐, 可改路线图) | 通过 / 修正路线图 |
 
 ### 每章闭环(顺序硬性, 整条跑完才到下一章)
 
