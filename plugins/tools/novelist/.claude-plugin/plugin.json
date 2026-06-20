@@ -32,7 +32,11 @@
     "./agents/continuity-auditor.md",
     "./agents/chapter-writer.md",
     "./agents/proofreader.md",
-    "./agents/humanizer.md"
+    "./agents/humanizer.md",
+    "./agents/outliner.md",
+    "./agents/worldbuilder.md",
+    "./agents/prechecker.md",
+    "./agents/indexer.md"
   ],
   "skills": "./skills"
 }

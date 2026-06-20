@@ -59,24 +59,26 @@ disable-model-invocation: true
 
 ### 前置(串行, 每批一次)
 
-| 角色 | 关联 | 职责 | 产出 |
-|---|---|---|---|
-| Outliner | `novelist-outline` | 读 `大纲/总纲.md`+`大纲/分卷.md`+`情节/主线.md`+`情节/伏笔.md` 生成本批路线图 | `情节/第NNN-NNN章路线图.md` |
-| Worldview | `novelist-worldview` | 更新本批涉及的世界观/人物设定 | `世界观/` `人物/` 对应文件 |
-| Pre-checker | `novelist-check` | 路线图一致性预检(与主线/伏笔对齐) | 通过 / 修正路线图 |
+| 角色 | agentType | 引用 skill | 职责 | 产出 |
+|---|---|---|---|---|
+| Outliner | `outliner` | novelist-outline | 读大纲/分卷/主线/伏笔 生成本批路线图 | `情节/第NNN-NNN章路线图.md` |
+| Worldview | `worldbuilder` | novelist-worldview/character | 更新本批涉及的世界观/人物设定 | `世界观/` `人物/` 对应文件 |
+| Pre-checker | `prechecker` | novelist-check | 路线图一致性预检(与主线/伏笔对齐) | 通过 / 修正路线图 |
 
 ### 每章闭环(顺序硬性, 整条跑完才到下一章)
 
-| 序 | 角色 | 关联 | 只做 | 不做 |
+| 序 | 角色 | agentType | 只做 | 不做 |
 |---|---|---|---|---|
-| 1 | Writer | `chapter-writer` agent | 按四要素 + `novelist-craft` 镜片写正文 | 不管校对/一致性 |
-| 2 | Checker | `continuity-auditor` agent | 对照 世界观/规则.md + 人物 + 伏笔 查一致性 | 不管文字/风格 |
-| 3 | Humanizer | `humanizer` agent | 去 AI 味(匀质/陈词/模板腔) | 不管一致性/错别字 |
-| 4 | Proofer | `proofreader` agent | 错别字/语法/标点/逻辑矛盾 | 不管一致性/AI味 |
+| 1 | Writer | `chapter-writer` | 按四要素 + `novelist-craft` 镜片写正文 | 不管校对/一致性 |
+| 2 | Checker | `continuity-auditor` | 对照 世界观/规则.md + 人物 + 伏笔 查一致性 | 不管文字/风格 |
+| 3 | Humanizer | `humanizer` | 去 AI 味(匀质/陈词/模板腔) | 不管一致性/错别字 |
+| 4 | Proofer | `proofreader` | 错别字/语法/标点/逻辑矛盾 | 不管一致性/AI味 |
 | 5 | Fixer | 对应环 agent | 按三环结果只修问题点(分数不足触发) | 不改风格/不重写 |
-| 6 | Finalizer | 索引更新 | 更新索引 + 同步事实源 → 才进下一章 | 不修复/不重写 |
+| 6 | Finalizer | `indexer` | 更新索引 + 同步事实源 → 才进下一章 | 不修复/不重写 |
 
-Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤10 次(`MAX_FIX_ATTEMPTS`)。**本章 Finalizer 定稿后才开始下一章 Writer。**
+Fixer 跑完回 Checker 重走 check→humanize→proofread, 循环 ≤10 次(`MAX_FIX_ATTEMPTS`)。**本章 Finalizer 定稿后才开始下一章 Writer。** 后置统一检查用 `continuity-auditor`(只读)。
+
+> 🔴 **agentType 前提**: workflow.js 每个 agent() 用 `agentType` 指向本插件 `agents/` 下的专用 agent(共 8 个)——**需 novelist 插件已安装**, Agent 注册表才能解析这些 agentType。未安装时 Workflow 报 agent 解析失败, 应先装插件。
 
 **文风**: Writer 写前必引用 `novelist-craft` 按题材+本章性质取叙事镜片。
 **事实源**: 人物/世界观变更引用 `novelist-character`/`novelist-worldview` 回写。
