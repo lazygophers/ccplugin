@@ -12,7 +12,7 @@ export const meta = {
 		{ title: "校对", detail: "proofreader 文字校对" },
 		{ title: "修复", detail: "fix-c/t/h 按三环结果定点修复" },
 		{ title: "定稿", detail: "indexer 登记索引+进度" },
-		{ title: "统一检查", detail: "全批最终一致性检查" },
+		{ title: "统一检查", detail: "一次性审本批全部章节 + 与全书设定/前文冲突" },
 	],
 };
 
@@ -380,33 +380,38 @@ async function finishChain(n, info) {
 	log(`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分)`);
 }
 
-// ===== 后置: 统一一致性检查(全批并行只读) =====
+// ===== 后置: 统一一致性检查(一个 agent 一次性审本批全部章节 + 与全书设定/前文的冲突) =====
+// 不是逐章独立检查, 而是把本批章节作为整体, 核对它们之间 + 与现有设定/历史内容的冲突。
 async function unifiedCheck(chapterNums, chapters) {
-	log(`统一一致性检查: ${chapterNums.length}章并行`);
-	const results = await parallel(
-		chapterNums.map(
-			(n) => () =>
-				callAgent(
-					`对第${ch(n)}章做最终全局一致性检查。\n\n` +
-						`读取: ${CHAPTER_DIR}/第${ch(n)}章-${chapters[n].title}.md、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、${ROOT}/情节/伏笔.md、${ROOT}/情节/主线.md。\n\n` +
-						`检查: 1.前后章衔接 2.伏笔与台账一致 3.人物性格一致 4.不违反规则.md 5.本批章节间无矛盾。\n\n` +
-						`先把统一检查报告写入 ${ROOT}/元数据/检查报告/统一-第${ch(n)}章.md, 再返回。\n输出: 通过 / 有冲突(附问题清单)`,
-					{
-						label: `统一检查:${ch(n)}`,
-						phase: "统一检查",
-							agentType: "novelist:continuity-auditor",
-					},
-				),
-		),
+	const batchId = `${ch(chapterNums[0])}-${ch(chapterNums[chapterNums.length - 1])}`;
+	log(`统一检查: 一次性审本批 ${chapterNums.length} 章(第${batchId})整体一致性`);
+	const fileList = chapterNums
+		.map((n) => `${CHAPTER_DIR}/第${ch(n)}章-${chapters[n].title}.md`)
+		.join("、");
+	const result = await callAgent(
+		`【统一检查】把本批全部章节(第${batchId}, 共${chapterNums.length}章)作为**整体**做一次性一致性审查。\n` +
+			`目的: 核对本批这次变更的章节 与 本批内部 + 与现有设定/前文/历史内容 是否存在冲突。\n\n` +
+			`读取本批全部正文: ${fileList}\n` +
+			`读取全书设定与历史(对照基线): ${ROOT}/世界观/规则.md、${ROOT}/世界观/、${ROOT}/设定/、${ROOT}/人物/(相关角色)、${ROOT}/情节/主线.md、${ROOT}/情节/伏笔.md、${ROOT}/元数据/进度.md, 以及本批之前的相邻章节(衔接处)。\n\n` +
+			`检查维度(本批 vs 本批内部 + vs 历史):\n` +
+			`1. 本批章节**之间**是否互相矛盾(跨章人物/事件/时间线)\n` +
+			`2. 本批是否违反全书 规则.md 硬约束(力量体系边界与代价)\n` +
+			`3. 本批人物言行是否与现有人物设定/性格一致\n` +
+			`4. 本批埋设/回收的伏笔与 伏笔.md 台账是否一致(跨章追踪)\n` +
+			`5. 本批与**之前章节**(前文)的衔接、时间线、状态是否连贯\n` +
+			`6. 本批引入的新设定是否与历史设定/术语冲突\n\n` +
+			`把统一检查报告写入 ${ROOT}/元数据/检查报告/统一-第${batchId}章.md(按上述 6 维 + 按涉及章节归类问题)。\n` +
+			`输出: 通过 / 有冲突(附按章节与维度归类的问题清单)`,
+		{
+			label: `统一检查:${batchId}`,
+			phase: "统一检查",
+			agentType: "novelist:continuity-auditor",
+		},
 	);
-	const conflicts = [];
-	results.forEach((r, i) => {
-		if (r && r.includes("冲突")) conflicts.push(chapterNums[i]);
-	});
-	if (conflicts.length)
-		log(`⚠️ 统一检查发现冲突: 第${conflicts.map(ch).join(", ")}章`);
-	else log(`✅ 统一检查全部通过`);
-	return { conflicts, results };
+	const hasConflict = result != null && result.includes("冲突");
+	if (hasConflict) log(`⚠️ 统一检查发现冲突(第${batchId}批), 详见 元数据/检查报告/统一-第${batchId}章.md`);
+	else log(`✅ 统一检查通过(第${batchId}批整体一致)`);
+	return { batchId, hasConflict, result };
 }
 
 // ===== 主流程 =====

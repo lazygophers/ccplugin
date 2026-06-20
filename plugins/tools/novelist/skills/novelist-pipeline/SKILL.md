@@ -54,7 +54,7 @@ disable-model-invocation: true
                                                        │ 不足 → fix(串行改同文件) → 重走三环 (≤10次)
    ⇒ 第N章在检测/fix/定稿时, 第N+1章已在 write(两流并行)
                                   │
-后置(每批一次)：  统一一致性 check（全批章节并行，只读）
+后置(每批一次)：  统一 check（一个 agent 一次性审本批全部章节 + 与全书设定/前文冲突, 非逐章）
 ```
 
 > **两级串行 + 一级并行**: ① Writer 流内部逐章串行(write 读前章) ② 检测定稿流内部逐章串行(共享索引/进度) ③ 两流之间并行(write 与检测重叠)。三环检测在检测流内再并行。
@@ -80,7 +80,11 @@ disable-model-invocation: true
 | 5 | Fixer | 对应环 agent | 按三环清单**统一改**正文(多 fix 串行) | 不改风格/不重写 |
 | 6 | Finalizer | `novelist:indexer` | 更新索引 + 同步事实源 → 才进下一章 | 不修复/不重写 |
 
-🔴 **2-4 三环并行检测**(正交只读, 无写冲突); 5 Fixer 按三环清单**统一改**(多修复串行改同文件); fix 后重走三环并行检测, 循环 ≤10 次(`MAX_FIX_ATTEMPTS`)。**Writer 流不等本章定稿即开写下一章(两流并行)**; 检测定稿流内逐章顺序定稿。后置统一检查用 `novelist:continuity-auditor`(只读)。
+🔴 **2-4 三环并行检测**(正交只读, 无写冲突); 5 Fixer 按三环清单**统一改**(多修复串行改同文件); fix 后重走三环并行检测, 循环 ≤10 次(`MAX_FIX_ATTEMPTS`)。**Writer 流不等本章定稿即开写下一章(两流并行)**; 检测定稿流内逐章顺序定稿。
+
+### 后置(每批一次): 统一检查
+
+**一个 `novelist:continuity-auditor` agent 一次性审本批全部章节**(非逐章独立)——把本批这次变更的章节作为整体, 读全批正文 + 全书设定/前文/伏笔台账/进度, 核对: ① 本批章节**之间**矛盾 ② 违反规则.md ③ 人物一致 ④ 伏笔跨章追踪 ⑤ 与**前文**衔接/时间线 ⑥ 新设定与历史冲突。报告整批一份 `元数据/检查报告/统一-第NNN-NNN章.md`。
 
 > 🔴 **agentType 前提**: workflow.js 每个 agent() 用 `agentType` 指向本插件 `agents/` 下的专用 agent(共 8 个)——**需 novelist 插件已安装**, Agent 注册表才能解析这些 agentType。未安装时 Workflow 报 agent 解析失败, 应先装插件。
 
@@ -127,7 +131,7 @@ disable-model-invocation: true
 - 🔴 **两流水线并行**: Writer 流 ‖ 检测定稿流。第 N 章 write 完(草稿)即推入检测流, 第 N+1 章**立即开写**(基于第 N 章草稿)。两流并行换 throughput。
 - 🔴 **各流内部串行**: Writer 流逐章串行(write 读前章); 检测定稿流逐章串行(finalize 共享索引/进度, 防写冲突)。
 - 🔴 **收尾链检测/修改分离**: check/humanize/proofread 三环**只检测不改正文**(正交→**并行**, 无写冲突); 问题由 **fix 统一改**, 多 fix **串行**(都改同一章文件)。fix 后重走三环并行检测(≤10 次)。
-- 仅后置统一 check 全批并行(只读)。
+- 后置统一 check = **单 agent 一次性审整批**(读全批正文+全书设定/前文, 非逐章并行)。
 - 禁止多个 pipeline 同时运行。
 - 每批最多 5 章(`BATCH_SIZE=5`; 超过自动分批; 批间串行, 批内两流并行)。
 - ⚠️ **草稿依赖风险**: 第 N+1 章基于第 N 章草稿写; 若第 N 章检测出致命冲突需重写 → 第 N+1 章可能要返工。这是 throughput 与一致性的权衡(已选 throughput)。
@@ -156,7 +160,7 @@ disable-model-invocation: true
 | 世界观硬约束 | `世界观/规则.md` |
 | 伏笔台账 | `情节/伏笔.md` |
 | 一致性检查报告 | `元数据/检查报告/第NNN章.md`(checker 每章写) |
-| 统一检查报告 | `元数据/检查报告/统一-第NNN章.md`(unified 写) |
+| 统一检查报告 | `元数据/检查报告/统一-第NNN-NNN章.md`(整批一份, 一次性审本批+历史冲突) |
 | 校对报告 | `元数据/校对报告/第NNN章.md`(proofer 每章写) |
 | 去AI味报告 | `元数据/校对报告/第NNN章-deaigc.md`(humanizer 每章写) |
 | workflow 脚本 | `${CLAUDE_PLUGIN_ROOT}/skills/novelist-pipeline/workflow.js` |
