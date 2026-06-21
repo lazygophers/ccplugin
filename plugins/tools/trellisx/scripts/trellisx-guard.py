@@ -6,9 +6,11 @@
 事件分发 (读 stdin JSON 的 hook_event_name):
 - UserPromptSubmit : 每轮注入约束 (实质工作走 agent/subagent/team/worktree;
                      建 task 用 trellisx-orchestrate; 完成即清理)。
-- Stop            : 检「已完成 task / 孤儿」的 worktree 残留 (未完成的正常工作不提醒),
-                    有则 systemMessage 提醒收尾 (只提醒, 不中断会话结束)。
-- SubagentStop    : 同上检测, 有则输出提醒 (不 block)。
+- Stop            : 检「已完成 task / 孤儿」的 worktree 残留 (未完成的正常工作不提醒)。
+                    已完成 task 且工作区 clean → 自动 `git worktree remove` 销毁;
+                    有未提交改动 (防丢数据) 或孤儿 (防误删用户手建) → 降级为提醒。
+                    systemMessage 汇报已销/待人工处理, 不中断会话结束。
+- SubagentStop    : 仅检测提醒, 不自动销 (subagent 结束 ≠ task 完成)。
 
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
 """
@@ -106,13 +108,13 @@ def load_tasks(troot):
     return out
 
 
-def worktree_completed(troot, path, branch):
-    """worktree 对应的 task 是否已完成 (该收尾没收尾 → 需提醒)。
+def worktree_status(troot, path, branch):
+    """worktree 相对其 task 的状态 → 'active' | 'completed' | 'orphan'。
 
     匹配 task: branch 字段 / worktree_path 字段 / name 含 task id。
-    - 匹配到且 status 完成 或 在 archive 目录 → True (已完成残留, 提醒)
-    - 匹配到但 status 未完成 (in_progress/planning 等) → False (正常工作, 不提醒)
-    - 无匹配 (孤儿: task 已删/已清而 worktree 残留) → True (该清, 提醒)
+    - 匹配到且 status 完成 或 在 archive 目录 → 'completed' (已收尾, 可自动销)
+    - 匹配到但 status 未完成 (in_progress/planning 等) → 'active' (正常工作, 跳过)
+    - 无匹配 (孤儿: task 已删/已清而 worktree 残留) → 'orphan' (提醒, 不擅自删)
     """
     name = os.path.basename(path.rstrip("/"))
     apath = os.path.abspath(path)
@@ -127,8 +129,32 @@ def worktree_completed(troot, path, branch):
         )
         if matched:
             status = str(d.get("status") or "").lower()
-            return is_archived or status in _DONE_STATUS
-    return True  # 孤儿 worktree, 无对应 task → 提醒清理
+            return "completed" if (is_archived or status in _DONE_STATUS) else "active"
+    return "orphan"  # 无对应 task
+
+
+def worktree_clean(path):
+    """worktree 工作区无未提交改动 (含未跟踪) → True; 任何异常 → False (保守不删)。"""
+    try:
+        r = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=path, capture_output=True, text=True, timeout=5,
+        )
+        return r.returncode == 0 and not r.stdout.strip()
+    except Exception:
+        return False
+
+
+def remove_worktree(repo, path):
+    """git worktree remove (不加 --force: 脏 / 锁定会失败, 双保险防丢数据) → 成功 True。"""
+    try:
+        r = subprocess.run(
+            ["git", "worktree", "remove", path],
+            cwd=repo, capture_output=True, text=True, timeout=15,
+        )
+        return r.returncode == 0
+    except Exception:
+        return False
 
 
 def emit_context(text):
@@ -162,23 +188,57 @@ def main():
         troot = find_trellis_root(cwd)
         repo = git_top(cwd) or cwd
         residual = residual_worktrees(repo)
-        # 只提醒「已完成 task / 孤儿」的残留 worktree; 未完成 (in_progress) 的是正常工作, 跳过
-        stale = [p for (p, br) in residual if worktree_completed(troot, p, br)]
-        if not stale:
+        # 标注每个残留 worktree 的状态; active (正常工作) 跳过
+        actionable = [
+            (p, br, worktree_status(troot, p, br)) for (p, br) in residual
+        ]
+        actionable = [(p, br, st) for (p, br, st) in actionable if st != "active"]
+        if not actionable:
             return 0
-        listing = "\n".join(f"  - {p}" for p in stale)
-        reason = (
-            "[trellisx] 检测到已完成 task 的 worktree 未清理, 建议收尾:\n"
-            f"{listing}\n"
-            "→ 已完成的 task: 跑 `task.py finish` 自动收尾 (commit→merge→archive→销 worktree);\n"
-            "→ 废弃的 worktree: `python3 .trellis/scripts/trellisx-worktree.py archive` 手动销;\n"
-            "→ 确需保留 (脏改动未决) 则忽略本提醒。"
-        )
+
         if event == "Stop":
-            # 只提醒不中断: systemMessage 向用户显示警告, 不 block 会话结束
-            print(json.dumps({"systemMessage": reason}))
+            # 已完成 task 且 clean → 自动销毁; 脏 (防丢数据) / 孤儿 (防误删) → 留给人工
+            removed, kept = [], []
+            for p, br, st in actionable:
+                if st == "completed" and worktree_clean(p) and remove_worktree(repo, p):
+                    removed.append(p)
+                else:
+                    kept.append((p, st))
+            if removed:
+                try:
+                    subprocess.run(["git", "worktree", "prune"],
+                                   cwd=repo, capture_output=True, timeout=5)
+                except Exception:
+                    pass
+            blocks = []
+            if removed:
+                blocks.append(
+                    "[trellisx] 已自动销毁已完成 task 的 worktree (工作区 clean):\n"
+                    + "\n".join(f"  - {p}" for p in removed)
+                )
+            if kept:
+                lines = []
+                for p, st in kept:
+                    tag = "孤儿(无对应 task)" if st == "orphan" else "有未提交改动"
+                    lines.append(f"  - {p}  [{tag}]")
+                blocks.append(
+                    "[trellisx] 以下 worktree 未自动清理, 需人工处理:\n"
+                    + "\n".join(lines)
+                    + "\n→ 有未提交改动: 先提交/丢弃, 或 `task.py finish` 收尾后会自动销;\n"
+                    "→ 孤儿: 确认无用后 `git worktree remove <path>` 手动销。"
+                )
+            if blocks:
+                print(json.dumps({"systemMessage": "\n\n".join(blocks)}))
         else:
-            # SubagentStop: 提醒主 agent, 不阻断 subagent 结束
+            # SubagentStop: subagent 结束 ≠ task 完成, 不自动销, 仅提醒主 agent
+            listing = "\n".join(
+                f"  - {p}  [{st}]" for (p, br, st) in actionable
+            )
+            reason = (
+                "[trellisx] 检测到残留 worktree (subagent 结束):\n"
+                f"{listing}\n"
+                "→ task 完成且会话结束 (Stop) 时, 已完成且 clean 的会被自动销毁。"
+            )
             print(json.dumps({
                 "hookSpecificOutput": {
                     "hookEventName": "SubagentStop",
