@@ -51,7 +51,7 @@ disable-model-invocation: true
                                                   ├─ humanize ┤ 三环并行检测(只读不改) → 评分
                                                   └─ proofread┘
                                                        │ 达标 → finalize(定稿+索引)
-                                                       │ 不足 → fix(串行改同文件) → 重走三环 (≤10次)
+                                                       │ 不足 → fix(串行改同文件) → 重走三环 (无限, 直到达标)
    ⇒ 第N章在检测/fix/定稿时, 第N+1章已在 write(两流并行)
                                   │
 后置(每批一次)：  统一 check（一个 agent 一次性审本批全部章节 + 与全书设定/前文冲突, 非逐章）
