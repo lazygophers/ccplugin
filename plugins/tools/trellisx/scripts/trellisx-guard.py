@@ -5,7 +5,12 @@
 
 事件分发 (读 stdin JSON 的 hook_event_name):
 - UserPromptSubmit : 每轮注入约束 (实质工作走 agent/subagent/team/worktree;
-                     建 task 用 trellisx-orchestrate; 完成即清理)。
+                     建 task 用 trellisx-orchestrate; 完成即清理) +
+                     检活跃 worktree 在 task.md 映射区缺登记 (含 ?待登记 占位) → 提醒补 map-add。
+- WorktreeCreate   : worktree 创建事件 (--worktree / isolation:worktree)。
+                     transform hook: 第一动作必须原样回显 worktree_path 到 stdout
+                     (缺 path → 创建失败), 再顺带占位登记映射 (tid=?待登记); 异常吞, path 已先输出不阻断。
+- WorktreeRemove   : worktree 销毁事件 → map-remove 清映射 (不阻断, 安全)。
 - Stop            : 检「已完成 task / 孤儿」的 worktree 残留 (未完成的正常工作不提醒)。
                     已完成 task 且工作区 clean → 自动 `git worktree remove` 销毁;
                     有未提交改动 (防丢数据) 或孤儿 (防误删用户手建) → 降级为提醒。
@@ -13,6 +18,7 @@
 - SubagentStop    : 仅检测提醒, 不自动销 (subagent 结束 ≠ task 完成)。
 
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
+  例外: WorktreeCreate 必须先把 worktree_path 回显 stdout 再做其余, 否则破坏 worktree 创建。
 """
 import json
 import os
@@ -157,6 +163,48 @@ def remove_worktree(repo, path):
         return False
 
 
+def run_taskmd(troot, *args):
+    """调目标项目的 trellisx-taskmd.py。返回 (returncode, stdout)。
+    脚本缺失 (项目未跑 apply) / 异常 → (99, '') 表示「无法判定」, 调用方应跳过不误报。"""
+    if not troot:
+        return (99, "")
+    script = os.path.join(troot, ".trellis", "scripts", "trellisx-taskmd.py")
+    if not os.path.isfile(script):
+        return (99, "")
+    try:
+        r = subprocess.run(
+            ["python3", script, *args],
+            cwd=troot, capture_output=True, text=True, timeout=5,
+        )
+        return (r.returncode, r.stdout.strip())
+    except Exception:
+        return (99, "")
+
+
+def unmapped_worktrees(troot, repo):
+    """活跃 worktree 中 task.md 映射区无登记 (map-check rc==1) 的路径清单。
+    rc 0=有映射 / 1=无映射 / 99=脚本缺失或异常 (跳过, 不误报)。"""
+    out = []
+    for p, _br in residual_worktrees(repo):
+        rc, _ = run_taskmd(troot, "map-check", p)
+        if rc == 1:
+            out.append(p)
+    return out
+
+
+def placeholder_worktrees(troot):
+    """映射区中 tid 仍为占位 (?待登记) 的 worktree 路径清单 (WorktreeCreate 占位待补全)。"""
+    rc, out = run_taskmd(troot, "map-show")
+    if rc != 0 or not out:
+        return []
+    res = []
+    for ln in out.splitlines():
+        # 格式: "<worktree> → <tid>  (<备注>)"
+        if "→ ?待登记" in ln or "→ ?待登记 " in ln:
+            res.append(ln.split(" → ", 1)[0].strip())
+    return res
+
+
 def emit_context(text):
     """UserPromptSubmit: 注入 additionalContext。"""
     print(json.dumps({
@@ -176,12 +224,44 @@ def main():
     event = data.get("hook_event_name") or data.get("hookEventName") or ""
     cwd = data.get("cwd") or os.getcwd()
 
-    # 仅 trellis 项目生效
+    # WorktreeCreate 最优先 (transform hook): 无条件回显 worktree_path 到 stdout,
+    # 即使非 trellis 项目也回显, 否则破坏 worktree 创建。回显后才做 (可选的) 映射占位登记。
+    if event == "WorktreeCreate":
+        wt = data.get("worktree_path") or ""
+        if wt:
+            print(wt)  # 契约第一: 回显路径, 此后绝不再写 stdout
+        troot = find_trellis_root(cwd) or (find_trellis_root(wt) if wt else None)
+        if troot and wt:
+            rc, _ = run_taskmd(troot, "map-check", wt)
+            if rc == 1:  # 无映射 → 占位登记, tid 待用户/AI 补全
+                run_taskmd(troot, "map-add", wt, "?待登记", "WorktreeCreate自动占位")
+        return 0
+
+    # 仅 trellis 项目生效 (WorktreeCreate 已在上方处理完)
     if not find_trellis_root(cwd):
         return 0
 
+    if event == "WorktreeRemove":
+        wt = data.get("worktree_path") or ""
+        if wt:
+            run_taskmd(find_trellis_root(cwd), "map-remove", wt)  # 销毁即清映射
+        return 0
+
     if event == "UserPromptSubmit":
-        emit_context(CONSTRAINT)
+        troot = find_trellis_root(cwd)
+        repo = git_top(cwd) or cwd
+        msg = CONSTRAINT
+        # 活跃 worktree 缺映射 (无登记) 或仍是 ?待登记 占位 → 提醒补 map-add
+        need = list(dict.fromkeys(
+            unmapped_worktrees(troot, repo) + placeholder_worktrees(troot)
+        ))
+        if need:
+            msg += (
+                "\n\n[trellisx] 以下 worktree 未明确登记映射到哪个 task, 请补登 "
+                "(`python3 .trellis/scripts/trellisx-taskmd.py map-add <worktree> <task-id> [备注]`):\n"
+                + "\n".join(f"  - {p}" for p in need)
+            )
+        emit_context(msg)
         return 0
 
     if event in ("Stop", "SubagentStop"):

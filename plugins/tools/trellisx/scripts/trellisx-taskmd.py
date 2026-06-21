@@ -21,6 +21,17 @@ HEADER = (
     "| --- | --- | --- | --- | --- | --- | --- |\n"
 )
 
+# 独立的 worktree ↔ task 映射区 (单表设计的明确例外: 主表一行一 task, 但 worktree
+# 可能由 subagent isolation / 手动 git worktree add 建, 无对应 task 行; 此区显式登记
+# 每个活跃 worktree 映射到哪个 task, 无映射的由 WorktreeCreate hook 提醒补登)。
+MAP_MARK = "## Worktree ↔ Task 映射"
+MAP_HEADER = (
+    "\n" + MAP_MARK + "\n\n"
+    "> 每个活跃 worktree 登记映射到的 task; 无映射的 worktree 由 WorktreeCreate hook 提醒补登。\n\n"
+    "| worktree | 映射 task (ID) | 备注 |\n"
+    "| --- | --- | --- |\n"
+)
+
 
 def trellis_root_from(path):
     cur = os.path.dirname(os.path.abspath(path))
@@ -100,6 +111,55 @@ def cleanup(md, troot, days):
     return "\n".join(out) + "\n"
 
 
+# ---- worktree ↔ task 映射区 ----
+def _norm_wt(p):
+    return os.path.abspath(os.path.expanduser((p or "").strip()))
+
+
+def ensure_map_section(md):
+    """task.md 无映射区 → 追加空映射区。"""
+    return md if MAP_MARK in md else (md.rstrip() + "\n" + MAP_HEADER)
+
+
+def map_rows(md):
+    """解析映射区行 → [(worktree显示, tid, 备注, 原始行)]。"""
+    if MAP_MARK not in md:
+        return []
+    seg = md.split(MAP_MARK, 1)[1]
+    out = []
+    for ln in seg.splitlines():
+        if (ln.startswith("| ") and not ln.startswith("| worktree |")
+                and not ln.startswith("| --- |")):
+            c = row_cells(ln)
+            if len(c) >= 2 and c[0]:
+                out.append((c[0], c[1], c[2] if len(c) > 2 else "", ln))
+    return out
+
+
+def map_find(md, wt):
+    """按 worktree 路径 (规范化匹配) 找映射行 → (显示, tid, 备注, 原始行) 或 None。"""
+    n = _norm_wt(wt)
+    for disp, tid, note, ln in map_rows(md):
+        if _norm_wt(disp) == n:
+            return (disp, tid, note, ln)
+    return None
+
+
+def map_remove_by_tid(md, tid):
+    """移除映射区中 tid 列 == 给定 tid 的所有行 (archive 时清)。"""
+    in_map, keep = False, []
+    for ln in md.splitlines():
+        if MAP_MARK in ln:
+            in_map = True
+        if (in_map and ln.startswith("| ") and not ln.startswith("| worktree |")
+                and not ln.startswith("| --- |")):
+            c = row_cells(ln)
+            if len(c) >= 2 and c[1] == tid:
+                continue  # 丢弃该 task 的映射行
+        keep.append(ln)
+    return "\n".join(keep) + "\n"
+
+
 # ---- 命令分发 ----
 def cmd_sync(action):
     tj = os.environ.get("TASK_JSON_PATH", "")
@@ -136,6 +196,7 @@ def cmd_sync(action):
     md = write_row(md, tid, [title, desc, status_cn, phase, prog, wt])
     if action == "archive":
         md = cleanup(md, troot, 7)
+        md = map_remove_by_tid(md, tid)  # 归档顺带清该 task 的 worktree 映射
     save_md(troot, md)
     print(f"trellisx: task.md 看板已同步 ({tid} → {status_cn})", file=sys.stderr)
 
@@ -202,9 +263,73 @@ def cmd_cleanup(argv):
     print(f"trellisx: 已清理超 {days} 天的已完成行", file=sys.stderr)
 
 
+def cmd_map_add(argv):
+    """map-add <worktree> <tid> [备注] — upsert 一条 worktree↔task 映射。"""
+    if len(argv) < 2:
+        print("用法: map-add <worktree> <tid> [备注]", file=sys.stderr)
+        sys.exit(1)
+    wt, tid = argv[0], argv[1]
+    note = (" ".join(argv[2:]).replace("|", "/").strip()) or "—"
+    troot = find_trellis_root()
+    if not troot:
+        print("trellisx: 未找到 .trellis", file=sys.stderr)
+        sys.exit(1)
+    md = ensure_map_section(load_md(troot))
+    row = f"| {wt} | {tid} | {note} |"
+    found = map_find(md, wt)
+    md = md.replace(found[3], row) if found else (md.rstrip() + "\n" + row + "\n")
+    save_md(troot, md)
+    print(f"trellisx: worktree 映射登记 {wt} → {tid}", file=sys.stderr)
+
+
+def cmd_map_remove(argv):
+    """map-remove <worktree> — 删除一条映射 (worktree 销毁时调)。"""
+    if not argv:
+        print("用法: map-remove <worktree>", file=sys.stderr)
+        sys.exit(1)
+    troot = find_trellis_root()
+    if not troot:
+        sys.exit(0)
+    md = load_md(troot)
+    found = map_find(md, argv[0])
+    if found:
+        md = "\n".join(l for l in md.splitlines() if l != found[3]) + "\n"
+        save_md(troot, md)
+        print(f"trellisx: 移除 worktree 映射 {argv[0]}", file=sys.stderr)
+
+
+def cmd_map_check(argv):
+    """map-check <worktree> — 有映射打印 tid 退 0; 无映射退 1 (hook 用)。"""
+    if not argv:
+        sys.exit(2)
+    troot = find_trellis_root()
+    if not troot:
+        sys.exit(0)  # 非 trellis 不报缺失
+    found = map_find(load_md(troot), argv[0])
+    if found:
+        print(found[1])
+        sys.exit(0)
+    sys.exit(1)  # 无映射
+
+
+def cmd_map_show(_argv):
+    """map-show — 打印全部 worktree↔task 映射。"""
+    troot = find_trellis_root()
+    if not troot:
+        print("trellisx: 未找到 .trellis", file=sys.stderr)
+        sys.exit(1)
+    rows = map_rows(load_md(troot))
+    if not rows:
+        print("(无 worktree 映射)")
+    for disp, tid, note, _ in rows:
+        print(f"{disp} → {tid}  ({note})")
+
+
 def main():
     if len(sys.argv) < 2:
-        print("用法: trellisx-taskmd.py <sync|update|show|cleanup> ...", file=sys.stderr)
+        print("用法: trellisx-taskmd.py "
+              "<sync|update|show|cleanup|map-add|map-remove|map-check|map-show> ...",
+              file=sys.stderr)
         sys.exit(1)
     cmd = sys.argv[1]
     if cmd == "sync":
@@ -215,6 +340,14 @@ def main():
         cmd_show(sys.argv[2:])
     elif cmd == "cleanup":
         cmd_cleanup(sys.argv[2:])
+    elif cmd == "map-add":
+        cmd_map_add(sys.argv[2:])
+    elif cmd == "map-remove":
+        cmd_map_remove(sys.argv[2:])
+    elif cmd == "map-check":
+        cmd_map_check(sys.argv[2:])
+    elif cmd == "map-show":
+        cmd_map_show(sys.argv[2:])
     else:
         print(f"trellisx: 未知命令 {cmd}", file=sys.stderr)
         sys.exit(1)
