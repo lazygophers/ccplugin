@@ -15,9 +15,10 @@ arguments: [任务描述]
 
 ## 执行载体铁律 (最高优先级)
 
-> **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **由 subagent (`Agent` 工具) 执行**, 不在 main 上下文里直接做。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制** —— 用户需要异步会自行处理; 本 skill 只确保实质工作确实走 subagent 执行。
+> **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **由 subagent (`Agent` 工具) 执行**, 不在 main 上下文里直接做。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制** —— 用户需要异步会自行处理; 本 skill 只确保实质工作确实走 subagent 执行。**注意: worktree 隔离不在「按需」之列 —— exec 阶段写代码 subagent 必走 worktree (强制, 见步骤 4 + 硬规)。**
 
 - ⛔ **main 禁直接落地实质工作** —— 改源码、跑 check 等**实质产出一律派 subagent 执行**, main 不在自身上下文里直接做。
+- 🌳 **exec 写代码 subagent 必走 worktree 隔离 (强制)** —— 每个改源码的 subagent MUST 在独立 git worktree 内执行 (`Agent` 工具传 `isolation: worktree`, 或先用 `trellisx-workspace` 建 worktree), 主工作区零改动。worktree 是硬性要求, **仅** `run_in_background` 异步 / 并行分组按需自定。
 - 💬 **planning 例外 = main 同步走 `trellis-brainstorm`** —— brainstorm 需逐问用户 (交互式), subagent 不能与用户对话, 故 planning 由 **main 同步前台**驱动 brainstorm + orchestrate, 不派 subagent。
 - 🗂️ **task 生命周期脚本由 main 同步跑** —— `task.py create / start / finish / archive` 是任务记录管理, **main 直接同步执行** (不派 agent、不算实质工作); `task.py finish` 后由 `after_finish` hook 自动完成 commit→merge→archive→销 worktree。
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) subagent 不能与用户对话; subagent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
@@ -47,7 +48,7 @@ arguments: [任务描述]
    - **`trellisx-orchestrate` 仅管执行层编排** —— 只负责**实际执行的 subagent 职责划分**、并行组 / 依赖关系、资源互斥, 产出 `implement.md`; **不用它做需求/方案设计**。
    - 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。planning 完成 → 进激活。
 3. **激活** (main 编排) — 产物**由 main 用 AskUserQuestion 交用户评审** → 通过后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
-4. **exec** (派 subagent, worktree 隔离) — 全部源码改动落 `<git根>/.worktrees/`, 主工作区保持干净; **无论单交付还是多交付, 一律派 subagent 写代码, main 禁亲自改源码** (异步/并行按需自定)。每个 subagent 完成即回传。→ **更新 task.md 进度**。
+4. **exec** (派 subagent, **worktree 强制隔离**) — 🔴 **每个 exec subagent MUST 在独立 git worktree 内执行** (`Agent` 工具传 `isolation: worktree`, 或先 `trellisx-workspace` 建 worktree), 全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **无论单交付还是多交付, 一律派 subagent 写代码, main 禁亲自改源码**。worktree 为硬性要求, **仅**异步 (`run_in_background`) / 并行分组按需自定。每个 subagent 完成即回传。→ **更新 task.md 进度**。
 5. **check** (派 subagent) — 派 subagent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 subagent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
 6. **finish** (main 同步) — check 通过 → main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
 
@@ -65,6 +66,7 @@ arguments: [任务描述]
 ## 硬规 (正向必做)
 
 - ✅ **走完 plan→exec→check→finish 闭环** —— **未 archive = 未完成, 禁宣告 Done / 禁结束本轮**。
+- 🌳 **exec 必走 worktree 隔离 (强制)** —— 每个写代码 subagent 必须在独立 git worktree 执行 (`isolation: worktree`), 改动落 `<git根>/.worktrees/`, 主工作区零改动; finish 后由 `after_finish` hook 销 worktree。worktree 非可选, 只有异步/并行才按需自定。
 - ✅ **及时维护 task.md 看板** —— 每个生命周期节点 (create/start/阶段推进/finish) 后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
 
 ## ⛔ 反例黑名单 (命中任一 = 流程错误, 改方案重来)
@@ -82,5 +84,6 @@ arguments: [任务描述]
 | 9 | 纯文本提问代替 `AskUserQuestion` | 用户确认 / 选择必用工具 |
 | 10 | 批量延迟汇总 agent 进度 | 每个 agent 完成 / 阻塞即时回传 |
 | 11 | **口头宣称"已派 agent / 已建 task / 看板已登记"但本回复无对应 tool_use** | **先真实调用** `Agent` / `Bash task.py` / `trellisx-workspace`, 再回传 —— 宣称 ≠ 调用, 凭空宣称 = 幻觉跳步 |
+| 12 | exec subagent 直接在主工作区改源码 (无 worktree) | 必走 worktree 隔离 (`isolation: worktree`), 改动落 `<git根>/.worktrees/`, 主工作区零改动 |
 
 > 与 `trellisx-apply` 的分工: 本 skill 是用户**主动强制建 task**的入口 (喊它才动); apply 注入的 no_task 倾向是**被动推荐建 task**的常驻软提示。两者互补, 不要混用 —— 本 skill 禁自动触发。
