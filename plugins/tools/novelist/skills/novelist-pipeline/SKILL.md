@@ -112,12 +112,12 @@ disable-model-invocation: true
 
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
-| 综合分 <85(分项不足) | 退回最弱环修复重跑 | 连续 10 次不过 → 标「需复审」回报; 仍低 → 人工 |
+| 综合分 <85(分项不足) | 退回最弱环修复重跑 | **无限重试**(`MAX_FIX_ATTEMPTS=Infinity`)直到达标——一直 fix 不停 |
 | 一致性有冲突 | `novelist-check` 定位 → `novelist-rewrite` 修 | 冲突来自设定 → 先改设定再改正文 |
-| 路线图生成/解析失败(schema 返回 chapters 为空) | 重试 1 次 | 仍失败 → ❌ 明确报错跳过本批(非静默), 回报用户 |
+| 路线图生成/解析失败(schema 返回 chapters 为空) | **无限重试**直到拿到 chapters | (不跳批, 一直重试) |
 | 多 workflow 冲突 | 立即停掉旧 workflow | 无法停 → 等结束后手动修索引 |
 | 索引/进度被污染 | 对照章节目录重建 | 无法重建 → 回报用户 |
-| agent 调用失败(网络/余额/瞬时 API) | `callAgent` 包装自动重试 ≤3 次(`MAX_AGENT_RETRIES`) | 重试耗尽 → log ❌ 返回 null, 下游按缺省/标该章需人工 |
+| agent 调用失败(网络/余额/瞬时 API) | `callAgent` **无限重试**(`MAX_AGENT_RETRIES=Infinity`)直到成功 | (永不放弃, 一直重试) |
 | 无 Workflow 工具(非 Claude Code) | 退化: 用 `novelist-write` 逐章手动循环 | 同样走每章收尾链 |
 
 ## 🔴 检查点
@@ -134,6 +134,7 @@ disable-model-invocation: true
 - 后置统一 check = **单 agent 一次性审整批**(读全批正文+全书设定/前文, 非逐章并行)。
 - 禁止多个 pipeline 同时运行。
 - 每批最多 5 章(`BATCH_SIZE=5`; 超过自动分批; 批间串行, 批内两流并行)。
+- 🔴 **全程无限重试(用户强制)**: fix 循环 / agent 调用 / 路线图生成三处均**无上限**(`Infinity`/`while(true)`), 一直重试到成功/达标。⚠️ 持久错误(余额耗尽/永久达不到阈值)会**死循环**, 需人工 kill workflow——这是用户明确要求的强制行为, 不设兜底。
 - ⚠️ **草稿依赖风险**: 第 N+1 章基于第 N 章草稿写; 若第 N 章检测出致命冲突需重写 → 第 N+1 章可能要返工。这是 throughput 与一致性的权衡(已选 throughput)。
 
 ## ⛔ 反例黑名单

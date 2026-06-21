@@ -35,11 +35,11 @@ const INDEX_FILE = `${ROOT}/章节/_索引.md`;
 
 // ===== 可调常量(对齐 novelist 插件评分门控) =====
 const BATCH_SIZE = 5; // 每批最多章数, 超出自动分批
-const MAX_FIX_ATTEMPTS = 10; // fix 最大重试
+const MAX_FIX_ATTEMPTS = Infinity; // fix 最大重试(无限: 一直修到达标; 用户要求)
 const PASS_TOTAL = 85; // 定稿综合分阈值
 const PASS_CONSISTENCY = 85; // 一致性单项阈值
 const PASS_HUMANNESS = 70; // 人味单项阈值(对齐 score_aitaste 目标线)
-const MAX_AGENT_RETRIES = 3; // 单个 agent 调用失败(网络/余额瞬时)重试上限
+const MAX_AGENT_RETRIES = Infinity; // 单 agent 调用失败重试上限(无限: 一直重试到成功; 用户要求)
 const EST_SEC_PER_AGENT = 30; // 单 agent 调用预估耗时(秒, 仅粗估; Workflow 禁 Date.now 无法实测)
 let AGENT_CALLS = 0; // 全局 agent 实际调用计数(含重试), 用于整体耗时预估
 
@@ -56,9 +56,9 @@ async function callAgent(prompt, opts, retries = MAX_AGENT_RETRIES) {
 			AGENT_CALLS++;
 			const r = await agent(prompt, opts);
 			if (r != null) return r;
-			log(`⚠️ ${tag} 返回 null(第${i}/${retries}次), 重试`);
+			log(`⚠️ ${tag} 返回 null(第${i}次), 重试`);
 		} catch (e) {
-			log(`⚠️ ${tag} 调用异常: ${(e && e.message) || e}(第${i}/${retries}次), 重试`);
+			log(`⚠️ ${tag} 调用异常: ${(e && e.message) || e}(第${i}次), 重试`);
 		}
 	}
 	log(`❌ ${tag} 重试 ${retries} 次仍失败(网络/余额/API?), 放弃该 callAgent(返回 null)`);
@@ -150,7 +150,9 @@ async function ensureRouteMap(batchStart, batchEnd) {
 
 	// 2) 不存在 → 生成 + 结构化返回(双产出: 写文件 + 返回 chapters)
 	log(`生成路线图 ${batchId}`);
-	for (let attempt = 1; attempt <= 2; attempt++) {
+	let attempt = 0;
+	while (true) {
+		attempt++;
 		let gen = null;
 		try {
 			gen = await callAgent(
@@ -174,10 +176,8 @@ async function ensureRouteMap(batchStart, batchEnd) {
 			log(`路线图 ${batchId} 生成(${gen.chapters.length}章)`);
 			return chaptersToMap(gen.chapters);
 		}
-		log(`⚠️ 路线图 ${batchId} 第${attempt}/2 次返回 chapters 为空, 重试`);
+		log(`⚠️ 路线图 ${batchId} 第${attempt}次返回 chapters 为空, 重试(无限)`);
 	}
-	log(`❌ 路线图 ${batchId} 生成/解析失败(chapters 始终为空), 跳过本批`);
-	return null;
 }
 
 // ===== 前置: 更新世界观(读小说自己的规则.md) =====
