@@ -5,17 +5,22 @@
 
 事件分发 (读 stdin JSON 的 hook_event_name):
 - UserPromptSubmit : 每轮注入约束 (实质工作走 agent/subagent/team/worktree;
-                     建 task 用 trellisx-orchestrate; 完成即清理) +
-                     检活跃 worktree 在 task.md 映射区缺登记 (含 ?待登记 占位) → 提醒补 map-add。
+                     建 task 用 trellisx-orchestrate; 完成即清理)。
+                     仅当确有 worktree 映射 tid=? 待补 (map-get rc==1 或值为 ?)
+                     或 task.md lint 真失败时, 才追加提醒; 否则不空转。
 - WorktreeCreate   : worktree 创建事件 (--worktree / isolation:worktree)。
-                     transform hook: 第一动作必须原样回显 worktree_path 到 stdout
-                     (缺 path → 创建失败), 再顺带占位登记映射 (tid=?待登记); 异常吞, path 已先输出不阻断。
-- WorktreeRemove   : worktree 销毁事件 → map-remove 清映射 (不阻断, 安全)。
-- Stop            : 检「已完成 task / 孤儿」的 worktree 残留 (未完成的正常工作不提醒)。
-                    已完成 task 且工作区 clean → 自动 `git worktree remove` 销毁;
-                    有未提交改动 (防丢数据) 或孤儿 (防误删用户手建) → 降级为提醒。
-                    systemMessage 汇报已销/待人工处理, 不中断会话结束。
-- SubagentStop    : 仅检测提醒, 不自动销 (subagent 结束 ≠ task 完成)。
+                     transform hook: 第一动作无条件原样回显 worktree_path 到 stdout
+                     (缺 path → 创建失败; 非 trellis 也回显), 此后绝不再写 stdout。
+                     然后读当前活动 task (task.py current → basename = tid; 无则 ?),
+                     map-add <wt> <tid> <source> (source 取输入 JSON source 字段)。
+                     全程吞异常, 不影响已回显 path。
+- WorktreeRemove   : worktree 销毁事件 → map-remove 清映射 (不阻断)。
+- Stop            : 列所有非主 worktree, 判「分支已合并回主 worktree HEAD 且目录仍在且 clean」
+                    = 已合并未清理 → 顶层 {"decision":"block"} 逐条提示清理 (不自动销毁)。
+                    抑制阀: .runtime/ 记状态, 同批 worktree 连续 block ≥3 次 → 本次降级
+                    systemMessage 不 block。无残留 → return 0。
+- SubagentStop    : 仅 additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block)。
+- FileChanged     : task.md lint 不合规 → systemMessage 提醒 (不阻断)。
 
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
   例外: WorktreeCreate 必须先把 worktree_path 回显 stdout 再做其余, 否则破坏 worktree 创建。
@@ -60,8 +65,25 @@ def git_top(cwd):
         return None
 
 
-def residual_worktrees(repo):
-    """返回 trellisx 残留 worktree 路径清单 (.worktrees/ 下 或 trellisx- 分支)。"""
+def main_worktree(repo):
+    """git worktree list 第一条 = 主 worktree 路径。"""
+    try:
+        r = subprocess.run(
+            ["git", "worktree", "list", "--porcelain"],
+            cwd=repo, capture_output=True, text=True, timeout=5,
+        )
+        if r.returncode != 0:
+            return repo
+        for line in r.stdout.splitlines():
+            if line.startswith("worktree "):
+                return line[len("worktree "):].strip()
+    except Exception:
+        pass
+    return repo
+
+
+def non_main_worktrees(repo):
+    """返回 (path, short_branch) 清单, 排除主 worktree (列表首条)。"""
     try:
         r = subprocess.run(
             ["git", "worktree", "list", "--porcelain"],
@@ -71,20 +93,17 @@ def residual_worktrees(repo):
             return []
     except Exception:
         return []
-    found, cur = [], {}
+    entries, cur = [], {}
     for line in r.stdout.splitlines() + [""]:
         if not line.strip():
-            path = cur.get("worktree", "")
-            branch = cur.get("branch", "")
-            if path and ("/.worktrees/" in path.replace("\\", "/")
-                         or "trellisx-" in branch):
-                found.append((path, _short_branch(branch)))
+            if cur.get("worktree"):
+                entries.append((cur["worktree"], _short_branch(cur.get("branch", ""))))
             cur = {}
         elif line.startswith("worktree "):
             cur["worktree"] = line[len("worktree "):].strip()
         elif line.startswith("branch "):
             cur["branch"] = line[len("branch "):].strip()
-    return found
+    return entries[1:] if entries else []  # 首条为主 worktree
 
 
 def _short_branch(b):
@@ -92,73 +111,28 @@ def _short_branch(b):
     return b.rsplit("/", 1)[-1] if b else ""
 
 
-_DONE_STATUS = ("completed", "done", "archived", "finished", "closed")
-
-
-def load_tasks(troot):
-    """扫 .trellis/tasks/**/task.json → [(dict, is_archived)]。"""
-    base = os.path.join(troot, ".trellis", "tasks")
-    out = []
-    if not os.path.isdir(base):
-        return out
-    for root, _dirs, files in os.walk(base):
-        if "task.json" not in files:
-            continue
-        try:
-            with open(os.path.join(root, "task.json"), encoding="utf-8") as fh:
-                d = json.load(fh)
-        except Exception:
-            continue
-        is_archived = (os.sep + "archive" + os.sep) in (root + os.sep)
-        out.append((d, is_archived))
-    return out
-
-
-def worktree_status(troot, path, branch):
-    """worktree 相对其 task 的状态 → 'active' | 'completed' | 'orphan'。
-
-    匹配 task: branch 字段 / worktree_path 字段 / name 含 task id。
-    - 匹配到且 status 完成 或 在 archive 目录 → 'completed' (已收尾, 可自动销)
-    - 匹配到但 status 未完成 (in_progress/planning 等) → 'active' (正常工作, 跳过)
-    - 无匹配 (孤儿: task 已删/已清而 worktree 残留) → 'orphan' (提醒, 不擅自删)
-    """
-    name = os.path.basename(path.rstrip("/"))
-    apath = os.path.abspath(path)
-    for d, is_archived in load_tasks(troot):
-        tb = _short_branch(d.get("branch") or "")
-        twp = d.get("worktree_path") or ""
-        tid = str(d.get("id") or "")
-        matched = (
-            (branch and tb and tb == branch)
-            or (twp and os.path.abspath(twp) == apath)
-            or (tid and (name == tid or name.endswith("-" + tid)))
+def branch_merged(repo, branch, head_ref="HEAD"):
+    """branch 全部提交可达自主 worktree HEAD (= 已合并) → True。"""
+    if not branch:
+        return False
+    try:
+        r = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", branch, head_ref],
+            cwd=repo, capture_output=True, timeout=5,
         )
-        if matched:
-            status = str(d.get("status") or "").lower()
-            return "completed" if (is_archived or status in _DONE_STATUS) else "active"
-    return "orphan"  # 无对应 task
+        return r.returncode == 0
+    except Exception:
+        return False
 
 
 def worktree_clean(path):
-    """worktree 工作区无未提交改动 (含未跟踪) → True; 任何异常 → False (保守不删)。"""
+    """worktree 工作区无未提交改动 (含未跟踪) → True; 任何异常 → False。"""
     try:
         r = subprocess.run(
             ["git", "status", "--porcelain"],
             cwd=path, capture_output=True, text=True, timeout=5,
         )
         return r.returncode == 0 and not r.stdout.strip()
-    except Exception:
-        return False
-
-
-def remove_worktree(repo, path):
-    """git worktree remove (不加 --force: 脏 / 锁定会失败, 双保险防丢数据) → 成功 True。"""
-    try:
-        r = subprocess.run(
-            ["git", "worktree", "remove", path],
-            cwd=repo, capture_output=True, text=True, timeout=15,
-        )
-        return r.returncode == 0
     except Exception:
         return False
 
@@ -181,28 +155,66 @@ def run_taskmd(troot, *args):
         return (99, "")
 
 
-def unmapped_worktrees(troot, repo):
-    """活跃 worktree 中 task.md 映射区无登记 (map-check rc==1) 的路径清单。
-    rc 0=有映射 / 1=无映射 / 99=脚本缺失或异常 (跳过, 不误报)。"""
-    out = []
-    for p, _br in residual_worktrees(repo):
-        rc, _ = run_taskmd(troot, "map-check", p)
-        if rc == 1:
-            out.append(p)
-    return out
+def active_tid(troot):
+    """读当前活动 task → tid (task 路径 basename); 无活动 task 或异常 → None。"""
+    if not troot:
+        return None
+    script = os.path.join(troot, ".trellis", "scripts", "task.py")
+    if not os.path.isfile(script):
+        return None
+    try:
+        r = subprocess.run(
+            ["python3", script, "current"],
+            cwd=troot, capture_output=True, text=True, timeout=5,
+        )
+        out = (r.stdout or "").strip()
+        if r.returncode == 0 and out:
+            return os.path.basename(out.rstrip("/"))
+    except Exception:
+        pass
+    return None
 
 
-def placeholder_worktrees(troot):
-    """映射区中 tid 仍为占位 (?待登记) 的 worktree 路径清单 (WorktreeCreate 占位待补全)。"""
-    rc, out = run_taskmd(troot, "map-show")
-    if rc != 0 or not out:
-        return []
-    res = []
-    for ln in out.splitlines():
-        # 格式: "<worktree> → <tid>  (<备注>)"
-        if "→ ?待登记" in ln or "→ ?待登记 " in ln:
-            res.append(ln.split(" → ", 1)[0].strip())
-    return res
+def map_tid_for(troot, wt):
+    """map-get <wt> → tid 或 None。"""
+    rc, out = run_taskmd(troot, "map-get", wt)
+    return out if rc == 0 and out else None
+
+
+# ---- Stop 抑制阀 (仅写 .trellis/.runtime/, 不碰 tasks/config) ----
+def _valve_path(troot):
+    rt = os.path.join(troot, ".trellis", ".runtime")
+    try:
+        os.makedirs(rt, exist_ok=True)
+    except Exception:
+        return None
+    return os.path.join(rt, "stop-block-streak.json")
+
+
+def valve_bump(troot, batch_key):
+    """记同批 worktree 连续 block 次数。返回累计次数 (含本次); 不可写 → 返回 1 (不抑制)。"""
+    p = _valve_path(troot)
+    if not p:
+        return 1
+    try:
+        st = json.load(open(p, encoding="utf-8")) if os.path.isfile(p) else {}
+    except Exception:
+        st = {}
+    n = (st.get("count", 0) + 1) if st.get("key") == batch_key else 1
+    try:
+        json.dump({"key": batch_key, "count": n}, open(p, "w", encoding="utf-8"))
+    except Exception:
+        pass
+    return n
+
+
+def valve_reset(troot):
+    p = _valve_path(troot)
+    if p and os.path.isfile(p):
+        try:
+            os.remove(p)
+        except Exception:
+            pass
 
 
 def emit_context(text):
@@ -215,6 +227,12 @@ def emit_context(text):
     }))
 
 
+def lint_failed(troot):
+    """task.md lint 不合规 → True; 合规或无法判定 → False。"""
+    rc, _ = run_taskmd(troot, "lint")
+    return rc == 1
+
+
 def main():
     try:
         raw = sys.stdin.read()
@@ -225,104 +243,119 @@ def main():
     cwd = data.get("cwd") or os.getcwd()
 
     # WorktreeCreate 最优先 (transform hook): 无条件回显 worktree_path 到 stdout,
-    # 即使非 trellis 项目也回显, 否则破坏 worktree 创建。回显后才做 (可选的) 映射占位登记。
+    # 即使非 trellis 项目也回显, 否则破坏 worktree 创建。回显后才做映射登记。
     if event == "WorktreeCreate":
         wt = data.get("worktree_path") or ""
         if wt:
             print(wt)  # 契约第一: 回显路径, 此后绝不再写 stdout
-        troot = find_trellis_root(cwd) or (find_trellis_root(wt) if wt else None)
-        if troot and wt:
-            rc, _ = run_taskmd(troot, "map-check", wt)
-            if rc == 1:  # 无映射 → 占位登记, tid 待用户/AI 补全
-                run_taskmd(troot, "map-add", wt, "?待登记", "WorktreeCreate自动占位")
+        try:
+            troot = find_trellis_root(cwd) or (find_trellis_root(wt) if wt else None)
+            if troot and wt:
+                tid = active_tid(troot) or "?"
+                source = (data.get("source") or "WorktreeCreate").strip() or "WorktreeCreate"
+                run_taskmd(troot, "map-add", wt, tid, source)
+        except Exception:
+            pass  # path 已回显, 绝不阻断创建
         return 0
 
     # 仅 trellis 项目生效 (WorktreeCreate 已在上方处理完)
-    if not find_trellis_root(cwd):
+    troot = find_trellis_root(cwd)
+    if not troot:
         return 0
 
     if event == "WorktreeRemove":
         wt = data.get("worktree_path") or ""
         if wt:
-            run_taskmd(find_trellis_root(cwd), "map-remove", wt)  # 销毁即清映射
+            run_taskmd(troot, "map-remove", wt)  # 销毁即清映射
+        return 0
+
+    if event == "FileChanged":
+        if lint_failed(troot):
+            print(json.dumps({
+                "systemMessage": (
+                    "[trellisx] task.md 格式不合规 (列数/状态/ID 重复), 请经 "
+                    "`python3 .trellis/scripts/trellisx-taskmd.py` 命令修正 "
+                    "(勿手编 task.md)。运行 `... lint` 查看具体问题。"
+                )
+            }))
         return 0
 
     if event == "UserPromptSubmit":
-        troot = find_trellis_root(cwd)
-        repo = git_top(cwd) or cwd
         msg = CONSTRAINT
-        # 活跃 worktree 缺映射 (无登记) 或仍是 ?待登记 占位 → 提醒补 map-add
-        need = list(dict.fromkeys(
-            unmapped_worktrees(troot, repo) + placeholder_worktrees(troot)
-        ))
-        if need:
-            msg += (
-                "\n\n[trellisx] 以下 worktree 未明确登记映射到哪个 task, 请补登 "
-                "(`python3 .trellis/scripts/trellisx-taskmd.py map-add <worktree> <task-id> [备注]`):\n"
-                + "\n".join(f"  - {p}" for p in need)
+        repo = git_top(cwd) or cwd
+        # 仅当确有 tid=? 待补 或 lint 真失败 才追加提醒, 不每轮空转
+        pending = []
+        for p, _br in non_main_worktrees(repo):
+            tid = map_tid_for(troot, p)
+            if tid is None or tid == "?":
+                pending.append(p)
+        extra = []
+        if pending:
+            extra.append(
+                "[trellisx] 以下 worktree 未明确登记映射到 task (tid=? 或缺登记), 请补登 "
+                "(`python3 .trellis/scripts/trellisx-taskmd.py map-add <worktree> <task-id> [创建源]`):\n"
+                + "\n".join(f"  - {p}" for p in pending)
             )
+        if lint_failed(troot):
+            extra.append(
+                "[trellisx] task.md 格式不合规, 请经 trellisx-taskmd.py 命令修正后再继续。"
+            )
+        if extra:
+            msg += "\n\n" + "\n\n".join(extra)
         emit_context(msg)
         return 0
 
-    if event in ("Stop", "SubagentStop"):
-        troot = find_trellis_root(cwd)
+    if event == "Stop":
         repo = git_top(cwd) or cwd
-        residual = residual_worktrees(repo)
-        # 标注每个残留 worktree 的状态; active (正常工作) 跳过
-        actionable = [
-            (p, br, worktree_status(troot, p, br)) for (p, br) in residual
-        ]
-        actionable = [(p, br, st) for (p, br, st) in actionable if st != "active"]
-        if not actionable:
+        head_wt = main_worktree(repo)
+        # 已合并未清理: 分支已合并回主 worktree HEAD 且目录仍在且 clean
+        residual = []
+        for p, br in non_main_worktrees(repo):
+            if (os.path.isdir(p) and branch_merged(head_wt, br) and worktree_clean(p)):
+                residual.append((p, br))
+        if not residual:
+            valve_reset(troot)
             return 0
 
-        if event == "Stop":
-            # 已完成 task 且 clean → 自动销毁; 脏 (防丢数据) / 孤儿 (防误删) → 留给人工
-            removed, kept = [], []
-            for p, br, st in actionable:
-                if st == "completed" and worktree_clean(p) and remove_worktree(repo, p):
-                    removed.append(p)
-                else:
-                    kept.append((p, st))
-            if removed:
-                try:
-                    subprocess.run(["git", "worktree", "prune"],
-                                   cwd=repo, capture_output=True, timeout=5)
-                except Exception:
-                    pass
-            blocks = []
-            if removed:
-                blocks.append(
-                    "[trellisx] 已自动销毁已完成 task 的 worktree (工作区 clean):\n"
-                    + "\n".join(f"  - {p}" for p in removed)
-                )
-            if kept:
-                lines = []
-                for p, st in kept:
-                    tag = "孤儿(无对应 task)" if st == "orphan" else "有未提交改动"
-                    lines.append(f"  - {p}  [{tag}]")
-                blocks.append(
-                    "[trellisx] 以下 worktree 未自动清理, 需人工处理:\n"
-                    + "\n".join(lines)
-                    + "\n→ 有未提交改动: 先提交/丢弃, 或 `task.py finish` 收尾后会自动销;\n"
-                    "→ 孤儿: 确认无用后 `git worktree remove <path>` 手动销。"
-                )
-            if blocks:
-                print(json.dumps({"systemMessage": "\n\n".join(blocks)}))
+        batch_key = "|".join(sorted(p for p, _ in residual))
+        streak = valve_bump(troot, batch_key)
+        lines = []
+        for p, _br in residual:
+            tid = map_tid_for(troot, p) or "?"
+            lines.append(
+                f"  - {p} (task={tid}) 已合并未清理 → 清理: "
+                f"`git worktree remove {p}` 或 `task.py finish`; 清理后再结束"
+            )
+        body = ("[trellisx] 检测到已合并回主分支但未清理的 worktree:\n"
+                + "\n".join(lines))
+
+        if streak >= 3:
+            # 抑制阀: 连续 block ≥3 次 → 本次降级, 不再阻断会话结束
+            print(json.dumps({
+                "systemMessage": body + "\n(已连续提示 ≥3 次, 本次不再阻断结束。)"
+            }))
         else:
-            # SubagentStop: subagent 结束 ≠ task 完成, 不自动销, 仅提醒主 agent
-            listing = "\n".join(
-                f"  - {p}  [{st}]" for (p, br, st) in actionable
-            )
-            reason = (
-                "[trellisx] 检测到残留 worktree (subagent 结束):\n"
-                f"{listing}\n"
-                "→ task 完成且会话结束 (Stop) 时, 已完成且 clean 的会被自动销毁。"
-            )
+            print(json.dumps({"decision": "block", "reason": body}))
+        return 0
+
+    if event == "SubagentStop":
+        repo = git_top(cwd) or cwd
+        head_wt = main_worktree(repo)
+        residual = []
+        for p, br in non_main_worktrees(repo):
+            if (os.path.isdir(p) and branch_merged(head_wt, br) and worktree_clean(p)):
+                tid = map_tid_for(troot, p) or "?"
+                residual.append(f"  - {p} (task={tid})")
+        if residual:
             print(json.dumps({
                 "hookSpecificOutput": {
                     "hookEventName": "SubagentStop",
-                    "additionalContext": reason,
+                    "additionalContext": (
+                        "[trellisx] 检测到已合并未清理的 worktree (subagent 结束):\n"
+                        + "\n".join(residual)
+                        + "\n→ task 完成且会话结束 (Stop) 时会提醒清理 "
+                        "(`git worktree remove` 或 `task.py finish`)。"
+                    ),
                 }
             }))
         return 0

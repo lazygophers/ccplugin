@@ -56,8 +56,9 @@ chmod +x .trellis/scripts/trellisx-worktree.py .trellis/scripts/trellisx-taskmd.
 
 **② `trellisx-taskmd.py`** (`.trellis/task.md` 看板的**唯一读写入口** — CLI, 见 trellisx-workspace):
 - 子命令: `sync <create|start|archive>` (hook 用, 读 $TASK_JSON_PATH 维护确定性列) / `update <tid> --status/--phase/--progress/--worktree` (AI 用) / `show [tid]` / `cleanup [--days N]`
+- worktree↔task 映射子命令 (独立映射区, 一对多): `map-add <wt> <tid> [创建源]` (按规范化 abspath upsert) / `map-remove <wt>` / `map-get <wt>` (命中→stdout tid 退0, 否则退1) / `map-list` / `lint` (合规退0, 否则退1+stderr)
 - hook 的 `sync` 维护**确定性列** (ID/名称/描述/状态), upsert 时**保留 AI 主观列** (阶段/进度/worktree) 不覆盖
-- `sync archive` 顺带**清理超 7 天的已完成行** (依据 task.json.completedAt)
+- `sync archive` 顺带**清理超 7 天的已完成行** (依据 task.json.completedAt) + 删该 tid 全部映射行
 - AI 不直接编辑 task.md, 一律经本脚本
 
 **③ `trellisx-finish.py`** (强制闭环收尾, **after_finish hook 自动调用** + 手动 CLI 兜底):
