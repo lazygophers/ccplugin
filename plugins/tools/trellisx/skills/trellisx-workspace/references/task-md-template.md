@@ -14,7 +14,22 @@
 | 06-13-login | 实现登录 | JWT 登录 + token 刷新 | 进行中 | 实施 | 60% | .worktrees/login |
 | 06-13-export | 导出 CSV | 报表导出 | 规划中 | 规划 | 0% | — |
 | 06-10-init | 项目初始化 | 脚手架 | 已完成 | 收尾 | 100% | — |
+
+## Worktree ↔ Task 映射
+
+> 每个活跃 worktree 登记映射到的 task (一对多: 同 task 拆多 subagent 各占一行);
+> 无映射的 worktree 由 WorktreeCreate hook 提醒补登。
+
+| worktree | task | 创建源 |
+| --- | --- | --- |
+| .worktrees/login | 06-13-login | trellisx-start |
+| .worktrees/login-sub1 | 06-13-login | subagent |
 ```
+
+> **映射区是唯一允许的额外 section** (主表外的例外): worktree 可能由 subagent isolation / 手动
+> `git worktree add` 建, 无对应主表行; 此区显式登记每个活跃 worktree 归属哪个 task。**一行一
+> worktree, 同 task 可多行 (一对多)**。经 `trellisx-taskmd.py map-add/map-remove/map-get/map-list`
+> 维护, AI 勿手编。
 
 ## 字段 (一行一任务)
 
@@ -47,3 +62,5 @@
 | 加活动详情块 / 子任务树 | 一任务一行, 细节留 task 文件夹 (prd/design/implement) |
 | 单设「已归档」分区 | 已完成行同表, 用「状态」列区分 |
 | 描述写成多句长文 | ≤ 30 字一句话目的 |
+
+> **例外**: `## Worktree ↔ Task 映射` 区是唯一允许的额外 section (见上), 其余「主表外加 section」仍禁。

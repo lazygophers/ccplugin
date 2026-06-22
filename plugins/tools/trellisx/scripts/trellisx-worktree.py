@@ -50,7 +50,7 @@ if action == "start":
         if service not in (".", None) and not pkg:   # 微服务 → sparse 只检子目录
             subprocess.run(["git", "-C", wt, "sparse-checkout", "set", service],
                            capture_output=True, timeout=10)
-    _map("map-add", wt, tid, "task启动自动登记")  # 经 task 建, 已知 tid, 不被 hook 提醒
+    _map("map-add", wt, tid, "trellisx-start")  # 经 task 建, 已知 tid, 不被 hook 提醒
     print(f"trellisx: worktree → {wt} (源码改动写此 worktree 内)", file=sys.stderr)
 
 elif action == "archive":
