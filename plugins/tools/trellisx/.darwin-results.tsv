@@ -1,0 +1,11 @@
+timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
+2026-06-23T16:00	darwin	trellisx-flow	92.6	93.8	keep	d7	铁律去重指向硬规(信息零损失)	dry_run
+2026-06-23T18:30	darwin	trellisx-workspace	84.7	88.4	rebaseline	-	独立judge重评(judge a37a1404)	dry_run
+2026-06-23T18:30	darwin	trellisx-spec	85.6	90.4	rebaseline	-	独立judge重评	dry_run
+2026-06-23T18:30	darwin	trellisx-orchestrate	86.1	87.2	rebaseline	-	独立judge重评(judge af5bc908)	dry_run
+2026-06-23T18:30	darwin	trellisx-apply	90.1	83.0	rebaseline	-	独立judge重评(judge a6c06205)弱dim7/dim1	dry_run
+2026-06-23T18:30	darwin	trellisx-flow	93.8	91.8	rebaseline	-	独立judge重评(judge a3d0cf89)弱dim7	dry_run
+2026-06-23T18:45	59f28c1a	trellisx-apply	83.0	87.6	keep	d1+d7	desc467→303+删工作流段重复引语(judge ab99df02)	dry_run
+2026-06-23T19:00	62f83d7d	trellisx-orchestrate	87.2	87.5	keep	d5	步骤5/6空—→真实锚;2judge共识(af95=86.6/a7be=87.5≥87.2)	dry_run
+2026-06-23T19:15	e45090f9	trellisx-workspace	88.4	90.3	keep	d5	进度档位离散化(dimensions+template+主表三文件对齐,禁区间/粗估);judge adf8b058 dim5 8→9	dry_run
+2026-06-23T19:30	7bf9bffd	trellisx-spec	90.4	92.1	keep	d5	模式判定表改可机判OR条件,消除sediment通常软措辞;judge a92f18be dim5=9 dim2=9	dry_run
