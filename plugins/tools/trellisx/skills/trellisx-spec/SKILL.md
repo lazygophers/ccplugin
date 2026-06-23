@@ -26,11 +26,11 @@ python3 ./.trellis/scripts/task.py current 2>/dev/null || true
 
 **模式自动判定** (按 1.2 / 1.3 结果):
 
-| 现状 | 模式 | 进入第 2 步分支 |
+| 现状 (按行从上往下匹配, 命中即停) | 模式 | 进入第 2 步分支 |
 | --- | --- | --- |
-| `.trellis/spec/` 不存在 / 空 / 仅含 index.md | **init** | 2A |
-| 有 active task 且任务在 Phase 3 收尾 (用户调用时通常显式说"沉淀"/"任务完成"/"收尾") | **sediment** | 2C |
-| 其他 (有 spec 内容, 用户要求优化 / 重写 / 收紧) | **optimize** | 2B |
+| `.trellis/spec/` 不存在 / 空 / 仅含 index.md (`find .trellis/spec -type f` 仅 0 或 1 行且为 index.md) | **init** | 2A |
+| `task.py current` 非空, 且满足任一: 用户输入含触发词 `沉淀` / `任务完成` / `收尾` / `学习沉淀` ; 或 task 已在 Phase 3 | **sediment** | 2C |
+| 以上均不命中 (有 spec 内容, 用户要求优化 / 重写 / 收紧) | **optimize** | 2B |
 
 参数 `$范围` (skill 启动时传入): 限制本次处理范围 (目录 glob / 文件路径 / `all`)。缺省 = `all`。
 
