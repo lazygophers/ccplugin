@@ -17,8 +17,8 @@ arguments: [任务描述]
 
 > **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **编排成一个独立 workflow 执行** (1 task : 1 workflow), 不在 main 上下文里直接做。**runtime 退化标注**: 本规则属 Claude Code runtime-specific —— **Claude Code 用 Workflow 工具编排**; **无 Workflow 工具的平台 → 退回派 subagent 流水线** (`Agent` 工具 + `isolation: worktree`)。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制**。**注意: worktree 隔离不在「按需」之列 —— exec 阶段 fan-out 的 writer/checker agent 各走 worktree 隔离 (强制, 完整规则见「硬规」段)。**
 
-- ⛔ **main 禁直接落地实质工作** —— 改源码、跑 check 等**实质产出一律编排进 workflow 执行** (Claude Code: Workflow 工具; 其他平台: 派 subagent 流水线), main 不在自身上下文里直接做。
-- 🧩 **exec/check 编排成 1 个独立 workflow (1 task : 1 workflow)** —— **Claude Code**: 用 **Workflow 工具**把本 task 的 exec(+check) 实质工作编排成**一个独立 workflow**; workflow 内 fan-out 的 writer/checker agent 各走 worktree 隔离。**其他平台 (无 Workflow 工具)**: 退回派 subagent 流水线 (`Agent` 工具 + `isolation: worktree`)。
+- ⛔ **main 禁直接落地实质工作** —— 改源码、跑 check 等**实质产出一律编排进 workflow 执行** (runtime 载体见上「概念分清」), main 不在自身上下文里直接做。
+- 🧩 **exec/check 编排成 1 个独立 workflow (1 task : 1 workflow)** —— workflow 内 fan-out 的 writer/checker agent 各走 worktree 隔离。runtime 载体 (Workflow 工具 / 派 subagent 流水线) 见上「概念分清」, 骨架见 step4。
 - 🌳 **fan-out agent 必走 worktree 隔离 (强制)** —— 每个改源码 agent MUST 在独立 git worktree 执行, 主工作区零改动。完整规则 (1 task 1 worktree / 冲突型并行各开子 worktree → N worktree finish 映射合并 / 异步并行按需) 见「硬规」段 §其他必做。
 - 💬 **planning 不进 workflow = main 同步走 `trellis-brainstorm`** —— brainstorm 需逐问用户 (交互式), workflow 内 agent 不能 `AskUserQuestion` / 与用户对话, 故 planning 由 **main 同步前台**驱动 brainstorm + orchestrate, 不进 workflow、不派 subagent。
 - 🗂️ **task 生命周期脚本由 main 同步跑** —— `task.py create / start / finish / archive` 是任务记录管理, **main 直接同步执行** (不派 agent、不算实质工作); `task.py finish` 后由 `after_finish` hook 自动完成 commit→merge→archive→销 worktree (N 子分支经映射合并)。
@@ -38,7 +38,7 @@ arguments: [任务描述]
 
 > **贯穿全程: 及时维护 `.trellis/task.md` 看板** —— 下列每一步 (create/start/阶段推进/finish) 完成后, **立即用 `trellisx-workspace` skill 更新 `.trellis/task.md`** 看板表中该任务行 (id/名称/状态/阶段/进度/worktree)。看板落后于实际 = 维护失效。
 
-> 载体速查 (runtime-specific): **planning 同步前台, 不进 workflow** (brainstorm 交互); **exec/check 编排成 1 个独立 workflow** —— **Claude Code 用 Workflow 工具**, 其他平台退派 subagent 流水线 (异步/并行按需自定, 不强制); **task.py 脚本 (create/start/finish/archive) main 同步跑**。main 做编排 + 脚本调用 + 交互式 planning + 用户交互决策 + 完成回传 + 看板维护。
+> 载体速查: **planning 同步前台不进 workflow** (brainstorm 交互); **exec/check 编排成 1 个独立 workflow** (runtime 载体见上「概念分清」, 异步/并行按需); **task.py 脚本 (create/start/finish/archive) main 同步跑**。main 做编排 + 脚本调用 + 交互式 planning + 用户交互决策 + 完成回传 + 看板维护。
 
 1. **判新旧 + 登记** (main 编排) — 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
    - **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。
