@@ -18,9 +18,10 @@
 - Stop            : 列所有非主 worktree, 判「分支已合并回主 worktree HEAD 且目录仍在且 clean」
                     = 已合并未清理 → 顶层 {"decision":"block"} 逐条提示清理 (不自动销毁)。
                     抑制阀: .runtime/ 记状态, 同批 worktree 连续 block ≥3 次 → 本次降级
-                    systemMessage 不 block。无残留 → return 0。
+                    additionalContext 不 block (契约 Stop 不支持 systemMessage)。无残留 → return 0。
 - SubagentStop    : 仅 additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block)。
-- FileChanged     : task.md lint 不合规 → systemMessage 提醒 (不阻断)。
+- FileChanged     : task.md lint 不合规 → stderr 提醒 (契约: FileChanged stdout 被忽略,
+                    只认 stderr; 不阻断)。
 
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
   例外: WorktreeCreate 必须先把 worktree_path 回显 stdout 再做其余, 否则破坏 worktree 创建。
@@ -270,14 +271,14 @@ def main():
         return 0
 
     if event == "FileChanged":
+        # 契约: FileChanged stdout 被忽略, 不支持 systemMessage, 只认 stderr
         if lint_failed(troot):
-            print(json.dumps({
-                "systemMessage": (
-                    "[trellisx] task.md 格式不合规 (列数/状态/ID 重复), 请经 "
-                    "`python3 .trellis/scripts/trellisx-taskmd.py` 命令修正 "
-                    "(勿手编 task.md)。运行 `... lint` 查看具体问题。"
-                )
-            }))
+            print(
+                "[trellisx] task.md 格式不合规 (列数/状态/ID 重复), 请经 "
+                "`python3 .trellis/scripts/trellisx-taskmd.py` 命令修正 "
+                "(勿手编 task.md)。运行 `... lint` 查看具体问题。",
+                file=sys.stderr,
+            )
         return 0
 
     if event == "UserPromptSubmit":
@@ -330,9 +331,13 @@ def main():
                 + "\n".join(lines))
 
         if streak >= 3:
-            # 抑制阀: 连续 block ≥3 次 → 本次降级, 不再阻断会话结束
+            # 抑制阀: 连续 block ≥3 次 → 降级放行。契约 Stop 只认顶层 decision,
+            # 非错误反馈用 hookSpecificOutput.additionalContext (systemMessage 在 Stop 不支持)。
             print(json.dumps({
-                "systemMessage": body + "\n(已连续提示 ≥3 次, 本次不再阻断结束。)"
+                "hookSpecificOutput": {
+                    "hookEventName": "Stop",
+                    "additionalContext": body + "\n(已连续提示 ≥3 次, 本次不再阻断结束。)",
+                }
             }))
         else:
             print(json.dumps({"decision": "block", "reason": body}))
