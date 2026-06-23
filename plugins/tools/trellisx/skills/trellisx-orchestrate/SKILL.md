@@ -22,10 +22,17 @@ user-invocable: false
 
 | 类型 | 是否建 task |
 | --- | --- |
-| 探索 (纯只读: 读/查/搜/分析) | 按复杂度决定 (简单可不建; 复杂调研建 task 承载) |
+| 探索 (纯只读: 读/查/搜/分析) | 单文件 / ≤ 2 步只读 → 不建; 跨 ≥ 3 文件或需产出调研文档 → 建 task 承载 |
 | 实施 (写盘/改文件/任何落盘工作) | **无条件强制建 task**, 走 planning 全流程, 不看 subtask 数 |
 
-判定靠不准时倾向建 task。建 task 后拆 ≥ 2 subtask, 异步调度 sub-agent (isolation:worktree) / agent-team 成员 (<git根>/.worktrees/<worktree>) 尽可能并行执行; main 可直接写源码但**必须在 worktree 内** (简单 subtask main 直做, 复杂/并行派 agent), 见 `references/task-lifecycle.md`。
+判定落在边界上 → 建 task。建 task 后拆 ≥ 2 subtask:
+
+```bash
+python3 ./.trellis/scripts/task.py create "<title>" --slug <name>   # 建 task
+python3 ./.trellis/scripts/task.py start <name>                     # 进 planning, after_start hook 自动建 worktree
+```
+
+调度规则 (无依赖即并行, 不留串行余量): 无共享文件且无前后序的 subtask 必须同一消息内并发派 sub-agent (isolation:worktree) / agent-team 成员 (`<git根>/.worktrees/<worktree>`); 有共享文件或前后序的串行。main 写源码**必须在 worktree 内** (单文件 subtask main 直做; 跨文件或可并行的派 agent), 见 `references/task-lifecycle.md`。
 
 ## 触发判定
 
@@ -51,7 +58,7 @@ user-invocable: false
 | 5 | parent / child 拆分 (1 task 含 ≥ 2 独立可验收 deliverable) | `references/task-tree.md` | — |
 | 6 | jsonl 上下文清单 curate (为后续 dispatch 备料) | `references/jsonl-curation.md` | — |
 
-轻量 task (单 deliverable + 单 subtask) 可仅做步骤 1 + 2 (PRD + 单 subtask 文件)。复杂 task 必须 6 步走完才能进入 `task.py start`。
+轻量 task (恰好 1 deliverable 且 1 subtask) 只做步骤 1 + 2 (PRD + 单 subtask 文件)。其余 (≥ 2 deliverable 或 ≥ 2 subtask) 必须 6 步走完才能进入 `task.py start`。
 
 > 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。
 
