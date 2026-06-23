@@ -10,3 +10,4 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-06-23T19:15	e45090f9	trellisx-workspace	88.4	90.3	keep	d5	进度档位离散化(dimensions+template+主表三文件对齐,禁区间/粗估);judge adf8b058 dim5 8→9	dry_run
 2026-06-23T19:30	7bf9bffd	trellisx-spec	90.4	92.1	keep	d5	模式判定表改可机判OR条件,消除sediment通常软措辞;judge a92f18be dim5=9 dim2=9	dry_run
 2026-06-23T19:50	32906884	trellisx-flow	91.8	93.0	keep	d7	铁律段worktree/finish条目压纯指针,消与硬规段重复展开,信息零损失;judge a46ba67 dim7 6→7	dry_run
+2026-06-23T20:05	faa607f4	trellisx-flow	93.0	94.2	keep	d7	round2:exec/check编排+runtime降级L20/L21/L41压指针(单一归属L18),信息零损失强制力保留;judge a70fa672 dim7 7→8;两轮Δ均1.2触顶break	dry_run
