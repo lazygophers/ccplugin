@@ -9,16 +9,17 @@
 | **描述** | 一句话目的 | ≤ 30 字 | `task.json.description` / prd.md | create; 需求变更时 |
 | **状态** | trellis 原生状态 (中文显示) | 规划中 ↔ planning / 进行中 ↔ in_progress / 已完成 ↔ completed | `task.json.status` (英文真值, 映射成中文写入) | start / archive 后 |
 | **阶段** | 闭环位置 (中文) | 规划 / 实施 / 检查 / 收尾 | AI 按当前动作判 | 阶段推进时 |
-| **进度** | 完成度 | 百分比 (按阶段估) | AI 估 | 阶段推进时 |
+| **进度** | 完成度 | 离散档位 0/40/60/80/100 (见下方进度估算) | AI 按档位定 | 阶段推进时 |
 | **worktree** | 隔离工作区 | `.worktrees/<name>` 或 `—` | task.json / worktree hook | start 建 worktree 后 |
 
 ## 进度估算 (无子任务树)
 
-按阶段近似:
+按阶段取**离散档位** (按括号判定条件选定值, 禁区间/粗估):
 - 规划 → 0%
-- 实施 → 进行中 (可填 30–70% 粗估)
-- 检查 → ~80%
-- 收尾 → 100%
+- 实施 · 刚 start 主体未动 (仅建 worktree) → 40%
+- 实施 · 主体已落地待收口 → 60%
+- 检查 (派 trellis-check 中) → 80%
+- 收尾 (merge + archive 前) → 100%
 
 ## Worktree ↔ Task 映射区 (唯一额外 section)
 
