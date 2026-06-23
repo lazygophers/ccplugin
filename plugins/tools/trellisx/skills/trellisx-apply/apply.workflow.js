@@ -48,9 +48,11 @@ const WRITE_SCHEMA = {
 
 const lang = (args && args.lang) || '目标语言 (综合 $LANG + 项目 CLAUDE.md/README + 会话语言, 默认 zh)'
 const mode = (args && args.mode) || 'plan'
+const skillDir = (args && args.skillDir) || '<trellisx-apply skill 根目录, 由 main 传入绝对路径>'
+const target = (args && args.target) || '<目标 trellis 项目根, 由 main 传入绝对路径>'
 
 const fields = (goal, scope, out, accept, fail) =>
-  `目标: ${goal}\n已知: 目标语言=${lang}; 参考 reference 在 skill 目录下\n工作目录与范围: ${scope}\n输出格式: ${out}\n验收标准: ${accept}\n失败处理: ${fail}`
+  `目标: ${goal}\n已知: 目标语言=${lang}; reference 绝对路径前缀=${skillDir}/ (如 ${skillDir}/references/workflow-injection.md); 目标项目根=${target} (所有 .trellis/** 落点相对此根)\n工作目录与范围: 目标项目根=${target}; ${scope}\n输出格式: ${out}\n验收标准: ${accept}\n失败处理: ${fail}`
 
 if (mode === 'plan') {
   phase('Plan')
@@ -63,7 +65,7 @@ if (mode === 'plan') {
       '诊断结论可指导写盘', '读不到目标 → status=skip 说明'),
       { label: 'plan:diagnose', phase: 'Plan', schema: PLAN_SCHEMA }),
     ...DIMS.map(d => () => agent(fields(
-      `按 ${d.ref} 算「${d.desc}」的注入 diff (目标语言), 不写盘。`,
+      `按 ${skillDir}/${d.ref} 算「${d.desc}」的注入 diff (目标语言), 不写盘。`,
       `只读相关文件 (本维度落点: ${d.files}); 禁写盘`,
       `StructuredOutput PLAN_SCHEMA: key=${d.key}; diff=注入 diff/plan 文本; 维度不适用则 status=skip`,
       'diff 完整可审, marker 幂等设计', '读不到目标 → status=skip 标注原因'),
