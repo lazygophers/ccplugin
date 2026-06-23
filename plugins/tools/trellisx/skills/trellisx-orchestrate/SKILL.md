@@ -62,8 +62,8 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 | 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | `references/subtask-file.md` | `examples/subtask/S2-jwt-utils.md` `examples/subtask/S3-jwt-middleware.md` |
 | 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | `references/design-orchestration.md` | `examples/design.md` |
 | 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | `references/implement-orchestration.md` | `examples/implement.md` |
-| 5 | parent / child 拆分 (1 task 含 ≥ 2 独立可验收 deliverable) | `references/task-tree.md` | — |
-| 6 | jsonl 上下文清单 curate (为后续 dispatch 备料) | `references/jsonl-curation.md` | — |
+| 5 | parent / child 拆分 (1 task 含 ≥ 2 独立可验收 deliverable): `task.py create --parent <dir>` 建 child + parent 写 Child Task Map + 跨 child 验收标准 | `references/task-tree.md` | 同文件 §Child Task Map / §Parent task 内容 (命令 + 表格式范例) |
+| 6 | jsonl 上下文清单 curate (为后续 dispatch 备料): 逐 subtask 写 implement.jsonl / check.jsonl 的 spec + research 条目 | `references/jsonl-curation.md` | 同文件 §Entry 格式 (字段定义 + JSON 行范例) |
 
 轻量 task (恰好 1 deliverable 且 1 subtask) 只做步骤 1 + 2 (PRD + 单 subtask 文件)。其余 (≥ 2 deliverable 或 ≥ 2 subtask) 必须 6 步走完才能进入 `task.py start`。
 
