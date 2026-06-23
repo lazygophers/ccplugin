@@ -1,6 +1,6 @@
 ---
 name: trellisx-apply
-description: 把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 四维度注入当前项目 .trellis/ (workflow.md 的 no_task/planning/in_progress 块 + spec 背书文档 + trellis 生命周期 hook: after_start 自动建 worktree + after_finish 自动收尾)。强推 task 为 prompt 软约束; worktree + 收尾为 hook 确定性强制 (task.py start 自动建 worktree, task.py finish 经 after_finish hook 自动 commit→merge→archive→销 worktree, 不靠 AI 记得跑脚本)。**结果导向: 不约束注入方式 (可替换/重构/追加原生文本), 只约束最终结果通过行为闭环验证** (五维生效 + create→…→finish 闭环 + trellis 原生 task 创建触发仍生效)。幂等 (marker 包裹)。
+description: 把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 + task.md看板 五维注入当前项目 .trellis/。强推 task 为 prompt 软约束; worktree + 收尾为 trellis 生命周期 hook 确定性强制 (after_start 建 worktree, after_finish 自动 commit→merge→archive→销 worktree, 不靠 AI 跑脚本)。结果导向: 只约束最终行为闭环验证 (五维生效 + create→…→finish 闭环 + task 创建触发仍生效), 不约束注入方式。幂等 (marker 包裹)。
 when_to_use: 用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"。
 argument-hint: [scope]
 ---
@@ -51,7 +51,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 
 ## 工作流 (Workflow 脚本驱动, 审批夹在中间)
 
-优先用 Workflow 脚本 `apply.workflow.js` 编排; 无 Workflow 工具退回手写 agent 流水线。完整模型/6 字段 prompt/文件集分区见 `references/agent-orchestration.md`。
+载体见上「执行模型」; 完整模型/6 字段 prompt/文件集分区见 `references/agent-orchestration.md`。
 
 | 步 | 谁做 | 行动 |
 | --- | --- | --- |
