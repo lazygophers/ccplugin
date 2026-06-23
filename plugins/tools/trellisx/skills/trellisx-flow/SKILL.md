@@ -51,6 +51,19 @@ arguments: [任务描述]
    - 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。planning 完成 → 进激活。
 3. **激活** (main 编排) — 产物**由 main 用 AskUserQuestion 交用户评审** → 通过后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
 4. **exec** (编排成 1 个独立 workflow, **worktree 强制隔离**) — 🔴 **Claude Code: 用 Workflow 工具把本 task 的 exec 工作编排成一个独立 workflow** (1 task : 1 workflow), workflow 内 fan-out 的 writer agent 各走 worktree 隔离 —— 默认 1 task 1 worktree, **仅冲突型并行 subtask** 各开子 worktree (→ N worktree)。**其他平台 (无 Workflow 工具): 退回派 subagent** (`Agent` 工具传 `isolation: worktree`, 或先 `trellisx-workspace` 建 worktree)。全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **无论单交付还是多交付, 一律 workflow/subagent 写代码, main 禁亲自改源码**。worktree 为硬性要求, **仅**异步 (`run_in_background`) / 并行分组按需自定。每个 agent 完成即回传。→ **更新 task.md 进度**。
+
+   **最小 Workflow 编排骨架 (Claude Code, 照搬即可):**
+   ```js
+   // Claude Code: 把本 task exec 编排成 1 个独立 workflow (1 task : 1 workflow)
+   phase('exec')                                          // phase 分组
+   const writers = SUBTASKS.map(s => () => agent(         // fan-out: 每个 subtask 一个 thunk
+     `目标:${s.goal} / 已知:Active task=${TASK} / 范围:${s.scope} / `
+     + `输出:见 schema / 验收:${s.accept} / 失败:返回标"需要:<问题>"`,  // 6 字段自包含 prompt
+     { isolation: 'worktree', schema: WRITE_SCHEMA }))    // worktree 隔离 + schema 结构化返回
+   const results = (await parallel(writers)).filter(Boolean)  // 并行须 parallel 显式; (await parallel()).filter 括号必须
+   // 单交付 → writers 长度 1 (1 worktree); 冲突型并行多交付 → 各子 worktree (→ N), finish 经映射合并
+   ```
+   其他平台 (无 Workflow) 退回逐个派 `Agent` 工具 (`isolation: 'worktree'`) 串/并行流水线。
 5. **check** (同 workflow 内 fan-out / 派 subagent) — workflow 内 checker agent (或退化平台派 subagent) 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再 fan-out / 派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
 6. **finish** (main 同步) — check 通过 → **finish 前先确认本 task 的 workflow 已终止 + 无悬挂后台 Workflow/agent 任务** (用 `TaskList` 查残留, `TaskStop` 关闭); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (合并 N 子分支, 非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
 
