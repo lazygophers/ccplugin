@@ -19,10 +19,10 @@ arguments: [任务描述]
 
 - ⛔ **main 禁直接落地实质工作** —— 改源码、跑 check 等**实质产出一律编排进 workflow 执行** (Claude Code: Workflow 工具; 其他平台: 派 subagent 流水线), main 不在自身上下文里直接做。
 - 🧩 **exec/check 编排成 1 个独立 workflow (1 task : 1 workflow)** —— **Claude Code**: 用 **Workflow 工具**把本 task 的 exec(+check) 实质工作编排成**一个独立 workflow**; workflow 内 fan-out 的 writer/checker agent 各走 worktree 隔离。**其他平台 (无 Workflow 工具)**: 退回派 subagent 流水线 (`Agent` 工具 + `isolation: worktree`)。
-- 🌳 **fan-out agent 必走 worktree 隔离 (强制)** —— 完整规则见「硬规」段; 要点: 每个改源码 agent MUST 在独立 git worktree 执行 (`isolation: worktree` 或 `trellisx-workspace` 建), 主工作区零改动; 默认 1 task 1 worktree, **仅冲突型并行 subtask** 各开子 worktree (→ N worktree, finish 经映射合并); 仅异步/并行分组按需自定。
+- 🌳 **fan-out agent 必走 worktree 隔离 (强制)** —— 每个改源码 agent MUST 在独立 git worktree 执行, 主工作区零改动。完整规则 (1 task 1 worktree / 冲突型并行各开子 worktree → N worktree finish 映射合并 / 异步并行按需) 见「硬规」段 §其他必做。
 - 💬 **planning 不进 workflow = main 同步走 `trellis-brainstorm`** —— brainstorm 需逐问用户 (交互式), workflow 内 agent 不能 `AskUserQuestion` / 与用户对话, 故 planning 由 **main 同步前台**驱动 brainstorm + orchestrate, 不进 workflow、不派 subagent。
 - 🗂️ **task 生命周期脚本由 main 同步跑** —— `task.py create / start / finish / archive` 是任务记录管理, **main 直接同步执行** (不派 agent、不算实质工作); `task.py finish` 后由 `after_finish` hook 自动完成 commit→merge→archive→销 worktree (N 子分支经映射合并)。
-- 🧹 **finish 清理 (强制)** —— 完整规则见「硬规」段; 要点: `task.py finish` 前 MUST 确认 workflow 已终止、无悬挂后台 Workflow/agent (`TaskList` 查 + `TaskStop` 关), 再 finish (hook 合并 N 子分支 + 销 worktree); 未关 = 未闭环, 禁宣告 Done。
+- 🧹 **finish 清理 (强制)** —— `task.py finish` 前 MUST 关停本 task workflow + 无悬挂后台任务, 未关 = 未闭环禁宣告 Done。完整规则 (`TaskList` 查 / `TaskStop` 关 / hook 合并 N 子分支销 worktree) 见「硬规」段 §其他必做。
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) subagent 不能与用户对话; subagent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
 - 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - 📣 **完成即时回传** —— 每个 subagent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
