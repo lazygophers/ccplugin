@@ -7,23 +7,28 @@ argument-hint: [scope]
 
 # trellisx-apply — 把 trellisx 规则内化进 .trellis
 
-把 **强推 task + subtask 拆分 + worktree 隔离 + 闭环收尾 + task.md 看板** 五维增量注入 `.trellis/`。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入。
+把 **强推 task + subtask 拆分 + worktree 隔离 + 闭环收尾 + task.md 看板** 五维增量注入 `.trellis/`。跑完后由 trellis 原生 `inject-workflow-state` hook 每轮注入。各维度注入内容与落地位置见下方「注入维度」表。
 
-**执行模型 = main 编排 + 并行执行, 优先 Workflow 脚本**: main **不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘)。优先用 **Workflow 脚本** (`apply.workflow.js`) 把扇出确定性编排成两次调用 (`mode=plan` 并行规划 → main 审批 → `mode=write` 并行写盘+自验+失败回滚); 无 Workflow 工具的环境退回手写 agent 流水线。维度收敛为 **4 个** (workflow/spec/hook/finishcmd) + 诊断, **writer 写完自验** (无独立验证阶段)。main 只做**两类不可派的事**: `AskUserQuestion` 审批门 (用户交互, 夹在 plan/write 两次调用之间) + 编排决策 (汇总/派发/修复循环)。详见 `references/agent-orchestration.md`。
+## 两条铁律 (贯穿全程)
 
-**两条铁律 (贯穿全程)**:
-- 🎯 **结果导向, 行为闭环为准 (约束 RESULT 非 HOW)**: **不限制注入方式** —— writer 可替换 / 重构 / 追加任意原生文本 (含 no_task 分类、Phase 流程、finish 段)。唯一硬门是 **writer 写盘自验的行为闭环验证**: 最终 `.trellis` MUST 满足 ① 五维生效 (强推task/subtask/worktree/闭环收尾/看板) ② create→planning→worktree→execute→check→finish 闭环无断点 ③ **trellis 原生 task 创建触发仍生效** (改写 no_task 不得让"建 task"路径失效)。注入仍用 marker 包裹保幂等; 任一断言 ✗ → 回滚重做, 不带病写盘。详见下方「教训」。
-- 🪶 **强推 task 软约束, worktree+收尾 hook 确定性强制**: 强推 task 仍是注入 workflow.md 的**强措辞 prompt** (AI 仍有裁量)。**但 worktree 与闭环收尾已升级为 trellis 原生生命周期 hook 确定性强制**: `task.py start` → `after_start` 自动建 worktree; `task.py finish` → `after_finish` 自动跑 `trellisx-finish.py` (commit→merge→archive→销 worktree)。AI 只需跑 `task.py finish`, 收尾机械步骤由 hook 兜底, 不靠 AI 记得跑脚本。**worktree 隔离单位 = task** (目的: 防并发多 task 互相冲突); "task 在其 worktree 内执行"仍是软约束 (硬规 #1, 未上 PreToolUse 拦截); 需更硬的 PreToolUse/Stop 平台拦截 → 使用者另加, apply 不做。
+- 🎯 **结果导向, 行为闭环为准 (约束 RESULT 非 HOW)**: 不限制注入方式 —— writer 可替换 / 重构 / 追加任意原生文本 (含 no_task 分类、Phase 流程、finish 段)。唯一硬门是 **writer 写盘自验的行为闭环验证**: 最终 `.trellis` MUST 满足 ① 五维生效 (强推task/subtask/worktree/闭环收尾/看板) ② create→planning→worktree→execute→check→finish 闭环无断点 ③ trellis 原生 task 创建触发仍生效 (改写 no_task 不得让"建 task"路径失效)。注入用 marker 包裹保幂等; 任一断言 ✗ → 回滚重做, 不带病写盘 (来由见下方「教训」)。
+- 🪶 **强推 task 软约束, worktree+收尾 hook 确定性强制**:
+  - 强推 task = 注入 workflow.md 的强措辞 prompt (AI 仍有裁量): "除极简任务外一律走 task; 边界模糊主动问用户"。
+  - worktree 与闭环收尾 = trellis 原生生命周期 hook 确定性强制, 不靠 AI 记得跑脚本: `task.py start` → `after_start` 自动建 worktree; `task.py finish` → `after_finish` 跑 `trellisx-finish.py` 自动 commit→merge --no-ff→archive→销 worktree (commit 为 owner 授权的强制动作, 不停在"提醒用户运行命令")。冲突则脚本 abort + finish 打 WARN, AI 须检告警转手动; 未 archive 禁宣告 Done。
+  - worktree 隔离单位 = task (防并发多 task 冲突)。"task 在其 worktree 内执行"仍是软约束 (硬规 #1, 未上 PreToolUse 拦截); 需更硬的平台拦截使用者另加, apply 不做。
 
-> 强推 task = "除极简任务外一律走 task; 不确定主动问用户" (注入 no_task 块)。
-> 自动收尾 = "check 通过后 AI 跑 `task.py finish` → `after_finish` hook **自动** commit→merge --no-ff→archive→销 worktree, 不停在'提醒用户运行命令'; 合并与 worktree 删除是必须的; commit 为 owner 授权的强制动作; 合并冲突则脚本 abort + finish 打 WARN, AI 须检告警转手动" (注入 config.yaml after_finish hook + in_progress 硬规 #4 + finish 段改写)。
+## 执行模型 (main 编排 + 并行执行, 优先 Workflow 脚本)
+
+main **不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘), 只做两类不可派的事: `AskUserQuestion` 审批门 (用户交互, 夹在 plan/write 两次调用之间) + 编排决策 (汇总/派发/修复循环)。
+
+优先用 Workflow 脚本 `apply.workflow.js` 把扇出确定性编排成两次调用 (`mode=plan` 并行规划 → main 审批 → `mode=write` 并行写盘+自验+回滚); 无 Workflow 工具的环境退回手写 agent 流水线。维度收敛为 4 个 (workflow/spec/hook/finishcmd) + 诊断, writer 写完自验 (无独立验证阶段)。详见 `references/agent-orchestration.md`。
 
 ## 立场
 
 | 立场 | 说明 |
 | --- | --- |
 | 内化优于外挂 | 规则写进 `.trellis/`, 由 trellis 自身机制生效; 不靠 trellisx 持续 hook |
-| main 只编排不操作 | main **不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘), 一律派 subagent 执行 (含 git stash 备份/回滚, 派单个 agent 串行跑); main 仅做 ① `AskUserQuestion` 审批门 (用户交互, 不可派) ② 编排决策 (汇总/派发/修复循环)。**唯一不派的是审批门, 因 agent 不得问用户; 它不是 repo 操作** |
+| main 只编排不操作 | 所有 repo 操作 (含 git stash 备份/回滚) 一律派 subagent; main 唯一不派的是审批门 (agent 不得问用户)。详见执行模型 |
 | 结果导向, 可重构原生 | apply 为达预期**可替换/重构 trellis 原生 workflow 文本** (no_task/Phase/finish 段), 验收以行为闭环为准。但**仍不主动重写用户自定义 spec 文档** —— spec 的破坏式重构是 `trellisx-spec` 的职责 (不同 skill 分工, 与本铁律无关) |
 | 尊重 trellis 原生 | 融合而非取代: 引用 trellis 已有 (task.py / add-subtask / jsonl / trellis-check), 仅补 trellis 缺的 (worktree / subtask 文件编排) |
 | 显式审批 | 改 `.trellis/` 前展示 diff plan, 经 AskUserQuestion 批准才写盘 |
