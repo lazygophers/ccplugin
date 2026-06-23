@@ -7,3 +7,4 @@
 | remove-template | 移除 plugins/template 插件 | — | 已完成 | 收尾 | 100% | — |
 | force-finish | apply 强制化 finish 收尾 (脚本化半硬) | — | 已完成 | 收尾 | 100% | — |
 | wt-dry | trellisx worktree 路径/分支/命名抽公共函数去重 | — | 已完成 | 收尾 | 100% | — |
+| 06-23-workflow-rules | trellisx workflow 执行规范优化 | task 执行阶段强制 Workflow 编排, 注入 4 条规范 (phases细致标类型/允许并行/失败自动重试/收尾finish+commit+remove worktree), 边界: 仅 task 执行触发, 无 task 普通对话豁免 | 进行中 | 规划 | 0% | — |

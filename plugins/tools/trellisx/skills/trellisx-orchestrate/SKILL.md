@@ -20,12 +20,19 @@ user-invocable: false
 
 ## 何时强制建 trellis task
 
-| 类型 | 是否建 task |
-| --- | --- |
-| 探索 (纯只读: 读/查/搜/分析) | 单文件 / ≤ 2 步只读 → 不建; 跨 ≥ 3 文件或需产出调研文档 → 建 task 承载 |
-| 实施 (写盘/改文件/任何落盘工作) | **无条件强制建 task**, 走 planning 全流程, 不看 subtask 数 |
+作用域边界统一判定 (与 trellisx-flow 共用同一表, 消除冲突):
 
-判定落在边界上 → 建 task。建 task 后拆 ≥ 2 subtask:
+| 特征 | 判定 |
+| --- | --- |
+| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免, 不建 task |
+| 单文件单处改, ≤20 行且位置已知 | 豁免 |
+| 跨 ≥2 文件 / 单文件多处 / 多步骤改 | **必建 task** |
+| 需外部调研 (库选型/方案对比) 或产出文档交付 | **必建 task** (调研为 research subtask) |
+| 边界模糊 | **MUST AskUserQuestion 由用户裁定** |
+
+无 task → 不进 workflow → 四规范豁免。Planning 阶段也不进 workflow: brainstorm 主线由 main 同步前台 (subagent 不能 AskUserQuestion); 纯信息调研可派 trellis-research 并行, 但设计决策由 main 汇总裁定。
+
+建 task 后拆 ≥ 2 subtask:
 
 ```bash
 python3 ./.trellis/scripts/task.py create "<title>" --slug <name>   # 建 task

@@ -52,18 +52,45 @@ arguments: [任务描述]
 3. **激活** (main 编排) — 产物**由 main 用 AskUserQuestion 交用户评审** → 通过后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
 4. **exec** (编排成 1 个独立 workflow, **worktree 强制隔离**) — 🔴 **Claude Code: 用 Workflow 工具把本 task 的 exec 工作编排成一个独立 workflow** (1 task : 1 workflow), workflow 内 fan-out 的 writer agent 各走 worktree 隔离 —— 默认 1 task 1 worktree, **仅冲突型并行 subtask** 各开子 worktree (→ N worktree)。**其他平台 (无 Workflow 工具): 退回派 subagent** (`Agent` 工具传 `isolation: worktree`, 或先 `trellisx-workspace` 建 worktree)。全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **无论单交付还是多交付, 一律 workflow/subagent 写代码, main 禁亲自改源码**。worktree 为硬性要求, **仅**异步 (`run_in_background`) / 并行分组按需自定。每个 agent 完成即回传。→ **更新 task.md 进度**。
 
-   **最小 Workflow 编排骨架 (Claude Code, 照搬即可):**
+   **新 Workflow 骨架 (Claude Code, 逐字照搬, 四规范内嵌):**
    ```js
-   // Claude Code: 把本 task exec 编排成 1 个独立 workflow (1 task : 1 workflow)
-   phase('exec')                                          // phase 分组
-   const writers = SUBTASKS.map(s => () => agent(         // fan-out: 每个 subtask 一个 thunk
-     `目标:${s.goal} / 已知:Active task=${TASK} / 范围:${s.scope} / `
-     + `输出:见 schema / 验收:${s.accept} / 失败:返回标"需要:<问题>"`,  // 6 字段自包含 prompt
-     { isolation: 'worktree', schema: WRITE_SCHEMA }))    // worktree 隔离 + schema 结构化返回
-   const results = (await parallel(writers)).filter(Boolean)  // 并行须 parallel 显式; (await parallel()).filter 括号必须
-   // 单交付 → writers 长度 1 (1 worktree); 冲突型并行多交付 → 各子 worktree (→ N), finish 经映射合并
+   // trellisx exec workflow 骨架 — Claude Code Workflow tool
+   // 四规范内嵌: ①meta.phases标类型 ②parallel分层 ③agent_with_retry ④finalize收尾
+   export const meta = {
+     name: 'task-exec',
+     description: '<task title> 执行',
+     phases: [                                    // ① 逐 phase 标类型, 用户一眼看懂
+       { title: 'research',  detail: '采集 spec/依赖 (无则跳)', type: 'research' },
+       { title: 'implement', detail: 'fan-out 写盘, 每 agent 一 worktree', type: 'implement' },
+       { title: 'verify',    detail: 'check agent 跑测试/自验', type: 'verify' },
+       { title: 'finalize',  detail: 'finish+commit+merge+销 worktree', type: 'finalize' },
+     ],
+   }
+
+   // ③ 失败自动重试包装: 瞬时错误重试 ≤2, 仍败返 null (不崩 workflow)
+   async function agent_with_retry(prompt, opts, max = 2) {
+     for (let i = 0; i <= max; i++) {
+       try { return await agent(prompt, opts) }
+       catch (e) { if (i === max) { log(`agent 重试耗尽: ${e}`); return null } }
+     }
+   }
+
+   phase('implement')
+   // ② 无依赖 fan-out → parallel 并发; 每 writer 一 worktree 隔离
+   const writers = SUBTASKS.map(s => () =>
+     agent_with_retry(s.prompt, { isolation: 'worktree', schema: WRITE_SCHEMA }))
+   const written = (await parallel(writers)).filter(Boolean)   // null 自动跳过
+
+   phase('verify')                                 // ② 有依赖 → 分层: verify 在 implement 后
+   const checked = (await parallel(
+     written.map(w => () => agent_with_retry(checkPrompt(w), { schema: CHECK_SCHEMA })))).filter(Boolean)
+
+   phase('finalize')
+   // ④ 收尾: 先 AI 层清悬挂 (TaskList/TaskStop, 在 main 侧做), 再 git 层 finish
+   // task.py finish 经 hook 触发 commit→merge 子分支→销毁全部 worktree→archive
+   return { written, checked, finalize: 'run task.py finish after TaskStop sweep' }
    ```
-   其他平台 (无 Workflow) 退回逐个派 `Agent` 工具 (`isolation: 'worktree'`) 串/并行流水线。
+   > 非 Claude Code (无 Workflow tool) 降级: 同骨架改用 subagent pipeline (Agent tool + isolation:worktree 串/并), 重试与收尾语义不变。
 5. **check** (同 workflow 内 fan-out / 派 subagent) — workflow 内 checker agent (或退化平台派 subagent) 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再 fan-out / 派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
 6. **finish** (main 同步) — check 通过 → **finish 前先确认本 task 的 workflow 已终止 + 无悬挂后台 Workflow/agent 任务** (用 `TaskList` 查残留, `TaskStop` 关闭); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (合并 N 子分支, 非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
 
@@ -79,6 +106,27 @@ arguments: [任务描述]
 | 非 trellis 项目 (无 `.trellis/`) | 提示用户先 `trellis init` | 用户拒绝 → 退出, 不强行建 task |
 
 ## 硬规 (正向必做)
+
+### workflow 四规范 (有 task 且进入执行阶段时, 生成的 Workflow 必须满足)
+
+① **phases 细致标类型** — `meta.phases` 逐项标 `title` + `detail`, 阶段类型取自 {research, design, implement, verify, finalize}, 用户一眼看出每 phase 干什么属什么类型。
+② **允许并行** — 无依赖 phases / fan-out agent 用 `parallel()` 并发; 有前后序的用分层 `parallel()` 表达, 不留无谓串行。
+③ **失败自动重试** — 单 step/agent 失败自动重试 ≤2 次, 不让整个 workflow 直接失败; 重试仍败才降级 (返回 null + 下游 `.filter(Boolean)` 跳过, 或转 manual Blocked)。
+④ **收尾无残留** — finalize phase 强制 `task.py finish` (hook 触发 commit→merge→remove worktree→archive) + finish 前 AI 自查无悬挂 Workflow/agent (TaskList 查 / TaskStop 关)。worktree 未销 / Workflow 未关 = 未闭环, 禁宣告 Done。
+
+### 作用域边界 (何时建 task = 四规范的触发前提)
+
+| 特征 | 判定 |
+| --- | --- |
+| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免, 不建 task |
+| 单文件单处改, ≤20 行且位置已知 | 豁免 |
+| 跨 ≥2 文件 / 单文件多处 / 多步骤改 | **必建 task** |
+| 需外部调研 (库选型/方案对比) 或产出文档交付 | **必建 task** (调研为 research subtask) |
+| 边界模糊 | **MUST AskUserQuestion 由用户裁定** |
+
+**无 task → 不进 workflow → 四规范豁免**。Planning 阶段也不进 workflow: brainstorm 主线由 main 同步前台 (subagent 不能 AskUserQuestion); 纯信息调研可派 trellis-research 并行, 但设计决策由 main 汇总裁定。
+
+### 其他必做
 
 - ✅ **走完 plan→exec→check→finish 闭环** —— **未 archive = 未完成, 禁宣告 Done / 禁结束本轮**。
 - 🌳 **exec 必走 worktree 隔离 (强制)** —— 每个写代码 subagent 必须在独立 git worktree 执行 (`isolation: worktree`), 改动落 `<git根>/.worktrees/`, 主工作区零改动; finish 后由 `after_finish` hook 销 worktree。worktree 非可选, 只有异步/并行才按需自定。
