@@ -18,6 +18,8 @@ trellis 原生 `/trellis:finish-work` 跑 `task.py archive <tid>` **直接归档
 <!-- trellisx:start:finishcmd_fullchain -->
 ⛔ **trellisx 全链收尾 (在原生 archive/journal 之前先跑)**: 本项目 worktree 隔离, 收尾 MUST 先合并再归档, 否则销毁 worktree 丢提交。
 
+⓪ **先确认本 task 的 Workflow / 后台任务已终止**: 跑收尾脚本前, 用 `TaskList` 查有无悬挂的后台 Workflow/agent 任务 (本 task 的 exec/check 载体 —— **Claude Code Workflow** 或退化的**其他平台 agent 流水线**); 有残留则 `TaskStop` 逐个关闭, 再跑脚本。悬挂任务未清就合并/销毁 worktree = 进程仍在写 = 流程错误。
+
 跑 `python3 .trellis/scripts/trellisx-finish.py`:
 ① worktree 内 `git add -A` + commit (落 `trellisx-<name>` 分支)
 ② `git merge --no-ff trellisx-<name>` 合并回主分支 (冲突 → abort + 报冲突 + 非 0 退出, 转手动禁强解)
