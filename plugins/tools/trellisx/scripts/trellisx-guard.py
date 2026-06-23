@@ -4,10 +4,11 @@
 仅在 trellis 项目 (cwd 或 git 根含 .trellis/) 生效, 否则静默退出。
 
 事件分发 (读 stdin JSON 的 hook_event_name):
-- UserPromptSubmit : 每轮注入约束 (实质工作走 agent/subagent/team/worktree;
-                     建 task 用 trellisx-orchestrate; 完成即清理)。
-                     仅当确有 worktree 映射 tid=? 待补 (map-get rc==1 或值为 ?)
-                     或 task.md lint 真失败时, 才追加提醒; 否则不空转。
+- UserPromptSubmit : 仅当存在 active task (in_progress, active_tid 非 None) 才注入精简
+                     执行载体约束 (实质工作派 subagent; 派 agent=真实 tool_use; 完成即清理)。
+                     无 active task → 轻任务不强制派 agent, 不注入约束。
+                     诊断提醒独立: 仅当确有 worktree 映射 tid=? 待补 或 task.md lint 真失败时
+                     才追加 (与是否有 active task 无关); 否则不空转。
 - WorktreeCreate   : worktree 创建事件 (--worktree / isolation:worktree)。
                      transform hook: 第一动作无条件原样回显 worktree_path 到 stdout
                      (缺 path → 创建失败; 非 trellis 也回显), 此后绝不再写 stdout。
@@ -32,14 +33,10 @@ import subprocess
 import sys
 
 CONSTRAINT = (
-    "[trellisx] 本 trellis 项目执行载体约束 (强制):\n"
-    "- 实质工作 (改源码 / 跑 check / 写测试) 必须派 agent / subagent / agent team 执行, "
-    "main 不在自身上下文直接落地; 并行/隔离用 worktree。\n"
+    "[trellisx] 当前有 active task, 执行载体约束 (强制):\n"
+    "- 实质工作派 subagent 执行, main 不在自身上下文直接落地。\n"
     "- 派 agent = 真实 Agent tool_use, 宣称≠调用 —— 禁口头说'已派出'而无实际工具调用。\n"
-    "- 需建 task 时, 任务拆分 / agent 分解走 `trellisx-orchestrate` skill 写 prd / design / implement, "
-    "禁临时口头拆。\n"
-    "- 完成后立即清理: 关闭 background agent、销毁 worktree、`task.py finish` 收尾归档 —— "
-    "未清理 = 未完成。"
+    "- 完成即清理: 销毁 worktree、`task.py finish` 收尾归档 —— 未清理 = 未完成。"
 )
 
 
@@ -282,28 +279,30 @@ def main():
         return 0
 
     if event == "UserPromptSubmit":
-        msg = CONSTRAINT
         repo = git_top(cwd) or cwd
-        # 仅当确有 tid=? 待补 或 lint 真失败 才追加提醒, 不每轮空转
+        parts = []
+        # 仅当存在 active task (in_progress) 才注入执行载体约束;
+        # 无 active task → 轻任务/任务外琐改不强制派 agent, 不注入。
+        if active_tid(troot) is not None:
+            parts.append(CONSTRAINT)
+        # 诊断提醒独立于 active task: 仅当确有 tid=? 待补 或 lint 真失败 才追加
         pending = []
         for p, _br in non_main_worktrees(repo):
             tid = map_tid_for(troot, p)
             if tid is None or tid == "?":
                 pending.append(p)
-        extra = []
         if pending:
-            extra.append(
+            parts.append(
                 "[trellisx] 以下 worktree 未明确登记映射到 task (tid=? 或缺登记), 请补登 "
                 "(`python3 .trellis/scripts/trellisx-taskmd.py map-add <worktree> <task-id> [创建源]`):\n"
                 + "\n".join(f"  - {p}" for p in pending)
             )
         if lint_failed(troot):
-            extra.append(
+            parts.append(
                 "[trellisx] task.md 格式不合规, 请经 trellisx-taskmd.py 命令修正后再继续。"
             )
-        if extra:
-            msg += "\n\n" + "\n\n".join(extra)
-        emit_context(msg)
+        if parts:
+            emit_context("\n\n".join(parts))
         return 0
 
     if event == "Stop":

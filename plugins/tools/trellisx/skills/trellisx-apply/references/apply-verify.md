@@ -1,6 +1,6 @@
-# Gate 审批 + Phase B 写盘 + Phase C 验证
+# 审批门 + 写盘 + 自验
 
-main 汇总 Phase A 的 5 个 plan, 走审批门 (main 串行), 派 4 writer 并行写盘, 派 4 verify 并行验证。agent 清单/文件集分区见 `agent-orchestration.md`。
+main 汇总 plan 阶段的 5 个 plan, 走审批门 (main 串行), 派 4 writer 并行**写盘+自验** (无独立验证阶段, 每 writer 写完自验本维度)。Workflow 脚本 (`apply.workflow.js`) 或手写 agent 流水线均按此; agent 清单/文件集分区见 `agent-orchestration.md`。
 
 ## 1. 汇总变更 plan (main 串行)
 
@@ -30,8 +30,6 @@ trellisx-apply 变更计划
   <若单仓: "单仓, 无 packages"; 若 monorepo: 列 名称→path (type/git)>
   ⚠️ 已有实值 packages: → 不覆盖, 仅列发现供人工核对
 
-[.claude/agents/trellis*.md] frontmatter + background: true (缺则加 / 非 true 强制改)
-
 [.claude/commands/trellis/finish-work.md] 注入全链 marker (先跑 trellisx-finish.py 全链再 journal; 修原生 archive-direct 绕 merge 丢提交) / 无文件则跳过
 
 [<git根>/.gitignore] + .worktrees/
@@ -57,25 +55,22 @@ options:
 
 批准后 main **派 `prep-backup` agent** 串行跑 `git stash push -- .trellis/` 备份 (main 不亲碰 git, 见 §回滚), 备份完再进 Phase B。
 
-## 3. Phase B 并行写盘 (5 writer agent, 同批)
+## 3. 并行写盘 + 自验 (4 writer agent, 同批)
 
-main 把对应 plan 传给各 writer, **一条消息同批派发** (disjoint 文件集, 并发无冲突):
+main 把对应 plan 传给各 writer, **一条消息同批派发** (disjoint 文件集, 并发无冲突)。**每 writer 写完后自验本维度** (下方 §4 检查取本维度组), 返回 ok/verified/problem:
 
 | writer | 独占文件集 | 算法 |
 | --- | --- | --- |
 | `write-workflow` | `.trellis/workflow.md` (marker 注入, 目标语言) | workflow-injection.md |
 | `write-spec` | `.trellis/spec/guides/trellisx-worktree.md` (仅不存在时新增, 不动现有) | spec-injection.md |
 | `write-hook` | `.trellis/scripts/{trellisx_wt,trellisx-worktree,trellisx-taskmd,trellisx-finish,trellisx-packages}.py` + `.trellis/config.yaml` (hooks + `session_auto_commit: true` + `packages:`) + `<git根>/.gitignore` 追加 .worktrees/ | hook-injection.md |
-| `write-agent` | `.claude/agents/trellis*.md` frontmatter `background: true` | agent-injection.md |
 | `write-finishcmd` | `.claude/commands/trellis/finish-work.md` (全链注入 marker, 修原生 archive-direct 绕 merge) | finishcmd-injection.md |
 
-> ⚠️ config.yaml 只归 `write-hook`; finish-work.md 只归 `write-finishcmd`; 任两 writer 禁碰同一文件。某 writer 失败 → main 派 `rollback` agent `git stash pop` 回滚 + 重派 (见 §失败处理)。
+> ⚠️ config.yaml 只归 `write-hook`; finish-work.md 只归 `write-finishcmd`; 任两 writer 禁碰同一文件。某 writer 写盘/自验失败 → main 派 `rollback` agent `git stash pop` 回滚 + 重派 (见 §失败处理)。
 
-## 4. Phase C 并行验证 (4 verify agent, 同批)
+## 4. 自验检查清单 (各 writer 写完跑本维度组, 替代独立验证阶段)
 
-main 同批派 4 verify agent, 各验本维度产物, 返回每项 ✓/✗ + 失败定位。main 汇总; 任一 ✗ → 派对应 writer 按算法重注 → 重验 (修复循环 ≤3)。
-
-各 verify agent 跑的检查 (下方按维度分组, agent 各取本组):
+各 writer 写完跑下方对应本维度的检查, 返回每项 ✓/✗ + 失败定位。main 汇总; 任一 ✗ → 派对应 writer 按算法重注 → 重验 (修复循环 ≤3)。
 
 ```bash
 # marker 注入成功
@@ -103,11 +98,6 @@ grep -q "import trellisx_wt" .trellis/scripts/trellisx-worktree.py .trellis/scri
 grep -qE "task.py finish|trellisx-finish" .trellis/workflow.md && echo "✓ finish 段含自动收尾触发" || echo "✗ finish 段未注入自动收尾"
 # gitignore
 grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "worktrees 已排除"
-# trellis agent 全部 background: true
-for f in .claude/agents/trellis*.md; do
-  [ -f "$f" ] || continue
-  awk '/^---$/{c++} c==1&&/^background:[[:space:]]*true[[:space:]]*$/{ok=1} c==2{print (ok?"✓":"✗"), FILENAME; exit}' "$f"
-done
 # finish-work 全链注入 (Option B; 无文件则 hook 路兜底)
 F=.claude/commands/trellis/finish-work.md
 if [ -f "$F" ]; then grep -q "finishcmd_fullchain" "$F" && grep -q "trellisx-finish.py" "$F" && echo "✓ finish-work 含全链注入" || echo "✗ finish-work 未注入全链"; else echo "(无 finish-work.md, hook 路兜底)"; fi
@@ -191,7 +181,7 @@ gitignore: 已排除 .worktrees/ (git 根)
 
 | 触发 | 一线修复 | 仍失败兜底 |
 | --- | --- | --- |
-| verify agent 报某项 ✗ (marker 数不符 / task.py 报错) | main 派对应 writer 撤销该文件改动重注 | main 派 `rollback` agent `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
+| writer 自验报某项 ✗ (marker 数不符 / task.py 报错) | main 派对应 writer 撤销该文件改动重注 | main 派 `rollback` agent `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
 | 闭环验证任一 ✗ (marker 串位 / 缺环节) | main 派 write-workflow 按算法重注串位 marker, 重验 (循环 ≤3) | 同上派 rollback agent 回滚, 报「流程未闭环: <缺失环节>」 |
 | 某 writer agent 写盘异常 (磁盘 / 权限) | main 派 rollback agent `git stash pop` 回滚 + 重派该 writer | 报中断点, 禁留半截状态 |
 | i18n 验证 ✗ (注入块中英混杂) | main 派 write-workflow 用目标语言重写该块 | 同上回滚, 报「语言不一致: <块名>」 |
