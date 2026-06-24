@@ -17,7 +17,8 @@
     "./skills/trellisx-orchestrate",
     "./skills/trellisx-spec",
     "./skills/trellisx-flow",
-    "./skills/trellisx-workspace"
+    "./skills/trellisx-workspace",
+    "./skills/trellisx-cleanup"
   ],
   "keywords": [
     "trellis",
