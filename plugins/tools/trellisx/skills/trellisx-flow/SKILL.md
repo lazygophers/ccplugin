@@ -91,8 +91,10 @@ arguments: [任务描述]
    return { written, checked, finalize: 'run task.py finish after TaskStop sweep' }
    ```
    > 默认载体 (subagent 编排) 即用同骨架的 subagent pipeline 形态 (Agent tool + isolation:worktree 串/并), 重试与收尾语义不变; 上方 Workflow 骨架仅特别复杂 task 升级时才照搬。
+   >
+   > ⛔ **Workflow 是异步的, 禁 `sleep`/轮询阻塞 main 等待**: `Workflow` 工具调用即返回 task ID, 干完自动回 `<task-notification>`。**严禁 `Bash(sleep N && ...)` 或任何轮询循环占住 main 等 workflow 跑完** —— 调用 workflow 后**直接结束本回合**, notification 回来再继续 finish 清理。sleep 等待 = 既阻塞 main 又对不齐真实时长 = 反模式。
 5. **check** (默认派 subagent / workflow 内 fan-out) — checker agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
-6. **finish** (main 同步) — check 通过 → **finish 前先确认本 task 的 subagent/workflow 已终止 + 无悬挂后台任务** (用 `TaskList` 查残留, `TaskStop` 关闭); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (合并 N 子分支, 非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
+6. **finish** (main 同步) — check 通过 → **finish 前先确认本 task 的 subagent/workflow 已终止 + 无悬挂后台任务** (用 `TaskList` 查残留, `TaskStop` 关闭; **禁 `sleep`/轮询等 workflow 跑完 —— workflow 异步, 完成会自动回 notification, 届时本回合再走 finish**); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (合并 N 子分支, 非派 agent, 非可选)。→ **更新 task.md 行** (状态 completed)。
 
 ## 失败模式 (三段式: 触发 → 一线修复 → 仍失败兜底)
 

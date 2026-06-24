@@ -22,8 +22,9 @@
                     ③活动 task 未完成 (非 stale 活动 task 且 status != completed)。
                     活动 task 经 `current --source` 取, stale 指针 (目录已删/session-fallback
                     兜底猜测) 一律视为无活动 task, 不误判。
-                    抑制阀: .runtime/ 记状态, 同批连续 block ≥3 次 → 本次降级
-                    additionalContext 不 block (契约 Stop 不支持 systemMessage)。无问题 → return 0。
+                    抑制阀: .runtime/ 记状态, 同批连续 block 满 3 次 → 第 3 次降级
+                    additionalContext 提示一次 (契约 Stop 不支持 systemMessage), 第 4 次起
+                    彻底静默 return 0 (防底层条件不变时无限重复降级提示)。无问题 → return 0。
 - SubagentStop    : 仅 additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block)。
 - FileChanged     : task.md lint 不合规 → stderr 提醒 (契约: FileChanged stdout 被忽略,
                     只认 stderr; 不阻断)。
@@ -393,13 +394,18 @@ def main():
         ))
         streak = valve_bump(troot, batch_key)
 
-        if streak >= 3:
-            # 抑制阀: 连续 block ≥3 次 → 降级放行。契约 Stop 只认顶层 decision,
+        if streak >= 4:
+            # 熄火: 同批问题降级提示已展示过 (streak==3 那次), 之后彻底静默,
+            # 否则底层条件不变 → batch_key 不变 → 每次 Stop 重复喷降级提示 = 无限刷屏。
+            # 不 reset (保留计数), 待 batch_key 变 (问题换/消失) 时 valve_bump 自然归 1。
+            return 0
+        if streak == 3:
+            # 抑制阀: 连续 block 满 3 次 → 降级放行一次。契约 Stop 只认顶层 decision,
             # 非错误反馈用 hookSpecificOutput.additionalContext (systemMessage 在 Stop 不支持)。
             print(json.dumps({
                 "hookSpecificOutput": {
                     "hookEventName": "Stop",
-                    "additionalContext": body + "\n(已连续提示 ≥3 次, 本次不再阻断结束。)",
+                    "additionalContext": body + "\n(已连续提示 3 次, 本次起不再阻断也不再重复提示。)",
                 }
             }))
         else:
