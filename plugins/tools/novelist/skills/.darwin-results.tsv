@@ -4,6 +4,7 @@
 2026-06-24	baseline	novelist-rewrite	-	80.5	baseline	-	d3/d6 失败分支薄+细则外置	dry_run
 2026-06-24	5a1e56d	novelist-rewrite	80.5	90.1	keep	dim3/dim6	关键约束速览内联+3条失败分支(A清零失败/棘轮不过/C衔接断裂)	dry_run
 2026-06-24	baseline	novelist-outline	-	81.3	baseline	-	d4 检查点仅一处	dry_run
+2026-06-24	d870d85	novelist-outline	81.3	84.3	keep	dim4/dim3	step1+step4补🔴STOP+伏笔逾期失败分支	dry_run
 2026-06-24	baseline	novelist-proofread	-	83.4	baseline	-	d4 检查点密度低	dry_run
 2026-06-24	baseline	novelist-worldview	-	83.6	baseline	-	d4 决策点缺STOP标记	dry_run
 2026-06-24	baseline	novelist-design	-	83.7	baseline	-	d5 核心钩子抽象	dry_run
