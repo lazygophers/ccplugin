@@ -19,6 +19,7 @@
 2026-06-24	baseline	novelist-pipeline	-	85.0	baseline	-	d7 信息过载重复	dry_run
 2026-06-24	17b90d93	novelist-pipeline	85.0	84.3	revert	dim7	删blockquote+文风段反致dim7冗余扣分未抵消; break	dry_run
 2026-06-24	baseline	novelist-humanize	-	85.1	baseline	-	d5 agent格式描述性	dry_run
+2026-06-24	7998624	novelist-humanize	85.1	91.2	keep	dim9/dim5	新增反AI创作黑名单(标点/句式/描写套路三表)+熔铸指纹互消流程	dry_run
 2026-06-24	baseline	novelist-init	-	86.6	baseline	-	d4 STOP有但无统一CHECKPOINT	dry_run
 2026-06-24	baseline	novelist-trending	-	87.4	baseline	-	d5 启发式主观	dry_run
 2026-06-24	baseline	novelist-character	-	87.7	baseline	-	d3 未编码资源失败分支	dry_run
