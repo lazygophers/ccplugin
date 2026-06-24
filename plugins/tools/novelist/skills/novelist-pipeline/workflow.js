@@ -36,9 +36,9 @@ const INDEX_FILE = `${ROOT}/章节/_索引.md`;
 // ===== 可调常量(对齐 novelist 插件评分门控) =====
 const BATCH_SIZE = 5; // 每批最多章数, 超出自动分批
 const MAX_FIX_ATTEMPTS = Infinity; // fix 最大重试(无限: 一直修到达标; 用户要求)
-const PASS_TOTAL = 85; // 定稿综合分阈值
-const PASS_CONSISTENCY = 85; // 一致性单项阈值
-const PASS_HUMANNESS = 70; // 人味单项阈值(对齐 score_aitaste 目标线)
+const PASS_TOTAL = 95; // 定稿综合分阈值(严格 > 95 才过)
+const PASS_CONSISTENCY = 95; // 一致性单项阈值(严格 > 95 才过)
+const PASS_HUMANNESS = 95; // 人味单项阈值(严格 > 95 才过)
 const MAX_AGENT_RETRIES = Infinity; // 单 agent 调用失败重试上限(无限: 一直重试到成功; 用户要求)
 const EST_SEC_PER_AGENT = 30; // 单 agent 调用预估耗时(秒, 仅粗估; Workflow 禁 Date.now 无法实测)
 let AGENT_CALLS = 0; // 全局 agent 实际调用计数(含重试), 用于整体耗时预估
@@ -72,7 +72,7 @@ function extractScore(text) {
 	return m ? parseInt(m[1]) : 90;
 }
 function computeScores(checkResult, proofResult, humanResult) {
-	const cScore = checkResult?.includes("冲突") ? 80 : 95;
+	const cScore = checkResult?.includes("冲突") ? 80 : 100;
 	const tScore = extractScore(proofResult);
 	const hScore = extractScore(humanResult);
 	const total =
@@ -258,7 +258,7 @@ async function humanizer(chNum, title) {
 			`检测项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
 			`5.否定式排比(不是A而是B) 6.过度总结。\n\n` +
 			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做, 避免三环并行写冲突)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(问题清单), 再按下方格式返回评分。\n\n` +
-			`输出格式:\n人味评分: 0-100(100=完全人写, ≥${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
+			`输出格式:\n人味评分: 0-100(100=完全人写, >${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `去AI味:${num}`, phase: "去AI味", agentType: "novelist:humanizer" }
 	);
 }
@@ -324,9 +324,9 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 		humanResult,
 	);
 	const passed =
-		total >= PASS_TOTAL &&
-		cScore >= PASS_CONSISTENCY &&
-		hScore >= PASS_HUMANNESS;
+		total > PASS_TOTAL &&
+		cScore > PASS_CONSISTENCY &&
+		hScore > PASS_HUMANNESS;
 
 	await callAgent(
 		`更新索引与进度。第${num}章「${title}」${passed ? "定稿" : "需复审"}(综合${total})。\n\n` +
@@ -361,9 +361,9 @@ async function finishChain(n, info) {
 			`第${ch(n)}章评分: 一致${cScore} 文字${tScore} 人味${hScore} 综合${total}(第${attempts}次)`,
 		);
 		const passed =
-			total >= PASS_TOTAL &&
-			cScore >= PASS_CONSISTENCY &&
-			hScore >= PASS_HUMANNESS;
+			total > PASS_TOTAL &&
+			cScore > PASS_CONSISTENCY &&
+			hScore > PASS_HUMANNESS;
 		if (passed || attempts >= MAX_FIX_ATTEMPTS) {
 			if (!passed)
 				log(`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`);

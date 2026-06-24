@@ -70,7 +70,7 @@ def main():
         print(f"人味分: {score}/100  (越高越像人写)")
         print(f"  有效字数 {chars}, tells {total_tells} 个 ({tell_hits}), 每千字 {tell_density:.2f}")
         print(f"  句数 {len(lens)}, 句长标准差 {sd:.2f} (越高节奏越有起伏)")
-        if score < 70:
+        if score <= 95:
             print("  ⚠️ AI 味偏重, 需继续去味")
     return 0
 
