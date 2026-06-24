@@ -18,7 +18,10 @@ arguments: [小说名, 可选类型]
 3. **🔴 CHECKPOINT — 确认创建参数** — 执行脚本前向用户汇报: 小说名 / 父目录绝对路径 / 类型(若有)。用 `AskUserQuestion` 确认「确认创建 / 取消」。用户取消 → 退出, 不建目录。
 4. **跑脚手架** — 执行:
    ```bash
+   # 有类型
    python3 ${CLAUDE_PLUGIN_ROOT}/skills/novelist-init/scripts/init_novel.py "<小说名>" --path <父目录> --genre "<类型>"
+   # 无类型(省略 --genre)
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/novelist-init/scripts/init_novel.py "<小说名>" --path <父目录>
    ```
    脚本创建: `人物/ 世界观/ 设定/ 大纲/ 情节/ 章节/ 元数据/` + 各层模板与索引文件。🔴 STOP: 脚本退出码 2(目标已存在且非空) → **禁直接加 `--force` 覆盖**, 先用 `AskUserQuestion` 问用户「换名 / 追加 / 取消」, 用户选追加才补 `--force`。
 5. **回报结构** — 向用户列出生成的目录树, 说明每个目录归属哪个 skill(见 `总览.md` 的目录约定表)。
@@ -41,6 +44,7 @@ arguments: [小说名, 可选类型]
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
 | 缺小说名 | `AskUserQuestion` 问用户 | 用户不给 → 退出, 不建目录 |
+| 用户在 CHECKPOINT 选「取消」 | 退出, 不建目录, 告知用户可重新调用 | — |
 | 目标目录已存在且非空(脚本退出码 2) | 报告用户, 问是「换名 / 追加(--force) / 取消」 | 用户选追加 → 加 `--force` 重跑(不覆盖已有文件) |
 | `python3` 不可用 | 提示用户安装 python3 | 仍无 → 退出并说明手动建目录方式 |
 
