@@ -30,7 +30,7 @@ user-invocable: false
 | 需外部调研 (库选型/方案对比) 或产出文档交付 | **必建 task** (调研为 research subtask) |
 | 边界模糊 | **MUST AskUserQuestion 由用户裁定** |
 
-无 task → 不进 workflow → 四规范豁免。Planning 阶段也不进 workflow: brainstorm 主线由 main 同步前台 (subagent 不能 AskUserQuestion); 纯信息调研可派 trellis-research 并行, 但设计决策由 main 汇总裁定。
+无 task → 不进执行编排 → 执行规约豁免。Planning 阶段不派执行 subagent: brainstorm 主线由 main 同步前台 (subagent 不能 AskUserQuestion); 纯信息调研可派 trellis-research 并行, 但设计决策由 main 汇总裁定。
 
 建 task 后拆 ≥ 2 subtask:
 

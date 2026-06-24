@@ -46,7 +46,7 @@ apply 把脚本从插件 `scripts/` **复制**到用户 `.trellis/scripts/`, 不
 | --- | --- | --- |
 | 强推 task | no_task 块: 除极简外默认建 task; 边界模糊 MUST 问用户 (软约束) | workflow.md `no_task` |
 | subtask 拆分 | 按 trellis 原生 parent/child 语义判定 (多个独立可验收交付才拆, 不看数量) | workflow.md `planning` |
-| worktree 隔离 (task 级) | **1 task : 1 workflow : N worktree** —— task exec 用 Claude Code Workflow 工具编排成 1 个独立 workflow, workflow 内 agent 各 worktree 隔离 (无 Workflow 平台退 agent 流水线)。隔离单位 = **task** (防并发多 task 互相冲突): task.py start 自动建本 task 的 `<git根>/.worktrees/<name>`, archive 销毁。默认一 task 一 worktree; 冲突型并行 subtask 才各开子 worktree (finish 经映射合并各子分支) | workflow.md `in_progress` + config.yaml hook |
+| worktree 隔离 (task 级) | **执行载体 = subagent 编排 (默认), N worktree** —— task exec 默认经 main → trellis-implement → subagent 执行, 各 agent worktree 隔离 (`isolation:worktree`)。**Workflow 仅特别复杂 task (大规模 fan-out / 仓库级 / ≥5 同类文件 / 500+ 文件迁移) 用户显式同意才启**, 普通 task 不用。隔离单位 = **task** (防并发多 task 互相冲突): task.py start 自动建本 task 的 `<git根>/.worktrees/<name>`, archive 销毁。默认一 task 一 worktree; 冲突型并行 subtask 才各开子 worktree (finish 经映射合并各子分支) | workflow.md `in_progress` + config.yaml hook |
 | 闭环收尾 | plan→exec→check→finish 必走完整, 未 archive 禁宣告 Done (软约束) | workflow.md `in_progress` |
 | task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 补主观列 | config.yaml hook + workflow marker |
 
