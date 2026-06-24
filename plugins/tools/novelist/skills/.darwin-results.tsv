@@ -6,6 +6,7 @@
 2026-06-24	baseline	novelist-outline	-	81.3	baseline	-	d4 检查点仅一处	dry_run
 2026-06-24	d870d85	novelist-outline	81.3	84.3	keep	dim4/dim3	step1+step4补🔴STOP+伏笔逾期失败分支	dry_run
 2026-06-24	baseline	novelist-proofread	-	83.4	baseline	-	d4 检查点密度低	dry_run
+2026-06-24	8c13448	novelist-proofread	83.4	86.6	keep	dim4	step2🔴基准缺失+step5🔴质量分<85门控	dry_run
 2026-06-24	baseline	novelist-worldview	-	83.6	baseline	-	d4 决策点缺STOP标记	dry_run
 2026-06-24	baseline	novelist-design	-	83.7	baseline	-	d5 核心钩子抽象	dry_run
 2026-06-24	baseline	novelist-check	-	85.0	baseline	-	d3 失败分支偏薄	dry_run
