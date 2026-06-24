@@ -8,6 +8,8 @@
 2026-06-24	baseline	novelist-proofread	-	83.4	baseline	-	d4 检查点密度低	dry_run
 2026-06-24	8c13448	novelist-proofread	83.4	86.6	keep	dim4	step2🔴基准缺失+step5🔴质量分<85门控	dry_run
 2026-06-24	baseline	novelist-worldview	-	83.6	baseline	-	d4 决策点缺STOP标记	dry_run
+2026-06-24	7e1b642	novelist-worldview	83.6	84.9	keep	dim4	step1+step3补🔴STOP(范围模糊+规则缺代价)	dry_run
+2026-06-24	abcd4e5	novelist-worldview	84.9	84.9	revert	dim5/dim6	r2 Δ=0 未提升; HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-design	-	83.7	baseline	-	d5 核心钩子抽象	dry_run
 2026-06-24	baseline	novelist-check	-	85.0	baseline	-	d3 失败分支偏薄	dry_run
 2026-06-24	baseline	novelist-pipeline	-	85.0	baseline	-	d7 信息过载重复	dry_run
