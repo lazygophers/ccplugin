@@ -16,10 +16,14 @@
                      map-add <wt> <tid> <source> (source 取输入 JSON source 字段)。
                      全程吞异常, 不影响已回显 path。
 - WorktreeRemove   : worktree 销毁事件 → map-remove 清映射 (不阻断)。
-- Stop            : 列所有非主 worktree, 判「分支已合并回主 worktree HEAD 且目录仍在且 clean」
-                    = 已合并未清理 → 顶层 {"decision":"block"} 逐条提示清理 (不自动销毁)。
-                    抑制阀: .runtime/ 记状态, 同批 worktree 连续 block ≥3 次 → 本次降级
-                    additionalContext 不 block (契约 Stop 不支持 systemMessage)。无残留 → return 0。
+- Stop            : 三类闸顶层 {"decision":"block"} 提示 (不自动销毁/finish):
+                    ①已合并未清理 worktree (分支已合并回主 HEAD 且目录仍在且 clean);
+                    ②游离 worktree (未登记映射到任何 task, tid=?/None, 从未走 trellisx 流程);
+                    ③活动 task 未完成 (非 stale 活动 task 且 status != completed)。
+                    活动 task 经 `current --source` 取, stale 指针 (目录已删/session-fallback
+                    兜底猜测) 一律视为无活动 task, 不误判。
+                    抑制阀: .runtime/ 记状态, 同批连续 block ≥3 次 → 本次降级
+                    additionalContext 不 block (契约 Stop 不支持 systemMessage)。无问题 → return 0。
 - SubagentStop    : 仅 additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block)。
 - FileChanged     : task.md lint 不合规 → stderr 提醒 (契约: FileChanged stdout 被忽略,
                     只认 stderr; 不阻断)。
@@ -153,24 +157,54 @@ def run_taskmd(troot, *args):
         return (99, "")
 
 
-def active_tid(troot):
-    """读当前活动 task → tid (task 路径 basename); 无活动 task 或异常 → None。"""
+def _resolve_active(troot):
+    """读 `task.py current --source` → (task_rel_path, stale)。
+    无活动 task / 脚本缺失 / 异常 → (None, False)。
+    stale=True 表示指针指向已不存在的 task 目录 (如 session-fallback 兜底猜测)。"""
     if not troot:
-        return None
+        return (None, False)
     script = os.path.join(troot, ".trellis", "scripts", "task.py")
     if not os.path.isfile(script):
-        return None
+        return (None, False)
     try:
         r = subprocess.run(
-            ["python3", script, "current"],
+            ["python3", script, "current", "--source"],
             cwd=troot, capture_output=True, text=True, timeout=5,
         )
-        out = (r.stdout or "").strip()
-        if r.returncode == 0 and out:
-            return os.path.basename(out.rstrip("/"))
     except Exception:
-        pass
-    return None
+        return (None, False)
+    path, stale = None, False
+    for line in (r.stdout or "").splitlines():
+        s = line.strip()
+        if s.startswith("Current task:"):
+            v = s[len("Current task:"):].strip()
+            if v and v != "(none)":
+                path = v
+        elif s == "State: stale":
+            stale = True
+    return (path, stale)
+
+
+def active_task_info(troot):
+    """非 stale 的活动 task → (tid, status); stale/无活动 task → (None, None)。
+    stale 指针 (目录已删但 finish 未跑) 一律视为「无活动 task」, 不误判为 in_progress。"""
+    path, stale = _resolve_active(troot)
+    if not path or stale:
+        return (None, None)
+    tid = os.path.basename(path.rstrip("/"))
+    status = None
+    tj = os.path.join(troot, path, "task.json")
+    try:
+        if os.path.isfile(tj):
+            status = json.load(open(tj, encoding="utf-8")).get("status")
+    except Exception:
+        status = None
+    return (tid, status)
+
+
+def active_tid(troot):
+    """非 stale 的活动 task 的 tid; 无 / stale → None。"""
+    return active_task_info(troot)[0]
 
 
 def map_tid_for(troot, wt):
@@ -308,26 +342,56 @@ def main():
     if event == "Stop":
         repo = git_top(cwd) or cwd
         head_wt = main_worktree(repo)
-        # 已合并未清理: 分支已合并回主 worktree HEAD 且目录仍在且 clean
-        residual = []
+        # 三类闸: ①已合并未清理 worktree ②游离(未映射 task)worktree ③活动 task 未完成
+        merged, orphan = [], []
         for p, br in non_main_worktrees(repo):
-            if (os.path.isdir(p) and branch_merged(head_wt, br) and worktree_clean(p)):
-                residual.append((p, br))
-        if not residual:
+            if not os.path.isdir(p):
+                continue
+            tid = map_tid_for(troot, p)
+            if branch_merged(head_wt, br) and worktree_clean(p):
+                merged.append((p, br, tid or "?"))
+            elif tid is None or tid == "?":
+                # 已合并未清理优先归类; 余下未登记映射的视为游离 (从未走 trellisx task 流程)
+                orphan.append((p, br))
+
+        # 活动 task 状态闸: 非 stale 活动 task 且 status != completed → 未完成
+        tid_a, status_a = active_task_info(troot)
+        task_issue = (tid_a, status_a or "unknown") if (tid_a is not None and status_a != "completed") else None
+
+        if not merged and not orphan and task_issue is None:
             valve_reset(troot)
             return 0
 
-        batch_key = "|".join(sorted(p for p, _ in residual))
-        streak = valve_bump(troot, batch_key)
-        lines = []
-        for p, _br in residual:
-            tid = map_tid_for(troot, p) or "?"
-            lines.append(
-                f"  - {p} (task={tid}) 已合并未清理 → 清理: "
-                f"`git worktree remove {p}` 或 `task.py finish`; 清理后再结束"
+        sections = []
+        if task_issue:
+            sections.append(
+                f"[trellisx] 活动 task 未完成: {task_issue[0]} (status={task_issue[1]}) "
+                "→ 推进至完成并 `task.py finish` 归档后再结束"
             )
-        body = ("[trellisx] 检测到已合并回主分支但未清理的 worktree:\n"
-                + "\n".join(lines))
+        if merged:
+            lines = [
+                f"  - {p} (task={tid}) 已合并未清理 → `git worktree remove {p}` 或 `task.py finish`"
+                for p, _br, tid in merged
+            ]
+            sections.append(
+                "[trellisx] 检测到已合并回主分支但未清理的 worktree:\n" + "\n".join(lines)
+            )
+        if orphan:
+            lines = [
+                f"  - {p} (branch={br}) 未登记映射到任何 task → 游离于 trellisx 流程; "
+                f"补登 `trellisx-taskmd.py map-add {p} <task-id>` 或清理"
+                for p, br in orphan
+            ]
+            sections.append(
+                "[trellisx] 检测到游离 worktree (从未走 trellisx task 流程):\n" + "\n".join(lines)
+            )
+
+        body = "\n\n".join(sections)
+        batch_key = "|".join(sorted(
+            [p for p, _, _ in merged] + [p for p, _ in orphan]
+            + ([f"task:{task_issue[0]}"] if task_issue else [])
+        ))
+        streak = valve_bump(troot, batch_key)
 
         if streak >= 3:
             # 抑制阀: 连续 block ≥3 次 → 降级放行。契约 Stop 只认顶层 decision,
