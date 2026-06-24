@@ -28,4 +28,5 @@
 2026-06-24	d24b75c	novelist-trending	87.4	89.1	keep	dim5	Step3补四镜片输出模板表+信号图例(消除主观发挥)	dry_run
 2026-06-24	d3a6621	novelist-trending	89.1	90.3	keep	dim2	补执行路径快速导流(方法论vs联网分叉); HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-character	-	87.7	baseline	-	d3 未编码资源失败分支	dry_run
+2026-06-24	cadb21c	novelist-character	87.7	90.1	keep	dim3	失败模式补索引缺失+模板缺失两条资源分支	dry_run
 2026-06-24	baseline	novelist-write	-	88.6	baseline	-	d8 dry_run无法验证	dry_run
