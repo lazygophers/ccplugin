@@ -32,3 +32,5 @@
 2026-06-24	19cb887	novelist-character	90.1	91.8	keep	dim5	step3采集设定扩展为三文件优先级问卷	dry_run
 2026-06-24	2af035e	novelist-character	91.8	93.0	keep	dim4	step4补🔴CHECKPOINT落盘前摘要确认; HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-write	-	88.6	baseline	-	d8 dry_run无法验证	dry_run
+2026-06-24	29e61f8	novelist-write	88.6	89.8	keep	dim3	失败模式补pre-write-checklist+章节索引缺失两条资源分支	dry_run
+2026-06-24	3ffdc7e	novelist-write	89.8	91.5	keep	dim5	step6d补子环合格线三个具体阈值; HL-4 连续2轮Δ<2 break	dry_run
