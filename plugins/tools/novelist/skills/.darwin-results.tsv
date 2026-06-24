@@ -14,6 +14,7 @@
 2026-06-24	6965583	novelist-design	83.7	84.1	keep	dim5/dim6	step2内联核心钩子格式+step6内联3条自检	dry_run
 2026-06-24	3dbb379	novelist-design	84.1	85.3	keep	dim5/dim4	step3-5补传参说明+step4🔴确认点; HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-check	-	85.0	baseline	-	d3 失败分支偏薄	dry_run
+2026-06-24	589210e	novelist-check	85.0	90.5	keep	dim3	补2条失败分支(六维不完整+snapshot超时)	dry_run
 2026-06-24	baseline	novelist-pipeline	-	85.0	baseline	-	d7 信息过载重复	dry_run
 2026-06-24	baseline	novelist-humanize	-	85.1	baseline	-	d5 agent格式描述性	dry_run
 2026-06-24	baseline	novelist-init	-	86.6	baseline	-	d4 STOP有但无统一CHECKPOINT	dry_run
