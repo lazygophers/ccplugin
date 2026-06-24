@@ -1,5 +1,6 @@
 2026-06-18	staged	novelist-check/proofread/humanize/write/rewrite	-	评分机制	feature	客观分门控+棘轮	aitaste脚本入humanize,余纯算术	full_test
 2026-06-24	baseline	novelist-craft	-	79.8	baseline	-	d2:7 工作流接口不明	dry_run
+2026-06-24	c6f1d63	novelist-craft	79.8	88.2	keep	dim2/dim5/dim8	接口显式化+番茄规则+语域碰撞+人设标签	dry_run
 2026-06-24	baseline	novelist-rewrite	-	80.5	baseline	-	d3/d6 失败分支薄+细则外置	dry_run
 2026-06-24	baseline	novelist-outline	-	81.3	baseline	-	d4 检查点仅一处	dry_run
 2026-06-24	baseline	novelist-proofread	-	83.4	baseline	-	d4 检查点密度低	dry_run
