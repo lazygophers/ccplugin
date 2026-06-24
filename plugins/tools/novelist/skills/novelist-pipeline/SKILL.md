@@ -57,6 +57,8 @@ disable-model-invocation: true
 后置(每批一次)：  统一 check（一个 agent 一次性审本批全部章节 + 与全书设定/前文冲突, 非逐章）
 ```
 
+> **两级串行 + 一级并行**: ① Writer 流内部逐章串行(write 读前章) ② 检测定稿流内部逐章串行(共享索引/进度) ③ 两流之间并行(write 与检测重叠)。三环检测在检测流内再并行。
+
 ## 角色职责(关联 novelist skill/agent, 全部从小说自己的文件读设定)
 
 ### 前置(串行, 每批一次)
@@ -85,6 +87,10 @@ disable-model-invocation: true
 **一个 `novelist:continuity-auditor` agent 一次性审本批全部章节**(非逐章独立)——把本批这次变更的章节作为整体, 读全批正文 + 全书设定/前文/伏笔台账/进度, 核对: ① 本批章节**之间**矛盾 ② 违反规则.md ③ 人物一致 ④ 伏笔跨章追踪 ⑤ 与**前文**衔接/时间线 ⑥ 新设定与历史冲突。报告整批一份 `元数据/检查报告/统一-第NNN-NNN章.md`。
 
 > 🔴 **agentType 前提**: workflow.js 每个 agent() 用 `agentType` 指向本插件 `agents/` 下的专用 agent(共 8 个)——**需 novelist 插件已安装**, Agent 注册表才能解析这些 agentType。未安装时 Workflow 报 agent 解析失败, 应先装插件。
+
+**文风**: Writer 写前必引用 `novelist-craft` 按题材+本章性质取叙事镜片。
+**事实源**: 人物/世界观变更引用 `novelist-character`/`novelist-worldview` 回写。
+**硬约束**: 一律从该小说的 `世界观/规则.md` 读取, 脚本不写死任何小说的具体设定。
 
 ## 🔴 定稿标准
 
