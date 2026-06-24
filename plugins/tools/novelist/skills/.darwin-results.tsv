@@ -11,6 +11,8 @@
 2026-06-24	7e1b642	novelist-worldview	83.6	84.9	keep	dim4	step1+step3补🔴STOP(范围模糊+规则缺代价)	dry_run
 2026-06-24	abcd4e5	novelist-worldview	84.9	84.9	revert	dim5/dim6	r2 Δ=0 未提升; HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-design	-	83.7	baseline	-	d5 核心钩子抽象	dry_run
+2026-06-24	6965583	novelist-design	83.7	84.1	keep	dim5/dim6	step2内联核心钩子格式+step6内联3条自检	dry_run
+2026-06-24	3dbb379	novelist-design	84.1	85.3	keep	dim5/dim4	step3-5补传参说明+step4🔴确认点; HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-check	-	85.0	baseline	-	d3 失败分支偏薄	dry_run
 2026-06-24	baseline	novelist-pipeline	-	85.0	baseline	-	d7 信息过载重复	dry_run
 2026-06-24	baseline	novelist-humanize	-	85.1	baseline	-	d5 agent格式描述性	dry_run
