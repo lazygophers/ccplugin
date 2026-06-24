@@ -25,5 +25,7 @@
 2026-06-24	5e08e95	novelist-init	86.6	88.4	keep	dim4	step3补🔴CHECKPOINT确认参数(脚本执行前); 自评dry_run_self(judge 403)	dry_run
 2026-06-24	ae3169d	novelist-init	88.4	89.9	keep	dim5/dim3	step4命令区分有无类型+失败表补CHECKPOINT取消行; HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-trending	-	87.4	baseline	-	d5 启发式主观	dry_run
+2026-06-24	d24b75c	novelist-trending	87.4	89.1	keep	dim5	Step3补四镜片输出模板表+信号图例(消除主观发挥)	dry_run
+2026-06-24	d3a6621	novelist-trending	89.1	90.3	keep	dim2	补执行路径快速导流(方法论vs联网分叉); HL-4 连续2轮Δ<2 break	dry_run
 2026-06-24	baseline	novelist-character	-	87.7	baseline	-	d3 未编码资源失败分支	dry_run
 2026-06-24	baseline	novelist-write	-	88.6	baseline	-	d8 dry_run无法验证	dry_run
