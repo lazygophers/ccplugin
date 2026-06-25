@@ -374,10 +374,109 @@ def cmd_lint(_argv):
     sys.exit(0)
 
 
+PARK_MARK = "## ⚠ 待人工修正 (无法自动归类的行)"
+PARK_HEADER = (
+    "\n" + PARK_MARK + "\n\n"
+    "> 下列行 lint 不合规且无法机械归类 (列数异常且非主表/映射行形态), 已停泊于此防丢失;\n"
+    "> 请人工核对后改回主表或映射区, 或删除。修正后本块应清空。\n\n"
+)
+
+
+def _is_main_data_row(c):
+    """主表数据行: 7 列且第 4 列是合法状态 (中文或英文键)。"""
+    if len(c) != 7:
+        return False
+    return c[3] in ("规划中", "进行中", "已完成") or c[3] in STATUS_CN
+
+
+def _looks_like_map_row(c):
+    """映射数据行: 恰 3 列, 或首列像 worktree 路径 (含 / 或 ~ 或 .worktree)。"""
+    if not c or not c[0]:
+        return False
+    if len(c) == 3:
+        return True
+    first = c[0]
+    return ("/" in first) or first.startswith("~") or (".worktree" in first)
+
+
+def _norm_main_status(c):
+    """英文状态键归一为中文展示值 (planning→规划中 等)。"""
+    if c[3] in STATUS_CN:
+        c[3] = STATUS_CN[c[3]]
+    return c
+
+
+def cmd_fix(_argv):
+    """fix — 机械修复 task.md: 按行形态重新归类到正确表 (主表/映射区), 英文状态归一,
+    主表 ID 去重 (保留首见)。无法归类的行停泊到「待人工修正」块, 不丢数据。
+    仅当内容有变化才写盘 (幂等), 写前备份 task.md.bak。
+    全部可修复 → 退 0; 有残留不可修复行 → 退 1 + stderr 列出。"""
+    troot = find_trellis_root()
+    if not troot:
+        print("trellisx: 未找到 .trellis", file=sys.stderr)
+        sys.exit(1)
+    orig = load_md(troot)
+
+    def is_data_line(ln):
+        return (ln.startswith("| ")
+                and not ln.startswith("| ID |")
+                and not ln.startswith("| 名称 |")
+                and not ln.startswith("| worktree |")
+                and not ln.startswith("| --- |"))
+
+    main_rows, map_seen_lines, map_rows_out, parked = [], set(), [], []
+    seen_ids = set()
+    for ln in orig.splitlines():
+        if not is_data_line(ln):
+            continue
+        c = row_cells(ln)
+        if _is_main_data_row(c):
+            c = _norm_main_status(c)
+            if c[0] in seen_ids:
+                continue  # 去重: 保留首见 ID
+            seen_ids.add(c[0])
+            main_rows.append("| " + " | ".join(c) + " |")
+        elif _looks_like_map_row(c):
+            wt = c[0]
+            tid = c[1] if len(c) > 1 else ""
+            src = c[2] if len(c) > 2 else "-"   # >3 列: 取前 3, 多余丢弃
+            row = f"| {wt} | {tid} | {src or '-'} |"
+            if row not in map_seen_lines:        # 去重
+                map_seen_lines.add(row)
+                map_rows_out.append(row)
+        else:
+            s = ln.strip()
+            if s not in parked:
+                parked.append(s)
+
+    rebuilt = HEADER + ("".join(r + "\n" for r in main_rows))
+    rebuilt += MAP_HEADER + ("".join(r + "\n" for r in map_rows_out))
+    if parked:
+        rebuilt += PARK_HEADER + ("".join(r + "\n" for r in parked))
+
+    if rebuilt != orig:
+        try:
+            open(taskmd_path(troot) + ".bak", "w", encoding="utf-8").write(orig)
+        except Exception:
+            pass
+        save_md(troot, rebuilt)
+        print("trellisx: task.md 已自动修正 (错置行归位/状态归一/去重)", file=sys.stderr)
+    else:
+        print("trellisx: task.md 无需修正", file=sys.stderr)
+
+    if parked:
+        print(f"trellisx fix: {len(parked)} 行无法机械归类, 已停泊「待人工修正」块, 需人工核对:",
+              file=sys.stderr)
+        for s in parked:
+            print("  - " + s, file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
 def main():
     if len(sys.argv) < 2:
         print("用法: trellisx-taskmd.py "
-              "<sync|update|show|cleanup|map-add|map-remove|map-get|map-list|lint> ...",
+              "<sync|update|show|cleanup|map-add|map-remove|map-get|map-list|lint|fix> ...",
               file=sys.stderr)
         sys.exit(1)
     cmd = sys.argv[1]
@@ -399,6 +498,8 @@ def main():
         cmd_map_list(sys.argv[2:])
     elif cmd == "lint":
         cmd_lint(sys.argv[2:])
+    elif cmd == "fix":
+        cmd_fix(sys.argv[2:])
     else:
         print(f"trellisx: 未知命令 {cmd}", file=sys.stderr)
         sys.exit(1)

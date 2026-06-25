@@ -17,17 +17,21 @@
                      全程吞异常, 不影响已回显 path。
 - WorktreeRemove   : worktree 销毁事件 → map-remove 清映射 (不阻断)。
 - Stop            : 三类闸顶层 {"decision":"block"} 提示 (不自动销毁/finish):
-                    ①已合并未清理 worktree (分支已合并回主 HEAD 且目录仍在且 clean);
+                    ①已合并未清理 worktree (分支已合并回主 HEAD 且目录仍在且 clean,
+                       且分支确有落入 HEAD 的提交 —— 排除刚切出零提交的新建分支误判);
                     ②游离 worktree (未登记映射到任何 task, tid=?/None, 从未走 trellisx 流程);
                     ③活动 task 未完成 (非 stale 活动 task 且 status != completed)。
+                    清理类闸 ①② 仅对「映射 task 已 completed/archived 或无映射」的 worktree 生效;
+                    映射 task 仍 in_progress 的 worktree 视为在用, 跳过 (避免执行中误报清理)。
                     活动 task 经 `current --source` 取, stale 指针 (目录已删/session-fallback
                     兜底猜测) 一律视为无活动 task, 不误判。
                     抑制阀: .runtime/ 记状态, 同批连续 block 满 3 次 → 第 3 次降级
                     additionalContext 提示一次 (契约 Stop 不支持 systemMessage), 第 4 次起
                     彻底静默 return 0 (防底层条件不变时无限重复降级提示)。无问题 → return 0。
 - SubagentStop    : 仅 additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block)。
-- FileChanged     : task.md lint 不合规 → stderr 提醒 (契约: FileChanged stdout 被忽略,
-                    只认 stderr; 不阻断)。
+- FileChanged     : task.md 变更 → 先跑 taskmd fix 自动修复 (错置行归位/英文状态归一/
+                    去重, 写前备份), 仅残留无法机械归类的行才 stderr 提醒 (契约:
+                    FileChanged stdout 被忽略, 只认 stderr; 不阻断)。
 
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
   例外: WorktreeCreate 必须先把 worktree_path 回显 stdout 再做其余, 否则破坏 worktree 创建。
@@ -138,6 +142,56 @@ def worktree_clean(path):
         return r.returncode == 0 and not r.stdout.strip()
     except Exception:
         return False
+
+
+def _rev_parse(repo, ref):
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", ref],
+            cwd=repo, capture_output=True, text=True, timeout=5,
+        )
+        return r.stdout.strip() if r.returncode == 0 else None
+    except Exception:
+        return None
+
+
+def merged_needs_cleanup(repo, branch, path, head_ref="HEAD"):
+    """worktree 确属「已合并未清理」(需 git 清理) → True。
+    三条同时成立: ①工作区 clean ②branch 是 HEAD 祖先 (已合并/可达) ③branch 确有落入
+    HEAD 的提交。第③条排除「刚从 HEAD 切出、零提交的新建分支」—— 此类分支 tip 即 HEAD
+    当前提交 (或其祖先), 天然是 HEAD 祖先, 但**从未产生/合并任何工作**, 不该报清理。"""
+    if not branch:
+        return False
+    if not worktree_clean(path):
+        return False
+    if not branch_merged(repo, branch, head_ref):
+        return False
+    bt, ht = _rev_parse(repo, branch), _rev_parse(repo, head_ref)
+    if bt and ht and bt == ht:
+        return False  # branch tip == 主 HEAD → 刚建的新分支, 无合并工作
+    return True
+
+
+def task_status_by_tid(troot, tid):
+    """按 tid 在 .trellis/tasks/** 找 task.json 读 status; 找不到/异常 → None。
+    用于判某 worktree 映射的 task 是否仍在进行 (在进行 = worktree 在用, 不报清理)。"""
+    if not troot or not tid or tid == "?":
+        return None
+    base = os.path.join(troot, ".trellis", "tasks")
+    if not os.path.isdir(base):
+        return None
+    try:
+        for root, _dirs, files in os.walk(base):
+            if os.path.basename(root) == tid and "task.json" in files:
+                try:
+                    return json.load(
+                        open(os.path.join(root, "task.json"), encoding="utf-8")
+                    ).get("status")
+                except Exception:
+                    return None
+    except Exception:
+        return None
+    return None
 
 
 def run_taskmd(troot, *args):
@@ -303,12 +357,18 @@ def main():
         return 0
 
     if event == "FileChanged":
-        # 契约: FileChanged stdout 被忽略, 不支持 systemMessage, 只认 stderr
+        # 契约: FileChanged stdout 被忽略, 不支持 systemMessage, 只认 stderr。
+        # 先跑 fix 自动修可机械修复的不合规 (错置行归位/英文状态归一/去重, 写前备份
+        # task.md.bak); fix 幂等, 仅在内容有变时写盘 (不会无限自触发 FileChanged)。
+        # 仍 lint 失败 = 有无法机械归类的残留行 (已停泊「待人工修正」块), stderr 提醒。
+        rc_fix, _ = run_taskmd(troot, "fix")
+        if rc_fix == 99:
+            return 0  # 脚本缺失 (未 apply) → 无法判定, 不误报
         if lint_failed(troot):
             print(
-                "[trellisx] task.md 格式不合规 (列数/状态/ID 重复), 请经 "
-                "`python3 .trellis/scripts/trellisx-taskmd.py` 命令修正 "
-                "(勿手编 task.md)。运行 `... lint` 查看具体问题。",
+                "[trellisx] task.md 有无法自动修正的不合规行, 已停泊「待人工修正」块。"
+                "运行 `python3 .trellis/scripts/trellisx-taskmd.py lint` 查看, "
+                "人工核对后改回主表/映射区 (勿手编其它部分, 经命令修正)。",
                 file=sys.stderr,
             )
         return 0
@@ -349,7 +409,13 @@ def main():
             if not os.path.isdir(p):
                 continue
             tid = map_tid_for(troot, p)
-            if branch_merged(head_wt, br) and worktree_clean(p):
+            # worktree 映射的 task 仍在进行 (非 completed/archived) → worktree 在用,
+            # 跳过清理类闸 (合并/游离); 是否未完成由下方「活动 task 闸」单独负责提醒。
+            if tid and tid != "?":
+                st = task_status_by_tid(troot, tid)
+                if st is not None and st not in ("completed", "archived"):
+                    continue
+            if merged_needs_cleanup(head_wt, br, p):
                 merged.append((p, br, tid or "?"))
             elif tid is None or tid == "?":
                 # 已合并未清理优先归类; 余下未登记映射的视为游离 (从未走 trellisx task 流程)
@@ -417,9 +483,14 @@ def main():
         head_wt = main_worktree(repo)
         residual = []
         for p, br in non_main_worktrees(repo):
-            if (os.path.isdir(p) and branch_merged(head_wt, br) and worktree_clean(p)):
-                tid = map_tid_for(troot, p) or "?"
-                residual.append(f"  - {p} (task={tid})")
+            if not (os.path.isdir(p) and merged_needs_cleanup(head_wt, br, p)):
+                continue
+            tid = map_tid_for(troot, p) or "?"
+            # 映射 task 仍在进行 → worktree 在用, 不报 (同 Stop 闸)
+            st = task_status_by_tid(troot, tid)
+            if st is not None and st not in ("completed", "archived"):
+                continue
+            residual.append(f"  - {p} (task={tid})")
         if residual:
             print(json.dumps({
                 "hookSpecificOutput": {
