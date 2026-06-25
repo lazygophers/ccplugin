@@ -36,6 +36,7 @@
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
   例外: WorktreeCreate 必须先把 worktree_path 回显 stdout 再做其余, 否则破坏 worktree 创建。
 """
+
 import json
 import os
 import subprocess
@@ -65,7 +66,10 @@ def git_top(cwd):
     try:
         r = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            cwd=cwd, capture_output=True, text=True, timeout=5,
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return r.stdout.strip() if r.returncode == 0 else None
     except Exception:
@@ -77,13 +81,16 @@ def main_worktree(repo):
     try:
         r = subprocess.run(
             ["git", "worktree", "list", "--porcelain"],
-            cwd=repo, capture_output=True, text=True, timeout=5,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if r.returncode != 0:
             return repo
         for line in r.stdout.splitlines():
             if line.startswith("worktree "):
-                return line[len("worktree "):].strip()
+                return line[len("worktree ") :].strip()
     except Exception:
         pass
     return repo
@@ -94,7 +101,10 @@ def non_main_worktrees(repo):
     try:
         r = subprocess.run(
             ["git", "worktree", "list", "--porcelain"],
-            cwd=repo, capture_output=True, text=True, timeout=5,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if r.returncode != 0:
             return []
@@ -107,9 +117,9 @@ def non_main_worktrees(repo):
                 entries.append((cur["worktree"], _short_branch(cur.get("branch", ""))))
             cur = {}
         elif line.startswith("worktree "):
-            cur["worktree"] = line[len("worktree "):].strip()
+            cur["worktree"] = line[len("worktree ") :].strip()
         elif line.startswith("branch "):
-            cur["branch"] = line[len("branch "):].strip()
+            cur["branch"] = line[len("branch ") :].strip()
     return entries[1:] if entries else []  # 首条为主 worktree
 
 
@@ -125,7 +135,9 @@ def branch_merged(repo, branch, head_ref="HEAD"):
     try:
         r = subprocess.run(
             ["git", "merge-base", "--is-ancestor", branch, head_ref],
-            cwd=repo, capture_output=True, timeout=5,
+            cwd=repo,
+            capture_output=True,
+            timeout=5,
         )
         return r.returncode == 0
     except Exception:
@@ -137,7 +149,10 @@ def worktree_clean(path):
     try:
         r = subprocess.run(
             ["git", "status", "--porcelain"],
-            cwd=path, capture_output=True, text=True, timeout=5,
+            cwd=path,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return r.returncode == 0 and not r.stdout.strip()
     except Exception:
@@ -148,7 +163,10 @@ def _rev_parse(repo, ref):
     try:
         r = subprocess.run(
             ["git", "rev-parse", ref],
-            cwd=repo, capture_output=True, text=True, timeout=5,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return r.stdout.strip() if r.returncode == 0 else None
     except Exception:
@@ -205,7 +223,10 @@ def run_taskmd(troot, *args):
     try:
         r = subprocess.run(
             ["python3", script, *args],
-            cwd=troot, capture_output=True, text=True, timeout=5,
+            cwd=troot,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         return (r.returncode, r.stdout.strip())
     except Exception:
@@ -224,7 +245,10 @@ def _resolve_active(troot):
     try:
         r = subprocess.run(
             ["python3", script, "current", "--source"],
-            cwd=troot, capture_output=True, text=True, timeout=5,
+            cwd=troot,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
     except Exception:
         return (None, False)
@@ -232,7 +256,7 @@ def _resolve_active(troot):
     for line in (r.stdout or "").splitlines():
         s = line.strip()
         if s.startswith("Current task:"):
-            v = s[len("Current task:"):].strip()
+            v = s[len("Current task:") :].strip()
             if v and v != "(none)":
                 path = v
         elif s == "State: stale":
@@ -306,12 +330,16 @@ def valve_reset(troot):
 
 def emit_context(text):
     """UserPromptSubmit: 注入 additionalContext。"""
-    print(json.dumps({
-        "hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
-            "additionalContext": text,
-        }
-    }))
+    print(
+        json.dumps(
+            {
+                "hookSpecificOutput": {
+                    "hookEventName": "UserPromptSubmit",
+                    "additionalContext": text,
+                }
+            }
+        )
+    )
 
 
 def lint_failed(troot):
@@ -339,7 +367,9 @@ def main():
             troot = find_trellis_root(cwd) or (find_trellis_root(wt) if wt else None)
             if troot and wt:
                 tid = active_tid(troot) or "?"
-                source = (data.get("source") or "WorktreeCreate").strip() or "WorktreeCreate"
+                source = (
+                    data.get("source") or "WorktreeCreate"
+                ).strip() or "WorktreeCreate"
                 run_taskmd(troot, "map-add", wt, tid, source)
         except Exception:
             pass  # path 已回显, 绝不阻断创建
@@ -423,7 +453,11 @@ def main():
 
         # 活动 task 状态闸: 非 stale 活动 task 且 status != completed → 未完成
         tid_a, status_a = active_task_info(troot)
-        task_issue = (tid_a, status_a or "unknown") if (tid_a is not None and status_a != "completed") else None
+        task_issue = (
+            (tid_a, status_a or "unknown")
+            if (tid_a is not None and status_a != "completed")
+            else None
+        )
 
         if not merged and not orphan and task_issue is None:
             valve_reset(troot)
@@ -441,7 +475,8 @@ def main():
                 for p, _br, tid in merged
             ]
             sections.append(
-                "[trellisx] 检测到已合并回主分支但未清理的 worktree:\n" + "\n".join(lines)
+                "[trellisx] 检测到已合并回主分支但未清理的 worktree:\n"
+                + "\n".join(lines)
             )
         if orphan:
             lines = [
@@ -450,32 +485,52 @@ def main():
                 for p, br in orphan
             ]
             sections.append(
-                "[trellisx] 检测到游离 worktree (从未走 trellisx task 流程):\n" + "\n".join(lines)
+                "[trellisx] 检测到游离 worktree (从未走 trellisx task 流程):\n"
+                + "\n".join(lines)
             )
 
         body = "\n\n".join(sections)
-        batch_key = "|".join(sorted(
-            [p for p, _, _ in merged] + [p for p, _ in orphan]
-            + ([f"task:{task_issue[0]}"] if task_issue else [])
-        ))
+        batch_key = "|".join(
+            sorted(
+                [p for p, _, _ in merged]
+                + [p for p, _ in orphan]
+                + ([f"task:{task_issue[0]}"] if task_issue else [])
+            )
+        )
         streak = valve_bump(troot, batch_key)
 
-        if streak >= 4:
+        if streak >= 2:
             # 熄火: 同批问题降级提示已展示过 (streak==3 那次), 之后彻底静默,
             # 否则底层条件不变 → batch_key 不变 → 每次 Stop 重复喷降级提示 = 无限刷屏。
             # 不 reset (保留计数), 待 batch_key 变 (问题换/消失) 时 valve_bump 自然归 1。
             return 0
-        if streak == 3:
+        if streak == 2:
             # 抑制阀: 连续 block 满 3 次 → 降级放行一次。契约 Stop 只认顶层 decision,
             # 非错误反馈用 hookSpecificOutput.additionalContext (systemMessage 在 Stop 不支持)。
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "Stop",
-                    "additionalContext": body + "\n(已连续提示 3 次, 本次起不再阻断也不再重复提示。)",
-                }
-            }))
-        else:
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "Stop",
+                            "additionalContext": body
+                            + "\n(已连续提示 2 次, 本次起不再阻断也不再重复提示。)",
+                        }
+                    }
+                )
+            )
+        if merged or orphan:
             print(json.dumps({"decision": "block", "reason": body}))
+        else:
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "Stop",
+                            "additionalContext": body,
+                        }
+                    }
+                )
+            )
         return 0
 
     if event == "SubagentStop":
@@ -492,17 +547,21 @@ def main():
                 continue
             residual.append(f"  - {p} (task={tid})")
         if residual:
-            print(json.dumps({
-                "hookSpecificOutput": {
-                    "hookEventName": "SubagentStop",
-                    "additionalContext": (
-                        "[trellisx] 检测到已合并未清理的 worktree (subagent 结束):\n"
-                        + "\n".join(residual)
-                        + "\n→ task 完成且会话结束 (Stop) 时会提醒清理 "
-                        "(`git worktree remove` 或 `task.py finish`)。"
-                    ),
-                }
-            }))
+            print(
+                json.dumps(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "SubagentStop",
+                            "additionalContext": (
+                                "[trellisx] 检测到已合并未清理的 worktree (subagent 结束):\n"
+                                + "\n".join(residual)
+                                + "\n→ task 完成且会话结束 (Stop) 时会提醒清理 "
+                                "(`git worktree remove` 或 `task.py finish`)。"
+                            ),
+                        }
+                    }
+                )
+            )
         return 0
 
     return 0
