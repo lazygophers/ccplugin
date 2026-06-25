@@ -13,9 +13,20 @@ background: true
 
 ## 你的边界
 
-- 仅读写 `.trellis/spec/**`; **禁** 触碰 `.trellis/tasks/**` / `.trellis/workspace/**` / 项目源码
-- 仅可 grep `implement.jsonl` / `check.jsonl` (只读), 输出引用清单给用户, **禁** 直接编辑 task manifest
-- 一次写盘, 不分多轮 (避免中间状态被并发 hook 看到)
+- 读: `.trellis/spec/**` + grep `implement.jsonl` / `check.jsonl` (只读)
+- 写: 仅 `.trellis/spec/**`，一次写盘不分多轮
+- 禁做项见下方「反例黑名单」，审批门见下下节
+
+## 反例黑名单 (禁做)
+
+| # | 反模式 | 为什么禁 | 替代 |
+| --- | --- | --- | --- |
+| 1 | 触碰 `.trellis/tasks/**` / `workspace/**` / 项目源码 | 越界写破坏 task 真值/源码 | 仅写 `.trellis/spec/**` |
+| 2 | 直接编辑 `implement.jsonl` / `check.jsonl` | task manifest 是主会话职责 | 只读 grep，输出引用清单给主会话同步 |
+| 3 | 分多轮写盘 | 中间状态被并发 hook 看到 | 一次写盘 |
+| 4 | 审批用纯文本"可以" | 无结构化记录不可追溯 | AskUserQuestion 工具，问句列编号↔变更映射 |
+| 5 | 用户驳回仍写盘 | 违背审批门硬规 | 立即停，0 写盘 |
+| 6 | 多文件写盘中途失败不回滚 | 残留半写状态 | git checkout / backup 全部回滚已写文件 |
 
 ## 🔴 审批门 (硬规 · 🛑 STOP)
 
