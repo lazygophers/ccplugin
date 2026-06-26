@@ -67,12 +67,15 @@ my-skill/
 
 ### Phase 3: frontmatter
 
+**完整 16 字段表 + 调用控制矩阵 + 字符串替换变量见 [references/frontmatter-spec.md](references/frontmatter-spec.md)。** 下面只列最常用 5 个：
+
 ```yaml
 ---
-name: <lowercase-kebab>           # ≤64 字符，禁 anthropic/claude 保留词，禁 XML 标签
-description: <做什么 + 何时用>      # 硬限 1024 字符，第三人称，key use case 前置
-disable-model-invocation: true    # 副作用操作必加
-allowed-tools: Bash(git *)         # 预授权工具（可选）
+name: <lowercase-kebab>           # 默认目录名；≤64 字符，禁 anthropic/claude 保留词，禁 XML 标签
+description: <做什么 + 何时用>      # 🔴 项目底线 < 512 字符；第三人称；key use case 前置
+when_to_use: <触发短语/示例>        # 🔴 项目底线 < 128 字符；description 装不下的「何时用」放这
+disable-model-invocation: true    # 副作用操作必加（仅手动 /name）
+allowed-tools: Bash(git *)         # 预授权工具（可选，仅免批准不限制工具池）
 paths: packages/api/**             # monorepo 按包触发（可选）
 ---
 ```
@@ -81,7 +84,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 - 第三人称（禁「I can」「You can use」）
 - 含 key terms（用户会说的词）
 - 同时写「做什么」+「何时用」
-- **key use case 必须前置**：description 字段硬限 **1024 字符**（官方）；CC skill listing 中 description+when_to_use 合计截断 **1536 字符**，长列表按「最少 invoke 先丢」裁剪
+- **key use case 必须前置**：🔴 **项目底线 description < 512 字符**（比官方 best-practices 1024 / skills 参考页组合 1536 截断更严）；长列表按「最少 invoke 先丢」裁剪
+- **超长内容分流**：description 装不下的触发短语/示例放 `when_to_use`（项目底线 < 128 字符，计入官方 1536 组合截断）
 - **收窄「何时用」边界**：太泛（「Helps with code」）会误触发——可发现性 ≠ 触发准确性（见 Phase 5 测试 4）
 
 ### Phase 4: 内容
@@ -155,7 +159,7 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 | # | 铁律 | 理由 |
 |---|------|------|
 | 1 | SKILL.md ≤500 行（**token proxy 非精确值**） | CJK/表格/代码块 token 密度高，500 行中文可能 8000+ token；加载后整 session 常驻 |
-| 2 | description 第三人称 + key use case 前置 + 做什么+何时用 + **收窄边界防误触发** | description 是 100+ skill 中的发现入口，硬限 1024 字符，会裁剪 |
+| 2 | description 第三人称 + key use case 前置 + 做什么+何时用 + **收窄边界防误触发** | description 是 100+ skill 中的发现入口，🔴 **项目底线 < 512 字符**（官方 best-practices 1024 / 组合 1536 截断）；超长分流到 `when_to_use`（底线 < 128） |
 | 3 | 引用只深一层 | 嵌套致 head 预读信息不全 |
 | 4 | eval 先于文档（Phase 5 步骤 1） | 解决真实问题而非臆想 |
 | 5 | 反例黑名单 > 正例清单 | 反例抓住指令遗漏的失败模式 |
@@ -223,7 +227,7 @@ model: sonnet                        # sonnet/opus/haiku/fable/inherit
 |---|--------|------|
 | 1 | vague description（「Helps with marketing」） | `Processes marketing campaign data from CSV/Excel, generates ROI reports. Use when analyzing campaign metrics, conversion rates, or marketing spend.` |
 | 2 | frontmatter YAML 缩进/引号错误 | `claude --debug` 查 parse 错误（常见：tab/空格混用、引号未闭合） |
-| 3 | description 关键词被截断丢 | key use case 前置；长列表用 `skillOverrides` `name-only` 释放预算（`/doctor` 查裁剪） |
+| 3 | description 关键词被截断丢 | key use case 前置；🔴 控制在 **512 字符内**（项目底线）；超长分流 `when_to_use`（< 128）；长列表用 `skillOverrides` `name-only` 释放预算（`/doctor` 查裁剪） |
 | 4 | 路径错误 / skill 孤立 | `find . -name SKILL.md` 确认存在 + `claude -p "列出所有可用 skill"` 验证发现 |
 | 5 | description 太泛致误触发（false positive） | 收窄「何时用」边界 + should-not-trigger 测试（skill-creator） |
 
@@ -263,7 +267,9 @@ model: sonnet                        # sonnet/opus/haiku/fable/inherit
 
 ### 结构
 - [ ] SKILL.md ≤500 行（CJK 内容留更大余量）
-- [ ] description 第三人称 + key use case 前置 + 做什么+何时用 + ≤1024 字符
+- [ ] description 第三人称 + key use case 前置 + 做什么+何时用 + 🔴 **< 512 字符**（项目底线）
+- [ ] when_to_use < 128 字符（项目底线，若有）
+- [ ] frontmatter 字段合法（16 字段全表见 [references/frontmatter-spec.md](references/frontmatter-spec.md)）
 - [ ] 引用只深一层
 - [ ] >100 行 reference 顶部有目录
 - [ ] frontmatter YAML 语法正确（`--debug` 验证）
@@ -302,10 +308,11 @@ model: sonnet                        # sonnet/opus/haiku/fable/inherit
 
 ## 调研来源
 
-完整素材见 `references/research/`：
+完整素材见 `references/`（规范参考）与 `references/research/`（调研素材）：
 
 | 文件 | 维度 | 主源 |
 |------|------|------|
+| frontmatter-spec.md | frontmatter 16 字段全表 + 项目底线 | code.claude.com/docs/zh-CN/skills（官方一手） |
 | 01-anthropic-official.md | 官方规范 | platform.claude.com / code.claude.com（3 份一手） |
 | 02-academic-best-practices.md | 学术方法论 | darwin-skill 本地实证 + Anthropic eval |
 | 03-community-ecosystem.md | 社区生态 | awesome-claude-skills / anthropics/skills / alchaincyf |
