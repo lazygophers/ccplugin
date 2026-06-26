@@ -320,7 +320,3 @@ model: sonnet                        # sonnet/opus/haiku/fable/inherit
 | 06-toolchain-validation.md | 工具链 | darwin-skill / grill-me / skill-creator |
 
 信息源黑名单（永远排除）：知乎、微信公众号、百度百科。
-
----
-
-> 调研时间：2026-06-26。功能型 skill（框架概览 + 流派对比），非角色扮演型。

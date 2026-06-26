@@ -198,8 +198,4 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | workflow.md | SkillOpt validation-gated loop + git ratchet + judge 独立性 | SkillOpt (arXiv 2605.23904) + darwin |
 | sources.md | 3 论文 + darwin 引用 + 实证数据 | arXiv / GitHub（2026-06-26 curl 核实） |
 
-论文：SkillLens (arXiv 2605.23899) / SkillOpt (arXiv 2605.23904) / microsoft/SkillOpt。darwin-skill：`~/.claude/skills/darwin-skill/`。
-
 ---
-
-> 调研时间：2026-06-26。论文经 curl 核实（详见 sources.md）。功能型 skill。

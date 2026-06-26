@@ -28,7 +28,7 @@
 
 ### 关键产出格式
 
-results.tsv（timestamp/commit/skill/old_score/new_score/status/dimension/note/eval_mode），`.darwin-results.tsv`（本项目内存于 plugins/tools/trellisx/，见 memory [[darwin-trellisx-optimization]]）。
+results.tsv（timestamp/commit/skill/old_score/new_score/status/dimension/note/eval_mode），`.darwin-results.tsv`（本项目内存于 plugins/tools/trellisx/）。
 
 ## B. grill-me（反拷问）
 
@@ -37,8 +37,6 @@ results.tsv（timestamp/commit/skill/old_score/new_score/status/dimension/note/e
 - 检查点是否足够？
 - 反模式覆盖是否充分？
 - 诚实边界是否真实？
-
-用户原始请求明确提到 `/grile-me`（grill-me），意图是在产物验证阶段做反拷问。
 
 ## C. skill-creator（官方 eval）
 
@@ -53,7 +51,7 @@ results.tsv（timestamp/commit/skill/old_score/new_score/status/dimension/note/e
 
 ## D. nuwa（母流程）
 
-本产物由 nuwa Phase 0~5 生成（主题 skill 变体）。产物定位 = nuwa 的子能力（专门做 skill/agent 创建方法论），但 nuwa 是人物/主题蒸馏器，功能工作流 skill 须手写（见 memory [[huashu-nuwa-persona-only]]）。所以产物走 nuwa 的调研/提炼/检查点流程，但最终 SKILL.md 是功能型（框架概览+流派对比），非角色扮演型。
+本产物由 nuwa Phase 0~5 生成（主题 skill 变体）。产物定位 = nuwa 的子能力（专门做 skill/agent 创建方法论），但 nuwa 是人物/主题蒸馏器，功能工作流 skill 须手写。所以产物走 nuwa 的调研/提炼/检查点流程，但最终 SKILL.md 是功能型（框架概览+流派对比），非角色扮演型。
 
 ## E. 项目质检命令
 
