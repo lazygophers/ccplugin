@@ -180,7 +180,7 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 ## 诚实边界（去自夸，真限制）
 
 - **9 维 rubric 源自 darwin-skill 自身测试集**（用自己出的题考自己），非同行评审、无第三方基准。darwin 本机 controlled study（huashu-research 4 类 degradation × 5 judge）证明能识别 gross degradation，但 **fine-grained quality difference 不可信**——重要决策必须人审。
-- **SkillLens/SkillOpt 论文经 2026-06-26 curl 核实真实**（Microsoft 2026/05/22 连发 + microsoft/SkillOpt 仓库 9352 stars），但本 skill 的 9 维适配是**转述 darwin 的转述**，非论文原班复现；具体数字（46.4%→73.8%）为 darwin 自引，独立复现缺。
+- **SkillLens/SkillOpt 论文经 2026-06-26 curl 核实真实**，但本 skill 的 9 维适配是**转述 darwin 的转述**，非论文原班复现；具体数字（46.4%→73.8%）为 darwin 自引，独立复现缺。
 - **dry_run 降级是常见路径**：子 agent 不可用时干跑验证，分数置信度低，本 skill 不声称「无 full_test 也能可靠评分」。
 - **覆盖 agent.md 但经验少于 skill**：subagent 优化维度表是设计推导，非 darwin 实战验证（darwin 仅测 skill）。
 - 本 skill **不替代 darwin**：需要多轮 hill-climbing + visual card + results.tsv 历史时路由 darwin。
@@ -202,4 +202,4 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 
 ---
 
-> 调研时间：2026-06-26。三论文 + microsoft/SkillOpt 仓库经 curl 直取 arxiv abs meta + GitHub API 核实全部真实（http=200）。本 skill 由手写（功能型，非 nuwa persona 蒸馏），遵守项目底线 description<512 / when_to_use<128。
+> 调研时间：2026-06-26。论文经 curl 核实（详见 sources.md）。功能型 skill。
