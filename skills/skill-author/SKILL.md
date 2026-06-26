@@ -6,13 +6,13 @@ disable-model-invocation: true
 
 # Skill Author — Skill / Agent 编写方法论
 
-> meta-skill：教如何编写其他 skill 与 subagent。基于 Anthropic 官方规范 + darwin-skill 9 维实证 + 社区反模式 + grilling red-team 反拷问。完整调研素材见 `references/research/01-06.md`。
+> meta-skill：教如何编写其他 skill 与 subagent。基于 Anthropic 官方规范 + darwin-skill 9 维实证 + 社区反模式。完整调研素材见 `references/research/01-06.md`。
 
 ## 🔴 硬规（违反即失效）
 
 1. **显式触发**：本 skill `disable-model-invocation: true`，仅 `/skill-author` 手动调用。不要建议改为自动触发——它是创作工具，不是背景知识。
 2. **产物定位**：帮用户造 skill 或 subagent，不造人物/主题视角 skill（nuwa 职责）。
-3. **诚实标注**：禁编造引用。无法核实的来源直接弃用（SkillLens/SkillOpt 论文即因无法核实而弃用）。
+3. **诚实标注**：禁编造引用。无法核实的来源直接弃用。
 
 ## 何时用本 skill
 
@@ -302,7 +302,6 @@ model: sonnet                        # sonnet/opus/haiku/fable/inherit
 - 本 skill 针对 Claude 生态（Agent Skills 标准），跨平台迁移需调整触发机制。
 - **调研来源含 3 个自媒体平台**（Medium / LinkedIn / Substack），无独立第三方复现；反模式频次基于这些来源的主观汇总，非系统性统计。
 - **9 维 rubric / HL-1~4 只在 darwin-skill 自身测试集验证**（用自己出的题考自己），非同行评审、无第三方基准。
-- SkillLens/SkillOpt 论文（darwin 引用）经独立检索无法核实，已弃用——但「方法论内核独立成立」本身是摘樱桃表述，应保持警惕。
 - 框架**未经真实第三方用户验证**，「覆盖所有编写场景」是设计意图非实证结论。
 - 本 skill 不教人物/主题视角蒸馏（nuwa 职责）。
 
@@ -324,4 +323,4 @@ model: sonnet                        # sonnet/opus/haiku/fable/inherit
 
 ---
 
-> 调研时间：2026-06-26。经 darwin 9 维评分（首轮 46.0 → 修 dim3/dim4）+ skill-creator 视角评审 + grilling red-team 反拷问三轮精炼。本 skill 由 huashu-nuwa 主题 skill 变体流程生成，产物为功能型（框架概览 + 流派对比），非角色扮演型。
+> 调研时间：2026-06-26。功能型 skill（框架概览 + 流派对比），非角色扮演型。
