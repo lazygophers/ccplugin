@@ -1,0 +1,6 @@
+[
+  {"id": 1, "type": "should-trigger", "prompt": "帮我做一个 PR review 的 skill", "expected": "Phase 1 定位（skill vs subagent）→ Phase 2 骨架 → Phase 3 frontmatter"},
+  {"id": 2, "type": "should-trigger", "prompt": "加一个只读的 db agent", "expected": "Phase 1 定位为 subagent → subagent 编写要点（tools 最小化 + body 错误标注）"},
+  {"id": 3, "type": "should-not-trigger", "prompt": "蒸馏芒格的思维方式", "expected": "路由 huashu-nuwa（人物视角蒸馏 ≠ 功能 skill 编写）"},
+  {"id": 4, "type": "edge", "prompt": "这个 skill 不触发，太长了怎么改", "expected": "边界模糊：优化现有 skill 应路由 skill-optimizer；但 description 含「优化现有 skill 质量时使用」会自争。测 skill-author 是否误抢 skill-optimizer 的活"}
+]
