@@ -1,6 +1,6 @@
 ---
 name: skill-author
-description: 创建与优化 Claude skills 和 subagents 的方法论框架。当用户要编写 SKILL.md、创建新 skill、设计 subagent / agent.md、配置 frontmatter、拆分 progressive disclosure、优化现有 skill 质量时使用。仅手动 /skill-author 触发。
+description: 创建与维护 Claude skills 和 subagents 的方法论框架。当用户要编写 SKILL.md、创建新 skill、设计 subagent / agent.md、配置 frontmatter、拆分 progressive disclosure、调整现有 skill 的结构/触发/维护陷阱时使用。纯 9 维质量评分优化（不改结构）→ 路由 skill-optimizer。仅手动 /skill-author 触发。
 disable-model-invocation: true
 ---
 
@@ -20,7 +20,7 @@ disable-model-invocation: true
 |------|------|
 | 从零创建 skill | 「帮我做一个部署 skill」「写个 PR review skill」 |
 | 创建 subagent | 「加一个 code-reviewer subagent」「配只读 db agent」 |
-| 优化/改现有 skill | 「这个 skill 不触发」「太长了」「改了没生效」 |
+| 优化/改现有 skill | 「这个 skill 不触发」「太长了」「改了没生效」（纯 9 维质量评分优化→skill-optimizer；结构/触发/维护陷阱→本 skill） |
 | 结构决策 | 「这段该进 SKILL.md 还是拆 reference？」「该用 context:fork 吗？」 |
 | frontmatter 配置 | 「description 怎么写」「该不该 disable-model-invocation」 |
 
