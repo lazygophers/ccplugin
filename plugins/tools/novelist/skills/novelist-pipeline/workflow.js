@@ -36,9 +36,9 @@ const INDEX_FILE = `${ROOT}/章节/_索引.md`;
 // ===== 可调常量(对齐 novelist 插件评分门控) =====
 const BATCH_SIZE = 5; // 每批最多章数, 超出自动分批
 const MAX_FIX_ATTEMPTS = Infinity; // fix 最大重试(无限: 一直修到达标; 用户要求)
-const PASS_TOTAL = 95; // 定稿综合分阈值(严格 > 95 才过)
-const PASS_CONSISTENCY = 95; // 一致性单项阈值(严格 > 95 才过)
-const PASS_HUMANNESS = 95; // 人味单项阈值(严格 > 95 才过)
+const PASS_TOTAL = 100; // 定稿综合分阈值(严格 == 100 才过; 零容忍满分门控)
+const PASS_CONSISTENCY = 100; // 一致性单项阈值(严格 == 100 才过; 零冲突含 🟢)
+const PASS_HUMANNESS = 100; // 人味单项阈值(严格 == 100 才过)
 const MAX_AGENT_RETRIES = Infinity; // 单 agent 调用失败重试上限(无限: 一直重试到成功; 用户要求)
 const EST_SEC_PER_AGENT = 30; // 单 agent 调用预估耗时(秒, 仅粗估; Workflow 禁 Date.now 无法实测)
 let AGENT_CALLS = 0; // 全局 agent 实际调用计数(含重试), 用于整体耗时预估
@@ -72,6 +72,10 @@ function extractScore(text) {
 	return m ? parseInt(m[1]) : 90;
 }
 function computeScores(checkResult, proofResult, humanResult) {
+	// 满分门控(零容忍): cScore/tScore/hScore 任一 <100 → total <100 → 不过。
+	// cScore 二值(冲突?80:100): 有任一冲突 → 80 <100 不过; 零冲突 → 100 过。
+	// tScore/hScore 由 extractScore 解析 agent「N分」, 满分要求 ==100。
+	// total = cScore×0.5 + tScore×0.2 + hScore×0.3; 三项非全 100 时自然 <100, 已满足零容忍。
 	const cScore = checkResult?.includes("冲突") ? 80 : 100;
 	const tScore = extractScore(proofResult);
 	const hScore = extractScore(humanResult);
@@ -238,11 +242,11 @@ async function checker(chNum, title) {
 	return callAgent(
 		`你是小说一致性检查员(只读, 只查一致性, 不管文字/风格)。\n\n` +
 			`读取: ${file}、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、${ROOT}/情节/伏笔.md、相关 人物/简介.md。\n\n` +
-			`方法: 引用 novelist-check skill 的六维一致性审查 + continuity-auditor 视角。\n` +
-    `检查项: 1.世界观/力量规则是否被违反 2.人物性格是否一致 3.伏笔推进是否合理 ` +
-			`4.与前章衔接是否连贯 5.时间线是否错乱。\n\n` +
-			`先把检查报告写入 ${ROOT}/元数据/检查报告/第${num}章.md(含结论/评分/六维问题清单), 再按下方格式返回结论。\n\n` +
-			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=完美一致)\n问题清单: [行号] 问题(如有)`,
+			`方法: 引用 novelist-check skill 的 18 子项一致性审查(6 维 × 3 子项: 设定冲突3/人物矛盾3/世界观违规3/时间线错乱3/伏笔遗漏3/逻辑合理性3) + continuity-auditor 视角。\n` +
+    `18 子项核对: 1a物品定义不一/1b术语定义不一/1c组织定义不一; 2a关系突变无铺垫/2b行为违背性格动机/2c生死状态错乱; 3a力量超规则边界/3b未付代价/3c势力格局自相矛盾; 4a事件顺序矛盾/4b年龄经历对不上/4c时长跨度不合理; 5a计划回收章未回收/5b结尾悬空伏笔/5c伏笔间相互矛盾; 6a因果断裂/6b关键转折动机不足/6c过度巧合。\n` +
+			`🔴 零容忍满分门控: 任一子项有冲突(含 🟢 建议级)即 <100 不过。\n\n` +
+			`先把检查报告写入 ${ROOT}/元数据/检查报告/第${num}章.md(含结论/评分/18 子项问题清单, 每条标 [子项编号 维度]), 再按下方格式返回结论。\n\n` +
+			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=零冲突含 🟢, 满分才过)\n问题清单: [子项编号 维度] [行号] 问题(如有)`,
 		{ label: `查一致:${num}`, phase: "查一致", agentType: "novelist:continuity-auditor" }
 	);
 }
@@ -258,7 +262,7 @@ async function humanizer(chNum, title) {
 			`检测项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
 			`5.否定式排比(不是A而是B) 6.过度总结。\n\n` +
 			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做, 避免三环并行写冲突)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(问题清单), 再按下方格式返回评分。\n\n` +
-			`输出格式:\n人味评分: 0-100(100=完全人写, >${PASS_HUMANNESS}通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
+			`输出格式:\n人味评分: 0-100(100=完全人写, ==${PASS_HUMANNESS}满分才通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `去AI味:${num}`, phase: "去AI味", agentType: "novelist:humanizer" }
 	);
 }
@@ -270,10 +274,11 @@ async function proofer(chNum, title) {
 	return callAgent(
 		`你是小说校对检测员(本阶段只检测文字问题, 不改正文; 改由 fix 阶段做)。\n\n` +
 			`读取: ${file}\n\n` +
-			`方法: 引用 novelist-proofread skill 的文字校对清单。\n` +
-    `检查项: 1.错别字 2.语法 3.标点 4.用词准确 5.逻辑矛盾(前后自相矛盾)。\n\n` +
-			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(问题清单), 再按下方格式返回评分。\n\n` +
-			`输出格式:\n评分: 0-100(100=无任何文字问题)\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
+			`方法: 引用 novelist-proofread skill 的 12 子项文字校对(5 维 × 子项: 错别字3/语法3/标点2/用词2/用字统一2)。\n` +
+    `12 子项核对: 1a形近字(己/已/的得地)/1b音近字/1c多字漏字; 2a成分残缺(缺主谓宾)/2b搭配不当/2c语序与关联词; 3a误用与缺失/3b中英标点混用与引号书名号配对; 4a啰嗦重复与口语书面混杂/4b生造词; 5a人物称呼译名(基准 人物/_索引.md)/5b术语专有名词(基准 设定/_索引.md)。\n` +
+			`🔴 零容忍满分门控: 任一子项有错即 <100 不过。\n\n` +
+			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(12 子项问题清单, 每条标 [子项编号 维度]), 再按下方格式返回评分。\n\n` +
+			`输出格式:\n评分: 0-100(100=无任何文字问题, 满分才过)\n问题清单: [子项编号 维度] [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `校对:${num}`, phase: "校对", agentType: "novelist:proofreader" }
 	);
 }
@@ -292,21 +297,21 @@ async function fixer(chNum, title, checkResult, proofResult, humanResult) {
 	if (needsCheckFix)
 		fixers.push(() =>
 			callAgent(
-				`修复一致性问题。读 ${file}、${ROOT}/世界观/规则.md。\n问题: ${checkResult?.slice(0, 500)}\n只修冲突点, 不改风格。直接改文件。`,
+				`【mode=fix 单点冲突修正】修复一致性问题(单点事实修正, 不重写整段/不改结构; 段落级重写交 chapter-writer)。读 ${file}、${ROOT}/世界观/规则.md。\n问题: ${checkResult?.slice(0, 500)}\n只修冲突点(改一处事实陈述消除冲突), 不改风格。直接改文件。`,
 				{ label: `修一致:${num}`, phase: "修复", agentType: "novelist:chapter-writer" }
 			),
 		);
 	if (needsTextFix)
 		fixers.push(() =>
 			callAgent(
-				`修复文字硬伤。读 ${file}。\n问题: ${proofResult?.slice(0, 500)}\n只修硬伤, 不改风格。直接改文件。`,
+				`【mode=fix 文字修正】修复文字硬伤(就地改错别字/语法/标点, 不改风格)。读 ${file}。\n问题: ${proofResult?.slice(0, 500)}\n只修硬伤(对应 12 子项), 不改风格。直接改文件。`,
 				{ label: `修文字:${num}`, phase: "修复", agentType: "novelist:proofreader" }
 			),
 		);
 	if (needsHumanFix)
 		fixers.push(() =>
 			callAgent(
-				`去 AI 味修复。读 ${file}。\n问题: ${humanResult?.slice(0, 500)}\n修匀质句长/陈词过渡/模板腔, 保持风格, 不动剧情。直接改文件。`,
+				`【mode=fix 人味修正】去 AI 味修复(就地改, 不重写)。读 ${file}。\n问题: ${humanResult?.slice(0, 500)}\n修匀质句长/陈词过渡/模板腔, 保持风格, 不动剧情。直接改文件。`,
 				{ label: `修AI味:${num}`, phase: "修复", agentType: "novelist:humanizer" }
 			),
 		);
@@ -324,9 +329,9 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 		humanResult,
 	);
 	const passed =
-		total > PASS_TOTAL &&
-		cScore > PASS_CONSISTENCY &&
-		hScore > PASS_HUMANNESS;
+		total >= PASS_TOTAL &&
+		cScore >= PASS_CONSISTENCY &&
+		hScore >= PASS_HUMANNESS;
 
 	await callAgent(
 		`更新索引与进度。第${num}章「${title}」${passed ? "定稿" : "需复审"}(综合${total})。\n\n` +
@@ -361,9 +366,9 @@ async function finishChain(n, info) {
 			`第${ch(n)}章评分: 一致${cScore} 文字${tScore} 人味${hScore} 综合${total}(第${attempts}次)`,
 		);
 		const passed =
-			total > PASS_TOTAL &&
-			cScore > PASS_CONSISTENCY &&
-			hScore > PASS_HUMANNESS;
+			total >= PASS_TOTAL &&
+			cScore >= PASS_CONSISTENCY &&
+			hScore >= PASS_HUMANNESS;
 		if (passed || attempts >= MAX_FIX_ATTEMPTS) {
 			if (!passed)
 				log(`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`);
