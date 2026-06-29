@@ -39,7 +39,7 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <name>   # 建 task
 python3 ./.trellis/scripts/task.py start <name>                     # 进 planning, after_start hook 自动建 worktree
 ```
 
-调度规则 (无依赖即并行, 不留串行余量): 无共享文件且无前后序的 subtask 必须同一消息内并发派 sub-agent (isolation:worktree) / agent-team 成员 (`<git根>/.worktrees/<worktree>`); 有共享文件或前后序的串行。main 写源码**必须在 worktree 内** (单文件 subtask main 直做; 跨文件或可并行的派 agent), 见 `references/task-lifecycle.md`。
+调度规则 (无依赖即并行, 不留串行余量): 无共享文件且无前后序的 subtask 必须同一消息内并发派 sub-agent (**共享 task worktree**, 不传 isolation:worktree; subtask 与 worktree 无绑定) / agent-team 成员 (在 task worktree 内); 有共享文件或前后序的串行。main 写源码**必须在 task worktree 内** (单文件 subtask main 直做; 跨文件或可并行的派 agent), 见 `references/task-lifecycle.md`。多 worktree 属 opt-in, 非自动, 非由 subtask 触发。
 
 ## 触发判定
 

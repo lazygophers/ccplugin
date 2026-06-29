@@ -1,6 +1,6 @@
 # Workflow 升级参考 (仅特别复杂 task)
 
-> 本文件内容**仅当 task 特别复杂、用户显式同意升级为 Claude Code Workflow 时**才用。普通 task 走 subagent 编排 (Agent tool + isolation:worktree 串/并), **不读本文件**。
+> 本文件内容**仅当 task 特别复杂、用户显式同意升级为 Claude Code Workflow 时**才用。普通 task 走 subagent 编排 (Agent tool 共享 task worktree 串/并), **不读本文件**。
 >
 > 从 `trellisx-flow` SKILL.md 主文迁出, 减 token + 防 AI 被骨架诱导误升级 Workflow。
 
@@ -53,7 +53,7 @@ phase('finalize')
 return { written, checked, finalize: 'run task.py finish after TaskStop sweep' }
 ```
 
-> 默认载体 (subagent 编排) 即用同骨架的 subagent pipeline 形态 (Agent tool + isolation:worktree 串/并), 重试与收尾语义不变。
+> 默认载体 (subagent 编排) 即用同骨架的 subagent pipeline 形态 (Agent tool, subagent **共享 task worktree**, 不传 isolation:worktree), 重试与收尾语义不变。本文件下方骨架里的 `isolation: 'worktree'` 属 Workflow 升级路径 (opt-in 多 worktree), 仅在用户显式同意升级后才用。
 
 > ⛔ **Workflow 是异步的, 禁 `sleep`/轮询阻塞 main 等待**: `Workflow` 工具调用即返回 task ID, 干完自动回 `<task-notification>`。**严禁 `Bash(sleep N && ...)` 或任何轮询循环占住 main 等 workflow 跑完** —— 调用 workflow 后**直接结束本回合**, notification 回来再继续 finish 清理。sleep 等待 = 既阻塞 main 又对不齐真实时长 = 反模式。
 

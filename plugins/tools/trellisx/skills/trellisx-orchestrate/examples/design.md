@@ -18,9 +18,9 @@ flowchart LR
 
 | 模块 | 职责 | 边界 (输入/输出) | 执行层 | 独占资源 |
 | --- | --- | --- | --- | --- |
-| `auth/jwt.ts` | JWT 签发/校验/刷新 | in: payload / token; out: token / claims | sub-agent (isolation: worktree) | `packages/api/src/auth/jwt.ts` |
-| `auth/oauth.ts` + `routes.ts` | OAuth2 授权码流程 | in: code; out: JWT | sub-agent (isolation: worktree) | `packages/api/src/auth/oauth.ts` `routes.ts` |
-| `middleware/auth.ts` | 受保护路由 JWT 校验 | in: req+JWT; out: 401 / next() | sub-agent (isolation: worktree) | `packages/api/src/middleware/auth.ts` `routes/*.ts` |
+| `auth/jwt.ts` | JWT 签发/校验/刷新 | in: payload / token; out: token / claims | sub-agent (共享 task worktree) | `packages/api/src/auth/jwt.ts` |
+| `auth/oauth.ts` + `routes.ts` | OAuth2 授权码流程 | in: code; out: JWT | sub-agent (共享 task worktree) | `packages/api/src/auth/oauth.ts` `routes.ts` |
+| `middleware/auth.ts` | 受保护路由 JWT 校验 | in: req+JWT; out: 401 / next() | sub-agent (共享 task worktree) | `packages/api/src/middleware/auth.ts` `routes/*.ts` |
 
 S1 (oauth) 与 S3 (middleware) 改不同文件, 资源不交 → 可并行; 两者都依赖 S2 (jwt) 产出的签发/校验函数。
 

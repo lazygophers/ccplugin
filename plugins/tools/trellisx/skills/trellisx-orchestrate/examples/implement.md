@@ -18,7 +18,7 @@
 - 验证: `cd packages/api && pnpm test auth/jwt` 退出码 0, stdout 含 "3 passed"
 - 资源: `packages/api/src/auth/jwt.ts`
 - 依赖: 无
-- 执行层: sub-agent (trellis-implement, isolation: worktree)
+- 执行层: sub-agent (trellis-implement, 共享 task worktree)
 - 回滚点: `git -C <worktree> checkout packages/api/src/auth/jwt.ts`
 
 ### S2: OAuth2 授权码端点 (对应 S1-oauth-endpoint.md)
@@ -28,7 +28,7 @@
 - 验证: `pnpm test auth/oauth` 退出码 0; 真实 code 联调返合法 JWT
 - 资源: `packages/api/src/auth/oauth.ts` `packages/api/src/auth/routes.ts`
 - 依赖: S1 (用 signJWT)
-- 执行层: sub-agent (trellis-implement, isolation: worktree)
+- 执行层: sub-agent (trellis-implement, 共享 task worktree)
 - 回滚点: `git -C <worktree> checkout packages/api/src/auth/`
 
 ### S3: JWT 中间件挂载 (对应 S3-jwt-middleware.md)
@@ -38,7 +38,7 @@
 - 验证: `pnpm test auth/middleware` 退出码 0; `curl -i /api/orders` 无 JWT 返 401
 - 资源: `packages/api/src/middleware/auth.ts` `packages/api/src/routes/*.ts`
 - 依赖: S1 (用 verifyJWT)
-- 执行层: sub-agent (trellis-implement, isolation: worktree)
+- 执行层: sub-agent (trellis-implement, 共享 task worktree)
 - 回滚点: `git -C <worktree> checkout packages/api/src/middleware/ packages/api/src/routes/`
 
 ## 验证命令汇总

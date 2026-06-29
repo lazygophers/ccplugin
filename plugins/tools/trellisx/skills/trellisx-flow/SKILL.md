@@ -26,21 +26,21 @@ arguments: [载体选项 (可选), 任务描述]
 
 - **互斥冲突** (`--worktree` 同时 `--no-worktree`, 或 `--workflow` 同时 `--no-workflow`) → 🛑 STOP, `AskUserQuestion` 让用户裁定, 禁自选。
 - **优先级**: 入参 > 本 skill 默认。`--no-worktree` **只放宽 worktree 隔离这一条**, 不放宽"main 禁直接改源码 / 实质工作派 subagent" —— exec 永远是 subagent, 只是改主工作区而非 worktree。
-- **`--no-worktree` 对 finish 的影响**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过"合并 N 子分支 / 销 worktree", 直接 commit 主工作区改动 + archive。
+- **`--no-worktree` 对 finish 的影响**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过"合并多 worktree 分支 / 销 worktree", 直接 commit 主工作区改动 + archive。
 - **中文别名** (同义可接): `强制worktree`=`--worktree`; `禁worktree`/`禁止worktree`=`--no-worktree`; `走workflow`/`强制workflow`=`--workflow`; `不走workflow`/`走subagent`=`--no-workflow`。
 
 ## 执行载体铁律 (最高优先级)
 
-> **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **默认派 subagent 编排执行** (main → `trellis-implement` → 各 subtask 专用 subagent, `Agent` 工具 + `isolation: worktree`), 不在 main 上下文里直接做。**Workflow 非默认载体**: 仅**特别复杂** task (大规模 fan-out / 仓库级审计 / ≥5 同类文件批量 / 500+ 文件迁移 / 多阶段重度并行) **且**用户显式同意时, 才升级为 Claude Code Workflow 工具编排成独立 workflow (1 task : 1 workflow); 普通 task subagent 编排即足够, 不需要 workflow。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制**。**注意: worktree 隔离不在「按需」之列 —— exec 阶段 fan-out 的 writer/checker agent 各走 worktree 隔离 (强制, 完整规则见「硬规」段); 唯一例外是调用带 `--no-worktree` (见「入参」段), 此时仍派 subagent 但改主工作区。** 载体默认 auto, 可被 `--workflow` / `--no-workflow` 入参强制覆盖。
+> **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **默认派 subagent 编排执行** (main → `trellis-implement` → 各 subtask 专用 subagent, 共享 task worktree), 不在 main 上下文里直接做。**Workflow 非默认载体**: 仅**特别复杂** task (大规模 fan-out / 仓库级审计 / ≥5 同类文件批量 / 500+ 文件迁移 / 多阶段重度并行) **且**用户显式同意时, 才升级为 Claude Code Workflow 工具编排成独立 workflow (1 task : 1 workflow); 普通 task subagent 编排即足够, 不需要 workflow。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制**。**注意: worktree 隔离不在「按需」之列 —— 有 task 必有 worktree (task 级, 默认 1 task 1 worktree); fan-out subtask 共享 task worktree (subtask 与 worktree 无绑定, 不为 subtask 单独开); 多 worktree 允许 (opt-in, 非自动); 唯一例外是调用带 `--no-worktree` (见「入参」段), 此时仍派 subagent 但改主工作区。** 载体默认 auto, 可被 `--workflow` / `--no-workflow` 入参强制覆盖。
 
 - 🔴🛑 **"派 agent" = 真实调用 `Agent` 工具, 不是叙述 (最易踩, 必守, 铁律首项)** —— 每个"派 agent"动作 MUST 在**同一回复**里产生真实的 `Agent` tool_use。**严禁在本回复无 `Agent` 工具调用的情况下, 回传"已派出 / agent 在做"等措辞 —— 宣称 ≠ 调用, 那是幻觉, 等于跳过执行**。同理 task/看板/worktree 的"已建/已登记"必须是真实跑过命令或工具的结果, 禁凭空宣称。
   > **回传前自检**: 任何"agent 已派 / 在跑 / 已建 task / 看板已更新"措辞输出前, 确认本回复**确有对应的 tool_use** (Agent / Bash task.py / trellisx-workspace)。无 → 先发起真实调用, 禁先回传。
 - ⛔ **main 禁直接落地实质工作** —— 改源码、跑 check 等**实质产出一律派 subagent 编排执行** (默认载体; 特别复杂 task 才升级 workflow, 见上「概念分清」), main 不在自身上下文里直接做。
-- 🧩 **exec/check 默认 subagent 编排** —— main 派 `trellis-implement`, 由其对各 subtask 派专用 subagent, fan-out 的 writer/checker agent 各走 worktree 隔离。**仅特别复杂 task 才升级为独立 workflow** (1 task : 1 workflow, 用户显式同意), 骨架见 step4。
-- 🌳 **fan-out agent 必走 worktree 隔离 (强制, 与载体无关)** —— 每个改源码 agent MUST 在独立 git worktree 执行, 主工作区零改动; **有 task 必有 worktree**。**唯一例外: 调用带 `--no-worktree` → exec 仍派 subagent 但改主工作区 (见「入参」段)**。完整规则 (1 task 1 worktree / 冲突型并行各开子 worktree → N worktree finish 映射合并 / 异步并行按需) 见「硬规」段 §其他必做。
+- 🧩 **exec/check 默认 subagent 编排** —— main 派 `trellis-implement`, 由其对各 subtask 派专用 subagent, fan-out 的 writer/checker agent 共享 task worktree (subtask 不绑定 worktree)。**仅特别复杂 task 才升级为独立 workflow** (1 task : 1 workflow, 用户显式同意), 骨架见 step4。
+- 🌳 **有 task 必有 worktree (task 级隔离, 强制, 与载体无关)** —— task 在其 worktree 内执行, 主工作区零改动; 默认 1 task 1 worktree。**唯一例外: 调用带 `--no-worktree` → exec 仍派 subagent 但改主工作区 (见「入参」段)**。完整规则 (1 task 1 worktree 默认 / subtask 共享 task worktree 不绑定 / 多 worktree 允许 opt-in 非自动, finish 映射合并 / 异步并行按需) 见「硬规」段 §其他必做。
 - 💬 **planning 不进 workflow = main 同步走 `trellis-brainstorm`** —— brainstorm 需逐问用户 (交互式), workflow 内 agent 不能 `AskUserQuestion` / 与用户对话, 故 planning 由 **main 同步前台**驱动 brainstorm + orchestrate, 不进 workflow、不派 subagent。
-- 🗂️ **task 生命周期脚本由 main 同步跑** —— `task.py create / start / finish / archive` 是任务记录管理, **main 直接同步执行** (不派 agent、不算实质工作); `task.py finish` 后由 `after_finish` hook 自动完成 commit→merge→archive→销 worktree (N 子分支经映射合并)。
-- 🧹 **finish 清理 (强制)** —— `task.py finish` 前 MUST 关停本 task workflow + 无悬挂后台任务, 未关 = 未闭环禁宣告 Done。完整规则 (`TaskList` 查 / `TaskStop` 关 / hook 合并 N 子分支销 worktree) 见「硬规」段 §其他必做。
+- 🗂️ **task 生命周期脚本由 main 同步跑** —— `task.py create / start / finish / archive` 是任务记录管理, **main 直接同步执行** (不派 agent、不算实质工作); `task.py finish` 后由 `after_finish` hook 自动完成 commit→merge→archive→销 worktree (多 worktree 时各分支经映射合并)。
+- 🧹 **finish 清理 (强制)** —— `task.py finish` 前 MUST 关停本 task workflow + 无悬挂后台任务, 未关 = 未闭环禁宣告 Done。完整规则 (`TaskList` 查 / `TaskStop` 关 / hook 合并多 worktree 分支销 worktree) 见「硬规」段 §其他必做。
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) subagent 不能与用户对话; subagent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
 - 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - 📣 **完成即时回传** —— 每个 subagent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
@@ -68,11 +68,11 @@ arguments: [载体选项 (可选), 任务描述]
    - **`trellisx-orchestrate` 仅管执行层编排** —— 只负责**实际执行的 subagent 职责划分**、并行组 / 依赖关系、资源互斥, 产出 `implement.md`; **不用它做需求/方案设计**。
    - 多交付在 PRD 出 mermaid 调度图显式标并行组 + 依赖箭头。planning 完成 → 进激活。
 3. **激活** (main 编排) — 产物**由 main 用 AskUserQuestion 交用户评审** → 通过后 `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
-4. **exec** (默认 subagent 编排, **worktree 强制隔离**) — 🔴 **默认载体: main 派 `trellis-implement`, 由其对各 subtask 派专用 subagent** (`Agent` 工具传 `isolation: worktree`, 或先 `trellisx-workspace` 建 worktree) 执行 —— 默认 1 task 1 worktree, **仅冲突型并行 subtask** 各开子 worktree (→ N worktree)。**仅特别复杂 task (大规模 fan-out / 仓库级审计 / ≥5 同类文件批量 / 500+ 文件迁移 / 多阶段重度并行) 且用户显式同意时, 才升级为 Claude Code Workflow** 把 exec 编排成独立 workflow (1 task : 1 workflow, 骨架见下)。全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **无论单/多交付、subagent 还是 workflow 载体, 一律 agent 写代码, main 禁亲自改源码**。worktree 为硬性要求 (有 task 必有 worktree), **仅**异步 (`run_in_background`) / 并行分组按需自定。**入参覆盖**: `--no-worktree` → 仍派 subagent 但改主工作区 (不开 worktree); `--workflow` → 强制升级 workflow (免"特别复杂+同意"门槛); `--no-workflow` → 强制 subagent 编排禁升级 (详见「入参」段)。每个 agent 完成即回传。→ **更新 task.md 进度**。
+4. **exec** (默认 subagent 编排, **worktree 强制隔离**) — 🔴 **默认载体: main 派 `trellis-implement`, 由其对各 subtask 派专用 subagent** (共享 task worktree, subtask 与 worktree 无绑定) 执行 —— **默认 1 task 1 worktree** (subtask 共享其中, 不为 subtask 单独开); **多 worktree 允许** (opt-in, 非自动, 不靠 subtask 触发)。**仅特别复杂 task (大规模 fan-out / 仓库级审计 / ≥5 同类文件批量 / 500+ 文件迁移 / 多阶段重度并行) 且用户显式同意时, 才升级为 Claude Code Workflow** 把 exec 编排成独立 workflow (1 task : 1 workflow, 骨架见下)。全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **无论单/多交付、subagent 还是 workflow 载体, 一律 agent 写代码, main 禁亲自改源码**。worktree 为硬性要求 (有 task 必有 worktree), **仅**异步 (`run_in_background`) / 并行分组按需自定。**入参覆盖**: `--no-worktree` → 仍派 subagent 但改主工作区 (不开 worktree); `--workflow` → 强制升级 workflow (免"特别复杂+同意"门槛); `--no-workflow` → 强制 subagent 编排禁升级 (详见「入参」段)。每个 agent 完成即回传。→ **更新 task.md 进度**。
 
    **升级 Workflow 时** (仅特别复杂 task, 门槛 + 骨架 + 四规范见 `references/workflow-upgrade.md`): 生成 Workflow 须满足四规范 (phases 标类型 / parallel 分层 / agent_with_retry / finalize 收尾无残留), 且 Workflow 异步禁 `sleep`/轮询阻塞 main (调用后直接结束本回合, notification 回来再 finish)。普通 task 不读本 reference。
 5. **check** (默认派 subagent / workflow 内 fan-out) — checker agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
-6. **finish** (main 同步) — check 通过 → **finish 前先确认本 task 的 subagent/workflow 已终止 + 无悬挂后台任务** (用 `TaskList` 查残留, `TaskStop` 关闭; **禁 `sleep`/轮询等 workflow 跑完 —— workflow 异步, 完成会自动回 notification, 届时本回合再走 finish**); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (合并 N 子分支, 非派 agent, 非可选)。**`--no-worktree` 时**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过合并/销 worktree, 直接 commit 主工作区改动 + archive。→ **更新 task.md 行** (状态 completed)。
+6. **finish** (main 同步) — check 通过 → **finish 前先确认本 task 的 subagent/workflow 已终止 + 无悬挂后台任务** (用 `TaskList` 查残留, `TaskStop` 关闭; **禁 `sleep`/轮询等 workflow 跑完 —— workflow 异步, 完成会自动回 notification, 届时本回合再走 finish**); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (多 worktree 时合并各分支, 非派 agent, 非可选)。**`--no-worktree` 时**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过合并/销 worktree, 直接 commit 主工作区改动 + archive。→ **更新 task.md 行** (状态 completed)。
 
 ## 失败模式 (三段式: 触发 → 一线修复 → 仍失败兜底)
 
@@ -106,7 +106,7 @@ arguments: [载体选项 (可选), 任务描述]
 ### 其他必做
 
 - ✅ **走完 plan→exec→check→finish 闭环** —— **未 archive = 未完成, 禁宣告 Done / 禁结束本轮**。
-- 🌳 **exec 必走 worktree 隔离 (强制, 除非 `--no-worktree`)** —— 每个写代码 subagent 必须在独立 git worktree 执行 (`isolation: worktree`), 改动落 `<git根>/.worktrees/`, 主工作区零改动; finish 后由 `after_finish` hook 销 worktree。worktree 非可选, 只有异步/并行才按需自定。**唯一豁免: 调用带 `--no-worktree` → subagent 改主工作区 (见「入参」段); main 禁亲改源码这一条 `--no-worktree` 不豁免。**
+- 🌳 **exec 必走 worktree 隔离 (强制, 除非 `--no-worktree`)** —— 写代码 subagent 在**本 task 的 worktree 内**执行 (共享, subtask 与 worktree 无绑定), 改动落 `<git根>/.worktrees/`, 主工作区零改动; finish 后由 `after_finish` hook 销 worktree。worktree 非可选 (有 task 必有 worktree, 默认 1 task 1 worktree), 只有异步/并行/多 worktree 才按需自定。**唯一豁免: 调用带 `--no-worktree` → subagent 改主工作区 (见「入参」段); main 禁亲改源码这一条 `--no-worktree` 不豁免。**
 - 🧹 **finish 前清理悬挂任务 (强制)** —— `task.py finish` 前 MUST 确认本 task 的 subagent/workflow 已终止、无悬挂后台任务 (`TaskList` 查残留, `TaskStop` 关闭); 任务未关 / worktree 未销 = 未闭环, **禁宣告 Done**。
 - ✅ **及时维护 task.md 看板** —— 每个生命周期节点 (create/start/阶段推进/finish) 后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
 
@@ -125,7 +125,7 @@ arguments: [载体选项 (可选), 任务描述]
 | 9 | 纯文本提问代替 `AskUserQuestion` | 用户确认 / 选择必用工具 |
 | 10 | 批量延迟汇总 agent 进度 | 每个 agent 完成 / 阻塞即时回传 |
 | 11 | **口头宣称"已派 agent / 已建 task / 看板已登记"但本回复无对应 tool_use** | **先真实调用** `Agent` / `Bash task.py` / `trellisx-workspace`, 再回传 —— 宣称 ≠ 调用, 凭空宣称 = 幻觉跳步 |
-| 12 | exec subagent 直接在主工作区改源码 (无 worktree) **且未带 `--no-worktree`** | 必走 worktree 隔离 (`isolation: worktree`), 改动落 `<git根>/.worktrees/`, 主工作区零改动 (带 `--no-worktree` 则允许改主工作区, 但 main 仍禁亲改) |
+| 12 | exec subagent 直接在主工作区改源码 (无 worktree) **且未带 `--no-worktree`** | 必在本 task 的 worktree 内执行 (共享, subtask 不绑定 worktree), 改动落 `<git根>/.worktrees/`, 主工作区零改动 (带 `--no-worktree` 则允许改主工作区, 但 main 仍禁亲改) |
 | 13 | finish 时留悬挂 subagent / workflow / 后台任务未关 | 改为 `TaskList` 查 + `TaskStop` 关后再 finish |
 
 > 与 `trellisx-apply` 的分工: 本 skill 是用户**主动强制建 task**的入口 (喊它才动); apply 注入的 no_task 倾向是**被动推荐建 task**的常驻软提示。两者互补, 不要混用 —— 本 skill 禁自动触发。

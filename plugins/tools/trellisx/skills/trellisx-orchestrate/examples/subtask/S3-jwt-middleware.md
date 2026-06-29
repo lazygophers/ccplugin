@@ -5,7 +5,7 @@ deliverable: D2
 parent-task: 06-09-oauth-login
 status: planned
 execution-layer: sub-agent
-isolation: worktree
+isolation: task
 depends-on: [S2]
 blocks: []
 estimated-tokens: 25000
@@ -52,7 +52,7 @@ curl -i -H "Authorization: Bearer $VALID_JWT" .../api/orders    # 期望 200
 
 ### Dispatch Prompt (派 sub-agent)
 
-派发参数: `isolation: worktree` (写盘强制)
+# 隔离: 共享 task worktree (task.py start 已建, 不传 isolation:worktree)
 
 ```
 Active task: .trellis/tasks/06-09-oauth-login

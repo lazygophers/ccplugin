@@ -7,7 +7,7 @@
 | `prd.md` | `prd-orchestration.md` | deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + out of scope |
 | `design.md` | `design-orchestration.md` | 模块表 (执行层 + 资源边界) + 数据流 + 接口契约 + 取舍 + 回滚 |
 | `implement.md` | `implement-orchestration.md` | 有序 checklist (五要素 + 执行层 + 回滚) + 验证汇总 + review gate |
-| `subtask/S2-jwt-utils.md` | `subtask-file.md` | 无依赖前置件 + 完整五要素 + dispatch prompt (isolation: worktree) |
+| `subtask/S2-jwt-utils.md` | `subtask-file.md` | 无依赖前置件 + 完整五要素 + dispatch prompt (共享 task worktree) |
 | `subtask/S3-jwt-middleware.md` | `subtask-file.md` | 依赖等待 (depends-on S2) + 与 S1 并行 (资源不交) |
 
 ## 场景概述
