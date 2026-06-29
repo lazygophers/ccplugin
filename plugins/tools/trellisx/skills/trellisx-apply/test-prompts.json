@@ -1,4 +1,0 @@
-[
-  {"id":1,"prompt":"在这个 trellis 项目里把 .trellis 改造成符合 trellisx 规范,先做到审批前:诊断现状 + 列出要注入哪些维度/落到哪些文件,不要写盘","expected":"按 5 步:诊断 marker/现状 → 列 5 维注入计划(no_task/planning/in_progress/spec/hook+scripts)→ 停在 AskUserQuestion 审批前,不写盘"},
-  {"id":2,"prompt":"我的 .trellis 已经 apply 过一次了,再跑一次会不会重复注入搞乱?","expected":"幂等:marker 包裹只更新块内不堆叠;脚本覆盖更新;诊断检测已有 marker"}
-]

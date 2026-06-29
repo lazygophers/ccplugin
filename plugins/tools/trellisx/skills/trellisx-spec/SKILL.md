@@ -1,9 +1,9 @@
 ---
 name: trellisx-spec
-description: 初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。
-when_to_use: 用户提及 spec 的 初始化/优化/重写/收紧/refactor, 抱怨 spec 弱/不可执行, 任务收尾沉淀, 或说"记不住/老忘/反复犯错/又踩坑"暗示规则未沉淀。短语 "初始化 spec" "优化 spec" "记不住"。
-argument-hint: [scope]
-arguments: [范围]
+description: '初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写'
+when_to_use: '用户提及 spec 的 初始化/优化/重写/收紧/refactor, 抱怨 spec 弱/不可执行, 任务收尾沉淀, 或说"记不住/老忘/反复犯错/又踩坑"暗示规则未沉淀。短语 "初始化 spec" "优化 spec" "记不住"'
+argument-hint: '[scope]'
+arguments: '[范围]'
 ---
 
 # 立即执行: Spec 破坏式优化

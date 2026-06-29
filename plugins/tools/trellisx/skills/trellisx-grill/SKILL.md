@@ -1,10 +1,10 @@
 ---
 name: trellisx-grill
-description: 对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 在写盘或 task.py start 前逐分支 stress-test 设计树。逐问审 (一次一问 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证。
-when_to_use: 用户要"grill / 审一下 / stress-test / 对抗审查 / 挑刺 / 红队"某 prd/design/implement/spec/subtask 时; planning→start 前最后一遍对抗校对; spec 破坏式重构前先 grill 弱点; 写完 PRD 不确定方向对不对; 拆完 subtask 怀疑有盲点。短语 "grill 这个 plan" "审下设计" "stress-test" "红队审查"。
+description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 在写盘或 task.py start 前逐分支 stress-test 设计树。逐问审 (一次一问 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
+when_to_use: '用户要"grill / 审一下 / stress-test / 对抗审查 / 挑刺 / 红队"某 prd/design/implement/spec/subtask 时; planning→start 前最后一遍对抗校对; spec 破坏式重构前先 grill 弱点; 写完 PRD 不确定方向对不对; 拆完 subtask 怀疑有盲点。短语 "grill 这个 plan" "审下设计" "stress-test" "红队审查"'
 user-invocable: true
-argument-hint: <工件路径 或 "active task">
-arguments: [被审工件路径 (prd/design/implement/spec 文件), 缺省 = active task 全部 planning 工件]
+argument-hint: '<工件路径 或 "active task">'
+arguments: '[被审工件路径 (prd/design/implement/spec 文件), 缺省 = active task 全部 planning 工件]'
 ---
 
 # trellisx-grill — 对抗式工件审查

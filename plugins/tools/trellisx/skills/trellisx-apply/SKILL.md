@@ -1,8 +1,9 @@
 ---
 name: trellisx-apply
-description: 把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 + task.md看板 五维注入当前项目 .trellis/。强推 task 为 prompt 软约束; worktree + 收尾为 trellis 生命周期 hook 确定性强制 (after_start 建 worktree, after_finish 自动 commit→merge→archive→销 worktree, 不靠 AI 跑脚本)。结果导向: 只约束最终行为闭环验证 (五维生效 + create→…→finish 闭环 + task 创建触发仍生效), 不约束注入方式。幂等 (marker 包裹)。
-when_to_use: 用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"。
-argument-hint: [scope]
+description: '把 强推task + subtask拆分 + worktree隔离 + 闭环收尾 + task.md看板 五维注入当前项目 .trellis/。强推 task 为 prompt 软约束; worktree + 收尾为 trellis 生命周期 hook 确定性强制 (after_start 建 worktree, after_finish 自动 commit→merge→archive→销 worktree, 不靠 AI 跑脚本)。结果导向: 只约束最终行为闭环验证 (五维生效 + create→…→finish 闭环 + task 创建触发仍生效), 不约束注入方式。幂等 (marker 包裹)'
+when_to_use: '用户主动在某 trellis 项目内运行, 把该项目的 .trellis 改造成符合 trellisx 规范。短语 "trellisx apply" "应用 trellisx" "改造 .trellis" "内化 trellisx 规则" "/trellisx-apply"'
+argument-hint: '[scope]'
+arguments: '[范围 (目录 glob / 文件路径 / all), 缺省 = all]'
 ---
 
 # trellisx-apply — 把 trellisx 规则内化进 .trellis
