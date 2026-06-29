@@ -81,10 +81,10 @@
 
 **对抗式工件审查**。
 
-- **触发**: 用户要"grill/审一下/stress-test/对抗审查/挑刺/红队"某 prd/design/implement/spec/subtask; **贯穿 plan 前/中/后全程** (plan 前确认需求方向, planning 中审拆解盲点, start 前最后校对); spec 重构前先 grill。
-- **arguments**: `[被审工件路径, 缺省 = active task 全部 planning 工件]`
-- **立场**: 对抗非审批 (找不到盲点 ≠ 通过, 是 grill 失败); 只批注不改写 (改盘交 orchestrate/spec); 一次一问; codebase 优先 (能查的不问用户)。
-- **骨架**: blindspots 9 轴 + 五要素浓缩 (token 生命周期 / 触发准确性 / 自举矛盾 / 诚实边界摘樱桃 等)。
+- **触发**: 用户要"grill/审一下/stress-test/对抗审查/挑刺/红队"某 prd/design/implement/spec/subtask 或任一 planning/架构产物; **贯穿 plan 前/中/后全程** (plan 前确认需求方向, planning 中审拆解盲点, start 前最后校对); spec 重构前先 grill。
+- **arguments**: `[被审工件路径, 缺省 = active task 全部 planning + 架构产物]`
+- **立场**: 对抗非审批 (找不到盲点 ≠ 通过, 是 grill 失败); 只批注不改写 (改盘/异步修复归 main 层 orchestrate/spec, 非 grill 范畴); 可一次多问 (批量确认提效, 非强制一次一问); codebase 优先 (能查的不问用户)。
+- **骨架**: 可扩展默认 12 轴 (token 生命周期 / 触发准确性 / 自举矛盾 / 诚实边界摘樱桃 等), 按问题性质/项目域动态裁剪 (非固定)。
 - **源于**: grill-me (relentless interview) + 项目盲点实证。
 
 ## 调用决策树

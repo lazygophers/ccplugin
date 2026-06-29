@@ -1,17 +1,17 @@
 ---
 name: trellisx-grill
-description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 贯穿 plan 前/中/后全程逐分支 stress-test 设计树, 帮用户确认/审查/拆解需求。逐问审 (一次一问 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / planning 中 / start 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
+description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 贯穿 plan 前/中/后全程逐分支 stress-test 设计树, 帮用户确认/审查/拆解需求。逐问审 (可一次多问批量确认提效 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / planning 中 / start 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
 when_to_use: '用户要"grill / 审一下 / stress-test / 对抗审查 / 挑刺 / 红队"某 prd/design/implement/spec/subtask 时; **贯穿 plan 前/中/后全程**: plan 前 (帮确认/收敛需求, brainstorm 产出草稿后审方向对不对); planning 中 (审 design/subtask 拆解有无盲点); start 前 (最后一遍对抗校对); spec 重构前先 grill 弱点; 任意决策点不确定想挑刺。短语 "grill 这个 plan" "审下设计" "stress-test" "红队审查"'
 user-invocable: true
 argument-hint: '<工件路径 或 "active task">'
-arguments: '[被审工件路径 (prd/design/implement/spec 文件), 缺省 = active task 全部 planning 工件]'
+arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 planning/架构产物, 如 task-tree/调度图/scheduling/config hook/架构决策), 缺省 = active task 全部 planning + 架构产物]'
 ---
 
 # trellisx-grill — 对抗式工件审查 (贯穿 plan 前/中/后)
 
 **贯穿 plan 全程** (前/中/后) 的对抗式访谈工具, 帮用户**确认 / 审查 / 拆解**需求。plan 前 (brainstorm 草稿出方向后审对不对); planning 中 (审 design/subtask 拆解有无盲点); 写盘 / `task.py start` / spec 重构**之前** (最后一遍校对)。逐分支 stress-test 设计树, 挖「结构合规但实质失效」的盲点。**只批注不改写** —— 改工件是 orchestrate / spec 的职责, grill 只标注弱点 + 给推荐改法。
 
-> 源于 grill-me (relentless interview to sharpen a plan) + 项目实战盲点。grill-me 法: 逐问审, 一次一问, 每问给推荐答案, codebase 能答的先查 codebase 不问用户。
+> 源于 grill-me (relentless interview to sharpen a plan) + 项目实战盲点。grill-me 法: 逐问审, 可一次多问 (批量确认多个设计点提效), 每问给推荐答案, codebase 能答的先查 codebase 不问用户。
 
 ## 立场
 
@@ -20,12 +20,17 @@ arguments: '[被审工件路径 (prd/design/implement/spec 文件), 缺省 = act
 | 对抗非审批 | grill 是红队挑刺, 不是盖章。找不到盲点 ≠ 通过, 是 grill 失败 (没问够) |
 | 只批注不改写 | 产物 = 工件内联批注 (行号 + 弱点 + 推荐改法) + 弱点汇总表。改盘交 orchestrate/spec |
 | 结构合规 ≠ 实质有效 | 上轮 darwin 结构优化已 90+ 分, grill 专挖结构合规下的实质失效 (token 生命周期 / 触发准确性 / 自举矛盾 / 诚实边界摘樱桃) |
-| 一次一问 | 每问等用户反馈再继续。多问齐发 = 用户 bewildered, 违 grill-me 法 |
+| 可一次多问 | 允许批量问多个问题 (一次确认多个设计点提效), 非强制一次一问。强相关/同源决策点宜批量; 互不相关或需先答才能定下一问的仍分批
 | codebase 优先 | 问题能由 Read/Grep 文件答 → 自己查, 不问用户。只问 codebase 答不了的决策点 |
 
-## 固定骨架轴 (blindspots 9 + 五要素浓缩)
+## 可扩展骨架轴 (12 轴默认 + 动态裁剪)
 
-每轮 grill 按此骨架逐轴过, 每轴下自由深挖分支。**任一轴答不出 / 答得虚 = 弱点**。
+每轮 grill 按骨架逐轴过, 每轴下自由深挖分支。**任一轴答不出 / 答得虚 = 弱点**。
+
+**骨架可扩展 + 动态裁剪** (非固定 12 轴): 上表是默认骨架 (源自项目盲点实证), 按**问题性质 / 项目域 / 工件类型**增减轴 ——
+- **增**: 项目特有风险 (如安全/合规/性能/国际化) 可临时加轴; 调度类工件 (task-tree/scheduling) 加"调度正确性"轴; config hook 加"hook 副作用"轴。
+- **减**: 与本工件无关的轴可跳过 (如纯 spec 审查未必需 token 生命周期轴), 但**跳过须在报告标注"未审"**, 禁默默跳。
+- **动态判据**: 按项目域 (Web/CLI/数据/Agent 工作流) + 问题类型 (设计缺陷/边界冲突/执行风险) 选相关轴, 非机械全过。
 
 | 轴 | 审什么 | 典型盲点 |
 | --- | --- | --- |
@@ -47,21 +52,21 @@ arguments: '[被审工件路径 (prd/design/implement/spec 文件), 缺省 = act
 ### 第 1 步: 读工件 + 量规模
 
 ```bash
-# 读被审工件 (prd/design/implement/spec/subtask)
-# 缺省 = active task 全部 planning 工件
+# 读被审工件 (prd/design/implement/spec/subtask 或任一 planning/架构产物: task-tree/调度图/scheduling/config hook/架构决策等, 按项目实际动态选)
+# 缺省 = active task 全部 planning + 架构产物
 python3 ./.trellis/scripts/task.py current 2>/dev/null  # 定位 active task
 ```
 
 读全文。统计: 工件行数 + 引用的 references 数 (轴 I token 生命周期基线)。
 
-### 第 2 步: 逐轴 grill (一次一问)
+### 第 2 步: 逐轴 grill (可一次多问)
 
-按骨架轴 A→L 顺序, 每轴:
+按骨架轴 A→L 顺序 (默认骨架; 按 §可扩展骨架轴 动态裁剪), 每轴:
 1. **自己先查 codebase** (Read/Grep 相关文件 / 邻居 skill) —— 能答的不问用户, 直接填评估
-2. **codebase 答不了的决策点** → `AskUserQuestion` 工具问用户 (一次一问, 给推荐答案作首选项)
+2. **codebase 答不了的决策点** → `AskUserQuestion` 工具问用户 (**可一次多问**: 强相关/同源决策点批量问提效; 互不相关或需先答才能定下一问的仍分批。每问给推荐答案作首选项)
 3. 该轴结论: ✓ 通过 / ⚠️ 弱点 (记行号 + 弱点 + 推荐改法) / ⛔ 硬伤 (会致功能失效)
 
-> 🔴 **CHECKPOINT (每问)**: 用 `AskUserQuestion` 工具问, 禁纯文本提问代替 (用户交互决策点, grill-me 法)。每问给推荐答案作 options 首项。等用户答再进下一轴。
+> 🔴 **CHECKPOINT (每批问)**: 用 `AskUserQuestion` 工具问, 禁纯文本提问代替 (用户交互决策点, grill-me 法)。每问给推荐答案作 options 首项。可批量问多个相关问题; 等用户答完该批再进下一轴。
 
 ### 第 3 步: 内联批注 (不改写工件)
 
@@ -112,7 +117,7 @@ grill 报告
 | # | 反模式 | 为什么禁 | 替代 |
 | --- | --- | --- | --- |
 | 1 | 改写原工件 | 职责越界 (改盘是 orchestrate/spec) | 只内联批注 + 弱点表, 改交邻居 |
-| 2 | 一次问多轴 | 用户 bewildered, 违 grill-me 一次一问 | 每轴一问, 等反馈再继续 |
+| 2 | 互不相关问题一次性轰炸用户 | 用户 bewildered, 违 grill-me 逐问审 | 强相关/同源决策点可批量问 (提效); 互不相关或需先答才能定下一问的分批, 每批等反馈 |
 | 3 | 纯文本提问代替 AskUserQuestion | 用户无法用工具 UI 选 = 失去决策门 | 决策点必经 AskUserQuestion 工具 |
 | 4 | codebase 能答的问用户 | 浪费用户时间, 暴露 grill 没做功课 | 先 Read/Grep 查, 答不了的才问 |
 | 5 | 找不到弱点就盖章"通过" | 结构合规 ≠ 实质有效, 盖章 = grill 失败 | 再过轴 H/J/K; 仍无则标"未发现, 非保证" |
@@ -122,6 +127,7 @@ grill 报告
 ## 边界
 
 - 只读 + 批注, **禁写盘** (工件原文件零改动)
+- **grill 不改盘, 异步修复归 main 非 grill**: grill 只产弱点表 + 推荐改法; 拿 grill 产出派 orchestrate/spec/agent 去改是 **main 层动作** (编排调度), 非 grill skill 本身在改写。grill 退场后改不改、派谁改, 由 main 决定
 - 不替代 orchestrate (编排) / spec (破坏式重构); grill 是**贯穿 plan 全程**的审查工具 (前/中/后), 路由交后者改
 - 与 darwin-skill dim8 实测互补: darwin 跑 test prompt 看触发准确性, grill 跑轴 H 看边界声明 —— 前者实证, 后者逻辑审查
 - 非 trellis 专属: 独立 prd/design 文件也能 grill (退化为不含 task.py 调用)
@@ -134,8 +140,8 @@ grill 报告
 
 ## 调研来源
 
-- **grill-me** / **grilling** (用户级 skill): relentless interview, 逐分支审设计树, 一次一问 + 推荐答案 + codebase 优先。本 skill 方法论基底
-- **项目盲点实证** (memory `skill-review-blindspots`): grilling red-team 实战沉淀的 9 条高频盲点 → 本 skill 固定骨架轴
+- **grill-me** / **grilling** (用户级 skill): relentless interview, 逐分支审设计树, 可一次多问 (批量确认提效) + 推荐答案 + codebase 优先。本 skill 方法论基底
+- **项目盲点实证** (memory `skill-review-blindspots`): grilling red-team 实战沉淀的 9 条高频盲点 → 本 skill **默认骨架轴** (可扩展, 非固定)
 - **darwin-skill** dim3/dim4/dim9: 失败模式编码 / 检查点 / 反例黑名单维度 → 轴 F/G/L
 
 ## 相关 skill
