@@ -31,11 +31,11 @@ arguments: '[范围 (目录 glob / 文件路径 / all), 缺省 = all]'
   - worktree 与闭环收尾 = trellis 原生生命周期 hook 确定性强制, 不靠 AI 记得跑脚本: `task.py start` → `after_start` 自动建 worktree; `task.py finish` → `after_finish` 跑 `trellisx-finish.py` 自动 commit→merge --no-ff→archive→销 worktree (commit 为 owner 授权的强制动作, 不停在"提醒用户运行命令")。冲突则脚本 abort + finish 打 WARN, AI 须检告警转手动; 未 archive 禁宣告 Done。
   - worktree 隔离单位 = task (防并发多 task 冲突)。"task 在其 worktree 内执行"仍是软约束 (硬规 #1, 未上 PreToolUse 拦截); 需更硬的平台拦截使用者另加, apply 不做。
 
-## 执行模型 (main 编排 + 并行执行, 优先 Workflow 脚本)
+## 执行模型 (main 编排 + 并行 subagent 执行)
 
-main **不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘), 只做两类不可派的事: `AskUserQuestion` 审批门 (用户交互, 夹在 plan/write 两次调用之间) + 编排决策 (汇总/派发/修复循环)。
+main **不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘), 只做两类不可派的事: `AskUserQuestion` 审批门 (用户交互, 夹在 plan/write 两阶段之间) + 编排决策 (汇总/派发/修复循环)。
 
-优先用 Workflow 脚本 `apply.workflow.js` 把扇出确定性编排成两次调用 (`mode=plan` 并行规划 → main 审批 → `mode=write` 并行写盘+自验+回滚); 无 Workflow 工具的环境退回手写 agent 流水线。维度收敛为 4 个 (workflow/spec/hook/finishcmd) + 诊断, writer 写完自验 (无独立验证阶段)。详见 `references/agent-orchestration.md`。
+main 用 `Agent` 工具把扇出编排成两阶段 (Phase A 并行规划 read-only → main 审批 → Phase B 并行写盘+自验+回滚)。维度收敛为 4 个 (workflow/spec/hook/finishcmd) + 诊断, writer 写完自验 (无独立验证阶段)。详见 `references/agent-orchestration.md`。
 
 ## 立场
 
@@ -63,19 +63,19 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 
 **目标语言** = 综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 当前会话语言。非 trellis 项目 → 报错终止。
 
-## 工作流 (Workflow 脚本驱动, 审批夹在中间)
+## 工作流 (subagent 编排, 审批夹在中间)
 
 载体见上「执行模型」; 完整模型/6 字段 prompt/文件集分区见 `references/agent-orchestration.md`。
 
 | 步 | 谁做 | 行动 |
 | --- | --- | --- |
-| **1 规划** | `Workflow(mode=plan)` → 5 read-only agent 并行 | diagnose (现状+模式+**定目标语言**) + 4 维 planner (workflow/spec/hook/finishcmd) 各算注入 diff, **不写盘**, 返回 `{plans}` |
+| **1 规划** | main 并行派 5 read-only Agent | diagnose (现状+模式+**定目标语言**) + 4 维 planner (workflow/spec/hook/finishcmd) 各算注入 diff, **不写盘**, 返回 `{plans}` |
 | **2 审批** | 🔴 **main 仅审批** | 汇总 plans → 展示统一 diff plan (含 packages 清单) → `AskUserQuestion` 审批 (🛑 STOP) → 批准后才进步 3 |
-| **3 写盘+自验** | `Workflow(mode=write)` → prep-backup + 4 writer 并行 | prep-backup agent `git stash` 备份 → 4 维 writer 各**独占不相交文件集**写盘+**自验本维度** (无独立验证阶段) → 任一失败自动 rollback agent `git stash pop` |
+| **3 写盘+自验** | main 派 prep-backup + 并行 4 writer Agent | prep-backup agent `git stash` 备份 → 4 维 writer 各**独占不相交文件集**写盘+**自验本维度** (无独立验证阶段) → 任一失败 main 派 rollback agent `git stash pop` |
 | **4 修复/完成** | main 编排 | `ok=false` → 据 failed 重跑 write (修复循环 ≤3) 或报告; `ok=true` → 完成报告 |
 
-> 🔴 **CHECKPOINT · 🛑 STOP (审批)**: 改 `.trellis/` 前 **MUST 由 main 展示 diff plan + 经 AskUserQuestion 批准**才进步 3。审批门**禁派 agent / 禁放进 Workflow** (全局硬规: agent 不得直接问用户; Workflow 内 agent 同理) —— 故 plan 与 write 拆成**两次** Workflow 调用, 审批夹在中间; 禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
-> 🔒 **git stash 备份/回滚在 write Workflow 内由 prep-backup/rollback agent 串行执行** (main 不亲碰 git)。
+> 🔴 **CHECKPOINT · 🛑 STOP (审批)**: 改 `.trellis/` 前 **MUST 由 main 展示 diff plan + 经 AskUserQuestion 批准**才进步 3。审批门**禁派 agent** (全局硬规: agent 不得直接问用户) —— 故 plan 与 write 拆成**两阶段**, 审批夹在中间; 禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
+> 🔒 **git stash 备份/回滚在 write 阶段由 prep-backup/rollback agent 串行执行** (main 不亲碰 git)。
 
 ## 注入维度 (注入方式不限, 行为闭环达标即可)
 
@@ -139,7 +139,6 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | `references/spec-injection.md` | Phase A plan-spec / B write-spec: spec 规范文档 |
 | `references/hook-injection.md` | plan-hook / write-hook: trellis 生命周期 hook (config.yaml) worktree 自动化 |
 | `references/apply-verify.md` | 审批门 + 写盘 + 自验 |
-| `apply.workflow.js` | Workflow 脚本: `mode=plan` 并行规划 / `mode=write` 并行写盘+自验+回滚 |
 
 ## 相关 skill
 

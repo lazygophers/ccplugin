@@ -1,32 +1,12 @@
-# Agent 编排模型 (Workflow 驱动优先, agent 流水线兜底)
+# Agent 编排模型 (main 编排 + 并行 subagent 执行)
 
-trellisx-apply 的注入由 **main 编排 + 并行 subagent 执行**。优先用 **Workflow 脚本** (`apply.workflow.js`) 把扇出确定性编排成两次调用; 无 Workflow 工具的环境退回手写 agent 流水线。**main 不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘), 只做 ① `AskUserQuestion` 审批门 (用户交互, 不可派) ② 编排决策 (汇总/派发/修复)。
+trellisx-apply 的注入由 **main 编排 + 并行 subagent 执行**。main 用 `Agent` 工具把扇出编排成两阶段 (Phase A 并行规划 read-only → main 审批 → Phase B 并行写盘+自验+回滚)。**main 不执行任何 repo 操作** (不 Read/Edit/Write/Bash/git 改盘), 只做 ① `AskUserQuestion` 审批门 (用户交互, 不可派) ② 编排决策 (汇总/派发/修复)。
 
 > 维度已收敛为 **4 个** (workflow / spec / hook / finishcmd) —— 移除了 agent `background:true` 维度 (不再注入)。诊断 (diagnose) 作为 plan 阶段第 5 个 read-only agent。
 
-## 方案 A (优先): Workflow 脚本驱动
+## 编排流程
 
-脚本 = `skills/trellisx-apply/apply.workflow.js`, 一份脚本两种 `mode`。审批门必须在**两次 Workflow 调用之间**由 main 做 (Workflow 内 agent 不能问用户)。
-
-```
-1. main: Workflow({scriptPath: '<skill>/apply.workflow.js', args:{mode:'plan', lang}})
-        → 并行跑 diagnose + 4 维 planner (read-only) → 返回 {plans:[{key,status,diff}]}
-2. main: 汇总 plans → 展示统一 diff plan (含 packages 清单) → 🛑 AskUserQuestion 审批 (STOP)
-3. 批准后 main: Workflow({scriptPath, args:{mode:'write', lang, plans:{workflow:diff, spec:diff, ...}}})
-        → prep-backup (git stash) → 并行 4 维 writer (各自**写盘+自验**) → 任一失败自动 rollback
-        → 返回 {ok, results} 或 {ok:false, failed, rolledBack:true}
-4. main: ok=false → 据 failed 重跑 write (修复循环 ≤3) 或报告; ok=true → 完成报告
-```
-
-要点:
-- **plan 与 write 分两次 Workflow 调用**, 因审批门夹在中间 (Workflow 不能 AskUserQuestion)。
-- **writer 自验本维度** (语法 / marker 配对 / 行为闭环 / i18n), **无独立 verify 阶段** (原 Phase C 合并进 writer)。
-- plan agent / writer agent 的详细职责见各 `references/*-injection.md`; 脚本 prompt 只引用 reference, 不重复正文。
-- **轻量重跑快路径**: 已注入 (marker 全在) 且无结构变化 → writer 检测 marker 幂等跳过, 自然轻量, 不必额外编排。
-
-## 方案 B (兜底): 手写 agent 流水线 (无 Workflow 工具时)
-
-平台无 Workflow 工具 → main 手动按下表派 agent。**同批 agent 在一条消息内多个 Agent 工具调用** (无依赖才并发); 阶段间串行。
+main 手动按下表派 agent。**同批 agent 在一条消息内多个 Agent 工具调用** (无依赖才并发); 阶段间串行。
 
 ```
 Phase A 并行规划 (5 read-only agent, 同批)
@@ -38,6 +18,12 @@ Phase B 并行写盘+自验 (4 writer agent, 同批, disjoint 文件集, 每 wri
    write-workflow  write-spec  write-hook  write-finishcmd
         └─ 任一 ✗ → main 派对应 writer 重注 (修复循环 ≤3) / 多次失败 → rollback agent (git stash pop)
 ```
+
+要点:
+- **plan 与 write 分两阶段**, 因审批门夹在中间 (agent 不能 AskUserQuestion)。
+- **writer 自验本维度** (语法 / marker 配对 / 行为闭环 / i18n), **无独立 verify 阶段** (原 Phase C 合并进 writer)。
+- plan agent / writer agent 的详细职责见各 `references/*-injection.md`。
+- **轻量重跑快路径**: 已注入 (marker 全在) 且无结构变化 → writer 检测 marker 幂等跳过, 自然轻量, 不必额外编排。
 
 ### Phase A — 并行规划 (read-only, 5 agent)
 
@@ -87,4 +73,4 @@ prep-backup agent (`git stash push -- .trellis/`) 备份后派发。**每 writer
 ## 与两条铁律的关系
 
 - 🎯 **结果导向, 行为闭环为准**: writer 可替换/重构原生 (no_task/Phase/finish) 以达预期; **writer 自验是硬门** —— 断言 ① 五维生效 ② create→…→finish 闭环 ③ task 创建触发仍生效。任一 ✗ → main 派 writer 重做 (修复循环 ≤3)。
-- 🪶 **软约束 + finish 强制**: 注入内容不变; 编排改造只改「谁执行/怎么扇出」(Workflow 脚本 / agent 流水线), 不改「注入什么」。
+- 🪶 **软约束 + finish 强制**: 注入内容不变; 编排只改「谁执行/怎么扇出」(main + 并行 subagent), 不改「注入什么」。
