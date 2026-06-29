@@ -43,7 +43,7 @@ apply 把脚本从插件 `scripts/` **复制**到用户 `.trellis/scripts/`, 不
 | --- | --- | --- |
 | 强推 task | no_task 块: 除极简外默认建 task; 边界模糊 MUST 问用户 (软约束) | workflow.md `no_task` |
 | subtask 拆分 | 按 trellis 原生 parent/child 语义判定 (多个独立可验收交付才拆, 不看数量) | workflow.md `planning` |
-| worktree 隔离 (task 级) | **执行载体 = subagent 编排 (默认), 默认 1 task 1 worktree** —— task exec 默认经 main → trellis-implement → subagent 执行, subtask **共享 task worktree** (subtask 与 worktree 无绑定, 不传 `isolation:worktree`)。**Workflow 仅特别复杂 task (大规模 fan-out / 仓库级 / ≥5 同类文件 / 500+ 文件迁移) 用户显式同意才启**, 普通 task 不用。隔离单位 = **task** (防并发多 task 互相冲突): task.py start 自动建本 task 的 `<git根>/.worktrees/<name>`, archive 销毁。默认一 task 一 worktree; 多 worktree 属 opt-in (非自动, 非由 subtask 冲突触发, finish 合并各分支) | workflow.md `in_progress` + config.yaml hook |
+| worktree 隔离 (task 级) | **执行载体 = subagent 编排 (默认), 默认 1 task 1 worktree** —— task exec 默认由 **main 调度** → 派各 `trellis-implement` 各执行 1 subtask (动态 DAG 并发上限 2 完成即派), subtask **共享 task worktree** (subtask 与 worktree 无绑定, 不传 `isolation:worktree`; trellis-implement 不调度不递归, Recursion Guard)。**Workflow 仅特别复杂 task (大规模 fan-out / 仓库级 / ≥5 同类文件 / 500+ 文件迁移) 用户显式同意才启**, 普通 task 不用。隔离单位 = **task** (防并发多 task 互相冲突): task.py start 自动建本 task 的 `<git根>/.worktrees/<name>`, archive 销毁。默认一 task 一 worktree; 多 worktree 属 opt-in (非自动, 非由 subtask 冲突触发, finish 合并各分支) | workflow.md `in_progress` + config.yaml hook |
 | 闭环收尾 | plan→exec→check→finish 必走完整, 未 archive 禁宣告 Done (软约束) | workflow.md `in_progress` |
 | task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 补主观列 | config.yaml hook + workflow marker |
 

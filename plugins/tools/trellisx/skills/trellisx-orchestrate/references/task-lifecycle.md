@@ -14,7 +14,7 @@ flowchart TB
     REVIEW -->|是| START["task.py start<br/>status: in_progress"]
     START --> WT["创建 worktree<br/>task 改动隔离到独立工作树"]
     WT --> COORD["coordinator + 执行层 判定<br/>layer-selection.md"]
-    COORD --> EXEC["subtask 异步并行执行 (按调度图)<br/>sub-agent / agent-team / workflow<br/>main 可在 worktree 直做简单 subtask"]
+    COORD --> EXEC["main 动态 DAG 调度 (并发 2, 完成即派)<br/>派 trellis-implement 各执行 1 subtask<br/>详见 scheduling.md"]
     EXEC --> COMM["进度实时同步<br/>progress-communication.md"]
     COMM --> CHECK{"全部 subtask Done?"}
     CHECK -->|否, 失败| RECOVER["failure-recovery.md<br/>重试 / 换执行者 / 回 planning"]
@@ -52,7 +52,7 @@ flowchart TB
 | planning | `planning` | brainstorm 收敛 | prd.md + design.md + implement.md + `subtask/*.md` + jsonl manifest | `trellisx-orchestrate` (6 步) | 回 brainstorm 重收敛 |
 | start review | `planning` → `in_progress` | 用户批准 PRD/design/implement | `task.json` status 翻转 | `selfcheck.md` 自检通过 | 留 planning, 修订 |
 | worktree 创建 | `in_progress` | task.py start 时 hook 自动建 | 本 task 一个 worktree (默认; 多 worktree 属 opt-in) | after_start hook / 手动 git worktree add (opt-in) | 创建失败 abort start |
-| execute | `in_progress` | worktree 就绪 | worktree 内 subtask 产物 | 各 sub-agent / agent-team / workflow | `failure-recovery.md` |
+| execute | `in_progress` | worktree 就绪 | worktree 内 subtask 产物 | main 动态 DAG 调度派 `trellis-implement` (`scheduling.md`) | `failure-recovery.md` |
 | progress sync | `in_progress` | 每 subtask 完成 / 阻塞 | 用户可见摘要 | `progress-communication.md` | coordinator 决策 |
 | check | `in_progress` | 全部 subtask done | check 报告 | `trellis-check` | 单点不过回 execute; 系统性不过回 planning |
 | spec sediment | `in_progress` | check 通过 | `.trellis/spec/` 增量 | `trellisx-spec` sediment 模式 | 跳过 (非必须) |

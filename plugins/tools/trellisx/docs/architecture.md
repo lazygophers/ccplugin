@@ -58,7 +58,7 @@ trellisx-apply
   → planning (trellisx-orchestrate 编排 prd/design/implement/subtask)
   → task.py start
        → after_start hook: 建 worktree (3 布局自适应) + task.md sync
-  → exec (trellis-implement → subagent, 共享 task worktree)
+  → exec (main 调度派 trellis-implement 各执行 1 subtask, 动态 DAG 并发上限 2, 共享 task worktree)
        → guard UserPromptSubmit: 注入执行载体约束 (有 active task 时)
   → check (trellis-check)
   → finish

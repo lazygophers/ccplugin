@@ -18,7 +18,7 @@
 - 目标: <动词+对象+结果>
 - 产出: <diff 路径 | 报告 | 输出>
 - 验证: `<可执行命令>`
-- 资源: <独占文件 glob / 端口 / 配置>
+- 资源: <write-files glob / exec-scope / 端口 / 配置>   # subtask 文件 frontmatter 写 write-files + exec-scope, 冲突判定见 scheduling.md
 - 依赖: 无 / S0
 - 执行层: main | sub-agent | agent-team | workflow
 - 回滚点: <commit hash 或描述>
@@ -87,7 +87,7 @@
 
 3. **依赖必须显式**, 用 S<id> 引用; 禁"前面那个完成后"这种模糊指代。
 
-4. **资源必须独占**, 共享资源必须在依赖链中串行; 并行 subtask 必须资源不交。
+4. **资源必须可判冲突** (subtask 文件 frontmatter 填 `write-files` + `exec-scope`), main 静态算冲突 DAG 自动串行冲突项 (见 `scheduling.md`); 并行 subtask 必须资源不交。
 
 5. **Rollback 必须可执行**, 给出具体命令 / hash。
 

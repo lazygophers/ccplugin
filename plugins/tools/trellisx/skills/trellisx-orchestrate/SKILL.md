@@ -39,7 +39,7 @@ python3 ./.trellis/scripts/task.py create "<title>" --slug <name>   # 建 task
 python3 ./.trellis/scripts/task.py start <name>                     # 进 planning, after_start hook 自动建 worktree
 ```
 
-调度规则 (无依赖即并行, 不留串行余量): 无共享文件且无前后序的 subtask 必须同一消息内并发派 sub-agent (**共享 task worktree**, 不传 isolation:worktree; subtask 与 worktree 无绑定) / agent-team 成员 (在 task worktree 内); 有共享文件或前后序的串行。main 写源码**必须在 task worktree 内** (单文件 subtask main 直做; 跨文件或可并行的派 agent), 见 `references/task-lifecycle.md`。多 worktree 属 opt-in, 非自动, 非由 subtask 触发。
+调度规则 (**main 是调度器**, 动态 DAG 调度, 见 `references/scheduling.md`): planning 末 main 静态算冲突 (两类自动依赖边: 写盘文件 glob 相交 `write-files` + 执行作用域相交 `exec-scope`; 加显式 `depends-on`) → 建 DAG → exec 阶段循环: 查 ready → 派 min(|ready|, 2-|running|) 个 `trellis-implement` 各执行 1 subtask (**共享 task worktree**, 并发上限 2, 完成即派下一个, 不空等) → 任一返回 (notification) 即更新态、查新 ready、立即派 → failed 走 failure-recovery → 全 done 转 trellis-check。**trellis-implement 不调度不递归** (工具集无 Agent/Task, Recursion Guard; 每 subtask 文件 frontmatter 必填 `write-files` + `exec-scope`)。subtask 与 worktree 无绑定; 多 worktree 属 opt-in, 非自动, 非由 subtask 触发。
 
 ## 触发判定
 
@@ -98,6 +98,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 | `references/five-elements.md` | 拆任何 subtask / checklist 项时 (基础参考) |
 | `references/layer-selection.md` | implement 标注执行层时 + trellis 复杂度判定 coordinator |
 | `references/shared-resources.md` | 标注资源互斥 / 并行决策时 |
+| `references/scheduling.md` | exec 阶段动态 DAG 调度 (main 调度器 / 冲突判定 / 5 态 / 并发 2 / 完成即派) |
 | `references/progress-communication.md` | coordinator 回传进度时 (每 subtask 完成 / 阻塞); **执行中收到用户新指令做中途修正路由时** (§中途修正路由) |
 | `references/task-lifecycle.md` | 任务规划开始 / 阶段切换前 (planning → in_progress → check → sediment → stop) |
 | `references/selfcheck.md` | planning → start 前最终自检 |

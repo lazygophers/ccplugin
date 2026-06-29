@@ -3,11 +3,13 @@ id: S3
 slug: jwt-middleware
 deliverable: D2
 parent-task: 06-09-oauth-login
-status: planned
+status: blocked
 execution-layer: sub-agent
 isolation: task
 depends-on: [S2]
 blocks: []
+write-files: ["packages/api/src/auth/middleware.ts", "packages/api/tests/auth/test_middleware.py"]
+exec-scope: package:api
 estimated-tokens: 25000
 ---
 
@@ -35,10 +37,11 @@ curl -i -H "Authorization: Bearer $VALID_JWT" .../api/orders    # 期望 200
 
 期望: 测试退出码 0; 无 JWT 401; 合法 JWT 200。
 
-## 资源
+## 资源 (冲突判定输入, 见 scheduling.md)
 
-- 独占文件: `packages/api/src/middleware/auth.ts` `packages/api/src/routes/*.ts` `packages/api/tests/auth/test_middleware.py`
-- 与 S1 关系: S1 改 `src/auth/*`, S3 改 `src/middleware/*` + `src/routes/*`, 资源不交 → 可并行
+- **write-files** (frontmatter): `packages/api/src/auth/middleware.ts` `packages/api/tests/auth/test_middleware.py` (示例简写, 实际含 `src/middleware/*` + `src/routes/*` 改动)
+- **exec-scope** (frontmatter): `package:api`
+- 与 S1 关系: S1 改 `src/auth/*`, S3 改 `src/middleware/*` + `src/routes/*`, write-files 不交 → 无依赖边 → 可并行
 
 ## 依赖
 
@@ -85,7 +88,7 @@ Active task: .trellis/tasks/06-09-oauth-login
 - 资源不可用 → 报 Blocked, 不重试
 
 ## Sub-agent 自防护
-你已是 trellis-implement, 直接做, 禁再 spawn trellis-implement / trellis-check。
+你已是 trellis-implement, 直接做本 subtask。⛔ **禁调度、禁递归、禁并行派其他 subtask** (工具集无 Agent/Task, Recursion Guard); 调度归 main (见 scheduling.md), 你只执行这 1 个 subtask。
 ```
 
 ## 回滚

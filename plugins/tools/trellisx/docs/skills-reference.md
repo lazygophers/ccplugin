@@ -31,7 +31,7 @@
 **强制 task 闭环**。用户主动调, 把请求强制纳入 plan→exec→check→finish。
 
 - **触发**: `/trellisx-flow <请求>`。**禁自动触发** (user-invocable)。
-- **行为**: 自判新建 task / 并入现有 task → planning → exec (派 trellis-implement) → check (派 trellis-check) → finish (AI 层 + git 层)。
+- **行为**: 自判新建 task / 并入现有 task → planning → exec (**main 调度**, 动态 DAG 派各 trellis-implement 各执行 1 subtask, 并发上限 2 完成即派) → check (派 trellis-check) → finish (AI 层 + git 层)。
 - **入参**: `--no-worktree` (subagent 改主工作区, main 仍禁亲改) / 其他流程开关。
 - **边界**: 是入口路由, 不直接写源码; 实质工作派 subagent。
 
@@ -39,9 +39,9 @@
 
 **planning 编排**。自动触发 (planning 阶段)。
 
-- **职责**: 6 步流程编排 PRD / design / implement / subtask 文件 + mermaid 调度图 + parent/child 拆分 + jsonl curate。
-- **调度规则**: 无依赖 subtask 同一消息并发派 (共享 task worktree); 有共享文件/前后序串行。
-- **references**: `task-tree.md` (parent/child) / `layer-selection.md` (执行载体) / `task-lifecycle.md` / `subtask-file.md` / `prd-orchestration.md` / `design-orchestration.md` / `implement-orchestration.md` / `failure-recovery.md` / `progress-communication.md` / `five-elements.md` / `jsonl-curation.md` / `selfcheck.md` / `shared-resources.md`。
+- **职责**: 6 步流程编排 PRD / design / implement / subtask 文件 + mermaid 调度图 + parent/child 拆分 + jsonl curate; subtask 文件 frontmatter 声明 `write-files` + `exec-scope`。
+- **调度规则**: **main 是调度器** (动态 DAG 调度, 并发上限 2, 完成即派); trellis-implement 不调度不递归 (Recursion Guard)。详见 `scheduling.md`。
+- **references**: `task-tree.md` (parent/child) / `layer-selection.md` (执行载体) / `task-lifecycle.md` / `subtask-file.md` / `prd-orchestration.md` / `design-orchestration.md` / `implement-orchestration.md` / `scheduling.md` (动态 DAG 调度) / `failure-recovery.md` / `progress-communication.md` / `five-elements.md` / `jsonl-curation.md` / `selfcheck.md` / `shared-resources.md`。
 - **examples/**: 完整 OAuth2 登录场景 (prd/design/implement/subtask) 贯穿范例。
 
 ## trellisx-workspace

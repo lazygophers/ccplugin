@@ -8,6 +8,8 @@ execution-layer: sub-agent
 isolation: task
 depends-on: []
 blocks: [S1, S3]
+write-files: ["packages/api/src/auth/jwt.ts", "packages/api/tests/auth/test_jwt.py"]
+exec-scope: package:api
 estimated-tokens: 30000
 ---
 
@@ -32,9 +34,10 @@ cd packages/api && pnpm test auth/jwt
 
 期望: 退出码 0; stdout 含 "3 passed"; 篡改 token 用例验证 verifyJWT 返 null。
 
-## 资源
+## 资源 (冲突判定输入, 见 scheduling.md)
 
-- 独占文件: `packages/api/src/auth/jwt.ts` `packages/api/tests/auth/test_jwt.py`
+- **write-files** (frontmatter): `packages/api/src/auth/jwt.ts` `packages/api/tests/auth/test_jwt.py`
+- **exec-scope** (frontmatter): `package:api` (包级测试 `cd packages/api && pnpm test`)
 - 端口 / 服务: 无
 - 环境: 读 `.env` 的 `JWT_SECRET`
 - 审批槽位: 否
@@ -84,7 +87,7 @@ Active task: .trellis/tasks/06-09-oauth-login
 - 资源不可用 → 报 Blocked, 不重试
 
 ## Sub-agent 自防护
-你已是 trellis-implement, 直接做, 禁再 spawn trellis-implement / trellis-check。
+你已是 trellis-implement, 直接做本 subtask。⛔ **禁调度、禁递归、禁并行派其他 subtask** (工具集无 Agent/Task, Recursion Guard); 调度归 main (见 scheduling.md), 你只执行这 1 个 subtask。
 ```
 
 ## 回滚

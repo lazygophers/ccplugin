@@ -38,14 +38,14 @@ authored-by: trellisx-apply
 - task.py finish 后 after_finish hook **自动收尾** (commit→merge --no-ff→archive→销 worktree), 无需手动跑收尾脚本; 合并冲突则 abort + finish 打 WARN, 转手动
 - 多子仓 (.trellis 非 git 根, 子仓在下层如 go/node): task 须先 task.py set-scope <子仓> 标注, hook 才能定位
 - main **不直接写源码**, 实施派 `trellis-implement`; 执行都在 task worktree 内
-- subtask **共享本 task 的 worktree** (subtask 与 worktree 无绑定; 文件集不相交即可并行, 无需 per-subagent isolation); 多 worktree 属 opt-in (非自动, 非由 subtask 冲突触发), finish 合并各分支
+- subtask **共享本 task 的 worktree** (subtask 与 worktree 无绑定; 文件集不相交即可并行, 无需 per-subagent isolation); **main 是调度器** (动态 DAG 调度并发上限 2, 完成即派, 见 trellisx-orchestrate `scheduling.md`); 多 worktree 属 opt-in (非自动, 非由 subtask 冲突触发), finish 合并各分支
 - task archive 时 worktree 干净 → 自动销毁; 脏 → 警告先合并
 
 ## subtask 拆分 + 异步并行
 
 - 判定跟随 trellis 原生 parent/child 语义: 本请求含**多个独立可验收交付**才拆 child task (`task.py create --parent`), 不看数量; 单一交付 → 轻量单 task inline
 - PRD 调度图显式标并行组 (无依赖 subtask 同批)
-- 执行: 实施统一经 `trellis-implement` (main 派之, 不直接派/直写)。trellis-implement 在**本 task 的 worktree 内**对无依赖 subtask 一次性并行派 subagent (真并行, subtask **共享 task worktree**, 不传 isolation:worktree), 禁串行; 单 subtask 时 trellis-implement 内联直做
+- 执行: **main 是调度器** (算冲突 / 建 DAG / 动态派, 见 trellisx-orchestrate `scheduling.md`); 实施统一经 `trellis-implement` (main 派之, 每个 trellis-implement 各执行 1 subtask)。**main 在本 task 的 worktree 内**对无依赖 subtask 动态 DAG 调度 (并发上限 2, 完成即派下一个, 不空等全部; subtask **共享 task worktree**, 不传 isolation:worktree); trellis-implement **不调度不递归** (工具集无 Agent/Task, Recursion Guard); 单 subtask 时 main 派 1 个 trellis-implement 内联直做
 - parent-child 用 trellis 原生 `task.py add-subtask`
 ```
 

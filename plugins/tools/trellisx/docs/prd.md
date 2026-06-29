@@ -74,7 +74,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 ### 5.3 trellisx-orchestrate (planning 编排)
 
-编排 PRD/design/implement/subtask 文件 + mermaid 调度图; parent/child 拆分 (任务级依次); jsonl curate。
+编排 PRD/design/implement/subtask 文件 + mermaid 调度图; parent/child 拆分 (任务级依次); jsonl curate。subtask 文件声明 `write-files` + `exec-scope`; **main 自动冲突检测** (写盘 glob 相交 + 执行作用域相交 + 显式依赖 → 依赖边) + **动态 DAG 调度** (并发上限 2, 完成即派, 见 `scheduling.md`); trellis-implement 不调度不递归 (Recursion Guard)。
 
 ### 5.4 trellisx-workspace (看板)
 
@@ -106,7 +106,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 | AC1 | apply 在干净 trellis 项目跑一次, 五维度全部落盘, 重跑零 diff |
 | AC2 | apply 后 workflow.md 原生文本零改动 (git diff 仅追加块) |
 | AC3 | task.py start 后 worktree 自动建, archive 后自动销, 主工作区零改动 |
-| AC4 | 并行 subtask 共享 task worktree, 文件集不相交无脏写 |
+| AC4 | **main 动态 DAG 调度** subtask (并发上限 2, 完成即派下一个), 冲突 (写盘 glob 相交 / 执行作用域相交 / 显式依赖) 自动串行; 并行 trellis-implement 共享 task worktree 改不相交文件集无脏写 |
 | AC5 | finish 走全链 (commit→merge→销→archive), 未 archive 禁 Done |
 | AC6 | guard 在 trellis 项目 block 未清理 worktree / 游离 worktree / 未完成 active task; 非 trellis 项目静默退出 |
 | AC7 | cleanup dry-run 报告准确, --apply 仅清 completed ∪ merged, active task 永不纳入 |
