@@ -78,7 +78,7 @@ python3 .trellis/scripts/trellisx-taskmd.py show
 | `git diff workflow.md` | 仅追加块, 原生文本零改动 |
 | `task.py start <t>` 后 | `<git根>/.worktrees/<t>` 自动建, 主工作区零改动 |
 | `task.py archive` 后 | worktree 自动销, task.md 看板 sync |
-| guard 在 trellis 项目 | 未清理 worktree / 未完成 active task 时 Stop block |
+| guard 在 trellis 项目 | 未清理 worktree / 游离 worktree 时 Stop block |
 | 非 trellis 项目 | guard 静默, 不干扰 |
 
 ## 6. FAQ
@@ -87,7 +87,7 @@ python3 .trellis/scripts/trellisx-taskmd.py show
 A: 不会。仅末尾追加 (marker 幂等), 原生 no_task/Phase/check/finish/前缀不动。
 
 **Q: 强推 task 是硬强制吗?**
-A: 否, prompt 软约束 (AI 有裁量)。guard 在 Claude Code 额外 block 未完成 active task, 但不强制建 task。需硬强制自配。
+A: 否, prompt 软约束 (AI 有裁量)。guard 在 Claude Code 额外 block 未清理 / 游离 worktree, 但不强制建 task。需硬强制自配。
 
 **Q: 并行 subtask 会各自开 worktree 吗?**
 A: 否。默认 1 task 1 worktree, subtask 共享 (文件集不相交并行)。多 worktree 属 opt-in (用户显式同意)。

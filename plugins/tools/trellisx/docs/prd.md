@@ -58,7 +58,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 | subtask 拆分 | 按 trellis 原生 parent/child 语义判定 (多个独立可验收交付才拆, 不看数量) | workflow.md `planning` |
 | worktree 隔离 (task 级) | 默认 1 task 1 worktree, subtask 共享 (无绑定), 多 worktree opt-in | workflow.md `in_progress` + config.yaml hook |
 | 闭环收尾 | plan→exec→check→finish 必走完整, 未 archive 禁 Done (软约束) | workflow.md `in_progress` |
-| task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 补主观列 | config.yaml hook + workflow marker |
+| task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 细化状态 + worktree | config.yaml hook + workflow marker |
 
 **写盘清单**:
 - `workflow.md`: 5 维度规则 (marker 幂等) + i18n 跟随设备语言 + 清理无效内容
@@ -78,7 +78,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 ### 5.4 trellisx-workspace (看板)
 
-维护 `.trellis/task.md` 单表格任务看板 (hook 维护确定性列 + AI 维护主观列, 经 `trellisx-taskmd.py` 唯一入口)。
+维护 `.trellis/task.md` 单表格任务看板 (hook 维护确定性列 + AI 细化状态/worktree, 经 `trellisx-taskmd.py` 唯一入口)。
 
 ### 5.5 trellisx-spec (破坏式 spec 优化, 主动化)
 
