@@ -2,6 +2,8 @@
 
 1 task 含 ≥ 2 独立可验收 deliverable → 拆 parent + 多 child。Parent 持源需求集 + task map + 跨 child 验收 + 集成 review; child 持单 deliverable 完整生命周期 (plan / impl / check / archive)。
 
+**child 依次执行 (非并行)**: parent/child 是**任务级顺序分解**, child 按**依赖顺序依次执行** (一个 child 完成 archive 再启下一个), 不并行。**任务内 exec 并行**是另一层概念 (subtask 拆分, 见 orchestrate `implement-orchestration.md`), 不要靠 child 并行实现。**child ≠ subtask**: child 是独立 task (依次), subtask 是任务内 exec 并行单元; child 本身是 task, 其 exec 也可再 subtask 拆分。
+
 ## 何时拆
 
 | 信号 | 决策 |

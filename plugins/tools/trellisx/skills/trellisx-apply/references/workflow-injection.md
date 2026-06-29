@@ -124,21 +124,28 @@ trellisx 规约 (强化原生判定, 不切断建 task 路径): 本项目愿景 
 <!-- trellisx:end:no_task -->
 ```
 
-## 注入点 1: `[workflow-state:planning]` 块末尾追加 subtask
+## 注入点 1: `[workflow-state:planning]` 块末尾追加规划规约
 
-**判定标准 = trellis 原生 parent/child 语义, 不看数量。** 启用拆分的开关是「本请求是否含**多个独立可验收交付** (independently verifiable deliverables)」—— 与 trellis workflow.md 原生 parent/child 判据一致, 不再用「subtask 数量 ≥2」一刀切。
+**两层拆分概念分清 (易混, 必守)**:
+- **parent/child (任务级, 依次执行)**: 本请求含**多个独立可验收交付** → 拆 parent + child tasks (trellis 原生 `task.py create --parent`)。child 是**独立 task**, 各有完整生命周期 (plan/implement/check/archive), **依次执行** (按依赖顺序, 一个 child 完成再启下一个), **非并行**。
+- **subtask 拆分 (任务内 exec, 并行)**: 任一 task (parent 直接工作 或 每个 child) 的 **exec 阶段**若含多个**独立无影响**工作单元 → 拆 subtask, 各派专用 subagent **并行**推 implement.md checklist (经 trellis-implement 入口)。
+- **child ≠ subtask**: child 是任务级分解单元 (依次); subtask 是任务内 exec 并行单元。child 本身是 task, 其 exec 也可再 subtask 拆分 (并行 subagent)。
 
 ```
 <!-- trellisx:start:planning -->
-trellisx 规划规约 (启用判定跟随 trellis 原生 parent/child 语义, 不看数量):
+trellisx 规划规约 (两层拆分概念分清):
 
-⚙️ **规划同步前台 (交互式, 禁自行凭空设计)**: planning 含 `trellis-brainstorm` **逐问用户**的交互, subagent 不能与用户对话, 故 **planning 由 main 同步前台执行**, 不派 subagent。分工: **`trellis-brainstorm` 为主导** (main 同步逐问用户做需求探索 + 方案设计 + 边界, 产出 prd/design); **`trellisx-orchestrate` 仅管执行层编排** (实际执行的 subagent 职责划分、并行/依赖、资源互斥, 产出 implement.md), **不用它做需求/方案设计**。产物评审 (`AskUserQuestion`) 由 main 亲做。注: exec/check 等非交互实质工作走 subagent 执行 (异步与否按需自定, 不强制)。
+⚙️ **规划同步前台 (交互式, 禁自行凭空设计)**: planning 含 `trellis-brainstorm` **逐问用户**的交互, subagent 不能与用户对话, 故 **planning 由 main 同步前台执行**, 不派 subagent。分工: **`trellis-brainstorm` 为主导** (main 同步逐问用户做需求探索 + 方案设计 + 边界, 产出 prd/design); **`trellisx-orchestrate` 仅管执行层编排** (实际执行的 subtask 职责划分、并行/依赖、资源互斥, 产出 implement.md), **不用它做需求/方案设计**。产物评审 (`AskUserQuestion`) 由 main 亲做。注: exec/check 等非交互实质工作走 subagent 执行 (异步与否按需自定, 不强制)。
 
-判定: 本请求是否含**多个独立可验收交付** (各自可独立 plan/implement/check/archive)?
-- **是 (多交付)** → 拆为 parent + child tasks (trellis 原生 `task.py create --parent`)。每个 child 独立 worktree; PRD MUST 含 mermaid 调度图显式标并行组 + 依赖箭头; child 间依赖写进 child 自己的 prd.md/implement.md (非树位置隐含)。**执行统一由 `trellis-implement` 入口调度** (main 派 trellis-implement, 由其对各 subtask 派专用 subagent 并行执行), main 不直接派 subtask agent。
-- **否 (单一交付)** → 轻量单 task inline, **不强制拆 subtask**。仍走单 worktree 隔离。
+判定两层 (正交, 各自独立判):
+1. **parent/child?** 本请求是否含**多个独立可验收交付** (各自可独立 plan/implement/check/archive)?
+   - **是** → 拆 parent + child tasks (`task.py create --parent`)。child **依次执行** (按依赖顺序, 一个完成再启下一个, **非并行**); child 间依赖写进各 child 的 prd.md/implement.md (非树位置隐含); parent PRD MUST 含 child map 表 + 跨 child 验收 + 集成 review; 每个 child 独立 worktree。
+   - **否** → 单 task。
+2. **subtask 拆分?** 该 task (含每个 child) 的 exec 是否含多个**独立无影响**工作单元?
+   - **是** → implement.md 拆 subtask, 各派专用 subagent **并行**执行 (经 `trellis-implement` 入口; 无依赖并行, 共享 task worktree 文件集不相交即可, 冲突型各开子 worktree); main 不直接派 subtask agent / 不直接写源码。
+   - **否** → 轻量 inline (trellis-implement 在 task worktree 内内联直做), 不强制拆 subtask。
 
-拆分目的 = 让独立可验收交付各自隔离 + 最大化并行, 缩短关键路径; 不是为凑数量。详见 trellisx-orchestrate skill。
+**两层正交**: parent/child 管任务级**依次**分解 (child 是独立 task); subtask 管任务内 exec **并行** (subagent fan-out)。child 自身可再 subtask 拆分。拆分目的 = 独立交付各自隔离 + 任务内最大化并行, 缩短关键路径; 不是为凑数量。详见 trellisx-orchestrate skill。
 
 task 创建后, 用 `trellisx-workspace` 及时更新 `.trellis/task.md` 看板表 (新增/更新该任务行)。
 <!-- trellisx:end:planning -->
