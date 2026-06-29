@@ -108,11 +108,16 @@ exec 阶段 subtask 调度由 **main** 动态驱动 (非 trellis-implement):
 
 ## 6. task.md 看板
 
-trellis 原生有每任务 `task.json`, 但无跨任务总览。trellisx 维护 `.trellis/task.md` 作为人类可读看板 —— **一个表格, 一行一个 task**。
+trellis 原生有每任务 `task.json`, 但无跨任务总览。trellisx 维护 `.trellis/task.md` 作为人类可读看板 —— **一个表格, 一行一个 task**。5 列: ID / 名称 / 描述 / 状态 / worktree。
+
+**状态列承载生命周期阶段** (合并原"状态"+"阶段"两列, 删除"进度"列):
+- 规划中 / 实施中 / 检查中 / 收尾 / 已完成 / 已归档
+- hook sync 写基础态 (规划中 / 实施中 / 已完成 / 已归档); AI update 细化阶段 (检查中 / 收尾 / 实施中)。
+- **冲突规则**: 若 AI 已写细分 (实施中 / 检查中 / 收尾), hook sync 不覆 AI 细分。
 
 **维护者按列分工**:
-- trellis 生命周期 hook (`trellisx-taskmd.py`): 自动维护确定性列 (ID/名称/描述/状态) + 7 天清理。
-- AI (trellisx-workspace skill): 维护主观列 (阶段/进度/worktree 路径)。
+- trellis 生命周期 hook (`trellisx-taskmd.py`): 自动维护确定性列 (ID/名称/描述/状态基础态) + 7 天清理。
+- AI (trellisx-workspace skill): 细化状态 (阶段: 实施中→检查中→收尾) + worktree 路径。
 - 同行不同列互不覆盖。
 
 **唯一入口**: 一律经 `.trellis/scripts/trellisx-taskmd.py`, 禁直接编辑 task.md。task.md 落后于 task.json = 看板失效, 视为流程缺陷。

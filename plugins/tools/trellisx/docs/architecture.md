@@ -94,7 +94,7 @@ trellisx-apply
 | WorktreeRemove | map-remove 清映射 (不阻断) |
 | Stop | 两类闸顶层 `{"decision":"block"}`: ①已合并未清理 worktree ②游离 worktree (tid=?/None)。抑制阀: 连续 block 满 3 次降级 additionalContext, 第 4 次起静默 |
 | SubagentStop | additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block) |
-| FileChanged (task.md) | 先跑 taskmd fix 自动修复 (错置行归位/英文状态归一/去重), 残留才 stderr 提醒 |
+| FileChanged (task.md) | 先跑 taskmd fix 自动修复 (旧列迁移/错置行归位/英文状态归一/去重), 残留才 stderr 提醒 |
 
 **健壮性铁律**: 任何异常 exit 0 静默放行, 绝不因 guard bug 阻断会话。例外: WorktreeCreate 必须先回显 path。
 
@@ -104,9 +104,9 @@ trellisx-apply
 | --- | --- | --- |
 | `trellisx-worktree.py` | 3 布局自适应 worktree 建/销 (同级 git / 微服务 sparse / 多子仓) | config.yaml after_start/archive |
 | `trellisx-finish.py` | 收尾 git 层 (确定性): commit→merge --no-ff (子先主后)→销 worktree→archive; 冲突 abort+报清单 | config.yaml after_finish + 手动 CLI |
-| `trellisx-taskmd.py` | task.md 看板唯一读写入口 (sync/update/show/cleanup/map-*/lint/fix) | config.yaml after_create/start/archive + AI |
+| `trellisx-taskmd.py` | task.md 看板唯一读写入口 (sync/update/show/cleanup/lint/fix) | config.yaml after_create/start/archive + AI |
 | `trellisx_wt.py` | worktree 路径/分支/命名单一真值模块 (worktree+finish 共用 import) | 被上述脚本 import |
-| `trellisx-guard.py` | Claude Code 运行时 hook: 强制执行载体闭环 + 完成清理 | 插件平台 hook |
+| `trellisx-guard.py` | Claude Code 运行时 hook: 强制执行载体闭环 + 完成清理 + worktree↔task 映射维护 (map-add/map-remove) | 插件平台 hook |
 | `trellisx-packages.py` | monorepo 包自动发现 (discover/apply, 4 类信号: submodule>嵌套git>workspace清单>约定目录) | apply 一次性 |
 | `trellisx-cleanup.py` | 批量收尾全部已完成 task (复用 finish+taskmd+worktree 安全判据) | trellisx-cleanup skill |
 

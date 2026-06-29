@@ -2,7 +2,7 @@
 
 > **操作一律经 `.trellis/scripts/trellisx-taskmd.py` 脚本** (`sync` / `update` / `show` / `cleanup`), 不直接编辑 task.md。下列算法是**脚本内部逻辑**说明 + 无脚本 (未跑 apply) 时的手动 fallback 参考。
 
-核心: 按 **task id** 定位表行, 更新或新增, **绝不重复堆叠**; 真值从 `task.json` 同步。单表格, 无活动详情块。脚本列分工: `sync` 管确定性列 (ID/名称/描述/状态), `update` 管主观列 (阶段/进度/worktree), 互不覆盖。
+核心: 按 **task id** 定位表行, 更新或新增, **绝不重复堆叠**; 真值从 `task.json` 同步。单表格, 无活动详情块。脚本列分工 (5 列): `sync` 管确定性列 (ID/名称/描述/状态基础态), `update` 细化状态 (阶段) + worktree, 互不覆盖。
 
 ## 通用流程
 
@@ -17,16 +17,16 @@
 
 ## 各生命周期节点动作 (均为表行 upsert)
 
-> 状态/阶段写入 task.md 用**中文** (规划中/进行中/已完成; 规划/实施/检查/收尾), 由 task.json 英文 status 映射而来。
+> 状态列写入 task.md 用**中文** (规划中/实施中/检查中/收尾/已完成/已归档), 由 task.json 英文 status 映射 + AI 细化而来。
 > ⛔ **及时同步**: 每个节点后**立即**跑脚本同步对应行, 不延迟、不批量攒。看板滞后于 task.json 即失效。
 
 | 节点 | 动作 |
 | --- | --- |
-| create | 追加行: 状态 `规划中`, 阶段 `规划`, 进度 `0%`, worktree `—` |
-| start | 该行: 状态 → `进行中`, 阶段 → `实施`, worktree → hook 建的路径 |
-| 阶段推进 | 该行: 阶段列 (实施→检查→收尾), 进度同步 |
-| check 未过回退 | 该行阶段 检查 → 退回 实施 |
-| archive | 该行: 状态 → `已完成`, 阶段 → `收尾`, 进度 `100%` (行**保留**在表内, **不删**) |
+| create | 追加行: 状态 `规划中`, worktree `—` |
+| start | 该行: 状态 → `实施中`, worktree → hook 建的路径 |
+| 阶段推进 | 该行: 状态列细化 (实施中→检查中→收尾) |
+| check 未过回退 | 该行状态 检查中 → 退回 实施中 |
+| archive | 该行: 状态 → `已完成` (行**保留**在表内, **不删**) |
 
 ## 自动清理 (超 7 天的已完成任务)
 
@@ -34,7 +34,7 @@
 
 - **规则**: 状态 = `已完成` **且** 完成时间距今 **> 7 天** 的行 → 从表中移除。
 - **完成时间来源**: 对应 task 的 `task.json.completedAt` (或 `archive/` 目录归档日期)。无 completedAt → 保守保留 (不清)。
-- **只清已完成行**: 状态 `规划中` / `进行中` 的行**无论多久都保留** (在做的任务不能丢)。
+- **只清已完成行**: 状态 `规划中` / `实施中` / `检查中` / `收尾` 的行**无论多久都保留** (在做的任务不能丢)。
 - **基准日期**: 当前日期 (执行时取系统今日)。`今日 - completedAt > 7 天` 即清。
 
 ```python
@@ -56,7 +56,7 @@ def cleanup(rows, today):  # rows: 解析出的表行
 ```python
 # 按 id 定位看板行 (Markdown 表), 更新或追加
 import re
-def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,阶段,进度,worktree]
+def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,worktree]
     row = f"| {tid} | " + " | ".join(cells) + " |"
     pat = rf"(?m)^\| {re.escape(tid)} \|.*$"
     if re.search(pat, md):
@@ -71,7 +71,7 @@ def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,阶段,进度,w
 | 触发 | 一线修复 | 仍失败兜底 |
 | --- | --- | --- |
 | 同 id 出现重复行 | 按 id 跑 `update` 覆盖, 由幂等替换收敛 | `taskmd.py sync` 全量重建表, 重复行随之消除 |
-| task.md 与 task.json 状态/阶段不符 | 跑 `sync`(确定性列) + `update`(主观列) 重新同步该行 | `task.py list` 全量重建整表, 以 task.json 为唯一真值 |
+| task.md 与 task.json 状态/阶段不符 | 跑 `sync`(确定性列) + `update`(状态细化+worktree) 重新同步该行 | `task.py list` 全量重建整表, 以 task.json 为唯一真值 |
 | 表头/表格被破坏无法解析 | — | 删表体仅留标题+表头, `sync` 全量重填 |
 | 已完成行清不掉 (无 completedAt) | 保守保留该行, 不强删 | 人工确认 archive 日期后删, 禁凭空补 completedAt |
 
@@ -82,8 +82,8 @@ def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,阶段,进度,w
 | 直接手编 task.md (绕过脚本) | 一律走 `taskmd.py` (`sync`/`update`/`show`/`cleanup`) |
 | 同 id 再追加新行 | 按 id `update` 原地覆盖 |
 | archive 后删行 | 行保留在表内, 靠 7 天 `cleanup` 自动瘦身 |
-| 删进行中/规划中行 | `cleanup` 只清 `已完成` 且 >7 天的行 |
-| 看板写英文 status | 写中文 (规划中/进行中/已完成), 由英文真值映射 |
+| 删实施中/规划中行 | `cleanup` 只清 `已完成` 且 >7 天的行 |
+| 看板写英文 status | 写中文 (规划中/实施中/检查中/收尾/已完成/已归档), 由英文真值映射 + AI 细化 |
 | 攒多个节点后批量同步 | 每节点后立即同步对应行 |
 
 ## 与 git

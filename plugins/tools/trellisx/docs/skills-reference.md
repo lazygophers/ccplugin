@@ -50,8 +50,9 @@
 
 - **触发**: task 生命周期任一节点 (create/start/阶段推进/archive) 之后; 用户问"当前有哪些任务/进度"。
 - **arguments**: `[show|update|sync|cleanup ...] [task id]`
-  - `show` 查看看板 / `update <tid>` 改阶段·进度·worktree / `sync <create|start|archive>` 从 task.json 同步 (hook 用) / `cleanup` 清理超 7 天已完成。
-- **铁规**: 一律经 `trellisx-taskmd.py`, 禁直接编辑 task.md。hook 维护确定性列, AI 维护主观列。
+  - `show` 查看看板 / `update <tid>` 改状态 (阶段细化) ·worktree / `sync <create|start|archive>` 从 task.json 同步 (hook 用) / `cleanup` 清理超 7 天已完成。
+- **5 列看板**: ID / 名称 / 描述 / 状态 / worktree。状态列承载生命周期阶段 (规划中/实施中/检查中/收尾/已完成/已归档); hook sync 写基础态, AI update 细化阶段, 冲突时 hook 不覆 AI 细分。
+- **铁规**: 一律经 `trellisx-taskmd.py`, 禁直接编辑 task.md。hook 维护确定性列, AI 细化状态 + worktree。
 - **references**: `dimensions.md` (看板列 + Worktree↔Task 映射) / `maintenance.md` / `task-md-template.md`。
 
 ## trellisx-spec

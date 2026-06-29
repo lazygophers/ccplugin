@@ -32,15 +32,15 @@ task.md 看板**唯一**读写入口。
 | 子命令 | 作用 |
 | --- | --- |
 | `sync <create\|start\|archive>` | 从 task.json 同步看板行 (hook 用) |
-| `update <tid>` | 改阶段/进度/worktree (AI 主观列) |
+| `update <tid>` | 改状态 (阶段细化) / worktree (AI) |
 | `show` | 查看看板 |
 | `cleanup [--days N]` | 删看板已完成行 (默认 --days 0 全删) |
 | `map-add <wt> <tid> <source>` | Worktree↔Task 映射登记 |
 | `map-remove <wt>` | 映射移除 |
-| `lint` | 看板格式检查 |
-| `fix` | 自动修复 (错置行归位/英文状态归一/去重, 写前备份) |
+| `lint` | 看板格式检查 (主表 5 列 / 映射区 3 列) |
+| `fix` | 自动修复 (旧列迁移/错置行归位/英文状态归一/去重, 写前备份) |
 
-- **铁规**: 禁直接编辑 task.md。hook 维护确定性列 (ID/名称/描述/状态), AI 维护主观列 (阶段/进度/worktree), 同行不同列互不覆盖。
+- **铁规**: 禁直接编辑 task.md。hook 维护确定性列 (ID/名称/描述/状态基础态), AI 细化状态 (阶段: 实施中/检查中/收尾) + worktree, 同行不同列互不覆盖。冲突时 hook sync 不覆 AI 已写细分。
 
 ## trellisx_wt.py
 
