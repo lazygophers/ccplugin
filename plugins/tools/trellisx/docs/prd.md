@@ -80,17 +80,17 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 维护 `.trellis/task.md` 单表格任务看板 (hook 维护确定性列 + AI 维护主观列, 经 `trellisx-taskmd.py` 唯一入口)。
 
-### 5.5 trellisx-spec (破坏式 spec 优化)
+### 5.5 trellisx-spec (破坏式 spec 优化, 主动化)
 
-初始化/优化/重写 `.trellis/spec/`, 允许破坏式变更; 描述性条款 → 可机器验证的命令式契约 (MUST/禁/严禁)。main 直接执行 (非 fork subagent, 因 subagent 不能走 AskUserQuestion)。
+初始化/优化/重写 `.trellis/spec/`, 允许破坏式变更; 描述性条款 → 可机器验证的命令式契约 (MUST/禁/严禁)。main 直接执行 (非 fork subagent, 因 subagent 不能走 AskUserQuestion)。**spec 主动化 (软约束)**: planning 时自动加载相关 guide 注入上下文; finish 前自动判 sediment 需求 (有增量才沉淀, 无则跳过)。sediment ≠ cortex。
 
 ### 5.6 trellisx-cleanup (批量收尾)
 
 一次清理/归档/收尾**全部**已完成 task (completed ∪ merged)。三段护栏: dry-run → AskUserQuestion → --apply。
 
-### 5.7 trellisx-grill (对抗式审查)
+### 5.7 trellisx-grill (对抗式审查, 贯穿 plan 前/中/后)
 
-写盘/`task.py start`/spec 重构前, 逐分支 stress-test prd/design/implement/spec/subtask, 产弱点表不改写 (源于 grill-me)。
+贯穿 plan 前/中/后全程的对抗式 stress-test prd/design/implement/spec/subtask, 帮用户确认/审查/拆解需求 (plan 前审方向, planning 中审拆解, start 前最后校对), 产弱点表不改写 (源于 grill-me)。
 
 ## 6. 约束
 

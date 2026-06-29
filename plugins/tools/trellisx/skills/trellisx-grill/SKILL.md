@@ -1,15 +1,15 @@
 ---
 name: trellisx-grill
-description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 在写盘或 task.py start 前逐分支 stress-test 设计树。逐问审 (一次一问 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
-when_to_use: '用户要"grill / 审一下 / stress-test / 对抗审查 / 挑刺 / 红队"某 prd/design/implement/spec/subtask 时; planning→start 前最后一遍对抗校对; spec 破坏式重构前先 grill 弱点; 写完 PRD 不确定方向对不对; 拆完 subtask 怀疑有盲点。短语 "grill 这个 plan" "审下设计" "stress-test" "红队审查"'
+description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 贯穿 plan 前/中/后全程逐分支 stress-test 设计树, 帮用户确认/审查/拆解需求。逐问审 (一次一问 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / planning 中 / start 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
+when_to_use: '用户要"grill / 审一下 / stress-test / 对抗审查 / 挑刺 / 红队"某 prd/design/implement/spec/subtask 时; **贯穿 plan 前/中/后全程**: plan 前 (帮确认/收敛需求, brainstorm 产出草稿后审方向对不对); planning 中 (审 design/subtask 拆解有无盲点); start 前 (最后一遍对抗校对); spec 重构前先 grill 弱点; 任意决策点不确定想挑刺。短语 "grill 这个 plan" "审下设计" "stress-test" "红队审查"'
 user-invocable: true
 argument-hint: '<工件路径 或 "active task">'
 arguments: '[被审工件路径 (prd/design/implement/spec 文件), 缺省 = active task 全部 planning 工件]'
 ---
 
-# trellisx-grill — 对抗式工件审查
+# trellisx-grill — 对抗式工件审查 (贯穿 plan 前/中/后)
 
-写盘 / `task.py start` / spec 重构**之前**, 用对抗式访谈逐分支 stress-test 设计树, 挖「结构合规但实质失效」的盲点。**只批注不改写** —— 改工件是 orchestrate / spec 的职责, grill 只标注弱点 + 给推荐改法。
+**贯穿 plan 全程** (前/中/后) 的对抗式访谈工具, 帮用户**确认 / 审查 / 拆解**需求。plan 前 (brainstorm 草稿出方向后审对不对); planning 中 (审 design/subtask 拆解有无盲点); 写盘 / `task.py start` / spec 重构**之前** (最后一遍校对)。逐分支 stress-test 设计树, 挖「结构合规但实质失效」的盲点。**只批注不改写** —— 改工件是 orchestrate / spec 的职责, grill 只标注弱点 + 给推荐改法。
 
 > 源于 grill-me (relentless interview to sharpen a plan) + 项目实战盲点。grill-me 法: 逐问审, 一次一问, 每问给推荐答案, codebase 能答的先查 codebase 不问用户。
 
@@ -122,7 +122,7 @@ grill 报告
 ## 边界
 
 - 只读 + 批注, **禁写盘** (工件原文件零改动)
-- 不替代 orchestrate (编排) / spec (破坏式重构); grill 是前置审查, 路由交后者改
+- 不替代 orchestrate (编排) / spec (破坏式重构); grill 是**贯穿 plan 全程**的审查工具 (前/中/后), 路由交后者改
 - 与 darwin-skill dim8 实测互补: darwin 跑 test prompt 看触发准确性, grill 跑轴 H 看边界声明 —— 前者实证, 后者逻辑审查
 - 非 trellis 专属: 独立 prd/design 文件也能 grill (退化为不含 task.py 调用)
 

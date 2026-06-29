@@ -122,9 +122,15 @@ trellis 原生有每任务 `task.json`, 但无跨任务总览。trellisx 维护 
 
 **唯一入口**: 一律经 `.trellis/scripts/trellisx-taskmd.py`, 禁直接编辑 task.md。task.md 落后于 task.json = 看板失效, 视为流程缺陷。
 
-## 7. spec 破坏式优化
+## 7. spec 破坏式优化 (主动化: 任务开始自动加载 + 收尾自动 sediment)
 
 trellisx-spec 把 `.trellis/spec/` 描述性条款改为**可机器验证的命令式契约** (MUST / 禁 / 严禁)。允许破坏式变更 (丢弃旧版本/合并/拆分/推翻原结构), 但**必须走 AskUserQuestion 审批门** (所以 main 直接执行, 非 fork subagent)。
+
+**spec 主动化 (软约束, AI 判定 "如需")**:
+- **任务开始 (planning) 自动加载**: planning 开始时主动 grep `.trellis/spec/` 按主题找相关 guide, 命中则注入 PRD 上下文 (约束 / 契约 / 验收基准) 指导编排; 无相关 spec 则跳过。
+- **任务收尾 (finish 前) 自动 sediment 判定**: finish 前主动判本 task 有无 spec 增量需求 (非平凡契约 / 踩坑 / 反复犯错规则), 有则走 sediment 模式 (提案→审批→写盘), 无则跳过。sediment ≠ cortex (spec 自身增量沉淀 vs 知识库归档, 各管各的)。
+
+> grill 可贯穿 plan 前/中/后全程 (确认/审查/拆解需求), 非仅 start 前前置审查。
 
 ## 8. 概念速查
 

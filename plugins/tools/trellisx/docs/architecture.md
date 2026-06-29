@@ -56,12 +56,14 @@ trellisx-apply
 用户请求
   → trellisx-flow (强制闭环) 或 trellis 原生
   → planning (trellisx-orchestrate 编排 prd/design/implement/subtask)
+       → 📄 spec 自动加载: grep .trellis/spec/ 按主题找相关 guide 注入 PRD 上下文 (软约束, 无则跳过)
   → task.py start
        → after_start hook: 建 worktree (3 布局自适应) + task.md sync
   → exec (main 调度派 trellis-implement 各执行 1 subtask, 动态 DAG 并发上限 2, 共享 task worktree)
        → guard UserPromptSubmit: 注入执行载体约束 (有 active task 时)
   → check (trellis-check)
   → finish
+       → 📄 spec 自动 sediment 判定: 有增量 (非平凡契约/踩坑) 则走 trellisx-spec sediment, 无则跳过 (软约束)
        → AI 层: TaskList 查悬挂 Workflow/agent → TaskStop 关
        → git 层: after_finish hook → trellisx-finish.py
             (commit→merge --no-ff 子先主后→销 worktree→archive)

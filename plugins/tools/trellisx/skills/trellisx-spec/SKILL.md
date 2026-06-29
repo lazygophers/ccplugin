@@ -1,7 +1,7 @@
 ---
 name: trellisx-spec
-description: '初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写'
-when_to_use: '用户提及 spec 的 初始化/优化/重写/收紧/refactor, 抱怨 spec 弱/不可执行, 任务收尾沉淀, 或说"记不住/老忘/反复犯错/又踩坑"暗示规则未沉淀。短语 "初始化 spec" "优化 spec" "记不住"'
+description: '初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。sediment 模式 = finish 前自动判定触发 (有增量才沉淀, 软约束); planning 时 spec 自动加载 (交叉引用 trellisx-flow/orchestrate)'
+when_to_use: '用户提及 spec 的 初始化/优化/重写/收紧/refactor, 抱怨 spec 弱/不可执行, finish 前**自动判 sediment 需求** (trellisx-flow finish 步触发, 非用户主动调), 或说"记不住/老忘/反复犯错/又踩坑"暗示规则未沉淀。短语 "初始化 spec" "优化 spec" "记不住"'
 argument-hint: '[scope]'
 arguments: '[范围]'
 ---
@@ -12,7 +12,7 @@ arguments: '[范围]'
 
 ## 第 1 步: 检测项目环境与模式
 
-> **推荐前置**: optimize/sediment 模式做破坏式重构前, 先 `/trellisx-grill` 对现有 spec 审一轮 (轴 C 验证可执行性 / H 触发准确性 / I token / J 自举矛盾 / K 诚实边界), grill 出的弱点喂给下方诊断, 避免重构时丢关键约束。
+> **推荐配套**: optimize/sediment 模式做破坏式重构前, 可先 `/trellisx-grill` 对现有 spec 审一轮 (轴 C 验证可执行性 / H 触发准确性 / I token / J 自举矛盾 / K 诚实边界), grill 出的弱点喂给下方诊断, 避免重构时丢关键约束。grill 可在任意阶段调用 (非仅前置)。
 
 ```bash
 # 1.1 确认 .trellis/ 存在
@@ -31,10 +31,15 @@ python3 ./.trellis/scripts/task.py current 2>/dev/null || true
 | 现状 (按行从上往下匹配, 命中即停) | 模式 | 进入第 2 步分支 |
 | --- | --- | --- |
 | `.trellis/spec/` 不存在 / 空 / 仅含 index.md (`find .trellis/spec -type f` 仅 0 或 1 行且为 index.md) | **init** | 2A |
-| `task.py current` 非空, 且满足任一: 用户输入含触发词 `沉淀` / `任务完成` / `收尾` / `学习沉淀` ; 或 task 已在 Phase 3 | **sediment** | 2C |
+| `task.py current` 非空, 且满足任一: 用户输入含触发词 `沉淀` / `任务完成` / `收尾` / `学习沉淀` ; 或 task 已在 Phase 3 ; 或 **finish 前自动判定有 spec 增量** (trellisx-flow finish 步触发) | **sediment** | 2C |
 | 以上均不命中 (有 spec 内容, 用户要求优化 / 重写 / 收紧) | **optimize** | 2B |
 
 参数 `$范围` (skill 启动时传入): 限制本次处理范围 (目录 glob / 文件路径 / `all`)。缺省 = `all`。
+
+> 📄 **spec 主动化 (软约束, 两端自动)**:
+> - **planning 自动加载**: trellisx-flow / trellisx-orchestrate 在 planning 开始时主动 grep `.trellis/spec/` 按主题加载相关 guide 注入 PRD 上下文 (有相关 spec 才加载, 无则跳过)。本 skill 不负责加载, 仅提供 spec 内容供加载。
+> - **finish 前 sediment 自动判定**: trellisx-flow finish 步主动判本 task 有无 spec 增量 (非平凡契约 / 踩坑 / 反复犯错), 有则触发本 skill sediment 模式 (提案→审批→写盘), 无则跳过。**非用户主动调**, 是流程自动判定 ("如需" = AI 判)。
+> - **sediment ≠ cortex**: sediment 是 spec 自身增量沉淀 (命令式契约), 非 cortex 知识库归档。两者并存, 各管各的。
 
 ## 第 2 步: 按模式读 references + 准备提案
 

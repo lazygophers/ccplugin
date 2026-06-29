@@ -58,7 +58,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 | 步骤 | 行动 | 写法 reference | 填好范例 |
 | --- | --- | --- | --- |
-| 1 | PRD 编排 — deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | `references/prd-orchestration.md` | `examples/prd.md` |
+| 1 | PRD 编排 — 📄 **先 grep `.trellis/spec/` 按主题加载相关 guide 注入上下文 (软约束, 无则跳过)**, 再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | `references/prd-orchestration.md` | `examples/prd.md` |
 | 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | `references/subtask-file.md` | `examples/subtask/S2-jwt-utils.md` `examples/subtask/S3-jwt-middleware.md` |
 | 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | `references/design-orchestration.md` | `examples/design.md` |
 | 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | `references/implement-orchestration.md` | `examples/implement.md` |
@@ -67,7 +67,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 轻量 task (恰好 1 deliverable 且 1 subtask) 只做步骤 1 + 2 (PRD + 单 subtask 文件)。其余 (≥ 2 deliverable 或 ≥ 2 subtask) 必须 6 步走完才能进入 `task.py start`。
 
-> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。**推荐先 `/trellisx-grill` 对 prd/design/implement 做对抗审查** (挖结构合规下的实质盲点: 失败模式/触发准确性/token 生命周期), grill 出的弱点在此补齐后再 start。
+> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。**`/trellisx-grill` 可贯穿 plan 前/中/后** (plan 前确认需求方向, planning 中审拆解盲点, start 前最后一遍对抗校对), grill 出的弱点在此补齐后再 start。
 
 范例集索引: `examples/README.md` (同一 OAuth2 登录场景贯穿全部文档)。
 

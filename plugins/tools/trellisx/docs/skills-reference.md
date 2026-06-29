@@ -59,11 +59,12 @@
 
 **破坏式 spec 优化**。
 
-- **触发**: 用户提 spec 初始化/优化/重写/收紧, 抱怨 spec 弱/不可执行, 任务收尾沉淀, 或"记不住/老忘/反复犯错"。
+- **触发**: 用户提 spec 初始化/优化/重写/收紧, 抱怨 spec 弱/不可执行, finish 前**自动判 sediment 需求** (trellisx-flow finish 步触发), 或"记不住/老忘/反复犯错"。
 - **arguments**: `[scope]`
-- **模式**: init (无 spec) / optimize (现有 spec 破坏式重构) / sediment (任务收尾沉淀增量)。
+- **模式**: init (无 spec) / optimize (现有 spec 破坏式重构) / sediment (finish 前自动判定触发, 有增量才沉淀)。
+- **spec 主动化 (软约束)**: planning 自动加载相关 guide 注入上下文; finish 前自动判 sediment (有增量才跑, 无则跳过)。sediment ≠ cortex。
 - **流程**: 诊断 (init 跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。
-- **铁规**: main 直接执行 (非 fork subagent, 因 subagent 不能走 AskUserQuestion)。严禁未确认改写。推荐前置 `/trellisx-grill` 审一轮。
+- **铁规**: main 直接执行 (非 fork subagent, 因 subagent 不能走 AskUserQuestion)。严禁未确认改写。配套 `/trellisx-grill` 可在任意阶段审一轮。
 - **references**: `diagnose.md` / `propose.md` / `approve.md` / `execute.md` / `sediment-mode.md` / `rewrite-style.md` / `init-mode.md` / `selfcheck.md`。
 
 ## trellisx-cleanup
@@ -80,7 +81,7 @@
 
 **对抗式工件审查**。
 
-- **触发**: 用户要"grill/审一下/stress-test/对抗审查/挑刺/红队"某 prd/design/implement/spec/subtask; planning→start 前最后一遍校对; spec 重构前先 grill。
+- **触发**: 用户要"grill/审一下/stress-test/对抗审查/挑刺/红队"某 prd/design/implement/spec/subtask; **贯穿 plan 前/中/后全程** (plan 前确认需求方向, planning 中审拆解盲点, start 前最后校对); spec 重构前先 grill。
 - **arguments**: `[被审工件路径, 缺省 = active task 全部 planning 工件]`
 - **立场**: 对抗非审批 (找不到盲点 ≠ 通过, 是 grill 失败); 只批注不改写 (改盘交 orchestrate/spec); 一次一问; codebase 优先 (能查的不问用户)。
 - **骨架**: blindspots 9 轴 + 五要素浓缩 (token 生命周期 / 触发准确性 / 自举矛盾 / 诚实边界摘樱桃 等)。
@@ -93,7 +94,7 @@
 请求想强制走 task 闭环      → /trellisx-flow <请求>
 planning 阶段编排           → trellisx-orchestrate (自动)
 task 生命周期同步看板       → trellisx-workspace (自动 + show)
-spec 弱/不可执行/记不住     → trellisx-spec
+spec 弱/不可执行/记不住     → trellisx-spec (planning 自动加载 / finish 自动 sediment)
 多 task 完成堆积想统一收口  → trellisx-cleanup (--apply)
-start 前想挑刺/红队         → trellisx-grill
+plan 前/中/后想挑刺/红队    → trellisx-grill
 ```
