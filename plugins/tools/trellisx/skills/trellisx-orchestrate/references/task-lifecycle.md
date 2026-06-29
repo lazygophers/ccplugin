@@ -25,8 +25,7 @@ flowchart TB
     VERIFY -->|通过| SPEC["spec 沉淀<br/>trellisx-spec skill sediment 模式"]
     SPEC --> COMMIT["commit + push"]
     COMMIT --> MERGE["合并 worktree → 当前分支<br/>+ git worktree remove 清理"]
-    MERGE --> CORTEX["非平凡发现落 cortex<br/>(架构决策/踩坑/选型/技巧)"]
-    CORTEX --> STOP["TaskStop / finish-work<br/>status: completed"]
+    MERGE --> STOP["TaskStop / finish-work<br/>status: completed"]
 ```
 
 ## Worktree 生命周期 (绑定整个 task)
@@ -58,7 +57,6 @@ flowchart TB
 | spec sediment | `in_progress` | check 通过 | `.trellis/spec/` 增量 | `trellisx-spec` sediment 模式 | 跳过 (非必须) |
 | commit | `in_progress` | spec 沉淀完成 | git commit + push | 通用 git | 修复后重 commit |
 | worktree 合并清理 | `in_progress` | commit 完成 | 改动并入当前分支 + worktree 移除 | git merge + worktree remove | 合并冲突回 execute 解决 |
-| cortex 落档 | `in_progress` | worktree 清理完成 | cortex 笔记 | `cortex-save` / `cortex-ingest` | 必落, 不落不准关闭 |
 | stop | `completed` | 全部前置完成 | `task.json` status 翻转 | `/trellis:finish-work` | 卡住时 `task.py status set blocked` |
 
 ## 阶段间硬规
@@ -69,7 +67,6 @@ flowchart TB
 - **in_progress 后回 planning 不可跳过 review**: 若执行中发现 PRD 缺漏, 回 planning 改 PRD 后必须再 review
 - **check 不通过禁 commit**: trellis-check 单点失败必须修, 系统性失败回 planning 重拆
 - **spec 沉淀走 trellisx-spec sediment**: 不直接编辑 `.trellis/spec/`; 必须走 4 阶段 (跳过诊断) + AskUserQuestion 审批门
-- **cortex 落档前禁 stop**: 非平凡发现 (架构决策 / 踩坑 / 选型 / 技巧 / 外部综述) 任务结束前必须落 cortex; 未落档不得宣告 Done
 
 ## 阶段切换检查表
 
@@ -83,7 +80,7 @@ flowchart TB
 
 > 🔴 CHECKPOINT — `task.py start` (planning→in_progress) 与 `commit + push` 是不可逆切换, **MUST 走 AskUserQuestion 取得用户批准后**才执行, 禁默认推进。
 >
-> 🛑 STOP — 非平凡发现 (架构决策 / 踩坑 / 选型 / 技巧 / 外部综述) 未落 cortex **禁 TaskStop**; 残留未合并 / 未移除的 worktree **禁宣告 task 完成**。
+> 🛑 STOP — 残留未合并 / 未移除的 worktree **禁宣告 task 完成**。
 
 ## 与 trellisx-orchestrate 6 步流程的对应
 

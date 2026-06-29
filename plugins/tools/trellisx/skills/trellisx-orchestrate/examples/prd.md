@@ -89,7 +89,6 @@ flowchart LR
 - 全部 Requirements 实现 + Acceptance Criteria 勾选
 - 全部变更自动暂存 (CLAUDE.md §1)
 - task worktree 已合并到当前分支 + `git worktree remove` 清理
-- 非平凡发现 (OAuth 接入踩坑 / JWT 取舍) 落 cortex
 - bump `.version` (用户可见的登录方式变更)
 
 ## Out of Scope

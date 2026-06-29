@@ -62,7 +62,6 @@ flowchart LR
 - 全部 Requirements 实现 + Acceptance Criteria 勾选
 - 变更自动暂存
 - task worktree 已合并 + 移除 (环境干净)
-- 非平凡发现落 cortex
 - bump .version (若用户可见功能变更)
 
 ## Out of Scope
@@ -101,7 +100,7 @@ flowchart LR
 
 5. **保留 trellis 原生 section**: brainstorm 已写的 Goal / What I already know / Assumptions / Open Questions 不删不改骨架, 仅在其后插入 trellisx 增强 (Deliverable 矩阵 / Subtask 拆分 / 调度图)。禁用自定义中文 section 替换原生英文骨架 (破坏 trellis 工具链识别)。
 
-6. **Definition of Done 必含 worktree 清理 + cortex 落档**: task 结束前 worktree 合并 + 移除, 非平凡发现落 cortex。
+6. **Definition of Done 必含 worktree 清理**: task 结束前 worktree 合并 + 移除。
 
 ## Multi-deliverable 判定
 

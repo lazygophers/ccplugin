@@ -16,15 +16,13 @@
                      map-add <wt> <tid> <source> (source 取输入 JSON source 字段)。
                      全程吞异常, 不影响已回显 path。
 - WorktreeRemove   : worktree 销毁事件 → map-remove 清映射 (不阻断)。
-- Stop            : 三类闸顶层 {"decision":"block"} 提示 (不自动销毁/finish):
+- Stop            : 两类闸顶层 {"decision":"block"} 提示 (不自动销毁/finish):
                     ①已合并未清理 worktree (分支已合并回主 HEAD 且目录仍在且 clean,
                        且分支确有落入 HEAD 的提交 —— 排除刚切出零提交的新建分支误判);
-                    ②游离 worktree (未登记映射到任何 task, tid=?/None, 从未走 trellisx 流程);
-                    ③活动 task 未完成 (非 stale 活动 task 且 status != completed)。
+                    ②游离 worktree (未登记映射到任何 task, tid=?/None, 从未走 trellisx 流程)。
                     清理类闸 ①② 仅对「映射 task 已 completed/archived 或无映射」的 worktree 生效;
                     映射 task 仍 in_progress 的 worktree 视为在用, 跳过 (避免执行中误报清理)。
-                    活动 task 经 `current --source` 取, stale 指针 (目录已删/session-fallback
-                    兜底猜测) 一律视为无活动 task, 不误判。
+                    (不再阻断「活动 task 未完成」—— Stop 不应禁用户结束会话。)
                     抑制阀: .runtime/ 记状态, 同批连续 block 满 3 次 → 第 3 次降级
                     additionalContext 提示一次 (契约 Stop 不支持 systemMessage), 第 4 次起
                     彻底静默 return 0 (防底层条件不变时无限重复降级提示)。无问题 → return 0。
@@ -433,14 +431,14 @@ def main():
     if event == "Stop":
         repo = git_top(cwd) or cwd
         head_wt = main_worktree(repo)
-        # 三类闸: ①已合并未清理 worktree ②游离(未映射 task)worktree ③活动 task 未完成
+        # 两类闸: ①已合并未清理 worktree ②游离(未映射 task)worktree
+        # (不再阻断「活动 task 未完成」—— Stop 不应禁用户结束会话)
         merged, orphan = [], []
         for p, br in non_main_worktrees(repo):
             if not os.path.isdir(p):
                 continue
             tid = map_tid_for(troot, p)
-            # worktree 映射的 task 仍在进行 (非 completed/archived) → worktree 在用,
-            # 跳过清理类闸 (合并/游离); 是否未完成由下方「活动 task 闸」单独负责提醒。
+            # worktree 映射的 task 仍在进行 (非 completed/archived) → worktree 在用, 跳过清理类闸
             if tid and tid != "?":
                 st = task_status_by_tid(troot, tid)
                 if st is not None and st not in ("completed", "archived"):
@@ -451,24 +449,11 @@ def main():
                 # 已合并未清理优先归类; 余下未登记映射的视为游离 (从未走 trellisx task 流程)
                 orphan.append((p, br))
 
-        # 活动 task 状态闸: 非 stale 活动 task 且 status != completed → 未完成
-        tid_a, status_a = active_task_info(troot)
-        task_issue = (
-            (tid_a, status_a or "unknown")
-            if (tid_a is not None and status_a != "completed")
-            else None
-        )
-
-        if not merged and not orphan and task_issue is None:
+        if not merged and not orphan:
             valve_reset(troot)
             return 0
 
         sections = []
-        if task_issue:
-            sections.append(
-                f"[trellisx] 活动 task 未完成: {task_issue[0]} (status={task_issue[1]}) "
-                "→ 推进至完成并 `task.py finish` 归档后再结束"
-            )
         if merged:
             lines = [
                 f"  - {p} (task={tid}) 已合并未清理 → `git worktree remove {p}` 或 `task.py finish`"
@@ -494,17 +479,16 @@ def main():
             sorted(
                 [p for p, _, _ in merged]
                 + [p for p, _ in orphan]
-                + ([f"task:{task_issue[0]}"] if task_issue else [])
             )
         )
         streak = valve_bump(troot, batch_key)
 
-        if streak >= 2:
+        if streak >= 4:
             # 熄火: 同批问题降级提示已展示过 (streak==3 那次), 之后彻底静默,
             # 否则底层条件不变 → batch_key 不变 → 每次 Stop 重复喷降级提示 = 无限刷屏。
             # 不 reset (保留计数), 待 batch_key 变 (问题换/消失) 时 valve_bump 自然归 1。
             return 0
-        if streak == 2:
+        if streak == 3:
             # 抑制阀: 连续 block 满 3 次 → 降级放行一次。契约 Stop 只认顶层 decision,
             # 非错误反馈用 hookSpecificOutput.additionalContext (systemMessage 在 Stop 不支持)。
             print(
@@ -513,24 +497,13 @@ def main():
                         "hookSpecificOutput": {
                             "hookEventName": "Stop",
                             "additionalContext": body
-                            + "\n(已连续提示 2 次, 本次起不再阻断也不再重复提示。)",
+                            + "\n(已连续提示 3 次, 本次起不再阻断也不再重复提示。)",
                         }
                     }
                 )
             )
-        if merged or orphan:
-            print(json.dumps({"decision": "block", "reason": body}))
-        else:
-            print(
-                json.dumps(
-                    {
-                        "hookSpecificOutput": {
-                            "hookEventName": "Stop",
-                            "additionalContext": body,
-                        }
-                    }
-                )
-            )
+            return 0
+        print(json.dumps({"decision": "block", "reason": body}))
         return 0
 
     if event == "SubagentStop":

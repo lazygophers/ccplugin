@@ -2,13 +2,13 @@
 
 design / implement 标注每块工作的执行层 (`main / sub-agent / agent-team / workflow`)。planning 阶段定层, dispatch 阶段直接读, 不重判。
 
-**硬规 (worktree 约束)**: 实施类 (写源码/落盘) **必须在 task worktree 内执行** — `main 直做` 时 main 在 task worktree 内写; sub-agent / agent-team / workflow agent **共享 task worktree** (不开 per-subagent 子 worktree, subtask 与 worktree 无绑定)。禁在主工作区写源码。
+**硬规 (worktree 约束 + main 写源码默认禁)**: **main 写源码 = 默认禁** (优先派 subagent); 仅特别情况 (≤3 文件微改 / subagent 难处理的上下文密集决策 / 用户显式要求) 例外, 且**必在 task worktree 内写**。实施类 (写源码/落盘) **必须在 task worktree 内执行** — sub-agent / agent-team / workflow agent **共享 task worktree** (不开 per-subagent 子 worktree, subtask 与 worktree 无绑定)。禁在主工作区写源码。
 
 ## 4 层模型
 
 | 层 | 协调者 | 上下文 | 通信 | 并发上限 | 适用 |
 | --- | --- | --- | --- | --- | --- |
-| main 直做 | — | 主对话 | 无 | 1 | ≤ 3 文件 / 已知 file:line; 实施类**必在 worktree 内写** (探索只读不限) |
+| main 直做 | — | 主对话 | 无 | 1 | **默认禁** (优先派 subagent); 仅特别情况例外 (≤3 文件微改 / subagent 难处理的上下文密集决策 / 用户显式要求), 必在 task worktree 内写 |
 | sub-agent | main 逐轮决策 | 隔离 context window | 仅向 main 返回摘要 | 16 (机器上限) | 高量输出隔离 / 并行调研 / 强约束工具 |
 | agent-team | leader 协调 + 共享任务列表 | 每 teammate 独立 | SendMessage 直接互发 | 3-5 推荐 | 多假设辩论 / 跨层协调 / 多视角审查 |
 | workflow | 脚本 | 脚本变量持有中间结果 | 阶段串接 | 16 并发 / 1000 总 | 仓库级审计 / 大规模迁移 / 多源交叉验证 |
@@ -18,12 +18,12 @@ design / implement 标注每块工作的执行层 (`main / sub-agent / agent-tea
 ```
 任务特征                                    → 选层
 ─────────────────────────────────────────────
-≤ 3 文件 + 无并行 + 已知位置                → main 直做
+≤ 3 文件 + 无并行 + 已知位置 (仅只读探索或特别例外) → main 直做 (实施类默认派 subagent)
 辅助任务产高量输出 (调研/报告) + 摘要可用    → sub-agent
 独立调研 + 多角度并行 + 摘要回流             → sub-agent 并行 (≤ 16)
 teammate 需互相辩论 / 跨层协调               → agent-team (3-5)
 ≥ 5 同类文件改 / 仓库审计 / 500+ 文件        → workflow + ultracode
-继承完整对话上下文 + 隔离副线探索             → fork (/fork)
+继承完整对话上下文 + 隔离副线探索             → fork (/fork, sub-agent 子选项, 继承对话上下文; 非独立层)
 ```
 
 ## Trellis 特定

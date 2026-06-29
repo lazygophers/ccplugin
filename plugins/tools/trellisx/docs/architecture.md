@@ -66,7 +66,7 @@ trellisx-apply
        → git 层: after_finish hook → trellisx-finish.py
             (commit→merge --no-ff 子先主后→销 worktree→archive)
        → task.md sync (archive, 7 天清理)
-  → guard Stop: block 未清理 worktree / 未完成 active task (三闸)
+  → guard Stop: block 未清理 worktree / 游离 worktree (两闸)
 ```
 
 ### 3.3 worktree 生命周期 (绑定 task)
@@ -92,7 +92,7 @@ trellisx-apply
 | UserPromptSubmit | 有 active task (in_progress) → 注入执行载体约束 (实质工作派 subagent; 派 agent=真实 tool_use; 完成即清理)。无 active task → 不强制。诊断提醒独立 (worktree 映射 tid=? 待补 / task.md lint 真失败才追加) |
 | WorktreeCreate | transform: 先无条件回显 worktree_path 到 stdout (缺 path=创建失败), 再 map-add \<wt\> \<tid\> \<source\>。吞异常不影响回显 |
 | WorktreeRemove | map-remove 清映射 (不阻断) |
-| Stop | 三类闸顶层 `{"decision":"block"}`: ①已合并未清理 worktree ②游离 worktree (tid=?/None) ③活动 task 未完成。抑制阀: 连续 block 满 3 次降级 additionalContext, 第 4 次起静默 |
+| Stop | 两类闸顶层 `{"decision":"block"}`: ①已合并未清理 worktree ②游离 worktree (tid=?/None)。抑制阀: 连续 block 满 3 次降级 additionalContext, 第 4 次起静默 |
 | SubagentStop | additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block) |
 | FileChanged (task.md) | 先跑 taskmd fix 自动修复 (错置行归位/英文状态归一/去重), 残留才 stderr 提醒 |
 

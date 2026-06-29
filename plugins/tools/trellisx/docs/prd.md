@@ -25,7 +25,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 | G1 | 五维度规则内化进 `.trellis/` | apply 后 workflow.md / config.yaml / scripts / spec guides / commands 全部落盘且幂等可重跑 |
 | G2 | 不依赖平台 hook 即跨平台生效 | 注入走 trellis 原生生命周期 hook, 非 Claude Code 专属 |
 | G3 | 绝不替换 trellis 原生文本 | 仅末尾追加 (marker 幂等), 原生 no_task/Phase/check/finish/前缀不动 |
-| G4 | 执行载体闭环可强制 | guard hook 在 trellis 项目内 block 未清理 worktree / 未完成 active task |
+| G4 | 执行载体闭环可强制 | guard hook 在 trellis 项目内 block 未清理 worktree / 游离 worktree (两闸) |
 | G5 | 概念正交清晰 | parent/child (任务级动态调度, 各 child 各 worktree) ≠ subtask (任务内动态调度, 共享 worktree); worktree 隔离单位 = task |
 
 ### 3.2 非目标
@@ -108,7 +108,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 | AC3 | task.py start 后 worktree 自动建, archive 后自动销, 主工作区零改动 |
 | AC4 | **main 动态 DAG 调度** subtask (并发上限 2, 完成即派下一个), 冲突 (写盘 glob 相交 / 执行作用域相交 / 显式依赖) 自动串行; 并行 trellis-implement 共享 task worktree 改不相交文件集无脏写 |
 | AC5 | finish 走全链 (commit→merge→销→archive), 未 archive 禁 Done |
-| AC6 | guard 在 trellis 项目 block 未清理 worktree / 游离 worktree / 未完成 active task; 非 trellis 项目静默退出 |
+| AC6 | guard 在 trellis 项目 block 未清理 worktree / 游离 worktree (两闸); 非 trellis 项目静默退出 |
 | AC7 | cleanup dry-run 报告准确, --apply 仅清 completed ∪ merged, active task 永不纳入 |
 | AC8 | task.md 看板随生命周期及时更新, 落后于 task.json 视为缺陷 |
 
