@@ -34,7 +34,7 @@ teammate 需互相辩论 / 跨层协调               → agent-team (3-5)
 | 调研 (外部文档 / 库选型 / 历史变更) | sub-agent (`trellis-research`) | 报告写入 `research/<topic>.md` |
 | 实施 + 检查闭环 | sub-agent (`trellis-implement` → `trellis-check`) | 顺序; **main 调度** (动态 DAG 派 trellis-implement 各执行 1 subtask, 见 `scheduling.md`) |
 | 多角度并行调研 | sub-agent ×N 并行 | 不同 `research/<topic-N>.md` |
-| 多 child 同步推进 | 各 child 独立 (按其 implement.md) | child 间通信走 main coordinator |
+| 多 child 动态调度 | parent 跑 child DAG (并发上限 2, 各 child 各 worktree) | child 间依赖走 parent coordinator (显式 depends-on); 独立 child 可并行 |
 | ≥ 5 同类文件批量改 / 全仓审计 | workflow | 用户显式同意才启 |
 
 ## Isolation 决策 (隔离单位 = task)

@@ -26,7 +26,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 | G2 | 不依赖平台 hook 即跨平台生效 | 注入走 trellis 原生生命周期 hook, 非 Claude Code 专属 |
 | G3 | 绝不替换 trellis 原生文本 | 仅末尾追加 (marker 幂等), 原生 no_task/Phase/check/finish/前缀不动 |
 | G4 | 执行载体闭环可强制 | guard hook 在 trellis 项目内 block 未清理 worktree / 未完成 active task |
-| G5 | 概念正交清晰 | parent/child (任务级依次) ≠ subtask (任务内并行); worktree 隔离单位 = task |
+| G5 | 概念正交清晰 | parent/child (任务级动态调度, 各 child 各 worktree) ≠ subtask (任务内动态调度, 共享 worktree); worktree 隔离单位 = task |
 
 ### 3.2 非目标
 
@@ -74,7 +74,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 ### 5.3 trellisx-orchestrate (planning 编排)
 
-编排 PRD/design/implement/subtask 文件 + mermaid 调度图; parent/child 拆分 (任务级依次); jsonl curate。subtask 文件声明 `write-files` + `exec-scope`; **main 自动冲突检测** (写盘 glob 相交 + 执行作用域相交 + 显式依赖 → 依赖边) + **动态 DAG 调度** (并发上限 2, 完成即派, 见 `scheduling.md`); trellis-implement 不调度不递归 (Recursion Guard)。
+编排 PRD/design/implement/subtask 文件 + mermaid 调度图; parent/child 拆分 (任务级动态调度, parent 是 child 级调度器, 各 child 各 worktree); jsonl curate。subtask 文件声明 `write-files` + `exec-scope`; **main 自动冲突检测** (写盘 glob 相交 + 执行作用域相交 + 显式依赖 → 依赖边) + **动态 DAG 调度** (并发上限 2, 完成即派, 见 `scheduling.md`); trellis-implement 不调度不递归 (Recursion Guard)。
 
 ### 5.4 trellisx-workspace (看板)
 

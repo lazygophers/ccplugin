@@ -127,9 +127,9 @@ trellisx 规约 (强化原生判定, 不切断建 task 路径): 本项目愿景 
 ## 注入点 1: `[workflow-state:planning]` 块末尾追加规划规约
 
 **两层拆分概念分清 (易混, 必守)**:
-- **parent/child (任务级, 依次执行)**: 本请求含**多个独立可验收交付** → 拆 parent + child tasks (trellis 原生 `task.py create --parent`)。child 是**独立 task**, 各有完整生命周期 (plan/implement/check/archive), **依次执行** (按依赖顺序, 一个 child 完成再启下一个), **非并行**。
+- **parent/child (任务级, 动态调度)**: 本请求含**多个独立可验收交付** → 拆 parent + child tasks (trellis 原生 `task.py create --parent`)。child 是**独立 task**, 各有完整生命周期 (plan/implement/check/archive), **各自独立 worktree**。child **动态调度**: 独立 child (无依赖) **可并行** (并发上限 2); 有依赖才串行; 完成即派下一个。parent 是 **child 级调度器** (持 child DAG)。
 - **subtask 拆分 (任务内 exec, 并行)**: 任一 task (parent 直接工作 或 每个 child) 的 **exec 阶段**若含多个**独立无影响**工作单元 → 拆 subtask, 各派专用 subagent **并行**推 implement.md checklist (经 trellis-implement 入口)。
-- **child ≠ subtask**: child 是任务级分解单元 (依次); subtask 是任务内 exec 并行单元。child 本身是 task, 其 exec 也可再 subtask 拆分 (并行 subagent)。
+- **child ≠ subtask**: child 是任务级分解单元 (动态调度, 各 child 各 worktree); subtask 是任务内 exec 执行单元 (共享 task worktree)。child 本身是 task, 其 exec 也可再 subtask 拆分 (动态调度 subagent)。
 
 ```
 <!-- trellisx:start:planning -->
@@ -139,13 +139,13 @@ trellisx 规划规约 (两层拆分概念分清):
 
 判定两层 (正交, 各自独立判):
 1. **parent/child?** 本请求是否含**多个独立可验收交付** (各自可独立 plan/implement/check/archive)?
-   - **是** → 拆 parent + child tasks (`task.py create --parent`)。child **依次执行** (按依赖顺序, 一个完成再启下一个, **非并行**); child 间依赖写进各 child 的 prd.md/implement.md (非树位置隐含); parent PRD MUST 含 child map 表 + 跨 child 验收 + 集成 review; 每个 child 独立 worktree。
+   - **是** → 拆 parent + child tasks (`task.py create --parent`)。child **动态调度**: 独立 child (无依赖) **可并行** (各 child 各 worktree, 并发上限 2); 有依赖才串行; 完成即派下一个。parent 是 **child 级调度器** (持 child DAG); child 间依赖写进各 child 的 prd.md/implement.md (非树位置隐含); parent PRD MUST 含 child map 表 + 跨 child 验收 + 集成 review; 每个 child 独立 worktree。
    - **否** → 单 task。
 2. **subtask 拆分?** 该 task (含每个 child) 的 exec 是否含多个**独立无影响**工作单元?
    - **是** → implement.md 拆 subtask, 各派专用 `trellis-implement` **并行**执行 (**main 是调度器**, 动态 DAG 调度并发上限 2, 完成即派, 见 trellisx-orchestrate `scheduling.md`; 无依赖并行, 共享 task worktree 文件集不相交即可, subtask 不绑定 worktree); **trellis-implement 不调度不递归** (工具集无 Agent/Task, Recursion Guard); main 不直接写源码。
    - **否** → 轻量 inline (trellis-implement 在 task worktree 内内联直做), 不强制拆 subtask。
 
-**两层正交**: parent/child 管任务级**依次**分解 (child 是独立 task); subtask 管任务内 exec **并行** (subagent fan-out)。child 自身可再 subtask 拆分。拆分目的 = 独立交付各自隔离 + 任务内最大化并行, 缩短关键路径; 不是为凑数量。详见 trellisx-orchestrate skill。
+**两层正交 (同构调度器)**: parent/child 管任务级**动态调度**分解 (child 是独立 task, 各 child 各 worktree, parent 持 child DAG 并发上限 2); subtask 管任务内 exec **动态调度** (subagent fan-out, 共享 task worktree, main 持 subtask DAG 并发上限 2)。两层调度器同构 (持 DAG / 动态派 / 完成即派 / 并发 2), 隔离单位不同。child 自身可再 subtask 拆分。拆分目的 = 独立交付各自隔离 + 任务内/任务间最大化并行, 缩短关键路径; 不是为凑数量。详见 trellisx-orchestrate skill。
 
 task 创建后, 用 `trellisx-workspace` 及时更新 `.trellis/task.md` 看板表 (新增/更新该任务行)。
 <!-- trellisx:end:planning -->

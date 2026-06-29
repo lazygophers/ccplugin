@@ -132,3 +132,53 @@ all done → dispatch trellis-check
 - [ ] 任一 trellis-implement 返回即触发下一轮派发 (不空等)
 - [ ] failed subtask 走 failure-recovery, 下游保持 blocked
 - [ ] trellis-implement 不派 subagent (Recursion Guard)
+
+## 8. child 级调度 (与 subtask 同构)
+
+> 本节是 parent/child 任务级调度的权威规程, 与 §0-7 的 subtask 级调度**同构**。详见 `task-tree.md`。
+
+**两层调度器同构**: trellisx 有两层动态 DAG 调度, 模型一致 (调度器持 DAG / 动态派 / 完成即派 / 并发上限 2), 差别仅在**调度者**与**隔离单位**:
+
+| 维度 | subtask 层 (§0-7) | child 层 (本节) |
+| --- | --- | --- |
+| 调度器 | **main** (task 内) | **parent** (跨 child) |
+| 调度对象 | subtask (任务内执行单元) | child (独立 task, 完整生命周期) |
+| 隔离单位 | **共享 task worktree** (并行 subagent 改不相交文件集) | **各 child 各 worktree** (每 child 独立 worktree, 天然隔离) |
+| 冲突判定 | ① write-files glob 相交 ② exec-scope 相交 ③ 显式 depends-on | ① 显式 depends-on (child 间依赖写各自 prd/implement) ② 跨 child 共享产物文件 (写盘 glob 相交); child 各自 worktree 故无 worktree 内文件冲突 |
+| 并发上限 | 2 | 2 |
+| 完成即派 | 任一 trellis-implement 返回即查新 ready、立即派 | 任一 child archive 即查新 ready child、立即派 |
+| 执行器 | trellis-implement (工具集无 Agent/Task, Recursion Guard) | child task 自身 exec (可再 subtask 拆分, 走 subtask 层调度) |
+
+**child DAG 构建**: parent 读各 child 的 prd/implement 中的显式 depends-on + 跨 child 写盘 glob 相交 → 建 child DAG → 动态调度循环 (与 §4 同构, 仅把 subtask 换成 child、trellis-implement 换成 child task exec)。
+
+**child 级动态调度循环 (parent, 并发上限 2)**:
+
+```
+# parent 在 child 调度阶段循环 (与 §4 subtask 循环同构)
+while exists(child not in {done, failed}):
+    ready_set = { c | c.status == ready }              # 无未完成依赖的 child
+    slots = 2 - count(c | c.status == running)          # 剩余并发槽
+    to_dispatch = take(ready_set, min(len(ready_set), slots))
+    for c in to_dispatch:
+        c.status = running
+        dispatch child exec (各 child 各 worktree, 并行)   # child 自身走 subtask 层调度
+
+    if no running and no ready:                          # 死锁检测
+        break → failure-recovery (child 依赖环)
+
+    wait for any child archive notification               # 不空等全部
+    on notification(c):
+        if c 验收通过:  c.status = done; 解锁下游 child
+        else:           c.status = failed → failure-recovery
+
+    loop (立即查新 ready child, 立即派)
+
+all child done → parent 跑跨 child 集成 review
+```
+
+**关键性质**:
+- **并发上限 2**: 同一时刻最多 2 个 child 并行 (各 child 各 worktree, 天然隔离无脏写)。
+- **独立可并行**: 无依赖边的 child 可并行 (与 subtask 层"无依赖边 = 可并行"一致)。
+- **有依赖才串行**: child B depends-on child A → A archive 才解锁 B。
+- **完成即派**: 任一 child archive 即更新态、查新 ready child、立即派下一个。
+- **child ≠ subtask (正交)**: child 是任务级调度单元 (独立 task, 各 worktree); subtask 是任务内执行单元 (共享 task worktree)。child 自身 exec 仍走 subtask 层调度。
