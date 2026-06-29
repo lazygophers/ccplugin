@@ -97,7 +97,7 @@ orchestrate Phase 3 收尾流程:
 3.5 wrap-up
 ```
 
-3.3 步触发本 skill, 自动 fork 到 trellisx-spec subagent, 走 propose → approve → execute。
+3.3 步触发本 skill (sediment 模式), **main 直接按 5 步流程执行** (诊断→提案→AskUserQuestion 审批→写盘→自检), 走 propose → approve → execute。**非 fork subagent** —— subagent 不能走 AskUserQuestion 审批门。
 
 ## 输出后跟进
 

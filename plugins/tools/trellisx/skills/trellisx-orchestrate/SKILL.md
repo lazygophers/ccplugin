@@ -67,7 +67,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 轻量 task (恰好 1 deliverable 且 1 subtask) 只做步骤 1 + 2 (PRD + 单 subtask 文件)。其余 (≥ 2 deliverable 或 ≥ 2 subtask) 必须 6 步走完才能进入 `task.py start`。
 
-> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。
+> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。**推荐先 `/trellisx-grill` 对 prd/design/implement 做对抗审查** (挖结构合规下的实质盲点: 失败模式/触发准确性/token 生命周期), grill 出的弱点在此补齐后再 start。
 
 范例集索引: `examples/README.md` (同一 OAuth2 登录场景贯穿全部文档)。
 
@@ -83,7 +83,9 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 | 6 | 自检未过强行 `task.py start` | 带病进 in_progress, 返工成本翻倍 | 过 selfcheck gate 才放行 (上方 🔴) |
 | 7 | 执行中收到修正指令, main 自己直接改源码 / 口头通知 agent | 与在跑 agent 改动分叉 + 文档与执行脱节 | 先改 PRD 真值文档 → SendMessage 通知在跑 agent 就地纠偏 (`references/progress-communication.md` §中途修正路由) |
 
-## 参考集 (按需读)
+## 参考集 (按需读, progressive disclosure)
+
+> **token 纪律**: 本 skill `user-invocable: false` 自动触发, 12 references 全读会撑爆 token (多 skill session 旧 skill 被静默踢出, 无错误信息)。**禁一次全读** —— 只读当前步骤对应的那 1-2 个 reference (见工作流表「写法 reference」列) + 对应 example。其余按需。轻量 task (1 deliverable/1 subtask) 仅读步骤 1+2 的 reference。
 
 | 文件 | 何时读 |
 | --- | --- |

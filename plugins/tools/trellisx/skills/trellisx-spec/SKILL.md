@@ -12,6 +12,8 @@ arguments: [范围]
 
 ## 第 1 步: 检测项目环境与模式
 
+> **推荐前置**: optimize/sediment 模式做破坏式重构前, 先 `/trellisx-grill` 对现有 spec 审一轮 (轴 C 验证可执行性 / H 触发准确性 / I token / J 自举矛盾 / K 诚实边界), grill 出的弱点喂给下方诊断, 避免重构时丢关键约束。
+
 ```bash
 # 1.1 确认 .trellis/ 存在
 ls -la .trellis/ 2>/dev/null

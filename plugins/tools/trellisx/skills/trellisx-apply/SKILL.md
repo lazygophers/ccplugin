@@ -11,7 +11,20 @@ argument-hint: [scope]
 
 ## 两条铁律 (贯穿全程)
 
-- 🎯 **结果导向, 行为闭环为准 (约束 RESULT 非 HOW)**: 不限制注入方式 —— writer 可替换 / 重构 / 追加任意原生文本 (含 no_task 分类、Phase 流程、finish 段)。唯一硬门是 **writer 写盘自验的行为闭环验证**: 最终 `.trellis` MUST 满足 ① 五维生效 (强推task/subtask/worktree/闭环收尾/看板) ② create→planning→worktree→execute→check→finish 闭环无断点 ③ trellis 原生 task 创建触发仍生效 (改写 no_task 不得让"建 task"路径失效)。注入用 marker 包裹保幂等; 任一断言 ✗ → 回滚重做, 不带病写盘 (来由见下方「教训」)。
+- 🎯 **结果导向, 行为闭环为准 (约束 RESULT 非 HOW)**: 不限制注入方式 —— writer 可替换 / 重构 / 追加任意原生文本 (含 no_task 分类、Phase 流程、finish 段)。唯一硬门是 **writer 写盘自验的行为闭环验证**: 最终 `.trellis` MUST 满足 ① 五维生效 (强推task/subtask/worktree/闭环收尾/看板) ② create→planning→worktree→execute→check→finish 闭环无断点 ③ trellis 原生 task 创建触发仍生效 (改写 no_task 不得让"建 task"路径失效)。
+
+  **可执行断言 (writer 自验最小集, 不读 reference 也能跑, 任一 ✗ → 回滚重做)**:
+  ```bash
+  # ① task 创建触发仍生效 (no_task 块仍引导建 task, 改写没改没路径)
+  grep -qE "task\.py create|建.{0,4}task|创建.{0,4}task" .trellis/workflow.md
+  # ② 闭环无断点 (planning/implement/check/finish 四阶段词均在)
+  for kw in planning implement check finish; do grep -qi "$kw" .trellis/workflow.md || { echo "缺 $kw"; exit 1; }; done
+  # ③ 五维 marker / hook 在位 (config.yaml 仍含 trellisx hook 注入)
+  grep -q "trellisx" .trellis/config.yaml
+  ```
+  完整断言集 + 行为闭环验证步骤见 `references/apply-verify.md`; writer MUST 至少跑上述 3 条自验才报告 ok=true。
+
+  注入用 marker 包裹保幂等; 不带病写盘 (来由见下方「教训」)。
 - 🪶 **强推 task 软约束, worktree+收尾 hook 确定性强制**:
   - 强推 task = 注入 workflow.md 的强措辞 prompt (AI 仍有裁量): "除极简任务外一律走 task; 边界模糊主动问用户"。
   - worktree 与闭环收尾 = trellis 原生生命周期 hook 确定性强制, 不靠 AI 记得跑脚本: `task.py start` → `after_start` 自动建 worktree; `task.py finish` → `after_finish` 跑 `trellisx-finish.py` 自动 commit→merge --no-ff→archive→销 worktree (commit 为 owner 授权的强制动作, 不停在"提醒用户运行命令")。冲突则脚本 abort + finish 打 WARN, AI 须检告警转手动; 未 archive 禁宣告 Done。
