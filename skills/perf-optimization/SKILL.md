@@ -195,9 +195,4 @@ $ARGUMENTS
 
 ## 参考集(按需读)
 
-| 文件 | 用途 |
-| --- | --- |
-| `references/methodology.md` | 7 跨栈方法论详解(证据/应用/局限) |
-| `references/schools.md` | 三流派镜片展开(USE/关键渲染路径+CWV/机制同理心)+ 各镜片工具箱 |
-| `references/tensions.md` | 5 对内在张力详解(双方原话/出处/真实性标注)+ 关键引用 |
-| `references/benchmarking.md` | 微基准防优化器作弊(4 语言 API)+ 压测防协调遗漏 |
+`references/methodology.md`(7 跨栈方法论详解, 证据/应用/局限) · `schools.md`(三流派镜片展开 USE/关键渲染路径+CWV/机制同理心 + 工具箱) · `tensions.md`(5 对内在张力详解, 双方原话/出处/真实性标注) · `benchmarking.md`(微基准防优化器作弊 4 语言 API + 压测防协调遗漏)

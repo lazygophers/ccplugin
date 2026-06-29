@@ -197,5 +197,3 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | dimensions.md | 9 维 rubric 全表 + HL-1~4 + 相关簇 | darwin-skill 本地 + SkillLens |
 | workflow.md | SkillOpt validation-gated loop + git ratchet + judge 独立性 | SkillOpt (arXiv 2605.23904) + darwin |
 | sources.md | 3 论文 + darwin 引用 + 实证数据 | arXiv / GitHub（2026-06-26 curl 核实） |
-
----
