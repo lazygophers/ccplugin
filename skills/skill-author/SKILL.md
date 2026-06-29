@@ -140,19 +140,9 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 - **回归**：改后跑原 eval 场景确认未 break。
 - **版本语义**：description 触发词变更 = 破坏性（下游依赖发现逻辑会变）；仅 body 优化 = 兼容。
 
-## 失败处理（dim3 三段式编码）
+## 失败处理
 
-编写过程中常见失败的 if-then 三段式：
-
-| 触发条件 | 一线修复 | 仍失败兜底 |
-|----------|---------|-----------|
-| `claude -p` 质检返回空/错误 | 查 frontmatter YAML（tab/空格混用、引号未闭合），`--debug` 看 parse 错误 | 最小化 frontmatter 只留 name+description 重试 |
-| AI 识别错误（skill 被当别的用途） | description key use case 前置 + 删歧义词 | 拆成 2 个更聚焦的 skill |
-| skill 不触发（false negative） | description 补用户会说的关键词 | 查是否被 `skillOverrides` 关闭 / 预算裁剪（`/doctor`） |
-| skill 误触发（false positive） | description 收窄「何时用」边界 | 加 `disable-model-invocation: true` 改手动 |
-| SKILL.md 超 500 行 / 超 token 预算 | 拆 `references/`（CJK 密度 2-3x 英文，表格/代码块密度更高） | 评估拆多个 skill |
-| 改了 skill 但 session 没生效 | 新 session 或重新 `/skill-name` invoke | 见 Phase 6，invoke 后 session 不重读文件 |
-| 反拷问暴露逻辑漏洞 | 补对应失败分支到本文 | 标记 known limitation，description 限制使用范围 |
+详见 [references/anti-patterns.md](references/anti-patterns.md)（dim3 三段式 fallback 表）。
 
 ## 共识铁律（全源一致，不可违反）
 
@@ -166,136 +156,17 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 | 6 | 一致术语 + 正斜杠路径 + 无 voodoo 常量 | 跨平台 + 可维护 |
 | 7 | token 生命周期意识 | auto-compaction 保留最近 invoke 前 5000 token、合计预算 25000 token 跨 skill 共享，多 skill session 旧 skill 会被丢——**且无错误信息**，是最难 debug 的零可见度故障 |
 
-## subagent 编写要点
+## subagent 编写要点 + 流派分歧
 
-subagent ≠ skill：独立 context + 自定义 system prompt + 特定工具 + 独立权限。
+subagent frontmatter / body 设计点（错误处理约定 / 工具继承例外 / hook 条件验证 / fork vs named 等）+ 常驻vs按需 / 显式vs隐式触发 / runtime 中立取舍，详见 [references/subagent-authoring.md](references/subagent-authoring.md)。
 
-```yaml
----
-name: code-reviewer
-description: Reviews code for quality and best practices. Use proactively after code changes.
-tools: Read, Glob, Grep, Bash       # 不列则继承全部
-model: sonnet                        # sonnet/opus/haiku/fable/inherit
----
-<body = system prompt>
-```
+## 反模式黑名单
 
-**关键设计点**：
+P0 致命 / P1 严重 / P2 中等 / P3 结构性共 22 条，详见 [references/anti-patterns.md](references/anti-patterns.md)。
 
-- **body 就是 system prompt**：subagent 只收 body + 环境细节，**不继承完整 CC system prompt**。关键约定必须在 body 内显式写。
-- **🛑 错误处理约定**（致命遗漏补全）：body 须指示 Claude 工具失败时（Bash 超时 / Read 文件不存在 / MCP 掉线）**显式标注 `[工具失败: <原因>]` 而非把错误输出当结果返回**。否则主对话会把 subagent 的错误摘要当有效数据消费——静默降级，且直到出事才发现不了。
-- **工具继承例外**（即使列了也不给）：AskUserQuestion / EnterPlanMode / ExitPlanMode(非 plan) / ScheduleWakeup / WaitForMcpServers。
-- **Explore / Plan 跳过 CLAUDE.md + git status**：其他 subagent 都加载。若规则必须到达（如「忽略 vendor/」），须在委派 prompt 里重述。
-- **skills 字段**：注入完整 skill 内容（非仅 description）。不能 preload `disable-model-invocation: true` 的 skill。
-- **memory 字段**：`user`/`project`/`local`，跨会话学习。`project` 可版本控制共享，推荐默认。
-- **PreToolUse hook 条件验证**：需细于 tools 字段的控制时用（例只允许 SELECT 的 db agent，hook grep 写操作 exit 2 阻断）。
-- **嵌套**：subagent 可 spawn 自己的 subagent，深度限 5 层。fork 不能再生 fork。
-- **fork vs named**：fork 继承整段对话（省重新解释），named 从定义文件起步（隔离干净）。
+## 验证 checklist
 
-**选 subagent vs 主对话 vs skill**：
-- 主对话：频繁往返、多阶段共享 context、快速小改、延迟敏感
-- subagent：产出冗余、需工具限制、自包含回摘要
-- skill：可复用 prompt，主对话 context 内跑；`context: fork` 可在 skill 内嵌 subagent
-
-## 流派分歧（取舍非二选一）
-
-### 常驻 vs 按需
-
-| 类型 | 适合 | 代表 |
-|------|------|------|
-| 常驻（CLAUDE.md / AGENTS.md） | 全局约定、编码标准、安全硬规 | 规则遵守一致性高，持续耗 token |
-| 按需（Skills） | 工作流、领域知识、可复用流程 | token 省、上下文洁净，依赖触发 |
-
-→ 硬规进 CLAUDE.md，流程进 skill。
-
-### 显式 vs 隐式触发
-
-- Claude skill = 显式（description 是发现入口，让 Claude 判何时用）
-- Cursor rule = 隐式（文件 glob 命中即强制生效）
-
-→ 本 skill 是显式（`disable-model-invocation: true`）。
-
-### runtime 中立
-
-好的 agent 配置应平台中立：SKILL.md 不写死「在 Claude Code 里」（除非用 CC 扩展字段如 `context: fork`）。badge 用 `Agent Skills Standard` 而非钉死单一 runtime。
-
-## 🛑 反模式黑名单（dim9 反向约束）
-
-### P0 致命（skill 失效）
-
-| # | 反模式 | 正例 |
-|---|--------|------|
-| 1 | vague description（「Helps with marketing」） | `Processes marketing campaign data from CSV/Excel, generates ROI reports. Use when analyzing campaign metrics, conversion rates, or marketing spend.` |
-| 2 | frontmatter YAML 缩进/引号错误 | `claude --debug` 查 parse 错误（常见：tab/空格混用、引号未闭合） |
-| 3 | description 关键词被截断丢 | key use case 前置；🔴 控制在 **512 字符内**（项目底线）；超长分流 `when_to_use`（< 128）；长列表用 `skillOverrides` `name-only` 释放预算（`/doctor` 查裁剪） |
-| 4 | 路径错误 / skill 孤立 | `find . -name SKILL.md` 确认存在 + `claude -p "列出所有可用 skill"` 验证发现 |
-| 5 | description 太泛致误触发（false positive） | 收窄「何时用」边界 + should-not-trigger 测试（skill-creator） |
-
-### P1 严重（效果劣化）
-
-| # | 反模式 | 正例 |
-|---|--------|------|
-| 6 | 解释 Claude 已知的事 | 只加 Claude 不知道的 |
-| 7 | SKILL.md 超 500 行 | 拆 `references/` |
-| 8 | 给太多选项 | 给 default + escape hatch |
-| 9 | 嵌套引用过深 | 只深一层 |
-| 10 | 无 eval 就发布 | 先建 ≥3 场景 eval（Phase 5 步骤 1） |
-| 11 | Windows 反斜杠路径 | 统一正斜杠 |
-| 12 | token 超 compaction 预算（≠ 行数） | CJK/表格/代码块密度高，500 行中文可能 8000+ token，多 skill session 被反复踢出且无错误信息——控制实际 token 不只行数 |
-
-### P2 中等（质量损耗）
-
-| # | 反模式 | 正例 |
-|---|--------|------|
-| 13 | 术语混用（field/box/element） | 选定一个贯穿 |
-| 14 | 时间敏感信息内联 | 放 old patterns `<details>` |
-| 15 | 脚本 punt 错误给 Claude | 显式 try/except + 默认值 |
-| 16 | voodoo constants（TIMEOUT=47） | 注释为何这个值 |
-| 17 | 假设包已安装 | 显式 `pip install` |
-
-### P3 结构性
-
-| # | 反模式 | 正例 |
-|---|--------|------|
-| 18 | 只写正例不写反例 | 反例黑名单成章（本节即示范） |
-| 19 | 「必须」措辞代替视觉标记 | 🔴 / 🛑 视觉标记（LLM 扫标记优先于语义） |
-| 20 | 两列 fallback（症状/解法） | 三段式（触发条件/一线修复/兜底，见上方「失败处理」） |
-| 21 | 过度优化硬凑轮数 | Δ<2 连续 2 轮即停 |
-| 22 | runtime 钉死单一平台 | 中立 badge + 中立措辞 |
-
-## 验证 checklist（产物发布前逐项查）
-
-### 结构
-- [ ] SKILL.md ≤500 行（CJK 内容留更大余量）
-- [ ] description 第三人称 + key use case 前置 + 做什么+何时用 + 🔴 **< 512 字符**（项目底线）
-- [ ] when_to_use < 128 字符（项目底线，若有）
-- [ ] frontmatter 字段合法（16 字段全表见 [references/frontmatter-spec.md](references/frontmatter-spec.md)）
-- [ ] 引用只深一层
-- [ ] >100 行 reference 顶部有目录
-- [ ] frontmatter YAML 语法正确（`--debug` 验证）
-
-### 触发准确性（≠ 可发现性）
-- [ ] `claude -p` 可发现性通过（能列出 + 说明何时触发）
-- [ ] should-trigger 测试通过（该触发的 prompt 命中）
-- [ ] should-not-trigger 测试通过（不该触发的 prompt 不命中）
-
-### 内容
-- [ ] 无时间敏感信息（或放 old patterns）
-- [ ] 术语一致
-- [ ] 正斜杠路径
-- [ ] 复杂工作流有 checklist
-- [ ] 质量关键操作有 feedback loop
-- [ ] 失败模式有三段式 fallback 编码
-
-### 代码（若含脚本）
-- [ ] 脚本 solve 不 punt（显式错误处理）
-- [ ] 无 voodoo constants
-- [ ] 依赖显式列出
-- [ ] MCP 工具用全限定名 `Server:tool`
-
-### 验证
-- [ ] eval 先行（≥3 场景，先 baseline 后对比）
-- [ ] 反例黑名单成章
+产物发布前逐项查（结构 / 触发 / 内容 / 代码 / 验证 5 组），详见 [references/validation-checklist.md](references/validation-checklist.md)。
 
 ## 诚实边界（去自夸，真限制）
 
