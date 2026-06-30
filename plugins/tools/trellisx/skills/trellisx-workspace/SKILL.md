@@ -1,8 +1,7 @@
 ---
 name: trellisx-workspace
 description: '维护 `.trellis/task.md` 任务看板 —— trellis 缺的跨任务总览。**一个表格, 一行一个任务**, 列为 id/名称/描述/状态/worktree (5 列; 状态列承载生命周期阶段: 规划中/实施中/检查中/收尾/已完成/已归档)。在 task create/start/阶段切换/archive 后**及时更新**对应行; 并**自动清理超 7 天的已完成行**防膨胀。保持看板与 task.json 实时一致'
-when_to_use: '维护 / 创建 / 更新 `.trellis/task.md` 任务看板时; task 生命周期任一节点 (create/start/阶段推进/archive) 之后同步看板时; 用户问"当前有哪些任务 / 任务进度 / 任务看板"时。被 trellisx-flow 与 trellisx-apply 注入的流程引用'
-user-invocable: true
+when_to_use: '维护/更新 .trellis/task.md 看板; task 生命周期节点 (create/start/archive) 后同步; 用户问"当前有哪些任务/进度"时'
 argument-hint: '[show|update|sync|cleanup ...] [task id]'
 arguments: '[操作 — show 查看看板 / update <tid> 改状态 (阶段细化) ·worktree / sync <create|start|archive> 从 task.json 同步 (hook 用) / cleanup 清理超 7 天已完成] [任务 id]'
 ---

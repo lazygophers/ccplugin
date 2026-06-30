@@ -1,8 +1,7 @@
 ---
 name: trellisx-flow
-description: '强制以 Trellis task 闭环处理用户指定的请求 (自判新建/并入 → plan→exec→check→finish 全程不跳步)。**仅用户显式主动调用** (/trellisx-flow 或明确要求"强制走 task 处理这个"); **禁止自动 / 被动 / 推断式调用** —— 不要因为某个请求"看起来该建 task"就自动触发本 skill, 那是 apply 注入的 no_task 倾向的职责'
-when_to_use: '仅当用户**显式**输入 `/trellisx-flow`、点名本 skill、或明确说"强制以 task 处理这个请求"时调用。其他任何情况 (包括请求看起来复杂/该建 task) 一律**禁止**自动调用本 skill'
-user-invocable: true
+description: '请求级入口: 把指定请求强制纳入 trellis task 闭环 (plan→exec→check→finish), 禁 inline (即使极简)。用户显式调用 (/trellisx-flow) 或 model 自动触发 (请求复杂/多步/跨文件时)。调用即创建同意信号, 仍先判新建 vs 并入 active task。与 trellisx-apply 互补 —— apply 注入"推荐建 task"常驻软提示指向本 skill, 由本 skill 接管。载体默认 subagent 编排 (main 调度 trellis-implement 共享 task worktree 并发 2), 特别复杂 task 用户同意才升级 Workflow'
+when_to_use: '用户显式 /trellisx-flow, 或 model 自动触发 (请求复杂/多步/跨文件时自动加载强制走 task 闭环)。承接入口短语 (写 PRD 等先判建 task 路由 orchestrate)。禁 inline'
 argument-hint: "[--worktree|--no-worktree] [--workflow|--no-workflow] <任务描述>"
 arguments: [载体选项 (可选), 任务描述]
 ---
@@ -47,8 +46,9 @@ arguments: [载体选项 (可选), 任务描述]
 
 ## 调用边界 (重要)
 
-- ✅ **仅用户主动**: `/trellisx-flow <描述>` 或用户明确点名。
-- ⛔ **禁自动触发**: 不要因为请求"看起来该建 task / 复杂 / 跨文件"就自行调用本 skill。那种"推荐建 task"是 `trellisx-apply` 注入 workflow.md `[workflow-state:no_task]` 的常驻软提示的职责, 不是本 skill。本 skill 只在用户喊它时才动。
+- ✅ **双模触发**: ① 用户显式 `/trellisx-flow <描述>` 或点名; ② model 自动触发 —— 请求复杂 / 多步 / 跨文件 / 该建 task 时自动加载本 skill 强制走闭环。
+- 🔗 **与 apply no_task 提示的关系**: `trellisx-apply` 注入 workflow.md `[workflow-state:no_task]` 的常驻软提示 = 轻量"建议建 task", 指向本 skill; 本 skill 接管后强制走 plan→exec→check→finish。两者嵌套 (hint → flow 接管), 不冲突。
+- ⛔ **仍禁**: 把明显该 inline 的极简请求 (纯查询 / 单文件 ≤20 行) 强行建 task (作用域边界见「硬规」段)。
 
 ## 强制流程 (plan → exec → check → finish, 不可跳步)
 
@@ -119,7 +119,7 @@ arguments: [载体选项 (可选), 任务描述]
 | 3 | inline 跳过 task (即使请求极简) | 一律走 task 闭环 —— 这是本 skill 全部意义 |
 | 4 | check 未过就推进 finish | 先定点修复重检 |
 | 5 | check / finish 未走完就宣告 Done | 未 archive (worktree 仍在) = 未闭环 |
-| 6 | 自动 / 被动 / 推断式触发本 skill | 仅用户显式调用 (`/trellisx-flow` 或点名) |
+| 6 | 把明显该 inline 的极简请求 (纯查询 / 单文件 ≤20 行) 强行建 task | 该 inline 的 inline, 作用域边界表判 (见「硬规」段) |
 | 7 | main / agent 自行凭空设计需求方案 | `trellis-brainstorm` 主导需求, `trellisx-orchestrate` 仅执行编排 |
 | 8 | 用 `trellisx-orchestrate` 做需求 / 方案设计 | 它只管 subagent 职责划分 / 并行 / 依赖 |
 | 9 | 纯文本提问代替 `AskUserQuestion` | 用户确认 / 选择必用工具 |
@@ -128,4 +128,4 @@ arguments: [载体选项 (可选), 任务描述]
 | 12 | exec subagent 直接在主工作区改源码 (无 worktree) **且未带 `--no-worktree`** | 必在本 task 的 worktree 内执行 (共享, subtask 不绑定 worktree), 改动落 `<git根>/.worktrees/`, 主工作区零改动 (带 `--no-worktree` 则允许改主工作区, 但 main 仍默认禁写) |
 | 13 | finish 时留悬挂 subagent / workflow / 后台任务未关 | 改为 `TaskList` 查 + `TaskStop` 关后再 finish |
 
-> 与 `trellisx-apply` 的分工: 本 skill 是用户**主动强制建 task**的入口 (喊它才动); apply 注入的 no_task 倾向是**被动推荐建 task**的常驻软提示。两者互补, 不要混用 —— 本 skill 禁自动触发。
+> 与 `trellisx-apply` 的分工: 本 skill = task 强推主路径 (用户显式 + model 自动, 复杂多步跨文件即接管); apply 注入的 no_task = 轻量"建议建 task"常驻软提示, 指向本 skill。两者嵌套 (hint → flow), 不冲突。

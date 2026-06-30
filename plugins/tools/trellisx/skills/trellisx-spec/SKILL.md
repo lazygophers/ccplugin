@@ -1,7 +1,7 @@
 ---
 name: trellisx-spec
 description: '初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。sediment 模式 = finish 前自动判定触发 (有增量才沉淀, 软约束); planning 时 spec 自动加载 (交叉引用 trellisx-flow/orchestrate)'
-when_to_use: '用户提及 spec 的 初始化/优化/重写/收紧/refactor, 抱怨 spec 弱/不可执行, finish 前**自动判 sediment 需求** (trellisx-flow finish 步触发, 非用户主动调), 或说"记不住/老忘/反复犯错/又踩坑"暗示规则未沉淀。短语 "初始化 spec" "优化 spec" "记不住"'
+when_to_use: '提及 spec 的初始化/优化/重写/收紧/refactor, 或抱怨 spec 弱/不可执行。sediment 由 flow finish 步自动判触发。短语 "优化 spec"'
 argument-hint: '[scope]'
 arguments: '[范围]'
 ---

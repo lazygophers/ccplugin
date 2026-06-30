@@ -1,8 +1,7 @@
 ---
 name: trellisx-orchestrate
 description: '在 Trellis 项目 planning 阶段, 指导编写 task 文件夹内的 prd.md / design.md / implement.md, 把任务编排理念 (五要素拆分、执行层选择、资源互斥、失败回退) 内嵌到文档中。让后续 dispatch 与执行有据可依, 而不是写完 PRD 才临时想怎么拆'
-when_to_use: 'trellis active task planning 阶段编写 / 完善 prd / design / implement; 任务规划 / 拆 deliverable / 拆 subtask / 写验收标准时。短语 "写 PRD" "规划任务" "拆任务" "完善 implement" "设计任务"'
-user-invocable: false
+when_to_use: '内部 skill, 被 flow 路由或 apply workflow planning 步触发。planning 阶段写 prd/design/implement, 拆 subtask+调度图。入口归 flow'
 ---
 
 # trellisx-orchestrate — Trellis 任务规划与文档编排
@@ -43,14 +42,14 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 ## 触发判定
 
-主会话符合任一即加载:
+被路由加载 (非用户直接入口, 入口归 trellisx-flow), 符合任一即生效:
 
-- 处于 trellis active task 且 status = planning
-- 用户要求 "写 / 完善 / 改 / 拆" PRD / design / implement / deliverable / subtask
-- 当前 task 仅 PRD 存在但 prd 列 ≥ 2 deliverable 尚未拆 design/implement
-- 准备从 planning → in_progress 前的最后一遍编排校对
+- trellisx-flow 判定建 task 进 planning 后路由本 skill 做执行层编排
+- trellisx-apply 注入的 workflow.md planning 步触发
+- 处于 trellis active task 且 status = planning, PRD 列 ≥ 2 deliverable 尚未拆 design/implement
+- planning → in_progress 前的最后一遍编排校对
 
-不触发: 已 in_progress 在执行 / 单文件咨询 / 与编排无关问答。
+不触发: 用户直接喊"写 PRD / 规划任务" (路由进 flow 先判建 task) / 已 in_progress 在执行 / 单文件咨询 / 与编排无关问答。
 
 ## 工作流 (6 步, 渐进披露)
 
@@ -85,7 +84,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 ## 参考集 (按需读, progressive disclosure)
 
-> **token 纪律**: 本 skill `user-invocable: false` 自动触发, 12 references 全读会撑爆 token (多 skill session 旧 skill 被静默踢出, 无错误信息)。**禁一次全读** —— 只读当前步骤对应的那 1-2 个 reference (见工作流表「写法 reference」列) + 对应 example。其余按需。轻量 task (1 deliverable/1 subtask) 仅读步骤 1+2 的 reference。
+> **token 纪律**: 本 skill 被 flow 路由自动触发, 12 references 全读会撑爆 token (多 skill session 旧 skill 被静默踢出, 无错误信息)。**禁一次全读** —— 只读当前步骤对应的那 1-2 个 reference (见工作流表「写法 reference」列) + 对应 example。其余按需。轻量 task (1 deliverable/1 subtask) 仅读步骤 1+2 的 reference。
 
 | 文件 | 何时读 |
 | --- | --- |
