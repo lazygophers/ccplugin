@@ -57,7 +57,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 | 步骤 | 行动 | 写法 reference | 填好范例 |
 | --- | --- | --- | --- |
-| 1 | PRD 编排 — 📄 **先 grep `.trellis/spec/` 按主题加载相关 guide 注入上下文 (软约束, 无则跳过)**, 再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | `references/prd-orchestration.md` | `examples/prd.md` |
+| 1 | PRD 编排 — 🔴 **spec 加载门 (planning 必做, 非软约束; 本 skill 独家 owner, flow 不重复加载)**: 先 grep `.trellis/spec/guides/index.md` 按主题找相关 guide, 命中读全文注入 PRD 上下文 (约束/契约/验收基准); 无相关 spec 才跳过。**被动可见**: 本 gate 文本由 trellis 原生 `inject-workflow-state` 每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆)。**诚实边界**: relevant guide 检索归本步主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | `references/prd-orchestration.md` | `examples/prd.md` |
 | 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | `references/subtask-file.md` | `examples/subtask/S2-jwt-utils.md` `examples/subtask/S3-jwt-middleware.md` |
 | 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | `references/design-orchestration.md` | `examples/design.md` |
 | 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | `references/implement-orchestration.md` | `examples/implement.md` |

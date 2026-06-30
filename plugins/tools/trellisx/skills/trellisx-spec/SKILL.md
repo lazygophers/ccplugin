@@ -1,6 +1,6 @@
 ---
 name: trellisx-spec
-description: '初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。sediment 模式 = finish 前自动判定触发 (有增量才沉淀, 软约束); planning 时 spec 自动加载 (交叉引用 trellisx-flow/orchestrate)'
+description: '初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。sediment 模式 = finish 前 🔴 判定门 (5 正向 + 3 排除 checklist, 有增量才沉淀, 全否跳过); planning 时 spec 加载归 trellisx-orchestrate step 1 🔴 grep 门 (本 skill 不负责加载, 仅提供 spec 内容)'
 when_to_use: '提及 spec 的初始化/优化/重写/收紧/refactor, 或抱怨 spec 弱/不可执行。sediment 由 flow finish 步自动判触发。短语 "优化 spec"'
 argument-hint: '[scope]'
 arguments: '[范围]'
@@ -36,9 +36,9 @@ python3 ./.trellis/scripts/task.py current 2>/dev/null || true
 
 参数 `$范围` (skill 启动时传入): 限制本次处理范围 (目录 glob / 文件路径 / `all`)。缺省 = `all`。
 
-> 📄 **spec 主动化 (软约束, 两端自动)**:
-> - **planning 自动加载**: trellisx-flow / trellisx-orchestrate 在 planning 开始时主动 grep `.trellis/spec/` 按主题加载相关 guide 注入 PRD 上下文 (有相关 spec 才加载, 无则跳过)。本 skill 不负责加载, 仅提供 spec 内容供加载。
-> - **finish 前 sediment 自动判定**: trellisx-flow finish 步主动判本 task 有无 spec 增量 (非平凡契约 / 踩坑 / 反复犯错), 有则触发本 skill sediment 模式 (提案→审批→写盘), 无则跳过。**非用户主动调**, 是流程自动判定 ("如需" = AI 判)。
+> 🔴 **spec 主动化 (两端: hook 被动可见 + gate 主动检索/判定)**:
+> - **planning 加载 (🔴 gate, owner = trellisx-orchestrate step 1, 独家)**: orchestrate step 1 必做 grep `.trellis/spec/guides/index.md` 按主题找 relevant guide 注入 PRD 上下文 (有相关 spec 才加载, 无则跳过); flow 不重复加载。**被动可见**: 该 gate 文本由 trellis 原生 `inject-workflow-state` 每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆); relevant guide 检索归 orchestrate 主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。本 skill 不负责加载, 仅提供 spec 内容供加载 + sediment 时同步 index.md。
+> - **finish 前 sediment 判定 (🔴 gate, 非软约束)**: trellisx-flow finish 步按下述 checklist 逐项判本 task 有无 spec 增量, 任一正向 ✅ → 触发本 skill sediment 模式 (提案→审批→写盘+同步 index.md); 全否跳过。**正向**: ① 新命令式契约 ② 踩坑 ≥2 轮 ③ 反复 ≥2 task ④ 跨任务可复用决策 ⑤ 验收基准; **排除**: 一次性 bug / 私有细节 / 已覆盖。**非用户主动调**, 是流程判定 (判定归 AI 非脚本, 语义判断脚本做不了)。
 > - **sediment ≠ cortex**: sediment 是 spec 自身增量沉淀 (命令式契约), 非 cortex 知识库归档。两者并存, 各管各的。
 
 ## 第 2 步: 按模式读 references + 准备提案
@@ -81,7 +81,7 @@ spec 体检报告
 
 读 `references/sediment-mode.md` + `references/propose.md`。
 
-读 active task 的 `prd.md` / `design.md` / `implement.md` / `journal-*.md`, 提炼"本任务非平凡发现" (踩坑 / 教训 / 反复犯错 / 跨任务可复用契约), 按 `sediment-mode.md` 模板生成提案 (PATCH / NEW 为主)。
+读 active task 的 `prd.md` / `design.md` / `implement.md` / `journal-*.md`, 按 **flow step 6 sediment checklist** (5 正向: 新命令式契约 / 踩坑 ≥2 轮 / 反复 ≥2 task / 跨任务可复用决策 / 验收基准; 3 排除: 一次性 bug / 私有细节 / 已覆盖) 判增量是否值得沉淀, 提炼"本任务非平凡发现", 按 `sediment-mode.md` 模板生成提案 (PATCH / NEW 为主)。
 
 跳到第 3 步。
 
@@ -104,7 +104,7 @@ spec 体检报告
 
 - 一次写盘 (避免中间状态)
 - 每文件附 frontmatter (`updated` / `rewrite-version` / `supersedes` / `authored-by: trellisx-spec` / `mode`)
-- 同步 index / 锚点 / 导航
+- 🔴 同步 `.trellis/spec/guides/index.md` (新/改 spec append 标题 + 1 行摘要) —— **硬性**: orchestrate step 1 gate grep 读此文件找 relevant guide, 不同步 → 新 spec 不在 index → gate grep 漏 → load 失效。同步 index / 锚点 / 导航
 - grep 受影响 task manifest (`implement.jsonl` / `check.jsonl`), 列引用清单 (本 skill 不动 manifest)
 
 ## 第 5 步: 自检 + 返回报告
