@@ -81,6 +81,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 | 5 | 并行组不标依赖箭头 | 隐藏依赖 → 乱序执行 | mermaid 调度图显式标并行组 + 依赖 |
 | 6 | 自检未过强行 `task.py start` | 带病进 in_progress, 返工成本翻倍 | 过 selfcheck gate 才放行 (上方 🔴) |
 | 7 | 执行中收到修正指令, main 自己直接改源码 / 口头通知 agent | 与在跑 agent 改动分叉 + 文档与执行脱节 | 先改 PRD 真值文档 → SendMessage 通知在跑 agent 就地纠偏 (`references/progress-communication.md` §中途修正路由) |
+| 8 | exec 阶段 subtask 之间停下来问用户"先做哪个" | 顺序归 planning (本 skill 产调度图 + depends-on), exec 只跑调度循环 —— 问序 = planning 没做透 | 按 DAG 自动派 (scheduling.md §4); PRD 缺调度图 / depends-on → 退回 planning 补, 不在 exec 问 |
 
 ## 参考集 (按需读, progressive disclosure)
 

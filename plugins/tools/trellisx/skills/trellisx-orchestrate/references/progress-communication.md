@@ -132,3 +132,4 @@ subtask 派发**尽可能并行**, 提升整体效率:
 - 资源冲突的 subtask (改同文件/共享配置) → 必须串行 (见 `shared-resources.md`)
 - 并行执行者各自 worktree (sub-agent isolation / agent-team 成员路径), 互不干扰
 - coordinator (main) 单线程协调: 不自己并跑多 subtask, 但派出去的 agent 并行推进; 收每个 agent 返回立即回传用户进度
+- 🔴 **回传 ≠ 问序**: 进度回传是"已做完 X, 正在派 Y"的单向通知, **禁变成"X 做完了, 下一个做哪个?"的提问**。下一个由 DAG 决定 (scheduling.md §4), 自动派; 顺序缺失 → 退回 planning 补, 不在 exec 回传里问用户。
