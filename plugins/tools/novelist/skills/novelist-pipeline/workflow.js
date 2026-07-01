@@ -1,7 +1,7 @@
 export const meta = {
 	name: "novelist-pipeline",
 	description:
-		"逐章串行批量写小说: 前置(路线图→世界观→预检)→逐章(write→三环并行检测(check/humanize/proofread)→fix串行改→定稿, 前章定稿才写下一章)→统一检查。root 与设定全部参数化/从小说文件读, 不硬编码任何小说。",
+		"逐章串行批量写小说: 前置(路线图→世界观→预检)→逐章(write→三环并行检测(check/humanize/proofread)→fix串行改→定稿, 前章定稿才写下一章)→统一检查。root 与设定全部参数化/从小说文件读, 不硬编码任何小说。支持 mode=write(默认, 全流程)/review/humanize/proofread/polish/rewrite/outline 选 phase 子集。",
 	phases: [
 		{ title: "路线图", detail: "生成/读取本批章节路线图(outliner)" },
 		{ title: "世界观", detail: "更新本批涉及的设定/人物(worldbuilder)" },
@@ -16,8 +16,30 @@ export const meta = {
 	],
 };
 
+// ===== mode 路由(每 mode 跑哪些 phase; write 全跑 → 零回归) =====
+// phase 名对齐 meta.phases / 各函数 label。outline 批级: 仅路线图, 无写作/收尾/统一。
+// rewrite 走 fixer 的 rewrite 模式 A(报告修复, 最安全); 默认仅跑统一检查前的"修复"环节。
+const MODE_PHASES = {
+	write: new Set(["路线图", "世界观", "预检", "写作", "查一致", "去AI味", "校对", "修复", "定稿", "统一检查"]),
+	review: new Set(["查一致", "统一检查"]),
+	humanize: new Set(["去AI味", "修复", "定稿"]),
+	proofread: new Set(["校对", "修复", "定稿"]),
+	polish: new Set(["查一致", "去AI味", "校对", "修复", "定稿", "统一检查"]),
+	rewrite: new Set(["修复", "统一检查"]),
+	outline: new Set(["路线图"]),
+};
+function needsPhase(mode, phase) {
+	const set = MODE_PHASES[mode];
+	return set ? set.has(phase) : false;
+}
+
 // ===== 入参(全部来自 args, 不硬编码任何小说) =====
 const _args = typeof args === "string" ? JSON.parse(args) : args || {};
+const MODE = _args.mode || "write"; // write(默认, 零回归)/review/humanize/proofread/polish/rewrite/outline
+if (!MODE_PHASES[MODE]) {
+	log(`⚠️ 未知 mode=${MODE}, 退化为 write`);
+}
+const EFFECTIVE_MODE = MODE_PHASES[MODE] ? MODE : "write";
 const ROOT = _args.root;
 if (!ROOT) {
 	throw new Error(
@@ -345,18 +367,54 @@ async function finalizer(chNum, title, checkResult, proofResult, humanResult) {
 }
 
 // ===== 单章收尾链(三环并行检测 → fix 串行改 → 定稿), push allResults =====
+// mode 守卫: 各检测/修复/定稿按 MODE_PHASES 决定是否跑; write 时全跑(零回归)。
+// 非 write 模式: 无 writer → finishChain 不与写作并行, 直接逐章跑对应 phase 子集。
+// rewrite 特例: 无三环检测, 直接派 novelist-rewrite skill(fix 模式A 报告修复)。
 async function finishChain(n, info) {
 	let checkResult,
 		humanResult,
 		proofResult,
 		attempts = 0;
+
+	// rewrite 独立路径: 派 rewrite-fix-A 单独改本章, 不走三环。
+	if (EFFECTIVE_MODE === "rewrite") {
+		const num = ch(n);
+		const file = `${CHAPTER_DIR}/第${num}章-${info.title}.md`;
+		log(`第${num}章 rewrite(模式A 报告修复)`);
+		await callAgent(
+			`你是小说重写员(novelist-rewrite skill)。对第${num}章执行 fix 模式 A(报告修复, 最安全)。\n\n` +
+				`读取: ${file}、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、相关 人物/简介.md、${ROOT}/情节/主线.md、${ROOT}/情节/伏笔.md。\n\n` +
+				`方法: 引用 novelist-rewrite skill。先做一致性/文字/AI味 综合检测, 生成重写报告, 再按报告定点修复(改事实/错字/AI腔), 不整章推翻重写。\n` +
+				`硬约束: 不违反 规则.md, 保持人物性格与风格连续。\n\n` +
+				`直接改 ${file}。把重写报告写入 ${ROOT}/元数据/检查报告/第${num}章.md。\n` +
+				`输出: 完成 / 失败(标「需要:」回传)。`,
+			{ label: `重写:${num}`, phase: "修复", agentType: "novelist:chapter-writer" },
+		);
+		const r = { chapter: num, title: info.title, total: null, attempts: 0, estCalls: 1, passed: false, skipped: true };
+		allResults.push(r);
+		log(`✅ 第${num}章「${info.title}」rewrite(模式A) 完成(未定稿, 交统一检查)`);
+		return;
+	}
+
 	while (true) {
+		// 各检测环按 needsPhase 决定跑/不跑; 全跳过则直接退出循环(无评分来源)。
+		const runCheck = needsPhase(EFFECTIVE_MODE, "查一致");
+		const runHuman = needsPhase(EFFECTIVE_MODE, "去AI味");
+		const runProof = needsPhase(EFFECTIVE_MODE, "校对");
+		if (!runCheck && !runHuman && !runProof) break; // 无检测 phase(如 rewrite 仅 fix)
+
 		// 🔴 三环并行检测(查一致/去AI味/校对正交, 均只读不改正文 → 无写冲突)
-		[checkResult, humanResult, proofResult] = await parallel([
-			() => checker(n, info.title), // 一致性
-			() => humanizer(n, info.title), // 去AI味
-			() => proofer(n, info.title), // 校对
-		]);
+		const tasks = [];
+		if (runCheck) tasks.push(() => checker(n, info.title)); // 一致性
+		if (runHuman) tasks.push(() => humanizer(n, info.title)); // 去AI味
+		if (runProof) tasks.push(() => proofer(n, info.title)); // 校对
+		const detectResults = await parallel(tasks);
+		// 按 run* 顺序回填到三槽位
+		let slot = 0;
+		if (runCheck) checkResult = detectResults[slot++];
+		if (runHuman) humanResult = detectResults[slot++];
+		if (runProof) proofResult = detectResults[slot++];
+
 		const { cScore, tScore, hScore, total } = computeScores(
 			checkResult,
 			proofResult,
@@ -369,7 +427,9 @@ async function finishChain(n, info) {
 			total >= PASS_TOTAL &&
 			cScore >= PASS_CONSISTENCY &&
 			hScore >= PASS_HUMANNESS;
-		if (passed || attempts >= MAX_FIX_ATTEMPTS) {
+		if (passed || attempts >= MAX_FIX_ATTEMPTS || !needsPhase(EFFECTIVE_MODE, "修复")) {
+			if (!passed && !needsPhase(EFFECTIVE_MODE, "修复"))
+				log(`第${ch(n)}章 本 mode 不跑修复 phase, 标记检测结果入库`);
 			if (!passed)
 				log(`⚠️ 第${ch(n)}章 超重试上限(${MAX_FIX_ATTEMPTS}), 标记需复审`);
 			break;
@@ -378,11 +438,13 @@ async function finishChain(n, info) {
 		await fixer(n, info.title, checkResult, proofResult, humanResult);
 		attempts++;
 	}
-	const r = await finalizer(n, info.title, checkResult, proofResult, humanResult);
-	r.attempts = attempts;
-	r.estCalls = 2 + 3 * (attempts + 1) + 2 * attempts; // write+final + 三环×(轮数+1) + fix估
+	const r = needsPhase(EFFECTIVE_MODE, "定稿")
+		? await finalizer(n, info.title, checkResult, proofResult, humanResult)
+		: { chapter: ch(n), title: info.title, total: null, attempts, estCalls: 0, passed: false, skipped: true };
+	if (r.attempts == null) r.attempts = attempts;
+	if (r.estCalls == null) r.estCalls = 2 + 3 * (attempts + 1) + 2 * attempts;
 	allResults.push(r);
-	log(`✅ 第${ch(n)}章「${info.title}」${r.passed ? "定稿" : "需复审"} (${r.total}分)`);
+	log(`✅ 第${ch(n)}章「${info.title}」${r.skipped ? "(未定稿)" : r.passed ? "定稿" : "需复审"}`);
 }
 
 // ===== 后置: 统一一致性检查(一个 agent 一次性审本批全部章节 + 与全书设定/前文的冲突) =====
@@ -421,59 +483,121 @@ async function unifiedCheck(chapterNums, chapters) {
 
 // ===== 主流程 =====
 log(
-	`流水线启动: 第${ch(START)}-${ch(END)}章, root=${ROOT}, 每批${BATCH_SIZE}章`,
+	`流水线启动: mode=${EFFECTIVE_MODE} 第${ch(START)}-${ch(END)}章, root=${ROOT}, 每批${BATCH_SIZE}章`,
 );
 const allResults = [];
 
 for (let batchStart = START; batchStart <= END; batchStart += BATCH_SIZE) {
 	const batchEnd = Math.min(batchStart + BATCH_SIZE - 1, END);
 	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
-	log(`\n===== 批次 ${batchId} =====`);
+	log(`\n===== 批次 ${batchId} (mode=${EFFECTIVE_MODE}) =====`);
 
-	// Phase 1: 大纲(串行)
-	const chapters = await ensureRouteMap(batchStart, batchEnd);
-	if (!chapters) {
-		log(`⚠️ 批次 ${batchId} 路线图缺失(生成/解析失败), 跳过`);
+	// Phase 1: 路线图(write + outline 才跑; 其余 mode 跳前置直接进收尾链)
+	if (needsPhase(EFFECTIVE_MODE, "路线图")) {
+		const chapters = await ensureRouteMap(batchStart, batchEnd);
+		if (!chapters) {
+			log(`⚠️ 批次 ${batchId} 路线图缺失(生成/解析失败), 跳过`);
+			continue;
+		}
+		const chapterNums = Object.keys(chapters)
+			.map(Number)
+			.filter((n) => n >= batchStart && n <= batchEnd);
+		if (chapterNums.length === 0) {
+			log(`⚠️ 批次 ${batchId} 路线图无第${batchStart}-${batchEnd}章数据, 跳过`);
+			continue;
+		}
+
+		// outline: 仅路线图, 跳 worldview/precheck/写作/收尾/统一
+		if (EFFECTIVE_MODE === "outline") {
+			log(`批次 ${batchId} mode=outline 仅生成路线图, 完成`);
+			continue;
+		}
+
+		if (needsPhase(EFFECTIVE_MODE, "世界观")) await updateWorldview(batchStart, batchEnd);
+		if (needsPhase(EFFECTIVE_MODE, "预检")) await preCheck(batchStart, batchEnd);
+
+		await runChapters(batchStart, batchEnd, chapterNums, chapters);
 		continue;
 	}
-	const chapterNums = Object.keys(chapters)
-		.map(Number)
-		.filter((n) => n >= batchStart && n <= batchEnd);
-	if (chapterNums.length === 0) {
-		log(`⚠️ 批次 ${batchId} 路线图无第${batchStart}-${batchEnd}章数据, 跳过`);
+
+	// 非 write 非 outline(无路线图 phase): 从现有章节目录探测标题 → 跑收尾链
+	const probed = await probeChapters(batchStart, batchEnd);
+	if (probed.nums.length === 0) {
+		log(`⚠️ 批次 ${batchId} mode=${EFFECTIVE_MODE} 未找到第${batchStart}-${batchEnd}章文件, 跳过`);
 		continue;
 	}
-	await updateWorldview(batchStart, batchEnd);
-	await preCheck(batchStart, batchEnd);
+	await runChapters(batchStart, batchEnd, probed.nums, probed.chapters);
+}
 
-	// Phase 2: 流水线并行 —— 当前章收尾链 ‖ 下一章 write
-	// 🔴 用 Workflow parallel() 显式声明并行(原生 Promise.all 的 await agent 不会被 Workflow 并发调度)。
-	// 先写第 1 章; 之后每轮: 第i章收尾(检测/fix/定稿) 与 第i+1章 write 同时跑。
-	const first = chapterNums[0];
-	log(`第${ch(first)}章 Writer 开始`);
-	await writer(first, chapters[first]);
-	log(`第${ch(first)}章 Writer 完成`);
-
-	for (let i = 0; i < chapterNums.length; i++) {
-		const cur = chapterNums[i];
-		const next = chapterNums[i + 1]; // undefined = 末章
-		// 🔴 并行: 第 cur 章收尾链 ‖ 第 next 章 write
-		await parallel([
-			() => finishChain(cur, chapters[cur]),
-			() =>
-				next != null
-					? (async () => {
-							log(`第${ch(next)}章 Writer 开始(与第${ch(cur)}章收尾并行)`);
-							await writer(next, chapters[next]);
-							log(`第${ch(next)}章 Writer 完成`);
-						})()
-					: Promise.resolve(),
-		]);
+// 从现有章节目录探测标题(非 write/outline mode 用, 避免依赖路线图)。
+// ponytail: 单次 agent 列目录代替逐章探测, 省 N 次调用; 若文件命名不规范可退化手填。
+async function probeChapters(batchStart, batchEnd) {
+	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
+	const list = await callAgent(
+		`列出目录 ${CHAPTER_DIR} 下所有以 "第" 开头、"-章" 形如 "第NNN章-标题.md" 的文件名。\n` +
+			`只返回第${ch(batchStart)}-${ch(batchEnd)}章范围内的文件名(每行一个, 形如 "第NNN章-标题.md")。\n` +
+			`若无任何匹配, 返回 "无"。`,
+		{ label: `探测章节:${batchId}`, phase: "查一致", agentType: "novelist:indexer" },
+	);
+	const chapters = {};
+	const nums = [];
+	if (typeof list === "string" && !list.startsWith("无")) {
+		const re = /第(\d{3})章-(.+?)\.md/g;
+		let m;
+		while ((m = re.exec(list)) !== null) {
+			const n = parseInt(m[1]);
+			if (n >= batchStart && n <= batchEnd) {
+				chapters[n] = { num: n, title: m[2], target: 3000 };
+				nums.push(n);
+			}
+		}
 	}
-	log(`批次 ${batchId} 流水线(收尾 ‖ 下一章写)完成`);
+	nums.sort((a, b) => a - b);
+	return { nums, chapters };
+}
+
+// 跑章节收尾链(write 时双流水线并行; 非 write 时 finishChain 逐章串行)
+async function runChapters(batchStart, batchEnd, chapterNums, chapters) {
+	const batchId = `${ch(batchStart)}-${ch(batchEnd)}`;
+	const doWrite = needsPhase(EFFECTIVE_MODE, "写作");
+
+	if (doWrite) {
+		// Phase 2(write 模式): 流水线并行 —— 当前章收尾链 ‖ 下一章 write
+		// 🔴 用 Workflow parallel() 显式声明并行(原生 Promise.all 的 await agent 不会被 Workflow 并发调度)。
+		const first = chapterNums[0];
+		log(`第${ch(first)}章 Writer 开始`);
+		await writer(first, chapters[first]);
+		log(`第${ch(first)}章 Writer 完成`);
+
+		for (let i = 0; i < chapterNums.length; i++) {
+			const cur = chapterNums[i];
+			const next = chapterNums[i + 1];
+			// 🔴 并行: 第 cur 章收尾链 ‖ 第 next 章 write
+			await parallel([
+				() => finishChain(cur, chapters[cur]),
+				() =>
+					next != null
+						? (async () => {
+								log(`第${ch(next)}章 Writer 开始(与第${ch(cur)}章收尾并行)`);
+								await writer(next, chapters[next]);
+								log(`第${ch(next)}章 Writer 完成`);
+							})()
+						: Promise.resolve(),
+			]);
+		}
+		log(`批次 ${batchId} 流水线(收尾 ‖ 下一章写)完成`);
+	} else {
+		// 非 write: 无 writer, finishChain 逐章串行(共享章节文件, 但各章独立 → 仍可并行, 受并发约束串行以求稳)
+		for (const n of chapterNums) {
+			await finishChain(n, chapters[n]);
+		}
+		log(`批次 ${batchId} 收尾链完成(mode=${EFFECTIVE_MODE}, 无 writer)`);
+	}
 
 	// Phase 3: 后置(统一检查)
-	await unifiedCheck(chapterNums, chapters);
+	if (needsPhase(EFFECTIVE_MODE, "统一检查")) {
+		await unifiedCheck(chapterNums, chapters);
+	}
 }
 
 // ===== 汇总: 每章明细 + 整体评分 + 预估耗时(非实测) =====

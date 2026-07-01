@@ -1,16 +1,63 @@
 ---
 name: novelist-pipeline
-description: "两流水线并行批量写小说: Writer 流 ‖ 检测定稿流(第N章 write 完进检测时第N+1章已开写); 每章 write→三环并行检测(check/humanize/proofread)→fix串行改→定稿。前置 outline→worldview→precheck, 后置统一 check。用 Workflow 工具调度, 调用 novelist 系列 skill/agent 完成每章闭环。当用户说'批量写N章/写到第N章/连续写多章/逐章写'时调用。入参二选一: 写到第几章(endChapter)或写几章(count); startChapter 恒为进度下一章, 缺省单章。"
-when_to_use: 需要一次性批量编写多个章节(连续写 N 章 / 写到第 N 章)并自动跑完整收尾链时。触发词: 批量写, 流水线, 连续写, 写到第, 写N章, pipeline, 批量章节。
+description: "批量写小说的流水线编排: 默认 mode=write 两流水线并行批量写(Writer 流 ‖ 检测定稿流, 每章 write→三环并行检测(check/humanize/proofread)→fix串行改→定稿)。加 mode 入参支持 review(评审)/humanize(去AI味)/proofread(校对)/polish(润色=三环收尾)/rewrite(重写)/outline(大纲)。载体: write 默认 Workflow(workflow.js), 其余默认 trellisx subagent 编排(main DAG 调度派 novelist 系列 skill, 并发上限2); --workflow/--no-workflow 覆盖。当用户说'批量写N章/写到第N章/连续写多章/逐章写/评审N章/校对N章/润色N章/去AI味N章/重写N章/出大纲'时调用。"
+when_to_use: 需要批量编排多个章节时(写/评审/校对/去AI味/润色/重写/大纲)。触发词: 批量, 流水线, 连续, 写到第, 写N章, 评审, 校对, 润色, 去AI味, 重写, 大纲, 路线图, pipeline。
 user-invocable: true
-argument-hint: "[写到第N章 | 写N章]（缺省=单章；startChapter 自动取进度下一章）"
+argument-hint: "[mode] [写到第N章 | 写N章] [--workflow | --no-workflow]（mode 缺省=write；startChapter 自动取进度下一章）"
 arguments: target
 disable-model-invocation: true
 ---
 
-# novelist-pipeline — 两流水线并行批量写作
+# novelist-pipeline — 多场景批量编排
 
-用 **Workflow 工具**批量写多章, **两流水线并行**: Writer 流逐章写(写完即推检测), 检测定稿流逐章跑收尾链 + 评分门控, 两流并行(第N章检测时第N+1章已在写)。**依赖 Claude Code 的 Workflow 编排能力**(无 Workflow 的 runtime 退化为 `novelist-write` 逐章手动循环, 行为一致)。
+默认 **mode=write**: 用 **Workflow 工具**批量写多章, **两流水线并行**(Writer 流逐章写, 检测定稿流逐章跑收尾链 + 评分门控, 两流并行)。加 **mode** 入参切换到其它场景(评审/校对/去AI味/润色/重写/大纲), 此时**默认走 trellisx subagent 编排**(main DAG 调度, 派 Agent 各执行 1 章)。
+
+## 入参
+
+```
+/novelist-pipeline [mode] [写到第N章 | 写N章] [--workflow | --no-workflow]
+```
+
+- **mode**(可缺省, 缺省=`write`): `write` / `review` / `humanize` / `proofread` / `polish` / `rewrite` / `outline`
+- **target**(`$target`, 复用原语义): 写到第几章(绝对终点, 含「到」) / 写几章(相对数量) / 缺省单章。`outline` 模式 target = 路线图到第N章。
+- **--workflow**: 强制该 mode 走 Workflow(workflow.js), 即便非 write
+- **--no-workflow**: 强制走 subagent 编排, 即便 write
+- 中文别名: 评审=review, 去AI味/去AI化=humanize, 校对=proofread, 润色=polish, 重写=rewrite, 大纲/路线图=outline
+
+### 载体选择规则(默认 + 覆盖)
+
+| 条件 | 载体 |
+|---|---|
+| mode=write 且无 --no-workflow | **Workflow**(默认) |
+| mode=write 且 --no-workflow | subagent 编排 |
+| mode≠write 且 --workflow | Workflow |
+| mode≠write 且(无 flag, 默认) | **subagent 编排**(默认) |
+
+## mode 路由表
+
+| mode | 级 | 前置(路线图/世界观/预检) | pipeline 行为(逐章) | 子 mode 默认 | 统一 check | 载体默认 |
+|---|---|---|---|---|---|---|
+| `write`(默认) | 章 | 全跑 | write→三环→fix→定稿 | — | ✓ | **Workflow** |
+| `review` | 章 | 跳 | check(detect 只查一致, 不修) | detect | ✓ | subagent |
+| `humanize` | 章 | 跳 | humanize(去AI味+改) | fix | ✗ | subagent |
+| `proofread` | 章 | 跳 | proofread(校对+改) | fix | ✗ | subagent |
+| `polish` | 章 | 跳 | 三环(check+humanize+proofread)→fix→定稿 | — | ✓ | subagent |
+| `rewrite` | 章 | 跳 | rewrite(fix 模式A 报告修复; 入参可指 B/C) | fix(模式A) | ✓ | subagent |
+| `outline` | 批 | 仅路线图(无世界观/预检) | outliner 生成路线图(无 write/收尾) | — | ✗ | subagent |
+
+**排除**(非章节级, 不进 pipeline): character/worldview/craft/design/init/trending/lint — 一次性或被引用型, pipeline 调度无意义。
+
+### 各 mode 报告/评分产出
+
+| mode | 报告路径 | 评分 |
+|---|---|---|
+| write | 检查报告/校对报告/deaigc | 综合分(现有) |
+| review | 元数据/检查报告/第N章.md + 统一-批.md | 一致性分 |
+| humanize | 元数据/校对报告/第N章-deaigc.md | 人味分 |
+| proofread | 元数据/校对报告/第N章.md | 文字分 |
+| polish | 三报告全产 | 综合分 |
+| rewrite | 重写后正文 + 元数据/检查报告/第N章.md | — |
+| outline | 情节/第NNN-NNN章路线图.md | — |
 
 ## 入参 `$target`(二选一, 自然语言即可)
 
@@ -25,19 +72,44 @@ disable-model-invocation: true
 
 1. **定位小说根目录** `root` — 当前工作目录即小说项目根(含 `章节/ 元数据/ 世界观/ 情节/` 等)。不确定 → `AskUserQuestion` 让用户确认路径。无目录环境 → 🔴 STOP, 提示先 `novelist-init`。
 2. **读 `元数据/进度.md`** 确定下一章号 = `startChapter`。
-3. **解析 `$target`** — 含「到」→ `endChapter`; 否则 → `count`; 空 → 单章。
-4. **调 Workflow**(脚本内含前置 outline→worldview→precheck, 无需手动分调):
+3. **解析入参** — 拆出 `mode`(首个 token 若在 7 mode 内则为 mode, 否则缺省 write)、`--workflow`/`--no-workflow` flag、剩余即 `$target`(含「到」→ `endChapter`; 否则 → `count`; 空 → 单章)。中文别名先归一为英文 mode。
+4. **选载体**(按上面「载体选择规则」表): 默认 write→Workflow, 其它→subagent; `--workflow`/`--no-workflow` 覆盖。
+5. **(载体=Workflow)** 调 Workflow(脚本内含 mode 分支, 按 mode 跑对应 phase 子集, write 全流程):
    ```
    Workflow({
      scriptPath: "${CLAUDE_PLUGIN_ROOT}/skills/novelist-pipeline/workflow.js",
-     args: { root: "<小说根目录绝对路径>", startChapter, endChapter }   // 或 { root, startChapter, count }
+     args: { root, mode, startChapter, endChapter }   // mode 缺省 write; 或 { root, mode, startChapter, count }
    })
    ```
    > `root` **必传**(脚本不硬编码任何小说路径/设定); >5 章脚本内部自动分批。
-5. **等待完成通知** → workflow 汇总输出: **每章明细**(综合分/三分项/fix轮数/状态/预估耗时)+ **整体评分**(定稿率/平均各分项)+ **预估总耗时**(agent 调用数×估值, 非实测——Workflow 禁 `Date.now`)。
-6. **对需复审章节**单独 `novelist-rewrite` 修复重跑。
+6. **(载体=subagent 编排)** 见下面「subagent 编排路径」: main 按 mode 解析章节范围 → DAG 派 general-purpose Agent 各跑 1 章。
+7. **等待完成通知** → 汇总输出: 每章明细 + 整体评分 + 预估耗时(Workflow 模式; subagent 模式按各 Agent 回传)。
+8. **对需复审章节**单独 `novelist-rewrite` 修复重跑。
 
-## 架构
+## subagent 编排路径(mode≠write 且 --no-workflow, 或非 write 默认)
+
+main 作为编排者:
+
+1. **解析 mode + target** → 算章节范围 `[startChapter, endChapter]`(复用 `$target` 逻辑)。
+2. **DAG 调度**(并发上限 **2**, 引用 trellisx scheduling 语义): 各章写文件不相交 → 全可并行, 受并发上限约束。
+   ```
+   for 章 in DAG_order(并发上限 2):
+     dispatch general-purpose Agent:
+       prompt(6 字段自包含):
+         - 目标: 对第 N 章执行 mode=<mode>, 调用 novelist-<skill> skill
+         - 已知: 小说根 root, 章节文件路径, Active task 路径
+         - 工作目录与范围: 仅该章文件
+         - 输出格式: 报告/评分落 元数据/ 对应路径
+         - 验收: 该章 mode 完成 + 报告产出
+         - 失败处理: 标「需要:」回传 main 转达
+   ```
+   - mode→skill 映射: review→novelist-check(detect), humanize→novelist-humanize(fix), proofread→novelist-proofread(fix), polish→依次 check/humanize/proofread 三环(+fix+定稿), rewrite→novelist-rewrite(fix 模式A), outline→novelist-outline(批级路线图)
+3. **统一 check**(若 mode 需要: review/polish/rewrite): 末尾串行派 1 个 Agent 跑 novelist-check 全批, 报告落 `元数据/检查报告/统一-第NNN-NNN章.md`。
+4. **失败处理**: Agent 缺信息标「需要:」 → main 转达用户; 章节范围解析失败 → AskUserQuestion。
+
+> 无 Workflow runtime 时, 所有 mode(含 write --no-workflow)都走本路径, 行为一致。
+
+## write 架构(mode=write 时适用)
 
 **两流水线并行**: Writer 流 ‖ 检测定稿流。第 N 章 write 完(草稿)即进检测链, **同时**第 N+1 章开始 write。用 throughput 换"基于前章草稿写下一章"的小风险(前章若检测出致命冲突重写, 下一章可能返工——已接受)。
 
@@ -118,7 +190,7 @@ disable-model-invocation: true
 | 多 workflow 冲突 | 立即停掉旧 workflow | 无法停 → 等结束后手动修索引 |
 | 索引/进度被污染 | 对照章节目录重建 | 无法重建 → 回报用户 |
 | agent 调用失败(网络/余额/瞬时 API) | `callAgent` **无限重试**(`MAX_AGENT_RETRIES=Infinity`)直到成功 | (永不放弃, 一直重试) |
-| 无 Workflow 工具(非 Claude Code) | 退化: 用 `novelist-write` 逐章手动循环 | 同样走每章收尾链 |
+| 无 Workflow 工具(非 Claude Code) / --no-workflow | 退化为 subagent 编排: main 派 Agent 逐章跑对应 mode(同样走每章收尾链) | 同样走每章收尾链 |
 
 ## 🔴 检查点
 
