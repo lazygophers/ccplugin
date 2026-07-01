@@ -43,6 +43,13 @@ arguments: [载体选项 (可选), 任务描述]
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) subagent 不能与用户对话; subagent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
 - 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - 📣 **完成即时回传** —— 每个 subagent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
+- 🔒 **task.md 禁直接 Edit/Write/MultiEdit** —— `.trellis/task.md` 看板**必经 `trellisx-taskmd.py` 脚本操作** (settings.json `permissions.deny` + `guard-taskmd.sh` PreToolUse hook 双保险硬阻)。直接编辑会被 deny 拦 + hook exit 2 block, 并报"用脚本"。违 = 流程错误 (绕过 hook/AI 列分工 + 格式漂移)。
+- 🧮 **多 task 并行调度 (同 session 多 active task)** —— **main 可在同一 session 内同时跟踪多个 in_progress task** (≠ 跨 session, 跨 session 本就独立):
+  - **active 集 + focus**: `active_tasks` 列表存所有 in_progress task, `current_task` (= focus) 是默认操作对象 (最近 start 的)。`task.py current` 显示 focus; `task.py current --all` 列所有 active (focus 标 `<- current` 绿, 其余 `<- active` 青)。
+  - **task 级并发上限 2** (`MAX_ACTIVE_TASKS`): 同 session active 集 ≤ 2。`task.py start` 第三个 → 报错 "task 级并发上限 2, 先 finish 一个", 禁超。 (= subtask 级上限, 见 scheduling.md)
+  - **task 间冲突判定 (复用 subtask 级算法, 见 scheduling.md §2)**: 两 task 的 write-files glob 相交 或 exec-scope 相交 → 串行 (不能并行派 subagent); 不相交 → 可并行 (各 task 各 worktree, 各派 trellis-implement, 合计并发仍受每层上限 2 约束)。
+  - **start/finish 语义**: `start <task>` 加入 active 集 (非顶替, 超上限报错); `finish` 从 active 集移除 focus + 自动切 focus 到剩余首个 (非清空所有)。
+  - **DAG**: 不冲突的 task 并行派 subagent, 冲突的串行 —— 与 subtask 级 §4 / child 级 §8 同构, 仅调度对象是 task。
 
 ## 调用边界 (重要)
 
@@ -78,6 +85,22 @@ arguments: [载体选项 (可选), 任务描述]
    - **正向 (任一 ✅ 触发)**: ① 新命令式契约 (MUST/禁, 后续同类任务会再踩) ② 踩坑留痕 (debugging ≥2 轮才定位, 根因可写为可验证契约, 非一次性 bug) ③ 反复犯错 (同类错误在 ≥2 task journal 出现, grep 可验) ④ 跨任务可复用决策 (选型/架构边界/API 约定) ⑤ 验收基准 (本 task 可执行断言通用到能复用为 spec 验收条)
    - **排除 (NOT 触发)**: 一次性 bug / 本 task 私有实现细节 / 已有 spec 覆盖
    - **诚实边界**: 判定归 model 非脚本 (语义判断脚本做不了); 全无增量则跳过, 禁硬凑沉淀
+   - **判定 trace (强制输出, 未输出 = 流程错误, 见反例 15)**: main MUST 按下表逐项 ✅/❌ 显式输出 (全否也要输出全 ❌ trace, 禁默默判"跳过"):
+     ```
+     sediment 判定 trace
+     ═══════════════════
+     正向 (任一 ✅ 触发 sediment):
+       ① 新命令式契约 (MUST/禁, 后续同类任务会再踩): ✅/❌ (具体: <描述>)
+       ② 踩坑 ≥2 轮 (根因可写可验证契约, 非一次性 bug): ✅/❌ (具体: <根因>)
+       ③ 反复 ≥2 task (grep 可验): ✅/❌ (具体: <task list>)
+       ④ 跨任务可复用决策 (选型/架构边界/API 约定): ✅/❌ (具体: <决策>)
+       ⑤ 验收基准 (可复用断言): ✅/❌ (具体: <断言>)
+     排除 (任一 ✅ 不触发, 仅当对应正向也 ✅ 时才需判):
+       - 一次性 bug: ✅/❌
+       - 本 task 私有实现细节: ✅/❌
+       - 已有 spec 覆盖: ✅/❌
+     判定: <触发 → 走 trellisx-spec sediment 提案 | 全否 → 跳过>
+     ```
    再 **finish 前先确认本 task 的 subagent/workflow 已终止 + 无悬挂后台任务** (用 `TaskList` 查残留, `TaskStop` 关闭; **禁 `sleep`/轮询等 workflow 跑完 —— workflow 异步, 完成会自动回 notification, 届时本回合再走 finish**); 再 main 直接跑 `python3 ./.trellis/scripts/task.py finish`; `after_finish` hook 自动完成 commit→merge→archive→销 worktree (多 worktree 时合并各分支, 非派 agent, 非可选)。**`--no-worktree` 时**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过合并/销 worktree, 直接 commit 主工作区改动 + archive。→ **更新 task.md 行** (状态 completed)。
 
 ## 失败模式 (三段式: 触发 → 一线修复 → 仍失败兜底)
@@ -134,5 +157,8 @@ arguments: [载体选项 (可选), 任务描述]
 | 12 | exec subagent 直接在主工作区改源码 (无 worktree) **且未带 `--no-worktree`** | 必在本 task 的 worktree 内执行 (共享, subtask 不绑定 worktree), 改动落 `<git根>/.worktrees/`, 主工作区零改动 (带 `--no-worktree` 则允许改主工作区, 但 main 仍默认禁写) |
 | 13 | finish 时留悬挂 subagent / workflow / 后台任务未关 | 改为 `TaskList` 查 + `TaskStop` 关后再 finish |
 | 14 | exec 阶段 subtask 之间停下来问用户"先做哪个 / 下一个做什么" | 顺序归 planning, exec 只跑调度循环 (scheduling.md §4) —— ready 即派 / 完成即派 / 并发 2; PRD 缺调度图 → 退回 planning 补, 不在 exec 问 |
+| 15 | finish 步 sediment 判定未输出 trace (默默判"全否跳过", 用户无感知) | MUST 按 trace 模板 (步骤 6) 逐项 ✅/❌ 显式输出, 全否也要输出全 ❌ trace, 禁跳过 |
+| 16 | 直接 Edit/Write/MultiEdit `.trellis/task.md` (绕过脚本) | 经 `trellisx-taskmd.py` (show/update/sync/cleanup/map-*) —— deny + hook 双保险硬阻, 违 = 流程错误 |
+| 17 | 同 session active 集超 2 (start 第三个 task) | task 级并发上限 2, 先 finish 一个再 start (与 subtask 级上限一致, 见 scheduling.md) |
 
 > 与 `trellisx-apply` 的分工: 本 skill = task 强推主路径 (用户显式 + model 自动, 复杂多步跨文件即接管); apply 注入的 no_task = 轻量"建议建 task"常驻软提示, 指向本 skill。两者嵌套 (hint → flow), 不冲突。

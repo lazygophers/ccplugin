@@ -14,6 +14,10 @@
 | 与代码现状脱节 | 规则提的 API / 文件 grep, 不存在则脱节 | 标 DELETE / REWRITE 提案 |
 | 描述性垃圾条目 | 无可执行验证手段, 纯感叹 / 期望词 | 标 DELETE / REWRITE |
 | task manifest 引用使用率 | 每个 spec 文件被多少 `implement.jsonl` / `check.jsonl` 引用 | 0 引用考虑 DELETE |
+| A1 guide 间冗余 | 两两 guide 段落语义相似度 ≥ 70% (同契约出现在 ≥ 2 guide) | 标 MERGE 提案 |
+| A2 过时引用 | guide 正文引用的文件路径 / 符号名 grep 当前仓库不存在 | 标 DELETE / REWRITE |
+| A3 低质量强化 | 命令式 < 60% **且** 描述式 > 5 处 **且** 无可执行验证 (交叉判定) | 标 REWRITE 高优 |
+| A4 index 同步 | `index.md` 列的 guide vs `find .trellis/spec/guides/` 双向 diff | 标 PATCH |
 
 ## 体检报告模板
 
@@ -31,6 +35,10 @@ spec 体检报告
 - 外部重复段落: K 处
 - 脱节条目: L 处
 - 零引用文件: P 处
+- guide 间冗余 (A1): Q 组
+- 过时引用 (A2): R 处
+- 低质量高优清单 (A3): <文件1, 文件2, ...>
+- index 同步 (A4): 缺登记 N1 处 / 悬挂条目 N2 处
 
 [文件级清单]
 guides/code-reuse-thinking-guide.md (123 行)
@@ -71,6 +79,27 @@ grep -nE '建议|可以|通常|尽量|应该|考虑' .trellis/spec/**/*.md
 # 死链
 grep -nE '\[\[[^]]+\]\]|\]\([^)]+\)' .trellis/spec/**/*.md > /tmp/links.txt
 # 人工或脚本逐条检查目标存在性
+
+# A1 guide 间冗余: 抽关键契约短语两两比对
+grep -rhoE 'MUST[^。]*|禁[^。]*|必须[^。]*' .trellis/spec/guides/*.md | sort | uniq -d
+# ponytail: 纯文本重叠近似语义相似, 70% 阈值由人工复核; 想要精确上 sentence-embeddings, 当前规模不值得
+
+# A2 过时引用: guide 提到的路径/符号在仓库 grep 不到
+grep -rhoE '\.trellis/spec/[^ )`]+|[A-Z][a-z]+Guide' .trellis/spec/guides/*.md | sort -u | \
+  while read p; do grep -rq "$p" . --include='*.md' --include='*.ts' --include='*.js' 2>/dev/null || echo "过时: $p"; done
+
+# A3 低质量高优: 命令式 <60% 且 描述式 >5 处, 人工复核无可执行验证
+for f in .trellis/spec/**/*.md; do
+  total=$(grep -cE '^[-*]|^[0-9]+\.' "$f"); must=$(grep -cE 'MUST|MUST NOT|禁|必须|严禁' "$f")
+  desc=$(grep -cE '建议|可以|通常|尽量|应该|考虑' "$f")
+  [ "$total" -gt 0 ] && [ $(( must * 100 / total )) -lt 60 ] && [ "$desc" -gt 5 ] && echo "高优重写: $f"
+done
+
+# A4 index 同步: index.md 列表 vs 实际 guide 文件 双向 diff
+find .trellis/spec/guides -name '*.md' -exec basename {} \; | sort > /tmp/guides_actual.txt
+grep -oE '[^]]+\.md' .trellis/spec/guides/index.md | sort -u > /tmp/guides_indexed.txt
+echo "缺登记 (实际有 index 未列):"; comm -23 /tmp/guides_actual.txt /tmp/guides_indexed.txt
+echo "悬挂条目 (index 列了实际不存在):"; comm -13 /tmp/guides_actual.txt /tmp/guides_indexed.txt
 ```
 
 ## 输出要求
