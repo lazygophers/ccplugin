@@ -97,6 +97,34 @@ class ActiveTask:
         return self.source_type
 
 
+@dataclass(frozen=True)
+class ActiveTasks:
+    """Resolved multi-active-task state for one session.
+
+    `focus` is the current pointer (most recently started); `all` is the full
+    set of concurrently in-progress tasks (focus first when non-empty).
+    """
+
+    all: tuple[ActiveTask, ...]
+    focus: ActiveTask | None = None
+
+    @property
+    def task_paths(self) -> tuple[str, ...]:
+        """All active task paths (focus first)."""
+        focus_path = self.focus.task_path if self.focus else None
+        rest = tuple(
+            t.task_path
+            for t in self.all
+            if t.task_path and t.task_path != focus_path
+        )
+        if focus_path:
+            return (focus_path, *rest)
+        return rest
+
+
+MAX_ACTIVE_TASKS = 2
+
+
 def normalize_task_ref(task_ref: str) -> str:
     """Normalize a task ref for stable storage and comparison."""
     normalized = task_ref.strip()
@@ -465,33 +493,78 @@ def _context_path(repo_root: Path, context_key: str) -> Path:
     return _runtime_sessions_dir(repo_root) / f"{context_key}.json"
 
 
+def _read_active_list(context: dict[str, Any]) -> list[str]:
+    """Read `active_tasks` from a session dict, with backward-compat fallback.
+
+    New format: `{"active_tasks": [...], "current_task": "<focus>"}`.
+    Legacy format: `{"current_task": "<ref>"}` → synthesized as `[ref]`.
+    """
+    raw = context.get("active_tasks")
+    if isinstance(raw, list):
+        refs = [
+            normalize_task_ref(r)
+            for r in raw
+            if isinstance(r, str) and r.strip()
+        ]
+        if refs:
+            return refs
+    current = _string_value(context.get("current_task"))
+    if current:
+        return [current]
+    return []
+
+
 def resolve_active_task(
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
 ) -> ActiveTask:
-    """Resolve the active task from session runtime state only.
+    """Resolve the focus (current) active task from session runtime state.
 
-    A stale session task is returned as stale. Missing context identity or a
-    missing/empty session context falls back to single-session inference: if
-    exactly one session file exists in the runtime, return its task with
-    source_type="session-fallback" — covers class-2 platform sub-agents (codex,
-    copilot, gemini, qoder) that don't inherit the parent's session id. ≥2
-    files or 0 files yield ActiveTask(None) — refuses to guess across windows.
+    Kept single-valued for backward compatibility with hooks and paths.*.
+    Use `resolve_active_tasks` (plural) for the full in-progress set.
+    """
+    tasks = resolve_active_tasks(repo_root, platform_input, platform)
+    if tasks.focus:
+        return tasks.focus
+    # No focus but non-empty fallback: surface first.
+    if tasks.all:
+        return tasks.all[0]
+    context_key = resolve_context_key(platform_input, platform)
+    return ActiveTask(None, "none", context_key)
+
+
+def resolve_active_tasks(
+    repo_root: Path,
+    platform_input: dict[str, Any] | None = None,
+    platform: str | None = None,
+) -> ActiveTasks:
+    """Resolve all concurrent in-progress tasks for the current session.
+
+    Returns ActiveTasks with `focus` (current pointer) and `all` (full set).
+    Stale tasks are preserved (kept as stale); missing context falls back to
+    single-session inference just like the single-valued resolver.
     """
     context_key = resolve_context_key(platform_input, platform)
     if context_key:
         context = _read_json(_context_path(repo_root, context_key)) or {}
-        task_ref = _string_value(context.get("current_task"))
-        active = _active_from_ref(task_ref, repo_root, "session", context_key)
-        if active:
-            return active
+        refs = _read_active_list(context)
+        if refs:
+            focus_ref = _string_value(context.get("current_task")) or refs[0]
+            focus = _active_from_ref(focus_ref, repo_root, "session", context_key)
+            rest = tuple(
+                _active_from_ref(r, repo_root, "session", context_key)
+                for r in refs
+                if r != focus_ref
+            )
+            all_tasks = (focus, *rest) if focus else rest
+            return ActiveTasks(all_tasks, focus)
 
     fallback = _resolve_single_session_fallback(repo_root)
     if fallback is not None:
-        return fallback
+        return ActiveTasks((fallback,), fallback)
 
-    return ActiveTask(None, "none", context_key)
+    return ActiveTasks((), None)
 
 
 def _resolve_single_session_fallback(repo_root: Path) -> ActiveTask | None:
@@ -545,16 +618,22 @@ def _context_metadata(
     return metadata
 
 
+class ActiveTaskLimitError(RuntimeError):
+    """Raised when adding a task would exceed MAX_ACTIVE_TASKS."""
+
+
 def set_active_task(
     task_path: str,
     repo_root: Path,
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
 ) -> ActiveTask | None:
-    """Set the active task in session scope.
+    """Add a task to the session's active set and make it the focus.
 
-    Returns None when no context key is available; callers should surface a
-    user-facing error that explains how to provide session identity.
+    Adds (does not replace): the new task is appended and marked as the
+    `current_task` focus. Raises ActiveTaskLimitError when adding a new entry
+    would exceed MAX_ACTIVE_TASKS. Returns None only when no context key is
+    available or the task path cannot be canonicalized.
     """
     canonical = _canonical_task_ref(task_path, repo_root)
     if canonical is None:
@@ -567,6 +646,22 @@ def set_active_task(
     context_path = _context_path(repo_root, context_key)
     context = _read_json(context_path) or {}
     context.update(_context_metadata(platform_input, platform, context_key))
+
+    existing = _read_active_list(context)
+    canonical_refs: list[str] = []
+    for ref in existing:
+        canon = _canonical_task_ref(ref, repo_root) or normalize_task_ref(ref)
+        if canon and canon != canonical and canon not in canonical_refs:
+            canonical_refs.append(canon)
+
+    is_new = canonical not in canonical_refs
+    if is_new and len(canonical_refs) + 1 > MAX_ACTIVE_TASKS:
+        raise ActiveTaskLimitError(
+            f"task 级并发上限 {MAX_ACTIVE_TASKS}, 先 finish 一个"
+        )
+
+    canonical_refs.append(canonical)
+    context["active_tasks"] = canonical_refs
     context["current_task"] = canonical
     context.setdefault("current_run", None)
     if not _write_json(context_path, context):
@@ -579,20 +674,51 @@ def clear_active_task(
     platform_input: dict[str, Any] | None = None,
     platform: str | None = None,
 ) -> ActiveTask:
-    """Clear the active task by deleting the current session context file."""
+    """Remove the focus task from the session's active set.
+
+    Multi-active semantics: only the focus (`current_task`) is removed; the
+    focus auto-moves to the first remaining task. When the set becomes empty
+    the session file is deleted — equivalent to the legacy single-task clear.
+    """
     context_key = resolve_context_key(platform_input, platform)
     if not context_key:
         return ActiveTask(None, "none")
 
     previous = resolve_active_task(repo_root, platform_input, platform)
     context_path = _context_path(repo_root, context_key)
-    if context_path.is_file():
-        _remove_file(context_path)
+    context = _read_json(context_path) or {}
+
+    focus_ref = _string_value(context.get("current_task"))
+    remaining: list[str] = []
+    for ref in _read_active_list(context):
+        canon = _canonical_task_ref(ref, repo_root) or normalize_task_ref(ref)
+        focus_canon = (
+            _canonical_task_ref(focus_ref, repo_root)
+            if focus_ref
+            else None
+        ) or (focus_ref or "")
+        if canon != focus_canon and canon not in remaining:
+            remaining.append(canon)
+
+    if not remaining:
+        if context_path.is_file():
+            _remove_file(context_path)
+        return previous
+
+    context["active_tasks"] = remaining
+    context["current_task"] = remaining[0]
+    context.setdefault("current_run", None)
+    _write_json(context_path, context)
     return previous
 
 
 def clear_task_from_sessions(task_path: str, repo_root: Path) -> int:
-    """Delete all session runtime files that point at a task."""
+    """Remove a task from every session runtime file that references it.
+
+    Multi-active aware: each session keeps its other active tasks; the session
+    file is deleted only when its active set becomes empty. Returns the number
+    of sessions modified (matching task removed).
+    """
     target = _canonical_task_ref(task_path, repo_root) or normalize_task_ref(task_path)
     if not target:
         return 0
@@ -604,14 +730,33 @@ def clear_task_from_sessions(task_path: str, repo_root: Path) -> int:
 
     for session_path in sessions_dir.glob("*.json"):
         context = _read_json(session_path) or {}
-        current = _string_value(context.get("current_task"))
-        if not current:
+        refs = _read_active_list(context)
+        if not refs:
             continue
-        current_ref = _canonical_task_ref(current, repo_root) or normalize_task_ref(current)
-        if current_ref != target:
+
+        kept: list[str] = []
+        touched = False
+        for ref in refs:
+            canon = _canonical_task_ref(ref, repo_root) or normalize_task_ref(ref)
+            if canon == target:
+                touched = True
+                continue
+            if canon not in kept:
+                kept.append(canon)
+
+        if not touched:
             continue
-        if session_path.is_file() and _remove_file(session_path):
-            cleared += 1
+
+        cleared += 1
+        if not kept:
+            if session_path.is_file():
+                _remove_file(session_path)
+            continue
+
+        context["active_tasks"] = kept
+        if _string_value(context.get("current_task")) not in kept:
+            context["current_task"] = kept[0]
+        _write_json(session_path, context)
 
     return cleared
 

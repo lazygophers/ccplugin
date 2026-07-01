@@ -34,11 +34,12 @@ from common.paths import (
     get_repo_root,
     get_developer,
     get_tasks_dir,
-    get_current_task,
 )
 from common.active_task import (
+    ActiveTaskLimitError,
     clear_active_task,
     resolve_active_task,
+    resolve_active_tasks,
     resolve_context_key,
     set_active_task,
 )
@@ -118,7 +119,11 @@ def cmd_start(args: argparse.Namespace) -> int:
             run_task_hooks("after_start", task_json_path, repo_root)
         return 0
 
-    active = set_active_task(task_dir, repo_root)
+    try:
+        active = set_active_task(task_dir, repo_root)
+    except ActiveTaskLimitError as exc:
+        print(colored(f"Error: {exc}", Colors.RED))
+        return 1
     if active:
         print(colored(f"✓ Current task set to: {task_dir}", Colors.GREEN))
         print(f"Source: {active.source}")
@@ -141,7 +146,7 @@ def cmd_start(args: argparse.Namespace) -> int:
 
 
 def cmd_finish(args: argparse.Namespace) -> int:
-    """Clear active task."""
+    """Remove the focus task from the active set (multi-active aware)."""
     repo_root = get_repo_root()
     active = clear_active_task(repo_root)
     current = active.task_path
@@ -158,12 +163,44 @@ def cmd_finish(args: argparse.Namespace) -> int:
 
     if task_json_path.is_file():
         run_task_hooks("after_finish", task_json_path, repo_root)
+
+    # Surface remaining active tasks so the user knows what's still in flight.
+    remaining = resolve_active_tasks(repo_root)
+    if remaining.focus and remaining.focus.task_path:
+        print(colored(f"Focus moved to: {remaining.focus.task_path}", Colors.CYAN))
+        if len(remaining.all) > 1:
+            others = [
+                t.task_path for t in remaining.all
+                if t.task_path and t.task_path != remaining.focus.task_path
+            ]
+            if others:
+                print(f"Also active: {', '.join(others)}")
     return 0
 
 
 def cmd_current(args: argparse.Namespace) -> int:
-    """Show active task."""
+    """Show active task(s)."""
     repo_root = get_repo_root()
+
+    if args.all:
+        tasks = resolve_active_tasks(repo_root)
+        if not tasks.all:
+            if args.source:
+                print("No active tasks")
+            return 1
+        for t in tasks.all:
+            marker = colored(" <- current", Colors.GREEN) if (
+                tasks.focus and t.task_path == tasks.focus.task_path
+            ) else ""
+            if args.source:
+                print(f"{t.task_path}{marker}")
+                print(f"  Source: {t.source}")
+                if t.stale:
+                    print("  State: stale")
+            else:
+                print(f"{t.task_path}{marker}")
+        return 0
+
     active = resolve_active_task(repo_root)
 
     if args.source:
@@ -188,7 +225,9 @@ def cmd_list(args: argparse.Namespace) -> int:
     """List active tasks."""
     repo_root = get_repo_root()
     tasks_dir = get_tasks_dir(repo_root)
-    current_task = get_current_task(repo_root)
+    active = resolve_active_tasks(repo_root)
+    active_paths = {t.task_path for t in active.all if t.task_path}
+    focus_path = active.focus.task_path if active.focus else None
     developer = get_developer(repo_root)
     filter_mine = args.mine
     filter_status = args.status
@@ -223,8 +262,11 @@ def cmd_list(args: argparse.Namespace) -> int:
 
         relative_path = f"{DIR_WORKFLOW}/{DIR_TASKS}/{dir_name}"
         marker = ""
-        if relative_path == current_task:
-            marker = f" {colored('<- current', Colors.GREEN)}"
+        if relative_path in active_paths:
+            if relative_path == focus_path:
+                marker = f" {colored('<- current', Colors.GREEN)}"
+            else:
+                marker = f" {colored('<- active', Colors.CYAN)}"
 
         # Children progress
         progress = children_progress(t.children, all_statuses)
@@ -422,6 +464,8 @@ def main() -> int:
     p_current = subparsers.add_parser("current", help="Show active task")
     p_current.add_argument("--source", action="store_true",
                            help="Show active task source")
+    p_current.add_argument("--all", action="store_true",
+                           help="List all concurrently active tasks")
 
     # finish
     subparsers.add_parser("finish", help="Clear active task")

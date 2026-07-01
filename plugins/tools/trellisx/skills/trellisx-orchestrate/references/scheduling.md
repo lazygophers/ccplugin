@@ -187,3 +187,56 @@ all child done → parent 跑跨 child 集成 review
 - **child ≠ subtask (正交)**: child 是任务级调度单元 (独立 task, 各 worktree); subtask 是任务内执行单元 (共享 task worktree)。child 自身 exec 仍走 subtask 层调度。
 
 > 🔴 **child 级同构禁令**: child 间顺序同样**归 parent planning** (Child Task Map + depends-on), parent 调度循环只按 child DAG 派, **禁问用户"哪个 child 先做"**; child DAG 缺依赖声明 → 退回 parent planning 补, 不在调度时问。
+
+## 9. 同 session 多 active task 并行 (task 级)
+
+> 本节是**同一 main session 内同时跟踪多个 in_progress task** 的调度规程, 与 §8 child 级 (跨 child task) 正交。child 级 = 一个 parent 跨多个 child task 各自生命周期; 本节 = 一个 main 在一个 session 里同时跑多个 active task。底层均复用 §0-7 的动态 DAG 调度模型。
+
+**数据模型** (session 文件 `.trellis/runtime/sessions/<context>.json`):
+- `active_tasks`: list[str] —— 所有 in_progress task 的 ref 列表 (向后兼容: 旧单值 `current_task` 文件读时构造为单元素列表)
+- `current_task`: str —— **focus task** (最近 start 的), 默认操作对象; 保留此字段作向后兼容
+
+**API** (`common/active_task.py`):
+- `resolve_active_tasks` (复数) → 返回全部 active + focus
+- `set_active_task` → add 到 active 集 (非 replace); 新增且 `len(active_tasks) + 1 > MAX_ACTIVE_TASKS` → 抛 `ActiveTaskLimitError`
+- `clear_active_task` → 从 active 集移除 focus, 自动切 focus 到剩余首个 (非清空)
+- `MAX_ACTIVE_TASKS = 2` —— task 级并发上限 (= subtask 级 / child 级一致)
+
+**task 级冲突判定** (复用 §2 subtask 级算法, 三类边):
+1. **写盘相交**: 两 task 的 write-files glob 相交 (同文件) → 依赖边
+2. **执行作用域相交**: exec-scope 相交 (同包 or 任一 project) → 依赖边 (§2 exec-scope 相交规则同)
+3. **显式依赖**: task 间 depends-on → 依赖边
+
+无依赖边 = 可并行。task 级与 subtask 级冲突判定的差别: subtask 级并行 subagent **共享 task worktree** (改不相交文件集); task 级并行各 task **各 worktree** (天然隔离, 但 write-files glob 相交仍算依赖边以防逻辑冲突 / exec-scope 相抢进程)。
+
+**task 级动态调度循环 (main, 并发上限 2)**:
+
+```
+# main 在持有多个 active task 时调度 (与 §4 subtask 循环同构)
+while exists(active task not in {done, failed}):
+    ready_set = { t | t 上游依赖全 done 且 exec-scope 未被占用 }
+    slots = 2 - count(t | t.status == running)          # task 级并发槽
+    to_dispatch = take(ready_set, min(len(ready_set), slots))
+    for t in to_dispatch:
+        t.status = running
+        dispatch t 的 subtask 层调度 (各 task 各 worktree)   # 每个 task 内部走 §0-7
+
+    wait for any task archive notification
+    on notification(t):
+        if t 验收通过:  t.status = done; 解锁下游 task
+        else:           t.status = failed → failure-recovery
+
+    loop (立即查新 ready task, 立即派)
+```
+
+**关键性质**:
+- **并发上限 2** (`MAX_ACTIVE_TASKS`): 同 session 最多 2 个 active task; start 第三个 → `ActiveTaskLimitError` "task 级并发上限 2, 先 finish 一个"。
+- **focus task**: `current_task` = 最近 start 的, `task.py current` 默认显示它; `task.py current --all` 列所有 active (focus 标 `<- current` 绿, 其余 `<- active` 青)。
+- **start/finish 语义**: `start <task>` 加入 active 集 (非顶替); `finish` 移除 focus + 自动切 focus 到剩余首个 (非清空所有)。
+- **task 级 ≠ child 级 ≠ subtask 级 (三层正交)**:
+  - **subtask 级 (§0-7)**: task 内执行单元, 共享 task worktree
+  - **child 级 (§8)**: parent 跨 child task, 各 child 各 worktree, parent 视角调度
+  - **task 级 (本节)**: 一个 main 一个 session 内多 active task, 各 task 各 worktree, main 视角调度
+- **三层同构**: 均动态 DAG / 完成即派 / 并发上限 2; 差别仅在调度者 (main / parent) 与隔离单位 (共享 worktree / 各 worktree)。
+
+> 🔴 **task 级顺序禁令 (同 §4/§8)**: task 间顺序归 main planning (PRD 调度图 + write-files/exec-scope 静态冲突判定), 调度循环只按 DAG 派; **禁问用户"哪个 task 先做"**; task DAG 缺依赖声明 → 退回 planning 补, 不在调度时问。

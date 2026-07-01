@@ -85,8 +85,12 @@ from .paths import (
 
 from .active_task import (
     ActiveTask,
+    ActiveTasks,
+    ActiveTaskLimitError,
+    MAX_ACTIVE_TASKS,
     clear_active_task,
     resolve_active_task,
+    resolve_active_tasks,
     resolve_context_key,
     set_active_task,
 )
