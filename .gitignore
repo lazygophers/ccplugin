@@ -81,3 +81,6 @@ graphify-out/.worktrees/
 
 # trellisx worktree 隔离目录 (任务源码改动落此, 不入库)
 .worktrees/
+
+# darwin-skill 测试基准产物 (本地保留, 不入库; 任何插件目录内的同名文件均视为泄漏)
+**/.darwin-results.tsv
