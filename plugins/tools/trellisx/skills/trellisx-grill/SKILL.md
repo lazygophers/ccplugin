@@ -1,7 +1,7 @@
 ---
 name: trellisx-grill
 description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 贯穿 plan 前/中/后全程逐分支 stress-test 设计树, 帮用户确认/审查/拆解需求。逐问审 (可一次多问批量确认提效 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / planning 中 / start 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
-when_to_use: '由调用方强制驱动 (非 model 自启): trellisx-flow / trellisx-orchestrate 在 PRD 编写中 + start 前两处硬门 MUST 调本 skill; 用户显式 "grill 这个" "审下设计" "红队" "确认需求"。原生 phase 1.1 (写 prd) / 1.4 (start 前) 未走 trellisx 时, model 应主动调 (user-invocable, 非自动加载)'
+when_to_use: '由调用方强制驱动 (非 model 自启): trellisx-flow / trellisx-orchestrate 在 PRD 编写中 + start 前两处硬门 MUST 调本 skill; 用户显式 "grill 这个" "审下设计" "红队" "确认需求"。原生 phase 1.1 (写 prd) / 1.4 (start 前) 未走 trellisx 时, trellisx-guard UserPromptSubmit hook 每 turn 检测 planning 工件状态自动注入 grill 硬门提醒 (硬保证, 非 model 自觉); model 见 🔴 提醒 MUST 调本 skill (user-invocable, 非自动加载)'
 argument-hint: '<工件路径 或 "active task">'
 arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 planning/架构产物, 如 task-tree/调度图/scheduling/config hook/架构决策), 缺省 = active task 全部 planning + 架构产物]'
 ---
@@ -78,9 +78,15 @@ arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 pla
 ### 非 flow 场景 (原生 trellis / 普通 task)
 
 用户未走 `/trellisx-flow` 但在写 prd / 收到新 task / 准备 `task.py start`:
-- **model 应主动调本 skill** (user-invocable, model 识别 phase 1.1/1.4 场景触发)
-- 同样两硬门: 写 prd 时边问边写 (硬门 1) + start 前全轴确认 (硬门 2)
-- 无强制脚本拦截, 靠 model 遵守 (诚实边界: 非 flow 路径无脚本保证, model 可能漏调)
+
+**硬保证 (guard 注入)**: `trellisx-guard` UserPromptSubmit hook 每 turn 检测 active task planning 阶段工件状态, 自动注入对应硬门提醒:
+- status=planning + prd.md 未成型 → 注入硬门 1 提醒 (写 PRD 时 MUST 调 grill)
+- status=planning + prd/design/implement 齐备 → 注入硬门 2 提醒 (start 前 MUST 调 grill)
+- status=planning + 部分工件 → 注入硬门 1 持续提醒 (至全齐转硬门 2)
+
+model 见到 guard 注入的 🔴 提醒 MUST 调本 skill, 非可选。无 active task (纯对话/未建 task) 时 guard 不注入, model 识别"写 prd / 新 task / 准备 start"意图也应主动调本 skill。
+
+**同样两硬门**: 写 prd 时边问边写 (硬门 1) + start 前全轴确认 (硬门 2)。flow 与非 flow 路径 grill 要求一致, 非 flow 由 guard 兜底硬触发, 不靠 model 自觉。
 
 ### 用户显式
 

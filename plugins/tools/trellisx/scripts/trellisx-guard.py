@@ -284,6 +284,72 @@ def active_tid(troot):
     return active_task_info(troot)[0]
 
 
+def active_task_dir(troot):
+    """非 stale 活动_task 的绝对目录路径 (含 task.json); 无/stale → None。
+    用于定位 prd/design/implement.md 等工件文件。"""
+    path, stale = _resolve_active(troot)
+    if not path or stale:
+        return None
+    return os.path.normpath(os.path.join(troot, path))
+
+
+def grill_gate_hint(troot):
+    """检测活动 task planning 阶段工件状态 → 返回 grill 硬门提醒文本 (str) 或 None。
+
+    硬门 1 (PRD 边问边写): status=planning 且 prd.md 缺/极小 → 提醒写 PRD 时调 grill。
+    硬门 2 (start 前全轴确认): status=planning 且 prd/design/implement 齐备 → 提醒 start 前调 grill。
+    in_progress/archived/无 task → None (非 planning 不注入 grill)。
+
+    本函数给非 flow 路径 (原生 trellis phase 1.1/1.4) 硬保证:
+    即使用户没走 /trellisx-flow, guard 每 turn 检测工件状态注入提醒,
+    model 见到提醒 MUST 调 /trellisx-grill。flow 路径 grill 由 skill 文本硬门约束, 不冲突。"""
+    tid, status = active_task_info(troot)
+    if status != "planning":
+        return None
+    tdir = active_task_dir(troot)
+    if not tdir:
+        return None
+
+    def _has(name, min_lines=1):
+        p = os.path.join(tdir, name)
+        if not os.path.isfile(p):
+            return False
+        try:
+            with open(p, encoding="utf-8") as f:
+                return sum(1 for _ in f) >= min_lines
+        except Exception:
+            return False
+
+    has_prd = _has("prd.md", 3)  # <3 行视为未真正写
+    has_design = _has("design.md", 3)
+    has_impl = _has("implement.md", 3)
+    full_set = has_prd and has_design and has_impl
+
+    if not has_prd:
+        # PRD 未成型 → 硬门 1 (写 PRD 过程中边问边写)
+        return (
+            "[trellisx] 🔴 grill 硬门 1 (PRD 边问边写): 当前 task 处 planning 且 prd.md 未成型。"
+            "写 PRD 时 MUST 调 /trellisx-grill 用轴 A (目标) / B (产出) 当提问引擎 —— "
+            "grill 出问 → 逐问用户 → 答完即时更新 PRD → 循环至轴 A/B 双 ✓。"
+            "禁写完整 PRD 才调 grill (本末倒置)。非 flow 路径同样适用 (guard 强制注入)。"
+        )
+    if full_set:
+        # 工件齐 → 硬门 2 (start 前全轴确认)
+        return (
+            "[trellisx] 🔴 grill 硬门 2 (start 前需求确认): 当前 task planning 工件齐备 "
+            "(prd/design/implement)。task.py start 前 MUST 调 /trellisx-grill 跑全轴 A-L "
+            "(按工件动态裁剪), 重点轴 A/B/C/E/G 确认用户想法 = PRD 写的。"
+            "弱点表交用户过 + 补齐后才放行 start。未跑 grill = 流程未完成, 禁 start。"
+            "非 flow 路径同样适用 (guard 强制注入)。"
+        )
+    # 部分工件 (如 prd 有但 design/implement 未写) → 硬门 1 仍持续, 等齐了转硬门 2
+    return (
+        "[trellisx] 🔴 grill 硬门 1 (PRD 边问边写): planning 进行中, prd 已起但 design/implement 未齐。"
+        "继续写剩余工件时 MUST 协同 /trellisx-grill (轴 A/B 校验目标与产出); 全工件齐后转硬门 2 (start 前全轴确认)。"
+        "非 flow 路径同样适用 (guard 强制注入)。"
+    )
+
+
 def map_tid_for(troot, wt):
     """map-get <wt> → tid 或 None。"""
     rc, out = run_taskmd(troot, "map-get", wt)
@@ -408,6 +474,12 @@ def main():
         # 无 active task → 轻任务/任务外琐改不强制派 agent, 不注入。
         if active_tid(troot) is not None:
             parts.append(CONSTRAINT)
+        # grill 硬门提醒 (非 flow 路径硬保证): planning task 工件状态驱动, 每 turn 注入
+        # 直到 model 调 /trellisx-grill 满足硬门。flow 路径 grill 由 skill 文本约束, 此处不冲突
+        # (flow 用户也见提醒, 但 skill 内部已强制, 提醒仅冗余确认, 不致误判)。
+        grill = grill_gate_hint(troot)
+        if grill:
+            parts.append(grill)
         # 诊断提醒独立于 active task: 仅当确有 tid=? 待补 或 lint 真失败 才追加
         pending = []
         for p, _br in non_main_worktrees(repo):
