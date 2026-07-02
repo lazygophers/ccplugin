@@ -79,6 +79,8 @@ arguments: [载体选项 (可选), 任务描述]
 
    **升级 Workflow 时** (仅特别复杂 task, 门槛 + 骨架 + 四规范见 `references/workflow-upgrade.md`): 生成 Workflow 须满足四规范 (phases 标类型 / parallel 分层 / agent_with_retry / finalize 收尾无残留), 且 Workflow 异步禁 `sleep`/轮询阻塞 main (调用后直接结束本回合, notification 回来再 finish)。普通 task 不读本 reference。
 
+   🔴 **异步等待 MUST 输出任务清单 (硬规)** —— 凡 main 派出异步任务后**结束本回合前** (workflow 异步跑等 notification / 后台 sub-agent 在跑 / 审批等待), MUST 输出当前 in_flight + pending task 清单表格 (列: `subtask-id` · `状态` (in_flight/pending/blocked) · `摘要` (≤30 字) · `阻塞原因` (blocked 填, 否则 `-`)), 内容复用 main 已维护的 DAG 调度态 (见 trellisx-orchestrate `scheduling.md`) + workflow `/workflows` 视图, 不新算。**不触发**: 同步前台阻塞等待 (main 自己在等, 无独立清单) / 无在跑任务。完整格式 + 范例见 trellisx-orchestrate `progress-communication.md` §异步等待清单格式。
+
    🔴 **exec 阶段 subtask 间禁问用户顺序 (硬规)** —— 顺序决策**归 planning** (mermaid 调度图 + depends-on + 静态冲突 DAG, 见 trellisx-orchestrate `scheduling.md`)。exec 阶段 main 只跑动态调度循环: ready 即派、任一返回即查新 ready 立即派下一个、并发上限 2。**禁在任何 subtask 之间停下来问用户"先做哪个 / 下一个做什么 / 要不要继续"** —— 问序 = planning 没做透。**唯一例外**: planning 阶段就没定顺序 (PRD 缺调度图 / depends-on 缺失) → 🛑 STOP **退回 planning 补**, 不在 exec 问。用户执行中插新指令走中途修正路由 (改 PRD 真值 → SendMessage 通知在跑 agent), 不等于"问顺序"。
 5. **check** (默认派 subagent / workflow 内 fan-out) — checker agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
 6. **finish** (main 同步) — check 通过 → 🔴 **spec sediment 判定门 (finish 前必做, 非软约束)**: main 按下述 checklist 逐项判本 task 有无 spec 增量, 任一正向 ✅ → 走 `/trellisx-spec` sediment (提案→审批→写盘+同步 index.md) 再 finish; 全否 → 跳过:
@@ -137,6 +139,7 @@ arguments: [载体选项 (可选), 任务描述]
 - ✅ **走完 plan→exec→check→finish 闭环** —— **未 archive = 未完成, 禁宣告 Done / 禁结束本轮**。
 - 🌳 **exec 必走 worktree 隔离 (强制, 除非 `--no-worktree`)** —— 写代码 subagent 在**本 task 的 worktree 内**执行 (共享, subtask 与 worktree 无绑定), 改动落 `<git根>/.worktrees/`, 主工作区零改动; finish 后由 `after_finish` hook 销 worktree。worktree 非可选 (有 task 必有 worktree, 默认 1 task 1 worktree), 只有异步/并行/多 worktree 才按需自定。**唯一豁免: 调用带 `--no-worktree` → subagent 改主工作区 (见「入参」段); main 默认禁写源码这条 `--no-worktree` 不豁免。**
 - 🧹 **finish 前清理悬挂任务 (强制)** —— `task.py finish` 前 MUST 确认本 task 的 subagent/workflow 已终止、无悬挂后台任务 (`TaskList` 查残留, `TaskStop` 关闭); 任务未关 / worktree 未销 = 未闭环, **禁宣告 Done**。
+- 📋 **异步等待 MUST 输出任务清单 (强制)** —— 派出异步任务后结束本回合前 (workflow 异步 / 后台 sub-agent / 审批等待), MUST 输出 in_flight + pending task 表格 (见 exec 阶段同条 + trellisx-orchestrate `progress-communication.md` §异步等待清单格式)。同步前台阻塞等待 / 无在跑任务不触发。
 - ✅ **及时维护 task.md 看板** —— 每个生命周期节点 (create/start/阶段推进/finish) 后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
 
 ## ⛔ 反例黑名单 (命中任一 = 流程错误, 改方案重来)

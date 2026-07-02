@@ -12,6 +12,7 @@ coordinator (main / agent-team leader) 必须实时回传用户 subtask 进度, 
 | coordinator 收到失败 | 立即决策 (重试 / 换执行者 / 重规划) + 向用户说明决策理由 |
 | ≥ 30 分钟无产出 | coordinator 主动 ping 执行者; 无响应按 `failure-recovery.md` 失败回退 |
 | 用户审批等待中 | 允许执行无人工依赖的 subtask, 但禁同时跑 ≥ 2 个会触发审批的 |
+| 异步等待 (派任务后结束回合前) | main MUST 输出 in_flight + pending task 清单表格 (格式见 §异步等待清单格式) |
 
 ## 通讯模式 (按执行层)
 
@@ -71,6 +72,51 @@ main 监听 /workflows 视图变化
 进度: S3 · auth-jwt-rotation done; src/auth/jwt.ts + tests/auth/jwt.test.ts; 12 passing
 ```
 
+## 异步等待清单格式
+
+main 派出异步任务后**结束本回合前** (workflow 异步跑等 notification / 后台 sub-agent 在跑 / 用户审批等待), MUST 输出当前任务全景表格, 让用户在异步间隙保持中途干预视角。同步前台阻塞等待 (main 自己在等, 无独立清单) / 无在跑任务 → 不触发。
+
+### 触发场景 (任一即触发)
+
+| 场景 | 说明 |
+| --- | --- |
+| workflow 异步跑 | `run_in_background` workflow 派出, main 结束回合等 notification |
+| 后台 sub-agent | 派出 background sub-agent, main 等返回 |
+| 用户审批等待 | 有在跑的无人工依赖 subtask, 同时等用户审批 |
+
+### 表格模板
+
+```
+当前任务清单
+| subtask | 状态 | 摘要 | 阻塞 |
+|---|---|---|---|
+| <id> | in_flight/pending/blocked | ≤30 字 | blocked 填原因, 否则 - |
+```
+
+- `subtask` = subtask id + 标题 (如 `S1 · jwt-utils`)
+- `状态` 取值: `in_flight` (在跑) / `pending` (待派, 含等上游依赖) / `blocked` (阻塞)
+- `摘要` ≤ 30 字, 含交付物路径或关键产出
+- `阻塞` = blocked 时填阻塞原因 (如 `缺 JWT_SECRET` / `等 S1`), 非 blocked 填 `-`
+- 内容复用 main 已维护的 DAG 调度态 (见 `scheduling.md`) + workflow `/workflows` 视图, 不新算
+
+### 范例
+
+```
+当前任务清单
+| subtask | 状态 | 摘要 | 阻塞 |
+|---|---|---|---|
+| S1 · jwt-utils | in_flight | src/auth/jwt.ts 实现 + 单测 | - |
+| S2 · jwt-middleware | pending | middleware 接入 Express | 等 S1 |
+| S3 · e2e 测试 | blocked | tests/e2e/auth.test.ts | blocked: 缺测试环境 |
+```
+
+### 与进度回传的区别
+
+- **进度回传** (`进度: <id> done <摘要>`): 单 subtask 完成时一行通知
+- **异步等待清单**: 派出异步任务结束回合前, **全景表格** (含所有 in_flight/pending/blocked)
+
+两者不互斥: 任一 subagent 完成 → 先回传进度行; 若该完成触发 main 进入异步等待 → 再输出清单表格。
+
 ## 禁止
 
 - **批量执行后才汇总进度** — 用户失去中途干预机会
@@ -79,6 +125,7 @@ main 监听 /workflows 视图变化
 - **摘要写 "完成" / "OK" / "没问题"** — 必须含产出路径
 - **失败时只回 "失败" 不说原因** — 必须含错误信息或文件:行
 - **延迟通讯 "等全部跑完再回报"** — 必须每个 subtask 完成立即回
+- **异步等待结束回合不输出清单** — 用户面对空白, 失去任务全景视角, 必须输出 §异步等待清单格式 的表格
 
 ## 中途修正路由 (in-flight correction)
 
