@@ -88,32 +88,35 @@ main 派出异步任务后**结束本回合前** (workflow 异步跑等 notifica
 
 ```
 当前任务清单
-| subtask | 状态 | 摘要 | 阻塞 |
+| id | 状态 | 摘要 | 进度% |
 |---|---|---|---|
-| <id> | in_flight/pending/blocked | ≤30 字 | blocked 填原因, 否则 - |
+| <id> | <3 态之一> | ≤30 字 | <完成 subtask ratio 或 -> |
 ```
 
-- `subtask` = subtask id + 标题 (如 `S1 · jwt-utils`)
-- `状态` 取值: `in_flight` (在跑) / `pending` (待派, 含等上游依赖) / `blocked` (阻塞)
-- `摘要` ≤ 30 字, 含交付物路径或关键产出
-- `阻塞` = blocked 时填阻塞原因 (如 `缺 JWT_SECRET` / `等 S1`), 非 blocked 填 `-`
+- `id` = subtask id + 标题 (如 `S1 · jwt-utils`)
+- `状态` 取值 (3 态, **writer 按目标语言生成**):
+  - 中文: `进行中` / `等待中` / `阻塞`
+  - 英文: `in_flight` / `pending` / `blocked`
+  - 含义: 进行中 (在跑) / 等待中 (待派, 含等上游依赖) / 阻塞
+- `摘要` ≤ 30 字, 含交付物路径或关键产出; 阻塞信息合并进此列 (不单列)
+- `进度%` = 完成子任务 ratio (如 `60%`), 无数据填 `-`
 - 内容复用 main 已维护的 DAG 调度态 (见 `scheduling.md`) + workflow `/workflows` 视图, 不新算
 
 ### 范例
 
 ```
 当前任务清单
-| subtask | 状态 | 摘要 | 阻塞 |
+| id | 状态 | 摘要 | 进度% |
 |---|---|---|---|
-| S1 · jwt-utils | in_flight | src/auth/jwt.ts 实现 + 单测 | - |
-| S2 · jwt-middleware | pending | middleware 接入 Express | 等 S1 |
-| S3 · e2e 测试 | blocked | tests/e2e/auth.test.ts | blocked: 缺测试环境 |
+| S1 · jwt-utils | 进行中 | src/auth/jwt.ts 实现 + 单测 | 50% |
+| S2 · jwt-middleware | 等待中 | middleware 接入 Express (等 S1) | - |
+| S3 · e2e 测试 | 阻塞 | tests/e2e/auth.test.ts; 缺测试环境 | 0% |
 ```
 
 ### 与进度回传的区别
 
 - **进度回传** (`进度: <id> done <摘要>`): 单 subtask 完成时一行通知
-- **异步等待清单**: 派出异步任务结束回合前, **全景表格** (含所有 in_flight/pending/blocked)
+- **异步等待清单**: 派出异步任务结束回合前, **全景表格** (4 列: id/状态/摘要/进度%, 含所有进行中/等待中/阻塞)
 
 两者不互斥: 任一 subagent 完成 → 先回传进度行; 若该完成触发 main 进入异步等待 → 再输出清单表格。
 

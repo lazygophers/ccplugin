@@ -162,6 +162,41 @@ grep -cE "Phase [123]" .trellis/workflow.md
 
 **闭环判定**: 上述全 ✓ = 流程完整闭环 (创建→规划→worktree→执行→check→finish 无断点)。任一 ✗ → 修复注入 (marker 串位 / 缺环节) 后重验, 直到闭环。
 
+## 4c. 异步等待清单结构指纹断言 (跨语言稳, 不依赖自然语言词)
+
+异步等待清单注入产物 (注入点 2b `async-wait-in-progress` + 注入点 3 `async-wait-finish`) MUST 过结构指纹断言。**不 grep 自然语言状态词** (状态随目标语言变: 中 `进行中/等待中/阻塞`, 英 `in_flight/pending/blocked`), 改用 **marker key 存在 + 列结构指纹 (4 列占位)** 断言, 跨语言稳。
+
+```bash
+# 1. 两 marker key 存在 (注入点 2b + 3 各自 marker)
+grep -q "trellisx:start:async-wait-in-progress" .trellis/workflow.md && echo "✓ async-wait-in-progress marker 在" || echo "✗ async-wait-in-progress marker 缺"
+grep -q "trellisx:start:async-wait-finish" .trellis/workflow.md && echo "✓ async-wait-finish marker 在" || echo "✗ async-wait-finish marker 缺"
+
+# 2. 列结构指纹: 用 marker 包裹定位注入 snippet, 断言其内含 4 列占位 (id/状态/摘要/进度% 或本地化对等)
+#    不 grep 具体状态词 (语言无关), 仅断 4 列结构 + 进度% 标记
+python3 - <<'EOF'
+import re
+s = open(".trellis/workflow.md", encoding="utf-8").read()
+ok_all = True
+for key in ["async-wait-in-progress", "async-wait-finish"]:
+    m = re.search(rf"<!-- trellisx:start:{key} -->(.*?)<!-- trellisx:end:{key} -->", s, re.DOTALL)
+    if not m:
+        print(f"✗ {key}: marker 块缺失"); ok_all = False; continue
+    body = m.group(1)
+    # 列结构指纹: 4 列表头行 (markdown table header 分隔), 含 id / 状态 / 摘要 / 进度%
+    # 状态词本地化 → 不固定值, 用 4 列分隔 `|` 计数 (表头 + 分隔行 = 2 行, 各 ≥4 列)
+    has_header = bool(re.search(r"\|\s*[^|]+\s*\|\s*[^|]+\s*\|\s*[^|]+\s*\|\s*[^|]+\s*\|", body))
+    has_4col_terms = ("进度%" in body) or ("progress%" in body.lower())  # 进度% 跨语言仍含 % 标记
+    print(f"{'✓' if has_header and has_4col_terms else '✗'} {key}: 4 列结构指纹 (header={has_header}, 进度%={has_4col_terms})")
+    if not (has_header and has_4col_terms): ok_all = False
+print("✓ 异步等待清单结构指纹断言过" if ok_all else "✗ 异步等待清单结构指纹断言失败")
+EOF
+```
+
+**断言要点**:
+- **marker key** (语言无关标识) 存在 = 注入产物在位 (不靠状态词, 不靠自然语言)
+- **列结构指纹** (4 列占位 + `进度%`/`progress%` 的 `%` 标记) = 表格结构正确 (列数对, 含进度比)
+- 状态词随目标语言变 (i18n 后中英不同), **故不 grep 具体状态词**, 仅 marker key + 列结构断言
+
 ## 5. 完成报告
 
 ```
