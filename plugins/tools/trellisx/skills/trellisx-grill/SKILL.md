@@ -1,7 +1,7 @@
 ---
 name: trellisx-grill
 description: '对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 贯穿 plan 前/中/后全程逐分支 stress-test 设计树, 帮用户确认/审查/拆解需求。逐问审 (可一次多问批量确认提效 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / planning 中 / start 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
-when_to_use: '编写 prd / 收到新任务 / plan·planning 时自动触发, 或用户要 grill/审/stress-test/红队某工件。短语 "grill 这个" "审下设计" "红队"'
+when_to_use: '由调用方强制驱动 (非 model 自启): trellisx-flow / trellisx-orchestrate 在 PRD 编写中 + start 前两处硬门 MUST 调本 skill; 用户显式 "grill 这个" "审下设计" "红队" "确认需求"。原生 phase 1.1 (写 prd) / 1.4 (start 前) 未走 trellisx 时, model 应主动调 (user-invocable, 非自动加载)'
 argument-hint: '<工件路径 或 "active task">'
 arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 planning/架构产物, 如 task-tree/调度图/scheduling/config hook/架构决策), 缺省 = active task 全部 planning + 架构产物]'
 ---
@@ -45,6 +45,46 @@ arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 pla
 | **J 自举/矛盾** | 工件规则适用于自身吗? 有无路径互斥 (skill 说 A, agent 说非 A)? | 同名 skill+agent 走两条互斥路径 → routing 死结 |
 | **K 诚实边界** | 局限/降级/dry_run 显式标注? 有无摘樱桃? | 用"诚实"框架选择性呈现事实 (弃用论据但保结论) |
 | **L 反例黑名单 (dim9)** | 有"不要做什么"清单? 只写应做? | 只写"应该做 X"没"不要做 Y" |
+
+## 触发: 两硬门 (由 flow/orchestrate 强制) + 非 flow 场景
+
+本 skill **非自动加载** (user-invocable)。触发由调用方驱动, 三场景:
+
+### 硬门 1: PRD 编写中 — 边问边写 (轴 A/B 驱动循环)
+
+**触发点**: trellisx-flow step2 planning / trellisx-orchestrate step1 PRD 编排, **写 PRD 过程中** (非写完后审)。
+
+**模式**: grill 轴 A (目标) + 轴 B (产出) 当提问引擎, 循环:
+1. grill 就轴 A/B 出问题 (目标一句话能否说清? deliverable 矩阵是否可验收?) → `AskUserQuestion` 问用户, 给推荐答案
+2. 用户答 → **即时更新 PRD** (写入对应 section, 非听完所有才写)
+3. 再就更新后的 PRD 出下一组轴 A/B 问题 (目标是否因此细化? 产出验收是否随之变?)
+4. 循环至轴 A/B 双 ✓ (目标封闭 + deliverable 可验收) 才算 PRD 完成
+
+**与 brainstorm 关系**: brainstorm 主导需求探索流程, grill 是其**提问质量引擎** —— brainstorm 逐问用户时, 每问经 grill 轴 A/B 校验 (问题是否击中目标/产出盲点), 答完 grill 驱动更新 PRD。非取代 brainstorm, 是给 brainstorm 的提问上对抗性保险。
+
+**禁**: 写完整 PRD 才调 grill (本末倒置)。本硬门要的就是**边写边问**, PRD 成型过程即受对抗校对。
+
+### 硬门 2: 需求确认 (start 前) — 全轴对抗校对
+
+**触发点**: trellisx-flow step3 激活前 / trellisx-orchestrate L69 STOP 门 / phase 1.4 `task.py start` 前。
+
+**模式**: PRD + design + implement 全部写完后, **start 前最后一遍**: 跑全轴 A-L (按工件类型动态裁剪), 重点确认用户想法:
+- 轴 A/B/E (目标/产出/依赖): 用户要的 = PRD 写的?
+- 轴 C (验证): 验收断言真能验用户要的结果?
+- 轴 G (检查点): 关键决策有用户确认?
+
+弱点表交用户过一遍, 用户确认"这就是我要的" + 弱点补齐后才放行 start。**未跑本门不准 start** (硬门, 调用方强制)。
+
+### 非 flow 场景 (原生 trellis / 普通 task)
+
+用户未走 `/trellisx-flow` 但在写 prd / 收到新 task / 准备 `task.py start`:
+- **model 应主动调本 skill** (user-invocable, model 识别 phase 1.1/1.4 场景触发)
+- 同样两硬门: 写 prd 时边问边写 (硬门 1) + start 前全轴确认 (硬门 2)
+- 无强制脚本拦截, 靠 model 遵守 (诚实边界: 非 flow 路径无脚本保证, model 可能漏调)
+
+### 用户显式
+
+"grill 这个" / "审下设计" / "红队" / "确认下需求" → 直接进流程 (5 步), 跑全轴或按用户指定轴。
 
 ## 流程 (5 步)
 

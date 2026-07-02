@@ -57,7 +57,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 | 步骤 | 行动 | 写法 reference | 填好范例 |
 | --- | --- | --- | --- |
-| 1 | PRD 编排 — 🔴 **spec 加载门 (planning 必做, 非软约束; 本 skill 独家 owner, flow 不重复加载)**: 先 grep `.trellis/spec/guides/index.md` 按主题找相关 guide, 命中读全文注入 PRD 上下文 (约束/契约/验收基准); 无相关 spec 才跳过。**被动可见**: 本 gate 文本由 trellis 原生 `inject-workflow-state` 每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆)。**诚实边界**: relevant guide 检索归本步主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界 | `references/prd-orchestration.md` | `examples/prd.md` |
+| 1 | PRD 编排 — 🔴 **spec 加载门 (planning 必做, 非软约束; 本 skill 独家 owner, flow 不重复加载)**: 先 grep `.trellis/spec/guides/index.md` 按主题找相关 guide, 命中读全文注入 PRD 上下文 (约束/契约/验收基准); 无相关 spec 才跳过。**被动可见**: 本 gate 文本由 trellis 原生 `inject-workflow-state` 每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆)。**诚实边界**: relevant guide 检索归本步主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界。🔴 **grill 硬门 1 (边问边写, 与 brainstorm 协同)**: PRD 编写过程 MUST 调 `/trellisx-grill` 用轴 A (目标) / B (产出) 当提问引擎 —— grill 出问 → brainstorm 逐问用户 → 答完即时更新 PRD → 循环至轴 A/B 双 ✓。禁写完整 PRD 才审 (本末倒置) | `references/prd-orchestration.md` | `examples/prd.md` |
 | 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | `references/subtask-file.md` | `examples/subtask/S2-jwt-utils.md` `examples/subtask/S3-jwt-middleware.md` |
 | 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | `references/design-orchestration.md` | `examples/design.md` |
 | 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | `references/implement-orchestration.md` | `examples/implement.md` |
@@ -66,7 +66,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 轻量 task (恰好 1 deliverable 且 1 subtask) 只做步骤 1 + 2 (PRD + 单 subtask 文件)。其余 (≥ 2 deliverable 或 ≥ 2 subtask) 必须 6 步走完才能进入 `task.py start`。
 
-> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。**`/trellisx-grill` 可贯穿 plan 前/中/后** (plan 前确认需求方向, planning 中审拆解盲点, start 前最后一遍对抗校对), grill 出的弱点在此补齐后再 start。
+> 🔴 **CHECKPOINT · 🛑 STOP (planning → start 前, grill 硬门 2)**: 走完 `references/selfcheck.md` 自检前 **禁 `task.py start`**。多交付 task 未拆 subtask 文件 / 未出 mermaid 调度图 / PRD 仍是开放式 → 退回补齐, 不准放行。**MUST 先调 `/trellisx-grill` 跑全轴需求确认** (硬门, 非可选): grill 弱点表交用户过, 用户确认"这就是我要的" + 弱点补齐后才放行 start。未跑 grill = 流程未完成, 禁 start。
 
 范例集索引: `examples/README.md` (同一 OAuth2 登录场景贯穿全部文档)。
 
