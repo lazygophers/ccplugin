@@ -49,3 +49,7 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-07-07T00:00	-	novelist-rewrite	88.3	88.3	skip	-	触顶:无维<8,三模式+闸门+8行失败表已密	dry_run
 2026-07-07T00:00	-	novelist-check	88.7	88.7	skip	-	触顶:近满配,唯一dim6 w4仅+0.4杠杆极低	dry_run
 2026-07-07T00:00	-	novelist-write	89.5	89.5	skip	-	触顶:近满配,dim6 w4×1仅+0.4无意义	dry_run
+2026-07-07T00:00	-	trellisx-flow	92.5	92.5	skip	-	触顶:dim7=7冗余属刻意强化,dedup Δ≤1且伤dim3/5/8	dry_run
+2026-07-07T00:00	-	trellisx-apply	88.4	88.4	skip	-	触顶:无维<8,4步表压缩属渐进披露权衡动它伤dim7	dry_run
+2026-07-07T00:00	-	trellisx-spec	91.8	91.8	skip	-	触顶:无维<8,dim3平铺已覆盖全场景改三段式纯格式Δ<2	dry_run
+2026-07-07T00:00	-	trellisx-orchestrate	94.6	94.6	skip	-	触顶:无维<8,dim1弱因内部skill入口归flow强加触发词造边界误抢	dry_run
