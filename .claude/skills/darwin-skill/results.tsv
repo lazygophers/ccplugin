@@ -36,3 +36,4 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-07-07T15:08	022ae487	novelist-design	80.5	82.9	keep	dim3	补空兜底+2行编排型失败(被引skill不可用/欲望冲突)	dry_run
 2026-07-07T00:00	151d4c9e	oss-license	82.2	84.5	keep	失败模式编码	dim3补失败模式三段式表(skill执行故障区别合规红线,顶部区别声明);判官自基线82.2	dry_run
 2026-07-07T00:00	-	novelist-craft	82.9	82.9	skip	-	触顶:无维<8,dim5/3/8单维编辑预期Δ<2且易伤dim7,见好就收(HL-4)	dry_run
+2026-07-07T00:00	-	novelist-character	83.5	83.5	skip	-	触顶:无维<8,dim8/5/2单维Δ<2且易伤dim7,三文件正交架构已成熟	dry_run
