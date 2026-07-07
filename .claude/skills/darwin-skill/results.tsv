@@ -33,3 +33,4 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-07-07T14:35	4b03902c	skill-author	78.0	81.5	keep	dim3	失败处理表内联正文自包含	dry_run
 2026-07-07T14:48	6d000872	novelist-trending	82.8	85.2	keep	dim2	补编号主工作流入出四镜片降工具库(判官自基线82.8,loop基线79.2)	dry_run
 2026-07-07T15:00	439b59a0	promo-posts	80.5	84.1	keep	dim3	新增失败模式三段式表5行(素材证据/软广/极限词/AI检测/规则变动)	dry_run
+2026-07-07T15:08	022ae487	novelist-design	80.5	82.9	keep	dim3	补空兜底+2行编排型失败(被引skill不可用/欲望冲突)	dry_run
