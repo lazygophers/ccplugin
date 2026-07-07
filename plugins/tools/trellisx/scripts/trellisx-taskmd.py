@@ -744,6 +744,8 @@ def cmd_fix(_argv):
     rebuilt += MAP_HEADER + ("".join(r + "\n" for r in map_rows_out))
     if parked:
         rebuilt += PARK_HEADER + ("".join(r + "\n" for r in parked))
+    # DAG 图段纳入重建 (否则 fix 既不会给旧看板补图, 又会在有图时反复 strip → churn)
+    rebuilt = render_graph(rebuilt)
 
     if rebuilt != orig:
         try:
@@ -751,7 +753,7 @@ def cmd_fix(_argv):
         except Exception:
             pass
         save_md(troot, rebuilt)
-        print("trellisx: task.md 已自动修正 (旧列迁移/错置行归位/状态归一/去重)", file=sys.stderr)
+        print("trellisx: task.md 已自动修正 (旧列迁移/错置行归位/状态归一/去重/补依赖图)", file=sys.stderr)
     else:
         print("trellisx: task.md 无需修正", file=sys.stderr)
 

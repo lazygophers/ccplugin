@@ -92,7 +92,7 @@ trellisx-apply
 | WorktreeRemove | map-remove 清映射 (不阻断) |
 | Stop | 两类闸顶层 `{"decision":"block"}`: ①已合并未清理 worktree ②游离 worktree (tid=?/None)。抑制阀: 连续 block 满 3 次降级 additionalContext, 第 4 次起静默 |
 | SubagentStop | additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block) |
-| FileChanged (task.md) | 先跑 taskmd fix 自动修复 (旧列迁移/错置行归位/英文状态归一/去重), 残留才 stderr 提醒 |
+| FileChanged (task.md) | 先跑 taskmd fix 自动修复 (旧列迁移/错置行归位/英文状态归一/去重/补依赖图 DAG), 残留才 stderr 提醒 |
 
 **健壮性铁律**: 任何异常 exit 0 静默放行, 绝不因 guard bug 阻断会话。例外: WorktreeCreate 必须先回显 path。
 

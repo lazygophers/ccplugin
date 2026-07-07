@@ -28,7 +28,7 @@
                     彻底静默 return 0 (防底层条件不变时无限重复降级提示)。无问题 → return 0。
 - SubagentStop    : 仅 additionalContext 提醒 (subagent 结束 ≠ task 完成, 不 block)。
 - FileChanged     : task.md 变更 → 先跑 taskmd fix 自动修复 (错置行归位/英文状态归一/
-                    去重, 写前备份), 仅残留无法机械归类的行才 stderr 提醒 (契约:
+                    去重/补依赖图 DAG, 写前备份), 仅残留无法机械归类的行才 stderr 提醒 (契约:
                     FileChanged stdout 被忽略, 只认 stderr; 不阻断)。
 
 健壮性铁律: 任何异常一律 exit 0 静默放行, 绝不因 guard 脚本 bug 阻断会话。
@@ -455,7 +455,7 @@ def main():
 
     if event == "FileChanged":
         # 契约: FileChanged stdout 被忽略, 不支持 systemMessage, 只认 stderr。
-        # 先跑 fix 自动修可机械修复的不合规 (错置行归位/英文状态归一/去重, 写前备份
+        # 先跑 fix 自动修可机械修复的不合规 (错置行归位/英文状态归一/去重/补依赖图 DAG, 写前备份
         # task.md.bak); fix 幂等, 仅在内容有变时写盘 (不会无限自触发 FileChanged)。
         # 仍 lint 失败 = 有无法机械归类的残留行 (已停泊「待人工修正」块), stderr 提醒。
         rc_fix, _ = run_taskmd(troot, "fix")
