@@ -398,6 +398,94 @@ def cmd_cleanup(argv):
     print(f"trellisx: 已清理超 {days} 天的已完成行", file=sys.stderr)
 
 
+def live_tids(troot):
+    """真值源现存 task id 集合 (task.json 的 id 或目录名)。"""
+    out = set()
+    for tj in glob.glob(os.path.join(troot, ".trellis", "tasks", "*", "task.json")):
+        d = os.path.basename(os.path.dirname(tj))
+        out.add(d)
+        try:
+            i = json.load(open(tj, encoding="utf-8")).get("id")
+            if i:
+                out.add(i)
+        except Exception:
+            pass
+    return out
+
+
+def remove_main_row(md, tid):
+    """删主表 (首个 `## ` 段前) 中首列 == tid 的数据行。返回 (新md, 命中数)。"""
+    m = re.search(r"(?m)^## ", md)
+    cut = m.start() if m else len(md)
+    head, tail = md[:cut], md[cut:]
+    keep, n = [], 0
+    for ln in head.splitlines():
+        if ln.startswith("| ") and row_cells(ln)[0] == tid:
+            n += 1
+            continue
+        keep.append(ln)
+    return ("\n".join(keep).rstrip() + "\n" + ("\n" + tail if tail else ""), n)
+
+
+def cmd_del(argv):
+    """del <tid> — 删单个 task 的看板主表行 + 其 worktree 映射行 (图段自动重渲染)。
+    不动 task.json 真值; 用于误建/放弃的 task。命中退 0, 无该行退 1。"""
+    if not argv:
+        print("用法: trellisx-taskmd.py del <tid>", file=sys.stderr)
+        sys.exit(2)
+    tid = argv[0]
+    troot = find_trellis_root()
+    if not troot:
+        print("trellisx: 未找到 .trellis", file=sys.stderr)
+        sys.exit(1)
+    md = load_md(troot)
+    md, n = remove_main_row(md, tid)
+    md = map_remove_by_tid(md, tid)
+    if not n:
+        print(f"trellisx del: 主表无 {tid} 行", file=sys.stderr)
+        sys.exit(1)
+    save_md(troot, md)
+    print(f"trellisx: 已删 {tid} (主表行 + 其映射)", file=sys.stderr)
+    sys.exit(0)
+
+
+def cmd_clean(_argv):
+    """clean — 对账删孤儿: task.json 已不存在的看板主表行 + 映射行 (tid 非 ? 且不在真值集)。
+    区别于 cleanup (时间维度瘦身)。图段自动重渲染。打印删除项。"""
+    troot = find_trellis_root()
+    if not troot:
+        print("trellisx: 未找到 .trellis", file=sys.stderr)
+        sys.exit(1)
+    md = load_md(troot)
+    live = live_tids(troot)
+    # 主表孤儿行
+    orphans = []
+    m = re.search(r"(?m)^## ", md)
+    head = md[:m.start()] if m else md
+    for ln in head.splitlines():
+        if (ln.startswith("| ") and not ln.startswith("| ID |")
+                and not ln.startswith("| --- |")):
+            c = row_cells(ln)
+            if c[0] and c[0] not in live:
+                orphans.append(c[0])
+    for tid in orphans:
+        md, _ = remove_main_row(md, tid)
+        md = map_remove_by_tid(md, tid)
+    # 映射孤儿行 (tid 非 ? 且不在真值集; ? 留给 UserPromptSubmit 补登)
+    map_orphans = [tid for _, tid, _, _ in map_rows(md)
+                   if tid and tid != "?" and tid not in live and tid not in orphans]
+    for tid in map_orphans:
+        md = map_remove_by_tid(md, tid)
+    save_md(troot, md)
+    total = orphans + map_orphans
+    if total:
+        print(f"trellisx: 清理孤儿 {len(total)} 项 (真值已删): {', '.join(total)}",
+              file=sys.stderr)
+    else:
+        print("trellisx: 无孤儿行 (看板与 task.json 一致)", file=sys.stderr)
+    sys.exit(0)
+
+
 def cmd_map_add(argv):
     """map-add <worktree> <tid> [创建源] — 按 worktree 规范化 abspath upsert 一条映射。
     同 tid 可对多 worktree (各占一行, 一对多); 创建源默认 -。"""
@@ -680,8 +768,9 @@ HELP = """trellisx-taskmd.py — task.md 看板唯一读写入口
 用法: trellisx-taskmd.py <命令> ...
   sync <create|start|archive>                 从 task.json 同步 (hook 用, 读 $TASK_JSON_PATH)
   update <tid> [--status S] [--worktree W] [--deps "a,b"]
-  show [tid] | cleanup [--days N] | lint | check | fix
+  show [tid] | cleanup [--days N] | del <tid> | clean | lint | check | fix
   map-add <wt> <tid> [源] | map-remove <wt> | map-get <wt> | map-list
+  del=删单个task行 clean=对账删孤儿行(真值已删) cleanup=清超N天已完成行
   lint=结构自洽(列数/状态/ID/图↔前置列) check=看板↔task.json真值 fix=机械修复"""
 
 
@@ -691,7 +780,7 @@ def main():
         raise SystemExit(0)
     if len(sys.argv) < 2:
         print("用法: trellisx-taskmd.py "
-              "<sync|update|show|cleanup|map-add|map-remove|map-get|map-list|lint|check|fix> ...",
+              "<sync|update|show|cleanup|del|clean|map-add|map-remove|map-get|map-list|lint|check|fix> ...",
               file=sys.stderr)
         sys.exit(1)
     cmd = sys.argv[1]
@@ -703,6 +792,10 @@ def main():
         cmd_show(sys.argv[2:])
     elif cmd == "cleanup":
         cmd_cleanup(sys.argv[2:])
+    elif cmd == "del":
+        cmd_del(sys.argv[2:])
+    elif cmd == "clean":
+        cmd_clean(sys.argv[2:])
     elif cmd == "map-add":
         cmd_map_add(sys.argv[2:])
     elif cmd == "map-remove":

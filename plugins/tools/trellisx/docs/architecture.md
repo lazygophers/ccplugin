@@ -102,7 +102,7 @@ trellisx-apply
 | --- | --- | --- |
 | `trellisx-worktree.py` | 3 布局自适应 worktree 建/销 (同级 git / 微服务 sparse / 多子仓) | config.yaml after_start/archive |
 | `trellisx-finish.py` | 收尾 git 层 (确定性): commit→merge --no-ff (子先主后)→销 worktree→archive; 冲突 abort+报清单 | config.yaml after_finish + 手动 CLI |
-| `trellisx-taskmd.py` | task.md 看板唯一读写入口 (sync/update/show/cleanup/map-*/lint/check/fix) | config.yaml after_create/start/archive + AI |
+| `trellisx-taskmd.py` | task.md 看板唯一读写入口 (sync/update/show/cleanup/del/clean/map-*/lint/check/fix) | config.yaml after_create/start/archive + AI |
 | `trellisx_wt.py` | worktree 路径/分支/命名单一真值模块 (worktree+finish 共用 import) | 被上述脚本 import |
 | `trellisx-guard.py` | Claude Code 运行时 hook: 强制执行载体闭环 + 完成清理 + worktree↔task 映射维护 (map-add/map-remove) | 插件平台 hook |
 | `trellisx-packages.py` | monorepo 包自动发现 (discover/apply, 4 类信号: submodule>嵌套git>workspace清单>约定目录) | apply 一次性 |

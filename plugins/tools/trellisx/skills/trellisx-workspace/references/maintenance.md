@@ -55,6 +55,16 @@ def cleanup(rows, today):  # rows: 解析出的表行
 
 > 清理是看板瘦身, 不影响 trellis 真值 (task.json / archive 仍在)。task.md 只是投影, 移除旧完成行不丢数据。
 
+## 三种删行命令 (均破坏性, AI 手动跑前先 AskUserQuestion 确认)
+
+| 命令 | 删什么 | 触发条件 | 场景 |
+| --- | --- | --- | --- |
+| `cleanup [--days N]` | **超 N 天的已完成行** (默认 7 天) | 时间维度 | 看板瘦身防膨胀 (hook archive 内自动跑, 无需确认) |
+| `del <tid>` | **指定 tid 的主表行 + 其映射行** | 精确单删 | 误建 / 放弃某个 task, 手动移除该行 (不动 task.json) |
+| `clean` | **孤儿行** (task.json 已删的主表行 + 映射行, `?` 保留) | 对账维度 | task 目录被删后清残留投影, 与 task.json 真值集对齐 |
+
+> `del`/`clean` 均不改 task.json 真值 (只删看板投影); `del` 后若 task.json 仍在, 下次 `sync` 会重现该行 (故 `del` 用于真值已无的行, 或搭配先删 task.json)。图段随删自动重渲染。
+
 ## 幂等保证
 
 ```python
