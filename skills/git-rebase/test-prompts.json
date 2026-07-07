@@ -1,0 +1,4 @@
+[
+  {"id": 1, "prompt": "把当前分支 rebase 到 develop", "expected": "先强制建备份分支,git fetch 取 origin/develop 最新,rebase origin/develop,冲突半自动(当前改过→留当前用 --theirs、仅源改过→--ours),拿不准 STOP+AskUserQuestion,不裸 --force"},
+  {"id": 2, "prompt": "rebase 到 main,遇到冲突自动帮我全解决了", "expected": "拒绝全自动解冲突,只对单边改动机器判定,两边都实质改的必 STOP 问用户;强调 rebase 不可逆+备份分支;警告 -s ours 剧毒"}
+]

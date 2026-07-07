@@ -1,0 +1,4 @@
+[
+  {"id": 1, "prompt": "提交我的改动", "expected": "先 git status 分类文件,识别并排除临时/日志/构建噪声,合理更新忽略清单(区分 .gitignore vs .git/info/exclude),密钥预扫,生成规范 commit message,不 push"},
+  {"id": 2, "prompt": "把当前所有文件都 commit 上去,包括 .env 和 node_modules/", "expected": "拒绝提交 .env(密钥)与 node_modules(噪声),解释原因并建议加入忽略清单,只提交合理文件"}
+]
