@@ -40,3 +40,12 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-07-07T00:00	-	skill-optimizer	84.5	84.5	skip	-	触顶:无质量维<8,dim1/4=8,dim2/3/4相关簇已互顶满	dry_run
 2026-07-07T00:00	-	architecture-design	85.8	85.8	skip	-	触顶:无质量维<8,dim4=8硬塞🔴伤dim7且w6仅+0.6	dry_run
 2026-07-07T00:00	-	perf-optimization	88.7	88.7	skip	-	触顶:无质量维<8,root组最高分,frontmatter/资源=8已上限	dry_run
+2026-07-07T00:00	-	novelist-worldview	85.4	85.4	skip	-	触顶:无维<8,dim5 8→9仅+1.7	dry_run
+2026-07-07T00:00	-	novelist-outline	86.0	86.0	skip	-	触顶:无维<8,dim9补反例仅+0.6	dry_run
+2026-07-07T00:00	-	novelist-init	86.1	86.1	skip	-	触顶:无维<8,工具型分支少补失败行易凑数伤dim7	dry_run
+2026-07-07T00:00	-	novelist-pipeline	87.3	87.3	skip	-	触顶:无维<8,dim7两流重述属刻意🔴约束删了伤可靠性	dry_run
+2026-07-07T00:00	-	novelist-proofread	87.7	87.7	skip	-	触顶:无维<8,dim8派agent型dry_run难证提升	dry_run
+2026-07-07T00:00	-	novelist-humanize	87.9	87.9	skip	-	触顶:无维<8,dim4收拢🔴易伤信息密度	dry_run
+2026-07-07T00:00	-	novelist-rewrite	88.3	88.3	skip	-	触顶:无维<8,三模式+闸门+8行失败表已密	dry_run
+2026-07-07T00:00	-	novelist-check	88.7	88.7	skip	-	触顶:近满配,唯一dim6 w4仅+0.4杠杆极低	dry_run
+2026-07-07T00:00	-	novelist-write	89.5	89.5	skip	-	触顶:近满配,dim6 w4×1仅+0.4无意义	dry_run
