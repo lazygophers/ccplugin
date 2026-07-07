@@ -30,3 +30,4 @@ timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
 2026-07-07T13:56	baseline	skill-optimizer	-	84.5	baseline	dim1	结构均衡; 无明显低维	dry_run
 2026-07-07T13:57	77705745	novelist-lint	65.9	81.4	keep	dim3+4+9	失败表+破坏前CHECKPOINT+反例黑名单	full_test
 2026-07-07T14:20	ce3ce9cf	clean-code	73.2	81.8	keep	dim1/dim3/dim4	when_to_use+失败表+行为变更CHECKPOINT	dry_run
+2026-07-07T14:35	4b03902c	skill-author	78.0	81.5	keep	dim3	失败处理表内联正文自包含	dry_run
