@@ -21,17 +21,17 @@ Phase B 并行写盘+自验 (3 writer agent, 同批, disjoint 文件集, 每 wri
 
 要点:
 - **plan 与 write 分两阶段**, 因审批门夹在中间 (agent 不能 AskUserQuestion)。
-- **writer 自验本维度** (语法 / marker 配对 / 行为闭环 / i18n), **无独立 verify 阶段** (原 Phase C 合并进 writer)。
+- **writer 自验本维度** (语法 / marker 配对 / 行为闭环 / 产物中文), **无独立 verify 阶段** (原 Phase C 合并进 writer)。
 - plan agent / writer agent 的详细职责见各 `references/*-injection.md`。
 - **轻量重跑快路径**: 已注入 (marker 全在) 且无结构变化 → writer 检测 marker 幂等跳过, 自然轻量, 不必额外编排。
 
 ### Phase A — 并行规划 (read-only, 4 agent)
 
-全部 **read-only** (禁写盘), 各自诊断本维度 + 算注入 diff (目标语言), 返回结构化 plan。
+全部 **read-only** (禁写盘), 各自诊断本维度 + 算注入 diff (产物固定中文), 返回结构化 plan。
 
 | agent | 目标产物 | 读 |
 | --- | --- | --- |
-| `plan-diagnose` | 模式 (首次/更新) + gitignore 状态 + **定目标语言** (综合 `$LANG`+CLAUDE.md+会话, 传给所有 writer) | `diagnose.md` |
+| `plan-diagnose` | 模式 (首次/更新) + gitignore 状态 | `diagnose.md` |
 | `plan-spec` | spec/guides/trellisx-worktree.md 是否存在 → 新增内容 (存在则标「跳过」) | `spec-injection.md` |
 | `plan-hook` | config.yaml hooks (after_create/start/finish/archive) + session_auto_commit:true + **五脚本**拷贝清单 + gitignore + packages discover | `hook-injection.md` |
 | `plan-finishcmd` | 目标 `.claude/commands/trellis/finish-work.md` 全链注入计划 (无文件则标「跳过, hook 路兜底」) | `finishcmd-injection.md` |
@@ -59,7 +59,7 @@ prep-backup agent (`git stash push -- .trellis/`) 备份后派发。**每 writer
 
 ```
 目标: <本 agent 单一职责, 如「算 config.yaml hooks 注入 diff, 不写盘」>
-已知: <模式(首次/更新) + 目标语言 + 相关 plan 结果 (writer 需传入对应 plan)>
+已知: <模式(首次/更新) + 相关 plan 结果 (writer 需传入对应 plan); 全部注入产物固定中文>
 工作目录与范围: <项目根; 本 agent 独占文件集, 列绝对路径; 禁碰他 agent 文件>
 输出格式: <plan agent → 结构化 diff/plan (不写盘); writer → 写盘+自验, 报改动文件+自验结果>
 验收标准: <plan → diff 完整可审; writer → 文件落盘且 marker 幂等 + 自验全过>
@@ -70,5 +70,5 @@ prep-backup agent (`git stash push -- .trellis/`) 备份后派发。**每 writer
 
 ## 与铁律的关系
 
-- 🎯 **幂等 + 自验为硬门**: 各 writer 独占文件集写盘后自验本维度 (语法 `ast.parse` / marker 起止配对 / 幂等不堆叠 / i18n 语言一致)。任一 ✗ → main 派 writer 重做 (修复循环 ≤3)。
+- 🎯 **幂等 + 自验为硬门**: 各 writer 独占文件集写盘后自验本维度 (语法 `ast.parse` / marker 起止配对 / 幂等不堆叠 / 产物中文)。任一 ✗ → main 派 writer 重做 (修复循环 ≤3)。
 - 🪶 **worktree + finish 强制**: 注入内容不变; 编排只改「谁执行/怎么扇出」(main + 并行 subagent), 不改「注入什么」。

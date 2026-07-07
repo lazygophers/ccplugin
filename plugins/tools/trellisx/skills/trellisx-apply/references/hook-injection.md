@@ -74,7 +74,7 @@ chmod +x .trellis/scripts/trellisx-worktree.py .trellis/scripts/trellisx-taskmd.
 - 强制 dry-run (缺省) → 用户确认 → `--apply` 三段护栏; 复用 finish/taskmd/worktree 逻辑, 不重写 git。
 
 > 脚本源码见**插件 `scripts/`**。要改逻辑 → 改插件源文件, 不改本文档 (本文档只描述职责)。
-> **i18n**: 脚本内 stderr 提示文本可按目标语言调整; 变量名 / 路径 / git 命令保持原样。
+> **语言**: 脚本内 stderr 提示文本固定中文; 变量名 / 路径 / git 命令保持原样。
 > 多子仓 (布局 3): task 须先 `task.py set-scope <子仓>` (如 `go`/`node`) 标注, 脚本才能定位 git。
 
 ## 注入物 2: config.yaml 的 hooks 字段 (幂等)

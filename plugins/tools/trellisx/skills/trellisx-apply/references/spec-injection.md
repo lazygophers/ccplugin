@@ -11,9 +11,9 @@ apply 对 spec 的**唯一动作** = 新增一个独立的 worktree 约定文件
 
 > 即: 重复 apply 不会动 spec (文件已在则跳过)。spec 是只增不改。
 
-## i18n
+## 语言
 
-下方文档模板是中文语义参考。实际新增的 trellisx-worktree.md 用**目标语言** (设备/项目语言) 写, frontmatter key 保持英文。
+新增的 trellisx-worktree.md **正文固定中文** (frontmatter key 保持英文)。
 
 ## 新增文件: `.trellis/spec/guides/trellisx-worktree.md`
 

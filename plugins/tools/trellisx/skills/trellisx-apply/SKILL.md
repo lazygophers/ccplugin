@@ -46,7 +46,7 @@ main 用 `Agent` 工具把扇出编排成两阶段 (Phase A 并行规划 read-on
 | 尊重 trellis 原生 | 融合而非取代: 引用 trellis 已有 (task.py / add-subtask / jsonl / trellis-check), 仅补 trellis 缺的 (worktree / 自动收尾 / task.md 看板)。**不改 trellis 原生生命周期规则文件本体** —— apply 只装生命周期 hook, 不往规则文件追加内容 |
 | 显式审批 | 改 `.trellis/` 前展示 diff plan, 经 AskUserQuestion 批准才写盘 |
 | 不动用户 spec | 只**新增** worktree spec (不存在才建), 绝不重写用户自定义 spec 文档 (spec 的破坏式重构是 `trellisx-spec` 的职责) |
-| i18n: 全产物统一目标语言 | **目标语言由 `plan-diagnose` 定一次** (综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 会话语言), 传给所有 writer。完成后**全部注入产物语言一致**: ① 新增 spec 文档 ② config.yaml 的 trellisx 注释行 ③ finish-work 注入 snippet 文本。**保留不译**: marker key / task.py 命令 / 路径 / 代码块 / 变量名 / 脚本源码 |
+| 产物统一中文 | 全部注入产物用**中文**: ① 新增 spec 文档 ② config.yaml 的 trellisx 注释行 ③ finish-work 注入 snippet 文本。无语言探测。**保留不译**: marker key / task.py 命令 / 路径 / 代码块 / 变量名 / 脚本源码 |
 
 ## 前置检查
 
@@ -55,11 +55,9 @@ ls .trellis/ || { echo "非 trellis 项目, 终止"; exit 1; }
 ls .trellis/spec/ 2>/dev/null    # spec 目标
 ls .trellis/config.yaml          # trellis 生命周期 hook 注入目标
 ls .claude/commands/trellis/finish-work.md 2>/dev/null   # finish-work 全链注入目标 (无则 hook 路兜底)
-echo "${LANG:-}"                  # 系统 locale (如 en_US / zh_CN), 决定注入文本语言
-head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 ```
 
-**目标语言** = 综合 `$LANG` locale + 项目 CLAUDE.md/README 主语言 + 当前会话语言。非 trellis 项目 → 报错终止。
+**产物语言固定中文** (无探测)。非 trellis 项目 → 报错终止。
 
 ## 工作流 (subagent 编排, 审批夹在中间)
 
@@ -67,7 +65,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 
 | 步 | 谁做 | 行动 |
 | --- | --- | --- |
-| **1 规划** | main 并行派 4 read-only Agent | diagnose (现状+模式+**定目标语言**) + 3 维 planner (spec/hook/finishcmd) 各算注入 diff, **不写盘**, 返回 `{plans}` |
+| **1 规划** | main 并行派 4 read-only Agent | diagnose (现状+模式) + 3 维 planner (spec/hook/finishcmd) 各算注入 diff, **不写盘**, 返回 `{plans}` |
 | **2 审批** | 🔴 **main 仅审批** | 汇总 plans → 展示统一 diff plan (含 packages 清单) → `AskUserQuestion` 审批 (🛑 STOP) → 批准后才进步 3 |
 | **3 写盘+自验** | main 派 prep-backup + 并行 3 writer Agent | prep-backup agent `git stash` 备份 → 3 维 writer 各**独占不相交文件集**写盘+**自验本维度** (无独立验证阶段) → 任一失败 main 派 rollback agent `git stash pop` |
 | **4 修复/完成** | main 编排 | `ok=false` → 据 failed 重跑 write (修复循环 ≤3) 或报告; `ok=true` → 完成报告 |
@@ -123,7 +121,7 @@ head -5 CLAUDE.md AGENTS.md 2>/dev/null   # 项目主语言佐证
 | 文件 | 用途 |
 | --- | --- |
 | `references/agent-orchestration.md` | **编排核心**: 两阶段 4+3 agent 清单 + 并发分组 + disjoint 文件集分区 + 6 字段 prompt 模板 + main 只编排不操作 |
-| `references/diagnose.md` | Phase A plan-diagnose: 现状诊断 + 首次/更新模式 + 定目标语言 |
+| `references/diagnose.md` | Phase A plan-diagnose: 现状诊断 + 首次/更新模式 |
 | `references/finishcmd-injection.md` | Phase A plan-finishcmd / B write-finishcmd: 目标 finish-work.md 全链注入 (Option B) |
 | `references/spec-injection.md` | Phase A plan-spec / B write-spec: spec 规范文档 (仅新增 worktree spec) |
 | `references/hook-injection.md` | plan-hook / write-hook: trellis 生命周期 hook (config.yaml) worktree 自动化 + 收尾 + task.md 看板 + packages |

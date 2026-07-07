@@ -28,7 +28,7 @@ trellisx-apply 变更计划
 
 [<git根>/.gitignore] + .worktrees/
 
-目标语言: <zh/en, plan-diagnose 定; 全部注入产物统一此语言>
+语言: 全部注入产物固定中文
 
 影响: task.py start/finish/archive 触发 config.yaml hooks 自动建 worktree / 自动收尾 (commit→merge→archive→销) (微服务兼容)
 ```
@@ -89,17 +89,17 @@ grep -q '.worktrees/' "$(git rev-parse --show-toplevel)/.gitignore" && echo "wor
 # finish-work 全链注入 (Option B; 无文件则 hook 路兜底)
 F=.claude/commands/trellis/finish-work.md
 if [ -f "$F" ]; then grep -q "finishcmd_fullchain" "$F" && grep -q "trellisx-finish.py" "$F" && echo "✓ finish-work 含全链注入" || echo "✗ finish-work 未注入全链"; else echo "(无 finish-work.md, hook 路兜底)"; fi
-# finish-work 注入块 i18n 语言一致 (目标 zh 时含 CJK)
+# finish-work 注入块固定中文 (每块非代码正文须含 CJK)
 python3 - <<'EOF'
 import re, os
-target="zh"; F=".claude/commands/trellis/finish-work.md"
+F=".claude/commands/trellis/finish-work.md"
 if not os.path.isfile(F):
-    print("(无 finish-work.md, 跳过 i18n 检查)")
+    print("(无 finish-work.md, 跳过中文检查)")
 else:
     s=open(F,encoding="utf-8").read()
     bad=[m.group(1) for m in re.finditer(r"<!-- trellisx:start:(\w+) -->(.*?)<!-- trellisx:end:\1 -->",s,re.DOTALL)
-         if target=="zh" and not re.search(r"[一-鿿]", re.sub(r"```.*?```","",m.group(2),flags=re.DOTALL))]
-    print("✓ 注入块语言一致" if not bad else f"✗ 这些块疑未译: {bad}")
+         if not re.search(r"[一-鿿]", re.sub(r"```.*?```","",m.group(2),flags=re.DOTALL))]
+    print("✓ 注入块均中文" if not bad else f"✗ 这些块疑非中文: {bad}")
 EOF
 ```
 
@@ -141,7 +141,7 @@ worktree 闭环: ✓ (start 建 → finish 收尾 → archive 销)
 | writer 自验报某项 ✗ (脚本语法错 / hook 未解析) | main 派对应 writer 撤销该文件改动重注 | main 派 `rollback` agent `git stash pop` 恢复 backup, 0 变更退出, 报失败项给用户 |
 | 收尾链验证 ✗ (after_finish 缺 / worktree hook 缺) | main 派 write-hook 按算法重注 config.yaml, 重验 (循环 ≤3) | 同上派 rollback agent 回滚, 报「收尾链未装: <缺失环节>」 |
 | 某 writer agent 写盘异常 (磁盘 / 权限) | main 派 rollback agent `git stash pop` 回滚 + 重派该 writer | 报中断点, 禁留半截状态 |
-| i18n 验证 ✗ (finish-work 注入块中英混杂) | main 派 write-finishcmd 用目标语言重写该块 | 同上回滚, 报「语言不一致: <块名>」 |
+| 中文验证 ✗ (finish-work 注入块非中文) | main 派 write-finishcmd 用中文重写该块 | 同上回滚, 报「非中文: <块名>」 |
 
 ## 回滚 (prep-backup / rollback agent 执行, main 不亲碰 git)
 

@@ -30,7 +30,7 @@ trellis 原生 `/trellis:finish-work` 跑 `task.py archive <tid>` **直接归档
 <!-- trellisx:end:finishcmd_fullchain -->
 ```
 
-> 与 hook 路的关系: `task.py finish` 走 after_finish hook 做全链; `/trellis:finish-work` 走本注入做全链。**两路都做全链, 二选一即可**, 不重复 (finish-work 注入跑的是 archive 不是 finish, 不触发 after_finish; hook 路不经 finish-work)。i18n: 注入文本用目标语言。
+> 与 hook 路的关系: `task.py finish` 走 after_finish hook 做全链; `/trellis:finish-work` 走本注入做全链。**两路都做全链, 二选一即可**, 不重复 (finish-work 注入跑的是 archive 不是 finish, 不触发 after_finish; hook 路不经 finish-work)。注入文本固定中文。
 
 ## 注入算法 (定位 + 幂等)
 

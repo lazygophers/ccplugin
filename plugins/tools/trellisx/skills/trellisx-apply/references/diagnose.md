@@ -32,7 +32,6 @@ git worktree list 2>/dev/null | grep ".worktrees" || echo "无 trellisx worktree
 trellisx-apply 诊断
 ───────────────────
 - trellisx hook: 已注入 (更新模式) / 未注入 (首次 apply)
-- 目标语言: zh / en ... (综合 $LANG locale + CLAUDE.md/README + 会话; 传给所有 writer 统一)
 - spec/: 存在 / 待建
 - config.yaml hooks: 已注入 worktree / 待注入
 - .gitignore worktrees: 已排除 / 待加

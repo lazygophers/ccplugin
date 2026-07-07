@@ -43,26 +43,25 @@ const WRITE_SCHEMA = {
   },
 }
 
-const lang = (args && args.lang) || '目标语言 (综合 $LANG + 项目 CLAUDE.md/README + 会话语言, 默认 zh)'
 const mode = (args && args.mode) || 'plan'
 const skillDir = (args && args.skillDir) || '<trellisx-apply skill 根目录, 由 main 传入绝对路径>'
 const target = (args && args.target) || '<目标 trellis 项目根, 由 main 传入绝对路径>'
 
 const fields = (goal, scope, out, accept, fail) =>
-  `目标: ${goal}\n已知: 目标语言=${lang}; reference 绝对路径前缀=${skillDir}/ (如 ${skillDir}/references/hook-injection.md); 目标项目根=${target} (所有 .trellis/** 落点相对此根)\n工作目录与范围: 目标项目根=${target}; ${scope}\n输出格式: ${out}\n验收标准: ${accept}\n失败处理: ${fail}`
+  `目标: ${goal}\n已知: 全部注入产物固定中文; reference 绝对路径前缀=${skillDir}/ (如 ${skillDir}/references/hook-injection.md); 目标项目根=${target} (所有 .trellis/** 落点相对此根)\n工作目录与范围: 目标项目根=${target}; ${scope}\n输出格式: ${out}\n验收标准: ${accept}\n失败处理: ${fail}`
 
 if (mode === 'plan') {
   phase('Plan')
-  // diagnose 先定语言/模式, 但各 plan agent 不阻塞等它 (自诊断本维度)。
+  // diagnose 先定模式, 但各 plan agent 不阻塞等它 (自诊断本维度)。
   const planners = [
     () => agent(fields(
-      '诊断 .trellis 现状: 首次/更新模式 (config.yaml 是否已含 trellisx hook) + 已有 trellisx marker + gitignore 状态 + 确定目标语言 (传给写盘)。read-only。',
+      '诊断 .trellis 现状: 首次/更新模式 (config.yaml 是否已含 trellisx hook) + 已有 trellisx marker + gitignore 状态。read-only。',
       '只读 .trellis/**; 禁写盘',
-      'StructuredOutput: 复用 PLAN_SCHEMA, key=diagnose, diff 字段填诊断结论 (模式/语言)',
+      'StructuredOutput: 复用 PLAN_SCHEMA, key=diagnose, diff 字段填诊断结论 (模式)',
       '诊断结论可指导写盘', '读不到目标 → status=skip 说明'),
       { label: 'plan:diagnose', phase: 'Plan', schema: PLAN_SCHEMA }),
     ...DIMS.map(d => () => agent(fields(
-      `按 ${skillDir}/${d.ref} 算「${d.desc}」的注入 diff (目标语言), 不写盘。`,
+      `按 ${skillDir}/${d.ref} 算「${d.desc}」的注入 diff (产物固定中文), 不写盘。`,
       `只读相关文件 (本维度落点: ${d.files}); 禁写盘`,
       `StructuredOutput PLAN_SCHEMA: key=${d.key}; diff=注入 diff/plan 文本; 维度不适用则 status=skip`,
       'diff 完整可审, marker 幂等设计', '读不到目标 → status=skip 标注原因'),
@@ -84,7 +83,7 @@ if (mode === 'write') {
 
   // 2) 并行写盘 + 自验 (合并原 Phase B/C, 每 writer 自验本维度, 无独立 verify barrier)
   const results = (await parallel(DIMS.map(d => () => agent(fields(
-    `按 ${d.ref} + 审批 plan 写盘「${d.desc}」, 写完**自验本维度** (语法 ast.parse / marker 起止配对 / 行为闭环 / i18n 语言一致)。\n审批 plan:\n${plans[d.key] || '(无明确 plan, 按 reference 默认注入)'}`,
+    `按 ${d.ref} + 审批 plan 写盘「${d.desc}」, 写完**自验本维度** (语法 ast.parse / marker 起止配对 / 行为闭环 / 产物中文)。\n审批 plan:\n${plans[d.key] || '(无明确 plan, 按 reference 默认注入)'}`,
     `独占文件集 (sole owner, 禁碰他维文件): ${d.files}`,
     `StructuredOutput WRITE_SCHEMA: key=${d.key}; ok/verified/changed/problem`,
     '文件落盘 + marker 幂等不堆叠 + 自验全过', 'ok=false/verified=false → problem 给精确定位, 禁留半截'),
