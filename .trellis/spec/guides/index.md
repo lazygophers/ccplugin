@@ -19,6 +19,8 @@ mode: optimize
 | --- | --- | --- |
 | [Code Reuse](./code-reuse-thinking-guide.md) | 写新函数 / 新建文件前 | `grep -r '<语义词>' src/ packages/` 命中 ≥ 1 → 必须复用 |
 | [Cross-Layer](./cross-layer-thinking-guide.md) | 改动 ≥ 2 层 (e.g. API + DB) | 契约边界文档必须存在, 缺一不改 |
+| [trellisx worktree](./trellisx-worktree.md) | 实施 trellis task (worktree / subtask 隔离) | 源码改动落 worktree 内, 主工作区干净 |
+| [trellisx skill 拆分](./trellisx-skill-split.md) | 拆分 / 重构已有 trellisx skill | 共享逻辑单一真值源 (参数化入口开关), 保名保交叉引用 |
 
 ---
 
