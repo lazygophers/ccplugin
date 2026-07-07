@@ -1854,3 +1854,37 @@ history-digest 扫 ~/.claude/projects jsonl → 全局记忆. context-digest 整
 ### Next Steps
 
 - None - task complete
+
+
+## Session 115: 拆分 trellisx-flow 为 add/flow + go command
+
+**Date**: 2026-07-07
+**Task**: 拆分 trellisx-flow 为 add/flow + go command
+**Branch**: `master`
+
+### Summary
+
+trellisx-flow 单 skill 拆为 trellisx-add(只规划不执行,参数化入口无参阻塞/--continue不阻塞)+trellisx-flow(全闭环,planning段委托/trellisx-add --continue,保名保双模)+/trellisx:go command(执行所有pending planning态task,task级DAG上限2滚动)。plugin.json登记add+go, grill硬门1指向add planning, docs消flow禁自动触发矛盾+补add/go条目。沉淀 trellisx-skill-split spec(参数化入口开关保单一真值源)。5 subtask并行实现+trellis-check全绿+spec沉淀。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `497627f0` | (see git log) |
+| `4789ec62` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

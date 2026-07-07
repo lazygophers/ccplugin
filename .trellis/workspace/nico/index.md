@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-2.md`
-- **Total Sessions**: 114
-- **Last Active**: 2026-06-11
+- **Total Sessions**: 115
+- **Last Active**: 2026-07-07
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-2.md` | ~1856 | Active |
+| `journal-2.md` | ~1890 | Active |
 | `journal-1.md` | ~1974 | Archived |
 <!-- @@@/auto:active-documents -->
 
@@ -30,6 +30,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 115 | 2026-07-07 | 拆分 trellisx-flow 为 add/flow + go command | `497627f0`, `4789ec62` | `master` |
 | 114 | 2026-06-11 | cortex 默认 apply | `4aef7922` | `master` |
 | 113 | 2026-06-10 | cortex hooks 自动构建+主动检索 | `76f7a4c2` | `master` |
 | 112 | 2026-06-10 | cortex 后台 worker agents | `5b63b1f9` | `cortex` |
