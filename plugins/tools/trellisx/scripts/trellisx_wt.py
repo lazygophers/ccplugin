@@ -96,3 +96,7 @@ def parse_map_list(text, tid):
         seen.add(key)
         out.append(wt_disp)
     return out
+
+
+if __name__ == "__main__":
+    print("trellisx_wt.py — worktree 路径/分支/命名共用库 (无 CLI, 由 worktree.py/finish.py import)")

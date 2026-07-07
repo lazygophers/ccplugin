@@ -7,18 +7,20 @@
 ```markdown
 # Trellis 任务看板
 
-> 由 trellisx-workspace 维护; task 生命周期节点后及时更新。
+| ID | 名称 | 描述 | 状态 | worktree | 前置 |
+| --- | --- | --- | --- | --- | --- |
+| 06-13-login | 实现登录 | JWT 登录 + token 刷新 | 实施中 | .worktrees/login | — |
+| 06-13-export | 导出 CSV | 报表导出 | 规划中 | — | 06-13-login |
+| 06-10-init | 项目初始化 | 脚手架 | 已完成 | — | — |
 
-| ID | 名称 | 描述 | 状态 | worktree |
-| --- | --- | --- | --- | --- |
-| 06-13-login | 实现登录 | JWT 登录 + token 刷新 | 实施中 | .worktrees/login |
-| 06-13-export | 导出 CSV | 报表导出 | 规划中 | — |
-| 06-10-init | 项目初始化 | 脚手架 | 已完成 | — |
+## 依赖关系图 (DAG)
+
+```mermaid
+flowchart TD
+  06-13-login --> 06-13-export
+```
 
 ## Worktree ↔ Task 映射
-
-> 每个活跃 worktree 登记映射到的 task (一对多: 同 task 拆多 subagent 各占一行);
-> 无映射的 worktree 由 WorktreeCreate hook 提醒补登。
 
 | worktree | task | 创建源 |
 | --- | --- | --- |
@@ -26,12 +28,16 @@
 | .worktrees/login-sub1 | 06-13-login | subagent |
 ```
 
+> 产出的 task.md **只含标题 + 表格 + 依赖关系图 (mermaid)**, 无 `>` 注释行/说明块。上方示例外的说明仅本文档用, 不写入 task.md。
+>
+> **`## 依赖关系图 (DAG)` 段由脚本自动渲染** —— 每次写盘从主表「前置」列重建 (无任何依赖边则不出此段), AI/hook 无需手维护, 改依赖只改前置列 (`update --deps`), 图跟着变。
+
 > **映射区是唯一允许的额外 section** (主表外的例外): worktree 可能由 subagent isolation / 手动
 > `git worktree add` 建, 无对应主表行; 此区显式登记每个活跃 worktree 归属哪个 task。**一行一
 > worktree, 同 task 可多行 (一对多)**。经 `trellisx-taskmd.py map-add/map-remove/map-get/map-list`
 > 维护 (guard hook 调用), AI 勿手编。
 
-## 字段 (一行一任务, 5 列)
+## 字段 (一行一任务, 6 列)
 
 | 列 | 说明 | 取值 (中文显示 ↔ task.json 英文真值) |
 | --- | --- | --- |
@@ -40,6 +46,7 @@
 | 描述 | 一句话目的 | ≤ 30 字 |
 | 状态 | 生命周期阶段 (合并原"状态"+"阶段", 删"进度") | 规划中 ↔ planning / 实施中 ↔ in_progress / 检查中 (AI 细分) / 收尾 (AI 细分) / 已完成 ↔ completed / 已归档 ↔ archived |
 | worktree | 隔离工作区 | `.worktrees/<name>` 或 `—` |
+| 前置 | 该 task 依赖的前置 task ID (task 级 DAG) | 前置 tid 逗号分隔 ↔ `task.json.depends_on`; **仅有依赖者标, 无依赖填 `—`**。经 `update --deps` 双写 (task.json + 看板) |
 
 ## 状态列取值 (生命周期阶段)
 
@@ -65,4 +72,4 @@
 | 单设「已归档」分区 | 已完成行同表, 用「状态」列区分 |
 | 描述写成多句长文 | ≤ 30 字一句话目的 |
 
-> **例外**: `## Worktree ↔ Task 映射` 区是唯一允许的额外 section (见上), 其余「主表外加 section」仍禁。
+> **例外 (仅两个, 均脚本维护)**: `## 依赖关系图 (DAG)` (脚本从前置列自动渲染) + `## Worktree ↔ Task 映射` (map-* 维护); 其余「主表外加 section」仍禁。

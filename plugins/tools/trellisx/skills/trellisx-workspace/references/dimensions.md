@@ -1,6 +1,6 @@
 # task.md 维度字段定义
 
-看板是**单表格, 一行一任务**。5 列, 每列的 定义 / 取值 / 来源 / 更新时机:
+看板是**单表格, 一行一任务**。6 列, 每列的 定义 / 取值 / 来源 / 更新时机:
 
 | 字段 | 定义 | 取值 / 格式 | 来源 | 更新时机 |
 | --- | --- | --- | --- | --- |
@@ -9,6 +9,11 @@
 | **描述** | 一句话目的 | ≤ 30 字 | `task.json.description` / prd.md | create; 需求变更时 |
 | **状态** | 生命周期阶段 (合并原"状态"+"阶段") | 规划中 / 实施中 / 检查中 / 收尾 / 已完成 / 已归档 | hook sync 写基础态 (规划中/实施中/已完成/已归档); AI update 细化 (实施中/检查中/收尾) | start / 阶段推进 / archive 后 |
 | **worktree** | 隔离工作区 | `.worktrees/<name>` 或 `—` | task.json / worktree hook | start 建 worktree 后 |
+| **前置** | 该 task 依赖的前置 task ID (task 级 DAG 边) | 前置 tid 逗号分隔, 或 `—` (无依赖) | `task.json.depends_on` (真值源); hook sync 渲染 / AI `update --deps` 写回 | 规划出依赖时 / 改依赖时。**仅有依赖者标, 无依赖填 `—`** |
+
+> **前置列 = task 级 DAG**: flow/go 调度据此排前后序 (最终 DAG = 冲突自算边 ∪ 显式前置边)。真值源是 `task.json.depends_on`; 看板前置列是其投影, 经 `update --deps` 双写 (task.json + 看板恒一致)。
+>
+> **`## 依赖关系图 (DAG)` 段 = 前置列的 mermaid 可视化**: 脚本每次写盘从前置列自动重建 (无依赖边则不出段), 非手维护列。改依赖只动前置列 (`update --deps`), 图跟着变。
 
 ## 状态列取值 (生命周期阶段)
 
@@ -38,7 +43,7 @@ task。**一行一 worktree, 同 task 可多行 (一对多)**:
 | 创建源 | 怎么建的 | `trellisx-start` / `subagent` / `WorktreeCreate` / `-` |
 
 经 `trellisx-taskmd.py map-add/map-remove/map-get/map-list` 维护 (guard hook 调用), AI 勿手编。
-`lint` 子命令校验 (主表 5 列 / 映射区 3 列 / 状态合法 / ID 不重复)。
+`lint` 子命令校验 (主表 6 列 / 映射区 3 列 / 状态合法 / ID 不重复)。
 
 ## 一致性规则
 

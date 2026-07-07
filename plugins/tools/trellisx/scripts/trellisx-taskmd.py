@@ -45,6 +45,10 @@ MAP_HEADER = (
     "| --- | --- | --- |\n"
 )
 
+# 依赖关系图: 从主表「前置」列自动渲染的 mermaid DAG (每次写盘重建, 恒不 stale)。
+# 前置列是真值投影, 图是其可视化; 无任何依赖边时不出图段。
+GRAPH_MARK = "## 依赖关系图 (DAG)"
+
 
 def trellis_root_from(path):
     cur = os.path.dirname(os.path.abspath(path))
@@ -76,7 +80,49 @@ def load_md(troot):
     return md
 
 
+def strip_section(md, mark):
+    """删除 md 中以 mark 开头、到下一个 `## ` 段 (或 EOF) 为止的整段。"""
+    if mark not in md:
+        return md
+    head = md.split(mark, 1)[0]
+    rest = md.split(mark, 1)[1]
+    m = re.search(r"(?m)^## ", rest)
+    tail = rest[m.start():] if m else ""
+    return (head.rstrip() + ("\n\n" + tail if tail else "\n")).rstrip() + "\n"
+
+
+def main_edges(md):
+    """从主表 (首个 `## ` 段之前) 的「前置」列抽 DAG 边 → [(前置, task)]。"""
+    seg = re.split(r"(?m)^## ", md, maxsplit=1)[0]
+    edges = []
+    for ln in seg.splitlines():
+        if ln.startswith("| ") and not ln.startswith("| ID |") and not ln.startswith("| --- |"):
+            c = row_cells(ln)
+            if len(c) >= 6 and c[5] and c[5] != "—":
+                for p in c[5].split(","):
+                    p = p.strip()
+                    if p:
+                        edges.append((p, c[0]))
+    return edges
+
+
+def render_graph(md):
+    """重建依赖关系图段: 从主表前置列渲染 mermaid DAG, 插到主表后、映射区前。
+    无依赖边 → 不出图段。恒幂等 (先 strip 旧段再重建)。"""
+    md = strip_section(md, GRAPH_MARK)
+    edges = main_edges(md)
+    if not edges:
+        return md
+    body = "".join(f"  {p} --> {t}\n" for p, t in edges)
+    block = GRAPH_MARK + "\n\n```mermaid\nflowchart TD\n" + body + "```\n"
+    if MAP_MARK in md:
+        head = md.split(MAP_MARK, 1)[0]
+        return head.rstrip() + "\n\n" + block + "\n" + MAP_MARK + md.split(MAP_MARK, 1)[1]
+    return md.rstrip() + "\n\n" + block
+
+
 def save_md(troot, md):
+    md = render_graph(md)  # 每次写盘重建依赖图, 与前置列恒一致
     open(taskmd_path(troot), "w", encoding="utf-8").write(md)
 
 
@@ -91,8 +137,13 @@ def find_row(md, tid):
 
 def write_row(md, tid, cells):
     row = f"| {tid} | " + " | ".join(cells) + " |"
-    m = find_row(md, tid)
-    return re.sub(rf"(?m)^\| {re.escape(tid)} \|.*$", row, md) if m else (md.rstrip() + "\n" + row + "\n")
+    if find_row(md, tid):
+        return re.sub(rf"(?m)^\| {re.escape(tid)} \|.*$", row, md)
+    # 新行插到主表末尾 (首个 `## ` 段之前), 不落到图段/映射区之后
+    m = re.search(r"(?m)^## ", md)
+    if m:
+        return md[:m.start()].rstrip() + "\n" + row + "\n\n" + md[m.start():]
+    return md.rstrip() + "\n" + row + "\n"
 
 
 def completed_at(troot, tid):
@@ -567,7 +618,18 @@ def cmd_fix(_argv):
     sys.exit(0)
 
 
+HELP = """trellisx-taskmd.py — task.md 看板唯一读写入口
+用法: trellisx-taskmd.py <命令> ...
+  sync <create|start|archive>                 从 task.json 同步 (hook 用, 读 $TASK_JSON_PATH)
+  update <tid> [--status S] [--worktree W] [--deps "a,b"]
+  show [tid] | cleanup [--days N] | lint | fix
+  map-add <wt> <tid> [源] | map-remove <wt> | map-get <wt> | map-list"""
+
+
 def main():
+    if any(a in ("-h", "--help") for a in sys.argv[1:]):
+        print(HELP)
+        raise SystemExit(0)
     if len(sys.argv) < 2:
         print("用法: trellisx-taskmd.py "
               "<sync|update|show|cleanup|map-add|map-remove|map-get|map-list|lint|fix> ...",

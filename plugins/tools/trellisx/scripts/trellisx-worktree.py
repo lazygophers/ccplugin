@@ -7,6 +7,10 @@ import json, os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import trellisx_wt  # noqa: E402
 
+if any(a in ("-h", "--help") for a in sys.argv[1:]):
+    print("trellisx-worktree.py start|archive — worktree 生命周期 hook (读 $TASK_JSON_PATH env)")
+    sys.exit(0)
+
 action = sys.argv[1] if len(sys.argv) > 1 else ""
 tj = os.environ.get("TASK_JSON_PATH", "")
 if not tj or not os.path.isfile(tj):

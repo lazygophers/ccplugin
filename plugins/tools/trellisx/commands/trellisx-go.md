@@ -33,7 +33,7 @@ pending 集为空 → 输出提示并退出, **禁报错、禁现场规划**:
 - **冲突判定**: `trellisx-orchestrate/references/scheduling.md` §2/§9 (write-files glob 相交 或 exec-scope 相交 → 冲突边串行; 不相交 → 可并行)。**外加显式前置**: 各 task `task.json` 顶层 `depends_on` (看板「前置」列) = 显式依赖边; 最终 DAG = 冲突自算边 ∪ 显式 `depends_on` 边。
 - **task 级并行调度**: `scheduling.md` §9 + `trellisx-flow/SKILL.md`「多 task 并行调度」段。
 - **task 级并发上限 2 滚动** (`MAX_ACTIVE_TASKS`): 同时最多 2 个 task active, 完成一个 `finish` 后再 `start` 下一个 ready 的, 不空等全部。冲突的 task 串行, 不冲突的并行。
-- **task 间顺序禁令** (scheduling.md §9): 顺序由 DAG (write-files/exec-scope 静态冲突 ∪ 显式 `depends_on`) 决定, **禁问用户"哪个 task 先做"**; DAG 缺依赖声明 → 退回该 task 的 planning 补 (建时 `--depends-on` 或事后 `set-deps`), 不在调度时问。
+- **task 间顺序禁令** (scheduling.md §9): 顺序由 DAG (write-files/exec-scope 静态冲突 ∪ 显式 `depends_on`) 决定, **禁问用户"哪个 task 先做"**; DAG 缺依赖声明 → 退回该 task 的 planning 补 (便携: `trellisx-taskmd.py update <tid> --deps "a,b"`, 随 apply 发货), 不在调度时问。
 
 每个 ready 的 task 走 **flow 的 `start → exec → check → finish` 全套载体铁律** —— 载体细则 (task.py 脚本 main 同步跑 / exec·check 派 subagent 编排 / 有 task 必有 worktree / 完成即回传 / 异步后输出任务清单表) **直接引用 `trellisx-flow/SKILL.md`「执行载体铁律」段 + 「多 task 并行调度」段, go 不复制不重述**。
 

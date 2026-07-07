@@ -6,6 +6,15 @@
 | 07-02-api | 实现 API 层 | 基于 schema 提供读写接口 | 实施中 | ~/wt/api | 07-01-schema |
 | 07-03-ui | 前端看板 | 消费 API 渲染看板 | 规划中 | — | 07-01-schema, 07-02-api |
 
+## 依赖关系图 (DAG)
+
+```mermaid
+flowchart TD
+  07-01-schema --> 07-02-api
+  07-01-schema --> 07-03-ui
+  07-02-api --> 07-03-ui
+```
+
 ## Worktree ↔ Task 映射
 
 | worktree | task | 创建源 |

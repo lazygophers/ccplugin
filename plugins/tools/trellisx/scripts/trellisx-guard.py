@@ -413,6 +413,9 @@ def lint_failed(troot):
 
 
 def main():
+    if any(a in ("-h", "--help") for a in sys.argv[1:]):
+        print("trellisx-guard.py — Claude Code 运行时 hook (读 stdin JSON), 强制执行载体闭环约束; 无需手动调用")
+        return 0
     try:
         raw = sys.stdin.read()
         data = json.loads(raw) if raw.strip() else {}

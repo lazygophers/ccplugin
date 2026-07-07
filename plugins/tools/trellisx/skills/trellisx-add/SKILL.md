@@ -45,7 +45,7 @@ arguments: [入口选项 (可选), 任务描述]
 
 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
 
-- **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。若本 task **依赖其他 pending/现有 task 先完成** (task 级 DAG, 非并行), 建时带 `--depends-on "<前置id>,..."` 写入 task.json `depends_on` (看板「前置」列自动渲染, flow/go 调度据此排序; 无依赖不填)。事后补依赖用 `task.py set-deps <dir> "a,b"` 或 `trellisx-taskmd.py update <tid> --deps "a,b"`。
+- **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。若本 task **依赖其他 pending/现有 task 先完成** (task 级 DAG, 非并行), create 后用 **`trellisx-taskmd.py update <tid> --deps "<前置id>,..."`** 写 task.json `depends_on` + 看板「前置」列 (随 apply 发货, 通用; flow/go 调度据此排序; 无依赖不填)。本仓 task.py 另支持 `create --depends-on` / `set-deps <dir> "a,b"` 语法糖 (仅本仓, 非发货路径)。
 - **现有 task 的补充 / 延续** (扩展、修订、补做某 planning 态 task 的一部分) → **不新建顶层 task**: 回到 planning 修订该 task 的 `prd.md` / `implement.md` 并重新规划; 若是可独立验收的子交付, 用 `task.py create --parent <现有 task>` 挂为 child。
 - 🔴 **判不准 → 🛑 STOP**: MUST 用 `AskUserQuestion` 问"这是新任务, 还是对 `<现有 task>` 的补充?", **禁自行替用户决定**, 禁纯文本提问代替工具 (用户交互决策点, main 亲做)。
 

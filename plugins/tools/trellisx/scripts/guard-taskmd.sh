@@ -5,6 +5,13 @@
 # this hook also catches nested/absolute paths and gives an actionable hint.
 set -euo pipefail
 
+case "${1:-}" in
+    -h|--help)
+        echo "guard-taskmd.sh — PreToolUse hook (读 stdin JSON), 拦截直接编辑 .trellis/task.md; 无需手动调用"
+        exit 0
+        ;;
+esac
+
 payload="$(cat)"
 
 tool_name="$(printf '%s' "$payload" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("tool_name",""))' 2>/dev/null || echo "")"

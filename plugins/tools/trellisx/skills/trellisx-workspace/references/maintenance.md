@@ -2,7 +2,9 @@
 
 > **操作一律经 `.trellis/scripts/trellisx-taskmd.py` 脚本** (`sync` / `update` / `show` / `cleanup`), 不直接编辑 task.md。下列算法是**脚本内部逻辑**说明 + 无脚本 (未跑 apply) 时的手动 fallback 参考。
 
-核心: 按 **task id** 定位表行, 更新或新增, **绝不重复堆叠**; 真值从 `task.json` 同步。单表格, 无活动详情块。脚本列分工 (5 列): `sync` 管确定性列 (ID/名称/描述/状态基础态), `update` 细化状态 (阶段) + worktree, 互不覆盖。
+核心: 按 **task id** 定位表行, 更新或新增, **绝不重复堆叠**; 真值从 `task.json` 同步。单表格, 无活动详情块。脚本列分工 (6 列): `sync` 管确定性列 (ID/名称/描述/状态基础态) + 前置 (从 task.json `depends_on` 渲染), `update` 细化状态 (阶段) + worktree + 前置 (`--deps` 写回 depends_on), 互不覆盖。
+
+> **依赖关系图自动化**: 脚本每次 `save_md` 从主表前置列重建 `## 依赖关系图 (DAG)` mermaid 段 (无依赖边则不出段), 幂等、恒与前置列一致。AI/hook 不手维护此段, 只维护前置列。
 
 ## 通用流程
 
@@ -22,7 +24,7 @@
 
 | 节点 | 动作 |
 | --- | --- |
-| create | 追加行: 状态 `规划中`, worktree `—` |
+| create | 追加行: 状态 `规划中`, worktree `—`, 前置 `—` (有依赖则规划时 `update --deps` 补) |
 | start | 该行: 状态 → `实施中`, worktree → hook 建的路径 |
 | 阶段推进 | 该行: 状态列细化 (实施中→检查中→收尾) |
 | check 未过回退 | 该行状态 检查中 → 退回 实施中 |
@@ -56,7 +58,7 @@ def cleanup(rows, today):  # rows: 解析出的表行
 ```python
 # 按 id 定位看板行 (Markdown 表), 更新或追加
 import re
-def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,worktree]
+def upsert_row(md, tid, cells):  # cells = [名称,描述,状态,worktree,前置]
     row = f"| {tid} | " + " | ".join(cells) + " |"
     pat = rf"(?m)^\| {re.escape(tid)} \|.*$"
     if re.search(pat, md):
