@@ -10,9 +10,9 @@
 
 ```mermaid
 flowchart TD
-  07-01-schema --> 07-02-api
-  07-01-schema --> 07-03-ui
-  07-02-api --> 07-03-ui
+  07-01-schema["定义数据 schema"] --> 07-02-api["实现 API 层"]
+  07-01-schema["定义数据 schema"] --> 07-03-ui["前端看板"]
+  07-02-api["实现 API 层"] --> 07-03-ui["前端看板"]
 ```
 
 ## Worktree ↔ Task 映射

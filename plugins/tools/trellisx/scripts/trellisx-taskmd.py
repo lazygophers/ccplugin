@@ -47,6 +47,7 @@ MAP_HEADER = (
 
 # 依赖关系图: 从主表「前置」列自动渲染的 mermaid DAG (每次写盘重建, 恒不 stale)。
 # 前置列是真值投影, 图是其可视化; 无任何依赖边时不出图段。
+# 节点键用 task ID (唯一/安全), 标签用名称 (`id["名称"]`) —— 图上显示名称而非 id。
 GRAPH_MARK = "## 依赖关系图 (DAG)"
 
 
@@ -106,8 +107,27 @@ def main_edges(md):
     return edges
 
 
+def id_name_map(md):
+    """主表 ID→名称 映射 (节点标签用名称, 节点键仍用 ID 保唯一/安全)。"""
+    seg = re.split(r"(?m)^## ", md, maxsplit=1)[0]
+    m = {}
+    for ln in seg.splitlines():
+        if ln.startswith("| ") and not ln.startswith("| ID |") and not ln.startswith("| --- |"):
+            c = row_cells(ln)
+            if len(c) >= 2 and c[0]:
+                m[c[0]] = c[1] or c[0]
+    return m
+
+
+def _node(nid, names):
+    """mermaid 节点: `id["名称"]`; 名称含 `"` 转义, 缺名回退到 id。"""
+    label = names.get(nid, nid).replace('"', "&quot;")
+    return f'{nid}["{label}"]'
+
+
 def graph_edges(md):
-    """解析已渲染图段的边 → [(前置, task)]; 无图段返回 None (区别于空 [])。"""
+    """解析已渲染图段的边 → [(前置ID, taskID)]; 无图段返回 None (区别于空 [])。
+    节点形如 `id["名称"]`, 剥 label 只取 ID 与主表前置列比对。"""
     if GRAPH_MARK not in md:
         return None
     seg = md.split(GRAPH_MARK, 1)[1]
@@ -116,7 +136,7 @@ def graph_edges(md):
         seg = seg[:m.start()]
     edges = []
     for ln in seg.splitlines():
-        mm = re.match(r"\s*(\S+)\s*-->\s*(\S+)\s*$", ln)
+        mm = re.match(r'\s*(\S+?)(?:\[.*?\])?\s*-->\s*(\S+?)(?:\[.*?\])?\s*$', ln)
         if mm:
             edges.append((mm.group(1), mm.group(2)))
     return edges
@@ -124,12 +144,13 @@ def graph_edges(md):
 
 def render_graph(md):
     """重建依赖关系图段: 从主表前置列渲染 mermaid DAG, 插到主表后、映射区前。
-    无依赖边 → 不出图段。恒幂等 (先 strip 旧段再重建)。"""
+    节点显示名称 (`id["名称"]`), 键仍用 ID。无依赖边 → 不出图段。恒幂等。"""
     md = strip_section(md, GRAPH_MARK)
     edges = main_edges(md)
     if not edges:
         return md
-    body = "".join(f"  {p} --> {t}\n" for p, t in edges)
+    names = id_name_map(md)
+    body = "".join(f"  {_node(p, names)} --> {_node(t, names)}\n" for p, t in edges)
     block = GRAPH_MARK + "\n\n```mermaid\nflowchart TD\n" + body + "```\n"
     if MAP_MARK in md:
         head = md.split(MAP_MARK, 1)[0]

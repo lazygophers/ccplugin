@@ -17,7 +17,7 @@
 
 ```mermaid
 flowchart TD
-  06-13-login --> 06-13-export
+  06-13-login["实现登录"] --> 06-13-export["导出 CSV"]
 ```
 
 ## Worktree ↔ Task 映射
