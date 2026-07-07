@@ -68,9 +68,17 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 - `.claude/commands/trellis/finish-work.md`: 全链收尾注入 (无则 hook 路兜底)
 - `<git根>/.gitignore`: 排除 `.worktrees/`
 
-### 5.2 trellisx-flow (强制 task 闭环)
+### 5.2 trellisx-add (只规划不执行)
 
-用户主动调 (`/trellisx-flow <请求>`), 强制以 task 闭环处理: 自判新建/并入 → plan→exec→check→finish。**禁自动触发** (user-invocable)。
+用户主动调 (`/trellisx-add <请求>`), 把请求纳入 planning: 判新旧/并入 → `task.py create` → prd/design/implement, **停在 `task.py start` 之前** (task 留 planning 态, 禁 exec/check/finish)。**仅显式触发** (禁 model 自动)。planning 逻辑单一真值源 —— flow 与 go 均委托本 skill 或消费其产物, 不复制正文。参数: 无参 = 跑完 planning 阻塞交还控制; `--continue`/`--exec` = 不停返回产物路径 (flow 内部借 planning 用)。
+
+### 5.2b trellisx-flow (强制 task 闭环)
+
+用户主动调 (`/trellisx-flow <请求>`) **或 model 自动触发** (请求复杂/多步/跨文件), 强制以 task 闭环处理: 委托 `/trellisx-add --continue` 完成 planning → exec→check→finish。**双模触发** (显式 + 自动)。
+
+### 5.2c /trellisx:go (command, 执行 pending)
+
+批量执行所有 pending planning 态 task (消费 `/trellisx-add` 攒下的产物), 每个走 flow start→exec→check→finish 闭环。task 级 DAG 调度 (write-files/exec-scope 相交串行, 不相交并行, 并发上限 2 滚动)。空态提示"先 /trellisx-add", 不报错。`go` 禁做 planning。命名空间 slash 名 `/trellisx:go`。
 
 ### 5.3 trellisx-orchestrate (planning 编排)
 

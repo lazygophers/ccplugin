@@ -13,10 +13,14 @@
     "./skills/trellisx-apply",
     "./skills/trellisx-orchestrate",
     "./skills/trellisx-spec",
+    "./skills/trellisx-add",
     "./skills/trellisx-flow",
     "./skills/trellisx-workspace",
     "./skills/trellisx-cleanup",
     "./skills/trellisx-grill"
+  ],
+  "commands": [
+    "./commands/trellisx/go.md"
   ],
   "keywords": [
     "trellis",

@@ -1,11 +1,12 @@
 # trellisx Skills 参考
 
-7 个 skill。`trellisx-apply` 是核心改造入口, 其余是日常/编排/收尾工具。
+8 个 skill + `/trellisx:go` command。`trellisx-apply` 是核心改造入口, 其余是日常/编排/收尾工具。
 
 | skill | 类型 | 一句话 |
 | --- | --- | --- |
 | [trellisx-apply](#trellisx-apply) | 改造 (主动, 一次性) | 把 5 维度规则注入项目 `.trellis/` |
-| [trellisx-flow](#trellisx-flow) | 执行 (主动) | 强制以 task 闭环处理请求 |
+| [trellisx-add](#trellisx-add) | 规划 (主动, 只规划不执行) | 把请求纳入 planning 停在 start 前 |
+| [trellisx-flow](#trellisx-flow) | 执行 (主动+自动) | 强制以 task 闭环处理请求 |
 | [trellisx-orchestrate](#trellisx-orchestrate) | 编排 (自动) | 编排 prd/design/implement/subtask |
 | [trellisx-workspace](#trellisx-workspace) | 维护 (自动+主动) | 维护 task.md 看板 |
 | [trellisx-spec](#trellisx-spec) | spec (主动) | 破坏式优化 .trellis/spec/ |
@@ -26,12 +27,21 @@
 - **边界**: 绝不替换 trellis 原生文本, 仅末尾追加。`trellis update` 覆盖 workflow 后重跑恢复。
 - **references**: `workflow-injection.md` (注入源, 28K) / `spec-injection.md` / `hook-injection.md` / `finishcmd-injection.md` / `agent-orchestration.md` / `diagnose.md` / `apply-verify.md`。
 
+## trellisx-add
+
+**规划级入口 (只规划不执行)**。把请求纳入 planning 阶段, 产出 prd/design/implement 后**停在 `task.py start` 之前**, task 留 planning 态, 禁 exec/check/finish。planning 逻辑单一真值源 (flow 与 go 均委托本 skill 或消费其产物)。
+
+- **触发**: `/trellisx-add <请求>`。**仅显式** (禁 model 自动)。用户想"先看规划再决定执行 / 只规划不动手 / 添加分析规划任务"时用。
+- **参数**: 无参 = 跑完 planning **即停** (阻塞, 交还控制); `--continue`/`--exec` = 不停返回 planning 产物路径 (flow 内部委托借 planning 用)。
+- **流程**: 判新旧 (新建 / 并入 active task) → `task.py create` 登记 → 交互式 planning (brainstorm 主导 + grill 硬门1 边问边写) → 停。
+- **边界**: 只到 planning 停; 执行 pending 规划态 task 走 `/trellisx:go`。
+
 ## trellisx-flow
 
-**强制 task 闭环**。用户主动调, 把请求强制纳入 plan→exec→check→finish。
+**强制 task 闭环**。用户主动调或 model 自动触发, 把请求强制纳入 plan→exec→check→finish。
 
-- **触发**: `/trellisx-flow <请求>`。**禁自动触发** (user-invocable)。
-- **行为**: 自判新建 task / 并入现有 task → planning → exec (**main 调度**, 动态 DAG 派各 trellis-implement 各执行 1 subtask, 并发上限 2 完成即派) → check (派 trellis-check) → finish (AI 层 + git 层)。
+- **触发**: `/trellisx-flow <请求>` (显式) 或 model 自动触发 (请求复杂/多步/跨文件时)。**双模** (显式 + 自动)。
+- **行为**: 委托 `/trellisx-add --continue` 完成 planning (判新旧 + 登记 + 规划) → exec (**main 调度**, 动态 DAG 派各 trellis-implement 各执行 1 subtask, 并发上限 2 完成即派) → check (派 trellis-check) → finish (AI 层 + git 层)。
 - **入参**: `--no-worktree` (subagent 改主工作区, main 仍禁亲改) / 其他流程开关。
 - **边界**: 是入口路由, 不直接写源码; 实质工作派 subagent。
 
@@ -87,11 +97,22 @@
 - **骨架**: 可扩展默认 12 轴 (token 生命周期 / 触发准确性 / 自举矛盾 / 诚实边界摘樱桃 等), 按问题性质/项目域动态裁剪 (非固定)。
 - **源于**: grill-me (relentless interview) + 项目盲点实证。
 
+## /trellisx:go (command)
+
+**批量执行 pending planning 态 task**。消费 `/trellisx-add` 攒下的 planning 态 task, 每个走 flow 的 start→exec→check→finish 闭环。命名空间 slash 名 `/trellisx:go` (`commands/trellisx/go.md`)。
+
+- **触发**: `/trellisx:go [task-id...]` (缺省 = 执行所有 pending planning 态 task)。
+- **调度**: task 级 DAG —— write-files/exec-scope 相交→串行, 不相交→并行, **task 级并发上限 2 滚动** (完成一个派下一个, 复用 `scheduling.md`)。
+- **空态**: 无 pending planning task → 提示"无待执行 task, 先 /trellisx-add", 不报错。
+- **边界**: `go` **禁做 planning** (只消费 add 产物); add=只规划停, flow=单请求全闭环, go=批量执行已规划的 pending。
+
 ## 调用决策树
 
 ```
 想启用 trellisx 规则        → trellisx-apply (一次性)
-请求想强制走 task 闭环      → /trellisx-flow <请求>
+只规划不执行 (先看规划)     → /trellisx-add <请求>
+请求想强制走 task 闭环      → /trellisx-flow <请求> (显式 / 复杂时自动)
+执行所有规划好的 pending    → /trellisx:go
 planning 阶段编排           → trellisx-orchestrate (自动)
 task 生命周期同步看板       → trellisx-workspace (自动 + show)
 spec 弱/不可执行/记不住     → trellisx-spec (planning 自动加载 / finish 自动 sediment)
