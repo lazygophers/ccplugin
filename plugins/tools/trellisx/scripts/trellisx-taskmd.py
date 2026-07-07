@@ -106,6 +106,22 @@ def main_edges(md):
     return edges
 
 
+def graph_edges(md):
+    """解析已渲染图段的边 → [(前置, task)]; 无图段返回 None (区别于空 [])。"""
+    if GRAPH_MARK not in md:
+        return None
+    seg = md.split(GRAPH_MARK, 1)[1]
+    m = re.search(r"(?m)^## ", seg)
+    if m:
+        seg = seg[:m.start()]
+    edges = []
+    for ln in seg.splitlines():
+        mm = re.match(r"\s*(\S+)\s*-->\s*(\S+)\s*$", ln)
+        if mm:
+            edges.append((mm.group(1), mm.group(2)))
+    return edges
+
+
 def render_graph(md):
     """重建依赖关系图段: 从主表前置列渲染 mermaid DAG, 插到主表后、映射区前。
     无依赖边 → 不出图段。恒幂等 (先 strip 旧段再重建)。"""
@@ -479,9 +495,51 @@ def cmd_lint(_argv):
             c = row_cells(ln)
             if len(c) != 3:
                 errs.append(f"映射区数据行列数 {len(c)}≠3: {ln.strip()}")
+    # 依赖关系图: 边须 == 主表前置列; 有依赖必出图段, 无依赖必无图段 (跑 fix 收敛)
+    exp, got = sorted(main_edges(md)), graph_edges(md)
+    if exp and got is None:
+        errs.append("有前置依赖但缺 DAG 图段 (跑 fix 重建)")
+    elif not exp and got:
+        errs.append("无前置依赖却有 DAG 图段 (跑 fix 清除)")
+    elif got is not None and sorted(got) != exp:
+        errs.append("DAG 图与前置列不一致 (跑 fix 重建)")
     if errs:
         for e in errs:
             print("trellisx lint: " + e, file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
+def cmd_check(_argv):
+    """check — 只读校验看板 ↔ task.json 真值一致性 (lint 是结构自洽, check 是跨源真值)。
+    规则: 每个 task.json 有主表行 / 前置列 == task.json depends_on。
+    一致退 0; 否则退 1 + stderr 列出漂移 (跑 sync 收敛)。"""
+    troot = find_trellis_root()
+    if not troot:
+        print("trellisx: 未找到 .trellis", file=sys.stderr)
+        sys.exit(1)
+    md = load_md(troot)
+    issues = []
+    for tj in glob.glob(os.path.join(troot, ".trellis", "tasks", "*", "task.json")):
+        try:
+            data = json.load(open(tj, encoding="utf-8"))
+        except Exception:
+            issues.append(f"{os.path.dirname(tj)}: task.json 解析失败")
+            continue
+        tid = data.get("id") or os.path.basename(os.path.dirname(tj))
+        deps = sorted(data.get("depends_on") or [])
+        m = find_row(md, tid)
+        if not m:
+            issues.append(f"{tid}: task.json 存在但看板无行 (跑 sync create)")
+            continue
+        c = row_cells(m.group(0))
+        board = [] if len(c) < 6 or c[5] == "—" else [
+            d.strip() for d in c[5].split(",") if d.strip()]
+        if sorted(board) != deps:
+            issues.append(f"{tid}: 前置列 {board or '—'} ≠ depends_on {deps or '[]'}")
+    if issues:
+        for i in issues:
+            print("trellisx check: " + i, file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
 
@@ -622,8 +680,9 @@ HELP = """trellisx-taskmd.py — task.md 看板唯一读写入口
 用法: trellisx-taskmd.py <命令> ...
   sync <create|start|archive>                 从 task.json 同步 (hook 用, 读 $TASK_JSON_PATH)
   update <tid> [--status S] [--worktree W] [--deps "a,b"]
-  show [tid] | cleanup [--days N] | lint | fix
-  map-add <wt> <tid> [源] | map-remove <wt> | map-get <wt> | map-list"""
+  show [tid] | cleanup [--days N] | lint | check | fix
+  map-add <wt> <tid> [源] | map-remove <wt> | map-get <wt> | map-list
+  lint=结构自洽(列数/状态/ID/图↔前置列) check=看板↔task.json真值 fix=机械修复"""
 
 
 def main():
@@ -632,7 +691,7 @@ def main():
         raise SystemExit(0)
     if len(sys.argv) < 2:
         print("用法: trellisx-taskmd.py "
-              "<sync|update|show|cleanup|map-add|map-remove|map-get|map-list|lint|fix> ...",
+              "<sync|update|show|cleanup|map-add|map-remove|map-get|map-list|lint|check|fix> ...",
               file=sys.stderr)
         sys.exit(1)
     cmd = sys.argv[1]
@@ -654,6 +713,8 @@ def main():
         cmd_map_list(sys.argv[2:])
     elif cmd == "lint":
         cmd_lint(sys.argv[2:])
+    elif cmd == "check":
+        cmd_check(sys.argv[2:])
     elif cmd == "fix":
         cmd_fix(sys.argv[2:])
     else:

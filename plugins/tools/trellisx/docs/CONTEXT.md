@@ -53,7 +53,7 @@
 | --- | --- |
 | **task.md 看板** | `.trellis/task.md` 单表格, 一行一 task, **5 列** (ID/名称/描述/状态/worktree) |
 | **状态列** | 承载生命周期 (planning/exec/check/收尾/已完成/已归档)。hook sync 基础态不覆 AI 细分 |
-| **唯一入口** | 经 trellisx-taskmd.py (sync/update/show/cleanup/lint/fix), 禁直编 |
+| **唯一入口** | 经 trellisx-taskmd.py (sync/update/show/cleanup/map-*/lint/check/fix), 禁直编 |
 
 ## spec + grill
 

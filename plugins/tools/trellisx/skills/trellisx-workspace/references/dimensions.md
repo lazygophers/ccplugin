@@ -43,7 +43,7 @@ task。**一行一 worktree, 同 task 可多行 (一对多)**:
 | 创建源 | 怎么建的 | `trellisx-start` / `subagent` / `WorktreeCreate` / `-` |
 
 经 `trellisx-taskmd.py map-add/map-remove/map-get/map-list` 维护 (guard hook 调用), AI 勿手编。
-`lint` 子命令校验 (主表 6 列 / 映射区 3 列 / 状态合法 / ID 不重复)。
+`lint` 子命令校验结构自洽 (主表 6 列 / 映射区 3 列 / 状态合法 / ID 不重复 / DAG 图 ↔ 前置列一致); `check` 校验跨源真值 (前置列 == task.json depends_on)。
 
 ## 一致性规则
 

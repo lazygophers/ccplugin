@@ -5,6 +5,8 @@
 核心: 按 **task id** 定位表行, 更新或新增, **绝不重复堆叠**; 真值从 `task.json` 同步。单表格, 无活动详情块。脚本列分工 (6 列): `sync` 管确定性列 (ID/名称/描述/状态基础态) + 前置 (从 task.json `depends_on` 渲染), `update` 细化状态 (阶段) + worktree + 前置 (`--deps` 写回 depends_on), 互不覆盖。
 
 > **依赖关系图自动化**: 脚本每次 `save_md` 从主表前置列重建 `## 依赖关系图 (DAG)` mermaid 段 (无依赖边则不出段), 幂等、恒与前置列一致。AI/hook 不手维护此段, 只维护前置列。
+>
+> **两级校验**: `lint` 查**结构自洽** (列数/状态/ID/图↔前置列, FileChanged hook 自动跑, 不过跑 `fix` 机械修复); `check` 查**跨源真值** (前置列 == task.json depends_on, 每 task.json 有主表行), 只读、宜 pre-commit。
 
 ## 通用流程
 
