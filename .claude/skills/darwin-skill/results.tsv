@@ -1,0 +1,31 @@
+timestamp	commit	skill	old_score	new_score	status	dimension	note	eval_mode
+2026-07-07T13:56	baseline	trellisx-add	-	85.1	baseline	dim3	缺三段式失败表; 与flow正文重叠	dry_run
+2026-07-07T13:56	baseline	trellisx-apply	-	88.4	baseline	dim2	4步工作流压缩过度; 编排细节甩references	dry_run
+2026-07-07T13:56	baseline	trellisx-cleanup	-	85.1	baseline	dim3	仅2条核对; 无三段式失败表	dry_run
+2026-07-07T13:56	baseline	trellisx-flow	-	92.5	baseline	dim7	铁律/硬规/反例三处重叠 155行冗余	dry_run
+2026-07-07T13:56	baseline	trellisx-grill	-	88.3	baseline	dim6	axis-deep-dive.md 标按需建实际不存在	dry_run
+2026-07-07T13:56	baseline	trellisx-orchestrate	-	94.6	baseline	dim1	description 无独立触发短语	dry_run
+2026-07-07T13:56	baseline	trellisx-spec	-	91.8	baseline	dim3	失败处理平铺非三段式	dry_run
+2026-07-07T13:56	baseline	trellisx-workspace	-	87.2	baseline	dim3	仅1处失败兜底; 无失败处理表	dry_run
+2026-07-07T13:56	baseline	novelist-character	-	83.5	baseline	dim5	采集项偏引导性非硬格式	dry_run
+2026-07-07T13:56	baseline	novelist-check	-	88.7	baseline	dim6	conflict-rubric.md 未内联	dry_run
+2026-07-07T13:56	baseline	novelist-craft	-	82.9	baseline	dim3	失败模式仅4条; 检查点仅2处	dry_run
+2026-07-07T13:56	baseline	novelist-design	-	80.5	baseline	dim3	失败表有空占位; 步骤输入输出弱	dry_run
+2026-07-07T13:56	baseline	novelist-humanize	-	87.9	baseline	dim4	检查点分散未成显性门控; 密度过高	dry_run
+2026-07-07T13:56	baseline	novelist-init	-	86.1	baseline	dim3	失败4条+反例4条偏少	dry_run
+2026-07-07T13:56	baseline	novelist-lint	-	65.9	baseline	dim3	无失败表/零CHECKPOINT/无反例黑名单 三维塌陷	dry_run
+2026-07-07T13:56	baseline	novelist-outline	-	86.0	baseline	dim6	templates未验证; dim5少量软化	dry_run
+2026-07-07T13:56	baseline	novelist-pipeline	-	87.3	baseline	dim1	description过长; 表格三处交叠重复	dry_run
+2026-07-07T13:56	baseline	novelist-proofread	-	87.7	baseline	dim6	checklist未验证; 门控可收紧	dry_run
+2026-07-07T13:56	baseline	novelist-rewrite	-	88.3	baseline	dim6	modes未验证; A/B/C两处重复	dry_run
+2026-07-07T13:56	baseline	novelist-trending	-	79.2	baseline	dim4	软化措辞多; 检查点偏协议非用户确认	dry_run
+2026-07-07T13:56	baseline	novelist-worldview	-	85.4	baseline	dim6	templates未验证; 反例仅5行单薄	dry_run
+2026-07-07T13:56	baseline	novelist-write	-	89.5	baseline	dim6	checklist未验证; 余均衡最高	dry_run
+2026-07-07T13:56	baseline	architecture-design	-	85.8	baseline	dim4	CHECKPOINT仅1处; worked example仅1	dry_run
+2026-07-07T13:56	baseline	clean-code	-	73.2	baseline	dim4	无失败分支表; 缺when_to_use; 无用户确认检查点	dry_run
+2026-07-07T13:56	baseline	oss-license	-	82.2	baseline	dim3	无独立三段式失败处理	dry_run
+2026-07-07T13:56	baseline	perf-optimization	-	88.7	baseline	dim6	references未核验; 实质无短板	dry_run
+2026-07-07T13:56	baseline	promo-posts	-	80.4	baseline	dim3	缺失败处理表; CHECKPOINT仅1处	dry_run
+2026-07-07T13:56	baseline	skill-author	-	78.0	baseline	dim3	失败处理+反模式黑名单外置references 正文不自包含	dry_run
+2026-07-07T13:56	baseline	skill-optimizer	-	84.5	baseline	dim1	结构均衡; 无明显低维	dry_run
+2026-07-07T13:57	77705745	novelist-lint	65.9	81.4	keep	dim3+4+9	失败表+破坏前CHECKPOINT+反例黑名单	full_test
