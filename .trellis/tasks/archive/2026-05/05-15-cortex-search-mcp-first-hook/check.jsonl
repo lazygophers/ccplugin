@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "pytest + ruff + 497 → ≥510 基线"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "P9 节同步"}
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "§1 硬契约重写校验"}
-{"file": "plugins/tools/cortex/skills/cortex-search/SKILL.md", "reason": "五级重排校验 MCP L1/L2"}

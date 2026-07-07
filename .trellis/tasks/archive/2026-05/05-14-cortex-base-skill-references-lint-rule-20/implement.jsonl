@@ -1,6 +1,0 @@
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "lint rule + skill references 规约"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试 + ruff 质量门"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "lint 19→20 / 资产计数 P7 节"}
-{"file": "plugins/tools/cortex/scripts/lint/rules.json", "reason": "rule 20 注册位置"}
-{"file": "plugins/tools/cortex/scripts/lint/run.py", "reason": "已有 yaml import + check_skill_references_exists 模式参考"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/knowledge-graph.md", "reason": "§9.1 .base 模板硬契约位置"}

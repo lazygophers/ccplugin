@@ -14,7 +14,7 @@
 
 | 模块 | 职责 | 边界 (输入/输出) | 执行层建议 | 独占资源 |
 | --- | --- | --- | --- | --- |
-| M1 | <职责> | <契约> | main / sub-agent / agent-team / workflow | <文件 glob / 端口 / 配置> |
+| M1 | <职责> | <契约> | main / sub-agent / agent-team | <文件 glob / 端口 / 配置> |
 
 ## 数据流 / 控制流
 <逐步描述; 跨模块调用走显式契约>
@@ -48,7 +48,7 @@
 
 ## 执行层标注
 
-每模块在表中标 `main / sub-agent / agent-team / workflow`, 标注准则见 `layer-selection.md`。同一 deliverable 内多模块若执行层不同, design 必须说明协调点 (谁等谁, 在什么交付物上交接)。
+每模块在表中标 `main / sub-agent / agent-team`, 标注准则见 `layer-selection.md`。同一 deliverable 内多模块若执行层不同, design 必须说明协调点 (谁等谁, 在什么交付物上交接)。
 
 ## 资源边界
 

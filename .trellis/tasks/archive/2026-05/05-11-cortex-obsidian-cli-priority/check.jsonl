@@ -1,4 +1,0 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "校对 agent/skill 结构合规"}
-{"file": ".trellis/tasks/05-11-cortex-obsidian-cli-priority/research/mcp-cli-mapping.md", "reason": "校对所有改动点已覆盖，hooks/scripts/lint/refactor 下 .sh/.py 补扫"}
-{"file": ".trellis/tasks/05-11-cortex-obsidian-cli-priority/research/yakitrak-cli-surface.md", "reason": "校对 CLI 命令语法准确、MCP 保留主路径场景识别正确"}

@@ -1,5 +1,0 @@
-{"file": ".trellis/tasks/05-10-unify-office-plugin-naming-across-dirs-and-manifests/prd.md", "reason": "Task requirements + decision matrix"}
-{"file": ".trellis/tasks/05-10-unify-office-plugin-naming-across-dirs-and-manifests/research/marketplace-naming-audit.md", "reason": "Mismatch list + invariant + side effects"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend conventions"}
-{"file": ".claude-plugin/marketplace.json", "reason": "Registry source of truth"}
-{"file": "docs/plugin-development.md", "reason": "May reference old names; sync after rename"}

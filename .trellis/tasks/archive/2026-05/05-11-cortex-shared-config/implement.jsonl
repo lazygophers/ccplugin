@@ -1,6 +1,0 @@
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "cortex 是 tools/ 插件, 新增 Python loader / bash lib / CLI / install.sh 须遵循插件命名与目录约定"}
-{"file": ".trellis/spec/backend/directory-structure.md", "reason": "新增 hooks/_lib/cortex_config.py / scripts/lib/config.sh / scripts/cortex_config.py / install.sh — 路径布局对齐"}
-{"file": ".trellis/spec/backend/error-handling.md", "reason": "JSON 损坏 fail-fast + 字段缺失 fallback 的错误风格须一致"}
-{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "cortex_locale.py / save_session.py 改 lang fallback, 不破坏 hook 契约"}
-{"file": ".trellis/spec/backend/marketplace.md", "reason": "wrapper 嵌入绝对 marketplace 路径; install_path detect 链需符合 marketplace 安装位置"}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Python loader / Bash loader / CLI 三层避免重复; 复用判断"}

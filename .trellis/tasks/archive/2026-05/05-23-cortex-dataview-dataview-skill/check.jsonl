@@ -1,5 +1,0 @@
-{"file": ".trellis/tasks/05-23-cortex-dataview-dataview-skill/prd.md", "reason": "AC 校验源"}
-{"file": "plugins/tools/cortex/skills/cortex-dataview/SKILL.md", "reason": "入口文件存在 + ≤80 行 + description"}
-{"file": "plugins/tools/cortex/README.md", "reason": "skill 表已加 cortex-dataview 行"}
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "skill 数 18→19"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "资产计数同步"}

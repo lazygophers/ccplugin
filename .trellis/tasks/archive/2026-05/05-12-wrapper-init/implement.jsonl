@@ -1,3 +1,0 @@
-{"file": ".trellis/tasks/05-12-wrapper-init/prd.md", "reason": "本任务 PRD — 必读"}
-{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "wrapper 生成器 — 加 init wrapper heredoc"}
-{"file": "plugins/tools/cortex/skills/cortex-install/SKILL.md", "reason": "init.sh 调用此 SKILL — 参考流程, 不动"}

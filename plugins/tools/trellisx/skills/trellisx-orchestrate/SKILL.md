@@ -1,7 +1,7 @@
 ---
 name: trellisx-orchestrate
-description: '在 Trellis 项目 planning 阶段, 指导编写 task 文件夹内的 prd.md / design.md / implement.md, 把任务编排理念 (五要素拆分、执行层选择、资源互斥、失败回退) 内嵌到文档中。让后续 dispatch 与执行有据可依, 而不是写完 PRD 才临时想怎么拆'
-when_to_use: '内部 skill, 被 flow 路由或 apply workflow planning 步触发。planning 阶段写 prd/design/implement, 拆 subtask+调度图。入口归 flow'
+description: '🎯 在 Trellis 项目 planning 阶段, 指导编写 task 文件夹内的 prd.md / design.md / implement.md, 把任务编排理念 (五要素拆分、执行层选择、资源互斥、失败回退) 内嵌到文档中。让后续 dispatch 与执行有据可依, 而不是写完 PRD 才临时想怎么拆'
+when_to_use: '内部 skill, 被 flow 路由或 apply 规划步触发。planning 阶段写 prd/design/implement, 拆 subtask+调度图。入口归 flow'
 ---
 
 # trellisx-orchestrate — Trellis 任务规划与文档编排
@@ -45,7 +45,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 被路由加载 (非用户直接入口, 入口归 trellisx-flow), 符合任一即生效:
 
 - trellisx-flow 判定建 task 进 planning 后路由本 skill 做执行层编排
-- trellisx-apply 注入的 workflow.md planning 步触发
+- trellisx-apply 规划步触发
 - 处于 trellis active task 且 status = planning, PRD 列 ≥ 2 deliverable 尚未拆 design/implement
 - planning → in_progress 前的最后一遍编排校对
 
@@ -57,7 +57,7 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 | 步骤 | 行动 | 写法 reference | 填好范例 |
 | --- | --- | --- | --- |
-| 1 | PRD 编排 — 🔴 **spec 加载门 (planning 必做, 非软约束; 本 skill 独家 owner, flow 不重复加载)**: 先 grep `.trellis/spec/guides/index.md` 按主题找相关 guide, 命中读全文注入 PRD 上下文 (约束/契约/验收基准); 无相关 spec 才跳过。**被动可见**: 本 gate 文本由 trellis 原生 `inject-workflow-state` 每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆)。**诚实边界**: relevant guide 检索归本步主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界。🔴 **grill 硬门 1 (边问边写, 与 brainstorm 协同)**: PRD 编写过程 MUST 调 `/trellisx-grill` 用轴 A (目标) / B (产出) 当提问引擎 —— grill 出问 → brainstorm 逐问用户 → 答完即时更新 PRD → 循环至轴 A/B 双 ✓。禁写完整 PRD 才审 (本末倒置) | `references/prd-orchestration.md` | `examples/prd.md` |
+| 1 | PRD 编排 — 🔴 **spec 加载门 (planning 必做, 非软约束; 本 skill 独家 owner, flow 不重复加载)**: 先 grep `.trellis/spec/guides/index.md` 按主题找相关 guide, 命中读全文注入 PRD 上下文 (约束/契约/验收基准); 无相关 spec 才跳过。**被动可见**: 本 gate 文本由 trellis 原生每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆)。**诚实边界**: relevant guide 检索归本步主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。再出 deliverable 矩阵 + subtask 概览表 + mermaid 调度图 + 验收 + 范围边界。🔴 **grill 硬门 1 (边问边写, 与 brainstorm 协同)**: PRD 编写过程 MUST 调 `/trellisx-grill` 用轴 A (目标) / B (产出) 当提问引擎 —— grill 出问 → brainstorm 逐问用户 → 答完即时更新 PRD → 循环至轴 A/B 双 ✓。禁写完整 PRD 才审 (本末倒置) | `references/prd-orchestration.md` | `examples/prd.md` |
 | 2 | 为每个 subtask 建独立文件 `.trellis/tasks/<task>/subtask/<id>-<slug>.md` 含完整五要素 + dispatch prompt | `references/subtask-file.md` | `examples/subtask/S2-jwt-utils.md` `examples/subtask/S3-jwt-middleware.md` |
 | 3 | design 编排 — 模块表 + 执行层标注 + 资源边界 + 契约 | `references/design-orchestration.md` | `examples/design.md` |
 | 4 | implement 编排 — 有序 checklist + 验证命令 + review gate + rollback | `references/implement-orchestration.md` | `examples/implement.md` |
@@ -115,5 +115,5 @@ python3 ./.trellis/scripts/task.py start <name>                     # 进 planni
 
 ## 引用
 
-- Trellis workflow 全文: `.trellis/workflow.md` (只读, 不写)
+- 只读 trellis 原生生命周期规则文件
 - 相关 skill: `trellisx-spec` (任务收尾沉淀学习回 spec)

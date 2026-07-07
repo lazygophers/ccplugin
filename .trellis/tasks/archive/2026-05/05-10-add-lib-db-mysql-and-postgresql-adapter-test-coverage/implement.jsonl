@@ -1,4 +1,0 @@
-{"file": ".trellis/tasks/05-10-add-lib-db-mysql-and-postgresql-adapter-test-coverage/prd.md", "reason": "Task requirements + strategy"}
-{"file": ".trellis/tasks/05-10-add-lib-db-mysql-and-postgresql-adapter-test-coverage/research/lib-db-coverage-gap.md", "reason": "Test parity checklist + container fixture sketch + dialect concerns"}
-{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "DB spec (currently placeholder; respect updates from Task 1)"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Test conventions (placeholder; respect updates from Task 1)"}

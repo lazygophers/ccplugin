@@ -13,7 +13,7 @@
 │   ├── testing.md              # 测试硬规 (覆盖率 / 边界 / 主路径)
 │   ├── error-handling.md       # 错误处理 / 失败回退硬规
 │   └── naming-conventions.md   # 命名 / 文件结构硬规
-└── workflows/
+└── processes/
     ├── pre-commit.md           # commit 前必跑
     └── code-review.md          # review checklist
 ```
@@ -44,10 +44,10 @@ mode: init
 - [error-handling](guides/error-handling.md) — 错误处理与回退
 - [naming-conventions](guides/naming-conventions.md) — 命名与文件结构
 
-## workflows (流程硬规)
+## processes (流程硬规)
 
-- [pre-commit](workflows/pre-commit.md) — commit 前必跑
-- [code-review](workflows/code-review.md) — review checklist
+- [pre-commit](processes/pre-commit.md) — commit 前必跑
+- [code-review](processes/code-review.md) — review checklist
 ```
 
 ## guides/core-contracts.md 模板

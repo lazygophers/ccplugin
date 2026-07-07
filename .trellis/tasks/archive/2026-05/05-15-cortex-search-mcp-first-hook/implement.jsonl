@@ -1,8 +1,0 @@
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "hook / SKILL / agent 约定"}
-{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "user_prompt_submit 接口 + JSON 输出格式"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试 + ruff"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "AGENT.md §1+§3 写契约 + P8 评分字段权威"}
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "§1 先搜后问 + §3 vault 写契约权威"}
-{"file": "plugins/tools/cortex/scripts/hooks/user_prompt_submit.sh", "reason": "hook 主体 + 触发词逻辑"}
-{"file": "plugins/tools/cortex/skills/cortex-search/SKILL.md", "reason": "五级回退现有定义"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/extract.md", "reason": "frontmatter schema 加 aliases/keywords 字段"}

@@ -1,5 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "pytest + ruff + 402 → ≥420 基线"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "frontmatter / lint / wrapper 合规"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "Lint 20→21 + P8 节 + 资产同步"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/extract.md", "reason": "§3 schema 4 字段 0-10 浮点验证"}
-{"file": "plugins/tools/cortex/scripts/lint/rules.json", "reason": "rule 21 注册"}

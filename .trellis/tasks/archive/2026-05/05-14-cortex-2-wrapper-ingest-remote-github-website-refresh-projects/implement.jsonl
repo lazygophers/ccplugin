@@ -1,9 +1,0 @@
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "vault truth + 资产计数 22/8/9/18 权威"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "wrapper / CLI / frontmatter schema 约定"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试 + ruff + 质量门"}
-{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "url_security / html_sanitize / masking 三过滤器接口"}
-{"file": "plugins/tools/cortex/scripts/cli/ingest_url.py", "reason": "现有 ingest CLI 风格参考 (URL host 路由 + frontmatter + 三过滤器)"}
-{"file": "plugins/tools/cortex/scripts/cli/ingest_file.py", "reason": "现有 ingest CLI 风格参考 (本地文件 + 4 层目录)"}
-{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "EXPECTED 数组 + emit 函数 + 文档行 22 → 24"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/layout.md", "reason": "4 层目录 + 项目路径 host/org/repo 三段规范"}
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "vault 写契约 L1 MCP + CLI 例外条款"}

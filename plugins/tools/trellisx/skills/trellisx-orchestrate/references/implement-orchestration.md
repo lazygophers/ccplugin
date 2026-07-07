@@ -20,7 +20,7 @@
 - 验证: `<可执行命令>`
 - 资源: <write-files glob / exec-scope / 端口 / 配置>   # subtask 文件 frontmatter 写 write-files + exec-scope, 冲突判定见 scheduling.md
 - 依赖: 无 / S0
-- 执行层: main | sub-agent | agent-team | workflow
+- 执行层: main | sub-agent | agent-team
 - 回滚点: <commit hash 或描述>
 
 ### S2: <...>

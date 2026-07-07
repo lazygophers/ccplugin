@@ -1,7 +1,0 @@
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "save / migration 约定"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试 + ruff"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "P8/P9 上下文 + 资产计数"}
-{"file": "plugins/tools/cortex/scripts/cli/save.py", "reason": "_patch_hot 现有位置 + _patch_hot_project_subpages 加入位置"}
-{"file": "plugins/tools/cortex/scripts/cli/lib/remote.py", "reason": "extract_aliases / extract_keywords 既有 helper (PR3 上批已落)"}
-{"file": "plugins/tools/cortex/scripts/migrate/migrate_scores_to_v2.py", "reason": "v2 migration 风格参考 (backup / scan / report)"}
-{"file": "plugins/tools/cortex/scripts/migrate.sh", "reason": "wrapper 加 --to=v3 分支"}

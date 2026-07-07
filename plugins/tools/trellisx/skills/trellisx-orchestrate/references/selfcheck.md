@@ -22,7 +22,7 @@
 - [ ] 资源覆盖所有写入点
 - [ ] 依赖用 ID 引用, 无模糊词
 - [ ] 若 execution-layer = sub-agent, dispatch prompt 6 字段填全
-- [ ] 写盘 sub-agent / workflow 的 isolation = worktree (仅纯只读可 none)
+- [ ] 写盘 sub-agent / agent-team 的 isolation = worktree (仅纯只读可 none)
 - [ ] 回滚步骤可执行
 
 ## Design

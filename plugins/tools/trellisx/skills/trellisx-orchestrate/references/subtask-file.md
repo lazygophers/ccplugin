@@ -27,7 +27,7 @@ slug: init-skeleton
 deliverable: D1
 parent-task: <task-dir>
 status: ready | blocked | running | done | failed
-execution-layer: main | sub-agent | agent-team | workflow
+execution-layer: main | sub-agent | agent-team
 isolation: task   # 默认共享 task worktree (隔离单位 = task); 多 worktree 属 opt-in
 depends-on: [S0]
 blocks: [S2, S3]
@@ -78,7 +78,7 @@ estimated-tokens: <数字 / 范围>
 
 ### Dispatch Prompt (若派 sub-agent)
 
-> ⛔ 写盘 sub-agent / agent-team / workflow agent 都在**本 task 的 worktree 内**执行 (共享, subtask 与 worktree 无绑定), 禁在主工作区写盘。dispatch prompt **不传** `isolation: worktree` (隔离已由 task.py start 的 after_start hook 完成)。
+> ⛔ 写盘 sub-agent / agent-team 都在**本 task 的 worktree 内**执行 (共享, subtask 与 worktree 无绑定), 禁在主工作区写盘。dispatch prompt **不传** `isolation: worktree` (隔离已由 task.py start 的 after_start hook 完成)。
 
 ```
 Active task: <task path>

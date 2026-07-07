@@ -1,4 +1,0 @@
-{"file": "plugins/tools/cortex/scripts/cli/ingest_url.py", "reason": "验证 website→项目/_site/ 路由 + 不默认 inbox"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/pipeline.md", "reason": "无残留 website→收件箱 引用"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/SKILL.md", "reason": "决策树含 URL→项目/_site/, ≤80 行"}
-{"file": ".trellis/tasks/05-15-cortex-ingest-website-routing-fix/prd.md", "reason": "Acceptance Criteria 全打勾"}

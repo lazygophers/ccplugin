@@ -1,2 +1,0 @@
-{"file": "plugins/tools/cortex/install.sh", "reason": "主修改 — 重构 sync_codex → sync_cli + sync_external_clis + opencode flag"}
-{"file": ".trellis/tasks/05-15-cortex-install-opencode-symlinks/prd.md", "reason": "PRD"}

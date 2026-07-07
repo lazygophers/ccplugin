@@ -1,2 +1,0 @@
-{"file": ".trellis/tasks/05-12-lint/prd.md", "reason": "验收基准 — 8 项 checklist"}
-{"file": "plugins/tools/cortex/lint/run.py", "reason": "新规则 + 单元测试通过"}

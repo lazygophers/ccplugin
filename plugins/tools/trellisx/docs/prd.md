@@ -22,7 +22,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 | # | 目标 | 衡量 |
 | --- | --- | --- |
-| G1 | 五维度规则内化进 `.trellis/` | apply 后 workflow.md / config.yaml / scripts / spec guides / commands 全部落盘且幂等可重跑 |
+| G1 | 规则内化进 `.trellis/` | apply 后 config.yaml / scripts / spec guides / commands 全部落盘且幂等可重跑 |
 | G2 | 不依赖平台 hook 即跨平台生效 | 注入走 trellis 原生生命周期 hook, 非 Claude Code 专属 |
 | G3 | 绝不替换 trellis 原生文本 | 仅末尾追加 (marker 幂等), 原生 no_task/Phase/check/finish/前缀不动 |
 | G4 | 执行载体闭环可强制 | guard hook 在 trellis 项目内 block 未清理 worktree / 游离 worktree (两闸) |
@@ -50,18 +50,17 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 **输入**: 当前 trellis 项目 (cwd 或 git 根含 `.trellis/`)。
 **流程**: 诊断 → 注入 plan → AskUserQuestion 审批 → 写盘 → 验证。幂等可重复跑。
 
-**注入五维度** (纯增量追加, 绝不替换原生):
+**注入 3 技术维度** (spec guide / config.yaml 生命周期 hook + scripts / finish command; 纯增量追加, 绝不替换原生)。下列运行期能力由注入物 + trellis 原生机制承载:
 
-| 维度 | 内容 | 落点 |
+| 能力 | 内容 | 承载 |
 | --- | --- | --- |
-| 强推 task | no_task 块: 除极简外默认建 task; 边界模糊 MUST 问用户 (软约束) | workflow.md `no_task` |
-| subtask 拆分 | 按 trellis 原生 parent/child 语义判定 (多个独立可验收交付才拆, 不看数量) | workflow.md `planning` |
-| worktree 隔离 (task 级) | 默认 1 task 1 worktree, subtask 共享 (无绑定), 多 worktree opt-in | workflow.md `in_progress` + config.yaml hook |
-| 闭环收尾 | plan→exec→check→finish 必走完整, 未 archive 禁 Done (软约束) | workflow.md `in_progress` |
-| task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 细化状态 + worktree | config.yaml hook + workflow marker |
+| 强推 task | 除极简外默认建 task; 边界模糊 MUST 问用户 (软约束) | trellis 原生生命周期 (原生 no_task state 引导建 task; apply 不再增强/注入) |
+| subtask 拆分 | 按 trellis 原生 parent/child 语义判定 (多个独立可验收交付才拆, 不看数量) | trellis 原生 parent/child + orchestrate 编排 |
+| worktree 隔离 (task 级) | 默认 1 task 1 worktree, subtask 共享 (无绑定), 多 worktree opt-in | config.yaml `after_start/archive` hook + trellisx-worktree.py |
+| 闭环收尾 | plan→exec→check→finish 必走完整, 未 archive 禁 Done (软约束) | trellis 原生生命周期 (apply 不再增强/注入) |
+| task.md 看板 | hook 自动维护确定性列 + 7 天清理; AI 细化状态 + worktree | config.yaml hook + trellisx-taskmd.py |
 
 **写盘清单**:
-- `workflow.md`: 5 维度规则 (marker 幂等) + i18n 跟随设备语言 + 清理无效内容
 - `.trellis/spec/guides/trellisx-worktree.md`: worktree 约定 (仅新增)
 - `.trellis/config.yaml`: 生命周期 hooks (after_create/start/archive/finish)
 - `.trellis/scripts/trellisx-*.py`: 从插件 `scripts/` 复制 (不内联抄写)
@@ -76,9 +75,9 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 用户主动调 (`/trellisx-flow <请求>`) **或 model 自动触发** (请求复杂/多步/跨文件), 强制以 task 闭环处理: 委托 `/trellisx-add --continue` 完成 planning → exec→check→finish。**双模触发** (显式 + 自动)。
 
-### 5.2c /trellisx:go (command, 执行 pending)
+### 5.2c /trellisx-go (command, 执行 pending)
 
-批量执行所有 pending planning 态 task (消费 `/trellisx-add` 攒下的产物), 每个走 flow start→exec→check→finish 闭环。task 级 DAG 调度 (write-files/exec-scope 相交串行, 不相交并行, 并发上限 2 滚动)。空态提示"先 /trellisx-add", 不报错。`go` 禁做 planning。命名空间 slash 名 `/trellisx:go`。
+批量执行所有 pending planning 态 task (消费 `/trellisx-add` 攒下的产物), 每个走 flow start→exec→check→finish 闭环。task 级 DAG 调度 (write-files/exec-scope 相交串行, 不相交并行, 并发上限 2 滚动)。空态提示"先 /trellisx-add", 不报错。`go` 禁做 planning。命名空间 slash 名 `/trellisx-go`。
 
 ### 5.3 trellisx-orchestrate (planning 编排)
 
@@ -103,7 +102,7 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 ## 6. 约束
 
 - **跨平台**: 注入走 trellis 原生 hook, 不绑 Claude Code; guard 仅 Claude Code 平台 hook。
-- **幂等**: apply 可重跑, marker 定位追加块; `trellis update` 覆盖 workflow 后重跑恢复。
+- **幂等**: apply 可重跑, marker 定位追加块; `trellis update` 覆盖后重跑恢复。
 - **安全**: cleanup/finish 破坏性操作必走 dry-run + AskUserQuestion; worktree 销毁沿用 `merge-base --is-ancestor` 安全判据, 脏/未合并自动保留。
 - **不丢提交**: finish 走 commit→merge --no-ff (子先主后)→销 worktree→archive; 冲突 abort + 报清单, 不强合。
 
@@ -111,8 +110,8 @@ Trellis 是一套任务编排框架 (task.py / prd / design / implement / check 
 
 | # | 验收 |
 | --- | --- |
-| AC1 | apply 在干净 trellis 项目跑一次, 五维度全部落盘, 重跑零 diff |
-| AC2 | apply 后 workflow.md 原生文本零改动 (git diff 仅追加块) |
+| AC1 | apply 在干净 trellis 项目跑一次, 全部注入物落盘, 重跑零 diff |
+| AC2 | apply 不触碰 trellis 原生生命周期规则文件 (零改动) |
 | AC3 | task.py start 后 worktree 自动建, archive 后自动销, 主工作区零改动 |
 | AC4 | **main 动态 DAG 调度** subtask (并发上限 2, 完成即派下一个), 冲突 (写盘 glob 相交 / 执行作用域相交 / 显式依赖) 自动串行; 并行 trellis-implement 共享 task worktree 改不相交文件集无脏写 |
 | AC5 | finish 走全链 (commit→merge→销→archive), 未 archive 禁 Done |

@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "stdlib/dep policy + iso_now log timestamp 模式"}
-{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "stop hook 异步隔离参考"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "bash 风格 + bash 3.2 兼容"}

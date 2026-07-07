@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "pytest + ruff + 389 → ≥397 基线"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "lint 19→20 / P7 同步"}
-{"file": "plugins/tools/cortex/scripts/lint/rules.json", "reason": "rule 20 注册校验"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/knowledge-graph.md", "reason": ".base 硬契约 + 自检命令"}

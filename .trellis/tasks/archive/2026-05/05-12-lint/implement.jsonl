@@ -1,6 +1,0 @@
-{"file": ".trellis/tasks/05-12-lint/prd.md", "reason": "本任务 PRD — 必读"}
-{"file": "plugins/tools/cortex/lint/run.py", "reason": "lint 主模块 — 加 2 新规则"}
-{"file": "plugins/tools/cortex/lint/schemas.py", "reason": "lint schema 引用"}
-{"file": "plugins/tools/cortex/scripts/cron/lint.sh", "reason": "cron lint wrapper — 加 --sync-templates flag"}
-{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "user-facing wrapper generator — 同步 lint.sh flag"}
-{"file": "plugins/tools/cortex/skills/cortex-install/SKILL.md", "reason": "install 流程 — 写 vault 侧 template-manifest.json"}

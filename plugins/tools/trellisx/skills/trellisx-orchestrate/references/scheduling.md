@@ -205,7 +205,7 @@ all child done → parent 跑跨 child 集成 review
 **task 级冲突判定** (复用 §2 subtask 级算法, 三类边):
 1. **写盘相交**: 两 task 的 write-files glob 相交 (同文件) → 依赖边
 2. **执行作用域相交**: exec-scope 相交 (同包 or 任一 project) → 依赖边 (§2 exec-scope 相交规则同)
-3. **显式依赖**: task 间 depends-on → 依赖边
+3. **显式依赖**: task 间 depends-on → 依赖边。**真值源 = 各 task `task.json` 顶层 `depends_on` 字段** (看板「前置」列即渲染此字段); planning 建 task 时 `task.py create --depends-on "<前置id>,..."` 写入, 事后补用 `task.py set-deps <dir> "a,b"` 或 `trellisx-taskmd.py update <tid> --deps "a,b"` (二者均写回 `depends_on`)。冲突自算边 ∪ 显式 `depends_on` 边 = 最终 task DAG。
 
 无依赖边 = 可并行。task 级与 subtask 级冲突判定的差别: subtask 级并行 subagent **共享 task worktree** (改不相交文件集); task 级并行各 task **各 worktree** (天然隔离, 但 write-files glob 相交仍算依赖边以防逻辑冲突 / exec-scope 相抢进程)。
 

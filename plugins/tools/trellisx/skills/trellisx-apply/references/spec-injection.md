@@ -61,7 +61,7 @@ else:
 
 ## 不动现有 spec
 
-apply 不读、不改、不覆盖任何已有 spec 文件。workflow.md 注入丢失时, 该 worktree spec 仍在 (持久); 但 apply 不会因 workflow 注入而重写 spec。
+apply 不读、不改、不覆盖任何已有 spec 文件。该 worktree spec 一旦写入即持久, 后续重复 apply 亦不重写 (文件已在则跳过)。
 
 ## packages 注册表 ↔ spec scoping (交叉引用)
 

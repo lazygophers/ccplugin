@@ -1,4 +1,0 @@
-{"file": ".trellis/tasks/05-12-cortex-v2-legacy/prd.md", "reason": "本任务 PRD — 必读"}
-{"file": "plugins/tools/cortex/presets/_structure.json", "reason": "删 version 字段 + 改 seed_files src"}
-{"file": "plugins/tools/cortex/lint/schemas.py", "reason": "LYT 删 legacy 8 中文 + 编号目录 + MOC + legacy MOC root_files"}
-{"file": "plugins/tools/cortex/skills/cortex-install/SKILL.md", "reason": "删 v3/兼容/迁移段落"}

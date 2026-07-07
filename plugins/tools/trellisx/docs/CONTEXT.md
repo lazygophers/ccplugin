@@ -28,14 +28,13 @@
 | **subtask 共享 task worktree** | 并行 subtask 在同一 task worktree 改不相交文件集, 不传 isolation:worktree, subtask 与 worktree 无绑定 |
 | **多 worktree (opt-in)** | 用户显式同意才开 (大型并行隔离), 非自动, 非由 subtask 冲突触发 |
 
-## 执行载体 (4 层, 见 [ADR 0003](adr/0003-main-no-source-write-default.md))
+## 执行载体 (3 层, 见 [ADR 0003](adr/0003-main-no-source-write-default.md))
 
 | 层 | 协调者 | 并发上限 | 适用 |
 | --- | --- | --- | --- |
 | main 直做 | — | 1 | ≤3文件/已知 file:line (只读探索 + 例外实施); **写源码默认禁** |
 | sub-agent | main | 16 | 高量输出隔离 / 并行调研 / **实质实施默认走此** |
 | agent-team | leader | 3-5 | 多假设辩论 / 跨层协调 |
-| workflow | 脚本 | 16/1000 | 仓库级审计 / 大规模迁移 (opt-in) |
 
 **fork** = sub-agent 子选项 (继承对话上下文), 非独立层。
 
@@ -44,7 +43,7 @@
 | 术语 | 定义 |
 | --- | --- |
 | **plan→exec→check→finish** | 强制四阶段闭环。未 archive 禁 Done |
-| **finish AI 层** | finish 前 TaskList 查悬挂 Workflow/agent → TaskStop 关 (Claude Code 专有) |
+| **finish AI 层** | finish 前 TaskList 查悬挂后台 agent → TaskStop 关 (Claude Code 专有) |
 | **finish git 层** | trellisx-finish.py: commit → merge --no-ff (子先主后) → 销 worktree → archive |
 | **guard Stop 两闸** | ①已合并未清理 worktree ②游离 worktree (tid=?/None)。原 "活动 task 未完成" 闸已移除 (用户: 不应禁 stop) |
 
@@ -68,5 +67,5 @@
 
 | 术语 | 定义 |
 | --- | --- |
-| **改造工具 (非运行时)** | trellisx-apply 跑一次把 5 维度注入 `.trellis/`, trellis 原生机制接管。插件本身无运行时注入 hook |
+| **改造工具 (非运行时)** | trellisx-apply 跑一次把 3 维度注入物内化进 `.trellis/`, trellis 原生机制接管。插件本身无运行时注入 hook |
 | **guard (Claude Code 专属)** | 平台 hook 额外强制层 (Stop 两闸 + UserPromptSubmit 注入)。不强调跨平台; 核心自动化走 trellis 原生 hook |

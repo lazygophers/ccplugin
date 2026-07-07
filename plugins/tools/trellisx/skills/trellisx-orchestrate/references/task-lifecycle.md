@@ -30,12 +30,12 @@ flowchart TB
 
 ## Worktree 生命周期 (绑定整个 task)
 
-隔离单位 = **task** (默认 1 task 1 worktree, 非 subtask 级): task.py start 自动建本 task 的 worktree, 该 task 全部执行 (main / sub-agent / agent-team / workflow agent) 都在此 worktree 内, subtask **共享**它 (subtask 与 worktree 无绑定, 不传 isolation:worktree)。多 worktree 属 opt-in (非自动, 非由 subtask 触发), finish 合并各分支。
+隔离单位 = **task** (默认 1 task 1 worktree, 非 subtask 级): task.py start 自动建本 task 的 worktree, 该 task 全部执行 (main / sub-agent / agent-team) 都在此 worktree 内, subtask **共享**它 (subtask 与 worktree 无绑定, 不传 isolation:worktree)。多 worktree 属 opt-in (非自动, 非由 subtask 触发), finish 合并各分支。
 
 | 时机 | 动作 |
 | --- | --- |
 | task.py start | after_start hook 自动建本 task worktree (trellis 生命周期 hook 自适应 3 布局: .trellis 同级 git / 微服务子目录 sparse / 多子仓读 task package 定位子仓 git) |
-| execute / check 期间 | 全部读写限于本 task worktree (sub-agent / agent-team / workflow agent 共享, 不开 per-subagent 子 worktree), 主工作区保持干净 |
+| execute / check 期间 | 全部读写限于本 task worktree (sub-agent / agent-team 共享, 不开 per-subagent 子 worktree), 主工作区保持干净 |
 | 多 worktree (opt-in) | 仅当用户显式同意一个 task 多 worktree (如大型并行隔离) 才手动 `git worktree add`; finish 经 task↔worktree 映射先合并各分支再销 |
 | check 通过 + commit 后 | 合并 worktree 改动 → 当前分支 |
 | 合并完成 | `git worktree remove <path>` 移除, 确保环境干净, 无残留工作树 |

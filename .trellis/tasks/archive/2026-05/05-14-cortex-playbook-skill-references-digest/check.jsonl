@@ -1,8 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "质量门 + 测试覆盖检查"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "SKILL.md 拆分后 frontmatter / references/ 路径合规"}
-{"file": "research/playbook-methodology.md", "reason": "对照借鉴决策矩阵, 验证未做 P0-2/P1-3/P2 等 out-of-scope 项"}
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "vault 写契约 L1 MCP — patch SKILL 走 mcp__obsidian__ 验证"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/SKILL.md", "reason": "拆后 SKILL.md ≤ 200 行 + references/ 4 文件存在"}
-{"file": "plugins/tools/cortex/skills/cortex-digest/SKILL.md", "reason": "拆后 ≤ 200 行 + 第 5 类 evolution 抽取节存在 + references/ 3 文件"}
-{"file": "plugins/tools/cortex/scripts/lint/rules.json", "reason": "lint rule 19 skill-references-exists 注册"}
-{"file": "plugins/tools/cortex/tests/python/", "reason": "新测试 3 文件 (test_digest_evolution.py / test_skill_references_lint.py / test_evolution_safety_gate.py) 全绿"}

@@ -1,2 +1,0 @@
-{"file": "plugins/tools/cortex/install.sh", "reason": "外部 CLI 同步段, 需新增 stale stray dirs cleanup"}
-{"file": "plugins/tools/cortex/skills/cortex-lint/SKILL.md", "reason": "确认 <PLUGIN_ROOT> 语义 + run.py 调用路径"}

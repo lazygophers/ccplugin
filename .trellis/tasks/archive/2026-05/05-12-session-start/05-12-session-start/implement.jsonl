@@ -1,6 +1,0 @@
-{"file": ".trellis/tasks/05-12-session-start/prd.md", "reason": "本任务 PRD"}
-{"file": "plugins/tools/cortex/hooks/session_start.sh", "reason": "改 MAX_BYTES + L0 cap + 总 cap"}
-{"file": "plugins/tools/cortex/locales/zh-CN.yml", "reason": "极简 behavior_contract + collab_compact + 单行 triggers"}
-{"file": "plugins/tools/cortex/locales/en.yml", "reason": "同 zh"}
-{"file": "plugins/tools/cortex/locales/ja.yml", "reason": "同 zh"}
-{"file": "plugins/tools/cortex/tests/python/test_session_start_v2.py", "reason": "调整 cap 期望"}

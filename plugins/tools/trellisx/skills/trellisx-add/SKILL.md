@@ -1,6 +1,6 @@
 ---
 name: trellisx-add
-description: '规划级入口 (只规划不执行): 把指定请求纳入 trellis task 的 planning 阶段 —— 判新旧 + task.py create 登记 + 交互式 planning (brainstorm 主导 + grill 硬门1 边问边写), 产出 prd/design/implement 后停在 task.py start 之前, task 留 planning 态, 禁 exec/check/finish。用户想"先看规划再决定执行 / 添加分析规划任务 / 只规划不动手"时用。仅显式调用 (/trellisx-add), 禁 model 自动触发。与 trellisx-flow 边界: flow=强制全闭环 (plan→exec→check→finish), add=只到 planning 停; 执行 pending 规划态 task 走 /go'
+description: '➕ 规划级入口 (只规划不执行): 把指定请求纳入 trellis task 的 planning 阶段 —— 判新旧 + task.py create 登记 + 交互式 planning (brainstorm 主导 + grill 硬门1 边问边写), 产出 prd/design/implement 后停在 task.py start 之前, task 留 planning 态, 禁 exec/check/finish。用户想"先看规划再决定执行 / 添加分析规划任务 / 只规划不动手"时用。仅显式调用 (/trellisx-add), 禁 model 自动触发。与 trellisx-flow 边界: flow=强制全闭环 (plan→exec→check→finish), add=只到 planning 停; 执行 pending 规划态 task 走 /go'
 when_to_use: '用户显式 /trellisx-add, 或明确表达"只规划不执行 / 先看规划再说 / 先分析设计好, 执行等我确认 / 添加一个分析规划任务"。仅显式触发 (禁自动)。planning 逻辑单一真值源: flow 与 go 均运行时委托本 skill 或复用其产物, 不复制正文'
 argument-hint: "[--continue|--exec] <任务描述>"
 arguments: [入口选项 (可选), 任务描述]
@@ -45,7 +45,7 @@ arguments: [入口选项 (可选), 任务描述]
 
 先 `python3 ./.trellis/scripts/task.py current --source` 看有无 active task, **并读 `.trellis/task.md` 看板**对照现有任务全貌 (id/名称/描述/状态), 辅助判断本请求是全新还是匹配某现有任务, 再决定:
 
-- **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。
+- **全新任务** (与 active task 无关, 或无 active task) → `task.py create "<title>" --slug <name>` 新建。多个独立可验收交付 → parent + child (`--parent`); 单一交付 → 单 task。若本 task **依赖其他 pending/现有 task 先完成** (task 级 DAG, 非并行), 建时带 `--depends-on "<前置id>,..."` 写入 task.json `depends_on` (看板「前置」列自动渲染, flow/go 调度据此排序; 无依赖不填)。事后补依赖用 `task.py set-deps <dir> "a,b"` 或 `trellisx-taskmd.py update <tid> --deps "a,b"`。
 - **现有 task 的补充 / 延续** (扩展、修订、补做某 planning 态 task 的一部分) → **不新建顶层 task**: 回到 planning 修订该 task 的 `prd.md` / `implement.md` 并重新规划; 若是可独立验收的子交付, 用 `task.py create --parent <现有 task>` 挂为 child。
 - 🔴 **判不准 → 🛑 STOP**: MUST 用 `AskUserQuestion` 问"这是新任务, 还是对 `<现有 task>` 的补充?", **禁自行替用户决定**, 禁纯文本提问代替工具 (用户交互决策点, main 亲做)。
 
@@ -68,7 +68,7 @@ planning 产物齐 (`prd.md` [+ `design.md`] + `implement.md`) → **到此停**
 ## 硬规 (正向必做)
 
 - 🗂️ **task.py 脚本 main 同步跑** —— `task.py create` 是任务记录管理, main 直接同步执行 (不派 agent、不算实质工作)。add **不跑 `task.py start`** (那是激活/执行, 归 flow/go)。
-- 💬 **planning 全程 main 同步前台** —— brainstorm 需逐问用户 (交互式), 不派 subagent、不进 workflow。
+- 💬 **planning 全程 main 同步前台** —— brainstorm 需逐问用户 (交互式), 不派 subagent、不执行。
 - 🔒 **task.md 禁直接 Edit/Write/MultiEdit** —— `.trellis/task.md` 看板**必经 `trellisx-taskmd.py` 脚本操作** (settings.json `permissions.deny` + `guard-taskmd.sh` PreToolUse hook 双保险硬阻)。
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) 必用工具, 禁纯文本代替。
 - ✅ **及时维护 task.md 看板** —— 每个节点 (create/阶段推进) 后用 `trellisx-workspace` 更新, 看板滞后视为流程缺陷。

@@ -1,2 +1,0 @@
-{"file": "plugins/tools/cortex/scripts/hooks/user_prompt_submit.sh", "reason": "每轮硬契约注入文本, 需补 L3 强制示例"}
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "协作约定 §1 + L3 文本"}

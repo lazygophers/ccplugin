@@ -8,7 +8,6 @@ coordinator (main / agent-team leader) 必须实时回传用户 subtask 进度, 
 | --- | --- |
 | sub-agent 完成 / 阻塞 | main 立即输出 `进度: <subtask-id> <状态> <≤30 字摘要>` 回传用户 |
 | teammate 完成 / 阻塞 | SendMessage → leader; leader 综合后向用户输出 `团队进度: <subtask> <成员> <摘要>` |
-| workflow 阶段完成 | main 读 `/workflows` 进度视图, 输出 `阶段 <N>/<M> <摘要>` |
 | coordinator 收到失败 | 立即决策 (重试 / 换执行者 / 重规划) + 向用户说明决策理由 |
 | ≥ 30 分钟无产出 | coordinator 主动 ping 执行者; 无响应按 `failure-recovery.md` 失败回退 |
 | 用户审批等待中 | 允许执行无人工依赖的 subtask, 但禁同时跑 ≥ 2 个会触发审批的 |
@@ -42,22 +41,6 @@ leader 决策: 唤醒下游 / 重派 / 上报阻塞
 - leader 必须维持团队状态视图; 收到 SendMessage 立即综合, 不延迟
 - TeammateIdle hook 可用于阻止空闲并发反馈 (按需)
 
-### workflow 模式
-
-```
-workflow 脚本 → 各 agent 完成 → 脚本变量收集
-            ↓
-main 监听 /workflows 视图变化
-            ↓
-每阶段完成 main 输出 "阶段 N/M <摘要>"
-            ↓
-全部完成 main 综合输出最终结果
-```
-
-- workflow 之间无 SendMessage; 各 agent 独立完成
-- 阶段失败 → workflow 脚本 try/catch 转 null, 下游 `.filter(Boolean)` 跳过
-- 主会话不直接干预正在跑的 workflow agent; 中途停止用 `/workflows` 选中按 `x`
-
 ## 摘要格式 (≤ 30 字)
 
 | 字段 | 示例 |
@@ -74,14 +57,13 @@ main 监听 /workflows 视图变化
 
 ## 异步等待清单格式
 
-main 派出异步任务后**结束本回合前** (workflow 异步跑等 notification / 后台 sub-agent 在跑 / 用户审批等待), MUST 输出当前任务全景表格, 让用户在异步间隙保持中途干预视角。同步前台阻塞等待 (main 自己在等, 无独立清单) / 无在跑任务 → 不触发。
+main 派出异步任务后**结束本回合前** (后台 sub-agent 在跑等 notification / 用户审批等待), MUST 输出当前任务全景表格, 让用户在异步间隙保持中途干预视角。同步前台阻塞等待 (main 自己在等, 无独立清单) / 无在跑任务 → 不触发。
 
 ### 触发场景 (任一即触发)
 
 | 场景 | 说明 |
 | --- | --- |
-| workflow 异步跑 | `run_in_background` workflow 派出, main 结束回合等 notification |
-| 后台 sub-agent | 派出 background sub-agent, main 等返回 |
+| 后台 sub-agent | `run_in_background` 派出 background sub-agent, main 结束回合等 notification |
 | 用户审批等待 | 有在跑的无人工依赖 subtask, 同时等用户审批 |
 
 ### 表格模板
@@ -100,7 +82,7 @@ main 派出异步任务后**结束本回合前** (workflow 异步跑等 notifica
   - 含义: 进行中 (在跑) / 等待中 (待派, 含等上游依赖) / 阻塞
 - `摘要` ≤ 30 字, 含交付物路径或关键产出; 阻塞信息合并进此列 (不单列)
 - `进度%` = 完成子任务 ratio (如 `60%`), 无数据填 `-`
-- 内容复用 main 已维护的 DAG 调度态 (见 `scheduling.md`) + workflow `/workflows` 视图, 不新算
+- 内容复用 main 已维护的 DAG 调度态 (见 `scheduling.md`), 不新算
 
 ### 范例
 
@@ -163,7 +145,6 @@ main 派出异步任务后**结束本回合前** (workflow 异步跑等 notifica
 | **agent-team 成员** | ✅ 可 SendMessage(成员名) | 改文档 → SendMessage 成员 → 成员就地纠偏 |
 | **background sub-agent** | ✅ 可 SendMessage(agent id/name) | 同上; 用启动时的 agent 标识寻址 |
 | **前台 sub-agent (阻塞等待)** | ⚠️ 返回前不可达 | 等本次返回 → 用修正后的 PRD 重派 / 在 check 阶段纠正 |
-| **workflow agent** | ❌ 不可中途注入 (见本文 workflow 模式) | 停掉相关 agent (`/workflows` 选中按 `x`) → 按新 PRD 重跑该阶段 |
 | **inline 单交付 (main 自己在 worktree 改)** | — (无 running agent) | main 改 PRD → 自己就地调整执行, 无需 SendMessage |
 
 ### 兜底
@@ -171,7 +152,6 @@ main 派出异步任务后**结束本回合前** (workflow 异步跑等 notifica
 | 触发 | 一线修复 | 仍失败兜底 |
 | --- | --- | --- |
 | 目标 agent 已完成 / 已退出 | 不能 SendMessage → 在其产出上按新 PRD 做 check 阶段修正 | 修正量大 → 用更新后的 subtask 文件重派一个修正 agent |
-| workflow 模式无法中途干预 | 停掉相关 stage agent, 按新 PRD 重跑该 stage | 影响面跨多 stage → 停整条 workflow, 重 plan 后重启 |
 | 改了文档但忘了通知 → agent 按旧 PRD 跑完 | check 阶段对照新 PRD 抓偏差并修 | 偏差过大 → 该 subtask 作废重派 |
 
 ## 异步并行调度 (提效)

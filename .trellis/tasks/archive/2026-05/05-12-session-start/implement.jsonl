@@ -1,8 +1,0 @@
-{"file": ".trellis/tasks/05-12-session-start/prd.md", "reason": "本任务 PRD — 必读"}
-{"file": "plugins/tools/cortex/hooks/session_start.sh", "reason": "改造目标 — 加 L0/stats/triggers/behavior_contract 注入"}
-{"file": "plugins/tools/cortex/hooks/_lib/cortex_locale.py", "reason": "locale loader, 新增 keys 引用"}
-{"file": "plugins/tools/cortex/locales/zh-CN.yml", "reason": "中文 locale — 加 behavior_contract 等新 keys"}
-{"file": "plugins/tools/cortex/locales/en.yml", "reason": "英文 locale"}
-{"file": "plugins/tools/cortex/locales/ja.yml", "reason": "日文 locale"}
-{"file": "plugins/tools/cortex/skills/cortex-install/SKILL.md", "reason": "install 流程 — 加复制 _meta/triggers.yaml"}
-{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "SessionStart hook 规约"}

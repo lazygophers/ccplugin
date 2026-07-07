@@ -1,4 +1,0 @@
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "pytest + ruff + 524 → ≥540 基线"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "P10 节同步"}
-{"file": "plugins/tools/cortex/scripts/cli/save.py", "reason": "_patch_hot_project_subpages 校验"}
-{"file": "plugins/tools/cortex/scripts/migrate.sh", "reason": "--to=v3 分支校验"}

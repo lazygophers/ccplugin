@@ -1,3 +1,0 @@
-{"file": ".trellis/spec/backend/mcp-server-contract.md", "reason": "MCP tool inputSchema + path traversal + lock pattern 校验"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "stdlib only + 测试覆盖 + 安全审查"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "ruff + pytest 验收"}

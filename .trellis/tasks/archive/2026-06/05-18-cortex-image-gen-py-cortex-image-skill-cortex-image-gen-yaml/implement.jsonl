@@ -1,4 +1,0 @@
-{"file": "plugins/tools/cortex/skills/cortex-install/references/install-flow.md", "reason": ".cortex/config 骨架真相源 — 需新增 image-gen.yaml"}
-{"file": "plugins/tools/cortex/skills/cortex-config/references/schema.md", "reason": "config schema, 需扩 image-gen.yaml 字段"}
-{"file": "plugins/tools/cortex/skills/cortex-config/scripts/validate_config.py", "reason": "validator 需校验 image-gen.yaml"}
-{"file": "plugins/tools/cortex/.claude-plugin/plugin.json", "reason": "skills 数组需追加 cortex-image"}

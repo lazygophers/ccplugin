@@ -20,7 +20,7 @@
 - **调用**: `config.yaml` after_finish hook + 手动 CLI (`trellisx-finish.py --task <tid>`)。
 - **全链**: commit → merge --no-ff (子先主后) → 销 worktree → archive。逐个提交, 幂等可重入。
 - **冲突**: abort + 报清单, 不强合。
-- **边界 (重要)**: `finish.py` 只销 worktree (git), **不关 Workflow/Task**。关悬挂 Workflow/后台 agent 是 **AI 层**职责 (finish 前 TaskList 查 → TaskStop 关)。
+- **边界 (重要)**: `finish.py` 只销 worktree (git), **不关后台 Task/agent**。关悬挂后台 agent 是 **AI 层**职责 (finish 前 TaskList 查 → TaskStop 关)。
 
 ## trellisx-taskmd.py
 

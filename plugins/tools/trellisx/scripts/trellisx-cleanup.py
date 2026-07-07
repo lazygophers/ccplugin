@@ -243,7 +243,7 @@ def main():
         sys.exit(1)
     print(f"\ntrellisx-cleanup: ✓ 批量收尾完成 — {len(completed)} task 归档, "
           f"{len(merged_orphans)} 孤儿 worktree 销毁, 看板已清理")
-    print("trellisx-cleanup: reminder: 本脚本只做 git/看板 (确定性); 关闭悬挂 Workflow/后台 Task "
+    print("trellisx-cleanup: reminder: 本脚本只做 git/看板 (确定性); 关闭悬挂后台 Task "
           "是 AI 层 (TaskList 查 → TaskStop 关), 脚本做不到 —— AI 须自查。")
 
 

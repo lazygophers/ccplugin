@@ -1,1 +1,0 @@
-{"file": "plugins/tools/cortex/scripts/cli/search.py", "reason": "校验各层独立 + 失败降级 + 拆词回退"}

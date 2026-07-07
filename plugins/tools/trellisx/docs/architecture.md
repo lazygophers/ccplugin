@@ -16,16 +16,12 @@ trellisx 插件**本身无运行时注入 hook**。两套 hook 分工:
 
 关键: 自动化**不依赖 Claude Code 平台 hook**, 所以跨 Codex / Cursor / OpenCode 等 runtime 生效 (走 trellis 原生 hook)。guard 是 Claude Code 专属的额外强制层。
 
-## 2. apply 注入模型 (5 维度, 纯增量)
+## 2. apply 注入模型 (3 维度, 纯增量)
 
-apply 跑一次, 把 5 维度规则**追加**进项目 `.trellis/`。绝不替换原生文本。
+apply 跑一次, 把 3 维度注入物 (spec guide / config.yaml 生命周期 hook + scripts / finish command) **追加**进项目 `.trellis/`。绝不替换原生文本, 不触碰 trellis 原生生命周期规则文件。运行期 worktree 隔离 / 看板由这些注入物 (config.yaml hook + scripts) 承载; 强推 task / 闭环回归 trellis 原生生命周期 (apply 不再增强/注入)。
 
 ```
 trellisx-apply
-  ├─ workflow.md          ← 5 维度规则 (marker 幂等追加, i18n, 清理无效内容)
-  │    ├─ [no_task]       ← +强推 task
-  │    ├─ [planning]      ← +subtask 拆分判定
-  │    └─ [in_progress]   ← +worktree 隔离 / 闭环收尾 / 看板 marker
   ├─ .trellis/spec/guides/trellisx-worktree.md  ← worktree 约定 (仅新增)
   ├─ .trellis/config.yaml ← after_create/start/archive/finish hook
   ├─ .trellis/scripts/trellisx-*.py  ← 从插件 scripts/ 复制
@@ -33,7 +29,7 @@ trellisx-apply
   └─ <git根>/.gitignore   ← 排除 .worktrees/
 ```
 
-**幂等保证**: 每个追加块用 marker 定位, 重跑检测到 marker 则跳过/更新而非重复追加。`trellis update` 覆盖 workflow 后重跑 apply 即恢复。
+**幂等保证**: 每个追加块用 marker 定位, 重跑检测到 marker 则跳过/更新而非重复追加。`trellis update` 覆盖后重跑 apply 即恢复。
 
 **不替换原生**: no_task 原生分类+征同意 / Phase 流程 / check / finish / 前缀 —— 仅末尾追加 trellisx 内容。
 
@@ -43,10 +39,10 @@ trellisx-apply
 
 ```
 用户: /trellisx-apply
-  → 诊断 (.trellis/ 存在? workflow 现状? packages?)
-  → 注入 plan (5 维度 + scripts 复制清单)
+  → 诊断 (.trellis/ 存在? 注入现状? packages?)
+  → 注入 plan (3 维度 + scripts 复制清单)
   → AskUserQuestion 审批
-  → 写盘 (workflow.md / config.yaml / scripts / spec / commands / gitignore)
+  → 写盘 (config.yaml / scripts / spec / commands / gitignore)
   → 验证 (hook 注册? scripts 可执行? marker 就位?)
 ```
 
@@ -64,7 +60,7 @@ trellisx-apply
   → check (trellis-check)
   → finish
        → 📄 spec 自动 sediment 判定: 有增量 (非平凡契约/踩坑) 则走 trellisx-spec sediment, 无则跳过 (软约束)
-       → AI 层: TaskList 查悬挂 Workflow/agent → TaskStop 关
+       → AI 层: TaskList 查悬挂后台 agent → TaskStop 关
        → git 层: after_finish hook → trellisx-finish.py
             (commit→merge --no-ff 子先主后→销 worktree→archive)
        → task.md sync (archive, 7 天清理)
@@ -123,4 +119,4 @@ apply 把脚本从插件 `scripts/` **复制**到用户 `.trellis/scripts/`, 不
 
 ## 7. 跨平台策略
 
-注入的 hook 写在 `.trellis/config.yaml` (trellis 原生契约), 非 Claude Code settings —— 所以 Codex / Cursor / OpenCode / Gemini CLI 等任何兼容 trellis 的 runtime 都生效。guard 是 Claude Code 专属的额外强制层 (其他 runtime 无 guard, 但 trellis 原生 hook + workflow.md 软约束仍生效)。
+注入的 hook 写在 `.trellis/config.yaml` (trellis 原生契约), 非 Claude Code settings —— 所以 Codex / Cursor / OpenCode / Gemini CLI 等任何兼容 trellis 的 runtime 都生效。guard 是 Claude Code 专属的额外强制层 (其他 runtime 无 guard, 但 trellis 原生 hook + 生命周期规则软约束仍生效)。

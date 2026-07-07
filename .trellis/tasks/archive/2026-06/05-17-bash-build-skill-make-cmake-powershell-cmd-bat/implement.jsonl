@@ -1,4 +1,0 @@
-{"file": "plugins/languages/bash/skills/core/SKILL.md", "reason": "bash skill 命名/frontmatter 样板"}
-{"file": "plugins/languages/bash/.claude-plugin/plugin.json", "reason": "bash plugin.json 结构样板"}
-{"file": "plugins/languages/c/.claude-plugin/plugin.json", "reason": "新 powershell plugin.json 字段对齐样板"}
-{"file": ".claude-plugin/marketplace.json", "reason": "需追加 powershell 条目"}

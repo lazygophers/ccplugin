@@ -1,6 +1,0 @@
-{"file": ".trellis/tasks/05-12-cortex-seed-html-ai/prd.md", "reason": "本任务 PRD — 必读, 含设计原则 + 文件结构 + 占位符约定"}
-{"file": "plugins/tools/cortex/templates/html/badge.html", "reason": "HTML 片段库 badge — 仪表盘 KPI / 记忆 level 徽章引用"}
-{"file": "plugins/tools/cortex/templates/html/card.html", "reason": "HTML 片段库 card — grid 二维布局基础"}
-{"file": "plugins/tools/cortex/templates/html/canvas-heatmap.html", "reason": "HTML 片段库 heatmap — 仪表盘活跃度图引用"}
-{"file": "plugins/tools/cortex/templates/html/progressive-disclosure.html", "reason": "HTML 片段库 details/summary — <details> 折叠示例"}
-{"file": "plugins/tools/cortex/presets/seed/_meta/memory-policy.yaml", "reason": "记忆 policy schema — L0-L4 颜色/规则参考"}

@@ -1,5 +1,0 @@
-{"_example": "Fill with {\"file\": \"<path>\", \"reason\": \"<why>\"}. Put spec/research files only — no code paths. Run `python3 .trellis/scripts/get_context.py --mode packages` to list available specs. Delete this line once real entries are added."}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "插件目录与 frontmatter 规范，agent/skill 文件结构基准"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "代码质量约束，避免过抽象/防御"}
-{"file": ".trellis/tasks/05-11-cortex-obsidian-cli-priority/research/yakitrak-cli-surface.md", "reason": "notesmd-cli 命令面 / 安装 / 限制——所有 CLI 命令示例来源"}
-{"file": ".trellis/tasks/05-11-cortex-obsidian-cli-priority/research/mcp-cli-mapping.md", "reason": "现有 mcp__obsidian__* 用法盘点与 CLI 映射表——告诉 implement 改哪些文件、改成什么"}

@@ -1,2 +1,0 @@
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "stdlib + iso_now + 跨平台 timeout fallback 风格对齐"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "bash 3.2 + 测试覆盖标准"}

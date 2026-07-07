@@ -1,5 +1,0 @@
-{"file": ".trellis/tasks/05-10-add-desktop-package-versions-to-update-version-sync-chain/prd.md", "reason": "Task requirements + scope"}
-{"file": ".trellis/tasks/05-10-add-desktop-package-versions-to-update-version-sync-chain/research/version-sync-audit.md", "reason": "Sync chain map + insertion point + file format specifics"}
-{"file": ".trellis/spec/backend/index.md", "reason": "Backend spec for code conventions"}
-{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "Reuse existing _update_single_pyproject pattern not duplicate"}
-{"file": ".version", "reason": "Golden source format reference"}

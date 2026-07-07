@@ -1,3 +1,0 @@
-{"file": ".trellis/tasks/05-10-convert-update-marketplace-command-to-event-driven-non-blocking/prd.md", "reason": "Acceptance criteria"}
-{"file": ".trellis/tasks/05-10-convert-update-marketplace-command-to-event-driven-non-blocking/research/event-driven-violations.md", "reason": "Verify all 3 violation sites resolved"}
-{"file": ".claude/memory/desktop-event-driven-architecture.md", "reason": "Spec compliance gate"}

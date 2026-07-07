@@ -1,4 +1,0 @@
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "vault truth 权威 — 知识库 4 子目录定义"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "插件 SKILL.md / agent .md 触发短语约定"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试 + ruff 质量门"}
-{"file": "plugins/tools/cortex/scripts/cli/lib/cortex_common.py", "reason": "SCOPE_GLOB 字典权威 (知识库/项目/领域/日记 路径)"}

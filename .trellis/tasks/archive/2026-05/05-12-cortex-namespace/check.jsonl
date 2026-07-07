@@ -1,6 +1,0 @@
-{"file": ".trellis/tasks/05-12-cortex-namespace/prd.md", "reason": "验收基准 — §8 验收标准 12 项必逐条核对"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "SKILL 优化后跑 claude --settings glm-4.7-flash.json -p 验证 AI 理解, 强制规约"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "9 新 SKILL.md frontmatter 校验 (name/description/allowed-tools/disable-model-invocation)"}
-{"file": ".trellis/spec/backend/mcp-server-contract.md", "reason": "MCP 10 新工具签名/错误码合规"}
-{"file": "plugins/tools/cortex/lint/schemas.py", "reason": "lint 跑 217 现有测试无回归"}
-{"file": "plugins/tools/cortex/presets/_structure.json", "reason": "install.sh --dry-run 生成完整结构验证"}

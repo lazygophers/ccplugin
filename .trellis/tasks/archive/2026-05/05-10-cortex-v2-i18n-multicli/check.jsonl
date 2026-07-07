@@ -1,8 +1,0 @@
-{"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/prd.md", "reason": "对照设计稿验收 §12"}
-{"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/research/01-claude-code-programmatic.md", "reason": "校验 cron 脚本 flag 用法 (--bare/--strict-mcp-config)"}
-{"file": ".trellis/tasks/05-10-cortex-v2-i18n-multicli/research/02-vault-i18n-naming.md", "reason": "校验 NFC / 禁用字符 / 不翻译白名单"}
-{"file": ".trellis/spec/backend/plugin-conventions.md", "reason": "命名/版本/目录合规检查"}
-{"file": ".trellis/spec/backend/hooks-contract.md", "reason": "hook 退出码 / 不阻断"}
-{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "质量基线"}
-{"file": ".trellis/spec/backend/marketplace.md", "reason": "marketplace.json 上架前校验"}
-{"file": "CLAUDE.md", "reason": "GLM-4.5-flash AI 识别验证规范"}

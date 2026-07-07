@@ -67,7 +67,6 @@ chmod +x .trellis/scripts/trellisx-worktree.py .trellis/scripts/trellisx-taskmd.
 - 序列: ① worktree 内 `git add -A` + commit → ② `git merge --no-ff trellisx-<name>` 合并回主分支 → ③ `task.py archive` (触发 after_archive → worktree 销毁)
 - 合并冲突 → 自动 `merge --abort` + 报冲突文件 + 非 0 退出 (hook 模式下表现为 `task.py finish` 打 WARN); 幂等可重入 (已提交/已合并的步骤自动跳过)
 - 用 `git rev-parse --git-common-dir` 定位**主 worktree** 根 (从 worktree 内误跑也能正确解析合并目标)
-- workflow.md finish 段被注入为「跑 `task.py finish` → hook 自动收尾」(见 `workflow-injection.md` 注入点 4)
 
 **④ `trellisx-cleanup.py`** (批量收尾, **非 hook** CLI; 见 trellisx-cleanup skill):
 - 用途: 一次清理/归档/收尾**全部**已完成 task (completed ∪ merged), 当前 active task 永不纳入。

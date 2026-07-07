@@ -1,3 +1,0 @@
-{"file": ".trellis/tasks/05-12-lint-dead-wikilink-duplicate-alias-autofix/prd.md", "reason": "本任务 PRD"}
-{"file": "plugins/tools/cortex/lint/run.py", "reason": "改造目标 — dead-wikilink + duplicate-alias fixable + autofix 实现"}
-{"file": "plugins/tools/cortex/lint/rules.json", "reason": "规则元数据 (如有 fixable 字段)"}

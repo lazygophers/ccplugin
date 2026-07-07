@@ -1,2 +1,0 @@
-{"file": "plugins/tools/cortex/install.sh", "reason": "验证: sync_cli_symlinks 通用 + 3 flag + opencode/codex 双跑 + bash -n"}
-{"file": ".trellis/tasks/05-15-cortex-install-opencode-symlinks/prd.md", "reason": "Acceptance Criteria 全打勾"}

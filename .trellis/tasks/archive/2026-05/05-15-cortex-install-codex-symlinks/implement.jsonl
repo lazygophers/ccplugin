@@ -1,4 +1,0 @@
-{"file": "plugins/tools/cortex/install.sh", "reason": "主修改目标 — 加 sync_codex_symlinks 函数 + flag --no-codex-sync + 主流程调用"}
-{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "参考 — 现有 bash 3.2 兼容 case-based whitelist 手法 (KEEP_LIST 同思路)"}
-{"file": "plugins/tools/cortex/README.md", "reason": "安装段 + codex 同步说明 (可选, 可在 PR 后续 cleanup)"}
-{"file": ".trellis/tasks/05-15-cortex-install-codex-symlinks/prd.md", "reason": "本 PRD"}

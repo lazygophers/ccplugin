@@ -1,2 +1,0 @@
-{"file": ".trellis/tasks/05-12-lint-wrapper-python-llm/prd.md", "reason": "本任务 PRD"}
-{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "改造目标 — lint 默认直调 python + 11 wrapper allowed-tools 禁 AskUserQuestion"}

@@ -59,7 +59,7 @@ for each pair (Si, Sj) where i < j:
 | --- | --- |
 | 两 subtask 改同文件不同区段 | 仍串行 (合并冲突难自动) |
 | 两 subtask 改不同文件但共享配置 | 串行或拆配置 |
-| 全局 token 预算 | workflow 内显式 `budget.spent()` 控 |
+| 全局 token 预算 | coordinator 追踪各 subtask 累计消耗, 超预算收窄并行 |
 | 用户审批槽位 | 等待用户期间允许执行无人工依赖 subtask |
 | 同一 task 目录写入 | 串行或并行 worktree |
 

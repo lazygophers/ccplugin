@@ -1,8 +1,0 @@
-{"file": "plugins/tools/cortex/scripts/cli/ingest_url.py", "reason": "主修复 — 改 website 路由 从 收件箱 到 项目/<host>/_site/<slug>/"}
-{"file": "plugins/tools/cortex/scripts/cli/ingest_remote.py", "reason": "标杆 — website 已正确, 复用 path 生成器"}
-{"file": "plugins/tools/cortex/scripts/cli/lib/remote.py", "reason": "检查共享 path 生成 + 提取 derive_website_path 候选"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/pipeline.md", "reason": "文档同步 — 全部 website→收件箱 → website→项目/_site/"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/SKILL.md", "reason": "决策树补 URL→项目/_site (≤80)"}
-{"file": "plugins/tools/cortex/skills/cortex-ingest/references/extract.md", "reason": "frontmatter 字段一致性校验"}
-{"file": ".claude/memory/cortex-plugin-2026-05-13.md", "reason": "单源真相 — website 无 author 补 _site"}
-{"file": ".trellis/tasks/05-15-cortex-ingest-website-routing-fix/prd.md", "reason": "本 PRD"}

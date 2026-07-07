@@ -1,3 +1,0 @@
-{"file": ".trellis/tasks/05-10-unify-office-plugin-naming-across-dirs-and-manifests/prd.md", "reason": "Acceptance criteria"}
-{"file": ".trellis/tasks/05-10-unify-office-plugin-naming-across-dirs-and-manifests/research/marketplace-naming-audit.md", "reason": "Invariant to verify (dir==manifest==entry)"}
-{"file": ".claude-plugin/marketplace.json", "reason": "Verify all entries aligned"}

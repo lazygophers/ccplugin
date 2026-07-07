@@ -1,6 +1,6 @@
 {
   "name": "trellisx",
-  "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 五维度注入 .trellis 自身 (workflow.md + config.yaml 生命周期 hook + scripts); 含 trellisx-flow 强制task闭环 / orchestrate 编排 / workspace 看板 / spec 破坏式重构 / grill 对抗式工件审查; apply 注入内化于 .trellis 不靠平台 hook, 另装 trellisx-guard 平台 hook 在 trellis 项目强制 agent/subagent/worktree 执行载体闭环 + 完成清理",
+  "description": "Trellisx — Trellis 增强改造工具: 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / task.md看板 规则内化进 .trellis 自身 (config.yaml 生命周期 hook + scripts + spec guide); 含 trellisx-flow 强制task闭环 / orchestrate 编排 / workspace 看板 / spec 破坏式重构 / grill 对抗式工件审查; apply 注入内化于 .trellis 不靠平台 hook, 另装 trellisx-guard 平台 hook 在 trellis 项目强制 agent/subagent/worktree 执行载体闭环 + 完成清理",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -20,7 +20,7 @@
     "./skills/trellisx-grill"
   ],
   "commands": [
-    "./commands/trellisx/go.md"
+    "./commands/trellisx-go.md"
   ],
   "keywords": [
     "trellis",
@@ -30,7 +30,6 @@
     "worktree",
     "sub-agent",
     "spec",
-    "workflow",
     "prompt-injection"
   ],
   "hooks": {

@@ -1,2 +1,0 @@
-{"file": "plugins/tools/cortex/AGENT.md", "reason": "协作约定 §1 先搜后问 措辞需强化"}
-{"file": "plugins/tools/cortex/scripts/hooks/user_prompt_submit.sh", "reason": "每轮注入硬契约文本需强化"}

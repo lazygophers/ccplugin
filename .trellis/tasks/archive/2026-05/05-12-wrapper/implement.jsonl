@@ -1,4 +1,0 @@
-{"file": ".trellis/tasks/05-12-wrapper/prd.md", "reason": "本任务 PRD"}
-{"file": "plugins/tools/cortex/scripts/install_wrappers.sh", "reason": "改造 5 新 wrapper 走 cortex_stream_runner + colorized helper"}
-{"file": "plugins/tools/cortex/scripts/lib/stream_progress.sh", "reason": "cortex_stream_runner 基座, 仅 source 不改"}
-{"file": "plugins/tools/cortex/install.sh", "reason": "输出 colorized"}

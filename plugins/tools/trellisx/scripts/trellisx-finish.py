@@ -5,18 +5,18 @@
 #      自动收尾, 不靠 AI 记得跑。此时 finish 已清 active 指针, 用 $TASK_JSON_PATH 取 tid。
 #   ② AI/人手动调用 (CLI, --task / 取 task.py current): 兜底, 幂等可重入。
 # finish 与 worktree 删除为必须。
-# 一对多: 1 task : 1 workflow : N worktree —— 一个 task exec 编排成 1 个 Claude Code Workflow,
-# workflow 内 agent 各 worktree 隔离 (默认 1; 少数冲突型并行 subtask 各开子 worktree → N)。
+# 一对多: 1 task : N worktree —— 一个 task exec 编排的 agent 各 worktree 隔离
+# (默认 1; 少数冲突型并行 subtask 各开子 worktree → N)。
 # 收尾时经 task↔worktree 映射 (trellisx-taskmd.py map-list) 查出该 task 名下**全部**
 # worktree, 子 subtask 分支先合、task 主分支后合, 再走 archive, 杜绝漏合丢提交。
 # 单 worktree (绝大多数) 行为完全不变。
 #
 # 边界 (关键, 对齐 design C4 "收尾两层"): 收尾分两层, 责任不同。
 #   ① git 层 (本脚本, 确定性): commit → merge --no-ff → 销 worktree → archive, 都是 git 操作。
-#   ⓪ AI 层 (脚本做不到, 必须 AI 主动): 关闭本 task 名下悬挂的 Claude Code Workflow / 后台 Task
+#   ⓪ AI 层 (脚本做不到, 必须 AI 主动): 关闭本 task 名下悬挂的后台 Task
 #      是 AI 行为 (TaskStop), 脚本做不到、也不假装能做。
 # 顺序: 先 AI 层清悬挂 (⓪ TaskList 查 → 逐个 TaskStop 关) → 再 git 层 finish (① 本脚本) ——
-# worktree 仍有进程在写时销毁 = 流程错误。本脚本仅在摘要末尾输出一行提醒, 不触碰 workflow/task 生命周期。
+# worktree 仍有进程在写时销毁 = 流程错误。本脚本仅在摘要末尾输出一行提醒, 不触碰后台 Task 生命周期。
 #
 # 用法: trellisx-finish.py [--task <tid>] [--message "<commit msg>"] [--dry-run]
 #   --task     目标 task id (缺省: 先 $TASK_JSON_PATH 后 task.py current)
@@ -242,8 +242,8 @@ def main():
                   f"(可能有未合并改动被 hook 保留, 或子 worktree 待其创建者清理), 请人工核对。",
                   file=sys.stderr)
     print(f"trellisx-finish: ✓ 收尾完成 — {tid} 已提交/合并/归档, worktree 已清理")
-    print("trellisx-finish: reminder: 本脚本只销 worktree (git); 关闭 Workflow/Task 是 AI 层 "
-          "(TaskStop), 脚本做不到 —— AI 须自查 TaskList 无悬挂 Workflow/后台 agent 任务。")
+    print("trellisx-finish: reminder: 本脚本只销 worktree (git); 关闭后台 Task 是 AI 层 "
+          "(TaskStop), 脚本做不到 —— AI 须自查 TaskList 无悬挂后台 agent 任务。")
 
 
 if __name__ == "__main__":

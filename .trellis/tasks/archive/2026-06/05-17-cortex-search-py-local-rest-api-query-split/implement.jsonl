@@ -1,2 +1,0 @@
-{"file": "plugins/tools/cortex/scripts/cli/search.py", "reason": "CLI 主体, 加 Local REST API + 拆词 + 多源融合"}
-{"file": "plugins/tools/cortex/skills/cortex-search/references/multi-tier-search.md", "reason": "层级文档更新"}

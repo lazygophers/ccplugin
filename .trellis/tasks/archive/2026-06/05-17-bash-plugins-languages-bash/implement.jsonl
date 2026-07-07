@@ -1,4 +1,0 @@
-{"file": "plugins/languages/c/.claude-plugin/plugin.json", "reason": "plugin.json 样板 (c 风格简单)"}
-{"file": "plugins/languages/c/skills/core/SKILL.md", "reason": "SKILL.md 样板"}
-{"file": "plugins/languages/c/agents/dev.md", "reason": "agent .md 样板"}
-{"file": ".claude-plugin/marketplace.json", "reason": "需注册 bash 条目"}
