@@ -140,9 +140,18 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 - **回归**：改后跑原 eval 场景确认未 break。
 - **版本语义**：description 触发词变更 = 破坏性（下游依赖发现逻辑会变）；仅 body 优化 = 兼容。
 
-## 失败处理
+## 失败处理（触发条件 → 一线修复 → 仍失败兜底）
 
-详见 [references/anti-patterns.md](references/anti-patterns.md)（dim3 三段式 fallback 表）。
+高频故障内联于此（正文自包含）；完整 22 条反模式 fallback 见 [references/anti-patterns.md](references/anti-patterns.md)。
+
+| 触发条件 | 一线修复 | 仍失败兜底 |
+|---|---|---|
+| skill 写完不触发 | description 太泛/缺 key terms → 加用户会说的词 + 收窄边界 (Phase 5 测试 4) | 跑可发现性质检 (`claude -p "列出所有可用 skill"`) 看是否被列出；未列出查 name/description 是否含保留词或超 512 截断 |
+| 改了 SKILL.md 没生效 | 已 invoke 的 session 常驻旧版 → 通知用户开新 session 或重新 invoke | 确认改的是被加载路径 (非 references 副本)；`disable-model-invocation` skill 需 `/name` 重新手动触发 |
+| 多 skill session 里本 skill 行为丢失 | token 预算 25000 跨 skill 共享、旧 invoke 被 auto-compaction 丢 (零错误信息) → 精简 SKILL.md、细节拆 references 按需加载 | 缩到 ≤500 行仍丢 → 关键指令上移到 SKILL.md 顶部 5000 token 内 (compaction 保留窗) |
+| reference 内容 Claude 读不全 | 嵌套引用 (a→b→c) 致 `head -100` 预读截断 → 拍平成只深一层 | >100 行 reference 顶部加目录，让预读见全貌 |
+| description/when_to_use 被截断 | 超项目底线 (512/128) → 按「最少 invoke 先丢」裁剪，触发短语分流 when_to_use | 仍超 → 拆成多个更窄的 skill，各自 description 更聚焦 |
+| 结构/触发正确但输出跑偏 | 缺反例黑名单 → 补「不要做 Y」清单 (铁律 #5) | 跑 `/grilling` red-team 找指令遗漏的失败模式 |
 
 ## 共识铁律（全源一致，不可违反）
 
