@@ -181,7 +181,7 @@ grill 报告
 
 | 文件 | 用途 |
 | --- | --- |
-| (按需建) `references/axis-deep-dive.md` | 12 轴各自的深挖问题清单 + 历史盲点实例 |
+| `references/axis-deep-dive.md` | 12 轴各自的深挖问题清单 (每轴 3-5 追问 + 历史盲点实例), 第 2 步逐轴 grill 时查 |
 
 ## 调研来源
 
