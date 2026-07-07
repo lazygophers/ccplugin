@@ -43,6 +43,8 @@ git merge "origin/$SRC"
 
 判定「有实质改动」:`git log origin/$SRC..HEAD -- <file>` 看当前分支侧是否有针对该文件的提交(空=只源分支动过)。方向记忆表 + `-s ours` 剧毒警告 + `-X` 用法见 [references/conflict-resolution.md](references/conflict-resolution.md)。
 
+🔴 **用户说「都以当前为准」≠ 全盘 `--ours` / `-X ours`**:仍须逐文件判定。两边都实质改同一文件时,盲选当前会**静默丢弃源分支改动**;这类文件照样 STOP 问用户,别被一句「以当前为准」诱导跳过判定。更禁 `git merge -s ours`(丢弃源分支全部改动,只留假合并记录)。
+
 解完一个文件:
 ```bash
 git add <file>
