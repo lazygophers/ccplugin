@@ -2,6 +2,8 @@
 name: git-rebase
 description: 把当前分支 rebase 到指定源分支。强制先建备份分支保护(不可逆兜底),rebase 前 fetch 确保用源分支的远端最新版为基,冲突半自动解决(当前分支有实质改动的以当前为准、否则以源分支为准),拿不准时停下用 AskUserQuestion 问用户、绝不自主决定。触发词:「rebase 到 X」「变基到 X」「把分支基于 X 重放」。
 when_to_use: '要把当前分支线性变基到某源分支最新时。需保留合并历史用 git-merge。'
+argument-hint: "<源分支> [--onto <base>]"
+arguments: [源分支 (必填, rebase 的目标基), base (可选, --onto 指定新基点)]
 ---
 
 # git-rebase — 带备份的安全变基
