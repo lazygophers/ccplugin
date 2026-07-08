@@ -184,8 +184,8 @@ def write_row(md, tid, cells):
 
 
 def completed_at(troot, tid):
-    tj = os.path.join(troot, ".trellis", "tasks", tid, "task.json")
-    if os.path.isfile(tj):
+    tj = find_task_json_by_id(troot, tid)
+    if tj:
         try:
             return json.load(open(tj, encoding="utf-8")).get("completedAt")
         except Exception:
@@ -194,16 +194,19 @@ def completed_at(troot, tid):
 
 
 def find_task_json_by_id(troot, tid):
-    """解析看板 tid (slug) → 对应 task.json 路径。dir 带日期前缀故需扫描匹配 id/basename。"""
-    for tj in glob.glob(os.path.join(troot, ".trellis", "tasks", "*", "task.json")):
-        d = os.path.basename(os.path.dirname(tj))
-        if d == tid:
-            return tj
-        try:
-            if json.load(open(tj, encoding="utf-8")).get("id") == tid:
+    """解析看板 tid (slug) → 对应 task.json 路径 (含 archive)。dir 带日期前缀故需扫描匹配 id/basename。"""
+    pats = (os.path.join(troot, ".trellis", "tasks", "*", "task.json"),
+            os.path.join(troot, ".trellis", "tasks", "archive", "*", "task.json"))
+    for pat in pats:
+        for tj in glob.glob(pat):
+            d = os.path.basename(os.path.dirname(tj))
+            if d == tid:
                 return tj
-        except Exception:
-            continue
+            try:
+                if json.load(open(tj, encoding="utf-8")).get("id") == tid:
+                    return tj
+            except Exception:
+                continue
     return None
 
 
@@ -227,7 +230,9 @@ def cleanup(md, troot, days):
     for ln in md.splitlines():
         if ln.startswith("| ") and not ln.startswith("| ID |") and not ln.startswith("| --- |"):
             c = row_cells(ln)
-            if len(c) >= 4 and c[3] == "已完成":
+            if len(c) >= 4 and c[3] in ("已完成", "已归档"):
+                if days <= 0:
+                    continue  # 全删: 不依赖时间戳直接移除 (task.json 归档后可能读不到 completedAt)
                 ca = completed_at(troot, c[0])
                 if ca:
                     try:
