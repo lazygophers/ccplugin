@@ -9,7 +9,12 @@
   "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
   "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
   "license": "AGPL-3.0-or-later",
-  "skills": [],
+  "skills": [
+    "./skills/skein-flow",
+    "./skills/skein-orchestrate",
+    "./skills/skein-workspace",
+    "./skills/skein-add"
+  ],
   "commands": [
     "./commands/skein-go.md"
   ],
