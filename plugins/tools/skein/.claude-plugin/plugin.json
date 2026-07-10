@@ -1,0 +1,26 @@
+{
+  "name": "skein",
+  "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2) + worktree 隔离 + task.md 看板; 差异化核心是两层规则记忆 (基于 .claude/rules): core 常驻注入硬规 + recall 按需语义召回, task finish 后经 sediment 判定门沉淀学习。含 skein-flow 强制闭环 / orchestrate 编排 / workspace 看板 / add planning 入口 / memory 记忆 / grill 对抗审查 / spec 破坏式重构 / apply 内化 / cleanup 清理; 另装 skein-guard 平台 hook 强制执行载体闭环",
+  "author": {
+    "name": "lazygophers",
+    "email": "admin@lazygophers.dev",
+    "url": "https://github.com/lazygophers"
+  },
+  "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
+  "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
+  "license": "AGPL-3.0-or-later",
+  "skills": [],
+  "commands": [
+    "./commands/skein-go.md"
+  ],
+  "keywords": [
+    "task-management",
+    "task-orchestration",
+    "dag-scheduling",
+    "worktree",
+    "sub-agent",
+    "rules-memory",
+    "kanban",
+    "standalone"
+  ]
+}
