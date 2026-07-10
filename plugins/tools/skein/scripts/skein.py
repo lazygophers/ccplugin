@@ -51,7 +51,7 @@ class Skein:
         self.root = gitroot()
         self.dir = self.root / ".skein"
         self.tasks = self.dir / "task"
-        self.archive = self.tasks / "archive"
+        self.archive_dir = self.tasks / "archive"
 
     # ---- 存取 ----
     def config(self) -> dict:
@@ -91,7 +91,7 @@ class Skein:
 
     def _archived_path(self, tid):
         # 归档嵌套: archive/<年>/<月-日>/<id>
-        hits = list(self.archive.glob(f"*/*/{tid}")) if self.archive.exists() else []
+        hits = list(self.archive_dir.glob(f"*/*/{tid}")) if self.archive_dir.exists() else []
         return hits[0] if hits else None
 
     def _active(self) -> list:
@@ -100,7 +100,7 @@ class Skein:
     def _next_id(self) -> str:
         n = 1
         existing = {p.name for p in self.tasks.iterdir() if p.name != "archive"} if self.tasks.exists() else set()
-        existing |= {p.name for p in self.archive.glob("*/*/*")} if self.archive.exists() else set()
+        existing |= {p.name for p in self.archive_dir.glob("*/*/*")} if self.archive_dir.exists() else set()
         while f"t{n:02d}" in existing:
             n += 1
         return f"t{n:02d}"
@@ -109,7 +109,7 @@ class Skein:
     def init(self, _):
         self.dir.mkdir(exist_ok=True)
         self.tasks.mkdir(exist_ok=True)
-        self.archive.mkdir(parents=True, exist_ok=True)
+        self.archive_dir.mkdir(parents=True, exist_ok=True)
         cfg = self.dir / "config.json"
         if not cfg.exists():
             cfg.write_text(json.dumps({
@@ -182,6 +182,13 @@ class Skein:
                 r = git("commit", "-m", f"skein({tid}): {t['name']}", cwd=wt, check=False)
                 if r.returncode != 0 and "nothing to commit" not in (r.stdout + r.stderr):
                     sys.stderr.write(r.stdout + r.stderr)
+            else:
+                # auto_commit 关: 用户须自行提交; 有未提交改动则拒绝 (下面 --force 会强删丢失)
+                st = git("status", "--porcelain", cwd=wt, check=False)
+                if st.stdout.strip():
+                    raise SystemExit(
+                        f"🛑 {tid} worktree 有未提交改动且 auto_commit=false — "
+                        f"先手动提交再 finish (禁强删丢失):\n{wt}")
             # 合并回主工作区
             m = git("merge", "--no-ff", t["branch"], "-m",
                     f"skein: merge {tid} {t['name']}", cwd=self.root, check=False)
@@ -191,17 +198,35 @@ class Skein:
                     f"🛑 合并冲突 {tid} — 已 abort。手动解冲突后重跑 finish:\n{m.stdout}{m.stderr}")
             git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
             git("branch", "-D", t["branch"], cwd=self.root, check=False)
+        elif wt:
+            sys.stderr.write(
+                f"⚠️ {tid} worktree 记录存在但目录缺失 ({wt}) — "
+                f"跳过合并, 分支 {t['branch']} 若有提交未并入\n")
         t["status"] = "completed"
         t["worktree"] = None
         self._save(t)
         self._archive(tid)
-        # 切 focus 到剩余首个 active
+        # 仅当被 finish 的正是当前 focus (或 focus 已失效) 才切, 免抢占无关 active task
         rest = self._active()
-        self._set_focus(rest[0]["id"] if rest else None)
+        focus = self._state().get("focus")
+        if focus in (None, tid) or focus not in {x["id"] for x in rest}:
+            focus = rest[0]["id"] if rest else None
+            self._set_focus(focus)
         self._board(None)
-        print(f"{tid} finished + archived" + (f", focus→{rest[0]['id']}" if rest else ", 无剩余 active"))
+        print(f"{tid} finished + archived" + (f", focus→{focus}" if focus else ", 无剩余 active"))
 
     def archive(self, a):
+        # 归档 = 丢弃 (不 merge): 先销 worktree/branch + 让出 focus, 免残留悬挂
+        f = self.tasks / a.id / "task.json"
+        if f.exists():
+            t = json.loads(f.read_text())
+            wt = t.get("worktree")
+            if wt and Path(wt).exists():
+                git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
+                git("branch", "-D", t["branch"], cwd=self.root, check=False)
+            if self._state().get("focus") == a.id:
+                rest = [x for x in self._active() if x["id"] != a.id]
+                self._set_focus(rest[0]["id"] if rest else None)
         self._archive(a.id)
         self._board(None)
         print(f"{a.id} archived")
@@ -211,7 +236,7 @@ class Skein:
         if not src.exists():
             return
         d = datetime.datetime.now()
-        dst = self.archive / d.strftime("%Y") / d.strftime("%m-%d") / tid
+        dst = self.archive_dir / d.strftime("%Y") / d.strftime("%m-%d") / tid
         dst.parent.mkdir(parents=True, exist_ok=True)
         if dst.exists():
             shutil.rmtree(dst)

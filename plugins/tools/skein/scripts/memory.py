@@ -41,10 +41,18 @@ def _dist(by_cat: dict) -> str:
 
 
 def rules_root() -> Path:
-    r = subprocess.run(["git", "rev-parse", "--show-toplevel"],
-                       capture_output=True, text=True)
-    base = Path(r.stdout.strip()) if r.returncode == 0 else Path.cwd()
+    try:
+        r = subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                           capture_output=True, text=True)
+        base = Path(r.stdout.strip()) if r.returncode == 0 else Path.cwd()
+    except FileNotFoundError:  # 无 git 二进制 → fallback cwd (设计意图: 非 git 也可用)
+        base = Path.cwd()
     return base / ".claude" / "rules"
+
+
+def _cell(s: str) -> str:
+    """索引表单元格: 空填 '-', 转义 '|' 免破坏 markdown 表格。"""
+    return (s or "-").replace("|", "/")
 
 
 class Memory:
@@ -59,6 +67,12 @@ class Memory:
         if not d.exists():
             return []
         return sorted(p for p in d.rglob("*.md") if p.name != "index.md")
+
+    def _next_seq(self, layer) -> int:
+        # 层内已用最大序号 +1 (非文件计数): 删文件后不回退, 免覆盖已有规则
+        used = [int(m.group(1)) for f in self._rule_files(layer)
+                if (m := re.search(r"-(\d+)\.md$", f.name))]
+        return max(used, default=-1) + 1
 
     # ---- init ----
     def init(self, _):
@@ -111,7 +125,7 @@ class Memory:
         cat = a.category or "misc"
         d = self.layer_dir(a.layer) / cat
         d.mkdir(parents=True, exist_ok=True)
-        seq = len(self._rule_files(a.layer))  # 层内全局序号, 免跨类目撞名
+        seq = self._next_seq(a.layer)  # 层内全局序号, 免跨类目撞名
         f = d / f"{a.source or 'rule'}-{seq:02d}.md"
         body = Path(a.body_file).read_text() if a.body_file else ""
         f.write_text(
@@ -148,11 +162,11 @@ class Memory:
         for f in self._rule_files(layer):
             txt = f.read_text()
             meta = _frontmatter(txt)
-            cat = meta.get("category") or f.parent.name
+            cat = f.parent.name  # 类目 = 所在目录 (物理事实), 免与 frontmatter 漂移
             rel = f.relative_to(d).as_posix()
             by_cat[cat] = by_cat.get(cat, 0) + 1
-            rows.append((cat, rel, meta.get("title", "-"),
-                         meta.get("keywords", "-"), _summary(txt)))
+            rows.append((cat, rel, _cell(meta.get("title", "")),
+                         _cell(meta.get("keywords", "")), _summary(txt)))
         rows.sort()
         body = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {summ} |"
                          for cat, rel, title, kw, summ in rows)

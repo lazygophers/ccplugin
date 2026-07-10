@@ -79,7 +79,25 @@ def main():
         board = (d / ".skein/task.md").read_text()
         assert "t02" in board and "⭐" in board, "看板缺 focus 标记"
 
-    print("✅ skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板)")
+        # archive in_progress task → 销 worktree/branch + 让出 focus (不泄漏)
+        wt2 = Path(json.loads((d / ".skein/task/t02/task.json").read_text())["worktree"])
+        assert wt2.exists()
+        sk(d, "archive", "t02")
+        assert not wt2.exists(), "archive 未销 worktree"
+        br = subprocess.run(["git", "branch", "--list", "skein/t02"], cwd=d,
+                            capture_output=True, text=True).stdout
+        assert "skein/t02" not in br, "archive 未删 branch"
+        assert json.loads((d / ".skein/state.json").read_text())["focus"] is None, "archive 未让出 focus"
+        assert sk(d, "current", check=False).returncode == 0, "archive 后 current 崩溃"
+
+        # finish 非 focus task 不抢占无关 active 的 focus
+        sk(d, "start", "t03")  # t02 已归档, dep 视为完成 → 可 start
+        sk(d, "create", "第四个"); sk(d, "start", "t04")
+        assert json.loads((d / ".skein/state.json").read_text())["focus"] == "t04"
+        sk(d, "finish", "t03")
+        assert json.loads((d / ".skein/state.json").read_text())["focus"] == "t04", "finish 抢占无关 focus"
+
+    print("✅ skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/focus不抢占)")
 
 
 if __name__ == "__main__":
