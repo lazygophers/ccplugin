@@ -39,12 +39,12 @@ def main():
         out = sk(d, "create", "第一个任务", "--desc", "测试").stdout.strip()
         tid = out.split("\t")[0]
         assert tid == "t01", f"预期 t01 得 {tid}"
-        t = json.loads((d / ".skein/tasks/t01/task.json").read_text())
+        t = json.loads((d / ".skein/task/t01/task.json").read_text())
         assert t["status"] == "pending"
 
         # start t01 → worktree 建出
         sk(d, "start", "t01")
-        t = json.loads((d / ".skein/tasks/t01/task.json").read_text())
+        t = json.loads((d / ".skein/task/t01/task.json").read_text())
         assert t["status"] == "in_progress", t["status"]
         wt = Path(t["worktree"])
         assert wt.exists(), "worktree 未建"
@@ -61,16 +61,16 @@ def main():
         (wt / "feature.txt").write_text("done\n")
         sk(d, "finish", "t01")
         assert (d / "feature.txt").exists(), "finish 未合并回主工作区"
-        assert (d / ".skein/archive/t01").exists(), "未归档"
-        assert not (d / ".skein/tasks/t01").exists(), "归档后 tasks 残留"
+        assert list((d / ".skein/task/archive").glob("*/*/t01")), "未归档 (日期分层)"
+        assert not (d / ".skein/task/t01").exists(), "归档后 task 残留"
         assert not wt.exists(), "worktree 未销"
         # focus 切到剩余 active t02
         assert json.loads((d / ".skein/state.json").read_text())["focus"] == "t02"
 
         # deps: t03 依赖 t02, t02 未 finish 前 start t03 (需先腾并发位)
         # t01 已 finish, active=t02, 上限2 → 可 start t03 但 deps 阻塞
-        (d / ".skein/tasks/t03/task.json").write_text(
-            json.dumps({**json.loads((d / ".skein/tasks/t03/task.json").read_text()),
+        (d / ".skein/task/t03/task.json").write_text(
+            json.dumps({**json.loads((d / ".skein/task/t03/task.json").read_text()),
                         "deps": ["t02"]}, ensure_ascii=False))
         r = sk(d, "start", "t03", check=False)
         assert r.returncode != 0 and "前置未完成" in r.stderr, "deps 门未生效"

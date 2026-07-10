@@ -5,12 +5,12 @@
 skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
-  .skein/config.json          设置 (max_active / auto_commit / worktree_root)
-  .skein/state.json           {focus: <id>}
-  .skein/tasks/<id>/task.json  单 task 记录
-  .skein/tasks/<id>/*.md       planning 工件 (prd/design/implement, 由 skein-add 写)
-  .skein/archive/<id>/         归档
-  .skein/task.md               看板 (经本脚本 board, 禁直接编辑)
+  .skein/config.json              设置 (max_active / auto_commit / worktree_root)
+  .skein/state.json               {focus: <id>}
+  .skein/task/<id>/task.json      单 task 记录 (活跃)
+  .skein/task/<id>/*.md           planning 工件 (prd/design/implement, 由 skein-add 写)
+  .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
+  .skein/task.md                  看板 (经本脚本 board, 禁直接编辑)
 """
 import argparse
 import datetime
@@ -50,8 +50,8 @@ class Skein:
     def __init__(self):
         self.root = gitroot()
         self.dir = self.root / ".skein"
-        self.tasks = self.dir / "tasks"
-        self.archive = self.dir / "archive"
+        self.tasks = self.dir / "task"
+        self.archive = self.tasks / "archive"
 
     # ---- 存取 ----
     def config(self) -> dict:
@@ -82,18 +82,25 @@ class Skein:
             return []
         out = []
         for d in sorted(self.tasks.iterdir()):
+            if d.name == "archive":
+                continue
             f = d / "task.json"
             if f.exists():
                 out.append(json.loads(f.read_text()))
         return out
+
+    def _archived_path(self, tid):
+        # 归档嵌套: archive/<年>/<月-日>/<id>
+        hits = list(self.archive.glob(f"*/*/{tid}")) if self.archive.exists() else []
+        return hits[0] if hits else None
 
     def _active(self) -> list:
         return [t for t in self._all() if t["status"] in STATUS_ACTIVE]
 
     def _next_id(self) -> str:
         n = 1
-        existing = {p.name for p in self.tasks.iterdir()} if self.tasks.exists() else set()
-        existing |= {p.name for p in self.archive.iterdir()} if self.archive.exists() else set()
+        existing = {p.name for p in self.tasks.iterdir() if p.name != "archive"} if self.tasks.exists() else set()
+        existing |= {p.name for p in self.archive.glob("*/*/*")} if self.archive.exists() else set()
         while f"t{n:02d}" in existing:
             n += 1
         return f"t{n:02d}"
@@ -102,7 +109,7 @@ class Skein:
     def init(self, _):
         self.dir.mkdir(exist_ok=True)
         self.tasks.mkdir(exist_ok=True)
-        self.archive.mkdir(exist_ok=True)
+        self.archive.mkdir(parents=True, exist_ok=True)
         cfg = self.dir / "config.json"
         if not cfg.exists():
             cfg.write_text(json.dumps({
@@ -153,7 +160,7 @@ class Skein:
 
     def _dep_unfinished(self, dep) -> bool:
         # 归档即视为完成
-        if (self.archive / dep).exists():
+        if self._archived_path(dep):
             return False
         f = self.tasks / dep / "task.json"
         if not f.exists():
@@ -203,8 +210,9 @@ class Skein:
         src = self.tasks / tid
         if not src.exists():
             return
-        self.archive.mkdir(exist_ok=True)
-        dst = self.archive / tid
+        d = datetime.datetime.now()
+        dst = self.archive / d.strftime("%Y") / d.strftime("%m-%d") / tid
+        dst.parent.mkdir(parents=True, exist_ok=True)
         if dst.exists():
             shutil.rmtree(dst)
         shutil.move(str(src), str(dst))

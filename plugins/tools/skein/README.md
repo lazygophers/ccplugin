@@ -33,8 +33,9 @@
 ├── task.md            # 看板 (经 skein.py board 渲染, 禁直接编辑)
 ├── state.json         # {focus: <当前 task id>}
 ├── config.json        # {max_active:2, auto_commit:true, worktree_root:".worktrees"}
-├── tasks/<id>/        # 每 task: prd.md / design.md / implement.md / task.json
-└── archive/<id>/      # 归档已完成 task
+└── task/
+    ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / task.json
+    └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档
 .claude/rules/
 ├── core/{*.md,index.md}     # 常驻规则 + 索引
 └── recall/{*.md,index.md}   # 按需召回规则 + 索引
