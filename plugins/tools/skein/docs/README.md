@@ -33,6 +33,8 @@
 | **两层规则记忆** | `core` 常驻注入 + `recall` 按需召回, 按类目分子目录 (差异化核心) |
 | **看板** | `.skein/task.md`, 经 `skein.py board` 渲染, 禁直接编辑 |
 | **sediment 判定门** | 每个 task finish 前判本次 learning → core / recall / drop |
+| **契约不变量** | planning 锁 `contracts` 不可回退不变量, check 阶段逐条验证 |
+| **compaction 永续** | SessionStart hook (`session-context`) 把活跃 task 状态在上下文压缩后重注入 |
 
 ## 差异化: 为什么不是又一个 TODO 工具
 

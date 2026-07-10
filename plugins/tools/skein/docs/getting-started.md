@@ -51,7 +51,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
 
 接下来 Claude 会 (你只需在关键处拍板):
 
-1. **plan** — 和你 brainstorm 需求与方案, 跑对抗审查 (grill), 产出 `prd.md` / `implement.md`, 请你评审。
+1. **plan** — 和你 brainstorm 需求与方案, 跑对抗审查 (grill), 产出 `prd.md` / `implement.md`, 请你评审。(可选: 把不可回退的不变量锁成契约, 供 check 逐条验; 首次上手可先跳过。)
 2. **exec** — 建 worktree, 派 subagent 在里面写代码, 完成一批即回传进度。
 3. **check** — 派 checker 跑 lint / type / test / 契约校验, 不过就派 implementer 修。
 4. **finish** — 判本次有无值得沉淀的规则, 然后 commit → 合并回主分支 → 归档 → 销 worktree。

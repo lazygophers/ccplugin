@@ -41,6 +41,13 @@ def main():
         assert tid == "t01", f"预期 t01 得 {tid}"
         t = json.loads((d / ".skein/task/t01/task.json").read_text())
         assert t["status"] == "pending"
+        assert t["contracts"] == [], "create 未初始化 contracts"
+
+        # contract: --add 落盘 + 无参列出
+        sk(d, "contract", "t01", "--add", "输出必须幂等")
+        t = json.loads((d / ".skein/task/t01/task.json").read_text())
+        assert t["contracts"] == ["输出必须幂等"], t["contracts"]
+        assert "输出必须幂等" in sk(d, "contract", "t01").stdout, "contract 未列出"
 
         # start t01 → worktree 建出
         sk(d, "start", "t01")
@@ -49,6 +56,17 @@ def main():
         wt = Path(t["worktree"])
         assert wt.exists(), "worktree 未建"
         assert json.loads((d / ".skein/state.json").read_text())["focus"] == "t01"
+
+        # session-context: 有 active task → JSON envelope 含 task id
+        r = sk(d, "session-context")
+        assert r.returncode == 0 and "t01" in r.stdout, "session-context 未含 active task"
+        payload = json.loads(r.stdout)
+        assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart", "注入格式错"
+        # 无 .skein/ 的临时目录 → 静默 exit 0 无输出
+        with tempfile.TemporaryDirectory() as bare:
+            git(Path(bare), "init", "-q")
+            r2 = sk(Path(bare), "session-context")
+            assert r2.returncode == 0 and r2.stdout.strip() == "", f"非 skein 项目应静默: {r2.stdout!r}"
 
         # 并发上限: create+start t02, t03 应被拒
         sk(d, "create", "第二个")

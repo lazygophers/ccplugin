@@ -11,3 +11,4 @@ check 阶段禁止行为与纠正动作。
 | check 未过就 finish | 未全绿禁 finish |
 | 无限重检不设上限 | 第 3 轮仍 FAIL → STOP 报用户 |
 | 凭空断言"应该能过"跳过实跑 | checker 必跑真命令验 |
+| 只跑 lint/test 不验契约 | 先 `skein.py contract <focus>` 读出契约, 逐条报 pass/fail |

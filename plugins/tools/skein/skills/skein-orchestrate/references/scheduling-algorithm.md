@@ -19,6 +19,8 @@ while 还有未完成 subtask:
 
 - **并发上限 2** — 同时在跑 subagent ≤ 2。
 - **完成即派** — 任一返回立即查新 ready 并派, 不等一批跑完。
+- **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 依赖它的 subtask 保持未 ready; main 转达用户/补信息后重派该 subtask, 禁标完成、禁放行下游。
+- **subtask 报错 → 不推进** — 按 dispatch 的失败处理缩范围重试; 反复失败 → 停并回传, 禁跳过该 subtask 继续。
 - **禁在 subtask 间问用户顺序** — 顺序归 planning。PRD 缺调度图 → 退回 planning 补。
 
 ## worktree

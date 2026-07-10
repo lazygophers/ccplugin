@@ -129,7 +129,7 @@ class Skein:
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
             "id": tid, "name": a.name, "desc": a.desc or "",
-            "status": "pending", "deps": deps,
+            "status": "pending", "deps": deps, "contracts": [],
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "updated": now(),
         }
@@ -261,6 +261,32 @@ class Skein:
         for t in self._all():
             print(f"{t['id']}\t{t['status']}\t{t['name']}")
 
+    def contract(self, a):
+        t = self._load(a.id)
+        t.setdefault("contracts", [])
+        if a.add:
+            t["contracts"].append(a.add)
+            self._save(t)
+            print(f"{a.id} 契约 +1 (共 {len(t['contracts'])})")
+        elif not t["contracts"]:
+            print("无契约")
+        else:
+            for i, c in enumerate(t["contracts"], 1):
+                print(f"{i}. {c}")
+
+    def session_context(self):
+        # SessionStart hook: 有 active task 时用 memory.py 相同 JSON envelope 注入, 供 compaction 后恢复
+        active = self._active()
+        if not active:
+            return
+        focus = self._state().get("focus")
+        lines = ["# SKEIN 活跃任务 (compaction 上下文恢复)", "", f"focus: {focus or '-'}", ""]
+        for t in active:
+            lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
+        lines += ["", "恢复提示: 用 `skein.py current` 查 focus; 未 archive = 未完成。"]
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "SessionStart", "additionalContext": "\n".join(lines)}}))
+
     def board(self, a):
         self._board(a)
         print(f"看板已更新: {self.dir / 'task.md'}")
@@ -299,13 +325,24 @@ def main():
     cu = sub.add_parser("current"); cu.add_argument("--all", action="store_true")
     sub.add_parser("list")
     sub.add_parser("board")
+    sub.add_parser("session-context")
+    co = sub.add_parser("contract"); co.add_argument("id"); co.add_argument("--add")
 
     a = p.parse_args()
+    if a.cmd == "session-context":
+        # hook 在任意仓库每 session 都跑: 非 skein 项目 (无 git / 无 config) 静默 exit 0
+        try:
+            sk = Skein()
+            sk.config()
+        except SystemExit:
+            return
+        sk.session_context()
+        return
     sk = Skein()
     dispatch = {
         "init": sk.init, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "current": sk.current,
-        "list": sk.list_, "board": sk.board,
+        "list": sk.list_, "board": sk.board, "contract": sk.contract,
     }
     dispatch[a.cmd](a)
 

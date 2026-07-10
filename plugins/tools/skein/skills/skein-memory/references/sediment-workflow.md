@@ -24,9 +24,9 @@ sediment 判定 trace
 - **层**: 硬约束 / 命令式契约 / 后续必再踩 → **core** (常驻); 长尾 / 上下文密集 / 偶尔相关 → **recall** (按需); 拿不准 → 默认 recall (不轻易增 core 常驻负担)。
 - **类目**: 归到 git / test / arch / build / style / domain / ops 之一 (无合适则新取名或 `misc`)。类目决定沉淀落哪个子目录 + 索引归类。
 
-## 3. 审批门 (main 亲做, 禁 subagent / 禁纯文本)
+## 3. 🔴 审批门 CHECKPOINT (main 亲做, 禁 subagent / 禁纯文本)
 
-沉淀提案 (层 + 标题 + 正文 + 关键词) → `AskUserQuestion` 交用户批。**未过审批禁写盘**。
+沉淀提案 (层 + 标题 + 正文 + 关键词) → `AskUserQuestion` 交用户批。**🔴 STOP: 未过审批禁写盘**。
 
 ## 4. 写盘
 

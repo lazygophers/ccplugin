@@ -16,6 +16,9 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 ## 流程
 
 1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径 + planning 的验收标准。checker 跑 lint/type/test/build + 契约合规, 回传报告。
+   - 🔴 **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail:
+     - `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <focus>` (列出 planning 阶段锁进 task.json 的契约)
+     - 任一条 fail → 进修复循环 (同 lint/type/test 未过路径), 派 `skein-implementer` 定点修复后重检。
 2. **判定** — PASS → 放行 finish。FAIL → 进修复循环。
 3. **定点修复** — 按 checker 报告 (失败项 file:line + 报错原文 + 定位建议) 派 `skein-implementer` 修, 只改失败相关文件。
 4. **重验** — 修复后重派 `skein-checker` 复跑。未过继续循环。

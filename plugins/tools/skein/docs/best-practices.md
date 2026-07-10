@@ -125,6 +125,8 @@ flowchart LR
 
 ## 效率贴士
 
+- **策略分档轻量路由** — planning 先给任务定档 (`direct-fix` 单点微改直接豁免 / `standard` 常规闭环 / `heavy` 跨子系统强化 grill + 拆多 task), 按档投入 planning 力度, 别对小改也上重流程 (仅路由启发, 无新机器)。
+- **契约当可复用验收基准** — planning 锁进 `contracts` 的不变量既是本 task check 的逐条验收项, 值得复用的 (如「必须走异步队列」) finish 时再 sediment 成规则, 供后续 task 复用。
 - **plan 一次到位** — 省下 exec 反复返工。grill 硬门就是逼你在动手前把漏洞暴露完。
 - **并行别硬凑** — 写文件范围相交的 subtask 让它串行, 别为并行而并行 (冲突边会自动挡)。
 - **core 层克制** — 只放「后续同类任务必再踩」的强约束。长尾经验进 recall, 别把 core 撑爆 (有预算警戒)。

@@ -18,8 +18,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>
 | `current` | `--all` | 显示 focus task; `--all` 列所有 active (focus 标 `<- current`) |
 | `list` | — | 列全部 task (含已归档) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
+| `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (focus + 各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
+| `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
 
-**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated`。
+**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts`。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: `t01`, `t02`... 自动递增, 跳过已用 (含归档的)。
 
@@ -61,11 +63,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
 
 ## Agents (3 个, 均无 Agent/Task 工具 = 递归护栏)
 
-| agent | 职责 | 工具面 |
-| --- | --- | --- |
-| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 | 读写 + Bash, 无 Agent/Task |
-| `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task |
-| `skein-researcher` | planning 阶段纯信息调研 (选型/对比) | 读 + 检索, 无 Agent/Task |
+| agent | 职责 | 工具面 | 模型分层 |
+| --- | --- | --- | --- |
+| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 | 读写 + Bash, 无 Agent/Task | `effort: high` (继承主模型, 不降级) |
+| `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-researcher` | planning 阶段纯信息调研 (选型/对比), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+
+> 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium), 执行保持高推理 (implementer 继承主模型 + high effort)。
 
 ## Command
 
@@ -85,7 +89,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
 
 | hook | 触发 | 作用 |
 | --- | --- | --- |
-| **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 |
+| **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复) |
 | **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.sh` 硬阻直改 task.md (写) / 直接读写 state.json (读写全挡) |
 
 ## guard-skein.sh 拦截规则

@@ -9,7 +9,7 @@
 | **main** | 主对话 (coordinator) | 调度器: 跑 `skein.py` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
 | **skein-implementer** | 执行 agent | worktree 内执行 **1 个** subtask, 写代码 | 无 (递归护栏) |
 | **skein-checker** | 验证 agent | 只读, 跑 lint / type / test / 契约校验 | 无 |
-| **skein-researcher** | 调研 agent | planning 阶段纯信息调研 (选型 / 对比) | 无 |
+| **skein-researcher** | 调研 agent | planning 阶段纯信息调研 (选型 / 对比), 结论落盘 `research/` | 无 |
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派具名 subagent。3 个执行 agent 都**没有** Agent/Task 工具, 不能自派 (Recursion Guard), 各自只干一件事。
 
@@ -28,6 +28,7 @@
 - **判新旧**: 全新任务 → `skein.py create` 登记; 对现有 active task 的补充 → 并入 (判不准就 AskUserQuestion 问你)。
 - **brainstorm**: main 和你梳理需求与方案 (subagent 不能与你对话, 故全程 main 前台)。
 - **grill 硬门**: 对抗式审查需求与工件, 弱点补齐后才放行。**未跑 grill 禁进 exec**。
+- **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein.py contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
 - 产出: `prd.md` (+ 需要时 `design.md`) + `implement.md`, 请你评审 (AskUserQuestion)。
 
 ### ② memory recall (main 同步)
@@ -54,7 +55,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 ### ⑤ check (main 派 checker fan-out)
 
-派 `skein-checker` 验证 spec 合规 / lint / type / tests。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
+派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <focus>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
 
 ### ⑥ finish (main 同步)
 
@@ -120,6 +121,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 ├── config.json                      # {max_active, auto_commit, worktree_root}
 └── task/
     ├── <id>/                        # 活跃 task: prd.md / design.md / implement.md / task.json
+    │   └── research/<topic>.md      # researcher 落盘的调研结论 (随 task finish 一并归档)
     └── archive/<年>/<月-日>/<id>/    # 按完成日期分层归档
 .claude/rules/
 ├── index.md                         # 顶层索引 (两层聚合概览)
@@ -140,3 +142,5 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 | Recursion Guard | 3 个执行 agent 无 Agent/Task 工具 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | 有 task 必有 worktree | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
+| 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |
+| compaction 永续 | `skein.py session-context` SessionStart hook 重注入活跃 task | 上下文压缩后忘掉在跑的 task |

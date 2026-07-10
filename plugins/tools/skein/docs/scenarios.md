@@ -14,6 +14,7 @@
 - **exec**: 拆成 subtask (下发接口 / 校验接口 / 存储层 / 前端表单), 无冲突的并行派, 有依赖的串行。
 - **check**: 跑测试 + 契约校验。
 - **finish**: 合并回主分支, 若「短信服务必须走异步队列」这类契约值得复用 → sediment 到 core。
+- **契约锁定** (可选): planning 时把「验证码必须限流」这类不变量 `skein.py contract <id> --add` 锁进 task, check 阶段 checker 逐条验证守住没。
 
 **注意点**: plan 阶段多花点时间和 Claude 对齐需求, exec 才不会跑偏。
 
@@ -40,6 +41,7 @@
 ```
 
 - plan 阶段可派 `skein-researcher` 并行做纯信息调研 (它只读, 不改代码)。
+- **结论持久化**: researcher 除回传摘要外, 把完整结论落盘到 `.skein/task/<id>/research/<topic>.md` — 跨 compaction 存活, 后续 brainstorm/PRD 可复读原始调研, 随 task finish 一并归档。
 - 设计决策由 main 汇总后和你拍板 (subagent 不能与你对话)。
 - 产出可以是纯文档交付 (选型报告), 也可以选型 + 落地一起。
 
