@@ -8,14 +8,14 @@
 | --- | --- | --- |
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
 | 动态 DAG 编排调度 | `skein-orchestrate` | main 作调度器, 冲突自算边 + `depends_on`, 并发上限 2, 完成即派 |
-| worktree 隔离 | `skein.py` + `worktree.py` | 1 task 1 worktree, 主工作区零改动 |
-| 看板 | `skein-workspace` + `taskmd.py` | `.skein/task.md` 生命周期看板 |
+| worktree 隔离 | `skein.py` | 1 task 1 worktree, 主工作区零改动 |
+| 看板 | `skein-workspace` + `skein.py board` | `.skein/task.md` 生命周期看板 (脚本渲染) |
 | planning 入口 | `skein-add` | 判新旧 + 登记 + brainstorm + grill 硬门 |
-| **两层规则记忆** | `skein-memory` | **差异化核心** (见下) |
-| 对抗式审查 | `skein-grill` | 需求/工件对抗校对 |
-| 破坏式重构 | `skein-spec` | 跨任务破坏式代码变更执行器 |
-| 内化注入 | `skein-apply` | 规则内化进 `.skein` config hook |
-| 归档清理 | `skein-cleanup` | 完成后归档、销 worktree、清看板 |
+| **两层规则记忆** | `skein-memory` + `memory.py` | **差异化核心** (见下) |
+| 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
+| 破坏式重构 | `skein-spec` | 不保兼容、全站点一次改齐的重构执行器 |
+| 内化注入 | `skein-apply` | `skein.py`/`memory.py init` bootstrap 本仓 |
+| 归档清理 | `skein-cleanup` | 孤儿 worktree / 悬挂分支 / 漏归档安全清扫 |
 
 ## 差异化核心: 两层规则记忆 (基于 `.claude/rules`)
 
@@ -30,14 +30,18 @@
 
 ```
 .skein/
-├── task.md            # 看板 (经 taskmd.py, 禁直接编辑)
+├── task.md            # 看板 (经 skein.py board 渲染, 禁直接编辑)
+├── state.json         # {focus: <当前 task id>}
+├── config.json        # {max_active:2, auto_commit:true, worktree_root:".worktrees"}
 ├── tasks/<id>/        # 每 task: prd.md / design.md / implement.md / task.json
-├── archive/           # 归档已完成 task
-└── config.yaml        # 生命周期 hook (after_finish 等)
+└── archive/<id>/      # 归档已完成 task
 .claude/rules/
-├── core/*.md          # 常驻规则
-└── recall/*.md        # 按需召回规则
+├── core/{*.md,index.md}     # 常驻规则 + 索引
+└── recall/{*.md,index.md}   # 按需召回规则 + 索引
 ```
+
+> SKEIN 自包含: `skein.py` 自身即引擎, `config.json` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
+
 
 ## 用法
 
