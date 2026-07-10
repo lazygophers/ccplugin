@@ -35,6 +35,11 @@ def now() -> str:
     return datetime.datetime.now().isoformat(timespec="seconds")
 
 
+def _dist(by_cat: dict) -> str:
+    """类目分布串 '类目(条数), ...', 空则 '-'。"""
+    return ", ".join(f"{c}({n})" for c, n in sorted(by_cat.items())) or "-"
+
+
 def rules_root() -> Path:
     r = subprocess.run(["git", "rev-parse", "--show-toplevel"],
                        capture_output=True, text=True)
@@ -93,7 +98,7 @@ class Memory:
             return
         terms = [t for t in re.split(r"\s+", a.query.lower()) if t]
         hits = [ln for ln in idx.read_text().splitlines()
-                if ln.startswith("| ") and not ln.startswith("| file") and "---" not in ln
+                if ln.startswith("| ") and not ln.startswith("| file")
                 and any(t in ln.lower() for t in terms)]
         if hits:
             print("recall 命中 (model 读全文再定用否):")
@@ -141,18 +146,19 @@ class Memory:
         by_cat = {}
         rows = []
         for f in self._rule_files(layer):
-            meta = _frontmatter(f.read_text())
+            txt = f.read_text()
+            meta = _frontmatter(txt)
             cat = meta.get("category") or f.parent.name
             rel = f.relative_to(d).as_posix()
             by_cat[cat] = by_cat.get(cat, 0) + 1
             rows.append((cat, rel, meta.get("title", "-"),
-                         meta.get("keywords", "-"), _summary(f.read_text())))
+                         meta.get("keywords", "-"), _summary(txt)))
         rows.sort()
         body = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {summ} |"
                          for cat, rel, title, kw, summ in rows)
         (d / "index.md").write_text(
             f"# SKEIN {layer} 规则索引\n\n"
-            f"类目: {', '.join(f'{c}({n})' for c, n in sorted(by_cat.items())) or '-'}\n\n"
+            f"类目: {_dist(by_cat)}\n\n"
             "| file | category | title | keywords | summary |\n"
             "|---|---|---|---|---|\n"
             + (body + "\n" if body else ""))
@@ -166,8 +172,7 @@ class Memory:
         for layer in LAYERS:
             by_cat = counts.get(layer, {})
             total = sum(by_cat.values())
-            dist = ", ".join(f"{c}({n})" for c, n in sorted(by_cat.items())) or "-"
-            lines.append(f"| {layer} | {total} | {dist} | [{layer}/index.md]({layer}/index.md) |")
+            lines.append(f"| {layer} | {total} | {_dist(by_cat)} | [{layer}/index.md]({layer}/index.md) |")
         (self.root / "index.md").write_text("\n".join(lines) + "\n")
 
     # ---- list ----
