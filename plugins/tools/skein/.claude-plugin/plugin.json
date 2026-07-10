@@ -13,7 +13,12 @@
     "./skills/skein-flow",
     "./skills/skein-orchestrate",
     "./skills/skein-workspace",
-    "./skills/skein-add"
+    "./skills/skein-add",
+    "./skills/skein-memory",
+    "./skills/skein-grill",
+    "./skills/skein-spec",
+    "./skills/skein-apply",
+    "./skills/skein-cleanup"
   ],
   "commands": [
     "./commands/skein-go.md"
