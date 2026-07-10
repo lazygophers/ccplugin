@@ -11,7 +11,7 @@ description: 对抗式审查 (adversarial review)。planning 产物 (prd/impleme
 
 ## 触发
 
-- 🔴 **planning 硬门**: skein-add 产出 planning 产物后、`skein.py start` 前 MUST 跑一轮。未跑禁 start。
+- 🔴 **planning 硬门**: skein-planning 产出 planning 产物后、`skein.py start` 前 MUST 跑一轮。未跑禁 start。
 - 用户显式 `/grill` 或"盘一下这个方案"。
 
 ## 审查轴 (按产物动态裁剪, 命中即质疑)

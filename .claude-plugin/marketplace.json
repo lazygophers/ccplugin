@@ -149,7 +149,7 @@
     {
       "name": "skein",
       "source": "./plugins/tools/skein",
-      "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2) + worktree 隔离 + task.md 看板; 差异化核心是两层规则记忆 (基于 .claude/rules): core 常驻注入硬规 + recall 按需语义召回, task finish 后经 sediment 判定门沉淀。9 skill: flow/orchestrate/workspace/add/memory/grill/spec/apply/cleanup",
+      "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .claude/rules): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀。9 skill: flow/orchestrate/workspace/planning/memory/grill/spec/check/clean + 3 agent: implementer/checker/researcher (无 Agent/Task 递归护栏)",
       "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev"

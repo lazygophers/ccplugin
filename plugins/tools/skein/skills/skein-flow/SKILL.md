@@ -10,8 +10,8 @@ description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式
 ## 执行载体铁律 (最高优先级)
 
 - 🔴 **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
-- **main 默认禁写源码** — 改源码 / 跑 check 派 subagent。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
-- **exec/check 派 subagent, main 作调度器** — 动态 DAG 派各 subagent 各执行 1 subtask (并发上限 2, 完成即派), 共享 task worktree。详见 `skein-orchestrate`。
+- **main 默认禁写源码** — 改源码派 `skein-implementer`, 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
+- **exec/check 派具名 agent, main 作调度器** — 动态 DAG 派各 `skein-implementer` 各执行 1 subtask (并发上限 2, 完成即派), 共享 task worktree; check 派 `skein-checker`。这些 agent 无 Agent/Task 工具 (Recursion Guard, 不自派)。详见 `skein-orchestrate` / `skein-check`。
 - **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein.py start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。
 - **`skein.py` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
 - **看板经 `skein.py board`** — 禁直接编辑 `.skein/task.md` (guard hook 硬阻)。
@@ -24,13 +24,13 @@ description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式
 > 贯穿全程: 每个生命周期节点 (create/start/阶段推进/finish) 后跑 `skein.py board` 更新看板。
 
 0. **前置** — 无 `.skein/` → 先 `python3 <plugin>/scripts/skein.py init`。判新旧 (新建 vs 并入 active task), 不准 → `AskUserQuestion`。
-1. **plan** (main 同步) — 委托 `skein-add`: 判新旧 + `skein.py create` 登记 + brainstorm 需求/方案 + grill 硬门。产出 `.skein/tasks/<id>/{prd.md,implement.md}`[+design.md]。
+1. **plan** (main 同步) — 委托 `skein-planning`: 判新旧 + `skein.py create` 登记 + brainstorm 需求/方案 + grill 硬门 (必走)。产出 `.skein/task/<id>/{prd.md,implement.md}`[+design.md]。
 2. **memory recall** (main) — 委托 `skein-memory` recall: 按任务描述召回相关 recall 规则注入 (core 规则已由 SessionStart 常驻)。
 3. **激活** (main) — 产物齐 → `AskUserQuestion` 交用户评审 → `skein.py start <id>` (建 worktree, status=in_progress) → 更新看板。
-4. **exec** (subagent 编排) — main 作调度器, 动态 DAG 派 subagent 各执行 1 subtask, 改动落 task worktree。见 `skein-orchestrate`。每个 agent 完成即回传。
+4. **exec** (agent 编排) — main 作调度器, 动态 DAG 派 `skein-implementer` 各执行 1 subtask, 改动落 task worktree。见 `skein-orchestrate`。每个 agent 完成即回传。
    - 🔴 **异步等待 MUST 输出任务清单** — 派出异步任务后结束本回合前, 输出全景表 (4 列: id/状态/摘要/进度%)。
    - 🔴 **exec 阶段禁问用户顺序** — 顺序归 planning (调度图 + deps + 冲突 DAG)。ready 即派 / 完成即派 / 并发 2。PRD 缺调度图 → 退回 planning 补, 不在 exec 问。
-5. **check** (subagent) — 质量验证 (lint / type-check / tests / spec 合规); 未过 → 派 agent 定点修复重检, 不跳 finish。
+5. **check** (委托 `skein-check`) — 派 `skein-checker` 验证 (lint / type-check / tests / 契约合规); 未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
 6. **finish** (main 同步) — check 通过 →
    - 🔴 **sediment 判定门** — 按 `skein-memory` 的 checklist 逐项 ✅/❌ 输出 trace, 判本 task learning → core/recall/drop。触发 → 走 sediment 提案 (审批后写盘) 再 finish; 全否 → 跳过 (仍输出全 ❌ trace)。
    - **清理** — `TaskList` 查残留 subagent / 后台任务, `TaskStop` 关闭。禁 `sleep` 轮询等后台跑完。

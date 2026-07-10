@@ -1,11 +1,11 @@
 ---
-name: skein-add
-description: planning 入口 (需求/方案设计的单一真值源)。新建 SKEIN task 做需求梳理时使用 — 判新旧 + skein.py create 登记 + brainstorm 需求/方案 (交互式, main 亲做) + grill 硬门, 产出 prd.md/implement.md。
+name: skein-planning
+description: planning 入口 (需求/方案设计的单一真值源)。新建 SKEIN task 做需求梳理时使用 — 判新旧 + skein.py create 登记 + brainstorm 需求/方案 (交互式, main 亲做) + grill 硬门 (必走), 产出 prd.md/implement.md。
 ---
 
-# skein-add — planning 入口
+# skein-planning — planning 入口
 
-**planning 单一真值源**。判新旧 + 登记 + brainstorm + grill, 产出 planning 工件。**全程 main 同步前台** — brainstorm/grill 需逐问用户 (`AskUserQuestion`), subagent 不能与用户对话, 故不派执行 subagent (纯信息调研可派只读 subagent, 但设计决策 main 汇总裁定)。
+**planning 单一真值源**。判新旧 + 登记 + brainstorm + grill, 产出 planning 工件。**全程 main 同步前台** — brainstorm/grill 需逐问用户 (`AskUserQuestion`), subagent 不能与用户对话, 故不派执行 subagent (纯信息调研可派 `skein-researcher` 只读 subagent, 但设计决策 main 汇总裁定)。
 
 ## 入参
 
@@ -18,7 +18,7 @@ description: planning 入口 (需求/方案设计的单一真值源)。新建 SK
 2. **登记** — 全新 → `skein.py create <name> [--desc ..] [--deps ..]`, 得 `<id>` + 工件目录。→ 更新看板。
 3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。
 4. **grill 硬门** — 委托 `skein-grill` 全轴对抗校对, 重点确认「用户想法 = PRD 写的」。弱点表交用户过, 补齐后放行。**未跑 grill 禁进 exec**。
-5. **产出工件** — 写进 `.skein/tasks/<id>/`:
+5. **产出工件** — 写进 `.skein/task/<id>/`:
    - `prd.md` — 需求: 目标 / 用户价值 / 边界 / 非目标 / 验收基准。
    - `design.md` (可选, 复杂方案) — 架构 / 取舍 / 技术选型。
    - `implement.md` — 实现拆解: subtask 列表 (每个含 write-files glob + exec-scope + depends_on) + **调度图** (mermaid, 供 exec 阶段 DAG)。

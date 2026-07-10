@@ -1,6 +1,6 @@
 {
   "name": "skein",
-  "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2) + worktree 隔离 + task.md 看板; 差异化核心是两层规则记忆 (基于 .claude/rules): core 常驻注入硬规 + recall 按需语义召回, task finish 后经 sediment 判定门沉淀学习。含 skein-flow 强制闭环 / orchestrate 编排 / workspace 看板 / add planning 入口 / memory 记忆 / grill 对抗审查 / spec 破坏式重构 / apply 内化 / cleanup 清理; 另装 skein-guard 平台 hook 强制执行载体闭环",
+  "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .claude/rules): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀学习。含 9 skill (flow 强制闭环 / orchestrate 双层编排 / workspace 看板 / planning 规划入口 / memory 记忆 / grill 对抗审查 / spec 破坏式重构 / check 质量门 / clean 归档清理) + 3 agent (skein-implementer 执行 / skein-checker 验证 / skein-researcher 调研, 均无 Agent/Task 工具做递归护栏); SessionStart hook 注入 core 规则 + PreToolUse hook 硬阻直编 task.md",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",
@@ -13,12 +13,17 @@
     "./skills/skein-flow",
     "./skills/skein-orchestrate",
     "./skills/skein-workspace",
-    "./skills/skein-add",
+    "./skills/skein-planning",
     "./skills/skein-memory",
     "./skills/skein-grill",
     "./skills/skein-spec",
-    "./skills/skein-apply",
-    "./skills/skein-cleanup"
+    "./skills/skein-check",
+    "./skills/skein-clean"
+  ],
+  "agents": [
+    "./agents/skein-implementer.md",
+    "./agents/skein-checker.md",
+    "./agents/skein-researcher.md"
   ],
   "commands": [
     "./commands/skein-go.md"
@@ -39,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py session-start",
             "timeout": 5
           }
         ]

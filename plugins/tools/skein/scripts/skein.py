@@ -8,7 +8,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
   .skein/config.json              设置 (max_active / auto_commit / worktree_root)
   .skein/state.json               {focus: <id>}
   .skein/task/<id>/task.json      单 task 记录 (活跃)
-  .skein/task/<id>/*.md           planning 工件 (prd/design/implement, 由 skein-add 写)
+  .skein/task/<id>/*.md           planning 工件 (prd/design/implement, 由 skein-planning 写)
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
   .skein/task.md                  看板 (经本脚本 board, 禁直接编辑)
 """

@@ -1,11 +1,11 @@
 ---
 name: skein-orchestrate
-description: exec 阶段动态 DAG 编排调度。把 planning 拆好的 subtask 派给 subagent 执行时使用 — main 作调度器, 按冲突自算边 + depends_on 组成 DAG, 并发上限 2, ready 即派 / 完成即派。只管执行编排, 不做需求/方案设计。
+description: 动态 DAG 编排调度 (task 级 + subtask 级双层)。exec 阶段把 planning 拆好的 subtask 派 skein-implementer 执行、或同 session 多 task 并行时使用 — main 作调度器, 按冲突自算边 + depends_on 组成 DAG, 并发上限 2, ready 即派 / 完成即派。只管执行编排, 不做需求/方案设计。
 ---
 
-# skein-orchestrate — 动态 DAG 编排调度
+# skein-orchestrate — 动态 DAG 编排调度 (双层)
 
-**exec 阶段专用**。main 作调度器, 把 `skein-add` planning 拆好的 subtask 派 subagent 执行。**只管执行编排** (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-add` brainstorm)。
+**编排两层**: ① **subtask 级** (exec 阶段, 单 task 内把拆好的 subtask 派 `skein-implementer`); ② **task 级** (同 session 多 active task 并行, 见末节)。两层同构, 都是 main 作调度器跑同一套 DAG 算法。**只管执行编排** (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning` brainstorm)。
 
 ## 调度 DAG = 冲突自算边 ∪ 显式 depends_on
 
@@ -19,7 +19,7 @@ description: exec 阶段动态 DAG 编排调度。把 planning 拆好的 subtask
 就绪集 = DAG 中所有前置已 done 且无冲突占用的 subtask
 while 还有未完成 subtask:
     while 并发数 < 2 且 就绪集非空:
-        派 1 个就绪 subtask (真实 Agent 调用)
+        派 1 个就绪 subtask 给 skein-implementer (真实 Agent 调用)
     等任一 subagent 返回
     更新完成态 → 重算就绪集 → 立即派新就绪 (不空等全部)
 ```
@@ -35,6 +35,8 @@ while 还有未完成 subtask:
 
 ## dispatch prompt (6 字段自包含, 缺字段不派)
 
+派给 `skein-implementer`, 6 字段:
+
 ```
 目标: <这个 subtask 要产出什么>
 已知: Active task <id>, worktree=<路径>, 相关文件/上文, 召回的 recall 规则
@@ -44,8 +46,8 @@ while 还有未完成 subtask:
 失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
 ```
 
-- subagent **不调度不递归** (工具集勿给 Agent/Task), 只执行 1 subtask (Recursion Guard)。
-- subagent 不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。
+- `skein-implementer` **本身即无 Agent/Task 工具** (Recursion Guard), 只执行 1 subtask, 不自派。
+- 它不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。
 
 ## 异步等待清单 (强制)
 
@@ -68,7 +70,7 @@ while 还有未完成 subtask:
 
 | 禁 | 改为 |
 |---|---|
-| 用本 skill 做需求/方案设计 | 只管执行编排, 设计归 `skein-add` |
+| 用本 skill 做需求/方案设计 | 只管执行编排, 设计归 `skein-planning` |
 | 空等一批 subagent 全跑完再派下批 | 完成即派 (动态) |
 | subagent 内再派 subagent | subtask 执行者不递归 |
 | 派 agent 是叙述而非真实 Agent 调用 | 真实 tool_use |
