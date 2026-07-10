@@ -2,6 +2,8 @@
 name: skill-author
 description: 创建与维护 Claude skills 和 subagents 的方法论框架。当用户要编写 SKILL.md、创建新 skill、设计 subagent / agent.md、配置 frontmatter、拆分 progressive disclosure、调整现有 skill 的结构/触发/维护陷阱时使用。纯 9 维质量评分优化（不改结构）→ 路由 skill-optimizer。仅手动 /skill-author 触发。
 disable-model-invocation: true
+argument-hint: "[skills 功能] <路径>"
+arguments: "[skills 功能] <路径>"
 ---
 
 # Skill Author — Skill / Agent 编写方法论

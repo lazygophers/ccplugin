@@ -66,6 +66,7 @@ class Skein:
 
     def _set_focus(self, tid):
         (self.dir / "state.json").write_text(json.dumps({"focus": tid}, ensure_ascii=False, indent=2))
+        self._board(None)  # state.json 唯一写入口 → 变更即刷 task.md, 免看板漂移
 
     def _load(self, tid) -> dict:
         f = self.tasks / tid / "task.json"
