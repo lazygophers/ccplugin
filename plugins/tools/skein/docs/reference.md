@@ -1,0 +1,104 @@
+# 速查手册
+
+CLI、skill、agent、command、配置、hook 一览。
+
+## skein.py — 任务引擎 (main 同步跑)
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>
+```
+
+| 命令 | 参数 | 作用 |
+| --- | --- | --- |
+| `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件) |
+| `create <name>` | `--desc <文本>` `--deps "t01,t02"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>` |
+| `start <id>` | — | 建 worktree + 分支, 状态 → in_progress, 设 focus。前置未完成 / active 超上限 2 会报错 |
+| `finish [id]` | 省略 id 用 focus | commit → merge → 销 worktree → 归档。冲突自动 abort |
+| `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
+| `current` | `--all` | 显示 focus task; `--all` 列所有 active (focus 标 `<- current`) |
+| `list` | — | 列全部 task (含已归档) |
+| `board` | — | 渲染并打印 `.skein/task.md` 看板 |
+
+**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated`。
+**状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
+**id 规则**: `t01`, `t02`... 自动递增, 跳过已用 (含归档的)。
+
+## memory.py — 规则记忆引擎
+
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
+```
+
+| 命令 | 参数 | 作用 |
+| --- | --- | --- |
+| `init` | — | 初始化 `.claude/rules/` 两层目录 |
+| `session-start` | — | (SessionStart hook 调) 产出 core 规则注入 JSON |
+| `inject-core` | — | 打印 core 规则正文 (供手动查看) |
+| `recall <query>` | — | 按词粗筛 recall 索引, 打印命中行 (model 再读全文定用否) |
+| `sediment` | `--layer core\|recall` (必) `--title` (必) `--category` `--keywords` `--source` `--body-file` | 写盘一条规则 + 自动 reindex |
+| `reindex` | — | 重建三份索引 (两层 + 顶层聚合) |
+| `list` | `--layer core\|recall` | 列规则文件 |
+
+**规则文件 frontmatter**: `title / layer / category / keywords / source / authored-by / created`。
+**类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
+**core 预算**: 常驻注入有字符上限, 超了 sediment 会警告降级到 recall。
+
+## Skills (9 个)
+
+| skill | 何时用 | references |
+| --- | --- | --- |
+| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) | mandatory-flow-steps · anti-patterns |
+| `skein-orchestrate` | exec 阶段派 implementer / 多 task 并行调度 | scheduling-algorithm · progress-reporting |
+| `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门 | dispatch-graph |
+| `skein-memory` | recall 召回 + sediment 沉淀 | sediment-workflow |
+| `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
+| `skein-workspace` | 维护 `.skein/` + task.md 看板 | layout-and-commands |
+| `skein-spec` | 破坏式重构 (不保兼容, 全站点一次改齐) | anti-patterns |
+| `skein-check` | 质量门 (lint/type/test/契约), 未过派修 | — |
+| `skein-clean` | 清孤儿 worktree / 悬挂分支 / 漏归档 | anti-examples |
+
+每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。
+
+## Agents (3 个, 均无 Agent/Task 工具 = 递归护栏)
+
+| agent | 职责 | 工具面 |
+| --- | --- | --- |
+| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 | 读写 + Bash, 无 Agent/Task |
+| `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task |
+| `skein-researcher` | planning 阶段纯信息调研 (选型/对比) | 读 + 检索, 无 Agent/Task |
+
+## Command
+
+| command | 作用 |
+| --- | --- |
+| `/skein-go <任务描述>` | 强制把请求作为 SKEIN task 处理, 走 plan→exec→check→finish。调用即「建 task 同意」 |
+
+## 配置 (`.skein/config.json`)
+
+| 键 | 默认 | 作用 |
+| --- | --- | --- |
+| `max_active` | `2` | 同 session active task 并发上限 (= subtask 级上限) |
+| `auto_commit` | `true` | finish 时自动 commit worktree 改动。设 false 则有未提交改动会拒绝 finish (防强删丢失) |
+| `worktree_root` | `.worktrees` | worktree 存放根目录 (相对 git 根) |
+
+## Hooks (`.claude-plugin/plugin.json`)
+
+| hook | 触发 | 作用 |
+| --- | --- | --- |
+| **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 |
+| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.sh` 硬阻直改 task.md (写) / 直接读写 state.json (读写全挡) |
+
+## guard-skein.sh 拦截规则
+
+| 目标文件 | Read | Edit/Write/MultiEdit | 替代方式 |
+| --- | --- | --- | --- |
+| `.skein/state.json` | 🛑 挡 | 🛑 挡 | `skein.py current` 取 focus; create/start/finish 改状态 |
+| `.skein/task.md` | ✅ 放行 (看板本就要读) | 🛑 挡 | `skein.py board` 渲染; create/start/finish 改 task 状态 |
+
+## 生命周期一图速记
+
+```
+init → create(pending) → start(in_progress, +worktree, +focus)
+     → [plan → exec → check] → finish(commit→merge→archive, -worktree)
+                                   ↘ archive (丢弃, 不 merge)
+```

@@ -57,6 +57,18 @@
 
 或直接触发 `skein-flow` skill (复杂/多步/跨文件请求自动加载)。
 
+## 完整文档
+
+`docs/` 有完整文档 (从 [docs/README.md](docs/README.md) 起):
+
+| 想 | 读 |
+| --- | --- |
+| 装好插件跑通第一个 task | [docs/getting-started.md](docs/getting-started.md) |
+| 搞懂内部运转 (流程/调度/记忆) | [docs/workflow.md](docs/workflow.md) |
+| 不同活儿分别怎么用 | [docs/scenarios.md](docs/scenarios.md) |
+| 最佳实践 + 流程图 | [docs/best-practices.md](docs/best-practices.md) |
+| CLI/skill/agent 速查 | [docs/reference.md](docs/reference.md) |
+
 ## License
 
 AGPL-3.0-or-later
