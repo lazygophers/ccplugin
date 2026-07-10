@@ -21,21 +21,7 @@ description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式
 
 ## 强制流程 (不可跳步)
 
-> 贯穿全程: 每个生命周期节点 (create/start/阶段推进/finish) 后跑 `skein.py board` 更新看板。
-
-0. **前置** — 无 `.skein/` → 先 `python3 <plugin>/scripts/skein.py init`。判新旧 (新建 vs 并入 active task), 不准 → `AskUserQuestion`。
-1. **plan** (main 同步) — 委托 `skein-planning`: 判新旧 + `skein.py create` 登记 + brainstorm 需求/方案 + grill 硬门 (必走)。产出 `.skein/task/<id>/{prd.md,implement.md}`[+design.md]。
-2. **memory recall** (main) — 委托 `skein-memory` recall: 按任务描述召回相关 recall 规则注入 (core 规则已由 SessionStart 常驻)。
-3. **激活** (main) — 产物齐 → `AskUserQuestion` 交用户评审 → `skein.py start <id>` (建 worktree, status=in_progress) → 更新看板。
-4. **exec** (agent 编排) — main 作调度器, 动态 DAG 派 `skein-implementer` 各执行 1 subtask, 改动落 task worktree。见 `skein-orchestrate`。每个 agent 完成即回传。
-   - 🔴 **异步等待 MUST 输出任务清单** — 派出异步任务后结束本回合前, 输出全景表 (4 列: id/状态/摘要/进度%)。
-   - 🔴 **exec 阶段禁问用户顺序** — 顺序归 planning (调度图 + deps + 冲突 DAG)。ready 即派 / 完成即派 / 并发 2。PRD 缺调度图 → 退回 planning 补, 不在 exec 问。
-5. **check** (委托 `skein-check`) — 派 `skein-checker` 验证 (lint / type-check / tests / 契约合规); 未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
-6. **finish** (main 同步) — check 通过 →
-   - 🔴 **sediment 判定门** — 按 `skein-memory` 的 checklist 逐项 ✅/❌ 输出 trace, 判本 task learning → core/recall/drop。触发 → 走 sediment 提案 (审批后写盘) 再 finish; 全否 → 跳过 (仍输出全 ❌ trace)。
-   - **清理** — `TaskList` 查残留 subagent / 后台任务, `TaskStop` 关闭。禁 `sleep` 轮询等后台跑完。
-   - `skein.py finish <id>` — 自动 commit worktree → merge --no-ff 回主 → archive → 销 worktree。冲突 → 自动 abort + 报冲突文件, 停, 转手动解, 禁强解 / 禁当成功。
-   - 更新看板 (status=completed)。
+7 步闭环 (前置→plan→memory recall→激活→exec→check→finish), 每个生命周期节点后跑 `skein.py board`。完整分步细则详见 `references/mandatory-flow-steps.md`。
 
 ## 作用域边界 (何时建 task)
 
@@ -55,16 +41,4 @@ description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式
 
 ## ⛔ 反例 (命中 = 流程错误)
 
-| 禁 | 改为 |
-|---|---|
-| main 直接改源码 / 跑 check (非特别例外) | 派 subagent 在 worktree 内 |
-| 把 skein.py 派 agent 执行 | main 同步跑 |
-| inline 跳过 task | 一律走闭环 (本 skill 全部意义) |
-| 极简请求 (纯查询 / 单文件 ≤20 行) 强建 task | 该 inline 的 inline |
-| check 未过推进 finish / 未 archive 宣告 Done | 先修复重检 / 未闭环 |
-| 口头宣称「已派 agent / 已建 task」但无 tool_use | 先真实调用再回传 |
-| exec subagent 在主工作区改源码 (无 worktree) | 必在 task worktree |
-| 直接 Edit/Write `.skein/task.md` | 经 `skein.py board` |
-| 纯文本提问代替 `AskUserQuestion` | 用工具 |
-| exec 阶段问用户「先做哪个」 | 顺序归 planning |
-| sediment 判定未输出 trace | 逐项 ✅/❌ 输出 |
+11 条流程错误黑名单 (main 直接改源码 / inline 跳 task / 宣称无 tool_use / 无 worktree 改源码 / 纯文本代替 AskUserQuestion 等), 逐条对照详见 `references/anti-patterns.md`。
