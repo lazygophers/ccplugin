@@ -89,7 +89,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | --- | --- |
 | `/skein-go <任务描述>` | 强制把请求作为 SKEIN task 处理, 走 plan→exec→check→finish。调用即「建 task 同意」 |
 
-## 配置 (`.skein/config.json`)
+## 配置 (`.skein/config.yaml`)
 
 | 键 | 默认 | 作用 |
 | --- | --- | --- |

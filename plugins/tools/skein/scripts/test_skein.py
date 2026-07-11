@@ -32,7 +32,15 @@ def main():
 
         # init
         sk(d, "init")
-        assert (d / ".skein" / "config.json").exists(), "config 缺失"
+        assert (d / ".skein" / "config.yaml").exists(), "config 缺失"
+        # mini YAML 解析器往返: 类型 (int/bool/str) + # 注释
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("skein", SKEIN)
+        sk_mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(sk_mod)
+        rt = sk_mod._yaml_load(sk_mod._yaml_dump(
+            {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}))
+        assert rt == {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}, rt
+        assert sk_mod._yaml_load("max_active: 2  # 注释\nfoo: bar")["max_active"] == 2, "注释未剥离"
         assert (d / ".skein" / "task.md").exists(), "看板缺失"
 
         # create t01

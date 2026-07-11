@@ -143,7 +143,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 .skein/
 ├── task.json                        # 顶层 {tasks:[...]} 全表 — 脚本维护, AI 禁读写
 ├── task.md                          # 顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
-├── config.json                      # {max_active, max_parallel, auto_commit, worktree_root}
+├── config.yaml                      # max_active / max_parallel / auto_commit / worktree_root
 └── task/
     ├── <id>/                        # 活跃 task
     │   ├── task.json                # 记录 + subtask DAG — 脚本维护, AI 禁读写
@@ -159,7 +159,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 └── skein-<id>/                      # task 隔离 worktree (finish 后销)
 ```
 
-> SKEIN 自包含: `skein.py` 自身即引擎, `config.json` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
+> SKEIN 自包含: `skein.py` 自身即引擎, `config.yaml` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
 
 ## 护栏机制
 

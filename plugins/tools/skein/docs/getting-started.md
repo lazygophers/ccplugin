@@ -34,7 +34,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
 .skein/
 ├── task.json        # {tasks:[]} — 顶层状态全表, 脚本维护, AI 禁读写
 ├── task.md          # 空看板 — 由 task.json 自动渲染
-├── config.json      # {max_active:2, max_parallel:2, auto_commit:true, worktree_root:".worktrees"}
+├── config.yaml      # max_active:2 / max_parallel:2 / auto_commit:true / worktree_root:.worktrees
 └── task/
     └── archive/     # 归档根
 ```

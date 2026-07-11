@@ -5,7 +5,7 @@
 skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
-  .skein/config.json              设置 (max_active / max_parallel / auto_commit / worktree_root)
+  .skein/config.yaml              设置 (max_active / max_parallel / auto_commit / worktree_root)
   .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
@@ -43,6 +43,30 @@ def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳
 
 
+# ponytail: config 只有 4 个扁平标量键 → 手写 mini YAML 读写, 免 PyYAML 依赖。
+# ceiling: 只认 `key: value` + `#` 注释, 不支持嵌套/列表/多行。够 config 用即止。
+def _yaml_load(text: str) -> dict:
+    out = {}
+    for line in text.splitlines():
+        line = line.split("#", 1)[0].strip()
+        if not line or ":" not in line:
+            continue
+        k, v = line.split(":", 1)
+        v = v.strip().strip("'\"")
+        if v in ("true", "false"):
+            v = v == "true"
+        elif v.lstrip("-").isdigit():
+            v = int(v)
+        out[k.strip()] = v
+    return out
+
+
+def _yaml_dump(d: dict) -> str:
+    def fmt(v):
+        return "true" if v is True else "false" if v is False else str(v)
+    return "".join(f"{k}: {fmt(v)}\n" for k, v in d.items())
+
+
 def git(*args, cwd=None, check=True, capture=True):
     r = subprocess.run(
         ["git", *args], cwd=cwd, check=False,
@@ -75,10 +99,10 @@ class Skein:
 
     # ---- 存取 ----
     def config(self) -> dict:
-        f = self.dir / "config.json"
+        f = self.dir / "config.yaml"
         if not f.exists():
             raise SystemExit("未初始化 — 先跑 `skein.py init`")
-        return json.loads(f.read_text())
+        return _yaml_load(f.read_text())
 
     def _sync(self):
         # 顶层 task.json 唯一写入口: tasks 是未归档 task 的去规范化状态镜像 (per-task task.json 仍单一真值源),
@@ -132,14 +156,14 @@ class Skein:
         self.dir.mkdir(exist_ok=True)
         self.tasks.mkdir(exist_ok=True)
         self.archive_dir.mkdir(parents=True, exist_ok=True)
-        cfg = self.dir / "config.json"
+        cfg = self.dir / "config.yaml"
         if not cfg.exists():
-            cfg.write_text(json.dumps({
+            cfg.write_text(_yaml_dump({
                 "max_active": 2,
                 "max_parallel": 2,
                 "auto_commit": True,
                 "worktree_root": ".worktrees",
-            }, ensure_ascii=False, indent=2))
+            }))
         if not (self.dir / "task.json").exists():
             self._sync()
         self._board(None)

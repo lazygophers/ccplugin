@@ -27,7 +27,7 @@
 
 | 文件 | 是什么 | 谁维护 · AI 可否读写 |
 | --- | --- | --- |
-| `config.json` | 插件配置 (`max_active`/`max_parallel`/`auto_commit`/`worktree_root`) | 用户手改 · AI 可读 |
+| `config.yaml` | 插件配置 (`max_active`/`max_parallel`/`auto_commit`/`worktree_root`) | 用户手改 · AI 可读 |
 | `task.json` | 顶层状态汇总 `{tasks:[{id,状态,deps,worktree}]}` — 全部未归档 task 一览 | **脚本** · AI 禁读写 (guard 硬阻) |
 | `task.md` | 顶层看板 (t02 进行中 / t03 待处理, 由 task.json 渲染) | **脚本** · AI 禁读写 |
 | `task/t02/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) + `contracts[]` | **脚本** · AI 禁读写 |

@@ -38,7 +38,7 @@
 .skein/
 ├── task.md            # 看板 (经 skein.py board 渲染, 禁直接编辑)
 ├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task
-├── config.json        # {max_active:2, auto_commit:true, worktree_root:".worktrees"}
+├── config.yaml        # max_active:2 / auto_commit:true / worktree_root:.worktrees
 └── task/
     ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / task.json
     └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档
@@ -48,7 +48,7 @@
 └── recall/{<类目>/*.md,index.md} # 按需召回规则 (按类目分子目录) + 层索引
 ```
 
-> SKEIN 自包含: `skein.py` 自身即引擎, `config.json` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
+> SKEIN 自包含: `skein.py` 自身即引擎, `config.yaml` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
 
 
 ## 用法
