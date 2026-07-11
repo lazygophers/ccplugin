@@ -49,7 +49,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 - 把 `implement.md` 拆成 subtask, 按冲突自算边 + 显式 `depends_on` 组成 DAG。
 - **ready 即派** `skein-implementer` (6 字段自包含 prompt), **并发上限 2**, **完成即派**下一个 (不空等全部)。
-- **读后写硬门 + reason 注解**: dispatch prompt 的「工作目录与范围」段**逐文件枚举**, 每个文件带 **reason** (改它满足哪条契约/需求)。implementer 收 subtask 后, 对每个待改文件必过 🔴 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 + reason → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。把契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
+- **读后写硬门 + reason 注解**: dispatch prompt 的「工作目录与范围」段**逐文件枚举**, 每个文件带 **reason** (改它满足哪条契约/需求)。implementer 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 + reason → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。把契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
 - 派出异步任务后结束本回合前, MUST 输出任务全景表 (状态: 进行中 / 等待中 / 阻塞)。
@@ -58,7 +58,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <focus>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
 
-**第 3 轮仍 FAIL → 根因复盘**: 不再只 🛑 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
+**第 3 轮仍 FAIL → 根因复盘**: 不再只 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
 ### ⑥ finish (main 同步)
 

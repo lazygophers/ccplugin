@@ -87,7 +87,7 @@ class Memory:
         text = "\n\n".join(p for p in parts if p)
         if len(text) > CORE_BUDGET:
             sys.stderr.write(
-                f"⚠️ core 规则 {len(text)} 字符 > 预算 {CORE_BUDGET} — "
+                f"core 规则 {len(text)} 字符 > 预算 {CORE_BUDGET} — "
                 "常驻注入过重, 考虑降级部分到 recall\n")
         return text
 

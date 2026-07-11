@@ -73,7 +73,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current --all
 # t02  in_progress  修复登录页样式    <- active
 ```
 
-`focus` (⭐, 默认操作对象) 是最近 start 的那个。
+`focus` (, 默认操作对象) 是最近 start 的那个。
 
 ## 场景 5: 修 bug
 

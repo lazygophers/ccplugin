@@ -71,7 +71,7 @@ def main():
                  if l.startswith("| ") and "index" not in l and "---" not in l and "file" not in l]
         assert len(rows2) == 2, f"reindex 后应仍 2 行得 {len(rows2)}"
 
-    print("✅ memory.py 冒烟测试全过 (init/sediment×类目/顶层索引/recall粗筛/inject-core隔离层/reindex幂等)")
+    print("memory.py 冒烟测试全过 (init/sediment×类目/顶层索引/recall粗筛/inject-core隔离层/reindex幂等)")
 
 
 if __name__ == "__main__":

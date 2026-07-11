@@ -188,7 +188,7 @@ class Skein:
                 st = git("status", "--porcelain", cwd=wt, check=False)
                 if st.stdout.strip():
                     raise SystemExit(
-                        f"🛑 {tid} worktree 有未提交改动且 auto_commit=false — "
+                        f"{tid} worktree 有未提交改动且 auto_commit=false — "
                         f"先手动提交再 finish (禁强删丢失):\n{wt}")
             # 合并回主工作区
             m = git("merge", "--no-ff", t["branch"], "-m",
@@ -196,12 +196,12 @@ class Skein:
             if m.returncode != 0:
                 git("merge", "--abort", cwd=self.root, check=False)
                 raise SystemExit(
-                    f"🛑 合并冲突 {tid} — 已 abort。手动解冲突后重跑 finish:\n{m.stdout}{m.stderr}")
+                    f"合并冲突 {tid} — 已 abort。手动解冲突后重跑 finish:\n{m.stdout}{m.stderr}")
             git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
             git("branch", "-D", t["branch"], cwd=self.root, check=False)
         elif wt:
             sys.stderr.write(
-                f"⚠️ {tid} worktree 记录存在但目录缺失 ({wt}) — "
+                f"{tid} worktree 记录存在但目录缺失 ({wt}) — "
                 f"跳过合并, 分支 {t['branch']} 若有提交未并入\n")
         t["status"] = "completed"
         t["worktree"] = None
@@ -311,7 +311,7 @@ class Skein:
         rows = []
         focus = self._state().get("focus")
         for t in self._all():
-            mark = " ⭐" if t["id"] == focus else ""
+            mark = " " if t["id"] == focus else ""
             deps = ",".join(t["deps"]) or "-"
             wt = t.get("worktree") or "-"
             if wt != "-":
@@ -320,7 +320,7 @@ class Skein:
         body = "\n".join(rows) if rows else "| - | - | - | - | - |"
         md = (
             "# SKEIN 看板\n\n"
-            "> 经 `skein.py board` 渲染, 禁直接编辑。⭐ = focus。\n\n"
+            "> 经 `skein.py board` 渲染, 禁直接编辑。= focus。\n\n"
             "| id | 名称 | 状态 | 前置 | worktree |\n"
             "|---|---|---|---|---|\n"
             f"{body}\n\n"

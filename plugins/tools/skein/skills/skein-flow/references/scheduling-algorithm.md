@@ -51,5 +51,5 @@ while 还有未完成 subtask:
 失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
 ```
 
-- 🔴 **per-file reason 必填** — 范围段每个目标文件后附一句 reason (为什么改它), 让 implementer 拿到就知道每个文件的改动意图, 并据此在写前复述契约 (见 `skein-implementer` 写前硬门)。reason 与该文件适用契约矛盾时 implementer 会标 `需要:` 回传, 不擅改。
+- **per-file reason 必填** — 范围段每个目标文件后附一句 reason (为什么改它), 让 implementer 拿到就知道每个文件的改动意图, 并据此在写前复述契约 (见 `skein-implementer` 写前硬门)。reason 与该文件适用契约矛盾时 implementer 会标 `需要:` 回传, 不擅改。
 - `skein-implementer` **本身即无 Agent/Task 工具** (Recursion Guard), 只执行 1 subtask, 不自派; 也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。

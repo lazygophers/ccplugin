@@ -61,7 +61,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | skill | 何时用 | references |
 | --- | --- | --- |
-| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | mandatory-flow-steps · anti-patterns · scheduling-algorithm · progress-reporting |
+| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | mandatory-flow-steps · scheduling-algorithm · progress-reporting |
 | `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
@@ -74,7 +74,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
-| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 (每文件过 🔴 写前 CHECKPOINT) | 读写 + Bash, 无 Agent/Task | `effort: high` (继承主模型, 不降级) |
+| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 (每文件过 写前 CHECKPOINT) | 读写 + Bash, 无 Agent/Task | `effort: high` (继承主模型, 不降级) |
 | `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 
@@ -105,8 +105,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | 目标文件 | Read | Edit/Write/MultiEdit | 替代方式 |
 | --- | --- | --- | --- |
-| `.skein/state.json` | 🛑 挡 | 🛑 挡 | `skein.py current` 取 focus; create/start/finish 改状态 |
-| `.skein/task.md` | ✅ 放行 (看板本就要读) | 🛑 挡 | `skein.py board` 渲染; create/start/finish 改 task 状态 |
+| `.skein/state.json` | 挡 | 挡 | `skein.py current` 取 focus; create/start/finish 改状态 |
+| `.skein/task.md` | 放行 (看板本就要读) | 挡 | `skein.py board` 渲染; create/start/finish 改 task 状态 |
 
 ## 生命周期一图速记
 

@@ -100,7 +100,7 @@ flowchart LR
 
 ## 做得好 vs 做得糟
 
-| 维度 | ✅ 好 | ❌ 糟 |
+| 维度 | 好 | 糟 |
 | --- | --- | --- |
 | plan 深度 | 需求方案在 plan 阶段对齐透, exec 一路顺 | plan 潦草, exec 中途反复停下问「先做哪个」 |
 | 顺序决策 | 依赖关系在 planning 用 depends_on / 调度图定死 | 到 exec 才临时问用户顺序 |
@@ -125,13 +125,11 @@ flowchart LR
 10. 纯文本提问代替 AskUserQuestion → 用户确认必用工具。
 11. exec 阶段 subtask 之间停下问用户顺序 → 顺序归 planning。
 
-完整 11 条见 skill `skein-flow/references/anti-patterns.md`。
-
 ## 效率贴士
 
 - **策略分档轻量路由** — planning 先给任务定档 (`direct-fix` 单点微改直接豁免 / `standard` 常规闭环 / `heavy` 跨子系统强化 grill + 拆多 task), 按档投入 planning 力度, 别对小改也上重流程 (仅路由启发, 无新机器)。
 - **契约当可复用验收基准** — planning 锁进 `contracts` 的不变量既是本 task check 的逐条验收项, 值得复用的 (如「必须走异步队列」) finish 时再 sediment 成规则, 供后续 task 复用。
-- **写前先读、复述契约再改** — implementer 对每个待改文件必过 🔴 写前 CHECKPOINT (先 Read 全文 → 复述适用契约 + reason → 才 Edit/Write), 把契约约束从 check 事后验前移到写前, 少一轮返工。dispatch 时逐文件带 reason (改它满足哪条契约/需求), 别甩一个笼统范围让 agent 猜。文件现状与契约矛盾 → 标 `需要:` 回传, **别擅改**。
+- **写前先读、复述契约再改** — implementer 对每个待改文件必过 写前 CHECKPOINT (先 Read 全文 → 复述适用契约 + reason → 才 Edit/Write), 把契约约束从 check 事后验前移到写前, 少一轮返工。dispatch 时逐文件带 reason (改它满足哪条契约/需求), 别甩一个笼统范围让 agent 猜。文件现状与契约矛盾 → 标 `需要:` 回传, **别擅改**。
 - **空仓先播种基线** — 首次接入且 `.claude/rules` 为空时, 先走 `skein-memory` 冷启动播种 (`references/bootstrap-seeding.md`) 扫既有约定播种规则 (默认多归 recall, 仅硬约束进 core), 让第一个 task 就能召回项目习惯; 之后靠正常 finish sediment 增量累积, 别再重复播种。
 - **第 3 轮别硬撞** — check 反复不过到第 3 轮, 走 `skein-check` 根因复盘协议 (`references/root-cause-protocol.md`) 做 5 维复盘 (需求/设计/实现/环境/测试), 定位真根因再定向重修, 别在同一层症状上无脑加轮。
 - **plan 一次到位** — 省下 exec 反复返工。grill 硬门就是逼你在动手前把漏洞暴露完。

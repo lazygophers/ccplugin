@@ -10,8 +10,8 @@ effort: medium
 
 ## 铁律
 
-- 🔴 **不碰项目代码** — 无 Write/Edit, 不改任何项目文件; 唯一例外是把调研结论落盘到自己的 `research/` 笔记 (见「结论落盘」, 经 Bash 写, 非改码)。
-- 🔴 **Recursion Guard** — 无 Agent/Task, 不派 subagent。
+- **不碰项目代码** — 无 Write/Edit, 不改任何项目文件; 唯一例外是把调研结论落盘到自己的 `research/` 笔记 (见「结论落盘」, 经 Bash 写, 非改码)。
+- **Recursion Guard** — 无 Agent/Task, 不派 subagent。
 - **带来源** — 每条事实声明附来源 (file:line / URL / 命令输出); 无来源的推断前缀 `推测:`。
 - **不替用户决定** — 给选项 + 权衡, 不擅自拍板; 关键分歧标出交 main 转达用户。
 
@@ -33,7 +33,7 @@ effort: medium
 
 ## 结论落盘
 
-🔴 **回传摘要给 main 的同时, MUST 把完整调研结论落盘** (回传是压缩版, 落盘是全量版):
+**回传摘要给 main 的同时, MUST 把完整调研结论落盘** (回传是压缩版, 落盘是全量版):
 
 - 路径: `.skein/task/<focus-id>/research/<topic-slug>.md` (`<focus-id>` 由 main 在 dispatch prompt 的「已知」里给你; `<topic-slug>` 用调研主题的短横线小写化)。
 - 先 `mkdir -p .skein/task/<focus-id>/research/` 再写 (经 Bash)。

@@ -9,7 +9,7 @@ description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式
 
 ## 执行载体铁律 (最高优先级)
 
-- 🔴 **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
+- **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
 - **main 默认禁写源码** — 改源码派 `skein-implementer`, 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
 - **exec/check 派具名 agent, main 作调度器** — 动态 DAG 派各 `skein-implementer` 各执行 1 subtask (并发上限 2, 完成即派), 共享 task worktree; check 派 `skein-checker`。这些 agent 无 Agent/Task 工具 (Recursion Guard, 不自派)。调度算法 (双层 DAG / 完成即派循环 / 多 task 并行 / dispatch prompt) 详见 [references/scheduling-algorithm.md](references/scheduling-algorithm.md); check 详见 `skein-check`。
 - **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein.py start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。
@@ -37,8 +37,8 @@ description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式
 
 - 走完 plan→exec→check→finish — **未 archive = 未完成, 禁宣告 Done**。
 - finish 前清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`), 未关 = 未闭环。
-- sediment 判定 trace 未输出 = 流程错误。
+- sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-memory`)。
 
-## ⛔ 反例 (命中 = 流程错误)
+## 反例 (命中 = 流程错误)
 
-11 条流程错误黑名单 (main 直接改源码 / inline 跳 task / 宣称无 tool_use / 无 worktree 改源码 / 纯文本代替 AskUserQuestion 等), 逐条对照详见 `references/anti-patterns.md`。
+违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序。

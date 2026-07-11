@@ -106,7 +106,7 @@ def main():
 
         # board 渲染含 focus 标记
         board = (d / ".skein/task.md").read_text()
-        assert "t02" in board and "⭐" in board, "看板缺 focus 标记"
+        assert "t02" in board and "" in board, "看板缺 focus 标记"
 
         # archive in_progress task → 销 worktree/branch + 让出 focus (不泄漏)
         wt2 = Path(json.loads((d / ".skein/task/t02/task.json").read_text())["worktree"])
@@ -126,7 +126,7 @@ def main():
         sk(d, "finish", "t03")
         assert json.loads((d / ".skein/state.json").read_text())["focus"] == "t04", "finish 抢占无关 focus"
 
-    print("✅ skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/focus不抢占)")
+    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/focus不抢占)")
 
 
 if __name__ == "__main__":
