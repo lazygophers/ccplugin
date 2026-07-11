@@ -208,7 +208,7 @@ class Skein:
                 "auto_commit": True,
                 "worktree_root": ".worktrees",
                 "retain_days": 7,  # 完成 task 保留天数 (留在看板), 超则自动归档; 0=finish 即归档, 负=永不自动
-                "board_theme": "morandi",
+                "board_theme": "sketch",
                 "board_palette": "stone",
                 "board_mode": "light",
             }))
@@ -646,11 +646,9 @@ class Skein:
         def bar(pct, sub=False, cls=""):
             # width + label 均封顶 100% (进度不可 >100%); 超时靠红色 over class + 原始耗时/预期文本传达
             p = min(pct, 100)
-            c = "bar" + (" sub" if sub else "") + ((" " + cls) if cls else "")
-            style = f"width:{p}%"
-            if not cls:  # 完成度条按百分比渐变 (0%红→100%绿); time/est/over 保留主题语义色
-                h = round(p * 1.2)  # hue: 0=红 60=黄 120=绿
-                style += f";background:linear-gradient(90deg,hsl({max(h-25,0)} 72% 48%),hsl({h} 72% 45%))"
+            kind = cls or "prog"  # 完成度条标 prog: CSS 按 --p 在主题 palette 内插值上色, 随主题/配色自适应
+            c = "bar " + kind + (" sub" if sub else "")
+            style = f"width:{p}%" + (f";--p:{p}" if kind == "prog" else "")
             return (f'<div class="{c}"><div class="fill" '
                     f'style="{style}"></div><span class="pct">{p}%</span></div>')
 
@@ -802,7 +800,7 @@ class Skein:
 
         self._copy_board_assets()
         cfg = self.config()
-        theme = cfg.get("board_theme", "morandi")
+        theme = cfg.get("board_theme", "sketch")
         palette = cfg.get("board_palette", "stone")
         mode = cfg.get("board_mode", "light")
         links = ('<link rel=stylesheet href="board/base.css">'
