@@ -647,8 +647,12 @@ class Skein:
             # width + label 均封顶 100% (进度不可 >100%); 超时靠红色 over class + 原始耗时/预期文本传达
             p = min(pct, 100)
             c = "bar" + (" sub" if sub else "") + ((" " + cls) if cls else "")
+            style = f"width:{p}%"
+            if not cls:  # 完成度条按百分比渐变 (0%红→100%绿); time/est/over 保留主题语义色
+                h = round(p * 1.2)  # hue: 0=红 60=黄 120=绿
+                style += f";background:linear-gradient(90deg,hsl({max(h-25,0)} 72% 48%),hsl({h} 72% 45%))"
             return (f'<div class="{c}"><div class="fill" '
-                    f'style="width:{p}%"></div><span class="pct">{p}%</span></div>')
+                    f'style="{style}"></div><span class="pct">{p}%</span></div>')
 
         # 状态 -> CSS 变量 (执行顺序图节点左边框着色); task/subtask 状态共用 (值同名)
         node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
