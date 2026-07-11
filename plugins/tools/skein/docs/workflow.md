@@ -58,7 +58,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <focus>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
 
-**第 3 轮仍 FAIL → break-loop 根因复盘**: 不再只 🛑 STOP, 而是加载 `skein-break-loop` 做跨维度结构化根因复盘 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
+**第 3 轮仍 FAIL → 根因复盘**: 不再只 🛑 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
 ### ⑥ finish (main 同步)
 
@@ -90,7 +90,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 **调度循环**: ready (前置全完成 + 无冲突占用) 即派 → 任一返回即查新 ready 立即派 → 并发始终 ≤ 2。exec 阶段 subtask 之间**禁停下问你顺序** (顺序归 planning 定; planning 没定就退回 planning 补, 不在 exec 问)。
 
-多 task 并行细则见 [reference.md](reference.md) 的调度算法段, 或 skill `skein-orchestrate/references/scheduling-algorithm.md`。
+多 task 并行细则见 [reference.md](reference.md) 的调度算法段, 或 skill `skein-flow/references/scheduling-algorithm.md`。
 
 ## 两层规则记忆 (差异化核心)
 
@@ -107,7 +107,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 ### bootstrap 冷启动播种 (一次性)
 
-仓库**首次接入** SKEIN、`.claude/rules` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 跑一次 `skein-bootstrap`:
+仓库**首次接入** SKEIN、`.claude/rules` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 走 `skein-memory` 的冷启动播种 (`references/bootstrap-seeding.md`):
 
 1. 派 `skein-researcher` (**bootstrap 扫描模式**) 扫既有代码库约定 — 命名 / 错误处理 / 测试 / 架构边界 / 构建 5 个维度, 提炼候选规则。
 2. 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。

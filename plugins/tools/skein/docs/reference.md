@@ -57,22 +57,18 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 常驻注入有字符上限, 超了 sediment 会警告降级到 recall。
 
-## Skills (10 个)
+## Skills (6 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
-| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) | mandatory-flow-steps · anti-patterns |
-| `skein-orchestrate` | exec 阶段派 implementer / 多 task 并行调度 | scheduling-algorithm · progress-reporting |
-| `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门 | dispatch-graph |
-| `skein-memory` | recall 召回 + sediment 沉淀 | sediment-workflow |
+| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | mandatory-flow-steps · anti-patterns · scheduling-algorithm · progress-reporting |
+| `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
+| `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
-| `skein-refactor` | 破坏式重构 (不保兼容, 全站点一次改齐) | anti-patterns |
-| `skein-check` | 质量门 (lint/type/test/契约), 未过派修 | — |
+| `skein-check` | 质量门 (lint/type/test/契约), 未过派修; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
 | `skein-clean` | 清孤儿 worktree / 悬挂分支 / 漏归档 | anti-examples |
-| `skein-bootstrap` | 空仓冷启动: 首次接入且 `.claude/rules` 为空/近空时, 扫既有代码库约定播种规则基线 (一次性) | scan-dimensions |
-| `skein-break-loop` | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (5 维定位 + 预防措施) | root-cause-protocol · anti-patterns |
 
-每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。
+每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 flow / planning / memory / check 的 references (省常驻 description token)。
 
 ## Agents (3 个, 均无 Agent/Task 工具 = 递归护栏)
 

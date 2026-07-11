@@ -22,7 +22,7 @@ description: planning 入口 (需求/方案设计的单一真值源)。新建 SK
 |---|---|---|
 | `direct-fix` | 单点微改, 在作用域边界表豁免范围内 | 不建 task, 直接改 |
 | `standard` | 跨文件 / 多步, 单 task 可覆盖 | 常规 plan→exec→check→finish |
-| `heavy` | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on` |
+| `heavy` | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 references/breaking-refactor.md |
 
 ## 流程
 

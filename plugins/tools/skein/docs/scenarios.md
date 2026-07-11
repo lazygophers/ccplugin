@@ -26,7 +26,7 @@
 /skein-go 把 getUserById 返回类型从 User 改为 UserDTO, 所有调用点一次改齐, 不留兼容层
 ```
 
-- 这类活儿走 **`skein-refactor`** (破坏式重构执行器): 不保兼容、全站点一次改齐。
+- 这类活儿走 **`skein-planning` heavy 档的破坏式重构注解** (`references/breaking-refactor.md`): 不保兼容、全站点一次改齐。
 - exec 会先 grep 所有调用点, 一次性全改, 避免留半新半旧的中间态。
 - worktree 隔离在这里尤其关键: 改到一半发现方案不对, 直接丢弃整条 task, 主分支毫发无损。
 
@@ -105,7 +105,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current --all
 | 情况 | 怎么办 |
 | --- | --- |
 | exec agent 报错返回 | main 读原因、缩范围、重派; 连续 2 次失败 → STOP 回传你 |
-| check 反复不过 (≥2 轮) | 派 agent 定点修; 第 3 轮仍不过 → 加载 `skein-break-loop` 做**跨维度根因复盘** (需求/设计/实现/环境/测试 5 维定位 + 预防措施), 出口: 带根因回 exec 定向重修, 或 STOP 附根因报告转人工 (可复用教训回流 sediment) |
+| check 反复不过 (≥2 轮) | 派 agent 定点修; 第 3 轮仍不过 → 走 `skein-check` 根因复盘协议 (`references/root-cause-protocol.md`) 做**跨维度根因复盘** (需求/设计/实现/环境/测试 5 维定位 + 预防措施), 出口: 带根因回 exec 定向重修, 或 STOP 附根因报告转人工 (可复用教训回流 sediment) |
 | finish 合并冲突 | 自动 abort + 报冲突文件; 手动解冲突后重跑 finish, **禁强解** |
 | 方案跑歪想放弃 | `skein.py archive <id>` — 丢弃 task (销 worktree, 不合并), 主分支干净 |
 
@@ -113,7 +113,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current --all
 
 **例**: 一个已有代码但从没用过 SKEIN 的仓库, `.claude/rules` 还是空的, 规则库没历史经验可召回。
 
-- main 会用 AskUserQuestion 征你同意后跑一次 **`skein-bootstrap`** 冷启动播种:
+- main 会用 AskUserQuestion 征你同意后走 **`skein-memory` 冷启动播种** (`references/bootstrap-seeding.md`):
   - 派 `skein-researcher` (bootstrap 扫描模式) 扫既有代码库约定 (命名 / 错误处理 / 测试 / 架构边界 / 构建 5 维), 提炼候选规则。
   - 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。
 - **一次性动作**: 只在冷启动跑一次, 给规则库播下基线; 后续增量经验仍走正常 finish sediment。
