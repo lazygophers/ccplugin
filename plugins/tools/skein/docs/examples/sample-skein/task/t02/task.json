@@ -1,8 +1,8 @@
 {
   "id": "t02",
   "name": "订单创建 API",
-  "desc": "POST /orders 校验+扣减库存+落库+发事件",
-  "status": "in_progress",
+  "desc": "POST /orders: 校验→扣库存→落单→发事件",
+  "status": "进行中",
   "deps": [],
   "contracts": [
     "同一幂等键重复提交只落一单 (唯一约束)",
@@ -16,8 +16,8 @@
       "write": [
         "internal/order/validate*.go"
       ],
-      "reason": "校验商品/数量/收货地址, 满足契约前置",
-      "status": "done"
+      "reason": "校验商品/数量/收货地址, 契约前置",
+      "status": "已完成"
     },
     {
       "sid": "s2",
@@ -27,7 +27,7 @@
         "internal/inventory/*.go"
       ],
       "reason": "Redis 原子 decr, 不足即拒 (契约2)",
-      "status": "running"
+      "status": "运行中"
     },
     {
       "sid": "s3",
@@ -36,8 +36,8 @@
       "write": [
         "internal/order/repo*.go"
       ],
-      "reason": "唯一索引冲突, 待改幂等键生成规则重试",
-      "status": "failed"
+      "reason": "幂等键冲突, 待重试",
+      "status": "失败"
     },
     {
       "sid": "s4",
@@ -48,12 +48,12 @@
       "write": [
         "internal/event/*.go"
       ],
-      "reason": "落单成功后发 MQ 事件, 依赖 s3",
-      "status": "pending"
+      "reason": "落单成功后发 MQ 事件",
+      "status": "待处理"
     }
   ],
-  "worktree": "/your/repo/.worktrees/skein-t02",
+  "worktree": ".worktrees/skein-t02",
   "branch": "skein/t02",
-  "created": "2026-07-11T15:08:25",
-  "updated": "2026-07-11T15:08:26"
+  "created": 1783754713,
+  "updated": 1783754713
 }

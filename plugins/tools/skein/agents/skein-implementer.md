@@ -24,7 +24,7 @@ effort: high
 改**任何**文件前, 逐文件按序执行, 未走完不许 Edit/Write:
 
 1. **STOP → Read 全文** — 先 `Read` 该文件完整内容 (禁凭 dispatch 摘要或记忆就动手)。
-2. **复述适用契约 + reason** — 一句话写清: 「本文件 = <path>; 适用契约 = <逐条>; 本次 reason = <dispatch 给的 per-file reason>」。契约来源: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <focus>` (planning 阶段锁进 task.json 的同一批契约; 与 check 阶段逐条验的是同一份, 本硬门只是把它前移到写前过一遍, **不新造契约存储**)。
+2. **复述适用契约 + reason** — 一句话写清: 「本文件 = <path>; 适用契约 = <逐条>; 本次 reason = <dispatch 给的 per-file reason>」。契约来源: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>` (planning 阶段锁进 task.json 的同一批契约; 与 check 阶段逐条验的是同一份, 本硬门只是把它前移到写前过一遍, **不新造契约存储**)。
 3. **才允许 Edit/Write** — 复述完且无矛盾, 方可动手, 且改动必须落在 reason 声明的意图内。
 
 **失败路径 (不擅改)**: 若复述时发现 reason 与文件现状矛盾 —— 契约要求已被满足 / 该文件按契约根本不该改 / reason 指向的需求文件里已不存在 —— **停手**, 在返回标 `需要: <文件 path + 矛盾点>` 回传 main, 由 main 转达用户裁决。禁硬改一个不该动的文件。

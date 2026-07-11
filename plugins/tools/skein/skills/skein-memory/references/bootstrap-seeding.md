@@ -18,7 +18,7 @@
 
 ### ① 派 skein-researcher (bootstrap 模式) 扫代码库
 
-dispatch prompt「已知」段标 `mode=bootstrap` + `focus-id=bootstrap`, 让 researcher 走其**bootstrap 扫描模式** (见 `agents/skein-researcher.md`): 扫命名/错误处理/测试/架构边界/构建五维, 提炼**既有约定**为候选规则。
+dispatch prompt「已知」段标 `mode=bootstrap` + `task-id=bootstrap`, 让 researcher 走其**bootstrap 扫描模式** (见 `agents/skein-researcher.md`): 扫命名/错误处理/测试/架构边界/构建五维, 提炼**既有约定**为候选规则。
 
 - researcher 只读, 结论落盘 `.skein/task/bootstrap/research/conventions.md` (复用现有 research 落盘机制)。
 

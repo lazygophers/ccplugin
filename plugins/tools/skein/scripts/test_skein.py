@@ -40,8 +40,9 @@ def main():
         tid = out.split("\t")[0]
         assert tid == "t01", f"预期 t01 得 {tid}"
         t = json.loads((d / ".skein/task/t01/task.json").read_text())
-        assert t["status"] == "pending"
+        assert t["status"] == "待处理", t["status"]
         assert t["contracts"] == [], "create 未初始化 contracts"
+        assert isinstance(t["created"], int), "created 须为时间戳"
 
         # contract: --add 落盘 + 无参列出
         sk(d, "contract", "t01", "--add", "输出必须幂等")
@@ -58,14 +59,19 @@ def main():
         # start t01 → worktree 建出
         sk(d, "start", "t01")
         t = json.loads((d / ".skein/task/t01/task.json").read_text())
-        assert t["status"] == "in_progress", t["status"]
-        wt = Path(t["worktree"])
+        assert t["status"] == "进行中", t["status"]
+        assert not t["worktree"].startswith("/"), f"worktree 须相对: {t['worktree']}"
+        wt = d / t["worktree"]  # 相对 project root → 拼绝对
         assert wt.exists(), "worktree 未建"
-        assert json.loads((d / ".skein/task.json").read_text())["focus"] == "t01"
+        top = json.loads((d / ".skein/task.json").read_text())
+        assert "focus" not in top, "顶层不应再有 focus 字段"
+        # 顶层 task.json 汇总全表: id/状态/deps/worktree
+        t01row = next(x for x in top["tasks"] if x["id"] == "t01")
+        assert t01row["status"] == "进行中" and t01row["worktree"] == t["worktree"], t01row
 
-        # journal 无 --id 用 focus
-        sk(d, "journal", "--add", "start 后记录")
-        assert "start 后记录" in sk(d, "journal").stdout, "journal focus 默认失效"
+        # journal 须显式 --id (无 focus 默认)
+        sk(d, "journal", "--id", "t01", "--add", "start 后记录")
+        assert "start 后记录" in sk(d, "journal", "--id", "t01").stdout, "journal --id 失效"
 
         # session-context: 有 active task → JSON envelope 含 task id
         r = sk(d, "session-context")
@@ -93,8 +99,10 @@ def main():
         assert list((d / ".skein/task/archive").glob("*/*/t01/journal.md")), "journal 未随 task 归档"
         assert not (d / ".skein/task/t01").exists(), "归档后 task 残留"
         assert not wt.exists(), "worktree 未销"
-        # focus 切到剩余 active t02
-        assert json.loads((d / ".skein/task.json").read_text())["focus"] == "t02"
+        # 归档后顶层 tasks 索引去掉 t01
+        top = json.loads((d / ".skein/task.json").read_text())
+        assert not any(x["id"] == "t01" for x in top["tasks"]), "归档 task 仍留在顶层索引"
+        assert any(x["id"] == "t02" for x in top["tasks"]), "t02 应仍在顶层索引"
 
         # deps: t03 依赖 t02, t02 未 finish 前 start t03 (需先腾并发位)
         # t01 已 finish, active=t02, 上限2 → 可 start t03 但 deps 阻塞
@@ -104,27 +112,32 @@ def main():
         r = sk(d, "start", "t03", check=False)
         assert r.returncode != 0 and "前置未完成" in r.stderr, "deps 门未生效"
 
-        # board 渲染含 focus 标记
+        # board 渲染无 focus 标记, 列出 active task 行
         board = (d / ".skein/task.md").read_text()
-        assert "t02" in board and "" in board, "看板缺 focus 标记"
+        assert "t02" in board, "看板缺 task 行"
+        assert "focus:" not in board, "看板不应再有 focus footer"
 
-        # archive in_progress task → 销 worktree/branch + 让出 focus (不泄漏)
-        wt2 = Path(json.loads((d / ".skein/task/t02/task.json").read_text())["worktree"])
+        # archive in_progress task → 销 worktree/branch + 从顶层索引移除
+        wt2 = d / json.loads((d / ".skein/task/t02/task.json").read_text())["worktree"]
         assert wt2.exists()
         sk(d, "archive", "t02")
         assert not wt2.exists(), "archive 未销 worktree"
         br = subprocess.run(["git", "branch", "--list", "skein/t02"], cwd=d,
                             capture_output=True, text=True).stdout
         assert "skein/t02" not in br, "archive 未删 branch"
-        assert json.loads((d / ".skein/task.json").read_text())["focus"] is None, "archive 未让出 focus"
+        top = json.loads((d / ".skein/task.json").read_text())
+        assert not any(x["id"] == "t02" for x in top["tasks"]), "archive 未从顶层索引移除"
         assert sk(d, "current", check=False).returncode == 0, "archive 后 current 崩溃"
 
-        # finish 非 focus task 不抢占无关 active 的 focus
-        sk(d, "start", "t03")  # t02 已归档, dep 视为完成 → 可 start
+        # 多 active 并行: t03 (dep t02 已归档→视完成) 与 t04 可同时 active
+        sk(d, "start", "t03")
         sk(d, "create", "第四个"); sk(d, "start", "t04")
-        assert json.loads((d / ".skein/task.json").read_text())["focus"] == "t04"
+        top = json.loads((d / ".skein/task.json").read_text())
+        act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
+        assert act == {"t03", "t04"}, f"多 active 并行失效: {act}"
         sk(d, "finish", "t03")
-        assert json.loads((d / ".skein/task.json").read_text())["focus"] == "t04", "finish 抢占无关 focus"
+        top = json.loads((d / ".skein/task.json").read_text())
+        assert any(x["id"] == "t04" and x["status"] == "进行中" for x in top["tasks"]), "finish 误伤无关 active"
 
         # ---- subtask DAG 调度 ----
         sk(d, "create", "编排任务")  # t05
@@ -136,12 +149,12 @@ def main():
         assert "s1" in r and "s2" in r and "s3" not in r, "就绪批错 (s3 应被依赖挡)"
         # ready 只读: 不改状态
         subs0 = json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]
-        assert all(s["status"] == "pending" for s in subs0), "ready 误改状态 (应只读)"
+        assert all(s["status"] == "待处理" for s in subs0), "ready 误改状态 (应只读)"
         # claim 一次性认领整个就绪批 → s1/s2 标 running
         r = sk(d, "subtask", "claim", "t05").stdout
         assert "s1" in r and "s2" in r, "claim 未返回就绪批"
         st = {s["sid"]: s["status"] for s in json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]}
-        assert st["s1"] == "running" and st["s2"] == "running", "claim 未标 running"
+        assert st["s1"] == "运行中" and st["s2"] == "运行中", "claim 未标 running"
         # 满槽 (max_parallel=2) → start 第三个应报错
         assert sk(d, "subtask", "start", "t05", "s3", check=False).returncode != 0, "满槽未挡"
         assert "无就绪" in sk(d, "subtask", "claim", "t05").stdout, "满槽 claim 未阻塞"
@@ -150,9 +163,9 @@ def main():
         assert "s3" in sk(d, "subtask", "ready", "t05").stdout, "依赖全 done 后 s3 未就绪"
         # 写集冲突串行: s3(a/*.py) 与仍 running 的同写集不能并发 — 另建验证
         subs = json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]
-        assert {s["sid"]: s["status"] for s in subs}["s3"] == "pending"
+        assert {s["sid"]: s["status"] for s in subs}["s3"] == "待处理"
 
-    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/focus不抢占/subtask-DAG)")
+    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG)")
 
 
 if __name__ == "__main__":

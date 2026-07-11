@@ -20,7 +20,7 @@
   memory.py list [--layer core|recall]
 """
 import argparse
-import datetime
+import time
 import json
 import re
 import subprocess
@@ -31,8 +31,8 @@ CORE_BUDGET = 8000  # core 常驻注入软预算 (字符); 超则告警
 LAYERS = ("core", "recall")
 
 
-def now() -> str:
-    return datetime.datetime.now().isoformat(timespec="seconds")
+def now() -> int:
+    return int(time.time())  # Unix epoch 秒 — 与 skein.py 一致, 所有落盘时间字段统一时间戳
 
 
 def _dist(by_cat: dict) -> str:

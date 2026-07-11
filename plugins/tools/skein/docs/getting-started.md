@@ -32,7 +32,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
 
 ```
 .skein/
-├── task.json        # {focus: null} — 顶层状态, 脚本维护, AI 禁读写
+├── task.json        # {tasks:[]} — 顶层状态全表, 脚本维护, AI 禁读写
 ├── task.md          # 空看板 — 由 task.json 自动渲染
 ├── config.json      # {max_active:2, max_parallel:2, auto_commit:true, worktree_root:".worktrees"}
 └── task/
@@ -64,8 +64,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py board      # 渲染并打印看板
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current    # 当前 focus task
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current --all  # 所有 active task
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current    # 列全部 active task (无 focus, 就绪皆可并行)
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py list       # 全部 task (含已归档)
 ```
 

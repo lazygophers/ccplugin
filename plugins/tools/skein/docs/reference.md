@@ -23,15 +23,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件) |
 | `create <name>` | `--desc <文本>` `--deps "t01,t02"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>` |
-| `start <id>` | — | 建 worktree + 分支, 状态 → in_progress, 设 focus。前置未完成 / active 超上限 2 会报错 |
-| `finish [id]` | 省略 id 用 focus | commit → merge → 销 worktree → 归档。冲突自动 abort |
+| `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
+| `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |
 | `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
-| `current` | `--all` | 显示 focus task; `--all` 列所有 active (focus 标 `<- current`) |
+| `current` | — | 列全部 active task (id/状态/名称/worktree)。无 focus, 就绪皆可并行 |
 | `list` | — | 列全部 task (含已归档) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
-| `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (focus + 各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
+| `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
-| `journal [id]` | `--add <文本>`, 省略 id 用 focus | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
+| `journal --id <id>` | `--add <文本>` | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
 | `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--write "glob,glob"` `--reason` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `done` 完成 / `fail` 失败 / `list` 列态。add/start/done/fail 必带 `sid` |
 
 **task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts / subtasks`。
@@ -110,7 +110,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | 目标文件 | Read | Edit/Write/MultiEdit | 替代方式 |
 | --- | --- | --- | --- |
-| `.skein/task.json` (顶层 focus) | 挡 | 挡 | `skein.py current` 取 focus; create/start/finish 改 |
+| `.skein/task.json` (顶层 tasks 全表) | 挡 | 挡 | `skein.py current` 列 active; create/start/finish 改 |
 | `.skein/task.md` (顶层看板) | 挡 | 挡 | `skein.py list` / `board` 取态 |
 | `.skein/task/<id>/task.json` (记录+subtask) | 挡 | 挡 | `skein.py subtask list/ready <id>`; subtask add/start/done 改 |
 | `.skein/task/<id>/task.md` (子任务看板) | 挡 | 挡 | `skein.py subtask list <id>` |
@@ -119,7 +119,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 ## 生命周期一图速记
 
 ```
-init → create(pending) → start(in_progress, +worktree, +focus)
+init → create(pending) → start(in_progress, +worktree)
      → [plan → exec → check] → finish(commit→merge→archive, -worktree)
                                    ↘ archive (丢弃, 不 merge)
 ```

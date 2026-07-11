@@ -22,8 +22,8 @@ flowchart LR
 ```
 
 - s1 / s2 / s3 写文件三者不相交 → 本可并行, 但并发上限 2, 故首轮跑 s1+s2, s3 补位。
-- s4 显式 `depends_on: s3` → s3 done 前不 ready。
-- **本快照定格在 exec 中途**: s1 done, s2 running, s3 首跑 failed (幂等键冲突, 待重试), s4 仍 pending。真实调度环会 `subtask start t02 s3` 重试 s3, 成功后 s4 才就绪。
+- s4 显式 `depends_on: s3` → s3 已完成前不就绪。
+- **本快照定格在 exec 中途**: s1 已完成, s2 运行中, s3 首跑失败 (幂等键冲突, 待重试), s4 仍待处理。真实调度环会 `subtask start t02 s3` 重试 s3, 成功后 s4 才就绪。
 
 ## 落盘命令 (planning 执行)
 

@@ -6,7 +6,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
   .skein/config.json              设置 (max_active / max_parallel / auto_commit / worktree_root)
-  .skein/task.json                {focus: <id>}  顶层状态 — 脚本维护, AI 禁读写
+  .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
   .skein/task/<id>/task.md        单 task 子任务看板 (渲染) — 脚本维护, AI 禁读写
@@ -19,18 +19,28 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 import argparse
 import datetime
 import json
-import os
 import shutil
 import subprocess
 import sys
+import time
 from fnmatch import fnmatch
 from pathlib import Path
 
-STATUS_ACTIVE = {"in_progress", "check"}
+# task 状态 (中文落盘, 逻辑比较用常量)
+S_PENDING = "待处理"
+S_ACTIVE = "进行中"
+S_CHECK = "检查中"
+S_DONE = "已完成"
+STATUS_ACTIVE = {S_ACTIVE, S_CHECK}
+# subtask 状态
+SS_PENDING = "待处理"
+SS_RUNNING = "运行中"
+SS_DONE = "已完成"
+SS_FAILED = "失败"
 
 
-def now() -> str:
-    return datetime.datetime.now().isoformat(timespec="seconds")
+def now() -> int:
+    return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳
 
 
 def git(*args, cwd=None, check=True, capture=True):
@@ -70,13 +80,14 @@ class Skein:
             raise SystemExit("未初始化 — 先跑 `skein.py init`")
         return json.loads(f.read_text())
 
-    def _state(self) -> dict:
-        f = self.dir / "task.json"
-        return json.loads(f.read_text()) if f.exists() else {"focus": None}
-
-    def _set_focus(self, tid):
-        (self.dir / "task.json").write_text(json.dumps({"focus": tid}, ensure_ascii=False, indent=2))
-        self._board(None)  # task.json 唯一写入口 → 变更即刷 task.md, 免看板漂移
+    def _sync(self):
+        # 顶层 task.json 唯一写入口: tasks 是未归档 task 的去规范化状态镜像 (per-task task.json 仍单一真值源),
+        # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
+        tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
+                  "worktree": t.get("worktree")} for t in self._all()]
+        (self.dir / "task.json").write_text(
+            json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
+        self._board(None)  # 变更即刷 task.md, 免看板漂移
 
     def _load(self, tid) -> dict:
         f = self.tasks / tid / "task.json"
@@ -130,7 +141,7 @@ class Skein:
                 "worktree_root": ".worktrees",
             }, ensure_ascii=False, indent=2))
         if not (self.dir / "task.json").exists():
-            self._set_focus(None)
+            self._sync()
         self._board(None)
         print(f"已初始化 SKEIN 工作区: {self.dir}")
 
@@ -140,19 +151,19 @@ class Skein:
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
             "id": tid, "name": a.name, "desc": a.desc or "",
-            "status": "pending", "deps": deps, "contracts": [], "subtasks": [],
+            "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "updated": now(),
         }
         self._save(t)
         self._board_task(t)
-        self._board(None)
+        self._sync()  # 刷新顶层 tasks 索引 + 看板
         print(f"{tid}\t{self.tasks / tid}")
 
     def start(self, a):
         t = self._load(a.id)
-        if t["status"] != "pending":
-            raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 start pending task")
+        if t["status"] != S_PENDING:
+            raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 start 待处理 task")
         cfg = self.config()
         active = self._active()
         if len(active) >= cfg["max_active"]:
@@ -162,14 +173,14 @@ class Skein:
         undone = [d for d in t["deps"] if self._dep_unfinished(d)]
         if undone:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
-        wt = self.root / cfg["worktree_root"] / f"skein-{a.id}"
+        rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
+        wt = self.root / rel
         git("worktree", "add", "-b", t["branch"], str(wt), "HEAD", cwd=self.root)
-        t["status"] = "in_progress"
-        t["worktree"] = str(wt)
+        t["status"] = S_ACTIVE
+        t["worktree"] = rel
         self._save(t)
-        self._set_focus(a.id)
-        self._board(None)
-        print(f"{a.id} started\nworktree: {wt}\nbranch: {t['branch']}")
+        self._sync()
+        print(f"{a.id} started\nworktree: {rel}\nbranch: {t['branch']}")
 
     def _dep_unfinished(self, dep) -> bool:
         # 归档即视为完成
@@ -178,18 +189,17 @@ class Skein:
         f = self.tasks / dep / "task.json"
         if not f.exists():
             return False  # 未知 dep 不阻塞
-        return json.loads(f.read_text())["status"] != "completed"
+        return json.loads(f.read_text())["status"] != S_DONE
 
     def finish(self, a):
-        tid = a.id or self._state().get("focus")
-        if not tid:
-            raise SystemExit("无 focus task — 指定 <id>")
+        tid = a.id
         t = self._load(tid)
         if t["status"] not in STATUS_ACTIVE:
             raise SystemExit(f"{tid} 状态 {t['status']}, 非 active 无法 finish")
         cfg = self.config()
-        wt = t.get("worktree")
-        if wt and Path(wt).exists():
+        rel = t.get("worktree")
+        wt = self.root / rel if rel else None  # 存盘相对, 文件/git 操作用绝对
+        if wt and wt.exists():
             if cfg.get("auto_commit"):
                 git("add", "-A", cwd=wt)
                 r = git("commit", "-m", f"skein({tid}): {t['name']}", cwd=wt, check=False)
@@ -211,37 +221,30 @@ class Skein:
                     f"合并冲突 {tid} — 已 abort。手动解冲突后重跑 finish:\n{m.stdout}{m.stderr}")
             git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
             git("branch", "-D", t["branch"], cwd=self.root, check=False)
-        elif wt:
+        elif rel:
             sys.stderr.write(
-                f"{tid} worktree 记录存在但目录缺失 ({wt}) — "
+                f"{tid} worktree 记录存在但目录缺失 ({rel}) — "
                 f"跳过合并, 分支 {t['branch']} 若有提交未并入\n")
-        t["status"] = "completed"
+        t["status"] = S_DONE
         t["worktree"] = None
         self._save(t)
         self._archive(tid)
-        # 仅当被 finish 的正是当前 focus (或 focus 已失效) 才切, 免抢占无关 active task
+        self._sync()  # 归档后重写顶层 tasks 索引 (去掉本 task)
         rest = self._active()
-        focus = self._state().get("focus")
-        if focus in (None, tid) or focus not in {x["id"] for x in rest}:
-            focus = rest[0]["id"] if rest else None
-            self._set_focus(focus)
-        self._board(None)
-        print(f"{tid} finished + archived" + (f", focus→{focus}" if focus else ", 无剩余 active"))
+        print(f"{tid} finished + archived" + (f", 剩余 active: {', '.join(x['id'] for x in rest)}" if rest else ", 无剩余 active"))
 
     def archive(self, a):
-        # 归档 = 丢弃 (不 merge): 先销 worktree/branch + 让出 focus, 免残留悬挂
+        # 归档 = 丢弃 (不 merge): 先销 worktree/branch, 免残留悬挂
         f = self.tasks / a.id / "task.json"
         if f.exists():
             t = json.loads(f.read_text())
-            wt = t.get("worktree")
-            if wt and Path(wt).exists():
+            rel = t.get("worktree")
+            wt = self.root / rel if rel else None
+            if wt and wt.exists():
                 git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
                 git("branch", "-D", t["branch"], cwd=self.root, check=False)
-            if self._state().get("focus") == a.id:
-                rest = [x for x in self._active() if x["id"] != a.id]
-                self._set_focus(rest[0]["id"] if rest else None)
         self._archive(a.id)
-        self._board(None)
+        self._sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
         print(f"{a.id} archived")
 
     def _archive(self, tid):
@@ -257,16 +260,10 @@ class Skein:
 
     def current(self, a):
         active = self._active()
-        focus = self._state().get("focus")
         if not active:
             print("无 active task")
             return
-        if a.all:
-            for t in active:
-                tag = "<- current" if t["id"] == focus else "<- active"
-                print(f"{t['id']}\t{t['status']}\t{t['name']}\t{tag}")
-        else:
-            t = self._load(focus) if focus else active[0]
+        for t in active:
             print(f"{t['id']}\t{t['status']}\t{t['name']}\t{t.get('worktree') or '-'}")
 
     def list_(self, a):
@@ -288,9 +285,7 @@ class Skein:
 
     def journal(self, a):
         # append-only 过程记录: 存 task 目录内 journal.md, 随 _archive 一并归档 (无审批, 区别 contract/sediment)
-        tid = a.id or self._state().get("focus")
-        if not tid:
-            raise SystemExit("无 focus task — 指定 --id <id>")
+        tid = a.id
         self._load(tid)  # 校验 task 存在
         f = self.tasks / tid / "journal.md"
         if a.add:
@@ -307,11 +302,10 @@ class Skein:
         active = self._active()
         if not active:
             return
-        focus = self._state().get("focus")
-        lines = ["# SKEIN 活跃任务 (compaction 上下文恢复)", "", f"focus: {focus or '-'}", ""]
+        lines = ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
         for t in active:
             lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
-        lines += ["", "恢复提示: 用 `skein.py current` 查 focus; 未 archive = 未完成。"]
+        lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": "\n".join(lines)}}))
 
@@ -321,22 +315,17 @@ class Skein:
 
     def _board(self, _):
         rows = []
-        focus = self._state().get("focus")
         for t in self._all():
-            mark = " " if t["id"] == focus else ""
             deps = ",".join(t["deps"]) or "-"
-            wt = t.get("worktree") or "-"
-            if wt != "-":
-                wt = os.path.relpath(wt, self.root)
-            rows.append(f"| {t['id']}{mark} | {t['name']} | {t['status']} | {deps} | {wt} |")
+            wt = t.get("worktree") or "-"  # 已是相对路径
+            rows.append(f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |")
         body = "\n".join(rows) if rows else "| - | - | - | - | - |"
         md = (
             "# SKEIN 看板\n\n"
-            "> 经 `skein.py board` 渲染, 禁直接编辑。= focus。\n\n"
+            "> 经 `skein.py board` 渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
             "| id | 名称 | 状态 | 前置 | worktree |\n"
             "|---|---|---|---|---|\n"
-            f"{body}\n\n"
-            f"focus: {focus or '-'}　更新: {now()}\n"
+            f"{body}\n"
         )
         (self.dir / "task.md").write_text(md)
 
@@ -344,15 +333,15 @@ class Skein:
     def _ready(self, t: list) -> list:
         """就绪批: pending + 依赖全 done + 与 running/同批无写文件冲突, 截到空闲槽位。"""
         subs = t.get("subtasks", [])
-        done = {s["sid"] for s in subs if s["status"] == "done"}
-        running = [s for s in subs if s["status"] == "running"]
+        done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+        running = [s for s in subs if s["status"] == SS_RUNNING]
         slots = self.config().get("max_parallel", 2) - len(running)
         if slots <= 0:
             return []  # 并发满 → 阻塞
         claimed = [g for s in running for g in s.get("write", [])]  # running 占用写集
         picked = []
         for s in subs:
-            if s["status"] != "pending":
+            if s["status"] != SS_PENDING:
                 continue
             if not all(d in done for d in s.get("depends_on", [])):
                 continue
@@ -380,7 +369,7 @@ class Skein:
             subs.append({
                 "sid": a.sid, "name": a.name or a.sid,
                 "depends_on": _split(a.deps), "write": _split(a.write),
-                "reason": a.reason or "", "status": "pending",
+                "reason": a.reason or "", "status": SS_PENDING,
             })
             self._save(t)
             self._board_task(t)
@@ -401,15 +390,15 @@ class Skein:
             t = self._load(a.tid)
             batch = self._ready(t)
             if not batch:
-                run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == "running"]
-                pend = [s for s in t.get("subtasks", []) if s["status"] == "pending"]
+                run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == SS_RUNNING]
+                pend = [s for s in t.get("subtasks", []) if s["status"] == SS_PENDING]
                 print(f"无就绪 subtask (running: {','.join(run) or '-'}, "
                       f"pending: {len(pend)}) — 满槽或依赖未完成")
                 return
             if a.action == "claim":
                 # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
                 for s in batch:
-                    s["status"] = "running"
+                    s["status"] = SS_RUNNING
                 self._save(t)
                 self._board_task(t)
                 print("已认领 (running) — main 逐个 dispatch skein-implementer, 完成即 subtask done/fail:")
@@ -422,23 +411,23 @@ class Skein:
         t = self._load(a.tid)
         s = self._sub(t, a.sid)
         if a.action == "start":
-            if s["status"] not in ("pending", "failed"):
-                raise SystemExit(f"{a.sid} 状态 {s['status']}, 只能 start pending/failed")
-            done = {x["sid"] for x in t["subtasks"] if x["status"] == "done"}
+            if s["status"] not in (SS_PENDING, SS_FAILED):
+                raise SystemExit(f"{a.sid} 状态 {s['status']}, 只能 start 待处理/失败")
+            done = {x["sid"] for x in t["subtasks"] if x["status"] == SS_DONE}
             undone = [d for d in s.get("depends_on", []) if d not in done]
             if undone:
                 raise SystemExit(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
-            run = [x for x in t["subtasks"] if x["status"] == "running"]
+            run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
             if len(run) >= self.config().get("max_parallel", 2):
                 raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
             busy = [g for x in run for g in x.get("write", [])]
             if any(_overlap(w, b) for w in s.get("write", []) for b in busy):
                 raise SystemExit(f"{a.sid} 写集与 running 冲突 — 须串行, 等其 done")
-            s["status"] = "running"
+            s["status"] = SS_RUNNING
         elif a.action == "done":
-            s["status"] = "done"
+            s["status"] = SS_DONE
         elif a.action == "fail":
-            s["status"] = "failed"
+            s["status"] = SS_FAILED
             if a.reason:
                 s["reason"] = a.reason
         self._save(t)
@@ -458,7 +447,7 @@ class Skein:
             "| sid | 名称 | 状态 | 依赖 | 写文件 | reason |\n"
             "|---|---|---|---|---|---|\n"
             f"{body}\n\n"
-            f"并发上限: {self.config().get('max_parallel', 2)}　更新: {now()}\n"
+            f"并发上限: {self.config().get('max_parallel', 2)}\n"
         )
         (self.tasks / t["id"] / "task.md").write_text(md)
 
@@ -480,14 +469,13 @@ def main():
     c.add_argument("name", help="task 名称")
     c.add_argument("--desc", help="一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
-    s = sub.add_parser("start", help="激活 task: 建 worktree + 设 focus + in_progress")
+    s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
     f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
-    f.add_argument("id", nargs="?", help="task id (省略则用当前 focus)")
+    f.add_argument("id", help="task id")
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")
-    cu = sub.add_parser("current", help="显示 focus task")
-    cu.add_argument("--all", action="store_true", help="改列全部 active task")
+    sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("list", help="列所有 task (含状态)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
@@ -495,7 +483,7 @@ def main():
     co.add_argument("id", help="task id")
     co.add_argument("--add", help="追加一条契约 (省略则列出)")
     j = sub.add_parser("journal", help="查/加 task journal")
-    j.add_argument("--id", help="task id (省略则用当前 focus)")
+    j.add_argument("--id", required=True, help="task id")
     j.add_argument("--add", help="追加一条 journal (省略则列出)")
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",

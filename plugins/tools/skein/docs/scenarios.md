@@ -68,12 +68,12 @@
 **看多 task 状态**:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current --all
-# t01  in_progress  加订单导出功能   <- current
-# t02  in_progress  修复登录页样式    <- active
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
+# t01  进行中  加订单导出功能  .worktrees/skein-t01
+# t02  进行中  修复登录页样式  .worktrees/skein-t02
 ```
 
-`focus` (, 默认操作对象) 是最近 start 的那个。
+无 task 级 focus — 两个 task 无未完成前置, 就绪即可并行。
 
 ## 场景 5: 修 bug
 

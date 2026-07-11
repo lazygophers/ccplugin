@@ -9,9 +9,8 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | **task** | 一条闭环任务记录, 存 `.skein/task/<id>/`, 由 `skein.py` 管理。id 形如 `t01`, 自增且跳过已用 (含归档)。 |
 | **subtask** | 单个 task 内的执行单元, 存 per-task task.json 的 `subtasks[]`, id 形如 `s1`。每个由一个 `skein-implementer` 执行。 |
 | **闭环** | `plan → exec → check → finish` 四阶段, 不可跳步。**未 archive = 未完成**。 |
-| **focus** | 当前默认操作对象 task (最近 start 的)。省略 id 的命令 (finish / journal) 作用于 focus。存 `.skein/task.json`。 |
-| **active 集** | 同 session 内所有 `in_progress` 的 task。上限 `max_active` (默认 2)。 |
-| **状态流转** | task: `pending → in_progress → completed` (completed 移入 archive/)。subtask: `pending → running → done/failed`。 |
+| **active 集** | 同 session 内所有 `进行中` 的 task。上限 `max_active` (默认 2)。无 task 级 focus — 无未完成前置的 task 皆可并行, 命令 (finish / journal) 必带 id。 |
+| **状态流转** | task: `待处理 → 进行中 → 已完成` (已完成移入 archive/)；`检查中` 为 check 阶段中间态。subtask: `待处理 → 运行中 → 已完成/失败`。状态中文落盘。 |
 
 ## 调度
 
@@ -20,7 +19,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | **DAG** | 有向无环图, 描述工作单元的执行顺序。SKEIN 双层同构 (task 级 + subtask 级)。 |
 | **冲突自算边** | 两单元的写文件 glob (`--write`) 相交 → 脚本自动判为串行边 (不能并发)。 |
 | **depends_on / deps** | 显式前置边: subtask `--deps` / task `--deps`。被依赖者未完成前, 依赖者不 ready。最终 DAG = 冲突边 ∪ depends_on 边。 |
-| **ready (就绪)** | pending + 依赖全 done + 写集与 running 无冲突 + 有空闲槽。`subtask ready` 只读预览。 |
+| **ready (就绪)** | 待处理 + 依赖全已完成 + 写集与运行中无冲突 + 有空闲槽。`subtask ready` 只读预览。 |
 | **claim (认领)** | `subtask claim` 一次性算就绪批 + 整批标 running, 返回给 main 逐个派 agent。脚本一步到位, 免 main 逐个 start。 |
 | **完成即派** | 任一 agent 返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不空等一批跑完。 |
 | **并发上限** | `max_parallel` (默认 2) — 同时在跑的 subagent ≤ 此值。`claim` 内按剩余槽截断。 |
@@ -68,7 +67,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 
 | 文件 | 内容 |
 | --- | --- |
-| `.skein/task.json` | 顶层状态 `{focus}` |
+| `.skein/task.json` | 顶层状态汇总 `{tasks:[{id,status,deps,worktree}]}` (全部未归档 task) |
 | `.skein/task.md` | 顶层看板 (task.json 渲染) |
 | `.skein/task/<id>/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) |
 | `.skein/task/<id>/task.md` | 单 task 子任务看板 |

@@ -2,7 +2,7 @@
 """SKEIN PreToolUse guard: 硬阻 AI 直接读写 .skein/ 的脚本管理文件。
 
 四个文件全归 skein.py 维护, AI 读写全挡 (读态经命令 stdout, 非读文件):
-  .skein/task.json            顶层状态 (focus)
+  .skein/task.json            顶层状态汇总 (tasks 全表)
   .skein/task.md              顶层看板
   .skein/task/<id>/task.json  单 task 记录 + subtask DAG
   .skein/task/<id>/task.md    单 task 子任务看板

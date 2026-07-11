@@ -35,7 +35,7 @@ flowchart TD
     PRD --> RECALL[② memory recall<br/>召回 recall 规则注入]
     RECALL --> REVIEW{③ 你评审产物<br/>AskUserQuestion}
     REVIEW -->|要改| BRAIN
-    REVIEW -->|通过| ACT[激活: skein.py start<br/>建 worktree, 设 focus]
+    REVIEW -->|通过| ACT[激活: skein.py start<br/>建 worktree, 就绪即并行]
 
     ACT --> EXEC
 

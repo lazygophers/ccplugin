@@ -37,7 +37,7 @@
 ```
 .skein/
 ├── task.md            # 看板 (经 skein.py board 渲染, 禁直接编辑)
-├── state.json         # {focus: <当前 task id>}
+├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task
 ├── config.json        # {max_active:2, auto_commit:true, worktree_root:".worktrees"}
 └── task/
     ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / task.json

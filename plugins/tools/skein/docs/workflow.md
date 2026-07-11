@@ -40,7 +40,7 @@
 grill 通过 + 你评审确认 → `skein.py start`:
 
 - 建 git worktree: `git worktree add -b skein/<id> .worktrees/skein-<id> HEAD`
-- task 状态 → `in_progress`, 写入 worktree 路径, 设为 focus。
+- task 状态 → `in_progress`, 写入 worktree 路径。无 task 级 focus — 就绪 task 皆可并行。
 - 检查前置 (`deps`) 都完成、active 集未超上限 2。
 
 ### ④ exec (main 调度 + subagent 执行)
@@ -56,7 +56,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 ### ⑤ check (main 派 checker fan-out)
 
-派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <focus>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
+派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
 
 **第 3 轮仍 FAIL → 根因复盘**: 不再只 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
@@ -68,7 +68,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
 3. 销 worktree + 删分支。
 4. task → `completed`, 归档到 `.skein/task/archive/<年>/<月-日>/<id>/`。
-5. focus 自动切到剩余首个 active task (若有)。
+5. 从顶层 tasks 索引移除 (其余 active task 不受影响, 继续并行)。
 
 > finish 摘要可选 `skein.py journal --add "<本 task 完成情况>"` 记一笔 (append-only 过程日志, 随 task 一并归档; 无审批门, 区别 sediment 的判定门与 contract 的锁定)。
 
@@ -141,7 +141,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 ```
 .skein/
-├── task.json                        # 顶层 {focus} — 脚本维护, AI 禁读写
+├── task.json                        # 顶层 {tasks:[...]} 全表 — 脚本维护, AI 禁读写
 ├── task.md                          # 顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
 ├── config.json                      # {max_active, max_parallel, auto_commit, worktree_root}
 └── task/

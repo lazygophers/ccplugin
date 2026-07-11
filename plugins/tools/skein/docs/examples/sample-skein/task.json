@@ -1,3 +1,16 @@
 {
-  "focus": "t02"
+  "tasks": [
+    {
+      "id": "t02",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-t02"
+    },
+    {
+      "id": "t03",
+      "status": "待处理",
+      "deps": [],
+      "worktree": null
+    }
+  ]
 }
