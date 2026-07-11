@@ -1,7 +1,7 @@
 ---
 name: git-commit
 description: 提交变更前先自动识别并排除临时/备份/日志/构建产物等不该进版本库的文件,再合理更新忽略清单(项目通用噪声→.gitignore、个人机器噪声→全局 excludesFile/.git/info/exclude),疑似密钥则拒交并报警,最后生成规范 commit message 提交。触发词:「提交」「commit」「把改动交了」「暂存并提交」。仅本地提交,不 push、不开 PR。
-when_to_use: '有工作区改动要 commit 时。禁用于开 PR/MR(→git-pr)、rebase(→git-rebase)、merge(→git-merge)。'
+
 argument-hint: "[commit message]"
 arguments: [commit message (可选, 用户指定则采用; 缺省按项目风格自动生成)]
 ---

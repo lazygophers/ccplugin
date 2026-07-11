@@ -1,7 +1,7 @@
 ---
 name: cortex-recall
 description: "知识库搜索 + 兜底 + 回填闭环 — 先搜双层 vault (项目级 <repo>/.wiki + 用户级 ~/.cortex/.wiki); 未命中走兜底 (WebSearch → 拿不准问用户); 答案按 scope 归类 (项目级/全局) 自动回填知识库. 触发: 查/搜知识库/recall/想想/记得/这个怎么."
-when_to_use: "查知识库/搜 vault/recall/想想/记得/查资料/这个之前怎么做的/有没有记录过"
+
 argument-hint: "[query]"
 arguments: "[查询]"
 user-invocable: true

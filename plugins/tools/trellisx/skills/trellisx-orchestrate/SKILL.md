@@ -1,7 +1,7 @@
 ---
 name: trellisx-orchestrate
 description: '🎯 在 Trellis 项目 planning 阶段, 指导编写 task 文件夹内的 prd.md / design.md / implement.md, 把任务编排理念 (五要素拆分、执行层选择、资源互斥、失败回退) 内嵌到文档中。让后续 dispatch 与执行有据可依, 而不是写完 PRD 才临时想怎么拆'
-when_to_use: '内部 skill, 被 flow 路由或 apply 规划步触发。planning 阶段写 prd/design/implement, 拆 subtask+调度图。入口归 flow'
+
 ---
 
 # trellisx-orchestrate — Trellis 任务规划与文档编排

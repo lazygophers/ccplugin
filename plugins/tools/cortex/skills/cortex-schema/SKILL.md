@@ -1,7 +1,7 @@
 ---
 name: cortex-schema
 description: "项目知识库统一契约 — 目录结构 / 三模块 (项目/领域/脚本, 项目+脚本仅用户级) / 5 级记忆 (L0-core/L1-long/L2-mid/L3-short/L4-inbox, Ebbinghaus 遗忘曲线) / 双层布局 (用户级全模块 + 项目级仅 memory+领域) / frontmatter 模板 / 完整样例. lint+extract 引用本 skill 作权威源."
-when_to_use: "入库/归档/写笔记/记忆等级判定/promote/demote/forget/路径决策/frontmatter 模板/查样例"
+
 argument-hint: "[topology|knowledge|memory|templates|examples]"
 arguments: "[拓扑|知识|记忆|模板|样例]"
 user-invocable: false

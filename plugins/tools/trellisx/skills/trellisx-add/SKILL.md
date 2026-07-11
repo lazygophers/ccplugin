@@ -1,7 +1,7 @@
 ---
 name: trellisx-add
 description: '➕ 规划级入口 (只规划不执行): 把指定请求纳入 trellis task 的 planning 阶段 —— 判新旧 + task.py create 登记 + 交互式 planning (brainstorm 主导 + grill 硬门1 边问边写), 产出 prd/design/implement 后停在 task.py start 之前, task 留 planning 态, 禁 exec/check/finish。用户想"先看规划再决定执行 / 添加分析规划任务 / 只规划不动手"时用。仅显式调用 (/trellisx-add), 禁 model 自动触发。与 trellisx-flow 边界: flow=强制全闭环 (plan→exec→check→finish), add=只到 planning 停; 执行 pending 规划态 task 走 /go'
-when_to_use: '用户显式 /trellisx-add, 或明确表达"只规划不执行 / 先看规划再说 / 先分析设计好, 执行等我确认 / 添加一个分析规划任务"。仅显式触发 (禁自动)。planning 逻辑单一真值源: flow 与 go 均运行时委托本 skill 或复用其产物, 不复制正文'
+
 argument-hint: "[--continue|--exec] <任务描述>"
 arguments: [入口选项 (可选), 任务描述]
 ---

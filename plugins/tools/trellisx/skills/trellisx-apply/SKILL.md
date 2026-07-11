@@ -1,7 +1,7 @@
 ---
 name: trellisx-apply
 description: '🛠️ 把 worktree隔离 + 闭环收尾 + task.md看板 三维注入当前项目 .trellis/。全部为 trellis 生命周期 hook 确定性强制 (after_start 建 worktree, after_finish 自动 commit→merge→archive→销 worktree, taskmd hook 维护看板), 不靠 AI 跑脚本。结果导向: 只约束最终行为闭环 (worktree 建/销 + create→…→finish 收尾链完整), 不约束注入方式。幂等 (marker 包裹)'
-when_to_use: '用户主动在 trellis 项目内运行, 把 .trellis 改造成 trellisx 规范。短语 "trellisx apply" "改造 .trellis" "内化规则"'
+
 disable-model-invocation: true
 argument-hint: '[scope]'
 arguments: '[范围 (目录 glob / 文件路径 / all), 缺省 = all]'

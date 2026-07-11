@@ -1,8 +1,11 @@
 ---
 name: skein-flow
-description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推 plan→exec→check→finish 全流程, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做。
-argument-hint: "<任务描述>"
-arguments: 任务描述 (要强制走 SKEIN task 闭环的请求)
+description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推 plan→exec→check→finish 全流程, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做
+
+disable-model-invocation: true
+user-invocable: false
+argument-hint: "[任务描述 (要强制走 SKEIN task 闭环的请求)]"
+arguments: "[任务描述 (要强制走 SKEIN task 闭环的请求)]"
 ---
 
 # skein-flow — 强制 SKEIN task 闭环
@@ -27,13 +30,13 @@ arguments: 任务描述 (要强制走 SKEIN task 闭环的请求)
 
 ## 作用域边界 (何时建 task)
 
-| 特征 | 判定 |
-| --- | --- |
-| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免 |
-| 单文件单处改, ≤20 行且位置已知 | 豁免 |
-| 跨 ≥2 文件 / 单文件多处 / 多步骤 | **必建 task** |
-| 需外部调研 / 产出文档交付 | **必建 task** |
-| 边界模糊 | **AskUserQuestion 用户裁定** |
+| 特征                              | 判定                         |
+| --------------------------------- | ---------------------------- |
+| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免                         |
+| 单文件单处改, ≤20 行且位置已知    | 豁免                         |
+| 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task**                |
+| 需外部调研 / 产出文档交付         | **必建 task**                |
+| 边界模糊                          | **AskUserQuestion 用户裁定** |
 
 ## 完成判定
 

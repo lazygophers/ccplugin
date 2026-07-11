@@ -1,6 +1,8 @@
 ---
 name: skein-grill
 description: 对抗式审查 (红队, 非审批)。planning 产物 (prd/implement) start 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
+disable-model-invocation: true
+user-invocable: false
 argument-hint: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
 arguments: 要盘的方案或 PRD 路径 (可选, 缺省取当前 task 的 prd.md/implement.md)
 ---

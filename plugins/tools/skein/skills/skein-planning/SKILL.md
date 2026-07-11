@@ -1,8 +1,10 @@
 ---
 name: skein-planning
-description: planning 入口 (需求/方案单一真值源)。新建 SKEIN task 做需求梳理时使用 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md/implement.md。
+description: planning 入口 (需求/方案单一真值源)。新建 SKEIN task 做需求梳理时使用 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md/implement.md
+disable-model-invocation: true
+user-invocable: false
 argument-hint: "<任务描述>"
-arguments: 任务描述 (要做需求梳理/规划的新 task)
+arguments: "[任务描述 (要做需求梳理/规划的新 task)]"
 ---
 
 # skein-planning — planning 入口
@@ -20,11 +22,11 @@ arguments: 任务描述 (要做需求梳理/规划的新 task)
 
 判新旧后先给任务定档, 决定 planning 力度 (**仅路由启发, 非新增机器/字段**):
 
-| 档 | 判据 | 走法 |
-|---|---|---|
-| `direct-fix` | 单点微改, 在作用域边界表豁免范围内 | 不建 task, 直接改 |
-| `standard` | 跨文件 / 多步, 单 task 可覆盖 | 常规 plan→exec→check→finish |
-| `heavy` | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 references/breaking-refactor.md |
+| 档           | 判据                                 | 走法                                                                                                                                   |
+| ------------ | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `direct-fix` | 单点微改, 在作用域边界表豁免范围内   | 不建 task, 直接改                                                                                                                      |
+| `standard`   | 跨文件 / 多步, 单 task 可覆盖        | 常规 plan→exec→check→finish                                                                                                            |
+| `heavy`      | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 references/breaking-refactor.md |
 
 ## 流程
 

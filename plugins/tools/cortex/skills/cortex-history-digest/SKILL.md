@@ -1,7 +1,7 @@
 ---
 name: cortex-history-digest
 description: "Claude Code 会话历史整理 — 扫 ~/.claude/projects/**/*.jsonl 全部 session transcripts, 提取学习增量 (用户校正/决策/踩坑/L0 规则) → 全局记忆库 ~/.cortex/.wiki/memory/. 默认 --apply 落盘 (--dry-run opt-in 仅出 JSON plan 预览). 与 cortex-extract (L4-inbox 内部) 互补."
-when_to_use: "整理 Claude Code 历史/digest transcripts/沉淀历史会话/扫 ~/.claude/projects/回顾/历史学习增量提取"
+
 argument-hint: "[--dry-run|--apply] [--target <vault>]"
 arguments: "[--dry-run|--apply] [--target <仓库根>]"
 user-invocable: true

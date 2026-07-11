@@ -1,7 +1,7 @@
 ---
 name: cortex-context-digest
 description: "整理当前会话上下文 → 记忆库. 自动判定全局 (L0 关键词/跨项目语义) vs 项目级 (默认/含 repo 特定); 用户可 --scope global|project 显式覆盖. 复用 cortex-extract 三轴 + cortex-schema 路径. 任务收尾或显式 'digest 上下文/沉淀' 触发."
-when_to_use: "整理上下文/沉淀本次会话/digest context/任务收尾沉淀/把决策落记忆库/全局还是项目级判定"
+
 argument-hint: "[--scope global|project] [--dry-run|--apply]"
 arguments: "[--scope 全局|项目] [--dry-run|--apply]"
 user-invocable: true

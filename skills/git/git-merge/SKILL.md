@@ -1,7 +1,7 @@
 ---
 name: git-merge
 description: 把指定源分支 merge 进当前分支。merge 前 fetch 确保用源分支的远端最新版,冲突半自动解决(当前分支有实质改动的以当前为准、否则以源分支为准),拿不准时停下用 AskUserQuestion 问用户、绝不自主决定。保留合并提交历史(不改写历史,故不需备份分支)。触发词:「merge 分支 X」「合并 X 进来」「把 X 并入当前分支」。
-when_to_use: '要把某源分支合并进当前分支、保留分叉历史时。想要线性历史用 git-rebase。'
+
 argument-hint: "<源分支> [--no-ff]"
 arguments: [源分支 (必填, 要合并进当前分支的分支), --no-ff (可选, 强制保留合并提交)]
 ---

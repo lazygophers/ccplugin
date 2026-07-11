@@ -125,9 +125,24 @@ class Skein:
                 cfg[k] = int(v)
         return cfg
 
+    def _autoclean(self, days=None) -> list:
+        # 惰性归档: 已完成且超保留期的 task 移入 archive (保留期内留看板)。days 省略用 config retain_days。
+        # 负数 = 永不自动清理。0 = finish 即归档 (旧行为)。每次 _sync 触发, 无需守护进程。
+        d = days if days is not None else self.config().get("retain_days", 7)
+        if d is None or int(d) < 0:
+            return []
+        cutoff = now() - int(d) * 86400
+        archived = []
+        for t in self._all():
+            if t["status"] == S_DONE and t.get("done_at", 0) <= cutoff:
+                self._archive(t["id"])
+                archived.append(t["id"])
+        return archived
+
     def _sync(self):
         # 顶层 task.json 唯一写入口: tasks 是未归档 task 的去规范化状态镜像 (per-task task.json 仍单一真值源),
         # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
+        self._autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
                   "worktree": t.get("worktree")} for t in self._all()]
         (self.dir / "task.json").write_text(
@@ -184,6 +199,7 @@ class Skein:
                 "max_parallel": 2,
                 "auto_commit": True,
                 "worktree_root": ".worktrees",
+                "retain_days": 7,  # 完成 task 保留天数 (留在看板), 超则自动归档; 0=finish 即归档, 负=永不自动
                 "board_theme": "morandi",
                 "board_palette": "stone",
                 "board_mode": "light",
@@ -294,11 +310,15 @@ class Skein:
                 f"跳过合并, 分支 {t['branch']} 若有提交未并入\n")
         t["status"] = S_DONE
         t["worktree"] = None
+        t["done_at"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
         self._save(t)
-        self._archive(tid)
-        self._sync()  # 归档后重写顶层 tasks 索引 (去掉本 task)
+        self._sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
+        archived = not (self.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
+        cfg = self.config()
         rest = self._active()
-        print(f"{tid} finished + archived" + (f", 剩余 active: {', '.join(x['id'] for x in rest)}" if rest else ", 无剩余 active"))
+        tail = (f", 剩余 active: {', '.join(x['id'] for x in rest)}" if rest else ", 无剩余 active")
+        keep = "已归档" if archived else f"保留 {cfg.get('retain_days', 7)} 天后自动归档"
+        print(f"{tid} finished ({keep})" + tail)
 
     def archive(self, a):
         # 归档 = 丢弃 (不 merge): 先销 worktree/branch, 免残留悬挂
@@ -324,6 +344,17 @@ class Skein:
         if dst.exists():
             shutil.rmtree(dst)
         shutil.move(str(src), str(dst))
+
+    def clean(self, a):
+        # 用户主动清理 (skein-clean skill 唯一入口): 归档完成超 --days 天的 task。
+        # ponytail: --days 只能比 config retain_days 更激进 (更小); 更大值被 _sync 的自动 ceiling 归档抵消。
+        archived = self._autoclean(days=a.days)
+        self._sync()
+        d = a.days if a.days is not None else self.config().get("retain_days", 7)
+        if archived:
+            print(f"已归档 {len(archived)} 个完成 task (超 {d} 天保留期): {', '.join(archived)}")
+        else:
+            print(f"无超 {d} 天保留期的完成 task 可归档")
 
     def current(self, a):
         active = self._active()
@@ -798,6 +829,8 @@ def main():
     f.add_argument("id", help="task id")
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")
+    cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
+    cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
     sub.add_parser("list", help="列所有 task (含状态)")
@@ -846,7 +879,7 @@ def main():
     sk = Skein()
     dispatch = {
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
-        "finish": sk.finish, "archive": sk.archive, "current": sk.current,
+        "finish": sk.finish, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready,
         "list": sk.list_, "board": sk.board, "view": sk.view, "contract": sk.contract,
         "journal": sk.journal, "subtask": sk.subtask,

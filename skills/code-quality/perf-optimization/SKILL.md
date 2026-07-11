@@ -1,7 +1,7 @@
 ---
 name: perf-optimization
 description: '性能优化的跨栈方法论框架。综合系统/后端(Gregg)、前端/Web(Souders·Osmani·web.dev)、低延迟(Thompson·Acton·Tene)三流派 + Knuth/Amdahl/Little/Pike 经典共识,提炼 7 个跨栈方法论、9 条决策启发式、流派分歧与反模式。作为方法论顾问,指导定位瓶颈、正确度量、选对方向、避开经典陷阱(核心戒律: 不靠猜,先量测)。触发词: 性能优化、为什么慢、怎么调优、延迟高、吞吐上不去、性能瓶颈、profiling、CPU/内存/IO 占用高、前端加载慢、Core Web Vitals、尾延迟、P99、卡顿、掉帧、OOM、内存泄漏、GC 频繁、慢查询、接口超时、打包体积大'
-when_to_use: '排查性能问题、定位瓶颈、定优化方向、判断该不该优化、做基准/压测时。短语 "为什么慢" "怎么更快" "P99 高" "卡顿/OOM/慢查询" "该不该优化这里"'
+
 argument-hint: '[性能问题/瓶颈症状,最好附测量数据如 P99/profiling/资源占用]'
 arguments: '[性能问题/瓶颈症状,最好附测量数据如 P99/profiling/资源占用]'
 ---

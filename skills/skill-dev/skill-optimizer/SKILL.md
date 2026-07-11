@@ -1,7 +1,7 @@
 ---
 name: skill-optimizer
 description: 持续优化 skills 与 subagents 的方法论编排器。诊断 9 维短板→设计 bounded 编辑→validation-gated 验证→保留或回滚。用于优化现有 SKILL.md / agent.md、修触发准确性、补失败模式、收窄误触发、回归检查。系统可自动调用，亦可 /skill-optimizer 手动触发。
-when_to_use: 用户说「优化/改改这个 skill」「skill 不触发/误触发」「agent.md 优化」「提升 skill 质量」「skill review」「回归」时；skill 触发不准/失败模式缺失/质量退化时自动调用。
+
 argument-hint: "[skills 路径] <优化方向>"
 arguments: "[skills 路径] <优化方向>"
 ---

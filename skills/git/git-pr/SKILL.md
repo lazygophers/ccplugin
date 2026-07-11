@@ -1,7 +1,7 @@
 ---
 name: git-pr
 description: 创建 PR/MR。自动识别远端是 GitHub(用 gh)还是 GitLab(用 glab),从 commit 与 diff 自动写标题正文,通过 CLI 提交,回传最终 PR/MR 链接;--base/参数指定目标分支;提交后检查 CI action 与合并冲突,有问题则提醒用户并给解决方案。触发词:「创建 pr」「提 mr」「发 pull request」「开合并请求」。
-when_to_use: '当前分支要开 PR/MR 交评审时。禁用于纯本地提交(→git-commit)、rebase(→git-rebase)、merge(→git-merge)。'
+
 argument-hint: "[--base <目标分支>]"
 arguments: [--base (可选, PR/MR 目标分支; 缺省取仓库默认分支)]
 ---

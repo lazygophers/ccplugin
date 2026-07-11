@@ -1,6 +1,10 @@
 ---
 name: skein-check
-description: task check 阶段质量验证。exec 产物完成后 finish 前使用 — 派 skein-checker 跑 lint/type-check/tests/契约合规, 未过则派合适 agent (无则 general-purpose) 定点修复重检, 通过才放行 finish。验证与修复分离; 反复不过 (第 3 轮) 做 5 维根因复盘。
+description: task check 阶段质量验证。exec 产物完成后 finish 前使用 — 派 skein-checker 跑 lint/type-check/tests/契约合规, 未过则派合适 agent (无则 general-purpose) 定点修复重检, 通过才放行 finish。验证与修复分离; 反复不过 (第 3 轮) 做 5 维根因复盘
+disable-model-invocation: true
+user-invocable: true
+argument-hint: "[task_id]]"
+arguments: "[task_id]"
 ---
 
 # skein-check — 质量验证门
@@ -26,9 +30,9 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 反复不过 (≥2 轮) 兜底
 
-| 轮次 | 动作 |
-|---|---|
-| 1-2 轮 FAIL | 按报告定点修复重检 (正常循环) |
+| 轮次           | 动作                                                                                                                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1-2 轮 FAIL    | 按报告定点修复重检 (正常循环)                                                                                                                                                                                     |
 | 第 3 轮仍 FAIL | STOP 定点循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 做结构化根因复盘 (5 维定位 root cause + 预防措施), 禁无限盲改。2 出口: 带根因回 exec 定向重修, 或 STOP 附根因报告转人工 |
 
 ## 反例

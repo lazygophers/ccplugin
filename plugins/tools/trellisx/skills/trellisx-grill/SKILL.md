@@ -1,7 +1,7 @@
 ---
 name: trellisx-grill
 description: '🔥 对抗式审查 trellis 任务工件 (prd / design / implement / spec / subtask 文件), 贯穿 plan 前/中/后全程逐分支 stress-test 设计树, 帮用户确认/审查/拆解需求。逐问审 (可一次多问批量确认提效 + 推荐答案 + codebase 能答先查), 产物 = 工件内联批注 + 弱点表 (不改写工件, 由 orchestrate/spec 决定怎么改)。独立全周期可调, plan 前 / planning 中 / start 前 / spec 重构前 / 任意决策点都能用。源于 grill-me (relentless interview) + 项目盲点实证'
-when_to_use: '由调用方强制驱动 (非 model 自启): trellisx-add (planning 阶段, flow 委托借用) / trellisx-orchestrate 在 PRD 编写中 + start 前两处硬门 MUST 调本 skill; 用户显式 "grill 这个" "审下设计" "红队" "确认需求"。原生 phase 1.1 (写 prd) / 1.4 (start 前) 未走 trellisx 时, trellisx-guard UserPromptSubmit hook 每 turn 检测 planning 工件状态自动注入 grill 硬门提醒 (硬保证, 非 model 自觉); model 见 🔴 提醒 MUST 调本 skill (user-invocable, 非自动加载)'
+
 argument-hint: '<工件路径 或 "active task">'
 arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 planning/架构产物, 如 task-tree/调度图/scheduling/config hook/架构决策), 缺省 = active task 全部 planning + 架构产物]'
 ---
