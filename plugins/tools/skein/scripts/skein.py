@@ -401,6 +401,17 @@ class Skein:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
+    def user_prompt(self):
+        # UserPromptSubmit hook: 注入 task 判定提醒 — 让 model 判本次请求是否任务, 是则走 skein-flow 闭环。
+        # 判定是语义活 (model 做), hook 只注入决策标准。已有 active task 也注入 (新请求可能是新任务)。
+        ctx = ("# SKEIN task 判定\n"
+               "若本次请求是**任务** (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档), "
+               "加载 **skein-flow** skill 走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
+               "豁免 (直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。边界模糊 → AskUserQuestion 问用户。")
+        ctx = budget_guard(ctx, SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
+
     def board(self, a):
         self._board(a)
         print(f"看板已更新: {self.dir / 'task.md'}")
@@ -730,6 +741,7 @@ def main():
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
+    sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
     co.add_argument("--add", help="追加一条契约 (省略则列出)")
@@ -758,6 +770,14 @@ def main():
         except SystemExit:
             return
         sk.session_context()
+        return
+    if a.cmd == "user-prompt":
+        # 每 prompt 都跑: 非 git 仓静默 exit 0; 提醒不依赖 .skein 初始化状态 (flow 内 setup 处理未初始化)
+        try:
+            sk = Skein()
+        except SystemExit:
+            return
+        sk.user_prompt()
         return
     sk = Skein()
     dispatch = {

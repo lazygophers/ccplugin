@@ -33,6 +33,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
 | `view` | — | 生成 (缺则建) 并用系统默认程序打开 `.skein/task.html` 静态可视化看板 (Morandi 配色, 自包含单文件, 不自动打开) |
 | `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
+| `user-prompt` | — | (UserPromptSubmit hook 调) 每次用户 prompt 注入 task 判定提醒 (是任务则走 skein-flow 闭环); 非 git 仓静默 exit 0 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
 | `journal --id <id>` | `--add <文本>` | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
 | `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--write "glob,glob"` `--reason` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `done` 完成 / `fail` 失败 / `list` 列态。add/start/done/fail 必带 `sid` |
@@ -108,6 +109,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | hook | 触发 | 作用 |
 | --- | --- | --- |
 | **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
+| **UserPromptSubmit** | 每次用户提交 prompt | `skein.py user-prompt` 注入 **task 判定提醒**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定为 model 语义活, hook 只注入决策标准 (过 budget_guard); 非 git 仓静默 exit 0 |
 | **PreToolUse** | Edit/Write/Read | `guard-skein.py` 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡) |
 | **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein.py/memory.py 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/implement)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
 | **PostToolBatch** | 并行工具批 | `batch-skein.py` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
