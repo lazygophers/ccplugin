@@ -6,10 +6,11 @@
 
 | 能力 | 载体 | 说明 |
 | --- | --- | --- |
+| 初始化 / trellis 迁移 | `setup` skill + `skein.py setup` | 幂等 scaffold; 检测 `.trellis/` → 软链 spec + 派 `skein-setup` agent 语义迁移 (spec 重组 / task 重建 / 清残留); SessionStart 无 `.skein/` 自动 nudge |
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
 | 动态 DAG 编排调度 (双层) | `skein-flow` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 冲突自算边 + `depends_on`, 并发上限 2, 完成即派 |
 | worktree 隔离 | `skein.py` | 1 task 1 worktree, 主工作区零改动 |
-| 看板 | `skein.py board` | `.skein/task.md` 生命周期看板 (脚本渲染) |
+| 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (Morandi 配色, 脚本自动渲染, `view` 按需打开) |
 | planning 入口 | `skein-planning` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
 | **两层×类目规则记忆** | `skein-memory` + `memory.py` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
@@ -19,7 +20,7 @@
 | 冷启动播种 | `skein-memory` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 归档清理 | `skein-clean` | 孤儿 worktree / 悬挂分支 / 漏归档安全清扫 |
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT); 执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 dispatch prompt 硬性注入。2 个工具受限的具名 agent (无 Agent/Task 工具, 递归护栏): `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式)。
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT); 执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 dispatch prompt 硬性注入。3 个工具受限的具名 agent (无 Agent/Task 工具, 递归护栏): `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移)。
 
 ## 差异化核心: 两层规则记忆 (基于 `.skein/spec`)
 
@@ -36,9 +37,10 @@
 
 ```
 .skein/
-├── .gitignore         # init 生成: 忽略 task.md (自动渲染); 另补 worktree_root 到根 .gitignore
+├── .gitignore         # init 生成: 忽略 task.md/task.html (自动渲染); 另补 worktree_root 到根 .gitignore
 ├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task (脚本维护)
 ├── task.md            # 顶层看板 (task.json 渲染, git 忽略, 禁直接编辑)
+├── task.html          # 静态可视化看板 (task.json 渲染, git 忽略, `skein view` 打开)
 ├── config.yaml        # max_active:2 / auto_commit:true / worktree_root:.worktrees
 └── task/
     ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / journal.md + task.json/task.md(脚本渲染)

@@ -21,7 +21,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
-| `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
+| `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md`/`task.html` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
+| `setup` | `--purge` | 幂等初始化 + trellis 兼容: 无 trellis → scaffold + 本地 spec 库; 有 `.trellis/` → 软链 `.skein/spec`→`.trellis/spec` + 输出迁移 manifest JSON (纯 stdout, scaffold 噪声走 stderr)。`--purge` 清 trellis 残留 (`.trellis/task*` + `.claude/*trellis*`, 保留 `.trellis/spec`)。语义迁移 (spec 重组/task 重建) 由 `skein-setup` agent 做 |
 | `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |
@@ -30,7 +31,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `ready` | — | **脚本算**就绪 task 批 (pending + 前置全 done + 有空闲 active 槽), 只读预览。谁可执行由脚本判 (非 AI), 与 `subtask ready` 同构; task 无写集字段故不算写集冲突 |
 | `list` | — | 列全部 task (含已归档) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
-| `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
+| `view` | — | 生成 (缺则建) 并用系统默认程序打开 `.skein/task.html` 静态可视化看板 (Morandi 配色, 自包含单文件, 不自动打开) |
+| `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
 | `journal --id <id>` | `--add <文本>` | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
 | `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--write "glob,glob"` `--reason` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `done` 完成 / `fail` 失败 / `list` 列态。add/start/done/fail 必带 `sid` |
@@ -61,10 +63,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 全文有字符上限 (`inject-core` 软告警), 超了 sediment 会提示降级到 recall。SessionStart **只注入极简索引** (每条一行标题), 另有独立 token 硬预算 (`hooklib`, 超则截断) — 常驻上下文恒定小, 全文按需拉。
 
-## Skills (6 个)
+## Skills (7 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
+| `setup` | 首次启用 SKEIN / SessionStart 提示「无 .skein/」时: 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移 | — |
 | `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | mandatory-flow-steps · scheduling-algorithm · progress-reporting |
 | `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
@@ -74,7 +77,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 flow / planning / memory / check 的 references (省常驻 description token)。
 
-## Agents (2 个具名 + 执行选现有 agent)
+## Agents (3 个具名 + 执行选现有 agent)
 
 **执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-flow/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 2 个是工具受限的具名验证/调研 agent (无 Agent/Task = 递归护栏):
 
@@ -82,6 +85,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | --- | --- | --- | --- |
 | `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + 清残留); 机械部分交 `skein.py setup [--purge]` | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 
 > 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium); 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 
