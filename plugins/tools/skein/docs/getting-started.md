@@ -27,7 +27,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 ```
 
 > **推荐入口 = `setup`** (不是裸 `init`): 幂等 scaffold + 兼容 trellis。检测到 `.trellis/` → 软链 spec + 输出迁移 manifest (spec 重组 / task 重建交 `skein-setup` agent 语义迁移, 清 trellis 残留)。无 trellis → 等价 `init` + 建本地 spec 库。
-> SessionStart 时若 git 仓无 `.skein/`, hook 会**自动注入** setup 建议; Claude 主动调 **setup** skill 完成初始化, 无需手动。
+> SessionStart 时若 git 仓无 `.skein/`, hook 会**自动注入** setup 建议; Claude 主动调 **skein-setup** skill 完成初始化, 无需手动。
 
 `init` 会建出:
 

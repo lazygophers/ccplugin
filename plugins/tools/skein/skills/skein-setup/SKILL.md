@@ -1,13 +1,13 @@
 ---
-name: setup
+name: skein-setup
 description: SKEIN 工作区初始化 + 结构维护。未初始化仓库 (无 .skein/ 或 SessionStart 提示) 一键 scaffold; 已初始化时按需手动优化 .skein 结构 (spec 类目重组 / core↔recall 层调 / config 调参), 改盘后 reindex。既有 trellis 仓迁移见 references/trellis-migration.md。幂等可重跑。
 ---
 
-# setup — 初始化 / 结构维护
+# skein-setup — 初始化 / 结构维护
 
 两用途：**① 未初始化仓库 → 建 `.skein/` 工作区**；**② 已初始化 → 手动优化 `.skein/` 结构**。**幂等** — 重跑安全。
 
-> 触发: 用户显式 `/setup`, 或 SessionStart hook 注入「无 `.skein/`」提示后 main 主动调用。
+> 触发: 用户显式 `/skein-setup`, 或 SessionStart hook 注入「无 `.skein/`」提示后 main 主动调用。
 
 ## 分流
 
