@@ -614,22 +614,200 @@ class Skein:
         )
         (self.tasks / t["id"] / "task.md").write_text(md)
 
-    # ---- task.html 可视化 (静态壳 + 运行时 fetch json; 数据不再烤进 html) ----
+    # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
     def _board_html(self):
-        # 架构: task.html = 固定静态壳 (从 assets/board/index.html 拷), board/render.js 运行时
-        # fetch task.json + task/<id>/task.json 客户端渲染。只写 view-config (主题默认)。
-        # 数据变更无需重渲 html —— render.js 每次打开都读最新 json。
-        # 注意: 需经 http 访问 (skein view 起本地 server); file:// 双击 fetch 会被浏览器 CORS 拦。
+        st_cls = {S_PENDING: "s-pending", S_ACTIVE: "s-active",
+                  S_CHECK: "s-check", S_DONE: "s-done"}
+        ss_cls = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running",
+                  SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
+
+        def esc(s):
+            return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+        def badge(text, clsmap):
+            return f'<span class="badge {clsmap.get(text, "")}">{esc(text)}</span>'
+
+        def fmt_dur(mins):
+            if mins is None:
+                return "-"
+            return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
+
+        def bar(pct, sub=False, cls=""):
+            # width 封顶 100%, label 显真实值 (超时 >100% 照显)
+            c = "bar" + (" sub" if sub else "") + ((" " + cls) if cls else "")
+            return (f'<div class="{c}"><div class="fill" '
+                    f'style="width:{min(pct, 100)}%"></div><span class="pct">{pct}%</span></div>')
+
+        # 状态 -> CSS 变量 (执行顺序图节点左边框着色); task/subtask 状态共用 (值同名)
+        node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
+                    S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
+
+        def dag_html(nodes):
+            # nodes: [(id, name, status, deps)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
+            if len(nodes) < 2:
+                return ""
+            ids = {n[0] for n in nodes}
+            dep = {n[0]: [d for d in n[3] if d in ids] for n in nodes}
+            smap = {n[0]: n for n in nodes}
+            order = {n[0]: k for k, n in enumerate(nodes)}  # 稳定排行
+            # 分层: layer = 最长依赖深度 (列 = 执行波次, 并行节点落同列)
+            layer = {}
+
+            def depth(i, seen):
+                if i in layer:
+                    return layer[i]
+                if i in seen:  # 环兜底
+                    return 0
+                d = 1 + max((depth(p, seen | {i}) for p in dep[i]), default=-1)
+                layer[i] = d
+                return d
+            for i in ids:
+                depth(i, set())
+            layers = {}
+            for i, d in layer.items():
+                layers.setdefault(d, []).append(i)
+            for d in layers:
+                layers[d].sort(key=lambda i: order[i])
+            COL, ROW, NW, NH = 170, 56, 140, 40
+            pos = {i: (d * COL + 10, r * ROW + 10)
+                   for d, ids_ in layers.items() for r, i in enumerate(ids_)}
+            W = (max(layers) + 1) * COL + 10
+            H = max(len(v) for v in layers.values()) * ROW + 10
+            lines = []
+            for i in ids:
+                x2, y2 = pos[i]
+                ey = y2 + NH / 2
+                for p in dep[i]:
+                    x1, y1 = pos[p]
+                    sx, sy = x1 + NW, y1 + NH / 2
+                    mx = (sx + x2) / 2
+                    lines.append(
+                        f'<path d="M{sx},{sy} C{mx},{sy} {mx},{ey} {x2 - 2},{ey}" fill="none" '
+                        f'stroke="var(--muted)" stroke-width="1.5"/>'
+                        f'<polygon points="{x2 - 8},{ey - 4} {x2},{ey} {x2 - 8},{ey + 4}" fill="var(--muted)"/>')
+            boxes = []
+            for i in ids:
+                x, y = pos[i]
+                _id, nm, stt, _ = smap[i]
+                nm2 = (nm[:9] + "…") if len(nm) > 10 else nm
+                boxes.append(
+                    f'<g><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
+                    f'fill="var(--bg)" stroke="var(--brd)"/>'
+                    f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
+                    f'fill="var({node_var.get(stt, "--muted")})"/>'
+                    f'<text x="{x + 12}" y="{y + 17}" font-size="12" fill="var(--fg)">{esc(_id)}</text>'
+                    f'<text x="{x + 12}" y="{y + 31}" font-size="10" fill="var(--muted)">{esc(nm2)}</text></g>')
+            return (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
+                    f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
+
+        tnow = now()
+        tasks = self._all()
+        name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
+
+        def elapsed_of(t):
+            # ponytail: 实际耗时 = 最后活动(updated) - created; 活跃 task 粗值, 已完成即总耗时
+            return round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
+
+        # 任务进展总览: 各状态计数 + 综合/预估加权完成率 + 时长合计
+        cnt = {}
+        fracs = []       # 综合进度: DONE task 记满, 未完成 task 按其 subtask 完成比例
+        est_total = 0    # 预期时长合计 (min)
+        elapsed_total = 0  # 已耗合计 (min)
+        wsum = wdone = 0.0  # 预估加权完成率: 权 = estimate (未估默认 60m 免消失)
+        remain_est = 0.0    # 剩余预估时长 = Σ 未完成 task 的 estimate×(1-frac)
+        for t in tasks:
+            cnt[t["status"]] = cnt.get(t["status"], 0) + 1
+            if t["status"] == S_DONE:
+                frac = 1.0
+            else:
+                subs = t.get("subtasks", [])
+                frac = sum(1 for s in subs if s["status"] == SS_DONE) / len(subs) if subs else 0.0
+            fracs.append(frac)
+            est = t.get("estimate") or 0
+            est_total += est
+            elapsed_total += elapsed_of(t)
+            w = est or 60
+            wsum += w
+            wdone += w * frac
+            remain_est += est * (1 - frac)  # 未估 (est=0) 不计剩余
+        overall = round(sum(fracs) / len(fracs) * 100) if fracs else 0
+        weighted = round(wdone / wsum * 100) if wsum else overall
+        chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
+        task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", [])) for t in tasks]
+        overview = (
+            f'<section class="card"><h2>任务进展</h2>'
+            f'<p class="meta">{len(tasks)} task · {chips}</p>'
+            f'<p class="meta">预期合计 {fmt_dur(est_total or None)} · 已耗 {fmt_dur(elapsed_total or None)} · '
+            f'剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
+            f'<p class="meta">综合完成率</p>{bar(overall)}'
+            f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
+            f'{dag_html(task_nodes)}</section>')
+
+        cards = []
+        for t in tasks:
+            subs = t.get("subtasks", [])
+            sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}  # subtask 依赖也显示名字
+            sdone = sum(1 for s in subs if s["status"] == SS_DONE)
+            spct = round(sdone / len(subs) * 100) if subs else 0
+            elapsed = elapsed_of(t)
+            est = t.get("estimate")
+            # 时间进度条: 已耗/预期%, 超时标红 (无估则不显)
+            time_bar = (f'<p class="meta">时间 {fmt_dur(elapsed)}/{fmt_dur(est)}</p>'
+                        + bar(round(elapsed / est * 100), cls="time" + (" over" if elapsed > est else ""))
+                        ) if est else ""
+            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", [])) for s in subs]
+            srows = "".join(
+                f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
+                f'<td>{badge(s["status"], ss_cls)}</td>'
+                f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
+                f'<td>{esc(s.get("agent", "general-purpose"))}</td>'
+                f'<td>{esc(",".join(s.get("skills", [])) or "-")}</td>'
+                f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
+                f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
+                f'<td>{esc(s.get("reason", "") or "-")}</td></tr>' for s in subs)
+            subtable = (
+                '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th>'
+                '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
+                f'<tbody>{srows}</tbody></table>' if subs
+                else '<p class="empty">无 subtask</p>')
+            cards.append(
+                f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
+                f'<p class="name">{esc(t.get("name", ""))}</p>'
+                f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
+                f'worktree: {esc(t.get("worktree") or "-")} · '
+                f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
+                f'{time_bar}'
+                f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
+                f'{dag_html(snodes)}'
+                f'{subtable}</section>')
+        body = overview + "\n" + ("\n".join(cards) if cards else '<p class="empty">无 task</p>')
+
         self._copy_board_assets()
-        shell = self.dir / "board" / "index.html"
-        if shell.exists():
-            self.html_path.write_text(shell.read_text())
         cfg = self.config()
-        (self.dir / "board" / "view-config.json").write_text(json.dumps({
-            "theme": cfg.get("board_theme", "morandi"),
-            "palette": cfg.get("board_palette", "stone"),
-            "mode": cfg.get("board_mode", "light"),
-        }, ensure_ascii=False))
+        theme = cfg.get("board_theme", "morandi")
+        palette = cfg.get("board_palette", "stone")
+        mode = cfg.get("board_mode", "light")
+        links = ('<link rel=stylesheet href="board/base.css">'
+                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES)
+                 + "".join(f'<link rel=stylesheet href="board/palettes/{k}.css">' for k, _ in PALETTES))
+
+        def opts(items, cur):
+            return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
+                           for k, label in items)
+        switcher = (
+            '<div class="switcher">'
+            f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
+            f'<label>配色<select id="sw-palette">{opts(PALETTES, palette)}</select></label>'
+            f'<label>明暗<select id="sw-mode">{opts([("light", "浅色"), ("dark", "深色")], mode)}</select></label>'
+            '</div>')
+        html = (
+            f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'
+            '<head><meta charset=utf-8>'
+            '<meta name=viewport content="width=device-width,initial-scale=1">'
+            f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
+            f'{switcher}<h1>SKEIN 看板 · {esc(self.proj)}</h1>{body}'
+            '<script src="board/switcher.js"></script></body></html>')
+        self.html_path.write_text(html)
 
     def _copy_board_assets(self):
         # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)
@@ -638,25 +816,12 @@ class Skein:
             shutil.copytree(src, self.dir / "board", dirs_exist_ok=True)
 
     def view(self, _):
-        # 静态壳 + fetch json 架构必须经 http 访问 (file:// 双击 fetch 被 CORS 拦), 故起本地 server。
-        self._board_html()  # 确保壳 + 资产 + view-config 就位
-        import http.server
-        import socketserver
-        import functools
-
-        class _Q(http.server.SimpleHTTPRequestHandler):
-            def log_message(self, *a):  # 静默请求日志
-                pass
-        handler = functools.partial(_Q, directory=str(self.dir))
-        with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
-            url = f"http://127.0.0.1:{httpd.server_address[1]}/task.html"
-            opener = "open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.run([opener, url], check=False)
-            print(f"看板服务: {url}  (Ctrl-C 停止)")
-            try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                print("\n看板服务已停止")
+        html = self.html_path
+        if not html.exists():
+            self._board_html()
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.run([opener, str(html)], check=False)
+        print(f"已打开可视化看板: {html}")
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
     _TRELLIS_TASK_RESIDUALS = ("task.json", "task.md", "task", "scripts", "hooks",
