@@ -17,7 +17,17 @@ effort: high
 
 ## 输入 (来自 dispatch prompt 6 字段)
 
-目标 / 已知 (Active task id + worktree 路径 + 相关文件 + 召回规则) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。
+目标 / 已知 (Active task id + worktree 路径 + 相关文件 + 召回规则) / 工作目录与范围 (**每个目标文件带 per-file `reason`**: 改它是为了满足哪条契约/需求) / 输出格式 / 验收标准 / 失败处理。
+
+## 🔴 写前 CHECKPOINT — 读后写硬门 (每个待改文件必过)
+
+改**任何**文件前, 逐文件按序执行, 未走完不许 Edit/Write:
+
+1. **STOP → Read 全文** — 先 `Read` 该文件完整内容 (禁凭 dispatch 摘要或记忆就动手)。
+2. **复述适用契约 + reason** — 一句话写清: 「本文件 = <path>; 适用契约 = <逐条>; 本次 reason = <dispatch 给的 per-file reason>」。契约来源: `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <focus>` (planning 阶段锁进 task.json 的同一批契约; 与 check 阶段逐条验的是同一份, 本硬门只是把它前移到写前过一遍, **不新造契约存储**)。
+3. **才允许 Edit/Write** — 复述完且无矛盾, 方可动手, 且改动必须落在 reason 声明的意图内。
+
+**失败路径 (🛑 不擅改)**: 若复述时发现 reason 与文件现状矛盾 —— 契约要求已被满足 / 该文件按契约根本不该改 / reason 指向的需求文件里已不存在 —— **停手**, 在返回标 `需要: <文件 path + 矛盾点>` 回传 main, 由 main 转达用户裁决。禁硬改一个不该动的文件。
 
 ## 输出 (回传 main, 压缩摘要而非流水账)
 

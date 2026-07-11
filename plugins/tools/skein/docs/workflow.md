@@ -9,7 +9,7 @@
 | **main** | 主对话 (coordinator) | 调度器: 跑 `skein.py` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
 | **skein-implementer** | 执行 agent | worktree 内执行 **1 个** subtask, 写代码 | 无 (递归护栏) |
 | **skein-checker** | 验证 agent | 只读, 跑 lint / type / test / 契约校验 | 无 |
-| **skein-researcher** | 调研 agent | planning 阶段纯信息调研 (选型 / 对比), 结论落盘 `research/` | 无 |
+| **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派具名 subagent。3 个执行 agent 都**没有** Agent/Task 工具, 不能自派 (Recursion Guard), 各自只干一件事。
 
@@ -49,6 +49,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 - 把 `implement.md` 拆成 subtask, 按冲突自算边 + 显式 `depends_on` 组成 DAG。
 - **ready 即派** `skein-implementer` (6 字段自包含 prompt), **并发上限 2**, **完成即派**下一个 (不空等全部)。
+- **读后写硬门 + reason 注解**: dispatch prompt 的「工作目录与范围」段**逐文件枚举**, 每个文件带 **reason** (改它满足哪条契约/需求)。implementer 收 subtask 后, 对每个待改文件必过 🔴 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 + reason → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。把契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
 - 派出异步任务后结束本回合前, MUST 输出任务全景表 (状态: 进行中 / 等待中 / 阻塞)。
@@ -56,6 +57,8 @@ main 作调度器跑**动态 DAG 调度循环**:
 ### ⑤ check (main 派 checker fan-out)
 
 派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <focus>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
+
+**第 3 轮仍 FAIL → break-loop 根因复盘**: 不再只 🛑 STOP, 而是加载 `skein-break-loop` 做跨维度结构化根因复盘 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
 ### ⑥ finish (main 同步)
 
@@ -99,6 +102,16 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 - **两层 × 类目**: 层内按类目 (git / test / arch / build / style / domain / ops...) 分子目录, 自由取名按需建。
 - **三份索引**: 每层 `<layer>/index.md` + 顶层 `index.md` (两层聚合), sediment 写盘后自动 reindex。
 - **core 预算警戒**: core 常驻注入有字符预算, 超了会警告「考虑降级部分到 recall」, 避免常驻上下文过重。
+
+### bootstrap 冷启动播种 (一次性)
+
+仓库**首次接入** SKEIN、`.claude/rules` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 跑一次 `skein-bootstrap`:
+
+1. 派 `skein-researcher` (**bootstrap 扫描模式**) 扫既有代码库约定 — 命名 / 错误处理 / 测试 / 架构边界 / 构建 5 个维度, 提炼候选规则。
+2. 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。
+3. **默认多归 recall** (静态扫描是推断而非踩坑实证), 仅「违反必炸」的硬约束才进 core。
+
+这是**一次性动作** (仅冷启动跑一次), 后续增量经验仍走正常 finish sediment 累积。
 
 ### sediment 判定门 (finish 前必做)
 

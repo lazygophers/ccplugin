@@ -29,7 +29,7 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 | 轮次 | 动作 |
 |---|---|
 | 1-2 轮 FAIL | 按报告定点修复重检 (正常循环) |
-| 第 3 轮仍 FAIL | 🛑 STOP 回传用户 — 可能是需求/方案问题, 退回 planning 或转人工, 禁无限调试循环 |
+| 第 3 轮仍 FAIL | 🛑 STOP 定点循环 → 加载 [skein-break-loop](../skein-break-loop/SKILL.md) 做结构化根因复盘 (跨维度定位 root cause + 预防措施), 禁无限盲改。复盘出口: 带根因回 exec 定向重修, 或 STOP 附根因报告转人工 |
 
 ## ⛔ 反例
 

@@ -105,11 +105,22 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current --all
 | 情况 | 怎么办 |
 | --- | --- |
 | exec agent 报错返回 | main 读原因、缩范围、重派; 连续 2 次失败 → STOP 回传你 |
-| check 反复不过 (≥2 轮) | 派 agent 定点修; 第 3 轮仍不过 → STOP 跳出调试循环 |
+| check 反复不过 (≥2 轮) | 派 agent 定点修; 第 3 轮仍不过 → 加载 `skein-break-loop` 做**跨维度根因复盘** (需求/设计/实现/环境/测试 5 维定位 + 预防措施), 出口: 带根因回 exec 定向重修, 或 STOP 附根因报告转人工 (可复用教训回流 sediment) |
 | finish 合并冲突 | 自动 abort + 报冲突文件; 手动解冲突后重跑 finish, **禁强解** |
 | 方案跑歪想放弃 | `skein.py archive <id>` — 丢弃 task (销 worktree, 不合并), 主分支干净 |
 
-## 场景 8: 清理残留
+## 场景 8: 首次接入空仓 (冷启动播种)
+
+**例**: 一个已有代码但从没用过 SKEIN 的仓库, `.claude/rules` 还是空的, 规则库没历史经验可召回。
+
+- main 会用 AskUserQuestion 征你同意后跑一次 **`skein-bootstrap`** 冷启动播种:
+  - 派 `skein-researcher` (bootstrap 扫描模式) 扫既有代码库约定 (命名 / 错误处理 / 测试 / 架构边界 / 构建 5 维), 提炼候选规则。
+  - 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。
+- **一次性动作**: 只在冷启动跑一次, 给规则库播下基线; 后续增量经验仍走正常 finish sediment。
+
+**注意点**: 静态扫描是**推断**不是踩坑实证 → 默认多归 recall, 仅「违反必炸」的硬约束进 core, 别让 bootstrap 撑爆 core 层。
+
+## 场景 9: 清理残留
 
 worktree 崩了、分支悬挂、task 漏归档 → 用 **`skein-clean`** skill 安全清扫孤儿 worktree / 悬挂分支 / 漏归档 task。
 

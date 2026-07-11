@@ -2,10 +2,21 @@
 
 CLI、skill、agent、command、配置、hook 一览。
 
+## 短命令 (bin/ PATH 封装)
+
+plugin 启用后 `bin/` 自动进 Bash tool 的 PATH (官方约定目录, 无需 plugin.json 声明), 长调用可缩为裸命令:
+
+| 短命令 | 等价长形式 |
+| --- | --- |
+| `skein <cmd>` | `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>` |
+| `skein-memory <cmd>` | `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>` |
+
+省 token、抗路径漂移。**仅** skill/agent 正文里的 Bash 调用可用短命令; hook 里的 `python3 ${CLAUDE_PLUGIN_ROOT}/...` 走 hook 环境 (非 Bash PATH), 保持长形式不变。下文命令表沿用长形式书写, 实操可替换为短命令。
+
 ## skein.py — 任务引擎 (main 同步跑)
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd>
 ```
 
 | 命令 | 参数 | 作用 |
@@ -28,7 +39,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>
 ## memory.py — 规则记忆引擎
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-memory <cmd>
 ```
 
 | 命令 | 参数 | 作用 |
@@ -45,7 +56,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 常驻注入有字符上限, 超了 sediment 会警告降级到 recall。
 
-## Skills (9 个)
+## Skills (11 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
@@ -58,6 +69,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
 | `skein-spec` | 破坏式重构 (不保兼容, 全站点一次改齐) | anti-patterns |
 | `skein-check` | 质量门 (lint/type/test/契约), 未过派修 | — |
 | `skein-clean` | 清孤儿 worktree / 悬挂分支 / 漏归档 | anti-examples |
+| `skein-bootstrap` | 空仓冷启动: 首次接入且 `.claude/rules` 为空/近空时, 扫既有代码库约定播种规则基线 (一次性) | scan-dimensions |
+| `skein-break-loop` | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (5 维定位 + 预防措施) | root-cause-protocol · anti-patterns |
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。
 
@@ -65,9 +78,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
-| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 | 读写 + Bash, 无 Agent/Task | `effort: high` (继承主模型, 不降级) |
+| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 (每文件过 🔴 写前 CHECKPOINT) | 读写 + Bash, 无 Agent/Task | `effort: high` (继承主模型, 不降级) |
 | `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
-| `skein-researcher` | planning 阶段纯信息调研 (选型/对比), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 
 > 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium), 执行保持高推理 (implementer 继承主模型 + high effort)。
 

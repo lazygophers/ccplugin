@@ -51,7 +51,10 @@ flowchart TD
 
     subgraph CHECK[⑤ check — 派 checker]
         VERIFY[skein-checker: lint/type/test/契约] --> PASS{通过?}
-        PASS -->|否| FIX[派 implementer 定点修] --> VERIFY
+        PASS -->|否, <3 轮| FIX[派 implementer 定点修] --> VERIFY
+        PASS -->|否, 第 3 轮仍 FAIL| BREAK[skein-break-loop<br/>5 维根因复盘]
+        BREAK -->|带根因回 exec| FIX
+        BREAK -->|STOP 转人工| HALT([附根因报告转人工])
         PASS -->|是| CHECKEND[check 通过]
     end
 
@@ -102,6 +105,7 @@ flowchart LR
 | plan 深度 | 需求方案在 plan 阶段对齐透, exec 一路顺 | plan 潦草, exec 中途反复停下问「先做哪个」 |
 | 顺序决策 | 依赖关系在 planning 用 depends_on / 调度图定死 | 到 exec 才临时问用户顺序 |
 | 改动落点 | 全落 worktree, 主工作区零改动 | main 亲自在主工作区改源码 |
+| 写前把关 | 每个待改文件先 Read 全文 + 复述契约/reason 再 Edit | 不读上下文直接改, 契约事后 check 才发现被破 |
 | 执行方式 | 实质工作派具名 subagent | main 假装派 agent 但没真调 Agent 工具 |
 | 进度回传 | 每个 agent 完成即回传 | 批量攒到最后一次性汇报 |
 | 闭环 | 走完 finish + archive 才算完 | check 没过就宣告 Done |
@@ -127,6 +131,9 @@ flowchart LR
 
 - **策略分档轻量路由** — planning 先给任务定档 (`direct-fix` 单点微改直接豁免 / `standard` 常规闭环 / `heavy` 跨子系统强化 grill + 拆多 task), 按档投入 planning 力度, 别对小改也上重流程 (仅路由启发, 无新机器)。
 - **契约当可复用验收基准** — planning 锁进 `contracts` 的不变量既是本 task check 的逐条验收项, 值得复用的 (如「必须走异步队列」) finish 时再 sediment 成规则, 供后续 task 复用。
+- **写前先读、复述契约再改** — implementer 对每个待改文件必过 🔴 写前 CHECKPOINT (先 Read 全文 → 复述适用契约 + reason → 才 Edit/Write), 把契约约束从 check 事后验前移到写前, 少一轮返工。dispatch 时逐文件带 reason (改它满足哪条契约/需求), 别甩一个笼统范围让 agent 猜。文件现状与契约矛盾 → 标 `需要:` 回传, **别擅改**。
+- **空仓先 bootstrap 播种基线** — 首次接入且 `.claude/rules` 为空时, 先跑一次 `skein-bootstrap` 扫既有约定播种规则 (默认多归 recall, 仅硬约束进 core), 让第一个 task 就能召回项目习惯; 之后靠正常 finish sediment 增量累积, 别再重复 bootstrap。
+- **第 3 轮别硬撞** — check 反复不过到第 3 轮, 走 `skein-break-loop` 5 维根因复盘 (需求/设计/实现/环境/测试), 定位真根因再定向重修, 别在同一层症状上无脑加轮。
 - **plan 一次到位** — 省下 exec 反复返工。grill 硬门就是逼你在动手前把漏洞暴露完。
 - **并行别硬凑** — 写文件范围相交的 subtask 让它串行, 别为并行而并行 (冲突边会自动挡)。
 - **core 层克制** — 只放「后续同类任务必再踩」的强约束。长尾经验进 recall, 别把 core 撑爆 (有预算警戒)。
