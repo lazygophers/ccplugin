@@ -521,6 +521,7 @@ class Skein:
                 "sid": a.sid, "name": a.name or a.sid,
                 "depends_on": _split(a.deps),
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
+                "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
                 "status": SS_PENDING,
                 "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
                 "agent": a.agent or "general-purpose",  # 执行 agent (无合适则通用)
@@ -540,7 +541,7 @@ class Skein:
                 chk = "; ".join(s.get("验收", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
                 ag = s.get("agent", "general-purpose")
-                print(f"{s['sid']}\t{s['status']}\t{s['name']}\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
+                print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
             return
         if a.action in ("ready", "claim"):
             t = self._load(a.tid)
@@ -579,8 +580,25 @@ class Skein:
             if len(run) >= self.config().get("max_parallel", 2):
                 raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
             s["status"] = SS_RUNNING
+        elif a.action == "check":
+            crit = s.get("验收", [])
+            val = (a.passed or "").strip()
+            if val == "all":
+                idx = list(range(1, len(crit) + 1))
+            elif val in ("none", ""):
+                idx = []
+            else:
+                idx = sorted({int(x) for x in _split(val)})
+                bad = [i for i in idx if i < 1 or i > len(crit)]
+                if bad:
+                    raise SystemExit(f"验收序号越界: {bad} (共 {len(crit)} 条)")
+            s["验收done"] = idx
+            self._save(t)  # _save 已渲染子任务看板
+            print(f"{a.tid}/{a.sid} 验收 {len(idx)}/{len(crit)} ({_sub_pct(s)}%)")
+            return
         elif a.action == "done":
             s["status"] = SS_DONE
+            s["验收done"] = list(range(1, len(s.get("验收", [])) + 1))  # 完成即全过 → 100%
         elif a.action == "fail":
             s["status"] = SS_FAILED
             if a.note:
@@ -595,13 +613,13 @@ class Skein:
             chk = "; ".join(s.get("验收", [])) or "-"
             sk = ",".join(s.get("skills", [])) or "-"
             ag = s.get("agent", "general-purpose")
-            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {ag} | {sk} | {deps} | {chk} |")
-        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"
+            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {ag} | {sk} | {deps} | {chk} |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - | - |"
         md = (
             f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
             "> 经 `skein.py subtask` 渲染, 禁直接读写; 取态用 `skein.py subtask list <id>`。\n\n"
-            "| sid | 名称 | 状态 | agent | skills | 依赖 | 验收标准 |\n"
-            "|---|---|---|---|---|---|---|\n"
+            "| sid | 名称 | 状态 | 进度 | agent | skills | 依赖 | 验收标准 |\n"
+            "|---|---|---|---|---|---|---|---|\n"
             f"{body}\n\n"
             f"并发上限: {self.config().get('max_parallel', 2)}\n"
         )
@@ -714,7 +732,7 @@ class Skein:
                 frac = 1.0
             else:
                 subs = t.get("subtasks", [])
-                frac = sum(1 for s in subs if s["status"] == SS_DONE) / len(subs) if subs else 0.0
+                frac = sum(_sub_pct(s) for s in subs) / (len(subs) * 100) if subs else 0.0
             fracs.append(frac)
             est = t.get("estimate") or 0
             est_total += est
@@ -741,7 +759,7 @@ class Skein:
             subs = t.get("subtasks", [])
             sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}  # subtask 依赖也显示名字
             sdone = sum(1 for s in subs if s["status"] == SS_DONE)
-            spct = round(sdone / len(subs) * 100) if subs else 0
+            spct = round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
             elapsed = elapsed_of(t)
             est = t.get("estimate")
             # 时间进度条: 已耗/预期%, 超时标红 (无估则不显)
@@ -752,13 +770,14 @@ class Skein:
             srows = "".join(
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
                 f'<td>{badge(s["status"], ss_cls)}</td>'
+                f'<td>{bar(_sub_pct(s), sub=True)}</td>'
                 f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
                 f'<td>{esc(s.get("agent", "general-purpose"))}</td>'
                 f'<td>{esc(",".join(s.get("skills", [])) or "-")}</td>'
                 f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
                 f'<td>{esc("; ".join(s.get("验收", [])) or "-")}</td></tr>' for s in subs)
             subtable = (
-                '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th>'
+                '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th><th>进度</th>'
                 '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>'
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
@@ -921,6 +940,14 @@ def _split_semi(s):
     return [x.strip() for x in (s or "").split(";") if x.strip()]
 
 
+def _sub_pct(s):
+    # subtask 完成百分比 = 已通过验收/总验收 (done 强制 100; 无验收则未完成即 0)
+    if s["status"] == SS_DONE:
+        return 100
+    crit = s.get("验收", [])
+    return round(len(s.get("验收done", [])) / len(crit) * 100) if crit else 0
+
+
 def main():
     p = argparse.ArgumentParser(
         prog="skein.py",
@@ -962,20 +989,21 @@ def main():
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",
         epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_parallel)")
-    st.add_argument("action", choices=["add", "claim", "ready", "start", "done", "fail", "list"],
-                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / done 完成 / fail 失败 / list 列态")
+    st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "done", "fail", "list"],
+                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
     st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带)")
     st.add_argument("--name", help="[add] subtask 名称")
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
     st.add_argument("--note", help="[fail] 失败备注")
+    st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
     st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
     st.add_argument("--agent", help="[add] 关联执行 agent (省略默认 general-purpose)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
     a = p.parse_args()
-    if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "done", "fail") and not a.sid:
+    if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 仓静默 exit 0; git 仓无 .skein → session_context 注入 setup 建议

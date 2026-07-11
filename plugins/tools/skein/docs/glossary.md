@@ -22,6 +22,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | **claim (认领)** | `subtask claim` 一次性算就绪批 + 整批标 running, 返回给 main 逐个派 agent。脚本一步到位, 免 main 逐个 start。 |
 | **完成即派** | 任一 agent 返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不空等一批跑完。 |
 | **并发上限** | `max_parallel` (默认 2) — 同时在跑的 subagent ≤ 此值。`claim` 内按剩余槽截断。 |
+| **完成百分比** | subtask 完成度 = 已过验收/总验收 (`subtask check --passed` 勾选驱动, 存 `验收done[]`); `done` 强制 100%。看板逐 subtask 渲染进度条, task 综合完成率 = 各 subtask 均值。 |
 
 ## worktree
 

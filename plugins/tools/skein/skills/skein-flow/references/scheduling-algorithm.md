@@ -15,7 +15,8 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | --- | --- | --- |
 | `subtask add <tid> <sid> --deps --check --agent --skills` | planning/main | 登记 subtask 到 DAG (`--check` = 验收标准 checklist 分号分隔; `--agent` 省略默认 `general-purpose`, `--skills` 逗号分隔 0-n) |
 | `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
-| `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 |
+| `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
+| `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
 
 ## 调度循环 (动态, 完成即派)
@@ -73,4 +74,5 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 ```
 
 - **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`), dispatch 时原样带给执行 agent, agent 完成前逐条自检、回传时对照。取代旧的 per-file reason: 不再逐文件声明"为何改", 而是给一份"做完要满足什么"的验收清单, 文件由 agent 自主定。
+- **完成百分比 = 验收勾选比例** — subtask 完成度不靠估, 由验收 checklist 勾选自动算: agent 回传时 main 用 `subtask check <sid> --passed "1,3"` 勾已过条目, 百分比 = 已过/总验收 (存 `验收done[]`); `done` 自动标满 100%。看板 (task.md/task.html) 逐 subtask 渲染进度条, task 综合完成率 = 各 subtask 百分比均值 (取代旧的 done 计数二值)。
 - **Recursion Guard 靠 dispatch prompt 硬性禁止** — 通用 agent 有 Agent/Task 工具, 故不靠工具面而靠上面 prompt 的硬性指令挡住递归: 执行 agent 只做这一个 subtask, 禁再派 subagent, 自己动手做完; 也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。
