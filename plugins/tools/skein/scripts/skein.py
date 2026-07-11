@@ -140,6 +140,7 @@ class Skein:
         t["updated"] = now()
         (self.tasks / t["id"] / "task.json").write_text(json.dumps(t, ensure_ascii=False, indent=2))
         self._board_task(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
+        self._board_html()  # subtask 变更 (add/done/fail) 也刷全局 html, 免看板漂移 (subtasks 不进顶层 index, 故不走 _sync)
 
     def _all(self) -> list:
         if not self.tasks.exists():
@@ -211,6 +212,7 @@ class Skein:
             "id": tid, "name": a.name or tid, "desc": a.desc or "",
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
+            "estimate": a.estimate,  # AI 执行预期耗时 (分钟, planning 填; None=未估)
             "created": now(), "updated": now(),
         }
         self._save(t)  # _save 已渲染子任务看板
@@ -473,6 +475,7 @@ class Skein:
                 "sid": a.sid, "name": a.name or a.sid,
                 "depends_on": _split(a.deps), "write": _split(a.write),
                 "reason": a.reason or "", "status": SS_PENDING,
+                "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
             })
             self._save(t)  # _save 已渲染子任务看板
             print(f"{a.tid}/{a.sid} 已登记 (共 {len(subs)} subtask)")
@@ -565,26 +568,55 @@ class Skein:
             return (f'<span class="badge" style="background:{palette.get(text, "#8e9aaf")}">'
                     f'{esc(text)}</span>')
 
+        def fmt_dur(mins):
+            if mins is None:
+                return "-"
+            return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
+
+        def bar(pct, color):
+            return (f'<div class="bar"><div class="fill" style="width:{pct}%;'
+                    f'background:{color}"></div><span class="pct">{pct}%</span></div>')
+
+        tnow = now()
+        tasks = self._all()
+        # 任务进展总览: 各状态计数 + 完成率
+        cnt = {}
+        for t in tasks:
+            cnt[t["status"]] = cnt.get(t["status"], 0) + 1
+        overall = round(cnt.get(S_DONE, 0) / len(tasks) * 100) if tasks else 0
+        chips = " ".join(f'{badge(k, st_color)} {v}' for k, v in cnt.items()) or "-"
+        overview = (
+            f'<section class="card"><h2>任务进展</h2>'
+            f'<p class="meta">{len(tasks)} task · {chips}</p>{bar(overall, "#9caf88")}</section>')
+
         cards = []
-        for t in self._all():
+        for t in tasks:
             subs = t.get("subtasks", [])
+            sdone = sum(1 for s in subs if s["status"] == SS_DONE)
+            spct = round(sdone / len(subs) * 100) if subs else 0
+            # ponytail: 实际耗时 = 最后活动(updated) - created; 活跃 task 是粗值, 已完成即总耗时
+            elapsed = round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
             srows = "".join(
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
                 f'<td>{badge(s["status"], ss_color)}</td>'
+                f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
                 f'<td>{esc(",".join(s.get("depends_on", [])) or "-")}</td>'
                 f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
                 f'<td>{esc(s.get("reason", "") or "-")}</td></tr>' for s in subs)
             subtable = (
                 '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th>'
-                '<th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
+                '<th>预期</th><th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
             cards.append(
                 f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_color)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'<p class="meta">前置: {esc(",".join(t.get("deps", [])) or "-")} · '
-                f'worktree: {esc(t.get("worktree") or "-")}</p>{subtable}</section>')
-        body = "\n".join(cards) if cards else '<p class="empty">无 task</p>'
+                f'worktree: {esc(t.get("worktree") or "-")} · '
+                f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(t.get("estimate"))}</p>'
+                f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, "#8e9aaf")}'
+                f'{subtable}</section>')
+        body = overview + "\n" + ("\n".join(cards) if cards else '<p class="empty">无 task</p>')
         html = (
             "<!doctype html><html lang=zh-CN><head><meta charset=utf-8>"
             "<meta name=viewport content='width=device-width,initial-scale=1'>"
@@ -598,6 +630,9 @@ class Skein:
             "table{border-collapse:collapse;width:100%;font-size:13px}"
             "th,td{text-align:left;padding:5px 8px;border-bottom:1px solid #e0dad2}"
             "th{color:#8a847d;font-weight:600}.empty{color:#a59f97;font-style:italic}"
+            ".bar{position:relative;background:#e0dad2;border-radius:6px;height:16px;margin:0 0 10px;overflow:hidden}"
+            ".fill{height:100%;border-radius:6px}"
+            ".pct{position:absolute;top:0;left:8px;font-size:11px;line-height:16px;color:#4a4642}"
             "footer{margin-top:20px;font-size:12px;color:#a59f97}"
             "</style></head><body><h1>SKEIN 看板</h1>"
             f"{body}<footer>脚本自动渲染 · 禁手改 · 刷新 <code>skein.py board</code></footer>"
@@ -729,6 +764,7 @@ def main():
     c.add_argument("--name", help="task 标题 (省略则用 id)")
     c.add_argument("--desc", help="一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
+    c.add_argument("--estimate", type=int, help="AI 执行预期耗时 (分钟, planning 填)")
     s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
     f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
@@ -759,6 +795,7 @@ def main():
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪)")
     st.add_argument("--write", help="[add] 写文件 glob, 逗号分隔 (相交则串行, 冲突自算边)")
     st.add_argument("--reason", help="[add/fail] 备注 (add: 改它满足哪条契约/需求)")
+    st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
 
     a = p.parse_args()
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "done", "fail") and not a.sid:

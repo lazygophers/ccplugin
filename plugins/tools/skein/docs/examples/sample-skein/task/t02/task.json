@@ -17,7 +17,8 @@
         "internal/order/validate*.go"
       ],
       "reason": "校验商品/数量/收货地址, 契约前置",
-      "status": "已完成"
+      "status": "已完成",
+      "estimate": 20
     },
     {
       "sid": "s2",
@@ -27,7 +28,8 @@
         "internal/inventory/*.go"
       ],
       "reason": "Redis 原子 decr, 不足即拒 (契约2)",
-      "status": "运行中"
+      "status": "运行中",
+      "estimate": 40
     },
     {
       "sid": "s3",
@@ -37,7 +39,8 @@
         "internal/order/repo*.go"
       ],
       "reason": "幂等键冲突, 待重试",
-      "status": "失败"
+      "status": "失败",
+      "estimate": 30
     },
     {
       "sid": "s4",
@@ -49,11 +52,13 @@
         "internal/event/*.go"
       ],
       "reason": "落单成功后发 MQ 事件",
-      "status": "待处理"
+      "status": "待处理",
+      "estimate": 30
     }
   ],
   "worktree": ".worktrees/skein-t02",
   "branch": "skein/t02",
   "created": 1783754713,
-  "updated": 1783754713
+  "updated": 1783758313,
+  "estimate": 120
 }

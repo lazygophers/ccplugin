@@ -23,7 +23,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md`/`task.html` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
 | `setup` | `--purge` | 幂等初始化 + trellis 兼容: 无 trellis → scaffold + 本地 spec 库; 有 `.trellis/` → 软链 `.skein/spec`→`.trellis/spec` + 输出迁移 manifest JSON (纯 stdout, scaffold 噪声走 stderr)。`--purge` 清 trellis 残留 (`.trellis/task*` + `.claude/*trellis*`, 保留 `.trellis/spec`)。语义迁移 (spec 重组/task 重建) 由 `skein-setup` agent 做 |
-| `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id |
+| `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` `--estimate <分钟>` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id; `--estimate` = AI 执行预期耗时 (分钟), 供 task.html 显示预期 vs 实际 |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |
 | `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
@@ -36,7 +36,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `user-prompt` | — | (UserPromptSubmit hook 调) 每次用户 prompt 注入 task 判定提醒 (是任务则走 skein-flow 闭环); 非 git 仓静默 exit 0 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
 | `journal --id <id>` | `--add <文本>` | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
-| `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--write "glob,glob"` `--reason` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `done` 完成 / `fail` 失败 / `list` 列态。add/start/done/fail 必带 `sid` |
+| `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--write "glob,glob"` `--reason` `--estimate <分钟>` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `done` 完成 / `fail` 失败 / `list` 列态。add/start/done/fail 必带 `sid` |
 
 **task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts / subtasks`。
 **subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / write / reason / status` (pending→running→done/failed)。
