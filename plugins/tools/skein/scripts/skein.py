@@ -581,9 +581,15 @@ class Skein:
         tasks = self._all()
         # 任务进展总览: 各状态计数 + 完成率
         cnt = {}
+        fracs = []  # 综合进度: DONE task 记满, 未完成 task 按其 subtask 完成比例
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
-        overall = round(cnt.get(S_DONE, 0) / len(tasks) * 100) if tasks else 0
+            if t["status"] == S_DONE:
+                fracs.append(1.0)
+            else:
+                subs = t.get("subtasks", [])
+                fracs.append(sum(1 for s in subs if s["status"] == SS_DONE) / len(subs) if subs else 0.0)
+        overall = round(sum(fracs) / len(fracs) * 100) if fracs else 0
         chips = " ".join(f'{badge(k, st_color)} {v}' for k, v in cnt.items()) or "-"
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
@@ -633,9 +639,8 @@ class Skein:
             ".bar{position:relative;background:#e0dad2;border-radius:6px;height:16px;margin:0 0 10px;overflow:hidden}"
             ".fill{height:100%;border-radius:6px}"
             ".pct{position:absolute;top:0;left:8px;font-size:11px;line-height:16px;color:#4a4642}"
-            "footer{margin-top:20px;font-size:12px;color:#a59f97}"
             "</style></head><body><h1>SKEIN 看板</h1>"
-            f"{body}<footer>脚本自动渲染 · 禁手改 · 刷新 <code>skein.py board</code></footer>"
+            f"{body}"
             "</body></html>")
         (self.dir / "task.html").write_text(html)
 
