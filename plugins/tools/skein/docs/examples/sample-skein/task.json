@@ -7,9 +7,48 @@
       "worktree": ".worktrees/skein-t02"
     },
     {
+      "id": "t06",
+      "status": "检查中",
+      "deps": [],
+      "worktree": ".worktrees/skein-t06"
+    },
+    {
+      "id": "t07",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-t07"
+    },
+    {
       "id": "t03",
       "status": "待处理",
-      "deps": [],
+      "deps": [
+        "t02"
+      ],
+      "worktree": null
+    },
+    {
+      "id": "t08",
+      "status": "待处理",
+      "deps": [
+        "t03",
+        "t06"
+      ],
+      "worktree": null
+    },
+    {
+      "id": "t09",
+      "status": "待处理",
+      "deps": [
+        "t02"
+      ],
+      "worktree": null
+    },
+    {
+      "id": "t10",
+      "status": "待处理",
+      "deps": [
+        "t06"
+      ],
       "worktree": null
     }
   ]

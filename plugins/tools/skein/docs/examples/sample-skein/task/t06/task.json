@@ -1,0 +1,53 @@
+{
+  "id": "t06",
+  "name": "支付网关对接",
+  "desc": "对接第三方支付, 统一 charge/refund 接口",
+  "status": "检查中",
+  "deps": [],
+  "contracts": [
+    "charge 幂等 (out_trade_no 唯一)",
+    "回调验签失败一律拒绝"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "网关 SDK 封装",
+      "depends_on": [],
+      "write": [
+        "internal/pay/gateway*.go"
+      ],
+      "reason": "统一 charge/refund 签名",
+      "status": "已完成",
+      "estimate": 30
+    },
+    {
+      "sid": "s2",
+      "name": "回调验签",
+      "depends_on": [],
+      "write": [
+        "internal/pay/callback*.go"
+      ],
+      "reason": "验签 + 去重, 契约2",
+      "status": "已完成",
+      "estimate": 30
+    },
+    {
+      "sid": "s3",
+      "name": "对账拉单",
+      "depends_on": [
+        "s1"
+      ],
+      "write": [
+        "internal/pay/recon*.go"
+      ],
+      "reason": "日终对账补偿漏单",
+      "status": "已完成",
+      "estimate": 30
+    }
+  ],
+  "worktree": ".worktrees/skein-t06",
+  "branch": "skein/t06",
+  "created": 1783754720,
+  "updated": 1783760100,
+  "estimate": 90
+}

@@ -1,0 +1,16 @@
+{
+  "id": "t09",
+  "name": "订单报表导出",
+  "desc": "按日/商户导出订单 CSV, 异步任务",
+  "status": "待处理",
+  "deps": [
+    "t02"
+  ],
+  "contracts": [],
+  "subtasks": [],
+  "worktree": null,
+  "branch": "skein/t09",
+  "created": 1783754745,
+  "updated": 1783754745,
+  "estimate": 50
+}

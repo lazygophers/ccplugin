@@ -3,7 +3,9 @@
   "name": "订单支付",
   "desc": "POST /orders/:id/pay, 排队未 start",
   "status": "待处理",
-  "deps": [],
+  "deps": [
+    "t02"
+  ],
   "contracts": [],
   "subtasks": [],
   "worktree": null,

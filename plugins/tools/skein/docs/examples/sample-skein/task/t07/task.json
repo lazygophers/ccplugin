@@ -1,0 +1,55 @@
+{
+  "id": "t07",
+  "name": "库存服务",
+  "desc": "商品库存的预占/扣减/回滚",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [
+    "预占超时未支付自动回滚",
+    "扣减不允许出现负库存"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "库存模型与迁移",
+      "depends_on": [],
+      "write": [
+        "internal/inventory/model*.go"
+      ],
+      "reason": "stock/reserved 双字段",
+      "status": "已完成",
+      "estimate": 25
+    },
+    {
+      "sid": "s2",
+      "name": "预占与回滚",
+      "depends_on": [
+        "s1"
+      ],
+      "write": [
+        "internal/inventory/reserve*.go"
+      ],
+      "reason": "Lua 脚本保证原子, 契约1",
+      "status": "运行中",
+      "estimate": 40
+    },
+    {
+      "sid": "s3",
+      "name": "超时回滚定时任务",
+      "depends_on": [
+        "s2"
+      ],
+      "write": [
+        "internal/inventory/sweeper*.go"
+      ],
+      "reason": "扫描过期预占并释放",
+      "status": "待处理",
+      "estimate": 35
+    }
+  ],
+  "worktree": ".worktrees/skein-t07",
+  "branch": "skein/t07",
+  "created": 1783754730,
+  "updated": 1783757100,
+  "estimate": 100
+}

@@ -4,15 +4,22 @@
 
 ## 场景: 一条订单流
 
-围绕「电商订单」建了三条 task, 定格在其中一条 exec 中途, **覆盖 task 全部状态 + subtask 全部状态**:
+围绕「电商订单域」建了 **10 条 task** (7 在看板 + 3 已归档), 定格在多条并行推进的中途, **覆盖 task 全部状态 + subtask 全部状态 + 显式依赖 DAG**:
 
 | task | 状态 | 说明 | 落盘位置 |
 | --- | --- | --- | --- |
-| t01 订单查询接口 | **已完成** (已归档) | 走完 plan→exec→check→finish, worktree 已合并销毁 | `task/archive/2026/07-11/t01/` |
-| **t02 订单创建 API** | **进行中** | planning 完, exec 中途 — subtask 覆盖四态 | `task/t02/` |
-| t03 订单支付 | **待处理** | 仅 `create` 排队, 未 start, 无 worktree / 无 subtask | `task/t03/` |
+| **t02 订单创建 API** | **进行中** | exec 中途 — 4 subtask 覆盖四态 | `task/t02/` |
+| t06 支付网关对接 | **检查中** | exec 完, 质量门验证中 — subtask 全已完成 | `task/t06/` |
+| t07 库存服务 | **进行中** | exec 中途 — subtask 混合态 + 依赖链 | `task/t07/` |
+| t03 订单支付 | **待处理** | 依赖 t02, 排队未 start (无 subtask) | `task/t03/` |
+| t08 退款流程 | **待处理** | 依赖 t03+t06, 已 plan 出 subtask (全待处理) | `task/t08/` |
+| t09 订单报表导出 | **待处理** | 依赖 t02 | `task/t09/` |
+| t10 消息通知服务 | **待处理** | 依赖 t06 | `task/t10/` |
+| t01 订单查询接口 | **已完成** (归档) | 走完全闭环, worktree 已合并销毁 | `task/archive/2026/07-11/t01/` |
+| t04 用户认证中间件 | **已完成** (归档) | 前一日完成 | `task/archive/2026/07-10/t04/` |
+| t05 API 网关脚手架 | **已完成** (归档) | 更早完成 | `task/archive/2026/07-09/t05/` |
 
-无 task 级 focus — t02/t03 无未完成前置, 就绪即可并行, 见顶层 `task.json`。t02 的四个 subtask 恰好各占一态:
+无 task 级 focus — 就绪 task (前置全 done + 文件不冲突) 皆可并行, 见顶层 `task.json`; 归档 task 不进看板。t02 的四个 subtask 恰好各占一态:
 
 | sid | 名称 | 状态 | 含义 |
 | --- | --- | --- | --- |
@@ -38,8 +45,9 @@
 | `task/t02/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-planning · **AI 可读写** |
 | `task/t02/implement.md` | planning 工件: subtask 拆分 + mermaid 调度图 + 落盘命令 | skein-planning · **AI 可读写** |
 | `task/t02/journal.md` | append-only 过程记录 | AI 追加 · 随 task 归档 |
-| `task/t03/*` | 排队 task, 仅 create 未 start (无 prd/worktree) | 同上 |
-| `task/archive/2026/07-11/t01/*` | 已完成归档 task (按完成日期分层) | **脚本** · 只读留痕 |
+| `task/t03/*` | 排队 task, 仅 create 未 start (无 prd/worktree); t09/t10 同类 | 同上 |
+| `task/t08/*` | 待处理但已 plan 出 subtask (subtask 全待处理) — 展示"排队 + 已拆分" | **脚本** · AI 禁读写 |
+| `task/archive/<年>/<月-日>/<id>/*` | 3 个已完成归档 task (t01/t04/t05, 按完成日期分层) | **脚本** · 只读留痕 |
 | `spec/index.md` + `core/`/`recall/` | 两层规则记忆库 (差异化核心) | **`memory.py`** · AI 经命令沉淀/召回 |
 
 ## 两层规则记忆 (差异化核心)
