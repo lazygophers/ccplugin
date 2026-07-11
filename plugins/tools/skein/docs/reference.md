@@ -32,7 +32,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `ready` | — | **脚本算**就绪 task 批 (pending + 前置全 done + 有空闲 active 槽), 只读预览。谁可执行由脚本判 (非 AI), 与 `subtask ready` 同构; task 无写集字段故不算写集冲突 |
 | `list` | — | 列全部 task (含已归档) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
-| `view` | — | 生成 (缺则建) 并用系统默认程序打开 `.skein/task.html` 静态可视化看板 (title/标题带项目名, 多主题多配色深浅色, 页内切换器, 不自动打开) |
+| `view` | — | **起本地 http server** 并用系统默认程序打开 `.skein/task.html` 可视化看板 (多主题多配色深浅色, 页内切换器)。看板是静态壳, `render.js` 运行时 fetch json 渲染 → 必须经 http (`file://` 双击 fetch 被 CORS 拦); Ctrl-C 停 server |
 | `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
 | `user-prompt` | — | (UserPromptSubmit hook 调) 每次用户 prompt 注入 task 判定提醒 (是任务则走 skein-flow 闭环); 非 git 仓静默 exit 0 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
