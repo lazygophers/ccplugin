@@ -47,6 +47,8 @@ SS_DONE = "已完成"
 SS_FAILED = "失败"
 # 可读 task id: kebab-case slug, 兼作 git 分支名 + 目录名 (人工传入)
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+# 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.
+CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
 # 看板主题/配色 (值 = board/ 下 css 文件名; 独立 css, 非内联). 页内切换器 + config 默认二选一.
 THEMES = [("morandi", "莫兰迪"), ("glassmorphism", "玻璃拟态"),
           ("liquid", "液态玻璃"), ("handdrawn", "手绘")]
@@ -228,6 +230,10 @@ class Skein:
             raise SystemExit(
                 f"非法 id: {tid!r} — 须为 kebab-case slug "
                 "(小写字母/数字/连字符, 字母数字开头, 如 order-create-api)")
+        if CODE_ID_RE.match(tid):
+            raise SystemExit(
+                f"id 须可读: {tid!r} 是字母+数字编号 — 用描述性 slug "
+                "(如 order-create-api / user-auth), 勿用 t01 这类代号")
         if tid in self._used_ids():
             raise SystemExit(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
         (self.tasks / tid).mkdir(parents=True)

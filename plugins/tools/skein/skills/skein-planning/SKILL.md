@@ -31,7 +31,7 @@ arguments: "[任务描述 (要做需求梳理/规划的新 task)]"
 ## 流程
 
 1. **判新旧** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件, 不新建。
-2. **登记** — 全新 → `skein.py create <name> [--desc ..] [--deps ..] [--estimate <分钟>]`, 得 `<id>` + 工件目录。`--estimate` = **AI 执行预期耗时** (非人类工时), planning 判力度时估, 供 task.html 显示 预期 vs 实际。subtask 同理可带 `--estimate`。→ 更新看板。
+2. **登记** — 全新 → `skein.py create <id> [--desc ..] [--deps ..] [--estimate <分钟>]`, `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api` / `user-auth`; 兼作分支名 + 目录名), **禁 `t01`/`t2` 这类字母+数字代号** (脚本硬拒)。得工件目录。`--estimate` = **AI 执行预期耗时** (非人类工时), planning 判力度时估, 供 task.html 显示 预期 vs 实际。subtask 同理可带 `--estimate`。→ 更新看板。
 3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。
 4. **grill 硬门 CHECKPOINT** — 委托 `skein-grill` 全轴对抗校对, 重点确认「用户想法 = PRD 写的」。弱点表交用户过, 补齐后放行。**未跑 grill 禁进 exec**; grill 未完成或弱点表未补齐 → 停在本步, 禁推进。
    - **锁定契约** — grill/brainstorm 里梳理出的不变量 (MUST/禁/边界条件) 由 main 用脚本逐条锁进 task.json (main 同步跑脚本, 不派 agent), 供 check 阶段逐条验证:
