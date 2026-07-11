@@ -38,8 +38,8 @@
 | `config.yaml` | 插件配置 (`max_active`/`max_parallel`/`retain_days`/`auto_commit`/`worktree_root`/`board_theme`/`board_palette`/`board_mode`) | 用户手改 · AI 可读 |
 | `task.json` | 顶层状态汇总 `{tasks:[{id,状态,deps,worktree}]}` — 全部未归档 task 一览 | **脚本** · AI 禁读写 (guard 硬阻) |
 | `task.md` | 顶层看板 (order-create-api 进行中 / order-pay 待处理, 由 task.json 渲染) | **脚本** · AI 禁读写 |
-| `task.html` | 可视化看板: 任务进展总览 (预期/已耗/剩余合计 + 综合 & 预估加权完成率 + 预计执行顺序图) + 每 task 耗时/预期时间条 + 子任务完成% + subtask 执行顺序图 (4 主题 6 配色 深浅色, 页内切换器, 由 task.json 渲染) | **脚本** · `skein.py view` 打开 |
-| `board/` | 主题/配色 CSS (base + themes/ + palettes/, 从插件 `assets/board/` 拷贝, `task.html` 相对路径 `<link>` 引入) | **脚本** · git 忽略 |
+| `task.html` | 可视化看板 (title/标题带项目名): 任务进展总览 (预期/已耗/剩余合计 + 综合 & 预估加权完成率 + 预计执行顺序图) + 每 task 耗时/预期时间条 + 子任务完成% + subtask 执行顺序图 (4 主题 6 配色 深浅色, 页内切换器, 由 task.json 渲染) | **脚本** · `skein.py view` 打开 |
+| `board/` | 主题/配色 CSS (base + themes/ + palettes/, 从插件 `assets/board/` 拷贝, 看板 html 相对路径 `<link>` 引入) | **脚本** · git 忽略 |
 | `task/order-create-api/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) + `contracts[]` | **脚本** · AI 禁读写 |
 | `task/order-create-api/task.md` | 子任务看板 (四态一览) | **脚本** · AI 禁读写 |
 | `task/order-create-api/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-planning · **AI 可读写** |

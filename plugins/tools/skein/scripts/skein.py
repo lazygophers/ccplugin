@@ -40,6 +40,8 @@ S_ACTIVE = "进行中"
 S_CHECK = "检查中"
 S_DONE = "已完成"
 STATUS_ACTIVE = {S_ACTIVE, S_CHECK}
+# 看板排序: 进行中 > 检查中 > 待处理 > 已完成 (同状态内按 id 稳定)
+STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
 # subtask 状态
 SS_PENDING = "待处理"
 SS_RUNNING = "运行中"
@@ -113,6 +115,9 @@ class Skein:
         self.dir = self.root / ".skein"
         self.tasks = self.dir / "task"
         self.archive_dir = self.tasks / "archive"
+        # 看板 title/标题带项目名, 用户一眼知是哪个项目
+        self.proj = self.root.name
+        self.html_path = self.dir / "task.html"
 
     # ---- 存取 ----
     def config(self) -> dict:
@@ -174,6 +179,8 @@ class Skein:
             f = d / "task.json"
             if f.exists():
                 out.append(json.loads(f.read_text()))
+        # 状态优先排序 (进行中>检查中>待处理>已完成), 同状态内保持 id 序
+        out.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         return out
 
     def _archived_path(self, tid):
@@ -787,10 +794,10 @@ class Skein:
             f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'
             '<head><meta charset=utf-8>'
             '<meta name=viewport content="width=device-width,initial-scale=1">'
-            f'<title>SKEIN 看板</title>{links}</head><body>'
-            f'{switcher}<h1>SKEIN 看板</h1>{body}'
+            f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
+            f'{switcher}<h1>SKEIN 看板 · {esc(self.proj)}</h1>{body}'
             '<script src="board/switcher.js"></script></body></html>')
-        (self.dir / "task.html").write_text(html)
+        self.html_path.write_text(html)
 
     def _copy_board_assets(self):
         # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)
@@ -799,7 +806,7 @@ class Skein:
             shutil.copytree(src, self.dir / "board", dirs_exist_ok=True)
 
     def view(self, _):
-        html = self.dir / "task.html"
+        html = self.html_path
         if not html.exists():
             self._board_html()
         opener = "open" if sys.platform == "darwin" else "xdg-open"

@@ -10,7 +10,7 @@
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
 | 动态 DAG 编排调度 (双层) | `skein-flow` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 冲突自算边 + `depends_on`, 并发上限 2, 完成即派 |
 | worktree 隔离 | `skein.py` | 1 task 1 worktree, 主工作区零改动 |
-| 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
+| 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
 | planning 入口 | `skein-planning` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
 | **两层×类目规则记忆** | `skein-memory` + `memory.py` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
@@ -40,8 +40,8 @@
 ├── .gitignore         # init 生成: 忽略 task.md/task.html/board/ (自动渲染); 另补 worktree_root 到根 .gitignore
 ├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task (脚本维护)
 ├── task.md            # 顶层看板 (task.json 渲染, git 忽略, 禁直接编辑)
-├── task.html          # 静态可视化看板 (task.json 渲染, git 忽略, `skein view` 打开)
-├── board/             # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, task.html link 引入)
+├── task.html          # 静态可视化看板 (title/标题带项目名; task.json 渲染, git 忽略, `skein view` 打开)
+├── board/             # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, html link 引入)
 ├── config.yaml        # max_active:2 / retain_days:7 / auto_commit:true / worktree_root:.worktrees / board_theme / board_palette / board_mode
 └── task/
     ├── <id>/          # 活跃 + 完成保留期内 task: prd.md / design.md / implement.md / journal.md + task.json/task.md(脚本渲染)
