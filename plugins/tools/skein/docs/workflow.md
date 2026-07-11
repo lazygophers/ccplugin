@@ -33,7 +33,7 @@
 
 ### ② memory recall (main 同步)
 
-按任务描述从 `recall` 层召回相关规则注入上下文 (`core` 规则已在 session 开始时常驻注入)。让本 task 带上项目历史经验。
+按任务描述从 `recall` 层召回相关规则注入上下文 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `memory.py inject-core` 拉)。让本 task 带上项目历史经验。
 
 ### ③ 激活 (main 同步)
 
@@ -108,12 +108,12 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 | 层 | 路径 | 注入时机 | 适合 |
 | --- | --- | --- | --- |
-| **core** | `.skein/spec/core/<类目>/*.md` | 每 session 开始**自动常驻**注入 (SessionStart hook) | 「后续同类任务必再踩」的强约束 / 命令式契约 |
+| **core** | `.skein/spec/core/<类目>/*.md` | 每 session 开始注入**极简索引** (仅标题, SessionStart hook); 全文按需 `inject-core` 拉 | 「后续同类任务必再踩」的强约束 / 命令式契约 |
 | **recall** | `.skein/spec/recall/<类目>/*.md` | 按任务语义**按需**召回 (planning 阶段 `recall <query>`) | 长尾、上下文密集的经验, 不占常驻预算 |
 
 - **两层 × 类目**: 层内按类目 (git / test / arch / build / style / domain / ops...) 分子目录, 自由取名按需建。
 - **三份索引**: 每层 `<layer>/index.md` + 顶层 `index.md` (两层聚合), sediment 写盘后自动 reindex。
-- **core 预算警戒**: core 常驻注入有字符预算, 超了会警告「考虑降级部分到 recall」, 避免常驻上下文过重。
+- **core 预算警戒**: 全文有字符预算 (超了 sediment 提示降级到 recall); SessionStart **只注入极简索引** (每条一行标题) 并另有 token 硬预算守卫 (`hooklib`, 超则截断+告警) — 常驻上下文恒定小, 避免不可控膨胀, 全文按需 `inject-core`。
 
 ### bootstrap 冷启动播种 (一次性)
 
@@ -173,3 +173,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
 | 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |
 | compaction 永续 | `skein.py session-context` SessionStart hook 重注入活跃 task | 上下文压缩后忘掉在跑的 task |
+| hook token 可控 | 所有注入过 `hooklib.budget_guard` (session-start 索引 + session-context); core 只注入极简索引 | 常驻上下文不可控膨胀 |
+| .skein 操作免打断 | `allow-skein.py` PermissionRequest 对引擎命令 / prd 等工件默认同意 | 逐次授权拖慢闭环 (task.json/task.md 仍归 guard 硬阻) |
+| 并发写竞态防护 | `batch-skein.py` PostToolBatch 拦同批 ≥2 个 .skein 状态写命令 | 并行写 task.json/spec 后写覆盖前写 |
+| 脚本报错留痕 | `report-skein.py` PostToolUseFailure 注入错误上下文 + 引导手动报 issue | 插件 bug 被静默吞掉 |

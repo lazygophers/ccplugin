@@ -68,6 +68,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py board      # 渲染并打印看板
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current    # 列全部 active task (无 focus, 就绪皆可并行)
+python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py ready      # 脚本算就绪 task 批 (pending+前置全done+空闲槽)
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py list       # 全部 task (含已归档)
 ```
 

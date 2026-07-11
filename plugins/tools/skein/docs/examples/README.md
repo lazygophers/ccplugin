@@ -49,7 +49,7 @@
 - `spec/recall/arch/t02-00.md` — **recall** (按需召回): "订单幂等键 + 库存 Redis 原子扣减约定"。
 - `spec/recall/test/t03-01.md` — **recall**: "订单状态机测试覆盖要求"。
 
-core 层每 session 由 SessionStart hook 注入 (有字符预算); recall 层 planning 时 `memory.py recall <query>` 粗筛命中, model 再读全文定用否。文件命名 `<source>-<seq>.md` (source=沉淀它的 task id), frontmatter 带 title/layer/category/keywords/source。类目 (git/domain/arch/test) = 层内物理子目录, 自由建。
+core 层每 session 由 SessionStart hook 注入**极简索引** (仅标题, 全文按需 `inject-core`, token 硬预算守卫); recall 层 planning 时 `memory.py recall <query>` 粗筛命中, model 再读全文定用否。文件命名 `<source>-<seq>.md` (source=沉淀它的 task id), frontmatter 带 title/layer/category/keywords/source。类目 (git/domain/arch/test) = 层内物理子目录, 自由建。
 
 ## 怎么用这份样例
 

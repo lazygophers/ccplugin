@@ -27,6 +27,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |
 | `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
 | `current` | — | 列全部 active task (id/状态/名称/worktree)。无 focus, 就绪皆可并行 |
+| `ready` | — | **脚本算**就绪 task 批 (pending + 前置全 done + 有空闲 active 槽), 只读预览。谁可执行由脚本判 (非 AI), 与 `subtask ready` 同构; task 无写集字段故不算写集冲突 |
 | `list` | — | 列全部 task (含已归档) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
 | `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
@@ -49,8 +50,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/spec/` 两层目录 |
-| `session-start` | — | (SessionStart hook 调) 产出 core 规则注入 JSON |
-| `inject-core` | — | 打印 core 规则正文 (供手动查看) |
+| `session-start` | — | (SessionStart hook 调) 只注入 core 规则**极简索引** (每条 `[类目] 标题` 一行, 不含正文), 受 token 硬预算守卫 (超则截断+告警)。全文按需 `inject-core` 拉 |
+| `inject-core` | — | 按需打印 core 规则**全文正文** (session-start 索引命中后, model 拉全文定用否) |
 | `recall <query>` | — | 按词粗筛 recall 索引, 打印命中行 (model 再读全文定用否) |
 | `sediment` | `--layer core\|recall` (必) `--title` (必) `--category` `--keywords` `--source` `--body-file` | 写盘一条规则 + 自动 reindex |
 | `reindex` | — | 重建三份索引 (两层 + 顶层聚合) |
@@ -58,7 +59,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 **规则文件 frontmatter**: `title / layer / category / keywords / source / authored-by / created`。
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
-**core 预算**: 常驻注入有字符上限, 超了 sediment 会警告降级到 recall。
+**core 预算**: 全文有字符上限 (`inject-core` 软告警), 超了 sediment 会提示降级到 recall。SessionStart **只注入极简索引** (每条一行标题), 另有独立 token 硬预算 (`hooklib`, 超则截断) — 常驻上下文恒定小, 全文按需拉。
 
 ## Skills (6 个)
 
@@ -101,8 +102,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | hook | 触发 | 作用 |
 | --- | --- | --- |
-| **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复) |
+| **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
 | **PreToolUse** | Edit/Write/Read | `guard-skein.py` 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡) |
+| **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein.py/memory.py 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/implement)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
+| **PostToolBatch** | 并行工具批 | `batch-skein.py` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
+| **PostToolUseFailure** | Bash 失败 | `report-skein.py` 仅当失败命令属本插件脚本 (含 skein.py/memory.py/CLAUDE_PLUGIN_ROOT) 时, 注入错误上下文 + `systemMessage` 引导用户**手动**开 issue (不自动建, 免误报刷屏) |
 
 ## guard-skein.py 拦截规则
 

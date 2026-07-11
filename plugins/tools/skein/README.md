@@ -49,7 +49,7 @@
 └── recall/{<类目>/*.md,index.md} # 按需召回规则 (按类目分子目录) + 层索引
 ```
 
-> SKEIN 自包含: `skein.py` 自身即引擎, `config.yaml` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
+> SKEIN 自包含: `skein.py` 自身即引擎, `config.yaml` 是纯设置, start/finish 直接干活 (hook 只做注入 / 护栏, 不驱动生命周期)。
 
 
 ## 用法
