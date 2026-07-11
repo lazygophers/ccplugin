@@ -5,12 +5,16 @@
 skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
-  .skein/config.json              设置 (max_active / auto_commit / worktree_root)
-  .skein/state.json               {focus: <id>}
-  .skein/task/<id>/task.json      单 task 记录 (活跃)
-  .skein/task/<id>/*.md           planning 工件 (prd/design/implement, 由 skein-planning 写)
+  .skein/config.json              设置 (max_active / max_parallel / auto_commit / worktree_root)
+  .skein/task.json                {focus: <id>}  顶层状态 — 脚本维护, AI 禁读写
+  .skein/task.md                  顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
+  .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
+  .skein/task/<id>/task.md        单 task 子任务看板 (渲染) — 脚本维护, AI 禁读写
+  .skein/task/<id>/{prd,design,implement}.md  planning 工件 (skein-planning 写, AI 可读写)
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
-  .skein/task.md                  看板 (经本脚本 board, 禁直接编辑)
+
+四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态
+(current/list/board/subtask list/ready), 禁直接 Read/Edit/Write (guard-skein.py 硬阻)。
 """
 import argparse
 import datetime
@@ -19,6 +23,7 @@ import os
 import shutil
 import subprocess
 import sys
+from fnmatch import fnmatch
 from pathlib import Path
 
 STATUS_ACTIVE = {"in_progress", "check"}
@@ -46,6 +51,11 @@ def gitroot() -> Path:
     return Path(r.stdout.strip())
 
 
+def _overlap(a: str, b: str) -> bool:
+    # 写文件 glob 是否重叠 → 冲突边。ponytail: fnmatch 双向近似, 误判偏保守 (宁串行)
+    return a == b or fnmatch(a, b) or fnmatch(b, a)
+
+
 class Skein:
     def __init__(self):
         self.root = gitroot()
@@ -61,12 +71,12 @@ class Skein:
         return json.loads(f.read_text())
 
     def _state(self) -> dict:
-        f = self.dir / "state.json"
+        f = self.dir / "task.json"
         return json.loads(f.read_text()) if f.exists() else {"focus": None}
 
     def _set_focus(self, tid):
-        (self.dir / "state.json").write_text(json.dumps({"focus": tid}, ensure_ascii=False, indent=2))
-        self._board(None)  # state.json 唯一写入口 → 变更即刷 task.md, 免看板漂移
+        (self.dir / "task.json").write_text(json.dumps({"focus": tid}, ensure_ascii=False, indent=2))
+        self._board(None)  # task.json 唯一写入口 → 变更即刷 task.md, 免看板漂移
 
     def _load(self, tid) -> dict:
         f = self.tasks / tid / "task.json"
@@ -115,10 +125,11 @@ class Skein:
         if not cfg.exists():
             cfg.write_text(json.dumps({
                 "max_active": 2,
+                "max_parallel": 2,
                 "auto_commit": True,
                 "worktree_root": ".worktrees",
             }, ensure_ascii=False, indent=2))
-        if not (self.dir / "state.json").exists():
+        if not (self.dir / "task.json").exists():
             self._set_focus(None)
         self._board(None)
         print(f"已初始化 SKEIN 工作区: {self.dir}")
@@ -129,11 +140,12 @@ class Skein:
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
             "id": tid, "name": a.name, "desc": a.desc or "",
-            "status": "pending", "deps": deps, "contracts": [],
+            "status": "pending", "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "updated": now(),
         }
         self._save(t)
+        self._board_task(t)
         self._board(None)
         print(f"{tid}\t{self.tasks / tid}")
 
@@ -328,6 +340,132 @@ class Skein:
         )
         (self.dir / "task.md").write_text(md)
 
+    # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
+    def _ready(self, t: list) -> list:
+        """就绪批: pending + 依赖全 done + 与 running/同批无写文件冲突, 截到空闲槽位。"""
+        subs = t.get("subtasks", [])
+        done = {s["sid"] for s in subs if s["status"] == "done"}
+        running = [s for s in subs if s["status"] == "running"]
+        slots = self.config().get("max_parallel", 2) - len(running)
+        if slots <= 0:
+            return []  # 并发满 → 阻塞
+        claimed = [g for s in running for g in s.get("write", [])]  # running 占用写集
+        picked = []
+        for s in subs:
+            if s["status"] != "pending":
+                continue
+            if not all(d in done for d in s.get("depends_on", [])):
+                continue
+            w = s.get("write", [])
+            if any(_overlap(a, b) for a in w for b in claimed):
+                continue  # 与已占用写集冲突 → 串行
+            picked.append(s)
+            claimed += w
+            if len(picked) >= slots:
+                break
+        return picked
+
+    def _sub(self, t, sid):
+        for s in t.get("subtasks", []):
+            if s["sid"] == sid:
+                return s
+        raise SystemExit(f"subtask 不存在: {t['id']}/{sid}")
+
+    def subtask(self, a):
+        if a.action == "add":
+            t = self._load(a.tid)
+            subs = t.setdefault("subtasks", [])
+            if any(s["sid"] == a.sid for s in subs):
+                raise SystemExit(f"subtask 已存在: {a.tid}/{a.sid}")
+            subs.append({
+                "sid": a.sid, "name": a.name or a.sid,
+                "depends_on": _split(a.deps), "write": _split(a.write),
+                "reason": a.reason or "", "status": "pending",
+            })
+            self._save(t)
+            self._board_task(t)
+            print(f"{a.tid}/{a.sid} 已登记 (共 {len(subs)} subtask)")
+            return
+        if a.action == "list":
+            t = self._load(a.tid)
+            subs = t.get("subtasks", [])
+            if not subs:
+                print("无 subtask")
+                return
+            for s in subs:
+                deps = ",".join(s.get("depends_on", [])) or "-"
+                w = ",".join(s.get("write", [])) or "-"
+                print(f"{s['sid']}\t{s['status']}\t{s['name']}\t依赖:{deps}\t写:{w}")
+            return
+        if a.action in ("ready", "claim"):
+            t = self._load(a.tid)
+            batch = self._ready(t)
+            if not batch:
+                run = [s["sid"] for s in t.get("subtasks", []) if s["status"] == "running"]
+                pend = [s for s in t.get("subtasks", []) if s["status"] == "pending"]
+                print(f"无就绪 subtask (running: {','.join(run) or '-'}, "
+                      f"pending: {len(pend)}) — 满槽或依赖未完成")
+                return
+            if a.action == "claim":
+                # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
+                for s in batch:
+                    s["status"] = "running"
+                self._save(t)
+                self._board_task(t)
+                print("已认领 (running) — main 逐个 dispatch skein-implementer, 完成即 subtask done/fail:")
+            else:
+                print("就绪 (只读预览, 认领用 `subtask claim`):")
+            for s in batch:
+                print(f"{s['sid']}\t{s['name']}\t写: {','.join(s.get('write', [])) or '-'}\t{s.get('reason', '')}")
+            return
+        # start / done / fail 均针对单 sid
+        t = self._load(a.tid)
+        s = self._sub(t, a.sid)
+        if a.action == "start":
+            if s["status"] not in ("pending", "failed"):
+                raise SystemExit(f"{a.sid} 状态 {s['status']}, 只能 start pending/failed")
+            done = {x["sid"] for x in t["subtasks"] if x["status"] == "done"}
+            undone = [d for d in s.get("depends_on", []) if d not in done]
+            if undone:
+                raise SystemExit(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
+            run = [x for x in t["subtasks"] if x["status"] == "running"]
+            if len(run) >= self.config().get("max_parallel", 2):
+                raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
+            busy = [g for x in run for g in x.get("write", [])]
+            if any(_overlap(w, b) for w in s.get("write", []) for b in busy):
+                raise SystemExit(f"{a.sid} 写集与 running 冲突 — 须串行, 等其 done")
+            s["status"] = "running"
+        elif a.action == "done":
+            s["status"] = "done"
+        elif a.action == "fail":
+            s["status"] = "failed"
+            if a.reason:
+                s["reason"] = a.reason
+        self._save(t)
+        self._board_task(t)
+        print(f"{a.tid}/{a.sid} → {s['status']}")
+
+    def _board_task(self, t):
+        rows = []
+        for s in t.get("subtasks", []):
+            deps = ",".join(s.get("depends_on", [])) or "-"
+            w = ",".join(s.get("write", [])) or "-"
+            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {deps} | {w} | {s.get('reason', '') or '-'} |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - | - |"
+        md = (
+            f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
+            "> 经 `skein.py subtask` 渲染, 禁直接读写; 取态用 `skein.py subtask list <id>`。\n\n"
+            "| sid | 名称 | 状态 | 依赖 | 写文件 | reason |\n"
+            "|---|---|---|---|---|---|\n"
+            f"{body}\n\n"
+            f"并发上限: {self.config().get('max_parallel', 2)}　更新: {now()}\n"
+        )
+        (self.tasks / t["id"] / "task.md").write_text(md)
+
+
+def _split(s):
+    return [x.strip() for x in (s or "").split(",") if x.strip()]
+
 
 def main():
     p = argparse.ArgumentParser(
@@ -359,8 +497,21 @@ def main():
     j = sub.add_parser("journal", help="查/加 task journal")
     j.add_argument("--id", help="task id (省略则用当前 focus)")
     j.add_argument("--add", help="追加一条 journal (省略则列出)")
+    st = sub.add_parser(
+        "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",
+        epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_parallel)")
+    st.add_argument("action", choices=["add", "claim", "ready", "start", "done", "fail", "list"],
+                    help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / done 完成 / fail 失败 / list 列态")
+    st.add_argument("tid", help="所属 task id")
+    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带)")
+    st.add_argument("--name", help="[add] subtask 名称")
+    st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪)")
+    st.add_argument("--write", help="[add] 写文件 glob, 逗号分隔 (相交则串行, 冲突自算边)")
+    st.add_argument("--reason", help="[add/fail] 备注 (add: 改它满足哪条契约/需求)")
 
     a = p.parse_args()
+    if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "done", "fail") and not a.sid:
+        p.error(f"subtask {a.action} 需要 sid")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 skein 项目 (无 git / 无 config) 静默 exit 0
         try:
@@ -375,7 +526,7 @@ def main():
         "init": sk.init, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "current": sk.current,
         "list": sk.list_, "board": sk.board, "contract": sk.contract,
-        "journal": sk.journal,
+        "journal": sk.journal, "subtask": sk.subtask,
     }
     dispatch[a.cmd](a)
 

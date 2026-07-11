@@ -85,10 +85,20 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 **DAG 边怎么来**: 最终 DAG = **冲突自算边** ∪ **显式 `depends_on` 边**。
 
-- **冲突自算边**: 两个工作单元的写文件 glob 相交 / 执行范围相交 → 串行 (不能并行)。不相交 → 可并行。
-- **显式 depends_on**: task.json 顶层 `deps` 字段 (`skein.py create --deps "t01,t02"`)。被依赖者未完成前, 依赖者不 ready。
+- **冲突自算边**: 两个工作单元的写文件 glob 相交 (`subtask --write`) → 串行 (不能并行)。不相交 → 可并行。
+- **显式 depends_on**: subtask 级 `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`); task 级 `create --deps "t01,t02"` (存 task.json `deps`)。被依赖者未 done 前, 依赖者不 ready。
 
-**调度循环**: ready (前置全完成 + 无冲突占用) 即派 → 任一返回即查新 ready 立即派 → 并发始终 ≤ 2。exec 阶段 subtask 之间**禁停下问你顺序** (顺序归 planning 定; planning 没定就退回 planning 补, 不在 exec 问)。
+**subtask 状态脚本落盘 (非肉眼看 implement.md)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖全 done + 写集不冲突 + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
+
+```
+拆好 → subtask add …               (逐个登记 sid/deps/write/reason)
+  ┌── subtask claim <tid>          ← 脚本算就绪批 + 整批标 running (一步到位)
+  │      ↓ 非空: 逐个派 skein-implementer (无需再 start)
+  │      ↓ agent 完成: subtask done/fail → 立即回传
+  └──────┘  循环至 claim 恒空且无 running
+```
+
+**调度循环**: `claim` 认领即派 → 任一返回即 done/fail + 再 `claim` 立即派 → 并发始终 ≤ `max_parallel` (默认 2)。**脚本一步算+改态, main 不逐个 start** (少一轮往返, 无竞态窗口; `ready` 是只读预览, `start` 仅单个 retry 补派)。exec 阶段 subtask 之间**禁停下问你顺序** (顺序归 planning 定; planning 没定就退回 planning 补, 不在 exec 问)。
 
 多 task 并行细则见 [reference.md](reference.md) 的调度算法段, 或 skill `skein-flow/references/scheduling-algorithm.md`。
 
@@ -131,11 +141,14 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 ```
 .skein/
-├── task.md                          # 看板 (skein.py board 渲染, 禁直接编辑)
-├── state.json                       # {focus: <当前 task id>}
-├── config.json                      # {max_active, auto_commit, worktree_root}
+├── task.json                        # 顶层 {focus} — 脚本维护, AI 禁读写
+├── task.md                          # 顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
+├── config.json                      # {max_active, max_parallel, auto_commit, worktree_root}
 └── task/
-    ├── <id>/                        # 活跃 task: prd.md / design.md / implement.md / task.json
+    ├── <id>/                        # 活跃 task
+    │   ├── task.json                # 记录 + subtask DAG — 脚本维护, AI 禁读写
+    │   ├── task.md                  # 子任务看板 (渲染) — 脚本维护, AI 禁读写
+    │   ├── prd.md / design.md / implement.md   # planning 工件 (AI 读写)
     │   └── research/<topic>.md      # researcher 落盘的调研结论 (随 task finish 一并归档)
     └── archive/<年>/<月-日>/<id>/    # 按完成日期分层归档
 .skein/spec/
@@ -152,8 +165,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 | 护栏 | 怎么实现 | 挡住什么 |
 | --- | --- | --- |
-| task.md 只读 | guard-skein.py PreToolUse hook (Edit/Write/MultiEdit → exit 2) | 手改看板导致格式漂移 |
-| state.json 读写全挡 | 同 hook (Read/Edit/Write 全 block) | 绕过 skein.py 操作状态 |
+| task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein.py 直接读写状态/看板 → 格式漂移或态不一致 |
 | Recursion Guard | 3 个执行 agent 无 Agent/Task 工具 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | 有 task 必有 worktree | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |

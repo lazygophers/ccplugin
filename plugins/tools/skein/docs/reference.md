@@ -32,8 +32,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (focus + 各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
 | `journal [id]` | `--add <文本>`, 省略 id 用 focus | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
+| `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--write "glob,glob"` `--reason` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `done` 完成 / `fail` 失败 / `list` 列态。add/start/done/fail 必带 `sid` |
 
-**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts`。
+**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts / subtasks`。
+**subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / write / reason / status` (pending→running→done/failed)。
+**subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 逐个派 `skein-implementer` → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖全 done + 写集与 running 无冲突, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: `t01`, `t02`... 自动递增, 跳过已用 (含归档的)。
 
@@ -99,14 +102,19 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | hook | 触发 | 作用 |
 | --- | --- | --- |
 | **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复) |
-| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 硬阻直改 task.md (写) / 直接读写 state.json (读写全挡) |
+| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡) |
 
 ## guard-skein.py 拦截规则
 
+判定: 路径落在 `.skein/` 下且 basename ∈ {`task.json`, `task.md`} → 读写全挡 (含归档路径)。四个文件全由 skein.py 维护, AI 取态经命令 stdout 而非读文件。
+
 | 目标文件 | Read | Edit/Write/MultiEdit | 替代方式 |
 | --- | --- | --- | --- |
-| `.skein/state.json` | 挡 | 挡 | `skein.py current` 取 focus; create/start/finish 改状态 |
-| `.skein/task.md` | 放行 (看板本就要读) | 挡 | `skein.py board` 渲染; create/start/finish 改 task 状态 |
+| `.skein/task.json` (顶层 focus) | 挡 | 挡 | `skein.py current` 取 focus; create/start/finish 改 |
+| `.skein/task.md` (顶层看板) | 挡 | 挡 | `skein.py list` / `board` 取态 |
+| `.skein/task/<id>/task.json` (记录+subtask) | 挡 | 挡 | `skein.py subtask list/ready <id>`; subtask add/start/done 改 |
+| `.skein/task/<id>/task.md` (子任务看板) | 挡 | 挡 | `skein.py subtask list <id>` |
+| `.skein/task/<id>/{prd,implement,journal}.md` | 放行 | 放行 | planning 工件, AI 直接读写 |
 
 ## 生命周期一图速记
 

@@ -5,22 +5,32 @@
 ## 调度 DAG = 冲突自算边 ∪ 显式 depends_on
 
 1. **静态冲突边 (自算)** — 两 subtask 的 write-files glob 相交 或 exec-scope 相交 → 串行 (不能并发)。不相交 → 可并行。
-2. **显式依赖边** — subtask 的 `depends_on` (planning 定, 写进 implement.md 调度图)。被依赖者未 done, 依赖者不 ready。
+2. **显式依赖边** — subtask 的 `depends_on` (planning 在 implement.md 调度图定, `skein.py subtask add --deps` 登记进 per-task task.json)。被依赖者未 done, 依赖者不 ready。
 3. **最终 DAG** = 两者并集。ready (所有前置 done + 无冲突占用) 的 subtask 并行派, 未就绪串行等。
+
+## subtask 状态 = 脚本落盘, 非肉眼看 implement.md
+
+subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写), 全程经 `skein.py subtask` 命令维护。**DAG 算法 + 就绪判定 + 改态由脚本一次性做** (`claim`), main 只负责派 agent (脚本不能 spawn):
+
+| 命令 | 谁跑 | 作用 |
+| --- | --- | --- |
+| `subtask add <tid> <sid> --deps --write --reason` | planning/main | 登记 subtask 到 DAG |
+| `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
+| `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 |
+| `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
 
 ## 调度循环 (动态, 完成即派)
 
 ```
-就绪集 = DAG 中所有前置已 done 且无冲突占用的 subtask
-while 还有未完成 subtask:
-    while 并发数 < 2 且 就绪集非空:
-        派 1 个就绪 subtask 给 skein-implementer (真实 Agent 调用)
+while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
+    对认领到的每个 subtask: 派 skein-implementer (真实 Agent 调用)  # ≤ max_parallel
     等任一 subagent 返回
-    更新完成态 → 重算就绪集 → 立即派新就绪 (不空等全部)
+    → subtask done/fail <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
 ```
 
-- **并发上限 2** — 同时在跑 subagent ≤ 2。
-- **完成即派** — 任一返回立即查新 ready 并派, 不等一批跑完。
+- **并发上限 2** — `claim` 内按 `max_parallel - running` 截断, 满槽返回空。
+- **完成即派** — 任一返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不等一批跑完。
+- **脚本一步到位** — 就绪判定 + 占槽由 `claim` 原子完成, main 不逐个 `subtask start` (`start` 仅单个 retry 补派)。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 依赖它的 subtask 保持未 ready; main 转达用户/补信息后重派该 subtask, 禁标完成、禁放行下游。
 - **subtask 报错 → 不推进** — 按 dispatch 的失败处理缩范围重试; 反复失败 → 停并回传, 禁跳过该 subtask 继续。
 - **禁在 subtask 间问用户顺序** — 顺序归 planning。PRD 缺调度图 → 退回 planning 补。

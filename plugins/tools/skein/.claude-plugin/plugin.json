@@ -1,6 +1,6 @@
 {
   "name": "skein",
-  "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .skein/spec): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀学习。含 6 skill (flow 强制闭环+双层编排调度 / planning 规划入口+破坏式重构 / memory 记忆+空仓播种 / grill 对抗审查 / check 质量门+第3轮根因复盘 / clean 归档清理; orchestrate/bootstrap/refactor/break-loop 已并入宿主 references) + 3 agent (skein-implementer 执行 / skein-checker 验证 / skein-researcher 调研, 均无 Agent/Task 工具做递归护栏); SessionStart hook 注入 core 规则 + PreToolUse hook 硬阻直编 task.md / 直接读写 state.json",
+  "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .skein/spec): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀学习。含 6 skill (flow 强制闭环+双层编排调度 / planning 规划入口+破坏式重构 / memory 记忆+空仓播种 / grill 对抗审查 / check 质量门+第3轮根因复盘 / clean 归档清理; orchestrate/bootstrap/refactor/break-loop 已并入宿主 references) + 3 agent (skein-implementer 执行 / skein-checker 验证 / skein-researcher 调研, 均无 Agent/Task 工具做递归护栏); SessionStart hook 注入 core 规则 + PreToolUse hook 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 全由脚本维护, subtask DAG 状态经脚本命令取)",
   "author": {
     "name": "lazygophers",
     "email": "admin@lazygophers.dev",

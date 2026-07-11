@@ -1,0 +1,24 @@
+{
+  "id": "t01",
+  "name": "订单查询接口",
+  "desc": "按订单号查详情, 带缓存",
+  "status": "completed",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "查询接口 + 缓存",
+      "depends_on": [],
+      "write": [
+        "internal/order/query*.go"
+      ],
+      "reason": "GET /orders/{id} 带 Redis 缓存",
+      "status": "done"
+    }
+  ],
+  "worktree": null,
+  "branch": "skein/t01",
+  "created": "2026-07-11T15:08:25",
+  "updated": "2026-07-11T15:08:25"
+}

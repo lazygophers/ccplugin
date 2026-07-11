@@ -121,7 +121,7 @@ flowchart LR
 6. 口头宣称「已派 agent / 已建 task」但本回复无对应 tool_use → 先真实调用再回传。
 7. exec subagent 直接在主工作区改源码 (无 worktree) → 必在 task worktree 内。
 8. 直接 Edit/Write `.skein/task.md` → 经 `skein.py board` (guard hook 硬阻)。
-9. 直接读写 `.skein/state.json` → 经 `skein.py current` / create/start/finish。
+9. 直接读写 `.skein/` 的 task.json / task.md (顶层 + per-task) → 经 `skein.py current` / `list` / `subtask list/ready`; 改态经 create/start/finish/subtask。
 10. 纯文本提问代替 AskUserQuestion → 用户确认必用工具。
 11. exec 阶段 subtask 之间停下问用户顺序 → 顺序归 planning。
 

@@ -13,6 +13,8 @@
 | 不同类型的活儿分别怎么用 | [scenarios.md](scenarios.md) |
 | 照着最佳实践 + 流程图干 | [best-practices.md](best-practices.md) |
 | 查某条 CLI / skill / agent 干嘛的 | [reference.md](reference.md) |
+| 查某个名词啥意思 | [glossary.md](glossary.md) |
+| 照着一份完整样例 `.skein/` 对着看 | [examples/](examples/) |
 
 ## 一句话上手
 

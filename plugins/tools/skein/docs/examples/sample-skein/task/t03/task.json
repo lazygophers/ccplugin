@@ -1,0 +1,13 @@
+{
+  "id": "t03",
+  "name": "订单支付",
+  "desc": "对接支付网关, 回调更新订单状态",
+  "status": "pending",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "worktree": null,
+  "branch": "skein/t03",
+  "created": "2026-07-11T15:08:26",
+  "updated": "2026-07-11T15:08:26"
+}
