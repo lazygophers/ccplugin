@@ -23,7 +23,7 @@ def main():
         git(d, "init", "-q")
 
         mem(d, "init")
-        rules = d / ".claude/rules"
+        rules = d / ".skein/spec"
         assert (rules / "core/index.md").exists()
         assert (rules / "recall/index.md").exists()
 

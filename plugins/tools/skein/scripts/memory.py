@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""SKEIN 两层规则记忆 (基于 .claude/rules, 纯 stdlib)。
+"""SKEIN 两层规则记忆 (基于 .skein/spec, 纯 stdlib)。
 
 两层 × 类目:
-  core   — .claude/rules/core/<类目>/*.md    每 session 常驻注入 (SessionStart hook → session-start)
-  recall — .claude/rules/recall/<类目>/*.md  按需语义召回 (planning 时 recall <query> 粗筛, model 读全文)
+  core   — .skein/spec/core/<类目>/*.md    每 session 常驻注入 (SessionStart hook → session-start)
+  recall — .skein/spec/recall/<类目>/*.md  按需语义召回 (planning 时 recall <query> 粗筛, model 读全文)
 
 类目 (category) 是层内子目录, 自由取名 (git/test/arch/build/style/domain/ops...), 按需建。
 索引三份: 每层 <layer>/index.md (层内全规则) + 顶层 index.md (两层聚合概览)。
@@ -40,14 +40,14 @@ def _dist(by_cat: dict) -> str:
     return ", ".join(f"{c}({n})" for c, n in sorted(by_cat.items())) or "-"
 
 
-def rules_root() -> Path:
+def spec_root() -> Path:
     try:
         r = subprocess.run(["git", "rev-parse", "--show-toplevel"],
                            capture_output=True, text=True)
         base = Path(r.stdout.strip()) if r.returncode == 0 else Path.cwd()
     except FileNotFoundError:  # 无 git 二进制 → fallback cwd (设计意图: 非 git 也可用)
         base = Path.cwd()
-    return base / ".claude" / "rules"
+    return base / ".skein" / "spec"
 
 
 def _cell(s: str) -> str:
@@ -57,7 +57,7 @@ def _cell(s: str) -> str:
 
 class Memory:
     def __init__(self):
-        self.root = rules_root()
+        self.root = spec_root()
 
     def layer_dir(self, layer) -> Path:
         return self.root / layer
@@ -79,7 +79,7 @@ class Memory:
         for layer in LAYERS:
             self.layer_dir(layer).mkdir(parents=True, exist_ok=True)
         self._reindex_all()
-        print(f"已初始化规则库: {self.root}")
+        print(f"已初始化 spec 库: {self.root}")
 
     # ---- core 正文 (供 inject-core / session-start 复用) ----
     def _core_text(self) -> str:

@@ -45,7 +45,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
-| `init` | — | 初始化 `.claude/rules/` 两层目录 |
+| `init` | — | 初始化 `.skein/spec/` 两层目录 |
 | `session-start` | — | (SessionStart hook 调) 产出 core 规则注入 JSON |
 | `inject-core` | — | 打印 core 规则正文 (供手动查看) |
 | `recall <query>` | — | 按词粗筛 recall 索引, 打印命中行 (model 再读全文定用否) |

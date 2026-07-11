@@ -39,9 +39,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
     └── archive/     # 归档根
 ```
 
-规则记忆库 `.claude/rules/` 在首次 sediment 时按需建出。
+规则记忆库 `.skein/spec/` 在首次 sediment 时按需建出。
 
-> **可选 — 空仓冷启动播种**: 若是已有代码但从没用过 SKEIN 的仓库 (`.claude/rules` 为空), 可先走 `skein-memory` 冷启动播种 (`references/bootstrap-seeding.md`) — 扫既有代码库约定 (命名 / 错误处理 / 测试 / 架构边界 / 构建) 播种一批基线规则, 让第一个 task 就能召回项目习惯。一次性动作, 之后靠正常 finish 增量沉淀。首次上手不跑也行。
+> **可选 — 空仓冷启动播种**: 若是已有代码但从没用过 SKEIN 的仓库 (`.skein/spec` 为空), 可先走 `skein-memory` 冷启动播种 (`references/bootstrap-seeding.md`) — 扫既有代码库约定 (命名 / 错误处理 / 测试 / 架构边界 / 构建) 播种一批基线规则, 让第一个 task 就能召回项目习惯。一次性动作, 之后靠正常 finish 增量沉淀。首次上手不跑也行。
 
 ## 4. 跑通第一个 task
 

@@ -94,12 +94,12 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 ## 两层规则记忆 (差异化核心)
 
-不同于 spec 式「按需沉淀单一文件」, SKEIN 记忆分两层, 存在 `.claude/rules/`:
+不同于 spec 式「按需沉淀单一文件」, SKEIN 记忆分两层, 存在 `.skein/spec/`:
 
 | 层 | 路径 | 注入时机 | 适合 |
 | --- | --- | --- | --- |
-| **core** | `.claude/rules/core/<类目>/*.md` | 每 session 开始**自动常驻**注入 (SessionStart hook) | 「后续同类任务必再踩」的强约束 / 命令式契约 |
-| **recall** | `.claude/rules/recall/<类目>/*.md` | 按任务语义**按需**召回 (planning 阶段 `recall <query>`) | 长尾、上下文密集的经验, 不占常驻预算 |
+| **core** | `.skein/spec/core/<类目>/*.md` | 每 session 开始**自动常驻**注入 (SessionStart hook) | 「后续同类任务必再踩」的强约束 / 命令式契约 |
+| **recall** | `.skein/spec/recall/<类目>/*.md` | 按任务语义**按需**召回 (planning 阶段 `recall <query>`) | 长尾、上下文密集的经验, 不占常驻预算 |
 
 - **两层 × 类目**: 层内按类目 (git / test / arch / build / style / domain / ops...) 分子目录, 自由取名按需建。
 - **三份索引**: 每层 `<layer>/index.md` + 顶层 `index.md` (两层聚合), sediment 写盘后自动 reindex。
@@ -107,7 +107,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 ### bootstrap 冷启动播种 (一次性)
 
-仓库**首次接入** SKEIN、`.claude/rules` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 走 `skein-memory` 的冷启动播种 (`references/bootstrap-seeding.md`):
+仓库**首次接入** SKEIN、`.skein/spec` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 走 `skein-memory` 的冷启动播种 (`references/bootstrap-seeding.md`):
 
 1. 派 `skein-researcher` (**bootstrap 扫描模式**) 扫既有代码库约定 — 命名 / 错误处理 / 测试 / 架构边界 / 构建 5 个维度, 提炼候选规则。
 2. 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。
@@ -138,7 +138,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
     ├── <id>/                        # 活跃 task: prd.md / design.md / implement.md / task.json
     │   └── research/<topic>.md      # researcher 落盘的调研结论 (随 task finish 一并归档)
     └── archive/<年>/<月-日>/<id>/    # 按完成日期分层归档
-.claude/rules/
+.skein/spec/
 ├── index.md                         # 顶层索引 (两层聚合概览)
 ├── core/{<类目>/*.md, index.md}     # 常驻规则 + 层索引
 └── recall/{<类目>/*.md, index.md}   # 按需召回规则 + 层索引

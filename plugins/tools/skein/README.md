@@ -21,12 +21,12 @@
 
 3 个执行 agent (均无 Agent/Task 工具, 递归护栏): `skein-implementer` (worktree 内执行 1 subtask, 每文件过写前 CHECKPOINT) / `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式)。
 
-## 差异化核心: 两层规则记忆 (基于 `.claude/rules`)
+## 差异化核心: 两层规则记忆 (基于 `.skein/spec`)
 
 不同于 spec 式「按需沉淀单一文件」, SKEIN 记忆分两层:
 
-- **core (常驻)** — `.claude/rules/core/<类目>/*.md`: 每 session 自动注入的硬规 / 命令式契约。适合「后续同类任务必再踩」的强约束。
-- **recall (按需)** — `.claude/rules/recall/<类目>/*.md`: 存盘, 按任务语义相关性检索注入。适合长尾、上下文密集的经验, 不占常驻上下文。
+- **core (常驻)** — `.skein/spec/core/<类目>/*.md`: 每 session 自动注入的硬规 / 命令式契约。适合「后续同类任务必再踩」的强约束。
+- **recall (按需)** — `.skein/spec/recall/<类目>/*.md`: 存盘, 按任务语义相关性检索注入。适合长尾、上下文密集的经验, 不占常驻上下文。
 
 **两层 × 类目**: 层内按类目 (git/test/arch/build/style/domain/ops...) 分子目录, 自由取名按需建。索引三份: 每层 `<layer>/index.md` + 顶层 `index.md` (两层聚合), sediment 写盘后自动 reindex。
 
@@ -42,7 +42,7 @@
 └── task/
     ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / task.json
     └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档
-.claude/rules/
+.skein/spec/
 ├── index.md                      # 顶层索引 (两层聚合概览)
 ├── core/{<类目>/*.md,index.md}   # 常驻规则 (按类目分子目录) + 层索引
 └── recall/{<类目>/*.md,index.md} # 按需召回规则 (按类目分子目录) + 层索引
