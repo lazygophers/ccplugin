@@ -7,7 +7,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | 名词 | 是什么 |
 | --- | --- |
 | **task** | 一条闭环任务记录, 存 `.skein/task/<id>/`, 由 `skein.py` 管理。id 为**可读描述性 slug** (kebab-case, 如 `order-create-api`), 人工传入, 兼作分支名 + 目录名; 禁 `t01` 这类字母+数字代号 (脚本硬拒), 含归档不可复用。 |
-| **subtask** | 单个 task 内的执行单元, 存 per-task task.json 的 `subtasks[]`, id 形如 `s1`。每个由 main 选的合适 agent (无则 `general-purpose`) 执行。 |
+| **subtask** | 单个 task 内的执行单元, 存 per-task task.json 的 `subtasks[]`, id 形如 `s1`。每个关联一个 `agent` (省略默认 `general-purpose`) + 0-n 个 `skills`, main 据此 dispatch 执行。 |
 | **闭环** | `plan → exec → check → finish` 四阶段, 不可跳步。**未 archive = 未完成**。 |
 | **active 集** | 同 session 内所有 `进行中` 的 task。上限 `max_active` (默认 2)。无 task 级 focus — 无未完成前置的 task 皆可并行, 命令 (finish / journal) 必带 id。 |
 | **状态流转** | task: `待处理 → 进行中 → 已完成` (已完成移入 archive/)；`检查中` 为 check 阶段中间态。subtask: `待处理 → 运行中 → 已完成/失败`。状态中文落盘。 |

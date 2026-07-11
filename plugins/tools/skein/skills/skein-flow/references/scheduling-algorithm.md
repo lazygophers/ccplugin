@@ -14,7 +14,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
-| `subtask add <tid> <sid> --deps --write --reason` | planning/main | 登记 subtask 到 DAG |
+| `subtask add <tid> <sid> --deps --write --reason --agent --skills` | planning/main | 登记 subtask 到 DAG (`--agent` 省略默认 `general-purpose`, `--skills` 逗号分隔 0-n) |
 | `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |

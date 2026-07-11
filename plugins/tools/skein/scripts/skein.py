@@ -528,6 +528,8 @@ class Skein:
                 "depends_on": _split(a.deps), "write": _split(a.write),
                 "reason": a.reason or "", "status": SS_PENDING,
                 "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
+                "agent": a.agent or "general-purpose",  # 执行 agent (无合适则通用)
+                "skills": _split(a.skills),  # 关联 skills (0-n)
             })
             self._save(t)  # _save 已渲染子任务看板
             print(f"{a.tid}/{a.sid} 已登记 (共 {len(subs)} subtask)")
@@ -541,7 +543,9 @@ class Skein:
             for s in subs:
                 deps = ",".join(s.get("depends_on", [])) or "-"
                 w = ",".join(s.get("write", [])) or "-"
-                print(f"{s['sid']}\t{s['status']}\t{s['name']}\t依赖:{deps}\t写:{w}")
+                sk = ",".join(s.get("skills", [])) or "-"
+                ag = s.get("agent", "general-purpose")
+                print(f"{s['sid']}\t{s['status']}\t{s['name']}\t依赖:{deps}\t写:{w}\tagent:{ag}\tskills:{sk}")
             return
         if a.action in ("ready", "claim"):
             t = self._load(a.tid)
@@ -557,11 +561,13 @@ class Skein:
                 for s in batch:
                     s["status"] = SS_RUNNING
                 self._save(t)  # _save 已渲染子任务看板
-                print("已认领 (running) — main 为每个 subtask 选合适 agent (无则 general-purpose) 逐个 dispatch, 完成即 subtask done/fail:")
+                print("已认领 (running) — main 按各 subtask 关联 agent + skills 逐个 dispatch, 完成即 subtask done/fail:")
             else:
                 print("就绪 (只读预览, 认领用 `subtask claim`):")
             for s in batch:
-                print(f"{s['sid']}\t{s['name']}\t写: {','.join(s.get('write', [])) or '-'}\t{s.get('reason', '')}")
+                sk = ",".join(s.get("skills", [])) or "-"
+                print(f"{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'general-purpose')}\tskills: {sk}"
+                      f"\t写: {','.join(s.get('write', [])) or '-'}\t{s.get('reason', '')}")
             return
         # start / done / fail 均针对单 sid
         t = self._load(a.tid)
@@ -594,13 +600,15 @@ class Skein:
         for s in t.get("subtasks", []):
             deps = ",".join(s.get("depends_on", [])) or "-"
             w = ",".join(s.get("write", [])) or "-"
-            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {deps} | {w} | {s.get('reason', '') or '-'} |")
-        body = "\n".join(rows) if rows else "| - | - | - | - | - | - |"
+            sk = ",".join(s.get("skills", [])) or "-"
+            ag = s.get("agent", "general-purpose")
+            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {ag} | {sk} | {deps} | {w} | {s.get('reason', '') or '-'} |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - | - |"
         md = (
             f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
             "> 经 `skein.py subtask` 渲染, 禁直接读写; 取态用 `skein.py subtask list <id>`。\n\n"
-            "| sid | 名称 | 状态 | 依赖 | 写文件 | reason |\n"
-            "|---|---|---|---|---|---|\n"
+            "| sid | 名称 | 状态 | agent | skills | 依赖 | 写文件 | reason |\n"
+            "|---|---|---|---|---|---|---|---|\n"
             f"{body}\n\n"
             f"并发上限: {self.config().get('max_parallel', 2)}\n"
         )
@@ -752,12 +760,14 @@ class Skein:
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
                 f'<td>{badge(s["status"], ss_cls)}</td>'
                 f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
+                f'<td>{esc(s.get("agent", "general-purpose"))}</td>'
+                f'<td>{esc(",".join(s.get("skills", [])) or "-")}</td>'
                 f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
                 f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
                 f'<td>{esc(s.get("reason", "") or "-")}</td></tr>' for s in subs)
             subtable = (
                 '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th>'
-                '<th>预期</th><th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
+                '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
             cards.append(
@@ -964,6 +974,8 @@ def main():
     st.add_argument("--write", help="[add] 写文件 glob, 逗号分隔 (相交则串行, 冲突自算边)")
     st.add_argument("--reason", help="[add/fail] 备注 (add: 改它满足哪条契约/需求)")
     st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
+    st.add_argument("--agent", help="[add] 关联执行 agent (省略默认 general-purpose)")
+    st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
     a = p.parse_args()
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "done", "fail") and not a.sid:

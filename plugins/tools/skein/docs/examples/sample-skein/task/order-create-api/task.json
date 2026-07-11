@@ -17,6 +17,10 @@
         "internal/order/validate*.go"
       ],
       "reason": "校验商品/数量/收货地址, 契约前置",
+      "agent": "general-purpose",
+      "skills": [
+        "input-validation"
+      ],
       "status": "已完成",
       "estimate": 20
     },
@@ -28,6 +32,8 @@
         "internal/inventory/*.go"
       ],
       "reason": "Redis 原子 decr, 不足即拒 (契约2)",
+      "agent": "general-purpose",
+      "skills": [],
       "status": "运行中",
       "estimate": 40
     },
@@ -39,6 +45,10 @@
         "internal/order/repo*.go"
       ],
       "reason": "幂等键冲突, 待重试",
+      "agent": "general-purpose",
+      "skills": [
+        "idempotency"
+      ],
       "status": "失败",
       "estimate": 30
     },
@@ -52,6 +62,10 @@
         "internal/event/*.go"
       ],
       "reason": "落单成功后发 MQ 事件",
+      "agent": "general-purpose",
+      "skills": [
+        "event-sourcing"
+      ],
       "status": "待处理",
       "estimate": 30
     }

@@ -17,6 +17,8 @@
         "internal/pay/gateway*.go"
       ],
       "reason": "统一 charge/refund 签名",
+      "agent": "general-purpose",
+      "skills": [],
       "status": "已完成",
       "estimate": 30
     },
@@ -28,6 +30,10 @@
         "internal/pay/callback*.go"
       ],
       "reason": "验签 + 去重, 契约2",
+      "agent": "general-purpose",
+      "skills": [
+        "signature-verify"
+      ],
       "status": "已完成",
       "estimate": 30
     },
@@ -41,6 +47,10 @@
         "internal/pay/recon*.go"
       ],
       "reason": "日终对账补偿漏单",
+      "agent": "general-purpose",
+      "skills": [
+        "reconciliation"
+      ],
       "status": "已完成",
       "estimate": 30
     }

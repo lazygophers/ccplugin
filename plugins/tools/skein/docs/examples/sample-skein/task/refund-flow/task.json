@@ -19,6 +19,8 @@
         "internal/refund/model*.go"
       ],
       "reason": "退款申请落库 + 状态机",
+      "agent": "general-purpose",
+      "skills": [],
       "status": "待处理",
       "estimate": 30
     },
@@ -32,6 +34,10 @@
         "internal/refund/gateway*.go"
       ],
       "reason": "调支付网关 refund, 契约",
+      "agent": "general-purpose",
+      "skills": [
+        "payment-api"
+      ],
       "status": "待处理",
       "estimate": 30
     },
@@ -45,6 +51,8 @@
         "internal/inventory/restore*.go"
       ],
       "reason": "退款成功回补库存",
+      "agent": "general-purpose",
+      "skills": [],
       "status": "待处理",
       "estimate": 20
     }

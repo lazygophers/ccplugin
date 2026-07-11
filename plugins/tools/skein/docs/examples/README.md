@@ -30,6 +30,8 @@
 
 > 这正是 `subtask claim` 跑到一半的样子: 首轮认领 s1+s2 (并发 2), s1 先完成、s3 补位后失败; 真实调度环下一步会 `subtask start order-create-api s3` 重试, 成功后 s4 才就绪。
 
+每个 subtask 还带 `agent` (执行 agent, 省略默认 `general-purpose`) + `skills` (关联 skills, 0-n) 两字段 — main 按此 dispatch。样例里 s1 关联 `input-validation` skill, s2 无 skill (纯 0), 演示 0-n 范围。
+
 ## 文件导览
 
 | 文件 | 是什么 | 谁维护 · AI 可否读写 |
