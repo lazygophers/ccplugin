@@ -20,6 +20,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 import argparse
 import datetime
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -38,6 +39,8 @@ SS_PENDING = "待处理"
 SS_RUNNING = "运行中"
 SS_DONE = "已完成"
 SS_FAILED = "失败"
+# 可读 task id: kebab-case slug, 兼作 git 分支名 + 目录名 (人工传入)
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 
 def now() -> int:
@@ -144,13 +147,10 @@ class Skein:
     def _active(self) -> list:
         return [t for t in self._all() if t["status"] in STATUS_ACTIVE]
 
-    def _next_id(self) -> str:
-        n = 1
-        existing = {p.name for p in self.tasks.iterdir() if p.name != "archive"} if self.tasks.exists() else set()
-        existing |= {p.name for p in self.archive_dir.glob("*/*/*")} if self.archive_dir.exists() else set()
-        while f"t{n:02d}" in existing:
-            n += 1
-        return f"t{n:02d}"
+    def _used_ids(self) -> set:
+        used = {p.name for p in self.tasks.iterdir() if p.name != "archive"} if self.tasks.exists() else set()
+        used |= {p.name for p in self.archive_dir.glob("*/*/*")} if self.archive_dir.exists() else set()
+        return used
 
     # ---- 命令 ----
     def init(self, _):
@@ -183,11 +183,18 @@ class Skein:
         print(f"已初始化 SKEIN 工作区: {self.dir}")
 
     def create(self, a):
-        tid = self._next_id()
+        tid = a.id.strip()
+        # 可读 id: 人工传入, 必须是 slug (kebab-case, 兼作 git 分支名 + 目录名)
+        if not SLUG_RE.match(tid):
+            raise SystemExit(
+                f"非法 id: {tid!r} — 须为 kebab-case slug "
+                "(小写字母/数字/连字符, 字母数字开头, 如 order-create-api)")
+        if tid in self._used_ids():
+            raise SystemExit(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
         (self.tasks / tid).mkdir(parents=True)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
-            "id": tid, "name": a.name, "desc": a.desc or "",
+            "id": tid, "name": a.name or tid, "desc": a.desc or "",
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "updated": now(),
@@ -502,8 +509,9 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
 
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
-    c = sub.add_parser("create", help="登记新 task, 返回 id")
-    c.add_argument("name", help="task 名称")
+    c = sub.add_parser("create", help="登记新 task (id 必填, 可读 slug)")
+    c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
+    c.add_argument("--name", help="task 标题 (省略则用 id)")
     c.add_argument("--desc", help="一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
     s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")

@@ -22,7 +22,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
-| `create <name>` | `--desc <文本>` `--deps "t01,t02"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>` |
+| `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |
 | `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
@@ -38,7 +38,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 **subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / write / reason / status` (pending→running→done/failed)。
 **subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 逐个派 `skein-implementer` → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖全 done + 写集与 running 无冲突, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
-**id 规则**: `t01`, `t02`... 自动递增, 跳过已用 (含归档的)。
+**id 规则**: **人工传入的可读 slug** (create 必填首参), 从 id 即可知含义 (如 `order-create-api`), 非随机生成。格式 = kebab-case (`^[a-z0-9][a-z0-9-]*$`, 小写字母/数字/连字符, 字母数字开头), 兼作 git 分支名 (`skein/<id>`) + 目录名。全局唯一, 含已归档的不可复用, 非法/重复即报错。
 
 ## memory.py — 规则记忆引擎
 
@@ -102,13 +102,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | hook | 触发 | 作用 |
 | --- | --- | --- |
 | **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复) |
-| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡) |
+| **PreToolUse** | Edit/Write/Read | `guard-skein.py` 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡) |
 
 ## guard-skein.py 拦截规则
 
 判定: 路径落在 `.skein/` 下且 basename ∈ {`task.json`, `task.md`} → 读写全挡 (含归档路径)。四个文件全由 skein.py 维护, AI 取态经命令 stdout 而非读文件。
 
-| 目标文件 | Read | Edit/Write/MultiEdit | 替代方式 |
+| 目标文件 | Read | Edit/Write | 替代方式 |
 | --- | --- | --- | --- |
 | `.skein/task.json` (顶层 tasks 全表) | 挡 | 挡 | `skein.py current` 列 active; create/start/finish 改 |
 | `.skein/task.md` (顶层看板) | 挡 | 挡 | `skein.py list` / `board` 取态 |

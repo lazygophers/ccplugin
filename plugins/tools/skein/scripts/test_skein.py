@@ -48,12 +48,16 @@ def main():
         sk(d, "init")  # 幂等: 二次 init 不重复追加根 .gitignore
         assert (d / ".gitignore").read_text().count(".worktrees/") == 1, "worktree 忽略重复追加"
 
-        # create t01
-        out = sk(d, "create", "第一个任务", "--desc", "测试").stdout.strip()
+        # create: id 必填且为可读 slug
+        out = sk(d, "create", "t01", "--name", "第一个任务", "--desc", "测试").stdout.strip()
         tid = out.split("\t")[0]
         assert tid == "t01", f"预期 t01 得 {tid}"
         t = json.loads((d / ".skein/task/t01/task.json").read_text())
+        assert t["name"] == "第一个任务", t["name"]
         assert t["status"] == "待处理", t["status"]
+        # 非法 id (非 slug) + 重复 id 均拒
+        assert sk(d, "create", "订单接口", check=False).returncode != 0, "非 slug id 应拒"
+        assert sk(d, "create", "t01", check=False).returncode != 0, "重复 id 应拒"
         assert t["contracts"] == [], "create 未初始化 contracts"
         assert isinstance(t["created"], int), "created 须为时间戳"
 
@@ -98,9 +102,9 @@ def main():
             assert r2.returncode == 0 and r2.stdout.strip() == "", f"非 skein 项目应静默: {r2.stdout!r}"
 
         # 并发上限: create+start t02, t03 应被拒
-        sk(d, "create", "第二个")
+        sk(d, "create", "t02", "--name", "第二个")
         sk(d, "start", "t02")
-        sk(d, "create", "第三个")
+        sk(d, "create", "t03", "--name", "第三个")
         r = sk(d, "start", "t03", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
@@ -144,7 +148,7 @@ def main():
 
         # 多 active 并行: t03 (dep t02 已归档→视完成) 与 t04 可同时 active
         sk(d, "start", "t03")
-        sk(d, "create", "第四个"); sk(d, "start", "t04")
+        sk(d, "create", "t04", "--name", "第四个"); sk(d, "start", "t04")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
         assert act == {"t03", "t04"}, f"多 active 并行失效: {act}"
@@ -153,7 +157,7 @@ def main():
         assert any(x["id"] == "t04" and x["status"] == "进行中" for x in top["tasks"]), "finish 误伤无关 active"
 
         # ---- subtask DAG 调度 ----
-        sk(d, "create", "编排任务")  # t05
+        sk(d, "create", "t05", "--name", "编排任务")
         sk(d, "subtask", "add", "t05", "s1", "--write", "a/*.py")
         sk(d, "subtask", "add", "t05", "s2", "--write", "b/*.py")
         sk(d, "subtask", "add", "t05", "s3", "--deps", "s1,s2", "--write", "a/*.py")
