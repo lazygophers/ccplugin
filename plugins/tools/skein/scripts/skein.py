@@ -330,20 +330,35 @@ class Skein:
 
 
 def main():
-    p = argparse.ArgumentParser(prog="skein.py", description="SKEIN 任务管理引擎")
-    sub = p.add_subparsers(dest="cmd", required=True)
+    p = argparse.ArgumentParser(
+        prog="skein.py",
+        description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约/journal",
+        epilog="生命周期: init → create → start → (exec/check) → finish → archive",
+    )
+    sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
 
-    sub.add_parser("init")
-    c = sub.add_parser("create"); c.add_argument("name"); c.add_argument("--desc"); c.add_argument("--deps")
-    s = sub.add_parser("start"); s.add_argument("id")
-    f = sub.add_parser("finish"); f.add_argument("id", nargs="?")
-    ar = sub.add_parser("archive"); ar.add_argument("id")
-    cu = sub.add_parser("current"); cu.add_argument("--all", action="store_true")
-    sub.add_parser("list")
-    sub.add_parser("board")
-    sub.add_parser("session-context")
-    co = sub.add_parser("contract"); co.add_argument("id"); co.add_argument("--add")
-    j = sub.add_parser("journal"); j.add_argument("--id"); j.add_argument("--add")
+    sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
+    c = sub.add_parser("create", help="登记新 task, 返回 id")
+    c.add_argument("name", help="task 名称")
+    c.add_argument("--desc", help="一句话描述")
+    c.add_argument("--deps", help="前置 task id, 逗号分隔")
+    s = sub.add_parser("start", help="激活 task: 建 worktree + 设 focus + in_progress")
+    s.add_argument("id", help="task id")
+    f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
+    f.add_argument("id", nargs="?", help="task id (省略则用当前 focus)")
+    ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
+    ar.add_argument("id", help="task id")
+    cu = sub.add_parser("current", help="显示 focus task")
+    cu.add_argument("--all", action="store_true", help="改列全部 active task")
+    sub.add_parser("list", help="列所有 task (含状态)")
+    sub.add_parser("board", help="渲染 .skein/task.md 看板")
+    sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
+    co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
+    co.add_argument("id", help="task id")
+    co.add_argument("--add", help="追加一条契约 (省略则列出)")
+    j = sub.add_parser("journal", help="查/加 task journal")
+    j.add_argument("--id", help="task id (省略则用当前 focus)")
+    j.add_argument("--add", help="追加一条 journal (省略则列出)")
 
     a = p.parse_args()
     if a.cmd == "session-context":

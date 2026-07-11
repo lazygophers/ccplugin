@@ -225,21 +225,27 @@ def _summary(body: str) -> str:
 
 
 def main():
-    p = argparse.ArgumentParser(prog="memory.py")
-    sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("init")
-    sub.add_parser("inject-core")
-    sub.add_parser("session-start")
-    sub.add_parser("reindex")
-    r = sub.add_parser("recall"); r.add_argument("query")
-    s = sub.add_parser("sediment")
-    s.add_argument("--layer", required=True, choices=list(LAYERS))
-    s.add_argument("--category")
-    s.add_argument("--title", required=True)
-    s.add_argument("--keywords")
-    s.add_argument("--source")
-    s.add_argument("--body-file")
-    ls = sub.add_parser("list"); ls.add_argument("--layer", choices=list(LAYERS))
+    p = argparse.ArgumentParser(
+        prog="memory.py",
+        description="SKEIN 两层规则记忆 (.skein/spec) — core 常驻 + recall 按需召回",
+        epilog="用法: planning 时 recall 召回, task finish 时 sediment 沉淀",
+    )
+    sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
+    sub.add_parser("init", help="初始化 .skein/spec 库 (幂等)")
+    sub.add_parser("inject-core", help="输出 core 层全部规则正文 (常驻注入)")
+    sub.add_parser("session-start", help="[hook 用] 每 session 注入 core 规则")
+    sub.add_parser("reindex", help="重建三份 index.md (改盘后同步)")
+    r = sub.add_parser("recall", help="按关键词 grep recall 索引, 输出命中行")
+    r.add_argument("query", help="任务关键词")
+    s = sub.add_parser("sediment", help="沉淀一条规则写盘 + 自动 reindex")
+    s.add_argument("--layer", required=True, choices=list(LAYERS), help="core=常驻硬规 / recall=按需召回")
+    s.add_argument("--category", help="类目子目录 (git/test/arch/build/style...)")
+    s.add_argument("--title", required=True, help="规则标题")
+    s.add_argument("--keywords", help="召回关键词, 逗号分隔")
+    s.add_argument("--source", help="来源标记 (如 bootstrap)")
+    s.add_argument("--body-file", help="规则正文文件路径")
+    ls = sub.add_parser("list", help="列已存规则")
+    ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列两层)")
 
     a = p.parse_args()
     m = Memory()
