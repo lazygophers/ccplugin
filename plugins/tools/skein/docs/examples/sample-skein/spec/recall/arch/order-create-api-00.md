@@ -1,0 +1,11 @@
+---
+title: 订单幂等 + 库存原子扣减
+layer: recall
+category: arch
+keywords: [幂等,库存,redis,decrby,订单]
+source: order-create-api
+authored-by: skein-memory
+created: 1783754714
+---
+
+幂等键 = `order:idem:{userId}:{bizNo}`, 唯一索引落库层兜底; 库存扣减用 Redis `DECRBY` 原子操作, 返回负值即回滚拒单。

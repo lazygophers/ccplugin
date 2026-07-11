@@ -1,0 +1,16 @@
+{
+  "id": "notification-service",
+  "name": "消息通知服务",
+  "desc": "支付/发货短信 + 站内信, 消费 MQ 事件",
+  "status": "待处理",
+  "deps": [
+    "payment-gateway"
+  ],
+  "contracts": [],
+  "subtasks": [],
+  "worktree": null,
+  "branch": "skein/notification-service",
+  "created": 1783754750,
+  "updated": 1783754750,
+  "estimate": 70
+}

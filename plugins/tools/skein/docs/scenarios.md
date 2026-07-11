@@ -61,7 +61,7 @@
 - 相交 → 自动串行 (冲突自算边)。
 - 想显式声明「B 必须等 A」→ 建 task 时 `--deps`:
   ```bash
-  python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py create "任务B" --deps "t01"
+  python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py create order-export --deps "order-query"
   ```
 - 超过 2 个: `start` 第三个会报错「先 finish 一个」。
 
@@ -69,8 +69,8 @@
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
-# t01  进行中  加订单导出功能  .worktrees/skein-t01
-# t02  进行中  修复登录页样式  .worktrees/skein-t02
+# order-export   进行中  加订单导出功能  .worktrees/skein-order-export
+# login-style-fix 进行中  修复登录页样式  .worktrees/skein-login-style-fix
 ```
 
 无 task 级 focus — 两个 task 无未完成前置, 就绪即可并行。

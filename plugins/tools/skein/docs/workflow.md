@@ -86,7 +86,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 **DAG 边怎么来**: 最终 DAG = **冲突自算边** ∪ **显式 `depends_on` 边**。
 
 - **冲突自算边**: 两个工作单元的写文件 glob 相交 (`subtask --write`) → 串行 (不能并行)。不相交 → 可并行。
-- **显式 depends_on**: subtask 级 `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`); task 级 `create --deps "t01,t02"` (存 task.json `deps`)。被依赖者未 done 前, 依赖者不 ready。
+- **显式 depends_on**: subtask 级 `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`); task 级 `create --deps "order-query,order-create-api"` (存 task.json `deps`)。被依赖者未 done 前, 依赖者不 ready。
 
 **subtask 状态脚本落盘 (非肉眼看 implement.md)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖全 done + 写集不冲突 + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
 

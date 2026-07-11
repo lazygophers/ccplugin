@@ -1,0 +1,64 @@
+{
+  "id": "order-create-api",
+  "name": "订单创建 API",
+  "desc": "POST /orders: 校验→扣库存→落单→发事件",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [
+    "同一幂等键重复提交只落一单 (唯一约束)",
+    "库存不足直接 409, 不落订单"
+  ],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "请求参数校验",
+      "depends_on": [],
+      "write": [
+        "internal/order/validate*.go"
+      ],
+      "reason": "校验商品/数量/收货地址, 契约前置",
+      "status": "已完成",
+      "estimate": 20
+    },
+    {
+      "sid": "s2",
+      "name": "库存扣减",
+      "depends_on": [],
+      "write": [
+        "internal/inventory/*.go"
+      ],
+      "reason": "Redis 原子 decr, 不足即拒 (契约2)",
+      "status": "运行中",
+      "estimate": 40
+    },
+    {
+      "sid": "s3",
+      "name": "订单落库",
+      "depends_on": [],
+      "write": [
+        "internal/order/repo*.go"
+      ],
+      "reason": "幂等键冲突, 待重试",
+      "status": "失败",
+      "estimate": 30
+    },
+    {
+      "sid": "s4",
+      "name": "订单创建事件",
+      "depends_on": [
+        "s3"
+      ],
+      "write": [
+        "internal/event/*.go"
+      ],
+      "reason": "落单成功后发 MQ 事件",
+      "status": "待处理",
+      "estimate": 30
+    }
+  ],
+  "worktree": ".worktrees/skein-order-create-api",
+  "branch": "skein/order-create-api",
+  "created": 1783754713,
+  "updated": 1783758313,
+  "estimate": 120
+}

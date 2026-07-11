@@ -1,53 +1,53 @@
 {
   "tasks": [
     {
-      "id": "t02",
+      "id": "order-create-api",
       "status": "进行中",
       "deps": [],
-      "worktree": ".worktrees/skein-t02"
+      "worktree": ".worktrees/skein-order-create-api"
     },
     {
-      "id": "t06",
+      "id": "payment-gateway",
       "status": "检查中",
       "deps": [],
-      "worktree": ".worktrees/skein-t06"
+      "worktree": ".worktrees/skein-payment-gateway"
     },
     {
-      "id": "t07",
+      "id": "inventory-service",
       "status": "进行中",
       "deps": [],
-      "worktree": ".worktrees/skein-t07"
+      "worktree": ".worktrees/skein-inventory-service"
     },
     {
-      "id": "t03",
+      "id": "order-pay",
       "status": "待处理",
       "deps": [
-        "t02"
+        "order-create-api"
       ],
       "worktree": null
     },
     {
-      "id": "t08",
+      "id": "refund-flow",
       "status": "待处理",
       "deps": [
-        "t03",
-        "t06"
+        "order-pay",
+        "payment-gateway"
       ],
       "worktree": null
     },
     {
-      "id": "t09",
+      "id": "order-report",
       "status": "待处理",
       "deps": [
-        "t02"
+        "order-create-api"
       ],
       "worktree": null
     },
     {
-      "id": "t10",
+      "id": "notification-service",
       "status": "待处理",
       "deps": [
-        "t06"
+        "payment-gateway"
       ],
       "worktree": null
     }
