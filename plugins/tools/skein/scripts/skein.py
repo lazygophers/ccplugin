@@ -622,25 +622,62 @@ class Skein:
                     S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
 
         def dag_html(nodes):
-            # nodes: [(id, name, status, deps)] -> 拓扑分层的预计执行顺序图 (离线 CSS 列, 无 JS/CDN)
+            # nodes: [(id, name, status, deps)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
             if len(nodes) < 2:
                 return ""
             ids = {n[0] for n in nodes}
-            dep = {n[0]: {d for d in n[3] if d in ids} for n in nodes}
+            dep = {n[0]: [d for d in n[3] if d in ids] for n in nodes}
             smap = {n[0]: n for n in nodes}
-            done, waves, rem = set(), [], [n[0] for n in nodes]
-            while rem:
-                layer = [i for i in rem if dep[i] <= done] or list(rem)  # 空层=环, 全塞一层兜底
-                waves.append(layer)
-                done |= set(layer)
-                rem = [i for i in rem if i not in done]
-            cols = []
-            for wi, layer in enumerate(waves, 1):
-                boxes = "".join(
-                    f'<div class="node" style="--nc:var({node_var.get(smap[i][2], "--muted")})">'
-                    f'{esc(smap[i][0])}<small>{esc(smap[i][1])}</small></div>' for i in layer)
-                cols.append(f'<div class="wave"><span class="wlabel">第{wi}批</span>{boxes}</div>')
-            return f'<div class="dag">{"".join(cols)}</div>'
+            order = {n[0]: k for k, n in enumerate(nodes)}  # 稳定排行
+            # 分层: layer = 最长依赖深度 (列 = 执行波次, 并行节点落同列)
+            layer = {}
+
+            def depth(i, seen):
+                if i in layer:
+                    return layer[i]
+                if i in seen:  # 环兜底
+                    return 0
+                d = 1 + max((depth(p, seen | {i}) for p in dep[i]), default=-1)
+                layer[i] = d
+                return d
+            for i in ids:
+                depth(i, set())
+            layers = {}
+            for i, d in layer.items():
+                layers.setdefault(d, []).append(i)
+            for d in layers:
+                layers[d].sort(key=lambda i: order[i])
+            COL, ROW, NW, NH = 170, 56, 140, 40
+            pos = {i: (d * COL + 10, r * ROW + 10)
+                   for d, ids_ in layers.items() for r, i in enumerate(ids_)}
+            W = (max(layers) + 1) * COL + 10
+            H = max(len(v) for v in layers.values()) * ROW + 10
+            lines = []
+            for i in ids:
+                x2, y2 = pos[i]
+                ey = y2 + NH / 2
+                for p in dep[i]:
+                    x1, y1 = pos[p]
+                    sx, sy = x1 + NW, y1 + NH / 2
+                    mx = (sx + x2) / 2
+                    lines.append(
+                        f'<path d="M{sx},{sy} C{mx},{sy} {mx},{ey} {x2 - 2},{ey}" fill="none" '
+                        f'stroke="var(--muted)" stroke-width="1.5"/>'
+                        f'<polygon points="{x2 - 8},{ey - 4} {x2},{ey} {x2 - 8},{ey + 4}" fill="var(--muted)"/>')
+            boxes = []
+            for i in ids:
+                x, y = pos[i]
+                _id, nm, stt, _ = smap[i]
+                nm2 = (nm[:9] + "…") if len(nm) > 10 else nm
+                boxes.append(
+                    f'<g><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
+                    f'fill="var(--bg)" stroke="var(--brd)"/>'
+                    f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
+                    f'fill="var({node_var.get(stt, "--muted")})"/>'
+                    f'<text x="{x + 12}" y="{y + 17}" font-size="12" fill="var(--fg)">{esc(_id)}</text>'
+                    f'<text x="{x + 12}" y="{y + 31}" font-size="10" fill="var(--muted)">{esc(nm2)}</text></g>')
+            return (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
+                    f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
 
         tnow = now()
         tasks = self._all()

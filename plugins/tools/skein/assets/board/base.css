@@ -34,13 +34,8 @@ th{color:var(--muted);font-weight:600}
 .bar.time .fill{background:var(--st-active)}
 .bar.time.over .fill{background:var(--st-failed)}
 .pct{position:absolute;top:0;left:8px;font-size:11px;line-height:16px;color:var(--fg)}
-/* 预计执行顺序图 (拓扑分层批次, 左->右为执行序) */
-.dag{display:flex;align-items:flex-start;gap:6px;overflow-x:auto;padding:6px 0;margin:0 0 10px}
-.wave{display:flex;flex-direction:column;gap:6px;min-width:130px}
-.wave+.wave{border-left:2px solid var(--brd);padding-left:8px}
-.wlabel{font-size:11px;color:var(--muted)}
-.node{background:var(--bg);border:1px solid var(--brd);border-left:4px solid var(--nc,var(--muted));border-radius:6px;padding:3px 8px;font-size:12px}
-.node small{display:block;color:var(--muted)}
+/* 预计执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
+.dag{display:block;max-width:100%;height:auto;margin:6px 0 10px}
 /* 切换器 (右上角固定) */
 .switcher{position:fixed;top:12px;right:12px;display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:99}
 .switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
