@@ -95,11 +95,12 @@ def main():
         assert r.returncode == 0 and "t01" in r.stdout, "session-context 未含 active task"
         payload = json.loads(r.stdout)
         assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart", "注入格式错"
-        # 无 .skein/ 的临时目录 → 静默 exit 0 无输出
+        # git 仓无 .skein/ → 注入 setup 建议 (无 .skein 即 nudge)
         with tempfile.TemporaryDirectory() as bare:
             git(Path(bare), "init", "-q")
             r2 = sk(Path(bare), "session-context")
-            assert r2.returncode == 0 and r2.stdout.strip() == "", f"非 skein 项目应静默: {r2.stdout!r}"
+            assert r2.returncode == 0 and "setup" in r2.stdout, f"无 .skein 应 nudge setup: {r2.stdout!r}"
+            assert json.loads(r2.stdout)["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
         # 并发上限: create+start t02, t03 应被拒
         sk(d, "create", "t02", "--name", "第二个")
@@ -186,7 +187,43 @@ def main():
         subs = json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in subs}["s3"] == "待处理"
 
-    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG)")
+    test_setup()
+    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移)")
+
+
+def test_setup():
+    # 新仓 setup: 无 trellis → 建本地 spec, manifest trellis_present=false
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        git(d, "init", "-q")
+        m = json.loads(sk(d, "setup").stdout)
+        assert m["trellis_present"] is False and m["spec_needs_reorg"] is False, m
+        assert (d / ".skein/spec").is_dir() and not (d / ".skein/spec").is_symlink(), "本地 spec 未建"
+
+    # trellis 迁移 setup: 软链 spec + 采集 task/残留; purge 清 task/.claude 保留 .trellis/spec
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        git(d, "init", "-q")
+        (d / ".trellis/spec").mkdir(parents=True)
+        (d / ".trellis/spec/git.md").write_text("# 禁 force push\n")
+        (d / ".trellis/task/x").mkdir(parents=True)
+        (d / ".trellis/task/x/task.json").write_text('{"id":"x","status":"in_progress"}')
+        (d / ".claude/skills/foo-trellis").mkdir(parents=True)
+        (d / ".claude/settings.json").write_text('{"hooks":{"PreToolUse":[{"command":"trellis.sh"}]}}')
+
+        m = json.loads(sk(d, "setup").stdout)
+        assert m["trellis_present"] and m["spec_linked"] and m["spec_needs_reorg"], m
+        assert (d / ".skein/spec").is_symlink(), "spec 未软链"
+        assert (d / ".skein/spec/git.md").exists(), "软链未透传 trellis spec"
+        assert any(t["id"] == "x" for t in m["trellis_tasks"]), "未采集 trellis task"
+        assert any("foo-trellis" in r for r in m["claude_residuals"]), "未采集 .claude 残留"
+        assert any("settings.json" in r for r in m["claude_residuals"]), "未采集 settings 残留"
+
+        pr = json.loads(sk(d, "setup", "--purge").stdout)
+        assert not (d / ".trellis/task").exists(), "purge 未删 trellis task"
+        assert not (d / ".claude/skills/foo-trellis").exists(), "purge 未删 .claude 残留"
+        assert (d / ".trellis/spec/git.md").exists(), "purge 误删 .trellis/spec (应保留软链目标)"
+        assert pr["settings_need_manual_edit"], "settings 需手工剔除未标记"
 
 
 if __name__ == "__main__":

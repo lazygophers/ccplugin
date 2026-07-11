@@ -15,8 +15,8 @@ description: SKEIN 任务闭环入口 — 把请求强制作为 task 处理 (pla
 
 1. **plan** — 加载 `skein-planning` skill: 判新旧 + `skein.py create` 登记 + brainstorm 需求/方案 + grill 硬门 (必走)。产出 `prd.md`[+ `design.md`] + `implement.md`。
 2. **memory recall** — 加载 `skein-memory` skill: 按任务描述召回相关 recall 规则注入上下文 (core 规则已常驻)。
-3. **exec** — 加载 `skein-flow` skill (`references/scheduling-algorithm.md`): main 作调度器, 动态 DAG 派 `skein-implementer` 各执行 1 subtask (并发上限 2, 完成即派), 全部改动落 task worktree, 主工作区零改动。
-4. **check** — 加载 `skein-check` skill: 派 `skein-checker` 质量验证 (lint / type-check / tests / 契约合规); 未过 → 派 `skein-implementer` 定点修复重检。
+3. **exec** — 加载 `skein-flow` skill (`references/scheduling-algorithm.md`): main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `general-purpose`) 各执行 1 subtask (并发上限 2, 完成即派), 全部改动落 task worktree, 主工作区零改动。
+4. **check** — 加载 `skein-check` skill: 派 `skein-checker` 质量验证 (lint / type-check / tests / 契约合规); 未过 → 派合适 agent (无则 `general-purpose`) 定点修复重检。
 5. **finish** — check 通过 → **sediment 判定门** (判本 task 有无 learning → core/recall/drop, 经 `skein-memory`) → `skein.py finish` (commit→merge→archive→销 worktree)。
 
 ## 边界

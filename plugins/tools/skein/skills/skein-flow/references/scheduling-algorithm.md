@@ -1,6 +1,6 @@
 # 调度算法 (双层同构)
 
-编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 派 `skein-implementer` 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning`)。
+编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `general-purpose`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning`)。
 
 ## 调度 DAG = 冲突自算边 ∪ 显式 depends_on
 
@@ -23,7 +23,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 ```
 while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
-    对认领到的每个 subtask: 派 skein-implementer (真实 Agent 调用)  # ≤ max_parallel
+    对认领到的每个 subtask: 为其选合适 agent (无则 general-purpose) 执行 (真实 Agent 调用)  # ≤ max_parallel
     等任一 subagent 返回
     → subtask done/fail <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
 ```
@@ -48,7 +48,7 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 
 ## dispatch prompt (6 字段自包含, 缺字段不派)
 
-派给 `skein-implementer`, 6 字段:
+**执行者 = main 为该 subtask 选的合适 agent** (按任务性质挑现有 agent, 无合适的用 `general-purpose`)。通用 agent **有** Agent/Task 工具, 故原本靠工具面兜住的执行纪律 (递归护栏 + 读后写硬门) **改由 dispatch prompt 硬性携带** — 无论选中哪个 agent, 6 字段 prompt 都显式带上下面这套纪律:
 
 ```
 目标: <这个 subtask 要产出什么>
@@ -56,10 +56,26 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 工作目录与范围: <worktree 路径>; 只改下列文件 (每文件带 reason), 禁碰其他:
   - <文件路径A> — reason: <改它是为了满足哪条契约/需求>
   - <文件路径B> — reason: <...>
-输出格式: <改了哪些文件 + 关键决策 + 遗留>
+执行纪律 (硬性, 逐条照做):
+  - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。
+  - 只在指定 worktree 内改: 禁碰主工作区 / 其他 subtask 的 write-files。
+  - 改前查上游: 改函数/类/契约前先 grep 调用站点 (或 gitnexus_impact), 避免半改。
+  - 缺信息不硬猜: 缺关键输入时在返回里标 `需要: <问题>` 交 main 转达用户 (你不能 AskUserQuestion)。
+  - spec 优先, 别凭记忆重推: 动手前相关约定先 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在 journal 记一行标 `SPEC:` 供 finish sediment 落盘。
+  - 写前 CHECKPOINT — 读后写硬门 (每个待改文件必过): 改任何文件前逐文件按序 —
+      ① STOP → Read 全文 (禁凭摘要/记忆动手);
+      ② 复述适用契约 + 本次 per-file reason (契约来源 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>`);
+      ③ 复述无矛盾才允许 Edit/Write, 改动落在 reason 声明意图内。
+    若复述发现 reason 与文件现状矛盾 (契约已满足 / 该文件按契约不该改 / reason 指向需求已不存在) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
+输出格式 (回传 main, 压缩摘要非流水账):
+  subtask <id>: <done | 需要: 问题 | 失败: 原因>
+  改动文件: <path 列表>
+  关键决策: <一两句, 为何这么改>
+  自测: <跑过的验证 + 结果; 无则写 未测>
+  遗留: <后续 subtask 需知的信息 / 无>
 验收标准: <可验证断言: 测试过 / lint 净 / 功能点>
 失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
 ```
 
-- **per-file reason 必填** — 范围段每个目标文件后附一句 reason (为什么改它), 让 implementer 拿到就知道每个文件的改动意图, 并据此在写前复述契约 (见 `skein-implementer` 写前硬门)。reason 与该文件适用契约矛盾时 implementer 会标 `需要:` 回传, 不擅改。
-- `skein-implementer` **本身即无 Agent/Task 工具** (Recursion Guard), 只执行 1 subtask, 不自派; 也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。
+- **per-file reason 必填** — 范围段每个目标文件后附一句 reason (为什么改它), 让执行 agent 拿到就知道每个文件的改动意图, 并据此在写前复述契约 (见本节 dispatch prompt 读后写硬门)。reason 与该文件适用契约矛盾时执行 agent 会标 `需要:` 回传, 不擅改。
+- **Recursion Guard 靠 dispatch prompt 硬性禁止** — 通用 agent 有 Agent/Task 工具, 故不靠工具面而靠上面 prompt 的硬性指令挡住递归: 执行 agent 只做这一个 subtask, 禁再派 subagent, 自己动手做完; 也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。

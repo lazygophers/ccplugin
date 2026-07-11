@@ -37,7 +37,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 
 **task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts / subtasks`。
 **subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / write / reason / status` (pending→running→done/failed)。
-**subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 逐个派 `skein-implementer` → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖全 done + 写集与 running 无冲突, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
+**subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 为每个 subtask 选合适 agent (无则 `general-purpose`) 执行 → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖全 done + 写集与 running 无冲突, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: **人工传入的可读 slug** (create 必填首参), 从 id 即可知含义 (如 `order-create-api`), 非随机生成。格式 = kebab-case (`^[a-z0-9][a-z0-9-]*$`, 小写字母/数字/连字符, 字母数字开头), 兼作 git 分支名 (`skein/<id>`) + 目录名。全局唯一, 含已归档的不可复用, 非法/重复即报错。
 
@@ -74,15 +74,16 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 flow / planning / memory / check 的 references (省常驻 description token)。
 
-## Agents (3 个, 均无 Agent/Task 工具 = 递归护栏)
+## Agents (2 个具名 + 执行选现有 agent)
+
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-flow/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 2 个是工具受限的具名验证/调研 agent (无 Agent/Task = 递归护栏):
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
-| `skein-implementer` | worktree 内执行 1 个 subtask, 写代码 (每文件过 写前 CHECKPOINT) | 读写 + Bash, 无 Agent/Task | `effort: high` (继承主模型, 不降级) |
 | `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 
-> 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium), 执行保持高推理 (implementer 继承主模型 + high effort)。
+> 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium); 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 
 ## Command
 

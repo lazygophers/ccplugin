@@ -20,6 +20,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 import argparse
 import datetime
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -111,7 +112,13 @@ class Skein:
         f = self.dir / "config.yaml"
         if not f.exists():
             raise SystemExit("未初始化 — 先跑 `skein.py init`")
-        return _yaml_load(f.read_text())
+        cfg = _yaml_load(f.read_text())
+        # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
+        for k in ("max_active", "max_parallel"):
+            v = os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}")
+            if v and v.strip().isdigit():
+                cfg[k] = int(v)
+        return cfg
 
     def _sync(self):
         # 顶层 task.json 唯一写入口: tasks 是未归档 task 的去规范化状态镜像 (per-task task.json 仍单一真值源),
@@ -121,6 +128,7 @@ class Skein:
         (self.dir / "task.json").write_text(
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._board(None)  # 变更即刷 task.md, 免看板漂移
+        self._board_html()  # + 生成 .skein/task.html 可视化页 (不自动打开; `skein.py view` 按需开)
 
     def _load(self, tid) -> dict:
         f = self.tasks / tid / "task.json"
@@ -131,6 +139,7 @@ class Skein:
     def _save(self, t: dict):
         t["updated"] = now()
         (self.tasks / t["id"] / "task.json").write_text(json.dumps(t, ensure_ascii=False, indent=2))
+        self._board_task(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
 
     def _all(self) -> list:
         if not self.tasks.exists():
@@ -173,7 +182,7 @@ class Skein:
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         wt = self.config()["worktree_root"].rstrip("/") + "/"
         root_gi = self.root / ".gitignore"
@@ -204,9 +213,8 @@ class Skein:
             "worktree": None, "branch": f"skein/{tid}",
             "created": now(), "updated": now(),
         }
-        self._save(t)
-        self._board_task(t)
-        self._sync()  # 刷新顶层 tasks 索引 + 看板
+        self._save(t)  # _save 已渲染子任务看板
+        self._sync()  # 刷新顶层 tasks 索引 + 看板 + html
         print(f"{tid}\t{self.tasks / tid}")
 
     def start(self, a):
@@ -372,7 +380,16 @@ class Skein:
             print(f.read_text(), end="")
 
     def session_context(self):
-        # SessionStart hook: 有 active task 时用 memory.py 相同 JSON envelope 注入, 供 compaction 后恢复
+        # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
+        if not (self.dir / "config.yaml").exists():
+            trellis = (self.root / ".trellis").exists()
+            extra = ("\n检测到 `.trellis/` — setup 会迁移 task/spec 并清理 trellis 残留 (调 skein-setup agent)。"
+                     if trellis else "")
+            ctx = ("# SKEIN 未初始化\n\n本仓库无 `.skein/` 工作区。要用 SKEIN 管理任务, "
+                   "调用 **setup** skill 完成初始化 (幂等)。" + extra)
+            print(json.dumps({"hookSpecificOutput": {
+                "hookEventName": "SessionStart", "additionalContext": ctx}}))
+            return
         active = self._active()
         if not active:
             return
@@ -446,8 +463,7 @@ class Skein:
                 "depends_on": _split(a.deps), "write": _split(a.write),
                 "reason": a.reason or "", "status": SS_PENDING,
             })
-            self._save(t)
-            self._board_task(t)
+            self._save(t)  # _save 已渲染子任务看板
             print(f"{a.tid}/{a.sid} 已登记 (共 {len(subs)} subtask)")
             return
         if a.action == "list":
@@ -474,9 +490,8 @@ class Skein:
                 # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
                 for s in batch:
                     s["status"] = SS_RUNNING
-                self._save(t)
-                self._board_task(t)
-                print("已认领 (running) — main 逐个 dispatch skein-implementer, 完成即 subtask done/fail:")
+                self._save(t)  # _save 已渲染子任务看板
+                print("已认领 (running) — main 为每个 subtask 选合适 agent (无则 general-purpose) 逐个 dispatch, 完成即 subtask done/fail:")
             else:
                 print("就绪 (只读预览, 认领用 `subtask claim`):")
             for s in batch:
@@ -505,8 +520,7 @@ class Skein:
             s["status"] = SS_FAILED
             if a.reason:
                 s["reason"] = a.reason
-        self._save(t)
-        self._board_task(t)
+        self._save(t)  # _save 已渲染子任务看板
         print(f"{a.tid}/{a.sid} → {s['status']}")
 
     def _board_task(self, t):
@@ -526,6 +540,163 @@ class Skein:
         )
         (self.tasks / t["id"] / "task.md").write_text(md)
 
+    # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
+    def _board_html(self):
+        st_color = {S_PENDING: "#c9b18b", S_ACTIVE: "#8e9aaf",
+                    S_CHECK: "#c9b18b", S_DONE: "#9caf88"}
+        ss_color = {SS_PENDING: "#c9b18b", SS_RUNNING: "#8e9aaf",
+                    SS_DONE: "#9caf88", SS_FAILED: "#bb8588"}
+
+        def esc(s):
+            return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+        def badge(text, palette):
+            return (f'<span class="badge" style="background:{palette.get(text, "#8e9aaf")}">'
+                    f'{esc(text)}</span>')
+
+        cards = []
+        for t in self._all():
+            subs = t.get("subtasks", [])
+            srows = "".join(
+                f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
+                f'<td>{badge(s["status"], ss_color)}</td>'
+                f'<td>{esc(",".join(s.get("depends_on", [])) or "-")}</td>'
+                f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
+                f'<td>{esc(s.get("reason", "") or "-")}</td></tr>' for s in subs)
+            subtable = (
+                '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th>'
+                '<th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
+                f'<tbody>{srows}</tbody></table>' if subs
+                else '<p class="empty">无 subtask</p>')
+            cards.append(
+                f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_color)}</h2>'
+                f'<p class="name">{esc(t.get("name", ""))}</p>'
+                f'<p class="meta">前置: {esc(",".join(t.get("deps", [])) or "-")} · '
+                f'worktree: {esc(t.get("worktree") or "-")}</p>{subtable}</section>')
+        body = "\n".join(cards) if cards else '<p class="empty">无 task</p>'
+        html = (
+            "<!doctype html><html lang=zh-CN><head><meta charset=utf-8>"
+            "<meta name=viewport content='width=device-width,initial-scale=1'>"
+            "<title>SKEIN 看板</title><style>"
+            "body{background:#e6e2dd;color:#4a4642;font:15px/1.6 -apple-system,system-ui,sans-serif;margin:0;padding:24px}"
+            "h1{font-weight:600;color:#6b6560;margin:0 0 8px}"
+            ".card{background:#f3f0ec;border:1px solid #d6d0c8;border-radius:10px;padding:16px 20px;margin:14px 0}"
+            ".card h2{margin:0 0 4px;font-size:17px}.name{margin:0 0 6px;color:#6b6560}"
+            ".meta{margin:0 0 10px;font-size:13px;color:#8a847d}"
+            ".badge{display:inline-block;padding:1px 9px;border-radius:9px;color:#fff;font-size:12px;vertical-align:middle}"
+            "table{border-collapse:collapse;width:100%;font-size:13px}"
+            "th,td{text-align:left;padding:5px 8px;border-bottom:1px solid #e0dad2}"
+            "th{color:#8a847d;font-weight:600}.empty{color:#a59f97;font-style:italic}"
+            "footer{margin-top:20px;font-size:12px;color:#a59f97}"
+            "</style></head><body><h1>SKEIN 看板</h1>"
+            f"{body}<footer>脚本自动渲染 · 禁手改 · 刷新 <code>skein.py board</code></footer>"
+            "</body></html>")
+        (self.dir / "task.html").write_text(html)
+
+    def view(self, _):
+        html = self.dir / "task.html"
+        if not html.exists():
+            self._board_html()
+        opener = "open" if sys.platform == "darwin" else "xdg-open"
+        subprocess.run([opener, str(html)], check=False)
+        print(f"已打开可视化看板: {html}")
+
+    # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
+    _TRELLIS_TASK_RESIDUALS = ("task.json", "task.md", "task", "scripts", "hooks",
+                               "settings.json", "settings.local.json")
+    _CLAUDE_SUBDIRS = ("skills", "commands", "agents", "hooks", "scripts")
+
+    def _trellis_tasks(self, trellis) -> list:
+        # 采集 trellis 待迁 task (供 agent 语义重建为 skein task)。schema 可能与 skein 异, 只报路径+原始 json。
+        out = []
+        tdir = trellis / "task"
+        if tdir.is_dir():
+            for d in sorted(p for p in tdir.iterdir() if p.is_dir() and p.name != "archive"):
+                tj = d / "task.json"
+                raw = None
+                if tj.exists():
+                    try:
+                        raw = json.loads(tj.read_text())
+                    except (json.JSONDecodeError, OSError):
+                        raw = None
+                out.append({"id": d.name, "path": str(d.relative_to(self.root)), "task_json": raw})
+        return out
+
+    def _claude_trellis_residuals(self) -> list:
+        # 扫项目 .claude/{skills,commands,agents,hooks,scripts} 里名含 trellis 的条目 + 提及 trellis 的 settings
+        cdir = self.root / ".claude"
+        hits = []
+        if not cdir.is_dir():
+            return hits
+        for sub in self._CLAUDE_SUBDIRS:
+            d = cdir / sub
+            if d.is_dir():
+                hits += [str(p.relative_to(self.root)) for p in sorted(d.iterdir())
+                         if "trellis" in p.name.lower()]
+        for name in ("settings.json", "settings.local.json"):
+            f = cdir / name
+            if f.exists() and "trellis" in f.read_text().lower():
+                hits.append(str(f.relative_to(self.root)) + " (含 trellis hook, 需手工/agent 剔除条目)")
+        return hits
+
+    def setup(self, a):
+        trellis = self.root / ".trellis"
+        if a.purge:
+            return self._setup_purge(trellis)
+        # scaffold 确认走 stderr, 保 stdout 纯 JSON manifest (agent/脚本单一解析口)
+        import contextlib
+        with contextlib.redirect_stdout(sys.stderr):
+            self.init(a)  # 幂等 scaffold: .skein/ + config + gitignore + 顶层看板
+        tspec = trellis / "spec"
+        sspec = self.dir / "spec"
+        linked = sspec.is_symlink()
+        if tspec.is_dir() and not sspec.exists():
+            sspec.symlink_to(Path("..") / ".trellis" / "spec")  # 相对软链, 免绝对路径入库
+            linked = True
+        elif not tspec.exists() and not sspec.exists():
+            # 无 trellis → 建本地 spec 库 (memory.py init)
+            subprocess.run([sys.executable, str(Path(__file__).parent / "memory.py"), "init"],
+                           stdout=sys.stderr, check=False)
+        manifest = {
+            "trellis_present": trellis.exists(),
+            "spec_linked": linked,
+            "spec_needs_reorg": bool(tspec.is_dir()),  # agent 需把 .trellis/spec 重组为 core/recall×类目
+            "trellis_tasks": self._trellis_tasks(trellis),
+            "claude_residuals": self._claude_trellis_residuals(),
+        }
+        print(json.dumps(manifest, ensure_ascii=False, indent=2))
+
+    def _setup_purge(self, trellis):
+        # 破坏性: 清 trellis 残留 (保留 .trellis/spec — 已被 .skein/spec 软链)。逐条打印删除路径。
+        removed = []
+        for name in self._TRELLIS_TASK_RESIDUALS:
+            p = trellis / name
+            if p.is_symlink() or p.is_file():
+                p.unlink(); removed.append(str(p.relative_to(self.root)))
+            elif p.is_dir():
+                shutil.rmtree(p); removed.append(str(p.relative_to(self.root)) + "/")
+        cdir = self.root / ".claude"
+        if cdir.is_dir():
+            for sub in self._CLAUDE_SUBDIRS:
+                d = cdir / sub
+                if not d.is_dir():
+                    continue
+                for p in sorted(d.iterdir()):
+                    if "trellis" not in p.name.lower():
+                        continue
+                    if p.is_dir():
+                        shutil.rmtree(p); removed.append(str(p.relative_to(self.root)) + "/")
+                    else:
+                        p.unlink(); removed.append(str(p.relative_to(self.root)))
+        # .trellis/spec 保留 (软链目标); 若目录已空则清空壳
+        if trellis.is_dir() and not any(trellis.iterdir()):
+            trellis.rmdir(); removed.append(".trellis/")
+        settings_note = [str((cdir / n).relative_to(self.root))
+                         for n in ("settings.json", "settings.local.json")
+                         if (cdir / n).exists() and "trellis" in (cdir / n).read_text().lower()]
+        print(json.dumps({"removed": removed,
+                          "settings_need_manual_edit": settings_note}, ensure_ascii=False, indent=2))
+
 
 def _split(s):
     return [x.strip() for x in (s or "").split(",") if x.strip()]
@@ -540,6 +711,8 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
 
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
+    su = sub.add_parser("setup", help="初始化 + trellis 迁移 (scaffold+spec软链+manifest; --purge 清残留)")
+    su.add_argument("--purge", action="store_true", help="[二阶段] 清 trellis 残留 (.trellis/task* + .claude/*trellis*, 保留软链的 spec)")
     c = sub.add_parser("create", help="登记新 task (id 必填, 可读 slug)")
     c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
     c.add_argument("--name", help="task 标题 (省略则用 id)")
@@ -555,6 +728,7 @@ def main():
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
     sub.add_parser("list", help="列所有 task (含状态)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
+    sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
@@ -578,20 +752,19 @@ def main():
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if a.cmd == "session-context":
-        # hook 在任意仓库每 session 都跑: 非 skein 项目 (无 git / 无 config) 静默 exit 0
+        # hook 在任意仓库每 session 都跑: 非 git 仓静默 exit 0; git 仓无 .skein → session_context 注入 setup 建议
         try:
             sk = Skein()
-            sk.config()
         except SystemExit:
             return
         sk.session_context()
         return
     sk = Skein()
     dispatch = {
-        "init": sk.init, "create": sk.create, "start": sk.start,
+        "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "current": sk.current,
         "ready": sk.ready,
-        "list": sk.list_, "board": sk.board, "contract": sk.contract,
+        "list": sk.list_, "board": sk.board, "view": sk.view, "contract": sk.contract,
         "journal": sk.journal, "subtask": sk.subtask,
     }
     dispatch[a.cmd](a)

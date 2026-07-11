@@ -29,6 +29,7 @@ from pathlib import Path
 
 CORE_BUDGET = 8000  # core 全文软预算 (字符, 供 inject-core 手动查看); 超则告警
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
+SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈CORE_BUDGET 字符)
 LAYERS = ("core", "recall")
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
@@ -117,6 +118,21 @@ class Memory:
             INDEX_BUDGET_TOKENS, "memory:session-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
+
+    # ---- subagent-start (SubagentStart hook: 给短命执行 agent 直接注入 core 全文 + spec 纪律) ----
+    def subagent_start(self, _):
+        # matcher 已放开到全 subagent — 非 SKEIN 项目 (无 .skein/spec) 静默不注入, 免污染其他插件的 agent
+        if not self.root.exists():
+            return
+        body = self._core_text().strip()
+        head = ("# SKEIN spec 纪律 (执行期强制)\n"
+                "- 动手前: 相关约定先跑 `memory.py recall <关键词>` 拉 recall 层, 别凭记忆重推。\n"
+                "- 命中 core 规则 (下列) 即硬约束, 违反视为未完成。\n"
+                "- 踩到「后续同类任务会再犯」的坑 / 定下可复用约定: 在 journal 记一行标 `SPEC:` 供 finish sediment 落盘, 别让它随 worktree 销毁蒸发。\n")
+        ctx = head if not body else head + "\n## core 规则 (常驻硬约束)\n\n" + body
+        ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "memory:subagent-start")
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "SubagentStart", "additionalContext": ctx}}))
 
     # ---- recall (按需粗筛) ----
     def recall(self, a):
@@ -247,7 +263,8 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
     sub.add_parser("init", help="初始化 .skein/spec 库 (幂等)")
     sub.add_parser("inject-core", help="输出 core 层全部规则正文 (常驻注入)")
-    sub.add_parser("session-start", help="[hook 用] 每 session 注入 core 规则")
+    sub.add_parser("session-start", help="[hook 用] 每 session 注入 core 规则索引")
+    sub.add_parser("subagent-start", help="[hook 用] 每 subagent 注入 core 全文 + spec 纪律")
     sub.add_parser("reindex", help="重建三份 index.md (改盘后同步)")
     r = sub.add_parser("recall", help="按关键词 grep recall 索引, 输出命中行")
     r.add_argument("query", help="任务关键词")
@@ -265,7 +282,7 @@ def main():
     m = Memory()
     {
         "init": m.init, "inject-core": m.inject_core, "recall": m.recall,
-        "session-start": m.session_start,
+        "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
     }[a.cmd](a)
 

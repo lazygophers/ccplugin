@@ -14,12 +14,12 @@
 | **两层×类目规则记忆** | `skein-memory` + `memory.py` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
 | 破坏式重构 | `skein-planning` (heavy 档, `references/breaking-refactor.md`) | 不保兼容、全站点一次改齐的重构模式注解 |
-| 质量门 | `skein-check` | 派 `skein-checker` 验证 (lint/type/test/契约), 未过派 `skein-implementer` 修复重检 |
+| 质量门 | `skein-check` | 派 `skein-checker` 验证 (lint/type/test/契约), 未过派合适 agent (无则 `general-purpose`) 修复重检 |
 | 第 3 轮根因复盘 | `skein-check` (`references/root-cause-protocol.md`) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或 STOP 转人工 |
 | 冷启动播种 | `skein-memory` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 归档清理 | `skein-clean` | 孤儿 worktree / 悬挂分支 / 漏归档安全清扫 |
 
-3 个执行 agent (均无 Agent/Task 工具, 递归护栏): `skein-implementer` (worktree 内执行 1 subtask, 每文件过写前 CHECKPOINT) / `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式)。
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT); 执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 dispatch prompt 硬性注入。2 个工具受限的具名 agent (无 Agent/Task 工具, 递归护栏): `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式)。
 
 ## 差异化核心: 两层规则记忆 (基于 `.skein/spec`)
 

@@ -7,11 +7,11 @@
 | 角色 | 是谁 | 干什么 | 有 Agent/Task 工具? |
 | --- | --- | --- | --- |
 | **main** | 主对话 (coordinator) | 调度器: 跑 `skein.py` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
-| **skein-implementer** | 执行 agent | worktree 内执行 **1 个** subtask, 写代码 | 无 (递归护栏) |
+| **执行者** | main 选的合适 agent (无则 `general-purpose`) | worktree 内执行 **1 个** subtask, 写代码 | 有 (递归护栏靠 dispatch prompt 硬性禁止再派) |
 | **skein-checker** | 验证 agent | 只读, 跑 lint / type / test / 契约校验 | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 
-**铁律**: main 默认**不亲自写源码** — 实质产出派具名 subagent。3 个执行 agent 都**没有** Agent/Task 工具, 不能自派 (Recursion Guard), 各自只干一件事。
+**铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `general-purpose`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研的 2 个具名 agent (checker / researcher) **没有** Agent/Task 工具兜住递归, 各自只干一件事。
 
 `skein.py` 的 `create/start/finish/archive` 是任务记录管理, 由 main **同步**直接跑, 不派 agent、不算实质工作。
 
@@ -48,15 +48,15 @@ grill 通过 + 你评审确认 → `skein.py start`:
 main 作调度器跑**动态 DAG 调度循环**:
 
 - 把 `implement.md` 拆成 subtask, 按冲突自算边 + 显式 `depends_on` 组成 DAG。
-- **ready 即派** `skein-implementer` (6 字段自包含 prompt), **并发上限 2**, **完成即派**下一个 (不空等全部)。
-- **读后写硬门 + reason 注解**: dispatch prompt 的「工作目录与范围」段**逐文件枚举**, 每个文件带 **reason** (改它满足哪条契约/需求)。implementer 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 + reason → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。把契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
+- **ready 即派** — 为每个 subtask 选合适 agent (无则 `general-purpose`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
+- **读后写硬门 + reason 注解**: dispatch prompt 的「工作目录与范围」段**逐文件枚举**, 每个文件带 **reason** (改它满足哪条契约/需求)。执行 agent 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 + reason → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
 - 派出异步任务后结束本回合前, MUST 输出任务全景表 (状态: 进行中 / 等待中 / 阻塞)。
 
 ### ⑤ check (main 派 checker fan-out)
 
-派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
+派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派合适 agent (无则 `general-purpose`) 定点修复重检, 不跳 finish。
 
 **第 3 轮仍 FAIL → 根因复盘**: 不再只 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
@@ -80,7 +80,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 | 层 | 调度对象 | 上限 |
 | --- | --- | --- |
-| **subtask 级** | 单 task 内的 subtask (派 `skein-implementer`) | 并发 2 |
+| **subtask 级** | 单 task 内的 subtask (为每个选合适 agent, 无则 `general-purpose`) | 并发 2 |
 | **task 级** | 同 session 多个 active task | active 集 ≤ 2 |
 
 **DAG 边怎么来**: 最终 DAG = **冲突自算边** ∪ **显式 `depends_on` 边**。
@@ -93,7 +93,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 ```
 拆好 → subtask add …               (逐个登记 sid/deps/write/reason)
   ┌── subtask claim <tid>          ← 脚本算就绪批 + 整批标 running (一步到位)
-  │      ↓ 非空: 逐个派 skein-implementer (无需再 start)
+  │      ↓ 非空: 逐个为 subtask 选合适 agent (无则 general-purpose) 执行 (无需再 start)
   │      ↓ agent 完成: subtask done/fail → 立即回传
   └──────┘  循环至 claim 恒空且无 running
 ```
@@ -168,7 +168,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 | 护栏 | 怎么实现 | 挡住什么 |
 | --- | --- | --- |
 | task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein.py 直接读写状态/看板 → 格式漂移或态不一致 |
-| Recursion Guard | 3 个执行 agent 无 Agent/Task 工具 | subagent 自派 → 递归爆炸 |
+| Recursion Guard | 具名 agent (checker/researcher) 无 Agent/Task 工具; 执行者 (general-purpose 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | 有 task 必有 worktree | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
 | 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |

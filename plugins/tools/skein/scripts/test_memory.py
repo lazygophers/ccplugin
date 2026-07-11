@@ -66,6 +66,13 @@ def main():
         assert "合并冲突必 abort" not in ctx, "session-start 不该注入正文 (只索引)"
         assert "inject-core" in ctx, "索引未提示按需拉全文"
 
+        # subagent-start: 给执行 agent 注入 core 全文 (非仅索引) + spec 纪律指令
+        sa = _json.loads(mem(d, "subagent-start").stdout)
+        sctx = sa["hookSpecificOutput"]["additionalContext"]
+        assert sa["hookSpecificOutput"]["hookEventName"] == "SubagentStart", "subagent hook 格式错"
+        assert "合并冲突必 abort" in sctx, "subagent-start 该注入 core 正文 (非仅索引)"
+        assert "SPEC:" in sctx and "recall" in sctx, "subagent-start 缺 spec 纪律指令"
+
         # seq 层内全局递增: 第二次沉淀到不同类目 style, 序号仍 +1
         mem(d, "sediment", "--layer", "core", "--category", "style", "--title", "命名规范",
             "--keywords", "naming", "--source", "t03", "--body-file", str(body))
