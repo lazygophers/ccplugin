@@ -141,21 +141,23 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 ```
 .skein/
+├── .gitignore                       # init 生成: 忽略 task.md (自动渲染)
 ├── task.json                        # 顶层 {tasks:[...]} 全表 — 脚本维护, AI 禁读写
-├── task.md                          # 顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
+├── task.md                          # 顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
 ├── config.yaml                      # max_active / max_parallel / auto_commit / worktree_root
 └── task/
     ├── <id>/                        # 活跃 task
     │   ├── task.json                # 记录 + subtask DAG — 脚本维护, AI 禁读写
-    │   ├── task.md                  # 子任务看板 (渲染) — 脚本维护, AI 禁读写
+    │   ├── task.md                  # 子任务看板 (渲染, git 忽略) — 脚本维护, AI 禁读写
     │   ├── prd.md / design.md / implement.md   # planning 工件 (AI 读写)
+    │   ├── journal.md               # append-only 过程记录 (AI 追加, 随 task 归档)
     │   └── research/<topic>.md      # researcher 落盘的调研结论 (随 task finish 一并归档)
     └── archive/<年>/<月-日>/<id>/    # 按完成日期分层归档
 .skein/spec/
 ├── index.md                         # 顶层索引 (两层聚合概览)
 ├── core/{<类目>/*.md, index.md}     # 常驻规则 + 层索引
 └── recall/{<类目>/*.md, index.md}   # 按需召回规则 + 层索引
-.worktrees/
+.worktrees/                          # init 追加到仓库根 .gitignore (worktree_root, 不入库)
 └── skein-<id>/                      # task 隔离 worktree (finish 后销)
 ```
 

@@ -36,11 +36,12 @@
 
 ```
 .skein/
-├── task.md            # 看板 (经 skein.py board 渲染, 禁直接编辑)
-├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task
+├── .gitignore         # init 生成: 忽略 task.md (自动渲染); 另补 worktree_root 到根 .gitignore
+├── task.json          # {tasks:[{id,status,deps,worktree}]} 全未归档 task (脚本维护)
+├── task.md            # 顶层看板 (task.json 渲染, git 忽略, 禁直接编辑)
 ├── config.yaml        # max_active:2 / auto_commit:true / worktree_root:.worktrees
 └── task/
-    ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / task.json
+    ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / journal.md + task.json/task.md(脚本渲染)
     └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档
 .skein/spec/
 ├── index.md                      # 顶层索引 (两层聚合概览)

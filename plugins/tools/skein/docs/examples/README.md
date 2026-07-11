@@ -27,6 +27,7 @@
 
 | 文件 | 是什么 | 谁维护 · AI 可否读写 |
 | --- | --- | --- |
+| `.gitignore` | `init` 生成: 忽略 `task.md` (自动渲染, 从 task.json 无损重建); `init` 另把 worktree_root 补到**仓库根** `.gitignore` | 脚本生成 · 一次性 |
 | `config.yaml` | 插件配置 (`max_active`/`max_parallel`/`auto_commit`/`worktree_root`) | 用户手改 · AI 可读 |
 | `task.json` | 顶层状态汇总 `{tasks:[{id,状态,deps,worktree}]}` — 全部未归档 task 一览 | **脚本** · AI 禁读写 (guard 硬阻) |
 | `task.md` | 顶层看板 (t02 进行中 / t03 待处理, 由 task.json 渲染) | **脚本** · AI 禁读写 |

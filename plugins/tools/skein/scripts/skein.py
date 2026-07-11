@@ -5,9 +5,10 @@
 skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
+  .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree_root 到根 .gitignore
   .skein/config.yaml              设置 (max_active / max_parallel / auto_commit / worktree_root)
   .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
-  .skein/task.md                  顶层看板 (task.json 渲染) — 脚本维护, AI 禁读写
+  .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
   .skein/task/<id>/task.md        单 task 子任务看板 (渲染) — 脚本维护, AI 禁读写
   .skein/task/<id>/{prd,design,implement}.md  planning 工件 (skein-planning 写, AI 可读写)
@@ -164,6 +165,18 @@ class Skein:
                 "auto_commit": True,
                 "worktree_root": ".worktrees",
             }))
+        # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
+        gi = self.dir / ".gitignore"
+        if not gi.exists():
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n")
+        # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
+        wt = self.config()["worktree_root"].rstrip("/") + "/"
+        root_gi = self.root / ".gitignore"
+        existing = root_gi.read_text() if root_gi.exists() else ""
+        if wt not in existing:
+            sep = "\n" if existing and not existing.endswith("\n") else ""
+            with root_gi.open("a") as f:
+                f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
         if not (self.dir / "task.json").exists():
             self._sync()
         self._board(None)

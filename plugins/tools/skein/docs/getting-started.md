@@ -32,12 +32,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init
 
 ```
 .skein/
+├── .gitignore       # 忽略 task.md (自动渲染); 另补 worktree_root 到仓库根 .gitignore
 ├── task.json        # {tasks:[]} — 顶层状态全表, 脚本维护, AI 禁读写
-├── task.md          # 空看板 — 由 task.json 自动渲染
+├── task.md          # 空看板 — 由 task.json 自动渲染 (git 忽略)
 ├── config.yaml      # max_active:2 / max_parallel:2 / auto_commit:true / worktree_root:.worktrees
 └── task/
     └── archive/     # 归档根
 ```
+
+> `init` 还会把 worktree 根目录 (默认 `.worktrees/`) 追加到**仓库根** `.gitignore` — worktree 是隔离的任务源码副本, 不入库 (幂等, 已存在则跳过)。
 
 规则记忆库 `.skein/spec/` 在首次 sediment 时按需建出。
 

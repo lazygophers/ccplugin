@@ -21,7 +21,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
-| `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件) |
+| `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
 | `create <name>` | `--desc <文本>` `--deps "t01,t02"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>` |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |

@@ -42,6 +42,11 @@ def main():
         assert rt == {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}, rt
         assert sk_mod._yaml_load("max_active: 2  # 注释\nfoo: bar")["max_active"] == 2, "注释未剥离"
         assert (d / ".skein" / "task.md").exists(), "看板缺失"
+        # .gitignore: .skein/ 忽略 task.md, 根 .gitignore 补 worktree_root
+        assert "task.md" in (d / ".skein" / ".gitignore").read_text(), ".skein/.gitignore 未忽略 task.md"
+        assert ".worktrees/" in (d / ".gitignore").read_text(), "根 .gitignore 未补 worktree_root"
+        sk(d, "init")  # 幂等: 二次 init 不重复追加根 .gitignore
+        assert (d / ".gitignore").read_text().count(".worktrees/") == 1, "worktree 忽略重复追加"
 
         # create t01
         out = sk(d, "create", "第一个任务", "--desc", "测试").stdout.strip()
