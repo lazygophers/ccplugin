@@ -41,7 +41,7 @@ arguments: [载体选项 (可选), 任务描述]
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) subagent 不能与用户对话; subagent 缺信息只能在返回里标 `需要: <问题>`, 由 main 转达用户。
 - 📦 **每个 dispatch prompt 必须 6 字段自包含**: 目标 / 已知 (含 `Active task: <task.py current 路径>`) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - 📣 **完成即时回传** —— 每个 subagent 完成或阻塞, main **立即输出摘要回传用户**, 禁批量延迟汇总。
-- 🔒 **task.md 禁直接 Edit/Write/MultiEdit** —— `.trellis/task.md` 看板**必经 `trellisx-taskmd.py` 脚本操作** (settings.json `permissions.deny` + `guard-taskmd.sh` PreToolUse hook 双保险硬阻)。直接编辑会被 deny 拦 + hook exit 2 block, 并报"用脚本"。违 = 流程错误 (绕过 hook/AI 列分工 + 格式漂移)。
+- 🔒 **task.md 禁直接 Edit/Write** —— `.trellis/task.md` 看板**必经 `trellisx-taskmd.py` 脚本操作** (settings.json `permissions.deny` + `guard-taskmd.sh` PreToolUse hook 双保险硬阻)。直接编辑会被 deny 拦 + hook exit 2 block, 并报"用脚本"。违 = 流程错误 (绕过 hook/AI 列分工 + 格式漂移)。
 - 🧮 **多 task 并行调度 (同 session 多 active task)** —— **main 可在同一 session 内同时跟踪多个 in_progress task** (≠ 跨 session, 跨 session 本就独立):
   - **active 集 + focus**: `active_tasks` 列表存所有 in_progress task, `current_task` (= focus) 是默认操作对象 (最近 start 的)。`task.py current` 显示 focus; `task.py current --all` 列所有 active (focus 标 `<- current` 绿, 其余 `<- active` 青)。
   - **task 级并发上限 2** (`MAX_ACTIVE_TASKS`): 同 session active 集 ≤ 2。`task.py start` 第三个 → 报错 "task 级并发上限 2, 先 finish 一个", 禁超。 (= subtask 级上限, 见 scheduling.md)
@@ -148,7 +148,7 @@ arguments: [载体选项 (可选), 任务描述]
 | 13 | finish 时留悬挂 subagent / 后台任务未关 | 改为 `TaskList` 查 + `TaskStop` 关后再 finish |
 | 14 | exec 阶段 subtask 之间停下来问用户"先做哪个 / 下一个做什么" | 顺序归 planning, exec 只跑调度循环 (scheduling.md §4) —— ready 即派 / 完成即派 / 并发 2; PRD 缺调度图 → 退回 planning 补, 不在 exec 问 |
 | 15 | finish 步 sediment 判定未输出 trace (默默判"全否跳过", 用户无感知) | MUST 按 trace 模板 (步骤 5 finish) 逐项 ✅/❌ 显式输出, 全否也要输出全 ❌ trace, 禁跳过 |
-| 16 | 直接 Edit/Write/MultiEdit `.trellis/task.md` (绕过脚本) | 经 `trellisx-taskmd.py` (show/update/sync/cleanup/map-*) —— deny + hook 双保险硬阻, 违 = 流程错误 |
+| 16 | 直接 Edit/Write `.trellis/task.md` (绕过脚本) | 经 `trellisx-taskmd.py` (show/update/sync/cleanup/map-*) —— deny + hook 双保险硬阻, 违 = 流程错误 |
 | 17 | 同 session active 集超 2 (start 第三个 task) | task 级并发上限 2, 先 finish 一个再 start (与 subtask 级上限一致, 见 scheduling.md) |
 
 > 与 `trellisx-apply` 的分工: 本 skill = task 强推主路径 (用户显式 + model 自动, 复杂多步跨文件即接管); apply 注入的 no_task = 轻量"建议建 task"常驻软提示, 指向本 skill。两者嵌套 (hint → flow), 不冲突。

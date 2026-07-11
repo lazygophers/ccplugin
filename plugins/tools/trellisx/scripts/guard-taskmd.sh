@@ -18,7 +18,7 @@ tool_name="$(printf '%s' "$payload" | python3 -c 'import json,sys; d=json.load(s
 file_path="$(printf '%s' "$payload" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("tool_input",{}).get("file_path",""))' 2>/dev/null || echo "")"
 
 case "$tool_name" in
-    Edit|Write|MultiEdit)
+    Edit|Write
         ;;
     *)
         exit 0

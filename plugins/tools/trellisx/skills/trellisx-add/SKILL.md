@@ -69,7 +69,7 @@ planning 产物齐 (`prd.md` [+ `design.md`] + `implement.md`) → **到此停**
 
 - 🗂️ **task.py 脚本 main 同步跑** —— `task.py create` 是任务记录管理, main 直接同步执行 (不派 agent、不算实质工作)。add **不跑 `task.py start`** (那是激活/执行, 归 flow/go)。
 - 💬 **planning 全程 main 同步前台** —— brainstorm 需逐问用户 (交互式), 不派 subagent、不执行。
-- 🔒 **task.md 禁直接 Edit/Write/MultiEdit** —— `.trellis/task.md` 看板**必经 `trellisx-taskmd.py` 脚本操作** (settings.json `permissions.deny` + `guard-taskmd.sh` PreToolUse hook 双保险硬阻)。
+- 🔒 **task.md 禁直接 Edit/Write** —— `.trellis/task.md` 看板**必经 `trellisx-taskmd.py` 脚本操作** (settings.json `permissions.deny` + `guard-taskmd.sh` PreToolUse hook 双保险硬阻)。
 - 🧑 **用户交互决策点 main 亲做** —— `AskUserQuestion` (判新旧不准、产物评审、scope 澄清) 必用工具, 禁纯文本代替。
 - ✅ **及时维护 task.md 看板** —— 每个节点 (create/阶段推进) 后用 `trellisx-workspace` 更新, 看板滞后视为流程缺陷。
 
