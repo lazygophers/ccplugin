@@ -19,7 +19,10 @@
       "agent": "general-purpose",
       "skills": [],
       "status": "已完成",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": [
+        1
+      ]
     },
     {
       "sid": "s2",
@@ -33,7 +36,10 @@
         "signature-verify"
       ],
       "status": "已完成",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": [
+        1
+      ]
     },
     {
       "sid": "s3",
@@ -49,12 +55,15 @@
         "reconciliation"
       ],
       "status": "已完成",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": [
+        1
+      ]
     }
   ],
   "worktree": ".worktrees/skein-payment-gateway",
   "branch": "skein/payment-gateway",
   "created": 1783754720,
-  "updated": 1783760100,
+  "updated": 1783783945,
   "estimate": 90
 }

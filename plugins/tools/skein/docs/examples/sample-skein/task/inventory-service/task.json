@@ -21,7 +21,10 @@
         "db-migration"
       ],
       "status": "已完成",
-      "estimate": 25
+      "estimate": 25,
+      "验收done": [
+        1
+      ]
     },
     {
       "sid": "s2",
@@ -30,14 +33,18 @@
         "s1"
       ],
       "验收": [
-        "Lua 脚本保证原子, 契约1"
+        "Lua 脚本保证原子, 契约1",
+        "并发预占压测无超卖"
       ],
       "agent": "general-purpose",
       "skills": [
         "concurrency"
       ],
       "status": "运行中",
-      "estimate": 40
+      "estimate": 40,
+      "验收done": [
+        1
+      ]
     },
     {
       "sid": "s3",
@@ -53,12 +60,13 @@
         "cron"
       ],
       "status": "待处理",
-      "estimate": 35
+      "estimate": 35,
+      "验收done": []
     }
   ],
   "worktree": ".worktrees/skein-inventory-service",
   "branch": "skein/inventory-service",
   "created": 1783754730,
-  "updated": 1783757100,
+  "updated": 1783783945,
   "estimate": 100
 }

@@ -21,19 +21,26 @@
         "input-validation"
       ],
       "status": "已完成",
-      "estimate": 20
+      "estimate": 20,
+      "验收done": [
+        1
+      ]
     },
     {
       "sid": "s2",
       "name": "库存扣减",
       "depends_on": [],
       "验收": [
-        "Redis 原子 decr, 不足即拒 (契约2)"
+        "Redis 原子 decr, 不足即拒 (契约2)",
+        "并发扣减压测无超卖"
       ],
       "agent": "general-purpose",
       "skills": [],
       "status": "运行中",
-      "estimate": 40
+      "estimate": 40,
+      "验收done": [
+        1
+      ]
     },
     {
       "sid": "s3",
@@ -47,7 +54,8 @@
         "idempotency"
       ],
       "status": "失败",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": []
     },
     {
       "sid": "s4",
@@ -63,12 +71,13 @@
         "event-sourcing"
       ],
       "status": "待处理",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": []
     }
   ],
   "worktree": ".worktrees/skein-order-create-api",
   "branch": "skein/order-create-api",
   "created": 1783754713,
-  "updated": 1783758313,
+  "updated": 1783783945,
   "estimate": 120
 }

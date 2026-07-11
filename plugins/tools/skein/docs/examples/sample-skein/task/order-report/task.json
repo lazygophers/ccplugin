@@ -18,7 +18,8 @@
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
-      "estimate": 20
+      "estimate": 20,
+      "验收done": []
     },
     {
       "sid": "s2",
@@ -32,7 +33,8 @@
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
-      "estimate": 15
+      "estimate": 15,
+      "验收done": []
     },
     {
       "sid": "s3",
@@ -48,12 +50,13 @@
         "cron"
       ],
       "status": "待处理",
-      "estimate": 15
+      "estimate": 15,
+      "验收done": []
     }
   ],
   "worktree": null,
   "branch": "skein/order-report",
   "created": 1783754745,
-  "updated": 1783754745,
+  "updated": 1783783945,
   "estimate": 50
 }

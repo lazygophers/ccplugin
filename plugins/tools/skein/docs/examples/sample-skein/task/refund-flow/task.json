@@ -21,7 +21,8 @@
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": []
     },
     {
       "sid": "s2",
@@ -37,7 +38,8 @@
         "payment-api"
       ],
       "status": "待处理",
-      "estimate": 30
+      "estimate": 30,
+      "验收done": []
     },
     {
       "sid": "s3",
@@ -51,12 +53,13 @@
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
-      "estimate": 20
+      "estimate": 20,
+      "验收done": []
     }
   ],
   "worktree": null,
   "branch": "skein/refund-flow",
   "created": 1783754740,
-  "updated": 1783754740,
+  "updated": 1783783945,
   "estimate": 80
 }
