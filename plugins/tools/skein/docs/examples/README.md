@@ -11,10 +11,10 @@
 | **order-create-api 订单创建 API** | **进行中** | exec 中途 — 4 subtask 覆盖四态 | `task/order-create-api/` |
 | payment-gateway 支付网关对接 | **检查中** | exec 完, 质量门验证中 — subtask 全已完成 | `task/payment-gateway/` |
 | inventory-service 库存服务 | **进行中** | exec 中途 — subtask 混合态 + 依赖链 | `task/inventory-service/` |
-| order-pay 订单支付 | **待处理** | 依赖 order-create-api, 排队未 start (无 subtask) | `task/order-pay/` |
+| order-pay 订单支付 | **待处理** | 依赖 order-create-api, 已 plan 出 3 subtask (全待处理) | `task/order-pay/` |
 | refund-flow 退款流程 | **待处理** | 依赖 order-pay+payment-gateway, 已 plan 出 subtask (全待处理) | `task/refund-flow/` |
-| order-report 订单报表导出 | **待处理** | 依赖 order-create-api | `task/order-report/` |
-| notification-service 消息通知服务 | **待处理** | 依赖 payment-gateway | `task/notification-service/` |
+| order-report 订单报表导出 | **待处理** | 依赖 order-create-api, 已 plan 出 3 subtask | `task/order-report/` |
+| notification-service 消息通知服务 | **待处理** | 依赖 payment-gateway, 已 plan 出 3 subtask | `task/notification-service/` |
 | order-query 订单查询接口 | **已完成** (归档) | 走完全闭环, worktree 已合并销毁 | `task/archive/2026/07-11/order-query/` |
 | user-auth 用户认证中间件 | **已完成** (归档) | 前一日完成 | `task/archive/2026/07-10/user-auth/` |
 | api-gateway API 网关脚手架 | **已完成** (归档) | 更早完成 | `task/archive/2026/07-09/api-gateway/` |
@@ -47,7 +47,7 @@
 | `task/order-create-api/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-planning · **AI 可读写** |
 | `task/order-create-api/implement.md` | planning 工件: subtask 拆分 + mermaid 调度图 + 落盘命令 | skein-planning · **AI 可读写** |
 | `task/order-create-api/journal.md` | append-only 过程记录 | AI 追加 · 随 task 归档 |
-| `task/order-pay/*` | 排队 task, 仅 create 未 start (无 prd/worktree); order-report/notification-service 同类 | 同上 |
+| `task/order-pay/*` | 待处理但已 plan 出 subtask (未 start, 无 prd/worktree); order-report/notification-service 同类 | **脚本** · AI 禁读写 |
 | `task/refund-flow/*` | 待处理但已 plan 出 subtask (subtask 全待处理) — 展示"排队 + 已拆分" | **脚本** · AI 禁读写 |
 | `task/archive/<年>/<月-日>/<id>/*` | 3 个已完成归档 task (order-query/user-auth/api-gateway, 按完成日期分层) | **脚本** · 只读留痕 |
 | `spec/index.md` + `core/`/`recall/` | 两层规则记忆库 (差异化核心) | **`memory.py`** · AI 经命令沉淀/召回 |

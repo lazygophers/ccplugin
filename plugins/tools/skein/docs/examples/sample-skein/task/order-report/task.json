@@ -7,7 +7,53 @@
     "order-create-api"
   ],
   "contracts": [],
-  "subtasks": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "报表聚合查询",
+      "depends_on": [],
+      "write": [
+        "internal/report/query*.go"
+      ],
+      "reason": "按日/商户聚合订单",
+      "agent": "general-purpose",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 20
+    },
+    {
+      "sid": "s2",
+      "name": "CSV 流式导出",
+      "depends_on": [
+        "s1"
+      ],
+      "write": [
+        "internal/report/csv*.go"
+      ],
+      "reason": "大结果集流式生成 CSV, 避免 OOM",
+      "agent": "general-purpose",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 15
+    },
+    {
+      "sid": "s3",
+      "name": "异步任务调度",
+      "depends_on": [
+        "s1"
+      ],
+      "write": [
+        "internal/report/job*.go"
+      ],
+      "reason": "异步跑 + 进度查询",
+      "agent": "general-purpose",
+      "skills": [
+        "cron"
+      ],
+      "status": "待处理",
+      "estimate": 15
+    }
+  ],
   "worktree": null,
   "branch": "skein/order-report",
   "created": 1783754745,

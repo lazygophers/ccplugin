@@ -7,7 +7,51 @@
     "payment-gateway"
   ],
   "contracts": [],
-  "subtasks": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "MQ 事件消费者",
+      "depends_on": [],
+      "write": [
+        "internal/notify/consumer*.go"
+      ],
+      "reason": "消费支付/发货事件, 分发到通道",
+      "agent": "general-purpose",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 25
+    },
+    {
+      "sid": "s2",
+      "name": "短信通道",
+      "depends_on": [
+        "s1"
+      ],
+      "write": [
+        "internal/notify/sms*.go"
+      ],
+      "reason": "支付/发货短信发送 + 失败重试",
+      "agent": "general-purpose",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 20
+    },
+    {
+      "sid": "s3",
+      "name": "站内信",
+      "depends_on": [
+        "s1"
+      ],
+      "write": [
+        "internal/notify/inbox*.go"
+      ],
+      "reason": "站内信落库 + 未读推送",
+      "agent": "general-purpose",
+      "skills": [],
+      "status": "待处理",
+      "estimate": 20
+    }
+  ],
   "worktree": null,
   "branch": "skein/notification-service",
   "created": 1783754750,
