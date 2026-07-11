@@ -1,4 +1,5 @@
 max_active: 2
 max_parallel: 2
+retain_days: 7
 auto_commit: true
 worktree_root: .worktrees

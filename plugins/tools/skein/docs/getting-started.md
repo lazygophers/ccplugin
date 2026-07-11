@@ -38,7 +38,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 ├── task.md          # 空看板 — 由 task.json 自动渲染 (git 忽略)
 ├── task.html        # 静态可视化看板 — 由 task.json 自动渲染 (4 主题 6 配色 深浅色, git 忽略); `skein view` 按需打开
 ├── board/           # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, task.html link 引入)
-├── config.yaml      # max_active:2 / max_parallel:2 / auto_commit:true / worktree_root:.worktrees / board_*
+├── config.yaml      # max_active:2 / max_parallel:2 / retain_days:7 / auto_commit:true / worktree_root:.worktrees / board_*
 └── task/
     └── archive/     # 归档根
 ```
@@ -64,7 +64,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 1. **plan** — 和你 brainstorm 需求与方案, 跑对抗审查 (grill), 产出 `prd.md` / `implement.md`, 请你评审。(可选: 把不可回退的不变量锁成契约, 供 check 逐条验; 首次上手可先跳过。)
 2. **exec** — 建 worktree, 派 subagent 在里面写代码, 完成一批即回传进度。
 3. **check** — 派 checker 跑 lint / type / test / 契约校验, 不过就派合适 agent (无则 `general-purpose`) 修。
-4. **finish** — 判本次有无值得沉淀的规则, 然后 commit → 合并回主分支 → 归档 → 销 worktree。
+4. **finish** — 判本次有无值得沉淀的规则, 然后 commit → 合并回主分支 → 销 worktree, 状态转 completed。**完成 task 不立即归档**, 留看板 `retain_days` 天 (默认 7), 超期自动移入 `archive/`; 想提前清走用 `/skein-clean [保留天数]` (仅用户主动)。
 
 ## 5. 看进度
 

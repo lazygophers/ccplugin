@@ -18,7 +18,7 @@
 | 质量门 | `skein-check` | 派 `skein-checker` 验证 (lint/type/test/契约), 未过派合适 agent (无则 `general-purpose`) 修复重检 |
 | 第 3 轮根因复盘 | `skein-check` (`references/root-cause-protocol.md`) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或 STOP 转人工 |
 | 冷启动播种 | `skein-memory` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
-| 归档清理 | `skein-clean` | 孤儿 worktree / 悬挂分支 / 漏归档安全清扫 |
+| 主动清理 | `skein-clean` | [仅用户主动] 归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支 |
 
 **执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT); 执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 dispatch prompt 硬性注入。3 个工具受限的具名 agent (无 Agent/Task 工具, 递归护栏): `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移)。
 
@@ -42,10 +42,10 @@
 ├── task.md            # 顶层看板 (task.json 渲染, git 忽略, 禁直接编辑)
 ├── task.html          # 静态可视化看板 (task.json 渲染, git 忽略, `skein view` 打开)
 ├── board/             # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, task.html link 引入)
-├── config.yaml        # max_active:2 / auto_commit:true / worktree_root:.worktrees / board_theme / board_palette / board_mode
+├── config.yaml        # max_active:2 / retain_days:7 / auto_commit:true / worktree_root:.worktrees / board_theme / board_palette / board_mode
 └── task/
-    ├── <id>/          # 活跃 task: prd.md / design.md / implement.md / journal.md + task.json/task.md(脚本渲染)
-    └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档
+    ├── <id>/          # 活跃 + 完成保留期内 task: prd.md / design.md / implement.md / journal.md + task.json/task.md(脚本渲染)
+    └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档 (完成超 retain_days 天自动移入)
 .skein/spec/
 ├── index.md                      # 顶层索引 (两层聚合概览)
 ├── core/{<类目>/*.md,index.md}   # 常驻规则 (按类目分子目录) + 层索引

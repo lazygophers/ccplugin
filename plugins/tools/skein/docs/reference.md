@@ -25,8 +25,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `setup` | `--purge` | 幂等初始化 + trellis 兼容: 无 trellis → scaffold + 本地 spec 库; 有 `.trellis/` → 软链 `.skein/spec`→`.trellis/spec` + 输出迁移 manifest JSON (纯 stdout, scaffold 噪声走 stderr)。`--purge` 清 trellis 残留 (`.trellis/task*` + `.claude/*trellis*`, 保留 `.trellis/spec`)。语义迁移 (spec 重组/task 重建) 由 `skein-setup` agent 做 |
 | `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` `--estimate <分钟>` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id; `--estimate` = AI 执行预期耗时 (分钟), 供 task.html 显示预期 vs 实际 |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
-| `finish <id>` | — | commit → merge → 销 worktree → 归档。冲突自动 abort。多 active 并行, id 必填 |
+| `finish <id>` | — | commit → merge → 销 worktree, 状态 → completed。**完成 task 不立即归档**, 留看板 `retain_days` 天 (config, 默认 7); 超期由 `_autoclean` 在下次生命周期变更时自动归档。`retain_days=0` 时 finish 即归档 (旧行为)。冲突自动 abort。多 active 并行, id 必填 |
 | `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
+| `clean` | `--days <保留天数>` | **[用户主动]** 归档完成超保留期的 task (`skein-clean` skill 入口)。`--days` 省略用 config `retain_days`; `0` = 全部完成 task 立即归档。只能比 config 更激进 (更小值), 更大值被 `_sync` 自动 ceiling 抵消 |
 | `current` | — | 列全部 active task (id/状态/名称/worktree)。无 focus, 就绪皆可并行 |
 | `ready` | — | **脚本算**就绪 task 批 (pending + 前置全 done + 有空闲 active 槽), 只读预览。谁可执行由脚本判 (非 AI), 与 `subtask ready` 同构; task 无写集字段故不算写集冲突 |
 | `list` | — | 列全部 task (含已归档) |
@@ -74,7 +75,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
 | `skein-check` | 质量门 (lint/type/test/契约), 未过派修; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
-| `skein-clean` | 清孤儿 worktree / 悬挂分支 / 漏归档 | anti-examples |
+| `skein-clean` | **[仅用户主动]** 主动归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支; 入参 = 保留天数 | anti-examples |
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 flow / planning / memory / check 的 references (省常驻 description token)。
 
@@ -101,6 +102,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | 键 | 默认 | 作用 |
 | --- | --- | --- |
 | `max_active` | `2` | 同 session active task 并发上限 (= subtask 级上限) |
+| `retain_days` | `7` | 完成 task 保留天数 (留看板), 超则 `_autoclean` 自动归档。`0` = finish 即归档 (旧行为); 负数 = 永不自动归档 (仅 `clean` 主动清) |
 | `auto_commit` | `true` | finish 时自动 commit worktree 改动。设 false 则有未提交改动会拒绝 finish (防强删丢失) |
 | `worktree_root` | `.worktrees` | worktree 存放根目录 (相对 git 根) |
 | `board_theme` | `morandi` | 看板默认主题: `morandi` 莫兰迪 / `glassmorphism` 玻璃拟态 / `liquid` 液态玻璃 / `handdrawn` 手绘 (页内切换器可实时改, 存 localStorage) |
