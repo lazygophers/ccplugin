@@ -1,4 +1,4 @@
-# skein-spec 反例目录
+# skein-refactor 反例目录
 
 破坏式重构中禁止的做法与正确改法:
 

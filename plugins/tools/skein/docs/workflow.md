@@ -70,6 +70,8 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 4. task → `completed`, 归档到 `.skein/task/archive/<年>/<月-日>/<id>/`。
 5. focus 自动切到剩余首个 active task (若有)。
 
+> finish 摘要可选 `skein.py journal --add "<本 task 完成情况>"` 记一笔 (append-only 过程日志, 随 task 一并归档; 无审批门, 区别 sediment 的判定门与 contract 的锁定)。
+
 > finish 前 MUST 清理本 task 的悬挂 subagent / 后台任务 (`TaskList` 查 / `TaskStop` 关)。未关 = 未闭环, 禁宣告 Done。
 
 ## 双层动态 DAG 调度

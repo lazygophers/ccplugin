@@ -274,6 +274,22 @@ class Skein:
             for i, c in enumerate(t["contracts"], 1):
                 print(f"{i}. {c}")
 
+    def journal(self, a):
+        # append-only 过程记录: 存 task 目录内 journal.md, 随 _archive 一并归档 (无审批, 区别 contract/sediment)
+        tid = a.id or self._state().get("focus")
+        if not tid:
+            raise SystemExit("无 focus task — 指定 --id <id>")
+        self._load(tid)  # 校验 task 存在
+        f = self.tasks / tid / "journal.md"
+        if a.add:
+            with f.open("a") as fh:  # 追加, 不存在则建
+                fh.write(f"- {now()} {a.add}\n")
+            print(f"{tid} journal +1")
+        elif not f.exists():
+            print("无 journal")
+        else:
+            print(f.read_text(), end="")
+
     def session_context(self):
         # SessionStart hook: 有 active task 时用 memory.py 相同 JSON envelope 注入, 供 compaction 后恢复
         active = self._active()
@@ -327,6 +343,7 @@ def main():
     sub.add_parser("board")
     sub.add_parser("session-context")
     co = sub.add_parser("contract"); co.add_argument("id"); co.add_argument("--add")
+    j = sub.add_parser("journal"); j.add_argument("--id"); j.add_argument("--add")
 
     a = p.parse_args()
     if a.cmd == "session-context":
@@ -343,6 +360,7 @@ def main():
         "init": sk.init, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "current": sk.current,
         "list": sk.list_, "board": sk.board, "contract": sk.contract,
+        "journal": sk.journal,
     }
     dispatch[a.cmd](a)
 

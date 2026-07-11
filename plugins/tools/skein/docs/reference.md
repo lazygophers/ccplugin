@@ -31,6 +31,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
 | `session-context` | — | (SessionStart hook 调) 有 active task 时输出摘要 JSON (focus + 各 active id/status/name/worktree + 恢复提示) 注入上下文; 无 active / 非 skein 仓静默 exit 0。compaction 后恢复活跃 task 状态 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
+| `journal [id]` | `--add <文本>`, 省略 id 用 focus | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
 
 **task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts`。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
@@ -56,7 +57,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 常驻注入有字符上限, 超了 sediment 会警告降级到 recall。
 
-## Skills (11 个)
+## Skills (10 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
@@ -65,8 +66,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门 | dispatch-graph |
 | `skein-memory` | recall 召回 + sediment 沉淀 | sediment-workflow |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
-| `skein-workspace` | 维护 `.skein/` + task.md 看板 | layout-and-commands |
-| `skein-spec` | 破坏式重构 (不保兼容, 全站点一次改齐) | anti-patterns |
+| `skein-refactor` | 破坏式重构 (不保兼容, 全站点一次改齐) | anti-patterns |
 | `skein-check` | 质量门 (lint/type/test/契约), 未过派修 | — |
 | `skein-clean` | 清孤儿 worktree / 悬挂分支 / 漏归档 | anti-examples |
 | `skein-bootstrap` | 空仓冷启动: 首次接入且 `.claude/rules` 为空/近空时, 扫既有代码库约定播种规则基线 (一次性) | scan-dimensions |

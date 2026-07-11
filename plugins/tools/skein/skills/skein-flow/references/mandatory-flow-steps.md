@@ -11,6 +11,7 @@
    - 🔴 **exec 阶段禁问用户顺序** — 顺序归 planning (调度图 + deps + 冲突 DAG)。ready 即派 / 完成即派 / 并发 2。PRD 缺调度图 → 退回 planning 补, 不在 exec 问。
 5. **check** (委托 `skein-check`) — 派 `skein-checker` 验证 (lint / type-check / tests / 契约合规); 未过 → 派 `skein-implementer` 定点修复重检, 不跳 finish。
 6. **finish** (main 同步) — check 通过 →
+   - **journal** — finish 前 main 用 `skein.py journal --add "<本 task 做了什么>"` 追加过程记录 (append-only, 无审批门, 随 task 归档; 区别于 sediment 的过审规则)。
    - 🔴 **sediment 判定门** — 按 `skein-memory` 的 checklist 逐项 ✅/❌ 输出 trace, 判本 task learning → core/recall/drop。触发 → 走 sediment 提案 (审批后写盘) 再 finish; 全否 → 跳过 (仍输出全 ❌ trace)。
    - **清理** — `TaskList` 查残留 subagent / 后台任务, `TaskStop` 关闭。禁 `sleep` 轮询等后台跑完。
    - `skein.py finish <id>` — 自动 commit worktree → merge --no-ff 回主 → archive → 销 worktree。冲突 → 自动 abort + 报冲突文件, 停, 转手动解, 禁强解 / 禁当成功。

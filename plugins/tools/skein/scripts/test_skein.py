@@ -49,6 +49,12 @@ def main():
         assert t["contracts"] == ["输出必须幂等"], t["contracts"]
         assert "输出必须幂等" in sk(d, "contract", "t01").stdout, "contract 未列出"
 
+        # journal: --add 带时间戳追加 + append-only 两条都在 + 无参列出
+        sk(d, "journal", "--id", "t01", "--add", "拆出 3 个 subtask")
+        sk(d, "journal", "--id", "t01", "--add", "完成核心逻辑")
+        jout = sk(d, "journal", "--id", "t01").stdout
+        assert "拆出 3 个 subtask" in jout and "完成核心逻辑" in jout, "journal append-only 未保全部条目"
+
         # start t01 → worktree 建出
         sk(d, "start", "t01")
         t = json.loads((d / ".skein/task/t01/task.json").read_text())
@@ -56,6 +62,10 @@ def main():
         wt = Path(t["worktree"])
         assert wt.exists(), "worktree 未建"
         assert json.loads((d / ".skein/state.json").read_text())["focus"] == "t01"
+
+        # journal 无 --id 用 focus
+        sk(d, "journal", "--add", "start 后记录")
+        assert "start 后记录" in sk(d, "journal").stdout, "journal focus 默认失效"
 
         # session-context: 有 active task → JSON envelope 含 task id
         r = sk(d, "session-context")
@@ -80,6 +90,7 @@ def main():
         sk(d, "finish", "t01")
         assert (d / "feature.txt").exists(), "finish 未合并回主工作区"
         assert list((d / ".skein/task/archive").glob("*/*/t01")), "未归档 (日期分层)"
+        assert list((d / ".skein/task/archive").glob("*/*/t01/journal.md")), "journal 未随 task 归档"
         assert not (d / ".skein/task/t01").exists(), "归档后 task 残留"
         assert not wt.exists(), "worktree 未销"
         # focus 切到剩余 active t02
