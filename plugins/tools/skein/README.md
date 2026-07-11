@@ -10,7 +10,7 @@
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
 | 动态 DAG 编排调度 (双层) | `skein-flow` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 冲突自算边 + `depends_on`, 并发上限 2, 完成即派 |
 | worktree 隔离 | `skein.py` | 1 task 1 worktree, 主工作区零改动 |
-| 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
+| 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
 | planning 入口 | `skein-planning` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
 | **两层×类目规则记忆** | `skein-memory` + `memory.py` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |

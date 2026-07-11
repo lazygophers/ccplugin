@@ -611,28 +611,79 @@ class Skein:
                 return "-"
             return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
 
-        def bar(pct, sub=False):
-            return (f'<div class="bar{" sub" if sub else ""}"><div class="fill" '
-                    f'style="width:{pct}%"></div><span class="pct">{pct}%</span></div>')
+        def bar(pct, sub=False, cls=""):
+            # width 封顶 100%, label 显真实值 (超时 >100% 照显)
+            c = "bar" + (" sub" if sub else "") + ((" " + cls) if cls else "")
+            return (f'<div class="{c}"><div class="fill" '
+                    f'style="width:{min(pct, 100)}%"></div><span class="pct">{pct}%</span></div>')
+
+        # 状态 -> CSS 变量 (执行顺序图节点左边框着色); task/subtask 状态共用 (值同名)
+        node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
+                    S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
+
+        def dag_html(nodes):
+            # nodes: [(id, name, status, deps)] -> 拓扑分层的预计执行顺序图 (离线 CSS 列, 无 JS/CDN)
+            if len(nodes) < 2:
+                return ""
+            ids = {n[0] for n in nodes}
+            dep = {n[0]: {d for d in n[3] if d in ids} for n in nodes}
+            smap = {n[0]: n for n in nodes}
+            done, waves, rem = set(), [], [n[0] for n in nodes]
+            while rem:
+                layer = [i for i in rem if dep[i] <= done] or list(rem)  # 空层=环, 全塞一层兜底
+                waves.append(layer)
+                done |= set(layer)
+                rem = [i for i in rem if i not in done]
+            cols = []
+            for wi, layer in enumerate(waves, 1):
+                boxes = "".join(
+                    f'<div class="node" style="--nc:var({node_var.get(smap[i][2], "--muted")})">'
+                    f'{esc(smap[i][0])}<small>{esc(smap[i][1])}</small></div>' for i in layer)
+                cols.append(f'<div class="wave"><span class="wlabel">第{wi}批</span>{boxes}</div>')
+            return f'<div class="dag">{"".join(cols)}</div>'
 
         tnow = now()
         tasks = self._all()
         name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
-        # 任务进展总览: 各状态计数 + 完成率
+
+        def elapsed_of(t):
+            # ponytail: 实际耗时 = 最后活动(updated) - created; 活跃 task 粗值, 已完成即总耗时
+            return round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
+
+        # 任务进展总览: 各状态计数 + 综合/预估加权完成率 + 时长合计
         cnt = {}
-        fracs = []  # 综合进度: DONE task 记满, 未完成 task 按其 subtask 完成比例
+        fracs = []       # 综合进度: DONE task 记满, 未完成 task 按其 subtask 完成比例
+        est_total = 0    # 预期时长合计 (min)
+        elapsed_total = 0  # 已耗合计 (min)
+        wsum = wdone = 0.0  # 预估加权完成率: 权 = estimate (未估默认 60m 免消失)
+        remain_est = 0.0    # 剩余预估时长 = Σ 未完成 task 的 estimate×(1-frac)
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
             if t["status"] == S_DONE:
-                fracs.append(1.0)
+                frac = 1.0
             else:
                 subs = t.get("subtasks", [])
-                fracs.append(sum(1 for s in subs if s["status"] == SS_DONE) / len(subs) if subs else 0.0)
+                frac = sum(1 for s in subs if s["status"] == SS_DONE) / len(subs) if subs else 0.0
+            fracs.append(frac)
+            est = t.get("estimate") or 0
+            est_total += est
+            elapsed_total += elapsed_of(t)
+            w = est or 60
+            wsum += w
+            wdone += w * frac
+            remain_est += est * (1 - frac)  # 未估 (est=0) 不计剩余
         overall = round(sum(fracs) / len(fracs) * 100) if fracs else 0
+        weighted = round(wdone / wsum * 100) if wsum else overall
         chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
+        task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", [])) for t in tasks]
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
-            f'<p class="meta">{len(tasks)} task · {chips}</p>{bar(overall)}</section>')
+            f'<p class="meta">{len(tasks)} task · {chips}</p>'
+            f'<p class="meta">预期合计 {fmt_dur(est_total or None)} · 已耗 {fmt_dur(elapsed_total or None)} · '
+            f'剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
+            f'<p class="meta">综合完成率</p>{bar(overall)}'
+            f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
+            f'{dag_html(task_nodes)}</section>')
 
         cards = []
         for t in tasks:
@@ -640,8 +691,13 @@ class Skein:
             sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}  # subtask 依赖也显示名字
             sdone = sum(1 for s in subs if s["status"] == SS_DONE)
             spct = round(sdone / len(subs) * 100) if subs else 0
-            # ponytail: 实际耗时 = 最后活动(updated) - created; 活跃 task 是粗值, 已完成即总耗时
-            elapsed = round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
+            elapsed = elapsed_of(t)
+            est = t.get("estimate")
+            # 时间进度条: 已耗/预期%, 超时标红 (无估则不显)
+            time_bar = (f'<p class="meta">时间 {fmt_dur(elapsed)}/{fmt_dur(est)}</p>'
+                        + bar(round(elapsed / est * 100), cls="time" + (" over" if elapsed > est else ""))
+                        ) if est else ""
+            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", [])) for s in subs]
             srows = "".join(
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
                 f'<td>{badge(s["status"], ss_cls)}</td>'
@@ -659,8 +715,10 @@ class Skein:
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
-                f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(t.get("estimate"))}</p>'
+                f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
+                f'{time_bar}'
                 f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
+                f'{dag_html(snodes)}'
                 f'{subtable}</section>')
         body = overview + "\n" + ("\n".join(cards) if cards else '<p class="empty">无 task</p>')
 
