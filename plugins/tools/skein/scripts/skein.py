@@ -579,6 +579,7 @@ class Skein:
 
         tnow = now()
         tasks = self._all()
+        name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
         # 任务进展总览: 各状态计数 + 完成率
         cnt = {}
         fracs = []  # 综合进度: DONE task 记满, 未完成 task 按其 subtask 完成比例
@@ -598,6 +599,7 @@ class Skein:
         cards = []
         for t in tasks:
             subs = t.get("subtasks", [])
+            sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}  # subtask 依赖也显示名字
             sdone = sum(1 for s in subs if s["status"] == SS_DONE)
             spct = round(sdone / len(subs) * 100) if subs else 0
             # ponytail: 实际耗时 = 最后活动(updated) - created; 活跃 task 是粗值, 已完成即总耗时
@@ -606,7 +608,7 @@ class Skein:
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
                 f'<td>{badge(s["status"], ss_color)}</td>'
                 f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
-                f'<td>{esc(",".join(s.get("depends_on", [])) or "-")}</td>'
+                f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
                 f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
                 f'<td>{esc(s.get("reason", "") or "-")}</td></tr>' for s in subs)
             subtable = (
@@ -617,7 +619,7 @@ class Skein:
             cards.append(
                 f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_color)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
-                f'<p class="meta">前置: {esc(",".join(t.get("deps", [])) or "-")} · '
+                f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(t.get("estimate"))}</p>'
                 f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, "#8e9aaf")}'
