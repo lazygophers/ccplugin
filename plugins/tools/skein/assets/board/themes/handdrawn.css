@@ -1,0 +1,12 @@
+/* 手绘风 Hand-drawn — 手写字体 + 抖动不规则边框 + 蜡笔感 (类 Excalidraw)。 */
+html[data-theme=handdrawn]{--font:'Comic Sans MS','Segoe Print','Bradley Hand','Chalkboard SE',cursive}
+html[data-theme=handdrawn] .card{
+  border:2px solid var(--fg);
+  border-radius:255px 15px 225px 15px/15px 225px 15px 255px;
+  box-shadow:3px 3px 0 color-mix(in srgb,var(--fg) 22%,transparent);
+}
+html[data-theme=handdrawn] .switcher{border:2px solid var(--fg);border-radius:18px 8px 20px 8px/8px 20px 8px 18px}
+html[data-theme=handdrawn] .badge{border-radius:12px 4px 14px 4px/4px 14px 4px 12px}
+html[data-theme=handdrawn] .bar{border:1.5px solid var(--fg);border-radius:10px;background:transparent}
+html[data-theme=handdrawn] th,
+html[data-theme=handdrawn] td{border-bottom:1.5px dashed color-mix(in srgb,var(--fg) 40%,transparent)}

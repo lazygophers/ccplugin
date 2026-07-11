@@ -33,11 +33,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 
 ```
 .skein/
-├── .gitignore       # 忽略 task.md/task.html (自动渲染); 另补 worktree_root 到仓库根 .gitignore
+├── .gitignore       # 忽略 task.md/task.html/board/ (自动渲染); 另补 worktree_root 到仓库根 .gitignore
 ├── task.json        # {tasks:[]} — 顶层状态全表, 脚本维护, AI 禁读写
 ├── task.md          # 空看板 — 由 task.json 自动渲染 (git 忽略)
-├── task.html        # 静态可视化看板 — 由 task.json 自动渲染 (Morandi 配色, git 忽略); `skein view` 按需打开
-├── config.yaml      # max_active:2 / max_parallel:2 / auto_commit:true / worktree_root:.worktrees
+├── task.html        # 静态可视化看板 — 由 task.json 自动渲染 (4 主题 6 配色 深浅色, git 忽略); `skein view` 按需打开
+├── board/           # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, task.html link 引入)
+├── config.yaml      # max_active:2 / max_parallel:2 / auto_commit:true / worktree_root:.worktrees / board_*
 └── task/
     └── archive/     # 归档根
 ```

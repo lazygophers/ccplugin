@@ -1,0 +1,3 @@
+/* 森林 — 松绿自然调。 */
+html[data-palette=forest]{--bg:#e8eee6;--fg:#3a4a38;--head:#465a43;--muted:#748a70;--card:#f3f8f1;--brd:#cddcc7;--line:#deeada;--accent:#6fae6a;--accent2:#8ab98f;--st-pending:#cbb06a;--st-active:#8ab98f;--st-check:#cbb06a;--st-done:#6fae6a;--st-failed:#cc8580;--sel-bg:#f3f8f1;--sel-fg:#3a4a38}
+html[data-palette=forest][data-mode=dark]{--bg:#1f2a1d;--fg:#dbe8d6;--head:#c3d8bd;--muted:#8ba086;--card:#293726;--brd:#374a33;--line:#31402d;--sel-bg:#293726;--sel-fg:#dbe8d6}

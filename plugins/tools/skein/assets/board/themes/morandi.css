@@ -1,0 +1,2 @@
+/* 莫兰迪极简 — 扁平实色卡片，柔和低饱和 (= base 默认结构，仅显式声明供切换)。 */
+html[data-theme=morandi]{--radius:10px}

@@ -27,11 +27,12 @@
 
 | 文件 | 是什么 | 谁维护 · AI 可否读写 |
 | --- | --- | --- |
-| `.gitignore` | `init` 生成: 忽略 `task.md`/`task.html` (自动渲染, 从 task.json 无损重建); `init` 另把 worktree_root 补到**仓库根** `.gitignore` | 脚本生成 · 一次性 |
-| `config.yaml` | 插件配置 (`max_active`/`max_parallel`/`auto_commit`/`worktree_root`) | 用户手改 · AI 可读 |
+| `.gitignore` | `init` 生成: 忽略 `task.md`/`task.html`/`board/` (自动渲染, 从 task.json 无损重建); `init` 另把 worktree_root 补到**仓库根** `.gitignore` | 脚本生成 · 一次性 |
+| `config.yaml` | 插件配置 (`max_active`/`max_parallel`/`auto_commit`/`worktree_root`/`board_theme`/`board_palette`/`board_mode`) | 用户手改 · AI 可读 |
 | `task.json` | 顶层状态汇总 `{tasks:[{id,状态,deps,worktree}]}` — 全部未归档 task 一览 | **脚本** · AI 禁读写 (guard 硬阻) |
 | `task.md` | 顶层看板 (t02 进行中 / t03 待处理, 由 task.json 渲染) | **脚本** · AI 禁读写 |
-| `task.html` | 可视化看板: 任务进展总览 + 每 task 耗时/预期 + 子任务完成% (莫兰迪配色, 由 task.json 渲染) | **脚本** · `skein.py view` 打开 |
+| `task.html` | 可视化看板: 任务进展总览 + 每 task 耗时/预期 + 子任务完成% (4 主题 6 配色 深浅色, 页内切换器, 由 task.json 渲染) | **脚本** · `skein.py view` 打开 |
+| `board/` | 主题/配色 CSS (base + themes/ + palettes/, 从插件 `assets/board/` 拷贝, `task.html` 相对路径 `<link>` 引入) | **脚本** · git 忽略 |
 | `task/t02/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) + `contracts[]` | **脚本** · AI 禁读写 |
 | `task/t02/task.md` | 子任务看板 (四态一览) | **脚本** · AI 禁读写 |
 | `task/t02/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-planning · **AI 可读写** |

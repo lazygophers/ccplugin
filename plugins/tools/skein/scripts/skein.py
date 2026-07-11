@@ -47,6 +47,11 @@ SS_DONE = "已完成"
 SS_FAILED = "失败"
 # 可读 task id: kebab-case slug, 兼作 git 分支名 + 目录名 (人工传入)
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+# 看板主题/配色 (值 = board/ 下 css 文件名; 独立 css, 非内联). 页内切换器 + config 默认二选一.
+THEMES = [("morandi", "莫兰迪"), ("glassmorphism", "玻璃拟态"),
+          ("liquid", "液态玻璃"), ("handdrawn", "手绘")]
+PALETTES = [("stone", "石灰"), ("ocean", "海洋"), ("warm", "暖橙"),
+            ("forest", "森林"), ("dusk", "暮紫"), ("mono", "单色")]
 
 
 def now() -> int:
@@ -179,11 +184,14 @@ class Skein:
                 "max_parallel": 2,
                 "auto_commit": True,
                 "worktree_root": ".worktrees",
+                "board_theme": "morandi",
+                "board_palette": "stone",
+                "board_mode": "light",
             }))
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         wt = self.config()["worktree_root"].rstrip("/") + "/"
         root_gi = self.root / ".gitignore"
@@ -556,26 +564,25 @@ class Skein:
 
     # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
     def _board_html(self):
-        st_color = {S_PENDING: "#c9b18b", S_ACTIVE: "#8e9aaf",
-                    S_CHECK: "#c9b18b", S_DONE: "#9caf88"}
-        ss_color = {SS_PENDING: "#c9b18b", SS_RUNNING: "#8e9aaf",
-                    SS_DONE: "#9caf88", SS_FAILED: "#bb8588"}
+        st_cls = {S_PENDING: "s-pending", S_ACTIVE: "s-active",
+                  S_CHECK: "s-check", S_DONE: "s-done"}
+        ss_cls = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running",
+                  SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
 
         def esc(s):
             return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
-        def badge(text, palette):
-            return (f'<span class="badge" style="background:{palette.get(text, "#8e9aaf")}">'
-                    f'{esc(text)}</span>')
+        def badge(text, clsmap):
+            return f'<span class="badge {clsmap.get(text, "")}">{esc(text)}</span>'
 
         def fmt_dur(mins):
             if mins is None:
                 return "-"
             return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
 
-        def bar(pct, color):
-            return (f'<div class="bar"><div class="fill" style="width:{pct}%;'
-                    f'background:{color}"></div><span class="pct">{pct}%</span></div>')
+        def bar(pct, sub=False):
+            return (f'<div class="bar{" sub" if sub else ""}"><div class="fill" '
+                    f'style="width:{pct}%"></div><span class="pct">{pct}%</span></div>')
 
         tnow = now()
         tasks = self._all()
@@ -591,10 +598,10 @@ class Skein:
                 subs = t.get("subtasks", [])
                 fracs.append(sum(1 for s in subs if s["status"] == SS_DONE) / len(subs) if subs else 0.0)
         overall = round(sum(fracs) / len(fracs) * 100) if fracs else 0
-        chips = " ".join(f'{badge(k, st_color)} {v}' for k, v in cnt.items()) or "-"
+        chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
-            f'<p class="meta">{len(tasks)} task · {chips}</p>{bar(overall, "#9caf88")}</section>')
+            f'<p class="meta">{len(tasks)} task · {chips}</p>{bar(overall)}</section>')
 
         cards = []
         for t in tasks:
@@ -606,7 +613,7 @@ class Skein:
             elapsed = round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
             srows = "".join(
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
-                f'<td>{badge(s["status"], ss_color)}</td>'
+                f'<td>{badge(s["status"], ss_cls)}</td>'
                 f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
                 f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
                 f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
@@ -617,34 +624,47 @@ class Skein:
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
             cards.append(
-                f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_color)}</h2>'
+                f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(t.get("estimate"))}</p>'
-                f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, "#8e9aaf")}'
+                f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
                 f'{subtable}</section>')
         body = overview + "\n" + ("\n".join(cards) if cards else '<p class="empty">无 task</p>')
+
+        self._copy_board_assets()
+        cfg = self.config()
+        theme = cfg.get("board_theme", "morandi")
+        palette = cfg.get("board_palette", "stone")
+        mode = cfg.get("board_mode", "light")
+        links = ('<link rel=stylesheet href="board/base.css">'
+                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES)
+                 + "".join(f'<link rel=stylesheet href="board/palettes/{k}.css">' for k, _ in PALETTES))
+
+        def opts(items, cur):
+            return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
+                           for k, label in items)
+        switcher = (
+            '<div class="switcher">'
+            f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
+            f'<label>配色<select id="sw-palette">{opts(PALETTES, palette)}</select></label>'
+            f'<label>明暗<select id="sw-mode">{opts([("light", "浅色"), ("dark", "深色")], mode)}</select></label>'
+            '</div>')
         html = (
-            "<!doctype html><html lang=zh-CN><head><meta charset=utf-8>"
-            "<meta name=viewport content='width=device-width,initial-scale=1'>"
-            "<title>SKEIN 看板</title><style>"
-            "body{background:#e6e2dd;color:#4a4642;font:15px/1.6 -apple-system,system-ui,sans-serif;margin:0;padding:24px}"
-            "h1{font-weight:600;color:#6b6560;margin:0 0 8px}"
-            ".card{background:#f3f0ec;border:1px solid #d6d0c8;border-radius:10px;padding:16px 20px;margin:14px 0}"
-            ".card h2{margin:0 0 4px;font-size:17px}.name{margin:0 0 6px;color:#6b6560}"
-            ".meta{margin:0 0 10px;font-size:13px;color:#8a847d}"
-            ".badge{display:inline-block;padding:1px 9px;border-radius:9px;color:#fff;font-size:12px;vertical-align:middle}"
-            "table{border-collapse:collapse;width:100%;font-size:13px}"
-            "th,td{text-align:left;padding:5px 8px;border-bottom:1px solid #e0dad2}"
-            "th{color:#8a847d;font-weight:600}.empty{color:#a59f97;font-style:italic}"
-            ".bar{position:relative;background:#e0dad2;border-radius:6px;height:16px;margin:0 0 10px;overflow:hidden}"
-            ".fill{height:100%;border-radius:6px}"
-            ".pct{position:absolute;top:0;left:8px;font-size:11px;line-height:16px;color:#4a4642}"
-            "</style></head><body><h1>SKEIN 看板</h1>"
-            f"{body}"
-            "</body></html>")
+            f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'
+            '<head><meta charset=utf-8>'
+            '<meta name=viewport content="width=device-width,initial-scale=1">'
+            f'<title>SKEIN 看板</title>{links}</head><body>'
+            f'{switcher}<h1>SKEIN 看板</h1>{body}'
+            '<script src="board/switcher.js"></script></body></html>')
         (self.dir / "task.html").write_text(html)
+
+    def _copy_board_assets(self):
+        # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)
+        src = Path(__file__).resolve().parent.parent / "assets" / "board"
+        if src.exists():
+            shutil.copytree(src, self.dir / "board", dirs_exist_ok=True)
 
     def view(self, _):
         html = self.dir / "task.html"

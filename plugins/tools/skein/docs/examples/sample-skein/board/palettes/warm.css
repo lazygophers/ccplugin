@@ -1,0 +1,3 @@
+/* 暖橙 — 陶土暖调。 */
+html[data-palette=warm]{--bg:#f4ece4;--fg:#5a463a;--head:#6e5545;--muted:#997f6d;--card:#fbf5ee;--brd:#e6d3c2;--line:#efe0d2;--accent:#d98d5a;--accent2:#c9a06a;--st-pending:#d9b06a;--st-active:#c9a06a;--st-check:#d9b06a;--st-done:#a3b86a;--st-failed:#cc7a6a;--sel-bg:#fbf5ee;--sel-fg:#5a463a}
+html[data-palette=warm][data-mode=dark]{--bg:#2e2620;--fg:#ecdccd;--head:#dcc7b3;--muted:#ad9583;--card:#3b3128;--brd:#4d4034;--line:#443830;--sel-bg:#3b3128;--sel-fg:#ecdccd}

@@ -1,0 +1,37 @@
+/* SKEIN 看板 base — 布局 + 切换器 + 组件类。
+   颜色全走 CSS 变量 (由 palettes/ 提供)，结构由 themes/ 覆盖。
+   :root 默认 = stone 浅色，作 palette 未加载时的兜底。 */
+:root{
+  --bg:#e6e2dd;--fg:#4a4642;--head:#6b6560;--muted:#8a847d;
+  --card:#f3f0ec;--brd:#d6d0c8;--line:#e0dad2;
+  --accent:#9caf88;--accent2:#8e9aaf;
+  --st-pending:#c9b18b;--st-active:#8e9aaf;--st-check:#c9b18b;--st-done:#9caf88;--st-failed:#bb8588;
+  --sel-bg:#f3f0ec;--sel-fg:#4a4642;
+  --font:-apple-system,system-ui,'Segoe UI',sans-serif;
+  --radius:10px;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--font);margin:0;padding:24px;transition:background .3s,color .3s}
+h1{font-weight:600;color:var(--head);margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:16px 20px;margin:14px 0}
+.card h2{margin:0 0 4px;font-size:17px}
+.name{margin:0 0 6px;color:var(--head)}
+.meta{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.badge{display:inline-block;padding:1px 9px;border-radius:9px;color:#fff;font-size:12px;vertical-align:middle}
+.badge.s-pending,.badge.ss-pending{background:var(--st-pending)}
+.badge.s-active,.badge.ss-running{background:var(--st-active)}
+.badge.s-check{background:var(--st-check)}
+.badge.s-done,.badge.ss-done{background:var(--st-done)}
+.badge.ss-failed{background:var(--st-failed)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--muted);font-weight:600}
+.empty{color:var(--muted);font-style:italic;opacity:.8}
+.bar{position:relative;background:var(--line);border-radius:6px;height:16px;margin:0 0 10px;overflow:hidden}
+.fill{height:100%;border-radius:6px;background:var(--accent);transition:width .4s}
+.bar.sub .fill{background:var(--accent2)}
+.pct{position:absolute;top:0;left:8px;font-size:11px;line-height:16px;color:var(--fg)}
+/* 切换器 (右上角固定) */
+.switcher{position:fixed;top:12px;right:12px;display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:99}
+.switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
+.switcher select{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:5px;padding:2px 4px;font-size:12px}

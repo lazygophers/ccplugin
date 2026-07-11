@@ -1,0 +1,3 @@
+/* 石灰 (莫兰迪灰) — 默认配色。 */
+html[data-palette=stone]{--bg:#e6e2dd;--fg:#4a4642;--head:#6b6560;--muted:#8a847d;--card:#f3f0ec;--brd:#d6d0c8;--line:#e0dad2;--accent:#9caf88;--accent2:#8e9aaf;--st-pending:#c9b18b;--st-active:#8e9aaf;--st-check:#c9b18b;--st-done:#9caf88;--st-failed:#bb8588;--sel-bg:#f3f0ec;--sel-fg:#4a4642}
+html[data-palette=stone][data-mode=dark]{--bg:#2b2926;--fg:#e4dfd8;--head:#cfc8bf;--muted:#a09a90;--card:#38352f;--brd:#4a463f;--line:#413d37;--sel-bg:#38352f;--sel-fg:#e4dfd8}
