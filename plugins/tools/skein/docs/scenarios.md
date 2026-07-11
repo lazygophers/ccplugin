@@ -57,8 +57,8 @@
 /skein-go 修复登录页样式错位
 ```
 
-- 两个 task 的写文件范围**不相交** → 各占各的 worktree, 可并行派 subagent。
-- 相交 → 自动串行 (冲突自算边)。
+- 各 active task 各占各的 worktree → 默认可并行派 subagent (无写文件冲突自算)。
+- 想串行 → 建 task 时用 `--deps` 显式声明依赖; 并行与否只看 task.json 的 `deps` DAG。
 - 想显式声明「B 必须等 A」→ 建 task 时 `--deps`:
   ```bash
   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py create order-export --deps "order-query"

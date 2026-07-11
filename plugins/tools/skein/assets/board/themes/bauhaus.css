@@ -1,0 +1,15 @@
+/* 包豪斯 Bauhaus — 三原色几何块 + 粗黑边 + 无衬线大写 + 圆/三角构成主义。 */
+html[data-theme=bauhaus]{--font:'Futura','Century Gothic',Helvetica,sans-serif;--radius:0}
+html[data-theme=bauhaus] h1{text-transform:uppercase;letter-spacing:2px;border-bottom:6px solid #1a1a1a;padding-bottom:6px}
+html[data-theme=bauhaus] .card{
+  border:3px solid #1a1a1a;border-radius:0;box-shadow:8px 8px 0 #1a1a1a;
+  border-left:10px solid var(--accent);
+}
+html[data-theme=bauhaus] .card:nth-of-type(3n+1){border-left-color:#d62828}
+html[data-theme=bauhaus] .card:nth-of-type(3n+2){border-left-color:#003049}
+html[data-theme=bauhaus] .card:nth-of-type(3n){border-left-color:#fcbf49}
+html[data-theme=bauhaus] .card h2{text-transform:uppercase;letter-spacing:1px}
+html[data-theme=bauhaus] .switcher{border:3px solid #1a1a1a;border-radius:0;box-shadow:4px 4px 0 #1a1a1a}
+html[data-theme=bauhaus] .badge{border-radius:0;border:2px solid #1a1a1a}
+html[data-theme=bauhaus] .bar,html[data-theme=bauhaus] .fill{border-radius:0}
+html[data-theme=bauhaus] .bar{border:2px solid #1a1a1a}

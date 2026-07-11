@@ -12,10 +12,9 @@
       "sid": "s1",
       "name": "报表聚合查询",
       "depends_on": [],
-      "write": [
-        "internal/report/query*.go"
+      "验收": [
+        "按日/商户聚合订单"
       ],
-      "reason": "按日/商户聚合订单",
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
@@ -27,10 +26,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/report/csv*.go"
+      "验收": [
+        "大结果集流式生成 CSV, 避免 OOM"
       ],
-      "reason": "大结果集流式生成 CSV, 避免 OOM",
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
@@ -42,10 +40,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/report/job*.go"
+      "验收": [
+        "异步跑 + 进度查询"
       ],
-      "reason": "异步跑 + 进度查询",
       "agent": "general-purpose",
       "skills": [
         "cron"

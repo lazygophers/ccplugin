@@ -31,7 +31,7 @@
 | **task** | 一条闭环任务记录, 由 `skein.py` 管理, 存 `.skein/task/<id>/` |
 | **闭环** | plan → exec → check → finish, 不可跳步, 未 archive = 未完成 |
 | **worktree 隔离** | 每 task 一个 git worktree, 所有改动落 `.worktrees/`, 主工作区零改动 |
-| **双层调度** | main 作调度器, task 级 + subtask 级同构 DAG, 冲突自算边 + `depends_on`, 并发上限 2, 完成即派 |
+| **双层调度** | main 作调度器, task 级 + subtask 级同构 DAG, 并行只看 `depends_on`, 并发上限 2, 完成即派 |
 | **两层规则记忆** | `core` 常驻注入 + `recall` 按需召回, 按类目分子目录 (差异化核心) |
 | **看板** | `.skein/task.md`, 经 `skein.py board` 渲染, 禁直接编辑 |
 | **sediment 判定门** | 每个 task finish 前判本次 learning → core / recall / drop |

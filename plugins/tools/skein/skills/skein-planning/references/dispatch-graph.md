@@ -10,7 +10,7 @@ graph LR
 
 配 subtask 表 (每行还须定 `agent` + `skills`: agent 省略默认 `general-purpose`, skills 0-n 逗号分隔):
 
-| subtask | write-files | exec-scope | depends_on | agent | skills |
-|---|---|---|---|---|---|
-| st1 | src/schema.* | 数据层 | - | general-purpose | db-migration |
-| st2 | src/api/** | API 层 | st1 | general-purpose | - |
+| subtask | depends_on | 验收标准 (checklist) | agent | skills |
+|---|---|---|---|---|
+| st1 | - | 迁移可回滚; 新列有默认值 | general-purpose | db-migration |
+| st2 | st1 | 新字段透传响应; 旧字段不删 | general-purpose | - |

@@ -1,0 +1,18 @@
+/* 新拟物 Neumorphism — 同色系凸起/凹陷软阴影, 无硬边, 极简单色。 */
+html[data-theme=neumorphism]{--radius:18px}
+html[data-theme=neumorphism] .card,html[data-theme=neumorphism] .switcher{
+  background:var(--bg);border:0;border-radius:18px;
+  box-shadow:6px 6px 14px color-mix(in srgb,var(--fg) 18%,transparent),
+             -6px -6px 14px color-mix(in srgb,#fff 70%,transparent);
+}
+html[data-theme=neumorphism] .badge{
+  color:var(--fg);background:var(--bg);
+  box-shadow:2px 2px 5px color-mix(in srgb,var(--fg) 18%,transparent),
+             -2px -2px 5px color-mix(in srgb,#fff 70%,transparent);
+}
+html[data-theme=neumorphism] .bar{
+  background:var(--bg);
+  box-shadow:inset 3px 3px 6px color-mix(in srgb,var(--fg) 18%,transparent),
+             inset -3px -3px 6px color-mix(in srgb,#fff 70%,transparent);
+}
+html[data-theme=neumorphism] th,html[data-theme=neumorphism] td{border-bottom:0}

@@ -2,11 +2,10 @@
 
 编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `general-purpose`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning`)。
 
-## 调度 DAG = 冲突自算边 ∪ 显式 depends_on
+## 调度 DAG = 显式 depends_on (唯一边源)
 
-1. **静态冲突边 (自算)** — 两 subtask 的 write-files glob 相交 或 exec-scope 相交 → 串行 (不能并发)。不相交 → 可并行。
-2. **显式依赖边** — subtask 的 `depends_on` (planning 在 implement.md 调度图定, `skein.py subtask add --deps` 登记进 per-task task.json)。被依赖者未 done, 依赖者不 ready。
-3. **最终 DAG** = 两者并集。ready (所有前置 done + 无冲突占用) 的 subtask 并行派, 未就绪串行等。
+1. **显式依赖边** — subtask 的 `depends_on` (planning 在 implement.md 调度图定, `skein.py subtask add --deps` 登记进 per-task task.json)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
+2. **就绪判定** = 所有前置 done + 有空闲并发槽。ready 的 subtask 并行派, 未就绪串行等。
 
 ## subtask 状态 = 脚本落盘, 非肉眼看 implement.md
 
@@ -14,7 +13,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
-| `subtask add <tid> <sid> --deps --write --reason --agent --skills` | planning/main | 登记 subtask 到 DAG (`--agent` 省略默认 `general-purpose`, `--skills` 逗号分隔 0-n) |
+| `subtask add <tid> <sid> --deps --check --agent --skills` | planning/main | 登记 subtask 到 DAG (`--check` = 验收标准 checklist 分号分隔; `--agent` 省略默认 `general-purpose`, `--skills` 逗号分隔 0-n) |
 | `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
@@ -43,8 +42,8 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 ## 多 task 并行 (同 session)
 
 - active 集 ≤ 2 (`skein.py` max_active), start 第三个报错。
-- 两 task 的 write-files / exec-scope 相交 → 串行; 不相交 → 各 worktree 各派, 合计每层并发仍 ≤ 2。
-- task 级 DAG = 冲突边 ∪ task.json `deps` (`skein.py create --deps`)。
+- 各 active task 各占各 worktree, 可并行派, 合计每层并发仍 ≤ 2。
+- task 级 DAG = task.json `deps` (`skein.py create --deps`) — 同 subtask 级, 只看显式依赖, 无写文件冲突自算。
 
 ## dispatch prompt (6 字段自包含, 缺字段不派)
 
@@ -53,29 +52,25 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 ```
 目标: <这个 subtask 要产出什么>
 已知: Active task <id>, worktree=<路径>, 相关文件/上文, 召回的 recall 规则
-工作目录与范围: <worktree 路径>; 只改下列文件 (每文件带 reason), 禁碰其他:
-  - <文件路径A> — reason: <改它是为了满足哪条契约/需求>
-  - <文件路径B> — reason: <...>
+工作目录与范围: <worktree 路径>; 只在此 worktree 内改, 禁碰主工作区。具体改哪些文件你按目标自主定 (给了自主权, 别越出本 subtask 目标)。
 执行纪律 (硬性, 逐条照做):
   - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。
-  - 只在指定 worktree 内改: 禁碰主工作区 / 其他 subtask 的 write-files。
   - 改前查上游: 改函数/类/契约前先 grep 调用站点 (或 gitnexus_impact), 避免半改。
   - 缺信息不硬猜: 缺关键输入时在返回里标 `需要: <问题>` 交 main 转达用户 (你不能 AskUserQuestion)。
   - spec 优先, 别凭记忆重推: 动手前相关约定先 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在 journal 记一行标 `SPEC:` 供 finish sediment 落盘。
-  - 写前 CHECKPOINT — 读后写硬门 (每个待改文件必过): 改任何文件前逐文件按序 —
-      ① STOP → Read 全文 (禁凭摘要/记忆动手);
-      ② 复述适用契约 + 本次 per-file reason (契约来源 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>`);
-      ③ 复述无矛盾才允许 Edit/Write, 改动落在 reason 声明意图内。
-    若复述发现 reason 与文件现状矛盾 (契约已满足 / 该文件按契约不该改 / reason 指向需求已不存在) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
+  - 写前 CHECKPOINT — 读后写硬门: 改任何文件前先 Read 全文 (禁凭摘要/记忆动手) → 复述适用契约 (来源 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>`) 无矛盾才 Edit/Write。文件现状与契约矛盾 (契约已满足 / 该文件按契约不该改) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
+验收标准 (完成前逐条自检, 全过才回 done):
+  - <planning 登记的 --check 验收条 1>
+  - <验收条 2>
 输出格式 (回传 main, 压缩摘要非流水账):
   subtask <id>: <done | 需要: 问题 | 失败: 原因>
   改动文件: <path 列表>
   关键决策: <一两句, 为何这么改>
   自测: <跑过的验证 + 结果; 无则写 未测>
+  验收: <逐条对照验收标准的自检结果>
   遗留: <后续 subtask 需知的信息 / 无>
-验收标准: <可验证断言: 测试过 / lint 净 / 功能点>
 失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
 ```
 
-- **per-file reason 必填** — 范围段每个目标文件后附一句 reason (为什么改它), 让执行 agent 拿到就知道每个文件的改动意图, 并据此在写前复述契约 (见本节 dispatch prompt 读后写硬门)。reason 与该文件适用契约矛盾时执行 agent 会标 `需要:` 回传, 不擅改。
+- **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`), dispatch 时原样带给执行 agent, agent 完成前逐条自检、回传时对照。取代旧的 per-file reason: 不再逐文件声明"为何改", 而是给一份"做完要满足什么"的验收清单, 文件由 agent 自主定。
 - **Recursion Guard 靠 dispatch prompt 硬性禁止** — 通用 agent 有 Agent/Task 工具, 故不靠工具面而靠上面 prompt 的硬性指令挡住递归: 执行 agent 只做这一个 subtask, 禁再派 subagent, 自己动手做完; 也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。

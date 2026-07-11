@@ -17,9 +17,8 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | 名词 | 是什么 |
 | --- | --- |
 | **DAG** | 有向无环图, 描述工作单元的执行顺序。SKEIN 双层同构 (task 级 + subtask 级)。 |
-| **冲突自算边** | 两单元的写文件 glob (`--write`) 相交 → 脚本自动判为串行边 (不能并发)。 |
-| **depends_on / deps** | 显式前置边: subtask `--deps` / task `--deps`。被依赖者未完成前, 依赖者不 ready。最终 DAG = 冲突边 ∪ depends_on 边。 |
-| **ready (就绪)** | 待处理 + 依赖全已完成 + 写集与运行中无冲突 + 有空闲槽。`subtask ready` 只读预览。 |
+| **depends_on / deps** | 显式前置边: subtask `--deps` / task `--deps`。被依赖者未完成前, 依赖者不 ready。**并行只看这张显式依赖 DAG** — 无写文件冲突自算 (真正有序的关系靠 planning 写进 `depends_on`, 不靠脚本猜写文件重叠)。 |
+| **ready (就绪)** | 待处理 + 依赖 (`depends_on`) 全已完成 + 有空闲槽。`subtask ready` 只读预览。 |
 | **claim (认领)** | `subtask claim` 一次性算就绪批 + 整批标 running, 返回给 main 逐个派 agent。脚本一步到位, 免 main 逐个 start。 |
 | **完成即派** | 任一 agent 返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不空等一批跑完。 |
 | **并发上限** | `max_parallel` (默认 2) — 同时在跑的 subagent ≤ 此值。`claim` 内按剩余槽截断。 |
@@ -56,7 +55,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | 名词 | 是什么 |
 | --- | --- |
 | **main (调度器)** | 主对话 agent。跑 task 生命周期脚本 + 编排派 agent + 用户交互 + 完成回传。默认禁写源码。 |
-| **执行者 (executor)** | worktree 内写 1 个 subtask 代码的 agent。**不是具名 agent** — main 按 subtask 性质选一个合适的现有 agent (无合适的用 `general-purpose`); 执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 dispatch prompt 硬性注入。 |
+| **执行者 (executor)** | worktree 内写 1 个 subtask 代码的 agent。**不是具名 agent** — main 按 subtask 性质选一个合适的现有 agent (无合适的用 `general-purpose`); 改哪些文件由其在 worktree 内自主决定, 完成前对照 planning 登记的验收标准 checklist 逐条自检; 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。 |
 | **skein-checker** | 验证 agent, 只读跑 lint/type/test/契约合规。`model: sonnet + effort: medium`。 |
 | **skein-researcher** | 调研 agent, planning 选型对比 + bootstrap 扫既有约定, 结论落 `research/`。 |
 | **Recursion Guard** | 防 agent 自派 subagent 递归爆炸。具名 agent (checker/researcher) 靠工具集不含 Agent/Task 兜住; 执行者 (general-purpose 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派承载。 |

@@ -41,7 +41,7 @@ arguments: "[任务描述 (要做需求梳理/规划的新 task)]"
 5. **产出工件** — 写进 `.skein/task/<id>/`:
    - `prd.md` — 需求: 目标 / 用户价值 / 边界 / 非目标 / 验收基准。
    - `design.md` (可选, 复杂方案) — 架构 / 取舍 / 技术选型。
-   - `implement.md` — 实现拆解: subtask 列表 (每个含 write-files glob + exec-scope + depends_on) + **调度图** (mermaid, 供 exec 阶段 DAG)。
+   - `implement.md` — 实现拆解: subtask 列表 (每个含 depends_on + 验收标准 checklist) + **调度图** (mermaid, 供 exec 阶段 DAG)。
 6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停, 提示用户激活。
 
 ## 调度图 (implement.md 必含)

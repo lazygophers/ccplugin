@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 初始化 / trellis 迁移 | `setup` skill + `skein.py setup` | 幂等 scaffold; 检测 `.trellis/` → 软链 spec + 派 `skein-setup` agent 语义迁移 (spec 重组 / task 重建 / 清残留); SessionStart 无 `.skein/` 自动 nudge |
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
-| 动态 DAG 编排调度 (双层) | `skein-flow` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 冲突自算边 + `depends_on`, 并发上限 2, 完成即派 |
+| 动态 DAG 编排调度 (双层) | `skein-flow` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 并行只看 `depends_on` DAG, 并发上限 2, 完成即派 |
 | worktree 隔离 | `skein.py` | 1 task 1 worktree, 主工作区零改动 |
 | 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
 | planning 入口 | `skein-planning` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
@@ -20,7 +20,7 @@
 | 冷启动播种 | `skein-memory` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 主动清理 | `skein-clean` | [仅用户主动] 归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支 |
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT); 执行纪律 (递归护栏 + 读后写硬门 + per-file reason + 输出格式) 经 dispatch prompt 硬性注入。3 个工具受限的具名 agent (无 Agent/Task 工具, 递归护栏): `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移)。
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `general-purpose`) 执行 1 subtask (改哪些文件自主决定, 完成前对照验收标准逐条自检, 每文件过写前 CHECKPOINT); 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。3 个工具受限的具名 agent (无 Agent/Task 工具, 递归护栏): `skein-checker` (只读验证) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移)。
 
 ## 差异化核心: 两层规则记忆 (基于 `.skein/spec`)
 

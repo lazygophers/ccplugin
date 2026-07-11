@@ -5,12 +5,12 @@
 
 ## subtask 拆分
 
-| sid | 名称 | 写文件 | 依赖 | reason |
-| --- | --- | --- | --- | --- |
-| s1 | 请求参数校验 | `internal/order/validate*.go` | — | 校验商品/数量/收货地址, 契约前置 |
-| s2 | 库存扣减 | `internal/inventory/*.go` | — | Redis 原子 decr, 不足即拒 (契约2) |
-| s3 | 订单落库 | `internal/order/repo*.go` | — | 幂等键唯一索引落单 (契约1) |
-| s4 | 订单创建事件 | `internal/event/*.go` | s3 | 落单成功后发 MQ 事件 |
+| sid | 名称 | 依赖 (depends_on) | 验收标准 (checklist) |
+| --- | --- | --- | --- |
+| s1 | 请求参数校验 | — | 缺商品/数量/收货地址返回 400; 数量 ≤ 0 拒绝 |
+| s2 | 库存扣减 | — | 扣减不允许负库存; 库存不足返回 409 |
+| s3 | 订单落库 | s1, s2 | 幂等键冲突返回既有订单 (不重复落单) |
+| s4 | 订单创建事件 | s3 | 落单成功后发一次 MQ 事件; 发送失败可重试 |
 
 ## 调度图
 
@@ -21,15 +21,15 @@ flowchart LR
     s3 --> s4[s4 创建事件]
 ```
 
-- s1 / s2 / s3 写文件三者不相交 → 本可并行, 但并发上限 2, 故首轮跑 s1+s2, s3 补位。
-- s4 显式 `depends_on: s3` → s3 已完成前不就绪。
+- s1 / s2 无依赖 → 可并行 (并发上限 2, 首轮跑 s1+s2)。
+- s3 显式 `depends_on: s1, s2` → 两者完成前不就绪; s4 显式 `depends_on: s3` → s3 完成前不就绪。并行与否只看这张 DAG。
 - **本快照定格在 exec 中途**: s1 已完成, s2 运行中, s3 首跑失败 (幂等键冲突, 待重试), s4 仍待处理。真实调度环会 `subtask start order-create-api s3` 重试 s3, 成功后 s4 才就绪。
 
 ## 落盘命令 (planning 执行)
 
 ```bash
-skein.py subtask add order-create-api s1 --name "请求参数校验" --write "internal/order/validate*.go" --reason "..."
-skein.py subtask add order-create-api s2 --name "库存扣减"     --write "internal/inventory/*.go"    --reason "..."
-skein.py subtask add order-create-api s3 --name "订单落库"     --write "internal/order/repo*.go"     --reason "..."
-skein.py subtask add order-create-api s4 --name "订单创建事件" --deps "s3" --write "internal/event/*.go" --reason "..."
+skein.py subtask add order-create-api s1 --name "请求参数校验" --check "缺商品/数量/收货地址返回 400; 数量 ≤ 0 拒绝"
+skein.py subtask add order-create-api s2 --name "库存扣减"     --check "扣减不允许负库存; 库存不足返回 409"
+skein.py subtask add order-create-api s3 --name "订单落库"     --deps "s1,s2" --check "幂等键冲突返回既有订单 (不重复落单)"
+skein.py subtask add order-create-api s4 --name "订单创建事件" --deps "s3"    --check "落单成功后发一次 MQ 事件; 发送失败可重试"
 ```

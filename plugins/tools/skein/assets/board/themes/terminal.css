@@ -1,0 +1,11 @@
+/* 开发者终端 Developer Terminal — 等宽字 + 直角硬边框 + 命令行提示符 + 扫描线底纹。 */
+html[data-theme=terminal]{--font:ui-monospace,'SF Mono','Cascadia Code','Consolas',monospace;--radius:0}
+html[data-theme=terminal] body{
+  background-image:repeating-linear-gradient(0deg,transparent 0 3px,color-mix(in srgb,var(--fg) 4%,transparent) 3px 4px);
+}
+html[data-theme=terminal] .card{border:1px solid var(--fg);border-radius:0;box-shadow:none}
+html[data-theme=terminal] .card h2::before{content:'$ ';color:var(--accent)}
+html[data-theme=terminal] h1::before{content:'> ';color:var(--accent)}
+html[data-theme=terminal] .switcher{border:1px solid var(--fg);border-radius:0;box-shadow:none}
+html[data-theme=terminal] .badge{border-radius:0}
+html[data-theme=terminal] .bar,html[data-theme=terminal] .fill{border-radius:0}

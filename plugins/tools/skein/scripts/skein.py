@@ -26,7 +26,6 @@ import shutil
 import subprocess
 import sys
 import time
-from fnmatch import fnmatch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
@@ -53,7 +52,12 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
 # 看板主题/配色 (值 = board/ 下 css 文件名; 独立 css, 非内联). 页内切换器 + config 默认二选一.
 THEMES = [("morandi", "莫兰迪"), ("glassmorphism", "玻璃拟态"),
-          ("liquid", "液态玻璃"), ("handdrawn", "手绘")]
+          ("liquid", "液态玻璃"), ("handdrawn", "手绘"),
+          ("flat", "极简扁平"), ("sketch", "素描"), ("terminal", "终端"),
+          ("bauhaus", "包豪斯"), ("comic", "漫画"), ("collage", "拼贴"),
+          ("aero", "水光"), ("blueprint", "蓝图"), ("linear", "Linear"),
+          ("gradient", "现代渐变"), ("neumorphism", "新拟物"),
+          ("ghibli", "吉卜力"), ("holographic", "全息")]
 PALETTES = [("stone", "石灰"), ("ocean", "海洋"), ("warm", "暖橙"),
             ("forest", "森林"), ("dusk", "暮紫"), ("mono", "单色")]
 
@@ -102,11 +106,6 @@ def gitroot() -> Path:
     if r.returncode != 0:
         raise SystemExit("不在 git 仓库内 — SKEIN 需要 git")
     return Path(r.stdout.strip())
-
-
-def _overlap(a: str, b: str) -> bool:
-    # 写文件 glob 是否重叠 → 冲突边。ponytail: fnmatch 双向近似, 误判偏保守 (宁串行)
-    return a == b or fnmatch(a, b) or fnmatch(b, a)
 
 
 class Skein:
@@ -488,25 +487,20 @@ class Skein:
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
     def _ready(self, t: list) -> list:
-        """就绪批: pending + 依赖全 done + 与 running/同批无写文件冲突, 截到空闲槽位。"""
+        """就绪批: pending + 依赖全 done, 截到空闲槽位 (并行只看 depends_on DAG, 无写文件冲突自算)。"""
         subs = t.get("subtasks", [])
         done = {s["sid"] for s in subs if s["status"] == SS_DONE}
         running = [s for s in subs if s["status"] == SS_RUNNING]
         slots = self.config().get("max_parallel", 2) - len(running)
         if slots <= 0:
             return []  # 并发满 → 阻塞
-        claimed = [g for s in running for g in s.get("write", [])]  # running 占用写集
         picked = []
         for s in subs:
             if s["status"] != SS_PENDING:
                 continue
             if not all(d in done for d in s.get("depends_on", [])):
                 continue
-            w = s.get("write", [])
-            if any(_overlap(a, b) for a in w for b in claimed):
-                continue  # 与已占用写集冲突 → 串行
             picked.append(s)
-            claimed += w
             if len(picked) >= slots:
                 break
         return picked
@@ -525,8 +519,9 @@ class Skein:
                 raise SystemExit(f"subtask 已存在: {a.tid}/{a.sid}")
             subs.append({
                 "sid": a.sid, "name": a.name or a.sid,
-                "depends_on": _split(a.deps), "write": _split(a.write),
-                "reason": a.reason or "", "status": SS_PENDING,
+                "depends_on": _split(a.deps),
+                "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
+                "status": SS_PENDING,
                 "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
                 "agent": a.agent or "general-purpose",  # 执行 agent (无合适则通用)
                 "skills": _split(a.skills),  # 关联 skills (0-n)
@@ -542,10 +537,10 @@ class Skein:
                 return
             for s in subs:
                 deps = ",".join(s.get("depends_on", [])) or "-"
-                w = ",".join(s.get("write", [])) or "-"
+                chk = "; ".join(s.get("验收", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
                 ag = s.get("agent", "general-purpose")
-                print(f"{s['sid']}\t{s['status']}\t{s['name']}\t依赖:{deps}\t写:{w}\tagent:{ag}\tskills:{sk}")
+                print(f"{s['sid']}\t{s['status']}\t{s['name']}\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
             return
         if a.action in ("ready", "claim"):
             t = self._load(a.tid)
@@ -566,8 +561,9 @@ class Skein:
                 print("就绪 (只读预览, 认领用 `subtask claim`):")
             for s in batch:
                 sk = ",".join(s.get("skills", [])) or "-"
+                chk = "; ".join(s.get("验收", [])) or "-"
                 print(f"{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'general-purpose')}\tskills: {sk}"
-                      f"\t写: {','.join(s.get('write', [])) or '-'}\t{s.get('reason', '')}")
+                      f"\t验收: {chk}")
             return
         # start / done / fail 均针对单 sid
         t = self._load(a.tid)
@@ -582,16 +578,13 @@ class Skein:
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
             if len(run) >= self.config().get("max_parallel", 2):
                 raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
-            busy = [g for x in run for g in x.get("write", [])]
-            if any(_overlap(w, b) for w in s.get("write", []) for b in busy):
-                raise SystemExit(f"{a.sid} 写集与 running 冲突 — 须串行, 等其 done")
             s["status"] = SS_RUNNING
         elif a.action == "done":
             s["status"] = SS_DONE
         elif a.action == "fail":
             s["status"] = SS_FAILED
-            if a.reason:
-                s["reason"] = a.reason
+            if a.note:
+                s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)
         self._save(t)  # _save 已渲染子任务看板
         print(f"{a.tid}/{a.sid} → {s['status']}")
 
@@ -599,16 +592,16 @@ class Skein:
         rows = []
         for s in t.get("subtasks", []):
             deps = ",".join(s.get("depends_on", [])) or "-"
-            w = ",".join(s.get("write", [])) or "-"
+            chk = "; ".join(s.get("验收", [])) or "-"
             sk = ",".join(s.get("skills", [])) or "-"
             ag = s.get("agent", "general-purpose")
-            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {ag} | {sk} | {deps} | {w} | {s.get('reason', '') or '-'} |")
-        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - | - |"
+            rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {ag} | {sk} | {deps} | {chk} |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - |"
         md = (
             f"# SKEIN 子任务看板 — {t['id']} {t['name']}\n\n"
             "> 经 `skein.py subtask` 渲染, 禁直接读写; 取态用 `skein.py subtask list <id>`。\n\n"
-            "| sid | 名称 | 状态 | agent | skills | 依赖 | 写文件 | reason |\n"
-            "|---|---|---|---|---|---|---|---|\n"
+            "| sid | 名称 | 状态 | agent | skills | 依赖 | 验收标准 |\n"
+            "|---|---|---|---|---|---|---|\n"
             f"{body}\n\n"
             f"并发上限: {self.config().get('max_parallel', 2)}\n"
         )
@@ -763,11 +756,10 @@ class Skein:
                 f'<td>{esc(s.get("agent", "general-purpose"))}</td>'
                 f'<td>{esc(",".join(s.get("skills", [])) or "-")}</td>'
                 f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
-                f'<td>{esc(",".join(s.get("write", [])) or "-")}</td>'
-                f'<td>{esc(s.get("reason", "") or "-")}</td></tr>' for s in subs)
+                f'<td>{esc("; ".join(s.get("验收", [])) or "-")}</td></tr>' for s in subs)
             subtable = (
                 '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th>'
-                '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>写文件</th><th>reason</th></tr></thead>'
+                '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>'
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
             cards.append(
@@ -924,6 +916,11 @@ def _split(s):
     return [x.strip() for x in (s or "").split(",") if x.strip()]
 
 
+def _split_semi(s):
+    # 验收 checklist 用分号分隔 (条目内可含逗号)
+    return [x.strip() for x in (s or "").split(";") if x.strip()]
+
+
 def main():
     p = argparse.ArgumentParser(
         prog="skein.py",
@@ -970,9 +967,9 @@ def main():
     st.add_argument("tid", help="所属 task id")
     st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带)")
     st.add_argument("--name", help="[add] subtask 名称")
-    st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪)")
-    st.add_argument("--write", help="[add] 写文件 glob, 逗号分隔 (相交则串行, 冲突自算边)")
-    st.add_argument("--reason", help="[add/fail] 备注 (add: 改它满足哪条契约/需求)")
+    st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
+    st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
+    st.add_argument("--note", help="[fail] 失败备注")
     st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
     st.add_argument("--agent", help="[add] 关联执行 agent (省略默认 general-purpose)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")

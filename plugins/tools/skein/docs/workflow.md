@@ -47,9 +47,9 @@ grill 通过 + 你评审确认 → `skein.py start`:
 
 main 作调度器跑**动态 DAG 调度循环**:
 
-- 把 `implement.md` 拆成 subtask, 按冲突自算边 + 显式 `depends_on` 组成 DAG。
+- 把 `implement.md` 拆成 subtask, 按显式 `depends_on` 组成 DAG (并行只看这张 DAG, 无写文件冲突自算)。
 - **ready 即派** — 为每个 subtask 选合适 agent (无则 `general-purpose`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
-- **读后写硬门 + reason 注解**: dispatch prompt 的「工作目录与范围」段**逐文件枚举**, 每个文件带 **reason** (改它满足哪条契约/需求)。执行 agent 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 + reason → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
+- **读后写硬门 + 验收标准自检**: 改哪些文件由执行 agent 在 worktree 内**自主决定** (给自主权), 完成前对照 planning 登记的**验收标准 checklist** 逐条自检。执行 agent 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 (只复述契约, 不含 reason) → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
 - 派出异步任务后结束本回合前, MUST 输出任务全景表 (状态: 进行中 / 等待中 / 阻塞)。
@@ -83,15 +83,15 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 | **subtask 级** | 单 task 内的 subtask (为每个选合适 agent, 无则 `general-purpose`) | 并发 2 |
 | **task 级** | 同 session 多个 active task | active 集 ≤ 2 |
 
-**DAG 边怎么来**: 最终 DAG = **冲突自算边** ∪ **显式 `depends_on` 边**。
+**DAG 边怎么来**: **并行只看显式 `depends_on` DAG** (无写文件冲突自算 — 真正有序的关系靠 planning 写进 `depends_on`, 不靠脚本猜写文件重叠)。
 
-- **冲突自算边**: 两个工作单元的写文件 glob 相交 (`subtask --write`) → 串行 (不能并行)。不相交 → 可并行。
-- **显式 depends_on**: subtask 级 `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`); task 级 `create --deps "order-query,order-create-api"` (存 task.json `deps`)。被依赖者未 done 前, 依赖者不 ready。
+- **subtask 级**: `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`)。被依赖者未 done 前, 依赖者不 ready; 无依赖者可并行。
+- **task 级**: `create --deps "order-query,order-create-api"` (存 task.json `deps`)。各 active task 各占各 worktree, 只看 task.json `deps` 决定串并行。
 
-**subtask 状态脚本落盘 (非肉眼看 implement.md)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖全 done + 写集不冲突 + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
+**subtask 状态脚本落盘 (非肉眼看 implement.md)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖 (`depends_on`) 全 done + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
 
 ```
-拆好 → subtask add …               (逐个登记 sid/deps/write/reason)
+拆好 → subtask add …               (逐个登记 sid/deps/check 验收标准)
   ┌── subtask claim <tid>          ← 脚本算就绪批 + 整批标 running (一步到位)
   │      ↓ 非空: 逐个为 subtask 选合适 agent (无则 general-purpose) 执行 (无需再 start)
   │      ↓ agent 完成: subtask done/fail → 立即回传

@@ -13,10 +13,9 @@
       "sid": "s1",
       "name": "库存模型与迁移",
       "depends_on": [],
-      "write": [
-        "internal/inventory/model*.go"
+      "验收": [
+        "stock/reserved 双字段"
       ],
-      "reason": "stock/reserved 双字段",
       "agent": "general-purpose",
       "skills": [
         "db-migration"
@@ -30,10 +29,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/inventory/reserve*.go"
+      "验收": [
+        "Lua 脚本保证原子, 契约1"
       ],
-      "reason": "Lua 脚本保证原子, 契约1",
       "agent": "general-purpose",
       "skills": [
         "concurrency"
@@ -47,10 +45,9 @@
       "depends_on": [
         "s2"
       ],
-      "write": [
-        "internal/inventory/sweeper*.go"
+      "验收": [
+        "扫描过期预占并释放"
       ],
-      "reason": "扫描过期预占并释放",
       "agent": "general-purpose",
       "skills": [
         "cron"

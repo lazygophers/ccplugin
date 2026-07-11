@@ -1,0 +1,17 @@
+/* 素描 Sketch — 铅笔线稿感: 细描边 + 45° 交叉排线底纹 + 等宽技术字 (区别于蜡笔手绘 handdrawn)。 */
+html[data-theme=sketch]{--font:'Courier New',ui-monospace,monospace}
+html[data-theme=sketch] .card{
+  border:1px solid var(--fg);border-radius:2px;
+  box-shadow:0 0 0 3px var(--bg),0 0 0 4px color-mix(in srgb,var(--fg) 30%,transparent);
+  background:
+    repeating-linear-gradient(45deg,transparent 0 6px,color-mix(in srgb,var(--fg) 5%,transparent) 6px 7px),
+    var(--card);
+}
+html[data-theme=sketch] .switcher{
+  border:1px solid var(--fg);border-radius:2px;
+  box-shadow:0 0 0 3px var(--bg),0 0 0 4px color-mix(in srgb,var(--fg) 30%,transparent);
+}
+html[data-theme=sketch] .badge{border:1px solid color-mix(in srgb,var(--fg) 55%,transparent)}
+html[data-theme=sketch] .bar{border:1px solid color-mix(in srgb,var(--fg) 45%,transparent);background:transparent}
+html[data-theme=sketch] th,
+html[data-theme=sketch] td{border-bottom:1px dashed color-mix(in srgb,var(--fg) 45%,transparent)}

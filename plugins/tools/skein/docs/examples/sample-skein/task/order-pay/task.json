@@ -14,10 +14,9 @@
       "sid": "s1",
       "name": "支付单创建",
       "depends_on": [],
-      "write": [
-        "internal/pay/order*.go"
+      "验收": [
+        "生成支付单 + 状态机"
       ],
-      "reason": "生成支付单 + 状态机",
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
@@ -29,10 +28,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/pay/gateway*.go"
+      "验收": [
+        "调 payment-gateway 发起支付"
       ],
-      "reason": "调 payment-gateway 发起支付",
       "agent": "general-purpose",
       "skills": [
         "payment-api"
@@ -46,10 +44,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/pay/callback*.go"
+      "验收": [
+        "异步回调 + 幂等入账"
       ],
-      "reason": "异步回调 + 幂等入账",
       "agent": "general-purpose",
       "skills": [
         "idempotency"

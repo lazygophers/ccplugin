@@ -1,0 +1,18 @@
+/* 吉卜力 Ghibli — 水彩柔和暖调 + 圆润手感 + 纸纹柔光 (宫崎骏动画感)。 */
+html[data-theme=ghibli]{--font:'Nunito','Comic Sans MS','PingFang SC',sans-serif;--radius:20px}
+html[data-theme=ghibli] body{
+  background:
+    radial-gradient(70% 50% at 20% 0%,#dff0d8 0%,transparent 55%),
+    radial-gradient(60% 45% at 90% 10%,#fce9c9 0%,transparent 55%),
+    linear-gradient(180deg,#eef7e6,#f4efe0),var(--bg);
+  background-attachment:fixed;color:#4a4234;
+}
+html[data-theme=ghibli] h1,html[data-theme=ghibli] .card h2{color:#5a6e3f}
+html[data-theme=ghibli] .card,html[data-theme=ghibli] .switcher{
+  background:color-mix(in srgb,#fffdf5 82%,transparent);
+  border:1px solid #e4dcc4;border-radius:20px;
+  box-shadow:0 6px 18px rgba(120,110,70,.16);
+}
+html[data-theme=ghibli] .badge{border-radius:14px}
+html[data-theme=ghibli] .bar{background:#e8e0cc;border-radius:12px}
+html[data-theme=ghibli] .fill{background:linear-gradient(90deg,#a7c47f,#8bb04f)}

@@ -15,10 +15,9 @@
       "sid": "s1",
       "name": "退款单据",
       "depends_on": [],
-      "write": [
-        "internal/refund/model*.go"
+      "验收": [
+        "退款申请落库 + 状态机"
       ],
-      "reason": "退款申请落库 + 状态机",
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",
@@ -30,10 +29,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/refund/gateway*.go"
+      "验收": [
+        "调支付网关 refund, 契约"
       ],
-      "reason": "调支付网关 refund, 契约",
       "agent": "general-purpose",
       "skills": [
         "payment-api"
@@ -47,10 +45,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/inventory/restore*.go"
+      "验收": [
+        "退款成功回补库存"
       ],
-      "reason": "退款成功回补库存",
       "agent": "general-purpose",
       "skills": [],
       "status": "待处理",

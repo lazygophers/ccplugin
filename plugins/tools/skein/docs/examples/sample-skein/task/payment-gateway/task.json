@@ -13,10 +13,9 @@
       "sid": "s1",
       "name": "网关 SDK 封装",
       "depends_on": [],
-      "write": [
-        "internal/pay/gateway*.go"
+      "验收": [
+        "统一 charge/refund 签名"
       ],
-      "reason": "统一 charge/refund 签名",
       "agent": "general-purpose",
       "skills": [],
       "status": "已完成",
@@ -26,10 +25,9 @@
       "sid": "s2",
       "name": "回调验签",
       "depends_on": [],
-      "write": [
-        "internal/pay/callback*.go"
+      "验收": [
+        "验签 + 去重, 契约2"
       ],
-      "reason": "验签 + 去重, 契约2",
       "agent": "general-purpose",
       "skills": [
         "signature-verify"
@@ -43,10 +41,9 @@
       "depends_on": [
         "s1"
       ],
-      "write": [
-        "internal/pay/recon*.go"
+      "验收": [
+        "日终对账补偿漏单"
       ],
-      "reason": "日终对账补偿漏单",
       "agent": "general-purpose",
       "skills": [
         "reconciliation"

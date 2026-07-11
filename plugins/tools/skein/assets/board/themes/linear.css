@@ -1,0 +1,14 @@
+/* Linear 风 — 精致 SaaS 暗调: 细边发丝线 + 微渐变卡 + 紧凑克制 + 淡辉光。 */
+html[data-theme=linear]{--font:'Inter','SF Pro Display',-apple-system,sans-serif;--radius:8px}
+html[data-theme=linear] body{
+  background:radial-gradient(120% 80% at 50% -10%,color-mix(in srgb,var(--accent) 14%,transparent),transparent),var(--bg);
+  background-attachment:fixed;
+}
+html[data-theme=linear] .card{
+  background:linear-gradient(180deg,color-mix(in srgb,var(--card) 96%,#fff),var(--card));
+  border:1px solid color-mix(in srgb,var(--brd) 70%,transparent);
+  box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 1px 3px rgba(0,0,0,.12);
+}
+html[data-theme=linear] .card h2{letter-spacing:-.2px;font-weight:600}
+html[data-theme=linear] .switcher{border:1px solid color-mix(in srgb,var(--brd) 70%,transparent);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+html[data-theme=linear] .badge{border-radius:6px}

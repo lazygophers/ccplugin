@@ -1,0 +1,18 @@
+/* 蓝图 Blueprint — 深蓝底 + 青色网格 + 等宽技术字 + 白描边框 (工程制图感)。 */
+html[data-theme=blueprint]{--font:ui-monospace,'Courier New',monospace;--radius:2px}
+html[data-theme=blueprint] body{
+  background:#0d3b66;color:#dcefff;
+  background-image:
+    linear-gradient(color-mix(in srgb,#7fd0ff 22%,transparent) 1px,transparent 1px),
+    linear-gradient(90deg,color-mix(in srgb,#7fd0ff 22%,transparent) 1px,transparent 1px);
+  background-size:24px 24px;background-attachment:fixed;
+}
+html[data-theme=blueprint] h1,html[data-theme=blueprint] .card h2,html[data-theme=blueprint] .name{color:#eaf6ff}
+html[data-theme=blueprint] .meta,html[data-theme=blueprint] th{color:#9cc6e6}
+html[data-theme=blueprint] .card,html[data-theme=blueprint] .switcher{
+  background:color-mix(in srgb,#0d3b66 70%,transparent);
+  border:1px solid #8fd0ff;border-radius:2px;box-shadow:0 0 0 1px rgba(143,208,255,.2);
+}
+html[data-theme=blueprint] .badge{border:1px solid #8fd0ff;border-radius:2px}
+html[data-theme=blueprint] .bar{border:1px solid #8fd0ff;background:transparent;border-radius:0}
+html[data-theme=blueprint] th,html[data-theme=blueprint] td{border-bottom:1px dashed rgba(143,208,255,.35)}

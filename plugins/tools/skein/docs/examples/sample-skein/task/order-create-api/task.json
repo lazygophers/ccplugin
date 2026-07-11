@@ -13,10 +13,9 @@
       "sid": "s1",
       "name": "请求参数校验",
       "depends_on": [],
-      "write": [
-        "internal/order/validate*.go"
+      "验收": [
+        "校验商品/数量/收货地址, 契约前置"
       ],
-      "reason": "校验商品/数量/收货地址, 契约前置",
       "agent": "general-purpose",
       "skills": [
         "input-validation"
@@ -28,10 +27,9 @@
       "sid": "s2",
       "name": "库存扣减",
       "depends_on": [],
-      "write": [
-        "internal/inventory/*.go"
+      "验收": [
+        "Redis 原子 decr, 不足即拒 (契约2)"
       ],
-      "reason": "Redis 原子 decr, 不足即拒 (契约2)",
       "agent": "general-purpose",
       "skills": [],
       "status": "运行中",
@@ -41,10 +39,9 @@
       "sid": "s3",
       "name": "订单落库",
       "depends_on": [],
-      "write": [
-        "internal/order/repo*.go"
+      "验收": [
+        "幂等键冲突, 待重试"
       ],
-      "reason": "幂等键冲突, 待重试",
       "agent": "general-purpose",
       "skills": [
         "idempotency"
@@ -58,10 +55,9 @@
       "depends_on": [
         "s3"
       ],
-      "write": [
-        "internal/event/*.go"
+      "验收": [
+        "落单成功后发 MQ 事件"
       ],
-      "reason": "落单成功后发 MQ 事件",
       "agent": "general-purpose",
       "skills": [
         "event-sourcing"
