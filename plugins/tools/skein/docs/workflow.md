@@ -152,7 +152,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 | 护栏 | 怎么实现 | 挡住什么 |
 | --- | --- | --- |
-| task.md 只读 | guard-skein.sh PreToolUse hook (Edit/Write/MultiEdit → exit 2) | 手改看板导致格式漂移 |
+| task.md 只读 | guard-skein.py PreToolUse hook (Edit/Write/MultiEdit → exit 2) | 手改看板导致格式漂移 |
 | state.json 读写全挡 | 同 hook (Read/Edit/Write 全 block) | 绕过 skein.py 操作状态 |
 | Recursion Guard | 3 个执行 agent 无 Agent/Task 工具 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | 有 task 必有 worktree | 主工作区被半成品污染 |

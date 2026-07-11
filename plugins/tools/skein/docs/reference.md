@@ -99,9 +99,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | hook | 触发 | 作用 |
 | --- | --- | --- |
 | **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 常驻规则 + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复) |
-| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.sh` 硬阻直改 task.md (写) / 直接读写 state.json (读写全挡) |
+| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 硬阻直改 task.md (写) / 直接读写 state.json (读写全挡) |
 
-## guard-skein.sh 拦截规则
+## guard-skein.py 拦截规则
 
 | 目标文件 | Read | Edit/Write/MultiEdit | 替代方式 |
 | --- | --- | --- | --- |

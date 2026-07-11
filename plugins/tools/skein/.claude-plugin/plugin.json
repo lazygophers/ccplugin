@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/guard-skein.sh",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/guard-skein.py",
             "timeout": 5
           }
         ]
