@@ -28,6 +28,11 @@ import time
 from fnmatch import fnmatch
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
+from hooklib import budget_guard  # noqa: E402
+
+SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (active task ≤2, 正常远低于)
+
 # task 状态 (中文落盘, 逻辑比较用常量)
 S_PENDING = "待处理"
 S_ACTIVE = "进行中"
@@ -310,6 +315,31 @@ class Skein:
         for t in active:
             print(f"{t['id']}\t{t['status']}\t{t['name']}\t{t.get('worktree') or '-'}")
 
+    def ready(self, a):
+        # task 级就绪批 (脚本算, 非 AI 判): pending + 前置全 done + 有空闲 active 槽位。
+        # 与 subtask ready 同构, 但只读预览 (start 才占槽); task 无写集字段, 故不算写集冲突。
+        slots = self.config()["max_active"] - len(self._active())
+        if slots <= 0:
+            print(f"无空闲 active 槽 (上限 {self.config()['max_active']} 已满) — 先 finish 一个再 start")
+            return
+        picked = []
+        for t in self._all():
+            if t["status"] != S_PENDING:
+                continue
+            undone = [d for d in t["deps"] if self._dep_unfinished(d)]
+            if undone:
+                continue
+            picked.append(t)
+            if len(picked) >= slots:
+                break
+        if not picked:
+            print("无就绪 task (pending 均有未完成前置, 或无 pending)")
+            return
+        print("就绪 task (只读预览, 激活用 `skein.py start <id>`):")
+        for t in picked:
+            deps = ",".join(t["deps"]) or "-"
+            print(f"{t['id']}\t{t['name']}\t前置: {deps}")
+
     def list_(self, a):
         for t in self._all():
             print(f"{t['id']}\t{t['status']}\t{t['name']}")
@@ -350,8 +380,9 @@ class Skein:
         for t in active:
             lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
         lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
+        ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
         print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "SessionStart", "additionalContext": "\n".join(lines)}}))
+            "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
     def board(self, a):
         self._board(a)
@@ -521,6 +552,7 @@ def main():
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
+    sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
     sub.add_parser("list", help="列所有 task (含状态)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
@@ -558,6 +590,7 @@ def main():
     dispatch = {
         "init": sk.init, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "current": sk.current,
+        "ready": sk.ready,
         "list": sk.list_, "board": sk.board, "contract": sk.contract,
         "journal": sk.journal, "subtask": sk.subtask,
     }

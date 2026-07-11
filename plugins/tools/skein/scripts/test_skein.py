@@ -146,6 +146,10 @@ def main():
         assert not any(x["id"] == "t02" for x in top["tasks"]), "archive 未从顶层索引移除"
         assert sk(d, "current", check=False).returncode == 0, "archive 后 current 崩溃"
 
+        # task 级 ready: active 空 + t03 前置(t02)已归档→视完成 → t03 就绪
+        rout = sk(d, "ready").stdout
+        assert "t03" in rout and "就绪 task" in rout, f"ready 未列就绪 t03: {rout!r}"
+
         # 多 active 并行: t03 (dep t02 已归档→视完成) 与 t04 可同时 active
         sk(d, "start", "t03")
         sk(d, "create", "t04", "--name", "第四个"); sk(d, "start", "t04")

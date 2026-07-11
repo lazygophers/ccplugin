@@ -27,8 +27,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-CORE_BUDGET = 8000  # core 常驻注入软预算 (字符); 超则告警
+CORE_BUDGET = 8000  # core 全文软预算 (字符, 供 inject-core 手动查看); 超则告警
+INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
 LAYERS = ("core", "recall")
+
+sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
+from hooklib import budget_guard  # noqa: E402
 
 
 def now() -> int:
@@ -91,16 +95,26 @@ class Memory:
                 "常驻注入过重, 考虑降级部分到 recall\n")
         return text
 
-    # ---- inject-core (常驻注入正文) ----
+    # ---- inject-core (按需拉全文正文) ----
     def inject_core(self, _):
         sys.stdout.write(self._core_text())
 
-    # ---- session-start (SessionStart hook: 直接产 hook JSON, 免 shell 包一层) ----
+    # ---- core 极简索引 (每条 1 行: [类目] title) ----
+    def _core_index(self) -> str:
+        lines = []
+        for f in self._rule_files("core"):
+            meta = _frontmatter(f.read_text())
+            lines.append(f"- [{f.parent.name}] {meta.get('title', f.stem)}")
+        return "\n".join(lines)
+
+    # ---- session-start (SessionStart hook: 只注入极简索引, 全文按需 inject-core) ----
     def session_start(self, _):
-        text = self._core_text().strip()
-        if not text:
+        idx = self._core_index().strip()
+        if not idx:
             return
-        ctx = "# SKEIN 常驻规则 (core)\n\n" + text
+        ctx = budget_guard(
+            "# SKEIN core 规则索引 (仅标题; 需全文跑 `memory.py inject-core`)\n\n" + idx,
+            INDEX_BUDGET_TOKENS, "memory:session-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 

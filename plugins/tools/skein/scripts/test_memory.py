@@ -57,6 +57,15 @@ def main():
         assert "authored-by" not in inj, "inject-core 未去 frontmatter"
         assert "pnpm" not in inj, "inject-core 混入 recall"
 
+        # session-start 只注入极简索引 (标题+类目), 不含正文, 是合法 hook JSON
+        import json as _json
+        ss = _json.loads(mem(d, "session-start").stdout)
+        ctx = ss["hookSpecificOutput"]["additionalContext"]
+        assert ss["hookSpecificOutput"]["hookEventName"] == "SessionStart", "hook 格式错"
+        assert "合并冲突处理" in ctx, "索引缺规则标题"
+        assert "合并冲突必 abort" not in ctx, "session-start 不该注入正文 (只索引)"
+        assert "inject-core" in ctx, "索引未提示按需拉全文"
+
         # seq 层内全局递增: 第二次沉淀到不同类目 style, 序号仍 +1
         mem(d, "sediment", "--layer", "core", "--category", "style", "--title", "命名规范",
             "--keywords", "naming", "--source", "t03", "--body-file", str(body))
