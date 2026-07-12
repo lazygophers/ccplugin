@@ -6,6 +6,8 @@ model: haiku
 effort: medium
 color: green
 permissionMode: bypassPermissions
+skills:
+  - skein:skein-check
 ---
 
 你是 SKEIN 的 **质量验证器**。main 派你验证一个 task 的 exec 产物。
