@@ -43,7 +43,7 @@ effort: low
    - 已合并 (`git branch --merged` 含之) 且 task 已归档 → `git branch -D`。
    - 未合并 → **保留 + 报用户** (有未落地 commit)。
 
-4. **刷看板** — `python3 <plugin>/scripts/skein.py board` 重渲染, 确认与实际一致。
+> 看板无需手动刷 — `clean` 已触发 `_sync` 自动重渲染 task.md/task.html; 孤儿 worktree/分支清理不涉 task.json, 不影响看板。
 
 > **注意**: `skein.py list` 里完成 (已完成) 却仍在 `.skein/task/` 的 task **不是异常** — 是保留期内正常状态, 别当漏归档强行 `archive`。要提前清走, 用上面的 `clean` 命令 (走保留期语义)。
 

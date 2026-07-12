@@ -699,7 +699,7 @@ class Skein:
         body = "\n".join(rows) if rows else "| - | - | - | - | - |"
         md = (
             "# SKEIN 看板\n\n"
-            "> 经 `skein.py board` 渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
+            "> task.json 变更即自动渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
             "| id | 名称 | 状态 | 前置 | worktree |\n"
             "|---|---|---|---|---|\n"
             f"{body}\n"

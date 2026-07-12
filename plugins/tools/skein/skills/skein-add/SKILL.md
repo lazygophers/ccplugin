@@ -26,13 +26,13 @@ effort: medium
 > **前置**: 无 `.skein/` → 先 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py init`。
 
 1. **委托 `skein-planning` 无参** (main 同步前台) — 判新旧 + `skein.py create` 登记 + brainstorm (逐问用户) + grill 硬门 + 写 `prd.md`[+`design.md`]+`implement.md`。**全程 main 同步** (brainstorm/grill 需 `AskUserQuestion`, subagent 不能与用户对话; 纯信息调研可派 `skein-researcher` 只读)。planning 正文一切以 `skein-planning` 为准, 本 skill 不复述。
-2. **停在 start 前** — 产物齐 → **停**, task 留 planning 态, 跑 `skein.py board` 更新看板 (状态 planning), 交还控制权。回传用户: planning 产物摘要 + "已规划完成, 停在执行前; `/skein-go <task>` 或 `/skein-flow` 执行"。**禁 start / exec / check / finish**。
+2. **停在 start 前** — 产物齐 → **停**, task 留 planning 态 (`create` 已自动刷看板), 交还控制权。回传用户: planning 产物摘要 + "已规划完成, 停在执行前; `/skein-go <task>` 或 `/skein-flow` 执行"。**禁 start / exec / check / finish**。
 
 ## 硬规
 
 - 🗂️ **`skein.py create` main 同步跑** — 任务记录管理, 不派 agent。add **不跑 `skein.py start`** (那是激活/执行, 归 flow/go)。
 - 💬 **planning 全程 main 同步前台** — brainstorm 逐问用户, 不派 subagent、不执行。
-- 🔒 **`.skein/task.md` 禁直接 Edit/Write** — 看板必经 `skein.py board` (guard hook 硬阻)。
+- 🔒 **`.skein/task.md` 禁直接 Edit/Write** — 看板由脚本自动渲染 (task.json 变更即刷), guard hook 硬阻直接编辑。
 - 🧑 **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) 必用工具, 禁纯文本代替。
 - 🔴🛑 **"已建 task / 看板已登记"必须是真跑过 `skein.py` 的结果** — 宣称 ≠ 调用 = 幻觉跳步。
 
