@@ -5,7 +5,7 @@ disable-model-invocation: true
 user-invocable: false
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
-model: inherit
+model: opus
 effort: high
 ---
 
