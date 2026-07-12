@@ -18,7 +18,9 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 (current/list/board/subtask list/ready), 禁直接 Read/Edit/Write (guard-skein.py 硬阻)。
 """
 import argparse
+import contextlib
 import datetime
+import fcntl
 import json
 import os
 import re
@@ -64,6 +66,29 @@ PALETTES = [("stone", "石灰"), ("ocean", "海洋"), ("warm", "暖橙"),
 
 def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳
+
+
+@contextlib.contextmanager
+def _workspace_lock(lock_path: Path, timeout=10.0, poll=0.05):
+    # 工作区级排他写锁 (fcntl.flock): 防多 skein 进程并发 read-modify-write 破坏 task.json。
+    # 阻塞等待锁释放, 超 timeout 秒仍拿不到 → SystemExit (非死等)。CLI 短命, 全局锁足够。
+    # ponytail: global lock, per-task locks if throughput matters.
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    f = open(lock_path, "w")
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            try:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError:
+                if time.monotonic() >= deadline:
+                    raise SystemExit(
+                        f"获取 .skein 写锁超时 ({timeout}s) — 另一 skein 进程持锁未释放: {lock_path}")
+                time.sleep(poll)
+        yield
+    finally:
+        f.close()  # 关闭即释放 flock
 
 
 # ponytail: config 只有 4 个扁平标量键 → 手写 mini YAML 读写, 免 PyYAML 依赖。
@@ -140,7 +165,7 @@ class Skein:
         cutoff = now() - int(d) * 86400
         archived = []
         for t in self._all():
-            if t["status"] == S_DONE and t.get("done_at", 0) <= cutoff:
+            if t["status"] == S_DONE and t.get("finished", t.get("done_at", 0)) <= cutoff:
                 self._archive(t["id"])
                 archived.append(t["id"])
         return archived
@@ -215,7 +240,7 @@ class Skein:
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n.lock\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         wt = self.config()["worktree_root"].rstrip("/") + "/"
         root_gi = self.root / ".gitignore"
@@ -249,7 +274,10 @@ class Skein:
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "estimate": a.estimate,  # AI 执行预期耗时 (分钟, planning 填; None=未估)
-            "created": now(), "updated": now(),
+            "created": now(),        # 创建时刻
+            "started": None,         # exec 时刻 (start 时置)
+            "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
+            "updated": now(),
         }
         self._save(t)  # _save 已渲染子任务看板
         self._sync()  # 刷新顶层 tasks 索引 + 看板 + html
@@ -273,6 +301,8 @@ class Skein:
         git("worktree", "add", "-b", t["branch"], str(wt), "HEAD", cwd=self.root)
         t["status"] = S_ACTIVE
         t["worktree"] = rel
+        if not t.get("started"):
+            t["started"] = now()  # exec 时刻 (首次 start; 重启不覆盖)
         self._save(t)
         self._sync()
         print(f"{a.id} started\nworktree: {rel}\nbranch: {t['branch']}")
@@ -322,7 +352,7 @@ class Skein:
                 f"跳过合并, 分支 {t['branch']} 若有提交未并入\n")
         t["status"] = S_DONE
         t["worktree"] = None
-        t["done_at"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
+        t["finished"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
         self._save(t)
         self._sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
         archived = not (self.tasks / tid).exists()  # retain_days<=0 → 已被 _autoclean 归档
@@ -439,7 +469,7 @@ class Skein:
             extra = ("\n检测到 `.trellis/` — setup 会迁移 task/spec 并清理 trellis 残留 (调 skein-setup agent)。"
                      if trellis else "")
             ctx = ("# SKEIN 未初始化\n\n本仓库无 `.skein/` 工作区。要用 SKEIN 管理任务, "
-                   "调用 **setup** skill 完成初始化 (幂等)。" + extra)
+                   "调用 **skein-setup** skill 完成初始化 (幂等)。" + extra)
             print(json.dumps({"hookSpecificOutput": {
                 "hookEventName": "SessionStart", "additionalContext": ctx}}))
             return
@@ -526,6 +556,9 @@ class Skein:
                 "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
                 "agent": a.agent or "general-purpose",  # 执行 agent (无合适则通用)
                 "skills": _split(a.skills),  # 关联 skills (0-n)
+                "created": now(),   # 创建时刻
+                "started": None,    # exec 时刻 (claim/start →运行中 时置)
+                "finished": None,   # 完成时刻 (done 时置)
             })
             self._save(t)  # _save 已渲染子任务看板
             print(f"{a.tid}/{a.sid} 已登记 (共 {len(subs)} subtask)")
@@ -556,6 +589,8 @@ class Skein:
                 # 一次性认领: 就绪批整体标 running, 免 main 逐个 start (少一轮往返 + 无竞态窗口)
                 for s in batch:
                     s["status"] = SS_RUNNING
+                    if not s.get("started"):
+                        s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
                 self._save(t)  # _save 已渲染子任务看板
                 print("已认领 (running) — main 按各 subtask 关联 agent + skills 逐个 dispatch, 完成即 subtask done/fail:")
             else:
@@ -580,6 +615,8 @@ class Skein:
             if len(run) >= self.config().get("max_parallel", 2):
                 raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
             s["status"] = SS_RUNNING
+            if not s.get("started"):
+                s["started"] = now()  # exec 时刻 (首次 start, 重启不覆盖)
         elif a.action == "check":
             crit = s.get("验收", [])
             val = (a.passed or "").strip()
@@ -598,6 +635,7 @@ class Skein:
             return
         elif a.action == "done":
             s["status"] = SS_DONE
+            s["finished"] = now()  # 完成时刻
             s["验收done"] = list(range(1, len(s.get("验收", [])) + 1))  # 完成即全过 → 100%
         elif a.action == "fail":
             s["status"] = SS_FAILED
@@ -845,20 +883,57 @@ class Skein:
                                "settings.json", "settings.local.json")
     _CLAUDE_SUBDIRS = ("skills", "commands", "agents", "hooks", "scripts")
 
-    def _trellis_tasks(self, trellis) -> list:
-        # 采集 trellis 待迁 task (供 agent 语义重建为 skein task)。schema 可能与 skein 异, 只报路径+原始 json。
+    def _migrate_trellis_tasks(self, trellis) -> list:
+        # 物理迁移 trellis 非归档 task → .skein/task/<id>/: 翻译 task.json 为 skein schema + 拷贝 planning 工件。
+        # 已归档 (archive/) 不迁; 已存在的同名 skein task 不覆盖 (幂等)。subtask/contract/journal 语义搬运由 agent 补。
         out = []
         tdir = trellis / "task"
-        if tdir.is_dir():
-            for d in sorted(p for p in tdir.iterdir() if p.is_dir() and p.name != "archive"):
-                tj = d / "task.json"
-                raw = None
-                if tj.exists():
-                    try:
-                        raw = json.loads(tj.read_text())
-                    except (json.JSONDecodeError, OSError):
-                        raw = None
-                out.append({"id": d.name, "path": str(d.relative_to(self.root)), "task_json": raw})
+        if not tdir.is_dir():
+            return out
+        migrated_any = False
+        for d in sorted(p for p in tdir.iterdir() if p.is_dir() and p.name != "archive"):
+            tid = d.name
+            raw = {}
+            tj = d / "task.json"
+            if tj.exists():
+                try:
+                    raw = json.loads(tj.read_text())
+                except (json.JSONDecodeError, OSError):
+                    raw = {}
+            if tid in self._used_ids():
+                out.append({"id": tid, "migrated": False,
+                            "reason": "skein 已存在同名 task, 跳过", "orig_status": raw.get("status")})
+                continue
+            dst = self.tasks / tid
+            dst.mkdir(parents=True)
+            deps = raw.get("depends_on") or raw.get("deps") or []
+            if isinstance(deps, str):
+                deps = [x.strip() for x in deps.split(",") if x.strip()]
+            # 状态一律置待处理 — 迁移不自动开 worktree; 原状态回报 agent 供 journal 留痕
+            t = {
+                "id": tid, "name": raw.get("title") or raw.get("name") or tid,
+                "desc": raw.get("description") or raw.get("desc") or "",
+                "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
+                "worktree": None, "branch": f"skein/{tid}", "estimate": None,
+                "created": now(), "started": None, "finished": None, "updated": now(),
+            }
+            self._save(t)
+            # 拷贝 planning 工件 (task.json/task.md 除外 — skein 自渲染/自管)
+            artifacts = []
+            for p in sorted(d.iterdir()):
+                if p.name in ("task.json", "task.md"):
+                    continue
+                target = dst / p.name
+                if p.is_dir():
+                    shutil.copytree(p, target, dirs_exist_ok=True)
+                else:
+                    shutil.copy2(p, target)
+                artifacts.append(p.name)
+            migrated_any = True
+            out.append({"id": tid, "migrated": True, "artifacts": artifacts,
+                        "orig_status": raw.get("status")})
+        if migrated_any:
+            self._sync()  # 刷新顶层索引 + 看板反映迁移 task
         return out
 
     def _claude_trellis_residuals(self) -> list:
@@ -896,11 +971,14 @@ class Skein:
             # 无 trellis → 建本地 spec 库 (memory.py init)
             subprocess.run([sys.executable, str(Path(__file__).parent / "memory.py"), "init"],
                            stdout=sys.stderr, check=False)
+        # 物理迁移 trellis task 文件夹 (redirect 内, 保 stdout 纯 JSON)
+        with contextlib.redirect_stdout(sys.stderr):
+            tasks = self._migrate_trellis_tasks(trellis)
         manifest = {
             "trellis_present": trellis.exists(),
             "spec_linked": linked,
             "spec_needs_reorg": bool(tspec.is_dir()),  # agent 需把 .trellis/spec 重组为 core/recall×类目
-            "trellis_tasks": self._trellis_tasks(trellis),
+            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract/journal)
             "claude_residuals": self._claude_trellis_residuals(),
         }
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
@@ -1035,7 +1113,15 @@ def main():
         "list": sk.list_, "board": sk.board, "view": sk.view, "contract": sk.contract,
         "journal": sk.journal, "subtask": sk.subtask,
     }
-    dispatch[a.cmd](a)
+    # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
+    # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
+    MUTATING = {"init", "setup", "create", "start", "finish", "archive", "clean",
+                "contract", "journal", "subtask"}
+    if a.cmd in MUTATING:
+        with _workspace_lock(sk.dir / ".lock"):
+            dispatch[a.cmd](a)
+    else:
+        dispatch[a.cmd](a)
 
 
 if __name__ == "__main__":

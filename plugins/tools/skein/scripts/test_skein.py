@@ -47,52 +47,56 @@ def main():
         assert ".worktrees/" in (d / ".gitignore").read_text(), "根 .gitignore 未补 worktree_root"
         sk(d, "init")  # 幂等: 二次 init 不重复追加根 .gitignore
         assert (d / ".gitignore").read_text().count(".worktrees/") == 1, "worktree 忽略重复追加"
+        # retain_days=0 → finish 即归档 (测归档链路; 默认 7 天惰性归档不便冒烟)
+        cfg = d / ".skein/config.yaml"
+        cfg.write_text(cfg.read_text().replace("retain_days: 7", "retain_days: 0"))
 
         # create: id 必填且为可读 slug
-        out = sk(d, "create", "t01", "--name", "第一个任务", "--desc", "测试").stdout.strip()
+        out = sk(d, "create", "task-1", "--name", "第一个任务", "--desc", "测试").stdout.strip()
         tid = out.split("\t")[0]
-        assert tid == "t01", f"预期 t01 得 {tid}"
-        t = json.loads((d / ".skein/task/t01/task.json").read_text())
+        assert tid == "task-1", f"预期 task-1 得 {tid}"
+        t = json.loads((d / ".skein/task/task-1/task.json").read_text())
         assert t["name"] == "第一个任务", t["name"]
         assert t["status"] == "待处理", t["status"]
         # 非法 id (非 slug) + 重复 id 均拒
         assert sk(d, "create", "订单接口", check=False).returncode != 0, "非 slug id 应拒"
-        assert sk(d, "create", "t01", check=False).returncode != 0, "重复 id 应拒"
+        assert sk(d, "create", "task-1", check=False).returncode != 0, "重复 id 应拒"
         assert t["contracts"] == [], "create 未初始化 contracts"
         assert isinstance(t["created"], int), "created 须为时间戳"
 
         # contract: --add 落盘 + 无参列出
-        sk(d, "contract", "t01", "--add", "输出必须幂等")
-        t = json.loads((d / ".skein/task/t01/task.json").read_text())
+        sk(d, "contract", "task-1", "--add", "输出必须幂等")
+        t = json.loads((d / ".skein/task/task-1/task.json").read_text())
         assert t["contracts"] == ["输出必须幂等"], t["contracts"]
-        assert "输出必须幂等" in sk(d, "contract", "t01").stdout, "contract 未列出"
+        assert "输出必须幂等" in sk(d, "contract", "task-1").stdout, "contract 未列出"
 
         # journal: --add 带时间戳追加 + append-only 两条都在 + 无参列出
-        sk(d, "journal", "--id", "t01", "--add", "拆出 3 个 subtask")
-        sk(d, "journal", "--id", "t01", "--add", "完成核心逻辑")
-        jout = sk(d, "journal", "--id", "t01").stdout
+        sk(d, "journal", "--id", "task-1", "--add", "拆出 3 个 subtask")
+        sk(d, "journal", "--id", "task-1", "--add", "完成核心逻辑")
+        jout = sk(d, "journal", "--id", "task-1").stdout
         assert "拆出 3 个 subtask" in jout and "完成核心逻辑" in jout, "journal append-only 未保全部条目"
 
-        # start t01 → worktree 建出
-        sk(d, "start", "t01")
-        t = json.loads((d / ".skein/task/t01/task.json").read_text())
+        # start task-1 → worktree 建出
+        sk(d, "start", "task-1")
+        t = json.loads((d / ".skein/task/task-1/task.json").read_text())
         assert t["status"] == "进行中", t["status"]
+        assert isinstance(t["started"], int), "start 未记 started 时间戳"
         assert not t["worktree"].startswith("/"), f"worktree 须相对: {t['worktree']}"
         wt = d / t["worktree"]  # 相对 project root → 拼绝对
         assert wt.exists(), "worktree 未建"
         top = json.loads((d / ".skein/task.json").read_text())
         assert "focus" not in top, "顶层不应再有 focus 字段"
         # 顶层 task.json 汇总全表: id/状态/deps/worktree
-        t01row = next(x for x in top["tasks"] if x["id"] == "t01")
-        assert t01row["status"] == "进行中" and t01row["worktree"] == t["worktree"], t01row
+        row1 = next(x for x in top["tasks"] if x["id"] == "task-1")
+        assert row1["status"] == "进行中" and row1["worktree"] == t["worktree"], row1
 
         # journal 须显式 --id (无 focus 默认)
-        sk(d, "journal", "--id", "t01", "--add", "start 后记录")
-        assert "start 后记录" in sk(d, "journal", "--id", "t01").stdout, "journal --id 失效"
+        sk(d, "journal", "--id", "task-1", "--add", "start 后记录")
+        assert "start 后记录" in sk(d, "journal", "--id", "task-1").stdout, "journal --id 失效"
 
         # session-context: 有 active task → JSON envelope 含 task id
         r = sk(d, "session-context")
-        assert r.returncode == 0 and "t01" in r.stdout, "session-context 未含 active task"
+        assert r.returncode == 0 and "task-1" in r.stdout, "session-context 未含 active task"
         payload = json.loads(r.stdout)
         assert payload["hookSpecificOutput"]["hookEventName"] == "SessionStart", "注入格式错"
         # git 仓无 .skein/ → 注入 setup 建议 (无 .skein 即 nudge)
@@ -102,93 +106,119 @@ def main():
             assert r2.returncode == 0 and "setup" in r2.stdout, f"无 .skein 应 nudge setup: {r2.stdout!r}"
             assert json.loads(r2.stdout)["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
-        # 并发上限: create+start t02, t03 应被拒
-        sk(d, "create", "t02", "--name", "第二个")
-        sk(d, "start", "t02")
-        sk(d, "create", "t03", "--name", "第三个")
-        r = sk(d, "start", "t03", check=False)
+        # 并发上限: create+start task-2, task-3 应被拒
+        sk(d, "create", "task-2", "--name", "第二个")
+        sk(d, "start", "task-2")
+        sk(d, "create", "task-3", "--name", "第三个")
+        r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
         # 在 worktree 改文件 → finish 合并回主
         (wt / "feature.txt").write_text("done\n")
-        sk(d, "finish", "t01")
+        sk(d, "finish", "task-1")
         assert (d / "feature.txt").exists(), "finish 未合并回主工作区"
-        assert list((d / ".skein/task/archive").glob("*/*/t01")), "未归档 (日期分层)"
-        assert list((d / ".skein/task/archive").glob("*/*/t01/journal.md")), "journal 未随 task 归档"
-        assert not (d / ".skein/task/t01").exists(), "归档后 task 残留"
+        assert list((d / ".skein/task/archive").glob("*/*/task-1")), "未归档 (日期分层)"
+        assert list((d / ".skein/task/archive").glob("*/*/task-1/journal.md")), "journal 未随 task 归档"
+        assert not (d / ".skein/task/task-1").exists(), "归档后 task 残留"
         assert not wt.exists(), "worktree 未销"
-        # 归档后顶层 tasks 索引去掉 t01
+        # 归档后顶层 tasks 索引去掉 task-1
         top = json.loads((d / ".skein/task.json").read_text())
-        assert not any(x["id"] == "t01" for x in top["tasks"]), "归档 task 仍留在顶层索引"
-        assert any(x["id"] == "t02" for x in top["tasks"]), "t02 应仍在顶层索引"
+        assert not any(x["id"] == "task-1" for x in top["tasks"]), "归档 task 仍留在顶层索引"
+        assert any(x["id"] == "task-2" for x in top["tasks"]), "task-2 应仍在顶层索引"
 
-        # deps: t03 依赖 t02, t02 未 finish 前 start t03 (需先腾并发位)
-        # t01 已 finish, active=t02, 上限2 → 可 start t03 但 deps 阻塞
-        (d / ".skein/task/t03/task.json").write_text(
-            json.dumps({**json.loads((d / ".skein/task/t03/task.json").read_text()),
-                        "deps": ["t02"]}, ensure_ascii=False))
-        r = sk(d, "start", "t03", check=False)
+        # deps: task-3 依赖 task-2, task-2 未 finish 前 start task-3 (需先腾并发位)
+        # task-1 已 finish, active=task-2, 上限2 → 可 start task-3 但 deps 阻塞
+        (d / ".skein/task/task-3/task.json").write_text(
+            json.dumps({**json.loads((d / ".skein/task/task-3/task.json").read_text()),
+                        "deps": ["task-2"]}, ensure_ascii=False))
+        r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "前置未完成" in r.stderr, "deps 门未生效"
 
         # board 渲染无 focus 标记, 列出 active task 行
         board = (d / ".skein/task.md").read_text()
-        assert "t02" in board, "看板缺 task 行"
+        assert "task-2" in board, "看板缺 task 行"
         assert "focus:" not in board, "看板不应再有 focus footer"
 
         # archive in_progress task → 销 worktree/branch + 从顶层索引移除
-        wt2 = d / json.loads((d / ".skein/task/t02/task.json").read_text())["worktree"]
+        wt2 = d / json.loads((d / ".skein/task/task-2/task.json").read_text())["worktree"]
         assert wt2.exists()
-        sk(d, "archive", "t02")
+        sk(d, "archive", "task-2")
         assert not wt2.exists(), "archive 未销 worktree"
-        br = subprocess.run(["git", "branch", "--list", "skein/t02"], cwd=d,
+        br = subprocess.run(["git", "branch", "--list", "skein/task-2"], cwd=d,
                             capture_output=True, text=True).stdout
-        assert "skein/t02" not in br, "archive 未删 branch"
+        assert "skein/task-2" not in br, "archive 未删 branch"
         top = json.loads((d / ".skein/task.json").read_text())
-        assert not any(x["id"] == "t02" for x in top["tasks"]), "archive 未从顶层索引移除"
+        assert not any(x["id"] == "task-2" for x in top["tasks"]), "archive 未从顶层索引移除"
         assert sk(d, "current", check=False).returncode == 0, "archive 后 current 崩溃"
 
-        # task 级 ready: active 空 + t03 前置(t02)已归档→视完成 → t03 就绪
+        # task 级 ready: active 空 + task-3 前置(task-2)已归档→视完成 → task-3 就绪
         rout = sk(d, "ready").stdout
-        assert "t03" in rout and "就绪 task" in rout, f"ready 未列就绪 t03: {rout!r}"
+        assert "task-3" in rout and "就绪 task" in rout, f"ready 未列就绪 task-3: {rout!r}"
 
-        # 多 active 并行: t03 (dep t02 已归档→视完成) 与 t04 可同时 active
-        sk(d, "start", "t03")
-        sk(d, "create", "t04", "--name", "第四个"); sk(d, "start", "t04")
+        # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
+        sk(d, "start", "task-3")
+        sk(d, "create", "task-4", "--name", "第四个"); sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
-        assert act == {"t03", "t04"}, f"多 active 并行失效: {act}"
-        sk(d, "finish", "t03")
+        assert act == {"task-3", "task-4"}, f"多 active 并行失效: {act}"
+        sk(d, "finish", "task-3")
         top = json.loads((d / ".skein/task.json").read_text())
-        assert any(x["id"] == "t04" and x["status"] == "进行中" for x in top["tasks"]), "finish 误伤无关 active"
+        assert any(x["id"] == "task-4" and x["status"] == "进行中" for x in top["tasks"]), "finish 误伤无关 active"
 
         # ---- subtask DAG 调度 ----
-        sk(d, "create", "t05", "--name", "编排任务")
-        sk(d, "subtask", "add", "t05", "s1", "--write", "a/*.py")
-        sk(d, "subtask", "add", "t05", "s2", "--write", "b/*.py")
-        sk(d, "subtask", "add", "t05", "s3", "--deps", "s1,s2", "--write", "a/*.py")
-        assert (d / ".skein/task/t05/task.md").exists(), "per-task 看板缺失"
-        r = sk(d, "subtask", "ready", "t05").stdout
+        sk(d, "create", "task-5", "--name", "编排任务")
+        sk(d, "subtask", "add", "task-5", "s1")
+        sk(d, "subtask", "add", "task-5", "s2")
+        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2")
+        assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
+        r = sk(d, "subtask", "ready", "task-5").stdout
         assert "s1" in r and "s2" in r and "s3" not in r, "就绪批错 (s3 应被依赖挡)"
         # ready 只读: 不改状态
-        subs0 = json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]
+        subs0 = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         assert all(s["status"] == "待处理" for s in subs0), "ready 误改状态 (应只读)"
         # claim 一次性认领整个就绪批 → s1/s2 标 running
-        r = sk(d, "subtask", "claim", "t05").stdout
+        r = sk(d, "subtask", "claim", "task-5").stdout
         assert "s1" in r and "s2" in r, "claim 未返回就绪批"
-        st = {s["sid"]: s["status"] for s in json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]}
+        subs_c = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
+        st = {s["sid"]: s["status"] for s in subs_c}
         assert st["s1"] == "运行中" and st["s2"] == "运行中", "claim 未标 running"
+        # 时间戳: add→created, claim→started, done→finished
+        s1 = next(s for s in subs_c if s["sid"] == "s1")
+        assert isinstance(s1["created"], int) and isinstance(s1["started"], int), "subtask created/started 未记"
+        assert s1["finished"] is None, "未 done 不应有 finished"
         # 满槽 (max_parallel=2) → start 第三个应报错
-        assert sk(d, "subtask", "start", "t05", "s3", check=False).returncode != 0, "满槽未挡"
-        assert "无就绪" in sk(d, "subtask", "claim", "t05").stdout, "满槽 claim 未阻塞"
-        sk(d, "subtask", "done", "t05", "s1")
-        sk(d, "subtask", "done", "t05", "s2")
-        assert "s3" in sk(d, "subtask", "ready", "t05").stdout, "依赖全 done 后 s3 未就绪"
-        # 写集冲突串行: s3(a/*.py) 与仍 running 的同写集不能并发 — 另建验证
-        subs = json.loads((d / ".skein/task/t05/task.json").read_text())["subtasks"]
+        assert sk(d, "subtask", "start", "task-5", "s3", check=False).returncode != 0, "满槽未挡"
+        assert "无就绪" in sk(d, "subtask", "claim", "task-5").stdout, "满槽 claim 未阻塞"
+        sk(d, "subtask", "done", "task-5", "s1")
+        sk(d, "subtask", "done", "task-5", "s2")
+        s1d = next(s for s in json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"] if s["sid"] == "s1")
+        assert isinstance(s1d["finished"], int), "done 未记 finished 时间戳"
+        assert "s3" in sk(d, "subtask", "ready", "task-5").stdout, "依赖全 done 后 s3 未就绪"
+        # ready 只读: s3 就绪但未认领仍待处理
+        subs = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in subs}["s3"] == "待处理"
 
     test_setup()
+    test_lock()
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移)")
+
+
+def test_lock():
+    # 写锁: 持锁时另一获取者应阻塞到超时 → SystemExit
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("skein_l", SKEIN)
+    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    with tempfile.TemporaryDirectory() as d:
+        lp = Path(d) / ".lock"
+        with m._workspace_lock(lp, timeout=1.0):
+            try:
+                with m._workspace_lock(lp, timeout=0.2):
+                    raise AssertionError("持锁时不应拿到第二把锁")
+            except SystemExit:
+                pass  # 预期: 超时 SystemExit
+        # 释放后可重新获取
+        with m._workspace_lock(lp, timeout=0.2):
+            pass
 
 
 def test_setup():
@@ -207,7 +237,10 @@ def test_setup():
         (d / ".trellis/spec").mkdir(parents=True)
         (d / ".trellis/spec/git.md").write_text("# 禁 force push\n")
         (d / ".trellis/task/x").mkdir(parents=True)
-        (d / ".trellis/task/x/task.json").write_text('{"id":"x","status":"in_progress"}')
+        (d / ".trellis/task/x/task.json").write_text('{"id":"x","title":"任务X","status":"in_progress"}')
+        (d / ".trellis/task/x/prd.md").write_text("# PRD\n")  # planning 工件应随迁
+        (d / ".trellis/task/archive/2026/01-01/old").mkdir(parents=True)  # 归档不迁
+        (d / ".trellis/task/archive/2026/01-01/old/task.json").write_text('{"id":"old"}')
         (d / ".claude/skills/foo-trellis").mkdir(parents=True)
         (d / ".claude/settings.json").write_text('{"hooks":{"PreToolUse":[{"command":"trellis.sh"}]}}')
 
@@ -215,7 +248,13 @@ def test_setup():
         assert m["trellis_present"] and m["spec_linked"] and m["spec_needs_reorg"], m
         assert (d / ".skein/spec").is_symlink(), "spec 未软链"
         assert (d / ".skein/spec/git.md").exists(), "软链未透传 trellis spec"
-        assert any(t["id"] == "x" for t in m["trellis_tasks"]), "未采集 trellis task"
+        # 物理迁移: task 文件夹 + 翻译 task.json + planning 工件, 归档不迁
+        assert any(t["id"] == "x" and t["migrated"] for t in m["trellis_tasks"]), "未迁移 trellis task"
+        assert not any(t["id"] == "old" for t in m["trellis_tasks"]), "归档 task 误迁"
+        assert (d / ".skein/task/x/task.json").exists(), "task 文件夹未物理迁入"
+        assert (d / ".skein/task/x/prd.md").exists(), "planning 工件未随迁"
+        tj = json.loads((d / ".skein/task/x/task.json").read_text())
+        assert tj["name"] == "任务X" and tj["status"] == "待处理", ("task.json 未翻译为 skein schema", tj)
         assert any("foo-trellis" in r for r in m["claude_residuals"]), "未采集 .claude 残留"
         assert any("settings.json" in r for r in m["claude_residuals"]), "未采集 settings 残留"
 

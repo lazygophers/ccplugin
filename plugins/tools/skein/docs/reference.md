@@ -22,7 +22,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md`/`task.html`/`board/` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
-| `setup` | `--purge` | 幂等初始化 + trellis 兼容: 无 trellis → scaffold + 本地 spec 库; 有 `.trellis/` → 软链 `.skein/spec`→`.trellis/spec` + 输出迁移 manifest JSON (纯 stdout, scaffold 噪声走 stderr)。`--purge` 清 trellis 残留 (`.trellis/task*` + `.claude/*trellis*`, 保留 `.trellis/spec`)。语义迁移 (spec 重组/task 重建) 由 `skein-setup` agent 做 |
+| `setup` | `--purge` | 幂等初始化 + trellis 兼容: 无 trellis → scaffold + 本地 spec 库; 有 `.trellis/` → 软链 `.skein/spec`→`.trellis/spec` + **物理迁移 task.json 与各 task 文件夹** (每个 task 目录整体搬迁, **跳过已归档 task**) + 输出迁移 manifest JSON (纯 stdout, scaffold 噪声走 stderr)。`--purge` 清 trellis 残留 (`.trellis/task*` + `.claude/*trellis*`, 保留 `.trellis/spec`)。语义迁移 (spec 重组) 由 `skein-setup` agent 做 |
 | `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` `--estimate <分钟>` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id; `--estimate` = AI 执行预期耗时 (分钟), 供看板 html 显示预期 vs 实际 |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree, 状态 → completed。**完成 task 不立即归档**, 留看板 `retain_days` 天 (config, 默认 7); 超期由 `_autoclean` 在下次生命周期变更时自动归档。`retain_days=0` 时 finish 即归档 (旧行为)。冲突自动 abort。多 active 并行, id 必填 |
@@ -39,12 +39,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `journal --id <id>` | `--add <文本>` | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
 | `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--check "断言;断言"` `--passed "1,2"` `--note <文本>` `--estimate <分钟>` `--agent <名>` `--skills "a,b"` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `check` 勾验收(算完成百分比) / `done` 完成 / `fail` 失败 / `list` 列态。add/start/check/done/fail 必带 `sid`。`--check` = 验收标准 checklist (分号分隔, 每条一个可验断言), `--passed` = `check` 时已通过验收序号 (1-based 逗号分隔; `all`=全过, `none`=清空), `--note` = `fail` 时的失败备注。`--agent` = 执行 agent (省略默认 `general-purpose`), `--skills` = 关联 skills 逗号分隔 (0-n) |
 
-**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / updated / contracts / subtasks`。
-**subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / 验收 / 验收done / estimate / agent / skills / status` (pending→running→done/failed; 运行时失败才追加 `note`)。`验收` = 验收标准 checklist (字符串数组), `验收done` = 已通过验收序号 (1-based 数组; `check` 更新, `done` 自动填满)。`agent` 缺省 `general-purpose`, `skills` 缺省空数组。
+**task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / started / finished / updated / contracts / subtasks`。
+**subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / 验收 / 验收done / estimate / agent / skills / created / started / finished / status` (pending→running→done/failed; 运行时失败才追加 `note`)。`验收` = 验收标准 checklist (字符串数组), `验收done` = 已通过验收序号 (1-based 数组; `check` 更新, `done` 自动填满)。`agent` 缺省 `general-purpose`, `skills` 缺省空数组。
+**时间戳字段** (task 顶层 + 每个 subtask, 值均为 Unix epoch 秒整数): `created` = 创建时刻; `started` = exec 首次激活/start 时置, **幂等** (重认领/重启不覆盖首次 exec 时刻); `finished` = done/finish 时置。task.html 用这三个配合 `estimate` 显示「预期 vs 实际」耗时。
 **subtask 完成百分比**: `_sub_pct` = `done` 强制 100%; 否则 = `len(验收done)/len(验收)`; 无验收标准则未完成即 0%。执行 agent 逐条自检后用 `subtask check <tid> <sid> --passed "1,3"` 回报已过条目, 看板 (task.md/task.html) 按此渲染每 subtask 进度条; task 综合完成率 = 各 subtask 百分比均值。
 **subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 按各 subtask 关联的 `agent` (省略即 `general-purpose`) + `skills` dispatch 执行 → agent 完成前逐条自检可 `subtask check` 回报进度 → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖 (`depends_on`) 全 done, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: **人工传入的可读 slug** (create 必填首参), 从 id 即可知含义 (如 `order-create-api`), 非随机生成。格式 = kebab-case (`^[a-z0-9][a-z0-9-]*$`, 小写字母/数字/连字符, 字母数字开头), 兼作 git 分支名 (`skein/<id>`) + 目录名。全局唯一, 含已归档的不可复用, 非法/重复即报错。
+
+**文件锁 (并发写保护)**: task/subtask 的更新经工作区级排他锁 `.skein/.lock` (`fcntl.flock`) 串行化, 包裹所有变更类命令 (`init/setup/create/start/finish/archive/clean/contract/journal/subtask`); 只读命令 (`current/ready/list/board/view`) 豁免。未拿到锁时**代码轮询等待** (非报错退出), 默认超时 10s, 超时抛错「获取 .skein 写锁超时」。作用: 多 skein 进程 / 并发 subtask 写同一 task.json 不丢更新。`.lock` 已加入 `.skein/.gitignore` (运行期锁文件, 不入库)。
 
 ## memory.py — 规则记忆引擎
 
@@ -66,10 +69,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 全文有字符上限 (`inject-core` 软告警), 超了 sediment 会提示降级到 recall。SessionStart **只注入极简索引** (每条一行标题), 另有独立 token 硬预算 (`hooklib`, 超则截断) — 常驻上下文恒定小, 全文按需拉。
 
-## Skills (7 个)
+## Skills (8 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
+| `skein-add` | **[仅用户显式 `/skein-add <任务描述>`, disable-model-invocation]** 只规划不执行入口: 委托 `skein-planning` (planning 真值源) 无参跑完 planning (判新旧 + 登记 + brainstorm + grill 硬门 + 产出 `prd.md`[+`design.md`]+`implement.md`), 然后**停在 `skein.py start` 之前**, task 留 planning 态, 禁 exec/check/finish。产出的 planning 态 task 留待用户再走 `/skein-go` 或 `skein-flow` 消费。与 flow/`/skein-go` 边界: 后者=强制全闭环 plan→exec→check→finish, add=只到 planning 停 | — |
 | `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `memory.py reindex`) | trellis-migration |
 | `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | mandatory-flow-steps · scheduling-algorithm · progress-reporting |
 | `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |

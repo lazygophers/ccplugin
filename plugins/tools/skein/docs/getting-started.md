@@ -26,14 +26,14 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py --help
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 ```
 
-> **推荐入口 = `setup`** (不是裸 `init`): 幂等 scaffold + 兼容 trellis。检测到 `.trellis/` → 软链 spec + 输出迁移 manifest (spec 重组 / task 重建交 `skein-setup` agent 语义迁移, 清 trellis 残留)。无 trellis → 等价 `init` + 建本地 spec 库。
+> **推荐入口 = `setup`** (不是裸 `init`): 幂等 scaffold + 兼容 trellis。检测到 `.trellis/` → 软链 spec + **物理迁移 task.json 与各 task 文件夹** (每个 task 目录整体搬迁, 跳过已归档 task) + 输出迁移 manifest (spec 重组交 `skein-setup` agent 语义迁移, 清 trellis 残留)。无 trellis → 等价 `init` + 建本地 spec 库。
 > SessionStart 时若 git 仓无 `.skein/`, hook 会**自动注入** setup 建议; Claude 主动调 **skein-setup** skill 完成初始化, 无需手动。
 
 `init` 会建出:
 
 ```
 .skein/
-├── .gitignore       # 忽略 task.md/task.html/board/ (自动渲染); 另补 worktree_root 到仓库根 .gitignore
+├── .gitignore       # 忽略 task.md/task.html/board/ (自动渲染) + .lock (运行期写锁, git 忽略); 另补 worktree_root 到仓库根 .gitignore
 ├── task.json        # {tasks:[]} — 顶层状态全表, 脚本维护, AI 禁读写
 ├── task.md          # 空看板 — 由 task.json 自动渲染 (git 忽略)
 ├── task.html        # 静态可视化看板 (2 列 dashboard, subtask DAG/表默认展开可折叠) — 由 task.json 自动渲染 (4 主题 6 配色 深浅色, git 忽略); `skein view` 按需打开
