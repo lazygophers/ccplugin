@@ -219,6 +219,42 @@ class Memory:
             lines.append(f"| {layer} | {total} | {_dist(by_cat)} | [{layer}/index.md]({layer}/index.md) |")
         (self.root / "index.md").write_text("\n".join(lines) + "\n")
 
+    # ---- archive (完全重构前可逆清库: 移旧规则到 .archive/<ts>/, reindex 空) ----
+    def archive(self, a):
+        layers = [a.layer] if a.layer else list(LAYERS)
+        ts = str(now())
+        dest = self.root / ".archive" / ts
+        moved = 0
+        for layer in layers:
+            for f in self._rule_files(layer):  # rglob 不含 .archive (在 root 下非 layer 下)
+                tgt = dest / f.relative_to(self.root)  # 保 <layer>/<category>/ 结构
+                tgt.parent.mkdir(parents=True, exist_ok=True)
+                f.rename(tgt)  # 同 fs move, 不复制
+                moved += 1
+        self._reindex_all()
+        if moved:
+            print(f"已归档 {moved} 条规则 → {dest}\n回滚: python3 memory.py restore {ts}")
+        else:
+            print("无规则可归档 (库已空)")
+
+    # ---- restore (从归档恢复; 撞名的旧规则加 restored- 前缀不覆盖重构后新规则) ----
+    def restore(self, a):
+        src = self.root / ".archive" / a.ts
+        if not src.exists():
+            raise SystemExit(f"归档不存在: {src} (查可用: ls {self.root / '.archive'})")
+        moved = 0
+        for f in sorted(src.rglob("*.md")):
+            if f.name == "index.md":
+                continue
+            tgt = self.root / f.relative_to(src)
+            tgt.parent.mkdir(parents=True, exist_ok=True)
+            if tgt.exists():  # 重构后同路径已有新规则 → 不覆盖, 换名并存
+                tgt = tgt.with_name(f"restored-{f.name}")
+            f.rename(tgt)
+            moved += 1
+        self._reindex_all()
+        print(f"已恢复 {moved} 条 ← {src}")
+
     # ---- list ----
     def list_(self, a):
         for layer in ([a.layer] if a.layer else list(LAYERS)):
@@ -277,6 +313,10 @@ def main():
     s.add_argument("--body-file", help="规则正文文件路径")
     ls = sub.add_parser("list", help="列已存规则")
     ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列两层)")
+    ar = sub.add_parser("archive", help="[完全重构前] 可逆归档旧规则到 .archive/<ts>/ + reindex 空")
+    ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省两层全归档)")
+    rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
+    rs.add_argument("ts", help="归档时间戳 (archive 输出的目录名)")
 
     a = p.parse_args()
     m = Memory()
@@ -284,6 +324,7 @@ def main():
         "init": m.init, "inject-core": m.inject_core, "recall": m.recall,
         "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
+        "archive": m.archive, "restore": m.restore,
     }[a.cmd](a)
 
 
