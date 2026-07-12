@@ -160,16 +160,13 @@ def git(*args, cwd=None, check=True, capture=True):
     return r
 
 
-def gitroot() -> Path:
-    r = git("rev-parse", "--show-toplevel", check=False)
-    if r.returncode != 0:
-        raise SystemExit("不在 git 仓库内 — SKEIN 需要 git")
-    return Path(r.stdout.strip())
-
-
 class Skein:
     def __init__(self):
-        self.root = gitroot()
+        # git 非强制: 在 git 仓库内则用其根 + 启用 worktree 隔离; 否则用 cwd 原地执行
+        # (微服务/前后端分离: cwd 无 git, 子目录各自独立仓库 — 正是最需要不挡 git 的场景)。
+        r = git("rev-parse", "--show-toplevel", check=False)
+        self.git = r.returncode == 0
+        self.root = Path(r.stdout.strip()) if self.git else Path.cwd()
         self.dir = self.root / ".skein"
         self.tasks = self.dir / "task"
         self.archive_dir = self.tasks / "archive"
@@ -272,13 +269,15 @@ class Skein:
         if not gi.exists():
             gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n.lock\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
-        wt = self.config()["worktree_root"].rstrip("/") + "/"
-        root_gi = self.root / ".gitignore"
-        existing = root_gi.read_text() if root_gi.exists() else ""
-        if wt not in existing:
-            sep = "\n" if existing and not existing.endswith("\n") else ""
-            with root_gi.open("a") as f:
-                f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
+        # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)
+        if self.git:
+            wt = self.config()["worktree_root"].rstrip("/") + "/"
+            root_gi = self.root / ".gitignore"
+            existing = root_gi.read_text() if root_gi.exists() else ""
+            if wt not in existing:
+                sep = "\n" if existing and not existing.endswith("\n") else ""
+                with root_gi.open("a") as f:
+                    f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
         if not (self.dir / "task.json").exists():
             self._sync()
         self._board(None)
@@ -326,16 +325,20 @@ class Skein:
         undone = [d for d in t["deps"] if self._dep_unfinished(d)]
         if undone:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
-        rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
-        wt = self.root / rel
-        git("worktree", "add", "-b", t["branch"], str(wt), "HEAD", cwd=self.root)
         t["status"] = S_ACTIVE
-        t["worktree"] = rel
+        if self.git:
+            rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
+            git("worktree", "add", "-b", t["branch"], str(self.root / rel), "HEAD", cwd=self.root)
+            t["worktree"] = rel
+        else:
+            t["worktree"] = None  # 非 git: 原地执行, 无 worktree 隔离
         if not t.get("started"):
             t["started"] = now()  # exec 时刻 (首次 start; 重启不覆盖)
         self._save(t)
         self._sync()
-        print(f"{a.id} started\nworktree: {rel}\nbranch: {t['branch']}")
+        loc = (f"worktree: {t['worktree']}\nbranch: {t['branch']}"
+               if self.git else "非 git 仓库: 原地执行 (无 worktree 隔离)")
+        print(f"{a.id} started\n{loc}")
 
     def _dep_unfinished(self, dep) -> bool:
         # 归档即视为完成
@@ -508,6 +511,8 @@ class Skein:
 
     def session_context(self):
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
+        if not self.git and not self.dir.exists():
+            return  # 非 git 且无 .skein: 别在任意目录 nag (用户 setup/init 建了 .skein 才接管)
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
             print(json.dumps({"hookSpecificOutput": {
@@ -528,6 +533,8 @@ class Skein:
         # UserPromptSubmit hook: 每 prompt 必注入 (最高频强制点)。
         # 未初始化 → 硬提示先 setup (兜底 SessionStart 软建议被忽略: 会话开始直接下任务时, 这是唯一每次都注入的检测);
         # 已初始化 → 注入 task 判定 (让 model 判是否走 skein-flow 闭环)。判定是语义活 (model 做), hook 只注入标准。
+        if not self.git and not self.dir.exists():
+            return  # 非 git 且无 .skein: 别在任意目录 nag
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
             print(json.dumps({"hookSpecificOutput": {
@@ -1237,23 +1244,14 @@ def main():
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if a.cmd == "session-context":
-        # hook 在任意仓库每 session 都跑: 非 git 仓静默 exit 0; git 仓无 .skein → session_context 注入 setup 建议
-        # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓),
-        # 恰是最需要 MAINTAIN_PROJECT_WORKING_DIR 的场景, 不能被 gitroot() 失败挡掉
+        # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
+        # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
         _persist_bash_cwd_env()  # 随插件发货 CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1 (plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
-        try:
-            sk = Skein()
-        except SystemExit:
-            return
-        sk.session_context()
+        Skein().session_context()
         return
     if a.cmd == "user-prompt":
-        # 每 prompt 都跑: 非 git 仓静默 exit 0; 提醒不依赖 .skein 初始化状态 (flow 内 setup 处理未初始化)
-        try:
-            sk = Skein()
-        except SystemExit:
-            return
-        sk.user_prompt()
+        # 每 prompt 都跑: 非 git 且无 .skein → 方法内静默返回; 提醒不依赖 .skein 初始化状态
+        Skein().user_prompt()
         return
     sk = Skein()
     dispatch = {

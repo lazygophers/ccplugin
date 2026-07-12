@@ -169,7 +169,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 | --- | --- | --- |
 | task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein.py 直接读写状态/看板 → 格式漂移或态不一致 |
 | Recursion Guard | 具名 agent (checker/researcher) 无 Agent/Task 工具; 执行者 (general-purpose 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派 | subagent 自派 → 递归爆炸 |
-| worktree 隔离 | 有 task 必有 worktree | 主工作区被半成品污染 |
+| worktree 隔离 | git 仓库内: 有 task 必有 worktree (非 git 仓库降级原地执行) | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
 | 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |
 | compaction 永续 | `skein.py session-context` SessionStart hook 重注入活跃 task | 上下文压缩后忘掉在跑的 task |
