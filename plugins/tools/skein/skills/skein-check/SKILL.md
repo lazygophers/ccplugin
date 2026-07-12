@@ -5,7 +5,7 @@ disable-model-invocation: true
 user-invocable: true
 argument-hint: "[task_id]"
 arguments: "[task_id]"
-model: inherit
+model: haiku
 effort: medium
 ---
 
