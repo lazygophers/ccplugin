@@ -46,7 +46,7 @@ plan → exec → check → finish 四步闭环
 
 - Agent(skein-checker) 跑 lint / type-check / tests / 契约合规
 - 未过 → 派合适 agent 定点修复 → 重检, 不跳 finish
-- 详见 [references/step-check.md](references/step-check.md)
+- 详见 `skein-check` skill (验证与修复分离 / 反复不过第 3 轮做 5 维根因复盘)
 
 ### finish
 
@@ -54,7 +54,7 @@ plan → exec → check → finish 四步闭环
 - sediment 判定门: 逐项输出 trace, learning → core / recall / drop (判定见 `skein-memory`)
 - ToolCall(TaskList / TaskStop) 清理悬挂 subagent / 后台任务
 - `skein.py finish <id>` (commit→merge→archive→销 worktree)
-- 详见 [references/step-finish.md](references/step-finish.md)
+- sediment 判定见 `skein-memory` skill
 
 ## 作用域边界 (何时建 task)
 
