@@ -1,7 +1,6 @@
 ---
 name: skein-memory
 description: 两层规则记忆 (基于 .skein/spec)。planning 时召回相关规则、task finish 后沉淀学习时使用 — core 常驻硬规 + recall 按需召回, 经 sediment 判定门 (checklist) + AskUserQuestion 审批写盘。SKEIN 差异化核心。空仓冷启动 (.skein/spec 为空) 时可提议扫既有代码库约定播种规则基线 (一次性)
-disable-model-invocation: true
 user-invocable: false
 argument-hint: "[recall/sediment]"
 arguments: "[recall/sediment]"

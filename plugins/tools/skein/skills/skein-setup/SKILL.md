@@ -5,7 +5,6 @@ argument-hint: "[--full] (trellis 迁移模式: 缺省=兼容留 .trellis 数据
 arguments: "[--full] (trellis 迁移模式: 缺省=兼容留 .trellis 数据 / --full=整删 .trellis)"
 model: sonnet
 effort: medium
-disable-model-invocation: true
 user-invocable: true
 ---
 

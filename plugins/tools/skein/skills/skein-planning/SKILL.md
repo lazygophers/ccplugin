@@ -1,7 +1,6 @@
 ---
 name: skein-planning
 description: planning 入口 (需求/方案单一真值源)。新建 SKEIN task 做需求梳理时使用 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md/implement.md
-disable-model-invocation: true
 user-invocable: false
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"

@@ -1,7 +1,6 @@
 ---
 name: skein-add
 description: '➕ 规划级入口 (只规划不执行): 把请求纳入 SKEIN task 的 planning 阶段 — 判新旧 + skein.py create 登记 + brainstorm + grill 硬门, 产出 prd/implement 后停在 skein.py start 之前, task 留 planning 态, 禁 exec/check/finish。用户想"先看规划再决定执行 / 添加规划任务 / 只规划不动手"时用。仅显式调用 (/skein-add), 禁 model 自动触发。与 skein-flow/skein-go 边界: 后者=强制全闭环 (plan→exec→check→finish), add=只到 planning 停'
-disable-model-invocation: true
 user-invocable: true
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
