@@ -68,6 +68,26 @@ def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳
 
 
+# 插件无法直接发货 settings.json 的 env 块 (plugin.json 无 env 字段)。
+# 官方持久化 env 的机制: SessionStart hook 往 $CLAUDE_ENV_FILE 追加 export。
+# 这样该 env 随 skein 插件的 SessionStart hook 一起发货, 不落用户项目 settings。
+_BASH_CWD_EXPORT = "export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1"
+
+
+def _persist_bash_cwd_env():
+    env_file = os.environ.get("CLAUDE_ENV_FILE")
+    if not env_file:
+        return  # 非 SessionStart/Setup/CwdChanged/FileChanged 事件时不可用, 静默跳过
+    try:
+        p = Path(env_file)
+        if p.exists() and _BASH_CWD_EXPORT in p.read_text():
+            return  # 幂等: 同会话已写过不重复
+        with p.open("a") as f:
+            f.write(_BASH_CWD_EXPORT + "\n")
+    except OSError:
+        pass  # env 持久化尽力而为, 失败不阻断 session-context 主流程
+
+
 @contextlib.contextmanager
 def _workspace_lock(lock_path: Path, timeout=10.0, poll=0.05):
     # 工作区级排他写锁 (fcntl.flock): 防多 skein 进程并发 read-modify-write 破坏 task.json。
@@ -478,6 +498,7 @@ class Skein:
 
     def session_context(self):
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
+        _persist_bash_cwd_env()  # 随插件发货 CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1 (plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
             print(json.dumps({"hookSpecificOutput": {
