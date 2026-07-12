@@ -794,7 +794,7 @@ class Skein:
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
                 f'{time_bar}'
                 f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
-                f'<details class="detail"><summary>展开明细 · DAG + 子任务表</summary>'
+                f'<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
                 f'{dag_html(snodes)}'
                 f'{subtable}</details></section>')
         body = overview + "\n" + ("\n".join(cards) if cards else '<p class="empty">无 task</p>')
