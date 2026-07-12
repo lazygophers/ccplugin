@@ -4,7 +4,7 @@ description: planning 入口 (需求/方案单一真值源)。新建 SKEIN task 
 disable-model-invocation: true
 user-invocable: false
 argument-hint: "<任务描述>"
-arguments: "[任务描述 (要做需求梳理/规划的新 task)]"
+arguments: "<任务描述>"
 ---
 
 # skein-planning — planning 入口

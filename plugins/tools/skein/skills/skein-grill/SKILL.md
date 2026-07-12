@@ -4,7 +4,7 @@ description: 对抗式审查 (红队, 非审批)。planning 产物 (prd/implemen
 disable-model-invocation: true
 user-invocable: false
 argument-hint: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
-arguments: 要盘的方案或 PRD 路径 (可选, 缺省取当前 task 的 prd.md/implement.md)
+arguments: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
 ---
 
 # skein-grill — 对抗式审查硬门
