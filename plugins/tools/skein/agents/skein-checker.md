@@ -2,7 +2,7 @@
 name: skein-checker
 description: SKEIN check 阶段质量验证器。被 main 派发, 在 task worktree 内跑 lint / type-check / tests / 契约合规, 回传压缩的通过|失败报告。只读+跑命令, 不改代码 (修复交回执行 agent, 由 main 另派合适 agent); 无 Agent/Task (Recursion Guard)。
 tools: Read, Bash, Grep, Glob
-model: sonnet
+model: haiku
 effort: medium
 color: green
 permissionMode: bypassPermissions
