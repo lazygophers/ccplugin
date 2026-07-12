@@ -26,7 +26,7 @@
 /skein-go 把 getUserById 返回类型从 User 改为 UserDTO, 所有调用点一次改齐, 不留兼容层
 ```
 
-- 这类活儿走 **`skein-planning` heavy 档的破坏式重构注解** (`references/breaking-refactor.md`): 不保兼容、全站点一次改齐。
+- 这类活儿走 **`skein-plan` heavy 档的破坏式重构注解** (`references/breaking-refactor.md`): 不保兼容、全站点一次改齐。
 - exec 会先 grep 所有调用点, 一次性全改, 避免留半新半旧的中间态。
 - worktree 隔离在这里尤其关键: 改到一半发现方案不对, 直接丢弃整条 task, 主分支毫发无损。
 

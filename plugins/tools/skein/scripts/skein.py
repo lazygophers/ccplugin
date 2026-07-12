@@ -11,7 +11,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
   .skein/task/<id>/task.md        单 task 子任务看板 (渲染) — 脚本维护, AI 禁读写
-  .skein/task/<id>/{prd,design,implement}.md  planning 工件 (skein-planning 写, AI 可读写)
+  .skein/task/<id>/{prd,design,implement}.md  planning 工件 (skein-plan 写, AI 可读写)
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
 
 四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态

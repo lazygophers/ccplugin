@@ -11,10 +11,10 @@
 | 动态 DAG 编排调度 (双层) | `skein-flow` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 并行只看 `depends_on` DAG, 并发上限 2, 完成即派 |
 | worktree 隔离 | `skein.py` | 1 task 1 worktree, 主工作区零改动 |
 | 看板 (文本 + 可视化) | `skein.py board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
-| planning 入口 | `skein-planning` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
+| planning 入口 | `skein-plan` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |
 | **两层×类目规则记忆** | `skein-memory` + `memory.py` | **差异化核心** (见下) |
 | 对抗式审查 | `skein-grill` | 需求/工件对抗校对 (planning 硬门) |
-| 破坏式重构 | `skein-planning` (heavy 档, `references/breaking-refactor.md`) | 不保兼容、全站点一次改齐的重构模式注解 |
+| 破坏式重构 | `skein-plan` (heavy 档, `references/breaking-refactor.md`) | 不保兼容、全站点一次改齐的重构模式注解 |
 | 质量门 | `skein-check` | 派 `skein-checker` 验证 (lint/type/test/契约), 未过派合适 agent (无则 `general-purpose`) 修复重检 |
 | 第 3 轮根因复盘 | `skein-check` (`references/root-cause-protocol.md`) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或 STOP 转人工 |
 | 冷启动播种 | `skein-memory` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |

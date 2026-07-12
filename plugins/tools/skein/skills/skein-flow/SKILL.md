@@ -30,7 +30,7 @@ plan → exec → check → finish 四步闭环
 
 - `skein.py start <任务 ID> --name <任务名称> --desc <任务描述>` 创建任务
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
-- Skill(skein-planning) 规划任务、编写 prd 等内容
+- Skill(skein-plan --continue) 规划任务、编写 prd 等内容
 - ToolCall(AskUserQuestion) 评审产物、确认用户需求
   - 确认并启动任务
   - 任务需要修改

@@ -1,22 +1,23 @@
 ---
-name: skein-planning
-description: planning 入口 (需求/方案单一真值源)。新建 SKEIN task 做需求梳理时使用 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md/implement.md
+name: skein-plan
+description: 'planning 入口 + 单一真值源 (用户可显式调用 /skein-plan, 也被 skein-flow 委托): 新建 SKEIN task 做需求梳理 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md/implement.md。无参 = 跑完停在 start 前 (只规划不执行); --continue = 不停返回工件路径 (供 flow 自接激活)'
+user-invocable: true
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
 model: opus
 effort: high
 ---
 
-# skein-planning — planning 入口
+# skein-plan — planning 入口 + 单一真值源
 
 **planning 单一真值源**。判新旧 + 登记 + brainstorm + grill, 产出 planning 工件。**全程 main 同步前台** — brainstorm/grill 需逐问用户 (`AskUserQuestion`), subagent 不能与用户对话, 故不派执行 subagent (纯信息调研可派 `skein-researcher` 只读 subagent, 但设计决策 main 汇总裁定)。
 
 `skein-researcher` 的结论持久化在 `.skein/task/<id>/research/` (dispatch 时把该 task id 作为 task-id 传给它)。planning 后续步骤 (brainstorm/PRD) 可复读这些笔记, 不必只靠回传摘要或记忆; task finish 归档时随 task 目录一并归档。
 
-## 入参
+## 入参 (决定是否停在 start 前)
 
-- 无参 → 跑完 planning **STOP: 停在 start 前** (等用户直呼激活, 禁自行 start)。
-- `--continue` → 跑完 planning **不停**, 返回工件路径 (供 `skein-flow` 自接激活)。
+- **无参** (用户直呼 `/skein-plan`) → 跑完 planning **STOP: 停在 start 前**, task 留 planning 态, 交还控制权。**禁 `skein.py start` / 禁 exec / check / finish** — 执行归 `skein-flow` / `/skein-go`。
+- `--continue` (skein-flow 委托) → 跑完 planning **不停**, 返回工件路径 (供 `skein-flow` 自接激活)。
 
 ## 策略分档 (轻量路由启发)
 
@@ -27,6 +28,16 @@ effort: high
 | `direct-fix` | 单点微改, 在作用域边界表豁免范围内   | 不建 task, 直接改                                                                                                                      |
 | `standard`   | 跨文件 / 多步, 单 task 可覆盖        | 常规 plan→exec→check→finish                                                                                                            |
 | `heavy`      | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 references/breaking-refactor.md |
+
+### 作用域边界 (何时建 task)
+
+| 特征                              | 判定                         |
+| --------------------------------- | ---------------------------- |
+| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免, 不建 task              |
+| 单文件单处改, ≤20 行且位置已知    | 豁免                         |
+| 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task**                |
+| 需外部调研 / 产出文档交付         | **必建 task** (调研走 research) |
+| 边界模糊                          | **AskUserQuestion 用户裁定** |
 
 ## 流程
 
@@ -42,7 +53,7 @@ effort: high
    - `prd.md` — 需求: 目标 / 用户价值 / 边界 / 非目标 / 验收基准。
    - `design.md` (可选, 复杂方案) — 架构 / 取舍 / 技术选型。
    - `implement.md` — 实现拆解: subtask 列表 (每个含 depends_on + 验收标准 checklist) + **调度图** (mermaid, 供 exec 阶段 DAG)。
-6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停, 提示用户激活。
+6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-go <task>` 或 `/skein-flow` 激活。
 
 ## 调度图 (implement.md 必含)
 
@@ -50,4 +61,4 @@ exec 阶段的 DAG 靠这张图。缺失 → exec 无法调度 → 禁进 exec (
 
 ## 反例
 
-违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / implement.md 缺调度图 / 纯文本代替 AskUserQuestion。
+违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / implement.md 缺调度图 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein.py start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go)。

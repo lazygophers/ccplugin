@@ -70,14 +70,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 全文有字符上限 (`inject-core` 软告警), 超了 sediment 会提示降级到 recall。SessionStart **只注入极简索引** (每条一行标题), 另有独立 token 硬预算 (`hooklib`, 超则截断) — 常驻上下文恒定小, 全文按需拉。
 
-## Skills (8 个)
+## Skills (7 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
-| `skein-add` | **[仅用户显式 `/skein-add <任务描述>`, disable-model-invocation]** 只规划不执行入口: 委托 `skein-planning` (planning 真值源) 无参跑完 planning (判新旧 + 登记 + brainstorm + grill 硬门 + 产出 `prd.md`[+`design.md`]+`implement.md`), 然后**停在 `skein.py start` 之前**, task 留 planning 态, 禁 exec/check/finish。产出的 planning 态 task 留待用户再走 `/skein-go` 或 `skein-flow` 消费。与 flow/`/skein-go` 边界: 后者=强制全闭环 plan→exec→check→finish, add=只到 planning 停 | — |
 | `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `memory.py reindex`) | trellis-migration |
 | `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | step-plan · step-exec · step-check · step-finish · scheduling-algorithm · progress-reporting |
-| `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
+| `skein-plan` | plan 入口 + 单一真值源 (用户可显式 `/skein-plan`, 也被 flow `--continue` 委托): 判新旧 + 登记 + brainstorm + grill 硬门; **无参 = 跑完停在 start 前 (只规划不执行, 禁 exec/check/finish)**, `--continue` = 不停返回工件路径; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
 | `skein-check` | 质量门 (lint/type/test/契约), 未过派修; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |

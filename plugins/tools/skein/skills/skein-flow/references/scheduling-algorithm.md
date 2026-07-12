@@ -1,6 +1,6 @@
 # 调度算法 (双层同构)
 
-编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning`)。
+编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。
 
 ## 调度 DAG = 显式 depends_on (唯一边源)
 

@@ -1,6 +1,6 @@
 # PRD — order-create-api 订单创建 API
 
-> planning 工件 (skein-planning 写)。**AI 可读写**, 不受 guard 拦截。
+> planning 工件 (skein-plan 写)。**AI 可读写**, 不受 guard 拦截。
 
 ## 背景 / 目标
 

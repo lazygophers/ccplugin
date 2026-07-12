@@ -27,7 +27,7 @@ effort: xhigh
 
 ## 触发
 
-- **planning 硬门 (强制)**: skein-planning 产出 planning 产物后、`skein.py start` **前 MUST 跑一轮**。🔴🛑 **未跑 grill 禁 start** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
+- **planning 硬门 (强制)**: skein-plan 产出 planning 产物后、`skein.py start` **前 MUST 跑一轮**。🔴🛑 **未跑 grill 禁 start** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
 - **用户显式**: `/skein-grill` 或 "盘一下这个方案 / 审下设计 / 红队"。
 
 **不触发 (跳过)**: 纯查询 / 问答 (无 planning 产物) · inline 豁免任务 (无 task) · 同一产物未变更且已 grill 过一轮 (无新增改动)。

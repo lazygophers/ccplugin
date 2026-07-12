@@ -44,8 +44,8 @@
 | `board/` | 主题/配色 CSS (base + themes/ + palettes/, 从插件 `assets/board/` 拷贝, 看板 html 相对路径 `<link>` 引入) | **脚本** · git 忽略 |
 | `task/order-create-api/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) + `contracts[]` | **脚本** · AI 禁读写 |
 | `task/order-create-api/task.md` | 子任务看板 (四态一览) | **脚本** · AI 禁读写 |
-| `task/order-create-api/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-planning · **AI 可读写** |
-| `task/order-create-api/implement.md` | planning 工件: subtask 拆分 + mermaid 调度图 + 落盘命令 | skein-planning · **AI 可读写** |
+| `task/order-create-api/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-plan · **AI 可读写** |
+| `task/order-create-api/implement.md` | planning 工件: subtask 拆分 + mermaid 调度图 + 落盘命令 | skein-plan · **AI 可读写** |
 | `task/order-create-api/journal.md` | append-only 过程记录 | AI 追加 · 随 task 归档 |
 | `task/order-pay/*` | 待处理但已 plan 出 subtask (未 start, 无 prd/worktree); order-report/notification-service 同类 | **脚本** · AI 禁读写 |
 | `task/refund-flow/*` | 待处理但已 plan 出 subtask (subtask 全待处理) — 展示"排队 + 已拆分" | **脚本** · AI 禁读写 |
