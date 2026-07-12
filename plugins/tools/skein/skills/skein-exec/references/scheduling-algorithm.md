@@ -13,7 +13,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
-| `subtask add <tid> <sid> --deps --check --agent --skills` | planning/main | 登记 subtask 到 DAG (`--check` = 验收标准 checklist 分号分隔; `--agent` 省略默认 `skein-executor`, `--skills` 逗号分隔 0-n) |
+| `subtask add <tid> <sid> --name --agent [--deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--agent` 三者必填** (无合适 agent 显式填 `general-purpose`); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
 | `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |

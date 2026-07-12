@@ -28,8 +28,8 @@ flowchart LR
 ## 落盘命令 (planning 执行)
 
 ```bash
-skein.py subtask add order-create-api s1 --name "请求参数校验" --check "缺商品/数量/收货地址返回 400; 数量 ≤ 0 拒绝"
-skein.py subtask add order-create-api s2 --name "库存扣减"     --check "扣减不允许负库存; 库存不足返回 409"
-skein.py subtask add order-create-api s3 --name "订单落库"     --deps "s1,s2" --check "幂等键冲突返回既有订单 (不重复落单)"
-skein.py subtask add order-create-api s4 --name "订单创建事件" --deps "s3"    --check "落单成功后发一次 MQ 事件; 发送失败可重试"
+skein.py subtask add order-create-api s1 --name "请求参数校验" --agent general-purpose --check "缺商品/数量/收货地址返回 400; 数量 ≤ 0 拒绝"
+skein.py subtask add order-create-api s2 --name "库存扣减"     --agent general-purpose --check "扣减不允许负库存; 库存不足返回 409"
+skein.py subtask add order-create-api s3 --name "订单落库"     --agent general-purpose --deps "s1,s2" --check "幂等键冲突返回既有订单 (不重复落单)"
+skein.py subtask add order-create-api s4 --name "订单创建事件" --agent general-purpose --deps "s3"    --check "落单成功后发一次 MQ 事件; 发送失败可重试"
 ```

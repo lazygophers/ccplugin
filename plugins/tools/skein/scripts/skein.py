@@ -570,6 +570,9 @@ class Skein:
                 sid = s.get("sid", "?")
                 if s.get("status") not in {SS_PENDING, SS_RUNNING, SS_DONE, SS_FAILED}:
                     errs.append(f"{tid}/{sid}: 非法 subtask status {s.get('status')!r}")
+                for f in ("name", "agent"):
+                    if not s.get(f):
+                        errs.append(f"{tid}/{sid}: subtask 缺 {f} (sid/name/agent 必填)")
                 for d in s.get("depends_on", []):
                     if d == sid:
                         errs.append(f"{tid}/{sid}: depends_on 自引用")
@@ -739,13 +742,13 @@ class Skein:
             if any(s["sid"] == a.sid for s in subs):
                 raise SystemExit(f"subtask 已存在: {a.tid}/{a.sid}")
             subs.append({
-                "sid": a.sid, "name": a.name or a.sid,
+                "sid": a.sid, "name": a.name,
                 "depends_on": _split(a.deps),
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
                 "status": SS_PENDING,
                 "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
-                "agent": a.agent or "general-purpose",  # 执行 agent (无合适则通用)
+                "agent": a.agent,  # 执行 agent (必填, 无合适则显式填 general-purpose)
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
@@ -1400,19 +1403,23 @@ def main():
     st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "done", "fail", "list"],
                     help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
-    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带)")
-    st.add_argument("--name", help="[add] subtask 名称")
+    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/agent 三者必填)")
+    st.add_argument("--name", help="[add 必填] subtask 名称")
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
     st.add_argument("--note", help="[fail] 失败备注")
     st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
     st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
-    st.add_argument("--agent", help="[add] 关联执行 agent (省略默认 general-purpose)")
+    st.add_argument("--agent", help="[add 必填] 关联执行 agent (无合适则显式填 general-purpose)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
     a = p.parse_args()
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
+    if getattr(a, "cmd", None) == "subtask" and a.action == "add":
+        missing = [f for f, v in (("--name", a.name), ("--agent", a.agent)) if not v]
+        if missing:
+            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/agent 三者缺一不可)")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
