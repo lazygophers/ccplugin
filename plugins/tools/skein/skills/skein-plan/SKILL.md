@@ -42,7 +42,7 @@ effort: high
 ## 流程
 
 1. **判新旧** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件, 不新建。
-2. **登记** — 全新 → `skein.py create <id> [--desc ..] [--deps ..] [--estimate <分钟>]`, `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api` / `user-auth`; 兼作分支名 + 目录名), **禁 `t01`/`t2` 这类字母+数字代号** (脚本硬拒)。得工件目录。`--estimate` = **AI 执行预期耗时** (非人类工时), planning 判力度时估, 供 task.html 显示 预期 vs 实际。subtask 同理可带 `--estimate`。(`create` 自动刷看板)
+2. **登记** — 全新 → `skein.py create <id> --name <标题> --desc <一句话> [--deps ..] [--estimate <分钟>]` (`<id>`/`--name`/`--desc` **三者必填**, 缺一 argparse 报错), `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api` / `user-auth`; 兼作分支名 + 目录名), **禁 `t01`/`t2` 这类字母+数字代号** (脚本硬拒)。得工件目录。`--estimate` = **AI 执行预期耗时** (非人类工时), planning 判力度时估, 供 task.html 显示 预期 vs 实际。subtask 同理可带 `--estimate`。(`create` 自动刷看板)
 3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。
 4. **grill 硬门 (未过禁进 exec)** — 委托 `skein-grill` 全轴对抗校对, 重点确认「用户想法 = PRD 写的」。弱点表交用户过, 补齐后放行。**未跑 grill 禁进 exec**; grill 未完成或弱点表未补齐 → 停在本步, 禁推进。
    - **锁定契约** — grill/brainstorm 里梳理出的不变量 (MUST/禁/边界条件) 由 main 用脚本逐条锁进 task.json (main 同步跑脚本, 不派 agent), 供 check 阶段逐条验证:
@@ -53,7 +53,7 @@ effort: high
    - `prd.md` (主入口) — 分章节: **目标 / 边界 / 验收标准 / 索引** (链 design/findings/task.json)。每章节自带 `- [ ] TODO`, 填完逐个勾掉; 未勾清 = planning 未收敛。
    - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json)。
    - `findings.md` (需调研时) — 深度调研的收敛结论 + 依据/引用; 过程笔记存 `research/` (researcher 写)。
-   - **子任务 + 调度 DAG** — subtask 拆分 (每个含 depends_on + 验收 checklist) 逐条 `skein.py subtask add <id> <sid> --name --agent [--deps --check]` 落进 task.json。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
+   - **子任务 + 调度 DAG** — subtask 拆分 (每个含 depends_on + 验收 checklist) 逐条 `skein.py subtask add <id> <sid> --name --desc --agent [--deps --check]` 落进 task.json (sid/--name/--desc/--agent 四者必填)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
 6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
 ## 调度 = task.json 子任务 DAG

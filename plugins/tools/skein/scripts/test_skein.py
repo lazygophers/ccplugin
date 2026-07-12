@@ -59,8 +59,8 @@ def main():
         assert t["name"] == "第一个任务", t["name"]
         assert t["status"] == "待处理", t["status"]
         # 非法 id (非 slug) + 重复 id 均拒
-        assert sk(d, "create", "订单接口", check=False).returncode != 0, "非 slug id 应拒"
-        assert sk(d, "create", "task-1", check=False).returncode != 0, "重复 id 应拒"
+        assert sk(d, "create", "订单接口", "--name", "x", "--desc", "y", check=False).returncode != 0, "非 slug id 应拒"
+        assert sk(d, "create", "task-1", "--name", "x", "--desc", "y", check=False).returncode != 0, "重复 id 应拒"
         assert t["contracts"] == [], "create 未初始化 contracts"
         assert isinstance(t["created"], int), "created 须为时间戳"
 
@@ -71,7 +71,7 @@ def main():
         assert "输出必须幂等" in sk(d, "contract", "task-1").stdout, "contract 未列出"
 
         # start 前须登记 ≥1 subtask (planning 拆分产物)
-        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--desc", "描述", "--agent", "general-purpose")
 
         # start task-1 → worktree 建出
         sk(d, "start", "task-1")
@@ -100,11 +100,11 @@ def main():
             assert json.loads(r2.stdout)["hookSpecificOutput"]["hookEventName"] == "SessionStart"
 
         # 并发上限: create+start task-2, task-3 应被拒
-        sk(d, "create", "task-2", "--name", "第二个")
-        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--agent", "general-purpose")
+        sk(d, "create", "task-2", "--name", "第二个", "--desc", "描述")
+        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
         sk(d, "start", "task-2")
-        sk(d, "create", "task-3", "--name", "第三个")
-        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--agent", "general-purpose")
+        sk(d, "create", "task-3", "--name", "第三个", "--desc", "描述")
+        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
         r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
@@ -151,8 +151,8 @@ def main():
 
         # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
         sk(d, "start", "task-3")
-        sk(d, "create", "task-4", "--name", "第四个")
-        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--agent", "general-purpose")
+        sk(d, "create", "task-4", "--name", "第四个", "--desc", "描述")
+        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
         sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
@@ -162,10 +162,10 @@ def main():
         assert any(x["id"] == "task-4" and x["status"] == "进行中" for x in top["tasks"]), "finish 误伤无关 active"
 
         # ---- subtask DAG 调度 ----
-        sk(d, "create", "task-5", "--name", "编排任务")
-        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--agent", "general-purpose")
-        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--agent", "general-purpose")
-        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--agent", "general-purpose")
+        sk(d, "create", "task-5", "--name", "编排任务", "--desc", "描述")
+        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--agent", "general-purpose")
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
         r = sk(d, "subtask", "ready", "task-5").stdout
         assert "s1" in r and "s2" in r and "s3" not in r, "就绪批错 (s3 应被依赖挡)"
@@ -193,6 +193,16 @@ def main():
         # ready 只读: s3 就绪但未认领仍待处理
         subs = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in subs}["s3"] == "待处理"
+        # ---- pop: 只读提取一个可执行 (task, subtask) 对 ----
+        # task-4 仍 active 且 s1 就绪 → pop 主路径返回 (task-4, s1)
+        rp = sk(d, "pop").stdout
+        assert "task-4" in rp and "s1" in rp, f"pop 未提取到 active task 就绪 subtask: {rp!r}"
+        # pop 只读: 不改状态
+        s4 = json.loads((d / ".skein/task/task-4/task.json").read_text())["subtasks"]
+        assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "pop 误改状态 (应只读)"
+        # 无 active 就绪 + 有就绪 pending 时走 "待激活" 提示 (task-5 pending, task-4 done 掉 s1 后腾出)
+        sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
+        assert "待激活" in sk(d, "pop").stdout, "pop 未提示就绪 pending task"
 
     test_setup()
     test_lock()

@@ -327,10 +327,10 @@ class Skein:
         if tid in self._used_ids():
             raise SystemExit(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
         (self.tasks / tid).mkdir(parents=True)
-        self._scaffold(tid, a.name or tid)  # 落 prd/design/findings 脚手架 (planning 填)
+        self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
-            "id": tid, "name": a.name or tid, "desc": a.desc or "",
+            "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "worktree": None, "branch": f"skein/{tid}",
             "estimate": a.estimate,  # AI 执行预期耗时 (分钟, planning 填; None=未估)
@@ -496,6 +496,36 @@ class Skein:
         for t in picked:
             deps = ",".join(t["deps"]) or "-"
             print(f"{t['id']}\t{t['name']}\t前置: {deps}")
+
+    def pop(self, a):
+        # 只读提取一个"可执行" (task, subtask) 对: active task 内首个就绪 subtask (pending+依赖全done+有空闲并发槽)。
+        # 仅选取, 不改状态/不认领 —— 是否执行、何时认领由 AI 判定。执行前须 `subtask claim/start` 占槽。
+        for t in self._active():
+            batch = self._ready(t)
+            if not batch:
+                continue
+            s = batch[0]
+            wt = t.get("worktree") or "-"
+            deps = ",".join(s.get("depends_on", [])) or "-"
+            skl = ",".join(s.get("skills", [])) or "-"
+            chk = "; ".join(s.get("验收", [])) or "-"
+            print(f"task\t{t['id']}\t{t['name']}\tworktree: {wt}")
+            print(f"subtask\t{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'general-purpose')}\tskills: {skl}\t前置: {deps}")
+            print(f"desc\t{s.get('desc') or '-'}")
+            print(f"验收\t{chk}")
+            print("— 决定执行后, 认领就绪批(整批标 running): "
+                  f"`skein.py subtask claim {t['id']}`  或只占此单个: `skein.py subtask start {t['id']} {s['sid']}`")
+            print(f"— 完成后: `skein.py subtask done {t['id']} {s['sid']}` (失败 `subtask fail {t['id']} {s['sid']} --note ...`)")
+            return
+        # 无 active task 含就绪 subtask → 提示是否有就绪 pending task 待激活
+        if self.config()["max_active"] - len(self._active()) > 0:
+            for t in self._all():
+                if t["status"] != S_PENDING or any(self._dep_unfinished(d) for d in t["deps"]):
+                    continue
+                print(f"无 active task 含就绪 subtask; 有就绪 pending task 待激活: {t['id']} ({t['name']})")
+                print(f"— 先激活再 pop: `skein.py start {t['id']}`")
+                return
+        print("无可执行 (task, subtask): active task 均无就绪 subtask, 亦无就绪 pending task 可激活")
 
     def list_(self, a):
         for t in self._all():
@@ -761,7 +791,7 @@ class Skein:
             if any(s["sid"] == a.sid for s in subs):
                 raise SystemExit(f"subtask 已存在: {a.tid}/{a.sid}")
             subs.append({
-                "sid": a.sid, "name": a.name,
+                "sid": a.sid, "name": a.name, "desc": a.desc,
                 "depends_on": _split(a.deps),
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
@@ -1402,10 +1432,10 @@ def main():
     su = sub.add_parser("setup", help="初始化 + trellis 迁移 (默认兼容: 拷 spec/task + 删接线, 留 .trellis 数据; --full 再整删 .trellis)")
     su.add_argument("--full", action="store_true", help="完全迁移+移除: 兼容操作 + 整删 .trellis/ (spec/task 已拷入 .skein)")
     su.add_argument("--no-web", action="store_true", help="关闭持久看板 web 服务 (写 config.yaml web_serve=false; 缺省启用并打开看板)")
-    c = sub.add_parser("create", help="登记新 task (id 必填, 可读 slug)")
+    c = sub.add_parser("create", help="登记新 task (id/--name/--desc 必填)")
     c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
-    c.add_argument("--name", help="task 标题 (省略则用 id)")
-    c.add_argument("--desc", help="一句话描述")
+    c.add_argument("--name", required=True, help="[必填] task 标题")
+    c.add_argument("--desc", required=True, help="[必填] 一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
     c.add_argument("--estimate", type=int, help="AI 执行预期耗时 (分钟, planning 填)")
     s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
@@ -1418,6 +1448,7 @@ def main():
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
+    sub.add_parser("pop", help="只读提取一个可执行 (task, subtask) 对 (active task 内首个就绪 subtask; 仅选取, 是否执行交 AI 判)")
     sub.add_parser("list", help="列所有 task (含状态)")
     sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
@@ -1434,8 +1465,9 @@ def main():
     st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "done", "fail", "list"],
                     help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
-    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/agent 三者必填)")
+    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/desc/agent 四者必填)")
     st.add_argument("--name", help="[add 必填] subtask 名称")
+    st.add_argument("--desc", help="[add 必填] 一句话描述")
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
     st.add_argument("--note", help="[fail] 失败备注")
@@ -1448,9 +1480,9 @@ def main():
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if getattr(a, "cmd", None) == "subtask" and a.action == "add":
-        missing = [f for f, v in (("--name", a.name), ("--agent", a.agent)) if not v]
+        missing = [f for f, v in (("--name", a.name), ("--desc", a.desc), ("--agent", a.agent)) if not v]
         if missing:
-            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/agent 三者缺一不可)")
+            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/agent 四者缺一不可)")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
@@ -1465,7 +1497,7 @@ def main():
     dispatch = {
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
-        "ready": sk.ready,
+        "ready": sk.ready, "pop": sk.pop,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract,
         "subtask": sk.subtask,

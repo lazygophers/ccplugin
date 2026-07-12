@@ -13,8 +13,9 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
-| `subtask add <tid> <sid> --name --agent [--deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--agent` 三者必填** (无合适 agent 显式填 `general-purpose`); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
+| `subtask add <tid> <sid> --name --desc --agent [--deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--desc`/`--agent` 四者必填** (缺一 argparse 报错; 无合适 agent 显式填 `general-purpose`); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
 | `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
+| `pop` | main (查候选) | **只读提取一个可执行 (task, subtask) 对** (active task 内首个就绪 subtask); 仅选取不改态, 是否执行由 main/AI 判。决定执行后仍走 `claim`/`subtask start` 占槽 |
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
@@ -25,7 +26,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
     对认领到的每个 subtask: 为其选合适 agent (无则 skein-executor) 执行 (真实 Agent 调用)  # ≤ max_parallel
     等任一 subagent 返回
-    → subtask done/fail <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
+    → skein.py subtask done/fail <tid> <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
 ```
 
 - **并发上限 2** — `claim` 内按 `max_parallel - running` 截断, 满槽返回空。
