@@ -32,7 +32,7 @@ python3 <plugin>/scripts/memory.py recall "<任务关键词>"
 
 ## sediment (task finish 阶段, main) — 判定门 + 审批写盘
 
-task finish 后走「判定门 checklist → 分层归类 → 🔴 AskUserQuestion 审批 (写盘前硬停, main 亲做) → memory.py sediment 写盘 + 自动 reindex」四步 (含升降级)。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
+task finish 后走「判定门 checklist → 分层归类 → AskUserQuestion 审批 (写盘前硬停, main 亲做) → memory.py sediment 写盘 + 自动 reindex」四步 (含升降级)。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
 
 ## 空仓冷启动播种 (一次性, main)
 
@@ -46,7 +46,7 @@ task finish 后走「判定门 checklist → 分层归类 → 🔴 AskUserQuesti
 | ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
 | recall grep 无命中            | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目)   | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补 |
 | `memory.py sediment/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法)    | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘 |
-| core 常驻超 8000 字符告警     | 把最少复用的 core 规则降级到 recall (`sediment` 调层) | 仍超 → STOP, 提示用户 core 膨胀, 需人工裁剪硬规集            |
+| core 常驻超 8000 字符告警     | 把最少复用的 core 规则降级到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集            |
 
 ## 反例
 

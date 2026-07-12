@@ -27,7 +27,7 @@ effort: xhigh
 
 ## 触发
 
-- **planning 硬门 (强制)**: skein-plan 产出 planning 产物后、`skein.py start` **前 MUST 跑一轮**。🔴🛑 **未跑 grill 禁 start** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
+- **planning 硬门 (强制)**: skein-plan 产出 planning 产物后、`skein.py start` **前 MUST 跑一轮**。**未跑 grill 禁 start** — 弱点表未补齐或有未裁决弱点, 停在本步, 禁推进 exec。
 - **用户显式**: `/skein-grill` 或 "盘一下这个方案 / 审下设计 / 红队"。
 
 **不触发 (跳过)**: 纯查询 / 问答 (无 planning 产物) · inline 豁免任务 (无 task) · 同一产物未变更且已 grill 过一轮 (无新增改动)。
@@ -37,8 +37,8 @@ effort: xhigh
 | 触发                     | 一线修复                                          | 仍失败兜底                                                       |
 | ------------------------ | ------------------------------------------------- | --------------------------------------------------------------- |
 | 某轴挖不出弱点 (太顺)    | 换角度深挖: 极端输入 / 并发 / 依赖失效 / 反向问   | 仍无 → 显式记「该轴已过, 无阻断项」, 禁把「没想到」当「没问题」  |
-| 用户答不出某问 (需求没想清) | 给 2-3 推荐选项让用户选, 非开放式问              | 仍答不出 → 标「需求未定」, 🛑 STOP 退回 skein-plan brainstorm 补 |
-| 循环 >3 轮弱点未收敛     | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完     | 仍发散 → STOP, 提示 scope 过大, 建议拆多 task (planning heavy 档) |
+| 用户答不出某问 (需求没想清) | 给 2-3 推荐选项让用户选, 非开放式问              | 仍答不出 → 标「需求未定」, 停手退回 skein-plan brainstorm 补 |
+| 循环 >3 轮弱点未收敛     | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完     | 仍发散 → 停手, 提示 scope 过大, 建议拆多 task (planning heavy 档) |
 
 ## 反例 (命中 = grill 失败)
 
@@ -48,7 +48,7 @@ effort: xhigh
 - 空问不给推荐答案 — 每问必带你的判断让用户裁 (补 / 接受风险 / 砍需求)。
 - 能 Read/Grep 自查的去问用户 — codebase 优先, 只问文件答不了的决策点。
 - 派 subagent 做 grill — 它不能 `AskUserQuestion`, 必 main 亲做。
-- 弱点表有未裁决项就放行 start — 🔴🛑 未补齐禁推进 exec。
+- 弱点表有未裁决项就放行 start — 未补齐禁推进 exec。
 
 ## 明细 (审查轴 / 失败模式 / 输出弱点表)
 

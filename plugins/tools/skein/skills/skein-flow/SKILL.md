@@ -32,7 +32,7 @@ plan → exec → check → finish 四步闭环
 - **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
 - Skill(skein-plan --continue) 规划任务、编写 prd 等内容
-- 🔴 CHECKPOINT · 🛑 STOP — ToolCall(AskUserQuestion) 评审产物、确认用户需求 (未确认禁进 exec)
+- ToolCall(AskUserQuestion) 评审产物、确认用户需求 — 未确认禁进 exec (硬门, main 亲做)
   - 确认并启动任务
   - 任务需要修改
 
@@ -67,7 +67,7 @@ plan → exec → check → finish 四步闭环
 
 ## 完成判定
 
-- 走完 plan→exec→check→finish — 🛑 **未 archive = 未完成, 禁宣告 Done**。
+- 走完 plan→exec→check→finish — **未 archive = 未完成, 禁宣告 Done**。
 - finish 前清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`), 未关 = 未闭环。
 - sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-memory`)。
 

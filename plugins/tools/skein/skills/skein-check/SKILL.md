@@ -28,7 +28,7 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进对应循环 (见下)。
 3. **处置 (分两路)** —
    - **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 按 checker 报告 (file:line + 报错原文) 派合适 agent (无则 `skein-executor`) 修, 只改失败相关文件。
-   - **一致性冲突 或 check 失败根因跨 subtask** → 🔴 **深化拆分 (非定点补丁)**: 定点补丁治标, 冲突根因在 planning 拆分不到位。回 `skein.py plan`, 把每个冲突根因拆成新 subtask (逐条覆盖, 一冲突一 subtask, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
+   - **一致性冲突 或 check 失败根因跨 subtask** → **深化拆分 (非定点补丁)**: 定点补丁治标, 冲突根因在 planning 拆分不到位。回 `skein.py plan`, 把每个冲突根因拆成新 subtask (逐条覆盖, 一冲突一 subtask, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
 4. **重验** — 修复/深化后重派 `skein-checker` 复跑 (含一致性)。未过或仍有冲突继续对应循环。
 5. **放行** — 全绿且零冲突 → 回 `skein-flow` 走 finish。
 
@@ -37,7 +37,7 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 | 轮次           | 动作                                                                                                                                                                                                              |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2 轮 FAIL    | 按报告定点修复重检 (正常循环)                                                                                                                                                                                     |
-| 第 3 轮仍 FAIL | STOP 定点循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 做结构化根因复盘 (5 维定位 root cause + 预防措施), 禁无限盲改。2 出口: 带根因回 exec 定向重修, 或 STOP 附根因报告转人工 |
+| 第 3 轮仍 FAIL | 停定点循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 做结构化根因复盘 (5 维定位 root cause + 预防措施), 禁无限盲改。2 出口: 带根因回 exec 定向重修, 或停手附根因报告转人工 |
 
 ## 反例
 
