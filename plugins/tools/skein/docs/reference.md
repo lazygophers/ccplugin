@@ -110,9 +110,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `retain_days` | `7` | 完成 task 保留天数 (留看板), 超则 `_autoclean` 自动归档。`0` = finish 即归档 (旧行为); 负数 = 永不自动归档 (仅 `clean` 主动清) |
 | `auto_commit` | `true` | finish 时自动 commit worktree 改动。设 false 则有未提交改动会拒绝 finish (防强删丢失) |
 | `worktree_root` | `.worktrees` | worktree 存放根目录 (相对 git 根) |
-| `board_theme` | `morandi` | 看板默认主题: `morandi` 莫兰迪 / `glassmorphism` 玻璃拟态 / `liquid` 液态玻璃 / `handdrawn` 手绘 (页内切换器可实时改, 存 localStorage) |
+| `board_theme` | `sketch` | 看板默认主题, 取 `assets/board/themes/` 任一名 (sketch / morandi / glassmorphism / liquid / handdrawn / bauhaus / blueprint / ghibli / terminal / neumorphism / ... 共 17 种)。页内切换器可实时改, 存 localStorage |
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
 | `board_mode` | `light` | 看板默认明暗: `light` 浅色 / `dark` 深色 |
+| `board_server` | `false` | `view` 打开方式: `false` = `file://` 直接开静态 task.html; `true` = 起本地 http 服务 (随机 port, 服务 `.skein/`) + 自动开浏览器, Ctrl-C 停 |
+
+> **缺键自动回填**: `config()` 每次加载时对照 `CONFIG_DEFAULTS`, 缺的键补默认值并回写 config.yaml (用户已有值保留)。旧工作区升级后新增键无需手动补。
 
 > 主题/配色以**独立 CSS 文件**存在于插件 `assets/board/` (base + themes/ + palettes/), 渲染时拷到 `.skein/board/`, 看板 html 用相对路径 `<link>` 引入。改主题不需重渲染 — 页面右上角切换器即时切换。
 

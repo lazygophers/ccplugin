@@ -135,6 +135,20 @@ def _yaml_dump(d: dict) -> str:
     return "".join(f"{k}: {fmt(v)}\n" for k, v in d.items())
 
 
+# config.yaml 全部键的默认值 — init 写入 + config() 缺键自动回填的唯一真值源。
+CONFIG_DEFAULTS = {
+    "max_active": 2,
+    "max_parallel": 2,
+    "auto_commit": True,
+    "worktree_root": ".worktrees",
+    "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
+    "board_theme": "sketch",
+    "board_palette": "stone",
+    "board_mode": "light",
+    "board_server": False,  # view: True→本地 http server 随机 port + 开浏览器; False→file:// 直开
+}
+
+
 def git(*args, cwd=None, check=True, capture=True):
     r = subprocess.run(
         ["git", *args], cwd=cwd, check=False,
@@ -169,6 +183,11 @@ class Skein:
         if not f.exists():
             raise SystemExit("未初始化 — 先跑 `skein.py init`")
         cfg = _yaml_load(f.read_text())
+        # 缺键自动回填默认值 (旧 config.yaml 补新增键), 有变更才回写省磁盘
+        missing = {k: v for k, v in CONFIG_DEFAULTS.items() if k not in cfg}
+        if missing:
+            cfg = {**CONFIG_DEFAULTS, **cfg}  # 保留用户值, 仅补缺键
+            f.write_text(_yaml_dump(cfg))
         # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
         for k in ("max_active", "max_parallel"):
             v = os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}")
@@ -247,16 +266,7 @@ class Skein:
         self.archive_dir.mkdir(parents=True, exist_ok=True)
         cfg = self.dir / "config.yaml"
         if not cfg.exists():
-            cfg.write_text(_yaml_dump({
-                "max_active": 2,
-                "max_parallel": 2,
-                "auto_commit": True,
-                "worktree_root": ".worktrees",
-                "retain_days": 7,  # 完成 task 保留天数 (留在看板), 超则自动归档; 0=finish 即归档, 负=永不自动
-                "board_theme": "sketch",
-                "board_palette": "stone",
-                "board_mode": "light",
-            }))
+            cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         gi = self.dir / ".gitignore"
         if not gi.exists():
@@ -907,12 +917,30 @@ class Skein:
             shutil.copytree(src, self.dir / "board", dirs_exist_ok=True)
 
     def view(self, _):
-        html = self.html_path
-        if not html.exists():
+        if not self.html_path.exists():
             self._board_html()
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.run([opener, str(html)], check=False)
-        print(f"已打开可视化看板: {html}")
+        if self.config().get("board_server"):
+            self._serve_board()
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.run([opener, str(self.html_path)], check=False)
+            print(f"已打开可视化看板: {self.html_path}")
+
+    def _serve_board(self):
+        # board_server=true: 起本地 http 服务 (随机 port) 服务 .skein/, 开浏览器到 task.html。
+        # 相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
+        import http.server, socketserver, webbrowser, functools
+        handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(self.dir))
+        handler.log_message = lambda *a: None  # 静默请求日志
+        with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
+            port = httpd.server_address[1]
+            url = f"http://127.0.0.1:{port}/task.html"
+            print(f"看板服务已启动: {url}  (Ctrl-C 停止)")
+            webbrowser.open(url)
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\n看板服务已停止")
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
     # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
