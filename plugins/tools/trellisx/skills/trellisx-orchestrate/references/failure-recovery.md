@@ -15,7 +15,7 @@ planning 阶段必须把"失败时怎么办"写进 design / implement, 不要等
 | 单 subtask 失败 | subtask 抛错 | 重派该 subtask | 耗尽重试 → 该项标 Blocked, 不阻塞其他 deliverable |
 | 用户驳回审批 | 用户 reject | — | 回 planning 修订 PRD / design / implement |
 
-> ⛔ 同一 subtask 累计失败 3 次禁第 4 次盲目重试; 必须**回 planning 重拆 + 重写 dispatch prompt**, 否则只是反复烧 token。
+> 同一 subtask 累计失败 3 次禁第 4 次盲目重试; 必须**回 planning 重拆 + 重写 dispatch prompt**, 否则只是反复烧 token。
 
 ### 两层重试 (各管一类失败, main 主导)
 

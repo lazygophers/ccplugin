@@ -39,7 +39,7 @@ arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 pla
 | **D 资源** | 改哪些文件? 谁独占? 并行还是串行? | 多 agent 文件集重叠 → 互相覆盖 |
 | **E 依赖** | 前后序? 共享文件? 阻塞? | 并行组不标依赖箭头 → 乱序 |
 | **F 失败模式 (dim3)** | 每步失败怎么办? 有 if-then 三段式 (触发/一线修复/兜底)? | 只写正向流程, 失败分支缺失 |
-| **G 检查点 (dim4)** | 关键决策有 🔴 视觉标记 + 用户确认? | 靠"必须"措辞代替标记, LLM 扫标记优先于语义 |
+| **G 检查点 (dim4)** | 关键决策有硬停/审批门 + 用户确认? | 靠"必须"措辞代替标记, LLM 扫标记优先于语义 |
 | **H 触发准确性** | should-trigger + should-not-trigger 对? 与邻居 skill 边界清? | 触发词与邻居重叠 → 误抢; 缺 not-trigger 对 |
 | **I token 生命周期** | 工件 + references 总行数? auto-trigger 还是手动? 多 skill session 会被踢吗? | auto-trigger skill 堆 references → 旧 skill 静默踢出, 无错误信息 |
 | **J 自举/矛盾** | 工件规则适用于自身吗? 有无路径互斥 (skill 说 A, agent 说非 A)? | 同名 skill+agent 走两条互斥路径 → routing 死结 |
@@ -66,7 +66,7 @@ arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 pla
 
 ### 硬门 2: 需求确认 (start 前) — 全轴对抗校对
 
-**触发点**: trellisx-flow step3 激活前 / trellisx-orchestrate L69 STOP 门 / phase 1.4 `task.py start` 前。
+**触发点**: trellisx-flow step3 激活前 / trellisx-orchestrate L69 硬停门 / phase 1.4 `task.py start` 前。
 
 **模式**: PRD + design + implement 全部写完后, **start 前最后一遍**: 跑全轴 A-L (按工件类型动态裁剪), 重点确认用户想法:
 - 轴 A/B/E (目标/产出/依赖): 用户要的 = PRD 写的?
@@ -84,7 +84,7 @@ arguments: '[被审工件路径 (prd/design/implement/spec/subtask 或任一 pla
 - status=planning + prd/design/implement 齐备 → 注入硬门 2 提醒 (start 前 MUST 调 grill)
 - status=planning + 部分工件 → 注入硬门 1 持续提醒 (至全齐转硬门 2)
 
-model 见到 guard 注入的 🔴 提醒 MUST 调本 skill, 非可选。无 active task (纯对话/未建 task) 时 guard 不注入, model 识别"写 prd / 新 task / 准备 start"意图也应主动调本 skill。
+model 见到 guard 注入的提醒 MUST 调本 skill, 非可选。无 active task (纯对话/未建 task) 时 guard 不注入, model 识别"写 prd / 新 task / 准备 start"意图也应主动调本 skill。
 
 **同样两硬门**: 写 prd 时边问边写 (硬门 1) + start 前全轴确认 (硬门 2)。flow 与非 flow 路径 grill 要求一致, 非 flow 由 guard 兜底硬触发, 不靠 model 自觉。
 
@@ -109,9 +109,9 @@ python3 ./.trellis/scripts/task.py current 2>/dev/null  # 定位 active task
 按骨架轴 A→L 顺序 (默认骨架; 按 §可扩展骨架轴 动态裁剪), 每轴:
 1. **自己先查 codebase** (Read/Grep 相关文件 / 邻居 skill) —— 能答的不问用户, 直接填评估
 2. **codebase 答不了的决策点** → `AskUserQuestion` 工具问用户 (**可一次多问**: 强相关/同源决策点批量问提效; 互不相关或需先答才能定下一问的仍分批。每问给推荐答案作首选项)
-3. 该轴结论: ✓ 通过 / ⚠️ 弱点 (记行号 + 弱点 + 推荐改法) / ⛔ 硬伤 (会致功能失效)
+3. 该轴结论: ✓ 通过 / ⚠️ 弱点 (记行号 + 弱点 + 推荐改法) / 硬伤 (会致功能失效)
 
-> 🔴 **CHECKPOINT (每批问)**: 用 `AskUserQuestion` 工具问, 禁纯文本提问代替 (用户交互决策点, grill-me 法)。每问给推荐答案作 options 首项。可批量问多个相关问题; 等用户答完该批再进下一轴。
+> **检查点 (每批问)**: 用 `AskUserQuestion` 工具问, 禁纯文本提问代替 (用户交互决策点, grill-me 法)。每问给推荐答案作 options 首项。可批量问多个相关问题; 等用户答完该批再进下一轴。
 
 ### 第 3 步: 内联批注 (不改写工件)
 
@@ -120,7 +120,7 @@ python3 ./.trellis/scripts/task.py current 2>/dev/null  # 定位 active task
 ```
 prd.md:14   ⚠️ 轴A 目标: "实现登录功能" 开放式, 无 deliverable 矩阵
             →推荐: 拆为 D1 OAuth2 / D2 session / D3 权限, 各附验收
-prd.md:28   ⛔ 轴C 验证: 铁律要求"行为闭环"但无可执行断言
+prd.md:28   硬伤 轴C 验证: 铁律要求"行为闭环"但无可执行断言
             →推荐: 补可执行的行为断言 (如 grep 命令 / 退出码校验) 3 条
 ```
 
@@ -133,12 +133,12 @@ grill 报告
 ═══════════
 工件: prd.md (120 行, 引 4 references)
 轴覆盖: A-L 全过 (12/12)
-弱点: 3 ⚠️ + 1 ⛔
-  ⛔ 轴C 验证断言缺失 (L28) — 高, 会致验证形同虚设
+弱点: 3 ⚠️ + 1 硬伤
+  硬伤 轴C 验证断言缺失 (L28) — 高, 会致验证形同虚设
   ⚠️ 轴A 目标开放式 (L14) — 中
   ⚠️ 轴H 缺 should-not-trigger 对 (L9) — 中
   ⚠️ 轴I references 累积 (12 个, auto-trigger) — 中, token 风险
-推荐: 先修 ⛔ (轴C), 再 ⚠️; 或路由 trellisx-spec 做破坏式重构
+推荐: 先修硬伤 (轴C), 再 ⚠️; 或路由 trellisx-spec 做破坏式重构
 ```
 
 ### 第 5 步: 路由

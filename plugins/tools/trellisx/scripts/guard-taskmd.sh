@@ -26,7 +26,7 @@ case "$tool_name" in
 esac
 
 if [[ "$file_path" == *.trellis/task.md || "$file_path" == *"/.trellis/task.md" ]]; then
-    echo "🔴 task.md 禁直接编辑, 经 .trellis/scripts/trellisx-taskmd.py 操作 (settings.json deny + 本 hook 双保险)" >&2
+    echo "task.md 禁直接编辑, 经 .trellis/scripts/trellisx-taskmd.py 操作 (settings.json deny + 本 hook 双保险)" >&2
     exit 2
 fi
 

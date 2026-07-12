@@ -21,7 +21,7 @@ arguments: [载体选项 (可选), 任务描述]
 | `--worktree` | 强制 exec 走 worktree 隔离 (= 默认, 仅显式声明用) | **强制 worktree** |
 | `--no-worktree` | 禁 worktree 隔离: exec **仍派 subagent** 执行 (main 仍禁亲改源码), 但**不开 worktree, 直接在主工作区改** | — |
 
-- **互斥冲突** (`--worktree` 同时 `--no-worktree`) → 🛑 STOP, `AskUserQuestion` 让用户裁定, 禁自选。
+- **互斥冲突** (`--worktree` 同时 `--no-worktree`) → 硬停, `AskUserQuestion` 让用户裁定, 禁自选。
 - **优先级**: 入参 > 本 skill 默认。`--no-worktree` **只放宽 worktree 隔离这一条**, 不放宽"main 默认禁写源码 / 实质工作派 subagent" —— exec 永远是 subagent, 只是改主工作区而非 worktree。
 - **`--no-worktree` 对 finish 的影响**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过"合并多 worktree 分支 / 销 worktree", 直接 commit 主工作区改动 + archive。
 - **中文别名** (同义可接): `强制worktree`=`--worktree`; `禁worktree`/`禁止worktree`=`--no-worktree`。
@@ -30,9 +30,9 @@ arguments: [载体选项 (可选), 任务描述]
 
 > **概念分清**: **task** = trellis 任务记录 (由 `task.py create/start/finish/archive` 脚本管理), 由 **main 同步跑**。**实质工作** (改源码 / 跑 check) **派 subagent 编排执行** (**main 是调度器** → 派各 `trellis-implement` 各执行 1 subtask, 共享 task worktree, 动态 DAG 调度并发上限 2 完成即派, 见 trellisx-orchestrate `scheduling.md`; trellis-implement 不调度不递归, Recursion Guard), 不在 main 上下文里直接做。是否 `run_in_background` 异步 / 是否并行 **按需自定, 本 skill 不强制**。**注意: worktree 隔离不在「按需」之列 —— 有 task 必有 worktree (task 级, 默认 1 task 1 worktree); fan-out subtask 共享 task worktree (subtask 与 worktree 无绑定, 不为 subtask 单独开); 多 worktree 允许 (opt-in, 非自动); 唯一例外是调用带 `--no-worktree` (见「入参」段), 此时仍派 subagent 但改主工作区。**
 
-- 🔴🛑 **"派 agent" = 真实调用 `Agent` 工具, 不是叙述 (最易踩, 必守, 铁律首项)** —— 每个"派 agent"动作 MUST 在**同一回复**里产生真实的 `Agent` tool_use。**严禁在本回复无 `Agent` 工具调用的情况下, 回传"已派出 / agent 在做"等措辞 —— 宣称 ≠ 调用, 那是幻觉, 等于跳过执行**。同理 task/看板/worktree 的"已建/已登记"必须是真实跑过命令或工具的结果, 禁凭空宣称。
+- **"派 agent" = 真实调用 `Agent` 工具, 不是叙述 (最易踩, 必守, 铁律首项)** —— 每个"派 agent"动作 MUST 在**同一回复**里产生真实的 `Agent` tool_use。**严禁在本回复无 `Agent` 工具调用的情况下, 回传"已派出 / agent 在做"等措辞 —— 宣称 ≠ 调用, 那是幻觉, 等于跳过执行**。同理 task/看板/worktree 的"已建/已登记"必须是真实跑过命令或工具的结果, 禁凭空宣称。
   > **回传前自检**: 任何"agent 已派 / 在跑 / 已建 task / 看板已更新"措辞输出前, 确认本回复**确有对应的 tool_use** (Agent / Bash task.py / trellisx-workspace)。无 → 先发起真实调用, 禁先回传。
-- ⛔ **main 默认禁写源码 (实质工作优先派 subagent)** —— 改源码、跑 check 等**实质产出派 subagent 编排执行** (默认载体, 见上「概念分清」)。**仅特别情况例外** (≤3 文件微改 / subagent 难处理的上下文密集决策 / 用户显式要求), 且必在 task worktree 内写; 例外不改变"优先派 subagent"原则。
+- **main 默认禁写源码 (实质工作优先派 subagent)** —— 改源码、跑 check 等**实质产出派 subagent 编排执行** (默认载体, 见上「概念分清」)。**仅特别情况例外** (≤3 文件微改 / subagent 难处理的上下文密集决策 / 用户显式要求), 且必在 task worktree 内写; 例外不改变"优先派 subagent"原则。
 - 🧩 **exec/check 派 subagent 编排** —— **main 是调度器**, 动态 DAG 调度派各 `trellis-implement` 各执行 1 subtask (并发上限 2, 完成即派, 见 trellisx-orchestrate `scheduling.md`), fan-out 的 trellis-implement 共享 task worktree (subtask 不绑定 worktree); trellis-implement 不调度不递归 (Recursion Guard)。
 - 🌳 **有 task 必有 worktree (task 级隔离, 强制, 与载体无关)** —— task 在其 worktree 内执行, 主工作区零改动; 默认 1 task 1 worktree。**唯一例外: 调用带 `--no-worktree` → exec 仍派 subagent 但改主工作区 (见「入参」段)**。完整规则 (1 task 1 worktree 默认 / subtask 共享 task worktree 不绑定 / 多 worktree 允许 opt-in 非自动, finish 映射合并 / 异步并行按需) 见「硬规」段 §其他必做。
 - 💬 **planning 委托 `/trellisx-add --continue`, 不派 subagent** —— flow 不复制 planning 正文, 运行时委托 `trellisx-add` (判新旧+登记+brainstorm+grill 硬门1 全在 add)。add 的 brainstorm 需逐问用户 (交互式), subagent 不能 `AskUserQuestion` / 与用户对话, 故 planning 全程 **main 同步前台** (`--continue` 借完产物 flow 自接激活), 不派 subagent。
@@ -54,27 +54,27 @@ arguments: [载体选项 (可选), 任务描述]
 
 - ✅ **双模触发**: ① 用户显式 `/trellisx-flow <描述>` 或点名; ② model 自动触发 —— 请求复杂 / 多步 / 跨文件 / 该建 task 时自动加载本 skill 强制走闭环。
 - 🔗 **与 apply no_task 提示的关系**: `trellisx-apply` 在无 active task 时注入的常驻软提示 = 轻量"建议建 task", 指向本 skill; 本 skill 接管后强制走 plan→exec→check→finish。两者嵌套 (hint → flow 接管), 不冲突。
-- ⛔ **仍禁**: 把明显该 inline 的极简请求 (纯查询 / 单文件 ≤20 行) 强行建 task (作用域边界见「硬规」段)。
+- **仍禁**: 把明显该 inline 的极简请求 (纯查询 / 单文件 ≤20 行) 强行建 task (作用域边界见「硬规」段)。
 
 ## 强制流程 (plan → exec → check → finish, 不可跳步)
 
-> **第 0 步 — 解析入参**: 进入下列流程前, 先从调用参数剥离前置选项 (`--worktree`/`--no-worktree` 及中文别名, 见「入参」段), 确定本次 worktree 策略; 剩余 token 即任务描述。互斥冲突 → 🛑 STOP 问用户。
+> **第 0 步 — 解析入参**: 进入下列流程前, 先从调用参数剥离前置选项 (`--worktree`/`--no-worktree` 及中文别名, 见「入参」段), 确定本次 worktree 策略; 剩余 token 即任务描述。互斥冲突 → 硬停 问用户。
 
 > **贯穿全程: 及时维护 `.trellis/task.md` 看板** —— 下列每一步 (create/start/阶段推进/finish) 完成后, **立即用 `trellisx-workspace` skill 更新 `.trellis/task.md`** 看板表中该任务行 (id/名称/描述/状态/worktree)。看板落后于实际 = 维护失效。
 
 > 载体速查: **planning 委托 `/trellisx-add --continue`** (main 同步前台, add 内 brainstorm 交互 + grill 硬门1, 不派执行 subagent); **exec/check 派 subagent 编排** (**main 调度** → 派各 trellis-implement 各执行 1 subtask, 动态 DAG 并发上限 2 完成即派, 共享 task worktree; 异步/并行按需; 见 trellisx-orchestrate `scheduling.md`); **task.py 脚本 (create/start/finish/archive) main 同步跑**。main 做编排 + 脚本调用 + 交互式 planning + 用户交互决策 + 完成回传 + 看板维护。
 
 1. **planning (委托 `/trellisx-add --continue`)** (main 同步前台) — flow **不复制 planning 正文**, 运行时委托 `trellisx-add` (planning 单一真值源): 调 `/trellisx-add --continue <任务描述>` 完成 **判新旧 + `task.py create` 登记 + 交互式 planning** (brainstorm 主导需求/方案 + grill 硬门1 边问边写, 产出 `prd.md`[+ `design.md`] + `implement.md`, 详见 `trellisx-add` skill)。
-   - 🔴 **必带 `--continue` (= 不阻塞)**: add 跑完 planning **不停**, 返回产物路径; 无参 add 才停在 start 前 (那是用户直呼 add 的入口行为, flow 委托必带 `--continue`)。判新旧/登记/看板维护/grill 硬门1 全在 add 内, flow **不重复**。
+   - **必带 `--continue` (= 不阻塞)**: add 跑完 planning **不停**, 返回产物路径; 无参 add 才停在 start 前 (那是用户直呼 add 的入口行为, flow 委托必带 `--continue`)。判新旧/登记/看板维护/grill 硬门1 全在 add 内, flow **不重复**。
    - add 返回 planning 产物 (`prd.md`/`implement.md` 等路径) 后 → flow 自接下一步激活。
-2. **激活** (main 编排) — 🔴 **grill 硬门 2 (需求确认, start 前必做)**: planning 产物齐 → MUST 调 `/trellisx-grill` 跑全轴 (A-L, 按工件动态裁剪) 对抗校对, 重点轴 A/B/C/E/G 确认用户想法 = PRD 写的。grill 弱点表交用户过, 用户确认"这就是我要的" + 弱点补齐后才放行。**未跑 grill 禁 start** (硬门)。通过后 → 产物**由 main 用 AskUserQuestion 交用户评审** → `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
-3. **exec** (subagent 编排, **worktree 强制隔离**) — 🔴 **main 是调度器, 动态 DAG 调度派各 `trellis-implement` 各执行 1 subtask** (并发上限 2, 完成即派下一个, 不空等全部, 见 trellisx-orchestrate `scheduling.md`) —— **默认 1 task 1 worktree** (subtask 共享其中, 不为 subtask 单独开); **多 worktree 允许** (opt-in, 非自动, 不靠 subtask 触发); **trellis-implement 不调度不递归** (工具集无 Agent/Task, Recursion Guard)。全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **一律 agent 写代码, main 默认禁写源码** (仅特别情况例外)。worktree 为硬性要求 (有 task 必有 worktree), **仅**异步 (`run_in_background`) / 并行分组按需自定。**入参覆盖**: `--no-worktree` → 仍派 subagent 但改主工作区 (不开 worktree, 详见「入参」段)。每个 agent 完成即回传。→ **更新 task.md 看板**。
+2. **激活** (main 编排) — **grill 硬门 2 (需求确认, start 前必做)**: planning 产物齐 → MUST 调 `/trellisx-grill` 跑全轴 (A-L, 按工件动态裁剪) 对抗校对, 重点轴 A/B/C/E/G 确认用户想法 = PRD 写的。grill 弱点表交用户过, 用户确认"这就是我要的" + 弱点补齐后才放行。**未跑 grill 禁 start** (硬门)。通过后 → 产物**由 main 用 AskUserQuestion 交用户评审** → `task.py start` → status=in_progress。→ **更新 task.md 行** (状态 in_progress / 阶段 exec / worktree 路径)。
+3. **exec** (subagent 编排, **worktree 强制隔离**) — **main 是调度器, 动态 DAG 调度派各 `trellis-implement` 各执行 1 subtask** (并发上限 2, 完成即派下一个, 不空等全部, 见 trellisx-orchestrate `scheduling.md`) —— **默认 1 task 1 worktree** (subtask 共享其中, 不为 subtask 单独开); **多 worktree 允许** (opt-in, 非自动, 不靠 subtask 触发); **trellis-implement 不调度不递归** (工具集无 Agent/Task, Recursion Guard)。全部源码改动落 `<git根>/.worktrees/`, 主工作区零改动; **一律 agent 写代码, main 默认禁写源码** (仅特别情况例外)。worktree 为硬性要求 (有 task 必有 worktree), **仅**异步 (`run_in_background`) / 并行分组按需自定。**入参覆盖**: `--no-worktree` → 仍派 subagent 但改主工作区 (不开 worktree, 详见「入参」段)。每个 agent 完成即回传。→ **更新 task.md 看板**。
 
-   🔴 **异步等待 MUST 输出任务清单 (硬规)** —— 凡 main 派出异步任务后**结束本回合前** (后台 sub-agent 在跑 / 审批等待), MUST 输出当前任务全景表格 (**4 列**: `id` · `状态` · `摘要` · `进度%`), 内容复用 main 已维护的 DAG 调度态 (见 trellisx-orchestrate `scheduling.md`), 不新算。**不触发**: 同步前台阻塞等待 (main 自己在等, 无独立清单) / 无在跑任务。完整格式 + 状态枚举 (固定中文: 进行中/等待中/阻塞) + 范例见 trellisx-orchestrate `progress-communication.md` §异步等待清单格式。
+   **异步等待 MUST 输出任务清单 (硬规)** —— 凡 main 派出异步任务后**结束本回合前** (后台 sub-agent 在跑 / 审批等待), MUST 输出当前任务全景表格 (**4 列**: `id` · `状态` · `摘要` · `进度%`), 内容复用 main 已维护的 DAG 调度态 (见 trellisx-orchestrate `scheduling.md`), 不新算。**不触发**: 同步前台阻塞等待 (main 自己在等, 无独立清单) / 无在跑任务。完整格式 + 状态枚举 (固定中文: 进行中/等待中/阻塞) + 范例见 trellisx-orchestrate `progress-communication.md` §异步等待清单格式。
 
-   🔴 **exec 阶段 subtask 间禁问用户顺序 (硬规)** —— 顺序决策**归 planning** (mermaid 调度图 + depends-on + 静态冲突 DAG, 见 trellisx-orchestrate `scheduling.md`)。exec 阶段 main 只跑动态调度循环: ready 即派、任一返回即查新 ready 立即派下一个、并发上限 2。**禁在任何 subtask 之间停下来问用户"先做哪个 / 下一个做什么 / 要不要继续"** —— 问序 = planning 没做透。**唯一例外**: planning 阶段就没定顺序 (PRD 缺调度图 / depends-on 缺失) → 🛑 STOP **退回 planning 补**, 不在 exec 问。用户执行中插新指令走中途修正路由 (改 PRD 真值 → SendMessage 通知在跑 agent), 不等于"问顺序"。
+   **exec 阶段 subtask 间禁问用户顺序 (硬规)** —— 顺序决策**归 planning** (mermaid 调度图 + depends-on + 静态冲突 DAG, 见 trellisx-orchestrate `scheduling.md`)。exec 阶段 main 只跑动态调度循环: ready 即派、任一返回即查新 ready 立即派下一个、并发上限 2。**禁在任何 subtask 之间停下来问用户"先做哪个 / 下一个做什么 / 要不要继续"** —— 问序 = planning 没做透。**唯一例外**: planning 阶段就没定顺序 (PRD 缺调度图 / depends-on 缺失) → 硬停 **退回 planning 补**, 不在 exec 问。用户执行中插新指令走中途修正路由 (改 PRD 真值 → SendMessage 通知在跑 agent), 不等于"问顺序"。
 4. **check** (派 subagent fan-out) — checker agent 走 `trellis-check` 质量验证 (spec 合规 / lint / type-check / tests); 未过 → **再派 agent 修复重检**, 不跳 finish。→ **更新 task.md 阶段 check**。
-5. **finish** (main 同步) — check 通过 → 🔴 **spec sediment 判定门 (finish 前必做, 非软约束)**: main 按下述 checklist 逐项判本 task 有无 spec 增量, 任一正向 ✅ → 走 `/trellisx-spec` sediment (提案→审批→写盘+同步 index.md) 再 finish; 全否 → 跳过:
+5. **finish** (main 同步) — check 通过 → **spec sediment 判定门 (finish 前必做, 非软约束)**: main 按下述 checklist 逐项判本 task 有无 spec 增量, 任一正向 ✅ → 走 `/trellisx-spec` sediment (提案→审批→写盘+同步 index.md) 再 finish; 全否 → 跳过:
    - **正向 (任一 ✅ 触发)**: ① 新命令式契约 (MUST/禁, 后续同类任务会再踩) ② 踩坑留痕 (debugging ≥2 轮才定位, 根因可写为可验证契约, 非一次性 bug) ③ 反复犯错 (同类错误在 ≥2 task journal 出现, grep 可验) ④ 跨任务可复用决策 (选型/架构边界/API 约定) ⑤ 验收基准 (本 task 可执行断言通用到能复用为 spec 验收条)
    - **排除 (NOT 触发)**: 一次性 bug / 本 task 私有实现细节 / 已有 spec 覆盖
    - **诚实边界**: 判定归 model 非脚本 (语义判断脚本做不了); 全无增量则跳过, 禁硬凑沉淀
@@ -100,9 +100,9 @@ arguments: [载体选项 (可选), 任务描述]
 
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
-| planning agent 返回标 `需要:` (缺需求/设计输入) | main 用 `AskUserQuestion` 转达, 回填答案重派 agent | 澄清后 scope 仍收不敛 → 🛑 STOP, 让用户直接拍板 MVP 边界 |
-| exec agent 失败/报错返回 | 读失败原因, 补 dispatch prompt 已知/缩范围, 重派 | 同一 subtask 连续 2 次失败 → 🛑 STOP 回传用户, 转人工或拆更小 subtask |
-| check 反复不过 (≥2 轮) | 派 agent 按 `trellis-check` 报告定点修复重检 | 第 3 轮仍不过 → 🛑 STOP, 加载 `trellis-break-loop` 跳出调试循环 |
+| planning agent 返回标 `需要:` (缺需求/设计输入) | main 用 `AskUserQuestion` 转达, 回填答案重派 agent | 澄清后 scope 仍收不敛 → 硬停, 让用户直接拍板 MVP 边界 |
+| exec agent 失败/报错返回 | 读失败原因, 补 dispatch prompt 已知/缩范围, 重派 | 同一 subtask 连续 2 次失败 → 硬停 回传用户, 转人工或拆更小 subtask |
+| check 反复不过 (≥2 轮) | 派 agent 按 `trellis-check` 报告定点修复重检 | 第 3 轮仍不过 → 硬停, 加载 `trellis-break-loop` 跳出调试循环 |
 | finish 时 worktree 合并冲突 | `after_finish` hook 自动 abort + 报冲突文件清单 | 检 finish 输出有 `trellisx-finish` 冲突告警 → 停, 转手动解, **禁强解 / 禁当成功** |
 | 判不准「新建 task」还是「并入现有」 | `AskUserQuestion` 问用户裁定 | 用户必答 (禁自行替用户决定) |
 | 非 trellis 项目 (无 `.trellis/`) | 提示用户先 `trellis init` | 用户拒绝 → 退出, 不强行建 task |
@@ -129,7 +129,7 @@ arguments: [载体选项 (可选), 任务描述]
 - 📋 **异步等待 MUST 输出任务清单 (强制)** —— 派出异步任务后结束本回合前 (后台 sub-agent / 审批等待), MUST 输出任务全景表格 (4 列: id/状态/摘要/进度%, 见 exec 阶段同条 + trellisx-orchestrate `progress-communication.md` §异步等待清单格式)。同步前台阻塞等待 / 无在跑任务不触发。
 - ✅ **及时维护 task.md 看板** —— 每个生命周期节点 (create/start/阶段推进/finish) 后用 `trellisx-workspace` 更新 `.trellis/task.md`; 看板滞后视为流程缺陷。
 
-## ⛔ 反例黑名单 (命中任一 = 流程错误, 改方案重来)
+## 反例黑名单 (命中任一 = 流程错误, 改方案重来)
 
 | # | 禁做 | 改为 |
 |---|---|---|

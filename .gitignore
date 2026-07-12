@@ -84,3 +84,6 @@ graphify-out/.worktrees/
 
 # darwin-skill 测试基准产物 (本地保留, 不入库; 任何插件目录内的同名文件均视为泄漏)
 **/.darwin-results.tsv
+
+# 忽略所有 tsv (darwin/优化日志等本地产物)
+*.tsv

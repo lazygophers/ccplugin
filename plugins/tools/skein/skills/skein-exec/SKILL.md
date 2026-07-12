@@ -22,11 +22,9 @@ effort: low
 
 > 下方是 exec 阶段**调度门本体** (被 `skein-flow` exec 委托, 或无入参驱动已 planning task 时进入)。**只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。**
 
-## 调度门
+## 调度门 (载体分工)
 
-main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 各执行 1 subtask, 全部改动落 task worktree, 主工作区零改动。每个 agent 完成即回传。
-
-## 载体
+main 作调度器编排, 全部改动落 task worktree、主工作区零改动、每个 agent 完成即回传。角色分工:
 
 - **调度** → main 亲跑 (脚本不能 spawn): `skein.py subtask claim` 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。
 - **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享 task worktree, 不调度不递归 (Recursion Guard)。
@@ -54,6 +52,14 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 ## 调度算法 (双层同构 + dispatch prompt)
 
 subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein.py subtask` 脚本落盘, dispatch prompt 6 字段自包含 (含 Recursion Guard + 读后写硬门)。完整命令表 + 调度 DAG 定义 + worktree 规则 + 多 task 并行 + dispatch prompt 模板见 [references/scheduling-algorithm.md](references/scheduling-algorithm.md)。
+
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
+
+| 触发                          | 一线修复                                   | 仍失败兜底                                       |
+| ----------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| subtask 报错 (非阻塞)         | 按 dispatch 失败处理缩范围重试 1 次        | 反复失败 → 停调度回传 main, 禁跳过继续下游       |
+| subagent 返回 `需要:`         | main 转达用户 / 补信息后重派该 subtask     | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
+| `claim` 返回空但仍有 pending  | 查 depends_on 是否死锁 (环 / 前置永不 done) | 确为环 → 停手回 skein-plan 改 DAG, 禁空转轮询     |
 
 ## 反例
 

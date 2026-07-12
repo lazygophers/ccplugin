@@ -40,7 +40,7 @@ teammate 需互相辩论 / 跨层协调               → agent-team (3-5)
 
 隔离单位是 **task**, 不是 subagent: `task.py start` 时 after_start hook 自动建本 task 的 worktree, 该 task 全部执行层 (main / sub-agent / agent-team) **共享**它。subtask 与 worktree **无绑定** — 并行 subagent 在同一 task worktree 内改不相交文件集即可, 不传 `isolation:worktree`。多 worktree 属 opt-in (用户显式同意), 非自动, 非由 subtask 触发。
 
-> ⛔ 写盘 sub-agent / agent-team 都在**本 task worktree 内**执行 (共享), 禁在主工作区写盘。唯一例外: 纯只读 sub-agent (探索 / 调研 / 审查, 不改盘) 不需 worktree。
+> 写盘 sub-agent / agent-team 都在**本 task worktree 内**执行 (共享), 禁在主工作区写盘。唯一例外: 纯只读 sub-agent (探索 / 调研 / 审查, 不改盘) 不需 worktree。
 
 | 场景 | worktree | 备注 |
 | --- | --- | --- |

@@ -120,7 +120,7 @@ main 派出异步任务后**结束本回合前** (后台 sub-agent 在跑等 not
 | --- | --- | --- |
 | **属当前任务** | 对已派交付的修正 / 补充 / 细化 (同一 deliverable 范围内) | → 改文档 + 通知在跑 agent (下方流程) |
 | **独立新任务** | 与当前 in_flight 交付无关 | → no_task 强推 task 新建 / 排队, **不打断**当前 agent |
-| **判不准** | 边界模糊, 既像修正又像新需求 | → 🔴 AskUserQuestion 让用户裁定, 禁擅自二选一 |
+| **判不准** | 边界模糊, 既像修正又像新需求 | → AskUserQuestion 让用户裁定, 禁擅自二选一 |
 
 判断原则: 改动是否落在某个**已派 subtask 的验收边界**内? 在 → 属当前任务; 跨出或新增 deliverable → 新任务。
 
@@ -134,7 +134,7 @@ main 派出异步任务后**结束本回合前** (后台 sub-agent 在跑等 not
 ③ 执行者复读 PRD 锚点 → 调整当前执行, 不等跑完返工
 ```
 
-⛔ 禁 main 自己直接改源码绕过在跑 agent (产生两份分叉改动); ⛔ 禁跳过①直接 SendMessage 口头指令 (文档与执行脱节)。
+禁 main 自己直接改源码绕过在跑 agent (产生两份分叉改动); 禁跳过①直接 SendMessage 口头指令 (文档与执行脱节)。
 
 ### 按执行层的可达性 (能否中途 SendMessage)
 
@@ -160,4 +160,4 @@ subtask 派发**尽可能并行**, 提升整体效率:
 - 资源冲突的 subtask (改同文件/共享配置) → 必须串行 (见 `shared-resources.md`)
 - 并行执行者各自 worktree (sub-agent isolation / agent-team 成员路径), 互不干扰
 - coordinator (main) 单线程协调: 不自己并跑多 subtask, 但派出去的 agent 并行推进; 收每个 agent 返回立即回传用户进度
-- 🔴 **回传 ≠ 问序**: 进度回传是"已做完 X, 正在派 Y"的单向通知, **禁变成"X 做完了, 下一个做哪个?"的提问**。下一个由 DAG 决定 (scheduling.md §4), 自动派; 顺序缺失 → 退回 planning 补, 不在 exec 回传里问用户。
+- **回传 ≠ 问序**: 进度回传是"已做完 X, 正在派 Y"的单向通知, **禁变成"X 做完了, 下一个做哪个?"的提问**。下一个由 DAG 决定 (scheduling.md §4), 自动派; 顺序缺失 → 退回 planning 补, 不在 exec 回传里问用户。

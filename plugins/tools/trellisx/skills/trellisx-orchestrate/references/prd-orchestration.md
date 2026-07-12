@@ -104,7 +104,7 @@ flowchart LR
 
 ## Multi-deliverable 判定
 
-> ⛔ PRD 列 ≥ 2 个 deliverable 且每个都能独立交付 → **MUST** 走 parent/child task tree (见 `task-tree.md`), 不许塞进单 PRD。
+> PRD 列 ≥ 2 个 deliverable 且每个都能独立交付 → **MUST** 走 parent/child task tree (见 `task-tree.md`), 不许塞进单 PRD。
 
 单 PRD 内塞多 deliverable 后患:
 - 验收难以独立

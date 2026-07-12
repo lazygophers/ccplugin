@@ -328,7 +328,7 @@ def grill_gate_hint(troot):
     if not has_prd:
         # PRD 未成型 → 硬门 1 (写 PRD 过程中边问边写)
         return (
-            "[trellisx] 🔴 grill 硬门 1 (PRD 边问边写): 当前 task 处 planning 且 prd.md 未成型。"
+            "[trellisx] grill 硬门 1 (PRD 边问边写): 当前 task 处 planning 且 prd.md 未成型。"
             "写 PRD 时 MUST 调 /trellisx-grill 用轴 A (目标) / B (产出) 当提问引擎 —— "
             "grill 出问 → 逐问用户 → 答完即时更新 PRD → 循环至轴 A/B 双 ✓。"
             "禁写完整 PRD 才调 grill (本末倒置)。非 flow 路径同样适用 (guard 强制注入)。"
@@ -336,7 +336,7 @@ def grill_gate_hint(troot):
     if full_set:
         # 工件齐 → 硬门 2 (start 前全轴确认)
         return (
-            "[trellisx] 🔴 grill 硬门 2 (start 前需求确认): 当前 task planning 工件齐备 "
+            "[trellisx] grill 硬门 2 (start 前需求确认): 当前 task planning 工件齐备 "
             "(prd/design/implement)。task.py start 前 MUST 调 /trellisx-grill 跑全轴 A-L "
             "(按工件动态裁剪), 重点轴 A/B/C/E/G 确认用户想法 = PRD 写的。"
             "弱点表交用户过 + 补齐后才放行 start。未跑 grill = 流程未完成, 禁 start。"
@@ -344,7 +344,7 @@ def grill_gate_hint(troot):
         )
     # 部分工件 (如 prd 有但 design/implement 未写) → 硬门 1 仍持续, 等齐了转硬门 2
     return (
-        "[trellisx] 🔴 grill 硬门 1 (PRD 边问边写): planning 进行中, prd 已起但 design/implement 未齐。"
+        "[trellisx] grill 硬门 1 (PRD 边问边写): planning 进行中, prd 已起但 design/implement 未齐。"
         "继续写剩余工件时 MUST 协同 /trellisx-grill (轴 A/B 校验目标与产出); 全工件齐后转硬门 2 (start 前全轴确认)。"
         "非 flow 路径同样适用 (guard 强制注入)。"
     )
