@@ -71,6 +71,14 @@ plan → exec → check → finish 四步闭环
 - finish 前清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`), 未关 = 未闭环。
 - sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-memory`)。
 
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
+
+| 触发                                    | 一线修复                                 | 仍失败兜底                                          |
+| --------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
+| 判新旧不准 (新建 vs 并入现有 active)    | `AskUserQuestion` 用户裁定               | 用户也不确定 → 默认新建, 保守留旧 task 不动          |
+| 某阶段未达出口 (plan 未收敛 / check 未绿) | 停在该阶段, 禁跨阶段推进                  | 反复不过 → 走对应子 skill 兜底 (check 第 3 轮根因复盘) |
+| 宣称派 agent 但无 `Agent` tool_use      | 立即在同回合补真实 `Agent` 调用          | 补不出 → 硬错停手, 禁回传「已派出 / 在做」           |
+
 ## 反例 (命中 = 流程错误)
 
 违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序。

@@ -60,6 +60,14 @@ effort: high
 
 exec 阶段的 DAG 靠 task.json 的 `subtasks[].depends_on` (经 `skein.py subtask add --deps` 登记), **非文件里的 mermaid 图**。planning 未登记任何 subtask → `skein.py start` 硬拒 (无从调度)。subtask 拆分 + 依赖登记模板详见 references/dispatch-graph.md。
 
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
+
+| 触发                                   | 一线修复                                       | 仍失败兜底                                          |
+| -------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| brainstorm 用户答不出关键分歧          | 给 2-3 推荐选项让用户选 (非开放式问)           | 仍答不出 → 标「需求未定」, 停在 planning, 禁 start   |
+| grill 弱点表 >3 轮不收敛               | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完  | 仍发散 → scope 过大, 拆多 task (heavy 档 + depends_on) |
+| subtask 粒度不清 / 无从定 depends_on   | 回 brainstorm 补边界, 按可独立验收切           | 仍切不动 → 派 `skein-researcher` 勘察代码再拆        |
+
 ## 反例
 
 违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / **把调度图/子任务写进 md 文件而非 task.json** / start 前未 `subtask add` 任何子任务 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein.py start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go)。

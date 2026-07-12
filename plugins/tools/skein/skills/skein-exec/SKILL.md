@@ -55,6 +55,14 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 
 subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein.py subtask` 脚本落盘, dispatch prompt 6 字段自包含 (含 Recursion Guard + 读后写硬门)。完整命令表 + 调度 DAG 定义 + worktree 规则 + 多 task 并行 + dispatch prompt 模板见 [references/scheduling-algorithm.md](references/scheduling-algorithm.md)。
 
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
+
+| 触发                          | 一线修复                                   | 仍失败兜底                                       |
+| ----------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| subtask 报错 (非阻塞)         | 按 dispatch 失败处理缩范围重试 1 次        | 反复失败 → 停调度回传 main, 禁跳过继续下游       |
+| subagent 返回 `需要:`         | main 转达用户 / 补信息后重派该 subtask     | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
+| `claim` 返回空但仍有 pending  | 查 depends_on 是否死锁 (环 / 前置永不 done) | 确为环 → 停手回 skein-plan 改 DAG, 禁空转轮询     |
+
 ## 反例
 
 违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / 派出异步任务后不输出任务清单 / 用本 skill 做需求方案设计 (那归 skein-plan)。

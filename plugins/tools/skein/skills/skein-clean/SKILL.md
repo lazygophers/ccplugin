@@ -5,6 +5,7 @@ disable-model-invocation: true
 user-invocable: true
 argument-hint: "[保留天数]"
 arguments: "[保留天数]"
+model: haiku
 effort: low
 ---
 
@@ -51,6 +52,14 @@ effort: low
 
 清扫报告: 归档了哪些完成 task (保留 N 天)、删了哪些 worktree/分支、**哪些存疑保留 (交用户裁)**。存疑项禁自行删。
 
-## 反例
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
-禁止操作与正确改法详见 references/anti-examples.md。
+| 触发                          | 一线修复                              | 仍失败兜底                                       |
+| ----------------------------- | ------------------------------------- | ------------------------------------------------ |
+| `worktree remove` 失败 (占用/锁) | `git worktree prune` 后重试 remove   | 仍失败 → 保留 + 报用户, 禁 `--force` 强删活跃 worktree |
+| `branch -D` 失败 (未合并)     | 查是否真已合并 (`git branch --merged`) | 未合并 → 保留 + 报用户 (有未落地 commit)         |
+| worktree/分支无对应 task 记录 | 报用户裁定 (别猜)                     | 用户未定 → 保留, 禁自行删                         |
+
+## 反例 (命中 = 操作错误)
+
+主体禁项: 未 finish 的 active task / 未合并分支一律不删 · 存疑不报用户就自行删 · N 大于 config `retain_days` 当有效 (脚本按 ceiling 自动归档, 无效) · 把保留期内完成 task 当漏归档强行 archive。完整清单详见 references/anti-examples.md。
