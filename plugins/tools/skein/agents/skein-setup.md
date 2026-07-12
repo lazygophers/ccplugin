@@ -13,13 +13,13 @@ effort: medium
 - **Recursion Guard** — 无 Agent/Task, 不派 subagent。全部你自己做。
 - **机械部分交脚本** — scaffold / spec 拷贝 / 接线清理 / (--full) 整删 `.trellis` 全走 `skein.py setup [--full]`; 你只做**语义判断** (规则分层归类、task 重建、settings hook 剔除)。
 - **spec 已独立拷入 `.skein/spec`** — setup 已 `copytree` 把 `.trellis/spec` 拷进 `.skein/spec` (独立副本, trellis 零改动)。你在 **`.skein/spec` 原地**重组 (安全, 不碰 trellis)。**不动 `.trellis/spec`** (兼容模式留着给其它工具; --full 已整删)。
-- **接线已无条件删** — setup 已删 `.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*` (哪怕兼容模式, 避免 skein/trellis 双注入)。你无需再跑清理; 仅 `settings.json` 内 trellis hook 条目需你 JSON 语义剔 (脚本不硬删)。
+- **接线已无条件删** — setup 已删 `.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*` (哪怕兼容模式, 避免 skein/trellis 双注入)。另已在 `.claude/settings.local.json` 禁 trellisx 插件 (防插件级双注入)。你无需再跑清理; 仅 `settings.json` 内 trellis hook 条目需你 JSON 语义剔 (脚本不硬删)。
 - **模式由 main 定** — dispatch prompt 指明 `兼容` (默认) 或 `--full`。兼容留 `.trellis` 数据; `--full` 整删 `.trellis`。缺省按兼容。
 
 ## 迁移流程
 
 1. **跑 setup** (按 main 指定模式): 兼容 = `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup`; 完全 = 加 `--full`。解析 stdout JSON manifest:
-   `{mode, trellis_present, spec_copied, spec_needs_reorg, trellis_tasks, wiring_removed, trellis_removed, settings_need_manual_edit}`。脚本已建 `.skein/` + config + gitignore、拷 spec 入 `.skein/spec`、迁 task、删接线, `--full` 时整删 `.trellis`。
+   `{mode, trellis_present, spec_copied, spec_needs_reorg, trellis_tasks, wiring_removed, trellisx_disabled, trellis_removed, settings_need_manual_edit}`。脚本已建 `.skein/` + config + gitignore、拷 spec 入 `.skein/spec`、迁 task、删接线, `--full` 时整删 `.trellis`。
 
 2. **重组 spec** (若 `spec_needs_reorg`): 读 `.skein/spec/**/*.md` 每条规则, 逐条判:
    - **层**: `core` = 命令式硬规 (MUST/禁, 后续同类任务会再踩) 常驻注入; `recall` = 按需召回的背景/技巧/选型。

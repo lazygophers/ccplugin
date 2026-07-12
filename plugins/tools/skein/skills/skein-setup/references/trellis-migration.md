@@ -9,7 +9,7 @@
 | **兼容 (默认)** | `skein.py setup` | 留 (spec/task 给其它工具) | **无条件删** (避免 skein/trellis 双注入) |
 | **完全** | `skein.py setup --full` | 整删 `.trellis/` | 无条件删 |
 
-两模式都: 独立拷 spec 入 `.skein/spec` + 物理迁移 task + 删接线。差异仅 `.trellis/` 数据目录是否整删。**接线删除不分模式** (哪怕兼容也删, 否则 trellis hook 继续注入压过 skein)。
+两模式都: 独立拷 spec 入 `.skein/spec` + 物理迁移 task + 删接线。差异仅 `.trellis/` 数据目录是否整删。**接线删除不分模式** (哪怕兼容也删, 否则 trellis hook 继续注入压过 skein)。另: setup 在 `.claude/settings.local.json` 禁 trellisx 插件 (`enabledPlugins.trellisx@ccplugin-market=false`), 防插件级双注入。
 
 ## 载体：派 skein-setup agent (语义迁移)
 

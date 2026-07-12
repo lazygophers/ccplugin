@@ -259,6 +259,10 @@ def test_setup():
         assert any("hooks" in r for r in m["wiring_removed"]), "trellis 接线未删"
         assert not (d / ".claude/skills/foo-trellis").exists(), ".claude trellis 残留未删"
         assert m["settings_need_manual_edit"], "settings 需手工剔除未标记"
+        # trellisx 插件在 settings.local.json 禁用 (防双注入)
+        assert "trellisx@ccplugin-market" in m["trellisx_disabled"], "trellisx 插件未禁用"
+        sl = json.loads((d / ".claude/settings.local.json").read_text())
+        assert sl["enabledPlugins"]["trellisx@ccplugin-market"] is False, "settings.local.json 未禁 trellisx"
 
     # 兼容模式: 拷 spec + 迁 task + 删接线, 留 .trellis 数据
     with tempfile.TemporaryDirectory() as d:

@@ -984,6 +984,25 @@ class Skein:
                 for n in ("settings.json", "settings.local.json")
                 if (cdir / n).exists() and "trellis" in (cdir / n).read_text().lower()]
 
+    def _disable_trellisx_plugin(self):
+        # 在 .claude/settings.local.json 的 enabledPlugins 禁用 trellisx (project-local 覆盖全局), 避免与 skein 双注入。
+        # 已装的 trellisx@<market> 全置 false; 一个都没有则默认写 trellisx@ccplugin-market: false。
+        cdir = self.root / ".claude"
+        cdir.mkdir(exist_ok=True)
+        f = cdir / "settings.local.json"
+        try:
+            data = json.loads(f.read_text()) if f.exists() else {}
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        ep = data.setdefault("enabledPlugins", {})
+        keys = [k for k in ep if k.startswith("trellisx@")] or ["trellisx@ccplugin-market"]
+        changed = [k for k in keys if ep.get(k) is not False]
+        for k in keys:
+            ep[k] = False
+        if changed:
+            f.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+        return keys
+
     def setup(self, a):
         # 默认兼容: 拷 spec/task 入 .skein + 删 trellis 接线 (避免双注入), 留 .trellis 数据。
         # --full: 兼容全套 + 整删 .trellis/ (spec/task 已拷走)。
@@ -1007,6 +1026,7 @@ class Skein:
             tasks = self._migrate_trellis_tasks(trellis)
         # 无条件删接线 (两模式), --full 再整删 .trellis 目录
         removed = self._purge_wiring(trellis)
+        trellisx_disabled = self._disable_trellisx_plugin()  # settings.local.json 禁 trellisx 插件 (防双注入)
         trellis_removed = False
         if a.full and trellis.is_dir():
             shutil.rmtree(trellis); removed.append(".trellis/"); trellis_removed = True
@@ -1017,6 +1037,7 @@ class Skein:
             "spec_needs_reorg": spec_copied,  # 拷自 trellis → agent 重组为 core/recall×类目 (在 .skein/spec 原地改, 安全)
             "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract/journal)
             "wiring_removed": removed,  # 已删的 trellis 接线 + (full 时) .trellis/
+            "trellisx_disabled": trellisx_disabled,  # 已在 .claude/settings.local.json 禁用的 trellisx 插件 key
             "trellis_removed": trellis_removed,
             "settings_need_manual_edit": self._settings_trellis_notes(),
         }
