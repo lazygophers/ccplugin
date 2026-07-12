@@ -1,6 +1,8 @@
 /* SKEIN 看板 base — 布局 + 切换器 + 组件类。
-   颜色全走 CSS 变量 (由 palettes/ 提供)，结构由 themes/ 覆盖。
-   :root 默认 = stone 浅色，作 palette 未加载时的兜底。 */
+   颜色全走 CSS 变量 (由 palettes/ 提供)，装饰结构由 themes/ 覆盖。
+   :root 默认 = stone 浅色，作 palette 未加载时的兜底。
+   视觉方向: 信息密度 dashboard (2 列 task 网格 + 满宽概览 banner + hairline 进度条)
+   + 明细折叠 (task 卡 DAG/子任务表默认收起, 按需展开)。 */
 :root{
   --bg:#e6e2dd;--fg:#4a4642;--head:#6b6560;--muted:#8a847d;
   --card:#f3f0ec;--brd:#d6d0c8;--line:#e0dad2;
@@ -11,33 +13,65 @@
   --radius:10px;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--font);margin:0;padding:24px;transition:background .3s,color .3s}
-h1{font-weight:600;color:var(--head);margin:0 0 8px}
-.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:16px 20px;margin:14px 0}
-.card h2{margin:0 0 4px;font-size:17px}
-.name{margin:0 0 6px;color:var(--head)}
-.meta{margin:0 0 10px;font-size:13px;color:var(--muted)}
-.badge{display:inline-block;padding:1px 9px;border-radius:9px;color:#fff;font-size:12px;vertical-align:middle}
+/* body = dashboard 网格: 2 列 task card, 满宽 banner 靠 grid-column 跨列 */
+body{
+  background:var(--bg);color:var(--fg);
+  font:13px/1.55 var(--font);margin:0;padding:20px 24px 40px;
+  transition:background .3s,color .3s;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;align-items:start;
+}
+@media(max-width:900px){body{grid-template-columns:1fr}}
+h1{grid-column:1/-1;margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var(--head)}
+/* 概览 card = 满宽顶部 banner (无需 markup 标记, 取首个 card) */
+body>.card:first-of-type{grid-column:1/-1}
+
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px 16px;margin:0}
+/* 收紧 type scale: h1(20) > h2(14) > 正文/name(13) > meta(12) > 表(12) > th/badge(11) > pct(10) */
+.card h2{margin:0 0 3px;font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.name{margin:0 0 8px;color:var(--head);font-size:13px;font-weight:500}
+/* meta = inline key-value 行: 密排, 弱化, · 分隔已在内容里 */
+.meta{margin:0 0 5px;font-size:12px;line-height:1.5;color:var(--muted)}
+
+.badge{display:inline-block;padding:0 8px;border-radius:9px;color:#fff;font-size:11px;line-height:17px;font-weight:500;vertical-align:baseline}
 .badge.s-pending,.badge.ss-pending{background:var(--st-pending)}
 .badge.s-active,.badge.ss-running{background:var(--st-active)}
 .badge.s-check{background:var(--st-check)}
 .badge.s-done,.badge.ss-done{background:var(--st-done)}
 .badge.ss-failed{background:var(--st-failed)}
-table{border-collapse:collapse;width:100%;font-size:13px}
-th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
-th{color:var(--muted);font-weight:600}
+
+/* 密表: 更小字号 + 收窄 padding, 顶对齐让长文本换行不撑高整行 */
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:2px}
+th,td{text-align:left;padding:4px 7px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.02em;white-space:nowrap}
+td{line-height:1.4}
 .empty{color:var(--muted);font-style:italic;opacity:.8}
-.bar{position:relative;background:var(--line);border-radius:6px;height:16px;margin:0 0 10px;overflow:hidden}
-.fill{height:100%;border-radius:6px;background:var(--accent);transition:width .4s}
+
+/* hairline 进度条: 7px 细条, 百分比 chip 贴右端 (标签已在上方 .meta 行) */
+.bar{position:relative;background:var(--line);border-radius:4px;height:7px;margin:3px 0 12px;overflow:visible}
+.fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s}
 .bar.sub .fill{background:var(--accent2)}
 .bar.est .fill{background:var(--st-check)}
 .bar.time .fill{background:var(--st-active)}
 .bar.time.over .fill{background:var(--st-failed)}
-/* 完成度条 (含 sub) 按百分比在主题 palette 内插值: 0%=st-failed → 100%=st-done; 混 --bg 得轻渐变, 随主题/配色自适应不突兀。放末位以同特异性胜过 .bar.sub */
+/* 完成度条 (含 sub) 按百分比在 palette 内插值 (0%=st-failed → 100%=st-done) 混 --bg 得轻渐变, 随主题自适应. 放末位以特异性胜过 .bar.sub */
 .bar.prog .fill{--c:color-mix(in srgb,var(--st-done) calc(var(--p,100)*1%),var(--st-failed));background:linear-gradient(90deg,color-mix(in srgb,var(--c) 62%,var(--bg)),var(--c))}
-.pct{position:absolute;top:0;left:8px;font-size:11px;line-height:16px;color:var(--fg)}
-/* 预计执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
-.dag{display:block;max-width:100%;height:auto;margin:6px 0 10px}
+.pct{position:absolute;top:50%;right:0;left:auto;transform:translateY(-50%);font-size:10px;line-height:1;color:var(--head);background:var(--card);padding:1px 3px;border-radius:3px}
+/* 表内进度条: 更紧凑, 保底宽度让 hairline 可读 */
+td .bar{margin:1px 0;min-width:78px}
+
+/* 执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
+.dag{display:block;max-width:100%;height:auto;margin:4px 0 8px}
+
+/* 明细折叠: task 卡的 DAG + 子任务表默认收起保紧凑, 展开看全量 */
+.detail{margin-top:2px}
+.detail>summary{cursor:pointer;font-size:12px;color:var(--muted);padding:4px 0;list-style:none;user-select:none}
+.detail>summary::-webkit-details-marker{display:none}
+.detail>summary::before{content:"▸ "}
+.detail[open]>summary::before{content:"▾ "}
+.detail[open]{margin-top:6px}
+.detail .dag{margin:6px 0}
+
 /* 切换器 (右上角固定) */
 .switcher{position:fixed;top:12px;right:12px;display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:99}
 .switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
