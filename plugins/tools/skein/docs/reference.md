@@ -114,10 +114,20 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
 | `board_mode` | `light` | 看板默认明暗: `light` 浅色 / `dark` 深色 |
 | `board_server` | `false` | `view` 打开方式: `false` = `file://` 直接开静态 task.html; `true` = 起本地 http 服务 (随机 port, 服务 `.skein/`) + 自动开浏览器, Ctrl-C 停 |
+| `web_serve` | `true` | 持久看板 web 服务开关 (经 `experimental.monitors`, 见「持久看板服务」)。`true` = 每 session 由 monitor 起持久 http 服务 (随机 port, 服务 `.skein/`); `false` = 关闭 (monitor 仍被 Claude Code 拉起, 但 `skein.py serve` 读到此值即静默 no-op 退出)。与 `board_server` 独立: 前者管每 session 常驻服务, 后者管 `view` 单次打开方式 |
 
 > **缺键自动回填**: `config()` 每次加载时对照 `CONFIG_DEFAULTS`, 缺的键补默认值并回写 config.yaml (用户已有值保留)。旧工作区升级后新增键无需手动补。
 
 > 主题/配色以**独立 CSS 文件**存在于插件 `assets/board/` (base + themes/ + palettes/), 渲染时拷到 `.skein/board/`, 看板 html 用相对路径 `<link>` 引入。改主题不需重渲染 — 页面右上角切换器即时切换。
+
+## 持久看板服务 (`experimental.monitors`)
+
+plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 Claude Code v2.1.105+), 每 session 由 Claude Code 拉起 `skein.py serve` 持久后台进程, 起本地 http 服务 (随机 port, 服务 `.skein/`) 常驻托管 `task.html` 看板。服务器 stdout 每行 (含启动时打印的看板 URL) 经 monitor 递给 Claude 作通知。
+
+- **总启动 + 命令自判**: Claude Code 的 monitor launcher **不读** `config.yaml`, 故 monitor 恒被拉起; 由 `serve` 命令按 config 决定跑不跑 —— 无 `.skein/` 工作区 (非 task 项目) 或 `web_serve=false` → 静默 no-op 退出, 不占端口。
+- **setup 缺省启用并打开**: `skein.py setup` 缺省 `web_serve=true` 并打开一次看板 (监听服务由 monitor 起, setup 只负责首次打开); 传 `--no-web` 则写 `web_serve=false` 关闭, 不打开。
+- **运行时关闭**: 用户随时改 `.skein/config.yaml` 的 `web_serve: false` 即关 (下个 session monitor no-op)。
+- **不自动弹浏览器**: monitor 每 session 跑, `serve` 不弹浏览器 (避免每 session 弹窗); 打开由 setup / `view` 负责。
 
 ## Hooks (`.claude-plugin/plugin.json`)
 

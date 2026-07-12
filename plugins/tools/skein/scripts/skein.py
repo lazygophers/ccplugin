@@ -146,6 +146,7 @@ CONFIG_DEFAULTS = {
     "board_palette": "stone",
     "board_mode": "light",
     "board_server": False,  # view: True→本地 http server 随机 port + 开浏览器; False→file:// 直开
+    "web_serve": True,  # experimental.monitors: 每 session 起持久看板 http 服务; False→关闭 (monitor 仍启动但 serve 命令 no-op 退出)
 }
 
 
@@ -938,23 +939,35 @@ class Skein:
         if not self.html_path.exists():
             self._board_html()
         if self.config().get("board_server"):
-            self._serve_board()
+            self._run_server(open_browser=True)
         else:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
             subprocess.run([opener, str(self.html_path)], check=False)
             print(f"已打开可视化看板: {self.html_path}")
 
-    def _serve_board(self):
-        # board_server=true: 起本地 http 服务 (随机 port) 服务 .skein/, 开浏览器到 task.html。
-        # 相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
-        import http.server, socketserver, webbrowser, functools
+    def serve(self, _):
+        # experimental.monitors 入口: 每 session 起持久看板 http 服务, 服务器 stdout 每行经 monitor 递给 Claude。
+        # monitor 总启动本命令 (不读 config.yaml), 由本命令按 config 决定跑不跑: 未初始化 / web_serve=false → 静默 no-op 退出。
+        f = self.dir / "config.yaml"
+        if not f.exists():
+            return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
+        if not _yaml_load(f.read_text()).get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+            return  # 用户在 config.yaml 关闭
+        if not self.html_path.exists():
+            self._board_html()
+        self._run_server(open_browser=False)  # monitor 每 session 跑, 不弹浏览器 (打开由 setup/view 负责)
+
+    def _run_server(self, open_browser=True):
+        # 起本地 http 服务 (随机 port) 服务 .skein/。相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
+        import http.server, socketserver, functools
         handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(self.dir))
         handler.log_message = lambda *a: None  # 静默请求日志
         with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
-            port = httpd.server_address[1]
-            url = f"http://127.0.0.1:{port}/task.html"
-            print(f"看板服务已启动: {url}  (Ctrl-C 停止)")
-            webbrowser.open(url)
+            url = f"http://127.0.0.1:{httpd.server_address[1]}/task.html"
+            print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)  # flush: monitor 需即时收到 URL 通知行
+            if open_browser:
+                import webbrowser
+                webbrowser.open(url)
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
@@ -1155,7 +1168,20 @@ class Skein:
         trellis_removed = False
         if a.full and trellis.is_dir():
             shutil.rmtree(trellis); removed.append(".trellis/"); trellis_removed = True
+        # web 看板服务: 缺省启用 (init 已写 web_serve=true); --no-web 关闭。启用则打开看板一次 (监听服务由 monitor 起)。
+        web_enabled = not getattr(a, "no_web", False)
+        if not web_enabled:
+            cfgf = self.dir / "config.yaml"
+            cfg = _yaml_load(cfgf.read_text())
+            cfg["web_serve"] = False
+            cfgf.write_text(_yaml_dump(cfg))
+        else:
+            if not self.html_path.exists():
+                self._board_html()
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.run([opener, str(self.html_path)], check=False, stdout=sys.stderr, stderr=sys.stderr)
         manifest = {
+            "web_serve": web_enabled,
             "mode": "full" if a.full else "compat",
             "trellis_present": trellis.exists(),
             "spec_copied": spec_copied,
@@ -1197,6 +1223,7 @@ def main():
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
     su = sub.add_parser("setup", help="初始化 + trellis 迁移 (默认兼容: 拷 spec/task + 删接线, 留 .trellis 数据; --full 再整删 .trellis)")
     su.add_argument("--full", action="store_true", help="完全迁移+移除: 兼容操作 + 整删 .trellis/ (spec/task 已拷入 .skein)")
+    su.add_argument("--no-web", action="store_true", help="关闭持久看板 web 服务 (写 config.yaml web_serve=false; 缺省启用并打开看板)")
     c = sub.add_parser("create", help="登记新 task (id 必填, 可读 slug)")
     c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
     c.add_argument("--name", help="task 标题 (省略则用 id)")
@@ -1216,6 +1243,7 @@ def main():
     sub.add_parser("list", help="列所有 task (含状态)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
+    sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
@@ -1258,7 +1286,7 @@ def main():
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready,
-        "list": sk.list_, "board": sk.board, "view": sk.view, "contract": sk.contract,
+        "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve, "contract": sk.contract,
         "journal": sk.journal, "subtask": sk.subtask,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
