@@ -96,7 +96,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|Read",
+        "matcher": "Edit|Write|MultiEdit|Read",
         "hooks": [
           {
             "type": "command",

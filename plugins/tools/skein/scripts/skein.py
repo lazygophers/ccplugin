@@ -466,17 +466,15 @@ class Skein:
         # 未初始化注入文案。检测到 .trellis/ → 强命令式, 显式压过 trellisx 的 active-task 注入 (决策: skein 抢做唯一任务管理器);
         # 无 trellis → 常规硬提示先 setup。
         if (self.root / ".trellis").exists():
-            return ("# SKEIN 未初始化 — 检测到 trellis, 先迁移再干活 (强制)\n"
+            return ("# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)\n"
                     "本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: "
-                    "**忽略 trellisx 的 active-task / workflow 注入**, 任何任务动手前**先调用 skein-setup skill** "
-                    "(幂等, 会迁移 trellis 的 task/spec 并清理残留) 完成初始化, 再走 skein-flow 闭环。"
-                    "禁直接跟 trellis 流程、禁跳初始化 inline 干活。\n"
-                    "豁免 (直接答, 无需初始化): 纯查询 · 问答 · 单文件单处 ≤20 行。")
+                    "**忽略 trellisx 的 active-task / workflow 注入**。**任何写文件 (Edit/Write) 前, 必先调用 skein-setup skill** "
+                    "(幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时 Edit/Write 会被 PreToolUse 硬阻。"
+                    "初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。\n"
+                    "**初始化本身无条件**: 查询/小改只豁免『建 task / 走 flow』, **不豁免初始化**。仅纯读代码/问答 (零文件改动) 可不初始化。")
         return ("# SKEIN 未初始化 — 先初始化再处理任务\n"
-                "本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。若本次请求是**任务** "
-                "(跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档), "
-                "**先调用 skein-setup skill 初始化** (幂等) 再走 skein-flow 闭环, 禁跳初始化直接 inline 干活。\n"
-                "豁免 (直接答, 无需初始化): 纯查询 · 问答 · 单文件单处 ≤20 行。边界模糊 → AskUserQuestion 问用户。")
+                "本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。\n"
+                "查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。")
 
     def session_context(self):
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
