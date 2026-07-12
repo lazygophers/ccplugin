@@ -40,6 +40,14 @@ task finish 后走「判定门 checklist → 分层归类 → 🔴 AskUserQuesti
 
 一次性动作, `AskUserQuestion` 征同意再跑 (禁自动); 用户拒 → 走正常 planning, 规则随 finish sediment 增量积累。完整流程 (触发条件 / 五维明细 / 判层表 / 落盘) 见 [references/bootstrap-seeding.md](references/bootstrap-seeding.md)。
 
+## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
+
+| 触发                          | 一线修复                                          | 仍失败兜底                                                   |
+| ----------------------------- | ------------------------------------------------- | ------------------------------------------------------------ |
+| recall grep 无命中            | 放宽 / 换关键词重 grep 一次 (同义词 / 上位类目)   | 仍无 → planning 走无规则路径, 不阻塞; 靠 finish sediment 增量补 |
+| `memory.py sediment/reindex` 报错 | 读脚本 stderr 定位 (路径 / 权限 / 类目名非法)    | 仍失败 → 该候选暂存草案不落盘, 记 `需要: 手工核对`, 禁半写坏盘 |
+| core 常驻超 8000 字符告警     | 把最少复用的 core 规则降级到 recall (`sediment` 调层) | 仍超 → STOP, 提示用户 core 膨胀, 需人工裁剪硬规集            |
+
 ## 反例
 
 | 禁                                | 改为                                    |
