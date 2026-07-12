@@ -19,7 +19,7 @@ description: SKEIN 任务闭环入口 — 把请求强制作为 task 处理 (pla
 
 ## 强制流程 (不可跳步)
 
-**由 `skein-flow` skill 承载** — go 只负责路由 (判有无入参 + 建/驱动 task), 闭环全流程 (0前置→plan→memory recall→激活→exec→check→finish) 见 `skein-flow` SKILL.md「强制流程」段, 分步细则见其 `references/mandatory-flow-steps.md`。go 不复制流程正文, 避免两处真值漂移。
+**由 `skein-flow` skill 承载** — go 只负责路由 (判有无入参 + 建/驱动 task), 闭环全流程 (plan→exec→check→finish) 见 `skein-flow` SKILL.md「强制流程」段, 分步细则见其 `references/step-*.md`。go 不复制流程正文, 避免两处真值漂移。
 
 ## 边界
 

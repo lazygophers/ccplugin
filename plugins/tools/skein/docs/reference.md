@@ -76,7 +76,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | --- | --- | --- |
 | `skein-add` | **[仅用户显式 `/skein-add <任务描述>`, disable-model-invocation]** 只规划不执行入口: 委托 `skein-planning` (planning 真值源) 无参跑完 planning (判新旧 + 登记 + brainstorm + grill 硬门 + 产出 `prd.md`[+`design.md`]+`implement.md`), 然后**停在 `skein.py start` 之前**, task 留 planning 态, 禁 exec/check/finish。产出的 planning 态 task 留待用户再走 `/skein-go` 或 `skein-flow` 消费。与 flow/`/skein-go` 边界: 后者=强制全闭环 plan→exec→check→finish, add=只到 planning 停 | — |
 | `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `memory.py reindex`) | trellis-migration |
-| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | mandatory-flow-steps · scheduling-algorithm · progress-reporting |
+| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | step-plan · step-exec · step-check · step-finish · scheduling-algorithm · progress-reporting |
 | `skein-planning` | plan 入口: 判新旧 + 登记 + brainstorm + grill 硬门; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |

@@ -2,15 +2,13 @@
 name: skein-flow
 description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推 plan→exec→check→finish 全流程, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做
 user-invocable: false
-argument-hint: "[任务描述 (要强制走 SKEIN task 闭环的请求)]"
-arguments: "[任务描述 (要强制走 SKEIN task 闭环的请求)]"
+argument-hint: "[任务描述] [--skip]"
+arguments: "[任务描述] [--skip]"
 model: sonnet
 effort: medium
 ---
 
-# skein-flow — 强制 SKEIN task 闭环
-
-把请求**强制作为 SKEIN task 处理**, 走 plan→exec→check→finish, 禁 inline 直接做 (即使看似简单)。加载本 skill = 「建 task 同意」信号。但**≠ 一定新建** — 先判**全新任务** vs **对现有 active task 的补充**, 再决定新建/并入。
+把请求**强制作为 SKEIN task 处理**, 除非用户输入 `--skip`，否则禁 inline 直接做 (即使看似简单)。但**不等于一定新建** — 先判**全新任务** vs **对现有 active task 的补充**, 再决定新建/并入
 
 ## 执行载体铁律 (最高优先级)
 
@@ -24,19 +22,30 @@ effort: medium
 - **每个 dispatch prompt 6 字段自包含**: 目标 / 已知 (含 `Active task: <id>` + worktree 路径) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - **完成即时回传** — 每个 subagent 完成或阻塞, main 立即输出摘要, 禁批量延迟汇总。
 
-## 强制流程 (不可跳步)
+## 任务执行流程
 
-7 步闭环, 每个生命周期节点后跑 `skein.py board`。**每步详细规则 (触发/命令/硬门/失败处理) 见 [references/mandatory-flow-steps.md](references/mandatory-flow-steps.md) 对应节, 本表仅列骨架**。
+plan → exec → check → finish 四步闭环
 
-| # | 步骤 | 载体 | 一句话 |
-|---|---|---|---|
-| 0 | 前置 | main | 无 `.skein/` → init; 判新旧, 不准 → `AskUserQuestion` |
-| 1 | plan | main 同步 | 委托 `skein-planning` (create + brainstorm + grill 硬门) |
-| 2 | memory recall | main | 委托 `skein-memory` recall 相关规则 |
-| 3 | 激活 CHECKPOINT | main | 产物评审 → 批准前禁 start → `skein.py start` |
-| 4 | exec | agent 编排 | main 调度器, 每 subtask 选 agent 执行, 改动落 worktree ([scheduling-algorithm.md](references/scheduling-algorithm.md)) |
-| 5 | check | 委托 `skein-check` | 派 `skein-checker` 验证, 未过定点修复重检 |
-| 6 | finish | main 同步 | journal → sediment 门 → 清理 → `skein.py finish` |
+### plan
+
+- `skein.py start <任务 ID> --name <任务名称> --desc <任务描述>` 创建任务
+- Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
+- Skill(skein-planning) 规划任务、编写 prd 等内容
+- ToolCall(AskUserQuestion) 评审产物、确认用户需求
+  - 确认并启动任务
+  - 任务需要修改
+
+### exec
+
+执行编排, agent 编排。main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (无则 `skein-executor`) 各执行 1 subtask, 改动落 task worktree; 异步等待 MUST 输出任务清单; 顺序归 planning, exec 禁问用户顺序。详见 [references/step-exec.md](references/step-exec.md) + [scheduling-algorithm.md](references/scheduling-algorithm.md)。
+
+### check
+
+质量验证, 委托 `skein-check`。派 `skein-checker` 跑 lint/type-check/tests/契约合规; 未过 → 派合适 agent 定点修复重检, 不跳 finish。详见 [references/step-check.md](references/step-check.md)。
+
+### finish
+
+收尾归档, main 同步。check 通过 → journal 追加 → sediment 判定门 (learning → core/recall/drop, 输出 trace) → 清理悬挂 subagent → `skein.py finish` (commit→merge→archive→销 worktree)。详见 [references/step-finish.md](references/step-finish.md)。
 
 ## 作用域边界 (何时建 task)
 
