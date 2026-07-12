@@ -498,7 +498,6 @@ class Skein:
 
     def session_context(self):
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
-        _persist_bash_cwd_env()  # 随插件发货 CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1 (plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
             print(json.dumps({"hookSpecificOutput": {
@@ -1200,6 +1199,9 @@ def main():
         p.error(f"subtask {a.action} 需要 sid")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 仓静默 exit 0; git 仓无 .skein → session_context 注入 setup 建议
+        # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓),
+        # 恰是最需要 MAINTAIN_PROJECT_WORKING_DIR 的场景, 不能被 gitroot() 失败挡掉
+        _persist_bash_cwd_env()  # 随插件发货 CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1 (plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
         try:
             sk = Skein()
         except SystemExit:
