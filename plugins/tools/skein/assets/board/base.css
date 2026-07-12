@@ -13,20 +13,21 @@
   --radius:10px;
 }
 *{box-sizing:border-box}
-/* body = dashboard 网格: 2 列 task card, 满宽 banner 靠 grid-column 跨列 */
+/* body = 瀑布流 (CSS multicol): 2 列 task card 按高度错落填充, 消除 grid 定行导致的行间空白;
+   满宽 banner/h1 靠 column-span:all 跨列。列内纵向节奏由 .card margin-bottom 给。 */
 body{
   background:var(--bg);color:var(--fg);
   font:13px/1.55 var(--font);margin:0;padding:20px 24px 40px;
   transition:background .3s,color .3s;
-  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:14px;align-items:start;
+  column-count:2;column-gap:14px;
 }
-@media(max-width:900px){body{grid-template-columns:1fr}}
-h1{grid-column:1/-1;margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var(--head)}
+@media(max-width:900px){body{column-count:1}}
+h1{column-span:all;margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var(--head)}
 /* 概览 card = 满宽顶部 banner (无需 markup 标记, 取首个 card) */
-body>.card:first-of-type{grid-column:1/-1}
+body>.card:first-of-type{column-span:all}
 
-.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px 16px;margin:0}
+/* break-inside:avoid = 卡不跨列断裂; margin-bottom 替代原 grid gap 的纵向间距 */
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px 16px;margin:0 0 14px;break-inside:avoid}
 /* 收紧 type scale: h1(20) > h2(14) > 正文/name(13) > meta(12) > 表(12) > th/badge(11) > pct(10) */
 .card h2{margin:0 0 3px;font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .name{margin:0 0 8px;color:var(--head);font-size:13px;font-weight:500}
