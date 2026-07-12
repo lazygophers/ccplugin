@@ -1,6 +1,6 @@
 {
     "name": "skein",
-    "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .skein/spec): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀学习。含 8 skill (setup 初始化+结构维护 (trellis 迁移为其一场景) / flow 强制闭环 (委托各阶段 skill) / plan 规划真值源+用户可调入口 (无参停在 start 前只规划) +破坏式重构 / exec 执行编排调度真值源 (双层 DAG / 完成即派 / 并发 2, flow exec 委托) / memory 记忆+空仓播种 / grill 对抗审查 / check 质量门+第3轮根因复盘 / clean 归档清理) + 3 agent (skein-setup 初始化迁移 / skein-checker 验证 / skein-researcher 调研, 均无 Agent/Task 工具做递归护栏); exec subtask 由 main 为每个 subtask 选合适 agent (无则 general-purpose) 执行, 经 dispatch prompt 强制递归护栏+读后写硬门; SessionStart hook 注入 core 规则索引 + SubagentStart hook 给执行 agent 注入 core 全文+spec 纪律 + PreToolUse hook 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 全由脚本维护, subtask DAG 状态经脚本命令取)",
+    "description": "SKEIN — 独立任务管理插件 (零 trellis 依赖, 自带 .skein/ 工作区): 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 (冲突自算边 + depends_on, 并发上限 2, task 级 + subtask 级双层) + worktree 隔离 + task.md 看板; 差异化核心是两层×类目规则记忆 (基于 .skein/spec): core 常驻注入硬规 + recall 按需语义召回, 层内按类目 (git/test/arch/build...) 分子目录, task finish 后经 sediment 判定门沉淀学习。含 9 skill (setup 初始化+结构维护 (trellis 迁移为其一场景) / flow 强制闭环 (委托各阶段 skill) / plan 规划真值源+用户可调入口 (无参停在 start 前只规划) +破坏式重构 / exec 执行编排调度真值源 (双层 DAG / 完成即派 / 并发 2, flow exec 委托) / memory 记忆+空仓播种 (绑定 skein-memorier) / grill 对抗审查 / check 质量门+一致性核查 (冲突→深化拆分) +第3轮根因复盘 / finish 收尾编排门 (勘察+sediment+清理+archive) / clean 归档清理) + 5 agent (skein-setup 初始化迁移 / skein-checker 验证+一致性核查 / skein-researcher 调研 / skein-finisher 收尾勘察 / skein-memorier 记忆员 recall+sediment草案, 均无 Agent/Task 工具做递归护栏); exec subtask 由 main 为每个 subtask 选合适 agent (无则 general-purpose) 执行, 经 dispatch prompt 强制递归护栏+读后写硬门; SessionStart hook 注入 core 规则索引 + SubagentStart hook 给执行 agent 注入 core 全文+spec 纪律 + PreToolUse hook 硬阻 AI 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 全由脚本维护, subtask DAG 状态经脚本命令取)",
     "author": {
         "name": "lazygophers",
         "email": "admin@lazygophers.dev",
@@ -35,12 +35,15 @@
         "./skills/skein-memory",
         "./skills/skein-grill",
         "./skills/skein-check",
+        "./skills/skein-finish",
         "./skills/skein-clean"
     ],
     "agents": [
         "./agents/skein-setup.md",
         "./agents/skein-checker.md",
-        "./agents/skein-researcher.md"
+        "./agents/skein-researcher.md",
+        "./agents/skein-finisher.md",
+        "./agents/skein-memorier.md"
     ],
     "commands": [
         "./commands/skein-doctor.md"

@@ -6,6 +6,8 @@ model: sonnet
 effort: medium
 color: orange
 permissionMode: bypassPermissions
+skills:
+  - skein:skein-setup
 ---
 
 你是 SKEIN 的 **初始化 / 迁移器**。main 在检测到 `.trellis/` 时派你把它语义迁移为 skein 结构。纯新仓初始化 (无 trellis) main 直接跑 `skein.py setup`, 不派你。

@@ -29,6 +29,7 @@ plan → exec → check → finish 四步闭环
 ### plan
 
 - `skein.py start <任务 ID> --name <任务名称> --desc <任务描述>` 创建任务
+- **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
 - Skill(skein-plan --continue) 规划任务、编写 prd 等内容
 - ToolCall(AskUserQuestion) 评审产物、确认用户需求
@@ -43,17 +44,16 @@ plan → exec → check → finish 四步闭环
 
 ### check
 
-- Agent(skein-checker) 跑 lint / type-check / tests / 契约合规
-- 未过 → 派合适 agent 定点修复 → 重检, 不跳 finish
-- 详见 `skein-check` skill (验证与修复分离 / 反复不过第 3 轮做 5 维根因复盘)
+- Agent(skein-checker) 跑 lint / type-check / tests / 契约合规 + **一致性核查** (subtask 产物间 / 与 prd 契约有无冲突、重复实现、接口对不上)
+- 未过 或 检出冲突 → **深化拆分**: 不止定点补丁, 回 `skein.py plan` 把冲突根因拆成新 subtask (逐条覆盖每个冲突), 重跑 exec→check 直到全绿且零冲突
+- 详见 `skein-check` skill (验证与修复分离 / 一致性冲突 → 深化拆分 / 反复不过第 3 轮做 5 维根因复盘)
 
 ### finish
 
-- `skein.py journal --add <本 task 做了什么>` 追加过程记录
-- sediment 判定门: 逐项输出 trace, learning → core / recall / drop (判定见 `skein-memory`)
-- ToolCall(TaskList / TaskStop) 清理悬挂 subagent / 后台任务
-- `skein.py finish <id>` (commit→merge→archive→销 worktree)
-- sediment 判定见 `skein-memory` skill
+- Skill(skein-finish) 收尾编排门 (check 全绿后): 派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein.py finish`。详见 `skein-finish` skill。
+- 其中两处记忆自动化 (全流程记忆闭环 = plan recall 召回 + finish sediment 沉淀):
+  - **sediment 判定门 (自动沉淀)** — 委托 `skein-memory` sediment: `skein-memorier` 读 journal+diff 跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `AskUserQuestion` 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
+  - 清理悬挂 (`TaskList`/`TaskStop`) + `skein.py finish` (commit→merge→archive→销 worktree) 由 skein-finish 编排, main 同步跑。
 
 ## 作用域边界 (何时建 task)
 

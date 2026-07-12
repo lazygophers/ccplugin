@@ -70,32 +70,35 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 全文有字符上限 (`inject-core` 软告警), 超了 sediment 会提示降级到 recall。SessionStart **只注入极简索引** (每条一行标题), 另有独立 token 硬预算 (`hooklib`, 超则截断) — 常驻上下文恒定小, 全文按需拉。
 
-## Skills (8 个)
+## Skills (9 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
 | `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `memory.py reindex`) | trellis-migration |
-| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发), 委托各阶段 skill | — (exec → skein-exec / check → skein-check / plan → skein-plan / finish sediment → skein-memory) |
+| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发), 委托各阶段 skill | — (plan → skein-plan / exec → skein-exec / check → skein-check / finish → skein-finish; 记忆 recall+sediment → skein-memory) |
 | `skein-plan` | plan 入口 + 单一真值源 (用户可显式 `/skein-plan`, 也被 flow `--continue` 委托): 判新旧 + 登记 + brainstorm + grill 硬门; **无参 = 跑完停在 start 前 (只规划不执行, 禁 exec/check/finish)**, `--continue` = 不停返回工件路径; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-exec` | exec 执行编排调度真值源 (被 flow exec 委托, 也可 `/skein-exec` 单独续跑已规划 task): main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent, ready 即派 / 完成即派 / 并发上限 2, 双层 (subtask 级 + 多 task 级) 同构 | scheduling-algorithm · progress-reporting |
-| `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
+| `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性)。绑定 `skein-memorier` agent (产 recall/sediment 草案, 相互绑定) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
-| `skein-check` | 质量门 (lint/type/test/契约), 未过派修; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
+| `skein-check` | 质量门 (lint/type/test/契约 + **一致性核查**), 未过派修; 孤立失败定点修, **跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖)**; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
+| `skein-finish` | finish 收尾编排门 (check 全绿后被 flow 委托): 派 `skein-finisher` 收尾勘察 + 委托 `skein-memory` sediment + 清理悬挂 + `skein.py finish` (commit→merge→archive→销 worktree) | — |
 | `skein-clean` | **[仅用户主动]** 主动归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支; 入参 = 保留天数 | anti-examples |
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 exec / planning / memory / check 的 references (省常驻 description token)。
 
-## Agents (3 个具名 + 执行选现有 agent)
+## Agents (5 个具名 + 执行选现有 agent)
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 2 个是工具受限的具名验证/调研 agent (无 Agent/Task = 递归护栏):
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
-| `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-checker` | 只读验证 (lint/type/test/契约合规 + subtask 产物一致性核查, 报冲突对) | 只读 + Bash, 无 Agent/Task | `model: haiku` + `effort: medium` |
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + **残留/非 canonical** settings hook 剔除; canonical trellis hook 由脚本硬剔); 机械部分交 `skein.py setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-finisher` | finish 收尾勘察 (只读: 扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏), 绑定 `skein-finish` | 只读 + Bash, 无 Agent/Task | `model: haiku` |
+| `skein-memorier` | 记忆员: recall 检索 (planning) + sediment 草案 (finish 读 journal+diff 跑判定门产 core/recall/drop 候选), 与 `skein-memory` 相互绑定; 审批+写盘归 main | 只读 + Bash, 无 Agent/Task | `model: haiku` |
 
-> 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium); 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
+> 模型分层做 token 优化: 验证 / 收尾勘察 / 记忆走最轻档 (haiku); 调研 / 迁移走 sonnet; 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 
 ## Command
 

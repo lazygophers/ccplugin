@@ -20,14 +20,17 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 流程
 
-1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径 + planning 的验收标准。checker 跑 lint/type/test/build + 契约合规, 回传报告。
+1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径 + planning 的验收标准。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
    - **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail:
      - `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>` (列出 planning 阶段锁进 task.json 的契约)
      - 任一条 fail → 进修复循环 (同 lint/type/test 未过路径), 派合适 agent (无则 `skein-executor`) 定点修复后重检。
-2. **判定** — PASS → 放行 finish。FAIL → 进修复循环。
-3. **定点修复** — 按 checker 报告 (失败项 file:line + 报错原文 + 定位建议) 派合适 agent (无则 `skein-executor`) 修, 只改失败相关文件。
-4. **重验** — 修复后重派 `skein-checker` 复跑。未过继续循环。
-5. **放行** — 全绿 → 回 `skein-flow` 走 finish。
+   - **一致性核查** — checker MUST 检 subtask 产物间 + 与 prd 契约有无冲突: 接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾。逐条报冲突对 (哪两处 file:line + 冲突点)。
+2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进对应循环 (见下)。
+3. **处置 (分两路)** —
+   - **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 按 checker 报告 (file:line + 报错原文) 派合适 agent (无则 `skein-executor`) 修, 只改失败相关文件。
+   - **一致性冲突 或 check 失败根因跨 subtask** → 🔴 **深化拆分 (非定点补丁)**: 定点补丁治标, 冲突根因在 planning 拆分不到位。回 `skein.py plan`, 把每个冲突根因拆成新 subtask (逐条覆盖, 一冲突一 subtask, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
+4. **重验** — 修复/深化后重派 `skein-checker` 复跑 (含一致性)。未过或仍有冲突继续对应循环。
+5. **放行** — 全绿且零冲突 → 回 `skein-flow` 走 finish。
 
 ## 反复不过 (≥2 轮) 兜底
 
@@ -38,4 +41,4 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 反例
 
-违反上文即流程错误: main 亲跑 lint/test (应派 checker) / checker 自己改码 (应交合适修复 agent) / 未全绿就 finish / 只跑 lint 不验契约 (先 `skein.py contract` 逐条报) / 无限重检 (第 3 轮走根因复盘)。
+违反上文即流程错误: main 亲跑 lint/test (应派 checker) / checker 自己改码 (应交合适修复 agent) / 未全绿就 finish / 只跑 lint 不验契约 (先 `skein.py contract` 逐条报) / 检出冲突只打定点补丁不深化拆分 (跨 subtask 冲突必回 plan 拆新 subtask 逐条覆盖) / 冲突未全覆盖就 finish / 无限重检 (第 3 轮走根因复盘)。

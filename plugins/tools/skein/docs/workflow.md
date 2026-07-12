@@ -8,10 +8,12 @@
 | --- | --- | --- | --- |
 | **main** | 主对话 (coordinator) | 调度器: 跑 `skein.py` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
 | **执行者** | main 选的合适 agent (无则 `general-purpose`) | worktree 内执行 **1 个** subtask, 写代码 | 有 (递归护栏靠 dispatch prompt 硬性禁止再派) |
-| **skein-checker** | 验证 agent | 只读, 跑 lint / type / test / 契约校验 | 无 |
+| **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
+| **skein-finisher** | 收尾勘察 agent (绑 `skein-finish`) | 只读, finish 前扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏 | 无 |
+| **skein-memorier** | 记忆员 agent (绑 `skein-memory`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 journal+diff 跑判定门产 core/recall/drop 候选) | 无 |
 
-**铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `general-purpose`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研的 2 个具名 agent (checker / researcher) **没有** Agent/Task 工具兜住递归, 各自只干一件事。
+**铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `general-purpose`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
 `skein.py` 的 `create/start/finish/archive` 是任务记录管理, 由 main **同步**直接跑, 不派 agent、不算实质工作。
 
@@ -31,9 +33,9 @@
 - **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein.py contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
 - 产出: `prd.md` (+ 需要时 `design.md`) + `implement.md`, 请你评审 (AskUserQuestion)。
 
-### ② memory recall (main 同步)
+### ② memory recall (main 委托 `skein-memorier`)
 
-按任务描述从 `recall` 层召回相关规则注入上下文 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `memory.py inject-core` 拉)。让本 task 带上项目历史经验。
+派 `skein-memorier` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `memory.py inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
 
 ### ③ 激活 (main 同步)
 
@@ -56,19 +58,26 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 ### ⑤ check (main 派 checker fan-out)
 
-派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没)。未过 → 派合适 agent (无则 `general-purpose`) 定点修复重检, 不跳 finish。
+派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没), 并做 **subtask 产物一致性核查** (接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾, 逐条报冲突对)。
+
+**处置分两路** (关键): 
+- **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 派合适 agent (无则 `general-purpose`) 只改失败相关文件, 重检。
+- **一致性冲突 或 check 失败根因跨 subtask** → 🔴 **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein.py plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
 
 **第 3 轮仍 FAIL → 根因复盘**: 不再只 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
-### ⑥ finish (main 同步)
+### ⑥ finish (main 委托 `skein-finish` 编排)
 
-check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
+check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment (见下) → 清理悬挂 → `skein.py finish`**。
 
-1. worktree 内 `git add -A` + commit (auto_commit=true 时)。
-2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
-3. 销 worktree + 删分支。
-4. task → `completed`, 归档到 `.skein/task/archive/<年>/<月-日>/<id>/`。
-5. 从顶层 tasks 索引移除 (其余 active task 不受影响, 继续并行)。
+- **收尾勘察** (`skein-finisher`, 只读): 扫悬挂 subagent/后台任务 + 复核 check 全绿 + 查未提交遗漏, 回传勘察报告供 main 决定是否放行。
+- **sediment 判定门** (委托 `skein-memory`): `skein-memorier` 读 journal+diff 跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + AskUserQuestion 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
+- **`skein.py finish`** (main 同步):
+  1. worktree 内 `git add -A` + commit (auto_commit=true 时)。
+  2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
+  3. 销 worktree + 删分支。
+  4. task → `completed`, 归档到 `.skein/task/archive/<年>/<月-日>/<id>/`。
+  5. 从顶层 tasks 索引移除 (其余 active task 不受影响, 继续并行)。
 
 > finish 摘要可选 `skein.py journal --add "<本 task 完成情况>"` 记一笔 (append-only 过程日志, 随 task 一并归档; 无审批门, 区别 sediment 的判定门与 contract 的锁定)。
 
@@ -135,7 +144,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 | 跨任务可复用经验但长尾 (选型 / 架构边界 / 踩坑根因) | → **recall** |
 | 一次性 bug / 本 task 私有细节 / 已有规则覆盖 | → **drop** (不沉淀) |
 
-判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。写盘经 `memory.py sediment` (审批后), 自动 reindex。
+判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 journal+diff 跑判定门) 产出, 审批 (AskUserQuestion) + 写盘经 `memory.py sediment` 仍归 main, 自动 reindex。
 
 ## 工作区布局
 
