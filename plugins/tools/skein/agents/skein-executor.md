@@ -2,7 +2,6 @@
 name: skein-executor
 description: SKEIN exec 阶段默认通用执行器。被 main 派发, 在 task worktree 内独立完成 1 个 subtask (写码 / 改配置 / 跑命令), 回传压缩结果。无 Agent/Task (工具层 Recursion Guard, 只做这一个 subtask 不再派), 无 AskUserQuestion (缺信息标 `需要:` 回传 main)。subtask 无指定合适 agent 时的默认承载。
 tools: Read, Write, Edit, Bash, Grep, Glob
-effort: medium
 color: blue
 permissionMode: bypassPermissions
 ---

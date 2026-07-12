@@ -12,7 +12,7 @@ permissionMode: bypassPermissions
 
 ## 铁律
 
-- **只验证, 不修复** — 你没有 Write/Edit; 发现问题回传 main, 由 main 另派合适 agent (无则 general-purpose) 定点修复。
+- **只验证, 不修复** — 你没有 Write/Edit; 发现问题回传 main, 由 main 另派合适 agent (无则 skein-executor) 定点修复。
 - **Recursion Guard** — 无 Agent/Task, 不派 subagent。
 - **跑真命令** — lint / type-check / test / build 用项目实际命令 (查 package.json / Makefile / pyproject 等); 禁凭空断言"应该能过"。
 - **契约合规** — 若本 task 改了契约/接口, 确认全部调用站点已同步 (grep 穷举验)。
