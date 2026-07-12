@@ -59,7 +59,7 @@ const INDEX_FILE = `${ROOT}/章节/_索引.md`;
 const BATCH_SIZE = 5; // 每批最多章数, 超出自动分批
 const MAX_FIX_ATTEMPTS = Infinity; // fix 最大重试(无限: 一直修到达标; 用户要求)
 const PASS_TOTAL = 100; // 定稿综合分阈值(严格 == 100 才过; 零容忍满分门控)
-const PASS_CONSISTENCY = 100; // 一致性单项阈值(严格 == 100 才过; 零冲突含 🟢)
+const PASS_CONSISTENCY = 100; // 一致性单项阈值(严格 == 100 才过; 零冲突含 建议级)
 const PASS_HUMANNESS = 100; // 人味单项阈值(严格 == 100 才过)
 const MAX_AGENT_RETRIES = Infinity; // 单 agent 调用失败重试上限(无限: 一直重试到成功; 用户要求)
 const EST_SEC_PER_AGENT = 30; // 单 agent 调用预估耗时(秒, 仅粗估; Workflow 禁 Date.now 无法实测)
@@ -266,9 +266,9 @@ async function checker(chNum, title) {
 			`读取: ${file}、${ROOT}/世界观/规则.md、${ROOT}/元数据/进度.md、${ROOT}/情节/伏笔.md、相关 人物/简介.md。\n\n` +
 			`方法: 引用 novelist-check skill 的 18 子项一致性审查(6 维 × 3 子项: 设定冲突3/人物矛盾3/世界观违规3/时间线错乱3/伏笔遗漏3/逻辑合理性3) + continuity-auditor 视角。\n` +
     `18 子项核对: 1a物品定义不一/1b术语定义不一/1c组织定义不一; 2a关系突变无铺垫/2b行为违背性格动机/2c生死状态错乱; 3a力量超规则边界/3b未付代价/3c势力格局自相矛盾; 4a事件顺序矛盾/4b年龄经历对不上/4c时长跨度不合理; 5a计划回收章未回收/5b结尾悬空伏笔/5c伏笔间相互矛盾; 6a因果断裂/6b关键转折动机不足/6c过度巧合。\n` +
-			`🔴 零容忍满分门控: 任一子项有冲突(含 🟢 建议级)即 <100 不过。\n\n` +
+			`零容忍满分门控: 任一子项有冲突(含 建议级)即 <100 不过。\n\n` +
 			`先把检查报告写入 ${ROOT}/元数据/检查报告/第${num}章.md(含结论/评分/18 子项问题清单, 每条标 [子项编号 维度]), 再按下方格式返回结论。\n\n` +
-			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=零冲突含 🟢, 满分才过)\n问题清单: [子项编号 维度] [行号] 问题(如有)`,
+			`输出格式:\n结论: 通过 / 有冲突\n评分: 0-100(100=零冲突含 建议级, 满分才过)\n问题清单: [子项编号 维度] [行号] 问题(如有)`,
 		{ label: `查一致:${num}`, phase: "查一致", agentType: "novelist:continuity-auditor" }
 	);
 }
@@ -283,7 +283,7 @@ async function humanizer(chNum, title) {
 			`引用 novelist-humanize skill 跑 score_aitaste.py 取客观人味分(只读不改正文)。\n\n` +
 			`检测项: 1.匀质句长 2.陈词过渡(首先/其次/综上/然而) 3.模板腔 4.空泛抽象 ` +
 			`5.否定式排比(不是A而是B) 6.过度总结。\n\n` +
-			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做, 避免三环并行写冲突)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(问题清单), 再按下方格式返回评分。\n\n` +
+			`本阶段**只检测不改正文**(改由 fix 阶段统一做, 避免三环并行写冲突)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章-deaigc.md(问题清单), 再按下方格式返回评分。\n\n` +
 			`输出格式:\n人味评分: 0-100(100=完全人写, ==${PASS_HUMANNESS}满分才通过)\nAI味等级: 轻/中/重\n问题清单: [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `去AI味:${num}`, phase: "去AI味", agentType: "novelist:humanizer" }
 	);
@@ -298,8 +298,8 @@ async function proofer(chNum, title) {
 			`读取: ${file}\n\n` +
 			`方法: 引用 novelist-proofread skill 的 12 子项文字校对(5 维 × 子项: 错别字3/语法3/标点2/用词2/用字统一2)。\n` +
     `12 子项核对: 1a形近字(己/已/的得地)/1b音近字/1c多字漏字; 2a成分残缺(缺主谓宾)/2b搭配不当/2c语序与关联词; 3a误用与缺失/3b中英标点混用与引号书名号配对; 4a啰嗦重复与口语书面混杂/4b生造词; 5a人物称呼译名(基准 人物/_索引.md)/5b术语专有名词(基准 设定/_索引.md)。\n` +
-			`🔴 零容忍满分门控: 任一子项有错即 <100 不过。\n\n` +
-			`🔴 本阶段**只检测不改正文**(改由 fix 阶段统一做)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(12 子项问题清单, 每条标 [子项编号 维度]), 再按下方格式返回评分。\n\n` +
+			`零容忍满分门控: 任一子项有错即 <100 不过。\n\n` +
+			`本阶段**只检测不改正文**(改由 fix 阶段统一做)。把检测报告写入 ${ROOT}/元数据/校对报告/第${num}章.md(12 子项问题清单, 每条标 [子项编号 维度]), 再按下方格式返回评分。\n\n` +
 			`输出格式:\n评分: 0-100(100=无任何文字问题, 满分才过)\n问题清单: [子项编号 维度] [行号] 原文 → 建议改法(不就地改)`,
 		{ label: `校对:${num}`, phase: "校对", agentType: "novelist:proofreader" }
 	);
@@ -338,7 +338,7 @@ async function fixer(chNum, title, checkResult, proofResult, humanResult) {
 			),
 		);
 
-	// 🔴 串行执行: 三个 fix 都改同一章文件, 并行会写冲突, 必须一个改完再下一个
+	// 串行执行: 三个 fix 都改同一章文件, 并行会写冲突, 必须一个改完再下一个
 	for (const f of fixers) await f();
 }
 
@@ -403,7 +403,7 @@ async function finishChain(n, info) {
 		const runProof = needsPhase(EFFECTIVE_MODE, "校对");
 		if (!runCheck && !runHuman && !runProof) break; // 无检测 phase(如 rewrite 仅 fix)
 
-		// 🔴 三环并行检测(查一致/去AI味/校对正交, 均只读不改正文 → 无写冲突)
+		// 三环并行检测(查一致/去AI味/校对正交, 均只读不改正文 → 无写冲突)
 		const tasks = [];
 		if (runCheck) tasks.push(() => checker(n, info.title)); // 一致性
 		if (runHuman) tasks.push(() => humanizer(n, info.title)); // 去AI味
@@ -563,7 +563,7 @@ async function runChapters(batchStart, batchEnd, chapterNums, chapters) {
 
 	if (doWrite) {
 		// Phase 2(write 模式): 流水线并行 —— 当前章收尾链 ‖ 下一章 write
-		// 🔴 用 Workflow parallel() 显式声明并行(原生 Promise.all 的 await agent 不会被 Workflow 并发调度)。
+		// 用 Workflow parallel() 显式声明并行(原生 Promise.all 的 await agent 不会被 Workflow 并发调度)。
 		const first = chapterNums[0];
 		log(`第${ch(first)}章 Writer 开始`);
 		await writer(first, chapters[first]);
@@ -572,7 +572,7 @@ async function runChapters(batchStart, batchEnd, chapterNums, chapters) {
 		for (let i = 0; i < chapterNums.length; i++) {
 			const cur = chapterNums[i];
 			const next = chapterNums[i + 1];
-			// 🔴 并行: 第 cur 章收尾链 ‖ 第 next 章 write
+			// 并行: 第 cur 章收尾链 ‖ 第 next 章 write
 			await parallel([
 				() => finishChain(cur, chapters[cur]),
 				() =>

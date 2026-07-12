@@ -87,7 +87,7 @@ Active task: .trellis/tasks/06-09-oauth-login
 - 资源不可用 → 报 Blocked, 不重试
 
 ## Sub-agent 自防护
-你已是 trellis-implement, 直接做本 subtask。⛔ **禁调度、禁递归、禁并行派其他 subtask** (工具集无 Agent/Task, Recursion Guard); 调度归 main (见 scheduling.md), 你只执行这 1 个 subtask。
+你已是 trellis-implement, 直接做本 subtask。**禁调度、禁递归、禁并行派其他 subtask** (工具集无 Agent/Task, Recursion Guard); 调度归 main (见 scheduling.md), 你只执行这 1 个 subtask。
 ```
 
 ## 回滚

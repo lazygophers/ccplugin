@@ -66,11 +66,11 @@ ls .claude/commands/trellis/finish-work.md 2>/dev/null   # finish-work 全链注
 | 步 | 谁做 | 行动 |
 | --- | --- | --- |
 | **1 规划** | main 并行派 4 read-only Agent | diagnose (现状+模式) + 3 维 planner (spec/hook/finishcmd) 各算注入 diff, **不写盘**, 返回 `{plans}` |
-| **2 审批** | 🔴 **main 仅审批** | 汇总 plans → 展示统一 diff plan (含 packages 清单) → `AskUserQuestion` 审批 (🛑 STOP) → 批准后才进步 3 |
+| **2 审批** | **main 仅审批** | 汇总 plans → 展示统一 diff plan (含 packages 清单) → `AskUserQuestion` 审批 (硬停) → 批准后才进步 3 |
 | **3 写盘+自验** | main 派 prep-backup + 并行 3 writer Agent | prep-backup agent `git stash` 备份 → 3 维 writer 各**独占不相交文件集**写盘+**自验本维度** (无独立验证阶段) → 任一失败 main 派 rollback agent `git stash pop` |
 | **4 修复/完成** | main 编排 | `ok=false` → 据 failed 重跑 write (修复循环 ≤3) 或报告; `ok=true` → 完成报告 |
 
-> 🔴 **CHECKPOINT · 🛑 STOP (审批)**: 改 `.trellis/` 前 **MUST 由 main 展示 diff plan + 经 AskUserQuestion 批准**才进步 3。审批门**禁派 agent** (全局硬规: agent 不得直接问用户) —— 故 plan 与 write 拆成**两阶段**, 审批夹在中间; 禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
+> **硬停审批门 (审批)**: 改 `.trellis/` 前 **MUST 由 main 展示 diff plan + 经 AskUserQuestion 批准**才进步 3。审批门**禁派 agent** (全局硬规: agent 不得直接问用户) —— 故 plan 与 write 拆成**两阶段**, 审批夹在中间; 禁纯文本"是否同意"代替工具; 用户未明确批准 → 0 写入, 终止。
 > 🔒 **git stash 备份/回滚在 write 阶段由 prep-backup/rollback agent 串行执行** (main 不亲碰 git)。
 
 ## 注入维度 (注入方式不限, 行为闭环达标即可)

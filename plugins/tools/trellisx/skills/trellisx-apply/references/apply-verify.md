@@ -35,7 +35,7 @@ trellisx-apply 变更计划
 
 ## 2. 审批门 (main 串行, 禁派 agent)
 
-🛑 STOP — 未经用户经 `AskUserQuestion` 批准, 禁写盘任何文件。纯文本征询不算批准。审批门**禁派 agent** (agent 不得直接问用户)。
+硬停 — 未经用户经 `AskUserQuestion` 批准, 禁写盘任何文件。纯文本征询不算批准。审批门**禁派 agent** (agent 不得直接问用户)。
 
 ```
 question: "以上 trellisx-apply 变更是否写入 .trellis/ ?"

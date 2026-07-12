@@ -78,7 +78,7 @@ estimated-tokens: <数字 / 范围>
 
 ### Dispatch Prompt (若派 sub-agent)
 
-> ⛔ 写盘 sub-agent / agent-team 都在**本 task 的 worktree 内**执行 (共享, subtask 与 worktree 无绑定), 禁在主工作区写盘。dispatch prompt **不传** `isolation: worktree` (隔离已由 task.py start 的 after_start hook 完成)。
+> 写盘 sub-agent / agent-team 都在**本 task 的 worktree 内**执行 (共享, subtask 与 worktree 无绑定), 禁在主工作区写盘。dispatch prompt **不传** `isolation: worktree` (隔离已由 task.py start 的 after_start hook 完成)。
 
 ```
 Active task: <task path>
@@ -109,7 +109,7 @@ Active task: <task path>
 - 资源不可用 → 报 Blocked, 不重试
 
 ## Sub-agent 自防护
-你已是 trellis-implement, 直接做本 subtask。⛔ **禁调度、禁递归、禁并行派其他 subtask**:
+你已是 trellis-implement, 直接做本 subtask。**禁调度、禁递归、禁并行派其他 subtask**:
 - 你的工具集仅 Read/Write/Edit/Bash, **无 Agent/Task 工具** (Recursion Guard), 物理上不能派 subagent / 递归 trellis-implement / trellis-check。
 - **调度归 main**: 冲突判定 / 建 DAG / 动态派 (并发≤2) / 收态 / 转 check 全是 main 职责 (见 `scheduling.md`)。
 - 你只执行被派的**这 1 个 subtask**, 完成即返回产物 + 自验结果, 不碰其他 subtask。

@@ -107,7 +107,7 @@ all done → dispatch trellis-check
 - **notification 驱动**: 不轮询, 不 `sleep`; trellis-implement 返回触发下一轮派发。
 - **死锁检测**: 若无 running 且无 ready 但仍有 blocked → 全部 blocked → failure-recovery (依赖环或资源死锁)。
 
-> 🔴 **exec 阶段禁问用户顺序 (硬规)** —— 顺序决策**归 planning** (mermaid 调度图 + depends-on + 本节静态冲突 DAG), exec 调度循环只按 DAG 派: ready 即派、完成即派下一个、并发上限 2。**禁在任何 subtask 之间停下来问用户"先做哪个 / 下一个做什么"**。唯一例外: planning 阶段就没定顺序 (PRD 缺调度图 / depends-on 缺失 / subtask 文件缺 write-files+exec-scope) → 🛑 STOP **退回 planning 补**, 不在 exec 问。问顺序 = planning 没做透的征兆, 修 planning 不修 exec。
+> **exec 阶段禁问用户顺序 (硬规)** —— 顺序决策**归 planning** (mermaid 调度图 + depends-on + 本节静态冲突 DAG), exec 调度循环只按 DAG 派: ready 即派、完成即派下一个、并发上限 2。**禁在任何 subtask 之间停下来问用户"先做哪个 / 下一个做什么"**。唯一例外: planning 阶段就没定顺序 (PRD 缺调度图 / depends-on 缺失 / subtask 文件缺 write-files+exec-scope) → 硬停 **退回 planning 补**, 不在 exec 问。问顺序 = planning 没做透的征兆, 修 planning 不修 exec。
 
 ## 5. 失败处理
 
@@ -186,7 +186,7 @@ all child done → parent 跑跨 child 集成 review
 - **完成即派**: 任一 child archive 即更新态、查新 ready child、立即派下一个。
 - **child ≠ subtask (正交)**: child 是任务级调度单元 (独立 task, 各 worktree); subtask 是任务内执行单元 (共享 task worktree)。child 自身 exec 仍走 subtask 层调度。
 
-> 🔴 **child 级同构禁令**: child 间顺序同样**归 parent planning** (Child Task Map + depends-on), parent 调度循环只按 child DAG 派, **禁问用户"哪个 child 先做"**; child DAG 缺依赖声明 → 退回 parent planning 补, 不在调度时问。
+> **child 级同构禁令**: child 间顺序同样**归 parent planning** (Child Task Map + depends-on), parent 调度循环只按 child DAG 派, **禁问用户"哪个 child 先做"**; child DAG 缺依赖声明 → 退回 parent planning 补, 不在调度时问。
 
 ## 9. 同 session 多 active task 并行 (task 级)
 
@@ -239,4 +239,4 @@ while exists(active task not in {done, failed}):
   - **task 级 (本节)**: 一个 main 一个 session 内多 active task, 各 task 各 worktree, main 视角调度
 - **三层同构**: 均动态 DAG / 完成即派 / 并发上限 2; 差别仅在调度者 (main / parent) 与隔离单位 (共享 worktree / 各 worktree)。
 
-> 🔴 **task 级顺序禁令 (同 §4/§8)**: task 间顺序归 main planning (PRD 调度图 + write-files/exec-scope 静态冲突判定), 调度循环只按 DAG 派; **禁问用户"哪个 task 先做"**; task DAG 缺依赖声明 → 退回 planning 补, 不在调度时问。
+> **task 级顺序禁令 (同 §4/§8)**: task 间顺序归 main planning (PRD 调度图 + write-files/exec-scope 静态冲突判定), 调度循环只按 DAG 派; **禁问用户"哪个 task 先做"**; task DAG 缺依赖声明 → 退回 planning 补, 不在调度时问。

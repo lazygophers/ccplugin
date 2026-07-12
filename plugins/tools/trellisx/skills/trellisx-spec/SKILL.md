@@ -1,6 +1,6 @@
 ---
 name: trellisx-spec
-description: '📐 初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。sediment 模式 = finish 前 🔴 判定门 (5 正向 + 3 排除 checklist, 有增量才沉淀, 全否跳过); planning 时 spec 加载归 trellisx-orchestrate step 1 🔴 grep 门 (本 skill 不负责加载, 仅提供 spec 内容)'
+description: '📐 初始化 / 优化 / 重写 .trellis/spec/ 规则文档, 允许破坏式变更 (丢弃旧版本、合并、拆分、推翻原结构), 把描述性条款改为可机器验证的命令式契约 (MUST / 禁 / 严禁)。流程: 诊断 (初始化跳过) → 提案 → AskUserQuestion 强制审批 → 执行 + 同步 task manifest 引用清单。严禁未确认改写。sediment 模式 = finish 前判定门 (5 正向 + 3 排除 checklist, 有增量才沉淀, 全否跳过); planning 时 spec 加载归 trellisx-orchestrate step 1 grep 门 (本 skill 不负责加载, 仅提供 spec 内容)'
 
 argument-hint: '[scope]'
 arguments: '[范围]'
@@ -36,9 +36,9 @@ python3 ./.trellis/scripts/task.py current 2>/dev/null || true
 
 参数 `$范围` (skill 启动时传入): 限制本次处理范围 (目录 glob / 文件路径 / `all`)。缺省 = `all`。
 
-> 🔴 **spec 主动化 (两端: hook 被动可见 + gate 主动检索/判定)**:
-> - **planning 加载 (🔴 gate, owner = trellisx-orchestrate step 1, 独家)**: orchestrate step 1 必做 grep `.trellis/spec/guides/index.md` 按主题找 relevant guide 注入 PRD 上下文 (有相关 spec 才加载, 无则跳过); flow 不重复加载。**被动可见**: 该 gate 文本由 trellis 原生每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆); relevant guide 检索归 orchestrate 主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。本 skill 不负责加载, 仅提供 spec 内容供加载 + sediment 时同步 index.md。
-> - **finish 前 sediment 判定 (🔴 gate, 非软约束)**: trellisx-flow finish 步按下述 checklist 逐项判本 task 有无 spec 增量, 任一正向 ✅ → 触发本 skill sediment 模式 (提案→审批→写盘+同步 index.md); 全否跳过。**正向**: ① 新命令式契约 ② 踩坑 ≥2 轮 ③ 反复 ≥2 task ④ 跨任务可复用决策 ⑤ 验收基准; **排除**: 一次性 bug / 私有细节 / 已覆盖。**非用户主动调**, 是流程判定 (判定归 AI 非脚本, 语义判断脚本做不了)。
+> **spec 主动化 (两端: hook 被动可见 + gate 主动检索/判定)**:
+> - **planning 加载 (gate, owner = trellisx-orchestrate step 1, 独家)**: orchestrate step 1 必做 grep `.trellis/spec/guides/index.md` 按主题找 relevant guide 注入 PRD 上下文 (有相关 spec 才加载, 无则跳过); flow 不重复加载。**被动可见**: 该 gate 文本由 trellis 原生每轮注入 context (AI 每轮知 spec 存在 + index 路径, 不靠记忆); relevant guide 检索归 orchestrate 主动 grep (model 驱动, 非脚本全自动; 无独立 per-turn hook, config.yaml 仅 lifecycle 事件)。本 skill 不负责加载, 仅提供 spec 内容供加载 + sediment 时同步 index.md。
+> - **finish 前 sediment 判定 (gate, 非软约束)**: trellisx-flow finish 步按下述 checklist 逐项判本 task 有无 spec 增量, 任一正向 ✅ → 触发本 skill sediment 模式 (提案→审批→写盘+同步 index.md); 全否跳过。**正向**: ① 新命令式契约 ② 踩坑 ≥2 轮 ③ 反复 ≥2 task ④ 跨任务可复用决策 ⑤ 验收基准; **排除**: 一次性 bug / 私有细节 / 已覆盖。**非用户主动调**, 是流程判定 (判定归 AI 非脚本, 语义判断脚本做不了)。
 > - **sediment ≠ cortex**: sediment 是 spec 自身增量沉淀 (命令式契约), 非 cortex 知识库归档。两者并存, 各管各的。
 
 ## 第 2 步: 按模式读 references + 准备提案
@@ -85,9 +85,9 @@ spec 体检报告
 
 跳到第 3 步。
 
-## 第 3 步: 🔴 直接调 AskUserQuestion 审批 (🛑 STOP)
+## 第 3 步: 直接调 AskUserQuestion 审批 (硬停)
 
-> 🔴 **CHECKPOINT · 🛑 STOP**: 写盘前**硬性停在此**。**立即调用 `AskUserQuestion` 工具**弹选项, 禁在文本里写"是否同意?"等回复。未经工具明确批准 → 0 写盘。
+> **硬停审批门**: 写盘前**硬性停在此**。**立即调用 `AskUserQuestion` 工具**弹选项, 禁在文本里写"是否同意?"等回复。未经工具明确批准 → 0 写盘。
 
 读 `references/approve.md` 设计问句结构 (单一批准 / 选择性多选 / 高风险二次确认)。
 
@@ -104,7 +104,7 @@ spec 体检报告
 
 - 一次写盘 (避免中间状态)
 - 每文件附 frontmatter (`updated` / `rewrite-version` / `supersedes` / `authored-by: trellisx-spec` / `mode`)
-- 🔴 同步 `.trellis/spec/guides/index.md` (新/改 spec append 标题 + 1 行摘要) —— **硬性**: orchestrate step 1 gate grep 读此文件找 relevant guide, 不同步 → 新 spec 不在 index → gate grep 漏 → load 失效。同步 index / 锚点 / 导航
+- 同步 `.trellis/spec/guides/index.md` (新/改 spec append 标题 + 1 行摘要) —— **硬性**: orchestrate step 1 gate grep 读此文件找 relevant guide, 不同步 → 新 spec 不在 index → gate grep 漏 → load 失效。同步 index / 锚点 / 导航
 - grep 受影响 task manifest (`implement.jsonl` / `check.jsonl`), 列引用清单 (本 skill 不动 manifest)
 
 ## 第 5 步: 自检 + 返回报告
@@ -131,11 +131,11 @@ spec 变更执行报告
 - AskUserQuestion 不可跳过, 不接受纯文本批准
 - 多文件写盘中途失败 → 全部回滚 (git checkout 或 backup)
 
-## ⛔ 反例黑名单 (禁做 → 改为)
+## 反例黑名单 (禁做 → 改为)
 
 命中任一条即停, 按"改为"修正后再继续。**只写应做、不列禁做即视为流程缺陷。**
 
-| ⛔ 禁做 | ✅ 改为 | 为什么 |
+| 禁做 | ✅ 改为 | 为什么 |
 | --- | --- | --- |
 | 破坏式重写 spec, 丢掉原版关键约束 (MUST / 禁项 / 阈值) | REWRITE 前先抽原文全部命令式条款列表, diff 核对新版逐条覆盖, 缺失项显式标注 (合并 / 故意删 / 漏) | 破坏式 ≠ 失忆, 静默丢约束 = 引入回归 |
 | 增量小改 (补 1 条规则 / 改 1 个阈值) 也走破坏式 REWRITE | 增量捕获走 trellis 原生 `trellis-update-spec`; 本 skill 只接 init / 整体优化 / 收尾沉淀 | 杀鸡用牛刀, 整文件重写放大 diff 与审批成本 |

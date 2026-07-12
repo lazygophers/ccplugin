@@ -51,7 +51,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 - 读 task.json 的 `subtasks[]` (planning 已用 `subtask add` 登记), 按显式 `depends_on` 组成 DAG (并行只看这张 DAG, 无写文件冲突自算)。
 - **ready 即派** — 为每个 subtask 选合适 agent (无则 `general-purpose`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
-- **读后写硬门 + 验收标准自检**: 改哪些文件由执行 agent 在 worktree 内**自主决定** (给自主权), 完成前对照 planning 登记的**验收标准 checklist** 逐条自检。执行 agent 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 (只复述契约, 不含 reason) → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
+- **读后写硬门 + 验收标准自检**: 改哪些文件由执行 agent 在 worktree 内**自主决定** (给自主权), 完成前对照 planning 登记的**验收标准 checklist** 逐条自检。执行 agent 收 subtask 后, 对每个待改文件必过**写前硬门**: 先 `Read` 全文 → 复述适用契约 (只复述契约, 不含 reason) → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
 - 派出异步任务后结束本回合前, MUST 输出任务全景表 (状态: 进行中 / 等待中 / 阻塞)。
@@ -62,9 +62,9 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 **处置分两路** (关键): 
 - **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 派合适 agent (无则 `general-purpose`) 只改失败相关文件, 重检。
-- **一致性冲突 或 check 失败根因跨 subtask** → 🔴 **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein.py plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
+- **一致性冲突 或 check 失败根因跨 subtask** → **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein.py plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
 
-**第 3 轮仍 FAIL → 根因复盘**: 不再只 STOP, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② STOP 并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
+**第 3 轮仍 FAIL → 根因复盘**: 不再只停手, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② 停手并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
 ### ⑥ finish (main 委托 `skein-finish` 编排)
 

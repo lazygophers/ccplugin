@@ -16,7 +16,7 @@ trellis 原生 `/trellis:finish-work` 跑 `task.py archive <tid>` **直接归档
 
 ```
 <!-- trellisx:start:finishcmd_fullchain -->
-⛔ **trellisx 全链收尾 (在原生 archive/journal 之前先跑)**: 本项目 worktree 隔离, 收尾 MUST 先合并再归档, 否则销毁 worktree 丢提交。
+**trellisx 全链收尾 (在原生 archive/journal 之前先跑)**: 本项目 worktree 隔离, 收尾 MUST 先合并再归档, 否则销毁 worktree 丢提交。
 
 ⓪ **AI 层 — 先确认本 task 的后台任务已终止 (脚本做不到, 必须 AI 主动)**: 跑收尾脚本前, 用 `TaskList` 查有无悬挂的后台 agent 任务 (本 task 的 exec/check 载体); 有残留则 `TaskStop` 逐个关闭, 再跑脚本。**`trellisx-finish.py` 只销 worktree, 不关后台任务** —— 关闭悬挂任务是 AI 层职责, 脚本不代劳。悬挂任务未清就合并/销毁 worktree = 进程仍在写 = 流程错误。**禁 `sleep`/轮询等后台任务跑完** —— 后台 agent 异步, 完成自动回 `<task-notification>`; 派后台任务后结束本回合, notification 回来再进收尾, 禁 `Bash(sleep N && ...)` 阻塞 main 空等。
 

@@ -25,7 +25,7 @@ flowchart TB
     VERIFY -->|通过| SPEC["spec 沉淀<br/>trellisx-spec skill sediment 模式"]
     SPEC --> COMMIT["commit + push"]
     COMMIT --> MERGE["合并 worktree → 当前分支<br/>+ git worktree remove 清理"]
-    MERGE --> STOP["TaskStop / finish-work<br/>status: completed"]
+    MERGE --> DONE["TaskStop / finish-work<br/>status: completed"]
 ```
 
 ## Worktree 生命周期 (绑定整个 task)
@@ -78,9 +78,9 @@ flowchart TB
 - [ ] 用户被告知阶段切换 + 当前进度摘要
 - [ ] 切换若不可逆 (e.g. start / commit), 用 AskUserQuestion 强制审批
 
-> 🔴 CHECKPOINT — `task.py start` (planning→in_progress) 与 `commit + push` 是不可逆切换, **MUST 走 AskUserQuestion 取得用户批准后**才执行, 禁默认推进。
+> 审批门 — `task.py start` (planning→in_progress) 与 `commit + push` 是不可逆切换, **MUST 走 AskUserQuestion 取得用户批准后**才执行, 禁默认推进。
 >
-> 🛑 STOP — 残留未合并 / 未移除的 worktree **禁宣告 task 完成**。
+> 硬停 — 残留未合并 / 未移除的 worktree **禁宣告 task 完成**。
 
 ## 与 trellisx-orchestrate 6 步流程的对应
 

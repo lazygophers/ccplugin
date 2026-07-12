@@ -87,7 +87,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 ## Agents (5 个具名 + 执行选现有 agent)
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
