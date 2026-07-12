@@ -1,7 +1,7 @@
 ---
 name: novelist-write
 description: 小说写作一站式入口——用户只需调用 write, 即跑完整链: 前置就绪(目录环境+核心设计)→ 四要素确认 → 生成正文 → 收尾链(一致性检查→校对→去AIGC→定稿)。当用户说"写第N章/继续写/接着写剧情/写下一章/写这本书"时调用。设计未就绪会自动引导补(design), 全流程由本 skill 编排, 用户不必分别调各 skill。本 skill 独占 章节/ 目录的新增写入。
-when_to_use: 需要编写小说(从零开篇或继续往下写)时的唯一入口。触发词: 写第, 写章节, 继续写, 接着写, 写下一章, 编写正文, 写小说, write chapter。
+
 user-invocable: true
 argument-hint: "[可选章节号; 缺省=进度下一章自动续写]"
 arguments: [章节号]

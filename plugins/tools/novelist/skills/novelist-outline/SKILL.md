@@ -1,7 +1,7 @@
 ---
 name: novelist-outline
 description: 创建或更新小说的大纲与情节线。当用户说"写大纲/规划剧情/排章节/理主线支线/管伏笔"时调用。管理 大纲/(总纲+分卷) 与 情节/(主线+支线+伏笔追踪) 目录, 把宏观结构与逐章节奏落到可核对的表格。本 skill 独占 大纲/ 与 情节/ 目录。
-when_to_use: 需要规划整体结构、分卷、章节节奏、主线/支线推进、伏笔埋设与回收时。触发词: 大纲, 剧情规划, 章节规划, 主线, 支线, 伏笔, 分卷, outline, plot。
+
 user-invocable: true
 argument-hint: [大纲范围]
 arguments: [大纲范围]

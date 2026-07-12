@@ -1,7 +1,7 @@
 ---
 name: novelist-proofread
 description: 校对小说正文的文字层问题(12 子项)——错别字(形近/音近/多漏字)、语法(残缺/搭配/语序)、标点、用词、用字统一。支持 mode=detect(只读扫描产报告, 不改正文) 与 mode=fix(默认, 报告+就地 Edit 修正)。当用户说"校对/查错别字/润色文字/检查语法/通顺一下"时调用。区别于 novelist-check(查剧情设定一致性), 本 skill 只管文字表达正确通顺, 不动剧情。派 proofreader agent 校对, 报告落 元数据/校对报告/。
-when_to_use: 需要检查或修正错别字、语法、标点、病句、称呼/术语用字统一等文字层问题时。触发词: 校对, 错别字, 语法, 标点, 病句, 润色, 文字检查, proofread, detect, fix。
+
 user-invocable: true
 argument-hint: "[mode: detect|fix] [校对范围; 缺省=最近章]"
 arguments: [mode, 校对范围]

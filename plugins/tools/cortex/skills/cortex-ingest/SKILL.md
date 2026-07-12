@@ -1,7 +1,7 @@
 ---
 name: cortex-ingest
 description: "知识库构建 ingest — 接受 GitHub/GitLab/Website URL 或 local dir 输入, 自动识别+路由到 项目/<host>/<owner>/<repo>/ (本地 git repo 当 github/gitlab 处理, 非 git → 项目/local/<name>/). 默认 --apply 调度抓取 (gh/git clone/WebFetch 混合) + 落盘 (--dry-run opt-in 仅出 JSON plan 预览)."
-when_to_use: "入库新仓库/抓取项目/import GitHub repo/ingest website/导入本地 dir/build 项目知识库"
+
 argument-hint: "[--dry-run|--apply] <source>"
 arguments: "[--dry-run|--apply] <来源>"
 user-invocable: true

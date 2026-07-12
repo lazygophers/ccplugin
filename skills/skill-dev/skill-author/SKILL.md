@@ -75,7 +75,6 @@ my-skill/
 ---
 name: <lowercase-kebab>           # 默认目录名；≤64 字符，禁 anthropic/claude 保留词，禁 XML 标签
 description: <做什么 + 何时用>      # 🔴 项目底线 < 512 字符；第三人称；key use case 前置
-when_to_use: <触发短语/示例>        # 🔴 项目底线 < 128 字符；description 装不下的「何时用」放这
 disable-model-invocation: true    # 副作用操作必加（仅手动 /name）
 allowed-tools: Bash(git *)         # 预授权工具（可选，仅免批准不限制工具池）
 paths: packages/api/**             # monorepo 按包触发（可选）

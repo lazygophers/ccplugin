@@ -1,7 +1,7 @@
 ---
 name: novelist-character
 description: 创建或更新单个小说人物的详细设定。当用户说"加个人物/写某角色设定/完善某人物/这个角色的经历关系"时调用。每个人物在 人物/<人物名>/ 下独立文件夹, 拆为三文件: 简介.md(简介+性格)、经历.md(各时间段经历/事件)、关系.md(与他人交集/是否见过)。本 skill 独占 人物/ 目录。
-when_to_use: 需要新增、完善、修改某个具体人物的设定时。触发词: 加人物, 新角色, 人物设定, 完善角色, 人物经历, 人物关系, character。
+
 user-invocable: true
 argument-hint: [人物名]
 arguments: [人物名]

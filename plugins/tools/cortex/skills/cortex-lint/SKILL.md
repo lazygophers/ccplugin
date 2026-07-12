@@ -1,7 +1,7 @@
 ---
 name: cortex-lint
 description: lint / 校验 / 体检 / audit / 死链 / 孤儿 / 规范化 / frontmatter — cortex 知识库与记忆树的合规检查与可逆 autofix。覆盖 wikilink 死链、frontmatter 缺字段、命名违规、目录同构、孤儿页、等级语义反写、脚本目录用途混淆等 7 类规则。默认 --fix 落盘修复；--check opt-in 仅预览。
-when_to_use: "lint/体检/校验 vault/audit; 整理 .wiki/ 前先跑; 排查死链/孤儿; frontmatter 补齐; memory 5 级目录核对; extract 前的形态检查"
+
 argument-hint: "[--check|--fix] [target]"
 arguments: "[--check|--fix] [路径]"
 user-invocable: true

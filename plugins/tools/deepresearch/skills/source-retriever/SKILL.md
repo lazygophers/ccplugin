@@ -1,7 +1,6 @@
 ---
 description: This skill should be used when the user needs to retrieve sources for research or build a source list. Typical triggers include collecting sources, searching for documentation, or assembling references.
-when_to_use: |
-  Use to compile sources with provenance and search strategies. Trigger on: collect sources, find references, gather documents, 搜索资料, 收集来源.
+
 user-invocable: false
 context: fork
 model: haiku

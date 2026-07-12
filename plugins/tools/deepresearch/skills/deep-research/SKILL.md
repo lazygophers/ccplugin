@@ -1,7 +1,6 @@
 ---
 description: This skill should be used when the user asks to "research X", "deep dive into X", "compare A vs B", "evaluate this project", or requests evidence-backed technical research, architecture review, or technology selection.
-when_to_use: |
-  Use for multi-source research requiring planning, retrieval, validation, synthesis, and structured reporting. Trigger on: deep research, research, investigate, compare, vs, evaluate, assess, architecture review, technology selection, dependency audit, 深度研究, 调研, 对比, 评估, 架构评审, 技术选型, 依赖审计.
+
 user-invocable: true
 context: fork
 model: haiku

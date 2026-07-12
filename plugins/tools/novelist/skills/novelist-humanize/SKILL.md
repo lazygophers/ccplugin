@@ -1,7 +1,7 @@
 ---
 name: novelist-humanize
 description: 去 AIGC / 去 AI 味——把读起来"像 AI 生成"的小说正文改回"像人写的", 降低 AIGC 检测特征同时提升可读性。当用户说"去AI味/降AIGC/这段太AI了/去机器味/人味润色/过检测"时调用; 也被 novelist-write / novelist-rewrite 的生成后收尾链引用。去味时**先运行时发现并依次执行用户已安装的所有 humanizer 类 skill(动态发现, 不硬编码路径)**, 再用本插件 humanizer agent 补小说特化去味(对话破坏/情感呈现)。诊断三层 AI 味(统计指纹/通用tells/小说特有)。只改文字纹理, 不动剧情设定。
-when_to_use: 需要去除小说正文的 AI 味、降低 AIGC 检出率、让机器生成的文字读起来像人写时。触发词: 去AI味, 去AIGC, 降AI, AI味重, 机器味, 人味润色, 过检测, humanize, deaigc。
+
 user-invocable: true
 argument-hint: "[可选范围; 缺省=最近写/重写的章自动去味]"
 arguments: [去AI味范围]

@@ -1,7 +1,7 @@
 ---
 name: novelist-lint
 description: '校验 novelist 插件目录结构/文件名/文件夹组织是否符合插件规范 (plugin.json 合法 / commands-agents-skills 在根 / SKILL.md 大写 / kebab 命名 / 无产物泄漏 / plugin.json 路径真实 / frontmatter name 对齐)。novelist 插件改动后、加新 skill/agent 后、发布前、或怀疑结构不合规时调用。调用即跑 scripts/lint.py 扫 7 规则违规, 按 fix-hints 移/改/删到合规'
-when_to_use: 'novelist 插件结构校验: 加新 skill/agent 后、改 plugin.json 后、发布前、发现可疑文件/命名时。禁用于非 novelist 插件 (本 skill 专属, 但 lint.py 可对任意插件目录跑)'
+
 ---
 
 # novelist-lint — 插件目录结构校验

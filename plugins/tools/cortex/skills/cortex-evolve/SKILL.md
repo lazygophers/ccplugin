@@ -1,7 +1,7 @@
 ---
 name: cortex-evolve
 description: "记忆库升降级维护 — 按金字塔模型 (L4 庞大 → L0 稠密) 自动 promote/demote. 信号: 频率 (近期提及) / 时间 (距今) / 重要度. 规则: 用户反复强调 → 逐级升; L1/L0 允许自动升不允许自动降. 主要工作区 L4-L2; 默认 --apply 落盘 (--dry-run opt-in 预览). 无独立脚本, 调 cortex-extract/save/lint 执行."
-when_to_use: "升级记忆/降级记忆/promote/demote/记忆再平衡/金字塔维护/记忆 audit/evolve"
+
 argument-hint: "[--scan|--dry-run|--apply] [--target <vault>]"
 arguments: "[--scan|--dry-run|--apply] [--target <仓库根>]"
 user-invocable: true

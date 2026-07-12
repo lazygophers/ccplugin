@@ -1,7 +1,7 @@
 ---
 name: trellisx-cleanup
 description: '🧹 批量收尾 —— 一次清理/归档/收尾**全部**已完成 task。三件事: ① 清理所有已合并的 worktree ② 归档所有已完成的任务 ③ 清理 task.md 看板的已完成行。完成判定 = completed ∪ merged (并集), 当前 active task 永不纳入。**强制 dry-run → 用户确认 → --apply 执行** 三段护栏, worktree 销毁沿用安全判据 (脏/未合并自动保留, 不丢提交)'
-when_to_use: '批量清理/归档/收尾全部已完成 task, 清理 worktree, 清空看板已完成行; 多 task 堆积需统一收口。单个收尾用 finish'
+
 disable-model-invocation: true
 argument-hint: '[--apply] [--days N]'
 arguments: '[缺省 = dry-run 只报告; --apply = 执行; --days N = 看板已完成行清理阈值, 默认 0 全删]'

@@ -1,7 +1,7 @@
 ---
 name: novelist-rewrite
 description: 重写小说章节。入参 mode=detect|fix(默认 fix): detect=只读诊断, 扫描全书产「建议重写章清单+理由+建议模式A/B/C」, 不改文件; fix=执行三模式——(A) 按 novelist-check 报告定点修复冲突; (B) 从指定章起清空该章及之后重写; (C) 连续重写多个指定章节。当用户说"重写第N章/从第N章开始重写/这几章重写/按检查报告改/第N章之后全删重写/诊断哪些章需重写"时调用。清空是破坏性操作, 执行前必须显式确认。本 skill 独占 章节/ 目录的覆盖写入。
-when_to_use: 需要依据一致性检查结果修复、或从某章起推倒重写、或连续重写若干章、或只诊断不改写时。触发词: 重写, 改写, 从第N章重写, 推倒重写, 按报告修复, 连续重写, 诊断重写, detect, fix, rewrite。
+
 user-invocable: true
 argument-hint: [mode: detect|fix] [模式: 报告修复 / 从第N章起 / 第A-B章]
 arguments: [mode, 重写范围]

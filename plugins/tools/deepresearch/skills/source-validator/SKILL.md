@@ -1,7 +1,6 @@
 ---
 description: This skill should be used when the user needs to validate sources, verify claims, or rate evidence quality. Typical triggers include verifying citations, checking credibility, or rating sources.
-when_to_use: |
-  Use to assign source grades, validate claims, and record conflicts. Trigger on: validate sources, verify claims, source quality, 证据验证, 来源评级.
+
 user-invocable: false
 context: fork
 model: haiku

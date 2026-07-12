@@ -1,7 +1,7 @@
 ---
 name: trellisx-flow
 description: '🔄 请求级入口: 把指定请求强制纳入 trellis task 闭环 (plan→exec→check→finish), 禁 inline (即使极简)。用户显式调用 (/trellisx-flow) 或 model 自动触发 (请求复杂/多步/跨文件时)。调用即创建同意信号, 仍先判新建 vs 并入 active task。与 trellisx-apply 互补 —— apply 注入"推荐建 task"常驻软提示指向本 skill, 由本 skill 接管。载体默认 subagent 编排 (main 调度 trellis-implement 共享 task worktree 并发 2)'
-when_to_use: '用户显式 /trellisx-flow, 或 model 自动触发 (请求复杂/多步/跨文件时自动加载强制走 task 闭环)。承接入口短语 (写 PRD 等先判建 task 路由 orchestrate)。禁 inline'
+
 argument-hint: "[--worktree|--no-worktree] <任务描述>"
 arguments: [载体选项 (可选), 任务描述]
 ---

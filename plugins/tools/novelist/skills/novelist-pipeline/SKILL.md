@@ -1,7 +1,7 @@
 ---
 name: novelist-pipeline
 description: "批量写小说的流水线编排: 默认 mode=write 两流水线并行批量写(Writer 流 ‖ 检测定稿流, 每章 write→三环并行检测(check/humanize/proofread)→fix串行改→定稿)。加 mode 入参支持 review(评审)/humanize(去AI味)/proofread(校对)/polish(润色=三环收尾)/rewrite(重写)/outline(大纲)。载体: write 默认 Workflow(workflow.js), 其余默认 trellisx subagent 编排(main DAG 调度派 novelist 系列 skill, 并发上限2); --workflow/--no-workflow 覆盖。当用户说'批量写N章/写到第N章/连续写多章/逐章写/评审N章/校对N章/润色N章/去AI味N章/重写N章/出大纲'时调用。"
-when_to_use: 需要批量编排多个章节时(写/评审/校对/去AI味/润色/重写/大纲)。触发词: 批量, 流水线, 连续, 写到第, 写N章, 评审, 校对, 润色, 去AI味, 重写, 大纲, 路线图, pipeline。
+
 user-invocable: true
 argument-hint: "[mode] [写到第N章 | 写N章] [--workflow | --no-workflow]（mode 缺省=write；startChapter 自动取进度下一章）"
 arguments: target

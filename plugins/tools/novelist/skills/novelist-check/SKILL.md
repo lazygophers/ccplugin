@@ -1,7 +1,7 @@
 ---
 name: novelist-check
 description: 检查小说整条故事线的一致性(18 子项)。当用户说"检查一致性/查冲突/审故事线/有没有矛盾/设定对不对"时调用; 也被 novelist-write 在编写前引用取事实快照。mode=detect(默认只读审查产冲突清单) / mode=fix(单点冲突直接 Edit 修正, 段落级派 chapter-writer)。派 continuity-auditor agent 审查, 报告落 元数据/检查报告/。
-when_to_use: 需要核对全书或区间一致性、查找设定矛盾/逻辑漏洞/伏笔遗漏时; 或编写新章前取快照。触发词: 检查, 一致性, 查冲突, 矛盾, 伏笔回收, detect, fix, check。
+
 user-invocable: true
 argument-hint: "[mode: detect|fix] [检查范围; 缺省=全书自动审]"
 arguments: [mode, 检查范围]
