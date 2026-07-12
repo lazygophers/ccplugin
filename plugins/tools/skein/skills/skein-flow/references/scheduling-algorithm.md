@@ -1,6 +1,6 @@
 # 调度算法 (双层同构)
 
-编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `general-purpose`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning`)。
+编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-planning`)。
 
 ## 调度 DAG = 显式 depends_on (唯一边源)
 
@@ -13,7 +13,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
-| `subtask add <tid> <sid> --deps --check --agent --skills` | planning/main | 登记 subtask 到 DAG (`--check` = 验收标准 checklist 分号分隔; `--agent` 省略默认 `general-purpose`, `--skills` 逗号分隔 0-n) |
+| `subtask add <tid> <sid> --deps --check --agent --skills` | planning/main | 登记 subtask 到 DAG (`--check` = 验收标准 checklist 分号分隔; `--agent` 省略默认 `skein-executor`, `--skills` 逗号分隔 0-n) |
 | `subtask claim <tid>` | main (每轮) | **一次性算就绪批 + 整批标 running**, 返回给 main 逐个 dispatch |
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |
@@ -23,7 +23,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 
 ```
 while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
-    对认领到的每个 subtask: 为其选合适 agent (无则 general-purpose) 执行 (真实 Agent 调用)  # ≤ max_parallel
+    对认领到的每个 subtask: 为其选合适 agent (无则 skein-executor) 执行 (真实 Agent 调用)  # ≤ max_parallel
     等任一 subagent 返回
     → subtask done/fail <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
 ```
@@ -48,7 +48,7 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 
 ## dispatch prompt (6 字段自包含, 缺字段不派)
 
-**执行者 = main 为该 subtask 选的合适 agent** (按任务性质挑现有 agent, 无合适的用 `general-purpose`)。通用 agent **有** Agent/Task 工具, 故原本靠工具面兜住的执行纪律 (递归护栏 + 读后写硬门) **改由 dispatch prompt 硬性携带** — 无论选中哪个 agent, 6 字段 prompt 都显式带上下面这套纪律:
+**执行者 = main 为该 subtask 选的合适 agent** (按任务性质挑现有 agent, 无合适的用默认 `skein-executor`)。默认 `skein-executor` 工具面已剔除 Agent/Task, 递归护栏在工具层强制; 但若选中的具名 agent **有** Agent/Task 工具, 靠工具面兜住的执行纪律 (递归护栏 + 读后写硬门) 就得靠 dispatch prompt 补上 — 故无论选中哪个 agent, 6 字段 prompt 都显式带上下面这套纪律:
 
 ```
 目标: <这个 subtask 要产出什么>

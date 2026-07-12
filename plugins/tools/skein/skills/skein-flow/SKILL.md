@@ -17,8 +17,8 @@ effort: medium
 ## 执行载体铁律 (最高优先级)
 
 - **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
-- **main 默认禁写源码** — 改源码为该 subtask 选合适 agent (无则 `general-purpose`), 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
-- **exec 选合适 agent 执行 / check 派 checker, main 作调度器** — 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `general-purpose`) 各执行 1 subtask (并发上限 2, 完成即派), 共享 task worktree; check 派 `skein-checker`。执行 agent 的递归护栏由 dispatch prompt 硬性禁止再派 subagent 承载 (Recursion Guard, 自己动手做完 1 个 subtask); `skein-checker` 仍是工具受限 (无 Write/Edit/Agent/Task) 的具名 agent。调度算法 (双层 DAG / 完成即派循环 / 多 task 并行 / dispatch prompt 携带执行纪律) 详见 [references/scheduling-algorithm.md](references/scheduling-algorithm.md); check 详见 `skein-check`。
+- **main 默认禁写源码** — 改源码为该 subtask 选合适 agent (无则 `skein-executor`), 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
+- **exec 选合适 agent 执行 / check 派 checker, main 作调度器** — 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 各执行 1 subtask (并发上限 2, 完成即派), 共享 task worktree; check 派 `skein-checker`。执行 agent 的递归护栏由 dispatch prompt 硬性禁止再派 subagent 承载 (Recursion Guard, 自己动手做完 1 个 subtask); `skein-checker` 仍是工具受限 (无 Write/Edit/Agent/Task) 的具名 agent。调度算法 (双层 DAG / 完成即派循环 / 多 task 并行 / dispatch prompt 携带执行纪律) 详见 [references/scheduling-algorithm.md](references/scheduling-algorithm.md); check 详见 `skein-check`。
 - **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein.py start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。
 - **`skein.py` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
 - **看板经 `skein.py board`** — 禁直接编辑 `.skein/task.md` (guard hook 硬阻)。
