@@ -955,23 +955,30 @@ class Skein:
             return  # 用户在 config.yaml 关闭
         if not self.html_path.exists():
             self._board_html()
-        self._run_server(open_browser=False)  # monitor 每 session 跑, 不弹浏览器 (打开由 setup/view 负责)
+        self._run_server(open_browser=False, quiet=True)  # monitor 每 session 跑, 不弹浏览器 + 静默 (只 error 到 stderr, 见下)
 
-    def _run_server(self, open_browser=True):
+    def _run_server(self, open_browser=True, quiet=False):
         # 起本地 http 服务 (随机 port) 服务 .skein/。相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
+        # quiet=True (monitor): 不打印 info (启动 URL / 停止行); 访问日志 (info/warn) 恒静默; error 走 log_error → stderr 保留。
         import http.server, socketserver, functools
-        handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=str(self.dir))
-        handler.log_message = lambda *a: None  # 静默请求日志
+
+        class Handler(http.server.SimpleHTTPRequestHandler):
+            def log_request(self, *a):
+                pass  # 静默访问日志 (info/warn); 错误经默认 log_error → stderr
+
+        handler = functools.partial(Handler, directory=str(self.dir))
         with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
             url = f"http://127.0.0.1:{httpd.server_address[1]}/task.html"
-            print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)  # flush: monitor 需即时收到 URL 通知行
+            if not quiet:
+                print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)  # flush: 交互模式即时回显 URL
             if open_browser:
                 import webbrowser
                 webbrowser.open(url)
             try:
                 httpd.serve_forever()
             except KeyboardInterrupt:
-                print("\n看板服务已停止")
+                if not quiet:
+                    print("\n看板服务已停止")
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
     # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
