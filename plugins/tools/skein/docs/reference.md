@@ -101,7 +101,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | command | 作用 |
 | --- | --- |
-| `/skein-go <任务描述>` | 强制把请求作为 SKEIN task 处理, 走 plan→exec→check→finish。调用即「建 task 同意」 |
+| `/skein-exec <任务描述>` | 有入参: 强制把请求作为 SKEIN task 处理 (委托 skein-flow 走 plan→exec→check→finish, 调用即「建 task 同意」) |
+| `/skein-exec` (无参) | 无入参: 驱动 `.skein` 既有 ready/active task 各走闭环 (task 级并发 2); 无待执行 task 则报告 |
 
 ## 配置 (`.skein/config.yaml`)
 

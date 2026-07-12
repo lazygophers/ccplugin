@@ -43,7 +43,6 @@
         "./agents/skein-researcher.md"
     ],
     "commands": [
-        "./commands/skein-go.md",
         "./commands/skein-doctor.md"
     ],
     "keywords": [

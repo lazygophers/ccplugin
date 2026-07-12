@@ -16,7 +16,7 @@ effort: high
 
 ## 入参 (决定是否停在 start 前)
 
-- **无参** (用户直呼 `/skein-plan`) → 跑完 planning **STOP: 停在 start 前**, task 留 planning 态, 交还控制权。**禁 `skein.py start` / 禁 exec / check / finish** — 执行归 `skein-flow` / `/skein-go`。
+- **无参** (用户直呼 `/skein-plan`) → 跑完 planning **STOP: 停在 start 前**, task 留 planning 态, 交还控制权。**禁 `skein.py start` / 禁 exec / check / finish** — 执行归 `skein-flow` / `/skein-exec`。
 - `--continue` (skein-flow 委托) → 跑完 planning **不停**, 返回工件路径 (供 `skein-flow` 自接激活)。
 
 ## 策略分档 (轻量路由启发)
@@ -53,7 +53,7 @@ effort: high
    - `prd.md` — 需求: 目标 / 用户价值 / 边界 / 非目标 / 验收基准。
    - `design.md` (可选, 复杂方案) — 架构 / 取舍 / 技术选型。
    - `implement.md` — 实现拆解: subtask 列表 (每个含 depends_on + 验收标准 checklist) + **调度图** (mermaid, 供 exec 阶段 DAG)。
-6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-go <task>` 或 `/skein-flow` 激活。
+6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
 ## 调度图 (implement.md 必含)
 

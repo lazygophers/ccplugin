@@ -54,7 +54,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 最简单的方式 — 用命令:
 
 ```
-/skein-go 把 config 读取从环境变量改为读 config.yaml, 并更新所有调用点
+/skein-exec 把 config 读取从环境变量改为读 config.yaml, 并更新所有调用点
 ```
 
 或者**什么都不用输** — 只要请求够复杂 (跨 ≥2 文件 / 多步骤 / 需调研), Claude 会自动加载 `skein-flow` skill 走同一套闭环。

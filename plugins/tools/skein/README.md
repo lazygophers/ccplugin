@@ -58,7 +58,7 @@
 ## 用法
 
 ```
-/skein-go <任务描述>
+/skein-exec <任务描述>
 ```
 
 或直接触发 `skein-flow` skill (复杂/多步/跨文件请求自动加载)。

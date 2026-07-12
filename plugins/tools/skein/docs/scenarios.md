@@ -7,7 +7,7 @@
 **例**: 给用户模块加手机号登录。
 
 ```
-/skein-go 给用户模块加手机号登录, 含短信验证码下发与校验
+/skein-exec 给用户模块加手机号登录, 含短信验证码下发与校验
 ```
 
 - **plan**: 和你 brainstorm 短信服务选型、验证码存储 (Redis? DB?)、限流策略, grill 挑漏洞, 产出 PRD + 实现清单。
@@ -23,7 +23,7 @@
 **例**: 把全站 `getUserById` 的返回结构从 `User` 改成 `UserDTO`, 不保兼容。
 
 ```
-/skein-go 把 getUserById 返回类型从 User 改为 UserDTO, 所有调用点一次改齐, 不留兼容层
+/skein-exec 把 getUserById 返回类型从 User 改为 UserDTO, 所有调用点一次改齐, 不留兼容层
 ```
 
 - 这类活儿走 **`skein-plan` heavy 档的破坏式重构注解** (`references/breaking-refactor.md`): 不保兼容、全站点一次改齐。
@@ -37,7 +37,7 @@
 **例**: 给项目选一个后台任务队列方案。
 
 ```
-/skein-go 调研并选定后台任务队列方案 (对比 Celery / RQ / Dramatiq), 产出选型文档
+/skein-exec 调研并选定后台任务队列方案 (对比 Celery / RQ / Dramatiq), 产出选型文档
 ```
 
 - plan 阶段可派 `skein-researcher` 并行做纯信息调研 (它只读, 不改代码)。
@@ -52,9 +52,9 @@
 同一个 session 里, SKEIN 允许**最多 2 个** active task 并行 (`max_active=2`)。
 
 ```
-/skein-go 加订单导出功能
+/skein-exec 加订单导出功能
 # ... 该 task 进行中, 再来一个不冲突的:
-/skein-go 修复登录页样式错位
+/skein-exec 修复登录页样式错位
 ```
 
 - 各 active task 各占各的 worktree → 默认可并行派 subagent (无写文件冲突自算)。
@@ -82,7 +82,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
 **根因型 bug** (症状在一处, 根因在共享函数, 多调用点受影响) → 建 task:
 
 ```
-/skein-go 修复金额计算偶发差 1 分的 bug, 定位根因并覆盖所有调用点
+/skein-exec 修复金额计算偶发差 1 分的 bug, 定位根因并覆盖所有调用点
 ```
 
 - exec 会 grep 所有调用点, 在**共享函数**处一次修好 (而非每个调用点打补丁)。
@@ -98,7 +98,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
 - 够复杂 (跨文件 / 多步) → 自动加载 `skein-flow` 建 task。
 - 模糊 → 用 AskUserQuestion 问你。
 
-想**强制**当 task 处理 (即使看着简单) → 显式 `/skein-go`, 调用即「建 task 同意」信号。
+想**强制**当 task 处理 (即使看着简单) → 显式 `/skein-exec`, 调用即「建 task 同意」信号。
 
 ## 场景 7: task 中途出问题
 

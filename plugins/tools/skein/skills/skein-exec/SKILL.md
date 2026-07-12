@@ -1,16 +1,30 @@
 ---
 name: skein-exec
-description: task exec 阶段执行编排调度。planning 产物齐、start 后使用 (被 skein-flow exec 委托, 也可 /skein-exec 单独续跑已规划 task) — main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent 各执行 1 个, ready 即派 / 完成即派 / 并发上限 2, 改动落 task worktree。含双层 (subtask 级 + 多 task 级) 同构调度算法 + 异步任务清单
+description: SKEIN task 闭环入口 + exec 调度门。作 /skein-exec 命令: 有入参→请求强制作 task 走闭环 (委托 skein-flow: plan→exec→check→finish, 不 inline); 无入参→驱动 .skein 既有 ready/active task 各走闭环 (task 级并发 2)。作 skill: 被 skein-flow exec 委托, main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent 各执行 1 个, ready 即派 / 完成即派 / 并发上限 2, 改动落 task worktree。含双层 (subtask 级 + 多 task 级) 同构调度算法 + 异步任务清单
 user-invocable: true
-argument-hint: "[task_id]"
-arguments: "[task_id]"
-model: opus
-effort: high
+argument-hint: "[任务描述]"
+arguments: "[任务描述]"
+model: haiku
+effort: low
 ---
 
-# skein-exec — 执行编排调度门
+# skein-exec — 任务闭环入口 + 执行编排调度门
 
-exec 阶段的**调度器**。main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 各执行 1 subtask, 全部改动落 task worktree, 主工作区零改动。每个 agent 完成即回传。**只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。**
+## 入口路由 (作 `/skein-exec` 命令时)
+
+- **有入参 `<任务描述>`** → 把请求**强制作为 SKEIN task 处理** (不 inline, 即使看似简单), 调用即「建 task 同意」。判新旧: 全新→新建 / 补充现有 active→并入 (裁定不准用 `AskUserQuestion`) → 加载 `skein-flow` 走**完整闭环** (plan→exec→check→finish, flow 承载, 本 skill 不复制)。
+- **无入参 (空)** → 不建新 task, **驱动 `.skein` 内既有 task 走闭环**:
+  1. `skein.py ready` (就绪批: pending+前置全 done+有空闲槽) + `skein.py current` (已 active)。
+  2. 无就绪且无 active → 报「无待执行 task」结束。
+  3. 有 → 对每个就绪/active task 加载 `skein-flow`: 已 planning 完成的从 exec 起 (直接下方调度门), 未 planning 的先补 plan。task 级并发上限 `max_active` (默认 2), ready 即派 / 完成即派 / 冲突或 `depends_on` 未满足则串行等。
+  4. 全部 done → 报告完成。
+- **前置**: 无 `.skein/` → 先 `skein.py init` 再继续。
+
+> 下方是 exec 阶段**调度门本体** (被 `skein-flow` exec 委托, 或无入参驱动已 planning task 时进入)。**只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。**
+
+## 调度门
+
+main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 各执行 1 subtask, 全部改动落 task worktree, 主工作区零改动。每个 agent 完成即回传。
 
 ## 载体
 

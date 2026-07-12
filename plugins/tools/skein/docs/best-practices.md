@@ -19,7 +19,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    START([/skein-go 请求]) --> INIT{有 .skein/?}
+    START([/skein-exec 请求]) --> INIT{有 .skein/?}
     INIT -->|否| I[skein.py init]
     INIT -->|是| P
     I --> P
@@ -115,7 +115,7 @@ flowchart LR
 
 1. main 直接改源码 / 跑 check (非特别例外) → 派 subagent。
 2. 把 `skein.py` 脚本派 agent 执行 → main 同步跑。
-3. inline 跳过 task (即使请求极简且已显式 `/skein-go`) → 走闭环。
+3. inline 跳过 task (即使请求极简且已显式 `/skein-exec`) → 走闭环。
 4. check 未过就推进 finish → 先定点修复重检。
 5. check / finish 未走完就宣告 Done → 未 archive = 未闭环。
 6. 口头宣称「已派 agent / 已建 task」但本回复无对应 tool_use → 先真实调用再回传。
