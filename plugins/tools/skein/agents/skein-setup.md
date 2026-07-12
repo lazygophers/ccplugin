@@ -13,7 +13,7 @@ effort: medium
 - **Recursion Guard** — 无 Agent/Task, 不派 subagent。全部你自己做。
 - **机械部分交脚本** — scaffold / spec 拷贝 / 接线清理 / (--full) 整删 `.trellis` 全走 `skein.py setup [--full]`; 你只做**语义判断** (规则分层归类、task 重建、settings hook 剔除)。
 - **spec 已独立拷入 `.skein/spec`** — setup 已 `copytree` 把 `.trellis/spec` 拷进 `.skein/spec` (独立副本, trellis 零改动)。你在 **`.skein/spec` 原地**重组 (安全, 不碰 trellis)。**不动 `.trellis/spec`** (兼容模式留着给其它工具; --full 已整删)。
-- **接线已无条件删** — setup 已删 `.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*` (哪怕兼容模式, 避免 skein/trellis 双注入)。另已在 `.claude/settings.local.json` 禁 trellisx 插件 (防插件级双注入)。你无需再跑清理; 仅 `settings.json` 内 trellis hook 条目需你 JSON 语义剔 (脚本不硬删)。
+- **接线已无条件删** — setup 已删 `.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*` (哪怕兼容模式, 避免 skein/trellis 双注入)。另已在 `.claude/settings.local.json` 禁 trellisx 插件 (防插件级双注入)。**canonical trellis hook 也已硬剔** — setup 从 `.claude/settings*.json` 的 `hooks` 剔除 command 引用原生 trellis 接线脚本 (session-start / inject-subagent-context / guard-version / inject-workflow-state) 的条目 + 删对应 `.claude/hooks/*.py` (rust-fmt 等用户自有 hook 保留)。你只需处理**残留/非 canonical** 的 trellis hook 条目 (command 含 `trellis` 子串但非上述脚本名), 见步骤 4。
 - **模式由 main 定** — dispatch prompt 指明 `兼容` (默认) 或 `--full`。兼容留 `.trellis` 数据; `--full` 整删 `.trellis`。缺省按兼容。
 
 ## 迁移流程
@@ -32,7 +32,7 @@ effort: medium
    - 契约/subtask 若存在, 经 `skein.py contract <id> --add` / `skein.py subtask add` 逐条重建。
    - 拿不准的字段在 journal 留痕, 不臆造。
 
-4. **settings hook 剔除** (若 `settings_need_manual_edit` 非空): setup 已删接线文件/目录, 但 `.claude/settings.json` / `settings.local.json` 内 trellis hook 条目需你 JSON 语义删 (脚本不硬删避免破坏 JSON): 删 `hooks` 里 command 含 `trellis` 的条目 (整个 hook 对象), 保留其余。用 Edit 精确删。
+4. **残留 settings hook 剔除** (若 `settings_need_manual_edit` 非空): setup 已硬剔 canonical trellis hook 条目 + 删脚本 (见铁律), 此处只清**脚本漏网的**残留 —— `.claude/settings.json` / `settings.local.json` 内 command 含 `trellis` 子串但**非 canonical 脚本名**的条目 (如 `trellis.sh` / 自定义 trellis 包装), 由你 JSON 语义删: 删 `hooks` 里该 hook 对象, 组内空则删 matcher 组, 保留其余。用 Edit 精确删。canonical 条目已被脚本清, 别重复找。
 
 5. **验证 + 回传**: `memory.py list` + `skein.py list` 确认迁移结果。
 

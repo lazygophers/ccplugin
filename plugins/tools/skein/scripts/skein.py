@@ -898,6 +898,10 @@ class Skein:
     # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
     _TRELLIS_WIRING = ("scripts", "hooks", "settings.json", "settings.local.json")
     _CLAUDE_SUBDIRS = ("skills", "commands", "agents", "hooks", "scripts")
+    # 原生 Trellis 注入进项目 .claude/settings*.json + .claude/hooks/ 的接线脚本 (名字不含 "trellis", 需硬编码识别)。
+    # rust-fmt.py 视为用户项目自带 (通用格式化), 不纳入 —— 见 skein-setup 决策。
+    _TRELLIS_HOOK_SCRIPTS = ("session-start.py", "inject-subagent-context.py",
+                             "guard-version.py", "inject-workflow-state.py")
 
     def _migrate_trellis_tasks(self, trellis) -> list:
         # 物理迁移 trellis 非归档 task → .skein/task/<id>/: 翻译 task.json 为 skein schema + 拷贝 planning 工件。
@@ -977,6 +981,60 @@ class Skein:
                         p.unlink(); removed.append(str(p.relative_to(self.root)))
         return removed
 
+    def _purge_trellis_hooks(self) -> list:
+        # 从 .claude/settings*.json 的 hooks 结构剔除 command 引用 canonical trellis 脚本的条目 + 删对应 .claude/hooks/ 脚本。
+        # 幂等: 重跑时 canonical 脚本已清 → no-op。rust-fmt.py 等非 canonical 条目原样保留 (交 agent/用户判)。
+        cdir = self.root / ".claude"
+        removed = []
+
+        def _is_trellis(cmd) -> bool:
+            return isinstance(cmd, str) and any(s in cmd for s in self._TRELLIS_HOOK_SCRIPTS)
+
+        for name in ("settings.json", "settings.local.json"):
+            f = cdir / name
+            if not f.exists():
+                continue
+            try:
+                data = json.loads(f.read_text())
+            except (json.JSONDecodeError, OSError):
+                continue
+            hooks = data.get("hooks")
+            if not isinstance(hooks, dict):
+                continue
+            changed = False
+            for event in list(hooks):
+                groups = hooks[event]
+                if not isinstance(groups, list):
+                    continue
+                kept_groups = []
+                for g in groups:
+                    inner = g.get("hooks") if isinstance(g, dict) else None
+                    if not isinstance(inner, list):
+                        kept_groups.append(g); continue
+                    kept = [h for h in inner if not _is_trellis(isinstance(h, dict) and h.get("command"))]
+                    if len(kept) != len(inner):
+                        changed = True
+                        removed += [h.get("command") for h in inner if h not in kept]
+                    if kept:
+                        g["hooks"] = kept; kept_groups.append(g)  # 组内还剩非 trellis hook → 留
+                    # 组内清空 → 丢弃该 matcher 组
+                if kept_groups:
+                    hooks[event] = kept_groups
+                else:
+                    del hooks[event]  # 事件下无组 → 丢弃事件
+            if changed:
+                if not hooks:
+                    data.pop("hooks", None)  # hooks 全空 → 移除 key
+                f.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+        # 删 canonical trellis hook 脚本文件 (settings 条目已剔, 脚本本身也是接线)
+        hdir = cdir / "hooks"
+        if hdir.is_dir():
+            for s in self._TRELLIS_HOOK_SCRIPTS:
+                p = hdir / s
+                if p.is_file():
+                    p.unlink(); removed.append(str(p.relative_to(self.root)))
+        return removed
+
     def _settings_trellis_notes(self) -> list:
         # settings.json/settings.local.json 内含 trellis hook 条目 (JSON 语义编辑, 交 agent 剔, 不脚本硬删)
         cdir = self.root / ".claude"
@@ -1026,6 +1084,7 @@ class Skein:
             tasks = self._migrate_trellis_tasks(trellis)
         # 无条件删接线 (两模式), --full 再整删 .trellis 目录
         removed = self._purge_wiring(trellis)
+        removed += self._purge_trellis_hooks()  # 剔 settings*.json 内 canonical trellis hook 条目 + 删脚本
         trellisx_disabled = self._disable_trellisx_plugin()  # settings.local.json 禁 trellisx 插件 (防双注入)
         trellis_removed = False
         if a.full and trellis.is_dir():

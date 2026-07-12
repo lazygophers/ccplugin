@@ -15,16 +15,16 @@
 
 scaffold + spec 拷贝 + task 迁移 + 接线删除已由 `skein.py setup [--full]` 完成, 但 spec 重组 / task 重建 / settings hook 剔除需语义判断 → 派 `skein-setup` agent。dispatch prompt 6 字段自包含：
 
-- **目标**: 把已拷入 `.skein/spec` 的规则语义重组为 core/recall×类目 + 重建 task + 剔 settings 里 trellis hook 条目。
-- **已知**: `skein.py setup [--full]` 已跑 (模式=<兼容|--full>), manifest = `<粘贴 JSON>`; spec 已 `copytree` 独立拷入 `.skein/spec` (trellis 零改动), 接线已删。
-- **工作目录与范围**: 仓库根; 改 `.skein/spec` (原地重组) + `.skein/task/` + `.claude/settings*.json` (JSON 语义剔 hook)。
+- **目标**: 把已拷入 `.skein/spec` 的规则语义重组为 core/recall×类目 + 重建 task + 剔 settings 里**残留 (非 canonical)** trellis hook 条目。
+- **已知**: `skein.py setup [--full]` 已跑 (模式=<兼容|--full>), manifest = `<粘贴 JSON>`; spec 已 `copytree` 独立拷入 `.skein/spec` (trellis 零改动), 接线已删 (含 canonical trellis hook 条目 + 脚本已硬剔)。
+- **工作目录与范围**: 仓库根; 改 `.skein/spec` (原地重组) + `.skein/task/` + `.claude/settings*.json` (JSON 语义剔残留 hook)。
 - **输出格式**: 见 skein-setup agent 定义 (spec 层/类目分布 + task 迁移数 + 清理清单)。
-- **验收标准**: `memory.py list` 有分层规则; `skein.py list` 有迁移 task; `.claude/settings*.json` 无 trellis hook; 兼容模式 `.trellis/` 数据仍在 / `--full` 已整删。
+- **验收标准**: `memory.py list` 有分层规则; `skein.py list` 有迁移 task; `.claude/settings*.json` 无 trellis hook (canonical 已脚本清, 残留已 agent 清); 兼容模式 `.trellis/` 数据仍在 / `--full` 已整删。
 - **失败处理**: agent 标 `需要:` → main 用 `AskUserQuestion` 转达用户裁定分层/字段歧义。
 
 ## 铁律
 
 - **spec 已独立拷入 `.skein/spec`** — setup 用 `copytree` 拷贝 (非软链), trellis 零改动。agent 在 `.skein/spec` 原地重组, 安全不碰 trellis。
-- **接线删除无条件** — `skein.py setup` 已删接线文件/目录 (脚本做); agent 只需 JSON 语义剔 `.claude/settings*.json` 内 trellis hook 条目 (脚本不硬删 JSON)。
+- **接线删除无条件** — `skein.py setup` 已删接线文件/目录 + **硬剔 `.claude/settings*.json` 内 canonical trellis hook 条目** (command 引用 session-start / inject-subagent-context / guard-version / inject-workflow-state 的, 连脚本一并删; rust-fmt 等用户自有 hook 保留)。agent 只清脚本漏网的**残留** hook (command 含 `trellis` 子串但非 canonical 脚本名, 如 `trellis.sh`)。
 - **`--full` 破坏性** — 整删 `.trellis/`; main 派发即视为授权 (用户调 `setup --full` = 同意完全移除)。spec/task 已拷入 `.skein`, 删的是残留数据目录。
 - **task.md / task.json 禁手改** — 迁移经 `skein.py create` 等命令, 不直接写 (PreToolUse hook 硬阻)。

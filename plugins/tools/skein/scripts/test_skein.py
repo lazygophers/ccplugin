@@ -241,7 +241,15 @@ def test_setup():
         (d / ".trellis/hooks").mkdir()  # 接线: 无条件删
         (d / ".trellis/settings.json").write_text("{}")
         (d / ".claude/skills/foo-trellis").mkdir(parents=True)
-        (d / ".claude/settings.json").write_text('{"hooks":{"PreToolUse":[{"command":"trellis.sh"}]}}')
+        # 原生 trellis 注入的 canonical hook 脚本 (名字不含 trellis) + 用户自有 rust-fmt (须保留)
+        (d / ".claude/hooks").mkdir(parents=True, exist_ok=True)
+        for s in ("session-start.py", "guard-version.py", "rust-fmt.py"):
+            (d / ".claude/hooks" / s).write_text("print(1)\n")
+        (d / ".claude/settings.json").write_text(json.dumps({"hooks": {
+            "PreToolUse": [{"matcher": "Edit", "hooks": [{"type": "command", "command": "python3 .claude/hooks/guard-version.py"}]}],
+            "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "python3 .claude/hooks/session-start.py"}]}],
+            "PostToolUse": [{"matcher": "Edit", "hooks": [{"type": "command", "command": "python3 .claude/hooks/rust-fmt.py"}]}],
+        }}))
 
     def _assert_migrated(d, m, mode):
         assert m["mode"] == mode and m["trellis_present"] == (mode == "compat"), m
@@ -258,6 +266,13 @@ def test_setup():
         # 接线无条件删 (两模式)
         assert any("hooks" in r for r in m["wiring_removed"]), "trellis 接线未删"
         assert not (d / ".claude/skills/foo-trellis").exists(), ".claude trellis 残留未删"
+        # canonical trellis hook 剔除: settings 条目 + 脚本文件都删; rust-fmt (用户自有) 原样保留
+        hooks = json.loads((d / ".claude/settings.json").read_text()).get("hooks", {})
+        assert "PreToolUse" not in hooks and "SessionStart" not in hooks, ("canonical hook 条目未剔", hooks)
+        assert hooks["PostToolUse"][0]["hooks"][0]["command"].endswith("rust-fmt.py"), ("rust-fmt 误删", hooks)
+        assert not (d / ".claude/hooks/session-start.py").exists(), "canonical hook 脚本未删"
+        assert not (d / ".claude/hooks/guard-version.py").exists(), "canonical hook 脚本未删"
+        assert (d / ".claude/hooks/rust-fmt.py").exists(), "用户 rust-fmt.py 误删"
         assert m["settings_need_manual_edit"], "settings 需手工剔除未标记"
         # trellisx 插件在 settings.local.json 禁用 (防双注入)
         assert "trellisx@ccplugin-market" in m["trellisx_disabled"], "trellisx 插件未禁用"
