@@ -14,3 +14,11 @@ html[data-theme=glassmorphism] .switcher{
   border:1px solid color-mix(in srgb,#fff 35%,var(--brd));
   box-shadow:0 8px 32px rgba(0,0,0,.12);
 }
+/* 深色: 背景辉光改中性白光 (不掺 accent 色), 磨砂玻璃卡片标识保留 */
+html[data-theme=glassmorphism][data-mode=dark] body{
+  background:
+    radial-gradient(60% 60% at 15% 12%,rgba(255,255,255,.05),transparent),
+    radial-gradient(55% 55% at 85% 20%,rgba(255,255,255,.04),transparent),
+    var(--bg);
+  background-attachment:fixed;
+}

@@ -16,3 +16,13 @@ html[data-theme=ghibli] .card,html[data-theme=ghibli] .switcher{
 html[data-theme=ghibli] .badge{border-radius:14px}
 html[data-theme=ghibli] .bar{background:#e8e0cc;border-radius:12px}
 html[data-theme=ghibli] .fill{background:linear-gradient(90deg,#a7c47f,#8bb04f)}
+/* 深色: 背景归中性黑灰, 柔绿标题+圆润卡片+绿进度条留住吉卜力气质 */
+html[data-theme=ghibli][data-mode=dark] body{
+  background:radial-gradient(70% 50% at 20% 0%,rgba(255,255,255,.04),transparent 55%),var(--bg);
+  background-attachment:fixed;color:var(--fg);
+}
+html[data-theme=ghibli][data-mode=dark] h1,html[data-theme=ghibli][data-mode=dark] .card h2{color:#a7c47f}
+html[data-theme=ghibli][data-mode=dark] .card,html[data-theme=ghibli][data-mode=dark] .switcher{
+  background:var(--card);border-color:var(--brd);
+}
+html[data-theme=ghibli][data-mode=dark] .bar{background:color-mix(in srgb,var(--fg) 16%,transparent)}

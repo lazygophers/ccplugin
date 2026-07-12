@@ -16,3 +16,12 @@ html[data-theme=blueprint] .card,html[data-theme=blueprint] .switcher{
 html[data-theme=blueprint] .badge{border:1px solid #8fd0ff;border-radius:2px}
 html[data-theme=blueprint] .bar{border:1px solid #8fd0ff;background:transparent;border-radius:0}
 html[data-theme=blueprint] th,html[data-theme=blueprint] td{border-bottom:1px dashed rgba(143,208,255,.35)}
+/* 深色: 底色归黑灰 (禁蓝底), 青色网格线保留 → 暗场 CAD 制图观感 */
+html[data-theme=blueprint][data-mode=dark] body{background-color:var(--bg);color:var(--fg)}
+html[data-theme=blueprint][data-mode=dark] h1,
+html[data-theme=blueprint][data-mode=dark] .card h2,
+html[data-theme=blueprint][data-mode=dark] .name{color:var(--fg)}
+html[data-theme=blueprint][data-mode=dark] .meta,html[data-theme=blueprint][data-mode=dark] th{color:var(--muted)}
+html[data-theme=blueprint][data-mode=dark] .card,html[data-theme=blueprint][data-mode=dark] .switcher{
+  background:color-mix(in srgb,var(--card) 82%,transparent);
+}

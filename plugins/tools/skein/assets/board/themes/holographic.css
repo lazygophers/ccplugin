@@ -16,3 +16,10 @@ html[data-theme=holographic] h1{
 }
 html[data-theme=holographic] .badge{box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
 html[data-theme=holographic] .fill{background:linear-gradient(90deg,#ff9ac1,#a0e9ff,#c8b6ff)}
+/* 深色: 背景归中性黑灰 (禁虹彩铺底), 虹彩留在标题渐变+进度条+卡片镭射高光 */
+html[data-theme=holographic][data-mode=dark] body{background:var(--bg);color:var(--fg)}
+html[data-theme=holographic][data-mode=dark] .card,html[data-theme=holographic][data-mode=dark] .switcher{
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
+  border-color:rgba(255,255,255,.14);
+  box-shadow:0 8px 28px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.16);
+}

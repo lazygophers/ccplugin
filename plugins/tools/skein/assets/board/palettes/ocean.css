@@ -1,3 +1,3 @@
 /* 海洋 — 蓝青冷调。 */
 html[data-palette=ocean]{--bg:#e6eef2;--fg:#324a52;--head:#3d5b66;--muted:#6b8b95;--card:#f2f8fa;--brd:#c7dde4;--line:#dbeaef;--accent:#5aa9b5;--accent2:#7bb6d6;--st-pending:#e0b077;--st-active:#7bb6d6;--st-check:#e0b077;--st-done:#5aa9b5;--st-failed:#d98a8a;--sel-bg:#f2f8fa;--sel-fg:#324a52}
-html[data-palette=ocean][data-mode=dark]{--bg:#182a30;--fg:#d6e8ee;--head:#bcd8e0;--muted:#88a8b0;--card:#213840;--brd:#2f4a54;--line:#294049;--sel-bg:#213840;--sel-fg:#d6e8ee}
+html[data-palette=ocean][data-mode=dark]{--bg:#1c1c1c;--fg:#e2e2e2;--head:#cccccc;--muted:#8f8f8f;--card:#282828;--brd:#3c3c3c;--line:#333333;--sel-bg:#282828;--sel-fg:#e2e2e2}

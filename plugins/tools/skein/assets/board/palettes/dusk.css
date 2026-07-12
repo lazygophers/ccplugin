@@ -1,3 +1,3 @@
 /* 暮紫 — 黄昏紫调。 */
 html[data-palette=dusk]{--bg:#ece7f0;--fg:#463a52;--head:#574766;--muted:#8a7d99;--card:#f6f2fa;--brd:#dccce6;--line:#e8dcef;--accent:#a06ac9;--accent2:#c98ab6;--st-pending:#c99a6a;--st-active:#c98ab6;--st-check:#c99a6a;--st-done:#8ab98f;--st-failed:#cc7a9a;--sel-bg:#f6f2fa;--sel-fg:#463a52}
-html[data-palette=dusk][data-mode=dark]{--bg:#26202e;--fg:#e6dcee;--head:#d2c3dc;--muted:#9d8ba8;--card:#31283b;--brd:#43364f;--line:#392e44;--sel-bg:#31283b;--sel-fg:#e6dcee}
+html[data-palette=dusk][data-mode=dark]{--bg:#1c1c1c;--fg:#e2e2e2;--head:#cccccc;--muted:#8f8f8f;--card:#282828;--brd:#3c3c3c;--line:#333333;--sel-bg:#282828;--sel-fg:#e2e2e2}

@@ -19,3 +19,11 @@ html[data-theme=gradient] h1{
 }
 html[data-theme=gradient] .switcher{border-radius:12px;background:color-mix(in srgb,var(--card) 85%,transparent);backdrop-filter:blur(8px)}
 html[data-theme=gradient] .fill{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+/* 深色: 背景改中性灰阶渐变 (不掺 accent 色), 渐变标题+进度条保留彩色标识 */
+html[data-theme=gradient][data-mode=dark] body{
+  background:linear-gradient(135deg,
+    color-mix(in srgb,var(--fg) 6%,var(--bg)),
+    var(--bg) 55%,
+    color-mix(in srgb,var(--fg) 4%,var(--bg)));
+  background-attachment:fixed;
+}
