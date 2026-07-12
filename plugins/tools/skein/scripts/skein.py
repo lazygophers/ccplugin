@@ -941,7 +941,8 @@ class Skein:
                     S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
         def dag_html(nodes):
-            # nodes: [(id, name, status, deps)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
+            # nodes: [(id, name, status, deps, pct, desc)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
+            # pct/desc 可缺 (老三元组兼容): 节点框显 id + 完成% + 名字 + desc
             if len(nodes) < 2:
                 return ""
             ids = {n[0] for n in nodes}
@@ -966,7 +967,7 @@ class Skein:
                 layers.setdefault(d, []).append(i)
             for d in layers:
                 layers[d].sort(key=lambda i: order[i])
-            COL, ROW, NW, NH = 170, 56, 140, 40
+            COL, ROW, NW, NH = 210, 78, 176, 60
             pos = {i: (d * COL + 10, r * ROW + 10)
                    for d, ids_ in layers.items() for r, i in enumerate(ids_)}
             W = (max(layers) + 1) * COL + 10
@@ -986,20 +987,32 @@ class Skein:
             boxes = []
             for i in ids:
                 x, y = pos[i]
-                _id, nm, stt, _ = smap[i]
-                nm2 = (nm[:9] + "…") if len(nm) > 10 else nm
+                node = smap[i]
+                _id, nm, stt = node[0], node[1], node[2]
+                pct = node[4] if len(node) > 4 else None
+                desc = node[5] if len(node) > 5 else ""
+                nm2 = (nm[:11] + "…") if len(nm) > 12 else nm
+                desc2 = (desc[:15] + "…") if desc and len(desc) > 16 else (desc or "")
+                pct_txt = (f'<text x="{x + NW - 10}" y="{y + 17}" font-size="10" text-anchor="end" '
+                           f'fill="var(--head)">{pct}%</text>') if pct is not None else ""
+                desc_txt = (f'<text x="{x + 12}" y="{y + 50}" font-size="9" '
+                            f'fill="var(--muted)">{esc(desc2)}</text>') if desc2 else ""
                 boxes.append(
                     f'<g class="{node_cls.get(stt, "")}"><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
                     f'fill="var(--bg)" stroke="var(--brd)"/>'
                     f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
                     f'fill="var({node_var.get(stt, "--muted")})"/>'
-                    f'<text x="{x + 12}" y="{y + 17}" font-size="12" fill="var(--fg)">{esc(_id)}</text>'
-                    f'<text x="{x + 12}" y="{y + 31}" font-size="10" fill="var(--muted)">{esc(nm2)}</text></g>')
+                    f'<text x="{x + 12}" y="{y + 18}" font-size="12" fill="var(--fg)">{esc(_id)}</text>'
+                    f'{pct_txt}'
+                    f'<text x="{x + 12}" y="{y + 34}" font-size="11" fill="var(--fg)">{esc(nm2)}</text>'
+                    f'{desc_txt}</g>')
             return (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
                     f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
 
         tnow = now()
-        tasks = self._all()
+        # 排序: 状态分组 (进行中→检查中→待处理→已完成), 组内按执行时间(started)倒序 (新执行在前; 未启动 started=None 视 0)
+        _srank = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
+        tasks = sorted(self._all(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
         name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
 
         def elapsed_of(t):
@@ -1007,6 +1020,13 @@ class Skein:
             if t.get("status") == S_PENDING:  # 未启动 task 无耗时
                 return 0
             return round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
+
+        def task_pct(t):
+            # task 完成百分比: DONE=100, 否则 = subtask 平均完成比 (无 subtask 记 0)
+            if t["status"] == S_DONE:
+                return 100
+            subs = t.get("subtasks", [])
+            return round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
 
         # 任务进展总览: 各状态计数 + 综合/预估加权完成率 + 时长合计
         cnt = {}
@@ -1033,16 +1053,19 @@ class Skein:
         overall = round(sum(fracs) / len(fracs) * 100) if fracs else 0
         weighted = round(wdone / wsum * 100) if wsum else overall
         chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
-        task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", [])) for t in tasks]
+        task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
+                       task_pct(t), t.get("desc", "")) for t in tasks]
         # task+subtask 合并 DAG: subtask 节点 id 命名空间化 (tid/sid), 依赖 = 同 task 内 sub-deps + 父 task
         # (父 task 边让 subtask 落在其 task 之后的执行波次)
         combined = []
         for t in tasks:
-            combined.append((t["id"], t.get("name", t["id"]), t["status"], t.get("deps", [])))
+            combined.append((t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
+                             task_pct(t), t.get("desc", "")))
             for s in t.get("subtasks", []):
                 sid = f'{t["id"]}/{s["sid"]}'
                 sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", [])] + [t["id"]]
-                combined.append((sid, s.get("name", s["sid"]), s["status"], sdeps))
+                combined.append((sid, s.get("name", s["sid"]), s["status"], sdeps,
+                                 _sub_pct(s), s.get("desc", "")))
         has_sub = any(t.get("subtasks") for t in tasks)
         combined_dag = (f'<details class="detail"><summary>全景 · task + subtask 合并 DAG</summary>'
                         f'{dag_html(combined)}</details>') if has_sub else ""
@@ -1067,7 +1090,8 @@ class Skein:
             time_bar = (f'<p class="meta">时间 {fmt_dur(elapsed)}/{fmt_dur(est)}</p>'
                         + bar(round(elapsed / est * 100), cls="time" + (" over" if elapsed > est else ""))
                         ) if est else ""
-            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", [])) for s in subs]
+            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
+                       _sub_pct(s), s.get("desc", "")) for s in subs]
             srows = "".join(
                 f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
                 f'<td>{badge(s["status"], ss_cls)}</td>'
@@ -1083,7 +1107,8 @@ class Skein:
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
             cards.append(
-                f'<section class="card"><h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
+                f'<section class="card" data-status="{esc(t["status"])}">'
+                f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
@@ -1107,11 +1132,14 @@ class Skein:
         def opts(items, cur):
             return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
                            for k, label in items)
+        filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
+                       (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
         switcher = (
             '<div class="switcher">'
             f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
             f'<label>配色<select id="sw-palette">{opts(PALETTES, palette)}</select></label>'
             f'<label>明暗<select id="sw-mode">{opts([("light", "浅色"), ("dark", "深色")], mode)}</select></label>'
+            f'<label>状态<select id="sw-filter">{opts(filter_opts, "all")}</select></label>'
             '</div>')
         html = (
             f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'

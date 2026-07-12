@@ -15,4 +15,17 @@
     var sel=document.getElementById('sw-'+k);
     if(sel)sel.addEventListener('change',function(){apply(k,sel.value);});
   });
+  // 状态筛选: 按 data-status 显隐 task card ('all'=全显); 概览 banner 无 data-status → 恒显
+  function applyFilter(v){
+    if(!v)v='all';
+    localStorage.setItem('skein-filter',v);
+    var sel=document.getElementById('sw-filter');
+    if(sel)sel.value=v;
+    document.querySelectorAll('section.card[data-status]').forEach(function(c){
+      c.style.display=(v==='all'||c.getAttribute('data-status')===v)?'':'none';
+    });
+  }
+  applyFilter(localStorage.getItem('skein-filter'));
+  var fsel=document.getElementById('sw-filter');
+  if(fsel)fsel.addEventListener('change',function(){applyFilter(fsel.value);});
 })();
