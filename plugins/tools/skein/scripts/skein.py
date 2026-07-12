@@ -215,7 +215,7 @@ class Skein:
         self._autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
                   "worktree": t.get("worktree")} for t in self._all()]
-        (self.dir / "task.json").write_text(
+        self._write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._board(None)  # 变更即刷 task.md, 免看板漂移
         self._board_html()  # + 生成 .skein/task.html 可视化页 (不自动打开; `skein.py view` 按需开)
@@ -545,6 +545,17 @@ class Skein:
         self._board(a)
         print(f"看板已更新: {self.dir / 'task.md'}")
 
+    @staticmethod
+    def _write_if_changed(path: Path, content: str):
+        # 渲染派生文件 (task.md/task.html) 每次变更重算, 但内容常与盘上相同 —
+        # 先比对再写, 免无谓 IO/SSD 写入 (增量保护磁盘)。
+        try:
+            if path.exists() and path.read_text() == content:
+                return
+        except OSError:
+            pass
+        path.write_text(content)
+
     def _board(self, _):
         rows = []
         for t in self._all():
@@ -559,7 +570,7 @@ class Skein:
             "|---|---|---|---|---|\n"
             f"{body}\n"
         )
-        (self.dir / "task.md").write_text(md)
+        self._write_if_changed(self.dir / "task.md", md)
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
     def _ready(self, t: list) -> list:
@@ -707,7 +718,7 @@ class Skein:
             f"{body}\n\n"
             f"并发上限: {self.config().get('max_parallel', 2)}\n"
         )
-        (self.tasks / t["id"] / "task.md").write_text(md)
+        self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
     # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
     def _board_html(self):
@@ -908,7 +919,7 @@ class Skein:
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
             f'{switcher}<h1>SKEIN 看板 · {esc(self.proj)}</h1>{body}'
             '<script src="board/switcher.js"></script></body></html>')
-        self.html_path.write_text(html)
+        self._write_if_changed(self.html_path, html)
 
     def _copy_board_assets(self):
         # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)
