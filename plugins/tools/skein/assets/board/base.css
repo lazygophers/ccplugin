@@ -62,6 +62,18 @@ td .bar{margin:1px 0;min-width:78px}
 
 /* 执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
 .dag{display:block;max-width:100%;height:auto;margin:4px 0 8px}
+/* 节点整框按状态着色 (CSS class 覆盖 SVG presentation attr, 优先级更高): 主体填 palette 状态色淡染 + 同色描边, 随主题自适应.
+   :first-of-type = 主体 rect (第 2 个 rect 是左边色条, 保留强化). */
+.dag g.n-pending>rect:first-of-type{fill:color-mix(in srgb,var(--st-pending) 15%,var(--bg));stroke:var(--st-pending)}
+.dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2;animation:dag-run 1.3s ease-in-out infinite}
+.dag g.n-check>rect:first-of-type{fill:color-mix(in srgb,var(--st-check) 15%,var(--bg));stroke:var(--st-check)}
+.dag g.n-done>rect:first-of-type{fill:color-mix(in srgb,var(--st-done) 15%,var(--bg));stroke:var(--st-done)}
+.dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
+/* 进行中/运行中 呼吸动画: 描边透明度脉动, 传达 "活跃" */
+@keyframes dag-run{0%,100%{stroke-opacity:.35}50%{stroke-opacity:1}}
+/* 进行中 badge 同步脉动 (整框动画外, 表格/标题内的状态徽章也呼吸) */
+.badge.s-active,.badge.ss-running{animation:badge-run 1.4s ease-in-out infinite}
+@keyframes badge-run{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* 明细折叠: task 卡的 DAG + 子任务表默认收起保紧凑, 展开看全量 */
 .detail{margin-top:2px}

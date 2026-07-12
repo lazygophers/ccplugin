@@ -906,6 +906,9 @@ class Skein:
         # 状态 -> CSS 变量 (执行顺序图节点左边框着色); task/subtask 状态共用 (值同名)
         node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
                     S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
+        # 状态 -> 节点 CSS 类 (整框按状态着色 + 进行中/运行中 呼吸动画, 见 base.css .dag g.n-*)
+        node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
+                    S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
         def dag_html(nodes):
             # nodes: [(id, name, status, deps)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
@@ -956,7 +959,7 @@ class Skein:
                 _id, nm, stt, _ = smap[i]
                 nm2 = (nm[:9] + "…") if len(nm) > 10 else nm
                 boxes.append(
-                    f'<g><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
+                    f'<g class="{node_cls.get(stt, "")}"><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
                     f'fill="var(--bg)" stroke="var(--brd)"/>'
                     f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
                     f'fill="var({node_var.get(stt, "--muted")})"/>'
@@ -1001,6 +1004,18 @@ class Skein:
         weighted = round(wdone / wsum * 100) if wsum else overall
         chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
         task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", [])) for t in tasks]
+        # task+subtask 合并 DAG: subtask 节点 id 命名空间化 (tid/sid), 依赖 = 同 task 内 sub-deps + 父 task
+        # (父 task 边让 subtask 落在其 task 之后的执行波次)
+        combined = []
+        for t in tasks:
+            combined.append((t["id"], t.get("name", t["id"]), t["status"], t.get("deps", [])))
+            for s in t.get("subtasks", []):
+                sid = f'{t["id"]}/{s["sid"]}'
+                sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", [])] + [t["id"]]
+                combined.append((sid, s.get("name", s["sid"]), s["status"], sdeps))
+        has_sub = any(t.get("subtasks") for t in tasks)
+        combined_dag = (f'<details class="detail"><summary>全景 · task + subtask 合并 DAG</summary>'
+                        f'{dag_html(combined)}</details>') if has_sub else ""
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
             f'<p class="meta">{len(tasks)} task · {chips}</p>'
@@ -1008,7 +1023,7 @@ class Skein:
             f'剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
             f'<p class="meta">综合完成率</p>{bar(overall)}'
             f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
-            f'{dag_html(task_nodes)}</section>')
+            f'<p class="meta">task 级执行顺序</p>{dag_html(task_nodes)}{combined_dag}</section>')
 
         cards = []
         for t in tasks:
