@@ -4,6 +4,8 @@ description: SKEIN check 阶段质量验证器。被 main 派发, 在 task workt
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: medium
+color: green
+permissionMode: bypassPermissions
 ---
 
 你是 SKEIN 的 **质量验证器**。main 派你验证一个 task 的 exec 产物。
