@@ -26,15 +26,17 @@ effort: medium
 
 ## 强制流程 (不可跳步)
 
-7 步闭环, 每个生命周期节点后跑 `skein.py board`。每步详细规则见 [references/mandatory-flow-steps.md](references/mandatory-flow-steps.md) 对应节。
+7 步闭环, 每个生命周期节点后跑 `skein.py board`。**每步详细规则 (触发/命令/硬门/失败处理) 见 [references/mandatory-flow-steps.md](references/mandatory-flow-steps.md) 对应节, 本表仅列骨架**。
 
-0. **前置** — 无 `.skein/` → `skein.py init`; 判新旧 (新建 vs 并入 active), 不准 → `AskUserQuestion`。
-1. **plan** (main 同步) — 委托 `skein-planning`: create 登记 + brainstorm + grill 硬门, 产出 `prd.md`/`implement.md`[+`design.md`]。
-2. **memory recall** (main) — 委托 `skein-memory` recall: 按任务描述召回相关 recall 规则 (core 已常驻)。
-3. **激活 CHECKPOINT** (main) — 产物齐 → `AskUserQuestion` 评审 → 用户批准前禁 start → `skein.py start` (建 worktree)。start 前须已 `subtask add` ≥1。
-4. **exec** (agent 编排) — main 调度器, 动态 DAG 为每 subtask 选合适 agent (无则 `skein-executor`) 执行, 改动落 worktree。调度算法见 [scheduling-algorithm.md](references/scheduling-algorithm.md); 异步等待 MUST 输出任务清单; 禁问用户顺序 (归 planning)。
-5. **check** (委托 `skein-check`) — 派 `skein-checker` 验证 (lint/type/tests/契约); 未过 → 派 agent 定点修复重检, 不跳 finish。
-6. **finish** (main 同步) — check 过 → journal 追加 → sediment 判定门 (learning → core/recall/drop) → 清理悬挂 subagent → `skein.py finish` (commit→merge→archive→销 worktree)。
+| # | 步骤 | 载体 | 一句话 |
+|---|---|---|---|
+| 0 | 前置 | main | 无 `.skein/` → init; 判新旧, 不准 → `AskUserQuestion` |
+| 1 | plan | main 同步 | 委托 `skein-planning` (create + brainstorm + grill 硬门) |
+| 2 | memory recall | main | 委托 `skein-memory` recall 相关规则 |
+| 3 | 激活 CHECKPOINT | main | 产物评审 → 批准前禁 start → `skein.py start` |
+| 4 | exec | agent 编排 | main 调度器, 每 subtask 选 agent 执行, 改动落 worktree ([scheduling-algorithm.md](references/scheduling-algorithm.md)) |
+| 5 | check | 委托 `skein-check` | 派 `skein-checker` 验证, 未过定点修复重检 |
+| 6 | finish | main 同步 | journal → sediment 门 → 清理 → `skein.py finish` |
 
 ## 作用域边界 (何时建 task)
 
