@@ -5,7 +5,7 @@
 0. **前置** — 无 `.skein/` → 先 `python3 <plugin>/scripts/skein.py init`。判新旧 (新建 vs 并入 active task), 不准 → `AskUserQuestion`。
 1. **plan** (main 同步) — 委托 `skein-planning`: 判新旧 + `skein.py create` 登记 + brainstorm 需求/方案 + grill 硬门 (必走)。产出 `.skein/task/<id>/{prd.md,implement.md}`[+design.md]。
 2. **memory recall** (main) — 委托 `skein-memory` recall: 按任务描述召回相关 recall 规则注入 (core 规则已由 SessionStart 常驻)。
-3. **激活 CHECKPOINT** (main) — 产物齐 → `AskUserQuestion` 交用户评审 → **用户批准前禁 start** → `skein.py start <id>` (建 worktree, status=in_progress) → 更新看板。用户驳回 → 退回 plan 修工件重审, 禁绕过。
+3. **激活 CHECKPOINT** (main) — 产物齐 → `AskUserQuestion` 交用户评审 → **用户批准前禁 start** → `skein.py start <id>` (建 worktree, status=in_progress) → 更新看板。用户驳回 → 退回 plan 修工件重审, 禁绕过。**start 前须已 `subtask add` ≥1 个 (planning 拆分产物); 无 subtask 时 `start` 直接报错** — 拆分未落 subtask = planning 未完, 退回补。
 4. **exec** (agent 编排) — main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 各执行 1 subtask, 改动落 task worktree。调度算法 (并行只看 depends_on DAG / ready 即派 / 并发 2 / 完成即派 / dispatch prompt 6 字段携带执行纪律与递归护栏) 见 [scheduling-algorithm.md](scheduling-algorithm.md)。每个 agent 完成即回传。
    - **异步等待 MUST 输出任务清单** — 派出异步任务后结束本回合前, 输出全景表 (4 列: id/状态/摘要/进度%, 状态枚举 进行中/等待中/阻塞), 格式见 [progress-reporting.md](progress-reporting.md)。
    - **exec 阶段禁问用户顺序** — 顺序归 planning (调度图 + depends_on DAG)。ready 即派 / 完成即派 / 并发 2。PRD 缺调度图 → 退回 planning 补, 不在 exec 问。

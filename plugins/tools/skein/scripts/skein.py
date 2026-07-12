@@ -317,6 +317,8 @@ class Skein:
         t = self._load(a.id)
         if t["status"] != S_PENDING:
             raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 start 待处理 task")
+        if not t.get("subtasks"):
+            raise SystemExit(f"{a.id} 无 subtask — start 前先 `subtask add {a.id} <sid> ...` 至少登记 1 个 (planning 拆分产物)")
         cfg = self.config()
         active = self._active()
         if len(active) >= cfg["max_active"]:
