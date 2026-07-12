@@ -22,11 +22,9 @@ effort: low
 
 > 下方是 exec 阶段**调度门本体** (被 `skein-flow` exec 委托, 或无入参驱动已 planning task 时进入)。**只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。**
 
-## 调度门
+## 调度门 (载体分工)
 
-main 作调度器, 动态 DAG 为每个 subtask 选合适 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 各执行 1 subtask, 全部改动落 task worktree, 主工作区零改动。每个 agent 完成即回传。
-
-## 载体
+main 作调度器编排, 全部改动落 task worktree、主工作区零改动、每个 agent 完成即回传。角色分工:
 
 - **调度** → main 亲跑 (脚本不能 spawn): `skein.py subtask claim` 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。
 - **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享 task worktree, 不调度不递归 (Recursion Guard)。
