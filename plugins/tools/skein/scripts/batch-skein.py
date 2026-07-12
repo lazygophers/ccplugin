@@ -12,7 +12,7 @@ import sys
 
 # 改 .skein 共享状态的子命令 (写 task.json / spec / 看板); 只读命令不在列
 WRITE_CMDS = ("create", "start", "finish", "archive", "subtask",
-              "sediment", "reindex", "init", "journal", "contract")
+              "sediment", "reindex", "init", "contract")
 ENGINE_RE = re.compile(r"(?:skein\.py|memory\.py|\bskein\b|\bskein-memory\b)\s+([a-z-]+)")
 
 

@@ -11,7 +11,7 @@
 | **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 | **skein-finisher** | 收尾勘察 agent (绑 `skein-finish`) | 只读, finish 前扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏 | 无 |
-| **skein-memorier** | 记忆员 agent (绑 `skein-memory`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 journal+diff 跑判定门产 core/recall/drop 候选) | 无 |
+| **skein-memorier** | 记忆员 agent (绑 `skein-memory`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选) | 无 |
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `general-purpose`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
@@ -71,15 +71,13 @@ main 作调度器跑**动态 DAG 调度循环**:
 check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment (见下) → 清理悬挂 → `skein.py finish`**。
 
 - **收尾勘察** (`skein-finisher`, 只读): 扫悬挂 subagent/后台任务 + 复核 check 全绿 + 查未提交遗漏, 回传勘察报告供 main 决定是否放行。
-- **sediment 判定门** (委托 `skein-memory`): `skein-memorier` 读 journal+diff 跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + AskUserQuestion 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
+- **sediment 判定门** (委托 `skein-memory`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + AskUserQuestion 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
 - **`skein.py finish`** (main 同步):
   1. worktree 内 `git add -A` + commit (auto_commit=true 时)。
   2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
   3. 销 worktree + 删分支。
   4. task → `completed`, 归档到 `.skein/task/archive/<年>/<月-日>/<id>/`。
   5. 从顶层 tasks 索引移除 (其余 active task 不受影响, 继续并行)。
-
-> finish 摘要可选 `skein.py journal --add "<本 task 完成情况>"` 记一笔 (append-only 过程日志, 随 task 一并归档; 无审批门, 区别 sediment 的判定门与 contract 的锁定)。
 
 > finish 前 MUST 清理本 task 的悬挂 subagent / 后台任务 (`TaskList` 查 / `TaskStop` 关)。未关 = 未闭环, 禁宣告 Done。
 
@@ -144,7 +142,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 | 跨任务可复用经验但长尾 (选型 / 架构边界 / 踩坑根因) | → **recall** |
 | 一次性 bug / 本 task 私有细节 / 已有规则覆盖 | → **drop** (不沉淀) |
 
-判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 journal+diff 跑判定门) 产出, 审批 (AskUserQuestion) + 写盘经 `memory.py sediment` 仍归 main, 自动 reindex。
+判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 diff + subagent 回传摘要 跑判定门) 产出, 审批 (AskUserQuestion) + 写盘经 `memory.py sediment` 仍归 main, 自动 reindex。
 
 ## 工作区布局
 
@@ -161,7 +159,6 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
     │   ├── prd.md                   # 主入口: 需求 + 索引区 (AI 读写)
     │   ├── design.md                # 详细设计: 架构/取舍/选型, 不含调度图 (AI 读写)
     │   ├── findings.md              # 调研收敛结论 (AI 读写; 过程存 research/)
-    │   ├── journal.md               # append-only 过程记录 (AI 追加, 随 task 归档)
     │   └── research/<topic>.md      # researcher 过程笔记 (最终收敛进 findings.md, 随 task finish 归档)
     └── archive/<年>/<月-日>/<id>/    # 按完成日期分层归档
 .skein/spec/

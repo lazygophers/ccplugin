@@ -37,7 +37,6 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态。另: 向 `$CLAUDE_ENV_FILE` 追加 `export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1` (幂等, **先于 gitroot 判定, 与 git 无关**), 使 Bash 命令保持项目工作目录 —— 随插件 SessionStart hook 发货, 不落用户项目 settings (plugin.json 无 env 字段)。微服务/前后端分离场景 cwd 无 git (子目录各自是仓) 时照样写入, 恰是最需要该 env 的场景 |
 | `user-prompt` | — | (UserPromptSubmit hook 调) 每次用户 prompt 注入 task 判定提醒 (是任务则走 skein-flow 闭环); 非 git 仓静默 exit 0 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
-| `journal --id <id>` | `--add <文本>` | per-task finish 追加日志: `--add` 往 `.skein/task/<id>/journal.md` 追加一行 (append-only, 无审批门, 区别 contract/sediment); 省略 `--add` 则列出。随 task finish 一并归档 |
 | `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--check "断言;断言"` `--passed "1,2"` `--note <文本>` `--estimate <分钟>` `--agent <名>` `--skills "a,b"` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `check` 勾验收(算完成百分比) / `done` 完成 / `fail` 失败 / `list` 列态。add/start/check/done/fail 必带 `sid`。`--check` = 验收标准 checklist (分号分隔, 每条一个可验断言), `--passed` = `check` 时已通过验收序号 (1-based 逗号分隔; `all`=全过, `none`=清空), `--note` = `fail` 时的失败备注。`--agent` = 执行 agent (省略默认 `general-purpose`), `--skills` = 关联 skills 逗号分隔 (0-n) |
 
 **task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / started / finished / updated / contracts / subtasks`。
@@ -48,7 +47,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: **人工传入的可读 slug** (create 必填首参), 从 id 即可知含义 (如 `order-create-api`), 非随机生成。格式 = kebab-case (`^[a-z0-9][a-z0-9-]*$`, 小写字母/数字/连字符, 字母数字开头), 兼作 git 分支名 (`skein/<id>`) + 目录名。全局唯一, 含已归档的不可复用, 非法/重复即报错。
 
-**文件锁 (并发写保护)**: task/subtask 的更新经工作区级排他锁 `.skein/.lock` (`fcntl.flock`) 串行化, 包裹所有变更类命令 (`init/setup/create/start/finish/archive/clean/contract/journal/subtask`); 只读命令 (`current/ready/list/board/view`) 豁免。未拿到锁时**代码轮询等待** (非报错退出), 默认超时 10s, 超时抛错「获取 .skein 写锁超时」。作用: 多 skein 进程 / 并发 subtask 写同一 task.json 不丢更新。`.lock` 已加入 `.skein/.gitignore` (运行期锁文件, 不入库)。
+**文件锁 (并发写保护)**: task/subtask 的更新经工作区级排他锁 `.skein/.lock` (`fcntl.flock`) 串行化, 包裹所有变更类命令 (`init/setup/create/start/finish/archive/clean/contract/subtask`); 只读命令 (`current/ready/list/board/view`) 豁免。未拿到锁时**代码轮询等待** (非报错退出), 默认超时 10s, 超时抛错「获取 .skein 写锁超时」。作用: 多 skein 进程 / 并发 subtask 写同一 task.json 不丢更新。`.lock` 已加入 `.skein/.gitignore` (运行期锁文件, 不入库)。
 
 ## memory.py — 规则记忆引擎
 
@@ -96,7 +95,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + **残留/非 canonical** settings hook 剔除; canonical trellis hook 由脚本硬剔); 机械部分交 `skein.py setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-finisher` | finish 收尾勘察 (只读: 扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏), 绑定 `skein-finish` | 只读 + Bash, 无 Agent/Task | `model: haiku` |
-| `skein-memorier` | 记忆员: recall 检索 (planning) + sediment 草案 (finish 读 journal+diff 跑判定门产 core/recall/drop 候选), 与 `skein-memory` 相互绑定; 审批+写盘归 main | 只读 + Bash, 无 Agent/Task | `model: haiku` |
+| `skein-memorier` | 记忆员: recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选), 与 `skein-memory` 相互绑定; 审批+写盘归 main | 只读 + Bash, 无 Agent/Task | `model: haiku` |
 
 > 模型分层做 token 优化: 验证 / 收尾勘察 / 记忆走最轻档 (haiku); 调研 / 迁移走 sonnet; 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 
@@ -142,7 +141,7 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 | **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
 | **UserPromptSubmit** | 每次用户提交 prompt | `skein.py user-prompt` 注入 **task 判定提醒**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定为 model 语义活, hook 只注入决策标准 (过 budget_guard); 非 git 仓静默 exit 0 |
 | **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 两类硬阻: ① 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡); ② **迁移门** — 有 `.trellis/` 但无 `.skein/config.yaml` 时挡源码 Read/Edit/Write/MultiEdit (含只读诊断), 逼先 skein-setup 初始化 (纯文本注入压不过 trellisx 的 active-task 注入, 故硬阻; 仅 Bash 跑 `skein.py setup` 放行, `.skein/`·`.trellis/` 内部路径放行不自锁) |
-| **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein.py/memory.py 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/implement)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
+| **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein.py/memory.py 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/design/findings)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
 | **PostToolBatch** | 并行工具批 | `batch-skein.py` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
 | **PostToolUseFailure** | Bash 失败 | `report-skein.py` 仅当失败命令属本插件脚本 (含 skein.py/memory.py/CLAUDE_PLUGIN_ROOT) 时, 注入错误上下文 + `systemMessage` 引导用户**手动**开 issue (不自动建, 免误报刷屏) |
 
@@ -156,7 +155,7 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 | `.skein/task.md` (顶层看板) | 挡 | 挡 | `skein.py list` / `board` 取态 |
 | `.skein/task/<id>/task.json` (记录+subtask) | 挡 | 挡 | `skein.py subtask list/ready <id>`; subtask add/start/done 改 |
 | `.skein/task/<id>/task.md` (子任务看板) | 挡 | 挡 | `skein.py subtask list <id>` |
-| `.skein/task/<id>/{prd,implement,journal}.md` | 放行 | 放行 | planning 工件, AI 直接读写 |
+| `.skein/task/<id>/{prd,design,findings}.md` + `research/` | 放行 | 放行 | planning 工件, AI 直接读写 |
 
 ### 迁移门 (trellis 共存强制初始化)
 

@@ -12,7 +12,7 @@ effort: medium
 
 **差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆分两层, 基于 `.skein/spec`:
 
-> **绑定 agent `skein-memorier`** (相互绑定, 它 frontmatter `skills: skein:skein-memory`): 只读记忆员, 承载两类作业 —— recall 检索 (planning) + sediment 草案 (finish 读 journal+diff 跑判定门产候选)。main 派它产**草案**, 审批 (`AskUserQuestion`) + 写盘 (`memory.py`) 仍归 main。
+> **绑定 agent `skein-memorier`** (相互绑定, 它 frontmatter `skills: skein:skein-memory`): 只读记忆员, 承载两类作业 —— recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产候选)。main 派它产**草案**, 审批 (`AskUserQuestion`) + 写盘 (`memory.py`) 仍归 main。
 
 | 层         | 路径                             | 加载                                                 | 适合                             |
 | ---------- | -------------------------------- | ---------------------------------------------------- | -------------------------------- |

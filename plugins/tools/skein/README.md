@@ -45,7 +45,7 @@
 ├── board/             # 主题/配色 CSS (从插件 assets 拷贝, git 忽略, html link 引入)
 ├── config.yaml        # max_active:2 / retain_days:7 / auto_commit:true / worktree_root:.worktrees / board_theme / board_palette / board_mode
 └── task/
-    ├── <id>/          # 活跃 + 完成保留期内 task: prd.md(主入口) / design.md(详细设计) / findings.md(调研收敛) / research/ / journal.md + task.json/task.md(脚本渲染)
+    ├── <id>/          # 活跃 + 完成保留期内 task: prd.md(主入口) / design.md(详细设计) / findings.md(调研收敛) / research/ + task.json/task.md(脚本渲染)
     └── archive/<年>/<月-日>/<id>/   # 按完成日期分层归档 (完成超 retain_days 天自动移入)
 .skein/spec/
 ├── index.md                      # 顶层索引 (两层聚合概览)

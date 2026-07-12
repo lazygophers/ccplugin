@@ -44,10 +44,9 @@
 | `board/` | 主题/配色 CSS (base + themes/ + palettes/, 从插件 `assets/board/` 拷贝, 看板 html 相对路径 `<link>` 引入) | **脚本** · git 忽略 |
 | `task/order-create-api/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) + `contracts[]` | **脚本** · AI 禁读写 |
 | `task/order-create-api/task.md` | 子任务看板 (四态一览) | **脚本** · AI 禁读写 |
-| `task/order-create-api/prd.md` | planning 主入口: 需求 (目标/价值/边界/非目标/验收基准) + 索引区 (链 design/findings/task.json) | skein-plan · **AI 可读写** |
+| `task/order-create-api/prd.md` | planning 主入口: 分章节 (目标/边界/验收标准/索引, 每章节自带 TODO) + 索引区 (链 design/findings/task.json) | skein-plan · **AI 可读写** |
 | `task/order-create-api/design.md` | planning 详细设计: 架构/数据流/取舍/选型 (不含调度图) | skein-plan · **AI 可读写** |
 | `task/order-create-api/findings.md` | planning 调研收敛结论 (过程笔记存 research/) | skein-plan · **AI 可读写** |
-| `task/order-create-api/journal.md` | append-only 过程记录 | AI 追加 · 随 task 归档 |
 | `task/order-pay/*` | 待处理但已 plan 出 subtask (未 start, 无 prd/worktree); order-report/notification-service 同类 | **脚本** · AI 禁读写 |
 | `task/refund-flow/*` | 待处理但已 plan 出 subtask (subtask 全待处理) — 展示"排队 + 已拆分" | **脚本** · AI 禁读写 |
 | `task/archive/<年>/<月-日>/<id>/*` | 3 个已完成归档 task (order-query/user-auth/api-gateway, 按完成日期分层) | **脚本** · 只读留痕 |

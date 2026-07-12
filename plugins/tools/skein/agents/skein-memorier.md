@@ -1,6 +1,6 @@
 ---
 name: skein-memorier
-description: SKEIN 记忆员。被 main 派发做两类只读记忆作业 — ① recall 检索 (planning 时按关键词召回相关 recall 规则, 回传命中条目供注入 dispatch); ② sediment 草案 (finish 时读 journal+diff 跑判定门 checklist, 产候选规则 + core/recall/drop 分层草案)。只读 (无 Write, 写盘经 main 跑 memory.py), 无 Agent/Task (Recursion Guard)。与 skein-memory skill 相互绑定。
+description: SKEIN 记忆员。被 main 派发做两类只读记忆作业 — ① recall 检索 (planning 时按关键词召回相关 recall 规则, 回传命中条目供注入 dispatch); ② sediment 草案 (finish 时读 diff + subagent 回传摘要 跑判定门 checklist, 产候选规则 + core/recall/drop 分层草案)。只读 (无 Write, 写盘经 main 跑 memory.py), 无 Agent/Task (Recursion Guard)。与 skein-memory skill 相互绑定。
 tools: Read, Bash, Grep, Glob
 color: purple
 model: haiku
@@ -30,7 +30,7 @@ recall 命中 (<关键词>): <N 条 | 无>
 
 ## 作业二: sediment 草案 (finish)
 
-1. 读 `journal.md` + `git diff` 摘要。
+1. 读 `git diff` 摘要 + main 在 dispatch 里传入的各 subagent 回传摘要 (含 `SPEC:` 标记)。
 2. 跑 sediment 判定门 checklist (见 `skein-memory` skill / references/sediment-workflow.md): 逐项判本 task 有无 spec 增量。
 3. 对每条候选规则给**分层草案** (core 常驻 / recall 按需 / drop) + 类目 (git/test/arch/build...) + 理由。
 4. 回传:

@@ -70,11 +70,8 @@ def main():
         assert t["contracts"] == ["输出必须幂等"], t["contracts"]
         assert "输出必须幂等" in sk(d, "contract", "task-1").stdout, "contract 未列出"
 
-        # journal: --add 带时间戳追加 + append-only 两条都在 + 无参列出
-        sk(d, "journal", "--id", "task-1", "--add", "拆出 3 个 subtask")
-        sk(d, "journal", "--id", "task-1", "--add", "完成核心逻辑")
-        jout = sk(d, "journal", "--id", "task-1").stdout
-        assert "拆出 3 个 subtask" in jout and "完成核心逻辑" in jout, "journal append-only 未保全部条目"
+        # start 前须登记 ≥1 subtask (planning 拆分产物)
+        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--agent", "general-purpose")
 
         # start task-1 → worktree 建出
         sk(d, "start", "task-1")
@@ -90,10 +87,6 @@ def main():
         row1 = next(x for x in top["tasks"] if x["id"] == "task-1")
         assert row1["status"] == "进行中" and row1["worktree"] == t["worktree"], row1
 
-        # journal 须显式 --id (无 focus 默认)
-        sk(d, "journal", "--id", "task-1", "--add", "start 后记录")
-        assert "start 后记录" in sk(d, "journal", "--id", "task-1").stdout, "journal --id 失效"
-
         # session-context: 有 active task → JSON envelope 含 task id
         r = sk(d, "session-context")
         assert r.returncode == 0 and "task-1" in r.stdout, "session-context 未含 active task"
@@ -108,8 +101,10 @@ def main():
 
         # 并发上限: create+start task-2, task-3 应被拒
         sk(d, "create", "task-2", "--name", "第二个")
+        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--agent", "general-purpose")
         sk(d, "start", "task-2")
         sk(d, "create", "task-3", "--name", "第三个")
+        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--agent", "general-purpose")
         r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
@@ -118,7 +113,6 @@ def main():
         sk(d, "finish", "task-1")
         assert (d / "feature.txt").exists(), "finish 未合并回主工作区"
         assert list((d / ".skein/task/archive").glob("*/*/task-1")), "未归档 (日期分层)"
-        assert list((d / ".skein/task/archive").glob("*/*/task-1/journal.md")), "journal 未随 task 归档"
         assert not (d / ".skein/task/task-1").exists(), "归档后 task 残留"
         assert not wt.exists(), "worktree 未销"
         # 归档后顶层 tasks 索引去掉 task-1
@@ -157,7 +151,9 @@ def main():
 
         # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
         sk(d, "start", "task-3")
-        sk(d, "create", "task-4", "--name", "第四个"); sk(d, "start", "task-4")
+        sk(d, "create", "task-4", "--name", "第四个")
+        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--agent", "general-purpose")
+        sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
         assert act == {"task-3", "task-4"}, f"多 active 并行失效: {act}"
@@ -167,9 +163,9 @@ def main():
 
         # ---- subtask DAG 调度 ----
         sk(d, "create", "task-5", "--name", "编排任务")
-        sk(d, "subtask", "add", "task-5", "s1")
-        sk(d, "subtask", "add", "task-5", "s2")
-        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2")
+        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--agent", "general-purpose")
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
         r = sk(d, "subtask", "ready", "task-5").stdout
         assert "s1" in r and "s2" in r and "s3" not in r, "就绪批错 (s3 应被依赖挡)"

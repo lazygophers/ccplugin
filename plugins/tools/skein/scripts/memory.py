@@ -128,7 +128,7 @@ class Memory:
         head = ("# SKEIN spec 纪律 (执行期强制)\n"
                 "- 动手前: 相关约定先跑 `memory.py recall <关键词>` 拉 recall 层, 别凭记忆重推。\n"
                 "- 命中 core 规则 (下列) 即硬约束, 违反视为未完成。\n"
-                "- 踩到「后续同类任务会再犯」的坑 / 定下可复用约定: 在 journal 记一行标 `SPEC:` 供 finish sediment 落盘, 别让它随 worktree 销毁蒸发。\n")
+                "- 踩到「后续同类任务会再犯」的坑 / 定下可复用约定: 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘, 别让它随 worktree 销毁蒸发。\n")
         ctx = head if not body else head + "\n## core 规则 (常驻硬约束)\n\n" + body
         ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "memory:subagent-start")
         print(json.dumps({"hookSpecificOutput": {

@@ -31,10 +31,10 @@ skills:
    - 用 `memory.py sediment --layer <core|recall> --category <cat> --title <T> --keywords "<a,b>" --source trellis --body-file <临时正文文件>` 写入 skein 布局 (自动 reindex)。
    - 写入后**删除 `.skein/spec` 里的原扁平文件** (拷贝进来的旧结构), 免重复。全部完成后 `memory.py reindex` 收口。
 
-3. **重建 task** (每个 `trellis_tasks[]` 条目): 用 `skein.py create <id> --name "<name>" --desc "<desc>" [--deps a,b]` 建 skein task。原始 `task_json` 里的 status/contracts/subtasks/journal 语义搬运:
-   - 状态映射: trellis in_progress/active → skein 建后为 `待处理` (需 worktree 才能 active, 迁移不自动开 worktree); 在 journal 记一行 `SPEC: 迁移自 trellis, 原状态 <x>`。
+3. **重建 task** (每个 `trellis_tasks[]` 条目): 用 `skein.py create <id> --name "<name>" --desc "<desc>" [--deps a,b]` 建 skein task。原始 `task_json` 里的 status/contracts/subtasks 语义搬运:
+   - 状态映射: trellis in_progress/active → skein 建后为 `待处理` (需 worktree 才能 active, 迁移不自动开 worktree); 迁移来源 + 原状态记入 `--desc`。
    - 契约/subtask 若存在, 经 `skein.py contract <id> --add` / `skein.py subtask add` 逐条重建。
-   - 拿不准的字段在 journal 留痕, 不臆造。
+   - 拿不准的字段在回传里标注, 不臆造。
 
 4. **残留 settings hook 剔除** (若 `settings_need_manual_edit` 非空): setup 已硬剔 canonical trellis hook 条目 + 删脚本 (见铁律), 此处只清**脚本漏网的**残留 —— `.claude/settings.json` / `settings.local.json` 内 command 含 `trellis` 子串但**非 canonical 脚本名**的条目 (如 `trellis.sh` / 自定义 trellis 包装), 由你 JSON 语义删: 删 `hooks` 里该 hook 对象, 组内空则删 matcher 组, 保留其余。用 Edit 精确删。canonical 条目已被脚本清, 别重复找。
 
@@ -45,7 +45,7 @@ skills:
 ```
 setup <fresh | trellis-migration (兼容 | --full)>: <DONE | 需 main 介入>
 spec: core <N> 条 / recall <M> 条 (独立拷入 .skein/spec); 类目分布: <...>
-task: 迁移 <K> 个 (<id 列表>); 状态全置待处理 + journal 留痕
+task: 迁移 <K> 个 (<id 列表>); 状态全置待处理 (迁移来源记入 desc)
 清理: 删接线 <wiring_removed 列表>; settings 剔除 <hook 数> 个; <--full: 已整删 .trellis | 兼容: 留 .trellis 数据>
 需 main 介入: <分层拿不准 / task 字段歧义 / settings JSON 复杂 → 标 `需要: <问题>`; 无则 无>
 ```

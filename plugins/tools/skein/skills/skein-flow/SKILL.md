@@ -52,7 +52,7 @@ plan → exec → check → finish 四步闭环
 
 - Skill(skein-finish) 收尾编排门 (check 全绿后): 派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein.py finish`。详见 `skein-finish` skill。
 - 其中两处记忆自动化 (全流程记忆闭环 = plan recall 召回 + finish sediment 沉淀):
-  - **sediment 判定门 (自动沉淀)** — 委托 `skein-memory` sediment: `skein-memorier` 读 journal+diff 跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `AskUserQuestion` 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
+  - **sediment 判定门 (自动沉淀)** — 委托 `skein-memory` sediment: main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `AskUserQuestion` 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
   - 清理悬挂 (`TaskList`/`TaskStop`) + `skein.py finish` (commit→merge→archive→销 worktree) 由 skein-finish 编排, main 同步跑。
 
 ## 作用域边界 (何时建 task)

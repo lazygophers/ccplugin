@@ -15,7 +15,6 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
   .skein/task/<id>/design.md      详细设计 (架构/取舍/选型; 不含调度图, 调度归 task.json)
   .skein/task/<id>/findings.md    深度调研收敛结论 (research/ 存过程, 此文件收敛; skein-plan/main 汇总写)
   .skein/task/<id>/research/       researcher 过程笔记 (多篇, 最终收敛进 findings.md)
-  .skein/task/<id>/journal.md     append-only 过程记录 (skein.py journal 追加)
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
 
 四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态
@@ -269,8 +268,10 @@ class Skein:
         files = {
             "prd.md": (
                 f"# {name} — PRD (主入口)\n\n"
-                "## 需求\n目标 / 用户价值 / 边界 / 非目标 / 验收基准:\n\n"
-                "## 索引\n- 详细设计: [design.md](design.md)\n"
+                "## 目标\n要解决什么 / 用户价值 / 成功长什么样:\n- [ ] TODO: 填目标\n\n"
+                "## 边界\n范围内 / 范围外 (非目标) / 已知约束:\n- [ ] TODO: 填边界\n\n"
+                "## 验收标准\n可执行、可核对的完成断言 (逐条):\n- [ ] TODO: 填验收标准\n\n"
+                "## 索引\n- [ ] TODO: 补全链接\n- 详细设计: [design.md](design.md)\n"
                 "- 调研收敛: [findings.md](findings.md)\n"
                 "- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list " + tid + "`)\n"),
             "design.md": (
@@ -512,20 +513,6 @@ class Skein:
         else:
             for i, c in enumerate(t["contracts"], 1):
                 print(f"{i}. {c}")
-
-    def journal(self, a):
-        # append-only 过程记录: 存 task 目录内 journal.md, 随 _archive 一并归档 (无审批, 区别 contract/sediment)
-        tid = a.id
-        self._load(tid)  # 校验 task 存在
-        f = self.tasks / tid / "journal.md"
-        if a.add:
-            with f.open("a") as fh:  # 追加, 不存在则建
-                fh.write(f"- {now()} {a.add}\n")
-            print(f"{tid} journal +1")
-        elif not f.exists():
-            print("无 journal")
-        else:
-            print(f.read_text(), end="")
 
     def doctor(self, a):
         # 纯脚本体检: 扫 task/subtask 不变量违规 (源码真值 = per-task task.json)。
@@ -1160,7 +1147,7 @@ class Skein:
 
     def _migrate_trellis_tasks(self, trellis) -> list:
         # 物理迁移 trellis 非归档 task → .skein/task/<id>/: 翻译 task.json 为 skein schema + 拷贝 planning 工件。
-        # 已归档 (archive/) 不迁; 已存在的同名 skein task 不覆盖 (幂等)。subtask/contract/journal 语义搬运由 agent 补。
+        # 已归档 (archive/) 不迁; 已存在的同名 skein task 不覆盖 (幂等)。subtask/contract 语义搬运由 agent 补。
         out = []
         tdir = trellis / "task"
         if not tdir.is_dir():
@@ -1184,7 +1171,7 @@ class Skein:
             deps = raw.get("depends_on") or raw.get("deps") or []
             if isinstance(deps, str):
                 deps = [x.strip() for x in deps.split(",") if x.strip()]
-            # 状态一律置待处理 — 迁移不自动开 worktree; 原状态回报 agent 供 journal 留痕
+            # 状态一律置待处理 — 迁移不自动开 worktree; 原状态回报 agent 供留痕
             t = {
                 "id": tid, "name": raw.get("title") or raw.get("name") or tid,
                 "desc": raw.get("description") or raw.get("desc") or "",
@@ -1362,7 +1349,7 @@ class Skein:
             "trellis_present": trellis.exists(),
             "spec_copied": spec_copied,
             "spec_needs_reorg": spec_copied,  # 拷自 trellis → agent 重组为 core/recall×类目 (在 .skein/spec 原地改, 安全)
-            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract/journal)
+            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract)
             "wiring_removed": removed,  # 已删的 trellis 接线 + (full 时) .trellis/
             "trellisx_disabled": trellisx_disabled,  # 已在 .claude/settings.local.json 禁用的 trellisx 插件 key
             "trellis_removed": trellis_removed,
@@ -1391,7 +1378,7 @@ def _sub_pct(s):
 def main():
     p = argparse.ArgumentParser(
         prog="skein.py",
-        description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约/journal",
+        description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约",
         epilog="生命周期: init → create → start → (exec/check) → finish → archive",
     )
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
@@ -1426,9 +1413,6 @@ def main():
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
     co.add_argument("--add", help="追加一条契约 (省略则列出)")
-    j = sub.add_parser("journal", help="查/加 task journal")
-    j.add_argument("--id", required=True, help="task id")
-    j.add_argument("--add", help="追加一条 journal (省略则列出)")
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",
         epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_parallel)")
@@ -1469,12 +1453,12 @@ def main():
         "ready": sk.ready,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract,
-        "journal": sk.journal, "subtask": sk.subtask,
+        "subtask": sk.subtask,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "finish", "archive", "clean",
-                "contract", "journal", "subtask"}
+                "contract", "subtask"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
