@@ -498,6 +498,130 @@ class Skein:
         else:
             print(f.read_text(), end="")
 
+    def doctor(self, a):
+        # 纯脚本体检: 扫 task/subtask 不变量违规 (源码真值 = per-task task.json)。
+        # 不做 AI 判断, 只查机械可验的结构性问题。有 ✗ 错误 → exit 1 (可 CI/hook 门禁)。
+        tasks = self._all()
+        used = self._used_ids()  # 含已归档, dep 指向归档 task 合法
+        ids = {t["id"] for t in tasks}
+        errs, warns = [], []
+
+        def cycle(graph):  # graph: node -> [邻居]; 返回首个环路径或 None
+            WHITE, GRAY, BLACK = 0, 1, 2
+            color = {n: WHITE for n in graph}
+            stack = []
+            def dfs(n):
+                color[n] = GRAY; stack.append(n)
+                for m in graph.get(n, []):
+                    if m not in color:
+                        continue
+                    if color[m] == GRAY:
+                        return stack[stack.index(m):] + [m]
+                    if color[m] == WHITE:
+                        r = dfs(m)
+                        if r:
+                            return r
+                color[n] = BLACK; stack.pop()
+                return None
+            for n in graph:
+                if color[n] == WHITE:
+                    r = dfs(n)
+                    if r:
+                        return r
+            return None
+
+        for t in tasks:
+            tid = t.get("id", "?")
+            if not SLUG_RE.match(str(tid)):
+                errs.append(f"{tid}: id 非 kebab-case slug")
+            if t.get("status") not in {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}:
+                errs.append(f"{tid}: 非法 status {t.get('status')!r}")
+            # 禁 task 级父子关系 — 只允许 deps DAG, 出现父/子字段即违规
+            for k in ("parent", "parent_id", "children", "subtask_of"):
+                if k in t:
+                    errs.append(f"{tid}: 含 task 父子字段 {k!r} — task 级仅允许 deps DAG, 禁父子关系")
+            for d in t.get("deps", []):
+                if d == tid:
+                    errs.append(f"{tid}: deps 自引用")
+                elif d not in used:
+                    errs.append(f"{tid}: deps 指向不存在 task {d!r}")
+            if t.get("status") in STATUS_ACTIVE:
+                if not t.get("subtasks"):
+                    errs.append(f"{tid}: active 但无 subtask — 无法派发")
+                if not t.get("started"):
+                    warns.append(f"{tid}: active 但 started 未置")
+                rel = t.get("worktree")
+                if self.git:
+                    if not rel:
+                        warns.append(f"{tid}: active (git 仓) 但 worktree 未置")
+                    elif not (self.root / rel).exists():
+                        errs.append(f"{tid}: worktree 路径不存在: {rel}")
+            if t.get("status") == S_DONE and not t.get("finished"):
+                warns.append(f"{tid}: 已完成但 finished 时刻未置")
+            # subtask 层
+            subs = t.get("subtasks", [])
+            sids, seen = set(), set()
+            for s in subs:
+                sid = s.get("sid", "?")
+                if sid in seen:
+                    errs.append(f"{tid}/{sid}: subtask sid 重复")
+                seen.add(sid); sids.add(sid)
+            for s in subs:
+                sid = s.get("sid", "?")
+                if s.get("status") not in {SS_PENDING, SS_RUNNING, SS_DONE, SS_FAILED}:
+                    errs.append(f"{tid}/{sid}: 非法 subtask status {s.get('status')!r}")
+                for d in s.get("depends_on", []):
+                    if d == sid:
+                        errs.append(f"{tid}/{sid}: depends_on 自引用")
+                    elif d not in sids:
+                        errs.append(f"{tid}/{sid}: depends_on 指向不存在 subtask {d!r} (subtask DAG 仅限本 task 内)")
+                crit, doneidx = s.get("验收", []), s.get("验收done", [])
+                bad = [i for i in doneidx if i < 1 or i > len(crit)]
+                if bad:
+                    errs.append(f"{tid}/{sid}: 验收done 越界 {bad} (共 {len(crit)} 条)")
+                if s.get("status") == SS_DONE and crit and len(set(doneidx)) < len(crit):
+                    warns.append(f"{tid}/{sid}: 已完成但验收未全勾 ({len(set(doneidx))}/{len(crit)})")
+            # subtask DAG 环
+            g = {s["sid"]: [d for d in s.get("depends_on", []) if d in sids]
+                 for s in subs if "sid" in s}
+            c = cycle(g)
+            if c:
+                errs.append(f"{tid}: subtask DAG 有环: {' -> '.join(c)}")
+
+        # 跨 task: 依赖环 (只在未归档 task 间连边)
+        g = {t["id"]: [d for d in t.get("deps", []) if d in ids] for t in tasks}
+        c = cycle(g)
+        if c:
+            errs.append(f"task 级 deps 有环: {' -> '.join(c)}")
+
+        # 顶层索引 vs per-task 真值
+        idxf = self.dir / "task.json"
+        if idxf.exists():
+            idx = {x["id"]: x for x in json.loads(idxf.read_text()).get("tasks", [])}
+            for t in tasks:
+                ix = idx.get(t["id"])
+                if ix is None:
+                    warns.append(f"{t['id']}: 未在顶层 task.json 索引中 (跑任意变更命令重建)")
+                elif ix.get("status") != t["status"]:
+                    warns.append(f"{t['id']}: 索引 status ({ix.get('status')}) != 真值 ({t['status']})")
+
+        # 全局并发上限
+        maxa = self.config()["max_active"]
+        na = len(self._active())
+        if na > maxa:
+            errs.append(f"active task 数 {na} 超上限 {maxa}")
+
+        for m in errs:
+            print(f"✗ {m}")
+        for m in warns:
+            print(f"⚠ {m}")
+        if not errs and not warns:
+            print("✅ 无违规")
+        else:
+            print(f"\n共 {len(errs)} 错误, {len(warns)} 警告")
+        if errs:
+            raise SystemExit(1)
+
     def _uninit_ctx(self):
         # 未初始化注入文案。检测到 .trellis/ → 强命令式, 显式压过 trellisx 的 active-task 注入 (决策: skein 抢做唯一任务管理器);
         # 无 trellis → 常规硬提示先 setup。
@@ -1256,6 +1380,7 @@ def main():
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
     sub.add_parser("list", help="列所有 task (含状态)")
+    sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
     sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
@@ -1301,7 +1426,8 @@ def main():
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready,
-        "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve, "contract": sk.contract,
+        "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
+        "doctor": sk.doctor, "contract": sk.contract,
         "journal": sk.journal, "subtask": sk.subtask,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
