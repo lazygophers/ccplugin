@@ -230,10 +230,7 @@ def test_setup():
         assert m["trellis_present"] is False and m["spec_needs_reorg"] is False, m
         assert (d / ".skein/spec").is_dir() and not (d / ".skein/spec").is_symlink(), "本地 spec 未建"
 
-    # trellis 迁移 setup: 软链 spec + 采集 task/残留; purge 清 task/.claude 保留 .trellis/spec
-    with tempfile.TemporaryDirectory() as d:
-        d = Path(d)
-        git(d, "init", "-q")
+    def _mk_trellis(d):
         (d / ".trellis/spec").mkdir(parents=True)
         (d / ".trellis/spec/git.md").write_text("# 禁 force push\n")
         (d / ".trellis/task/x").mkdir(parents=True)
@@ -241,28 +238,48 @@ def test_setup():
         (d / ".trellis/task/x/prd.md").write_text("# PRD\n")  # planning 工件应随迁
         (d / ".trellis/task/archive/2026/01-01/old").mkdir(parents=True)  # 归档不迁
         (d / ".trellis/task/archive/2026/01-01/old/task.json").write_text('{"id":"old"}')
+        (d / ".trellis/hooks").mkdir()  # 接线: 无条件删
+        (d / ".trellis/settings.json").write_text("{}")
         (d / ".claude/skills/foo-trellis").mkdir(parents=True)
         (d / ".claude/settings.json").write_text('{"hooks":{"PreToolUse":[{"command":"trellis.sh"}]}}')
 
-        m = json.loads(sk(d, "setup").stdout)
-        assert m["trellis_present"] and m["spec_linked"] and m["spec_needs_reorg"], m
-        assert (d / ".skein/spec").is_symlink(), "spec 未软链"
-        assert (d / ".skein/spec/git.md").exists(), "软链未透传 trellis spec"
-        # 物理迁移: task 文件夹 + 翻译 task.json + planning 工件, 归档不迁
+    def _assert_migrated(d, m, mode):
+        assert m["mode"] == mode and m["trellis_present"] == (mode == "compat"), m
+        assert m["spec_copied"] and m["spec_needs_reorg"], m
+        # 独立拷贝 (非软链): trellis 零改动
+        assert (d / ".skein/spec").is_dir() and not (d / ".skein/spec").is_symlink(), "spec 应独立拷贝非软链"
+        assert (d / ".skein/spec/git.md").exists(), "spec 未拷入 .skein"
+        # 物理迁移 task: 翻译 + planning 工件, 归档不迁
         assert any(t["id"] == "x" and t["migrated"] for t in m["trellis_tasks"]), "未迁移 trellis task"
         assert not any(t["id"] == "old" for t in m["trellis_tasks"]), "归档 task 误迁"
-        assert (d / ".skein/task/x/task.json").exists(), "task 文件夹未物理迁入"
-        assert (d / ".skein/task/x/prd.md").exists(), "planning 工件未随迁"
+        assert (d / ".skein/task/x/task.json").exists() and (d / ".skein/task/x/prd.md").exists(), "task 未物理迁入"
         tj = json.loads((d / ".skein/task/x/task.json").read_text())
         assert tj["name"] == "任务X" and tj["status"] == "待处理", ("task.json 未翻译为 skein schema", tj)
-        assert any("foo-trellis" in r for r in m["claude_residuals"]), "未采集 .claude 残留"
-        assert any("settings.json" in r for r in m["claude_residuals"]), "未采集 settings 残留"
+        # 接线无条件删 (两模式)
+        assert any("hooks" in r for r in m["wiring_removed"]), "trellis 接线未删"
+        assert not (d / ".claude/skills/foo-trellis").exists(), ".claude trellis 残留未删"
+        assert m["settings_need_manual_edit"], "settings 需手工剔除未标记"
 
-        pr = json.loads(sk(d, "setup", "--purge").stdout)
-        assert not (d / ".trellis/task").exists(), "purge 未删 trellis task"
-        assert not (d / ".claude/skills/foo-trellis").exists(), "purge 未删 .claude 残留"
-        assert (d / ".trellis/spec/git.md").exists(), "purge 误删 .trellis/spec (应保留软链目标)"
-        assert pr["settings_need_manual_edit"], "settings 需手工剔除未标记"
+    # 兼容模式: 拷 spec + 迁 task + 删接线, 留 .trellis 数据
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        git(d, "init", "-q")
+        _mk_trellis(d)
+        m = json.loads(sk(d, "setup").stdout)
+        _assert_migrated(d, m, "compat")
+        assert (d / ".trellis/spec/git.md").exists(), "兼容模式误删 .trellis 数据"
+        assert not (d / ".trellis/hooks").exists(), "兼容模式未删 trellis 接线"
+        assert m["trellis_removed"] is False, m
+
+    # --full 模式: 兼容全套 + 整删 .trellis
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        git(d, "init", "-q")
+        _mk_trellis(d)
+        m = json.loads(sk(d, "setup", "--full").stdout)
+        _assert_migrated(d, m, "full")
+        assert not (d / ".trellis").exists(), "--full 未整删 .trellis"
+        assert m["trellis_removed"] is True, m
 
 
 if __name__ == "__main__":

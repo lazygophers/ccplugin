@@ -22,7 +22,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md`/`task.html`/`board/` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
-| `setup` | `--purge` | 幂等初始化 + trellis 兼容: 无 trellis → scaffold + 本地 spec 库; 有 `.trellis/` → 软链 `.skein/spec`→`.trellis/spec` + **物理迁移 task.json 与各 task 文件夹** (每个 task 目录整体搬迁, **跳过已归档 task**) + 输出迁移 manifest JSON (纯 stdout, scaffold 噪声走 stderr)。`--purge` 清 trellis 残留 (`.trellis/task*` + `.claude/*trellis*`, 保留 `.trellis/spec`)。语义迁移 (spec 重组) 由 `skein-setup` agent 做 |
+| `setup` | `--full` | 幂等初始化 + trellis 迁移。无 trellis → scaffold + 本地 spec 库。有 `.trellis/` (两模式)：<br>**兼容 (默认)** — `copytree` 独立拷 `.trellis/spec`→`.skein/spec` (trellis 零改动) + **物理迁移 task.json 与各 task 文件夹** (整体搬迁, **跳过已归档 task**) + **无条件删 trellis 接线** (`.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*`, 避免 skein/trellis 双注入) + **留 `.trellis/` 数据** (spec/task 给其它工具)。<br>**`--full`** — 兼容全套 + 整删 `.trellis/` (spec/task 已拷入 `.skein`)。<br>输出 manifest JSON (纯 stdout, scaffold 噪声走 stderr): `{mode, trellis_present, spec_copied, spec_needs_reorg, trellis_tasks, wiring_removed, trellis_removed, settings_need_manual_edit}`。语义迁移 (spec 重组 + settings hook 剔除) 由 `skein-setup` agent 做 |
 | `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` `--estimate <分钟>` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id; `--estimate` = AI 执行预期耗时 (分钟), 供看板 html 显示预期 vs 实际 |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree, 状态 → completed。**完成 task 不立即归档**, 留看板 `retain_days` 天 (config, 默认 7); 超期由 `_autoclean` 在下次生命周期变更时自动归档。`retain_days=0` 时 finish 即归档 (旧行为)。冲突自动 abort。多 active 并行, id 必填 |
@@ -92,7 +92,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | --- | --- | --- | --- |
 | `skein-checker` | 只读验证 (lint/type/test/契约合规) | 只读 + Bash, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
-| `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + 清残留); 机械部分交 `skein.py setup [--purge]` | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + settings hook 剔除); 机械部分交 `skein.py setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 
 > 模型分层做 token 优化: 验证 / 调研走较轻档 (sonnet + medium); 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 

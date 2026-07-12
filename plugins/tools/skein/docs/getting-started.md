@@ -26,7 +26,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py --help
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 ```
 
-> **推荐入口 = `setup`** (不是裸 `init`): 幂等 scaffold + 兼容 trellis。检测到 `.trellis/` → 软链 spec + **物理迁移 task.json 与各 task 文件夹** (每个 task 目录整体搬迁, 跳过已归档 task) + 输出迁移 manifest (spec 重组交 `skein-setup` agent 语义迁移, 清 trellis 残留)。无 trellis → 等价 `init` + 建本地 spec 库。
+> **推荐入口 = `setup`** (不是裸 `init`): 幂等 scaffold + trellis 迁移。检测到 `.trellis/` → **独立拷** spec 入 `.skein/spec` + **物理迁移 task.json 与各 task 文件夹** (整体搬迁, 跳过已归档 task) + **无条件删 trellis 接线** (hooks/scripts/settings + `.claude/*trellis*`, 避免双注入) + 输出迁移 manifest。默认**兼容模式**留 `.trellis/` 数据; 加 `--full` 整删 `.trellis/`。spec 重组交 `skein-setup` agent 语义迁移。无 trellis → 等价 `init` + 建本地 spec 库。
 > SessionStart 时若 git 仓无 `.skein/`, hook 会**自动注入** setup 建议; Claude 主动调 **skein-setup** skill 完成初始化, 无需手动。
 
 `init` 会建出:

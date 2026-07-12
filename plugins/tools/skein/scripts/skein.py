@@ -895,8 +895,8 @@ class Skein:
         print(f"已打开可视化看板: {html}")
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
-    _TRELLIS_TASK_RESIDUALS = ("task.json", "task.md", "task", "scripts", "hooks",
-                               "settings.json", "settings.local.json")
+    # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
+    _TRELLIS_WIRING = ("scripts", "hooks", "settings.json", "settings.local.json")
     _CLAUDE_SUBDIRS = ("skills", "commands", "agents", "hooks", "scripts")
 
     def _migrate_trellis_tasks(self, trellis) -> list:
@@ -952,57 +952,11 @@ class Skein:
             self._sync()  # 刷新顶层索引 + 看板反映迁移 task
         return out
 
-    def _claude_trellis_residuals(self) -> list:
-        # 扫项目 .claude/{skills,commands,agents,hooks,scripts} 里名含 trellis 的条目 + 提及 trellis 的 settings
-        cdir = self.root / ".claude"
-        hits = []
-        if not cdir.is_dir():
-            return hits
-        for sub in self._CLAUDE_SUBDIRS:
-            d = cdir / sub
-            if d.is_dir():
-                hits += [str(p.relative_to(self.root)) for p in sorted(d.iterdir())
-                         if "trellis" in p.name.lower()]
-        for name in ("settings.json", "settings.local.json"):
-            f = cdir / name
-            if f.exists() and "trellis" in f.read_text().lower():
-                hits.append(str(f.relative_to(self.root)) + " (含 trellis hook, 需手工/agent 剔除条目)")
-        return hits
-
-    def setup(self, a):
-        trellis = self.root / ".trellis"
-        if a.purge:
-            return self._setup_purge(trellis)
-        # scaffold 确认走 stderr, 保 stdout 纯 JSON manifest (agent/脚本单一解析口)
-        import contextlib
-        with contextlib.redirect_stdout(sys.stderr):
-            self.init(a)  # 幂等 scaffold: .skein/ + config + gitignore + 顶层看板
-        tspec = trellis / "spec"
-        sspec = self.dir / "spec"
-        linked = sspec.is_symlink()
-        if tspec.is_dir() and not sspec.exists():
-            sspec.symlink_to(Path("..") / ".trellis" / "spec")  # 相对软链, 免绝对路径入库
-            linked = True
-        elif not tspec.exists() and not sspec.exists():
-            # 无 trellis → 建本地 spec 库 (memory.py init)
-            subprocess.run([sys.executable, str(Path(__file__).parent / "memory.py"), "init"],
-                           stdout=sys.stderr, check=False)
-        # 物理迁移 trellis task 文件夹 (redirect 内, 保 stdout 纯 JSON)
-        with contextlib.redirect_stdout(sys.stderr):
-            tasks = self._migrate_trellis_tasks(trellis)
-        manifest = {
-            "trellis_present": trellis.exists(),
-            "spec_linked": linked,
-            "spec_needs_reorg": bool(tspec.is_dir()),  # agent 需把 .trellis/spec 重组为 core/recall×类目
-            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract/journal)
-            "claude_residuals": self._claude_trellis_residuals(),
-        }
-        print(json.dumps(manifest, ensure_ascii=False, indent=2))
-
-    def _setup_purge(self, trellis):
-        # 破坏性: 清 trellis 残留 (保留 .trellis/spec — 已被 .skein/spec 软链)。逐条打印删除路径。
+    def _purge_wiring(self, trellis) -> list:
+        # 无条件删 trellis 接线 (哪怕兼容模式): .trellis/{scripts,hooks,settings*} + .claude/*trellis*。
+        # 保留 .trellis/{spec,task,...} 数据 (兼容其它工具; --full 才整删)。settings.json 内 hook 条目仅标注交 agent 剔。
         removed = []
-        for name in self._TRELLIS_TASK_RESIDUALS:
+        for name in self._TRELLIS_WIRING:
             p = trellis / name
             if p.is_symlink() or p.is_file():
                 p.unlink(); removed.append(str(p.relative_to(self.root)))
@@ -1021,14 +975,52 @@ class Skein:
                         shutil.rmtree(p); removed.append(str(p.relative_to(self.root)) + "/")
                     else:
                         p.unlink(); removed.append(str(p.relative_to(self.root)))
-        # .trellis/spec 保留 (软链目标); 若目录已空则清空壳
-        if trellis.is_dir() and not any(trellis.iterdir()):
-            trellis.rmdir(); removed.append(".trellis/")
-        settings_note = [str((cdir / n).relative_to(self.root))
-                         for n in ("settings.json", "settings.local.json")
-                         if (cdir / n).exists() and "trellis" in (cdir / n).read_text().lower()]
-        print(json.dumps({"removed": removed,
-                          "settings_need_manual_edit": settings_note}, ensure_ascii=False, indent=2))
+        return removed
+
+    def _settings_trellis_notes(self) -> list:
+        # settings.json/settings.local.json 内含 trellis hook 条目 (JSON 语义编辑, 交 agent 剔, 不脚本硬删)
+        cdir = self.root / ".claude"
+        return [str((cdir / n).relative_to(self.root))
+                for n in ("settings.json", "settings.local.json")
+                if (cdir / n).exists() and "trellis" in (cdir / n).read_text().lower()]
+
+    def setup(self, a):
+        # 默认兼容: 拷 spec/task 入 .skein + 删 trellis 接线 (避免双注入), 留 .trellis 数据。
+        # --full: 兼容全套 + 整删 .trellis/ (spec/task 已拷走)。
+        trellis = self.root / ".trellis"
+        # scaffold 确认走 stderr, 保 stdout 纯 JSON manifest (agent/脚本单一解析口)
+        import contextlib
+        with contextlib.redirect_stdout(sys.stderr):
+            self.init(a)  # 幂等 scaffold: .skein/ + config + gitignore + 顶层看板
+        tspec = trellis / "spec"
+        sspec = self.dir / "spec"
+        spec_copied = False
+        if tspec.is_dir() and not sspec.exists():
+            shutil.copytree(tspec, sspec)  # 独立拷贝: trellis 零改动, spec 归 skein 自管 (软链会锁死双向)
+            spec_copied = True
+        elif not tspec.exists() and not sspec.exists():
+            # 无 trellis → 建本地 spec 库 (memory.py init)
+            subprocess.run([sys.executable, str(Path(__file__).parent / "memory.py"), "init"],
+                           stdout=sys.stderr, check=False)
+        # 物理迁移 trellis task 文件夹 (redirect 内, 保 stdout 纯 JSON)
+        with contextlib.redirect_stdout(sys.stderr):
+            tasks = self._migrate_trellis_tasks(trellis)
+        # 无条件删接线 (两模式), --full 再整删 .trellis 目录
+        removed = self._purge_wiring(trellis)
+        trellis_removed = False
+        if a.full and trellis.is_dir():
+            shutil.rmtree(trellis); removed.append(".trellis/"); trellis_removed = True
+        manifest = {
+            "mode": "full" if a.full else "compat",
+            "trellis_present": trellis.exists(),
+            "spec_copied": spec_copied,
+            "spec_needs_reorg": spec_copied,  # 拷自 trellis → agent 重组为 core/recall×类目 (在 .skein/spec 原地改, 安全)
+            "trellis_tasks": tasks,  # 已物理迁入 .skein/task/; agent 只补语义 (subtask/contract/journal)
+            "wiring_removed": removed,  # 已删的 trellis 接线 + (full 时) .trellis/
+            "trellis_removed": trellis_removed,
+            "settings_need_manual_edit": self._settings_trellis_notes(),
+        }
+        print(json.dumps(manifest, ensure_ascii=False, indent=2))
 
 
 def _split(s):
@@ -1057,8 +1049,8 @@ def main():
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
 
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
-    su = sub.add_parser("setup", help="初始化 + trellis 迁移 (scaffold+spec软链+manifest; --purge 清残留)")
-    su.add_argument("--purge", action="store_true", help="[二阶段] 清 trellis 残留 (.trellis/task* + .claude/*trellis*, 保留软链的 spec)")
+    su = sub.add_parser("setup", help="初始化 + trellis 迁移 (默认兼容: 拷 spec/task + 删接线, 留 .trellis 数据; --full 再整删 .trellis)")
+    su.add_argument("--full", action="store_true", help="完全迁移+移除: 兼容操作 + 整删 .trellis/ (spec/task 已拷入 .skein)")
     c = sub.add_parser("create", help="登记新 task (id 必填, 可读 slug)")
     c.add_argument("id", help="可读 id (kebab-case slug, 如 order-create-api; 兼作分支/目录名)")
     c.add_argument("--name", help="task 标题 (省略则用 id)")

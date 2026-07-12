@@ -2,19 +2,29 @@
 
 仅当仓库原用 trellis (`.trellis/` 存在)。`skein.py setup` 的 manifest `trellis_present:true` 触发本路径。纯新仓 / 已初始化维护不走这里。
 
+## 两模式 (main 定, 缺省兼容)
+
+| 模式 | 命令 | `.trellis/` 数据 | 接线 (hooks/scripts/settings + `.claude/*trellis*`) |
+| --- | --- | --- | --- |
+| **兼容 (默认)** | `skein.py setup` | 留 (spec/task 给其它工具) | **无条件删** (避免 skein/trellis 双注入) |
+| **完全** | `skein.py setup --full` | 整删 `.trellis/` | 无条件删 |
+
+两模式都: 独立拷 spec 入 `.skein/spec` + 物理迁移 task + 删接线。差异仅 `.trellis/` 数据目录是否整删。**接线删除不分模式** (哪怕兼容也删, 否则 trellis hook 继续注入压过 skein)。
+
 ## 载体：派 skein-setup agent (语义迁移)
 
-scaffold 已由 `skein.py setup` 建好 (`.skein/` + `.skein/spec` 软链 `.trellis/spec`), 但 spec 重组 / task 重建 / 残留清理需语义判断 → 派 `skein-setup` agent。dispatch prompt 6 字段自包含：
+scaffold + spec 拷贝 + task 迁移 + 接线删除已由 `skein.py setup [--full]` 完成, 但 spec 重组 / task 重建 / settings hook 剔除需语义判断 → 派 `skein-setup` agent。dispatch prompt 6 字段自包含：
 
-- **目标**: 把 `.trellis/` (spec/task/.claude 接线) 语义迁移为 skein 结构并清残留。
-- **已知**: `skein.py setup` 已跑, manifest = `<粘贴 JSON>`; 决策已定 — **软链保留 `.trellis/spec`** (不删), `.skein/spec` 已软链过去。
-- **工作目录与范围**: 仓库根; 改 `.trellis/spec` (经软链原地重组) + `.skein/task/` + `.claude/` trellis 接线。
+- **目标**: 把已拷入 `.skein/spec` 的规则语义重组为 core/recall×类目 + 重建 task + 剔 settings 里 trellis hook 条目。
+- **已知**: `skein.py setup [--full]` 已跑 (模式=<兼容|--full>), manifest = `<粘贴 JSON>`; spec 已 `copytree` 独立拷入 `.skein/spec` (trellis 零改动), 接线已删。
+- **工作目录与范围**: 仓库根; 改 `.skein/spec` (原地重组) + `.skein/task/` + `.claude/settings*.json` (JSON 语义剔 hook)。
 - **输出格式**: 见 skein-setup agent 定义 (spec 层/类目分布 + task 迁移数 + 清理清单)。
-- **验收标准**: `memory.py list` 有分层规则; `skein.py list` 有迁移 task; `.claude/*trellis*` 与 `.trellis/task*` 已清; `.trellis/spec` 软链仍有效。
+- **验收标准**: `memory.py list` 有分层规则; `skein.py list` 有迁移 task; `.claude/settings*.json` 无 trellis hook; 兼容模式 `.trellis/` 数据仍在 / `--full` 已整删。
 - **失败处理**: agent 标 `需要:` → main 用 `AskUserQuestion` 转达用户裁定分层/字段歧义。
 
 ## 铁律
 
-- **spec 决策 (已拍板)**: `.skein/spec` **软链** → `../.trellis/spec`, 原地重组, **保留 `.trellis/spec`**。清理只删 `.trellis/task*` + `.claude/*trellis*`, 不碰 spec。
-- **清理是破坏性操作** — `skein.py setup --purge` 由 agent 在内容迁走后调用; main 派发即视为授权 (用户调 setup = 同意迁移清理)。
+- **spec 已独立拷入 `.skein/spec`** — setup 用 `copytree` 拷贝 (非软链), trellis 零改动。agent 在 `.skein/spec` 原地重组, 安全不碰 trellis。
+- **接线删除无条件** — `skein.py setup` 已删接线文件/目录 (脚本做); agent 只需 JSON 语义剔 `.claude/settings*.json` 内 trellis hook 条目 (脚本不硬删 JSON)。
+- **`--full` 破坏性** — 整删 `.trellis/`; main 派发即视为授权 (用户调 `setup --full` = 同意完全移除)。spec/task 已拷入 `.skein`, 删的是残留数据目录。
 - **task.md / task.json 禁手改** — 迁移经 `skein.py create` 等命令, 不直接写 (PreToolUse hook 硬阻)。
