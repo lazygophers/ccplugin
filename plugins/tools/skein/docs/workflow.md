@@ -100,7 +100,7 @@ check 通过 → **sediment 判定门** (见下) → `skein.py finish`:
 
 **调度循环**: `claim` 认领即派 → 任一返回即 `check` 勾验收 (完成百分比 = 已过/总验收, 看板渲染进度条; `done` 自动标满 100%) + done/fail + 再 `claim` 立即派 → 并发始终 ≤ `max_parallel` (默认 2)。**脚本一步算+改态, main 不逐个 start** (少一轮往返, 无竞态窗口; `ready` 是只读预览, `start` 仅单个 retry 补派)。exec 阶段 subtask 之间**禁停下问你顺序** (顺序归 planning 定; planning 没定就退回 planning 补, 不在 exec 问)。
 
-多 task 并行细则见 [reference.md](reference.md) 的调度算法段, 或 skill `skein-flow/references/scheduling-algorithm.md`。
+多 task 并行细则见 [reference.md](reference.md) 的调度算法段, 或 skill `skein-exec/references/scheduling-algorithm.md`。
 
 ## 两层规则记忆 (差异化核心)
 

@@ -70,23 +70,24 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 **类目 (category)**: 物理事实 = 所在子目录名 (git/test/arch/build/style/domain/ops/misc...), 自由建。
 **core 预算**: 全文有字符上限 (`inject-core` 软告警), 超了 sediment 会提示降级到 recall。SessionStart **只注入极简索引** (每条一行标题), 另有独立 token 硬预算 (`hooklib`, 超则截断) — 常驻上下文恒定小, 全文按需拉。
 
-## Skills (7 个)
+## Skills (8 个)
 
 | skill | 何时用 | references |
 | --- | --- | --- |
 | `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `memory.py reindex`) | trellis-migration |
-| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发) + exec 双层 DAG 编排调度 | step-exec · scheduling-algorithm · progress-reporting (check → skein-check / plan → skein-plan / finish sediment → skein-memory) |
+| `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发), 委托各阶段 skill | — (exec → skein-exec / check → skein-check / plan → skein-plan / finish sediment → skein-memory) |
 | `skein-plan` | plan 入口 + 单一真值源 (用户可显式 `/skein-plan`, 也被 flow `--continue` 委托): 判新旧 + 登记 + brainstorm + grill 硬门; **无参 = 跑完停在 start 前 (只规划不执行, 禁 exec/check/finish)**, `--continue` = 不停返回工件路径; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
+| `skein-exec` | exec 执行编排调度真值源 (被 flow exec 委托, 也可 `/skein-exec` 单独续跑已规划 task): main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent, ready 即派 / 完成即派 / 并发上限 2, 双层 (subtask 级 + 多 task 级) 同构 | scheduling-algorithm · progress-reporting |
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
 | `skein-check` | 质量门 (lint/type/test/契约), 未过派修; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
 | `skein-clean` | **[仅用户主动]** 主动归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支; 入参 = 保留天数 | anti-examples |
 
-每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 flow / planning / memory / check 的 references (省常驻 description token)。
+每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 exec / planning / memory / check 的 references (省常驻 description token)。
 
 ## Agents (3 个具名 + 执行选现有 agent)
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-flow/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 2 个是工具受限的具名验证/调研 agent (无 Agent/Task = 递归护栏):
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前 CHECKPOINT)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 2 个是工具受限的具名验证/调研 agent (无 Agent/Task = 递归护栏):
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
