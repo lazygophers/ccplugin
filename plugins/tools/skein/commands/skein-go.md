@@ -4,7 +4,13 @@ description: SKEIN 任务闭环入口 — 把请求强制作为 task 处理 (pla
 
 # skein-go
 
-把用户请求 `$ARGUMENTS` **强制作为 SKEIN task 处理**, 不 inline 直接做 (即使看起来简单)。调用即「建 task 同意」信号。
+**有入参 `$ARGUMENTS`** → 把该请求**强制作为 SKEIN task 处理**, 不 inline 直接做 (即使看起来简单)。调用即「建 task 同意」信号。
+
+**无入参 (空)** → 不建新 task, **驱动 `.skein` 内所有既有 task 跑闭环**:
+1. 跑 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py ready` (就绪批: pending+前置全 done+有空闲槽) 与 `skein.py current` (已 active)。
+2. 无就绪且无 active → 报 "无待执行 task" 结束。
+3. 有 → 对每个 task 走下方「强制流程」的 exec→check→finish (已 planning 完成的从 exec 起; 未 planning 的先补 plan)。task 级并发上限 = `max_active` (默认 2, 见 `skein-flow` 多 task 并行调度), ready 即派 / 完成即派 / 冲突或 `depends_on` 未满足则串行等。
+4. 全部 task done → 报告完成。
 
 ## 前置
 
