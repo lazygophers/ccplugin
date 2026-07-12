@@ -6,7 +6,7 @@ user-invocable: false
 argument-hint: "[recall/sediment]"
 arguments: "[recall/sediment]"
 model: inherit
-effort: high
+effort: medium
 ---
 
 # skein-memory — 两层规则记忆
