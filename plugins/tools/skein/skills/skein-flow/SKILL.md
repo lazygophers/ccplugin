@@ -45,8 +45,8 @@ plan → exec → check → finish 四步闭环
 ### check
 
 - Agent(skein-checker) 跑 lint / type-check / tests / 契约合规 + **一致性核查** (subtask 产物间 / 与 prd 契约有无冲突、重复实现、接口对不上)
-- 未过 或 检出冲突 → **深化拆分**: 不止定点补丁, 回 `skein.py plan` 把冲突根因拆成新 subtask (逐条覆盖每个冲突), 重跑 exec→check 直到全绿且零冲突
-- 详见 `skein-check` skill (验证与修复分离 / 一致性冲突 → 深化拆分 / 反复不过第 3 轮做 5 维根因复盘)
+- 未过 或 检出冲突 → **同 task 排队修复**: 不改 task 状态 (保持 `进行中`), 在同一 task 内 `subtask add` 修复子任务 (一失败/一冲突一 subtask, `--deps` 挂失败源), 回 exec 派发, 全绿且零冲突才放行
+- 详见 `skein-check` skill (验证与修复分离 / 同 task 排队修复不换阶段 / 反复不过第 3 轮做 5 维根因复盘)
 
 ### finish
 
