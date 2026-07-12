@@ -5,6 +5,8 @@ disable-model-invocation: true
 user-invocable: false
 argument-hint: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
 arguments: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
+model: inherit
+effort: high
 ---
 
 # skein-grill — 对抗式审查硬门

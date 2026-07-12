@@ -5,6 +5,8 @@ disable-model-invocation: true
 user-invocable: false
 argument-hint: "[recall/sediment]"
 arguments: "[recall/sediment]"
+model: inherit
+effort: high
 ---
 
 # skein-memory — 两层规则记忆

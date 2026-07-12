@@ -3,8 +3,10 @@ name: skein-check
 description: task check 阶段质量验证。exec 产物完成后 finish 前使用 — 派 skein-checker 跑 lint/type-check/tests/契约合规, 未过则派合适 agent (无则 general-purpose) 定点修复重检, 通过才放行 finish。验证与修复分离; 反复不过 (第 3 轮) 做 5 维根因复盘
 disable-model-invocation: true
 user-invocable: true
-argument-hint: "[task_id]]"
+argument-hint: "[task_id]"
 arguments: "[task_id]"
+model: inherit
+effort: medium
 ---
 
 # skein-check — 质量验证门

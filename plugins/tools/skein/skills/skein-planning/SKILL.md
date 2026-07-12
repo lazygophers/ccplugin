@@ -5,6 +5,8 @@ disable-model-invocation: true
 user-invocable: false
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
+model: inherit
+effort: high
 ---
 
 # skein-planning — planning 入口

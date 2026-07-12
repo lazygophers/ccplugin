@@ -5,6 +5,8 @@ disable-model-invocation: true
 user-invocable: true
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
+model: inherit
+effort: high
 ---
 
 # skein-add — 规划级入口 (只规划不执行)
