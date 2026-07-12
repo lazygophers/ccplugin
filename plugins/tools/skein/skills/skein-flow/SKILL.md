@@ -6,8 +6,8 @@ disable-model-invocation: true
 user-invocable: false
 argument-hint: "[任务描述 (要强制走 SKEIN task 闭环的请求)]"
 arguments: "[任务描述 (要强制走 SKEIN task 闭环的请求)]"
-model: inherit
-effort: high
+model: sonnet
+effort: medium
 ---
 
 # skein-flow — 强制 SKEIN task 闭环
