@@ -5,7 +5,7 @@ disable-model-invocation: true
 user-invocable: true
 argument-hint: "[保留天数]"
 arguments: "[保留天数]"
-model: inherit
+model: haiku
 effort: low
 ---
 
