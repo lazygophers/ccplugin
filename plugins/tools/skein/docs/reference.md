@@ -128,6 +128,7 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 - **setup 缺省启用并打开**: `skein.py setup` 缺省 `web_serve=true` 并打开一次看板 (监听服务由 monitor 起, setup 只负责首次打开); 传 `--no-web` 则写 `web_serve=false` 关闭, 不打开。
 - **运行时关闭**: 用户随时改 `.skein/config.yaml` 的 `web_serve: false` 即关 (下个 session monitor no-op)。
 - **不自动弹浏览器**: monitor 每 session 跑, `serve` 不弹浏览器 (避免每 session 弹窗); 打开由 setup / `view` 负责。
+- **看板自动刷新**: `task.html` 内嵌 2s 轮询, HEAD 请求自身比对 `Last-Modified`, 盘上文件变了才 `location.reload()` (空闲不闪)。task 命令每次重写盘上 html, 已打开的 http 看板 tab 随之自动更新, 无需手动刷新。`file://` 直开 (`board_server=false` 的 `view`) 下 fetch 受限 → 静默 no-op, 但每次 `view` 重开已是最新。
 
 ## Hooks (`.claude-plugin/plugin.json`)
 

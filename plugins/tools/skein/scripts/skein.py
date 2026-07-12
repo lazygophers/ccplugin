@@ -926,7 +926,13 @@ class Skein:
             '<meta name=viewport content="width=device-width,initial-scale=1">'
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
             f'{switcher}<h1>SKEIN 看板 · {esc(self.proj)}</h1>{body}'
-            '<script src="board/switcher.js"></script></body></html>')
+            '<script src="board/switcher.js"></script>'
+            # 自动刷新: serve (http) 下轮询自身 Last-Modified, 变了才 reload (空闲不闪);
+            # file:// 下 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
+            '<script>(function(){var m;setInterval(function(){'
+            'fetch(location.href,{method:"HEAD",cache:"no-store"}).then(function(r){'
+            'var v=r.headers.get("Last-Modified");if(v){if(m&&v!==m)location.reload();m=v;}'
+            '}).catch(function(){});},2000);})();</script></body></html>')
         self._write_if_changed(self.html_path, html)
 
     def _copy_board_assets(self):
