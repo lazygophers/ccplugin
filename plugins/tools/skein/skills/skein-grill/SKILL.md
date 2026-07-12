@@ -32,6 +32,16 @@ effort: xhigh
 
 **不触发 (跳过)**: 纯查询 / 问答 (无 planning 产物) · inline 豁免任务 (无 task) · 同一产物未变更且已 grill 过一轮 (无新增改动)。
 
-## 明细 (审查轴 / 失败模式 / 输出弱点表 / 反例)
+## 反例 (命中 = grill 失败)
 
-跑 grill 时详见 `references/review-axes-and-output.md` — 7 条审查轴逼问、失败模式 if-then 三段式、弱点表输出格式、反例。
+- 找不到盲点就放行 — 没问够 ≠ 通过 (默认一定有未定边界 / 未验假设, 挖到为止)。
+- 复述 PRD 内容当审查 — grill 是挑刺不是摘要。
+- 结构齐全就盖章 — 格式对 ≠ 需求对。
+- 空问不给推荐答案 — 每问必带你的判断让用户裁 (补 / 接受风险 / 砍需求)。
+- 能 Read/Grep 自查的去问用户 — codebase 优先, 只问文件答不了的决策点。
+- 派 subagent 做 grill — 它不能 `AskUserQuestion`, 必 main 亲做。
+- 弱点表有未裁决项就放行 start — 🔴🛑 未补齐禁推进 exec。
+
+## 明细 (审查轴 / 失败模式 / 输出弱点表)
+
+跑 grill 时详见 `references/review-axes-and-output.md` — 7 条审查轴逐条逼问、失败模式 if-then 三段式、弱点表输出格式。
