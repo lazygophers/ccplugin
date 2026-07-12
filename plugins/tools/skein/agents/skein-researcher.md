@@ -2,8 +2,8 @@
 name: skein-researcher
 description: SKEIN planning 阶段只读调研器。被 main 派发做库选型 / 方案对比 / 代码勘察 / 外部资料检索, 回传压缩结论供 main 汇总裁定。纯只读 (无 Write/Edit), 无 Agent/Task (Recursion Guard)。设计决策归 main, 不替用户拍板。
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch
-model: sonnet
-effort: medium
+model: opus
+effort: high
 color: cyan
 permissionMode: bypassPermissions
 ---
