@@ -485,8 +485,19 @@ class Skein:
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
     def user_prompt(self):
-        # UserPromptSubmit hook: 注入 task 判定提醒 — 让 model 判本次请求是否任务, 是则走 skein-flow 闭环。
-        # 判定是语义活 (model 做), hook 只注入决策标准。已有 active task 也注入 (新请求可能是新任务)。
+        # UserPromptSubmit hook: 每 prompt 必注入 (最高频强制点)。
+        # 未初始化 → 硬提示先 setup (兜底 SessionStart 软建议被忽略: 会话开始直接下任务时, 这是唯一每次都注入的检测);
+        # 已初始化 → 注入 task 判定 (让 model 判是否走 skein-flow 闭环)。判定是语义活 (model 做), hook 只注入标准。
+        if not (self.dir / "config.yaml").exists():
+            ctx = ("# SKEIN 未初始化 — 先初始化再处理任务\n"
+                   "本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。若本次请求是**任务** "
+                   "(跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档), "
+                   "**先调用 skein-setup skill 初始化** (幂等) 再走 skein-flow 闭环, 禁跳初始化直接 inline 干活。\n"
+                   "豁免 (直接答, 无需初始化): 纯查询 · 问答 · 单文件单处 ≤20 行。边界模糊 → AskUserQuestion 问用户。")
+            ctx = budget_guard(ctx, SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
+            print(json.dumps({"hookSpecificOutput": {
+                "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
+            return
         ctx = ("# SKEIN task 判定\n"
                "若本次请求是**任务** (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档), "
                "加载 **skein-flow** skill 走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
