@@ -58,7 +58,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | **main (调度器)** | 主对话 agent。跑 task 生命周期脚本 + 编排派 agent + 用户交互 + 完成回传。默认禁写源码。 |
 | **执行者 (executor)** | worktree 内写 1 个 subtask 代码的 agent。**不是具名 agent** — main 按 subtask 性质选一个合适的现有 agent (无合适的用 `general-purpose`); 改哪些文件由其在 worktree 内自主决定, 完成前对照 planning 登记的验收标准 checklist 逐条自检; 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。 |
 | **skein-checker** | 验证 agent, 只读跑 lint/type/test/契约合规。`model: sonnet + effort: medium`。 |
-| **skein-researcher** | 调研 agent, planning 选型对比 + bootstrap 扫既有约定, 结论落 `research/`。 |
+| **skein-researcher** | 调研 agent, planning 选型对比 + bootstrap 扫既有约定, 过程笔记落 `research/`, 收敛结论进 `findings.md`。 |
 | **Recursion Guard** | 防 agent 自派 subagent 递归爆炸。具名 agent (checker/researcher) 靠工具集不含 Agent/Task 兜住; 执行者 (general-purpose 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派承载。 |
 
 ## 脚本管理的文件 (AI 禁读写)
@@ -72,4 +72,4 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | `.skein/task/<id>/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) |
 | `.skein/task/<id>/task.md` | 单 task 子任务看板 |
 
-planning 工件 (`prd.md` / `design.md` / `implement.md` / `journal.md`) 不在此列, AI 可读写。
+planning 工件 (`prd.md` 主入口 / `design.md` 详细设计 / `findings.md` 调研收敛 / `research/` 过程 / `journal.md`) 不在此列, AI 可读写。子任务 + 调度 DAG 归 task.json (脚本真值)。

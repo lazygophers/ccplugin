@@ -1,6 +1,6 @@
-# PRD — order-create-api 订单创建 API
+# PRD (主入口) — order-create-api 订单创建 API
 
-> planning 工件 (skein-plan 写)。**AI 可读写**, 不受 guard 拦截。
+> planning 主入口 (skein-plan 写)。**AI 可读写**, 不受 guard 拦截。需求在此, 详设/调研/调度经索引区跳转。
 
 ## 背景 / 目标
 
@@ -26,3 +26,9 @@
 - 合法请求 + 库存充足 → 201 + 订单号。
 - 库存不足 → 409, 订单表无新增。
 - 同幂等键并发重复提交 → 只 1 单, 第二次返回同一订单号。
+
+## 索引
+
+- 详细设计: [design.md](design.md) (架构/数据流/取舍/选型)
+- 调研收敛: [findings.md](findings.md) (幂等/库存/MQ 选型依据)
+- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list order-create-api`)

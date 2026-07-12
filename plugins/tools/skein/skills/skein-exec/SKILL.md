@@ -49,7 +49,7 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 ## 两条硬规
 
 - **异步等待 MUST 输出任务清单** — 派出异步任务后、结束本回合前, 输出全景表 (4 列 id/状态/摘要/进度%, 状态枚举 进行中/等待中/阻塞)。格式见 [references/progress-reporting.md](references/progress-reporting.md)。同步前台阻塞 / 无在跑任务不触发。
-- **exec 阶段禁问用户顺序** — 顺序归 planning (调度图 + depends_on DAG)。exec 只跑动态调度循环。PRD 缺调度图 → 退回 planning 补, **不在 exec 问**。
+- **exec 阶段禁问用户顺序** — 顺序归 planning (task.json 的子任务 DAG + depends_on)。exec 只跑动态调度循环。task.json 缺子任务 DAG (depends_on) → 退回 planning 补, **不在 exec 问**。
 
 ## 调度算法 (双层同构 + dispatch prompt)
 
@@ -57,4 +57,4 @@ subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein
 
 ## 反例
 
-违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, PRD 缺调度图退回 planning 补) / 派出异步任务后不输出任务清单 / 用本 skill 做需求方案设计 (那归 skein-plan)。
+违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / 派出异步任务后不输出任务清单 / 用本 skill 做需求方案设计 (那归 skein-plan)。

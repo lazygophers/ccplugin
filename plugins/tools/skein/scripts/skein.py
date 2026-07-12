@@ -10,8 +10,12 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
   .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
-  .skein/task/<id>/task.md        单 task 子任务看板 (渲染) — 脚本维护, AI 禁读写
-  .skein/task/<id>/{prd,design,implement}.md  planning 工件 (skein-plan 写, AI 可读写)
+  .skein/task/<id>/task.md        单 task 子任务看板 + 调度 DAG (渲染) — 脚本维护, AI 禁读写
+  .skein/task/<id>/prd.md         主入口: 需求 + 索引区 (create 落脚手架, skein-plan 填, AI 可读写)
+  .skein/task/<id>/design.md      详细设计 (架构/取舍/选型; 不含调度图, 调度归 task.json)
+  .skein/task/<id>/findings.md    深度调研收敛结论 (research/ 存过程, 此文件收敛; skein-plan/main 汇总写)
+  .skein/task/<id>/research/       researcher 过程笔记 (多篇, 最终收敛进 findings.md)
+  .skein/task/<id>/journal.md     append-only 过程记录 (skein.py journal 追加)
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
 
 四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态
@@ -257,6 +261,30 @@ class Skein:
         used |= {p.name for p in self.archive_dir.glob("*/*/*")} if self.archive_dir.exists() else set()
         return used
 
+    def _scaffold(self, tid: str, name: str):
+        """落 planning 三工件脚手架 (prd 主入口 / design 详细设计 / findings 调研收敛).
+        模板极简 (只给骨架标题, 正文 planning 填), 避免占 token; 已存在则不覆盖。
+        调度 DAG / 子任务不在此 — 归 task.json (脚本维护)。"""
+        d = self.tasks / tid
+        files = {
+            "prd.md": (
+                f"# {name} — PRD (主入口)\n\n"
+                "## 需求\n目标 / 用户价值 / 边界 / 非目标 / 验收基准:\n\n"
+                "## 索引\n- 详细设计: [design.md](design.md)\n"
+                "- 调研收敛: [findings.md](findings.md)\n"
+                "- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list " + tid + "`)\n"),
+            "design.md": (
+                f"# {name} — 详细设计\n\n"
+                "架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):\n"),
+            "findings.md": (
+                f"# {name} — 调研收敛\n\n"
+                "深度调研的收敛结论 + 依据/引用 (过程笔记存 research/):\n"),
+        }
+        for fn, body in files.items():
+            p = d / fn
+            if not p.exists():
+                p.write_text(body)
+
     # ---- 命令 ----
     def init(self, _):
         self.dir.mkdir(exist_ok=True)
@@ -298,6 +326,7 @@ class Skein:
         if tid in self._used_ids():
             raise SystemExit(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
         (self.tasks / tid).mkdir(parents=True)
+        self._scaffold(tid, a.name or tid)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
         t = {
             "id": tid, "name": a.name or tid, "desc": a.desc or "",
@@ -654,6 +683,9 @@ class Skein:
         lines = ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
         for t in active:
             lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
+            prd = self.tasks / t["id"] / "prd.md"
+            if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
+                lines.append(f"  - 主入口 PRD: `{prd}`")
         lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
         ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
         print(json.dumps({"hookSpecificOutput": {

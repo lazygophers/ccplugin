@@ -1,6 +1,6 @@
 ---
 name: skein-grill
-description: 对抗式审查 (红队, 非审批)。planning 产物 (prd/implement) start 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
+description: 对抗式审查 (红队, 非审批)。planning 产物 (prd 主入口/design 详细设计/findings 调研 + task.json 子任务) start 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
 user-invocable: false
 argument-hint: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
 arguments: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
@@ -10,7 +10,7 @@ effort: xhigh
 
 # skein-grill — 对抗式审查硬门
 
-审查对象 = planning 产物 (`prd.md` / `implement.md`) 或用户点名要盘的方案。目的: **start/exec 前把需求与方案的漏洞、隐藏假设、未定边界逼出来**, 不是复述内容。
+审查对象 = planning 产物 (`prd.md` 主入口 / `design.md` 详细设计 / `findings.md` 调研收敛 + task.json 子任务/调度) 或用户点名要盘的方案。目的: **start/exec 前把需求与方案的漏洞、隐藏假设、未定边界逼出来**, 不是复述内容。
 
 **载体**: main 亲做, 交互式 (逐条与用户确认), **禁派 subagent** (它不能 `AskUserQuestion`)。
 

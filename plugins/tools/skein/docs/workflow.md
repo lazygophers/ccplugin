@@ -31,7 +31,7 @@
 - **brainstorm**: main 和你梳理需求与方案 (subagent 不能与你对话, 故全程 main 前台)。
 - **grill 硬门**: 对抗式审查需求与工件, 弱点补齐后才放行。**未跑 grill 禁进 exec**。
 - **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein.py contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
-- 产出: `prd.md` (+ 需要时 `design.md`) + `implement.md`, 请你评审 (AskUserQuestion)。
+- 产出: `prd.md` (主入口) + `design.md` (详细设计) + 需调研时 `findings.md` (调研收敛); 子任务 + 调度 DAG 经 `skein.py subtask add` 落 task.json。请你评审 (AskUserQuestion)。
 
 ### ② memory recall (main 委托 `skein-memorier`)
 
@@ -49,7 +49,7 @@ grill 通过 + 你评审确认 → `skein.py start`:
 
 main 作调度器跑**动态 DAG 调度循环**:
 
-- 把 `implement.md` 拆成 subtask, 按显式 `depends_on` 组成 DAG (并行只看这张 DAG, 无写文件冲突自算)。
+- 读 task.json 的 `subtasks[]` (planning 已用 `subtask add` 登记), 按显式 `depends_on` 组成 DAG (并行只看这张 DAG, 无写文件冲突自算)。
 - **ready 即派** — 为每个 subtask 选合适 agent (无则 `general-purpose`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
 - **读后写硬门 + 验收标准自检**: 改哪些文件由执行 agent 在 worktree 内**自主决定** (给自主权), 完成前对照 planning 登记的**验收标准 checklist** 逐条自检。执行 agent 收 subtask 后, 对每个待改文件必过 **写前 CHECKPOINT**: 先 `Read` 全文 → 复述适用契约 (只复述契约, 不含 reason) → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
@@ -97,7 +97,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 - **subtask 级**: `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`)。被依赖者未 done 前, 依赖者不 ready; 无依赖者可并行。
 - **task 级**: `create --deps "order-query,order-create-api"` (存 task.json `deps`)。各 active task 各占各 worktree, 只看 task.json `deps` 决定串并行。
 
-**subtask 状态脚本落盘 (非肉眼看 implement.md)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖 (`depends_on`) 全 done + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
+**subtask 状态脚本落盘 (非肉眼看 md 文件)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖 (`depends_on`) 全 done + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
 
 ```
 拆好 → subtask add …               (逐个登记 sid/deps/check 验收标准)
@@ -158,9 +158,11 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
     ├── <id>/                        # 活跃 task
     │   ├── task.json                # 记录 + subtask DAG — 脚本维护, AI 禁读写
     │   ├── task.md                  # 子任务看板 (渲染, git 忽略) — 脚本维护, AI 禁读写
-    │   ├── prd.md / design.md / implement.md   # planning 工件 (AI 读写)
+    │   ├── prd.md                   # 主入口: 需求 + 索引区 (AI 读写)
+    │   ├── design.md                # 详细设计: 架构/取舍/选型, 不含调度图 (AI 读写)
+    │   ├── findings.md              # 调研收敛结论 (AI 读写; 过程存 research/)
     │   ├── journal.md               # append-only 过程记录 (AI 追加, 随 task 归档)
-    │   └── research/<topic>.md      # researcher 落盘的调研结论 (随 task finish 一并归档)
+    │   └── research/<topic>.md      # researcher 过程笔记 (最终收敛进 findings.md, 随 task finish 归档)
     └── archive/<年>/<月-日>/<id>/    # 按完成日期分层归档
 .skein/spec/
 ├── index.md                         # 顶层索引 (两层聚合概览)

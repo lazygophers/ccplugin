@@ -1,6 +1,6 @@
 # 样例 `.skein/`
 
-一份**执行中途**的真实 `.skein/` 快照, 对着 [glossary.md](../glossary.md) / [workflow.md](../workflow.md) 看每个文件长啥样、谁维护, 以及跑起来后 `.skein/` 目录里的**实际内容**。全部 json/md 由 `skein.py` / `memory.py` 真跑生成 (非手搓, 仅手写 `prd.md`/`implement.md` 两份 planning 工件)。worktree 路径相对 project root 存盘, 时间字段一律 Unix 时间戳, 状态一律中文。
+一份**执行中途**的真实 `.skein/` 快照, 对着 [glossary.md](../glossary.md) / [workflow.md](../workflow.md) 看每个文件长啥样、谁维护, 以及跑起来后 `.skein/` 目录里的**实际内容**。全部 json/md 由 `skein.py` / `memory.py` 真跑生成 (非手搓, 仅手写 `prd.md`/`design.md`/`findings.md` 三份 planning 工件)。worktree 路径相对 project root 存盘, 时间字段一律 Unix 时间戳, 状态一律中文。
 
 ## 场景: 一条订单流
 
@@ -44,8 +44,9 @@
 | `board/` | 主题/配色 CSS (base + themes/ + palettes/, 从插件 `assets/board/` 拷贝, 看板 html 相对路径 `<link>` 引入) | **脚本** · git 忽略 |
 | `task/order-create-api/task.json` | 单 task 记录 + subtask DAG (`subtasks[]`) + `contracts[]` | **脚本** · AI 禁读写 |
 | `task/order-create-api/task.md` | 子任务看板 (四态一览) | **脚本** · AI 禁读写 |
-| `task/order-create-api/prd.md` | planning 工件: 需求 + 契约 + 验收 | skein-plan · **AI 可读写** |
-| `task/order-create-api/implement.md` | planning 工件: subtask 拆分 + mermaid 调度图 + 落盘命令 | skein-plan · **AI 可读写** |
+| `task/order-create-api/prd.md` | planning 主入口: 需求 (目标/价值/边界/非目标/验收基准) + 索引区 (链 design/findings/task.json) | skein-plan · **AI 可读写** |
+| `task/order-create-api/design.md` | planning 详细设计: 架构/数据流/取舍/选型 (不含调度图) | skein-plan · **AI 可读写** |
+| `task/order-create-api/findings.md` | planning 调研收敛结论 (过程笔记存 research/) | skein-plan · **AI 可读写** |
 | `task/order-create-api/journal.md` | append-only 过程记录 | AI 追加 · 随 task 归档 |
 | `task/order-pay/*` | 待处理但已 plan 出 subtask (未 start, 无 prd/worktree); order-report/notification-service 同类 | **脚本** · AI 禁读写 |
 | `task/refund-flow/*` | 待处理但已 plan 出 subtask (subtask 全待处理) — 展示"排队 + 已拆分" | **脚本** · AI 禁读写 |

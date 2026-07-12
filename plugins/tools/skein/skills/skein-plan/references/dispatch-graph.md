@@ -1,16 +1,23 @@
-# 调度图 (implement.md 必含)
+# 子任务拆分 + 调度 DAG (落 task.json)
 
-exec 阶段的 DAG 靠这张图。缺失 → exec 无法调度 → 禁进 exec (退回本步补)。
+exec 阶段的 DAG = task.json `subtasks[].depends_on`, **由 `skein.py subtask add` 登记, 不写 mermaid 图文件**。planning 未登记任何 subtask → `skein.py start` 硬拒。
 
-```mermaid
-graph LR
-  st1[改 schema] --> st2[改调用站点]
-  st1 --> st3[加测试]
-```
-
-配 subtask 表 (每行还须定 `agent` + `skills`: agent 省略默认 `skein-executor`, skills 0-n 逗号分隔):
+拆分时先用一张表理清 subtask + 依赖 + 验收 + agent (agent 省略默认 `skein-executor`, skills 0-n 逗号分隔), 再逐行落盘:
 
 | subtask | depends_on | 验收标准 (checklist) | agent | skills |
 |---|---|---|---|---|
 | st1 | - | 迁移可回滚; 新列有默认值 | skein-executor | db-migration |
 | st2 | st1 | 新字段透传响应; 旧字段不删 | skein-executor | - |
+| st3 | st1 | 覆盖新旧字段两条路径 | skein-executor | - |
+
+落盘 (planning 执行, main 同步跑):
+
+```bash
+skein.py subtask add <tid> st1 --name "改 schema"   --agent skein-executor --skills db-migration --check "迁移可回滚; 新列有默认值"
+skein.py subtask add <tid> st2 --name "改调用站点" --agent skein-executor --deps st1 --check "新字段透传响应; 旧字段不删"
+skein.py subtask add <tid> st3 --name "加测试"     --agent skein-executor --deps st1 --check "覆盖新旧字段两条路径"
+```
+
+- `depends_on` 是唯一显式边源: st2/st3 依赖 st1 → st1 未 done 前不 ready; st2/st3 互不依赖 → 可并行 (并发上限 2)。
+- 并行与否只看这张 DAG, 不靠脚本猜写文件重叠 (拆分时把真正有序的关系写进 `--deps`)。
+- 运行态看 `skein.py subtask list <tid>` (脚本落盘), 不看任何 md 文件。

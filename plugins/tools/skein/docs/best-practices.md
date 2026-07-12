@@ -29,7 +29,7 @@ flowchart TD
         CREATE --> BRAIN[brainstorm 需求/方案]
         BRAIN --> GRILL{grill 硬门<br/>对抗审查}
         GRILL -->|有弱点| BRAIN
-        GRILL -->|通过| PRD[产出 prd.md + implement.md]
+        GRILL -->|通过| PRD[产出 prd.md/design.md + 子任务落 task.json]
     end
 
     PRD --> RECALL[② memory recall<br/>召回 recall 规则注入]

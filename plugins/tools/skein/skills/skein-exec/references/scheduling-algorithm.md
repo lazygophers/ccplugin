@@ -4,10 +4,10 @@
 
 ## 调度 DAG = 显式 depends_on (唯一边源)
 
-1. **显式依赖边** — subtask 的 `depends_on` (planning 在 implement.md 调度图定, `skein.py subtask add --deps` 登记进 per-task task.json)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
+1. **显式依赖边** — subtask 的 `depends_on` (planning 用 `skein.py subtask add --deps` 直接登记进 per-task task.json, 无中间 md 图)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
 2. **就绪判定** = 所有前置 done + 有空闲并发槽。ready 的 subtask 并行派, 未就绪串行等。
 
-## subtask 状态 = 脚本落盘, 非肉眼看 implement.md
+## subtask 状态 = 脚本落盘, 非肉眼看 md 文件
 
 subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写), 全程经 `skein.py subtask` 命令维护。**DAG 算法 + 就绪判定 + 改态由脚本一次性做** (`claim`), main 只负责派 agent (脚本不能 spawn):
 
@@ -33,7 +33,7 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 - **脚本一步到位** — 就绪判定 + 占槽由 `claim` 原子完成, main 不逐个 `subtask start` (`start` 仅单个 retry 补派)。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 依赖它的 subtask 保持未 ready; main 转达用户/补信息后重派该 subtask, 禁标完成、禁放行下游。
 - **subtask 报错 → 不推进** — 按 dispatch 的失败处理缩范围重试; 反复失败 → 停并回传, 禁跳过该 subtask 继续。
-- **禁在 subtask 间问用户顺序** — 顺序归 planning。PRD 缺调度图 → 退回 planning 补。
+- **禁在 subtask 间问用户顺序** — 顺序归 planning。task.json 缺子任务 DAG (depends_on) → 退回 planning 补。
 
 ## worktree
 

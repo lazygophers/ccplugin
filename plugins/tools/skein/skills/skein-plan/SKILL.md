@@ -1,6 +1,6 @@
 ---
 name: skein-plan
-description: 'planning 入口 + 单一真值源 (用户可显式调用 /skein-plan, 也被 skein-flow 委托): 新建 SKEIN task 做需求梳理 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md/implement.md。无参 = 跑完停在 start 前 (只规划不执行); --continue = 不停返回工件路径 (供 flow 自接激活)'
+description: "planning 入口 + 单一真值源 (用户可显式调用 /skein-plan, 也被 skein-flow 委托): 新建 SKEIN task 做需求梳理 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md 主入口 + design.md 详细设计 + 调度落 task.json。无参 = 跑完停在 start 前 (只规划不执行); --continue = 不停返回工件路径 (供 flow 自接激活)"
 user-invocable: true
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
@@ -31,13 +31,13 @@ effort: high
 
 ### 作用域边界 (何时建 task)
 
-| 特征                              | 判定                         |
-| --------------------------------- | ---------------------------- |
-| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免, 不建 task              |
-| 单文件单处改, ≤20 行且位置已知    | 豁免                         |
-| 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task**                |
+| 特征                              | 判定                            |
+| --------------------------------- | ------------------------------- |
+| 纯查询 / 文档阅读 / 问答 (无改动) | 豁免, 不建 task                 |
+| 单文件单处改, ≤20 行且位置已知    | 豁免                            |
+| 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task**                   |
 | 需外部调研 / 产出文档交付         | **必建 task** (调研走 research) |
-| 边界模糊                          | **AskUserQuestion 用户裁定** |
+| 边界模糊                          | **AskUserQuestion 用户裁定**    |
 
 ## 流程
 
@@ -49,16 +49,17 @@ effort: high
      - `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id> --add "契约文本"` (每条一次)
      - `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>` (列出核对)
      - 例: `contract <id> --add "响应体 MUST 保持向后兼容, 禁删字段"`; `contract <id> --add "单文件改动禁超 200 行"`。
-5. **产出工件** — 写进 `.skein/task/<id>/`:
-   - `prd.md` — 需求: 目标 / 用户价值 / 边界 / 非目标 / 验收基准。
-   - `design.md` (可选, 复杂方案) — 架构 / 取舍 / 技术选型。
-   - `implement.md` — 实现拆解: subtask 列表 (每个含 depends_on + 验收标准 checklist) + **调度图** (mermaid, 供 exec 阶段 DAG)。
+5. **产出工件** — `create` 已落 prd/design/findings 三脚手架 (骨架标题, 本步填正文); 调度落 task.json (脚本):
+   - `prd.md` (主入口) — 需求: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 + 索引区 (链 design/findings/task.json)。
+   - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json)。
+   - `findings.md` (需调研时) — 深度调研的收敛结论 + 依据/引用; 过程笔记存 `research/` (researcher 写)。
+   - **子任务 + 调度 DAG** — subtask 拆分 (每个含 depends_on + 验收 checklist) 逐条 `skein.py subtask add <id> <sid> --name --agent [--deps --check]` 落进 task.json。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
 6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
-## 调度图 (implement.md 必含)
+## 调度 = task.json 子任务 DAG
 
-exec 阶段的 DAG 靠这张图。缺失 → exec 无法调度 → 禁进 exec (退回本步补)。mermaid 示例 + subtask 表模板详见 references/dispatch-graph.md。
+exec 阶段的 DAG 靠 task.json 的 `subtasks[].depends_on` (经 `skein.py subtask add --deps` 登记), **非文件里的 mermaid 图**。planning 未登记任何 subtask → `skein.py start` 硬拒 (无从调度)。subtask 拆分 + 依赖登记模板详见 references/dispatch-graph.md。
 
 ## 反例
 
-违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / implement.md 缺调度图 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein.py start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go)。
+违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / **把调度图/子任务写进 md 文件而非 task.json** / start 前未 `subtask add` 任何子任务 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein.py start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go)。

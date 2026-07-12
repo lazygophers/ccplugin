@@ -43,6 +43,8 @@ permissionMode: bypassPermissions
 
 **为何落盘**: ① 跨 compaction 存活 (main 上下文被压缩后仍可复读); ② planning 后续步骤 (brainstorm/PRD) 可复读原始调研而非只靠记忆; ③ task finish 归档时随 task 目录一并留痕。
 
+**research/ = 过程层, findings.md = 收敛层 (分工)**: 你落 `research/<topic-slug>.md` 是**每主题全量过程笔记** (读了啥/证据/权衡, 多主题多文件)。**收敛到 `findings.md` (单文件调研结论) 是 planning (main) 的职责, 不是你**——你只管把该主题查透落全量, main 汇总多主题时再收敛进 findings.md。你不写 findings.md。
+
 ## bootstrap 扫描模式 (冷启动播种, 与上面调研职责并列)
 
 dispatch prompt「已知」段标 `mode=bootstrap` 时, 不调研某个 topic, 而是**扫整个代码库提炼既有约定为候选规则** (供 `skein-memory` 冷启动播种, 见 `skein-memory/references/bootstrap-seeding.md`)。仍是**纯只读**, 仍不做设计决策 (层判定/取舍归 main + 用户)。

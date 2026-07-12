@@ -4,7 +4,7 @@
 两类硬阻:
 A. .skein/ 脚本管理文件 (task.json/task.md, 均归 skein.py 维护, 读写全挡):
      .skein/task.json · .skein/task.md · .skein/task/<id>/{task.json,task.md} (含归档)
-   planning 工件 (prd/design/implement/journal .md) 不在此列, 放行。
+   planning 工件 (prd/design/findings/journal .md + research/) 不在此列, 放行。
 B. 迁移门: 有 .trellis/ 但无 .skein/config.yaml 时, 挡源码 Read/Edit/Write/MultiEdit —
    逼先 skein-setup 初始化 (纯文本注入压不过 trellisx, 故硬阻; 连诊断只读也挡, 决策: 初始化优先)。
    Bash 放行 (跑 skein.py setup 初始化); .skein/·.trellis/ 内部路径放行 (迁移读写 spec 不自锁)。

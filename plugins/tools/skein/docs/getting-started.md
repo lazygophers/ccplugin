@@ -61,7 +61,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py setup
 
 接下来 Claude 会 (你只需在关键处拍板):
 
-1. **plan** — 和你 brainstorm 需求与方案, 跑对抗审查 (grill), 产出 `prd.md` / `implement.md`, 请你评审。(可选: 把不可回退的不变量锁成契约, 供 check 逐条验; 首次上手可先跳过。)
+1. **plan** — 和你 brainstorm 需求与方案, 跑对抗审查 (grill), 产出 `prd.md` (主入口) / `design.md` (详细设计), 子任务 + 调度落 task.json, 请你评审。(可选: 把不可回退的不变量锁成契约, 供 check 逐条验; 首次上手可先跳过。)
 2. **exec** — 建 worktree, 派 subagent 在里面写代码, 完成一批即回传进度。
 3. **check** — 派 checker 跑 lint / type / test / 契约校验, 不过就派合适 agent (无则 `general-purpose`) 修。
 4. **finish** — 判本次有无值得沉淀的规则, 然后 commit → 合并回主分支 → 销 worktree, 状态转 completed。**完成 task 不立即归档**, 留看板 `retain_days` 天 (默认 7), 超期自动移入 `archive/`; 想提前清走用 `/skein-clean [保留天数]` (仅用户主动)。
