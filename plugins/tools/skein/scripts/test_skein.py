@@ -4,6 +4,7 @@
 无框架, 纯 assert。跑: python3 test_skein.py
 """
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -203,6 +204,16 @@ def main():
         # 无 active 就绪 + 有就绪 pending 时走 "待激活" 提示 (task-5 pending, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
         assert "待激活" in sk(d, "pop").stdout, "pop 未提示就绪 pending task"
+        # ---- DAG 节点框自适应: 长 name/desc 不截断, 框宽超保底 176 ----
+        longnm = "改造dag_html节点宽自适应不截断完整展示信息"
+        sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
+           "--desc", "估文本像素宽全框统一取最大列对齐保底176像素", "--agent", "general-purpose")
+        sk(d, "board")
+        html = (d / ".skein/task.html").read_text()
+        assert "…" not in html, "DAG 节点仍截断信息 (出现省略号)"
+        assert longnm in html, "长 name 未完整渲染进 DAG"
+        widths = [int(w) for w in re.findall(r'<rect x="\d+" y="\d+" width="(\d+)"', html)]
+        assert widths and max(widths) > 176, f"节点框未按内容加宽 (max={max(widths) if widths else 0})"
 
     test_setup()
     test_lock()

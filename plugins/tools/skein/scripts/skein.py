@@ -1085,7 +1085,18 @@ class Skein:
                 layers.setdefault(d, []).append(i)
             for d in layers:
                 layers[d].sort(key=lambda i: order[i])
-            COL, ROW, NW, NH = 210, 78, 176, 60
+            # 节点框宽按内容自适应 (不截断 name/desc): 估文本像素宽 (CJK 全宽 1em, 其余约 0.6em), 全框统一取最大 (列对齐), 保底 176
+            def txtw(s, fs):
+                return sum(fs if ord(c) > 0x2E80 else fs * 0.6 for c in str(s))
+            NH, PAD = 60, 12
+            need = 176.0
+            for n in nodes:
+                pct = n[4] if len(n) > 4 else None
+                dsc = n[5] if len(n) > 5 and n[5] else ""
+                idrow = txtw(n[0], 12) + (txtw(f"{pct}%", 10) + 12 if pct is not None else 0)
+                need = max(need, idrow + PAD * 2, txtw(n[1], 11) + PAD * 2, txtw(dsc, 9) + PAD * 2)
+            NW = int(need + 0.999)
+            COL, ROW = NW + 34, 78
             pos = {i: (d * COL + 10, r * ROW + 10)
                    for d, ids_ in layers.items() for r, i in enumerate(ids_)}
             W = (max(layers) + 1) * COL + 10
@@ -1109,8 +1120,8 @@ class Skein:
                 _id, nm, stt = node[0], node[1], node[2]
                 pct = node[4] if len(node) > 4 else None
                 desc = node[5] if len(node) > 5 else ""
-                nm2 = (nm[:11] + "…") if len(nm) > 12 else nm
-                desc2 = (desc[:15] + "…") if desc and len(desc) > 16 else (desc or "")
+                nm2 = nm
+                desc2 = desc or ""
                 pct_txt = (f'<text x="{x + NW - 10}" y="{y + 17}" font-size="10" text-anchor="end" '
                            f'fill="var(--head)">{pct}%</text>') if pct is not None else ""
                 desc_txt = (f'<text x="{x + 12}" y="{y + 50}" font-size="9" '
