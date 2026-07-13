@@ -28,4 +28,18 @@
   applyFilter(localStorage.getItem('skein-filter'));
   var fsel=document.getElementById('sw-filter');
   if(fsel)fsel.addEventListener('change',function(){applyFilter(fsel.value);});
+  // DAG 节点悬浮浮层: hover 有 data-tip 的节点 → 同 .dag-wrap 内对应 .dag-tip 定位显示
+  document.querySelectorAll('.dag-wrap').forEach(function(wrap){
+    wrap.querySelectorAll('svg .has-tip[data-tip]').forEach(function(g){
+      var tip=wrap.querySelector('.dag-tip[data-for="'+g.getAttribute('data-tip')+'"]');
+      if(!tip)return;
+      g.addEventListener('mouseenter',function(){
+        var gb=g.getBoundingClientRect(),wb=wrap.getBoundingClientRect();
+        tip.style.left=(gb.left-wb.left)+'px';
+        tip.style.top=(gb.bottom-wb.top+6)+'px';
+        tip.style.display='block';
+      });
+      g.addEventListener('mouseleave',function(){tip.style.display='none';});
+    });
+  });
 })();

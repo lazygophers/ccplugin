@@ -978,9 +978,10 @@ class Skein:
         node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
                     S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
-        def dag_html(nodes):
+        def dag_html(nodes, tips=None):
             # nodes: [(id, name, status, deps, pct, desc)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
             # pct/desc 可缺 (老三元组兼容): 节点框显 id + 完成% + 名字 + desc
+            # tips: {id: html} -> 该节点悬浮浮层内容 (subtask DAG + 总进度条), switcher.js 绑定 hover 显隐
             if len(nodes) < 2:
                 return ""
             ids = {n[0] for n in nodes}
@@ -1035,8 +1036,11 @@ class Skein:
                            f'fill="var(--head)">{pct}%</text>') if pct is not None else ""
                 desc_txt = (f'<text x="{x + 12}" y="{y + 50}" font-size="9" '
                             f'fill="var(--muted)">{esc(desc2)}</text>') if desc2 else ""
+                has_tip = tips and i in tips
+                g_attr = (f' data-tip="{esc(i)}"' if has_tip else "")
+                g_cls = (node_cls.get(stt, "") + (" has-tip" if has_tip else "")).strip()
                 boxes.append(
-                    f'<g class="{node_cls.get(stt, "")}"><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
+                    f'<g class="{g_cls}"{g_attr}><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
                     f'fill="var(--bg)" stroke="var(--brd)"/>'
                     f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
                     f'fill="var({node_var.get(stt, "--muted")})"/>'
@@ -1044,8 +1048,13 @@ class Skein:
                     f'{pct_txt}'
                     f'<text x="{x + 12}" y="{y + 34}" font-size="11" fill="var(--fg)">{esc(nm2)}</text>'
                     f'{desc_txt}</g>')
-            return (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
-                    f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
+            svg = (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
+                   f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
+            if not tips:
+                return svg
+            tip_html = "".join(f'<div class="dag-tip" data-for="{esc(i)}">{tips[i]}</div>'
+                               for i in ids if i in tips)
+            return f'<div class="dag-wrap">{svg}{tip_html}</div>'
 
         tnow = now()
         # 排序: 状态分组 (进行中→检查中→待处理→已完成), 组内按执行时间(started)倒序 (新执行在前; 未启动 started=None 视 0)
@@ -1098,6 +1107,19 @@ class Skein:
         chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
         task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
                        task_pct(t), t.get("desc", "")) for t in tasks]
+        # 概览 task 节点悬浮浮层: 该 task 的总进度条 + subtask DAG (单 subtask 无图则列表兜底)
+        tips = {}
+        for t in tasks:
+            subs = t.get("subtasks", [])
+            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
+                       _sub_pct(s), s.get("desc", "")) for s in subs]
+            sub_dag = dag_html(snodes)
+            if not sub_dag:
+                sub_dag = ('<p class="empty">无 subtask</p>' if not subs else
+                           '<p class="meta">' + " · ".join(
+                               f'{esc(s.get("name", s["sid"]))} {_sub_pct(s)}%' for s in subs) + '</p>')
+            tips[t["id"]] = (f'<p class="meta">{esc(t.get("name", t["id"]))} · 总进度</p>'
+                             f'{bar(task_pct(t), sub=True)}{sub_dag}')
         # task+subtask 合并 DAG: subtask 节点 id 命名空间化 (tid/sid), 依赖 = 同 task 内 sub-deps + 父 task
         # (父 task 边让 subtask 落在其 task 之后的执行波次)
         combined = []
@@ -1119,7 +1141,8 @@ class Skein:
             f'剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
             f'<p class="meta">综合完成率</p>{bar(overall)}'
             f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
-            f'<p class="meta">task 级执行顺序</p>{dag_html(task_nodes)}{combined_dag}</section>')
+            f'<p class="meta">task 级执行顺序 (悬浮节点看 subtask 图 + 总进度)</p>'
+            f'{dag_html(task_nodes, tips)}{combined_dag}</section>')
 
         cards = []
         for t in tasks:
