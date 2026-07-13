@@ -58,7 +58,8 @@ td{line-height:1.4}
 td .bar{margin:1px 0;min-width:78px}
 
 /* 执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
-.dag{display:block;max-width:100%;height:auto;margin:4px 0 8px}
+/* svg 保持固有 W×H (不 max-width 缩糊); 过长时由 .dag-wrap 滚动 */
+.dag{display:block;height:auto;margin:4px 0 8px}
 /* 节点整框按状态着色 (CSS class 覆盖 SVG presentation attr, 优先级更高): 主体填 palette 状态色淡染 + 同色描边, 随主题自适应.
    :first-of-type = 主体 rect (第 2 个 rect 是左边色条, 保留强化). */
 .dag g.n-pending>rect:first-of-type{fill:color-mix(in srgb,var(--st-pending) 15%,var(--bg));stroke:var(--st-pending)}
@@ -73,7 +74,8 @@ td .bar{margin:1px 0;min-width:78px}
 @keyframes badge-run{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* DAG 节点悬浮浮层: 概览 task 节点 hover 弹出该 task 的总进度条 + subtask 迷你 DAG (JS 定位显隐) */
-.dag-wrap{position:relative}
+/* 过长 DAG 滚动: 横向超卡宽 / 纵向超 78vh 即出滚动条 (svg 固有尺寸不缩) */
+.dag-wrap{position:relative;overflow:auto;max-width:100%;max-height:78vh}
 .dag-wrap svg .has-tip{cursor:pointer}
 .dag svg a,.dag a{cursor:pointer}
 .dag a .has-link,.dag .has-link{cursor:pointer}

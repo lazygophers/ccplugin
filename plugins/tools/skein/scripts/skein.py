@@ -1131,10 +1131,9 @@ class Skein:
                 boxes.append(g)
             svg = (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
                    f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
-            if not tips:
-                return svg
+            # 恒包 dag-wrap: 容器 overflow:auto, 过长 DAG 滚动而非缩糊 (svg 保持固有 W×H)
             tip_html = "".join(f'<div class="dag-tip" data-for="{esc(i)}">{tips[i]}</div>'
-                               for i in ids if i in tips)
+                               for i in ids if i in tips) if tips else ""
             return f'<div class="dag-wrap">{svg}{tip_html}</div>'
 
         tnow = now()
