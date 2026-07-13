@@ -832,10 +832,13 @@ class Skein:
             print(json.dumps({"hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
             return
-        ctx = ("# SKEIN task 判定\n"
-               "若本次请求是**任务** (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档), "
-               "加载 **skein-flow** skill 走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
-               "豁免 (直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。边界模糊 → AskUserQuestion 问用户。")
+        ctx = ("# SKEIN task 判定 (动手前硬门)\n"
+               "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
+               "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
+               "任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill "
+               "走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
+               "豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。"
+               "边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。")
         ctx = budget_guard(ctx, SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
