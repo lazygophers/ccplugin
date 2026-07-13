@@ -27,6 +27,7 @@ import fcntl
 import json
 import os
 import re
+import hashlib
 import shutil
 import subprocess
 import sys
@@ -1220,10 +1221,21 @@ class Skein:
         self._write_if_changed(self.html_path, html)
 
     def _copy_board_assets(self):
-        # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)
+        # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)。
+        # 逐文件比对 md5, 仅内容不一致才覆盖 — 免无谓写触碰 mtime, 害看板 HEAD-poll 误判重载。
         src = Path(__file__).resolve().parent.parent / "assets" / "board"
-        if src.exists():
-            shutil.copytree(src, self.dir / "board", dirs_exist_ok=True)
+        if not src.exists():
+            return
+        dst_root = self.dir / "board"
+        for sf in src.rglob("*"):
+            if not sf.is_file():
+                continue
+            df = dst_root / sf.relative_to(src)
+            data = sf.read_bytes()
+            if df.exists() and hashlib.md5(df.read_bytes()).digest() == hashlib.md5(data).digest():
+                continue  # 内容一致, 跳过
+            df.parent.mkdir(parents=True, exist_ok=True)
+            df.write_bytes(data)
 
     def view(self, _):
         if not self.html_path.exists():
