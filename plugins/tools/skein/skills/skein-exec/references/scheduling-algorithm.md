@@ -41,6 +41,7 @@ while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 
 
 - fan-out 的所有 subagent **共享 task worktree** (subtask 不绑定 worktree, 不为 subtask 单开)。
 - 默认 1 task 1 worktree。多 worktree 允许但 opt-in (非自动, 不靠 subtask 触发)。
+- **多子 git (planning `--repos` 声明)** — task 跨多个子 git 时, `skein start` 为每个声明子 git 各建 worktree (`.worktrees/skein-<id>/<子git名>/`), `skein repos <id>` 可查清单。派 subtask 时 dispatch prompt「工作目录与范围」MUST 指名该 subtask 落在**哪个子 git 的 worktree** (不同子 git 改动天然隔离, 可并行派, 合计并发仍 ≤ 2); 跨子 git 的 subtask 在 prompt 里列全各子 git 的 worktree 路径。`finish` 逐子 git commit→merge, 某子 git 冲突则该 task 留 `进行中` 供修复后重跑 (已合入的子 git 幂等跳过)。
 
 ## 多 task 并行 (同 session)
 
@@ -54,7 +55,7 @@ while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 
 
 ```
 目标: <这个 subtask 要产出什么>
-已知: Active task <id>, worktree=<路径>, 相关文件/上文, 召回的 recall 规则
+已知: Active task <id>, worktree=<路径> (多子 git 时写该 subtask 对应子 git 的 worktree), 相关文件/上文, 召回的 recall 规则
 工作目录与范围: <worktree 路径>; 只在此 worktree 内改, 禁碰主工作区。具体改哪些文件你按目标自主定 (给了自主权, 别越出本 subtask 目标)。
 执行纪律 (硬性, 逐条照做):
   - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。

@@ -332,10 +332,12 @@ class Skein:
         (self.tasks / tid).mkdir(parents=True)
         self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
+        repos = self._parse_repos(getattr(a, "repos", None))
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
-            "worktree": None, "branch": f"skein/{tid}",
+            "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
+            "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
             "estimate": a.estimate,  # AI 执行预期耗时 (分钟, planning 填; None=未估)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
@@ -345,6 +347,48 @@ class Skein:
         self._save(t)  # _save 已渲染子任务看板
         self._sync()  # 刷新顶层 tasks 索引 + 看板 + html
         print(f"{tid}\t{self.tasks / tid}")
+
+    @staticmethod
+    def _parse_repos(raw) -> list:
+        # "a, b/c" → ["a","b/c"]; 归一去空/去首尾斜杠 ('.' 保留=根仓)
+        return [p.strip().strip("/") or "." for p in (raw or "").split(",") if p.strip()]
+
+    def _wts(self, t) -> list:
+        # task 的 worktree 生命周期真值; 兼容旧结构 (仅 scalar worktree/branch)
+        ws = t.get("worktrees")
+        if ws:
+            return ws
+        rel = t.get("worktree")
+        if rel:
+            return [{"repo": ".", "wt": rel, "branch": t.get("branch"), "merged": False}]
+        return []
+
+    def _mkwt(self, t, repo, cfg) -> dict:
+        # 在指定子 git (repo='.'=根仓) 建 worktree+branch; 校验确是 git 工作树 (含 submodule)
+        sub = self.root if repo == "." else self.root / repo
+        if not sub.exists():
+            raise SystemExit(f"repos 声明的路径不存在: {repo}")
+        rc = git("rev-parse", "--is-inside-work-tree", cwd=sub, check=False)
+        if rc.returncode != 0 or rc.stdout.strip() != "true":
+            raise SystemExit(f"{repo} 不是 git 仓库 (repos 只能声明 git 仓/submodule)")
+        safe = repo.replace("/", "-").strip("-") or "root"
+        wt_rel = (f"{cfg['worktree_root']}/skein-{t['id']}"
+                  + ("" if repo == "." else f"/{safe}"))  # 相对 root 存盘, 免绝对路径入库
+        git("worktree", "add", "-b", t["branch"], str(self.root / wt_rel), "HEAD", cwd=sub)
+        return {"repo": repo, "wt": wt_rel, "branch": t["branch"], "merged": False}
+
+    def repos(self, a):
+        # 查/声明 task 的目标子 git (planning 声明: 每个各开 worktree)。仅 pending 可改 (start 后 worktree 已定)
+        t = self._load(a.id)
+        if a.set is None:
+            print("\n".join(t.get("repos") or []) or "(未声明子 git — 单根/原地模式)")
+            return
+        if t["status"] != S_PENDING:
+            raise SystemExit(f"{a.id} 状态 {t['status']}, repos 只能在 start 前 (pending) 声明")
+        t["repos"] = self._parse_repos(a.set)
+        self._save(t)
+        self._sync()
+        print(f"{a.id} repos = {', '.join(t['repos']) or '(空)'}")
 
     def start(self, a):
         t = self._load(a.id)
@@ -362,18 +406,28 @@ class Skein:
         if undone:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         t["status"] = S_ACTIVE
-        if self.git:
+        repos = t.get("repos") or []
+        if repos:
+            # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
+            t["worktrees"] = [self._mkwt(t, r, cfg) for r in repos]
+            t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
+        elif self.git:
             rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
             git("worktree", "add", "-b", t["branch"], str(self.root / rel), "HEAD", cwd=self.root)
             t["worktree"] = rel
+            t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
         else:
-            t["worktree"] = None  # 非 git: 原地执行, 无 worktree 隔离
+            t["worktree"] = None  # 非 git 且无 repos 声明: 原地执行, 无 worktree 隔离
+            t["worktrees"] = []
         if not t.get("started"):
             t["started"] = now()  # exec 时刻 (首次 start; 重启不覆盖)
         self._save(t)
         self._sync()
-        loc = (f"worktree: {t['worktree']}\nbranch: {t['branch']}"
-               if self.git else "非 git 仓库: 原地执行 (无 worktree 隔离)")
+        if t["worktrees"]:
+            loc = "\n".join(f"worktree: {w['wt']} (子 git: {w['repo']}, branch: {w['branch']})"
+                            for w in t["worktrees"])
+        else:
+            loc = "非 git 仓库: 原地执行 (无 worktree 隔离)"
         print(f"{a.id} started\n{loc}")
 
     def _dep_unfinished(self, dep) -> bool:
@@ -391,9 +445,18 @@ class Skein:
         if t["status"] not in STATUS_ACTIVE:
             raise SystemExit(f"{tid} 状态 {t['status']}, 非 active 无法 finish")
         cfg = self.config()
-        rel = t.get("worktree")
-        wt = self.root / rel if rel else None  # 存盘相对, 文件/git 操作用绝对
-        if wt and wt.exists():
+        wts = self._wts(t)
+        conflicts = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
+        for w in wts:
+            if w.get("merged"):
+                continue  # 幂等: 前次已合并的子 git 跳过 (部分冲突重跑场景)
+            sub = self.root if w["repo"] == "." else self.root / w["repo"]  # merge 落各子 git
+            wt = self.root / w["wt"]
+            if not wt.exists():
+                sys.stderr.write(
+                    f"{tid} worktree 缺失 ({w['wt']}) — 跳过, 分支 {w['branch']} 若有提交未并入\n")
+                w["merged"] = True  # 缺失即无从合并, 标记免卡住
+                continue
             if cfg.get("auto_commit"):
                 git("add", "-A", cwd=wt)
                 r = git("commit", "-m", f"skein({tid}): {t['name']}", cwd=wt, check=False)
@@ -406,21 +469,28 @@ class Skein:
                     raise SystemExit(
                         f"{tid} worktree 有未提交改动且 auto_commit=false — "
                         f"先手动提交再 finish (禁强删丢失):\n{wt}")
-            # 合并回主工作区
-            m = git("merge", "--no-ff", t["branch"], "-m",
-                    f"skein: merge {tid} {t['name']}", cwd=self.root, check=False)
+            # 合并回该子 git 的主工作区
+            m = git("merge", "--no-ff", w["branch"], "-m",
+                    f"skein: merge {tid} {t['name']}", cwd=sub, check=False)
             if m.returncode != 0:
-                git("merge", "--abort", cwd=self.root, check=False)
-                raise SystemExit(
-                    f"合并冲突 {tid} — 已 abort。手动解冲突后重跑 finish:\n{m.stdout}{m.stderr}")
-            git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
-            git("branch", "-D", t["branch"], cwd=self.root, check=False)
-        elif rel:
-            sys.stderr.write(
-                f"{tid} worktree 记录存在但目录缺失 ({rel}) — "
-                f"跳过合并, 分支 {t['branch']} 若有提交未并入\n")
+                git("merge", "--abort", cwd=sub, check=False)
+                conflicts.append((w["repo"], m.stdout + m.stderr))
+                continue
+            git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
+            git("branch", "-D", w["branch"], cwd=sub, check=False)
+            w["merged"] = True
+        if conflicts:
+            # 保存已合并进度 (worktrees 各 merged 标记), task 仍 active — 解冲突后重跑 finish 只补未合并子 git
+            t["worktrees"] = wts
+            self._save(t)
+            self._sync()
+            detail = "\n".join(f"  子 git {r}: 冲突已 abort" for r, _ in conflicts)
+            raise SystemExit(
+                f"{tid} 部分子 git 合并冲突, 已合并的保留、task 仍 active。"
+                f"解冲突后重跑 finish (幂等跳过已合并):\n{detail}")
         t["status"] = S_DONE
         t["worktree"] = None
+        t["worktrees"] = []
         t["finished"] = now()  # 完成时刻 — 保留期从此计, 超 retain_days 由 _autoclean 归档
         self._save(t)
         self._sync()  # 重写顶层索引 (完成 task 仍留看板; retain_days=0 时 _autoclean 即归档)
@@ -436,11 +506,12 @@ class Skein:
         f = self.tasks / a.id / "task.json"
         if f.exists():
             t = json.loads(f.read_text())
-            rel = t.get("worktree")
-            wt = self.root / rel if rel else None
-            if wt and wt.exists():
-                git("worktree", "remove", str(wt), "--force", cwd=self.root, check=False)
-                git("branch", "-D", t["branch"], cwd=self.root, check=False)
+            for w in self._wts(t):
+                sub = self.root if w["repo"] == "." else self.root / w["repo"]
+                wt = self.root / w["wt"]
+                if wt.exists():
+                    git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
+                git("branch", "-D", w["branch"], cwd=sub, check=False)
         self._archive(a.id)
         self._sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
         print(f"{a.id} archived")
@@ -546,7 +617,9 @@ class Skein:
             self._dep_unfinished(d) for d in t.get("deps", []))
         return {"id": t["id"], "status": t["status"], "name": t.get("name", ""),
                 "desc": t.get("desc", ""), "deps": t.get("deps", []),
+                "repos": t.get("repos", []),
                 "worktree": t.get("worktree") or None,
+                "worktrees": [{"repo": w["repo"], "wt": w["wt"]} for w in self._wts(t)],
                 "pct": pct, "subs": cnt, "ready": ready}
 
     def list_(self, a):
@@ -635,12 +708,13 @@ class Skein:
                     errs.append(f"{tid}: active 但无 subtask — 无法派发")
                 if not t.get("started"):
                     warns.append(f"{tid}: active 但 started 未置")
-                rel = t.get("worktree")
-                if self.git:
-                    if not rel:
-                        warns.append(f"{tid}: active (git 仓) 但 worktree 未置")
-                    elif not (self.root / rel).exists():
-                        errs.append(f"{tid}: worktree 路径不存在: {rel}")
+                wts = self._wts(t)
+                declared = t.get("repos") or []
+                if (self.git or declared) and not wts:
+                    warns.append(f"{tid}: active (git 仓/声明 repos) 但 worktree 未置")
+                for w in wts:
+                    if not (self.root / w["wt"]).exists():
+                        errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
             if t.get("status") == S_DONE and not t.get("finished"):
                 warns.append(f"{tid}: 已完成但 finished 时刻未置")
             # subtask 层
@@ -1546,7 +1620,11 @@ def main():
     c.add_argument("--name", required=True, help="[必填] task 标题")
     c.add_argument("--desc", required=True, help="[必填] 一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
+    c.add_argument("--repos", help="目标子 git, 逗号分隔 rel 路径 (多子 git 各开 worktree; 省略=单根/原地)")
     c.add_argument("--estimate", type=int, help="AI 执行预期耗时 (分钟, planning 填)")
+    rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
+    rp.add_argument("id", help="task id")
+    rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
     s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
     f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
@@ -1611,13 +1689,13 @@ def main():
         "finish": sk.finish, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready, "pop": sk.pop,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
-        "doctor": sk.doctor, "contract": sk.contract,
+        "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos,
         "subtask": sk.subtask,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "finish", "archive", "clean",
-                "contract", "subtask"}
+                "contract", "repos", "subtask"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)

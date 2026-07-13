@@ -206,7 +206,8 @@ def main():
 
     test_setup()
     test_lock()
-    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移)")
+    test_multirepo()
+    print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
 
 
 def test_lock():
@@ -225,6 +226,41 @@ def test_lock():
         # 释放后可重新获取
         with m._workspace_lock(lp, timeout=0.2):
             pass
+
+
+def test_multirepo():
+    # 多子 git: 非 git 父目录下两并列 repo, task 声明 --repos → start 各建 worktree, finish 各自合入
+    with tempfile.TemporaryDirectory() as d:
+        d = Path(d)
+        for r in ("repoA", "repoB"):
+            sub = d / r
+            sub.mkdir()
+            git(sub, "init", "-q")
+            git(sub, "config", "user.email", "t@t.dev")
+            git(sub, "config", "user.name", "t")
+            (sub / "f.txt").write_text(f"base-{r}\n")
+            git(sub, "add", "-A"); git(sub, "commit", "-qm", "init")
+        sk(d, "init")
+        sk(d, "create", "feat", "--name", "跨仓", "--desc", "改两仓", "--repos", "repoA,repoB")
+        rl = sk(d, "repos", "feat").stdout
+        assert "repoA" in rl and "repoB" in rl, rl
+        sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--agent", "skein-executor")
+        sk(d, "start", "feat")
+        wa = d / ".worktrees/skein-feat/repoA"
+        wb = d / ".worktrees/skein-feat/repoB"
+        assert wa.is_dir() and wb.is_dir(), "多子 git worktree 未建全"
+        # 各 worktree 内改文件并提交前留给 finish 提交
+        (wa / "f.txt").write_text("base-repoA\nchangeA\n")
+        (wb / "f.txt").write_text("base-repoB\nchangeB\n")
+        sk(d, "finish", "feat")
+        assert "changeA" in (d / "repoA/f.txt").read_text(), "repoA 未合入"
+        assert "changeB" in (d / "repoB/f.txt").read_text(), "repoB 未合入"
+        # worktree 与分支清理
+        assert not wa.exists() and not wb.exists(), "worktree 未销"
+        for r in ("repoA", "repoB"):
+            br = subprocess.run(["git", "branch", "--list", "skein/feat"], cwd=d / r,
+                                capture_output=True, text=True).stdout
+            assert "skein/feat" not in br, f"{r} 分支未删"
 
 
 def test_setup():
