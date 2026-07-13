@@ -16,18 +16,18 @@
 /* body = 单列纵向流: 一行一个 task card (不并排), 无行间空白。card 满宽堆叠, 纵向节奏走 margin-bottom。 */
 body{
   background:var(--bg);color:var(--fg);
-  font:13px/1.55 var(--font);margin:0;padding:20px 24px 40px;
+  font:14px/1.6 var(--font);margin:0;padding:20px 24px 40px;
   transition:background .3s,color .3s;
   display:block;
 }
 h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var(--head)}
 
-.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px 16px;margin:0 0 14px}
-/* 收紧 type scale: h1(20) > h2(14) > 正文/name(13) > meta(12) > 表(12) > th/badge(11) > pct(10) */
-.card h2{margin:0 0 3px;font-size:14px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.name{margin:0 0 8px;color:var(--head);font-size:13px;font-weight:500}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px}
+/* type scale: h1(20) > h2(17) > 正文/name(15) > meta(13) > 表(13) > th/badge(11) > pct(10) */
+.card h2{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.name{margin:0 0 10px;color:var(--head);font-size:15px;font-weight:500}
 /* meta = inline key-value 行: 密排, 弱化, · 分隔已在内容里 */
-.meta{margin:0 0 5px;font-size:12px;line-height:1.5;color:var(--muted)}
+.meta{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}
 
 .badge{display:inline-block;padding:0 8px;border-radius:9px;color:#fff;font-size:11px;line-height:17px;font-weight:500;vertical-align:baseline}
 .badge.s-pending,.badge.ss-pending{background:var(--st-pending)}
@@ -37,7 +37,7 @@ h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var
 .badge.ss-failed{background:var(--st-failed)}
 
 /* 密表: 更小字号 + 收窄 padding, 顶对齐让长文本换行不撑高整行 */
-table{border-collapse:collapse;width:100%;font-size:12px;margin-top:2px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:2px}
 th,td{text-align:left;padding:4px 7px;border-bottom:1px solid var(--line);vertical-align:top}
 th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.02em;white-space:nowrap}
 td{line-height:1.4}
