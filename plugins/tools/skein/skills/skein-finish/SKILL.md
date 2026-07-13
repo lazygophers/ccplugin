@@ -1,7 +1,6 @@
 ---
 name: skein-finish
 description: task 收尾闭环门。check 全绿后使用 (被 skein-flow finish 委托, 或用户显式 "收尾/归档/闭环") — 派 skein-finisher 收尾勘察 (diff/subtask 核对/悬挂清单) → 委托 skein-memory sediment 沉淀 → 清悬挂 → skein finish (commit→merge→archive→销 worktree)
-user-invocable: false
 argument-hint: "[task_id]"
 arguments: "[task_id]"
 model: haiku
