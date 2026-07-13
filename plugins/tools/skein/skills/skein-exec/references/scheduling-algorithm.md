@@ -4,12 +4,12 @@
 
 ## 调度 DAG = 显式 depends_on (唯一边源)
 
-1. **显式依赖边** — subtask 的 `depends_on` (planning 用 `skein.py subtask add --deps` 直接登记进 per-task task.json, 无中间 md 图)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
+1. **显式依赖边** — subtask 的 `depends_on` (planning 用 `skein subtask add --deps` 直接登记进 per-task task.json, 无中间 md 图)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
 2. **就绪判定** = 所有前置 done + 有空闲并发槽。ready 的 subtask 并行派, 未就绪串行等。
 
 ## subtask 状态 = 脚本落盘, 非肉眼看 md 文件
 
-subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写), 全程经 `skein.py subtask` 命令维护。**DAG 算法 + 就绪判定 + 改态由脚本一次性做** (`claim`), main 只负责派 agent (脚本不能 spawn):
+subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写), 全程经 `skein subtask` 命令维护。**DAG 算法 + 就绪判定 + 改态由脚本一次性做** (`claim`), main 只负责派 agent (脚本不能 spawn):
 
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
@@ -24,10 +24,10 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 ## 调度循环 (动态, 完成即派)
 
 ```
-while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
+while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
     对认领到的每个 subtask: 为其选合适 agent (无则 skein-executor) 执行 (真实 Agent 调用)  # ≤ max_parallel
     等任一 subagent 返回
-    → skein.py subtask done/fail <tid> <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
+    → skein subtask done/fail <tid> <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
 ```
 
 - **并发上限 2** — `claim` 内按 `max_parallel - running` 截断, 满槽返回空。
@@ -44,9 +44,9 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
 
 ## 多 task 并行 (同 session)
 
-- active 集 ≤ 2 (`skein.py` max_active), start 第三个报错。
+- active 集 ≤ 2 (`skein` max_active), start 第三个报错。
 - 各 active task 各占各 worktree, 可并行派, 合计每层并发仍 ≤ 2。
-- task 级 DAG = task.json `deps` (`skein.py create --deps`) — 同 subtask 级, 只看显式依赖, 无写文件冲突自算。
+- task 级 DAG = task.json `deps` (`skein create --deps`) — 同 subtask 级, 只看显式依赖, 无写文件冲突自算。
 
 ## dispatch prompt (6 字段自包含, 缺字段不派)
 
@@ -60,8 +60,8 @@ while skein.py subtask claim <tid> 返回非空:       # 脚本一步: 算就绪
   - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。
   - 改前查上游: 改函数/类/契约前先 grep 调用站点 (或 gitnexus_impact), 避免半改。
   - 缺信息不硬猜: 缺关键输入时在返回里标 `需要: <问题>` 交 main 转达用户 (你不能 AskUserQuestion)。
-  - spec 优先, 别凭记忆重推: 动手前相关约定先 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘。
-  - 写前硬门 — 读后写: 改任何文件前先 Read 全文 (禁凭摘要/记忆动手) → 复述适用契约 (来源 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py contract <id>`) 无矛盾才 Edit/Write。文件现状与契约矛盾 (契约已满足 / 该文件按契约不该改) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
+  - spec 优先, 别凭记忆重推: 动手前相关约定先 `skein-memory recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘。
+  - 写前硬门 — 读后写: 改任何文件前先 Read 全文 (禁凭摘要/记忆动手) → 复述适用契约 (来源 `skein contract <id>`) 无矛盾才 Edit/Write。文件现状与契约矛盾 (契约已满足 / 该文件按契约不该改) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
 验收标准 (完成前逐条自检, 全过才回 done):
   - <planning 登记的 --check 验收条 1>
   - <验收条 2>

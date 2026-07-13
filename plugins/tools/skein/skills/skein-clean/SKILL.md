@@ -30,7 +30,7 @@ effort: low
 
 1. **归档完成 task (保留期外)** — 直接跑脚本, 它按保留期算并归档:
    ```bash
-   python3 <plugin>/scripts/skein.py clean [--days <保留天数>]
+   skein clean [--days <保留天数>]
    ```
    完成 task 已走完整 `finish` (已 merge/销 worktree), 归档纯移目录, 安全。
 
@@ -46,7 +46,7 @@ effort: low
 
 > 看板无需手动刷 — `clean` 已触发 `_sync` 自动重渲染 task.md/task.html; 孤儿 worktree/分支清理不涉 task.json, 不影响看板。
 
-> **注意**: `skein.py list` 里完成 (已完成) 却仍在 `.skein/task/` 的 task **不是异常** — 是保留期内正常状态, 别当漏归档强行 `archive`。要提前清走, 用上面的 `clean` 命令 (走保留期语义)。
+> **注意**: `skein list` 里完成 (已完成) 却仍在 `.skein/task/` 的 task **不是异常** — 是保留期内正常状态, 别当漏归档强行 `archive`。要提前清走, 用上面的 `clean` 命令 (走保留期语义)。
 
 ## 输出
 

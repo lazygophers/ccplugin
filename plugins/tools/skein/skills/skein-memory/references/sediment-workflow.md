@@ -26,7 +26,7 @@
 ## 4. 写盘
 
 ```
-python3 <plugin>/scripts/memory.py sediment --layer core|recall --category git \
+skein-memory sediment --layer core|recall --category git \
   --title "契约标题" --keywords "worktree,merge" --source <task-id> --body-file <正文.md>
 ```
 
@@ -34,4 +34,4 @@ python3 <plugin>/scripts/memory.py sediment --layer core|recall --category git \
 
 ## 升降级 (可选, 按需再加)
 
-core↔recall 频率驱动升降级暂不实现 (YAGNI)。手动: 移动文件到目标层/类目子目录 + `python3 <plugin>/scripts/memory.py reindex` 重建索引。
+core↔recall 频率驱动升降级暂不实现 (YAGNI)。手动: 移动文件到目标层/类目子目录 + `skein-memory reindex` 重建索引。

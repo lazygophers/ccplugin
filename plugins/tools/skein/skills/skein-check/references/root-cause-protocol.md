@@ -48,7 +48,7 @@ check 反复不过时的跨维度定位。逐维度问「是不是这里」, 从
 
 复盘完的根因**不自动沉淀**, 走既有判定门:
 
-- 判定 → 分层 → 审批 → 写盘四步, 完全复用 [skein-memory](../../skein-memory/SKILL.md) 的 [sediment-workflow](../../skein-memory/references/sediment-workflow.md), 命令是同一个 `memory.py sediment`。
+- 判定 → 分层 → 审批 → 写盘四步, 完全复用 [skein-memory](../../skein-memory/SKILL.md) 的 [sediment-workflow](../../skein-memory/references/sediment-workflow.md), 命令是同一个 `skein-memory sediment`。
 - **不新造沉淀机制**。命中判定门正向项②「踩坑 ≥2 轮 (根因可写可验证契约)」正是本场景 —— 反复不过 ≥2 轮本身就是踩坑证据, 但仍须过「排除」项 (一次性 bug / 本 task 私有细节 / 已有规则覆盖 → 跳过)。
 - 沉淀正文写**根因契约** (可验证的 MUST/禁), 非流水账。
 
@@ -69,5 +69,5 @@ check 反复不过时的跨维度定位。逐维度问「是不是这里」, 从
 | 需求/设计错却硬留 exec 重修 | ①② 超 exec 范围 → 停手 转人工退回 planning |
 | 复盘完自动写规则 | 走 skein-memory sediment 判定门 (判定→审批→写盘) |
 | 一次性 bug 硬凑成沉淀契约 | 过「排除」项, 一次性 → drop 跳过 |
-| 新造一套沉淀机制 | 复用 memory.py sediment, 禁另起炉灶 |
+| 新造一套沉淀机制 | 复用 skein-memory sediment, 禁另起炉灶 |
 | 停手 只丢一句"过不了" | 附根因报告 (维度 + 证据 + 退回建议) 交用户裁 |

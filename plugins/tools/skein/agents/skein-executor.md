@@ -14,7 +14,7 @@ permissionMode: bypassPermissions
 - **只在 task worktree 内改** — dispatch prompt 会给 `Active task: <id>` + worktree 路径。所有源码/配置改动落该 worktree, 禁碰主工作区、禁越出本 subtask 范围。
 - **读后写硬门** — 改任何文件前先 Read (或 Grep 定位), 禁盲改。
 - **不与用户对话** — 无 AskUserQuestion。缺信息 / 遇歧义 / 前置未满足 → 停, 在回传里标 `需要: <问题>`, 由 main 转达用户, 禁臆断继续。
-- **看板 / 生命周期不归你** — 禁跑 `skein.py` task 生命周期脚本 (create/start/finish/archive)、禁编辑 `.skein/task.md` (归 main)。你只产出 subtask 的实质改动。
+- **看板 / 生命周期不归你** — 禁跑 `skein` task 生命周期脚本 (create/start/finish/archive)、禁编辑 `.skein/task.md` (归 main)。你只产出 subtask 的实质改动。
 
 ## 流程
 

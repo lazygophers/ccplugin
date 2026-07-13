@@ -14,8 +14,8 @@ effort: medium
 - **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
 - **main 默认禁写源码** — 改源码为该 subtask 选合适 agent (无则 `skein-executor`), 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
 - **exec / check 分工, main 作调度器** — exec: 为每个 subtask 选合适 agent (无则 `skein-executor`) 各执行 1 个 (并发上限 2 / 完成即派 / 共享 task worktree); 执行 agent 由 dispatch prompt 硬禁再派 subagent (Recursion Guard, 自己做完 1 个 subtask)。check: 派 `skein-checker` (工具受限, 无 Write/Edit/Agent/Task 的具名 agent)。调度算法详见 `skein-exec` skill, check 详见 `skein-check`。
-- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein.py start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。
-- **`skein.py` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
+- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。
+- **`skein` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
 - **看板自动刷** — task.json 每次变更 (create/start/subtask/finish) 脚本自动渲染 task.md/task.html, 无需手动跑命令; AI 禁直接编辑 (guard hook 硬阻)。
 - **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) subagent 不能与用户对话; subagent 缺信息在返回标 `需要: <问题>` 由 main 转达。
 - **每个 dispatch prompt 6 字段自包含**: 目标 / 已知 (含 `Active task: <id>` + worktree 路径) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
@@ -27,7 +27,7 @@ plan → exec → check → finish 四步闭环
 
 ### plan
 
-- `skein.py start <任务 ID> --name <任务名称> --desc <任务描述>` 创建任务
+- `skein start <任务 ID> --name <任务名称> --desc <任务描述>` 创建任务
 - **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
 - Skill(skein-plan --continue) 规划任务、编写 prd 等内容
@@ -49,10 +49,10 @@ plan → exec → check → finish 四步闭环
 
 ### finish
 
-- Skill(skein-finish) 收尾编排门 (check 全绿后): 派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein.py finish`。详见 `skein-finish` skill。
+- Skill(skein-finish) 收尾编排门 (check 全绿后): 派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein finish`。详见 `skein-finish` skill。
 - 其中两处记忆自动化 (全流程记忆闭环 = plan recall 召回 + finish sediment 沉淀):
-  - **sediment 判定门 (自动沉淀)** — 委托 `skein-memory` sediment: main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `AskUserQuestion` 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
-  - 清理悬挂 (`TaskList`/`TaskStop`) + `skein.py finish` (commit→merge→archive→销 worktree) 由 skein-finish 编排, main 同步跑。
+  - **sediment 判定门 (自动沉淀)** — 委托 `skein-memory` sediment: main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `AskUserQuestion` 审批 + `skein-memory sediment` 写盘。无增量则跳过 (禁硬凑)。
+  - 清理悬挂 (`TaskList`/`TaskStop`) + `skein finish` (commit→merge→archive→销 worktree) 由 skein-finish 编排, main 同步跑。
 
 ## 作用域边界 (何时建 task)
 
