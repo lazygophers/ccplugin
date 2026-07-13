@@ -1054,10 +1054,15 @@ class Skein:
         name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
 
         def elapsed_of(t):
-            # ponytail: 实际耗时 = 最后活动(updated) - created; 活跃 task 粗值, 已完成即总耗时
-            if t.get("status") == S_PENDING:  # 未启动 task 无耗时
+            # 实际耗时: DONE = finished-started (真实执行时长); active = tnow-started (至今); pending = 0
+            st = t.get("status")
+            if st == S_PENDING:  # 未启动 task 无耗时
                 return 0
-            return round((t.get("updated", tnow) - t.get("created", tnow)) / 60)
+            start = t.get("started") or t.get("created")
+            if not start:
+                return 0
+            end = t.get("finished") if (st == S_DONE and t.get("finished")) else tnow
+            return round((end - start) / 60)
 
         def task_pct(t):
             # task 完成百分比: DONE=100, 否则 = subtask 平均完成比 (无 subtask 记 0)
@@ -1121,13 +1126,9 @@ class Skein:
             subs = t.get("subtasks", [])
             sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}  # subtask 依赖也显示名字
             sdone = sum(1 for s in subs if s["status"] == SS_DONE)
-            spct = round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
+            spct = task_pct(t)  # DONE→100, 否则各 subtask 均值 (避免"都完成却非 100%")
             elapsed = elapsed_of(t)
             est = t.get("estimate")
-            # 时间进度条: 已耗/预期%, 超时标红 (无估则不显)
-            time_bar = (f'<p class="meta">时间 {fmt_dur(elapsed)}/{fmt_dur(est)}</p>'
-                        + bar(round(elapsed / est * 100), cls="time" + (" over" if elapsed > est else ""))
-                        ) if est else ""
             snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
                        _sub_pct(s), s.get("desc", "")) for s in subs]
             srows = "".join(
@@ -1151,7 +1152,6 @@ class Skein:
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
-                f'{time_bar}'
                 f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
                 f'<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
                 f'{dag_html(snodes)}'
