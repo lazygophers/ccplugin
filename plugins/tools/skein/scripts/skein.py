@@ -1215,8 +1215,8 @@ class Skein:
             f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'
             '<head><meta charset=utf-8>'
             '<meta name=viewport content="width=device-width,initial-scale=1">'
-            # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 600s 硬刷新保证不 stale
-            '<meta http-equiv=refresh content=600>'
+            # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 1800s (半小时) 硬刷新保证不 stale
+            '<meta http-equiv=refresh content=1800>'
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
             f'{switcher}<h1>SKEIN 看板 · {esc(self.proj)}</h1>{body}'
             '<script src="board/switcher.js"></script>'
