@@ -44,6 +44,8 @@ S_ACTIVE = "进行中"
 S_CHECK = "检查中"
 S_DONE = "已完成"
 STATUS_ACTIVE = {S_ACTIVE, S_CHECK}
+# list --status 过滤别名 (英文简写 → 中文态); open/未完成 特判非 done
+_STATUS_ALIAS = {"pending": S_PENDING, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
 # 看板排序: 进行中 > 检查中 > 待处理 > 已完成 (同状态内按 id 稳定)
 STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
 # subtask 状态
@@ -527,8 +529,44 @@ class Skein:
                 return
         print("无可执行 (task, subtask): active task 均无就绪 subtask, 亦无就绪 pending task 可激活")
 
+    def _brief(self, t):
+        # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
+        # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 pending task 前置全 done (可 start)。
+        subs = t.get("subtasks", [])
+        cnt = [0, 0, 0, 0]
+        idx = {SS_DONE: 0, SS_RUNNING: 1, SS_PENDING: 2, SS_FAILED: 3}
+        for s in subs:
+            i = idx.get(s["status"])
+            if i is not None:
+                cnt[i] += 1
+        pct = 100 if t["status"] == S_DONE else (
+            round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0)
+        ready = t["status"] == S_PENDING and not any(
+            self._dep_unfinished(d) for d in t.get("deps", []))
+        return {"id": t["id"], "status": t["status"], "name": t.get("name", ""),
+                "desc": t.get("desc", ""), "deps": t.get("deps", []),
+                "worktree": t.get("worktree") or None,
+                "pct": pct, "subs": cnt, "ready": ready}
+
     def list_(self, a):
-        for t in self._all():
+        tasks = self._all()
+        st = (getattr(a, "status", None) or "").strip()
+        if st:
+            if st in ("open", "unfinished", "未完成"):
+                tasks = [t for t in tasks if t["status"] != S_DONE]
+            else:
+                wanted = {_STATUS_ALIAS.get(x.strip(), x.strip()) for x in st.split(",")}
+                bad = wanted - {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}
+                if bad:
+                    raise SystemExit(
+                        f"未知 status: {', '.join(sorted(bad))} — 可选 "
+                        f"待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成")
+                tasks = [t for t in tasks if t["status"] in wanted]
+        if getattr(a, "json", False):
+            print(json.dumps([self._brief(t) for t in tasks],
+                             ensure_ascii=False, separators=(",", ":")))
+            return
+        for t in tasks:
             print(f"{t['id']}\t{t['status']}\t{t['name']}")
 
     def contract(self, a):
@@ -1477,7 +1515,10 @@ def main():
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
     sub.add_parser("pop", help="只读提取一个可执行 (task, subtask) 对 (active task 内首个就绪 subtask; 仅选取, 是否执行交 AI 判)")
-    sub.add_parser("list", help="列所有 task (含状态)")
+    li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
+    li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
+    li.add_argument("--json", action="store_true",
+                    help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
     sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")

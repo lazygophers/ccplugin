@@ -14,8 +14,8 @@ effort: low
 
 - **有入参 `<task-id>`** → 把请求**强制作为 SKEIN task 处理** (不 inline, 即使看似简单), 调用即「建 task 同意」。判新旧: 全新→新建 / 补充现有 active→并入 (裁定不准用 `AskUserQuestion`) → 加载 `skein-flow` 走**完整闭环** (plan→exec→check→finish, flow 承载, 本 skill 不复制)。
 - **无入参 (空)** → 不建新 task, **驱动 `.skein` 内既有 task 走闭环**:
-  1. `skein.py ready` (就绪批: pending+前置全 done+有空闲槽) + `skein.py current` (已 active)。
-  2. 无就绪且无 active → 报「无待执行 task」结束。
+  1. `skein.py list --status open --json` (**一次取全部未完成 task 的压缩 JSON, 省 token**): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中` 即 active, `status=待处理 && ready=true` 即就绪批 (可 start)。不再分别跑 `ready`/`current`/直读 task.json。
+  2. 无就绪 (无 `ready=true` 的 pending) 且无 active → 报「无待执行 task」结束。
   3. 有 → 对每个就绪/active task 加载 `skein-flow`: 已 planning 完成的从 exec 起 (直接下方调度门), 未 planning 的先补 plan。task 级并发上限 `max_active` (默认 2), ready 即派 / 完成即派 / 冲突或 `depends_on` 未满足则串行等。
   4. 全部 done → 报告完成。
 - **前置**: 无 `.skein/` → 先 `skein.py init` 再继续。

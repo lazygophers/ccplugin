@@ -19,6 +19,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
+| `list --status open --json` | main (取未完成) | **一次取全部未完成 task 压缩 JSON** (省 token, 替代分别跑 `current`+`ready`+直读 task.json): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}`; `ready=true` 的 pending 即就绪批 |
 
 ## 调度循环 (动态, 完成即派)
 
