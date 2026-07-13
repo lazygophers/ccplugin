@@ -979,10 +979,11 @@ class Skein:
         node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
                     S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
-        def dag_html(nodes, tips=None):
+        def dag_html(nodes, tips=None, links=None):
             # nodes: [(id, name, status, deps, pct, desc)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
             # pct/desc 可缺 (老三元组兼容): 节点框显 id + 完成% + 名字 + desc
             # tips: {id: html} -> 该节点悬浮浮层内容 (subtask DAG + 总进度条), switcher.js 绑定 hover 显隐
+            # links: {id: href} -> 该节点包 <a> 点击跳转 (task 节点 -> 对应卡片锚点)
             if len(nodes) < 2:
                 return ""
             ids = {n[0] for n in nodes}
@@ -1038,9 +1039,11 @@ class Skein:
                 desc_txt = (f'<text x="{x + 12}" y="{y + 50}" font-size="9" '
                             f'fill="var(--muted)">{esc(desc2)}</text>') if desc2 else ""
                 has_tip = tips and i in tips
+                has_link = links and i in links
                 g_attr = (f' data-tip="{esc(i)}"' if has_tip else "")
-                g_cls = (node_cls.get(stt, "") + (" has-tip" if has_tip else "")).strip()
-                boxes.append(
+                g_cls = (node_cls.get(stt, "") + (" has-tip" if has_tip else "")
+                         + (" has-link" if has_link else "")).strip()
+                g = (
                     f'<g class="{g_cls}"{g_attr}><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
                     f'fill="var(--bg)" stroke="var(--brd)"/>'
                     f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
@@ -1049,6 +1052,9 @@ class Skein:
                     f'{pct_txt}'
                     f'<text x="{x + 12}" y="{y + 34}" font-size="11" fill="var(--fg)">{esc(nm2)}</text>'
                     f'{desc_txt}</g>')
+                if has_link:
+                    g = f'<a href="{esc(links[i])}">{g}</a>'
+                boxes.append(g)
             svg = (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
                    f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
             if not tips:
@@ -1109,7 +1115,9 @@ class Skein:
         task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
                        task_pct(t), t.get("desc", "")) for t in tasks]
         # 概览 task 节点悬浮浮层: 该 task 的总进度条 + subtask DAG (单 subtask 无图则列表兜底)
+        # links: 点击 task 节点跳到对应卡片锚点 (#task-<id>)
         tips = {}
+        links = {t["id"]: f'#task-{t["id"]}' for t in tasks}
         for t in tasks:
             subs = t.get("subtasks", [])
             snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
@@ -1142,8 +1150,8 @@ class Skein:
             f'剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
             f'<p class="meta">综合完成率</p>{bar(overall)}'
             f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
-            f'<p class="meta">task 级执行顺序 (悬浮节点看 subtask 图 + 总进度)</p>'
-            f'{dag_html(task_nodes, tips)}{combined_dag}</section>')
+            f'<p class="meta">task 级执行顺序 (悬浮节点看 subtask 图 + 总进度, 点击跳到该 task)</p>'
+            f'{dag_html(task_nodes, tips, links)}{combined_dag}</section>')
 
         cards = []
         for t in tasks:
@@ -1170,7 +1178,7 @@ class Skein:
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
             cards.append(
-                f'<section class="card" data-status="{esc(t["status"])}">'
+                f'<section class="card" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}">'
                 f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
