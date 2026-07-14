@@ -41,7 +41,7 @@ flowchart TD
 
     subgraph EXEC[④ exec — main 调度, 动态 DAG]
         SCHED[拆 subtask + 算 DAG] --> READY{有 ready subtask?}
-        READY -->|是, 并发<2| DISPATCH[选合适 agent<br/>无则 general-purpose<br/>worktree 内执行]
+        READY -->|是, 并发<2| DISPATCH[选合适 agent<br/>无则 skein-executor<br/>worktree 内执行]
         DISPATCH --> DONE[完成即回传 + 查新 ready]
         DONE --> READY
         READY -->|全完成| EXECEND[exec 结束]

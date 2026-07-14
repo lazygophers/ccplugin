@@ -653,7 +653,7 @@ class Skein:
             skl = ",".join(s.get("skills", [])) or "-"
             chk = "; ".join(s.get("验收", [])) or "-"
             print(f"task\t{t['id']}\t{t['name']}\tworktree: {wt}")
-            print(f"subtask\t{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'general-purpose')}\tskills: {skl}\t前置: {deps}")
+            print(f"subtask\t{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}\tskills: {skl}\t前置: {deps}")
             print(f"desc\t{s.get('desc') or '-'}")
             print(f"验收\t{chk}")
             print("— 决定执行后, 认领就绪批(整批标 running): "
@@ -774,16 +774,16 @@ class Skein:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
             if not t.get("subtasks"):
                 errs.append(f"{tid}: 无 subtask — 每个 task 至少 1 个 subtask (planning 需拆 subtask add 登记)")
+            # worktree 全量硬性: 每个 task 必须有 worktree 且路径存在 (不分状态/git 与否)
+            wts = self._wts(t)
+            if not wts:
+                errs.append(f"{tid}: 无 worktree — 每个 task 必须有 worktree")
+            for w in wts:
+                if not (self.root / w["wt"]).exists():
+                    errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
             if t.get("status") in STATUS_ACTIVE:
                 if not t.get("started"):
                     warns.append(f"{tid}: active 但 started 未置")
-                wts = self._wts(t)
-                declared = t.get("repos") or []
-                if (self.git or declared) and not wts:
-                    warns.append(f"{tid}: active (git 仓/声明 repos) 但 worktree 未置")
-                for w in wts:
-                    if not (self.root / w["wt"]).exists():
-                        errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
             if t.get("status") == S_DONE and not t.get("finished"):
                 warns.append(f"{tid}: 已完成但 finished 时刻未置")
             # subtask 层
@@ -992,7 +992,7 @@ class Skein:
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
                 "status": SS_PENDING,
                 "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
-                "agent": a.agent,  # 执行 agent (必填, 无合适则显式填 general-purpose)
+                "agent": a.agent or "skein-executor",  # 执行 agent (省略默认 skein-executor)
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
                 "started": None,    # exec 时刻 (claim/start →运行中 时置)
@@ -1011,7 +1011,7 @@ class Skein:
                 deps = ",".join(s.get("depends_on", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
                 sk = ",".join(s.get("skills", [])) or "-"
-                ag = s.get("agent", "general-purpose")
+                ag = s.get("agent", "skein-executor")
                 print(f"{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{deps}\t验收:{chk}\tagent:{ag}\tskills:{sk}")
             return
         if a.action in ("ready", "claim"):
@@ -1036,7 +1036,7 @@ class Skein:
             for s in batch:
                 sk = ",".join(s.get("skills", [])) or "-"
                 chk = "; ".join(s.get("验收", [])) or "-"
-                print(f"{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'general-purpose')}\tskills: {sk}"
+                print(f"{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}\tskills: {sk}"
                       f"\t验收: {chk}")
             return
         # start / done / fail 均针对单 sid
@@ -1088,7 +1088,7 @@ class Skein:
             deps = ",".join(s.get("depends_on", [])) or "-"
             chk = "; ".join(s.get("验收", [])) or "-"
             sk = ",".join(s.get("skills", [])) or "-"
-            ag = s.get("agent", "general-purpose")
+            ag = s.get("agent", "skein-executor")
             rows.append(f"| {s['sid']} | {s['name']} | {s['status']} | {_sub_pct(s)}% | {ag} | {sk} | {deps} | {chk} |")
         body = "\n".join(rows) if rows else "| - | - | - | - | - | - | - | - |"
         md = (
@@ -1449,7 +1449,7 @@ class Skein:
                 f'<td>{badge(s["status"], ss_cls)}</td>'
                 f'<td>{bar(_sub_pct(s), sub=True)}</td>'
                 f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
-                f'<td>{esc(s.get("agent", "general-purpose"))}</td>'
+                f'<td>{esc(s.get("agent", "skein-executor"))}</td>'
                 f'<td>{esc(",".join(s.get("skills", [])) or "-")}</td>'
                 f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
                 f'<td>{esc("; ".join(s.get("验收", [])) or "-")}</td></tr>' for s in subs)
@@ -1881,7 +1881,7 @@ def main():
     st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "done", "fail", "list"],
                     help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
-    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/desc/agent 四者必填)")
+    st.add_argument("sid", nargs="?", help="subtask id (add/start/done/fail 必带; add 时 sid/name/desc 必填, agent 默认 skein-executor)")
     st.add_argument("--name", help="[add 必填] subtask 名称")
     st.add_argument("--desc", help="[add 必填] 一句话描述")
     st.add_argument("--deps", help="[add] 前置 subtask id, 逗号分隔 (依赖全 done 才就绪; 并行只看此 DAG)")
@@ -1889,7 +1889,7 @@ def main():
     st.add_argument("--note", help="[fail] 失败备注")
     st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
     st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
-    st.add_argument("--agent", help="[add 必填] 关联执行 agent (无合适则显式填 general-purpose)")
+    st.add_argument("--agent", help="关联执行 agent (省略默认 skein-executor; 有更合适的显式填)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
     # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag), 再据此建 DBG
@@ -1904,9 +1904,9 @@ def main():
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if getattr(a, "cmd", None) == "subtask" and a.action == "add":
-        missing = [f for f, v in (("--name", a.name), ("--desc", a.desc), ("--agent", a.agent)) if not v]
+        missing = [f for f, v in (("--name", a.name), ("--desc", a.desc)) if not v]
         if missing:
-            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc/agent 四者缺一不可)")
+            p.error(f"subtask add 必填: {', '.join(missing)} (sid/name/desc 缺一不可; agent 省略默认 skein-executor)")
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。

@@ -7,13 +7,13 @@
 | 角色 | 是谁 | 干什么 | 有 Agent/Task 工具? |
 | --- | --- | --- | --- |
 | **main** | 主对话 (coordinator) | 调度器: 跑 `skein.py` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
-| **执行者** | main 选的合适 agent (无则 `general-purpose`) | worktree 内执行 **1 个** subtask, 写代码 | 有 (递归护栏靠 dispatch prompt 硬性禁止再派) |
+| **执行者** | main 选的合适 agent (无则 `skein-executor`) | worktree 内执行 **1 个** subtask, 写代码 | 有 (递归护栏靠 dispatch prompt 硬性禁止再派) |
 | **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 | **skein-finisher** | 收尾勘察 agent (绑 `skein-finish`) | 只读, finish 前扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏 | 无 |
 | **skein-memorier** | 记忆员 agent (绑 `skein-memory`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选) | 无 |
 
-**铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `general-purpose`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
+**铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `skein-executor`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
 `skein.py` 的 `create/start/finish/archive` 是任务记录管理, 由 main **同步**直接跑, 不派 agent、不算实质工作。
 
@@ -50,7 +50,7 @@ grill 通过 + 你评审确认 → `skein.py start`:
 main 作调度器跑**动态 DAG 调度循环**:
 
 - 读 task.json 的 `subtasks[]` (planning 已用 `subtask add` 登记), 按显式 `depends_on` 组成 DAG (并行只看这张 DAG, 无写文件冲突自算)。
-- **ready 即派** — 为每个 subtask 选合适 agent (无则 `general-purpose`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
+- **ready 即派** — 为每个 subtask 选合适 agent (无则 `skein-executor`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
 - **读后写硬门 + 验收标准自检**: 改哪些文件由执行 agent 在 worktree 内**自主决定** (给自主权), 完成前对照 planning 登记的**验收标准 checklist** 逐条自检。执行 agent 收 subtask 后, 对每个待改文件必过**写前硬门**: 先 `Read` 全文 → 复述适用契约 (只复述契约, 不含 reason) → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
@@ -61,7 +61,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没), 并做 **subtask 产物一致性核查** (接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾, 逐条报冲突对)。
 
 **处置分两路** (关键): 
-- **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 派合适 agent (无则 `general-purpose`) 只改失败相关文件, 重检。
+- **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 派合适 agent (无则 `skein-executor`) 只改失败相关文件, 重检。
 - **一致性冲突 或 check 失败根因跨 subtask** → **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein.py plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
 
 **第 3 轮仍 FAIL → 根因复盘**: 不再只停手, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② 停手并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
@@ -87,7 +87,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 
 | 层 | 调度对象 | 上限 |
 | --- | --- | --- |
-| **subtask 级** | 单 task 内的 subtask (为每个选合适 agent, 无则 `general-purpose`) | 并发 2 |
+| **subtask 级** | 单 task 内的 subtask (为每个选合适 agent, 无则 `skein-executor`) | 并发 2 |
 | **task 级** | 同 session 多个 active task | active 集 ≤ 2 |
 
 **DAG 边怎么来**: **并行只看显式 `depends_on` DAG** (无写文件冲突自算 — 真正有序的关系靠 planning 写进 `depends_on`, 不靠脚本猜写文件重叠)。
@@ -100,7 +100,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 ```
 拆好 → subtask add …               (逐个登记 sid/deps/check 验收标准)
   ┌── subtask claim <tid>          ← 脚本算就绪批 + 整批标 running (一步到位)
-  │      ↓ 非空: 逐个为 subtask 选合适 agent (无则 general-purpose) 执行 (无需再 start)
+  │      ↓ 非空: 逐个为 subtask 选合适 agent (无则 skein-executor) 执行 (无需再 start)
   │      ↓ agent 回: subtask check --passed "1,3" (勾验收→百分比) → done/fail → 立即回传
   └──────┘  循环至 claim 恒空且无 running
 ```
@@ -176,7 +176,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 | 护栏 | 怎么实现 | 挡住什么 |
 | --- | --- | --- |
 | task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein.py 直接读写状态/看板 → 格式漂移或态不一致 |
-| Recursion Guard | 具名 agent (checker/researcher) 无 Agent/Task 工具; 执行者 (general-purpose 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派 | subagent 自派 → 递归爆炸 |
+| Recursion Guard | 具名 agent (checker/researcher) 无 Agent/Task 工具; 执行者 (skein-executor 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | git 仓库内: 有 task 必有 worktree (非 git 仓库降级原地执行) | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
 | 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |

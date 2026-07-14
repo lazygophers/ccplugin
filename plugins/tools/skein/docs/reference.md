@@ -39,13 +39,13 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态。另: 向 `$CLAUDE_ENV_FILE` 追加 `export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1` (幂等, **先于 gitroot 判定, 与 git 无关**), 使 Bash 命令保持项目工作目录 —— 随插件 SessionStart hook 发货, 不落用户项目 settings (plugin.json 无 env 字段)。微服务/前后端分离场景 cwd 无 git (子目录各自是仓) 时照样写入, 恰是最需要该 env 的场景 |
 | `user-prompt` | — | (UserPromptSubmit hook 调) 每次用户 prompt 注入 task 判定提醒 (是任务则走 skein-flow 闭环); 非 git 仓静默 exit 0 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
-| `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--check "断言;断言"` `--passed "1,2"` `--note <文本>` `--estimate <分钟>` `--agent <名>` `--skills "a,b"` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `check` 勾验收(算完成百分比) / `done` 完成 / `fail` 失败 / `list` 列态。add/start/check/done/fail 必带 `sid`。`--check` = 验收标准 checklist (分号分隔, 每条一个可验断言), `--passed` = `check` 时已通过验收序号 (1-based 逗号分隔; `all`=全过, `none`=清空), `--note` = `fail` 时的失败备注。`--agent` = 执行 agent (省略默认 `general-purpose`), `--skills` = 关联 skills 逗号分隔 (0-n) |
+| `subtask <action> <tid> [sid]` | `--name` `--deps "s1,s2"` `--check "断言;断言"` `--passed "1,2"` `--note <文本>` `--estimate <分钟>` `--agent <名>` `--skills "a,b"` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `check` 勾验收(算完成百分比) / `done` 完成 / `fail` 失败 / `list` 列态。add/start/check/done/fail 必带 `sid`。`--check` = 验收标准 checklist (分号分隔, 每条一个可验断言), `--passed` = `check` 时已通过验收序号 (1-based 逗号分隔; `all`=全过, `none`=清空), `--note` = `fail` 时的失败备注。`--agent` = 执行 agent (省略默认 `skein-executor`), `--skills` = 关联 skills 逗号分隔 (0-n) |
 
 **task.json 字段**: `id / name / desc / status / deps / worktree / branch / created / started / finished / updated / contracts / subtasks`。
-**subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / 验收 / 验收done / estimate / agent / skills / created / started / finished / status` (pending→running→done/failed; 运行时失败才追加 `note`)。`验收` = 验收标准 checklist (字符串数组), `验收done` = 已通过验收序号 (1-based 数组; `check` 更新, `done` 自动填满)。`agent` 缺省 `general-purpose`, `skills` 缺省空数组。
+**subtask 字段** (`subtasks[]` 内): `sid / name / depends_on / 验收 / 验收done / estimate / agent / skills / created / started / finished / status` (pending→running→done/failed; 运行时失败才追加 `note`)。`验收` = 验收标准 checklist (字符串数组), `验收done` = 已通过验收序号 (1-based 数组; `check` 更新, `done` 自动填满)。`agent` 缺省 `skein-executor`, `skills` 缺省空数组。
 **时间戳字段** (task 顶层 + 每个 subtask, 值均为 Unix epoch 秒整数): `created` = 创建时刻; `started` = exec 首次激活/start 时置, **幂等** (重认领/重启不覆盖首次 exec 时刻); `finished` = done/finish 时置。task.html 用这三个配合 `estimate` 显示「预期 vs 实际」耗时。
 **subtask 完成百分比**: `_sub_pct` = `done` 强制 100%; 否则 = `len(验收done)/len(验收)`; 无验收标准则未完成即 0%。执行 agent 逐条自检后用 `subtask check <tid> <sid> --passed "1,3"` 回报已过条目, 看板 (task.md/task.html) 按此渲染每 subtask 进度条; task 综合完成率 = 各 subtask 百分比均值。
-**subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 按各 subtask 关联的 `agent` (省略即 `general-purpose`) + `skills` dispatch 执行 → agent 完成前逐条自检可 `subtask check` 回报进度 → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖 (`depends_on`) 全 done, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
+**subtask 调度环** (main 驱动): `subtask claim <tid>` 一次性认领就绪批 (整批标 running, 免逐个 start) → 按各 subtask 关联的 `agent` (省略即 `skein-executor`) + `skills` dispatch 执行 → agent 完成前逐条自检可 `subtask check` 回报进度 → 完成即 `subtask done/fail` → 再 `claim`。就绪 = pending + 依赖 (`depends_on`) 全 done, 截到空闲槽 (`max_parallel`)。**脚本算+改态一步到位, main 只派 agent** (脚本不能 spawn)。`ready` 是只读预览版 (不改态), `start` 是单个手动补派 (retry 用)。
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: **人工传入的可读 slug** (create 必填首参), 从 id 即可知含义 (如 `order-create-api`), 非随机生成。格式 = kebab-case (`^[a-z0-9][a-z0-9-]*$`, 小写字母/数字/连字符, 字母数字开头), 兼作 git 分支名 (`skein/<id>`) + 目录名。全局唯一, 含已归档的不可复用, 非法/重复即报错。
 
@@ -89,7 +89,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 ## Agents (5 个具名 + 执行选现有 agent)
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `general-purpose`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `skein-executor`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |

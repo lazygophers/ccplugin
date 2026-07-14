@@ -7,7 +7,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | 名词 | 是什么 |
 | --- | --- |
 | **task** | 一条闭环任务记录, 存 `.skein/task/<id>/`, 由 `skein.py` 管理。id 为**可读描述性 slug** (kebab-case, 如 `order-create-api`), 人工传入, 兼作分支名 + 目录名; 禁 `t01` 这类字母+数字代号 (脚本硬拒), 含归档不可复用。 |
-| **subtask** | 单个 task 内的执行单元, 存 per-task task.json 的 `subtasks[]`, id 形如 `s1`。每个关联一个 `agent` (省略默认 `general-purpose`) + 0-n 个 `skills`, main 据此 dispatch 执行。 |
+| **subtask** | 单个 task 内的执行单元, 存 per-task task.json 的 `subtasks[]`, id 形如 `s1`。每个关联一个 `agent` (省略默认 `skein-executor`) + 0-n 个 `skills`, main 据此 dispatch 执行。 |
 | **闭环** | `plan → exec → check → finish` 四阶段, 不可跳步。**未 archive = 未完成**。 |
 | **active 集** | 同 session 内所有 `进行中` 的 task。上限 `max_active` (默认 2)。无 task 级 focus — 无未完成前置的 task 皆可并行, 命令 (finish 等) 必带 id。 |
 | **状态流转** | task: `待处理 → 进行中 → 已完成` (已完成移入 archive/)；`检查中` 为 check 阶段中间态。subtask: `待处理 → 运行中 → 已完成/失败`。状态中文落盘。 |
@@ -55,10 +55,10 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | 名词 | 是什么 |
 | --- | --- |
 | **main (调度器)** | 主对话 agent。跑 task 生命周期脚本 + 编排派 agent + 用户交互 + 完成回传。默认禁写源码。 |
-| **执行者 (executor)** | worktree 内写 1 个 subtask 代码的 agent。**不是具名 agent** — main 按 subtask 性质选一个合适的现有 agent (无合适的用 `general-purpose`); 改哪些文件由其在 worktree 内自主决定, 完成前对照 planning 登记的验收标准 checklist 逐条自检; 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。 |
+| **执行者 (executor)** | worktree 内写 1 个 subtask 代码的 agent。**不是具名 agent** — main 按 subtask 性质选一个合适的现有 agent (无合适的用 `skein-executor`); 改哪些文件由其在 worktree 内自主决定, 完成前对照 planning 登记的验收标准 checklist 逐条自检; 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。 |
 | **skein-checker** | 验证 agent, 只读跑 lint/type/test/契约合规。`model: sonnet + effort: medium`。 |
 | **skein-researcher** | 调研 agent, planning 选型对比 + bootstrap 扫既有约定, 过程笔记落 `research/`, 收敛结论进 `findings.md`。 |
-| **Recursion Guard** | 防 agent 自派 subagent 递归爆炸。具名 agent (checker/researcher) 靠工具集不含 Agent/Task 兜住; 执行者 (general-purpose 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派承载。 |
+| **Recursion Guard** | 防 agent 自派 subagent 递归爆炸。具名 agent (checker/researcher) 靠工具集不含 Agent/Task 兜住; 执行者 (skein-executor 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派承载。 |
 
 ## 脚本管理的文件 (AI 禁读写)
 
