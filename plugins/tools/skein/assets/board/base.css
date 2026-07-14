@@ -24,12 +24,13 @@ body{
 h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var(--head)}
 
 /* 两栏布局: 左=总计栏 (sticky 常驻, 内含 task DAG 上往下), 右=task 卡片流.
-   左:右 = 6:4; 窄屏 (<900) 回落单列纵向堆叠 */
-.layout{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,4fr);gap:18px;align-items:start;margin-top:14px}
-.col-side{position:sticky;top:14px}
-.col-side .card{margin-bottom:0}
+   左:右 = 5:5; 窄屏 (<900) 回落单列纵向堆叠 */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-top:14px}
+/* 左栏固定视口高度且粘附: 右栏滚动时左栏纹丝不动 (内容超高时卡片内部滚动) */
+.col-side{position:sticky;top:14px;height:calc(100vh - 28px)}
+.col-side .card{margin-bottom:0;height:100%;overflow:auto}
 .col-main{min-width:0}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static;height:auto}.col-side .card{height:auto}}
 
 .card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:16px}
 /* 跳转高亮: 锚点命中卡片短暂描边强调 (:target) */

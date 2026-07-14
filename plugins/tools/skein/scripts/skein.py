@@ -1128,24 +1128,51 @@ class Skein:
             COL, ROW = NW + 34, NH + 20
             nlayer = max(layers) + 1
             span = max(len(v) for v in layers.values())
+            # 交叉削减 (Sugiyama 重心法): 迭代按相邻层邻居的平均序位重排各层, 减连线交叉、让子节点自然对到父节点下方,
+            # 避免节点全堆左侧、连线乱交叉。上行看子、下行看父, 往返数轮收敛。
+            kids = {i: [] for i in ids}
+            for i in ids:
+                for p in dep[i]:
+                    kids[p].append(i)
+            col_of = {i: k for d in layers for k, i in enumerate(layers[d])}
+            def _bary(i, nb):
+                ns = nb[i]
+                return sum(col_of[n] for n in ns) / len(ns) if ns else col_of[i]
+            for _ in range(4):
+                for d in sorted(layers)[1:]:            # 下行: 按父重心排
+                    layers[d].sort(key=lambda i: _bary(i, dep))
+                    for k, i in enumerate(layers[d]):
+                        col_of[i] = k
+                for d in sorted(layers, reverse=True)[:-1]:  # 上行: 按子重心排
+                    layers[d].sort(key=lambda i: _bary(i, kids))
+                    for k, i in enumerate(layers[d]):
+                        col_of[i] = k
             # 朝向: 默认 layer→列 (左右向); 但左右向宽 > 1180 (超典型正文宽必横向滚动) 转纵向 (layer→行, 上往下),
             # 纵向列数 = 单层并行节点数, 通常更少, 更可能一屏放下、只需纵向滚动。
             vertical = force_vertical or nlayer * COL + 10 > 1180
             if vertical:
-                # 同层并行节点横排, 但一行最多 PER=5 个, 超出折到下一行 (免过宽被缩糊)
-                PER = 5
+                # 同层并行节点横排, 一行最多 PER=4 个 (超出折行免过宽被缩糊); 每视觉行水平居中 → 金字塔铺开非左堆
+                PER = 4
+                maxcols = min(span, PER)
                 pos, roff = {}, 0  # roff = 已累计占用行数
                 for d in sorted(layers):
                     ids_ = layers[d]
-                    for idx, i in enumerate(ids_):
-                        sub, col = divmod(idx, PER)
-                        pos[i] = (col * COL + 10, (roff + sub) * ROW + 10)
-                    roff += (len(ids_) + PER - 1) // PER  # ceil
-                W = min(span, PER) * COL + 10
+                    nrow = (len(ids_) + PER - 1) // PER
+                    for sub in range(nrow):
+                        chunk = ids_[sub * PER:(sub + 1) * PER]
+                        off = (maxcols - len(chunk)) * COL // 2  # 居中该视觉行
+                        for col, i in enumerate(chunk):
+                            pos[i] = (off + col * COL + 10, (roff + sub) * ROW + 10)
+                    roff += nrow
+                W = maxcols * COL + 10
                 H = roff * ROW + 10
             else:
-                pos = {i: (d * COL + 10, r * ROW + 10)
-                       for d, ids_ in layers.items() for r, i in enumerate(ids_)}
+                # 每列 (执行波次) 垂直居中 → 对称铺开非顶堆
+                pos = {}
+                for d, ids_ in layers.items():
+                    off = (span - len(ids_)) * ROW // 2
+                    for r, i in enumerate(ids_):
+                        pos[i] = (d * COL + 10, off + r * ROW + 10)
                 W = nlayer * COL + 10
                 H = span * ROW + 10
             lines = []
