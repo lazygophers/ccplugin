@@ -246,6 +246,26 @@ class Skein:
         out.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         return out
 
+    def _render_tasks(self) -> list:
+        # 看板专用读取: per-task 目录是真值源, 有就用; 若目录被删/迁移丢失但顶层 task.json 镜像仍有 task,
+        # 则从镜像重建骨架渲染 (仅 id/status/deps/worktree + name=id, 无 subtask/desc), 免看板静默空白。
+        # 只服务 _board / _board_html 只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
+        # ponytail: 镜像无 name 字段 → 降级用 id 当名; 要恢复完整 task 需从有 per-task 目录的分支 checkout。
+        tasks = self._all()
+        if tasks:
+            return tasks
+        mirror = self.dir / "task.json"
+        if not mirror.exists():
+            return tasks
+        try:
+            rows = json.loads(mirror.read_text()).get("tasks", [])
+        except (json.JSONDecodeError, OSError):
+            return tasks
+        rebuilt = [{"id": t["id"], "name": t.get("name", t["id"]), "status": t["status"],
+                    "deps": t.get("deps", []), "worktree": t.get("worktree")} for t in rows]
+        rebuilt.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
+        return rebuilt
+
     def _archived_path(self, tid):
         # 归档嵌套: archive/<年>/<月-日>/<id>
         hits = list(self.archive_dir.glob(f"*/*/{tid}")) if self.archive_dir.exists() else []
@@ -856,7 +876,7 @@ class Skein:
 
     def _board(self, _):
         rows = []
-        for t in self._all():
+        for t in self._render_tasks():
             deps = ",".join(t["deps"]) or "-"
             wt = t.get("worktree") or "-"  # 已是相对路径
             rows.append(f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |")
@@ -1235,7 +1255,7 @@ class Skein:
         tnow = now()
         # 排序: 状态分组 (进行中→检查中→待处理→已完成), 组内按执行时间(started)倒序 (新执行在前; 未启动 started=None 视 0)
         _srank = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
-        tasks = sorted(self._all(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
+        tasks = sorted(self._render_tasks(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
         name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
 
         def elapsed_of(t):
