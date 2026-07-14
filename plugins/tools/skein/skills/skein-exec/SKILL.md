@@ -45,6 +45,7 @@ while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 
 - **并发上限 2 / 完成即派** — 任一返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不等一批跑完。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 下游保持未 ready; main 转达用户/补信息后重派, 禁标完成、禁放行下游。
 - **subtask 报错 → 不推进** — 按 dispatch 失败处理缩范围重试; 反复失败 → 停并回传, 禁跳过继续。
+- **exec 中发现独立新问题 → 自主拆新 task, 禁扩当前 scope** — subagent 回传暴露超出本 task 边界的问题 (新缺陷 / 新需求 / 需单独验收的关联改动), main 自主走 `skein-plan` / `skein create` 登记为**新排队 task** (与当前 task 有先后用 `--deps` 连边, 无则并行; active 集 ≤ 2 自动排队), 禁塞进当前 task 扩范围、禁临时加 subtask 混入。当前 task 按原 scope 收束。
 
 ## 两条硬规
 
@@ -65,4 +66,4 @@ subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein
 
 ## 反例
 
-违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / 派出异步任务后不输出任务清单 / 用本 skill 做需求方案设计 (那归 skein-plan) / 单 subtask 硬上 subagent-team (应优先单 subagent) / 载体产出后滞留空转不退出 (应及早退出)。
+违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / 派出异步任务后不输出任务清单 / 用本 skill 做需求方案设计 (那归 skein-plan) / 单 subtask 硬上 subagent-team (应优先单 subagent) / 载体产出后滞留空转不退出 (应及早退出) / exec 中发现独立新问题却塞进当前 task 扩 scope (应自主拆新排队 task)。
