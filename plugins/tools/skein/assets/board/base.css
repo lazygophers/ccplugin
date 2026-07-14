@@ -74,15 +74,16 @@ td .bar{margin:1px 0;min-width:78px}
 @keyframes badge-run{0%,100%{opacity:1}50%{opacity:.6}}
 
 /* DAG 节点悬浮浮层: 概览 task 节点 hover 弹出该 task 的总进度条 + subtask 迷你 DAG (JS 定位显隐) */
-/* 过长 DAG 滚动: 横向超卡宽 / 纵向超 78vh 即出滚动条 (svg 固有尺寸不缩) */
-.dag-wrap{position:relative;overflow:auto;max-width:100%;max-height:78vh}
+/* 过长 DAG 内部滚动: 固定高度上限 460px, 超出即容器内纵向/横向滚动 (svg 固有尺寸不缩),
+   让整页仍可滚动而非被高节点顶满一屏 */
+.dag-wrap{position:relative;overflow:auto;max-width:100%;max-height:460px}
 .dag-wrap svg .has-tip{cursor:pointer}
 .dag svg a,.dag a{cursor:pointer}
 .dag a .has-link,.dag .has-link{cursor:pointer}
 /* SVG <a> 链接节点: hover 描边加深提示可点 */
 .dag a:hover rect:first-of-type{stroke-width:2}
-/* 浮层内迷你 DAG 不固定裁切: 超 max-width/max-height 即内部滚动 (节点框自适应变宽后不被切) */
-.dag-tip{display:none;position:absolute;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px;max-height:70vh;overflow:auto}
+/* 浮层用 position:fixed (视口坐标) 逃逸 .dag-wrap 的 overflow:auto 裁剪 (否则绝对定位子元素被容器切掉、看似"悬浮没了"). JS 按视口坐标定位. 超 max 即内部滚动 */
+.dag-tip{display:none;position:fixed;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px;max-height:70vh;overflow:auto}
 .dag-tip .dag{margin:2px 0 0}
 .dag-tip .bar{margin-bottom:10px}
 

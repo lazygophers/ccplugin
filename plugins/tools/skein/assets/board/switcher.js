@@ -34,10 +34,15 @@
       var tip=wrap.querySelector('.dag-tip[data-for="'+g.getAttribute('data-tip')+'"]');
       if(!tip)return;
       g.addEventListener('mouseenter',function(){
-        var gb=g.getBoundingClientRect(),wb=wrap.getBoundingClientRect();
-        tip.style.left=(gb.left-wb.left)+'px';
-        tip.style.top=(gb.bottom-wb.top+6)+'px';
+        // tip 是 position:fixed → 用视口坐标定位, 逃逸 .dag-wrap 的 overflow 裁剪
         tip.style.display='block';
+        var gb=g.getBoundingClientRect(),tb=tip.getBoundingClientRect();
+        var vw=window.innerWidth,vh=window.innerHeight;
+        var left=Math.min(gb.left,vw-tb.width-8);
+        // 下方放不下则翻到节点上方
+        var top=gb.bottom+6+tb.height>vh?gb.top-tb.height-6:gb.bottom+6;
+        tip.style.left=Math.max(8,left)+'px';
+        tip.style.top=Math.max(8,top)+'px';
       });
       g.addEventListener('mouseleave',function(){tip.style.display='none';});
     });

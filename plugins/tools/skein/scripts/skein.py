@@ -1097,22 +1097,44 @@ class Skein:
                 need = max(need, idrow + PAD * 2, txtw(n[1], 12) + PAD * 2, txtw(dsc, 10) + PAD * 2)
             NW = int(need + 0.999)
             COL, ROW = NW + 34, NH + 20
-            pos = {i: (d * COL + 10, r * ROW + 10)
-                   for d, ids_ in layers.items() for r, i in enumerate(ids_)}
-            W = (max(layers) + 1) * COL + 10
-            H = max(len(v) for v in layers.values()) * ROW + 10
+            nlayer = max(layers) + 1
+            span = max(len(v) for v in layers.values())
+            # 朝向: 默认 layer→列 (左右向); 但左右向宽 > 1180 (超典型正文宽必横向滚动) 转纵向 (layer→行, 上往下),
+            # 纵向列数 = 单层并行节点数, 通常更少, 更可能一屏放下、只需纵向滚动。
+            vertical = nlayer * COL + 10 > 1180
+            if vertical:
+                pos = {i: (r * COL + 10, d * ROW + 10)
+                       for d, ids_ in layers.items() for r, i in enumerate(ids_)}
+                W = span * COL + 10
+                H = nlayer * ROW + 10
+            else:
+                pos = {i: (d * COL + 10, r * ROW + 10)
+                       for d, ids_ in layers.items() for r, i in enumerate(ids_)}
+                W = nlayer * COL + 10
+                H = span * ROW + 10
             lines = []
             for i in ids:
                 x2, y2 = pos[i]
-                ey = y2 + NH / 2
                 for p in dep[i]:
                     x1, y1 = pos[p]
-                    sx, sy = x1 + NW, y1 + NH / 2
-                    mx = (sx + x2) / 2
-                    lines.append(
-                        f'<path d="M{sx},{sy} C{mx},{sy} {mx},{ey} {x2 - 2},{ey}" fill="none" '
-                        f'stroke="var(--muted)" stroke-width="1.5"/>'
-                        f'<polygon points="{x2 - 8},{ey - 4} {x2},{ey} {x2 - 8},{ey + 4}" fill="var(--muted)"/>')
+                    if vertical:
+                        # dep 在上、node 在下: 父下缘中点 → 子上缘中点, 箭头朝下
+                        sx, sy = x1 + NW / 2, y1 + NH
+                        ex, ey = x2 + NW / 2, y2
+                        my = (sy + ey) / 2
+                        lines.append(
+                            f'<path d="M{sx},{sy} C{sx},{my} {ex},{my} {ex},{ey - 2}" fill="none" '
+                            f'stroke="var(--muted)" stroke-width="1.5"/>'
+                            f'<polygon points="{ex - 4},{ey - 8} {ex},{ey} {ex + 4},{ey - 8}" fill="var(--muted)"/>')
+                    else:
+                        # dep 在左、node 在右: 父右缘中点 → 子左缘中点, 箭头朝右
+                        ey = y2 + NH / 2
+                        sx, sy = x1 + NW, y1 + NH / 2
+                        mx = (sx + x2) / 2
+                        lines.append(
+                            f'<path d="M{sx},{sy} C{mx},{sy} {mx},{ey} {x2 - 2},{ey}" fill="none" '
+                            f'stroke="var(--muted)" stroke-width="1.5"/>'
+                            f'<polygon points="{x2 - 8},{ey - 4} {x2},{ey} {x2 - 8},{ey + 4}" fill="var(--muted)"/>')
             boxes = []
             for i in ids:
                 x, y = pos[i]
