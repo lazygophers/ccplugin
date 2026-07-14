@@ -1,0 +1,23 @@
+/* 磨砂 — 原语: 卡片=glass(半透明+backdrop-blur) · 边框=hairline(白高光) · 圆角=round · 字型=sans · 底纹=aurora(accent 双色弥散)。
+   签名: 卡片顶缘一道内嵌白高光 (磨砂玻璃反光)。全 palette 派生。 */
+html[data-theme=glass]{
+  /* 烘焙配色=海洋蓝青 + 明暗=浅 (磨砂玻璃在浅色彩底最出彩) */
+  --h:235;--c-neutral:.012;--c-accent:.11;--h-accent:210;--h-accent2:255;
+  --radius:16px;
+}
+html[data-theme=glass] body{
+  background:
+    radial-gradient(60% 60% at 15% 12%,color-mix(in srgb,var(--accent) 45%,transparent),transparent),
+    radial-gradient(55% 55% at 85% 20%,color-mix(in srgb,var(--accent2) 42%,transparent),transparent),
+    var(--bg);
+  background-attachment:fixed;
+}
+html[data-theme=glass] .card,
+html[data-theme=glass] .switcher{
+  background:color-mix(in srgb,var(--card) 55%,transparent);
+  backdrop-filter:blur(14px) saturate(1.4);
+  -webkit-backdrop-filter:blur(14px) saturate(1.4);
+  border:1px solid color-mix(in srgb,#fff 35%,var(--brd));
+  /* 签名: 顶缘内嵌白高光 */
+  box-shadow:0 8px 32px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.5);
+}

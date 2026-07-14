@@ -1,9 +1,16 @@
-/* 开发者终端 Developer Terminal — 等宽字 + 直角硬边框 + 命令行提示符 + 扫描线底纹。 */
-html[data-theme=terminal]{--font:ui-monospace,'SF Mono','Cascadia Code','Consolas',monospace;--radius:0}
+/* 终端 — 原语: 卡片=solid · 边框=bold(fg 实线) · 圆角=sharp · 字型=mono · 底纹=scanline(fg 扫描线)。
+   签名: 标题命令行提示符 $ / > (accent 色)。全 palette 派生。 */
+html[data-theme=terminal]{
+  /* 烘焙配色=森林绿 + 明暗=暗 (经典终端: 近黑底荧光绿) */
+  --h:145;--c-neutral:.013;--c-accent:.10;--h-accent:148;--h-accent2:170;
+  --l-bg:.185;--l-card:.235;--l-fg:.90;--l-head:.82;--l-muted:.63;--l-brd:.32;--l-line:.275;--l-accent:.72;--l-st:.70;
+  --font:ui-monospace,'SF Mono','Cascadia Code','Consolas',monospace;--radius:0;
+}
 html[data-theme=terminal] body{
   background-image:repeating-linear-gradient(0deg,transparent 0 3px,color-mix(in srgb,var(--fg) 4%,transparent) 3px 4px);
 }
 html[data-theme=terminal] .card{border:1px solid var(--fg);border-radius:0;box-shadow:none}
+/* 签名: 提示符 */
 html[data-theme=terminal] .card h2::before{content:'$ ';color:var(--accent)}
 html[data-theme=terminal] h1::before{content:'> ';color:var(--accent)}
 html[data-theme=terminal] .switcher{border:1px solid var(--fg);border-radius:0;box-shadow:none}

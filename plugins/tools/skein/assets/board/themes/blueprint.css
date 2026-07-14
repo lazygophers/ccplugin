@@ -1,27 +1,28 @@
-/* 蓝图 Blueprint — 深蓝底 + 青色网格 + 等宽技术字 + 白描边框 (工程制图感)。 */
-html[data-theme=blueprint]{--font:ui-monospace,'Courier New',monospace;--radius:2px}
+/* 蓝图 — 原语: 卡片=flat(半透明) · 边框=bold(accent 描边) · 圆角=sharp · 字型=mono · 底纹=grid(accent 网格线)。
+   签名: 卡片左上角 + 号套准标记 (制图定位符)。全 palette 派生 (去硬编码蓝, 网格随 accent)。 */
+html[data-theme=blueprint]{
+  /* 烘焙配色=海洋蓝 + 明暗=暗 (经典蓝图: 深底青线) */
+  --h:235;--c-neutral:.012;--c-accent:.11;--h-accent:210;--h-accent2:255;
+  --l-bg:.185;--l-card:.235;--l-fg:.90;--l-head:.82;--l-muted:.63;--l-brd:.32;--l-line:.275;--l-accent:.72;--l-st:.70;
+  --font:ui-monospace,'Courier New',monospace;--radius:2px;
+}
 html[data-theme=blueprint] body{
-  background:#0d3b66;color:#dcefff;
   background-image:
-    linear-gradient(color-mix(in srgb,#7fd0ff 22%,transparent) 1px,transparent 1px),
-    linear-gradient(90deg,color-mix(in srgb,#7fd0ff 22%,transparent) 1px,transparent 1px);
+    linear-gradient(color-mix(in srgb,var(--accent) 20%,transparent) 1px,transparent 1px),
+    linear-gradient(90deg,color-mix(in srgb,var(--accent) 20%,transparent) 1px,transparent 1px);
   background-size:24px 24px;background-attachment:fixed;
 }
-html[data-theme=blueprint] h1,html[data-theme=blueprint] .card h2,html[data-theme=blueprint] .name{color:#eaf6ff}
-html[data-theme=blueprint] .meta,html[data-theme=blueprint] th{color:#9cc6e6}
 html[data-theme=blueprint] .card,html[data-theme=blueprint] .switcher{
-  background:color-mix(in srgb,#0d3b66 70%,transparent);
-  border:1px solid #8fd0ff;border-radius:2px;box-shadow:0 0 0 1px rgba(143,208,255,.2);
+  position:relative;
+  background:color-mix(in srgb,var(--card) 78%,transparent);
+  border:1px solid var(--accent);border-radius:2px;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 20%,transparent);
 }
-html[data-theme=blueprint] .badge{border:1px solid #8fd0ff;border-radius:2px}
-html[data-theme=blueprint] .bar{border:1px solid #8fd0ff;background:transparent;border-radius:0}
-html[data-theme=blueprint] th,html[data-theme=blueprint] td{border-bottom:1px dashed rgba(143,208,255,.35)}
-/* 深色: 底色归黑灰 (禁蓝底), 青色网格线保留 → 暗场 CAD 制图观感 */
-html[data-theme=blueprint][data-mode=dark] body{background-color:var(--bg);color:var(--fg)}
-html[data-theme=blueprint][data-mode=dark] h1,
-html[data-theme=blueprint][data-mode=dark] .card h2,
-html[data-theme=blueprint][data-mode=dark] .name{color:var(--fg)}
-html[data-theme=blueprint][data-mode=dark] .meta,html[data-theme=blueprint][data-mode=dark] th{color:var(--muted)}
-html[data-theme=blueprint][data-mode=dark] .card,html[data-theme=blueprint][data-mode=dark] .switcher{
-  background:color-mix(in srgb,var(--card) 82%,transparent);
+/* 签名: 左上角套准标记 */
+html[data-theme=blueprint] .card::before{
+  content:'+';position:absolute;top:-8px;left:-4px;
+  color:var(--accent);font:14px/1 ui-monospace,monospace;
 }
+html[data-theme=blueprint] .badge{border:1px solid var(--accent);border-radius:2px}
+html[data-theme=blueprint] .bar{border:1px solid color-mix(in srgb,var(--accent) 60%,transparent);background:transparent;border-radius:0}
+html[data-theme=blueprint] th,html[data-theme=blueprint] td{border-bottom:1px dashed color-mix(in srgb,var(--accent) 35%,transparent)}

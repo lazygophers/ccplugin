@@ -1,0 +1,14 @@
+/* 杂志 — 原语: 卡片=solid · 边框=hairline · 圆角=sharp · 字型=serif(衬线标题) · 底纹=plain。
+   签名: 卡片顶一道粗 accent 栏规 + 大号衬线标题 (编辑排版感)。烘焙配色=暖橙浅 (纸张暖调)。 */
+html[data-theme=magazine]{
+  /* 烘焙配色=暖橙 + 明暗=浅 */
+  --h:65;--c-neutral:.014;--c-accent:.115;--h-accent:48;--h-accent2:75;
+  --font:'Iowan Old Style','Palatino Linotype','Georgia',serif;--radius:3px;
+}
+/* 签名: 顶部粗 accent 栏规 */
+html[data-theme=magazine] .card{border-top:3px solid var(--accent);border-radius:0 0 3px 3px}
+html[data-theme=magazine] h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+html[data-theme=magazine] .card h2{font-size:19px;font-weight:700}
+html[data-theme=magazine] .name{font-weight:600}
+html[data-theme=magazine] .badge{font-family:-apple-system,system-ui,sans-serif;border-radius:2px}
+html[data-theme=magazine] th{font-family:-apple-system,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.06em}

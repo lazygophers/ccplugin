@@ -1,3 +1,0 @@
-/* 石灰 (莫兰迪灰绿) — 默认配色。低染色中性 + 柔和鼠尾草绿 accent。
-   仅喂 seed, 明暗契约由 base.css 按明度锚点派生; 无需写 dark 块 (色相自动带进暗色)。 */
-html[data-palette=stone]{--h:110;--c-neutral:.007;--c-accent:.05;--h-accent:135;--h-accent2:250}

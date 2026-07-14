@@ -58,16 +58,12 @@ SS_FAILED = "失败"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 # 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
-# 看板主题/配色 (值 = board/ 下 css 文件名; 独立 css, 非内联). 页内切换器 + config 默认二选一.
-THEMES = [("morandi", "莫兰迪"), ("glassmorphism", "玻璃拟态"),
-          ("liquid", "液态玻璃"), ("handdrawn", "手绘"),
-          ("flat", "极简扁平"), ("sketch", "素描"), ("terminal", "终端"),
-          ("bauhaus", "包豪斯"), ("comic", "漫画"), ("collage", "拼贴"),
-          ("aero", "水光"), ("blueprint", "蓝图"), ("linear", "Linear"),
-          ("gradient", "现代渐变"), ("neumorphism", "新拟物"),
-          ("ghibli", "吉卜力"), ("holographic", "全息")]
-PALETTES = [("stone", "石灰"), ("ocean", "海洋"), ("warm", "暖橙"),
-            ("forest", "森林"), ("dusk", "暮紫"), ("mono", "单色")]
+# 看板主题 = 装饰预设 (值 = board/themes/ 下 css 文件名). 每个预设 = 5 原语 (卡片质感/边框/圆角/字型/底纹)
+# 固定搭配 + 一处签名点缀, 结构全从 palette token 派生 → 自动随配色/明暗变, 每预设不塌成同一套灰.
+THEMES = [("minimal", "极简"), ("terminal", "终端"), ("glass", "磨砂"),
+          ("blueprint", "蓝图"), ("sketch", "手绘"), ("neumorphism", "浮起"),
+          ("holographic", "虹彩"), ("magazine", "杂志"),
+          ("sketchdark", "夜绘")]
 
 
 def now() -> int:
@@ -148,9 +144,7 @@ CONFIG_DEFAULTS = {
     "auto_commit": True,
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
-    "board_theme": "sketch",
-    "board_palette": "stone",
-    "board_mode": "light",
+    "board_theme": "minimal",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设
     "board_server": False,  # view: True→本地 http server 随机 port + 开浏览器; False→file:// 直开
     "web_serve": True,  # experimental.monitors: 每 session 起持久看板 http 服务; False→关闭 (monitor 仍启动但 serve 命令 no-op 退出)
 }
@@ -1389,12 +1383,9 @@ class Skein:
 
         self._copy_board_assets()
         cfg = self.config()
-        theme = cfg.get("board_theme", "sketch")
-        palette = cfg.get("board_palette", "stone")
-        mode = cfg.get("board_mode", "light")
+        theme = cfg.get("board_theme", "minimal")
         links = ('<link rel=stylesheet href="board/base.css">'
-                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES)
-                 + "".join(f'<link rel=stylesheet href="board/palettes/{k}.css">' for k, _ in PALETTES))
+                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES))
 
         def opts(items, cur):
             return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
@@ -1406,14 +1397,12 @@ class Skein:
             '<div class="fab-wrap">'
             '<div class="switcher">'
             f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
-            f'<label>配色<select id="sw-palette">{opts(PALETTES, palette)}</select></label>'
-            f'<label>明暗<select id="sw-mode">{opts([("light", "浅色"), ("dark", "深色")], mode)}</select></label>'
             f'<label>状态<select id="sw-filter">{opts(filter_opts, "all")}</select></label>'
             '</div>'
             '<button type="button" class="fab" id="sw-fab" aria-label="看板设置" aria-expanded="false">⚙</button>'
             '</div>')
         html = (
-            f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'
+            f'<!doctype html><html lang=zh-CN data-theme="{theme}">'
             '<head><meta charset=utf-8>'
             '<meta name=viewport content="width=device-width,initial-scale=1">'
             # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 1800s (半小时) 硬刷新保证不 stale

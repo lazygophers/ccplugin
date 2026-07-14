@@ -23,7 +23,7 @@
       if(!fabWrap.contains(e.target)){fabWrap.classList.remove('open');fab.setAttribute('aria-expanded','false');}
     });
   }
-  var keys={theme:'data-theme',palette:'data-palette',mode:'data-mode'};
+  var keys={theme:'data-theme'};  // 唯一外观选项; 配色/明暗烘焙进主题预设 css
   function apply(k,v){
     if(!v)return;
     html.setAttribute(keys[k],v);

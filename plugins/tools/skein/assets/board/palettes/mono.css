@@ -1,2 +1,0 @@
-/* 单色 (灰阶极简) — 零染色纯中性; accent 靠明度差, status 仍保语义色相 (唯一带色处)。 */
-html[data-palette=mono]{--h:0;--c-neutral:0;--c-accent:0;--h-accent:0;--h-accent2:0}
