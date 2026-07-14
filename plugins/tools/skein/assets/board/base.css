@@ -25,11 +25,15 @@ h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var
 
 /* 两栏布局: 左=总计栏 (sticky 常驻, 内含 task DAG 上往下), 右=task 卡片流.
    左:右 = 5:5; 窄屏 (<900) 回落单列纵向堆叠 */
-.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-top:14px}
-/* 左栏固定视口高度且粘附: 右栏滚动时左栏纹丝不动 (内容超高时卡片内部滚动) */
-.col-side{position:sticky;top:14px;height:calc(100vh - 28px)}
+/* margin-top:0 → 左卡片自然顶恰在 sticky topbar 下沿, 消除 sticky 锁定前的追赶滑动 */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-top:0}
+/* 左栏固定视口高度且粘附: topbar 常驻 (下方), 左栏锁在其下, 右栏滚动时纹丝不动.
+   高度 = 视口 - topbar(--topbar) - 上下留白, 恒 ≤ 页面高, 内容超高交卡片内部滚动 */
+.col-side{position:sticky;top:var(--topbar,70px);height:calc(100vh - var(--topbar,70px) - 14px)}
 /* 左卡片 = 视口高, 顶部 (切换/统计/进度条) 固定不滚, 仅 DAG 区上下滚动 (card overflow:hidden, 滚动交 dag-wrap) */
 .col-side .card{margin-bottom:0;height:100%;overflow:hidden;display:flex;flex-direction:column}
+/* 顶部信息块 (h2/切换/统计/meta/进度条) 不压缩, 否则 7px 进度条被 flex 挤没 → 只 dag-view 收缩 */
+.col-side .card>:not(.dag-view){flex:0 0 auto}
 .col-side .dag-view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
 /* DAG 不缩放: svg 保原始尺寸, 画布高度=剩余空间, 超出即 dag-wrap 上下滚动补齐 (base 已 overflow-y:auto) */
 .col-side .dag-wrap{flex:1 1 auto;min-height:0;max-height:none}
@@ -123,8 +127,9 @@ td .bar{margin:1px 0;min-width:78px}
 .detail[open]{margin-top:6px}
 .detail .dag{margin:6px 0}
 
-/* 顶栏: 标题 + 切换器同行, 切换器随内容流 (不再右上角浮层) */
-.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+/* 顶栏: 标题 + 切换器同行. sticky 常驻顶端 → 左卡片锁其下不再随滚动滑动.
+   ponytail: --topbar 单行高定值 58px (标题 20 + 切换器padding); 换行超高时 col-side 用它算高, 少量偏差可接受 */
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:44px;padding-bottom:6px}
 /* 切换器 (顶栏内 inline 控件组) */
 .switcher{display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px}
 .switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
