@@ -772,9 +772,9 @@ class Skein:
                     errs.append(f"{tid}: deps 自引用")
                 elif d not in used:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
+            if not t.get("subtasks"):
+                errs.append(f"{tid}: 无 subtask — 每个 task 至少 1 个 subtask (planning 需拆 subtask add 登记)")
             if t.get("status") in STATUS_ACTIVE:
-                if not t.get("subtasks"):
-                    errs.append(f"{tid}: active 但无 subtask — 无法派发")
                 if not t.get("started"):
                     warns.append(f"{tid}: active 但 started 未置")
                 wts = self._wts(t)
