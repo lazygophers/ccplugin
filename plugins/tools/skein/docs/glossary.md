@@ -28,7 +28,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 
 | 名词 | 是什么 |
 | --- | --- |
-| **worktree 隔离** | 每 task 一个 git worktree (存 `.worktrees/`), 所有改动落此, 主工作区零改动。**多子 git** (`create --repos`): worktree 落**各子仓内部** `<repo>/.worktrees/`, 非根仓根; 子仓各自补 `.gitignore` 忽略。**git 非强制**: cwd 非 git 仓库时 (如微服务/前后端分离, 子目录各自独立仓) 降级为原地执行 —— 无 worktree、无分支、finish 不合并, 其余生命周期 (create/start/finish/archive/看板/依赖门) 照常。 |
+| **worktree 隔离** | 每 task 一个 git worktree (存 `.worktrees/`), 所有改动落此, 主工作区零改动。**多子 git** (`create --repos`): worktree 落**各子仓内部** `<repo>/.worktrees/`, 非根仓根; 子仓各自补 `.gitignore` 忽略。**git 非强制**: cwd 非 git 仓库时 (如微服务/前后端分离, 子目录各自独立仓) 降级为原地执行 —— 无 worktree、无分支、finish 不合并, 其余生命周期 (create/start/finish/archive/看板/依赖门) 照常。**配置可关**: `config.yaml` 设 `use_worktree: false` 即便在 git 仓也强制原地执行 (同上, doctor 亦不查 worktree); 默认 `true`。 |
 | **1 task 1 worktree** | 默认拓扑: 一 task 一 worktree, 其内 subtask 共享 (subtask 不绑定 worktree)。多 worktree 允许但 opt-in。 |
 | **finish 合并** | finish 时 commit → merge 回主 → 销 worktree → archive。冲突自动 abort。 |
 | **archive (归档)** | 丢弃 task: 销 worktree/分支, **不 merge**, 移入 `task/archive/<年>/<月-日>/<id>/`。 |

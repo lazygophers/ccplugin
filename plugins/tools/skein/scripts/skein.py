@@ -149,6 +149,7 @@ CONFIG_DEFAULTS = {
     "max_active": 2,
     "max_parallel": 2,
     "auto_commit": True,
+    "use_worktree": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
@@ -476,17 +477,22 @@ class Skein:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
+        wt_on = self.git and cfg.get("use_worktree", True)  # 配置禁用 → 原地执行, 同非 git
+        if repos and not wt_on:
+            raise SystemExit(
+                f"{a.id} 声明了 --repos 但 worktree 已禁用 "
+                f"({'非 git 仓库' if not self.git else 'config use_worktree=false'}) — 多子 git 隔离需启用 worktree")
         if repos:
             # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
             t["worktrees"] = [self._mkwt(t, r, cfg) for r in repos]
             t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
-        elif self.git:
+        elif wt_on:
             rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
             git("worktree", "add", "-b", t["branch"], str(self.root / rel), "HEAD", cwd=self.root)
             t["worktree"] = rel
             t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
         else:
-            t["worktree"] = None  # 非 git 且无 repos 声明: 原地执行, 无 worktree 隔离
+            t["worktree"] = None  # 非 git / config 禁用, 无 repos: 原地执行, 无 worktree 隔离
             t["worktrees"] = []
         if not t.get("started"):
             t["started"] = now()  # exec 时刻 (首次 start; 重启不覆盖)
@@ -496,7 +502,8 @@ class Skein:
             loc = "\n".join(f"worktree: {w['wt']} (子 git: {w['repo']}, branch: {w['branch']})"
                             for w in t["worktrees"])
         else:
-            loc = "非 git 仓库: 原地执行 (无 worktree 隔离)"
+            reason = "config use_worktree=false" if self.git else "非 git 仓库"
+            loc = f"{reason}: 原地执行 (无 worktree 隔离)"
         print(f"{a.id} started\n{loc}")
 
     def _dep_unfinished(self, dep) -> bool:
@@ -731,6 +738,7 @@ class Skein:
         tasks = self._all()
         used = self._used_ids()  # 含已归档, dep 指向归档 task 合法
         ids = {t["id"] for t in tasks}
+        wt_on = self.git and self.config().get("use_worktree", True)  # 遵守配置: 禁用则不查 worktree
         errs, warns = [], []
 
         def cycle(graph):  # graph: node -> [邻居]; 返回首个环路径或 None
@@ -774,11 +782,12 @@ class Skein:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
             if not t.get("subtasks"):
                 errs.append(f"{tid}: 无 subtask — 每个 task 至少 1 个 subtask (planning 需拆 subtask add 登记)")
-            # worktree 硬性 (仅执行中): worktree 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
-            # done 已销毁, 故只对执行中 (进行中/检查中) 校验存在。非 git 原地 (wts 空) 执行中同样报错。
+            # worktree 硬性 (仅执行中 + worktree 启用): 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
+            # done 已销毁, 故只对执行中 (进行中/检查中) 校验。worktree 禁用时 (非 git / config use_worktree=false)
+            # 原地执行本就无 worktree, 遵守配置不查存在性。
             wts = self._wts(t)
             if t.get("status") in STATUS_ACTIVE:
-                if not wts:
+                if wt_on and not wts:
                     errs.append(f"{tid}: 执行中 (进行中/检查中) 但无 worktree — start 应已创建")
                 for w in wts:
                     if not (self.root / w["wt"]).exists():

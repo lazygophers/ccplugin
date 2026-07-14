@@ -33,7 +33,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 | `current` | — | 列全部 active task (id/状态/名称/worktree)。无 focus, 就绪皆可并行 |
 | `ready` | — | **脚本算**就绪 task 批 (pending + 前置全 done + 有空闲 active 槽), 只读预览。谁可执行由脚本判 (非 AI), 与 `subtask ready` 同构; task 无写集字段故不算写集冲突 |
 | `list` | — | 列全部 task (含已归档) |
-| `doctor` | — | **纯脚本体检** task/subtask 不变量违规 (`✗`=错误 / `⚠`=警告): 非法 status、deps 悬空/自引用/成环、**task 父子字段 (禁 task 级父子关系, 仅允许 deps DAG)**、**任一 task 无 subtask (全量, 每 task 至少 1)**、**执行中 (进行中/检查中) task 缺 worktree 或路径不存在** (pending 未创建/done 已销毁 → 豁免)、subtask sid 重复/depends_on 悬空成环/验收done 越界、顶层索引与真值不一致 (含索引有但 per-task 真值缺失=幽灵骨架)、active 超上限。有 `✗` 错误 → exit 1 (可 CI/hook 门禁) |
+| `doctor` | — | **纯脚本体检** task/subtask 不变量违规 (`✗`=错误 / `⚠`=警告): 非法 status、deps 悬空/自引用/成环、**task 父子字段 (禁 task 级父子关系, 仅允许 deps DAG)**、**任一 task 无 subtask (全量, 每 task 至少 1)**、**执行中 (进行中/检查中) task 缺 worktree 或路径不存在** (pending 未创建/done 已销毁 → 豁免; worktree 禁用时 `use_worktree=false`/非 git 不查)、subtask sid 重复/depends_on 悬空成环/验收done 越界、顶层索引与真值不一致 (含索引有但 per-task 真值缺失=幽灵骨架)、active 超上限。有 `✗` 错误 → exit 1 (可 CI/hook 门禁) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
 | `view` | — | 生成 (缺则建) 并用系统默认程序打开 `.skein/task.html` 静态可视化看板 (title/标题带项目名, 多主题多配色深浅色, 页内切换器, 不自动打开) |
 | `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态。另: 向 `$CLAUDE_ENV_FILE` 追加 `export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1` (幂等, **先于 gitroot 判定, 与 git 无关**), 使 Bash 命令保持项目工作目录 —— 随插件 SessionStart hook 发货, 不落用户项目 settings (plugin.json 无 env 字段)。微服务/前后端分离场景 cwd 无 git (子目录各自是仓) 时照样写入, 恰是最需要该 env 的场景 |
@@ -115,6 +115,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `max_active` | `2` | 同 session active task 并发上限 (= subtask 级上限) |
 | `retain_days` | `7` | 完成 task 保留天数 (留看板), 超则 `_autoclean` 自动归档。`0` = finish 即归档 (旧行为); 负数 = 永不自动归档 (仅 `clean` 主动清) |
 | `auto_commit` | `true` | finish 时自动 commit worktree 改动。设 false 则有未提交改动会拒绝 finish (防强删丢失) |
+| `use_worktree` | `true` | 是否启用 worktree 隔离。设 false → 原地执行 (同非 git): start 不建 worktree、finish 不合并、doctor 不查 worktree 存在性。声明 `--repos` 时禁用会报错 (多子 git 隔离需 worktree) |
 | `worktree_root` | `.worktrees` | worktree 存放目录名。单根/原地 = 仓根下 `<worktree_root>/`; 多子 git (`--repos`) = **各子仓内部** `<repo>/<worktree_root>/` (子仓自补 `.gitignore` 忽略) |
 | `board_theme` | `sketch` | 看板默认主题, 取 `assets/board/themes/` 任一名 (sketch / morandi / glassmorphism / liquid / handdrawn / bauhaus / blueprint / ghibli / terminal / neumorphism / ... 共 17 种)。页内切换器可实时改, 存 localStorage |
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
