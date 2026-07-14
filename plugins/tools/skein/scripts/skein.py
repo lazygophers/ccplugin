@@ -262,9 +262,10 @@ class Skein:
     def _render_tasks(self) -> list:
         # 看板专用读取: 顶层 task.json 索引 + 各 task/<id>/task.json 明细 并集为数据源。
         # per-task 目录是真值源 (有 subtask/desc/name, 明细胜出); 顶层镜像补齐目录被删/迁移丢失、
-        # 仅存于索引的 task (只 id/status/deps/worktree + name=id), 免看板静默空白。
+        # 仅存于索引的 task (只 id/status/deps/worktree), 免看板静默空白。
         # 只服务 _board / _board_html 只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
-        # ponytail: 镜像无 name 字段 → 降级用 id 当名; 要恢复完整 task 需从有 per-task 目录的分支 checkout。
+        # ponytail: 顶层索引本就无 name 字段, 看板对幽灵骨架直接用 id 显示 (task 一向以 id 标识, 非降级);
+        #           要恢复 subtask/desc 等完整明细需从有 per-task 目录的分支 checkout。
         DBG.rule("看板数据源合并 (顶层索引 ∪ per-task 明细)")
         tasks = self._all()
         DBG.log(f"per-task 明细: {len(tasks)} 个 (真值源, 明细胜出)", style="cyan")
@@ -283,7 +284,7 @@ class Skein:
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
                               "deps": r.get("deps", []), "worktree": r.get("worktree")})
                 mirrored += 1
-                DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 降级用 id 当名)", style="yellow")
+                DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")
         else:
             DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
