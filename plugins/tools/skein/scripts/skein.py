@@ -1411,6 +1411,7 @@ class Skein:
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
             f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1></header>{body}{switcher}'
             '<script src="board/switcher.js"></script>'
+            '<script src="board/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
             # 自动刷新: serve (http) 下轮询自身 Last-Modified, 变了才 reload (空闲不闪);
             # file:// 下 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
             '<script>(function(){var m;setInterval(function(){'
