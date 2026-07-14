@@ -825,7 +825,7 @@ class Skein:
         if c:
             errs.append(f"task 级 deps 有环: {' -> '.join(c)}")
 
-        # 顶层索引 vs per-task 真值
+        # 顶层索引 vs per-task 真值 (双向: per-task ⊆ 索引 且 索引 ⊆ per-task)
         idxf = self.dir / "task.json"
         if idxf.exists():
             idx = {x["id"]: x for x in json.loads(idxf.read_text()).get("tasks", [])}
@@ -835,6 +835,13 @@ class Skein:
                     warns.append(f"{t['id']}: 未在顶层 task.json 索引中 (跑任意变更命令重建)")
                 elif ix.get("status") != t["status"]:
                     warns.append(f"{t['id']}: 索引 status ({ix.get('status')}) != 真值 ({t['status']})")
+            # 反向: 索引有但 per-task task.json 缺失 = 幽灵骨架 (真值源丢失, 看板容忍但结构性损坏)
+            archived = {p.name for p in self.archive_dir.glob("*/*/*")} if self.archive_dir.exists() else set()
+            for iid in idx:
+                if iid in ids or iid in archived:  # 有真值 or 已归档 → 合法
+                    continue
+                errs.append(f"{iid}: 索引存在但 per-task 真值缺失 (task/{iid}/task.json 不存在) "
+                            f"— 真值源丢失, 从含该目录的分支 checkout 恢复, 或删索引行清理")
 
         # 全局并发上限
         maxa = self.config()["max_active"]
