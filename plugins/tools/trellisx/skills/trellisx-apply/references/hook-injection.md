@@ -114,6 +114,16 @@ open(cfg, "w", encoding="utf-8").write(s)
 
 > config.yaml `hooks:` 用 YAML 2 空格缩进, 已验证 trellis `parse_simple_yaml` 能解析 `hooks: → after_start: → - "cmd"` 嵌套。**注意**: trellis config.yaml 模板里 `hooks:` 默认是注释 (以 `#` 开头), 注释行不算 `^hooks:`, apply 应追加真实 (非注释) `hooks:` 块。
 
+## 注入物 2.2: `use_worktree` 开关 (可选, 默认开)
+
+`.trellis/config.yaml` 顶层 `use_worktree:` 布尔控制 worktree 隔离的**持久默认** —— 默认 `true` (即便缺 key 也按 true, `trellisx_wt.use_worktree()` 缺 key/读不到即 True), 设 `false` → 全部 task 原地执行 (start hook 跳过建 worktree, finish 空 merge_list 跳过合并/销)。与 per-run `--no-worktree` flag 互补 (flag 覆盖单次, config 定默认)。对齐 skein `use_worktree` 经验。
+
+apply **无需写此 key** (默认开、缺 key 即 true)。仅当用户明确要「持久禁 worktree」(如微服务/前后端分离原地开发) 才追加一行 (顶层, 非注释):
+
+```yaml
+use_worktree: false   # [trellisx] 持久禁 worktree, 全部 task 原地执行 (改动落主工作区)
+```
+
 ## 注入物 2.5: `session_auto_commit: true` (强制闭环依赖)
 
 trellisx 强制自动收尾链的 ③ archive 调 `task_store._auto_commit_archive` 提交 `.trellis` 归档 bookkeeping, 该函数**受 `session_auto_commit` 控制** (`config.get_session_auto_commit`): 若用户显式设 `false` → archive 跳过 stage/commit → 归档移动未提交, **工作区脏留**, 闭环不干净 (worktree 仍销、feature 仍合并, 但 `.trellis/tasks/archive` 改动悬空)。

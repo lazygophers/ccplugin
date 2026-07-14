@@ -23,6 +23,7 @@ arguments: [载体选项 (可选), 任务描述]
 
 - **互斥冲突** (`--worktree` 同时 `--no-worktree`) → 硬停, `AskUserQuestion` 让用户裁定, 禁自选。
 - **优先级**: 入参 > 本 skill 默认。`--no-worktree` **只放宽 worktree 隔离这一条**, 不放宽"main 默认禁写源码 / 实质工作派 subagent" —— exec 永远是 subagent, 只是改主工作区而非 worktree。
+- **持久默认由 config 定**: `.trellis/config.yaml` `use_worktree: false` (默认 `true`) → **全部 task 默认原地执行**, 无需每次带 `--no-worktree` (效果同 flag, 但持久)。优先级链: per-run flag > config `use_worktree` > 本 skill 默认 (worktree 开)。config 关闭时无 worktree 可开, 本次不带 `--worktree` 即原地; 带 `--worktree` 则单次强制开 (flag 覆盖 config)。
 - **`--no-worktree` 对 finish 的影响**: 无 worktree 分支可合并, 改动已在主工作区 → finish 跳过"合并多 worktree 分支 / 销 worktree", 直接 commit 主工作区改动 + archive。
 - **中文别名** (同义可接): `强制worktree`=`--worktree`; `禁worktree`/`禁止worktree`=`--no-worktree`。
 

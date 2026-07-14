@@ -27,6 +27,14 @@ except Exception:
     sys.exit(0)
 pkg = (meta.get("package") or meta.get("scope") or "").strip()
 
+# use_worktree 配置门 (对齐 skein): config.yaml use_worktree=false → 即便 git 仓也原地执行,
+# 不建/不销 worktree。与 per-run --no-worktree flag 互补 (flag 覆盖单次, config 定持久默认)。
+if not trellisx_wt.use_worktree(troot):
+    if action == "start":
+        print(f"trellisx: config use_worktree=false → task {tid} 原地执行 "
+              f"(改动落主工作区; finish 跳过合并/销 worktree, 直接 archive)", file=sys.stderr)
+    sys.exit(0)
+
 groot, service = trellisx_wt.resolve_repo(troot, pkg)
 if not groot:
     print(f"trellisx: 未能为 task {tid} 定位 git 仓库 (多子仓布局需先 task.py set-scope <子仓>)。worktree 跳过。", file=sys.stderr)

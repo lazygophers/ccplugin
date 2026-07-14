@@ -53,9 +53,15 @@ trellisx 不改 task 定义, 只在其上叠加 worktree 隔离 / subtask 编排
 
 worktree 防**并发多 task** 互相冲突。同 task 内并行 subagent 共享 worktree 改不相交文件集即可 (PRD 调度图保证文件集不相交, 共享文件走串行)。
 
-### 豁免
+### 豁免 / 关闭 worktree
 
-`--no-worktree`: subagent 改主工作区 (无 worktree 分支可合并, finish 跳过合并/销 worktree, 直接 commit 主工作区 + archive)。但 main 默认禁写源码这条 `--no-worktree` 不豁免。
+三条路径 (由窄到宽), 关闭后 exec **仍派 subagent** (main 默认禁写源码这条永不豁免), 只是改主工作区、finish 跳过合并/销 worktree 直接 archive:
+
+- **per-run `--no-worktree`** (flow 入参): 仅本次调用禁 worktree。
+- **config `use_worktree: false`** (`.trellis/config.yaml`, 默认 `true`): **持久默认开关** —— 即便在 git 仓也强制全部 task 原地执行, 无需每次带 flag。与 `--no-worktree` 互补 (flag 覆盖单次, config 定默认); 读取单一真值 `trellisx_wt.use_worktree()`, start hook 据此跳过建 worktree。对齐 skein `use_worktree` 经验。
+- **非 git 仓自动降级** (无配置): cwd/子仓非 git 时 `resolve_repo` 定位不到 git 根 → 自动原地执行, 无 worktree/分支。
+
+> **diagnose 一致豁免**: 关闭 worktree 时本就无 worktree, `trellisx-guard` 的清理闸只对「映射到 completed/archived task 或游离」的 worktree 生效、in_progress task 的 worktree 视为在用跳过, 故不会误报「active task 缺 worktree」—— 与 skein doctor 仅对执行中 task 校验 worktree、禁用/非 git 豁免同构。
 
 ## 4. 执行载体 3 层
 

@@ -10,11 +10,31 @@
 - name         = pkg-tid / service-tid / tid  (见 worktree_name)
 """
 import os
+import re
 import subprocess
 
 
 def _run(cmd, timeout=15):
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+
+
+def use_worktree(troot):
+    """读 <troot>/.trellis/config.yaml 的 `use_worktree:` (默认 True)。
+
+    false/no/off/0 → False: 即便在 git 仓也强制原地执行 (改动落主工作区,
+    start 不建 worktree、finish 跳过合并/销、diagnose 无 worktree 可查)。
+    缺 key / 读不到 / 非法值 → True。对齐 skein `use_worktree` 配置经验 ——
+    持久默认开关, 与 per-run `--no-worktree` flag 互补 (flag 覆盖单次, config 定默认)。
+    """
+    cfg = os.path.join(troot, ".trellis", "config.yaml")
+    try:
+        s = open(cfg, encoding="utf-8").read()
+    except Exception:
+        return True
+    m = re.search(r"(?m)^use_worktree:\s*(\S+)", s)
+    if not m:
+        return True
+    return m.group(1).strip().strip('"\'').lower() not in ("false", "no", "off", "0")
 
 
 def trellis_root(p):

@@ -12,6 +12,7 @@
   - 微服务子目录 sparse (`.trellis` 在子目录, git 根在上层)
   - 多子仓 (读 task package 定位子仓 git, 需 `task.py set-scope <子仓>`)
 - **行为**: start 建 `<git根>/.worktrees/<name>`; archive 销毁 (干净自动销, 脏警告先合并)。
+- **`use_worktree` 配置门**: `config.yaml` `use_worktree: false` (默认 `true`) → start/archive 直接跳过, task 原地执行 (改动落主工作区, finish 空 merge_list → 跳过合并/销、直接 archive)。读取单一真值 `trellisx_wt.use_worktree()`。对齐 skein `use_worktree` 持久开关经验。
 
 ## trellisx-finish.py
 
@@ -48,6 +49,7 @@ worktree 路径/分支/命名单一真值模块。
 
 - **调用**: 被 worktree.py + finish.py 共用 import。
 - **职责**: 集中 worktree 路径计算、分支命名、slug 规则, 避免两脚本各算各的漂移。
+- **`use_worktree(troot)`**: 读 `config.yaml` `use_worktree:` 布尔 (默认 `true`; false/no/off/0 → False), worktree.py 据此决定是否原地执行。单一真值, 免各脚本各解析。
 
 ## trellisx-guard.py
 
