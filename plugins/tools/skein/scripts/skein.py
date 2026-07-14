@@ -221,8 +221,7 @@ class Skein:
                   "worktree": t.get("worktree")} for t in self._all()]
         self._write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
-        self._board(None)  # 变更即刷 task.md, 免看板漂移
-        self._board_html()  # + 生成 .skein/task.html 可视化页 (不自动打开; `skein.py view` 按需开)
+        self._board(None)  # 变更即刷 task.md + task.html (_board 内已调 _board_html; 皆 diff 后写)
 
     def _load(self, tid) -> dict:
         f = self.tasks / tid / "task.json"
@@ -232,7 +231,9 @@ class Skein:
 
     def _save(self, t: dict):
         t["updated"] = now()
-        (self.tasks / t["id"] / "task.json").write_text(json.dumps(t, ensure_ascii=False, indent=2))
+        # 先算 diff 再写: 内容未变则跳过 (增量, 不全量覆盖 → 免无谓 IO/mtime 抖动)
+        self._write_if_changed(self.tasks / t["id"] / "task.json",
+                               json.dumps(t, ensure_ascii=False, indent=2))
         self._board_task(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
         self._board_html()  # subtask 变更 (add/done/fail) 也刷全局 html, 免看板漂移 (subtasks 不进顶层 index, 故不走 _sync)
 
