@@ -774,14 +774,15 @@ class Skein:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
             if not t.get("subtasks"):
                 errs.append(f"{tid}: 无 subtask — 每个 task 至少 1 个 subtask (planning 需拆 subtask add 登记)")
-            # worktree 全量硬性: 每个 task 必须有 worktree 且路径存在 (不分状态/git 与否)
+            # worktree 硬性 (仅执行中): worktree 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
+            # done 已销毁, 故只对执行中 (进行中/检查中) 校验存在。非 git 原地 (wts 空) 执行中同样报错。
             wts = self._wts(t)
-            if not wts:
-                errs.append(f"{tid}: 无 worktree — 每个 task 必须有 worktree")
-            for w in wts:
-                if not (self.root / w["wt"]).exists():
-                    errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
             if t.get("status") in STATUS_ACTIVE:
+                if not wts:
+                    errs.append(f"{tid}: 执行中 (进行中/检查中) 但无 worktree — start 应已创建")
+                for w in wts:
+                    if not (self.root / w["wt"]).exists():
+                        errs.append(f"{tid}: worktree 路径不存在 (子 git {w['repo']}): {w['wt']}")
                 if not t.get("started"):
                     warns.append(f"{tid}: active 但 started 未置")
             if t.get("status") == S_DONE and not t.get("finished"):
