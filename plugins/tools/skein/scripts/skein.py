@@ -1132,10 +1132,17 @@ class Skein:
             # 纵向列数 = 单层并行节点数, 通常更少, 更可能一屏放下、只需纵向滚动。
             vertical = force_vertical or nlayer * COL + 10 > 1180
             if vertical:
-                pos = {i: (r * COL + 10, d * ROW + 10)
-                       for d, ids_ in layers.items() for r, i in enumerate(ids_)}
-                W = span * COL + 10
-                H = nlayer * ROW + 10
+                # 同层并行节点横排, 但一行最多 PER=5 个, 超出折到下一行 (免过宽被缩糊)
+                PER = 5
+                pos, roff = {}, 0  # roff = 已累计占用行数
+                for d in sorted(layers):
+                    ids_ = layers[d]
+                    for idx, i in enumerate(ids_):
+                        sub, col = divmod(idx, PER)
+                        pos[i] = (col * COL + 10, (roff + sub) * ROW + 10)
+                    roff += (len(ids_) + PER - 1) // PER  # ceil
+                W = min(span, PER) * COL + 10
+                H = roff * ROW + 10
             else:
                 pos = {i: (d * COL + 10, r * ROW + 10)
                        for d, ids_ in layers.items() for r, i in enumerate(ids_)}
