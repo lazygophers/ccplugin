@@ -346,15 +346,9 @@ class Skein:
         if not gi.exists():
             gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n.lock\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
-        # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)
+        # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
-            wt = self.config()["worktree_root"].rstrip("/") + "/"
-            root_gi = self.root / ".gitignore"
-            existing = root_gi.read_text() if root_gi.exists() else ""
-            if wt not in existing:
-                sep = "\n" if existing and not existing.endswith("\n") else ""
-                with root_gi.open("a") as f:
-                    f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
+            self._ignore_wt(self.root)
         if not (self.dir / "task.json").exists():
             self._sync()
         self._board(None)
@@ -407,6 +401,18 @@ class Skein:
             return [{"repo": ".", "wt": rel, "branch": t.get("branch"), "merged": False}]
         return []
 
+    def _ignore_wt(self, repo_dir: Path):
+        # 把 worktree_root 写进该 git 仓 .gitignore (缺则补), 免 worktree 目录污染该仓 status。
+        # 子仓是独立 git/submodule, root .gitignore 管不到, 故各子仓自补。
+        wt = self.config()["worktree_root"].rstrip("/") + "/"
+        gi = repo_dir / ".gitignore"
+        existing = gi.read_text() if gi.exists() else ""
+        if wt in existing:
+            return
+        sep = "\n" if existing and not existing.endswith("\n") else ""
+        with gi.open("a") as f:
+            f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
+
     def _mkwt(self, t, repo, cfg) -> dict:
         # 在指定子 git (repo='.'=根仓) 建 worktree+branch; 校验确是 git 工作树 (含 submodule)
         sub = self.root if repo == "." else self.root / repo
@@ -415,10 +421,14 @@ class Skein:
         rc = git("rev-parse", "--is-inside-work-tree", cwd=sub, check=False)
         if rc.returncode != 0 or rc.stdout.strip() != "true":
             raise SystemExit(f"{repo} 不是 git 仓库 (repos 只能声明 git 仓/submodule)")
-        safe = repo.replace("/", "-").strip("-") or "root"
-        wt_rel = (f"{cfg['worktree_root']}/skein-{t['id']}"
-                  + ("" if repo == "." else f"/{safe}"))  # 相对 root 存盘, 免绝对路径入库
+        wt_root = cfg["worktree_root"].strip("/")
+        # worktree 落在**该子 git 内部** (<repo>/<worktree_root>/skein-<id>), 相对 root 存盘免绝对路径入库。
+        # 每子仓各自 .worktrees 目录, 天然无碰撞 (旧版全塞 root, 现落各仓内)。
+        base = wt_root if repo == "." else f"{repo}/{wt_root}"
+        wt_rel = f"{base}/skein-{t['id']}"
         git("worktree", "add", "-b", t["branch"], str(self.root / wt_rel), "HEAD", cwd=sub)
+        if repo != ".":
+            self._ignore_wt(sub)  # 子仓自忽略; 根仓已由 init 补
         return {"repo": repo, "wt": wt_rel, "branch": t["branch"], "merged": False}
 
     def repos(self, a):
