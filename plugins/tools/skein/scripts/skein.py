@@ -247,24 +247,26 @@ class Skein:
         return out
 
     def _render_tasks(self) -> list:
-        # 看板专用读取: per-task 目录是真值源, 有就用; 若目录被删/迁移丢失但顶层 task.json 镜像仍有 task,
-        # 则从镜像重建骨架渲染 (仅 id/status/deps/worktree + name=id, 无 subtask/desc), 免看板静默空白。
+        # 看板专用读取: 顶层 task.json 索引 + 各 task/<id>/task.json 明细 并集为数据源。
+        # per-task 目录是真值源 (有 subtask/desc/name, 明细胜出); 顶层镜像补齐目录被删/迁移丢失、
+        # 仅存于索引的 task (只 id/status/deps/worktree + name=id), 免看板静默空白。
         # 只服务 _board / _board_html 只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
         # ponytail: 镜像无 name 字段 → 降级用 id 当名; 要恢复完整 task 需从有 per-task 目录的分支 checkout。
         tasks = self._all()
-        if tasks:
-            return tasks
+        have = {t["id"] for t in tasks}
         mirror = self.dir / "task.json"
-        if not mirror.exists():
-            return tasks
-        try:
-            rows = json.loads(mirror.read_text()).get("tasks", [])
-        except (json.JSONDecodeError, OSError):
-            return tasks
-        rebuilt = [{"id": t["id"], "name": t.get("name", t["id"]), "status": t["status"],
-                    "deps": t.get("deps", []), "worktree": t.get("worktree")} for t in rows]
-        rebuilt.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
-        return rebuilt
+        if mirror.exists():
+            try:
+                rows = json.loads(mirror.read_text()).get("tasks", [])
+            except (json.JSONDecodeError, OSError):
+                rows = []
+            for r in rows:
+                if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
+                    continue
+                tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
+                              "deps": r.get("deps", []), "worktree": r.get("worktree")})
+        tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
+        return tasks
 
     def _archived_path(self, tid):
         # 归档嵌套: archive/<年>/<月-日>/<id>
