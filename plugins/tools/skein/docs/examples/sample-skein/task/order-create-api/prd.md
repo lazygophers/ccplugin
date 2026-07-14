@@ -19,7 +19,7 @@
 1. 同一幂等键重复提交只落一单 (唯一约束)。
 2. 库存不足直接 409, 不落订单。
 
-> 契约同时锁进 `task.json` 的 `contracts[]` (`skein.py contract order-create-api --add`), check 阶段 `skein-checker` 逐条验证。
+> 契约同时锁进 `task.json` 的 `contracts[]` (`skein contract order-create-api --add`), check 阶段 `skein-checker` 逐条验证。
 
 ## 验收标准
 
@@ -31,4 +31,4 @@
 
 - 详细设计: [design.md](design.md) (架构/数据流/取舍/选型)
 - 调研收敛: [findings.md](findings.md) (幂等/库存/MQ 选型依据)
-- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list order-create-api`)
+- 任务/子任务/调度: task.json (脚本真值, `skein subtask list order-create-api`)

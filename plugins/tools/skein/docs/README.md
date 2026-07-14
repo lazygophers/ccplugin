@@ -28,12 +28,12 @@
 
 | 概念 | 是什么 |
 | --- | --- |
-| **task** | 一条闭环任务记录, 由 `skein.py` 管理, 存 `.skein/task/<id>/` |
+| **task** | 一条闭环任务记录, 由 `skein` 管理, 存 `.skein/task/<id>/` |
 | **闭环** | plan → exec → check → finish, 不可跳步, 未 archive = 未完成 |
 | **worktree 隔离** | 每 task 一个 git worktree, 所有改动落 `.worktrees/`, 主工作区零改动 |
 | **双层调度** | main 作调度器, task 级 + subtask 级同构 DAG, 并行只看 `depends_on`, 并发上限 2, 完成即派 |
 | **两层规则记忆** | `core` 常驻注入 + `recall` 按需召回, 按类目分子目录 (差异化核心) |
-| **看板** | `.skein/task.md`, 经 `skein.py board` 渲染, 禁直接编辑 |
+| **看板** | `.skein/task.md`, 经 `skein board` 渲染, 禁直接编辑 |
 | **sediment 判定门** | 每个 task finish 前判本次 learning → core / recall / drop |
 | **契约不变量** | planning 锁 `contracts` 不可回退不变量, check 阶段逐条验证 |
 | **compaction 永续** | SessionStart hook (`session-context`) 把活跃 task 状态在上下文压缩后重注入 |

@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """SKEIN PostToolUseFailure hook: 本插件脚本报错时注入上下文 + 引导手动报 issue。
 
-仅当失败的是本插件自有脚本 (命令含 skein.py / memory.py / CLAUDE_PLUGIN_ROOT) 才触发,
-把 tool_error 注入 additionalContext 供 model 诊断, 并 systemMessage 引导用户手动开 issue
-(不自动建 issue — 避免误报刷屏)。其余工具失败一律静默 exit 0。
+仅当失败的是本插件自有脚本才触发 —— 命令含 skein.py / memory.py / CLAUDE_PLUGIN_ROOT (hook/长形式),
+或以 bin 短命令 skein / skein-memory 起头 (bin/ PATH 封装)。把 tool_error 注入 additionalContext 供
+model 诊断, 并 systemMessage 引导用户手动开 issue (不自动建 issue — 避免误报刷屏)。其余工具失败一律静默 exit 0。
 """
 import json
+import re
 import sys
 
 ISSUE_URL = "https://github.com/lazygophers/ccplugin/issues/new"
 OURS = ("skein.py", "memory.py", "CLAUDE_PLUGIN_ROOT")
+# bin 短命令: 作为命令词出现 (行首或分隔符后), 避免 `.skein/` 之类路径误匹配
+BIN_RE = re.compile(r"(?:^|[\s;&|(])(?:skein-memory|skein)(?:\s|$)")
 
 
 def main() -> int:
@@ -18,7 +21,7 @@ def main() -> int:
     except (json.JSONDecodeError, ValueError):
         return 0
     cmd = d.get("tool_input", {}).get("command", "")
-    if not any(k in cmd for k in OURS):
+    if not (any(k in cmd for k in OURS) or BIN_RE.search(cmd)):
         return 0
     err = (d.get("tool_error", "") or "").strip()[:800]  # 截断防上下文膨胀
     ctx = (f"SKEIN 脚本执行失败:\n命令: {cmd[:200]}\n错误: {err}\n"

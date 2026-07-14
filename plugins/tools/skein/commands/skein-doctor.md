@@ -10,10 +10,10 @@ description: SKEIN 体检 — 纯脚本检测 task/subtask 不符合规范的地
 
 1. 跑体检:
    ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py doctor
+   skein doctor
    ```
 2. 读脚本输出 (`✗`=错误 exit 1 / `⚠`=警告不阻断 / `✅ 无违规`)。
-3. **有 `✗`** → 逐条向用户说明违规项 + 建议修法 (改哪个 task.json / 补哪个字段 / 用哪个 `skein.py subtask` 命令), **禁自动改** `.skein/` (违规多为流程错误, 需用户确认). 涉及顶层索引与 per-task 不一致 → 建议重跑对应生命周期命令重建。
+3. **有 `✗`** → 逐条向用户说明违规项 + 建议修法 (改哪个 task.json / 补哪个字段 / 用哪个 `skein subtask` 命令), **禁自动改** `.skein/` (违规多为流程错误, 需用户确认). 涉及顶层索引与 per-task 不一致 → 建议重跑对应生命周期命令重建。
 4. **仅 `⚠`** → 列出提醒, 不阻断。
 5. **`✅ 无违规`** → 一句话报告通过。
 

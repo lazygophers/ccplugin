@@ -20,12 +20,12 @@ flowchart TD
 ```mermaid
 flowchart TD
     START([/skein-exec 请求]) --> INIT{有 .skein/?}
-    INIT -->|否| I[skein.py init]
+    INIT -->|否| I[skein init]
     INIT -->|是| P
     I --> P
 
     subgraph PLAN[① plan — main 同步交互]
-        P[判新旧: 新建 or 并入] --> CREATE[skein.py create 登记]
+        P[判新旧: 新建 or 并入] --> CREATE[skein create 登记]
         CREATE --> BRAIN[brainstorm 需求/方案]
         BRAIN --> GRILL{grill 硬门<br/>对抗审查}
         GRILL -->|有弱点| BRAIN
@@ -35,7 +35,7 @@ flowchart TD
     PRD --> RECALL[② memory recall<br/>召回 recall 规则注入]
     RECALL --> REVIEW{③ 你评审产物<br/>AskUserQuestion}
     REVIEW -->|要改| BRAIN
-    REVIEW -->|通过| ACT[激活: skein.py start<br/>建 worktree, 就绪即并行]
+    REVIEW -->|通过| ACT[激活: skein start<br/>建 worktree, 就绪即并行]
 
     ACT --> EXEC
 
@@ -59,9 +59,9 @@ flowchart TD
     end
 
     CHECKEND --> SED{⑥ sediment 判定门<br/>有可复用 learning?}
-    SED -->|有| WRITE[memory.py sediment<br/>→ core / recall]
+    SED -->|有| WRITE[skein-memory sediment<br/>→ core / recall]
     SED -->|无| FINISH
-    WRITE --> FINISH[skein.py finish]
+    WRITE --> FINISH[skein finish]
 
     subgraph FIN[finish 收束]
         FINISH --> COMMIT[worktree commit]
@@ -114,14 +114,14 @@ flowchart LR
 ## 反例黑名单 (命中 = 流程错误)
 
 1. main 直接改源码 / 跑 check (非特别例外) → 派 subagent。
-2. 把 `skein.py` 脚本派 agent 执行 → main 同步跑。
+2. 把 `skein` 脚本派 agent 执行 → main 同步跑。
 3. inline 跳过 task (即使请求极简且已显式 `/skein-exec`) → 走闭环。
 4. check 未过就推进 finish → 先定点修复重检。
 5. check / finish 未走完就宣告 Done → 未 archive = 未闭环。
 6. 口头宣称「已派 agent / 已建 task」但本回复无对应 tool_use → 先真实调用再回传。
 7. exec subagent 直接在主工作区改源码 (无 worktree) → 必在 task worktree 内。
-8. 直接 Edit/Write `.skein/task.md` → 经 `skein.py board` (guard hook 硬阻)。
-9. 直接读写 `.skein/` 的 task.json / task.md (顶层 + per-task) → 经 `skein.py current` / `list` / `subtask list/ready`; 改态经 create/start/finish/subtask。
+8. 直接 Edit/Write `.skein/task.md` → 经 `skein board` (guard hook 硬阻)。
+9. 直接读写 `.skein/` 的 task.json / task.md (顶层 + per-task) → 经 `skein current` / `list` / `subtask list/ready`; 改态经 create/start/finish/subtask。
 10. 纯文本提问代替 AskUserQuestion → 用户确认必用工具。
 11. exec 阶段 subtask 之间停下问用户顺序 → 顺序归 planning。
 

@@ -6,7 +6,7 @@
 
 | 角色 | 是谁 | 干什么 | 有 Agent/Task 工具? |
 | --- | --- | --- | --- |
-| **main** | 主对话 (coordinator) | 调度器: 跑 `skein.py` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
+| **main** | 主对话 (coordinator) | 调度器: 跑 `skein` 脚本、派 subagent、与你交互决策、回传进度、维护看板 | 有 (能派) |
 | **执行者** | main 选的合适 agent (无则 `skein-executor`) | worktree 内执行 **1 个** subtask, 写代码 | 有 (递归护栏靠 dispatch prompt 硬性禁止再派) |
 | **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
@@ -15,7 +15,7 @@
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `skein-executor`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
-`skein.py` 的 `create/start/finish/archive` 是任务记录管理, 由 main **同步**直接跑, 不派 agent、不算实质工作。
+`skein` 的 `create/start/finish/archive` 是任务记录管理, 由 main **同步**直接跑, 不派 agent、不算实质工作。
 
 ## 强制闭环: plan → exec → check → finish
 
@@ -27,19 +27,19 @@
 
 ### ① plan (main 同步, 交互式)
 
-- **判新旧**: 全新任务 → `skein.py create` 登记; 对现有 active task 的补充 → 并入 (判不准就 AskUserQuestion 问你)。
+- **判新旧**: 全新任务 → `skein create` 登记; 对现有 active task 的补充 → 并入 (判不准就 AskUserQuestion 问你)。
 - **brainstorm**: main 和你梳理需求与方案 (subagent 不能与你对话, 故全程 main 前台)。
 - **grill 硬门**: 对抗式审查需求与工件, 弱点补齐后才放行。**未跑 grill 禁进 exec**。
-- **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein.py contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
-- 产出: `prd.md` (主入口) + `design.md` (详细设计) + 需调研时 `findings.md` (调研收敛); 子任务 + 调度 DAG 经 `skein.py subtask add` 落 task.json。请你评审 (AskUserQuestion)。
+- **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
+- 产出: `prd.md` (主入口) + `design.md` (详细设计) + 需调研时 `findings.md` (调研收敛); 子任务 + 调度 DAG 经 `skein subtask add` 落 task.json。请你评审 (AskUserQuestion)。
 
 ### ② memory recall (main 委托 `skein-memorier`)
 
-派 `skein-memorier` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `memory.py inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
+派 `skein-memorier` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `skein-memory inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
 
 ### ③ 激活 (main 同步)
 
-grill 通过 + 你评审确认 → `skein.py start`:
+grill 通过 + 你评审确认 → `skein start`:
 
 - 建 git worktree: `git worktree add -b skein/<id> .worktrees/skein-<id> HEAD` (单根/原地)。**多子 git** (`create --repos`): 各子仓内部各建一个 `<repo>/.worktrees/skein-<id>`, 子仓自补 `.gitignore` 忽略
 - task 状态 → `in_progress`, 写入 worktree 路径。无 task 级 focus — 就绪 task 皆可并行。
@@ -58,21 +58,21 @@ main 作调度器跑**动态 DAG 调度循环**:
 
 ### ⑤ check (main 派 checker fan-out)
 
-派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein.py contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没), 并做 **subtask 产物一致性核查** (接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾, 逐条报冲突对)。
+派 `skein-checker` 验证 spec 合规 / lint / type / tests。checker 先 `skein contract <id>` 读出 planning 阶段锁定的契约, **逐条验证 pass/fail** (不变量守住没), 并做 **subtask 产物一致性核查** (接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾, 逐条报冲突对)。
 
 **处置分两路** (关键): 
 - **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 派合适 agent (无则 `skein-executor`) 只改失败相关文件, 重检。
-- **一致性冲突 或 check 失败根因跨 subtask** → **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein.py plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
+- **一致性冲突 或 check 失败根因跨 subtask** → **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
 
 **第 3 轮仍 FAIL → 根因复盘**: 不再只停手, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② 停手并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
 
 ### ⑥ finish (main 委托 `skein-finish` 编排)
 
-check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment (见下) → 清理悬挂 → `skein.py finish`**。
+check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment (见下) → 清理悬挂 → `skein finish`**。
 
 - **收尾勘察** (`skein-finisher`, 只读): 扫悬挂 subagent/后台任务 + 复核 check 全绿 + 查未提交遗漏, 回传勘察报告供 main 决定是否放行。
-- **sediment 判定门** (委托 `skein-memory`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `memory.py sediment` 自动写盘 (判定门通过即写, 不逐次询问用户)。无增量则跳过 (禁硬凑)。
-- **`skein.py finish`** (main 同步):
+- **sediment 判定门** (委托 `skein-memory`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `skein-memory sediment` 自动写盘 (判定门通过即写, 不逐次询问用户)。无增量则跳过 (禁硬凑)。
+- **`skein finish`** (main 同步):
   1. worktree 内 `git add -A` + commit (auto_commit=true 时)。
   2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
   3. 销 worktree + 删分支。
@@ -95,7 +95,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 - **subtask 级**: `subtask add --deps "s1,s2"` (存 `subtasks[].depends_on`)。被依赖者未 done 前, 依赖者不 ready; 无依赖者可并行。
 - **task 级**: `create --deps "order-query,order-create-api"` (存 task.json `deps`)。各 active task 各占各 worktree, 只看 task.json `deps` 决定串并行。
 
-**subtask 状态脚本落盘 (非肉眼看 md 文件)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein.py subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖 (`depends_on`) 全 done + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
+**subtask 状态脚本落盘 (非肉眼看 md 文件)**: subtask DAG 存 per-task `task.json` 的 `subtasks[]`, 经 `skein subtask add/claim/done/fail` 维护, 渲染到 per-task `task.md`。**脚本一次性算就绪批 + 改态** (依赖 (`depends_on`) 全 done + 空闲槽 → 整批标 running), **只派 agent 归 main** (脚本不能 spawn):
 
 ```
 拆好 → subtask add …               (逐个登记 sid/deps/check 验收标准)
@@ -142,7 +142,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 | 跨任务可复用经验但长尾 (选型 / 架构边界 / 踩坑根因) | → **recall** |
 | 一次性 bug / 本 task 私有细节 / 已有规则覆盖 | → **drop** (不沉淀) |
 
-判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 diff + subagent 回传摘要 跑判定门) 产出, 写盘经 `memory.py sediment` 仍归 main —— 判定门通过即自动写, 不逐次询问用户, 自动 reindex。
+判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 diff + subagent 回传摘要 跑判定门) 产出, 写盘经 `skein-memory sediment` 仍归 main —— 判定门通过即自动写, 不逐次询问用户, 自动 reindex。
 
 ## 工作区布局
 
@@ -169,18 +169,18 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 └── skein-<id>/                      # task 隔离 worktree (finish 后销)
 ```
 
-> SKEIN 自包含: `skein.py` 自身即引擎, `config.yaml` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
+> SKEIN 自包含: `skein` 自身即引擎, `config.yaml` 是纯设置 (无外部生命周期 hook 层), start/finish 直接干活。
 
 ## 护栏机制
 
 | 护栏 | 怎么实现 | 挡住什么 |
 | --- | --- | --- |
-| task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein.py 直接读写状态/看板 → 格式漂移或态不一致 |
+| task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein 直接读写状态/看板 → 格式漂移或态不一致 |
 | Recursion Guard | 具名 agent (checker/researcher) 无 Agent/Task 工具; 执行者 (skein-executor 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | git 仓库内: 有 task 必有 worktree (非 git 仓库降级原地执行) | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
 | 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |
-| compaction 永续 | `skein.py session-context` SessionStart hook 重注入活跃 task | 上下文压缩后忘掉在跑的 task |
+| compaction 永续 | `skein session-context` SessionStart hook 重注入活跃 task | 上下文压缩后忘掉在跑的 task |
 | hook token 可控 | 所有注入过 `hooklib.budget_guard` (session-start 索引 + session-context); core 只注入极简索引 | 常驻上下文不可控膨胀 |
 | .skein 操作免打断 | `allow-skein.py` PermissionRequest 对引擎命令 / prd 等工件默认同意 | 逐次授权拖慢闭环 (task.json/task.md 仍归 guard 硬阻) |
 | 并发写竞态防护 | `batch-skein.py` PostToolBatch 拦同批 ≥2 个 .skein 状态写命令 | 并行写 task.json/spec 后写覆盖前写 |

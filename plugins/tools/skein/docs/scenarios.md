@@ -14,7 +14,7 @@
 - **exec**: 拆成 subtask (下发接口 / 校验接口 / 存储层 / 前端表单), 无冲突的并行派, 有依赖的串行。
 - **check**: 跑测试 + 契约校验。
 - **finish**: 合并回主分支, 若「短信服务必须走异步队列」这类契约值得复用 → sediment 到 core。
-- **契约锁定** (可选): planning 时把「验证码必须限流」这类不变量 `skein.py contract <id> --add` 锁进 task, check 阶段 checker 逐条验证守住没。
+- **契约锁定** (可选): planning 时把「验证码必须限流」这类不变量 `skein contract <id> --add` 锁进 task, check 阶段 checker 逐条验证守住没。
 
 **注意点**: plan 阶段多花点时间和 Claude 对齐需求, exec 才不会跑偏。
 
@@ -61,14 +61,14 @@
 - 想串行 → 建 task 时用 `--deps` 显式声明依赖; 并行与否只看 task.json 的 `deps` DAG。
 - 想显式声明「B 必须等 A」→ 建 task 时 `--deps`:
   ```bash
-  python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py create order-export --deps "order-query"
+  skein create order-export --deps "order-query"
   ```
 - 超过 2 个: `start` 第三个会报错「先 finish 一个」。
 
 **看多 task 状态**:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
+skein current
 # order-export   进行中  加订单导出功能  .worktrees/skein-order-export
 # login-style-fix 进行中  修复登录页样式  .worktrees/skein-login-style-fix
 ```
@@ -107,7 +107,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
 | exec subtask 报错/验收不过 | main 读根因**自愈** (本 task scope 内): 定点小缺陷 → 原地重派 (≤2 轮); 根因是独立可修单元 → 加修复 subtask 定点修后重派失败 subtask。兜底 (修复也失败/累计超上限/根因超 scope) → 停手回传你 (走根因复盘协议) |
 | check 反复不过 (≥2 轮) | 派 agent 定点修; 第 3 轮仍不过 → 走 `skein-check` 根因复盘协议 (`references/root-cause-protocol.md`) 做**跨维度根因复盘** (需求/设计/实现/环境/测试 5 维定位 + 预防措施), 出口: 带根因回 exec 定向重修, 或停手附根因报告转人工 (可复用教训回流 sediment) |
 | finish 合并冲突 | 自动 abort + 报冲突文件; 手动解冲突后重跑 finish, **禁强解** |
-| 方案跑歪想放弃 | `skein.py archive <id>` — 丢弃 task (销 worktree, 不合并), 主分支干净 |
+| 方案跑歪想放弃 | `skein archive <id>` — 丢弃 task (销 worktree, 不合并), 主分支干净 |
 
 ## 场景 8: 首次接入空仓 (冷启动播种)
 

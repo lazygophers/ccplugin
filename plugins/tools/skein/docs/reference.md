@@ -11,15 +11,15 @@ plugin 启用后 `bin/` 自动进 Bash tool 的 PATH (官方约定目录, 无需
 | `skein <cmd>` | `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>` |
 | `skein-memory <cmd>` | `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>` |
 
-省 token、抗路径漂移。**仅** skill/agent 正文里的 Bash 调用可用短命令; hook 里的 `python3 ${CLAUDE_PLUGIN_ROOT}/...` 走 hook 环境 (非 Bash PATH), 保持长形式不变。下文命令表沿用长形式书写, 实操可替换为短命令。
+省 token、抗路径漂移。**仅** skill/agent 正文里的 Bash 调用可用短命令; hook 里的 `python3 ${CLAUDE_PLUGIN_ROOT}/...` 走 hook 环境 (非 Bash PATH), 保持长形式不变。下文命令表一律用短命令书写。
 
-## skein.py — 任务引擎 (main 同步跑)
+## skein — 任务引擎 (main 同步跑)
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd>
+skein <cmd>
 ```
 
-**全局 flag** `-d` / `--debug` (须在子命令**前**: `skein --debug board`; 或设环境变量 `SKEIN_DEBUG=1`): 把命令干了什么 (git / 读盘 / 写盘 / 锁 / 看板数据源合并) 用 rich 美化叙事到 **stderr**, stdout 保持机器纯净不受影响。`memory.py` 同支持。
+**全局 flag** `-d` / `--debug` (须在子命令**前**: `skein --debug board`; 或设环境变量 `SKEIN_DEBUG=1`): 把命令干了什么 (git / 读盘 / 写盘 / 锁 / 看板数据源合并) 用 rich 美化叙事到 **stderr**, stdout 保持机器纯净不受影响。`skein-memory` 同支持。
 
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
@@ -51,10 +51,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd
 
 **文件锁 (并发写保护)**: task/subtask 的更新经工作区级排他锁 `.skein/.lock` (`fcntl.flock`) 串行化, 包裹所有变更类命令 (`init/setup/create/start/finish/archive/clean/contract/subtask`); 只读命令 (`current/ready/list/board/view`) 豁免。未拿到锁时**代码轮询等待** (非报错退出), 默认超时 10s, 超时抛错「获取 .skein 写锁超时」。作用: 多 skein 进程 / 并发 subtask 写同一 task.json 不丢更新。`.lock` 已加入 `.skein/.gitignore` (运行期锁文件, 不入库)。
 
-## memory.py — 规则记忆引擎
+## skein-memory — 规则记忆引擎
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-memory <cmd>
+skein-memory <cmd>
 ```
 
 | 命令 | 参数 | 作用 |
@@ -75,14 +75,14 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 | skill | 何时用 | references |
 | --- | --- | --- |
-| `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein.py setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `memory.py reindex`) | trellis-migration |
+| `skein-setup` | ① 未初始化 (SessionStart 提示「无 .skein/」): 新仓 main 直跑 `skein setup`; 有 trellis 派 `skein-setup` agent 语义迁移。② 已初始化: 手动优化 `.skein/` 结构 (spec 类目重组 / core↔recall 层调 / config 调参, 改盘后 `skein-memory reindex`) | trellis-migration |
 | `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发), 委托各阶段 skill | — (plan → skein-plan / exec → skein-exec / check → skein-check / finish → skein-finish; 记忆 recall+sediment → skein-memory) |
 | `skein-plan` | plan 入口 + 单一真值源 (用户可显式 `/skein-plan`, 也被 flow `--continue` 委托): 判新旧 + 登记 + brainstorm + grill 硬门; **无参 = 跑完停在 start 前 (只规划不执行, 禁 exec/check/finish)**, `--continue` = 不停返回工件路径; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-exec` | exec 执行编排调度真值源 (被 flow exec 委托, 也可 `/skein-exec` 单独续跑已规划 task): main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent, ready 即派 / 完成即派 / 并发上限 2, 双层 (subtask 级 + 多 task 级) 同构 | scheduling-algorithm · progress-reporting |
 | `skein-memory` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性)。绑定 `skein-memorier` agent (产 recall/sediment 草案, 相互绑定) | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
 | `skein-check` | 质量门 (lint/type/test/契约 + **一致性核查**), 未过派修; 孤立失败定点修, **跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖)**; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
-| `skein-finish` | finish 收尾编排门 (check 全绿后被 flow 委托): 派 `skein-finisher` 收尾勘察 + 委托 `skein-memory` sediment + 清理悬挂 + `skein.py finish` (commit→merge→archive→销 worktree) | — |
+| `skein-finish` | finish 收尾编排门 (check 全绿后被 flow 委托): 派 `skein-finisher` 收尾勘察 + 委托 `skein-memory` sediment + 清理悬挂 + `skein finish` (commit→merge→archive→销 worktree) | — |
 | `skein-clean` | **[仅用户主动]** 主动归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支; 入参 = 保留天数 | anti-examples |
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 exec / planning / memory / check 的 references (省常驻 description token)。
@@ -95,7 +95,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | --- | --- | --- | --- |
 | `skein-checker` | 只读验证 (lint/type/test/契约合规 + subtask 产物一致性核查, 报冲突对) | 只读 + Bash, 无 Agent/Task | `model: haiku` + `effort: medium` |
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
-| `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + **残留/非 canonical** settings hook 剔除; canonical trellis hook 由脚本硬剔); 机械部分交 `skein.py setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
+| `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + **残留/非 canonical** settings hook 剔除; canonical trellis hook 由脚本硬剔); 机械部分交 `skein setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-finisher` | finish 收尾勘察 (只读: 扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏), 绑定 `skein-finish` | 只读 + Bash, 无 Agent/Task | `model: haiku` |
 | `skein-memorier` | 记忆员: recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选), 与 `skein-memory` 相互绑定; 写盘归 main (判定门通过即自动写, 不逐次询问) | 只读 + Bash, 无 Agent/Task | `model: haiku` |
 
@@ -121,7 +121,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
 | `board_mode` | `light` | 看板默认明暗: `light` 浅色 / `dark` 深色 |
 | `board_server` | `false` | `view` 打开方式: `false` = `file://` 直接开静态 task.html; `true` = 起本地 http 服务 (随机 port, 服务 `.skein/`) + 自动开浏览器, Ctrl-C 停 |
-| `web_serve` | `true` | 持久看板 web 服务开关 (经 `experimental.monitors`, 见「持久看板服务」)。`true` = 每 session 由 monitor 起持久 http 服务 (随机 port, 服务 `.skein/`); `false` = 关闭 (monitor 仍被 Claude Code 拉起, 但 `skein.py serve` 读到此值即静默 no-op 退出)。与 `board_server` 独立: 前者管每 session 常驻服务, 后者管 `view` 单次打开方式 |
+| `web_serve` | `true` | 持久看板 web 服务开关 (经 `experimental.monitors`, 见「持久看板服务」)。`true` = 每 session 由 monitor 起持久 http 服务 (随机 port, 服务 `.skein/`); `false` = 关闭 (monitor 仍被 Claude Code 拉起, 但 `skein serve` 读到此值即静默 no-op 退出)。与 `board_server` 独立: 前者管每 session 常驻服务, 后者管 `view` 单次打开方式 |
 
 > **缺键自动回填**: `config()` 每次加载时对照 `CONFIG_DEFAULTS`, 缺的键补默认值并回写 config.yaml (用户已有值保留)。旧工作区升级后新增键无需手动补。
 
@@ -129,10 +129,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 
 ## 持久看板服务 (`experimental.monitors`)
 
-plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 Claude Code v2.1.105+), 每 session 由 Claude Code 拉起 `skein.py serve` 持久后台进程, 起本地 http 服务 (随机 port, 服务 `.skein/`) 常驻托管 `task.html` 看板。服务器 stdout 每行 (含启动时打印的看板 URL) 经 monitor 递给 Claude 作通知。
+plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 Claude Code v2.1.105+), 每 session 由 Claude Code 拉起 `skein serve` 持久后台进程, 起本地 http 服务 (随机 port, 服务 `.skein/`) 常驻托管 `task.html` 看板。服务器 stdout 每行 (含启动时打印的看板 URL) 经 monitor 递给 Claude 作通知。
 
 - **总启动 + 命令自判**: Claude Code 的 monitor launcher **不读** `config.yaml`, 故 monitor 恒被拉起; 由 `serve` 命令按 config 决定跑不跑 —— 无 `.skein/` 工作区 (非 task 项目) 或 `web_serve=false` → 静默 no-op 退出, 不占端口。
-- **setup 缺省启用并打开**: `skein.py setup` 缺省 `web_serve=true` 并打开一次看板 (监听服务由 monitor 起, setup 只负责首次打开); 传 `--no-web` 则写 `web_serve=false` 关闭, 不打开。
+- **setup 缺省启用并打开**: `skein setup` 缺省 `web_serve=true` 并打开一次看板 (监听服务由 monitor 起, setup 只负责首次打开); 传 `--no-web` 则写 `web_serve=false` 关闭, 不打开。
 - **运行时关闭**: 用户随时改 `.skein/config.yaml` 的 `web_serve: false` 即关 (下个 session monitor no-op)。
 - **不自动弹浏览器**: monitor 每 session 跑, `serve` 不弹浏览器 (避免每 session 弹窗); 打开由 setup / `view` 负责。
 - **看板自动刷新**: `task.html` 内嵌 2s 轮询, HEAD 请求自身比对 `Last-Modified`, 盘上文件变了才 `location.reload()` (空闲不闪)。task 命令每次重写盘上 html, 已打开的 http 看板 tab 随之自动更新, 无需手动刷新。`file://` 直开 (`board_server=false` 的 `view`) 下 fetch 受限 → 静默 no-op, 但每次 `view` 重开已是最新。
@@ -141,23 +141,23 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 
 | hook | 触发 | 作用 |
 | --- | --- | --- |
-| **SessionStart** | 每 session 开始 | `memory.py session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein.py session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
-| **UserPromptSubmit** | 每次用户提交 prompt | `skein.py user-prompt` 注入 **task 判定提醒**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定为 model 语义活, hook 只注入决策标准 (过 budget_guard); 非 git 仓静默 exit 0 |
-| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 两类硬阻: ① 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡); ② **迁移门** — 有 `.trellis/` 但无 `.skein/config.yaml` 时挡源码 Read/Edit/Write/MultiEdit (含只读诊断), 逼先 skein-setup 初始化 (纯文本注入压不过 trellisx 的 active-task 注入, 故硬阻; 仅 Bash 跑 `skein.py setup` 放行, `.skein/`·`.trellis/` 内部路径放行不自锁) |
-| **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein.py/memory.py 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/design/findings)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
+| **SessionStart** | 每 session 开始 | `skein-memory session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
+| **UserPromptSubmit** | 每次用户提交 prompt | `skein user-prompt` 注入 **task 判定提醒**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定为 model 语义活, hook 只注入决策标准 (过 budget_guard); 非 git 仓静默 exit 0 |
+| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 两类硬阻: ① 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡); ② **迁移门** — 有 `.trellis/` 但无 `.skein/config.yaml` 时挡源码 Read/Edit/Write/MultiEdit (含只读诊断), 逼先 skein-setup 初始化 (纯文本注入压不过 trellisx 的 active-task 注入, 故硬阻; 仅 Bash 跑 `skein setup` 放行, `.skein/`·`.trellis/` 内部路径放行不自锁) |
+| **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein/skein-memory 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/design/findings)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
 | **PostToolBatch** | 并行工具批 | `batch-skein.py` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
-| **PostToolUseFailure** | Bash 失败 | `report-skein.py` 仅当失败命令属本插件脚本 (含 skein.py/memory.py/CLAUDE_PLUGIN_ROOT) 时, 注入错误上下文 + `systemMessage` 引导用户**手动**开 issue (不自动建, 免误报刷屏) |
+| **PostToolUseFailure** | Bash 失败 | `report-skein.py` 仅当失败命令属本插件脚本 (含 skein.py/memory.py/CLAUDE_PLUGIN_ROOT, 或 bin 短命令 skein/skein-memory 起头) 时, 注入错误上下文 + `systemMessage` 引导用户**手动**开 issue (不自动建, 免误报刷屏) |
 
 ## guard-skein.py 拦截规则
 
-判定: 路径落在 `.skein/` 下且 basename ∈ {`task.json`, `task.md`} → 读写全挡 (含归档路径)。四个文件全由 skein.py 维护, AI 取态经命令 stdout 而非读文件。
+判定: 路径落在 `.skein/` 下且 basename ∈ {`task.json`, `task.md`} → 读写全挡 (含归档路径)。四个文件全由 skein 维护, AI 取态经命令 stdout 而非读文件。
 
 | 目标文件 | Read | Edit/Write | 替代方式 |
 | --- | --- | --- | --- |
-| `.skein/task.json` (顶层 tasks 全表) | 挡 | 挡 | `skein.py current` 列 active; create/start/finish 改 |
-| `.skein/task.md` (顶层看板) | 挡 | 挡 | `skein.py list` / `board` 取态 |
-| `.skein/task/<id>/task.json` (记录+subtask) | 挡 | 挡 | `skein.py subtask list/ready <id>`; subtask add/start/done 改 |
-| `.skein/task/<id>/task.md` (子任务看板) | 挡 | 挡 | `skein.py subtask list <id>` |
+| `.skein/task.json` (顶层 tasks 全表) | 挡 | 挡 | `skein current` 列 active; create/start/finish 改 |
+| `.skein/task.md` (顶层看板) | 挡 | 挡 | `skein list` / `board` 取态 |
+| `.skein/task/<id>/task.json` (记录+subtask) | 挡 | 挡 | `skein subtask list/ready <id>`; subtask add/start/done 改 |
+| `.skein/task/<id>/task.md` (子任务看板) | 挡 | 挡 | `skein subtask list <id>` |
 | `.skein/task/<id>/{prd,design,findings}.md` + `research/` | 放行 | 放行 | planning 工件, AI 直接读写 |
 
 ### 迁移门 (trellis 共存强制初始化)
@@ -167,11 +167,11 @@ trellisx 与 skein 同装时, 两者都在 SessionStart+UserPromptSubmit 注入;
 | 条件 | 动作 |
 | --- | --- |
 | 有 `.trellis/` + 无 `.skein/config.yaml` + tool ∈ {Read,Edit,Write,MultiEdit} + 目标非 `.skein/`·`.trellis/` 内部 | **exit 2 block**, stderr 引导先调 skein-setup (读写源码全挡, 含只读诊断) |
-| Bash (`skein.py setup` init 本身) | 放行 (初始化不被自锁) |
+| Bash (`skein setup` init 本身) | 放行 (初始化不被自锁) |
 | `.skein/`·`.trellis/` 内部路径 | 放行 (迁移读写 spec 不自锁) |
 | 无 `.trellis/` 的普通仓 | 不硬阻 (仅靠 hook 文本软提示) |
 
-初始化无条件, 诊断也不例外 (决策: 初始化优先, 只读排查也须先 init); 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化。init 经 Bash 跑 `skein.py setup` 创 config.yaml, 门随即打开。
+初始化无条件, 诊断也不例外 (决策: 初始化优先, 只读排查也须先 init); 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化。init 经 Bash 跑 `skein setup` 创 config.yaml, 门随即打开。
 
 ## 生命周期一图速记
 

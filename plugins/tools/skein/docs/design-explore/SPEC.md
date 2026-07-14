@@ -2,7 +2,7 @@
 
 ## 是什么
 SKEIN 是 Claude Code 任务管理插件。看板 = 离线单文件 HTML (`task.html`),
-由 `scripts/skein.py` 用字符串拼 HTML 生成, 链接式 CSS。展示 AI 编排的 task/subtask
+由 `skein` 用字符串拼 HTML 生成, 链接式 CSS。展示 AI 编排的 task/subtask
 执行状态: 完成度、DAG 执行顺序、subtask 明细表。
 
 ## 受众 / 场景

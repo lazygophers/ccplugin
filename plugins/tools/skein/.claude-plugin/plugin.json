@@ -42,6 +42,7 @@
         "./agents/skein-setup.md",
         "./agents/skein-checker.md",
         "./agents/skein-researcher.md",
+        "./agents/skein-executor.md",
         "./agents/skein-finisher.md",
         "./agents/skein-memorier.md"
     ],
