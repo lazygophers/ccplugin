@@ -1,0 +1,84 @@
+/* 缕光 (skein · 默认旗舰) — 原语: 卡片=glass(液态玻璃) · 边框=hairline(流光描边) · 圆角=round · 字型=sans · 底纹=莫奈水塘(弥散渐变缓漂)。
+   签名: 科技暗底上一层莫奈睡莲水光 —— 底纹缓漂 + 卡片流光扫过 + 运行卡辉光脉动 + 进度条流动渐变 + 标题渐变微闪。
+   烘焙配色=莫奈 (印象派睡莲池): 靛蓝深水底 + 薰衣草/柳绿睡莲点缀。明暗=暗。华丽靠光与动, 结构极简。 */
+html[data-theme=skein]{
+  /* 烘焙配色=莫奈睡莲 (靛蓝基 + 薰衣草 accent + 柳绿 accent2) + 明暗=暗 */
+  --h:230;--c-neutral:.02;--c-accent:.12;--h-accent:290;--h-accent2:165;
+  /* 深水塘暗锚 (带色, 非死灰) */
+  --l-bg:.165;--l-card:.225;--l-fg:.91;--l-head:.85;--l-muted:.62;--l-brd:.33;--l-line:.27;--l-accent:.75;--l-st:.71;
+  --radius:16px;
+}
+
+/* 底纹: 莫奈水塘弥散渐变 + 缓漂 */
+html[data-theme=skein] body{
+  background:
+    radial-gradient(50% 45% at 15% 12%,color-mix(in srgb,var(--accent) 32%,transparent),transparent),
+    radial-gradient(48% 48% at 85% 20%,color-mix(in srgb,var(--accent2) 30%,transparent),transparent),
+    radial-gradient(55% 50% at 75% 88%,color-mix(in srgb,var(--accent) 22%,transparent),transparent),
+    radial-gradient(45% 45% at 20% 80%,color-mix(in srgb,var(--accent2) 20%,transparent),transparent),
+    var(--bg);
+  background-size:200% 200%;background-attachment:fixed;
+  animation:skein-drift 34s ease-in-out infinite;
+}
+@keyframes skein-drift{
+  0%,100%{background-position:0% 0%}
+  50%{background-position:100% 100%}
+}
+
+/* 卡片: 液态玻璃 + 流光描边扫过 */
+html[data-theme=skein] .card,html[data-theme=skein] .switcher{
+  position:relative;overflow:hidden;
+  background:color-mix(in srgb,var(--card) 58%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--brd));
+  border-radius:16px;
+  box-shadow:0 10px 34px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.10);
+  backdrop-filter:blur(13px) saturate(1.5);-webkit-backdrop-filter:blur(13px) saturate(1.5);
+}
+/* 签名: 顶缘一道流光缓扫 (华丽但克制) */
+html[data-theme=skein] .card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 90%,#fff),color-mix(in srgb,var(--accent2) 90%,#fff),transparent);
+  background-size:220% 100%;
+  animation:skein-sheen 6s linear infinite;
+}
+@keyframes skein-sheen{0%{background-position:120% 0}100%{background-position:-120% 0}}
+
+/* 运行中卡片: 辉光脉动 (:has 命中含运行徽章的卡) */
+html[data-theme=skein] .card:has(.badge.s-active),
+html[data-theme=skein] .card:has(.badge.ss-running){
+  border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  animation:skein-glow 2.6s ease-in-out infinite;
+}
+@keyframes skein-glow{
+  0%,100%{box-shadow:0 10px 34px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent),0 0 16px color-mix(in srgb,var(--accent) 22%,transparent)}
+  50%{box-shadow:0 10px 34px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent),0 0 30px color-mix(in srgb,var(--accent) 42%,transparent)}
+}
+
+/* 进度条: 流动渐变 */
+html[data-theme=skein] .fill{
+  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent));
+  background-size:200% 100%;
+  animation:skein-flow 3s linear infinite;
+}
+@keyframes skein-flow{0%{background-position:0% 0}100%{background-position:-200% 0}}
+
+/* 标题: 睡莲渐变微闪文字 */
+html[data-theme=skein] h1{
+  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent));
+  background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:skein-flow 8s linear infinite;
+}
+
+/* 徽章 / 选中: 玻璃质 */
+html[data-theme=skein] .badge{border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:999px}
+
+/* 尊重减动偏好: 关全部动效, 保留静态华丽 */
+@media (prefers-reduced-motion: reduce){
+  html[data-theme=skein] body,
+  html[data-theme=skein] .card::before,
+  html[data-theme=skein] .card:has(.badge.s-active),
+  html[data-theme=skein] .card:has(.badge.ss-running),
+  html[data-theme=skein] .fill,
+  html[data-theme=skein] h1{animation:none}
+}

@@ -60,7 +60,8 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
 # 看板主题 = 装饰预设 (值 = board/themes/ 下 css 文件名). 每个预设 = 5 原语 (卡片质感/边框/圆角/字型/底纹)
 # 固定搭配 + 一处签名点缀, 结构全从 palette token 派生 → 自动随配色/明暗变, 每预设不塌成同一套灰.
-THEMES = [("minimal", "极简"), ("terminal", "终端"), ("glass", "磨砂"),
+THEMES = [("skein", "缕光"),
+          ("minimal", "极简"), ("terminal", "终端"), ("glass", "磨砂"),
           ("blueprint", "蓝图"), ("sketch", "手绘"), ("neumorphism", "浮起"),
           ("holographic", "虹彩"), ("magazine", "杂志"),
           ("sketchdark", "夜绘")]
@@ -144,7 +145,7 @@ CONFIG_DEFAULTS = {
     "auto_commit": True,
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
-    "board_theme": "minimal",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设
+    "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
     "board_server": False,  # view: True→本地 http server 随机 port + 开浏览器; False→file:// 直开
     "web_serve": True,  # experimental.monitors: 每 session 起持久看板 http 服务; False→关闭 (monitor 仍启动但 serve 命令 no-op 退出)
 }
@@ -1383,7 +1384,7 @@ class Skein:
 
         self._copy_board_assets()
         cfg = self.config()
-        theme = cfg.get("board_theme", "minimal")
+        theme = cfg.get("board_theme", "skein")
         links = ('<link rel=stylesheet href="board/base.css">'
                  + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES))
 
