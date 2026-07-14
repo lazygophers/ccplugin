@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 # skein-memory — thin wrapper forwarding to scripts/memory.py
 root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-exec python3 "~/.claude/plugins/marketplaces/ccplugin-market/plugins/tools/skein/scripts/memory.py" "$@"
+exec python3 "$root/scripts/memory.py" "$@"
