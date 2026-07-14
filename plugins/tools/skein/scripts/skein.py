@@ -35,9 +35,13 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
-from hooklib import budget_guard  # noqa: E402
+from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
 
 SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (active task ≤2, 正常远低于)
+
+# --debug 叙事器 (默认关): main() 按 --debug/SKEIN_DEBUG 重建。git/写盘/锁等模块级函数经此叙事,
+# 全走 stderr — stdout 保持机器纯净 (被 AI/hook 消费)。
+DBG = Debug(False)
 
 # task 状态 (中文落盘, 逻辑比较用常量)
 S_PENDING = "待处理"
@@ -109,9 +113,11 @@ def _workspace_lock(lock_path: Path, timeout=10.0, poll=0.05):
                     raise SystemExit(
                         f"获取 .skein 写锁超时 ({timeout}s) — 另一 skein 进程持锁未释放: {lock_path}")
                 time.sleep(poll)
+        DBG.log(f"🔒 已获工作区写锁 {lock_path}", style="dim")
         yield
     finally:
         f.close()  # 关闭即释放 flock
+        DBG.log("🔓 释放工作区写锁", style="dim")
 
 
 # ponytail: config 只有 4 个扁平标量键 → 手写 mini YAML 读写, 免 PyYAML 依赖。
@@ -152,10 +158,13 @@ CONFIG_DEFAULTS = {
 
 
 def git(*args, cwd=None, check=True, capture=True):
+    DBG.log(f"$ git {' '.join(args)}" + (f"   (cwd={cwd})" if cwd else ""), style="dim")
     r = subprocess.run(
         ["git", *args], cwd=cwd, check=False,
         capture_output=capture, text=True,
     )
+    if r.returncode != 0:
+        DBG.log(f"  ↳ git exit={r.returncode}", style="yellow")
     if check and r.returncode != 0:
         sys.stderr.write((r.stderr or "") + "\n")
         raise SystemExit(f"git {' '.join(args)} 失败 (exit {r.returncode})")
@@ -871,10 +880,12 @@ class Skein:
         # 先比对再写, 免无谓 IO/SSD 写入 (增量保护磁盘)。
         try:
             if path.exists() and path.read_text() == content:
+                DBG.log(f"= {path}  (内容未变, 跳过写)", style="dim")
                 return
         except OSError:
             pass
         path.write_text(content)
+        DBG.log(f"✎ 写入 {path}  ({len(content)} 字符)", style="green")
 
     def _board(self, _):
         rows = []
@@ -1764,6 +1775,8 @@ def main():
         description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约",
         epilog="生命周期: init → create → start → (exec/check) → finish → archive",
     )
+    p.add_argument("-d", "--debug", action="store_true",
+                   help="rich 美化叙事到 stderr — 展示 git/写盘/锁/状态迁移全过程 (stdout 保持机器纯净; 亦可 SKEIN_DEBUG=1)")
     sub = p.add_subparsers(dest="cmd", required=True, metavar="<command>")
 
     sub.add_parser("init", help="初始化 .skein/ 工作区 (幂等)")
@@ -1822,6 +1835,11 @@ def main():
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
     a = p.parse_args()
+    global DBG
+    DBG = Debug(debug_enabled(a))
+    DBG.rule(f"skein {a.cmd}")
+    DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
+           title="参数")
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
     if getattr(a, "cmd", None) == "subtask" and a.action == "add":
@@ -1856,6 +1874,7 @@ def main():
             dispatch[a.cmd](a)
     else:
         dispatch[a.cmd](a)
+    DBG.log(f"✓ {a.cmd} 完成", style="bold green")
 
 
 if __name__ == "__main__":
