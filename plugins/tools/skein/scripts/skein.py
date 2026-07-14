@@ -250,7 +250,11 @@ class Skein:
                 continue
             f = d / "task.json"
             if f.exists():
-                out.append(json.loads(f.read_text()))
+                t = json.loads(f.read_text())
+                out.append(t)
+                DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
+                        f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
+                        f"contracts={len(t.get('contracts', []))}", style="dim")
         # 状态优先排序 (进行中>检查中>待处理>已完成), 同状态内保持 id 序
         out.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         return out
@@ -261,20 +265,33 @@ class Skein:
         # 仅存于索引的 task (只 id/status/deps/worktree + name=id), 免看板静默空白。
         # 只服务 _board / _board_html 只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
         # ponytail: 镜像无 name 字段 → 降级用 id 当名; 要恢复完整 task 需从有 per-task 目录的分支 checkout。
+        DBG.rule("看板数据源合并 (顶层索引 ∪ per-task 明细)")
         tasks = self._all()
+        DBG.log(f"per-task 明细: {len(tasks)} 个 (真值源, 明细胜出)", style="cyan")
         have = {t["id"] for t in tasks}
         mirror = self.dir / "task.json"
+        mirrored = 0
         if mirror.exists():
             try:
                 rows = json.loads(mirror.read_text()).get("tasks", [])
             except (json.JSONDecodeError, OSError):
                 rows = []
+            DBG.log(f"读顶层镜像 {mirror}  → {len(rows)} 条索引", style="dim")
             for r in rows:
                 if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
                               "deps": r.get("deps", []), "worktree": r.get("worktree")})
+                mirrored += 1
+                DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 降级用 id 当名)", style="yellow")
+        else:
+            DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
+        by_status = {}
+        for t in tasks:
+            by_status[t["status"]] = by_status.get(t["status"], 0) + 1
+        DBG.kv({"合计 task": len(tasks), "明细": len(tasks) - mirrored, "镜像补齐": mirrored,
+                **{f"状态·{k}": v for k, v in by_status.items()}}, title="看板数据源汇总")
         return tasks
 
     def _archived_path(self, tid):
@@ -1271,6 +1288,9 @@ class Skein:
         # 排序: 状态分组 (进行中→检查中→待处理→已完成), 组内按执行时间(started)倒序 (新执行在前; 未启动 started=None 视 0)
         _srank = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
         tasks = sorted(self._render_tasks(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
+        DBG.rule("渲染 task.html")
+        total_sub = sum(len(t.get("subtasks", [])) for t in tasks)
+        DBG.log(f"渲染 {len(tasks)} 个 task / 合计 {total_sub} 个 subtask → {self.html_path}", style="cyan")
         name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
 
         def elapsed_of(t):
@@ -1473,17 +1493,23 @@ class Skein:
         # 逐文件比对 md5, 仅内容不一致才覆盖 — 免无谓写触碰 mtime, 害看板 HEAD-poll 误判重载。
         src = Path(__file__).resolve().parent.parent / "assets" / "board"
         if not src.exists():
+            DBG.log(f"插件 board 资产目录不存在 {src}, 跳过拷贝", style="dim")
             return
         dst_root = self.dir / "board"
+        copied = skipped = 0
         for sf in src.rglob("*"):
             if not sf.is_file():
                 continue
             df = dst_root / sf.relative_to(src)
             data = sf.read_bytes()
             if df.exists() and hashlib.md5(df.read_bytes()).digest() == hashlib.md5(data).digest():
+                skipped += 1
                 continue  # 内容一致, 跳过
             df.parent.mkdir(parents=True, exist_ok=True)
             df.write_bytes(data)
+            copied += 1
+            DBG.log(f"⇢ 拷贝 board 资产 {sf.relative_to(src)}  ({len(data)} 字节)", style="green")
+        DBG.log(f"board 资产 {src} → {dst_root}: 更新 {copied}, 未变 {skipped}", style="dim")
 
     def view(self, _):
         if not self.html_path.exists():
