@@ -323,9 +323,12 @@ def main():
     rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
     rs.add_argument("ts", help="归档时间戳 (archive 输出的目录名)")
 
+    # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag)
+    cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
+    sys.argv[1:] = [x for x in sys.argv[1:] if x not in ("-d", "--debug")]
     a = p.parse_args()
     global DBG
-    DBG = Debug(debug_enabled(a))
+    DBG = Debug(cli_debug or debug_enabled(None))
     DBG.rule(f"memory {a.cmd}")
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
            title="参数")

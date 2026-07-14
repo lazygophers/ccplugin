@@ -1834,9 +1834,12 @@ def main():
     st.add_argument("--agent", help="[add 必填] 关联执行 agent (无合适则显式填 general-purpose)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
+    # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag), 再据此建 DBG
+    cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
+    sys.argv[1:] = [x for x in sys.argv[1:] if x not in ("-d", "--debug")]
     a = p.parse_args()
     global DBG
-    DBG = Debug(debug_enabled(a))
+    DBG = Debug(cli_debug or debug_enabled(None))
     DBG.rule(f"skein {a.cmd}")
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
            title="参数")
