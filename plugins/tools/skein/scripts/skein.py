@@ -1401,12 +1401,16 @@ class Skein:
                            for k, label in items)
         filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
                        (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
+        # 浮动按钮 (FloatButton 式): fixed 右下角圆钮, 点击展开控件面板 (switcher.js 绑定开合)
         switcher = (
+            '<div class="fab-wrap">'
             '<div class="switcher">'
             f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
             f'<label>配色<select id="sw-palette">{opts(PALETTES, palette)}</select></label>'
             f'<label>明暗<select id="sw-mode">{opts([("light", "浅色"), ("dark", "深色")], mode)}</select></label>'
             f'<label>状态<select id="sw-filter">{opts(filter_opts, "all")}</select></label>'
+            '</div>'
+            '<button type="button" class="fab" id="sw-fab" aria-label="看板设置" aria-expanded="false">⚙</button>'
             '</div>')
         html = (
             f'<!doctype html><html lang=zh-CN data-theme="{theme}" data-palette="{palette}" data-mode="{mode}">'
@@ -1415,7 +1419,7 @@ class Skein:
             # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 1800s (半小时) 硬刷新保证不 stale
             '<meta http-equiv=refresh content=1800>'
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
-            f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1>{switcher}</header>{body}'
+            f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1></header>{body}{switcher}'
             '<script src="board/switcher.js"></script>'
             # 自动刷新: serve (http) 下轮询自身 Last-Modified, 变了才 reload (空闲不闪);
             # file:// 下 fetch 抛错 → 静默 no-op (view 每次重开已是最新)

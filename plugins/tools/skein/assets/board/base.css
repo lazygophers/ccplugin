@@ -127,10 +127,15 @@ td .bar{margin:1px 0;min-width:78px}
 .detail[open]{margin-top:6px}
 .detail .dag{margin:6px 0}
 
-/* 顶栏: 标题 + 切换器同行. sticky 常驻顶端 → 左卡片锁其下不再随滚动滑动.
-   ponytail: --topbar 单行高定值 58px (标题 20 + 切换器padding); 换行超高时 col-side 用它算高, 少量偏差可接受 */
-.topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:44px;padding:14px 0 8px}
-/* 切换器 (顶栏内 inline 控件组) */
-.switcher{display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px}
+/* 顶栏: 仅标题. sticky 常驻顶端 → 左卡片锁其下不随滚动滑动 (高度经 JS 实测写 --topbar) */
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;gap:16px;min-height:44px;padding:14px 0 8px}
+/* 浮动按钮组 (FloatButton 式): fixed 右下角, 圆钮 + 上方展开面板 */
+.fab-wrap{position:fixed;right:24px;bottom:24px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.fab{width:48px;height:48px;border-radius:50%;border:1px solid var(--brd);background:var(--card);color:var(--head);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s}
+.fab:hover{box-shadow:0 6px 18px rgba(0,0,0,.24)}
+.fab-wrap.open .fab{transform:rotate(45deg)}
+/* 切换器 = 展开面板 (默认收起, .open 显示), 圆钮上方浮出 */
+.switcher{display:none;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:10px;padding:12px 14px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.16)}
+.fab-wrap.open .switcher{display:flex}
 .switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 .switcher select{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:5px;padding:2px 4px;font-size:12px}

@@ -11,6 +11,18 @@
   }
   syncTopbar();
   window.addEventListener('resize',syncTopbar);
+  // 浮动按钮开合: 点圆钮 toggle 面板, 点面板外收起
+  var fabWrap=document.querySelector('.fab-wrap'),fab=document.getElementById('sw-fab');
+  if(fabWrap&&fab){
+    fab.addEventListener('click',function(e){
+      e.stopPropagation();
+      var open=fabWrap.classList.toggle('open');
+      fab.setAttribute('aria-expanded',open?'true':'false');
+    });
+    document.addEventListener('click',function(e){
+      if(!fabWrap.contains(e.target)){fabWrap.classList.remove('open');fab.setAttribute('aria-expanded','false');}
+    });
+  }
   var keys={theme:'data-theme',palette:'data-palette',mode:'data-mode'};
   function apply(k,v){
     if(!v)return;
