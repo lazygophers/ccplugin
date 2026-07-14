@@ -34,7 +34,10 @@ while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 
 - **完成即派** — 任一返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不等一批跑完。
 - **脚本一步到位** — 就绪判定 + 占槽由 `claim` 原子完成, main 不逐个 `subtask start` (`start` 仅单个 retry 补派)。
 - **返回 `需要:` / 阻塞 → 不计 done** — 该 subtask 未完成, 依赖它的 subtask 保持未 ready; main 转达用户/补信息后重派该 subtask, 禁标完成、禁放行下游。
-- **subtask 报错 → 不推进** — 按 dispatch 的失败处理缩范围重试; 反复失败 → 停并回传, 禁跳过该 subtask 继续。
+- **subtask 失败 → 自愈闭环 (禁失败即停摆)** — subagent 回 `失败:` / 验收不过 → `subtask fail <tid> <sid> --note <原因>` → main 读根因, 自愈二选一 (均在**本 task scope 内**, 完成原范围, 非扩 scope):
+  - **① 定点小缺陷** (实现 bug / 局部漏改) → 缩范围**原地重派** `subtask start <sid>` (脚本允许重启 `failed`), bounded ≤ 2 轮。
+  - **② 根因是独立可修单元** (缺前置产物 / 共享依赖坏 / 需单独定点修) → **自主 `subtask add <tid> <fix-sid> --deps <失败 sid 的前置>` 插一个修复 subtask** → 派 executor 定点修根因 → fix `done` 后 `subtask start <失败 sid>` 重派原 subtask (依赖已补, 自愈完成)。
+  - **兜底**: 修复 subtask 也失败 / 同一 subtask 累计 > 2 轮无进展 / 根因超本 task scope (需求·设计缺陷) → 停回传 main (走 [skein-check root-cause-protocol](../../skein-check/references/root-cause-protocol.md) 定位或转人工)。禁「失败即停等人工」跳过自愈, 禁跳过该 subtask 放行下游。
 - **禁在 subtask 间问用户顺序** — 顺序归 planning。task.json 缺子任务 DAG (depends_on) → 退回 planning 补。
 
 ## worktree
