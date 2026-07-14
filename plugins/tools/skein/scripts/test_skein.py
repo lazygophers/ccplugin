@@ -221,7 +221,9 @@ def main():
             f"节点框宽越界 [208,272] (min={min(widths)} max={max(widths)})"
         assert max(heights) > 60, f"长内容未多行增高 (max height={max(heights)})"
         css = (d / ".skein/board/base.css").read_text()
-        assert "overflow:auto" in css, "DAG 画布容器缺滚动 (.dag-wrap/.dag-tip overflow)"
+        assert "overflow-y:auto" in css, "DAG 画布缺纵向滚动 (.dag-wrap overflow-y)"
+        assert "overflow-x:hidden" in css, "DAG 画布未禁横向溢出 (.dag-wrap overflow-x)"
+        assert ".dag{display:block;max-width:100%" in css, "DAG svg 未限容器宽 (max-width:100%)"
 
     test_setup()
     test_lock()
