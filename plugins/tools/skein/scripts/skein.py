@@ -289,10 +289,24 @@ class Skein:
             DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         by_status = {}
+        sub_total = 0
+        sub_by_status = {}
+        with_sub = 0
         for t in tasks:
             by_status[t["status"]] = by_status.get(t["status"], 0) + 1
+            subs = t.get("subtasks", [])
+            if subs:
+                with_sub += 1
+            sub_total += len(subs)
+            for s in subs:
+                ss = s.get("status", "?")
+                sub_by_status[ss] = sub_by_status.get(ss, 0) + 1
+        DBG.log(f"subtask 统计: 合计 {sub_total} 个, 分布于 {with_sub} 个 task "
+                f"(其余 {len(tasks) - with_sub} 个无 subtask/幽灵骨架)", style="cyan")
         DBG.kv({"合计 task": len(tasks), "明细": len(tasks) - mirrored, "镜像补齐": mirrored,
-                **{f"状态·{k}": v for k, v in by_status.items()}}, title="看板数据源汇总")
+                **{f"状态·{k}": v for k, v in by_status.items()},
+                "合计 subtask": sub_total, "含 subtask 的 task": with_sub,
+                **{f"subtask·{k}": v for k, v in sub_by_status.items()}}, title="看板数据源汇总")
         return tasks
 
     def _archived_path(self, tid):
