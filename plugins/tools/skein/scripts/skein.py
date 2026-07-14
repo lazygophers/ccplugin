@@ -873,6 +873,7 @@ class Skein:
             f"{body}\n"
         )
         self._write_if_changed(self.dir / "task.md", md)
+        self._board_html()  # board 命令同步刷 task.html (否则手动 board 后可视化页 stale)
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
     def _ready(self, t: list) -> list:
