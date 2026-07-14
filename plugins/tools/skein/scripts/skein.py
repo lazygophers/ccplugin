@@ -1088,15 +1088,15 @@ class Skein:
             # 节点框宽按内容自适应 (不截断 name/desc): 估文本像素宽 (CJK 全宽 1em, 其余约 0.6em), 全框统一取最大 (列对齐), 保底 176
             def txtw(s, fs):
                 return sum(fs if ord(c) > 0x2E80 else fs * 0.6 for c in str(s))
-            NH, PAD = 60, 12
-            need = 176.0
+            NH, PAD = 76, 14  # 卡片放大: 更高框 + 更大内边距, 保证内容可读
+            need = 208.0      # 最小框宽保底 (短内容也够大)
             for n in nodes:
                 pct = n[4] if len(n) > 4 else None
                 dsc = n[5] if len(n) > 5 and n[5] else ""
-                idrow = txtw(n[0], 12) + (txtw(f"{pct}%", 10) + 12 if pct is not None else 0)
-                need = max(need, idrow + PAD * 2, txtw(n[1], 11) + PAD * 2, txtw(dsc, 9) + PAD * 2)
+                idrow = txtw(n[0], 13) + (txtw(f"{pct}%", 11) + 14 if pct is not None else 0)
+                need = max(need, idrow + PAD * 2, txtw(n[1], 12) + PAD * 2, txtw(dsc, 10) + PAD * 2)
             NW = int(need + 0.999)
-            COL, ROW = NW + 34, 78
+            COL, ROW = NW + 34, NH + 20
             pos = {i: (d * COL + 10, r * ROW + 10)
                    for d, ids_ in layers.items() for r, i in enumerate(ids_)}
             W = (max(layers) + 1) * COL + 10
@@ -1122,9 +1122,9 @@ class Skein:
                 desc = node[5] if len(node) > 5 else ""
                 nm2 = nm
                 desc2 = desc or ""
-                pct_txt = (f'<text x="{x + NW - 10}" y="{y + 17}" font-size="10" text-anchor="end" '
+                pct_txt = (f'<text x="{x + NW - 12}" y="{y + 22}" font-size="11" text-anchor="end" '
                            f'fill="var(--head)">{pct}%</text>') if pct is not None else ""
-                desc_txt = (f'<text x="{x + 12}" y="{y + 50}" font-size="9" '
+                desc_txt = (f'<text x="{x + 14}" y="{y + 64}" font-size="10" '
                             f'fill="var(--muted)">{esc(desc2)}</text>') if desc2 else ""
                 has_tip = tips and i in tips
                 has_link = links and i in links
@@ -1136,9 +1136,9 @@ class Skein:
                     f'fill="var(--bg)" stroke="var(--brd)"/>'
                     f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
                     f'fill="var({node_var.get(stt, "--muted")})"/>'
-                    f'<text x="{x + 12}" y="{y + 18}" font-size="12" fill="var(--fg)">{esc(_id)}</text>'
+                    f'<text x="{x + 14}" y="{y + 24}" font-size="13" fill="var(--fg)">{esc(_id)}</text>'
                     f'{pct_txt}'
-                    f'<text x="{x + 12}" y="{y + 34}" font-size="11" fill="var(--fg)">{esc(nm2)}</text>'
+                    f'<text x="{x + 14}" y="{y + 46}" font-size="12" fill="var(--fg)">{esc(nm2)}</text>'
                     f'{desc_txt}</g>')
                 if has_link:
                     g = f'<a href="{esc(links[i])}">{g}</a>'

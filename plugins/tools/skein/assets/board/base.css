@@ -81,7 +81,8 @@ td .bar{margin:1px 0;min-width:78px}
 .dag a .has-link,.dag .has-link{cursor:pointer}
 /* SVG <a> 链接节点: hover 描边加深提示可点 */
 .dag a:hover rect:first-of-type{stroke-width:2}
-.dag-tip{display:none;position:absolute;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px}
+/* 浮层内迷你 DAG 不固定裁切: 超 max-width/max-height 即内部滚动 (节点框自适应变宽后不被切) */
+.dag-tip{display:none;position:absolute;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px;max-height:70vh;overflow:auto}
 .dag-tip .dag{margin:2px 0 0}
 .dag-tip .bar{margin-bottom:10px}
 
