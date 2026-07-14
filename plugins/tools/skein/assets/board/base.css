@@ -153,6 +153,10 @@ td .bar{margin:1px 0;min-width:78px}
 .detail[open]>summary::before{content:"▾ "}
 .detail[open]{margin-top:6px}
 .detail .dag{margin:6px 0}
+/* 右栏 task 详情子任务 DAG: 自上而下 (force_vertical) + 固定宽度 (不缩放, svg 保固有宽) + 高度不限
+   (max-height:none + overflow-y:visible → 随子任务数纵向展开, 页面滚动而非内框限高截断) */
+.detail .dag-wrap{max-height:none;overflow-y:visible;overflow-x:auto}
+.detail .dag{max-width:none;height:auto}
 
 /* 顶栏: 仅标题. sticky 常驻顶端 → 左卡片锁其下不随滚动滑动 (高度经 JS 实测写 --topbar) */
 .topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;gap:16px;min-height:44px;padding:14px 0 8px}

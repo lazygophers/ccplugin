@@ -1419,7 +1419,7 @@ class Skein:
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
                 f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
                 f'<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
-                f'{dag_html(snodes)}'
+                f'{dag_html(snodes, force_vertical=True)}'  # 右栏详情恒上往下 (窄栏纵向铺开, CSS 再放开高度/固定宽)
                 f'{subtable}</details></section>')
         # 两栏布局: 左=总计 (综合指标 + task DAG 上往下), 右=task 卡片列表 (窄屏 CSS 回落单列)
         right = "\n".join(cards) if cards else '<p class="empty">无 task</p>'
