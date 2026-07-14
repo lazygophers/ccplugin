@@ -41,7 +41,7 @@
 
 grill 通过 + 你评审确认 → `skein.py start`:
 
-- 建 git worktree: `git worktree add -b skein/<id> .worktrees/skein-<id> HEAD`
+- 建 git worktree: `git worktree add -b skein/<id> .worktrees/skein-<id> HEAD` (单根/原地)。**多子 git** (`create --repos`): 各子仓内部各建一个 `<repo>/.worktrees/skein-<id>`, 子仓自补 `.gitignore` 忽略
 - task 状态 → `in_progress`, 写入 worktree 路径。无 task 级 focus — 就绪 task 皆可并行。
 - 检查前置 (`deps`) 都完成、active 集未超上限 2。
 

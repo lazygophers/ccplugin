@@ -19,11 +19,13 @@ plugin 启用后 `bin/` 自动进 Bash tool 的 PATH (官方约定目录, 无需
 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py <cmd>   # 或短命令 skein <cmd>
 ```
 
+**全局 flag** `-d` / `--debug` (须在子命令**前**: `skein --debug board`; 或设环境变量 `SKEIN_DEBUG=1`): 把命令干了什么 (git / 读盘 / 写盘 / 锁 / 看板数据源合并) 用 rich 美化叙事到 **stderr**, stdout 保持机器纯净不受影响。`memory.py` 同支持。
+
 | 命令 | 参数 | 作用 |
 | --- | --- | --- |
 | `init` | — | 初始化 `.skein/` 工作区 (幂等, 已存在则跳过建文件)。生成 `.skein/.gitignore` (忽略 `task.md`/`task.html`/`board/` 自动渲染) + 把 worktree_root 补到仓库根 `.gitignore` |
 | `setup` | `--full` | 幂等初始化 + trellis 迁移。无 trellis → scaffold + 本地 spec 库。有 `.trellis/` (两模式)：<br>**兼容 (默认)** — `copytree` 独立拷 `.trellis/spec`→`.skein/spec` (trellis 零改动) + **物理迁移 task.json 与各 task 文件夹** (整体搬迁, **跳过已归档 task**) + **无条件删 trellis 接线** (`.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*` + **`.claude/settings*.json` 内 canonical trellis hook 条目及脚本** — session-start/inject-subagent-context/guard-version/inject-workflow-state, rust-fmt 等用户自有 hook 保留, 避免 skein/trellis 双注入) + **在 `.claude/settings.local.json` 禁 trellisx 插件** (`enabledPlugins.trellisx@ccplugin-market=false`, 防插件级双注入) + **留 `.trellis/` 数据** (spec/task 给其它工具)。<br>**`--full`** — 兼容全套 + 整删 `.trellis/` (spec/task 已拷入 `.skein`)。<br>输出 manifest JSON (纯 stdout, scaffold 噪声走 stderr): `{mode, trellis_present, spec_copied, spec_needs_reorg, trellis_tasks, wiring_removed, trellisx_disabled, trellis_removed, settings_need_manual_edit}`。语义迁移 (spec 重组 + **残留/非 canonical** settings hook 剔除) 由 `skein-setup` agent 做 |
-| `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` `--estimate <分钟>` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id; `--estimate` = AI 执行预期耗时 (分钟), 供看板 html 显示预期 vs 实际 |
+| `create <id>` | `--name <标题>` `--desc <文本>` `--deps "a,b"` `--estimate <分钟>` `--repos "a,b/c"` | 登记新 task (状态 pending), 打印 `<id>\t<路径>`。`id` 必填, 人工传入的可读 slug (见下 id 规则); `--name` 省略则用 id; `--estimate` = AI 执行预期耗时 (分钟), 供看板 html 显示预期 vs 实际; `--repos` = 目标子 git (逗号分隔 rel 路径, 根仓用 `.`), 多子 git 各开 worktree 落**各自仓内** `<repo>/.worktrees/`, 省略 = 单根/原地 |
 | `start <id>` | — | 建 worktree + 分支, 状态 → in_progress。**无 subtask (未拆分) 会报错 — start 前须 `subtask add` 至少 1 个**。前置未完成 / active 超上限 2 会报错。无 focus, 就绪即可并行 |
 | `finish <id>` | — | commit → merge → 销 worktree, 状态 → completed。**完成 task 不立即归档**, 留看板 `retain_days` 天 (config, 默认 7); 超期由 `_autoclean` 在下次生命周期变更时自动归档。`retain_days=0` 时 finish 即归档 (旧行为)。冲突自动 abort。多 active 并行, id 必填 |
 | `archive <id>` | — | 丢弃 task (销 worktree/分支, **不 merge**), 归档 |
@@ -113,7 +115,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `max_active` | `2` | 同 session active task 并发上限 (= subtask 级上限) |
 | `retain_days` | `7` | 完成 task 保留天数 (留看板), 超则 `_autoclean` 自动归档。`0` = finish 即归档 (旧行为); 负数 = 永不自动归档 (仅 `clean` 主动清) |
 | `auto_commit` | `true` | finish 时自动 commit worktree 改动。设 false 则有未提交改动会拒绝 finish (防强删丢失) |
-| `worktree_root` | `.worktrees` | worktree 存放根目录 (相对 git 根) |
+| `worktree_root` | `.worktrees` | worktree 存放目录名。单根/原地 = 仓根下 `<worktree_root>/`; 多子 git (`--repos`) = **各子仓内部** `<repo>/<worktree_root>/` (子仓自补 `.gitignore` 忽略) |
 | `board_theme` | `sketch` | 看板默认主题, 取 `assets/board/themes/` 任一名 (sketch / morandi / glassmorphism / liquid / handdrawn / bauhaus / blueprint / ghibli / terminal / neumorphism / ... 共 17 种)。页内切换器可实时改, 存 localStorage |
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
 | `board_mode` | `light` | 看板默认明暗: `light` 浅色 / `dark` 深色 |
