@@ -104,7 +104,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
 
 | 情况 | 怎么办 |
 | --- | --- |
-| exec agent 报错返回 | main 读原因、缩范围、重派; 连续 2 次失败 → 停手回传你 |
+| exec subtask 报错/验收不过 | main 读根因**自愈** (本 task scope 内): 定点小缺陷 → 原地重派 (≤2 轮); 根因是独立可修单元 → 加修复 subtask 定点修后重派失败 subtask。兜底 (修复也失败/累计超上限/根因超 scope) → 停手回传你 (走根因复盘协议) |
 | check 反复不过 (≥2 轮) | 派 agent 定点修; 第 3 轮仍不过 → 走 `skein-check` 根因复盘协议 (`references/root-cause-protocol.md`) 做**跨维度根因复盘** (需求/设计/实现/环境/测试 5 维定位 + 预防措施), 出口: 带根因回 exec 定向重修, 或停手附根因报告转人工 (可复用教训回流 sediment) |
 | finish 合并冲突 | 自动 abort + 报冲突文件; 手动解冲突后重跑 finish, **禁强解** |
 | 方案跑歪想放弃 | `skein.py archive <id>` — 丢弃 task (销 worktree, 不合并), 主分支干净 |
