@@ -1,3 +1,2 @@
-/* 单色 — 灰阶极简。 */
-html[data-palette=mono]{--bg:#ececec;--fg:#2e2e2e;--head:#454545;--muted:#808080;--card:#f7f7f7;--brd:#d4d4d4;--line:#e2e2e2;--accent:#6a6a6a;--accent2:#9a9a9a;--st-pending:#a8a8a8;--st-active:#7a7a7a;--st-check:#a8a8a8;--st-done:#5a5a5a;--st-failed:#8a8a8a;--sel-bg:#f7f7f7;--sel-fg:#2e2e2e}
-html[data-palette=mono][data-mode=dark]{--bg:#1c1c1c;--fg:#e2e2e2;--head:#cccccc;--muted:#8f8f8f;--card:#282828;--brd:#3c3c3c;--line:#333333;--accent:#a8a8a8;--accent2:#7a7a7a;--sel-bg:#282828;--sel-fg:#e2e2e2}
+/* 单色 (灰阶极简) — 零染色纯中性; accent 靠明度差, status 仍保语义色相 (唯一带色处)。 */
+html[data-palette=mono]{--h:0;--c-neutral:0;--c-accent:0;--h-accent:0;--h-accent2:0}

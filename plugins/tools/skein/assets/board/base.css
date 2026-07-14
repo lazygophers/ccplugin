@@ -3,14 +3,42 @@
    :root 默认 = stone 浅色，作 palette 未加载时的兜底。
    视觉方向: 信息密度 dashboard (2 列 task 网格 + 满宽概览 banner + hairline 进度条)
    + 明细折叠 (task 卡 DAG/子任务表默认收起, 按需展开)。 */
+/* ── 令牌系统 (oklch 语义派生) ──
+   两层: ① palette 只喂 seed (中性色相 --h / 中性染色 --c-neutral / accent 色相+染色);
+   ② 此处按「明度锚点 --l-* × seed」用 oklch 派生完整契约 (--bg/--fg/... 名不变, 组件/themes 无需改)。
+   mode 只翻明度锚点 (light=:root / dark=[data-mode=dark]) — seed 的色相自动带进暗色,
+   故每个 palette 暗色仍保自身身份 (不再塌成同一套灰)。status 色相全局语义固定 (绿=done/红=failed…),
+   变化来自 surface 染色 + accent。:root 默认 = stone(莫兰迪), 作 palette 未加载兜底。 */
 :root{
-  --bg:#e6e2dd;--fg:#4a4642;--head:#6b6560;--muted:#8a847d;
-  --card:#f3f0ec;--brd:#d6d0c8;--line:#e0dad2;
-  --accent:#9caf88;--accent2:#8e9aaf;
-  --st-pending:#c9b18b;--st-active:#8e9aaf;--st-check:#c9b18b;--st-done:#9caf88;--st-failed:#bb8588;
-  --sel-bg:#f3f0ec;--sel-fg:#4a4642;
+  /* seed (palette 覆盖) */
+  --h:110;--c-neutral:.008;--c-accent:.052;--h-accent:135;--h-accent2:250;
+  /* 明度锚点 — LIGHT */
+  --l-bg:.935;--l-card:.975;--l-fg:.34;--l-head:.44;--l-muted:.60;--l-brd:.865;--l-line:.915;--l-accent:.60;--l-st:.66;
+  /* status 色相 (语义固定, 跨 palette 不变) */
+  --h-pending:75;--h-active:250;--h-check:75;--h-done:150;--h-failed:25;
+  /* 派生契约 */
+  --bg:oklch(var(--l-bg) var(--c-neutral) var(--h));
+  --card:oklch(var(--l-card) var(--c-neutral) var(--h));
+  --fg:oklch(var(--l-fg) calc(var(--c-neutral)*1.4) var(--h));
+  --head:oklch(var(--l-head) calc(var(--c-neutral)*1.4) var(--h));
+  --muted:oklch(var(--l-muted) var(--c-neutral) var(--h));
+  --brd:oklch(var(--l-brd) var(--c-neutral) var(--h));
+  --line:oklch(var(--l-line) var(--c-neutral) var(--h));
+  --accent:oklch(var(--l-accent) var(--c-accent) var(--h-accent));
+  --accent2:oklch(var(--l-accent) var(--c-accent) var(--h-accent2));
+  --st-pending:oklch(var(--l-st) .12 var(--h-pending));
+  --st-active:oklch(var(--l-st) .13 var(--h-active));
+  --st-check:oklch(var(--l-st) .12 var(--h-check));
+  --st-done:oklch(var(--l-st) .13 var(--h-done));
+  --st-failed:oklch(var(--l-st) .16 var(--h-failed));
+  --sel-bg:oklch(var(--l-card) var(--c-neutral) var(--h));
+  --sel-fg:oklch(var(--l-fg) calc(var(--c-neutral)*1.4) var(--h));
   --font:-apple-system,system-ui,'Segoe UI',sans-serif;
   --radius:10px;
+}
+/* DARK: 只翻明度锚点; seed 色相/染色不变 → 每个 palette 暗色仍保自身身份 (不塌成同一套灰) */
+html[data-mode=dark]{
+  --l-bg:.185;--l-card:.235;--l-fg:.90;--l-head:.82;--l-muted:.63;--l-brd:.32;--l-line:.275;--l-accent:.72;--l-st:.70;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}

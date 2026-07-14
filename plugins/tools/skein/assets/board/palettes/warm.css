@@ -1,3 +1,2 @@
-/* 暖橙 — 陶土暖调。 */
-html[data-palette=warm]{--bg:#f4ece4;--fg:#5a463a;--head:#6e5545;--muted:#997f6d;--card:#fbf5ee;--brd:#e6d3c2;--line:#efe0d2;--accent:#d98d5a;--accent2:#c9a06a;--st-pending:#d9b06a;--st-active:#c9a06a;--st-check:#d9b06a;--st-done:#a3b86a;--st-failed:#cc7a6a;--sel-bg:#fbf5ee;--sel-fg:#5a463a}
-html[data-palette=warm][data-mode=dark]{--bg:#1c1c1c;--fg:#e2e2e2;--head:#cccccc;--muted:#8f8f8f;--card:#282828;--brd:#3c3c3c;--line:#333333;--sel-bg:#282828;--sel-fg:#e2e2e2}
+/* 暖橙 (陶土暖调) — 暖米底 + 赤陶橙 accent, 有温度。 */
+html[data-palette=warm]{--h:65;--c-neutral:.014;--c-accent:.115;--h-accent:48;--h-accent2:75}

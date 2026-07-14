@@ -1,4 +1,2 @@
-/* 暮紫 — 黄昏紫调。 */
-html[data-palette=dusk]{--bg:#ece7f0;--fg:#463a52;--head:#574766;--muted:#8a7d99;--card:#f6f2fa;--brd:#dccce6;--line:#e8dcef;--accent:#a06ac9;--accent2:#c98ab6;--st-pending:#c99a6a;--st-active:#c98ab6;--st-check:#c99a6a;--st-done:#8ab98f;--st-failed:#cc7a9a;--sel-bg:#f6f2fa;--sel-fg:#463a52}
-/* dark: 仅背景底色系 (bg/card/brd/line/head/muted) 走中性深色; accent/st-* 不覆盖 → 继承上方紫调 light 值, 深底上仍保主题配色 (契合"深色模式据主题配色, 背景除外") */
-html[data-palette=dusk][data-mode=dark]{--bg:#1c1c1c;--fg:#e2e2e2;--head:#cccccc;--muted:#8f8f8f;--card:#282828;--brd:#3c3c3c;--line:#333333;--sel-bg:#282828;--sel-fg:#e2e2e2}
+/* 暮紫 (黄昏紫调) — 微紫中性底 + 紫粉 accent。 */
+html[data-palette=dusk]{--h:305;--c-neutral:.013;--c-accent:.12;--h-accent:312;--h-accent2:350}
