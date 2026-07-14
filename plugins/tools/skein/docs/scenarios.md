@@ -115,7 +115,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py current
 
 - main 会用 AskUserQuestion 征你同意后走 **`skein-memory` 冷启动播种** (`references/bootstrap-seeding.md`):
   - 派 `skein-researcher` (bootstrap 扫描模式) 扫既有代码库约定 (命名 / 错误处理 / 测试 / 架构边界 / 构建 5 维), 提炼候选规则。
-  - 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。
+  - 逐条判 `core` / `recall` / `drop`, 经现有 sediment 写盘流程落盘 (冷启动跑前已一次征同意, 内部候选自动写)。
 - **一次性动作**: 只在冷启动跑一次, 给规则库播下基线; 后续增量经验仍走正常 finish sediment。
 
 **注意点**: 静态扫描是**推断**不是踩坑实证 → 默认多归 recall, 仅「违反必炸」的硬约束进 core, 别让 bootstrap 撑爆 core 层。

@@ -71,7 +71,7 @@ main 作调度器跑**动态 DAG 调度循环**:
 check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment (见下) → 清理悬挂 → `skein.py finish`**。
 
 - **收尾勘察** (`skein-finisher`, 只读): 扫悬挂 subagent/后台任务 + 复核 check 全绿 + 查未提交遗漏, 回传勘察报告供 main 决定是否放行。
-- **sediment 判定门** (委托 `skein-memory`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + AskUserQuestion 审批 + `memory.py sediment` 写盘。无增量则跳过 (禁硬凑)。
+- **sediment 判定门** (委托 `skein-memory`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `memory.py sediment` 自动写盘 (判定门通过即写, 不逐次询问用户)。无增量则跳过 (禁硬凑)。
 - **`skein.py finish`** (main 同步):
   1. worktree 内 `git add -A` + commit (auto_commit=true 时)。
   2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
@@ -127,7 +127,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 仓库**首次接入** SKEIN、`.skein/spec` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 走 `skein-memory` 的冷启动播种 (`references/bootstrap-seeding.md`):
 
 1. 派 `skein-researcher` (**bootstrap 扫描模式**) 扫既有代码库约定 — 命名 / 错误处理 / 测试 / 架构边界 / 构建 5 个维度, 提炼候选规则。
-2. 逐条判 `core` / `recall` / `drop`, 经现有 sediment 审批门落盘。
+2. 逐条判 `core` / `recall` / `drop`, 经现有 sediment 写盘流程落盘 (bootstrap 跑前已一次征同意, 内部候选自动写)。
 3. **默认多归 recall** (静态扫描是推断而非踩坑实证), 仅「违反必炸」的硬约束才进 core。
 
 这是**一次性动作** (仅冷启动跑一次), 后续增量经验仍走正常 finish sediment 累积。
@@ -142,7 +142,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 | 跨任务可复用经验但长尾 (选型 / 架构边界 / 踩坑根因) | → **recall** |
 | 一次性 bug / 本 task 私有细节 / 已有规则覆盖 | → **drop** (不沉淀) |
 
-判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 diff + subagent 回传摘要 跑判定门) 产出, 审批 (AskUserQuestion) + 写盘经 `memory.py sediment` 仍归 main, 自动 reindex。
+判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 diff + subagent 回传摘要 跑判定门) 产出, 写盘经 `memory.py sediment` 仍归 main —— 判定门通过即自动写, 不逐次询问用户, 自动 reindex。
 
 ## 工作区布局
 

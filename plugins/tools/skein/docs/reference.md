@@ -97,7 +97,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py <cmd>   # 或短命令 skein-mem
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + **残留/非 canonical** settings hook 剔除; canonical trellis hook 由脚本硬剔); 机械部分交 `skein.py setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-finisher` | finish 收尾勘察 (只读: 扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏), 绑定 `skein-finish` | 只读 + Bash, 无 Agent/Task | `model: haiku` |
-| `skein-memorier` | 记忆员: recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选), 与 `skein-memory` 相互绑定; 审批+写盘归 main | 只读 + Bash, 无 Agent/Task | `model: haiku` |
+| `skein-memorier` | 记忆员: recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选), 与 `skein-memory` 相互绑定; 写盘归 main (判定门通过即自动写, 不逐次询问) | 只读 + Bash, 无 Agent/Task | `model: haiku` |
 
 > 模型分层做 token 优化: 验证 / 收尾勘察 / 记忆走最轻档 (haiku); 调研 / 迁移走 sonnet; 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 

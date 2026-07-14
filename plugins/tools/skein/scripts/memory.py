@@ -7,7 +7,7 @@
 
 类目 (category) 是层内子目录, 自由取名 (git/test/arch/build/style/domain/ops...), 按需建。
 索引三份: 每层 <layer>/index.md (层内全规则) + 顶层 index.md (两层聚合概览)。
-写盘 (sediment) 由 skein-memory skill 在 AskUserQuestion 审批后调用, 写后自动 reindex。
+写盘 (sediment) 由 skein-memory skill 在判定门通过后自动调用 (不逐次询问用户), 写后自动 reindex。
 
 命令:
   memory.py init
@@ -153,7 +153,7 @@ class Memory:
         else:
             print("recall 无命中")
 
-    # ---- sediment (写盘, 审批后调用) ----
+    # ---- sediment (写盘, 判定门通过后自动调用) ----
     def sediment(self, a):
         cat = a.category or "misc"
         d = self.layer_dir(a.layer) / cat
