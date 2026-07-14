@@ -28,9 +28,26 @@ h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var
 .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-top:14px}
 /* 左栏固定视口高度且粘附: 右栏滚动时左栏纹丝不动 (内容超高时卡片内部滚动) */
 .col-side{position:sticky;top:14px;height:calc(100vh - 28px)}
-.col-side .card{margin-bottom:0;height:100%;overflow:auto}
+/* 左卡片 = 视口高, 顶部 (切换/统计/进度条) 固定不滚, 仅 DAG 区上下滚动 (card overflow:hidden, 滚动交 dag-wrap) */
+.col-side .card{margin-bottom:0;height:100%;overflow:hidden;display:flex;flex-direction:column}
+.col-side .dag-view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+/* DAG 不缩放: svg 保原始尺寸, 画布高度=剩余空间, 超出即 dag-wrap 上下滚动补齐 (base 已 overflow-y:auto) */
+.col-side .dag-wrap{flex:1 1 auto;min-height:0;max-height:none}
+.col-side .dag{max-width:100%;height:auto;margin:4px auto 0}
 .col-main{min-width:0}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static;height:auto}.col-side .card{height:auto}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static;height:auto}.col-side .card{height:auto;overflow:visible;display:block}.col-side .dag-view{display:block}.col-side .dag-wrap{max-height:460px}}
+/* DAG 维度切换按钮 (分段式, 非 tab): 置顶, on 态高亮 */
+.dag-switch{display:inline-flex;margin:2px 0 12px;border:1px solid var(--brd);border-radius:7px;overflow:hidden}
+.dag-switch button{border:0;background:var(--card);color:var(--muted);font:12px var(--font);padding:5px 12px;cursor:pointer;transition:background .2s,color .2s}
+.dag-switch button+button{border-left:1px solid var(--brd)}
+.dag-switch button.on{background:var(--accent);color:#fff}
+.dag-switch button:disabled{opacity:.4;cursor:not-allowed}
+.dag-view[hidden]{display:none}
+/* 三状态统计卡: 已完成/进行中/待处理 数量 */
+.stats{display:flex;gap:10px;margin:0 0 12px}
+.stat{flex:1;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;text-align:center}
+.stat-n{display:block;font-size:22px;font-weight:600;color:var(--head);line-height:1.1}
+.stat-l{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 
 .card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:16px}
 /* 跳转高亮: 锚点命中卡片短暂描边强调 (:target) */
@@ -106,7 +123,9 @@ td .bar{margin:1px 0;min-width:78px}
 .detail[open]{margin-top:6px}
 .detail .dag{margin:6px 0}
 
-/* 切换器 (右上角固定) */
-.switcher{position:fixed;top:12px;right:12px;display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:99}
+/* 顶栏: 标题 + 切换器同行, 切换器随内容流 (不再右上角浮层) */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+/* 切换器 (顶栏内 inline 控件组) */
+.switcher{display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px}
 .switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
 .switcher select{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:5px;padding:2px 4px;font-size:12px}

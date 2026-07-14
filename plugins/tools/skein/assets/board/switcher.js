@@ -28,6 +28,20 @@
   applyFilter(localStorage.getItem('skein-filter'));
   var fsel=document.getElementById('sw-filter');
   if(fsel)fsel.addEventListener('change',function(){applyFilter(fsel.value);});
+  // DAG 维度切换: 按钮切 task / task+subtask 视图 (localStorage 记忆), 非 tab
+  document.querySelectorAll('.dag-switch').forEach(function(sw){
+    var card=sw.closest('.card');
+    function show(v){
+      sw.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-dag')===v);});
+      card.querySelectorAll('.dag-view').forEach(function(vw){vw.hidden=vw.getAttribute('data-dag')!==v;});
+      localStorage.setItem('skein-dagview',v);
+    }
+    sw.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click',function(){if(!b.disabled)show(b.getAttribute('data-dag'));});
+    });
+    var saved=localStorage.getItem('skein-dagview');
+    if(saved&&card.querySelector('.dag-view[data-dag="'+saved+'"]'))show(saved);
+  });
   // DAG 节点悬浮浮层: hover 有 data-tip 的节点 → 同 .dag-wrap 内对应 .dag-tip 定位显示
   document.querySelectorAll('.dag-wrap').forEach(function(wrap){
     wrap.querySelectorAll('svg .has-tip[data-tip]').forEach(function(g){

@@ -1261,12 +1261,10 @@ class Skein:
             subs = t.get("subtasks", [])
             return round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
 
-        # 任务进展总览: 各状态计数 + 综合/预估加权完成率 + 时长合计
+        # 任务进展总览: 各状态计数 + 时长合计 (整体进度改由 combined 单位均值算, 见下)
         cnt = {}
-        fracs = []       # 综合进度: DONE task 记满, 未完成 task 按其 subtask 完成比例
         est_total = 0    # 预期时长合计 (min)
         elapsed_total = 0  # 已耗合计 (min)
-        wsum = wdone = 0.0  # 预估加权完成率: 权 = estimate (未估默认 60m 免消失)
         remain_est = 0.0    # 剩余预估时长 = Σ 未完成 task 的 estimate×(1-frac)
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
@@ -1275,17 +1273,10 @@ class Skein:
             else:
                 subs = t.get("subtasks", [])
                 frac = sum(_sub_pct(s) for s in subs) / (len(subs) * 100) if subs else 0.0
-            fracs.append(frac)
             est = t.get("estimate") or 0
             est_total += est
             elapsed_total += elapsed_of(t)
-            w = est or 60
-            wsum += w
-            wdone += w * frac
             remain_est += est * (1 - frac)  # 未估 (est=0) 不计剩余
-        overall = round(sum(fracs) / len(fracs) * 100) if fracs else 0
-        weighted = round(wdone / wsum * 100) if wsum else overall
-        chips = " ".join(f'{badge(k, st_cls)} {v}' for k, v in cnt.items()) or "-"
         task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
                        task_pct(t), t.get("desc", "")) for t in tasks]
         # 概览 task 节点悬浮浮层: 该 task 的总进度条 + subtask DAG (单 subtask 无图则列表兜底)
@@ -1303,29 +1294,57 @@ class Skein:
                                f'{esc(s.get("name", s["sid"]))} {_sub_pct(s)}%' for s in subs) + '</p>')
             tips[t["id"]] = (f'<p class="meta">{esc(t.get("name", t["id"]))} · 总进度</p>'
                              f'{bar(task_pct(t), sub=True)}{sub_dag}')
-        # task+subtask 合并 DAG: subtask 节点 id 命名空间化 (tid/sid), 依赖 = 同 task 内 sub-deps + 父 task
-        # (父 task 边让 subtask 落在其 task 之后的执行波次)
+        # task+subtask 维度 DAG: task 不作单独节点 — 只画 subtask, subtask 间连 sub-deps;
+        # 跨 task 前置 = 连到前置 task 的叶子 subtask (该 task 内无人再依赖的 subtask); 无 subtask 的 task 仍作节点兜底。
+        has_sub = any(t.get("subtasks") for t in tasks)
+        leaves = {}  # tid -> 该 task 的出口节点 id 列表 (供后继 task 的入口 subtask 挂靠)
+        for t in tasks:
+            subs = t.get("subtasks", [])
+            if subs:
+                depd = {d for s in subs for d in s.get("depends_on", [])}
+                leaves[t["id"]] = [f'{t["id"]}/{s["sid"]}' for s in subs if s["sid"] not in depd] \
+                    or [f'{t["id"]}/{subs[-1]["sid"]}']
+            else:
+                leaves[t["id"]] = [t["id"]]
         combined = []
         for t in tasks:
-            combined.append((t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
-                             task_pct(t), t.get("desc", "")))
-            for s in t.get("subtasks", []):
+            subs = t.get("subtasks", [])
+            prereq = [nid for d in t.get("deps", []) for nid in leaves.get(d, [d])]
+            if not subs:
+                combined.append((t["id"], t.get("name", t["id"]), t["status"], prereq,
+                                 task_pct(t), t.get("desc", "")))
+                continue
+            intra = {s["sid"] for s in subs}
+            for s in subs:
                 sid = f'{t["id"]}/{s["sid"]}'
-                sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", [])] + [t["id"]]
+                sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", []) if d in intra]
+                if not sdeps:  # 入口 subtask: 继承父 task 的前置 (连到前置 task 出口)
+                    sdeps = list(prereq)
                 combined.append((sid, s.get("name", s["sid"]), s["status"], sdeps,
                                  _sub_pct(s), s.get("desc", "")))
-        has_sub = any(t.get("subtasks") for t in tasks)
-        combined_dag = (f'<details class="detail"><summary>全景 · task + subtask 合并 DAG</summary>'
-                        f'{dag_html(combined)}</details>') if has_sub else ""
+        # 整体进度 = task+subtask 维度综合 (每 subtask / 每无 subtask 的 task 各记 1 单位, 取完成 % 均值)
+        combined_pct = round(sum(n[4] for n in combined) / len(combined)) if combined else 0
+        # 三状态统计卡 (已完成 / 进行中 / 待处理 数量)
+        def statcard(label, key):
+            return (f'<div class="stat"><span class="stat-n">{cnt.get(key, 0)}</span>'
+                    f'<span class="stat-l">{esc(label)}</span></div>')
+        stats = (f'<div class="stats">{statcard("已完成", S_DONE)}'
+                 f'{statcard("进行中", S_ACTIVE)}{statcard("待处理", S_PENDING)}</div>')
+        # DAG 维度切换 (task 默认 / task+subtask); switcher.js 绑定按钮显隐对应视图
+        switch = (f'<div class="dag-switch" role="group">'
+                  f'<button type="button" data-dag="task" class="on">task 维度</button>'
+                  f'<button type="button" data-dag="full"{"" if has_sub else " disabled"}>'
+                  f'task+subtask 维度</button></div>')
+        task_view = f'<div class="dag-view" data-dag="task">{dag_html(task_nodes, tips, links, force_vertical=True)}</div>'
+        full_view = (f'<div class="dag-view" data-dag="full" hidden>{dag_html(combined, force_vertical=True)}</div>'
+                     if has_sub else "")
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
-            f'<p class="meta">{len(tasks)} task · {chips}</p>'
-            f'<p class="meta">预期合计 {fmt_dur(est_total or None)} · 已耗 {fmt_dur(elapsed_total or None)} · '
-            f'剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
-            f'<p class="meta">综合完成率</p>{bar(overall)}'
-            f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
-            f'<p class="meta">task 级执行顺序 (悬浮节点看 subtask 图 + 总进度, 点击跳到该 task)</p>'
-            f'{dag_html(task_nodes, tips, links, force_vertical=True)}{combined_dag}</section>')
+            f'{switch}{stats}'
+            f'<p class="meta">{len(tasks)} task · 预期合计 {fmt_dur(est_total or None)} · '
+            f'已耗 {fmt_dur(elapsed_total or None)} · 剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
+            f'<p class="meta">整体进度 (task+subtask 综合)</p>{bar(combined_pct)}'
+            f'{task_view}{full_view}</section>')
 
         cards = []
         for t in tasks:
@@ -1396,7 +1415,7 @@ class Skein:
             # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 1800s (半小时) 硬刷新保证不 stale
             '<meta http-equiv=refresh content=1800>'
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
-            f'{switcher}<h1>SKEIN 看板 · {esc(self.proj)}</h1>{body}'
+            f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1>{switcher}</header>{body}'
             '<script src="board/switcher.js"></script>'
             # 自动刷新: serve (http) 下轮询自身 Last-Modified, 变了才 reload (空闲不闪);
             # file:// 下 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
