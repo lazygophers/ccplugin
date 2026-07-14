@@ -37,19 +37,62 @@
     var sel=document.getElementById('sw-'+k);
     if(sel)sel.addEventListener('change',function(){apply(k,sel.value);});
   });
-  // 状态筛选: 按 data-status 显隐 task card ('all'=全显); 概览 banner 无 data-status → 恒显
-  function applyFilter(v){
-    if(!v)v='all';
-    localStorage.setItem('skein-filter',v);
-    var sel=document.getElementById('sw-filter');
-    if(sel)sel.value=v;
-    document.querySelectorAll('section.card[data-status]').forEach(function(c){
-      c.style.display=(v==='all'||c.getAttribute('data-status')===v)?'':'none';
+  // 状态筛选(#sw-filter, 现居任务进展卡) + 搜索(#sw-search, 居 topbar) 统一决定右栏卡显隐:
+  // 卡显 iff 状态命中 且 (搜索空 或 data-search 含关键词); 搜索还高亮命中卡关键词 + 左栏 DAG 命中节点高亮/其余变灰
+  function curFilter(){var s=document.getElementById('sw-filter');return s?s.value:'all';}
+  function curQuery(){var s=document.getElementById('sw-search');return s?s.value.trim().toLowerCase():'';}
+  // 卡内高亮: 先拆旧 mark.hl, 再对含关键词文本节点包 <mark class=hl> (跳过 SVG 子树, 免污染卡内 DAG)
+  function highlightCard(card,q){
+    card.querySelectorAll('mark.hl').forEach(function(m){
+      m.parentNode.replaceChild(document.createTextNode(m.textContent),m);});
+    card.normalize();
+    if(!q)return;
+    var walker=document.createTreeWalker(card,NodeFilter.SHOW_TEXT,{acceptNode:function(nd){
+      if(!nd.nodeValue||nd.nodeValue.toLowerCase().indexOf(q)<0)return NodeFilter.FILTER_REJECT;
+      for(var p=nd.parentNode;p&&p!==card;p=p.parentNode){
+        if(p.tagName&&p.tagName.toLowerCase()==='svg')return NodeFilter.FILTER_REJECT;}
+      return NodeFilter.FILTER_ACCEPT;}});
+    var nodes=[],n; while(n=walker.nextNode())nodes.push(n);
+    nodes.forEach(function(node){
+      var txt=node.nodeValue,low=txt.toLowerCase(),idx=low.indexOf(q),last=0;
+      var frag=document.createDocumentFragment();
+      while(idx>=0){
+        if(idx>last)frag.appendChild(document.createTextNode(txt.slice(last,idx)));
+        var mk=document.createElement('mark');mk.className='hl';mk.textContent=txt.slice(idx,idx+q.length);
+        frag.appendChild(mk); last=idx+q.length; idx=low.indexOf(q,last);
+      }
+      if(last<txt.length)frag.appendChild(document.createTextNode(txt.slice(last)));
+      node.parentNode.replaceChild(frag,node);
     });
   }
-  applyFilter(localStorage.getItem('skein-filter'));
+  function applyCards(){
+    var f=curFilter(),q=curQuery();
+    document.querySelectorAll('section.card[data-status]').forEach(function(c){
+      var okS=(f==='all'||c.getAttribute('data-status')===f);
+      var okQ=(!q||(c.getAttribute('data-search')||'').indexOf(q)>=0);
+      c.style.display=(okS&&okQ)?'':'none';
+      highlightCard(c,okQ?q:'');
+    });
+    // 左栏 DAG: 搜索时命中节点高亮 (dag-hit)、其余变灰 (dag-dim); 状态筛选不动 DAG
+    document.querySelectorAll('.dag-wrap svg g[data-search]').forEach(function(g){
+      var hit=!!q&&g.getAttribute('data-search').indexOf(q)>=0;
+      g.classList.toggle('dag-hit',hit);
+      g.classList.toggle('dag-dim',!!q&&!hit);
+    });
+  }
   var fsel=document.getElementById('sw-filter');
-  if(fsel)fsel.addEventListener('change',function(){applyFilter(fsel.value);});
+  if(fsel){
+    var savedF=localStorage.getItem('skein-filter'); if(savedF)fsel.value=savedF;
+    fsel.addEventListener('change',function(){localStorage.setItem('skein-filter',fsel.value);applyCards();});
+  }
+  var ssel=document.getElementById('sw-search');
+  if(ssel)ssel.addEventListener('input',applyCards);
+  applyCards();
+  // 图钉动作: 刷新页面 / 回到顶部
+  var rBtn=document.getElementById('sw-refresh');
+  if(rBtn)rBtn.addEventListener('click',function(){location.reload();});
+  var tBtn=document.getElementById('sw-top');
+  if(tBtn)tBtn.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
   // DAG 维度切换: 按钮切 task / task+subtask 视图 (localStorage 记忆), 非 tab
   document.querySelectorAll('.dag-switch').forEach(function(sw){
     var card=sw.closest('.card');

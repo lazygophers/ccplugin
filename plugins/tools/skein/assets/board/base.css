@@ -156,6 +156,20 @@ td .bar{margin:1px 0;min-width:78px}
 
 /* 顶栏: 仅标题. sticky 常驻顶端 → 左卡片锁其下不随滚动滑动 (高度经 JS 实测写 --topbar) */
 .topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;gap:16px;min-height:44px;padding:14px 0 8px}
+/* topbar 搜索框: id/名/desc 关键词过滤 (switcher.js applyCards) */
+.search{margin-left:auto;flex:0 1 280px;background:var(--card);color:var(--fg);border:1px solid var(--brd);border-radius:7px;padding:6px 10px;font:13px var(--font)}
+.search:focus{outline:none;border-color:var(--accent)}
+/* 关键词高亮: 命中卡内文本包 <mark class=hl> */
+mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inherit;border-radius:3px;padding:0 1px}
+/* 状态筛选控件 (任务进展卡内, 从图钉移入) */
+.filter{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;font-size:12px;color:var(--muted)}
+.filter select{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:5px;padding:2px 6px;font-size:12px}
+/* 左栏 DAG 搜索反馈: 命中节点强调 / 未命中变灰 */
+.dag g.dag-dim{opacity:.22;transition:opacity .2s}
+.dag g.dag-hit>rect:first-of-type{stroke-width:2.5;filter:drop-shadow(0 0 3px var(--accent))}
+/* 图钉动作按钮 (刷新 / 回到顶部) */
+.sw-btn{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:6px;padding:6px 10px;font:12px var(--font);cursor:pointer;text-align:left;transition:background .2s}
+.sw-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 /* 浮动按钮组 (FloatButton 式): fixed 右下角, 圆钮 + 上方展开面板 */
 .fab-wrap{position:fixed;right:24px;bottom:24px;z-index:80;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
 .fab{width:48px;height:48px;border-radius:50%;border:1px solid var(--brd);background:var(--card);color:var(--head);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s}

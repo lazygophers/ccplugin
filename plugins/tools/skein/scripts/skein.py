@@ -1232,7 +1232,9 @@ class Skein:
                     f'fill="var(--muted)">{esc(ln)}</text>' for k, ln in enumerate(ds_lines))
                 has_tip = tips and i in tips
                 has_link = links and i in links
-                g_attr = (f' data-tip="{esc(i)}"' if has_tip else "")
+                # data-search: id+名+desc 小写拼串, switcher.js 搜索按子串命中此节点 (命中高亮/未命中变灰)
+                blob = esc(" ".join(str(x or "") for x in (_id, node[1], node[5] if len(node) > 5 else "")).lower())
+                g_attr = (f' data-tip="{esc(i)}"' if has_tip else "") + f' data-search="{blob}"'
                 g_cls = (node_cls.get(stt, "") + (" has-tip" if has_tip else "")
                          + (" has-link" if has_link else "")).strip()
                 g = (
@@ -1353,9 +1355,15 @@ class Skein:
         task_view = f'<div class="dag-view" data-dag="task">{dag_html(task_nodes, tips, links, force_vertical=True)}</div>'
         full_view = (f'<div class="dag-view" data-dag="full" hidden>{dag_html(combined, force_vertical=True)}</div>'
                      if has_sub else "")
+        # 状态筛选 (从图钉移入任务进展): switcher.js 按 #sw-filter 值显隐右栏 task 卡
+        filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
+                       (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
+        filter_ctrl = ('<label class="filter">状态筛选 <select id="sw-filter">'
+                       + "".join(f'<option value="{esc(k)}">{esc(lb)}</option>' for k, lb in filter_opts)
+                       + '</select></label>')
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
-            f'{switch}{stats}'
+            f'{switch}{filter_ctrl}{stats}'
             f'<p class="meta">{len(tasks)} task · 预期合计 {fmt_dur(est_total or None)} · '
             f'已耗 {fmt_dur(elapsed_total or None)} · 剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
             f'<p class="meta">整体进度 (task+subtask 综合)</p>{bar(combined_pct)}'
@@ -1385,8 +1393,12 @@ class Skein:
                 '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>'
                 f'<tbody>{srows}</tbody></table>' if subs
                 else '<p class="empty">无 subtask</p>')
+            # data-search: task id+名+desc + 各 subtask sid+名+desc 小写拼串, 搜索命中则右栏保留该卡 + 高亮关键词
+            sblob = esc(" ".join(str(x or "") for x in (
+                t["id"], t.get("name", ""), t.get("desc", ""),
+                *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower())
             cards.append(
-                f'<section class="card" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}">'
+                f'<section class="card" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}" data-search="{sblob}">'
                 f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
@@ -1411,14 +1423,14 @@ class Skein:
         def opts(items, cur):
             return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
                            for k, label in items)
-        filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
-                       (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
         # 浮动按钮 (FloatButton 式): fixed 右下角圆钮, 点击展开控件面板 (switcher.js 绑定开合)
+        # 状态筛选已移入任务进展卡; 面板留主题 + 刷新页面 + 回到顶部
         switcher = (
             '<div class="fab-wrap">'
             '<div class="switcher">'
             f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
-            f'<label>状态<select id="sw-filter">{opts(filter_opts, "all")}</select></label>'
+            '<button type="button" class="sw-btn" id="sw-refresh">⟳ 刷新页面</button>'
+            '<button type="button" class="sw-btn" id="sw-top">↑ 回到顶部</button>'
             '</div>'
             '<button type="button" class="fab" id="sw-fab" aria-label="看板设置" aria-expanded="false">⚙</button>'
             '</div>')
@@ -1429,7 +1441,10 @@ class Skein:
             # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 1800s (半小时) 硬刷新保证不 stale
             '<meta http-equiv=refresh content=1800>'
             f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
-            f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1></header>{body}{switcher}'
+            f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1>'
+            '<input type="search" id="sw-search" class="search" placeholder="搜索 id / 名称 / 描述…" '
+            'autocomplete="off" aria-label="搜索 task">'
+            f'</header>{body}{switcher}'
             '<script src="board/switcher.js"></script>'
             '<script src="board/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
             # 自动刷新: serve (http) 下轮询自身 Last-Modified, 变了才 reload (空闲不闪);
