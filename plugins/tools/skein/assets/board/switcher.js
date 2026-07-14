@@ -1,6 +1,16 @@
 // SKEIN 看板主题切换器: 读/写 <html> data 属性 + localStorage, 无依赖。
 (function(){
   var html=document.documentElement;
+  // 实测 topbar 高 (含换行) + body 上内边距 → 写 --topbar, 左卡片据此定 top/height,
+  // 保证 card 上下边界都在视口内、随 topbar 高变化自适应、无追赶滑动
+  function syncTopbar(){
+    var tb=document.querySelector('.topbar');
+    if(!tb)return;
+    var padTop=parseFloat(getComputedStyle(document.body).paddingTop)||0;
+    html.style.setProperty('--topbar',(tb.offsetHeight+padTop)+'px');
+  }
+  syncTopbar();
+  window.addEventListener('resize',syncTopbar);
   var keys={theme:'data-theme',palette:'data-palette',mode:'data-mode'};
   function apply(k,v){
     if(!v)return;

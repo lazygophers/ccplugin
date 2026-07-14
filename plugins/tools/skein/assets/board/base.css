@@ -17,7 +17,7 @@ html{scroll-behavior:smooth}
 /* body = 单列纵向流: 一行一个 task card (不并排), 无行间空白。card 满宽堆叠, 纵向节奏走 margin-bottom。 */
 body{
   background:var(--bg);color:var(--fg);
-  font:14px/1.6 var(--font);margin:0;padding:20px 24px 40px;
+  font:14px/1.6 var(--font);margin:0;padding:0 24px 40px;
   transition:background .3s,color .3s;
   display:block;
 }
@@ -129,7 +129,7 @@ td .bar{margin:1px 0;min-width:78px}
 
 /* 顶栏: 标题 + 切换器同行. sticky 常驻顶端 → 左卡片锁其下不再随滚动滑动.
    ponytail: --topbar 单行高定值 58px (标题 20 + 切换器padding); 换行超高时 col-side 用它算高, 少量偏差可接受 */
-.topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:44px;padding-bottom:6px}
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;min-height:44px;padding:14px 0 8px}
 /* 切换器 (顶栏内 inline 控件组) */
 .switcher{display:flex;gap:8px;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:8px 10px;font-size:12px}
 .switcher label{display:flex;flex-direction:column;gap:2px;color:var(--muted)}
