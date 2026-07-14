@@ -60,7 +60,7 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
 # 看板主题 = 装饰预设 (值 = board/themes/ 下 css 文件名). 每个预设 = 5 原语 (卡片质感/边框/圆角/字型/底纹)
 # 固定搭配 + 一处签名点缀, 结构全从 palette token 派生 → 自动随配色/明暗变, 每预设不塌成同一套灰.
-THEMES = [("skein", "缕光"),
+THEMES = [("skein", "skein"),
           ("minimal", "极简"), ("terminal", "终端"), ("glass", "磨砂"),
           ("blueprint", "蓝图"), ("sketch", "手绘"), ("neumorphism", "浮起"),
           ("holographic", "虹彩"), ("magazine", "杂志"),
