@@ -1056,11 +1056,12 @@ class Skein:
         node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
                     S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
-        def dag_html(nodes, tips=None, links=None):
+        def dag_html(nodes, tips=None, links=None, force_vertical=False):
             # nodes: [(id, name, status, deps, pct, desc)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
             # pct/desc 可缺 (老三元组兼容): 节点框显 id + 完成% + 名字 + desc
             # tips: {id: html} -> 该节点悬浮浮层内容 (subtask DAG + 总进度条), switcher.js 绑定 hover 显隐
             # links: {id: href} -> 该节点包 <a> 点击跳转 (task 节点 -> 对应卡片锚点)
+            # force_vertical: True -> 恒上往下布局 (窄左栏用, 不看宽度阈值)
             if len(nodes) < 2:
                 return ""
             ids = {n[0] for n in nodes}
@@ -1101,7 +1102,7 @@ class Skein:
             span = max(len(v) for v in layers.values())
             # 朝向: 默认 layer→列 (左右向); 但左右向宽 > 1180 (超典型正文宽必横向滚动) 转纵向 (layer→行, 上往下),
             # 纵向列数 = 单层并行节点数, 通常更少, 更可能一屏放下、只需纵向滚动。
-            vertical = nlayer * COL + 10 > 1180
+            vertical = force_vertical or nlayer * COL + 10 > 1180
             if vertical:
                 pos = {i: (r * COL + 10, d * ROW + 10)
                        for d, ids_ in layers.items() for r, i in enumerate(ids_)}
@@ -1260,7 +1261,7 @@ class Skein:
             f'<p class="meta">综合完成率</p>{bar(overall)}'
             f'<p class="meta">预估加权完成率</p>{bar(weighted, cls="est")}'
             f'<p class="meta">task 级执行顺序 (悬浮节点看 subtask 图 + 总进度, 点击跳到该 task)</p>'
-            f'{dag_html(task_nodes, tips, links)}{combined_dag}</section>')
+            f'{dag_html(task_nodes, tips, links, force_vertical=True)}{combined_dag}</section>')
 
         cards = []
         for t in tasks:
@@ -1297,7 +1298,11 @@ class Skein:
                 f'<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
                 f'{dag_html(snodes)}'
                 f'{subtable}</details></section>')
-        body = overview + "\n" + ("\n".join(cards) if cards else '<p class="empty">无 task</p>')
+        # 两栏布局: 左=总计 (综合指标 + task DAG 上往下), 右=task 卡片列表 (窄屏 CSS 回落单列)
+        right = "\n".join(cards) if cards else '<p class="empty">无 task</p>'
+        body = (f'<div class="layout">'
+                f'<aside class="col-side">{overview}</aside>'
+                f'<main class="col-main">{right}</main></div>')
 
         self._copy_board_assets()
         cfg = self.config()
