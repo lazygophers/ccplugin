@@ -20,6 +20,7 @@ effort: medium
 - **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) subagent 不能与用户对话; subagent 缺信息在返回标 `需要: <问题>` 由 main 转达。
 - **每个 dispatch prompt 6 字段自包含**: 目标 / 已知 (含 `Active task: <id>` + worktree 路径) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - **完成即时回传** — 每个 subagent 完成或阻塞, main 立即输出摘要, 禁批量延迟汇总。
+- **并发多个 flow 请求禁互相顶掉** — 每个 flow 请求 = 独立 durable task, **收到即先 `skein create` 落盘**再处理。第二个请求进来时**禁中断/覆盖/丢弃**在飞的第一个: planning 阶段本就需 main 同步逐问用户 (brainstorm/grill/AskUserQuestion 不能并行), 故多请求**串行 planning** — 先把当前 task 登记 + 推进到不丢的态 (至少 `create` 落盘), 再处理下一个。已 `create` 未处理完的 task 留 pending, 由 `/skein-exec` 无参续跑, 绝不静默跳过。
 
 ## 任务执行流程
 
@@ -27,18 +28,19 @@ plan → exec → check → finish 四步闭环
 
 ### plan
 
-- `skein start <任务 ID> --name <任务名称> --desc <任务描述>` 创建任务
+- **先 durable 登记 (防丢/防并发覆盖)** — 收到请求**第一步**即 `skein create <slug-id> --name --desc` 落 pending task (持久到 `.skein`), 再做后续。此步早于 brainstorm/grill, 故请求即使中途中断或被下一个 flow 顶掉, task 已在盘上, 可 `/skein-exec` 无参续跑, **绝不静默跳过**。`create` 由 skein-plan 步骤 2 内部完成; 多个 flow 请求各自独立 `create` 独立 id, 互不覆盖 (并发处理见铁律)。
 - **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
-- Skill(skein-plan --continue) 规划任务、编写 prd 等内容
+- Skill(skein-plan --continue) 规划任务、编写 prd; **拆 subtask 并逐个 `subtask add <id> <sid> --agent ...` 登记** (每 subtask 绑定执行 agent, 是 exec 唯一调度真值源)。无 subtask 登记 → `skein start` 硬拒。
 - ToolCall(AskUserQuestion) 评审产物、确认用户需求 — 未确认禁进 exec (硬门, main 亲做)
   - 确认并启动任务
   - 任务需要修改
+- `skein start <id>` 激活 (建 worktree; start 仅收 `id`, 无 subtask 硬拒) — 用户确认后 main 同步跑
 
 ### exec
 
 - Skill(skein-exec) 执行编排调度: main 作调度器, 动态 DAG 就绪即派 / 完成即派 (并发上限 2)
-- Agent(按 subtask 性质选合适 agent, 无则 `skein-executor`) 各执行 1 subtask, 改动落 task worktree
+- **每个已登记 subtask MUST 派 1 个 subagent 异步执行 (硬门)** — 走 skein-exec 的 `claim → 派 Agent → done → claim` 循环, 每 ready subtask 各派 1 个 `Agent` (性质选合适 agent, 无则 `skein-executor`), 改动落 task worktree。**禁 main inline 顺跑 subtask**: 只要 task 有 subtask, 就必须派 subagent, 不得自己一个个做完 (line 15 的 ≤3 文件豁免只针对**整个 task 无 subtask 的微改**, 不是"有 subtask 却跳过派发"的借口)。
 - 异步派发后结束回合前 MUST 输出任务清单 (id / 状态 / 摘要 / 进度%); 禁问用户顺序 (顺序归 planning)
 
 ### check
@@ -79,7 +81,9 @@ plan → exec → check → finish 四步闭环
 | 判新旧不准 (新建 vs 并入现有 active)    | `AskUserQuestion` 用户裁定               | 用户也不确定 → 默认新建, 保守留旧 task 不动          |
 | 某阶段未达出口 (plan 未收敛 / check 未绿) | 停在该阶段, 禁跨阶段推进                  | 反复不过 → 走对应子 skill 兜底 (check 第 3 轮根因复盘) |
 | 宣称派 agent 但无 `Agent` tool_use      | 立即在同回合补真实 `Agent` 调用          | 补不出 → 硬错停手, 禁回传「已派出 / 在做」           |
+| 有 subtask 却想 inline 顺跑             | 停手, 走 skein-exec `claim→派 Agent` 循环, 每 ready subtask 派 1 subagent | 派不出 → 硬错停手, 禁 main 代跑 subtask              |
+| 第二个 flow 进来, 第一个还没 durable    | 先给第一个 `skein create` 落盘再处理第二个 | 都未落盘 → 立即各自 `create`, 未处理者留 pending 待续 |
 
 ## 反例 (命中 = 流程错误)
 
-违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序。
+违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序 / **有 subtask 却 main inline 顺跑不派 subagent** / **第二个 flow 请求顶掉/中断在飞的第一个 task**。
