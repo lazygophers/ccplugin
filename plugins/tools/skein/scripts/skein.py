@@ -1088,17 +1088,43 @@ class Skein:
                 layers.setdefault(d, []).append(i)
             for d in layers:
                 layers[d].sort(key=lambda i: order[i])
-            # 节点框宽按内容自适应 (不截断 name/desc): 估文本像素宽 (CJK 全宽 1em, 其余约 0.6em), 全框统一取最大 (列对齐), 保底 176
+            # 节点框限宽: 不再靠加宽容纳长 name/desc (避免水平滚动), 而是限宽 + 文本多行换行, 框高随行数增长。
+            # 估文本像素宽 (CJK 全宽 1em, 其余约 0.6em)。
             def txtw(s, fs):
                 return sum(fs if ord(c) > 0x2E80 else fs * 0.6 for c in str(s))
-            NH, PAD = 76, 14  # 卡片放大: 更高框 + 更大内边距, 保证内容可读
-            need = 208.0      # 最小框宽保底 (短内容也够大)
-            for n in nodes:
+            def wrap(s, fs, maxpx):  # 按估宽贪心断行 (CJK 无词界逐字断; 拉丁尽量在空格断)
+                s = str(s or "")
+                if not s:
+                    return []
+                out, cur = [], ""
+                for ch in s:
+                    if cur and txtw(cur + ch, fs) > maxpx:
+                        cut = cur.rfind(" ")
+                        if cut > 0 and ord(ch) < 0x2E80:  # 拉丁: 回退到最近空格断词
+                            out.append(cur[:cut]); cur = cur[cut + 1:] + ch
+                        else:
+                            out.append(cur); cur = ch
+                    else:
+                        cur += ch
+                if cur:
+                    out.append(cur)
+                return out
+            PAD, CAP = 14, 272                       # 内边距 + 框宽上限 (超出即换行不加宽)
+            need = 208.0                             # 最小框宽保底
+            for n in nodes:                          # id 行不换行 → 参与定宽; name/desc 换行不撑宽
                 pct = n[4] if len(n) > 4 else None
-                dsc = n[5] if len(n) > 5 and n[5] else ""
                 idrow = txtw(n[0], 13) + (txtw(f"{pct}%", 11) + 14 if pct is not None else 0)
-                need = max(need, idrow + PAD * 2, txtw(n[1], 12) + PAD * 2, txtw(dsc, 10) + PAD * 2)
-            NW = int(need + 0.999)
+                need = max(need, idrow + PAD * 2)
+            NW = min(int(need + 0.999), CAP)
+            inner = NW - PAD * 2 - 4                 # 文本可用宽 (减左色条)
+            wrapped = {}                             # id -> (name 行列表, desc 行列表)
+            for n in nodes:
+                dsc = n[5] if len(n) > 5 and n[5] else ""
+                wrapped[n[0]] = (wrap(n[1], 12, inner) or [""], wrap(dsc, 10, inner))
+            nm_max = max(len(v[0]) for v in wrapped.values())
+            ds_max = max(len(v[1]) for v in wrapped.values())
+            # 统一框高 = id 行 + name 行块 + (desc 行块) + 上下留白 (各节点顶对齐, 短内容留白底)
+            NH = 30 + nm_max * 16 + (6 + ds_max * 14 if ds_max else 0) + 10
             COL, ROW = NW + 34, NH + 20
             nlayer = max(layers) + 1
             span = max(len(v) for v in layers.values())
@@ -1142,15 +1168,19 @@ class Skein:
             for i in ids:
                 x, y = pos[i]
                 node = smap[i]
-                _id, nm, stt = node[0], node[1], node[2]
+                _id, stt = node[0], node[2]
                 pct = node[4] if len(node) > 4 else None
-                desc = node[5] if len(node) > 5 else ""
-                nm2 = nm
-                desc2 = desc or ""
+                nm_lines, ds_lines = wrapped[_id]
                 pct_txt = (f'<text x="{x + NW - 12}" y="{y + 22}" font-size="11" text-anchor="end" '
                            f'fill="var(--head)">{pct}%</text>') if pct is not None else ""
-                desc_txt = (f'<text x="{x + 14}" y="{y + 64}" font-size="10" '
-                            f'fill="var(--muted)">{esc(desc2)}</text>') if desc2 else ""
+                # name 多行: 首行 y+44, 步进 16; desc 接在 name 行块 (nm_max) 之后, 步进 14
+                nm_txt = "".join(
+                    f'<text x="{x + 14}" y="{y + 44 + k * 16}" font-size="12" '
+                    f'fill="var(--fg)">{esc(ln)}</text>' for k, ln in enumerate(nm_lines))
+                ds_top = 44 + nm_max * 16
+                desc_txt = "".join(
+                    f'<text x="{x + 14}" y="{y + ds_top + k * 14}" font-size="10" '
+                    f'fill="var(--muted)">{esc(ln)}</text>' for k, ln in enumerate(ds_lines))
                 has_tip = tips and i in tips
                 has_link = links and i in links
                 g_attr = (f' data-tip="{esc(i)}"' if has_tip else "")
@@ -1161,10 +1191,8 @@ class Skein:
                     f'fill="var(--bg)" stroke="var(--brd)"/>'
                     f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
                     f'fill="var({node_var.get(stt, "--muted")})"/>'
-                    f'<text x="{x + 14}" y="{y + 24}" font-size="13" fill="var(--fg)">{esc(_id)}</text>'
-                    f'{pct_txt}'
-                    f'<text x="{x + 14}" y="{y + 46}" font-size="12" fill="var(--fg)">{esc(nm2)}</text>'
-                    f'{desc_txt}</g>')
+                    f'<text x="{x + 14}" y="{y + 22}" font-size="13" fill="var(--fg)">{esc(_id)}</text>'
+                    f'{pct_txt}{nm_txt}{desc_txt}</g>')
                 if has_link:
                     g = f'<a href="{esc(links[i])}">{g}</a>'
                 boxes.append(g)

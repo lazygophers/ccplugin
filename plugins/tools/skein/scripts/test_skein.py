@@ -204,19 +204,22 @@ def main():
         # 无 active 就绪 + 有就绪 pending 时走 "待激活" 提示 (task-5 pending, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
         assert "待激活" in sk(d, "pop").stdout, "pop 未提示就绪 pending task"
-        # ---- DAG 节点框: 长 name/desc 不截断 + 框宽自适应保底 208 + 卡片放大高 76 ----
+        # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
            "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--agent", "general-purpose")
         sk(d, "board")
         html = (d / ".skein/task.html").read_text()
         assert "…" not in html, "DAG 节点仍截断信息 (出现省略号)"
-        assert longnm in html, "长 name 未完整渲染进 DAG"
+        text_only = re.sub(r"<[^>]+>", "", html)  # 剥标签: 多行 name 拼接后应含全文
+        assert longnm in text_only, "长 name 未完整渲染 (多行拼接后应可见全文)"
         boxes = re.findall(r'<rect x="\d+" y="\d+" width="(\d+)" height="(\d+)" rx="6"', html)
         assert boxes, "未渲染出 DAG 节点框"
         widths = [int(w) for w, _ in boxes]
-        assert min(widths) >= 208, f"节点框未达最小保底 208 (min={min(widths)})"
-        assert all(int(h) == 76 for _, h in boxes), "节点框高未放大到 76"
+        heights = [int(h) for _, h in boxes]
+        assert min(widths) >= 208 and max(widths) <= 272, \
+            f"节点框宽越界 [208,272] (min={min(widths)} max={max(widths)})"
+        assert max(heights) > 60, f"长内容未多行增高 (max height={max(heights)})"
         css = (d / ".skein/board/base.css").read_text()
         assert "overflow:auto" in css, "DAG 画布容器缺滚动 (.dag-wrap/.dag-tip overflow)"
 

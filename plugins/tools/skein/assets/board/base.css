@@ -24,8 +24,8 @@ body{
 h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var(--head)}
 
 /* 两栏布局: 左=总计栏 (sticky 常驻, 内含 task DAG 上往下), 右=task 卡片流.
-   左栏定宽 380, 右栏吃余量; 窄屏 (<900) 回落单列纵向堆叠 */
-.layout{display:grid;grid-template-columns:380px minmax(0,1fr);gap:18px;align-items:start;margin-top:14px}
+   左:右 = 4:6; 窄屏 (<900) 回落单列纵向堆叠 */
+.layout{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,6fr);gap:18px;align-items:start;margin-top:14px}
 .col-side{position:sticky;top:14px}
 .col-side .card{margin-bottom:0}
 .col-main{min-width:0}
