@@ -1789,6 +1789,7 @@ class Skein:
                     return
                 try:
                     body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+                    self._log_extra = f" body={json.dumps(body, ensure_ascii=False)}"
                     v = body.get("board_theme")
                     if v not in {k for k, _ in THEMES}:
                         raise ValueError("bad theme")
@@ -1797,8 +1798,19 @@ class Skein:
                 except Exception:
                     self.send_error(400)
 
-            def log_request(self, *a):
-                pass  # 静默访问日志 (info/warn); 错误经默认 log_error → stderr
+            _log_extra = ""  # 请求附加信息 (POST body 等); 处理器按需设, _log 打印后清
+
+            def _log(self, code):
+                # 2026-07-15 21:12:57.123 GET /task.html -> 200   (POST 追加 body=...)
+                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                sys.stderr.write(f"{ts} {self.command} {self.path}{self._log_extra} -> {code}\n")
+                self._log_extra = ""  # 清, 免 keep-alive 连接下条请求串味
+
+            def log_request(self, code="-", size="-"):
+                self._log(code.value if hasattr(code, "value") else code)
+
+            def log_error(self, *a):
+                pass  # 错误码已并入 log_request 单行, 免 "code 404, message ..." 重复噪声
 
         handler = functools.partial(Handler, directory=str(self.dir))
         with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
