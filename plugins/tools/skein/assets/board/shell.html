@@ -1,0 +1,30 @@
+<!doctype html><html lang=zh-CN data-theme="{{THEME}}">
+<head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+{{HEAD_EXTRA}}<title>SKEIN · {{PROJ}}</title>
+{{LINKS}}</head><body>
+<header class="topbar"><h1>SKEIN 看板 · {{PROJ}}</h1>
+<input type="search" id="sw-search" class="search" placeholder="搜索 id / 名称 / 描述…" autocomplete="off" aria-label="搜索 task">{{REFRESH_TOP}}</header>
+<div class="layout"></div>
+<div class="fab-wrap"><div class="switcher">
+<label>主题<select id="sw-theme">{{THEME_OPTIONS}}</select></label>
+<button type="button" class="sw-btn" id="sw-refresh">⟳ 刷新页面</button>
+<button type="button" class="sw-btn" id="sw-top">↑ 回到顶部</button>
+</div>
+<button type="button" class="fab" id="sw-fab" aria-label="看板设置" aria-expanded="false">⚙</button>
+</div>
+<div class="doc-modal" id="doc-modal" hidden>
+<div class="doc-backdrop"></div>
+<div class="doc-panel" role="dialog" aria-modal="true">
+<header class="doc-head"><span class="doc-title"></span>
+<button type="button" class="doc-copy" aria-label="复制 md 原文">⧉ 复制</button>
+<button type="button" class="doc-close" aria-label="关闭">✕</button></header>
+<article class="doc-body markdown"></article></div></div>
+<script>window.__SKEIN__={{PAYLOAD}};</script>
+<script src="board/board-render.js"></script>
+<script src="board/switcher.js"></script>
+<script src="board/skein-fx.js"></script>
+<script src="board/vendor/marked.min.js"></script>
+<script src="board/doc.js"></script>
+<script src="board/live.js"></script>
+</body></html>

@@ -1204,249 +1204,29 @@ class Skein:
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
     # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
-    def _board_html(self, persist=True):
-        # persist=False (serve 每请求实时渲染): 只返回 html 字符串, 不落盘 task.html — serve 不写 task.md/task.html。
-        st_cls = {S_PENDING: "s-pending", S_ACTIVE: "s-active",
-                  S_CHECK: "s-check", S_DONE: "s-done"}
-        ss_cls = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running",
-                  SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
-
-        def esc(s):
-            return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-        def md_inline(s):
-            # 行内 md → HTML: 先 esc 防注入, 再套 代码/粗/斜/链接 (板子离线无 marked, 服务端最小转换)
-            # ponytail: 只处理行内 (块级/嵌套/图片不管); 链接仅 http(s)/相对, 禁 javascript: 等
-            s = esc(s)
-            s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
-            s = re.sub(r"\*\*([^*]+?)\*\*", r"<strong>\1</strong>", s)
-            s = re.sub(r"(?<![*\w])[*_]([^*_]+?)[*_](?![*\w])", r"<em>\1</em>", s)
-            def _lnk(m):
-                txt, url = m.group(1), m.group(2)
-                if re.match(r"(?:https?:|/|\.|#)", url) and '"' not in url and " " not in url:
-                    return f'<a href="{url}" target="_blank" rel="noopener">{txt}</a>'
-                return m.group(0)
-            return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", _lnk, s)
-
-        def badge(text, clsmap):
-            return f'<span class="badge {clsmap.get(text, "")}">{esc(text)}</span>'
+    def _board_data(self):
+        # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
+        # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
+        st_cls = {S_PENDING: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
+        ss_cls = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
+        node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
+                    S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
+        node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
+                    S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
         def fmt_dur(mins):
             if mins is None:
                 return "-"
             return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
 
-        def bar(pct, sub=False, cls=""):
-            # width + label 均封顶 100% (进度不可 >100%); 超时靠红色 over class + 原始耗时/预期文本传达
-            p = min(pct, 100)
-            kind = cls or "prog"  # 完成度条标 prog: CSS 按 --p 在主题 palette 内插值上色, 随主题/配色自适应
-            c = "bar " + kind + (" sub" if sub else "")
-            style = f"width:{p}%" + (f";--p:{p}" if kind == "prog" else "")
-            return (f'<div class="{c}"><div class="fill" '
-                    f'style="{style}"></div><span class="pct">{p}%</span></div>')
-
-        # 状态 -> CSS 变量 (执行顺序图节点左边框着色); task/subtask 状态共用 (值同名)
-        node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
-                    S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
-        # 状态 -> 节点 CSS 类 (整框按状态着色 + 进行中/运行中 呼吸动画, 见 base.css .dag g.n-*)
-        node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
-                    S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
-
-        def dag_html(nodes, tips=None, links=None, force_vertical=False):
-            # nodes: [(id, name, status, deps, pct, desc)] -> SVG 有向连接图: 箭头 dep->node, 并行节点同列; 离线无 JS/CDN
-            # pct/desc 可缺 (老三元组兼容): 节点框显 id + 完成% + 名字 + desc
-            # tips: {id: html} -> 该节点悬浮浮层内容 (subtask DAG + 总进度条), switcher.js 绑定 hover 显隐
-            # links: {id: href} -> 该节点包 <a> 点击跳转 (task 节点 -> 对应卡片锚点)
-            # force_vertical: True -> 恒上往下布局 (窄左栏用, 不看宽度阈值)
-            if len(nodes) < 2:
-                return ""
-            ids = {n[0] for n in nodes}
-            dep = {n[0]: [d for d in n[3] if d in ids] for n in nodes}
-            smap = {n[0]: n for n in nodes}
-            order = {n[0]: k for k, n in enumerate(nodes)}  # 稳定排行
-            # 分层: layer = 最长依赖深度 (列 = 执行波次, 并行节点落同列)
-            layer = {}
-
-            def depth(i, seen):
-                if i in layer:
-                    return layer[i]
-                if i in seen:  # 环兜底
-                    return 0
-                d = 1 + max((depth(p, seen | {i}) for p in dep[i]), default=-1)
-                layer[i] = d
-                return d
-            for i in ids:
-                depth(i, set())
-            layers = {}
-            for i, d in layer.items():
-                layers.setdefault(d, []).append(i)
-            for d in layers:
-                layers[d].sort(key=lambda i: order[i])
-            # 节点框限宽: 不再靠加宽容纳长 name/desc (避免水平滚动), 而是限宽 + 文本多行换行, 框高随行数增长。
-            # 估文本像素宽 (CJK 全宽 1em, 其余约 0.6em)。
-            def txtw(s, fs):
-                return sum(fs if ord(c) > 0x2E80 else fs * 0.6 for c in str(s))
-            def wrap(s, fs, maxpx):  # 按估宽贪心断行 (CJK 无词界逐字断; 拉丁尽量在空格断)
-                s = str(s or "")
-                if not s:
-                    return []
-                out, cur = [], ""
-                for ch in s:
-                    if cur and txtw(cur + ch, fs) > maxpx:
-                        cut = cur.rfind(" ")
-                        if cut > 0 and ord(ch) < 0x2E80:  # 拉丁: 回退到最近空格断词
-                            out.append(cur[:cut]); cur = cur[cut + 1:] + ch
-                        else:
-                            out.append(cur); cur = ch
-                    else:
-                        cur += ch
-                if cur:
-                    out.append(cur)
-                return out
-            PAD, CAP = 14, 272                       # 内边距 + 框宽上限 (超出即换行不加宽)
-            need = 208.0                             # 最小框宽保底
-            for n in nodes:                          # id 行不换行 → 参与定宽; name/desc 换行不撑宽
-                pct = n[4] if len(n) > 4 else None
-                idrow = txtw(n[0], 13) + (txtw(f"{pct}%", 11) + 14 if pct is not None else 0)
-                need = max(need, idrow + PAD * 2)
-            NW = min(int(need + 0.999), CAP)
-            inner = NW - PAD * 2 - 4                 # 文本可用宽 (减左色条)
-            wrapped = {}                             # id -> (name 行列表, desc 行列表)
-            for n in nodes:
-                dsc = n[5] if len(n) > 5 and n[5] else ""
-                wrapped[n[0]] = (wrap(n[1], 12, inner) or [""], wrap(dsc, 10, inner))
-            nm_max = max(len(v[0]) for v in wrapped.values())
-            ds_max = max(len(v[1]) for v in wrapped.values())
-            # 统一框高 = id 行 + name 行块 + (desc 行块) + 上下留白 (各节点顶对齐, 短内容留白底)
-            NH = 30 + nm_max * 16 + (6 + ds_max * 14 if ds_max else 0) + 10
-            COL, ROW = NW + 34, NH + 20
-            nlayer = max(layers) + 1
-            span = max(len(v) for v in layers.values())
-            # 交叉削减 (Sugiyama 重心法): 迭代按相邻层邻居的平均序位重排各层, 减连线交叉、让子节点自然对到父节点下方,
-            # 避免节点全堆左侧、连线乱交叉。上行看子、下行看父, 往返数轮收敛。
-            kids = {i: [] for i in ids}
-            for i in ids:
-                for p in dep[i]:
-                    kids[p].append(i)
-            col_of = {i: k for d in layers for k, i in enumerate(layers[d])}
-            def _bary(i, nb):
-                ns = nb[i]
-                return sum(col_of[n] for n in ns) / len(ns) if ns else col_of[i]
-            for _ in range(4):
-                for d in sorted(layers)[1:]:            # 下行: 按父重心排
-                    layers[d].sort(key=lambda i: _bary(i, dep))
-                    for k, i in enumerate(layers[d]):
-                        col_of[i] = k
-                for d in sorted(layers, reverse=True)[:-1]:  # 上行: 按子重心排
-                    layers[d].sort(key=lambda i: _bary(i, kids))
-                    for k, i in enumerate(layers[d]):
-                        col_of[i] = k
-            # 朝向: 默认 layer→列 (左右向); 但左右向宽 > 1180 (超典型正文宽必横向滚动) 转纵向 (layer→行, 上往下),
-            # 纵向列数 = 单层并行节点数, 通常更少, 更可能一屏放下、只需纵向滚动。
-            vertical = force_vertical or nlayer * COL + 10 > 1180
-            if vertical:
-                # 同层并行节点横排, 一行最多 PER=4 个 (超出折行免过宽被缩糊); 每视觉行水平居中 → 金字塔铺开非左堆
-                PER = 4
-                maxcols = min(span, PER)
-                pos, roff = {}, 0  # roff = 已累计占用行数
-                for d in sorted(layers):
-                    ids_ = layers[d]
-                    nrow = (len(ids_) + PER - 1) // PER
-                    for sub in range(nrow):
-                        chunk = ids_[sub * PER:(sub + 1) * PER]
-                        off = (maxcols - len(chunk)) * COL // 2  # 居中该视觉行
-                        for col, i in enumerate(chunk):
-                            pos[i] = (off + col * COL + 10, (roff + sub) * ROW + 10)
-                    roff += nrow
-                W = maxcols * COL + 10
-                H = roff * ROW + 10
-            else:
-                # 每列 (执行波次) 垂直居中 → 对称铺开非顶堆
-                pos = {}
-                for d, ids_ in layers.items():
-                    off = (span - len(ids_)) * ROW // 2
-                    for r, i in enumerate(ids_):
-                        pos[i] = (d * COL + 10, off + r * ROW + 10)
-                W = nlayer * COL + 10
-                H = span * ROW + 10
-            lines = []
-            for i in ids:
-                x2, y2 = pos[i]
-                for p in dep[i]:
-                    x1, y1 = pos[p]
-                    if vertical:
-                        # dep 在上、node 在下: 父下缘中点 → 子上缘中点, 箭头朝下
-                        sx, sy = x1 + NW / 2, y1 + NH
-                        ex, ey = x2 + NW / 2, y2
-                        my = (sy + ey) / 2
-                        lines.append(
-                            f'<path d="M{sx},{sy} C{sx},{my} {ex},{my} {ex},{ey - 2}" fill="none" '
-                            f'stroke="var(--muted)" stroke-width="1.5"/>'
-                            f'<polygon points="{ex - 4},{ey - 8} {ex},{ey} {ex + 4},{ey - 8}" fill="var(--muted)"/>')
-                    else:
-                        # dep 在左、node 在右: 父右缘中点 → 子左缘中点, 箭头朝右
-                        ey = y2 + NH / 2
-                        sx, sy = x1 + NW, y1 + NH / 2
-                        mx = (sx + x2) / 2
-                        lines.append(
-                            f'<path d="M{sx},{sy} C{mx},{sy} {mx},{ey} {x2 - 2},{ey}" fill="none" '
-                            f'stroke="var(--muted)" stroke-width="1.5"/>'
-                            f'<polygon points="{x2 - 8},{ey - 4} {x2},{ey} {x2 - 8},{ey + 4}" fill="var(--muted)"/>')
-            boxes = []
-            for i in ids:
-                x, y = pos[i]
-                node = smap[i]
-                _id, stt = node[0], node[2]
-                pct = node[4] if len(node) > 4 else None
-                nm_lines, ds_lines = wrapped[_id]
-                pct_txt = (f'<text x="{x + NW - 12}" y="{y + 22}" font-size="11" text-anchor="end" '
-                           f'fill="var(--head)">{pct}%</text>') if pct is not None else ""
-                # name 多行: 首行 y+44, 步进 16; desc 接在 name 行块 (nm_max) 之后, 步进 14
-                nm_txt = "".join(
-                    f'<text x="{x + 14}" y="{y + 44 + k * 16}" font-size="12" '
-                    f'fill="var(--fg)">{esc(ln)}</text>' for k, ln in enumerate(nm_lines))
-                ds_top = 44 + nm_max * 16
-                desc_txt = "".join(
-                    f'<text x="{x + 14}" y="{y + ds_top + k * 14}" font-size="10" '
-                    f'fill="var(--muted)">{esc(ln)}</text>' for k, ln in enumerate(ds_lines))
-                has_tip = tips and i in tips
-                has_link = links and i in links
-                # data-search: id+名+desc 小写拼串, switcher.js 搜索按子串命中此节点 (命中高亮/未命中变灰)
-                blob = esc(" ".join(str(x or "") for x in (_id, node[1], node[5] if len(node) > 5 else "")).lower())
-                g_attr = (f' data-tip="{esc(i)}"' if has_tip else "") + f' data-search="{blob}"'
-                g_cls = (node_cls.get(stt, "") + (" has-tip" if has_tip else "")
-                         + (" has-link" if has_link else "")).strip()
-                g = (
-                    f'<g class="{g_cls}"{g_attr}><rect x="{x}" y="{y}" width="{NW}" height="{NH}" rx="6" '
-                    f'fill="var(--bg)" stroke="var(--brd)"/>'
-                    f'<rect x="{x}" y="{y}" width="4" height="{NH}" rx="2" '
-                    f'fill="var({node_var.get(stt, "--muted")})"/>'
-                    f'<text x="{x + 14}" y="{y + 22}" font-size="13" fill="var(--fg)">{esc(_id)}</text>'
-                    f'{pct_txt}{nm_txt}{desc_txt}</g>')
-                if has_link:
-                    g = f'<a href="{esc(links[i])}">{g}</a>'
-                boxes.append(g)
-            svg = (f'<svg class="dag" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
-                   f'xmlns="http://www.w3.org/2000/svg">{"".join(lines)}{"".join(boxes)}</svg>')
-            # 恒包 dag-wrap: 容器 overflow:auto, 过长 DAG 滚动而非缩糊 (svg 保持固有 W×H)
-            tip_html = "".join(f'<div class="dag-tip" data-for="{esc(i)}">{tips[i]}</div>'
-                               for i in ids if i in tips) if tips else ""
-            return f'<div class="dag-wrap">{svg}{tip_html}</div>'
-
         tnow = now()
-        # 排序: 状态分组 (进行中→检查中→待处理→已完成), 组内按执行时间(started)倒序 (新执行在前; 未启动 started=None 视 0)
         _srank = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
         tasks = sorted(self._render_tasks(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
-        DBG.rule("渲染看板 HTML")
-        total_sub = sum(len(t.get("subtasks", [])) for t in tasks)
-        dest = self.html_path if persist else "(内存, serve 实时渲染, 不落盘)"
-        DBG.log(f"渲染 {len(tasks)} 个 task / 合计 {total_sub} 个 subtask → {dest}", style="cyan")
-        name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
+        name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}
 
         def elapsed_of(t):
-            # 实际耗时: DONE = finished-started (真实执行时长); active = tnow-started (至今); pending = 0
             st = t.get("status")
-            if st == S_PENDING:  # 未启动 task 无耗时
+            if st == S_PENDING:
                 return 0
             start = t.get("started") or t.get("created")
             if not start:
@@ -1455,18 +1235,21 @@ class Skein:
             return round((end - start) / 60)
 
         def task_pct(t):
-            # task 完成百分比: DONE=100, 否则 = subtask 平均完成比 (无 subtask 记 0)
             if t["status"] == S_DONE:
                 return 100
             subs = t.get("subtasks", [])
             return round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
 
-        # 任务进展总览: 各状态计数 + 时长合计 (整体进度改由 combined 单位均值算, 见下)
+        def node(_id, nm, stt, deps, pct, desc):
+            # DAG 节点统一为数组 [id, name, status, deps(id 数组), pct, desc]
+            return [_id, nm, stt, [d for d in (deps or [])], pct, desc or ""]
+
+        # 概览聚合
         cnt = {}
-        est_total = 0    # 预期时长合计 (min)
-        elapsed_total = 0  # 已耗合计 (min)
-        remain_est = 0.0    # 剩余预估时长 = Σ 未完成 task 的 estimate×(1-frac)
-        est_count = 0    # 有 estimate 的 task 数 (预估可信度门槛)
+        est_total = 0
+        elapsed_total = 0
+        remain_est = 0.0
+        est_count = 0
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
             if t["status"] == S_DONE:
@@ -1479,28 +1262,26 @@ class Skein:
             if est:
                 est_count += 1
             elapsed_total += elapsed_of(t)
-            remain_est += est * (1 - frac)  # 未估 (est=0) 不计剩余
-        task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
-                       task_pct(t), t.get("desc", "")) for t in tasks]
-        # 概览 task 节点悬浮浮层: 该 task 的总进度条 + subtask DAG (单 subtask 无图则列表兜底)
-        # links: 点击 task 节点跳到对应卡片锚点 (#task-<id>)
+            remain_est += est * (1 - frac)
+
+        task_nodes = [node(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
+                           task_pct(t), t.get("desc", "")) for t in tasks]
+        # 概览 task 节点悬浮浮层数据: 总进度 + subtask DAG (>=2 画图, 否则列表兜底)
         tips = {}
         links = {t["id"]: f'#task-{t["id"]}' for t in tasks}
         for t in tasks:
             subs = t.get("subtasks", [])
-            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
-                       _sub_pct(s), s.get("desc", "")) for s in subs]
-            sub_dag = dag_html(snodes)
-            if not sub_dag:
-                sub_dag = ('<p class="empty">无 subtask</p>' if not subs else
-                           '<p class="meta">' + " · ".join(
-                               f'{esc(s.get("name", s["sid"]))} {_sub_pct(s)}%' for s in subs) + '</p>')
-            tips[t["id"]] = (f'<p class="meta">{esc(t.get("name", t["id"]))} · 总进度</p>'
-                             f'{bar(task_pct(t), sub=True)}{sub_dag}')
-        # task+subtask 维度 DAG: task 不作单独节点 — 只画 subtask, subtask 间连 sub-deps;
-        # 跨 task 前置 = 连到前置 task 的叶子 subtask (该 task 内无人再依赖的 subtask); 无 subtask 的 task 仍作节点兜底。
+            snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
+                           _sub_pct(s), s.get("desc", "")) for s in subs]
+            tips[t["id"]] = {
+                "name": t.get("name", t["id"]),
+                "pct": task_pct(t),
+                "subNodes": snodes if len(snodes) >= 2 else None,
+                "subs": [{"name": s.get("name", s["sid"]), "pct": _sub_pct(s)} for s in subs] if subs else None,
+            }
+        # task+subtask 综合 DAG: 只画 subtask, 跨 task 前置连到前置 task 叶子; 无 subtask 的 task 仍作节点
         has_sub = any(t.get("subtasks") for t in tasks)
-        leaves = {}  # tid -> 该 task 的出口节点 id 列表 (供后继 task 的入口 subtask 挂靠)
+        leaves = {}
         for t in tasks:
             subs = t.get("subtasks", [])
             if subs:
@@ -1514,59 +1295,38 @@ class Skein:
             subs = t.get("subtasks", [])
             prereq = [nid for d in t.get("deps", []) for nid in leaves.get(d, [d])]
             if not subs:
-                combined.append((t["id"], t.get("name", t["id"]), t["status"], prereq,
-                                 task_pct(t), t.get("desc", "")))
+                combined.append(node(t["id"], t.get("name", t["id"]), t["status"], prereq,
+                                     task_pct(t), t.get("desc", "")))
                 continue
             intra = {s["sid"] for s in subs}
             for s in subs:
                 sid = f'{t["id"]}/{s["sid"]}'
                 sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", []) if d in intra]
-                if not sdeps:  # 入口 subtask: 继承父 task 的前置 (连到前置 task 出口)
+                if not sdeps:
                     sdeps = list(prereq)
-                combined.append((sid, s.get("name", s["sid"]), s["status"], sdeps,
-                                 _sub_pct(s), s.get("desc", "")))
-        # 整体进度 = task+subtask 维度综合 (每 subtask / 每无 subtask 的 task 各记 1 单位, 取完成 % 均值)
+                combined.append(node(sid, s.get("name", s["sid"]), s["status"], sdeps,
+                                     _sub_pct(s), s.get("desc", "")))
         combined_pct = round(sum(n[4] for n in combined) / len(combined)) if combined else 0
-        # 三状态统计卡 (已完成 / 进行中 / 待处理 数量)
-        def statcard(label, key):
-            return (f'<div class="stat"><span class="stat-n">{cnt.get(key, 0)}</span>'
-                    f'<span class="stat-l">{esc(label)}</span></div>')
-        stats = (f'<div class="stats">{statcard("已完成", S_DONE)}'
-                 f'{statcard("进行中", S_ACTIVE)}{statcard("检查中", S_CHECK)}'
-                 f'{statcard("待处理", S_PENDING)}</div>')
-        # DAG 维度切换 (task 默认 / task+subtask); switcher.js 绑定按钮显隐对应视图
-        switch = (f'<div class="dag-switch" role="group">'
-                  f'<button type="button" data-dag="task" class="on">task 维度</button>'
-                  f'<button type="button" data-dag="full"{"" if has_sub else " disabled"}>'
-                  f'task+subtask 维度</button></div>')
-        task_view = f'<div class="dag-view" data-dag="task">{dag_html(task_nodes, tips, links, force_vertical=True)}</div>'
-        full_view = (f'<div class="dag-view" data-dag="full" hidden>{dag_html(combined, force_vertical=True)}</div>'
-                     if has_sub else "")
-        # 状态筛选 (从图钉移入任务进展): switcher.js 按 #sw-filter 值显隐右栏 task 卡
-        filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
-                       (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
-        filter_ctrl = ('<label class="filter">状态筛选 <select id="sw-filter">'
-                       + "".join(f'<option value="{esc(k)}">{esc(lb)}</option>' for k, lb in filter_opts)
-                       + '</select></label>')
-        # 预估仅在过半 task 有 estimate 时才可信; 否则合计/剩余会自相矛盾 (如 146 待执行仅显 25m 合计) → 退化为只显已耗 + 覆盖率
+
         if est_total and est_count >= max(1, len(tasks) // 2):
             est_meta = (f'预期合计 {fmt_dur(est_total or None)} · 已耗 {fmt_dur(elapsed_total or None)} · '
                         f'剩余预估 {fmt_dur(round(remain_est) or None)}')
         else:
             cov = f' · 预估覆盖 {est_count}/{len(tasks)}' if est_count else ''
             est_meta = f'已耗 {fmt_dur(elapsed_total or None)}{cov}'
-        overview = (
-            f'<section class="card"><h2>任务进展</h2>'
-            f'{switch}{filter_ctrl}{stats}'
-            f'<p class="meta">{len(tasks)} task · {est_meta}</p>'
-            f'<p class="meta">整体进度 (task+subtask 综合)</p>{bar(combined_pct)}'
-            f'{task_view}{full_view}</section>')
 
-        def prd_block(tid):
-            # 解析 prd.md 的「目标」「验收标准」两节: checklist (- [ ]/- [x]) 显进度徽标 + 勾选; 纯文本/段落行也直显 (无 checkbox 亦不丢)。跳过未填 TODO 占位。
+        # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的待处理 task
+        next_up_id = None
+        if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
+            next_up_id = next((t["id"] for t in tasks
+                               if t["status"] == S_PENDING
+                               and not any(self._dep_unfinished(d) for d in t.get("deps", []))), None)
+
+        def prd_data(tid):
+            # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
             prd = self.tasks / tid / "prd.md"
             if not prd.exists():
-                return ""
+                return []
             secs, cur = {}, None
             for ln in prd.read_text(encoding="utf-8", errors="replace").splitlines():
                 h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
@@ -1576,156 +1336,126 @@ class Skein:
                 if not cur:
                     continue
                 m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
-                if m:  # checklist 项
+                if m:
                     txt = m.group(2).strip()
                     if not txt.lstrip().startswith("TODO"):
                         secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
                     continue
-                # 非 checklist: 纯文本 / 无框列表项 (- foo), 收敛为 prose 直显 (跳空行 / TODO 占位)
                 txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
                 if txt and not txt.lstrip().startswith("TODO"):
                     secs.setdefault(cur, []).append(("prose", False, txt))
-            parts = []
+            out = []
             for name in ("目标", "验收标准"):
                 items = secs.get(name)
                 if not items:
                     continue
                 checks = [d for k, d, _ in items if k == "check"]
-                badge = (f'<span class="prd-p">{sum(checks)}/{len(checks)}</span>'
-                         if checks else "")
-                # 目标区: 非 checkbox 项 (纯文本/无框列表) 也套 todo 的 ○ 样式 (空 class), 视觉统一; 验收标准仍 prose 直显
+                badge = [sum(1 for c in checks if c), len(checks)] if checks else None
                 prose_cls = "" if name == "目标" else "prose"
-                lis = "".join(
-                    (f'<li class="{"done" if d else ""}">{md_inline(t)}</li>' if k == "check"
-                     else f'<li class="{prose_cls}">{md_inline(t)}</li>')
-                    for k, d, t in items)
-                parts.append(f'<div class="prd-sec"><div class="prd-h">{esc(name)}{badge}</div>'
-                             f'<ul class="prd-list">{lis}</ul></div>')
-            return f'<div class="prd">{"".join(parts)}</div>' if parts else ""
+                out.append({
+                    "name": name, "badge": badge,
+                    "items": [{"kind": k, "done": bool(d), "text": t,
+                               "proseCls": ("" if k == "check" else prose_cls)}
+                              for k, d, t in items],
+                })
+            return out
 
-        # #8 下一个可执行: 无进行中/检查中 task 时, 标出首个依赖已清的待处理 task (给用户明确"下一步做啥")
-        next_up_id = None
-        if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
-            next_up_id = next((t["id"] for t in tasks
-                               if t["status"] == S_PENDING
-                               and not any(self._dep_unfinished(d) for d in t.get("deps", []))), None)
         cards = []
         for t in tasks:
             subs = t.get("subtasks", [])
-            sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}  # subtask 依赖也显示名字
+            sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}
             sdone = sum(1 for s in subs if s["status"] == SS_DONE)
-            spct = task_pct(t)  # DONE→100, 否则各 subtask 均值 (避免"都完成却非 100%")
-            elapsed = elapsed_of(t)
-            est = t.get("estimate")
-            snodes = [(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
-                       _sub_pct(s), s.get("desc", "")) for s in subs]
-            srows = "".join(
-                f'<tr><td>{esc(s["sid"])}</td><td>{esc(s["name"])}</td>'
-                f'<td>{badge(s["status"], ss_cls)}</td>'
-                f'<td>{bar(_sub_pct(s), sub=True)}</td>'
-                f'<td>{esc(fmt_dur(s.get("estimate")))}</td>'
-                f'<td>{esc(s.get("agent", "skein-executor"))}</td>'
-                f'<td>{esc(",".join(s.get("skills", [])) or "-")}</td>'
-                f'<td>{esc(", ".join(sname_of.get(d, d) for d in s.get("depends_on", [])) or "-")}</td>'
-                f'<td>{esc("; ".join(s.get("验收", [])) or "-")}</td></tr>' for s in subs)
-            subtable = (
-                '<table><thead><tr><th>sid</th><th>名称</th><th>状态</th><th>进度</th>'
-                '<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>'
-                f'<tbody>{srows}</tbody></table>' if subs
-                else '<p class="empty">无 subtask</p>')
-            # data-search: task id+名+desc + 各 subtask sid+名+desc 小写拼串, 搜索命中则右栏保留该卡 + 高亮关键词
-            sblob = esc(" ".join(str(x or "") for x in (
+            snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
+                           _sub_pct(s), s.get("desc", "")) for s in subs]
+            subtable = [{
+                "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
+                "est": s.get("estimate"), "agent": s.get("agent", "skein-executor"),
+                "skills": s.get("skills", []),
+                "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
+                "acc": s.get("验收", []),
+            } for s in subs]
+            sblob = " ".join(str(x or "") for x in (
                 t["id"], t.get("name", ""), t.get("desc", ""),
-                *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower())
-            # 规划文档按钮: 仅当 .skein/task/<id>/<f>.md 存在才出; serve (http) 静态托管 .skein/ → doc.js fetch 渲染
+                *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower()
             tdir = self.tasks / t["id"]
-            dl = "".join(
-                f'<button type="button" class="doc-link" data-doc="task/{esc(t["id"])}/{fn}" '
-                f'data-title="{esc(lab)} · {esc(t["id"])}">{esc(lab)}</button>'
-                for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
-                if (tdir / fn).exists())
-            doc_row = f'<p class="doc-links">{dl}</p>' if dl else ""
-            nu = t["id"] == next_up_id
-            cards.append(
-                f'<section class="card{" next-up" if nu else ""}" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}" data-search="{sblob}">'
-                f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}'
-                f'{"<span class=next-up-chip>▶ 下一个</span>" if nu else ""}</h2>'
-                f'<p class="name">{esc(t.get("name", ""))}</p>'
-                f'{doc_row}'
-                f'{prd_block(t["id"])}'
-                f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
-                f'worktree: {esc(t.get("worktree") or "-")} · '
-                f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
-                f'<p class="meta">子任务 {sdone}/{len(subs)}</p>{bar(spct, sub=True)}'
-                f'<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
-                f'{dag_html(snodes, force_vertical=True)}'  # 右栏详情恒上往下 (窄栏纵向铺开, CSS 再放开高度/固定宽)
-                f'{subtable}</details></section>')
-        # 两栏布局: 左=总计 (综合指标 + task DAG 上往下), 右=task 卡片列表 (窄屏 CSS 回落单列)
-        right = "\n".join(cards) if cards else '<p class="empty">无 task</p>'
-        body = (f'<div class="layout">'
-                f'<aside class="col-side">{overview}</aside>'
-                f'<main class="col-main">{right}</main></div>')
+            doc_links = [{"doc": f'task/{t["id"]}/{fn}', "title": f'{lab} · {t["id"]}', "label": lab}
+                         for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
+                         if (tdir / fn).exists()]
+            cards.append({
+                "id": t["id"], "name": t.get("name", ""), "status": t["status"], "desc": t.get("desc", ""),
+                "nextUp": t["id"] == next_up_id,
+                "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
+                "worktree": t.get("worktree") or None,
+                "elapsed": elapsed_of(t), "est": t.get("estimate"),
+                "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
+                "docLinks": doc_links,
+                "prd": prd_data(t["id"]),
+                "subtable": subtable,
+                "subNodes": snodes,
+                "search": sblob,
+            })
 
-        # 链接恒用相对 board/: file:// 视图 (persist) 解析到 .skein/board/ (需拷贝); serve(http) 由 do_GET 路由 /board/* → 插件 assets, 不拷。
+        theme = self.config().get("board_theme", "skein")
+        filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
+                       (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
+        return {
+            "proj": self.proj,
+            "theme": theme,
+            "themes": THEMES,
+            "filterOpts": filter_opts,
+            "stClsMap": st_cls, "ssClsMap": ss_cls, "nodeVar": node_var, "nodeCls": node_cls,
+            "overview": {
+                "taskCount": len(tasks),
+                "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
+                          S_CHECK: cnt.get(S_CHECK, 0), S_PENDING: cnt.get(S_PENDING, 0)},
+                "estMeta": est_meta,
+                "combinedPct": combined_pct,
+                "hasSub": has_sub,
+                "taskDag": {"nodes": task_nodes, "tips": tips, "links": links},
+                "fullDag": {"nodes": combined} if has_sub else None,
+            },
+            "cards": cards,
+        }
+
+    def _board_html(self, persist=True):
+        # 单一 JS 渲染器: Python 只出 shell + 内联结构化数据 (window.__SKEIN__),
+        # 卡片/总览/DAG 全由 board-render.js 前端渲染 (serve 与 task.html 同一套)。
+        # persist=False (serve): 首屏内联数据, 刷新走 GET /__skein__/data 拉新 JSON 重渲染 (不取 HTML)。
+        # persist=True  (file://): 只内联数据, 写盘 task.html 自渲染静态文件, 刷新=整页 reload。
+        DBG.rule("渲染看板 shell")
+        data = self._board_data()
+        dest = self.html_path if persist else "(内存, serve 实时渲染, 不落盘)"
+        DBG.log(f"内联 {data['overview']['taskCount']} 个 task 数据 → {dest}", style="cyan")
+        # 内联进 <script>: 转义 <>& 防 </script> 提前闭合 (\\u00XX 仍是合法 JSON 字符串转义)
+        payload = (json.dumps(data, ensure_ascii=False)
+                   .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
+
         if persist:
             self._copy_board_assets()
-        base = "board"
-        cfg = self.config()
-        theme = cfg.get("board_theme", "skein")
-        links = (f'<link rel=stylesheet href="{base}/base.css">'
-                 + "".join(f'<link rel=stylesheet href="{base}/themes/{k}.css">' for k, _ in THEMES))
+        theme = data["theme"]
 
-        def opts(items, cur):
-            return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
-                           for k, label in items)
-        # 浮动按钮 (FloatButton 式): fixed 右下角圆钮, 点击展开控件面板 (switcher.js 绑定开合)
-        # 状态筛选已移入任务进展卡; 面板留主题 + 刷新页面 + 回到顶部
-        switcher = (
-            '<div class="fab-wrap">'
-            '<div class="switcher">'
-            f'<label>主题<select id="sw-theme">{opts(THEMES, theme)}</select></label>'
-            '<button type="button" class="sw-btn" id="sw-refresh">⟳ 刷新页面</button>'
-            '<button type="button" class="sw-btn" id="sw-top">↑ 回到顶部</button>'
-            '</div>'
-            '<button type="button" class="fab" id="sw-fab" aria-label="看板设置" aria-expanded="false">⚙</button>'
-            '</div>')
-        html = (
-            f'<!doctype html><html lang=zh-CN data-theme="{theme}">'
-            '<head><meta charset=utf-8>'
-            '<meta name=viewport content="width=device-width,initial-scale=1">'
-            # 兜底刷新仅 file:// (persist) 需要: HEAD 轮询无效 → 每 1800s 硬刷新保不 stale。
-            # serve(http) 有 WS 热重载, 硬刷新只会闪白 + 丢滚动/展开态, 故跳过。
-            + ('<meta http-equiv=refresh content=1800>' if persist else '')
-            + f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
-            f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1>'
-            '<input type="search" id="sw-search" class="search" placeholder="搜索 id / 名称 / 描述…" '
-            'autocomplete="off" aria-label="搜索 task">'
-            # serve(http): topbar 常驻刷新钮 (⚙ 面板内那个太隐蔽, 要两步点开); 点击软刷新 (switcher.js: fetch live GET 当前页 → 只 swap .layout, 不整页 reload),
-            # 与 task 变更自动刷新 (WS 推 reload → 同一 softRefresh) 走同一接口。file://(persist): 无实时端点, 故不出 (⚙ 面板刷新已够)。
-            + ('<button type="button" class="sw-btn" id="sw-refresh-top" title="刷新页面数据 (task.json)">⟳ 刷新</button>' if not persist else '')
-            + f'</header>{body}{switcher}'
-            # 规划文档查看浮层 (doc.js 绑定 .doc-link 点击 → fetch md → 渲染)
-            '<div class="doc-modal" id="doc-modal" hidden>'
-            '<div class="doc-backdrop"></div>'
-            '<div class="doc-panel" role="dialog" aria-modal="true">'
-            '<header class="doc-head"><span class="doc-title"></span>'
-            '<button type="button" class="doc-copy" aria-label="复制 md 原文">⧉ 复制</button>'
-            '<button type="button" class="doc-close" aria-label="关闭">✕</button></header>'
-            '<article class="doc-body markdown"></article></div></div>'
-            f'<script src="{base}/switcher.js"></script>'
-            f'<script src="{base}/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
-            f'<script src="{base}/vendor/marked.min.js"></script>'  # 离线 markdown 渲染器 (vendored)
-            f'<script src="{base}/doc.js"></script>'  # 规划文档 (prd/design/findings) 浮层查看
-            # 热重载: serve(http) 下连 WS /__skein__/live, 收 "reload" 即刷 (task.json 或 board 资产变都推);
-            # 断线 2s 重连。file:// 下协议非 http → 直接跳过 (view 每次重开已最新)。
-            '<script>(function(){if(location.protocol==="file:")return;var seen=false;'
-            'function conn(){var ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/__skein__/live");'
-            # 重连成功 (seen 已 true) = 服务端重启过 (uvicorn 热重载了 skein.py) → 整页刷取新渲染; 首连只置标记不刷。
-            'ws.onopen=function(){if(seen)location.reload();else seen=true;};'
-            # "data"(仅 task.json 变) → 软刷只 swap .layout 保态; "reload"(资产/结构变) → 整页 reload 换 head 里 CSS/JS。
-            'ws.onmessage=function(e){if(e.data==="data"){window.__skeinRefresh?window.__skeinRefresh():location.reload();}else if(e.data==="reload"){location.reload();}};'
-            'ws.onclose=function(){setTimeout(conn,2000);};'
-            'ws.onerror=function(){try{ws.close();}catch(_){}}; }conn();})();</script></body></html>')
+        def esc(s):
+            return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        proj = esc(self.proj)
+        links = (f'<link rel=stylesheet href="board/base.css">'
+                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES))
+        theme_opts = "".join(f'<option value="{k}"{" selected" if k == theme else ""}>{esc(label)}</option>'
+                             for k, label in THEMES)
+        # shell 模板抽到 assets/board/shell.html; Python 只填 token (数据/主题/persist 差异)
+        # persist 差异: file:// 无 WS → meta 硬刷保不 stale; serve 有 WS 热重载 + topbar 刷新钮
+        tokens = {
+            "THEME": theme,
+            "PROJ": proj,
+            "LINKS": links,
+            "THEME_OPTIONS": theme_opts,
+            "PAYLOAD": payload,
+            "HEAD_EXTRA": '<meta http-equiv=refresh content=1800>\n' if persist else '',
+            "REFRESH_TOP": ('<button type="button" class="sw-btn" id="sw-refresh-top" '
+                            'title="刷新页面数据 (task.json)">⟳ 刷新</button>') if not persist else '',
+        }
+        html = (self._board_assets_dir() / "shell.html").read_text(encoding="utf-8")
+        for k, v in tokens.items():
+            html = html.replace("{{" + k + "}}", v)
         if persist:
             self._write_if_changed(self.html_path, html)
         return html
@@ -1964,9 +1694,13 @@ class Skein:
         async def _rev():  # 版本探测端点: 轮询兜底 (WS 不可用时)
             return board._task_json_rev()
 
+        @app.get("/__skein__/data")
+        async def _data():  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
+            return JSONResponse(board._board_data())
+
         @app.get("/", response_class=HTMLResponse)
         @app.get("/task.html", response_class=HTMLResponse)
-        async def _page():  # 看板页: 每请求实时从 task.json 渲染, 不落盘
+        async def _page():  # 看板页: 每请求实时出 shell + 内联数据, 前端渲染
             return board._board_html(persist=False)
 
         @app.post("/__skein__/config")

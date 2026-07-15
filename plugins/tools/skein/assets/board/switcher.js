@@ -86,11 +86,6 @@
       g.classList.toggle('dag-dim',!!q&&!hit);
     });
   }
-  var fsel=document.getElementById('sw-filter');
-  if(fsel){
-    var savedF=localStorage.getItem('skein-filter'); if(savedF)fsel.value=savedF;
-    fsel.addEventListener('change',function(){localStorage.setItem('skein-filter',fsel.value);applyCards();});
-  }
   var ssel=document.getElementById('sw-search');
   if(ssel)ssel.addEventListener('input',applyCards);
   // 进度条动画视口门控 observer (单例, 每次软刷新 disconnect + 重新 observe 新卡片 bar)
@@ -100,6 +95,13 @@
   // 内容区 (.layout) 绑定: 首次 + 每次软刷新 swap .layout 后重跑
   // (DAG 切换/悬浮浮层/进度条门控绑在卡片元素上, swap 即失效; doc-link 走 document 委托不用管)
   function bindContent(){
+    // 状态筛选 select 由 board-render 每次重渲染进总览卡, 故绑定必须每次重跑 (非一次性)
+    var fsel=document.getElementById('sw-filter');
+    if(fsel&&!fsel.__skBound){
+      fsel.__skBound=true;
+      var savedF=localStorage.getItem('skein-filter'); if(savedF)fsel.value=savedF;
+      fsel.addEventListener('change',function(){localStorage.setItem('skein-filter',fsel.value);applyCards();});
+    }
     applyCards();  // 依 topbar 未 swap 的筛选/搜索态, 重新套用到新卡片
     // DAG 维度切换: 按钮切 task / task+subtask 视图 (localStorage 记忆), 非 tab
     document.querySelectorAll('.dag-switch').forEach(function(sw){
@@ -137,20 +139,21 @@
     // 只门控右栏卡片 bar (百+条才 churn GPU); 左栏总览"整体进度"单条常驻不门控
     if(io){io.disconnect();document.querySelectorAll('.col-main .bar').forEach(function(b){io.observe(b);});}
   }
-  // serve 软刷新: fetch 后端 live 渲染 (GET 当前页, 同 task 变更自动刷新的接口) → 只 swap .layout, 不整页 reload
-  // — 免闪白 + 保滚动/筛选/展开态。file:// 无实时端点 或 fetch 失败 → 退 location.reload 兜底。
+  // serve 软刷新: 拉 /__skein__/data 新 JSON → renderBoard 前端重渲染 .layout (不取 HTML)
+  // — 免闪白 + 保滚动态 (renderBoard 内会调 bindContent 复原筛选/搜索/展开)。file:// 无端点 或 fetch 失败 → reload 兜底。
   function softRefresh(){
     if(location.protocol==='file:'){location.reload();return;}
-    fetch(location.pathname,{cache:'no-store'}).then(function(r){
-      if(!r.ok)throw new Error(r.status);return r.text();
-    }).then(function(t){
-      var fresh=new DOMParser().parseFromString(t,'text/html').querySelector('.layout');
-      var cur=document.querySelector('.layout');
-      if(fresh&&cur){cur.replaceWith(fresh);bindContent();}else{location.reload();}
+    fetch('/__skein__/data',{cache:'no-store'}).then(function(r){
+      if(!r.ok)throw new Error(r.status);return r.json();
+    }).then(function(data){
+      if(window.renderBoard){window.renderBoard(data);}else{location.reload();}
     }).catch(function(){location.reload();});
   }
   window.__skeinRefresh=softRefresh;  // 供热重载 WS inline script 调用同一软刷新路径
-  bindContent();
+  window.__skeinBindContent=bindContent;  // board-render 每次渲染 .layout 后调, 重绑卡片交互 (DAG 切换/浮层/门控)
+  // 首屏: board-render 已定义 renderBoard → 用内联 window.__SKEIN__ 渲染 (内部调 bindContent); 否则直接 bindContent 兜底
+  if(window.renderBoard&&window.__SKEIN__)window.renderBoard(window.__SKEIN__);
+  else bindContent();
   // 顶栏/图钉动作: 软刷新数据 (不整页 reload) / 回到顶部
   ['sw-refresh','sw-refresh-top'].forEach(function(id){
     var b=document.getElementById(id);if(b)b.addEventListener('click',softRefresh);
