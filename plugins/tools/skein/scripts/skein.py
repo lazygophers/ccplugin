@@ -1397,9 +1397,10 @@ class Skein:
         # 排序: 状态分组 (进行中→检查中→待处理→已完成), 组内按执行时间(started)倒序 (新执行在前; 未启动 started=None 视 0)
         _srank = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
         tasks = sorted(self._render_tasks(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
-        DBG.rule("渲染 task.html")
+        DBG.rule("渲染看板 HTML")
         total_sub = sum(len(t.get("subtasks", [])) for t in tasks)
-        DBG.log(f"渲染 {len(tasks)} 个 task / 合计 {total_sub} 个 subtask → {self.html_path}", style="cyan")
+        dest = self.html_path if persist else "(内存, serve 实时渲染, 不落盘)"
+        DBG.log(f"渲染 {len(tasks)} 个 task / 合计 {total_sub} 个 subtask → {dest}", style="cyan")
         name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}  # 依赖显示名字, 存储仍用 id
 
         def elapsed_of(t):
