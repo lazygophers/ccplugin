@@ -28,7 +28,7 @@
   --line:oklch(var(--l-line) var(--c-neutral) var(--h));
   --accent:oklch(var(--l-accent) var(--c-accent) var(--h-accent));
   --accent2:oklch(var(--l-accent) var(--c-accent) var(--h-accent2));
-  --st-pending:oklch(var(--l-st) .05 var(--h-pending));
+  --st-pending:oklch(var(--l-st) .085 var(--h-pending));  /* #9 略提彩度: 仍最低(退背景), 但脱离死灰有石板蓝身份 */
   --st-active:oklch(var(--l-st) .15 var(--h-active));
   --st-check:oklch(var(--l-st) .12 var(--h-check));
   --st-done:oklch(var(--l-st) .13 var(--h-done));
@@ -84,6 +84,9 @@ h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var
 .card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:16px}
 /* 跳转高亮: 锚点命中卡片短暂描边强调 (:target) */
 .card:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+/* #8 下一个可执行: 左侧 accent 竖条 + 微染, 无进行中任务时指明下一步 */
+.card.next-up{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.next-up-chip{margin-left:8px;padding:0 8px;border-radius:9px;background:var(--accent);color:var(--bg);font-size:11px;line-height:17px;font-weight:600;vertical-align:baseline}
 /* type scale: h1(20) > h2(17) > 正文/name(15) > meta(13) > 表(13) > th/badge(11) > pct(10) */
 .card h2{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .name{margin:0 0 10px;color:var(--head);font-size:15px;font-weight:500}

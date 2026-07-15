@@ -1587,6 +1587,12 @@ class Skein:
                              f'<ul class="prd-list">{lis}</ul></div>')
             return f'<div class="prd">{"".join(parts)}</div>' if parts else ""
 
+        # #8 下一个可执行: 无进行中/检查中 task 时, 标出首个依赖已清的待处理 task (给用户明确"下一步做啥")
+        next_up_id = None
+        if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
+            next_up_id = next((t["id"] for t in tasks
+                               if t["status"] == S_PENDING
+                               and not any(self._dep_unfinished(d) for d in t.get("deps", []))), None)
         cards = []
         for t in tasks:
             subs = t.get("subtasks", [])
@@ -1623,9 +1629,11 @@ class Skein:
                 for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
                 if (tdir / fn).exists())
             doc_row = f'<p class="doc-links">{dl}</p>' if dl else ""
+            nu = t["id"] == next_up_id
             cards.append(
-                f'<section class="card" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}" data-search="{sblob}">'
-                f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
+                f'<section class="card{" next-up" if nu else ""}" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}" data-search="{sblob}">'
+                f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}'
+                f'{"<span class=next-up-chip>▶ 下一个</span>" if nu else ""}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'{doc_row}'
                 f'{prd_block(t["id"])}'
