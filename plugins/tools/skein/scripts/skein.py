@@ -366,7 +366,7 @@ class Skein:
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n.lock\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n*.lock\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
@@ -1639,18 +1639,77 @@ class Skein:
             self._board_html()
         self._run_server(open_browser=False, quiet=True)  # monitor 每 session 跑, 不弹浏览器 + 静默 (只 error 到 stderr, 见下)
 
+    _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
+
+    def _lock_file(self):
+        return self.dir / ".board-server.lock"
+
+    def _probe_same_project(self, port, proj_id):
+        # 命中 lock 端口的 /__skein__/id, 比对项目标识。同项目→True; 连不上/不同/失效→False。
+        import urllib.request
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}{self._LOCK_ID_PATH}", timeout=0.5) as r:
+                return r.read().decode().strip() == proj_id
+        except Exception:
+            return False
+
     def _run_server(self, open_browser=True, quiet=False):
-        # 起本地 http 服务 (随机 port) 服务 .skein/。相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
+        # 起本地 http 服务 (随机 port, bind :0) 服务 .skein/。相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
         # quiet=True (monitor): 不打印 info (启动 URL / 停止行); 访问日志 (info/warn) 恒静默; error 走 log_error → stderr 保留。
-        import http.server, socketserver, functools
+        import http.server, socketserver, functools, json, atexit, signal
+
+        lock = self._lock_file()
+        proj_id = str(self.dir.resolve())
+        # 已有同项目服务在跑 → 复用, 不再起第二个 (多 session monitor 去重)。lock 失效/属别的项目 → 落下方 bind :0 拿新随机 port 覆盖。
+        if lock.exists():
+            try:
+                existing_port = json.loads(lock.read_text()).get("port")
+            except Exception:
+                existing_port = None
+            if existing_port and self._probe_same_project(existing_port, proj_id):
+                url = f"http://127.0.0.1:{existing_port}/task.html"
+                if not quiet:
+                    print(f"SKEIN 看板服务已在运行: {url}", flush=True)
+                if open_browser:
+                    import webbrowser
+                    webbrowser.open(url)
+                return
+
+        id_path, id_body = self._LOCK_ID_PATH, proj_id.encode()
 
         class Handler(http.server.SimpleHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == id_path:  # 身份探测端点
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/plain")
+                    self.send_header("Content-Length", str(len(id_body)))
+                    self.end_headers()
+                    self.wfile.write(id_body)
+                    return
+                return super().do_GET()
+
             def log_request(self, *a):
                 pass  # 静默访问日志 (info/warn); 错误经默认 log_error → stderr
 
         handler = functools.partial(Handler, directory=str(self.dir))
         with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
-            url = f"http://127.0.0.1:{httpd.server_address[1]}/task.html"
+            port = httpd.server_address[1]
+            lock.write_text(json.dumps({"port": port, "project": proj_id}))
+
+            def _cleanup():  # 退出前删 lock (仅删本进程写的, 防误删他实例)
+                try:
+                    if lock.exists() and json.loads(lock.read_text()).get("port") == port:
+                        lock.unlink()
+                except Exception:
+                    pass
+
+            atexit.register(_cleanup)
+            # monitor 关服务发 SIGTERM (默认直接终止, 不走 atexit/finally) → 转成 KeyboardInterrupt 走清理
+            try:
+                signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+            except (ValueError, OSError):
+                pass  # 非主线程无法注册, 忽略
+            url = f"http://127.0.0.1:{port}/task.html"
             if not quiet:
                 print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)  # flush: 交互模式即时回显 URL
             if open_browser:
@@ -1661,6 +1720,8 @@ class Skein:
             except KeyboardInterrupt:
                 if not quiet:
                     print("\n看板服务已停止")
+            finally:
+                _cleanup()
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
     # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings

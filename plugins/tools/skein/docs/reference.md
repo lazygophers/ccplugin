@@ -135,6 +135,7 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 - **总启动 + 命令自判**: Claude Code 的 monitor launcher **不读** `config.yaml`, 故 monitor 恒被拉起; 由 `serve` 命令按 config 决定跑不跑 —— 无 `.skein/` 工作区 (非 task 项目) 或 `web_serve=false` → 静默 no-op 退出, 不占端口。
 - **setup 缺省启用**: `skein setup` 缺省 `web_serve=true` 并打印看板路径 (不主动打开; 常驻服务由 monitor 起); 传 `--no-web` 则写 `web_serve=false` 关闭。
 - **运行时关闭**: 用户随时改 `.skein/config.yaml` 的 `web_serve: false` 即关 (下个 session monitor no-op)。
+- **单实例锁 (`.skein/.board-server.lock`)**: 服务起动后写 lock (`{port, project}`, 随机 bind :0 的实际 port), 退出前删 (正常退出 / Ctrl-C / SIGTERM 均清)。再起服务前若 lock 存在 → 命中 lock 端口的 `/__skein__/id` 探测: 返回同项目标识 → **复用不新起** (多 session monitor 去重, `view` 直接开已在跑的 URL); 探测失败 / 属别的项目 → 视 lock 失效, 重新 bind :0 拿新随机 port 起动并覆盖 lock。lock 已由 `.skein/.gitignore` (`*.lock`) 忽略。
 - **不主动开 file://**: setup / `serve` 均不主动打开静态文件 (避免每 session 弹窗); `web_serve=true` 时由 `skein view` 起 http 服务并开浏览器, `false` 时仅打印路径由用户手动打开。
 - **看板自动刷新**: `task.html` 内嵌 2s 轮询, HEAD 请求自身比对 `Last-Modified`, 盘上文件变了才 `location.reload()` (空闲不闪)。task 命令每次重写盘上 html, 已打开的 http 看板 tab 随之自动更新, 无需手动刷新。`web_serve=false` 下 `view` 只打印路径, 用户手动 `file://` 打开时 fetch 受限 → 轮询静默 no-op, 但每次重开已是最新。
 
