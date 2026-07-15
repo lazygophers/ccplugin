@@ -1566,11 +1566,14 @@ class Skein:
                 f'<aside class="col-side">{overview}</aside>'
                 f'<main class="col-main">{right}</main></div>')
 
-        self._copy_board_assets()
+        # 链接恒用相对 board/: file:// 视图 (persist) 解析到 .skein/board/ (需拷贝); serve(http) 由 do_GET 路由 /board/* → 插件 assets, 不拷。
+        if persist:
+            self._copy_board_assets()
+        base = "board"
         cfg = self.config()
         theme = cfg.get("board_theme", "skein")
-        links = ('<link rel=stylesheet href="board/base.css">'
-                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES))
+        links = (f'<link rel=stylesheet href="{base}/base.css">'
+                 + "".join(f'<link rel=stylesheet href="{base}/themes/{k}.css">' for k, _ in THEMES))
 
         def opts(items, cur):
             return "".join(f'<option value="{k}"{" selected" if k == cur else ""}>{esc(label)}</option>'
@@ -1604,9 +1607,10 @@ class Skein:
             '<header class="doc-head"><span class="doc-title"></span>'
             '<button type="button" class="doc-close" aria-label="关闭">✕</button></header>'
             '<article class="doc-body markdown"></article></div></div>'
-            '<script src="board/switcher.js"></script>'
-            '<script src="board/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
-            '<script src="board/doc.js"></script>'  # 规划文档 (prd/design/findings) 浮层查看
+            f'<script src="{base}/switcher.js"></script>'
+            f'<script src="{base}/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
+            f'<script src="{base}/vendor/marked.min.js"></script>'  # 离线 markdown 渲染器 (vendored)
+            f'<script src="{base}/doc.js"></script>'  # 规划文档 (prd/design/findings) 浮层查看
             # 自动刷新: serve (http) 下轮询 /__skein__/rev (全部 task.json 最大 mtime), 变了才 reload (空闲不闪);
             # file:// 下端点不存在 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
             '<script>(function(){var m;setInterval(function(){'
@@ -1618,7 +1622,7 @@ class Skein:
         return html
 
     def _copy_board_assets(self):
-        # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)。
+        # 仅 file:// 视图 (task.html) 用: 从插件 assets 拷到 .skein/board/ 供相对 link 解析。serve(http) 不拷, 走 do_GET /board/* 直出插件资产。
         # 逐文件比对 md5, 仅内容不一致才覆盖 — 免无谓写触碰 mtime, 害看板 HEAD-poll 误判重载。
         src = Path(__file__).resolve().parent.parent / "assets" / "board"
         if not src.exists():
@@ -1706,6 +1710,7 @@ class Skein:
 
         id_path, id_body = self._LOCK_ID_PATH, proj_id.encode()
         rev_path, board = self._REV_PATH, self  # board: 每请求实时从 task.json 渲染, 不吃静态 task.html
+        assets_dir = (Path(__file__).resolve().parent.parent / "assets" / "board").resolve()  # /board/* 直出插件资产, 不拷 .skein/
 
         class Handler(http.server.SimpleHTTPRequestHandler):
             def _send(self, body, ctype):
@@ -1726,6 +1731,14 @@ class Skein:
                     return
                 if p in ("/", "/task.html"):  # 看板页: 每请求实时从 task.json 渲染, 不落盘 task.html
                     self._send(board._board_html(persist=False).encode("utf-8"), "text/html; charset=utf-8")
+                    return
+                if p.startswith("/board/"):  # 静态资产直出插件 assets/board/, 不经 .skein/board/ (serve 不拷)
+                    import mimetypes
+                    fp = (assets_dir / p[len("/board/"):]).resolve()
+                    if not str(fp).startswith(str(assets_dir) + "/") or not fp.is_file():
+                        self.send_error(404)
+                        return
+                    self._send(fp.read_bytes(), mimetypes.guess_type(str(fp))[0] or "application/octet-stream")
                     return
                 return super().do_GET()
 
