@@ -93,51 +93,68 @@
   }
   var ssel=document.getElementById('sw-search');
   if(ssel)ssel.addEventListener('input',applyCards);
-  applyCards();
-  // 图钉动作: 刷新页面 / 回到顶部
-  var rBtn=document.getElementById('sw-refresh');
-  if(rBtn)rBtn.addEventListener('click',function(){location.reload();});
+  // 进度条动画视口门控 observer (单例, 每次软刷新 disconnect + 重新 observe 新卡片 bar)
+  var io=('IntersectionObserver' in window)?new IntersectionObserver(function(es){
+    es.forEach(function(e){e.target.classList.toggle('voff',!e.isIntersecting);});
+  },{rootMargin:'120px'}):null;
+  // 内容区 (.layout) 绑定: 首次 + 每次软刷新 swap .layout 后重跑
+  // (DAG 切换/悬浮浮层/进度条门控绑在卡片元素上, swap 即失效; doc-link 走 document 委托不用管)
+  function bindContent(){
+    applyCards();  // 依 topbar 未 swap 的筛选/搜索态, 重新套用到新卡片
+    // DAG 维度切换: 按钮切 task / task+subtask 视图 (localStorage 记忆), 非 tab
+    document.querySelectorAll('.dag-switch').forEach(function(sw){
+      var card=sw.closest('.card');
+      function show(v){
+        sw.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-dag')===v);});
+        card.querySelectorAll('.dag-view').forEach(function(vw){vw.hidden=vw.getAttribute('data-dag')!==v;});
+        localStorage.setItem('skein-dagview',v);
+      }
+      sw.querySelectorAll('button').forEach(function(b){
+        b.addEventListener('click',function(){if(!b.disabled)show(b.getAttribute('data-dag'));});
+      });
+      var saved=localStorage.getItem('skein-dagview');
+      if(saved&&card.querySelector('.dag-view[data-dag="'+saved+'"]'))show(saved);
+    });
+    // DAG 节点悬浮浮层: hover 有 data-tip 的节点 → 同 .dag-wrap 内对应 .dag-tip 定位显示
+    document.querySelectorAll('.dag-wrap').forEach(function(wrap){
+      wrap.querySelectorAll('svg .has-tip[data-tip]').forEach(function(g){
+        var tip=wrap.querySelector('.dag-tip[data-for="'+g.getAttribute('data-tip')+'"]');
+        if(!tip)return;
+        g.addEventListener('mouseenter',function(){
+          // tip 是 position:fixed → 用视口坐标定位, 逃逸 .dag-wrap 的 overflow 裁剪
+          tip.style.display='block';
+          var gb=g.getBoundingClientRect(),tb=tip.getBoundingClientRect();
+          var vw=window.innerWidth,vh=window.innerHeight;
+          var left=Math.min(gb.left,vw-tb.width-8);
+          // 下方放不下则翻到节点上方
+          var top=gb.bottom+6+tb.height>vh?gb.top-tb.height-6:gb.bottom+6;
+          tip.style.left=Math.max(8,left)+'px';
+          tip.style.top=Math.max(8,top)+'px';
+        });
+        g.addEventListener('mouseleave',function(){tip.style.display='none';});
+      });
+    });
+    // 只门控右栏卡片 bar (百+条才 churn GPU); 左栏总览"整体进度"单条常驻不门控
+    if(io){io.disconnect();document.querySelectorAll('.col-main .bar').forEach(function(b){io.observe(b);});}
+  }
+  // serve 软刷新: fetch 后端 live 渲染 (GET 当前页, 同 task 变更自动刷新的接口) → 只 swap .layout, 不整页 reload
+  // — 免闪白 + 保滚动/筛选/展开态。file:// 无实时端点 或 fetch 失败 → 退 location.reload 兜底。
+  function softRefresh(){
+    if(location.protocol==='file:'){location.reload();return;}
+    fetch(location.pathname,{cache:'no-store'}).then(function(r){
+      if(!r.ok)throw new Error(r.status);return r.text();
+    }).then(function(t){
+      var fresh=new DOMParser().parseFromString(t,'text/html').querySelector('.layout');
+      var cur=document.querySelector('.layout');
+      if(fresh&&cur){cur.replaceWith(fresh);bindContent();}else{location.reload();}
+    }).catch(function(){location.reload();});
+  }
+  window.__skeinRefresh=softRefresh;  // 供热重载 WS inline script 调用同一软刷新路径
+  bindContent();
+  // 顶栏/图钉动作: 软刷新数据 (不整页 reload) / 回到顶部
+  ['sw-refresh','sw-refresh-top'].forEach(function(id){
+    var b=document.getElementById(id);if(b)b.addEventListener('click',softRefresh);
+  });
   var tBtn=document.getElementById('sw-top');
   if(tBtn)tBtn.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
-  // DAG 维度切换: 按钮切 task / task+subtask 视图 (localStorage 记忆), 非 tab
-  document.querySelectorAll('.dag-switch').forEach(function(sw){
-    var card=sw.closest('.card');
-    function show(v){
-      sw.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-dag')===v);});
-      card.querySelectorAll('.dag-view').forEach(function(vw){vw.hidden=vw.getAttribute('data-dag')!==v;});
-      localStorage.setItem('skein-dagview',v);
-    }
-    sw.querySelectorAll('button').forEach(function(b){
-      b.addEventListener('click',function(){if(!b.disabled)show(b.getAttribute('data-dag'));});
-    });
-    var saved=localStorage.getItem('skein-dagview');
-    if(saved&&card.querySelector('.dag-view[data-dag="'+saved+'"]'))show(saved);
-  });
-  // DAG 节点悬浮浮层: hover 有 data-tip 的节点 → 同 .dag-wrap 内对应 .dag-tip 定位显示
-  document.querySelectorAll('.dag-wrap').forEach(function(wrap){
-    wrap.querySelectorAll('svg .has-tip[data-tip]').forEach(function(g){
-      var tip=wrap.querySelector('.dag-tip[data-for="'+g.getAttribute('data-tip')+'"]');
-      if(!tip)return;
-      g.addEventListener('mouseenter',function(){
-        // tip 是 position:fixed → 用视口坐标定位, 逃逸 .dag-wrap 的 overflow 裁剪
-        tip.style.display='block';
-        var gb=g.getBoundingClientRect(),tb=tip.getBoundingClientRect();
-        var vw=window.innerWidth,vh=window.innerHeight;
-        var left=Math.min(gb.left,vw-tb.width-8);
-        // 下方放不下则翻到节点上方
-        var top=gb.bottom+6+tb.height>vh?gb.top-tb.height-6:gb.bottom+6;
-        tip.style.left=Math.max(8,left)+'px';
-        tip.style.top=Math.max(8,top)+'px';
-      });
-      g.addEventListener('mouseleave',function(){tip.style.display='none';});
-    });
-  });
-  // 进度条动画视口门控: 视口外扫光/流动暂停, 免上百待执行条同时 churn GPU (大看板性能)
-  if('IntersectionObserver' in window){
-    var io=new IntersectionObserver(function(es){
-      es.forEach(function(e){e.target.classList.toggle('voff',!e.isIntersecting);});
-    },{rootMargin:'120px'});
-    // 只门控右栏卡片 bar (百+条才 churn GPU); 左栏总览"整体进度"单条常驻, 不门控免被误标 voff 卡死动效
-    document.querySelectorAll('.col-main .bar').forEach(function(b){io.observe(b);});
-  }
 })();

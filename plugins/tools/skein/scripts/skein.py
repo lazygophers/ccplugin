@@ -1700,7 +1700,10 @@ class Skein:
             f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1>'
             '<input type="search" id="sw-search" class="search" placeholder="搜索 id / 名称 / 描述…" '
             'autocomplete="off" aria-label="搜索 task">'
-            f'</header>{body}{switcher}'
+            # serve(http): topbar 常驻刷新钮 (⚙ 面板内那个太隐蔽, 要两步点开); 点击软刷新 (switcher.js: fetch live GET 当前页 → 只 swap .layout, 不整页 reload),
+            # 与 task 变更自动刷新 (WS 推 reload → 同一 softRefresh) 走同一接口。file://(persist): 无实时端点, 故不出 (⚙ 面板刷新已够)。
+            + ('<button type="button" class="sw-btn" id="sw-refresh-top" title="刷新页面数据 (task.json)">⟳ 刷新</button>' if not persist else '')
+            + f'</header>{body}{switcher}'
             # 规划文档查看浮层 (doc.js 绑定 .doc-link 点击 → fetch md → 渲染)
             '<div class="doc-modal" id="doc-modal" hidden>'
             '<div class="doc-backdrop"></div>'
@@ -1717,7 +1720,7 @@ class Skein:
             # 断线 2s 重连。file:// 下协议非 http → 直接跳过 (view 每次重开已最新)。
             '<script>(function(){if(location.protocol==="file:")return;'
             'function conn(){var ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/__skein__/live");'
-            'ws.onmessage=function(e){if(e.data==="reload")location.reload();};'
+            'ws.onmessage=function(e){if(e.data==="reload"){window.__skeinRefresh?window.__skeinRefresh():location.reload();}};'
             'ws.onclose=function(){setTimeout(conn,2000);};'
             'ws.onerror=function(){try{ws.close();}catch(_){}}; }conn();})();</script></body></html>')
         if persist:
