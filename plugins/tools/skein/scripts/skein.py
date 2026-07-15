@@ -159,8 +159,7 @@ CONFIG_DEFAULTS = {
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
-    "board_server": False,  # view: True→本地 http server 随机 port + 开浏览器; False→file:// 直开
-    "web_serve": True,  # experimental.monitors: 每 session 起持久看板 http 服务; False→关闭 (monitor 仍启动但 serve 命令 no-op 退出)
+    "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http+开浏览器; False→monitor no-op + view 仅打印路径 (不主动开)
 }
 
 
@@ -1621,12 +1620,10 @@ class Skein:
     def view(self, _):
         if not self.html_path.exists():
             self._board_html()
-        if self.config().get("board_server"):
+        if self.config().get("web_serve", CONFIG_DEFAULTS["web_serve"]):
             self._run_server(open_browser=True)
         else:
-            opener = "open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.run([opener, str(self.html_path)], check=False)
-            print(f"已打开可视化看板: {self.html_path}")
+            print(f"可视化看板 (浏览器打开): {self.html_path}")
 
     def serve(self, _):
         # experimental.monitors 入口: 每 session 起持久看板 http 服务, 服务器 stdout 每行经 monitor 递给 Claude。
@@ -1868,8 +1865,7 @@ class Skein:
         else:
             if not self.html_path.exists():
                 self._board_html()
-            opener = "open" if sys.platform == "darwin" else "xdg-open"
-            subprocess.run([opener, str(self.html_path)], check=False, stdout=sys.stderr, stderr=sys.stderr)
+            print(f"可视化看板 (浏览器打开): {self.html_path}", file=sys.stderr)  # 不主动开 file://; 常驻服务由 monitor 起
         manifest = {
             "web_serve": web_enabled,
             "mode": "full" if a.full else "compat",
