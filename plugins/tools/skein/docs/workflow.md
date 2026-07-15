@@ -27,7 +27,7 @@
 
 ### ① plan (main 同步, 交互式)
 
-- **判新旧**: 全新任务 → `skein create` 登记; 对现有 active task 的补充 → 并入 (判不准就 AskUserQuestion 问你)。
+- **判新旧**: `create` 前先 `skein list --status open --json` 查未完成 task —— 相关 (同目标/模块/共享改动面/互为前置) → 并入补 subtask, 禁堆新 task; 无相关项才 `skein create` 登记 (判不准就 AskUserQuestion 问你)。
 - **brainstorm**: main 和你梳理需求与方案 (subagent 不能与你对话, 故全程 main 前台)。
 - **grill 硬门**: 对抗式审查需求与工件, 弱点补齐后才放行。**未跑 grill 禁进 exec**。
 - **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
@@ -50,7 +50,7 @@ grill 通过 + 你评审确认 → `skein start`:
 main 作调度器跑**动态 DAG 调度循环**:
 
 - 读 task.json 的 `subtasks[]` (planning 已用 `subtask add` 登记), 按显式 `depends_on` 组成 DAG (并行只看这张 DAG, 无写文件冲突自算)。
-- **ready 即派** — 为每个 subtask 选合适 agent (无则 `skein-executor`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。
+- **ready 即派** — 为每个 subtask 选合适 agent (无则 `skein-executor`), 6 字段自包含 prompt (携带执行纪律 + 递归护栏), **并发上限 2**, **完成即派**下一个 (不空等全部)。就绪超槽时 `claim` **按统筹学关键路径优先** (最长下游链先派, 最小化总工期)。
 - **读后写硬门 + 验收标准自检**: 改哪些文件由执行 agent 在 worktree 内**自主决定** (给自主权), 完成前对照 planning 登记的**验收标准 checklist** 逐条自检。执行 agent 收 subtask 后, 对每个待改文件必过**写前硬门**: 先 `Read` 全文 → 复述适用契约 (只复述契约, 不含 reason) → 才 `Edit`/`Write`; 若文件现状与契约矛盾, 标 `需要:` 回传, **不擅改**。此硬门经 dispatch prompt 携带 (无论选中哪个 agent 都照做); 契约约束从 check 事后验**前移到写前** (契约仍是 planning 锁进 task.json 的同一份, 不重造)。
 - 所有改动落 task worktree, 主工作区零改动。
 - 每个 agent 完成 / 阻塞 → main **立即**回传摘要 (禁批量延迟)。
