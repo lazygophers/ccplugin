@@ -1588,13 +1588,14 @@ class Skein:
             f'</header>{body}{switcher}'
             '<script src="board/switcher.js"></script>'
             '<script src="board/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
-            # 自动刷新: serve (http) 下轮询自身 Last-Modified, 变了才 reload (空闲不闪);
-            # file:// 下 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
+            # 自动刷新: serve (http) 下轮询 /__skein__/rev (全部 task.json 最大 mtime), 变了才 reload (空闲不闪);
+            # file:// 下端点不存在 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
             '<script>(function(){var m;setInterval(function(){'
-            'fetch(location.href,{method:"HEAD",cache:"no-store"}).then(function(r){'
-            'var v=r.headers.get("Last-Modified");if(v){if(m&&v!==m)location.reload();m=v;}'
+            'fetch("/__skein__/rev",{cache:"no-store"}).then(function(r){return r.text();}).then(function(v){'
+            'if(v){if(m&&v!==m)location.reload();m=v;}'
             '}).catch(function(){});},2000);})();</script></body></html>')
         self._write_if_changed(self.html_path, html)
+        return html
 
     def _copy_board_assets(self):
         # 主题/配色 CSS 独立文件, 从插件 assets 拷到 .skein/board/ (相对路径供 html link)。
@@ -1667,6 +1668,12 @@ class Skein:
         self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=True)
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
+    _REV_PATH = "/__skein__/rev"  # 版本探测端点: 全部 task.json 最大 mtime, 前端轮询变则 reload
+
+    def _task_json_rev(self) -> str:
+        # 顶层 task.json + 各 task/<id>/task.json 的最大 mtime_ns → 任一变更即变, 驱动前端自动重载。
+        files = [self.dir / "task.json"] + list(self.tasks.glob("*/task.json"))
+        return str(max((f.stat().st_mtime_ns for f in files if f.exists()), default=0))
 
     def _lock_file(self):
         return self.dir / ".board-server.lock"
@@ -1703,15 +1710,27 @@ class Skein:
                 return
 
         id_path, id_body = self._LOCK_ID_PATH, proj_id.encode()
+        rev_path, board = self._REV_PATH, self  # board: 每请求实时从 task.json 渲染, 不吃静态 task.html
 
         class Handler(http.server.SimpleHTTPRequestHandler):
+            def _send(self, body, ctype):
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
             def do_GET(self):
-                if self.path == id_path:  # 身份探测端点
-                    self.send_response(200)
-                    self.send_header("Content-Type", "text/plain")
-                    self.send_header("Content-Length", str(len(id_body)))
-                    self.end_headers()
-                    self.wfile.write(id_body)
+                p = self.path.split("?", 1)[0]
+                if p == id_path:  # 身份探测端点
+                    self._send(id_body, "text/plain")
+                    return
+                if p == rev_path:  # 版本探测端点: 前端轮询
+                    self._send(board._task_json_rev().encode(), "text/plain")
+                    return
+                if p in ("/", "/task.html"):  # 看板页: 实时从 task.json 渲染 (不服务静态 task.html)
+                    self._send(board._board_html().encode("utf-8"), "text/html; charset=utf-8")
                     return
                 return super().do_GET()
 
