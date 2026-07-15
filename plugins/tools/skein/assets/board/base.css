@@ -16,7 +16,8 @@
   /* 明度锚点 — LIGHT */
   --l-bg:.935;--l-card:.975;--l-fg:.34;--l-head:.44;--l-muted:.60;--l-brd:.865;--l-line:.915;--l-accent:.60;--l-st:.66;
   /* status 色相 (语义固定, 跨 palette 不变) */
-  --h-pending:75;--h-active:250;--h-check:75;--h-done:150;--h-failed:25;
+  /* 交通灯递进: 待执行=石板灰蓝(退背景) → 进行中=琥珀橙(最醒目) → 已完成=翠绿; check 青(与 pending 解耦), failed 红 */
+  --h-pending:245;--h-active:70;--h-check:200;--h-done:150;--h-failed:25;
   /* 派生契约 */
   --bg:oklch(var(--l-bg) var(--c-neutral) var(--h));
   --card:oklch(var(--l-card) var(--c-neutral) var(--h));
@@ -27,8 +28,8 @@
   --line:oklch(var(--l-line) var(--c-neutral) var(--h));
   --accent:oklch(var(--l-accent) var(--c-accent) var(--h-accent));
   --accent2:oklch(var(--l-accent) var(--c-accent) var(--h-accent2));
-  --st-pending:oklch(var(--l-st) .12 var(--h-pending));
-  --st-active:oklch(var(--l-st) .13 var(--h-active));
+  --st-pending:oklch(var(--l-st) .05 var(--h-pending));
+  --st-active:oklch(var(--l-st) .15 var(--h-active));
   --st-check:oklch(var(--l-st) .12 var(--h-check));
   --st-done:oklch(var(--l-st) .13 var(--h-done));
   --st-failed:oklch(var(--l-st) .16 var(--h-failed));
