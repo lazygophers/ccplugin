@@ -1537,10 +1537,19 @@ class Skein:
             sblob = esc(" ".join(str(x or "") for x in (
                 t["id"], t.get("name", ""), t.get("desc", ""),
                 *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower())
+            # 规划文档按钮: 仅当 .skein/task/<id>/<f>.md 存在才出; serve (http) 静态托管 .skein/ → doc.js fetch 渲染
+            tdir = self.tasks / t["id"]
+            dl = "".join(
+                f'<button type="button" class="doc-link" data-doc="task/{esc(t["id"])}/{fn}" '
+                f'data-title="{esc(lab)} · {esc(t["id"])}">{esc(lab)}</button>'
+                for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
+                if (tdir / fn).exists())
+            doc_row = f'<p class="doc-links">{dl}</p>' if dl else ""
             cards.append(
                 f'<section class="card" id="task-{esc(t["id"])}" data-status="{esc(t["status"])}" data-search="{sblob}">'
                 f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
+                f'{doc_row}'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
@@ -1585,8 +1594,16 @@ class Skein:
             '<input type="search" id="sw-search" class="search" placeholder="搜索 id / 名称 / 描述…" '
             'autocomplete="off" aria-label="搜索 task">'
             f'</header>{body}{switcher}'
+            # 规划文档查看浮层 (doc.js 绑定 .doc-link 点击 → fetch md → 渲染)
+            '<div class="doc-modal" id="doc-modal" hidden>'
+            '<div class="doc-backdrop"></div>'
+            '<div class="doc-panel" role="dialog" aria-modal="true">'
+            '<header class="doc-head"><span class="doc-title"></span>'
+            '<button type="button" class="doc-close" aria-label="关闭">✕</button></header>'
+            '<article class="doc-body markdown"></article></div></div>'
             '<script src="board/switcher.js"></script>'
             '<script src="board/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
+            '<script src="board/doc.js"></script>'  # 规划文档 (prd/design/findings) 浮层查看
             # 自动刷新: serve (http) 下轮询 /__skein__/rev (全部 task.json 最大 mtime), 变了才 reload (空闲不闪);
             # file:// 下端点不存在 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
             '<script>(function(){var m;setInterval(function(){'
