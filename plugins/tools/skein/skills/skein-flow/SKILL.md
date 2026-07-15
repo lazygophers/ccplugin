@@ -66,6 +66,8 @@ plan → exec → check → finish 四步闭环
 | 需外部调研 / 产出文档交付         | **必建 task**                |
 | 边界模糊                          | **AskUserQuestion 用户裁定** |
 
+**归一 vs 分立 (相关工作优先归一 task 拆 subtask)**: 建 task 前先判新交付物是**某任务的一部分**还是**独立任务** —— 与现有 active task 或本请求内其他交付物**相关** (同目标 / 同模块 / 共享改动面 / 互为前置) → **归一到该 task 拆 subtask** (`subtask add` + `--deps`), 禁为相关工作另开多个 task; 仅**目标独立、无共享改动面、无依赖**才拆多 task。判据是相关性, 非「可独立验收」(subtask 亦可独立验收)。默认倾向归一 (散多 task 丢共享上下文一致性)。判不准 → `AskUserQuestion`。真值源见 `skein-plan` 步骤 1。
+
 **worktree 豁免 (简单改不必上升到 worktree)**: main 按规模自动判 — 命中「单文件单处改 ≤20 行」或「单子 git ≤3 文件且改动集中」这类微改, 无需建 task/worktree, 原地做即可; 用户显式 `--skip` 强制 inline 覆盖自动判定。多子 git 场景同理: 真跨多仓的结构性改动才 `--repos` 声明走多 worktree, 每仓只沾一两行的顺带微调不必为它单开 worktree。
 
 ## 完成判定
@@ -79,6 +81,7 @@ plan → exec → check → finish 四步闭环
 | 触发                                    | 一线修复                                 | 仍失败兜底                                          |
 | --------------------------------------- | ---------------------------------------- | --------------------------------------------------- |
 | 判新旧不准 (新建 vs 并入现有 active)    | `AskUserQuestion` 用户裁定               | 用户也不确定 → 默认新建, 保守留旧 task 不动          |
+| 相关工作误判成独立 (拆多 task)          | 按相关性收敛: 相关 → 归一 task 拆 subtask (`subtask add`) | 已误建多 task → `skein archive` 多余者, 归一到主 task 补 subtask |
 | 某阶段未达出口 (plan 未收敛 / check 未绿) | 停在该阶段, 禁跨阶段推进                  | 反复不过 → 走对应子 skill 兜底 (check 第 3 轮根因复盘) |
 | 宣称派 agent 但无 `Agent` tool_use      | 立即在同回合补真实 `Agent` 调用          | 补不出 → 硬错停手, 禁回传「已派出 / 在做」           |
 | 有 subtask 却想 inline 顺跑             | 停手, 走 skein-exec `claim→派 Agent` 循环, 每 ready subtask 派 1 subagent | 派不出 → 硬错停手, 禁 main 代跑 subtask              |
@@ -86,4 +89,4 @@ plan → exec → check → finish 四步闭环
 
 ## 反例 (命中 = 流程错误)
 
-违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序 / **有 subtask 却 main inline 顺跑不派 subagent** / **第二个 flow 请求顶掉/中断在飞的第一个 task**。
+违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序 / **有 subtask 却 main inline 顺跑不派 subagent** / **第二个 flow 请求顶掉/中断在飞的第一个 task** / **相关工作拆成多个 task 而非归一 task 拆 subtask**。
