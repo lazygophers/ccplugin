@@ -1666,8 +1666,7 @@ class Skein:
             print(f"可视化看板 (浏览器打开): {self.html_path}")
 
     def serve(self, _):
-        # 持久看板 http 服务入口, 仅由 experimental.monitors (personal-scope, session 启动) 维护。lock 去重: 同项目只跑一个。
-        # 只维护服务, 绝不主动开浏览器 (要看板用户显式跑 `view`)。
+        # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
         f = self.dir / "config.yaml"
         if not f.exists():
             return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
@@ -1675,8 +1674,9 @@ class Skein:
         if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
             return  # 用户在 config.yaml 关闭
         # 不预生成 task.html — 页面每请求实时从 task.json 渲染 (do_GET persist=False)。
-        # quiet 随 stdout: monitor 管道 (非 tty) 静默; 手动终端跑印启动 URL, 不再像"卡住"。
-        self._run_server(open_browser=False, quiet=not sys.stdout.isatty())
+        # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
+        manual = sys.stdout.isatty()
+        self._run_server(open_browser=manual and cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=not manual)
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
     _REV_PATH = "/__skein__/rev"  # 版本探测端点: 全部 task.json 最大 mtime, 前端轮询变则 reload
