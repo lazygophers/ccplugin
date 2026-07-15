@@ -1,8 +1,8 @@
 ---
 name: skein-memory
 description: 两层规则记忆 (基于 .skein/spec)。planning 时召回相关规则、task finish 后沉淀学习时使用 — core 常驻硬规 + recall 按需召回, 经 sediment 判定门 (checklist) 自动写盘 (无需逐次询问用户)。SKEIN 差异化核心。空仓冷启动 (.skein/spec 为空) 时可提议扫既有代码库约定播种规则基线 (一次性)。既有记忆大面积失效 (大重构/换技术栈/记忆漂移) 时可完全重构 (reconstruct): 可逆归档旧规则后依代码+项目内容按项目类型分型重建
-argument-hint: "[recall/sediment]"
-arguments: "[recall/sediment]"
+argument-hint: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
+arguments: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
 model: inherit
 effort: medium
 ---
@@ -43,8 +43,17 @@ task finish 后走「判定门 checklist → 分层归类 → skein-memory sedim
 
 既有记忆大面积失效 (大重构 / 换技术栈 / 记忆漂移 / 接手可疑旧库) 时, 把两层规则**可逆归档**后依当前代码 + 项目内容从零重建。区别于 bootstrap (仅空仓、纯增量): 重构多 `skein-memory archive` 前置 (可逆清库) + **按项目类型分型扫描**。
 
+**三档程度** (`reconstruct <recall|full|deep>`, 落在 ②archive 范围 + ④扫描深度, 非脚本参数):
+
+| 档 | archive 范围 | 扫描 | 适用 |
+| --- | --- | --- | --- |
+| **recall** (轻) | `archive --layer recall` (保留手工 core) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, core 仍可信 |
+| **full** (全) | `archive` 两层全归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, core 也过期 |
+| **deep** (深) | `archive` 两层全归档 | 五维 + **全 8 型探针深扫** + 旧规则逐条比对 | 接手可疑成熟仓/来源不明, 从零核 |
+
 ```
-skein-memory archive            # 可逆归档旧规则到 .skein/spec/.archive/<ts>/
+skein-memory archive            # 可逆归档旧规则到 .skein/spec/.archive/<ts>/ (full/deep)
+skein-memory archive --layer recall  # 只归档 recall (recall 档)
 skein-memory restore <ts>       # 回滚 (撞名不覆盖新规则)
 ```
 

@@ -17,6 +17,20 @@
 
 **触发硬门 (全满足才提议)**: ① 用户明确要重建 **或** 上述失效/漂移场景成立; ② 代码库有体量 (脚手架仓无约定可提 → 退回增量); ③ **`AskUserQuestion` 征同意** (归档虽可逆, 仍是全局动作, 禁自动)。
 
+## 1.5 程度档位 (recall / full / deep)
+
+`reconstruct <recall|full|deep>` —— 程度**不是脚本参数**, 落在 ②archive 范围 + ④扫描深度两处 (deep 靠 researcher dispatch 的探针清单表达)。默认 **full**; 用户未指定时按失效范围推荐并 `AskUserQuestion` 确认。
+
+| 档 | ②archive 范围 | ④扫描 | ⑤旧规则比对 | 何时选 |
+|---|---|---|---|---|
+| **recall** (轻) | `archive --layer recall` (core 保留) | 五维基线 + **主类型**侧重 (§5) | 仅 recall 层逐条比对 | 漂移/污染集中长尾, 手工 core 仍可信 |
+| **full** (全) | `archive` 两层全归档 | 五维基线 + **主类型**侧重 (§5) | 两层逐条比对 | 换栈/架构翻新, core 也过期 |
+| **deep** (深) | `archive` 两层全归档 | 五维 + **全 8 型探针深扫** (§5 全表, 非仅主类型) + 项目内容全量 (§3) | 两层逐条 + 归档旧规则**全量核验** | 接手可疑成熟仓/来源不明, 从零核底 |
+
+- **recall**: 最省, core 不动。适合团队手工维护 core、只是 recall 长尾陈旧/被污染。
+- **full**: 标准重构。主类型侧重扫描 (§4 识别 → §5 该型探针), 复合仓逐包套单型。
+- **deep**: 最重。不信任任何主类型判定, 跑全 8 型探针 (§5 全表) 交叉扫, 宁多勿漏; 旧规则不默认 drop, 逐条对现状核验后再定去留。适合来源不明的成熟仓 —— 多花 token 换彻底。
+
 ## 2. 总流程 (main 同步驱动, 7 步)
 
 ```
@@ -32,16 +46,16 @@ skein-memory list          # 记下重构前两层条数/文件
 
 ### ② 可逆归档 (清库, 非删除)
 ```
-skein-memory archive       # 两层全归档到 .skein/spec/.archive/<ts>/
-# 或 --layer recall 只重建 recall, 保留手工 core
+skein-memory archive       # full/deep: 两层全归档到 .skein/spec/.archive/<ts>/
+skein-memory archive --layer recall  # recall 档: 只归档 recall, 保留手工 core
 ```
-归档后两层空, 索引自动重建为空。**旧规则未删, 全在 `.archive/<ts>/`**, 回滚一条命令。
+归档后 (recall 档仅 recall 层) 空, 索引自动重建。**旧规则未删, 全在 `.archive/<ts>/`**, 回滚一条命令。
 
 ### ③ 识别项目类型 (决定扫描侧重)
-按 §4 文件指纹表判**主类型** (可复合, 如 monorepo 内含 backend+frontend → 逐包分型)。识别错 → 扫描侧重偏, 但不致命 (仍走审批门兜底)。
+按 §4 文件指纹表判**主类型** (可复合, 如 monorepo 内含 backend+frontend → 逐包分型)。识别错 → 扫描侧重偏, 但不致命 (仍走审批门兜底)。**deep 档跳过主类型收窄, 直接跑全 8 型探针**。
 
 ### ④ 分型扫描 (派 skein-researcher, bootstrap 模式 + 类型侧重)
-dispatch prompt「已知」段标 `mode=bootstrap` + `task-id=reconstruct` + **本次项目类型 + §5 该类型的扫描侧重/探针清单**。researcher 只读, 候选落盘 `.skein/task/reconstruct/research/conventions.md`。
+dispatch prompt「已知」段标 `mode=bootstrap` + `task-id=reconstruct` + **扫描侧重 (按程度档): recall/full = §5 主类型探针清单; deep = §5 全 8 型探针交叉扫 + 项目内容全量**。researcher 只读, 候选落盘 `.skein/task/reconstruct/research/conventions.md`。
 - 五维基线 (命名/错误处理/测试/架构边界/构建) **恒扫**, 类型侧重 = 在此之上加权 + 追加类型专属探针。
 - 每条候选 MUST 附证据 (file:line, ≥2 处一致才算约定; 单处 `推测:` 或 drop)。
 
