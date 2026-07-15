@@ -77,8 +77,13 @@ def now() -> int:
 
 # 插件无法直接发货 settings.json 的 env 块 (plugin.json 无 env 字段)。
 # 官方持久化 env 的机制: SessionStart hook 往 $CLAUDE_ENV_FILE 追加 export。
-# 这样该 env 随 skein 插件的 SessionStart hook 一起发货, 不落用户项目 settings。
-_BASH_CWD_EXPORT = "export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1"
+# 这样这些 env 随 skein 插件的 SessionStart hook 一起发货, 不落用户项目 settings。
+_ENV_EXPORTS = (
+    "export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1",
+    # skein 调度只用单 subagent (skein subtask + 单 Agent 调用), 禁 agent-teams 防误升级到 team。
+    # CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0 = 显式关闭 (官方 docs/en/agent-teams: 默认即关, 此为冗余保障)。
+    "export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0",
+)
 
 
 def _persist_bash_cwd_env():
@@ -87,10 +92,11 @@ def _persist_bash_cwd_env():
         return  # 非 SessionStart/Setup/CwdChanged/FileChanged 事件时不可用, 静默跳过
     try:
         p = Path(env_file)
-        if p.exists() and _BASH_CWD_EXPORT in p.read_text():
-            return  # 幂等: 同会话已写过不重复
-        with p.open("a") as f:
-            f.write(_BASH_CWD_EXPORT + "\n")
+        existing = p.read_text() if p.exists() else ""
+        missing = [e for e in _ENV_EXPORTS if e not in existing]  # 幂等: 逐条查, 已写的不重复
+        if missing:
+            with p.open("a") as f:
+                f.write("\n".join(missing) + "\n")
     except OSError:
         pass  # env 持久化尽力而为, 失败不阻断 session-context 主流程
 
@@ -1988,7 +1994,7 @@ def main():
     if a.cmd == "session-context":
         # hook 在任意仓库每 session 都跑: 非 git 且无 .skein → 方法内静默返回; git 仓无 .skein → 注入 setup 建议
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
-        _persist_bash_cwd_env()  # 随插件发货 CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1 (plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
+        _persist_bash_cwd_env()  # 随插件发货 _ENV_EXPORTS (cwd 保持 + 禁 agent-teams; plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
         Skein().session_context()
         return
     if a.cmd == "user-prompt":
