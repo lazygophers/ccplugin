@@ -159,7 +159,8 @@ CONFIG_DEFAULTS = {
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
-    "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http+开浏览器; False→monitor no-op + view 仅打印路径 (不主动开)
+    "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
+    "board_open": True,  # 仅 web_serve=true 时生效: True→view 起服务后自动开浏览器; False→只打印 URL 不开
 }
 
 
@@ -1620,8 +1621,9 @@ class Skein:
     def view(self, _):
         if not self.html_path.exists():
             self._board_html()
-        if self.config().get("web_serve", CONFIG_DEFAULTS["web_serve"]):
-            self._run_server(open_browser=True)
+        cfg = self.config()
+        if cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+            self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]))
         else:
             print(f"可视化看板 (浏览器打开): {self.html_path}")
 

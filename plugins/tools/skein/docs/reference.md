@@ -121,7 +121,8 @@ skein-memory <cmd>
 | `board_theme` | `sketch` | 看板默认主题, 取 `assets/board/themes/` 任一名 (sketch / morandi / glassmorphism / liquid / handdrawn / bauhaus / blueprint / ghibli / terminal / neumorphism / ... 共 17 种)。页内切换器可实时改, 存 localStorage |
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
 | `board_mode` | `light` | 看板默认明暗: `light` 浅色 / `dark` 深色 |
-| `web_serve` | `true` | 看板 http 服务总开关 (统管 monitor 常驻服务 + `view` 打开方式, 见「持久看板服务」)。`true` = 每 session 由 monitor 起持久 http 服务 (随机 port, 服务 `.skein/`) + `skein view` 起 http 服务并自动开浏览器 (Ctrl-C 停); `false` = monitor no-op 退出 (仍被 Claude Code 拉起但静默) + `view` 仅打印静态 task.html 路径 (不主动打开) |
+| `web_serve` | `true` | 看板 http 服务总开关 (统管 monitor 常驻服务 + `view`, 见「持久看板服务」)。`true` = 每 session 由 monitor 起持久 http 服务 (随机 port, 服务 `.skein/`) + `skein view` 起 http 服务 (Ctrl-C 停); `false` = monitor no-op 退出 (仍被 Claude Code 拉起但静默) + `view` 仅打印静态 task.html 路径 (不主动打开) |
+| `board_open` | `true` | 仅 `web_serve=true` 时生效: `true` = `skein view` 起服务后自动开浏览器; `false` = 只打印 http URL 不开 (用户自行打开)。`web_serve=false` 时本项无效 (`view` 恒只打印路径) |
 
 > **缺键自动回填**: `config()` 每次加载时对照 `CONFIG_DEFAULTS`, 缺的键补默认值并回写 config.yaml (用户已有值保留)。旧工作区升级后新增键无需手动补。
 
