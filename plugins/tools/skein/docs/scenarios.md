@@ -61,7 +61,7 @@
 - 想串行 → 建 task 时用 `--deps` 显式声明依赖; 并行与否只看 task.json 的 `deps` DAG。
 - 想显式声明「B 必须等 A」→ 建 task 时 `--deps`:
   ```bash
-  skein create order-export --deps "order-query"
+  skein create order-export --name "订单导出" --desc "加订单导出功能" --deps "order-query"
   ```
 - 超过 2 个: `start` 第三个会报错「先 finish 一个」。
 
