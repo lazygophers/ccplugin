@@ -1948,6 +1948,9 @@ class Skein:
 
         # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
         app.mount("/board", StaticFiles(directory=str(self._board_assets_dir())), name="board")
+        # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
+        # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
+        app.mount("/task", StaticFiles(directory=str(self.tasks), check_dir=False), name="task")
         return app
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
