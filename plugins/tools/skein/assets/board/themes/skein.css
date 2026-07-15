@@ -42,6 +42,15 @@ html[data-theme=skein] .card::before{
   animation:skein-sheen 6s linear infinite;
 }
 @keyframes skein-sheen{0%{background-position:120% 0}100%{background-position:-120% 0}}
+/* 签名2: 玻璃面一道对角流光缓扫过 (流光玻璃拟态核心), 克制低透明 */
+html[data-theme=skein] .card::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(115deg,transparent 38%,color-mix(in srgb,#fff 12%,transparent) 48%,color-mix(in srgb,var(--accent) 16%,transparent) 52%,transparent 62%);
+  background-size:260% 260%;
+  animation:skein-glaze 9s ease-in-out infinite;
+}
+html[data-theme=skein] .card>*{position:relative;z-index:1}
+@keyframes skein-glaze{0%{background-position:120% 120%}55%,100%{background-position:-60% -60%}}
 
 /* 运行中卡片: 辉光脉动 (:has 命中含运行徽章的卡) */
 html[data-theme=skein] .card:has(.badge.s-active),
@@ -54,13 +63,20 @@ html[data-theme=skein] .card:has(.badge.ss-running){
   50%{box-shadow:0 10px 34px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent),0 0 30px color-mix(in srgb,var(--accent) 42%,transparent)}
 }
 
-/* 进度条: 流动渐变 */
-html[data-theme=skein] .fill{
-  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent));
-  background-size:200% 100%;
-  animation:skein-flow 3s linear infinite;
+/* 进度条: 薰衣草→柳绿流光渐变。
+   选择器带 .bar 提特异性 (0,3,1) 压过 base .bar.prog .fill (0,3,0), 否则 base 的 background 简写会重置 background-size:200% → skein-flow 无位移看似静止。 */
+html[data-theme=skein] .bar .fill{
+  background:linear-gradient(100deg,var(--accent),var(--accent2),color-mix(in srgb,var(--accent) 70%,#fff),var(--accent));
+  background-size:250% 100%;
+  animation:skein-flow 2.6s linear infinite;
+  box-shadow:0 0 10px color-mix(in srgb,var(--accent) 45%,transparent);
 }
-@keyframes skein-flow{0%{background-position:0% 0}100%{background-position:-200% 0}}
+@keyframes skein-flow{0%{background-position:0% 0}100%{background-position:-250% 0}}
+/* 轨道: 玻璃质凹槽 (内阴影 + 半透微光底) */
+html[data-theme=skein] .bar{
+  background:color-mix(in srgb,var(--accent) 12%,color-mix(in srgb,var(--card) 40%,transparent));
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.05);
+}
 
 /* 标题: 睡莲渐变微闪文字 */
 html[data-theme=skein] h1{
@@ -77,8 +93,9 @@ html[data-theme=skein] .badge{border:1px solid color-mix(in srgb,var(--accent) 3
 @media (prefers-reduced-motion: reduce){
   html[data-theme=skein] body,
   html[data-theme=skein] .card::before,
+  html[data-theme=skein] .card::after,
   html[data-theme=skein] .card:has(.badge.s-active),
   html[data-theme=skein] .card:has(.badge.ss-running),
-  html[data-theme=skein] .fill,
+  html[data-theme=skein] .bar .fill,
   html[data-theme=skein] h1{animation:none}
 }
