@@ -113,11 +113,12 @@ td{line-height:1.4}
 .pct{position:absolute;top:50%;right:0;left:auto;transform:translateY(-50%);font-size:10px;line-height:1;color:var(--head);background:var(--card);padding:1px 3px;border-radius:3px}
 /* 表内进度条: 更紧凑, 保底宽度让 hairline 可读 */
 td .bar{margin:1px 0;min-width:78px}
-/* 进度条动效: 载入时 0→满 生长 (bar-in) + 持续微光横扫 (bar-shine); ::after 微光受 fill 圆角/overflow 裁剪; 尊重 reduce-motion */
-.fill::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent,color-mix(in srgb,#fff 38%,transparent) 50%,transparent);transform:translateX(-100%);animation:bar-shine 2.4s ease-in-out infinite}
+/* 进度条动效: 一道柔光带在轨道上持续横扫 (bar-scan, 0% 空条也可见) + 载入 fill 0→满生长 (bar-in); 尊重 reduce-motion */
+/* 光带落 .bar 轨道 (非 .fill), 故进度 0% 仍有动; z-index:0 保 pct chip (position:absolute) 压在其上仍清晰 */
+.bar::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:linear-gradient(90deg,transparent 0,color-mix(in srgb,var(--accent) 34%,transparent) 50%,transparent 100%);background-size:45% 100%;background-repeat:no-repeat;animation:bar-scan 1.7s linear infinite}
+@keyframes bar-scan{from{background-position:-45% 0}to{background-position:145% 0}}
 @keyframes bar-in{from{transform:scaleX(0)}}
-@keyframes bar-shine{0%{transform:translateX(-100%)}55%,100%{transform:translateX(100%)}}
-@media(prefers-reduced-motion:reduce){.fill{animation:none}.fill::after{display:none}}
+@media(prefers-reduced-motion:reduce){.fill{animation:none}.bar::before{display:none}}
 
 /* 执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
 /* svg 保持固有 W×H (不 max-width 缩糊); 过长时由 .dag-wrap 滚动 */
