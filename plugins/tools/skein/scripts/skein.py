@@ -1720,7 +1720,8 @@ class Skein:
             # 断线 2s 重连。file:// 下协议非 http → 直接跳过 (view 每次重开已最新)。
             '<script>(function(){if(location.protocol==="file:")return;'
             'function conn(){var ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/__skein__/live");'
-            'ws.onmessage=function(e){if(e.data==="reload"){window.__skeinRefresh?window.__skeinRefresh():location.reload();}};'
+            # "data"(仅 task.json 变) → 软刷只 swap .layout 保态; "reload"(资产/结构变) → 整页 reload 换 head 里 CSS/JS。
+            'ws.onmessage=function(e){if(e.data==="data"){window.__skeinRefresh?window.__skeinRefresh():location.reload();}else if(e.data==="reload"){location.reload();}};'
             'ws.onclose=function(){setTimeout(conn,2000);};'
             'ws.onerror=function(){try{ws.close();}catch(_){}}; }conn();})();</script></body></html>')
         if persist:
@@ -1781,13 +1782,22 @@ class Skein:
     def _board_assets_dir() -> Path:
         return (Path(__file__).resolve().parent.parent / "assets" / "board").resolve()
 
-    def _task_json_rev(self) -> str:
-        # 热重载 rev: task.json (数据) + board 静态资产 (css/js, 开发时改动) 的最大 mtime_ns。
-        # 任一变更即变 → WS 推 reload。含资产故编辑样式/脚本也即时热重载 (stat-only, 免读内容)。
-        # ponytail: 每次 rglob assets (~15 文件) stat, 500ms 一轮足够轻; 资产暴增再上 watchfiles。
-        files = [self.dir / "task.json"] + list(self.tasks.glob("*/task.json"))
-        files += [p for p in self._board_assets_dir().rglob("*") if p.is_file()]
+    @staticmethod
+    def _max_mtime(files) -> str:
         return str(max((f.stat().st_mtime_ns for f in files if f.exists()), default=0))
+
+    def _data_rev(self) -> str:
+        # 数据 rev: task.json (顶层 + 各 task) 最大 mtime_ns。变 → WS 推 "data" → 软刷新只 swap .layout。
+        return self._max_mtime([self.dir / "task.json"] + list(self.tasks.glob("*/task.json")))
+
+    def _asset_rev(self) -> str:
+        # 资产 rev: board 静态资产 (css/js) 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
+        # ponytail: 每 500ms rglob assets (~15 文件) stat, 免读内容; 资产暴增再上 watchfiles。
+        return self._max_mtime([p for p in self._board_assets_dir().rglob("*") if p.is_file()])
+
+    def _task_json_rev(self) -> str:
+        # 合并 rev (data + asset): /__skein__/rev 轮询兜底端点用, 任一变即变。
+        return f"{self._data_rev()}.{self._asset_rev()}"
 
     @staticmethod
     def _serve_deps_present() -> bool:
@@ -1891,19 +1901,22 @@ class Skein:
         clients = set()  # 活跃热重载 WS 连接
 
         async def _watch_loop():
-            # 每 500ms 比 rev, 变则推 reload 给全部 WS 客户端 (task.json 或 assets 改动均触发)。
-            last = board._task_json_rev()
+            # 每 500ms 比 rev。资产变 (css/js/结构) → "reload" 整页刷 (换 head); 仅数据变 (task.json) → "data" 软刷 (只 swap .layout)。
+            # 资产变优先整页 (data 也可能同变, 但整页已覆盖数据)。
+            last_a = board._asset_rev()
+            last_d = board._data_rev()
             while True:
                 await asyncio.sleep(0.5)
                 try:
-                    cur = board._task_json_rev()
+                    cur_a, cur_d = board._asset_rev(), board._data_rev()
                 except Exception:
                     continue
-                if cur != last:
-                    last = cur
+                msg = "reload" if cur_a != last_a else ("data" if cur_d != last_d else None)
+                if msg:
+                    last_a, last_d = cur_a, cur_d
                     for c in list(clients):
                         try:
-                            await c.send_text("reload")
+                            await c.send_text(msg)
                         except Exception:
                             clients.discard(c)
 
