@@ -5,6 +5,8 @@
   if (!modal) return;
   var titleEl = modal.querySelector(".doc-title");
   var bodyEl = modal.querySelector(".doc-body");
+  var copyBtn = modal.querySelector(".doc-copy");
+  var lastSrc = "";  // 当前浮层 md 原文, 供复制按钮取用
 
   // marked 配置: GFM (表格/删除线/任务列表) + 换行即 <br>
   if (window.marked && marked.setOptions) {
@@ -35,12 +37,16 @@
 
   function open(path, title) {
     titleEl.textContent = title;
+    lastSrc = "";
+    if (copyBtn) copyBtn.disabled = true;
     bodyEl.innerHTML = '<p class="doc-loading">载入中…</p>';
     modal.hidden = false;
     fetch(path, { cache: "no-store" }).then(function (r) {
       if (!r.ok) throw new Error(r.status);
       return r.text();
     }).then(function (t) {
+      lastSrc = t;
+      if (copyBtn) copyBtn.disabled = false;
       bodyEl.innerHTML = render(t);
       sanitize(bodyEl);
     }).catch(function (e) {
@@ -51,11 +57,38 @@
       bodyEl.appendChild(p);
     });
   }
-  function close() { modal.hidden = true; bodyEl.innerHTML = ""; }
+  function close() { modal.hidden = true; bodyEl.innerHTML = ""; lastSrc = ""; }
+
+  // 一键复制 md 原文到剪贴板; navigator.clipboard 不可用 (非 https / file://) 时回落 execCommand
+  function copySrc() {
+    if (!lastSrc || !copyBtn) return;
+    var flash = function (ok) {
+      copyBtn.textContent = ok ? "✓ 已复制" : "✕ 复制失败";
+      setTimeout(function () { copyBtn.textContent = "⧉ 复制"; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(lastSrc).then(function () { flash(true); }, function () { flash(fallbackCopy(lastSrc)); });
+      return;
+    }
+    flash(fallbackCopy(lastSrc));
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
 
   document.addEventListener("click", function (e) {
     var b = e.target.closest(".doc-link");
     if (b) { open(b.getAttribute("data-doc"), b.getAttribute("data-title") || ""); return; }
+    if (e.target.closest(".doc-copy")) { copySrc(); return; }
     if (e.target.closest(".doc-close") || e.target.classList.contains("doc-backdrop")) close();
   });
   document.addEventListener("keydown", function (e) {

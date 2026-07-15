@@ -1526,7 +1526,7 @@ class Skein:
             f'{task_view}{full_view}</section>')
 
         def prd_block(tid):
-            # 解析 prd.md 的「目标」「验收标准」两节 markdown checklist (- [ ]/- [x]), 卡片直显 (跳过未填 TODO 占位)。
+            # 解析 prd.md 的「目标」「验收标准」两节: checklist (- [ ]/- [x]) 显进度徽标 + 勾选; 纯文本/段落行也直显 (无 checkbox 亦不丢)。跳过未填 TODO 占位。
             prd = self.tasks / tid / "prd.md"
             if not prd.exists():
                 return ""
@@ -1536,18 +1536,31 @@ class Skein:
                 if h:
                     cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
                     continue
-                m = cur and re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
-                if m and not m.group(2).lstrip().startswith("TODO"):
-                    secs.setdefault(cur, []).append((m.group(1).lower() == "x", m.group(2).strip()))
+                if not cur:
+                    continue
+                m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
+                if m:  # checklist 项
+                    txt = m.group(2).strip()
+                    if not txt.lstrip().startswith("TODO"):
+                        secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
+                    continue
+                # 非 checklist: 纯文本 / 无框列表项 (- foo), 收敛为 prose 直显 (跳空行 / TODO 占位)
+                txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
+                if txt and not txt.lstrip().startswith("TODO"):
+                    secs.setdefault(cur, []).append(("prose", False, txt))
             parts = []
             for name in ("目标", "验收标准"):
                 items = secs.get(name)
                 if not items:
                     continue
-                done = sum(1 for d, _ in items if d)
-                lis = "".join(f'<li class="{"done" if d else ""}">{esc(txt)}</li>' for d, txt in items)
-                parts.append(f'<div class="prd-sec"><div class="prd-h">{esc(name)}'
-                             f'<span class="prd-p">{done}/{len(items)}</span></div>'
+                checks = [d for k, d, _ in items if k == "check"]
+                badge = (f'<span class="prd-p">{sum(checks)}/{len(checks)}</span>'
+                         if checks else "")
+                lis = "".join(
+                    (f'<li class="{"done" if d else ""}">{esc(t)}</li>' if k == "check"
+                     else f'<li class="prose">{esc(t)}</li>')
+                    for k, d, t in items)
+                parts.append(f'<div class="prd-sec"><div class="prd-h">{esc(name)}{badge}</div>'
                              f'<ul class="prd-list">{lis}</ul></div>')
             return f'<div class="prd">{"".join(parts)}</div>' if parts else ""
 
@@ -1645,6 +1658,7 @@ class Skein:
             '<div class="doc-backdrop"></div>'
             '<div class="doc-panel" role="dialog" aria-modal="true">'
             '<header class="doc-head"><span class="doc-title"></span>'
+            '<button type="button" class="doc-copy" aria-label="复制 md 原文">⧉ 复制</button>'
             '<button type="button" class="doc-close" aria-label="关闭">✕</button></header>'
             '<article class="doc-body markdown"></article></div></div>'
             f'<script src="{base}/switcher.js"></script>'

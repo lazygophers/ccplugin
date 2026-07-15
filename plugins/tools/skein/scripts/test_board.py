@@ -59,9 +59,9 @@ def _mtimes(root):
 
 
 PRD = ("# PRD\n\n"
-       "## 目标\n- [x] 做A\n- [ ] 做B\n- [ ] TODO: 占位\n\n"
+       "## 目标\n定义中立配置 schema, 作单一真值。\n- [x] 做A\n- [ ] 做B\n- [ ] TODO: 占位\n\n"
        "## 边界\n- [ ] 不动C\n\n"
-       "## 验收标准\n- [x] 过D\n- [ ] 过E\n- [ ] TODO: 占位\n")
+       "## 验收标准\n纯文本验收也要显示。\n- [x] 过D\n- [ ] 过E\n- [ ] TODO: 占位\n")
 
 
 def test_prd_and_efficiency():
@@ -88,6 +88,9 @@ def test_prd_and_efficiency():
             assert "占位" not in html, "TODO 占位未跳过 (泄漏到卡片)"
             assert '<li class="done">做A</li>' in html, "完成项 class/文本错"
             assert '<li class="">做B</li>' in html, "未完成项 class/文本错"
+            # prose 行 (无 checkbox 的段落) 也须渲染, 且不计入进度徽标 (1/2 不变)
+            assert '<li class="prose">定义中立配置 schema, 作单一真值。</li>' in html, "目标 prose 行未渲染"
+            assert '<li class="prose">纯文本验收也要显示。</li>' in html, "验收标准 prose 行未渲染"
             assert "边界" not in re.sub(r'data-search="[^"]*"', "", html) or \
                 '<div class="prd-sec"><div class="prd-h">边界' not in html, "边界节不应进 prd 块"
 

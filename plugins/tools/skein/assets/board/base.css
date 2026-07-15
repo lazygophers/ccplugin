@@ -205,6 +205,9 @@ mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inheri
 .doc-title{flex:1;font-size:14px;font-weight:600;color:var(--head)}
 .doc-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:5px}
 .doc-close:hover{background:var(--sel-bg);color:var(--head)}
+.doc-copy{background:none;border:1px solid var(--line);color:var(--muted);font-size:12px;cursor:pointer;line-height:1;padding:4px 9px;border-radius:6px}
+.doc-copy:hover:not(:disabled){background:var(--sel-bg);color:var(--head);border-color:var(--accent)}
+.doc-copy:disabled{opacity:.45;cursor:default}
 .doc-body{padding:18px 22px;overflow-y:auto;color:var(--fg);font-size:14px;line-height:1.65}
 .doc-loading,.doc-err{color:var(--muted)}
 /* markdown 渲染 (GitHub 风格排版, 走主题变量) */
@@ -250,3 +253,6 @@ mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inheri
 .prd-list li::before{content:"○";position:absolute;left:0;color:var(--muted)}
 .prd-list li.done{color:var(--muted);text-decoration:line-through}
 .prd-list li.done::before{content:"●";color:var(--accent)}
+/* prose 行 (无 checkbox 的目标/验收段落): 无勾选标记, 缩进对齐, 段落式行高 */
+.prd-list li.prose{padding-left:0;color:var(--fg);line-height:1.6}
+.prd-list li.prose::before{content:none}
