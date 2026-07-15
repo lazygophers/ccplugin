@@ -964,6 +964,7 @@ class Skein:
             print(json.dumps({"hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
             return
+        self._ensure_board_server()  # 已初始化: 惰性拉起看板服务 (web_serve=true 且未在跑时 detached spawn)
         ctx = ("# SKEIN task 判定 (动手前硬门)\n"
                "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
                "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
@@ -1627,9 +1628,33 @@ class Skein:
         else:
             print(f"可视化看板 (浏览器打开): {self.html_path}")
 
+    def _ensure_board_server(self):
+        # 惰性拉起看板服务 (UserPromptSubmit hook 调, 不靠 experimental.monitors — 后者 project-scope 被禁 + 改动需 restart)。
+        # detached spawn `serve` 后立即返回不阻塞 hook; lock 去重保证同项目只起一个 (monitor 若也起了, 探测复用不重起)。
+        try:
+            cfgf = self.dir / "config.yaml"
+            if not cfgf.exists():
+                return
+            if not _yaml_load(cfgf.read_text()).get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+                return
+            lock = self._lock_file()
+            if lock.exists():
+                try:
+                    port = json.loads(lock.read_text()).get("port")
+                except Exception:
+                    port = None
+                if port and self._probe_same_project(port, str(self.dir.resolve())):
+                    return  # 已在跑, 不重起
+            subprocess.Popen(
+                [sys.executable, str(Path(__file__).resolve()), "serve"],
+                cwd=str(self.root), stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        except Exception:
+            pass  # 拉服务失败绝不阻塞 hook
+
     def serve(self, _):
-        # experimental.monitors 入口: 每 session 起持久看板 http 服务, 服务器 stdout 每行经 monitor 递给 Claude。
-        # monitor 总启动本命令 (不读 config.yaml), 由本命令按 config 决定跑不跑: 未初始化 / web_serve=false → 静默 no-op 退出。
+        # 持久看板 http 服务入口。两处拉起: ① experimental.monitors (personal-scope, session 启动); ② UserPromptSubmit
+        # hook 惰性 spawn (_ensure_board_server, 覆盖 project-scope / 免 restart)。lock 去重: 同项目只跑一个。
         f = self.dir / "config.yaml"
         if not f.exists():
             return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
