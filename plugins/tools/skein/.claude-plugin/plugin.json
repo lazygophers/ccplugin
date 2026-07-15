@@ -64,7 +64,7 @@
             {
                 "name": "skein-board-server",
                 "description": "SKEIN 看板持久 web 服务 (随机 port); config.yaml web_serve=false 则自动 no-op 退出",
-                "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/skein.py\" serve",
+                "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py serve",
                 "when": "always"
             }
         ],

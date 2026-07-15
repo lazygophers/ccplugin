@@ -160,7 +160,7 @@ CONFIG_DEFAULTS = {
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
-    "board_open": True,  # 仅 web_serve=true 时生效: True→view 起服务后自动开浏览器; False→只打印 URL 不开
+    "board_open": True,  # 仅 web_serve=true 时生效: True→起服务后自动开浏览器 (monitor serve 首起 + view); False→只打印 URL 不开
 }
 
 
@@ -1633,11 +1633,13 @@ class Skein:
         f = self.dir / "config.yaml"
         if not f.exists():
             return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
-        if not _yaml_load(f.read_text()).get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+        cfg = _yaml_load(f.read_text())
+        if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
             return  # 用户在 config.yaml 关闭
         if not self.html_path.exists():
             self._board_html()
-        self._run_server(open_browser=False, quiet=True)  # monitor 每 session 跑, 不弹浏览器 + 静默 (只 error 到 stderr, 见下)
+        # monitor 每 session 跑, 静默 (只 error 到 stderr); board_open=true 时首起服务顺带开浏览器 (同项目已在跑则复用不重开)
+        self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=True)
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
 

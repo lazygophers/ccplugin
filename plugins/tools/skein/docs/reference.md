@@ -122,7 +122,7 @@ skein-memory <cmd>
 | `board_palette` | `stone` | 看板默认配色: `stone` 石灰 / `ocean` 海洋 / `warm` 暖橙 / `forest` 森林 / `dusk` 暮紫 / `mono` 单色 |
 | `board_mode` | `light` | 看板默认明暗: `light` 浅色 / `dark` 深色 |
 | `web_serve` | `true` | 看板 http 服务总开关 (统管 monitor 常驻服务 + `view`, 见「持久看板服务」)。`true` = 每 session 由 monitor 起持久 http 服务 (随机 port, 服务 `.skein/`) + `skein view` 起 http 服务 (Ctrl-C 停); `false` = monitor no-op 退出 (仍被 Claude Code 拉起但静默) + `view` 仅打印静态 task.html 路径 (不主动打开) |
-| `board_open` | `true` | 仅 `web_serve=true` 时生效: `true` = `skein view` 起服务后自动开浏览器; `false` = 只打印 http URL 不开 (用户自行打开)。`web_serve=false` 时本项无效 (`view` 恒只打印路径) |
+| `board_open` | `true` | 仅 `web_serve=true` 时生效: `true` = 起 http 服务后自动开浏览器 (monitor `serve` 首起 + `skein view`); `false` = 只打印 http URL 不开 (用户自行打开)。`web_serve=false` 时本项无效 (`view` 恒只打印路径) |
 
 > **缺键自动回填**: `config()` 每次加载时对照 `CONFIG_DEFAULTS`, 缺的键补默认值并回写 config.yaml (用户已有值保留)。旧工作区升级后新增键无需手动补。
 
@@ -136,7 +136,7 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 - **setup 缺省启用**: `skein setup` 缺省 `web_serve=true` 并打印看板路径 (不主动打开; 常驻服务由 monitor 起); 传 `--no-web` 则写 `web_serve=false` 关闭。
 - **运行时关闭**: 用户随时改 `.skein/config.yaml` 的 `web_serve: false` 即关 (下个 session monitor no-op)。
 - **单实例锁 (`.skein/.board-server.lock`)**: 服务起动后写 lock (`{port, project}`, 随机 bind :0 的实际 port), 退出前删 (正常退出 / Ctrl-C / SIGTERM 均清)。再起服务前若 lock 存在 → 命中 lock 端口的 `/__skein__/id` 探测: 返回同项目标识 → **复用不新起** (多 session monitor 去重, `view` 直接开已在跑的 URL); 探测失败 / 属别的项目 → 视 lock 失效, 重新 bind :0 拿新随机 port 起动并覆盖 lock。lock 已由 `.skein/.gitignore` (`*.lock`) 忽略。
-- **不主动开 file://**: setup / `serve` 均不主动打开静态文件 (避免每 session 弹窗); `web_serve=true` 时由 `skein view` 起 http 服务并开浏览器, `false` 时仅打印路径由用户手动打开。
+- **自动开浏览器由 `board_open` 控**: `board_open=true` (默认) 时 monitor `serve` 首起服务顺带开浏览器 (同项目已在跑则复用不重开), `skein view` 亦开; `board_open=false` 则 serve/view 只起服务打印 URL 不开。`web_serve=false` 时 `view` 恒只打印静态路径 (不主动开 file://)。
 - **看板自动刷新**: `task.html` 内嵌 2s 轮询, HEAD 请求自身比对 `Last-Modified`, 盘上文件变了才 `location.reload()` (空闲不闪)。task 命令每次重写盘上 html, 已打开的 http 看板 tab 随之自动更新, 无需手动刷新。`web_serve=false` 下 `view` 只打印路径, 用户手动 `file://` 打开时 fetch 受限 → 轮询静默 no-op, 但每次重开已是最新。
 
 ## Hooks (`.claude-plugin/plugin.json`)
