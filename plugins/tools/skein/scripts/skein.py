@@ -964,24 +964,43 @@ class Skein:
         self._board_html()  # board 命令同步刷 task.html (否则手动 board 后可视化页 stale)
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
+    def _crit_weight(self, subs: list) -> dict:
+        """统筹学关键路径权重: 每 subtask 的最长下游链长 (含自身 estimate, 缺省 1 分钟)。
+        权重大 = 越靠关键路径 (阻塞最多下游), 槽位紧张时优先派 → 最小化 makespan (总工期)。"""
+        succ = {}  # sid -> 直接下游 sid
+        for s in subs:
+            for d in s.get("depends_on", []):
+                succ.setdefault(d, []).append(s["sid"])
+        est = {s["sid"]: (s.get("estimate") or 1) for s in subs}
+        memo = {}
+
+        def w(sid, seen=()):
+            if sid in memo:
+                return memo[sid]
+            if sid in seen:  # ponytail: 环保护 (DAG 校验兜底不该到这), 断链避免无限递归, 不缓存
+                return est.get(sid, 1)
+            r = est.get(sid, 1) + max((w(c, seen + (sid,)) for c in succ.get(sid, [])), default=0)
+            memo[sid] = r
+            return r
+
+        return {s["sid"]: w(s["sid"]) for s in subs}
+
     def _ready(self, t: list) -> list:
-        """就绪批: pending + 依赖全 done, 截到空闲槽位 (并行只看 depends_on DAG, 无写文件冲突自算)。"""
+        """就绪批: pending + 依赖全 done, 按统筹学关键路径权重降序排序后截到空闲槽位
+        (关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算)。"""
         subs = t.get("subtasks", [])
         done = {s["sid"] for s in subs if s["status"] == SS_DONE}
         running = [s for s in subs if s["status"] == SS_RUNNING]
         slots = self.config().get("max_parallel", 2) - len(running)
         if slots <= 0:
             return []  # 并发满 → 阻塞
-        picked = []
-        for s in subs:
-            if s["status"] != SS_PENDING:
-                continue
-            if not all(d in done for d in s.get("depends_on", [])):
-                continue
-            picked.append(s)
-            if len(picked) >= slots:
-                break
-        return picked
+        crit = self._crit_weight(subs)
+        cand = [(i, s) for i, s in enumerate(subs)
+                if s["status"] == SS_PENDING
+                and all(d in done for d in s.get("depends_on", []))]
+        # 关键路径优先: 权重降序, 同权重按登记序稳定 (i 升序)
+        cand.sort(key=lambda p: (-crit.get(p[1]["sid"], 0), p[0]))
+        return [s for _, s in cand[:slots]]
 
     def _sub(self, t, sid):
         for s in t.get("subtasks", []):

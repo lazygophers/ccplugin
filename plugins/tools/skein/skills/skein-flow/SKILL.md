@@ -28,7 +28,7 @@ plan → exec → check → finish 四步闭环
 
 ### plan
 
-- **先 durable 登记 (防丢/防并发覆盖)** — 收到请求**第一步**即 `skein create <slug-id> --name --desc` 落 pending task (持久到 `.skein`), 再做后续。此步早于 brainstorm/grill, 故请求即使中途中断或被下一个 flow 顶掉, task 已在盘上, 可 `/skein-exec` 无参续跑, **绝不静默跳过**。`create` 由 skein-plan 步骤 2 内部完成; 多个 flow 请求各自独立 `create` 独立 id, 互不覆盖 (并发处理见铁律)。
+- **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复 task)** — 收到请求**第一步**先跑一次廉价同步查 `skein list --status open --json` 判归属: 与在列某 task 相关 → **并入补 subtask, 不新建**; 无相关项才 `skein create <slug-id> --name --desc` 落 pending task。此 create 步早于 brainstorm/grill, 故请求即使中途中断或被下一个 flow 顶掉, task 已在盘上, 可 `/skein-exec` 无参续跑, **绝不静默跳过**。`create` 由 skein-plan 步骤 1-2 内部完成; 多个独立 flow 请求各自独立 `create` 独立 id, 互不覆盖 (并发处理见铁律)。**禁不查就 create、禁一直堆新 task**。
 - **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
 - Skill(skein-plan --continue) 规划任务、编写 prd; **拆 subtask 并逐个 `subtask add <id> <sid> --agent ...` 登记** (每 subtask 绑定执行 agent, 是 exec 唯一调度真值源)。无 subtask 登记 → `skein start` 硬拒。

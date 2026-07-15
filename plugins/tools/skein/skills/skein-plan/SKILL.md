@@ -14,6 +14,8 @@ effort: high
 
 `skein-researcher` 的结论持久化在 `.skein/task/<id>/research/` (dispatch 时把该 task id 作为 task-id 传给它)。planning 后续步骤 (brainstorm/PRD) 可复读这些笔记, 不必只靠回传摘要或记忆; task finish 归档时随 task 目录一并归档。
 
+**探索封顶, 尽早转异步 (禁无休止调研)** — 登记 task 后目标是**尽快填好 prd + subtask DAG 就转 exec 异步并行执行**, 不是把时间耗在调研上。调研**够用即停**: 只查够拆出 subtask + 定依赖所需的信息 (选型/边界/接口), 达到能拆分即收敛, 禁为求完备无限深挖。拿不准的细节留成 subtask 的验收条或 `需要:` 交执行阶段解决, 而非 planning 阶段一次探完。**能并行的尽早并行** — 早拆早派早完成, 是最短工期的前提。
+
 ## 入参 (决定是否停在 start 前)
 
 - **无参** (用户直呼 `/skein-plan`) → 跑完 planning **停在 start 前**, task 留 planning 态, 交还控制权。**禁 `skein start` / 禁 exec / check / finish** — 执行归 `skein-flow` / `/skein-exec`。
@@ -42,6 +44,7 @@ effort: high
 ## 流程
 
 1. **判新旧 + 定粒度** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件 + `subtask add`, 不新建。
+   - **登记前强制先查未完成 task (硬前置)** — 任何 `create` 之前 MUST 先 `skein list --status open --json` (一次取全部未完成 task 压缩 JSON) 核对: 新请求与在列某 task **相关** (同目标/同模块/共享改动面/互为前置) → **并入该 task 补 subtask, 禁新建**; 无相关项才 `create`。**禁不查就 create、禁一直堆新 task** (散 task 丢共享上下文一致性, 是头号反模式)。
    - **归一 vs 分立按相关性, 非按「可独立验收」** (subtask 亦可独立验收): 新交付物与现有 active task 或本请求内其他交付物**相关** (同目标 / 同模块 / 共享改动面 / 互为前置) → **优先归一 task 拆 subtask** (`subtask add` + `--deps` 连 subtask 级 DAG), 禁另开多 task。
    - **仅当目标独立、无共享改动面、无依赖** → 才拆多 task (各 `skein create` 登记, task 级 `--deps` 排队 / 无序并行; active 集 ≤ 2 自动排队)。
    - 拆不拆是 planning 自主判断, 边界模糊才 `AskUserQuestion`。默认**倾向归一** —— 相关工作散成多 task 会丢共享上下文一致性 (类型/契约决策各 task 重推), 归一拆 subtask 才守住。
