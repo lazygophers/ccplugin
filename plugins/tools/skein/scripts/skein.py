@@ -31,6 +31,7 @@ import hashlib
 import shutil
 import subprocess
 import sys
+import sys
 import time
 from pathlib import Path
 
@@ -1177,7 +1178,8 @@ class Skein:
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
     # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
-    def _board_html(self):
+    def _board_html(self, persist=True):
+        # persist=False (serve 每请求实时渲染): 只返回 html 字符串, 不落盘 task.html — serve 不写 task.md/task.html。
         st_cls = {S_PENDING: "s-pending", S_ACTIVE: "s-active",
                   S_CHECK: "s-check", S_DONE: "s-done"}
         ss_cls = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running",
@@ -1610,7 +1612,8 @@ class Skein:
             'fetch("/__skein__/rev",{cache:"no-store"}).then(function(r){return r.text();}).then(function(v){'
             'if(v){if(m&&v!==m)location.reload();m=v;}'
             '}).catch(function(){});},2000);})();</script></body></html>')
-        self._write_if_changed(self.html_path, html)
+        if persist:
+            self._write_if_changed(self.html_path, html)
         return html
 
     def _copy_board_assets(self):
@@ -1654,10 +1657,9 @@ class Skein:
         cfg = _yaml_load(f.read_text())
         if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
             return  # 用户在 config.yaml 关闭
-        if not self.html_path.exists():
-            self._board_html()
-        # monitor 每 session 跑, 静默 (只 error 到 stderr); 不开浏览器
-        self._run_server(open_browser=False, quiet=True)
+        # 不预生成 task.html — 页面每请求实时从 task.json 渲染 (do_GET persist=False)。
+        # quiet 随 stdout: monitor 管道 (非 tty) 静默; 手动终端跑印启动 URL, 不再像"卡住"。
+        self._run_server(open_browser=False, quiet=not sys.stdout.isatty())
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
     _REV_PATH = "/__skein__/rev"  # 版本探测端点: 全部 task.json 最大 mtime, 前端轮询变则 reload
@@ -1721,8 +1723,8 @@ class Skein:
                 if p == rev_path:  # 版本探测端点: 前端轮询
                     self._send(board._task_json_rev().encode(), "text/plain")
                     return
-                if p in ("/", "/task.html"):  # 看板页: 实时从 task.json 渲染 (不服务静态 task.html)
-                    self._send(board._board_html().encode("utf-8"), "text/html; charset=utf-8")
+                if p in ("/", "/task.html"):  # 看板页: 每请求实时从 task.json 渲染, 不落盘 task.html
+                    self._send(board._board_html(persist=False).encode("utf-8"), "text/html; charset=utf-8")
                     return
                 return super().do_GET()
 
