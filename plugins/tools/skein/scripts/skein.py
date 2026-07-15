@@ -1214,6 +1214,20 @@ class Skein:
         def esc(s):
             return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+        def md_inline(s):
+            # 行内 md → HTML: 先 esc 防注入, 再套 代码/粗/斜/链接 (板子离线无 marked, 服务端最小转换)
+            # ponytail: 只处理行内 (块级/嵌套/图片不管); 链接仅 http(s)/相对, 禁 javascript: 等
+            s = esc(s)
+            s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+            s = re.sub(r"\*\*([^*]+?)\*\*", r"<strong>\1</strong>", s)
+            s = re.sub(r"(?<![*\w])[*_]([^*_]+?)[*_](?![*\w])", r"<em>\1</em>", s)
+            def _lnk(m):
+                txt, url = m.group(1), m.group(2)
+                if re.match(r"(?:https?:|/|\.|#)", url) and '"' not in url and " " not in url:
+                    return f'<a href="{url}" target="_blank" rel="noopener">{txt}</a>'
+                return m.group(0)
+            return re.sub(r"\[([^\]]+)\]\(([^)]+)\)", _lnk, s)
+
         def badge(text, clsmap):
             return f'<span class="badge {clsmap.get(text, "")}">{esc(text)}</span>'
 
@@ -1582,8 +1596,8 @@ class Skein:
                 # 目标区: 非 checkbox 项 (纯文本/无框列表) 也套 todo 的 ○ 样式 (空 class), 视觉统一; 验收标准仍 prose 直显
                 prose_cls = "" if name == "目标" else "prose"
                 lis = "".join(
-                    (f'<li class="{"done" if d else ""}">{esc(t)}</li>' if k == "check"
-                     else f'<li class="{prose_cls}">{esc(t)}</li>')
+                    (f'<li class="{"done" if d else ""}">{md_inline(t)}</li>' if k == "check"
+                     else f'<li class="{prose_cls}">{md_inline(t)}</li>')
                     for k, d, t in items)
                 parts.append(f'<div class="prd-sec"><div class="prd-h">{esc(name)}{badge}</div>'
                              f'<ul class="prd-list">{lis}</ul></div>')
