@@ -211,6 +211,18 @@ class Skein:
                 cfg[k] = int(v)
         return cfg
 
+    def _set_config(self, key, value) -> bool:
+        # 看板 UI 改配置 (如主题) 落回 config.yaml。仅白名单键, 有变更才写。返回是否写入。
+        f = self.dir / "config.yaml"
+        if not f.exists() or key not in CONFIG_DEFAULTS:
+            return False
+        cfg = _yaml_load(f.read_text())
+        if cfg.get(key) == value:
+            return False
+        cfg[key] = value
+        f.write_text(_yaml_dump({**CONFIG_DEFAULTS, **cfg}))
+        return True
+
     def _autoclean(self, days=None) -> list:
         # 惰性归档: 已完成且超保留期的 task 移入 archive (保留期内留看板)。days 省略用 config retain_days。
         # 负数 = 永不自动清理。0 = finish 即归档 (旧行为)。每次 _sync 触发, 无需守护进程。
@@ -1741,6 +1753,20 @@ class Skein:
                     self._send(fp.read_bytes(), mimetypes.guess_type(str(fp))[0] or "application/octet-stream")
                     return
                 return super().do_GET()
+
+            def do_POST(self):  # 看板 UI 改配置 → 落回 config.yaml (仅 board_theme, 值须在 THEMES 内)
+                if self.path.split("?", 1)[0] != "/__skein__/config":
+                    self.send_error(404)
+                    return
+                try:
+                    body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+                    v = body.get("board_theme")
+                    if v not in {k for k, _ in THEMES}:
+                        raise ValueError("bad theme")
+                    board._set_config("board_theme", v)
+                    self._send(b'{"ok":true}', "application/json")
+                except Exception:
+                    self.send_error(400)
 
             def log_request(self, *a):
                 pass  # 静默访问日志 (info/warn); 错误经默认 log_error → stderr
