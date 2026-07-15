@@ -677,6 +677,46 @@ class Skein:
                 return
         print("无可执行 (task, subtask): active task 均无就绪 subtask, 亦无就绪 pending task 可激活")
 
+    def status(self, a):
+        # 只读查态: `status <tid>` 出 task 态 + subtask 汇总; `status <tid> <sid>` 出单个 subtask 明细。
+        t = self._load(a.tid)
+        subs = t.get("subtasks", [])
+        if getattr(a, "sid", None):
+            s = next((x for x in subs if x["sid"] == a.sid), None)
+            if not s:
+                raise SystemExit(f"subtask 不存在: {a.tid}/{a.sid} "
+                                 f"(现有: {', '.join(x['sid'] for x in subs) or '无'})")
+            if getattr(a, "json", False):
+                print(json.dumps(s, ensure_ascii=False, separators=(",", ":")))
+                return
+            deps = ",".join(s.get("depends_on", [])) or "-"
+            chk = "; ".join(s.get("验收", [])) or "-"
+            sk = ",".join(s.get("skills", [])) or "-"
+            print(f"task\t{t['id']}\t{t['status']}\t{t['name']}")
+            print(f"subtask\t{s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}")
+            print(f"desc\t{s.get('desc') or '-'}")
+            print(f"依赖\t{deps}\tagent:{s.get('agent', 'skein-executor')}\tskills:{sk}")
+            print(f"验收\t{chk}")
+            print(f"时间\tcreated:{_fmt_ts(s.get('created'))}\t"
+                  f"started:{_fmt_ts(s.get('started'))}\tfinished:{_fmt_ts(s.get('finished'))}")
+            return
+        if getattr(a, "json", False):
+            print(json.dumps(self._brief(t), ensure_ascii=False, separators=(",", ":")))
+            return
+        pct = 100 if t["status"] == S_DONE else (
+            round(sum(_sub_pct(x) for x in subs) / len(subs)) if subs else 0)
+        deps = ",".join(t.get("deps", [])) or "-"
+        print(f"task\t{t['id']}\t{t['status']}\t{pct}%\t{t['name']}")
+        print(f"worktree\t{t.get('worktree') or '-'}\t前置:{deps}")
+        if not subs:
+            print("subtask\t无")
+            return
+        print(f"subtask ({len(subs)}):")
+        for s in subs:
+            sdeps = ",".join(s.get("depends_on", [])) or "-"
+            ag = s.get("agent", "skein-executor")
+            print(f"  {s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{sdeps}\tagent:{ag}")
+
     def _brief(self, t):
         # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
         # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 pending task 前置全 done (可 start)。
@@ -1856,6 +1896,11 @@ def _sub_pct(s):
     return round(len(s.get("验收done", [])) / len(crit) * 100) if crit else 0
 
 
+def _fmt_ts(ts):
+    # epoch 秒 → 本地可读时间; None/0 → "-"
+    return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts)) if ts else "-"
+
+
 def main():
     p = argparse.ArgumentParser(
         prog="skein.py",
@@ -1904,6 +1949,10 @@ def main():
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
     co.add_argument("--add", help="追加一条契约 (省略则列出)")
+    stt = sub.add_parser("status", help="查 task 态 + subtask 汇总; 带 sid 出单个 subtask 明细 (只读)")
+    stt.add_argument("tid", help="task id")
+    stt.add_argument("sid", nargs="?", help="subtask id (省略出整 task 汇总)")
+    stt.add_argument("--json", action="store_true", help="压缩 JSON 输出")
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",
         epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_parallel)")
@@ -1953,7 +2002,7 @@ def main():
         "ready": sk.ready, "pop": sk.pop,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos,
-        "subtask": sk.subtask,
+        "status": sk.status, "subtask": sk.subtask,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。

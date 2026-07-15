@@ -72,6 +72,7 @@ skein setup
 skein board      # 渲染并打印看板
 skein current    # 列全部 active task (无 focus, 就绪皆可并行)
 skein ready      # 脚本算就绪 task 批 (pending+前置全done+空闲槽)
+skein status <task_id> [subtask_id]  # 查单 task 态 + subtask 汇总; 带 subtask_id 出明细
 skein list       # 全部 task (含已归档)
 skein view       # 打开 task.html 可视化看板 (缺则生成)
 ```

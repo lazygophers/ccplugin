@@ -33,6 +33,7 @@ skein <cmd>
 | `current` | — | 列全部 active task (id/状态/名称/worktree)。无 focus, 就绪皆可并行 |
 | `ready` | — | **脚本算**就绪 task 批 (pending + 前置全 done + 有空闲 active 槽), 只读预览。谁可执行由脚本判 (非 AI), 与 `subtask ready` 同构; task 无写集字段故不算写集冲突 |
 | `list` | — | 列全部 task (含已归档) |
+| `status <tid> [sid]` | `--json` | **只读查态**。省略 `sid` → task 行 (id/状态/综合完成率%/名称) + worktree/前置 + 逐 subtask 汇总 (状态/百分比/依赖/agent); 带 `sid` → 单个 subtask 明细 (desc/依赖/agent/skills/验收/created·started·finished 时间)。`--json` 出压缩 JSON (无 sid = task brief; 有 sid = 该 subtask 原始记录)。免锁 |
 | `doctor` | — | **纯脚本体检** task/subtask 不变量违规 (`✗`=错误 / `⚠`=警告): 非法 status、deps 悬空/自引用/成环、**task 父子字段 (禁 task 级父子关系, 仅允许 deps DAG)**、**任一 task 无 subtask (全量, 每 task 至少 1)**、**执行中 (进行中/检查中) task 缺 worktree 或路径不存在** (pending 未创建/done 已销毁 → 豁免; worktree 禁用时 `use_worktree=false`/非 git 不查)、subtask sid 重复/depends_on 悬空成环/验收done 越界、顶层索引与真值不一致 (含索引有但 per-task 真值缺失=幽灵骨架)、active 超上限。有 `✗` 错误 → exit 1 (可 CI/hook 门禁) |
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
 | `view` | — | 生成 (缺则建) 并用系统默认程序打开 `.skein/task.html` 静态可视化看板 (title/标题带项目名, 多主题多配色深浅色, 页内切换器, 不自动打开) |
@@ -49,7 +50,7 @@ skein <cmd>
 **状态流转**: `pending → in_progress → completed` (archived 移出 `task/`)。
 **id 规则**: **人工传入的可读 slug** (create 必填首参), 从 id 即可知含义 (如 `order-create-api`), 非随机生成。格式 = kebab-case (`^[a-z0-9][a-z0-9-]*$`, 小写字母/数字/连字符, 字母数字开头), 兼作 git 分支名 (`skein/<id>`) + 目录名。全局唯一, 含已归档的不可复用, 非法/重复即报错。
 
-**文件锁 (并发写保护)**: task/subtask 的更新经工作区级排他锁 `.skein/.lock` (`fcntl.flock`) 串行化, 包裹所有变更类命令 (`init/setup/create/start/finish/archive/clean/contract/subtask`); 只读命令 (`current/ready/list/board/view`) 豁免。未拿到锁时**代码轮询等待** (非报错退出), 默认超时 10s, 超时抛错「获取 .skein 写锁超时」。作用: 多 skein 进程 / 并发 subtask 写同一 task.json 不丢更新。`.lock` 已加入 `.skein/.gitignore` (运行期锁文件, 不入库)。
+**文件锁 (并发写保护)**: task/subtask 的更新经工作区级排他锁 `.skein/.lock` (`fcntl.flock`) 串行化, 包裹所有变更类命令 (`init/setup/create/start/finish/archive/clean/contract/subtask`); 只读命令 (`current/ready/list/status/board/view`) 豁免。未拿到锁时**代码轮询等待** (非报错退出), 默认超时 10s, 超时抛错「获取 .skein 写锁超时」。作用: 多 skein 进程 / 并发 subtask 写同一 task.json 不丢更新。`.lock` 已加入 `.skein/.gitignore` (运行期锁文件, 不入库)。
 
 ## skein-memory — 规则记忆引擎
 

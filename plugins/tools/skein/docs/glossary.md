@@ -63,7 +63,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 
 ## 脚本管理的文件 (AI 禁读写)
 
-四个 json/md 全由 `skein` 维护, AI 只经命令 stdout 取态 (`current`/`list`/`board`/`subtask list`/`ready`):
+四个 json/md 全由 `skein` 维护, AI 只经命令 stdout 取态 (`current`/`list`/`status`/`board`/`subtask list`/`ready`):
 
 | 文件 | 内容 |
 | --- | --- |
