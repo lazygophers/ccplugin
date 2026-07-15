@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# skein-hooks — thin wrapper forwarding to scripts/hooks.py (子命令: permission/guard/batch/report)
+root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+exec python3 "$root/scripts/hooks.py" "$@"

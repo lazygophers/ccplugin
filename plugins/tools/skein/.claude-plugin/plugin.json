@@ -76,7 +76,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py session-start",
+                        "command": "skein-memory session-start",
                         "timeout": 5
                     },
                     {
@@ -108,7 +108,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/memory.py subagent-start",
+                        "command": "skein-memory subagent-start",
                         "timeout": 5
                     }
                 ]
@@ -120,7 +120,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/guard-skein.py",
+                        "command": "skein-hooks guard",
                         "timeout": 5
                     }
                 ]
@@ -132,7 +132,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/allow-skein.py",
+                        "command": "skein-hooks permission",
                         "timeout": 5
                     }
                 ]
@@ -144,7 +144,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/allow-skein.py",
+                        "command": "skein-hooks permission",
                         "timeout": 5
                     }
                 ]
@@ -155,7 +155,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/batch-skein.py",
+                        "command": "skein-hooks batch",
                         "timeout": 5
                     }
                 ]
@@ -167,7 +167,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/report-skein.py",
+                        "command": "skein-hooks report",
                         "timeout": 5
                     }
                 ]

@@ -175,13 +175,13 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 
 | 护栏 | 怎么实现 | 挡住什么 |
 | --- | --- | --- |
-| task.json/task.md 全挡 | guard-skein.py PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein 直接读写状态/看板 → 格式漂移或态不一致 |
+| task.json/task.md 全挡 | skein-hooks guard PreToolUse hook (顶层 + per-task, Read/Edit/Write 全 exit 2) | AI 绕过 skein 直接读写状态/看板 → 格式漂移或态不一致 |
 | Recursion Guard | 具名 agent (checker/researcher) 无 Agent/Task 工具; 执行者 (skein-executor 等有 Agent/Task) 靠 dispatch prompt 硬性禁止再派 | subagent 自派 → 递归爆炸 |
 | worktree 隔离 | git 仓库内: 有 task 必有 worktree (非 git 仓库降级原地执行) | 主工作区被半成品污染 |
 | 闭环不可跳步 | 未 archive = 未完成 | 活儿做一半就宣告 Done |
 | 契约不变量锁定 | planning 锁 `contracts`, check 逐条验 | 不变量在 exec 中被悄悄破坏 |
 | compaction 永续 | `skein session-context` SessionStart hook 重注入活跃 task | 上下文压缩后忘掉在跑的 task |
 | hook token 可控 | 所有注入过 `hooklib.budget_guard` (session-start 索引 + session-context); core 只注入极简索引 | 常驻上下文不可控膨胀 |
-| .skein 操作免打断 | `allow-skein.py` PermissionRequest 对引擎命令 / prd 等工件默认同意 | 逐次授权拖慢闭环 (task.json/task.md 仍归 guard 硬阻) |
-| 并发写竞态防护 | `batch-skein.py` PostToolBatch 拦同批 ≥2 个 .skein 状态写命令 | 并行写 task.json/spec 后写覆盖前写 |
-| 脚本报错留痕 | `report-skein.py` PostToolUseFailure 注入错误上下文 + 引导手动报 issue | 插件 bug 被静默吞掉 |
+| .skein 操作免打断 | `skein-hooks permission` PermissionRequest 对引擎命令 / prd 等工件默认同意 | 逐次授权拖慢闭环 (task.json/task.md 仍归 guard 硬阻) |
+| 并发写竞态防护 | `skein-hooks batch` PostToolBatch 拦同批 ≥2 个 .skein 状态写命令 | 并行写 task.json/spec 后写覆盖前写 |
+| 脚本报错留痕 | `skein-hooks report` PostToolUseFailure 注入错误上下文 + 引导手动报 issue | 插件 bug 被静默吞掉 |

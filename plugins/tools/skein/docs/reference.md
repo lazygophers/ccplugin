@@ -146,12 +146,12 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 | --- | --- | --- |
 | **SessionStart** | 每 session 开始 | `skein-memory session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
 | **UserPromptSubmit** | 每次用户提交 prompt | `skein user-prompt` 注入 **task 判定提醒**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定为 model 语义活, hook 只注入决策标准 (过 budget_guard); 非 git 仓静默 exit 0 |
-| **PreToolUse** | Edit/Write/MultiEdit/Read | `guard-skein.py` 两类硬阻: ① 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡); ② **迁移门** — 有 `.trellis/` 但无 `.skein/config.yaml` 时挡源码 Read/Edit/Write/MultiEdit (含只读诊断), 逼先 skein-setup 初始化 (纯文本注入压不过 trellisx 的 active-task 注入, 故硬阻; 仅 Bash 跑 `skein setup` 放行, `.skein/`·`.trellis/` 内部路径放行不自锁) |
-| **PermissionRequest** | Bash/Edit/Write/Read | `allow-skein.py` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein/skein-memory 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/design/findings)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
-| **PostToolBatch** | 并行工具批 | `batch-skein.py` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
-| **PostToolUseFailure** | Bash 失败 | `report-skein.py` 仅当失败命令属本插件脚本 (含 skein.py/memory.py/CLAUDE_PLUGIN_ROOT, 或 bin 短命令 skein/skein-memory 起头) 时, 注入错误上下文 + `systemMessage` 引导用户**手动**开 issue (不自动建, 免误报刷屏) |
+| **PreToolUse** | Edit/Write/MultiEdit/Read | `skein-hooks guard` 两类硬阻: ① 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡); ② **迁移门** — 有 `.trellis/` 但无 `.skein/config.yaml` 时挡源码 Read/Edit/Write/MultiEdit (含只读诊断), 逼先 skein-setup 初始化 (纯文本注入压不过 trellisx 的 active-task 注入, 故硬阻; 仅 Bash 跑 `skein setup` 放行, `.skein/`·`.trellis/` 内部路径放行不自锁) |
+| **PermissionRequest** | Bash/Edit/Write/Read | `skein-hooks permission` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein/skein-memory 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/design/findings)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
+| **PostToolBatch** | 并行工具批 | `skein-hooks batch` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
+| **PostToolUseFailure** | Bash 失败 | `skein-hooks report` 仅当失败命令属本插件脚本 (含 skein.py/memory.py/CLAUDE_PLUGIN_ROOT, 或 bin 短命令 skein/skein-memory 起头) 时, 注入错误上下文 + `systemMessage` 引导用户**手动**开 issue (不自动建, 免误报刷屏) |
 
-## guard-skein.py 拦截规则
+## skein-hooks guard 拦截规则
 
 判定: 路径落在 `.skein/` 下且 basename ∈ {`task.json`, `task.md`} → 读写全挡 (含归档路径)。四个文件全由 skein 维护, AI 取态经命令 stdout 而非读文件。
 

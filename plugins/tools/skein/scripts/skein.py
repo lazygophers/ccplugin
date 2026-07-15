@@ -18,7 +18,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
 
 四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态
-(current/list/board/subtask list/ready), 禁直接 Read/Edit/Write (guard-skein.py 硬阻)。
+(current/list/board/subtask list/ready), 禁直接 Read/Edit/Write (skein-hooks guard 硬阻)。
 """
 import argparse
 import contextlib
