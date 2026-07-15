@@ -86,7 +86,7 @@
                     },
                     {
                         "type": "command",
-                        "command": "skein ensure-deps",
+                        "command": "cd ${CLAUDE_PLUGIN_ROOT} && (pip3 install -q -r requirements.txt >/dev/null 2>&1 &)",
                         "timeout": 5
                     }
                 ]

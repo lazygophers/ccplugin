@@ -1756,21 +1756,13 @@ class Skein:
         import importlib.util
         return all(importlib.util.find_spec(m) for m in ("fastapi", "uvicorn"))
 
-    def _install_serve_deps(self, block: bool):
-        # serve 依赖 (fastapi/uvicorn) 缺失时 pip 安装。block=True: 同步装 (serve 启动前, 本进程是后台 monitor 不卡 session);
-        # block=False: 后台 Popen 立即返回 (SessionStart hook 用, 不阻塞会话启动)。
+    def _install_serve_deps(self):
+        # serve 启动前依赖 (fastapi/uvicorn) 缺失兜底: 同步 pip 装 (本进程是后台 monitor, 不卡 session)。
+        # 常规安装走 SessionStart hook 的 pip3 install -r requirements.txt, 此处仅裸装冗余保险。
         req = Path(__file__).resolve().parent.parent / "requirements.txt"
         cmd = [sys.executable, "-m", "pip", "install", "-q"]
         cmd += ["-r", str(req)] if req.exists() else ["fastapi", "uvicorn[standard]"]
-        if block:
-            subprocess.run(cmd, check=False)
-        else:
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    def ensure_deps(self, _=None):
-        # [SessionStart hook 用] 依赖已齐→立即退出; 缺失→后台异步 pip install (不阻塞会话)。
-        if not self._serve_deps_present():
-            self._install_serve_deps(block=False)
+        subprocess.run(cmd, check=False)
 
     def _lock_file(self):
         return self.dir / ".board-server.lock"
@@ -1809,7 +1801,7 @@ class Skein:
         if not self._serve_deps_present():
             if not quiet:
                 print("SKEIN 看板依赖缺失, 安装 fastapi/uvicorn 中 …", flush=True)
-            self._install_serve_deps(block=True)
+            self._install_serve_deps()
             if not self._serve_deps_present():
                 print("SKEIN 看板依赖安装失败 — 手动 pip install -r requirements.txt", file=sys.stderr, flush=True)
                 return
@@ -2233,7 +2225,6 @@ def main():
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
     sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
-    sub.add_parser("ensure-deps", help="[hook 用] 看板 serve 依赖 (fastapi/uvicorn) 缺则后台 pip install, 不阻塞会话")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
@@ -2284,10 +2275,6 @@ def main():
     if a.cmd == "user-prompt":
         # 每 prompt 都跑: 非 git 且无 .skein → 方法内静默返回; 提醒不依赖 .skein 初始化状态
         Skein().user_prompt()
-        return
-    if a.cmd == "ensure-deps":
-        # SessionStart hook: 依赖已齐→秒退; 缺→后台 pip install 不阻塞会话。不碰 .skein, 免锁。
-        Skein().ensure_deps()
         return
     sk = Skein()
     dispatch = {
