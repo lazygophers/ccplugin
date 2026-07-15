@@ -137,6 +137,7 @@
     var io=new IntersectionObserver(function(es){
       es.forEach(function(e){e.target.classList.toggle('voff',!e.isIntersecting);});
     },{rootMargin:'120px'});
-    document.querySelectorAll('.bar').forEach(function(b){io.observe(b);});
+    // 只门控右栏卡片 bar (百+条才 churn GPU); 左栏总览"整体进度"单条常驻, 不门控免被误标 voff 卡死动效
+    document.querySelectorAll('.col-main .bar').forEach(function(b){io.observe(b);});
   }
 })();

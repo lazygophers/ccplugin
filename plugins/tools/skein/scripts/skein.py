@@ -1579,9 +1579,11 @@ class Skein:
                 checks = [d for k, d, _ in items if k == "check"]
                 badge = (f'<span class="prd-p">{sum(checks)}/{len(checks)}</span>'
                          if checks else "")
+                # 目标区: 非 checkbox 项 (纯文本/无框列表) 也套 todo 的 ○ 样式 (空 class), 视觉统一; 验收标准仍 prose 直显
+                prose_cls = "" if name == "目标" else "prose"
                 lis = "".join(
                     (f'<li class="{"done" if d else ""}">{esc(t)}</li>' if k == "check"
-                     else f'<li class="prose">{esc(t)}</li>')
+                     else f'<li class="{prose_cls}">{esc(t)}</li>')
                     for k, d, t in items)
                 parts.append(f'<div class="prd-sec"><div class="prd-h">{esc(name)}{badge}</div>'
                              f'<ul class="prd-list">{lis}</ul></div>')
