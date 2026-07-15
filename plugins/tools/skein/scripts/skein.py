@@ -1452,6 +1452,7 @@ class Skein:
         est_total = 0    # 预期时长合计 (min)
         elapsed_total = 0  # 已耗合计 (min)
         remain_est = 0.0    # 剩余预估时长 = Σ 未完成 task 的 estimate×(1-frac)
+        est_count = 0    # 有 estimate 的 task 数 (预估可信度门槛)
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
             if t["status"] == S_DONE:
@@ -1461,6 +1462,8 @@ class Skein:
                 frac = sum(_sub_pct(s) for s in subs) / (len(subs) * 100) if subs else 0.0
             est = t.get("estimate") or 0
             est_total += est
+            if est:
+                est_count += 1
             elapsed_total += elapsed_of(t)
             remain_est += est * (1 - frac)  # 未估 (est=0) 不计剩余
         task_nodes = [(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
@@ -1515,7 +1518,8 @@ class Skein:
             return (f'<div class="stat"><span class="stat-n">{cnt.get(key, 0)}</span>'
                     f'<span class="stat-l">{esc(label)}</span></div>')
         stats = (f'<div class="stats">{statcard("已完成", S_DONE)}'
-                 f'{statcard("进行中", S_ACTIVE)}{statcard("待处理", S_PENDING)}</div>')
+                 f'{statcard("进行中", S_ACTIVE)}{statcard("检查中", S_CHECK)}'
+                 f'{statcard("待处理", S_PENDING)}</div>')
         # DAG 维度切换 (task 默认 / task+subtask); switcher.js 绑定按钮显隐对应视图
         switch = (f'<div class="dag-switch" role="group">'
                   f'<button type="button" data-dag="task" class="on">task 维度</button>'
@@ -1530,11 +1534,17 @@ class Skein:
         filter_ctrl = ('<label class="filter">状态筛选 <select id="sw-filter">'
                        + "".join(f'<option value="{esc(k)}">{esc(lb)}</option>' for k, lb in filter_opts)
                        + '</select></label>')
+        # 预估仅在过半 task 有 estimate 时才可信; 否则合计/剩余会自相矛盾 (如 146 待执行仅显 25m 合计) → 退化为只显已耗 + 覆盖率
+        if est_total and est_count >= max(1, len(tasks) // 2):
+            est_meta = (f'预期合计 {fmt_dur(est_total or None)} · 已耗 {fmt_dur(elapsed_total or None)} · '
+                        f'剩余预估 {fmt_dur(round(remain_est) or None)}')
+        else:
+            cov = f' · 预估覆盖 {est_count}/{len(tasks)}' if est_count else ''
+            est_meta = f'已耗 {fmt_dur(elapsed_total or None)}{cov}'
         overview = (
             f'<section class="card"><h2>任务进展</h2>'
             f'{switch}{filter_ctrl}{stats}'
-            f'<p class="meta">{len(tasks)} task · 预期合计 {fmt_dur(est_total or None)} · '
-            f'已耗 {fmt_dur(elapsed_total or None)} · 剩余预估 {fmt_dur(round(remain_est) or None)}</p>'
+            f'<p class="meta">{len(tasks)} task · {est_meta}</p>'
             f'<p class="meta">整体进度 (task+subtask 综合)</p>{bar(combined_pct)}'
             f'{task_view}{full_view}</section>')
 
@@ -1659,9 +1669,10 @@ class Skein:
             f'<!doctype html><html lang=zh-CN data-theme="{theme}">'
             '<head><meta charset=utf-8>'
             '<meta name=viewport content="width=device-width,initial-scale=1">'
-            # 兜底刷新: file:// 下 HEAD 轮询 fetch 抛错无效 → 每 1800s (半小时) 硬刷新保证不 stale
-            '<meta http-equiv=refresh content=1800>'
-            f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
+            # 兜底刷新仅 file:// (persist) 需要: HEAD 轮询无效 → 每 1800s 硬刷新保不 stale。
+            # serve(http) 有 WS 热重载, 硬刷新只会闪白 + 丢滚动/展开态, 故跳过。
+            + ('<meta http-equiv=refresh content=1800>' if persist else '')
+            + f'<title>SKEIN · {esc(self.proj)}</title>{links}</head><body>'
             f'<header class="topbar"><h1>SKEIN 看板 · {esc(self.proj)}</h1>'
             '<input type="search" id="sw-search" class="search" placeholder="搜索 id / 名称 / 描述…" '
             'autocomplete="off" aria-label="搜索 task">'

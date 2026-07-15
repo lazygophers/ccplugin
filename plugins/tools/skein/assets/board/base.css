@@ -122,6 +122,8 @@ td .bar{margin:1px 0;min-width:78px}
 @keyframes bar-scan{from{background-position:-45% 0}to{background-position:145% 0}}
 @keyframes bar-in{from{transform:scaleX(0)}}
 @media(prefers-reduced-motion:reduce){.fill{animation:none}.bar::before,.fill::after{display:none}}
+/* 视口外进度条暂停扫光/流动 (百+待执行条同时跑会 churn GPU); switcher.js 用 IntersectionObserver 打 .voff */
+.bar.voff::before,.bar.voff .fill,.bar.voff .fill::after{animation-play-state:paused}
 
 /* 执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
 /* svg 保持固有 W×H (不 max-width 缩糊); 过长时由 .dag-wrap 滚动 */

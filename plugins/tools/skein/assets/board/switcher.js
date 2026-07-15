@@ -132,4 +132,11 @@
       g.addEventListener('mouseleave',function(){tip.style.display='none';});
     });
   });
+  // 进度条动画视口门控: 视口外扫光/流动暂停, 免上百待执行条同时 churn GPU (大看板性能)
+  if('IntersectionObserver' in window){
+    var io=new IntersectionObserver(function(es){
+      es.forEach(function(e){e.target.classList.toggle('voff',!e.isIntersecting);});
+    },{rootMargin:'120px'});
+    document.querySelectorAll('.bar').forEach(function(b){io.observe(b);});
+  }
 })();
