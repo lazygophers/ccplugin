@@ -160,7 +160,7 @@ CONFIG_DEFAULTS = {
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
-    "board_open": True,  # 仅 web_serve=true 时生效: True→起服务后自动开浏览器 (monitor serve 首起 + view); False→只打印 URL 不开
+    "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
 }
 
 
@@ -964,7 +964,6 @@ class Skein:
             print(json.dumps({"hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
             return
-        self._ensure_board_server()  # 已初始化: 惰性拉起看板服务 (web_serve=true 且未在跑时 detached spawn)
         ctx = ("# SKEIN task 判定 (动手前硬门)\n"
                "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
                "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
@@ -1629,33 +1628,9 @@ class Skein:
         else:
             print(f"可视化看板 (浏览器打开): {self.html_path}")
 
-    def _ensure_board_server(self):
-        # 惰性拉起看板服务 (UserPromptSubmit hook 调, 不靠 experimental.monitors — 后者 project-scope 被禁 + 改动需 restart)。
-        # detached spawn `serve` 后立即返回不阻塞 hook; lock 去重保证同项目只起一个 (monitor 若也起了, 探测复用不重起)。
-        try:
-            cfgf = self.dir / "config.yaml"
-            if not cfgf.exists():
-                return
-            if not _yaml_load(cfgf.read_text()).get("web_serve", CONFIG_DEFAULTS["web_serve"]):
-                return
-            lock = self._lock_file()
-            if lock.exists():
-                try:
-                    port = json.loads(lock.read_text()).get("port")
-                except Exception:
-                    port = None
-                if port and self._probe_same_project(port, str(self.dir.resolve())):
-                    return  # 已在跑, 不重起
-            subprocess.Popen(
-                [sys.executable, str(Path(__file__).resolve()), "serve"],
-                cwd=str(self.root), stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-        except Exception:
-            pass  # 拉服务失败绝不阻塞 hook
-
     def serve(self, _):
-        # 持久看板 http 服务入口。两处拉起: ① experimental.monitors (personal-scope, session 启动); ② UserPromptSubmit
-        # hook 惰性 spawn (_ensure_board_server, 覆盖 project-scope / 免 restart)。lock 去重: 同项目只跑一个。
+        # 持久看板 http 服务入口, 仅由 experimental.monitors (personal-scope, session 启动) 维护。lock 去重: 同项目只跑一个。
+        # 只维护服务, 绝不主动开浏览器 (要看板用户显式跑 `view`)。
         f = self.dir / "config.yaml"
         if not f.exists():
             return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
@@ -1664,8 +1639,8 @@ class Skein:
             return  # 用户在 config.yaml 关闭
         if not self.html_path.exists():
             self._board_html()
-        # monitor 每 session 跑, 静默 (只 error 到 stderr); board_open=true 时首起服务顺带开浏览器 (同项目已在跑则复用不重开)
-        self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=True)
+        # monitor 每 session 跑, 静默 (只 error 到 stderr); 不开浏览器
+        self._run_server(open_browser=False, quiet=True)
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
     _REV_PATH = "/__skein__/rev"  # 版本探测端点: 全部 task.json 最大 mtime, 前端轮询变则 reload
