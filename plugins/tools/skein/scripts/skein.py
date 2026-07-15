@@ -1718,8 +1718,10 @@ class Skein:
             f'<script src="{base}/doc.js"></script>'  # 规划文档 (prd/design/findings) 浮层查看
             # 热重载: serve(http) 下连 WS /__skein__/live, 收 "reload" 即刷 (task.json 或 board 资产变都推);
             # 断线 2s 重连。file:// 下协议非 http → 直接跳过 (view 每次重开已最新)。
-            '<script>(function(){if(location.protocol==="file:")return;'
+            '<script>(function(){if(location.protocol==="file:")return;var seen=false;'
             'function conn(){var ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/__skein__/live");'
+            # 重连成功 (seen 已 true) = 服务端重启过 (uvicorn 热重载了 skein.py) → 整页刷取新渲染; 首连只置标记不刷。
+            'ws.onopen=function(){if(seen)location.reload();else seen=true;};'
             # "data"(仅 task.json 变) → 软刷只 swap .layout 保态; "reload"(资产/结构变) → 整页 reload 换 head 里 CSS/JS。
             'ws.onmessage=function(e){if(e.data==="data"){window.__skeinRefresh?window.__skeinRefresh():location.reload();}else if(e.data==="reload"){location.reload();}};'
             'ws.onclose=function(){setTimeout(conn,2000);};'
@@ -1872,18 +1874,23 @@ class Skein:
 
         url = f"http://127.0.0.1:{port}/task.html"
 
-        def _on_ready():  # uvicorn 真正 bind 后 (lifespan startup) 才落 lock: 保证「lock 在 = 端口可连」
-            lock.write_text(json.dumps({"port": port, "project": proj_id}))
-            if not quiet:
-                print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)
-            if open_browser:
-                threading.Timer(0.3, lambda: webbrowser.open(url)).start()
-
         atexit.register(_cleanup)
-        app = self._build_serve_app(proj_id, quiet, _on_ready)
-        cfg = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", access_log=False)
+        # serve 恒热重载: uvicorn reload 监视 skein.py, 改渲染码即重启 worker → 浏览器 WS 断→重连→整页刷 (WS onopen 逻辑)。
+        # reload 走 import-string + factory: 子进程 fresh import skein, 需 PYTHONPATH 含脚本目录。
+        # lock/浏览器/提示提前在父进程做 — on_ready 会在每次 reload 的 worker 里重跑 (重开浏览器/重写 lock), 故 factory 传 on_ready=None。
+        # 资产 (css/js) 变仍由 _watch_loop 走 WS 软刷/整页刷, 不惊动 uvicorn (reload 默认只盯 *.py)。
+        lock.write_text(json.dumps({"port": port, "project": proj_id}))
+        if not quiet:
+            print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止, 改 skein.py 自动热重载)", flush=True)
+        if open_browser:
+            threading.Timer(0.3, lambda: webbrowser.open(url)).start()
+
+        script_dir = str(Path(__file__).resolve().parent)
+        os.environ["PYTHONPATH"] = script_dir + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
+        os.environ["SKEIN_SERVE_QUIET"] = "1" if quiet else "0"
         try:
-            uvicorn.Server(cfg).run()  # 阻塞; 收到 SIGINT/SIGTERM 优雅停机后返回
+            uvicorn.run("skein:_serve_app_factory", factory=True, host="127.0.0.1", port=port,
+                        log_level="warning", access_log=False, reload=True, reload_dirs=[script_dir])  # 阻塞; SIGINT/SIGTERM 优雅停机
         finally:
             if not quiet:
                 print("\n看板服务已停止")
@@ -2234,6 +2241,14 @@ def _sub_pct(s):
 def _fmt_ts(ts):
     # epoch 秒 → 本地可读时间; None/0 → "-"
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts)) if ts else "-"
+
+
+def _serve_app_factory():
+    # uvicorn --reload 子进程入口: fresh import skein 后由此重建 app。
+    # 父进程 (_run_server) 已落 lock/开浏览器/打印, 故 on_ready=None (不在每次 reload 重跑那些)。
+    sk = Skein()
+    quiet = os.environ.get("SKEIN_SERVE_QUIET") == "1"
+    return sk._build_serve_app(str(sk.dir.resolve()), quiet, on_ready=None)
 
 
 def main():
