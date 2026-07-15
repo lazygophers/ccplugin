@@ -140,8 +140,8 @@ td .bar{margin:1px 0;min-width:78px}
 .dag a .has-link,.dag .has-link{cursor:pointer}
 /* SVG <a> 链接节点: hover 描边加深提示可点 */
 .dag a:hover rect:first-of-type{stroke-width:2}
-/* 浮层用 position:fixed (视口坐标) 逃逸 .dag-wrap 的 overflow:auto 裁剪 (否则绝对定位子元素被容器切掉、看似"悬浮没了"). JS 按视口坐标定位. 超 max 即内部滚动 */
-.dag-tip{display:none;position:fixed;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px;max-height:70vh;overflow:auto}
+/* 浮层用 position:fixed (视口坐标) 逃逸 .dag-wrap 的 overflow:auto 裁剪 (否则绝对定位子元素被容器切掉、看似"悬浮没了"). JS 按视口坐标定位. 超 max 即内部滚动. pointer-events:none 关键 — 越界钳位后浮层可能盖住触发节点, 若接收指针会夺 hover 致 mouseleave→隐藏→mouseenter→显示 无限频闪; 纯展示浮层禁指针即根治 */
+.dag-tip{display:none;pointer-events:none;position:fixed;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px;max-height:70vh;overflow:auto}
 .dag-tip .dag{margin:2px 0 0}
 .dag-tip .bar{margin-bottom:10px}
 
