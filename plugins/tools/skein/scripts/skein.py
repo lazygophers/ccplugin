@@ -27,7 +27,6 @@ import fcntl
 import json
 import os
 import re
-import hashlib
 import shutil
 import subprocess
 import sys
@@ -496,11 +495,13 @@ class Skein:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
-        wt_on = self.git and cfg.get("use_worktree", True)  # 配置禁用 → 原地执行, 同非 git
-        if repos and not wt_on:
+        wt_cfg = cfg.get("use_worktree", True)
+        wt_on = self.git and wt_cfg  # 单根 worktree: 需根仓是 git; 配置禁用→原地执行
+        # --repos 的 git 性由 _mkwt 逐子仓校验 (worktree 落各子仓内), 与父目录是否 git 无关 —
+        # 故只在 config 显式禁用时挡, 不吃 self.git (支持非 git 父 + 多 git 子的微服务布局)。
+        if repos and not wt_cfg:
             raise SystemExit(
-                f"{a.id} 声明了 --repos 但 worktree 已禁用 "
-                f"({'非 git 仓库' if not self.git else 'config use_worktree=false'}) — 多子 git 隔离需启用 worktree")
+                f"{a.id} 声明了 --repos 但 config use_worktree=false — 多子 git 隔离需启用 worktree")
         if repos:
             # 多子 git: planning 声明的每个子 git 各开 worktree+branch (并列 repo / submodule 同理)
             t["worktrees"] = [self._mkwt(t, r, cfg) for r in repos]
@@ -1662,7 +1663,8 @@ class Skein:
 
     def _copy_board_assets(self):
         # 仅 file:// 视图 (task.html) 用: 从插件 assets 拷到 .skein/board/ 供相对 link 解析。serve(http) 不拷, 走 do_GET /board/* 直出插件资产。
-        # 逐文件比对 md5, 仅内容不一致才覆盖 — 免无谓写触碰 mtime, 害看板 HEAD-poll 误判重载。
+        # 逐文件直接比对字节, 仅内容不一致才覆盖 — 免无谓写触碰 mtime, 害看板 HEAD-poll 误判重载。
+        # (直接 == 比原 md5 双哈希省 cpu: 两侧 bytes 本就已读入, 无需再算摘要。)
         src = Path(__file__).resolve().parent.parent / "assets" / "board"
         if not src.exists():
             DBG.log(f"插件 board 资产目录不存在 {src}, 跳过拷贝", style="dim")
@@ -1674,7 +1676,7 @@ class Skein:
                 continue
             df = dst_root / sf.relative_to(src)
             data = sf.read_bytes()
-            if df.exists() and hashlib.md5(df.read_bytes()).digest() == hashlib.md5(data).digest():
+            if df.exists() and df.read_bytes() == data:
                 skipped += 1
                 continue  # 内容一致, 跳过
             df.parent.mkdir(parents=True, exist_ok=True)

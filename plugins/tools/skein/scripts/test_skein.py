@@ -210,7 +210,9 @@ def main():
            "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--agent", "general-purpose")
         sk(d, "board")
         html = (d / ".skein/task.html").read_text()
-        assert "…" not in html, "DAG 节点仍截断信息 (出现省略号)"
+        # 剔搜索框 placeholder 里的装饰性省略号 (非 DAG 截断), 只验节点文本无 …
+        html_nodag_placeholder = re.sub(r'placeholder="[^"]*"', "", html)
+        assert "…" not in html_nodag_placeholder, "DAG 节点仍截断信息 (出现省略号)"
         text_only = re.sub(r"<[^>]+>", "", html)  # 剥标签: 多行 name 拼接后应含全文
         assert longnm in text_only, "长 name 未完整渲染 (多行拼接后应可见全文)"
         boxes = re.findall(r'<rect x="\d+" y="\d+" width="(\d+)" height="(\d+)" rx="6"', html)
@@ -267,8 +269,9 @@ def test_multirepo():
         assert "repoA" in rl and "repoB" in rl, rl
         sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--agent", "skein-executor")
         sk(d, "start", "feat")
-        wa = d / ".worktrees/skein-feat/repoA"
-        wb = d / ".worktrees/skein-feat/repoB"
+        # worktree 落各子仓内部 (<repo>/.worktrees/skein-<id>), 非旧版根级 .worktrees/skein-<id>/<repo>
+        wa = d / "repoA/.worktrees/skein-feat"
+        wb = d / "repoB/.worktrees/skein-feat"
         assert wa.is_dir() and wb.is_dir(), "多子 git worktree 未建全"
         # 各 worktree 内改文件并提交前留给 finish 提交
         (wa / "f.txt").write_text("base-repoA\nchangeA\n")
