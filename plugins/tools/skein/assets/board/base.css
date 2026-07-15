@@ -234,3 +234,13 @@ mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inheri
 .markdown th,.markdown td{border:1px solid var(--brd);padding:7px 13px;text-align:left}
 .markdown th{background:var(--sel-bg);color:var(--head);font-weight:600}
 .markdown tr:nth-child(2n) td{background:color-mix(in srgb,var(--muted) 7%,transparent)}
+/* PRD checklist (卡片直显 prd.md 目标/验收标准 两节的 checklist) */
+.prd{margin:4px 0 8px;display:flex;flex-direction:column;gap:8px}
+.prd-sec{background:color-mix(in srgb,var(--muted) 6%,transparent);border:1px solid var(--line);border-radius:7px;padding:7px 10px}
+.prd-h{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--head);margin-bottom:4px}
+.prd-p{margin-left:auto;font-size:11px;font-weight:500;color:var(--muted);background:var(--sel-bg);border-radius:9px;padding:1px 7px}
+.prd-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.prd-list li{position:relative;padding-left:18px;font-size:12.5px;line-height:1.5;color:var(--fg)}
+.prd-list li::before{content:"○";position:absolute;left:0;color:var(--muted)}
+.prd-list li.done{color:var(--muted);text-decoration:line-through}
+.prd-list li.done::before{content:"●";color:var(--accent)}

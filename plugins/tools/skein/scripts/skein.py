@@ -1524,6 +1524,32 @@ class Skein:
             f'<p class="meta">整体进度 (task+subtask 综合)</p>{bar(combined_pct)}'
             f'{task_view}{full_view}</section>')
 
+        def prd_block(tid):
+            # 解析 prd.md 的「目标」「验收标准」两节 markdown checklist (- [ ]/- [x]), 卡片直显 (跳过未填 TODO 占位)。
+            prd = self.tasks / tid / "prd.md"
+            if not prd.exists():
+                return ""
+            secs, cur = {}, None
+            for ln in prd.read_text(encoding="utf-8", errors="replace").splitlines():
+                h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
+                if h:
+                    cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
+                    continue
+                m = cur and re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
+                if m and not m.group(2).lstrip().startswith("TODO"):
+                    secs.setdefault(cur, []).append((m.group(1).lower() == "x", m.group(2).strip()))
+            parts = []
+            for name in ("目标", "验收标准"):
+                items = secs.get(name)
+                if not items:
+                    continue
+                done = sum(1 for d, _ in items if d)
+                lis = "".join(f'<li class="{"done" if d else ""}">{esc(txt)}</li>' for d, txt in items)
+                parts.append(f'<div class="prd-sec"><div class="prd-h">{esc(name)}'
+                             f'<span class="prd-p">{done}/{len(items)}</span></div>'
+                             f'<ul class="prd-list">{lis}</ul></div>')
+            return f'<div class="prd">{"".join(parts)}</div>' if parts else ""
+
         cards = []
         for t in tasks:
             subs = t.get("subtasks", [])
@@ -1565,6 +1591,7 @@ class Skein:
                 f'<h2>{esc(t["id"])} {badge(t["status"], st_cls)}</h2>'
                 f'<p class="name">{esc(t.get("name", ""))}</p>'
                 f'{doc_row}'
+                f'{prd_block(t["id"])}'
                 f'<p class="meta">前置: {esc(", ".join(name_of.get(d, d) for d in t.get("deps", [])) or "-")} · '
                 f'worktree: {esc(t.get("worktree") or "-")} · '
                 f'耗时 {fmt_dur(elapsed)} / 预期 {fmt_dur(est)}</p>'
