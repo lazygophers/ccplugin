@@ -1,0 +1,5 @@
+# SKEIN 看板 serve (FastAPI + uvicorn) 运行依赖。
+# SessionStart hook (ensure-deps.py) 缺失时后台 pip install; serve 启动前亦兜底自装。
+# 仅 `skein.py serve` 需要; task 生命周期 (init/create/start/finish...) 纯 stdlib, 无依赖。
+fastapi>=0.110
+uvicorn[standard]>=0.29

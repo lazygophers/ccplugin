@@ -81,7 +81,12 @@
                     },
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py session-context",
+                        "command": "skein session-context",
+                        "timeout": 5
+                    },
+                    {
+                        "type": "command",
+                        "command": "skein ensure-deps",
                         "timeout": 5
                     }
                 ]
@@ -92,7 +97,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/scripts/skein.py user-prompt",
+                        "command": "skein user-prompt",
                         "timeout": 5
                     }
                 ]

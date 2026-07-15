@@ -930,6 +930,15 @@ class Skein:
         if errs:
             raise SystemExit(1)
 
+    def _is_own_dev_repo(self) -> bool:
+        # 本 skein.py 源码就在当前 git 仓内 → 这是插件自身开发仓, 非用户工作区。
+        # 该仓无 .skein/ 是正常的 (它是插件源码, 不该被 skein 托管), 故不注入未初始化 nag。
+        # ponytail: 若真有人想在插件仓里跑 skein 任务, 该 nag 会被静默 — 罕见, 可接受。
+        try:
+            return self.root in Path(__file__).resolve().parents
+        except Exception:
+            return False
+
     def _uninit_ctx(self):
         # 未初始化注入文案。检测到 .trellis/ → 强命令式, 显式压过 trellisx 的 active-task 注入 (决策: skein 抢做唯一任务管理器);
         # 无 trellis → 常规硬提示先 setup。
@@ -948,6 +957,8 @@ class Skein:
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
         if not self.git and not self.dir.exists():
             return  # 非 git 且无 .skein: 别在任意目录 nag (用户 setup/init 建了 .skein 才接管)
+        if self._is_own_dev_repo():
+            return  # 插件自身开发仓: 无 .skein 属正常, 不 nag
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
             print(json.dumps({"hookSpecificOutput": {
@@ -973,6 +984,8 @@ class Skein:
         # 已初始化 → 注入 task 判定 (让 model 判是否走 skein-flow 闭环)。判定是语义活 (model 做), hook 只注入标准。
         if not self.git and not self.dir.exists():
             return  # 非 git 且无 .skein: 别在任意目录 nag
+        if self._is_own_dev_repo():
+            return  # 插件自身开发仓: 无 .skein 属正常, 不 nag
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
             print(json.dumps({"hookSpecificOutput": {
@@ -1665,12 +1678,13 @@ class Skein:
             f'<script src="{base}/skein-fx.js"></script>'  # 缕光主题 canvas 水面动效 (自门控)
             f'<script src="{base}/vendor/marked.min.js"></script>'  # 离线 markdown 渲染器 (vendored)
             f'<script src="{base}/doc.js"></script>'  # 规划文档 (prd/design/findings) 浮层查看
-            # 自动刷新: serve (http) 下轮询 /__skein__/rev (全部 task.json 最大 mtime), 变了才 reload (空闲不闪);
-            # file:// 下端点不存在 fetch 抛错 → 静默 no-op (view 每次重开已是最新)
-            '<script>(function(){var m;setInterval(function(){'
-            'fetch("/__skein__/rev",{cache:"no-store"}).then(function(r){return r.text();}).then(function(v){'
-            'if(v){if(m&&v!==m)location.reload();m=v;}'
-            '}).catch(function(){});},2000);})();</script></body></html>')
+            # 热重载: serve(http) 下连 WS /__skein__/live, 收 "reload" 即刷 (task.json 或 board 资产变都推);
+            # 断线 2s 重连。file:// 下协议非 http → 直接跳过 (view 每次重开已最新)。
+            '<script>(function(){if(location.protocol==="file:")return;'
+            'function conn(){var ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/__skein__/live");'
+            'ws.onmessage=function(e){if(e.data==="reload")location.reload();};'
+            'ws.onclose=function(){setTimeout(conn,2000);};'
+            'ws.onerror=function(){try{ws.close();}catch(_){}}; }conn();})();</script></body></html>')
         if persist:
             self._write_if_changed(self.html_path, html)
         return html
@@ -1722,12 +1736,41 @@ class Skein:
         self._run_server(open_browser=manual and cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=not manual)
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
-    _REV_PATH = "/__skein__/rev"  # 版本探测端点: 全部 task.json 最大 mtime, 前端轮询变则 reload
+    _REV_PATH = "/__skein__/rev"  # 版本探测端点: rev 变则 reload (WS 推送为主, 轮询兜底)
+    _LIVE_PATH = "/__skein__/live"  # 热重载 WebSocket: rev 变时 server 推 "reload", 浏览器即刷
+
+    @staticmethod
+    def _board_assets_dir() -> Path:
+        return (Path(__file__).resolve().parent.parent / "assets" / "board").resolve()
 
     def _task_json_rev(self) -> str:
-        # 顶层 task.json + 各 task/<id>/task.json 的最大 mtime_ns → 任一变更即变, 驱动前端自动重载。
+        # 热重载 rev: task.json (数据) + board 静态资产 (css/js, 开发时改动) 的最大 mtime_ns。
+        # 任一变更即变 → WS 推 reload。含资产故编辑样式/脚本也即时热重载 (stat-only, 免读内容)。
+        # ponytail: 每次 rglob assets (~15 文件) stat, 500ms 一轮足够轻; 资产暴增再上 watchfiles。
         files = [self.dir / "task.json"] + list(self.tasks.glob("*/task.json"))
+        files += [p for p in self._board_assets_dir().rglob("*") if p.is_file()]
         return str(max((f.stat().st_mtime_ns for f in files if f.exists()), default=0))
+
+    @staticmethod
+    def _serve_deps_present() -> bool:
+        import importlib.util
+        return all(importlib.util.find_spec(m) for m in ("fastapi", "uvicorn"))
+
+    def _install_serve_deps(self, block: bool):
+        # serve 依赖 (fastapi/uvicorn) 缺失时 pip 安装。block=True: 同步装 (serve 启动前, 本进程是后台 monitor 不卡 session);
+        # block=False: 后台 Popen 立即返回 (SessionStart hook 用, 不阻塞会话启动)。
+        req = Path(__file__).resolve().parent.parent / "requirements.txt"
+        cmd = [sys.executable, "-m", "pip", "install", "-q"]
+        cmd += ["-r", str(req)] if req.exists() else ["fastapi", "uvicorn[standard]"]
+        if block:
+            subprocess.run(cmd, check=False)
+        else:
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def ensure_deps(self, _=None):
+        # [SessionStart hook 用] 依赖已齐→立即退出; 缺失→后台异步 pip install (不阻塞会话)。
+        if not self._serve_deps_present():
+            self._install_serve_deps(block=False)
 
     def _lock_file(self):
         return self.dir / ".board-server.lock"
@@ -1742,13 +1785,13 @@ class Skein:
             return False
 
     def _run_server(self, open_browser=True, quiet=False):
-        # 起本地 http 服务 (随机 port, bind :0) 服务 .skein/。相对资源 (board/*.js/css) 靠 http root 正确解析。Ctrl-C 停。
-        # quiet=True (monitor): 不打印 info (启动 URL / 停止行); 访问日志 (info/warn) 恒静默; error 走 log_error → stderr 保留。
-        import http.server, socketserver, functools, json, atexit, signal
+        # FastAPI + uvicorn 本地看板服务 (随机 port)。热重载: WS 推 reload (rev = task.json + assets mtime)。
+        # quiet=True (monitor): 不打印启动/停止行, 访问日志静默。uvicorn 自装 SIGINT/SIGTERM 优雅停机。
+        import json, atexit, socket, threading, webbrowser
 
         lock = self._lock_file()
         proj_id = str(self.dir.resolve())
-        # 已有同项目服务在跑 → 复用, 不再起第二个 (多 session monitor 去重)。lock 失效/属别的项目 → 落下方 bind :0 拿新随机 port 覆盖。
+        # 已有同项目服务在跑 → 复用, 不再起第二个 (多 session monitor 去重)。lock 失效/属别项目 → 落下方拿新随机 port 覆盖。
         if lock.exists():
             try:
                 existing_port = json.loads(lock.read_text()).get("port")
@@ -1759,104 +1802,150 @@ class Skein:
                 if not quiet:
                     print(f"SKEIN 看板服务已在运行: {url}", flush=True)
                 if open_browser:
-                    import webbrowser
                     webbrowser.open(url)
                 return
 
-        id_path, id_body = self._LOCK_ID_PATH, proj_id.encode()
-        rev_path, board = self._REV_PATH, self  # board: 每请求实时从 task.json 渲染, 不吃静态 task.html
-        assets_dir = (Path(__file__).resolve().parent.parent / "assets" / "board").resolve()  # /board/* 直出插件资产, 不拷 .skein/
-
-        class Handler(http.server.SimpleHTTPRequestHandler):
-            def _send(self, body, ctype):
-                self.send_response(200)
-                self.send_header("Content-Type", ctype)
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
-            def do_GET(self):
-                p = self.path.split("?", 1)[0]
-                if p == id_path:  # 身份探测端点
-                    self._send(id_body, "text/plain")
-                    return
-                if p == rev_path:  # 版本探测端点: 前端轮询
-                    self._send(board._task_json_rev().encode(), "text/plain")
-                    return
-                if p in ("/", "/task.html"):  # 看板页: 每请求实时从 task.json 渲染, 不落盘 task.html
-                    self._send(board._board_html(persist=False).encode("utf-8"), "text/html; charset=utf-8")
-                    return
-                if p.startswith("/board/"):  # 静态资产直出插件 assets/board/, 不经 .skein/board/ (serve 不拷)
-                    import mimetypes
-                    fp = (assets_dir / p[len("/board/"):]).resolve()
-                    if not str(fp).startswith(str(assets_dir) + "/") or not fp.is_file():
-                        self.send_error(404)
-                        return
-                    self._send(fp.read_bytes(), mimetypes.guess_type(str(fp))[0] or "application/octet-stream")
-                    return
-                return super().do_GET()
-
-            def do_POST(self):  # 看板 UI 改配置 → 落回 config.yaml (仅 board_theme, 值须在 THEMES 内)
-                if self.path.split("?", 1)[0] != "/__skein__/config":
-                    self.send_error(404)
-                    return
-                try:
-                    body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
-                    self._log_extra = f" body={json.dumps(body, ensure_ascii=False)}"
-                    v = body.get("board_theme")
-                    if v not in {k for k, _ in THEMES}:
-                        raise ValueError("bad theme")
-                    board._set_config("board_theme", v)
-                    self._send(b'{"ok":true}', "application/json")
-                except Exception:
-                    self.send_error(400)
-
-            _log_extra = ""  # 请求附加信息 (POST body 等); 处理器按需设, _log 打印后清
-
-            def _log(self, code):
-                # 2026-07-15 21:12:57.123 GET /task.html -> 200   (POST 追加 body=...)
-                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                sys.stderr.write(f"{ts} {self.command} {self.path}{self._log_extra} -> {code}\n")
-                self._log_extra = ""  # 清, 免 keep-alive 连接下条请求串味
-
-            def log_request(self, code="-", size="-"):
-                self._log(code.value if hasattr(code, "value") else code)
-
-            def log_error(self, *a):
-                pass  # 错误码已并入 log_request 单行, 免 "code 404, message ..." 重复噪声
-
-        handler = functools.partial(Handler, directory=str(self.dir))
-        with socketserver.TCPServer(("127.0.0.1", 0), handler) as httpd:
-            port = httpd.server_address[1]
-            lock.write_text(json.dumps({"port": port, "project": proj_id}))
-
-            def _cleanup():  # 退出前删 lock (仅删本进程写的, 防误删他实例)
-                try:
-                    if lock.exists() and json.loads(lock.read_text()).get("port") == port:
-                        lock.unlink()
-                except Exception:
-                    pass
-
-            atexit.register(_cleanup)
-            # monitor 关服务发 SIGTERM (默认直接终止, 不走 atexit/finally) → 转成 KeyboardInterrupt 走清理
-            try:
-                signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-            except (ValueError, OSError):
-                pass  # 非主线程无法注册, 忽略
-            url = f"http://127.0.0.1:{port}/task.html"
+        # 依赖兜底: monitor 后台跑, 缺 fastapi/uvicorn 则同步装 (本进程非会话主线程, 不卡 session)。
+        if not self._serve_deps_present():
             if not quiet:
-                print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)  # flush: 交互模式即时回显 URL
-            if open_browser:
-                import webbrowser
-                webbrowser.open(url)
+                print("SKEIN 看板依赖缺失, 安装 fastapi/uvicorn 中 …", flush=True)
+            self._install_serve_deps(block=True)
+            if not self._serve_deps_present():
+                print("SKEIN 看板依赖安装失败 — 手动 pip install -r requirements.txt", file=sys.stderr, flush=True)
+                return
+
+        import uvicorn
+
+        # 随机空闲端口: bind :0 探一个, 立即释放交 uvicorn。
+        # ponytail: close→uvicorn bind 间有 TOCTOU 窗口, 本地看板可接受; 撞了 uvicorn 抛错 monitor 重起。
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.bind(("127.0.0.1", 0))
+        port = s.getsockname()[1]
+        s.close()
+
+        def _cleanup():  # 退出前删 lock (仅删本进程写的, 防误删他实例)
             try:
-                httpd.serve_forever()
-            except KeyboardInterrupt:
-                if not quiet:
-                    print("\n看板服务已停止")
+                if lock.exists() and json.loads(lock.read_text()).get("port") == port:
+                    lock.unlink()
+            except Exception:
+                pass
+
+        url = f"http://127.0.0.1:{port}/task.html"
+
+        def _on_ready():  # uvicorn 真正 bind 后 (lifespan startup) 才落 lock: 保证「lock 在 = 端口可连」
+            lock.write_text(json.dumps({"port": port, "project": proj_id}))
+            if not quiet:
+                print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止)", flush=True)
+            if open_browser:
+                threading.Timer(0.3, lambda: webbrowser.open(url)).start()
+
+        atexit.register(_cleanup)
+        app = self._build_serve_app(proj_id, quiet, _on_ready)
+        cfg = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", access_log=False)
+        try:
+            uvicorn.Server(cfg).run()  # 阻塞; 收到 SIGINT/SIGTERM 优雅停机后返回
+        finally:
+            if not quiet:
+                print("\n看板服务已停止")
+            _cleanup()
+
+    def _build_serve_app(self, proj_id, quiet, on_ready=None):
+        # 构建 FastAPI app: 看板页实时渲染 + /board 静态直出 + 主题 POST + /__skein__/live 热重载 WS。
+        from contextlib import asynccontextmanager
+        from fastapi import FastAPI, Request, WebSocket
+        from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+        from fastapi.staticfiles import StaticFiles
+        import asyncio
+
+        board = self  # 每请求实时从 task.json 渲染, 不吃静态 task.html
+        clients = set()  # 活跃热重载 WS 连接
+
+        async def _watch_loop():
+            # 每 500ms 比 rev, 变则推 reload 给全部 WS 客户端 (task.json 或 assets 改动均触发)。
+            last = board._task_json_rev()
+            while True:
+                await asyncio.sleep(0.5)
+                try:
+                    cur = board._task_json_rev()
+                except Exception:
+                    continue
+                if cur != last:
+                    last = cur
+                    for c in list(clients):
+                        try:
+                            await c.send_text("reload")
+                        except Exception:
+                            clients.discard(c)
+
+        @asynccontextmanager
+        async def lifespan(_app):
+            task = asyncio.create_task(_watch_loop())
+            if on_ready:
+                on_ready()  # 已 bind, 落 lock (保证 lock 在 = 端口可连)
+            try:
+                yield
             finally:
-                _cleanup()
+                task.cancel()
+
+        app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+        @app.middleware("http")
+        async def _access_log(request, call_next):
+            # 复用旧格式: ms 时间戳 + method/path -> code; POST 附 body (读一次缓存进 scope, handler 复用不重读)。
+            extra = ""
+            if request.method == "POST":
+                try:
+                    raw = await request.body()
+                    request.scope["skein_body"] = raw
+                    extra = " body=" + raw.decode("utf-8", "replace")
+                except Exception:
+                    extra = ""
+            resp = await call_next(request)
+            if not quiet:
+                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                sys.stderr.write(f"{ts} {request.method} {request.url.path}{extra} -> {resp.status_code}\n")
+            return resp
+
+        @app.get(self._LOCK_ID_PATH, response_class=PlainTextResponse)
+        async def _identify():  # 身份探测端点: 返回项目标识 (.skein 绝对路径)
+            return proj_id
+
+        @app.get(self._REV_PATH, response_class=PlainTextResponse)
+        async def _rev():  # 版本探测端点: 轮询兜底 (WS 不可用时)
+            return board._task_json_rev()
+
+        @app.get("/", response_class=HTMLResponse)
+        @app.get("/task.html", response_class=HTMLResponse)
+        async def _page():  # 看板页: 每请求实时从 task.json 渲染, 不落盘
+            return board._board_html(persist=False)
+
+        @app.post("/__skein__/config")
+        async def _config(request: Request):  # 看板 UI 改主题 → 落回 config.yaml (仅 board_theme, 值须在 THEMES 内)
+            try:
+                body = json.loads(request.scope.get("skein_body") or b"{}")
+                v = body.get("board_theme")
+                if v not in {k for k, _ in THEMES}:
+                    raise ValueError("bad theme")
+            except Exception:
+                return JSONResponse({"error": "bad request"}, status_code=400)
+            board._set_config("board_theme", v)
+            return {"ok": True}
+
+        @app.websocket(self._LIVE_PATH)
+        async def _live(ws: WebSocket):  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
+            await ws.accept()
+            clients.add(ws)
+            try:
+                while True:
+                    await ws.receive_text()  # 客户端不发则阻塞; 断开抛异常
+            except Exception:
+                pass
+            finally:
+                clients.discard(ws)
+
+        # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
+        app.mount("/board", StaticFiles(directory=str(self._board_assets_dir())), name="board")
+        return app
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
     # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
@@ -2144,6 +2233,7 @@ def main():
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
     sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
+    sub.add_parser("ensure-deps", help="[hook 用] 看板 serve 依赖 (fastapi/uvicorn) 缺则后台 pip install, 不阻塞会话")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
@@ -2194,6 +2284,10 @@ def main():
     if a.cmd == "user-prompt":
         # 每 prompt 都跑: 非 git 且无 .skein → 方法内静默返回; 提醒不依赖 .skein 初始化状态
         Skein().user_prompt()
+        return
+    if a.cmd == "ensure-deps":
+        # SessionStart hook: 依赖已齐→秒退; 缺→后台 pip install 不阻塞会话。不碰 .skein, 免锁。
+        Skein().ensure_deps()
         return
     sk = Skein()
     dispatch = {
