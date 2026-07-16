@@ -269,7 +269,12 @@ class Skein:
                 continue
             f = d / "task.json"
             if f.exists():
-                t = json.loads(f.read_text())
+                try:
+                    t = json.loads(f.read_text())
+                except (json.JSONDecodeError, OSError) as e:
+                    # 单个 task.json 损坏 (半写/手改坏) 不该炸整个看板: 跳过并告警, 其余 task 照常渲染
+                    DBG.log(f"跳过损坏 {f}: {e}", style="red")
+                    continue
                 out.append(t)
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
