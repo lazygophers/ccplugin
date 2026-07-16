@@ -59,7 +59,7 @@ effort: high
    - `prd.md` (主入口) — 分章节: **目标 / 边界 / 验收标准 / 索引** (链 design/findings/task.json)。每章节自带 `- [ ] TODO`, 填完逐个勾掉; 未勾清 = planning 未收敛。
    - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json)。
    - `findings.md` (需调研时) — 深度调研的收敛结论 + 依据/引用; 过程笔记存 `research/` (researcher 写)。
-   - **子任务 + 调度 DAG** — subtask 拆分 (每个含 depends_on + 验收 checklist) 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json (sid/--name/--desc 三者必填, `--agent` 省略默认 `skein-executor`)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
+   - **子任务 + 调度 DAG (协议先行, 后并行)** — 拆分铁律: 先把 subtask 间的**共享契约** (接口签名 / 数据结构 / 类型 / 协议格式 / DB schema) 抽成**单个前置 subtask** 优先定死, 下游各实现 subtask 只 `--deps` 这一个契约 subtask、彼此**不互挂依赖** → 契约一 done 即全批并行。这是压 makespan 的命门 —— 定协议是唯一真串行, 实现全并行。每个 subtask 含 depends_on + 验收 checklist, 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json (sid/--name/--desc 三者必填, `--agent` 省略默认 `skein-executor`)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
 6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
 ## 调度 = task.json 子任务 DAG

@@ -10,6 +10,8 @@ exec 阶段的 DAG = task.json `subtasks[].depends_on`, **由 `skein subtask add
 | st2 | st1 | 新字段透传响应; 旧字段不删 | skein-executor | - |
 | st3 | st1 | 覆盖新旧字段两条路径 | skein-executor | - |
 
+> 上表 st1 = **契约 subtask** (定 schema): st2/st3 只依赖它、互不依赖 → st1 done 即并行, 是「协议先行, 后并行」的落地形。
+
 落盘 (planning 执行, main 同步跑):
 
 ```bash
@@ -24,6 +26,7 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 - 并行与否只看这张 DAG, 不靠脚本猜写文件重叠 (拆分时把真正有序的关系写进 `--deps`)。
 - 运行态看 `skein subtask list <tid>` (脚本落盘), 不看任何 md 文件。
 
-**统筹学: 拆 DAG 求最短工期 (min makespan)** — exec 的就绪批由脚本按**关键路径**优先派 (最长下游链先跑), planning 只需把两件事做对, 脚本自会最优调度:
+**统筹学: 拆 DAG 求最短工期 (min makespan)** — exec 的就绪批由脚本按**关键路径**优先派 (最长下游链先跑), planning 只需把下面几件事做对, 脚本自会最优调度:
+- **协议先行, 后并行 (最优拆法)** — 先识别 subtask 间**共享契约** (接口签名 / 数据结构 / 类型 / API 格式 / DB schema), 把「定契约」抽成单个前置 subtask; 所有实现 subtask 只 `--deps` 这个契约 subtask、彼此不互挂 → 契约 done 即全批并行。反模式: 让实现 A 依赖实现 B 只因 "B 先写了接口" —— 应把接口提成独立前置, A/B 同 `--deps` 它并行, 别串成链。
 - **压关键路径, 别串成一条链** — 无真实依赖的 subtask 禁互挂 `--deps` (伪依赖会拉长关键路径、扼杀并行); 有序的才连。把长任务尽量前置、让下游能早并行。
 - **供 `--estimate <分钟>` (AI 预期耗时)** — 关键路径权重 = 自身 estimate + 最长下游链; 供了 estimate 脚本才能按真实工期排优先级 (缺省每步按 1 分钟算, 退化为纯拓扑深度)。长耗时且卡在关键路径上的 subtask 尤其要标, 让它抢先派。
