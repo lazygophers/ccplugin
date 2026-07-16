@@ -1437,8 +1437,10 @@ class Skein:
         def esc(s):
             return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         proj = esc(self.proj)
-        links = (f'<link rel=stylesheet href="board/base.css">'
-                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css">' for k, _ in THEMES))
+        # 资产版本戳: css/js url 带 ?v=<rev>, 资产内容变 → url 变 → 浏览器必重取, 免旧 css/js 缓存 (stat 卡选中态/DAG 置灰 不 stale)
+        rev = self._asset_rev()
+        links = (f'<link rel=stylesheet href="board/base.css?v={rev}">'
+                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css?v={rev}">' for k, _ in THEMES))
         theme_opts = "".join(f'<option value="{k}"{" selected" if k == theme else ""}>{esc(label)}</option>'
                              for k, label in THEMES)
         # shell 模板抽到 assets/board/shell.html; Python 只填 token (数据/主题/persist 差异)
@@ -1454,6 +1456,9 @@ class Skein:
                             'title="刷新页面数据 (task.json)">⟳ 刷新</button>') if not persist else '',
         }
         html = (self._board_assets_dir() / "shell.html").read_text(encoding="utf-8")
+        # 给 shell.html 内静态 <script src="board/*.js"> 追版本戳 (同 css, 免旧 js 缓存)
+        for js in ("board-render", "switcher", "doc", "live"):
+            html = html.replace(f'src="board/{js}.js"', f'src="board/{js}.js?v={rev}"')
         for k, v in tokens.items():
             html = html.replace("{{" + k + "}}", v)
         if persist:
