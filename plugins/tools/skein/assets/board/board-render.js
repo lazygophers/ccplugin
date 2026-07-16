@@ -389,7 +389,14 @@
 
     document.querySelectorAll(".col-side .dag-view > .dag-wrap").forEach(function (w) {
       var v = w.closest(".dag-view"), s = v && savedScroll[v.getAttribute("data-dag")];
-      if (s) { w.scrollTop = s.t; w.scrollLeft = s.l; }
+      if (s) { w.scrollTop = s.t; w.scrollLeft = s.l; return; }
+      // 首屏无存位: 居中到进行中节点 (.n-active 优先, 退 .n-check)。SVG 被缩放,
+      // 像素坐标不 1:1, 用 getBoundingClientRect 算实际偏移。
+      var node = w.querySelector(".n-active") || w.querySelector(".n-check");
+      if (!node) return;
+      var nr = node.getBoundingClientRect(), wr = w.getBoundingClientRect();
+      w.scrollTop += (nr.top - wr.top) - (w.clientHeight - nr.height) / 2;
+      w.scrollLeft += (nr.left - wr.left) - (w.clientWidth - nr.width) / 2;
     });
     window.scrollTo({ top: savedWin, behavior: "instant" });
   }
