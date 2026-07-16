@@ -339,9 +339,23 @@
     }).join("");
     var main = data.cards.length ? cards : '<p class="empty">无 task</p>';
 
+    // 软刷新保滚动位: 换 innerHTML 前记左栏 DAG 各视图滚动位 + 窗口滚动, 渲染后复原
+    // (同一 renderBoard 调用内读旧 DOM→写新 DOM; 整页 reload 时 DOM 全新, 无旧值→自然回置顶)
+    var savedScroll = {}, savedWin = window.pageYOffset;
+    document.querySelectorAll(".col-side .dag-wrap").forEach(function (w) {
+      var v = w.closest(".dag-view");
+      if (v) savedScroll[v.getAttribute("data-dag")] = { t: w.scrollTop, l: w.scrollLeft };
+    });
+
     var layout = document.querySelector(".layout");
     if (layout) layout.innerHTML = '<aside class="col-side">' + overview + '</aside><main class="col-main">' + main + "</main>";
-    if (window.__skeinBindContent) window.__skeinBindContent();
+    if (window.__skeinBindContent) window.__skeinBindContent();  // 恢复可见 dag-view (task/subtask 维度)
+
+    document.querySelectorAll(".col-side .dag-wrap").forEach(function (w) {
+      var v = w.closest(".dag-view"), s = v && savedScroll[v.getAttribute("data-dag")];
+      if (s) { w.scrollTop = s.t; w.scrollLeft = s.l; }
+    });
+    window.scrollTo({ top: savedWin, behavior: "instant" });
   }
 
   window.renderBoard = renderBoard;
