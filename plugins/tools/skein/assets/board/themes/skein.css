@@ -1,96 +1,68 @@
-/* 缕光 (skein · 默认旗舰) — 原语: 卡片=glass(液态玻璃) · 边框=hairline(流光描边) · 圆角=round · 字型=sans · 底纹=金蓝弥散水光(缓漂)。
-   签名: 深蓝玻璃暗底上一层金蓝流光 —— 底纹缓漂 + 卡片流光扫过 + 运行卡辉光脉动 + 进度条金蓝流动渐变 + 标题渐变微闪。
-   烘焙配色=金+蓝: 深蓝玻璃底 + 金色(accent)/亮蓝(accent2)流光点缀。明暗=暗。华丽靠光与动, 结构极简。 */
+/* 缕光 (skein · 默认旗舰) — 静态浅色晨曦玻璃。参考: 浅薰衣草白底 + 底部中央暖阳光晕升起过渡到浅蓝, 磨砂白玻璃胶囊卡。
+   烘焙配色: 蓝 accent #0087EB / 暖阳 #FFE0AE / 浅蓝 #B1E3FF / 近黑字 #111827 / 白卡。明暗=浅。
+   动效: 背景全静态 (无环境流光/脉动), 仅已完成进度条 (.bar.done) 保留流动。 */
 html[data-theme=skein]{
-  /* 烘焙配色=金+蓝流光玻璃 (深蓝基 --h:230 + 金 accent hue85 + 亮蓝 accent2 hue245) + 明暗=暗 */
-  --h:230;--c-neutral:.02;--c-accent:.135;--h-accent:85;--h-accent2:245;
-  /* 深蓝玻璃暗锚 (带色, 非死灰); 金 accent 明度略提更亮 */
-  --l-bg:.165;--l-card:.225;--l-fg:.91;--l-head:.85;--l-muted:.62;--l-brd:.33;--l-line:.27;--l-accent:.78;--l-st:.71;
+  /* 中性=薰衣草浅调 (--h:265); accent=蓝 (#0087EB, hue250) + accent2=亮蓝 (#B1E3FF, hue240) */
+  --h:265;--c-neutral:.012;--c-accent:.16;--h-accent:250;--h-accent2:240;
+  /* 明度锚点 — LIGHT: 极浅薰衣草底 + 近白卡 + 近黑字 (#111827≈L.24) */
+  --l-bg:.945;--l-card:.99;--l-fg:.26;--l-head:.20;--l-muted:.52;--l-brd:.885;--l-line:.925;--l-accent:.58;--l-st:.66;
   --radius:16px;
 }
 
-/* 底纹: 莫奈水塘弥散渐变 + 缓漂 */
+/* 底纹: 静态晨曦 (固定不随滚动) — 浅薰衣草白顶 → 中下暖阳光晕 (#FFE0AE) 升起 → 浅蓝穹顶 (#B1E3FF)。
+   光晕落在视口可见区 (暖阳中心 ~72%, 蓝穹底部), 参考晨曦海报。 */
 html[data-theme=skein] body{
   background:
-    radial-gradient(50% 45% at 15% 12%,color-mix(in srgb,var(--accent) 32%,transparent),transparent),
-    radial-gradient(48% 48% at 85% 20%,color-mix(in srgb,var(--accent2) 30%,transparent),transparent),
-    radial-gradient(55% 50% at 75% 88%,color-mix(in srgb,var(--accent) 22%,transparent),transparent),
-    radial-gradient(45% 45% at 20% 80%,color-mix(in srgb,var(--accent2) 20%,transparent),transparent),
-    var(--bg);
+    radial-gradient(135% 62% at 50% 112%,color-mix(in srgb,#B1E3FF 78%,transparent) 0%,transparent 66%),
+    radial-gradient(78% 52% at 50% 72%,color-mix(in srgb,#FFE0AE 82%,transparent) 0%,transparent 60%),
+    radial-gradient(60% 40% at 50% 118%,color-mix(in srgb,#0087EB 22%,transparent) 0%,transparent 60%),
+    linear-gradient(180deg,#EEF1FB 0%,#E9EFFB 46%,#DBEAFB 100%);
   background-attachment:fixed;
 }
 
-/* 卡片: 液态玻璃 + 流光描边扫过 */
+/* 卡片: 磨砂白玻璃胶囊 (静态, 无扫光) */
 html[data-theme=skein] .card,html[data-theme=skein] .switcher{
   position:relative;overflow:hidden;
-  background:color-mix(in srgb,var(--card) 58%,transparent);
-  border:1px solid color-mix(in srgb,var(--accent) 26%,var(--brd));
+  background:color-mix(in srgb,#fff 80%,transparent);
+  border:1px solid rgba(17,24,39,.07);
   border-radius:16px;
-  box-shadow:0 10px 34px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.10);
-  backdrop-filter:blur(13px) saturate(1.5);-webkit-backdrop-filter:blur(13px) saturate(1.5);
+  box-shadow:0 8px 30px rgba(17,24,39,.10),inset 0 1px 0 rgba(255,255,255,.7);
+  backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
 }
-/* 签名: 顶缘一道流光缓扫 (华丽但克制) */
+/* 顶缘一道静态浅蓝描边高光 */
 html[data-theme=skein] .card::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 90%,#fff),color-mix(in srgb,var(--accent2) 90%,#fff),transparent);
-  background-size:220% 100%;
-  animation:skein-sheen 6s linear infinite;
-}
-@keyframes skein-sheen{0%{background-position:120% 0}100%{background-position:-120% 0}}
-/* 签名2: 玻璃面一道对角流光缓扫过 (流光玻璃拟态核心), 克制低透明 */
-html[data-theme=skein] .card::after{
-  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
-  background:linear-gradient(115deg,transparent 38%,color-mix(in srgb,#fff 12%,transparent) 48%,color-mix(in srgb,var(--accent) 16%,transparent) 52%,transparent 62%);
-  background-size:260% 260%;
-  animation:skein-glaze 9s ease-in-out infinite;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 55%,#fff),color-mix(in srgb,var(--accent2) 55%,#fff),transparent);
 }
 html[data-theme=skein] .card>*{position:relative;z-index:1}
-@keyframes skein-glaze{0%{background-position:120% 120%}55%,100%{background-position:-60% -60%}}
-
-/* 运行中卡片: 辉光脉动 (:has 命中含运行徽章的卡) */
+/* 运行中卡片: 静态强化蓝描边 (无脉动) */
 html[data-theme=skein] .card:has(.badge.s-active),
 html[data-theme=skein] .card:has(.badge.ss-running){
-  border-color:color-mix(in srgb,var(--accent) 55%,transparent);
-  animation:skein-glow 2.6s ease-in-out infinite;
-}
-@keyframes skein-glow{
-  0%,100%{box-shadow:0 10px 34px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--accent) 30%,transparent),0 0 16px color-mix(in srgb,var(--accent) 22%,transparent)}
-  50%{box-shadow:0 10px 34px rgba(0,0,0,.42),0 0 0 1px color-mix(in srgb,var(--accent) 60%,transparent),0 0 30px color-mix(in srgb,var(--accent) 42%,transparent)}
+  border-color:color-mix(in srgb,var(--accent) 45%,transparent);
 }
 
-/* 进度条: 薰衣草→柳绿流光渐变。
-   选择器带 .bar 提特异性 (0,3,1) 压过 base .bar.prog .fill (0,3,0), 否则 base 的 background 简写会重置 background-size:200% → skein-flow 无位移看似静止。 */
+/* 进度条: 蓝→亮蓝渐变。仅已完成 (.bar.done) 流动, 未完成静态。
+   选择器带 .bar.done 提特异性压过 base .bar.prog .fill, 否则 base 的 background 简写会重置 background-size → skein-flow 无位移看似静止。 */
 html[data-theme=skein] .bar .fill{
   background:linear-gradient(100deg,var(--accent),var(--accent2),color-mix(in srgb,var(--accent) 70%,#fff),var(--accent));
   background-size:250% 100%;
-  animation:skein-flow 2.6s linear infinite;
-  box-shadow:0 0 10px color-mix(in srgb,var(--accent) 45%,transparent);
+  box-shadow:0 0 8px color-mix(in srgb,var(--accent) 32%,transparent);
 }
+html[data-theme=skein] .bar.done .fill{animation:skein-flow 2.6s linear infinite}
 @keyframes skein-flow{0%{background-position:0% 0}100%{background-position:-250% 0}}
-/* 轨道: 玻璃质凹槽 (内阴影 + 半透微光底) */
+/* 轨道: 浅玻璃凹槽 */
 html[data-theme=skein] .bar{
-  background:color-mix(in srgb,var(--accent) 12%,color-mix(in srgb,var(--card) 40%,transparent));
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.05);
+  background:color-mix(in srgb,var(--accent) 8%,color-mix(in srgb,#fff 55%,transparent));
+  box-shadow:inset 0 1px 2px rgba(17,24,39,.08),inset 0 0 0 1px rgba(255,255,255,.4);
 }
 
-/* 标题: 睡莲渐变微闪文字 */
-html[data-theme=skein] h1{
-  background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent));
-  background-size:200% 100%;
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-  animation:skein-flow 8s linear infinite;
-}
+/* 标题: 静态近黑 (参考图 Neue Montreal 深字, 无渐变微闪) */
+html[data-theme=skein] h1{color:var(--head)}
 
 /* 徽章 / 选中: 玻璃质 */
-html[data-theme=skein] .badge{border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:999px}
+html[data-theme=skein] .badge{border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:999px}
 
-/* 减动偏好: 仅当看板去掉 data-motion=full (opt-out) 才尊重系统, 关全部动效保留静态华丽 */
+/* 减动偏好: 关已完成进度条流动 (背景本就静态, 无需其它) */
 @media (prefers-reduced-motion: reduce){
-  html[data-theme=skein]:not([data-motion=full]) body,
-  html[data-theme=skein]:not([data-motion=full]) .card::before,
-  html[data-theme=skein]:not([data-motion=full]) .card::after,
-  html[data-theme=skein]:not([data-motion=full]) .card:has(.badge.s-active),
-  html[data-theme=skein]:not([data-motion=full]) .card:has(.badge.ss-running),
-  html[data-theme=skein]:not([data-motion=full]) .bar .fill,
-  html[data-theme=skein]:not([data-motion=full]) h1{animation:none}
+  html[data-theme=skein]:not([data-motion=full]) .bar.done .fill{animation:none}
 }
