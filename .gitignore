@@ -86,3 +86,6 @@ graphify-out/.worktrees/
 
 # 忽略所有 tsv (darwin/优化日志等本地产物)
 *.tsv
+
+# skein 自身 dogfood 运行态 (本仓库用 skein 跑开发任务的 scratch, 非源码)
+/.skein/
