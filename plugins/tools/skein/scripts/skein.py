@@ -936,15 +936,6 @@ class Skein:
         if errs:
             raise SystemExit(1)
 
-    def _is_own_dev_repo(self) -> bool:
-        # 本 skein.py 源码就在当前 git 仓内 → 这是插件自身开发仓, 非用户工作区。
-        # 该仓无 .skein/ 是正常的 (它是插件源码, 不该被 skein 托管), 故不注入未初始化 nag。
-        # ponytail: 若真有人想在插件仓里跑 skein 任务, 该 nag 会被静默 — 罕见, 可接受。
-        try:
-            return self.root in Path(__file__).resolve().parents
-        except Exception:
-            return False
-
     def _uninit_ctx(self):
         # 未初始化注入文案。检测到 .trellis/ → 强命令式, 显式压过 trellisx 的 active-task 注入 (决策: skein 抢做唯一任务管理器);
         # 无 trellis → 常规硬提示先 setup。
@@ -963,8 +954,6 @@ class Skein:
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
         if not self.git and not self.dir.exists():
             return  # 非 git 且无 .skein: 别在任意目录 nag (用户 setup/init 建了 .skein 才接管)
-        if self._is_own_dev_repo():
-            return  # 插件自身开发仓: 无 .skein 属正常, 不 nag
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
             print(json.dumps({"hookSpecificOutput": {
@@ -990,8 +979,6 @@ class Skein:
         # 已初始化 → 注入 task 判定 (让 model 判是否走 skein-flow 闭环)。判定是语义活 (model 做), hook 只注入标准。
         if not self.git and not self.dir.exists():
             return  # 非 git 且无 .skein: 别在任意目录 nag
-        if self._is_own_dev_repo():
-            return  # 插件自身开发仓: 无 .skein 属正常, 不 nag
         if not (self.dir / "config.yaml").exists():
             ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
             print(json.dumps({"hookSpecificOutput": {
