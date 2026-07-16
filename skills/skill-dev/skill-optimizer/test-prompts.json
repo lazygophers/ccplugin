@@ -1,6 +1,0 @@
-[
-  {"id": 1, "type": "should-trigger", "prompt": "我有个 skill 总不触发，帮我看下哪里问题", "expected": "加载 skill-optimizer → Phase 1 诊断 description/when_to_use 触发词 → Phase 2 编辑建议"},
-  {"id": 2, "type": "should-trigger", "prompt": "这个 agent.md 改完后行为变了，做下回归检查", "expected": "Phase 5 回归 + agent.md 优化差异表（dim3 错误标注 / tools 最小化）"},
-  {"id": 3, "type": "should-not-trigger", "prompt": "帮我从零写个新的部署 skill", "expected": "路由 skill-author，不进入优化流程（从零创建 ≠ 优化现有）"},
-  {"id": 4, "type": "edge", "prompt": "帮我看下这个 CLAUDE.md 写得好不好", "expected": "不直接处理（CLAUDE.md 非 skill），说明边界 + 可给结构建议"}
-]

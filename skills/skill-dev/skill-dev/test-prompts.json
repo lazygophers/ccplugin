@@ -1,0 +1,10 @@
+[
+  {"id": 1, "type": "should-trigger", "prompt": "帮我做一个 PR review 的 skill", "expected": "流程 A 创建 → Phase 1 定位（skill vs subagent）→ Phase 2 骨架 → Phase 3 frontmatter"},
+  {"id": 2, "type": "should-trigger", "prompt": "加一个只读的 db agent", "expected": "流程 A → Phase 1 定位为 subagent → subagent 编写要点（tools 最小化 + body 错误标注）"},
+  {"id": 3, "type": "should-trigger", "prompt": "我有个 skill 总不触发，帮我看下哪里问题", "expected": "流程 B 优化 → Phase 1 诊断 description/when_to_use 触发词 → Phase 2 编辑建议"},
+  {"id": 4, "type": "should-trigger", "prompt": "这个 agent.md 改完后行为变了，做下回归检查", "expected": "流程 B → Phase 5 回归 + agent.md 优化差异表（dim3 错误标注 / tools 最小化）"},
+  {"id": 5, "type": "should-not-trigger", "prompt": "蒸馏芒格的思维方式", "expected": "路由 huashu-nuwa（人物视角蒸馏 ≠ 功能 skill 编写）"},
+  {"id": 6, "type": "should-not-trigger", "prompt": "帮我看下这个 CLAUDE.md 写得好不好", "expected": "不直接处理（CLAUDE.md 非 skill/agent），说明边界 + 可给结构建议"},
+  {"id": 7, "type": "edge", "prompt": "这个 skill 不触发，太长了怎么改", "expected": "路由内判为优化意图 → 走流程 B（诊断 dim1 触发 + dim7 冗余），不误进创建流程"},
+  {"id": 8, "type": "edge", "prompt": "帮我从零写个新的部署 skill", "expected": "路由判为创建意图 → 走流程 A（含 disable-model-invocation 副作用判断），不进优化流程"}
+]

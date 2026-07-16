@@ -1,6 +1,6 @@
 ---
 name: plugin-dev
-description: 创建与优化 Claude Code 插件的方法论框架。当用户要新建插件（搭 .claude-plugin/plugin.json manifest + 接线 commands/agents/skills/hooks/MCP + 挂 marketplace）、或审查优化现有插件（manifest 合规 / 组件接线完整性 / hook 健壮性 / marketplace 一致性）时使用。单组件（单个 skill / agent）编写路由 skill-author；纯 9 维 skill 质量优化路由 skill-optimizer。仅手动 /plugin-dev 触发。
+description: 创建与优化 Claude Code 插件的方法论框架。当用户要新建插件（搭 .claude-plugin/plugin.json manifest + 接线 commands/agents/skills/hooks/MCP + 挂 marketplace）、或审查优化现有插件（manifest 合规 / 组件接线完整性 / hook 健壮性 / marketplace 一致性）时使用。单组件（单个 skill / agent）编写或 9 维质量优化路由 skill-dev。仅手动 /plugin-dev 触发。
 disable-model-invocation: true
 argument-hint: "[create|optimize] <插件路径>"
 arguments: "[create|optimize] <插件路径>"
@@ -8,7 +8,7 @@ arguments: "[create|optimize] <插件路径>"
 
 # Plugin Dev — Claude Code 插件创建 / 优化方法论
 
-> meta-skill：教如何搭建与打磨**整个 Claude Code 插件**（不是单个组件）。基于本仓库 `docs/plugin-development.md` + `plugins/tools/*` 7 个真实插件 + 官方规范。单组件级编写归 [skill-author]，单 skill 的 9 维评分优化归 [skill-optimizer]；本 skill 管**插件级**（manifest / 组件接线 / hook / marketplace）。
+> meta-skill：教如何搭建与打磨**整个 Claude Code 插件**（不是单个组件）。基于本仓库 `docs/plugin-development.md` + `plugins/tools/*` 7 个真实插件 + 官方规范。单组件级编写与 9 维评分优化归 [skill-dev]；本 skill 管**插件级**（manifest / 组件接线 / hook / marketplace）。
 
 ## 🔴 硬规（违反即失效）
 
@@ -28,8 +28,8 @@ arguments: "[create|optimize] <插件路径>"
 |---|---|
 | 「新建插件 / 从零做个插件 / 搭插件脚手架」 | **流程 A · 创建** |
 | 「优化 / 审查 / 检查这个插件 / 插件为什么不加载」 | **流程 B · 优化** |
-| 只写单个 skill / agent / command | 🛑 停，路由 `/skill-author`（本 skill 是插件级，不做单组件） |
-| 单个 SKILL.md 纯质量评分 | 🛑 停，路由 `/skill-optimizer` 或 `/darwin-skill` |
+| 只写单个 skill / agent / command | 🛑 停，路由 `/skill-dev`（本 skill 是插件级，不做单组件） |
+| 单个 SKILL.md 纯质量评分 | 🛑 停，路由 `/skill-dev` 或 `/darwin-skill` |
 
 ---
 
@@ -59,7 +59,7 @@ arguments: "[create|optimize] <插件路径>"
      "userConfig": { /* 可选: 暴露给用户的配置项 */ }
    }
    ```
-4. **写组件**（每个组件的具体写法委托 [skill-author]，本 skill 只保证接线）：
+4. **写组件**（每个组件的具体写法委托 [skill-dev]，本 skill 只保证接线）：
    - command：`commands/*.md`，frontmatter `description` / `argument-hint` / `allowed-tools` / `model`；正文用 `$ARGUMENTS` / `$1`。
    - agent：`agents/*.md`，frontmatter `name`（必填）/ `description`（必填）/ `tools` / `model` / `skills`。
    - skill：`skills/<skill>/SKILL.md`（大写）。
@@ -137,7 +137,7 @@ grep -rn 'command' $P/.claude-plugin/plugin.json | grep -q CLAUDE_PLUGIN_ROOT ||
 - 凭空替用户设计插件功能（应 brainstorm 逐问）；纯文本代替 `AskUserQuestion`。
 - 建完插件不挂 marketplace，或挂了但元数据与 plugin.json 不一致。
 - 改 SKILL.md / agent.md 跳过 `claude -p` 质量门。
-- 拿本 skill 去写单个 skill/agent（那是 skill-author）或做单 skill 评分（那是 skill-optimizer）。
+- 拿本 skill 去写单个 skill/agent 或做单 skill 评分（那是 skill-dev）。
 - 自动 push（禁，等明确指令）。
 
 ## 资源

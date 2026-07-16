@@ -1,6 +1,6 @@
 # 反模式黑名单 + 失败处理
 
-> skill-author 的 dim9 反向约束。主入口 SKILL.md「编写流程」。
+> skill-dev 流程 A 的 dim9 反向约束。主入口 SKILL.md「流程 A · 创建」。
 
 ## 失败处理（dim3 三段式编码）
 
