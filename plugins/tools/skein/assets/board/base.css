@@ -117,17 +117,15 @@ td{line-height:1.4}
 .pct{position:absolute;top:50%;right:0;left:auto;transform:translateY(-50%);font-size:10px;line-height:1;color:var(--head);background:var(--card);padding:1px 3px;border-radius:3px}
 /* 表内进度条: 更紧凑, 保底宽度让 hairline 可读 */
 td .bar{margin:1px 0;min-width:78px}
-/* 进度条动效: 柔光带在轨道横扫 (0% 空条可见) + 白高光在填充区横扫 (非 0% 可见) + 载入 fill 0→满生长 (bar-in); 尊重 reduce-motion */
-/* 光带落 .bar 轨道 (非 .fill), 故进度 0% 仍有动; z-index:0 保 pct chip (position:absolute) 压在其上仍清晰 */
-.bar::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:0;background:linear-gradient(90deg,transparent 0,color-mix(in srgb,var(--accent) 34%,transparent) 50%,transparent 100%);background-size:45% 100%;background-repeat:no-repeat;animation:bar-scan 1.7s linear infinite}
-/* 高光带二叠加在 .fill 内 (填充部分非 0% 时轨道光带被实色遮住, 故填充区自带白高光横扫, 任何主题可见) */
-.fill::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent 0,color-mix(in srgb,#fff 42%,transparent) 50%,transparent 100%);background-size:45% 100%;background-repeat:no-repeat;animation:bar-scan 1.7s linear infinite}
+/* 进度条动效: 仅已完成 (100%, .bar.done) 才流光庆祝; 未完成条静止 (无横扫). 载入 fill 0→满生长 (bar-in) 对所有条保留 (一次性, 非环境噪声) */
+/* 白高光在填充区横扫 — 完成条填满整轨, 白光扫过即完成态的动效 */
+.bar.done .fill::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent 0,color-mix(in srgb,#fff 42%,transparent) 50%,transparent 100%);background-size:45% 100%;background-repeat:no-repeat;animation:bar-scan 1.7s linear infinite}
 @keyframes bar-scan{from{background-position:-45% 0}to{background-position:145% 0}}
 @keyframes bar-in{from{transform:scaleX(0)}}
 /* 减动偏好: 默认 html[data-motion=full] 不跟随系统 (用户显式要动效, 看板自带开关); 去掉该属性或设非 full 才尊重系统 reduce-motion */
-@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .fill{animation:none}html:not([data-motion=full]) .bar::before,html:not([data-motion=full]) .fill::after{display:none}}
-/* 视口外进度条暂停扫光/流动 (百+待执行条同时跑会 churn GPU); switcher.js 用 IntersectionObserver 打 .voff */
-.bar.voff::before,.bar.voff .fill,.bar.voff .fill::after{animation-play-state:paused}
+@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .fill{animation:none}html:not([data-motion=full]) .bar.done .fill::after{display:none}}
+/* 视口外进度条暂停扫光/流动 (百条同时跑会 churn GPU); switcher.js 用 IntersectionObserver 打 .voff */
+.bar.voff .fill,.bar.voff .fill::after{animation-play-state:paused}
 
 /* 执行顺序图 (SVG 有向连接图, 箭头 dep->node, 并行同列) */
 /* svg 保持固有 W×H (不 max-width 缩糊); 过长时由 .dag-wrap 滚动 */
@@ -136,15 +134,11 @@ td .bar{margin:1px 0;min-width:78px}
 /* 节点整框按状态着色 (CSS class 覆盖 SVG presentation attr, 优先级更高): 主体填 palette 状态色淡染 + 同色描边, 随主题自适应.
    :first-of-type = 主体 rect (第 2 个 rect 是左边色条, 保留强化). */
 .dag g.n-pending>rect:first-of-type{fill:color-mix(in srgb,var(--st-pending) 15%,var(--bg));stroke:var(--st-pending)}
-.dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2;animation:dag-run 1.3s ease-in-out infinite}
+.dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2}
 .dag g.n-check>rect:first-of-type{fill:color-mix(in srgb,var(--st-check) 15%,var(--bg));stroke:var(--st-check)}
 .dag g.n-done>rect:first-of-type{fill:color-mix(in srgb,var(--st-done) 15%,var(--bg));stroke:var(--st-done)}
 .dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
-/* 进行中/运行中 呼吸动画: 描边透明度脉动, 传达 "活跃" */
-@keyframes dag-run{0%,100%{stroke-opacity:.35}50%{stroke-opacity:1}}
-/* 进行中 badge 同步脉动 (整框动画外, 表格/标题内的状态徽章也呼吸) */
-.badge.s-active,.badge.ss-running{animation:badge-run 1.4s ease-in-out infinite}
-@keyframes badge-run{0%,100%{opacity:1}50%{opacity:.6}}
+/* 未完成部分不做动效: 进行中 DAG 节点 / badge 均静态 (仅完成条流光, 见 .bar.done) */
 
 /* DAG 节点悬浮浮层: 概览 task 节点 hover 弹出该 task 的总进度条 + subtask 迷你 DAG (JS 定位显隐) */
 /* 过长 DAG 内部滚动: 固定高度上限 460px, 超出即容器内纵向/横向滚动 (svg 固有尺寸不缩),

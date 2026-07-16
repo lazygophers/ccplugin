@@ -39,7 +39,8 @@
     // width + label 均封顶 100%; prog 条带 --p 供 CSS 在 palette 内插值上色
     var p = Math.min(pct, 100);
     var kind = cls || "prog";
-    var c = "bar " + kind + (sub ? " sub" : "");
+    // 仅 100% (已完成) 打 done → CSS 只给完成条流光; 未完成条静止
+    var c = "bar " + kind + (sub ? " sub" : "") + (p >= 100 ? " done" : "");
     var style = "width:" + p + "%" + (kind === "prog" ? ";--p:" + p : "");
     return '<div class="' + c + '"><div class="fill" style="' + style
       + '"></div><span class="pct">' + p + "%</span></div>";
