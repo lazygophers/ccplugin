@@ -1351,7 +1351,7 @@ class Skein:
                     continue
                 checks = [d for k, d, _ in items if k == "check"]
                 badge = [sum(1 for c in checks if c), len(checks)] if checks else None
-                prose_cls = "" if name == "目标" else "prose"
+                prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
                 out.append({
                     "name": name, "badge": badge,
                     "items": [{"kind": k, "done": bool(d), "text": t,
@@ -1382,7 +1382,7 @@ class Skein:
                          for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
                          if (tdir / fn).exists()]
             cards.append({
-                "id": t["id"], "name": t.get("name", ""), "status": t["status"], "desc": t.get("desc", ""),
+                "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
                 "worktree": t.get("worktree") or None,

@@ -81,18 +81,25 @@ def test_prd_and_efficiency():
             shutil.rmtree(d / ".skein/board", ignore_errors=True)
             html = sk_obj._board_html(persist=False)
 
-            # --- prd_block 渲染 ---
-            assert '<div class="prd">' in html, "prd 块未渲染"
-            assert 'prd-h">目标<span class="prd-p">1/2' in html, "目标徽标/计数错 (TODO 未跳过?)"
-            assert 'prd-h">验收标准<span class="prd-p">1/2' in html, "验收标准徽标/计数错"
-            assert "占位" not in html, "TODO 占位未跳过 (泄漏到卡片)"
-            assert '<li class="done">做A</li>' in html, "完成项 class/文本错"
-            assert '<li class="">做B</li>' in html, "未完成项 class/文本错"
-            # prose 行 (无 checkbox 的段落) 也须渲染, 且不计入进度徽标 (1/2 不变)
-            assert '<li class="prose">定义中立配置 schema, 作单一真值。</li>' in html, "目标 prose 行未渲染"
-            assert '<li class="prose">纯文本验收也要显示。</li>' in html, "验收标准 prose 行未渲染"
-            assert "边界" not in re.sub(r'data-search="[^"]*"', "", html) or \
-                '<div class="prd-sec"><div class="prd-h">边界' not in html, "边界节不应进 prd 块"
+            # --- prd 数据 (前端渲染, 校验 __SKEIN__ JSON 结构而非 HTML) ---
+            data = sk_obj._board_data()
+            card = next(c for c in data["cards"] if c["id"] == "prd-demo")
+            prd = {s["name"]: s for s in card["prd"]}
+            assert set(prd) == {"目标", "验收标准"}, "prd 只应含 目标/验收标准 (边界节泄漏?)"
+            assert prd["目标"]["badge"] == [1, 2], "目标徽标/计数错 (TODO 未跳过?)"
+            assert prd["验收标准"]["badge"] == [1, 2], "验收标准徽标/计数错"
+
+            def items(name):
+                return {i["text"]: i for i in prd[name]["items"]}
+            g, a = items("目标"), items("验收标准")
+            assert "TODO: 占位" not in g and "TODO: 占位" not in a, "TODO 占位未跳过 (泄漏到卡片)"
+            assert g["做A"]["kind"] == "check" and g["做A"]["done"] is True, "完成项状态错"
+            assert g["做B"]["kind"] == "check" and g["做B"]["done"] is False, "未完成项状态错"
+            # prose 行 (无 checkbox 段落): 目标/验收标准 一致渲 todo UI — proseCls 空 (不再打 .prose 去标记)
+            gp = g["定义中立配置 schema, 作单一真值。"]
+            ap = a["纯文本验收也要显示。"]
+            assert gp["kind"] == "prose" and gp["proseCls"] == "", "目标 prose 行应无 .prose (todo UI)"
+            assert ap["kind"] == "prose" and ap["proseCls"] == "", "验收标准 prose 行应无 .prose (todo UI)"
 
             # --- 效率: serve 渲染零落盘 ---
             assert not (d / ".skein/task.html").exists(), "serve 渲染 (persist=False) 不应落盘 task.html"
@@ -136,6 +143,11 @@ def test_prd_and_efficiency():
             assert m._yaml_load(cfgp.read_text())["board_theme"] == newt, "_set_config 未落盘新值"
             assert sk_obj._set_config("evil_key", 1) is False, "非白名单键应拒写"
             assert "evil_key" not in m._yaml_load(cfgp.read_text()), "非白名单键泄漏进 config"
+
+            # --- name 为空回退 id (禁止隐藏已存在 task); 置于末尾避免 create 重落盘干扰零写断言 ---
+            sk(d, "create", "no-name-task", "--name", "", "--desc", "d")
+            nn = next(c for c in sk_obj._board_data()["cards"] if c["id"] == "no-name-task")
+            assert nn["name"] == "no-name-task", "空 name 未回退为 id"
         finally:
             os.chdir(cwd0)
 
@@ -171,13 +183,17 @@ def test_serve_http():
                 with urllib.request.urlopen(base + path, timeout=2) as r:
                     return r.status, r.read()
 
-            # 看板页实时渲染, 含 prd 徽标
+            # 看板页实时渲染: shell + 内联 window.__SKEIN__ (前端渲染, 结构数据走 /__skein__/data)
             st, body = get("/task.html")
             b = body.decode()
-            assert st == 200 and '<div class="prd">' in b and 'prd-p">1/2' in b, "serve 页缺 prd 实时渲染"
+            assert st == 200 and "window.__SKEIN__" in b, "serve 页缺内联看板数据"
+            st, body = get("/__skein__/data")
+            card = next(c for c in json.loads(body)["cards"] if c["id"] == "prd-demo")
+            prd = {s["name"]: s for s in card["prd"]}
+            assert st == 200 and prd["目标"]["badge"] == [1, 2], "serve 数据端点缺 prd 徽标"
             # rev 端点: 数字串 (mtime_ns)
             st, body = get("/__skein__/rev")
-            assert st == 200 and body.decode().isdigit(), "rev 端点未返回数字"
+            assert st == 200 and re.fullmatch(r"\d+\.\d+", body.decode()), "rev 端点格式非 data.asset 数字对"
             # 静态资产直出插件 assets, 且 serve 不拷 .skein/board/
             st, body = get("/board/base.css")
             assert st == 200 and b".prd" in body, "board/base.css 未直出或缺 .prd 样式"
