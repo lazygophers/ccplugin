@@ -331,14 +331,14 @@
       ? '<div class="dag-view" data-dag="full" hidden>' + dagHtml(ov.fullDag.nodes, null, null, true) + "</div>"
       : "";
 
-    // 待执行 subtask 队列 (同实际调度序: 就绪优先 + 关键路径权重降序)
+    // 待执行 subtask 队列 (全部未完成 task, 同实际调度序: task 序 → 就绪优先 + 关键路径权重降序)
     var queue = "";
     var pq = ov.pendingQueue || [];
     if (pq.length) {
       var qrows = pq.map(function (q, k) {
         var chip = q.ready
           ? '<span class="q-chip q-ready">就绪</span>'
-          : '<span class="q-chip q-block">待前置</span>';
+          : '<span class="q-chip q-block">排队中</span>';
         return '<li class="q-item">'
           + '<span class="q-ord">' + (k + 1) + "</span>" + chip
           + '<span class="q-name">' + esc(q.tid) + "/" + esc(q.sid) + " · " + esc(q.name) + "</span>"

@@ -1067,25 +1067,33 @@ class Skein:
         return {s["sid"]: w(s["sid"]) for s in subs}
 
     def _pending_queue(self, tasks: list) -> list:
-        """待执行 subtask 队列 (同调度序): active task 内 pending subtask,
-        就绪(依赖全done)优先 + 关键路径权重降序 + 登记序 (就绪批同 _ready 排法)。"""
+        """待执行 subtask 队列 (全部未完成 task, 同调度序): 每个 pending subtask 一条。
+        排序 = task 调度序 (active > 就绪 pending > 阻塞 pending, 同级按传入顺序)
+        → task 内 (真就绪 > 关键路径权重降序 > 登记序)。
+        就绪 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
         q = []
-        for t in tasks:
-            if t["status"] not in STATUS_ACTIVE:
-                continue
+        for ti, t in enumerate(tasks):
+            if t["status"] not in (S_PENDING, S_ACTIVE, S_CHECK):
+                continue  # 已完成/失败 task 跳过
             subs = t.get("subtasks", [])
+            if not any(s["status"] == SS_PENDING for s in subs):
+                continue
+            active = t["status"] in STATUS_ACTIVE
+            blocked = any(self._dep_unfinished(d) for d in t.get("deps", []))
+            trank = 0 if active else (2 if blocked else 1)
             done = {s["sid"] for s in subs if s["status"] == SS_DONE}
             crit = self._crit_weight(subs)
             for i, s in enumerate(subs):
                 if s["status"] != SS_PENDING:
                     continue
-                ready = all(d in done for d in s.get("depends_on", []))
+                ready = active and all(d in done for d in s.get("depends_on", []))
                 q.append({
                     "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
                     "agent": s.get("agent", "skein-executor"), "ready": ready,
-                    "crit": crit.get(s["sid"], 0), "est": s.get("estimate"), "i": i,
+                    "trank": trank, "ti": ti, "crit": crit.get(s["sid"], 0),
+                    "est": s.get("estimate"), "i": i,
                 })
-        q.sort(key=lambda x: (not x["ready"], -x["crit"], x["i"]))
+        q.sort(key=lambda x: (x["trank"], x["ti"], not x["ready"], -x["crit"], x["i"]))
         return q
 
     def _ready(self, t: list) -> list:
