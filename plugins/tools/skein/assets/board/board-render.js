@@ -70,6 +70,23 @@
       var d = 1 + mx; layer[i] = d; return d;
     }
     ids.forEach(function (i) { depth(i, {}); });
+    // 完成子图下沉: 整条链/孤点全 已完成 的弱连通分量, 深度整体下移到活跃节点之下 (读区留给活跃工作)
+    (function () {
+      var root = {}; ids.forEach(function (i) { root[i] = i; });
+      function find(x) { while (root[x] !== x) { root[x] = root[root[x]]; x = root[x]; } return x; }
+      ids.forEach(function (i) { dep[i].forEach(function (p) { root[find(i)] = find(p); }); });
+      var compDone = {};  // 分量根 → 是否全 done
+      ids.forEach(function (i) {
+        var r = find(i), d = smap[i][2] === "已完成";
+        compDone[r] = (r in compDone) ? (compDone[r] && d) : d;
+      });
+      var liveMax = -1;
+      ids.forEach(function (i) { if (!compDone[find(i)] && layer[i] > liveMax) liveMax = layer[i]; });
+      if (liveMax >= 0) {  // 有活跃分量才下沉; 全 done 时不动
+        var shift = liveMax + 1;
+        ids.forEach(function (i) { if (compDone[find(i)]) layer[i] += shift; });
+      }
+    })();
     var layers = {};
     Object.keys(layer).forEach(function (i) {
       var d = layer[i]; (layers[d] = layers[d] || []).push(i);
