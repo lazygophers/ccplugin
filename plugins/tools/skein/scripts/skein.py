@@ -1716,7 +1716,7 @@ class Skein:
     def _asset_rev(self) -> str:
         # 资产 rev: board 静态资产 + webapp 源 + 编译 css 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
         # ponytail: 每 500ms rglob assets (~几十文件) stat, 免读内容; vendor 二进制不纳入 (只盯 dist)。
-        dirs = [self._board_assets_dir(), self._webapp_dir(), self._vendor_dir() / "dist"]
+        dirs = [self._board_assets_dir(), self._webapp_dir()]
         return self._max_mtime([p for d in dirs for p in d.rglob("*") if p.is_file()])
 
     def _task_json_rev(self) -> str:
@@ -1736,92 +1736,10 @@ class Skein:
         cmd += ["-r", str(req)] if req.exists() else ["fastapi", "uvicorn[standard]"]
         subprocess.run(cmd, check=False)
 
-    # ---- webapp 工程化前端: 静态目录 + 运行态 vendoring (tailwind 二进制/petite-vue/编译 css) ----
-    _PETITE_VUE_URL = "https://unpkg.com/petite-vue@0.4.1/dist/petite-vue.iife.js"
-    _TAILWIND_VER = "v3.4.17"  # 固定 v3: 匹配 s1 的 tailwind.config.js (v4 改 CSS-first, 无 JS config)
-
+    # ---- webapp 工程化前端: 静态目录 (dist/app.css + vendor/petite-vue.js 已入库, 运行态零下载零构建) ----
     @staticmethod
     def _webapp_dir() -> Path:
         return (Path(__file__).resolve().parent.parent / "assets" / "webapp").resolve()
-
-    def _vendor_dir(self) -> Path:
-        # 运行态产物 (gitignore): tailwind standalone 二进制 + petite-vue.js + dist/app.css
-        return self.dir / ".vendor"
-
-    def _tailwind_url(self):
-        # 按 OS/arch 拼 tailwind standalone release URL + 本地文件名; 不支持的平台返回 (None, None)
-        import platform
-        sysname = {"Darwin": "macos", "Linux": "linux", "Windows": "windows"}.get(platform.system())
-        mach = platform.machine().lower()
-        arch = "arm64" if mach in ("arm64", "aarch64") else ("x64" if mach in ("x86_64", "amd64") else None)
-        if not sysname or not arch:
-            return None, None
-        name = f"tailwindcss-{sysname}-{arch}" + (".exe" if sysname == "windows" else "")
-        return (f"https://github.com/tailwindlabs/tailwindcss/releases/download/"
-                f"{self._TAILWIND_VER}/{name}", name)
-
-    def _ensure_webapp_assets(self, quiet=False):
-        # 幂等 vendoring + tailwind build: 缺 tailwind 二进制 / petite-vue 自动拉, 再编译 css。
-        # best-effort — 下载/构建失败只告警不炸 serve (离线仍能起看板; s1 未落地则跳过构建)。
-        import urllib.request
-        vdir = self._vendor_dir()
-        vdir.mkdir(parents=True, exist_ok=True)
-        # .vendor/ 写进 .skein/.gitignore (不入库), 幂等
-        gi = self.dir / ".gitignore"
-        txt = gi.read_text() if gi.exists() else ""
-        if ".vendor/" not in txt:
-            with gi.open("a") as f:
-                sep = "" if (not txt or txt.endswith("\n")) else "\n"
-                f.write(f"{sep}# skein serve 运行态 vendoring (tailwind 二进制/petite-vue/编译 css), 启动拉取, 不入库\n.vendor/\n")
-
-        def _log(m):
-            if not quiet:
-                print(m, flush=True)
-
-        def _dl(url, dst, mode=None, timeout=30):
-            # 流式落盘 (tailwind 二进制 ~100MB, 免整块进内存); 下到 .part 再原子改名, 失败清残件
-            if dst.exists():
-                return True
-            import shutil as _sh
-            tmp = dst.with_suffix(dst.suffix + ".part")
-            try:
-                _log(f"SKEIN webapp 拉取 {url} …")
-                with urllib.request.urlopen(url, timeout=timeout) as r, tmp.open("wb") as out:
-                    _sh.copyfileobj(r, out)
-                if mode:
-                    tmp.chmod(mode)
-                tmp.replace(dst)
-                return True
-            except Exception as e:
-                _log(f"SKEIN webapp 拉取失败 {url}: {e}")
-                if tmp.exists():
-                    tmp.unlink()
-                return False
-
-        _dl(self._PETITE_VUE_URL, vdir / "petite-vue.js")
-        tw_url, tw_name = self._tailwind_url()
-        tw_bin = vdir / (tw_name or "tailwindcss")
-        if tw_url:
-            _dl(tw_url, tw_bin, mode=0o755, timeout=180)  # standalone 二进制大, 放宽超时
-
-        src = self._webapp_dir() / "src" / "input.css"
-        cfg = self._webapp_dir() / "tailwind.config.js"
-        if tw_bin.exists() and src.exists():
-            dist = vdir / "dist"
-            dist.mkdir(parents=True, exist_ok=True)
-            cmd = [str(tw_bin), "-i", str(src), "-o", str(dist / "app.css"), "--minify"]
-            if cfg.exists():
-                cmd += ["-c", str(cfg)]
-            try:
-                _log("SKEIN webapp 构建 tailwind css …")
-                r = subprocess.run(cmd, cwd=str(self._webapp_dir()), check=False,
-                                   capture_output=True, text=True, timeout=120)
-                if r.returncode != 0:
-                    _log(f"SKEIN webapp tailwind 构建非零退出: {r.stderr.strip()[:400]}")
-            except Exception as e:
-                _log(f"SKEIN webapp tailwind 构建失败: {e}")
-        elif not src.exists():
-            _log("SKEIN webapp 源未就绪 (assets/webapp/src/input.css 缺失), 跳过 css 构建 — s1 落地后二启自动构建")
 
     def _lock_file(self):
         return self.dir / ".board-server.lock"
@@ -1864,9 +1782,6 @@ class Skein:
             if not self._serve_deps_present():
                 print("SKEIN 看板依赖安装失败 — 手动 pip install -r requirements.txt", file=sys.stderr, flush=True)
                 return
-
-        # 工程化前端 vendoring + tailwind build (幂等; 父进程跑一次, reload worker 不重跑)
-        self._ensure_webapp_assets(quiet=quiet)
 
         import uvicorn
 
@@ -2082,8 +1997,8 @@ class Skein:
         # (check_dir=False: s1 未落地 / css 未构建时不炸)
         app.mount("/webapp", StaticFiles(directory=str(self._webapp_dir()), check_dir=False), name="webapp")
         app.mount("/src", StaticFiles(directory=str(self._webapp_dir() / "src"), check_dir=False), name="src")
-        app.mount("/dist", StaticFiles(directory=str(self._vendor_dir() / "dist"), check_dir=False), name="dist")
-        app.mount("/vendor", StaticFiles(directory=str(self._vendor_dir()), check_dir=False), name="vendor")
+        app.mount("/dist", StaticFiles(directory=str(self._webapp_dir() / "dist"), check_dir=False), name="dist")
+        app.mount("/vendor", StaticFiles(directory=str(self._webapp_dir() / "vendor"), check_dir=False), name="vendor")
         # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
         # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
         app.mount("/task", StaticFiles(directory=str(self.tasks), check_dir=False), name="task")

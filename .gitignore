@@ -58,6 +58,12 @@ desktop/src-tauri/gen/
 lib/build/
 dist/
 
+# webapp 预构建前端资产入库 (serve 运行时零构建零下载)
+!plugins/tools/skein/assets/webapp/dist/
+!plugins/tools/skein/assets/webapp/dist/app.css
+!plugins/tools/skein/assets/webapp/vendor/
+!plugins/tools/skein/assets/webapp/vendor/petite-vue.js
+
 # Python 空 __init__.py（框架自动生成）
 plugins/tools/task/scripts/__init__.py
 
