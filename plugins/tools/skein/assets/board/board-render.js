@@ -214,7 +214,7 @@
       var hasTip = !!(tips && (i in tips));
       var hasLink = !!(links && (i in links));
       var blob = esc([_id, node[1], node.length > 5 ? node[5] : ""].map(function (x) { return String(x || ""); }).join(" ").toLowerCase());
-      var gAttr = (hasTip ? ' data-tip="' + esc(i) + '"' : "") + ' data-search="' + blob + '"';
+      var gAttr = (hasTip ? ' data-tip="' + esc(i) + '"' : "") + ' data-status="' + esc(stt) + '" data-search="' + blob + '"';
       var gCls = ((NODE_CLS[stt] || "") + (hasTip ? " has-tip" : "") + (hasLink ? " has-link" : "")).trim();
       var g =
         '<g class="' + gCls + '"' + gAttr + '><rect x="' + x + '" y="' + y + '" width="' + NW + '" height="' + NH
@@ -291,18 +291,19 @@
     // filterOpts 顺序: [all, active, check, pending, done] → 拿状态字面值给 statcard
     var fo = data.filterOpts;
     var S_ACTIVE = fo[1][0], S_CHECK = fo[2][0], S_PENDING = fo[3][0], S_DONE = fo[4][0];
-    function statcard(label, key) {
-      return '<div class="stat"><span class="stat-n">' + (ov.stats[key] || 0)
-        + '</span><span class="stat-l">' + esc(label) + "</span></div>";
+    // stat 卡 = 可点击多选筛选器: 总计(清空) + 4 状态; 点击激活状态过滤 (switcher.js 绑定)
+    function statcard(label, key, filter, cls) {
+      return '<button type="button" class="stat' + (cls ? " " + cls : "") + '" data-filter="' + esc(filter) + '">'
+        + '<span class="stat-n">' + (key === "__total__" ? ov.taskCount : (ov.stats[key] || 0))
+        + '</span><span class="stat-l">' + esc(label) + "</span></button>";
     }
-    var stats = '<div class="stats">' + statcard("已完成", S_DONE) + statcard("进行中", S_ACTIVE)
-      + statcard("检查中", S_CHECK) + statcard("待处理", S_PENDING) + "</div>";
+    var stats = '<div class="stats" id="sw-filter">'
+      + statcard("总计", "__total__", "", "stat-all")
+      + statcard("已完成", S_DONE, S_DONE) + statcard("进行中", S_ACTIVE, S_ACTIVE)
+      + statcard("检查中", S_CHECK, S_CHECK) + statcard("待处理", S_PENDING, S_PENDING) + "</div>";
     var sw = '<div class="dag-switch" role="group">'
       + '<button type="button" data-dag="task" class="on">task 维度</button>'
       + '<button type="button" data-dag="full"' + (ov.hasSub ? "" : " disabled") + ">task+subtask 维度</button></div>";
-    var filterCtrl = '<label class="filter">状态筛选 <select id="sw-filter">'
-      + fo.map(function (o) { return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + "</option>"; }).join("")
-      + "</select></label>";
 
     // task 维度 DAG: 结构化 tips → html 串
     var td = ov.taskDag;
@@ -313,7 +314,7 @@
       ? '<div class="dag-view" data-dag="full" hidden>' + dagHtml(ov.fullDag.nodes, null, null, true) + "</div>"
       : "";
 
-    var overview = '<section class="card"><h2>任务进展</h2>' + sw + filterCtrl + stats
+    var overview = '<section class="card"><h2>任务进展</h2>' + sw + stats
       + '<p class="meta">' + ov.taskCount + " task · " + esc(ov.estMeta) + "</p>"
       + '<p class="meta">整体进度 (task+subtask 综合)</p>' + bar(ov.combinedPct, false, "")
       + taskView + fullView + "</section>";
@@ -333,7 +334,7 @@
         + meta1
         + '<p class="meta">子任务 ' + c.sdone + "/" + c.stotal + "</p>" + bar(c.spct, true, "")
         + '<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
-        + dagHtml(c.subNodes, null, null, true)
+        + dagHtml(c.subNodes, null, null, (c.subNodes || []).length > 4)
         + subtable(c.subtable, data.ssClsMap) + "</details></section>";
     }).join("");
     var main = data.cards.length ? cards : '<p class="empty">无 task</p>';

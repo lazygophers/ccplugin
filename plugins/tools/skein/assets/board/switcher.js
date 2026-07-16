@@ -45,7 +45,12 @@
   });
   // 状态筛选(#sw-filter, 现居任务进展卡) + 搜索(#sw-search, 居 topbar) 统一决定右栏卡显隐:
   // 卡显 iff 状态命中 且 (搜索空 或 data-search 含关键词); 搜索还高亮命中卡关键词 + 左栏 DAG 命中节点高亮/其余变灰
-  function curFilter(){var s=document.getElementById('sw-filter');return s?s.value:'all';}
+  // 激活的状态过滤集 (空=全部); 取自 .stat.on 卡 (排除总计卡 .stat-all)
+  function curFilters(){var b=document.getElementById('sw-filter');if(!b)return [];
+    return Array.prototype.filter.call(b.querySelectorAll('.stat.on'),function(s){return !s.classList.contains('stat-all');})
+      .map(function(s){return s.getAttribute('data-filter');});}
+  // 总计卡激活态 = 无任何状态卡激活 (视觉表「全部」)
+  function syncTotalState(b){var all=b.querySelector('.stat-all');if(all)all.classList.toggle('on',!b.querySelector('.stat.on:not(.stat-all)'));}
   function curQuery(){var s=document.getElementById('sw-search');return s?s.value.trim().toLowerCase():'';}
   // 卡内高亮: 先拆旧 mark.hl, 再对含关键词文本节点包 <mark class=hl> (跳过 SVG 子树, 免污染卡内 DAG)
   function highlightCard(card,q){
@@ -72,18 +77,20 @@
     });
   }
   function applyCards(){
-    var f=curFilter(),q=curQuery();
+    var fs=curFilters(),q=curQuery(),all=fs.length===0;
     document.querySelectorAll('section.card[data-status]').forEach(function(c){
-      var okS=(f==='all'||c.getAttribute('data-status')===f);
+      var okS=(all||fs.indexOf(c.getAttribute('data-status'))>=0);
       var okQ=(!q||(c.getAttribute('data-search')||'').indexOf(q)>=0);
       c.style.display=(okS&&okQ)?'':'none';
       highlightCard(c,okQ?q:'');
     });
-    // 左栏 DAG: 搜索时命中节点高亮 (dag-hit)、其余变灰 (dag-dim); 状态筛选不动 DAG
+    // 左栏 DAG: 搜索命中节点高亮 (dag-hit); 状态筛选外 + 搜索未命中节点变灰 (dag-dim)
     document.querySelectorAll('.dag-wrap svg g[data-search]').forEach(function(g){
-      var hit=!!q&&g.getAttribute('data-search').indexOf(q)>=0;
-      g.classList.toggle('dag-hit',hit);
-      g.classList.toggle('dag-dim',!!q&&!hit);
+      var hitQ=!!q&&g.getAttribute('data-search').indexOf(q)>=0;
+      var st=g.getAttribute('data-status');
+      var dimS=!all&&!!st&&fs.indexOf(st)<0&&!!g.closest('.col-side');
+      g.classList.toggle('dag-hit',hitQ);
+      g.classList.toggle('dag-dim',(!!q&&!hitQ)||dimS);
     });
   }
   var ssel=document.getElementById('sw-search');
@@ -95,12 +102,24 @@
   // 内容区 (.layout) 绑定: 首次 + 每次软刷新 swap .layout 后重跑
   // (DAG 切换/悬浮浮层/进度条门控绑在卡片元素上, swap 即失效; doc-link 走 document 委托不用管)
   function bindContent(){
-    // 状态筛选 select 由 board-render 每次重渲染进总览卡, 故绑定必须每次重跑 (非一次性)
-    var fsel=document.getElementById('sw-filter');
-    if(fsel&&!fsel.__skBound){
-      fsel.__skBound=true;
-      var savedF=localStorage.getItem('skein-filter'); if(savedF)fsel.value=savedF;
-      fsel.addEventListener('change',function(){localStorage.setItem('skein-filter',fsel.value);applyCards();});
+    // stat 卡多选筛选: board-render 每次重渲染新 #sw-filter 节点, 故每次恢复保存态; click 委托一次性绑
+    var fbox=document.getElementById('sw-filter');
+    if(fbox){
+      var saved=(localStorage.getItem('skein-filter')||'').split(',').filter(Boolean);
+      fbox.querySelectorAll('.stat').forEach(function(s){var f=s.getAttribute('data-filter');
+        s.classList.toggle('on',!!f&&saved.indexOf(f)>=0);});
+      syncTotalState(fbox);
+      if(!fbox.__skBound){
+        fbox.__skBound=true;
+        fbox.addEventListener('click',function(e){
+          var b=e.target.closest('.stat'); if(!b||!fbox.contains(b))return;
+          if(b.classList.contains('stat-all'))fbox.querySelectorAll('.stat').forEach(function(s){s.classList.remove('on');});
+          else b.classList.toggle('on');
+          syncTotalState(fbox);
+          localStorage.setItem('skein-filter',curFilters().join(','));
+          applyCards();
+        });
+      }
     }
     applyCards();  // 依 topbar 未 swap 的筛选/搜索态, 重新套用到新卡片
     // DAG 维度切换: 按钮切 task / task+subtask 视图 (localStorage 记忆), 非 tab

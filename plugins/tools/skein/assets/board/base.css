@@ -75,11 +75,14 @@ h1{margin:0 0 2px;font-weight:600;font-size:20px;letter-spacing:-.01em;color:var
 .dag-switch button.on{background:var(--accent);color:#fff}
 .dag-switch button:disabled{opacity:.4;cursor:not-allowed}
 .dag-view[hidden]{display:none}
-/* 三状态统计卡: 已完成/进行中/待处理 数量 */
-.stats{display:flex;gap:10px;margin:0 0 12px}
-.stat{flex:1;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:10px 12px;text-align:center}
-.stat-n{display:block;font-size:22px;font-weight:600;color:var(--head);line-height:1.1}
+/* 状态统计卡 = 可点击多选筛选器: 总计 + 已完成/进行中/检查中/待处理 */
+.stats{display:flex;gap:8px;margin:0 0 12px;flex-wrap:wrap}
+.stat{flex:1 1 0;min-width:54px;background:var(--bg);border:1px solid var(--brd);border-radius:8px;padding:8px 6px;text-align:center;cursor:pointer;font:inherit;color:inherit;transition:border-color .18s,background .18s,box-shadow .18s}
+.stat:hover{border-color:var(--accent)}
+.stat.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--bg));box-shadow:inset 0 0 0 1px var(--accent)}
+.stat-n{display:block;font-size:20px;font-weight:600;color:var(--head);line-height:1.1}
 .stat-l{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.stat.on .stat-l{color:var(--head)}
 
 .card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:16px}
 /* 跳转高亮: 锚点命中卡片短暂描边强调 (:target) */
@@ -134,11 +137,13 @@ td .bar{margin:1px 0;min-width:78px}
 /* 节点整框按状态着色 (CSS class 覆盖 SVG presentation attr, 优先级更高): 主体填 palette 状态色淡染 + 同色描边, 随主题自适应.
    :first-of-type = 主体 rect (第 2 个 rect 是左边色条, 保留强化). */
 .dag g.n-pending>rect:first-of-type{fill:color-mix(in srgb,var(--st-pending) 15%,var(--bg));stroke:var(--st-pending)}
-.dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2}
+.dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:node-pulse 1.8s ease-in-out infinite}
 .dag g.n-check>rect:first-of-type{fill:color-mix(in srgb,var(--st-check) 15%,var(--bg));stroke:var(--st-check)}
 .dag g.n-done>rect:first-of-type{fill:color-mix(in srgb,var(--st-done) 15%,var(--bg));stroke:var(--st-done)}
 .dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
-/* 未完成部分不做动效: 进行中 DAG 节点 / badge 均静态 (仅完成条流光, 见 .bar.done) */
+/* 进行中节点强调: 脉冲流光 (突出正在进行, 呼应完成条流光). reduce-motion 门控见下 */
+@keyframes node-pulse{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 5px var(--st-active))}}
+@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .dag g.n-active>rect:first-of-type{animation:none}}
 
 /* DAG 节点悬浮浮层: 概览 task 节点 hover 弹出该 task 的总进度条 + subtask 迷你 DAG (JS 定位显隐) */
 /* 过长 DAG 内部滚动: 固定高度上限 460px, 超出即容器内纵向/横向滚动 (svg 固有尺寸不缩),
@@ -176,10 +181,7 @@ td .bar{margin:1px 0;min-width:78px}
 .search:focus{outline:none;border-color:var(--accent)}
 /* 关键词高亮: 命中卡内文本包 <mark class=hl> */
 mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inherit;border-radius:3px;padding:0 1px}
-/* 状态筛选控件 (任务进展卡内, 从图钉移入) */
-.filter{display:inline-flex;align-items:center;gap:6px;margin:0 0 12px;font-size:12px;color:var(--muted)}
-.filter select{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:5px;padding:2px 6px;font-size:12px}
-/* 左栏 DAG 搜索反馈: 命中节点强调 / 未命中变灰 */
+/* 左栏 DAG 反馈: 搜索命中节点强调 / 未命中 + 状态筛选外节点变灰 */
 .dag g.dag-dim{opacity:.22;transition:opacity .2s}
 .dag g.dag-hit>rect:first-of-type{stroke-width:2.5;filter:drop-shadow(0 0 3px var(--accent))}
 /* 图钉动作按钮 (刷新 / 回到顶部) */
