@@ -1481,6 +1481,202 @@ class Skein:
             html = html.replace("{{" + k + "}}", v)
         return html
 
+    def _webapp_html(self):
+        # 工程化前端首页: 读 assets/webapp/index.html, 填 token (PROJ/THEME/PAYLOAD/THEMES_JSON/VER)。
+        # token 缺席则 replace 无副作用 → 与 s1 的 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
+        html = (self._webapp_dir() / "index.html").read_text(encoding="utf-8")
+        data = self._board_data()
+        payload = (json.dumps(data, ensure_ascii=False)
+                   .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
+        tokens = {
+            "PROJ": self.proj,
+            "THEME": data["theme"],
+            "PAYLOAD": payload,
+            "THEMES_JSON": json.dumps(THEMES, ensure_ascii=False),
+            "VER": self._asset_rev(),  # /dist/app.css?v=VER 缓存击穿
+        }
+        for k, v in tokens.items():
+            html = html.replace("{{" + k + "}}", str(v))
+        return html
+
+    # ---- webapp 后端数据 (serve endpoint 复用; 与 _board_data 同一数据源) ----
+    def _spec_root(self) -> Path:
+        return (self.dir / "spec").resolve()
+
+    def _spec_tree(self) -> dict:
+        # spec 树: {layer: {category: [file, ...]}} (跳 index.md)
+        root = self._spec_root()
+        tree = {}
+        for layer in ("core", "recall"):
+            ld = root / layer
+            cats = {}
+            if ld.is_dir():
+                for cat in sorted(p for p in ld.iterdir() if p.is_dir()):
+                    files = [f.name for f in sorted(cat.glob("*.md")) if f.name != "index.md"]
+                    if files:
+                        cats[cat.name] = files
+            tree[layer] = cats
+        return tree
+
+    def _spec_resolve(self, rel):
+        # realpath 校验: 解析后必须在 .skein/spec/ 内, 越界返回 None (防路径穿越)
+        root = self._spec_root()
+        if not isinstance(rel, str) or not rel.strip():
+            return None
+        try:
+            p = (root / rel).resolve()
+        except Exception:
+            return None
+        return p if (p == root or root in p.parents) else None
+
+    def _task_detail(self, tid) -> dict:
+        # task.json 全文 + prd/design/findings 原文 + subtask + 契约; 未归档缺失则回落归档目录
+        tdir = self.tasks / tid
+        archived = False
+        if not (tdir / "task.json").exists():
+            ap = self._archived_path(tid)
+            if ap:
+                tdir, archived = ap, True
+        tj = tdir / "task.json"
+        if not tj.exists():
+            return None
+        try:
+            data = json.loads(tj.read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+        docs = {}
+        for fn in ("prd.md", "design.md", "findings.md"):
+            f = tdir / fn
+            docs[fn[:-3]] = f.read_text(encoding="utf-8", errors="replace") if f.exists() else None
+        return {"task": data, "docs": docs, "archived": archived,
+                "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", [])}
+
+    def _archive_list(self) -> list:
+        # 已归档 task 列表 (archive/<年>/<月-日>/<id>)
+        out = []
+        if self.archive_dir.exists():
+            for d in sorted(self.archive_dir.glob("*/*/*")):
+                tj = d / "task.json"
+                if not tj.exists():
+                    continue
+                try:
+                    t = json.loads(tj.read_text())
+                except (json.JSONDecodeError, OSError):
+                    continue
+                out.append({"id": t.get("id", d.name), "name": t.get("name", d.name),
+                            "status": t.get("status"), "desc": t.get("desc", ""),
+                            "finished": t.get("finished"), "archivedAt": d.parent.name,
+                            "subs": len(t.get("subtasks", []))})
+        return out
+
+    def _dashboard(self) -> dict:
+        # 统计聚合: 复用 _board_data overview + 补 subtask 状态分布 + 完成率
+        data = self._board_data()
+        ov = data["overview"]
+        sub_stat = {}
+        for t in self._render_tasks():
+            for s in t.get("subtasks", []):
+                sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
+        total = ov["taskCount"]
+        done = ov["stats"].get(S_DONE, 0)
+        return {"proj": self.proj, "taskCount": total,
+                "doneRate": round(done / total * 100) if total else 0,
+                "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
+                "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
+                "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
+                "pendingQueue": ov["pendingQueue"]}
+
+    def _queue(self) -> dict:
+        # 待执行队列 (复用 ready/pop 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
+        tasks = self._render_tasks()
+        ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]), "deps": t.get("deps", [])}
+                       for t in self._all()
+                       if t["status"] == S_PENDING
+                       and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
+        ready_subs = []
+        for t in self._active():
+            for s in self._ready(t):
+                ready_subs.append({"tid": t["id"], "sid": s["sid"],
+                                   "name": s.get("name", s["sid"]),
+                                   "agent": s.get("agent", "skein-executor")})
+        return {"pendingQueue": self._pending_queue(tasks),
+                "readyTasks": ready_tasks, "readySubtasks": ready_subs}
+
+    def _search(self, q) -> dict:
+        # 跨 task/subtask/prd/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
+        q = (q or "").strip().lower()
+        if not q:
+            return {"query": q, "hits": []}
+        hits = []
+        for t in self._render_tasks():
+            if q in " ".join(str(x or "") for x in (t["id"], t.get("name", ""), t.get("desc", ""))).lower():
+                hits.append({"kind": "task", "id": t["id"],
+                             "name": t.get("name", t["id"]), "snippet": t.get("desc", "")})
+            for s in t.get("subtasks", []):
+                if q in " ".join(str(x or "") for x in (s["sid"], s.get("name", ""), s.get("desc", ""))).lower():
+                    hits.append({"kind": "subtask", "id": f'{t["id"]}/{s["sid"]}',
+                                 "name": s.get("name", s["sid"]), "snippet": s.get("desc", "")})
+            prd = self.tasks / t["id"] / "prd.md"
+            if prd.exists() and q in prd.read_text(encoding="utf-8", errors="replace").lower():
+                hits.append({"kind": "prd", "id": t["id"],
+                             "name": f'{t.get("name", t["id"])} · PRD', "snippet": ""})
+        root = self._spec_root()
+        if root.exists():
+            for f in sorted(root.rglob("*.md")):
+                if f.name == "index.md":
+                    continue
+                if q in f.read_text(encoding="utf-8", errors="replace").lower():
+                    rel = f.relative_to(root).as_posix()
+                    hits.append({"kind": "spec", "id": rel, "name": rel, "snippet": ""})
+        return {"query": q, "hits": hits}
+
+    # exec 白名单: 严格 enum → 固定 argv (绝不 shell 拼串)。返回 argv 或 None(拒绝)。
+    def _exec_argv(self, body: dict):
+        cmd = body.get("cmd")
+        base = [sys.executable, str(Path(__file__).resolve())]
+
+        def s(k):  # 取字符串参数; 非 str/空 → None
+            v = body.get(k)
+            return v.strip() if isinstance(v, str) and v.strip() else None
+
+        # 只读命令
+        if cmd == "list":
+            argv = ["list", "--json"]
+            return base + (argv + ["--status", s("status")] if s("status") else argv)
+        if cmd == "ready":
+            return base + ["ready"]
+        if cmd == "pop":
+            return base + ["pop"]
+        if cmd == "current":
+            return base + ["current"]
+        if cmd == "doctor":
+            return base + ["doctor"]
+        if cmd == "status":
+            if not s("id"):
+                return None
+            argv = ["status", s("id")] + ([s("sid")] if s("sid") else []) + ["--json"]
+            return base + argv
+        if cmd == "contract":  # 仅查 (禁 --add)
+            return base + ["contract", s("id")] if s("id") else None
+        if cmd == "subtask-list":
+            return base + ["subtask", "list", s("id")] if s("id") else None
+        # 安全写命令
+        if cmd == "create":
+            if not (s("id") and s("name") and s("desc")):
+                return None
+            argv = ["create", s("id"), "--name", s("name"), "--desc", s("desc")]
+            return base + (argv + ["--deps", s("deps")] if s("deps") else argv)
+        if cmd == "subtask-add":
+            if not (s("id") and s("sid") and s("name") and s("desc")):
+                return None
+            argv = ["subtask", "add", s("id"), s("sid"), "--name", s("name"), "--desc", s("desc")]
+            if s("deps"):
+                argv += ["--deps", s("deps")]
+            if s("agent"):
+                argv += ["--agent", s("agent")]
+            return base + argv
+        return None  # 非白名单 → 拒绝
+
     def view(self, _):
         cfg = self.config()
         if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
@@ -1518,9 +1714,10 @@ class Skein:
         return self._max_mtime([self.dir / "task.json"] + list(self.tasks.glob("*/task.json")))
 
     def _asset_rev(self) -> str:
-        # 资产 rev: board 静态资产 (css/js) 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
-        # ponytail: 每 500ms rglob assets (~15 文件) stat, 免读内容; 资产暴增再上 watchfiles。
-        return self._max_mtime([p for p in self._board_assets_dir().rglob("*") if p.is_file()])
+        # 资产 rev: board 静态资产 + webapp 源 + 编译 css 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
+        # ponytail: 每 500ms rglob assets (~几十文件) stat, 免读内容; vendor 二进制不纳入 (只盯 dist)。
+        dirs = [self._board_assets_dir(), self._webapp_dir(), self._vendor_dir() / "dist"]
+        return self._max_mtime([p for d in dirs for p in d.rglob("*") if p.is_file()])
 
     def _task_json_rev(self) -> str:
         # 合并 rev (data + asset): /__skein__/rev 轮询兜底端点用, 任一变即变。
@@ -1538,6 +1735,93 @@ class Skein:
         cmd = [sys.executable, "-m", "pip", "install", "-q"]
         cmd += ["-r", str(req)] if req.exists() else ["fastapi", "uvicorn[standard]"]
         subprocess.run(cmd, check=False)
+
+    # ---- webapp 工程化前端: 静态目录 + 运行态 vendoring (tailwind 二进制/petite-vue/编译 css) ----
+    _PETITE_VUE_URL = "https://unpkg.com/petite-vue@0.4.1/dist/petite-vue.iife.js"
+    _TAILWIND_VER = "v3.4.17"  # 固定 v3: 匹配 s1 的 tailwind.config.js (v4 改 CSS-first, 无 JS config)
+
+    @staticmethod
+    def _webapp_dir() -> Path:
+        return (Path(__file__).resolve().parent.parent / "assets" / "webapp").resolve()
+
+    def _vendor_dir(self) -> Path:
+        # 运行态产物 (gitignore): tailwind standalone 二进制 + petite-vue.js + dist/app.css
+        return self.dir / ".vendor"
+
+    def _tailwind_url(self):
+        # 按 OS/arch 拼 tailwind standalone release URL + 本地文件名; 不支持的平台返回 (None, None)
+        import platform
+        sysname = {"Darwin": "macos", "Linux": "linux", "Windows": "windows"}.get(platform.system())
+        mach = platform.machine().lower()
+        arch = "arm64" if mach in ("arm64", "aarch64") else ("x64" if mach in ("x86_64", "amd64") else None)
+        if not sysname or not arch:
+            return None, None
+        name = f"tailwindcss-{sysname}-{arch}" + (".exe" if sysname == "windows" else "")
+        return (f"https://github.com/tailwindlabs/tailwindcss/releases/download/"
+                f"{self._TAILWIND_VER}/{name}", name)
+
+    def _ensure_webapp_assets(self, quiet=False):
+        # 幂等 vendoring + tailwind build: 缺 tailwind 二进制 / petite-vue 自动拉, 再编译 css。
+        # best-effort — 下载/构建失败只告警不炸 serve (离线仍能起看板; s1 未落地则跳过构建)。
+        import urllib.request
+        vdir = self._vendor_dir()
+        vdir.mkdir(parents=True, exist_ok=True)
+        # .vendor/ 写进 .skein/.gitignore (不入库), 幂等
+        gi = self.dir / ".gitignore"
+        txt = gi.read_text() if gi.exists() else ""
+        if ".vendor/" not in txt:
+            with gi.open("a") as f:
+                sep = "" if (not txt or txt.endswith("\n")) else "\n"
+                f.write(f"{sep}# skein serve 运行态 vendoring (tailwind 二进制/petite-vue/编译 css), 启动拉取, 不入库\n.vendor/\n")
+
+        def _log(m):
+            if not quiet:
+                print(m, flush=True)
+
+        def _dl(url, dst, mode=None, timeout=30):
+            # 流式落盘 (tailwind 二进制 ~100MB, 免整块进内存); 下到 .part 再原子改名, 失败清残件
+            if dst.exists():
+                return True
+            import shutil as _sh
+            tmp = dst.with_suffix(dst.suffix + ".part")
+            try:
+                _log(f"SKEIN webapp 拉取 {url} …")
+                with urllib.request.urlopen(url, timeout=timeout) as r, tmp.open("wb") as out:
+                    _sh.copyfileobj(r, out)
+                if mode:
+                    tmp.chmod(mode)
+                tmp.replace(dst)
+                return True
+            except Exception as e:
+                _log(f"SKEIN webapp 拉取失败 {url}: {e}")
+                if tmp.exists():
+                    tmp.unlink()
+                return False
+
+        _dl(self._PETITE_VUE_URL, vdir / "petite-vue.js")
+        tw_url, tw_name = self._tailwind_url()
+        tw_bin = vdir / (tw_name or "tailwindcss")
+        if tw_url:
+            _dl(tw_url, tw_bin, mode=0o755, timeout=180)  # standalone 二进制大, 放宽超时
+
+        src = self._webapp_dir() / "src" / "input.css"
+        cfg = self._webapp_dir() / "tailwind.config.js"
+        if tw_bin.exists() and src.exists():
+            dist = vdir / "dist"
+            dist.mkdir(parents=True, exist_ok=True)
+            cmd = [str(tw_bin), "-i", str(src), "-o", str(dist / "app.css"), "--minify"]
+            if cfg.exists():
+                cmd += ["-c", str(cfg)]
+            try:
+                _log("SKEIN webapp 构建 tailwind css …")
+                r = subprocess.run(cmd, cwd=str(self._webapp_dir()), check=False,
+                                   capture_output=True, text=True, timeout=120)
+                if r.returncode != 0:
+                    _log(f"SKEIN webapp tailwind 构建非零退出: {r.stderr.strip()[:400]}")
+            except Exception as e:
+                _log(f"SKEIN webapp tailwind 构建失败: {e}")
+        elif not src.exists():
+            _log("SKEIN webapp 源未就绪 (assets/webapp/src/input.css 缺失), 跳过 css 构建 — s1 落地后二启自动构建")
 
     def _lock_file(self):
         return self.dir / ".board-server.lock"
@@ -1580,6 +1864,9 @@ class Skein:
             if not self._serve_deps_present():
                 print("SKEIN 看板依赖安装失败 — 手动 pip install -r requirements.txt", file=sys.stderr, flush=True)
                 return
+
+        # 工程化前端 vendoring + tailwind build (幂等; 父进程跑一次, reload worker 不重跑)
+        self._ensure_webapp_assets(quiet=quiet)
 
         import uvicorn
 
@@ -1695,8 +1982,8 @@ class Skein:
 
         @app.get("/", response_class=HTMLResponse)
         @app.get("/task.html", response_class=HTMLResponse)
-        async def _page():  # 看板页: 每请求实时出 shell + 内联数据, 前端渲染
-            return board._board_html()
+        async def _page():  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
+            return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
 
         @app.post("/__skein__/config")
         async def _config(request: Request):  # 看板 UI 改主题 → 落回 config.yaml (仅 board_theme, 值须在 THEMES 内)
@@ -1722,8 +2009,81 @@ class Skein:
             finally:
                 clients.discard(ws)
 
+        # ---- webapp 后端数据 endpoint (9 个; 全走 board 同一数据源) ----
+        @app.get("/__skein__/dashboard")
+        async def _dashboard():  # 统计: 完成率/活跃数/subtask进度/状态分布
+            return JSONResponse(board._dashboard())
+
+        @app.get("/__skein__/queue")
+        async def _queue():  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
+            return JSONResponse(board._queue())
+
+        @app.get("/__skein__/task/{tid}")
+        async def _task(tid: str):  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
+            d = board._task_detail(tid)
+            return JSONResponse(d) if d else JSONResponse({"error": "task 不存在"}, status_code=404)
+
+        @app.get("/__skein__/spec")
+        async def _spec():  # spec 树 core/recall × 类目 × 文件
+            return JSONResponse(board._spec_tree())
+
+        @app.get("/__skein__/spec/file")
+        async def _spec_file(path: str):  # 单 spec 原文 (realpath 校验限 .skein/spec/)
+            p = board._spec_resolve(path)
+            if p is None:
+                return JSONResponse({"error": "路径越界"}, status_code=403)
+            if not p.is_file():
+                return JSONResponse({"error": "文件不存在"}, status_code=404)
+            return {"path": path, "content": p.read_text(encoding="utf-8", errors="replace")}
+
+        @app.post("/__skein__/spec/save")
+        async def _spec_save(request: Request):  # 写 spec (realpath 校验越界拒; 仅 .md)
+            try:
+                body = json.loads(request.scope.get("skein_body") or b"{}")
+                rel, content = body["path"], body["content"]
+                assert isinstance(rel, str) and isinstance(content, str)
+            except Exception:
+                return JSONResponse({"error": "bad request"}, status_code=400)
+            p = board._spec_resolve(rel)
+            if p is None or p.suffix != ".md":
+                return JSONResponse({"error": "路径越界或非 .md"}, status_code=403)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+            return {"ok": True, "path": rel}
+
+        @app.post("/__skein__/exec")
+        def _exec(request: Request):  # 白名单命令 (固定 argv; sync def → 跑线程池不阻塞 loop)
+            try:
+                body = json.loads(request.scope.get("skein_body") or b"{}")
+            except Exception:
+                return JSONResponse({"error": "bad request"}, status_code=400)
+            argv = board._exec_argv(body)
+            if argv is None:
+                return JSONResponse({"error": f"命令不在白名单: {body.get('cmd')!r}", "ok": False},
+                                    status_code=403)
+            try:
+                r = subprocess.run(argv, cwd=str(board.root), capture_output=True, text=True, timeout=60)
+            except Exception as e:
+                return JSONResponse({"error": str(e), "ok": False}, status_code=500)
+            return {"ok": r.returncode == 0, "cmd": body.get("cmd"),
+                    "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
+
+        @app.get("/__skein__/archive")
+        async def _archive():  # 已归档 task 列表
+            return JSONResponse(board._archive_list())
+
+        @app.get("/__skein__/search")
+        async def _search(q: str = ""):  # 跨 task/subtask/prd/spec 关键词搜
+            return JSONResponse(board._search(q))
+
         # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
         app.mount("/board", StaticFiles(directory=str(self._board_assets_dir())), name="board")
+        # webapp 工程化前端: 首页在 / 出, 其 index.html 相对引 dist/app.css + src/app.js → 挂 /dist /src /vendor 使之解析
+        # (check_dir=False: s1 未落地 / css 未构建时不炸)
+        app.mount("/webapp", StaticFiles(directory=str(self._webapp_dir()), check_dir=False), name="webapp")
+        app.mount("/src", StaticFiles(directory=str(self._webapp_dir() / "src"), check_dir=False), name="src")
+        app.mount("/dist", StaticFiles(directory=str(self._vendor_dir() / "dist"), check_dir=False), name="dist")
+        app.mount("/vendor", StaticFiles(directory=str(self._vendor_dir()), check_dir=False), name="vendor")
         # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
         # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
         app.mount("/task", StaticFiles(directory=str(self.tasks), check_dir=False), name="task")

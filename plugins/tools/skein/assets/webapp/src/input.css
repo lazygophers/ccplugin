@@ -1,0 +1,109 @@
+/* SKEIN webapp — Tailwind entry.
+   令牌契约 + 10 主题预设从 board/base.css + board/themes/*.css 忠实迁移。
+   Tailwind 语义色 (bg/card/fg/accent/st-*) 是这些 CSS 变量的薄别名 (见 tailwind.config.js),
+   主题切换纯走 <html data-theme> 变量交换, 不用 Tailwind dark class。
+   ponytail: 只迁移「令牌身份」(seed/明度锚点/radius/font/status 色相),
+   不搬各主题的装饰纹理 (玻璃/软阴影/流光背景) — 那些是页面/看板专属, 留后续页面 subtask。 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── 令牌系统 (oklch 语义派生, 迁自 base.css:13-40) ──
+     :root 默认 = stone 浅色兜底。两层: seed + 明度锚点 → oklch 派生完整契约。 */
+  :root {
+    /* seed (主题覆盖) */
+    --h: 110; --c-neutral: .008; --c-accent: .052; --h-accent: 135; --h-accent2: 250;
+    /* 明度锚点 — LIGHT */
+    --l-bg: .935; --l-card: .975; --l-fg: .34; --l-head: .44; --l-muted: .60;
+    --l-brd: .865; --l-line: .915; --l-accent: .60; --l-st: .66;
+    /* status 色相 (语义固定, 跨主题不变) */
+    --h-pending: 245; --h-active: 70; --h-check: 200; --h-done: 150; --h-failed: 25;
+    /* 派生契约 */
+    --bg: oklch(var(--l-bg) var(--c-neutral) var(--h));
+    --card: oklch(var(--l-card) var(--c-neutral) var(--h));
+    --fg: oklch(var(--l-fg) calc(var(--c-neutral)*1.4) var(--h));
+    --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) var(--h));
+    --muted: oklch(var(--l-muted) var(--c-neutral) var(--h));
+    --brd: oklch(var(--l-brd) var(--c-neutral) var(--h));
+    --line: oklch(var(--l-line) var(--c-neutral) var(--h));
+    --accent: oklch(var(--l-accent) var(--c-accent) var(--h-accent));
+    --accent2: oklch(var(--l-accent) var(--c-accent) var(--h-accent2));
+    --st-pending: oklch(var(--l-st) .085 var(--h-pending));
+    --st-active: oklch(var(--l-st) .15 var(--h-active));
+    --st-check: oklch(var(--l-st) .12 var(--h-check));
+    --st-done: oklch(var(--l-st) .13 var(--h-done));
+    --st-failed: oklch(var(--l-st) .16 var(--h-failed));
+    --sel-bg: oklch(var(--l-card) var(--c-neutral) var(--h));
+    --sel-fg: oklch(var(--l-fg) calc(var(--c-neutral)*1.4) var(--h));
+    --font: -apple-system, system-ui, 'Segoe UI', sans-serif;
+    --radius: 10px;
+  }
+
+  /* ── 10 主题预设 (seed/锚点/radius/font 覆盖, 迁自 themes/*.css) ── */
+  html[data-theme=skein] {
+    --h: 265; --c-neutral: .012; --c-accent: .16; --h-accent: 250; --h-accent2: 240;
+    --l-bg: .945; --l-card: .99; --l-fg: .26; --l-head: .20; --l-muted: .52;
+    --l-brd: .885; --l-line: .925; --l-accent: .58; --l-st: .66;
+    --radius: 16px; --skein-gold: #FFD98A;
+  }
+  html[data-theme=minimal] { --radius: 12px; }
+  html[data-theme=terminal] {
+    --h: 145; --c-neutral: .013; --c-accent: .10; --h-accent: 148; --h-accent2: 170;
+    --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
+    --l-brd: .32; --l-line: .275; --l-accent: .72; --l-st: .70;
+    --font: ui-monospace, 'SF Mono', 'Cascadia Code', 'Consolas', monospace; --radius: 0;
+  }
+  html[data-theme=glass] {
+    --h: 235; --c-neutral: .012; --c-accent: .11; --h-accent: 210; --h-accent2: 255;
+    --radius: 16px;
+  }
+  html[data-theme=blueprint] {
+    --h: 235; --c-neutral: .012; --c-accent: .11; --h-accent: 210; --h-accent2: 255;
+    --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
+    --l-brd: .32; --l-line: .275; --l-accent: .72; --l-st: .70;
+  }
+  html[data-theme=sketch] {
+    --h: 65; --c-neutral: .014; --c-accent: .115; --h-accent: 48; --h-accent2: 75;
+    --font: 'Courier New', ui-monospace, monospace;
+  }
+  html[data-theme=neumorphism] {
+    --radius: 18px;
+    --nm-dk: color-mix(in srgb, var(--fg) 18%, transparent);
+    --nm-lt: color-mix(in srgb, #fff 70%, transparent);
+  }
+  html[data-theme=holographic] {
+    --h: 305; --c-neutral: .013; --c-accent: .12; --h-accent: 312; --h-accent2: 350;
+    --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
+    --l-brd: .32; --l-line: .275; --l-accent: .72; --l-st: .70;
+    --radius: 14px;
+  }
+  html[data-theme=magazine] {
+    --h: 65; --c-neutral: .014; --c-accent: .115; --h-accent: 48; --h-accent2: 75;
+    --font: 'Iowan Old Style', 'Palatino Linotype', 'Georgia', serif; --radius: 3px;
+  }
+  html[data-theme=sketchdark] {
+    --h: 155; --c-neutral: .016; --c-accent: .085; --h-accent: 72; --h-accent2: 205;
+    --l-bg: .20; --l-card: .255; --l-fg: .89; --l-head: .83; --l-muted: .64;
+    --l-brd: .34; --l-line: .30; --l-accent: .76; --l-st: .72;
+    --font: 'Courier New', ui-monospace, monospace;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--font); }
+}
+
+@layer components {
+  /* 跨页复用组件类 — 页面 subtask 按需补充。ponytail: 只给 card + status badge, 布局走 Tailwind utilities。 */
+  .card {
+    @apply rounded border p-5;
+    background: var(--card); border-color: var(--brd);
+  }
+  .badge {
+    @apply inline-block rounded-full px-2 text-[11px] font-medium leading-[17px] text-white;
+  }
+  .badge-pending { background: var(--st-pending); }
+  .badge-active  { background: var(--st-active); }
+  .badge-check   { background: var(--st-check); }
+  .badge-done    { background: var(--st-done); }
+  .badge-failed  { background: var(--st-failed); }
+}
