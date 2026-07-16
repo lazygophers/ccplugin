@@ -30,7 +30,8 @@ const TPL = `
     <div v-else-if="empty" class="text-sm text-muted py-8 text-center">
       <div class="text-xl mb-1">🗂️</div>暂无 spec<div class="text-xs opacity-60 mt-1">.skein/spec/ 为空</div>
     </div>
-    <template v-else v-for="layer in layers" :key="layer.key">
+    <div v-else>
+    <div v-for="layer in layers" :key="layer.key">
       <div class="mt-2 mb-1 text-[11px] font-semibold" style="color:var(--head)">
         {{ layer.label }}
       </div>
@@ -50,13 +51,14 @@ const TPL = `
           </button>
         </div>
       </div>
-    </template>
+    </div>
+    </div>
   </aside>
 
   <!-- 右: 原文 / 编辑 -->
   <section class="flex-1 min-w-0 overflow-auto card p-5">
     <div v-if="!current.path" class="text-muted text-center py-24">选择左侧文件查看</div>
-    <template v-else>
+    <div v-else>
       <div class="flex items-center gap-3 mb-3 pb-3" style="border-bottom:1px solid var(--line)">
         <code class="text-sm" style="color:var(--head)">{{ current.path }}</code>
         <span class="flex-1"></span>
@@ -73,7 +75,7 @@ const TPL = `
       <textarea v-else v-model="draft" spellcheck="false"
         class="w-full h-[70vh] p-3 text-sm rounded font-mono"
         style="background:var(--bg);color:var(--fg);border:1px solid var(--brd);resize:vertical"></textarea>
-    </template>
+    </div>
   </section>
 
   <!-- diff 确认弹层 -->

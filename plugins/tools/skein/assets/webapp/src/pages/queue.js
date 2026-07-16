@@ -12,7 +12,7 @@ const TPL = `
     <div class="text-sm" style="color:var(--st-failed)">{{ loadErr }}</div>
   </div>
 
-  <template v-else>
+  <div v-else>
     <!-- 全空态 -->
     <div v-if="!readyTasks.length && !readySubtasks.length && !pendingQueue.length"
       class="card p-16 text-center text-muted">
@@ -86,7 +86,7 @@ const TPL = `
         </div>
       </section>
     </template>
-  </template>
+  </div>
 </div>`;
 
 export async function render(mount, params, ctx) {

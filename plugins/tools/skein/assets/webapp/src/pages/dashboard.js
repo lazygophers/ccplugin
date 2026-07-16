@@ -36,7 +36,7 @@ const TPL = `
     <div class="text-sm">暂无任务 — 用 <code>skein create</code> 建第一个 task。</div>
   </div>
 
-  <template v-else>
+  <div v-else>
     <!-- KPI 卡片行 -->
     <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
       <!-- 完成率环 -->
@@ -120,7 +120,7 @@ const TPL = `
         </a>
       </div>
     </section>
-  </template>
+  </div>
 </div>`;
 
 export async function render(mount, params, ctx) {

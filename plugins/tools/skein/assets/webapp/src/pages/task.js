@@ -25,7 +25,7 @@ const TPL = `
     <a href="#/" class="inline-block mt-4 text-sm" style="color:var(--accent)">← 返回看板</a>
   </div>
 
-  <template v-else>
+  <div v-else>
     <!-- task 头 -->
     <header class="card p-5 mb-4">
       <div class="flex items-center gap-3 flex-wrap">
@@ -100,7 +100,7 @@ const TPL = `
         </li>
       </ol>
     </section>
-  </template>
+  </div>
 </div>`;
 
 const DOC_TABS = [
