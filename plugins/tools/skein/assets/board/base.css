@@ -260,3 +260,14 @@ mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inheri
 .prd-list li::before{content:"○";position:absolute;left:0;color:var(--muted)}
 .prd-list li.done{color:var(--muted);text-decoration:line-through}
 .prd-list li.done::before{content:"●";color:var(--accent)}
+
+/* 待执行队列: overview card 内固定块 (flex:0 0 auto), 超长自滚不挤 dag-view */
+.queue{margin:2px 0 10px;max-height:168px;overflow-y:auto}
+.q-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;counter-reset:none}
+.q-item{display:flex;align-items:baseline;gap:6px;font-size:12.5px;line-height:1.45}
+.q-ord{flex:0 0 auto;width:16px;text-align:right;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+.q-chip{flex:0 0 auto;padding:0 6px;border-radius:8px;font-size:10px;line-height:16px;color:#fff}
+.q-ready{background:var(--st-active)}
+.q-block{background:var(--st-pending)}
+.q-name{flex:1 1 auto;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.q-agent{flex:0 0 auto;color:var(--muted);font-size:11px}

@@ -1066,6 +1066,28 @@ class Skein:
 
         return {s["sid"]: w(s["sid"]) for s in subs}
 
+    def _pending_queue(self, tasks: list) -> list:
+        """待执行 subtask 队列 (同调度序): active task 内 pending subtask,
+        就绪(依赖全done)优先 + 关键路径权重降序 + 登记序 (就绪批同 _ready 排法)。"""
+        q = []
+        for t in tasks:
+            if t["status"] not in STATUS_ACTIVE:
+                continue
+            subs = t.get("subtasks", [])
+            done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+            crit = self._crit_weight(subs)
+            for i, s in enumerate(subs):
+                if s["status"] != SS_PENDING:
+                    continue
+                ready = all(d in done for d in s.get("depends_on", []))
+                q.append({
+                    "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                    "agent": s.get("agent", "skein-executor"), "ready": ready,
+                    "crit": crit.get(s["sid"], 0), "est": s.get("estimate"), "i": i,
+                })
+        q.sort(key=lambda x: (not x["ready"], -x["crit"], x["i"]))
+        return q
+
     def _ready(self, t: list) -> list:
         """就绪批: pending + 依赖全 done, 按统筹学关键路径权重降序排序后截到空闲槽位
         (关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算)。"""
@@ -1421,6 +1443,7 @@ class Skein:
                 "hasSub": has_sub,
                 "taskDag": {"nodes": task_nodes, "tips": tips, "links": links},
                 "fullDag": {"nodes": combined} if has_sub else None,
+                "pendingQueue": self._pending_queue(tasks),
             },
             "cards": cards,
         }

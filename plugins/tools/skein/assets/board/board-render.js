@@ -331,10 +331,27 @@
       ? '<div class="dag-view" data-dag="full" hidden>' + dagHtml(ov.fullDag.nodes, null, null, true) + "</div>"
       : "";
 
+    // 待执行 subtask 队列 (同实际调度序: 就绪优先 + 关键路径权重降序)
+    var queue = "";
+    var pq = ov.pendingQueue || [];
+    if (pq.length) {
+      var qrows = pq.map(function (q, k) {
+        var chip = q.ready
+          ? '<span class="q-chip q-ready">就绪</span>'
+          : '<span class="q-chip q-block">待前置</span>';
+        return '<li class="q-item">'
+          + '<span class="q-ord">' + (k + 1) + "</span>" + chip
+          + '<span class="q-name">' + esc(q.tid) + "/" + esc(q.sid) + " · " + esc(q.name) + "</span>"
+          + '<span class="q-agent">' + esc(q.agent) + "</span></li>";
+      }).join("");
+      queue = '<div class="queue"><p class="meta">待执行队列 · 调度序 · ' + pq.length + "</p>"
+        + '<ol class="q-list">' + qrows + "</ol></div>";
+    }
+
     var overview = '<section class="card"><h2>任务进展</h2>' + sw + stats
       + '<p class="meta">' + ov.taskCount + " task · " + esc(ov.estMeta) + "</p>"
       + '<p class="meta">当前进度</p>' + bar(ov.combinedPct, false, "")
-      + taskView + fullView + "</section>";
+      + queue + taskView + fullView + "</section>";
 
     var cards = data.cards.map(function (c) {
       var h2 = "<h2>" + esc(c.id) + " " + badge(c.status, data.stClsMap)
