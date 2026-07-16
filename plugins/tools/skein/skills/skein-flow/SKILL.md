@@ -18,6 +18,7 @@ effort: medium
 - **`skein` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
 - **看板自动刷** — task.json 每次变更 (create/start/subtask/finish) 脚本自动渲染 task.md/task.html, 无需手动跑命令; AI 禁直接编辑 (guard hook 硬阻)。
 - **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) subagent 不能与用户对话; subagent 缺信息在返回标 `需要: <问题>` 由 main 转达。
+- **文案/格式类变更先给样例确认** — subtask 属**文案** (措辞 / 标签 / 提示语 / 文档表述) 或**格式** (排版 / 展示样式 / 结构布局) 类改动时, main 亲自先给用户「改前→改后」样例 (`AskUserQuestion` 或列对比), 确认后才落地; 逻辑 / bug 修复不受此限。派执行 agent 做此类改动时, dispatch prompt 须注明「先回传样例待 main 确认, 禁直接改」。
 - **每个 dispatch prompt 6 字段自包含**: 目标 / 已知 (含 `Active task: <id>` + worktree 路径) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - **完成即时回传** — 每个 subagent 完成或阻塞, main 立即输出摘要, 禁批量延迟汇总。
 - **并发多个 flow 请求禁互相顶掉** — 每个 flow 请求 = 独立 durable task, **收到即先 `skein create` 落盘**再处理。第二个请求进来时**禁中断/覆盖/丢弃**在飞的第一个: planning 阶段本就需 main 同步逐问用户 (brainstorm/grill/AskUserQuestion 不能并行), 故多请求**串行 planning** — 先把当前 task 登记 + 推进到不丢的态 (至少 `create` 落盘), 再处理下一个。已 `create` 未处理完的 task 留 pending, 由 `/skein-exec` 无参续跑, 绝不静默跳过。
