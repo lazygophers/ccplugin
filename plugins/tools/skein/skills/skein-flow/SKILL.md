@@ -32,7 +32,7 @@ plan → exec → check → finish 四步闭环
 - **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
 - Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
 - Skill(skein-plan --continue) 规划任务、编写 prd; **拆 subtask 并逐个 `subtask add <id> <sid> --agent ...` 登记** (每 subtask 绑定执行 agent, 是 exec 唯一调度真值源)。无 subtask 登记 → `skein start` 硬拒。
-- ToolCall(AskUserQuestion) 评审产物、确认用户需求 — 未确认禁进 exec (硬门, main 亲做)
+- 🛑 ToolCall(AskUserQuestion) 评审产物、确认用户需求 — 未确认禁进 exec (硬门 · STOP, main 亲做)
   - 确认并启动任务
   - 任务需要修改
 - `skein start <id>` 激活 (建 worktree; start 仅收 `id`, 无 subtask 硬拒) — 用户确认后 main 同步跑
