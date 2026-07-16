@@ -150,8 +150,10 @@ td .bar{margin:1px 0;min-width:78px}
 /* SVG <a> 链接节点: hover 描边加深提示可点 */
 .dag a:hover rect:first-of-type{stroke-width:2}
 /* 浮层用 position:fixed (视口坐标) 逃逸 .dag-wrap 的 overflow:auto 裁剪 (否则绝对定位子元素被容器切掉、看似"悬浮没了"). JS 按视口坐标定位. 超 max 即内部滚动. pointer-events:none 关键 — 越界钳位后浮层可能盖住触发节点, 若接收指针会夺 hover 致 mouseleave→隐藏→mouseenter→显示 无限频闪; 纯展示浮层禁指针即根治 */
-.dag-tip{display:none;pointer-events:none;position:fixed;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:560px;min-width:220px;max-height:70vh;overflow:auto}
-.dag-tip .dag{margin:2px 0 0}
+.dag-tip{display:none;pointer-events:none;position:fixed;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:14px 16px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:min(680px,92vw);min-width:360px;max-height:74vh;overflow:auto;font-size:13px;line-height:1.5}
+/* 子 DAG (subtask 卡) 保持固有尺寸不被浮层窄宽压缩到不可读; 超宽时浮层内滚动 (非缩小) */
+.dag-tip .dag{margin:2px 0 0;max-width:none}
+.dag-tip .meta{font-size:13px}
 .dag-tip .bar{margin-bottom:10px}
 
 /* 明细折叠: task 卡的 DAG + 子任务表默认收起保紧凑, 展开看全量 */
