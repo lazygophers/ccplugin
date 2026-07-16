@@ -303,7 +303,7 @@
       + statcard("检查中", S_CHECK, S_CHECK) + statcard("待处理", S_PENDING, S_PENDING) + "</div>";
     var sw = '<div class="dag-switch" role="group">'
       + '<button type="button" data-dag="task" class="on">task 维度</button>'
-      + '<button type="button" data-dag="full"' + (ov.hasSub ? "" : " disabled") + ">task+subtask 维度</button></div>";
+      + '<button type="button" data-dag="full"' + (ov.hasSub ? "" : " disabled") + ">subtask 维度</button></div>";
 
     // task 维度 DAG: 结构化 tips → html 串
     var td = ov.taskDag;
@@ -316,7 +316,7 @@
 
     var overview = '<section class="card"><h2>任务进展</h2>' + sw + stats
       + '<p class="meta">' + ov.taskCount + " task · " + esc(ov.estMeta) + "</p>"
-      + '<p class="meta">整体进度 (task+subtask 综合)</p>' + bar(ov.combinedPct, false, "")
+      + '<p class="meta">当前进度</p>' + bar(ov.combinedPct, false, "")
       + taskView + fullView + "</section>";
 
     var cards = data.cards.map(function (c) {
