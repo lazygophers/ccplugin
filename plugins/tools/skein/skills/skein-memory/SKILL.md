@@ -57,7 +57,7 @@ skein-memory archive --layer recall  # 只归档 recall (recall 档)
 skein-memory restore <ts>       # 回滚 (撞名不覆盖新规则)
 ```
 
-流程: 快照 → 归档 → 识别项目类型 → 分型扫描 (researcher bootstrap 模式 + 类型侧重) → 逐条判层 → sediment 自动写盘 → 验证 + 保留归档。`AskUserQuestion` 征同意再跑 (归档虽可逆仍是全局动作, 禁自动)。**事无巨细设计 + 8 类项目 (backend/frontend/cli/monorepo/data-ml/infra/mobile/docs) 分型扫描侧重、探针、core 倾向、规则示例、陷阱** 见 [references/reconstruct-memory.md](references/reconstruct-memory.md)。
+流程: 快照 → 归档 → 识别项目类型 → 分型扫描 (researcher bootstrap 模式 + 类型侧重) → 逐条判层 → sediment 自动写盘 → 验证 + 保留归档。🛑 `AskUserQuestion` 征同意再跑 (归档全库虽可逆仍是全局动作 · STOP, 禁自动)。**事无巨细设计 + 8 类项目 (backend/frontend/cli/monorepo/data-ml/infra/mobile/docs) 分型扫描侧重、探针、core 倾向、规则示例、陷阱** 见 [references/reconstruct-memory.md](references/reconstruct-memory.md)。
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 

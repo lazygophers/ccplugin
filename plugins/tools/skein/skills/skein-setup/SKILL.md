@@ -29,7 +29,7 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 ## ① 初始化 (未初始化仓库)
 
 1. **新仓** → main 直接跑 `skein setup` (纯机械, 不派 agent): 建 `.skein/` + config + gitignore + 本地 `.skein/spec` 库。完成即可用。
-2. **既有 trellis 仓 (`.trellis/`)** → 检测到 `.trellis/` 时 main 用 `AskUserQuestion` 让用户选迁移模式 (缺省兼容): 兼容 (留 `.trellis/` 数据) / `--full` (整删 `.trellis/`); 接线 (hooks/scripts/settings) 两模式都删。据选定跑 `setup` 或 `setup --full`, 语义迁移 (派 skein-setup agent) 详见 `references/trellis-migration.md`。
+2. **既有 trellis 仓 (`.trellis/`)** → 🛑 检测到 `.trellis/` 时 main 用 `AskUserQuestion` 让用户选迁移模式 (缺省兼容 · STOP, `--full` 整删不可逆): 兼容 (留 `.trellis/` 数据) / `--full` (整删 `.trellis/`); 接线 (hooks/scripts/settings) 两模式都删。据选定跑 `setup` 或 `setup --full`, 语义迁移 (派 skein-setup agent) 详见 `references/trellis-migration.md`。
 
 ## ② 结构维护 (已初始化, 用户手动优化)
 
