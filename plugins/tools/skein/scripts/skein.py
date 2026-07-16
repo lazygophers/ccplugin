@@ -484,6 +484,9 @@ class Skein:
         print(f"{a.id} repos = {', '.join(t['repos']) or '(空)'}")
 
     def start(self, a):
+        # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SystemExit(1) 阻止 start
+        print("start 前置体检 (doctor):")
+        self.doctor(a)
         t = self._load(a.id)
         if t["status"] != S_PENDING:
             raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 start 待处理 task")
