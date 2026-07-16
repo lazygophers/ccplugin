@@ -190,7 +190,6 @@ class Skein:
         self.archive_dir = self.tasks / "archive"
         # 看板 title/标题带项目名, 用户一眼知是哪个项目
         self.proj = self.root.name
-        self.html_path = self.dir / "task.html"
 
     # ---- 存取 ----
     def config(self) -> dict:
@@ -244,7 +243,7 @@ class Skein:
                   "worktree": t.get("worktree")} for t in self._all()]
         self._write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
-        self._board(None)  # 变更即刷 task.md + task.html (_board 内已调 _board_html; 皆 diff 后写)
+        self._board(None)  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
 
     def _load(self, tid) -> dict:
         f = self.tasks / tid / "task.json"
@@ -258,7 +257,6 @@ class Skein:
         self._write_if_changed(self.tasks / t["id"] / "task.json",
                                json.dumps(t, ensure_ascii=False, indent=2))
         self._board_task(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
-        self._board_html()  # subtask 变更 (add/done/fail) 也刷全局 html, 免看板漂移 (subtasks 不进顶层 index, 故不走 _sync)
 
     def _all(self) -> list:
         if not self.tasks.exists():
@@ -383,7 +381,7 @@ class Skein:
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\ntask.html\nboard/\n*.lock\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n*.lock\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
@@ -1016,7 +1014,7 @@ class Skein:
 
     @staticmethod
     def _write_if_changed(path: Path, content: str):
-        # 渲染派生文件 (task.md/task.html) 每次变更重算, 但内容常与盘上相同 —
+        # 渲染派生文件 (task.md) 每次变更重算, 但内容常与盘上相同 —
         # 先比对再写, 免无谓 IO/SSD 写入 (增量保护磁盘)。
         try:
             if path.exists() and path.read_text() == content:
@@ -1042,7 +1040,6 @@ class Skein:
             f"{body}\n"
         )
         self._write_if_changed(self.dir / "task.md", md)
-        self._board_html()  # board 命令同步刷 task.html (否则手动 board 后可视化页 stale)
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
     def _crit_weight(self, subs: list) -> dict:
@@ -1241,7 +1238,7 @@ class Skein:
         )
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
-    # ---- task.html 可视化 (自包含静态页, 莫兰迪配色; 不自动打开, `skein.py view` 按需开) ----
+    # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
     def _board_data(self):
         # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
         # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
@@ -1456,21 +1453,17 @@ class Skein:
             "cards": cards,
         }
 
-    def _board_html(self, persist=True):
+    def _board_html(self):
         # 单一 JS 渲染器: Python 只出 shell + 内联结构化数据 (window.__SKEIN__),
-        # 卡片/总览/DAG 全由 board-render.js 前端渲染 (serve 与 task.html 同一套)。
-        # persist=False (serve): 首屏内联数据, 刷新走 GET /__skein__/data 拉新 JSON 重渲染 (不取 HTML)。
-        # persist=True  (file://): 只内联数据, 写盘 task.html 自渲染静态文件, 刷新=整页 reload。
+        # 卡片/总览/DAG 全由 board-render.js 前端渲染。serve 每请求实时渲染, 不落盘。
+        # 首屏内联数据, 刷新走 GET /__skein__/data 拉新 JSON 重渲染 (不取 HTML)。
         DBG.rule("渲染看板 shell")
         data = self._board_data()
-        dest = self.html_path if persist else "(内存, serve 实时渲染, 不落盘)"
-        DBG.log(f"内联 {data['overview']['taskCount']} 个 task 数据 → {dest}", style="cyan")
+        DBG.log(f"内联 {data['overview']['taskCount']} 个 task 数据 → (内存, serve 实时渲染)", style="cyan")
         # 内联进 <script>: 转义 <>& 防 </script> 提前闭合 (\\u00XX 仍是合法 JSON 字符串转义)
         payload = (json.dumps(data, ensure_ascii=False)
                    .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
-        if persist:
-            self._copy_board_assets()
         theme = data["theme"]
 
         def esc(s):
@@ -1482,17 +1475,16 @@ class Skein:
                  + "".join(f'<link rel=stylesheet href="board/themes/{k}.css?v={rev}">' for k, _ in THEMES))
         theme_opts = "".join(f'<option value="{k}"{" selected" if k == theme else ""}>{esc(label)}</option>'
                              for k, label in THEMES)
-        # shell 模板抽到 assets/board/shell.html; Python 只填 token (数据/主题/persist 差异)
-        # persist 差异: file:// 无 WS → meta 硬刷保不 stale; serve 有 WS 热重载 + topbar 刷新钮
+        # shell 模板抽到 assets/board/shell.html; Python 只填 token。serve 有 WS 热重载 + topbar 刷新钮。
         tokens = {
             "THEME": theme,
             "PROJ": proj,
             "LINKS": links,
             "THEME_OPTIONS": theme_opts,
             "PAYLOAD": payload,
-            "HEAD_EXTRA": '<meta http-equiv=refresh content=1800>\n' if persist else '',
+            "HEAD_EXTRA": '',
             "REFRESH_TOP": ('<button type="button" class="sw-btn" id="sw-refresh-top" '
-                            'title="刷新页面数据 (task.json)">⟳ 刷新</button>') if not persist else '',
+                            'title="刷新页面数据 (task.json)">⟳ 刷新</button>'),
         }
         html = (self._board_assets_dir() / "shell.html").read_text(encoding="utf-8")
         # 给 shell.html 内静态 <script src="board/*.js"> 追版本戳 (同 css, 免旧 js 缓存)
@@ -1500,42 +1492,14 @@ class Skein:
             html = html.replace(f'src="board/{js}.js"', f'src="board/{js}.js?v={rev}"')
         for k, v in tokens.items():
             html = html.replace("{{" + k + "}}", v)
-        if persist:
-            self._write_if_changed(self.html_path, html)
         return html
 
-    def _copy_board_assets(self):
-        # 仅 file:// 视图 (task.html) 用: 从插件 assets 拷到 .skein/board/ 供相对 link 解析。serve(http) 不拷, 走 do_GET /board/* 直出插件资产。
-        # 逐文件直接比对字节, 仅内容不一致才覆盖 — 免无谓写触碰 mtime, 害看板 HEAD-poll 误判重载。
-        # (直接 == 比原 md5 双哈希省 cpu: 两侧 bytes 本就已读入, 无需再算摘要。)
-        src = Path(__file__).resolve().parent.parent / "assets" / "board"
-        if not src.exists():
-            DBG.log(f"插件 board 资产目录不存在 {src}, 跳过拷贝", style="dim")
-            return
-        dst_root = self.dir / "board"
-        copied = skipped = 0
-        for sf in src.rglob("*"):
-            if not sf.is_file():
-                continue
-            df = dst_root / sf.relative_to(src)
-            data = sf.read_bytes()
-            if df.exists() and df.read_bytes() == data:
-                skipped += 1
-                continue  # 内容一致, 跳过
-            df.parent.mkdir(parents=True, exist_ok=True)
-            df.write_bytes(data)
-            copied += 1
-            DBG.log(f"⇢ 拷贝 board 资产 {sf.relative_to(src)}  ({len(data)} 字节)", style="green")
-        DBG.log(f"board 资产 {src} → {dst_root}: 更新 {copied}, 未变 {skipped}", style="dim")
-
     def view(self, _):
-        if not self.html_path.exists():
-            self._board_html()
         cfg = self.config()
-        if cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
-            self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]))
-        else:
-            print(f"可视化看板 (浏览器打开): {self.html_path}")
+        if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+            print("看板 http 服务已在 config.yaml 关闭 (web_serve=false), 无法打开。", file=sys.stderr)
+            return
+        self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]))
 
     def serve(self, _):
         # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
@@ -1545,7 +1509,7 @@ class Skein:
         cfg = _yaml_load(f.read_text())
         if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
             return  # 用户在 config.yaml 关闭
-        # 不预生成 task.html — 页面每请求实时从 task.json 渲染 (do_GET persist=False)。
+        # 看板不落盘 — 页面每请求实时从 task.json 渲染 (do_GET)。
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
         manual = sys.stdout.isatty()
         self._run_server(open_browser=manual and cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=not manual)
@@ -1745,7 +1709,7 @@ class Skein:
         @app.get("/", response_class=HTMLResponse)
         @app.get("/task.html", response_class=HTMLResponse)
         async def _page():  # 看板页: 每请求实时出 shell + 内联数据, 前端渲染
-            return board._board_html(persist=False)
+            return board._board_html()
 
         @app.post("/__skein__/config")
         async def _config(request: Request):  # 看板 UI 改主题 → 落回 config.yaml (仅 board_theme, 值须在 THEMES 内)
@@ -1981,9 +1945,7 @@ class Skein:
             cfg["web_serve"] = False
             cfgf.write_text(_yaml_dump(cfg))
         else:
-            if not self.html_path.exists():
-                self._board_html()
-            print(f"可视化看板 (浏览器打开): {self.html_path}", file=sys.stderr)  # 不主动开 file://; 常驻服务由 monitor 起
+            print("可视化看板: 运行 `skein view` 起 http 服务打开 (常驻服务由 monitor 起)。", file=sys.stderr)
         manifest = {
             "web_serve": web_enabled,
             "mode": "full" if a.full else "compat",
@@ -2070,7 +2032,7 @@ def main():
                     help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
     sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
-    sub.add_parser("view", help="生成并打开 .skein/task.html 可视化看板 (仅此命令主动打开)")
+    sub.add_parser("view", help="起 http 服务并打开可视化看板 (仅此命令主动打开)")
     sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
