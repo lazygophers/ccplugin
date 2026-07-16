@@ -2,7 +2,9 @@
 // 纯增强, 无则退化: anime 未加载 (A undefined) 各函数直接 no-op, 卡片保持默认可见。尊重 prefers-reduced-motion。
 // 接线: 包裹 switcher.js 暴露的 window.__skeinBindContent → 每次软刷新重渲染 .layout 后重跑; 首屏本脚本执行时 .layout 已由 switcher 渲染完, 直接跑一次。
 (function () {
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // data-motion=full (默认) → 无视系统 reduce-motion; 去掉该属性才尊重系统
+  var reduce = document.documentElement.getAttribute('data-motion') !== 'full'
+    && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var A = window.anime;
   var firstPaint = true;
 

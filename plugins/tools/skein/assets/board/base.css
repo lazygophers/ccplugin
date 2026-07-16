@@ -124,7 +124,8 @@ td .bar{margin:1px 0;min-width:78px}
 .fill::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,transparent 0,color-mix(in srgb,#fff 42%,transparent) 50%,transparent 100%);background-size:45% 100%;background-repeat:no-repeat;animation:bar-scan 1.7s linear infinite}
 @keyframes bar-scan{from{background-position:-45% 0}to{background-position:145% 0}}
 @keyframes bar-in{from{transform:scaleX(0)}}
-@media(prefers-reduced-motion:reduce){.fill{animation:none}.bar::before,.fill::after{display:none}}
+/* 减动偏好: 默认 html[data-motion=full] 不跟随系统 (用户显式要动效, 看板自带开关); 去掉该属性或设非 full 才尊重系统 reduce-motion */
+@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .fill{animation:none}html:not([data-motion=full]) .bar::before,html:not([data-motion=full]) .fill::after{display:none}}
 /* 视口外进度条暂停扫光/流动 (百+待执行条同时跑会 churn GPU); switcher.js 用 IntersectionObserver 打 .voff */
 .bar.voff::before,.bar.voff .fill,.bar.voff .fill::after{animation-play-state:paused}
 

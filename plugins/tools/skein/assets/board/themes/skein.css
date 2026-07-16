@@ -1,11 +1,11 @@
-/* 缕光 (skein · 默认旗舰) — 原语: 卡片=glass(液态玻璃) · 边框=hairline(流光描边) · 圆角=round · 字型=sans · 底纹=莫奈水塘(弥散渐变缓漂)。
-   签名: 科技暗底上一层莫奈睡莲水光 —— 底纹缓漂 + 卡片流光扫过 + 运行卡辉光脉动 + 进度条流动渐变 + 标题渐变微闪。
-   烘焙配色=莫奈 (印象派睡莲池): 靛蓝深水底 + 薰衣草/柳绿睡莲点缀。明暗=暗。华丽靠光与动, 结构极简。 */
+/* 缕光 (skein · 默认旗舰) — 原语: 卡片=glass(液态玻璃) · 边框=hairline(流光描边) · 圆角=round · 字型=sans · 底纹=金蓝弥散水光(缓漂)。
+   签名: 深蓝玻璃暗底上一层金蓝流光 —— 底纹缓漂 + 卡片流光扫过 + 运行卡辉光脉动 + 进度条金蓝流动渐变 + 标题渐变微闪。
+   烘焙配色=金+蓝: 深蓝玻璃底 + 金色(accent)/亮蓝(accent2)流光点缀。明暗=暗。华丽靠光与动, 结构极简。 */
 html[data-theme=skein]{
-  /* 烘焙配色=莫奈睡莲 (靛蓝基 + 薰衣草 accent + 柳绿 accent2) + 明暗=暗 */
-  --h:230;--c-neutral:.02;--c-accent:.12;--h-accent:290;--h-accent2:165;
-  /* 深水塘暗锚 (带色, 非死灰) */
-  --l-bg:.165;--l-card:.225;--l-fg:.91;--l-head:.85;--l-muted:.62;--l-brd:.33;--l-line:.27;--l-accent:.75;--l-st:.71;
+  /* 烘焙配色=金+蓝流光玻璃 (深蓝基 --h:230 + 金 accent hue85 + 亮蓝 accent2 hue245) + 明暗=暗 */
+  --h:230;--c-neutral:.02;--c-accent:.135;--h-accent:85;--h-accent2:245;
+  /* 深蓝玻璃暗锚 (带色, 非死灰); 金 accent 明度略提更亮 */
+  --l-bg:.165;--l-card:.225;--l-fg:.91;--l-head:.85;--l-muted:.62;--l-brd:.33;--l-line:.27;--l-accent:.78;--l-st:.71;
   --radius:16px;
 }
 
@@ -89,13 +89,13 @@ html[data-theme=skein] h1{
 /* 徽章 / 选中: 玻璃质 */
 html[data-theme=skein] .badge{border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:999px}
 
-/* 尊重减动偏好: 关全部动效, 保留静态华丽 */
+/* 减动偏好: 仅当看板去掉 data-motion=full (opt-out) 才尊重系统, 关全部动效保留静态华丽 */
 @media (prefers-reduced-motion: reduce){
-  html[data-theme=skein] body,
-  html[data-theme=skein] .card::before,
-  html[data-theme=skein] .card::after,
-  html[data-theme=skein] .card:has(.badge.s-active),
-  html[data-theme=skein] .card:has(.badge.ss-running),
-  html[data-theme=skein] .bar .fill,
-  html[data-theme=skein] h1{animation:none}
+  html[data-theme=skein]:not([data-motion=full]) body,
+  html[data-theme=skein]:not([data-motion=full]) .card::before,
+  html[data-theme=skein]:not([data-motion=full]) .card::after,
+  html[data-theme=skein]:not([data-motion=full]) .card:has(.badge.s-active),
+  html[data-theme=skein]:not([data-motion=full]) .card:has(.badge.ss-running),
+  html[data-theme=skein]:not([data-motion=full]) .bar .fill,
+  html[data-theme=skein]:not([data-motion=full]) h1{animation:none}
 }

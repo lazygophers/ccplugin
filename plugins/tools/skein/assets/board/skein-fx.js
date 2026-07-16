@@ -3,7 +3,9 @@
 (function () {
   var root = document.documentElement;
   if (root.getAttribute('data-theme') !== 'skein') return;
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // data-motion=full (默认) → 无视系统 reduce-motion; 去掉该属性才尊重系统
+  if (root.getAttribute('data-motion') !== 'full'
+    && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   var cv = document.createElement('canvas');
   cv.setAttribute('aria-hidden', 'true');
