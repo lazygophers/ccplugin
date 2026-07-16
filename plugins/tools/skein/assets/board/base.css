@@ -234,7 +234,7 @@ mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inheri
 .markdown li{margin:.3em 0}
 .markdown li>ul,.markdown li>ol{margin:.3em 0}
 .markdown li::marker{color:var(--muted)}
-/* GFM 任务列表 (marked 输出 <li><input type=checkbox>) */
+/* GFM 任务列表 (doc.js 原生渲染输出 <li class=task><input type=checkbox>) */
 .markdown ul:has(>li>input[type=checkbox]),.markdown li:has(>input[type=checkbox]){list-style:none}
 .markdown li>input[type=checkbox]{margin:0 .5em 0 -1.4em;vertical-align:middle;accent-color:var(--accent)}
 .markdown code{background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:5px;padding:.15em .4em;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}

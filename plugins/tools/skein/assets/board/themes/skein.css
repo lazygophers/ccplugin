@@ -17,12 +17,7 @@ html[data-theme=skein] body{
     radial-gradient(55% 50% at 75% 88%,color-mix(in srgb,var(--accent) 22%,transparent),transparent),
     radial-gradient(45% 45% at 20% 80%,color-mix(in srgb,var(--accent2) 20%,transparent),transparent),
     var(--bg);
-  background-size:200% 200%;background-attachment:fixed;
-  animation:skein-drift 34s ease-in-out infinite;
-}
-@keyframes skein-drift{
-  0%,100%{background-position:0% 0%}
-  50%{background-position:100% 100%}
+  background-attachment:fixed;
 }
 
 /* 卡片: 液态玻璃 + 流光描边扫过 */
