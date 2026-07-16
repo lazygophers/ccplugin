@@ -39,7 +39,6 @@ plugins/**/__pycache__/
 # 系统/IDE 文件
 # .DS_Store（已在顶部）
 
-.gitnexus
 .claude/plans
 .claude/tasks
 .claude/research

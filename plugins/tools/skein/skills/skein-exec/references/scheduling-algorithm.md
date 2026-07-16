@@ -63,7 +63,7 @@ while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 
 工作目录与范围: <worktree 路径>; 只在此 worktree 内改, 禁碰主工作区。具体改哪些文件你按目标自主定 (给了自主权, 别越出本 subtask 目标)。
 执行纪律 (硬性, 逐条照做):
   - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。
-  - 改前查上游: 改函数/类/契约前先 grep 调用站点 (或 gitnexus_impact), 避免半改。
+  - 改前查上游: 改函数/类/契约前先 grep 调用站点, 避免半改。
   - 缺信息不硬猜: 缺关键输入时在返回里标 `需要: <问题>` 交 main 转达用户 (你不能 AskUserQuestion)。
   - spec 优先, 别凭记忆重推: 动手前相关约定先 `skein-memory recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘。
   - 写前硬门 — 读后写: 改任何文件前先 Read 全文 (禁凭摘要/记忆动手) → 复述适用契约 (来源 `skein contract <id>`) 无矛盾才 Edit/Write。文件现状与契约矛盾 (契约已满足 / 该文件按契约不该改) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
