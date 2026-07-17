@@ -158,6 +158,11 @@
                         "type": "command",
                         "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks fmt",
                         "timeout": 15
+                    },
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks spec-meta",
+                        "timeout": 10
                     }
                 ]
             }

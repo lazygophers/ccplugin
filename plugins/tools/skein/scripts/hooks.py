@@ -7,6 +7,7 @@
   batch       PostToolBatch: 拦并行的 ≥2 个 .skein 状态写命令 (竞态防护)。
   report      PostToolUseFailure: 本插件脚本报错时注入上下文 + 引导手动报 issue。
   fmt         PostToolUse: 写 .skein/task/<id>/prd.md 后自动 skein fmt <id> 规范化。
+  spec-meta   PostToolUse: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 + layer 合法 (非阻塞 warning)。
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
@@ -161,8 +162,71 @@ def cmd_fmt(d) -> int:
     return 0
 
 
+# ── spec-meta (PostToolUse: spec 文件 metadata 合法性检查) ──────────────────
+SPEC_RE = re.compile(r"(?:^|/)\.skein/spec/[^/]+/[^/]+/.+\.md$")
+SPEC_REQUIRED = ("title", "layer", "created", "keywords")
+SPEC_LAYERS = ("core", "recall")
+
+
+def _parse_fm(text):
+    """简单 YAML frontmatter 解析 (只取顶层 key: value, 无嵌套)。返回 dict 或 {}。"""
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end < 0:
+        return {}
+    block = text[4:end] if text[3] == "\n" else text[3:end]
+    fm = {}
+    for line in block.splitlines():
+        if ":" not in line or line.startswith((" ", "\t", "-")):
+            continue
+        k, _, v = line.partition(":")
+        fm[k.strip()] = v.strip()
+    return fm
+
+
+def cmd_spec_meta(d) -> int:
+    """写 .skein/spec/**/*.md 后检查 frontmatter: 必填缺失 + layer 合法。非阻塞 warning。"""
+    fp = d.get("tool_input", {}).get("file_path", "")
+    if not fp:
+        return 0
+    norm = fp.replace("\\", "/")
+    if not SPEC_RE.search(norm):
+        return 0
+    try:
+        with open(fp, encoding="utf-8") as f:
+            text = f.read()
+    except OSError:
+        return 0
+    fm = _parse_fm(text)
+    short = norm.split(".skein/spec/")[-1] if ".skein/spec/" in norm else norm
+    warns = []
+    for k in SPEC_REQUIRED:
+        v = fm.get(k, "")
+        if k == "keywords":
+            inner = v.strip("[] ").strip()
+            if not inner:
+                warns.append(f"缺失: keywords")
+            continue
+        if k == "created":
+            if not v or not re.match(r"^-?\d+$", v):
+                warns.append(f"缺失/非法: created (需 unix ts)")
+            continue
+        if not v:
+            warns.append(f"缺失: {k}")
+            continue
+        if k == "layer" and v not in SPEC_LAYERS:
+            warns.append(f"非法: layer={v} (合法: core|recall)")
+    if warns:
+        ctx = f"⚠️ spec metadata 检查 ({short}):\n  - " + "\n  - ".join(warns)
+        print(json.dumps({"hookSpecificOutput": {
+            "hookEventName": "PostToolUse", "additionalContext": ctx}}))
+    return 0
+
+
 DISPATCH = {"permission": cmd_permission, "guard": cmd_guard,
-            "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt}
+            "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
+            "spec-meta": cmd_spec_meta}
 
 
 def main() -> int:
