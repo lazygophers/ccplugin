@@ -369,12 +369,21 @@ class Skein:
         if sections != expected:
             raise SystemExit(
                 f"prd 不规范: 二级章节须为 {expected} (齐备且顺序一致), 实际 {sections} — {prd}")
-        # 规范化: 行首非缩进 `- ` 且非已有 checkbox → 补 `- [ ] ` (缩进子 list / 已勾选态不动)
-        out, changed = [], 0
+        # 规范化 (行首非缩进; 缩进子 list / 已勾选态不动):
+        #   (a) 所有章节: `- ` 且非 checkbox → 补 `- [ ] `
+        #   (b) 仅「目标」「验收标准」章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
+        todo_sections = {"目标", "验收标准"}
+        out, changed, cur = [], 0, None
         for ln in lines:
-            m = re.match(r"^- (?!\[[ xX]\] )(.*)$", ln)
-            if m:
+            if h := re.match(r"^##\s+(.+?)\s*$", ln):
+                cur = h.group(1).strip()
+                out.append(ln)
+                continue
+            if m := re.match(r"^- (?!\[[ xX]\] )(.*)$", ln):
                 out.append(f"- [ ] {m.group(1)}")
+                changed += 1
+            elif cur in todo_sections and (mo := re.match(r"^\d+\.\s+(.*)$", ln)):
+                out.append(f"- [ ] {mo.group(1)}")
                 changed += 1
             else:
                 out.append(ln)
