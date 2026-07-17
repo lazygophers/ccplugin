@@ -89,7 +89,7 @@ function subPct(s) {
 }
 
 const TPL = `
-<div class="max-w-6xl mx-auto">
+<div class="px-7">
   <!-- 加载失败 / 404 空态 -->
   <div v-if="loadErr" class="card p-10 text-center text-muted">
     <div class="empty-ico" v-if="notFound"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
@@ -228,7 +228,7 @@ const DOC_TABS = [
 
 // ── 列表视图 (无 id: /task) ── 数据复用 /__skein__/data → cards (每项 id/name/status/desc/spct)。
 const LIST_TPL = `
-<div class="max-w-4xl mx-auto">
+<div class="px-7">
   <div class="flex items-center gap-2 mb-4 px-1">
     <h1 class="text-lg font-semibold" style="color:var(--head)">任务</h1>
     <span v-if="!loadErr && items.length" class="text-xs text-muted">{{ items.length }}</span>

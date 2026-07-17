@@ -21,7 +21,7 @@ function finishedLabel(a) {
 const STATUSES = ["", "已完成", "失败", "待处理", "进行中", "检查中"];
 
 const TPL = `
-<div class="max-w-4xl mx-auto">
+<div class="px-7">
   <div class="flex items-center gap-2 mb-4 px-1">
     <h1 class="text-lg font-semibold" style="color:var(--head)">归档</h1>
     <span v-if="!loadErr && items.length" class="text-xs text-muted">{{ filtered.length }}/{{ items.length }}</span>
