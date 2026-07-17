@@ -62,6 +62,11 @@ td .bar{margin:1px 0;min-width:78px}
 @keyframes bar-in{from{transform:scaleX(0)}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .fill{animation:none}html:not([data-motion=full]) .bar.done .fill::after{display:none}}
 .bar.voff .fill,.bar.voff .fill::after{animation-play-state:paused}
+.stage-chip{display:inline-block;margin-left:8px;padding:0 7px;border-radius:9px;font-size:10px;line-height:17px;font-weight:600;letter-spacing:.02em;vertical-align:baseline;color:#fff}
+.stage-chip.st-plan{background:var(--muted)}
+.stage-chip.st-exec{background:var(--accent)}
+.stage-chip.st-check{background:var(--st-check)}
+.stage-chip.st-done{background:var(--st-done)}
 .dag{display:block;max-width:100%;height:auto;margin:4px 0 8px}
 .dag g.n-pending>rect:first-of-type{fill:color-mix(in srgb,var(--st-pending) 15%,var(--bg));stroke:var(--st-pending)}
 .dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:node-pulse 1.8s ease-in-out infinite}
@@ -185,6 +190,13 @@ function mdInline(s) {
 }
 function badge(text, clsmap) {
   return '<span class="badge ' + (clsmap[text] || "") + '">' + esc(text) + "</span>";
+}
+// task 阶段 chip (plan/exec/check/done, 后端 card.stage 提供); 颜色随 stage。
+function stageChip(stage) {
+  if (!stage) return "";
+  var label = { plan: "plan", exec: "exec", check: "check", done: "done" }[stage];
+  if (!label) return "";
+  return '<span class="stage-chip st-' + stage + '">' + label + "</span>";
 }
 function fmtDur(mins) {
   if (mins == null) return "-";
@@ -311,7 +323,7 @@ function buildLayoutHtml(data) {
       + '" data-status="' + esc(c.status) + '" data-search="' + esc(c.search) + '">'
       + h2 + '<p class="name">' + esc(c.name) + "</p>"
       + docRow(c.docLinks) + prdBlock(c.prd) + meta1
-      + '<p class="meta">子任务 ' + c.sdone + "/" + c.stotal + "</p>" + bar(c.spct, true, "")
+      + '<p class="meta">子任务 ' + c.sdone + "/" + c.stotal + "</p>" + bar(c.spct, true, "") + stageChip(c.stage)
       + '<div class="task-detail">'
       + dagHtml(c.subNodes, null, null, (c.subNodes || []).length > 4)
       + subtable(c.subtable, data.ssClsMap) + "</div></section>";

@@ -818,8 +818,7 @@ class Skein:
         if getattr(a, "json", False):
             print(json.dumps(self._brief(t), ensure_ascii=False, separators=(",", ":")))
             return
-        pct = 100 if t["status"] == S_DONE else (
-            round(sum(_sub_pct(x) for x in subs) / len(subs)) if subs else 0)
+        pct = _task_pct(t)
         deps = ",".join(t.get("deps", [])) or "-"
         print(f"task\t{t['id']}\t{t['status']}\t{pct}%\t{t['name']}")
         print(f"worktree\t{t.get('worktree') or '-'}\t前置:{deps}")
@@ -842,8 +841,7 @@ class Skein:
             i = idx.get(s["status"])
             if i is not None:
                 cnt[i] += 1
-        pct = 100 if t["status"] == S_DONE else (
-            round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0)
+        pct = _task_pct(t)
         ready = t["status"] == S_PENDING and not any(
             self._dep_unfinished(d) for d in t.get("deps", []))
         return {"id": t["id"], "status": t["status"], "name": t.get("name", ""),
@@ -1459,10 +1457,8 @@ class Skein:
             return round((end - start) / 60)
 
         def task_pct(t):
-            if t["status"] == S_DONE:
-                return 100
-            subs = t.get("subtasks", [])
-            return round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
+            # ponytail: 委托全局三阶段加权 _task_pct (保留闭包名兼容 board 内多处引用)
+            return _task_pct(t)
 
         def node(_id, nm, stt, deps, pct, desc):
             # DAG 节点统一为数组 [id, name, status, deps(id 数组), pct, desc]
@@ -1592,6 +1588,7 @@ class Skein:
                          if (tdir / fn).exists()]
             cards.append({
                 "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
+                "stage": _task_stage(t),
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
                 "worktree": t.get("worktree") or None,
@@ -1796,17 +1793,10 @@ class Skein:
 
     def _queue(self) -> dict:
         # 待执行队列 (复用 ready/pop 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
-        # ponytail: task 完成百分比 = done 强制 100, 否则按 _sub_pct 加权平均 (复用 board task_pct 语义)
-        def _tpct(t):
-            if t["status"] == S_DONE:
-                return 100
-            subs = t.get("subtasks", [])
-            return round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
-
         tasks = self._render_tasks()
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                         "deps": t.get("deps", []), "desc": t.get("desc", ""),
-                        "status": t["status"], "spct": _tpct(t)}
+                        "status": t["status"], "spct": _task_pct(t)}
                        for t in self._all()
                        if t["status"] == S_PENDING
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
@@ -2490,6 +2480,37 @@ def _sub_pct(s):
         return 100
     crit = s.get("验收", [])
     return round(len(s.get("验收done", [])) / len(crit) * 100) if crit else 0
+
+
+def _task_pct(t):
+    # task 完成百分比 = plan/exec/check 三阶段加权:
+    #   plan(pending) 无 subs=5 (planning 中) / 有 subs=10 (plan 完成待 start);
+    #   exec(active)  = 10 + 75 * (subs _sub_pct 均值 / 100), 无 subs=10;
+    #   check = 85; done = 100。
+    st = t["status"]
+    if st == S_DONE:
+        return 100
+    if st == S_CHECK:
+        return 85
+    subs = t.get("subtasks", [])
+    if st == S_ACTIVE:
+        if not subs:
+            return 10
+        return 10 + int(75 * sum(_sub_pct(s) for s in subs) / len(subs) / 100)
+    # S_PENDING
+    return 10 if subs else 5
+
+
+def _task_stage(t):
+    # task 阶段标签 (plan/exec/check/done) 供 board card 渲染
+    st = t["status"]
+    if st == S_DONE:
+        return "done"
+    if st == S_CHECK:
+        return "check"
+    if st == S_ACTIVE:
+        return "exec"
+    return "plan"  # S_PENDING
 
 
 def _fmt_ts(ts):
