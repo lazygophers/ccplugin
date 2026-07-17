@@ -585,3 +585,10 @@
   .card, .entrance { opacity: 1 !important; transform: none !important; }
   .card::after { opacity: 0 !important; }
 }
+
+/* ── inline SVG 线条图标 (Feather/Lucide 风, 替换全站 emoji) ──
+   .nav-ico 顶栏 nav 项小图标 (15px, 跟随文字 currentColor);
+   .empty-ico 空态/错误大图标 (40px, 居中, 半透 accent)。 */
+.nav-ico { display: inline-block; vertical-align: -2px; }
+.empty-ico { display: flex; justify-content: center; margin-bottom: 8px; opacity: .5; color: var(--accent); }
+.empty-ico svg { width: 40px; height: 40px; }

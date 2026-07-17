@@ -41,19 +41,19 @@ const TPL = `
 
   <!-- 加载失败 -->
   <div v-if="loadErr" class="card p-10 text-center text-muted">
-    <div class="text-3xl mb-2">⚠️</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <div class="text-sm" style="color:var(--st-failed)">{{ loadErr }}</div>
   </div>
 
   <!-- 空态: 无归档 -->
   <div v-else-if="!items.length" class="card p-16 text-center text-muted">
-    <div class="text-4xl mb-3">📦</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg></div>
     <div class="text-sm">暂无归档 — 完成的 task 超保留期后会自动归档到这里。</div>
   </div>
 
   <!-- 空态: 有归档但无匹配 -->
   <div v-else-if="!filtered.length" class="card p-16 text-center text-muted">
-    <div class="text-4xl mb-3">🔍</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
     <div class="text-sm">无匹配结果 — 调整搜索词或状态筛选后重试。</div>
   </div>
 

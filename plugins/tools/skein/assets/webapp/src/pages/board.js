@@ -81,7 +81,6 @@ td .bar{margin:1px 0;min-width:78px}
 .doc-links{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
 .doc-link{background:var(--sel-bg);color:var(--sel-fg);border:1px solid var(--brd);border-radius:5px;padding:2px 9px;font:12px var(--font);cursor:pointer;transition:background .18s,color .18s}
 .doc-link:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
-.doc-link::before{content:"📄 "}
 .doc-modal[hidden]{display:none}
 .doc-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:32px}
 .doc-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}

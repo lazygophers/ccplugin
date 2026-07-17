@@ -12,15 +12,15 @@
   <header class="topbar">
     <strong class="logo"><span class="mark" aria-hidden="true"></span>SKEIN · {{PROJ}}</strong>
     <nav class="nav" aria-label="主导航">
-      <a href="/dashboard" data-nav>📊 概览</a>
-      <a href="/board" data-nav>📋 看板</a>
-      <a href="/queue" data-nav>⏳ 队列</a>
-      <a href="/task" data-nav>📄 任务</a>
-      <a href="/spec" data-nav>📖 规范</a>
-      <a href="/archive" data-nav>🗄 归档</a>
+      <a href="/dashboard" data-nav><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>概览</a>
+      <a href="/board" data-nav><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>看板</a>
+      <a href="/queue" data-nav><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>队列</a>
+      <a href="/task" data-nav><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>任务</a>
+      <a href="/spec" data-nav><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>规范</a>
+      <a href="/archive" data-nav><svg class="nav-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>归档</a>
     </nav>
     <label class="search">
-      <span aria-hidden="true">🔍</span>
+      <span aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
       <input type="search" id="global-search" placeholder="搜索 id / 名称 / 描述…" autocomplete="off" aria-label="全局搜索">
     </label>
     <!-- 主题 toggle (浅晨曦 / 暗夜金沙); app.js 记忆 data-theme 到 localStorage + 默认跟随系统 -->

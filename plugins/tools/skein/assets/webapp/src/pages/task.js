@@ -90,7 +90,8 @@ const TPL = `
 <div class="max-w-6xl mx-auto">
   <!-- 加载失败 / 404 空态 -->
   <div v-if="loadErr" class="card p-10 text-center text-muted">
-    <div class="text-3xl mb-2">{{ notFound ? '🔍' : '⚠️' }}</div>
+    <div class="empty-ico" v-if="notFound"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+    <div class="empty-ico" v-else><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <div class="text-sm" :style="notFound ? '' : 'color:var(--st-failed)'">{{ loadErr }}</div>
     <a href="/" class="inline-block mt-4 text-sm" style="color:var(--accent)">← 返回看板</a>
   </div>
@@ -184,7 +185,7 @@ const TPL = `
         </div>
         <div class="p-5">
           <div v-if="!docs[tab]" class="text-muted text-center py-16 text-sm">
-            <div class="text-2xl mb-1">📄</div>{{ docLabel(tab) }} 暂无内容
+            <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>{{ docLabel(tab) }} 暂无内容
           </div>
           <!-- PRD: 按 ## 章节拆 card 竖排; 章节内一级 - [ ] 由 md 渲染为只读 todo checkbox -->
           <div v-else-if="tab==='prd'" class="space-y-3">
@@ -230,11 +231,11 @@ const LIST_TPL = `
     <span v-if="!loadErr && items.length" class="text-xs text-muted">{{ items.length }}</span>
   </div>
   <div v-if="loadErr" class="card p-10 text-center text-muted">
-    <div class="text-3xl mb-2">⚠️</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <div class="text-sm" style="color:var(--st-failed)">{{ loadErr }}</div>
   </div>
   <div v-else-if="!items.length" class="card p-16 text-center text-muted">
-    <div class="text-4xl mb-3">🧵</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div>
     <div class="text-sm">暂无任务 — 在 .skein/task.json 添加后即显示。</div>
   </div>
   <div v-else class="space-y-2">

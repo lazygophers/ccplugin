@@ -28,7 +28,7 @@ const TPL = `
     <div class="text-xs uppercase tracking-wide opacity-60 mb-2">Spec 记忆</div>
     <div v-if="loadErr" class="text-sm" style="color:var(--st-failed)">{{ loadErr }}</div>
     <div v-else-if="empty" class="text-sm text-muted py-8 text-center">
-      <div class="text-xl mb-1">🗂️</div>暂无 spec<div class="text-xs opacity-60 mt-1">.skein/spec/ 为空</div>
+      <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>暂无 spec<div class="text-xs opacity-60 mt-1">.skein/spec/ 为空</div>
     </div>
     <div v-else>
     <div v-for="layer in layers" :key="layer.key">
