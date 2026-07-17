@@ -519,6 +519,10 @@ class Skein:
         undone = [d for d in t["deps"] if self._dep_unfinished(d)]
         if undone:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
+        # 校验: task 必须有至少 1 个 subtask (无 subtask 不许 start, 逼用户先拆 subtask)
+        subs = t.get("subtasks") or []
+        if len(subs) == 0:
+            raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 start")
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
         wt_cfg = cfg.get("use_worktree", True)
