@@ -1949,7 +1949,7 @@ class Skein:
         # 资产 (css/js) 变仍由 _watch_loop 走 WS 软刷/整页刷, 不惊动 uvicorn (reload 默认只盯 *.py)。
         lock.write_text(json.dumps({"port": port, "project": proj_id}))
         if not quiet:
-            print(f"SKEIN 看板服务已启动: {url}  (Ctrl-C 停止, 改 skein.py 自动热重载)", flush=True)
+            print(f"SKEIN · {self.proj} 看板服务已启动: {url}  (Ctrl-C 停止, 改 skein.py 自动热重载)", flush=True)
         if open_browser:
             threading.Timer(0.3, lambda: webbrowser.open(url)).start()
 
