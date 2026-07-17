@@ -118,7 +118,7 @@ const TPL = `
       <div v-if="fileErr" class="text-sm" style="color:var(--st-failed)">{{ fileErr }}</div>
 
       <!-- 预览模式 -->
-      <div v-else-if="mode==='view'" class="md-body" v-html="rendered"></div>
+      <div v-else-if="mode==='view'" class="md-body" v-html="rendered" @click="onPreviewClick"></div>
 
       <!-- 编辑模式 -->
       <div v-else>
@@ -325,6 +325,14 @@ export async function render(mount, params, ctx) {
       this.q = "";
     },
     isCurrentFile(p) { return this.current.path === p; },
+    onPreviewClick(e) {
+      var a = e.target.closest(".spec-wl");
+      if (!a) return;
+      var name = a.dataset.name;
+      if (!name) return;
+      var hit = Object.values(this.index).find(function (f) { return f.path.endsWith("/" + name + ".md"); });
+      if (hit) this.selectFile(hit.path);
+    },
     setCreated(e) {
       var v = e && e.target ? e.target.value : "";
       this.meta.created = v ? Math.floor(new Date(v).getTime() / 1000) : "";
