@@ -81,6 +81,20 @@ function esc(s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+// 混合时间格式: null → "-"; 否则 MM-DD HH:mm + 相对当前 (Xh ago / Xd ago)。
+// ponytail: 相对粒度到小时/天够用, 分钟级抖动大不展示。
+function fmtMix(ts) {
+  if (!ts) return "-";
+  const d = new Date(ts * 1000);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  const hrs = Math.floor((Date.now() / 1000 - ts) / 3600);
+  const rel = hrs >= 24 ? `${Math.floor(hrs / 24)}d ago` : `${hrs}h ago`;
+  return `${mm}-${dd} ${hh}:${mi} (${rel})`;
+}
+
 // subtask 完成百分比 (对齐后端 _sub_pct: done 强制 100; 验收done/验收, 无验收未完成即 0)
 function subPct(s) {
   if (s.status === "已完成") return 100;
@@ -158,6 +172,11 @@ const TPL = `
                 <span class="text-[11px] text-muted w-9 text-right">{{ pct(s) }}%</span>
               </div>
               <div v-if="deps(s).length" class="text-[11px] text-muted mt-1">依赖: {{ deps(s).join(', ') }}</div>
+              <div class="text-[11px] text-muted mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                <span>建: {{ fmtMix(s.created) }}</span>
+                <span>起: {{ fmtMix(s.started) }}</span>
+                <span>讫: {{ fmtMix(s.finished) }}</span>
+              </div>
             </div>
           </div>
         </section>
@@ -320,6 +339,7 @@ export async function render(mount, params, ctx) {
       tab: "design",
       docTabs: DOC_TABS,
       badgeCls,
+      fmtMix,
       pct: subPct,
       deps: (s) => s.depends_on || [],
       docLabel: (k) => (DOC_TABS.find((d) => d.key === k) || {}).label || k,
