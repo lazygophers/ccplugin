@@ -1688,7 +1688,7 @@ class Skein:
                 sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
         total = ov["taskCount"]
         done = ov["stats"].get(S_DONE, 0)
-        # 进行中 subtask: active task 内 SS_RUNNING (含耗时/预期)
+        # 进行中 subtask: active task 内 SS_RUNNING (含耗时)
         tnow = now()
         running_subs = []
         for t in self._active():
@@ -1707,10 +1707,10 @@ class Skein:
                        for t in self._all()
                        if t["status"] == S_PENDING
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
-        # 执行中 task: cards 已含 elapsed/est/sdone/stotal/pct (不重算)
+        # 执行中 task: cards 已含 elapsed/sdone/stotal/pct (不重算)
         active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
                          "pct": c["pct"], "sdone": c["sdone"], "stotal": c["stotal"],
-                         "elapsed": c.get("elapsed"), "est": c.get("est")}
+                         "elapsed": c.get("elapsed")}
                         for c in data["cards"] if c["status"] in (S_ACTIVE, S_CHECK)]
         return {"proj": self.proj, "taskCount": total,
                 "doneRate": round(done / total * 100) if total else 0,
@@ -2196,7 +2196,7 @@ class Skein:
                 "id": tid, "name": raw.get("title") or raw.get("name") or tid,
                 "desc": raw.get("description") or raw.get("desc") or "",
                 "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
-                "worktree": None, "branch": f"skein/{tid}", "estimate": None,
+                "worktree": None, "branch": f"skein/{tid}",
                 "created": now(), "started": None, "finished": None, "updated": now(),
             }
             self._save(t)
@@ -2425,7 +2425,6 @@ def main():
     c.add_argument("--desc", required=True, help="[必填] 一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
     c.add_argument("--repos", help="目标子 git, 逗号分隔 rel 路径 (多子 git 各开 worktree; 省略=单根/原地)")
-    c.add_argument("--estimate", type=int, help="AI 执行预期耗时 (分钟, planning 填)")
     rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
     rp.add_argument("id", help="task id")
     rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
@@ -2478,7 +2477,6 @@ def main():
     st.add_argument("--check", help="[add] 验收标准 checklist, 分号分隔 (每条一个可验断言)")
     st.add_argument("--note", help="[fail] 失败备注")
     st.add_argument("--passed", help="[check] 已通过验收标准序号(1-based), 逗号分隔; all=全过, none=清空")
-    st.add_argument("--estimate", type=int, help="[add] AI 执行预期耗时 (分钟)")
     st.add_argument("--agent", help="关联执行 agent (省略默认 skein-executor; 有更合适的显式填)")
     st.add_argument("--skills", help="[add] 关联 skills, 逗号分隔 (0-n, 省略即无)")
 
