@@ -1,4 +1,8 @@
-#!/usr/bin/env bash
-# skein-hooks — thin wrapper forwarding to scripts/hooks.py (子命令: permission/guard/batch/report)
-root="${CLAUDE_PLUGIN_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
-exec python3 "$root/scripts/hooks.py" "$@"
+#!/usr/bin/env python3
+"""skein-hooks — py wrapper, 复用 scripts/hooks.py 入口 (去 shell 依赖, 子命令: permission/guard/batch/report)。
+原 bash thin wrapper 的 py 等价: CLAUDE_PLUGIN_ROOT 优先, 回退相对 __file__ 推插件根, runpy 复用 scripts/ 入口。"""
+import os, sys, runpy
+_root = os.environ.get("CLAUDE_PLUGIN_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_target = os.path.join(_root, "scripts", "hooks.py")
+sys.argv[0] = _target
+runpy.run_path(_target, run_name="__main__")
