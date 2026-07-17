@@ -2009,6 +2009,20 @@ class Skein:
         async def _search(q: str = ""):  # 跨 task/subtask/prd/spec 关键词搜
             return JSONResponse(board._search(q))
 
+        # webapp 改 history API (pathname) 路由: 直访 /dashboard /queue /task 等单段 SPA 路径须回 index.html 让前端 router 接管。
+        # /task /board 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
+        # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
+        def _spa():
+            return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
+
+        @app.get("/task", response_class=HTMLResponse)
+        async def _spa_task():  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
+            return _spa()
+
+        @app.get("/board", response_class=HTMLResponse)
+        async def _spa_board():  # /board 裸路径 = board 页; /board/*.css 等资产仍落下方 mount
+            return _spa()
+
         # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
         app.mount("/board", StaticFiles(directory=str(self._board_assets_dir())), name="board")
         # webapp 工程化前端: 首页在 / 出, 其 index.html 相对引 dist/app.css + src/app.js → 挂 /dist /src /vendor 使之解析
@@ -2020,6 +2034,11 @@ class Skein:
         # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
         # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
         app.mount("/task", StaticFiles(directory=str(self.tasks), check_dir=False), name="task")
+        # SPA fallback: 其余无专属 route/mount 的 GET 路径 (/dashboard /queue /spec /archive 等单段 SPA 路由) 兜底回 index.html。
+        # 声明在所有 mount 之后 → 静态 (含 /task/<id>/prd.md, /dist/app.css) 先匹命中; 命不中才回落 SPA。API (/__skein__/*) 在更上方, 优先级最高。
+        @app.get("/{full_path:path}", response_class=HTMLResponse)
+        async def _spa_fallback(full_path: str):
+            return _spa()
         return app
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----

@@ -17,7 +17,7 @@ function loadPetiteVue() {
   document.head.appendChild(s);
 }
 
-// ── 全局搜索: 输入防抖 → api.search → 下拉结果; 点结果跳转 (task/subtask → #/task/:id) ──
+// ── 全局搜索: 输入防抖 → api.search → 下拉结果; 点结果跳转 (task/subtask → /task?id=:id) ──
 function wireSearch() {
   const input = document.getElementById("global-search");
   if (!input) return;
@@ -42,9 +42,9 @@ function wireSearch() {
   function close() { box.hidden = true; box.innerHTML = ""; }
   function hitHash(h) {
     // task/subtask 命中 → 任务详情页; 其余 (spec/命令/…) 回落到对应 tab
-    if (h.kind === "task" || h.kind === "subtask") return "#/task/" + encodeURIComponent(h.id);
-    if (h.kind === "spec") return "#/spec";
-    return "#/dashboard";
+    if (h.kind === "task" || h.kind === "subtask") return "/task?id=" + encodeURIComponent(h.id);
+    if (h.kind === "spec") return "/spec";
+    return "/dashboard";
   }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
   function renderHits(hits, q) {

@@ -1,4 +1,4 @@
-// SKEIN 归档页 (#/archive): 已归档 task 浏览 — 卡片列表 (id/名/状态 badge/描述/归档时间/subtask 数), 每项跳 #/task/:id 看详情+prd。
+// SKEIN 归档页 (/archive): 已归档 task 浏览 — 卡片列表 (id/名/状态 badge/描述/归档时间/subtask 数), 每项跳 /task?id=:id 看详情+prd。
 // 只读视图; 数据 api.archive() 一次拉全 ([{id,name,status,desc,finished,archivedAt,subs}]), 按 finished 倒序; onLive 软刷。空态友好占位。
 // page 契约: render(mount, params, ctx); ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
 
@@ -59,7 +59,7 @@ const TPL = `
 
   <!-- 归档卡片列表 (按 finished 倒序) -->
   <div v-else class="space-y-2">
-    <a v-for="a in filtered" :key="a.id" :href="'#/task/'+encodeURIComponent(a.id)"
+    <a v-for="a in filtered" :key="a.id" :href="'/task?id='+encodeURIComponent(a.id)"
       class="card block p-4 hover:bg-[var(--line)] transition-colors">
       <div class="flex items-center gap-2 flex-wrap">
         <code class="text-xs px-1.5 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ a.id }}</code>
