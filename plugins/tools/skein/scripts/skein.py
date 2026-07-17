@@ -1026,6 +1026,68 @@ class Skein:
             print(f"\n共 {len(errs)} 错误, {len(warns)} 警告")
         if errs:
             raise SystemExit(1)
+        if getattr(a, "quality", False):
+            # 默认 doctor 只查 task 不变量 (快); --quality/-Q 再跑 mypy+pytest 质量门 (慢, CI/hook 按需调)。
+            self._quality_gate()
+
+    @staticmethod
+    def _find_tool_interpreter(module: str) -> Optional[str]:
+        # mypy/pytest 常装在不同 python (mise python 有 mypy 无 pytest; 系统 python 反之)。
+        # 候选顺序: sys.executable (跑 skein.py 的 python) → /usr/bin/python3 → PATH 的 python3。
+        # 返回首个能 import 该 module 的解释器路径, 找不到 None。
+        cands: list[str] = [sys.executable, "/usr/bin/python3", "python3"]
+        seen: set[str] = set()
+        for py in cands:
+            if py in seen:
+                continue
+            seen.add(py)
+            try:
+                r = subprocess.run([py, "-c", f"import {module}"], capture_output=True, timeout=15)
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if r.returncode == 0:
+                return py
+        return None
+
+    def _quality_gate(self) -> None:
+        # 质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass。失败指明文件/测, exit 1。
+        # ponytail: 不解析 mypy/pytest 输出做花式摘要, 直接把尾部行回显 (工具自身报错已足够可操作)。
+        scripts_dir = Path(__file__).parent
+        print("\n── 质量门 (mypy --strict + pytest) ──")
+        failed = False
+
+        mypy_py = self._find_tool_interpreter("mypy")
+        if mypy_py is None:
+            print("✗ mypy 不可用: 无 python 能 import mypy (装: pip install mypy)")
+            failed = True
+        else:
+            r = subprocess.run([mypy_py, "-m", "mypy", "--strict", str(scripts_dir)],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                failed = True
+                tail = "\n".join(r.stdout.splitlines()[-15:]) or r.stderr.strip()
+                print(f"✗ mypy --strict 失败 (python={mypy_py}):\n{tail}")
+            else:
+                print(f"✓ mypy --strict 0 错 (python={mypy_py})")
+
+        pytest_py = self._find_tool_interpreter("pytest")
+        if pytest_py is None:
+            print("✗ pytest 不可用: 无 python 能 import pytest (装: pip install pytest)")
+            failed = True
+        else:
+            r = subprocess.run([pytest_py, "-m", "pytest", str(scripts_dir), "-q"],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                failed = True
+                tail = "\n".join((r.stdout or r.stderr).splitlines()[-20:])
+                print(f"✗ pytest 失败 (python={pytest_py}):\n{tail}")
+            else:
+                line = next((l for l in r.stdout.splitlines() if "passed" in l), "pass")
+                print(f"✓ pytest {line.strip()} (python={pytest_py})")
+
+        if failed:
+            raise SystemExit(1)
+        print("✅ 质量门通过")
 
     def _uninit_ctx(self) -> str:
         # 未初始化注入文案。检测到 .trellis/ → 强命令式, 显式压过 trellisx 的 active-task 注入 (决策: skein 抢做唯一任务管理器);
@@ -2619,7 +2681,9 @@ def main() -> None:
     li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
                     help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
-    sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁)")
+    _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
+    _doc.add_argument("-Q", "--quality", action="store_true",
+                      help="体检后再跑质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass (慢, CI/hook 按需调)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="起 http 服务并打开可视化看板 (仅此命令主动打开)")
     sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
