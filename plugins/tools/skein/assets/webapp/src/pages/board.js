@@ -71,7 +71,7 @@ td .bar{margin:1px 0;min-width:78px}
 .dag svg a,.dag a{cursor:pointer}
 .dag a .has-link,.dag .has-link{cursor:pointer}
 .dag a:hover rect:first-of-type{stroke-width:2}
-.dag-tip{display:none;pointer-events:none;position:fixed;z-index:60;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:14px 16px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:min(680px,92vw);min-width:360px;max-height:74vh;overflow:auto;font-size:13px;line-height:1.5}
+.dag-tip{display:none;pointer-events:none;position:fixed;z-index:1000;background:var(--card);border:1px solid var(--brd);border-radius:8px;padding:14px 16px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:min(680px,92vw);min-width:360px;max-height:74vh;overflow:auto;font-size:13px;line-height:1.5}
 .dag-tip .dag{margin:2px 0 0;max-width:none}
 .dag-tip .meta{font-size:13px}
 .dag-tip .bar{margin-bottom:10px}
@@ -83,7 +83,7 @@ td .bar{margin:1px 0;min-width:78px}
 .doc-link:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 .doc-link::before{content:"📄 "}
 .doc-modal[hidden]{display:none}
-.doc-modal{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:32px}
+.doc-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:32px}
 .doc-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
 .doc-panel{position:relative;background:var(--card);border:1px solid var(--brd);border-radius:var(--radius,12px);width:min(860px,100%);max-height:85vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.35)}
 .doc-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
