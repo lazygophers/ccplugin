@@ -74,15 +74,7 @@ td .bar{margin:1px 0;min-width:78px}
 .dag-tip .dag{margin:2px 0 0;max-width:none}
 .dag-tip .meta{font-size:13px}
 .dag-tip .bar{margin-bottom:10px}
-.detail{margin-top:2px}
-.detail>summary{cursor:pointer;font-size:12px;color:var(--muted);padding:4px 0;list-style:none;user-select:none}
-.detail>summary::-webkit-details-marker{display:none}
-.detail>summary::before{content:"▸ "}
-.detail[open]>summary::before{content:"▾ "}
-.detail[open]{margin-top:6px}
-.detail .dag{margin:6px 0}
-.detail .dag-wrap{max-height:none;overflow-y:visible;overflow-x:auto}
-.detail .dag{max-width:none;height:auto}
+.task-detail{margin-top:6px}
 .dag g.dag-dim{opacity:.22;transition:opacity .2s}
 .dag g.dag-hit>rect:first-of-type{stroke-width:2.5;filter:drop-shadow(0 0 3px var(--accent))}
 .doc-links{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 8px}
@@ -499,9 +491,9 @@ function buildLayoutHtml(data) {
       + h2 + '<p class="name">' + esc(c.name) + "</p>"
       + docRow(c.docLinks) + prdBlock(c.prd) + meta1
       + '<p class="meta">子任务 ' + c.sdone + "/" + c.stotal + "</p>" + bar(c.spct, true, "")
-      + '<details class="detail" open><summary>明细 · DAG + 子任务表</summary>'
+      + '<div class="task-detail">'
       + dagHtml(c.subNodes, null, null, (c.subNodes || []).length > 4)
-      + subtable(c.subtable, data.ssClsMap) + "</details></section>";
+      + subtable(c.subtable, data.ssClsMap) + "</div></section>";
   }).join("");
   var main = data.cards.length ? cards : '<p class="empty">无 task</p>';
   return '<aside class="col-side">' + overview + '</aside><main class="col-main">' + main + "</main>";
