@@ -4,19 +4,17 @@
 //   toast 复用简易 div (spec.js 同款)。YAML 简易 dump/parse (flat, bool/int/str)。
 
 // CONFIG_DEFAULTS 镜像 (scripts/skein.py:147) — 仅作类型/默认值/控件元信息; 实际值取自后端。
-// 重启提示: 改了 board_theme/worktree_root 需重启 serve 生效 (前端只回写 config.yaml)。
+// 重启提示: 改了 worktree_root 需重启 serve 生效 (前端只回写 config.yaml)。
 const SCHEMA = [
-  { k: "max_active", type: "int", label: "task 并发上限", hint: "同 session 同时 in_progress 的 task 数" },
-  { k: "max_parallel", type: "int", label: "subtask 并行上限", hint: "单 task 内同时跑的 subtask 数" },
+  { k: "max_active", type: "int", label: "并发上限", hint: "task 与 subtask 共用并发数" },
   { k: "auto_commit", type: "bool", label: "自动提交", hint: "变更自动提交暂存区" },
   { k: "use_worktree", type: "bool", label: "worktree 隔离", hint: "启用 git worktree 隔离执行" },
   { k: "worktree_root", type: "str", label: "worktree 根目录", hint: "改了需重启 serve 生效" },
   { k: "retain_days", type: "int", label: "task 保留天数", hint: "完成 task 保留天数 (0=立即归档, 负=永不)" },
-  { k: "board_theme", type: "str", label: "看板主题", hint: "改了需重启 serve 生效", options: ["skein"] },
-  { k: "web_serve", type: "bool", label: "http 服务", hint: "看板 http 服务总开关" },
+  { k: "web_serve", type: "bool", label: "http 服务自动启用", hint: "是否自动启用" },
   { k: "board_open", type: "bool", label: "view 自动开浏览器", hint: "仅 view 命令生效" },
 ];
-const RESTART_KEYS = new Set(["worktree_root", "board_theme"]);
+const RESTART_KEYS = new Set(["worktree_root"]);
 const DEBOUNCE_MS = 400;
 
 // 简易 flat YAML dump: bool→true/false, str→原值, int→String(n)。
@@ -69,7 +67,8 @@ const FORM_TPL = SCHEMA.map((s) => {
   } else {
     ctrl = '<input type="text" class="cfg-input" spellcheck="false" v-model="cfg[\'' + s.k + '\']" @input="onMutate()">';
   }
-  return '<label class="cfg-row' + (s.type === "bool" ? " cfg-row-switch" : "") + '">' +
+  return '<label class="cfg-row' + (s.type === "bool" ? " cfg-row-switch" : "") + '"' +
+    (s.k === "worktree_root" ? ' v-if="cfg.use_worktree"' : "") + '>' +
     '<span class="cfg-meta">' + lab + "</span>" + ctrl + "</label>";
 }).join("");
 
@@ -213,8 +212,8 @@ async function open() {
 // 自检 (ponytail): dump→parse 往返保真 — node --input type=module 跑时验证。
 // ponytail: 不引框架, 一组 assert 验证双 Tab 同步核心逻辑不破。
 export function _selftest() {
-  const src = { max_active: 3, max_parallel: 1, auto_commit: false, use_worktree: true,
-    worktree_root: ".wt", retain_days: 0, board_theme: "skein", web_serve: false, board_open: true };
+  const src = { max_active: 3, auto_commit: false, use_worktree: true,
+    worktree_root: ".wt", retain_days: 0, web_serve: false, board_open: true };
   const y = dumpYaml(src);
   const back = parseYaml(y);
   const ok = SCHEMA.every((s) => Object.prototype.hasOwnProperty.call(back, s.k) && String(back[s.k]) === String(src[s.k]));

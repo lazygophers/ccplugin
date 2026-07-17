@@ -6,7 +6,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 
 工作区布局 (git 根下):
   .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree_root 到根 .gitignore
-  .skein/config.yaml              设置 (max_active / max_parallel / auto_commit / worktree_root)
+  .skein/config.yaml              设置 (max_active / auto_commit / worktree_root)
   .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
@@ -146,14 +146,12 @@ def _yaml_dump(d: dict) -> str:
 # config.yaml 全部键的默认值 — init 写入 + config() 缺键自动回填的唯一真值源。
 CONFIG_DEFAULTS = {
     "max_active": 2,
-    "max_parallel": 2,
     "auto_commit": True,
     "use_worktree": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
     "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
-    "board_theme": "skein",  # 看板主题 (当前仅 skein; 前端 config-modal SCHEMA + config.yaml 已含, 补键对齐前后端契约)
 }
 
 
@@ -197,7 +195,7 @@ class Skein:
             cfg = {**CONFIG_DEFAULTS, **cfg}  # 保留用户值, 仅补缺键
             f.write_text(_yaml_dump(cfg))
         # 用户在插件启用时确认的 userConfig 优先于 config.yaml (经 CLAUDE_PLUGIN_OPTION_* 传入)
-        for k in ("max_active", "max_parallel"):
+        for k in ("max_active",):
             v = os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}")
             if v and v.strip().isdigit():
                 cfg[k] = int(v)
@@ -1234,7 +1232,7 @@ class Skein:
         subs = t.get("subtasks", [])
         done = {s["sid"] for s in subs if s["status"] == SS_DONE}
         running = [s for s in subs if s["status"] == SS_RUNNING]
-        slots = self.config().get("max_parallel", 2) - len(running)
+        slots = self.config()["max_active"] - len(running)
         if slots <= 0:
             return []  # 并发满 → 阻塞
         crit = self._crit_weight(subs)
@@ -1247,12 +1245,12 @@ class Skein:
 
     def _global_ready(self) -> list:
         """全局跨 task 就绪批: 所有 active task 的 ready subtask 合池,
-        按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_parallel - 全局 running 槽。
+        按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局 running 槽。
         返回 [(task_obj, subtask_obj), ...]。"""
         tasks = self._active()  # 已按 STATUS_ACTIVE 过滤 + 登记序
         global_running = sum(
             1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
-        slots = self.config().get("max_parallel", 2) - global_running
+        slots = self.config()["max_active"] - global_running
         if slots <= 0:
             return []
         cand = []
@@ -1277,14 +1275,14 @@ class Skein:
         raise SystemExit(f"subtask 不存在: {t['id']}/{sid}")
 
     def claim(self, a):
-        """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_parallel 槽。
+        """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_active 槽。
         整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。"""
         batch = self._global_ready()
         if not batch:
             tasks = self._active()
             grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
             gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
-            mp = self.config().get("max_parallel", 2)
+            mp = self.config()["max_active"]
             print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
             return
         claimed = []
@@ -1373,7 +1371,7 @@ class Skein:
             if undone:
                 raise SystemExit(f"依赖未完成: {', '.join(undone)} — 先 done 它们")
             run = [x for x in t["subtasks"] if x["status"] == SS_RUNNING]
-            if len(run) >= self.config().get("max_parallel", 2):
+            if len(run) >= self.config()["max_active"]:
                 raise SystemExit(f"并发已满 ({len(run)}) — 先 done 一个再 start")
             s["status"] = SS_RUNNING
             if not s.get("started"):
@@ -1421,7 +1419,7 @@ class Skein:
             "| sid | 名称 | 状态 | 进度 | agent | skills | 依赖 | 验收标准 |\n"
             "|---|---|---|---|---|---|---|---|\n"
             f"{body}\n\n"
-            f"并发上限: {self.config().get('max_parallel', 2)}\n"
+            f"并发上限: {self.config()['max_active']}\n"
         )
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
@@ -2586,7 +2584,7 @@ def main():
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
-    sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_parallel 槽)")
+    sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_active 槽)")
     sub.add_parser("pop", help="只读提取一个可执行 (task, subtask) 对 (active task 内首个就绪 subtask; 仅选取, 是否执行交 AI 判)")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
     li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
@@ -2607,7 +2605,7 @@ def main():
     stt.add_argument("--json", action="store_true", help="压缩 JSON 输出")
     st = sub.add_parser(
         "subtask", help="单 task 内 subtask DAG 调度 (add/claim/ready/start/done/fail/list)",
-        epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_parallel)")
+        epilog="调度环: claim 认领就绪批 (整批标 running) → 逐个派 agent → 完成即 done/fail → 再 claim (并发 max_active)")
     st.add_argument("action", choices=["add", "claim", "ready", "start", "check", "done", "fail", "list"],
                     help="add 登记 / claim 认领就绪批(整批标running) / ready 只读预览 / start 单个占槽 / check 勾验收(算百分比) / done 完成 / fail 失败 / list 列态")
     st.add_argument("tid", help="所属 task id")
