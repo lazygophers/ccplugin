@@ -11,6 +11,17 @@ const BADGE = {
 };
 const badgeCls = (st) => BADGE[st] || "badge-pending";
 
+// task 阶段 label (plan/exec/check/done): task.json 无 stage 字段, 由 status 派生 (对齐后端 _task_stage)。
+// ponytail: 详情接口 _task_detail 直返 task.json 原文无 stage, 前端就近派生, 不改后端契约。
+const STAGE_OF = { "已完成": "done", "检查中": "check", "进行中": "exec", "运行中": "exec", "待处理": "plan" };
+const stageOf = (st) => STAGE_OF[st] || "plan";
+const STAGE_LABEL = { plan: "plan", exec: "exec", check: "check", done: "done" };
+const STAGE_CLS = { plan: "stg-plan", exec: "stg-exec", check: "stg-check", done: "stg-done" };
+function stageChip(status) {
+  const s = stageOf(status), lbl = STAGE_LABEL[s];
+  return lbl ? `<span class="stage-chip ${STAGE_CLS[s]}">${lbl}</span>` : "";
+}
+
 // DAG 节点染色映射 (status → CSS 变量 / class)。对齐后端 _board_data 的 node_var/node_cls。
 // ponytail: _task_detail 不返回 nodeVar/nodeCls, 此处硬编码同一份 (task/subtask 状态中文集合的并集)。
 const NODE_VAR = {
@@ -71,6 +82,12 @@ const TASK_STYLE = `<style>
 .task-dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
 .back-btn{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);background:transparent;border:1px solid var(--brd);border-radius:8px;padding:4px 10px;cursor:pointer}
 .back-btn:hover{color:var(--accent);border-color:var(--accent)}
+/* task 阶段 chip (与 board.js 同色语义: plan=muted/exec=accent/check=st-check/done=st-done) */
+.stage-chip{display:inline-block;padding:0 7px;border-radius:9px;font-size:10px;line-height:17px;font-weight:600;letter-spacing:.02em;vertical-align:baseline;color:#fff}
+.stage-chip.stg-plan{background:var(--muted)}
+.stage-chip.stg-exec{background:var(--accent)}
+.stage-chip.stg-check{background:var(--st-check)}
+.stage-chip.stg-done{background:var(--st-done)}
 .sec-empty{color:var(--muted);font-size:12.5px;font-style:italic;opacity:.85}
 </style>`;
 
@@ -120,6 +137,7 @@ const TPL = `
         <code class="text-sm px-2 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ task.id }}</code>
         <h1 class="text-lg font-semibold" style="color:var(--head)">{{ task.name || task.id }}</h1>
         <span class="badge" :class="badgeCls(task.status)">{{ task.status }}</span>
+        <span class="stage-chip" :class="stageCls(task.status)" v-if="task.status">{{ stageLabel(task.status) }}</span>
         <span v-if="archived" class="badge badge-done opacity-70">已归档</span>
         <span class="flex-1"></span>
         <span v-if="task.deps && task.deps.length" class="text-xs text-muted">依赖 {{ task.deps.join(', ') }}</span>
@@ -301,7 +319,7 @@ export async function render(mount, params, ctx) {
     async function mountList() {
       const st = await fetchList();
       mount.innerHTML = LIST_TPL;
-      window.PetiteVue.createApp(Object.assign({ badgeCls }, st)).mount(mount);
+      window.PetiteVue.createApp(Object.assign({ badgeCls, stageCls: (st) => STAGE_CLS[stageOf(st)], stageLabel: (st) => STAGE_LABEL[stageOf(st)] }, st)).mount(mount);
     }
     await mountList();
     onLive && onLive(mountList);
@@ -339,6 +357,8 @@ export async function render(mount, params, ctx) {
       tab: "design",
       docTabs: DOC_TABS,
       badgeCls,
+      stageCls: (st) => STAGE_CLS[stageOf(st)],
+      stageLabel: (st) => STAGE_LABEL[stageOf(st)],
       fmtMix,
       pct: subPct,
       deps: (s) => s.depends_on || [],
