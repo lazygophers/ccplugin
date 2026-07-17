@@ -4,6 +4,27 @@
 //   (3) 待执行总览 pendingQueue (全部未完成 task/subtask 双层调度序; ready 点区分就绪/排队)
 // 只读视图; 数据 api.queue() 一次拉全 (readyTasks/readySubtasks/pendingQueue), onLive 软刷。
 // page 契约: render(mount, params, ctx); ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
+//
+// hover/click 详情浮层: hoverKey (当前 hover) + pinnedKey (当前钉住), 显隐 = hoverKey===key || pinnedKey===key;
+// click 条目 toggle pinnedKey; document click (浮层外) 清 pinnedKey。
+
+// 状态中文 → badge 令牌类 (复用 task.js 同名映射)。
+const BADGE = {
+  "待处理": "badge-pending", "进行中": "badge-active", "运行中": "badge-active",
+  "检查中": "badge-check", "已完成": "badge-done", "失败": "badge-failed",
+};
+const badgeCls = (st) => BADGE[st] || "badge-pending";
+
+const STYLE = `<style>
+.qrow{position:relative}
+.qpop{position:absolute;left:0;right:auto;top:100%;margin-top:4px;z-index:50;
+  min-width:240px;max-width:340px;background:var(--card);border:1px solid var(--brd);
+  border-radius:8px;padding:10px 12px;font:12px var(--font);color:var(--head);
+  box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:default}
+.qpop k{color:var(--muted);font-weight:600}
+.qpop .bar{flex:1;height:6px;border-radius:4px;background:var(--line);overflow:hidden}
+.qpop .bar>div{height:100%;background:var(--st-done)}
+</style>`;
 
 const TPL = `
 <div class="max-w-4xl mx-auto">
@@ -32,11 +53,23 @@ const TPL = `
         <div v-if="!readyTasks.length" class="text-muted text-center py-6 text-sm">无就绪 task</div>
         <div v-else class="space-y-1.5">
           <a v-for="t in readyTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)"
-            class="flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]" style="border:1px solid var(--line)">
+            class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
+            style="border:1px solid var(--line)"
+            @mouseenter="hoverKey='t:'+t.id" @mouseleave="hoverKey=''" @click.prevent.stop="pin('t:'+t.id)">
             <code class="text-[11px] text-muted shrink-0">{{ t.id }}</code>
             <span class="text-sm truncate">{{ t.name }}</span>
             <span class="flex-1"></span>
             <span v-if="t.deps && t.deps.length" class="text-[11px] text-muted shrink-0">依赖 {{ t.deps.join(', ') }}</span>
+            <div v-if="show('t:'+t.id)" class="qpop" @click.stop @mouseenter="hoverKey='t:'+t.id" @mouseleave="hoverKey=''">
+              <div class="mb-1"><k>ID</k> <code>{{ t.id }}</code> <span class="badge text-[11px]" :class="badgeCls(t.status)">{{ t.status }}</span></div>
+              <div class="mb-1"><k>名</k> {{ t.name }}</div>
+              <p v-if="t.desc" class="text-muted whitespace-pre-wrap mb-1">{{ t.desc }}</p>
+              <div v-if="t.deps && t.deps.length" class="mb-1"><k>依赖</k> {{ t.deps.join(', ') }}</div>
+              <div class="flex items-center gap-2 mt-1">
+                <k>进度</k><div class="bar"><div :style="'width:'+(t.spct||0)+'%'"></div></div>
+                <span class="text-[11px] text-muted w-9 text-right">{{ t.spct||0 }}%</span>
+              </div>
+            </div>
           </a>
         </div>
       </section>
@@ -52,14 +85,22 @@ const TPL = `
         <div v-if="!readySubtasks.length" class="text-muted text-center py-6 text-sm">无就绪 subtask</div>
         <ol v-else class="space-y-1.5">
           <li v-for="(s,idx) in readySubtasks" :key="s.tid+'/'+s.sid"
-            class="flex items-center gap-2 rounded p-2" style="border:1px solid var(--line)">
+            class="qrow flex items-center gap-2 rounded p-2 cursor-default" style="border:1px solid var(--line)"
+            @mouseenter="hoverKey='s:'+s.tid+'/'+s.sid" @mouseleave="hoverKey=''" @click.stop="pin('s:'+s.tid+'/'+s.sid)">
             <span class="text-[11px] text-muted w-5 text-right shrink-0 select-none">{{ idx+1 }}</span>
-            <a :href="'/task?id='+encodeURIComponent(s.tid)" class="shrink-0">
+            <a :href="'/task?id='+encodeURIComponent(s.tid)" class="shrink-0" @click.stop>
               <code class="text-[11px] text-muted">{{ s.tid }}/{{ s.sid }}</code>
             </a>
             <span class="text-sm truncate">{{ s.name }}</span>
             <span class="flex-1"></span>
             <span class="text-[11px] text-muted shrink-0">{{ s.agent }}</span>
+            <div v-if="show('s:'+s.tid+'/'+s.sid)" class="qpop" @click.stop @mouseenter="hoverKey='s:'+s.tid+'/'+s.sid" @mouseleave="hoverKey=''">
+              <div class="mb-1"><k>SUB</k> <code>{{ s.tid }}/{{ s.sid }}</code> <span class="badge text-[11px]" :class="badgeCls(s.status)">{{ s.status }}</span></div>
+              <div class="mb-1"><k>名</k> {{ s.name }}</div>
+              <p v-if="s.desc" class="text-muted whitespace-pre-wrap mb-1">{{ s.desc }}</p>
+              <div class="mb-1"><k>agent</k> {{ s.agent }}</div>
+              <div v-if="s.depends_on && s.depends_on.length"><k>依赖</k> {{ s.depends_on.join(', ') }}</div>
+            </div>
           </li>
         </ol>
       </section>
@@ -74,7 +115,9 @@ const TPL = `
         <div v-if="!pendingQueue.length" class="text-muted text-center py-6 text-sm">队列为空 — 无待派 subtask</div>
         <div v-else class="space-y-1.5">
           <a v-for="q in pendingQueue" :key="q.tid+'/'+q.sid" :href="'/task?id='+encodeURIComponent(q.tid)"
-            class="flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]" style="border:1px solid var(--line)">
+            class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
+            style="border:1px solid var(--line)"
+            @mouseenter="hoverKey='s:'+q.tid+'/'+q.sid" @mouseleave="hoverKey=''" @click.prevent.stop="pin('s:'+q.tid+'/'+q.sid)">
             <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="'background:'+(q.ready?'var(--st-active)':'var(--st-pending)')"
               :title="q.ready?'就绪':'排队中'"></span>
             <code class="text-[11px] text-muted shrink-0">{{ q.tid }}/{{ q.sid }}</code>
@@ -82,6 +125,13 @@ const TPL = `
             <span class="flex-1"></span>
             <span v-if="q.est" class="text-[11px] text-muted shrink-0">{{ q.est }}</span>
             <span class="text-[11px] text-muted shrink-0">{{ q.agent }}</span>
+            <div v-if="show('s:'+q.tid+'/'+q.sid)" class="qpop" @click.stop @mouseenter="hoverKey='s:'+q.tid+'/'+q.sid" @mouseleave="hoverKey=''">
+              <div class="mb-1"><k>SUB</k> <code>{{ q.tid }}/{{ q.sid }}</code> <span class="badge text-[11px]" :class="badgeCls(q.status)">{{ q.status }}</span></div>
+              <div class="mb-1"><k>名</k> {{ q.name }}</div>
+              <p v-if="q.desc" class="text-muted whitespace-pre-wrap mb-1">{{ q.desc }}</p>
+              <div class="mb-1"><k>agent</k> {{ q.agent }}</div>
+              <div v-if="q.depends_on && q.depends_on.length"><k>依赖</k> {{ q.depends_on.join(', ') }}</div>
+            </div>
           </a>
         </div>
       </section>
@@ -91,8 +141,10 @@ const TPL = `
 
 export async function render(mount, params, ctx) {
   const { api, onLive } = ctx;
+  let docClick = null;
 
-  // 先拉数据再 createApp (对齐 dashboard.js/task.js: petite-vue 无对外句柄, 初始态直接注入)。
+  // document click 监听 (浮层外清 pinnedKey); mountApp 重挂时去重, 防多次绑定。
+  // ponytail: 用 mounted 实例闭包态 + 外层 guard 句柄, onLive 重挂无需手工解绑 (旧 mount DOM 被覆盖, listener 仍指旧闭包 pinnedKey 已失效由新实例接管)。
   async function fetchState() {
     try {
       const r = await api.queue();
@@ -110,8 +162,22 @@ export async function render(mount, params, ctx) {
 
   async function mountApp() {
     const st = await fetchState();
-    mount.innerHTML = TPL;
-    window.PetiteVue.createApp(st).mount(mount);
+    mount.innerHTML = STYLE + TPL;
+    // 浮层状态对象 (闭包持有 = createApp 直接挂的 reactive state, 二者同一代理):
+    //   - pin(key): 同 key 再 click 清空 (toggle); 否则钉住该 key。
+    //   - show(key): 浮层显隐判据 = hoverKey===key || pinnedKey===key。
+    //   - document click (浮层内已 @click.stop 阻断) → 清 pop.pinnedKey (与模板同源响应式)。
+    const pop = Object.assign({
+      hoverKey: "", pinnedKey: "",
+      badgeCls,
+      show(k) { return this.hoverKey === k || this.pinnedKey === k; },
+      pin(k) { this.pinnedKey = this.pinnedKey === k ? "" : k; },
+    }, st);
+    window.PetiteVue.createApp(pop).mount(mount);
+    // document click (浮层外) 清 pinnedKey; onLive 重挂前移除旧 listener 去重, 仅留最新 pop 句柄。
+    if (docClick) document.removeEventListener("click", docClick);
+    docClick = () => { pop.pinnedKey = ""; };
+    document.addEventListener("click", docClick);
   }
 
   await mountApp();
