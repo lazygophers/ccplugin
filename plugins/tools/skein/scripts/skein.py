@@ -114,11 +114,11 @@ def _workspace_lock(lock_path: Path, timeout: float = 10.0, poll: float = 0.05) 
                     raise SystemExit(
                         f"获取 .skein 写锁超时 ({timeout}s) — 另一 skein 进程持锁未释放: {lock_path}")
                 time.sleep(poll)
-        DBG.log(f"🔒 已获工作区写锁 {lock_path}", style="dim")  # type: ignore[no-untyped-call]
+        DBG.log(f"🔒 已获工作区写锁 {lock_path}", style="dim")
         yield
     finally:
         f.close()  # 关闭即释放 flock
-        DBG.log("🔓 释放工作区写锁", style="dim")  # type: ignore[no-untyped-call]
+        DBG.log("🔓 释放工作区写锁", style="dim")
 
 
 # ponytail: config 只有 4 个扁平标量键 → 手写 mini YAML 读写, 免 PyYAML 依赖。
@@ -159,13 +159,13 @@ CONFIG_DEFAULTS = {
 
 
 def git(*args: str, cwd: Optional[Path] = None, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess[str]:
-    DBG.log(f"$ git {' '.join(args)}" + (f"   (cwd={cwd})" if cwd else ""), style="dim")  # type: ignore[no-untyped-call]
+    DBG.log(f"$ git {' '.join(args)}" + (f"   (cwd={cwd})" if cwd else ""), style="dim")
     r = subprocess.run(
         ["git", *args], cwd=cwd, check=False,
         capture_output=capture, text=True,
     )
     if r.returncode != 0:
-        DBG.log(f"  ↳ git exit={r.returncode}", style="yellow")  # type: ignore[no-untyped-call]
+        DBG.log(f"  ↳ git exit={r.returncode}", style="yellow")
     if check and r.returncode != 0:
         sys.stderr.write((r.stderr or "") + "\n")
         raise SystemExit(f"git {' '.join(args)} 失败 (exit {r.returncode})")
@@ -255,10 +255,10 @@ class Skein:
                     t = json.loads(f.read_text())
                 except (json.JSONDecodeError, OSError) as e:
                     # 单个 task.json 损坏 (半写/手改坏) 不该炸整个看板: 跳过并告警, 其余 task 照常渲染
-                    DBG.log(f"跳过损坏 {f}: {e}", style="red")  # type: ignore[no-untyped-call]
+                    DBG.log(f"跳过损坏 {f}: {e}", style="red")
                     continue
                 out.append(t)
-                DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "  # type: ignore[no-untyped-call]
+                DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
                         f"contracts={len(t.get('contracts', []))}", style="dim")
         # 状态优先排序 (进行中>检查中>待处理>已完成), 同状态内保持 id 序
@@ -272,9 +272,9 @@ class Skein:
         # 只服务 _board / _board_html 只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
         # ponytail: 顶层索引本就无 name 字段, 看板对幽灵骨架直接用 id 显示 (task 一向以 id 标识, 非降级);
         #           要恢复 subtask/desc 等完整明细需从有 per-task 目录的分支 checkout。
-        DBG.rule("看板数据源合并 (顶层索引 ∪ per-task 明细)")  # type: ignore[no-untyped-call]
+        DBG.rule("看板数据源合并 (顶层索引 ∪ per-task 明细)")
         tasks = self._all()
-        DBG.log(f"per-task 明细: {len(tasks)} 个 (真值源, 明细胜出)", style="cyan")  # type: ignore[no-untyped-call]
+        DBG.log(f"per-task 明细: {len(tasks)} 个 (真值源, 明细胜出)", style="cyan")
         have = {t["id"] for t in tasks}
         mirror = self.dir / "task.json"
         mirrored = 0
@@ -283,16 +283,16 @@ class Skein:
                 rows = json.loads(mirror.read_text()).get("tasks", [])
             except (json.JSONDecodeError, OSError):
                 rows = []
-            DBG.log(f"读顶层镜像 {mirror}  → {len(rows)} 条索引", style="dim")  # type: ignore[no-untyped-call]
+            DBG.log(f"读顶层镜像 {mirror}  → {len(rows)} 条索引", style="dim")
             for r in rows:
                 if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
                               "deps": r.get("deps", []), "worktree": r.get("worktree")})
                 mirrored += 1
-                DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")  # type: ignore[no-untyped-call]
+                DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")
         else:
-            DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")  # type: ignore[no-untyped-call]
+            DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         by_status: dict[str, int] = {}
         sub_total = 0
@@ -307,9 +307,9 @@ class Skein:
             for s in subs:
                 ss = s.get("status", "?")
                 sub_by_status[ss] = sub_by_status.get(ss, 0) + 1
-        DBG.log(f"subtask 统计: 合计 {sub_total} 个, 分布于 {with_sub} 个 task "  # type: ignore[no-untyped-call]
+        DBG.log(f"subtask 统计: 合计 {sub_total} 个, 分布于 {with_sub} 个 task "
                 f"(其余 {len(tasks) - with_sub} 个无 subtask/幽灵骨架)", style="cyan")
-        DBG.kv({"合计 task": len(tasks), "明细": len(tasks) - mirrored, "镜像补齐": mirrored,  # type: ignore[no-untyped-call]
+        DBG.kv({"合计 task": len(tasks), "明细": len(tasks) - mirrored, "镜像补齐": mirrored,
                 **{f"状态·{k}": v for k, v in by_status.items()},
                 "合计 subtask": sub_total, "含 subtask 的 task": with_sub,
                 **{f"subtask·{k}": v for k, v in sub_by_status.items()}}, title="看板数据源汇总")
@@ -1156,12 +1156,12 @@ class Skein:
         # 先比对再写, 免无谓 IO/SSD 写入 (增量保护磁盘)。
         try:
             if path.exists() and path.read_text() == content:
-                DBG.log(f"= {path}  (内容未变, 跳过写)", style="dim")  # type: ignore[no-untyped-call]
+                DBG.log(f"= {path}  (内容未变, 跳过写)", style="dim")
                 return
         except OSError:
             pass
         path.write_text(content)
-        DBG.log(f"✎ 写入 {path}  ({len(content)} 字符)", style="green")  # type: ignore[no-untyped-call]
+        DBG.log(f"✎ 写入 {path}  ({len(content)} 字符)", style="green")
 
     def _board(self, _: Any) -> None:
         rows = []
@@ -1634,9 +1634,9 @@ class Skein:
         # 单一 JS 渲染器: Python 只出 shell + 内联结构化数据 (window.__SKEIN__),
         # 卡片/总览/DAG 全由 board-render.js 前端渲染。serve 每请求实时渲染, 不落盘。
         # 首屏内联数据, 刷新走 GET /__skein__/data 拉新 JSON 重渲染 (不取 HTML)。
-        DBG.rule("渲染看板 shell")  # type: ignore[no-untyped-call]
+        DBG.rule("渲染看板 shell")
         data = self._board_data()
-        DBG.log(f"内联 {data['overview']['taskCount']} 个 task 数据 → (内存, serve 实时渲染)", style="cyan")  # type: ignore[no-untyped-call]
+        DBG.log(f"内联 {data['overview']['taskCount']} 个 task 数据 → (内存, serve 实时渲染)", style="cyan")
         # 内联进 <script>: 转义 <>& 防 </script> 提前闭合 (\\u00XX 仍是合法 JSON 字符串转义)
         payload = (json.dumps(data, ensure_ascii=False)
                    .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
@@ -2646,8 +2646,8 @@ def main() -> None:
     a = p.parse_args()
     global DBG
     DBG = Debug(cli_debug or debug_enabled(None))
-    DBG.rule(f"skein {a.cmd}")  # type: ignore[no-untyped-call]
-    DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},  # type: ignore[no-untyped-call]
+    DBG.rule(f"skein {a.cmd}")
+    DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
            title="参数")
     if getattr(a, "cmd", None) == "subtask" and a.action in ("add", "start", "check", "done", "fail") and not a.sid:
         p.error(f"subtask {a.action} 需要 sid")
@@ -2685,7 +2685,7 @@ def main() -> None:
             dispatch[a.cmd](a)
     else:
         dispatch[a.cmd](a)
-    DBG.log(f"✓ {a.cmd} 完成", style="bold green")  # type: ignore[no-untyped-call]
+    DBG.log(f"✓ {a.cmd} 完成", style="bold green")
 
 
 if __name__ == "__main__":

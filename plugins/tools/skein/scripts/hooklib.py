@@ -5,13 +5,16 @@
 内容超预算 → stderr 警告 "简化内容", 且截断到硬上限, 免不可控 token 膨胀。
 token 估算 = 字符数 // 4 (英混中的粗略常数, 宁可高估)。
 """
+from __future__ import annotations
+
 import os
 import sys
+from typing import Any, Optional
 
 CHARS_PER_TOKEN = 4  # 粗略: 1 token ≈ 4 字符 (中英混排偏保守)
 
 
-def debug_enabled(args=None) -> bool:
+def debug_enabled(args: Any = None) -> bool:
     """--debug 开关: 命令行 --debug 或环境变量 SKEIN_DEBUG (非空/非 0/false/no) 任一即开。"""
     if args is not None and getattr(args, "debug", False):
         return True
@@ -24,9 +27,9 @@ class Debug:
     stdout 全程保持机器纯净 (list --json / pop / board / hookSpecificOutput 等被 AI/hook 消费,
     rich 污染即破契约), 所以一切叙事只走 stderr。rich 不可用则纯文本降级; 未启用则全 no-op。
     """
-    def __init__(self, enabled: bool):
+    def __init__(self, enabled: bool) -> None:
         self.enabled = enabled
-        self.c = None
+        self.c: Optional[Any] = None
         if enabled:
             try:
                 from rich.console import Console
@@ -34,7 +37,7 @@ class Debug:
             except Exception:
                 self.c = None  # rich 缺失 → 纯文本降级
 
-    def log(self, msg, style=None):
+    def log(self, msg: str, style: Optional[str] = None) -> None:
         if not self.enabled:
             return
         if self.c:
@@ -42,7 +45,7 @@ class Debug:
         else:
             sys.stderr.write(f"{msg}\n")
 
-    def rule(self, title):
+    def rule(self, title: str) -> None:
         if not self.enabled:
             return
         if self.c:
@@ -50,7 +53,7 @@ class Debug:
         else:
             sys.stderr.write(f"\n──── {title} ────\n")
 
-    def kv(self, mapping, title=None):
+    def kv(self, mapping: dict[str, Any], title: Optional[str] = None) -> None:
         """键值表 (rich Table, 降级为对齐文本)。"""
         if not self.enabled or not mapping:
             return

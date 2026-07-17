@@ -19,6 +19,8 @@
   memory.py reindex                            重扫两层重建全部 index
   memory.py list [--layer core|recall]
 """
+from __future__ import annotations
+
 import argparse
 import time
 import json
@@ -26,6 +28,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any, Optional, cast
 
 CORE_BUDGET = 8000  # core 全文软预算 (字符, 供 inject-core 手动查看); 超则告警
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
@@ -43,7 +46,7 @@ def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 与 skein.py 一致, 所有落盘时间字段统一时间戳
 
 
-def _dist(by_cat: dict) -> str:
+def _dist(by_cat: dict[str, int]) -> str:
     """类目分布串 '类目(条数), ...', 空则 '-'。"""
     return ", ".join(f"{c}({n})" for c, n in sorted(by_cat.items())) or "-"
 
@@ -64,26 +67,26 @@ def _cell(s: str) -> str:
 
 
 class Memory:
-    def __init__(self):
+    def __init__(self) -> None:
         self.root = spec_root()
 
-    def layer_dir(self, layer) -> Path:
+    def layer_dir(self, layer: str) -> Path:
         return self.root / layer
 
-    def _rule_files(self, layer):
+    def _rule_files(self, layer: str) -> list[Path]:
         d = self.layer_dir(layer)
         if not d.exists():
             return []
         return sorted(p for p in d.rglob("*.md") if p.name != "index.md")
 
-    def _next_seq(self, layer) -> int:
+    def _next_seq(self, layer: str) -> int:
         # 层内已用最大序号 +1 (非文件计数): 删文件后不回退, 免覆盖已有规则
         used = [int(m.group(1)) for f in self._rule_files(layer)
                 if (m := re.search(r"-(\d+)\.md$", f.name))]
         return max(used, default=-1) + 1
 
     # ---- init ----
-    def init(self, _):
+    def init(self, _: argparse.Namespace) -> None:
         for layer in LAYERS:
             self.layer_dir(layer).mkdir(parents=True, exist_ok=True)
         self._reindex_all()
@@ -100,19 +103,19 @@ class Memory:
         return text
 
     # ---- inject-core (按需拉全文正文) ----
-    def inject_core(self, _):
+    def inject_core(self, _: argparse.Namespace) -> None:
         sys.stdout.write(self._core_text())
 
     # ---- core 极简索引 (每条 1 行: [类目] title) ----
     def _core_index(self) -> str:
-        lines = []
+        lines: list[str] = []
         for f in self._rule_files("core"):
             meta = _frontmatter(f.read_text())
             lines.append(f"- [{f.parent.name}] {meta.get('title', f.stem)}")
         return "\n".join(lines)
 
     # ---- session-start (SessionStart hook: 只注入极简索引, 全文按需 inject-core) ----
-    def session_start(self, _):
+    def session_start(self, _: argparse.Namespace) -> None:
         idx = self._core_index().strip()
         if not idx:
             return
@@ -123,7 +126,7 @@ class Memory:
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
     # ---- subagent-start (SubagentStart hook: 给短命执行 agent 直接注入 core 全文 + spec 纪律) ----
-    def subagent_start(self, _):
+    def subagent_start(self, _: argparse.Namespace) -> None:
         # matcher 已放开到全 subagent — 非 SKEIN 项目 (无 .skein/spec) 静默不注入, 免污染其他插件的 agent
         if not self.root.exists():
             return
@@ -138,12 +141,13 @@ class Memory:
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))
 
     # ---- recall (按需粗筛) ----
-    def recall(self, a):
+    def recall(self, a: argparse.Namespace) -> None:
         idx = self.layer_dir("recall") / "index.md"
         if not idx.exists():
             print("recall 无命中")
             return
-        terms = [t for t in re.split(r"\s+", a.query.lower()) if t]
+        query = cast(str, a.query)
+        terms = [t for t in re.split(r"\s+", query.lower()) if t]
         hits = [ln for ln in idx.read_text().splitlines()
                 if ln.startswith("| ") and not ln.startswith("| file")
                 and any(t in ln.lower() for t in terms)]
@@ -154,20 +158,26 @@ class Memory:
             print("recall 无命中")
 
     # ---- sediment (写盘, 判定门通过后自动调用) ----
-    def sediment(self, a):
-        cat = a.category or "misc"
-        d = self.layer_dir(a.layer) / cat
+    def sediment(self, a: argparse.Namespace) -> None:
+        layer = cast(str, a.layer)
+        category = cast(Optional[str], getattr(a, "category", None))
+        title = cast(str, a.title)
+        keywords = cast(Optional[str], getattr(a, "keywords", None))
+        source = cast(Optional[str], getattr(a, "source", None))
+        body_file = cast(Optional[str], getattr(a, "body_file", None))
+        cat = category or "misc"
+        d = self.layer_dir(layer) / cat
         d.mkdir(parents=True, exist_ok=True)
-        seq = self._next_seq(a.layer)  # 层内全局序号, 免跨类目撞名
-        f = d / f"{a.source or 'rule'}-{seq:02d}.md"
-        body = Path(a.body_file).read_text() if a.body_file else ""
+        seq = self._next_seq(layer)  # 层内全局序号, 免跨类目撞名
+        f = d / f"{source or 'rule'}-{seq:02d}.md"
+        body = Path(body_file).read_text() if body_file else ""
         f.write_text(
             "---\n"
-            f"title: {a.title}\n"
-            f"layer: {a.layer}\n"
+            f"title: {title}\n"
+            f"layer: {layer}\n"
             f"category: {cat}\n"
-            f"keywords: [{a.keywords or ''}]\n"
-            f"source: {a.source or '-'}\n"
+            f"keywords: [{keywords or ''}]\n"
+            f"source: {source or '-'}\n"
             "authored-by: skein-memory\n"
             f"created: {now()}\n"
             "---\n\n"
@@ -176,30 +186,31 @@ class Memory:
         print(f"已沉淀 → {f}")
 
     # ---- reindex ----
-    def reindex(self, _):
+    def reindex(self, _: argparse.Namespace) -> None:
         self._reindex_all()
         print(f"已重建索引: {self.root}")
 
-    def _reindex_all(self):
-        counts = {}
+    def _reindex_all(self) -> dict[str, dict[str, int]]:
+        counts: dict[str, dict[str, int]] = {}
         for layer in LAYERS:
             counts[layer] = self._reindex_layer(layer)
         self._reindex_top(counts)
+        return counts
 
-    def _reindex_layer(self, layer) -> dict:
+    def _reindex_layer(self, layer: str) -> dict[str, int]:
         """重建 <layer>/index.md, 返回 {category: 条数}。"""
         d = self.layer_dir(layer)
         d.mkdir(parents=True, exist_ok=True)
-        by_cat = {}
-        rows = []
+        by_cat: dict[str, int] = {}
+        rows: list[tuple[str, str, str, str, str]] = []
         for f in self._rule_files(layer):
             txt = f.read_text()
             meta = _frontmatter(txt)
             cat = f.parent.name  # 类目 = 所在目录 (物理事实), 免与 frontmatter 漂移
             rel = f.relative_to(d).as_posix()
             by_cat[cat] = by_cat.get(cat, 0) + 1
-            rows.append((cat, rel, _cell(meta.get("title", "")),
-                         _cell(meta.get("keywords", "")), _summary(txt)))
+            rows.append((cat, rel, _cell(str(meta.get("title", ""))),
+                         _cell(str(meta.get("keywords", ""))), _summary(txt)))
         rows.sort()
         body = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {summ} |"
                          for cat, rel, title, kw, summ in rows)
@@ -211,7 +222,7 @@ class Memory:
             + (body + "\n" if body else ""))
         return by_cat
 
-    def _reindex_top(self, counts: dict):
+    def _reindex_top(self, counts: dict[str, dict[str, int]]) -> None:
         lines = ["# SKEIN 规则库总索引\n",
                  "两层: **core** 常驻注入 (SessionStart) · **recall** 按需召回 (planning `recall <query>`)。\n",
                  "| layer | 条数 | 类目分布 | 索引 |",
@@ -223,8 +234,9 @@ class Memory:
         (self.root / "index.md").write_text("\n".join(lines) + "\n")
 
     # ---- archive (完全重构前可逆清库: 移旧规则到 .archive/<ts>/, reindex 空) ----
-    def archive(self, a):
-        layers = [a.layer] if a.layer else list(LAYERS)
+    def archive(self, a: argparse.Namespace) -> None:
+        layer_opt = cast(Optional[str], getattr(a, "layer", None))
+        layers = [layer_opt] if layer_opt else list(LAYERS)
         ts = str(now())
         dest = self.root / ".archive" / ts
         moved = 0
@@ -241,8 +253,9 @@ class Memory:
             print("无规则可归档 (库已空)")
 
     # ---- restore (从归档恢复; 撞名的旧规则加 restored- 前缀不覆盖重构后新规则) ----
-    def restore(self, a):
-        src = self.root / ".archive" / a.ts
+    def restore(self, a: argparse.Namespace) -> None:
+        ts = cast(str, a.ts)
+        src = self.root / ".archive" / ts
         if not src.exists():
             raise SystemExit(f"归档不存在: {src} (查可用: ls {self.root / '.archive'})")
         moved = 0
@@ -259,19 +272,20 @@ class Memory:
         print(f"已恢复 {moved} 条 ← {src}")
 
     # ---- list ----
-    def list_(self, a):
-        for layer in ([a.layer] if a.layer else list(LAYERS)):
+    def list_(self, a: argparse.Namespace) -> None:
+        layer_opt = cast(Optional[str], getattr(a, "layer", None))
+        for layer in ([layer_opt] if layer_opt else list(LAYERS)):
             files = [f.relative_to(self.layer_dir(layer)).as_posix() for f in self._rule_files(layer)]
             print(f"[{layer}] {len(files)} 条: {', '.join(files) or '-'}")
 
 
-def _frontmatter(text: str) -> dict:
+def _frontmatter(text: str) -> dict[str, str]:
     if not text.startswith("---"):
         return {}
     end = text.find("\n---", 3)
     if end == -1:
         return {}
-    out = {}
+    out: dict[str, str] = {}
     for ln in text[3:end].splitlines():
         if ":" in ln:
             k, _, v = ln.partition(":")
@@ -293,7 +307,7 @@ def _summary(body: str) -> str:
     return (s[:60] + "…") if len(s) > 60 else s or "-"
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(
         prog="memory.py",
         description="SKEIN 两层规则记忆 (.skein/spec) — core 常驻 + recall 按需召回",
@@ -338,7 +352,7 @@ def main():
         "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
         "archive": m.archive, "restore": m.restore,
-    }[a.cmd](a)
+    }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
 
 
