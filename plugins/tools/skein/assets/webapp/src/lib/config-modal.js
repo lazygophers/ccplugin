@@ -127,7 +127,7 @@ function open() {
 
     get root() { return host.querySelector(".cfg-mask"); },
 
-    async init() {
+    async mounted() {
       try {
         const cfg = await _api.getConfig();
         // 仅取 SCHEMA 已知键 (后端可能多返 ENV override 同名键, 一并收纳)
