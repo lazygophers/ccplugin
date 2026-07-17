@@ -62,13 +62,6 @@ SS_FAILED = "失败"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 # 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
-# 看板主题 = 装饰预设 (值 = board/themes/ 下 css 文件名). 每个预设 = 5 原语 (卡片质感/边框/圆角/字型/底纹)
-# 固定搭配 + 一处签名点缀, 结构全从 palette token 派生 → 自动随配色/明暗变, 每预设不塌成同一套灰.
-THEMES = [("skein", "skein"),
-          ("minimal", "极简"), ("terminal", "终端"), ("glass", "磨砂"),
-          ("blueprint", "蓝图"), ("sketch", "手绘"), ("neumorphism", "浮起"),
-          ("holographic", "虹彩"), ("magazine", "杂志"),
-          ("sketchdark", "夜绘")]
 
 
 def now() -> int:
@@ -158,7 +151,6 @@ CONFIG_DEFAULTS = {
     "use_worktree": True,  # False→禁用 worktree 隔离 (原地执行, 同非 git); start 不建、doctor 不查 worktree
     "worktree_root": ".worktrees",
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
-    "board_theme": "skein",  # 唯一看板外观选项; 配色/明暗已烘焙进各主题预设 (skein=默认旗舰主题)
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
     "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
 }
@@ -208,18 +200,6 @@ class Skein:
             if v and v.strip().isdigit():
                 cfg[k] = int(v)
         return cfg
-
-    def _set_config(self, key, value) -> bool:
-        # 看板 UI 改配置 (如主题) 落回 config.yaml。仅白名单键, 有变更才写。返回是否写入。
-        f = self.dir / "config.yaml"
-        if not f.exists() or key not in CONFIG_DEFAULTS:
-            return False
-        cfg = _yaml_load(f.read_text())
-        if cfg.get(key) == value:
-            return False
-        cfg[key] = value
-        f.write_text(_yaml_dump({**CONFIG_DEFAULTS, **cfg}))
-        return True
 
     def _autoclean(self, days=None) -> list:
         # 惰性归档: 已完成且超保留期的 task 移入 archive (保留期内留看板)。days 省略用 config retain_days。
@@ -1417,13 +1397,10 @@ class Skein:
                 "search": sblob,
             })
 
-        theme = self.config().get("board_theme", "skein")
         filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
                        (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
         return {
             "proj": self.proj,
-            "theme": theme,
-            "themes": THEMES,
             "filterOpts": filter_opts,
             "stClsMap": st_cls, "ssClsMap": ss_cls, "nodeVar": node_var, "nodeCls": node_cls,
             "overview": {
@@ -1451,23 +1428,17 @@ class Skein:
         payload = (json.dumps(data, ensure_ascii=False)
                    .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
-        theme = data["theme"]
-
         def esc(s):
             return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         proj = esc(self.proj)
         # 资产版本戳: css/js url 带 ?v=<rev>, 资产内容变 → url 变 → 浏览器必重取, 免旧 css/js 缓存 (stat 卡选中态/DAG 置灰 不 stale)
         rev = self._asset_rev()
         links = (f'<link rel=stylesheet href="board/base.css?v={rev}">'
-                 + "".join(f'<link rel=stylesheet href="board/themes/{k}.css?v={rev}">' for k, _ in THEMES))
-        theme_opts = "".join(f'<option value="{k}"{" selected" if k == theme else ""}>{esc(label)}</option>'
-                             for k, label in THEMES)
+                 f'<link rel=stylesheet href="board/themes/skein.css?v={rev}">')
         # shell 模板抽到 assets/board/shell.html; Python 只填 token。serve 有 WS 热重载 + topbar 刷新钮。
         tokens = {
-            "THEME": theme,
             "PROJ": proj,
             "LINKS": links,
-            "THEME_OPTIONS": theme_opts,
             "PAYLOAD": payload,
             "HEAD_EXTRA": '',
             "REFRESH_TOP": ('<button type="button" class="sw-btn" id="sw-refresh-top" '
@@ -1482,7 +1453,7 @@ class Skein:
         return html
 
     def _webapp_html(self):
-        # 工程化前端首页: 读 assets/webapp/index.html, 填 token (PROJ/THEME/PAYLOAD/THEMES_JSON/VER)。
+        # 工程化前端首页: 读 assets/webapp/index.html, 填 token (PROJ/PAYLOAD/VER)。
         # token 缺席则 replace 无副作用 → 与 s1 的 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
         html = (self._webapp_dir() / "index.html").read_text(encoding="utf-8")
         data = self._board_data()
@@ -1490,9 +1461,7 @@ class Skein:
                    .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
         tokens = {
             "PROJ": self.proj,
-            "THEME": data["theme"],
             "PAYLOAD": payload,
-            "THEMES_JSON": json.dumps(THEMES, ensure_ascii=False),
             "VER": self._asset_rev(),  # /dist/app.css?v=VER 缓存击穿
         }
         for k, v in tokens.items():
@@ -1899,18 +1868,6 @@ class Skein:
         @app.get("/task.html", response_class=HTMLResponse)
         async def _page():  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
             return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
-
-        @app.post("/__skein__/config")
-        async def _config(request: Request):  # 看板 UI 改主题 → 落回 config.yaml (仅 board_theme, 值须在 THEMES 内)
-            try:
-                body = json.loads(request.scope.get("skein_body") or b"{}")
-                v = body.get("board_theme")
-                if v not in {k for k, _ in THEMES}:
-                    raise ValueError("bad theme")
-            except Exception:
-                return JSONResponse({"error": "bad request"}, status_code=400)
-            board._set_config("board_theme", v)
-            return {"ok": True}
 
         @app.websocket(self._LIVE_PATH)
         async def _live(ws: WebSocket):  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
