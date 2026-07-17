@@ -547,11 +547,11 @@
 }
 
 /* ── 视口外暂停 (IntersectionObserver 加 .paused) ── */
-.paused, .paused::after, .paused > .skein-fill { animation: none !important; }
+.paused, .paused::after, .paused > .skein-fill, .paused .shuttle { animation: none !important; }
 
 /* ── prefers-reduced-motion 降级: 关所有流沙动效, 入场直显 ── */
 @media (prefers-reduced-motion: reduce) {
-  .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill {
+  .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill, .shuttle {
     animation: none !important; transition: none !important;
   }
   .card, .entrance { opacity: 1 !important; transform: none !important; }
