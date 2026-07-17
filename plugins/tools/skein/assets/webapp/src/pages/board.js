@@ -292,15 +292,15 @@ function buildLayoutHtml(data) {
     : "";
 
   var queue = "";
-  var pq = ov.pendingQueue || [];
+  var pq = (ov.pendingQueue || []).filter(function (q) { return q.ready; });
   if (pq.length) {
     var qrows = pq.map(function (q, k) {
-      var chip = q.ready ? '<span class="q-chip q-ready">就绪</span>' : '<span class="q-chip q-block">排队中</span>';
-      return '<li class="q-item"><span class="q-ord">' + (k + 1) + "</span>" + chip
+      return '<li class="q-item"><span class="q-ord">' + (k + 1) + "</span>"
+        + '<span class="q-chip q-ready">就绪</span>'
         + '<span class="q-name">' + esc(q.tid) + "/" + esc(q.sid) + " · " + esc(q.name) + "</span>"
         + '<span class="q-agent">' + esc(q.agent) + "</span></li>";
     }).join("");
-    queue = '<div class="queue"><p class="meta">待执行队列 · 调度序 · ' + pq.length + "</p>"
+    queue = '<div class="queue"><p class="meta">就绪队列 · 调度序 · ' + pq.length + "</p>"
       + '<ol class="q-list">' + qrows + "</ol></div>";
   }
 
