@@ -119,6 +119,51 @@ grep -rn 'command' $P/.claude-plugin/plugin.json | grep -q CLAUDE_PLUGIN_ROOT ||
 
 ---
 
+## 实战经验（真实插件踩坑沉淀，docs 不写这里）
+
+### Hook 深水区
+
+- **退出码即契约** — `exit 0` = 放行 / 静默；`exit 2` = 阻断该工具调用并把 stderr 回灌给模型（PreToolUse guard 常用）；其他非零 = 非阻断错误（日志可见，不阻会话）。**禁用 `exit 1`**（语义模糊，不同事件解读不一）。stdin 一律是 JSON，`json.load(sys.stdin)`；解析失败**静默 exit 0**，禁崩会话（skein hooks.py `_load_stdin` 范式：非法 JSON `return 0`）。
+- **matcher 精确化** — `Write|Edit|MultiEdit` 列具体工具名，别用 `*` 全收（PostToolUse 全收 = 每次工具调用都跑，拖会话）；`Bash(git:*)` 只匹配 git 子命令；`Read` 进 PreToolUse guard 要谨慎（读也触发，易循环）。
+- **timeout 必填且分级** — 纯读/索引 `5s`；跑 lint/format `10-15s`；装依赖等重活**后台化**（skein 范式：`pip3 install ... >/dev/null 2>&1 &` 放 SessionStart 后台，不阻塞会话启动）。
+- **`${CLAUDE_PLUGIN_ROOT}` 解析时机** — 由 plugin loader 在调 hook 前替换，脚本内**禁**再手动拼路径；同时 hook `command` 可写 `cd ${CLAUDE_PLUGIN_ROOT} && ...` 切到插件根再跑（skein SessionStart 装依赖范式）。
+- **bin/ thin wrapper 模式** — 重逻辑放 `scripts/*.py`，`bin/<name>` 做无 shell 依赖的 py wrapper（`runpy.run_path` 复用 scripts 入口，`CLAUDE_PLUGIN_ROOT` 优先回退 `__file__` 推根）。好处：hook command 只指向 bin/，脚本迭代不必改 manifest。
+- **PostToolUse 读写硬门** — 想强制 "某文件只由脚本维护、AI 禁碰"（如 skein 的 task.json/task.md）：PreToolUse guard 匹配 `Edit|Write|MultiEdit|Read`，命中受保护路径 `exit 2` 阻断。注意 Read 也挂 = 连读都拦，确认是真需求。
+- **SessionStart 多 mode** — `source` 字段区分 `startup` / `resume` / `compact` / `clear`；compact 后 core 规则会重注入，写 hook 时假设 "索引可能被截断重灌"，幂等重入。
+
+### userConfig（暴露给用户的项目配置）
+
+- **schema 四件套** — `{type, title, description, default}`，数值加 `min/max`（skein `max_active`：type=number + default=2 + min=1 + max=8）。`description` 写 "推荐值 + 为什么 + 覆盖哪个文件"，用户在设置面板看见就懂。
+- **读取** — hook/command 经环境变量读（变量名 = config key 大写），或脚本读 plugin 注入的 config JSON；**禁**假设 config 必填，永远给 default 兜底。
+
+### MCP Server 接线
+
+- **`.mcp.json` 在插件根** — `mcpServers.<name>`：`command` + `args` + `env`；密钥 `${ENV_VAR}` 引用禁硬编码（同 hook 路径变量）。
+- **stdio vs SSE** — 本地进程用 stdio（`command`+`args` 启动子进程）；远程用 SSE（`url` 字段）。本仓库无实例，参考官方 https://code.claude.com/docs/en/plugins 的 MCP 章节。
+- **工具命名** — MCP 工具暴露给模型为 `mcp__<server>__<tool>`，server name 选 kebab-case 短名（模型调用时前缀越短越好）。
+
+### 跨平台（darwin / linux / WSL）
+
+- **python3 不是 python** — shebang `#!/usr/bin/env python3`，禁假设 `python` 指向 py3。
+- **依赖显式化** — 用 `jq` / `pip3` 等外部工具时，requirements.txt 列齐 + SessionStart 后台自装（skein 范式）；禁假设用户机器已装。
+- **路径禁含空格假设** — `${CLAUDE_PLUGIN_ROOT}` 含空格时，hook command 用引号包裹；脚本内 `os.path.join` 禁字符串拼。
+- **shell 便携** — hook 脚本用 `#!/usr/bin/env bash` + `set -euo pipefail`；禁 bashism（`[[ ]]` / `<(...)`）若需兼容 sh。
+
+### 调试
+
+- **`claude --debug`** — 看 plugin 加载顺序 / hook 触发 / 变量替换实况；hook stderr 进 debug 日志，不回模型。
+- **加载失败二分** — 装载失败先 `jq .` 验 manifest → 体检查悬挂 → 只挂 skills 逐个加定位坏组件（失败模式表已列）。
+- **hook 不触发** — 查 matcher 拼写（大小写敏感）/ event 名（`PostToolUse` 非 `post_tool_use`）/ command 路径替换后是否存在 / 脚本有无 `+x`。
+- **index 截断** — SessionStart 注入内容超 budget 被截 = 静默丢尾部；hook 产出的规则索引**测体量**（skein 用 `hooklib.budget_guard` 按 token 截断 + 索引分行，尾部不丢关键项）。
+
+### 版本与发布
+
+- **version 策略** — 本仓库多数插件 manifest**省略 version**（marketplace 条目也无），未发布即不写；正式发布再加 semver + tag。
+- **CHANGELOG** — 版本化插件必备；纯内部迭代可走 git log，不必强求。
+- **marketplace 更新** — 改 plugin 后同步根 `.claude-plugin/marketplace.json` 条目（description/keywords 等元数据与 plugin.json 一致），**禁 push** 等指令。
+
+---
+
 ## 失败模式（if-then 三段式：触发 → 一线修复 → 仍失败兜底）
 
 | 触发 | 一线修复 | 仍失败兜底 |
