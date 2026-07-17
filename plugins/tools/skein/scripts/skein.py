@@ -2496,7 +2496,7 @@ def _task_pct(t):
     if st == S_ACTIVE:
         if not subs:
             return 10
-        return 10 + round(75 * sum(_sub_pct(s) for s in subs) / len(subs) / 100)
+        return 10 + int(75 * sum(_sub_pct(s) for s in subs) / len(subs) / 100)
     # S_PENDING
     return 10 if subs else 5
 
