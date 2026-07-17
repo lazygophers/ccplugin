@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Dev — 优化成果卡片</title>
+<!--
+  用法（流程 B · Phase 5）：
+  1. 复制此文件为工作副本。
+  2. 替换 data-field 占位（skill-name / score-before / score-after / score-delta / date / improvement-*）。
+  3. 9 维用 .dim 行：把 data-before / data-after（0-10 分）填成实际分；条宽 = 分/10*100%。
+  4. 爬山轮次填 #rounds 的 <li>（round / dim / Δ / keep|revert）。
+  5. 选风格：URL 加 #swiss | #terminal | #newspaper（默认 swiss），或改 <body class>。
+  6. 浏览器打开即用；要 PNG 就用系统截图 / 浏览器打印存 PDF。无外部脚本、无依赖。
+-->
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --ink: #2b2622; --muted: #8a8177;
+    --accent: #c8663b; --accent-soft: #f0d9cd; --line: #e6ded4;
+    --up: #3d8a5f; --down: #c0473b; --font: 'Inter', system-ui, -apple-system, 'PingFang SC', sans-serif;
+    --mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  }
+  body.theme-terminal {
+    --bg: #0c0f0d; --card: #121815; --ink: #d6f5d6; --muted: #5f7a63;
+    --accent: #39ff14; --accent-soft: #16301a; --line: #1f2f22;
+    --up: #39ff14; --down: #ff5555; --font: var(--mono);
+  }
+  body.theme-newspaper {
+    --bg: #f5efe4; --card: #fbf8f1; --ink: #211c17; --muted: #7a6f60;
+    --accent: #8a1f1f; --accent-soft: #e8d6d0; --line: #d8cbb6;
+    --up: #2f6f43; --down: #8a1f1f;
+    --font: Georgia, 'Songti SC', 'Noto Serif SC', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font);
+    display: flex; justify-content: center; padding: 40px 16px; }
+  .card { width: 720px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 40px 44px; box-shadow: 0 8px 40px rgba(0,0,0,.08); }
+  body.theme-terminal .card { box-shadow: 0 0 0 1px var(--accent-soft), 0 8px 40px rgba(0,0,0,.5);
+    background-image: repeating-linear-gradient(0deg, rgba(57,255,20,.03) 0 1px, transparent 1px 3px); }
+  .brand { display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 24px; }
+  .brand h1 { font-size: 18px; letter-spacing: .5px; }
+  .brand .date { color: var(--muted); font-size: 13px; }
+  .skill { font-size: 13px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+  .skill b { color: var(--accent); text-transform: none; font-size: 16px; }
+  .scores { display: flex; align-items: center; gap: 20px; margin: 20px 0 28px; }
+  .score-box { text-align: center; flex: 1; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+  .score-box .label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .score-box .num { font-size: 40px; font-weight: 700; line-height: 1.1; }
+  .score-box.after .num { color: var(--accent); }
+  .arrow { font-size: 28px; color: var(--muted); }
+  .delta { font-size: 15px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+    background: var(--accent-soft); color: var(--up); white-space: nowrap; }
+  .delta.neg { color: var(--down); }
+  .section-title { font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin: 24px 0 12px; }
+  .dim { display: grid; grid-template-columns: 130px 1fr 46px; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .dim .name { font-size: 12px; }
+  .dim .bars { position: relative; height: 16px; }
+  .dim .bar { position: absolute; top: 0; height: 7px; border-radius: 4px; }
+  .dim .bar.before { top: 0; background: var(--line); }
+  .dim .bar.after { top: 9px; background: var(--accent); }
+  .dim .val { font-size: 12px; font-family: var(--mono); text-align: right; }
+  .dim .val .up { color: var(--up); } .dim .val .dn { color: var(--down); }
+  ul.rounds { list-style: none; font-family: var(--mono); font-size: 12px; }
+  ul.rounds li { display: flex; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+  ul.rounds .tag { min-width: 56px; }
+  ul.rounds .keep { color: var(--up); } ul.rounds .revert { color: var(--down); }
+  ol.improve { margin-left: 18px; font-size: 13px; line-height: 1.7; }
+  .foot { margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body class="theme-swiss">
+  <div class="card">
+    <div class="brand">
+      <h1>Skill Dev · 优化成果</h1>
+      <span class="date" data-field="date">2026-07-17</span>
+    </div>
+
+    <div class="skill">优化对象 · <b data-field="skill-name">example-skill</b></div>
+
+    <div class="scores">
+      <div class="score-box before"><div class="label">Before</div><div class="num" data-field="score-before">72</div></div>
+      <span class="arrow">&rarr;</span>
+      <div class="score-box after"><div class="label">After</div><div class="num" data-field="score-after">86</div></div>
+      <span class="delta" data-field="score-delta">+14</span>
+    </div>
+
+    <div class="section-title">9 维评分 (SkillLens rubric · before ▸ after)</div>
+    <!-- 每行 data-before / data-after 为 0-10 分；JS 自动画条宽与 Δ -->
+    <div class="dim" data-before="6" data-after="6"><span class="name">1 Frontmatter</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="5" data-after="8"><span class="name">2 工作流清晰</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="4" data-after="8"><span class="name">3 失败模式</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="3" data-after="7"><span class="name">4 检查点</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="6" data-after="7"><span class="name">5 可执行具体</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="7" data-after="7"><span class="name">6 资源整合</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="7" data-after="8"><span class="name">7 整体架构</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="6" data-after="7"><span class="name">8 实测表现</span><div class="bars"></div><span class="val"></span></div>
+    <div class="dim" data-before="4" data-after="7"><span class="name">9 反例黑名单</span><div class="bars"></div><span class="val"></span></div>
+
+    <div class="section-title">爬山轮次 (validation-gated hill-climbing)</div>
+    <ul class="rounds" id="rounds">
+      <li><span class="tag">R1</span><span>dim4 检查点 → 加 🔴 CHECKPOINT</span><span class="keep">keep Δ+3</span></li>
+      <li><span class="tag">R2</span><span>dim3 失败模式 → if-then 三段式</span><span class="keep">keep Δ+4</span></li>
+      <li><span class="tag">R3</span><span>dim9 反例黑名单 → 补「不要做 Y」</span><span class="keep">keep Δ+3</span></li>
+      <li><span class="tag">R4</span><span>dim5 过度细化</span><span class="revert">revert Δ&lt;0</span></li>
+      <li><span class="tag">R5</span><span>连续 2 轮 Δ&lt;2 → 触顶 break</span><span>stop</span></li>
+    </ul>
+
+    <div class="section-title">主要改进</div>
+    <ol class="improve">
+      <li data-field="improvement-1">补 🔴 CHECKPOINT 显性视觉标记，dim4 +3</li>
+      <li data-field="improvement-2">失败分支升级三段式 fallback 表，dim3 +4</li>
+      <li data-field="improvement-3">新增反例黑名单章节，dim9 +3</li>
+    </ol>
+
+    <div class="foot">
+      <span>SkillLens 9-dim · SkillOpt validation-gated · full_test 盲评</span>
+      <span data-field="judge-note">judge 共识 2/2 · dry_run 0%</span>
+    </div>
+  </div>
+
+<script>
+  // 主题：URL hash 切换 swiss | terminal | newspaper
+  function applyTheme() {
+    var t = (location.hash || '#swiss').slice(1);
+    if (!['swiss','terminal','newspaper'].includes(t)) t = 'swiss';
+    document.body.className = 'theme-' + t;
+  }
+  applyTheme();
+  window.addEventListener('hashchange', applyTheme);
+
+  // 9 维条宽 + Δ 渲染
+  document.querySelectorAll('.dim').forEach(function (d) {
+    var b = +d.dataset.before, a = +d.dataset.after;
+    d.querySelector('.bars').innerHTML =
+      '<span class="bar before" style="width:' + (b*10) + '%"></span>' +
+      '<span class="bar after" style="width:' + (a*10) + '%"></span>';
+    var delta = a - b, cls = delta > 0 ? 'up' : delta < 0 ? 'dn' : '';
+    var sign = delta > 0 ? '+' : '';
+    d.querySelector('.val').innerHTML = b + '▸' + a +
+      (delta ? ' <span class="' + cls + '">' + sign + delta + '</span>' : '');
+  });
+</script>
+</body>
+</html>

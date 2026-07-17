@@ -29,7 +29,7 @@ arguments: "[create|optimize] <插件路径>"
 | 「新建插件 / 从零做个插件 / 搭插件脚手架」 | **流程 A · 创建** |
 | 「优化 / 审查 / 检查这个插件 / 插件为什么不加载」 | **流程 B · 优化** |
 | 只写单个 skill / agent / command | 🛑 停，路由 `/skill-dev`（本 skill 是插件级，不做单组件） |
-| 单个 SKILL.md 纯质量评分 | 🛑 停，路由 `/skill-dev` 或 `/darwin-skill` |
+| 单个 SKILL.md 纯质量评分 | 🛑 停，路由 `/skill-dev`（其流程 B 优化线做单 skill 深度评估） |
 
 ---
 
@@ -110,7 +110,7 @@ grep -rn 'command' $P/.claude-plugin/plugin.json | grep -q CLAUDE_PLUGIN_ROOT ||
 | 2 | **组件接线完整** | 20 | `skills[]/agents[]/commands[]` 每条有真实文件（无悬挂）+ 每个文件被挂载（无漏挂）；路径大小写正确 |
 | 3 | **结构规范** | 12 | 组件在插件根不在 `.claude-plugin/`；`SKILL.md` 大写；agent/command frontmatter 必填字段齐 |
 | 4 | **Hook 健壮性** | 14 | `${CLAUDE_PLUGIN_ROOT}` 而非硬路径；每 hook 带 `timeout`；matcher 精确；失败不阻断会话；幂等 |
-| 5 | **组件质量** | 14 | 逐个 skill/agent/command 过：触发词准、失败模式编码、无占位符残留（深评单 skill 可另跑 /darwin-skill，本维度只做门槛检查） |
+| 5 | **组件质量** | 14 | 逐个 skill/agent/command 过：触发词准、失败模式编码、无占位符残留（深评单 skill 另跑 `/skill-dev` 优化线，本维度只做门槛检查） |
 | 6 | **Marketplace 一致性** | 12 | `marketplace.json` 条目 name/source/description/author/license/keywords 与 `plugin.json` 一致；source 路径存在 |
 | 7 | **文档完整** | 6 | README 有装/用/例；CHANGELOG（如版本化）；description 无「灵活应用」空话尾巴 |
 | 8 | **命名与元数据一致** | 6 | 目录名 = manifest name = marketplace name；keywords 命中真实能力非堆砌 |
