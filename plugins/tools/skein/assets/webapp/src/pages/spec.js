@@ -265,6 +265,7 @@ export async function render(mount, params, ctx) {
 
   const app = window.PetiteVue.createApp({
     layers,
+    index,
     loadErr,
     empty: !loadErr && layers.length === 0,
     coreCount: (layers.find((l) => l.key === "core") || { cats: [] }).cats.reduce((a, c) => a + c.files.length, 0),
@@ -430,7 +431,5 @@ export async function render(mount, params, ctx) {
     },
   });
 
-  // 注入 index 到响应式实例 (中栏 getter 引用 this.index)
-  app.index = index;
   app.mount(mount);
 }
