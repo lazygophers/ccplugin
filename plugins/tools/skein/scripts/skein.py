@@ -2077,6 +2077,14 @@ class Skein:
         from fastapi.staticfiles import StaticFiles
         import asyncio
 
+        # 注入模块全局: PEP 563 (from __future__ import annotations) 把 handler 参数注解 string化,
+        # FastAPI get_typed_signature 用 handler.__globals__ (= 本模块全局) 解析 ForwardRef;
+        # Request/WebSocket 仅 serve() 内局部 import → 模块全局无此名 → 解析失败 → POST request 被当 query 参数 → 422。
+        # 注入模块全局后, 下面 @app.post 的参数注解 (request: Request) 解析为真类, FastAPI 正常隐式注入 Request。
+        _g = globals()
+        _g["Request"] = Request
+        _g["WebSocket"] = WebSocket
+
         board = self  # 每请求实时从 task.json 渲染, 不吃静态 task.html
         clients: set[Any] = set()  # 活跃热重载 WS 连接
 

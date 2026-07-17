@@ -199,15 +199,9 @@ def test_serve_http() -> None:
 def test_serve_config_post() -> None:
     """POST /__skein__/config: 合法落盘 + 非法兜底默认值。
 
-    源码 bug (本 subtask 禁改 skein.py): skein.py mypy --strict 注解 (commit 25dce519) 把
-    FastAPI 的 `async def _cfg_save(request: Request)` 参数误解析为 query 参数 — FastAPI 0.128
-    不再隐式注入裸 Request 注解, POST 返 422 (Unprocessable Entity)。同形 bug 亦影响
-    /__skein__/exec 与 /__skein__/spec/save。待注解修好后此测试自动恢复落盘/兜底断言。"""
-    pytest = _import_pytest()
-    if pytest is not None and not _STANDALONE:
-        pytest.skip(
-            "POST /__skein__/config 422 — skein.py mypy 注解把 `request: Request` 误解析为 "
-            "query 参数 (FastAPI 0.128 不再隐式注入); 源码 bug, 待修注解后恢复")
+    commit 25dce519 给 handler 加返回注解致 FastAPI 把 `request: Request` 误解析为 query 参数
+    → 422; 注解已撤回 (恢复无注解形态), POST 落盘/兜底恢复。"""
+    _import_pytest()  # 仅触发可用性 (pytest 下无 skip)
     with tempfile.TemporaryDirectory() as td:
         d = Path(td)
         _init_ws(d)
@@ -230,9 +224,12 @@ def test_serve_config_post() -> None:
                 except urllib.error.HTTPError as e:
                     return e.code
 
-            # 直跑 (无 pytest): 验当前坏的 422 行为 — 不落盘非法值, 不崩
-            assert post({"retain_days": 30}) == 422, "预期注解回归致 422"
-            assert "retain_days: 30" not in (d / ".skein/config.yaml").read_text(), "422 误落盘"
+            # 合法 POST: 落盘 retain_days=30
+            assert post({"retain_days": 30}) == 200, "合法 POST 应 200"
+            assert "retain_days: 30" in (d / ".skein/config.yaml").read_text(), "合法值未落盘"
+            # 非法 POST: 兜底为 CONFIG_DEFAULTS (retain_days=7), 不落 "not-a-number"
+            assert post({"retain_days": "not-a-number"}) == 200, "非法值兜底应仍 200"
+            assert "not-a-number" not in (d / ".skein/config.yaml").read_text(), "非法值误落盘"
         finally:
             proc.terminate()
             try:
@@ -268,7 +265,7 @@ def main() -> None:
     test_prd_and_efficiency()
     test_serve_http()
     print("skein.py 看板测试全过 (prd-checklist / 零无谓写效率不变量 / serve-http: 实时渲染·资产直出·穿越守卫)")
-    # test_serve_config_post 直跑时验当前 (坏的) 422; pytest 下 skip (源码 bug)。
+    # test_serve_config_post: 合法 POST 落盘 + 非法值兜底默认值。
     test_serve_config_post()
 
 
