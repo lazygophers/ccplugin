@@ -153,6 +153,7 @@ CONFIG_DEFAULTS = {
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
     "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
+    "board_theme": "skein",  # 看板主题 (当前仅 skein; 前端 config-modal SCHEMA + config.yaml 已含, 补键对齐前后端契约)
 }
 
 
