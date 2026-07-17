@@ -76,12 +76,12 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-memory session-start",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-memory session-start",
                         "timeout": 5
                     },
                     {
                         "type": "command",
-                        "command": "skein session-context",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein session-context",
                         "timeout": 5
                     },
                     {
@@ -97,7 +97,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein user-prompt",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein user-prompt",
                         "timeout": 5
                     }
                 ]
@@ -108,7 +108,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-memory subagent-start",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-memory subagent-start",
                         "timeout": 5
                     }
                 ]
@@ -120,7 +120,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-hooks guard",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks guard",
                         "timeout": 5
                     }
                 ]
@@ -132,7 +132,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-hooks permission",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks permission",
                         "timeout": 5
                     }
                 ]
@@ -144,7 +144,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-hooks permission",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks permission",
                         "timeout": 5
                     }
                 ]
@@ -156,7 +156,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-hooks fmt",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks fmt",
                         "timeout": 15
                     }
                 ]
@@ -167,7 +167,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-hooks batch",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks batch",
                         "timeout": 5
                     }
                 ]
@@ -179,7 +179,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "skein-hooks report",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks report",
                         "timeout": 5
                     }
                 ]
