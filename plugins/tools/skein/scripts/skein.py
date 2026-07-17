@@ -153,6 +153,7 @@ CONFIG_DEFAULTS = {
     "retain_days": 7,  # 完成 task 保留天数; 0=finish 即归档, 负=永不自动
     "web_serve": True,  # 看板 http 服务总开关: True→monitor 每 session 起持久服务 + view 起 http 服务; False→monitor no-op + view 仅打印路径 (不主动开)
     "board_open": True,  # 仅 view 命令生效 (monitor serve 从不开浏览器): True→view 起服务后自动开浏览器; False→只打印 URL 不开
+    "board_theme": "skein",  # 看板主题 (当前仅 skein; 前端 config-modal SCHEMA + config.yaml 已含, 补键对齐前后端契约)
 }
 
 
@@ -2115,6 +2116,33 @@ class Skein:
                 return JSONResponse({"error": str(e), "ok": False}, status_code=500)
             return {"ok": r.returncode == 0, "cmd": body.get("cmd"),
                     "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
+
+        @app.get("/__skein__/config")
+        def _cfg_get():  # 读 config (含 ENV override, 前端显示生效值)
+            return JSONResponse(board.config())
+
+        @app.post("/__skein__/config")
+        async def _cfg_save(request: Request):  # 写 config.yaml (只认 CONFIG_DEFAULTS 键; 前端全量提交)
+            # input 提交多为 str → 按 CONFIG_DEFAULTS[key] 类型 coerce; 未知键忽略 (防注入); 缺键补默认。
+            try:
+                body = json.loads(request.scope.get("skein_body") or b"{}")
+            except Exception:
+                return JSONResponse({"error": "bad request"}, status_code=400)
+
+            def _coerce(k, v):  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
+                if isinstance(CONFIG_DEFAULTS[k], bool):
+                    return str(v).strip().lower() in ("true", "1", "yes", "on")
+                if isinstance(CONFIG_DEFAULTS[k], int):
+                    try:
+                        return int(v)
+                    except (TypeError, ValueError):
+                        return CONFIG_DEFAULTS[k]
+                return str(v)
+
+            cfg = {k: _coerce(k, body[k]) for k in CONFIG_DEFAULTS if k in body}
+            full = {**CONFIG_DEFAULTS, **cfg}  # 未提交键补默认 (前端应全量, 容错)
+            (board.dir / "config.yaml").write_text(_yaml_dump(full))
+            return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
 
         @app.get("/__skein__/archive")
         async def _archive():  # 已归档 task 列表
