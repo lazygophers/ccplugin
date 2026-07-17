@@ -6,7 +6,7 @@
 
 1. **显式依赖边** — subtask 的 `depends_on` (planning 用 `skein subtask add --deps` 直接登记进 per-task task.json, 无中间 md 图)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
 2. **就绪判定** = 所有前置 done + 有空闲并发槽。ready 的 subtask 并行派, 未就绪串行等。
-3. **就绪批排序 = 拓扑深度优先** — 就绪数 > 空闲槽时, `claim` 按**拓扑深度降序**截取 (非登记序 FIFO): 每 subtask 权重 = 最长下游链长度 + 1 (每步等权, 纯拓扑深度), 深度大者阻塞下游最多, 先派。同深度按登记序稳定。脚本自算 (`_crit_weight`), planning 只需把真实有序关系写进 `--deps`, 无需手排优先级。
+3. **就绪批排序 = 拓扑深度优先** — 就绪数 > 空闲槽时, `claim` 按**拓扑深度降序**截取 (非登记序 FIFO): 每 subtask 权重 = 最长下游链长度 + 1 (每步等权, 纯拓扑深度, 不依赖 estimate), 深度大者阻塞下游最多, 先派。同深度按 (task 登记序, subtask 登记序) 稳定。脚本自算 (`_crit_weight`), planning 只需把真实有序关系写进 `--deps`, 无需手排优先级。
 
 ## subtask 状态 = 脚本落盘, 非肉眼看 md 文件
 
@@ -15,7 +15,8 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
 | `subtask add <tid> <sid> --name --desc [--agent --deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--desc` 必填** (缺一 argparse 报错); `--agent` 省略默认 `skein-executor` (有更合适的具名 agent 显式填); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
-| `subtask claim <tid>` | main (每轮) | **一次性算就绪批 (拓扑深度降序) + 整批标 running**, 返回给 main 逐个 dispatch |
+| `claim` | main (每轮, **主路径**) | **全局跨 task**: 所有 active task 的 ready subtask 合池竞争同一 `max_parallel` 槽, 按 (拓扑深度降序, task 登记序, subtask 登记序) 截取 + 整批标 running, 返回给 main 逐个 dispatch |
+| `subtask claim <tid>` | main (单 task 兼容模式) | **仅该 task 内**算就绪批 (拓扑深度降序) + 标 running; 不跨 task 竞争, 单 task 场景的兼容路径 |
 | `pop` | main (查候选) | **只读提取一个可执行 (task, subtask) 对** (active task 内首个就绪 subtask); 仅选取不改态, 是否执行由 main/AI 判。决定执行后仍走 `claim`/`subtask start` 占槽 |
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |
@@ -25,11 +26,12 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 ## 调度循环 (动态, 完成即派)
 
 ```
-while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 标 running
-    对认领到的每个 subtask: 为其选合适 agent (无则 skein-executor) 执行 (真实 Agent 调用)  # ≤ max_parallel
+while skein claim 返回非空:       # 全局跨 task: 所有 active task ready subtask 合池竞争 max_parallel 槽
+    对认领到的每个 (task, subtask): 为其选合适 agent (无则 skein-executor) 执行 (真实 Agent 调用)  # ≤ max_parallel
     等任一 subagent 返回
-    → skein subtask done/fail <tid> <sid> → 回到 claim (脚本自动重算就绪, 完成即派)
+    → skein subtask done/fail <tid> <sid> → 回到 skein claim (脚本自动重算就绪, 完成即派)
 ```
+- 单 task 场景兼容: `skein subtask claim <tid>` (仅该 task 内截断, 不跨 task 竞争)。
 
 - **并发上限 2** — `claim` 内按 `max_parallel - running` 截断, 满槽返回空。
 - **完成即派** — 任一返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不等一批跑完。
@@ -47,10 +49,12 @@ while skein subtask claim <tid> 返回非空:       # 脚本一步: 算就绪 + 
 - 默认 1 task 1 worktree。多 worktree 允许但 opt-in (非自动, 不靠 subtask 触发)。
 - **多子 git (planning `--repos` 声明)** — task 跨多个子 git 时, `skein start` 为每个声明子 git 各建 worktree (`.worktrees/skein-<id>/<子git名>/`), `skein repos <id>` 可查清单。派 subtask 时 dispatch prompt「工作目录与范围」MUST 指名该 subtask 落在**哪个子 git 的 worktree** (不同子 git 改动天然隔离, 可并行派, 合计并发仍 ≤ 2); 跨子 git 的 subtask 在 prompt 里列全各子 git 的 worktree 路径。`finish` 逐子 git commit→merge, 某子 git 冲突则该 task 留 `进行中` 供修复后重跑 (已合入的子 git 幂等跳过)。
 
-## 多 task 并行 (同 session)
+## 多 task 并行 (同 session, 全局单池)
 
-- active 集 ≤ 2 (`skein` max_active), start 第三个报错。
-- 各 active task 各占各 worktree, 可并行派, 合计每层并发仍 ≤ 2。
+- **全局单池** — 所有 active task 的 ready subtask 竞争**同一 `max_parallel` 槽** (非每 task 各占 max_parallel); `skein claim` 合池截取, 不是 active × max_parallel。
+- active 集 ≤ 2 (`skein` max_active), start 第三个报错 (`max_active` 限的是 active task 数, 非并发槽)。
+- 排序: 拓扑深度降序 → task 登记序 → subtask 登记序 (同深度稳定)。
+- 各 active task 各占各 worktree (隔离不变), 派出的 subagent 改各自 task worktree。
 - task 级 DAG = task.json `deps` (`skein create --deps`) — 同 subtask 级, 只看显式依赖, 无写文件冲突自算。
 
 ## dispatch prompt (6 字段自包含, 缺字段不派)
