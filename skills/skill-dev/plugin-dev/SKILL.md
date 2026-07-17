@@ -1,6 +1,6 @@
 ---
 name: plugin-dev
-description: 创建与优化 Claude Code 插件的方法论框架。当用户要新建插件（搭 .claude-plugin/plugin.json manifest + 接线 commands/agents/skills/hooks/MCP + 挂 marketplace）、或审查优化现有插件（manifest 合规 / 组件接线完整性 / hook 健壮性 / marketplace 一致性）时使用。单组件（单个 skill / agent）编写或 9 维质量优化路由 skill-dev。仅手动 /plugin-dev 触发。
+description: 创建与优化 Claude Code 插件的方法论框架。当用户要新建插件（搭 .claude-plugin/plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP/monitors + 挂 marketplace）、或审查优化现有插件（manifest 合规 / 组件接线完整性 / hook 健壮性 / marketplace 一致性）时使用。单组件（单个 skill / agent）编写或 9 维质量优化路由 skill-dev。仅手动 /plugin-dev 触发。
 disable-model-invocation: true
 argument-hint: "[create|optimize] <插件路径>"
 arguments: "[create|optimize] <插件路径>"
@@ -8,19 +8,28 @@ arguments: "[create|optimize] <插件路径>"
 
 # Plugin Dev — Claude Code 插件创建 / 优化方法论
 
-> meta-skill：教如何搭建与打磨**整个 Claude Code 插件**（不是单个组件）。基于本仓库 `docs/plugin-development.md` + `plugins/tools/*` 7 个真实插件 + 官方规范。单组件级编写与 9 维评分优化归 [skill-dev]；本 skill 管**插件级**（manifest / 组件接线 / hook / marketplace）。
+> meta-skill：教如何搭建与打磨**整个 Claude Code 插件**（不是单个组件）。基于官方 plugins / plugins-reference / plugin-marketplaces 三篇规范 + 本仓库 `docs/` + `plugins/tools/*` 7 个真实插件。单组件级编写与 9 维评分优化归 [skill-dev]；本 skill 管**插件级**（manifest / 组件接线 / hook / 高级组件 / marketplace）。
+
+细节分文件（按需读，禁全读）：
+- [references/manifest-and-wiring.md](references/manifest-and-wiring.md) — plugin.json 全字段 + 组件目录 + namespace + version 语义
+- [references/hooks.md](references/hooks.md) — hook 事件 / matcher / 退出码契约 / stdin payload / async / 深水区
+- [references/advanced-components.md](references/advanced-components.md) — MCP / LSP / monitors / bin / settings / userConfig / outputStyles
+- [references/multi-language.md](references/multi-language.md) — 编译型陷阱 / 三方案 / 跨平台 / 共享代码
+- [references/marketplace.md](references/marketplace.md) — marketplace.json schema / source 5 类型 / 发布流程
+- [references/optimize-rubric.md](references/optimize-rubric.md) — 体检命令 / 8 维评分 / 优化循环
 
 ## 🔴 硬规（违反即失效）
 
-1. **组件目录在插件根，禁进 `.claude-plugin/`** — `commands/` `agents/` `skills/` `hooks/` `scripts/` 必须在插件根；`.claude-plugin/` 只放 `plugin.json`。`SKILL.md` 文件名必须大写。
-2. **manifest `name` 必填且 kebab-case** — `^[a-z0-9-]+$`；须与目录名、marketplace 条目 `name` 三者一致。
-3. **接线双向核对** — `plugin.json` 的 `skills[]/agents[]/commands[]` 每条路径都要有真实文件；反过来每个组件文件都要被挂载。漏挂 = 组件不加载，悬挂 = 启动报错。
-4. **hook / 脚本路径用 `${CLAUDE_PLUGIN_ROOT}`** — 禁写死绝对路径或相对 cwd；每个 hook 带 `timeout`，失败不得阻断会话。
-5. **改任何 SKILL.md / agent.md / command.md 后过质量门**（项目 CLAUDE.md 强制）：
+1. **组件目录在插件根，禁进 `.claude-plugin/`** — `.claude-plugin/` 只放 `plugin.json`。`commands/ agents/ skills/ hooks/ scripts/ bin/ monitors/` 在插件根。`SKILL.md` 大写。插件根 ≠ `~/.claude/`。
+2. **manifest `name` 必填且 kebab-case** — `^[a-z0-9-]+$`；须与目录名、marketplace 条目 `name` 三者一致。`name` 即 namespace 前缀（`/my-plugin:skill`）。
+3. **接线双向核对** — `skills[]/agents[]/commands[]` 每条路径都要有真实文件；反过来每个组件文件都要被挂载。漏挂 = 静默不加载（最阴险），悬挂 = 启动报错。
+4. **hook / 脚本路径用 `${CLAUDE_PLUGIN_ROOT}`** — 禁写死绝对路径或相对 cwd；每个 hook 带 `timeout`；失败 `exit 0` 兜底禁崩会话；guard 用 `exit 2`，**禁 `exit 1`**。
+5. **密钥用 `${ENV_VAR}` 引用禁硬编码** — MCP `env` / 任何 secrets 一律环境变量。
+6. **改任何 SKILL.md / agent.md / command.md 后过质量门**（项目 CLAUDE.md 强制）：
    ```bash
    claude -p "<待测内容>" --output-format stream-json | jq -r 'select(.type=="result" and .subtype=="success") | .result'
    ```
-   端点抖动（400）时人工验 + 小步可回滚提交，标「待端点恢复补跑」。
+   端点抖动（400）时重试循环（见记忆 claude-p-endpoint-flaky）；3 次仍败 → 人工验 + 小步可回滚提交，标「待端点恢复补跑」。
 
 ## 路由（先判 create 还是 optimize）
 
@@ -29,49 +38,52 @@ arguments: "[create|optimize] <插件路径>"
 | 「新建插件 / 从零做个插件 / 搭插件脚手架」 | **流程 A · 创建** |
 | 「优化 / 审查 / 检查这个插件 / 插件为什么不加载」 | **流程 B · 优化** |
 | 只写单个 skill / agent / command | 🛑 停，路由 `/skill-dev`（本 skill 是插件级，不做单组件） |
-| 单个 SKILL.md 纯质量评分 | 🛑 停，路由 `/skill-dev`（其流程 B 优化线做单 skill 深度评估） |
+| 单个 SKILL.md 纯质量评分 | 🛑 停，路由 `/skill-dev`（其流程 B 做单 skill 深度评估） |
 
 ---
 
 ## 流程 A · 创建插件
 
-1. **定范围（brainstorm，非凭空设计）** — 逐问用户：插件解决什么问题 / 目标用户 / 要哪些组件（command / agent / skill / hook / MCP）。关键分歧用 `AskUserQuestion` 拍板。
+1. **定范围（brainstorm，非凭空设计）** — 逐问用户：插件解决什么问题 / 目标用户 / 要哪些组件（command / agent / skill / hook / MCP / LSP / monitor）。关键分歧用 `AskUserQuestion` 拍板。
    🛑 **检查点1**：组件清单 + 每个组件一句话职责，给用户点头再搭。方向错晚改贵 100 倍。
 2. **搭骨架** — 目录建在 `plugins/tools/<name>/`（对齐本仓库约定）：
    ```bash
    mkdir -p plugins/tools/<name>/.claude-plugin
-   # 按清单只建需要的：commands/ agents/ skills/ hooks/ scripts/
+   # 按清单只建需要的：commands/ agents/ skills/ hooks/ scripts/ bin/ monitors/
    ```
-3. **写 manifest** `plugins/tools/<name>/.claude-plugin/plugin.json`（字段以真实插件为准，`version` 本仓库多数省略）：
+   单 skill 插件可省 `skills/`，`SKILL.md` 直接放根。
+3. **写 manifest** `.claude-plugin/plugin.json`（全字段 + namespace + version 语义见 [references/manifest-and-wiring.md](references/manifest-and-wiring.md)）：
    ```jsonc
    {
-     "name": "<name>",                    // 必填, kebab-case, = 目录名
-     "description": "<一句话: 做什么 + 差异化核心>",
+     "name": "<name>",                    // 必填, kebab-case, = 目录名, = namespace 前缀
+     "description": "<做什么 + 差异化核心>",
      "author": { "name": "...", "email": "...", "url": "..." },
-     "homepage": "https://github.com/.../plugins/tools/<name>",
-     "repository": "https://github.com/.../plugins/tools/<name>",
-     "license": "AGPL-3.0-or-later",
-     "keywords": ["...", "..."],
-     "skills":   ["./skills/<name>-x"],   // 数组=逐条挂, 或字符串 "./skills/" 挂整目录
+     "homepage": "...", "repository": "...", "license": "AGPL-3.0-or-later",
+     "keywords": ["..."],
+     "skills":   ["./skills/<name>-x"],   // 数组=逐条挂, 或 "./skills/" 挂整目录
      "agents":   ["./agents/<name>-y.md"],
      "commands": ["./commands/<name>-z.md"],
-     "hooks":    { /* 见下 */ },
-     "userConfig": { /* 可选: 暴露给用户的配置项 */ }
+     "hooks":    { /* 见 references/hooks.md */ },
+     "userConfig": { /* 可选, 见 references/advanced-components.md */ }
+     // version 省略则走 git commit SHA；正式发布再加 semver
    }
    ```
-4. **写组件**（每个组件的具体写法委托 [skill-dev]，本 skill 只保证接线）：
-   - command：`commands/*.md`，frontmatter `description` / `argument-hint` / `allowed-tools` / `model`；正文用 `$ARGUMENTS` / `$1`。
-   - agent：`agents/*.md`，frontmatter `name`（必填）/ `description`（必填）/ `tools` / `model` / `skills`。
-   - skill：`skills/<skill>/SKILL.md`（大写）。
-   - hook：`plugin.json` 的 `hooks` 或独立 `hooks/hooks.json`；事件 `SessionStart`/`PreToolUse`/`PostToolUse`/`SubagentStart`/`UserPromptSubmit`/`Stop`…，`matcher` 如 `"Write|Edit"` / `"Bash(git:*)"` / `"*"`；`command` 用 `${CLAUDE_PLUGIN_ROOT}/scripts/x.sh` + `timeout`。
-   - MCP：根 `.mcp.json` 的 `mcpServers`，密钥用 `${ENV_VAR}` 引用禁硬编码。
+4. **写组件**（每个组件的具体写法委托 `/skill-dev`，本 skill 只保证接线）：
+   - **command**：`commands/*.md`，frontmatter `description` / `argument-hint` / `allowed-tools` / `model`；正文用 `$ARGUMENTS` / `$1`。
+   - **agent**：`agents/*.md`，frontmatter `name`（必填）/ `description`（必填）/ `tools` / `model` / `skills`。
+   - **skill**：`skills/<skill>/SKILL.md`（大写）。
+   - **hook**：`plugin.json` 内联 `hooks` 或独立 `hooks/hooks.json`；事件 / matcher / 退出码 / payload / async / timeout **必读** [references/hooks.md](references/hooks.md)。
+   - **MCP / LSP / monitor / bin / settings / userConfig / outputStyles**：见 [references/advanced-components.md](references/advanced-components.md)。
+   - **脚本分发**（编译型/解释型/uvx）：见 [references/multi-language.md](references/multi-language.md)。🔴 核心：`claude plugin add` 不编译不装依赖。
 5. **本地验证**：
    ```bash
    jq . plugins/tools/<name>/.claude-plugin/plugin.json   # JSON 合法
-   claude plugin add ./plugins/tools/<name>               # 装载, 或 /plugin install
+   claude plugin validate                                  # 官方校验（提交前必跑）
+   claude --plugin-dir ./plugins/tools/<name>              # 开发加载（非安装）
+   # 进会话后 /reload-plugins 重载改后生效
    ```
-   🛑 **检查点2**：逐个跑一遍 command / 触发 skill / 调 agent / 打 hook 事件，确认真加载再往下。
-6. **挂 marketplace** — 在根 `.claude-plugin/marketplace.json` 的 `plugins[]` 追加条目（字段与真实条目一致，**无 version**）：
+   🛑 **检查点2**：逐个跑一遍 command / 触发 skill（`/<name>:<skill>`）/ 调 agent / 打 hook 事件，确认真加载再往下。
+6. **挂 marketplace** — 在仓库根 `.claude-plugin/marketplace.json` 的 `plugins[]` 追加条目（全 schema + source 5 类型见 [references/marketplace.md](references/marketplace.md)）：
    ```jsonc
    { "name": "<name>", "source": "./plugins/tools/<name>",
      "description": "...", "author": {...},
@@ -81,97 +93,26 @@ arguments: "[create|optimize] <插件路径>"
 
 ---
 
-## 流程 B · 优化插件（自带评分 rubric，不外包）
+## 流程 B · 优化插件
 
-先跑机械体检定位硬伤，再按 rubric 打分排优先级，一轮修一类。
+先跑机械体检定位硬伤，再按 8 维 rubric 打分排优先级，一轮修一类。**体检命令 + 完整 rubric 见 [references/optimize-rubric.md](references/optimize-rubric.md)。**
 
-### 体检命令（先跑，硬伤优先）
+8 维速览（权重）：① Manifest 合规(16) ② 组件接线完整(20) ③ 结构规范(12) ④ Hook 健壮性(14) ⑤ 组件质量(14, 深评交 `/skill-dev`) ⑥ Marketplace 一致性(12) ⑦ 文档完整(6) ⑧ 命名元数据一致(6)。
 
-```bash
-P=plugins/tools/<name>
-jq -e . $P/.claude-plugin/plugin.json >/dev/null || echo "❌ manifest JSON 非法"
-jq -r '.name' $P/.claude-plugin/plugin.json | grep -qE '^[a-z0-9-]+$' || echo "❌ name 非 kebab-case"
-# 接线双向: 挂载路径 vs 实际文件
-for k in skills agents commands; do
-  jq -r --arg k $k '.[$k][]? // empty' $P/.claude-plugin/plugin.json | while read p; do
-    [ -e "$P/$p" ] || echo "❌ 悬挂: $k 挂了 $p 但文件不存在"; done
-done
-find $P/skills $P/agents $P/commands -maxdepth 2 \( -name SKILL.md -o -name '*.md' \) 2>/dev/null  # 反查漏挂
-ls $P/skills/*/SKILL.md 2>/dev/null | grep -v '/SKILL.md$' && echo "❌ SKILL.md 命名错"
-ls -d $P/.claude-plugin/commands $P/.claude-plugin/skills 2>/dev/null && echo "❌ 组件误放 .claude-plugin/ 内"
-grep -rn 'command' $P/.claude-plugin/plugin.json | grep -q CLAUDE_PLUGIN_ROOT || echo "⚠️ hook 疑似写死路径"
-```
-
-### 评分 rubric（8 维，每维 1-10 × 权重，Σ/10 满分 100）
-
-| # | 维度 | 权重 | 评分要点 |
-|---|---|---|---|
-| 1 | **Manifest 合规** | 16 | JSON 合法；`name` 必填 kebab-case；`description` 说清做什么+差异化；author/license/homepage 齐 |
-| 2 | **组件接线完整** | 20 | `skills[]/agents[]/commands[]` 每条有真实文件（无悬挂）+ 每个文件被挂载（无漏挂）；路径大小写正确 |
-| 3 | **结构规范** | 12 | 组件在插件根不在 `.claude-plugin/`；`SKILL.md` 大写；agent/command frontmatter 必填字段齐 |
-| 4 | **Hook 健壮性** | 14 | `${CLAUDE_PLUGIN_ROOT}` 而非硬路径；每 hook 带 `timeout`；matcher 精确；失败不阻断会话；幂等 |
-| 5 | **组件质量** | 14 | 逐个 skill/agent/command 过：触发词准、失败模式编码、无占位符残留（深评单 skill 另跑 `/skill-dev` 优化线，本维度只做门槛检查） |
-| 6 | **Marketplace 一致性** | 12 | `marketplace.json` 条目 name/source/description/author/license/keywords 与 `plugin.json` 一致；source 路径存在 |
-| 7 | **文档完整** | 6 | README 有装/用/例；CHANGELOG（如版本化）；description 无「灵活应用」空话尾巴 |
-| 8 | **命名与元数据一致** | 6 | 目录名 = manifest name = marketplace name；keywords 命中真实能力非堆砌 |
-
-**优化循环**：体检硬伤（维度 1/2/3 命中 = P0）先修 → 按最低维度一轮改一类 → 改后重跑体检 + 过质量门（硬规 5）→ 严格更好才留，否则 `git revert`。
+**优化循环**：体检硬伤（维度 1/2/3 命中 = P0 先修）→ 按最低维度一轮改一类（单变量轮）→ 改后重跑体检 + 过质量门（硬规 6）→ 严格更好才留否则 `git revert` → 触顶（连续 2 轮 Δ<2）break。
 
 ---
 
-## 实战经验（真实插件踩坑沉淀，docs 不写这里）
-
-### Hook 深水区
-
-- **退出码即契约** — `exit 0` = 放行 / 静默；`exit 2` = 阻断该工具调用并把 stderr 回灌给模型（PreToolUse guard 常用）；其他非零 = 非阻断错误（日志可见，不阻会话）。**禁用 `exit 1`**（语义模糊，不同事件解读不一）。stdin 一律是 JSON，`json.load(sys.stdin)`；解析失败**静默 exit 0**，禁崩会话（skein hooks.py `_load_stdin` 范式：非法 JSON `return 0`）。
-- **matcher 精确化** — `Write|Edit|MultiEdit` 列具体工具名，别用 `*` 全收（PostToolUse 全收 = 每次工具调用都跑，拖会话）；`Bash(git:*)` 只匹配 git 子命令；`Read` 进 PreToolUse guard 要谨慎（读也触发，易循环）。
-- **timeout 必填且分级** — 纯读/索引 `5s`；跑 lint/format `10-15s`；装依赖等重活**后台化**（skein 范式：`pip3 install ... >/dev/null 2>&1 &` 放 SessionStart 后台，不阻塞会话启动）。
-- **`${CLAUDE_PLUGIN_ROOT}` 解析时机** — 由 plugin loader 在调 hook 前替换，脚本内**禁**再手动拼路径；同时 hook `command` 可写 `cd ${CLAUDE_PLUGIN_ROOT} && ...` 切到插件根再跑（skein SessionStart 装依赖范式）。
-- **bin/ thin wrapper 模式** — 重逻辑放 `scripts/*.py`，`bin/<name>` 做无 shell 依赖的 py wrapper（`runpy.run_path` 复用 scripts 入口，`CLAUDE_PLUGIN_ROOT` 优先回退 `__file__` 推根）。好处：hook command 只指向 bin/，脚本迭代不必改 manifest。
-- **PostToolUse 读写硬门** — 想强制 "某文件只由脚本维护、AI 禁碰"（如 skein 的 task.json/task.md）：PreToolUse guard 匹配 `Edit|Write|MultiEdit|Read`，命中受保护路径 `exit 2` 阻断。注意 Read 也挂 = 连读都拦，确认是真需求。
-- **SessionStart 多 mode** — `source` 字段区分 `startup` / `resume` / `compact` / `clear`；compact 后 core 规则会重注入，写 hook 时假设 "索引可能被截断重灌"，幂等重入。
-
-### userConfig（暴露给用户的项目配置）
-
-- **schema 四件套** — `{type, title, description, default}`，数值加 `min/max`（skein `max_active`：type=number + default=2 + min=1 + max=8）。`description` 写 "推荐值 + 为什么 + 覆盖哪个文件"，用户在设置面板看见就懂。
-- **读取** — hook/command 经环境变量读（变量名 = config key 大写），或脚本读 plugin 注入的 config JSON；**禁**假设 config 必填，永远给 default 兜底。
-
-### MCP Server 接线
-
-- **`.mcp.json` 在插件根** — `mcpServers.<name>`：`command` + `args` + `env`；密钥 `${ENV_VAR}` 引用禁硬编码（同 hook 路径变量）。
-- **stdio vs SSE** — 本地进程用 stdio（`command`+`args` 启动子进程）；远程用 SSE（`url` 字段）。本仓库无实例，参考官方 https://code.claude.com/docs/en/plugins 的 MCP 章节。
-- **工具命名** — MCP 工具暴露给模型为 `mcp__<server>__<tool>`，server name 选 kebab-case 短名（模型调用时前缀越短越好）。
-
-### 跨平台（darwin / linux / WSL）
-
-- **python3 不是 python** — shebang `#!/usr/bin/env python3`，禁假设 `python` 指向 py3。
-- **依赖显式化** — 用 `jq` / `pip3` 等外部工具时，requirements.txt 列齐 + SessionStart 后台自装（skein 范式）；禁假设用户机器已装。
-- **路径禁含空格假设** — `${CLAUDE_PLUGIN_ROOT}` 含空格时，hook command 用引号包裹；脚本内 `os.path.join` 禁字符串拼。
-- **shell 便携** — hook 脚本用 `#!/usr/bin/env bash` + `set -euo pipefail`；禁 bashism（`[[ ]]` / `<(...)`）若需兼容 sh。
-
-### 调试
-
-- **`claude --debug`** — 看 plugin 加载顺序 / hook 触发 / 变量替换实况；hook stderr 进 debug 日志，不回模型。
-- **加载失败二分** — 装载失败先 `jq .` 验 manifest → 体检查悬挂 → 只挂 skills 逐个加定位坏组件（失败模式表已列）。
-- **hook 不触发** — 查 matcher 拼写（大小写敏感）/ event 名（`PostToolUse` 非 `post_tool_use`）/ command 路径替换后是否存在 / 脚本有无 `+x`。
-- **index 截断** — SessionStart 注入内容超 budget 被截 = 静默丢尾部；hook 产出的规则索引**测体量**（skein 用 `hooklib.budget_guard` 按 token 截断 + 索引分行，尾部不丢关键项）。
-
-### 版本与发布
-
-- **version 策略** — 本仓库多数插件 manifest**省略 version**（marketplace 条目也无），未发布即不写；正式发布再加 semver + tag。
-- **CHANGELOG** — 版本化插件必备；纯内部迭代可走 git log，不必强求。
-- **marketplace 更新** — 改 plugin 后同步根 `.claude-plugin/marketplace.json` 条目（description/keywords 等元数据与 plugin.json 一致），**禁 push** 等指令。
-
----
-
-## 失败模式（if-then 三段式：触发 → 一线修复 → 仍失败兜底）
+## 失败模式速查（触发 → 一线修复 → 仍失败兜底）
 
 | 触发 | 一线修复 | 仍失败兜底 |
 |---|---|---|
-| `claude plugin add` 装载失败 | `jq .` 验 manifest JSON + 查悬挂路径（体检命令） | 仍失败 → 逐组件二分：先只挂 skills 再逐个加，定位坏组件 |
-| 组件不生效（命令/skill 不出现） | 查漏挂（文件存在但 `plugin.json` 没挂）+ 大小写 + `SKILL.md` 大写 | 仍不出 → 查是否误放 `.claude-plugin/` 内；重启会话重载 |
-| hook 报错阻断会话 | 加 `timeout` + 改 `${CLAUDE_PLUGIN_ROOT}` 绝对引用 + 失败 `exit 0` 兜底 | 仍阻断 → 先从 manifest 摘掉该 hook 恢复可用，再单独调 |
-| 质量门 `claude -p` 返 400/空 | 重试循环（端点抖动，见记忆 claude-p-endpoint-flaky） | 3 次仍败 → 人工审 + 小步可回滚提交，标「待端点恢复补跑」 |
+| `claude plugin add` / `--plugin-dir` 装载失败 | `jq .` 验 manifest JSON + 体检查悬挂（见 optimize-rubric.md）| 逐组件二分：先只挂 skills 再逐个加，定位坏组件 |
+| 组件不生效（命令/skill 不出现）| 查漏挂（文件存在但 manifest 没挂）+ 大小写 + `SKILL.md` 大写；注意调用名是 `/<plugin>:<skill>` | 查是否误放 `.claude-plugin/` 内；`/reload-plugins` 或重启会话重载 |
+| hook 报错阻断会话 | 加 `timeout` + 改 `${CLAUDE_PLUGIN_ROOT}` + 失败 `exit 0` 兜底；guard 用 `exit 2` 禁 `exit 1` | 先从 manifest 摘掉该 hook 恢复可用，再单独调 |
+| hook 不触发 | 查 matcher 拼写（大小写敏感）/ event 名（`PostToolUse` 非 `post_tool_use`）/ command 路径 / 脚本 `+x` | `claude --debug` 看触发实况 |
+| marketplace source relative 失效 | 用户从 URL 加 marketplace 时 relative 不解析 → 改 github/url/npm source | git/本地加 marketplace 才用 relative |
+| 质量门 `claude -p` 返 400/空 | 重试循环（端点抖动，记忆 claude-p-endpoint-flaky）| 3 次仍败 → 人工审 + 小步可回滚提交，标「待端点恢复补跑」|
 | 优化后不确定是否更好 | 重跑体检对比硬伤数 + 过质量门 | 分数 fine-grained 不可信 → 破坏性/接线变更交用户确认，禁「我觉得更好」直落 |
 
 ## 反例（命中 = 流程错误）
@@ -179,15 +120,27 @@ grep -rn 'command' $P/.claude-plugin/plugin.json | grep -q CLAUDE_PLUGIN_ROOT ||
 - 组件塞进 `.claude-plugin/` 目录内（只该放 plugin.json）。
 - 挂载路径与实际文件不符（悬挂 / 漏挂）却不做双向核对。
 - hook `command` 写死绝对路径或漏 `timeout`，装到别人机器即崩。
+- guard hook 用 `exit 1`（语义模糊）或崩在非法 JSON stdin（会卡死会话）。
+- MCP `env` / 任何 secrets 硬编码（应 `${ENV_VAR}`）。
 - 凭空替用户设计插件功能（应 brainstorm 逐问）；纯文本代替 `AskUserQuestion`。
 - 建完插件不挂 marketplace，或挂了但元数据与 plugin.json 不一致。
+- 只放 `.go`/`.rs` 源码不预编译（`claude plugin add` 不编译，用户机器跑不起来）。
 - 改 SKILL.md / agent.md 跳过 `claude -p` 质量门。
 - 拿本 skill 去写单个 skill/agent 或做单 skill 评分（那是 skill-dev）。
 - 自动 push（禁，等明确指令）。
 
 ## 资源
 
-- 本仓库 `docs/plugin-development.md` — 结构 / 组件格式 / 发布流程详解。
-- `plugins/tools/*`（skein / notify / version / cortex …）— 真实插件范例，manifest / hook / userConfig 抄这里。
+- **官方三篇**：[plugins](https://code.claude.com/docs/en/plugins) · [plugins-reference](https://code.claude.com/docs/en/plugins-reference) · [plugin-marketplaces](https://code.claude.com/docs/en/plugin-marketplaces)
+- 本仓库 `docs/plugin-development.md` — 结构 / 组件格式 / 发布流程教程。
+- 本仓库 `docs/api-reference.md` — manifest / hooks / MCP / marketplace 完整 schema。
+- 本仓库 `docs/supported-languages.md` + `compiled-languages-guide.md` — 多语言 / 编译型指南。
+- 本仓库 `docs/best-practices.md` — 设计原则 / 命名 / 安全。
+- `plugins/tools/*`（skein / notify / version / cortex / deepresearch / novelist / trellisx）— 真实插件范例，manifest / hook / userConfig / pyproject 抄这里。
 - 根 `.claude-plugin/marketplace.json` — 市场条目真实字段模板。
-- 官方：https://code.claude.com/docs/en/plugins · plugin-marketplaces · plugins-reference
+
+## 诚实边界
+
+- 覆盖 Claude Code 插件系统（官方规范截至 2026-07-17 fetch）；部分新字段标注 `{/* min-version: x.y.z */}` 依赖用户 Claude Code 版本。
+- 组件深度质量评估（skill 9 维评分 / agent body 设计）路由 `/skill-dev`，本 skill 维度 5 只做门槛检查。
+- 调研来源：官方文档（一手）+ 本仓库 docs + 真实插件实证；无第三方基准。评分 rubric 权重为经验汇总，fine-grained 不可信，重要决策人审。
