@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="skein" data-motion="full">
+<html lang="zh-CN" data-motion="full">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="dist/app.css">
 </head>
 <body>
-  <!-- 顶栏: 7 nav tab (hash 路由) + 全局搜索 + 主题切换 -->
+  <!-- 顶栏: 7 nav tab (hash 路由) + 全局搜索 -->
   <header class="topbar flex items-center gap-4 px-6 py-3 sticky top-0 z-50" style="background:var(--bg)">
     <strong class="text-head text-lg tracking-tight">SKEIN</strong>
     <nav class="nav">
@@ -22,21 +22,6 @@
     <input type="search" id="global-search" class="search ml-auto w-[280px] rounded border px-3 py-1.5 text-sm"
            style="background:var(--card);color:var(--fg);border-color:var(--brd)"
            placeholder="🔍 搜索 id / 名称 / 描述…" autocomplete="off" aria-label="全局搜索">
-    <label class="text-xs text-muted flex items-center gap-1">主题
-      <select id="theme-select" class="rounded border px-1 py-0.5 text-xs"
-              style="background:var(--sel-bg);color:var(--sel-fg);border-color:var(--brd)">
-        <option value="skein">缕光</option>
-        <option value="minimal">极简</option>
-        <option value="terminal">终端</option>
-        <option value="glass">磨砂</option>
-        <option value="blueprint">蓝图</option>
-        <option value="sketch">手绘</option>
-        <option value="neumorphism">浮起</option>
-        <option value="holographic">虹彩</option>
-        <option value="magazine">杂志</option>
-        <option value="sketchdark">夜绘</option>
-      </select>
-    </label>
   </header>
 
   <!-- SPA 挂载点: 各 hash 路由页面渲染进此处 (页面 subtask 负责) -->

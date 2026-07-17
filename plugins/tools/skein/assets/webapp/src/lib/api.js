@@ -42,5 +42,3 @@ export const search = (q) => getJSON(BASE + "/search?q=" + encodeURIComponent(q)
 export const data = () => getJSON(BASE + "/data");
 // exec: cmd + 其余参数平铺进 body (list/ready/pop/current/status/doctor/contract/subtask-list/create/subtask-add)
 export const exec = (cmd, args) => postJSON(BASE + "/exec", Object.assign({ cmd }, args || {}));
-// 主题持久化到 config.yaml (仅 board_theme, 值须在后端 THEMES 内)
-export const setTheme = (v) => postJSON(BASE + "/config", { board_theme: v });

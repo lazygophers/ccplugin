@@ -1,6 +1,6 @@
 // SKEIN webapp 引导入口 (index.html <script type=module> 加载)。
 //   1. 载入 petite-vue (vendored IIFE, 暴露全局 PetiteVue) — 供 page 模块 createApp 用
-//   2. 接线顶栏: nav 高亮由 router 管; 主题切换 (data-theme + 持久化); 全局搜索下拉
+//   2. 接线顶栏: nav 高亮由 router 管; 全局搜索下拉
 //   3. 启动 live 热重载 + hash router (注入 api/md 依赖)
 import * as api from "./lib/api.js";
 import * as md from "./lib/md.js";
@@ -15,23 +15,6 @@ function loadPetiteVue() {
   s.src = "/vendor/petite-vue.js";
   s.async = true;
   document.head.appendChild(s);
-}
-
-// ── 主题切换: <html data-theme> + 持久化 config.yaml (serve) / localStorage (file://) ──
-function wireTheme() {
-  const html = document.documentElement;
-  const sel = document.getElementById("theme-select");
-  if (!sel) return;
-  const served = /^https?:$/.test(location.protocol);
-  // 初值同步: file:// 用 localStorage, serve 用服务端已渲染的 data-theme
-  if (!served) { const saved = localStorage.getItem("skein-theme"); if (saved) html.setAttribute("data-theme", saved); }
-  sel.value = html.getAttribute("data-theme") || "skein";
-  sel.addEventListener("change", () => {
-    const v = sel.value;
-    html.setAttribute("data-theme", v);
-    if (served) api.setTheme(v).catch(() => {});
-    else localStorage.setItem("skein-theme", v);
-  });
 }
 
 // ── 全局搜索: 输入防抖 → api.search → 下拉结果; 点结果跳转 (task/subtask → #/task/:id) ──
@@ -98,7 +81,6 @@ function wireSearch() {
 
 function boot() {
   loadPetiteVue();
-  wireTheme();
   wireSearch();
   live.start();
   router.start({ api, md });

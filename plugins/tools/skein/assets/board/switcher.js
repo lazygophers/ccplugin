@@ -23,26 +23,6 @@
       if(!fabWrap.contains(e.target)){fabWrap.classList.remove('open');fab.setAttribute('aria-expanded','false');}
     });
   }
-  var keys={theme:'data-theme'};  // 唯一外观选项; 配色/明暗烘焙进主题预设 css
-  // serve(http): config.yaml 是主题真值源 (服务端已渲染 data-theme), 改动 POST 回落盘; file://: 用 localStorage
-  var served=/^https?:$/.test(location.protocol);
-  function apply(k,v){
-    if(!v)return;
-    html.setAttribute(keys[k],v);
-    if(!served)localStorage.setItem('skein-'+k,v);  // serve 下不写 localStorage, 免下次覆盖服务端配置
-    var sel=document.getElementById('sw-'+k);
-    if(sel)sel.value=v;
-  }
-  Object.keys(keys).forEach(function(k){
-    if(!served){var saved=localStorage.getItem('skein-'+k);if(saved)apply(k,saved);}  // serve 下不覆盖服务端主题
-    var sel=document.getElementById('sw-'+k);
-    if(sel)sel.addEventListener('change',function(){
-      apply(k,sel.value);
-      if(served&&k==='theme')  // 持久化到 config.yaml
-        fetch('/__skein__/config',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({board_theme:sel.value})}).catch(function(){});
-    });
-  });
   // 状态筛选(#sw-filter, 现居任务进展卡) + 搜索(#sw-search, 居 topbar) 统一决定右栏卡显隐:
   // 卡显 iff 状态命中 且 (搜索空 或 data-search 含关键词); 搜索还高亮命中卡关键词 + 左栏 DAG 命中节点高亮/其余变灰
   // 激活的状态过滤集 (空=全部); 取自 .stat.on 卡 (排除总计卡 .stat-all)
