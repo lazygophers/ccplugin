@@ -25,7 +25,7 @@ function wireSearch() {
   box.className = "search-dropdown";
   box.setAttribute("role", "listbox");
   // 兜底内联样式: 即便 dist/app.css 未定义 .search-dropdown 也保证可见 (背景/边框取主题 CSS 变量)
-  box.style.cssText = "position:fixed;max-height:60vh;overflow:auto;border-radius:8px;" +
+  box.style.cssText = "position:fixed;z-index:1000;max-height:60vh;overflow:auto;border-radius:8px;" +
     "background:var(--card,#fff);color:var(--fg,#111);border:1px solid var(--brd,#ddd);" +
     "box-shadow:0 8px 28px rgba(0,0,0,.18);padding:4px";
   box.hidden = true;

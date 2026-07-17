@@ -41,6 +41,8 @@
     --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
     --radius: 16px;
     --skein-gold: #E8C264;
+    --z-float: 1000;
+    --z-modal: 2000;
 
     /* ── 玻璃流沙层令牌 (A 皮, 跨外观派生) ──
        浅 = 晨曦: 60% 白玻璃 / 细描边 / 蓝顶光 / 软投影。

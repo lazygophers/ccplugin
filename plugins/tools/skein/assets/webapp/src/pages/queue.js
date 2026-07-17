@@ -17,7 +17,7 @@ const badgeCls = (st) => BADGE[st] || "badge-pending";
 
 const STYLE = `<style>
 .qrow{position:relative}
-.qpop{position:absolute;left:0;right:auto;top:100%;margin-top:4px;z-index:50;
+.qpop{position:absolute;left:0;right:auto;top:100%;margin-top:4px;z-index:1000;
   min-width:240px;max-width:340px;background:var(--card);border:1px solid var(--brd);
   border-radius:8px;padding:10px 12px;font:12px var(--font);color:var(--head);
   box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:default}
