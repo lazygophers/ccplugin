@@ -1808,8 +1808,25 @@ class Skein:
                                    "agent": s.get("agent", "skein-executor"),
                                    "desc": s.get("desc", ""), "status": s["status"],
                                    "depends_on": s.get("depends_on", [])})
+        # 执行中 task / running sub: 复用 _dashboard 模式 (data.cards + _active 内 SS_RUNNING)
+        data = self._board_data()
+        tnow = now()
+        running_subs = []
+        for t in self._active():
+            for s in t.get("subtasks", []):
+                if s.get("status") != SS_RUNNING:
+                    continue
+                started = s.get("started")
+                running_subs.append({"tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                                     "agent": s.get("agent", "skein-executor"),
+                                     "elapsed": round((tnow - started) / 60) if started else None})
+        active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
+                         "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
+                         "elapsed": c.get("elapsed")}
+                        for c in data["cards"] if c["status"] in (S_ACTIVE, S_CHECK)]
         return {"pendingQueue": self._pending_queue(tasks),
-                "readyTasks": ready_tasks, "readySubtasks": ready_subs}
+                "readyTasks": ready_tasks, "readySubtasks": ready_subs,
+                "activeTasks": active_tasks, "runningSubs": running_subs}
 
     def _search(self, q) -> dict:
         # 跨 task/subtask/prd/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
