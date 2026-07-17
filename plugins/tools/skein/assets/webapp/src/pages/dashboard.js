@@ -30,6 +30,9 @@ function segments(dist) {
 
 const C = 2 * Math.PI * 26;  // 完成率环周长 (r=26)
 
+// 分钟 → "Xm" (<60) / "XhYYm" (≥60); None → "-"
+const fmtDur = (mins) => mins == null ? "-" : (mins < 60 ? mins + "m" : Math.floor(mins / 60) + "h" + String(mins % 60).padStart(2, "0") + "m");
+
 const TPL = `
 <div class="wrap">
   <!-- 页头: C 骨 .eyebrow + .page-head -->
@@ -117,26 +120,41 @@ const TPL = `
       </div>
     </section>
 
-    <!-- 队列: C 骨 .queue-item 队列项 -->
-    <section class="card p-5">
-      <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-sm font-semibold" style="color:var(--head)">队列 · 待处理项</h2>
-        <span class="text-xs text-muted">{{ pendingQueue.length }}</span>
-        <span class="flex-1"></span>
-        <a href="/queue" class="btn btn-primary" style="padding:5px 12px;font-size:12px">查看全部 →</a>
+    <!-- 2 栏 4 区: 左 Subtask (进行中 + 就绪) / 右 Task (执行中 + 就绪) -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- 左: Subtask -->
+      <div class="card p-5">
+        <h2 class="text-sm font-semibold mb-2" style="color:var(--head)">Subtask</h2>
+        <div class="sec-label">进行中 <span>{{ runningSubs.length }}</span></div>
+        <div v-if="!runningSubs.length" class="empty-hint">无进行中</div>
+        <a v-for="s in runningSubs" :key="s.tid+'/'+s.sid" :href="'/task?id='+encodeURIComponent(s.tid)" class="list-item running entrance">
+          <span class="li-name">{{ s.name }}</span>
+          <span class="li-meta"><code>{{ s.tid }}/{{ s.sid }}</code> · {{ s.agent }}</span>
+          <span class="li-progress">耗时 {{ fmtDur(s.elapsed) }}<span v-if="s.est"> / 预期 {{ fmtDur(s.est) }}</span></span>
+        </a>
+        <div class="sec-label">就绪 <span>{{ readySubs.length }}</span></div>
+        <div v-if="!readySubs.length" class="empty-hint">无就绪</div>
+        <a v-for="s in readySubs" :key="s.tid+'/'+s.sid" :href="'/task?id='+encodeURIComponent(s.tid)" class="list-item ready entrance">
+          <span class="li-name">{{ s.name }}</span>
+          <span class="li-meta"><code>{{ s.tid }}/{{ s.sid }}</code> · {{ s.agent }}</span>
+          <span class="ready-tag">就绪</span>
+        </a>
       </div>
-      <div v-if="!pendingQueue.length" class="text-muted text-center py-6 text-sm">队列空 — 无待处理 subtask</div>
-      <div v-else-if="!pendingQueue.filter(q=>q.ready).length" class="text-muted text-center py-6 text-sm">无就绪 subtask (待处理 {{ pendingQueue.length }})</div>
-      <div v-else class="queue-grid">
-        <a v-for="q in pendingQueue.filter(q=>q.ready).slice(0, 6)" :key="q.tid+'/'+q.sid" :href="'/task?id='+encodeURIComponent(q.tid)" class="queue-item entrance" :style="q.ready?'':'border-left-color:var(--st-pending)'">
-          <span class="queue-icon" :style="q.ready?'':'color:var(--st-pending);background:color-mix(in srgb,var(--st-pending) 16%,transparent);border-color:color-mix(in srgb,var(--st-pending) 35%,transparent)'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/><path d="M5 12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/></svg>
-          </span>
-          <div class="min-w-0 flex-1">
-            <div class="qi-name">{{ q.name }}</div>
-            <div class="qi-meta"><code style="font-size:11px">{{ q.tid }}/{{ q.sid }}</code> · {{ q.agent }}</div>
-          </div>
-          <span v-if="q.ready" class="ready-tag">就绪</span>
+      <!-- 右: Task -->
+      <div class="card p-5">
+        <h2 class="text-sm font-semibold mb-2" style="color:var(--head)">Task</h2>
+        <div class="sec-label">执行中 <span>{{ activeTasks.length }}</span></div>
+        <div v-if="!activeTasks.length" class="empty-hint">无执行中</div>
+        <a v-for="t in activeTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)" class="list-item running entrance">
+          <span class="li-name">{{ t.name }}</span>
+          <span class="li-meta"><code>{{ t.id }}</code> · {{ t.sdone }}/{{ t.stotal }} · {{ t.pct }}%</span>
+          <span class="li-progress">耗时 {{ fmtDur(t.elapsed) }}<span v-if="t.est"> / 预期 {{ fmtDur(t.est) }}</span></span>
+        </a>
+        <div class="sec-label">就绪 <span>{{ readyTasks.length }}</span></div>
+        <div v-if="!readyTasks.length" class="empty-hint">无就绪</div>
+        <a v-for="t in readyTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)" class="list-item ready entrance">
+          <span class="li-name">{{ t.name }}</span>
+          <span class="li-meta"><code>{{ t.id }}</code> · 前置 {{ t.deps.length || '-' }}</span>
         </a>
       </div>
     </section>
@@ -150,10 +168,13 @@ export async function render(mount, params, ctx) {
   async function fetchState() {
     try {
       const r = await api.dashboard();
+      const pq = r.pendingQueue || [];
       return {
         loadErr: "", proj: r.proj || "", taskCount: r.taskCount || 0, doneRate: r.doneRate || 0,
         activeCount: r.activeCount || 0, combinedPct: r.combinedPct || 0,
-        estMeta: r.estMeta || "", pendingQueue: r.pendingQueue || [],
+        estMeta: r.estMeta || "", pendingQueue: pq,
+        runningSubs: r.runningSubs || [], readyTasks: r.readyTasks || [], activeTasks: r.activeTasks || [],
+        readySubs: pq.filter((q) => q.ready).slice(0, 6),
         dists: [
           Object.assign({ key: "task", label: "任务级" }, segments(r.statusDist)),
           Object.assign({ key: "sub", label: "子任务级" }, segments(r.subStatusDist)),
@@ -162,7 +183,8 @@ export async function render(mount, params, ctx) {
     } catch (e) {
       return {
         loadErr: (e && e.message) || String(e), proj: "", taskCount: 0, doneRate: 0,
-        activeCount: 0, combinedPct: 0, estMeta: "", pendingQueue: [], dists: [],
+        activeCount: 0, combinedPct: 0, estMeta: "", pendingQueue: [],
+        runningSubs: [], readyTasks: [], activeTasks: [], readySubs: [], dists: [],
       };
     }
   }
@@ -170,7 +192,7 @@ export async function render(mount, params, ctx) {
   async function mountApp() {
     const st = await fetchState();
     mount.innerHTML = TPL;
-    window.PetiteVue.createApp(Object.assign({ C }, st)).mount(mount);
+    window.PetiteVue.createApp(Object.assign({ C, fmtDur }, st)).mount(mount);
   }
 
   await mountApp();

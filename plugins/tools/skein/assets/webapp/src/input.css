@@ -514,6 +514,20 @@
     background: color-mix(in srgb, var(--st-check) 16%, transparent); border: 1px solid color-mix(in srgb, var(--st-check) 38%, transparent);
   }
 
+  /* ── dashboard 2 栏 4 区: sec-label / list-item / empty-hint ── */
+  .sec-label { font-size: 11px; font-weight: 600; letter-spacing: .04em; color: var(--muted); margin: 10px 0 6px; text-transform: uppercase; }
+  .list-item {
+    display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px;
+    border: 1px solid var(--line); border-left: 3px solid var(--st-active); margin-bottom: 6px;
+    text-decoration: none; color: inherit; transition: border-color .15s;
+  }
+  .list-item:hover { border-color: var(--accent); }
+  .list-item.ready { border-left-color: var(--st-pending); }
+  .li-name { font-size: 13px; font-weight: 500; color: var(--head); }
+  .li-meta { font-size: 11px; color: var(--muted); }
+  .li-progress { font-size: 11px; color: var(--accent); }
+  .empty-hint { font-size: 12px; color: var(--muted); padding: 6px 0; }
+
   /* ── SPEC: 文件树 (doc-tree) — 下垂层级, 文件挂在分类上 ── */
   .doc-tree {
     position: sticky; top: 74px; padding: 16px 12px;
