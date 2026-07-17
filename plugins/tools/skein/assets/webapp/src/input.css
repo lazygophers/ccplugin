@@ -97,15 +97,23 @@
 
   body {
     background:
-      /* 海浪交融 (上蓝下金, 中间渐变过渡带): 金凸起大半径软边上探入蓝 + 蓝凸起错半相位下切入金, 水平缓动流动 */
-      radial-gradient(circle 240px at 50% 100%, color-mix(in srgb, var(--skein-gold) 20%, var(--surface-bg-3)) 60%, transparent 100%) 0 calc(50% - 240px) / 480px 480px repeat-x fixed,
-      radial-gradient(circle 240px at 50% 0%, color-mix(in srgb, var(--accent2) 18%, var(--surface-bg-1)) 60%, transparent 100%) 240px 50% / 480px 480px repeat-x fixed,
-      linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-1) 40%, var(--surface-bg-3) 60%, var(--surface-bg-3) 100%) 0 0 / 100% 100% no-repeat fixed;
+      /* 金斑: 4 块散布全屏不同位置/大小, 低浓度宽软边 */
+      radial-gradient(42% 38% at 18% 22%, color-mix(in srgb, var(--skein-gold) 22%, transparent) 0%, transparent 65%),
+      radial-gradient(38% 34% at 82% 28%, color-mix(in srgb, var(--skein-gold) 18%, transparent) 0%, transparent 60%),
+      radial-gradient(46% 40% at 72% 78%, color-mix(in srgb, var(--skein-gold) 20%, transparent) 0%, transparent 65%),
+      radial-gradient(34% 30% at 28% 82%, color-mix(in srgb, var(--skein-gold) 16%, transparent) 0%, transparent 60%),
+      /* 蓝斑: 4 块交错散布 */
+      radial-gradient(44% 38% at 72% 18%, color-mix(in srgb, var(--accent2) 20%, transparent) 0%, transparent 65%),
+      radial-gradient(38% 34% at 22% 52%, color-mix(in srgb, var(--accent2) 18%, transparent) 0%, transparent 60%),
+      radial-gradient(42% 36% at 88% 62%, color-mix(in srgb, var(--accent2) 16%, transparent) 0%, transparent 65%),
+      radial-gradient(36% 32% at 48% 88%, color-mix(in srgb, var(--accent2) 14%, transparent) 0%, transparent 60%),
+      /* 底色: 蓝金微渐变 (非纯色块, 全屏轻微过渡作底) */
+      linear-gradient(135deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 50%, var(--surface-bg-3) 100%);
     background-color: var(--surface-bg-1);
+    background-attachment: fixed;
     color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5;
     transition: background .4s, color .4s;
     -webkit-font-smoothing: antialiased;
-    animation: wave-flow 28s linear infinite;
   }
   /* 流沙微光 (A 皮): body::after 缓动飘移的双色软光带 (蓝 + 金), 叠在底纹之上、内容之下 */
   body::after {
@@ -120,11 +128,6 @@
     0%   { background-position: 0% 0%, 100% 100%; }
     50%  { background-position: 45% 35%, 55% 45%; }
     100% { background-position: 90% 70%, 15% 20%; }
-  }
-  /* 波浪缓动: 两层凸起各平移一个周期 (480px) 无缝循环, 错半相位保持; 基底层不动 */
-  @keyframes wave-flow {
-    from { background-position-x: 0px, 240px, 0px; }
-    to   { background-position-x: 480px, 720px, 0px; }
   }
   /* 暗模式: 流沙微光收掉 (已有金沙星点, 免叠脏) */
   [data-theme="skein-dark"] body::after { display: none; }
