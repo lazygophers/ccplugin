@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang=zh-CN data-mode=light>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>SKEIN · 微光流沙玻璃 · 主题原型</title>
+<style>
+/* ════════════════════════════════════════════════════════════════
+   SKEIN 微光流沙玻璃 — 双模式主题原型 (评审用)
+   配色硬编码 (迁回 oklch 令牌的映射表见文件尾 JS 注释)
+   浅 = 晨曦 (薰衣草白顶 → 暖金光晕 → 浅蓝穹底)
+   暗 = 夜空金沙 (#0B1220 深蓝 + 金沙星点 + 暗玻璃 + 金辉描边)
+   动效: 结构层 (hover 流光描边 / active 脉动 / 进度蓝金流光)
+         细节层 (数字递增 / 卡片入场 / 星点呼吸)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 硬编码配色 (oklch 映射见文件尾) ── */
+:root{
+  /* skein 蓝主 accent (hue 250, --accent #0087EB 系列) */
+  --blue:#0087EB;            /* → --accent (oklch(.58 .16 250)) */
+  --blue-bright:#3BA0FF;     /* → --accent 提亮, hover/glow */
+  --blue-soft:#B1E3FF;       /* → --accent2 (oklch(.58 .16 240)) */
+  /* skein 暖金 (签名色, 令牌系统无暖橙, 单 --skein-gold) */
+  --gold:#FFD98A;            /* → --skein-gold */
+  --gold-deep:#E8B860;       /* 金辉描边 (暗模式金边用) */
+  /* 字 */
+  --ink:#111827;             /* → --fg (浅近黑) */
+  --ink-soft:#5A6478;        /* → --muted */
+  --head:#0E1424;            /* → --head */
+}
+
+/* ════════════════════════════════════════════════════════════════
+   浅模式 · 晨曦光晕
+   ════════════════════════════════════════════════════════════════ */
+[data-mode=light]{
+  --surface-bg-1:#EEF1FB;    /* 薰衣草白顶 */
+  --surface-bg-2:#E9EFFB;
+  --surface-bg-3:#DBEAFB;    /* 浅蓝穹底 */
+  --glass-bg:rgba(255,255,255,.6);          /* 60% 白玻璃 */
+  --glass-brd:rgba(17,24,39,.07);           /* 细描边 */
+  --glass-brd-blue:rgba(0,135,235,.45);     /* active 蓝描边 */
+  --glass-inset-hi:rgba(255,255,255,.7);    /* 顶光描边 */
+  --glass-shadow:rgba(17,24,39,.10);
+  --text:var(--ink);
+  --text-muted:var(--ink-soft);
+  --text-head:var(--head);
+  --bar-track:rgba(0,135,235,.08);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   暗模式 · 夜空金沙
+   ════════════════════════════════════════════════════════════════ */
+[data-mode=dark]{
+  --surface-bg-1:#0B1220;    /* 深夜空蓝 */
+  --surface-bg-2:#0E1729;
+  --surface-bg-3:#0A0F1C;
+  --glass-bg:rgba(20,30,48,.4);             /* 40% 暗玻璃 */
+  --glass-brd:rgba(255,217,138,.16);        /* 金辉细描边 */
+  --glass-brd-blue:rgba(59,160,255,.55);    /* active 蓝描边 */
+  --glass-inset-hi:rgba(255,217,138,.18);   /* 金辉顶光描边 */
+  --glass-shadow:rgba(0,0,0,.45);
+  --text:#E8EDF7;                            /* → --fg 暗 */
+  --text-muted:#8A95AD;                      /* → --muted 暗 */
+  --text-head:#F2ECD8;                       /* → --head 暗 (微金调) */
+  --bar-track:rgba(255,217,138,.10);
+}
+
+/* ── 全局 ── */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;padding:0 24px 60px;
+  font:14px/1.6 -apple-system,system-ui,'Segoe UI','PingFang SC',sans-serif;
+  color:var(--text);
+  transition:color .4s;
+  min-height:100vh;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* 底纹: 固定不随滚动 */
+[data-mode=light] body{
+  background:
+    radial-gradient(135% 62% at 50% 112%,rgba(177,227,255,.78) 0%,transparent 66%),
+    radial-gradient(78% 52% at 50% 72%,rgba(255,217,138,.82) 0%,transparent 60%),
+    radial-gradient(60% 40% at 50% 118%,rgba(0,135,235,.22) 0%,transparent 60%),
+    linear-gradient(180deg,var(--surface-bg-1) 0%,var(--surface-bg-2) 46%,var(--surface-bg-3) 100%);
+  background-attachment:fixed;
+}
+[data-mode=dark] body{
+  background:
+    /* 金沙微光静态星点 (非粒子, 多层径向) */
+    radial-gradient(1.2px 1.2px at 12% 18%,rgba(255,217,138,.7),transparent 60%),
+    radial-gradient(1px 1px at 78% 12%,rgba(255,217,138,.5),transparent 60%),
+    radial-gradient(1.5px 1.5px at 34% 64%,rgba(255,217,138,.6),transparent 60%),
+    radial-gradient(1px 1px at 88% 78%,rgba(177,227,255,.5),transparent 60%),
+    radial-gradient(1.2px 1.2px at 56% 32%,rgba(255,217,138,.45),transparent 60%),
+    radial-gradient(1px 1px at 22% 88%,rgba(255,217,138,.4),transparent 60%),
+    radial-gradient(1.4px 1.4px at 66% 92%,rgba(255,217,138,.55),transparent 60%),
+    radial-gradient(1px 1px at 44% 8%,rgba(177,227,255,.4),transparent 60%),
+    /* 大尺度金辉光晕 (底部升起) */
+    radial-gradient(70% 48% at 50% 108%,rgba(255,217,138,.14) 0%,transparent 62%),
+    radial-gradient(50% 36% at 82% 24%,rgba(59,160,255,.10) 0%,transparent 60%),
+    linear-gradient(180deg,var(--surface-bg-1) 0%,var(--surface-bg-2) 50%,var(--surface-bg-3) 100%);
+  background-attachment:fixed;
+}
+
+/* ── 顶栏 (topbar) ── */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:18px 4px 14px;margin-bottom:6px;
+  backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);
+  background:color-mix(in srgb,var(--glass-bg) 80%,transparent);
+  border-bottom:1px solid var(--glass-brd);
+}
+.topbar h1{
+  margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em;color:var(--text-head);
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;
+}
+.topbar h1 .tag{font-size:11px;font-weight:500;color:var(--blue-bright);
+  padding:1px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--blue) 30%,transparent);
+  background:color-mix(in srgb,var(--blue) 8%,transparent)}
+[data-mode=dark] .topbar h1 .tag{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 35%,transparent);background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.spacer{flex:1}
+
+/* 模式 toggle (分段控件) */
+.mode-toggle{
+  display:inline-flex;border:1px solid var(--glass-brd);border-radius:999px;overflow:hidden;
+  background:color-mix(in srgb,var(--glass-bg) 60%,transparent);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.mode-toggle button{
+  border:0;background:transparent;color:var(--text-muted);
+  font:13px/1.4 -apple-system,system-ui,sans-serif;padding:7px 16px;cursor:pointer;
+  transition:color .25s,background .25s;display:inline-flex;align-items:center;gap:6px;
+}
+.mode-toggle button.on{
+  background:linear-gradient(100deg,var(--blue) 0%,var(--blue-bright) 100%);
+  color:#fff;
+  box-shadow:0 0 12px color-mix(in srgb,var(--blue) 40%,transparent);
+}
+[data-mode=dark] .mode-toggle button.on{
+  background:linear-gradient(100deg,var(--gold-deep) 0%,var(--gold) 100%);
+  color:#1a1206;
+  box-shadow:0 0 12px color-mix(in srgb,var(--gold) 40%,transparent);
+}
+
+/* ── 布局 ── */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-top:0}
+.col-side{position:sticky;top:72px}
+.col-main{min-width:0}
+@media(max-width:980px){.layout{grid-template-columns:1fr}.col-side{position:static}}
+
+/* ════════════════════════════════════════════════════════════════
+   玻璃卡 (核心质感)
+   ════════════════════════════════════════════════════════════════ */
+.card{
+  position:relative;overflow:hidden;
+  background:var(--glass-bg);
+  border:1px solid var(--glass-brd);
+  border-radius:16px;
+  padding:20px 24px;margin:0 0 18px;
+  backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
+  box-shadow:0 8px 30px var(--glass-shadow),inset 0 1px 0 var(--glass-inset-hi);
+  transition:border-color .35s,box-shadow .35s,transform .35s;
+}
+/* 入场动效 (细节层) */
+.card{animation:card-in .6s cubic-bezier(.4,0,.2,1) both}
+.card:nth-child(2){animation-delay:.06s}
+.card:nth-child(3){animation-delay:.12s}
+.card:nth-child(4){animation-delay:.18s}
+@keyframes card-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* 顶光描边高光 (静态, 浅=蓝白 / 暗=金辉) */
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;pointer-events:none;
+}
+[data-mode=light] .card::before{
+  background:linear-gradient(90deg,transparent,
+    color-mix(in srgb,var(--blue) 55%,#fff),
+    color-mix(in srgb,var(--blue-soft) 55%,#fff),transparent);
+}
+[data-mode=dark] .card::before{
+  background:linear-gradient(90deg,transparent,
+    color-mix(in srgb,var(--gold) 60%,transparent),
+    color-mix(in srgb,var(--blue-bright) 45%,transparent),transparent);
+}
+
+/* hover 流光描边 (结构层) — conic-gradient 蓝金蓝沿边框旋转 */
+.card::after{
+  content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;
+  background:conic-gradient(from var(--flow-ang,0deg),
+    transparent 0deg,var(--blue) 50deg,var(--gold) 110deg,var(--blue) 170deg,transparent 230deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;transition:opacity .4s;
+}
+.card:hover::after{opacity:1;animation:flow-border 3s linear infinite}
+@keyframes flow-border{to{--flow-ang:360deg}}
+@property --flow-ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+@keyframes card-in{} /* placeholder, real above */
+
+/* active 运行中卡 — 蓝描边脉动 (结构层) */
+.card.active{border-color:var(--glass-brd-blue)}
+.card.active{animation:active-pulse 2s ease-in-out infinite}
+@keyframes active-pulse{
+  0%,100%{box-shadow:0 8px 30px var(--glass-shadow),inset 0 1px 0 var(--glass-inset-hi),
+    0 0 0 0 color-mix(in srgb,var(--blue) 0%,transparent)}
+  50%{box-shadow:0 8px 30px var(--glass-shadow),inset 0 1px 0 var(--glass-inset-hi),
+    0 0 0 4px color-mix(in srgb,var(--blue) 16%,transparent),
+    0 0 18px color-mix(in srgb,var(--blue) 24%,transparent)}
+}
+[data-mode=dark] .card.active{animation:active-pulse-dark 2s ease-in-out infinite}
+@keyframes active-pulse-dark{
+  0%,100%{box-shadow:0 8px 30px var(--glass-shadow),inset 0 1px 0 var(--glass-inset-hi),
+    0 0 0 0 color-mix(in srgb,var(--gold) 0%,transparent)}
+  50%{box-shadow:0 8px 30px var(--glass-shadow),inset 0 1px 0 var(--glass-inset-hi),
+    0 0 0 4px color-mix(in srgb,var(--gold) 14%,transparent),
+    0 0 18px color-mix(in srgb,var(--blue-bright) 22%,transparent)}
+}
+
+.card h2{margin:0 0 4px;font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--text-head);
+  display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card .name{margin:0 0 10px;color:var(--text-head);font-size:14px;font-weight:500;opacity:.85}
+.meta{margin:0 0 8px;font-size:12.5px;line-height:1.55;color:var(--text-muted)}
+
+/* ── 状态徽章 (status 色相语义固定) ── */
+.badge{display:inline-block;padding:0 8px;border-radius:999px;color:#fff;font-size:11px;
+  line-height:17px;font-weight:500;border:1px solid rgba(255,255,255,.12)}
+.badge.s-pending{background:#7B8AAB}    /* pending 石板灰蓝 */
+.badge.s-active{background:#E8A33D}     /* active 琥珀橙 (最醒目) */
+.badge.s-check{background:#3FB6C8}      /* check 青 */
+.badge.s-done{background:#4CAF7A}       /* done 翠绿 */
+.badge.s-failed{background:#E0644A}     /* failed 红 */
+
+/* ── 统计栏 ── */
+.stats{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.stat{flex:1 1 0;min-width:54px;text-align:center;padding:10px 6px;border-radius:10px;
+  background:color-mix(in srgb,var(--glass-bg) 50%,transparent);
+  border:1px solid var(--glass-brd);cursor:pointer;transition:border-color .2s,transform .2s}
+.stat:hover{border-color:var(--glass-brd-blue);transform:translateY(-1px)}
+.stat-n{display:block;font-size:22px;font-weight:600;color:var(--text-head);line-height:1.1;
+  font-variant-numeric:tabular-nums}
+.stat-l{display:block;font-size:11px;color:var(--text-muted);margin-top:3px}
+
+/* ── 列表项 (子任务) ── */
+.row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid color-mix(in srgb,var(--glass-brd) 60%,transparent);
+  animation:row-in .6s cubic-bezier(.4,0,.2,1) both}
+.row:last-child{border-bottom:0}
+@keyframes row-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.row:nth-child(2){animation-delay:.05s}.row:nth-child(3){animation-delay:.1s}
+.row:nth-child(4){animation-delay:.15s}.row:nth-child(5){animation-delay:.2s}
+.row .rname{flex:1;font-size:13px;color:var(--text)}
+.row .rmeta{font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+
+/* ════════════════════════════════════════════════════════════════
+   进度条 — 蓝→金→蓝流光 (结构层)
+   ════════════════════════════════════════════════════════════════ */
+.bar{position:relative;background:var(--bar-track);border-radius:4px;height:7px;
+  margin:4px 0 14px;overflow:visible;
+  box-shadow:inset 0 1px 2px color-mix(in srgb,var(--glass-shadow) 50%,transparent),inset 0 0 0 1px rgba(255,255,255,.25)}
+.fill{position:relative;overflow:hidden;height:100%;border-radius:4px;
+  /* 蓝底 + 集中金色流光带 (非蓝↔金全程插值, 免互补色混成灰) */
+  background:linear-gradient(100deg,var(--blue) 0%,var(--blue) 38%,var(--gold) 50%,var(--blue) 62%,var(--blue) 100%);
+  background-size:250% 100%;
+  box-shadow:0 0 8px color-mix(in srgb,var(--blue) 30%,transparent);
+  animation:skein-flow 2.6s linear infinite,width-in .8s cubic-bezier(.4,0,.2,1) both}
+@keyframes skein-flow{0%{background-position:0% 0}100%{background-position:-250% 0}}
+@keyframes width-in{from{width:0}}
+[data-mode=dark] .fill{background:linear-gradient(100deg,var(--blue-bright) 0%,var(--blue-bright) 38%,var(--gold) 50%,var(--blue-bright) 62%,var(--blue-bright) 100%);
+  background-size:250% 100%;box-shadow:0 0 10px color-mix(in srgb,var(--blue-bright) 35%,transparent)}
+.pct{position:absolute;top:50%;right:0;transform:translateY(-50%);font-size:10px;line-height:1;
+  color:var(--text-head);background:var(--glass-bg);padding:1px 4px;border-radius:3px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+
+/* ── DAG 简化示意 ── */
+.dag{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;padding:8px 0}
+.dag .node{padding:6px 10px;border-radius:8px;font-size:11px;color:#fff;font-weight:500;
+  border:1px solid rgba(255,255,255,.15);text-align:center;min-width:48px}
+.dag .node.done{background:#4CAF7A}
+.dag .node.active{background:#E8A33D;box-shadow:0 0 0 2px color-mix(in srgb,#E8A33D 25%,transparent)}
+.dag .node.pending{background:#7B8AAB}
+.dag .arrow{color:var(--text-muted);font-size:13px}
+
+/* ── 概览 banner (满宽) ── */
+.banner{grid-column:1/-1;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.banner .b-big{font-size:28px;font-weight:600;color:var(--text-head);letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums}
+.banner .b-lbl{font-size:12px;color:var(--text-muted)}
+
+/* 注解角标 (原型评审用) */
+.note{position:fixed;bottom:16px;right:16px;max-width:280px;z-index:60;font-size:11px;line-height:1.6;
+  color:var(--text-muted);padding:10px 12px;border-radius:10px;
+  background:color-mix(in srgb,var(--glass-bg) 70%,transparent);
+  border:1px solid var(--glass-brd);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.note b{color:var(--text-head)}
+.note .pin{color:var(--blue-bright)}
+[data-mode=dark] .note .pin{color:var(--gold)}
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>SKEIN 看板 · skein-theme-glass-gold <span class="tag">微光流沙玻璃 · 原型</span></h1>
+  <div class="spacer"></div>
+  <div class="mode-toggle" role="group" aria-label="模式切换">
+    <button type="button" data-target=light class="on">☀ 浅晨曦</button>
+    <button type="button" data-target=dark>☾ 暗夜金沙</button>
+  </div>
+</header>
+
+<div class="layout">
+
+  <!-- 概览 banner -->
+  <section class="card banner">
+    <div><div class="b-big" data-count="12">0</div><div class="b-lbl">总任务</div></div>
+    <div><div class="b-big" data-count="7" style="color:#4CAF7A">0</div><div class="b-lbl">已完成</div></div>
+    <div><div class="b-big" data-count="2" style="color:#E8A33D">0</div><div class="b-lbl">进行中</div></div>
+    <div><div class="b-big" data-count="58">0</div><div class="b-lbl">总进度 %</div></div>
+    <div style="flex:1;min-width:160px">
+      <div class="bar"><div class="fill" style="width:58%"></div><span class="pct">58%</span></div>
+      <div class="meta">蓝金流光 (结构层) · active 卡脉动 · hover 流光描边</div>
+    </div>
+  </section>
+
+  <!-- 左侧: 总览 + DAG + 子任务列表 -->
+  <div class="col-side">
+    <section class="card">
+      <h2>任务概览 <span class="badge s-active">运行中</span></h2>
+      <div class="stats">
+        <div class="stat"><span class="stat-n" data-count="12">0</span><span class="stat-l">总计</span></div>
+        <div class="stat"><span class="stat-n" data-count="7">0</span><span class="stat-l">完成</span></div>
+        <div class="stat"><span class="stat-n" data-count="2">0</span><span class="stat-l">进行</span></div>
+        <div class="stat"><span class="stat-n" data-count="2">0</span><span class="stat-l">待办</span></div>
+        <div class="stat"><span class="stat-n" data-count="1">0</span><span class="stat-l">失败</span></div>
+      </div>
+      <div class="bar"><div class="fill" style="width:58%"></div><span class="pct">58%</span></div>
+
+      <h2 style="margin-top:6px">DAG 依赖</h2>
+      <div class="dag">
+        <div class="node done">调研</div><span class="arrow">→</span>
+        <div class="node done">设计</div><span class="arrow">→</span>
+        <div class="node active">主题原型</div><span class="arrow">→</span>
+        <div class="node pending">迁回令牌</div><span class="arrow">→</span>
+        <div class="node pending">验收</div>
+      </div>
+    </section>
+
+    <section class="card active">
+      <h2>子任务列表 <span class="badge s-active">2 进行中</span></h2>
+      <div class="row"><span class="badge s-done">完成</span><span class="rname">令牌系统调研</span><span class="rmeta">2h10m</span></div>
+      <div class="row"><span class="badge s-done">完成</span><span class="rname">玻璃质感方案确认</span><span class="rmeta">1h40m</span></div>
+      <div class="row"><span class="badge s-active">进行中</span><span class="rname">双模式高保真原型</span><span class="rmeta">0h45m</span></div>
+      <div class="row"><span class="badge s-check">检查中</span><span class="rname">流光描边动效评审</span><span class="rmeta">—</span></div>
+      <div class="row"><span class="badge s-pending">待办</span><span class="rname">迁回 skein 令牌</span><span class="rmeta">—</span></div>
+    </section>
+  </div>
+
+  <!-- 右侧: 任务卡片流 -->
+  <div class="col-main">
+    <section class="card active">
+      <h2>theme-prototype-render <span class="badge s-active">running</span></h2>
+      <div class="name">微光流沙玻璃 · 双模式高保真原型</div>
+      <div class="meta">执行器: default-executor · 已用 0h45m · 预计 1h30m</div>
+      <div class="bar"><div class="fill" style="width:62%"></div><span class="pct">62%</span></div>
+      <div class="meta">结构层: hover 流光描边 (蓝金蓝 conic 旋转) · active 蓝描边脉动 2s · 进度条蓝金流光</div>
+    </section>
+
+    <section class="card">
+      <h2>token-migration <span class="badge s-pending">pending</span></h2>
+      <div class="name">原型定稿后迁回 skein oklch 令牌系统</div>
+      <div class="meta">依赖: theme-prototype-render · 硬编码色值 → --accent / --skein-gold / --accent2</div>
+      <div class="bar"><div class="fill" style="width:0%"></div></div>
+      <div class="meta">细节层: 卡片入场 translateY+opacity 600ms · 数字递增 0→值</div>
+    </section>
+
+    <section class="card">
+      <h2>dag-layout-fix <span class="badge s-check">checking</span></h2>
+      <div class="name">DAG 重心分层 · 完成子图下沉</div>
+      <div class="meta">执行器: default-executor · 已用 0h22m</div>
+      <div class="bar"><div class="fill" style="width:88%"></div><span class="pct">88%</span></div>
+      <div class="meta">玻璃胶囊卡 · backdrop-blur(14px) saturate(1.25) · 顶光描边 + 软投影</div>
+    </section>
+
+    <section class="card">
+      <h2>auth-refactor <span class="badge s-failed">failed</span></h2>
+      <div class="name">凭证读取路径重构</div>
+      <div class="meta">失败: 3 次 retry 停 → 报 · 等待 main 介入</div>
+      <div class="bar"><div class="fill" style="width:35%;background:linear-gradient(100deg,#E0644A 0%,#E0644A 40%,#FFD98A 55%,#E0644A 70%,#E0644A 100%);background-size:250% 100%"></div><span class="pct" style="right:65%">35%</span></div>
+      <div class="meta">失败条用红+金流光 (status 色相语义固定: failed 红 hue 25)</div>
+    </section>
+  </div>
+
+</div>
+
+<!-- 注解 (评审用, 迁回时删) -->
+<aside class="note">
+  <b>评审提示</b><br>
+  点击顶栏 <span class="pin">☀/☾</span> 切换浅暗双模式。<br>
+  hover 任意卡片看 <span class="pin">流光描边</span>; 进行中卡 (橙徽章) 有 <span class="pin">脉动</span>。<br>
+  硬编码色值 → oklch 令牌映射表见文件尾注释。
+</aside>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   模式切换
+   ════════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.mode-toggle button').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    var t=this.dataset.target;
+    document.documentElement.setAttribute('data-mode',t);
+    document.querySelectorAll('.mode-toggle button').forEach(function(b){b.classList.toggle('on',b.dataset.target===t)});
+    // 切模式重放入场 + 数字递增
+    replayEntrance(); runCounters();
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════
+   细节层: 数字递增 (0→值, 600ms, requestAnimationFrame)
+   ════════════════════════════════════════════════════════════════ */
+function runCounters(){
+  document.querySelectorAll('[data-count]').forEach(function(el){
+    var target=parseInt(el.dataset.count,10)||0;
+    var dur=600,start=performance.now();
+    function step(now){
+      var p=Math.min((now-start)/dur,1);
+      // easeOutCubic
+      var v=Math.round((1-Math.pow(1-p,3))*target);
+      el.textContent=v;
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   细节层: 卡片/列表入场 (重放, 切模式时触发)
+   ════════════════════════════════════════════════════════════════ */
+function replayEntrance(){
+  document.querySelectorAll('.card,.row,.fill').forEach(function(el){
+    el.style.animation='none';
+    void el.offsetWidth;            // reflow
+    el.style.animation='';
+  });
+}
+
+/* 启动 */
+runCounters();
+</script>
+
+<!--
+══════════════════════════════════════════════════════════════════
+  硬编码色值 → oklch 令牌映射表 (迁回 skein 主题用)
+══════════════════════════════════════════════════════════════════
+
+  浅模式 (晨曦):
+    #EEF1FB / #E9EFFB / #DBEAFB  → body 底纹三段 (薰衣草白→浅蓝穹底, 艺术签名, 令牌无对应, 保留为主题烘焙)
+    rgba(255,255,255,.6)         → --card 玻璃 (color-mix --card 60% transparent)
+    rgba(17,24,39,.07)           → --brd 细描边 (color-mix --fg 7% transparent)
+    rgba(0,135,235,.45)          → --accent 蓝描边 (color-mix --accent 45%)
+    rgba(255,255,255,.7)         → inset 顶光描边高光 (艺术白)
+    #0087EB                      → --accent (oklch(.58 .16 250))
+    #3BA0FF                      → --accent 提亮 (hover/glow, oklch .68 .16 250)
+    #B1E3FF                      → --accent2 (oklch(.58 .16 240))
+    #FFD98A                      → --skein-gold (签名暖金, 令牌系统无暖橙)
+    #111827                      → --fg 浅近黑 (oklch(.26 ...))
+    #5A6478                      → --muted
+    #0E1424                      → --head
+
+  暗模式 (夜空金沙):
+    #0B1220 / #0E1729 / #0A0F1C  → body 底纹三段 (深夜空蓝, 艺术签名)
+    rgba(255,217,138,.16)        → 金辉细描边 (--skein-gold 16% transparent)
+    rgba(59,160,255,.55)         → active 蓝描边 (--accent 提亮 55%)
+    rgba(255,217,138,.18)        → inset 金辉顶光描边
+    rgba(20,30,48,.4)            → --card 暗玻璃 (40% 暗)
+    #E8EDF7                      → --fg 暗 (oklch(.90 ...))
+    #8A95AD                      → --muted 暗 (oklch(.63 ...))
+    #F2ECD8                      → --head 暗 (微金调)
+
+  status 色相 (语义固定, 跨模式不变, 来自 --h-pending/active/check/done/failed):
+    pending #7B8AAB  active #E8A33D  check #3FB6C8  done #4CAF7A  failed #E0644A
+
+  明度锚点 (迁回 base.css :root / 暗色预设):
+    浅: --l-bg .945 --l-card .99 --l-fg .26 --l-head .20 --l-muted .52 --l-brd .885 --l-accent .58
+    暗: --l-bg .185 --l-card .235 --l-fg .90 --l-head .82 --l-muted .63 --l-brd .32 --l-accent .72
+
+  动效技术清单:
+    结构层: conic-gradient + mask-composite (hover 流光描边)
+            @property --flow-ang + @keyframes (沿边框旋转)
+            box-shadow @keyframes 2s ease-in-out (active 蓝脉动)
+            background-size 250% + background-position @keyframes (进度蓝金流光)
+    细节层: requestAnimationFrame + easeOutCubic (数字递增 600ms)
+            translateY+opacity @keyframes (卡片/列表项入场 600ms)
+            width-in @keyframes (进度条宽度入场)
+    环境: 暗模式静态星点 (多层 radial-gradient, 非粒子)
+-->
+</body>
+</html>

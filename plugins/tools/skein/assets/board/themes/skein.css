@@ -1,18 +1,22 @@
-/* 缕光 (skein · 默认旗舰) — 静态浅色晨曦玻璃。参考: 浅薰衣草白底 + 底部中央暖阳光晕升起过渡到浅蓝, 磨砂玻璃胶囊卡。
+/* 缕光 (skein · 默认旗舰) — 浅色晨曦玻璃。参考: 浅薰衣草白底 + 底部中央暖阳光晕升起过渡到浅蓝, 磨砂玻璃胶囊卡。
    烘焙配色: 蓝 accent (var(--accent) #0087EB) / 暖金 (--skein-gold) / 浅蓝 accent2 (var(--accent2) #B1E3FF) / 近黑字 (var(--fg) #111827) / 玻璃白卡。明暗=浅。
-   动效: 背景全静态 (无环境流光/脉动)。进度条走蓝+金流光 (全部条, 视口外经 .voff 门控暂停)。 */
+   动效: 背景晨曦微光呼吸 + 卡 glass sheen 静态顶光 + hover conic 流光描边 (蓝金蓝沿边框旋转) + active 蓝描边脉动; 进度条走蓝+金流光 (全部条, 视口外经 .voff 门控暂停)。 */
 html[data-theme=skein]{
   /* 中性=薰衣草浅调 (--h:265); accent=蓝 (#0087EB, hue250) + accent2=亮蓝 (#B1E3FF, hue240) */
   --h:265;--c-neutral:.012;--c-accent:.16;--h-accent:250;--h-accent2:240;
   /* 明度锚点 — LIGHT: 极浅薰衣草底 + 玻璃白卡 (--l-card≈#fff) + 近黑字 (--l-fg≈#111827) */
   --l-bg:.945;--l-card:.99;--l-fg:.26;--l-head:.20;--l-muted:.52;--l-brd:.885;--l-line:.925;--l-accent:.58;--l-st:.66;
   --radius:16px;
-  /* 暖金: 令牌系统无暖橙色相, 单主题签名色, 用于晨曦光晕 + 进度条金蓝流光 */
+  /* 暖金: 令牌系统无暖橙色相, 单主题签名色, 用于晨曦光晕 + 进度条金蓝流光 + 流光描边 */
   --skein-gold:#FFD98A;
+  /* conic 流光描边旋转角 (hover 时由 keyframe 驱动, 减动偏好下降级静止) */
+  --flow-ang:0deg;
 }
+@property --flow-ang{syntax:'<angle>';initial-value:0deg;inherits:false}
 
 /* 底纹: 静态晨曦 (固定不随滚动) — 薰衣草白顶 → 中下暖金光晕升起 → 浅蓝穹底。光晕落在视口可见区。
-   蓝色系走 accent 令牌 (随种子色同步), 暖金无对应令牌走 --skein-gold, 薰衣草基色为签名艺术色。 */
+   蓝色系走 accent 令牌 (随种子色同步), 暖金无对应令牌走 --skein-gold, 薰衣草基色为签名艺术色。
+   朝霞微光呼吸: 光晕缓慢明暗 (12s, 视口外不门控 — 仅 filter/opacity 微变, GPU 成本可忽略, 百卡场景也无感)。 */
 html[data-theme=skein] body{
   background:
     radial-gradient(135% 62% at 50% 112%,color-mix(in srgb,var(--accent2) 78%,transparent) 0%,transparent 66%),
@@ -20,9 +24,12 @@ html[data-theme=skein] body{
     radial-gradient(60% 40% at 50% 118%,color-mix(in srgb,var(--accent) 22%,transparent) 0%,transparent 60%),
     linear-gradient(180deg,#EEF1FB 0%,#E9EFFB 46%,#DBEAFB 100%);
   background-attachment:fixed;
+  animation:skein-dawn-breath 12s ease-in-out infinite;
 }
+@keyframes skein-dawn-breath{0%,100%{filter:brightness(1)}50%{filter:brightness(1.06)}}
 
-/* 卡片: 磨砂玻璃胶囊 — 60% 白玻璃 (透出底纹) + backdrop blur, 静态无扫光 */
+/* 卡片: 磨砂玻璃胶囊 — 60% 白玻璃 (透出底纹) + backdrop blur。
+   glass sheen: ::before 顶缘静态蓝白描边高光 (保留); hover 时整体 saturate 微提亮玻璃感。 */
 html[data-theme=skein] .card,html[data-theme=skein] .switcher{
   position:relative;overflow:hidden;
   background:color-mix(in srgb,var(--card) 60%,transparent);
@@ -30,16 +37,38 @@ html[data-theme=skein] .card,html[data-theme=skein] .switcher{
   border-radius:16px;
   box-shadow:0 8px 30px color-mix(in srgb,var(--fg) 10%,transparent),inset 0 1px 0 rgba(255,255,255,.7);
   backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
+  transition:border-color .35s,box-shadow .35s,backdrop-filter .35s;
 }
-/* 顶缘一道静态蓝描边高光 */
+/* 顶缘静态蓝白描边高光 (glass sheen) */
 html[data-theme=skein] .card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;pointer-events:none;
   background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 55%,#fff),color-mix(in srgb,var(--accent2) 55%,#fff),transparent);
 }
-/* 运行中卡片: 静态强化蓝描边 (无脉动) */
+/* hover 流光描边: conic 蓝→金→蓝沿边框旋转 (mask-composite 抠出 1px 边框环)。视口外不门控 (仅 hover 触发, 单卡瞬时)。 */
+html[data-theme=skein] .card::after{
+  content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;
+  background:conic-gradient(from var(--flow-ang,0deg),
+    transparent 0deg,var(--accent) 50deg,var(--skein-gold) 110deg,var(--accent) 170deg,transparent 230deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;transition:opacity .4s;
+}
+html[data-theme=skein] .card:hover::after{opacity:1;animation:skein-flow-border 3s linear infinite}
+@keyframes skein-flow-border{to{--flow-ang:360deg}}
+html[data-theme=skein] .card:hover{backdrop-filter:blur(14px) saturate(1.45);-webkit-backdrop-filter:blur(14px) saturate(1.45)}
+
+/* active 运行中卡: 蓝描边脉动 (box-shadow 呼吸, 2s)。配合 hover 流光描边叠加。 */
 html[data-theme=skein] .card:has(.badge.s-active),
 html[data-theme=skein] .card:has(.badge.ss-running){
   border-color:color-mix(in srgb,var(--accent) 45%,transparent);
+  animation:skein-active-pulse 2s ease-in-out infinite;
+}
+@keyframes skein-active-pulse{
+  0%,100%{box-shadow:0 8px 30px color-mix(in srgb,var(--fg) 10%,transparent),inset 0 1px 0 rgba(255,255,255,.7),
+    0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent)}
+  50%{box-shadow:0 8px 30px color-mix(in srgb,var(--fg) 10%,transparent),inset 0 1px 0 rgba(255,255,255,.7),
+    0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent),
+    0 0 18px color-mix(in srgb,var(--accent) 24%,transparent)}
 }
 
 /* 进度条: 蓝→金→蓝流光, 全部条流动 (视口外 .voff 暂停)。
@@ -65,4 +94,12 @@ html[data-theme=skein] h1{color:var(--head)}
 
 /* 徽章 / 选中: 玻璃质 */
 html[data-theme=skein] .badge{border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);border-radius:999px}
-/* 减动偏好无需本主题单独处理: base.css `html:not([data-motion=full]) .fill{animation:none}` 已覆盖 skein-flow (作用于 .fill) */
+
+/* 减动偏好降级: 关呼吸 / 流光描边旋转 / active 脉动 (base.css 已覆盖 skein-flow 作用于 .fill)。
+   看板默认 html[data-motion=full] 不跟随系统; 去 full 或设非 full 才尊重 reduce-motion。 */
+@media(prefers-reduced-motion:reduce){
+  html:not([data-motion=full])[data-theme=skein] body{animation:none}
+  html:not([data-motion=full])[data-theme=skein] .card:hover::after{animation:none}
+  html:not([data-motion=full])[data-theme=skein] .card:has(.badge.s-active),
+  html:not([data-motion=full])[data-theme=skein] .card:has(.badge.ss-running){animation:none}
+}

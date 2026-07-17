@@ -53,12 +53,12 @@ const TPL = `
       </div>
       <!-- 活跃数 -->
       <div class="card p-4">
-        <div class="text-2xl font-semibold" style="color:var(--st-active)">{{ activeCount }}</div>
+        <div class="text-2xl font-semibold" style="color:var(--st-active)" :data-count="activeCount">{{ activeCount }}</div>
         <div class="text-xs text-muted mt-1">活跃 task (进行/检查)</div>
       </div>
       <!-- task 总数 -->
       <div class="card p-4">
-        <div class="text-2xl font-semibold" style="color:var(--head)">{{ taskCount }}</div>
+        <div class="text-2xl font-semibold" style="color:var(--head)" :data-count="taskCount">{{ taskCount }}</div>
         <div class="text-xs text-muted mt-1">task 总数</div>
       </div>
       <!-- 综合进度 -->

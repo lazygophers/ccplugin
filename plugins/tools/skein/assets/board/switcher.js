@@ -11,6 +11,23 @@
   }
   syncTopbar();
   window.addEventListener('resize',syncTopbar);
+  // 主题浅/暗切换: 持久化 localStorage 'skein-theme' (默认 skein=浅晨曦, skein-dark=夜空金沙)。
+  // 两套主题 css 已在 <head> 同加载 (skein.py links), 此处只切 <html data-theme> + 记忆。
+  function curTheme(){return html.getAttribute('data-theme')==='skein-dark'?'skein-dark':'skein';}
+  function applyTheme(t){
+    html.setAttribute('data-theme',t);
+    localStorage.setItem('skein-theme',t);
+    var btn=document.getElementById('sw-theme');if(btn)btn.textContent=(t==='skein-dark'?'☾ 夜空金沙':'☀ 浅晨曦');
+  }
+  var savedTheme=localStorage.getItem('skein-theme');
+  if(savedTheme==='skein-dark')applyTheme('skein-dark');
+  // 切换按钮注入 FAB 设置面板 (紧随刷新/回顶), 动态生成免改 shell.html 模板
+  var themeBtn=document.createElement('button');
+  themeBtn.type='button';themeBtn.className='sw-btn';themeBtn.id='sw-theme';
+  themeBtn.textContent=curTheme()==='skein-dark'?'☾ 夜空金沙':'☀ 浅晨曦';
+  themeBtn.addEventListener('click',function(){applyTheme(curTheme()==='skein-dark'?'skein':'skein-dark');});
+  var fabPanel=document.querySelector('.fab-wrap .switcher');
+  if(fabPanel){var topBtn=document.getElementById('sw-top');fabPanel.insertBefore(themeBtn,topBtn?topBtn.nextSibling:null);}
   // 浮动按钮开合: 点圆钮 toggle 面板, 点面板外收起
   var fabWrap=document.querySelector('.fab-wrap'),fab=document.getElementById('sw-fab');
   if(fabWrap&&fab){
