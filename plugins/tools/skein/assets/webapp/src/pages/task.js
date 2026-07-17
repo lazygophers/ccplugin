@@ -9,6 +9,24 @@ const BADGE = {
 };
 const badgeCls = (st) => BADGE[st] || "badge-pending";
 
+// 命令快捷条样式 (status/contract/subtask-list 查询结果块)。
+const TASK_STYLE = `<style>
+.tcmd{background:var(--card);color:var(--head);border:1px solid var(--brd);border-radius:8px;padding:5px 11px;font:12px var(--font);cursor:pointer}
+.tcmd:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.tcmd:disabled{opacity:.5;cursor:not-allowed}
+.tcmd-out{margin-top:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tcmd-out-h{padding:6px 10px;font-size:12px;background:var(--line);color:var(--head);display:flex;align-items:center;gap:8px}
+.tcmd-out-h .ok{color:var(--st-done)}.tcmd-out-h .fail{color:var(--st-failed)}
+.tcmd-out pre{margin:0;padding:10px;overflow:auto;max-height:320px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);white-space:pre-wrap;word-break:break-word}
+.tcmd-out pre.err{color:var(--st-failed);max-height:220px}
+</style>`;
+
+// html 转义 (renderResult 走 v-html, stdout/stderr 是命令输出须转义防注入)
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 // subtask 完成百分比 (对齐后端 _sub_pct: done 强制 100; 验收done/验收, 无验收未完成即 0)
 function subPct(s) {
   if (s.status === "已完成") return 100;
@@ -37,6 +55,14 @@ const TPL = `
         <span v-if="task.deps && task.deps.length" class="text-xs text-muted">依赖 {{ task.deps.join(', ') }}</span>
       </div>
       <p v-if="task.desc" class="text-sm text-muted mt-2 whitespace-pre-wrap">{{ task.desc }}</p>
+      <!-- 命令快捷条: status / contract / subtask-list (id 自动填当前 task) -->
+      <div class="mt-3 flex flex-wrap items-center gap-2">
+        <button class="tcmd" :disabled="running" @click="runRead('status')">status</button>
+        <button class="tcmd" :disabled="running" @click="runRead('contract')">contract</button>
+        <button class="tcmd" :disabled="running" @click="runRead('subtask-list')">subtask-list</button>
+        <span v-if="running" class="text-[11px] text-muted">运行中…</span>
+      </div>
+      <div v-if="result" class="tcmd-out" v-html="renderResult()"></div>
     </header>
 
     <!-- 规划三文档 tab -->
@@ -180,7 +206,7 @@ export async function render(mount, params, ctx) {
 
   async function mountApp() {
     const st = await fetchState();
-    mount.innerHTML = TPL;
+    mount.innerHTML = TASK_STYLE + TPL;
     window.PetiteVue.createApp(Object.assign({
       tab: "prd",
       docTabs: DOC_TABS,
@@ -189,6 +215,29 @@ export async function render(mount, params, ctx) {
       deps: (s) => s.depends_on || [],
       docLabel: (k) => (DOC_TABS.find((d) => d.key === k) || {}).label || k,
       get renderedDoc() { return md.renderSafe(this.docs[this.tab] || ""); },
+      result: null,
+      running: false,
+      async runRead(cmd) {
+        if (this.running || !this.task.id) return;
+        this.running = true;
+        try {
+          const res = await ctx.api.exec(cmd, { id: this.task.id });
+          this.result = { cmd: res.cmd || cmd, exit: res.exit, stdout: res.stdout || "", stderr: res.stderr || "" };
+        } catch (ex) {
+          this.result = { cmd, err: (ex && ex.message) || String(ex) };
+        }
+        this.running = false;
+      },
+      // ponytail: exec 输出经 esc() 转义后 v-html 注入 (stdout/stderr 为后端命令输出, 防 XSS)。
+      renderResult() {
+        const r = this.result; if (!r) return "";
+        if (r.err) return `<div class="tcmd-out-h"><code>${esc(r.cmd)}</code><span class="fail">${esc(r.err)}</span></div>`;
+        const ok = r.exit === 0;
+        const head = `<div class="tcmd-out-h"><code>${esc(r.cmd)}</code><span>exit ${r.exit}</span><span class="${ok ? "ok" : "fail"}">${ok ? "ok" : "fail"}</span></div>`;
+        const o = r.stdout ? `<pre>${esc(r.stdout)}</pre>` : "";
+        const e = r.stderr ? `<pre class="err">${esc(r.stderr)}</pre>` : "";
+        return head + o + e;
+      },
     }, st)).mount(mount);
   }
 
