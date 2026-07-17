@@ -228,7 +228,7 @@ const DOC_TABS = [
 
 // ── 列表视图 (无 id: /task) ── 数据复用 /__skein__/data → cards (每项 id/name/status/desc/spct)。
 const LIST_TPL = `
-<div class="max-w-4xl mx-auto">
+<div class="px-7">
   <div class="flex items-center gap-2 mb-4 px-1">
     <h1 class="text-lg font-semibold" style="color:var(--head)">任务</h1>
     <span v-if="!loadErr && items.length" class="text-xs text-muted">{{ items.length }}</span>
