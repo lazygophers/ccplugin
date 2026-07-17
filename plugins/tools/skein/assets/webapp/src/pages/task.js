@@ -324,8 +324,9 @@ export async function render(mount, params, ctx) {
       get renderedDoc() { return md.renderSafe(this.docs[this.tab] || ""); },
       // PRD 章节化 (仅 tab==='prd' 用): 各节 body 走同一 md.renderSafe 栈 → 只读 todo 复用 md 输出。
       get prdSections() {
-        return parsePrd(this.docs.prd || "").map(function (s) {
-          return { title: s.title, html: md.renderSafe(s.body) };
+        const map = parsePrdSections(this.docs.prd || "");
+        return Object.keys(map).map(function (title) {
+          return { title, html: md.renderSafe(map[title]) };
         });
       },
       result: null,
