@@ -6,6 +6,7 @@ import * as api from "./lib/api.js";
 import * as md from "./lib/md.js";
 import * as live from "./lib/live.js";
 import * as router from "./router.js";
+import * as configModal from "./lib/config-modal.js";
 
 // petite-vue 是 IIFE 打包 (非 ESM), import 拿不到具名导出 → 注入 <script> 挂全局 PetiteVue。
 // 非阻塞: page 用时经 window.PetiteVue.createApp; 拉取失败仅影响需响应式的 page, 不阻断路由。
@@ -195,6 +196,7 @@ function boot() {
   wireSearch();
   wireTheme();
   wireMotion();
+  configModal.wire(api);
   live.start();
   router.start({ api, md });
 }
