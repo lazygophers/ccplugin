@@ -1235,11 +1235,63 @@ class Skein:
         cand.sort(key=lambda p: (-crit.get(p[1]["sid"], 0), p[0]))
         return [s for _, s in cand[:slots]]
 
+    def _global_ready(self) -> list:
+        """全局跨 task 就绪批: 所有 active task 的 ready subtask 合池,
+        按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_parallel - 全局 running 槽。
+        返回 [(task_obj, subtask_obj), ...]。"""
+        tasks = self._active()  # 已按 STATUS_ACTIVE 过滤 + 登记序
+        global_running = sum(
+            1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+        slots = self.config().get("max_parallel", 2) - global_running
+        if slots <= 0:
+            return []
+        cand = []
+        for ti, t in enumerate(tasks):
+            subs = t.get("subtasks", [])
+            done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+            crit = self._crit_weight(subs)
+            for i, s in enumerate(subs):
+                if s["status"] != SS_PENDING:
+                    continue
+                if not all(d in done for d in s.get("depends_on", [])):
+                    continue  # 依赖未全 done 不入池
+                cand.append((t, s, ti, i, crit.get(s["sid"], 0)))
+        # 拓扑深度降序 → task 登记序 → subtask 登记序 (active task 同级, 不再分 task 优先级)
+        cand.sort(key=lambda x: (-x[4], x[2], x[3]))
+        return [(c[0], c[1]) for c in cand[:slots]]
+
     def _sub(self, t, sid):
         for s in t.get("subtasks", []):
             if s["sid"] == sid:
                 return s
         raise SystemExit(f"subtask 不存在: {t['id']}/{sid}")
+
+    def claim(self, a):
+        """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_parallel 槽。
+        整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。"""
+        batch = self._global_ready()
+        if not batch:
+            tasks = self._active()
+            grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+            gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
+            mp = self.config().get("max_parallel", 2)
+            print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
+            return
+        claimed = []
+        for t, s in batch:
+            s["status"] = SS_RUNNING
+            if not s.get("started"):
+                s["started"] = now()  # exec 时刻 (首次认领, 重认领不覆盖)
+            claimed.append((t["id"], s))
+        # 跨 task 改态: 每个 task 各 _save 一次 (按 id 去重, _write_if_changed 自身增量)
+        for t in {id(c[0]): c[0] for c in batch}.values():
+            self._save(t)
+        print("已全局认领 (running) — main 按各 subtask 关联 agent + skills 逐个 dispatch, 完成即 subtask done/fail:")
+        for tid, s in claimed:
+            sk = ",".join(s.get("skills", [])) or "-"
+            chk = "; ".join(s.get("验收", [])) or "-"
+            print(f"{tid}/{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}"
+                  f"\tskills: {sk}\t验收: {chk}")
 
     def subtask(self, a):
         if a.action == "add":
@@ -2474,6 +2526,7 @@ def main():
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
+    sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_parallel 槽)")
     sub.add_parser("pop", help="只读提取一个可执行 (task, subtask) 对 (active task 内首个就绪 subtask; 仅选取, 是否执行交 AI 判)")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
     li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
@@ -2537,7 +2590,7 @@ def main():
     dispatch = {
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
         "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
-        "ready": sk.ready, "pop": sk.pop,
+        "ready": sk.ready, "pop": sk.pop, "claim": sk.claim,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos,
         "status": sk.status, "subtask": sk.subtask,
@@ -2546,7 +2599,7 @@ def main():
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "subtask", "del", "delete", "rm", "remove"}
+                "contract", "repos", "subtask", "claim", "del", "delete", "rm", "remove"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
