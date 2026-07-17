@@ -240,7 +240,7 @@ def test_serve_config_post() -> None:
 
 def _import_pytest() -> Any:
     try:
-        import pytest as _p
+        import pytest as _p  # type: ignore[import-not-found]
         return _p
     except ImportError:
         return None  # 直跑 (python3 test_board.py) 无 pytest

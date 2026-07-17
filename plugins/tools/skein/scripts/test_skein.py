@@ -3,28 +3,43 @@
 
 无框架, 纯 assert。跑: python3 test_skein.py
 """
+from __future__ import annotations
+
+import importlib.util
 import json
 import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 
 SKEIN = Path(__file__).parent / "skein.py"
 
 
-def sk(cwd, *args, check=True):
+def sk(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, str(SKEIN), *args], cwd=cwd,
                           capture_output=True, text=True, check=check)
 
 
-def git(cwd, *args):
+def git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, check=True)
 
 
-def main():
-    with tempfile.TemporaryDirectory() as d:
-        d = Path(d)
+def _load(mod_name: str) -> ModuleType:
+    """从 SKEIN 路径动态加载模块并执行。"""
+    spec = importlib.util.spec_from_file_location(mod_name, SKEIN)
+    assert spec is not None
+    m = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(m)
+    return m
+
+
+def main() -> None:
+    with tempfile.TemporaryDirectory() as td:
+        d: Path = Path(td)
         git(d, "init", "-q")
         git(d, "config", "user.email", "t@t.dev")
         git(d, "config", "user.name", "t")
@@ -35,9 +50,7 @@ def main():
         sk(d, "init")
         assert (d / ".skein" / "config.yaml").exists(), "config 缺失"
         # mini YAML 解析器往返: 类型 (int/bool/str) + # 注释
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("skein", SKEIN)
-        sk_mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(sk_mod)
+        sk_mod = _load("skein")
         rt = sk_mod._yaml_load(sk_mod._yaml_dump(
             {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}))
         assert rt == {"max_active": 2, "auto_commit": True, "worktree_root": ".worktrees"}, rt
@@ -168,14 +181,14 @@ def main():
         sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--agent", "general-purpose")
         sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--agent", "general-purpose")
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
-        r = sk(d, "subtask", "ready", "task-5").stdout
-        assert "s1" in r and "s2" in r and "s3" not in r, "就绪批错 (s3 应被依赖挡)"
+        rdy = sk(d, "subtask", "ready", "task-5").stdout
+        assert "s1" in rdy and "s2" in rdy and "s3" not in rdy, "就绪批错 (s3 应被依赖挡)"
         # ready 只读: 不改状态
         subs0 = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         assert all(s["status"] == "待处理" for s in subs0), "ready 误改状态 (应只读)"
         # claim 一次性认领整个就绪批 → s1/s2 标 running
-        r = sk(d, "subtask", "claim", "task-5").stdout
-        assert "s1" in r and "s2" in r, "claim 未返回就绪批"
+        rout = sk(d, "subtask", "claim", "task-5").stdout
+        assert "s1" in rout and "s2" in rout, "claim 未返回就绪批"
         subs_c = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         st = {s["sid"]: s["status"] for s in subs_c}
         assert st["s1"] == "运行中" and st["s2"] == "运行中", "claim 未标 running"
@@ -233,11 +246,9 @@ def main():
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
 
 
-def test_lock():
+def test_lock() -> None:
     # 写锁: 持锁时另一获取者应阻塞到超时 → SystemExit
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("skein_l", SKEIN)
-    m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+    m = _load("skein_l")
     with tempfile.TemporaryDirectory() as d:
         lp = Path(d) / ".lock"
         with m._workspace_lock(lp, timeout=1.0):
@@ -251,10 +262,10 @@ def test_lock():
             pass
 
 
-def test_multirepo():
+def test_multirepo() -> None:
     # 多子 git: 非 git 父目录下两并列 repo, task 声明 --repos → start 各建 worktree, finish 各自合入
-    with tempfile.TemporaryDirectory() as d:
-        d = Path(d)
+    with tempfile.TemporaryDirectory() as td:
+        d: Path = Path(td)
         for r in ("repoA", "repoB"):
             sub = d / r
             sub.mkdir()
@@ -287,16 +298,16 @@ def test_multirepo():
             assert "skein/feat" not in br, f"{r} 分支未删"
 
 
-def test_setup():
+def test_setup() -> None:
     # 新仓 setup: 无 trellis → 建本地 spec, manifest trellis_present=false
-    with tempfile.TemporaryDirectory() as d:
-        d = Path(d)
+    with tempfile.TemporaryDirectory() as td:
+        d: Path = Path(td)
         git(d, "init", "-q")
         m = json.loads(sk(d, "setup").stdout)
         assert m["trellis_present"] is False and m["spec_needs_reorg"] is False, m
         assert (d / ".skein/spec").is_dir() and not (d / ".skein/spec").is_symlink(), "本地 spec 未建"
 
-    def _mk_trellis(d):
+    def _mk_trellis(d: Path) -> None:
         (d / ".trellis/spec").mkdir(parents=True)
         (d / ".trellis/spec/git.md").write_text("# 禁 force push\n")
         (d / ".trellis/task/x").mkdir(parents=True)
@@ -317,7 +328,7 @@ def test_setup():
             "PostToolUse": [{"matcher": "Edit", "hooks": [{"type": "command", "command": "python3 .claude/hooks/rust-fmt.py"}]}],
         }}))
 
-    def _assert_migrated(d, m, mode):
+    def _assert_migrated(d: Path, m: dict[str, Any], mode: str) -> None:
         assert m["mode"] == mode and m["trellis_present"] == (mode == "compat"), m
         assert m["spec_copied"] and m["spec_needs_reorg"], m
         # 独立拷贝 (非软链): trellis 零改动
@@ -346,8 +357,8 @@ def test_setup():
         assert sl["enabledPlugins"]["trellisx@ccplugin-market"] is False, "settings.local.json 未禁 trellisx"
 
     # 兼容模式: 拷 spec + 迁 task + 删接线, 留 .trellis 数据
-    with tempfile.TemporaryDirectory() as d:
-        d = Path(d)
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
         git(d, "init", "-q")
         _mk_trellis(d)
         m = json.loads(sk(d, "setup").stdout)
@@ -357,9 +368,8 @@ def test_setup():
         assert m["trellis_removed"] is False, m
 
     # --full 模式: 兼容全套 + 整删 .trellis
-    with tempfile.TemporaryDirectory() as d:
-        d = Path(d)
-        git(d, "init", "-q")
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
         _mk_trellis(d)
         m = json.loads(sk(d, "setup", "--full").stdout)
         _assert_migrated(d, m, "full")
