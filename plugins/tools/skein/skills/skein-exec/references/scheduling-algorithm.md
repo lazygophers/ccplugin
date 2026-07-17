@@ -6,7 +6,7 @@
 
 1. **显式依赖边** — subtask 的 `depends_on` (planning 用 `skein subtask add --deps` 直接登记进 per-task task.json, 无中间 md 图)。被依赖者未 done, 依赖者不 ready。**并行与否只看这张 DAG** — 无写文件冲突自算 (发挥 AI 自主性: 拆分时靠 planning 把真正有序的关系写进 depends_on, 不靠脚本猜写文件重叠)。
 2. **就绪判定** = 所有前置 done + 有空闲并发槽。ready 的 subtask 并行派, 未就绪串行等。
-3. **就绪批排序 = 统筹学关键路径优先** — 就绪数 > 空闲槽时, `claim` 按**关键路径权重降序**截取 (非登记序 FIFO): 每 subtask 权重 = 自身 `--estimate` (缺省 1 分钟) + 最长下游链, 权重大者阻塞下游最多, 先派 → 最小化 `makespan` (总工期)。同权重按登记序稳定。脚本自算 (`_crit_weight`), planning 只需把真实有序关系写进 `--deps` + 尽量供 `--estimate`, 无需手排优先级。
+3. **就绪批排序 = 拓扑深度优先** — 就绪数 > 空闲槽时, `claim` 按**拓扑深度降序**截取 (非登记序 FIFO): 每 subtask 权重 = 最长下游链长度 + 1 (每步等权, 纯拓扑深度), 深度大者阻塞下游最多, 先派。同深度按登记序稳定。脚本自算 (`_crit_weight`), planning 只需把真实有序关系写进 `--deps`, 无需手排优先级。
 
 ## subtask 状态 = 脚本落盘, 非肉眼看 md 文件
 
@@ -15,7 +15,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | 命令 | 谁跑 | 作用 |
 | --- | --- | --- |
 | `subtask add <tid> <sid> --name --desc [--agent --deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--desc` 必填** (缺一 argparse 报错); `--agent` 省略默认 `skein-executor` (有更合适的具名 agent 显式填); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
-| `subtask claim <tid>` | main (每轮) | **一次性算就绪批 (统筹学关键路径权重降序) + 整批标 running**, 返回给 main 逐个 dispatch |
+| `subtask claim <tid>` | main (每轮) | **一次性算就绪批 (拓扑深度降序) + 整批标 running**, 返回给 main 逐个 dispatch |
 | `pop` | main (查候选) | **只读提取一个可执行 (task, subtask) 对** (active task 内首个就绪 subtask); 仅选取不改态, 是否执行由 main/AI 判。决定执行后仍走 `claim`/`subtask start` 占槽 |
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |

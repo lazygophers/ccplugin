@@ -437,7 +437,6 @@ class Skein:
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
-            "estimate": a.estimate,  # AI 执行预期耗时 (分钟, planning 填; None=未估)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
@@ -1167,21 +1166,20 @@ class Skein:
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
     def _crit_weight(self, subs: list) -> dict:
-        """统筹学关键路径权重: 每 subtask 的最长下游链长 (含自身 estimate, 缺省 1 分钟)。
+        """纯拓扑深度: 每 subtask 的最长下游链长 (每步计 1, 不依赖 estimate)。
         权重大 = 越靠关键路径 (阻塞最多下游), 槽位紧张时优先派 → 最小化 makespan (总工期)。"""
         succ = {}  # sid -> 直接下游 sid
         for s in subs:
             for d in s.get("depends_on", []):
                 succ.setdefault(d, []).append(s["sid"])
-        est = {s["sid"]: (s.get("estimate") or 1) for s in subs}
         memo = {}
 
         def w(sid, seen=()):
             if sid in memo:
                 return memo[sid]
             if sid in seen:  # ponytail: 环保护 (DAG 校验兜底不该到这), 断链避免无限递归, 不缓存
-                return est.get(sid, 1)
-            r = est.get(sid, 1) + max((w(c, seen + (sid,)) for c in succ.get(sid, [])), default=0)
+                return 1
+            r = 1 + max((w(c, seen + (sid,)) for c in succ.get(sid, [])), default=0)
             memo[sid] = r
             return r
 
@@ -1212,7 +1210,7 @@ class Skein:
                     "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
                     "agent": s.get("agent", "skein-executor"), "ready": ready,
                     "trank": trank, "ti": ti, "crit": crit.get(s["sid"], 0),
-                    "est": s.get("estimate"), "i": i,
+                    "i": i,
                     "desc": s.get("desc", ""), "status": s["status"],
                     "depends_on": s.get("depends_on", []),
                 })
@@ -1254,7 +1252,6 @@ class Skein:
                 "验收": _split_semi(a.check),  # 验收标准 checklist (字符串数组)
                 "验收done": [],  # 已通过验收标准序号(1-based); 完成百分比 = len/len(验收)
                 "status": SS_PENDING,
-                "estimate": a.estimate,  # AI 执行预期耗时 (分钟, None=未估)
                 "agent": a.agent or "skein-executor",  # 执行 agent (省略默认 skein-executor)
                 "skills": _split(a.skills),  # 关联 skills (0-n)
                 "created": now(),   # 创建时刻
@@ -1407,23 +1404,10 @@ class Skein:
 
         # 概览聚合
         cnt = {}
-        est_total = 0
         elapsed_total = 0
-        remain_est = 0.0
-        est_count = 0
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
-            if t["status"] == S_DONE:
-                frac = 1.0
-            else:
-                subs = t.get("subtasks", [])
-                frac = sum(_sub_pct(s) for s in subs) / (len(subs) * 100) if subs else 0.0
-            est = t.get("estimate") or 0
-            est_total += est
-            if est:
-                est_count += 1
             elapsed_total += elapsed_of(t)
-            remain_est += est * (1 - frac)
 
         task_nodes = [node(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
                            task_pct(t), t.get("desc", "")) for t in tasks]
@@ -1469,12 +1453,7 @@ class Skein:
                                      _sub_pct(s), s.get("desc", "")))
         combined_pct = round(sum(n[4] for n in combined) / len(combined)) if combined else 0
 
-        if est_total and est_count >= max(1, len(tasks) // 2):
-            est_meta = (f'预期合计 {fmt_dur(est_total or None)} · 已耗 {fmt_dur(elapsed_total or None)} · '
-                        f'剩余预估 {fmt_dur(round(remain_est) or None)}')
-        else:
-            cov = f' · 预估覆盖 {est_count}/{len(tasks)}' if est_count else ''
-            est_meta = f'已耗 {fmt_dur(elapsed_total or None)}{cov}'
+        est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
 
         # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的待处理 task
         next_up_id = None
@@ -1530,7 +1509,7 @@ class Skein:
                            _sub_pct(s), s.get("desc", "")) for s in subs]
             subtable = [{
                 "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
-                "est": s.get("estimate"), "agent": s.get("agent", "skein-executor"),
+                "agent": s.get("agent", "skein-executor"),
                 "skills": s.get("skills", []),
                 "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
                 "acc": s.get("验收", []),
@@ -1547,7 +1526,7 @@ class Skein:
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
                 "worktree": t.get("worktree") or None,
-                "elapsed": elapsed_of(t), "est": t.get("estimate"),
+                "elapsed": elapsed_of(t),
                 "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
                 "docLinks": doc_links,
                 "prd": prd_data(t["id"]),
@@ -1721,7 +1700,6 @@ class Skein:
                     "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
                     "agent": s.get("agent", "skein-executor"),
                     "elapsed": round((tnow - started) / 60) if started else None,
-                    "est": s.get("estimate"),
                 })
         # 就绪 task: pending + 前置全 done
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
