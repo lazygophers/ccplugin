@@ -11,11 +11,14 @@
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
+from __future__ import annotations
+
 import json
 import os
 import re
 import subprocess
 import sys
+from typing import Any, Optional, cast
 
 BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
 ENGINE = ("skein.py", "memory.py", "skein ", "skein-memory ")
@@ -30,17 +33,17 @@ OURS = ("skein.py", "memory.py", "CLAUDE_PLUGIN_ROOT")
 BIN_RE = re.compile(r"(?:^|[\s;&|(])(?:skein-memory|skein)(?:\s|$)")
 
 
-def _load_stdin():
+def _load_stdin() -> Optional[dict[str, Any]]:
     try:
-        return json.load(sys.stdin)
+        return cast(dict[str, Any], json.load(sys.stdin))
     except (json.JSONDecodeError, ValueError):
         return None
 
 
 # ── permission (原 allow-skein.py) ──────────────────────────────────────────
-def cmd_permission(d) -> int:
+def cmd_permission(d: dict[str, Any]) -> int:
     """.skein/ 自有内容操作默认同意 (allow 不覆盖 deny, 也不放宽 guard 的 PreToolUse 阻断)。"""
-    def _allow():
+    def _allow() -> None:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "PermissionRequest",
             "decision": {"behavior": "allow"}}}))
@@ -71,7 +74,7 @@ def _git_root(start: str) -> str:
         d = parent
 
 
-def cmd_guard(d) -> int:
+def cmd_guard(d: dict[str, Any]) -> int:
     """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 (命中 exit 2)。"""
     fp = d.get("tool_input", {}).get("file_path", "")
     parts = fp.replace("\\", "/").split("/") if fp else []
@@ -107,7 +110,7 @@ def _is_write(cmd: str) -> bool:
     return bool(m and m.group(1) in WRITE_CMDS)
 
 
-def cmd_batch(d) -> int:
+def cmd_batch(d: dict[str, Any]) -> int:
     """拦同批 ≥2 个 .skein 状态写命令 (同写 task.json/spec 有竞态)。"""
     writes = [u for u in d.get("tool_uses", [])
               if u.get("tool_name") == "Bash" and _is_write(u.get("tool_input", {}).get("command", ""))]
@@ -123,7 +126,7 @@ def cmd_batch(d) -> int:
 
 
 # ── report (原 report-skein.py) ─────────────────────────────────────────────
-def cmd_report(d) -> int:
+def cmd_report(d: dict[str, Any]) -> int:
     """本插件脚本失败时注入错误上下文 + 引导手动开 issue (其余工具失败静默)。"""
     cmd = d.get("tool_input", {}).get("command", "")
     if not (any(k in cmd for k in OURS) or BIN_RE.search(cmd)):
@@ -142,7 +145,7 @@ def cmd_report(d) -> int:
 PRD_RE = re.compile(r"(?:^|/)\.skein/task/([^/]+)/prd\.md$")
 
 
-def cmd_fmt(d) -> int:
+def cmd_fmt(d: dict[str, Any]) -> int:
     """写 .skein/task/<id>/prd.md 后自动跑一次 skein fmt <id> (幂等; python 写回不经工具层 → 不递归)。"""
     fp = d.get("tool_input", {}).get("file_path", "")
     if not fp:
@@ -168,7 +171,7 @@ SPEC_REQUIRED = ("title", "layer", "created", "keywords")
 SPEC_LAYERS = ("core", "recall")
 
 
-def _parse_fm(text):
+def _parse_fm(text: str) -> dict[str, str]:
     """简单 YAML frontmatter 解析 (只取顶层 key: value, 无嵌套)。返回 dict 或 {}。"""
     if not text.startswith("---"):
         return {}
@@ -176,7 +179,7 @@ def _parse_fm(text):
     if end < 0:
         return {}
     block = text[4:end] if text[3] == "\n" else text[3:end]
-    fm = {}
+    fm: dict[str, str] = {}
     for line in block.splitlines():
         if ":" not in line or line.startswith((" ", "\t", "-")):
             continue
@@ -185,7 +188,7 @@ def _parse_fm(text):
     return fm
 
 
-def cmd_spec_meta(d) -> int:
+def cmd_spec_meta(d: dict[str, Any]) -> int:
     """写 .skein/spec/**/*.md 后检查 frontmatter: 必填缺失 + layer 合法。非阻塞 warning。"""
     fp = d.get("tool_input", {}).get("file_path", "")
     if not fp:
@@ -200,7 +203,7 @@ def cmd_spec_meta(d) -> int:
         return 0
     fm = _parse_fm(text)
     short = norm.split(".skein/spec/")[-1] if ".skein/spec/" in norm else norm
-    warns = []
+    warns: list[str] = []
     for k in SPEC_REQUIRED:
         v = fm.get(k, "")
         if k == "keywords":
@@ -224,7 +227,7 @@ def cmd_spec_meta(d) -> int:
     return 0
 
 
-DISPATCH = {"permission": cmd_permission, "guard": cmd_guard,
+DISPATCH: dict[str, Any] = {"permission": cmd_permission, "guard": cmd_guard,
             "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
             "spec-meta": cmd_spec_meta}
 
@@ -236,7 +239,7 @@ def main() -> int:
     d = _load_stdin()
     if d is None:
         return 0  # stdin 非法 JSON: 静默放行
-    return DISPATCH[sys.argv[1]](d)
+    return cast(int, DISPATCH[sys.argv[1]](d))
 
 
 if __name__ == "__main__":

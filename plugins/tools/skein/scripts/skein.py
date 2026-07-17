@@ -20,6 +20,8 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态
 (current/list/board/subtask list/ready), 禁直接 Read/Edit/Write (skein-hooks guard 硬阻)。
 """
+from __future__ import annotations
+
 import argparse
 import contextlib
 import datetime
@@ -32,6 +34,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any, AsyncIterator, Callable, Iterable, Iterator, Optional, cast
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
 from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
@@ -78,7 +81,7 @@ _ENV_EXPORTS = (
 )
 
 
-def _persist_bash_cwd_env():
+def _persist_bash_cwd_env() -> None:
     env_file = os.environ.get("CLAUDE_ENV_FILE")
     if not env_file:
         return  # 非 SessionStart/Setup/CwdChanged/FileChanged 事件时不可用, 静默跳过
@@ -94,7 +97,7 @@ def _persist_bash_cwd_env():
 
 
 @contextlib.contextmanager
-def _workspace_lock(lock_path: Path, timeout=10.0, poll=0.05):
+def _workspace_lock(lock_path: Path, timeout: float = 10.0, poll: float = 0.05) -> Iterator[None]:
     # 工作区级排他写锁 (fcntl.flock): 防多 skein 进程并发 read-modify-write 破坏 task.json。
     # 阻塞等待锁释放, 超 timeout 秒仍拿不到 → SystemExit (非死等)。CLI 短命, 全局锁足够。
     # ponytail: global lock, per-task locks if throughput matters.
@@ -120,14 +123,15 @@ def _workspace_lock(lock_path: Path, timeout=10.0, poll=0.05):
 
 # ponytail: config 只有 4 个扁平标量键 → 手写 mini YAML 读写, 免 PyYAML 依赖。
 # ceiling: 只认 `key: value` + `#` 注释, 不支持嵌套/列表/多行。够 config 用即止。
-def _yaml_load(text: str) -> dict:
-    out = {}
+def _yaml_load(text: str) -> dict[str, Any]:
+    out: dict[str, Any] = {}
     for line in text.splitlines():
         line = line.split("#", 1)[0].strip()
         if not line or ":" not in line:
             continue
-        k, v = line.split(":", 1)
-        v = v.strip().strip("'\"")
+        kv = line.split(":", 1)
+        k = kv[0]
+        v: Any = kv[1].strip().strip("'\"")
         if v in ("true", "false"):
             v = v == "true"
         elif v.lstrip("-").isdigit():
@@ -136,8 +140,8 @@ def _yaml_load(text: str) -> dict:
     return out
 
 
-def _yaml_dump(d: dict) -> str:
-    def fmt(v):
+def _yaml_dump(d: dict[str, Any]) -> str:
+    def fmt(v: Any) -> str:
         return "true" if v is True else "false" if v is False else str(v)
     return "".join(f"{k}: {fmt(v)}\n" for k, v in d.items())
 
@@ -154,7 +158,7 @@ CONFIG_DEFAULTS = {
 }
 
 
-def git(*args, cwd=None, check=True, capture=True):
+def git(*args: str, cwd: Optional[Path] = None, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess[str]:
     DBG.log(f"$ git {' '.join(args)}" + (f"   (cwd={cwd})" if cwd else ""), style="dim")
     r = subprocess.run(
         ["git", *args], cwd=cwd, check=False,
@@ -169,25 +173,26 @@ def git(*args, cwd=None, check=True, capture=True):
 
 
 class Skein:
-    def __init__(self):
+    # task/subtask 记录用 dict[str, Any] (JSON 落盘 schema, 字段异质)
+    def __init__(self) -> None:
         # git 非强制: 在 git 仓库内则用其根 + 启用 worktree 隔离; 否则用 cwd 原地执行
         # (微服务/前后端分离: cwd 无 git, 子目录各自独立仓库 — 正是最需要不挡 git 的场景)。
         r = git("rev-parse", "--show-toplevel", check=False)
-        self.git = r.returncode == 0
-        self.root = Path(r.stdout.strip()) if self.git else Path.cwd()
-        self.dir = self.root / ".skein"
-        self.tasks = self.dir / "task"
-        self.archive_dir = self.tasks / "archive"
-        self.trash_dir = self.dir / "trash"  # 软删 task 落此 (.skein/trash/<id>.<YYYYMMDD>/, 可恢复; 在 task/ 外, 免被 _all/doctor 扫到)
+        self.git: bool = r.returncode == 0
+        self.root: Path = Path(r.stdout.strip()) if self.git else Path.cwd()
+        self.dir: Path = self.root / ".skein"
+        self.tasks: Path = self.dir / "task"
+        self.archive_dir: Path = self.tasks / "archive"
+        self.trash_dir: Path = self.dir / "trash"  # 软删 task 落此 (.skein/trash/<id>.<YYYYMMDD>/, 可恢复; 在 task/ 外, 免被 _all/doctor 扫到)
         # 看板 title/标题带项目名, 用户一眼知是哪个项目
-        self.proj = self.root.name
+        self.proj: str = self.root.name
 
     # ---- 存取 ----
-    def config(self) -> dict:
+    def config(self) -> dict[str, Any]:
         f = self.dir / "config.yaml"
         if not f.exists():
             raise SystemExit("未初始化 — 先跑 `skein.py init`")
-        cfg = _yaml_load(f.read_text())
+        cfg: dict[str, Any] = _yaml_load(f.read_text())
         # 缺键自动回填默认值 (旧 config.yaml 补新增键), 有变更才回写省磁盘
         missing = {k: v for k, v in CONFIG_DEFAULTS.items() if k not in cfg}
         if missing:
@@ -200,7 +205,7 @@ class Skein:
                 cfg[k] = int(v)
         return cfg
 
-    def _autoclean(self, days=None) -> list:
+    def _autoclean(self, days: Optional[int] = None) -> list[str]:
         # 惰性归档: 已完成且超保留期的 task 移入 archive (保留期内留看板)。days 省略用 config retain_days。
         # 负数 = 永不自动清理。0 = finish 即归档 (旧行为)。每次 _sync 触发, 无需守护进程。
         d = days if days is not None else self.config().get("retain_days", 7)
@@ -214,7 +219,7 @@ class Skein:
                 archived.append(t["id"])
         return archived
 
-    def _sync(self):
+    def _sync(self) -> None:
         # 顶层 task.json 唯一写入口: tasks 是未归档 task 的去规范化状态镜像 (per-task task.json 仍单一真值源),
         # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
         self._autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
@@ -224,23 +229,23 @@ class Skein:
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._board(None)  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
 
-    def _load(self, tid) -> dict:
+    def _load(self, tid: str) -> dict[str, Any]:
         f = self.tasks / tid / "task.json"
         if not f.exists():
             raise SystemExit(f"task 不存在: {tid}")
-        return json.loads(f.read_text())
+        return cast(dict[str, Any], json.loads(f.read_text()))
 
-    def _save(self, t: dict):
+    def _save(self, t: dict[str, Any]) -> None:
         t["updated"] = now()
         # 先算 diff 再写: 内容未变则跳过 (增量, 不全量覆盖 → 免无谓 IO/mtime 抖动)
         self._write_if_changed(self.tasks / t["id"] / "task.json",
                                json.dumps(t, ensure_ascii=False, indent=2))
         self._board_task(t)  # task.json 唯一写入口 → 同步渲染子任务看板, 免各调用点漏刷 (task.json 变更即同步 task.md)
 
-    def _all(self) -> list:
+    def _all(self) -> list[dict[str, Any]]:
         if not self.tasks.exists():
             return []
-        out = []
+        out: list[dict[str, Any]] = []
         for d in sorted(self.tasks.iterdir()):
             if d.name == "archive":
                 continue
@@ -260,7 +265,7 @@ class Skein:
         out.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         return out
 
-    def _render_tasks(self) -> list:
+    def _render_tasks(self) -> list[dict[str, Any]]:
         # 看板专用读取: 顶层 task.json 索引 + 各 task/<id>/task.json 明细 并集为数据源。
         # per-task 目录是真值源 (有 subtask/desc/name, 明细胜出); 顶层镜像补齐目录被删/迁移丢失、
         # 仅存于索引的 task (只 id/status/deps/worktree), 免看板静默空白。
@@ -289,9 +294,9 @@ class Skein:
         else:
             DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
         tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
-        by_status = {}
+        by_status: dict[str, int] = {}
         sub_total = 0
-        sub_by_status = {}
+        sub_by_status: dict[str, int] = {}
         with_sub = 0
         for t in tasks:
             by_status[t["status"]] = by_status.get(t["status"], 0) + 1
@@ -310,20 +315,20 @@ class Skein:
                 **{f"subtask·{k}": v for k, v in sub_by_status.items()}}, title="看板数据源汇总")
         return tasks
 
-    def _archived_path(self, tid):
+    def _archived_path(self, tid: str) -> Optional[Path]:
         # 归档嵌套: archive/<年>/<月-日>/<id>
         hits = list(self.archive_dir.glob(f"*/*/{tid}")) if self.archive_dir.exists() else []
         return hits[0] if hits else None
 
-    def _active(self) -> list:
+    def _active(self) -> list[dict[str, Any]]:
         return [t for t in self._all() if t["status"] in STATUS_ACTIVE]
 
-    def _used_ids(self) -> set:
+    def _used_ids(self) -> set[str]:
         used = {p.name for p in self.tasks.iterdir() if p.name != "archive"} if self.tasks.exists() else set()
         used |= {p.name for p in self.archive_dir.glob("*/*/*")} if self.archive_dir.exists() else set()
         return used
 
-    def _scaffold(self, tid: str, name: str):
+    def _scaffold(self, tid: str, name: str) -> None:
         """落 planning 三工件脚手架 (prd 主入口 / design 详细设计 / findings 调研收敛).
         模板极简 (只给骨架标题, 正文 planning 填), 避免占 token; 已存在则不覆盖。
         调度 DAG / 子任务不在此 — 归 task.json (脚本维护)。"""
@@ -350,7 +355,7 @@ class Skein:
                 p.write_text(body)
 
     # ---- 命令 ----
-    def fmt(self, a):
+    def fmt(self, a: argparse.Namespace) -> None:
         # 规范化 .skein/task/<id>/prd.md: 各章节内一级 `- ` list 项补 `- [ ]` todo (已勾选态保留),
         # 校验四标准章节齐备且顺序正确, 不规范报错非零退出; 仅内容变化才写 (天然幂等 + 防 hook 循环)。
         tid = a.id.strip()
@@ -372,7 +377,8 @@ class Skein:
         #   (a) 所有章节: `- ` 且非 checkbox → 补 `- [ ] `
         #   (b) 仅「目标」「验收标准」章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
         todo_sections = {"目标", "验收标准"}
-        out, changed, cur = [], 0, None
+        out: list[str] = []
+        changed, cur = 0, None
         for ln in lines:
             if h := re.match(r"^##\s+(.+?)\s*$", ln):
                 cur = h.group(1).strip()
@@ -393,7 +399,7 @@ class Skein:
         prd.write_text(new)
         print(f"prd 已规范化: {prd} (补 {changed} 项 todo)")
 
-    def init(self, _):
+    def init(self, _: argparse.Namespace) -> None:
         self.dir.mkdir(exist_ok=True)
         self.tasks.mkdir(exist_ok=True)
         self.archive_dir.mkdir(parents=True, exist_ok=True)
@@ -413,7 +419,7 @@ class Skein:
         self._board(None)
         print(f"已初始化 SKEIN 工作区: {self.dir}")
 
-    def create(self, a):
+    def create(self, a: argparse.Namespace) -> None:
         tid = a.id.strip()
         # 可读 id: 人工传入, 必须是 slug (kebab-case, 兼作 git 分支名 + 目录名)
         if not SLUG_RE.match(tid):
@@ -446,21 +452,21 @@ class Skein:
         print(f"{tid}\t{self.tasks / tid}")
 
     @staticmethod
-    def _parse_repos(raw) -> list:
+    def _parse_repos(raw: Any) -> list[str]:
         # "a, b/c" → ["a","b/c"]; 归一去空/去首尾斜杠 ('.' 保留=根仓)
         return [p.strip().strip("/") or "." for p in (raw or "").split(",") if p.strip()]
 
-    def _wts(self, t) -> list:
+    def _wts(self, t: dict[str, Any]) -> list[dict[str, Any]]:
         # task 的 worktree 生命周期真值; 兼容旧结构 (仅 scalar worktree/branch)
         ws = t.get("worktrees")
         if ws:
-            return ws
+            return cast(list[dict[str, Any]], ws)
         rel = t.get("worktree")
         if rel:
             return [{"repo": ".", "wt": rel, "branch": t.get("branch"), "merged": False}]
         return []
 
-    def _ignore_wt(self, repo_dir: Path):
+    def _ignore_wt(self, repo_dir: Path) -> None:
         # 把 worktree_root 写进该 git 仓 .gitignore (缺则补), 免 worktree 目录污染该仓 status。
         # 子仓是独立 git/submodule, root .gitignore 管不到, 故各子仓自补。
         wt = self.config()["worktree_root"].rstrip("/") + "/"
@@ -472,7 +478,7 @@ class Skein:
         with gi.open("a") as f:
             f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
 
-    def _mkwt(self, t, repo, cfg) -> dict:
+    def _mkwt(self, t: dict[str, Any], repo: str, cfg: dict[str, Any]) -> dict[str, Any]:
         # 在指定子 git (repo='.'=根仓) 建 worktree+branch; 校验确是 git 工作树 (含 submodule)
         sub = self.root if repo == "." else self.root / repo
         if not sub.exists():
@@ -490,7 +496,7 @@ class Skein:
             self._ignore_wt(sub)  # 子仓自忽略; 根仓已由 init 补
         return {"repo": repo, "wt": wt_rel, "branch": t["branch"], "merged": False}
 
-    def repos(self, a):
+    def repos(self, a: argparse.Namespace) -> None:
         # 查/声明 task 的目标子 git (planning 声明: 每个各开 worktree)。仅 pending 可改 (start 后 worktree 已定)
         t = self._load(a.id)
         if a.set is None:
@@ -503,7 +509,7 @@ class Skein:
         self._sync()
         print(f"{a.id} repos = {', '.join(t['repos']) or '(空)'}")
 
-    def start(self, a):
+    def start(self, a: argparse.Namespace) -> None:
         # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SystemExit(1) 阻止 start
         print("start 前置体检 (doctor):")
         self.doctor(a)
@@ -537,7 +543,7 @@ class Skein:
             t["worktrees"] = [self._mkwt(t, r, cfg) for r in repos]
             t["worktree"] = ", ".join(w["wt"] for w in t["worktrees"])  # 显示汇总
         elif wt_on:
-            rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库
+            rel = f"{cfg['worktree_root']}/skein-{a.id}"  # 相对 project root 存盘, 免机器绝对路径入库  # type: ignore[attr-defined]
             git("worktree", "add", "-b", t["branch"], str(self.root / rel), "HEAD", cwd=self.root)
             t["worktree"] = rel
             t["worktrees"] = [{"repo": ".", "wt": rel, "branch": t["branch"], "merged": False}]
@@ -556,7 +562,7 @@ class Skein:
             loc = f"{reason}: 原地执行 (无 worktree 隔离)"
         print(f"{a.id} started\n{loc}")
 
-    def check(self, a):
+    def check(self, a: argparse.Namespace) -> None:
         # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。
         t = self._load(a.id)
         if t["status"] != S_ACTIVE:
@@ -567,23 +573,23 @@ class Skein:
         self._sync()
         print(f"{a.id} checked")
 
-    def _dep_unfinished(self, dep) -> bool:
+    def _dep_unfinished(self, dep: str) -> bool:
         # 归档即视为完成
         if self._archived_path(dep):
             return False
         f = self.tasks / dep / "task.json"
         if not f.exists():
             return False  # 未知 dep 不阻塞
-        return json.loads(f.read_text())["status"] != S_DONE
+        return cast(str, json.loads(f.read_text())["status"]) != S_DONE
 
-    def finish(self, a):
+    def finish(self, a: argparse.Namespace) -> None:
         tid = a.id
         t = self._load(tid)
         if t["status"] not in STATUS_ACTIVE:
             raise SystemExit(f"{tid} 状态 {t['status']}, 非 active 无法 finish")
         cfg = self.config()
         wts = self._wts(t)
-        conflicts = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
+        conflicts: list[tuple[str, str]] = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
         for w in wts:
             if w.get("merged"):
                 continue  # 幂等: 前次已合并的子 git 跳过 (部分冲突重跑场景)
@@ -638,7 +644,7 @@ class Skein:
         keep = "已归档" if archived else f"保留 {cfg.get('retain_days', 7)} 天后自动归档"
         print(f"{tid} finished ({keep})" + tail)
 
-    def archive(self, a):
+    def archive(self, a: argparse.Namespace) -> None:
         # 归档 = 丢弃 (不 merge): 先销 worktree/branch, 免残留悬挂
         f = self.tasks / a.id / "task.json"
         if f.exists():
@@ -653,7 +659,7 @@ class Skein:
         self._sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
         print(f"{a.id} archived")
 
-    def _destroy_worktrees(self, t):
+    def _destroy_worktrees(self, t: dict[str, Any]) -> None:
         # 销 task 全部 worktree + 分支 (active task 删/归档前清理悬挂); 复用 archive 的强删策略
         for w in self._wts(t):
             sub = self.root if w["repo"] == "." else self.root / w["repo"]
@@ -663,7 +669,7 @@ class Skein:
                 git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
             git("branch", "-D", w["branch"], cwd=sub, check=False)
 
-    def del_(self, a):
+    def del_(self, a: argparse.Namespace) -> None:
         # 删 task (软删 → .skein/trash/<id>.<date>/, 可恢复) 或单 subtask (直接移除, 不进 trash)
         tid = a.task_id
         src = self.tasks / tid
@@ -671,7 +677,7 @@ class Skein:
             raise SystemExit(f"task 不存在: {tid}")
         t = self._load(tid)
 
-        if a.subtask_sid:  # 删单 subtask
+        if a.subtask_sid:  # 删单 subtask  # type: ignore[attr-defined]
             sid = a.subtask_sid
             subs = t.get("subtasks", [])
             new_subs = [s for s in subs if s.get("sid") != sid]
@@ -706,7 +712,7 @@ class Skein:
         self._sync()  # 刷顶层索引 (移除该 task) + 看板
         print(f"{tid} deleted (软删可恢复: {dst})")
 
-    def _archive(self, tid):
+    def _archive(self, tid: str) -> None:
         src = self.tasks / tid
         if not src.exists():
             return
@@ -717,7 +723,7 @@ class Skein:
             shutil.rmtree(dst)
         shutil.move(str(src), str(dst))
 
-    def clean(self, a):
+    def clean(self, a: argparse.Namespace) -> None:
         # 用户主动清理 (skein-clean skill 唯一入口): 归档完成超 --days 天的 task。
         # ponytail: --days 只能比 config retain_days 更激进 (更小); 更大值被 _sync 的自动 ceiling 归档抵消。
         archived = self._autoclean(days=a.days)
@@ -728,7 +734,7 @@ class Skein:
         else:
             print(f"无超 {d} 天保留期的完成 task 可归档")
 
-    def current(self, a):
+    def current(self, a: argparse.Namespace) -> None:
         active = self._active()
         if not active:
             print("无 active task")
@@ -736,14 +742,14 @@ class Skein:
         for t in active:
             print(f"{t['id']}\t{t['status']}\t{t['name']}\t{t.get('worktree') or '-'}")
 
-    def ready(self, a):
+    def ready(self, a: argparse.Namespace) -> None:
         # task 级就绪批 (脚本算, 非 AI 判): pending + 前置全 done + 有空闲 active 槽位。
         # 与 subtask ready 同构, 但只读预览 (start 才占槽); task 无写集字段, 故不算写集冲突。
         slots = self.config()["max_active"] - len(self._active())
         if slots <= 0:
             print(f"无空闲 active 槽 (上限 {self.config()['max_active']} 已满) — 先 finish 一个再 start")
             return
-        picked = []
+        picked: list[dict[str, Any]] = []
         for t in self._all():
             if t["status"] != S_PENDING:
                 continue
@@ -761,7 +767,7 @@ class Skein:
             deps = ",".join(t["deps"]) or "-"
             print(f"{t['id']}\t{t['name']}\t前置: {deps}")
 
-    def pop(self, a):
+    def pop(self, a: argparse.Namespace) -> None:
         # 只读提取一个"可执行" (task, subtask) 对: active task 内首个就绪 subtask (pending+依赖全done+有空闲并发槽)。
         # 仅选取, 不改状态/不认领 —— 是否执行、何时认领由 AI 判定。执行前须 `subtask claim/start` 占槽。
         for t in self._active():
@@ -791,7 +797,7 @@ class Skein:
                 return
         print("无可执行 (task, subtask): active task 均无就绪 subtask, 亦无就绪 pending task 可激活")
 
-    def status(self, a):
+    def status(self, a: argparse.Namespace) -> None:
         # 只读查态: `status <tid>` 出 task 态 + subtask 汇总; `status <tid> <sid>` 出单个 subtask 明细。
         t = self._load(a.tid)
         subs = t.get("subtasks", [])
@@ -830,12 +836,12 @@ class Skein:
             ag = s.get("agent", "skein-executor")
             print(f"  {s['sid']}\t{s['status']}\t{_sub_pct(s)}%\t{s['name']}\t依赖:{sdeps}\tagent:{ag}")
 
-    def _brief(self, t):
+    def _brief(self, t: dict[str, Any]) -> dict[str, Any]:
         # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
         # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 pending task 前置全 done (可 start)。
         subs = t.get("subtasks", [])
         cnt = [0, 0, 0, 0]
-        idx = {SS_DONE: 0, SS_RUNNING: 1, SS_PENDING: 2, SS_FAILED: 3}
+        idx: dict[str, int] = {SS_DONE: 0, SS_RUNNING: 1, SS_PENDING: 2, SS_FAILED: 3}
         for s in subs:
             i = idx.get(s["status"])
             if i is not None:
@@ -850,7 +856,7 @@ class Skein:
                 "worktrees": [{"repo": w["repo"], "wt": w["wt"]} for w in self._wts(t)],
                 "pct": pct, "subs": cnt, "ready": ready}
 
-    def list_(self, a):
+    def list_(self, a: argparse.Namespace) -> None:
         tasks = self._all()
         st = (getattr(a, "status", None) or "").strip()
         if st:
@@ -871,7 +877,7 @@ class Skein:
         for t in tasks:
             print(f"{t['id']}\t{t['status']}\t{t['name']}")
 
-    def contract(self, a):
+    def contract(self, a: argparse.Namespace) -> None:
         t = self._load(a.id)
         t.setdefault("contracts", [])
         if a.add:
@@ -884,20 +890,21 @@ class Skein:
             for i, c in enumerate(t["contracts"], 1):
                 print(f"{i}. {c}")
 
-    def doctor(self, a):
+    def doctor(self, a: argparse.Namespace) -> None:
         # 纯脚本体检: 扫 task/subtask 不变量违规 (源码真值 = per-task task.json)。
         # 不做 AI 判断, 只查机械可验的结构性问题。有 ✗ 错误 → exit 1 (可 CI/hook 门禁)。
         tasks = self._all()
         used = self._used_ids()  # 含已归档, dep 指向归档 task 合法
         ids = {t["id"] for t in tasks}
         wt_on = self.git and self.config().get("use_worktree", True)  # 遵守配置: 禁用则不查 worktree
-        errs, warns = [], []
+        errs: list[str] = []
+        warns: list[str] = []
 
-        def cycle(graph):  # graph: node -> [邻居]; 返回首个环路径或 None
+        def cycle(graph: dict[str, list[str]]) -> Optional[list[str]]:  # graph: node -> [邻居]; 返回首个环路径或 None
             WHITE, GRAY, BLACK = 0, 1, 2
             color = {n: WHITE for n in graph}
-            stack = []
-            def dfs(n):
+            stack: list[str] = []
+            def dfs(n: str) -> Optional[list[str]]:
                 color[n] = GRAY; stack.append(n)
                 for m in graph.get(n, []):
                     if m not in color:
@@ -1019,8 +1026,70 @@ class Skein:
             print(f"\n共 {len(errs)} 错误, {len(warns)} 警告")
         if errs:
             raise SystemExit(1)
+        if getattr(a, "quality", False):
+            # 默认 doctor 只查 task 不变量 (快); --quality/-Q 再跑 mypy+pytest 质量门 (慢, CI/hook 按需调)。
+            self._quality_gate()
 
-    def _uninit_ctx(self):
+    @staticmethod
+    def _find_tool_interpreter(module: str) -> Optional[str]:
+        # mypy/pytest 常装在不同 python (mise python 有 mypy 无 pytest; 系统 python 反之)。
+        # 候选顺序: sys.executable (跑 skein.py 的 python) → /usr/bin/python3 → PATH 的 python3。
+        # 返回首个能 import 该 module 的解释器路径, 找不到 None。
+        cands: list[str] = [sys.executable, "/usr/bin/python3", "python3"]
+        seen: set[str] = set()
+        for py in cands:
+            if py in seen:
+                continue
+            seen.add(py)
+            try:
+                r = subprocess.run([py, "-c", f"import {module}"], capture_output=True, timeout=15)
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if r.returncode == 0:
+                return py
+        return None
+
+    def _quality_gate(self) -> None:
+        # 质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass。失败指明文件/测, exit 1。
+        # ponytail: 不解析 mypy/pytest 输出做花式摘要, 直接把尾部行回显 (工具自身报错已足够可操作)。
+        scripts_dir = Path(__file__).parent
+        print("\n── 质量门 (mypy --strict + pytest) ──")
+        failed = False
+
+        mypy_py = self._find_tool_interpreter("mypy")
+        if mypy_py is None:
+            print("✗ mypy 不可用: 无 python 能 import mypy (装: pip install mypy)")
+            failed = True
+        else:
+            r = subprocess.run([mypy_py, "-m", "mypy", "--strict", str(scripts_dir)],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                failed = True
+                tail = "\n".join(r.stdout.splitlines()[-15:]) or r.stderr.strip()
+                print(f"✗ mypy --strict 失败 (python={mypy_py}):\n{tail}")
+            else:
+                print(f"✓ mypy --strict 0 错 (python={mypy_py})")
+
+        pytest_py = self._find_tool_interpreter("pytest")
+        if pytest_py is None:
+            print("✗ pytest 不可用: 无 python 能 import pytest (装: pip install pytest)")
+            failed = True
+        else:
+            r = subprocess.run([pytest_py, "-m", "pytest", str(scripts_dir), "-q"],
+                               capture_output=True, text=True)
+            if r.returncode != 0:
+                failed = True
+                tail = "\n".join((r.stdout or r.stderr).splitlines()[-20:])
+                print(f"✗ pytest 失败 (python={pytest_py}):\n{tail}")
+            else:
+                line = next((l for l in r.stdout.splitlines() if "passed" in l), "pass")
+                print(f"✓ pytest {line.strip()} (python={pytest_py})")
+
+        if failed:
+            raise SystemExit(1)
+        print("✅ 质量门通过")
+
+    def _uninit_ctx(self) -> str:
         # 未初始化注入文案。检测到 .trellis/ → 强命令式, 显式压过 trellisx 的 active-task 注入 (决策: skein 抢做唯一任务管理器);
         # 无 trellis → 常规硬提示先 setup。
         if (self.root / ".trellis").exists():
@@ -1034,7 +1103,7 @@ class Skein:
                 "本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。\n"
                 "查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。")
 
-    def session_context(self):
+    def session_context(self) -> None:
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
         if not self.git and not self.dir.exists():
             return  # 非 git 且无 .skein: 别在任意目录 nag (用户 setup/init 建了 .skein 才接管)
@@ -1112,7 +1181,7 @@ class Skein:
             return "疑似任务"
         return "模糊"
 
-    def user_prompt(self):
+    def user_prompt(self) -> None:
         # UserPromptSubmit hook: 每 prompt 必注入 (最高频强制点)。
         # 未初始化 → 硬提示先 setup;
         # 已初始化 → 注入 task 判定 + **脚本预筹** (3 档启发式) + 查重句。
@@ -1139,12 +1208,12 @@ class Skein:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
 
-    def board(self, a):
+    def board(self, a: argparse.Namespace) -> None:
         self._board(a)
         print(f"看板已更新: {self.dir / 'task.md'}")
 
     @staticmethod
-    def _write_if_changed(path: Path, content: str):
+    def _write_if_changed(path: Path, content: str) -> None:
         # 渲染派生文件 (task.md) 每次变更重算, 但内容常与盘上相同 —
         # 先比对再写, 免无谓 IO/SSD 写入 (增量保护磁盘)。
         try:
@@ -1156,7 +1225,7 @@ class Skein:
         path.write_text(content)
         DBG.log(f"✎ 写入 {path}  ({len(content)} 字符)", style="green")
 
-    def _board(self, _):
+    def _board(self, _: Any) -> None:
         rows = []
         for t in self._render_tasks():
             deps = ",".join(t["deps"]) or "-"
@@ -1173,16 +1242,16 @@ class Skein:
         self._write_if_changed(self.dir / "task.md", md)
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
-    def _crit_weight(self, subs: list) -> dict:
+    def _crit_weight(self, subs: list[dict[str, Any]]) -> dict[str, int]:
         """纯拓扑深度: 每 subtask 的最长下游链长 (每步计 1, 不依赖 estimate)。
         权重大 = 越靠关键路径 (阻塞最多下游), 槽位紧张时优先派 → 最小化 makespan (总工期)。"""
-        succ = {}  # sid -> 直接下游 sid
+        succ: dict[str, list[str]] = {}  # sid -> 直接下游 sid
         for s in subs:
             for d in s.get("depends_on", []):
                 succ.setdefault(d, []).append(s["sid"])
-        memo = {}
+        memo: dict[str, int] = {}
 
-        def w(sid, seen=()):
+        def w(sid: str, seen: tuple[str, ...] = ()) -> int:
             if sid in memo:
                 return memo[sid]
             if sid in seen:  # ponytail: 环保护 (DAG 校验兜底不该到这), 断链避免无限递归, 不缓存
@@ -1193,12 +1262,12 @@ class Skein:
 
         return {s["sid"]: w(s["sid"]) for s in subs}
 
-    def _pending_queue(self, tasks: list) -> list:
+    def _pending_queue(self, tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """待执行 subtask 队列 (全部未完成 task, 同调度序): 每个 pending subtask 一条。
         排序 = task 调度序 (active > 就绪 pending > 阻塞 pending, 同级按传入顺序)
         → task 内 (真就绪 > 关键路径权重降序 > 登记序)。
         就绪 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
-        q = []
+        q: list[dict[str, Any]] = []
         for ti, t in enumerate(tasks):
             if t["status"] not in (S_PENDING, S_ACTIVE, S_CHECK):
                 continue  # 已完成/失败 task 跳过
@@ -1225,7 +1294,7 @@ class Skein:
         q.sort(key=lambda x: (x["trank"], x["ti"], not x["ready"], -x["crit"], x["i"]))
         return q
 
-    def _ready(self, t: list) -> list:
+    def _ready(self, t: dict[str, Any]) -> list[dict[str, Any]]:
         """就绪批: pending + 依赖全 done, 按统筹学关键路径权重降序排序后截到空闲槽位
         (关键路径优先 = 最长下游链先派, 最小化 makespan; 并行只看 depends_on DAG, 无写文件冲突自算)。"""
         subs = t.get("subtasks", [])
@@ -1242,7 +1311,7 @@ class Skein:
         cand.sort(key=lambda p: (-crit.get(p[1]["sid"], 0), p[0]))
         return [s for _, s in cand[:slots]]
 
-    def _global_ready(self) -> list:
+    def _global_ready(self) -> list[tuple[dict[str, Any], dict[str, Any]]]:
         """全局跨 task 就绪批: 所有 active task 的 ready subtask 合池,
         按 (拓扑深度降序, task 登记序, subtask 登记序) 排序, 截到全局 max_active - 全局 running 槽。
         返回 [(task_obj, subtask_obj), ...]。"""
@@ -1252,7 +1321,7 @@ class Skein:
         slots = self.config()["max_active"] - global_running
         if slots <= 0:
             return []
-        cand = []
+        cand: list[tuple[dict[str, Any], dict[str, Any], int, int, int]] = []
         for ti, t in enumerate(tasks):
             subs = t.get("subtasks", [])
             done = {s["sid"] for s in subs if s["status"] == SS_DONE}
@@ -1267,13 +1336,13 @@ class Skein:
         cand.sort(key=lambda x: (-x[4], x[2], x[3]))
         return [(c[0], c[1]) for c in cand[:slots]]
 
-    def _sub(self, t, sid):
+    def _sub(self, t: dict[str, Any], sid: str) -> dict[str, Any]:
         for s in t.get("subtasks", []):
             if s["sid"] == sid:
-                return s
+                return cast(dict[str, Any], s)
         raise SystemExit(f"subtask 不存在: {t['id']}/{sid}")
 
-    def claim(self, a):
+    def claim(self, a: argparse.Namespace) -> None:
         """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_active 槽。
         整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。"""
         batch = self._global_ready()
@@ -1284,7 +1353,7 @@ class Skein:
             mp = self.config()["max_active"]
             print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
             return
-        claimed = []
+        claimed: list[tuple[str, dict[str, Any]]] = []
         for t, s in batch:
             s["status"] = SS_RUNNING
             if not s.get("started"):
@@ -1300,7 +1369,7 @@ class Skein:
             print(f"{tid}/{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}"
                   f"\tskills: {sk}\t验收: {chk}")
 
-    def subtask(self, a):
+    def subtask(self, a: argparse.Namespace) -> None:
         if a.action == "add":
             t = self._load(a.tid)
             subs = t.setdefault("subtasks", [])
@@ -1403,8 +1472,8 @@ class Skein:
         self._save(t)  # _save 已渲染子任务看板
         print(f"{a.tid}/{a.sid} → {s['status']}")
 
-    def _board_task(self, t):
-        rows = []
+    def _board_task(self, t: dict[str, Any]) -> None:
+        rows: list[str] = []
         for s in t.get("subtasks", []):
             deps = ",".join(s.get("depends_on", [])) or "-"
             chk = "; ".join(s.get("验收", [])) or "-"
@@ -1423,27 +1492,27 @@ class Skein:
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
     # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
-    def _board_data(self):
+    def _board_data(self) -> dict[str, Any]:
         # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
         # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
-        st_cls = {S_PENDING: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
-        ss_cls = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
-        node_var = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
+        st_cls: dict[str, str] = {S_PENDING: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
+        ss_cls: dict[str, str] = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
+        node_var: dict[str, str] = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
                     S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
-        node_cls = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
+        node_cls: dict[str, str] = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
                     S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
-        def fmt_dur(mins):
+        def fmt_dur(mins: Optional[int]) -> str:
             if mins is None:
                 return "-"
             return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
 
         tnow = now()
-        _srank = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
+        _srank: dict[str, int] = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
         tasks = sorted(self._render_tasks(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
-        name_of = {t["id"]: t.get("name", t["id"]) for t in tasks}
+        name_of: dict[str, str] = {t["id"]: t.get("name", t["id"]) for t in tasks}
 
-        def elapsed_of(t):
+        def elapsed_of(t: dict[str, Any]) -> int:
             st = t.get("status")
             if st == S_PENDING:
                 return 0
@@ -1451,18 +1520,18 @@ class Skein:
             if not start:
                 return 0
             end = t.get("finished") if (st == S_DONE and t.get("finished")) else tnow
-            return round((end - start) / 60)
+            return cast(int, round((end - start) / 60))
 
-        def task_pct(t):
+        def task_pct(t: dict[str, Any]) -> int:
             # ponytail: 委托全局三阶段加权 _task_pct (保留闭包名兼容 board 内多处引用)
             return _task_pct(t)
 
-        def node(_id, nm, stt, deps, pct, desc):
+        def node(_id: str, nm: str, stt: str, deps: Any, pct: int, desc: Any) -> list[Any]:
             # DAG 节点统一为数组 [id, name, status, deps(id 数组), pct, desc]
             return [_id, nm, stt, [d for d in (deps or [])], pct, desc or ""]
 
         # 概览聚合
-        cnt = {}
+        cnt: dict[str, int] = {}
         elapsed_total = 0
         for t in tasks:
             cnt[t["status"]] = cnt.get(t["status"], 0) + 1
@@ -1471,7 +1540,7 @@ class Skein:
         task_nodes = [node(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
                            task_pct(t), t.get("desc", "")) for t in tasks]
         # 概览 task 节点悬浮浮层数据: 总进度 + subtask DAG (>=2 画图, 否则列表兜底)
-        tips = {}
+        tips: dict[str, Any] = {}
         links = {t["id"]: f'#task-{t["id"]}' for t in tasks}
         for t in tasks:
             subs = t.get("subtasks", [])
@@ -1485,7 +1554,7 @@ class Skein:
             }
         # task+subtask 综合 DAG: 只画 subtask, 跨 task 前置连到前置 task 叶子; 无 subtask 的 task 仍作节点
         has_sub = any(t.get("subtasks") for t in tasks)
-        leaves = {}
+        leaves: dict[str, list[str]] = {}
         for t in tasks:
             subs = t.get("subtasks", [])
             if subs:
@@ -1494,7 +1563,7 @@ class Skein:
                     or [f'{t["id"]}/{subs[-1]["sid"]}']
             else:
                 leaves[t["id"]] = [t["id"]]
-        combined = []
+        combined: list[list[Any]] = []
         for t in tasks:
             subs = t.get("subtasks", [])
             prereq = [nid for d in t.get("deps", []) for nid in leaves.get(d, [d])]
@@ -1515,18 +1584,19 @@ class Skein:
         est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
 
         # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的待处理 task
-        next_up_id = None
+        next_up_id: Optional[str] = None
         if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
             next_up_id = next((t["id"] for t in tasks
                                if t["status"] == S_PENDING
                                and not any(self._dep_unfinished(d) for d in t.get("deps", []))), None)
 
-        def prd_data(tid):
+        def prd_data(tid: str) -> list[dict[str, Any]]:
             # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
             prd = self.tasks / tid / "prd.md"
             if not prd.exists():
                 return []
-            secs, cur = {}, None
+            secs: dict[str, list[tuple[str, bool, str]]] = {}
+            cur: Optional[str] = None
             for ln in prd.read_text(encoding="utf-8", errors="replace").splitlines():
                 h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
                 if h:
@@ -1543,23 +1613,23 @@ class Skein:
                 txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
                 if txt and not txt.lstrip().startswith("TODO"):
                     secs.setdefault(cur, []).append(("prose", False, txt))
-            out = []
+            out: list[dict[str, Any]] = []
             for name in ("目标", "验收标准"):
                 items = secs.get(name)
                 if not items:
                     continue
                 checks = [d for k, d, _ in items if k == "check"]
-                badge = [sum(1 for c in checks if c), len(checks)] if checks else None
+                badge: Optional[list[int]] = [sum(1 for c in checks if c), len(checks)] if checks else None
                 prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
                 out.append({
                     "name": name, "badge": badge,
-                    "items": [{"kind": k, "done": bool(d), "text": t,
+                    "items": [{"kind": k, "done": bool(d), "text": tt,
                                "proseCls": ("" if k == "check" else prose_cls)}
-                              for k, d, t in items],
+                              for k, d, tt in items],
                 })
             return out
 
-        cards = []
+        cards: list[dict[str, Any]] = []
         for t in tasks:
             subs = t.get("subtasks", [])
             sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}
@@ -1622,7 +1692,7 @@ class Skein:
             "cards": cards,
         }
 
-    def _board_html(self):
+    def _board_html(self) -> str:
         # 单一 JS 渲染器: Python 只出 shell + 内联结构化数据 (window.__SKEIN__),
         # 卡片/总览/DAG 全由 board-render.js 前端渲染。serve 每请求实时渲染, 不落盘。
         # 首屏内联数据, 刷新走 GET /__skein__/data 拉新 JSON 重渲染 (不取 HTML)。
@@ -1633,7 +1703,7 @@ class Skein:
         payload = (json.dumps(data, ensure_ascii=False)
                    .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
 
-        def esc(s):
+        def esc(s: Any) -> str:
             return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         proj = esc(self.proj)
         # 资产版本戳: css/js url 带 ?v=<rev>, 资产内容变 → url 变 → 浏览器必重取, 免旧 css/js 缓存 (stat 卡选中态/DAG 置灰 不 stale)
@@ -1659,7 +1729,7 @@ class Skein:
             html = html.replace("{{" + k + "}}", v)
         return html
 
-    def _webapp_html(self):
+    def _webapp_html(self) -> str:
         # 工程化前端首页: 读 assets/webapp/index.html, 填 token (PROJ/PAYLOAD/VER)。
         # token 缺席则 replace 无副作用 → 与 s1 的 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
         html = (self._webapp_dir() / "index.html").read_text(encoding="utf-8")
@@ -1679,13 +1749,13 @@ class Skein:
     def _spec_root(self) -> Path:
         return (self.dir / "spec").resolve()
 
-    def _spec_tree(self) -> dict:
+    def _spec_tree(self) -> dict[str, Any]:
         # spec 树: {layer: {category: [file, ...]}} (跳 index.md)
         root = self._spec_root()
-        tree = {}
+        tree: dict[str, Any] = {}
         for layer in ("core", "recall"):
             ld = root / layer
-            cats = {}
+            cats: dict[str, list[str]] = {}
             if ld.is_dir():
                 for cat in sorted(p for p in ld.iterdir() if p.is_dir()):
                     files = [f.name for f in sorted(cat.glob("*.md")) if f.name != "index.md"]
@@ -1694,7 +1764,7 @@ class Skein:
             tree[layer] = cats
         return tree
 
-    def _spec_resolve(self, rel):
+    def _spec_resolve(self, rel: Any) -> Optional[Path]:
         # realpath 校验: 解析后必须在 .skein/spec/ 内, 越界返回 None (防路径穿越)
         root = self._spec_root()
         if not isinstance(rel, str) or not rel.strip():
@@ -1705,7 +1775,7 @@ class Skein:
             return None
         return p if (p == root or root in p.parents) else None
 
-    def _task_detail(self, tid) -> dict:
+    def _task_detail(self, tid: str) -> Optional[dict[str, Any]]:
         # task.json 全文 + prd/design/findings 原文 + subtask + 契约; 未归档缺失则回落归档目录
         tdir = self.tasks / tid
         archived = False
@@ -1720,16 +1790,16 @@ class Skein:
             data = json.loads(tj.read_text())
         except (json.JSONDecodeError, OSError):
             return None
-        docs = {}
+        docs: dict[str, Any] = {}
         for fn in ("prd.md", "design.md", "findings.md"):
             f = tdir / fn
             docs[fn[:-3]] = f.read_text(encoding="utf-8", errors="replace") if f.exists() else None
         return {"task": data, "docs": docs, "archived": archived,
                 "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", [])}
 
-    def _archive_list(self) -> list:
+    def _archive_list(self) -> list[dict[str, Any]]:
         # 已归档 task 列表 (archive/<年>/<月-日>/<id>)
-        out = []
+        out: list[dict[str, Any]] = []
         if self.archive_dir.exists():
             for d in sorted(self.archive_dir.glob("*/*/*")):
                 tj = d / "task.json"
@@ -1745,11 +1815,11 @@ class Skein:
                             "subs": len(t.get("subtasks", []))})
         return out
 
-    def _dashboard(self) -> dict:
+    def _dashboard(self) -> dict[str, Any]:
         # 统计聚合: 复用 _board_data overview + 补 subtask 状态分布 + 完成率
         data = self._board_data()
         ov = data["overview"]
-        sub_stat = {}
+        sub_stat: dict[str, int] = {}
         for c in data["cards"]:
             for s in c.get("subtable", []):
                 sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
@@ -1757,7 +1827,7 @@ class Skein:
         done = ov["stats"].get(S_DONE, 0)
         # 进行中 subtask: active task 内 SS_RUNNING (含耗时)
         tnow = now()
-        running_subs = []
+        running_subs: list[dict[str, Any]] = []
         for t in self._active():
             for s in t.get("subtasks", []):
                 if s.get("status") != SS_RUNNING:
@@ -1788,7 +1858,7 @@ class Skein:
                 "runningSubs": running_subs, "readyTasks": ready_tasks,
                 "activeTasks": active_tasks}
 
-    def _queue(self) -> dict:
+    def _queue(self) -> dict[str, Any]:
         # 待执行队列 (复用 ready/pop 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
         tasks = self._render_tasks()
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
@@ -1797,7 +1867,7 @@ class Skein:
                        for t in self._all()
                        if t["status"] == S_PENDING
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
-        ready_subs = []
+        ready_subs: list[dict[str, Any]] = []
         for t in self._active():
             for s in self._ready(t):
                 ready_subs.append({"tid": t["id"], "sid": s["sid"],
@@ -1807,7 +1877,7 @@ class Skein:
                                    "depends_on": s.get("depends_on", [])})
         # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + _active 内 SS_RUNNING, 不再 _board_data
         tnow = now()
-        running_subs = []
+        running_subs: list[dict[str, Any]] = []
         for t in self._active():
             for s in t.get("subtasks", []):
                 if s.get("status") != SS_RUNNING:
@@ -1817,7 +1887,7 @@ class Skein:
                                      "agent": s.get("agent", "skein-executor"),
                                      "elapsed": round((tnow - started) / 60) if started else None})
         # ponytail: active_tasks 自算, 复用 tasks 避免二次 _render_tasks (字段对齐 _board_data.cards)
-        active_tasks = []
+        active_tasks: list[dict[str, Any]] = []
         for t in tasks:
             if t["status"] not in (S_ACTIVE, S_CHECK):
                 continue
@@ -1837,12 +1907,12 @@ class Skein:
                 "readyTasks": ready_tasks, "readySubtasks": ready_subs,
                 "activeTasks": active_tasks, "runningSubs": running_subs}
 
-    def _search(self, q) -> dict:
+    def _search(self, q: Any) -> dict[str, Any]:
         # 跨 task/subtask/prd/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
         q = (q or "").strip().lower()
         if not q:
             return {"query": q, "hits": []}
-        hits = []
+        hits: list[dict[str, Any]] = []
         for t in self._render_tasks():
             if q in " ".join(str(x or "") for x in (t["id"], t.get("name", ""), t.get("desc", ""))).lower():
                 hits.append({"kind": "task", "id": t["id"],
@@ -1866,18 +1936,21 @@ class Skein:
         return {"query": q, "hits": hits}
 
     # exec 白名单: 严格 enum → 固定 argv (绝不 shell 拼串)。返回 argv 或 None(拒绝)。
-    def _exec_argv(self, body: dict):
+    def _exec_argv(self, body: dict[str, Any]) -> Optional[list[str]]:
         cmd = body.get("cmd")
         base = [sys.executable, str(Path(__file__).resolve())]
 
-        def s(k):  # 取字符串参数; 非 str/空 → None
+        def s(k: str) -> Optional[str]:  # 取字符串参数; 非 str/空 → None
             v = body.get(k)
             return v.strip() if isinstance(v, str) and v.strip() else None
+
+        def g(k: str) -> str:  # s() 的非 None 收窄版 (调用点已过 if 守卫, cast 免 mypy 误报)
+            return cast(str, s(k))
 
         # 只读命令
         if cmd == "list":
             argv = ["list", "--json"]
-            return base + (argv + ["--status", s("status")] if s("status") else argv)
+            return base + (argv + ["--status", g("status")] if s("status") else argv)
         if cmd == "ready":
             return base + ["ready"]
         if cmd == "pop":
@@ -1889,37 +1962,37 @@ class Skein:
         if cmd == "status":
             if not s("id"):
                 return None
-            argv = ["status", s("id")] + ([s("sid")] if s("sid") else []) + ["--json"]
+            argv = ["status", g("id")] + ([g("sid")] if s("sid") else []) + ["--json"]
             return base + argv
         if cmd == "contract":  # 仅查 (禁 --add)
-            return base + ["contract", s("id")] if s("id") else None
+            return base + ["contract", g("id")] if s("id") else None
         if cmd == "subtask-list":
-            return base + ["subtask", "list", s("id")] if s("id") else None
+            return base + ["subtask", "list", g("id")] if s("id") else None
         # 安全写命令
         if cmd == "create":
             if not (s("id") and s("name") and s("desc")):
                 return None
-            argv = ["create", s("id"), "--name", s("name"), "--desc", s("desc")]
-            return base + (argv + ["--deps", s("deps")] if s("deps") else argv)
+            argv = ["create", g("id"), "--name", g("name"), "--desc", g("desc")]
+            return base + (argv + ["--deps", g("deps")] if s("deps") else argv)
         if cmd == "subtask-add":
             if not (s("id") and s("sid") and s("name") and s("desc")):
                 return None
-            argv = ["subtask", "add", s("id"), s("sid"), "--name", s("name"), "--desc", s("desc")]
+            argv = ["subtask", "add", g("id"), g("sid"), "--name", g("name"), "--desc", g("desc")]
             if s("deps"):
-                argv += ["--deps", s("deps")]
+                argv += ["--deps", g("deps")]
             if s("agent"):
-                argv += ["--agent", s("agent")]
+                argv += ["--agent", g("agent")]
             return base + argv
         return None  # 非白名单 → 拒绝
 
-    def view(self, _):
+    def view(self, _: argparse.Namespace) -> None:
         cfg = self.config()
         if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
             print("看板 http 服务已在 config.yaml 关闭 (web_serve=false), 无法打开。", file=sys.stderr)
             return
         self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]))
 
-    def serve(self, _):
+    def serve(self, _: argparse.Namespace) -> None:
         # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
         f = self.dir / "config.yaml"
         if not f.exists():
@@ -1941,7 +2014,7 @@ class Skein:
         return (Path(__file__).resolve().parent.parent / "assets" / "board").resolve()
 
     @staticmethod
-    def _max_mtime(files) -> str:
+    def _max_mtime(files: Iterable[Path]) -> str:
         return str(max((f.stat().st_mtime_ns for f in files if f.exists()), default=0))
 
     def _data_rev(self) -> str:
@@ -1963,7 +2036,7 @@ class Skein:
         import importlib.util
         return all(importlib.util.find_spec(m) for m in ("fastapi", "uvicorn"))
 
-    def _install_serve_deps(self):
+    def _install_serve_deps(self) -> None:
         # serve 启动前依赖 (fastapi/uvicorn) 缺失兜底: 同步 pip 装 (本进程是后台 monitor, 不卡 session)。
         # 常规安装走 SessionStart hook 的 pip3 install -r requirements.txt, 此处仅裸装冗余保险。
         req = Path(__file__).resolve().parent.parent / "requirements.txt"
@@ -1976,19 +2049,19 @@ class Skein:
     def _webapp_dir() -> Path:
         return (Path(__file__).resolve().parent.parent / "assets" / "webapp").resolve()
 
-    def _lock_file(self):
+    def _lock_file(self) -> Path:
         return self.dir / ".board-server.lock"
 
-    def _probe_same_project(self, port, proj_id):
+    def _probe_same_project(self, port: int, proj_id: str) -> bool:
         # 命中 lock 端口的 /__skein__/id, 比对项目标识。同项目→True; 连不上/不同/失效→False。
         import urllib.request
         try:
             with urllib.request.urlopen(f"http://127.0.0.1:{port}{self._LOCK_ID_PATH}", timeout=0.5) as r:
-                return r.read().decode().strip() == proj_id
+                return cast(bool, r.read().decode().strip() == proj_id)
         except Exception:
             return False
 
-    def _run_server(self, open_browser=True, quiet=False):
+    def _run_server(self, open_browser: bool = True, quiet: bool = False) -> None:
         # FastAPI + uvicorn 本地看板服务 (随机 port)。热重载: WS 推 reload (rev = task.json + assets mtime)。
         # quiet=True (monitor): 不打印启动/停止行, 访问日志静默。uvicorn 自装 SIGINT/SIGTERM 优雅停机。
         import atexit, socket, threading, webbrowser
@@ -2027,7 +2100,7 @@ class Skein:
         port = s.getsockname()[1]
         s.close()
 
-        def _cleanup():  # 退出前删 lock (仅删本进程写的, 防误删他实例)
+        def _cleanup() -> None:  # 退出前删 lock (仅删本进程写的, 防误删他实例)
             try:
                 if lock.exists() and json.loads(lock.read_text()).get("port") == port:
                     lock.unlink()
@@ -2058,7 +2131,7 @@ class Skein:
                 print("\n看板服务已停止")
             _cleanup()
 
-    def _build_serve_app(self, proj_id, quiet, on_ready=None):
+    def _build_serve_app(self, proj_id: str, quiet: bool, on_ready: Optional[Callable[[], None]] = None) -> Any:
         # 构建 FastAPI app: 看板页实时渲染 + /board 静态直出 + 主题 POST + /__skein__/live 热重载 WS。
         from contextlib import asynccontextmanager
         from fastapi import FastAPI, Request, WebSocket
@@ -2066,10 +2139,18 @@ class Skein:
         from fastapi.staticfiles import StaticFiles
         import asyncio
 
-        board = self  # 每请求实时从 task.json 渲染, 不吃静态 task.html
-        clients = set()  # 活跃热重载 WS 连接
+        # 注入模块全局: PEP 563 (from __future__ import annotations) 把 handler 参数注解 string化,
+        # FastAPI get_typed_signature 用 handler.__globals__ (= 本模块全局) 解析 ForwardRef;
+        # Request/WebSocket 仅 serve() 内局部 import → 模块全局无此名 → 解析失败 → POST request 被当 query 参数 → 422。
+        # 注入模块全局后, 下面 @app.post 的参数注解 (request: Request) 解析为真类, FastAPI 正常隐式注入 Request。
+        _g = globals()
+        _g["Request"] = Request
+        _g["WebSocket"] = WebSocket
 
-        async def _watch_loop():
+        board = self  # 每请求实时从 task.json 渲染, 不吃静态 task.html
+        clients: set[Any] = set()  # 活跃热重载 WS 连接
+
+        async def _watch_loop() -> None:
             # 每 500ms 比 rev。资产变 (css/js/结构) → "reload" 整页刷 (换 head); 仅数据变 (task.json) → "data" 软刷 (只 swap .layout)。
             # 资产变优先整页 (data 也可能同变, 但整页已覆盖数据)。
             last_a = board._asset_rev()
@@ -2090,7 +2171,7 @@ class Skein:
                             clients.discard(c)
 
         @asynccontextmanager
-        async def lifespan(_app):
+        async def lifespan(_app: Any) -> AsyncIterator[None]:
             task = asyncio.create_task(_watch_loop())
             if on_ready:
                 on_ready()  # 已 bind, 落 lock (保证 lock 在 = 端口可连)
@@ -2102,7 +2183,7 @@ class Skein:
         app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
         @app.middleware("http")
-        async def _access_log(request, call_next):
+        async def _access_log(request: Request, call_next: Callable[[Request], Any]) -> Any:
             # 复用旧格式: ms 时间戳 + method/path -> code; POST 附 body (读一次缓存进 scope, handler 复用不重读)。
             extra = ""
             if request.method == "POST":
@@ -2119,23 +2200,23 @@ class Skein:
             return resp
 
         @app.get(self._LOCK_ID_PATH, response_class=PlainTextResponse)
-        async def _identify():  # 身份探测端点: 返回项目标识 (.skein 绝对路径)
+        async def _identify() -> str:  # 身份探测端点: 返回项目标识 (.skein 绝对路径)
             return proj_id
 
         @app.get(self._REV_PATH, response_class=PlainTextResponse)
-        async def _rev():  # 版本探测端点: 轮询兜底 (WS 不可用时)
+        async def _rev() -> str:  # 版本探测端点: 轮询兜底 (WS 不可用时)
             return board._task_json_rev()
 
         @app.get("/__skein__/data")
-        async def _data():  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
+        async def _data() -> JSONResponse:  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
             return JSONResponse(board._board_data())
 
         @app.get("/", response_class=HTMLResponse)
-        async def _page():  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
+        async def _page() -> str:  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
             return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
 
         @app.websocket(self._LIVE_PATH)
-        async def _live(ws: WebSocket):  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
+        async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
             await ws.accept()
             clients.add(ws)
             try:
@@ -2148,24 +2229,24 @@ class Skein:
 
         # ---- webapp 后端数据 endpoint (9 个; 全走 board 同一数据源) ----
         @app.get("/__skein__/dashboard")
-        async def _dashboard():  # 统计: 完成率/活跃数/subtask进度/状态分布
+        async def _dashboard() -> JSONResponse:  # 统计: 完成率/活跃数/subtask进度/状态分布
             return JSONResponse(board._dashboard())
 
         @app.get("/__skein__/queue")
-        async def _queue():  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
+        async def _queue() -> JSONResponse:  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
             return JSONResponse(board._queue())
 
         @app.get("/__skein__/task/{tid}")
-        async def _task(tid: str):  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
+        async def _task(tid: str) -> Any:  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
             d = board._task_detail(tid)
             return JSONResponse(d) if d else JSONResponse({"error": "task 不存在"}, status_code=404)
 
         @app.get("/__skein__/spec")
-        async def _spec():  # spec 树 core/recall × 类目 × 文件
+        async def _spec() -> JSONResponse:  # spec 树 core/recall × 类目 × 文件
             return JSONResponse(board._spec_tree())
 
         @app.get("/__skein__/spec/file")
-        async def _spec_file(path: str):  # 单 spec 原文 (realpath 校验限 .skein/spec/)
+        async def _spec_file(path: str) -> Any:  # 单 spec 原文 (realpath 校验限 .skein/spec/)
             p = board._spec_resolve(path)
             if p is None:
                 return JSONResponse({"error": "路径越界"}, status_code=403)
@@ -2174,7 +2255,7 @@ class Skein:
             return {"path": path, "content": p.read_text(encoding="utf-8", errors="replace")}
 
         @app.post("/__skein__/spec/save")
-        async def _spec_save(request: Request):  # 写 spec (realpath 校验越界拒; 仅 .md)
+        async def _spec_save(request: Request) -> Any:  # 写 spec (realpath 校验越界拒; 仅 .md)
             try:
                 body = json.loads(request.scope.get("skein_body") or b"{}")
                 rel, content = body["path"], body["content"]
@@ -2189,7 +2270,7 @@ class Skein:
             return {"ok": True, "path": rel}
 
         @app.post("/__skein__/exec")
-        def _exec(request: Request):  # 白名单命令 (固定 argv; sync def → 跑线程池不阻塞 loop)
+        def _exec(request: Request) -> Any:  # 白名单命令 (固定 argv; sync def → 跑线程池不阻塞 loop)
             try:
                 body = json.loads(request.scope.get("skein_body") or b"{}")
             except Exception:
@@ -2206,18 +2287,18 @@ class Skein:
                     "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
 
         @app.get("/__skein__/config")
-        def _cfg_get():  # 读 config (含 ENV override, 前端显示生效值)
+        def _cfg_get() -> JSONResponse:  # 读 config (含 ENV override, 前端显示生效值)
             return JSONResponse(board.config())
 
         @app.post("/__skein__/config")
-        async def _cfg_save(request: Request):  # 写 config.yaml (只认 CONFIG_DEFAULTS 键; 前端全量提交)
+        async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (只认 CONFIG_DEFAULTS 键; 前端全量提交)
             # input 提交多为 str → 按 CONFIG_DEFAULTS[key] 类型 coerce; 未知键忽略 (防注入); 缺键补默认。
             try:
                 body = json.loads(request.scope.get("skein_body") or b"{}")
             except Exception:
                 return JSONResponse({"error": "bad request"}, status_code=400)
 
-            def _coerce(k, v):  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
+            def _coerce(k: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
                 if isinstance(CONFIG_DEFAULTS[k], bool):
                     return str(v).strip().lower() in ("true", "1", "yes", "on")
                 if isinstance(CONFIG_DEFAULTS[k], int):
@@ -2233,25 +2314,25 @@ class Skein:
             return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
 
         @app.get("/__skein__/archive")
-        async def _archive():  # 已归档 task 列表
+        async def _archive() -> JSONResponse:  # 已归档 task 列表
             return JSONResponse(board._archive_list())
 
         @app.get("/__skein__/search")
-        async def _search(q: str = ""):  # 跨 task/subtask/prd/spec 关键词搜
+        async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜
             return JSONResponse(board._search(q))
 
         # webapp 改 history API (pathname) 路由: 直访 /dashboard /queue /task 等单段 SPA 路径须回 index.html 让前端 router 接管。
         # /task /board 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
         # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
-        def _spa():
+        def _spa() -> str:
             return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
 
         @app.get("/task", response_class=HTMLResponse)
-        async def _spa_task():  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
+        async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
             return _spa()
 
         @app.get("/board", response_class=HTMLResponse)
-        async def _spa_board():  # /board 裸路径 = board 页; /board/*.css 等资产仍落下方 mount
+        async def _spa_board() -> str:  # /board 裸路径 = board 页; /board/*.css 等资产仍落下方 mount
             return _spa()
 
         # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
@@ -2268,7 +2349,7 @@ class Skein:
         # SPA fallback: 其余无专属 route/mount 的 GET 路径 (/dashboard /queue /spec /archive 等单段 SPA 路由) 兜底回 index.html。
         # 声明在所有 mount 之后 → 静态 (含 /task/<id>/prd.md, /dist/app.css) 先匹命中; 命不中才回落 SPA。API (/__skein__/*) 在更上方, 优先级最高。
         @app.get("/{full_path:path}", response_class=HTMLResponse)
-        async def _spa_fallback(full_path: str):
+        async def _spa_fallback(full_path: str) -> str:
             return _spa()
         return app
 
@@ -2281,17 +2362,17 @@ class Skein:
     _TRELLIS_HOOK_SCRIPTS = ("session-start.py", "inject-subagent-context.py",
                              "guard-version.py", "inject-workflow-state.py")
 
-    def _migrate_trellis_tasks(self, trellis) -> list:
+    def _migrate_trellis_tasks(self, trellis: Path) -> list[dict[str, Any]]:
         # 物理迁移 trellis 非归档 task → .skein/task/<id>/: 翻译 task.json 为 skein schema + 拷贝 planning 工件。
         # 已归档 (archive/) 不迁; 已存在的同名 skein task 不覆盖 (幂等)。subtask/contract 语义搬运由 agent 补。
-        out = []
+        out: list[dict[str, Any]] = []
         tdir = trellis / "task"
         if not tdir.is_dir():
             return out
         migrated_any = False
         for d in sorted(p for p in tdir.iterdir() if p.is_dir() and p.name != "archive"):
             tid = d.name
-            raw = {}
+            raw: dict[str, Any] = {}
             tj = d / "task.json"
             if tj.exists():
                 try:
@@ -2304,7 +2385,7 @@ class Skein:
                 continue
             dst = self.tasks / tid
             dst.mkdir(parents=True)
-            deps = raw.get("depends_on") or raw.get("deps") or []
+            deps: Any = raw.get("depends_on") or raw.get("deps") or []
             if isinstance(deps, str):
                 deps = [x.strip() for x in deps.split(",") if x.strip()]
             # 状态一律置待处理 — 迁移不自动开 worktree; 原状态回报 agent 供留痕
@@ -2317,7 +2398,7 @@ class Skein:
             }
             self._save(t)
             # 拷贝 planning 工件 (task.json/task.md 除外 — skein 自渲染/自管)
-            artifacts = []
+            artifacts: list[str] = []
             for p in sorted(d.iterdir()):
                 if p.name in ("task.json", "task.md"):
                     continue
@@ -2334,10 +2415,10 @@ class Skein:
             self._sync()  # 刷新顶层索引 + 看板反映迁移 task
         return out
 
-    def _purge_wiring(self, trellis) -> list:
+    def _purge_wiring(self, trellis: Path) -> list[str]:
         # 无条件删 trellis 接线 (哪怕兼容模式): .trellis/{scripts,hooks,settings*} + .claude/*trellis*。
         # 保留 .trellis/{spec,task,...} 数据 (兼容其它工具; --full 才整删)。settings.json 内 hook 条目仅标注交 agent 剔。
-        removed = []
+        removed: list[str] = []
         for name in self._TRELLIS_WIRING:
             p = trellis / name
             if p.is_symlink() or p.is_file():
@@ -2359,13 +2440,13 @@ class Skein:
                         p.unlink(); removed.append(str(p.relative_to(self.root)))
         return removed
 
-    def _purge_trellis_hooks(self) -> list:
+    def _purge_trellis_hooks(self) -> list[str]:
         # 从 .claude/settings*.json 的 hooks 结构剔除 command 引用 canonical trellis 脚本的条目 + 删对应 .claude/hooks/ 脚本。
         # 幂等: 重跑时 canonical 脚本已清 → no-op。rust-fmt.py 等非 canonical 条目原样保留 (交 agent/用户判)。
         cdir = self.root / ".claude"
-        removed = []
+        removed: list[str] = []
 
-        def _is_trellis(cmd) -> bool:
+        def _is_trellis(cmd: Any) -> bool:
             return isinstance(cmd, str) and any(s in cmd for s in self._TRELLIS_HOOK_SCRIPTS)
 
         for name in ("settings.json", "settings.local.json"):
@@ -2413,25 +2494,25 @@ class Skein:
                     p.unlink(); removed.append(str(p.relative_to(self.root)))
         return removed
 
-    def _settings_trellis_notes(self) -> list:
+    def _settings_trellis_notes(self) -> list[str]:
         # settings.json/settings.local.json 内含 trellis hook 条目 (JSON 语义编辑, 交 agent 剔, 不脚本硬删)
         cdir = self.root / ".claude"
         return [str((cdir / n).relative_to(self.root))
                 for n in ("settings.json", "settings.local.json")
                 if (cdir / n).exists() and "trellis" in (cdir / n).read_text().lower()]
 
-    def _disable_trellisx_plugin(self):
+    def _disable_trellisx_plugin(self) -> list[str]:
         # 在 .claude/settings.local.json 的 enabledPlugins 禁用 trellisx (project-local 覆盖全局), 避免与 skein 双注入。
         # 已装的 trellisx@<market> 全置 false; 一个都没有则默认写 trellisx@ccplugin-market: false。
         cdir = self.root / ".claude"
         cdir.mkdir(exist_ok=True)
         f = cdir / "settings.local.json"
         try:
-            data = json.loads(f.read_text()) if f.exists() else {}
+            data: dict[str, Any] = json.loads(f.read_text()) if f.exists() else {}
         except (json.JSONDecodeError, OSError):
             data = {}
-        ep = data.setdefault("enabledPlugins", {})
-        keys = [k for k in ep if k.startswith("trellisx@")] or ["trellisx@ccplugin-market"]
+        ep: dict[str, Any] = data.setdefault("enabledPlugins", {})
+        keys: list[str] = [k for k in ep if k.startswith("trellisx@")] or ["trellisx@ccplugin-market"]
         changed = [k for k in keys if ep.get(k) is not False]
         for k in keys:
             ep[k] = False
@@ -2439,7 +2520,7 @@ class Skein:
             f.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
         return keys
 
-    def setup(self, a):
+    def setup(self, a: argparse.Namespace) -> None:
         # 默认兼容: 拷 spec/task 入 .skein + 删 trellis 接线 (避免双注入), 留 .trellis 数据。
         # --full: 兼容全套 + 整删 .trellis/ (spec/task 已拷走)。
         trellis = self.root / ".trellis"
@@ -2490,16 +2571,16 @@ class Skein:
         print(json.dumps(manifest, ensure_ascii=False, indent=2))
 
 
-def _split(s):
+def _split(s: Optional[str]) -> list[str]:
     return [x.strip() for x in (s or "").split(",") if x.strip()]
 
 
-def _split_semi(s):
+def _split_semi(s: Optional[str]) -> list[str]:
     # 验收 checklist 用分号分隔 (条目内可含逗号)
     return [x.strip() for x in (s or "").split(";") if x.strip()]
 
 
-def _sub_pct(s):
+def _sub_pct(s: dict[str, Any]) -> int:
     # subtask 完成百分比 = 已通过验收/总验收 (done 强制 100; 无验收则未完成即 0)
     if s["status"] == SS_DONE:
         return 100
@@ -2507,7 +2588,7 @@ def _sub_pct(s):
     return round(len(s.get("验收done", [])) / len(crit) * 100) if crit else 0
 
 
-def _task_pct(t):
+def _task_pct(t: dict[str, Any]) -> int:
     # task 完成百分比 = plan/exec/check 三阶段加权:
     #   plan(pending) 无 subs=5 (planning 中) / 有 subs=10 (plan 完成待 start);
     #   exec(active)  = 10 + 75 * (subs _sub_pct 均值 / 100), 无 subs=10;
@@ -2517,7 +2598,7 @@ def _task_pct(t):
         return 100
     if st == S_CHECK:
         return 85
-    subs = t.get("subtasks", [])
+    subs: list[dict[str, Any]] = t.get("subtasks", [])
     if st == S_ACTIVE:
         if not subs:
             return 10
@@ -2526,7 +2607,7 @@ def _task_pct(t):
     return 10 if subs else 5
 
 
-def _task_stage(t):
+def _task_stage(t: dict[str, Any]) -> str:
     # task 阶段标签 (plan/exec/check/done) 供 board card 渲染
     st = t["status"]
     if st == S_DONE:
@@ -2538,12 +2619,12 @@ def _task_stage(t):
     return "plan"  # S_PENDING
 
 
-def _fmt_ts(ts):
+def _fmt_ts(ts: Optional[int]) -> str:
     # epoch 秒 → 本地可读时间; None/0 → "-"
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts)) if ts else "-"
 
 
-def _serve_app_factory():
+def _serve_app_factory() -> Any:
     # uvicorn --reload 子进程入口: fresh import skein 后由此重建 app。
     # 父进程 (_run_server) 已落 lock/开浏览器/打印, 故 on_ready=None (不在每次 reload 重跑那些)。
     sk = Skein()
@@ -2551,7 +2632,7 @@ def _serve_app_factory():
     return sk._build_serve_app(str(sk.dir.resolve()), quiet, on_ready=None)
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser(
         prog="skein.py",
         description="SKEIN 任务管理引擎 — task 生命周期 + 看板 + 契约",
@@ -2600,7 +2681,9 @@ def main():
     li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
                     help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
-    sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁)")
+    _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
+    _doc.add_argument("-Q", "--quality", action="store_true",
+                      help="体检后再跑质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass (慢, CI/hook 按需调)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="起 http 服务并打开可视化看板 (仅此命令主动打开)")
     sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
