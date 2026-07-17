@@ -152,17 +152,9 @@ td .bar{margin:1px 0;min-width:78px}
 .q-name{flex:1 1 auto;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .q-agent{flex:0 0 auto;color:var(--muted);font-size:11px}
 .cmd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 14px}
-.cmd-bar .cmd-spacer{flex:1 1 auto}
 .cmd-btn{background:var(--card);color:var(--head);border:1px solid var(--brd);border-radius:8px;padding:6px 12px;font:12px var(--font);cursor:pointer;transition:background .18s,border-color .18s}
 .cmd-btn:hover{border-color:var(--accent);color:var(--accent)}
 .cmd-btn:disabled{opacity:.5;cursor:not-allowed}
-.cmd-new{background:var(--accent);color:#fff;border-color:var(--accent)}
-.cmd-new:hover{color:#fff;filter:brightness(.95)}
-.cmd-form{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:14px 18px;margin:0 0 14px}
-.cmd-form[hidden]{display:none}
-.cmd-form .f{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
-.cmd-form .f>span{font-size:11px;color:var(--muted)}
-.cmd-form .f>input,.cmd-form .f>textarea{background:var(--bg);color:var(--fg);border:1px solid var(--brd);border-radius:6px;padding:5px 8px;font:13px var(--font);resize:vertical}
 .cmd-out{margin-top:10px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .cmd-out .h{padding:6px 10px;font-size:12px;background:var(--line);color:var(--head);display:flex;align-items:center;gap:8px}
 .cmd-out .h .ok{color:var(--st-done)}.cmd-out .h .fail{color:var(--st-failed)}
@@ -492,11 +484,10 @@ function wireDocModal(mount, modal, ctx) {
   });
 }
 
-// ── 命令快捷条: [+新建 task] 展开表单 → api.exec("create"); [current/ready/pop/doctor] 一键查询 ──
+// ── 命令快捷条: [doctor] 一键查询 → api.exec → cmd-out 展示 ──
 // ponytail: exec 结果走 esc() 转义后注入 .cmd-out (stdout/stderr 均为后端命令输出, 防 XSS)。
 function wireCmdBar(mount, ctx) {
   var bar = mount.querySelector(".cmd-bar");
-  var form = mount.querySelector('[data-form="create"]');
   var out = mount.querySelector("[data-out]");
   if (!bar || !ctx || !ctx.api || !ctx.api.exec) return;
 
@@ -525,32 +516,13 @@ function wireCmdBar(mount, ctx) {
       r = { cmd: cmd, err: (ex && ex.message) || String(ex) };
     }
     renderResult(r);
-    if (cmd === "create" && r && r.exit === 0) {
-      form.reset();
-      form.hidden = true;
-      var refresh = mount._skeinRefresh;        // render() 注入的刷新句柄
-      if (refresh) refresh();
-    }
   }
 
   bar.addEventListener("click", function (e) {
     var t = e.target.closest("button");
     if (!t || !bar.contains(t)) return;
-    if (t.dataset.cmd === "toggle-new") { form.hidden = !form.hidden; if (!form.hidden) form.elements.id.focus(); return; }
-    if (t.dataset.cmd === "cancel-new") { form.hidden = true; form.reset(); return; }
     var q = t.dataset.quick;
     if (q) run(q);
-  });
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var deps = form.elements.deps.value.trim();
-    run("create", {
-      id: form.elements.id.value.trim(),
-      name: form.elements.name.value.trim(),
-      desc: form.elements.desc.value.trim(),
-      deps: deps ? deps.split(/[,，\s]+/).filter(Boolean).join(",") : "",
-    });
   });
 }
 
@@ -562,19 +534,8 @@ export async function render(mount, params, ctx) {
   mount.innerHTML =
     "<style>" + BOARD_CSS + "</style>"
     + '<div class="cmd-bar">'
-    + '<button type="button" class="cmd-btn cmd-new" data-cmd="toggle-new">＋ 新建 task</button>'
-    + '<span class="cmd-spacer"></span>'
     + '<button type="button" class="cmd-btn" data-quick="doctor">doctor</button>'
     + '</div>'
-    + '<form class="cmd-form" hidden data-form="create">'
-    + '<div class="f"><span>id *</span><input name="id" placeholder="task id" required></div>'
-    + '<div class="f"><span>name *</span><input name="name" placeholder="task 名称" required></div>'
-    + '<div class="f"><span>desc *</span><textarea name="desc" rows="2" placeholder="简述" required></textarea></div>'
-    + '<div class="f"><span>deps (逗号分隔, 选填)</span><input name="deps" placeholder="dep1,dep2"></div>'
-    + '<div style="display:flex;align-items:center;gap:10px">'
-    + '<button type="submit" class="cmd-btn cmd-new">提交</button>'
-    + '<button type="button" class="cmd-btn" data-cmd="cancel-new">取消</button>'
-    + '</div></form>'
     + '<div class="cmd-out" hidden data-out></div>'
     + '<div class="layout"></div>'
     + '<div class="doc-modal" hidden><div class="doc-backdrop"></div>'
