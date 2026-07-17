@@ -232,14 +232,13 @@ function subtable(rows, ssCls) {
     return "<tr><td>" + esc(s.sid) + "</td><td>" + esc(s.name) + "</td>"
       + "<td>" + badge(s.status, ssCls) + "</td>"
       + "<td>" + bar(s.pct, true, "") + "</td>"
-      + "<td>" + esc(fmtDur(s.est == null ? null : s.est)) + "</td>"
       + "<td>" + esc(s.agent) + "</td>"
       + "<td>" + esc((s.skills || []).join(",") || "-") + "</td>"
       + "<td>" + esc((s.depNames || []).join(", ") || "-") + "</td>"
       + "<td>" + esc((s.acc || []).join("; ") || "-") + "</td></tr>";
   }).join("");
   return "<table><thead><tr><th>sid</th><th>名称</th><th>状态</th><th>进度</th>"
-    + "<th>预期</th><th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>"
+    + "<th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>"
     + "<tbody>" + srows + "</tbody></table>";
 }
 
@@ -284,7 +283,7 @@ function buildLayoutHtml(data) {
   }
 
   var overview = '<section class="card"><h2>任务进展</h2>' + sw + stats
-    + '<p class="meta">' + ov.taskCount + " task · " + esc(ov.estMeta) + "</p>"
+    + '<p class="meta">' + ov.taskCount + " task</p>"
     + '<p class="meta">当前进度</p>' + bar(ov.combinedPct, false, "")
     + queue + taskView + fullView + "</section>";
 
@@ -293,7 +292,7 @@ function buildLayoutHtml(data) {
       + (c.nextUp ? "<span class=next-up-chip>▶ 下一个</span>" : "") + "</h2>";
     var meta1 = '<p class="meta">前置: ' + esc((c.depNames || []).join(", ") || "-") + " · "
       + "worktree: " + esc(c.worktree || "-") + " · "
-      + "耗时 " + fmtDur(c.elapsed) + " / 预期 " + fmtDur(c.est == null ? null : c.est) + "</p>";
+      + "耗时 " + fmtDur(c.elapsed) + "</p>";
     return '<section class="card' + (c.nextUp ? " next-up" : "") + '" id="task-' + esc(c.id)
       + '" data-status="' + esc(c.status) + '" data-search="' + esc(c.search) + '">'
       + h2 + '<p class="name">' + esc(c.name) + "</p>"

@@ -19,8 +19,8 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | **DAG** | 有向无环图, 描述工作单元的执行顺序。SKEIN 双层同构 (task 级 + subtask 级)。 |
 | **depends_on / deps** | 显式前置边: subtask `--deps` / task `--deps`。被依赖者未完成前, 依赖者不 ready。**并行只看这张显式依赖 DAG** — 无写文件冲突自算 (真正有序的关系靠 planning 写进 `depends_on`, 不靠脚本猜写文件重叠)。 |
 | **ready (就绪)** | 待处理 + 依赖 (`depends_on`) 全已完成 + 有空闲槽。`subtask ready` 只读预览。 |
-| **claim (认领)** | `subtask claim` 一次性算就绪批 + 整批标 running, 返回给 main 逐个派 agent。脚本一步到位, 免 main 逐个 start。就绪数超空闲槽时**按关键路径权重降序**截取 (最长下游链先派)。 |
-| **关键路径 / makespan** | 统筹学: subtask 权重 = 自身 `estimate` (缺省 1 分钟) + 最长下游链; claim 优先派权重大者 (阻塞下游最多), 最小化 `makespan` (总工期)。planning 供 `--estimate` + 只连真实依赖, 脚本自算最优派发序。 |
+| **claim (认领)** | `subtask claim` 一次性算就绪批 + 整批标 running, 返回给 main 逐个派 agent。脚本一步到位, 免 main 逐个 start。就绪数超空闲槽时**按拓扑深度降序**截取 (下游链长者先派)。 |
+| **拓扑深度 / 关键路径** | subtask 权重 = 最长下游链长度 + 1 (每步等权, 纯拓扑深度); claim 优先派深度大者 (阻塞下游最多), 启发式优先而非保证最优 makespan。planning 只需连真实依赖, 脚本自算派发序。 |
 | **完成即派** | 任一 agent 返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不空等一批跑完。 |
 | **并发上限** | `max_parallel` (默认 2) — 同时在跑的 subagent ≤ 此值。`claim` 内按剩余槽截断。 |
 | **完成百分比** | subtask 完成度 = 已过验收/总验收 (`subtask check --passed` 勾选驱动, 存 `验收done[]`); `done` 强制 100%。看板逐 subtask 渲染进度条, task 综合完成率 = 各 subtask 均值。 |
