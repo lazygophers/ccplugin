@@ -416,7 +416,8 @@ function bindContent(layout, io) {
   if (io) { io.disconnect(); layout.querySelectorAll(".col-main .bar").forEach(function (b) { io.observe(b); }); }
 }
 
-// 软刷保滚动位: 换 layout innerHTML 前记左栏 DAG 滚动 + 窗口滚动, 渲染后复原 (移植自 board-render)
+// 软刷保滚动位: 原子替换 layout (replaceChildren fragment, 消 innerHTML 赋值的清空闪屏帧);
+// 换前记左栏 DAG 滚动 + 窗口滚动, 渲染后复原 (移植自 board-render)
 function renderLayout(layout, data, io) {
   var savedScroll = {}, savedWin = window.pageYOffset;
   layout.querySelectorAll(".col-side .dag-view > .dag-wrap").forEach(function (w) {
@@ -424,7 +425,11 @@ function renderLayout(layout, data, io) {
     if (v) savedScroll[v.getAttribute("data-dag")] = { t: w.scrollTop, l: w.scrollLeft };
   });
 
-  layout.innerHTML = buildLayoutHtml(data);
+  var tmp = document.createElement("div");
+  tmp.innerHTML = buildLayoutHtml(data);
+  var frag = document.createDocumentFragment();
+  while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+  layout.replaceChildren(frag);
   bindContent(layout, io);
 
   layout.querySelectorAll(".col-side .dag-view > .dag-wrap").forEach(function (w) {
@@ -586,8 +591,12 @@ export async function render(mount, params, ctx) {
   wireDocModal(mount, mount.querySelector(".doc-modal"), ctx);
   wireCmdBar(mount, ctx);
 
+  var lastDataSig = null;
   async function refresh() {
     var data = await ctx.api.data();
+    var sig = JSON.stringify(data);
+    if (sig === lastDataSig) return;
+    lastDataSig = sig;
     renderLayout(layout, data, io);
   }
   mount._skeinRefresh = refresh;
