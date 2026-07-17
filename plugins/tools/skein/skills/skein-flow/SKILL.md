@@ -43,6 +43,7 @@ plan → exec → check → finish 四步闭环
 - Skill(skein-exec) 执行编排调度: main 作调度器, 动态 DAG 就绪即派 / 完成即派 (并发上限 2)
 - **每个已登记 subtask MUST 派 1 个 subagent 异步执行 (硬门)** — 走 skein-exec 的 `claim → 派 Agent → done → claim` 循环, 每 ready subtask 各派 1 个 `Agent` (性质选合适 agent, 无则 `skein-executor`), 改动落 task worktree。**禁 main inline 顺跑 subtask**: 只要 task 有 subtask, 就必须派 subagent, 不得自己一个个做完 (line 15 的 ≤3 文件豁免只针对**整个 task 无 subtask 的微改**, 不是"有 subtask 却跳过派发"的借口)。
 - 异步派发后结束回合前 MUST 输出任务清单 (id / 状态 / 摘要 / 进度%); 禁问用户顺序 (顺序归 planning)
+- **exec/check/finish 禁动 design.md** — design.md 写入归 planning (含 check 失败回 planning 二次进入)。exec/check 发现方案需调整 → 回 planning 改 design 后重派, 禁就地改
 
 ### check
 

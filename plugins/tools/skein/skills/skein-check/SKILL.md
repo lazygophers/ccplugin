@@ -12,6 +12,8 @@ effort: medium
 
 exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-checker` 只验证 (无写权), 失败交合适 agent (无则 `skein-executor`) 修。未过禁 finish。
 
+**禁动 design.md** — design.md 写入归 planning (仅 planning 阶段 + check 失败回 planning 二次进入可写); **exec / check / finish 阶段均禁动**。check 检出方案性冲突 → 回 planning 改 design 后重派, 禁 check 阶段就地改 design。
+
 ## 载体
 
 - **验证** → 派 `skein-checker` (只读 + 跑命令, 回传 PASS/FAIL 报告)。
