@@ -230,17 +230,25 @@ function docRow(links) {
 }
 function subtable(rows, ssCls) {
   if (!rows || !rows.length) return '<p class="empty">无 subtask</p>';
+  // ponytail: 时间戳为 epoch 秒, 转分钟; running 耗时显示 "..." (无 tnow), pending 显示 "-"
+  function durCell(a, b) {
+    if (!a || !b) return "-";
+    return fmtDur(Math.round((b - a) / 60));
+  }
   var srows = rows.map(function (s) {
+    var elapsed = !s.started ? "-" : (s.finished ? durCell(s.started, s.finished) : "...");
+    var waited = durCell(s.created, s.started);
     return "<tr><td>" + esc(s.sid) + "</td><td>" + esc(s.name) + "</td>"
       + "<td>" + badge(s.status, ssCls) + "</td>"
       + "<td>" + bar(s.pct, true, "") + "</td>"
       + "<td>" + esc(s.agent) + "</td>"
       + "<td>" + esc((s.skills || []).join(",") || "-") + "</td>"
       + "<td>" + esc((s.depNames || []).join(", ") || "-") + "</td>"
-      + "<td>" + esc((s.acc || []).join("; ") || "-") + "</td></tr>";
+      + "<td>" + esc((s.acc || []).join("; ") || "-") + "</td>"
+      + "<td>" + elapsed + "</td><td>" + waited + "</td></tr>";
   }).join("");
   return "<table><thead><tr><th>sid</th><th>名称</th><th>状态</th><th>进度</th>"
-    + "<th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th></tr></thead>"
+    + "<th>agent</th><th>skills</th><th>依赖</th><th>验收标准</th><th>耗时</th><th>等待</th></tr></thead>"
     + "<tbody>" + srows + "</tbody></table>";
 }
 
