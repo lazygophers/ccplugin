@@ -38,7 +38,7 @@ function placeholder(mount, name, msg) {
   mount.innerHTML = "";
   const box = document.createElement("div");
   box.className = "mx-auto max-w-lg py-24 text-center text-muted";
-  box.innerHTML = '<div class="text-2xl mb-2">🧵</div><div>' +
+  box.innerHTML = '<div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div><div>' +
     msg + '</div><div class="text-xs mt-2 opacity-60">' + name + "</div>";
   mount.appendChild(box);
 }

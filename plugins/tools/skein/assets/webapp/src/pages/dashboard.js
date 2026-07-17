@@ -41,11 +41,11 @@ const TPL = `
 
   <!-- 项目为空: 首页空态 -->
   <div v-if="loadErr" class="card p-10 text-center text-muted">
-    <div class="text-3xl mb-2">⚠️</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <div class="text-sm" style="color:var(--st-failed)">{{ loadErr }}</div>
   </div>
   <div v-else-if="!taskCount" class="card p-16 text-center text-muted">
-    <div class="text-4xl mb-3">🧵</div>
+    <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div>
     <div class="text-sm">空 — 用 <code>skein create</code> 创建第一个任务。</div>
   </div>
 
