@@ -1709,12 +1709,39 @@ class Skein:
                 sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
         total = ov["taskCount"]
         done = ov["stats"].get(S_DONE, 0)
+        # 进行中 subtask: active task 内 SS_RUNNING (含耗时/预期)
+        tnow = now()
+        running_subs = []
+        for t in self._active():
+            for s in t.get("subtasks", []):
+                if s.get("status") != SS_RUNNING:
+                    continue
+                started = s.get("started")
+                running_subs.append({
+                    "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                    "agent": s.get("agent", "skein-executor"),
+                    "elapsed": round((tnow - started) / 60) if started else None,
+                    "est": s.get("estimate"),
+                })
+        # 就绪 task: pending + 前置全 done
+        ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
+                        "deps": t.get("deps", []), "desc": t.get("desc", "")}
+                       for t in self._all()
+                       if t["status"] == S_PENDING
+                       and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
+        # 执行中 task: cards 已含 elapsed/est/sdone/stotal/pct (不重算)
+        active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
+                         "pct": c["pct"], "sdone": c["sdone"], "stotal": c["stotal"],
+                         "elapsed": c.get("elapsed"), "est": c.get("est")}
+                        for c in data["cards"] if c["status"] in (S_ACTIVE, S_CHECK)]
         return {"proj": self.proj, "taskCount": total,
                 "doneRate": round(done / total * 100) if total else 0,
                 "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
                 "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
                 "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
-                "pendingQueue": ov["pendingQueue"]}
+                "pendingQueue": ov["pendingQueue"],
+                "runningSubs": running_subs, "readyTasks": ready_tasks,
+                "activeTasks": active_tasks}
 
     def _queue(self) -> dict:
         # 待执行队列 (复用 ready/pop 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
