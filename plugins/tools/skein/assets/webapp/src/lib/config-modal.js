@@ -109,34 +109,35 @@ export function wire(api) {
 }
 
 let _open = false;            // 简单互斥: 已开则不重开 (避免叠多层)
-function open() {
+async function open() {
   if (_open || !_api) return;
   _open = true;
+
+  // ponytail: vendored petite-vue 不支持 mounted — 改 createApp 前先 await getConfig (queue.js L205 同款模式)。
+  let cfg = {}, loadErr = "";
+  try {
+    const raw = await _api.getConfig();
+    // 仅取 SCHEMA 已知键 (后端可能多返 ENV override 同名键, 一并收纳)
+    cfg = SCHEMA.reduce((o, s) => { o[s.k] = raw[s.k]; return o; }, {});
+  } catch (e) { loadErr = (e && e.message) || String(e); }
+  const savedCfg = { ...cfg };
+  const yamlText = dumpYaml(cfg);
+
   const host = document.createElement("div");
   host.className = "cfg-host";
   document.body.appendChild(host);
   host.innerHTML = MODAL_TPL;
 
   const app = window.PetiteVue.createApp({
-    cfg: {},
+    cfg,
     tab: "form",
-    loading: true,
-    loadErr: "",
-    yamlText: "",
+    loading: false,
+    loadErr,
+    yamlText,
     restartHint: false,
+    _savedCfg: savedCfg,
 
     get root() { return host.querySelector(".cfg-mask"); },
-
-    async mounted() {
-      try {
-        const cfg = await _api.getConfig();
-        // 仅取 SCHEMA 已知键 (后端可能多返 ENV override 同名键, 一并收纳)
-        this.cfg = SCHEMA.reduce((o, s) => { o[s.k] = cfg[s.k]; return o; }, {});
-        this.yamlText = dumpYaml(this.cfg);
-      } catch (e) {
-        this.loadErr = (e && e.message) || String(e);
-      } finally { this.loading = false; }
-    },
 
     toggle(k) { this.cfg[k] = !this.cfg[k]; this.onMutate(); },
 
