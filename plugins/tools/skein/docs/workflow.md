@@ -32,6 +32,7 @@
 - **grill 硬门**: 对抗式审查需求与工件, 弱点补齐后才放行。**未跑 grill 禁进 exec**。
 - **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
 - 产出: `prd.md` (主入口) + `design.md` (详细设计) + 需调研时 `findings.md` (调研收敛); 子任务 + 调度 DAG 经 `skein subtask add` 落 task.json。请你评审 (AskUserQuestion)。
+  - **`design.md` 写入界限**: 仅 ① plan 阶段写 (含 ⑤ check 失败回 plan 的二次进入); ④ exec / ⑤ check / ⑥ finish 阶段禁动。exec/check 发现方案需调整 → 回 plan 改 design 后重派, 禁就地改。
 
 ### ② memory recall (main 委托 `skein-memorier`)
 
