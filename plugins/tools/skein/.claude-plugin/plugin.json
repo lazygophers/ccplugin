@@ -150,6 +150,18 @@
                 ]
             }
         ],
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write|MultiEdit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "skein-hooks fmt",
+                        "timeout": 15
+                    }
+                ]
+            }
+        ],
         "PostToolBatch": [
             {
                 "hooks": [

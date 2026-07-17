@@ -6,12 +6,14 @@
   guard       PreToolUse: 硬阻 AI 直接读写 .skein/ 脚本管理文件 + trellis 未初始化迁移门。
   batch       PostToolBatch: 拦并行的 ≥2 个 .skein 状态写命令 (竞态防护)。
   report      PostToolUseFailure: 本插件脚本报错时注入上下文 + 引导手动报 issue。
+  fmt         PostToolUse: 写 .skein/task/<id>/prd.md 后自动 skein fmt <id> 规范化。
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
 import json
 import os
 import re
+import subprocess
 import sys
 
 BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
@@ -135,8 +137,32 @@ def cmd_report(d) -> int:
     return 0
 
 
+# ── fmt (PostToolUse: prd.md 写后规范化) ────────────────────────────────────
+PRD_RE = re.compile(r"(?:^|/)\.skein/task/([^/]+)/prd\.md$")
+
+
+def cmd_fmt(d) -> int:
+    """写 .skein/task/<id>/prd.md 后自动跑一次 skein fmt <id> (幂等; python 写回不经工具层 → 不递归)。"""
+    fp = d.get("tool_input", {}).get("file_path", "")
+    if not fp:
+        return 0
+    norm = fp.replace("\\", "/")
+    m = PRD_RE.search(norm)
+    if not m:
+        return 0  # 非 prd.md 放行
+    tid = m.group(1)
+    root = norm[:m.start()] or (d.get("cwd") or os.getcwd())  # .skein 所在仓库根作 cwd
+    skein_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "skein.py")
+    try:
+        subprocess.run([sys.executable, skein_py, "fmt", tid], cwd=root,
+                       capture_output=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        pass  # 非阻塞 hook: fmt 失败不影响写入
+    return 0
+
+
 DISPATCH = {"permission": cmd_permission, "guard": cmd_guard,
-            "batch": cmd_batch, "report": cmd_report}
+            "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt}
 
 
 def main() -> int:
