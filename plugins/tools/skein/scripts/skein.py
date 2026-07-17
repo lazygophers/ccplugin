@@ -352,6 +352,49 @@ class Skein:
                 p.write_text(body)
 
     # ---- 命令 ----
+    def fmt(self, a):
+        # 规范化 .skein/task/<id>/prd.md: 各章节内一级 `- ` list 项补 `- [ ]` todo (已勾选态保留),
+        # 校验四标准章节齐备且顺序正确, 不规范报错非零退出; 仅内容变化才写 (天然幂等 + 防 hook 循环)。
+        tid = a.id.strip()
+        prd = self.tasks / tid / "prd.md"
+        if not prd.exists():
+            raise SystemExit(f"prd 不存在: {prd}")
+        orig = prd.read_text()
+        lines = orig.split("\n")
+        # 校验: 至少一个一级标题 (# ...) + 四标准章节齐备且顺序正确
+        if not any(re.match(r"^#\s+\S", ln) for ln in lines):
+            raise SystemExit(f"prd 不规范: 缺一级标题 (# ...) — {prd}")
+        sections = [m.group(1).strip() for ln in lines
+                    if (m := re.match(r"^##\s+(.+?)\s*$", ln))]
+        expected = ["目标", "边界", "验收标准", "索引"]
+        if sections != expected:
+            raise SystemExit(
+                f"prd 不规范: 二级章节须为 {expected} (齐备且顺序一致), 实际 {sections} — {prd}")
+        # 规范化 (行首非缩进; 缩进子 list / 已勾选态不动):
+        #   (a) 所有章节: `- ` 且非 checkbox → 补 `- [ ] `
+        #   (b) 仅「目标」「验收标准」章节: 有序列表 `N. ` → `- [ ] ` (逐条可勾选)
+        todo_sections = {"目标", "验收标准"}
+        out, changed, cur = [], 0, None
+        for ln in lines:
+            if h := re.match(r"^##\s+(.+?)\s*$", ln):
+                cur = h.group(1).strip()
+                out.append(ln)
+                continue
+            if m := re.match(r"^- (?!\[[ xX]\] )(.*)$", ln):
+                out.append(f"- [ ] {m.group(1)}")
+                changed += 1
+            elif cur in todo_sections and (mo := re.match(r"^\d+\.\s+(.*)$", ln)):
+                out.append(f"- [ ] {mo.group(1)}")
+                changed += 1
+            else:
+                out.append(ln)
+        new = "\n".join(out)
+        if new == orig:
+            print(f"prd 已规范, 无变化: {prd}")
+            return
+        prd.write_text(new)
+        print(f"prd 已规范化: {prd} (补 {changed} 项 todo)")
+
     def init(self, _):
         self.dir.mkdir(exist_ok=True)
         self.tasks.mkdir(exist_ok=True)
@@ -2372,6 +2415,8 @@ def main():
     s.add_argument("id", help="task id")
     f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
     f.add_argument("id", help="task id")
+    fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验四标准章节 (幂等)")
+    fm.add_argument("id", help="task id")
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")
     # del/delete/rm/remove 同一 handler (别名等价): 删 task 软删进 trash, 带 sid 删单 subtask
@@ -2447,7 +2492,7 @@ def main():
     sk = Skein()
     dispatch = {
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
-        "finish": sk.finish, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
+        "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready, "pop": sk.pop,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos,
@@ -2456,7 +2501,7 @@ def main():
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
-    MUTATING = {"init", "setup", "create", "start", "finish", "archive", "clean",
+    MUTATING = {"init", "setup", "create", "start", "finish", "fmt", "archive", "clean",
                 "contract", "repos", "subtask", "del", "delete", "rm", "remove"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
