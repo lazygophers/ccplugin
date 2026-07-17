@@ -89,7 +89,7 @@ function subPct(s) {
 }
 
 const TPL = `
-<div class="max-w-6xl mx-auto">
+<div class="px-7">
   <!-- 加载失败 / 404 空态 -->
   <div v-if="loadErr" class="card p-10 text-center text-muted">
     <div class="empty-ico" v-if="notFound"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>

@@ -197,7 +197,7 @@
   /* ── 布局壳 (C 骨): 居中容器 + 页头层级 ──
      注: .eyebrow/.page-head/.rule/.btn-primary 为下游 pages 视图重构预留的骨架类,
      Tailwind tree-shake 会按 content 扫描决定是否烘焙; 下游引用后自动入库。 */
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 30px 28px 64px; }
+  .wrap { padding: 30px 28px 64px; }
   .eyebrow {
     font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
     color: var(--accent2); margin-bottom: 9px;
