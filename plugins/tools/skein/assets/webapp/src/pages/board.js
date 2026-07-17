@@ -13,7 +13,7 @@ const BOARD_CSS = `
 .col-side .card{margin-bottom:0;height:100%;overflow:hidden;display:flex;flex-direction:column}
 .col-side .card>:not(.dag-view){flex:0 0 auto}
 .col-side .dag-view{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
-.col-side .dag-wrap{flex:1 1 auto;min-height:0;max-height:none}
+.col-side .dag-wrap{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
 .col-side .dag{max-width:100%;height:auto;margin:4px auto 0}
 .col-main{min-width:0}
 @media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static;height:auto}.col-side .card{height:auto;overflow:visible;display:block}.col-side .dag-view{display:block}.col-side .dag-wrap{max-height:none}}
