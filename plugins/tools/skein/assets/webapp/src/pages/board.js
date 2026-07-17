@@ -15,7 +15,7 @@ const BOARD_CSS = `
 .col-side .dag-wrap{flex:1 1 auto;min-height:0;max-height:none}
 .col-side .dag{max-width:100%;height:auto;margin:4px auto 0}
 .col-main{min-width:0}
-@media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static;height:auto}.col-side .card{height:auto;overflow:visible;display:block}.col-side .dag-view{display:block}.col-side .dag-wrap{max-height:460px}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.col-side{position:static;height:auto}.col-side .card{height:auto;overflow:visible;display:block}.col-side .dag-view{display:block}.col-side .dag-wrap{max-height:none}}
 .dag-switch{display:inline-flex;margin:2px 0 12px;border:1px solid var(--brd);border-radius:7px;overflow:hidden}
 .dag-switch button{border:0;background:var(--card);color:var(--muted);font:12px var(--font);padding:5px 12px;cursor:pointer;transition:background .2s,color .2s}
 .dag-switch button+button{border-left:1px solid var(--brd)}
@@ -65,7 +65,7 @@ td .bar{margin:1px 0;min-width:78px}
 .dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
 @keyframes node-pulse{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 5px var(--st-active))}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .dag g.n-active>rect:first-of-type{animation:none}}
-.dag-wrap{position:relative;overflow-x:hidden;overflow-y:auto;max-width:100%;max-height:460px}
+.dag-wrap{position:relative;overflow:visible;max-width:100%}
 .dag-wrap svg .has-tip{cursor:pointer}
 .dag svg a,.dag a{cursor:pointer}
 .dag a .has-link,.dag .has-link{cursor:pointer}
