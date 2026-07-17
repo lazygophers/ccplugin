@@ -1,6 +1,8 @@
-// SKEIN Task 页: 单 task 审阅 — 头 (id/名/状态/描述) + 规划三文档 (prd/design/findings, md 渲染) + subtask 列表 (状态/进度/deps) + 契约区。
-// 只读视图; 数据 api.task(id) 一次拉全, onLive 软刷。task 不存在(404) → 友好空态。
+// SKEIN Task 页: 单 task 审阅 — 两栏布局 (左: subtask DAG+列表+目标/验收 / 右: 文档 tab 默认详细设计)。
+// 只读视图; 数据 api.task(id) 一次拉全 (task/docs/subtasks/contracts), onLive 软刷。task 不存在(404) → 友好空态。
 // page 契约: render(mount, params, ctx); params={id}; ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
+import { dagHtml, setNodeMaps } from "../dag.js";
+import { parsePrdSections, findSection } from "../prd-parse.js";
 
 // 状态中文 → badge 令牌类 (task S_* 与 subtask SS_* 合并; 运行中 复用 active 色)
 const BADGE = {
@@ -9,7 +11,19 @@ const BADGE = {
 };
 const badgeCls = (st) => BADGE[st] || "badge-pending";
 
-// 命令快捷条样式 (status/contract/subtask-list 查询结果块)。
+// DAG 节点染色映射 (status → CSS 变量 / class)。对齐后端 _board_data 的 node_var/node_cls。
+// ponytail: _task_detail 不返回 nodeVar/nodeCls, 此处硬编码同一份 (task/subtask 状态中文集合的并集)。
+const NODE_VAR = {
+  "待处理": "--st-pending", "进行中": "--st-active", "运行中": "--st-active",
+  "检查中": "--st-check", "已完成": "--st-done", "失败": "--st-failed",
+};
+const NODE_CLS = {
+  "待处理": "n-pending", "进行中": "n-active", "运行中": "n-active",
+  "检查中": "n-check", "已完成": "n-done", "失败": "n-failed",
+};
+
+// 页内样式: 命令快捷条 + 两栏布局 (grid 2fr/3fr, 窄屏堆叠) + markdown 渲染体 + DAG SVG 染色。
+// board.js 的 .dag g.n-* rect 染色规则在此复刻一份 (task 详情页 DAG 独立渲染, 不引 board BOARD_CSS)。
 const TASK_STYLE = `<style>
 .tcmd{background:var(--card);color:var(--head);border:1px solid var(--brd);border-radius:8px;padding:5px 11px;font:12px var(--font);cursor:pointer}
 .tcmd:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
@@ -19,31 +33,49 @@ const TASK_STYLE = `<style>
 .tcmd-out-h .ok{color:var(--st-done)}.tcmd-out-h .fail{color:var(--st-failed)}
 .tcmd-out pre{margin:0;padding:10px;overflow:auto;max-height:320px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--bg);color:var(--fg);white-space:pre-wrap;word-break:break-word}
 .tcmd-out pre.err{color:var(--st-failed);max-height:220px}
+/* 两栏: 桌面 2fr(左 subtask) / 3fr(右文档); ≤900px 堆叠 (左上右下) */
+.task-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:16px;align-items:start}
+@media(max-width:900px){.task-layout{grid-template-columns:1fr}}
+.tl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+/* markdown 渲染体 (右栏文档 + 左栏目标/验收 共用) */
+.md-body{font-size:14px;line-height:1.7;word-wrap:break-word}
+.md-body>:first-child{margin-top:0}.md-body>:last-child{margin-bottom:0}
+.md-body h1,.md-body h2,.md-body h3,.md-body h4{color:var(--head);font-weight:650;line-height:1.3;margin:1.2em 0 .5em}
+.md-body h1{font-size:1.5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+.md-body h2{font-size:1.25em;padding-bottom:.2em;border-bottom:1px solid var(--line)}
+.md-body h3{font-size:1.1em}
+.md-body p{margin:.6em 0}
+.md-body ul,.md-body ol{margin:.6em 0;padding-left:1.6em}
+.md-body li{margin:.25em 0}
+.md-body li::marker{color:var(--muted)}
+.md-body ul:has(>li>input[type=checkbox]),.md-body li:has(>input[type=checkbox]){list-style:none}
+.md-body li>input[type=checkbox]{margin:0 .5em 0 -1.3em;vertical-align:middle;accent-color:var(--accent)}
+.md-body code{background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:5px;padding:.12em .35em;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.md-body pre{background:color-mix(in srgb,var(--fg) 6%,transparent);border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow-x:auto;margin:.8em 0;line-height:1.5}
+.md-body pre code{background:none;padding:0;font-size:.86em}
+.md-body blockquote{border-left:3px solid var(--accent);margin:.8em 0;padding:.2em 0 .2em 14px;color:var(--muted)}
+.md-body hr{border:none;border-top:2px solid var(--line);margin:1.2em 0}
+.md-body a{color:var(--accent);text-decoration:none}
+.md-body a:hover{text-decoration:underline}
+.md-body strong{color:var(--head);font-weight:650}
+.md-body table{border-collapse:collapse;margin:.8em 0;width:auto;max-width:100%;display:block;overflow-x:auto;font-size:.92em}
+.md-body th,.md-body td{border:1px solid var(--brd);padding:6px 11px;text-align:left}
+.md-body th{background:color-mix(in srgb,var(--muted) 8%,transparent);color:var(--head);font-weight:600}
+/* DAG SVG 节点状态染色 (迁自 board.js, 给 task 详情页 subtask DAG 用) */
+.task-dag{overflow:auto;max-width:100%}
+.task-dag .dag{display:block;max-width:100%;height:auto;margin:0 auto}
+.task-dag g.n-pending>rect:first-of-type{fill:color-mix(in srgb,var(--st-pending) 15%,var(--bg));stroke:var(--st-pending)}
+.task-dag g.n-active>rect:first-of-type{fill:color-mix(in srgb,var(--st-active) 15%,var(--bg));stroke:var(--st-active);stroke-width:2}
+.task-dag g.n-check>rect:first-of-type{fill:color-mix(in srgb,var(--st-check) 15%,var(--bg));stroke:var(--st-check)}
+.task-dag g.n-done>rect:first-of-type{fill:color-mix(in srgb,var(--st-done) 15%,var(--bg));stroke:var(--st-done)}
+.task-dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
+.sec-empty{color:var(--muted);font-size:12.5px;font-style:italic;opacity:.85}
 </style>`;
 
 // html 转义 (renderResult 走 v-html, stdout/stderr 是命令输出须转义防注入)
 function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-// PRD 原文按 ## 二级章节拆节 (目标/边界/验收标准/索引 等)。返回 [{title, body}]。
-// 首个 ## 前的前言 (含 # 一级标题) 归一节: 有 # 标题则用其文字, 否则标题空。
-// body 交给 md.renderSafe → 其中一级 - [ ]/- [x] 已被 md 渲染为只读 checkbox (todo 样式), 无需另解析。
-function parsePrd(src) {
-  if (!src) return [];
-  var lines = src.replace(/\r\n?/g, "\n").split("\n"), secs = [], cur = null;
-  lines.forEach(function (ln) {
-    var h2 = ln.match(/^##\s+(.*)$/);
-    if (h2) { cur = { title: h2[1].trim(), body: [] }; secs.push(cur); return; }
-    var h1 = ln.match(/^#\s+(.*)$/);
-    if (h1 && !cur) { cur = { title: h1[1].trim(), body: [] }; secs.push(cur); return; }
-    if (!cur) { cur = { title: "", body: [] }; secs.push(cur); }
-    cur.body.push(ln);
-  });
-  return secs
-    .filter(function (s) { return s.title || s.body.join("").trim(); })
-    .map(function (s) { return { title: s.title, body: s.body.join("\n") }; });
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'", "&#39;" }[c]));
 }
 
 // subtask 完成百分比 (对齐后端 _sub_pct: done 强制 100; 验收done/验收, 无验收未完成即 0)
@@ -54,7 +86,7 @@ function subPct(s) {
 }
 
 const TPL = `
-<div class="max-w-4xl mx-auto">
+<div class="max-w-6xl mx-auto">
   <!-- 加载失败 / 404 空态 -->
   <div v-if="loadErr" class="card p-10 text-center text-muted">
     <div class="text-3xl mb-2">{{ notFound ? '🔍' : '⚠️' }}</div>
@@ -63,7 +95,7 @@ const TPL = `
   </div>
 
   <div v-else>
-    <!-- task 头 -->
+    <!-- task 头 (全宽) -->
     <header class="card p-5 mb-4">
       <div class="flex items-center gap-3 flex-wrap">
         <code class="text-sm px-2 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ task.id }}</code>
@@ -84,64 +116,90 @@ const TPL = `
       <div v-if="result" class="tcmd-out" v-html="renderResult()"></div>
     </header>
 
-    <!-- 规划三文档 tab -->
-    <section class="card mb-4 overflow-hidden">
-      <div class="flex" style="border-bottom:1px solid var(--line)">
-        <button v-for="d in docTabs" :key="d.key"
-          class="px-4 py-2 text-sm relative"
-          :style="tab===d.key ? 'color:var(--accent);border-bottom:2px solid var(--accent)' : 'color:var(--muted)'"
-          @click="tab=d.key">
-          {{ d.label }}
-          <span v-if="!docs[d.key]" class="ml-1 text-[10px] opacity-50">空</span>
-        </button>
-      </div>
-      <div class="p-5">
-        <div v-if="!docs[tab]" class="text-muted text-center py-16 text-sm">
-          <div class="text-2xl mb-1">📄</div>{{ docLabel(tab) }} 暂无内容
-        </div>
-        <!-- PRD: 按 ## 章节拆 card 竖排; 章节内一级 - [ ] 由 md 渲染为只读 todo checkbox -->
-        <div v-else-if="tab==='prd'" class="space-y-3">
-          <div v-for="sec in prdSections" :key="sec.title" class="rounded p-4" style="border:1px solid var(--line)">
-            <div v-if="sec.title" class="text-sm font-semibold mb-2" style="color:var(--head)">{{ sec.title }}</div>
-            <div class="md-body" v-html="sec.html"></div>
+    <!-- 两栏: 左 subtask 区 / 右 文档 tab -->
+    <div class="task-layout">
+      <!-- 左栏 -->
+      <div class="tl-col">
+        <!-- subtask DAG 图 (≥2 节点才渲染) -->
+        <section v-if="subDag" class="card p-4">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-sm font-semibold" style="color:var(--head)">子任务图</h2>
+            <span class="text-xs text-muted">{{ subtasks.length }}</span>
           </div>
-        </div>
-        <!-- design/findings: 保持整篇 md -->
-        <div v-else class="md-body" v-html="renderedDoc"></div>
-      </div>
-    </section>
+          <div class="task-dag" v-html="subDag"></div>
+        </section>
 
-    <!-- subtask 列表 -->
-    <section class="card p-5 mb-4">
-      <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-sm font-semibold" style="color:var(--head)">子任务</h2>
-        <span class="text-xs text-muted">{{ subtasks.length }}</span>
-      </div>
-      <div v-if="!subtasks.length" class="text-muted text-center py-8 text-sm">尚无子任务拆分</div>
-      <div v-else class="space-y-2">
-        <div v-for="s in subtasks" :key="s.sid" class="rounded p-3" style="border:1px solid var(--line)">
-          <div class="flex items-center gap-2 flex-wrap">
-            <code class="text-xs" style="color:var(--head)">{{ s.sid }}</code>
-            <span class="text-sm">{{ s.name || s.sid }}</span>
-            <span class="badge text-[11px]" :class="badgeCls(s.status)">{{ s.status }}</span>
-            <span class="flex-1"></span>
-            <span v-if="s.agent" class="text-[11px] text-muted">{{ s.agent }}</span>
+        <!-- subtask 列表 (状态/进度/依赖) -->
+        <section class="card p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <h2 class="text-sm font-semibold" style="color:var(--head)">子任务</h2>
+            <span class="text-xs text-muted">{{ subtasks.length }}</span>
           </div>
-          <p v-if="s.desc" class="text-xs text-muted mt-1 whitespace-pre-wrap">{{ s.desc }}</p>
-          <!-- 进度条 -->
-          <div class="flex items-center gap-2 mt-2">
-            <div class="flex-1 h-1.5 rounded overflow-hidden" style="background:var(--line)">
-              <div class="h-full rounded" :style="'width:'+pct(s)+'%;background:var(--st-done)'"></div>
+          <div v-if="!subtasks.length" class="text-muted text-center py-8 text-sm">尚无子任务拆分</div>
+          <div v-else class="space-y-2">
+            <div v-for="s in subtasks" :key="s.sid" class="rounded p-3" style="border:1px solid var(--line)">
+              <div class="flex items-center gap-2 flex-wrap">
+                <code class="text-xs" style="color:var(--head)">{{ s.sid }}</code>
+                <span class="text-sm">{{ s.name || s.sid }}</span>
+                <span class="badge text-[11px]" :class="badgeCls(s.status)">{{ s.status }}</span>
+                <span class="flex-1"></span>
+                <span v-if="s.agent" class="text-[11px] text-muted">{{ s.agent }}</span>
+              </div>
+              <p v-if="s.desc" class="text-xs text-muted mt-1 whitespace-pre-wrap">{{ s.desc }}</p>
+              <div class="flex items-center gap-2 mt-2">
+                <div class="flex-1 h-1.5 rounded overflow-hidden" style="background:var(--line)">
+                  <div class="h-full rounded" :style="'width:'+pct(s)+'%;background:var(--st-done)'"></div>
+                </div>
+                <span class="text-[11px] text-muted w-9 text-right">{{ pct(s) }}%</span>
+              </div>
+              <div v-if="deps(s).length" class="text-[11px] text-muted mt-1">依赖: {{ deps(s).join(', ') }}</div>
             </div>
-            <span class="text-[11px] text-muted w-9 text-right">{{ pct(s) }}%</span>
           </div>
-          <div v-if="deps(s).length" class="text-[11px] text-muted mt-1">依赖: {{ deps(s).join(', ') }}</div>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <!-- 契约区 (空则不显) -->
-    <section v-if="contracts.length" class="card p-5">
+        <!-- 目标 (PRD 抽出) -->
+        <section v-if="goalHtml" class="card p-5">
+          <h2 class="text-sm font-semibold mb-2" style="color:var(--head)">目标</h2>
+          <div class="md-body" v-html="goalHtml"></div>
+        </section>
+
+        <!-- 验收标准 (PRD 抽出) -->
+        <section v-if="acceptHtml" class="card p-5">
+          <h2 class="text-sm font-semibold mb-2" style="color:var(--head)">验收标准</h2>
+          <div class="md-body" v-html="acceptHtml"></div>
+        </section>
+      </div>
+
+      <!-- 右栏: 文档 tab (默认详细设计) -->
+      <section class="card overflow-hidden">
+        <div class="flex" style="border-bottom:1px solid var(--line)">
+          <button v-for="d in docTabs" :key="d.key"
+            class="px-4 py-2 text-sm relative"
+            :style="tab===d.key ? 'color:var(--accent);border-bottom:2px solid var(--accent)' : 'color:var(--muted)'"
+            @click="tab=d.key">
+            {{ d.label }}
+            <span v-if="!docs[d.key]" class="ml-1 text-[10px] opacity-50">空</span>
+          </button>
+        </div>
+        <div class="p-5">
+          <div v-if="!docs[tab]" class="text-muted text-center py-16 text-sm">
+            <div class="text-2xl mb-1">📄</div>{{ docLabel(tab) }} 暂无内容
+          </div>
+          <!-- PRD: 按 ## 章节拆 card 竖排; 章节内一级 - [ ] 由 md 渲染为只读 todo checkbox -->
+          <div v-else-if="tab==='prd'" class="space-y-3">
+            <div v-for="sec in prdSections" :key="sec.title" class="rounded p-4" style="border:1px solid var(--line)">
+              <div v-if="sec.title" class="text-sm font-semibold mb-2" style="color:var(--head)">{{ sec.title }}</div>
+              <div class="md-body" v-html="sec.html"></div>
+            </div>
+          </div>
+          <!-- design/findings: 保持整篇 md -->
+          <div v-else class="md-body" v-html="renderedDoc"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 契约区 (全宽底部, 空则不显) -->
+    <section v-if="contracts.length" class="card p-5 mt-4">
       <div class="flex items-center gap-2 mb-3">
         <h2 class="text-sm font-semibold" style="color:var(--head)">契约</h2>
         <span class="text-xs text-muted">{{ contracts.length }}</span>
@@ -156,9 +214,10 @@ const TPL = `
   </div>
 </div>`;
 
+// 右栏文档 tab 顺序: 详细设计优先 (默认), PRD 次之, 调研收敛最后。
 const DOC_TABS = [
-  { key: "prd", label: "PRD" },
   { key: "design", label: "详细设计" },
+  { key: "prd", label: "PRD" },
   { key: "findings", label: "调研收敛" },
 ];
 
@@ -191,6 +250,16 @@ const LIST_TPL = `
     </a>
   </div>
 </div>`;
+
+// 从 task.subtasks 构造 DAG 节点数组: [sid, name, status, depends_on(sid 数组), pct, desc]。
+// 对齐后端 _board_data 的 node() 形状; dagHtml 自行按 depends_on 连边 (无需显式 links)。
+function buildSubDag(subtasks) {
+  if (!subtasks || subtasks.length < 2) return "";
+  const nodes = subtasks.map((s) => [
+    s.sid, s.name || s.sid, s.status, s.depends_on || [], subPct(s), s.desc || "",
+  ]);
+  return dagHtml(nodes, null, null, nodes.length > 4);
+}
 
 export async function render(mount, params, ctx) {
   const { api, md, onLive } = ctx;
@@ -233,14 +302,25 @@ export async function render(mount, params, ctx) {
 
   async function mountApp() {
     const st = await fetchState();
+    // DAG 染色映射注入 (每次渲染前; dag.js 模块级 NODE_VAR/NODE_CLS 单例)
+    setNodeMaps(NODE_VAR, NODE_CLS);
+    // subtask DAG 字符串在 createApp 前算好注入 (ponytail: 静态, 无需响应式)
+    const subDag = buildSubDag(st.subtasks);
+    // PRD 目标 / 验收标准 抽取 + md 渲染 (docs.prd 为 null 时 findSection 返回 "")
+    const prdSecs = parsePrdSections(st.docs.prd || "");
+    const goalHtml = md.renderSafe(findSection(prdSecs, "目标"));
+    const acceptHtml = md.renderSafe(findSection(prdSecs, "验收标准", "验收"));
     mount.innerHTML = TASK_STYLE + TPL;
     window.PetiteVue.createApp(Object.assign({
-      tab: "prd",
+      tab: "design",
       docTabs: DOC_TABS,
       badgeCls,
       pct: subPct,
       deps: (s) => s.depends_on || [],
       docLabel: (k) => (DOC_TABS.find((d) => d.key === k) || {}).label || k,
+      subDag,
+      goalHtml,
+      acceptHtml,
       get renderedDoc() { return md.renderSafe(this.docs[this.tab] || ""); },
       // PRD 章节化 (仅 tab==='prd' 用): 各节 body 走同一 md.renderSafe 栈 → 只读 todo 复用 md 输出。
       get prdSections() {
