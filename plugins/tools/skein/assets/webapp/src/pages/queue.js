@@ -35,13 +35,51 @@ const TPL = `
 
   <div v-else>
     <!-- 全空态 -->
-    <div v-if="!readyTasks.length && !readySubtasks.length && !pendingQueue.length"
+    <div v-if="!activeTasks.length && !runningSubs.length && !readyTasks.length && !readySubtasks.length && !pendingQueue.length"
       class="card p-16 text-center text-muted">
       <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
       <div class="text-sm">队列已清空 — 无就绪 task、无待派 subtask。</div>
     </div>
 
     <template v-else>
+      <!-- (0) 进行中: activeTasks + runningSubs -->
+      <section v-if="activeTasks.length || runningSubs.length" class="card p-5 mb-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="w-2 h-2 rounded-full" style="background:var(--st-active)"></span>
+          <h2 class="text-sm font-semibold" style="color:var(--head)">进行中</h2>
+          <span class="text-[11px] text-muted">活跃 task 实时进度 + 正在跑的 subtask</span>
+        </div>
+        <!-- active task 行 -->
+        <div v-if="activeTasks.length" class="space-y-1.5 mb-3">
+          <a v-for="t in activeTasks" :key="'at:'+t.id" :href="'/task?id='+encodeURIComponent(t.id)"
+            class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
+            style="border:1px solid var(--line)">
+            <code class="text-[11px] text-muted shrink-0">{{ t.id }}</code>
+            <span class="text-sm truncate">{{ t.name }}</span>
+            <span class="badge text-[11px] shrink-0" :class="badgeCls(t.status)">{{ t.status }}</span>
+            <div class="flex-1 flex items-center gap-2 max-w-[200px]">
+              <div class="bar flex-1"><div :style="'width:'+(t.pct||0)+'%'"></div></div>
+              <span class="text-[11px] text-muted w-9 text-right">{{ t.pct||0 }}%</span>
+            </div>
+            <span class="text-[11px] text-muted shrink-0">{{ t.sdone }}/{{ t.stotal }}</span>
+            <span class="text-[11px] text-muted shrink-0">{{ t.elapsed }}</span>
+          </a>
+        </div>
+        <!-- running subtask 行 -->
+        <div v-if="runningSubs.length" class="space-y-1.5">
+          <a v-for="s in runningSubs" :key="'rs:'+s.tid+'/'+s.sid" :href="'/task?id='+encodeURIComponent(s.tid)"
+            class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
+            style="border:1px solid var(--line)">
+            <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:var(--st-active)"></span>
+            <code class="text-[11px] text-muted shrink-0">{{ s.tid }}/{{ s.sid }}</code>
+            <span class="text-sm truncate">{{ s.name }}</span>
+            <span class="flex-1"></span>
+            <span class="text-[11px] text-muted shrink-0">{{ s.agent }}</span>
+            <span class="text-[11px] text-muted shrink-0">{{ s.elapsed }}</span>
+          </a>
+        </div>
+      </section>
+
       <!-- (1) 就绪 task 批 -->
       <section class="card p-5 mb-4">
         <div class="flex items-center gap-2 mb-3">
@@ -150,11 +188,13 @@ export async function render(mount, params, ctx) {
       return {
         loadErr: "", readyTasks: r.readyTasks || [],
         readySubtasks: r.readySubtasks || [], pendingQueue: r.pendingQueue || [],
+        activeTasks: r.activeTasks || [], runningSubs: r.runningSubs || [],
       };
     } catch (e) {
       return {
         loadErr: (e && e.message) || String(e),
         readyTasks: [], readySubtasks: [], pendingQueue: [],
+        activeTasks: [], runningSubs: [],
       };
     }
   }
