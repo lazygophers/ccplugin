@@ -55,7 +55,7 @@ const TPL = `
           <a v-for="t in readyTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)"
             class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
             style="border:1px solid var(--line)"
-            @mouseenter="hoverKey='t:'+t.id" @mouseleave="hoverKey=''" @click.prevent="pin('t:'+t.id)">
+            @mouseenter="hoverKey='t:'+t.id" @mouseleave="hoverKey=''" @click.prevent.stop="pin('t:'+t.id)">
             <code class="text-[11px] text-muted shrink-0">{{ t.id }}</code>
             <span class="text-sm truncate">{{ t.name }}</span>
             <span class="flex-1"></span>
@@ -86,7 +86,7 @@ const TPL = `
         <ol v-else class="space-y-1.5">
           <li v-for="(s,idx) in readySubtasks" :key="s.tid+'/'+s.sid"
             class="qrow flex items-center gap-2 rounded p-2 cursor-default" style="border:1px solid var(--line)"
-            @mouseenter="hoverKey='s:'+s.tid+'/'+s.sid" @mouseleave="hoverKey=''" @click="pin('s:'+s.tid+'/'+s.sid)">
+            @mouseenter="hoverKey='s:'+s.tid+'/'+s.sid" @mouseleave="hoverKey=''" @click.stop="pin('s:'+s.tid+'/'+s.sid)">
             <span class="text-[11px] text-muted w-5 text-right shrink-0 select-none">{{ idx+1 }}</span>
             <a :href="'/task?id='+encodeURIComponent(s.tid)" class="shrink-0" @click.stop>
               <code class="text-[11px] text-muted">{{ s.tid }}/{{ s.sid }}</code>
@@ -117,7 +117,7 @@ const TPL = `
           <a v-for="q in pendingQueue" :key="q.tid+'/'+q.sid" :href="'/task?id='+encodeURIComponent(q.tid)"
             class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
             style="border:1px solid var(--line)"
-            @mouseenter="hoverKey='s:'+q.tid+'/'+q.sid" @mouseleave="hoverKey=''" @click.prevent="pin('s:'+q.tid+'/'+q.sid)">
+            @mouseenter="hoverKey='s:'+q.tid+'/'+q.sid" @mouseleave="hoverKey=''" @click.prevent.stop="pin('s:'+q.tid+'/'+q.sid)">
             <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="'background:'+(q.ready?'var(--st-active)':'var(--st-pending)')"
               :title="q.ready?'就绪':'排队中'"></span>
             <code class="text-[11px] text-muted shrink-0">{{ q.tid }}/{{ q.sid }}</code>
