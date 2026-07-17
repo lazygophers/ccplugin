@@ -1390,6 +1390,7 @@ class Skein:
             s["验收done"] = list(range(1, len(s.get("验收", [])) + 1))  # 完成即全过 → 100%
         elif a.action == "fail":
             s["status"] = SS_FAILED
+            s["finished"] = now()  # 失败时刻 (与 done 对称)
             if a.note:
                 s["note"] = a.note  # 失败备注 (运行时, 非 planning schema)
         self._save(t)  # _save 已渲染子任务看板
@@ -1566,6 +1567,9 @@ class Skein:
                 "skills": s.get("skills", []),
                 "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
                 "acc": s.get("验收", []),
+                "created": s.get("created"),
+                "started": s.get("started"),
+                "finished": s.get("finished"),
             } for s in subs]
             sblob = " ".join(str(x or "") for x in (
                 t["id"], t.get("name", ""), t.get("desc", ""),
