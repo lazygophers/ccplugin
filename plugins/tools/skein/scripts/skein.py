@@ -1927,7 +1927,6 @@ class Skein:
             return JSONResponse(board._board_data())
 
         @app.get("/", response_class=HTMLResponse)
-        @app.get("/task.html", response_class=HTMLResponse)
         async def _page():  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
             return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
 
