@@ -34,6 +34,8 @@ const BOARD_CSS = `
 .card.next-up{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .next-up-chip{margin-left:8px;padding:0 8px;border-radius:9px;background:var(--accent);color:var(--bg);font-size:11px;line-height:17px;font-weight:600;vertical-align:baseline}
 .card h2{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card-link{color:inherit;text-decoration:none;border-bottom:1px dashed transparent}
+.card-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
 .name{margin:0 0 10px;color:var(--head);font-size:15px;font-weight:500}
 .meta{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}
 .badge{display:inline-block;padding:0 8px;border-radius:9px;color:#fff;font-size:11px;line-height:17px;font-weight:500;vertical-align:baseline}
@@ -287,7 +289,7 @@ function buildLayoutHtml(data) {
     + queue + taskView + fullView + "</section>";
 
   var cards = data.cards.map(function (c) {
-    var h2 = "<h2>" + esc(c.id) + " " + badge(c.status, data.stClsMap)
+    var h2 = "<h2>" + '<a class="card-link" href="/task?id=' + encodeURIComponent(c.id) + '">' + esc(c.id) + "</a> " + badge(c.status, data.stClsMap)
       + (c.nextUp ? "<span class=next-up-chip>▶ 下一个</span>" : "") + "</h2>";
     var meta1 = '<p class="meta">前置: ' + esc((c.depNames || []).join(", ") || "-") + " · "
       + "worktree: " + esc(c.worktree || "-") + " · "

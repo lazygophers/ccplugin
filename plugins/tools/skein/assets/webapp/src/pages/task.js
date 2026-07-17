@@ -69,6 +69,8 @@ const TASK_STYLE = `<style>
 .task-dag g.n-check>rect:first-of-type{fill:color-mix(in srgb,var(--st-check) 15%,var(--bg));stroke:var(--st-check)}
 .task-dag g.n-done>rect:first-of-type{fill:color-mix(in srgb,var(--st-done) 15%,var(--bg));stroke:var(--st-done)}
 .task-dag g.n-failed>rect:first-of-type{fill:color-mix(in srgb,var(--st-failed) 15%,var(--bg));stroke:var(--st-failed)}
+.back-btn{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted);background:transparent;border:1px solid var(--brd);border-radius:8px;padding:4px 10px;cursor:pointer}
+.back-btn:hover{color:var(--accent);border-color:var(--accent)}
 .sec-empty{color:var(--muted);font-size:12.5px;font-style:italic;opacity:.85}
 </style>`;
 
@@ -100,6 +102,7 @@ const TPL = `
     <!-- task 头 (全宽) -->
     <header class="card p-5 mb-4">
       <div class="flex items-center gap-3 flex-wrap">
+        <button class="back-btn" @click="history.back()">← 返回</button>
         <code class="text-sm px-2 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ task.id }}</code>
         <h1 class="text-lg font-semibold" style="color:var(--head)">{{ task.name || task.id }}</h1>
         <span class="badge" :class="badgeCls(task.status)">{{ task.status }}</span>
