@@ -337,7 +337,7 @@ class Skein:
                 "## 目标\n要解决什么 / 用户价值 / 成功长什么样:\n- [ ] TODO: 填目标\n\n"
                 "## 边界\n范围内 / 范围外 (非目标) / 已知约束:\n- [ ] TODO: 填边界\n\n"
                 "## 验收标准\n可执行、可核对的完成断言 (逐条):\n- [ ] TODO: 填验收标准\n\n"
-                "## 索引\n- [ ] TODO: 补全链接\n- 详细设计: [design.md](design.md)\n"
+                "## 索引\n- 详细设计: [design.md](design.md)\n"
                 "- 调研收敛: [findings.md](findings.md)\n"
                 "- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list " + tid + "`)\n"),
             "design.md": (
