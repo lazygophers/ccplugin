@@ -60,7 +60,8 @@ effort: high
    - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json)。
    - `findings.md` (需调研时) — 深度调研的收敛结论 + 依据/引用; 过程笔记存 `research/` (researcher 写)。
    - **子任务 + 调度 DAG (协议先行, 后并行)** — 拆分铁律: 先把 subtask 间的**共享契约** (接口签名 / 数据结构 / 类型 / 协议格式 / DB schema) 抽成**单个前置 subtask** 优先定死, 下游各实现 subtask 只 `--deps` 这一个契约 subtask、彼此**不互挂依赖** → 契约一 done 即全批并行。这是压 makespan 的命门 —— 定协议是唯一真串行, 实现全并行。每个 subtask 含 depends_on + 验收 checklist, 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json (sid/--name/--desc 三者必填, `--agent` 省略默认 `skein-executor`)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
-6. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
+6. **异步派 skein-dedup (fire-and-forget, 不阻塞 exec)** — 所有 task planning 完成 (batch 末 / plan 收尾), main **异步派 `skein-dedup`** subagent 全量扫一次未完成 task 查重复/重叠 (同目标 / 同模块 / 共享改动面 / 互为前置)。**异步不阻塞**: dedup 在后台跑, exec 照常推进; dedup 回传重复清单后**由 main 裁定**是否归并 (采纳则 `subtask add` 并入, 不采纳忽略)。dedup 只诊断不写盘。派它即放手, 不等其回传再 start。
+7. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
 ## 调度 = task.json 子任务 DAG
 
@@ -76,4 +77,4 @@ exec 阶段的 DAG 靠 task.json 的 `subtasks[].depends_on` (经 `skein subtask
 
 ## 反例
 
-违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / **把调度图/子任务写进 md 文件而非 task.json** / start 前未 `subtask add` 任何子任务 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go)。
+违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / **把调度图/子任务写进 md 文件而非 task.json** / start 前未 `subtask add` 任何子任务 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go) / **plan 收尾忘了异步派 skein-dedup** (重复 task 漏查归并, 散 task 丢共享上下文)。

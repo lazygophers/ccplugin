@@ -11,7 +11,7 @@ effort: medium
 
 **差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆分两层, 基于 `.skein/spec`:
 
-> **绑定 agent `skein-memorier`** (相互绑定, 它 frontmatter `skills: skein:skein-memory`): 只读记忆员, 承载两类作业 —— recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产候选)。main 派它产**草案**, 写盘 (`skein-memory sediment`) 归 main —— 判定门通过即自动写, 不逐次询问用户 (仅 bootstrap/reconstruct 全局动作跑前一次征同意)。
+> **绑定 agent `skein-memorier`** (相互绑定, 它 frontmatter `skills: skein:skein-memory`): 记忆员, 承载两类作业 —— recall 检索 (planning) + sediment (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘)。**异步 fire-and-forget 模式** (被 `skein-finish` 在 finish 闭环后派发): memorier 自主跑判定门 + `skein-memory sediment` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自动写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
 
 | 层         | 路径                             | 加载                                                 | 适合                             |
 | ---------- | -------------------------------- | ---------------------------------------------------- | -------------------------------- |
@@ -29,9 +29,9 @@ skein-memory recall "<任务关键词>"
 - grep `recall/index.md` 输出命中行 → **model 读命中规则全文, 判是否真相关** → 相关的注入当前 task 上下文 (dispatch prompt「已知」段带上)。
 - core 规则已由 SessionStart hook 常驻, 无需 recall。
 
-## sediment (task finish 阶段, main) — 判定门 + 自动写盘
+## sediment (task finish 阶段, 异步 fire-and-forget) — 判定门 + 自主写盘
 
-task finish 后走「判定门 checklist → 分层归类 → skein-memory sediment 自动写盘 + reindex」三步 (含升降级)。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; main 逐项输出 trace 供审阅, 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
+task finish 闭环后由 `skein-finish` 异步 fire-and-forget 派 `skein-memorier` 跑「判定门 checklist → 分层归类 → `skein-memory sediment` 自主写盘 + reindex」三步 (含升降级)。**异步**: main 派 memorier 即结束回合, 不等回传 (finish 已闭环, 禁为 sediment 阻塞); memorier 自主写盘, 回传到达后 main 只补 output trace 供审阅。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
 
 ## 空仓冷启动播种 (一次性, main)
 
@@ -72,9 +72,9 @@ skein-memory restore <ts>       # 回滚 (撞名不覆盖新规则)
 
 | 禁                                | 改为                                    |
 | --------------------------------- | --------------------------------------- |
-| sediment 未输出判定 trace         | 逐项 /输出                              |
+| sediment 未输出判定 trace         | 逐项 /输出 (memorier 回传后 main 补)    |
 | 无增量硬凑沉淀                    | 全否跳过                                |
-| 逐次 AskUserQuestion 问用户批不批    | 判定门通过即自动写, 只输出 trace 不硬停 |
-| 派 subagent 写盘 (它无 Write)      | main 跑 skein-memory sediment           |
+| 逐次 AskUserQuestion 问用户批不批    | 判定门通过即自主写, 只输出 trace 不硬停 |
+| finish 为等 sediment 阻塞闭环     | sediment 异步 fire-and-forget, finish 先 archive |
 | 写盘不同步 index.md               | skein-memory sediment 自动同步, 禁手改绕过 |
 | 什么都塞 core 常驻                | 默认 recall, core 只留硬约束            |
