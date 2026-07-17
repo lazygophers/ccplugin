@@ -12,10 +12,11 @@ arguments: "[create|optimize] <插件路径>"
 
 细节分文件（按需读，禁全读）：
 - [references/manifest-and-wiring.md](references/manifest-and-wiring.md) — plugin.json 全字段 + 组件目录 + namespace + version 语义
-- [references/hooks.md](references/hooks.md) — hook 事件 / matcher / 退出码契约 / stdin payload / async / 深水区
-- [references/advanced-components.md](references/advanced-components.md) — MCP / LSP / monitors / bin / settings / userConfig / outputStyles
+- [references/hooks.md](references/hooks.md) — 31 事件表 / 5 hook types / matcher / 退出码契约 / stdin payload / async / 路径变量
+- [references/advanced-components.md](references/advanced-components.md) — MCP / LSP(+v2.1.205) / monitors / themes / channels / bin / settings / userConfig / dependencies
 - [references/multi-language.md](references/multi-language.md) — 编译型陷阱 / 三方案 / 跨平台 / 共享代码
 - [references/marketplace.md](references/marketplace.md) — marketplace.json schema / source 5 类型 / 发布流程
+- [references/debugging.md](references/debugging.md) — claude --debug / validate --strict / plugin CLI 全集 / 错误信息速查 / hook/MCP/LSP/monitor 排查 / 版本解析 4 层 / 缓存+symlink
 - [references/optimize-rubric.md](references/optimize-rubric.md) — 体检命令 / 8 维评分 / 优化循环
 
 ## 🔴 硬规（违反即失效）

@@ -123,7 +123,26 @@
 
 `strict: true`（默认）= `plugin.json` 是组件定义权威。marketplace 条目里的 `skills`/`agents`/`commands` 等字段在 strict 下作为补充/覆盖。
 
+## 插件 dependencies（跨 marketplace）
+
+plugin.json 的 `dependencies` 数组可声明本插件所需的其他插件：
+
+```jsonc
+"dependencies": [
+  "helper-lib",                                    // 字符串 = 仅插件名（同 marketplace）
+  { "name": "secrets-vault", "version": "~2.1.0" } // 对象 = name + semver 约束
+]
+```
+
+- 顶层 marketplace 的 `allowCrossMarketplaceDependenciesOn: []` 声明允许依赖的其他 marketplace（默认禁跨 marketplace 依赖）
+- `claude plugin install` / `enable` 时缺失依赖会**传递性自动安装**；依赖未装则 enable 失败
+- `claude plugin uninstall <p> --prune` / `claude plugin prune`（v2.1.121+）清理无人依赖的自动装的依赖
+- `claude plugin disable` 拒绝禁用被其他启用插件依赖的目标，错误信息含连锁禁用命令
+- 版本解析详见 [plugin-dependencies](https://code.claude.com/docs/en/plugin-dependencies) + `claude plugin tag --push` 打 release tag
+
 ## CLI 命令族
+
+> 完整 `claude plugin` CLI 参考（init/install/uninstall/prune/enable/disable/update/list/details/tag/validate）见 [debugging.md](debugging.md) 的 CLI 全集表。
 
 ```bash
 # 开发测试
@@ -133,16 +152,21 @@ claude --plugin-url https://.../x.zip     # 加载远程 zip（CI 产物）
 /reload-plugins                           # 重载（改后生效，免重启）
 
 # 脚手架
-claude plugin init my-tool                # 在 ~/.claude/skills/ 建插件，自动加载
+claude plugin init my-tool                # 在 ~/.claude/skills/ 建插件，自动加载为 @skills-dir
+claude plugin init my-tool --with skills hooks mcp  # 带组件脚手架
 
 # 校验
 claude plugin validate                    # 提交前必跑（官方审查 pipeline 跑同一检查）
+claude plugin validate --strict           # CI：未识别字段警告当错
 
 # marketplace
 /plugin marketplace add ./my-marketplace  # 加本地 marketplace
 /plugin marketplace add owner/repo        # 加 git marketplace
 /plugin marketplace update                # 刷新本地副本
-/plugin install my-plugin@market-name     # 装插件
+/plugin install my-plugin@market-name     # 装插件（-s user|project|local 选 scope）
+
+# 发布 tag（显式版本用）
+claude plugin tag --push -m "release %s"  # 打 release git tag 并推（版本解析用）
 
 # 社区提交
 # claude.ai:    claude.ai/admin-settings/directory/submissions/plugins/new (Team/Enterprise)
