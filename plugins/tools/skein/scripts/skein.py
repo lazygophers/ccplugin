@@ -1782,7 +1782,7 @@ class Skein:
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
         # 执行中 task: cards 已含 elapsed/sdone/stotal/pct (不重算)
         active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
-                         "pct": c["pct"], "sdone": c["sdone"], "stotal": c["stotal"],
+                         "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
                          "elapsed": c.get("elapsed")}
                         for c in data["cards"] if c["status"] in (S_ACTIVE, S_CHECK)]
         return {"proj": self.proj, "taskCount": total,
