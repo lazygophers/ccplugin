@@ -22,7 +22,7 @@ html[data-theme=skein] body{
     radial-gradient(135% 62% at 50% 112%,color-mix(in srgb,var(--accent2) 78%,transparent) 0%,transparent 66%),
     radial-gradient(78% 52% at 50% 72%,color-mix(in srgb,var(--skein-gold) 82%,transparent) 0%,transparent 60%),
     radial-gradient(60% 40% at 50% 118%,color-mix(in srgb,var(--accent) 22%,transparent) 0%,transparent 60%),
-    linear-gradient(180deg,#EEF1FB 0%,#E9EFFB 46%,#DBEAFB 100%);
+    linear-gradient(180deg,#F0EEF8 0%,#F3F1EF 46%,#F5F0E6 100%);
   background-attachment:fixed;
   animation:skein-dawn-breath 12s ease-in-out infinite;
 }
