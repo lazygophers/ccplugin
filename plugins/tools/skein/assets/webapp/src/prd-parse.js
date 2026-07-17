@@ -37,7 +37,8 @@ export function findSection(sections, ...aliases) {
 
 // ── 自检: node prd-parse.js 直接跑 (非 import 时) ──
 // ponytail: 最小可运行校验, 断言关键路径; 无框架。
-if (import.meta.url === `file://${process.argv[1]}`) {
+// 守卫须先判 process 存在 (浏览器无 process, 顶层访问即抛 ReferenceError)。
+if (typeof process !== "undefined" && import.meta.url === `file://${process.argv[1]}`) {
   const sample = `# PRD — demo
 
 ## 目标
