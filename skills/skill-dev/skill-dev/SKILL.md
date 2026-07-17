@@ -1,6 +1,6 @@
 ---
 name: skill-dev
-description: 创建、维护与持续优化 Claude skills 和 subagents 的方法论框架。写 SKILL.md / 新建 skill / 设计 subagent(agent.md) / 配 frontmatter / 拆 progressive disclosure(流程 A 创建), 或诊断 9 维短板 / 修触发准确性 / 补失败模式 / 收窄误触发 / validation-gated 优化现有 skill(流程 B 优化)时使用。人物/主题视角蒸馏→huashu-nuwa; 深度自主评分+可视化卡片→darwin-skill。仅手动 /skill-dev 触发。
+description: 创建、维护与持续优化 Claude skills 和 subagents 的方法论框架。写 SKILL.md / 新建 skill / 设计 subagent(agent.md) / 配 frontmatter / 拆 progressive disclosure(流程 A 创建), 或诊断 9 维短板 / 修触发准确性 / 补失败模式 / 收窄误触发 / validation-gated 优化现有 skill(流程 B 优化)时使用。领域/主题视角蒸馏(分维度调研+三重验证)内置流程 A; 9 维评分+validation-gated 爬山+可视化成果卡片内置流程 B。仅手动 /skill-dev 触发。
 disable-model-invocation: true
 argument-hint: "[create|optimize] <skill/agent 路径>"
 arguments: "[create|optimize] <skill/agent 路径>"
@@ -8,12 +8,12 @@ arguments: "[create|optimize] <skill/agent 路径>"
 
 # Skill Dev — Skill / Agent 创建 · 优化方法论
 
-> meta-skill：教如何**编写与打磨其他 skill 与 subagent**。基于 Anthropic 官方规范 + darwin-skill 9 维实证（arXiv SkillLens 2605.23899 / SkillOpt 2605.23904）+ 社区反模式。完整调研素材见 `references/research/01-06.md` 与 `references/`。人物/主题视角蒸馏归 [huashu-nuwa]，深度自主评分+可视化卡片归 [darwin-skill]；本 skill 管**功能 skill / subagent 的创建到优化全生命周期**。
+> meta-skill：教如何**编写与打磨其他 skill 与 subagent**。方法论源自 Anthropic 官方规范 + SkillLens 9 维实证（arXiv 2605.23899）+ SkillOpt validation-gated 优化（arXiv 2605.23904）+ 社区反模式，已完整内化——评分 rubric、爬山门、盲评、成果卡片均自包含，**创建线（流程 A）内置分维度并行调研 + 调研审查门 + 三重验证漏斗 + 量化质量门 + 降级表**，无需外链其他 skill。完整调研素材见 `references/research/01-06.md` 与 `references/`。本 skill 管**功能 / 领域 / 主题视角 skill 与 subagent 的创建（流程 A）到深度优化（流程 B：9 维评分 + validation-gated 爬山 + 可视化成果卡片）全生命周期**（人物角色扮演 DNA / 表达语气不在范围——蒸方法论不蒸人物）。
 
 ## 🔴 硬规（违反即失效）
 
 1. **显式触发**：本 skill `disable-model-invocation: true`，仅 `/skill-dev` 手动调用。它是创作/优化工具，不是背景知识，不要改为自动触发。
-2. **产物定位**：造功能 skill 或 subagent，不造人物/主题视角 skill（→ nuwa）。
+2. **产物定位**：造功能 / 领域 / 主题视角 skill 或 subagent（创建方法论已内置流程 A）；不蒸人物角色扮演 DNA（表达语气 / 角色人格不在本 skill 范围）。
 3. **诚实标注**：禁编造引用。无法核实的来源直接弃用；dry_run 比例 > 30% → 评估失效警告，分数不可信，必须显式告知用户。
 4. **独立评分**（优化时）：评分 spawn 子 agent，禁同 context 自评自改（乐观偏差，SkillLens 实证 LLM-as-judge 46.4%）。至少 2 judge 共识或 1 full_test 实测才信。
 5. **改任何 SKILL.md / agent.md 后过质量门**（项目 CLAUDE.md 强制）：
@@ -29,8 +29,9 @@ arguments: "[create|optimize] <skill/agent 路径>"
 | 「帮我做个 X skill / 从零写 skill / 加个 subagent / 配 db agent」 | **流程 A · 创建** |
 | 「这个 skill 不触发 / 太长 / 改了没生效 / 误触发 / 质量退化 / 做下回归」 | **流程 B · 优化** |
 | 「该进 SKILL.md 还是拆 reference / 该用 context:fork 吗 / description 怎么写」 | **流程 A** 相关 Phase（结构/frontmatter 决策） |
-| 深度自主评分 + 可视化卡片 + 多轮 hill-climbing | 🛑 停，路由 `/darwin-skill`（本 skill 可 `Skill` 工具路由） |
-| 人物/主题视角蒸馏 | 🛑 停，路由 `/huashu-nuwa` |
+| 深度自主评分 + 可视化成果卡片 + 多轮 hill-climbing | **流程 B · 优化**（9 维评分 / validation-gated 爬山 / 成果卡片均内置） |
+| 领域/主题视角蒸馏（需分维度调研 + 三重验证提炼） | **流程 A · 创建**（Phase 4 内置调研 swarm + 验证漏斗） |
+| 人物角色扮演 DNA（表达语气 / 人格模拟） | 🛑 不在本 skill 范围（蒸方法论不蒸人物） |
 
 > create 与 optimize 边界模糊时（如「这个 skill 不触发，顺便帮我加个功能」）：**先 optimize 诊断，再按诊断结论决定是否走 create 补结构**。
 
@@ -79,9 +80,17 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 **description 铁律**（P0 反模式）：第三人称（禁「I can」「You can」）· 含 key terms（用户会说的词）· 同时写「做什么」+「何时用」· **key use case 前置**（🔴 底线 < 512 字符，比官方 1024/1536 截断更严；长列表按「最少 invoke 先丢」裁剪）· 超长触发短语/示例分流 `when_to_use`（底线 < 128）· **收窄「何时用」边界**（太泛会误触发；可发现性 ≠ 触发准确性）。
 
-### Phase 4: 内容
+### Phase 4: 调研 + 内容（落盘即真值 → 审查门 → 三重验证 → 装配）
 
-**渐进披露**：SKILL.md 像目录，指向按需加载细节。复杂工作流给可复制 checklist（Claude 逐项打勾）。质量关键操作加 **feedback loop**（run validator → fix → repeat）；批量/破坏性操作用 **plan-validate-execute**（产 plan 文件 → 脚本验证 → 执行 → verify）。**只加 Claude 不知道的**：每段问「这段值得它的 token 成本吗？」
+**先调研再动笔**——功能 / 领域 / 主题视角 skill 的质量上限由调研质量决定（垃圾进垃圾出，这里拦截比 Phase 5 返工便宜）。目标域全是 Claude 已知常识时可跳 4.1-4.2 直接写。
+
+**4.1 分维度并行调研**（域知识不足时）：把目标域拆成互不重叠的维度（官方规范 / 现有实现模式 / 边界与失败模式 / 反模式 / 工具链），每维度一个独立 subagent 并行调研。**接口约定**（swarm 靠 agent 现场编排，无实体脚本）：每个 agent 必须把结果写入 `references/research/0X.md`——**不落盘等于没做**（落盘即真值）；每条标来源 + 可信度（一手 > 二手 > 推测）；区分「文档写的」vs「社区说的」vs「我推断的」；发现矛盾**保留不和稀泥**。**skill 须自包含**：调研文件落 skill 目录内，复制整个目录即可独立用。环境不支持并行 → 见流程 A 降级表。
+
+**4.2 🔴 调研审查门（CHECKPOINT）**：所有维度落盘后暂停，展示调研质量摘要（每维度来源数 / 关键发现 / 矛盾点 / 信息不足维度）给用户。质量 OK 才进合成；某维度不足 → 补调研再继续。此门拦截垃圾输入，成本远低于 Phase 5 返工。
+
+**4.3 三重验证漏斗**（决定什么进 skill body）：对每条候选规则/主张过三关——① **跨域复现**（≥2 个不同场景/任务成立）② **生成预测力**（能据此推断新问题的正确做法）③ **独特性排除常识**（不是所有称职的 Claude 默认就会的）。三重通过 → 核心内容；仅 1-2 重 → 降为次要提示/边注；0 重 → 丢弃（Claude 已知，写了只烧 token）。这是「只加 Claude 不知道的」的可执行版。
+
+**4.4 模板 + 映射表装配**：骨架（Phase 2）为模板，用 section→来源映射表把调研 + 验证结果逐段填入（frontmatter / 工作流 checklist / 失败模式 / 反例黑名单 / 调研来源）。**渐进披露**：SKILL.md 像目录指向按需细节；复杂工作流给可复制 checklist（Claude 逐项打勾）；质量关键操作加 **feedback loop**（validate → fix → repeat），批量/破坏性操作用 **plan-validate-execute**（产 plan → 脚本验证 → 执行 → verify）。每段问「这段值得它的 token 成本吗？」
 
 > 🔴 **CHECKPOINT**：SKILL.md 初稿完成后展示给用户审阅，确认内容方向再进 Phase 5。
 
@@ -92,7 +101,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 3. **AI 可发现性质检**：`claude -p "列出所有可用 skill 并说明何时触发" ...`（同硬规 5 命令）。
 4. **🛑 触发准确性测试**（关键，区别于可发现性）：用 should-trigger + should-not-trigger prompt 对，测 false positive / false negative。可发现性只测「能列出」，测不到误触发/漏触发——零可见度故障。
 5. **反拷问**（可选）：`/grilling` red-team。
-6. **9 维评分/A-B eval**（可选）：需深度评分 → 转**流程 B** 或 `/darwin-skill`。
+6. **量化质量门（收敛判据）**：逐项过量化标准（≥3 eval 场景全过 · 触发无 false positive+false negative · 反例黑名单齐 · 无未核实引用）。不过 → 回对应 Phase 修，**Phase 4→5 迭代上限 2 轮**：2 轮后仍有不过项，在诚实边界标注薄弱维度、交付当前最优版，不无限打磨（宁交诚实标注局限的 60 分，不造看似完美实则编造的 90 分）。
+7. **9 维评分/A-B eval**（可选）：需深度评分 + validation-gated 爬山 → 转本 skill **流程 B**（9 维评分 / 爬山门 / 盲评均内置，见下）。
 
 ### Phase 6: 维护（改已有 skill）
 
@@ -103,13 +113,23 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 > 需要 9 维诊断 + validation-gated 深度优化 → 转**流程 B**。
 
+### 流程 A 降级表（环境不足时的退化路径，if-then）
+
+| 触发条件 | 一线修复 | 仍失败兜底 |
+|---|---|---|
+| 环境不支持并行 subagent（Phase 4.1 挂起死等） | 调研降级**串行**：做完一维落盘一维，禁挂起等后台通知 | 单 agent 分轮跑，每轮一维立即落盘 |
+| 上下文窗口不足（累积超窗跑不完） | 分 Phase 续跑：每 Phase 落盘 `references/research/`，新会话读文件恢复（调研文件即断点） | 分段会话跑 Phase 1-3 / 4 / 5-6，每段开头先读已落盘文件 |
+| 搜索/WebSearch 工具不可用 | 换环境可用等价工具（fetch / 已装信息获取 skill） | 引导用户提供一手素材，转本地素材模式 |
+| 信息源匮乏（<10 条可用来源） | Phase 4.2 就降期望，核心规则减量 | 加大诚实边界篇幅，标注推测成分 |
+| 单维 agent 超时无有价值结果 | 不等待继续推进，Phase 4.4 标「该维信息不足」 | 诚实边界说明该维薄弱，不强行生成 |
+
 ---
 
 ## 流程 B · 优化现有 skill / agent（5 Phase · validation-gated）
 
 > 基于 SkillLens utility-grounded 评估 + SkillOpt validation-gated text-space 优化。完整维度表 / loop 细节见 `references/dimensions.md` · `references/workflow.md`。
 
-**🔴 优化硬规**（叠加顶部硬规）：**validation-gated 二层 gate**（第一层 gross：9 维 Δ>0；第二层人审：分数 fine-grained 不可信，破坏性/触发词变更必须用户确认，禁「我觉得更好」直落）· **单变量轮**（每轮只改 1 维度或 1 相关簇）· **ratchet**（只留有改进的提交，退步自动回滚，git 分支隔离）。🛑 **已知限制**：非 darwin 环境（无 git ratchet + judge swarm + skill harness 真触发）下 validation gate 几乎必然退化 dry_run——深度验证 route `/darwin-skill`。
+**🔴 优化硬规**（叠加顶部硬规）：**validation-gated 二层 gate**（第一层 gross：9 维 Δ>0；第二层人审：分数 fine-grained 不可信，破坏性/触发词变更必须用户确认，禁「我觉得更好」直落）· **单变量轮**（每轮只改 1 维度或 1 相关簇）· **ratchet**（只留有改进的提交，退步 `git revert HEAD` 自动回滚，git 分支隔离）· **体积护栏**（改后 SKILL.md > 原 ×1.5 → 拒绝提交，先精简再评，防「加废话凑分」膨胀）· **触顶即收**（连续 2 轮 Δ<2 → break）。🛑 **已知限制**（方法固有，非缺工具）：text-space 优化的 validation gate 依赖真实 skill harness 触发 + 独立 judge swarm，环境不足时退化 dry_run；dry_run > 30% 即评估失效警告，分数不可信须人审——这是**文本空间优化的天花板本身**，无外部 skill 能绕过，只能靠 full_test 比例 + 人审兜底。
 
 ### Phase 1: 诊断（Diagnose）
 
@@ -119,7 +139,7 @@ paths: packages/api/**             # monorepo 按包触发（可选）
    ```bash
    grep -nE "(在 Claude Code|Claude Code skill|Cursor only|Codex 中|~/\.claude/skills/[a-z]|/plugin install\b)" <target>
    ```
-   命中 → P0 先修 runtime drift（详见 darwin `references/runtime-neutrality.md`）。
+   命中 → P0 先修 runtime drift：钉死单一平台的措辞（「在 Claude Code 里」「Claude Code skill」）替换为中立表述，badge/安装路径改「Agent Skills Standard + 多 runtime」三层中立结构。例外：frontmatter 触发词、生态内部 skill 名引用、明确标注 runtime-specific 的章节、commit message 不算红灯。
 4. **找短板 + 相关簇**（HL-3）：dim2/3/4 是相关簇，修其一时看另两个是否同步短板。输出诊断表：维度/分/短板证据（行号引用）/建议编辑类型。
 
 > 🔴 **CHECKPOINT**：诊断表展示给用户，确认方向 + 优先级后再设计编辑。方向错后续全返工。
@@ -149,7 +169,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 - 通过 gate → 应用编辑，git 提交（分支 `optimize/<skill>-YYYYMMDD`）。
 - 🔴 **CHECKPOINT**：merge 主分支 / 改触发词 / 大范围重写前用户确认（破坏性，下游发现逻辑会变）。
-- 未通过 → 回滚，记失败尝试到 `references/optimization-log.md`（note 写原因：归因不明 / Δ<0 / 触发变差）。
+- 未通过 → 回滚（`git revert HEAD` 建反向 commit，禁 `reset --hard` 丢工作树），记失败尝试到 `references/optimization-log.md`（note 写原因：归因不明 / Δ<0 / 触发变差）。
+- **体积护栏**：改后 SKILL.md > 原 ×1.5 → 拒绝提交，回改进步骤精简（删冗余/合并重复）再评。触顶后继续硬改常是「加废话让 LLM 觉得更详细」，膨胀 ×1.5 即警示。
 - **触顶即收**（HL-4）：连续 2 轮 Δ < 2 分 → break 进 Phase 5。+0.15 是停手信号非继续信号。
 
 ### Phase 5: 回归 + 汇总
@@ -157,6 +178,7 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 1. **回归**：改完跑原 eval 场景。**绝大多数 skill 无 evals.json**（常态）→ 现场编 2-3 test prompt 跑 before/after（复用 Phase 3 held-out 集）。
 2. **变更语义标注**：description 触发词变更 = **破坏性**（下游发现逻辑变）必须显式告知；仅 body 优化 = 兼容。
 3. **汇总**：before/after 9 维分 + Δ + 接受/回滚编辑清单 + judge 共识度 + dry_run 比例。
+4. **可视化成果卡片**（可选，展示战绩）：复制 `templates/result-card.html`，填 skill 名 / before-after-Δ 分 / 9 维雷达 / 爬山轮次 / 改进摘要 / 日期，浏览器打开或截图。模板自带 3 风格（swiss/terminal/newspaper，URL hash 切换），无需外部脚本。
 
 ---
 
@@ -201,7 +223,7 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | dry_run > 30% | 补 full_test（spawn 真实子 agent 跑 test prompt） | 评估失效，仅出建议不改盘 |
 | 触发词变更致下游 break | 回滚触发词，body 内补关键词 | 新建 skill 而非原地改（破坏性变更） |
 | 结构/触发正确但输出跑偏 | 缺反例黑名单 → 补「不要做 Y」清单 | 跑 `/grilling` red-team 找遗漏失败模式 |
-| runtime 红灯命中 | P0 先修 runtime drift | 见 darwin runtime-neutrality.md |
+| runtime 红灯命中 | P0 先修 runtime drift（钉死措辞→中立表述） | badge/安装路径改「Agent Skills Standard + 多 runtime」三层中立 |
 
 ## 反模式黑名单
 
@@ -229,9 +251,9 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 - 针对 Claude 生态（Agent Skills 标准），跨平台迁移需调整触发机制。
 - **9 维 rubric / HL-1~4 只在 darwin-skill 自身测试集验证**（用自己出的题考自己），非同行评审、无第三方基准。fine-grained quality difference 不可信——重要决策必须人审。
 - **调研来源含 3 个自媒体平台**（Medium/LinkedIn/Substack），无独立第三方复现；反模式频次为主观汇总。
-- **validation gate 自指悖论**：核心主张 validation-gated，但非 darwin 环境几乎必然 100% dry_run，核心机制未被自身 full_test 验证。诚实定位：**好的诊断 checklist，弱的验证引擎**；深度验证 route darwin。
-- **覆盖 agent.md 但经验少于 skill**：subagent 维度表是设计推导，非 darwin 实战验证。
-- 不教人物/主题视角蒸馏（→ nuwa）、不做深度自主评分+可视化卡片（→ darwin）。
+- **validation gate 自指悖论**：核心主张 validation-gated，但真实 skill harness + judge swarm 不足时几乎必然退化 dry_run，核心机制难被自身 full_test 验证。诚实定位：**强的诊断 checklist + validation-gated 纪律，弱的验证引擎**——这是文本空间优化的天花板，靠 full_test 比例 + 人审兜底，无外部工具能绕过。
+- **覆盖 agent.md 但经验少于 skill**：subagent 维度表是设计推导，实战样本少于 skill。
+- 领域/主题视角蒸馏方法论已内置流程 A（分维度调研 + 三重验证）；深度自主评分 + 可视化成果卡片已内置流程 B，不再外链其他 skill。仅人物角色扮演 DNA（表达语气 / 人格模拟）不在范围。
 
 ## 调研来源
 
