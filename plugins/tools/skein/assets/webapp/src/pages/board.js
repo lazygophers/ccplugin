@@ -223,7 +223,7 @@ function buildTip(tip) {
 }
 function prdBlock(prd) {
   if (!prd || !prd.length) return "";
-  var parts = prd.map(function (sec) {
+  var parts = prd.filter(function (sec) { return sec.name !== "验收标准"; }).map(function (sec) {
     var b = sec.badge ? '<span class="prd-p">' + sec.badge[0] + "/" + sec.badge[1] + "</span>" : "";
     var lis = sec.items.map(function (it) {
       var cls = it.kind === "check" ? (it.done ? "done" : "") : it.proseCls;
