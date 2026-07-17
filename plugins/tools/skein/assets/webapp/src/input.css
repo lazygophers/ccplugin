@@ -40,7 +40,7 @@
     --font: -apple-system, system-ui, 'Segoe UI', sans-serif;
     --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
     --radius: 16px;
-    --skein-gold: #FFD98A;
+    --skein-gold: #E8C264;
 
     /* ── 玻璃流沙层令牌 (A 皮, 跨外观派生) ──
        浅 = 晨曦: 60% 白玻璃 / 细描边 / 蓝顶光 / 软投影。
@@ -97,15 +97,15 @@
 
   body {
     background:
-      /* 波浪分割 (上蓝下金 1:1): 金凸起上探入蓝 + 蓝凸起下切入金, 错半相锁成波浪边界, 水平缓动流动 */
-      radial-gradient(circle 46px at 50% 100%, color-mix(in srgb, var(--skein-gold) 26%, var(--surface-bg-3)) 98%, transparent 100%) 0 calc(50% - 92px) / 92px 92px repeat-x fixed,
-      radial-gradient(circle 46px at 50% 0%, color-mix(in srgb, var(--accent2) 22%, var(--surface-bg-1)) 98%, transparent 100%) 46px 50% / 92px 92px repeat-x fixed,
-      linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-1) 50%, var(--surface-bg-3) 50%, var(--surface-bg-3) 100%) 0 0 / 100% 100% no-repeat fixed;
+      /* 海浪交融 (上蓝下金, 中间渐变过渡带): 金凸起大半径软边上探入蓝 + 蓝凸起错半相位下切入金, 水平缓动流动 */
+      radial-gradient(circle 240px at 50% 100%, color-mix(in srgb, var(--skein-gold) 20%, var(--surface-bg-3)) 60%, transparent 100%) 0 calc(50% - 240px) / 480px 480px repeat-x fixed,
+      radial-gradient(circle 240px at 50% 0%, color-mix(in srgb, var(--accent2) 18%, var(--surface-bg-1)) 60%, transparent 100%) 240px 50% / 480px 480px repeat-x fixed,
+      linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-1) 40%, var(--surface-bg-3) 60%, var(--surface-bg-3) 100%) 0 0 / 100% 100% no-repeat fixed;
     background-color: var(--surface-bg-1);
     color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5;
     transition: background .4s, color .4s;
     -webkit-font-smoothing: antialiased;
-    animation: wave-flow 24s linear infinite;
+    animation: wave-flow 28s linear infinite;
   }
   /* 流沙微光 (A 皮): body::after 缓动飘移的双色软光带 (蓝 + 金), 叠在底纹之上、内容之下 */
   body::after {
@@ -121,10 +121,10 @@
     50%  { background-position: 45% 35%, 55% 45%; }
     100% { background-position: 90% 70%, 15% 20%; }
   }
-  /* 波浪缓动: 两层凸起各平移一个周期 (92px) 无缝循环, 错半相位保持; 第 3 层 (基线分割) 不动 */
+  /* 波浪缓动: 两层凸起各平移一个周期 (480px) 无缝循环, 错半相位保持; 基底层不动 */
   @keyframes wave-flow {
-    from { background-position-x: 0px, 46px, 0px; }
-    to   { background-position-x: 92px, 138px, 0px; }
+    from { background-position-x: 0px, 240px, 0px; }
+    to   { background-position-x: 480px, 720px, 0px; }
   }
   /* 暗模式: 流沙微光收掉 (已有金沙星点, 免叠脏) */
   [data-theme="skein-dark"] body::after { display: none; }
