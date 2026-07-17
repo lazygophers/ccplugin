@@ -1,4 +1,4 @@
-// SKEIN Task 页: 单 task 审阅 — 两栏布局 (左: subtask DAG+列表+目标/验收 / 右: 文档 tab 默认详细设计)。
+// SKEIN Task 页: 单 task 审阅 — 两栏布局 (左: subtask DAG+列表+目标/验收 / 右: 文档 tab 默认 PRD)。
 // 只读视图; 数据 api.task(id) 一次拉全 (task/docs/subtasks/contracts), onLive 软刷。task 不存在(404) → 友好空态。
 // page 契约: render(mount, params, ctx); params={id}; ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
 import { dagHtml, setNodeMaps } from "../dag.js";
@@ -212,7 +212,7 @@ const TPL = `
         </section>
       </div>
 
-      <!-- 右栏: 文档 tab (默认详细设计) -->
+      <!-- 右栏: 文档 tab (默认 PRD) -->
       <section class="card overflow-hidden">
         <div class="flex" style="border-bottom:1px solid var(--line)">
           <button v-for="d in docTabs" :key="d.key"
@@ -256,10 +256,10 @@ const TPL = `
   </div>
 </div>`;
 
-// 右栏文档 tab 顺序: 详细设计优先 (默认), PRD 次之, 调研收敛最后。
+// 右栏文档 tab 顺序: PRD 优先 (默认), 详细设计次之, 调研收敛最后。
 const DOC_TABS = [
-  { key: "design", label: "详细设计" },
   { key: "prd", label: "PRD" },
+  { key: "design", label: "详细设计" },
   { key: "findings", label: "调研收敛" },
 ];
 
@@ -354,7 +354,7 @@ export async function render(mount, params, ctx) {
     const acceptHtml = md.renderSafe(findSection(prdSecs, "验收标准", "验收"));
     mount.innerHTML = TASK_STYLE + TPL;
     window.PetiteVue.createApp(Object.assign({
-      tab: "design",
+      tab: "prd",
       docTabs: DOC_TABS,
       badgeCls,
       stageCls: (st) => STAGE_CLS[stageOf(st)],
