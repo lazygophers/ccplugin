@@ -1798,7 +1798,7 @@ class Skein:
             except Exception:
                 existing_port = None
             if existing_port and self._probe_same_project(existing_port, proj_id):
-                url = f"http://127.0.0.1:{existing_port}/task.html"
+                url = f"http://127.0.0.1:{existing_port}/"
                 if not quiet:
                     print(f"SKEIN 看板服务已在运行: {url}", flush=True)
                 if open_browser:
@@ -1830,7 +1830,7 @@ class Skein:
             except Exception:
                 pass
 
-        url = f"http://127.0.0.1:{port}/task.html"
+        url = f"http://127.0.0.1:{port}/"
 
         atexit.register(_cleanup)
         # serve 恒热重载: uvicorn reload 监视 skein.py, 改渲染码即重启 worker → 浏览器 WS 断→重连→整页刷 (WS onopen 逻辑)。
