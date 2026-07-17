@@ -30,7 +30,6 @@ import re
 import shutil
 import subprocess
 import sys
-import sys
 import time
 from pathlib import Path
 
@@ -1747,8 +1746,8 @@ class Skein:
         data = self._board_data()
         ov = data["overview"]
         sub_stat = {}
-        for t in self._render_tasks():
-            for s in t.get("subtasks", []):
+        for c in data["cards"]:
+            for s in c.get("subtable", []):
                 sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
         total = ov["taskCount"]
         done = ov["stats"].get(S_DONE, 0)
@@ -1802,8 +1801,7 @@ class Skein:
                                    "agent": s.get("agent", "skein-executor"),
                                    "desc": s.get("desc", ""), "status": s["status"],
                                    "depends_on": s.get("depends_on", [])})
-        # 执行中 task / running sub: 复用 _dashboard 模式 (data.cards + _active 内 SS_RUNNING)
-        data = self._board_data()
+        # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + _active 内 SS_RUNNING, 不再 _board_data
         tnow = now()
         running_subs = []
         for t in self._active():
@@ -1814,10 +1812,23 @@ class Skein:
                 running_subs.append({"tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
                                      "agent": s.get("agent", "skein-executor"),
                                      "elapsed": round((tnow - started) / 60) if started else None})
-        active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
-                         "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
-                         "elapsed": c.get("elapsed")}
-                        for c in data["cards"] if c["status"] in (S_ACTIVE, S_CHECK)]
+        # ponytail: active_tasks 自算, 复用 tasks 避免二次 _render_tasks (字段对齐 _board_data.cards)
+        active_tasks = []
+        for t in tasks:
+            if t["status"] not in (S_ACTIVE, S_CHECK):
+                continue
+            subs = t.get("subtasks", [])
+            st = t.get("status")
+            start = t.get("started") or t.get("created")
+            if st == S_DONE and t.get("finished"):
+                end = t.get("finished")
+            else:
+                end = tnow
+            elapsed = round((end - start) / 60) if start and st != S_PENDING else 0
+            active_tasks.append({"id": t["id"], "name": t.get("name", t["id"]), "status": st,
+                                 "pct": _task_pct(t),
+                                 "sdone": sum(1 for s in subs if s["status"] == SS_DONE),
+                                 "stotal": len(subs), "elapsed": elapsed})
         return {"pendingQueue": self._pending_queue(tasks),
                 "readyTasks": ready_tasks, "readySubtasks": ready_subs,
                 "activeTasks": active_tasks, "runningSubs": running_subs}
@@ -1976,7 +1987,7 @@ class Skein:
     def _run_server(self, open_browser=True, quiet=False):
         # FastAPI + uvicorn 本地看板服务 (随机 port)。热重载: WS 推 reload (rev = task.json + assets mtime)。
         # quiet=True (monitor): 不打印启动/停止行, 访问日志静默。uvicorn 自装 SIGINT/SIGTERM 优雅停机。
-        import json, atexit, socket, threading, webbrowser
+        import atexit, socket, threading, webbrowser
 
         lock = self._lock_file()
         proj_id = str(self.dir.resolve())
@@ -2429,7 +2440,6 @@ class Skein:
         # --full: 兼容全套 + 整删 .trellis/ (spec/task 已拷走)。
         trellis = self.root / ".trellis"
         # scaffold 确认走 stderr, 保 stdout 纯 JSON manifest (agent/脚本单一解析口)
-        import contextlib
         with contextlib.redirect_stdout(sys.stderr):
             self.init(a)  # 幂等 scaffold: .skein/ + config + gitignore + 顶层看板
         tspec = trellis / "spec"
