@@ -123,7 +123,6 @@ const TPL = `
             <code class="text-[11px] text-muted shrink-0">{{ q.tid }}/{{ q.sid }}</code>
             <span class="text-sm truncate">{{ q.name }}</span>
             <span class="flex-1"></span>
-            <span v-if="q.est" class="text-[11px] text-muted shrink-0">{{ q.est }}</span>
             <span class="text-[11px] text-muted shrink-0">{{ q.agent }}</span>
             <div v-if="show('s:'+q.tid+'/'+q.sid)" class="qpop" @click.stop @mouseenter="hoverKey='s:'+q.tid+'/'+q.sid" @mouseleave="hoverKey=''">
               <div class="mb-1"><k>SUB</k> <code>{{ q.tid }}/{{ q.sid }}</code> <span class="badge text-[11px]" :class="badgeCls(q.status)">{{ q.status }}</span></div>

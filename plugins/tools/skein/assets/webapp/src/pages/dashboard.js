@@ -1,6 +1,6 @@
 // SKEIN Dashboard 页 (默认首页 /dashboard): 总览 — 指标墙 KPI (完成率环/活跃项/任务总数/织入进度)
 // + 状态分布 (task 级 statusDist / subtask 级 subStatusDist, 状态段分段) + 队列 (队列项摘要, 跳 /queue)。
-// 只读视图; 数据 api.dashboard() 一次拉全 (proj/taskCount/doneRate/activeCount/combinedPct/statusDist/subStatusDist/estMeta/pendingQueue), onLive 软刷。
+// 只读视图; 数据 api.dashboard() 一次拉全 (proj/taskCount/doneRate/activeCount/combinedPct/statusDist/subStatusDist/pendingQueue), onLive 软刷。
 // 合体: C 骨 (.wrap/.eyebrow/.page-head 布局原语 + .status-panel/.stat-row/.dot/.queue-item 视觉隐喻) × A 皮 (.card 玻璃流沙/.skein-bar 蓝金流光/.entrance 入场)。
 // page 契约: render(mount, params, ctx); ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
 
@@ -87,9 +87,7 @@ const TPL = `
       </div>
     </section>
 
-    <div v-if="estMeta" class="text-xs text-muted mb-4 px-1">{{ estMeta }}</div>
-
-    <!-- 状态分布: C 骨 .status-panel + 状态段 + 状态点 -->
+<!-- 状态分布: C 骨 .status-panel + 状态段 + 状态点 -->
     <section class="status-panel mb-4">
       <div class="px-5 pt-5 pb-1 text-sm font-semibold" style="color:var(--head)">状态分布 · 状态段分布</div>
       <div v-for="(row, ri) in dists" :key="row.key" class="stat-row" :class="ri===0?'':''">
@@ -130,7 +128,7 @@ const TPL = `
         <a v-for="s in runningSubs" :key="s.tid+'/'+s.sid" :href="'/task?id='+encodeURIComponent(s.tid)" class="list-item running entrance">
           <span class="li-name">{{ s.name }}</span>
           <span class="li-meta"><code>{{ s.tid }}/{{ s.sid }}</code> · {{ s.agent }}</span>
-          <span class="li-progress">耗时 {{ fmtDur(s.elapsed) }}<span v-if="s.est"> / 预期 {{ fmtDur(s.est) }}</span></span>
+          <span class="li-progress">耗时 {{ fmtDur(s.elapsed) }}</span>
         </a>
         <div class="sec-label">就绪 <span>{{ readySubs.length }}</span></div>
         <div v-if="!readySubs.length" class="empty-hint">无就绪</div>
@@ -148,7 +146,7 @@ const TPL = `
         <a v-for="t in activeTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)" class="list-item running entrance">
           <span class="li-name">{{ t.name }}</span>
           <span class="li-meta"><code>{{ t.id }}</code> · {{ t.sdone }}/{{ t.stotal }} · {{ t.pct }}%</span>
-          <span class="li-progress">耗时 {{ fmtDur(t.elapsed) }}<span v-if="t.est"> / 预期 {{ fmtDur(t.est) }}</span></span>
+          <span class="li-progress">耗时 {{ fmtDur(t.elapsed) }}</span>
         </a>
         <div class="sec-label">就绪 <span>{{ readyTasks.length }}</span></div>
         <div v-if="!readyTasks.length" class="empty-hint">无就绪</div>
@@ -172,7 +170,7 @@ export async function render(mount, params, ctx) {
       return {
         loadErr: "", proj: r.proj || "", taskCount: r.taskCount || 0, doneRate: r.doneRate || 0,
         activeCount: r.activeCount || 0, combinedPct: r.combinedPct || 0,
-        estMeta: r.estMeta || "", pendingQueue: pq,
+        pendingQueue: pq,
         runningSubs: r.runningSubs || [], readyTasks: r.readyTasks || [], activeTasks: r.activeTasks || [],
         readySubs: pq.filter((q) => q.ready).slice(0, 6),
         dists: [
@@ -183,7 +181,7 @@ export async function render(mount, params, ctx) {
     } catch (e) {
       return {
         loadErr: (e && e.message) || String(e), proj: "", taskCount: 0, doneRate: 0,
-        activeCount: 0, combinedPct: 0, estMeta: "", pendingQueue: [],
+        activeCount: 0, combinedPct: 0, pendingQueue: [],
         runningSubs: [], readyTasks: [], activeTasks: [], readySubs: [], dists: [],
       };
     }
