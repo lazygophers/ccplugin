@@ -675,6 +675,12 @@
 }
 .cfg-row .cfg-input[type=number], .cfg-row select.cfg-input { width:120px; }
 .cfg-row .cfg-input[type=text] { width:220px; }
+/* ponytail: .field 与 .cfg-input 同样式但语义分开 (cfg-input 含 width 特化) */
+.field {
+  font:13px/1.4 var(--font); padding:6px 9px; border-radius:8px;
+  background:var(--bg); color:var(--fg); border:1px solid var(--brd);
+  min-width:0; box-sizing:border-box;
+}
 .cfg-yaml {
   width:100%; min-height:320px; font-family:var(--mono); font-size:12.5px; line-height:1.6;
   resize:vertical; white-space:pre; tab-size:2;

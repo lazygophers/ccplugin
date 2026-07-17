@@ -127,14 +127,12 @@ const TPL = `
           <label class="full flex flex-col gap-1 text-xs">
             <span class="opacity-60">title</span>
             <input type="text" v-model="meta.title" spellcheck="false"
-              class="px-2 py-1 text-sm rounded"
-              style="background:var(--bg);color:var(--fg);border:1px solid var(--brd)">
+              class="field">
           </label>
           <label class="flex flex-col gap-1 text-xs">
             <span class="opacity-60">layer</span>
             <select v-model="meta.layer"
-              class="px-2 py-1 text-sm rounded"
-              style="background:var(--bg);color:var(--fg);border:1px solid var(--brd)">
+              class="field">
               <option value="core">core</option>
               <option value="recall">recall</option>
             </select>
@@ -142,28 +140,24 @@ const TPL = `
           <label class="flex flex-col gap-1 text-xs">
             <span class="opacity-60">category</span>
             <select v-model="meta.category"
-              class="px-2 py-1 text-sm rounded"
-              style="background:var(--bg);color:var(--fg);border:1px solid var(--brd)">
+              class="field">
               <option v-for="c in catOptions" :key="c" :value="c">{{ c }}</option>
             </select>
           </label>
           <label class="flex flex-col gap-1 text-xs">
             <span class="opacity-60">source</span>
             <input type="text" v-model="meta.source" spellcheck="false"
-              class="px-2 py-1 text-sm rounded"
-              style="background:var(--bg);color:var(--fg);border:1px solid var(--brd)">
+              class="field">
           </label>
           <label class="flex flex-col gap-1 text-xs">
             <span class="opacity-60">authored-by</span>
             <input type="text" v-model="meta['authored-by']" spellcheck="false"
-              class="px-2 py-1 text-sm rounded"
-              style="background:var(--bg);color:var(--fg);border:1px solid var(--brd)">
+              class="field">
           </label>
           <label class="flex flex-col gap-1 text-xs">
             <span class="opacity-60">created (unix ts)</span>
             <input type="number" v-model.number="meta.created"
-              class="px-2 py-1 text-sm rounded"
-              style="background:var(--bg);color:var(--fg);border:1px solid var(--brd)">
+              class="field">
           </label>
           <div class="full flex flex-col gap-1 text-xs">
             <span class="opacity-60">keywords (逗号/回车分隔, 退格删尾)</span>

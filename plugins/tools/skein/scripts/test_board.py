@@ -11,7 +11,7 @@
      - _write_if_changed 同内容不写; 变更才写。
      - _set_config 同值 no-op 不写; 变更才写; 非白名单键拒。
      - config() 键完整时不回写。
-  3. serve http: 实时渲染页含 prd、静态资产直出插件(不拷)、路径穿越挡、POST 改主题落盘/非法 400。
+  3. serve http: 实时渲染页含 prd、静态资产直出插件(不拷)、路径穿越挡、POST 改配置落盘/非法兜底默认值。
 """
 import importlib.util
 import json
@@ -130,17 +130,17 @@ def test_prd_and_efficiency():
             sk_obj.config()  # 触发一次可能的补键回写
             c_before = cfgp.stat().st_mtime_ns
             time.sleep(0.01)
-            cur = sk_obj.config().get("board_theme")
+            cur = sk_obj.config().get("retain_days")
             assert cfgp.stat().st_mtime_ns == c_before, "config() 键完整仍回写 (无谓写)"
 
             # --- 效率: _set_config 同值 no-op / 变更才写 / 非白名单拒 ---
             c0 = cfgp.stat().st_mtime_ns
             time.sleep(0.01)
-            assert sk_obj._set_config("board_theme", cur) is False, "_set_config 同值应 no-op 返 False"
+            assert sk_obj._set_config("retain_days", cur) is False, "_set_config 同值应 no-op 返 False"
             assert cfgp.stat().st_mtime_ns == c0, "_set_config 同值仍写"
-            newt = "glass" if cur != "glass" else "minimal"
-            assert sk_obj._set_config("board_theme", newt) is True, "_set_config 变更应写返 True"
-            assert m._yaml_load(cfgp.read_text())["board_theme"] == newt, "_set_config 未落盘新值"
+            newt = (cur + 1) if cur != 7 else 8
+            assert sk_obj._set_config("retain_days", newt) is True, "_set_config 变更应写返 True"
+            assert m._yaml_load(cfgp.read_text())["retain_days"] == newt, "_set_config 未落盘新值"
             assert sk_obj._set_config("evil_key", 1) is False, "非白名单键应拒写"
             assert "evil_key" not in m._yaml_load(cfgp.read_text()), "非白名单键泄漏进 config"
 
@@ -205,7 +205,7 @@ def test_serve_http():
             except urllib.error.HTTPError as e:
                 code = e.code
             assert code == 404, f"路径穿越未挡 (得 {code})"
-            # POST 改主题: 合法落盘, 非法 400 不改
+            # POST 改配置: 合法落盘, 非法 (未知键 / 类型不合) 不改有效值
             def post(obj):
                 req = urllib.request.Request(
                     base + "/__skein__/config", data=json.dumps(obj).encode(),
@@ -213,16 +213,12 @@ def test_serve_http():
                 with urllib.request.urlopen(req, timeout=2) as r:
                     return r.status
 
-            assert post({"board_theme": "glass"}) == 200, "合法主题 POST 未 200"
+            assert post({"retain_days": 30}) == 200, "合法 retain_days POST 未 200"
             cfg_txt = (d / ".skein/config.yaml").read_text()
-            assert "board_theme: glass" in cfg_txt, "POST 主题未落盘 config.yaml"
-            code = 0
-            try:
-                post({"board_theme": "__bad__"})
-            except urllib.error.HTTPError as e:
-                code = e.code
-            assert code == 400, f"非法主题未 400 (得 {code})"
-            assert "board_theme: glass" in (d / ".skein/config.yaml").read_text(), "非法 POST 误改配置"
+            assert "retain_days: 30" in cfg_txt, "POST retain_days 未落盘 config.yaml"
+            # 非法: 类型不合的 retain_days 被兜底为默认值 (7), 不污染为非法值
+            assert post({"retain_days": "not-a-number"}) == 200, "类型不合 POST 仍应 200 (兜底默认值)"
+            assert "retain_days: 7" in (d / ".skein/config.yaml").read_text(), "非法 retain_days 未兜底为默认值"
         finally:
             proc.terminate()
             try:
@@ -234,7 +230,7 @@ def test_serve_http():
 def main():
     test_prd_and_efficiency()
     test_serve_http()
-    print("skein.py 看板测试全过 (prd-checklist / 零无谓写效率不变量 / serve-http: 实时渲染·资产直出·穿越守卫·主题持久化)")
+    print("skein.py 看板测试全过 (prd-checklist / 零无谓写效率不变量 / serve-http: 实时渲染·资产直出·穿越守卫·配置持久化)")
 
 
 if __name__ == "__main__":
