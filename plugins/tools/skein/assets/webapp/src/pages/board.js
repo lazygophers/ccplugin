@@ -30,7 +30,7 @@ const BOARD_CSS = `
 .stat-n{display:block;font-size:20px;font-weight:600;color:var(--head);line-height:1.1}
 .stat-l{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .stat.on .stat-l{color:var(--head)}
-.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:16px}
+.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:calc(var(--topbar, 70px) + 16px)}
 .card.next-up{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .next-up-chip{margin-left:8px;padding:0 8px;border-radius:9px;background:var(--accent);color:var(--bg);font-size:11px;line-height:17px;font-weight:600;vertical-align:baseline}
 .card h2{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -373,6 +373,18 @@ function bindContent(layout, io) {
       });
       g.addEventListener("mouseleave", function () { tip.style.display = "none"; });
     });
+  });
+
+  // ponytail: 拦截 DAG 节点 <a href="#task-<id>"> 点击 — 后端 skein.py 仍发哈希锚点, 但 history 路由
+  //           改造后哈希被 SPA 吞噬跳首页。此处仅拦 #task- 前缀, preventDefault + scrollIntoView,
+  //           其他哈希放行。
+  layout.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href^="#task-"]');
+    if (!a) return;
+    var el = document.getElementById(a.getAttribute("href").slice(1));
+    if (!el) return;
+    e.preventDefault();
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
   if (io) { io.disconnect(); layout.querySelectorAll(".col-main .bar").forEach(function (b) { io.observe(b); }); }
