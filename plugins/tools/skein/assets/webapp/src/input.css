@@ -53,10 +53,10 @@
     --bar-track: color-mix(in srgb, var(--accent) 8%, transparent);
     --panel-2: color-mix(in srgb, var(--fg) 4%, transparent);
     --chip: color-mix(in srgb, var(--fg) 6%, transparent);
-    /* surface 令牌: pages/board.js 通用面色 (doc-link / markdown pre / th 背景), 视觉重构前保留 */
+    /* surface 令牌: pages/board.js 通用面色 (doc-link / markdown pre / th 背景) — 纯蓝金过渡 (蓝调→金调), 移除浅灰蓝 */
     --sel-bg: color-mix(in srgb, var(--card) 80%, transparent);
     --sel-fg: var(--fg);
-    --surface-bg-1: #EEF1FB; --surface-bg-2: #E9EFFB; --surface-bg-3: #DBEAFB;
+    --surface-bg-1: #F0EEF8; --surface-bg-2: #F3F1EF; --surface-bg-3: #F5F0E6;
   }
 
   /* ── 暗模式 · 夜空金沙 ──
@@ -97,14 +97,30 @@
 
   body {
     background:
-      radial-gradient(135% 62% at 50% 112%, color-mix(in srgb, var(--accent2) 50%, transparent) 0%, transparent 66%),
-      radial-gradient(78% 52% at 50% 72%, color-mix(in srgb, var(--skein-gold) 55%, transparent) 0%, transparent 60%),
+      radial-gradient(135% 62% at 50% 112%, color-mix(in srgb, var(--accent2) 48%, transparent) 0%, transparent 66%),
+      radial-gradient(78% 52% at 50% 72%, color-mix(in srgb, var(--skein-gold) 42%, transparent) 0%, transparent 60%),
       linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 46%, var(--surface-bg-3) 100%);
     background-attachment: fixed;
     color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5;
     transition: background .4s, color .4s;
     -webkit-font-smoothing: antialiased;
   }
+  /* 流沙微光 (A 皮): body::after 缓动飘移的双色软光带 (蓝 + 金), 叠在底纹之上、内容之下 */
+  body::after {
+    content: ''; position: fixed; inset: -10%; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(38% 30% at 28% 22%, color-mix(in srgb, var(--accent2) 16%, transparent) 0%, transparent 70%),
+      radial-gradient(34% 28% at 76% 66%, color-mix(in srgb, var(--skein-gold) 14%, transparent) 0%, transparent 70%);
+    background-size: 220% 220%;
+    animation: quicksand-shimmer 22s ease-in-out infinite alternate;
+  }
+  @keyframes quicksand-shimmer {
+    0%   { background-position: 0% 0%, 100% 100%; }
+    50%  { background-position: 45% 35%, 55% 45%; }
+    100% { background-position: 90% 70%, 15% 20%; }
+  }
+  /* 暗模式: 流沙微光收掉 (已有金沙星点, 免叠脏) */
+  [data-theme="skein-dark"] body::after { display: none; }
   /* 暗底纹: 金沙静态星点 (多层径向, 非粒子) + 底部金辉光晕 */
   [data-theme="skein-dark"] body {
     background:
