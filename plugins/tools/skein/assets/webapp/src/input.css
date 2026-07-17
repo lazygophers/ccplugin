@@ -1,9 +1,10 @@
 /* SKEIN webapp — Tailwind entry.
-   令牌契约迁自 board/base.css。双外观: 浅 (晨曦) + 暗 (夜空金沙)。
-   Tailwind 语义色 (bg/card/fg/accent/st-*) 是这些 CSS 变量的薄别名 (见 tailwind.config.js)。
-   ponytail: 只保留「令牌身份」(seed/明度锚点/radius/font/status 色相),
-   外观切换纯走 <html data-theme> 变量交换, 派生契约自动跟随, 无需 Tailwind dark class。
-   流沙动效 (玻璃/流光描边/脉动/入场) 也落这里, 跨页复用。 */
+   ── 融合方向: A 皮 (玻璃流沙 oklch 双外观) + C 骨 (定制布局/信息层级原语) ──
+   · 令牌身份 (seed/明度锚点/radius/font/status 色相) 迁自 board/base.css,
+     外观切换纯走 <html data-theme> 变量交换, 派生契约自动跟随, 无需 Tailwind dark class。
+   · 玻璃流沙层 (card 流光描边/脉动/入场/进度条蓝金流光) = A 方向视觉皮, 跨页复用。
+   · 布局原语 (wrap/eyebrow/page-head/spec-grid/tree/doc/btn/legend) = C 方向信息层级骨,
+     配色一律走 A 玻璃令牌 (非 C 植物染), 由 pages/*.js 下游填实。 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,14 +37,12 @@
     --st-check: oklch(var(--l-st) .12 var(--h-check));
     --st-done: oklch(var(--l-st) .13 var(--h-done));
     --st-failed: oklch(var(--l-st) .16 var(--h-failed));
-    /* surface 令牌 (原服务于主题 select, 现仍被 pages/board.js 复用为通用面色) */
-    --sel-bg: oklch(var(--l-card) var(--c-neutral) var(--h));
-    --sel-fg: oklch(var(--l-fg) calc(var(--c-neutral)*1.4) var(--h));
     --font: -apple-system, system-ui, 'Segoe UI', sans-serif;
+    --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
     --radius: 16px;
     --skein-gold: #FFD98A;
 
-    /* ── 流沙玻璃层令牌 (跨外观派生, 迁自 prototype 映射表) ──
+    /* ── 玻璃流沙层令牌 (A 皮, 跨外观派生) ──
        浅 = 晨曦: 60% 白玻璃 / 细描边 / 蓝顶光 / 软投影。
        底纹烘焙 (晨曦三段径向) 直接进 body background, 艺术签名无令牌对应。 */
     --glass-bg: color-mix(in srgb, var(--card) 60%, transparent);
@@ -52,12 +51,16 @@
     --glass-inset-hi: color-mix(in srgb, var(--accent2) 25%, #fff);
     --glass-shadow: color-mix(in srgb, var(--fg) 10%, transparent);
     --bar-track: color-mix(in srgb, var(--accent) 8%, transparent);
+    --panel-2: color-mix(in srgb, var(--fg) 4%, transparent);
+    --chip: color-mix(in srgb, var(--fg) 6%, transparent);
+    /* surface 令牌: pages/board.js 通用面色 (doc-link / markdown pre / th 背景), 视觉重构前保留 */
+    --sel-bg: color-mix(in srgb, var(--card) 80%, transparent);
+    --sel-fg: var(--fg);
     --surface-bg-1: #EEF1FB; --surface-bg-2: #E9EFFB; --surface-bg-3: #DBEAFB;
   }
 
   /* ── 暗模式 · 夜空金沙 ──
-     重写明度锚点 (派生契约自动跟随) + 玻璃层金调 + 夜空底纹烘焙。
-     优先级: [data-theme="skein-dark"] 手动 toggle; 自动跟随 prefers-color-scheme (仅当无手动设置时, app.js 控制是否写 data-theme)。 */
+     重写明度锚点 (派生契约自动跟随) + 玻璃层金调 + 夜空底纹烘焙。 */
   [data-theme="skein-dark"] {
     --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
     --l-brd: .32; --l-line: .265; --l-accent: .72;
@@ -68,6 +71,8 @@
     --glass-inset-hi: color-mix(in srgb, var(--skein-gold) 22%, transparent);
     --glass-shadow: rgba(0,0,0,.45);
     --bar-track: color-mix(in srgb, var(--skein-gold) 10%, transparent);
+    --panel-2: color-mix(in srgb, var(--fg) 6%, transparent);
+    --chip: color-mix(in srgb, var(--skein-gold) 8%, transparent);
     --surface-bg-1: #0B1220; --surface-bg-2: #0E1729; --surface-bg-3: #0A0F1C;
     --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) 75);   /* 微金调: hue 偏暖 */
   }
@@ -81,10 +86,14 @@
       --glass-inset-hi: color-mix(in srgb, var(--skein-gold) 22%, transparent);
       --glass-shadow: rgba(0,0,0,.45);
       --bar-track: color-mix(in srgb, var(--skein-gold) 10%, transparent);
+      --panel-2: color-mix(in srgb, var(--fg) 6%, transparent);
+      --chip: color-mix(in srgb, var(--skein-gold) 8%, transparent);
       --surface-bg-1: #0B1220; --surface-bg-2: #0E1729; --surface-bg-3: #0A0F1C;
       --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) 75);
     }
   }
+
+  * { box-sizing: border-box; }
 
   body {
     background:
@@ -92,7 +101,9 @@
       radial-gradient(78% 52% at 50% 72%, color-mix(in srgb, var(--skein-gold) 55%, transparent) 0%, transparent 60%),
       linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 46%, var(--surface-bg-3) 100%);
     background-attachment: fixed;
-    color: var(--fg); font-family: var(--font); transition: background .4s, color .4s;
+    color: var(--fg); font-family: var(--font); font-size: 14px; line-height: 1.5;
+    transition: background .4s, color .4s;
+    -webkit-font-smoothing: antialiased;
   }
   /* 暗底纹: 金沙静态星点 (多层径向, 非粒子) + 底部金辉光晕 */
   [data-theme="skein-dark"] body {
@@ -110,12 +121,70 @@
       linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 50%, var(--surface-bg-3) 100%);
     background-attachment: fixed;
   }
+  /* 织纹底噪 (C 骨借鉴, 极淡不争对比) — body::before 叠在主背景上, 透明度极低 */
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--fg) 2.8%, transparent) 0 1px, transparent 1px 11px),
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--fg) 2.8%, transparent) 0 1px, transparent 1px 11px);
+    opacity: .5;
+  }
+  /* 顶栏 + 主区 都在底噪之上 */
+  .topbar, main#view { position: relative; z-index: 1; }
+
+  /* ── 顶栏 (A 皮: 玻璃横梁 + 流沙底) ── */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px 28px;
+    background: color-mix(in srgb, var(--card) 62%, transparent);
+    border-bottom: 1px solid var(--glass-brd);
+    backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-size: 19px; font-weight: 700; letter-spacing: -.5px; color: var(--head); }
+  /* 绞纱 mark: 蓝→金渐变方块 + 内顶光 (A 皮 logo) */
+  .logo .mark {
+    width: 22px; height: 22px; border-radius: 7px; flex: none;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--skein-gold) 120%);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.4);
+  }
+
+  /* ── 搜索框 (C 骨结构: label 包 input + kbd; A 皮: 玻璃描边) ── */
+  .search {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    min-width: 240px; height: 36px; padding: 0 13px; border-radius: 10px;
+    background: var(--glass-bg); border: 1px solid var(--glass-brd); color: var(--muted);
+    font-size: 13px;
+  }
+  .search input {
+    border: 0; background: transparent; color: var(--fg); font: inherit; outline: none; width: 100%;
+  }
+  .search input::placeholder { color: var(--muted); }
+  .search:focus-within { border-color: var(--glass-brd-blue); }
 }
 
 @layer components {
-  /* 跨页复用组件类。布局走 Tailwind utilities, 这里只给「质感 + 动效」。 */
+  /* 跨页复用组件类。布局走 Tailwind utilities, 这里给「质感 + 动效 + 布局原语」。 */
 
-  /* ── 玻璃卡 (核心质感, 迁自 prototype .card) ── */
+  /* ── 布局壳 (C 骨): 居中容器 + 页头层级 ──
+     注: .eyebrow/.page-head/.rule/.btn-primary 为下游 pages 视图重构预留的骨架类,
+     Tailwind tree-shake 会按 content 扫描决定是否烘焙; 下游引用后自动入库。 */
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 30px 28px 64px; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent2); margin-bottom: 9px;
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--accent); opacity: .6; }
+  [data-theme="skein-dark"] .eyebrow { color: var(--skein-gold); }
+  [data-theme="skein-dark"] .eyebrow::before { background: var(--skein-gold); }
+  .page-head { margin-bottom: 22px; }
+  .page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.6px; color: var(--head); }
+  .page-head p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .rule { height: 1px; background: var(--glass-brd); margin: 16px 0 22px;
+    background-image: repeating-linear-gradient(90deg, var(--glass-brd) 0 6px, transparent 6px 9px); }
+
+  /* ── 玻璃卡 (A 皮核心质感, 迁自 prototype .card) ── */
   .card {
     position: relative; overflow: hidden;
     background: var(--glass-bg); border: 1px solid var(--glass-brd);
@@ -137,7 +206,7 @@
     background: linear-gradient(90deg, transparent, var(--glass-inset-hi), transparent);
   }
 
-  /* hover 流光描边 (结构层) — conic-gradient 蓝金蓝沿边框旋转 */
+  /* hover 流光描边 (A 皮结构层) — conic-gradient 蓝金蓝沿边框旋转 */
   .card::after {
     content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
     background: conic-gradient(from var(--flow-ang, 0deg),
@@ -150,7 +219,7 @@
   .card:hover::after { opacity: 1; animation: flow-border 3s linear infinite; }
   @keyframes flow-border { to { --flow-ang: 360deg; } }
 
-  /* active 运行中卡 — 蓝描边脉动 (结构层); .active 由各页给运行中卡 */
+  /* active 运行中卡 — 蓝描边脉动 (A 皮结构层); .active 由各页给运行中卡 */
   .card.active { border-color: var(--glass-brd-blue); animation: active-pulse 2s ease-in-out infinite; }
   @keyframes active-pulse {
     0%, 100% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi),
@@ -169,17 +238,22 @@
       0 0 18px color-mix(in srgb, var(--accent) 22%, transparent); }
   }
 
+  /* ── status 徽章 (A 皮: 色块 + dot; C 骨: flex 对齐) ──
+     兼容旧用法 (纯色块) 与 mockup 用法 (dot + 文字)。 */
   .badge {
-    @apply inline-block rounded-full px-2 text-[11px] font-medium leading-[17px] text-white;
-    border: 1px solid rgba(255,255,255,.12);
+    display: inline-flex; align-items: center; gap: 5px;
+    border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600;
+    line-height: 17px; color: #fff; white-space: nowrap;
+    border: 1px solid rgba(255,255,255,.14);
   }
+  .badge .dot { width: 5px; height: 5px; border-radius: 50%; flex: none; background: rgba(255,255,255,.9); }
   .badge-pending { background: var(--st-pending); }
   .badge-active  { background: var(--st-active); }
   .badge-check   { background: var(--st-check); }
   .badge-done    { background: var(--st-done); }
   .badge-failed  { background: var(--st-failed); }
 
-  /* ── 顶栏 nav: Pill 分段控件 (选中填充 accent 胶囊) ── */
+  /* ── 顶栏 nav (A 皮: Pill 分段控件, 选中填充 accent 胶囊) ── */
   .nav {
     display: flex; align-items: center; gap: 2px;
     background: var(--glass-bg); border: 1px solid var(--glass-brd);
@@ -190,7 +264,7 @@
     display: flex; align-items: center; gap: 6px; white-space: nowrap;
     padding: 6px 12px; border-radius: 9px; line-height: 1;
     font-size: 13px; font-weight: 500; color: var(--muted);
-    text-decoration: none; transition: background .15s, color .15s;
+    text-decoration: none; cursor: pointer; transition: background .15s, color .15s;
   }
   .nav [data-nav]:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
   .nav [data-nav].active {
@@ -198,8 +272,7 @@
     box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 45%, transparent);
   }
 
-  /* ── 主题 toggle (顶栏分段) ──
-     两键分段; 选中 .on 走蓝→亮蓝渐变 (浅) / 金深→金渐变 (暗)。 */
+  /* ── 主题 toggle (A 皮: 顶栏分段, 选中蓝/金渐变) ── */
   .theme-toggle {
     display: inline-flex; border: 1px solid var(--glass-brd); border-radius: 999px; overflow: hidden;
     background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -218,7 +291,35 @@
     color: #1a1206; box-shadow: 0 0 12px color-mix(in srgb, var(--skein-gold) 40%, transparent);
   }
 
-  /* ── 入场 (列表项, 迁自 prototype .row) ──
+  /* ── 按钮 (C 骨结构, A 皮配色: 玻璃描边 + primary 渐变) ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 10px; border: 1px solid var(--glass-brd-blue);
+    background: var(--chip); color: var(--fg);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background .18s, transform .1s, border-color .18s;
+  }
+  .btn:hover { border-color: var(--glass-brd-blue); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary {
+    background: linear-gradient(100deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff));
+    color: #fff; border-color: transparent;
+  }
+  [data-theme="skein-dark"] .btn-primary {
+    background: linear-gradient(100deg, color-mix(in srgb, var(--skein-gold) 70%, #8a6a20), var(--skein-gold));
+    color: #1a1206; border-color: transparent;
+  }
+
+  /* ── 状态图例 (C 骨: 横向 chip 条) ── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 14px; margin: 2px 0 20px;
+    padding: 11px 15px; border-radius: 11px;
+    background: var(--panel-2); border: 1px solid var(--glass-brd); font-size: 12.5px;
+  }
+  .legend .lg { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+  .legend .sw { width: 12px; height: 12px; border-radius: 4px; flex: none; }
+
+  /* ── 入场 (A 皮: 列表项, 迁自 prototype .row) ──
      .entrance 给列表项/卡片子元素, nth-child 错峰。视口外暂停由 .paused 关闭 animation。 */
   .entrance { animation: rise-in .6s cubic-bezier(.4,0,.2,1) both; }
   .entrance:nth-child(2) { animation-delay: .05s; }
@@ -228,7 +329,7 @@
   .entrance:nth-child(6) { animation-delay: .25s; }
   @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* ── 进度条蓝金流光 (结构层, 迁自 prototype .fill) ──
+  /* ── 进度条蓝金流光 (A 皮结构层, 迁自 prototype .fill) ──
      蓝底 + 集中金色流光带 (非蓝↔金全程插值, 免互补色混成灰)。 */
   .skein-bar { position: relative; background: var(--bar-track); border-radius: 4px; height: 7px; overflow: visible; }
   .skein-bar > .skein-fill {
@@ -239,14 +340,218 @@
     animation: skein-flow 2.6s linear infinite;
   }
   @keyframes skein-flow { 0% { background-position: 0% 0; } 100% { background-position: -250% 0; } }
+
+  /* ── SPEC 双栏骨架 (C 骨, 配色走 A 玻璃): 左树 + 右文档面板 ──
+     pages/spec.js 下游负责填实; 此处只给布局 + 质感契约。 */
+  .spec-grid { display: grid; grid-template-columns: 260px minmax(0,1fr); gap: 22px; align-items: start; }
+  .tree { padding: 16px 14px; position: sticky; top: 78px; }
+  .tree-cat { margin-bottom: 14px; }
+  .tree-cat:last-child { margin-bottom: 0; }
+  .tree-cat > .cat-name {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); padding: 4px 8px; margin-bottom: 4px;
+  }
+  .tree-cat > .cat-name .tag {
+    font-size: 10px; padding: 1px 6px; border-radius: 5px; letter-spacing: 0; text-transform: none;
+    background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent2);
+  }
+  [data-theme="skein-dark"] .tree-cat > .cat-name .tag { color: var(--skein-gold); background: color-mix(in srgb, var(--skein-gold) 12%, transparent); }
+  .tree-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px; border-radius: 9px; font-size: 13px; color: var(--fg);
+    cursor: pointer; transition: background .15s;
+  }
+  .tree-item:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+  .tree-item.active { background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 600; }
+  .tree-item .fico {
+    width: 15px; height: 15px; flex: none; border-radius: 3px;
+    background: color-mix(in srgb, var(--muted) 30%, transparent); position: relative;
+  }
+  .tree-item.active .fico { background: var(--accent); }
+  .tree-item .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* 正文面板 (C 骨 .doc, A 玻璃卡质感) */
+  .doc { padding: 30px 34px; min-height: 460px; }
+  .doc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
+  .doc-path { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-bottom: 12px; }
+  .doc h2 { font-size: 24px; font-weight: 700; letter-spacing: -.4px; color: var(--head); }
+  .doc h3 { font-size: 15px; font-weight: 700; color: var(--head); margin: 24px 0 8px; }
+  .doc p { color: var(--fg); font-size: 14.5px; line-height: 1.7; margin: 10px 0; max-width: 68ch; }
+  .doc code {
+    font-family: var(--mono); font-size: 13px; padding: 1px 6px; border-radius: 5px;
+    background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--accent2);
+  }
+  [data-theme="skein-dark"] .doc code { color: var(--skein-gold); }
+  .doc pre {
+    margin: 12px 0; padding: 14px 16px; border-radius: 10px; overflow-x: auto;
+    background: color-mix(in srgb, var(--fg) 6%, transparent); border: 1px solid var(--glass-brd);
+    font-family: var(--mono); font-size: 13px; line-height: 1.6; color: var(--fg);
+  }
+  .doc ul { margin: 10px 0 10px 4px; padding-left: 18px; }
+  .doc li { margin: 5px 0; font-size: 14.5px; line-height: 1.65; }
+
+  /* ═══════════ 织机母题组件 (loom) — C 骨隐喻具象化 + A 皮配色 ═══════════
+     task=纬线 weft-row / subtask=织结 knot / 进度=织入 weave-dyed vs 松垂原纱 /
+     active=游走梭子 shuttle / queue=线轴 bobbin / spec 左=经线树 warp-tree / spec 右=织好的布 cloth。
+     配色一律 A 令牌 (--accent / --skein-gold / --st-× / --glass-×), 不引入 C 植物染土色。
+     下游 pages/*.js 只挂 class 填数据, 不再改 CSS。 */
+
+  /* ── 织面 (the woven face): 承载 task 纬线行的玻璃布 ── */
+  .loom-face {
+    display: flex; flex-direction: column; overflow: hidden;
+    border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25);
+    box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
+  }
+
+  /* ── 纬线行 (weft strand): 每 task 一根横贯纬线 ── */
+  .weft-row {
+    position: relative; display: grid; grid-template-columns: 270px minmax(0,1fr) 116px;
+    align-items: center; gap: 20px; padding: 18px 22px;
+    border-top: 1px solid var(--glass-brd); transition: background .15s;
+  }
+  .weft-row:first-child { border-top: 0; }
+  .weft-row:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+  /* active 行: 左缘金辉梭线 */
+  .weft-row.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--skein-gold); box-shadow: 0 0 10px color-mix(in srgb, var(--skein-gold) 55%, transparent);
+  }
+  .weft-tag { min-width: 0; }
+  .weft-tag .code {
+    font-family: var(--mono); font-size: 14.5px; font-weight: 600; color: var(--head);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .weft-tag .desc { color: var(--muted); font-size: 13px; line-height: 1.4; margin-top: 3px; }
+  .weft-meta { text-align: right; }
+  .weft-meta .frac { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--head); }
+  .weft-meta .frac small { color: var(--muted); font-size: 12px; font-weight: 500; }
+  .weft-meta .note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ── 织入进度带 (weave): 松垂原纱底 (虚线) + 织入段 (A 蓝金) + 织结 ── */
+  .weave-progress { position: relative; height: 34px; display: flex; align-items: center; }
+  /* 底纱 = 整根未织的松散原纱 (虚线) */
+  .weave-progress::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%); border-radius: 2px;
+    background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 45%, transparent) 0 5px, transparent 5px 8px);
+  }
+  /* 织入段 = 上色紧实纬线, 宽度 = 进度 (由行内 style width 给) */
+  .weave-dyed {
+    position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 3px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--skein-gold)));
+    box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .weave-dyed.done {
+    background: linear-gradient(90deg, var(--st-done), color-mix(in srgb, var(--st-done) 78%, #fff));
+    box-shadow: 0 0 7px color-mix(in srgb, var(--st-done) 40%, transparent);
+  }
+  /* 梭子高光: 织入段末端游走光点 (放 .weave-dyed 内右端) */
+  .shuttle {
+    position: absolute; right: -3px; top: 50%; transform: translate(0,-50%);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--skein-gold); box-shadow: 0 0 10px var(--skein-gold);
+    animation: glide 2.2s ease-in-out infinite;
+  }
+  @keyframes glide { 0%,100% { transform: translate(0,-50%); } 50% { transform: translate(-6px,-50%); } }
+  /* 织结行: 菱形节点均分排布 */
+  .knots { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .knot {
+    position: relative; width: 15px; height: 15px; border-radius: 4px; transform: rotate(45deg); flex: none;
+    border: 2px solid color-mix(in srgb, var(--muted) 40%, transparent); background: var(--card); transition: .2s;
+  }
+  .knot::after { content: ''; position: absolute; inset: 2px; border-radius: 2px; background: transparent; }
+  .knot.done    { border-color: var(--st-done); }    .knot.done::after   { background: var(--st-done); }
+  .knot.active  { border-color: var(--st-active); box-shadow: 0 0 12px color-mix(in srgb, var(--skein-gold) 55%, transparent); }
+  .knot.active::after { background: var(--st-active); }
+  .knot.check   { border-color: var(--st-check); }   .knot.check::after  { background: var(--st-check); }
+  .knot.failed  { border-color: var(--st-failed); }  .knot.failed::after { background: var(--st-failed); }
+  .knot.pending { border-color: color-mix(in srgb, var(--muted) 40%, transparent); }
+
+  /* ── 上机队列: 待上机的线轴 (bobbin) ── */
+  .deck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .bobbin {
+    display: flex; align-items: center; gap: 14px; padding: 15px 17px;
+    border: 1px solid var(--glass-brd); border-left: 3px solid var(--st-check); border-radius: 12px;
+    background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .spool {
+    width: 38px; height: 38px; flex: none; border-radius: 9px; display: grid; place-items: center; color: var(--st-check);
+    background: color-mix(in srgb, var(--st-check) 16%, transparent); border: 1px solid color-mix(in srgb, var(--st-check) 35%, transparent);
+  }
+  .bobbin .b-name { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--head); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bobbin .b-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .ready-tag {
+    flex: none; font-size: 11px; font-weight: 600; color: var(--st-check); padding: 2px 9px; border-radius: 999px;
+    background: color-mix(in srgb, var(--st-check) 16%, transparent); border: 1px solid color-mix(in srgb, var(--st-check) 38%, transparent);
+  }
+
+  /* ── SPEC: 经线树 (warp-tree) — 一束下垂经线, 文件挂在股上 ── */
+  .warp-tree {
+    position: sticky; top: 74px; padding: 16px 12px;
+    border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .warp-cat { margin-bottom: 6px; }
+  .warp-cat:last-child { margin-bottom: 0; }
+  .warp-head {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+    font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .5px; color: var(--muted);
+  }
+  .warp-head .spindle { width: 9px; height: 9px; border-radius: 2px; transform: rotate(45deg); flex: none; background: var(--accent); }
+  .warp-head .ct { margin-left: auto; font-size: 11px; color: var(--muted); letter-spacing: 0; }
+  /* 挂在经线上的文件: 左侧连接股线 */
+  .warp-list { position: relative; padding-left: 4px; margin-left: 8px; border-left: 1.5px solid var(--glass-brd); }
+  .warp-leaf {
+    position: relative; display: flex; align-items: center; gap: 9px; padding: 6px 9px; margin: 1px 0 1px 6px;
+    border-radius: 8px; font-size: 13.5px; color: var(--fg); cursor: pointer; transition: background .15s;
+  }
+  .warp-leaf::before { content: ''; position: absolute; left: -14px; top: 50%; width: 12px; height: 1.5px; background: var(--glass-brd); }
+  .warp-leaf:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+  .warp-leaf.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 600; color: var(--head); }
+  .warp-leaf.sel::before { background: var(--accent); }
+  .warp-leaf .fk { width: 11px; height: 11px; border-radius: 3px; transform: rotate(45deg); flex: none; border: 1.5px solid var(--muted); }
+  .warp-leaf.sel .fk { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .warp-leaf .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ── SPEC: 织好的布 (cloth) — 读稿面, 左缘一道 selvage 布边 ── */
+  .cloth {
+    position: relative; overflow: hidden; min-height: 520px;
+    border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+    box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
+  }
+  .cloth::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--accent), var(--st-done)); }
+  .cloth-bar {
+    display: flex; align-items: center; gap: 10px; padding: 14px 22px 14px 26px;
+    border-bottom: 1px solid var(--glass-brd); background: color-mix(in srgb, var(--card) 40%, transparent);
+  }
+
+  /* ── 玻璃卡素面 (无入场动效版, 供 hero / 侧栏面板 / 弹层等复用) ── */
+  .glass-card {
+    position: relative; overflow: hidden; padding: 1.25rem;
+    border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
+    backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25);
+    box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
+  }
+
+  /* ── 响应式 (C 骨: 窄屏 spec 双栏降单栏, 纬线行堆叠) ── */
+  @media (max-width: 940px) {
+    .spec-grid { grid-template-columns: 1fr; }
+    .tree, .warp-tree { position: static; }
+    .search { min-width: 0; }
+    .weft-row { grid-template-columns: 1fr; gap: 12px; }
+    .weft-meta { text-align: left; }
+    .deck-grid { grid-template-columns: 1fr; }
+  }
 }
 
 /* ── 视口外暂停 (IntersectionObserver 加 .paused) ── */
-.paused, .paused::after, .paused > .skein-fill { animation: none !important; }
+.paused, .paused::after, .paused > .skein-fill, .paused .shuttle { animation: none !important; }
 
 /* ── prefers-reduced-motion 降级: 关所有流沙动效, 入场直显 ── */
 @media (prefers-reduced-motion: reduce) {
-  .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill {
+  .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill, .shuttle {
     animation: none !important; transition: none !important;
   }
   .card, .entrance { opacity: 1 !important; transform: none !important; }

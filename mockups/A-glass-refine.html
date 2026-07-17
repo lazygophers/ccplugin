@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="skein-dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>skein · 玻璃流沙精炼 (方向A)</title>
+<style>
+/* ── 令牌契约 (迁自 webapp/src/input.css, oklch 派生双外观) ── */
+:root {
+  --h: 265; --c-neutral: .012; --c-accent: .16; --h-accent: 250; --h-accent2: 240;
+  --l-bg: .945; --l-card: .99; --l-fg: .26; --l-head: .20; --l-muted: .52;
+  --l-brd: .885; --l-line: .925; --l-accent: .58; --l-st: .66;
+  --h-pending: 245; --h-active: 70; --h-check: 200; --h-done: 150; --h-failed: 25;
+  --bg: oklch(var(--l-bg) var(--c-neutral) var(--h));
+  --card: oklch(var(--l-card) var(--c-neutral) var(--h));
+  --fg: oklch(var(--l-fg) calc(var(--c-neutral)*1.4) var(--h));
+  --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) var(--h));
+  --muted: oklch(var(--l-muted) var(--c-neutral) var(--h));
+  --brd: oklch(var(--l-brd) var(--c-neutral) var(--h));
+  --line: oklch(var(--l-line) var(--c-neutral) var(--h));
+  --accent: oklch(var(--l-accent) var(--c-accent) var(--h-accent));
+  --accent2: oklch(var(--l-accent) var(--c-accent) var(--h-accent2));
+  --st-pending: oklch(var(--l-st) .085 var(--h-pending));
+  --st-active: oklch(var(--l-st) .15 var(--h-active));
+  --st-check: oklch(var(--l-st) .12 var(--h-check));
+  --st-done: oklch(var(--l-st) .13 var(--h-done));
+  --st-failed: oklch(var(--l-st) .16 var(--h-failed));
+  --font: -apple-system, system-ui, 'Segoe UI', sans-serif;
+  --radius: 16px;
+  --skein-gold: #FFD98A;
+  --glass-bg: color-mix(in srgb, var(--card) 60%, transparent);
+  --glass-brd: color-mix(in srgb, var(--fg) 7%, transparent);
+  --glass-brd-blue: color-mix(in srgb, var(--accent) 45%, transparent);
+  --glass-inset-hi: color-mix(in srgb, var(--accent2) 25%, #fff);
+  --glass-shadow: color-mix(in srgb, var(--fg) 10%, transparent);
+  --bar-track: color-mix(in srgb, var(--accent) 8%, transparent);
+  --surface-bg-1: #EEF1FB; --surface-bg-2: #E9EFFB; --surface-bg-3: #DBEAFB;
+}
+[data-theme="skein-dark"] {
+  --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
+  --l-brd: .32; --l-line: .265; --l-accent: .72;
+  --glass-bg: color-mix(in srgb, var(--card) 55%, transparent);
+  --glass-brd: color-mix(in srgb, var(--skein-gold) 16%, transparent);
+  --glass-brd-blue: color-mix(in srgb, var(--accent) 55%, transparent);
+  --glass-inset-hi: color-mix(in srgb, var(--skein-gold) 22%, transparent);
+  --glass-shadow: rgba(0,0,0,.45);
+  --bar-track: color-mix(in srgb, var(--skein-gold) 10%, transparent);
+  --surface-bg-1: #0B1220; --surface-bg-2: #0E1729; --surface-bg-3: #0A0F1C;
+  --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) 75);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@property --flow-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+body {
+  min-height: 100vh; color: var(--fg); font-family: var(--font);
+  font-size: 14px; line-height: 1.5; letter-spacing: .1px;
+  background:
+    radial-gradient(135% 62% at 50% 112%, color-mix(in srgb, var(--accent2) 50%, transparent) 0%, transparent 66%),
+    radial-gradient(78% 52% at 50% 72%, color-mix(in srgb, var(--skein-gold) 55%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 46%, var(--surface-bg-3) 100%);
+  background-attachment: fixed;
+  transition: background .4s, color .4s;
+}
+[data-theme="skein-dark"] body {
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, color-mix(in srgb, var(--skein-gold) 70%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 78% 12%, color-mix(in srgb, var(--skein-gold) 50%, transparent), transparent 60%),
+    radial-gradient(1.5px 1.5px at 34% 64%, color-mix(in srgb, var(--skein-gold) 60%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 88% 78%, color-mix(in srgb, var(--accent2) 50%, transparent), transparent 60%),
+    radial-gradient(1.2px 1.2px at 56% 32%, color-mix(in srgb, var(--skein-gold) 45%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 22% 88%, color-mix(in srgb, var(--skein-gold) 40%, transparent), transparent 60%),
+    radial-gradient(1.4px 1.4px at 66% 92%, color-mix(in srgb, var(--skein-gold) 55%, transparent), transparent 60%),
+    radial-gradient(1px 1px at 44% 8%, color-mix(in srgb, var(--accent2) 40%, transparent), transparent 60%),
+    radial-gradient(70% 48% at 50% 108%, color-mix(in srgb, var(--skein-gold) 14%, transparent) 0%, transparent 62%),
+    radial-gradient(50% 36% at 82% 24%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 60%),
+    linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 50%, var(--surface-bg-3) 100%);
+  background-attachment: fixed;
+}
+
+/* ── 玻璃卡 ── */
+.card {
+  position: relative; overflow: hidden;
+  background: var(--glass-bg); border: 1px solid var(--glass-brd);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
+  transition: border-color .35s, box-shadow .35s, transform .35s;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--glass-inset-hi), transparent);
+}
+.card.active { border-color: var(--glass-brd-blue); animation: active-pulse 2.4s ease-in-out infinite; }
+@keyframes active-pulse {
+  0%,100% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi), 0 0 0 0 color-mix(in srgb, var(--skein-gold) 0%, transparent); }
+  50% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi), 0 0 0 3px color-mix(in srgb, var(--skein-gold) 13%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent); }
+}
+
+/* ── status 徽章 ── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 999px; padding: 2px 9px; font-size: 11px; font-weight: 600;
+  color: #fff; border: 1px solid rgba(255,255,255,.14); white-space: nowrap;
+}
+.badge .dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.9); }
+.badge-pending { background: var(--st-pending); }
+.badge-active  { background: var(--st-active); color: #2a1f00; }
+.badge-active .dot { background: #2a1f00; }
+.badge-check   { background: var(--st-check); }
+.badge-done    { background: var(--st-done); }
+.badge-failed  { background: var(--st-failed); }
+
+/* ── 进度条 蓝金流光 ── */
+.bar { position: relative; background: var(--bar-track); border-radius: 4px; height: 7px; overflow: hidden; }
+.bar > i {
+  display: block; height: 100%; border-radius: 4px;
+  background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 38%, var(--skein-gold) 50%, var(--accent) 62%, var(--accent) 100%);
+  background-size: 250% 100%;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
+  animation: flow 2.6s linear infinite;
+}
+@keyframes flow { 0% { background-position: 0 0; } 100% { background-position: -250% 0; } }
+.bar.static > i { animation: none; }
+
+/* ── 顶栏 ── */
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 18px;
+  padding: 12px 28px;
+  background: color-mix(in srgb, var(--card) 62%, transparent);
+  border-bottom: 1px solid var(--glass-brd);
+  backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+.logo {
+  font-size: 19px; font-weight: 700; letter-spacing: -.5px; color: var(--head);
+  display: flex; align-items: center; gap: 8px;
+}
+.logo .mark {
+  width: 22px; height: 22px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--skein-gold) 120%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.4);
+}
+.nav {
+  display: flex; align-items: center; gap: 2px;
+  background: var(--glass-bg); border: 1px solid var(--glass-brd);
+  border-radius: 12px; padding: 3px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.nav a {
+  padding: 6px 13px; border-radius: 9px; line-height: 1;
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  text-decoration: none; cursor: pointer; transition: background .15s, color .15s;
+}
+.nav a:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
+.nav a.active {
+  color: var(--bg); background: var(--accent);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.search {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  min-width: 220px; padding: 7px 13px; border-radius: 10px;
+  background: var(--glass-bg); border: 1px solid var(--glass-brd);
+  color: var(--muted); font-size: 13px;
+}
+.search input { border: 0; background: transparent; color: var(--fg); font: inherit; outline: none; width: 100%; }
+.search input::placeholder { color: var(--muted); }
+.theme-toggle {
+  display: inline-flex; border: 1px solid var(--glass-brd); border-radius: 999px; overflow: hidden;
+  background: var(--glass-bg);
+}
+.theme-toggle button {
+  border: 0; background: transparent; color: var(--muted);
+  font: 13px/1.4 var(--font); padding: 6px 13px; cursor: pointer; transition: color .25s, background .25s;
+}
+.theme-toggle button.on {
+  background: linear-gradient(100deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 60%, #fff) 100%);
+  color: #fff;
+}
+[data-theme="skein-dark"] .theme-toggle button.on {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--skein-gold) 70%, #8a6a20) 0%, var(--skein-gold) 100%);
+  color: #1a1206;
+}
+
+/* ── 布局壳 ── */
+.wrap { max-width: 1240px; margin: 0 auto; padding: 30px 28px 64px; }
+.view { display: none; }
+.view.on { display: block; animation: rise .5s cubic-bezier(.4,0,.2,1) both; }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.page-head { margin-bottom: 22px; }
+.page-head h1 { font-size: 26px; font-weight: 700; letter-spacing: -.6px; color: var(--head); }
+.page-head p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--accent2); margin-bottom: 9px;
+}
+[data-theme="skein-dark"] .eyebrow { color: var(--skein-gold); }
+
+/* ── DASHBOARD: 层级重构 = 主 hero + 次网格 + 侧栏队列 ── */
+.dash-grid {
+  display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 22px; align-items: start;
+}
+.dash-main { display: grid; gap: 20px; }
+
+/* hero: 进行中主任务, 占主视觉锚点 */
+.hero { padding: 26px 28px; }
+.hero .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.hero .id { font-size: 22px; font-weight: 700; letter-spacing: -.4px; color: var(--head); }
+.hero .desc { color: var(--muted); font-size: 15px; margin: 6px 0 22px; max-width: 62ch; }
+.hero .metrics { display: flex; gap: 34px; margin-bottom: 18px; }
+.metric .k { font-size: 12px; color: var(--muted); letter-spacing: .3px; }
+.metric .v { font-size: 24px; font-weight: 700; color: var(--head); margin-top: 2px; }
+.metric .v small { font-size: 14px; font-weight: 500; color: var(--muted); }
+.hero .barwrap { display: flex; align-items: center; gap: 14px; }
+.hero .barwrap .bar { flex: 1; height: 9px; }
+.hero .barwrap .pct { font-size: 13px; font-weight: 600; color: var(--accent2); min-width: 42px; text-align: right; }
+[data-theme="skein-dark"] .hero .barwrap .pct { color: var(--skein-gold); }
+
+/* subtask 迷你行 (hero 内) */
+.subs { margin-top: 20px; display: grid; gap: 8px; }
+.sub-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 13px; border-radius: 10px;
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  border: 1px solid var(--glass-brd); font-size: 13px;
+}
+.sub-row .name { color: var(--fg); font-weight: 500; }
+.sub-row .st { margin-left: auto; }
+
+/* 次级卡网格 (已完成/待处理, 更小密度) */
+.mini-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.mini { padding: 18px 20px; }
+.mini .row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.mini .id2 { font-size: 15px; font-weight: 600; color: var(--head); }
+.mini .desc2 { color: var(--muted); font-size: 13px; margin-bottom: 14px; min-height: 34px; }
+.mini .foot { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+.mini .foot .bar { flex: 1; }
+.mini .count { font-variant-numeric: tabular-nums; }
+
+/* 侧栏: 待执行队列 */
+.rail { display: grid; gap: 20px; position: sticky; top: 78px; }
+.queue { padding: 20px; }
+.queue-item {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 12px 0; border-bottom: 1px solid var(--glass-brd);
+}
+.queue-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.queue-item:first-of-type { padding-top: 6px; }
+.q-idx {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px;
+  display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  color: var(--accent2); background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid var(--glass-brd-blue);
+}
+[data-theme="skein-dark"] .q-idx { color: var(--skein-gold); }
+.q-body .q-name { font-size: 13px; font-weight: 600; color: var(--fg); }
+.q-body .q-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ready {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
+  color: oklch(.62 .13 var(--h-done)); margin-top: 6px;
+}
+.ready .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+
+/* 小统计块 */
+.stat-block { padding: 18px 20px; }
+.stat-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; font-size: 13px; }
+.stat-row + .stat-row { border-top: 1px solid var(--glass-brd); }
+.stat-row .lbl { color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.stat-row .num { font-weight: 700; color: var(--head); font-variant-numeric: tabular-nums; }
+.swatch { width: 9px; height: 9px; border-radius: 3px; }
+
+/* ── SPEC: 双栏 树 + 正文 ── */
+.spec-grid { display: grid; grid-template-columns: 260px minmax(0,1fr); gap: 22px; align-items: start; }
+.tree { padding: 16px 14px; position: sticky; top: 78px; }
+.tree-cat { margin-bottom: 14px; }
+.tree-cat:last-child { margin-bottom: 0; }
+.tree-cat > .cat-name {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--muted); padding: 4px 8px; margin-bottom: 4px;
+}
+.tree-cat > .cat-name .tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 5px; letter-spacing: 0; text-transform: none;
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent2);
+}
+[data-theme="skein-dark"] .tree-cat > .cat-name .tag { color: var(--skein-gold); background: color-mix(in srgb, var(--skein-gold) 12%, transparent); }
+.tree-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 9px; font-size: 13px; color: var(--fg);
+  cursor: pointer; transition: background .15s;
+}
+.tree-item:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+.tree-item.active { background: color-mix(in srgb, var(--accent) 14%, transparent); font-weight: 600; }
+.tree-item .fico {
+  width: 15px; height: 15px; flex-shrink: 0; border-radius: 3px;
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+  position: relative;
+}
+.tree-item.active .fico { background: var(--accent); }
+.tree-item .fname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 正文面板 */
+.doc { padding: 30px 34px; min-height: 460px; }
+.doc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
+.doc-path { font-size: 12px; color: var(--muted); font-family: ui-monospace, 'SF Mono', monospace; margin-bottom: 12px; }
+.doc h2 { font-size: 24px; font-weight: 700; letter-spacing: -.4px; color: var(--head); }
+.doc h3 { font-size: 15px; font-weight: 700; color: var(--head); margin: 24px 0 8px; }
+.doc p { color: var(--fg); font-size: 14.5px; line-height: 1.7; margin: 10px 0; max-width: 68ch; }
+.doc code {
+  font-family: ui-monospace, 'SF Mono', monospace; font-size: 13px;
+  padding: 1px 6px; border-radius: 5px;
+  background: color-mix(in srgb, var(--fg) 7%, transparent); color: var(--accent2);
+}
+[data-theme="skein-dark"] .doc code { color: var(--skein-gold); }
+.doc pre {
+  margin: 12px 0; padding: 14px 16px; border-radius: 10px; overflow-x: auto;
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  border: 1px solid var(--glass-brd);
+  font-family: ui-monospace, 'SF Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--fg);
+}
+.doc ul { margin: 10px 0 10px 4px; padding-left: 18px; }
+.doc li { margin: 5px 0; font-size: 14.5px; line-height: 1.65; }
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 16px; border-radius: 10px; border: 1px solid var(--glass-brd-blue);
+  background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent2);
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: background .18s, transform .1s;
+}
+[data-theme="skein-dark"] .btn { color: var(--skein-gold); border-color: color-mix(in srgb, var(--skein-gold) 30%, transparent); background: color-mix(in srgb, var(--skein-gold) 10%, transparent); }
+.btn:hover { background: color-mix(in srgb, var(--accent) 20%, transparent); }
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: linear-gradient(100deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #fff)); color: #fff;
+  border-color: transparent;
+}
+[data-theme="skein-dark"] .btn-primary {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--skein-gold) 70%, #8a6a20), var(--skein-gold)); color: #1a1206;
+}
+.editor { display: none; }
+.editor.on { display: block; animation: rise .35s ease both; }
+.editor textarea {
+  width: 100%; min-height: 320px; resize: vertical;
+  padding: 16px 18px; border-radius: 12px;
+  background: color-mix(in srgb, var(--fg) 5%, transparent);
+  border: 1px solid var(--glass-brd-blue); color: var(--fg);
+  font-family: ui-monospace, 'SF Mono', monospace; font-size: 13.5px; line-height: 1.7;
+  outline: none;
+}
+.editor .actions { display: flex; gap: 10px; margin-top: 14px; }
+.doc-body.hide { display: none; }
+
+@media (max-width: 940px) {
+  .dash-grid, .spec-grid { grid-template-columns: 1fr; }
+  .mini-grid { grid-template-columns: 1fr; }
+  .rail, .tree { position: static; }
+  .search { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .view.on, .card.active, .bar > i, .editor.on { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo"><span class="mark"></span>skein</div>
+  <nav class="nav">
+    <a class="active" data-view="dashboard">面板</a>
+    <a>队列</a>
+    <a>任务</a>
+    <a data-view="spec">spec</a>
+    <a>归档</a>
+    <a>搜索</a>
+  </nav>
+  <label class="search">
+    <span>⌕</span>
+    <input placeholder="搜索任务 / subtask / spec…">
+  </label>
+  <div class="theme-toggle">
+    <button data-theme-set="">浅</button>
+    <button class="on" data-theme-set="skein-dark">暗</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<section class="view on" id="dashboard">
+  <div class="page-head">
+    <h1>面板</h1>
+    <p>4 个任务 · 1 个进行中 · 2 条 subtask 待执行</p>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dash-main">
+
+      <!-- HERO: 进行中主任务 -->
+      <article class="card active hero">
+        <div class="top">
+          <div>
+            <div class="eyebrow">当前进行中</div>
+            <div class="id">serve-admin-platform</div>
+          </div>
+          <span class="badge badge-active"><span class="dot"></span>进行中</span>
+        </div>
+        <p class="desc">serve 多页平台重设计 — 重构管理台的 dashboard 与 spec 两视图布局与信息层级。</p>
+
+        <div class="metrics">
+          <div class="metric"><div class="k">SUBTASK 进度</div><div class="v">2<small> / 3</small></div></div>
+          <div class="metric"><div class="k">运行中</div><div class="v">1</div></div>
+          <div class="metric"><div class="k">完成度</div><div class="v">67<small>%</small></div></div>
+        </div>
+
+        <div class="barwrap">
+          <div class="bar"><i style="width:67%"></i></div>
+          <span class="pct">67%</span>
+        </div>
+
+        <div class="subs">
+          <div class="sub-row"><span class="fico"></span><span class="name">explore-glass-refine</span><span class="st badge badge-active"><span class="dot"></span>运行中</span></div>
+          <div class="sub-row"><span class="name">layout-token-audit</span><span class="st badge badge-done">已完成</span></div>
+          <div class="sub-row"><span class="name">spec-tree-recon</span><span class="st badge badge-done">已完成</span></div>
+        </div>
+      </article>
+
+      <!-- 次级卡网格 -->
+      <div class="mini-grid">
+        <article class="card mini">
+          <div class="row1"><span class="id2">skill-dev-methodology-fusion</span><span class="badge badge-done">已完成</span></div>
+          <p class="desc2">两插件融合方法论 — 合并 skill-dev 双流程与 subagent 开发规范。</p>
+          <div class="foot"><span class="count">4 / 4</span><div class="bar static"><i style="width:100%;background:var(--st-done);box-shadow:none"></i></div></div>
+        </article>
+
+        <article class="card mini">
+          <div class="row1"><span class="id2">task-prd-tabs-fmt</span><span class="badge badge-pending"><span class="dot"></span>待处理</span></div>
+          <p class="desc2">PRD 分栏 + fmt hook — 任务详情页分栏布局与格式化钩子。</p>
+          <div class="foot"><span class="count">0 subtask</span><div class="bar static"><i style="width:4%;background:var(--st-pending);box-shadow:none"></i></div></div>
+        </article>
+
+        <article class="card mini">
+          <div class="row1"><span class="id2">webapp-drop-themes</span><span class="badge badge-done">已完成</span></div>
+          <p class="desc2">移除主题系统 — 收敛为双外观令牌派生, 删运行时主题 select。</p>
+          <div class="foot"><span class="count">3 / 3</span><div class="bar static"><i style="width:100%;background:var(--st-done);box-shadow:none"></i></div></div>
+        </article>
+
+        <article class="card mini" style="display:grid;place-items:center;color:var(--muted);border-style:dashed;min-height:118px;">
+          <div style="text-align:center;font-size:13px;">+ 新建任务</div>
+        </article>
+      </div>
+    </div>
+
+    <!-- 侧栏 RAIL -->
+    <aside class="rail">
+      <div class="card queue">
+        <div class="eyebrow" style="margin-bottom:4px;">待执行队列</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">2 条 subtask 就绪, 等待派发</div>
+        <div class="queue-item">
+          <span class="q-idx">1</span>
+          <div class="q-body">
+            <div class="q-name">explore-custom</div>
+            <div class="q-meta">serve-admin-platform · 探索自定义视图</div>
+            <span class="ready"><span class="dot"></span>ready</span>
+          </div>
+        </div>
+        <div class="queue-item">
+          <span class="q-idx">2</span>
+          <div class="q-body">
+            <div class="q-name">prd-tabs-recon</div>
+            <div class="q-meta">task-prd-tabs-fmt · 分栏结构重构</div>
+            <span class="ready"><span class="dot"></span>ready</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card stat-block">
+        <div class="eyebrow" style="margin-bottom:6px;">状态分布</div>
+        <div class="stat-row"><span class="lbl"><span class="swatch" style="background:var(--st-active)"></span>进行中</span><span class="num">1</span></div>
+        <div class="stat-row"><span class="lbl"><span class="swatch" style="background:var(--st-pending)"></span>待处理</span><span class="num">1</span></div>
+        <div class="stat-row"><span class="lbl"><span class="swatch" style="background:var(--st-done)"></span>已完成</span><span class="num">2</span></div>
+        <div class="stat-row"><span class="lbl"><span class="swatch" style="background:var(--st-check)"></span>校验中</span><span class="num">0</span></div>
+        <div class="stat-row"><span class="lbl"><span class="swatch" style="background:var(--st-failed)"></span>失败</span><span class="num">0</span></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ═══════════ SPEC ═══════════ -->
+<section class="view" id="spec">
+  <div class="page-head">
+    <h1>spec 知识库</h1>
+    <p>core 契约 · recall 复盘 — 5 篇文档</p>
+  </div>
+
+  <div class="spec-grid">
+    <!-- 左树 -->
+    <nav class="card tree">
+      <div class="tree-cat">
+        <div class="cat-name"><span class="tag">core</span>契约</div>
+        <div class="tree-item"><span class="fico"></span><span class="fname">git-workflow.md</span></div>
+        <div class="tree-item"><span class="fico"></span><span class="fname">test-strategy.md</span></div>
+        <div class="tree-item"><span class="fico"></span><span class="fname">arch-tokens.md</span></div>
+      </div>
+      <div class="tree-cat">
+        <div class="cat-name"><span class="tag">recall</span>复盘</div>
+        <div class="tree-item active"><span class="fico"></span><span class="fname">webapp-tpl-fragment-crash-00.md</span></div>
+        <div class="tree-item"><span class="fico"></span><span class="fname">frontend-glass-tuning.md</span></div>
+        <div class="tree-item"><span class="fico"></span><span class="fname">arch-serve-deps-slim.md</span></div>
+      </div>
+    </nav>
+
+    <!-- 右正文 -->
+    <article class="card doc">
+      <div class="doc-path">recall/frontend/webapp-tpl-fragment-crash-00.md</div>
+      <div class="doc-head">
+        <h2>petite-vue 顶层 v-if 崩溃</h2>
+        <button class="btn" id="editBtn">✎ 编辑</button>
+      </div>
+
+      <div class="doc-body" id="docBody">
+        <p>webapp 全页加载时崩溃, 白屏无内容。根因在 <code>template</code> fragment 的顶层放了 <code>v-if</code> — petite-vue 对根节点上的结构指令处理与 Vue 3 不同, 顶层 <code>v-if</code> 会让整个挂载点的 walk 提前中断, 抛出无法恢复的渲染异常。</p>
+
+        <h3>触发条件</h3>
+        <ul>
+          <li>挂载根 <code>&lt;template&gt;</code> 直接携带 <code>v-if</code> / <code>v-for</code></li>
+          <li>petite-vue 在 <code>createApp().mount()</code> 阶段 walk 到根即失败</li>
+          <li>浏览器控制台仅报一次异常, 后续静默白屏</li>
+        </ul>
+
+        <h3>修复</h3>
+        <p>把顶层结构指令下沉一层: 根节点保持无指令的静态容器, 条件渲染移到其子节点上。</p>
+        <pre>&lt;div id="app"&gt;
+  &lt;!-- 根容器无 v-if --&gt;
+  &lt;section v-if="ready"&gt; … &lt;/section&gt;
+&lt;/div&gt;</pre>
+
+        <h3>教训</h3>
+        <p>petite-vue 不是 Vue 3 的子集。顶层指令、<code>&lt;component :is&gt;</code>、异步组件三处行为都需要单独验证, 不能照搬 Vue SFC 心智。</p>
+      </div>
+
+      <div class="editor" id="editor">
+        <textarea># petite-vue 顶层 v-if 崩溃
+
+webapp 全页加载时崩溃, 白屏无内容。根因在 `template` fragment 的顶层放了 `v-if` — petite-vue 对根节点上的结构指令处理与 Vue 3 不同, 顶层 `v-if` 会让整个挂载点的 walk 提前中断。
+
+## 触发条件
+- 挂载根 `<template>` 直接携带 `v-if` / `v-for`
+- petite-vue 在 `createApp().mount()` 阶段 walk 到根即失败
+
+## 修复
+把顶层结构指令下沉一层: 根节点保持无指令的静态容器, 条件渲染移到其子节点上。</textarea>
+        <div class="actions">
+          <button class="btn btn-primary" id="saveBtn">保存</button>
+          <button class="btn" id="cancelBtn">取消</button>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ponytail: mockup 交互仅 3 处 — view 切换 / 主题 / spec 编辑态。无框架。
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+// nav view 切换
+$$('.nav a[data-view]').forEach(a => a.addEventListener('click', () => {
+  const v = a.dataset.view;
+  $$('.nav a').forEach(n => n.classList.toggle('active', n === a));
+  $$('.view').forEach(s => s.classList.toggle('on', s.id === v));
+  window.scrollTo(0, 0);
+}));
+
+// 主题 toggle
+$$('[data-theme-set]').forEach(b => b.addEventListener('click', () => {
+  document.documentElement.setAttribute('data-theme', b.dataset.themeSet || 'skein-light');
+  if (!b.dataset.themeSet) document.documentElement.removeAttribute('data-theme');
+  $$('[data-theme-set]').forEach(x => x.classList.toggle('on', x === b));
+}));
+
+// spec 编辑态
+$('#editBtn').addEventListener('click', () => {
+  $('#docBody').classList.add('hide');
+  $('#editor').classList.add('on');
+  $('#editBtn').style.visibility = 'hidden';
+});
+function closeEdit() {
+  $('#docBody').classList.remove('hide');
+  $('#editor').classList.remove('on');
+  $('#editBtn').style.visibility = 'visible';
+}
+$('#saveBtn').addEventListener('click', closeEdit);
+$('#cancelBtn').addEventListener('click', closeEdit);
+</script>
+</body>
+</html>
