@@ -585,3 +585,13 @@
   .card, .entrance { opacity: 1 !important; transform: none !important; }
   .card::after { opacity: 0 !important; }
 }
+
+/* ── /spec 三栏重设计 (导航树 / 文件列表 / 详情) ── */
+.spec-3col { display:grid; grid-template-columns: 224px 288px 1fr; gap:1rem; height:calc(100vh - 120px); }
+.spec-nav, .spec-list, .spec-detail { overflow:auto; }
+.spec-meta-form { display:grid; grid-template-columns: 1fr 1fr; gap:.5rem .75rem; padding:.75rem; border:1px solid var(--line); border-radius:.5rem; margin-bottom:.75rem; }
+.spec-meta-form .full { grid-column: 1 / -1; }
+.spec-editor-wrap { position:relative; }
+.spec-gutter { position:absolute; left:0; top:0; width:2.5rem; height:100%; overflow:hidden; font-family:var(--font-mono,monospace); font-size:13px; line-height:1.5rem; color:var(--muted); text-align:right; padding:.75rem .5rem 0 0; pointer-events:none; box-sizing:border-box; }
+.spec-editor { padding-left:2.75rem; font-family:var(--font-mono,monospace); font-size:13px; line-height:1.5rem; tab-size:2; box-sizing:border-box; }
+.spec-kw-chip { display:inline-flex; align-items:center; gap:.25rem; padding:.1rem .4rem; border-radius:.25rem; background:var(--line); font-size:.75rem; }
