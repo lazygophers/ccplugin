@@ -1793,17 +1793,10 @@ class Skein:
 
     def _queue(self) -> dict:
         # 待执行队列 (复用 ready/pop 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
-        # ponytail: task 完成百分比 = done 强制 100, 否则按 _sub_pct 加权平均 (复用 board task_pct 语义)
-        def _tpct(t):
-            if t["status"] == S_DONE:
-                return 100
-            subs = t.get("subtasks", [])
-            return round(sum(_sub_pct(s) for s in subs) / len(subs)) if subs else 0
-
         tasks = self._render_tasks()
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                         "deps": t.get("deps", []), "desc": t.get("desc", ""),
-                        "status": t["status"], "spct": _tpct(t)}
+                        "status": t["status"], "spct": _task_pct(t)}
                        for t in self._all()
                        if t["status"] == S_PENDING
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
