@@ -1,10 +1,10 @@
-// SKEIN webapp hash 路由核心: 7 route, 切页只换 #view 内容 (无整页刷新), page 模块懒加载。
+// SKEIN webapp history (path + query) 路由核心: 7 route, 切页只换 #view 内容 (无整页刷新), page 模块懒加载。
 //
 // ── page 模块加载契约 (s4-s10 遵循) ──
 //   路径:   ./pages/<name>.js  (name = dashboard|board|queue|task|spec|archive)
 //   导出:   export function render(mount, params, ctx)
 //     mount  — #view 容器 DOM (已清空); page 自行填充内容 (innerHTML / petite-vue createApp().mount(mount))
-//     params — 路由参数对象, 如 #/task/:id → { id: "<tid>" }; 无参为 {}
+//     params — 路由参数对象, 如 /task?id=<tid> → { id: "<tid>" }; 无参为 {}
 //     ctx    — { api, md, onLive }
 //              api    = lib/api.js 全部导出 (dashboard/queue/task/spec/exec/search/setTheme/getJSON/postJSON…)
 //              md     = lib/md.js (render/sanitize/mount)
@@ -18,14 +18,16 @@ import * as live from "./lib/live.js";
 const ROUTES = ["dashboard", "board", "queue", "task", "spec", "archive"];
 const DEFAULT = "dashboard";
 
-// 解析 location.hash → { name, params }
+// 解析 location.pathname + search → { name, params }
 function parse() {
-  const raw = location.hash.replace(/^#\/?/, "");           // "task/abc" | "dashboard" | ""
-  const seg = raw.split("/").filter(Boolean);
+  const seg = location.pathname.split("/").filter(Boolean);  // ["task","abc"] | ["dashboard"] | []
   let name = seg[0] || DEFAULT;
   if (!ROUTES.includes(name)) name = DEFAULT;
   const params = {};
-  if (name === "task" && seg[1]) params.id = decodeURIComponent(seg[1]);
+  if (name === "task") {
+    const id = new URLSearchParams(location.search).get("id");
+    if (id) params.id = decodeURIComponent(id);
+  }
   return { name, params };
 }
 
@@ -77,10 +79,10 @@ async function navigate() {
   }
 }
 
-// 顶栏 nav 高亮跟随当前 route (匹配 href 首段)
+// 顶栏 nav 高亮跟随当前 route (匹配 href 首段, path 形如 /xxx)
 function highlightNav(name) {
   document.querySelectorAll("[data-nav]").forEach((a) => {
-    const href = (a.getAttribute("href") || "").replace(/^#\/?/, "").split("/")[0];
+    const href = (a.getAttribute("href") || "").split("/").filter(Boolean)[0];
     a.classList.toggle("active", href === name);
     if (href === name) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
@@ -89,10 +91,31 @@ function highlightNav(name) {
 
 export function start(injectedDeps) {
   deps = injectedDeps || {};
-  if (!location.hash) location.replace("#/" + DEFAULT);      // 首屏默认落 dashboard
-  window.addEventListener("hashchange", navigate);
+  // 首屏: 根路径 (/) 落默认页; pushState 不触发 popstate, 直接 navigate。
+  if (location.pathname === "/" || !location.pathname) {
+    history.replaceState({}, "", "/" + DEFAULT);
+  }
+  window.addEventListener("popstate", navigate);
+  // 拦截站内 <a href="/xxx"> → go() (pushState), 不整页刷 (root cause: path href 默认整页跳)。
+  document.addEventListener("click", (e) => {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest("a[href]");
+    if (!a) return;
+    const url = new URL(a.href, location.href);
+    if (url.origin !== location.origin) return;
+    const path = url.pathname + url.search + url.hash;
+    if (path === location.pathname + location.search + location.hash) return;
+    e.preventDefault();
+    history.pushState({}, "", path);
+    navigate();
+  });
   navigate();
 }
 
-// 供顶栏搜索/页面内跳转用: 编程式导航 (不整页刷)
-export function go(hash) { location.hash = hash.charAt(0) === "#" ? hash : "#/" + hash; }
+// 供顶栏搜索/页面内跳转用: 编程式导航 (不整页刷)。
+// pushState 不触发 popstate, 须手动 navigate()。
+export function go(path) {
+  const p = path.charAt(0) === "/" ? path : "/" + path;
+  history.pushState({}, "", p);
+  navigate();
+}

@@ -40,7 +40,7 @@ const TPL = `
   <div v-if="loadErr" class="card p-10 text-center text-muted">
     <div class="text-3xl mb-2">{{ notFound ? '🔍' : '⚠️' }}</div>
     <div class="text-sm" :style="notFound ? '' : 'color:var(--st-failed)'">{{ loadErr }}</div>
-    <a href="#/" class="inline-block mt-4 text-sm" style="color:var(--accent)">← 返回看板</a>
+    <a href="/" class="inline-block mt-4 text-sm" style="color:var(--accent)">← 返回看板</a>
   </div>
 
   <div v-else>
@@ -135,7 +135,7 @@ const DOC_TABS = [
   { key: "findings", label: "调研收敛" },
 ];
 
-// ── 列表视图 (无 id: #/task) ── 数据复用 /__skein__/data → cards (每项 id/name/status/desc/spct)。
+// ── 列表视图 (无 id: /task) ── 数据复用 /__skein__/data → cards (每项 id/name/status/desc/spct)。
 const LIST_TPL = `
 <div class="max-w-4xl mx-auto">
   <div class="flex items-center gap-2 mb-4 px-1">
@@ -151,7 +151,7 @@ const LIST_TPL = `
     <div class="text-sm">暂无任务 — 在 .skein/task.json 添加后即显示。</div>
   </div>
   <div v-else class="space-y-2">
-    <a v-for="t in items" :key="t.id" :href="'#/task/'+encodeURIComponent(t.id)"
+    <a v-for="t in items" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)"
       class="card block p-4 hover:bg-[var(--line)] transition-colors">
       <div class="flex items-center gap-2 flex-wrap">
         <code class="text-xs px-1.5 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ t.id }}</code>

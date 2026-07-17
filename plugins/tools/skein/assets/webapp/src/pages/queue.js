@@ -1,5 +1,5 @@
-// SKEIN Queue 页 (#/queue): 待执行队列 — 三区展示。
-//   (1) 就绪 task 批 readyTasks (可 start; id/名/依赖, 跳 #/task/:id)
+// SKEIN Queue 页 (/queue): 待执行队列 — 三区展示。
+//   (1) 就绪 task 批 readyTasks (可 start; id/名/依赖, 跳 /task?id=:id)
 //   (2) 就绪 subtask 调度序 readySubtasks (active task 内可 claim; tid/sid/名/agent)
 //   (3) 待执行总览 pendingQueue (全部未完成 task/subtask 双层调度序; ready 点区分就绪/排队)
 // 只读视图; 数据 api.queue() 一次拉全 (readyTasks/readySubtasks/pendingQueue), onLive 软刷。
@@ -31,7 +31,7 @@ const TPL = `
         </div>
         <div v-if="!readyTasks.length" class="text-muted text-center py-6 text-sm">无就绪 task</div>
         <div v-else class="space-y-1.5">
-          <a v-for="t in readyTasks" :key="t.id" :href="'#/task/'+encodeURIComponent(t.id)"
+          <a v-for="t in readyTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)"
             class="flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]" style="border:1px solid var(--line)">
             <code class="text-[11px] text-muted shrink-0">{{ t.id }}</code>
             <span class="text-sm truncate">{{ t.name }}</span>
@@ -54,7 +54,7 @@ const TPL = `
           <li v-for="(s,idx) in readySubtasks" :key="s.tid+'/'+s.sid"
             class="flex items-center gap-2 rounded p-2" style="border:1px solid var(--line)">
             <span class="text-[11px] text-muted w-5 text-right shrink-0 select-none">{{ idx+1 }}</span>
-            <a :href="'#/task/'+encodeURIComponent(s.tid)" class="shrink-0">
+            <a :href="'/task?id='+encodeURIComponent(s.tid)" class="shrink-0">
               <code class="text-[11px] text-muted">{{ s.tid }}/{{ s.sid }}</code>
             </a>
             <span class="text-sm truncate">{{ s.name }}</span>
@@ -73,7 +73,7 @@ const TPL = `
         </div>
         <div v-if="!pendingQueue.length" class="text-muted text-center py-6 text-sm">队列为空 — 无待派 subtask</div>
         <div v-else class="space-y-1.5">
-          <a v-for="q in pendingQueue" :key="q.tid+'/'+q.sid" :href="'#/task/'+encodeURIComponent(q.tid)"
+          <a v-for="q in pendingQueue" :key="q.tid+'/'+q.sid" :href="'/task?id='+encodeURIComponent(q.tid)"
             class="flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]" style="border:1px solid var(--line)">
             <span class="w-1.5 h-1.5 rounded-full shrink-0" :style="'background:'+(q.ready?'var(--st-active)':'var(--st-pending)')"
               :title="q.ready?'就绪':'排队中'"></span>
