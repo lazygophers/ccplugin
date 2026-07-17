@@ -109,8 +109,58 @@ const DOC_TABS = [
   { key: "findings", label: "调研收敛" },
 ];
 
+// ── 列表视图 (无 id: #/task) ── 数据复用 /__skein__/data → cards (每项 id/name/status/desc/spct)。
+const LIST_TPL = `
+<div class="max-w-4xl mx-auto">
+  <div class="flex items-center gap-2 mb-4 px-1">
+    <h1 class="text-lg font-semibold" style="color:var(--head)">任务</h1>
+    <span v-if="!loadErr && items.length" class="text-xs text-muted">{{ items.length }}</span>
+  </div>
+  <div v-if="loadErr" class="card p-10 text-center text-muted">
+    <div class="text-3xl mb-2">⚠️</div>
+    <div class="text-sm" style="color:var(--st-failed)">{{ loadErr }}</div>
+  </div>
+  <div v-else-if="!items.length" class="card p-16 text-center text-muted">
+    <div class="text-4xl mb-3">🧵</div>
+    <div class="text-sm">暂无任务 — 在 .skein/task.json 添加后即显示。</div>
+  </div>
+  <div v-else class="space-y-2">
+    <a v-for="t in items" :key="t.id" :href="'#/task/'+encodeURIComponent(t.id)"
+      class="card block p-4 hover:bg-[var(--line)] transition-colors">
+      <div class="flex items-center gap-2 flex-wrap">
+        <code class="text-xs px-1.5 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ t.id }}</code>
+        <span class="text-sm font-medium" style="color:var(--head)">{{ t.name || t.id }}</span>
+        <span class="badge text-[11px]" :class="badgeCls(t.status)">{{ t.status }}</span>
+        <span class="flex-1"></span>
+        <span class="text-[11px] text-muted shrink-0">{{ t.spct }}%</span>
+      </div>
+      <p v-if="t.desc" class="text-xs text-muted mt-1.5 whitespace-pre-wrap line-clamp-2">{{ t.desc }}</p>
+    </a>
+  </div>
+</div>`;
+
 export async function render(mount, params, ctx) {
   const { api, md, onLive } = ctx;
+
+  // 无 id → 列表视图 (复用 /__skein__/data; 不走 api.task, 避免空 id 拉详情 404)
+  if (!params.id) {
+    async function fetchList() {
+      try {
+        const cards = ((await api.data()) || {}).cards || [];
+        return { loadErr: "", items: cards };
+      } catch (e) {
+        return { loadErr: (e && e.message) || String(e), items: [] };
+      }
+    }
+    async function mountList() {
+      const st = await fetchList();
+      mount.innerHTML = LIST_TPL;
+      window.PetiteVue.createApp(Object.assign({ badgeCls }, st)).mount(mount);
+    }
+    await mountList();
+    onLive && onLive(mountList);
+    return;
+  }
 
   // 先拉数据再 createApp (对齐 spec.js: petite-vue 无对外实例句柄, 初始态直接注入)。
   async function fetchState() {
