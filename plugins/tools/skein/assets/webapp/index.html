@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-motion="full">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -22,6 +22,11 @@
     <input type="search" id="global-search" class="search ml-auto w-[280px] rounded border px-3 py-1.5 text-sm"
            style="background:var(--card);color:var(--fg);border-color:var(--brd)"
            placeholder="🔍 搜索 id / 名称 / 描述…" autocomplete="off" aria-label="全局搜索">
+    <!-- 主题 toggle: 浅晨曦 / 暗夜金沙; app.js 记忆 data-theme 到 localStorage + 默认跟随系统 -->
+    <div class="theme-toggle" role="group" aria-label="外观切换">
+      <button type="button" data-theme-btn="light" aria-label="浅色">☀</button>
+      <button type="button" data-theme-btn="dark" aria-label="暗色">☾</button>
+    </div>
   </header>
 
   <!-- SPA 挂载点: 各 hash 路由页面渲染进此处 (页面 subtask 负责) -->

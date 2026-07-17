@@ -1433,8 +1433,10 @@ class Skein:
         proj = esc(self.proj)
         # 资产版本戳: css/js url 带 ?v=<rev>, 资产内容变 → url 变 → 浏览器必重取, 免旧 css/js 缓存 (stat 卡选中态/DAG 置灰 不 stale)
         rev = self._asset_rev()
+        # 两个主题 css 同时加载 (html[data-theme=...] 选择器互斥, 切 data-theme 即换肤, switcher.js 持久化到 localStorage)
         links = (f'<link rel=stylesheet href="board/base.css?v={rev}">'
-                 f'<link rel=stylesheet href="board/themes/skein.css?v={rev}">')
+                 f'<link rel=stylesheet href="board/themes/skein.css?v={rev}">'
+                 f'<link rel=stylesheet href="board/themes/skein-dark.css?v={rev}">')
         # shell 模板抽到 assets/board/shell.html; Python 只填 token。serve 有 WS 热重载 + topbar 刷新钮。
         tokens = {
             "PROJ": proj,

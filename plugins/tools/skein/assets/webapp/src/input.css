@@ -1,15 +1,18 @@
 /* SKEIN webapp — Tailwind entry.
-   令牌契约迁自 board/base.css, 单一 Skein 外观 (无主题切换)。
+   令牌契约迁自 board/base.css。双外观: 浅 (晨曦) + 暗 (夜空金沙)。
    Tailwind 语义色 (bg/card/fg/accent/st-*) 是这些 CSS 变量的薄别名 (见 tailwind.config.js)。
    ponytail: 只保留「令牌身份」(seed/明度锚点/radius/font/status 色相),
-   不搬装饰纹理 (玻璃/软阴影/流光背景) — 那些是页面/看板专属, 留后续页面 subtask。 */
+   外观切换纯走 <html data-theme> 变量交换, 派生契约自动跟随, 无需 Tailwind dark class。
+   流沙动效 (玻璃/流光描边/脉动/入场) 也落这里, 跨页复用。 */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@property --flow-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
 @layer base {
   /* ── 令牌系统 (oklch 语义派生, 迁自 base.css:13-40) ──
-     :root = Skein 外观 (种子折叠进根)。两层: seed + 明度锚点 → oklch 派生完整契约。 */
+     :root = Skein 浅外观 (晨曦)。两层: seed + 明度锚点 → oklch 派生完整契约。 */
   :root {
     /* seed */
     --h: 265; --c-neutral: .012; --c-accent: .16; --h-accent: 250; --h-accent2: 240;
@@ -39,19 +42,136 @@
     --font: -apple-system, system-ui, 'Segoe UI', sans-serif;
     --radius: 16px;
     --skein-gold: #FFD98A;
+
+    /* ── 流沙玻璃层令牌 (跨外观派生, 迁自 prototype 映射表) ──
+       浅 = 晨曦: 60% 白玻璃 / 细描边 / 蓝顶光 / 软投影。
+       底纹烘焙 (晨曦三段径向) 直接进 body background, 艺术签名无令牌对应。 */
+    --glass-bg: color-mix(in srgb, var(--card) 60%, transparent);
+    --glass-brd: color-mix(in srgb, var(--fg) 7%, transparent);
+    --glass-brd-blue: color-mix(in srgb, var(--accent) 45%, transparent);
+    --glass-inset-hi: color-mix(in srgb, var(--accent2) 25%, #fff);
+    --glass-shadow: color-mix(in srgb, var(--fg) 10%, transparent);
+    --bar-track: color-mix(in srgb, var(--accent) 8%, transparent);
+    --surface-bg-1: #EEF1FB; --surface-bg-2: #E9EFFB; --surface-bg-3: #DBEAFB;
   }
 
-  body { background: var(--bg); color: var(--fg); font-family: var(--font); }
+  /* ── 暗模式 · 夜空金沙 ──
+     重写明度锚点 (派生契约自动跟随) + 玻璃层金调 + 夜空底纹烘焙。
+     优先级: [data-theme="skein-dark"] 手动 toggle; 自动跟随 prefers-color-scheme (仅当无手动设置时, app.js 控制是否写 data-theme)。 */
+  [data-theme="skein-dark"] {
+    --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
+    --l-brd: .32; --l-line: .265; --l-accent: .72;
+    /* 金辉玻璃层 (暗: 金细描边 / 金顶光 / 深投影) */
+    --glass-bg: color-mix(in srgb, var(--card) 55%, transparent);
+    --glass-brd: color-mix(in srgb, var(--skein-gold) 16%, transparent);
+    --glass-brd-blue: color-mix(in srgb, var(--accent) 55%, transparent);
+    --glass-inset-hi: color-mix(in srgb, var(--skein-gold) 22%, transparent);
+    --glass-shadow: rgba(0,0,0,.45);
+    --bar-track: color-mix(in srgb, var(--skein-gold) 10%, transparent);
+    --surface-bg-1: #0B1220; --surface-bg-2: #0E1729; --surface-bg-3: #0A0F1C;
+    --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) 75);   /* 微金调: hue 偏暖 */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --l-bg: .185; --l-card: .235; --l-fg: .90; --l-head: .82; --l-muted: .63;
+      --l-brd: .32; --l-line: .265; --l-accent: .72;
+      --glass-bg: color-mix(in srgb, var(--card) 55%, transparent);
+      --glass-brd: color-mix(in srgb, var(--skein-gold) 16%, transparent);
+      --glass-brd-blue: color-mix(in srgb, var(--accent) 55%, transparent);
+      --glass-inset-hi: color-mix(in srgb, var(--skein-gold) 22%, transparent);
+      --glass-shadow: rgba(0,0,0,.45);
+      --bar-track: color-mix(in srgb, var(--skein-gold) 10%, transparent);
+      --surface-bg-1: #0B1220; --surface-bg-2: #0E1729; --surface-bg-3: #0A0F1C;
+      --head: oklch(var(--l-head) calc(var(--c-neutral)*1.4) 75);
+    }
+  }
+
+  body {
+    background:
+      radial-gradient(135% 62% at 50% 112%, color-mix(in srgb, var(--accent2) 50%, transparent) 0%, transparent 66%),
+      radial-gradient(78% 52% at 50% 72%, color-mix(in srgb, var(--skein-gold) 55%, transparent) 0%, transparent 60%),
+      linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 46%, var(--surface-bg-3) 100%);
+    background-attachment: fixed;
+    color: var(--fg); font-family: var(--font); transition: background .4s, color .4s;
+  }
+  /* 暗底纹: 金沙静态星点 (多层径向, 非粒子) + 底部金辉光晕 */
+  [data-theme="skein-dark"] body {
+    background:
+      radial-gradient(1.2px 1.2px at 12% 18%, color-mix(in srgb, var(--skein-gold) 70%, transparent), transparent 60%),
+      radial-gradient(1px 1px at 78% 12%, color-mix(in srgb, var(--skein-gold) 50%, transparent), transparent 60%),
+      radial-gradient(1.5px 1.5px at 34% 64%, color-mix(in srgb, var(--skein-gold) 60%, transparent), transparent 60%),
+      radial-gradient(1px 1px at 88% 78%, color-mix(in srgb, var(--accent2) 50%, transparent), transparent 60%),
+      radial-gradient(1.2px 1.2px at 56% 32%, color-mix(in srgb, var(--skein-gold) 45%, transparent), transparent 60%),
+      radial-gradient(1px 1px at 22% 88%, color-mix(in srgb, var(--skein-gold) 40%, transparent), transparent 60%),
+      radial-gradient(1.4px 1.4px at 66% 92%, color-mix(in srgb, var(--skein-gold) 55%, transparent), transparent 60%),
+      radial-gradient(1px 1px at 44% 8%, color-mix(in srgb, var(--accent2) 40%, transparent), transparent 60%),
+      radial-gradient(70% 48% at 50% 108%, color-mix(in srgb, var(--skein-gold) 14%, transparent) 0%, transparent 62%),
+      radial-gradient(50% 36% at 82% 24%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 60%),
+      linear-gradient(180deg, var(--surface-bg-1) 0%, var(--surface-bg-2) 50%, var(--surface-bg-3) 100%);
+    background-attachment: fixed;
+  }
 }
 
 @layer components {
-  /* 跨页复用组件类 — 页面 subtask 按需补充。ponytail: 只给 card + status badge, 布局走 Tailwind utilities。 */
+  /* 跨页复用组件类。布局走 Tailwind utilities, 这里只给「质感 + 动效」。 */
+
+  /* ── 玻璃卡 (核心质感, 迁自 prototype .card) ── */
   .card {
-    @apply rounded border p-5;
-    background: var(--card); border-color: var(--brd);
+    position: relative; overflow: hidden;
+    background: var(--glass-bg); border: 1px solid var(--glass-brd);
+    border-radius: var(--radius); padding: 1.25rem;
+    backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25);
+    box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
+    transition: border-color .35s, box-shadow .35s, transform .35s;
+    animation: card-in .6s cubic-bezier(.4,0,.2,1) both;
   }
+  .card:nth-child(2) { animation-delay: .06s; }
+  .card:nth-child(3) { animation-delay: .12s; }
+  .card:nth-child(4) { animation-delay: .18s; }
+  .card:nth-child(5) { animation-delay: .24s; }
+  @keyframes card-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* 顶光描边高光 (静态, 浅=蓝白 / 暗=金辉, 由 --glass-inset-hi 跨外观派生) */
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--glass-inset-hi), transparent);
+  }
+
+  /* hover 流光描边 (结构层) — conic-gradient 蓝金蓝沿边框旋转 */
+  .card::after {
+    content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+    background: conic-gradient(from var(--flow-ang, 0deg),
+      transparent 0deg, var(--accent) 50deg, var(--skein-gold) 110deg,
+      var(--accent) 170deg, transparent 230deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity .4s;
+  }
+  .card:hover::after { opacity: 1; animation: flow-border 3s linear infinite; }
+  @keyframes flow-border { to { --flow-ang: 360deg; } }
+
+  /* active 运行中卡 — 蓝描边脉动 (结构层); .active 由各页给运行中卡 */
+  .card.active { border-color: var(--glass-brd-blue); animation: active-pulse 2s ease-in-out infinite; }
+  @keyframes active-pulse {
+    0%, 100% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi),
+      0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); }
+    50% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi),
+      0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent),
+      0 0 18px color-mix(in srgb, var(--accent) 24%, transparent); }
+  }
+  /* 暗模式: active 脉动走金辉 + 蓝亮 (避免暗底纯蓝过冷) */
+  [data-theme="skein-dark"] .card.active { animation: active-pulse-dark 2s ease-in-out infinite; }
+  @keyframes active-pulse-dark {
+    0%, 100% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi),
+      0 0 0 0 color-mix(in srgb, var(--skein-gold) 0%, transparent); }
+    50% { box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi),
+      0 0 0 4px color-mix(in srgb, var(--skein-gold) 14%, transparent),
+      0 0 18px color-mix(in srgb, var(--accent) 22%, transparent); }
+  }
+
   .badge {
     @apply inline-block rounded-full px-2 text-[11px] font-medium leading-[17px] text-white;
+    border: 1px solid rgba(255,255,255,.12);
   }
   .badge-pending { background: var(--st-pending); }
   .badge-active  { background: var(--st-active); }
@@ -59,13 +179,12 @@
   .badge-done    { background: var(--st-done); }
   .badge-failed  { background: var(--st-failed); }
 
-  /* ── 顶栏 nav: Pill 分段控件 (选中填充 accent 胶囊) ──
-     整组套一个带边框圆角容器; 每 tab 为软胶囊, 选中 (.active by router) 填 accent。
-     active 文字用 var(--bg) 自动跨主题对比 (浅主题近白字 / 暗主题暗字压亮 accent)。 */
+  /* ── 顶栏 nav: Pill 分段控件 (选中填充 accent 胶囊) ── */
   .nav {
     display: flex; align-items: center; gap: 2px;
-    background: var(--card); border: 1px solid var(--brd);
+    background: var(--glass-bg); border: 1px solid var(--glass-brd);
     border-radius: 12px; padding: 3px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   }
   .nav [data-nav] {
     display: flex; align-items: center; gap: 6px; white-space: nowrap;
@@ -78,4 +197,58 @@
     color: var(--bg); background: var(--accent);
     box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 45%, transparent);
   }
+
+  /* ── 主题 toggle (顶栏分段) ──
+     两键分段; 选中 .on 走蓝→亮蓝渐变 (浅) / 金深→金渐变 (暗)。 */
+  .theme-toggle {
+    display: inline-flex; border: 1px solid var(--glass-brd); border-radius: 999px; overflow: hidden;
+    background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  }
+  .theme-toggle button {
+    border: 0; background: transparent; color: var(--muted);
+    font: 13px/1.4 var(--font); padding: 6px 12px; cursor: pointer;
+    transition: color .25s, background .25s; display: inline-flex; align-items: center; gap: 5px;
+  }
+  .theme-toggle button.on {
+    background: linear-gradient(100deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 60%, #fff) 100%);
+    color: #fff; box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  [data-theme="skein-dark"] .theme-toggle button.on {
+    background: linear-gradient(100deg, color-mix(in srgb, var(--skein-gold) 70%, #8a6a20) 0%, var(--skein-gold) 100%);
+    color: #1a1206; box-shadow: 0 0 12px color-mix(in srgb, var(--skein-gold) 40%, transparent);
+  }
+
+  /* ── 入场 (列表项, 迁自 prototype .row) ──
+     .entrance 给列表项/卡片子元素, nth-child 错峰。视口外暂停由 .paused 关闭 animation。 */
+  .entrance { animation: rise-in .6s cubic-bezier(.4,0,.2,1) both; }
+  .entrance:nth-child(2) { animation-delay: .05s; }
+  .entrance:nth-child(3) { animation-delay: .10s; }
+  .entrance:nth-child(4) { animation-delay: .15s; }
+  .entrance:nth-child(5) { animation-delay: .20s; }
+  .entrance:nth-child(6) { animation-delay: .25s; }
+  @keyframes rise-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── 进度条蓝金流光 (结构层, 迁自 prototype .fill) ──
+     蓝底 + 集中金色流光带 (非蓝↔金全程插值, 免互补色混成灰)。 */
+  .skein-bar { position: relative; background: var(--bar-track); border-radius: 4px; height: 7px; overflow: visible; }
+  .skein-bar > .skein-fill {
+    position: relative; overflow: hidden; height: 100%; border-radius: 4px;
+    background: linear-gradient(100deg, var(--accent) 0%, var(--accent) 38%, var(--skein-gold) 50%, var(--accent) 62%, var(--accent) 100%);
+    background-size: 250% 100%;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
+    animation: skein-flow 2.6s linear infinite;
+  }
+  @keyframes skein-flow { 0% { background-position: 0% 0; } 100% { background-position: -250% 0; } }
+}
+
+/* ── 视口外暂停 (IntersectionObserver 加 .paused) ── */
+.paused, .paused::after, .paused > .skein-fill { animation: none !important; }
+
+/* ── prefers-reduced-motion 降级: 关所有流沙动效, 入场直显 ── */
+@media (prefers-reduced-motion: reduce) {
+  .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill {
+    animation: none !important; transition: none !important;
+  }
+  .card, .entrance { opacity: 1 !important; transform: none !important; }
+  .card::after { opacity: 0 !important; }
 }

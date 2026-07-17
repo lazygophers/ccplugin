@@ -1,0 +1,103 @@
+/* 夜空金沙 (skein-dark · 暗色旗舰) — 深夜空蓝底 (#0B1220) + 静态金沙星点纹理 + 40% 暗玻璃卡 + 金辉流光描边 + active 金/蓝脉动。
+   与 skein.css (浅) 配对: 切 html[data-theme] 即换。色值按 prototype 尾注映射表换 oklch 令牌 (签名底纹/星点保留烘焙, 与浅模式一致)。
+   动效: 静态星点 (多层 radial, 非粒子) + hover 金/蓝 conic 流光描边 + active 金辉脉动 + 进度条亮蓝/金流光 (视口外 .voff 门控)。 */
+html[data-theme=skein-dark]{
+  /* seed 同浅模式: 薰衣草中性 + 蓝 accent + 亮蓝 accent2, 保配色身份 (暗锚点带 seed 不塌灰) */
+  --h:265;--c-neutral:.012;--c-accent:.16;--h-accent:250;--h-accent2:240;
+  /* 明度锚点 — DARK (prototype 映射): 深夜空蓝底 (.185≈#0B1220) + 暗玻璃卡 (.235) + 亮字 (.90) + 微金调标题 (.82) */
+  --l-bg:.185;--l-card:.235;--l-fg:.90;--l-head:.82;--l-muted:.63;--l-brd:.32;--l-line:.275;--l-accent:.72;--l-st:.70;
+  --radius:16px;
+  /* 签名色: 暖金 (沙/星点/金边) + 金辉深金 (active 金边用) — 令牌系统无暖橙, 单主题烘焙 */
+  --skein-gold:#FFD98A;
+  --skein-gold-deep:#E8B860;
+  --flow-ang:0deg;
+}
+@property --flow-ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+
+/* 底纹: 静态金沙夜空 (固定不随滚动) — 多层小尺度金/蓝星点 + 底部大尺度金辉光晕升起 + 深蓝穹底。
+   星点/光晕的暖金走 --skein-gold, 蓝点走 --accent2 (令牌), 三段底 (#0B1220/#0E1729/#0A0F1C) 为签名艺术色 (令牌无对应)。 */
+html[data-theme=skein-dark] body{
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%,color-mix(in srgb,var(--skein-gold) 70%,transparent),transparent 60%),
+    radial-gradient(1px 1px at 78% 12%,color-mix(in srgb,var(--skein-gold) 50%,transparent),transparent 60%),
+    radial-gradient(1.5px 1.5px at 34% 64%,color-mix(in srgb,var(--skein-gold) 60%,transparent),transparent 60%),
+    radial-gradient(1px 1px at 88% 78%,color-mix(in srgb,var(--accent2) 50%,transparent),transparent 60%),
+    radial-gradient(1.2px 1.2px at 56% 32%,color-mix(in srgb,var(--skein-gold) 45%,transparent),transparent 60%),
+    radial-gradient(1px 1px at 22% 88%,color-mix(in srgb,var(--skein-gold) 40%,transparent),transparent 60%),
+    radial-gradient(1.4px 1.4px at 66% 92%,color-mix(in srgb,var(--skein-gold) 55%,transparent),transparent 60%),
+    radial-gradient(1px 1px at 44% 8%,color-mix(in srgb,var(--accent2) 40%,transparent),transparent 60%),
+    radial-gradient(70% 48% at 50% 108%,color-mix(in srgb,var(--skein-gold) 14%,transparent) 0%,transparent 62%),
+    radial-gradient(50% 36% at 82% 24%,color-mix(in srgb,var(--accent) 10%,transparent) 0%,transparent 60%),
+    linear-gradient(180deg,#0B1220 0%,#0E1729 50%,#0A0F1C 100%);
+  background-attachment:fixed;
+}
+
+/* 卡片: 暗玻璃胶囊 — 40% 暗玻璃 (透出金沙底纹) + backdrop blur + 金辉细描边 */
+html[data-theme=skein-dark] .card,html[data-theme=skein-dark] .switcher{
+  position:relative;overflow:hidden;
+  background:color-mix(in srgb,var(--card) 40%,transparent);
+  border:1px solid color-mix(in srgb,var(--skein-gold) 16%,transparent);
+  border-radius:16px;
+  box-shadow:0 8px 30px rgba(0,0,0,.45),inset 0 1px 0 color-mix(in srgb,var(--skein-gold) 18%,transparent);
+  backdrop-filter:blur(14px) saturate(1.25);-webkit-backdrop-filter:blur(14px) saturate(1.25);
+  transition:border-color .35s,box-shadow .35s,backdrop-filter .35s;
+}
+/* 顶缘金辉描边高光 (glass sheen, 金→亮蓝) */
+html[data-theme=skein-dark] .card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--skein-gold) 60%,transparent),color-mix(in srgb,var(--accent) 45%,transparent),transparent);
+}
+/* hover 流光描边: conic 金→蓝→金沿边框旋转 (mask-composite 抠边)。 */
+html[data-theme=skein-dark] .card::after{
+  content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;pointer-events:none;
+  background:conic-gradient(from var(--flow-ang,0deg),
+    transparent 0deg,var(--skein-gold) 50deg,var(--accent) 110deg,var(--skein-gold) 170deg,transparent 230deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;transition:opacity .4s;
+}
+html[data-theme=skein-dark] .card:hover::after{opacity:1;animation:skein-flow-border-dark 3s linear infinite}
+@keyframes skein-flow-border-dark{to{--flow-ang:360deg}}
+html[data-theme=skein-dark] .card:hover{backdrop-filter:blur(14px) saturate(1.45);-webkit-backdrop-filter:blur(14px) saturate(1.45)}
+
+/* active 运行中卡: 金辉描边脉动 (box-shadow 呼吸, 2s, 金 + 亮蓝光晕) */
+html[data-theme=skein-dark] .card:has(.badge.s-active),
+html[data-theme=skein-dark] .card:has(.badge.ss-running){
+  border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  animation:skein-active-pulse-dark 2s ease-in-out infinite;
+}
+@keyframes skein-active-pulse-dark{
+  0%,100%{box-shadow:0 8px 30px rgba(0,0,0,.45),inset 0 1px 0 color-mix(in srgb,var(--skein-gold) 18%,transparent),
+    0 0 0 0 color-mix(in srgb,var(--skein-gold) 0%,transparent)}
+  50%{box-shadow:0 8px 30px rgba(0,0,0,.45),inset 0 1px 0 color-mix(in srgb,var(--skein-gold) 18%,transparent),
+    0 0 0 4px color-mix(in srgb,var(--skein-gold) 14%,transparent),
+    0 0 18px color-mix(in srgb,var(--accent) 22%,transparent)}
+}
+
+/* 进度条: 亮蓝→金→亮蓝流光 (暗模式提亮蓝, 视口外 .voff 暂停)。选择器带主题前缀提特异性压 base .bar.prog .fill。 */
+html[data-theme=skein-dark] .bar .fill{
+  background:linear-gradient(100deg,var(--accent) 0%,var(--accent) 38%,var(--skein-gold) 50%,var(--accent) 62%,var(--accent) 100%);
+  background-size:250% 100%;
+  box-shadow:0 0 10px color-mix(in srgb,var(--accent) 35%,transparent);
+  animation:skein-flow 2.6s linear infinite;
+}
+/* 完成条: 关掉 base 白色扫光, 只留金/蓝流光 */
+html[data-theme=skein-dark] .bar.done .fill::after{display:none}
+/* 轨道: 暗玻璃凹槽, 金辉细描 */
+html[data-theme=skein-dark] .bar{
+  background:color-mix(in srgb,var(--skein-gold) 10%,transparent);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.4),inset 0 0 0 1px color-mix(in srgb,var(--skein-gold) 14%,transparent);
+}
+
+/* 标题: 微金调亮 (prototype --head #F2ECD8 近似, 走 --head 锚点 .82 带薰衣草中性色相) */
+html[data-theme=skein-dark] h1{color:var(--head)}
+
+/* 徽章: 金辉细描边, 玻璃质 */
+html[data-theme=skein-dark] .badge{border:1px solid color-mix(in srgb,var(--skein-gold) 22%,transparent);border-radius:999px}
+
+/* 减动偏好降级: 关流光描边旋转 + active 脉动 (base.css 已覆盖 skein-flow 作用于 .fill)。 */
+@media(prefers-reduced-motion:reduce){
+  html:not([data-motion=full])[data-theme=skein-dark] .card:hover::after{animation:none}
+  html:not([data-motion=full])[data-theme=skein-dark] .card:has(.badge.s-active),
+  html:not([data-motion=full])[data-theme=skein-dark] .card:has(.badge.ss-running){animation:none}
+}
