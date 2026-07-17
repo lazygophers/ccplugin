@@ -106,4 +106,24 @@
   .badge-check   { background: var(--st-check); }
   .badge-done    { background: var(--st-done); }
   .badge-failed  { background: var(--st-failed); }
+
+  /* ── 顶栏 nav: Pill 分段控件 (选中填充 accent 胶囊) ──
+     整组套一个带边框圆角容器; 每 tab 为软胶囊, 选中 (.active by router) 填 accent。
+     active 文字用 var(--bg) 自动跨主题对比 (浅主题近白字 / 暗主题暗字压亮 accent)。 */
+  .nav {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--card); border: 1px solid var(--brd);
+    border-radius: 12px; padding: 3px;
+  }
+  .nav [data-nav] {
+    display: flex; align-items: center; gap: 6px; white-space: nowrap;
+    padding: 6px 12px; border-radius: 9px; line-height: 1;
+    font-size: 13px; font-weight: 500; color: var(--muted);
+    text-decoration: none; transition: background .15s, color .15s;
+  }
+  .nav [data-nav]:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 6%, transparent); }
+  .nav [data-nav].active {
+    color: var(--bg); background: var(--accent);
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
 }
