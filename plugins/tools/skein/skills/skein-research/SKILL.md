@@ -28,28 +28,8 @@ effort: medium
 command -v agent-reach >/dev/null 2>&1 && echo AVAILABLE || echo FALLBACK
 ```
 
-### AVAILABLE — 纳入 agent-reach 作数据源
-
-agent-reach 是互联网能力路由器 (15 平台、多后端), **存在时必须用它, 不自己发明方案**。它自带 `SKILL.md` + `references/{search,social,career,dev,web,video}.md` 完整命令, 按其文档路由:
-
-1. **多后端/登录态平台先体检**: `agent-reach doctor --json`, 按各平台 `active_backend` 选命令组。
-2. **声明在用什么**: 回传里注明「经 agent-reach 的 X 平台 / Y 后端取得」(承接 researcher「带来源」铁律, 来源写平台+命令)。
-3. **失败按 agent-reach references 重试链**, 不瞎猜命令。
-4. **全网调研组合多平台并行**: Exa 网页搜索 + GitHub 看实现 + Twitter/Reddit 看讨论 + 小红书/B站看中文场景, 并行收集再汇总。
-
-路由对照 (详见 agent-reach 各 references):
-
-| 调研意图 | agent-reach 分类 |
-| --- | --- |
-| 网页/代码搜索 (选型、报错、文档) | search |
-| GitHub 仓库/实现/issue/PR | dev |
-| 社区讨论 (小红书/Twitter/B站/Reddit/V2EX) | social |
-| 网页/文章/RSS 精读 | web |
-| YouTube/B站/播客字幕转录 | video |
-
-### FALLBACK — 无 agent-reach
-
-降级用 agent 自带 `WebSearch` / `WebFetch`。能力受限 (无登录态平台、无字幕转录), 回传时**注明「agent-reach 不可用, 已降级 WebSearch/WebFetch, X 类数据未覆盖」**, 别假装全网都查过。
+- **AVAILABLE** — 纳入 agent-reach 作数据源 (15 平台、多后端, 存在时必用, 不自己发明方案): doctor 体检 / 声明来源 / 重试链 / 多平台并行策略 + 路由对照表 (调研意图 → agent-reach 分类), 详见 [references/agent-reach-routing.md](references/agent-reach-routing.md)。
+- **FALLBACK** — 无 agent-reach: 降级 WebSearch/WebFetch, 回传声明覆盖缺口。细节同上 reference。
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 

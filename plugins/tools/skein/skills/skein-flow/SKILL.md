@@ -10,53 +10,20 @@ effort: medium
 把请求**强制作为 SKEIN task 处理**, 除非用户输入 `--skip`，否则禁 inline 直接做 (即使看似简单)。但**不等于一定新建** — 先判**全新任务** vs **对现有 active task 的补充**, 再决定新建/并入
 
 ## 执行载体铁律 (最高优先级)
+「派 agent」=真实 `Agent` tool_use / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等。全量 11 条铁律详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
-- **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
-- **main 默认禁写源码** — 改源码为该 subtask 选合适 agent (无则 `skein-executor`), 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
-- **exec / check 分工, main 作调度器** — exec: 为每个 subtask 选合适 agent (无则 `skein-executor`) 各执行 1 个 (并发上限 2 / 完成即派 / 共享 task worktree); 执行 agent 由 dispatch prompt 硬禁再派 subagent (Recursion Guard, 自己做完 1 个 subtask)。check: 派 `skein-checker` (工具受限, 无 Write/Edit/Agent/Task 的具名 agent)。调度算法详见 `skein-exec` skill, check 详见 `skein-check`。
-- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。**多子 git**: 改动跨多个子 git (并列独立 repo 或 submodule) 时, planning 阶段用 `skein create --repos <rel路径,逗号分隔>` 声明目标子 git (root 用 `.`); `start` 为每个声明的子 git 各建 1 worktree+分支, `finish` 各自 commit→merge→销。声明留空 = 单根/原地模式 (原行为)。子 git 集合由 planning 声明, 不靠脚本猜。
-- **`skein` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
-- **看板自动刷** — task.json 每次变更 (create/start/subtask/finish) 脚本自动渲染 task.md/task.html, 无需手动跑命令; AI 禁直接编辑 (guard hook 硬阻)。
-- **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) subagent 不能与用户对话; subagent 缺信息在返回标 `需要: <问题>` 由 main 转达。
-- **文案/格式类变更先给样例确认** — subtask 属**文案** (措辞 / 标签 / 提示语 / 文档表述) 或**格式** (排版 / 展示样式 / 结构布局) 类改动时, main 亲自先给用户「改前→改后」样例 (`AskUserQuestion` 或列对比), 确认后才落地; 逻辑 / bug 修复不受此限。派执行 agent 做此类改动时, dispatch prompt 须注明「先回传样例待 main 确认, 禁直接改」。
-- **每个 dispatch prompt 6 字段自包含**: 目标 / 已知 (含 `Active task: <id>` + worktree 路径) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
-- **完成即时回传** — 每个 subagent 完成或阻塞, main 立即输出摘要, 禁批量延迟汇总。
-- **并发多个 flow 请求禁互相顶掉** — 每个 flow 请求 = 独立 durable task, **收到即先 `skein create` 落盘**再处理。第二个请求进来时**禁中断/覆盖/丢弃**在飞的第一个: planning 阶段本就需 main 同步逐问用户 (brainstorm/grill/AskUserQuestion 不能并行), 故多请求**串行 planning** — 先把当前 task 登记 + 推进到不丢的态 (至少 `create` 落盘), 再处理下一个。已 `create` 未处理完的 task 留 pending, 由 `/skein-exec` 无参续跑, 绝不静默跳过。
-
-## 任务执行流程
-
-plan → exec → check → finish 四步闭环
-
+## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
-
-- **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复 task)** — 收到请求**第一步**先跑一次廉价同步查 `skein list --status open --json` 判归属: 与在列某 task 相关 → **并入补 subtask, 不新建**; 无相关项才 `skein create <slug-id> --name --desc` 落 pending task。此 create 步早于 brainstorm/grill, 故请求即使中途中断或被下一个 flow 顶掉, task 已在盘上, 可 `/skein-exec` 无参续跑, **绝不静默跳过**。`create` 由 skein-plan 步骤 1-2 内部完成; 多个独立 flow 请求各自独立 `create` 独立 id, 互不覆盖 (并发处理见铁律)。**禁不查就 create、禁一直堆新 task**。
-- **memory recall (自动召回)** — Skill(skein-memory recall): 派 `skein-memorier` 按任务关键词召回相关 recall 规则, 命中条目注入各 dispatch prompt「已知」段。core 规则已由 SessionStart hook 常驻, 无需召回。委托见 `skein-memory` skill。
-- Skill(skein-grill) 确认用户详细需求，确保无遗漏、无偏离用户意图
-- Skill(skein-plan --continue) 规划任务、编写 prd; **有 subtask 则逐个 `subtask add <id> <sid> --agent ...` 登记** (每 subtask 绑定执行 agent, 是 exec 唯一调度真值源)。subtask 可无 (无 subtask 的 task 由 main 直接派 skein-executor 执行)。
-- 🛑 ToolCall(AskUserQuestion) 评审产物、确认用户需求 — 未确认禁进 exec (硬门 · STOP, main 亲做)
-  - 确认并启动任务
-  - 任务需要修改
-- `skein start <id>` 激活 (建 worktree; start 仅收 `id`, subtask 可无) — 用户确认后 main 同步跑
-
+- **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json` 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
+- **memory recall** — 派 `skein-memorier` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
+- Skill(skein-grill) 确认需求 → Skill(skein-plan --continue) 规划+`subtask add` 登记 → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
 ### exec
-
-- Skill(skein-exec) 执行编排调度: main 作调度器, 动态 DAG 就绪即派 / 完成即派 (并发上限 2)
-- **执行一律派 agent (硬门 · 无论有无 subtask)** — 有 subtask: 走 skein-exec 的 `claim → 派 Agent → done → claim` 循环, 每 ready subtask 各派 1 个 `Agent` (性质选合适 agent, 无则 `skein-executor`), 改动落 task worktree。无 subtask: main 按 task name/desc 派 1 个 `skein-executor` 执行。**禁 main inline 顺跑**: 不得自己一个个做完, 绕过派发。
-- 异步派发后结束回合前 MUST 输出任务清单 (id / 状态 / 摘要 / 进度%); 禁问用户顺序 (顺序归 planning)
-- **exec/check/finish 禁动 design.md** — design.md 写入归 planning (含 check 失败回 planning 二次进入)。exec/check 发现方案需调整 → 回 planning 改 design 后重派, 禁就地改
-
+- Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
+- **exec/check/finish 禁动 design.md** — 方案调整回 planning 改 design 后重派。
 ### check
-
-- Agent(skein-checker) 跑 lint / type-check / tests / 契约合规 + **一致性核查** (subtask 产物间 / 与 prd 契约有无冲突、重复实现、接口对不上)
-- 未过 或 检出冲突 → **回 planning 重确认 (非状态机新枚举, task 保持 `进行中`)**: main 重新审视失败原因, 用 `AskUserQuestion`/grill 与用户**确认修复方向是否对** (定点修一处 / 方向错了重拆 / 契约本身要改), **禁跳过确认直接补 subtask 回 exec**; 确认后同 task `subtask add` 修复子任务 (一失败/一冲突一 subtask, `--deps` 挂失败源), 回 exec 重新 `claim` 派发, 全绿且零冲突才放行
-- 详见 `skein-check` skill (验证与修复分离 / check 失败回 planning 重确认不换阶段 / 同 task 排队修复 / 反复不过第 3 轮做 5 维根因复盘)
-
+- Agent(skein-checker) 跑 lint/type-check/tests/契约合规 + **一致性核查**。未过或检出冲突 → **回 planning 重确认 (task 保持 `进行中`)**: grill/AskUserQuestion 与用户**确认修复方向** (定点修/重拆/改契约), **禁跳过确认直接补 subtask**; 确认后同 task `subtask add` 修复子任务 (`--deps` 挂失败源) 回 exec 重派, 全绿且零冲突才放行。详见 `skein-check` skill。
 ### finish
-
-- Skill(skein-finish) 收尾编排门 (check 全绿后): 派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein finish`。详见 `skein-finish` skill。
-- 其中两处记忆自动化 (全流程记忆闭环 = plan recall 召回 + finish sediment 沉淀):
-  - **sediment 判定门 (自动沉淀)** — 委托 `skein-memory` sediment: main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `skein-memory sediment` 自动写盘 (判定门通过即写, 不逐次询问用户)。无增量则跳过 (禁硬凑)。
-  - 清理悬挂 (`TaskList`/`TaskStop`) + `skein finish` (commit→merge→archive→销 worktree) 由 skein-finish 编排, main 同步跑。
+- Skill(skein-finish) 收尾门 (check 全绿后): 派 `skein-finisher` 勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein finish`。**sediment 判定门 (自动沉淀)**: `skein-memorier` 产候选 → main 逐项 trace + `skein-memory sediment` 自动写盘; 无增量跳过。详见 `skein-finish` skill。
 
 ## 作用域边界 (何时建 task)
 
@@ -68,15 +35,7 @@ plan → exec → check → finish 四步闭环
 | 需外部调研 / 产出文档交付         | **必建 task**                |
 | 边界模糊                          | **AskUserQuestion 用户裁定** |
 
-**归一 vs 分立 (相关工作优先归一 task 拆 subtask)**: 建 task 前先判新交付物是**某任务的一部分**还是**独立任务** —— 与现有 active task 或本请求内其他交付物**相关** (同目标 / 同模块 / 共享改动面 / 互为前置) → **归一到该 task 拆 subtask** (`subtask add` + `--deps`), 禁为相关工作另开多个 task; 仅**目标独立、无共享改动面、无依赖**才拆多 task。判据是相关性, 非「可独立验收」(subtask 亦可独立验收)。默认倾向归一 (散多 task 丢共享上下文一致性)。判不准 → `AskUserQuestion`。真值源见 `skein-plan` 步骤 1。
-
-**worktree 豁免 (简单改不必上升到 worktree)**: main 按规模自动判 — 命中「单文件单处改 ≤20 行」或「单子 git ≤3 文件且改动集中」这类微改, 无需建 task/worktree, 原地做即可; 用户显式 `--skip` 强制 inline 覆盖自动判定。多子 git 场景同理: 真跨多仓的结构性改动才 `--repos` 声明走多 worktree, 每仓只沾一两行的顺带微调不必为它单开 worktree。
-
-## 完成判定
-
-- 走完 plan→exec→check→finish — **未 archive = 未完成, 禁宣告 Done**。
-- finish 前清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`), 未关 = 未闭环。
-- sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-memory`)。
+归一 vs 分立 / worktree 豁免 / 完成判定 详见 [references/scope-boundary.md](references/scope-boundary.md)。
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
