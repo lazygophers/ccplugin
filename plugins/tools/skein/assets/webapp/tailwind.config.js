@@ -6,10 +6,10 @@
  */
 module.exports = {
   content: ['./index.html', './src/**/*.{js,html}'],
-  // 织机组件类库常驻: dist/app.css 预构建入库, 下游 pages/*.js 只写 class 不重建,
-  // 故 loom 家族基类须免于 purge (状态/后代复合规则 .knot.done / .weft-tag .code 靠基类候选带出)。
+  // 通用组件类库常驻: dist/app.css 预构建入库, 下游 pages/*.js 只写 class 不重建,
+  // 故组件家族基类须免于 purge (状态/后代复合规则 .dot.done / .stat-tag .code 靠基类候选带出)。
   safelist: [
-    { pattern: /^(loom-face|weft-row|weft-tag|weft-meta|weave-progress|weave-dyed|shuttle|knots?|deck-grid|bobbin|spool|ready-tag|warp-(tree|cat|head|list|leaf)|cloth|cloth-bar|glass-card)$/ },
+    { pattern: /^(status-panel|stat-row|stat-tag|stat-meta|progress-track|progress-fill|fill-tip|dots?|queue-grid|queue-item|queue-icon|ready-tag|doc-tree|doc-tree-(cat|head|list|leaf)|doc-panel|doc-panel-bar|glass-card)$/ },
   ],
   theme: {
     extend: {

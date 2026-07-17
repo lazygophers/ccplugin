@@ -1,7 +1,7 @@
 // SKEIN webapp hash 路由核心: 7 route, 切页只换 #view 内容 (无整页刷新), page 模块懒加载。
 //
 // ── page 模块加载契约 (s4-s10 遵循) ──
-//   路径:   ./pages/<name>.js  (name = dashboard|board|queue|task|spec|commands|archive)
+//   路径:   ./pages/<name>.js  (name = dashboard|board|queue|task|spec|archive)
 //   导出:   export function render(mount, params, ctx)
 //     mount  — #view 容器 DOM (已清空); page 自行填充内容 (innerHTML / petite-vue createApp().mount(mount))
 //     params — 路由参数对象, 如 #/task/:id → { id: "<tid>" }; 无参为 {}
@@ -15,7 +15,7 @@
 
 import * as live from "./lib/live.js";
 
-const ROUTES = ["dashboard", "board", "queue", "task", "spec", "commands", "archive"];
+const ROUTES = ["dashboard", "board", "queue", "task", "spec", "archive"];
 const DEFAULT = "dashboard";
 
 // 解析 location.hash → { name, params }

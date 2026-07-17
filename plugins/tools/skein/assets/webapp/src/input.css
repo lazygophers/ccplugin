@@ -391,138 +391,138 @@
   .doc ul { margin: 10px 0 10px 4px; padding-left: 18px; }
   .doc li { margin: 5px 0; font-size: 14.5px; line-height: 1.65; }
 
-  /* ═══════════ 织机母题组件 (loom) — C 骨隐喻具象化 + A 皮配色 ═══════════
-     task=纬线 weft-row / subtask=织结 knot / 进度=织入 weave-dyed vs 松垂原纱 /
-     active=游走梭子 shuttle / queue=线轴 bobbin / spec 左=经线树 warp-tree / spec 右=织好的布 cloth。
+  /* ═══════════ 通用状态/队列/进度组件 — C 骨信息层级 + A 皮配色 ═══════════
+     task=stat-row / subtask=dot / 进度=progress-fill / 运行行左缘高光 /
+     queue=queue-item / spec 左=doc-tree / spec 右=doc-panel。
      配色一律 A 令牌 (--accent / --skein-gold / --st-× / --glass-×), 不引入 C 植物染土色。
      下游 pages/*.js 只挂 class 填数据, 不再改 CSS。 */
 
-  /* ── 织面 (the woven face): 承载 task 纬线行的玻璃布 ── */
-  .loom-face {
+  /* ── 状态面板 (status-panel): 承载 stat-row 的玻璃面板 ── */
+  .status-panel {
     display: flex; flex-direction: column; overflow: hidden;
     border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
     backdrop-filter: blur(14px) saturate(1.25); -webkit-backdrop-filter: blur(14px) saturate(1.25);
     box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
   }
 
-  /* ── 纬线行 (weft strand): 每 task 一根横贯纬线 ── */
-  .weft-row {
+  /* ── 统计行 (stat-row): 每 task 一行横贯 ── */
+  .stat-row {
     position: relative; display: grid; grid-template-columns: 270px minmax(0,1fr) 116px;
     align-items: center; gap: 20px; padding: 18px 22px;
     border-top: 1px solid var(--glass-brd); transition: background .15s;
   }
-  .weft-row:first-child { border-top: 0; }
-  .weft-row:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
-  /* active 行: 左缘金辉梭线 */
-  .weft-row.active::before {
+  .stat-row:first-child { border-top: 0; }
+  .stat-row:hover { background: color-mix(in srgb, var(--fg) 4%, transparent); }
+  /* active 行: 左缘金辉高光 */
+  .stat-row.active::before {
     content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
     background: var(--skein-gold); box-shadow: 0 0 10px color-mix(in srgb, var(--skein-gold) 55%, transparent);
   }
-  .weft-tag { min-width: 0; }
-  .weft-tag .code {
+  .stat-tag { min-width: 0; }
+  .stat-tag .code {
     font-family: var(--mono); font-size: 14.5px; font-weight: 600; color: var(--head);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .weft-tag .desc { color: var(--muted); font-size: 13px; line-height: 1.4; margin-top: 3px; }
-  .weft-meta { text-align: right; }
-  .weft-meta .frac { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--head); }
-  .weft-meta .frac small { color: var(--muted); font-size: 12px; font-weight: 500; }
-  .weft-meta .note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .stat-tag .desc { color: var(--muted); font-size: 13px; line-height: 1.4; margin-top: 3px; }
+  .stat-meta { text-align: right; }
+  .stat-meta .frac { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--head); }
+  .stat-meta .frac small { color: var(--muted); font-size: 12px; font-weight: 500; }
+  .stat-meta .note { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 
-  /* ── 织入进度带 (weave): 松垂原纱底 (虚线) + 织入段 (A 蓝金) + 织结 ── */
-  .weave-progress { position: relative; height: 34px; display: flex; align-items: center; }
-  /* 底纱 = 整根未织的松散原纱 (虚线) */
-  .weave-progress::before {
+  /* ── 进度带 (progress): 虚线底轨 + 已完成段 (A 蓝金) + 节点 ── */
+  .progress-track { position: relative; height: 34px; display: flex; align-items: center; }
+  /* 底轨 = 未完成虚线 */
+  .progress-track::before {
     content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%); border-radius: 2px;
     background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 45%, transparent) 0 5px, transparent 5px 8px);
   }
-  /* 织入段 = 上色紧实纬线, 宽度 = 进度 (由行内 style width 给) */
-  .weave-dyed {
+  /* 已完成段 = 上色紧实条, 宽度 = 进度 (由行内 style width 给) */
+  .progress-fill {
     position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 3px; border-radius: 3px;
     background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 68%, var(--skein-gold)));
     box-shadow: 0 0 7px color-mix(in srgb, var(--accent) 40%, transparent);
   }
-  .weave-dyed.done {
+  .progress-fill.done {
     background: linear-gradient(90deg, var(--st-done), color-mix(in srgb, var(--st-done) 78%, #fff));
     box-shadow: 0 0 7px color-mix(in srgb, var(--st-done) 40%, transparent);
   }
-  /* 梭子高光: 织入段末端游走光点 (放 .weave-dyed 内右端) */
-  .shuttle {
+  /* 末端高光: 已完成段末端游走光点 (放 .progress-fill 内右端) */
+  .fill-tip {
     position: absolute; right: -3px; top: 50%; transform: translate(0,-50%);
     width: 9px; height: 9px; border-radius: 50%;
     background: var(--skein-gold); box-shadow: 0 0 10px var(--skein-gold);
     animation: glide 2.2s ease-in-out infinite;
   }
   @keyframes glide { 0%,100% { transform: translate(0,-50%); } 50% { transform: translate(-6px,-50%); } }
-  /* 织结行: 菱形节点均分排布 */
-  .knots { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; width: 100%; }
-  .knot {
+  /* 节点行: 菱形节点均分排布 */
+  .dots { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .dot {
     position: relative; width: 15px; height: 15px; border-radius: 4px; transform: rotate(45deg); flex: none;
     border: 2px solid color-mix(in srgb, var(--muted) 40%, transparent); background: var(--card); transition: .2s;
   }
-  .knot::after { content: ''; position: absolute; inset: 2px; border-radius: 2px; background: transparent; }
-  .knot.done    { border-color: var(--st-done); }    .knot.done::after   { background: var(--st-done); }
-  .knot.active  { border-color: var(--st-active); box-shadow: 0 0 12px color-mix(in srgb, var(--skein-gold) 55%, transparent); }
-  .knot.active::after { background: var(--st-active); }
-  .knot.check   { border-color: var(--st-check); }   .knot.check::after  { background: var(--st-check); }
-  .knot.failed  { border-color: var(--st-failed); }  .knot.failed::after { background: var(--st-failed); }
-  .knot.pending { border-color: color-mix(in srgb, var(--muted) 40%, transparent); }
+  .dot::after { content: ''; position: absolute; inset: 2px; border-radius: 2px; background: transparent; }
+  .dot.done    { border-color: var(--st-done); }    .dot.done::after   { background: var(--st-done); }
+  .dot.active  { border-color: var(--st-active); box-shadow: 0 0 12px color-mix(in srgb, var(--skein-gold) 55%, transparent); }
+  .dot.active::after { background: var(--st-active); }
+  .dot.check   { border-color: var(--st-check); }   .dot.check::after  { background: var(--st-check); }
+  .dot.failed  { border-color: var(--st-failed); }  .dot.failed::after { background: var(--st-failed); }
+  .dot.pending { border-color: color-mix(in srgb, var(--muted) 40%, transparent); }
 
-  /* ── 上机队列: 待上机的线轴 (bobbin) ── */
-  .deck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .bobbin {
+  /* ── 队列网格 + 队列项 (queue-item) ── */
+  .queue-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .queue-item {
     display: flex; align-items: center; gap: 14px; padding: 15px 17px;
     border: 1px solid var(--glass-brd); border-left: 3px solid var(--st-check); border-radius: 12px;
     background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
-  .spool {
+  .queue-icon {
     width: 38px; height: 38px; flex: none; border-radius: 9px; display: grid; place-items: center; color: var(--st-check);
     background: color-mix(in srgb, var(--st-check) 16%, transparent); border: 1px solid color-mix(in srgb, var(--st-check) 35%, transparent);
   }
-  .bobbin .b-name { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--head); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bobbin .b-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .queue-item .qi-name { font-family: var(--mono); font-size: 13.5px; font-weight: 600; color: var(--head); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .queue-item .qi-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
   .ready-tag {
     flex: none; font-size: 11px; font-weight: 600; color: var(--st-check); padding: 2px 9px; border-radius: 999px;
     background: color-mix(in srgb, var(--st-check) 16%, transparent); border: 1px solid color-mix(in srgb, var(--st-check) 38%, transparent);
   }
 
-  /* ── SPEC: 经线树 (warp-tree) — 一束下垂经线, 文件挂在股上 ── */
-  .warp-tree {
+  /* ── SPEC: 文件树 (doc-tree) — 下垂层级, 文件挂在分类上 ── */
+  .doc-tree {
     position: sticky; top: 74px; padding: 16px 12px;
     border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
-  .warp-cat { margin-bottom: 6px; }
-  .warp-cat:last-child { margin-bottom: 0; }
-  .warp-head {
+  .doc-tree-cat { margin-bottom: 6px; }
+  .doc-tree-cat:last-child { margin-bottom: 0; }
+  .doc-tree-head {
     display: flex; align-items: center; gap: 8px; padding: 6px 8px;
     font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .5px; color: var(--muted);
   }
-  .warp-head .spindle { width: 9px; height: 9px; border-radius: 2px; transform: rotate(45deg); flex: none; background: var(--accent); }
-  .warp-head .ct { margin-left: auto; font-size: 11px; color: var(--muted); letter-spacing: 0; }
-  /* 挂在经线上的文件: 左侧连接股线 */
-  .warp-list { position: relative; padding-left: 4px; margin-left: 8px; border-left: 1.5px solid var(--glass-brd); }
-  .warp-leaf {
+  .doc-tree-head .head-mark { width: 9px; height: 9px; border-radius: 2px; transform: rotate(45deg); flex: none; background: var(--accent); }
+  .doc-tree-head .ct { margin-left: auto; font-size: 11px; color: var(--muted); letter-spacing: 0; }
+  /* 挂在层级上的文件: 左侧连接线 */
+  .doc-tree-list { position: relative; padding-left: 4px; margin-left: 8px; border-left: 1.5px solid var(--glass-brd); }
+  .doc-tree-leaf {
     position: relative; display: flex; align-items: center; gap: 9px; padding: 6px 9px; margin: 1px 0 1px 6px;
     border-radius: 8px; font-size: 13.5px; color: var(--fg); cursor: pointer; transition: background .15s;
   }
-  .warp-leaf::before { content: ''; position: absolute; left: -14px; top: 50%; width: 12px; height: 1.5px; background: var(--glass-brd); }
-  .warp-leaf:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
-  .warp-leaf.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 600; color: var(--head); }
-  .warp-leaf.sel::before { background: var(--accent); }
-  .warp-leaf .fk { width: 11px; height: 11px; border-radius: 3px; transform: rotate(45deg); flex: none; border: 1.5px solid var(--muted); }
-  .warp-leaf.sel .fk { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 45%, transparent); }
-  .warp-leaf .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .doc-tree-leaf::before { content: ''; position: absolute; left: -14px; top: 50%; width: 12px; height: 1.5px; background: var(--glass-brd); }
+  .doc-tree-leaf:hover { background: color-mix(in srgb, var(--fg) 5%, transparent); }
+  .doc-tree-leaf.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); font-weight: 600; color: var(--head); }
+  .doc-tree-leaf.sel::before { background: var(--accent); }
+  .doc-tree-leaf .fk { width: 11px; height: 11px; border-radius: 3px; transform: rotate(45deg); flex: none; border: 1.5px solid var(--muted); }
+  .doc-tree-leaf.sel .fk { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .doc-tree-leaf .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* ── SPEC: 织好的布 (cloth) — 读稿面, 左缘一道 selvage 布边 ── */
-  .cloth {
+  /* ── SPEC: 文档面板 (doc-panel) — 读稿面, 左缘一道渐变边 ── */
+  .doc-panel {
     position: relative; overflow: hidden; min-height: 520px;
     border: 1px solid var(--glass-brd); border-radius: var(--radius); background: var(--glass-bg);
     backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
     box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
   }
-  .cloth::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--accent), var(--st-done)); }
-  .cloth-bar {
+  .doc-panel::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(180deg, var(--accent), var(--st-done)); }
+  .doc-panel-bar {
     display: flex; align-items: center; gap: 10px; padding: 14px 22px 14px 26px;
     border-bottom: 1px solid var(--glass-brd); background: color-mix(in srgb, var(--card) 40%, transparent);
   }
@@ -535,25 +535,25 @@
     box-shadow: 0 8px 30px var(--glass-shadow), inset 0 1px 0 var(--glass-inset-hi);
   }
 
-  /* ── 响应式 (C 骨: 窄屏 spec 双栏降单栏, 纬线行堆叠) ── */
+  /* ── 响应式 (C 骨: 窄屏 spec 双栏降单栏, 统计行堆叠) ── */
   @media (max-width: 940px) {
     .spec-grid { grid-template-columns: 1fr; }
-    .tree, .warp-tree { position: static; }
+    .tree, .doc-tree { position: static; }
     .search { min-width: 0; }
-    .weft-row { grid-template-columns: 1fr; gap: 12px; }
-    .weft-meta { text-align: left; }
-    .deck-grid { grid-template-columns: 1fr; }
+    .stat-row { grid-template-columns: 1fr; gap: 12px; }
+    .stat-meta { text-align: left; }
+    .queue-grid { grid-template-columns: 1fr; }
   }
 }
 
-/* ── 视口外暂停 (IntersectionObserver 加 .paused) ── */
-.paused, .paused::after, .paused > .skein-fill, .paused .shuttle { animation: none !important; }
+  /* ── 视口外暂停 (IntersectionObserver 加 .paused) ── */
+  .paused, .paused::after, .paused > .skein-fill, .paused .fill-tip { animation: none !important; }
 
-/* ── prefers-reduced-motion 降级: 关所有流沙动效, 入场直显 ── */
-@media (prefers-reduced-motion: reduce) {
-  .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill, .shuttle {
-    animation: none !important; transition: none !important;
-  }
+  /* ── prefers-reduced-motion 降级: 关所有流沙动效, 入场直显 ── */
+  @media (prefers-reduced-motion: reduce) {
+    .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill, .fill-tip {
+      animation: none !important; transition: none !important;
+    }
   .card, .entrance { opacity: 1 !important; transform: none !important; }
   .card::after { opacity: 0 !important; }
 }
