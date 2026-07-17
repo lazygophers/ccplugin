@@ -511,8 +511,6 @@ class Skein:
         t = self._load(a.id)
         if t["status"] != S_PENDING:
             raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 start 待处理 task")
-        if not t.get("subtasks"):
-            raise SystemExit(f"{a.id} 无 subtask — start 前先 `subtask add {a.id} <sid> ...` 至少登记 1 个 (planning 拆分产物)")
         cfg = self.config()
         active = self._active()
         if len(active) >= cfg["max_active"]:
@@ -931,8 +929,6 @@ class Skein:
                     errs.append(f"{tid}: deps 自引用")
                 elif d not in used:
                     errs.append(f"{tid}: deps 指向不存在 task {d!r}")
-            if not t.get("subtasks"):
-                errs.append(f"{tid}: 无 subtask — 每个 task 至少 1 个 subtask (planning 需拆 subtask add 登记)")
             # worktree 硬性 (仅执行中 + worktree 启用): 名在 start 定义并物理创建 (exec 前一步); pending 尚未创建、
             # done 已销毁, 故只对执行中 (进行中/检查中) 校验。worktree 禁用时 (非 git / config use_worktree=false)
             # 原地执行本就无 worktree, 遵守配置不查存在性。
