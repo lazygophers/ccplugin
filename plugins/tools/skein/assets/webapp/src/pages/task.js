@@ -27,6 +27,25 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+// PRD 原文按 ## 二级章节拆节 (目标/边界/验收标准/索引 等)。返回 [{title, body}]。
+// 首个 ## 前的前言 (含 # 一级标题) 归一节: 有 # 标题则用其文字, 否则标题空。
+// body 交给 md.renderSafe → 其中一级 - [ ]/- [x] 已被 md 渲染为只读 checkbox (todo 样式), 无需另解析。
+function parsePrd(src) {
+  if (!src) return [];
+  var lines = src.replace(/\r\n?/g, "\n").split("\n"), secs = [], cur = null;
+  lines.forEach(function (ln) {
+    var h2 = ln.match(/^##\s+(.*)$/);
+    if (h2) { cur = { title: h2[1].trim(), body: [] }; secs.push(cur); return; }
+    var h1 = ln.match(/^#\s+(.*)$/);
+    if (h1 && !cur) { cur = { title: h1[1].trim(), body: [] }; secs.push(cur); return; }
+    if (!cur) { cur = { title: "", body: [] }; secs.push(cur); }
+    cur.body.push(ln);
+  });
+  return secs
+    .filter(function (s) { return s.title || s.body.join("").trim(); })
+    .map(function (s) { return { title: s.title, body: s.body.join("\n") }; });
+}
+
 // subtask 完成百分比 (对齐后端 _sub_pct: done 强制 100; 验收done/验收, 无验收未完成即 0)
 function subPct(s) {
   if (s.status === "已完成") return 100;
@@ -80,6 +99,14 @@ const TPL = `
         <div v-if="!docs[tab]" class="text-muted text-center py-16 text-sm">
           <div class="text-2xl mb-1">📄</div>{{ docLabel(tab) }} 暂无内容
         </div>
+        <!-- PRD: 按 ## 章节拆 card 竖排; 章节内一级 - [ ] 由 md 渲染为只读 todo checkbox -->
+        <div v-else-if="tab==='prd'" class="space-y-3">
+          <div v-for="sec in prdSections" :key="sec.title" class="rounded p-4" style="border:1px solid var(--line)">
+            <div v-if="sec.title" class="text-sm font-semibold mb-2" style="color:var(--head)">{{ sec.title }}</div>
+            <div class="md-body" v-html="sec.html"></div>
+          </div>
+        </div>
+        <!-- design/findings: 保持整篇 md -->
         <div v-else class="md-body" v-html="renderedDoc"></div>
       </div>
     </section>
@@ -215,6 +242,12 @@ export async function render(mount, params, ctx) {
       deps: (s) => s.depends_on || [],
       docLabel: (k) => (DOC_TABS.find((d) => d.key === k) || {}).label || k,
       get renderedDoc() { return md.renderSafe(this.docs[this.tab] || ""); },
+      // PRD 章节化 (仅 tab==='prd' 用): 各节 body 走同一 md.renderSafe 栈 → 只读 todo 复用 md 输出。
+      get prdSections() {
+        return parsePrd(this.docs.prd || "").map(function (s) {
+          return { title: s.title, html: md.renderSafe(s.body) };
+        });
+      },
       result: null,
       running: false,
       async runRead(cmd) {
