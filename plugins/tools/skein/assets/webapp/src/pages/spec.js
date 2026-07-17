@@ -156,7 +156,7 @@ const TPL = `
           </label>
           <label class="flex flex-col gap-1 text-xs">
             <span class="opacity-60">created (unix ts)</span>
-            <input type="number" v-model.number="meta.created"
+            <input type="datetime-local" step="1" :value="createdLocal" @input="setCreated($event)"
               class="field">
           </label>
           <div class="full flex flex-col gap-1 text-xs">
@@ -280,6 +280,13 @@ export async function render(mount, params, ctx) {
     toastErr: false,
 
     get crumb() { return [this.current.layer, this.current.category, this.current.path.split("/").pop()].filter(Boolean).join(" / "); },
+    get createdLocal() {
+      var ts = Number(this.meta.created);
+      if (!ts) return "";
+      var d = new Date(ts * 1000);
+      var p = function (n) { return String(n).padStart(2, "0"); };
+      return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+    },
     get parsed() { return parseFM(this.current.content); },
     get rendered() { return md.renderSafe(this.parsed.body); },
     get draftSerialized() { return serializeFM(this.meta, this.bodyDraft); },
@@ -318,6 +325,10 @@ export async function render(mount, params, ctx) {
       this.q = "";
     },
     isCurrentFile(p) { return this.current.path === p; },
+    setCreated(e) {
+      var v = e && e.target ? e.target.value : "";
+      this.meta.created = v ? Math.floor(new Date(v).getTime() / 1000) : "";
+    },
     fileTitle(f) { return (f && f.title) || (f && f.path || "").split("/").pop() || ""; },
 
     async selectFile(path) {
