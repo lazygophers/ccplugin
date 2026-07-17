@@ -36,6 +36,8 @@ const BOARD_CSS = `
 .card h2{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .card-link{color:inherit;text-decoration:none;border-bottom:1px dashed transparent}
 .card-link:hover{color:var(--accent);border-bottom-color:var(--accent)}
+.card-detail-btn{margin-left:auto;display:inline-flex;align-items:center;color:var(--muted);text-decoration:none;border:1px solid var(--brd);border-radius:6px;padding:2px 4px;transition:color .18s,border-color .18s}
+.card-detail-btn:hover{color:var(--accent);border-color:var(--accent)}
 .name{margin:0 0 10px;color:var(--head);font-size:15px;font-weight:500}
 .meta{margin:0 0 6px;font-size:13px;line-height:1.55;color:var(--muted)}
 .badge{display:inline-block;padding:0 8px;border-radius:9px;color:#fff;font-size:11px;line-height:17px;font-weight:500;vertical-align:baseline}
@@ -289,7 +291,10 @@ function buildLayoutHtml(data) {
 
   var cards = data.cards.map(function (c) {
     var h2 = "<h2>" + '<a class="card-link" href="/task?id=' + encodeURIComponent(c.id) + '">' + esc(c.id) + "</a> " + badge(c.status, data.stClsMap)
-      + (c.nextUp ? "<span class=next-up-chip>▶ 下一个</span>" : "") + "</h2>";
+      + (c.nextUp ? "<span class=next-up-chip>▶ 下一个</span>" : "")
+      + '<a class="card-detail-btn" href="/task?id=' + encodeURIComponent(c.id) + '" title="详情" aria-label="详情">'
+      + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
+      + "</a></h2>";
     var meta1 = '<p class="meta">前置: ' + esc((c.depNames || []).join(", ") || "-") + " · "
       + "worktree: " + esc(c.worktree || "-") + " · "
       + "耗时 " + fmtDur(c.elapsed) + "</p>";
