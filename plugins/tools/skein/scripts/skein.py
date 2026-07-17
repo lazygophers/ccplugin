@@ -180,6 +180,7 @@ class Skein:
         self.dir = self.root / ".skein"
         self.tasks = self.dir / "task"
         self.archive_dir = self.tasks / "archive"
+        self.trash_dir = self.dir / "trash"  # 软删 task 落此 (.skein/trash/<id>.<YYYYMMDD>/, 可恢复; 在 task/ 外, 免被 _all/doctor 扫到)
         # 看板 title/标题带项目名, 用户一眼知是哪个项目
         self.proj = self.root.name
 
@@ -597,6 +598,59 @@ class Skein:
         self._archive(a.id)
         self._sync()  # 重写顶层 tasks 索引 (去掉已归档 task)
         print(f"{a.id} archived")
+
+    def _destroy_worktrees(self, t):
+        # 销 task 全部 worktree + 分支 (active task 删/归档前清理悬挂); 复用 archive 的强删策略
+        for w in self._wts(t):
+            sub = self.root if w["repo"] == "." else self.root / w["repo"]
+            wt = self.root / w["wt"]
+            if wt.exists():
+                # --force: 即使有未提交改动/未跟踪文件也强删 (del 是用户明确销毁意图)
+                git("worktree", "remove", str(wt), "--force", cwd=sub, check=False)
+            git("branch", "-D", w["branch"], cwd=sub, check=False)
+
+    def del_(self, a):
+        # 删 task (软删 → .skein/trash/<id>.<date>/, 可恢复) 或单 subtask (直接移除, 不进 trash)
+        tid = a.task_id
+        src = self.tasks / tid
+        if not src.exists() or not (src / "task.json").exists():
+            raise SystemExit(f"task 不存在: {tid}")
+        t = self._load(tid)
+
+        if a.subtask_sid:  # 删单 subtask
+            sid = a.subtask_sid
+            subs = t.get("subtasks", [])
+            new_subs = [s for s in subs if s.get("sid") != sid]
+            if len(new_subs) == len(subs):
+                raise SystemExit(f"subtask 不存在: {tid}/{sid}")
+            if a.dry_run:
+                print(f"[dry-run] 将从 {tid} 移除 subtask {sid} (task 目录与其余 subtask 不动)")
+                return
+            t["subtasks"] = new_subs
+            self._save(t)  # _save 渲染子任务看板
+            self._sync()   # 刷顶层索引 + 看板
+            print(f"{tid}/{sid} removed ({len(new_subs)} subtask 剩余)")
+            return
+
+        if a.dry_run:
+            lines = [f"[dry-run] 将删 task {tid} ({t['name']}):",
+                     f"  软删: {src} → {self.trash_dir}/{tid}.{datetime.datetime.now().strftime('%Y%m%d')}/"]
+            if t["status"] in STATUS_ACTIVE:
+                for w in self._wts(t):
+                    lines.append(f"  销 worktree: {w['wt']}  分支: {w['branch']}  (子 git {w['repo']})")
+            print("\n".join(lines))
+            return
+
+        # active task 先销 worktree/分支 (finish/archive 同策略, 免悬挂); pending/done 无 worktree, 跳过
+        if t["status"] in STATUS_ACTIVE:
+            self._destroy_worktrees(t)
+        dst = self.trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
+        self.trash_dir.mkdir(parents=True, exist_ok=True)
+        if dst.exists():  # 同日重复删同 id → 先清旧 (同名目录 shutil.move 跨平台行为不一)
+            shutil.rmtree(dst)
+        shutil.move(str(src), str(dst))
+        self._sync()  # 刷顶层索引 (移除该 task) + 看板
+        print(f"{tid} deleted (软删可恢复: {dst})")
 
     def _archive(self, tid):
         src = self.tasks / tid
@@ -2320,6 +2374,12 @@ def main():
     f.add_argument("id", help="task id")
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")
+    # del/delete/rm/remove 同一 handler (别名等价): 删 task 软删进 trash, 带 sid 删单 subtask
+    for _alias in ("del", "delete", "rm", "remove"):
+        _d = sub.add_parser(_alias, help="删 task (软删进 .skein/trash/, 可恢复) 或单 subtask (del <id> [sid] [--dry-run])")
+        _d.add_argument("task_id", help="task id")
+        _d.add_argument("subtask_sid", nargs="?", help="subtask id (有则删该 subtask, task 不动; 无则删整个 task)")
+        _d.add_argument("--dry-run", action="store_true", help="预览将删什么, 不动盘")
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
@@ -2392,11 +2452,12 @@ def main():
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos,
         "status": sk.status, "subtask": sk.subtask,
+        "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "finish", "archive", "clean",
-                "contract", "repos", "subtask"}
+                "contract", "repos", "subtask", "del", "delete", "rm", "remove"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
