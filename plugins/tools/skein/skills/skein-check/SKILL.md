@@ -21,11 +21,12 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 ## 流程
 
 1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径 + planning 的验收标准。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
+   - **验收项增量验证** — checker 读 prd `## 验收标准` 章节时, **只验未勾 (`- [ ]`) 项**; 已 `- [x]` 项视为上轮已确认通过, **跳过不重复验证/处理** → 报告仅覆盖未勾项。
    - **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail:
      - `skein contract <id>` (列出 planning 阶段锁进 task.json 的契约)
      - 任一条 fail → 进修复循环 (同 lint/type/test 未过路径), 派合适 agent (无则 `skein-executor`) 定点修复后重检。
    - **一致性核查** — checker MUST 检 subtask 产物间 + 与 prd 契约有无冲突: 接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾。逐条报冲突对 (哪两处 file:line + 冲突点)。
-2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环 (见下)。
+2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环 (见下)。**本轮验证通过的验收项** (含部分通过场景), main 用 `Edit` 把 prd `## 验收标准` 对应行 `- [ ]`→`- [x]` 回写持久化 (载体是 main, 非 checker; 复用 fmt PostToolUse hook 保勾选态、幂等), 未过项保持 `- [ ]` 留待修复后重验。
 3. **回 planning 重确认 (非新枚举, 复用现有 `进行中` 态)** — check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`/`S_ACTIVE`, 不建新 task; 「回 planning」是**思维回炉语义**, 非状态机新枚举)。main **先回 planning 思维重审失败**: 重新审视 checker 报告的失败原因 (lint/type/test/契约 fail / 一致性冲突), 用 `AskUserQuestion` 或 grill 与用户**确认修复方向是否对** (是定点修一处 / 还是方向错了需重拆 / 还是契约本身要改), **禁跳过确认直接补 subtask 回 exec**。确认方向后, 在**同一 task 内 `subtask add` 排队修复子任务** (--deps 挂失败源), 回 exec 重新 `claim` 派发:
    - **孤立失败** (单点 lint/type/test/契约 fail) → 确认后加 1 个定点修复 subtask: `skein subtask add <tid> <fix-sid> --name "修复: <失败点>" --desc "<报错原文 / file:line>" --agent <合适> --deps <失败 subtask sid>` (只改失败相关文件)。
    - **一致性冲突 / 根因跨 subtask** → 确认后按冲突根因加**多个**修复 subtask (一冲突一 subtask, 逐条覆盖, `--deps` 挂对应源 subtask, 必要时同步更新契约)。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
@@ -43,4 +44,4 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 反例
 
-违反上文即流程错误: main 亲跑 lint/test (应派 checker) / checker 自己改码 (应交合适修复 agent) / 未全绿就 finish / 只跑 lint 不验契约 (先 `skein contract` 逐条报) / **check 失败跳过 planning 重确认直接补 subtask 回 exec** (应先 grill/AskUserQuestion 与用户敲定修复方向, 确认后才 `subtask add`) / **check 失败改 task 状态或另建 task/加 planning 枚举** (应同 task `subtask add` 排队修复, task 保持 `进行中`, 「回 planning」是思维语义非新枚举) / 冲突未逐条 `subtask add` 覆盖就 finish / 无限重检 (第 3 轮走根因复盘)。
+违反上文即流程错误: main 亲跑 lint/test (应派 checker) / checker 自己改码 (应交合适修复 agent) / 未全绿就 finish / 只跑 lint 不验契约 (先 `skein contract` 逐条报) / **check 失败跳过 planning 重确认直接补 subtask 回 exec** (应先 grill/AskUserQuestion 与用户敲定修复方向, 确认后才 `subtask add`) / **check 失败改 task 状态或另建 task/加 planning 枚举** (应同 task `subtask add` 排队修复, task 保持 `进行中`, 「回 planning」是思维语义非新枚举) / 冲突未逐条 `subtask add` 覆盖就 finish / **checker 重复验证已 `- [x]` 项** (应跳过, 防重复处理) / **验证通过不回写 `- [x]`** (下轮又重验已确认项) / 无限重检 (第 3 轮走根因复盘)。
