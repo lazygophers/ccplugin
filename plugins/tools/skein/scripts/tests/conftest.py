@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-import pytest
+import pytest  # type: ignore[import-not-found]
 
 SCRIPTS: Path = Path(__file__).resolve().parent.parent
 SKEIN: Path = SCRIPTS / "skein.py"
@@ -20,7 +20,7 @@ SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
 MemCli = Callable[..., subprocess.CompletedProcess[str]]
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def git_cmd() -> GitCmd:
     """git 调用封装: git_cmd(cwd, *args) → subprocess.run(check=True)。"""
     def _git(cwd: Path, *args: str) -> None:
@@ -28,7 +28,7 @@ def git_cmd() -> GitCmd:
     return _git
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def skein_cli() -> SkeinCli:
     """skein.py CLI 封装: skein_cli(cwd, *args, check=True) → CompletedProcess。"""
     def _sk(cwd: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -37,7 +37,7 @@ def skein_cli() -> SkeinCli:
     return _sk
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def mem_cli() -> MemCli:
     """memory.py CLI 封装: mem_cli(cwd, *args, inp=None) → CompletedProcess。"""
     def _mem(cwd: Path, *args: str, inp: str | None = None) -> subprocess.CompletedProcess[str]:
@@ -46,7 +46,7 @@ def mem_cli() -> MemCli:
     return _mem
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def ws(tmp_path: Path, git_cmd: GitCmd, skein_cli: SkeinCli) -> Path:
     """造隔离临时 git 仓 + skein init, 返回仓库根 Path。每个测试独立 tmp_path。"""
     d = tmp_path
@@ -60,7 +60,7 @@ def ws(tmp_path: Path, git_cmd: GitCmd, skein_cli: SkeinCli) -> Path:
     return d
 
 
-@pytest.fixture
+@pytest.fixture  # type: ignore[untyped-decorator]
 def mem_ws(tmp_path: Path, git_cmd: GitCmd, mem_cli: MemCli) -> Path:
     """造隔离临时 git 仓 + memory init (.skein/spec/core|recall 骨架), 供 memory.py 测试。"""
     d = tmp_path
