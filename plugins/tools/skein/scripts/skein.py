@@ -440,6 +440,7 @@ class Skein:
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
+            "checked": None,         # 进入检查阶段时刻 (check 命令置)
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
             "updated": now(),
         }
@@ -555,6 +556,17 @@ class Skein:
             reason = "config use_worktree=false" if self.git else "非 git 仓库"
             loc = f"{reason}: 原地执行 (无 worktree 隔离)"
         print(f"{a.id} started\n{loc}")
+
+    def check(self, a):
+        # 进行中→检查中: 记 checked 时刻 (board 展示等待/执行时间用)。仅 active 可进检查。
+        t = self._load(a.id)
+        if t["status"] != S_ACTIVE:
+            raise SystemExit(f"{a.id} 状态 {t['status']}, 只有进行中 task 能进检查")
+        t["status"] = S_CHECK
+        t["checked"] = now()
+        self._save(t)
+        self._sync()
+        print(f"{a.id} checked")
 
     def _dep_unfinished(self, dep) -> bool:
         # 归档即视为完成
@@ -1583,6 +1595,10 @@ class Skein:
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
                 "worktree": t.get("worktree") or None,
+                "created": t.get("created"),
+                "started": t.get("started"),
+                "checked": t.get("checked"),
+                "finished": t.get("finished"),
                 "elapsed": elapsed_of(t),
                 "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
                 "docLinks": doc_links,
@@ -2514,6 +2530,8 @@ def main():
     rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
     s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
+    ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
+    ck.add_argument("id", help="task id")
     f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
     f.add_argument("id", help="task id")
     fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验四标准章节 (幂等)")
@@ -2593,6 +2611,7 @@ def main():
     sk = Skein()
     dispatch = {
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
+        "check": sk.check,
         "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready, "pop": sk.pop, "claim": sk.claim,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
@@ -2602,7 +2621,7 @@ def main():
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
-    MUTATING = {"init", "setup", "create", "start", "finish", "fmt", "archive", "clean",
+    MUTATING = {"init", "setup", "create", "start", "check", "finish", "fmt", "archive", "clean",
                 "contract", "repos", "subtask", "claim", "del", "delete", "rm", "remove"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
