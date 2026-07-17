@@ -10,7 +10,7 @@ const ST_VAR = {
   "检查中": "--st-check", "已完成": "--st-done", "失败": "--st-failed",
 };
 const stColor = (st) => `var(${ST_VAR[st] || "--st-pending"})`;
-// 状态点映射 (knot 修饰类)
+// 状态点映射 (dot 修饰类)
 const DOT_CLS = {
   "待处理": "pending", "进行中": "active", "运行中": "active",
   "检查中": "check", "已完成": "done", "失败": "failed",
