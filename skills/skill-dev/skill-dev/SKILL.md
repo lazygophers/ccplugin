@@ -1,6 +1,6 @@
 ---
 name: skill-dev
-description: 创建、维护与持续优化 Claude skills 和 subagents 的方法论框架。写 SKILL.md / 新建 skill / 设计 subagent(agent.md) / 配 frontmatter / 拆 progressive disclosure(流程 A 创建), 或诊断 9 维短板 / 修触发准确性 / 补失败模式 / 收窄误触发 / validation-gated 优化现有 skill(流程 B 优化)时使用。领域/主题视角蒸馏(分维度调研+三重验证)内置流程 A; 9 维评分+validation-gated 爬山+可视化成果卡片内置流程 B。仅手动 /skill-dev 触发。
+description: 创建、维护、validation-gated 优化 Claude skills 与 subagents 的方法论框架。流程 A 从零创建 (定位/骨架/frontmatter/调研/验证)，流程 B 优化现有 (9 维评分/单变量爬山/触顶停/成果卡片)。含领域视角蒸馏 (分维度调研+三重验证)。不蒸人物角色。仅手动 /skill-dev。
 disable-model-invocation: true
 argument-hint: "[create|optimize] <skill/agent 路径>"
 arguments: "[create|optimize] <skill/agent 路径>"
@@ -46,7 +46,7 @@ arguments: "[create|optimize] <skill/agent 路径>"
    - 产出冗余输出需隔离、需强制工具限制、自包含回摘要 → **subagent**
    - 背景知识（不应命令触发）→ skill + `user-invocable: false`
    - **混合**（主对话交互 + 子任务隔离，如部署需确认+验证+执行）→ skill + `context: fork` + `agent: <type>`
-2. **触发方式？** 副作用操作（deploy/commit/send）→ `disable-model-invocation: true`（仅手动）；背景知识 → `user-invocable: false`；一般工作流 → 默认。
+2. **触发方式？**（判「付哪种 load 更划算」）model-invoked 付 **context load**（description 每轮常驻，仅当 agent 须自主 reach 或被别的 skill reach 时才值——复用≠抽取理由，自主可达才是）；user-invoked 付 **cognitive load**（人成索引，零常驻）。副作用操作（deploy/commit/send）→ `disable-model-invocation: true`（仅手动）；背景知识 → `user-invocable: false`；一般工作流 → 默认。
 3. **内容类型？** Reference（约定/模式）→ 内联常驻；Task（部署/生成步骤）→ 常配 `disable-model-invocation`。
 4. **自由度？** 多解皆可 → high（文本指令）；有首选 → medium（参数模板）；操作脆弱 → low（具体脚本禁参数）。
 
@@ -92,6 +92,8 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 **4.4 模板 + 映射表装配**：骨架（Phase 2）为模板，用 section→来源映射表把调研 + 验证结果逐段填入（frontmatter / 工作流 checklist / 失败模式 / 反例黑名单 / 调研来源）。**渐进披露**：SKILL.md 像目录指向按需细节；复杂工作流给可复制 checklist（Claude 逐项打勾）；质量关键操作加 **feedback loop**（validate → fix → repeat），批量/破坏性操作用 **plan-validate-execute**（产 plan → 脚本验证 → 执行 → verify）。每段问「这段值得它的 token 成本吗？」
 
+✅ **完成判据**（checkable + exhaustive，防抢跑）：□ **每个**候选规则都过了三重验证漏斗（非「产出规则清单」）□ **每个**调研维度都落盘 `references/research/`（非「做了调研」）。
+
 > 🔴 **CHECKPOINT**：SKILL.md 初稿完成后展示给用户审阅，确认内容方向再进 Phase 5。
 
 ### Phase 5: 验证
@@ -129,7 +131,7 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 > 基于 SkillLens utility-grounded 评估 + SkillOpt validation-gated text-space 优化。完整维度表 / loop 细节见 `references/dimensions.md` · `references/workflow.md`。
 
-**🔴 优化硬规**（叠加顶部硬规）：**validation-gated 二层 gate**（第一层 gross：9 维 Δ>0；第二层人审：分数 fine-grained 不可信，破坏性/触发词变更必须用户确认，禁「我觉得更好」直落）· **单变量轮**（每轮只改 1 维度或 1 相关簇）· **ratchet**（只留有改进的提交，退步 `git revert HEAD` 自动回滚，git 分支隔离）· **体积护栏**（改后 SKILL.md > 原 ×1.5 → 拒绝提交，先精简再评，防「加废话凑分」膨胀）· **触顶即收**（连续 2 轮 Δ<2 → break）。🛑 **已知限制**（方法固有，非缺工具）：text-space 优化的 validation gate 依赖真实 skill harness 触发 + 独立 judge swarm，环境不足时退化 dry_run；dry_run > 30% 即评估失效警告，分数不可信须人审——这是**文本空间优化的天花板本身**，无外部 skill 能绕过，只能靠 full_test 比例 + 人审兜底。
+**🔴 优化硬规**（叠加顶部硬规）：**validation-gated 二层 gate**（第一层 gross：9 维 Δ>0；第二层人审：分数 fine-grained 不可信，破坏性/触发词变更必须用户确认，禁「我觉得更好」直落）· **单变量轮**（每轮只改 1 维度或 1 相关簇）· **ratchet**（只留有改进的提交，退步 `git revert HEAD` 自动回滚，git 分支隔离）· **膨胀护栏**（改后 SKILL.md > 原 ×1.5 → 拒绝提交，先精简再评，防「加废话凑分」膨胀）· **触顶停**（连续 2 轮 Δ<2 → break）。🛑 **已知限制**（方法固有，非缺工具）：text-space 优化的 validation gate 依赖真实 skill harness 触发 + 独立 judge swarm，环境不足时退化 dry_run；dry_run > 30% 即评估失效警告，分数不可信须人审——这是**文本空间优化的天花板本身**，无外部 skill 能绕过，只能靠 full_test 比例 + 人审兜底。
 
 ### Phase 1: 诊断（Diagnose）
 
@@ -165,13 +167,15 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 3. **接受准则**（严格提升才留）：触发准确性（should-trigger 命中 + should-not-trigger 不命中）· 输出质量相比 baseline 可见提升无负面（冗余/跑偏/格式怪）· 9 维总分严格高于前 · 🛑 **分数仅作 gross 信号**，Δ>0 不替代人审，破坏性/触发词变更必须用户确认。
 4. **dry_run 降级**：子 agent 不可用时干跑（模拟执行思路），标注 `dry_run`；> 30% → ⚠️ 评估失效警告。
 
+✅ **完成判据**（checkable + exhaustive）：□ **每个** held-out prompt 都有 before/after 结论（非「跑了测试」）□ dry_run 比例已记录。
+
 ### Phase 4: 应用 / 回滚（Ratchet）
 
 - 通过 gate → 应用编辑，git 提交（分支 `optimize/<skill>-YYYYMMDD`）。
 - 🔴 **CHECKPOINT**：merge 主分支 / 改触发词 / 大范围重写前用户确认（破坏性，下游发现逻辑会变）。
 - 未通过 → 回滚（`git revert HEAD` 建反向 commit，禁 `reset --hard` 丢工作树），记失败尝试到 `references/optimization-log.md`（note 写原因：归因不明 / Δ<0 / 触发变差）。
-- **体积护栏**：改后 SKILL.md > 原 ×1.5 → 拒绝提交，回改进步骤精简（删冗余/合并重复）再评。触顶后继续硬改常是「加废话让 LLM 觉得更详细」，膨胀 ×1.5 即警示。
-- **触顶即收**（HL-4）：连续 2 轮 Δ < 2 分 → break 进 Phase 5。+0.15 是停手信号非继续信号。
+- **膨胀护栏**：改后 SKILL.md > 原 ×1.5 → 拒绝提交，回改进步骤精简（删冗余/合并重复）再评。触顶后继续硬改常是「加废话让 LLM 觉得更详细」，膨胀 ×1.5 即警示。
+- **触顶停**（HL-4）：连续 2 轮 Δ < 2 分 → break 进 Phase 5。+0.15 是停手信号非继续信号。
 
 ### Phase 5: 回归 + 汇总
 

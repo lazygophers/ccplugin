@@ -1,6 +1,6 @@
 ---
 name: plugin-dev
-description: 创建与优化 Claude Code 插件的方法论框架。当用户要新建插件（搭 .claude-plugin/plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP/monitors + 挂 marketplace）、或审查优化现有插件（manifest 合规 / 组件接线完整性 / hook 健壮性 / marketplace 一致性）时使用。单组件（单个 skill / agent）编写或 9 维质量优化路由 skill-dev。仅手动 /plugin-dev 触发。
+description: 创建与优化 Claude Code 插件的方法论框架。流程 A 新建 (plugin.json manifest + 接线 commands/agents/skills/hooks/MCP/LSP + 挂 marketplace)，流程 B 优化现有 (8 维: manifest 合规/接线完整/hook 健壮/marketplace 一致)。单组件路由 /skill-dev。仅手动 /plugin-dev。
 disable-model-invocation: true
 argument-hint: "[create|optimize] <插件路径>"
 arguments: "[create|optimize] <插件路径>"
@@ -100,7 +100,7 @@ arguments: "[create|optimize] <插件路径>"
 
 8 维速览（权重）：① Manifest 合规(16) ② 组件接线完整(20) ③ 结构规范(12) ④ Hook 健壮性(14) ⑤ 组件质量(14, 深评交 `/skill-dev`) ⑥ Marketplace 一致性(12) ⑦ 文档完整(6) ⑧ 命名元数据一致(6)。
 
-**优化循环**：体检硬伤（维度 1/2/3 命中 = P0 先修）→ 按最低维度一轮改一类（单变量轮）→ 改后重跑体检 + 过质量门（硬规 6）→ 严格更好才留否则 `git revert` → 触顶（连续 2 轮 Δ<2）break。
+**优化循环**：体检硬伤（维度 1/2/3 命中 = P0 先修）→ 按最低维度一轮改一类（单变量轮）→ 改后重跑体检 + 过质量门（硬规 6）→ 严格更好才留否则 `git revert` → 触顶停（连续 2 轮 Δ<2 break）。
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: optimize-any
-description: 跨任意组件（plugin/skill/agent/command）的验证驱动优化循环纪律 skill。当用户要优化某个已有组件却无明确方向、或要防止改了反而更差（自评乐观偏差 / 多维同改归因失效 / 为凑分加废话膨胀）、或要把一套通用「评分→单变量改→改后验证严格更好才留否则回滚→触顶停」的纪律套到任意组件上时使用。管优化过程本身的纪律（validation gate / ratchet / 独立验证 / 触顶停），不评单组件深度（交 skill-dev），不查插件接线（交 plugin-dev）。仅手动 /optimize-any 触发。
+description: 跨任意组件 (plugin/skill/agent/command) 的验证驱动优化循环纪律。评分→单变量改→ratchet (严格更好才留否则回滚)→触顶停。防自评偏差/多维归因失效/膨胀凑分。单 skill 深评交 skill-dev，插件接线交 plugin-dev。仅手动 /optimize-any。
 disable-model-invocation: true
 argument-hint: "<组件路径>"
 arguments: "<组件路径>"
@@ -9,7 +9,7 @@ arguments: "<组件路径>"
 # Optimize Any — 跨组件验证驱动优化循环纪律
 
 > 定位：教「优化过程本身」的纪律，不绑定具体组件类型。核心理念 = **验证驱动优化循环**：评分定位短板 → 单变量改 → 改后过质量门 + 改前改后对比 → 严格更好才留（否则 git revert）→ 触顶停。
-> 方法论软引用（借鉴非依赖，禁 import 禁调脚本）：darwin-skill（9 维 rubric + validation-gated + ratchet + 触顶 break）· huashu-nuwa（独立子 agent 验证防自评偏差）· cangjie-skill（压力测试 / 诱饵边界）· grill-me（逐问确认决策，事实自己查决策等用户）。
+> 方法论软引用（借鉴非依赖，禁 import 禁调脚本）：darwin-skill（9 维 rubric + validation-gated + ratchet + 触顶停）· huashu-nuwa（独立子 agent 验证防自评偏差）· cangjie-skill（压力测试 / 诱饵边界）· grill-me（逐问确认决策，事实自己查决策等用户）。
 
 ## 🔴 硬规（违反即失效）
 
@@ -21,7 +21,7 @@ arguments: "<组件路径>"
 2. **validation-gated 严格更好才留**：改后过质量门 + before/after 对比（触发准确 / 输出质量 / 分数）**任一退步** → `git revert HEAD` 回滚，禁「我觉得更好」直落。分数 fine-grained 不可信，仅 gross 信号（Δ>0）。
 3. **单变量轮**：一轮只改一维度（或一紧密相关簇），多维同改归因失效。
 4. **独立验证防自评偏差**：评分与对比 spawn 独立子 agent（或独立 session），禁同 context 自评自改（乐观偏差实证 LLM-as-judge ~46% 准确率）。
-5. **触顶即收**：连续 2 轮 Δ < 2 分 → break，禁硬凑 MAX_ROUNDS（典型症状 = 加废话让 LLM 觉得更详细，膨胀即警示）。
+5. **触顶停**：连续 2 轮 Δ < 2 分 → break，禁硬凑 MAX_ROUNDS（典型症状 = 加废话让 LLM 觉得更详细，膨胀即警示）。
 6. **无第三方直接依赖**：评分 rubric / 对比脚本均自包含（见 references/）；软引用 darwin/nuwa/cangjie/grill 是「方法论借鉴源，非依赖」，禁 import 其脚本。
 
 ## 路由（先判去重，避免与 skill-dev / plugin-dev 重叠）
@@ -56,13 +56,13 @@ arguments: "<组件路径>"
 
 > 🔴 **CHECKPOINT**：诊断表给用户确认方向 + 优先级后再设计编辑。
 
-### Phase 2: 单变量轮（核心 — 改 → 验证 → ratchet → 触顶判）
+### Phase 2: 单变量轮（核心 — 改 → 验证 → ratchet → 触顶停）
 
 循环每轮：
 1. **改一维度**（或一相关簇）：最小可验证改动，优先小步而非整段重写（除非 ≥3 维同时 ≤4 分触发探索性重写，且必须用户确认）。
 2. **过质量门**（硬规 1 命令）+ **before/after 对比**：见 [references/validation-gate.md](references/validation-gate.md)（s3 subtask 创建，含 should-trigger / should-not-trigger / edge case 集 + 独立子 agent 盲评流程 + dry_run 降级）。
 3. **严格更好才留**：触发准确不退步 · 输出无负面（冗余 / 跑偏 / 格式怪）· 分数 gross Δ>0 → `git commit`（分支 `optimize/<comp>-YYYYMMDD`）；任一退步 → `git revert HEAD` 回滚（禁 `reset --hard` 丢工作树），记失败尝试原因（归因不明 / Δ<0 / 触发变差）。
-4. **触顶判**：连续 2 轮 Δ < 2 → break 进 Phase 3（+0.x 是停手信号非继续）。
+4. **触顶停**：连续 2 轮 Δ < 2 → break 进 Phase 3（+0.x 是停手信号非继续）。
 
 ### Phase 3: 汇总（分数变化 + 留 / 滚统计 + 触顶信号）
 
@@ -77,7 +77,7 @@ arguments: "<组件路径>"
 | 质量门 `claude -p` 返 400 / 空 | 重试循环（端点抖动，记忆 claude-p-endpoint-flaky） | 3 次仍败 → 人工审 + 小步可回滚提交，标「待端点恢复补跑」 |
 | 自评乐观偏差（改完都说好） | 评分 / 对比 spawn 独立子 agent 或独立 session | judge 分歧大 → 加第 3 judge 或换 full_test 实测，仍分歧标「评估不可信」人审 |
 | 多维同改无法归因哪项起效 | 降单变量重试，一轮只改一维度（或一紧密相关簇） | 已混改 → revert 全部，逐维重做建立因果 |
-| 触顶后硬凑废话涨分（体积膨胀） | 体积护栏：改后 > 原 ×1.5 拒绝提交，先精简再评 | 删冗余 / 合并重复回到 ×1.5 内仍 Δ<2 → 接受触顶 break |
+| 触顶后硬凑废话涨分（体积膨胀） | 膨胀护栏：改后 > 原 ×1.5 拒绝提交，先精简再评 | 删冗余 / 合并重复回到 ×1.5 内仍 Δ<2 → 接受触顶停 |
 | 独立子 agent 不可用 | 降级 dry_run（模拟执行思路），标注 dry_run | dry_run > 30% → ⚠️ 评估失效警告，仅出建议不改盘，分数不可信须人审 |
 | 改后触发词变更致下游 break | 回滚触发词，body 内补关键词 | 新建组件而非原地改（破坏性变更必须用户确认） |
 
@@ -85,7 +85,7 @@ arguments: "<组件路径>"
 
 - 同 context 自评自改（应 spawn 独立子 agent / 独立 session 防乐观偏差）。
 - `git reset --hard` 回滚（丢工作树，应 `git revert HEAD` 建反向 commit）。
-- 为凑分加冗余 / 扩体积（应体积护栏 > 原 ×1.5 拒提交，先精简再评）。
+- 为凑分加冗余 / 扩体积（应膨胀护栏 > 原 ×1.5 拒提交，先精简再评）。
 - 跳质量门直接提交改后内容（违反硬规 1）。
 - 多维同改一轮（归因失效，应单变量轮）。
 - 拿本 skill 去评**单 skill / agent 深度**（交 `/skill-dev`）或查**插件接线**（交 `/plugin-dev`）。
