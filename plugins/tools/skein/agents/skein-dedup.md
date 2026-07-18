@@ -2,8 +2,8 @@
 name: skein-dedup
 description: SKEIN 查重员。被 main 异步派发 (fire-and-forget, 不阻塞 exec), 跑 `skein list --status open --json` + 各 task subtask list 全量扫描未完成 task, 检测重复/重叠 (同目标 / 同模块 / 共享改动面 / 互为前置), 回传重复清单 (task-id pair + 建议: 归一拆 subtask / 保留独立) 供 main 裁定。只读 (Read/Bash/Grep/Glob), 无 Write/Edit。haiku 省 token。遵守 skein agent 公共铁律 (见 spec core/agent/skein-skill-agent-slim-01)。
 tools: Read, Bash, Grep, Glob
-model: haiku
-effort: medium
+model: sonnet
+effort: low
 color: orange
 permissionMode: bypassPermissions
 ---
