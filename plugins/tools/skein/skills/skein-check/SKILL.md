@@ -1,6 +1,6 @@
 ---
 name: skein-check
-description: task check 阶段质量验证。exec 产物完成后 finish 前使用 — 派 skein-checker 跑 lint/type-check/tests/契约合规, 未过则回 planning 重确认 (main 重新 grill/AskUserQuestion 与用户确认修复方向, 非直接补 subtask 回 exec) → 确认后同 task 排队修复子任务 → 重新 claim 派发 → 通过才放行 finish。验证与修复分离; 反复不过 (第 3 轮) 做 5 维根因复盘
+description: task check 阶段质量验证。exec 产物完成后、finish 前使用。派 skein-checker 跑 lint/type-check/tests/契约 + 一致性核查, 回传通过|失败|冲突报告。未过或检出冲突不放行 finish。验证与修复分离。
 user-invocable: true
 argument-hint: "[task_id]"
 arguments: "[task_id]"
@@ -44,6 +44,15 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 | 一致性冲突 / 根因跨 subtask | 回 planning 重确认后, 同 task `subtask add` 多个修复子任务 (一冲突一 subtask), task 保持 `进行中`, 回 exec 逐条覆盖 | 冲突未全覆盖禁 finish, 逐条覆盖到零冲突才放行                   |
 | 修复子任务 ≥2 轮仍 FAIL (第 3 轮) | 停加子任务循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 5 维根因复盘 | 带根因回 planning 重确认 (grill 方向) 定向重修; 根因超 exec (需求/设计缺陷) → 停手附根因报告转人工 |
 
-## 反例
+## ❌ 反例 (命中=流程错误)
+
+> 🔒 Iron Law: 未全绿且零冲突禁 finish — check 失败回 planning 重确认 (禁跳确认直接补 subtask)。
 
 违反上文即流程错误: main 亲跑 lint/test (应派 checker) / checker 自己改码 (应交合适修复 agent) / 未全绿就 finish / 只跑 lint 不验契约 (先 `skein contract` 逐条报) / **check 失败跳过 planning 重确认直接补 subtask 回 exec** (应先 grill/AskUserQuestion 与用户敲定修复方向, 确认后才 `subtask add`) / **check 失败改 task 状态或另建 task/加 planning 枚举** (应同 task `subtask add` 排队修复, task 保持 `进行中`, 「回 planning」是思维语义非新枚举) / 冲突未逐条 `subtask add` 覆盖就 finish / **checker 重复验证已 `- [x]` 项** (应跳过, 防重复处理) / **验证通过不回写 `- [x]`** (下轮又重验已确认项) / 无限重检 (第 3 轮走根因复盘)。
+
+### 自欺兜底 (高频反例)
+
+| Excuse (自欺)                                   | Reality (现实 ✅ 正向配方)                              |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| 「报错了先加个 subtask 修了再说」               | ✅ 先 grill 用户拍板修复方向, 确认后才 `subtask add`     |
+| 「check 没过, 那我把 task 状态退回 planning 态」 | ✅ 「回 planning」是思维语义非状态机新枚举, task 保持 `进行中` |

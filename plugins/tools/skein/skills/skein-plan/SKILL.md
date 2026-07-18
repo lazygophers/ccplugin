@@ -1,6 +1,6 @@
 ---
 name: skein-plan
-description: "planning 入口 + 单一真值源 (用户可显式调用 /skein-plan, 也被 skein-flow 委托): 新建 SKEIN task 做需求梳理 — 判新旧 + create 登记 + brainstorm (交互式) + grill 硬门, 产出 prd.md 主入口 + design.md 详细设计 + 调度落 task.json。无参 = 跑完停在 start 前 (只规划不执行); --continue = 不停返回工件路径 (供 flow 自接激活)"
+description: "planning 入口 + 单一真值源 (用户显式 /skein-plan 或被 skein-flow 委托)。新建 SKEIN task 做需求梳理: 判新旧 + create 登记 + 交互式 brainstorm + grill 硬门。产出 prd.md + design.md + 子任务/依赖 DAG 落 task.json。无参 = 停在 start 前 (只规划不执行); --continue = 返回工件路径供 flow 激活。硬约束: 未跑 grill / 未 subtask add 禁进 exec; design.md 仅 planning 阶段可写"
 user-invocable: true
 argument-hint: "<任务描述>"
 arguments: "<任务描述>"
@@ -75,6 +75,8 @@ exec 阶段的 DAG 靠 task.json 的 `subtasks[].depends_on` (经 `skein subtask
 | grill 弱点表 >3 轮不收敛               | 归并同源弱点, 一次批量 `AskUserQuestion` 裁完  | 仍发散 → scope 过大, 拆多 task (heavy 档 + depends_on) |
 | subtask 粒度不清 / 无从定 depends_on   | 回 brainstorm 补边界, 按可独立验收切           | 仍切不动 → 派 `skein-researcher` 勘察代码再拆        |
 
-## 反例
+## ❌ 反例 (命中=流程错误)
+
+> 🔒 Iron Law: 未跑 grill / 未 `subtask add` 任何子任务禁进 exec。
 
 违反上文即流程错误: 凭空设计需求方案 (应 brainstorm 逐问用户) / 派 subagent 做 brainstorm (它不能问用户) / 跳 grill 硬门进 exec / **把调度图/子任务写进 md 文件而非 task.json** / start 前未 `subtask add` 任何子任务 / 纯文本代替 AskUserQuestion / **无参调用却跑了 `skein start` 或 exec/check/finish** (无参只到 planning 停, 执行归 flow/go) / **plan 收尾忘了异步派 skein-dedup** (重复 task 漏查归并, 散 task 丢共享上下文)。

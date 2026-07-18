@@ -1,6 +1,6 @@
 ---
 name: skein-exec
-description: SKEIN task 闭环入口 + exec 调度门。作 /skein-exec 命令: 有入参→请求强制作 task 走闭环 (委托 skein-flow: plan→exec→check→finish, 不 inline); 无入参→驱动 .skein 既有 ready/active task 各走闭环 (task 级并发 2)。作 skill: 被 skein-flow exec 委托, main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent 各执行 1 个, ready 即派 / 完成即派 / 并发上限 2, 改动落 task worktree。含双层 (subtask 级 + 多 task 级) 同构调度算法 + 异步任务清单
+description: task exec 阶段执行编排调度门 + /skein-exec 闭环入口。作命令: 有入参→强制建 task 走闭环 (委托 skein-flow: plan→exec→check→finish, 不 inline); 无入参→驱动 .skein 既有 ready/active task 各走闭环。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选合适 agent 各执行 1 个, 改动落 task worktree。回传各 subtask 产物 / 需要 / 失败。硬约束: 并发上限 2、完成即派、main 禁亲改源码、载体单 subagent 不递归、异步等待 MUST 输出任务清单
 user-invocable: true
 argument-hint: "[task-id]"
 arguments: "[task-id]"
@@ -48,7 +48,7 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
 - **subtask 失败 → 自愈闭环 (禁失败即停摆)** — subtask 报错/验收不过, main 读根因**自主修**, 二选一 (均在本 task scope 内): ① 定点小缺陷 → 缩范围**原地重派** `subtask start` (≤2 轮); ② 根因是独立可修单元 → **自主 `subtask add --deps` 插修复 subtask** 定点修根因 → 修复 done 后重派失败 subtask。兜底: 修复也失败/累计无进展超上限/根因超 scope → 停回传 (走 skein-check root-cause-protocol 或转人工)。禁跳过该 subtask 放行下游。详见 [scheduling-algorithm.md](references/scheduling-algorithm.md)。
 - **exec 中发现独立新问题 → 自主拆新 task, 禁扩当前 scope** — 与上条自愈**互斥分流**: 自愈修的是**本 task scope 内**失败的 subtask (完成原范围); 本条是 subagent 回传暴露**超出本 task 边界**的问题 (新缺陷 / 新需求 / 需单独验收的关联改动), main 自主走 `skein-plan` / `skein create` 登记为**新排队 task** (与当前 task 有先后用 `--deps` 连边, 无则并行; active 集 ≤ 2 自动排队), 禁塞进当前 task 扩范围。当前 task 按原 scope 收束。判据: 修复动作是否属原 subtask 目标 —— 属 → 自愈 (加修复 subtask); 不属 → 拆新 task。
 
-## 两条硬规
+## ⚠️ 两条硬规
 
 - **异步等待 MUST 输出任务清单** — 派出异步任务后、结束本回合前, 输出全景表 (4 列 id/状态/摘要/进度%, 状态枚举 进行中/等待中/阻塞)。格式见 [references/progress-reporting.md](references/progress-reporting.md)。同步前台阻塞 / 无在跑任务不触发。
 - **exec 阶段禁问用户顺序** — 顺序归 planning (task.json 的子任务 DAG + depends_on)。exec 只跑动态调度循环。task.json 缺子任务 DAG (depends_on) → 退回 planning 补, **不在 exec 问**。
@@ -65,6 +65,8 @@ subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein
 | subagent 返回 `需要:`         | main 转达用户 / 补信息后重派该 subtask     | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
 | `claim` 返回空但仍有 pending  | 查 depends_on 是否死锁 (环 / 前置永不 done) | 确为环 → 停手回 skein-plan 改 DAG, 禁空转轮询     |
 
-## 反例
+## ❌ 反例 (命中=流程错误)
 
-违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / 派出异步任务后不输出任务清单 / 用本 skill 做需求方案设计 (那归 skein-plan) / 组 subagent-team (已禁用, 一律拆 subtask 各派单 subagent) / 载体产出后滞留空转不退出 (应及早退出) / exec 中发现独立新问题却塞进当前 task 扩 scope (应自主拆新排队 task) / subtask 失败即停等人工不自愈 (应先自愈: 原地重派或加修复 subtask, 兜底才回传)。
+> 🔒 Iron Law: main 禁亲改源码 — 实质产出一律派 subagent (仅 ≤3 文件微改例外且必在 task worktree 内)。
+
+违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / ❌ 派出异步任务后不输出任务清单 → ✅ 回合末输出 4 列全景表 (id/状态/摘要/进度%) / 用本 skill 做需求方案设计 (那归 skein-plan) / 组 subagent-team (已禁用, 一律拆 subtask 各派单 subagent) / 载体产出后滞留空转不退出 (应及早退出) / exec 中发现独立新问题却塞进当前 task 扩 scope (应自主拆新排队 task) / subtask 失败即停等人工不自愈 (应先自愈: 原地重派或加修复 subtask, 兜底才回传)。

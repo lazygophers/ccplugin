@@ -1,6 +1,6 @@
 ---
 name: skein-memory
-description: 两层规则记忆 (基于 .skein/spec)。planning 时召回相关规则、task finish 后沉淀学习时使用 — core 常驻硬规 + recall 按需召回, 经 sediment 判定门 (checklist) 自动写盘 (无需逐次询问用户)。SKEIN 差异化核心。空仓冷启动 (.skein/spec 为空) 时可提议扫既有代码库约定播种规则基线 (一次性)。既有记忆大面积失效 (大重构/换技术栈/记忆漂移) 时可完全重构 (reconstruct): 可逆归档旧规则后依代码+项目内容按项目类型分型重建
+description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建。硬约束: sediment 异步 fire-and-forget 不阻塞 finish; core 只留硬约束
 argument-hint: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
 arguments: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
 model: inherit
@@ -68,7 +68,9 @@ skein-memory restore <ts>       # 回滚 (撞名不覆盖新规则)
 | core 常驻超 8000 字符告警     | 把最少复用的 core 规则降级到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集            |
 | reconstruct 重建不满意        | `skein-memory restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存) | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
 
-## 反例
+## ❌ 反例 (命中=操作错误)
+
+> 🔒 Iron Law: sediment 异步 fire-and-forget 禁阻塞 finish; core 只留命令式硬约束。
 
 | 禁                                | 改为                                    |
 | --------------------------------- | --------------------------------------- |
