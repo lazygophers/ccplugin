@@ -1997,9 +1997,11 @@ class Skein:
         # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
         f = self.dir / "config.yaml"
         if not f.exists():
+            DBG.log(f"无 .skein 工作区 ({f} 不存在) — serve 空跑退出", style="yellow")
             return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
         cfg = _yaml_load(f.read_text())
         if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+            DBG.log("config.yaml web_serve=false — 看板服务已关闭, serve 退出 (改 true 启用)", style="yellow")
             return  # 用户在 config.yaml 关闭
         # 看板不落盘 — 页面每请求实时从 task.json 渲染 (do_GET)。
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
