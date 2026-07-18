@@ -19,7 +19,7 @@ scaffold + spec 拷贝 + task 迁移 + 接线删除已由 `skein setup [--full]`
 - **已知**: `skein setup [--full]` 已跑 (模式=<兼容|--full>), manifest = `<粘贴 JSON>`; spec 已 `copytree` 独立拷入 `.skein/spec` (trellis 零改动), 接线已删 (含 canonical trellis hook 条目 + 脚本已硬剔)。
 - **工作目录与范围**: 仓库根; 改 `.skein/spec` (原地重组) + `.skein/task/` + `.claude/settings*.json` (JSON 语义剔残留 hook)。
 - **输出格式**: 见 skein-setup agent 定义 (spec 层/类目分布 + task 迁移数 + 清理清单)。
-- **验收标准**: `skein-memory list` 有分层规则; `skein list` 有迁移 task; `.claude/settings*.json` 无 trellis hook (canonical 已脚本清, 残留已 agent 清); 兼容模式 `.trellis/` 数据仍在 / `--full` 已整删。
+- **验收标准**: `skein-spec list` 有分层规则; `skein list` 有迁移 task; `.claude/settings*.json` 无 trellis hook (canonical 已脚本清, 残留已 agent 清); 兼容模式 `.trellis/` 数据仍在 / `--full` 已整删。
 - **失败处理**: agent 标 `需要:` → main 用 `AskUserQuestion` 转达用户裁定分层/字段歧义。
 
 ## 铁律

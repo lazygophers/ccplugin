@@ -21,14 +21,14 @@
 
 ## 3. 自动写盘 (判定门通过即写, 无需逐次询问用户)
 
-判定门 (语义) + 分层归类 通过后**直接写盘**, 不走 AskUserQuestion。main 逐项输出沉淀 trace (层 + 标题 + 触发项) 供事后审阅, 但不硬停等批 —— 记忆积累是高频动作, 每次询问是噪声。误沉淀可靠 `skein-memory reindex` 前手动删文件 / 后续 sediment 调层纠正 (低成本可逆)。
+判定门 (语义) + 分层归类 通过后**直接写盘**, 不走 AskUserQuestion。main 逐项输出沉淀 trace (层 + 标题 + 触发项) 供事后审阅, 但不硬停等批 —— 记忆积累是高频动作, 每次询问是噪声。误沉淀可靠 `skein-spec reindex` 前手动删文件 / 后续 sediment 调层纠正 (低成本可逆)。
 
 > 全局 / 批量动作仍前置征同意 (非「每次」): bootstrap 冷启动播种、reconstruct 整库重建 各自跑前一次 `AskUserQuestion`, 一次覆盖整轮, 内部候选自动写。
 
 ## 4. 写盘命令
 
 ```
-skein-memory sediment --layer core|recall --category git \
+skein-spec sediment --layer core|recall --category git \
   --title "契约标题" --keywords "worktree,merge" --source <task-id> --body-file <正文.md>
 ```
 
@@ -36,4 +36,4 @@ skein-memory sediment --layer core|recall --category git \
 
 ## 升降级 (可选, 按需再加)
 
-core↔recall 频率驱动升降级暂不实现 (YAGNI)。手动: 移动文件到目标层/类目子目录 + `skein-memory reindex` 重建索引。
+core↔recall 频率驱动升降级暂不实现 (YAGNI)。手动: 移动文件到目标层/类目子目录 + `skein-spec reindex` 重建索引。

@@ -55,7 +55,7 @@ skills:
 
 ## bootstrap 扫描模式 (冷启动播种, 与上面调研职责并列)
 
-dispatch prompt「已知」段标 `mode=bootstrap` 时, 不调研某个 topic, 而是**扫整个代码库提炼既有约定为候选规则** (供 `skein-memory` 冷启动播种, 见 `skein-memory/references/bootstrap-seeding.md`)。仍是**纯只读**, 仍不做设计决策 (层判定/取舍归 main + 用户)。
+dispatch prompt「已知」段标 `mode=bootstrap` 时, 不调研某个 topic, 而是**扫整个代码库提炼既有约定为候选规则** (供 `skein-spec` 冷启动播种, 见 `skein-spec/references/bootstrap-seeding.md`)。仍是**纯只读**, 仍不做设计决策 (层判定/取舍归 main + 用户)。
 
 - **扫五维**: 命名 / 错误处理 / 测试 / 架构边界 / 构建。每维产 0..N 条候选规则, **无信号则 0 条, 禁硬凑**。
 - **只提既有约定**, 描述现状 (grep 多处一致的惯例), 不提"应改成什么"。单处孤例 = 弱信号或不报; 每条至少 2 处一致证据才算约定, 1 处前缀 `推测:`。

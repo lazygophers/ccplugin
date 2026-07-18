@@ -38,9 +38,9 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | 想改                                                                                | 怎么改                                                 | 收尾                                  |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------- | ------------ |
 | 并发上限 (max_active / max_parallel)                                                | 直接 Edit `.skein/config.yaml`                         | 无                                    |
-| spec 类目重组 (类目 = 层内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<layer>/<category>/*.md`      | `skein-memory reindex`                   |
-| core↔recall 层调 (core 常驻过重, >8000 字符会告警)                                  | 把规则文件从 `spec/core/` 移到 `spec/recall/` (或反向) | `skein-memory reindex`                   |
-| 新增一条规则                                                                        | `skein-memory sediment --layer <core                      | recall> --category <cat> --title <T>` | 自动 reindex |
+| spec 类目重组 (类目 = 层内子目录, 自由取名 git/test/arch/build/style/domain/ops...) | 移动 / 改名 `.skein/spec/<layer>/<category>/*.md`      | `skein-spec reindex`                   |
+| core↔recall 层调 (core 常驻过重, >8000 字符会告警)                                  | 把规则文件从 `spec/core/` 移到 `spec/recall/` (或反向) | `skein-spec reindex`                   |
+| 新增一条规则                                                                        | `skein-spec sediment --layer <core                      | recall> --category <cat> --title <T>` | 自动 reindex |
 
 - **改 spec 盘后必 `reindex`** — 索引 (三份 index.md) 落后于实际盘面 = 召回失效。
 - **task.json / task.md 禁手改** — 经 `skein create/start/...` 命令维护, PreToolUse hook 硬阻直接写。
@@ -58,7 +58,7 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | 禁                                     | 为什么                                    | 改为                                      |
 | -------------------------------------- | ----------------------------------------- | ----------------------------------------- |
 | 手改 `.skein/task*` 绕过脚本           | PreToolUse hook 硬阻 + 破坏索引一致性     | 经 `skein create/start/...` 命令       |
-| 改 spec 盘面后不 reindex               | 三份 index.md 落后盘面 = 召回失效         | 必跑 `skein-memory reindex`                  |
+| 改 spec 盘面后不 reindex               | 三份 index.md 落后盘面 = 召回失效         | 必跑 `skein-spec reindex`                  |
 | 检测到 `.trellis/` 直接 `setup --full` | 未问用户就整删可能丢数据                  | 先 `AskUserQuestion` 选兼容 / `--full`    |
 | 已初始化仓重跑当报错                    | setup 幂等, 重跑安全不覆盖                 | 正常重跑, config/spec 存在则跳过          |
 | 什么都堆进 core 常驻                    | >8000 字符告警, 稀释硬约束                 | 默认 recall, core 只留命令式硬契约        |
@@ -68,5 +68,5 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 | 触发                        | 一线修复                              | 仍失败兜底                                  |
 | --------------------------- | ------------------------------------- | ------------------------------------------- |
 | `skein setup` 报错       | 读 manifest JSON `error` 字段定位 (权限 / 路径占用 / 已存在) | 仍失败 → 报用户, 禁手工拼凑 `.skein/`       |
-| `skein-memory reindex` 报错    | 读 stderr 定位 (类目名非法 / 路径)    | 仍失败 → 停手报用户, 禁半写坏索引            |
+| `skein-spec reindex` 报错    | 读 stderr 定位 (类目名非法 / 路径)    | 仍失败 → 停手报用户, 禁半写坏索引            |
 | trellis 迁移中断            | 数据仍在 `.trellis/` (兼容模式未删), 重跑迁移 | 仍中断 → 报用户, 禁手工拼凑 `.skein/`       |

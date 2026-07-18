@@ -18,4 +18,4 @@
 - **全站点一次性改齐** — 改契约必同轮改**所有**调用站点 (先 grep 穷举, 再逐个改)。留一个没改 = 破坏式失败 (半破坏最糟)。
 - **禁留兼容垫片** — 破坏式的意义就是删掉旧路径; 留 `@deprecated` / shim / 双写 = 没破坏, 退回修补式即可。
 
-(改前查爆炸半径 / worktree 载体 / check 全站点 / sediment 归 skein-memory 照 flow·check·CLAUDE.md 通则, 此处不复述。)
+(改前查爆炸半径 / worktree 载体 / check 全站点 / sediment 归 skein-spec 照 flow·check·CLAUDE.md 通则, 此处不复述。)

@@ -21,16 +21,16 @@ import sys
 from typing import Any, Optional, cast
 
 BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
-ENGINE = ("skein.py", "memory.py", "skein ", "skein-memory ")
+ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
 GATED = {"Read", "Edit", "Write", "MultiEdit"}
 # 改 .skein 共享状态的子命令 (写 task.json / spec / 看板); 只读命令不在列
 WRITE_CMDS = ("create", "start", "finish", "archive", "subtask",
               "sediment", "reindex", "init", "contract")
-ENGINE_RE = re.compile(r"(?:skein\.py|memory\.py|\bskein\b|\bskein-memory\b)\s+([a-z-]+)")
+ENGINE_RE = re.compile(r"(?:skein\.py|spec\.py|\bskein\b|\bskein-spec\b)\s+([a-z-]+)")
 ISSUE_URL = "https://github.com/lazygophers/ccplugin/issues/new"
-OURS = ("skein.py", "memory.py", "CLAUDE_PLUGIN_ROOT")
+OURS = ("skein.py", "spec.py", "CLAUDE_PLUGIN_ROOT")
 # bin 短命令: 作为命令词出现 (行首或分隔符后), 避免 `.skein/` 之类路径误匹配
-BIN_RE = re.compile(r"(?:^|[\s;&|(])(?:skein-memory|skein)(?:\s|$)")
+BIN_RE = re.compile(r"(?:^|[\s;&|(])(?:skein-spec|skein)(?:\s|$)")
 
 
 def _load_stdin() -> Optional[dict[str, Any]]:

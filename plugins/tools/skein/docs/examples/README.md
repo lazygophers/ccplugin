@@ -1,6 +1,6 @@
 # 样例 `.skein/`
 
-一份**执行中途**的真实 `.skein/` 快照, 对着 [glossary.md](../glossary.md) / [workflow.md](../workflow.md) 看每个文件长啥样、谁维护, 以及跑起来后 `.skein/` 目录里的**实际内容**。全部 json/md 由 `skein` / `skein-memory` 真跑生成 (非手搓, 仅手写 `prd.md`/`design.md`/`findings.md` 三份 planning 工件)。worktree 路径相对 project root 存盘, 时间字段一律 Unix 时间戳, 状态一律中文。
+一份**执行中途**的真实 `.skein/` 快照, 对着 [glossary.md](../glossary.md) / [workflow.md](../workflow.md) 看每个文件长啥样、谁维护, 以及跑起来后 `.skein/` 目录里的**实际内容**。全部 json/md 由 `skein` / `skein-spec` 真跑生成 (非手搓, 仅手写 `prd.md`/`design.md`/`findings.md` 三份 planning 工件)。worktree 路径相对 project root 存盘, 时间字段一律 Unix 时间戳, 状态一律中文。
 
 ## 场景: 一条订单流
 
@@ -50,7 +50,7 @@
 | `task/order-pay/*` | 待处理但已 plan 出 subtask (未 start, 无 prd/worktree); order-report/notification-service 同类 | **脚本** · AI 禁读写 |
 | `task/refund-flow/*` | 待处理但已 plan 出 subtask (subtask 全待处理) — 展示"排队 + 已拆分" | **脚本** · AI 禁读写 |
 | `task/archive/<年>/<月-日>/<id>/*` | 3 个已完成归档 task (order-query/user-auth/api-gateway, 按完成日期分层) | **脚本** · 只读留痕 |
-| `spec/index.md` + `core/`/`recall/` | 两层规则记忆库 (差异化核心) | **`skein-memory`** · AI 经命令沉淀/召回 |
+| `spec/index.md` + `core/`/`recall/` | 两层规则记忆库 (差异化核心) | **`skein-spec`** · AI 经命令沉淀/召回 |
 
 ## 两层规则记忆 (差异化核心)
 
@@ -61,7 +61,7 @@
 - `spec/recall/arch/order-create-api-00.md` — **recall** (按需召回): "订单幂等键 + 库存 Redis 原子扣减约定"。
 - `spec/recall/test/order-pay-01.md` — **recall**: "订单状态机测试覆盖要求"。
 
-core 层每 session 由 SessionStart hook 注入**极简索引** (仅标题, 全文按需 `inject-core`, token 硬预算守卫); recall 层 planning 时 `skein-memory recall <query>` 粗筛命中, model 再读全文定用否。文件命名 `<source>-<seq>.md` (source=沉淀它的 task id), frontmatter 带 title/layer/category/keywords/source。类目 (git/domain/arch/test) = 层内物理子目录, 自由建。
+core 层每 session 由 SessionStart hook 注入**极简索引** (仅标题, 全文按需 `inject-core`, token 硬预算守卫); recall 层 planning 时 `skein-spec recall <query>` 粗筛命中, model 再读全文定用否。文件命名 `<source>-<seq>.md` (source=沉淀它的 task id), frontmatter 带 title/layer/category/keywords/source。类目 (git/domain/arch/test) = 层内物理子目录, 自由建。
 
 ## 怎么用这份样例
 
@@ -72,7 +72,7 @@ cd /path/to/your-repo
 skein current             # 列 active task (order-create-api, 无 focus)
 skein list                # 含归档的 order-query
 skein subtask list order-create-api    # 看 subtask 四态 DAG
-skein-memory recall 幂等         # 召回 recall 规则
+skein-spec recall 幂等         # 召回 recall 规则
 ```
 
-> 直接 `cat .skein/task.json` 能看内容, 但**真实流程里 AI 禁读写这些脚本管理的文件** — guard PreToolUse hook 会拦。取态一律走 `skein` / `skein-memory` 命令 stdout。
+> 直接 `cat .skein/task.json` 能看内容, 但**真实流程里 AI 禁读写这些脚本管理的文件** — guard PreToolUse hook 会拦。取态一律走 `skein` / `skein-spec` 命令 stdout。

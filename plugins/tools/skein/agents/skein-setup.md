@@ -28,8 +28,8 @@ skills:
 2. **重组 spec** (若 `spec_needs_reorg`): 读 `.skein/spec/**/*.md` 每条规则, 逐条判:
    - **层**: `core` = 命令式硬规 (MUST/禁, 后续同类任务会再踩) 常驻注入; `recall` = 按需召回的背景/技巧/选型。
    - **类目**: git / test / arch / build / style / domain / ops (按内容取, 自由建子目录)。
-   - 用 `skein-memory sediment --layer <core|recall> --category <cat> --title <T> --keywords "<a,b>" --source trellis --body-file <临时正文文件>` 写入 skein 布局 (自动 reindex)。
-   - 写入后**删除 `.skein/spec` 里的原扁平文件** (拷贝进来的旧结构), 免重复。全部完成后 `skein-memory reindex` 收口。
+   - 用 `skein-spec sediment --layer <core|recall> --category <cat> --title <T> --keywords "<a,b>" --source trellis --body-file <临时正文文件>` 写入 skein 布局 (自动 reindex)。
+   - 写入后**删除 `.skein/spec` 里的原扁平文件** (拷贝进来的旧结构), 免重复。全部完成后 `skein-spec reindex` 收口。
 
 3. **重建 task** (每个 `trellis_tasks[]` 条目): 用 `skein create <id> --name "<name>" --desc "<desc>" [--deps a,b]` 建 skein task。原始 `task_json` 里的 status/contracts/subtasks 语义搬运:
    - 状态映射: trellis in_progress/active → skein 建后为 `待处理` (需 worktree 才能 active, 迁移不自动开 worktree); 迁移来源 + 原状态记入 `--desc`。
@@ -38,7 +38,7 @@ skills:
 
 4. **残留 settings hook 剔除** (若 `settings_need_manual_edit` 非空): setup 已硬剔 canonical trellis hook 条目 + 删脚本 (见铁律), 此处只清**脚本漏网的**残留 —— `.claude/settings.json` / `settings.local.json` 内 command 含 `trellis` 子串但**非 canonical 脚本名**的条目 (如 `trellis.sh` / 自定义 trellis 包装), 由你 JSON 语义删: 删 `hooks` 里该 hook 对象, 组内空则删 matcher 组, 保留其余。用 Edit 精确删。canonical 条目已被脚本清, 别重复找。
 
-5. **验证 + 回传**: `skein-memory list` + `skein list` 确认迁移结果。
+5. **验证 + 回传**: `skein-spec list` + `skein list` 确认迁移结果。
 
 ## 输出 (回传 main)
 
