@@ -31,6 +31,20 @@ effort: high
 | `standard`   | 跨文件 / 多步, 单 task 可覆盖        | 常规 plan→exec→check→finish                                                                                                            |
 | `heavy`      | 跨子系统 / 破坏式重构 / 多 task 并行 | 强化 grill + 可能拆多 task + 显式 `depends_on`。破坏式重构 (改契约/删旧路径/全站点一次改齐, 禁垫片) 见 references/breaking-refactor.md |
 
+### 🛑 复杂度天花板 (归一有上限, 命中必提醒用户拆多 task)
+
+归一是默认, 但**单 task 有复杂度天花板** —— 不是相关工作就无脑塞进一个 task 让它执行完所有事。planning 拆完 subtask 后 (subtask 数已知) 逐项对表, **命中任一即停下**, 用 `AskUserQuestion` 提醒用户「本 task 过复杂, 建议拆成多个互相依赖的 task」:
+
+| 天花板信号             | 判据                                                                 |
+| ---------------------- | -------------------------------------------------------------------- |
+| subtask 数超阈值       | 拆出 subtask **> 8** (或 brainstorm 已看出会 > 8)                     |
+| 跨子系统 / 多改动面    | scope 跨 ≥2 子系统 / 多个独立改动面 (如前端+后端+DB+基建各成一摊)     |
+| 工期 / 风险高          | 预估工期长 / 破坏式重构 (heavy 档) / 一处崩全批停                     |
+
+- **用户选拆** → 按子系统 / 改动面切成多 task, 各 `skein create` 登记, 用 **task 级** `--deps` / `skein deps` 串成互依赖 DAG (契约/基础 task 先, 消费方后)。原归一 task 作废或改造为其中一个。
+- **用户选不拆** → 归一继续, 照常 `subtask add` 拆 subtask DAG。
+- 阈值 8 是启发默认 (ponytail: 拍脑袋定, 明显偏离再调), 非硬机器 —— 边界模糊仍以 `AskUserQuestion` 用户裁定为准。
+
 ### 作用域边界 (何时建 task)
 
 | 特征                              | 判定                            |
@@ -60,6 +74,7 @@ effort: high
    - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json)。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派, 禁就地改。
    - `findings.md` (需调研时) — 深度调研的收敛结论 + 依据/引用; 过程笔记存 `research/` (researcher 写)。
    - **子任务 + 调度 DAG (协议先行, 后并行)** — 拆分铁律: 先把 subtask 间的**共享契约** (接口签名 / 数据结构 / 类型 / 协议格式 / DB schema) 抽成**单个前置 subtask** 优先定死, 下游各实现 subtask 只 `--deps` 这一个契约 subtask、彼此**不互挂依赖** → 契约一 done 即全批并行。这是压 makespan 的命门 —— 定协议是唯一真串行, 实现全并行。每个 subtask 含 depends_on + 验收 checklist, 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json (sid/--name/--desc 三者必填, `--agent` 省略默认 `skein-executor`)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
+     - **拆完对表复杂度天花板 (硬)** — subtask 落完立刻对「🛑 复杂度天花板」表逐项核: 命中任一 (subtask > 8 / 跨 ≥2 子系统 / 工期风险高) → `AskUserQuestion` 提醒用户拆成多个互依赖 task, 禁默默塞一个 task 执行完所有事。
 6. **异步派 skein-dedup (fire-and-forget, 不阻塞 exec)** — 所有 task planning 完成 (batch 末 / plan 收尾, exec 触发前), main **异步派 `skein-dedup`** subagent 全量扫一次未完成 task: ① 查重归并 (同目标 / 同模块 / 共享改动面 / 互为前置, 自动 `subtask add` 迁入主 task + `skein del` 次 task); ② 给散落的相关 task 补执行序织成完整 DAG (自动 `skein deps`, **仅对现无 deps 的 pending task 补前置, 已有 deps 的不碰**, 无关 task 保持孤立)。**异步不阻塞**: dedup 后台跑, exec 照常推进; 归并/补序自动写盘 (CLI 校验存在性/成环)。派它即放手, 不等其回传再 start。
 7. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
