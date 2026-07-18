@@ -1,6 +1,6 @@
 ---
 name: skein-plan
-description: "planning 入口 + 单一真值源 (用户显式 /skein-plan 或被 skein-flow 委托)。新建 SKEIN task 做需求梳理: 判新旧 + create 登记 + 交互式 brainstorm + grill 硬门。产出 prd.md + design.md + 子任务/依赖 DAG 落 task.json。无参 = 停在 start 前 (只规划不执行); --continue = 返回工件路径供 flow 激活。"
+description: planning 入口 + 单一真值源 (用户显式 /skein-plan 或被 skein-flow 委托)。新建 SKEIN task 做需求梳理: 判新旧 + create 登记 + 交互式 brainstorm + grill 硬门。产出 prd.md + design.md + 子任务/依赖 DAG 落 task.json。无参 = 停在 start 前 (只规划不执行); --continue = 返回工件路径供 flow 激活。
 user-invocable: true
 argument-hint: "[任务描述]"
 arguments: "[任务描述]"

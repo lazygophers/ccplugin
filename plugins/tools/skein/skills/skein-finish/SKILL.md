@@ -1,6 +1,6 @@
 ---
 name: skein-finish
-description: task 收尾闭环门。check 全绿后使用 (被 skein-flow finish 委托, 或用户显式 "收尾/归档/闭环") — 派 skein-finisher 收尾勘察 (diff/subtask 核对/悬挂清单, 同步门) → skein finish (commit→merge→archive→销 worktree, 先闭环) → 异步 fire-and-forget 派 skein-specer 跑 sediment 判定门 + 自主写盘 (不阻塞 finish)
+description: task 收尾闭环门 (被 skein-flow finish 委托, 或用户显式 "收尾/归档/闭环")。check 全绿后派 skein-finisher 收尾勘察 → skein finish 闭环 (commit→merge→archive→销 worktree) → 异步派 skein-specer 跑 sediment。未 archive = 未闭环, 禁宣告 Done。
 user-invocable: true
 argument-hint: "[任务ID]"
 arguments: "[任务ID]"

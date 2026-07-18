@@ -39,23 +39,26 @@
 | 10 | 无 eval 就发布 | 先建 ≥3 场景 eval（Phase 5 步骤 1） |
 | 11 | Windows 反斜杠路径 | 统一正斜杠 |
 | 12 | token 超 compaction 预算（≠ 行数） | CJK/表格/代码块密度高，500 行中文可能 8000+ token，多 skill session 被反复踢出且无错误信息——控制实际 token 不只行数 |
+| 13 | description 塞硬约束/铁律/流程细节（「硬约束: 并发上限 2、完成即派…」「→ commit→merge→archive→销 worktree →…」） | desc 只留**触发词 + 本质**；铁律/流程**下沉到 body**（body 的失败模式表/载体分工表/❌ 反例已承载）。多模式 skill 例外：模式名枚举是可发现性，保留 |
+| 14 | description 里指向 `references/xxx.md` | desc 应自包含（列表页只显示 desc，读不到 ref）；改为一句自包含短语，细节留 body |
+| 15 | 极小 reference（<~15 行）单列文件 | 内联进 SKILL.md；reference 承载渐进披露的**实质**细节，微内容单列反增导航成本、稀释 progressive disclosure |
 
 ### P2 中等（质量损耗）
 
 | # | 反模式 | 正例 |
 |---|--------|------|
-| 13 | 术语混用（field/box/element） | 选定一个贯穿 |
-| 14 | 时间敏感信息内联 | 放 old patterns `<details>` |
-| 15 | 脚本 punt 错误给 Claude | 显式 try/except + 默认值 |
-| 16 | voodoo constants（TIMEOUT=47） | 注释为何这个值 |
-| 17 | 假设包已安装 | 显式 `pip install` |
+| 16 | 术语混用（field/box/element） | 选定一个贯穿 |
+| 17 | 时间敏感信息内联 | 放 old patterns `<details>` |
+| 18 | 脚本 punt 错误给 Claude | 显式 try/except + 默认值 |
+| 19 | voodoo constants（TIMEOUT=47） | 注释为何这个值 |
+| 20 | 假设包已安装 | 显式 `pip install` |
 
 ### P3 结构性
 
 | # | 反模式 | 正例 |
 |---|--------|------|
-| 18 | 只写正例不写反例 | 反例黑名单成章（本节即示范） |
-| 19 | 「必须」措辞代替视觉标记 | 🔴 / 🛑 视觉标记（LLM 扫标记优先于语义） |
-| 20 | 两列 fallback（症状/解法） | 三段式（触发条件/一线修复/兜底，见上方「失败处理」） |
-| 21 | 过度优化硬凑轮数 | Δ<2 连续 2 轮即停 |
-| 22 | runtime 钉死单一平台 | 中立 badge + 中立措辞 |
+| 21 | 只写正例不写反例 | 反例黑名单成章（本节即示范） |
+| 22 | 「必须」措辞代替视觉标记 | 🔴 / 🛑 视觉标记（LLM 扫标记优先于语义） |
+| 23 | 两列 fallback（症状/解法） | 三段式（触发条件/一线修复/兜底，见上方「失败处理」） |
+| 24 | 过度优化硬凑轮数 | Δ<2 连续 2 轮即停 |
+| 25 | runtime 钉死单一平台 | 中立 badge + 中立措辞 |
