@@ -17,7 +17,7 @@
       "验收": [
         "生成支付单 + 状态机"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 20,
@@ -32,7 +32,7 @@
       "验收": [
         "调 payment-gateway 发起支付"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "payment-api"
       ],
@@ -49,7 +49,7 @@
       "验收": [
         "异步回调 + 幂等入账"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "idempotency"
       ],

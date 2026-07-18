@@ -18,7 +18,7 @@
       "验收": [
         "退款申请落库 + 状态机"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 30,
@@ -33,7 +33,7 @@
       "验收": [
         "调支付网关 refund, 契约"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "payment-api"
       ],
@@ -50,7 +50,7 @@
       "验收": [
         "退款成功回补库存"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 20,

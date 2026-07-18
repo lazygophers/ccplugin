@@ -15,7 +15,7 @@
       "验收": [
         "消费支付/发货事件, 分发到通道"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 25,
@@ -30,7 +30,7 @@
       "验收": [
         "支付/发货短信发送 + 失败重试"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 20,
@@ -45,7 +45,7 @@
       "验收": [
         "站内信落库 + 未读推送"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 20,

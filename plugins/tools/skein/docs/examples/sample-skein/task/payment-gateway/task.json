@@ -16,7 +16,7 @@
       "验收": [
         "统一 charge/refund 签名"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "已完成",
       "estimate": 30,
@@ -31,7 +31,7 @@
       "验收": [
         "验签 + 去重, 契约2"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "signature-verify"
       ],
@@ -50,7 +50,7 @@
       "验收": [
         "日终对账补偿漏单"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "reconciliation"
       ],
