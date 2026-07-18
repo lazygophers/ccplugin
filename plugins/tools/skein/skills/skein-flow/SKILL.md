@@ -1,8 +1,8 @@
 ---
 name: skein-flow
 description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推 plan→exec→check→finish 全流程, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做
-argument-hint: "[任务描述] [--skip]"
-arguments: "[任务描述] [--skip]"
+argument-hint: "[任务描述]"
+arguments: "[任务描述]"
 model: sonnet
 effort: medium
 ---

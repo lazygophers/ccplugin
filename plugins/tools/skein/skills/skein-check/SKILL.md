@@ -2,8 +2,8 @@
 name: skein-check
 description: task check 阶段质量验证。exec 产物完成后、finish 前使用。派 skein-checker 跑 lint/type-check/tests/契约 + 一致性核查, 回传通过|失败|冲突报告。未过或检出冲突不放行 finish。验证与修复分离。
 user-invocable: true
-argument-hint: "[task_id]"
-arguments: "[task_id]"
+argument-hint: "[任务ID]"
+arguments: "[任务ID]"
 model: haiku
 effort: medium
 ---

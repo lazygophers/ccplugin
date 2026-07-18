@@ -2,8 +2,8 @@
 name: skein-grill
 description: 对抗式审查 (红队, 非审批)。planning 产物 (prd 主入口/design 详细设计/findings 调研 + task.json 子任务) start 前硬门、或用户显式 "grill/盘方案/审设计/红队" 时使用 — 多轴逼问挖漏洞/隐藏假设/未定边界, 逐问给推荐答案+codebase 先查, 弱点表交用户裁才放行。main 亲做 (交互式)。
 user-invocable: false
-argument-hint: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
-arguments: "[方案/PRD 路径] (缺省=当前 task planning 产物)"
+argument-hint: "[审查对象路径: 缺省=当前任务 planning 产物]"
+arguments: "[审查对象路径: 缺省=当前任务 planning 产物]"
 model: opus
 effort: xhigh
 ---

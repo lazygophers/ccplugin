@@ -1,8 +1,8 @@
 ---
 name: skein-spec
 description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 定期体检 (超预算/stale/断链/重复/废弃, 只报告)。硬约束: sediment 异步 fire-and-forget 不阻塞 finish; core 只留硬约束
-argument-hint: "[recall/sediment/bootstrap/reconstruct/maintain [recall|full|deep]]"
-arguments: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
+argument-hint: "[模式: recall/召回, sediment/沉淀, bootstrap/播种, reconstruct/重构, maintain/维护] [深度: recall/轻, full/全, deep/深, reconstruct 模式可选]"
+arguments: "[模式: recall/召回, sediment/沉淀, bootstrap/播种, reconstruct/重构] [深度: recall/轻, full/全, deep/深]"
 model: inherit
 effort: medium
 ---

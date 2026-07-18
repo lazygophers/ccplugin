@@ -2,8 +2,8 @@
 name: skein-exec
 description: task exec 阶段执行编排调度门 + /skein-exec 闭环入口。作命令: 有入参→强制建 task 走闭环 (委托 skein-flow: plan→exec→check→finish, 不 inline); 无入参→驱动 .skein 既有 ready/active task 各走闭环。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选合适 agent 各执行 1 个, 改动落 task worktree。回传各 subtask 产物 / 需要 / 失败。硬约束: 并发上限 2、完成即派、main 禁亲改源码、载体单 subagent 不递归、异步等待 MUST 输出任务清单
 user-invocable: true
-argument-hint: "[task-id]"
-arguments: "[task-id]"
+argument-hint: "[任务ID]"
+arguments: "[任务ID]"
 model: haiku
 effort: low
 ---
