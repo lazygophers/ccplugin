@@ -104,19 +104,18 @@ skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 | core 常驻超 8000 字符告警     | prune 自动降级最少复用的 core 到 recall (`sediment` 调层) | 仍超 → 停手, 提示用户 core 膨胀, 需人工裁剪硬规集            |
 | reconstruct 重建不满意        | `skein-spec restore <ts>` 从归档恢复 (撞名加 restored- 前缀并存) | 仍失败 → 归档目录仍在 `.skein/spec/.archive/<ts>/`, 手动核对取舍 |
 
-## ❌ 反例 (命中=操作错误)
+## ✅ 正向配方 (命中反面=流程错误)
 
-> 🔒 Iron Law: sediment+prune 异步 fire-and-forget 禁阻塞 finish; core 只留命令式硬约束。
+> 🔒 铁律: sediment+prune 异步 fire-and-forget 禁阻塞 finish; core 只留命令式硬约束。
 
-| 禁                                | 改为                                    |
-| --------------------------------- | --------------------------------------- |
-| sediment 未输出判定 trace         | 逐项 /输出 (memorier 回传后 main 补)    |
-| 无增量硬凑沉淀                    | 全否跳过                                |
-| 逐次 AskUserQuestion 问用户批不批    | 判定门通过即自主写, 只输出 trace 不硬停 |
-| finish 为等 sediment/prune 阻塞闭环 | 异步 fire-and-forget, finish 先 archive |
-| 写盘不同步 index.md               | skein-spec sediment 自动同步, 禁手改绕过 |
-| 什么都塞 core 常驻                | 默认 recall, core 只留硬约束            |
-| prune 自动 archive 未输出 trace   | 同 sediment, 回传到达后 main 补 trace   |
+| 场景                               | 正确做法 (❌ 反面)                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| sediment 写盘 / prune 自动 archive | 逐项输出判定 trace, memorier 回传后 main 补 (❌ 未输出判定 trace)         |
+| 判定门全否                         | 跳过不沉淀 (❌ 无增量硬凑沉淀)                                           |
+| 判定门通过要不要问用户             | 自主写盘, 只输出 trace 不硬停 (❌ 逐次 AskUserQuestion 问用户批不批)      |
+| finish 闭环 vs sediment/prune      | 异步 fire-and-forget, finish 先 archive (❌ 为等 sediment/prune 阻塞闭环) |
+| 写盘更新 index.md                  | skein-spec sediment 自动同步 (❌ 不同步 index.md / 手改绕过)             |
+| 规则分层                           | 默认落 recall, core 只留硬约束 (❌ 什么都塞 core 常驻)                    |
 
 ## maintain (手动体检, main)
 

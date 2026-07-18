@@ -55,15 +55,18 @@ effort: medium
 | 有 subtask 却想 inline 顺跑             | 停手, 走 skein-exec `claim→派 Agent` 循环, 每 ready subtask 派 1 subagent | 派不出 → 硬错停手, 禁 main 代跑 subtask              |
 | 第二个 flow 进来, 第一个还没 durable    | 先给第一个 `skein create` 落盘再处理第二个 | 都未落盘 → 立即各自 `create`, 未处理者留 pending 待续 |
 
-## ❌ 反例 (命中=流程错误)
+## ✅ 正向配方 (命中反面=流程错误)
 
-> 🔒 Iron Law: 「派 agent」=真实 `Agent` tool_use — 无 tool_use 即没派, 禁回传「已派出」。
+> 🔒 铁律: 「派 agent」=真实 `Agent` tool_use — 无 tool_use 即没派, 禁回传「已派出」。
 
-违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序 / **有 subtask 却 main inline 顺跑不派 subagent** / **第二个 flow 请求顶掉/中断在飞的第一个 task** / **相关工作拆成多个 task 而非归一 task 拆 subtask**。
-
-### 自欺兜底 (高频反例)
-
-| Excuse (自欺)                         | Reality (现实)                              |
-| ------------------------------------- | ------------------------------------------- |
-| 「agent 已经在跑了 / 我说已派出」     | 无 `Agent` tool_use = 没派, 硬错停手禁回传  |
-| 「两个请求差不多, 先做新的」          | 顶掉在飞 task = 丢上下文, 先给旧的 durable 落盘 |
+| 场景                   | 正确做法 (❌ 反面)                                                              |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| 改动源码               | 派 agent 在 task worktree 内改 (❌ main 直接改源码 / 无 worktree 改源码)        |
+| 处理请求               | 强制走 task 闭环, 即使看似简单 (❌ inline 跳 task)                              |
+| 派 agent 声明          | 必带真实 `Agent` tool_use, 无则硬错停手禁回传 (❌ 宣称派 agent 无 tool_use / 自欺「agent 已经在跑了 / 我说已派出」) |
+| 改任务状态             | 经 skein CLI 操作 (❌ 直编 `.skein/task.md`)                                    |
+| 用户确认 / 选择        | 走 AskUserQuestion 工具 (❌ 纯文本代替 AskUserQuestion)                         |
+| exec 派发顺序          | 按 depends_on DAG 自动排序即派 (❌ exec 阶段问用户顺序)                         |
+| 有 subtask 的 task     | 走 claim→派 subagent→done 循环, 每 ready subtask 派 1 个 (❌ main inline 顺跑不派 subagent) |
+| 新 flow 进来 / 多请求  | 先给在飞的第一个 task durable 落盘再处理第二个, 保上下文 (❌ 第二个 flow 顶掉/中断在飞 task / 自欺「两个请求差不多, 先做新的」) |
+| 相关工作组织           | 归一 task 拆 subtask (❌ 相关工作拆成多个 task)                                 |

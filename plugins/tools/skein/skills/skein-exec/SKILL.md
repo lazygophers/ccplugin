@@ -65,8 +65,20 @@ subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein
 | subagent 返回 `需要:`         | main 转达用户 / 补信息后重派该 subtask     | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
 | `claim` 返回空但仍有 pending  | 查 depends_on 是否死锁 (环 / 前置永不 done) | 确为环 → 停手回 skein-plan 改 DAG, 禁空转轮询     |
 
-## ❌ 反例 (命中=流程错误)
+## ✅ 正向配方 (命中反面=流程错误)
 
-> 🔒 Iron Law: main 禁亲改源码 — 实质产出一律派 subagent (仅 ≤3 文件微改例外且必在 task worktree 内)。
+> 🔒 铁律: main 禁亲改源码 — 实质产出一律派 subagent (仅 ≤3 文件微改例外且必在 task worktree 内)。
 
-违反上文即流程错误: main 亲改源码 (应派 subagent) / 一批跑完才派下一批 (应完成即派) / 并发超 2 / 标 `需要:` 的 subtask 计 done 放行下游 / 在 subtask 间停下问用户顺序 (顺序归 planning, task.json 缺子任务 DAG 退回 planning 补) / ❌ 派出异步任务后不输出任务清单 → ✅ 回合末输出 4 列全景表 (id/状态/摘要/进度%) / 用本 skill 做需求方案设计 (那归 skein-plan) / 组 subagent-team (已禁用, 一律拆 subtask 各派单 subagent) / 载体产出后滞留空转不退出 (应及早退出) / exec 中发现独立新问题却塞进当前 task 扩 scope (应自主拆新排队 task) / subtask 失败即停等人工不自愈 (应先自愈: 原地重派或加修复 subtask, 兜底才回传)。
+| 场景                       | 正确做法 (❌ 反面)                                                              |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| 实质产出                   | 派 subagent 在 task worktree 内做 (❌ main 亲改源码; 仅 ≤3 文件微改例外)        |
+| 就绪 subtask 推进          | 完成即派, 任一返回即 `claim` 放行下游 (❌ 一批跑完才派下一批)                    |
+| 并发控制                   | 并发上限 2 (❌ 并发超 2)                                                        |
+| subtask 标 `需要:`         | 不计 done, 下游保持未 ready (❌ 计 done 放行下游)                               |
+| subtask 间顺序             | 归 planning (task.json 子任务 DAG), 缺 DAG 退回 planning 补 (❌ 在 subtask 间停下问用户顺序) |
+| 派出异步任务后             | 回合末输出 4 列全景表 (id/状态/摘要/进度%) (❌ 不输出任务清单)                   |
+| 需求 / 方案设计            | 归 skein-plan (❌ 用本 skill 做需求方案设计)                                    |
+| 需多 agent 协同            | 拆 subtask 各派单 subagent (❌ 组 subagent-team, 已禁用)                        |
+| 载体产出后                 | 及早退出 (❌ 滞留空转不退出)                                                    |
+| exec 中发现独立新问题      | 自主拆新排队 task (❌ 塞进当前 task 扩 scope)                                   |
+| subtask 失败               | 先自愈 (原地重派或加修复 subtask), 兜底才回传 (❌ 停等人工不自愈)               |

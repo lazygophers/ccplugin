@@ -51,17 +51,17 @@ skein setup   # 幂等 scaffold + 输出 manifest JSON
 - **spec 盘面变更后 reindex** — 手动重组 / 迁移后同步索引。
 - **task 状态经脚本** — 不直接编辑 `.skein/task*`。
 
-## ❌ 反例 (命中=操作错误)
+## ✅ 正向配方 (命中反面=流程错误)
 
-> 🔒 Iron Law: 幂等可重跑; task.json/task.md 经脚本不经手改 (PreToolUse hook 硬阻)。
+> 🔒 铁律: 幂等可重跑; task.json/task.md 经脚本不经手改 (PreToolUse hook 硬阻)。
 
-| 禁                                     | 为什么                                    | 改为                                      |
-| -------------------------------------- | ----------------------------------------- | ----------------------------------------- |
-| 手改 `.skein/task*` 绕过脚本           | PreToolUse hook 硬阻 + 破坏索引一致性     | 经 `skein create/start/...` 命令       |
-| 改 spec 盘面后不 reindex               | 三份 index.md 落后盘面 = 召回失效         | 必跑 `skein-spec reindex`                  |
-| 检测到 `.trellis/` 直接 `setup --full` | 未问用户就整删可能丢数据                  | 先 `AskUserQuestion` 选兼容 / `--full`    |
-| 已初始化仓重跑当报错                    | setup 幂等, 重跑安全不覆盖                 | 正常重跑, config/spec 存在则跳过          |
-| 什么都堆进 core 常驻                    | >8000 字符告警, 稀释硬约束                 | 默认 recall, core 只留命令式硬契约        |
+| 场景                     | 正确做法 (❌ 反面)                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| 改 `.skein/task*`        | 经 `skein create/start/...` 命令改 (❌ 手改绕脚本 → PreToolUse hook 硬阻 + 破坏索引一致性) |
+| 改 spec 盘面后           | 必跑 `skein-spec reindex` (❌ 不 reindex → 三份 index.md 落后盘面 = 召回失效)          |
+| 检测到 `.trellis/`       | 先 `AskUserQuestion` 选兼容 / `--full` 再迁移 (❌ 直接 `setup --full` → 未问用户整删可能丢数据) |
+| 已初始化仓重跑           | 正常重跑, config/spec 存在则跳过 (❌ 当报错 → setup 幂等, 重跑安全不覆盖)              |
+| 规则归层                 | 默认 recall, core 只留命令式硬契约 (❌ 什么都堆进 core 常驻 → >8000 字符告警, 稀释硬约束) |
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 

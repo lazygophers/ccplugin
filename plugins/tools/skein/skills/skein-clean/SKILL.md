@@ -60,8 +60,17 @@ effort: low
 | `branch -D` 失败 (未合并)     | 查是否真已合并 (`git branch --merged`) | 未合并 → 保留 + 报用户 (有未落地 commit)         |
 | worktree/分支无对应 task 记录 | 报用户裁定 (别猜)                     | 用户未定 → 保留, 禁自行删                         |
 
-## ❌ 反例 (命中=操作错误)
+## ✅ 正向配方 (命中反面=操作错误)
 
-> 🔒 Iron Law: 只清「已完成/已合并」的 — 未 finish 的 active task、未合并分支一律不删, 存疑先报用户。
+> 🔒 铁律: 只清「已完成/已合并」的 — 未 finish 的 active task、未合并分支一律不删, 存疑先报用户。
 
-主体禁项: 未 finish 的 active task / 未合并分支一律不删 · 存疑不报用户就自行删 · N 大于 config `retain_days` 当有效 (脚本按 ceiling 自动归档, 无效) · 把保留期内完成 task 当漏归档强行 archive · 无对应 task 的孤儿 worktree 直接删 (应报用户裁定) · 手动 `rm .skein/task/<id>` 当归档 (应走 `skein archive <id>`) · 以为要手动刷看板 (无需 — `clean` 已 `_sync` 自动重渲染)。
+| 场景                          | 正确做法 (❌ 反面)                                              |
+| ----------------------------- | -------------------------------------------------------------- |
+| 未 finish 的 active task      | 一律不删, 保留 (❌ 删未 finish 的 active task)                  |
+| 未合并分支                    | 一律不删, 保留 (❌ 删未合并分支)                               |
+| 存疑项                        | 先报用户裁定 (❌ 不报用户就自行删)                              |
+| 入参 N 大于 config `retain_days` | 视为无效, 脚本每次 `_sync` 按 config ceiling 自动归档 (❌ 当有效对待) |
+| 保留期内的完成 task           | 认作正常状态保留 (❌ 当漏归档强行 archive)                      |
+| 无对应 task 记录的孤儿 worktree | 报用户裁定 (❌ 直接删)                                         |
+| 归档 task                     | 走 `skein archive <id>` (❌ 手动 `rm .skein/task/<id>` 当归档) |
+| 看板刷新                      | 无需手动 — `clean` 已 `_sync` 自动重渲染 (❌ 以为要手动刷看板)  |
