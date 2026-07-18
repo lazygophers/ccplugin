@@ -50,15 +50,17 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 | 一致性冲突 / 根因跨 subtask | 回 planning 重确认后, 同 task `subtask add` 多个修复子任务 (一冲突一 subtask), task 保持 `进行中`, 回 exec 逐条覆盖 | 冲突未全覆盖禁 finish, 逐条覆盖到零冲突才放行                   |
 | 修复子任务 ≥2 轮仍 FAIL (第 3 轮) | 停加子任务循环 → 按 [references/root-cause-protocol.md](references/root-cause-protocol.md) 5 维根因复盘 | 带根因回 planning 重确认 (grill 方向) 定向重修; 根因超 exec (需求/设计缺陷) → 停手附根因报告转人工 |
 
-## ❌ 反例 (命中=流程错误)
+## ✅ 正向配方 (命中反面=流程错误)
 
-> 🔒 Iron Law: 未全绿且零冲突禁 finish — check 失败回 planning 重确认 (禁跳确认直接补 subtask)。
+> 🔒 铁律: 全绿且零冲突才放行 finish; check 失败走 step 3 回 planning 重确认。
 
-违反上文即流程错误: main 亲跑 lint/test (应派 checker) / checker 自己改码 (应交合适修复 agent) / 未全绿就 finish / 只跑 lint 不验契约 (先 `skein contract` 逐条报) / **check 失败跳过 planning 重确认直接补 subtask 回 exec** (应先 grill/AskUserQuestion 与用户敲定修复方向, 确认后才 `subtask add`) / **check 失败改 task 状态或另建 task/加 planning 枚举** (应同 task `subtask add` 排队修复, task 保持 `进行中`, 「回 planning」是思维语义非新枚举) / 冲突未逐条 `subtask add` 覆盖就 finish / **checker 重复验证已 `- [x]` 项** (应跳过, 防重复处理) / **验证通过不回写 `- [x]`** (下轮又重验已确认项) / 无限重检 (第 3 轮走根因复盘)。
-
-### 自欺兜底 (高频反例)
-
-| Excuse (自欺)                                   | Reality (现实 ✅ 正向配方)                              |
-| ----------------------------------------------- | ------------------------------------------------------- |
-| 「报错了先加个 subtask 修了再说」               | ✅ 先 grill 用户拍板修复方向, 确认后才 `subtask add`     |
-| 「check 没过, 那我把 task 状态退回 planning 态」 | ✅ 「回 planning」是思维语义非状态机新枚举, task 保持 `进行中` |
+| 场景             | 正确做法 (❌ 反面)                                                              |
+| ---------------- | ------------------------------------------------------------------------------ |
+| 跑验证           | 派 `skein-checker` (❌ main 亲跑 lint/test)                                     |
+| checker 报失败   | 交合适修复 agent 定点改 (❌ checker 自改码)                                     |
+| 放行 finish      | 全绿 + 契约逐条 pass + 零冲突 (❌ 未全绿 / 只 lint 不验契约)                     |
+| check 失败       | 走 step 3: grill 敲定方向 → 同 task `subtask add`, task 保持 `进行中` (❌ 跳确认补 subtask / 改状态 / 另建 task) |
+| 冲突处理         | 逐条 `subtask add` 覆盖到零冲突 (❌ 未覆盖完就 finish)                          |
+| 已 `- [x]` 项    | 跳过不重验 (❌ 重复验证)                                                        |
+| 通过的验收项     | 回写 `- [x]` (❌ 不回写致下轮重验)                                              |
+| 反复失败         | 第 3 轮走根因复盘 (❌ 无限重检)                                                 |
