@@ -1,6 +1,6 @@
 ---
 name: skein-exec
-description: task exec 阶段执行编排调度门 + /skein-exec 闭环入口。作命令: 有入参→强制建 task 走闭环 (委托 skein-flow: plan→exec→check→finish, 不 inline); 无入参→驱动 .skein 既有 ready/active task 各走闭环。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选合适 agent 各执行 1 个, 改动落 task worktree。回传各 subtask 产物 / 需要 / 失败。硬约束: 并发上限 2、完成即派、main 禁亲改源码、载体单 subagent 不递归、异步等待 MUST 输出任务清单
+description: task exec 阶段执行编排 + /skein-exec 闭环入口。作命令: 有入参→建 task 走闭环 (委托 skein-flow); 无入参→驱动 .skein 既有 ready/active task。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选 agent 各执行 1 个, 改动落 task worktree。
 user-invocable: true
 argument-hint: "[任务ID]"
 arguments: "[任务ID]"
@@ -50,7 +50,7 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
 
 ## ⚠️ 两条硬规
 
-- **异步等待 MUST 输出任务清单** — 派出异步任务后、结束本回合前, 输出全景表 (4 列 id/状态/摘要/进度%, 状态枚举 进行中/等待中/阻塞)。格式见 [references/progress-reporting.md](references/progress-reporting.md)。同步前台阻塞 / 无在跑任务不触发。
+- **异步等待 MUST 输出任务清单** — 派出异步任务后、结束本回合前, 输出全景表: 4 列 id/状态/摘要/进度% (状态枚举 进行中/等待中/阻塞), 例 `| st1 | 进行中 | 改 auth 中间件 | 60 |`。同步前台阻塞 / 无在跑任务不触发。
 - **exec 阶段禁问用户顺序** — 顺序归 planning (task.json 的子任务 DAG + depends_on)。exec 只跑动态调度循环。task.json 缺子任务 DAG (depends_on) → 退回 planning 补, **不在 exec 问**。
 
 ## 调度算法 (双层同构 + dispatch prompt)

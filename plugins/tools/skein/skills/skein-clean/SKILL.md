@@ -64,4 +64,4 @@ effort: low
 
 > 🔒 Iron Law: 只清「已完成/已合并」的 — 未 finish 的 active task、未合并分支一律不删, 存疑先报用户。
 
-主体禁项: 未 finish 的 active task / 未合并分支一律不删 · 存疑不报用户就自行删 · N 大于 config `retain_days` 当有效 (脚本按 ceiling 自动归档, 无效) · 把保留期内完成 task 当漏归档强行 archive。完整清单详见 references/anti-examples.md。
+主体禁项: 未 finish 的 active task / 未合并分支一律不删 · 存疑不报用户就自行删 · N 大于 config `retain_days` 当有效 (脚本按 ceiling 自动归档, 无效) · 把保留期内完成 task 当漏归档强行 archive · 无对应 task 的孤儿 worktree 直接删 (应报用户裁定) · 手动 `rm .skein/task/<id>` 当归档 (应走 `skein archive <id>`) · 以为要手动刷看板 (无需 — `clean` 已 `_sync` 自动重渲染)。

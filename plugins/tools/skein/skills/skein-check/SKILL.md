@@ -36,6 +36,12 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 4. **重验** — 修复 subtask 全 done 后重派 `skein-checker` 复跑 (含一致性)。未过回 planning 重确认循环 (task 始终 `进行中`)。
 5. **放行** — 全绿且零冲突 → 回 `skein-flow` 走 finish。
 
+**完成判据 (放行 finish 前勾满)**:
+- [ ] checker 回传, lint/type/test/build 全绿
+- [ ] 契约逐条 pass (`skein contract` 全覆盖, 无遗漏)
+- [ ] 一致性核查零冲突
+- [ ] 本轮通过的验收项已回写 `- [x]`
+
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
 | 触发                     | 一线修复                                     | 仍失败兜底                                                       |

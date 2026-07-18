@@ -1,6 +1,7 @@
 ---
 name: skein-spec
-description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链规则。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃)。硬约束: sediment+prune 异步 fire-and-forget 不阻塞 finish; core 只留硬约束
+description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链规则。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃)。
+user-invocable: true
 argument-hint: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构, maintain/维护] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
 arguments: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构] [--deep=recall/low/full/deep/max/high]"
 model: inherit
@@ -117,24 +118,6 @@ skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 | 什么都塞 core 常驻                | 默认 recall, core 只留硬约束            |
 | prune 自动 archive 未输出 trace   | 同 sediment, 回传到达后 main 补 trace   |
 
-## maintain (手动体检, main) — 对照 prune 报告
+## maintain (手动体检, main)
 
-规则库积累后会漂移。prune 负责自动精简 (sediment 后顺跑), maintain 是**手动全量体检**, 供 user 在 sediment+prune 之外独立审查:
-
-```
-skein-spec maintain                 # 全量体检两层
-skein-spec maintain --layer recall  # 仅指定层
-```
-
-**5 判据 + 2 补充发现** (同 prune 判定门, maintain 只报告不动手):
-
-| 判据 | 触发 | 输出示例 |
-| --- | --- | --- |
-| 超预算 | core 全文 > 8000 字符 | `[超预算] core 8200 > 8000 字符 — 考虑降级: git/big-00(2100)` |
-| stale | created 年龄 > 180 天 (~6 月) 且 updated 也老 | `[stale] recall/ops/old-00 (created 14月,420天前, updated 14月,420天前, status active)` |
-| 断链 | body 的 `[[slug]]` 目标 stem 库内无匹配 | `[断链] recall/ops/old-00: [[nonexistent]] ✗ 目标缺失` |
-| keywords 重复 | 同 keywords 组 ≥ 3 条 | `[重复 keywords] "merge,worktree" ×3: recall/arch/a, recall/ops/b, recall/ops/c` |
-| 归档残留 | `.skein/spec/.archive/` 有未清理的旧归档 | `[归档残留] .archive/1784344973/ 已超 90 天 — 建议 purged` |
-
-- prune 已 archive 的项 maintain 不会再报 stale/废弃/重复/断链 (已移出 active 规则集)。
-- **stale 判据 (180 天) 主观可调** — 项目节奏快可收紧 (`STALE_DAYS` in `spec.py`); `created` 缺字段或非 epoch 容错跳过不报错。无任何 findings → 输出 `全清`。
+规则库漂移时的**手动全量体检** (供 user 在 sediment+prune 之外独立审查, 只报告不动手): `skein-spec maintain [--layer recall]`。5 判据 (超预算 / stale / 断链 / keywords 重复 / 归档残留) + 输出格式详见 [references/maintain.md](references/maintain.md)。

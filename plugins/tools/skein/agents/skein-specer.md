@@ -2,8 +2,9 @@
 name: skein-specer
 description: SKEIN 记忆员。三类作业 — recall 检索 / sediment 自主写盘 / prune 自动精简。无 Write/Edit, 写盘经 `skein-spec` CLI。
 tools: Read, Bash, Grep, Glob
-color: purple
 model: haiku
+effort: medium
+color: purple
 permissionMode: bypassPermissions
 skills:
   - skein:skein-spec

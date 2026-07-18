@@ -3,7 +3,7 @@ name: skein-setup
 description: SKEIN 初始化 / trellis 迁移器。把 .trellis 语义迁移为 skein 结构 (spec 重组 + 重建 task + 清理接线)。模式: 兼容 / --full。
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
-effort: medium
+effort: low
 color: orange
 permissionMode: bypassPermissions
 skills:

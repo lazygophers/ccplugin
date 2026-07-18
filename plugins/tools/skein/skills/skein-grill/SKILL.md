@@ -5,7 +5,7 @@ user-invocable: false
 argument-hint: "[审查对象路径: 缺省=当前任务 planning 产物]"
 arguments: "[审查对象路径: 缺省=当前任务 planning 产物]"
 model: opus
-effort: xhigh
+effort: high
 ---
 
 # skein-grill — 对抗式审查硬门

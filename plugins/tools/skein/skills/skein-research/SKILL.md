@@ -1,6 +1,7 @@
 ---
 name: skein-research
-description: SKEIN 调研数据源路由 (绑定 skein-researcher agent)。planning 阶段做外部资料检索 / 库选型 / 竞品对比 / 现状勘察时使用 — 分层组合数据源: 项目内代码勘察 (Read/Grep/Glob) + 外部联网检索。外部检索优先探测 agent-reach (互联网能力路由器, 15 平台多后端): 存在则纳入数据源 (小红书/Twitter/B站/Reddit/GitHub/YouTube/Exa 等多平台并行), 缺失则降级 WebSearch/WebFetch。参考 agent-reach 实现, 不重造。
+description: SKEIN 调研数据源路由 (绑定 skein-researcher agent)。planning 阶段做外部资料检索 / 库选型 / 竞品对比 / 现状勘察时使用。分层组合: 项目内代码勘察 + 外部联网检索 (优先 agent-reach, 缺失降级 WebSearch/WebFetch)。
+user-invocable: true
 model: inherit
 effort: medium
 ---

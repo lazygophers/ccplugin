@@ -1,6 +1,7 @@
 ---
 name: skein-flow
 description: 强制 task 闭环。复杂/多步/跨文件请求, 或用户显式要求把请求作为 SKEIN task 处理时使用 — 强推 plan→exec→check→finish 全流程, main 作调度器派 subagent 在 worktree 内执行, 禁 inline 直接做
+user-invocable: true
 argument-hint: "[任务描述]"
 arguments: "[任务描述]"
 model: sonnet
@@ -24,6 +25,12 @@ effort: medium
 - Agent(skein-checker) 跑 lint/type-check/tests/契约合规 + **一致性核查**。未过或检出冲突 → **回 planning 重确认 (task 保持 `进行中`)**: grill/AskUserQuestion 与用户**确认修复方向** (定点修/重拆/改契约), **禁跳过确认直接补 subtask**; 确认后同 task `subtask add` 修复子任务 (`--deps` 挂失败源) 回 exec 重派, 全绿且零冲突才放行。详见 `skein-check` skill。
 ### finish
 - Skill(skein-finish) 收尾门 (check 全绿后): 派 `skein-finisher` 勘察 → 委托 `skein-spec` sediment → 清理悬挂 → `skein finish`。**sediment 判定门 (自动沉淀)**: `skein-specer` 产候选 → main 逐项 trace + `skein-spec sediment` 自动写盘; 无增量跳过。详见 `skein-finish` skill。
+
+**闭环完成判据 (四步逐一勾满才算 Done)**:
+- [ ] plan: 查重 + create/并入 + grill 确认 + `skein start` 激活
+- [ ] exec: 每 ready subtask 派真实 `Agent`, 回合末输出任务清单
+- [ ] check: lint/type/test/契约全绿且零冲突
+- [ ] finish: archive + 销 worktree + sediment 异步派出
 
 ## 作用域边界 (何时建 task)
 

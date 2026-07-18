@@ -2,8 +2,9 @@
 name: skein-finisher
 description: SKEIN finish 阶段收尾勘察器。在 task worktree 内读 git diff, 回传收尾摘要 (改了什么 + subtask 核对 + 悬挂任务)。只读。
 tools: Read, Bash, Grep, Glob
-color: green
 model: haiku
+effort: low
+color: green
 permissionMode: bypassPermissions
 skills:
   - skein:skein-finish
