@@ -11,7 +11,7 @@
 | **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 | **skein-finisher** | 收尾勘察 agent (绑 `skein-finish`) | 只读, finish 前扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏 | 无 |
-| **skein-specer** | 记忆员 agent (绑 `skein-spec`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选) | 无 |
+| **skein-specer** | 记忆员 agent (绑 `skein-spec`) | recall 检索 (planning, 只读) + sediment 自主写盘 (finish/bootstrap/reconstruct 读 diff/候选文件 跑判定门 → 自跑 `skein-spec sediment` 落盘+reindex, 异步 fire-and-forget) | 无 |
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `skein-executor`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
@@ -143,7 +143,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 | 跨任务可复用经验但长尾 (选型 / 架构边界 / 踩坑根因) | → **recall** |
 | 一次性 bug / 本 task 私有细节 / 已有规则覆盖 | → **drop** (不沉淀) |
 
-判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-specer` (读 diff + subagent 回传摘要 跑判定门) 产出, 写盘经 `skein-spec sediment` 仍归 main —— 判定门通过即自动写, 不逐次询问用户, 自动 reindex。
+判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。判定 + 写盘均由 `skein-specer` (读 diff + subagent 回传摘要 跑判定门) 自主完成 —— 被异步 fire-and-forget 派发, 自跑 `skein-spec sediment` 落盘 (判定门通过即写, 不逐次询问用户, 自动 reindex), main 不等回传。
 
 ## 工作区布局
 

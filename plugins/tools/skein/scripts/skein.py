@@ -407,9 +407,10 @@ class Skein:
         if not cfg.exists():
             cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
+        # 及 spec/.archive/ (完全重构可逆归档转储, 转瞬回滚数据, 不入库)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n*.lock\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n*.lock\nspec/.archive/\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:

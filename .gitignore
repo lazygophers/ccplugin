@@ -3,7 +3,6 @@
 .trae/
 .venv/
 .DS_Store
-.claude/last_change_stats.json
 
 # 构建产物
 build/
@@ -95,3 +94,6 @@ graphify-out/.worktrees/
 
 # skein 自身 dogfood 运行态 (本仓库用 skein 跑开发任务的 scratch, 非源码)
 /.skein/
+
+# skein-spec archive 归档数据 (可逆归档, 不应入库)
+**/.archive/
