@@ -16,7 +16,7 @@ function esc(s) {
 
 // ── DAG (SVG 有向连接图, Sugiyama 重心分层) ── 像素常量与 board-render 逐字节对齐
 export function dagHtml(nodes, tips, links, forceVertical) {
-  if (!nodes || nodes.length < 2) return "";
+  if (!nodes || nodes.length < 1) return "";
   var ids = nodes.map(function (n) { return n[0]; });
   var idset = {}; ids.forEach(function (i) { idset[i] = true; });
   var dep = {}, smap = {}, order = {};

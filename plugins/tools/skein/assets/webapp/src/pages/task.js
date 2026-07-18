@@ -303,7 +303,7 @@ const LIST_TPL = `
 // 从 task.subtasks 构造 DAG 节点数组: [sid, name, status, depends_on(sid 数组), pct, desc]。
 // 对齐后端 _board_data 的 node() 形状; dagHtml 自行按 depends_on 连边 (无需显式 links)。
 function buildSubDag(subtasks) {
-  if (!subtasks || subtasks.length < 2) return "";
+  if (!subtasks || subtasks.length < 1) return "";
   const nodes = subtasks.map((s) => [
     s.sid, s.name || s.sid, s.status, s.depends_on || [], subPct(s), s.desc || "",
   ]);
