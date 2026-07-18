@@ -1,6 +1,6 @@
 ---
 name: skein-setup
-description: SKEIN 初始化 / trellis 迁移器。被 main 派发, 把既有 .trellis (spec/task/.claude 接线) 语义迁移为 skein 结构 — 重组 spec 为 core/recall×类目、重建 task、剔 trellis 接线。两模式: 兼容 (留 .trellis 数据) / --full (整删 .trellis)。改盘+跑脚本, 不派 subagent (无 Agent/Task, Recursion Guard)。
+description: SKEIN 初始化 / trellis 迁移器。被 main 派发, 把既有 .trellis (spec/task/.claude 接线) 语义迁移为 skein 结构 — 重组 spec 为 core/recall×类目、重建 task、剔 trellis 接线。两模式: 兼容 (留 .trellis 数据) / --full (整删 .trellis)。改盘+跑脚本。遵守 skein agent 公共铁律 (见 spec core/agent/skein-skill-agent-slim-01)。
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 effort: medium
@@ -14,7 +14,7 @@ skills:
 
 ## 铁律
 
-- **Recursion Guard** — 无 Agent/Task, 不派 subagent。全部你自己做。
+- **公共铁律** (Recursion Guard + 无 AskUser + 缺信息标 `需要:` 回传) 见 core/agent/skein-skill-agent-slim-01。
 - **机械部分交脚本** — scaffold / spec 拷贝 / 接线清理 / (--full) 整删 `.trellis` 全走 `skein setup [--full]`; 你只做**语义判断** (规则分层归类、task 重建、settings hook 剔除)。
 - **spec 已独立拷入 `.skein/spec`** — setup 已 `copytree` 把 `.trellis/spec` 拷进 `.skein/spec` (独立副本, trellis 零改动)。你在 **`.skein/spec` 原地**重组 (安全, 不碰 trellis)。**不动 `.trellis/spec`** (兼容模式留着给其它工具; --full 已整删)。
 - **接线已无条件删** — setup 已删 `.trellis/{scripts,hooks,settings*}` + `.claude/*trellis*` (哪怕兼容模式, 避免 skein/trellis 双注入)。另已在 `.claude/settings.local.json` 禁 trellisx 插件 (防插件级双注入)。**canonical trellis hook 也已硬剔** — setup 从 `.claude/settings*.json` 的 `hooks` 剔除 command 引用原生 trellis 接线脚本 (session-start / inject-subagent-context / guard-version / inject-workflow-state) 的条目 + 删对应 `.claude/hooks/*.py` (rust-fmt 等用户自有 hook 保留)。你只需处理**残留/非 canonical** 的 trellis hook 条目 (command 含 `trellis` 子串但非上述脚本名), 见步骤 4。

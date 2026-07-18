@@ -18,7 +18,7 @@ effort: medium
 - **memory recall** — 派 `skein-memorier` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
 - Skill(skein-grill) 确认需求 → Skill(skein-plan --continue) 规划+`subtask add` 登记 → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
 ### exec
-- Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
+- Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (🛑 硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
 - **exec/check/finish 禁动 design.md** — 方案调整回 planning 改 design 后重派。
 ### check
 - Agent(skein-checker) 跑 lint/type-check/tests/契约合规 + **一致性核查**。未过或检出冲突 → **回 planning 重确认 (task 保持 `进行中`)**: grill/AskUserQuestion 与用户**确认修复方向** (定点修/重拆/改契约), **禁跳过确认直接补 subtask**; 确认后同 task `subtask add` 修复子任务 (`--deps` 挂失败源) 回 exec 重派, 全绿且零冲突才放行。详见 `skein-check` skill。
@@ -48,6 +48,15 @@ effort: medium
 | 有 subtask 却想 inline 顺跑             | 停手, 走 skein-exec `claim→派 Agent` 循环, 每 ready subtask 派 1 subagent | 派不出 → 硬错停手, 禁 main 代跑 subtask              |
 | 第二个 flow 进来, 第一个还没 durable    | 先给第一个 `skein create` 落盘再处理第二个 | 都未落盘 → 立即各自 `create`, 未处理者留 pending 待续 |
 
-## 反例 (命中 = 流程错误)
+## ❌ 反例 (命中=流程错误)
+
+> 🔒 Iron Law: 「派 agent」=真实 `Agent` tool_use — 无 tool_use 即没派, 禁回传「已派出」。
 
 违反上文铁律即流程错误: main 直接改源码 / inline 跳 task / 宣称派 agent 无 tool_use / 无 worktree 改源码 / 直编 `.skein/task.md` / 纯文本代替 AskUserQuestion / exec 阶段问用户顺序 / **有 subtask 却 main inline 顺跑不派 subagent** / **第二个 flow 请求顶掉/中断在飞的第一个 task** / **相关工作拆成多个 task 而非归一 task 拆 subtask**。
+
+### 自欺兜底 (高频反例)
+
+| Excuse (自欺)                         | Reality (现实)                              |
+| ------------------------------------- | ------------------------------------------- |
+| 「agent 已经在跑了 / 我说已派出」     | 无 `Agent` tool_use = 没派, 硬错停手禁回传  |
+| 「两个请求差不多, 先做新的」          | 顶掉在飞 task = 丢上下文, 先给旧的 durable 落盘 |
