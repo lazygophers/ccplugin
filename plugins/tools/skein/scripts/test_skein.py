@@ -243,6 +243,7 @@ def main() -> None:
     test_setup()
     test_lock()
     test_multirepo()
+    test_deps_ordering()
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
 
 
