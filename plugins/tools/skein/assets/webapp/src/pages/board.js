@@ -101,6 +101,8 @@ td .bar{margin:1px 0;min-width:78px}
 .doc-copy{background:none;border:1px solid var(--line);color:var(--muted);font-size:12px;cursor:pointer;line-height:1;padding:4px 9px;border-radius:6px}
 .doc-copy:hover:not(:disabled){background:var(--sel-bg);color:var(--head);border-color:var(--accent)}
 .doc-copy:disabled{opacity:.45;cursor:default}
+.copy-id{background:none;border:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1;cursor:pointer;padding:2px 5px;border-radius:5px;vertical-align:middle;margin-left:4px}
+.copy-id:hover{background:var(--sel-bg);color:var(--head);border-color:var(--accent)}
 .doc-body{padding:18px 22px;overflow-y:auto;color:var(--fg);font-size:14px;line-height:1.65}
 .doc-loading,.doc-err{color:var(--muted)}
 .markdown{font-size:14.5px;line-height:1.7;word-wrap:break-word}
@@ -245,7 +247,7 @@ function subtable(rows, ssCls) {
   var srows = rows.map(function (s) {
     var elapsed = !s.started ? "-" : (s.finished ? durCell(s.started, s.finished) : "...");
     var waited = durCell(s.created, s.started);
-    return "<tr><td>" + esc(s.sid) + "</td><td>" + esc(s.name) + "</td>"
+    return "<tr><td>" + esc(s.sid) + '<button type="button" class="copy-id" data-copy="' + esc(s.sid) + '" title="复制 id">⧉</button></td><td>' + esc(s.name) + "</td>"
       + "<td>" + badge(s.status, ssCls) + "</td>"
       + "<td>" + bar(s.pct, true, "") + "</td>"
       + "<td>" + esc(s.agent) + "</td>"
@@ -305,7 +307,8 @@ function buildLayoutHtml(data) {
     + queue + taskView + fullView + "</section>";
 
   var cards = data.cards.map(function (c) {
-    var h2 = "<h2>" + '<a class="card-link" href="/task?id=' + encodeURIComponent(c.id) + '">' + esc(c.id) + "</a> " + badge(c.status, data.stClsMap)
+    var h2 = "<h2>" + '<a class="card-link" href="/task?id=' + encodeURIComponent(c.id) + '">' + esc(c.id) + "</a>"
+      + '<button type="button" class="copy-id" data-copy="' + esc(c.id) + '" title="复制 id">⧉</button> ' + badge(c.status, data.stClsMap)
       + (c.nextUp ? "<span class=next-up-chip>▶ 下一个</span>" : "")
       + '<a class="card-detail-btn" href="/task?id=' + encodeURIComponent(c.id) + '" title="详情" aria-label="详情">'
       + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
@@ -476,6 +479,17 @@ function wireDocModal(mount, modal, ctx) {
   }
 
   mount.addEventListener("click", function (e) {
+    var cp = e.target.closest(".copy-id");
+    if (cp) {
+      var v = cp.getAttribute("data-copy");
+      if (v && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(v).then(function () {
+          var old = cp.textContent; cp.textContent = "✓";
+          setTimeout(function () { cp.textContent = old; }, 1200);
+        });
+      }
+      return;
+    }
     var b = e.target.closest(".doc-link");
     if (b && !modal.contains(b)) { open(b.getAttribute("data-doc"), b.getAttribute("data-title")); return; }
     if (e.target.closest(".doc-copy")) { copySrc(); return; }

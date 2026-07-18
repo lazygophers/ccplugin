@@ -64,6 +64,8 @@ const TASK_STYLE = `<style>
 .md-body li>input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:13px;height:13px;margin:0 .5em 0 -1.3em;vertical-align:-2px;position:relative;border:1.5px solid var(--muted);border-radius:3px;background:transparent}
 .md-body li>input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
 .md-body li>input[type=checkbox]:checked::after{content:"";position:absolute;left:3.5px;top:.5px;width:3px;height:6.5px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.copy-id{background:none;border:1px solid var(--line);color:var(--muted);font-size:11px;line-height:1;cursor:pointer;padding:2px 5px;border-radius:5px;vertical-align:middle}
+.copy-id:hover{background:var(--sel-bg);color:var(--head);border-color:var(--accent)}
 .md-body code{background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:5px;padding:.12em .35em;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .md-body pre{background:color-mix(in srgb,var(--fg) 6%,transparent);border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow-x:auto;margin:.8em 0;line-height:1.5}
 .md-body pre code{background:none;padding:0;font-size:.86em}
@@ -138,6 +140,7 @@ const TPL = `
       <div class="flex items-center gap-3 flex-wrap">
         <button class="back-btn" @click="history.back()">← 返回</button>
         <code class="text-sm px-2 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ task.id }}</code>
+        <button class="copy-id" :title="copied===task.id ? '已复制' : '复制 id'" @click="copyId(task.id)">{{ copied===task.id ? '✓' : '⧉' }}</button>
         <h1 class="text-lg font-semibold" style="color:var(--head)">{{ task.name || task.id }}</h1>
         <span class="badge" :class="badgeCls(task.status)">{{ task.status }}</span>
         <span class="stage-chip" :class="stageCls(task.status)" v-if="task.status">{{ stageLabel(task.status) }}</span>
@@ -180,6 +183,7 @@ const TPL = `
             <div v-for="s in subtasks" :key="s.sid" class="rounded p-3" style="border:1px solid var(--line)">
               <div class="flex items-center gap-2 flex-wrap">
                 <code class="text-xs" style="color:var(--head)">{{ s.sid }}</code>
+                <button class="copy-id" :title="copied===s.sid ? '已复制' : '复制 id'" @click="copyId(s.sid)">{{ copied===s.sid ? '✓' : '⧉' }}</button>
                 <span class="text-sm">{{ s.name || s.sid }}</span>
                 <span class="badge text-[11px]" :class="badgeCls(s.status)">{{ s.status }}</span>
                 <span class="flex-1"></span>
@@ -379,6 +383,14 @@ export async function render(mount, params, ctx) {
       },
       result: null,
       running: false,
+      copied: "",
+      copyId(v) {
+        if (!v || !navigator.clipboard) return;
+        navigator.clipboard.writeText(v).then(() => {
+          this.copied = v;
+          setTimeout(() => { if (this.copied === v) this.copied = ""; }, 1200);
+        });
+      },
       async runRead(cmd) {
         if (this.running || !this.task.id) return;
         this.running = true;
