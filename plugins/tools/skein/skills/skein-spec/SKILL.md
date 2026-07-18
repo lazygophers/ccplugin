@@ -1,8 +1,8 @@
 ---
 name: skein-spec
 description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 定期体检 (超预算/stale/断链/重复/废弃, 只报告)。硬约束: sediment 异步 fire-and-forget 不阻塞 finish; core 只留硬约束
-argument-hint: "[模式: recall/召回, sediment/沉淀, bootstrap/播种, reconstruct/重构, maintain/维护] [深度: recall/轻, full/全, deep/深, reconstruct 模式可选]"
-arguments: "[模式: recall/召回, sediment/沉淀, bootstrap/播种, reconstruct/重构] [深度: recall/轻, full/全, deep/深]"
+argument-hint: "[模式: recall/召回, sediment/沉淀, bootstrap/播种, reconstruct/重构, maintain/维护] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
+arguments: "[模式: recall/召回, sediment/沉淀, bootstrap/播种, reconstruct/重构] [--deep=recall/low/full/deep/max/high]"
 model: inherit
 effort: medium
 ---
@@ -52,18 +52,24 @@ task finish 闭环后由 `skein-finish` 异步 fire-and-forget 派 `skein-specer
 
 既有记忆大面积失效 (大重构 / 换技术栈 / 记忆漂移 / 接手可疑旧库) 时, 把两层规则**可逆归档**后依当前代码 + 项目内容从零重建。区别于 bootstrap (仅空仓、纯增量): 重构多 `skein-spec archive` 前置 (可逆清库) + **按项目类型分型扫描**。
 
-**三档程度** (`reconstruct <recall|full|deep>`, 落在 ②archive 范围 + ④扫描深度, 非脚本参数):
+**六档深度** (`reconstruct --deep=<recall|low|full|deep|max|high>`, 对应 ②archive 范围 + ④扫描深度):
 
 | 档 | archive 范围 | 扫描 | 适用 |
 | --- | --- | --- | --- |
-| **recall** (轻) | `archive --layer recall` (保留手工 core) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, core 仍可信 |
-| **full** (全) | `archive` 两层全归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, core 也过期 |
-| **deep** (深) | `archive` 两层全归档 | 五维 + **全 8 型探针深扫** + 旧规则逐条比对 | 接手可疑成熟仓/来源不明, 从零核 |
+| **recall** | `archive --layer recall` (保留手工 core) | 五维基线 + 主类型侧重 | 漂移/污染集中长尾, core 仍可信 |
+| **low** | `archive --layer recall` (保留手工 core) | 五维基线 | 轻量核查, 仅验证 recall 层完整性 |
+| **full** | `archive` 两层全归档 | 五维基线 + 主类型侧重 | 换栈/架构翻新, core 也过期 |
+| **deep** | `archive` 两层全归档 | 五维 + **全 8 型探针深扫** | 全面重建, 深挖长尾规则 |
+| **max** | `archive` 两层全归档 | 五维 + 全 8 型 + 旧规则逐条比对 | 彻底重建, 交叉验证新旧规则 |
+| **high** | `archive` 两层全归档 | 五维 + 全 8 型 + 旧规则逐条比对 + 交叉验证 | 接手可疑成熟仓/来源不明, 从零核 |
 
 ```
-skein-spec archive            # 可逆归档旧规则到 .skein/spec/.archive/<ts>/ (full/deep)
-skein-spec archive --layer recall  # 只归档 recall (recall 档)
-skein-spec restore <ts>       # 回滚 (撞名不覆盖新规则)
+skein-spec archive --deep=recall|low    # 只归档 recall 层 (recall/low 档)
+skein-spec archive --deep=full|deep|max|high  # 两层全归档 (full/deep/max/high 档)
+skein-spec archive --deep=high           # 最重档 (full + 交叉验证)
+skein-spec archive --layer recall        # 只归档 recall (兼容旧式)
+skein-spec archive                       # 全归档 (兼容旧式, 等效 --deep=full)
+skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 ```
 
 流程: 快照 → 归档 → 识别项目类型 → 分型扫描 (researcher bootstrap 模式 + 类型侧重) → 逐条判层 → sediment 自动写盘 → 验证 + 保留归档。🛑 `AskUserQuestion` 征同意再跑 (归档全库虽可逆仍是全局动作 · STOP, 禁自动)。**事无巨细设计 + 8 类项目 (backend/frontend/cli/monorepo/data-ml/infra/mobile/docs) 分型扫描侧重、探针、core 倾向、规则示例、陷阱** 见 [references/reconstruct-memory.md](references/reconstruct-memory.md)。
