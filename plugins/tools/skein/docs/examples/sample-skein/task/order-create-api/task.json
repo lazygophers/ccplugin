@@ -16,7 +16,7 @@
       "验收": [
         "校验商品/数量/收货地址, 契约前置"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "input-validation"
       ],
@@ -34,7 +34,7 @@
         "Redis 原子 decr, 不足即拒 (契约2)",
         "并发扣减压测无超卖"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "运行中",
       "estimate": 40,
@@ -49,7 +49,7 @@
       "验收": [
         "幂等键冲突, 待重试"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "idempotency"
       ],
@@ -66,7 +66,7 @@
       "验收": [
         "落单成功后发 MQ 事件"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "event-sourcing"
       ],

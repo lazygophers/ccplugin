@@ -15,7 +15,7 @@
       "验收": [
         "按日/商户聚合订单"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 20,
@@ -30,7 +30,7 @@
       "验收": [
         "大结果集流式生成 CSV, 避免 OOM"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [],
       "status": "待处理",
       "estimate": 15,
@@ -45,7 +45,7 @@
       "验收": [
         "异步跑 + 进度查询"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "cron"
       ],

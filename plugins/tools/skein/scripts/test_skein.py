@@ -85,7 +85,7 @@ def main() -> None:
         assert "输出必须幂等" in sk(d, "contract", "task-1").stdout, "contract 未列出"
 
         # start 前须登记 ≥1 subtask (planning 拆分产物)
-        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--desc", "描述", "--agent", "skein-executor")
 
         # start task-1 → worktree 建出
         sk(d, "start", "task-1")
@@ -115,10 +115,10 @@ def main() -> None:
 
         # 并发上限: create+start task-2, task-3 应被拒
         sk(d, "create", "task-2", "--name", "第二个", "--desc", "描述")
-        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
         sk(d, "start", "task-2")
         sk(d, "create", "task-3", "--name", "第三个", "--desc", "描述")
-        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
         r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
@@ -166,7 +166,7 @@ def main() -> None:
         # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
         sk(d, "start", "task-3")
         sk(d, "create", "task-4", "--name", "第四个", "--desc", "描述")
-        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
         sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
@@ -177,9 +177,9 @@ def main() -> None:
 
         # ---- subtask DAG 调度 ----
         sk(d, "create", "task-5", "--name", "编排任务", "--desc", "描述")
-        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--agent", "general-purpose")
-        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--agent", "general-purpose")
-        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--agent", "general-purpose")
+        sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--agent", "skein-executor")
+        sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--agent", "skein-executor")
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
         rdy = sk(d, "subtask", "ready", "task-5").stdout
         assert "s1" in rdy and "s2" in rdy and "s3" not in rdy, "就绪批错 (s3 应被依赖挡)"
@@ -220,7 +220,7 @@ def main() -> None:
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
-           "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--agent", "general-purpose")
+           "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--agent", "skein-executor")
         sk(d, "board")
         html = (d / ".skein/task.html").read_text()
         # 剔搜索框 placeholder 里的装饰性省略号 (非 DAG 截断), 只验节点文本无 …

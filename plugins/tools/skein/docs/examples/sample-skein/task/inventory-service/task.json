@@ -16,7 +16,7 @@
       "验收": [
         "stock/reserved 双字段"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "db-migration"
       ],
@@ -36,7 +36,7 @@
         "Lua 脚本保证原子, 契约1",
         "并发预占压测无超卖"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "concurrency"
       ],
@@ -55,7 +55,7 @@
       "验收": [
         "扫描过期预占并释放"
       ],
-      "agent": "general-purpose",
+      "agent": "skein-executor",
       "skills": [
         "cron"
       ],

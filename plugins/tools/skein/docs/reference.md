@@ -88,9 +88,9 @@ skein-memory <cmd>
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 exec / planning / memory / check 的 references (省常驻 description token)。
 
-## Agents (5 个具名 + 执行选现有 agent)
+## Agents (6 个注册: 5 工具受限具名 + 1 执行器)
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `skein-executor`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — 通用 agent 有 Agent/Task 工具, 故递归护栏靠 prompt 硬性禁止再派 subagent。以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `skein-executor`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — `skein-executor` 工具面已剔 Agent/Task, 工具层强制递归护栏; 仅 main 选用的外部 agent (非 skein 受限具名, 工具面无约束) 靠 dispatch prompt 硬性禁止再派 subagent。共 6 个注册 agent, 其中 `skein-executor` 是默认执行器 (工具面剔 Agent/Task = 递归护栏, 兜底执行任意 subtask), 以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
