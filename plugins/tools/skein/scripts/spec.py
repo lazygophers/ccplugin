@@ -7,17 +7,17 @@
 
 类目 (category) 是层内子目录, 自由取名 (git/test/arch/build/style/domain/ops...), 按需建。
 索引三份: 每层 <layer>/index.md (层内全规则) + 顶层 index.md (两层聚合概览)。
-写盘 (sediment) 由 skein-memory skill 在判定门通过后自动调用 (不逐次询问用户), 写后自动 reindex。
+写盘 (sediment) 由 skein-spec skill 在判定门通过后自动调用 (不逐次询问用户), 写后自动 reindex。
 
 命令:
-  memory.py init
-  memory.py inject-core                        输出全部 core 规则正文 (调试用)
-  memory.py session-start                       SessionStart hook: 直接产 hook JSON 注入 core
-  memory.py recall "<query>"                   grep recall/index.md, 输出命中行 (model 再读全文)
-  memory.py sediment --layer core|recall --category git --title T \
+  spec.py init
+  spec.py inject-core                        输出全部 core 规则正文 (调试用)
+  spec.py session-start                       SessionStart hook: 直接产 hook JSON 注入 core
+  spec.py recall "<query>"                   grep recall/index.md, 输出命中行 (model 再读全文)
+  spec.py sediment --layer core|recall --category git --title T \
             --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
-  memory.py reindex                            重扫两层重建全部 index
-  memory.py list [--layer core|recall]
+  spec.py reindex                            重扫两层重建全部 index
+  spec.py list [--layer core|recall]
 """
 from __future__ import annotations
 
@@ -87,7 +87,7 @@ def _cell(s: str) -> str:
     return (s or "-").replace("|", "/")
 
 
-class Memory:
+class Spec:
     def __init__(self) -> None:
         self.root = spec_root()
 
@@ -141,8 +141,8 @@ class Memory:
         if not idx:
             return
         ctx = budget_guard(
-            "# SKEIN core 规则索引 (仅标题; 需全文跑 `memory.py inject-core`)\n\n" + idx,
-            INDEX_BUDGET_TOKENS, "memory:session-start")
+            "# SKEIN core 规则索引 (仅标题; 需全文跑 `spec.py inject-core`)\n\n" + idx,
+            INDEX_BUDGET_TOKENS, "spec:session-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
@@ -161,17 +161,17 @@ class Memory:
         if not idx:
             return
         head = ("# SKEIN spec 纪律 (执行期强制)\n"
-                "- 动手前: 相关约定先跑 `memory.py recall <关键词>` 拉 recall 层, 别凭记忆重推。\n"
+                "- 动手前: 相关约定先跑 `spec.py recall <关键词>` 拉 recall 层, 别凭记忆重推。\n"
                 "- 命中 core 规则 (下列) 即硬约束, 违反视为未完成。\n"
                 "- 踩到「后续同类任务会再犯」的坑 / 定下可复用约定: 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘, 别让它随 worktree 销毁蒸发。\n")
-        recall_tail = "\n## 需要其他类目全文? 跑 `memory.py recall <关键词>` 或 inject-core\n"
+        recall_tail = "\n## 需要其他类目全文? 跑 `spec.py recall <关键词>` 或 inject-core\n"
         cats = AGENT_CATEGORIES.get(_read_hook_stdin() or "", [])
         if cats:
             body = self._core_text_by_cat(cats).strip()
             ctx = head + f"\n## core 规则 (命中类目 {cats})\n\n{body}\n\n## 全量 core 索引\n\n{idx}{recall_tail}"
         else:  # 空映射/非 skein agent/stdin 失败 → 纯索引
             ctx = head + f"\n## core 索引 (全量; 需全文跑 recall/inject-core)\n\n{idx}{recall_tail}"
-        ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "memory:subagent-start")
+        ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "spec:subagent-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))
 
@@ -213,7 +213,7 @@ class Memory:
             f"category: {cat}\n"
             f"keywords: [{keywords or ''}]\n"
             f"source: {source or '-'}\n"
-            "authored-by: skein-memory\n"
+            "authored-by: skein-spec\n"
             f"created: {now()}\n"
             "---\n\n"
             + body.strip() + "\n")
@@ -283,7 +283,7 @@ class Memory:
                 moved += 1
         self._reindex_all()
         if moved:
-            print(f"已归档 {moved} 条规则 → {dest}\n回滚: python3 memory.py restore {ts}")
+            print(f"已归档 {moved} 条规则 → {dest}\n回滚: python3 spec.py restore {ts}")
         else:
             print("无规则可归档 (库已空)")
 
@@ -344,7 +344,7 @@ def _summary(body: str) -> str:
 
 def main() -> None:
     p = argparse.ArgumentParser(
-        prog="memory.py",
+        prog="spec.py",
         description="SKEIN 两层规则记忆 (.skein/spec) — core 常驻 + recall 按需召回",
         epilog="用法: planning 时 recall 召回, task finish 时 sediment 沉淀",
     )
@@ -378,10 +378,10 @@ def main() -> None:
     a = p.parse_args()
     global DBG
     DBG = Debug(cli_debug or debug_enabled(None))
-    DBG.rule(f"memory {a.cmd}")
+    DBG.rule(f"spec {a.cmd}")
     DBG.kv({k: v for k, v in vars(a).items() if k not in ("cmd", "debug") and v not in (None, False)},
            title="参数")
-    m = Memory()
+    m = Spec()
     {
         "init": m.init, "inject-core": m.inject_core, "recall": m.recall,
         "session-start": m.session_start, "subagent-start": m.subagent_start,

@@ -1,6 +1,6 @@
-"""memory.py 测试 — init/sediment/recall/inject-core/session-start/subagent-start/reindex。
+"""spec.py 测试 — init/sediment/recall/inject-core/session-start/subagent-start/reindex。
 
-通过 subprocess 跑 memory.py CLI (conftest 的 mem_ws fixture 造隔离 .skein/spec/ 仓),
+通过 subprocess 跑 spec.py CLI (conftest 的 mem_ws fixture 造隔离 .skein/spec/ 仓),
 覆盖三条核心路径:
   1. init 建 spec 骨架 + sediment 写盘 + 三层索引同步 (layer/category/top) + 跨类目 seq 递增 + reindex 幂等。
   2. recall 粗筛 (命中/无命中) + inject-core 隔离层 (core 全文 / 去 frontmatter / 不混 recall)。
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-MEM: Path = Path(__file__).resolve().parent.parent / "memory.py"
+MEM: Path = Path(__file__).resolve().parent.parent / "spec.py"
 
 MemCli = Callable[..., subprocess.CompletedProcess[str]]
 
@@ -126,4 +126,4 @@ if __name__ == "__main__":
     mem_cli = _MemCli()
     for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent):
         fn(_mk_ws(), mem_cli)
-    print("memory.py 测试全过 (init/sediment+三层索引/recall粗筛/inject-core隔离层/hook注入)")
+    print("spec.py 测试全过 (init/sediment+三层索引/recall粗筛/inject-core隔离层/hook注入)")

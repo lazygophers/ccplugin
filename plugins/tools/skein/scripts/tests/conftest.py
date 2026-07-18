@@ -1,4 +1,4 @@
-"""共享 fixture — pytest tmp_path 隔离临时 git 仓 + skein/memory CLI 封装。
+"""共享 fixture — pytest tmp_path 隔离临时 git 仓 + skein/spec CLI 封装。
 
 提炼自 test_skein.py 的 _init_ws/sk/git helper (line 47-54, 17-23)。每个测试拿独立
 临时目录, 禁碰真实 .skein/。"""
@@ -13,7 +13,7 @@ import pytest  # type: ignore[import-not-found]
 
 SCRIPTS: Path = Path(__file__).resolve().parent.parent
 SKEIN: Path = SCRIPTS / "skein.py"
-MEM: Path = SCRIPTS / "memory.py"
+MEM: Path = SCRIPTS / "spec.py"
 
 GitCmd = Callable[..., None]
 SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
@@ -39,7 +39,7 @@ def skein_cli() -> SkeinCli:
 
 @pytest.fixture  # type: ignore[untyped-decorator]
 def mem_cli() -> MemCli:
-    """memory.py CLI 封装: mem_cli(cwd, *args, inp=None) → CompletedProcess。"""
+    """spec.py CLI 封装: mem_cli(cwd, *args, inp=None) → CompletedProcess。"""
     def _mem(cwd: Path, *args: str, inp: str | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run([sys.executable, str(MEM), *args], cwd=cwd,
                               capture_output=True, text=True, check=True, input=inp)
@@ -62,7 +62,7 @@ def ws(tmp_path: Path, git_cmd: GitCmd, skein_cli: SkeinCli) -> Path:
 
 @pytest.fixture  # type: ignore[untyped-decorator]
 def mem_ws(tmp_path: Path, git_cmd: GitCmd, mem_cli: MemCli) -> Path:
-    """造隔离临时 git 仓 + memory init (.skein/spec/core|recall 骨架), 供 memory.py 测试。"""
+    """造隔离临时 git 仓 + spec init (.skein/spec/core|recall 骨架), 供 spec.py 测试。"""
     d = tmp_path
     git_cmd(d, "init", "-q")
     git_cmd(d, "config", "user.email", "t@t.dev")

@@ -11,7 +11,7 @@
 | **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 | **skein-finisher** | 收尾勘察 agent (绑 `skein-finish`) | 只读, finish 前扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏 | 无 |
-| **skein-memorier** | 记忆员 agent (绑 `skein-memory`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选) | 无 |
+| **skein-specer** | 记忆员 agent (绑 `skein-spec`) | 只读, recall 检索 (planning) + sediment 草案 (finish 读 diff + subagent 回传摘要 跑判定门产 core/recall/drop 候选) | 无 |
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `skein-executor`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
@@ -34,9 +34,9 @@
 - 产出: `prd.md` (主入口) + `design.md` (详细设计) + 需调研时 `findings.md` (调研收敛); 子任务 + 调度 DAG 经 `skein subtask add` 落 task.json。请你评审 (AskUserQuestion)。
   - **`design.md` 写入界限**: 仅 ① plan 阶段写 (含 ⑤ check 失败回 plan 的二次进入); ④ exec / ⑤ check / ⑥ finish 阶段禁动。exec/check 发现方案需调整 → 回 plan 改 design 后重派, 禁就地改。
 
-### ② memory recall (main 委托 `skein-memorier`)
+### ② memory recall (main 委托 `skein-specer`)
 
-派 `skein-memorier` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `skein-memory inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
+派 `skein-specer` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `skein-spec inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
 
 ### ③ 激活 (main 同步)
 
@@ -65,14 +65,14 @@ main 作调度器跑**动态 DAG 调度循环**:
 - **孤立失败** (单点 lint/type/test/契约 fail, 无跨 subtask 冲突) → **定点修复**: 派合适 agent (无则 `skein-executor`) 只改失败相关文件, 重检。
 - **一致性冲突 或 check 失败根因跨 subtask** → **深化拆分 (非定点补丁)**: 冲突根因在 planning 拆分不到位, 定点补丁治标。回 `skein plan` 把每个冲突根因拆成新 subtask (一冲突一 subtask, 逐条覆盖, 更新 DAG/契约), 重跑 exec→check。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
 
-**第 3 轮仍 FAIL → 根因复盘**: 不再只停手, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② 停手并附根因报告转人工。可复用的教训回流 `skein-memory` sediment (踩坑留痕)。
+**第 3 轮仍 FAIL → 根因复盘**: 不再只停手, 而是走 `skein-check` 的根因复盘协议 (`references/root-cause-protocol.md`) 做跨维度结构化定位 — 从**需求 / 设计 / 实现 / 环境 / 测试** 5 维定位真正根因 + 给预防措施。出口二选一: ① 带根因回 exec 定向重修; ② 停手并附根因报告转人工。可复用的教训回流 `skein-spec` sediment (踩坑留痕)。
 
 ### ⑥ finish (main 委托 `skein-finish` 编排)
 
-check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-memory` sediment (见下) → 清理悬挂 → `skein finish`**。
+check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 `skein-finisher` 收尾勘察 → 委托 `skein-spec` sediment (见下) → 清理悬挂 → `skein finish`**。
 
 - **收尾勘察** (`skein-finisher`, 只读): 扫悬挂 subagent/后台任务 + 复核 check 全绿 + 查未提交遗漏, 回传勘察报告供 main 决定是否放行。
-- **sediment 判定门** (委托 `skein-memory`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-memorier`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `skein-memory sediment` 自动写盘 (判定门通过即写, 不逐次询问用户)。无增量则跳过 (禁硬凑)。
+- **sediment 判定门** (委托 `skein-spec`): main 把 diff + exec 各 subagent 回传摘要 (含 `SPEC:` 标记) 传给 `skein-specer`, 由它跑判定门产候选 (core/recall/drop 分层草案) → main 逐项输出 trace + `skein-spec sediment` 自动写盘 (判定门通过即写, 不逐次询问用户)。无增量则跳过 (禁硬凑)。
 - **`skein finish`** (main 同步):
   1. worktree 内 `git add -A` + commit (auto_commit=true 时)。
   2. `git merge --no-ff skein/<id>` 合并回主工作区。冲突 → 自动 abort + 报冲突文件, **禁强解**。
@@ -125,7 +125,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 
 ### bootstrap 冷启动播种 (一次性)
 
-仓库**首次接入** SKEIN、`.skein/spec` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 走 `skein-memory` 的冷启动播种 (`references/bootstrap-seeding.md`):
+仓库**首次接入** SKEIN、`.skein/spec` 为空 / 近空时, 规则库没有历史经验可召回。此时 main 用 AskUserQuestion 征得同意后, 走 `skein-spec` 的冷启动播种 (`references/bootstrap-seeding.md`):
 
 1. 派 `skein-researcher` (**bootstrap 扫描模式**) 扫既有代码库约定 — 命名 / 错误处理 / 测试 / 架构边界 / 构建 5 个维度, 提炼候选规则。
 2. 逐条判 `core` / `recall` / `drop`, 经现有 sediment 写盘流程落盘 (bootstrap 跑前已一次征同意, 内部候选自动写)。
@@ -143,7 +143,7 @@ check 全绿后被 flow 委托给 `skein-finish` 收尾编排门, 顺序: **派 
 | 跨任务可复用经验但长尾 (选型 / 架构边界 / 踩坑根因) | → **recall** |
 | 一次性 bug / 本 task 私有细节 / 已有规则覆盖 | → **drop** (不沉淀) |
 
-判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-memorier` (读 diff + subagent 回传摘要 跑判定门) 产出, 写盘经 `skein-memory sediment` 仍归 main —— 判定门通过即自动写, 不逐次询问用户, 自动 reindex。
+判定归 model 语义判断 (脚本做不了), 全无增量则跳过, **禁硬凑沉淀**。候选草案由 `skein-specer` (读 diff + subagent 回传摘要 跑判定门) 产出, 写盘经 `skein-spec sediment` 仍归 main —— 判定门通过即自动写, 不逐次询问用户, 自动 reindex。
 
 ## 工作区布局
 

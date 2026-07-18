@@ -15,7 +15,7 @@ effort: medium
 ## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
 - **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json` 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
-- **memory recall** — 派 `skein-memorier` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
+- **memory recall** — 派 `skein-specer` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
 - Skill(skein-grill) 确认需求 → Skill(skein-plan --continue) 规划+`subtask add` 登记 → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
 ### exec
 - Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (🛑 硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
@@ -23,7 +23,7 @@ effort: medium
 ### check
 - Agent(skein-checker) 跑 lint/type-check/tests/契约合规 + **一致性核查**。未过或检出冲突 → **回 planning 重确认 (task 保持 `进行中`)**: grill/AskUserQuestion 与用户**确认修复方向** (定点修/重拆/改契约), **禁跳过确认直接补 subtask**; 确认后同 task `subtask add` 修复子任务 (`--deps` 挂失败源) 回 exec 重派, 全绿且零冲突才放行。详见 `skein-check` skill。
 ### finish
-- Skill(skein-finish) 收尾门 (check 全绿后): 派 `skein-finisher` 勘察 → 委托 `skein-memory` sediment → 清理悬挂 → `skein finish`。**sediment 判定门 (自动沉淀)**: `skein-memorier` 产候选 → main 逐项 trace + `skein-memory sediment` 自动写盘; 无增量跳过。详见 `skein-finish` skill。
+- Skill(skein-finish) 收尾门 (check 全绿后): 派 `skein-finisher` 勘察 → 委托 `skein-spec` sediment → 清理悬挂 → `skein finish`。**sediment 判定门 (自动沉淀)**: `skein-specer` 产候选 → main 逐项 trace + `skein-spec sediment` 自动写盘; 无增量跳过。详见 `skein-finish` skill。
 
 ## 作用域边界 (何时建 task)
 

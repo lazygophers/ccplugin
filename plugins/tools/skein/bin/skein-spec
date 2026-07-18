@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""skein-memory — py wrapper, 复用 scripts/memory.py 入口 (去 shell 依赖)。
+"""skein-spec — py wrapper, 复用 scripts/spec.py 入口 (去 shell 依赖)。
 原 bash thin wrapper 的 py 等价: CLAUDE_PLUGIN_ROOT 优先, 回退相对 __file__ 推插件根, runpy 复用 scripts/ 入口。"""
 import os, sys, runpy
 _root = os.environ.get("CLAUDE_PLUGIN_ROOT") or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_target = os.path.join(_root, "scripts", "memory.py")
+_target = os.path.join(_root, "scripts", "spec.py")
 sys.argv[0] = _target
 runpy.run_path(_target, run_name="__main__")

@@ -2534,8 +2534,8 @@ class Skein:
             shutil.copytree(tspec, sspec)  # 独立拷贝: trellis 零改动, spec 归 skein 自管 (软链会锁死双向)
             spec_copied = True
         elif not tspec.exists() and not sspec.exists():
-            # 无 trellis → 建本地 spec 库 (memory.py init)
-            subprocess.run([sys.executable, str(Path(__file__).parent / "memory.py"), "init"],
+            # 无 trellis → 建本地 spec 库 (spec.py init)
+            subprocess.run([sys.executable, str(Path(__file__).parent / "spec.py"), "init"],
                            stdout=sys.stderr, check=False)
         # 物理迁移 trellis task 文件夹 (redirect 内, 保 stdout 纯 JSON)
         with contextlib.redirect_stdout(sys.stderr):

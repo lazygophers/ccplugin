@@ -14,4 +14,4 @@ main 按规模自动判 — 命中「单文件单处改 ≤20 行」或「单子
 
 - 走完 plan→exec→check→finish — **未 archive = 未完成, 禁宣告 Done**。
 - finish 前清理悬挂 subagent / 后台任务 (`TaskList`/`TaskStop`), 未关 = 未闭环。
-- sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-memory`)。
+- sediment: 有可复用 learning 才沉淀, 无则跳过 (判定见 `skein-spec`)。

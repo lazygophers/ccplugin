@@ -40,7 +40,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | --- | --- |
 | **spec** | 规则记忆库, 存 `.skein/spec/`。对标 trellis 的单文件 spec, 但 SKEIN 分两层×类目。 |
 | **core (核心层)** | 常驻注入的硬规, 每 session 由 SessionStart hook 注入。有字符预算, 超了降级到 recall。 |
-| **recall (召回层)** | 按需语义召回的规则, `skein-memory recall <query>` 粗筛命中行, model 再读全文定用否。 |
+| **recall (召回层)** | 按需语义召回的规则, `skein-spec recall <query>` 粗筛命中行, model 再读全文定用否。 |
 | **类目 (category)** | 层内按物理子目录分类 (git/test/arch/build/style/domain/ops/misc...), 自由建。 |
 | **sediment (沉淀)** | 把本 task 的 learning 写盘成规则。finish 前经**判定门**判 → core / recall / drop。 |
 
