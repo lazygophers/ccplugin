@@ -60,7 +60,10 @@ const TASK_STYLE = `<style>
 .md-body li{margin:.25em 0}
 .md-body li::marker{color:var(--muted)}
 .md-body ul:has(>li>input[type=checkbox]),.md-body li:has(>input[type=checkbox]){list-style:none}
-.md-body li>input[type=checkbox]{margin:0 .5em 0 -1.3em;vertical-align:middle;accent-color:var(--accent)}
+/* 自绘 checkbox: 原生 disabled 未勾在暗底渲成灰实心方块 (误读为已完成) → appearance:none 空心框; 勾选才 accent 填充 + ✓ */
+.md-body li>input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:13px;height:13px;margin:0 .5em 0 -1.3em;vertical-align:-2px;position:relative;border:1.5px solid var(--muted);border-radius:3px;background:transparent}
+.md-body li>input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.md-body li>input[type=checkbox]:checked::after{content:"";position:absolute;left:3.5px;top:.5px;width:3px;height:6.5px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .md-body code{background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:5px;padding:.12em .35em;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .md-body pre{background:color-mix(in srgb,var(--fg) 6%,transparent);border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow-x:auto;margin:.8em 0;line-height:1.5}
 .md-body pre code{background:none;padding:0;font-size:.86em}

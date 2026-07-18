@@ -118,7 +118,10 @@ td .bar{margin:1px 0;min-width:78px}
 .markdown li>ul,.markdown li>ol{margin:.3em 0}
 .markdown li::marker{color:var(--muted)}
 .markdown ul:has(>li>input[type=checkbox]),.markdown li:has(>input[type=checkbox]){list-style:none}
-.markdown li>input[type=checkbox]{margin:0 .5em 0 -1.4em;vertical-align:middle;accent-color:var(--accent)}
+/* 自绘 checkbox: 原生 disabled 未勾在暗底渲成灰实心方块 (误读为已完成) → appearance:none 空心框; 勾选才 accent 填充 + ✓ */
+.markdown li>input[type=checkbox]{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:13px;height:13px;margin:0 .5em 0 -1.4em;vertical-align:-2px;position:relative;border:1.5px solid var(--muted);border-radius:3px;background:transparent}
+.markdown li>input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.markdown li>input[type=checkbox]:checked::after{content:"";position:absolute;left:3.5px;top:.5px;width:3px;height:6.5px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .markdown code{background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:5px;padding:.15em .4em;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .markdown pre{background:var(--sel-bg);border:1px solid var(--line);border-radius:9px;padding:14px 16px;overflow-x:auto;margin:.9em 0;line-height:1.5}
 .markdown pre code{background:none;padding:0;font-size:.86em}
