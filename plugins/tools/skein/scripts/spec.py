@@ -18,6 +18,7 @@
             --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
   spec.py reindex                            重扫两层重建全部 index
   spec.py list [--layer core|recall]
+  spec.py maintain [--layer core|recall]     全量体检 (超预算/stale/断链/keywords重复/废弃), 只报告不自动执行
 """
 from __future__ import annotations
 
@@ -34,6 +35,8 @@ CORE_BUDGET = 8000  # core 全文软预算 (字符, 供 inject-core 手动查看
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
 SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈CORE_BUDGET 字符)
 LAYERS = ("core", "recall")
+STALE_DAYS = 180  # maintain stale 判据: created 年龄超此天数且无近期 updated → 候选
+KEYWORDS_DUP_THRESHOLD = 3  # maintain keywords 高重复判据: 同 keywords 组 ≥ 此数 → 合并候选
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
 from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
@@ -114,9 +117,12 @@ class Spec:
         print(f"已初始化 spec 库: {self.root}")
 
     # ---- core 正文 (供 inject-core / session-start 复用) ----
-    def _core_text(self) -> str:
+    def _core_text_raw(self) -> str:
         parts = [_strip_frontmatter(f.read_text()).strip() for f in self._rule_files("core")]
-        text = "\n\n".join(p for p in parts if p)
+        return "\n\n".join(p for p in parts if p)
+
+    def _core_text(self) -> str:
+        text = self._core_text_raw()
         if len(text) > CORE_BUDGET:
             sys.stderr.write(
                 f"core 规则 {len(text)} 字符 > 预算 {CORE_BUDGET} — "
@@ -143,6 +149,14 @@ class Spec:
         ctx = budget_guard(
             "# SKEIN core 规则索引 (仅标题; 需全文跑 `spec.py inject-core`)\n\n" + idx,
             INDEX_BUDGET_TOKENS, "spec:session-start")
+        # maintain 提示: core 超预算 或 最老规则 > 180 天 → 1 行提醒 (不挤 INDEX 预算)
+        core_text = self._core_text_raw()
+        now_ts = now()
+        ages = [_ts_age_days(_frontmatter(f.read_text()).get("created"), now_ts)
+                for f in self._rule_files("core")]
+        oldest = max((d for d in ages if d is not None), default=0)
+        if len(core_text) > CORE_BUDGET or oldest > STALE_DAYS:
+            ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `spec.py maintain` 体检"
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
@@ -199,6 +213,9 @@ class Spec:
         title = cast(str, a.title)
         keywords = cast(Optional[str], getattr(a, "keywords", None))
         source = cast(Optional[str], getattr(a, "source", None))
+        status = cast(Optional[str], getattr(a, "status", None)) or "active"
+        related_raw = cast(Optional[str], getattr(a, "related", None)) or ""
+        related = [s.strip() for s in related_raw.split(",") if s.strip()]
         body_file = cast(Optional[str], getattr(a, "body_file", None))
         cat = category or "misc"
         d = self.layer_dir(layer) / cat
@@ -206,6 +223,7 @@ class Spec:
         seq = self._next_seq(layer)  # 层内全局序号, 免跨类目撞名
         f = d / f"{source or 'rule'}-{seq:02d}.md"
         body = Path(body_file).read_text() if body_file else ""
+        ts = now()
         f.write_text(
             "---\n"
             f"title: {title}\n"
@@ -214,7 +232,10 @@ class Spec:
             f"keywords: [{keywords or ''}]\n"
             f"source: {source or '-'}\n"
             "authored-by: skein-spec\n"
-            f"created: {now()}\n"
+            f"created: {ts}\n"
+            f"status: {status}\n"
+            f"related: [{','.join(related)}]\n"
+            f"updated: {ts}\n"  # 写盘=created; 后续修订由 d3 写本字段
             "---\n\n"
             + body.strip() + "\n")
         self._reindex_all()
@@ -237,23 +258,25 @@ class Spec:
         d = self.layer_dir(layer)
         d.mkdir(parents=True, exist_ok=True)
         by_cat: dict[str, int] = {}
-        rows: list[tuple[str, str, str, str, str]] = []
+        rows: list[tuple[str, str, str, str, str, str]] = []
         for f in self._rule_files(layer):
             txt = f.read_text()
             meta = _frontmatter(txt)
             cat = f.parent.name  # 类目 = 所在目录 (物理事实), 免与 frontmatter 漂移
             rel = f.relative_to(d).as_posix()
             by_cat[cat] = by_cat.get(cat, 0) + 1
+            # .get 容错旧 spec 缺 status (缺字段视为 active, 不报错不迁移)
             rows.append((cat, rel, _cell(str(meta.get("title", ""))),
-                         _cell(str(meta.get("keywords", ""))), _summary(txt)))
+                         _cell(str(meta.get("keywords", ""))),
+                         _cell(str(meta.get("status", "active"))), _summary(txt)))
         rows.sort()
-        body = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {summ} |"
-                         for cat, rel, title, kw, summ in rows)
+        body = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {status} | {summ} |"
+                         for cat, rel, title, kw, status, summ in rows)
         (d / "index.md").write_text(
             f"# SKEIN {layer} 规则索引\n\n"
             f"类目: {_dist(by_cat)}\n\n"
-            "| file | category | title | keywords | summary |\n"
-            "|---|---|---|---|---|\n"
+            "| file | category | title | keywords | status | summary |\n"
+            "|---|---|---|---|---|---|\n"
             + (body + "\n" if body else ""))
         return by_cat
 
@@ -306,12 +329,100 @@ class Spec:
         self._reindex_all()
         print(f"已恢复 {moved} 条 ← {src}")
 
+    # ---- maintain (全量体检: 超预算/stale/断链/keywords重复/废弃, 只报告不自动执行) ----
+    def maintain(self, a: argparse.Namespace) -> None:
+        layer_opt = cast(Optional[str], getattr(a, "layer", None))
+        layers = [layer_opt] if layer_opt else list(LAYERS)
+        # 所有规则的 stem 集 (库内任何文件 stem, 不分层) — wikilink 目标匹配用
+        all_stems = {f.stem for layer in LAYERS for f in self._rule_files(layer)}
+        now_ts = now()
+        findings: list[str] = []
+
+        # 判据 1: 超预算 (仅 core 全文; recall 不常驻无预算)
+        if "core" in layers:
+            core_text = self._core_text_raw()
+            if len(core_text) > CORE_BUDGET:
+                # 按文件正文长度降序, 列最大的几条降级候选
+                sizes = sorted(
+                    ((len(_strip_frontmatter(f.read_text()).strip()),
+                      f.parent.name, f.stem) for f in self._rule_files("core")),
+                    reverse=True)[:3]
+                cands = ", ".join(f"{cat}/{stem}({sz})" for sz, cat, stem in sizes)
+                findings.append(
+                    f"[超预算] core {len(core_text)} > {CORE_BUDGET} 字符 — "
+                    f"考虑降级: {cands}")
+
+        for layer in layers:
+            for f in self._rule_files(layer):
+                txt = f.read_text()
+                meta = _frontmatter(txt)
+                rel = f"{layer}/{f.parent.name}/{f.stem}"
+                status = meta.get("status", "active")
+
+                # 判据 2: stale — created 年龄 > STALE_DAYS 且 updated 无/更老
+                created = _ts_age_days(meta.get("created"), now_ts)
+                updated = _ts_age_days(meta.get("updated"), now_ts)
+                # ponytail: 取 created/updated 较新者为 "最新年龄"; 都老才判 stale
+                newest = min(x for x in (created, updated) if x is not None) \
+                    if any(x is not None for x in (created, updated)) else None
+                if newest is not None and newest > STALE_DAYS:
+                    findings.append(
+                        f"[stale] {rel} (created {_months(created)},{int(created)}天前, "
+                        f"updated {_months(updated)},{int(updated)}天前, status {status})")
+
+                # 判据 3: broken wikilink — body 的 [[slug]] 目标 stem 不在库内
+                body = _strip_frontmatter(txt)
+                for m in re.finditer(r"\[\[([^\]]+)\]\]", body):
+                    slug = m.group(1).strip()
+                    # slug 可能带 alias ([[stem|alias]]) 或路径 — 取首段 stem
+                    stem = slug.split("|")[0].split("/")[-1].strip()
+                    if stem and stem not in all_stems:
+                        findings.append(f"[断链] {rel}: [[{slug}]] ✗ 目标缺失")
+
+                # 判据 5: 废弃/superseded → 建议归档
+                if status in ("deprecated", "superseded"):
+                    findings.append(f"[废弃] {rel} (status {status}) — 建议 archive")
+
+            # 判据 4: keywords 高重复 — 同 keywords 组 ≥3 条 → 合并候选
+            groups: dict[str, list[str]] = {}
+            for f in self._rule_files(layer):
+                kw = _frontmatter(f.read_text()).get("keywords", "").strip()
+                if not kw:
+                    continue
+                key = ",".join(sorted(k for k in kw.split(",") if k.strip()))
+                groups.setdefault(key, []).append(f"{layer}/{f.parent.name}/{f.stem}")
+            for kw_key, hits in sorted(groups.items()):
+                if len(hits) >= KEYWORDS_DUP_THRESHOLD:
+                    findings.append(
+                        f'[重复 keywords] "{kw_key}" ×{len(hits)}: {", ".join(hits)}')
+
+        print("maintain 体检 (.skein/spec):")
+        if findings:
+            print("\n".join(findings))
+        else:
+            print("全清 (无超预算/stale/断链/重复/废弃)")
+
     # ---- list ----
     def list_(self, a: argparse.Namespace) -> None:
         layer_opt = cast(Optional[str], getattr(a, "layer", None))
         for layer in ([layer_opt] if layer_opt else list(LAYERS)):
             files = [f.relative_to(self.layer_dir(layer)).as_posix() for f in self._rule_files(layer)]
             print(f"[{layer}] {len(files)} 条: {', '.join(files) or '-'}")
+
+
+def _ts_age_days(raw: Optional[str], now_ts: int) -> Optional[int]:
+    """frontmatter created/updated 字段 → 距今天数; 非数字/缺 → None (容错旧 spec)。"""
+    if not raw:
+        return None
+    try:
+        return max(0, (now_ts - int(str(raw).strip())) // 86400)
+    except (ValueError, TypeError):
+        return None
+
+
+def _months(days: Optional[int]) -> str:
+    """天数 → 'N月' 概览 (粗算 30 天/月); None → '-'。"""
+    return f"{int(days) // 30}月" if days is not None else "-"
 
 
 def _frontmatter(text: str) -> dict[str, str]:
@@ -364,9 +475,14 @@ def main() -> None:
     s.add_argument("--title", required=True, help="规则标题")
     s.add_argument("--keywords", help="召回关键词, 逗号分隔")
     s.add_argument("--source", help="来源标记 (如 bootstrap)")
+    s.add_argument("--status", choices=["active", "deprecated", "superseded"], default="active",
+                   help="规则状态 (缺省 active; deprecated=弃用 / superseded=被替代)")
+    s.add_argument("--related", help="关联规则 slug 列表 (wikilink stem), 逗号分隔, 空则无关联")
     s.add_argument("--body-file", help="规则正文文件路径")
     ls = sub.add_parser("list", help="列已存规则")
     ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列两层)")
+    mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃), 只报告不自动执行")
+    mt.add_argument("--layer", choices=list(LAYERS), help="仅体检指定层 (缺省两层全扫)")
     ar = sub.add_parser("archive", help="[完全重构前] 可逆归档旧规则到 .archive/<ts>/ + reindex 空")
     ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省两层全归档)")
     rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
@@ -386,6 +502,7 @@ def main() -> None:
         "init": m.init, "inject-core": m.inject_core, "recall": m.recall,
         "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
+        "maintain": m.maintain,
         "archive": m.archive, "restore": m.restore,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")

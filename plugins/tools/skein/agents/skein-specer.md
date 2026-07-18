@@ -32,7 +32,8 @@ recall 命中 (<关键词>): <N 条 | 无>
 1. 读 `git diff` 摘要 + main 在 dispatch 里传入的各 subagent 回传摘要 (含 `SPEC:` 标记)。
 2. 跑 sediment 判定门 checklist (见 `skein-spec` skill / references/sediment-workflow.md): 逐项判本 task 有无 spec 增量。
 3. 对每条候选规则给**分层草案** (core 常驻 / recall 按需 / drop) + 类目 (git/test/arch/build...) + 理由。
-4. 回传:
+4. **body 参照模板填**: core 候选参照 `skein-spec/references/templates/core.md.tmpl` (铁律+反例表+关联); recall 候选参照 `recall.md.tmpl` (触发场景/陷阱正解/反例/案例/适用/关联)。模板是参考骨架非强制, 按内容取舍段名, 缺段不报错。
+5. 回传:
 ```
 sediment 草案 (<task id>): <N 条候选 | 无沉淀>
 判定 trace: <判定门逐项 ✅/❌ + 具体>

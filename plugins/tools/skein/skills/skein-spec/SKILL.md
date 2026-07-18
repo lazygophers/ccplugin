@@ -1,7 +1,7 @@
 ---
 name: skein-spec
-description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建。硬约束: sediment 异步 fire-and-forget 不阻塞 finish; core 只留硬约束
-argument-hint: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
+description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 定期体检 (超预算/stale/断链/重复/废弃, 只报告)。硬约束: sediment 异步 fire-and-forget 不阻塞 finish; core 只留硬约束
+argument-hint: "[recall/sediment/bootstrap/reconstruct/maintain [recall|full|deep]]"
 arguments: "[recall/sediment/bootstrap/reconstruct [recall|full|deep]]"
 model: inherit
 effort: medium
@@ -32,6 +32,15 @@ skein-spec recall "<任务关键词>"
 ## sediment (task finish 阶段, 异步 fire-and-forget) — 判定门 + 自主写盘
 
 task finish 闭环后由 `skein-finish` 异步 fire-and-forget 派 `skein-specer` 跑「判定门 checklist → 分层归类 → `skein-spec sediment` 自主写盘 + reindex」三步 (含升降级)。**异步**: main 派 memorier 即结束回合, 不等回传 (finish 已闭环, 禁为 sediment 阻塞); memorier 自主写盘, 回传到达后 main 只补 output trace 供审阅。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
+
+## 写盘参照模板 (软骨架, 非强制)
+
+两类规则 body 各有脊柱, sediment 写盘前 memorier 参照对应模板填:
+
+- **core** 规则 (命令式契约) 参照 [references/templates/core.md.tmpl](references/templates/core.md.tmpl): 铁律/契约 (MUST/禁, 一句一规则) + 反例表 (禁/改为) + 可选关联。
+- **recall** 规则 (ADR/陷阱型) 参照 [references/templates/recall.md.tmpl](references/templates/recall.md.tmpl): 触发场景 / 陷阱-正解 / 反例 / 案例 / 适用 / 关联。
+
+> **参考骨架非强制** — sediment 是 fire-and-forget, 模板仅作 memorier 填 body 的结构引导, **不强校验、不阻塞写盘**; 实际规则按内容取舍段名 (elastic spine), 缺段不报错。
 
 ## 空仓冷启动播种 (一次性, main)
 
@@ -80,3 +89,24 @@ skein-spec restore <ts>       # 回滚 (撞名不覆盖新规则)
 | finish 为等 sediment 阻塞闭环     | sediment 异步 fire-and-forget, finish 先 archive |
 | 写盘不同步 index.md               | skein-spec sediment 自动同步, 禁手改绕过 |
 | 什么都塞 core 常驻                | 默认 recall, core 只留硬约束            |
+
+## maintain (定期体检, main) — 只报告不自动执行
+
+规则库积累后会漂移 (core 膨胀 / 规则过时 / 断链 / keywords 重复 / 废弃未清)。`maintain` 扫两层产体检报告, **列出候选但绝不自动改盘** — 一切纠正 (降级 / 删 / 合并 / 归档) 由人决定 (删除走 `archive` 可逆纠正, 禁直删)。
+
+```
+skein-spec maintain                 # 全量体检两层
+skein-spec maintain --layer recall  # 仅指定层
+```
+
+**4 判据 + 1 归档建议**:
+
+| 判据 | 触发 | 输出示例 |
+| --- | --- | --- |
+| 超预算 | core 全文 > 8000 字符 | `[超预算] core 8200 > 8000 字符 — 考虑降级: git/big-00(2100)` |
+| stale | created 年龄 > 180 天 (~6 月) 且 updated 也老 | `[stale] recall/ops/old-00 (created 14月,420天前, updated 14月,420天前, status active)` |
+| 断链 | body 的 `[[slug]]` 目标 stem 库内无匹配 | `[断链] recall/ops/old-00: [[nonexistent]] ✗ 目标缺失` |
+| keywords 重复 | 同 keywords 组 ≥ 3 条 | `[重复 keywords] "merge,worktree" ×3: recall/arch/a, recall/ops/b, recall/ops/c` |
+| 归档建议 | status=deprecated / superseded | `[废弃] recall/test/old-00 (status deprecated) — 建议 archive` |
+
+**stale 判据 (180 天) 主观可调** — 项目节奏快可收紧 (`STALE_DAYS` in `spec.py`); `created` 缺字段或非 epoch 容错跳过不报错。无任何 findings → 输出 `全清`。
