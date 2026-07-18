@@ -510,6 +510,54 @@ class Skein:
         self._sync()
         print(f"{a.id} repos = {', '.join(t['repos']) or '(空)'}")
 
+    def deps(self, a: argparse.Namespace) -> None:
+        # 查/补 task 级前置 DAG (dedup 排序用: 给散落 task 之间补执行序, 织成完整 DAG)。
+        # 仅 pending 可改 (start 后调度已定); 且仅当现有 deps 为空才允许写 —
+        # dedup 只对无依赖的 task 补新序, 既有依赖一律不碰 (防覆盖人工/plan 声明的前置)。
+        t = self._load(a.id)
+        if a.set is None:
+            print(",".join(t.get("deps") or []) or "(无前置)")
+            return
+        if t["status"] != S_PENDING:
+            raise SystemExit(f"{a.id} 状态 {t['status']}, deps 只能在 start 前 (pending) 设置")
+        if t.get("deps"):
+            raise SystemExit(
+                f"{a.id} 已有前置 {','.join(t['deps'])} — 既有依赖不可改 (deps 只补无前置的 task)")
+        new = [d.strip() for d in (a.set or "").split(",") if d.strip()]
+        ids = self._used_ids()  # 含已归档, dep 指向归档 task 合法 (与 doctor 一致)
+        for d in new:
+            if d == a.id:
+                raise SystemExit(f"{a.id} deps 自引用")
+            if d not in ids:
+                raise SystemExit(f"前置 task 不存在: {d}")
+        # 环校验: 以拟设 deps 建全量未归档 task 级图, 检测环 (归档 task 不入图, 不成环)
+        nodes = {x["id"] for x in self._all()}
+        graph = {x["id"]: [d for d in x.get("deps", []) if d in nodes] for x in self._all()}
+        graph[a.id] = [d for d in new if d in nodes]
+        WHITE, GRAY = 0, 1
+        color: dict[str, int] = {}
+        stack: list[str] = []
+        def dfs(n: str) -> Optional[list[str]]:
+            color[n] = GRAY; stack.append(n)
+            for m in graph.get(n, []):
+                if color.get(m) == GRAY:
+                    return stack[stack.index(m):] + [m]
+                if color.get(m, WHITE) == WHITE:
+                    r = dfs(m)
+                    if r:
+                        return r
+            color[n] = 2; stack.pop()
+            return None
+        for n in graph:
+            if color.get(n, WHITE) == WHITE:
+                c = dfs(n)
+                if c:
+                    raise SystemExit(f"deps 成环: {' -> '.join(c)}")
+        t["deps"] = new
+        self._save(t)
+        self._sync()
+        print(f"{a.id} deps = {', '.join(new) or '(空)'}")
+
     def start(self, a: argparse.Namespace) -> None:
         # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SystemExit(1) 阻止 start
         print("start 前置体检 (doctor):")
@@ -2661,6 +2709,9 @@ def main() -> None:
     rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
     rp.add_argument("id", help="task id")
     rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
+    dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
+    dp.add_argument("id", help="task id")
+    dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
     s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
     ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
@@ -2751,14 +2802,14 @@ def main() -> None:
         "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready, "pop": sk.pop, "claim": sk.claim,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
-        "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos,
+        "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps,
         "status": sk.status, "subtask": sk.subtask,
         "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "check", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "subtask", "claim", "del", "delete", "rm", "remove"}
+                "contract", "repos", "deps", "subtask", "claim", "del", "delete", "rm", "remove"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)

@@ -246,6 +246,37 @@ def main() -> None:
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
 
 
+def test_deps_ordering() -> None:
+    # deps 命令 (dedup 补序织 DAG): pending+空deps 可写; 已有 deps/自引用/不存在/成环 全拒
+    with tempfile.TemporaryDirectory() as td:
+        d = Path(td)
+        git(d, "init", "-q")
+        git(d, "config", "user.email", "t@t.dev")
+        git(d, "config", "user.name", "t")
+        (d / "seed.txt").write_text("seed\n")
+        git(d, "add", "-A"); git(d, "commit", "-q", "-m", "seed")
+        sk(d, "init")
+        sk(d, "create", "schema-x", "--name", "s", "--desc", "d")
+        sk(d, "create", "api-x", "--name", "a", "--desc", "d")
+        sk(d, "create", "ui-x", "--name", "u", "--desc", "d", "--deps", "api-x")
+        # 正常补: api 无 deps → 依赖 schema, 可读回
+        sk(d, "deps", "api-x", "--set", "schema-x")
+        assert "schema-x" in sk(d, "deps", "api-x").stdout, "补序未写入"
+        # 已有 deps 的 task 不可改
+        r = sk(d, "deps", "ui-x", "--set", "schema-x", check=False)
+        assert r.returncode != 0 and "既有依赖不可改" in r.stderr, "已有 deps 未拒"
+        # 自引用拒
+        r = sk(d, "deps", "schema-x", "--set", "schema-x", check=False)
+        assert r.returncode != 0 and "自引用" in r.stderr, "自引用未拒"
+        # 不存在前置拒
+        r = sk(d, "deps", "schema-x", "--set", "nope", check=False)
+        assert r.returncode != 0 and "不存在" in r.stderr, "不存在前置未拒"
+        # 成环拒 (schema→ui→api→schema)
+        r = sk(d, "deps", "schema-x", "--set", "ui-x", check=False)
+        assert r.returncode != 0 and "成环" in r.stderr, "成环未拒"
+        sk(d, "doctor")  # 无违规
+
+
 def test_lock() -> None:
     # 写锁: 持锁时另一获取者应阻塞到超时 → SystemExit
     m = _load("skein_l")
