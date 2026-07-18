@@ -38,12 +38,33 @@ LAYERS = ("core", "recall")
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
 from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
 
+# agent 名 → core 类目白名单 (命中类目注全文, 其余仅索引); 空列表/缺项 → fallback 纯索引。
+# ponytail: 静态表足够, 无需 per-agent 配置文件; 新增 agent 就地加一行。
+AGENT_CATEGORIES: dict[str, list[str]] = {
+    "skein-executor": ["script", "git"],
+    "skein-checker": ["script"],
+    "skein-researcher": ["script", "skill"],
+    "skein-finisher": ["script", "git"],
+    # setup/dedup/memorier 未列 → 默认 fallback 纯索引
+}
+
 # --debug 叙事器 (默认关): main() 按 --debug/SKEIN_DEBUG 重建; 全走 stderr, stdout 保持机器纯净。
 DBG = Debug(False)
 
 
 def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 与 skein.py 一致, 所有落盘时间字段统一时间戳
+
+
+def _read_hook_stdin() -> Optional[str]:
+    """读 hook stdin JSON 取 agent_type; stdin 空/非 JSON/缺字段 → None (容错 fallback)。"""
+    raw = sys.stdin.read().strip() if not sys.stdin.isatty() else ""
+    if not raw:
+        return None
+    try:
+        return cast(Optional[str], json.loads(raw).get("agent_type"))
+    except (json.JSONDecodeError, AttributeError):
+        return None
 
 
 def _dist(by_cat: dict[str, int]) -> str:
@@ -125,17 +146,31 @@ class Memory:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
-    # ---- subagent-start (SubagentStart hook: 给短命执行 agent 直接注入 core 全文 + spec 纪律) ----
+    # ---- core 按类目过滤全文 (命中类目注全文, 其余仅进索引) ----
+    def _core_text_by_cat(self, cats: list[str]) -> str:
+        parts = [_strip_frontmatter(f.read_text()).strip()
+                 for f in self._rule_files("core") if f.parent.name in cats]
+        return "\n\n".join(p for p in parts if p)
+
+    # ---- subagent-start (SubagentStart hook: 读 stdin.agent_type 决定注入范围) ----
     def subagent_start(self, _: argparse.Namespace) -> None:
         # matcher 已放开到全 subagent — 非 SKEIN 项目 (无 .skein/spec) 静默不注入, 免污染其他插件的 agent
         if not self.root.exists():
             return
-        body = self._core_text().strip()
+        idx = self._core_index().strip()
+        if not idx:
+            return
         head = ("# SKEIN spec 纪律 (执行期强制)\n"
                 "- 动手前: 相关约定先跑 `memory.py recall <关键词>` 拉 recall 层, 别凭记忆重推。\n"
                 "- 命中 core 规则 (下列) 即硬约束, 违反视为未完成。\n"
                 "- 踩到「后续同类任务会再犯」的坑 / 定下可复用约定: 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘, 别让它随 worktree 销毁蒸发。\n")
-        ctx = head if not body else head + "\n## core 规则 (常驻硬约束)\n\n" + body
+        recall_tail = "\n## 需要其他类目全文? 跑 `memory.py recall <关键词>` 或 inject-core\n"
+        cats = AGENT_CATEGORIES.get(_read_hook_stdin() or "", [])
+        if cats:
+            body = self._core_text_by_cat(cats).strip()
+            ctx = head + f"\n## core 规则 (命中类目 {cats})\n\n{body}\n\n## 全量 core 索引\n\n{idx}{recall_tail}"
+        else:  # 空映射/非 skein agent/stdin 失败 → 纯索引
+            ctx = head + f"\n## core 索引 (全量; 需全文跑 recall/inject-core)\n\n{idx}{recall_tail}"
         ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "memory:subagent-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))
