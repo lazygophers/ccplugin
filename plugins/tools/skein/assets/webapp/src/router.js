@@ -16,7 +16,7 @@
 import * as live from "./lib/live.js";
 
 const ROUTES = ["dashboard", "board", "queue", "task", "spec", "archive"];
-const DEFAULT = "dashboard";
+const DEFAULT = "board";
 
 // 解析 location.pathname + search → { name, params }
 function parse() {
