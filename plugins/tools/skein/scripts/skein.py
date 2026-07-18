@@ -2003,8 +2003,9 @@ class Skein:
             return  # 用户在 config.yaml 关闭
         # 看板不落盘 — 页面每请求实时从 task.json 渲染 (do_GET)。
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
+        # --debug 强制打印启动 URL: 非 tty 手动调试 (管道/被捕获) 也能看到服务地址, 否则误判"无法启动"; 浏览器仍只 tty 开 (非 tty 弹窗骚扰)。
         manual = sys.stdout.isatty()
-        self._run_server(open_browser=manual and cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=not manual)
+        self._run_server(open_browser=manual and cfg.get("board_open", CONFIG_DEFAULTS["board_open"]), quiet=not (manual or DBG.enabled))
 
     _LOCK_ID_PATH = "/__skein__/id"  # 身份探测端点: 返回本服务的项目标识 (.skein 绝对路径)
     _REV_PATH = "/__skein__/rev"  # 版本探测端点: rev 变则 reload (WS 推送为主, 轮询兜底)
