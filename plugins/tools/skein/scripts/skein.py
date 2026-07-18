@@ -1993,16 +1993,18 @@ class Skein:
             return
         self._run_server(open_browser=cfg.get("board_open", CONFIG_DEFAULTS["board_open"]))
 
-    def serve(self, _: argparse.Namespace) -> None:
+    def serve(self, a: argparse.Namespace) -> None:
         # 持久看板 http 服务入口, 由 experimental.monitors (personal-scope, session 启动) + 用户手动跑维护。lock 去重: 同项目只跑一个。
+        # --auto: monitor 自动起模式, 遵 config web_serve 开关 (关则 no-op)。手动跑省略 → 用户显式意图, 无视开关强起。
+        auto = getattr(a, "auto", False)
         f = self.dir / "config.yaml"
         if not f.exists():
             DBG.log(f"无 .skein 工作区 ({f} 不存在) — serve 空跑退出", style="yellow")
-            return  # 无 .skein 工作区 — monitor 在无 task 项目里空跑, 直接退出
+            return  # 无 .skein 工作区 — 无 task 项目里空跑 (手动/monitor 皆退, 无盘可服务)
         cfg = _yaml_load(f.read_text())
-        if not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
-            DBG.log("config.yaml web_serve=false — 看板服务已关闭, serve 退出 (改 true 启用)", style="yellow")
-            return  # 用户在 config.yaml 关闭
+        if auto and not cfg.get("web_serve", CONFIG_DEFAULTS["web_serve"]):
+            DBG.log("config.yaml web_serve=false — monitor 自动起已关闭 (手动 `serve` 仍可强起)", style="yellow")
+            return  # 仅 monitor 自动起遵此开关; 手动 serve 无视
         # 看板不落盘 — 页面每请求实时从 task.json 渲染 (do_GET)。
         # tty 区分: 手动终端跑 (tty) 印启动 URL 且遵 board_open 自动开浏览器; monitor 管道 (非 tty) 静默且绝不弹窗 (每 session when:always, 弹窗会骚扰)。
         # --debug 强制打印启动 URL: 非 tty 手动调试 (管道/被捕获) 也能看到服务地址, 否则误判"无法启动"; 浏览器仍只 tty 开 (非 tty 弹窗骚扰)。
@@ -2690,7 +2692,8 @@ def main() -> None:
                       help="体检后再跑质量门: mypy --strict 全源码 0 错 + pytest 全 suite pass (慢, CI/hook 按需调)")
     sub.add_parser("board", help="渲染 .skein/task.md 看板")
     sub.add_parser("view", help="起 http 服务并打开可视化看板 (仅此命令主动打开)")
-    sub.add_parser("serve", help="持久看板 http 服务 (experimental.monitors 入口; config web_serve=false 则 no-op 退出)")
+    _sp_serve = sub.add_parser("serve", help="持久看板 http 服务 (手动跑无视 web_serve 强起; --auto 为 monitor 自动起入口, 遵 web_serve 开关)")
+    _sp_serve.add_argument("--auto", action="store_true", help="monitor 自动起模式: 遵 config web_serve (=false 则 no-op 退出); 省略=手动, 无视开关强起")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
     sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
