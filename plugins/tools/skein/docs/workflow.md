@@ -11,7 +11,8 @@
 | **skein-checker** | 验证 agent (绑 `skein-check`) | 只读, 跑 lint / type / test / 契约校验 + subtask 产物一致性核查 (报冲突对) | 无 |
 | **skein-researcher** | 调研 agent | planning 纯信息调研 (选型 / 对比); **bootstrap 扫描模式** 扫既有代码库约定提炼候选规则, 结论落盘 `research/` | 无 |
 | **skein-finisher** | 收尾勘察 agent (绑 `skein-finish`) | 只读, finish 前扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏 | 无 |
-| **skein-specer** | 记忆员 agent (绑 `skein-spec`) | recall 检索 (planning, 只读) + sediment 自主写盘 (finish/bootstrap/reconstruct 读 diff/候选文件 跑判定门 → 自跑 `skein-spec sediment` 落盘+reindex, 异步 fire-and-forget) | 无 |
+| **skein-specer** | 记忆写盘员 agent (绑 `skein-spec`) | sediment 自主写盘 (finish/bootstrap/reconstruct 读 diff/候选文件 跑判定门 → 自跑 `skein-spec sediment` 落盘+reindex) + reconstruct·maintain 重组 + prune 降索引 (异步 fire-and-forget) | 无 |
+| **skein-recaller** | 记忆召回员 agent (绑 `skein-spec`) | recall 检索 (planning, 只读同步) | 无 |
 
 **铁律**: main 默认**不亲自写源码** — 实质产出派 subagent。执行 subtask 由 main 按性质选合适 agent (无则 `skein-executor`), 其递归护栏靠 dispatch prompt 硬性禁止再派 subagent (自己动手做完 1 个 subtask)。验证 / 调研 / 收尾 / 记忆的 4 个具名 agent (checker / researcher / finisher / memorier) **没有** Agent/Task 工具兜住递归, 各自只干一件事; checker / finisher / memorier 各与对应 skill 相互绑定 (frontmatter `skills:`)。
 
@@ -34,9 +35,9 @@
 - 产出: `prd.md` (主入口) + `design.md` (详细设计) + 需调研时 `findings.md` (调研收敛); 子任务 + 调度 DAG 经 `skein subtask add` 落 task.json。请你评审 (AskUserQuestion)。
   - **`design.md` 写入界限**: 仅 ① plan 阶段写 (含 ⑤ check 失败回 plan 的二次进入); ④ exec / ⑤ check / ⑥ finish 阶段禁动。exec/check 发现方案需调整 → 回 plan 改 design 后重派, 禁就地改。
 
-### ② memory recall (main 委托 `skein-specer`)
+### ② memory recall (main 委托 `skein-recaller`)
 
-派 `skein-specer` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `skein-spec inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
+派 `skein-recaller` 按任务描述从 `recall` 层召回相关规则, 命中条目注入各 dispatch prompt「已知」段 (`core` 规则 session 开始只注入**极简索引**, 全文按需 `skein-spec inject-core` 拉)。让本 task 带上项目历史经验。这是**全流程记忆闭环**的召回端 (沉淀端见 ⑥ finish sediment)。
 
 ### ③ 激活 (main 同步)
 
