@@ -80,7 +80,7 @@ skein-spec <cmd>
 | `skein-flow` | 复杂/多步/跨文件请求, 强制 task 闭环 (自动或显式触发), 委托各阶段 skill | — (plan → skein-plan / exec → skein-exec / check → skein-check / finish → skein-finish; 记忆 recall+sediment → skein-spec) |
 | `skein-plan` | plan 入口 + 单一真值源 (用户可显式 `/skein-plan`, 也被 flow `--continue` 委托): 判新旧 + 登记 + brainstorm + grill 硬门; **无参 = 跑完停在 start 前 (只规划不执行, 禁 exec/check/finish)**, `--continue` = 不停返回工件路径; heavy 档含破坏式重构注解 | dispatch-graph · breaking-refactor |
 | `skein-exec` | exec 执行编排调度真值源 (被 flow exec 委托, 也可 `/skein-exec` 单独续跑已规划 task): main 作调度器按 depends_on DAG 为每个 subtask 选合适 agent, ready 即派 / 完成即派 / 并发上限 2, 双层 (subtask 级 + 多 task 级) 同构 | scheduling-algorithm · progress-reporting |
-| `skein-spec` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性)。绑定 `skein-specer` agent (产 recall/sediment 草案, 相互绑定) | sediment-workflow · bootstrap-seeding |
+| `skein-spec` | recall 召回 + sediment 沉淀; 空仓冷启动播种 (一次性)。读路径绑 `skein-recaller` agent (recall 召回) + 写路径绑 `skein-specer` agent (sediment/reconstruct/prune 写盘), 相互绑定 | sediment-workflow · bootstrap-seeding |
 | `skein-grill` | 对抗式审查需求 / 工件 (planning 硬门) | review-axes-and-output |
 | `skein-check` | 质量门 (lint/type/test/契约 + **一致性核查**), 未过派修; 孤立失败定点修, **跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖)**; 第 3 轮 FAIL 做 5 维根因复盘 | root-cause-protocol |
 | `skein-finish` | finish 收尾编排门 (check 全绿后被 flow 委托): 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein finish` (commit→merge→archive→销 worktree) | — |
@@ -88,9 +88,9 @@ skein-spec <cmd>
 
 每个 skill 是**多文件组织**: 精简 SKILL.md 入口 + `references/*.md` 明细 (渐进式披露)。原 orchestrate / refactor / bootstrap / break-loop 4 个 skill 无独立运行时调用边, 已分别并入 exec / planning / memory / check 的 references (省常驻 description token)。
 
-## Agents (6 个注册: 5 工具受限具名 + 1 执行器)
+## Agents (7 个注册: 6 工具受限具名 + 1 执行器)
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `skein-executor`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — `skein-executor` 工具面已剔 Agent/Task, 工具层强制递归护栏; 仅 main 选用的外部 agent (非 skein 受限具名, 工具面无约束) 靠 dispatch prompt 硬性禁止再派 subagent。共 6 个注册 agent, 其中 `skein-executor` 是默认执行器 (工具面剔 Agent/Task = 递归护栏, 兜底执行任意 subtask), 以下 5 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选一个合适的现有 agent (按任务性质挑, 无合适的用 `skein-executor`) 执行 1 subtask (每文件过写前硬门)。执行纪律 (递归护栏 + 读后写硬门 + 验收标准逐条自检 + 输出格式) 经 **dispatch prompt 硬性注入** (见 `skein-exec/references/scheduling-algorithm.md`) — `skein-executor` 工具面已剔 Agent/Task, 工具层强制递归护栏; 仅 main 选用的外部 agent (非 skein 受限具名, 工具面无约束) 靠 dispatch prompt 硬性禁止再派 subagent。共 7 个注册 agent, 其中 `skein-executor` 是默认执行器 (工具面剔 Agent/Task = 递归护栏, 兜底执行任意 subtask), 以下 6 个是工具受限的具名 agent (无 Agent/Task = 递归护栏), 各绑定对应 skill:
 
 | agent | 职责 | 工具面 | 模型分层 |
 | --- | --- | --- | --- |
@@ -98,7 +98,8 @@ skein-spec <cmd>
 | `skein-researcher` | planning 纯信息调研 (选型/对比) + bootstrap 扫描模式 (扫既有代码库约定), 结论落盘 `research/` | 读 + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-setup` | trellis→skein 语义迁移 (spec 重组为 core/recall×类目 + task 重建 + **残留/非 canonical** settings hook 剔除; canonical trellis hook 由脚本硬剔); 机械部分交 `skein setup [--full]` (兼容/完全两模式) | 读写 + Bash + 检索, 无 Agent/Task | `model: sonnet` + `effort: medium` |
 | `skein-finisher` | finish 收尾勘察 (只读: 扫悬挂 subagent/后台任务 + 核 check 全绿 + 查未提交遗漏), 绑定 `skein-finish` | 只读 + Bash, 无 Agent/Task | `model: haiku` |
-| `skein-specer` | 记忆员: recall 检索 (planning, 只读) + sediment 自主写盘 (finish/bootstrap/reconstruct 读 diff/候选 跑判定门产 core/recall/drop → 自跑 `skein-spec sediment` 落盘+reindex, 异步 fire-and-forget, main 不等), 与 `skein-spec` 相互绑定 | 写盘经 Bash 脚本, 无 Write/Edit/Agent/Task | `model: haiku` |
+| `skein-specer` | 记忆写盘员: sediment 自主写盘 (finish/bootstrap/reconstruct 读 diff/候选 跑判定门产 core/recall/drop → 自跑 `skein-spec sediment` 落盘+reindex) + reconstruct·maintain 重组 + prune 降索引 (异步 fire-and-forget, main 不等), 与 `skein-spec` 相互绑定 | 写盘经 Bash 脚本, 无 Write/Edit/Agent/Task | `model: haiku` |
+| `skein-recaller` | 记忆召回员: recall 检索 (planning, 只读同步), 与 `skein-spec` 相互绑定 | 写盘无 (纯只读) | `model: haiku` |
 
 > 模型分层做 token 优化: 验证 / 收尾勘察 / 记忆走最轻档 (haiku); 调研 / 迁移走 sonnet; 执行 agent 由 main 按 subtask 性质选 (默认继承主模型高推理)。
 

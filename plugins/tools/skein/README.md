@@ -21,7 +21,7 @@
 | 冷启动播种 | `skein-spec` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 主动清理 | `skein-clean` | [仅用户主动] 归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支 |
 
-**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `skein-executor`) 执行 1 subtask (改哪些文件自主决定, 完成前对照验收标准逐条自检, 每文件过写前硬门); 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。共 6 个注册 agent = 1 执行器 + 5 工具受限具名 (均无 Agent/Task 工具, 递归护栏, 各绑定对应 skill): `skein-executor` (默认执行器, 兜底执行任意 subtask) / `skein-checker` (只读验证 + 一致性核查) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移) / `skein-finisher` (finish 收尾勘察) / `skein-specer` (记忆员 recall 检索 + sediment 草案)。
+**执行 subtask 不用具名 agent** — main 为每个 subtask 选合适的现有 agent (无则 `skein-executor`) 执行 1 subtask (改哪些文件自主决定, 完成前对照验收标准逐条自检, 每文件过写前硬门); 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。共 7 个注册 agent = 1 执行器 + 6 工具受限具名 (均无 Agent/Task 工具, 递归护栏, 各绑定对应 skill): `skein-executor` (默认执行器, 兜底执行任意 subtask) / `skein-checker` (只读验证 + 一致性核查) / `skein-researcher` (planning 调研 + bootstrap 扫描模式) / `skein-setup` (trellis→skein 语义迁移) / `skein-finisher` (finish 收尾勘察) / `skein-specer` (记忆写盘员: sediment 落盘 + reconstruct·maintain 重组 + prune 降索引) / `skein-recaller` (记忆召回员: recall 检索, 只读同步)。
 
 ## 差异化核心: 两层规则记忆 (基于 `.skein/spec`)
 
