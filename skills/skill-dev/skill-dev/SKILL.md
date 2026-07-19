@@ -90,7 +90,7 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 
 **4.3 三重验证漏斗**（决定什么进 skill body）：对每条候选规则/主张过三关——① **跨域复现**（≥2 个不同场景/任务成立）② **生成预测力**（能据此推断新问题的正确做法）③ **独特性排除常识**（不是所有称职的 Claude 默认就会的）。三重通过 → 核心内容；仅 1-2 重 → 降为次要提示/边注；0 重 → 丢弃（Claude 已知，写了只烧 token）。这是「只加 Claude 不知道的」的可执行版。
 
-**4.4 模板 + 映射表装配**：骨架（Phase 2）为模板，用 section→来源映射表把调研 + 验证结果逐段填入（frontmatter / 工作流 checklist / 失败模式 / 反例黑名单 / 调研来源）。**渐进披露**：SKILL.md 像目录指向按需细节；复杂工作流给可复制 checklist（Claude 逐项打勾）；质量关键操作加 **feedback loop**（validate → fix → repeat），批量/破坏性操作用 **plan-validate-execute**（产 plan → 脚本验证 → 执行 → verify）。每段问「这段值得它的 token 成本吗？」
+**4.4 模板 + 映射表装配**：骨架（Phase 2）为模板，用 section→来源映射表把调研 + 验证结果逐段填入（frontmatter / 工作流 checklist / 失败模式 / 反例黑名单 / 调研来源）。**目标 skill 默认正向表述，仅必要场景反例配正例**——目标 skill 主体写「做什么」，仅在不可正化的硬护栏处留反例，且每条反例必配正例（matt 范式 Negation 铁律：说目标行为，让被禁行为永不被言及）。**渐进披露**：SKILL.md 像目录指向按需细节；复杂工作流给可复制 checklist（Claude 逐项打勾）；质量关键操作加 **feedback loop**（validate → fix → repeat），批量/破坏性操作用 **plan-validate-execute**（产 plan → 脚本验证 → 执行 → verify）。每段问「这段值得它的 token 成本吗？」
 
 ✅ **完成判据**（checkable + exhaustive，防抢跑）：□ **每个**候选规则都过了三重验证漏斗（非「产出规则清单」）□ **每个**调研维度都落盘 `references/research/`（非「做了调研」）。
 
@@ -125,6 +125,37 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 | 信息源匮乏（<10 条可用来源） | Phase 4.2 就降期望，核心规则减量 | 加大诚实边界篇幅，标注推测成分 |
 | 单维 agent 超时无有价值结果 | 不等待继续推进，Phase 4.4 标「该维信息不足」 | 诚实边界说明该维薄弱，不强行生成 |
 
+<creation-report-template>
+## Skill 创建报告 — <skill 名>
+
+### 1. 定位（Phase 1 四问）
+- skill / subagent：<类型> · 触发方式：<model / user-invoked> · 内容类型：<Reference / Task> · 自由度：<high/medium/low>
+- 一句话职责声明：<目标 skill 做什么 + 定义性约束>
+
+### 2. 骨架（Phase 2）
+```
+<目录树：SKILL.md / references/ / scripts/ >
+```
+- 拆分理由：<为何这样切分 references>
+
+### 3. frontmatter（Phase 3）
+- name：<kebab> · description：<做什么+何时用+触发词，<512 字符> · disable-model-invocation：<true/默认>
+- 关键触发词：<列出用户会说的词>
+
+### 4. 调研（Phase 4）
+- 分维度调研落盘：<每个维度对应 references/research/0X.md>
+- 调研审查门结论：<每维度来源数 / 关键发现 / 矛盾点 / 信息不足维度>
+- 三重验证漏斗：<核心规则（三重过）/ 次要（1-2 重）/ 丢弃（0 重）>
+- 正向化检查：□ 主体正向表述 □ 残留反例都配正例
+
+### 5. 验证（Phase 5）
+- eval 场景：<≥3 个，query + expected_behavior>
+- 量化质量门：□ ≥3 eval 全过 □ 触发无 FP+FN □ 失败模式三段式齐 □ 无未核实引用
+- 触发准确性测试：<should-trigger / should-not-trigger 对的结论>
+- claude -p 可发现性质检：<返回非空且识别正确>
+- Phase 4→5 迭代轮次：<N/2> · 薄弱维度（诚实标注）：<列出>
+</creation-report-template>
+
 ---
 
 ## 流程 B · 优化现有 skill / agent（5 Phase · validation-gated）
@@ -154,7 +185,7 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 | **delete** | dim7 冗余 / AI 腔废话 / 时间敏感信息 | 删「说白了/换句话说/综上」 |
 | **replace** | dim1 description 太泛 / dim5 软化措辞 / dim2 步骤模糊 | 「建议/可以考虑」→ 具体参数 |
 
-**单变量约束**：一轮只动一维度（或一相关簇），多维同改归因失效。**编辑粒度**：优先最小可验证改动（HL-1：4 行 🔴 CHECKPOINT 撬动 dim4 +3），避免整段重写——除非 Phase 2.5 触发。
+**单变量约束**：一轮只动一维度（或一相关簇），多维同改归因失效。**正向化编辑**：目标 skill 默认正向表述，仅必要场景反例配正例——把「不要做 Y」黑名单改写成目标行为，必要时残留反例必配正例（matt 范式 Negation）。**编辑粒度**：优先最小可验证改动（HL-1：4 行 🔴 CHECKPOINT 撬动 dim4 +3），避免整段重写——除非 Phase 2.5 触发。
 
 ### Phase 2.5: 探索性重写（按需）
 
@@ -184,6 +215,43 @@ paths: packages/api/**             # monorepo 按包触发（可选）
 3. **汇总**：before/after 9 维分 + Δ + 接受/回滚编辑清单 + judge 共识度 + dry_run 比例。
 4. **可视化成果卡片**（可选，展示战绩）：复制 `templates/result-card.html`，填 skill 名 / before-after-Δ 分 / 9 维雷达 / 爬山轮次 / 改进摘要 / 日期，浏览器打开或截图。模板自带 3 风格（swiss/terminal/newspaper，URL hash 切换），无需外部脚本。
 
+<optimization-report-template>
+## Skill 优化报告 — <skill 名>
+
+### 概览
+- 目标 skill：<路径>
+- 日期：<YYYY-MM-DD> · judge 数：<N> · 爬山轮次：<N 轮> · dry_run 比例：<%>
+- 最终判定：✅ 保留 / ⏮️ 回滚（原因：<归因不明 / Δ<0 / 触发变差>）
+
+### before / after 9 维评分
+| dim | 维度 | 方向 | 理想值 | before | after | Δ | 完成准则底线达标? |
+|-----|------|------|--------|--------|-------|----|------------------|
+| 1 | Frontmatter 质量 | ↑ | name+desc+触发词<512 | | | | □ |
+| 2 | 工作流清晰度 | ↑ | 步骤+IO+Done when | | | | □ |
+| 3 | 失败模式编码 | ↑ | 三段式 if-then | | | | □ |
+| 4 | 检查点设计 | ↑ | 🔴/🛑 视觉标记 | | | | □ |
+| 5 | 可执行具体性 | ↑ | 无软措辞 | | | | □ |
+| 6 | 资源整合度 | ↑ | 路径可达+深一层 | | | | □ |
+| 7 | 整体架构 | ↑ | 无 AI 腔 | | | | □ |
+| 8 | 实测表现 | ↑ | ≥2 test prompt | | | | □ |
+| 9 | 反例护栏 | ↓ | 正向为主+反例配正例 | | | | □ |
+| **总** | | | | **<b>** | **<a>** | **<+n>** | |
+
+### 方向轴（哪些维度 ↑ 哪些 ↓，是否朝理想值收敛）
+- ↑ 维度（升即好）：<列出 before<理想 的维度，after 是否朝理想走>
+- ↓ 维度（降即好，dim9 反例残留）：<列出 before>理想 的维度，after 是否收敛>
+
+### 编辑清单
+- **保留（ratchet 落地）**：<每条编辑 + 所属 dim + 接受理由>
+- **回滚**：<每条回滚编辑 + 回滚原因（Δ<0 / 归因失效 / 触发变差）>
+
+### judge 共识度与可信度
+- judge 共识：<一致 / 1 票分歧 / 加第3 judge> · full_test 数：<N> · 评估可信度：<可信 / dry_run>30% 人审>
+
+### 破坏性变更标注
+- 触发词/description 变更：<有/无> → 有则标 **破坏性**，下游发现逻辑变更
+</optimization-report-template>
+
 ---
 
 ## subagent 编写要点 + agent.md 优化差异
@@ -208,7 +276,7 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | 2 | description 第三人称 + key use case 前置 + 做什么+何时用 + **收窄边界防误触发** | 发现入口，🔴 底线 < 512 字符（官方 1024/1536 截断）；超长分流 `when_to_use`（< 128） |
 | 3 | 引用只深一层 | 嵌套致 head 预读信息不全 |
 | 4 | eval 先于文档 | 解决真实问题而非臆想 |
-| 5 | 反例黑名单 > 正例清单 | 反例抓住指令遗漏的失败模式 |
+| 5 | 主体正向表述，仅必要硬护栏留反例配正例 | matt 范式 Negation：说目标行为让被禁行为永不被言及；反例成章抓遗漏失败模式 |
 | 6 | 一致术语 + 正斜杠路径 + 无 voodoo 常量 | 跨平台 + 可维护 |
 | 7 | token 生命周期意识 | auto-compaction 保留最近 invoke 前 5000 token、合计 25000 token 跨 skill 共享，多 skill session 旧 skill 会被丢——**无错误信息**，最难 debug 的零可见度故障 |
 
@@ -226,25 +294,39 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | judge 分歧大 | 加第 3 judge 或换 full_test 实测 | 标「评估不可信」，人审 |
 | dry_run > 30% | 补 full_test（spawn 真实子 agent 跑 test prompt） | 评估失效，仅出建议不改盘 |
 | 触发词变更致下游 break | 回滚触发词，body 内补关键词 | 新建 skill 而非原地改（破坏性变更） |
-| 结构/触发正确但输出跑偏 | 缺反例黑名单 → 补「不要做 Y」清单 | 跑 `/grilling` red-team 找遗漏失败模式 |
+| 结构/触发正确但输出跑偏 | 缺失败模式编码 → 补 dim3 if-then 三段式 + 检查残留黑名单转正向 | 跑 `/grilling` red-team 找遗漏失败模式 |
 | runtime 红灯命中 | P0 先修 runtime drift（钉死措辞→中立表述） | badge/安装路径改「Agent Skills Standard + 多 runtime」三层中立 |
 
-## 反模式黑名单
+## 反模式护栏（默认正向，仅留必要硬护栏）
 
-创建侧 P0-P3 共 22 条见 [references/anti-patterns.md](references/anti-patterns.md)。优化侧高频反模式：
+**默认正向表述**：本节写「正确做法」，不写「不要做 Y」清单。仅下列**不可正化的硬护栏**保留反例，每条必配正例（matt 范式 Negation）。创建侧 P0-P3 共 22 条见 [references/anti-patterns.md](references/anti-patterns.md)。
 
-| # | 反模式 | 后果 | 正例 |
-|---|--------|------|------|
-| 1 | 同 context 自评自改 | 乐观偏差（46.4% 准确率） | spawn 独立子 agent 评分 |
-| 2 | 跳过 test prompt 直接评分 | dim8 凭空打分（权重 23%） | Phase 1 强制备 2-3 prompts |
-| 3 | 轮内改多个维度 | 归因失效 | 每轮 1 维度（或 1 相关簇） |
-| 4 | dry_run 高当满分 | 分数虚高，0 revert | 强制 ≥ 1 full_test |
-| 5 | 凭「必须」代替视觉标记 | LLM 扫标记优先于语义 | 🔴 / 🛑 标记 |
-| 6 | 两列 fallback（症状/解法） | 缺兜底路径 | 三段式（触发/一线/兜底） |
-| 7 | 硬凑 MAX_ROUNDS | over-engineering | Δ<2 连续 2 轮即停 |
-| 8 | 改 subagent body 不加错误标注 | 主对话消费错误摘要 | `[工具失败:原因]` 显式标注 |
-| 9 | 整段重写不走 gate | 无法归因 + 可能 break | 重写仍走 Phase 3 |
-| 10 | runtime 钉死单一平台 | 其他 agent 拒装 | 中立 badge + 措辞 |
+**优化正确做法**（默认正向，照此即对）：
+
+- spawn 独立子 agent 评分，分离写者与 judge（避开乐观偏差，LLM-as-judge 46.4% 准确率）。
+- Phase 1 评分前备齐 2-3 个 test prompt（dim8 权重 23%，无 prompt 不打分）。
+- 每轮只改 1 维度或 1 相关簇（保归因清晰）。
+- 至少 1 个 full_test 实测（dry_run 不当满分）。
+- 检查点用 🔴 / 🛑 视觉标记（LLM 扫标记优先于「必须」语义）。
+- 失败分支用三段式（触发 / 一线修复 / 兜底）。
+- 触顶即停：Δ < 2 连续 2 轮即 break（不硬凑轮数）。
+- 改 subagent body 要求工具失败显式标注 `[工具失败:原因]`（防主对话消费错误摘要）。
+- 整段重写仍走 Phase 3 gate（保归因 + 防 break）。
+- runtime 措辞中立（badge + 措辞跨 runtime 通用，防其他 agent 拒装）。
+
+### Rejected framings（被拒模式 + 原因 + 正例）
+
+下列框架明确拒绝，写出来是为了让 agent 知道**为何不能这么写**——并非黑名单清单，每条已转成上面正向做法，这里只留原因：
+
+| 被拒框架 | 拒绝原因 | 正例 |
+|---|---|---|
+| 「同 context 自评自改」 | 乐观偏差，写者无法客观判分 | spawn 独立子 agent 评分 |
+| 「凭 test 跑得好就打高分」 | 无 prompt 的 dim8 是凭空打分 | 先备 2-3 prompt 再评分 |
+| 「一轮改多维度」 | 归因失效，无法判断哪维起作用 | 每轮 1 维度或 1 相关簇 |
+| 「凭『必须』代替视觉标记」 | LLM 扫标记优先于语义 | 🔴 / 🛑 视觉标记 |
+| 「两列 fallback（症状/解法）」 | 缺兜底路径，无第三层 | 三段式（触发/一线/兜底） |
+| 「硬凑 MAX_ROUNDS」 | over-engineering | Δ<2 连续 2 轮即停 |
+| 「裸『不要做 Y』黑名单清单」 | Negation 反效应：命名被禁行为让它更可用 | 主体正向，残留反例必配正例 |
 
 ## 验证 checklist
 
