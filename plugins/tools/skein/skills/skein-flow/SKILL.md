@@ -16,7 +16,7 @@ effort: medium
 ## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
 - **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json` 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
-- **memory recall** — 派 `skein-specer` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
+- **memory recall** — 派 `skein-recaller` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
 - Skill(skein-grill) 确认需求 → Skill(skein-plan --continue) 规划+`subtask add` 登记 → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
 ### exec
 - Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (🛑 硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。

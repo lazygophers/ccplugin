@@ -12,7 +12,9 @@ effort: medium
 
 **差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆分两层, 基于 `.skein/spec`:
 
-> **绑定 agent `skein-specer`** (相互绑定, 它 frontmatter `skills: skein:skein-spec`): 记忆员, 承载两类作业 —— recall 检索 (planning) + sediment (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘)。**异步 fire-and-forget 模式** (被 `skein-finish` 在 finish 闭环后派发): memorier 自主跑判定门 + `skein-spec sediment` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自动写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
+> **绑定 agent (按读/写拆两个, 均 frontmatter `skills: skein:skein-spec`)**:
+> - **读路径 → `skein-recaller`** (只读同步召回员, 单一 recall 职责): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上)。
+> - **写路径 → `skein-specer`** (记忆写盘员): sediment/reconstruct·maintain/prune 三类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。**异步 fire-and-forget 模式** (被 `skein-finish` 在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
 
 | 层         | 路径                             | 加载                                                 | 适合                             |
 | ---------- | -------------------------------- | ---------------------------------------------------- | -------------------------------- |
@@ -21,7 +23,9 @@ effort: medium
 
 **两层 × 类目**: 层内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引三份: 每层 `<layer>/index.md` (层内全规则, 带 category 列) + 顶层 `index.md` (两层聚合概览)。core 常驻有软预算 (8000 字符, 超则告警降级, 契合「常驻只放最小硬规」)。
 
-## recall (planning 阶段, main)
+## recall (planning 阶段, 派 skein-recaller)
+
+> 召回由 `skein-recaller` (只读同步召回员) 承载, main 等其结果进 planning。
 
 ```
 skein-spec recall "<任务关键词>"
