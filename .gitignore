@@ -97,3 +97,6 @@ graphify-out/.worktrees/
 
 # skein-spec archive 归档数据 (可逆归档, 不应入库)
 **/.archive/
+
+# skein-spec recall FTS5 衍生索引 (reindex 可重建, 不入库)
+.skein/spec/.recall.db

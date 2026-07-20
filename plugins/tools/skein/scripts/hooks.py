@@ -239,7 +239,7 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
     here = os.path.dirname(os.path.abspath(__file__))
     if here not in sys.path:
         sys.path.insert(0, here)
-    from spec import CORE_BUDGET, Spec  # 局部 import: 仅 stop-check 加载, 不拖其他 6 个子命令启动
+    from spec import Spec, core_budget  # 局部 import: 仅 stop-check 加载, 不拖其他 6 个子命令启动
 
     spec = Spec()
     if not spec.root.exists():
@@ -270,7 +270,7 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
     payload = {
         "ts": datetime.now().isoformat(timespec="seconds"),
         "core_chars": len(spec._core_text_raw()),
-        "budget": CORE_BUDGET,
+        "budget": core_budget(),
         "problems": problems,
     }
     marker.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
