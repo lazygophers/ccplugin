@@ -14,10 +14,6 @@
     maintain --apply」这步无代码承载 (文档 skein-spec/SKILL.md L128-152 写了, 但 skein.py /
     无读 .pending-fix 的逻辑, grep 全仓仅 hooks.py 写)。完整链路端到端 (Stop→标记→main→specer→
     修复) 待 main 检测实现后补。
-  - [maintain --apply 超预算+stale 同文件崩溃] 当 core 最大文件同时触发 overbudget 与 stale 时,
-      _degrade_core_to_budget 先把文件移到 recall/, 随后 _archive_batch 仍按 findings 里的旧
-      core/ 路径归档 → FileNotFoundError (spec.py L447→L535)。本 test 用 xfail 标记, 回传 main
-      check 阶段定修否。独立 overbudget (新文件不 stale) 或独立 stale (在 recall 层) 均正常。
 """
 from __future__ import annotations
 
@@ -195,7 +191,7 @@ def test_maintain_apply_clean_noop(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "无自动可修项" in out, f"干净库该报无可修: {out}"
 
 
-# ── 3b. maintain --apply 超预算+stale 同文件崩溃 (KNOWN BUG, xfail) ──────────────
+# ── 3b. maintain --apply 超预算+stale 同文件 (degrade 先移走 → archive 跳过) ──────
 def _make_overbudget_stale(mem_ws: Path, mem_cli: MemCli) -> None:
     """造一个 core 大文件同时超预算 + stale (created 老)。"""
     old = int(time.time()) - 200 * 86400
@@ -205,17 +201,22 @@ def _make_overbudget_stale(mem_ws: Path, mem_cli: MemCli) -> None:
 
 
 def test_maintain_apply_overbudget_stale_crash(mem_ws: Path, mem_cli: MemCli) -> None:
-    """KNOWN BUG: overbudget + stale 同一最大文件 → _archive_batch 跑已被 degrade 移走的旧路径崩溃。
+    """overbudget + stale 同一最大文件 → degrade 先移到 recall/, archive 跳过 (文件已成 recall 层)。
 
-    根因: maintain --apply 先 _degrade_core_to_budget (把 big-00 移到 recall/), 再按 findings
-    里 stale 条目 (仍指向 core/git/big-00) 构建 archive_reasons → _archive_batch.rename FileNotFoundError。
+    修复前: _archive_batch 跑已被 degrade 移走的旧 core/ 路径 → FileNotFoundError 崩溃 (非零退出)。
+    修复后: archive_reasons 过滤掉不存在的 Path, 文件留 recall 层 (下轮 maintain 再扫到)。
     独立 overbudget (新文件不 stale) 或独立 stale (在 recall 层) 均正常。
-    回传 main check 阶段定修否; 修好后本 test 转正向断言。
     """
-    import pytest  # type: ignore[import-not-found]
     _make_overbudget_stale(mem_ws, mem_cli)
-    with pytest.raises(subprocess.CalledProcessError):
-        mem_cli(mem_ws, "maintain", "--apply")  # check=True 默认 → 非零退出抛错
+    out = mem_cli(mem_ws, "maintain", "--apply").stdout  # check=True; 不再崩溃 = exit 0
+    root = _ws_root(mem_ws)
+    assert not (root / "core/git/big-00.md").exists(), "overbudget 文件未从 core 移走"
+    assert (root / "recall/git/big-00.md").exists(), "degrade 后文件该在 recall 层"
+    assert "降级" in out, f"maintain --apply 未报降级动作: {out}"
+    # 已被 degrade 处理的文件不再进 archive (留 recall 层待下轮)
+    archive_dir = root / ".archive"
+    assert not (archive_dir.exists() and list(archive_dir.rglob("big-00.md"))), \
+        "已被 degrade 移走的文件不该再被归档"
 
 
 # ── 4. .audit-log 格式 + 7 天轮转 ──────────────────────────────────────────────
@@ -337,11 +338,10 @@ if __name__ == "__main__":
         test_maintain_apply_stale_archive, test_maintain_apply_deprecated_archive,
         test_maintain_apply_keywords_dup_keep_newest,
         test_maintain_apply_broken_link_report_only, test_maintain_apply_clean_noop,
+        test_maintain_apply_overbudget_stale_crash,
         test_audit_log_format_and_rotation, test_stop_check_writes_pending_fix,
         test_stop_check_clean_deletes_marker)
     for fn in two_arg:
         fn(_mk_ws(), cli)
     test_stop_check_non_skein_silent(_mk_ws())  # 单参测试, 独立调用免 mypy arity 冲突
-    # test_maintain_apply_overbudget_stale_crash 需 pytest, 直跑模式跳过 (已知 bug)
-    print(f"spec.py autofix 测试全过 ({len(two_arg) + 1} 项; "
-          "overbudget+stale 崩溃用例需 pytest xfail, 直跑跳过)")
+    print(f"spec.py autofix 测试全过 ({len(two_arg) + 1} 项)")

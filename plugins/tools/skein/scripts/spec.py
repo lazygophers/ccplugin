@@ -443,6 +443,9 @@ class Spec:
                     if f != newest and f not in archive_reasons:
                         archive_reasons[f] = (
                             "prune-dup", f'keywords重复(组"{fd["kw"]}":{len(files)}条,保留最新)')
+        # ponytail: 跳过被上文 degrade 移走的 (overbudget+stale 同一最大文件场景);
+        # 它已成 recall 层, 旧 core/ Path 在 findings 里过期, 下轮 maintain 再扫到。
+        archive_reasons = {f: r for f, r in archive_reasons.items() if f.exists()}
         if archive_reasons:
             moved = self._archive_batch(list(archive_reasons.keys()), archive_reasons)
             for f, (act, reason) in archive_reasons.items():
