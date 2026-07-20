@@ -1152,6 +1152,26 @@ class Skein:
                 "本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。\n"
                 "查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。")
 
+    def _pending_fix_hint(self) -> str:
+        # SessionStart: 读 Stop hook 写的 .skein/spec/.pending-fix (有问题则停机写) → 提示 main 派 specer bg。
+        # ponytail: 直读 JSON 不复用 Spec 类 — session-context 是冷启动路径, 免为读一个文件实例化 Spec + spec.py import
+        marker = self.dir / "spec" / ".pending-fix"
+        try:
+            payload = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return ""
+        problems = payload.get("problems") or []
+        if not problems:
+            return ""
+        by_type: dict[str, int] = {}
+        for p in problems:
+            by_type[p.get("type", "?")] = by_type.get(p.get("type", "?"), 0) + 1
+        summary = ", ".join(f"{t}({n})" for t, n in sorted(by_type.items()))
+        return ("\n\n# ⚠️ 检测到 spec 问题待修 (.pending-fix)\n"
+                f"命中 {len(problems)} 项: {summary}。\n"
+                "**建议异步 bg 派 `skein-specer` agent 跑 `skein-spec maintain --apply`** "
+                "(fire-and-forget, 派出即结束回合; 自动修超预算/stale/keywords重复/废弃, 断链只报告)。")
+
     def session_context(self) -> None:
         # SessionStart hook: 未初始化 → 注入 setup 建议 (决策: 无 .skein 即注入); 已初始化 → 恢复 active task
         if not self.git and not self.dir.exists():
@@ -1161,16 +1181,21 @@ class Skein:
             print(json.dumps({"hookSpecificOutput": {
                 "hookEventName": "SessionStart", "additionalContext": ctx}}))
             return
+        hint = self._pending_fix_hint()  # .pending-fix 标记独立于 active task, 无 active 也提示
         active = self._active()
-        if not active:
+        if not active and not hint:
             return
-        lines = ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
-        for t in active:
-            lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
-            prd = self.tasks / t["id"] / "prd.md"
-            if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
-                lines.append(f"  - 主入口 PRD: `{prd}`")
-        lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
+        lines = []
+        if active:
+            lines += ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
+            for t in active:
+                lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
+                prd = self.tasks / t["id"] / "prd.md"
+                if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
+                    lines.append(f"  - 主入口 PRD: `{prd}`")
+            lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
+        if hint:
+            lines.append(hint)
         ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
