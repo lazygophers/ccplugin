@@ -317,7 +317,10 @@ function buildLayoutHtml(data) {
       + "worktree: " + esc(c.worktree || "-") + " · "
       + "耗时 " + fmtDur(c.elapsed) + " · "
       + "等待 " + fmtDur(c.started && c.created ? Math.round((c.started - c.created) / 60) : null) + "</p>";
-    return '<section class="card' + (c.nextUp ? " next-up" : "") + '" id="task-' + esc(c.id)
+    return '<section class="card'
+      + (c.nextUp ? " next-up" : "")
+      + ((c.status === "进行中" || c.status === "检查中") ? " active" : "")
+      + '" id="task-' + esc(c.id)
       + '" data-status="' + esc(c.status) + '" data-search="' + esc(c.search) + '">'
       + h2 + '<p class="name">' + esc(c.name) + "</p>"
       + docRow(c.docLinks) + prdBlock(c.prd) + meta1

@@ -256,6 +256,15 @@
       0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent),
       0 0 18px color-mix(in srgb, var(--accent) 24%, transparent); }
   }
+  /* 运行中 subtask card 脉动 (复用 active-pulse keyframes, 独立 class 免 .card 冲突) */
+  .sub-active { animation: active-pulse 2s ease-in-out infinite; }
+  [data-theme="skein-dark"] .sub-active { animation: active-pulse-dark 2s ease-in-out infinite; }
+
+  /* queue 进行中区活跃行脉动 (activeTasks 进行中/检查中 + runningSubs 运行中);
+     qrow 行自带 rounded + border, box-shadow 在行外缘发光, 复用 active-pulse keyframes */
+  .qrow-active { animation: active-pulse 2s ease-in-out infinite; }
+  [data-theme="skein-dark"] .qrow-active { animation: active-pulse-dark 2s ease-in-out infinite; }
+
   /* 暗模式: active 脉动走金辉 + 蓝亮 (避免暗底纯蓝过冷) */
   [data-theme="skein-dark"] .card.active { animation: active-pulse-dark 2s ease-in-out infinite; }
   @keyframes active-pulse-dark {
@@ -265,6 +274,18 @@
       0 0 0 4px color-mix(in srgb, var(--skein-gold) 14%, transparent),
       0 0 18px color-mix(in srgb, var(--accent) 22%, transparent); }
   }
+
+  /* 进行中 card 进度条流光 (表进度在涨); .skein-fill 已 position:relative+overflow:hidden, 直接装 ::after */
+  .card.active .skein-fill::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 35%, transparent), transparent);
+    animation: skein-shimmer 1.8s linear infinite;
+  }
+  /* 暗模式 shimmer 走金辉 */
+  [data-theme="skein-dark"] .card.active .skein-fill::after {
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--skein-gold) 40%, transparent), transparent);
+  }
+  @keyframes skein-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 
   /* ── status 徽章 (A 皮: 色块 + dot; C 骨: flex 对齐) ──
      兼容旧用法 (纯色块) 与 mockup 用法 (dot + 文字)。 */
@@ -589,11 +610,13 @@
 }
 
   /* ── 视口外暂停 (IntersectionObserver 加 .paused) ── */
-  .paused, .paused::after, .paused > .skein-fill, .paused .fill-tip { animation: none !important; }
+  .paused, .paused::after, .paused > .skein-fill, .paused .fill-tip, .paused .skein-fill::after,
+  .paused.sub-active, .paused.qrow-active { animation: none !important; }
 
   /* ── prefers-reduced-motion 降级: 关所有流沙动效, 入场直显 ── */
   @media (prefers-reduced-motion: reduce) {
-    .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill, .fill-tip {
+    .card, .card.active, .card:hover::after, .entrance, .skein-bar > .skein-fill, .fill-tip, .card.active .skein-fill::after,
+    .sub-active, .qrow-active {
       animation: none !important; transition: none !important;
     }
   .card, .entrance { opacity: 1 !important; transform: none !important; }

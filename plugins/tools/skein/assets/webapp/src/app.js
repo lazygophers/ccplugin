@@ -159,7 +159,7 @@ function runCounters(root) {
 // ponytail: webapp 无 board 的 .voff; 用 IntersectionObserver 统一管, 根 margin 给一点缓冲。
 function wireViewportPause(root) {
   if (reducedMotion() || !("IntersectionObserver" in window)) return;
-  const animated = root.querySelectorAll(".card, .entrance, .skein-bar");
+  const animated = root.querySelectorAll(".card, .entrance, .skein-bar, .sub-active, .qrow-active");
   if (!animated.length) return;
   if (!wireViewportPause._io) {
     wireViewportPause._io = new IntersectionObserver((entries) => {
