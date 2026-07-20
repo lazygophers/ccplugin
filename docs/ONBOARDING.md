@@ -1,221 +1,190 @@
 # CCPlugin Onboarding Guide
 
-> 自动生成自知识图谱 · 2026-05-26 · 1474 文件分析
+> 手工编写 · 2026-07-20 同步真实结构（marketplace = 7 插件 + 根 skills/ 开发模板）
 
 ---
 
 ## 1. 项目概览
 
+CCPlugin 是 Claude Code 的 **插件市场 + skill 开发模板** 集合。仓库提供两类内容：
+
+| 类别 | 位置 | 用途 |
+|------|------|------|
+| **市场插件** | `plugins/tools/<name>/` | 通过 `claude plugin install <name>@ccplugin-market` 安装的成品插件 |
+| **skill 开发模板** | `skills/<category>/<skill>/` | 本仓库自用 / 示例的 skill 方法论，**不是市场插件**，不可经 marketplace 安装 |
+
+市场清单 `.claude-plugin/marketplace.json` 共登记 **7 个插件**（见下表），统一许可证 `AGPL-3.0-or-later`。
+
+### 项目元数据
+
 | 字段 | 值 |
 |------|-----|
-| 名称 | **ccplugin** |
-| 定位 | Claude Code 插件市场与工具链 |
-| 语言 | Python, Markdown, JSON, YAML, TypeScript |
-| 框架 | Click (CLI), Rich (终端渲染), PyYAML, uv (包管理) |
-| 入口 | `scripts/main.py` → Click CLI |
+| 名称 | `ccplugin`（pyproject）/ 市场名 `ccplugin-market` |
+| 语言 | Python 3.11+、Markdown |
+| 依赖管理 | `uv` + `pyproject.toml`（`lib` 为本地子包，见 `[tool.uv.sources]`） |
+| CLI 入口 | `pyproject.toml [project.scripts]` 暴露 `install / update / info / check / clean / md2html` |
+| 测试 | `pytest`（`lib/tests/`） |
 
-CCPlugin Market 是 Claude Code 的插件生态，提供 6+ 沿插件（Memory、Git、Notify、Version、Task、Llms），同时内置任务编排系统（Trellis）和智能体配置框架。
-
----
-
-## 2. 架构层级
-
-```
-┌─────────────────────────────────────────────┐
-│  插件市场层 (layer:plugins)      749 files   │  ← 各插件独立自治
-├─────────────────────────────────────────────┤
-│  任务管理层 (layer:trellis)      537 files   │  ← Spec → 任务 → 工作流
-├─────────────────────────────────────────────┤
-│  智能体系统层 (layer:agent-system) 113 files │  ← Skills / Hooks / Agents
-├─────────────────────────────────────────────┤
-│  核心库层 (layer:core)            36 files   │  ← DB / Hooks / Logging / Utils
-├─────────────────────────────────────────────┤
-│  CLI 脚本层 (layer:scripts)       14 files   │  ← install / update / check
-├─────────────────────────────────────────────┤
-│  配置层 (layer:config)            13 files   │  ← pyproject.toml / .version
-├─────────────────────────────────────────────┤
-│  文档层 (layer:documentation)     12 files   │  ← README / AGENTS / docs/
-└─────────────────────────────────────────────┘
-```
-
-### 各层职责
-
-| 层 | 职责 | 关键文件 |
-|----|------|----------|
-| **插件市场层** | Claude Code 扩展能力集合 | `plugins/tools/notify/`, `plugins/tools/trellisx/` |
-| **任务管理层** | Trellis 任务编排、Spec 模板、会话上下文 | `.trellis/scripts/task.py`, `.trellis/workflow.md` |
-| **智能体系统层** | Agent 配置、Skills 定义、Hooks 注入 | `.claude/scripts/hooks.py`, `.claude/hooks/inject-subagent-context.py` |
-| **核心库层** | 共享基础设施（DB、日志、Hook 系统） | `lib/db/core.py`, `lib/logging/manager.py`, `lib/hooks/hook.py` |
-| **CLI 脚本层** | 项目管理命令 | `scripts/install.py`, `scripts/update.py`, `scripts/check.py` |
-| **配置层** | 构建与运行时配置 | `pyproject.toml`, `.version`, `coverage.json` |
-| **文档层** | 项目文档集合 | `README.md`, `AGENTS.md`, `docs/plugin-development.md` |
+> 注：仓库根**没有** `scripts/main.py`，CLI 经 `pyproject.toml` 注册的 console script 入口运行（见第 7 节）。
 
 ---
 
-## 3. 关键概念
-
-### 插件架构
-
-每个插件是独立 Python 包，标准结构：
+## 2. 仓库结构
 
 ```
-plugins/<name>/
-  plugin.json      ← 插件清单（名称、版本、commands、hooks）
-  scripts/
-    main.py        ← CLI 入口（Click 命令组）
-    hooks.py       ← Hook 事件处理器
-  pyproject.toml   ← 依赖声明
+ccplugin/
+├── .claude-plugin/
+│   └── marketplace.json          # 市场清单（7 插件登记）
+├── plugins/
+│   └── tools/                    # 7 个市场插件（见第 3 节）
+├── skills/                       # skill 开发模板（非市场插件，见第 4 节）
+├── lib/                          # 共享 Python 库（db / hooks / utils）
+├── scripts/                      # 项目级 CLI（install/update/check/clean/info/md2html...）
+├── docs/                         # 开发文档
+├── AGENTS.md -> CLAUDE.md        # 软链接，指向 CLAUDE.md
+├── CLAUDE.md                     # 项目规范
+├── README.md
+├── pyproject.toml
+└── uv.lock
 ```
+
+### `lib/` 共享库
+
+| 模块 | 职责 |
+|------|------|
+| `lib/db/` | 数据库抽象（`core.py` / `models.py` / `schema.py` / `adapters/`） |
+| `lib/hooks/` | Hook 生命周期（`hook.py` / `pre_tool_use.py`） |
+| `lib/utils/` | 通用工具（`env.py` / `file.py` / `format.py` / `gitignore.py` / `help.py` / `version.py` 等） |
+| `lib/tests/` | `lib` 的 pytest 用例 |
+
+---
+
+## 3. 市场插件（plugins/tools/，共 7 个）
+
+`marketplace.json` 登记的 7 个插件，均位于 `plugins/tools/<name>/`：
+
+| 插件 | 目录 | 简介 |
+|------|------|------|
+| `cortex` | `plugins/tools/cortex/` | 知识库 + 记忆管理（双层 vault、5 级记忆、8 skill） |
+| `deepresearch` | `plugins/tools/deepresearch/` | 多智能体深度研究系统（DGoT / Agentic RAG） |
+| `notify` | `plugins/tools/notify/` | 系统通知（跨平台 + TTS） |
+| `novelist` | `plugins/tools/novelist/` | 小说写作全流程插件 |
+| `skein` | `plugins/tools/skein/` | 独立任务管理插件（自带 `.skein/`，双层 DAG 调度） |
+| `trellisx` | `plugins/tools/trellisx/` | Trellis 增强改造工具（注入 `.trellis/`） |
+| `version` | `plugins/tools/version/` | SemVer 版本管理 |
+
+> 说明：README.md 的「可用插件」表里列了 `git / python / golang / memory / env / llms / template` 等名称 —— 那些不在本仓库 `plugins/tools/` 下，也无 `marketplace.json` 登记，属于市场可路由的其他来源，**不是本仓库源码**。本 onboarding 只覆盖仓库内真实存在的 7 个。
+
+### 插件标准结构
+
+每个插件是独立的 Claude Code 插件包：
+
+```
+plugins/tools/<name>/
+├── .claude-plugin/
+│   └── plugin.json          # 插件清单（name / description / commands / hooks / skills / agents）
+├── commands/                # 自定义命令（.md）
+├── agents/                  # 子代理（.md）
+├── skills/                  # 技能（SKILL.md + references/templates）
+├── hooks/                   # Hook 脚本（部分插件）
+├── scripts/                 # CLI / Hook 执行脚本（main.py / hooks.py 等）
+└── README.md
+```
+
+注：不同插件按需启用上述子目录（如 `version/scripts/` 含 `mcp.py`、`notify/scripts/` 含 `notify.py`），并非每个插件都有全部子目录。
 
 ### Hook 系统
 
-插件通过 `hooks.py` 注册 Claude Code 生命周期事件：
-
-- `pre_tool_use` / `post_tool_use` — 工具执行前后
-- `notification` — 系统通知
-- `session_start` / `session_end` — 会话管理
-
-核心实现：`lib/hooks/hook.py` + `lib/hooks/pre_tool_use.py`
-
-### Trellis 任务系统
-
-三阶段工作流：
-
-```
-Planning (prd.md + research/) → In Progress (tasks/*.md) → Done (archive/)
-```
-
-关键脚本：`.trellis/scripts/task.py` (任务生命周期)、`common/active_task.py` (当前任务状态)、`common/session_context.py` (上下文注入)
-
-### 代码质量检查
-
-所有 skills/agents/commands 优化后必须通过 AI 可理解性测试：
-
-```bash
-claude -p "<content>" --output-format stream-json | jq ...
-```
+插件通过 `plugin.json` 的 `hooks:` 字段注册 Claude Code 生命周期事件（`SessionStart` / `Setup` / `PreToolUse` 等），事件命令通常是 `uv run --directory ${CLAUDE_PLUGIN_ROOT} ./scripts/main.py hooks`。共享 hook 基础设施位于 `lib/hooks/hook.py` + `lib/hooks/pre_tool_use.py`。
 
 ---
 
-## 4. 引导巡游
+## 4. skill 开发模板（根 skills/）
 
-按以下顺序阅读项目，从外到内：
+根 `skills/` 目录是**本仓库自用的 skill 方法论合集**，**不在 marketplace 中**，不能通过 `claude plugin install` 安装。它们是开发 skill / 插件时的参考模板：
+
+| 分类 | 子 skill |
+|------|----------|
+| `skills/skill-dev/` | `skill-dev`（单 skill 创建/优化方法论）、`plugin-dev`（整插件开发） |
+| `skills/git/` | `git-commit` / `git-merge` / `git-rebase` / `git-pr` |
+| `skills/code-quality/` | `architecture-design` / `clean-code` / `perf-optimization` |
+| `skills/project/` | `oss-license` / `promo-posts` |
+
+> 注意区分：插件内部的 skill 位于 `plugins/tools/<name>/skills/`（随插件分发），根 `skills/` 是开发模板。
+
+---
+
+## 5. scripts/ — 项目级 CLI
+
+`scripts/` 是市场 / 项目管理脚本，通过 `pyproject.toml [project.scripts]` 暴露为命令：
+
+| 脚本 | 命令 | 职责 |
+|------|------|------|
+| `install.py` | `install` | 从市场安装 / 更新指定插件 |
+| `update.py` | `update` | 批量更新已启用插件 |
+| `info.py` | `info` | 展示已注册市场与插件信息 |
+| `check.py` | `check` | 单插件结构 / 配置 / hook 校验 |
+| `clean.py` | `clean` | 清理 `~/.claude/plugins/cache/` 旧版本 |
+| `md2html.py` | `md2html` | Markdown → HTML（含 Mermaid） |
+| `statusline.py` / `subagent_statusline.py` | — | 终端状态栏渲染（非 console script） |
+| `update_version.py` | — | 项目 SemVer 版本号维护 |
+| `utils.py` | — | 共享工具函数 |
+
+`scripts/CLAUDE.md` 是该目录的 agent 工作约定，与插件内的 skill 规范无关。
+
+---
+
+## 6. 引导读图（从外到内）
 
 | 步骤 | 主题 | 核心文件 |
 |------|------|----------|
-| 1 | **项目概览** | `README.md`, `pyproject.toml` |
-| 2 | **插件入口脚本** | `plugins/*/scripts/main.py` — 每个插件的 CLI 入口 |
-| 3 | **核心库基础** | `lib/__init__.py`, `lib/logging/manager.py` |
-| 4 | **Hooks 系统** | `lib/hooks/hook.py`, `lib/hooks/pre_tool_use.py` |
-| 5 | **Trellis 任务编排** | `.trellis/scripts/task.py`, `.trellis/workflow.md` |
-| 8 | **CLI 安装脚本** | `scripts/install.py` |
-| 9 | **通知与版本插件** | `plugins/tools/notify/`, `plugins/tools/version/` |
-
----
-
-## 5. 文件地图
-
-### 核心库层 (36 files)
-
-| 文件 | 复杂度 | 职责 |
-|------|--------|------|
-| `lib/logging/manager.py` | complex | 日志管理器，基于 Rich 的终端日志系统 |
-| `lib/db/core.py` | complex | 数据库核心抽象层（DatabaseConfig, Adapter, Connection） |
-| `lib/db/adapters/sqlite.py` | complex | SQLite 适配器，含连接池和向量搜索 |
-| `lib/db/models.py` | complex | ORM 数据模型基类（FieldType, Field, Model） |
-| `lib/hooks/hook.py` | moderate | Hook 生命周期管理 |
-| `lib/hooks/pre_tool_use.py` | moderate | pre_tool_use 事件处理 |
-| `lib/utils/gitignore.py` | moderate | .gitignore 规则解析 |
-
-### CLI 脚本层 (14 files)
-
-| 文件 | 复杂度 | 职责 |
-|------|--------|------|
-| `scripts/install.py` | complex | 插件安装/卸载/更新（最高 fan-out） |
-| `scripts/update.py` | complex | 批量更新脚本 |
-| `scripts/update_version.py` | complex | SemVer 版本管理 |
-| `scripts/check.py` | complex | 插件质量检查 |
-| `scripts/clean.py` | complex | 清理构建产物 |
-| `scripts/info.py` | complex | 项目信息展示 |
-| `scripts/md2html.py` | complex | Markdown → HTML（含 Mermaid 渲染） |
-
-### 插件市场层 — 核心插件
-
-| 插件 | 入口 | 职责 |
-|------|------|------|
-| **notify** | `plugins/tools/notify/scripts/` | 系统通知（多平台 + TTS） |
-| **version** | `plugins/tools/version/scripts/mcp.py` | SemVer 版本管理 MCP 服务器 |
-
-### 智能体系统层
-
-| 文件 | 职责 |
-|------|------|
-| `.claude/scripts/hooks.py` | Hook 事件处理器（complex） |
-| `.claude/hooks/inject-subagent-context.py` | Subagent 上下文注入 |
-| `.claude/hooks/inject-workflow-state.py` | 工作流状态注入 |
-| `.claude/hooks/session-start.py` | 会话启动 hook |
-| `.claude/skills/trellis-brainstorm/SKILL.md` | 需求发现 Skill |
-| `.claude/skills/trellis-update-spec/SKILL.md` | Spec 更新 Skill |
-
----
-
-## 6. 复杂度热点
-
-共 173 个文件标记为 `complex`，以下为最需注意的区域：
-
-### Hook 系统（高内聚，改动需谨慎）
-
-```
-.claude/scripts/hooks.py
-plugins/tools/notify/scripts/hooks.py
-```
-多插件共享 hook 签名，修改一处需检查所有实现。
-
-### Trellis 脚本（任务状态机）
-
-```
-.trellis/scripts/task.py
-.trellis/scripts/common/active_task.py
-.trellis/scripts/common/config.py
-.trellis/scripts/common/task_store.py
-.trellis/scripts/common/session_context.py
-```
-任务生命周期管理的核心状态机，影响所有开发工作流。
-
-### 核心库（所有层的依赖）
-
-```
-lib/db/core.py
-lib/db/adapters/sqlite.py
-lib/db/models.py
-lib/logging/manager.py
-```
-改动这里会影响所有插件，务必跑完测试再提交。
+| 1 | 项目概览 | `README.md`、`pyproject.toml`、`.claude-plugin/marketplace.json` |
+| 2 | 市场清单 | `.claude-plugin/marketplace.json`（7 插件登记） |
+| 3 | 任意插件清单 | `plugins/tools/<name>/.claude-plugin/plugin.json` |
+| 4 | 插件 CLI 入口 | `plugins/tools/<name>/scripts/main.py`（如 notify / version） |
+| 5 | 共享库 | `lib/__init__.py`、`lib/db/core.py`、`lib/hooks/hook.py` |
+| 6 | 项目级 CLI | `scripts/install.py`、`scripts/check.py` |
+| 7 | skill 开发模板 | `skills/skill-dev/`、`skills/git/` |
+| 8 | 开发规范 | `docs/plugin-development.md`、`CLAUDE.md`（=`AGENTS.md`） |
 
 ---
 
 ## 7. 快速上手
 
 ```bash
-# 安装项目依赖
+# 1. 安装项目依赖（含本地 lib 子包）
 uv sync
 
-# 查看可用插件
-python scripts/main.py ls
+# 2. 经 uvx 一键安装市场 + 插件（用户视角，README 推荐）
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master \
+    install lazygophers/ccplugin <插件名>@ccplugin-market
 
-# 安装所有插件到 ~/.claude/plugins/
-python scripts/install.py
+# 3. 列出已注册市场与插件（项目级 CLI，需先 uv sync）
+uv run info
 
-# 运行测试
-python -m pytest lib/tests/ plugins/*/tests/
+# 4. 更新已启用插件
+uv run update
 
-# 检查插件质量
-python scripts/check.py
+# 5. 校验单插件（cd 到插件目录 或用 -d 指定）
+uv run check -d plugins/tools/notify
 
-# 更新版本号
-python scripts/update_version.py patch
+# 6. 清理插件缓存旧版本（先预览再执行）
+uv run clean --dry-run
+uv run clean
+
+# 7. 更新项目版本号
+uv run scripts/update_version.py patch
+
+# 8. 跑 lib 测试
+uv run pytest lib/tests/
 ```
 
 ---
 
-*Generated by Understand Anything — knowledge graph has 2215 nodes, 2295 edges*
+## 8. 失真备忘（本次重写移除的旧引用）
+
+旧版 onboarding（2026-05-26 自动生成自知识图谱）含大量失真，本次重写已移除以下引用 —— 它们在仓库中**均不存在**：
+
+- 不存在的插件：`Memory` / `Git` / `Task` / `Llms`（README「可用插件」表里的这些名也非本仓库源码，见第 3 节注）
+- 不存在的目录 / 文件：`.trellis/`、`.claude/scripts/`、`.claude/hooks/`、`.claude/skills/`、`scripts/main.py`
+- 失真的文件计数与「层 / 复杂度热点」结构（基于过时知识图谱节点数，不可信）
