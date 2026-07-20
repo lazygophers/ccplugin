@@ -52,7 +52,7 @@ const TPL = `
         <!-- active task 行 -->
         <div v-if="activeTasks.length" class="space-y-1.5 mb-3">
           <a v-for="t in activeTasks" :key="'at:'+t.id" :href="'/task?id='+encodeURIComponent(t.id)"
-            class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
+            class="qrow qrow-active flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
             style="border:1px solid var(--line)">
             <code class="text-[11px] text-muted shrink-0">{{ t.id }}</code>
             <span class="text-sm truncate">{{ t.name }}</span>
@@ -68,7 +68,7 @@ const TPL = `
         <!-- running subtask 行 -->
         <div v-if="runningSubs.length" class="space-y-1.5">
           <a v-for="s in runningSubs" :key="'rs:'+s.tid+'/'+s.sid" :href="'/task?id='+encodeURIComponent(s.tid)"
-            class="qrow flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
+            class="qrow qrow-active flex items-center gap-2 rounded p-2 hover:bg-[var(--line)]"
             style="border:1px solid var(--line)">
             <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background:var(--st-active)"></span>
             <code class="text-[11px] text-muted shrink-0">{{ s.tid }}/{{ s.sid }}</code>
