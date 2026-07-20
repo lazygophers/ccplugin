@@ -124,6 +124,28 @@ skein current
 
 worktree 崩了、分支悬挂、task 漏归档 → 用 **`skein-clean`** skill 安全清扫孤儿 worktree / 悬挂分支 / 漏归档 task。
 
+## 场景 10: 大需求冷启动 (模糊愿景 → supertask)
+
+**例**: 用户开口就是「重构整个支付模块」「给产品加 AI 能力」「做个数据中台」 — 范围大、动词泛、无落点。
+
+- **触发**: `skein-plan` 命中模糊信号判据任一即进 cold-start — ① 无动词或动词泛 (「重构/优化/加能力」无宾语); ② 无文件路径 / 无具体模块名; ③ 一句话 <15 字; ④ 愿景腔 (「我有个想法 / 想做个 / 感觉」)。清晰输入跳过本场景, 走常规 brainstorm。
+- **愿景翻译 (≤3 轮, 零增量路径)**:
+  - **Job Story 三段** — main 套原话填 `When [情境], I want [动机], so I can [预期成果]`, `AskUserQuestion` 让你确认 / 修正, 先锁 outcome (为谁 / 为何 / 价值) 再谈 solution。
+  - **said / implied / missing 三分** — 明说、暗示入正文 (暗示回读确认); 缺失项列 prd.md「Open Questions」逐条问; main 的假设强制写「Assumptions」段, 禁埋正文 (防 Assumption Burial)。
+  - **兜底**: ≤3 轮仍答不出 outcome → 停 planning, task 标「需求未定」, 不硬猜往下拆。
+- **判大需求 → 建 supertask**: 收敛后若需拆多个**各自完整 plan/exec/check/finish** 的独立小需求 → 建聚合父层 + 各 child:
+  ```bash
+  skein create pay-rebuild --kind supertask --name "支付重构" --desc "支付模块全链路重构"
+  skein create pay-facade --parent pay-rebuild --name "支付门面+契约"   # child 1
+  skein create pay-core   --parent pay-rebuild --name "支付核心重写"     # child 2
+  skein create pay-retire --parent pay-rebuild --name "旧支付退役"       # 末 child
+  ```
+- **各 child 独立闭环**: 每个 child 走自己的 plan → exec → check → finish, 无写冲突即可并行; 深度限 2 层 (supertask→task→subtask, child 不再生 child, 脚本硬拦)。
+- **聚合归档**: 末 child finish 不直接合并 — supertask finish 前所有 child 须全 done, 才一次性聚合归档; 看板 `task.md` 按 supertask 分组, 每个 supertask 刷专属 `vision.md` 聚合 child 进度。
+- **大需求必跑 grill 3 轴** — 验收 SMARC (可测) / drift (逐条 subtask 溯源原始 Job Story 愿景) / scope (每条溯回 said/implied, 脑补回 Out-of-Scope), 防大需求 scope 失控。
+
+**注意点**: supertask 默认不建 — 单 task 可覆盖的中小需求走 single task 零增量。冷启动的关键是先翻译愿景锁 outcome, 别在动词泛的诉求上直接拆 subtask。
+
 ---
 
 不确定某个活儿走哪条? 看 [best-practices.md](best-practices.md) 的决策流程图。

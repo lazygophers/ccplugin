@@ -98,6 +98,18 @@ flowchart LR
 
 > 两层**同构**: 同一套「并行只看显式 depends_on DAG → 就绪即派 → 并发 2 → 完成即派」算法 (无写文件冲突自算), 只是调度对象一个是 task、一个是 subtask。
 
+## supertask: 大需求的父子聚合 (可选)
+
+普通 task 够用就别建 supertask — 它是**大需求专用**的聚合层, 不是默认形态。
+
+- **何时建**: 仅当愿景翻译收敛后, 需求需拆多个**各自完整 plan/exec/check/finish** 的独立小需求 (跨子系统 / 改动面多 / 各有独立验收)。单 task 可覆盖的中小需求 → 不建, 走 single task 零增量。
+- **深度限 2 层**: `supertask → task → subtask` 到此为止。supertask 不可有 parent, 不可再嵌套 supertask, child 不可再生 child (脚本硬拦)。
+- **walking skeleton (新系统类)**: 第一个 child 强制端到端**最薄能跑通** (全链路打通但不求完整), 早暴露集成风险, 后续 child 逐块填肉。
+- **strangler (重构类)**: 第一个 child = facade + 契约 (新接口对外, 旧实现暂留); 中间 child 逐块迁移调用方; **末 child = 退役旧实现**。禁留新旧长期并存。
+- **grill 3 轴对大需求必跑**: 验收 SMARC (可测, 砍 wishful 词) / drift (逐条 subtask 溯源原始 Job Story 愿景, 偏离即砍) / scope (每条溯回 said/implied, 脑补回 Out-of-Scope)。
+
+完整链路 (触发 → 愿景翻译 → supertask → child → 聚合归档) 详见 scenarios.md「场景 10: 大需求冷启动」。
+
 ## 做得好 vs 做得糟
 
 | 维度 | 好 | 糟 |
