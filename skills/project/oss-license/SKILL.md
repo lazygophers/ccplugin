@@ -37,7 +37,7 @@ $ARGUMENTS
 | 2 | **走决策树**(见下) | 据"是否允许闭源商用"逐层收敛到具体协议 |
 | 3 | **查依赖约束** | 你引入的库里若有 copyleft, **你的协议不能比它更宽松**(见工作流 B 红线) |
 | 4 | **落地标识** | 加 `LICENSE` 文件 + 源文件头写 `SPDX-License-Identifier: <id>`; 包管理 `license` 字段填 SPDX |
-| 5 | **多文件项目自检** | 第三方代码的原协议声明必须保留(尤其 Apache NOTICE / BSD 署名) |
+| 5 | **多文件项目自检** | 第三方代码的原协议声明必须保留(尤其 Apache NOTICE / BSD 署名); monorepo 勿一刀切单协议, 用 REUSE 规范每文件 `SPDX-License-Identifier` 头标清来源协议 |
 
 ### 决策树(选自己项目的协议)
 
@@ -106,20 +106,6 @@ $ARGUMENTS
 - **CC0 / CC-BY 用于代码 = 错**: Creative Commons 官方明确不建议, 它不处理专利。代码用 MIT/Apache/0BSD。
 - **`GPL-2.0-only` vs `GPL-2.0-or-later`**: 前者锁死 v2(与 Apache-2.0、GPLv3 不兼容), 后者可升 v3 化解冲突——**默认选 or-later**。
 - **依赖合规先看分发方式再看协议**: 纯内部使用几乎不触发 copyleft 义务; 一旦对外分发或 SaaS, 立刻重审。
-
-## 反模式黑名单(禁做)
-
-| 禁 | 为什么 | 替代 |
-| --- | --- | --- |
-| 不放 LICENSE 就当"开源了" | 无协议=默认保留全部版权, 别人无任何使用权 | 显式加 `LICENSE` + SPDX 头 |
-| 把 source-available(BSL/SSPL)当"开源"宣传 | OSI 未认证, 法律上不是开源, 误导用户 | 准确称"源码可见 / source-available" |
-| 选了 GPL 依赖却想闭源商用产品 | 分发即触发整体开源义务 | 换 permissive 替代 / 隔离进程 / 接受开源 |
-| 用 CC-BY / CC0 给代码授权 | CC 不处理专利与源码义务, 官方反对 | MIT / Apache-2.0 / 0BSD |
-| 静态链接 LGPL 还闭源且不让替换 | 触发比动态链接强的义务 | 改动态链接或提供可重链产物 |
-| 合并 Apache-2.0 与 GPLv2 代码分发 | 两者不兼容(专利条款冲突) | 用 GPLv3-or-later 或 MIT 版本 |
-| 为商业护城河临时 relicensing 既有开源项目 | 触发社区信任崩塌 + fork(Terraform/Redis/Elastic 前车) | 上线前就定策略; 或用双授权而非单方 relicense |
-| 只扫一次依赖就以为永久合规 | relicensing 让新版本违规(锁旧版也有 EOL 风险) | 锁版本 + 定期重扫 + 监控上游协议变更 |
-| 给整个 monorepo 一刀切单协议 | 子模块 / vendored 第三方代码各有原协议 | 用 REUSE 规范, 每文件 SPDX 头标清来源协议 |
 
 ## 失败模式(触发 → 一线修复 → 仍失败兜底)
 
