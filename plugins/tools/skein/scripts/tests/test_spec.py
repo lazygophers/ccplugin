@@ -86,6 +86,32 @@ def test_hook_inject_session_and_subagent(mem_ws: Path, mem_cli: MemCli) -> None
     assert "SPEC:" in sctx and "recall" in sctx, "subagent-start 缺 spec 纪律指令"
 
 
+def test_recall_fts5_and_grep_fallback(mem_ws: Path, mem_cli: MemCli) -> None:
+    """recall 优先 FTS5 BM25 (reindex 生成 .recall.db); 删 db → grep fallback 仍命中不崩。"""
+    body = _write_body(mem_ws, "b1.md", "pnpm workspace 装包后必跑 install。")
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build",
+            "--title", "pnpm workspace 装包", "--keywords", "pnpm,workspace",
+            "--source", "t02", "--body-file", str(body))
+
+    db = mem_ws / ".skein" / "spec" / ".recall.db"
+    assert db.exists(), "reindex 未生成 .recall.db"
+
+    # FTS5 BM25 路径 (OR 兼容中文: 'pnpm' 命中即召回, '装依赖' 分词对不上 '装包' 无碍)
+    out = mem_cli(mem_ws, "recall", "pnpm 装依赖").stdout
+    assert "pnpm" in out and "t02-00.md" in out, f"FTS5 未命中: {out}"
+    assert "BM25" in out, f"未走 FTS5 路径: {out}"
+
+    # 删 .recall.db → grep fallback 仍命中且不崩
+    db.unlink()
+    out2 = mem_cli(mem_ws, "recall", "pnpm").stdout
+    assert "pnpm" in out2 and "t02-00.md" in out2, f"grep fallback 未命中: {out2}"
+    assert "fallback" in out2, f"未走 grep fallback: {out2}"
+
+    # 含双引号的 query → 提前降级 grep (不触发 MATCH 语法错)
+    out3 = mem_cli(mem_ws, "recall", 'p"npm').stdout
+    assert "recall" in out3, "含双引号 query 不该崩"
+
+
 def _write_body(d: Path, name: str, text: str) -> Path:
     p = d / name
     p.write_text(text)
@@ -124,6 +150,7 @@ if __name__ == "__main__":
         return d
 
     mem_cli = _MemCli()
-    for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent):
+    for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent,
+               test_recall_fts5_and_grep_fallback):
         fn(_mk_ws(), mem_cli)
-    print("spec.py 测试全过 (init/sediment+三层索引/recall粗筛/inject-core隔离层/hook注入)")
+    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入)")

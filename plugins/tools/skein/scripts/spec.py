@@ -13,7 +13,7 @@
   spec.py init
   spec.py inject-core                        输出全部 core 规则正文 (调试用)
   spec.py session-start                       SessionStart hook: 直接产 hook JSON 注入 core
-  spec.py recall "<query>"                   grep recall/index.md, 输出命中行 (model 再读全文)
+  spec.py recall "<query>"                   FTS5 BM25 排序 recall (无索引/MATCH 失败 → grep fallback)
   spec.py sediment --layer core|recall --category git --title T \
             --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
   spec.py reindex                            重扫两层重建全部 index
@@ -29,6 +29,7 @@ import argparse
 import time
 import json
 import re
+import sqlite3
 import subprocess
 import sys
 from datetime import datetime
@@ -210,22 +211,60 @@ class Spec:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))
 
-    # ---- recall (按需粗筛) ----
+    # ---- recall (按需粗筛: FTS5 BM25 优先, grep fallback) ----
     def recall(self, a: argparse.Namespace) -> None:
-        idx = self.layer_dir("recall") / "index.md"
-        if not idx.exists():
-            print("recall 无命中")
-            return
         query = cast(str, a.query)
-        terms = [t for t in re.split(r"\s+", query.lower()) if t]
-        hits = [ln for ln in idx.read_text().splitlines()
-                if ln.startswith("| ") and not ln.startswith("| file")
-                and any(t in ln.lower() for t in terms)]
+        fts_hits = self._recall_fts(query)
+        if fts_hits is not None:
+            if fts_hits:
+                print("recall 命中 (FTS5 BM25, model 读全文再定用否):")
+                print("\n".join(fts_hits))
+            else:
+                print("recall 无命中")
+            return
+        # fallback: 无 .recall.db 或 MATCH 语法失败 → 子串 grep recall/index.md
+        hits = self._recall_grep(query)
         if hits:
-            print("recall 命中 (model 读全文再定用否):")
+            print("recall 命中 (grep fallback, model 读全文再定用否):")
             print("\n".join(hits))
         else:
             print("recall 无命中")
+
+    def _recall_fts(self, query: str) -> Optional[list[str]]:
+        """FTS5 BM25 召回; 返回命中行 (None=不可用降级 grep, []=无命中)。
+
+        每个 token 双引号包起 + OR: 兼容中文 unicode61 分词弱 (任一词命中即召回)。
+        含双引号的 token 会破坏 MATCH 语法 → 提前降级 grep (不调 MATCH)。
+        """
+        db = self.root / ".recall.db"
+        if not db.exists():
+            return None
+        tokens = [t for t in re.split(r"\s+", query.strip()) if t]
+        if not tokens or any('"' in t for t in tokens):
+            return None
+        ftsq = " OR ".join(f'"{t}"' for t in tokens)
+        try:
+            con = sqlite3.connect(db)
+            try:
+                rows = con.execute(
+                    "SELECT stem, category, title, keywords, body FROM rules "
+                    "WHERE rules MATCH ? ORDER BY bm25(rules) LIMIT 10", (ftsq,)).fetchall()
+            finally:
+                con.close()
+        except sqlite3.OperationalError:
+            return None  # MATCH 语法敏感字符 → 降级 grep
+        return [f"| {cat}/{stem}.md | {cat} | {title} | {kw} | - | {_summary(body)} |"
+                for stem, cat, title, kw, body in rows]
+
+    def _recall_grep(self, query: str) -> list[str]:
+        """子串 grep recall/index.md (FTS5 不可用时的 fallback)。"""
+        idx = self.layer_dir("recall") / "index.md"
+        if not idx.exists():
+            return []
+        terms = [t for t in re.split(r"\s+", query.lower()) if t]
+        return [ln for ln in idx.read_text().splitlines()
+                if ln.startswith("| ") and not ln.startswith("| file")
+                and any(t in ln.lower() for t in terms)]
 
     # ---- sediment (写盘, 判定门通过后自动调用) ----
     def sediment(self, a: argparse.Namespace) -> None:
@@ -272,7 +311,27 @@ class Spec:
         for layer in LAYERS:
             counts[layer] = self._reindex_layer(layer)
         self._reindex_top(counts)
+        self._rebuild_fts()
         return counts
+
+    def _rebuild_fts(self) -> None:
+        """重建 FTS5 BM25 索引 (recall 层; core 常驻不入索引)。sqlite3 stdlib, 无新依赖。"""
+        db = self.root / ".recall.db"
+        con = sqlite3.connect(db)
+        try:
+            con.execute("CREATE VIRTUAL TABLE IF NOT EXISTS rules "
+                        "USING fts5(stem, category, title, keywords, body)")
+            con.execute("DELETE FROM rules")
+            for f in self._rule_files("recall"):  # 仅 recall (core 常驻, external 是 st4)
+                txt = f.read_text()
+                meta = _frontmatter(txt)
+                con.execute(
+                    "INSERT INTO rules(stem, category, title, keywords, body) VALUES (?,?,?,?,?)",
+                    (f.stem, f.parent.name, meta.get("title", ""), meta.get("keywords", ""),
+                     _strip_frontmatter(txt)))
+            con.commit()
+        finally:
+            con.close()
 
     def _reindex_layer(self, layer: str) -> dict[str, int]:
         """重建 <layer>/index.md, 返回 {category: 条数}。"""
@@ -681,7 +740,7 @@ def main() -> None:
     sub.add_parser("session-start", help="[hook 用] 每 session 注入 core 规则索引")
     sub.add_parser("subagent-start", help="[hook 用] 每 subagent 注入 core 全文 + spec 纪律")
     sub.add_parser("reindex", help="重建三份 index.md (改盘后同步)")
-    r = sub.add_parser("recall", help="按关键词 grep recall 索引, 输出命中行")
+    r = sub.add_parser("recall", help="按关键词 FTS5 BM25 排序 recall (无 .recall.db/MATCH 失败 → grep fallback)")
     r.add_argument("query", help="任务关键词")
     s = sub.add_parser("sediment", help="沉淀一条规则写盘 + 自动 reindex")
     s.add_argument("--layer", required=True, choices=list(LAYERS), help="core=常驻硬规 / recall=按需召回")
