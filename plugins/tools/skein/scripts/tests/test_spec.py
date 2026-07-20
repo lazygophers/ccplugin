@@ -201,6 +201,30 @@ def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "终点层" in dgr.stderr, f"degrade 拒绝提示缺终点层: {dgr.stderr}"
 
 
+def test_core_budget_from_config(mem_ws: Path) -> None:
+    """core_budget() 读 .skein/config.yaml spec_core_budget (热改); 缺失/非正整数 → 默认 1000。"""
+    script_dir = str(MEM.parent)
+
+    def _budget() -> int:
+        r = subprocess.run(
+            [sys.executable, "-c",
+             f"import sys; sys.path.insert(0, {script_dir!r}); "
+             "from spec import core_budget; print(core_budget())"],
+            cwd=mem_ws, capture_output=True, text=True, check=True)
+        return int(r.stdout.strip())
+
+    # 缺 config → 默认 1000
+    assert _budget() == 1000, "无 config 未返默认 1000"
+
+    # 写 config.yaml → 读 500 (热改, 懒求值每次读盘)
+    (mem_ws / ".skein" / "config.yaml").write_text("spec_core_budget: 500\n")
+    assert _budget() == 500, "config spec_core_budget 未生效"
+
+    # 非正整数 → 回落默认
+    (mem_ws / ".skein" / "config.yaml").write_text("spec_core_budget: not-a-num\n")
+    assert _budget() == 1000, "非数字值未回落默认 1000"
+
+
 def _write_body(d: Path, name: str, text: str) -> Path:
     p = d / name
     p.write_text(text)
@@ -241,6 +265,6 @@ if __name__ == "__main__":
     mem_cli = _MemCli()
     for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent,
                test_recall_fts5_and_grep_fallback, test_backlinks_rebuild, test_orphan_detection,
-               test_external_layer):
+               test_external_layer, test_core_budget_from_config):
         fn(_mk_ws(), mem_cli)
-    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入/backlinks/孤立/external层)")
+    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入/backlinks/孤立/external层/core_budget config)")

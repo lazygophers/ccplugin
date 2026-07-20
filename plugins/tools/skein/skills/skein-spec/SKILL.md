@@ -23,6 +23,13 @@ effort: medium
 
 **两层 × 类目**: 层内按类目 (category) 分子目录 —— git / test / arch / build / style / domain / ops... 自由取名、按需建。索引三份: 每层 `<layer>/index.md` (层内全规则, 带 category 列) + 顶层 `index.md` (两层聚合概览)。core 常驻有软预算 (8000 字符, 超则告警降级, 契合「常驻只放最小硬规」)。
 
+## 寻找纪律 (planning/调研/找方案时)
+
+**动手前优先跑 `skein-spec recall "<关键词>"`** — 现有规则沉淀比凭记忆重推快且准, core 已常驻无需 recall。
+顺序: recall spec (recall + external 两层, FTS5 BM25 排序) → vault → 项目本地 (Read/Grep) → 外部搜索。
+recall 命中 → model 读全文判相关 → 相关的注入当前 task 上下文 (dispatch prompt「已知」段带上)。
+external 层 (不入 hook, 纯手动) 存长文档/外部资料, 同经 `recall` 跨层检索。
+
 ## recall (planning 阶段, 派 skein-recaller)
 
 > 召回由 `skein-recaller` (只读同步召回员) 承载, main 等其结果进 planning。
