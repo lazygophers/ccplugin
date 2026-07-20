@@ -256,6 +256,10 @@
       0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent),
       0 0 18px color-mix(in srgb, var(--accent) 24%, transparent); }
   }
+  /* 运行中 subtask card 脉动 (复用 active-pulse keyframes, 独立 class 免 .card 冲突) */
+  .sub-active { animation: active-pulse 2s ease-in-out infinite; }
+  [data-theme="skein-dark"] .sub-active { animation: active-pulse-dark 2s ease-in-out infinite; }
+
   /* 暗模式: active 脉动走金辉 + 蓝亮 (避免暗底纯蓝过冷) */
   [data-theme="skein-dark"] .card.active { animation: active-pulse-dark 2s ease-in-out infinite; }
   @keyframes active-pulse-dark {

@@ -180,7 +180,7 @@ const TPL = `
           </div>
           <div v-if="!subtasks.length" class="text-muted text-center py-8 text-sm">尚无子任务拆分</div>
           <div v-else class="space-y-2">
-            <div v-for="s in subtasks" :key="s.sid" class="rounded p-3" style="border:1px solid var(--line)">
+            <div v-for="s in subtasks" :key="s.sid" class="rounded p-3" :class="s.status === '运行中' ? 'sub-active' : ''" style="border:1px solid var(--line)">
               <div class="flex items-center gap-2 flex-wrap">
                 <code class="text-xs" style="color:var(--head)">{{ s.sid }}</code>
                 <button class="copy-id" :title="copied===s.sid ? '已复制' : '复制 id'" @click="copyId(s.sid)">{{ copied===s.sid ? '✓' : '⧉' }}</button>
