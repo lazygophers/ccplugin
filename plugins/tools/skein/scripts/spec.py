@@ -1,27 +1,29 @@
 #!/usr/bin/env python3
-"""SKEIN 两层规则记忆 (基于 .skein/spec, 纯 stdlib)。
+"""SKEIN 三层规则记忆 (基于 .skein/spec, 纯 stdlib)。
 
-两层 × 类目:
-  core   — .skein/spec/core/<类目>/*.md    每 session 常驻注入 (SessionStart hook → session-start)
-  recall — .skein/spec/recall/<类目>/*.md  按需语义召回 (planning 时 recall <query> 粗筛, model 读全文)
+三层 × 类目:
+  core     — .skein/spec/core/<类目>/*.md        每 session 常驻注入 (SessionStart hook → session-start)
+  recall   — .skein/spec/recall/<类目>/*.md      按需语义召回 (planning 时 recall <query> 粗筛, model 读全文)
+  external — .skein/spec/external/<类目>/*.md    外部参考 (纯手动 CLI 检索, 不入 hook; recall 跨层命中)
 
 类目 (category) 是层内子目录, 自由取名 (git/test/arch/build/style/domain/ops...), 按需建。
-索引三份: 每层 <layer>/index.md (层内全规则) + 顶层 index.md (两层聚合概览)。
+索引三份: 每层 <layer>/index.md (层内全规则) + 顶层 index.md (三层聚合概览)。
 写盘 (sediment) 由 skein-spec skill 在判定门通过后自动调用 (不逐次询问用户), 写后自动 reindex。
 
 命令:
   spec.py init
   spec.py inject-core                        输出全部 core 规则正文 (调试用)
   spec.py session-start                       SessionStart hook: 直接产 hook JSON 注入 core
-  spec.py recall "<query>"                   FTS5 BM25 排序 recall (无索引/MATCH 失败 → grep fallback)
-  spec.py sediment --layer core|recall --category git --title T \
+  spec.py recall "<query>"                   FTS5 BM25 跨层排序 recall+external (无索引/MATCH 失败 → grep fallback)
+  spec.py sediment --layer core|recall|external --category git --title T \
             --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
-  spec.py reindex                            重扫两层重建全部 index
-  spec.py list [--layer core|recall]
-  spec.py maintain [--layer core|recall] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃/孤立)
+  spec.py reindex                            重扫三层重建全部 index
+  spec.py list [--layer core|recall|external]
+  spec.py maintain [--layer core|recall|external] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃/孤立)
                                                   无 --apply 只报告; --apply 自动修复 (断链只报告)
   spec.py degrade <file|--auto>                   core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)
-                                                  --auto 循环降到 core < core_budget() (config.yaml spec_core_budget, 默认 1000) 即停
+                                                  external 是终点层不参与; --auto 循环降到 core < core_budget()
+                                                  (config.yaml spec_core_budget, 默认 1000) 即停
 """
 from __future__ import annotations
 
@@ -38,7 +40,7 @@ from typing import Any, Optional, cast
 
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
 SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈core_budget() 字符)
-LAYERS = ("core", "recall")
+LAYERS = ("core", "recall", "external")
 STALE_DAYS = 180  # maintain stale 判据: created 年龄超此天数且无近期 updated → 候选
 KEYWORDS_DUP_THRESHOLD = 3  # maintain keywords 高重复判据: 同 keywords 组 ≥ 此数 → 合并候选
 AUDIT_RETENTION_DAYS = 7  # .audit-log 保留窗口; 每次写前清掉 7 天前旧行 (按行首 ts 判)
@@ -249,24 +251,28 @@ class Spec:
             con = sqlite3.connect(db)
             try:
                 rows = con.execute(
-                    "SELECT stem, category, title, keywords, body FROM rules "
+                    "SELECT stem, category, title, keywords, body, layer FROM rules "
                     "WHERE rules MATCH ? ORDER BY bm25(rules) LIMIT 10", (ftsq,)).fetchall()
             finally:
                 con.close()
         except sqlite3.OperationalError:
             return None  # MATCH 语法敏感字符 → 降级 grep
-        return [f"| {cat}/{stem}.md | {cat} | {title} | {kw} | - | {_summary(body)} |"
-                for stem, cat, title, kw, body in rows]
+        return [f"| [{layer}] {cat}/{stem}.md | {cat} | {title} | {kw} | - | {_summary(body)} |"
+                for stem, cat, title, kw, body, layer in rows]
 
     def _recall_grep(self, query: str) -> list[str]:
-        """子串 grep recall/index.md (FTS5 不可用时的 fallback)。"""
-        idx = self.layer_dir("recall") / "index.md"
-        if not idx.exists():
-            return []
+        """子串 grep recall+external 的 index.md (FTS5 不可用时的 fallback); 命中行带 [layer] 前缀。"""
         terms = [t for t in re.split(r"\s+", query.lower()) if t]
-        return [ln for ln in idx.read_text().splitlines()
-                if ln.startswith("| ") and not ln.startswith("| file")
-                and any(t in ln.lower() for t in terms)]
+        hits: list[str] = []
+        for layer in ("recall", "external"):
+            idx = self.layer_dir(layer) / "index.md"
+            if not idx.exists():
+                continue
+            for ln in idx.read_text().splitlines():
+                if ln.startswith("| ") and not ln.startswith("| file") \
+                        and any(t in ln.lower() for t in terms):
+                    hits.append(f"[{layer}] {ln}")
+        return hits
 
     # ---- sediment (写盘, 判定门通过后自动调用) ----
     def sediment(self, a: argparse.Namespace) -> None:
@@ -345,20 +351,23 @@ class Spec:
             (self.layer_dir(layer) / "backlinks.md").write_text("\n".join(lines))
 
     def _rebuild_fts(self) -> None:
-        """重建 FTS5 BM25 索引 (recall 层; core 常驻不入索引)。sqlite3 stdlib, 无新依赖。"""
+        """重建 FTS5 BM25 索引 (recall + external 跨层; core 常驻不入索引)。sqlite3 stdlib, 无新依赖。
+
+        schema 含 layer 列, recall 输出带 [layer] 前缀供 model 定位 .skein/spec/<layer>/...。
+        CREATE IF NOT EXISTS 不改已存表 schema → reindex 时先 DROP 再 CREATE (幂等迁移)。"""
         db = self.root / ".recall.db"
         con = sqlite3.connect(db)
         try:
-            con.execute("CREATE VIRTUAL TABLE IF NOT EXISTS rules "
-                        "USING fts5(stem, category, title, keywords, body)")
-            con.execute("DELETE FROM rules")
-            for f in self._rule_files("recall"):  # 仅 recall (core 常驻, external 是 st4)
-                txt = f.read_text()
-                meta = _frontmatter(txt)
-                con.execute(
-                    "INSERT INTO rules(stem, category, title, keywords, body) VALUES (?,?,?,?,?)",
-                    (f.stem, f.parent.name, meta.get("title", ""), meta.get("keywords", ""),
-                     _strip_frontmatter(txt)))
+            con.execute("DROP TABLE IF EXISTS rules")
+            con.execute("CREATE VIRTUAL TABLE rules USING fts5(stem, category, title, keywords, body, layer)")
+            for layer in ("recall", "external"):  # 跨层索引 (core 常驻, 不入)
+                for f in self._rule_files(layer):
+                    txt = f.read_text()
+                    meta = _frontmatter(txt)
+                    con.execute(
+                        "INSERT INTO rules(stem, category, title, keywords, body, layer) VALUES (?,?,?,?,?,?)",
+                        (f.stem, f.parent.name, meta.get("title", ""), meta.get("keywords", ""),
+                         _strip_frontmatter(txt), layer))
             con.commit()
         finally:
             con.close()
@@ -392,7 +401,8 @@ class Spec:
 
     def _reindex_top(self, counts: dict[str, dict[str, int]]) -> None:
         lines = ["# SKEIN 规则库总索引\n",
-                 "两层: **core** 常驻注入 (SessionStart) · **recall** 按需召回 (planning `recall <query>`)。\n",
+                 "三层: **core** 常驻注入 (SessionStart) · **recall** 按需召回 (planning `recall <query>`) · "
+                 "**external** 外部参考 (纯手动 CLI 检索, 不入 hook)。\n",
                  "| layer | 条数 | 类目分布 | 索引 |",
                  "|---|---|---|---|"]
         for layer in LAYERS:
@@ -678,6 +688,9 @@ class Spec:
                 print(f"无需降级 (core {after} ≤ {core_budget()})")
             return
         target = cast(str, a.file)
+        # external 是终点层 (非 core), degrade 仅 core→recall 单向 → 显式拒, 免用户误以为可降级
+        if target.replace("\\", "/").lstrip().startswith("external/"):
+            raise SystemExit("external 是终点层, degrade 仅 core→recall 单向 (external 不参与降级)")
         f = self._resolve_core_file(target)
         meta = _frontmatter(f.read_text())
         if meta.get("layer", "core") != "core":
@@ -770,7 +783,7 @@ def _summary(body: str) -> str:
 def main() -> None:
     p = argparse.ArgumentParser(
         prog="spec.py",
-        description="SKEIN 两层规则记忆 (.skein/spec) — core 常驻 + recall 按需召回",
+        description="SKEIN 三层规则记忆 (.skein/spec) — core 常驻 + recall/external 按需召回",
         epilog="用法: planning 时 recall 召回, task finish 时 sediment 沉淀",
     )
     p.add_argument("-d", "--debug", action="store_true",
@@ -780,11 +793,12 @@ def main() -> None:
     sub.add_parser("inject-core", help="输出 core 层全部规则正文 (常驻注入)")
     sub.add_parser("session-start", help="[hook 用] 每 session 注入 core 规则索引")
     sub.add_parser("subagent-start", help="[hook 用] 每 subagent 注入 core 全文 + spec 纪律")
-    sub.add_parser("reindex", help="重建三份 index.md (改盘后同步)")
+    sub.add_parser("reindex", help="重建各层 index.md + 顶层总索引 (改盘后同步)")
     r = sub.add_parser("recall", help="按关键词 FTS5 BM25 排序 recall (无 .recall.db/MATCH 失败 → grep fallback)")
     r.add_argument("query", help="任务关键词")
     s = sub.add_parser("sediment", help="沉淀一条规则写盘 + 自动 reindex")
-    s.add_argument("--layer", required=True, choices=list(LAYERS), help="core=常驻硬规 / recall=按需召回")
+    s.add_argument("--layer", required=True, choices=list(LAYERS),
+                   help="core=常驻硬规 / recall=按需召回 / external=外部参考 (不入 hook)")
     s.add_argument("--category", help="类目子目录 (git/test/arch/build/style...)")
     s.add_argument("--title", required=True, help="规则标题")
     s.add_argument("--keywords", help="召回关键词, 逗号分隔")
@@ -794,16 +808,16 @@ def main() -> None:
     s.add_argument("--related", help="关联规则 slug 列表 (wikilink stem), 逗号分隔, 空则无关联")
     s.add_argument("--body-file", help="规则正文文件路径")
     ls = sub.add_parser("list", help="列已存规则")
-    ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列两层)")
+    ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列三层)")
     mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃/孤立); --apply 自动修复 (断链只报告)")
-    mt.add_argument("--layer", choices=list(LAYERS), help="仅体检指定层 (缺省两层全扫)")
+    mt.add_argument("--layer", choices=list(LAYERS), help="仅体检指定层 (缺省三层全扫)")
     mt.add_argument("--apply", action="store_true",
                    help="自动修复可修项: 超预算→降级 / stale→归档 / keywords重复→归档(保留最新) / 废弃→归档 / 孤立→归档; 断链仍只报告")
     dg = sub.add_parser("degrade", help="core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)")
     dg.add_argument("file", nargs="?", help="相对 .skein/spec/ 路径 (core/<cat>/<name>.md 或 <cat>/<name>); --auto 时省略")
     dg.add_argument("--auto", action="store_true", help="自动模式: 循环降 top-1 最大文件到 core < core_budget() 即停")
     ar = sub.add_parser("archive", help="[完全重构前] 可逆归档旧规则到 .archive/<ts>/ + reindex 空")
-    ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省两层全归档)")
+    ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省三层全归档)")
     rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
     rs.add_argument("ts", help="归档时间戳 (archive 输出的目录名)")
 

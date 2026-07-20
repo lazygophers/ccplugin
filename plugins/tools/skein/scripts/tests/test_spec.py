@@ -156,6 +156,51 @@ def test_orphan_detection(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "prune-orphan" in out_apply, f"--apply 缺 prune-orphan 审计: {out_apply}"
 
 
+def test_external_layer(mem_ws: Path, mem_cli: MemCli) -> None:
+    """external 层: sediment --layer external 写盘; recall 跨层 FTS5 命中带 [external];
+    顶层 index 含 external 行; maintain 扫 external (stale 对 external 生效);
+    degrade external/... 拒 (终点层)。"""
+    rules = mem_ws / ".skein" / "spec"
+
+    # 1. sediment --layer external 写盘
+    body = _write_body(mem_ws, "ext.md", "外部依赖: vue3 组合式 API 用 setup。")
+    mem_cli(mem_ws, "sediment", "--layer", "external", "--category", "docs",
+            "--title", "vue3 setup", "--keywords", "vue,setup", "--source", "ext01",
+            "--body-file", str(body))
+    ext_file = rules / "external" / "docs" / "ext01-00.md"
+    assert ext_file.exists(), f"external 写盘失败: {ext_file}"
+
+    # 2. recall 跨层命中 external, 带 [external] 标识
+    out = mem_cli(mem_ws, "recall", "vue setup").stdout
+    assert "[external]" in out and "ext01-00.md" in out, f"recall 未跨层命中 external: {out}"
+
+    # 3. 顶层 index.md 含 external 行
+    top = (rules / "index.md").read_text()
+    assert "| external |" in top, f"顶层索引缺 external 行: {top}"
+
+    # 4. maintain 默认扫三层 (external 文件新鲜 → 不报 stale, 但 list 含 external)
+    list_out = mem_cli(mem_ws, "list").stdout
+    assert "[external]" in list_out and "ext01-00.md" in list_out, f"list 缺 external: {list_out}"
+
+    # 5. maintain 对 external 生效: 改老 created+updated → 报 [stale] external/...
+    import re
+    import time
+    old_ts = str(int(time.time()) - 200 * 86400)
+    new_txt = ext_file.read_text()
+    new_txt = re.sub(r"^created: \d+", f"created: {old_ts}", new_txt, flags=re.MULTILINE)
+    new_txt = re.sub(r"^updated: \d+", f"updated: {old_ts}", new_txt, flags=re.MULTILINE)
+    ext_file.write_text(new_txt)
+    mem_cli(mem_ws, "reindex")
+    mout = mem_cli(mem_ws, "maintain").stdout
+    assert "[stale]" in mout and "external/docs/ext01-00" in mout, f"maintain 未扫 external stale: {mout}"
+
+    # 6. degrade external/<cat>/<name> 拒 (终点层) — 直跑 subprocess 取 returncode (fixture 强 check=True)
+    dgr = subprocess.run([sys.executable, str(MEM), "degrade", "external/docs/ext01-00"],
+                         cwd=mem_ws, capture_output=True, text=True)
+    assert dgr.returncode != 0, f"degrade external 不该成功: {dgr.stdout}"
+    assert "终点层" in dgr.stderr, f"degrade 拒绝提示缺终点层: {dgr.stderr}"
+
+
 def _write_body(d: Path, name: str, text: str) -> Path:
     p = d / name
     p.write_text(text)
@@ -195,6 +240,7 @@ if __name__ == "__main__":
 
     mem_cli = _MemCli()
     for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent,
-               test_recall_fts5_and_grep_fallback, test_backlinks_rebuild, test_orphan_detection):
+               test_recall_fts5_and_grep_fallback, test_backlinks_rebuild, test_orphan_detection,
+               test_external_layer):
         fn(_mk_ws(), mem_cli)
-    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入/backlinks/孤立)")
+    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入/backlinks/孤立/external层)")
