@@ -2865,12 +2865,12 @@ def main() -> None:
     fm.add_argument("id", help="task id")
     ar = sub.add_parser("archive", help="归档 task (不合并, 仅移入 archived)")
     ar.add_argument("id", help="task id")
-    # del/delete/rm/remove 同一 handler (别名等价): 删 task 软删进 trash, 带 sid 删单 subtask
-    for _alias in ("del", "delete", "rm", "remove"):
-        _d = sub.add_parser(_alias, help="删 task (软删进 .skein/trash/, 可恢复) 或单 subtask (del <id> [sid] [--dry-run])")
-        _d.add_argument("task_id", help="task id")
-        _d.add_argument("subtask_sid", nargs="?", help="subtask id (有则删该 subtask, task 不动; 无则删整个 task)")
-        _d.add_argument("--dry-run", action="store_true", help="预览将删什么, 不动盘")
+    # del/delete/rm/remove 同一 handler (argparse aliases 单行 help, 4 别名等价): 删 task 软删进 trash, 带 sid 删单 subtask
+    _d = sub.add_parser("del", aliases=["delete", "rm", "remove"],
+        help="删 task (软删进 .skein/trash/, 可恢复) 或单 subtask (del <id> [sid] [--dry-run])")
+    _d.add_argument("task_id", help="task id")
+    _d.add_argument("subtask_sid", nargs="?", help="subtask id (有则删该 subtask, task 不动; 无则删整个 task)")
+    _d.add_argument("--dry-run", action="store_true", help="预览将删什么, 不动盘")
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
