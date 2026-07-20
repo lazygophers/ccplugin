@@ -563,7 +563,9 @@ class Spec:
                 archive_reasons[f] = ("prune-deprecated", f"废弃(status={fd['status']})")
             elif fd["kind"] == "orphan":
                 f = cast(Path, fd["file"])
-                archive_reasons[f] = ("prune-orphan", "孤立(无入度+active+stale)")
+                # ponytail: stale 必然 orphan, 但 stale 判据更强更具体 → stale 优先, orphan 不覆盖已占 key
+                if f not in archive_reasons:
+                    archive_reasons[f] = ("prune-orphan", "孤立(无入度+active+stale)")
         for fd in findings:
             if fd["kind"] == "keywords_dup":
                 files = cast(list[Path], fd["files"])

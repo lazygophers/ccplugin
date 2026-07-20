@@ -261,6 +261,9 @@ def _stop_check(mem_ws: Path) -> subprocess.CompletedProcess[str]:
 
 def test_stop_check_writes_pending_fix(mem_ws: Path, mem_cli: MemCli) -> None:
     """有问题 (断链) → .pending-fix 写出, JSON schema: ts/core_chars/budget/problems[]。"""
+    # ponytail: 显式写 config spec_core_budget=8000 隔离测试, 不耦合全局默认 (st1 改默认 1000)
+    cfg = _ws_root(mem_ws).parent / "config.yaml"
+    cfg.write_text("spec_core_budget: 8000\n")
     ts = int(time.time())
     _write_rule(mem_ws, "recall", "git", "t-00", title="linker", created=ts, updated=ts,
                 body="链 [[missing-target]]")
