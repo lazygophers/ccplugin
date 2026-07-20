@@ -403,6 +403,28 @@ class Skein:
         prd.write_text(new)
         print(f"prd 已规范化: {prd} (补 {changed} 项 todo)")
 
+    def _validate_prd(self, tid: str) -> None:
+        """start 前只读校验 prd.md 就绪 (不写盘, 区别于 fmt 的规范化写盘):
+        (1) prd.md 存在; (2) 四标准章节齐备且顺序为 目标/边界/验收标准/索引;
+        (3) 无 `- [ ] TODO` 占位 (模板初始态, 说明该节未填实)。不通过 raise SystemExit 阻断。"""
+        prd = self.tasks / tid / "prd.md"
+        if not prd.exists():
+            raise SystemExit(f"{tid} prd 未就绪: 无 prd.md — 先 skein create + 填 prd 再 start")
+        lines = prd.read_text().split("\n")
+        if not any(re.match(r"^#\s+\S", ln) for ln in lines):
+            raise SystemExit(f"{tid} prd 未就绪: 缺一级标题 — 先填 prd 再 start")
+        sections = [m.group(1).strip() for ln in lines
+                    if (m := re.match(r"^##\s+(.+?)\s*$", ln))]
+        expected = ["目标", "边界", "验收标准", "索引"]
+        if sections != expected:
+            raise SystemExit(
+                f"{tid} prd 未就绪: 二级章节须为 {expected} (齐备且顺序一致), 实际 {sections} — 先填 prd 再 start")
+        # 占位检查: 模板各节初始即 `- [ ] TODO: 填X`, 填实后会被替换为真实内容 → 仍含即判未填
+        todos = [ln for ln in lines if re.match(r"^- \[ \]\s+TODO\b", ln)]
+        if todos:
+            raise SystemExit(
+                f"{tid} prd 未就绪: 检出 {len(todos)} 处 `- [ ] TODO` 占位未填实 — 先填 prd 再 start")
+
     def init(self, _: argparse.Namespace) -> None:
         self.dir.mkdir(exist_ok=True)
         self.tasks.mkdir(exist_ok=True)
@@ -604,6 +626,8 @@ class Skein:
         subs = t.get("subtasks") or []
         if len(subs) == 0:
             raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 start")
+        # prd 就绪门: 拒绝 start 未填 prd 的 task (无 prd / 章节不全 / 残留 TODO 占位)
+        self._validate_prd(a.id)
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
         wt_cfg = cfg.get("use_worktree", True)

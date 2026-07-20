@@ -141,7 +141,7 @@ const TPL = `
         <button class="back-btn" @click="history.back()">← 返回</button>
         <code class="text-sm px-2 py-0.5 rounded" style="background:var(--line);color:var(--head)">{{ task.id }}</code>
         <button class="copy-id" :title="copied===task.id ? '已复制' : '复制 id'" @click="copyId(task.id)">{{ copied===task.id ? '✓' : '⧉' }}</button>
-        <h1 class="text-lg font-semibold" style="color:var(--head)">{{ task.name || task.id }}</h1>
+        <h1 v-if="task.name" class="text-lg font-semibold" style="color:var(--head)">{{ task.name }}</h1>
         <span class="badge" :class="badgeCls(task.status)">{{ task.status }}</span>
         <span class="stage-chip" :class="stageCls(task.status)" v-if="task.status">{{ stageLabel(task.status) }}</span>
         <span v-if="archived" class="badge badge-done opacity-70">已归档</span>
@@ -212,6 +212,12 @@ const TPL = `
           <div class="md-body" v-html="goalHtml"></div>
         </section>
 
+        <!-- 边界 (PRD 抽出) -->
+        <section v-if="boundaryHtml" class="card p-5">
+          <h2 class="text-sm font-semibold mb-2" style="color:var(--head)">边界</h2>
+          <div class="md-body" v-html="boundaryHtml"></div>
+        </section>
+
         <!-- 验收标准 (PRD 抽出) -->
         <section v-if="acceptHtml" class="card p-5">
           <h2 class="text-sm font-semibold mb-2" style="color:var(--head)">验收标准</h2>
@@ -219,8 +225,8 @@ const TPL = `
         </section>
       </div>
 
-      <!-- 右栏: 文档 tab (默认 PRD) -->
-      <section class="card overflow-hidden">
+      <!-- 右栏: 文档 tab (默认 PRD). data-cur-tab 反映当前 tab, 供软刷重挂前 DOM 抽取保状态 -->
+      <section class="card overflow-hidden" :data-cur-tab="tab">
         <div class="flex" style="border-bottom:1px solid var(--line)">
           <button v-for="d in docTabs" :key="d.key"
             class="px-4 py-2 text-sm relative"
@@ -263,10 +269,10 @@ const TPL = `
   </div>
 </div>`;
 
-// 右栏文档 tab 顺序: PRD 优先 (默认), 详细设计次之, 调研收敛最后。
+// 右栏文档 tab 顺序: 详细设计优先 (默认), PRD 次之, 调研收敛最后。
 const DOC_TABS = [
-  { key: "prd", label: "PRD" },
   { key: "design", label: "详细设计" },
+  { key: "prd", label: "PRD" },
   { key: "findings", label: "调研收敛" },
 ];
 
@@ -350,6 +356,13 @@ export async function render(mount, params, ctx) {
   }
 
   async function mountApp() {
+    // 保状态: 重挂前从旧 DOM 抽当前 tab (data-cur-tab) + 滚动位置, 重挂后回填 (软刷不丢 tab/滚动)。
+    // ponytail: petite-vue 无实例句柄读 tab, 用 DOM 抽最小侵入, 不动响应式架构。
+    let savedTab = null, savedScroll = 0;
+    const cur = mount.querySelector("[data-cur-tab]");
+    if (cur) savedTab = cur.getAttribute("data-cur-tab");
+    savedScroll = window.scrollY;
+
     const st = await fetchState();
     // DAG 染色映射注入 (每次渲染前; dag.js 模块级 NODE_VAR/NODE_CLS 单例)
     setNodeMaps(NODE_VAR, NODE_CLS);
@@ -358,10 +371,14 @@ export async function render(mount, params, ctx) {
     // PRD 目标 / 验收标准 抽取 + md 渲染 (docs.prd 为 null 时 findSection 返回 "")
     const prdSecs = parsePrdSections(st.docs.prd || "");
     const goalHtml = md.renderSafe(findSection(prdSecs, "目标"));
+    const boundaryHtml = md.renderSafe(findSection(prdSecs, "边界"));
     const acceptHtml = md.renderSafe(findSection(prdSecs, "验收标准", "验收"));
+    // 默认 tab: design 优先, design 为空则回落 prd (避免默认空 tab); 软刷保留上次选择。
+    const defaultTab = st.docs.design ? "design" : "prd";
+    const initialTab = savedTab || defaultTab;
     mount.innerHTML = TASK_STYLE + TPL;
     window.PetiteVue.createApp(Object.assign({
-      tab: "prd",
+      tab: initialTab,
       docTabs: DOC_TABS,
       badgeCls,
       stageCls: (st) => STAGE_CLS[stageOf(st)],
@@ -372,6 +389,7 @@ export async function render(mount, params, ctx) {
       docLabel: (k) => (DOC_TABS.find((d) => d.key === k) || {}).label || k,
       subDag,
       goalHtml,
+      boundaryHtml,
       acceptHtml,
       get renderedDoc() { return md.renderSafe(this.docs[this.tab] || ""); },
       // PRD 章节化 (仅 tab==='prd' 用): 各节 body 走同一 md.renderSafe 栈 → 只读 todo 复用 md 输出。
@@ -413,9 +431,11 @@ export async function render(mount, params, ctx) {
         return head + o + e;
       },
     }, st)).mount(mount);
+    // 恢复滚动: rAF 等 DOM 布局完成后再 scrollTo, 否则位置无效。
+    if (savedScroll) requestAnimationFrame(() => window.scrollTo(0, savedScroll));
   }
 
   await mountApp();
-  // ponytail: 软刷整体重挂 — task 详情小, 无需精细 diff; 会丢当前 tab 选择, 可接受。
+  // ponytail: 软刷整体重挂 — task 详情小; mountApp 内抽 tab/滚动状态保活, 用户无感刷新。
   onLive && onLive(mountApp);
 }

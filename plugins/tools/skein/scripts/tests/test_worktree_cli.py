@@ -28,7 +28,18 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
     if sub:
         skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
+        _fill_prd(ws, tid)  # start 前置 prd 门: 填实占位免被拒
     return tid
+
+
+def _fill_prd(ws: Path, tid: str) -> None:
+    """写一份规范 prd.md (章节齐 + 无 TODO 占位), 过 start 的 _validate_prd 门。"""
+    (ws / ".skein" / "task" / tid / "prd.md").write_text(
+        f"# {tid} — PRD\n\n"
+        "## 目标\n- 解决 X 问题\n\n"
+        "## 边界\n- 范围内: a\n\n"
+        "## 验收标准\n- 用例通过\n\n"
+        "## 索引\n- design.md\n")
 
 
 def _branch_exists(git_cmd: GitCmd, ws: Path, branch: str) -> bool:
@@ -111,6 +122,7 @@ def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     tid = "feat-multi"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
+    _fill_prd(ws, tid)
     r = skein_cli(ws, "start", tid)
     assert r.returncode == 0, r.stderr
     # 每子 git 各有独立 worktree 目录 + 分支
@@ -127,6 +139,7 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     tid = "feat-mfin"
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
+    _fill_prd(ws, tid)
     skein_cli(ws, "start", tid)
     # 各 worktree 造改动
     (ws / "sub-a" / ".worktrees" / f"skein-{tid}" / "a.txt").write_text("a\n")
