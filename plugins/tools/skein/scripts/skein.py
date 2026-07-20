@@ -7,7 +7,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 工作区布局 (git 根下):
   .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree_root 到根 .gitignore
   .skein/config.yaml              设置 (max_active / auto_commit / worktree_root)
-  .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
+  .skein/task.json                {tasks:[{id,status,deps,worktree,parent,kind}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
   .skein/task/<id>/task.md        单 task 子任务看板 + 调度 DAG (渲染) — 脚本维护, AI 禁读写
@@ -224,7 +224,8 @@ class Skein:
         # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
         self._autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
-                  "worktree": t.get("worktree")} for t in self._all()]
+                  "worktree": t.get("worktree"),
+                  "parent": t.get("parent"), "kind": t.get("kind", "task")} for t in self._all()]
         self._write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._board(None)  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
@@ -288,7 +289,8 @@ class Skein:
                 if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
-                              "deps": r.get("deps", []), "worktree": r.get("worktree")})
+                              "deps": r.get("deps", []), "worktree": r.get("worktree"),
+                              "parent": r.get("parent"), "kind": r.get("kind", "task")})
                 mirrored += 1
                 DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")
         else:
@@ -442,6 +444,8 @@ class Skein:
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
+            "parent": None,          # 父 supertask id; None=独立 task (create 默认; --parent 选项见 start/派生命令)
+            "kind": "task",          # "task"(普通/独立, 默认) | "supertask"(父聚合层)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
             "checked": None,         # 进入检查阶段时刻 (check 命令置)
@@ -979,10 +983,18 @@ class Skein:
                 errs.append(f"{tid}: id 非 kebab-case slug")
             if t.get("status") not in {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
-            # 禁 task 级父子关系 — 只允许 deps DAG, 出现父/子字段即违规
-            for k in ("parent", "parent_id", "children", "subtask_of"):
+            # task 级父子层 (受控字段 parent/kind): 允许 supertask↔task 父子聚合 (parent 指回 supertask id,
+            # kind 区分父聚合层 vs 普通独立 task)。仅禁未登记的父子字段名 (parent_id/children/subtask_of)。
+            for k in ("parent_id", "children", "subtask_of"):
                 if k in t:
-                    errs.append(f"{tid}: 含 task 父子字段 {k!r} — task 级仅允许 deps DAG, 禁父子关系")
+                    errs.append(f"{tid}: 含未登记 task 父子字段 {k!r} — 仅允许 parent/kind (受控父子层)")
+            if t.get("kind") is not None and t.get("kind") not in ("task", "supertask"):
+                errs.append(f"{tid}: 非法 kind {t.get('kind')!r} — 仅允许 'task' | 'supertask'")
+            if t.get("parent"):
+                if t.get("kind") == "supertask":
+                    errs.append(f"{tid}: supertask 不可再有 parent (supertask 是顶层父聚合层)")
+                elif t["parent"] not in used:
+                    errs.append(f"{tid}: parent 指向不存在 task {t['parent']!r}")
             for d in t.get("deps", []):
                 if d == tid:
                     errs.append(f"{tid}: deps 自引用")
