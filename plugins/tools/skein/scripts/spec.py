@@ -18,7 +18,10 @@
             --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
   spec.py reindex                            重扫两层重建全部 index
   spec.py list [--layer core|recall]
-  spec.py maintain [--layer core|recall]     全量体检 (超预算/stale/断链/keywords重复/废弃), 只报告不自动执行
+  spec.py maintain [--layer core|recall] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃)
+                                                  无 --apply 只报告; --apply 自动修复 (断链只报告)
+  spec.py degrade <file|--auto>                   core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)
+                                                  --auto 循环降到 core < CORE_BUDGET 即停
 """
 from __future__ import annotations
 
@@ -28,6 +31,7 @@ import json
 import re
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, cast
 
@@ -37,6 +41,7 @@ SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预�
 LAYERS = ("core", "recall")
 STALE_DAYS = 180  # maintain stale 判据: created 年龄超此天数且无近期 updated → 候选
 KEYWORDS_DUP_THRESHOLD = 3  # maintain keywords 高重复判据: 同 keywords 组 ≥ 此数 → 合并候选
+AUDIT_RETENTION_DAYS = 7  # .audit-log 保留窗口; 每次写前清掉 7 天前旧行 (按行首 ts 判)
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
 from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
@@ -329,28 +334,23 @@ class Spec:
         self._reindex_all()
         print(f"已恢复 {moved} 条 ← {src}")
 
-    # ---- maintain (全量体检: 超预算/stale/断链/keywords重复/废弃, 只报告不自动执行) ----
-    def maintain(self, a: argparse.Namespace) -> None:
-        layer_opt = cast(Optional[str], getattr(a, "layer", None))
-        layers = [layer_opt] if layer_opt else list(LAYERS)
-        # 所有规则的 stem 集 (库内任何文件 stem, 不分层) — wikilink 目标匹配用
+    # ---- maintain (全量体检: 超预算/stale/断链/keywords重复/废弃; 无 --apply 只报告) ----
+    def _scan_findings(self, layers: list[str]) -> list[dict[str, Any]]:
+        """全量扫描 → 结构化 findings (kind/text + 修复所需上下文); maintain 报告 & --apply 共用。"""
         all_stems = {f.stem for layer in LAYERS for f in self._rule_files(layer)}
         now_ts = now()
-        findings: list[str] = []
+        findings: list[dict[str, Any]] = []
 
-        # 判据 1: 超预算 (仅 core 全文; recall 不常驻无预算)
+        # 判据 1: 超预算 (仅 core 全文)
         if "core" in layers:
             core_text = self._core_text_raw()
             if len(core_text) > CORE_BUDGET:
-                # 按文件正文长度降序, 列最大的几条降级候选
-                sizes = sorted(
-                    ((len(_strip_frontmatter(f.read_text()).strip()),
-                      f.parent.name, f.stem) for f in self._rule_files("core")),
-                    reverse=True)[:3]
-                cands = ", ".join(f"{cat}/{stem}({sz})" for sz, cat, stem in sizes)
-                findings.append(
-                    f"[超预算] core {len(core_text)} > {CORE_BUDGET} 字符 — "
-                    f"考虑降级: {cands}")
+                sized = sorted(
+                    ((len(_strip_frontmatter(f.read_text()).strip()), f.parent.name, f.stem, f)
+                     for f in self._rule_files("core")), reverse=True)
+                cands = ", ".join(f"{cat}/{stem}({sz})" for sz, cat, stem, _ in sized[:3])
+                findings.append({"kind": "overbudget", "size": len(core_text),
+                                 "text": f"[超预算] core {len(core_text)} > {CORE_BUDGET} 字符 — 考虑降级: {cands}"})
 
         for layer in layers:
             for f in self._rule_files(layer):
@@ -362,45 +362,225 @@ class Spec:
                 # 判据 2: stale — created 年龄 > STALE_DAYS 且 updated 无/更老
                 created = _ts_age_days(meta.get("created"), now_ts)
                 updated = _ts_age_days(meta.get("updated"), now_ts)
-                # ponytail: 取 created/updated 较新者为 "最新年龄"; 都老才判 stale
                 newest = min(x for x in (created, updated) if x is not None) \
                     if any(x is not None for x in (created, updated)) else None
                 if newest is not None and newest > STALE_DAYS:
-                    findings.append(
-                        f"[stale] {rel} (created {_months(created)},{int(created)}天前, "
-                        f"updated {_months(updated)},{int(updated)}天前, status {status})")
+                    findings.append({"kind": "stale", "file": f, "rel": rel, "status": status,
+                                     "text": f"[stale] {rel} (created {_months(created)},{int(created)}天前, "
+                                             f"updated {_months(updated)},{int(updated)}天前, status {status})"})
 
-                # 判据 3: broken wikilink — body 的 [[slug]] 目标 stem 不在库内
+                # 判据 3: broken wikilink — body 的 [[slug]] 目标 stem 不在库内 (断链只报告, 需人判断修哪头)
                 body = _strip_frontmatter(txt)
                 for m in re.finditer(r"\[\[([^\]]+)\]\]", body):
                     slug = m.group(1).strip()
-                    # slug 可能带 alias ([[stem|alias]]) 或路径 — 取首段 stem
                     stem = slug.split("|")[0].split("/")[-1].strip()
                     if stem and stem not in all_stems:
-                        findings.append(f"[断链] {rel}: [[{slug}]] ✗ 目标缺失")
+                        findings.append({"kind": "broken_link", "rel": rel, "slug": slug,
+                                         "text": f"[断链] {rel}: [[{slug}]] ✗ 目标缺失"})
 
-                # 判据 5: 废弃/superseded → 建议归档
+                # 判据 4: 废弃/superseded → archive
                 if status in ("deprecated", "superseded"):
-                    findings.append(f"[废弃] {rel} (status {status}) — 建议 archive")
+                    findings.append({"kind": "deprecated", "file": f, "rel": rel, "status": status,
+                                     "text": f"[废弃] {rel} (status {status}) — 建议 archive"})
 
-            # 判据 4: keywords 高重复 — 同 keywords 组 ≥3 条 → 合并候选
-            groups: dict[str, list[str]] = {}
+            # 判据 5: keywords 高重复 — 同 keywords 组 ≥3 条 → 保留最新, 余 archive
+            groups: dict[str, list[Path]] = {}
             for f in self._rule_files(layer):
                 kw = _frontmatter(f.read_text()).get("keywords", "").strip()
                 if not kw:
                     continue
                 key = ",".join(sorted(k for k in kw.split(",") if k.strip()))
-                groups.setdefault(key, []).append(f"{layer}/{f.parent.name}/{f.stem}")
+                groups.setdefault(key, []).append(f)
             for kw_key, hits in sorted(groups.items()):
                 if len(hits) >= KEYWORDS_DUP_THRESHOLD:
-                    findings.append(
-                        f'[重复 keywords] "{kw_key}" ×{len(hits)}: {", ".join(hits)}')
+                    rels = [f"{layer}/{f.parent.name}/{f.stem}" for f in hits]
+                    findings.append({"kind": "keywords_dup", "kw": kw_key, "files": hits,
+                                     "text": f'[重复 keywords] "{kw_key}" ×{len(hits)}: {", ".join(rels)}'})
+        return findings
 
-        print("maintain 体检 (.skein/spec):")
-        if findings:
-            print("\n".join(findings))
+    def maintain(self, a: argparse.Namespace) -> None:
+        layer_opt = cast(Optional[str], getattr(a, "layer", None))
+        layers = [layer_opt] if layer_opt else list(LAYERS)
+        apply = bool(getattr(a, "apply", False))
+        findings = self._scan_findings(layers)
+
+        if not apply:
+            print("maintain 体检 (.skein/spec):")
+            if findings:
+                print("\n".join(fd["text"] for fd in findings))
+            else:
+                print("全清 (无超预算/stale/断链/重复/废弃)")
+            return
+
+        # --apply: 自动修复可修项 (断链只报告, 需人判断)
+        broken = [fd for fd in findings if fd["kind"] == "broken_link"]
+        actions: list[str] = []
+
+        # 超预算 → 循环降级 core→recall
+        if any(fd["kind"] == "overbudget" for fd in findings):
+            before = len(self._core_text_raw())
+            degraded = self._degrade_core_to_budget()
+            after = len(self._core_text_raw())
+            for rel in degraded:
+                actions.append(f"降级 core→recall: {rel}")
+            actions.append(f"core 超预算修复: {before}→{after} 字符 (降 {len(degraded)} 条)")
+
+        # 归档批: stale + 废弃 + keywords 重复(保留最新) 合并一次 .archive/<ts>/
+        archive_reasons: dict[Path, tuple[str, str]] = {}
+        for fd in findings:
+            if fd["kind"] == "stale":
+                f = cast(Path, fd["file"])
+                archive_reasons[f] = ("prune-stale", f"stale({fd['rel']},超{STALE_DAYS}天)")
+            elif fd["kind"] == "deprecated":
+                f = cast(Path, fd["file"])
+                archive_reasons[f] = ("prune-deprecated", f"废弃(status={fd['status']})")
+        for fd in findings:
+            if fd["kind"] == "keywords_dup":
+                files = cast(list[Path], fd["files"])
+                # 保留最新 (updated/created 最新者), 其余归档
+                newest = max(files, key=lambda f: _newest_ts(_frontmatter(f.read_text())))
+                for f in files:
+                    if f != newest and f not in archive_reasons:
+                        archive_reasons[f] = (
+                            "prune-dup", f'keywords重复(组"{fd["kw"]}":{len(files)}条,保留最新)')
+        # ponytail: 跳过被上文 degrade 移走的 (overbudget+stale 同一最大文件场景);
+        # 它已成 recall 层, 旧 core/ Path 在 findings 里过期, 下轮 maintain 再扫到。
+        archive_reasons = {f: r for f, r in archive_reasons.items() if f.exists()}
+        if archive_reasons:
+            moved = self._archive_batch(list(archive_reasons.keys()), archive_reasons)
+            for f, (act, reason) in archive_reasons.items():
+                actions.append(f"归档 ({act}): {f.relative_to(self.root).as_posix()}")
+
+        print("maintain --apply 已执行:")
+        if actions:
+            print("\n".join(actions))
         else:
-            print("全清 (无超预算/stale/断链/重复/废弃)")
+            print("无自动可修项")
+        if broken:
+            print("\n仍需人工 (断链 — 需判断修哪头/补目标):")
+            print("\n".join(fd["text"] for fd in broken))
+
+    # ---- 审计日志 (.audit-log 追加写 + 7天轮转) ----
+    def _write_audit(self, action: str, file: str, before: str, after: str, reason: str) -> None:
+        """追加审计行 + 写前清 7 天前旧行 (按行首 iso ts 判)。格式: iso_ts|action|file|before->(after)|reason"""
+        log = self.root / ".audit-log"
+        cutoff = now() - AUDIT_RETENTION_DAYS * 86400
+        kept: list[str] = []
+        if log.exists():
+            for ln in log.read_text().splitlines():
+                head = ln.split("|", 1)[0]
+                try:
+                    if datetime.fromisoformat(head).timestamp() < cutoff:
+                        continue  # 超 7 天 → 丢
+                except ValueError:
+                    pass  # 非 iso 头 (旧格式/手写) → 保留不误删
+                kept.append(ln)
+        iso_ts = datetime.fromtimestamp(now()).isoformat(timespec="seconds")
+        kept.append(f"{iso_ts}|{action}|{file}|{before}->({after})|{reason}")
+        log.write_text("\n".join(kept) + "\n")
+
+    # ---- 单文件降级核心 (degrade 子命令 + maintain --apply 复用) ----
+    def _degrade_one(self, f: Path, reason: str) -> str:
+        """core→recall 单文件: git mv (fallback rename) + frontmatter layer + reindex + 审计。返回 recall 相对路径。"""
+        if not f.exists():
+            raise SystemExit(f"降级失败: 文件不存在 {f}")
+        rel_before = f.relative_to(self.root).as_posix()
+        cat = f.parent.name
+        dest_dir = self.layer_dir("recall") / cat
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / f.name
+        self._git_mv(f, dest)
+        self._rewrite_layer(dest, "recall")
+        rel_after = dest.relative_to(self.root).as_posix()
+        self._write_audit("degrade", rel_before, rel_before, rel_after, reason)
+        self._reindex_all()
+        return rel_after
+
+    def _degrade_core_to_budget(self) -> list[str]:
+        """循环降 top-1 最大 core 文件 → recall, 直到 core < CORE_BUDGET 或无 core 文件。返回降级路径列表。"""
+        degraded: list[str] = []
+        while True:
+            core_text = self._core_text_raw()
+            if len(core_text) <= CORE_BUDGET:
+                break
+            files = self._rule_files("core")
+            if not files:
+                break
+            top = max(files, key=lambda f: len(_strip_frontmatter(f.read_text()).strip()))
+            reason = f"core超预算({len(core_text)}>{CORE_BUDGET})"
+            degraded.append(self._degrade_one(top, reason))
+        return degraded
+
+    def _git_mv(self, src: Path, dest: Path) -> None:
+        """git mv (保留历史); 未跟踪/无 git → fallback rename (同 fs 移动)。"""
+        r = subprocess.run(["git", "mv", str(src), str(dest)],
+                           capture_output=True, text=True, cwd=self.root)
+        if r.returncode != 0:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            src.rename(dest)
+
+    def _rewrite_layer(self, f: Path, new_layer: str) -> None:
+        """改 frontmatter 的 layer: 行为新值 (原地正则替换首处)。"""
+        txt = f.read_text()
+        new = re.sub(r"^layer:\s*\S+", f"layer: {new_layer}", txt, count=1, flags=re.MULTILINE)
+        if new != txt:
+            f.write_text(new)
+
+    def _archive_batch(self, files: list[Path], reasons: dict[Path, tuple[str, str]]) -> int:
+        """批量归档多文件到同一 .archive/<ts>/ (保 <layer>/<cat>/ 结构) + reindex + 审计。"""
+        ts = str(now())
+        dest_base = self.root / ".archive" / ts
+        moved = 0
+        for f in files:
+            rel_before = f.relative_to(self.root).as_posix()
+            dest = dest_base / f.relative_to(self.root)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            f.rename(dest)
+            act, reason = reasons.get(f, ("archive", ""))
+            self._write_audit(act, rel_before, rel_before, f".archive/{ts}/{rel_before}", reason)
+            moved += 1
+        if moved:
+            self._reindex_all()
+        return moved
+
+    # ---- degrade 子命令 ----
+    def degrade(self, a: argparse.Namespace) -> None:
+        if getattr(a, "auto", False):
+            before = len(self._core_text_raw())
+            degraded = self._degrade_core_to_budget()
+            after = len(self._core_text_raw())
+            if degraded:
+                print(f"自动降级 {len(degraded)} 条 core→recall (core {before}→{after} 字符):")
+                for rel in degraded:
+                    print(f"  - {rel}")
+            else:
+                print(f"无需降级 (core {after} ≤ {CORE_BUDGET})")
+            return
+        target = cast(str, a.file)
+        f = self._resolve_core_file(target)
+        meta = _frontmatter(f.read_text())
+        if meta.get("layer", "core") != "core":
+            raise SystemExit(f"非 core 文件 (layer={meta.get('layer')}), 仅 core 可降级: {target}")
+        rel = self._degrade_one(f, "手动降级")
+        print(f"已降级 core→recall → {rel}")
+
+    def _resolve_core_file(self, target: str) -> Path:
+        """归一化降级目标路径: 补 .md, 补 core/ 前缀; 需含类目 (<cat>/<name>)。"""
+        t = target.replace("\\", "/").strip("/")
+        if not t.endswith(".md"):
+            t += ".md"
+        # 去 layer 前缀 (无论 core/recall) 再补 core/
+        for pref in (f"{lw}/" for lw in LAYERS):
+            if t.startswith(pref):
+                t = t[len(pref):]
+                break
+        t = "core/" + t
+        if t.count("/") < 2:  # core/<cat>/<name>.md 至少 2 个斜杠
+            raise SystemExit(f"需 <category>/<name> 形式 (如 impl/foo): {target}")
+        f = self.root / t
+        if not f.exists():
+            raise SystemExit(f"文件不存在: {target} → {f.relative_to(self.root)}")
+        return f
 
     # ---- list ----
     def list_(self, a: argparse.Namespace) -> None:
@@ -423,6 +603,19 @@ def _ts_age_days(raw: Optional[str], now_ts: int) -> Optional[int]:
 def _months(days: Optional[int]) -> str:
     """天数 → 'N月' 概览 (粗算 30 天/月); None → '-'。"""
     return f"{int(days) // 30}月" if days is not None else "-"
+
+
+def _newest_ts(meta: dict[str, str]) -> int:
+    """frontmatter 的 updated/created 较新 epoch (缺字段/非数字 → 0); 用于 keywords 重复时保留最新。"""
+    best = 0
+    for k in ("updated", "created"):
+        v = meta.get(k)
+        if v:
+            try:
+                best = max(best, int(str(v).strip()))
+            except (ValueError, TypeError):
+                continue
+    return best
 
 
 def _frontmatter(text: str) -> dict[str, str]:
@@ -481,8 +674,13 @@ def main() -> None:
     s.add_argument("--body-file", help="规则正文文件路径")
     ls = sub.add_parser("list", help="列已存规则")
     ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列两层)")
-    mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃), 只报告不自动执行")
+    mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃); --apply 自动修复 (断链只报告)")
     mt.add_argument("--layer", choices=list(LAYERS), help="仅体检指定层 (缺省两层全扫)")
+    mt.add_argument("--apply", action="store_true",
+                   help="自动修复可修项: 超预算→降级 / stale→归档 / keywords重复→归档(保留最新) / 废弃→归档; 断链仍只报告")
+    dg = sub.add_parser("degrade", help="core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)")
+    dg.add_argument("file", nargs="?", help="相对 .skein/spec/ 路径 (core/<cat>/<name>.md 或 <cat>/<name>); --auto 时省略")
+    dg.add_argument("--auto", action="store_true", help="自动模式: 循环降 top-1 最大文件到 core < CORE_BUDGET 即停")
     ar = sub.add_parser("archive", help="[完全重构前] 可逆归档旧规则到 .archive/<ts>/ + reindex 空")
     ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省两层全归档)")
     rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
@@ -502,7 +700,7 @@ def main() -> None:
         "init": m.init, "inject-core": m.inject_core, "recall": m.recall,
         "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
-        "maintain": m.maintain,
+        "maintain": m.maintain, "degrade": m.degrade,
         "archive": m.archive, "restore": m.restore,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
