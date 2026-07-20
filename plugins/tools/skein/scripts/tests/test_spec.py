@@ -1,4 +1,4 @@
-"""spec.py 测试 — init/sediment/recall/inject-core/session-start/subagent-start/reindex。
+"""spec.py 测试 — init/sediment/recall/inject-core/session-start/subagent-start/reindex/backlinks/orphan。
 
 通过 subprocess 跑 spec.py CLI (conftest 的 mem_ws fixture 造隔离 .skein/spec/ 仓),
 覆盖三条核心路径:
@@ -29,7 +29,8 @@ def test_init_sediment_index(mem_ws: Path, mem_cli: MemCli) -> None:
     mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git", "--title", "合并冲突处理",
             "--keywords", "merge,conflict,worktree", "--source", "t01", "--body-file", str(body))
     core_files = [p.relative_to(rules / "core").as_posix()
-                  for p in (rules / "core").rglob("*.md") if p.name != "index.md"]
+                  for p in (rules / "core").rglob("*.md")
+                  if p.name not in ("index.md", "backlinks.md")]
     assert core_files == ["git/t01-00.md"], core_files
     assert "合并冲突处理" in (rules / "core/index.md").read_text(), "core index 未同步"
     assert "git" in (rules / "index.md").read_text(), "顶层索引未含类目"
@@ -112,6 +113,49 @@ def test_recall_fts5_and_grep_fallback(mem_ws: Path, mem_cli: MemCli) -> None:
     assert "recall" in out3, "含双引号 query 不该崩"
 
 
+def test_backlinks_rebuild(mem_ws: Path, mem_cli: MemCli) -> None:
+    """A-MEM-lite 反链: A body 写 [[B-stem]] → reindex 产 recall/backlinks.md, B 章节列 A 反链。"""
+    # 先存 B (stem = t02-00), 再存 A (stem = t01-01, 层内 seq 全局递增) body 引用 B
+    body_b = _write_body(mem_ws, "b.md", "pnpm workspace 装包后必跑 install。")
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build",
+            "--title", "pnpm 装包", "--keywords", "pnpm", "--source", "t02",
+            "--body-file", str(body_b))
+    body_a = _write_body(mem_ws, "a.md", "装依赖见 [[t02-00]]。")
+    mem_cli(mem_ws, "sediment", "--layer", "recall", "--category", "build",
+            "--title", "依赖流程", "--keywords", "deps", "--source", "t01",
+            "--body-file", str(body_a))
+
+    bl = mem_ws / ".skein" / "spec" / "recall" / "backlinks.md"
+    assert bl.exists(), "reindex 未产 recall/backlinks.md"
+    txt = bl.read_text()
+    assert "## t02-00" in txt, f"backlinks 缺 B 章节 (反链目标): {txt}"
+    assert "recall/build/t01-01" in txt, f"backlinks 缺 A 反链 (referrer): {txt}"
+
+
+def test_orphan_detection(mem_ws: Path, mem_cli: MemCli) -> None:
+    """孤立判据: 无入度 + active + created 超 STALE_DAYS → maintain 报 [孤立], --apply 归档。"""
+    import re
+    import time
+
+    body = _write_body(mem_ws, "b.md", "孤立规则正文, 无 wikilink 入度。")
+    mem_cli(mem_ws, "sediment", "--layer", "core", "--category", "git",
+            "--title", "孤立规则", "--keywords", "orphan", "--source", "t01",
+            "--body-file", str(body))
+    # 改老 created (> STALE_DAYS=180); updated 保留新 — 排除 stale 误判, 只剩孤立信号
+    rule = mem_ws / ".skein" / "spec" / "core" / "git" / "t01-00.md"
+    old_ts = str(int(time.time()) - 200 * 86400)
+    rule.write_text(re.sub(r"^created: \d+", f"created: {old_ts}",
+                           rule.read_text(), flags=re.MULTILINE))
+    mem_cli(mem_ws, "reindex")
+
+    out = mem_cli(mem_ws, "maintain").stdout
+    assert "[孤立]" in out and "t01-00" in out, f"maintain 未报孤立: {out}"
+
+    out_apply = mem_cli(mem_ws, "maintain", "--apply").stdout
+    assert not rule.exists(), f"--apply 未归档孤立规则: {out_apply}"
+    assert "prune-orphan" in out_apply, f"--apply 缺 prune-orphan 审计: {out_apply}"
+
+
 def _write_body(d: Path, name: str, text: str) -> Path:
     p = d / name
     p.write_text(text)
@@ -151,6 +195,6 @@ if __name__ == "__main__":
 
     mem_cli = _MemCli()
     for fn in (test_init_sediment_index, test_recall_and_inject_core, test_hook_inject_session_and_subagent,
-               test_recall_fts5_and_grep_fallback):
+               test_recall_fts5_and_grep_fallback, test_backlinks_rebuild, test_orphan_detection):
         fn(_mk_ws(), mem_cli)
-    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入)")
+    print("spec.py 测试全过 (init/sediment+三层索引/recall FTS5+grep fallback/inject-core隔离层/hook注入/backlinks/孤立)")

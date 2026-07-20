@@ -18,7 +18,7 @@
             --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
   spec.py reindex                            重扫两层重建全部 index
   spec.py list [--layer core|recall]
-  spec.py maintain [--layer core|recall] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃)
+  spec.py maintain [--layer core|recall] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃/孤立)
                                                   无 --apply 只报告; --apply 自动修复 (断链只报告)
   spec.py degrade <file|--auto>                   core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)
                                                   --auto 循环降到 core < core_budget() (config.yaml spec_core_budget, 默认 1000) 即停
@@ -121,7 +121,9 @@ class Spec:
         d = self.layer_dir(layer)
         if not d.exists():
             return []
-        return sorted(p for p in d.rglob("*.md") if p.name != "index.md")
+        # index.md/backlinks.md 是衍生索引非规则, 扫规则时排除 (免反链表自我递归引用)
+        return sorted(p for p in d.rglob("*.md")
+                      if p.name not in ("index.md", "backlinks.md"))
 
     def _next_seq(self, layer: str) -> int:
         # 层内已用最大序号 +1 (非文件计数): 删文件后不回退, 免覆盖已有规则
@@ -312,7 +314,35 @@ class Spec:
             counts[layer] = self._reindex_layer(layer)
         self._reindex_top(counts)
         self._rebuild_fts()
+        self._rebuild_backlinks_md(self._rebuild_backlinks())
         return counts
+
+    def _rebuild_backlinks(self) -> dict[str, list[str]]:
+        """扫全库 body 的 [[slug]] → {target_stem: [referrer_rel,...]}。A-MEM-lite 反链表。"""
+        backlinks: dict[str, list[str]] = {}
+        for layer in LAYERS:
+            for f in self._rule_files(layer):
+                rel = f"{layer}/{f.parent.name}/{f.stem}"
+                for m in re.finditer(r"\[\[([^\]]+)\]\]", _strip_frontmatter(f.read_text())):
+                    stem = m.group(1).split("|")[0].split("/")[-1].strip()
+                    if stem:
+                        backlinks.setdefault(stem, []).append(rel)
+        return backlinks
+
+    def _rebuild_backlinks_md(self, backlinks: dict[str, list[str]]) -> None:
+        """每层写 <layer>/backlinks.md: 本层每个有入度的 stem 一章节, 列反链 referrer。
+        无章节 = 无入度 (孤立候选, maintain 判据 6 兜底)。"""
+        for layer in LAYERS:
+            lines = [f"# SKEIN {layer} 反向链接 (A-MEM-lite)", "",
+                     "扫全库 body 的 `[[slug]]` → 反链表 (谁引用了本 stem)。无章节 = 无入度 (孤立候选)。", ""]
+            for f in self._rule_files(layer):
+                refs = backlinks.get(f.stem)
+                if not refs:
+                    continue
+                lines.append(f"## {f.stem}")
+                lines.extend(f"- {r}" for r in sorted(set(refs)))
+                lines.append("")
+            (self.layer_dir(layer) / "backlinks.md").write_text("\n".join(lines))
 
     def _rebuild_fts(self) -> None:
         """重建 FTS5 BM25 索引 (recall 层; core 常驻不入索引)。sqlite3 stdlib, 无新依赖。"""
@@ -413,6 +443,7 @@ class Spec:
     def _scan_findings(self, layers: list[str]) -> list[dict[str, Any]]:
         """全量扫描 → 结构化 findings (kind/text + 修复所需上下文); maintain 报告 & --apply 共用。"""
         all_stems = {f.stem for layer in LAYERS for f in self._rule_files(layer)}
+        backlinks = self._rebuild_backlinks()  # 一次扫, 判据 6 复用
         now_ts = now()
         findings: list[dict[str, Any]] = []
 
@@ -462,6 +493,13 @@ class Spec:
                     findings.append({"kind": "deprecated", "file": f, "rel": rel, "status": status,
                                      "text": f"[废弃] {rel} (status {status}) — 建议 archive"})
 
+                # 判据 6: 孤立 — 无入度 (stem 不在 backlinks) + active + created 超 STALE_DAYS → 候选归档/降级
+                # ponytail: 用 created age (非 stale 的 min(created,updated)) — 抓"老但近期 updated"的孤儿, 与 stale 互补
+                if status == "active" and f.stem not in backlinks \
+                        and created is not None and created > STALE_DAYS:
+                    findings.append({"kind": "orphan", "file": f, "rel": rel,
+                                     "text": f"[孤立] {rel} 无入度+active+超{STALE_DAYS}天 — 候选归档/降级"})
+
             # 判据 5: keywords 高重复 — 同 keywords 组 ≥3 条 → 保留最新, 余 archive
             groups: dict[str, list[Path]] = {}
             for f in self._rule_files(layer):
@@ -488,7 +526,7 @@ class Spec:
             if findings:
                 print("\n".join(fd["text"] for fd in findings))
             else:
-                print("全清 (无超预算/stale/断链/重复/废弃)")
+                print("全清 (无超预算/stale/断链/重复/废弃/孤立)")
             return
 
         # --apply: 自动修复可修项 (断链只报告, 需人判断)
@@ -513,6 +551,9 @@ class Spec:
             elif fd["kind"] == "deprecated":
                 f = cast(Path, fd["file"])
                 archive_reasons[f] = ("prune-deprecated", f"废弃(status={fd['status']})")
+            elif fd["kind"] == "orphan":
+                f = cast(Path, fd["file"])
+                archive_reasons[f] = ("prune-orphan", "孤立(无入度+active+stale)")
         for fd in findings:
             if fd["kind"] == "keywords_dup":
                 files = cast(list[Path], fd["files"])
@@ -754,10 +795,10 @@ def main() -> None:
     s.add_argument("--body-file", help="规则正文文件路径")
     ls = sub.add_parser("list", help="列已存规则")
     ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列两层)")
-    mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃); --apply 自动修复 (断链只报告)")
+    mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃/孤立); --apply 自动修复 (断链只报告)")
     mt.add_argument("--layer", choices=list(LAYERS), help="仅体检指定层 (缺省两层全扫)")
     mt.add_argument("--apply", action="store_true",
-                   help="自动修复可修项: 超预算→降级 / stale→归档 / keywords重复→归档(保留最新) / 废弃→归档; 断链仍只报告")
+                   help="自动修复可修项: 超预算→降级 / stale→归档 / keywords重复→归档(保留最新) / 废弃→归档 / 孤立→归档; 断链仍只报告")
     dg = sub.add_parser("degrade", help="core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)")
     dg.add_argument("file", nargs="?", help="相对 .skein/spec/ 路径 (core/<cat>/<name>.md 或 <cat>/<name>); --auto 时省略")
     dg.add_argument("--auto", action="store_true", help="自动模式: 循环降 top-1 最大文件到 core < core_budget() 即停")
