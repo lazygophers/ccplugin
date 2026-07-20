@@ -88,17 +88,6 @@ CI 字段含义、失败日志取法、冲突判定细节见 [references/ci-and-
 | 自建 GitLab 域名 | `glab` 已配 `GITLAB_HOST` 则直接用 | 未配 → 提示 `glab auth login --hostname <host>` |
 | gh/glab 输出被 RTK wrapper 改写 | 用原始二进制路径 bypass(见 reference) | 仍乱 → 让用户网页确认 URL |
 
-## 反例黑名单(禁做)
-
-| # | 反模式 | 为什么禁 | 替代 |
-| --- | --- | --- | --- |
-| 1 | 创建后直接 `gh pr merge`/`glab mr merge` | 越权合并 | 只创建,合并待用户 |
-| 2 | CI 失败自作主张改代码 | 未经确认改动 | AskUserQuestion 先问 |
-| 3 | PR 正文空/只有一行 | 评审无上下文 | 结构化正文(变更/影响/验证) |
-| 4 | 编造 PR 里没有的「测试已通过」 | 虚假声明 | 验证栏据实填或标「待补」 |
-| 5 | 识别不出平台就硬套 gh | 命令必败 | STOP 问用户 |
-| 6 | 用双点 `origin/$BASE..HEAD` 拉正文 | 漏算 base 领先的提交,范围偏 | 用三点 `...` |
-
 ## 诚实边界
 
 - 只支持 GitHub(gh)/GitLab(glab);Bitbucket/Gitea/自建其它平台不覆盖,识别不到即 STOP。

@@ -88,18 +88,6 @@ commit message:**用户已在入参给出 message → 直接采用,不再自造*
 | 大文件(>50MB)误入暂存 | 提示 Git LFS(`git lfs track`)或移出 | 用户坚持 → 警告仓库膨胀不可逆后再交 |
 | 整文件虚假 diff(CRLF/mode) | `.gitattributes` `* text=auto` / `core.fileMode false` | 确认非真内容改动则不提交该项 |
 
-## 反例黑名单(禁做)
-
-| # | 反模式 | 为什么禁 | 替代 |
-| --- | --- | --- | --- |
-| 1 | `git add -A` / `git add .` 一把梭 | 裹挟噪声与密钥进库 | 按分类逐项 add |
-| 2 | 提交后 `git push` | 越权,推送需用户指令 | 只提交 |
-| 3 | 密钥当普通文件提交 | 泄露不可逆 | STOP 报警 |
-| 4 | 个人编辑器噪声写进项目 `.gitignore` | 污染团队清单 | 归全局 excludesFile / `.git/info/exclude` |
-| 5 | 塞百行 `.gitignore` 模板 | 大量用不上的 pattern 噪声 | 只加命中的 |
-| 6 | `git rm --cached` 不确认直接删 | 传播删除,协作者丢文件 | 先 `-n` 预演 + 报清单确认 |
-| 7 | 忽略锁文件 / `git rm --cached` 锁文件 | 破坏 CI 可复现 | 锁文件是应提交项 |
-
 ## 诚实边界
 
 - 只挡**未追踪**噪声与新增忽略;已在历史里的密钥/大文件本 skill 不清史(需用户跑 `git filter-repo`)。
