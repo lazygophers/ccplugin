@@ -29,3 +29,14 @@ skein subtask add <tid> st3 --name "加测试"     --desc "覆盖新旧字段两
 **统筹学: 拆 DAG 求最短工期 (min makespan)** — exec 的就绪批由脚本按**拓扑深度**优先派 (下游链长者先跑), planning 只需把下面几件事做对, 脚本自会调度:
 - **协议先行, 后并行 (最优拆法)** — 先识别 subtask 间**共享契约** (接口签名 / 数据结构 / 类型 / API 格式 / DB schema), 把「定契约」抽成单个前置 subtask; 所有实现 subtask 只 `--deps` 这个契约 subtask、彼此不互挂 → 契约 done 即全批并行。反模式: 让实现 A 依赖实现 B 只因 "B 先写了接口" —— 应把接口提成独立前置, A/B 同 `--deps` 它并行, 别串成链。
 - **压关键路径, 别串成一条链** — 无真实依赖的 subtask 禁互挂 `--deps` (伪依赖会拉长关键路径、扼杀并行); 有序的才连。把长任务尽量前置、让下游能早并行。
+
+## 复杂度天花板: cold-start 大需求 (承接 SKILL.md 🛑 天花板表)
+
+SKILL.md 天花板表命中任一即拆多 task。cold-start 维度的细化判据:
+
+| 天花板信号 | 判据 | 动作 |
+|---|---|---|
+| 复合嗅味 ("X and Y and Z") / 多独立能力 / subtask 会 >8 | capability 按**用户行为**拆 (非技术层); 阈值 8 与 liza size 门 3-8 **同号合并**, 非新增阈值 | 拆多 task: `skein create <super-id> --kind supertask` + 各 child `--parent <super-id>` |
+
+- **capability ≠ 技术模块** — capability 是用户行为 (「下单」「退款」), 非技术层 (「DB层」「API层」)。按技术层拆 = 跨层耦合依旧的假拆; 按用户行为拆 = 真独立可并。
+- **walking skeleton 优先** — 拆完能力域后, 第一个 task 强制**端到端最薄能跑通** (验证数据流 / 契约 / 部署链路假设), 非铺平所有能力域。假设证伪早返工, 比铺平再发现省。

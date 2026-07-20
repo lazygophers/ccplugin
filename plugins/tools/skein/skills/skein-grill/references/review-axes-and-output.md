@@ -10,7 +10,9 @@
 | **边界** | 输入/规模/并发/失败态的边界定了没? "模糊"处点名 |
 | **假设** | 有哪些没写出来的隐藏假设? 假设错了会崩哪? |
 | **调度** | task.json 的子任务 DAG / depends_on 完整? 有无环 / 漏边? |
-| **验收** | 每个 subtask 有可执行验收基准? 还是"做好了"这种空话? |
+| **验收 (SMARC)** | 每条 AC Specific/Measurable/Achievable/Relevant/Context-bound 五项齐全? 出现 user-friendly / 快速 / 好用 / 灵活 类不可测词 → 降为 Open Question 而非 AC (做不到可测 = 不是验收, 是待问) |
+| **drift 一致性** | 产出 (subtask DAG + prd) 仍服务原始 Job Story 愿景? 逐条 subtask 溯源 outcome — 与原始愿景无关的即渐进偏离, 砍或回溯; 多轮追问只追澄清不改原始愿景段 |
+| **scope 吸收** | 每条 subtask 溯源到 said (明说) / implied (暗示) 哪条源诉求? 溯不回 = AI 脑补, 回 Out-of-Scope 或 Open Question (源说"支持 X", 禁顺手 spec XYZ) |
 | **反例** | 最可能翻车的一条路径是什么? 有没有兜底? |
 | **YAGNI** | 哪几条是"以后可能要"硬塞的? 砍掉行不行? |
 
@@ -49,3 +51,6 @@ grill 弱点表
 | 挖不出弱点就当"通过" | 找不到 = 没问够, 换角度深挖 (立场: 对抗非审批) |
 | 空问不给推荐答案 | 每问带推荐判断 (grill-me 法) |
 | 能查 codebase 却问用户 | 先 Read/Grep 自答, 只问文件答不了的 |
+| AC 含 wishful 词 (user-friendly/快速/好用/灵活) 当验收通过 | 把不可测词降为 Open Question, AC 只留可执行基准 (SMARC) |
+| subtask 溯不回源诉求仍保留 | 回溯到 said/implied; 溯不到回 Out-of-Scope (防 scope absorption) |
+| 多轮追问后产出与原始愿景脱节 | 每轮澄清回写 prd 但原始愿景段不动; 偏离 subtask 砍掉 (防 drift) |

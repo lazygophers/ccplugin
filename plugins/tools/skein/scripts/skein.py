@@ -7,7 +7,7 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
 工作区布局 (git 根下):
   .skein/.gitignore               init 生成: 忽略 task.md (从 task.json 无损重建); 另补 worktree_root 到根 .gitignore
   .skein/config.yaml              设置 (max_active / auto_commit / worktree_root)
-  .skein/task.json                {tasks:[{id,status,deps,worktree}]}  顶层状态汇总 — 脚本维护, AI 禁读写
+  .skein/task.json                {tasks:[{id,status,deps,worktree,parent,kind}]}  顶层状态汇总 — 脚本维护, AI 禁读写
   .skein/task.md                  顶层看板 (task.json 渲染, git 忽略) — 脚本维护, AI 禁读写
   .skein/task/<id>/task.json      单 task 记录 + subtask DAG — 脚本维护, AI 禁读写
   .skein/task/<id>/task.md        单 task 子任务看板 + 调度 DAG (渲染) — 脚本维护, AI 禁读写
@@ -224,10 +224,13 @@ class Skein:
         # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
         self._autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
-                  "worktree": t.get("worktree")} for t in self._all()]
+                  "worktree": t.get("worktree"),
+                  "parent": t.get("parent"), "kind": t.get("kind", "task")} for t in self._all()]
         self._write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._board(None)  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
+        for st in [t for t in self._all() if t.get("kind") == "supertask"]:
+            self._vision(st)  # 每个 supertask 刷聚合看板 vision.md (有变更才写)
 
     def _load(self, tid: str) -> dict[str, Any]:
         f = self.tasks / tid / "task.json"
@@ -288,7 +291,8 @@ class Skein:
                 if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
-                              "deps": r.get("deps", []), "worktree": r.get("worktree")})
+                              "deps": r.get("deps", []), "worktree": r.get("worktree"),
+                              "parent": r.get("parent"), "kind": r.get("kind", "task")})
                 mirrored += 1
                 DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")
         else:
@@ -410,7 +414,7 @@ class Skein:
         # 及 spec/.archive/ (完全重构可逆归档转储, 转瞬回滚数据, 不入库)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n*.lock\nspec/.archive/\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\nvision.md\n*.lock\nspec/.archive/\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
@@ -433,6 +437,26 @@ class Skein:
                 "(如 order-create-api / user-auth), 勿用 t01 这类代号")
         if tid in self._used_ids():
             raise SystemExit(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
+        # task 级父子层校验 (限 2 层: supertask→task→subtask)
+        parent_id = (a.parent or "").strip() or None
+        kind = a.kind or "task"
+        if kind == "supertask" and parent_id:
+            raise SystemExit(f"supertask 不可有 parent (supertask 是顶层父聚合层) — 去掉 --parent {parent_id}")
+        if parent_id:
+            p = self._load(parent_id)  # _load 不存在 → SystemExit「task 不存在」(parent 引用完整性)
+            if p.get("parent"):
+                # 被引用的 parent 自身是 child (其 parent != None) → 拒, 禁 child 作父, 深度超 2 层
+                raise SystemExit(
+                    f"深度超限: parent {parent_id} 本身是 child (其 parent={p.get('parent')!r}) — "
+                    f"supertask 不可再嵌套 supertask (限 2 层: supertask→task→subtask)")
+            if p.get("kind") == "supertask":
+                parent_kind_ok = True
+            elif p.get("kind") in (None, "task"):
+                # 父是独立 task (kind=task 且 parent=None): 允许升格作 child 的聚合父 — 但更规范的做法是显式 supertask
+                # ponytail: 不强制要求父必须 supertask, 只要 parent 链不超 2 层 (parent 的 parent=None 即可)
+                parent_kind_ok = True
+            else:
+                raise SystemExit(f"parent {parent_id} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
         (self.tasks / tid).mkdir(parents=True)
         self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
@@ -442,6 +466,8 @@ class Skein:
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
+            "parent": parent_id,     # 父 supertask id; None=独立 task (create 默认; --parent 指向 supertask)
+            "kind": kind,            # "task"(普通/独立, 默认) | "supertask"(父聚合层)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
             "checked": None,         # 进入检查阶段时刻 (check 命令置)
@@ -636,6 +662,14 @@ class Skein:
         t = self._load(tid)
         if t["status"] not in STATUS_ACTIVE:
             raise SystemExit(f"{tid} 状态 {t['status']}, 非 active 无法 finish")
+        # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
+        # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
+        if t.get("kind") == "supertask":
+            pending = [c["id"] for c in self._all() if c.get("parent") == tid and c["status"] != S_DONE]
+            if pending:
+                raise SystemExit(
+                    f"{tid} 是 supertask, 仍有未完成 child task: {', '.join(pending)} — "
+                    f"先 finish 全部 child 再 finish super (聚合归档要求 child 全 done)")
         cfg = self.config()
         wts = self._wts(t)
         conflicts: list[tuple[str, str]] = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
@@ -979,10 +1013,18 @@ class Skein:
                 errs.append(f"{tid}: id 非 kebab-case slug")
             if t.get("status") not in {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
-            # 禁 task 级父子关系 — 只允许 deps DAG, 出现父/子字段即违规
-            for k in ("parent", "parent_id", "children", "subtask_of"):
+            # task 级父子层 (受控字段 parent/kind): 允许 supertask↔task 父子聚合 (parent 指回 supertask id,
+            # kind 区分父聚合层 vs 普通独立 task)。仅禁未登记的父子字段名 (parent_id/children/subtask_of)。
+            for k in ("parent_id", "children", "subtask_of"):
                 if k in t:
-                    errs.append(f"{tid}: 含 task 父子字段 {k!r} — task 级仅允许 deps DAG, 禁父子关系")
+                    errs.append(f"{tid}: 含未登记 task 父子字段 {k!r} — 仅允许 parent/kind (受控父子层)")
+            if t.get("kind") is not None and t.get("kind") not in ("task", "supertask"):
+                errs.append(f"{tid}: 非法 kind {t.get('kind')!r} — 仅允许 'task' | 'supertask'")
+            if t.get("parent"):
+                if t.get("kind") == "supertask":
+                    errs.append(f"{tid}: supertask 不可再有 parent (supertask 是顶层父聚合层)")
+                elif t["parent"] not in used:
+                    errs.append(f"{tid}: parent 指向不存在 task {t['parent']!r}")
             for d in t.get("deps", []):
                 if d == tid:
                     errs.append(f"{tid}: deps 自引用")
@@ -1300,12 +1342,37 @@ class Skein:
         DBG.log(f"✎ 写入 {path}  ({len(content)} 字符)", style="green")
 
     def _board(self, _: Any) -> None:
-        rows = []
-        for t in self._render_tasks():
-            deps = ",".join(t["deps"]) or "-"
-            wt = t.get("worktree") or "-"  # 已是相对路径
-            rows.append(f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |")
-        body = "\n".join(rows) if rows else "| - | - | - | - | - |"
+        tasks = self._render_tasks()
+        # task 级父子层分组渲染: supertask(kind=supertask) 作分组头, 其 child(parent 指回该 supertask)
+        # 缩进列其下; 其余 (独立普通 task / 孤儿 parent) 保持原扁平行。无 supertask 时 body 逐字等于
+        # 旧扁平版 (零增量, 关键回归点)。
+        by_parent: dict[str, list[dict[str, Any]]] = {}
+        for t in tasks:
+            if t.get("parent"):
+                by_parent.setdefault(t["parent"], []).append(t)
+        supertasks = [t for t in tasks if t.get("kind") == "supertask"]
+        grouped = bool(supertasks)
+
+        def row(t: dict[str, Any]) -> str:
+            deps = ",".join(t.get("deps", [])) or "-"
+            wt = t.get("worktree") or "-"
+            return f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |"
+
+        if not grouped:
+            body = "\n".join(row(t) for t in tasks) if tasks else "| - | - | - | - | - |"
+        else:
+            lines: list[str] = []
+            seen: set[str] = set()
+            for st in supertasks:
+                lines.append(row(st))
+                seen.add(st["id"])
+                for c in by_parent.get(st["id"], []):
+                    lines.append(f"| ↳ {c['id']} | {c['name']} | {c['status']} | "
+                                 f"{','.join(c.get('deps', [])) or '-'} | {c.get('worktree') or '-'} |")
+                    seen.add(c["id"])
+            rest = [t for t in tasks if t["id"] not in seen]
+            lines.extend(row(t) for t in rest)  # 独立/孤儿 task 原样平铺, 不强制分组
+            body = "\n".join(lines) if lines else "| - | - | - | - | - |"
         md = (
             "# SKEIN 看板\n\n"
             "> task.json 变更即自动渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
@@ -1565,6 +1632,30 @@ class Skein:
         )
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
+    def _vision(self, st: dict[str, Any]) -> None:
+        # supertask 聚合看板 vision.md (脚本渲染, git 忽略, 禁手编): 汇总该 supertask 下所有 child task
+        # 的状态/subtask 完成率/整体加权完成率。复用 _write_if_changed (内容未变跳过)。
+        # 仅 supertask 调; _sync 遍历所有 supertask 逐个刷。归档时随目录移走 (vision.md 在 task/<sid>/ 下)。
+        children = [c for c in self._render_tasks() if c.get("parent") == st["id"]]
+        rows = []
+        for c in children:
+            subs = c.get("subtasks", [])
+            sdone = sum(1 for s in subs if s.get("status") == SS_DONE)
+            sratio = f"{sdone}/{len(subs)}" if subs else "-"
+            rows.append(f"| {c['id']} | {c['name']} | {c['status']} | {sratio} | {_task_pct(c)}% |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - |"
+        overall = (sum(_task_pct(c) for c in children) // len(children)) if children else 0
+        done_n = sum(1 for c in children if c.get("status") == S_DONE)
+        md = (
+            f"# SKEIN supertask 聚合看板 — {st['id']} {st.get('name') or st['id']}\n\n"
+            "> 脚本渲染, 禁直接编辑; child task 状态变更即自动刷。整体完成率 = child _task_pct 均值。\n\n"
+            f"**整体进度**: {overall}% · **child**: {done_n}/{len(children)} 已完成\n\n"
+            "| child | 名称 | 状态 | subtask 完成 | 进度 |\n"
+            "|---|---|---|---|---|\n"
+            f"{body}\n"
+        )
+        self._write_if_changed(self.tasks / st["id"] / "vision.md", md)
+
     # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
     def _board_data(self) -> dict[str, Any]:
         # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
@@ -1730,6 +1821,7 @@ class Skein:
             cards.append({
                 "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
                 "stage": _task_stage(t),
+                "parent": t.get("parent"), "kind": t.get("kind", "task"),  # task 级父子层 (supertask 分组用, 数据就绪; 前端分组渲染待补)
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
                 "worktree": t.get("worktree") or None,
@@ -2731,6 +2823,9 @@ def main() -> None:
     c.add_argument("--desc", required=True, help="[必填] 一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
     c.add_argument("--repos", help="目标子 git, 逗号分隔 rel 路径 (多子 git 各开 worktree; 省略=单根/原地)")
+    c.add_argument("--kind", choices=["task", "supertask"], default="task",
+                   help="task 类型: task=普通/独立(默认) | supertask=父聚合层 (parent 必须 None, 限 2 层: supertask→task→subtask)")
+    c.add_argument("--parent", help="父 supertask id (建 child task; 父须为 supertask, 即其 parent 为 None — 禁 child 作父)")
     rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
     rp.add_argument("id", help="task id")
     rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
