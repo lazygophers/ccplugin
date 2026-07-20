@@ -188,8 +188,9 @@ class Spec:
         if cats:
             body = self._core_text_by_cat(cats).strip()
             ctx = head + f"\n## core 规则 (命中类目 {cats})\n\n{body}\n\n## 全量 core 索引\n\n{idx}{recall_tail}"
-        else:  # 空映射/非 skein agent/stdin 失败 → 纯索引
-            ctx = head + f"\n## core 索引 (全量; 需全文跑 recall/inject-core)\n\n{idx}{recall_tail}"
+        else:  # 空映射/非 skein agent/stdin 失败 → 全 core 正文 + 索引 (对齐 help: 每 subagent 注 core 全文)
+            body = self._core_text().strip()
+            ctx = head + f"\n## core 规则 (全量)\n\n{body}\n\n## core 索引\n\n{idx}{recall_tail}"
         ctx = budget_guard(ctx, SUBAGENT_BUDGET_TOKENS, "spec:subagent-start")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SubagentStart", "additionalContext": ctx}}))
@@ -365,9 +366,12 @@ class Spec:
                 newest = min(x for x in (created, updated) if x is not None) \
                     if any(x is not None for x in (created, updated)) else None
                 if newest is not None and newest > STALE_DAYS:
+                    # newest 非 None 仅保证 created/updated 至少一者有值, 另一者仍可 None → 三元兜底
+                    cd = f"{int(created)}天前" if created is not None else "?"
+                    ud = f"{int(updated)}天前" if updated is not None else "?"
                     findings.append({"kind": "stale", "file": f, "rel": rel, "status": status,
-                                     "text": f"[stale] {rel} (created {_months(created)},{int(created)}天前, "
-                                             f"updated {_months(updated)},{int(updated)}天前, status {status})"})
+                                     "text": f"[stale] {rel} (created {_months(created)},{cd}, "
+                                             f"updated {_months(updated)},{ud}, status {status})"})
 
                 # 判据 3: broken wikilink — body 的 [[slug]] 目标 stem 不在库内 (断链只报告, 需人判断修哪头)
                 body = _strip_frontmatter(txt)
