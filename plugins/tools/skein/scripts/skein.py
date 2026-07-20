@@ -434,10 +434,25 @@ class Skein:
         if not cfg.exists():
             cfg.write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
         # .skein/.gitignore — 忽略自动渲染看板 (task.md 从 task.json 无损重建, 且 AI 禁读写)
-        # 及 spec/.archive/ (完全重构可逆归档转储, 转瞬回滚数据, 不入库)
+        # + spec/.archive/ (完全重构可逆归档转储) + 衍生/临时 (hook 标记/审计日志/FTS 索引/软删转储)
         gi = self.dir / ".gitignore"
+        GI_ENTRIES = [
+            "task.md", "vision.md", "*.lock", "spec/.archive/",
+            "spec/.pending-fix", "spec/.audit-log", "spec/.recall.db", "trash/",
+        ]
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\nvision.md\n*.lock\nspec/.archive/\n")
+            gi.write_text("# skein.py 自动渲染/衍生, 不入库\n" + "\n".join(GI_ENTRIES) + "\n")
+        else:
+            # 幂等补缺: 已存文件检查缺行补 (不破坏用户手写条目, 不重复已有)
+            lines = gi.read_text(encoding="utf-8").splitlines()
+            have = {ln.strip() for ln in lines if ln.strip() and not ln.startswith("#")}
+            missing = [e for e in GI_ENTRIES if e not in have]
+            if missing:
+                with gi.open("a", encoding="utf-8") as fh:
+                    if lines and lines[-1].strip():
+                        fh.write("\n")
+                    fh.write("# skein 衍生/临时文件 (init 自动补缺)\n")
+                    fh.write("\n".join(missing) + "\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
@@ -1985,7 +2000,13 @@ class Skein:
         for fn in ("prd.md", "design.md", "findings.md"):
             f = tdir / fn
             docs[fn[:-3]] = f.read_text(encoding="utf-8", errors="replace") if f.exists() else None
-        return {"task": data, "docs": docs, "archived": archived,
+        # research 目录多篇笔记: {filename: content} (无目录或空则空 dict)
+        research: dict[str, str] = {}
+        rdir = tdir / "research"
+        if rdir.is_dir():
+            for rf in sorted(rdir.glob("*.md")):
+                research[rf.name] = rf.read_text(encoding="utf-8", errors="replace")
+        return {"task": data, "docs": docs, "research": research, "archived": archived,
                 "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", [])}
 
     def _archive_list(self) -> list[dict[str, Any]]:

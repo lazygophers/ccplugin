@@ -233,11 +233,20 @@ const TPL = `
             :style="tab===d.key ? 'color:var(--accent);border-bottom:2px solid var(--accent)' : 'color:var(--muted)'"
             @click="tab=d.key">
             {{ d.label }}
-            <span v-if="!docs[d.key]" class="ml-1 text-[10px] opacity-50">空</span>
+            <span v-if="!docs[d.key] && !(d.key==='research' && Object.keys(research).length)" class="ml-1 text-[10px] opacity-50">空</span>
           </button>
         </div>
         <div class="p-5">
-          <div v-if="!docs[tab]" class="text-muted text-center py-16 text-sm">
+          <div v-if="tab==='research' && Object.keys(research).length === 0" class="text-muted text-center py-16 text-sm">
+            <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>暂无调研笔记
+          </div>
+          <div v-else-if="tab==='research'" class="space-y-3">
+            <div v-for="name in researchKeys" :key="name" class="rounded p-4" style="border:1px solid var(--line)">
+              <div class="text-sm font-semibold mb-2" style="color:var(--head)">{{ name }}</div>
+              <div class="md-body" v-html="researchHtml(name)"></div>
+            </div>
+          </div>
+          <div v-else-if="!docs[tab]" class="text-muted text-center py-16 text-sm">
             <div class="empty-ico"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>{{ docLabel(tab) }} 暂无内容
           </div>
           <!-- PRD: 按 ## 章节拆 card 竖排; 章节内一级 - [ ] 由 md 渲染为只读 todo checkbox -->
@@ -274,6 +283,7 @@ const DOC_TABS = [
   { key: "design", label: "详细设计" },
   { key: "prd", label: "PRD" },
   { key: "findings", label: "调研收敛" },
+  { key: "research", label: "调研过程" },
 ];
 
 // ── 列表视图 (无 id: /task) ── 数据复用 /__skein__/data → cards (每项 id/name/status/desc/spct)。
@@ -345,6 +355,7 @@ export async function render(mount, params, ctx) {
       const r = await api.task(params.id);
       return { loadErr: "", notFound: false,
         task: r.task || {}, docs: r.docs || {},
+        research: r.research || {},
         subtasks: r.subtasks || [], contracts: r.contracts || [], archived: !!r.archived };
     } catch (e) {
       const notFound = e && e.status === 404;
@@ -392,6 +403,8 @@ export async function render(mount, params, ctx) {
       boundaryHtml,
       acceptHtml,
       get renderedDoc() { return md.renderSafe(this.docs[this.tab] || ""); },
+      get researchKeys() { return Object.keys(this.research).sort(); },
+      researchHtml(name) { return md.renderSafe(this.research[name] || ""); },
       // PRD 章节化 (仅 tab==='prd' 用): 各节 body 走同一 md.renderSafe 栈 → 只读 todo 复用 md 输出。
       get prdSections() {
         const map = parsePrdSections(this.docs.prd || "");
