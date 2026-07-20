@@ -2760,22 +2760,21 @@ def _sub_pct(s: dict[str, Any]) -> int:
 
 
 def _task_pct(t: dict[str, Any]) -> int:
-    # task 完成百分比 = plan/exec/check 三阶段加权:
-    #   plan(pending) 无 subs=5 (planning 中) / 有 subs=10 (plan 完成待 start);
-    #   exec(active)  = 10 + 75 * (subs _sub_pct 均值 / 100), 无 subs=10;
-    #   check = 85; done = 100。
+    # task 进度 = subtask 完成度 (有 subs) / 状态机阶段 (无 subs).
+    # ponytail: 进度反映客观完成度, 不混状态机加权 — subs 全 done 即 100,
+    #   哪怕 task 仍在 active/check (状态机推进由人/finish 命令, 不影响进度数).
     st = t["status"]
     if st == S_DONE:
         return 100
+    subs: list[dict[str, Any]] = t.get("subtasks", [])
+    if subs:
+        return sum(_sub_pct(s) for s in subs) // len(subs)
+    # 无 subs: 用状态机阶段 (planning/exec/check 收尾的单点 task)
     if st == S_CHECK:
         return 85
-    subs: list[dict[str, Any]] = t.get("subtasks", [])
     if st == S_ACTIVE:
-        if not subs:
-            return 10
-        return 10 + int(75 * sum(_sub_pct(s) for s in subs) / len(subs) / 100)
-    # S_PENDING
-    return 10 if subs else 5
+        return 10
+    return 5   # S_PENDING (planning 中)
 
 
 def _task_stage(t: dict[str, Any]) -> str:
