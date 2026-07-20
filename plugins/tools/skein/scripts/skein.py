@@ -437,6 +437,26 @@ class Skein:
                 "(如 order-create-api / user-auth), 勿用 t01 这类代号")
         if tid in self._used_ids():
             raise SystemExit(f"id 已占用: {tid} — 换一个 (含已归档的也不可复用)")
+        # task 级父子层校验 (限 2 层: supertask→task→subtask)
+        parent_id = (a.parent or "").strip() or None
+        kind = a.kind or "task"
+        if kind == "supertask" and parent_id:
+            raise SystemExit(f"supertask 不可有 parent (supertask 是顶层父聚合层) — 去掉 --parent {parent_id}")
+        if parent_id:
+            p = self._load(parent_id)  # _load 不存在 → SystemExit「task 不存在」(parent 引用完整性)
+            if p.get("parent"):
+                # 被引用的 parent 自身是 child (其 parent != None) → 拒, 禁 child 作父, 深度超 2 层
+                raise SystemExit(
+                    f"深度超限: parent {parent_id} 本身是 child (其 parent={p.get('parent')!r}) — "
+                    f"supertask 不可再嵌套 supertask (限 2 层: supertask→task→subtask)")
+            if p.get("kind") == "supertask":
+                parent_kind_ok = True
+            elif p.get("kind") in (None, "task"):
+                # 父是独立 task (kind=task 且 parent=None): 允许升格作 child 的聚合父 — 但更规范的做法是显式 supertask
+                # ponytail: 不强制要求父必须 supertask, 只要 parent 链不超 2 层 (parent 的 parent=None 即可)
+                parent_kind_ok = True
+            else:
+                raise SystemExit(f"parent {parent_id} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
         (self.tasks / tid).mkdir(parents=True)
         self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
@@ -446,8 +466,8 @@ class Skein:
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
-            "parent": None,          # 父 supertask id; None=独立 task (create 默认; --parent 选项见 start/派生命令)
-            "kind": "task",          # "task"(普通/独立, 默认) | "supertask"(父聚合层)
+            "parent": parent_id,     # 父 supertask id; None=独立 task (create 默认; --parent 指向 supertask)
+            "kind": kind,            # "task"(普通/独立, 默认) | "supertask"(父聚合层)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
             "checked": None,         # 进入检查阶段时刻 (check 命令置)
@@ -642,6 +662,14 @@ class Skein:
         t = self._load(tid)
         if t["status"] not in STATUS_ACTIVE:
             raise SystemExit(f"{tid} 状态 {t['status']}, 非 active 无法 finish")
+        # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
+        # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
+        if t.get("kind") == "supertask":
+            pending = [c["id"] for c in self._all() if c.get("parent") == tid and c["status"] != S_DONE]
+            if pending:
+                raise SystemExit(
+                    f"{tid} 是 supertask, 仍有未完成 child task: {', '.join(pending)} — "
+                    f"先 finish 全部 child 再 finish super (聚合归档要求 child 全 done)")
         cfg = self.config()
         wts = self._wts(t)
         conflicts: list[tuple[str, str]] = []  # [(repo, 冲突输出)] — 部分子 git 冲突时保留已合并进度, task 留 active 供幂等重跑
@@ -2795,6 +2823,9 @@ def main() -> None:
     c.add_argument("--desc", required=True, help="[必填] 一句话描述")
     c.add_argument("--deps", help="前置 task id, 逗号分隔")
     c.add_argument("--repos", help="目标子 git, 逗号分隔 rel 路径 (多子 git 各开 worktree; 省略=单根/原地)")
+    c.add_argument("--kind", choices=["task", "supertask"], default="task",
+                   help="task 类型: task=普通/独立(默认) | supertask=父聚合层 (parent 必须 None, 限 2 层: supertask→task→subtask)")
+    c.add_argument("--parent", help="父 supertask id (建 child task; 父须为 supertask, 即其 parent 为 None — 禁 child 作父)")
     rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
     rp.add_argument("id", help="task id")
     rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
