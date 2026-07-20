@@ -1,5 +1,36 @@
 - 所有的变更都需要自动提交到暂存区
 
+## 项目结构
+
+本项目是 **Claude Code 插件 + skills 集合**，由两类内容组成：
+
+### 市场插件 `plugins/tools/`
+
+发布到 Claude Code 插件市场的正式插件，共 7 个：
+
+- `cortex` — 记忆/认知层
+- `deepresearch` — 深度研究
+- `notify` — 通知
+- `novelist` — 小说创作
+- `skein` — 任务编排/拆分（subtask 生命周期）
+- `trellisx` — 与 `skein` 并存的任务管理实现，两者分工互补
+- `version` — 版本管理
+
+### skill 开发模板 `skills/`
+
+非市场插件，是 skill 本身的开发模板与方法论目录：
+
+- `skill-dev/` — skill / subagent 开发方法论（流程 A 创建 / 流程 B 优化）
+- `git/` — git 相关 skill 模板
+- `code-quality/` — 代码质量 skill 模板
+- `project/` — 项目级 skill 模板
+
+### 顶层关键文件
+
+- `AGENTS.md` 是指向本文件的软链接（与 `CLAUDE.md` 同源）
+- `README.md` / `docs/plugin-development.md` — 概览与插件开发指南
+- `pyproject.toml` + `uv.lock` — Python 3.11+ 依赖锁定（`uv` 管理）
+
 ## 代码质量检查规范
 
 对于 commands、skills、agents、agent.md 的优化、简化，必须通过以下命令检查 AI 是否可以正确理解识别，是否符合预期：

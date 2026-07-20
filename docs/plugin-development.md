@@ -497,10 +497,12 @@ cat .claude-plugin/plugin.json | jq '.name' | grep -E '^[a-z0-9-]+$'
   "plugins": [
     {
       "name": "my-plugin",
-      "source": "./plugins/my-plugin",
+      "source": "./plugins/tools/my-plugin",
       "description": "插件描述",
-      "version": "1.0.0",
-      "author": { "name": "作者" },
+      "author": { "name": "作者", "email": "email@example.com" },
+      "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/my-plugin",
+      "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/my-plugin",
+      "license": "AGPL-3.0-or-later",
       "keywords": ["tag1", "tag2"]
     }
   ]
@@ -558,13 +560,6 @@ Closes #123
 ```
 
 ## 参考资源
-
-### 项目文档
-
-- [API 参考](api-reference.md) - 完整的 API 文档
-- [最佳实践](best-practices.md) - 开发最佳实践
-- [支持的语言](supported-languages.md) - 语言选择指南
-- [编译型语言指南](compiled-languages-guide.md) - Go/Rust 开发指南
 
 ### 官方文档
 
