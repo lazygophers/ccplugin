@@ -229,6 +229,8 @@ class Skein:
         self._write_if_changed(self.dir / "task.json",
             json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2))
         self._board(None)  # 变更即刷 task.md (看板 http 实时渲染, 不落盘)
+        for st in [t for t in self._all() if t.get("kind") == "supertask"]:
+            self._vision(st)  # 每个 supertask 刷聚合看板 vision.md (有变更才写)
 
     def _load(self, tid: str) -> dict[str, Any]:
         f = self.tasks / tid / "task.json"
@@ -412,7 +414,7 @@ class Skein:
         # 及 spec/.archive/ (完全重构可逆归档转储, 转瞬回滚数据, 不入库)
         gi = self.dir / ".gitignore"
         if not gi.exists():
-            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\n*.lock\nspec/.archive/\n")
+            gi.write_text("# skein.py 自动渲染, 从 task.json 无损重建, 不入库\ntask.md\nvision.md\n*.lock\nspec/.archive/\n")
         # worktree 目录在 git 根 (worktree_root), .skein/.gitignore 管不到 → 补到根 .gitignore
         # (仅 git 仓库需要; 非 git 无 worktree, 不制造多余 .gitignore)。子仓的忽略由 _mkwt 各自补。
         if self.git:
@@ -1312,12 +1314,37 @@ class Skein:
         DBG.log(f"✎ 写入 {path}  ({len(content)} 字符)", style="green")
 
     def _board(self, _: Any) -> None:
-        rows = []
-        for t in self._render_tasks():
-            deps = ",".join(t["deps"]) or "-"
-            wt = t.get("worktree") or "-"  # 已是相对路径
-            rows.append(f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |")
-        body = "\n".join(rows) if rows else "| - | - | - | - | - |"
+        tasks = self._render_tasks()
+        # task 级父子层分组渲染: supertask(kind=supertask) 作分组头, 其 child(parent 指回该 supertask)
+        # 缩进列其下; 其余 (独立普通 task / 孤儿 parent) 保持原扁平行。无 supertask 时 body 逐字等于
+        # 旧扁平版 (零增量, 关键回归点)。
+        by_parent: dict[str, list[dict[str, Any]]] = {}
+        for t in tasks:
+            if t.get("parent"):
+                by_parent.setdefault(t["parent"], []).append(t)
+        supertasks = [t for t in tasks if t.get("kind") == "supertask"]
+        grouped = bool(supertasks)
+
+        def row(t: dict[str, Any]) -> str:
+            deps = ",".join(t.get("deps", [])) or "-"
+            wt = t.get("worktree") or "-"
+            return f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |"
+
+        if not grouped:
+            body = "\n".join(row(t) for t in tasks) if tasks else "| - | - | - | - | - |"
+        else:
+            lines: list[str] = []
+            seen: set[str] = set()
+            for st in supertasks:
+                lines.append(row(st))
+                seen.add(st["id"])
+                for c in by_parent.get(st["id"], []):
+                    lines.append(f"| ↳ {c['id']} | {c['name']} | {c['status']} | "
+                                 f"{','.join(c.get('deps', [])) or '-'} | {c.get('worktree') or '-'} |")
+                    seen.add(c["id"])
+            rest = [t for t in tasks if t["id"] not in seen]
+            lines.extend(row(t) for t in rest)  # 独立/孤儿 task 原样平铺, 不强制分组
+            body = "\n".join(lines) if lines else "| - | - | - | - | - |"
         md = (
             "# SKEIN 看板\n\n"
             "> task.json 变更即自动渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
@@ -1577,6 +1604,30 @@ class Skein:
         )
         self._write_if_changed(self.tasks / t["id"] / "task.md", md)
 
+    def _vision(self, st: dict[str, Any]) -> None:
+        # supertask 聚合看板 vision.md (脚本渲染, git 忽略, 禁手编): 汇总该 supertask 下所有 child task
+        # 的状态/subtask 完成率/整体加权完成率。复用 _write_if_changed (内容未变跳过)。
+        # 仅 supertask 调; _sync 遍历所有 supertask 逐个刷。归档时随目录移走 (vision.md 在 task/<sid>/ 下)。
+        children = [c for c in self._render_tasks() if c.get("parent") == st["id"]]
+        rows = []
+        for c in children:
+            subs = c.get("subtasks", [])
+            sdone = sum(1 for s in subs if s.get("status") == SS_DONE)
+            sratio = f"{sdone}/{len(subs)}" if subs else "-"
+            rows.append(f"| {c['id']} | {c['name']} | {c['status']} | {sratio} | {_task_pct(c)}% |")
+        body = "\n".join(rows) if rows else "| - | - | - | - | - |"
+        overall = (sum(_task_pct(c) for c in children) // len(children)) if children else 0
+        done_n = sum(1 for c in children if c.get("status") == S_DONE)
+        md = (
+            f"# SKEIN supertask 聚合看板 — {st['id']} {st.get('name') or st['id']}\n\n"
+            "> 脚本渲染, 禁直接编辑; child task 状态变更即自动刷。整体完成率 = child _task_pct 均值。\n\n"
+            f"**整体进度**: {overall}% · **child**: {done_n}/{len(children)} 已完成\n\n"
+            "| child | 名称 | 状态 | subtask 完成 | 进度 |\n"
+            "|---|---|---|---|---|\n"
+            f"{body}\n"
+        )
+        self._write_if_changed(self.tasks / st["id"] / "vision.md", md)
+
     # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
     def _board_data(self) -> dict[str, Any]:
         # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
@@ -1742,6 +1793,7 @@ class Skein:
             cards.append({
                 "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
                 "stage": _task_stage(t),
+                "parent": t.get("parent"), "kind": t.get("kind", "task"),  # task 级父子层 (supertask 分组用, 数据就绪; 前端分组渲染待补)
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
                 "worktree": t.get("worktree") or None,
