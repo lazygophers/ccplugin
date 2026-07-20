@@ -22,6 +22,13 @@ def _create(skein_cli: SkeinCli, ws: Path, tid: str = TID) -> None:
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
 
 
+def _fill_prd(ws: Path, tid: str) -> None:
+    """写规范 prd.md 过 start 的 _validate_prd 门 (章节齐 + 无 TODO 占位)。"""
+    (ws / ".skein" / "task" / tid / "prd.md").write_text(
+        f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
+        "## 边界\n- a\n\n## 验收标准\n- 通过\n\n## 索引\n- design.md\n")
+
+
 def _set_max_active(ws: Path, n: int) -> None:
     """改写 .skein/config.yaml 的 max_active (单/双层并发共用此键)。"""
     cfg = ws / ".skein" / "config.yaml"
@@ -196,6 +203,7 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
     for tid in ("alpha-beta", "gamma-delta"):
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
         _add(skein_cli, ws, tid, "x")
+        _fill_prd(ws, tid)
         skein_cli(ws, "start", tid)                       # start 建立运行环境 + 占 active
     out = skein_cli(ws, "claim").stdout                   # 全局 claim
     assert "已全局认领" in out
@@ -209,6 +217,8 @@ def test_two_level_task_level_cap_blocks_start(skein_cli: SkeinCli, ws: Path) ->
     for tid in ("alpha-beta", "gamma-delta", "epsilon-zeta"):
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
         _add(skein_cli, ws, tid, "x")
+    _fill_prd(ws, "alpha-beta")
+    _fill_prd(ws, "gamma-delta")
     skein_cli(ws, "start", "alpha-beta")
     skein_cli(ws, "start", "gamma-delta")
     # 第 3 个 start 应被并发上限拦截 (check=False 拿非零退出)

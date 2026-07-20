@@ -30,6 +30,13 @@ def _task(ws: Path, tid: str) -> dict[str, Any]:
     return cast(dict[str, Any], json.loads((ws / ".skein" / "task" / tid / "task.json").read_text()))
 
 
+def _fill_prd(ws: Path, tid: str) -> None:
+    """写规范 prd.md 过 start 的 _validate_prd 门 (章节齐 + 无 TODO 占位)。"""
+    (ws / ".skein" / "task" / tid / "prd.md").write_text(
+        f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n"
+        "## 边界\n- a\n\n## 验收标准\n- 通过\n\n## 索引\n- design.md\n")
+
+
 def _write_task(ws: Path, tid: str, t: dict[str, Any]) -> None:
     (ws / ".skein" / "task" / tid / "task.json").write_text(json.dumps(t, ensure_ascii=False))
 
@@ -130,6 +137,7 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "create", cid, "--name", cid, "--desc", "d", "--parent", "epic-1")
         skein_cli(ws, "subtask", "add", cid, "s1", "--name", "x", "--desc", "d",
                   "--agent", "skein-executor")
+        _fill_prd(ws, cid)
         skein_cli(ws, "start", cid)
         skein_cli(ws, "finish", cid)
 

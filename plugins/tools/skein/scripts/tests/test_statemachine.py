@@ -27,7 +27,18 @@ def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-x", *, sub: bool = False
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
     if sub:
         skein_cli(ws, "subtask", "add", tid, SID, "--name", "S", "--desc", "d")
+        _fill_prd(ws, tid)  # start 前置 prd 门: 填实占位免被拒
     return tid
+
+
+def _fill_prd(ws: Path, tid: str) -> None:
+    """写一份规范 prd.md (章节齐 + 无 TODO 占位), 过 start 的 _validate_prd 门。"""
+    (ws / ".skein" / "task" / tid / "prd.md").write_text(
+        f"# {tid} — PRD\n\n"
+        "## 目标\n- 解决 X 问题\n\n"
+        "## 边界\n- 范围内: a\n\n"
+        "## 验收标准\n- 用例通过\n\n"
+        "## 索引\n- design.md\n")
 
 
 def _status_of(skein_cli: SkeinCli, ws: Path, tid: str) -> str:
@@ -129,6 +140,27 @@ def test_start_no_subtask_rejected(skein_cli: SkeinCli, ws: Path) -> None:
     assert r.returncode == 1
     assert "无 subtask" in r.stdout + r.stderr
     assert _status_of(skein_cli, ws, tid) == S_PENDING
+
+
+def test_start_prd_placeholder_rejected(skein_cli: SkeinCli, ws: Path) -> None:
+    """非法: start 时 prd.md 残留 `- [ ] TODO` 占位 (模板初始态, 说明未填实, 应拒)。"""
+    tid = _mk(skein_cli, ws, sub=True)  # _mk 已填实 prd → 重新写回带占位的模板态
+    (ws / ".skein" / "task" / tid / "prd.md").write_text(
+        f"# {tid} — PRD\n\n## 目标\n- [ ] TODO: 填目标\n\n"
+        "## 边界\n- 边界内容\n\n## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+    r = skein_cli(ws, "start", tid, check=False)
+    assert r.returncode == 1
+    assert "prd 未就绪" in r.stdout + r.stderr
+    assert "TODO" in r.stdout + r.stderr
+    assert _status_of(skein_cli, ws, tid) == S_PENDING
+
+
+def test_start_prd_ok_passes(skein_cli: SkeinCli, ws: Path) -> None:
+    """合法: prd.md 章节齐 + 无占位 → start 正常进 active。"""
+    tid = _mk(skein_cli, ws, sub=True)  # _mk 内已 _fill_prd 写规范 prd
+    r = skein_cli(ws, "start", tid)
+    assert r.returncode == 0, r.stderr
+    assert _status_of(skein_cli, ws, tid) == S_ACTIVE
 
 
 def test_op_on_missing_task_rejected(skein_cli: SkeinCli, ws: Path) -> None:
