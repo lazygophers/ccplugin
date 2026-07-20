@@ -221,21 +221,30 @@ def main() -> None:
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
            "--desc", "估文本像素宽全框统一取最大列对齐保底208像素", "--agent", "skein-executor")
-        sk(d, "board")
-        html = (d / ".skein/task.html").read_text()
-        # 剔搜索框 placeholder 里的装饰性省略号 (非 DAG 截断), 只验节点文本无 …
+        sk(d, "board")  # task.md 落盘 (task.html 演进为 serve 实时渲染, 不再 persist)
+        # HTML 走实时渲染 (_board_html 内存产, 不落盘): chdir 到 ws 再实例化 Skein
+        import os
+        cwd0 = os.getcwd(); os.chdir(d)
+        try:
+            sk_obj = _load("skein_dag").Skein()
+            html = sk_obj._board_html()
+        finally:
+            os.chdir(cwd0)
+        # DAG 演进为前端渲染 (数据走 window.__SKEIN__ JSON, 节点 = [id,name,status,deps,pct,desc]);
+        # 服务器端不再产 SVG <rect>, 改验结构化数据里长 name/desc 完整不截断 (核心诉求: 不丢信息)
+        assert "window.__SKEIN__" in html, "_board_html shell 应内联结构化数据"
+        data = sk_obj._board_data()
+        # overview.fullDag 综合 DAG 的 subtask 节点 id = '<task>/<sid>' (如 task-5/s4); 验长字段完整
+        assert data["overview"]["fullDag"] is not None, "有 subtask 的 task 应产 fullDag"
+        s4node = next((n for n in data["overview"]["fullDag"]["nodes"] if n[0] == "task-5/s4"), None)
+        assert s4node is not None, "DAG 数据缺 s4 节点"
+        assert s4node[1] == longnm, f"长 name 被截断/丢失: {s4node[1]!r}"
+        assert "估文本像素宽全框统一取最大列对齐保底208像素" in s4node[5], f"长 desc 被截断: {s4node[5]!r}"
+        # 剔搜索框 placeholder 里的装饰性省略号 (非 DAG 截断): shell HTML 不应有数据层省略号
         html_nodag_placeholder = re.sub(r'placeholder="[^"]*"', "", html)
-        assert "…" not in html_nodag_placeholder, "DAG 节点仍截断信息 (出现省略号)"
-        text_only = re.sub(r"<[^>]+>", "", html)  # 剥标签: 多行 name 拼接后应含全文
-        assert longnm in text_only, "长 name 未完整渲染 (多行拼接后应可见全文)"
-        boxes = re.findall(r'<rect x="\d+" y="\d+" width="(\d+)" height="(\d+)" rx="6"', html)
-        assert boxes, "未渲染出 DAG 节点框"
-        widths = [int(w) for w, _ in boxes]
-        heights = [int(h) for _, h in boxes]
-        assert min(widths) >= 208 and max(widths) <= 272, \
-            f"节点框宽越界 [208,272] (min={min(widths)} max={max(widths)})"
-        assert max(heights) > 60, f"长内容未多行增高 (max height={max(heights)})"
-        css = (d / ".skein/board/base.css").read_text()
+        assert "…" not in html_nodag_placeholder, "数据层出现省略号 (信息截断?)"
+        # CSS 直出插件 assets/board/ (演进: 不再拷 .skein/board/), 从插件资产目录读
+        css = (SKEIN.parent.parent / "assets" / "board" / "base.css").read_text()
         assert "overflow-y:auto" in css, "DAG 画布缺纵向滚动 (.dag-wrap overflow-y)"
         assert "overflow-x:hidden" in css, "DAG 画布未禁横向溢出 (.dag-wrap overflow-x)"
         assert ".dag{display:block;max-width:100%" in css, "DAG svg 未限容器宽 (max-width:100%)"
