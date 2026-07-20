@@ -5,9 +5,10 @@ init 再跑: 幂等补缺已存文件 (只补缺行, 不破坏用户手写条目
 from __future__ import annotations
 
 from pathlib import Path
+
 from typing import Callable
 
-SkeinCli = Callable[..., subprocess.CompletedProcess[str]]
+SkeinCli = Callable[..., object]
 
 GI_EXPECTED = [
     "task.md", "vision.md", "*.lock", "spec/.archive/",
