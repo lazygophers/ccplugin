@@ -1,0 +1,211 @@
+{
+  "id": "cold-start-large-req",
+  "name": "skein 大需求冷启动能力",
+  "desc": "从模糊愿景/痛点引导到可执行 task DAG 的 planning 冷启动流程,补 plan skill 缺失档位",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "task.json schema+parent/kind字段",
+      "desc": "task.json task对象加 parent(<super-id>|null)+kind(supertask|task)字段; 旧数据向后兼容(parent=null/kind=task); skein.py 读写处适配",
+      "depends_on": [],
+      "验收": [
+        "新字段读写通",
+        "旧task.json无字段时默认parent=null/kind=task不崩",
+        "doctor体检过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538229,
+      "started": 1784538249,
+      "finished": 1784538605
+    },
+    {
+      "sid": "st2",
+      "name": "supertask生命周期create/finish+深度守卫",
+      "desc": "create加--parent选项建child task; supertask create(无parent+kind=supertask); finish聚合判定(所有child done→super可finish); 深度守卫(child禁再生child,即parent已是child时拒)",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "create --parent建child task成功且parent字段写对",
+        "child的child被拒(深度守卫)",
+        "末child finish后super状态可推进",
+        "doctor过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538230,
+      "started": 1784539407,
+      "finished": 1784539727
+    },
+    {
+      "sid": "st3",
+      "name": "渲染supertask分组+vision聚合看板",
+      "desc": "顶层task.md按supertask分组(child缩进父下,无parent归独立组); task.html同分组; supertask/vision.md聚合看板(child进度/状态/完成率,脚本渲染禁手编); per-child task.md不动",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "task.md有supertask分组",
+        "vision.md渲染含child进度",
+        "无supertask时渲染退回原样(零增量)",
+        "doctor过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538230,
+      "started": 1784538614,
+      "finished": 1784539406
+    },
+    {
+      "sid": "st4",
+      "name": "skein-plan加愿景翻译+supertask时机",
+      "desc": "plan SKILL.md加信号判据(无动词/无路径/<15字/愿景腔)+愿景翻译步骤(Job Story三段填空,插件内自写非/grilling)+判大需求建supertask时机",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "SKILL.md含信号判据+Job Story步骤+supertask建时机",
+        "小需求路径标注零增量",
+        "claude -p质检门过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538230,
+      "started": 1784538614,
+      "finished": 1784539451
+    },
+    {
+      "sid": "st5",
+      "name": "skein-grill加SMARC+drift+scope三轴",
+      "desc": "review-axes-and-output.md加3轴: SMARC(AC可测无wishful词)+drift(产出vs愿景一致性)+scope(不超源诉求防absorption)",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "review-axes含3新轴各带判据",
+        "claude -p质检门过"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538230,
+      "started": 1784539451,
+      "finished": 1784539716
+    },
+    {
+      "sid": "st6",
+      "name": "天花板加cold-start行+strangler模板",
+      "desc": "dispatch-graph.md复杂度天花板表加cold-start行(复合嗅味+capability≠模块+阈值8同号); breaking-refactor.md补strangler模板(facade+契约→逐块替换→退役旧)",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "天花板表含cold-start行",
+        "breaking-refactor含strangler段",
+        "claude -p质检门过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538230,
+      "started": 1784539717,
+      "finished": 1784541429,
+      "note": "agent 意外终止,无产出,重派"
+    },
+    {
+      "sid": "st7",
+      "name": "docs加大需求场景+supertask用法",
+      "desc": "docs/scenarios.md加大需求冷启动场景(信号判据→Job Story→supertask→child task); best-practices.md加supertask用法规程",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "scenarios含大需求场景含完整链路",
+        "best-practices含supertask规程"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538231,
+      "started": 1784539727,
+      "finished": 1784539982
+    },
+    {
+      "sid": "st8",
+      "name": "test supertask全链路",
+      "desc": "test: create supertask+child/parent字段/深度守卫拒/分组渲染/vision聚合/末child finish触发super归档/向后兼容旧task.json",
+      "depends_on": [
+        "st2",
+        "st3"
+      ],
+      "验收": [
+        "新增test全绿",
+        "pytest全量过",
+        "doctor --quality过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784538231,
+      "started": 1784539991,
+      "finished": 1784540738
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/cold-start-large-req",
+  "created": 1784535831,
+  "started": 1784538241,
+  "checked": 1784541434,
+  "finished": 1784541693,
+  "updated": 1784541693
+}

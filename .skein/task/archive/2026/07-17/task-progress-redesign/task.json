@@ -1,0 +1,66 @@
+{
+  "id": "task-progress-redesign",
+  "name": "task 进度计算重新设计",
+  "desc": "task pct 考虑 planning/check 等阶段的时间和百分比, 当前只按 subtask 均值算",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "backend-pct",
+      "name": "task_pct 三阶段加权 + stage 字段",
+      "desc": "skein.py task_pct 重写 (plan10/exec75/check15); _brief + L809 status 同步; _board_data card 加 stage 字段",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784288528,
+      "started": 1784288531,
+      "finished": 1784288675
+    },
+    {
+      "sid": "frontend-stage",
+      "name": "board+task 阶段标签显示",
+      "desc": "board.js task 卡片进度条加 [plan]/[exec]/[check]/[done] chip; task.js 详情页头部同步",
+      "depends_on": [
+        "backend-pct"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784288528,
+      "started": 1784288681,
+      "finished": 1784288995
+    },
+    {
+      "sid": "fix-queue-pct",
+      "name": "queue _tpct 替换为 _task_pct",
+      "desc": "_queue._tpct (skein.py L1799-1804) 旧 done/avg 算法替换为全局 _task_pct(t), 删冗余嵌套函数",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784288675,
+      "started": 1784288681,
+      "finished": 1784288736
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/task-progress-redesign",
+  "estimate": null,
+  "created": 1784288209,
+  "started": 1784288531,
+  "finished": 1784288995,
+  "updated": 1784288995
+}

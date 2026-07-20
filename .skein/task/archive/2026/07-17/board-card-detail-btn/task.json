@@ -1,0 +1,46 @@
+{
+  "id": "board-card-detail-btn",
+  "name": "board 卡片详情按钮",
+  "desc": "/board task 卡片加独立跳转详情页按钮 (标题链接外补显式按钮)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "add-detail-btn",
+      "name": "卡片标题行加详情图标按钮",
+      "desc": "board.js renderCard h2 末尾加 → 图标链接 + input.css 样式 + dist 重建",
+      "depends_on": [],
+      "验收": [
+        "h2 右侧有箭头图标",
+        "点击跳 /task?id=",
+        "标题链接保留",
+        "dist 重建",
+        "ESM 过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784286523,
+      "started": 1784286787,
+      "finished": 1784286925
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-card-detail-btn",
+  "estimate": null,
+  "created": 1784286339,
+  "started": 1784286779,
+  "finished": 1784287433,
+  "updated": 1784287433
+}

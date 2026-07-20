@@ -1,0 +1,67 @@
+{
+  "id": "webapp-tpl-fragment-crash",
+  "name": "修复 webapp 全页加载崩溃 (template fragment 顶层 v-if)",
+  "desc": "petite-vue 无法处理 <template> block content fragment 顶层直接子的 v-if/v-else-if/v-for (parentElement=null → insertBefore 崩)。dashboard/task/queue/spec 全部页加载即崩, 用户只报 dashboard(默认落地页)。修法: 令这些条件子节点有真实 element 父 (template v-else → div v-else, 或包裹 offending child)。逐页 linkedom mount 冒烟验证。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "修复 dashboard/task/queue 顶层 v-else 崩溃",
+      "desc": "3 页各 1 处 <template v-else> 换 <div v-else> (含匹配闭合)",
+      "depends_on": [],
+      "验收": [
+        "dashboard.js 顶层 template v-else 已换 div",
+        "task.js 同",
+        "queue.js 外层同",
+        "3 页 linkedom harness mount OK 残留=0"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784219199,
+      "started": 1784243088,
+      "finished": 1784243188
+    },
+    {
+      "sid": "s2",
+      "name": "修复 spec.js 双点 fragment 崩溃",
+      "desc": "line33 拆 v-else/v-for 为嵌套 div; line59 template v-else 换 div",
+      "depends_on": [],
+      "验收": [
+        "spec.js line33 拆为外 div v-else + 内 div v-for",
+        "line59 换 div v-else",
+        "view/edit/showDiff/empty 四态 harness mount OK"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784219199,
+      "started": 1784243088,
+      "finished": 1784243223
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-tpl-fragment-crash",
+  "estimate": null,
+  "created": 1784218898,
+  "started": 1784243083,
+  "finished": 1784243687,
+  "updated": 1784243687
+}

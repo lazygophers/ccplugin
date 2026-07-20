@@ -1,0 +1,93 @@
+{
+  "id": "skein-svof-deadcode",
+  "name": "B: 单一真值源 + 死代码清理",
+  "desc": "general-purpose→executor 统一 + dedup 注册 + agent 数量口径 + glossary 工具面同步 + test fixture",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "b1",
+      "name": "注册 dedup",
+      "desc": "plugin.json agents[] 追加 ./agents/skein-dedup.md, 验证 skein-plan SKILL 引用可加载",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784338982,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b3",
+      "name": "agent 数量口径",
+      "desc": "README/docs/plugin.json 的 5个 改为 5受限具名+1执行器",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784338982,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b2",
+      "name": "general-purpose 替换",
+      "desc": "README/plugin.json/8示例 task general-purpose 机械替换为 skein-executor",
+      "depends_on": [
+        "b3"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784338982,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b4",
+      "name": "glossary 工具面同步",
+      "desc": "glossary/reference 的 executor 有Agent/Task 表述改为已剔",
+      "depends_on": [
+        "b3"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784338982,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "b5",
+      "name": "test fixture",
+      "desc": "test_skein.py 8处 general-purpose 改 executor, 验证无 assert 断裂",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784338982,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-svof-deadcode",
+  "created": 1784338961,
+  "started": 1784339005,
+  "checked": null,
+  "finished": 1784339271,
+  "updated": 1784339271
+}

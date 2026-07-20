@@ -1,0 +1,163 @@
+{
+  "id": "skein-spec-autofix-2026-07-20",
+  "name": "skein-spec-autofix",
+  "desc": "SKEIN spec 问题全自动修复: Stop hook 检测+标记, main 派 specer agent bg, 覆盖超预算降级/stale归档/keywords重复归档/断链废弃归档, 记审计日志, prune加超预算判据+maintain --apply+degrade命令",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "spec-core-impl",
+      "name": "spec-core-impl",
+      "desc": "spec.py 加 degrade 子命令 + prune 超预算判据 + maintain --apply + 审计日志",
+      "depends_on": [],
+      "验收": [
+        "degrade 命令可单文件降级",
+        "prune 命中超预算自动降级到合格",
+        "maintain --apply 执行可自动修复项",
+        ".audit-log 追加写"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784526506,
+      "started": 1784532384,
+      "finished": 1784532983
+    },
+    {
+      "sid": "hook-stop-check",
+      "name": "hook-stop-check",
+      "desc": "hooks.py 加 cmd_stop_check + plugin.json 加 Stop hook 配置",
+      "depends_on": [
+        "spec-core-impl"
+      ],
+      "验收": [
+        "Stop hook 触发后写 .pending-fix 标记(有问题时)",
+        "无问题零开销",
+        "timeout 内完成"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784526506,
+      "started": 1784532983,
+      "finished": 1784533319
+    },
+    {
+      "sid": "agent-skill-update",
+      "name": "agent-skill-update",
+      "desc": "skein-specer agent.md 加读标记修复职责 + skein-spec/skein-finish SKILL.md 加 auto-fix 说明",
+      "depends_on": [
+        "spec-core-impl"
+      ],
+      "验收": [
+        "specer agent.md 含 .pending-fix 处理",
+        "SKILL.md 含 auto-fix 模式",
+        "claude -p 质检门过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784526506,
+      "started": 1784532983,
+      "finished": 1784533268
+    },
+    {
+      "sid": "test-autofix",
+      "name": "test-autofix",
+      "desc": "写 test 验证 4 类修复 + 标记流转 + 审计日志",
+      "depends_on": [
+        "spec-core-impl",
+        "hook-stop-check",
+        "agent-skill-update"
+      ],
+      "验收": [
+        "test_skein.py 含 4 类修复用例",
+        "全绿",
+        "模拟超预算→hook→specer 链路通"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784526506,
+      "started": 1784533319,
+      "finished": 1784534134
+    },
+    {
+      "sid": "fix-archive-stalepath",
+      "name": "fix-archive-stalepath",
+      "desc": "spec.py maintain --apply: degrade 后 archive 前复检文件存在(或 degrade 后重扫), 修 overbudget+stale 同文件 FileNotFoundError",
+      "depends_on": [
+        "spec-core-impl",
+        "test-autofix"
+      ],
+      "验收": [
+        "test_maintain_apply_overbudget_stale_crash 从 xfail 转正向断言",
+        "14测全绿"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784534134,
+      "started": 1784534141,
+      "finished": 1784535144
+    },
+    {
+      "sid": "fix-main-detect-marker",
+      "name": "fix-main-detect-marker",
+      "desc": "skein.py 加 .pending-fix 标记检测: SessionStart 或 user-prompt 时读标记, 有则输出提示让 main 派 specer bg",
+      "depends_on": [
+        "hook-stop-check",
+        "agent-skill-update"
+      ],
+      "验收": [
+        "grep .pending-fix 命中 skein.py 读取逻辑",
+        "标记存在时 session-context 或 user-prompt 输出含提示"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784534134,
+      "started": 1784534141,
+      "finished": 1784534548
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-spec-autofix-2026-07-20",
+  "created": 1784526430,
+  "started": 1784532379,
+  "checked": null,
+  "finished": 1784535462,
+  "updated": 1784535462
+}

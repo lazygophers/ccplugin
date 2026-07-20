@@ -1,0 +1,176 @@
+{
+  "id": "spec-memory-extend",
+  "name": "spec-memory-extend",
+  "desc": "spec 记忆扩展: (1) CORE_BUDGET 移 config.yaml 默认 1000; (2) 新增记忆模块 (类脑/主流方案 research 后确认); (3) 新增 external 外部记忆层 (不注入 hooks); (4) skein-spec SKILL.md 加寻找时优先找 spec 纪律",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "config-budget-migrate",
+      "desc": "CORE_BUDGET 移 config.yaml 默认 1000。skein.py CONFIG_DEFAULTS 加 spec_core_budget=1000; spec.py 删 CORE_BUDGET 常量加 core_budget() 函数复用 _yaml_load; hooks.py stop-check 改调 core_budget()。复用 skein._yaml_load。",
+      "depends_on": [],
+      "验收": [
+        "config.yaml 含 spec_core_budget=1000",
+        "spec.py maintain 用动态 budget",
+        "hooks stop-check budget 字段动态读",
+        "mypy/pytest 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784554833,
+      "started": 1784555476,
+      "finished": 1784555701
+    },
+    {
+      "sid": "st2",
+      "name": "fts5-bm25-recall",
+      "desc": "recall FTS5 BM25 升级。spec.py 加 _rebuild_fts() (recall+external 入索引); recall 命令优先 BM25 排序 fallback grep; reindex 重建 FTS; .recall.db 入 .gitignore。",
+      "depends_on": [],
+      "验收": [
+        "recall 'git' 返 BM25 排序结果",
+        "MATCH 失败 fallback grep",
+        ".recall.db 不入 git",
+        "mypy/pytest 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784554833,
+      "started": 1784555476,
+      "finished": 1784555972
+    },
+    {
+      "sid": "st3",
+      "name": "amem-backlinks-orphan",
+      "desc": "A-MEM-lite 反链+孤立检测。spec.py 加 _rebuild_backlinks(); reindex 写 layer/backlinks.md; maintain 加判据6(孤立: 无入度+active+stale→候选归档)。",
+      "depends_on": [
+        "st2"
+      ],
+      "验收": [
+        "reindex 产 backlinks.md",
+        "maintain 报孤立节点",
+        "mypy/pytest 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784554833,
+      "started": 1784555972,
+      "finished": 1784556332
+    },
+    {
+      "sid": "st4",
+      "name": "external-layer",
+      "desc": "external 层。LAYERS 扩三层; 不入 hooks 仅 CLI; recall 跨 recall+external (FTS5); maintain 含 external; degrade 单向 core→recall (external 终点层); index 加 external 行。",
+      "depends_on": [
+        "st2"
+      ],
+      "验收": [
+        "sediment --layer external 写成功",
+        "recall 跨层",
+        "maintain 扫 external",
+        "mypy/pytest 全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784554834,
+      "started": 1784555972,
+      "finished": 1784556821
+    },
+    {
+      "sid": "st5",
+      "name": "skill-recall-priority-test",
+      "desc": "skein-spec SKILL.md 加寻找纪律(recall 优先于 vault/本地/外部); test_spec.py 覆盖 config 读取/backlinks/FTS5/external 三层/孤立判据; claude -p 质检门 SKILL.md。",
+      "depends_on": [
+        "st1",
+        "st2",
+        "st3",
+        "st4"
+      ],
+      "验收": [
+        "SKILL.md 含寻找纪律段",
+        "test 全绿",
+        "claude -p 识别正确"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784554834,
+      "started": 1784556822,
+      "finished": 1784557046
+    },
+    {
+      "sid": "st6",
+      "name": "fix-check-findings",
+      "desc": "修 check 出的 2 fail: (1) maintain --apply stale+orphan 同文件 reason 覆盖 (orphan 覆盖 stale, 应 stale 优先); (2) test_stop_check_writes_pending_fix 期望 budget=8000 改 1000 (st1 改默认); (3) test_maintain_apply_stale_archive 随 (1) 修复后自动 pass。",
+      "depends_on": [
+        "st1",
+        "st2",
+        "st3",
+        "st4",
+        "st5"
+      ],
+      "验收": [
+        "test_maintain_apply_stale_archive pass",
+        "test_stop_check_writes_pending_fix pass",
+        "全套 pytest 全绿",
+        "mypy clean"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784557467,
+      "started": 1784557467,
+      "finished": 1784557663
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-memory-extend",
+  "parent": null,
+  "kind": "task",
+  "created": 1784553768,
+  "started": 1784555471,
+  "checked": null,
+  "finished": 1784557864,
+  "updated": 1784557864
+}

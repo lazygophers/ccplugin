@@ -1,0 +1,49 @@
+{
+  "id": "board-task-detail-link",
+  "name": "/board task 详情入口",
+  "desc": "board 页右侧 task 卡片加点击进 /task?id= 详情页入口",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "card-link",
+      "name": "卡片 id 加详情链接",
+      "desc": "board.js renderCard h2 task id 包 a href=/task?id= + hover 样式",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784282954,
+      "started": 1784282972,
+      "finished": 1784283333
+    },
+    {
+      "sid": "back-btn",
+      "name": "详情页返回按钮",
+      "desc": "task.js header 区加返回按钮 (history.back 或 a href=/board) + 样式",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784283096,
+      "started": 1784283105,
+      "finished": 1784283333
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-task-detail-link",
+  "estimate": null,
+  "created": 1784282912,
+  "started": 1784283105,
+  "finished": 1784283631,
+  "updated": 1784283631
+}

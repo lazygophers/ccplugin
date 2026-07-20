@@ -1,0 +1,18 @@
+{
+  "id": "board-rm-pending-queue",
+  "name": "/board 删待执行队列",
+  "desc": "/board 只展示就绪队列, 删待执行队列区段",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-rm-pending-queue",
+  "estimate": null,
+  "created": 1784291026,
+  "started": null,
+  "finished": null,
+  "updated": 1784291026
+}

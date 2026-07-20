@@ -1,0 +1,49 @@
+{
+  "id": "webapp-drop-themes",
+  "name": "skein webapp 移除主题系统, 只留内置 Skein",
+  "desc": "完全移除 webapp 10 主题切换系统, 只保留内置 Skein 主题。涉及: index.html 主题 select 下拉 + input.css 9 个非 skein 主题块 + app.js wireTheme 切换/持久化逻辑 + dist/app.css 重建 + 可能 skein.py config.yaml 主题配置。Skein seeds 折叠为唯一主题。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "drop-themes-webapp",
+      "name": "webapp 前端移除主题切换, 折叠 Skein 为唯一",
+      "desc": "移除 webapp 前端主题切换 UI 与逻辑, 折叠 Skein 为唯一内置外观。改: index.html 删主题 select 块 + 折叠 data-theme; input.css 把 skein seed 折进 :root 删 10 个 html[data-theme] 块 + 删 --sel-bg/--sel-fg; app.js 删 wireTheme+调用; api.js 删 setTheme; 重建 dist/app.css。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784249953,
+      "started": 1784250025,
+      "finished": 1784250206
+    },
+    {
+      "sid": "drop-themes-backend",
+      "name": "skein.py + 旧 board 移除主题 plumbing",
+      "desc": "移除后端主题 plumbing 与旧 board 主题切换。改 skein.py: 删 THEMES 常量+config board_theme 默认+_board_data theme/themes+_webapp_html THEME/THEMES_JSON token+_board_html theme 注入/theme_opts/switcher.js loop+/config endpoint+_set_config(仅此调用则删); board/shell.html 删切换器 select; 删 board/switcher.js; board/themes 只留 skein.css 删其余 9 个。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784249953,
+      "started": 1784250025,
+      "finished": 1784250304
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-drop-themes",
+  "estimate": null,
+  "created": 1784249377,
+  "started": 1784250003,
+  "finished": 1784251442,
+  "updated": 1784251442
+}

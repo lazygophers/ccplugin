@@ -1,0 +1,18 @@
+{
+  "id": "board-fix-flash-rerender",
+  "name": "/board 软刷闪屏修复",
+  "desc": "board 每次 WS data 事件触发 refresh → layout.innerHTML 全量替换 → 清空帧闪屏。修: 数据不变跳过 + replaceChildren 原子替换消清空帧",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-fix-flash-rerender",
+  "estimate": null,
+  "created": 1784291552,
+  "started": null,
+  "finished": null,
+  "updated": 1784291552
+}

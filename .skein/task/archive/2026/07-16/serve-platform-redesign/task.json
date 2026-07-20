@@ -1,0 +1,130 @@
+{
+  "id": "serve-platform-redesign",
+  "name": "重设计 skein serve 为多页面管理平台",
+  "desc": "把 serve 单页看板重构为多页面完整管理平台: task面板/待执行队列/PRD审阅/spec查看编辑/命令执行/建议功能。保持现有设计风格,布局可改",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1-foundation",
+      "name": "后端endpoint + SPA路由框架 + 导航",
+      "desc": "skein.py新增queue/task/spec/exec全部endpoint(白名单+路径校验), shell.html加顶部nav+挂载点, 新router.js hash路由, base.css通用页样式",
+      "depends_on": [],
+      "验收": [
+        "queue/task/{id}/spec/spec-file/spec-save/exec六endpoint可访问",
+        "exec白名单外命令返回拒绝",
+        "spec-save越界路径被拒",
+        "hash路由切页无整页刷新",
+        "看板首页功能不回归",
+        "全主题不破版"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "estimate": 40,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784209497,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2-queue",
+      "name": "待执行队列页",
+      "desc": "page-queue.js: 消费/__skein__/queue, 展示就绪task批+各task就绪subtask调度序",
+      "depends_on": [
+        "s1-foundation"
+      ],
+      "验收": [
+        "队列页展示ready task批",
+        "每task内就绪subtask按调度序列出",
+        "空队列有占位",
+        "复用主题令牌不破版"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "estimate": 25,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784209497,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3-task",
+      "name": "Task/PRD审阅页",
+      "desc": "page-task.js: 选task后渲染prd/design/findings md(复用doc.js)+subtask列表",
+      "depends_on": [
+        "s1-foundation"
+      ],
+      "验收": [
+        "选task渲染prd/design/findings原文",
+        "md渲染复用doc.js样式",
+        "subtask列表带状态与进度",
+        "空态占位"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784209497,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s4-spec",
+      "name": "Spec查看编辑页",
+      "desc": "page-spec.js: 树浏览core/recall×类目, 查看内容, 编辑保存弹diff确认弹层, 走spec-save API",
+      "depends_on": [
+        "s1-foundation"
+      ],
+      "验收": [
+        "树展示core/recall×类目×文件",
+        "点条目看原文",
+        "编辑后保存弹diff确认",
+        "确认才落盘",
+        "取消不写"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "estimate": 35,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784209497,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s5-commands",
+      "name": "命令面板页",
+      "desc": "page-commands.js: 只读命令跑并显输出; create task/subtask add表单校验必填提交exec",
+      "depends_on": [
+        "s1-foundation"
+      ],
+      "验收": [
+        "只读命令(list/ready/status/doctor等)可跑显stdout",
+        "create/subtask add表单校验必填",
+        "提交走exec",
+        "非白名单不出现在UI"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "estimate": 30,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784209497,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/serve-platform-redesign",
+  "estimate": null,
+  "created": 1784208957,
+  "started": null,
+  "finished": null,
+  "updated": 1784209497
+}

@@ -1,0 +1,65 @@
+{
+  "id": "specer-split",
+  "name": "specer 拆读写两 agent",
+  "desc": "把 skein-specer 沿读/写边界拆两 agent: recall(只读同步召回)拆出独立 skein-recaller; sediment/reconstruct/maintain/prune(写路径异步)留 skein-specer。重接绑定/dispatch 引用。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1-agents",
+      "name": "建 recaller + 瘦身 specer",
+      "desc": "新建 agents/skein-recaller.md (recall 只读同步召回; frontmatter: tools Read/Bash/Grep/Glob, model haiku, skills skein:skein-spec, permissionMode bypassPermissions)。改 agents/skein-specer.md: 删 recall ① 块, desc+body 改为三类写路径作业 (sediment/重组重建/降索引)。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784421562,
+      "started": 1784421769,
+      "finished": 1784421896
+    },
+    {
+      "sid": "st2-rewire",
+      "name": "重接绑定/dispatch 引用",
+      "desc": "改 skills/skein-spec/SKILL.md: 绑定行(现 line 15)拆为 recall→skein-recaller / 写路径→skein-specer; recall 段(现 line 24)dispatch 指向 recaller。改 skills/skein-flow/SKILL.md line 19: 派 skein-specer 召回 → 派 skein-recaller。",
+      "depends_on": [
+        "st1-agents"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784421562,
+      "started": 1784421896,
+      "finished": 1784422001
+    },
+    {
+      "sid": "st3-disambig",
+      "name": "specer 层名消歧 + 排除句",
+      "desc": "skein-specer.md body: 把作 recall 层名的 recall 显式化为 recall 层/长尾层 (区别已移走的召回职责); 末尾补一句 本 agent 不做 recall 召回, 归 skein-recaller。消 P2#18 术语混用致 LLM 误判 specer 仍召回。",
+      "depends_on": [
+        "st1-agents"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784422201,
+      "started": 1784422202,
+      "finished": 1784422277
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/specer-split",
+  "created": 1784421199,
+  "started": 1784421750,
+  "checked": null,
+  "finished": 1784422376,
+  "updated": 1784422376
+}

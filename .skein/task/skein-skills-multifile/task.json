@@ -1,0 +1,97 @@
+{
+  "id": "skein-skills-multifile",
+  "name": "skein skills 单文件转多文件组织",
+  "desc": "skein-flow/skein-finish/skein-research 3 个单文件 skill 转为 SKILL.md 精简入口 + references/ 分文件。对齐其余 7 个已多文件 skill 的组织约定。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1-flow",
+      "name": "skein-flow 拆 2 references",
+      "desc": "SKILL.md(~50行)留入口+流程骨架+失败模式/反例; 建 references/carrier-rules.md(执行载体铁律13条) + references/scope-boundary.md(作用域边界/归一vs分立/worktree豁免/完成判定)。已确认方案",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md ≤55行",
+        "2 references 存在",
+        "原内容零丢失(只是搬家)",
+        "过质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784300757,
+      "started": null,
+      "finished": 1784301029
+    },
+    {
+      "sid": "s2-finish",
+      "name": "skein-finish 拆 1 reference",
+      "desc": "SKILL.md(~30行)留载体分工+流程4步; 建 references/sediment-protocol.md(sediment 异步判定门细节+fire-and-forget+判定门checklist)。43行较短, 拆1个即可",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md ≤35行",
+        "reference 存在",
+        "零丢失",
+        "过质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784300757,
+      "started": null,
+      "finished": 1784300904
+    },
+    {
+      "sid": "s3-research",
+      "name": "skein-research 拆 1 reference",
+      "desc": "SKILL.md(~35行)留数据源分层+探测门+失败模式/反例/落盘; 建 references/agent-reach-routing.md(路由对照表+AVAILABLE/FALLBACK 细节+多平台并行策略)",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md ≤40行",
+        "reference 存在",
+        "零丢失",
+        "过质量门"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skill-dev"
+      ],
+      "created": 1784300757,
+      "started": null,
+      "finished": 1784300989
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-skills-multifile",
+  "created": 1784300733,
+  "started": 1784300757,
+  "checked": 1784301035,
+  "finished": 1784301161,
+  "updated": 1784301161
+}

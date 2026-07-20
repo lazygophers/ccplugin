@@ -1,0 +1,16 @@
+# skein.py 自动渲染, 从 task.json 无损重建, 不入库
+task.md
+board/
+*.lock
+
+# spec 衍生物 (reindex/maintain 可重建, 不入库)
+spec/.recall.db
+spec/.audit-log
+spec/.pending-fix
+spec/index.md
+spec/*/index.md
+spec/*/backlinks.md
+spec/.archive/
+
+# trash 归档 (可逆归档, 不入库)
+trash/

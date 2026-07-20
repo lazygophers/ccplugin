@@ -1,0 +1,41 @@
+{
+  "id": "fix-spec-preexisting",
+  "name": "修 spec.py pre-existing: mypy + subagent-start hook",
+  "desc": "修 spec.py:369-370 mypy(int|None)+ test_spec.py:85(subagent-start 无 agent_type 时该注 core 正文非纯索引)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "修 spec.py mypy + subagent-start 注正文",
+      "desc": "1) spec.py:369-370 int(created)/int(updated) 类型 int|None 的 mypy 错(newest 已判非None但created/updated各自可能None),用局部变量窄化或三元修;2) subagent_start else分支(无AGENT_CATEGORIES映射)从纯索引改为注全core正文+索引,对齐help语义+test期望,budget_guard截断兜底",
+      "depends_on": [],
+      "验收": [
+        "mypy --strict spec.py 0错",
+        "pytest test_spec.py:85 pass",
+        "subagent-start无agent_type时注入core正文(非纯索引)"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784542026,
+      "started": 1784542036,
+      "finished": 1784542279
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/fix-spec-preexisting",
+  "created": 1784542010,
+  "started": 1784542027,
+  "checked": 1784542279,
+  "finished": 1784542280,
+  "updated": 1784542280
+}

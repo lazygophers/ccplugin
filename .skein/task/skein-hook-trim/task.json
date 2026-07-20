@@ -1,0 +1,77 @@
+{
+  "id": "skein-hook-trim",
+  "name": "C: hook 注入瘦身 (SubagentStart a+b 融合 + core 降级)",
+  "desc": "memory.py subagent_start 读 stdin.agent_type 类目过滤 + 降 Hook 链/plugin.json 架构 2 条 core 到 recall",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "c1",
+      "name": "memory.py 注入重构",
+      "desc": "subagent_start 读 stdin.agent_type + AGENT_CATEGORIES 映射 + 类目过滤注全文 + 空映射 fallback 纯索引",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784340523,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "c2",
+      "name": "降 Hook 链 core→recall",
+      "desc": "sediment 降 Hook 链设计 (类目 hook) core 到 recall, 主仓",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784340523,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "c3",
+      "name": "降 plugin.json 架构 core→recall",
+      "desc": "sediment 降 plugin.json 架构 (类目 plugin-arch) core 到 recall, 主仓",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784340523,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "c1fix",
+      "name": "收窄 AGENT_CATEGORIES 映射",
+      "desc": "executor:script+git / checker:script / researcher:script+skill / finisher:script+git, 去除 arch 保证全 <2000 tok 不截断",
+      "depends_on": [
+        "c1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784341061,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-hook-trim",
+  "created": 1784340517,
+  "started": 1784340528,
+  "checked": null,
+  "finished": 1784341389,
+  "updated": 1784341389
+}

@@ -1,0 +1,68 @@
+{
+  "id": "config-webapp-editor",
+  "name": "设置可视化编辑器",
+  "desc": "webapp 右上角加设置按钮, 模态可视化读写 .skein/config.yaml (10 扁平标量键)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "backend-config-api",
+      "name": "后端 config route",
+      "desc": "skein.py 加 GET/POST /__skein__/config (读用 config(), 写用 _yaml_dump); 复用现有 _yaml_load/_yaml_dump",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784285340,
+      "started": 1784285879,
+      "finished": 1784286076
+    },
+    {
+      "sid": "frontend-config-ui",
+      "name": "前端设置模态",
+      "desc": "index.html 齿轮按钮 + app.js 模态 (表单/YAML 双 Tab 双向同步 + 实时保存 debounce) + input.css 样式 + dist 重建",
+      "depends_on": [
+        "backend-config-api"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784285340,
+      "started": 1784286076,
+      "finished": 1784286296
+    },
+    {
+      "sid": "fix-board-theme",
+      "name": "补 board_theme 到 CONFIG_DEFAULTS",
+      "desc": "skein.py CONFIG_DEFAULTS 缺 board_theme 键, 前端 SCHEMA 有 → 契约不一致, 后端 _coerce 会丢弃前端提交的 board_theme",
+      "depends_on": [
+        "backend-config-api"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784286489,
+      "started": 1784286493,
+      "finished": 1784286646
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/config-webapp-editor",
+  "estimate": null,
+  "created": 1784285202,
+  "started": 1784285873,
+  "finished": 1784286656,
+  "updated": 1784286656
+}

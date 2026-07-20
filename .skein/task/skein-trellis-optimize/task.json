@@ -1,0 +1,269 @@
+{
+  "id": "skein-trellis-optimize",
+  "name": "深度学 Trellis 整体优化 skein 插件",
+  "desc": "深度学习 github.com/mindfold-ai/Trellis(cangjie-skill 方法论), 提炼对 skein 插件的整体优化建议。grill-me 确认细节与是否需优化。允许破坏性优化, 但须确保优化后更省 token / 更符合预期 / 更贴合插件需要。整体优化非补充。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1-mypy-skein",
+      "name": "skein.py mypy --strict 全量注解",
+      "desc": "skein.py(2681行/136函数)全量加 mypy 类型注解: 所有函数签名+返回值+关键变量。mypy --strict 跑通零错误。纯加注解不改逻辑。",
+      "depends_on": [],
+      "验收": [
+        "mypy --strict scripts/skein.py 零错误",
+        "逻辑零改动(git diff 只见注解不见逻辑改)",
+        "ast 行为不变"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784302769,
+      "finished": 1784304649
+    },
+    {
+      "sid": "s2-mypy-memory",
+      "name": "memory.py mypy --strict 注解",
+      "desc": "memory.py(346行/27函数)加 mypy --strict 注解, 风格与 s1 skein.py 统一。同 scripts/ 目录一致性。",
+      "depends_on": [
+        "s1-mypy-skein"
+      ],
+      "验收": [
+        "mypy --strict scripts/memory.py 零错误",
+        "风格与 skein.py 一致"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784304649,
+      "finished": 1784305012
+    },
+    {
+      "sid": "s3-test-fixture",
+      "name": "conftest + tmp_path fixture 基建",
+      "desc": "scripts/tests/ 新建 conftest.py: tmp_path 隔离造临时 .skein/ 目录 + 共享 fixture(造 Skein 实例/假仓/造 task/subtask)。pytest 能跑通冒烟测试。",
+      "depends_on": [
+        "s1-mypy-skein"
+      ],
+      "验收": [
+        "pytest scripts/tests/ 能发现并跑 conftest",
+        "fixture 造的 .skein/ 隔离干净不碰真实"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784304649,
+      "finished": 1784305631
+    },
+    {
+      "sid": "s4-test-statemachine",
+      "name": "pytest task 状态机",
+      "desc": "测 task 生命周期状态转换: create→pending, start→active(建worktree), check, finish→done(merge/销wt), archive。非法转换拒绝(如 start 已 active task)。subtask 存在性校验(start 无 subtask 硬拒)。",
+      "depends_on": [
+        "s3-test-fixture"
+      ],
+      "验收": [
+        "状态机测试覆盖所有合法+非法转换",
+        "全 PASS"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784305640,
+      "finished": 1784305994
+    },
+    {
+      "sid": "s5-test-dag",
+      "name": "pytest subtask DAG 调度",
+      "desc": "测 subtask: add 登记 / claim / ready 就绪判定(depends_on 拓扑) / done / fail / 并发槽(max_parallel) / 就绪超槽拓扑深度降序。双层 DAG(task 级 max_active + subtask 级 max_parallel)。",
+      "depends_on": [
+        "s3-test-fixture"
+      ],
+      "验收": [
+        "DAG 测试覆盖就绪/并发/拓扑",
+        "全 PASS"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784305640,
+      "finished": 1784306075
+    },
+    {
+      "sid": "s6-test-worktree-cli",
+      "name": "pytest worktree + CLI + doctor",
+      "desc": "测 worktree 生命周期(创建/merge/销/多子git --repos) + CLI 解析(各子命令参数) + doctor 体检(结构不变量检查)。",
+      "depends_on": [
+        "s3-test-fixture"
+      ],
+      "验收": [
+        "worktree/CLI/doctor 测试全 PASS"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784305994,
+      "finished": 1784306348
+    },
+    {
+      "sid": "s7-quality-gate",
+      "name": "质量门集成 pytest+mypy",
+      "desc": "doctor 体检或独立 check 脚本集成 pytest + mypy --strict。skein-checker 执行时跑。失败报具体。",
+      "depends_on": [
+        "s4-test-statemachine",
+        "s5-test-dag",
+        "s6-test-worktree-cli"
+      ],
+      "验收": [
+        "doctor 或 check 脚本跑 pytest+mypy",
+        "失败有清晰报错",
+        "全 PASS"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784302621,
+      "started": 1784306695,
+      "finished": 1784307665
+    },
+    {
+      "sid": "s8-fix-fastapi-422",
+      "name": "修 s1 引入的 FastAPI POST 422 回归",
+      "desc": "s1(commit 25dce519)给 _spec_save/_exec/_cfg_save 加返回类型注解(->Any/->JSONResponse)致 FastAPI 把 request:Request 当 query 参数, POST 端点全 422。修法: 3 个 handler 去返回注解 + 行内 # type: ignore[no-untyped-def] 消 mypy, 或改 Annotated[Request]。验: probe 脚本 POST config 返 200, test_serve_config_post 取消 skip 全 PASS, mypy --strict skein.py 仍 0 错。",
+      "depends_on": [],
+      "验收": [
+        "POST /__skein__/config 返 200(非422)",
+        "POST /__skein__/exec + /spec/save 同样 200",
+        "test_board.py::test_serve_config_post 取消 skip 全 PASS",
+        "mypy --strict skein.py 0 错",
+        "其余测试不回归"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784305631,
+      "started": 1784306081,
+      "finished": 1784306695
+    },
+    {
+      "sid": "s9-fix-conftest-mypy",
+      "name": "修 conftest.py mypy 6 错 (s3 遗留)",
+      "desc": "s3 建的 tests/conftest.py mypy --strict 报 6 错: import pytest 无 stub (import-not-found) + @pytest.fixture 装饰器无类型致 5 个 fixture untyped-decorator。修法: import pytest 加 # type: ignore[import-not-found]; 各 fixture 函数补返回类型注解 (如 -> Callable[..., Any] 或具体签名) + 装饰器行处理。目标 mypy --strict tests/ 整目录 0 错, 为 s7 质量门铺路。",
+      "depends_on": [
+        "s8-fix-fastapi-422"
+      ],
+      "验收": [
+        "mypy --strict plugins/tools/skein/scripts/tests/ 整目录 0 错",
+        "pytest 全 suite 不回归",
+        "禁改 fixture 逻辑只加注解"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784306360,
+      "started": 1784306695,
+      "finished": 1784306807
+    },
+    {
+      "sid": "s10-fix-tests-mypy",
+      "name": "修 test_skein+test_board mypy 归零",
+      "desc": "test_skein.py 本地 helper (sk/git/_load 等) 无类型注解 + test_board.py:243 import pytest 无 stub, 整目录 mypy --strict 仍 132 错。补注解让 scripts/ 整目录归零, 为 s7 质量门铺路。纯加注解禁改测试逻辑。",
+      "depends_on": [
+        "s9-fix-conftest-mypy"
+      ],
+      "验收": [
+        "mypy --strict plugins/tools/skein/scripts/ 整目录 0 错",
+        "pytest 全 suite 不回归",
+        "禁改测试断言逻辑"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784306807,
+      "started": 1784306815,
+      "finished": 1784307168
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-trellis-optimize",
+  "created": 1784301182,
+  "started": 1784302694,
+  "checked": null,
+  "finished": 1784308096,
+  "updated": 1784308096
+}

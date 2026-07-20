@@ -1,0 +1,49 @@
+{
+  "id": "webapp-fullwidth",
+  "name": "webapp 全站宽度撑满",
+  "desc": "去掉页面 max-width 限制, 每页撑满浏览器宽度展示更多有效信息",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "remove-maxwidth",
+      "name": "去 max-width 撑满",
+      "desc": "input.css .wrap 去 max-width; task/queue/archive 去容器 max-w-* 改 w-full + padding 28px; dist 重建",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784283770,
+      "started": 1784283771,
+      "finished": 1784283856
+    },
+    {
+      "sid": "fix-task-231",
+      "name": "修 task.js:231 漏改 max-w",
+      "desc": "task.js:231 max-w-4xl mx-auto → px-7 (executor 漏改第二处)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784284014,
+      "started": 1784284032,
+      "finished": 1784284103
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-fullwidth",
+  "estimate": null,
+  "created": 1784283325,
+  "started": 1784283771,
+  "finished": 1784284165,
+  "updated": 1784284165
+}

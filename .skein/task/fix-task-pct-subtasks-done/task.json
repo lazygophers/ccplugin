@@ -1,0 +1,67 @@
+{
+  "id": "fix-task-pct-subtasks-done",
+  "name": "fix-task-pct-subtasks-done",
+  "desc": "14 subtask 全 done 但 task 进度显 85%: _task_pct 在 S_ACTIVE 且 subs 全 done 时 = 10+75*1.0=85, 与 S_CHECK 同值, 未反映实质完成. 修: subs 全 done 时 pct=100, task 状态机仍由人推进 check/finish 但进度诚实.",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1",
+      "name": "重写 _task_pct 进度算法",
+      "desc": "进度由 subtask 完成度驱动去状态机加权. subs 全 done→100; 有 subs=sum//len; 无 subs 走状态机(pending5/active10/check85/done100). 改 skein.py:2762.",
+      "depends_on": [],
+      "验收": [
+        "subs全done的active task pct=100",
+        "13/14done≈92",
+        "check无subs=85",
+        "无subs pending=5"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784543827,
+      "started": 1784543879,
+      "finished": 1784543966
+    },
+    {
+      "sid": "st2",
+      "name": "加 _task_pct 测试",
+      "desc": "test_skein.py 加 _task_pct 测试覆盖 4 场景.",
+      "depends_on": [
+        "st1"
+      ],
+      "验收": [
+        "pytest全绿",
+        "覆盖 subs全done/部分done/无subs各状态/空subs"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784543827,
+      "started": 1784543966,
+      "finished": 1784544136
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/fix-task-pct-subtasks-done",
+  "parent": null,
+  "kind": "task",
+  "created": 1784543446,
+  "started": 1784543879,
+  "checked": 1784544265,
+  "finished": 1784544317,
+  "updated": 1784544317
+}

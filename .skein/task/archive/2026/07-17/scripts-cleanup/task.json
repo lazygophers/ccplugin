@@ -1,0 +1,37 @@
+{
+  "id": "scripts-cleanup",
+  "name": "skein scripts 工程化简洁化审计",
+  "desc": "对 plugins/tools/skein/scripts 做 code review (8 angles), 修复 correctness bugs + reuse/simplification/efficiency 清理; --fix 直接落地",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "dedup-imports",
+      "name": "删重复 import + _queue/_dashboard 复用 _board_data",
+      "desc": "skein.py: 删 L33 dup import sys / L2436 dup import contextlib / L1983 dup import json (模块顶已 import); _queue 和 _dashboard 复用 _board_data 内 _render_tasks 结果避免重复读 task 列表",
+      "depends_on": [],
+      "验收": [
+        "python3 -m py_compile scripts/skein.py exit 0"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784296810,
+      "started": null,
+      "finished": 1784297031
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/scripts-cleanup",
+  "created": 1784296466,
+  "started": 1784296881,
+  "checked": null,
+  "finished": 1784297096,
+  "updated": 1784297096
+}

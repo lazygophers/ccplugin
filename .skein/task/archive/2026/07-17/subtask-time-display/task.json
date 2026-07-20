@@ -1,0 +1,83 @@
+{
+  "id": "subtask-time-display",
+  "name": "subtask 时间点显示",
+  "desc": "subtask created/started/finished 已记录, 补 subtask list/看板显示这些时间点 (非 elapsed 耗时)",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "backend-fields",
+      "name": "backend subtable 透传时间字段 + fail 置 finished",
+      "desc": "skein.py _board_data subtable 加 created/started/finished; fail 路径 (L1391) 加 s[finished]=now()",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784287600,
+      "started": 1784287614,
+      "finished": 1784287863
+    },
+    {
+      "sid": "board-subtime",
+      "name": "board subtable 显示耗时+等待",
+      "desc": "board.js subtable() 每行加耗时(finished-started)+等待(started-created), 复用 fmtDur, pending 显示 -",
+      "depends_on": [
+        "backend-fields"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784287600,
+      "started": 1784287911,
+      "finished": 1784287983
+    },
+    {
+      "sid": "task-timepts",
+      "name": "task 详情页 subtask 时间点展示",
+      "desc": "task.js subtask 列表每项加 created/started/finished 混合格式 07-17 14:30 (3h ago)",
+      "depends_on": [
+        "backend-fields"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784287600,
+      "started": 1784287911,
+      "finished": 1784287977
+    },
+    {
+      "sid": "task-checked",
+      "name": "task 加 checked 阶段时间戳",
+      "desc": "task schema 加 checked 字段; 新增 task check 命令置 checked=now()+status=S_CHECK; _board_data/_task_detail 透传 task created/started/checked/finished; board.js task 卡片显示等待时间(started-created)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784287904,
+      "started": 1784287983,
+      "finished": 1784288128
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/subtask-time-display",
+  "estimate": null,
+  "created": 1784286832,
+  "started": 1784287607,
+  "finished": 1784288502,
+  "updated": 1784288502
+}

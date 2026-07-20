@@ -1,0 +1,97 @@
+{
+  "id": "skein-skill-agent-slim",
+  "name": "A: skill/agent 写法瘦身 (description 砍 workflow + 抽公共铁律 + 统一标签 + Match the Form)",
+  "desc": "superpowers 调研 P0 借鉴。4 子项: (1) description 只写 when-to-use 砍 workflow 摘要; (2) 抽 agent 公共铁律单点(去 14 处重复); (3) 统一 emoji 标签词表; (4) 反例按失败类型编码(Match the Form)。基石罗盘: 保 4阶段闭环/grill硬门/6字段dispatch/Recursion Guard/两层记忆/DAG/worktree 不变量。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "a3-vocab",
+      "name": "统一 emoji 标签词表",
+      "desc": "统一 emoji 标签词表 (🛑硬门/⚠️硬规/❌反例/✅配方), 全 SKILL.md 扫描现有标记统一",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784336532,
+      "started": null,
+      "finished": 1784336718
+    },
+    {
+      "sid": "a1-desc",
+      "name": "4重description砍workflow摘要",
+      "desc": "4 重 description (check/exec/plan/memory) 砍 workflow 摘要只留触发+产出, 过质量门",
+      "depends_on": [
+        "a3-vocab"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784336532,
+      "started": null,
+      "finished": 1784336921
+    },
+    {
+      "sid": "a4-matchform",
+      "name": "反例按失败类型编码Match the Form",
+      "desc": "反例段按失败类型编码: discipline→保持prohibition, shaping→positive recipe, 补rationalization table",
+      "depends_on": [
+        "a3-vocab"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784336532,
+      "started": null,
+      "finished": 1784337153
+    },
+    {
+      "sid": "a2-spec-agent",
+      "name": "agent公共铁律进spec+7agent去重",
+      "desc": "agent公共铁律写进.skein/spec/ + 7 agent.md删重复段只留独有职责,确保符合spec",
+      "depends_on": [
+        "a1-desc"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784336532,
+      "started": null,
+      "finished": 1784337466
+    },
+    {
+      "sid": "fix-spec-persist",
+      "name": "spec沉到主仓+skein-check Reality补✅",
+      "desc": "用 skein-memory sediment 在主仓 .skein/spec/core/agent/ 写 agent-common-ironlaw (非 worktree); 删 worktree 副本; skein-check SKILL 自欺兜底表 Reality 列补 ✅ 标记",
+      "depends_on": [
+        "a2-spec-agent"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784337823,
+      "started": null,
+      "finished": 1784337947
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-skill-agent-slim",
+  "created": 1784336267,
+  "started": 1784336538,
+  "checked": null,
+  "finished": 1784338235,
+  "updated": 1784338235
+}

@@ -1,0 +1,49 @@
+{
+  "id": "skein-hash-to-path-route",
+  "name": "webapp hash 路由改 path 路由",
+  "desc": "#/task/:id 等 hash 路由改 /task/:id 等 path (history API) 路由; 涉及 router.js (hashchange→popstate/pushState), 各页 href='#/..' 改 '/..', serve 后端需 fallback 所有非静态路径回 index.html (SPA fallback), 顶栏 nav data-nav 链接同步",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "t1-serve-spa-fallback",
+      "name": "serve 加 SPA fallback + /task 路由优先",
+      "desc": "skein.py serve(): (1) 加 SPA fallback catch-all @app.get('/{full_path:path}') 回 board._webapp_html() (index.html), 兜底所有非 API/非静态挂载路径; (2) /task 裸路径 (webapp 页) 优先于 /task StaticFiles mount (静态文档 /task/<id>/prd.md): 实测 starlette route vs mount 优先级, 若 catch-all 兜不住则显式加 @app.get('/task') @app.get('/task/') 回 index 声明在 mount 前. 验证: 直访 /dashboard /task?id=x /queue 刷新不 404; /task/<id>/prd.md 静态文档仍可 fetch (doc.js 不破)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784260617,
+      "started": 1784260689,
+      "finished": 1784261087
+    },
+    {
+      "sid": "t2-webapp-path-route",
+      "name": "webapp hash 路由改 path+query",
+      "desc": "router.js parse() 改读 location.pathname (首段 name) + URLSearchParams(search).get('id') (task id); hashchange→popstate; go() 改 history.pushState; 首屏空 pathname 落 DEFAULT (replaceState). app.js:45-47 href 改 path (/task?id= /spec /dashboard). index.html:15-20 nav 6 个 href #/x→/x. pages 8 处 href: queue.js:34/57/76 #/task/+enc→/task?id=+enc; dashboard.js:126 #/queue→/queue, :131 #/task/→/task?id=; task.js:43 #/→/, :154 #/task/→/task?id=; archive.js:62 #/task/→/task?id=. 验证: grep 无残留 #/ href; go() 走 pushState",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784260617,
+      "started": 1784260689,
+      "finished": 1784260929
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-hash-to-path-route",
+  "estimate": null,
+  "created": 1784260074,
+  "started": 1784260683,
+  "finished": 1784261372,
+  "updated": 1784261372
+}

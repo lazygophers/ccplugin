@@ -1,0 +1,87 @@
+{
+  "id": "enforce-subtask-agent",
+  "name": "skein start 强制校验 subtask 存在 + agent 执行",
+  "desc": "skein start 校验: task 必须有 subtask 才能启动; subtask 必须绑 agent 执行",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "start() 加 subtask 存在性校验",
+      "desc": "skein.py start() 在 _load 后 status 改前加: task 无 subtask → raise SystemExit 提示先 subtask add。对齐 skein-flow 文档'无 subtask 登记 start 硬拒'",
+      "depends_on": [],
+      "验收": [
+        "start 无 subtask 的 task 报错退出",
+        "有 subtask 正常 start",
+        "已有 test 覆盖"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784299496,
+      "started": null,
+      "finished": 1784299765
+    },
+    {
+      "sid": "s2",
+      "name": "subtask agent 字段必填校验",
+      "desc": "subtask add 时 agent 省略默认 skein-executor(line 1311/2625);强化为必填或 claim/dispatch 时校验非空。对齐用户'必须用 agent 执行'",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "agent 字段空时报错或强制默认",
+        "test 覆盖"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784299496,
+      "started": null,
+      "finished": 1784299789
+    },
+    {
+      "sid": "s2-v2",
+      "name": "subtask add 强制显式指定 agent",
+      "desc": "line 1311 a.agent or 'skein-executor' 默认值让用户可省略 agent。改为: agent 省略 → raise SystemExit 提示必填, 逼用户显式选择执行 agent。对齐用户'必须用 agent 去执行最大化效率'意图(不是有默认就行, 是逼用户主动选对 agent)",
+      "depends_on": [],
+      "验收": [
+        "subtask add 不带 --agent 报错",
+        "带 --agent 正常",
+        "现有已登记 subtask 不受影响(只在 add 时校验)"
+      ],
+      "验收done": [],
+      "status": "失败",
+      "agent": "skein-executor",
+      "skills": [
+        "skein-plan"
+      ],
+      "created": 1784299789,
+      "started": null,
+      "finished": 1784299812
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/enforce-subtask-agent",
+  "created": 1784299459,
+  "started": 1784299621,
+  "checked": null,
+  "finished": 1784299937,
+  "updated": 1784299937
+}

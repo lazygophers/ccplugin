@@ -1,0 +1,51 @@
+{
+  "id": "skein-queue-hover-detail",
+  "name": "queue 页条目悬浮详情",
+  "desc": "webapp /queue 三区 (就绪 task/就绪 subtask/待执行总览) 条目加 hover 悬浮 + click 钉住展示详情浮层: task 显 id/名/desc/状态/依赖/subtask 进度; subtask 显 tid/sid/名/agent/依赖/状态。后端扩展 queue api 字段 + 前端浮层组件",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "t1-backend-fields",
+      "name": "扩展 queue api 返回字段",
+      "desc": "skein.py _queue() 和 _pending_queue() 给三类条目补详情字段: readyTasks 加 desc/status/spct (subtask 完成百分比); readySubtasks 和 pendingQueue 的 subtask 条目加 desc/status/depends_on。纯后端字段扩展, 不改排序逻辑",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784263204,
+      "started": 1784263868,
+      "finished": 1784264105
+    },
+    {
+      "sid": "t2-frontend-popover",
+      "name": "queue 三区条目悬浮详情浮层",
+      "desc": "queue.js 三区 (就绪 task/就绪 subtask/待执行总览) 每条加 hover 显示详情浮层 + click 钉住浮层不消失。task 显 id/名/desc/状态/依赖/subtask 进度条; subtask 显 tid/sid/名/agent/依赖/状态。复用 board.js task 卡片风格 (badge/进度条), 鼠标离开浮层或再 click 收起",
+      "depends_on": [
+        "t1-backend-fields"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "estimate": null,
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784263204,
+      "started": 1784264105,
+      "finished": 1784264469
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-queue-hover-detail",
+  "estimate": null,
+  "created": 1784263191,
+  "started": 1784263861,
+  "finished": 1784264849,
+  "updated": 1784264849
+}

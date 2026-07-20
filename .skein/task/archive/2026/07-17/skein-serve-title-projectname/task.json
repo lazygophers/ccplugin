@@ -1,0 +1,18 @@
+{
+  "id": "skein-serve-title-projectname",
+  "name": "serve 标题加项目名",
+  "desc": "skein serve 启动的 webapp 标题/页头需含项目名 (当前工作目录文件夹名), 便于多项目并行时区分",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-serve-title-projectname",
+  "estimate": null,
+  "created": 1784266745,
+  "started": null,
+  "finished": null,
+  "updated": 1784266745
+}

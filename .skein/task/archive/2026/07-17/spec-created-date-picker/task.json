@@ -1,0 +1,18 @@
+{
+  "id": "spec-created-date-picker",
+  "name": "spec created 字段日期选择器",
+  "desc": "spec.js created (unix ts) 从 number input 改 date picker, 双向转换 ts↔YYYY-MM-DD (本地时区)",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/spec-created-date-picker",
+  "estimate": null,
+  "created": 1784293790,
+  "started": null,
+  "finished": null,
+  "updated": 1784293790
+}

@@ -1,0 +1,39 @@
+{
+  "id": "board-dag-scroll",
+  "name": "/board 左侧 task DAG 超长加滚动条",
+  "desc": "/board 页面左侧 task 的 dag 超过最大长度时, 应有上下滚动条",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "改 board.js 侧栏 dag-wrap 加 overflow-y:auto",
+      "desc": "board.js line 16 .col-side .dag-wrap 加 overflow-y:auto, DAG 超长时上下滚动",
+      "depends_on": [],
+      "验收": [
+        "改后 .col-side .dag-wrap 含 overflow-y:auto",
+        "DAG 超长时侧栏内可上下滚动不撑破 card"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784299409,
+      "started": null,
+      "finished": 1784299590
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-dag-scroll",
+  "created": 1784299373,
+  "started": 1784299411,
+  "checked": null,
+  "finished": 1784299611,
+  "updated": 1784299611
+}

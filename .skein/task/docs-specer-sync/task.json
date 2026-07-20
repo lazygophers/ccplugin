@@ -1,0 +1,33 @@
+{
+  "id": "docs-specer-sync",
+  "name": "docs 同步 specer 拆分",
+  "desc": "docs prose 同步 recaller 拆分: README/reference/workflow 里 specer 承载 recall 的表述改为 recaller; agent 计数 6→7; agent 表补 recaller 行。glossary/scenarios/best-practices 无 specer 不动。",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "st1-docsync",
+      "name": "刷 3 docs 文件",
+      "desc": "README.md/reference.md/workflow.md 定点改, 详见 dispatch。glossary/scenarios/best-practices 不动。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784423287,
+      "started": 1784423287,
+      "finished": 1784423460
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/docs-specer-sync",
+  "created": 1784423287,
+  "started": 1784423287,
+  "checked": null,
+  "finished": 1784423476,
+  "updated": 1784423476
+}

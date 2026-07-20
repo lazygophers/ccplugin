@@ -1,0 +1,3 @@
+# A: skill/agent 写法瘦身 (description 砍 workflow + 抽公共铁律 + 统一标签 + Match the Form) — 详细设计
+
+架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):

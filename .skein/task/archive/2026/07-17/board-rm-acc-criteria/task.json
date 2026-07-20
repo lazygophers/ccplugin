@@ -1,0 +1,18 @@
+{
+  "id": "board-rm-acc-criteria",
+  "name": "/board task 卡片删验收标准",
+  "desc": "board task 卡片不再展示验收标准 (prdBlock 验收章节 / subtable acc 列 二选一或都删, 待确认)",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-rm-acc-criteria",
+  "estimate": null,
+  "created": 1784291347,
+  "started": null,
+  "finished": null,
+  "updated": 1784291347
+}
