@@ -19,3 +19,11 @@
 - **禁留兼容垫片** — 破坏式的意义就是删掉旧路径; 留 `@deprecated` / shim / 双写 = 没破坏, 退回修补式即可。
 
 (改前查爆炸半径 / worktree 载体 / check 全站点 / sediment 归 skein-spec 照 flow·check·CLAUDE.md 通则, 此处不复述。)
+
+## strangler fig 变体 (渐进重构, 大爆炸之外的选)
+
+破坏式大爆炸 (上文) 适用「无接缝, 一次性改齐」。系统若有**可加 facade 的接缝** (入口点 / 路由层可插) → strangler fig 更安全: 建 facade 定边界契约 → 逐块替换 → 退役旧路径。
+
+- **结构** — 首 task: 建 facade + 定边界契约 (契约 subtask 先行, 见 dispatch-graph.md「协议先行」); 中间 task: 逐块替换旧实现, 各 `--deps` 契约串; 末 task: 退役旧路径 (删 facade 后无引用的旧代码)。
+- **禁留永久垫片** — strangler 的 facade 是过渡, 退役旧路径是终点。facade 长留 = 没重构完, 退回修补式即可 (与上文「禁留兼容垫片」同精神, 唯一例外是过渡期 facade)。
+- **失败兜底** — 无接缝 (硬壳系统无法插 facade) → 退回破坏式大爆炸 (上文铁律: 全站点一次改齐), 需 `AskUserQuestion` 用户裁定走哪条。
