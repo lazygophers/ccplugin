@@ -1,8 +1,8 @@
 ---
 name: skein-spec
-description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链规则。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃)。
+description: 两层规则记忆 (基于 .skein/spec)。planning 时 recall 召回相关规则、task finish 后 sediment 沉淀学习 + prune 自动精简过期/重复/断链规则。core 常驻硬规 + recall 按需召回, 经判定门自动写盘 (不逐次问用户)。产出 .skein/spec 下 core/recall 规则文件 + index。另支持空仓 bootstrap 播种规则基线、记忆大面积失效 (大重构/换栈) 时 reconstruct 可逆归档后按项目类型分型重建、maintain 手动体检 (超预算/stale/断链/重复/废弃, --apply 自动修复)、auto-fix (Stop hook 写 .pending-fix 标记 → main 派 skein-specer bg 跑 maintain --apply 全自动修, 断链只报告)。
 user-invocable: true
-argument-hint: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构, maintain/维护] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
+argument-hint: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构, maintain/维护 (加 --apply 自动修)] [--deep=recall/low/full/deep/max/high (reconstruct 模式可选)]"
 arguments: "[模式: recall/召回, sediment/沉淀, prune/精简, bootstrap/播种, reconstruct/重构] [--deep=recall/low/full/deep/max/high]"
 model: inherit
 effort: medium
@@ -123,4 +123,32 @@ skein-spec restore <ts>                  # 回滚 (撞名不覆盖新规则)
 
 ## maintain (手动体检, main)
 
-规则库漂移时的**手动全量体检** (供 user 在 sediment+prune 之外独立审查, 只报告不动手): `skein-spec maintain [--layer recall]`。5 判据 (超预算 / stale / 断链 / keywords 重复 / 归档残留) + 输出格式详见 [references/maintain.md](references/maintain.md)。
+规则库漂移时的**手动全量体检** (供 user 在 sediment+prune 之外独立审查, 只报告不动手): `skein-spec maintain [--layer recall]`。5 判据 (超预算 / stale / 断链 / keywords 重复 / 归档残留) + 输出格式详见 [references/maintain.md](references/maintain.md)。加 `--apply` 则同一扫描自动修复可修项 (超预算→循环降级 core→recall / stale→归档 / keywords 重复→归档保留最新 / 废弃→归档; 断链仍只报告), 每步写 `.audit-log` (7 天轮转), 详见 auto-fix 模式与 [references/maintain.md](references/maintain.md)。
+
+## auto-fix (Stop hook 触发, 异步 fire-and-forget) — 全自动 spec 修复
+
+sediment+prune 是 finish 后顺跑一轮, 仍可能漏 (如 session 中途 core 膨胀超 8000 / 新增断链)。auto-fix 用 **Stop hook + .pending-fix 标记** 做异步兜底修复, 全程无需用户介入。
+
+```
+skein-spec maintain --apply   # 同一次扫描自动修可修项 (断链只报告)
+```
+
+**流程**:
+
+1. **检测 (Stop hook)** — 回合结束 Stop hook 跑轻量 spec 体检, 检出任一可修项 (超预算 / stale / keywords 重复 / 废弃 / 断链) → 写 `.skein/spec/.pending-fix` 标记 (含命中项摘要 + ts)。
+2. **派发 (main)** — main 检测到 `.pending-fix` → 异步 bg 派 `skein-specer` (fire-and-forget, 派出即结束回合, 不等回传, 与 sediment 同模式)。
+3. **修复 (skein-specer)** — 读标记 → `skein-spec maintain --apply` 一次性自动修:
+
+| 问题 | 处置 |
+| --- | --- |
+| 超预算 (core > 8000) | 循环降级 top-1 最大 core 规则 → recall, 直到 core < 8000 |
+| stale (created > 180 天) | archive (可逆) |
+| keywords 重复 (同组 ≥ 3) | 保留最新, 余 archive (可逆) |
+| 废弃 (deprecated/superseded) | archive (可逆) |
+| 断链 (`[[slug]]` 目标缺失) | **只报告, 不修** — 需人判断修哪头 (改链or建目标) |
+
+4. **收尾** — reindex → 清 `.pending-fix` 标记。每步追加写 `.audit-log` (7 天轮转, spec.py 实现)。所有动作可逆 (archive 可 `restore <ts>` 回滚, layer 可改回), 误修后续手工纠正。
+
+**双保险**: `skein-finish` 闭环后也检测一次 `.pending-fix` 标记 (防 Stop hook 漏检), 详见 skein-finish 流程。
+
+**不修断链**: `[[slug]]` 目标缺失无法自动决断该修链还是建目标, 只在回传里列清单待人判断; 其余 4 类判据明确、处置可逆, 直接自动修。
