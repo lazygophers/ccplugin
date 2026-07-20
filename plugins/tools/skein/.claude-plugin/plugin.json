@@ -190,6 +190,17 @@
                     }
                 ]
             }
+        ],
+        "Stop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks stop-check",
+                        "timeout": 5
+                    }
+                ]
+            }
         ]
     }
 }

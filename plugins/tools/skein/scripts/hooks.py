@@ -8,6 +8,7 @@
   report      PostToolUseFailure: 本插件脚本报错时注入上下文 + 引导手动报 issue。
   fmt         PostToolUse: 写 .skein/task/<id>/prd.md 后自动 skein fmt <id> 规范化。
   spec-meta   PostToolUse: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 + layer 合法 (非阻塞 warning)。
+  stop-check  Stop: 扫 spec 问题写 .pending-fix 标记 (只读不修, 供 main 下回合派 specer bg 修复)。
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
@@ -18,6 +19,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 from typing import Any, Optional, cast
 
 BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
@@ -227,9 +229,57 @@ def cmd_spec_meta(d: dict[str, Any]) -> int:
     return 0
 
 
+# ── stop-check (Stop: spec 问题检测写标记, 供 main 派 specer bg 修复) ─────────
+# ponytail: _scan_findings 是 Spec 私有方法但同包内可直调, 免为 stop-check 单开 maintain --check-only 公开口
+def cmd_stop_check(_: dict[str, Any]) -> int:
+    """Stop hook: 扫 spec → 有问题写 .pending-fix JSON (供 main 下回合检测派 specer bg 修复); 只读不修。
+
+    返回 0 永不阻塞 (问题归 specer agent 异步修)。无 .skein/spec → 静默; 无问题 → 删旧标记防已修复后误触发。
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    if here not in sys.path:
+        sys.path.insert(0, here)
+    from spec import CORE_BUDGET, Spec  # 局部 import: 仅 stop-check 加载, 不拖其他 6 个子命令启动
+
+    spec = Spec()
+    if not spec.root.exists():
+        return 0  # 非 skein 项目 → 静默
+    findings = spec._scan_findings(["core", "recall"])
+    marker = spec.root / ".pending-fix"
+    if not findings:
+        try:
+            marker.unlink()  # 已修复 → 清旧标记免误触发
+        except FileNotFoundError:
+            pass
+        return 0
+    root = spec.root
+    problems: list[dict[str, Any]] = []
+    for fd in findings:
+        kind = fd["kind"]
+        text = fd.get("text", "")
+        if kind == "overbudget":
+            problems.append({"type": "over-budget", "detail": text, "size": fd.get("size")})
+        elif kind == "keywords_dup":
+            files = [f.relative_to(root).as_posix() for f in fd.get("files", [])]
+            problems.append({"type": "keywords-dup", "files": files, "detail": text})
+        else:  # stale / deprecated / broken_link 均带 rel
+            tmap = {"stale": "stale", "deprecated": "deprecated", "broken_link": "broken-link"}
+            rel = fd.get("rel", "")
+            problems.append({"type": tmap.get(kind, kind),
+                             "files": [rel] if rel else [], "detail": text})
+    payload = {
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "core_chars": len(spec._core_text_raw()),
+        "budget": CORE_BUDGET,
+        "problems": problems,
+    }
+    marker.write_text(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0
+
+
 DISPATCH: dict[str, Any] = {"permission": cmd_permission, "guard": cmd_guard,
             "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
-            "spec-meta": cmd_spec_meta}
+            "spec-meta": cmd_spec_meta, "stop-check": cmd_stop_check}
 
 
 def main() -> int:
