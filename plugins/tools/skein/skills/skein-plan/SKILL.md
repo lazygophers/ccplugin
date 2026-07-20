@@ -59,11 +59,17 @@ effort: high
 
 1. **判新旧 + 定粒度** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件 + `subtask add`, 不新建。
    - **登记前强制先查未完成 task (硬前置)** — 任何 `create` 之前 MUST 先 `skein list --status open --json` (一次取全部未完成 task 压缩 JSON) 核对: 新请求与在列某 task **相关** (同目标/同模块/共享改动面/互为前置) → **并入该 task 补 subtask, 禁新建**; 无相关项才 `create`。**禁不查就 create、禁一直堆新 task** (散 task 丢共享上下文一致性, 是头号反模式)。
+   - **🧭 模糊信号判据 (命中即 cold-start, 进 step 3 愿景翻译; 不命中走常规 brainstorm, 零增量)** — 用户输入任一命中: ① 无动词或动词泛 ("重构/优化/加能力"无宾语); ② 无文件路径 / 无具体模块名; ③ 一句话 <15 字; ④ 愿景腔 ("我有个想法/想做个/感觉") → 标 cold-start。命中零条 = 清晰输入, **跳过愿景翻译直接常规 brainstorm (零增量路径)**。
    - **归一 vs 分立按相关性, 非按「可独立验收」** (subtask 亦可独立验收): 新交付物与现有 active task 或本请求内其他交付物**相关** (同目标 / 同模块 / 共享改动面 / 互为前置) → **优先归一 task 拆 subtask** (`subtask add` + `--deps` 连 subtask 级 DAG), 禁另开多 task。
    - **仅当目标独立、无共享改动面、无依赖** → 才拆多 task (各 `skein create` 登记, task 级 `--deps` 排队 / 无序并行; active 集 ≤ 2 自动排队)。
    - 拆不拆是 planning 自主判断, 边界模糊才 `AskUserQuestion`。默认**倾向归一** —— 相关工作散成多 task 会丢共享上下文一致性 (类型/契约决策各 task 重推), 归一拆 subtask 才守住。
 2. **登记** — 全新 → `skein create <id> --name <标题> --desc <一句话> [--deps ..]` (`<id>`/`--name`/`--desc` **三者必填**, 缺一 argparse 报错), `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api` / `user-auth`; 兼作分支名 + 目录名), **禁 `t01`/`t2` 这类字母+数字代号** (脚本硬拒)。得工件目录。(`create` 自动刷看板)
-3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。
+3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。提问法内置 relentless interview 纪律 (插件内闭环, 不依赖外部 /grilling / /grill-me): 一次一问等反馈 (仅同源不依赖才批)、每问带 2-3 推荐答案让用户裁、事实自查 (Read/Grep)、决策交用户、共识才放行。
+   - **🧭 愿景翻译 (cold-start 命中才跑; 清晰输入跳过, 零增量)**:
+     - **Job Story 三段草拟** — main 套用户原话填 "When [情境], I want [动机], so I can [预期成果]", `AskUserQuestion` 让用户确认/修正三段 (各给 2-3 推荐选项), 锁定 outcome (为谁/为何/价值) 再谈 solution。
+     - **said / implied / missing 三分** — **明说**的入正文; **暗示**的入正文并回读确认; **缺失**的逐条列 prd.md「Open Questions」用 `AskUserQuestion` 问 (≤3 轮, 超限标「需求未定」停 planning); main 的**假设**强制写 prd.md「Assumptions」段, 禁埋正文 (防 Assumption Burial)。
+     - **产物** — 「愿景 (Job Story)」+「Open Questions」+「Assumptions」段写入 prd.md; 收敛后接常规 brainstorm 补目标/边界/验收。
+   - **🧭 supertask 创建时机 (cold-start 收敛后判, 默认不建)** — 愿景翻译收敛后, 若需求过大需拆多个**各自完整 plan/exec/check/finish** 的独立小需求 → 建 supertask (`skein create <super-id> --kind supertask --name --desc`, 占位 st2 实现) 作聚合层, 各小需求 `skein create <child-id> --parent <super-id>` 作 child task (深度限 2 层: supertask→task→subtask, child 不再生 child)。**单 task 可覆盖的中小需求** → 不建 supertask, 走现有 single task 零增量。
 4. 🛑 **grill 硬门 (未过禁进 exec · STOP)** — 委托 `skein-grill` 全轴对抗校对, 重点确认「用户想法 = PRD 写的」。弱点表交用户过, 补齐后放行。**未跑 grill 禁进 exec**; grill 未完成或弱点表未补齐 → 停在本步, 禁推进。
    - **锁定契约** — grill/brainstorm 里梳理出的不变量 (MUST/禁/边界条件) 由 main 用脚本逐条锁进 task.json (main 同步跑脚本, 不派 agent), 供 check 阶段逐条验证:
      - `skein contract <id> --add "契约文本"` (每条一次)
