@@ -19,7 +19,7 @@
 | **解释型脚本** | `scripts/*.py` / `.sh`，shebang `#!/usr/bin/env python3` | 轻逻辑、原型 | 需 SessionStart 后台装依赖 |
 | **uvx/pyproject 分发** | `pyproject.toml` + `scripts/` as package；hook 调 `uvx --from . <entry>` | Python 重插件（version/notify 范式）| 用户需有 `uvx`；首次启动慢 |
 
-详见 `docs/supported-languages.md` + `docs/compiled-languages-guide.md`。
+上表为分发选型速查；字段细节继续见下文各方案。
 
 ## 方案 1：预编译多平台二进制
 

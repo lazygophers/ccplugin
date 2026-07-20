@@ -120,7 +120,7 @@ interface HookAction {
 | `SubagentStart`/`SubagentStop` | `agent_name` |
 
 - 脚本 `json.load(sys.stdin)` 后按 event 取字段，**禁假设字段必填**——`.get()` 兜底
-- 完整 schema 见 `docs/api-reference.md` Hooks API 段 + 官方 hooks 页
+- 完整 schema 见官方 [hooks](https://code.claude.com/docs/en/hooks) 页
 
 ## async 字段（非阻塞）
 

@@ -141,9 +141,6 @@ my-plugin/
 ### 开发文档
 
 - [插件开发指南](docs/plugin-development.md) - 完整的插件开发教程
-- [API 参考](docs/api-reference.md) - 完整的 API 参考
-- [最佳实践](docs/best-practices.md) - 开发最佳实践
-- [支持的语言](docs/supported-languages.md) - 插件开发语言选择指南
 
 ### 项目文档
 
