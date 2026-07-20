@@ -21,7 +21,7 @@
   spec.py maintain [--layer core|recall] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃)
                                                   无 --apply 只报告; --apply 自动修复 (断链只报告)
   spec.py degrade <file|--auto>                   core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)
-                                                  --auto 循环降到 core < CORE_BUDGET 即停
+                                                  --auto 循环降到 core < core_budget() (config.yaml spec_core_budget, 默认 1000) 即停
 """
 from __future__ import annotations
 
@@ -35,9 +35,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, cast
 
-CORE_BUDGET = 8000  # core 全文软预算 (字符, 供 inject-core 手动查看); 超则告警
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
-SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈CORE_BUDGET 字符)
+SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈core_budget() 字符)
 LAYERS = ("core", "recall")
 STALE_DAYS = 180  # maintain stale 判据: created 年龄超此天数且无近期 updated → 候选
 KEYWORDS_DUP_THRESHOLD = 3  # maintain keywords 高重复判据: 同 keywords 组 ≥ 此数 → 合并候选
@@ -90,6 +89,21 @@ def spec_root() -> Path:
     return base / ".skein" / "spec"
 
 
+def core_budget() -> int:
+    """core 全文软预算 (字符): 读 .skein/config.yaml spec_core_budget (复用 skein._yaml_load);
+    缺失/非正整数 → 默认 1000。懒求值, 每次调读盘, 支持热改。"""
+    try:
+        from skein import _yaml_load  # 局部 import 免循环依赖
+        cfg_path = spec_root().parent / "config.yaml"
+        if cfg_path.exists():
+            v = _yaml_load(cfg_path.read_text()).get("spec_core_budget")
+            if isinstance(v, int) and v > 0:
+                return v
+    except Exception:
+        pass
+    return 1000
+
+
 def _cell(s: str) -> str:
     """索引表单元格: 空填 '-', 转义 '|' 免破坏 markdown 表格。"""
     return (s or "-").replace("|", "/")
@@ -128,9 +142,10 @@ class Spec:
 
     def _core_text(self) -> str:
         text = self._core_text_raw()
-        if len(text) > CORE_BUDGET:
+        budget = core_budget()
+        if len(text) > budget:
             sys.stderr.write(
-                f"core 规则 {len(text)} 字符 > 预算 {CORE_BUDGET} — "
+                f"core 规则 {len(text)} 字符 > 预算 {budget} — "
                 "常驻注入过重, 考虑降级部分到 recall\n")
         return text
 
@@ -160,7 +175,7 @@ class Spec:
         ages = [_ts_age_days(_frontmatter(f.read_text()).get("created"), now_ts)
                 for f in self._rule_files("core")]
         oldest = max((d for d in ages if d is not None), default=0)
-        if len(core_text) > CORE_BUDGET or oldest > STALE_DAYS:
+        if len(core_text) > core_budget() or oldest > STALE_DAYS:
             ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `spec.py maintain` 体检"
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
@@ -345,13 +360,14 @@ class Spec:
         # 判据 1: 超预算 (仅 core 全文)
         if "core" in layers:
             core_text = self._core_text_raw()
-            if len(core_text) > CORE_BUDGET:
+            budget = core_budget()
+            if len(core_text) > budget:
                 sized = sorted(
                     ((len(_strip_frontmatter(f.read_text()).strip()), f.parent.name, f.stem, f)
                      for f in self._rule_files("core")), reverse=True)
                 cands = ", ".join(f"{cat}/{stem}({sz})" for sz, cat, stem, _ in sized[:3])
                 findings.append({"kind": "overbudget", "size": len(core_text),
-                                 "text": f"[超预算] core {len(core_text)} > {CORE_BUDGET} 字符 — 考虑降级: {cands}"})
+                                 "text": f"[超预算] core {len(core_text)} > {budget} 字符 — 考虑降级: {cands}"})
 
         for layer in layers:
             for f in self._rule_files(layer):
@@ -501,17 +517,18 @@ class Spec:
         return rel_after
 
     def _degrade_core_to_budget(self) -> list[str]:
-        """循环降 top-1 最大 core 文件 → recall, 直到 core < CORE_BUDGET 或无 core 文件。返回降级路径列表。"""
+        """循环降 top-1 最大 core 文件 → recall, 直到 core < core_budget() 或无 core 文件。返回降级路径列表。"""
         degraded: list[str] = []
         while True:
             core_text = self._core_text_raw()
-            if len(core_text) <= CORE_BUDGET:
+            budget = core_budget()
+            if len(core_text) <= budget:
                 break
             files = self._rule_files("core")
             if not files:
                 break
             top = max(files, key=lambda f: len(_strip_frontmatter(f.read_text()).strip()))
-            reason = f"core超预算({len(core_text)}>{CORE_BUDGET})"
+            reason = f"core超预算({len(core_text)}>{budget})"
             degraded.append(self._degrade_one(top, reason))
         return degraded
 
@@ -558,7 +575,7 @@ class Spec:
                 for rel in degraded:
                     print(f"  - {rel}")
             else:
-                print(f"无需降级 (core {after} ≤ {CORE_BUDGET})")
+                print(f"无需降级 (core {after} ≤ {core_budget()})")
             return
         target = cast(str, a.file)
         f = self._resolve_core_file(target)
@@ -684,7 +701,7 @@ def main() -> None:
                    help="自动修复可修项: 超预算→降级 / stale→归档 / keywords重复→归档(保留最新) / 废弃→归档; 断链仍只报告")
     dg = sub.add_parser("degrade", help="core→recall 单文件降级 (layer 改 + git mv + reindex + 审计)")
     dg.add_argument("file", nargs="?", help="相对 .skein/spec/ 路径 (core/<cat>/<name>.md 或 <cat>/<name>); --auto 时省略")
-    dg.add_argument("--auto", action="store_true", help="自动模式: 循环降 top-1 最大文件到 core < CORE_BUDGET 即停")
+    dg.add_argument("--auto", action="store_true", help="自动模式: 循环降 top-1 最大文件到 core < core_budget() 即停")
     ar = sub.add_parser("archive", help="[完全重构前] 可逆归档旧规则到 .archive/<ts>/ + reindex 空")
     ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省两层全归档)")
     rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
