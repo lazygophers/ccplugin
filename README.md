@@ -16,11 +16,11 @@ CCPlugin Market 是一个为 Claude Code 提供插件的集中市场。我们提
 # 安装市场和指定插件
 uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin <插件名>@ccplugin-market
 
-# 示例：安装 Python 插件
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+# 示例：安装 skein 任务管理插件
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin skein@ccplugin-market
 
 # 示例：安装多个插件
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market golang@ccplugin-market git@ccplugin-market
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin skein@ccplugin-market cortex@ccplugin-market deepresearch@ccplugin-market
 ```
 
 ### 传统方式安装
@@ -37,82 +37,41 @@ claude plugin install <插件名>@ccplugin-market
 
 ```bash
 # 方式 1: 直接安装插件（自动添加市场）
-/plugin install python@ccplugin-market
+/plugin install skein@ccplugin-market
 
 # 方式 2: 先添加市场再安装
 /plugin marketplace add lazygophers/ccplugin
-/plugin install python@ccplugin-market
+/plugin install skein@ccplugin-market
 ```
 
 ## 可用插件
 
-### 工具插件
+所有插件源码位于 `plugins/tools/<name>`，清单见 `.claude-plugin/marketplace.json`。
 
 | 插件名称 | 描述 | 关键词 |
 |---------|------|--------|
-| `git` | Git 操作插件 - 提供完整的 Git 操作支持，包括提交管理、Pull Request 管理和 .gitignore 管理 | git, commit, pr, workflow |
-| `deepresearch` | 深度研究插件 - 基于图思维框架的多智能体深度研究系统 | research, analysis, multi-agent |
-| `version` | 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新 | semver, versioning, automation |
-| `env` | 环境处理插件 - 从 .env 文件加载环境变量并注入会话 | env, dotenv, config |
-| `notify` | 系统通知插件 - 跨平台系统通知支持 | notification, macos, linux, windows |
-| `memory` | 智能记忆插件 - 提供 URI 寻址的记忆存储和跨会话持久化 | memory, persistence, sqlite |
-| `trellisx` | Trellis 增强改造工具 - 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 注入 .trellis; 含 flow 强制task / orchestrate 编排 / workspace 看板 / spec 破坏式重构 | trellis, task-orchestration, worktree, subtask, task-board |
-| `cortex` | 知识库 + 记忆管理插件 - 双层 vault、5 级记忆 (遗忘曲线)、7 skill (schema/ingest/lint/extract/history-digest/context-digest/evolve) | knowledge-base, memory, vault, forgetting-curve |
-
-### 语言插件
-
-| 插件名称 | 描述 | 关键词 |
-|---------|------|--------|
-| `python` | Python 开发插件 - Python 3.13/3.14 规范 (uv/ruff/ty/pytest)、async、FastAPI | python, pep8, uv, ruff, async |
-| `golang` | Golang 开发插件 - Go 1.26 规范、lazygophers 生态、并发与现代化 | golang, go, generics, concurrency |
-| `typescript` | TypeScript / JavaScript 开发插件 - TS 6.0+ 严格模式与 ES2025-2026 规范，React 19 / Vue 3.5 / Node 22-24 全栈，JS 项目 JSDoc + checkJs 兜底 | typescript, ts, javascript, js, type-safety, strict-mode, react, vue |
-| `rust` | Rust 开发插件 - Edition 2024 / Rust 1.85+ 规范、所有权、async、unsafe | rust, ownership, async, memory-safety |
-| `java` | Java 开发插件 - Java 21/25 LTS 规范、Virtual Threads、Spring Boot 3.4+ | java, spring-boot, jvm, concurrency |
-| `c` | C 开发插件 - C11/17/23 规范、POSIX、嵌入式、内存与并发 | c, c23, posix, embedded |
-| `bash` | Bash / Shell 开发插件 - Bash 5.2+ 与 POSIX sh 规范、strict mode、shellcheck/shfmt、bats 测试、make/cmake 构建脚本 | bash, shell, posix, shellcheck, bats, make, cmake |
-| `powershell` | PowerShell 开发插件 - PowerShell 7.4 LTS 跨平台与 5.1、Verb-Noun cmdlet、Pester 5、PSResourceGet 模块发布、cmd/batch 兼容 | powershell, pwsh, windows, pester, psscriptanalyzer, cmd, batch |
-| `cpp` | C++ 开发插件 - C++17/20/23 + C++26 进展 (reflection/contracts) | cpp, c++23, modules, stl |
-| `csharp` | C# 开发插件 - C# 14 / .NET 10 LTS 规范、async、Source Gen、AOT | csharp, dotnet, linq, aot |
-| `flutter` | Flutter 开发插件 - 提供 Flutter 应用开发规范和状态管理指导 | flutter, dart, mobile, state-management |
-| `markdown` | Markdown 开发插件 - 提供 Markdown 编写规范和技术文档指导 | markdown, documentation, technical-writing |
-| `naming` | 命名规范插件 - 提供跨编程语言的统一命名规范指南 | naming, conventions, code-style |
-
-### 其他插件
-
-| 插件名称 | 描述 | 关键词 |
-|---------|------|--------|
-| `llms` | llms.txt 标准插件 - 通过 Agent 自动生成符合 llms.txt 规范的文件 | llms.txt, documentation, standard |
-| `template` | 插件开发模板 - 快速创建新插件的基础结构 | template, development |
+| `deepresearch` | 深度研究插件 - 基于图思维框架的多智能体深度研究系统，支持多领域深度调查、引用验证、知识合成和专业报告生成 | research, analysis, citation, multi-agent, graph-of-thoughts |
+| `version` | 版本号管理插件 - 提供 SemVer 版本管理，支持自动版本更新和手动版本设置，通过 Claude Code Hooks 自动检测任务完成并更新构建版本号 | version, semver, release, automation, hooks |
+| `notify` | 系统通知插件 - 通过系统通知向用户实时提示会话状态变更、权限请求等重要事件，跨平台支持 macOS、Linux、Windows | notification, system-notification, hook, macos, linux, windows |
+| `trellisx` | Trellis 增强改造工具 - 跑一次 trellisx-apply 把 强推task / subtask拆分 / worktree隔离 / plan→exec→check→finish闭环 / task.md看板 注入 .trellis; 含 flow 强制task / orchestrate 编排 / workspace 看板 / spec 破坏式重构 | trellis, task-orchestration, worktree, subtask, spec |
+| `cortex` | 知识库 + 记忆管理插件 - 双层 vault、5 级记忆 (遗忘曲线)、8 skill (schema/ingest/lint/extract/history-digest/context-digest/evolve/recall) | knowledge-base, memory, vault, forgetting-curve, recall |
+| `novelist` | 小说写作全流程插件 - 从爆款题材/世界观/人物/大纲到章节编写、一致性检查、校对、去AIGC、重写、批量流水线的端到端工作流 | novel, writing, fiction, worldbuilding, continuity-check |
+| `skein` | SKEIN 独立任务管理插件 (零 trellis 依赖) - 强制 task 闭环 (plan→exec→check→finish) + 动态 DAG 编排调度 + worktree 隔离 + 两层×类目规则记忆 + 9 skill + 3 agent | task-management, dag-scheduling, worktree, rules-memory, kanban |
 
 ## 安装示例
 
-### 安装语言插件
-
 ```bash
-# Python 开发
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+# 任务管理（SKEIN）
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin skein@ccplugin-market
 
-# Golang 开发
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin golang@ccplugin-market
+# 知识库 + 记忆（cortex）
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin cortex@ccplugin-market
 
-# TypeScript 开发
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin typescript@ccplugin-market
-
-# Rust 开发
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin rust@ccplugin-market
-```
-
-### 安装工具插件
-
-```bash
-# Git 操作
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin git@ccplugin-market
-
-# 深度研究
+# 深度研究（deepresearch）
 uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin deepresearch@ccplugin-market
 
-# 智能记忆
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin memory@ccplugin-market
+# 版本号管理（version）
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin version@ccplugin-market
 ```
 
 ## 环境要求
@@ -207,18 +166,18 @@ uvx --from git+https://github.com/lazygophers/ccplugin.git@master clean
 
 ```bash
 # 推荐：一键安装
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin skein@ccplugin-market
 
 # 或：传统方式
 claude plugin marketplace add lazygophers/ccplugin
-claude plugin install python@ccplugin-market
+claude plugin install skein@ccplugin-market
 ```
 
 ### 如何更新插件？
 
 ```bash
 # 重新安装即可更新
-uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin python@ccplugin-market
+uvx --from git+https://github.com/lazygophers/ccplugin.git@master install lazygophers/ccplugin skein@ccplugin-market
 ```
 
 ### 如何开发新插件？
