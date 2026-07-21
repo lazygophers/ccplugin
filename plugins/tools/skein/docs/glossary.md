@@ -58,7 +58,7 @@ SKEIN 全部术语一处查清。按主题分组, 每条一句话说清「是什
 | **main (调度器)** | 主对话 agent。跑 task 生命周期脚本 + 编排派 agent + 用户交互 + 完成回传。默认禁写源码。 |
 | **执行者 (executor)** | worktree 内写 1 个 subtask 代码的 agent。**不是具名 agent** — main 按 subtask 性质选一个合适的现有 agent (无合适的用 `skein-executor`); 改哪些文件由其在 worktree 内自主决定, 完成前对照 planning 登记的验收标准 checklist 逐条自检; 执行纪律 (递归护栏 + 读后写硬门 + 验收标准自检 + 输出格式) 经 dispatch prompt 硬性注入。 |
 | **skein-checker** | 验证 agent, 只读跑 lint/type/test/契约合规。`model: sonnet + effort: medium`。 |
-| **skein-researcher** | 调研 agent, planning 选型对比 + bootstrap 扫既有约定, 过程笔记落 `research/`, 收敛结论进 `findings.md`。 |
+| **skein-researcher** | 调研 agent, planning 选型对比 + bootstrap 扫既有约定, 过程笔记落 `research/`, 收敛结论回传 main (main 写 findings.md)。 |
 | **Recursion Guard** | 防 agent 自派 subagent 递归爆炸。具名 agent (checker/researcher/...) + `skein-executor` 工具面均不含 Agent/Task, 工具层强制护栏; 仅外部自选 agent (非 skein 受限具名, 工具面无约束) 靠 dispatch prompt 硬性禁止再派承载。 |
 
 ## 脚本管理的文件 (AI 禁读写)
