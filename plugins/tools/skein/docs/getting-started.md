@@ -87,7 +87,7 @@ skein view       # 打开 task.html 可视化看板 (缺则生成)
 | 单文件单处改, ≤20 行且位置已知 | 豁免, 直接改 |
 | 跨 ≥2 文件 / 单文件多处 / 多步骤 | 必建 task |
 | 需外部调研 (选型 / 对比) 或产出文档 | 必建 task |
-| 边界模糊 | Claude 会用 AskUserQuestion 问你 |
+| 边界模糊 (走 flow vs inline 难判) | Claude 自行裁定, 默认偏保守走 flow; 仅极不确定 (破坏性/远超预期) 才用 AskUserQuestion 问你 |
 
 **建 task 前先查未完成 + 判归一 vs 分立**: 建新 task 前 MUST 先 `skein list --status open --json` 查在飞的未完成 task —— 新需求与现有 active task 或本请求内其他交付物**相关** (同目标 / 同模块 / 共享改动面 / 互为前置) → 归一到一个 task 拆多个 subtask, **不另开多个 task**; 仅目标独立、无共享改动面、无依赖才拆多 task。判据是相关性, 不是「能否独立验收」(subtask 也能独立验收)。**禁不查就建、禁一直堆新 task** —— 相关工作散成多 task 会丢共享上下文一致性。
 
