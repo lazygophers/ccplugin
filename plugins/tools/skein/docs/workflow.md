@@ -28,7 +28,7 @@
 
 ### ① plan (main 同步, 交互式)
 
-- **判新旧**: `create` 前先 `skein list --status open --json` 查未完成 task —— 相关 (同目标/模块/共享改动面/互为前置) → 并入补 subtask, 禁堆新 task; 无相关项才 `skein create` 登记 (判不准就 AskUserQuestion 问你)。
+- **判新旧**: `create` 前先 `skein list --status open --json` 查未完成 task —— 相关 (同目标/模块/共享改动面/互为前置) → 并入补 subtask, 禁堆新 task; 无相关项才 `skein create` 登记 (判不准 → AI 自行裁定默认归一, 仅极不确定才 AskUserQuestion)。
 - **brainstorm**: main 和你梳理需求与方案 (subagent 不能与你对话, 故全程 main 前台)。
 - **grill 硬门**: 对抗式审查需求与工件, 弱点补齐后才放行。**未跑 grill 禁进 exec**。
 - **契约锁定** (可选增强): planning / grill 时把不可回退的不变量逐条 `skein contract <id> --add "文本"` 锁进 task.json, 供 ⑤ check 逐条验证。
