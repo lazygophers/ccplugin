@@ -1355,13 +1355,13 @@ class Skein:
                f"**脚本预筹: {verdict}** (启发式, 非最终判 — 模糊档由 AI 定夺)\n"
                "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
                "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
-               "**原则: 该走 flow 的直接走, 不问用户要不要走; 简单的直接做, 不问能不能 inline。** "
-               "任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 直接加载 **skein-flow** skill "
-               "走强制闭环 (plan→exec→check→finish), 禁 inline 直接做, 禁问用户「要不要走 flow」。\n"
+               "任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill "
+               "走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
+               "**判定行走 flow 即必须走 flow** — 判完转头 inline 自降级 = 违规 (典型漏判: 「看着简单」/"
+               "「只搭个骨架」/「ponytail 最小落地」均为借口, 跨文件/多文件必走 flow)。\n"
                "**走 flow 前先 `skein list --status open --json` 查重**, 命中相关 active task → 并入补 subtask, 禁重复建。\n"
-               "豁免 (输出判定行后直接做, 不问): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。\n"
-               "**仅极不确定 (边界严重模糊 / 破坏性不可逆 / scope 远超用户预期) 才用 AskUserQuestion 问用户**, "
-               "禁把「能走 flow 还是 inline」这种 AI 自己该判的选择抛给用户。")
+               "豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。"
+               "边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。")
         ctx = budget_guard(ctx, SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
