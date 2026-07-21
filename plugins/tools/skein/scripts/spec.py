@@ -31,12 +31,12 @@ import argparse
 import time
 import json
 import re
-import sqlite3
-import subprocess
+import subprocess  # spec_root() git rev-parse + _git_mv 用 (热路径必需, 保留顶载)
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, cast
+# sqlite3 改局部 import (仅 _recall_fts / _rebuild_fts 用), 不拖 session-start/inject-core 等热路径 (perf-research §6.2)
 
 INDEX_BUDGET_TOKENS = 400  # SessionStart 注入的极简索引 token 硬预算 (每条 1 行, 只 title+类目)
 SUBAGENT_BUDGET_TOKENS = 2000  # SubagentStart 注入 core 全文 token 硬预算 (≈core_budget() 字符)
@@ -247,6 +247,7 @@ class Spec:
         if not tokens or any('"' in t for t in tokens):
             return None
         ftsq = " OR ".join(f'"{t}"' for t in tokens)
+        import sqlite3  # 局部: 仅 recall + reindex 链用, 不拖 session-start/inject-core
         try:
             con = sqlite3.connect(db)
             try:
@@ -356,6 +357,7 @@ class Spec:
         schema 含 layer 列, recall 输出带 [layer] 前缀供 model 定位 .skein/spec/<layer>/...。
         CREATE IF NOT EXISTS 不改已存表 schema → reindex 时先 DROP 再 CREATE (幂等迁移)。"""
         db = self.root / ".recall.db"
+        import sqlite3  # 局部: 仅 reindex/sediment 重建索引链用
         con = sqlite3.connect(db)
         try:
             con.execute("DROP TABLE IF EXISTS rules")
