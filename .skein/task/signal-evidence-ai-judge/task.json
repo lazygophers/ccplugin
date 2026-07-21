@@ -2,7 +2,7 @@
   "id": "signal-evidence-ai-judge",
   "name": "_judge_signal 改证据展示",
   "desc": "_judge_signal 改证据展示+建议语调: 三常量加判断条件展示 + 命中信号证据 + 建议非强制, AI 最终判",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -22,21 +22,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-signal-evidence-ai-judge",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-signal-evidence-ai-judge",
-      "branch": "skein/signal-evidence-ai-judge",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/signal-evidence-ai-judge",
   "parent": null,
   "kind": "task",
   "created": 1784618089,
   "started": 1784618169,
   "checked": null,
-  "finished": null,
-  "updated": 1784618646
+  "finished": 1784618897,
+  "updated": 1784618897
 }

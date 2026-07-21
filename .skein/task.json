@@ -1,14 +1,6 @@
 {
   "tasks": [
     {
-      "id": "signal-evidence-ai-judge",
-      "status": "进行中",
-      "deps": [],
-      "worktree": ".worktrees/skein-signal-evidence-ai-judge",
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "hook-prompt-judge-ai-only",
       "status": "已完成",
       "deps": [],
@@ -42,6 +34,14 @@
     },
     {
       "id": "prd-section-cli",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "signal-evidence-ai-judge",
       "status": "已完成",
       "deps": [],
       "worktree": null,

@@ -343,7 +343,6 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 #   prompt 仅留正向指引 + 证据展示, 不重复禁令。
 _CTX = """# SKEIN 判定 (信号仅建议, AI 综合上下文定夺)
 判据: 走 flow = 跨≥2文件/多步骤/改动类动词/新建类 | 可 inline = 纯查询/问答/单文件单处 | 判不清 = AskUserQuestion。
-本次命中: {evidence}
 → 倾向 flow: skein create 建 task 走 skein-flow; 倾向 inline: 直接答/改; 判不清: AskUserQuestion。"""
 
 # 信号判据 (只检测证据, 不替判档位 — 档位交 AI 读 _CTX 判据自判)
@@ -394,8 +393,9 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
         ctx = _UNINIT_TRELLIS if os.path.isdir(os.path.join(root, ".trellis")) else _UNINIT_PLAIN
     else:
         evidence = _judge_signal(d.get("prompt", "") or "")
-        ev_text = ", ".join(evidence) if evidence else "无明显信号"
-        ctx = _CTX.format(evidence=ev_text)
+        ctx = _CTX
+        if evidence:
+            ctx += f"\n本次命中: {', '.join(evidence)}"
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
     return 0
@@ -451,10 +451,13 @@ if __name__ == "__main__":
                 if sig not in ev:
                     fails.append((p, sig, ev, "期望证据缺失"))
             print(f"  ev={ev} | {p!r}")
-        # 证据拼接: {evidence} 占位符须被替换
-        rendered = _CTX.format(evidence=", ".join(_judge_signal("改 a.py 和 b.py")))
-        if "{evidence}" in rendered:
-            fails.append(("_CTX.format", "no-residual", "{evidence}", "占位符未替换"))
+        # 证据行: 非空才拼 "本次命中", 空 _CTX 无 "本次命中"
+        ctx_hit = _CTX + f"\n本次命中: {', '.join(_judge_signal('改 a.py 和 b.py'))}"
+        ctx_empty = _CTX  # evidence 空 → 仅 _CTX, 无本次命中行
+        if "本次命中" not in ctx_hit:
+            fails.append(("ctx-hit", "has-line", "本次命中", "evidence 非空未拼本次命中行"))
+        if "本次命中" in ctx_empty:
+            fails.append(("ctx-empty", "no-line", "本次命中", "_CTX 默认含本次命中行 (应空时不展示)"))
         # 单一 _CTX: 三常量须已删
         for stale in ("_CTX_FLOW", "_CTX_INLINE", "_CTX_GREY"):
             if stale in globals():
