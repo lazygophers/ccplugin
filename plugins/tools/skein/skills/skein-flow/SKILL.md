@@ -47,6 +47,22 @@ effort: medium
 
 归一 vs 分立 / worktree 豁免 / 完成判定 详见 [references/scope-boundary.md](references/scope-boundary.md)。
 
+## 🧭 场景路由 (ask-matt 同源)
+
+决定建 task 后, 按**输入场景**定 planning 力度与走法 (非新增机器字段, 仅路由启发 — 与 ask-matt 场景路由器同源理念, skein 原生覆盖):
+
+| 场景信号 | skein 内置走法 |
+| --- | --- |
+| **新 idea / 新功能 (有 codebase)** | 常规 plan→exec→check→finish; plan 跑 grill 硬门 + research 判定门 |
+| **雾区大需求 (跨子系统 / 破坏式重构 / 看不清全貌)** | heavy 档: 强化 grill + research 判定门保守灰区自动派 researcher + 命中复杂度天花板拆多 task (`--deps` 连 task 级 DAG) |
+| **bug 堆积 / 多 issue 涌入** | plan 登记前查未完成 task (查重归并) + plan 收尾异步派 skein-dedup 织 DAG |
+| **难 bug 反复 (一处崩全批停)** | exec subtask 失败自愈闭环 (定点重派 / 加修复 subtask 定点修根因); check 根因协议兜底 |
+| **代码健康 / 架构改进 (非 feature)** | 独立 `skein create` 改进类 task, 走标准四步闭环 |
+| **设计问题需验证 (UI/状态模型)** | plan research 判定门派 skein-researcher 勘察, 或独立 sandbox task 原型验证 (不落主仓库) |
+| **多 session 大型 build** | supertask 聚合层 + child task 各自完整闭环, task 级 `--deps` 排队 |
+
+**零外部 skill 硬依赖** — skein 四步闭环自包含覆盖全部场景。熟悉 Matt Pocock `/ask-matt` 套件者, 完整 skill 级映射见 [references/matt-pocock-mapping.md](references/matt-pocock-mapping.md) (装了外部 skills 可选增强, 没装 skein 照跑)。
+
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 
 | 触发                                    | 一线修复                                 | 仍失败兜底                                          |
