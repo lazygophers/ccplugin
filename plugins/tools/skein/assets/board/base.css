@@ -217,6 +217,16 @@ mark.hl{background:color-mix(in srgb,var(--accent) 32%,transparent);color:inheri
 .doc-copy:disabled{opacity:.45;cursor:default}
 .doc-body{padding:18px 22px;overflow-y:auto;color:var(--fg);font-size:14px;line-height:1.65}
 .doc-loading,.doc-err{color:var(--muted)}
+.doc-edit{background:none;border:1px solid var(--line);color:var(--muted);font-size:12px;cursor:pointer;line-height:1;padding:4px 9px;border-radius:6px}
+.doc-edit:hover{background:var(--sel-bg);color:var(--head);border-color:var(--accent)}
+.prd-edit{display:flex;flex-direction:column;gap:8px}
+.prd-sec-label{font-weight:600;color:var(--head);font-size:13px}
+.prd-sec{width:100%;box-sizing:border-box;font:13px/1.5 var(--font);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+.prd-edit-actions{display:flex;gap:8px;align-items:center;margin-top:6px}
+.prd-save,.prd-cancel{border:1px solid var(--line);background:var(--sel-bg);color:var(--head);font:12px var(--font);padding:5px 12px;border-radius:6px;cursor:pointer}
+.prd-save{background:var(--accent);color:#fff;border-color:var(--accent)}
+.prd-status{font-size:12px;color:var(--muted)}
+.doc-hint{color:var(--muted);font-size:12px;margin:0 0 4px}
 /* markdown 渲染 (GitHub 风格排版, 走主题变量) */
 .markdown{font-size:14.5px;line-height:1.7;word-wrap:break-word}
 .markdown>:first-child{margin-top:0}

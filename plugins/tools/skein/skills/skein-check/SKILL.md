@@ -22,13 +22,13 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 流程
 
-1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径 + planning 的验收标准。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
+1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径。checker 自跑 `skein prd read <id> --type=acceptance` 取验收标准 (禁 dispatch prompt 传验收全文, 避免上下文漂移 + 省 token)。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
    - **验收项增量验证** — checker 读 prd `## 验收标准` 章节时, **只验未勾 (`- [ ]`) 项**; 已 `- [x]` 项视为上轮已确认通过, **跳过不重复验证/处理** → 报告仅覆盖未勾项。
    - **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail:
      - `skein contract <id>` (列出 planning 阶段锁进 task.json 的契约)
      - 任一条 fail → 进修复循环 (同 lint/type/test 未过路径), 派合适 agent (无则 `skein-executor`) 定点修复后重检。
    - **一致性核查** — checker MUST 检 subtask 产物间 + 与 prd 契约有无冲突: 接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾。逐条报冲突对 (哪两处 file:line + 冲突点)。
-2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环 (见下)。**本轮验证通过的验收项** (含部分通过场景), main 用 `Edit` 把 prd `## 验收标准` 对应行 `- [ ]`→`- [x]` 回写持久化 (载体是 main, 非 checker; 复用 fmt PostToolUse hook 保勾选态、幂等), 未过项保持 `- [ ]` 留待修复后重验。
+2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环 (见下)。**本轮验证通过的验收项** (含部分通过场景), main 经 `skein prd check <id> --type=acceptance --list "<验收项文本>"` 回写勾选态持久化 (脚本写盘, 禁裸 Edit prd.md; 载体是 main 非 checker), 未过项保持 `- [ ]` 留待修复后重验。需反勾 (修复后回退) 用 `skein prd uncheck`。
 3. **回 planning 重确认 (非新枚举, 复用现有 `进行中` 态)** — check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`/`S_ACTIVE`, 不建新 task; 「回 planning」是**思维回炉语义**, 非状态机新枚举)。main **先回 planning 思维重审失败**: 重新审视 checker 报告的失败原因 (lint/type/test/契约 fail / 一致性冲突), 用 `AskUserQuestion` 或 grill 与用户**确认修复方向是否对** (是定点修一处 / 还是方向错了需重拆 / 还是契约本身要改), **禁跳过确认直接补 subtask 回 exec**。确认方向后, 在**同一 task 内 `subtask add` 排队修复子任务** (--deps 挂失败源), 回 exec 重新 `claim` 派发:
    - **孤立失败** (单点 lint/type/test/契约 fail) → 确认后加 1 个定点修复 subtask: `skein subtask add <tid> <fix-sid> --name "修复: <失败点>" --desc "<报错原文 / file:line>" --agent <合适> --deps <失败 subtask sid>` (只改失败相关文件)。
    - **一致性冲突 / 根因跨 subtask** → 确认后按冲突根因加**多个**修复 subtask (一冲突一 subtask, 逐条覆盖, `--deps` 挂对应源 subtask, 必要时同步更新契约)。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。

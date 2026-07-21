@@ -1,3 +1,12 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "prd-section-cli",
+      "status": "待处理",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    }
+  ]
 }

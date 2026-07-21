@@ -65,6 +65,17 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 # 拒短字母+数字编号 (t01/t2/ab12): 不可读, 强制描述性 slug. subtask sid 不受此限.
 CODE_ID_RE = re.compile(r"^[a-z]{1,4}\d+$")
 
+# prd 章节 CLI: --type 中英 alias → 标准中文章节名 (内部统一存中文, 对齐 fmt/_validate_prd 的章节判定)
+PRD_TYPE_ALIAS: dict[str, str] = {
+    "目标": "目标", "goal": "目标",
+    "边界": "边界", "scope": "边界",
+    "验收标准": "验收标准", "acceptance": "验收标准", "accept": "验收标准",
+}
+# 可经 prd 命令操作的章节 (索引章节脚本维护, 禁用户改 → 不在此列)
+PRD_SECTIONS: tuple[str, ...] = ("目标", "边界", "验收标准")
+# 写入时补 `- [ ]` checkbox 的章节 (验收条目都该可勾); 边界只补 `- ` list marker 不补 checkbox
+PRD_TODO_SECTIONS: set[str] = {"目标", "验收标准"}
+
 
 def now() -> int:
     return int(time.time())  # Unix epoch 秒 — 所有落盘时间字段统一时间戳
@@ -1012,6 +1023,153 @@ class Skein:
         else:
             for i, c in enumerate(t["contracts"], 1):
                 print(f"{i}. {c}")
+
+    # ---- prd 章节 CLI (读/追加/覆盖写/勾选) ----
+    # 公共方法 (带 self): CLI 和网页端后端复用, 禁复制逻辑。章节定位用 `## 章节名` 正则 (同 fmt/_validate_prd)。
+    def _prd_path(self, tid: str) -> Path:
+        """定位 task 的 prd.md 路径; 不存在 raise SystemExit。"""
+        # task 存在性由 _load 守 (调用方先 _load); 此处只查 prd.md
+        prd = self.tasks / tid / "prd.md"
+        if not prd.exists():
+            raise SystemExit(f"{tid} 无 prd.md — 先 skein create 再操作章节")
+        return prd
+
+    def _prd_section_bounds(self, lines: list[str], section: str) -> tuple[int, int]:
+        """定位章节 [start, end) 行号区间。start = `## section` 行号+1; end = 下一 `## ` 行号 (末章节=文件尾)。
+        章节不存在 raise SystemExit。"""
+        start = None
+        for i, ln in enumerate(lines):
+            m = re.match(r"^##\s+(.+?)\s*$", ln)
+            if not m:
+                continue
+            name = m.group(1).strip()
+            if start is None:
+                if name == section:
+                    start = i + 1
+            elif name:  # 已找到目标章节, 遇到下一 ## 即 end
+                return start, i
+        if start is None:
+            raise SystemExit(f"prd 无「{section}」章节 — 检查章节名 (标准: {PRD_SECTIONS})")
+        return start, len(lines)
+
+    def prd_section_read(self, tid: str, section: str) -> str:
+        """读章节正文 (不含 ## 标题行, 含其下到下一 ## 前所有行, trim 首尾空行)。"""
+        lines = self._prd_path(tid).read_text(encoding="utf-8").split("\n")
+        s, e = self._prd_section_bounds(lines, section)
+        body = "\n".join(lines[s:e]).strip("\n")
+        return body
+
+    def _normalize_section_lines(self, raw: str, section: str) -> list[str]:
+        """规范化待写入的行:
+        - \\n 字面转真换行 (shell 传 $'A\\nB' 或 "A\\nB" 收到字面 \\n)
+        - 目标/验收标准: 裸 `- xxx` → `- [ ] xxx`; 已 checkbox 保留; 有序 `N. xxx` → `- [ ] xxx`; 普通非 list 行 → `- [ ] <行>`
+        - 边界: 裸文本行 → `- <行>` (补 list marker 不补 checkbox); 已 `- ` 保留; 已 checkbox 保留不动"""
+        lines = raw.replace("\\n", "\n").split("\n")
+        out: list[str] = []
+        for ln in lines:
+            s = ln.strip()
+            if not s:
+                continue
+            if section in PRD_TODO_SECTIONS:
+                if re.match(r"^-\s+\[[ xX]\]\s+", s):  # 已 checkbox 保留
+                    out.append(s)
+                elif m := re.match(r"^-\s+(.+)$", s):  # 裸 `- xxx` → 补 checkbox
+                    out.append(f"- [ ] {m.group(1).strip()}")
+                elif m := re.match(r"^\d+[.)]\s+(.+)$", s):  # 有序 → 补 checkbox
+                    out.append(f"- [ ] {m.group(1).strip()}")
+                else:  # 普通行 → 整行作 todo 条目
+                    out.append(f"- [ ] {s}")
+            else:  # 边界
+                if re.match(r"^-\s+", s):  # 已 `- `(含 checkbox) 保留
+                    out.append(s)
+                else:
+                    out.append(f"- {s}")
+        return out
+
+    def prd_section_add(self, tid: str, section: str, text: str) -> list[str]:
+        """追加 text 到章节末 (已有保留)。返回写后的章节正文行。"""
+        prd = self._prd_path(tid)
+        lines = prd.read_text(encoding="utf-8").split("\n")
+        s, e = self._prd_section_bounds(lines, section)
+        new_items = self._normalize_section_lines(text, section)
+        # 在章节正文末 (跳过尾部空行) 插入新条目
+        body = lines[s:e]
+        while body and body[-1].strip() == "":
+            body.pop()
+        body.extend(new_items)
+        lines[s:e] = body
+        prd.write_text("\n".join(lines), encoding="utf-8")
+        return lines[s:e]
+
+    def prd_section_write(self, tid: str, section: str, text: str) -> list[str]:
+        """整章清重建 (仅保留 ## 标题行, 描述提示行 + 旧条目全清, 替换为 text 条目)。返回写后的章节正文行。"""
+        prd = self._prd_path(tid)
+        lines = prd.read_text(encoding="utf-8").split("\n")
+        s, e = self._prd_section_bounds(lines, section)
+        new_items = self._normalize_section_lines(text, section)
+        lines[s:e] = new_items
+        prd.write_text("\n".join(lines), encoding="utf-8")
+        return new_items
+
+    def prd_section_check(self, tid: str, section: str, match: str, flag: bool) -> int:
+        """章节内子串匹配 match 的行, checkbox 切换: flag=True → `- [ ]`→`- [x]`; False → 反。
+        返回命中行数; 零命中 raise SystemExit (防 silent fail)。"""
+        prd = self._prd_path(tid)
+        lines = prd.read_text(encoding="utf-8").split("\n")
+        s, e = self._prd_section_bounds(lines, section)
+        hit = 0
+        for i in range(s, e):
+            ln = lines[i]
+            if match not in ln:
+                continue
+            if flag:
+                new = re.sub(r"^-\s+\[ \]\s+", "- [x] ", ln)
+            else:
+                new = re.sub(r"^-\s+\[[xX]\]\s+", "- [ ] ", ln)
+            if new != ln:
+                lines[i] = new
+                hit += 1
+        if hit == 0:
+            # 零命中: 可能 match 写错, 或目标行已是目标态 (幂等场景)
+            # 区分: 章节内有含 match 的行但已是目标态 → 幂等不算错; 完全无含 match 的行 → 报错
+            any_match = any(match in lines[i] for i in range(s, e))
+            if not any_match:
+                raise SystemExit(f"章节「{section}」无匹配「{match}」的行 — 检查 --list 文本")
+            # 已是目标态, 幂等无变化
+        else:
+            prd.write_text("\n".join(lines), encoding="utf-8")
+        return hit
+
+    def prd(self, a: argparse.Namespace) -> None:
+        """prd 章节 CLI 入口: read/write/add/check/uncheck <id> --type <章节> [--list TEXT]。
+        task 必须存在 (经 _load 守); --type 经 PRD_TYPE_ALIAS 归一到中文章节名。"""
+        tid = a.id.strip()
+        self._load(tid)  # task 存在性校验 (不存在 raise SystemExit)
+        raw_type = a.type
+        if raw_type not in PRD_TYPE_ALIAS:
+            raise SystemExit(f"非法 --type: {raw_type!r} — 合法值: {list(PRD_TYPE_ALIAS.keys())}")
+        section = PRD_TYPE_ALIAS[raw_type]
+        act = a.action
+        if act == "read":
+            body = self.prd_section_read(tid, section)
+            print(body)
+            return
+        if not a.list:
+            raise SystemExit(f"{act} 需要 --list (文本内容, \\n 多行)")
+        if act == "add":
+            self.prd_section_add(tid, section, a.list)
+            print(f"{tid}「{section}」章节 +{len(a.list.split(chr(10)))} 条 (追加, 已有保留)")
+        elif act == "write":
+            self.prd_section_write(tid, section, a.list)
+            print(f"{tid}「{section}」章节整章重建")
+        elif act == "check":
+            n = self.prd_section_check(tid, section, a.list, flag=True)
+            print(f"{tid}「{section}」勾选 {n} 条 (匹配「{a.list}」)")
+        elif act == "uncheck":
+            n = self.prd_section_check(tid, section, a.list, flag=False)
+            print(f"{tid}「{section}」反勾选 {n} 条 (匹配「{a.list}」)")
+        else:
+            raise SystemExit(f"未知 prd 动作: {act}")
 
     def doctor(self, a: argparse.Namespace) -> None:
         # 纯脚本体检: 扫 task/subtask 不变量违规 (源码真值 = per-task task.json)。
@@ -2200,6 +2358,18 @@ class Skein:
             if s("agent"):
                 argv += ["--agent", g("agent")]
             return base + argv
+        if cmd == "prd":  # 网页端 prd 章节编辑: read/write/add/check/uncheck (复用 CLI 同一写盘逻辑)
+            if not (s("id") and s("type") and s("action")):
+                return None
+            act = g("action")
+            if act not in ("read", "write", "add", "check", "uncheck"):
+                return None
+            argv = ["prd", act, g("id"), "--type", g("type")]
+            if act != "read":
+                if s("list") is None:
+                    return None
+                argv += ["--list", g("list")]
+            return base + argv
         return None  # 非白名单 → 拒绝
 
     def view(self, _: argparse.Namespace) -> None:
@@ -2920,6 +3090,24 @@ def main() -> None:
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
     co.add_argument("--add", help="追加一条契约 (省略则列出)")
+    pp = sub.add_parser("prd", help="读/写/追加/勾选 prd 章节 (目标/边界/验收标准); 禁裸 Edit prd.md")
+    pp_sub = pp.add_subparsers(dest="action", required=True,
+                               help="read 读 / write 整章重建 / add 追加 / check 勾选 / uncheck 反勾选")
+    for act in ("read", "write", "add", "check", "uncheck"):
+        pa = pp_sub.add_parser(act, help={
+            "read": "读章节正文 (不需 --list)",
+            "write": "整章清重建 (仅保留 ## 标题, 旧内容全清, 替换为 --list 条目)",
+            "add": "追加 --list 条目到章节末 (已有保留)",
+            "check": "勾选章节内匹配 --list 文本的 `- [ ]` 行为 `- [x]`",
+            "uncheck": "反勾选 (匹配 --list 文本的 `- [x]` 行为 `- [ ]`)",
+        }[act])
+        pa.add_argument("id", help="task id")
+        pa.add_argument("--type", required=True, metavar="{目标,goal,边界,scope,验收标准,acceptance}",
+                        choices=list(PRD_TYPE_ALIAS.keys()),
+                        help="操作章节 (中英都支持, 内部归一到中文)")
+        if act != "read":
+            pa.add_argument("--list", required=True,
+                            help="文本内容 (\\n 多行; check/uncheck 时为子串匹配文本)")
     stt = sub.add_parser("status", help="查 task 态 + subtask 汇总; 带 sid 出单个 subtask 明细 (只读)")
     stt.add_argument("tid", help="task id")
     stt.add_argument("sid", nargs="?", help="subtask id (省略出整 task 汇总)")
@@ -2973,13 +3161,13 @@ def main() -> None:
         "ready": sk.ready, "pop": sk.pop, "claim": sk.claim,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps,
-        "status": sk.status, "subtask": sk.subtask,
+        "status": sk.status, "subtask": sk.subtask, "prd": sk.prd,
         "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "check", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "subtask", "claim", "del", "delete", "rm", "remove"}
+                "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
