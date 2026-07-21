@@ -1440,54 +1440,6 @@ class Skein:
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
 
-    @staticmethod
-    def _read_hook_prompt() -> str:
-        # UserPromptSubmit hook stdin = JSON {"prompt": "...", ...}。
-        # 容错: 无 stdin / 非 JSON → 返空串 (退回纯判定骨架, 不崩)。
-        try:
-            raw = sys.stdin.read()
-        except Exception:
-            return ""
-        if not raw.strip():
-            return ""
-        try:
-            return json.loads(raw).get("prompt", "") or ""
-        except Exception:
-            return ""
-
-
-    def user_prompt(self) -> None:
-        # UserPromptSubmit hook: 每 prompt 必注入 (最高频强制点)。
-        # 未初始化 → 硬提示先 setup;
-        # 已初始化 → 注入 task 判定 + 查重句。
-        if not self.git and not self.dir.exists():
-            return  # 非 git 且无 .skein: 别在任意目录 nag
-        if not (self.dir / "config.yaml").exists():
-            ctx = budget_guard(self._uninit_ctx(), SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
-            print(json.dumps({"hookSpecificOutput": {
-                "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
-            return
-        ctx = ("# SKEIN task 判定 (动手前硬门)\n"
-               "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
-               "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
-               "**判定行禁修饰词** — 判定结论尾部禁止附加「但/先/只是/不过」等弱化后缀 (如「判定: 走 flow 但先纯查询探索」属违规)。\n"
-               "任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill "
-               "走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
-               "**判定行走 flow 即必须走 flow** — 判完转头 inline 自降级 = 违规。"
-               "典型自降级借口 (均不成立, 跨文件/多文件必走 flow): 「看着简单」/「只搭个骨架」/"
-               "「只要一个接口」/「ponytail 最小落地」/「已有蓝图/参考代码」/「用户说搭框架」/"
-               "「先勘察再定」/「POC 先跑通」。判定行走 flow 后**任何** Write/Edit 落代码 (非 .skein/ 工件) "
-               "前 MUST 先 `skein create` + 加载 skein-flow, 否则即违规。\n"
-               "**禁用 harness 内置 TaskCreate (TodoWrite 类) 冒充 skein create** — "
-               "TaskCreate 是内部工具类, 非正式 task 建立流程。跨文件任务必须 `skein create` 正式建 task, "
-               "禁用 TaskCreate 绕过 task 建立。\n"
-               "**走 flow 前先 `skein list --status open --json` 查重**, 命中相关 active task → 并入补 subtask, 禁重复建。\n"
-               "豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。"
-               "边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。")
-        ctx = budget_guard(ctx, SESSION_CTX_BUDGET_TOKENS, "skein:user-prompt")
-        print(json.dumps({"hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
-
     def board(self, a: argparse.Namespace) -> None:
         self._board(a)
         print(f"看板已更新: {self.dir / 'task.md'}")
@@ -3047,7 +2999,6 @@ def main() -> None:
     _sp_serve = sub.add_parser("serve", help="持久看板 http 服务 (手动跑无视 web_serve 强起; --auto 为 monitor 自动起入口, 遵 web_serve 开关)")
     _sp_serve.add_argument("--auto", action="store_true", help="monitor 自动起模式: 遵 config web_serve (=false 则 no-op 退出); 省略=手动, 无视开关强起")
     sub.add_parser("session-context", help="[hook 用] 注入活跃 task 状态")
-    sub.add_parser("user-prompt", help="[hook 用] 注入 task 判定提醒 (是任务则走 skein-flow)")
     co = sub.add_parser("contract", help="查/加 task 契约 (check 逐条验)")
     co.add_argument("id", help="task id")
     co.add_argument("--add", help="追加一条契约 (省略则列出)")
@@ -3109,10 +3060,6 @@ def main() -> None:
         # env 持久化与 git 无关, 必须先于 Skein() 跑 —— 微服务/前后端分离场景 cwd 无 git (子目录各自是仓)。
         _persist_bash_cwd_env()  # 随插件发货 _ENV_EXPORTS (cwd 保持 + 禁 agent-teams; plugin.json 无 env 字段, 只能经 CLAUDE_ENV_FILE)
         Skein().session_context()
-        return
-    if a.cmd == "user-prompt":
-        # 每 prompt 都跑: 非 git 且无 .skein → 方法内静默返回; 提醒不依赖 .skein 初始化状态
-        Skein().user_prompt()
         return
     sk = Skein()
     dispatch = {
