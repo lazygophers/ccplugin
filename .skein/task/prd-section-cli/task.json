@@ -2,10 +2,33 @@
   "id": "prd-section-cli",
   "name": "prd 章节 CLI (读/更/覆盖写)",
   "desc": "skein.py 加 prd 子命令: 读取/更新/覆盖写 prd.md 的 目标/边界/验收标准 章节",
-  "status": "待处理",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
-  "subtasks": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "prd 章节 CLI 实现 (已落)",
+      "desc": "skein prd read/write/add/check/uncheck + --type 中英 + task.html 编辑入口 — 590c4e0b/594d5ba5 已实现合并 master, 22 条验收全勾",
+      "depends_on": [],
+      "验收": [
+        "skein prd read/write/add/check/uncheck 可用",
+        "--type 中英",
+        "task.html prd 编辑"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784612271,
+      "started": null,
+      "finished": 1784612271
+    }
+  ],
   "repos": [],
   "worktree": null,
   "worktrees": [],
@@ -13,8 +36,8 @@
   "parent": null,
   "kind": "task",
   "created": 1784606885,
-  "started": null,
+  "started": 1784612272,
   "checked": null,
-  "finished": null,
-  "updated": 1784606885
+  "finished": 1784612312,
+  "updated": 1784612312
 }

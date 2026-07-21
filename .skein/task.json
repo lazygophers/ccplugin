@@ -1,8 +1,16 @@
 {
   "tasks": [
     {
+      "id": "hook-prompt-judge-ai-only",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "prd-section-cli",
-      "status": "待处理",
+      "status": "已完成",
       "deps": [],
       "worktree": null,
       "parent": null,

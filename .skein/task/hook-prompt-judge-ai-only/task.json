@@ -1,0 +1,43 @@
+{
+  "id": "hook-prompt-judge-ai-only",
+  "name": "hook 判定权全交 AI: 删脚本预筹+文案加强",
+  "desc": "UserPromptSubmit hook 移除 _classify_prompt 脚本预筹 (3档判断行为), 只注入判断标准提示词全交 AI 判; 文案加2条防自降级: 判定行禁修饰词+TaskCreate≠skein create",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "删脚本预筹+改文案",
+      "desc": "skein.py user_prompt: 删 _classify_prompt 方法(1458-1497)+verdict调用(1511,1513), 移除脚本预筹判断行为; 文案只留判断标准提示词, 加2条防自降级(判定行禁'但/先/只是'修饰词 / TaskCreate≠skein create); 只动UserPromptSubmit场景",
+      "depends_on": [],
+      "验收": [
+        "grep -c '_classify_prompt' skein.py == 0",
+        "文案含'禁修饰词'+TaskCreate≠skein create",
+        "claude -p 质检通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784611514,
+      "started": 1784611585,
+      "finished": 1784612239
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/hook-prompt-judge-ai-only",
+  "parent": null,
+  "kind": "task",
+  "created": 1784611477,
+  "started": 1784611576,
+  "checked": null,
+  "finished": 1784612351,
+  "updated": 1784612351
+}
