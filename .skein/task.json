@@ -1,6 +1,14 @@
 {
   "tasks": [
     {
+      "id": "design-medium-split",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-design-medium-split",
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "ask-matt-integrate",
       "status": "已完成",
       "deps": [],

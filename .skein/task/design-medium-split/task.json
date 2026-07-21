@@ -1,0 +1,134 @@
+{
+  "id": "design-medium-split",
+  "name": "split-design-by-medium",
+  "desc": "skills/design/ 按 medium 拆分类：html-design 已有，新增 app-design / cli-design / tui-design，README 改 medium 路由索引",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "write-app-design",
+      "desc": "app-design skill: 原生/桌面/移动 App UI 设计(平台习惯/导航/手势/组件)",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md 存在",
+        "frontmatter 达标",
+        "含平台差异/导航/手势/组件"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651674,
+      "started": 1784651682,
+      "finished": 1784651785
+    },
+    {
+      "sid": "s2",
+      "name": "write-cli-design",
+      "desc": "cli-design skill: 命令行接口设计(命令树/flags/args/输出/错误/帮助)",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md 存在",
+        "frontmatter 达标",
+        "含命令结构/flags/输出格式/错误处理"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651674,
+      "started": 1784651682,
+      "finished": 1784651785
+    },
+    {
+      "sid": "s3",
+      "name": "write-tui-design",
+      "desc": "tui-design skill: 终端 UI 设计(布局/组件/色彩/交互/框架选型)",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md 存在",
+        "frontmatter 达标",
+        "含布局/组件/色彩约束/键盘交互"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651674,
+      "started": 1784651785,
+      "finished": 1784651836
+    },
+    {
+      "sid": "s4",
+      "name": "rewrite-readme-medium-route",
+      "desc": "README 改 medium 路由(html/app/cli/tui 各一行)",
+      "depends_on": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "验收": [
+        "README 含四 medium 路由表"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651674,
+      "started": 1784651836,
+      "finished": 1784651900
+    },
+    {
+      "sid": "s5",
+      "name": "commit",
+      "desc": "git commit",
+      "depends_on": [
+        "s4"
+      ],
+      "验收": [
+        "commit 完成"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651674,
+      "started": 1784651901,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-design-medium-split",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-design-medium-split",
+      "branch": "skein/design-medium-split",
+      "merged": false
+    }
+  ],
+  "branch": "skein/design-medium-split",
+  "parent": null,
+  "kind": "task",
+  "created": 1784651673,
+  "started": 1784651675,
+  "checked": null,
+  "finished": null,
+  "updated": 1784651901
+}
