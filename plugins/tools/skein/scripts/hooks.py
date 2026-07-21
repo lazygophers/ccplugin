@@ -384,6 +384,10 @@ def _judge_signal(prompt: str) -> list[str]:
 
 def cmd_user_prompt(d: dict[str, Any]) -> int:
     """UserPromptSubmit: 每 prompt 必注入。未初始化 → 硬提示先 setup; 已初始化 → 注入单一 _CTX (含命中信号证据, 走 flow/inline 交 AI 读判据自判)。"""
+    # ponytail: 用户显式调 skein slash command = 已决定走 skein 流程, 无需路由启发判定/未初始化提示, 直接放行
+    prompt = (d.get("prompt", "") or "").strip()
+    if prompt.startswith("/skein-") or prompt.startswith("/skein:skein-"):
+        return 0
     root = _git_root(d.get("cwd") or os.getcwd())
     dir_ = os.path.join(root, ".skein")
     has_git = os.path.isdir(os.path.join(root, ".git"))
