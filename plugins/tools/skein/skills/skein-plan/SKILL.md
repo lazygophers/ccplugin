@@ -10,7 +10,21 @@ effort: high
 
 # skein-plan — planning 入口 + 单一真值源
 
-**planning 单一真值源**。判新旧 + 登记 + brainstorm + grill, 产出 planning 工件。**全程 main 同步前台** — brainstorm/grill 需逐问用户 (`AskUserQuestion`), subagent 不能与用户对话, 故不派执行 subagent (纯信息调研可派 `skein-researcher` 只读 subagent, 但设计决策 main 汇总裁定)。
+**planning 单一真值源**。判新旧 + 登记 + brainstorm + grill, 产出 planning 工件。**全程 main 同步前台** — brainstorm/grill 需逐问用户 (`AskUserQuestion`), subagent 不能与用户对话, 故不派执行 subagent (纯信息调研按下方「research 判定门」决定是否派 `skein-researcher` 只读 subagent, 设计决策 main 汇总裁定)。
+
+## 🧭 research 判定门 (自动判, 非用户说要才派)
+
+brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动判 (非 main 临场感觉, 非等用户说):
+
+| 档 | 信号 | 判定 |
+| --- | --- | --- |
+| **明确需** | 外部 API / 库选型 / 跨陌生子系统 / 现状代码未知 / 协议待定 | **自动派 researcher** |
+| **明确不需** | 已知代码模式 / 用户给足信息 / 单熟悉子系统 / 单点改 | **跳 research, 直 brainstorm** |
+| **保守灰区** | 倾向需但不明确 (可能涉未知但不确定) | **自动派 researcher** (宁可调研) |
+| **激进灰区** | 倾向不需但拿不准 (看似简单但可能有坑) | **AskUserQuestion 问用户是否需 research** |
+| **兜底** | brainstorm 中 subtask 切不动 / depends_on 定不了 | **触发派 researcher** 勘察代码再拆 |
+
+派 researcher 后仍受「探索封顶」约束 — 够拆 subtask 即收敛, 禁无限深挖。
 
 `skein-researcher` 的结论持久化在 `.skein/task/<id>/research/` (dispatch 时把该 task id 作为 task-id 传给它)。planning 后续步骤 (brainstorm/PRD) 可复读这些笔记, 不必只靠回传摘要或记忆; task finish 归档时随 task 目录一并归档。
 
