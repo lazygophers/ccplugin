@@ -2,7 +2,7 @@
   "id": "design-skills",
   "name": "add-design-skills",
   "desc": "在 skills/ 新增 design 分类 + html-design skill：HTML-first 设计工作台，覆盖 UI/UX 界面/数据可视化/图像设计/演示排版四模式，所有产出以 HTML 落地，其余格式从 HTML 打包导出",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -129,21 +129,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-skills",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-skills",
-      "branch": "skein/design-skills",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-skills",
   "parent": null,
   "kind": "task",
   "created": 1784650382,
   "started": 1784650428,
   "checked": null,
-  "finished": null,
-  "updated": 1784651364
+  "finished": 1784651446,
+  "updated": 1784651446
 }

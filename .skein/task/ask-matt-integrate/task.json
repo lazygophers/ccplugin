@@ -2,7 +2,7 @@
   "id": "ask-matt-integrate",
   "name": "ask-matt 场景路由融入 skein",
   "desc": "ask-matt (Matt Pocock 场景路由器) 融入 skein-flow 作用域边界表 (场景路由扩展) + 新建 references/matt-pocock-mapping.md (完整 ask-matt→skein 映射, handoff 标注已替代); 零外部 skill 硬依赖",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,12 +13,12 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "运行中",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651383,
       "started": 1784651409,
-      "finished": null
+      "finished": 1784651500
     },
     {
       "sid": "s2",
@@ -29,30 +29,23 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784651384,
-      "started": null,
-      "finished": null
+      "started": 1784651500,
+      "finished": 1784651577
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-ask-matt-integrate",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-ask-matt-integrate",
-      "branch": "skein/ask-matt-integrate",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/ask-matt-integrate",
   "parent": null,
   "kind": "task",
   "created": 1784651331,
   "started": 1784651400,
   "checked": null,
-  "finished": null,
-  "updated": 1784651409
+  "finished": 1784651592,
+  "updated": 1784651592
 }
