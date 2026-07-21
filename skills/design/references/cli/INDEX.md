@@ -20,3 +20,8 @@
 ## 跨媒介共享
 
 三方向硬门、事实验证见顶层 [../../SKILL.md](../../SKILL.md)。
+
+## 无关平台的共用层
+
+- UI/UX 原则 / 信息架构 / 交互 / 可用性无障碍 → [../ui-ux/INDEX.md](../ui-ux/INDEX.md)
+- 配色理论 / 调色板模板 / 可访问性 → [../color/INDEX.md](../color/INDEX.md)

@@ -19,7 +19,7 @@
 | 维度 | 选项示例 |
 |------|---------|
 | **类型** | 摄影 / 插画 / 几何 / 抽象 / 字体为主 |
-| **色板** | 见 [design-styles.md](design-styles.md) 配色色系 |
+| **色板** | 见 [style.md](style.md) 配色色系 |
 | **渲染风格** | 扁平 / 拟物 / 线条 / 渐变 / 噪点 / 拼贴 |
 | **文字处理** | 无字 / 标题为主 / 数据标注 / 排版为主 |
 | **情绪** | 冷静 / 热烈 / 神秘 / 温暖 / 科技 / 复古 |
@@ -59,5 +59,5 @@
 
 - headless Chrome 按固定 viewport（= 图像尺寸）截图 → PNG
 - 设备像素比 `deviceScaleFactor: 2` 出高清（ retina ）
-- 批量系列卡片 → 脚本遍历每个 HTML 截图，见 [export-pipeline.md](export-pipeline.md)
+- 批量系列卡片 → 脚本遍历每个 HTML 截图，见 [export.md](export.md)
 - 需透明背景 → `body { background: transparent }` + PNG alpha

@@ -88,4 +88,4 @@ HTML + print CSS，浏览器打印或 Puppeteer 导 PDF。
 
 ## 导出
 
-详见 [export-pipeline.md](export-pipeline.md)：HTML 幻灯片无需导出（本身就是放映物），PDF 走 print / Puppeteer，微信图文走内联 HTML 粘贴。
+详见 [export.md](export.md)：HTML 幻灯片无需导出（本身就是放映物），PDF 走 print / Puppeteer，微信图文走内联 HTML 粘贴。
