@@ -9,6 +9,14 @@
       "kind": "task"
     },
     {
+      "id": "hook-userprompt-to-hooks-py",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "prd-section-cli",
       "status": "已完成",
       "deps": [],

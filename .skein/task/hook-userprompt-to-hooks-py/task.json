@@ -1,0 +1,47 @@
+{
+  "id": "hook-userprompt-to-hooks-py",
+  "name": "UserPromptSubmit hook 迁 hooks.py 统一入口",
+  "desc": "user_prompt 从 skein.py 迁 hooks.py: 加 cmd_user_prompt + 改 plugin.json hook 命令指向 bin/skein-hooks user-prompt + 删 skein.py user_prompt 方法 + user-prompt 子命令注册",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "迁 user_prompt 到 hooks.py",
+      "desc": "hooks.py 加 cmd_user_prompt (迁移 skein.py:1459-1490 的 user_prompt 文案逻辑, 读 stdin JSON 判 .skein init 态, 未 init 注入 _uninit_ctx 文案 / 已 init 注入判定标准文案) + DISPATCH 注册; plugin.json UserPromptSubmit hook 命令改 bin/skein-hooks user-prompt; skein.py 删 user_prompt 方法 + user-prompt add_parser(3050) + dispatch(3113-3115); 清仅 user_prompt 用的 _read_hook_prompt/_uninit_ctx 若无他引 (需 grep 确认); 文案保持与迁移前一致",
+      "depends_on": [],
+      "验收": [
+        "hooks.py cmd_user_prompt 存在+DISPATCH 注册",
+        "plugin.json UserPromptSubmit→skein-hooks user-prompt",
+        "skein.py grep user_prompt==0",
+        "实测 echo JSON|skein-hooks user-prompt 输出正确",
+        "ast.parse 双文件通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784612739,
+      "started": 1784612787,
+      "finished": 1784613289
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/hook-userprompt-to-hooks-py",
+  "parent": null,
+  "kind": "task",
+  "created": 1784612716,
+  "started": 1784612740,
+  "checked": null,
+  "finished": 1784613290,
+  "updated": 1784613290
+}
