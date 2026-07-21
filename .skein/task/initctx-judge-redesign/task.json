@@ -14,13 +14,59 @@
       "验收": [
         "findings.md 含对比表+案例>=3+方向建议>=2"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "agent": "skein-researcher",
       "skills": [],
       "created": 1784614448,
       "started": 1784614453,
-      "finished": null
+      "finished": 1784615669
+    },
+    {
+      "sid": "s2",
+      "name": "E: TaskCreated hook 机械禁冒充",
+      "desc": "新增 TaskCreated hook: .skein/config.yaml 存在 → exit 2 阻 TaskCreate + stderr 提示 skein create。hooks.py 加 cmd_task_created + DISPATCH + plugin.json 注册",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784615702,
+      "started": 1784615710,
+      "finished": 1784615806
+    },
+    {
+      "sid": "s3",
+      "name": "A: PreToolUse 守 Write/Edit 无 active task 硬阻",
+      "desc": "cmd_guard 扩展: .skein/config.yaml 存在 + 无 active task + Write/Edit 落非 .skein/ 代码 → exit 2 阻, 提示先 skein create",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784615702,
+      "started": 1784615807,
+      "finished": 1784615999
+    },
+    {
+      "sid": "s4",
+      "name": "D: cmd_user_prompt 信号三档 + _INIT_CTX 正向重写",
+      "desc": "cmd_user_prompt 内脚本信号三档分 (flow/inline/灰区); _INIT_CTX 删 negation 改正向目标行为+事实陈述框架避 injection 防御",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784615702,
+      "started": 1784615710,
+      "finished": 1784616516
     }
   ],
   "repos": [],
@@ -40,5 +86,5 @@
   "started": 1784614449,
   "checked": null,
   "finished": null,
-  "updated": 1784614453
+  "updated": 1784616516
 }

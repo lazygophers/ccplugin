@@ -7,7 +7,7 @@
 - 范围外: 方案定后另起 task 实施
 - 已知约束: 调研落 .skein/task/initctx-judge-redesign/research/findings.md
 ## 验收标准
-- [ ] findings.md 含: ① 各项目判定逻辑对比表 ② skein 当前误判案例 (>=3 例, 含本会话 0d749f6c) ③ 新判定依据方向建议 (>=2 候选 + 利弊)
+- [x] findings.md 含: ① 各项目判定逻辑对比表 ② skein 当前误判案例 (>=3 例, 含本会话 0d749f6c) ③ 新判定依据方向建议 (>=2 候选 + 利弊)
 ## 索引
 - 详细设计: [design.md](design.md)
 - 调研收敛: [findings.md](findings.md)
