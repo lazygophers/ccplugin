@@ -342,7 +342,7 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 #   走 flow 的硬约束由 cmd_task_created (机械阻 TaskCreate) + cmd_guard (active-task 落码门) 兜底,
 #   prompt 仅留正向指引 + 证据展示, 不重复禁令。
 _CTX = """# SKEIN 判定 (信号仅建议, AI 综合上下文定夺)
-判据: 走 flow = 跨≥2文件/多步骤/改动类动词/新建类 | 可 inline = 纯查询/问答/单文件单处 | 判不清 = AskUserQuestion。
+判据: 走 flow(优先) = 跨≥2文件/多步骤/改动类动词/新建类 | 可 inline = 纯查询/问答/单文件单处 | 判不清 = AskUserQuestion。
 → 倾向 flow: skein create 建 task 走 skein-flow; 倾向 inline: 直接答/改; 判不清: AskUserQuestion。"""
 
 # 信号判据 (只检测证据, 不替判档位 — 档位交 AI 读 _CTX 判据自判)
