@@ -30,13 +30,15 @@ description: 跨媒介设计 skill——帮用户做 UI/UX 与接口设计决策
 
 收到任务先定媒介（多信号叠加按行序）：
 
-| 产物形态 | 媒介 | 参考 |
+| 产物形态 | 媒介 | 二级索引（选择指导） |
 |---------|------|------|
-| Web 页面 / 原型 / 布局 / 组件 / 数据可视化 / 图像 / 幻灯片 | HTML | [html/styles](references/html/styles.md) · [layout](references/html/layout.md) · [components](references/html/components.md) · [data-viz](references/html/data-viz.md) · [image](references/html/image.md) · [slides](references/html/slides.md) · [export](references/html/export.md) |
-| 原生 App(iOS / Android / 桌面) | App | [app-medium](references/app-medium.md) |
-| 命令行工具(`./tool <command>`) | CLI | [cli-medium](references/cli-medium.md) |
-| 终端全屏交互应用(TUI) | TUI | [tui-medium](references/tui-medium.md) |
+| Web 页面 / 原型 / 布局 / 组件 / 数据可视化 / 图像 / 幻灯片 | HTML | [html/INDEX](references/html/INDEX.md) |
+| 原生 App(iOS / Android / 桌面) | App | [app/INDEX](references/app/INDEX.md) |
+| 命令行工具(`./tool <command>`) | CLI | [cli/INDEX](references/cli/INDEX.md) |
+| 终端全屏交互应用(TUI) | TUI | [tui/INDEX](references/tui/INDEX.md) |
 | 评审 / 打分 / 找问题 | 任意媒介 + §评审 | |
+
+每个媒介的 INDEX.md 是二级索引，按四维（**布局 / 场景 / 组件 / 风格**）分流到对应文件，并含现成主题与配色模板（复制即用）。
 
 边界：
 
@@ -59,22 +61,22 @@ description: 跨媒介设计 skill——帮用户做 UI/UX 与接口设计决策
 
 ### 选风格与配色色系
 
-HTML 媒介详见 [html/styles.md](references/html/styles.md)。决策路径：定语境（受众 / 场景 / 情绪）→ 从风格谱系选三方向 → 每方向配完整色板（主色 + 辅助 + 中性阶 + 语义色 + 背景）→ 可访问性硬指标（对比度 ≥ 4.5:1、不只靠颜色传信息、暗模式重调中性阶）→ 固化 token。App / TUI 媒介各自适配平台色域约束（见对应 medium 文件）。
+决策路径：定语境（受众 / 场景 / 情绪）→ 从风格谱系选三方向 → 每方向配完整色板（主色 + 辅助 + 中性阶 + 语义色 + 背景）→ 可访问性硬指标（对比度 ≥ 4.5:1、不只靠颜色传信息、暗模式重调中性阶）→ 固化 token。各媒介的现成主题与配色模板（复制即用）：[html/style](references/html/style.md) · [app/style](references/app/style.md) · [cli/style](references/cli/style.md) · [tui/style](references/tui/style.md)。
 
 ### 选布局与场景自适应
 
-HTML 媒介详见 [html/layout.md](references/html/layout.md)。共通纪律：间距取自固定尺度阶（禁魔法数）、移动优先断点（结构随宽度变）、场景切换用 CSS 变量或平台机制（亮暗 / 密度 / 焦点）、视觉层级焦点唯一。App 适配平台导航习惯，TUI 适配字符格栅与 resize，CLI 适配参数与输出分层。
+共通纪律：间距取自固定尺度阶（禁魔法数）、场景切换用变量或平台机制（亮暗 / 密度 / 焦点）、视觉层级焦点唯一。各媒介布局与场景文件：[html/layout](references/html/layout.md) + [scenes](references/html/scenes.md) · [app/layout](references/app/layout.md) + [scenes](references/app/scenes.md) · [cli/layout](references/cli/layout.md) + [scenes](references/cli/scenes.md) · [tui/layout](references/tui/layout.md) + [scenes](references/tui/scenes.md)。
 
 ### 选组件与交互
 
-HTML 见 [html/components.md](references/html/components.md)，App 见 [app-medium.md](references/app-medium.md) 组件与手势段，TUI 见 [tui-medium.md](references/tui-medium.md) 组件与焦点段，CLI 见 [cli-medium.md](references/cli-medium.md) 参数与输出段。共通：选型先问「用户要完成什么任务」、状态完整性（default / hover / focus / active / disabled / loading / error / empty）、token 化、可访问性基线。
+共通：选型先问「用户要完成什么任务」、状态完整性（default / hover / focus / active / disabled / loading / error / empty）、token 化、可访问性基线。各媒介组件文件：[html/components](references/html/components.md) · [app/components](references/app/components.md) · [cli/components](references/cli/components.md) · [tui/components](references/tui/components.md)。
 
 ### 自适应不同场景
 
-- HTML：亮 / 暗模式、密度切换、响应式断点、容器查询（[layout.md](references/html/layout.md)）
-- App：系统主题跟随、横竖屏、平板分栏、动态字体（[app-medium.md](references/app-medium.md)）
-- CLI：TTY 检测关色 / 关进度、配置五层优先级链、非交互降级（[cli-medium.md](references/cli-medium.md)）
-- TUI：色域检测降级（真彩→256→16）、resize 重绘、亮暗主题（[tui-medium.md](references/tui-medium.md)）
+- HTML：亮 / 暗、密度、响应式断点、容器查询（[html/scenes](references/html/scenes.md)）
+- App：系统主题、横竖屏、平板分栏、动态字体（[app/scenes](references/app/scenes.md)）
+- CLI：TTY 检测关色 / 关进度、配置五层优先级链、非交互降级（[cli/scenes](references/cli/scenes.md)）
+- TUI：色域检测降级（真彩→256→16）、resize 重绘、亮暗主题（[tui/scenes](references/tui/scenes.md)）
 
 ---
 
