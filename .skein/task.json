@@ -1,15 +1,31 @@
 {
   "tasks": [
     {
-      "id": "design-medium-split",
+      "id": "ask-matt-deep-integrate",
       "status": "进行中",
       "deps": [],
-      "worktree": ".worktrees/skein-design-medium-split",
+      "worktree": ".worktrees/skein-ask-matt-deep-integrate",
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-flatten",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-design-flatten",
       "parent": null,
       "kind": "task"
     },
     {
       "id": "ask-matt-integrate",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-medium-split",
       "status": "已完成",
       "deps": [],
       "worktree": null,

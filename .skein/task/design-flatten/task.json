@@ -1,0 +1,98 @@
+{
+  "id": "design-flatten",
+  "name": "flatten-design-to-one-skill",
+  "desc": "skills/design/ 压平为单个 skill: 一个 SKILL.md medium 路由(html/app/cli/tui) + references/ 多文件, 删子 skill 目录",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "restructure-files",
+      "desc": "移动文件: html-design/references→references/html/, app/cli/tui SKILL→references/*-medium.md, 删子目录与 README",
+      "depends_on": [],
+      "验收": [
+        "skills/design/SKILL.md 唯一",
+        "无子 skill 目录",
+        "references/ 含 html 子目录 + app/cli/tui medium 文件"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652064,
+      "started": 1784652066,
+      "finished": 1784652097
+    },
+    {
+      "sid": "s2",
+      "name": "write-unified-skill",
+      "desc": "写 skills/design/SKILL.md 统一入口: medium 路由表 + 共享原则 + UI/UX 优化能力",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "唯一 SKILL.md",
+        "含四 medium 路由",
+        "含三方向硬门",
+        "含 UI/UX 决策能力",
+        "无反模式",
+        "frontmatter 达标"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652065,
+      "started": 1784652097,
+      "finished": 1784652148
+    },
+    {
+      "sid": "s3",
+      "name": "commit",
+      "desc": "git commit",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "commit 完成"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652065,
+      "started": 1784652148,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-design-flatten",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-design-flatten",
+      "branch": "skein/design-flatten",
+      "merged": false
+    }
+  ],
+  "branch": "skein/design-flatten",
+  "parent": null,
+  "kind": "task",
+  "created": 1784652064,
+  "started": 1784652066,
+  "checked": null,
+  "finished": null,
+  "updated": 1784652148
+}

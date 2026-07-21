@@ -1,0 +1,70 @@
+{
+  "id": "ask-matt-deep-integrate",
+  "name": "ask-matt 方法论深度融入 skein",
+  "desc": "吸收 ask-matt 4 条独立方法论进 skein 正文/references: smart zone+context hygiene (skein-plan), tracer-bullet 端到端瘦实现优先 (skein-plan subtask 拆分铁律), tight feedback loop 先复现再修 (skein-exec 自愈), deep-module 词表+ADR (skein-plan/references/design-vocabulary.md). 协议先行后并行 skein-plan L99 已覆盖不重做.",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "建 design-vocabulary.md",
+      "desc": "新建 plugins/tools/skein/skills/skein-plan/references/design-vocabulary.md: deep-module 词表 (module/interface/depth/seam/adapter/leverage/locality 各含定义+skein落点) + ADR 机制 (难逆决策记录到 .skein/task/<id>/design.md 或 spec/). ask-matt codebase-design/domain-modeling 同源.",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652146,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "skein-plan 加 smart zone + tracer-bullet",
+      "desc": "skein-plan SKILL.md: (1) 加 smart zone/context hygiene 概念 (grill->prd->subtask 同 context 不中途 compact, 接近 120k token 先收敛/派 researcher); (2) subtask 拆分铁律 L99 加 tracer-bullet 原则 (契约 subtask 本身端到端穿通最瘦实现); (3) design.md 段加指针指向 design-vocabulary.md",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652146,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "skein-exec 加 tight feedback loop",
+      "desc": "skein-exec SKILL.md 自愈段加 tight feedback loop 硬门: subtask 失败先建一条就红的复现命令/测试再修, 禁盲改 (diagnosing-bugs 同源)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652146,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-ask-matt-deep-integrate",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-ask-matt-deep-integrate",
+      "branch": "skein/ask-matt-deep-integrate",
+      "merged": false
+    }
+  ],
+  "branch": "skein/ask-matt-deep-integrate",
+  "parent": null,
+  "kind": "task",
+  "created": 1784652112,
+  "started": 1784652153,
+  "checked": null,
+  "finished": null,
+  "updated": 1784652153
+}

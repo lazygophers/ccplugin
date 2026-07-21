@@ -2,7 +2,7 @@
   "id": "design-medium-split",
   "name": "split-design-by-medium",
   "desc": "skills/design/ 按 medium 拆分类：html-design 已有，新增 app-design / cli-design / tui-design，README 改 medium 路由索引",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -114,21 +114,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-medium-split",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-medium-split",
-      "branch": "skein/design-medium-split",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-medium-split",
   "parent": null,
   "kind": "task",
   "created": 1784651673,
   "started": 1784651675,
   "checked": null,
-  "finished": null,
-  "updated": 1784651901
+  "finished": 1784651937,
+  "updated": 1784651937
 }
