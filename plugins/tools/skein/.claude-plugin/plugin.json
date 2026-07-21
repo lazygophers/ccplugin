@@ -9,24 +9,6 @@
     "homepage": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
     "repository": "https://github.com/lazygophers/ccplugin/tree/master/plugins/tools/skein",
     "license": "AGPL-3.0-or-later",
-    "userConfig": {
-        "max_active": {
-            "type": "number",
-            "title": "最大并行 task 数",
-            "description": "同 session 同时 in_progress 的 task 上限。推荐 2 (与 subtask 级并发一致)。覆盖 .skein/config.yaml。",
-            "default": 2,
-            "min": 1,
-            "max": 8
-        },
-        "max_parallel": {
-            "type": "number",
-            "title": "最大并行 subtask 数",
-            "description": "单 task 内同时跑的 subtask 上限。推荐 2。覆盖 .skein/config.yaml。",
-            "default": 2,
-            "min": 1,
-            "max": 8
-        }
-    },
     "skills": [
         "./skills/skein-setup",
         "./skills/skein-flow",
