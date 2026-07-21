@@ -1,0 +1,72 @@
+{
+  "id": "matt-full-audit",
+  "name": "matt skills 全量覆盖审计",
+  "desc": "审计 github.com/mattpocock/skills 全部 22 正式 skills (engineering 17 + productivity 5) 本体方法论 vs skein 现状覆盖度, 找出未覆盖/弱覆盖差距, 据报告补齐。已知漏: resolving-merge-conflicts (skein 无方法论)。已深覆盖: grill/grilling/implement/check 等。",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "全覆盖差距审计",
+      "desc": "读 /tmp/mattpocock-skills 全部 22 正式 skills SKILL.md 本体, 对照 skein 现状 (plugins/tools/skein/skills/), 产出 findings.md 覆盖差距报告: 每个 skill 判 深/中/弱/空白 + skein 对应位置 + 差距要点 + 补齐建议 (进哪个文件)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-researcher",
+      "skills": [],
+      "created": 1784652763,
+      "started": 1784652774,
+      "finished": 1784653091
+    },
+    {
+      "sid": "s2",
+      "name": "据报告补齐差距",
+      "desc": "据 s1 findings.md 报告, 对弱/空白项补齐: 深度规则进 SKILL.md 正文, 词表/流程进 references, 超范围标注。逐项派 executor 或 main 合并改。",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652763,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "mapping 补漏两行",
+      "desc": "matt-pocock-mapping.md 补 resolving-merge-conflicts + grilling 两行 (上次漏)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652763,
+      "started": 1784652774,
+      "finished": 1784652844
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-matt-full-audit",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-matt-full-audit",
+      "branch": "skein/matt-full-audit",
+      "merged": false
+    }
+  ],
+  "branch": "skein/matt-full-audit",
+  "parent": null,
+  "kind": "task",
+  "created": 1784652744,
+  "started": 1784652769,
+  "checked": null,
+  "finished": null,
+  "updated": 1784653091
+}

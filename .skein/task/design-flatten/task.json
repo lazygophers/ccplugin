@@ -2,7 +2,7 @@
   "id": "design-flatten",
   "name": "flatten-design-to-one-skill",
   "desc": "skills/design/ 压平为单个 skill: 一个 SKILL.md medium 路由(html/app/cli/tui) + references/ 多文件, 删子 skill 目录",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -78,21 +78,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-flatten",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-flatten",
-      "branch": "skein/design-flatten",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-flatten",
   "parent": null,
   "kind": "task",
   "created": 1784652064,
   "started": 1784652066,
   "checked": null,
-  "finished": null,
-  "updated": 1784652148
+  "finished": 1784652167,
+  "updated": 1784652167
 }

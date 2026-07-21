@@ -1,0 +1,131 @@
+{
+  "id": "design-refs-restructure",
+  "name": "restructure-refs-by-medium-dim",
+  "desc": "references/ 按 medium 分目录, 每 medium 内按 布局/场景/组件/风格 4 维拆 + INDEX.md 二级索引",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "restructure-html",
+      "desc": "html/: rename styles→style, 新建 scenes, 保留 genre, 建 INDEX",
+      "depends_on": [],
+      "验收": [
+        "html/ 含 INDEX/layout/scenes/components/style + data-viz/image/slides/export"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652659,
+      "started": 1784652661,
+      "finished": 1784652773
+    },
+    {
+      "sid": "s2",
+      "name": "split-app-medium",
+      "desc": "app-medium.md 拆成 app/ 四维 + INDEX",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "app/ 含 INDEX/layout/scenes/components/style",
+        "app-medium.md 删"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652659,
+      "started": 1784652773,
+      "finished": 1784652870
+    },
+    {
+      "sid": "s3",
+      "name": "split-cli-medium",
+      "desc": "cli-medium.md 拆成 cli/ 四维 + INDEX",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "cli/ 含 INDEX/layout/scenes/components/style",
+        "cli-medium.md 删"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652659,
+      "started": 1784652870,
+      "finished": 1784652979
+    },
+    {
+      "sid": "s4",
+      "name": "split-tui-medium",
+      "desc": "tui-medium.md 拆成 tui/ 四维 + INDEX",
+      "depends_on": [
+        "s3"
+      ],
+      "验收": [
+        "tui/ 含 INDEX/layout/scenes/components/style",
+        "tui-medium.md 删"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652659,
+      "started": 1784652979,
+      "finished": 1784653064
+    },
+    {
+      "sid": "s5",
+      "name": "update-top-skill-and-commit",
+      "desc": "顶层 SKILL.md 引用各 INDEX.md + commit",
+      "depends_on": [
+        "s4"
+      ],
+      "验收": [
+        "SKILL.md 引用 4 个 INDEX.md",
+        "commit 完成"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784652659,
+      "started": 1784653064,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-design-refs-restructure",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-design-refs-restructure",
+      "branch": "skein/design-refs-restructure",
+      "merged": false
+    }
+  ],
+  "branch": "skein/design-refs-restructure",
+  "parent": null,
+  "kind": "task",
+  "created": 1784652659,
+  "started": 1784652661,
+  "checked": null,
+  "finished": null,
+  "updated": 1784653064
+}
