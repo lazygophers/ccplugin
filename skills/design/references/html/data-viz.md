@@ -84,4 +84,4 @@
 
 - 内联 SVG → 直接存 `.svg`（矢量、无损、可二次编辑）
 - 需位图 → headless Chrome 按图表外接框截图 → PNG
-- 批量图表 → 脚本遍历截图，见 [export-pipeline.md](export-pipeline.md)
+- 批量图表 → 脚本遍历截图，见 [export.md](export.md)

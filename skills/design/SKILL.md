@@ -40,6 +40,17 @@ description: 跨媒介设计 skill——帮用户做 UI/UX 与接口设计决策
 
 每个媒介的 INDEX.md 是二级索引，按四维（**布局 / 场景 / 组件 / 风格**）分流到对应文件，并含现成主题与配色模板（复制即用）。
 
+## 无关平台的共用层
+
+两套跨媒介方法论，所有 medium 都引用：
+
+| 主题 | 二级索引 | 覆盖 |
+|------|---------|------|
+| UI/UX | [ui-ux/INDEX](references/ui-ux/INDEX.md) | 设计原则 / 信息架构 / 交互设计 / 可用性与无障碍 |
+| 配色 | [color/INDEX](references/color/INDEX.md) | 色彩理论 / 调色板模板 / 可访问性 |
+
+设计任务先在共用层定原则与色板，再去 medium 层落地实现。
+
 边界：
 
 - 网页内跑的 App mockup → HTML 媒介（HTML 出原型）

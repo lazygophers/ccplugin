@@ -116,7 +116,7 @@ default → hover → focus → active → disabled
 .btn--lg { height: 48px; }
 ```
 
-好处：换肤 / 密度切换 / 暗模式一处生效全局生效。详见 [design-styles.md](design-styles.md) 与 [layout-system.md](layout-system.md)。
+好处：换肤 / 密度切换 / 暗模式一处生效全局生效。详见 [style.md](style.md) 与 [layout.md](layout.md)。
 
 ## 可访问性基线
 
