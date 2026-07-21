@@ -10,13 +10,13 @@
 - 范围外: 不改 hook 注入文案内容 (文案刚在上 task 定稿)
 - 已知约束: hooks.py 读 stdin JSON (hook_event_name+prompt), 非 skein.py 的 _read_hook_prompt 机制; cmd_user_prompt 需自取 prompt 字段 (但当前文案已不依赖 prompt 内容, 全交 AI 判)
 ## 验收标准
-- [ ] hooks.py 含 cmd_user_prompt 函数 + DISPATCH 注册 user-prompt
-- [ ] plugin.json UserPromptSubmit hook command = bin/skein-hooks user-prompt
-- [ ] skein.py 无 user_prompt 方法 + 无 user-prompt 子命令注册 (grep -c user_prompt == 0, 但 _uninit_ctx/_read_hook_prompt/budget_guard 若仅 user_prompt 用则一并清)
-- [ ] 注入文案与迁移前一致 (判 flow 标准 + 判定行格式 + 禁修饰词 + TaskCreate≠skein create + 自降级黑名单 + 查重 + AskUserQuestion)
-- [ ] 实测: echo JSON | bin/skein-hooks user-prompt 输出正确 additionalContext
-- [ ] python ast.parse hooks.py + skein.py 语法通过
-- [ ] claude -p 质量门 (端点抖则 hook 实测替代)
+- [x] hooks.py 含 cmd_user_prompt 函数 + DISPATCH 注册 user-prompt
+- [x] plugin.json UserPromptSubmit hook command = bin/skein-hooks user-prompt
+- [x] skein.py 无 user_prompt 方法 + 无 user-prompt 子命令注册 (grep -c user_prompt == 0, 但 _uninit_ctx/_read_hook_prompt/budget_guard 若仅 user_prompt 用则一并清)
+- [x] 注入文案与迁移前一致 (判 flow 标准 + 判定行格式 + 禁修饰词 + TaskCreate≠skein create + 自降级黑名单 + 查重 + AskUserQuestion)
+- [x] 实测: echo JSON | bin/skein-hooks user-prompt 输出正确 additionalContext
+- [x] python ast.parse hooks.py + skein.py 语法通过
+- [x] claude -p 质量门 (端点抖则 hook 实测替代)
 ## 索引
 - 详细设计: [design.md](design.md)
 - 调研收敛: [findings.md](findings.md)

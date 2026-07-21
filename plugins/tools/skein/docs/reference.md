@@ -38,7 +38,7 @@ skein <cmd>
 | `board` | — | 渲染并打印 `.skein/task.md` 看板 |
 | `view` | — | 生成 (缺则建) 并用系统默认程序打开 `.skein/task.html` 静态可视化看板 (title/标题带项目名, 多主题多配色深浅色, 页内切换器, 不自动打开) |
 | `session-context` | — | (SessionStart hook 调) 有 active task → 输出摘要 JSON 注入; git 仓无 `.skein/` → 注入 setup 建议 (nudge); 非 git 仓静默 exit 0。compaction 后恢复活跃 task 状态。另: 向 `$CLAUDE_ENV_FILE` 追加 `export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1` (幂等, **先于 gitroot 判定, 与 git 无关**), 使 Bash 命令保持项目工作目录 —— 随插件 SessionStart hook 发货, 不落用户项目 settings (plugin.json 无 env 字段)。微服务/前后端分离场景 cwd 无 git (子目录各自是仓) 时照样写入, 恰是最需要该 env 的场景 |
-| `user-prompt` | — | (UserPromptSubmit hook 调) 每次用户 prompt 注入 task 判定提醒 (是任务则走 skein-flow 闭环); 已初始化时惰性拉起看板服务 (`_ensure_board_server`: web_serve=true 且未在跑则 detached spawn `serve`, lock 去重, 不阻塞 hook); 非 git 仓静默 exit 0 |
+| `user-prompt` | — | (UserPromptSubmit hook 调, 经 `bin/skein-hooks user-prompt` → `hooks.py:cmd_user_prompt`) 每次用户 prompt 注入 task 判定标准 (是任务则走 skein-flow 闭环), 判定全交 AI (无脚本预筹档位); 非 git 仓静默 exit 0。看板服务仅由 `experimental.monitors` 维护, hook 不拉起 |
 | `contract <id>` | `--add <文本>` | `--add` 追加一条契约到 task.json `contracts` 数组; 省略 `--add` 则逐条列出。planning/grill 锁契约, check 阶段 checker 读出逐条验证 |
 | `prd <action> <id>` | `--type {目标\|goal\|边界\|scope\|验收标准\|acceptance}` `--list <文本>` | 读/写/追加/勾选 prd.md 章节 (目标/边界/验收标准; 索引章节脚本维护禁改)。`action`: `read` 读正文 (不需 `--list`) / `write` 整章清重建 (仅留 `##` 标题, 旧内容全清) / `add` 追加到章节末 (已有保留) / `check` 勾选匹配 `- [ ]`→`- [x]` / `uncheck` 反勾选。`--type` 中英都接受 (内部归一到中文); `--list` 文本 `\n` 多行 (check/uncheck 时为子串匹配)。写入自动规范化: 目标/验收标准补 `- [ ]`, 边界补 `- `。check/uncheck 零命中 exit 1 (防 silent fail)。**禁裸 Edit prd.md — 章节内容必经此命令写**, 网页端浮层编辑也复用同逻辑 (经 `/__skein__/exec` 白名单) |
 | `subtask <action> <tid> [sid]` | `--name` `--desc` `--deps "s1,s2"` `--check "断言;断言"` `--passed "1,2"` `--note <文本>` `--agent <名>` `--skills "a,b"` | 单 task 内 subtask DAG 调度 (存 per-task task.json 的 `subtasks[]`)。`action`: `add` 登记 / `claim` **一次性认领就绪批 (整批标 running)** / `ready` 只读预览 / `start` 单个占槽 / `check` 勾验收(算完成百分比) / `done` 完成 / `fail` 失败 / `list` 列态。add/start/check/done/fail 必带 `sid`; `add` 另**必填 `--name`+`--desc`** (缺则报错)。`--check` = 验收标准 checklist (分号分隔, 每条一个可验断言), `--passed` = `check` 时已通过验收序号 (1-based 逗号分隔; `all`=全过, `none`=清空), `--note` = `fail` 时的失败备注。`--agent` = 执行 agent (省略默认 `skein-executor`), `--skills` = 关联 skills 逗号分隔 (0-n) |
@@ -134,7 +134,7 @@ skein-spec <cmd>
 
 plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 Claude Code v2.1.105+), 每 session 由 Claude Code 拉起 `skein serve` 持久后台进程, 起本地 http 服务 (随机 port, 服务 `.skein/`) 常驻托管 `task.html` 看板。服务器 stdout 每行 (含启动时打印的看板 URL) 经 monitor 递给 Claude 作通知。
 
-- **双启动 (monitor + hook 兜底)**: ① `experimental.monitors` session 启动 (但 project-scope 插件 monitor 被禁, 仅 personal-scope `~/.claude/plugins/` 生效, 且改 monitor 需整会话重启); ② `user-prompt` hook 惰性拉起 (`_ensure_board_server`: web_serve=true 且 lock 未命中同项目时 detached spawn `serve`) —— **不受 monitor 的 scope/restart 限制**, 覆盖 project-scope。两处经单实例锁去重, 同项目恒只跑一个。
+- **单启动 (仅 monitor)**: `experimental.monitors` session 启动 (但 project-scope 插件 monitor 被禁, 仅 personal-scope `~/.claude/plugins/` 生效, 且改 monitor 需整会话重启)。看板服务不再有 hook 兜底拉起 (c970f308 移除 UserPromptSubmit 惰性拉起), project-scope 插件需用户显式 `skein view` 或改 personal-scope 安装。
 - **总启动 + 命令自判**: Claude Code 的 monitor launcher **不读** `config.yaml`, 故 monitor 恒被拉起; 由 `serve` 命令按 config 决定跑不跑 —— 无 `.skein/` 工作区 (非 task 项目) 或 `web_serve=false` → 静默 no-op 退出, 不占端口。
 - **setup 缺省启用**: `skein setup` 缺省 `web_serve=true` 并打印看板路径 (不主动打开; 常驻服务由 monitor 起); 传 `--no-web` 则写 `web_serve=false` 关闭。
 - **运行时关闭**: 用户随时改 `.skein/config.yaml` 的 `web_serve: false` 即关 (下个 session monitor no-op)。
@@ -147,7 +147,7 @@ plugin.json 声明一个 `experimental.monitors` 项 `skein-board-server` (需 C
 | hook | 触发 | 作用 |
 | --- | --- | --- |
 | **SessionStart** | 每 session 开始 | `skein-spec session-start` 注入 core 规则**极简索引** (仅标题, 全文按需 `inject-core`) + `skein session-context` 注入活跃 task 状态 (compaction 后恢复)。两处注入均过 `hooklib.budget_guard` token 硬预算守卫 (超则截断+stderr 告警要求简化), 保证 hook 注入 token 可控 |
-| **UserPromptSubmit** | 每次用户提交 prompt | `skein user-prompt` 注入 **task 判定提醒**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定为 model 语义活, hook 只注入决策标准 (过 budget_guard); 非 git 仓静默 exit 0 |
+| **UserPromptSubmit** | 每次用户提交 prompt | `skein-hooks user-prompt` 注入 **task 判定标准**: 请求是任务 (跨 ≥2 文件 / 多步骤 / 需调研 / 产出文档) → 让 model 加载 `skein-flow` 走强制闭环, 禁 inline; 纯查询/问答/单文件 ≤20 行豁免。判定全交 AI (无脚本预筹), hook 只注入决策标准; 判定行禁修饰词 (禁「但/先/只是」后缀) + 禁 TaskCreate 冒充 skein create; 非 git 仓静默 exit 0 |
 | **PreToolUse** | Edit/Write/MultiEdit/Read | `skein-hooks guard` 两类硬阻: ① 直接读写 .skein/ 的 task.json / task.md (顶层 + per-task, 读写全挡); ② **迁移门** — 有 `.trellis/` 但无 `.skein/config.yaml` 时挡源码 Read/Edit/Write/MultiEdit (含只读诊断), 逼先 skein-setup 初始化 (纯文本注入压不过 trellisx 的 active-task 注入, 故硬阻; 仅 Bash 跑 `skein setup` 放行, `.skein/`·`.trellis/` 内部路径放行不自锁) |
 | **PermissionRequest** | Bash/Edit/Write/Read | `skein-hooks permission` 对 .skein/ 自有内容操作**默认同意** (Bash 调 skein/skein-spec 引擎; Edit/Write/Read .skein/ 非脚本文件如 prd/design/findings)。免逐次授权打断; task.json/task.md 仍归 guard 硬阻, 不放行 |
 | **PostToolBatch** | 并行工具批 | `skein-hooks batch` 拦同批 ≥2 个 .skein 状态**写命令** (create/start/finish/archive/subtask/sediment...) → block (同写 task.json/spec 有竞态), 引导串行或 `subtask claim` 整批认领 |
