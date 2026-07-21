@@ -349,6 +349,7 @@ subagent 工具继承例外（即使列了也不给）：AskUserQuestion / Enter
 | dimensions.md | 9 维 rubric 全表 + HL-1~4 + 相关簇 | darwin-skill 本地 + SkillLens |
 | workflow.md | SkillOpt validation-gated loop + git ratchet + judge 独立性 | SkillOpt (arXiv 2605.23904) + darwin |
 | subagent-authoring.md / anti-patterns.md / validation-checklist.md | subagent 设计 / 22 反模式 / 发布前 checklist | 官方 + 社区 + darwin dim9 |
+| skill-quality-checklist.md | skill 质量根德 (predictability / 信息分层 / 何时 split / pruning / leading words / 6 failure modes) | ask-matt `/writing-great-skills` 同源 |
 | research/01-06.md | 官方规范 / 学术 / 社区 / 跨平台 / 反模式 / 工具链 | platform.claude.com / anthropics/skills / 等 |
 | optimizer-sources.md | 3 论文 + darwin 引用 + 实证数据 | arXiv / GitHub（2026-06-26 curl 核实） |
 
