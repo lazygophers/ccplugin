@@ -1,0 +1,42 @@
+{
+  "id": "signal-evidence-ai-judge",
+  "name": "_judge_signal 改证据展示",
+  "desc": "_judge_signal 改证据展示+建议语调: 三常量加判断条件展示 + 命中信号证据 + 建议非强制, AI 最终判",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "_judge_signal 证据展示+建议语调",
+      "desc": "三常量加判断条件展示(flow/inline/判不清)+命中信号证据+建议非强制; _judge_signal 加返回命中证据清单; cmd_user_prompt 注入证据; token 精简",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784618127,
+      "started": 1784618175,
+      "finished": 1784618646
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-signal-evidence-ai-judge",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-signal-evidence-ai-judge",
+      "branch": "skein/signal-evidence-ai-judge",
+      "merged": false
+    }
+  ],
+  "branch": "skein/signal-evidence-ai-judge",
+  "parent": null,
+  "kind": "task",
+  "created": 1784618089,
+  "started": 1784618169,
+  "checked": null,
+  "finished": null,
+  "updated": 1784618646
+}

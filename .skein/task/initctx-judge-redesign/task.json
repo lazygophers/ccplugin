@@ -2,7 +2,7 @@
   "id": "initctx-judge-redesign",
   "name": "_INIT_CTX 判定依据重设计 (调研→定方案)",
   "desc": "调研 trellis/matt/其他项目 UserPromptSubmit 判定逻辑 + 收集 skein 当前误判案例, 出 findings.md 定新判定依据方向",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -70,21 +70,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-initctx-judge-redesign",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-initctx-judge-redesign",
-      "branch": "skein/initctx-judge-redesign",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/initctx-judge-redesign",
   "parent": null,
   "kind": "task",
   "created": 1784614447,
   "started": 1784614449,
   "checked": null,
-  "finished": null,
-  "updated": 1784616831
+  "finished": 1784616872,
+  "updated": 1784616872
 }
