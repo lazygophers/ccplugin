@@ -1,0 +1,74 @@
+{
+  "id": "design-uiux-refs",
+  "name": "add-uiux-cross-medium-refs",
+  "desc": "references/ui-ux/ 跨媒介 UI/UX 设计参考: 原则/信息架构/交互设计/可用性无障碍, 四 medium 共用",
+  "status": "待处理",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "write-uiux-refs",
+      "desc": "ui-ux/: INDEX + principles + information-architecture + interaction-design + usability-a11y",
+      "depends_on": [],
+      "验收": [
+        "ui-ux/ 含 INDEX + 4 文件"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784653255,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "wire-references",
+      "desc": "SKILL.md + 各 medium INDEX 引用 ui-ux/",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "顶层+4 medium INDEX 含 ui-ux 引用",
+        "无断链"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784653255,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s3",
+      "name": "commit",
+      "desc": "git commit",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "commit 完成"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784653256,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/design-uiux-refs",
+  "parent": null,
+  "kind": "task",
+  "created": 1784653255,
+  "started": null,
+  "checked": null,
+  "finished": null,
+  "updated": 1784653256
+}

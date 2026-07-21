@@ -1,0 +1,90 @@
+{
+  "id": "design-shared-refs",
+  "name": "add-uiux-and-color-refs",
+  "desc": "references/ui-ux/ + references/color/ 两个无关平台的顶层共用参考, 四 medium 引用",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "write-uiux",
+      "desc": "ui-ux/: INDEX + principles + information-architecture + interaction-design + usability-a11y",
+      "depends_on": [],
+      "验收": [
+        "ui-ux/ 含 INDEX + 4 文件",
+        "跨平台通用"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784653276,
+      "started": 1784653277,
+      "finished": 1784653400
+    },
+    {
+      "sid": "s2",
+      "name": "write-color",
+      "desc": "color/: INDEX + theory + palette-templates + accessibility",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "color/ 含 INDEX + 3 文件",
+        "含现成调色板模板"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784653276,
+      "started": 1784653400,
+      "finished": 1784653517
+    },
+    {
+      "sid": "s3",
+      "name": "wire-and-commit",
+      "desc": "SKILL.md + 各 medium INDEX 引用 ui-ux/ color/ + commit",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "引用齐",
+        "无断链",
+        "commit 完成"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784653276,
+      "started": 1784653517,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-design-shared-refs",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-design-shared-refs",
+      "branch": "skein/design-shared-refs",
+      "merged": false
+    }
+  ],
+  "branch": "skein/design-shared-refs",
+  "parent": null,
+  "kind": "task",
+  "created": 1784653276,
+  "started": 1784653277,
+  "checked": null,
+  "finished": null,
+  "updated": 1784653517
+}

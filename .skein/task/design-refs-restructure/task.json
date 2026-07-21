@@ -2,7 +2,7 @@
   "id": "design-refs-restructure",
   "name": "restructure-refs-by-medium-dim",
   "desc": "references/ 按 medium 分目录, 每 medium 内按 布局/场景/组件/风格 4 维拆 + INDEX.md 二级索引",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -111,21 +111,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-refs-restructure",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-refs-restructure",
-      "branch": "skein/design-refs-restructure",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-refs-restructure",
   "parent": null,
   "kind": "task",
   "created": 1784652659,
   "started": 1784652661,
   "checked": null,
-  "finished": null,
-  "updated": 1784653064
+  "finished": 1784653166,
+  "updated": 1784653166
 }

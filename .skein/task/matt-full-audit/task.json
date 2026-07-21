@@ -29,12 +29,12 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652763,
-      "started": null,
-      "finished": null
+      "started": 1784653183,
+      "finished": 1784653534
     },
     {
       "sid": "s3",
@@ -68,5 +68,5 @@
   "started": 1784652769,
   "checked": null,
   "finished": null,
-  "updated": 1784653091
+  "updated": 1784653534
 }

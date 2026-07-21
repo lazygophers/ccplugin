@@ -1,10 +1,10 @@
 {
   "tasks": [
     {
-      "id": "design-refs-restructure",
+      "id": "design-shared-refs",
       "status": "进行中",
       "deps": [],
-      "worktree": ".worktrees/skein-design-refs-restructure",
+      "worktree": ".worktrees/skein-design-shared-refs",
       "parent": null,
       "kind": "task"
     },
@@ -13,6 +13,14 @@
       "status": "进行中",
       "deps": [],
       "worktree": ".worktrees/skein-matt-full-audit",
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-uiux-refs",
+      "status": "待处理",
+      "deps": [],
+      "worktree": null,
       "parent": null,
       "kind": "task"
     },
@@ -42,6 +50,14 @@
     },
     {
       "id": "design-medium-split",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-refs-restructure",
       "status": "已完成",
       "deps": [],
       "worktree": null,
