@@ -1,8 +1,3 @@
----
-name: cli-design
-description: 命令行接口(CLI)设计——命令树结构、flags/args/子命令设计、输出格式、错误信息、帮助文本、交互体验。帮用户设计易学易记易用的命令行工具接口，产出命令规格与实现指引。触发词：做CLI/命令行工具/命令行接口、设计命令、subcommand、flags/参数设计、CLI UX、做终端命令、help 文本。终端全屏交互 UI 走 tui-design，Web 走 html-design，App 走 app-design。
----
-
 # CLI-Design · 命令行接口设计
 
 好的 CLI 像一门小语言：可猜、可组合、可脚本化、出错说人话。帮用户做命令结构、参数、输出、错误、帮助层面的设计决策。

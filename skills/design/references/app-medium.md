@@ -1,8 +1,3 @@
----
-name: app-design
-description: 原生 App UI/UX 设计——移动(iOS/Android)与桌面应用的界面、导航、手势、组件与平台习惯设计。帮用户做平台选型、信息架构、导航模式选择、组件选型与状态设计，产出高保真原型(可走 html-design 出 HTML mockup，或直接给原生实现指引)。触发词：做App设计/iOS/Android/移动端/桌面应用、App原型、App导航、手势设计、原生组件、移动端UI/UX、做手机界面。纯 Web 页面走 html-design，命令行走 cli-design，终端 UI 走 tui-design。
----
-
 # App-Design · 原生 App UI/UX 设计
 
 原生 App 有平台习惯与物理约束（屏幕、手势、系统栏），不是「把网页塞进 App」。帮用户做平台选型、信息架构、导航、组件、手势层面的设计决策。
