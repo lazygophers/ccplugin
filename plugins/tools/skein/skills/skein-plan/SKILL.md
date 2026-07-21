@@ -77,7 +77,9 @@ effort: high
      - 例: `contract <id> --add "响应体 MUST 保持向后兼容, 禁删字段"`; `contract <id> --add "单文件改动禁超 200 行"`。
 5. **产出工件** — `create` 已落 prd/design/findings 三脚手架 (骨架标题, 本步填正文); 调度落 task.json (脚本):
    - `prd.md` (主入口) — 分章节: **目标 / 边界 / 验收标准 / 索引** (链 design/findings/task.json)。每章节自带 `- [ ] TODO`, 填完逐个勾掉; 未勾清 = planning 未收敛。
-   - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json)。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派, 禁就地改。
+   - `design.md` — 详细设计: 架构 / 数据流 / 取舍 / 技术选型 (**不含调度图**, 调度归 task.json) + **可能性分支** section。**写入界限: 仅 planning 阶段写 (含 check 失败回 planning 的二次进入); exec / check / finish 阶段禁动 design.md**。exec/check 发现方案需调整 → 回 planning 改 design 后重派, 禁就地改。
+     - **当前方案 = 精简守现状 (落地不过度设计)** — design.md 正文章节只写满足当前需求的最小可行设计, 禁塞"以后可能要"的扩展点 / 抽象层 / 配置项。YAGNI 在最终设计方案上照常生效。
+     - **可能性分支 section (研究期允许过度探索, 仅留痕)** — planning 期鼓励在**研究/探索**环节过度发散: 现状之外的扩展方案 / 未来约束变化时的演进分支 / 被否决但值得留痕的备选, 写入 design.md「可能性分支」section, 用于探究当前方案的合理性边界 (为何这样选 / 换个约束会怎样), 每条**必须标触发条件** (若未来需 X / 若约束变 Y)。**不进最终设计方案正文, 不进 task.json DAG, 不生成 subtask** — exec 阶段只实现「当前方案」精简落地部分。无触发条件的纯臆想仍按 YAGNI 砍。
    - `findings.md` (需调研时) — 深度调研的收敛结论 + 依据/引用; 过程笔记存 `research/` (researcher 写)。
    - **子任务 + 调度 DAG (协议先行, 后并行)** — 拆分铁律: 先把 subtask 间的**共享契约** (接口签名 / 数据结构 / 类型 / 协议格式 / DB schema) 抽成**单个前置 subtask** 优先定死, 下游各实现 subtask 只 `--deps` 这一个契约 subtask、彼此**不互挂依赖** → 契约一 done 即全批并行。这是压 makespan 的命门 —— 定协议是唯一真串行, 实现全并行。每个 subtask 含 depends_on + 验收 checklist, 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json (sid/--name/--desc 三者必填, `--agent` 省略默认 `skein-executor`)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
      - **拆完对表复杂度天花板 (硬)** — subtask 落完立刻对「🛑 复杂度天花板」表逐项核: 命中任一 (subtask > 8 / 跨 ≥2 子系统 / 工期风险高) → `AskUserQuestion` 提醒用户拆成多个互依赖 task, 禁默默塞一个 task 执行完所有事。
