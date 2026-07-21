@@ -1,8 +1,3 @@
----
-name: tui-design
-description: 终端 UI(TUI)设计——全屏终端应用的布局、组件、色彩、键盘交互与框架选型。帮用户设计 ncurses/bubbletea/textual/ratatui 等终端图形界面的信息架构、面板布局、焦点流转、色彩约束与键位设计，产出布局图与键位表。触发词：做TUI/终端界面/终端UI、全屏终端应用、bubbletea/textual/ratatui/curses、终端布局、终端配色、键盘交互设计。命令行工具走 cli-design，Web 走 html-design，App 走 app-design。
----
-
 # TUI-Design · 终端 UI 设计
 
 TUI 是终端里的图形界面：全屏、字符格栅、键盘为主、256/真彩色。约束硬（字符格子、有限色、终端差异），设计就是在这些约束里做信息架构与交互。
