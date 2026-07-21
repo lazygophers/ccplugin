@@ -42,7 +42,7 @@ effort: medium
 | 单文件单处改, ≤20 行且位置已知    | 豁免 (直接做)                |
 | 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task (直接走 flow)**  |
 | 需外部调研 / 产出文档交付         | **必建 task (直接走 flow)**  |
-| 边界模糊 (走 flow vs inline 难判) | AI 自行判, 默认偏保守走 flow; 仅极不确定 (破坏性/远超预期) 才 AskUserQuestion |
+| 边界模糊 (走 flow vs inline 难判) | AskUserQuestion 问用户 (禁自行 inline 蒙混) |
 
 归一 vs 分立 / worktree 豁免 / 完成判定 详见 [references/scope-boundary.md](references/scope-boundary.md)。
 

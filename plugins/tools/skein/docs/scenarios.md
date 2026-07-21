@@ -96,7 +96,7 @@ skein current
 
 - 够简单 (纯查询 / 单文件小改) → 直接做, 不建 task。
 - 够复杂 (跨文件 / 多步) → 自动加载 `skein-flow` 建 task。
-- 模糊 → Claude 自行裁定, 默认偏保守走 flow; 仅极不确定才用 AskUserQuestion 问你。
+- 模糊 → Claude 用 AskUserQuestion 问你 (禁自行 inline 蒙混)。
 
 想**强制**当 task 处理 (即使看着简单) → 显式 `/skein-exec`, 调用即「建 task 同意」信号。
 

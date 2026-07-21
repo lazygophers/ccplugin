@@ -53,7 +53,7 @@ effort: high
 | 单文件单处改, ≤20 行且位置已知    | 豁免                            |
 | 跨 ≥2 文件 / 单文件多处 / 多步骤  | **必建 task**                   |
 | 需外部调研 / 产出文档交付         | **必建 task** (调研走 research) |
-| 边界模糊                          | AI 自行裁定, 默认偏保守走 flow; 仅极不确定才 AskUserQuestion |
+| 边界模糊                          | AskUserQuestion 问用户 (禁自行 inline 蒙混) |
 
 ## 流程
 
