@@ -19,10 +19,9 @@ from __future__ import annotations
 import json
 import os
 import re
-import subprocess
 import sys
-from datetime import datetime
 from typing import Any, Optional, cast
+# subprocess / datetime 改局部 import (仅 cmd_fmt / cmd_stop_check 用), 不拖 user-prompt 等热路径 (perf-research §6.2)
 
 BLOCKED = {"task.json", "task.md"}  # 脚本管理文件, 归 guard, 不由 permission 放行
 ENGINE = ("skein.py", "spec.py", "skein ", "skein-spec ")
@@ -208,6 +207,7 @@ def cmd_fmt(d: dict[str, Any]) -> int:
     tid = m.group(1)
     root = norm[:m.start()] or (d.get("cwd") or os.getcwd())  # .skein 所在仓库根作 cwd
     skein_py = os.path.join(os.path.dirname(os.path.abspath(__file__)), "skein.py")
+    import subprocess  # 局部: 仅 fmt 子命令用, 不拖 user-prompt 等热路径
     try:
         subprocess.run([sys.executable, skein_py, "fmt", tid], cwd=root,
                        capture_output=True, timeout=10)
@@ -289,6 +289,7 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
     if here not in sys.path:
         sys.path.insert(0, here)
     from spec import Spec, core_budget  # 局部 import: 仅 stop-check 加载, 不拖其他 6 个子命令启动
+    from datetime import datetime  # 局部: 仅 stop-check 用 (ts 落盘)
 
     spec = Spec()
     if not spec.root.exists():
