@@ -2,7 +2,7 @@
   "id": "matt-full-audit",
   "name": "matt skills 全量覆盖审计",
   "desc": "审计 github.com/mattpocock/skills 全部 22 正式 skills (engineering 17 + productivity 5) 本体方法论 vs skein 现状覆盖度, 找出未覆盖/弱覆盖差距, 据报告补齐。已知漏: resolving-merge-conflicts (skein 无方法论)。已深覆盖: grill/grilling/implement/check 等。",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -52,21 +52,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-matt-full-audit",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-matt-full-audit",
-      "branch": "skein/matt-full-audit",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/matt-full-audit",
   "parent": null,
   "kind": "task",
   "created": 1784652744,
   "started": 1784652769,
   "checked": null,
-  "finished": null,
-  "updated": 1784653534
+  "finished": 1784653728,
+  "updated": 1784653728
 }

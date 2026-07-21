@@ -2,7 +2,7 @@
   "id": "design-shared-refs",
   "name": "add-uiux-and-color-refs",
   "desc": "references/ui-ux/ + references/color/ 两个无关平台的顶层共用参考, 四 medium 引用",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -70,21 +70,14 @@
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-shared-refs",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-shared-refs",
-      "branch": "skein/design-shared-refs",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-shared-refs",
   "parent": null,
   "kind": "task",
   "created": 1784653276,
   "started": 1784653277,
   "checked": null,
-  "finished": null,
-  "updated": 1784653517
+  "finished": 1784653564,
+  "updated": 1784653564
 }
