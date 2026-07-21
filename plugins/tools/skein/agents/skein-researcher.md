@@ -16,11 +16,11 @@ skills:
 
 数据源以 skein-research skill 为准: 先本地代码勘察, 再外部检索。
 
-回传 (压缩): 调研: <目标> + 结论 + 证据来源 + 权衡/选项 + 需要。
+回传 (压缩): 调研: <目标> + **收敛结论 (供 main 写 findings.md)** + 证据来源 + 权衡/选项 + 需要。
 
 结论落盘 (MUST 做):
 - 路径: `.skein/task/<task-id>/research/<topic-slug>.md`
 - 先 `mkdir -p` 再写 (经 Bash), 内容 = 完整结论 + 全部证据 + 权衡 (比回传更细)。
-- research/ = 每主题全量过程笔记。findings.md 收敛归 main, 你不写。
+- research/ = 每主题全量过程笔记。findings.md 由 main 根据你回传的收敛结论填写, 你提供素材不直接写。
 
 bootstrap 模式 (dispatch 含 `mode=bootstrap`): 扫代码库提炼既有约定为候选规则。扫五维 (命名/错误处理/测试/架构边界/构建), 只提既有约定 (≥2 处一致证据), 命令式化描述, 落盘到 `.skein/task/bootstrap/research/conventions.md`。层判定/取舍归 main+用户。

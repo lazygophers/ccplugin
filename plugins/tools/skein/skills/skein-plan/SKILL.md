@@ -65,6 +65,7 @@ effort: high
    - 拆不拆是 planning 自主判断, 边界模糊才 `AskUserQuestion`。默认**倾向归一** —— 相关工作散成多 task 会丢共享上下文一致性 (类型/契约决策各 task 重推), 归一拆 subtask 才守住。
 2. **登记** — 全新 → `skein create <id> --name <标题> --desc <一句话> [--deps ..]` (`<id>`/`--name`/`--desc` **三者必填**, 缺一 argparse 报错), `<id>` 须为**可读描述性 slug** (kebab-case, 如 `order-create-api` / `user-auth`; 兼作分支名 + 目录名), **禁 `t01`/`t2` 这类字母+数字代号** (脚本硬拒)。得工件目录。(`create` 自动刷看板)
 3. **brainstorm 需求/方案** (main 交互式) — 逐问澄清: 目标 / 用户价值 / 边界 / 非目标 / 验收基准 / 方案取舍。禁 main 自行凭空设计。用 `AskUserQuestion` 拍板关键分歧。提问法内置 relentless interview 纪律 (插件内闭环, 不依赖外部 /grilling / /grill-me): 一次一问等反馈 (仅同源不依赖才批)、每问带 2-3 推荐答案让用户裁、事实自查 (Read/Grep)、决策交用户、共识才放行。
+   - **🛑 派 skein-researcher 后必收敛写 findings.md** — researcher 回传后, main 把**跨主题收敛结论**写入 `findings.md` (非整篇搬运 research/): 只写收敛要点 + 关键依据/引用 + 未决项 (`需要:`)。findings.md = 调研最终交付物, research/ = 过程证据。**researcher 不写 findings.md (只提供素材), 收敛归 main** — 未写 findings.md 即 planning 未收敛, 同 prd TODO 未勾。
    - **🧭 愿景翻译 (cold-start 命中才跑; 清晰输入跳过, 零增量)**:
      - **Job Story 三段草拟** — main 套用户原话填 "When [情境], I want [动机], so I can [预期成果]", `AskUserQuestion` 让用户确认/修正三段 (各给 2-3 推荐选项), 锁定 outcome (为谁/为何/价值) 再谈 solution。
      - **said / implied / missing 三分** — **明说**的入正文; **暗示**的入正文并回读确认; **缺失**的逐条列 prd.md「Open Questions」用 `AskUserQuestion` 问 (≤3 轮, 超限标「需求未定」停 planning); main 的**假设**强制写 prd.md「Assumptions」段, 禁埋正文 (防 Assumption Burial)。
