@@ -2,7 +2,7 @@
   "id": "ask-matt-deep-integrate",
   "name": "ask-matt 方法论深度融入 skein",
   "desc": "吸收 ask-matt 4 条独立方法论进 skein 正文/references: smart zone+context hygiene (skein-plan), tracer-bullet 端到端瘦实现优先 (skein-plan subtask 拆分铁律), tight feedback loop 先复现再修 (skein-exec 自愈), deep-module 词表+ADR (skein-plan/references/design-vocabulary.md). 协议先行后并行 skein-plan L99 已覆盖不重做.",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -13,12 +13,12 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652146,
-      "started": null,
-      "finished": null
+      "started": 1784652159,
+      "finished": 1784652224
     },
     {
       "sid": "s2",
@@ -27,12 +27,12 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652146,
-      "started": null,
-      "finished": null
+      "started": 1784652159,
+      "finished": 1784652272
     },
     {
       "sid": "s3",
@@ -41,30 +41,23 @@
       "depends_on": [],
       "验收": [],
       "验收done": [],
-      "status": "待处理",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784652146,
-      "started": null,
-      "finished": null
+      "started": 1784652224,
+      "finished": 1784652290
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-ask-matt-deep-integrate",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-ask-matt-deep-integrate",
-      "branch": "skein/ask-matt-deep-integrate",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/ask-matt-deep-integrate",
   "parent": null,
   "kind": "task",
   "created": 1784652112,
   "started": 1784652153,
   "checked": null,
-  "finished": null,
-  "updated": 1784652153
+  "finished": 1784652304,
+  "updated": 1784652304
 }
