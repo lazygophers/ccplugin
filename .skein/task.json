@@ -1,6 +1,22 @@
 {
   "tasks": [
     {
+      "id": "ask-matt-integrate",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-ask-matt-integrate",
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-skills",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-design-skills",
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "hook-prompt-judge-ai-only",
       "status": "已完成",
       "deps": [],

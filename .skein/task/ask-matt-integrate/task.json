@@ -1,0 +1,58 @@
+{
+  "id": "ask-matt-integrate",
+  "name": "ask-matt 场景路由融入 skein",
+  "desc": "ask-matt (Matt Pocock 场景路由器) 融入 skein-flow 作用域边界表 (场景路由扩展) + 新建 references/matt-pocock-mapping.md (完整 ask-matt→skein 映射, handoff 标注已替代); 零外部 skill 硬依赖",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "建 matt-pocock-mapping.md",
+      "desc": "新建 plugins/tools/skein/skills/skein-flow/references/matt-pocock-mapping.md: ask-matt 全套 skill (主流程 grill-with-docs/to-spec/to-tickets/implement/tdd/code-review + on-ramps triage/diagnosing-bugs/wayfinder + health improve-codebase-architecture + vocabulary domain-modeling/codebase-design + standalone grill-me/prototype/research/teach/writing-great-skills + handoff/compact + setup) 到 skein 原生机制的映射表。每行: ask-matt skill -> skein 对应 (阶段/skill/机制)。handoff 标注已替代。顶部说明: 外部 skills 可选引用未装跳过, skein 零硬依赖。",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651383,
+      "started": 1784651409,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "skein-flow 作用域表扩展",
+      "desc": "skein-flow SKILL.md 现有「作用域边界 (何时建 task)」表扩展或并列加「场景路由 (ask-matt 同源)」section: 新idea有代码库/雾区大需求/bug堆积/难bug反复/代码健康/设计问题等至少5类信号 -> skein 内置走法 (plan/grill/research判定门/exec自愈/sediment等)。正文零外部 skill 名, 仅尾部加指针指向 matt-pocock-mapping.md。",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784651384,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-ask-matt-integrate",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-ask-matt-integrate",
+      "branch": "skein/ask-matt-integrate",
+      "merged": false
+    }
+  ],
+  "branch": "skein/ask-matt-integrate",
+  "parent": null,
+  "kind": "task",
+  "created": 1784651331,
+  "started": 1784651400,
+  "checked": null,
+  "finished": null,
+  "updated": 1784651409
+}

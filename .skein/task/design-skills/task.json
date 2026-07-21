@@ -1,0 +1,149 @@
+{
+  "id": "design-skills",
+  "name": "add-design-skills",
+  "desc": "在 skills/ 新增 design 分类 + html-design skill：HTML-first 设计工作台，覆盖 UI/UX 界面/数据可视化/图像设计/演示排版四模式，所有产出以 HTML 落地，其余格式从 HTML 打包导出",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "write-design-readme",
+      "desc": "写 skills/design/README.md 分类索引",
+      "depends_on": [],
+      "验收": [
+        "文件存在",
+        "含分类说明+路由表",
+        "风格对齐 code-quality/README"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784650401,
+      "started": 1784650435,
+      "finished": 1784650451
+    },
+    {
+      "sid": "s2",
+      "name": "write-html-design-skill",
+      "desc": "写 skills/design/html-design/SKILL.md：HTML-first 四模式工作台",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "frontmatter name+description 含触发词",
+        "含三方向硬门",
+        "含四模式路由表+各模式细则",
+        "含导出管线",
+        "含反模式"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784650402,
+      "started": 1784650451,
+      "finished": 1784650498
+    },
+    {
+      "sid": "s3",
+      "name": "quality-check-and-commit",
+      "desc": "跑 claude -p 质量门验证 SKILL 可识别 + git commit",
+      "depends_on": [
+        "s5"
+      ],
+      "验收": [
+        "claude -p 返回非空有意义",
+        "git commit 完成"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784650402,
+      "started": 1784650498,
+      "finished": 1784651364,
+      "deps": [
+        "s5"
+      ]
+    },
+    {
+      "sid": "s4",
+      "name": "split-references",
+      "desc": "把各模式细则从 SKILL.md 拆到 references/：design-styles(风格配色色系)/layout-system(布局自适应场景)/component-guide(组件)/data-viz/image-design/slide-deck/export-pipeline",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "7 个 references 文件存在",
+        "SKILL.md 精简为入口+路由+共享流+引用"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784650656,
+      "started": 1784650695,
+      "finished": 1784650908
+    },
+    {
+      "sid": "s5",
+      "name": "rewrite-skill-entry",
+      "desc": "重写 SKILL.md：强化 UI/UX 优化(选方案/风格/配色/布局/场景自适应);删反模式 section;改为引用 references",
+      "depends_on": [
+        "s4"
+      ],
+      "验收": [
+        "含风格/配色/布局/场景自适应章节或引用",
+        "无反模式 section",
+        "frontmatter 仍达标"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784650656,
+      "started": 1784650908,
+      "finished": 1784650961
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-design-skills",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-design-skills",
+      "branch": "skein/design-skills",
+      "merged": false
+    }
+  ],
+  "branch": "skein/design-skills",
+  "parent": null,
+  "kind": "task",
+  "created": 1784650382,
+  "started": 1784650428,
+  "checked": null,
+  "finished": null,
+  "updated": 1784651364
+}
