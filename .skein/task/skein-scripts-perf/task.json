@@ -1,0 +1,49 @@
+{
+  "id": "skein-scripts-perf",
+  "name": "scripts 极致低内存/io/cpu 优化",
+  "desc": "skein.py/spec.py/hooklib.py/hooks.py 性能优化: lazy import 按命令载 + hook 路径零冗余 IO + 减启动开销。目标降内存/io/cpu",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "调研 import/IO 热点 + 出优化方案",
+      "desc": "skein.py/spec.py/hooks.py/hooklib.py 逐文件: 列每个 import 的实际使用命令面 (哪些命令用到), 标可 lazy 的; hooks 热路径 IO 审计 (cmd_guard _has_active_task 扫 task.json); 产出 design.md 含 lazy import 映射 + IO 优化点 + 预期收益",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-researcher",
+      "skills": [],
+      "created": 1784620407,
+      "started": 1784620418,
+      "finished": 1784621121
+    },
+    {
+      "sid": "s2",
+      "name": "落地 Tier1 lazy import",
+      "desc": "按 perf-research.md §6.2 改动清单: hooks.py lazy subprocess (cmd_fmt) + lazy datetime (cmd_stop_check) + 删死 import time; spec.py lazy sqlite3 (_recall_fts/_rebuild_fts)",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784621122,
+      "started": 1784621122,
+      "finished": 1784621407
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-scripts-perf",
+  "parent": null,
+  "kind": "task",
+  "created": 1784620323,
+  "started": 1784620408,
+  "checked": null,
+  "finished": 1784621711,
+  "updated": 1784621711
+}

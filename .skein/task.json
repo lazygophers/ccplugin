@@ -47,6 +47,14 @@
       "worktree": null,
       "parent": null,
       "kind": "task"
+    },
+    {
+      "id": "skein-scripts-perf",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
     }
   ]
 }
