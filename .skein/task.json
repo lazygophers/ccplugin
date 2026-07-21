@@ -1,6 +1,14 @@
 {
   "tasks": [
     {
+      "id": "initctx-judge-redesign",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-initctx-judge-redesign",
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "hook-prompt-judge-ai-only",
       "status": "已完成",
       "deps": [],

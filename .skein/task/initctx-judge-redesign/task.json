@@ -1,0 +1,44 @@
+{
+  "id": "initctx-judge-redesign",
+  "name": "_INIT_CTX 判定依据重设计 (调研→定方案)",
+  "desc": "调研 trellis/matt/其他项目 UserPromptSubmit 判定逻辑 + 收集 skein 当前误判案例, 出 findings.md 定新判定依据方向",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "调研判定逻辑+出方案",
+      "desc": "调研 trellisx UserPromptSubmit (trellisx-guard.py:390-410 只在有 active task 注入) / matt pocock skills 哲学 (Predictability, 可机械判定优先于主观判) / 其他任务编排插件; 收集 skein _INIT_CTX 误判案例 (0d749f6c 搭骨架判走flow却inline / 其他); 产出 findings.md: 对比表+案例+方向建议(>=2候选)",
+      "depends_on": [],
+      "验收": [
+        "findings.md 含对比表+案例>=3+方向建议>=2"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-researcher",
+      "skills": [],
+      "created": 1784614448,
+      "started": 1784614453,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-initctx-judge-redesign",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-initctx-judge-redesign",
+      "branch": "skein/initctx-judge-redesign",
+      "merged": false
+    }
+  ],
+  "branch": "skein/initctx-judge-redesign",
+  "parent": null,
+  "kind": "task",
+  "created": 1784614447,
+  "started": 1784614449,
+  "checked": null,
+  "finished": null,
+  "updated": 1784614453
+}
