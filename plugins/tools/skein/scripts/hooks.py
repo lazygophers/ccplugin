@@ -9,7 +9,8 @@
   fmt         PostToolUse: 写 .skein/task/<id>/prd.md 后自动 skein fmt <id> 规范化。
   spec-meta   PostToolUse: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 + layer 合法 (非阻塞 warning)。
   stop-check  Stop: 扫 spec 问题写 .pending-fix 标记 (只读不修, 供 main 下回合派 specer bg 修复)。
-  user-prompt UserPromptSubmit: 每 prompt 注入 task 判定硬门 (未初始化则注入 setup 提示)。
+  user-prompt UserPromptSubmit: 已初始化按 prompt 信号三档注入 (flow/inline/grey); 未初始化注入 setup 提示。
+  task-created TaskCreated: .skein 已初始化时机械阻 harness 内置 TaskCreate (冒充 skein create)。
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
@@ -77,8 +78,41 @@ def _git_root(start: str) -> str:
         d = parent
 
 
+# active task 判定: task.json status ∈ {进行中, 检查中} (与 skein.py STATUS_ACTIVE 同义, 直扫免 subprocess)
+# ponytail: 字面值复制自 skein.py:S_ACTIVE/S_CHECK (跨模块 import 启动开销大; 两处值稳定不变)
+_ACTIVE_STATUSES = {"进行中", "检查中"}
+
+
+def _has_active_task(root: str) -> bool:
+    """扫 .skein/task/*/task.json status 字段, 命中 active (进行中/检查中) 即 True。
+
+    扫描跳过 archive/ 与损坏/缺字段文件 (单文件错不炸整门)。
+    """
+    tasks_dir = os.path.join(root, ".skein", "task")
+    if not os.path.isdir(tasks_dir):
+        return False
+    try:
+        entries = os.listdir(tasks_dir)
+    except OSError:
+        return False
+    for name in entries:
+        if name == "archive":
+            continue
+        f = os.path.join(tasks_dir, name, "task.json")
+        if not os.path.isfile(f):
+            continue
+        try:
+            with open(f, encoding="utf-8") as fh:
+                status = json.load(fh).get("status", "")
+        except (json.JSONDecodeError, ValueError, OSError):
+            continue  # 单个 task.json 损坏不炸门
+        if status in _ACTIVE_STATUSES:
+            return True
+    return False
+
+
 def cmd_guard(d: dict[str, Any]) -> int:
-    """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 (命中 exit 2)。"""
+    """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 + 无 active task 落码门 (命中 exit 2)。"""
     fp = d.get("tool_input", {}).get("file_path", "")
     parts = fp.replace("\\", "/").split("/") if fp else []
 
@@ -103,6 +137,18 @@ def cmd_guard(d: dict[str, Any]) -> int:
                 "初始化经 Bash 跑 `skein.py setup`, 完成后本门自动打开。",
                 file=sys.stderr,
             )
+            return 2
+
+    # C. 无 active task 守门: 已初始化 skein + 无 active task + 落码 (非 .skein/) → 硬阻。
+    # 激进策略 (用户定): 不留「豁免首次 Write」口, 豁免判定已上移 UserPromptSubmit 信号层; 到 Write 层一律硬阻无 active task 的落码。
+    if d.get("tool_name") in ("Edit", "Write", "MultiEdit") and fp and ".skein" not in parts:
+        root = _git_root(d.get("cwd") or os.getcwd())
+        if (os.path.exists(os.path.join(root, ".skein", "config.yaml"))
+                and not _has_active_task(root)):
+            print("当前无 active SKEIN task。落代码改动 (非 .skein/ 工件) 前先 `skein create` 建 task + "
+                  "`skein start <id>` 走 flow 闭环 (plan→exec→check→finish)。纯查询/问答不触发本门, "
+                  "但单文件多行改动必须先建 task 再改。",
+                  file=sys.stderr)
             return 2
     return 0
 
@@ -289,18 +335,72 @@ _UNINIT_TRELLIS = """# SKEIN 未初始化 — 检测到 trellis, 先迁移初始
 _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。
 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。"""
-_INIT_CTX = """# SKEIN task 判定 (动手前硬门)
-**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: `判定: 任务→走flow (依据: <命中哪条>) | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。
-**判定行禁修饰词** — 判定结论尾部禁止附加「但/先/只是/不过」等弱化后缀 (如「判定: 走 flow 但先纯查询探索」属违规)。
-任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill 走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。
-**判定行走 flow 即必须走 flow** — 判完转头 inline 自降级 = 违规。典型自降级借口 (均不成立, 跨文件/多文件必走 flow): 「看着简单」/「只搭个骨架」/「只要一个接口」/「ponytail 最小落地」/「已有蓝图/参考代码」/「用户说搭框架」/「先勘察再定」/「POC 先跑通」。判定行走 flow 后**任何** Write/Edit 落代码 (非 .skein/ 工件) 前 MUST 先 `skein create` + 加载 skein-flow, 否则即违规。
-**禁用 harness 内置 TaskCreate (TodoWrite 类) 冒充 skein create** — TaskCreate 是内部工具类, 非正式 task 建立流程。跨文件任务必须 `skein create` 正式建 task, 禁用 TaskCreate 绕过 task 建立。
-**走 flow 前先 `skein list --status open --json` 查重**, 命中相关 active task → 并入补 subtask, 禁重复建。
-豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。"""
+# user-prompt 信号三档 (已初始化分支按 prompt 信号注入其一):
+#   ponytail: 删旧 _INIT_CTX 全 negation 框架 (MUST/禁/违规/黑名单) — 官方 hooks 文档实证
+#   祈使句框架触发 prompt-injection 防御致 AI 自降级; 改事实陈述 + 正向目标行为。
+#   走 flow 的硬约束由 cmd_task_created (机械阻 TaskCreate) + cmd_guard (active-task 落码门) 兜底,
+#   prompt 仅留正向指引, 不重复禁令。
+_CTX_FLOW = """# SKEIN 上下文 — 此请求走 flow 闭环 (检测到跨文件 / 多步骤 / 改动类信号)
+SKEIN 项目的任务经 `skein create` 建立, 走 **skein-flow** skill 闭环 (plan→exec→check→finish)。
+落地前先 `skein list --status open --json` 查重 — 命中相关 active task 并入补 subtask (避免重复建);
+无相关才 `skein create` 新建, 之后加载 skein-flow 推进。
+跨文件任务用 `skein create` 正式建 task (TaskCreated hook 已拦截 harness 内置 TaskCreate)。"""
+_CTX_INLINE = """# SKEIN 上下文 — 此请求 inline 处理 (检测到查询 / 问答 / 单文件单处信号)
+此请求是查询 / 问答 / 单文件单处, 直接答 / 改即可。
+跨文件 / 多步骤任务走 skein-flow 闭环 (经 `skein create` 建立)。"""
+_CTX_GREY = """# SKEIN 上下文 — 此请求范围不清, 用 AskUserQuestion 确认
+此请求是单步查询 / 小改, 还是跨文件 / 多步骤任务, 信号不明确。
+用 build-in **AskUserQuestion** 问用户走 skein-flow 闭环 (跨文件任务) 还是 inline 直接做 (单步)。"""
+
+# 信号判据 (激进阈值: false positive > false negative 可接受, 模糊默认归 flow/grey 不归 inline)
+#   ponytail: 关键词 / path regex 启发式有覆盖盲区, 但机械信号比 AI prose 合规可靠 (research §4 候选 D)
+_FLOW_PATH_RE = re.compile(r"(?:\./[^/\s]+|(?<![A-Za-z0-9])/[\w.-]+/[\w./-]+|[\w-]+\.(?:py|js|ts|tsx|jsx|go|rs|java|md|yaml|yml|json|sh))")
+_FLOW_VERBS = ("改", "加", "删", "重构", "修复", "实现", "迁移", "替换", "新增", "修改", "重写", "调整",
+               "搭建", "搭", "建立", "创建", "写", "开发", "接入", "对接", "部署", "上线")
+_FLOW_CROSS = ("和", "以及", "同时", "另外", "还有")  # 多文件连接词
+_FLOW_STEPS = ("然后", "接着", "步骤", "之后", "再")  # 多步骤标记
+_FLOW_NEW = ("新模块", "新功能", "新接口", "新页面", "新组件", "骨架", "脚手架", "框架", "原型", "poc")
+_INLINE_Q = ("什么是", "为什么", "解释", "区别", "对比", "怎么用", "如何用", "是什么", "怎么写", "怎么样", "如何")
+
+
+def _judge_signal(prompt: str) -> str:
+    """按 prompt 信号分档: flow / inline / grey。激进阈值 — 任一 flow 信号命中即 flow。
+
+    flow 优先 (false positive 可接受); 零 flow 信号才看 inline; 其余 grey。
+    """
+    p = (prompt or "").strip()
+    if not p:
+        return "grey"
+    paths = _FLOW_PATH_RE.findall(p)
+    n_path = len(paths)
+    has_verb = any(v in p for v in _FLOW_VERBS)
+    has_cross = any(c in p for c in _FLOW_CROSS)
+    has_step = any(s in p for s in _FLOW_STEPS)
+    has_new = any(n in p for n in _FLOW_NEW)
+
+    # flow 档 (任一强信号; 激进倾向 — 改动类动词单独出现也判 flow, 因动词+无 path 多为跨文件任务)
+    if n_path >= 2:
+        return "flow"
+    if n_path == 1 and (has_verb or has_cross or has_step or has_new):
+        return "flow"
+    if has_verb and (has_cross or has_step or has_new):
+        return "flow"
+    if has_new:
+        return "flow"
+    if has_verb:
+        return "flow"
+
+    # inline 档 (零 flow 信号)
+    if n_path == 1:
+        return "inline"  # 单文件单处, 无 cross/step/new/verb
+    is_q = any(q in p for q in _INLINE_Q)
+    if is_q or len(p) < 15:
+        return "inline"
+    return "grey"
 
 
 def cmd_user_prompt(d: dict[str, Any]) -> int:
-    """UserPromptSubmit: 每 prompt 必注入。未初始化 → 硬提示先 setup; 已初始化 → 注入 task 判定 + 查重句。"""
+    """UserPromptSubmit: 每 prompt 必注入。未初始化 → 硬提示先 setup; 已初始化 → 按 prompt 信号三档 (flow/inline/grey) 注入对应上下文。"""
     root = _git_root(d.get("cwd") or os.getcwd())
     dir_ = os.path.join(root, ".skein")
     has_git = os.path.isdir(os.path.join(root, ".git"))
@@ -310,16 +410,27 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
     if not os.path.exists(os.path.join(dir_, "config.yaml")):
         ctx = _UNINIT_TRELLIS if os.path.isdir(os.path.join(root, ".trellis")) else _UNINIT_PLAIN
     else:
-        ctx = _INIT_CTX
+        ctx = {"flow": _CTX_FLOW, "inline": _CTX_INLINE, "grey": _CTX_GREY}[_judge_signal(d.get("prompt", "") or "")]
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
+    return 0
+
+
+# ── task-created (TaskCreated: 机械阻 harness 内置 TaskCreate 冒充 skein create) ──
+def cmd_task_created(d: dict[str, Any]) -> int:
+    """TaskCreated: .skein 已初始化 → 机械阻 TaskCreate (冒充 skein create)。"""
+    root = _git_root(d.get("cwd") or os.getcwd())
+    if os.path.exists(os.path.join(root, ".skein", "config.yaml")):
+        print("检测到 TaskCreate。已初始化 SKEIN 项目禁用 harness 内置 TaskCreate 冒充 task 建立 — "
+              "跨文件任务用 `skein create` 正式建 task 走 flow 闭环。", file=sys.stderr)
+        return 2
     return 0
 
 
 DISPATCH: dict[str, Any] = {"permission": cmd_permission, "guard": cmd_guard,
             "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
             "spec-meta": cmd_spec_meta, "stop-check": cmd_stop_check,
-            "user-prompt": cmd_user_prompt}
+            "user-prompt": cmd_user_prompt, "task-created": cmd_task_created}
 
 
 def main() -> int:
@@ -333,4 +444,33 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--self-check":
+        # ponytail: _judge_signal 是 non-trivial 分支逻辑, 留 ONE runnable self-check。
+        # 跑: python hooks.py --self-check  (经 bin/skein-hooks 不触发, 仅本地验)
+        cases = [
+            ("改 hooks.py 和 spec.py 的判定", "flow", "n_path>=2"),
+            ("在 src/auth.py 加 login 函数", "flow", "1 path + verb"),
+            ("参考 admin-api 搭建骨架, 用 go-zero 脚手架", "flow", "搭骨架/脚手架"),
+            ("重构成微服务架构", "flow", "has_verb 无 path"),
+            ("加一个新的认证接口", "flow", "verb + 新接口"),
+            ("什么是 SKEIN", "inline", "is_q"),
+            ("为什么这个报错", "inline", "is_q"),
+            ("解释一下 hooks.py 怎么工作", "inline", "1 path 无 verb"),
+            ("继续", "inline", "<15 无 verb"),
+            ("这个设计怎么样", "inline", "<15 (激进倾向: 短问句归 inline)"),
+            ("帮我分析下整体架构的合理性以及改进方向", "flow", "长句含 改进/重构类动词"),
+        ]
+        fails = []
+        for p, exp, why in cases:
+            got = _judge_signal(p)
+            if got != exp:
+                fails.append((p, exp, got, why))
+            print(f"  [{'OK' if got == exp else 'FAIL'}] {exp:>7} got={got:<7} | {p!r}  ({why})")
+        # 正向化自检
+        for name, c in [("FLOW", _CTX_FLOW), ("INLINE", _CTX_INLINE), ("GREY", _CTX_GREY)]:
+            for bad in ["MUST", "禁", "违规", "黑名单"]:
+                if bad in c:
+                    fails.append((name, "no-negation", bad, "正向化破规"))
+        print(f"FAIL count: {len(fails)}")
+        sys.exit(1 if fails else 0)
     sys.exit(main())

@@ -173,6 +173,17 @@
                 ]
             }
         ],
+        "TaskCreated": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks task-created",
+                        "timeout": 5
+                    }
+                ]
+            }
+        ],
         "Stop": [
             {
                 "hooks": [
