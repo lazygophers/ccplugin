@@ -135,8 +135,10 @@ def cmd_report(d: dict[str, Any]) -> int:
     if not (any(k in cmd for k in OURS) or BIN_RE.search(cmd)):
         return 0
     err = (d.get("tool_error", "") or "").strip()[:800]  # 截断防上下文膨胀
-    ctx = (f"SKEIN 脚本执行失败:\n命令: {cmd[:200]}\n错误: {err}\n"
-           "先自查 (工作区是否 init / 参数是否合法); 属插件 bug 则手动报 issue。")
+    ctx = f"""SKEIN 脚本执行失败:
+命令: {cmd[:200]}
+错误: {err}
+先自查 (工作区是否 init / 参数是否合法); 属插件 bug 则手动报 issue。"""
     msg = f"⚠️ SKEIN 脚本报错, 疑似插件 bug 请手动开 issue: {ISSUE_URL} (附命令+错误+复现步骤)"
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "PostToolUseFailure", "additionalContext": ctx},
@@ -281,38 +283,20 @@ def cmd_stop_check(_: dict[str, Any]) -> int:
 # ── user-prompt (原 skein.py:Skein.user_prompt) ──────────────────────────────
 # ponytail: 文案约 800 字未超 session-context 预算 (400 tokens), 不走 budget_guard;
 # 未初始化文案与 skein.py:_uninit_ctx 逐字同步 (那边 session_context 仍用, 删不掉, 此处复制文本)
-_UNINIT_TRELLIS = (
-    "# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)\n"
-    "本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: "
-    "**忽略 trellisx 的 active-task / workflow 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** "
-    "(幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein.py setup` 放行。"
-    "初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。\n"
-    "**初始化无条件, 诊断也不例外**: 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身。"
-)
-_UNINIT_PLAIN = (
-    "# SKEIN 未初始化 — 先初始化再处理任务\n"
-    "本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。\n"
-    "查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。"
-)
-_INIT_CTX = (
-    "# SKEIN task 判定 (动手前硬门)\n"
-    "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
-    "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
-    "**判定行禁修饰词** — 判定结论尾部禁止附加「但/先/只是/不过」等弱化后缀 (如「判定: 走 flow 但先纯查询探索」属违规)。\n"
-    "任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill "
-    "走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
-    "**判定行走 flow 即必须走 flow** — 判完转头 inline 自降级 = 违规。"
-    "典型自降级借口 (均不成立, 跨文件/多文件必走 flow): 「看着简单」/「只搭个骨架」/"
-    "「只要一个接口」/「ponytail 最小落地」/「已有蓝图/参考代码」/「用户说搭框架」/"
-    "「先勘察再定」/「POC 先跑通」。判定行走 flow 后**任何** Write/Edit 落代码 (非 .skein/ 工件) "
-    "前 MUST 先 `skein create` + 加载 skein-flow, 否则即违规。\n"
-    "**禁用 harness 内置 TaskCreate (TodoWrite 类) 冒充 skein create** — "
-    "TaskCreate 是内部工具类, 非正式 task 建立流程。跨文件任务必须 `skein create` 正式建 task, "
-    "禁用 TaskCreate 绕过 task 建立。\n"
-    "**走 flow 前先 `skein list --status open --json` 查重**, 命中相关 active task → 并入补 subtask, 禁重复建。\n"
-    "豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。"
-    "边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。"
-)
+_UNINIT_TRELLIS = """# SKEIN 未初始化 — 检测到 trellis, 先迁移初始化 (强制门)
+本仓库有 `.trellis/` 但无 `.skein/`。**SKEIN 是唯一任务管理器**: **忽略 trellisx 的 active-task / workflow 注入**。**任何读写文件前 (含只读诊断/排查), 必先调用 skein-setup skill** (幂等, 迁移 trellis 的 task/spec 并清理残留) 完成初始化 —— 未初始化时读写源码均被 PreToolUse 硬阻, 仅 Bash 跑 `skein.py setup` 放行。初始化后: 任务走 skein-flow 闭环, 禁跟 trellis 流程。
+**初始化无条件, 诊断也不例外**: 查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身。"""
+_UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
+本仓库无 `.skein/` 工作区, SKEIN task 闭环不可用。**先调用 skein-setup skill 初始化** (幂等) 再干活。
+查询/小改只豁免『建 task / 走 flow』, 不豁免初始化本身; 仅纯读代码/问答 (零改动) 可不初始化。"""
+_INIT_CTX = """# SKEIN task 判定 (动手前硬门)
+**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: `判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。
+**判定行禁修饰词** — 判定结论尾部禁止附加「但/先/只是/不过」等弱化后缀 (如「判定: 走 flow 但先纯查询探索」属违规)。
+任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill 走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。
+**判定行走 flow 即必须走 flow** — 判完转头 inline 自降级 = 违规。典型自降级借口 (均不成立, 跨文件/多文件必走 flow): 「看着简单」/「只搭个骨架」/「只要一个接口」/「ponytail 最小落地」/「已有蓝图/参考代码」/「用户说搭框架」/「先勘察再定」/「POC 先跑通」。判定行走 flow 后**任何** Write/Edit 落代码 (非 .skein/ 工件) 前 MUST 先 `skein create` + 加载 skein-flow, 否则即违规。
+**禁用 harness 内置 TaskCreate (TodoWrite 类) 冒充 skein create** — TaskCreate 是内部工具类, 非正式 task 建立流程。跨文件任务必须 `skein create` 正式建 task, 禁用 TaskCreate 绕过 task 建立。
+**走 flow 前先 `skein list --status open --json` 查重**, 命中相关 active task → 并入补 subtask, 禁重复建。
+豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。"""
 
 
 def cmd_user_prompt(d: dict[str, Any]) -> int:
