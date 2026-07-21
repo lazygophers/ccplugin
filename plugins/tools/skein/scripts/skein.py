@@ -1455,51 +1455,11 @@ class Skein:
         except Exception:
             return ""
 
-    @staticmethod
-    def _classify_prompt(text: str) -> str:
-        # 启发式预筹 (纯 Python, 无外部依赖): 把高置信度判定从 AI 脑内挪到脚本,
-        # AI 只判模糊带 → 降漏建概率。会漏判 (启发式不求完美), 兜底靠 AI。
-        t = (text or "").strip()
-        low = t.lower()
-        if "--skip" in low:
-            return "豁免"
-        if not t:
-            return "模糊"
-        # 豁免档: 纯问句 / 明确查询指令 (命中即豁免)
-        query_kw = ("什么是", "解释", "解释一下", "查一下", "看看", "看一下",
-                    "是什么", "为什么", "怎么", "如何", "哪个", "有什么",
-                    "what is", "explain", "show me", "list ", "describe")
-        is_question_only = (
-            (t.endswith("?") or t.endswith("？"))
-            and len(t) < 80
-        )
-        if is_question_only and not any(k in t for k in ("改", "修", "加", "删", "重构", "实现", "移动", "替换")):
-            return "豁免"
-        # 疑似任务档: 改动动词 + 代码/文件/模块 关键词
-        action_kw = ("改", "修改", "修复", "改掉", "改成", "加上", "加", "添加", "增加",
-                     "删除", "删掉", "去掉", "重构", "实现", "替换", "迁移", "优化",
-                     "重写", "调整", "fix", "add", "remove", "refactor", "update",
-                     "implement", "migrate", "rewrite", "change")
-        target_kw = ("代码", "文件", "模块", "函数", "组件", "配置", "脚本", "样式",
-                     "页面", "接口", "测试", "文档", "前端", "后端", "依赖", "bug",
-                     "报错", "错误", "标题", "按钮", "菜单", "命令", "变量", "类型",
-                     "code", "file", "module", "function", "component", "config",
-                     "script", "page", "api", "test", "bug", "error", "title", "button")
-        has_action = any(k in low for k in action_kw)
-        has_target = any(k in low for k in target_kw)
-        # 跨文件 / 多步标志
-        multi_kw = ("以及", "然后", "接着", "同时", "并且", "另外", "每个", "所有",
-                    "跨", "多处", "全部", "and then", "also", "across")
-        has_multi = any(k in low for k in multi_kw) or t.count("\n") >= 2
-        if has_action and (has_target or has_multi):
-            return "疑似任务"
-        return "模糊"
 
     def user_prompt(self) -> None:
         # UserPromptSubmit hook: 每 prompt 必注入 (最高频强制点)。
         # 未初始化 → 硬提示先 setup;
-        # 已初始化 → 注入 task 判定 + **脚本预筹** (3 档启发式) + 查重句。
-        # 预筹把高置信度判定从 AI 挪到脚本 (降漏建), AI 只判模糊带。
+        # 已初始化 → 注入 task 判定 + 查重句。
         if not self.git and not self.dir.exists():
             return  # 非 git 且无 .skein: 别在任意目录 nag
         if not (self.dir / "config.yaml").exists():
@@ -1507,12 +1467,10 @@ class Skein:
             print(json.dumps({"hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
             return
-        prompt_text = self._read_hook_prompt()
-        verdict = self._classify_prompt(prompt_text)
         ctx = ("# SKEIN task 判定 (动手前硬门)\n"
-               f"**脚本预筹: {verdict}** (启发式, 非最终判 — 模糊档由 AI 定夺)\n"
                "**MUST 在任何工具调用 / 改动前, 先输出一行判定结论**, 格式: "
                "`判定: 任务→走flow | 豁免→直接做 (依据: <命中哪条>)`。未输出判定行即行动 = 违规。\n"
+               "**判定行禁修饰词** — 判定结论尾部禁止附加「但/先/只是/不过」等弱化后缀 (如「判定: 走 flow 但先纯查询探索」属违规)。\n"
                "任务 (跨 ≥2 文件 / 单文件多处 / 多步骤 / 需调研 / 产出文档) → 加载 **skein-flow** skill "
                "走强制闭环 (plan→exec→check→finish), 禁 inline 直接做。\n"
                "**判定行走 flow 即必须走 flow** — 判完转头 inline 自降级 = 违规。"
@@ -1520,6 +1478,9 @@ class Skein:
                "「只要一个接口」/「ponytail 最小落地」/「已有蓝图/参考代码」/「用户说搭框架」/"
                "「先勘察再定」/「POC 先跑通」。判定行走 flow 后**任何** Write/Edit 落代码 (非 .skein/ 工件) "
                "前 MUST 先 `skein create` + 加载 skein-flow, 否则即违规。\n"
+               "**禁用 harness 内置 TaskCreate (TodoWrite 类) 冒充 skein create** — "
+               "TaskCreate 是内部工具类, 非正式 task 建立流程。跨文件任务必须 `skein create` 正式建 task, "
+               "禁用 TaskCreate 绕过 task 建立。\n"
                "**走 flow 前先 `skein list --status open --json` 查重**, 命中相关 active task → 并入补 subtask, 禁重复建。\n"
                "豁免 (输出判定行后可直接答/改): 纯查询 · 问答 · 单文件单处 ≤20 行且位置已知。"
                "边界模糊 → AskUserQuestion 问用户 (禁自行 inline 蒙混)。")
