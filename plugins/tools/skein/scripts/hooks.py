@@ -10,6 +10,7 @@
   spec-meta   PostToolUse: 写 .skein/spec/**/*.md 后检查 frontmatter 必填字段 + layer 合法 (非阻塞 warning)。
   stop-check  Stop: 扫 spec 问题写 .pending-fix 标记 (只读不修, 供 main 下回合派 specer bg 修复)。
   user-prompt UserPromptSubmit: 每 prompt 注入 task 判定硬门 (未初始化则注入 setup 提示)。
+  task-created TaskCreated: .skein 已初始化时机械阻 harness 内置 TaskCreate (冒充 skein create)。
 
 各子命令读 stdin JSON, 逻辑与拆分前的 *-skein.py 一致; 无命中一律静默 exit 0。
 """
@@ -77,8 +78,41 @@ def _git_root(start: str) -> str:
         d = parent
 
 
+# active task 判定: task.json status ∈ {进行中, 检查中} (与 skein.py STATUS_ACTIVE 同义, 直扫免 subprocess)
+# ponytail: 字面值复制自 skein.py:S_ACTIVE/S_CHECK (跨模块 import 启动开销大; 两处值稳定不变)
+_ACTIVE_STATUSES = {"进行中", "检查中"}
+
+
+def _has_active_task(root: str) -> bool:
+    """扫 .skein/task/*/task.json status 字段, 命中 active (进行中/检查中) 即 True。
+
+    扫描跳过 archive/ 与损坏/缺字段文件 (单文件错不炸整门)。
+    """
+    tasks_dir = os.path.join(root, ".skein", "task")
+    if not os.path.isdir(tasks_dir):
+        return False
+    try:
+        entries = os.listdir(tasks_dir)
+    except OSError:
+        return False
+    for name in entries:
+        if name == "archive":
+            continue
+        f = os.path.join(tasks_dir, name, "task.json")
+        if not os.path.isfile(f):
+            continue
+        try:
+            with open(f, encoding="utf-8") as fh:
+                status = json.load(fh).get("status", "")
+        except (json.JSONDecodeError, ValueError, OSError):
+            continue  # 单个 task.json 损坏不炸门
+        if status in _ACTIVE_STATUSES:
+            return True
+    return False
+
+
 def cmd_guard(d: dict[str, Any]) -> int:
-    """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 (命中 exit 2)。"""
+    """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 + 无 active task 落码门 (命中 exit 2)。"""
     fp = d.get("tool_input", {}).get("file_path", "")
     parts = fp.replace("\\", "/").split("/") if fp else []
 
@@ -103,6 +137,18 @@ def cmd_guard(d: dict[str, Any]) -> int:
                 "初始化经 Bash 跑 `skein.py setup`, 完成后本门自动打开。",
                 file=sys.stderr,
             )
+            return 2
+
+    # C. 无 active task 守门: 已初始化 skein + 无 active task + 落码 (非 .skein/) → 硬阻。
+    # 激进策略 (用户定): 不留「豁免首次 Write」口, 豁免判定已上移 UserPromptSubmit 信号层; 到 Write 层一律硬阻无 active task 的落码。
+    if d.get("tool_name") in ("Edit", "Write", "MultiEdit") and fp and ".skein" not in parts:
+        root = _git_root(d.get("cwd") or os.getcwd())
+        if (os.path.exists(os.path.join(root, ".skein", "config.yaml"))
+                and not _has_active_task(root)):
+            print("当前无 active SKEIN task。落代码改动 (非 .skein/ 工件) 前先 `skein create` 建 task + "
+                  "`skein start <id>` 走 flow 闭环 (plan→exec→check→finish)。纯查询/问答不触发本门, "
+                  "但单文件多行改动必须先建 task 再改。",
+                  file=sys.stderr)
             return 2
     return 0
 
@@ -316,10 +362,21 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
     return 0
 
 
+# ── task-created (TaskCreated: 机械阻 harness 内置 TaskCreate 冒充 skein create) ──
+def cmd_task_created(d: dict[str, Any]) -> int:
+    """TaskCreated: .skein 已初始化 → 机械阻 TaskCreate (冒充 skein create)。"""
+    root = _git_root(d.get("cwd") or os.getcwd())
+    if os.path.exists(os.path.join(root, ".skein", "config.yaml")):
+        print("检测到 TaskCreate。已初始化 SKEIN 项目禁用 harness 内置 TaskCreate 冒充 task 建立 — "
+              "跨文件任务用 `skein create` 正式建 task 走 flow 闭环。", file=sys.stderr)
+        return 2
+    return 0
+
+
 DISPATCH: dict[str, Any] = {"permission": cmd_permission, "guard": cmd_guard,
             "batch": cmd_batch, "report": cmd_report, "fmt": cmd_fmt,
             "spec-meta": cmd_spec_meta, "stop-check": cmd_stop_check,
-            "user-prompt": cmd_user_prompt}
+            "user-prompt": cmd_user_prompt, "task-created": cmd_task_created}
 
 
 def main() -> int:
