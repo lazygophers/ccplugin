@@ -77,7 +77,7 @@ skein list       # 全部 task (含已归档)
 skein view       # 打开 task.html 可视化看板 (缺则生成)
 ```
 
-看板文件 `.skein/task.md` (文本) + `.skein/task.html` (可视化, title/标题带项目名) 每个生命周期节点后自动重渲染。**禁直接编辑 task.md** — guard hook 会硬阻; task.html 只读, 用 `view` 按需打开。
+看板文件 `.skein/task.md` (文本) + `.skein/task.html` (可视化, title/标题带项目名) 每个生命周期节点后自动重渲染。**禁直接编辑 task.md** — guard hook 会硬阻; task.html prd.md 浮层支持在线编辑三章节 (目标/边界/验收标准, 经 `skein prd write` 写盘), 其余文档只读, 用 `view` 按需打开。
 
 ## 6. 边界: 什么请求不该建 task
 
