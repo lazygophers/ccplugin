@@ -25,6 +25,14 @@
       "kind": "task"
     },
     {
+      "id": "config-cli",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "design-catalogs",
       "status": "已完成",
       "deps": [],
