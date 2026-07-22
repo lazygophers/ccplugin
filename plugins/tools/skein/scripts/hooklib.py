@@ -24,7 +24,7 @@ def debug_enabled(args: Any = None) -> bool:
 class Debug:
     """--debug 叙事器: 把命令干了什么 (git / 写盘 / 锁 / 状态迁移) 用 rich 美化写 **stderr**。
 
-    stdout 全程保持机器纯净 (list --json / pop / board / hookSpecificOutput 等被 AI/hook 消费,
+    stdout 全程保持机器纯净 (list --json / claim --dry-run / board / hookSpecificOutput 等被 AI/hook 消费,
     rich 污染即破契约), 所以一切叙事只走 stderr。rich 不可用则纯文本降级; 未启用则全 no-op。
     """
     def __init__(self, enabled: bool) -> None:
