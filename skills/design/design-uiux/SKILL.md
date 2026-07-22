@@ -1,7 +1,9 @@
 ---
 name: design-uiux
-description: UI/UX 与布局设计 skill——帮用户做界面布局的调整与设计决策。按产出媒介路由：HTML/Web、原生 App(iOS/Android/桌面)、CLI 命令结构、TUI 终端 UI。帮选布局骨架、信息架构、导航模式、栅格间距、组件选型、交互模式、状态完整性、场景自适应（响应式/平台/TTY/resize）。触发词：做UI/UX/布局/排版/结构/导航/信息架构/组件/交互/栅格/间距/响应式/自适应/空状态/表单设计/onboarding/场景适配。需后端的动态系统不适用。配色/主题/色板/暗模式色彩走姊妹 skill design-color。
+description: UI/UX 与布局设计——做界面布局/结构/导航/组件/交互的设计决策。触发：做UI/UX/布局/排版/导航/组件/交互/栅格/响应式/图表选型/字体配对。按媒介路由 HTML/Web、原生 App(iOS/Android/桌面)、CLI、TUI。需后端动态系统不适用；配色/主题/色板走姊妹 skill design-color。
 ---
+
+<!-- 完整触发词（description 已含核心，此处备查）：做UI/UX/布局/排版/结构/导航/信息架构/组件/交互/栅格/间距/响应式/自适应/空状态/表单设计/onboarding/场景适配/行业推理/图表选型/字体配对 -->
 
 # Design-UIUX · UI/UX 与布局设计
 
