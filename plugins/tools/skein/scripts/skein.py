@@ -171,6 +171,16 @@ CONFIG_DEFAULTS = {
 }
 
 
+def _coerce_config(k: str, v: Any) -> Any:
+    """按 CONFIG_DEFAULTS[k] 类型 coerce v。bool→str判真; int→int(); 否则 str。CLI set 与 web _cfg_save 共用。"""
+    d = CONFIG_DEFAULTS[k]
+    if isinstance(d, bool):
+        return str(v).strip().lower() in ("true", "1", "yes", "on")
+    if isinstance(d, int):
+        return int(v)  # 失败抛 ValueError, 由调用方处理
+    return str(v)
+
+
 def git(*args: str, cwd: Optional[Path] = None, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess[str]:
     DBG.log(f"$ git {' '.join(args)}" + (f"   (cwd={cwd})" if cwd else ""), style="dim")
     r = subprocess.run(
@@ -217,6 +227,32 @@ class Skein:
             if v and v.strip().isdigit():
                 cfg[k] = int(v)
         return cfg
+
+    def config_cmd(self, a: argparse.Namespace) -> None:
+        cfg = self.config()  # 生效值 (含 ENV override + 缺键回填)
+        if a.action == "get":
+            if a.key:
+                if a.key not in CONFIG_DEFAULTS:
+                    raise SystemExit(f"未知配置键: {a.key} — 可用: {', '.join(CONFIG_DEFAULTS)}")
+                print(cfg[a.key])
+            else:
+                for k in CONFIG_DEFAULTS:
+                    print(f"{k}={cfg[k]}")
+            return
+        # set
+        if a.key not in CONFIG_DEFAULTS:
+            raise SystemExit(f"未知配置键: {a.key} — 可用: {', '.join(CONFIG_DEFAULTS)}")
+        try:
+            val = _coerce_config(a.key, a.value)
+        except (TypeError, ValueError):
+            raise SystemExit(f"值类型不合: {a.key} 需 {type(CONFIG_DEFAULTS[a.key]).__name__}, 得 {a.value!r}")
+        f = self.dir / "config.yaml"
+        raw = _yaml_load(f.read_text()) if f.exists() else {}
+        full = {**CONFIG_DEFAULTS, **raw, a.key: val}  # 保留其他用户值, 仅改目标键
+        f.write_text(_yaml_dump(full))
+        print(f"{a.key} = {val}")
+        if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{a.key.upper()}"):
+            print(f"注意: {a.key} 有 ENV override 生效, 实际读取仍为环境值 (写盘已更新)")
 
     def _autoclean(self, days: Optional[int] = None) -> list[str]:
         # 惰性归档: 已完成且超保留期的 task 移入 archive (保留期内留看板)。days 省略用 config retain_days。
@@ -2684,14 +2720,10 @@ class Skein:
                 return JSONResponse({"error": "bad request"}, status_code=400)
 
             def _coerce(k: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
-                if isinstance(CONFIG_DEFAULTS[k], bool):
-                    return str(v).strip().lower() in ("true", "1", "yes", "on")
-                if isinstance(CONFIG_DEFAULTS[k], int):
-                    try:
-                        return int(v)
-                    except (TypeError, ValueError):
-                        return CONFIG_DEFAULTS[k]
-                return str(v)
+                try:
+                    return _coerce_config(k, v)
+                except (TypeError, ValueError):
+                    return CONFIG_DEFAULTS[k]
 
             cfg = {k: _coerce(k, body[k]) for k in CONFIG_DEFAULTS if k in body}
             full = {**CONFIG_DEFAULTS, **cfg}  # 未提交键补默认 (前端应全量, 容错)
@@ -3066,6 +3098,13 @@ def main() -> None:
     rn.add_argument("sid", nargs="?", help="subtask id (给则改该 subtask, 否则改 task)")
     rn.add_argument("--id", dest="id", help="新 id/sid (task id 仅 pending 可改, 同步跨引用)")
     rn.add_argument("--name", help="新显示名")
+    cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (config get [key] | config set <key> <value>)")
+    cfg_sub = cfg_p.add_subparsers(dest="action", required=True)
+    cg = cfg_sub.add_parser("get", help="打印生效配置 (无 key 出全部)")
+    cg.add_argument("key", nargs="?", help="配置键 (省略=全部)")
+    cs = cfg_sub.add_parser("set", help="写单个配置键")
+    cs.add_argument("key")
+    cs.add_argument("value")
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
@@ -3157,11 +3196,12 @@ def main() -> None:
         "status": sk.status, "subtask": sk.subtask, "prd": sk.prd,
         "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
         "rename": sk.rename,
+        "config": sk.config_cmd,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "check", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove", "rename"}
+                "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove", "rename", "config"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
