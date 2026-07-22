@@ -155,6 +155,40 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     assert (ws / "sub-b" / "b.txt").exists(), "sub-b 提交未 merge"
 
 
+def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
+    """--repos 声明根仓普通子目录 (非独立 git) → start 拒: 须 git 顶层。
+    普通子目录 show-toplevel = 根仓 ≠ sub, 若误放行 worktree 会错落到外层根仓。"""
+    (ws / "plainsub").mkdir()  # 普通子目录, 属根仓工作树, 非独立 git
+    tid = "feat-plain"
+    skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "plainsub")
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    _fill_prd(ws, tid)
+    r = skein_cli(ws, "start", tid, check=False)
+    assert r.returncode == 1
+    assert "不是 git 顶层" in r.stdout + r.stderr
+    assert not (ws / "plainsub" / ".worktrees" / f"skein-{tid}").exists(), "拒后不应残留 worktree"
+
+
+def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws: Path) -> None:
+    """--repos 声明任意深度嵌套的独立 git → start 在该子 git 顶层内建 worktree + 分支。"""
+    deep = ws / "a" / "b" / "nested-git"
+    deep.mkdir(parents=True)
+    git_cmd(deep, "init", "-q")
+    git_cmd(deep, "config", "user.email", "t@t.dev")
+    git_cmd(deep, "config", "user.name", "t")
+    (deep / "seed.txt").write_text("s\n")
+    git_cmd(deep, "add", "-A")
+    git_cmd(deep, "commit", "-qm", "seed")
+    tid, rel = "feat-deep", "a/b/nested-git"
+    skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", rel)
+    skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
+    _fill_prd(ws, tid)
+    r = skein_cli(ws, "start", tid)
+    assert r.returncode == 0, r.stderr
+    assert (deep / ".worktrees" / f"skein-{tid}").exists(), "嵌套 git worktree 未建"
+    assert _branch_exists(git_cmd, deep, f"skein/{tid}"), "嵌套 git 分支未建"
+
+
 # ---------- CLI 解析 ----------
 
 def test_cli_create_parse_name_desc_repos(skein_cli: SkeinCli, ws: Path) -> None:
