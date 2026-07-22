@@ -13,9 +13,11 @@ web_serve/board_open/spec_core_budget)。报错用例传 check=False 断 returnc
   6. set 保留其他键: set max_active 5 后 retain_days 仍默认值。
   7. reset: set 非默认值后 reset → 回读为默认值。
   8. get 已删: config get → 拒 (invalid choice)。
+  9. --json: 无参 config --json → 合法 JSON dict, 含 8 键, use_worktree 为 bool。
 """
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from conftest import SkeinCli
@@ -90,3 +92,20 @@ def test_get_removed(skein_cli: SkeinCli, ws: Path) -> None:
     """config get → 拒 (invalid choice, get 子命令已删)。"""
     r = skein_cli(ws, "config", "get", check=False)
     assert r.returncode != 0, f"get 未拒: rc={r.returncode}"
+
+
+# ---------- 9. --json 输出 ----------
+def test_show_json(skein_cli: SkeinCli, ws: Path) -> None:
+    """config --json → 合法 JSON dict, 含 8 键, use_worktree 为 bool (供 jq 解析)。"""
+    r = skein_cli(ws, "config", "--json")
+    data = json.loads(r.stdout.strip())
+    assert len(data) == 8, f"应 8 键, 得 {len(data)}: {list(data)}"
+    assert isinstance(data["use_worktree"], bool), f"use_worktree 非 bool: {data['use_worktree']!r}"
+    assert data["max_active"] == 2, f"max_active 非默认 2: {data['max_active']}"
+
+
+def test_json_reflects_set(skein_cli: SkeinCli, ws: Path) -> None:
+    """set use_worktree false 后 config --json → use_worktree=false (jq 可解析禁用态)。"""
+    skein_cli(ws, "config", "set", "use_worktree", "false")
+    data = json.loads(skein_cli(ws, "config", "--json").stdout.strip())
+    assert data["use_worktree"] is False, f"set 后 json 未反映: {data['use_worktree']!r}"

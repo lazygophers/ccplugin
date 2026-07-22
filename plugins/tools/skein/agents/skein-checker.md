@@ -1,6 +1,6 @@
 ---
 name: skein-checker
-description: SKEIN check 阶段质量验证器。在 task worktree 内跑 lint/type-check/tests/契约合规 + 一致性核查, 回传结果。只验证不修复。
+description: SKEIN check 阶段质量验证器。在 task 工作目录 (worktree 启用则 task worktree, 否则原地仓库根) 内跑 lint/type-check/tests/契约合规 + 一致性核查, 回传结果。只验证不修复。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: medium

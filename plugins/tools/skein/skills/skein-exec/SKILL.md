@@ -1,6 +1,6 @@
 ---
 name: skein-exec
-description: task exec 阶段执行编排 + /skein-exec 闭环入口。作命令: 有入参→建 task 走闭环 (委托 skein-flow); 无入参→驱动 .skein 既有 ready/active task。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选 agent 各执行 1 个, 改动落 task worktree。
+description: task exec 阶段执行编排 + /skein-exec 闭环入口。作命令: 有入参→建 task 走闭环 (委托 skein-flow); 无入参→驱动 .skein 既有 ready/active task。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选 agent 各执行 1 个, 改动落 task 工作目录 (worktree 或原地仓库根)。
 user-invocable: true
 argument-hint: "[任务ID]"
 arguments: "[任务ID]"
@@ -24,11 +24,13 @@ effort: low
 
 ## 调度门 (载体分工)
 
-main 作调度器编排, 全部改动落 task worktree、主工作区零改动、每个 agent 完成即回传。角色分工:
+> **工作目录 (worktree 态自适应)** — 本仓 worktree 隔离启用态: !`skein config --json 2>/dev/null | jq -r '.use_worktree' || echo unknown`。二读约定 (下文"task worktree 内"按此判): `true`=各 subtask 在 **task worktree** 内改、主工作区零改动 (worktree 路径取 `list --json` 的 `worktree` 字段); `false`/`unknown`=**原地在仓库根**改、无隔离 (task `worktree=null`)。真值一律以 task 的 `worktree` 字段为准 (null=原地)。
+
+main 作调度器编排, 改动落各 subtask 工作目录 (worktree 或原地仓库根)、每个 agent 完成即回传。角色分工:
 
 - **调度** → main 亲跑 (脚本不能 spawn): `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_parallel` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容 (仅该 task 内截断); 只想先看就绪批再决定是否执行, 用 `skein claim --dry-run` (只读预览就绪批, 不改态)。
-- **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享 task worktree, 不调度不递归 (Recursion Guard)。
-- **禁 main 亲改源码** — 实质产出一律派 subagent (仅 ≤3 文件微改等特别情况例外, 且必在 task worktree 内)。
+- **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享该 task 工作目录 (worktree 或原地仓库根), 不调度不递归 (Recursion Guard)。
+- **禁 main 亲改源码** — 实质产出一律派 subagent (仅 ≤3 文件微改等特别情况例外, 且必在该 task 工作目录内)。
 - **载体 = 单 subagent (禁 team)** — 每 subtask 派**单 subagent** (一次 `Agent` 调用); agent-teams 已被 skein SessionStart 关闭 (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0`), 需多 agent 协同的活一律拆成独立 subtask 各派单 subagent, 不组 team。
 - **及早退出** — 每个载体只做本 subtask、产出即回传**立即退出**, 禁滞留空转 / 轮询等待 / 揽额外活。main 侧 `done` 后即 `claim` 放行下游 (完成即派), 全部 done 立即收束进 check, 禁挂着不结。
 
@@ -68,11 +70,11 @@ subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein
 
 ## ✅ 正向配方 (命中反面=流程错误)
 
-> 🔒 铁律: main 禁亲改源码 — 实质产出一律派 subagent (仅 ≤3 文件微改例外且必在 task worktree 内)。
+> 🔒 铁律: main 禁亲改源码 — 实质产出一律派 subagent (仅 ≤3 文件微改例外且必在该 task 工作目录内)。
 
 | 场景                       | 正确做法 (❌ 反面)                                                              |
 | -------------------------- | ------------------------------------------------------------------------------ |
-| 实质产出                   | 派 subagent 在 task worktree 内做 (❌ main 亲改源码; 仅 ≤3 文件微改例外)        |
+| 实质产出                   | 派 subagent 在该 task 工作目录内做 (worktree 或原地仓库根) (❌ main 亲改源码; 仅 ≤3 文件微改例外) |
 | 就绪 subtask 推进          | 完成即派, 任一返回即 `claim` 放行下游 (❌ 一批跑完才派下一批)                    |
 | 并发控制                   | 并发上限 2 (❌ 并发超 2)                                                        |
 | subtask 标 `需要:`         | 不计 done, 下游保持未 ready (❌ 计 done 放行下游)                               |

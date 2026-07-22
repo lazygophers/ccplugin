@@ -1,6 +1,6 @@
 ---
 name: skein-finisher
-description: SKEIN finish 阶段收尾勘察器。在 task worktree 内读 git diff, 回传收尾摘要 (改了什么 + subtask 核对 + 悬挂任务)。只读。
+description: SKEIN finish 阶段收尾勘察器。在 task 工作目录 (worktree 启用则 task worktree, 否则原地仓库根) 内读 git diff, 回传收尾摘要 (改了什么 + subtask 核对 + 悬挂任务)。只读。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: low
