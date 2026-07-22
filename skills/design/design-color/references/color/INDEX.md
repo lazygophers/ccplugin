@@ -12,7 +12,6 @@
 | **主题总清单**（扫全部主题 + 跨平台热门预设 Nord/Dracula/Catppuccin...） | [themes-catalog.md](themes-catalog.md) |
 | **配色总清单**（扫全部色板：品牌色阶 / 中性阶 / 语义色 / 命名色板） | [palettes-catalog.md](palettes-catalog.md) |
 | **UI 风格总清单**（67 风格：49 通用 + 8 落地页 + 10 BI） | [styles-catalog.md](styles-catalog.md) |
-| **排版字体配对**（74 配对 × 6 类：通用SaaS/奢侈编辑/科技数据/创意风格/专业多语言/CJK-RTL） | [typography.md](typography.md) |
 
 ## 定位
 
