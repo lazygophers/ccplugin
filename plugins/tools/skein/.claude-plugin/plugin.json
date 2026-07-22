@@ -78,7 +78,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks user-prompt",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/bin/skein-hooks user-prompt"
                     }
                 ]
             }
