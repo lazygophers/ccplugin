@@ -1,0 +1,90 @@
+{
+  "id": "split-design-skill",
+  "name": "split-design-into-color-and-uiux",
+  "desc": "拆 design skill 为 design-color + design-uiux 两个独立 skill, 各自完整 references",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "build-design-color",
+      "desc": "建 design-color skill (cp color+style + 写 SKILL.md + 精简 INDEX)",
+      "depends_on": [],
+      "验收": [
+        "SKILL.md+references 齐",
+        "color skill 内无断链"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784696963,
+      "started": 1784696968,
+      "finished": 1784697073
+    },
+    {
+      "sid": "s2",
+      "name": "build-design-uiux",
+      "desc": "建 design-uiux skill (cp ui-ux+layout+scenes+components + 写 SKILL.md + 精简 INDEX)",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "SKILL.md+references 齐",
+        "uiux skill 内无断链"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784696964,
+      "started": 1784697073,
+      "finished": 1784697177
+    },
+    {
+      "sid": "s3",
+      "name": "delete-old-verify-commit",
+      "desc": "删原 design/ + 全量断链核验 + commit",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "design/ 已删",
+        "两 skill 无断链",
+        "commit完成"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784696964,
+      "started": 1784697178,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-split-design-skill",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-split-design-skill",
+      "branch": "skein/split-design-skill",
+      "merged": false
+    }
+  ],
+  "branch": "skein/split-design-skill",
+  "parent": null,
+  "kind": "task",
+  "created": 1784696962,
+  "started": 1784696967,
+  "checked": null,
+  "finished": null,
+  "updated": 1784697178
+}
