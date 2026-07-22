@@ -9,6 +9,14 @@
       "kind": "task"
     },
     {
+      "id": "agent-redesign",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "ask-matt-deep-integrate",
       "status": "已完成",
       "deps": [],
