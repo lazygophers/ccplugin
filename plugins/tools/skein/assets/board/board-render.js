@@ -357,7 +357,7 @@
       var h2 = "<h2>" + esc(c.id) + " " + badge(c.status, data.stClsMap)
         + (c.nextUp ? "<span class=next-up-chip>▶ 下一个</span>" : "") + "</h2>";
       var meta1 = '<p class="meta">前置: ' + esc((c.depNames || []).join(", ") || "-") + " · "
-        + "worktree: " + esc(c.worktree || "-") + " · "
+        + (c.worktree ? "worktree: " + esc(c.worktree) + " · " : "")
         + "耗时 " + fmtDur(c.elapsed) + " / 预期 " + fmtDur(c.est == null ? null : c.est) + "</p>";
       return '<section class="card' + (c.nextUp ? " next-up" : "") + '" id="task-' + esc(c.id)
         + '" data-status="' + esc(c.status) + '" data-search="' + esc(c.search) + '">'

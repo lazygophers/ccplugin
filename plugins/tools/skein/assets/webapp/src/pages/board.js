@@ -314,7 +314,7 @@ function buildLayoutHtml(data) {
       + '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>'
       + "</a></h2>";
     var meta1 = '<p class="meta">前置: ' + esc((c.depNames || []).join(", ") || "-") + " · "
-      + "worktree: " + esc(c.worktree || "-") + " · "
+      + (c.worktree ? "worktree: " + esc(c.worktree) + " · " : "")
       + "耗时 " + fmtDur(c.elapsed) + " · "
       + "等待 " + fmtDur(c.started && c.created ? Math.round((c.started - c.created) / 60) : null) + "</p>";
     return '<section class="card'
