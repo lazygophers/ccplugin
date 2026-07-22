@@ -382,6 +382,26 @@ def _judge_signal(prompt: str) -> list[str]:
     return ev
 
 
+_PHASE = {"待处理": "plan", "进行中": "exec", "检查中": "check"}
+_PREFIX_RULE = ("# 回复前缀 (强制, 无论输入什么)\n"
+                "每条回复以 `[skein]` 开头; 正在处理某 task 时改用 `[skein|<taskId>|<阶段>]` "
+                "(阶段: plan/exec/check/research)。")
+
+
+def _task_phase_hints(skein_dir: str) -> str:
+    """读 .skein/task.json 顶层索引, 列非完成 task + 阶段, 供回复前缀选 taskId。"""
+    p = os.path.join(skein_dir, "task.json")
+    try:
+        with open(p, encoding="utf-8") as f:
+            rows = json.loads(f.read()).get("tasks", [])
+    except (OSError, ValueError):
+        return ""
+    live = [(r.get("id", ""), _PHASE[r["status"]]) for r in rows if r.get("status") in _PHASE]
+    if not live:
+        return ""
+    return "\n当前 task: " + ", ".join(f"{i}({p2})" for i, p2 in live) + " — 处理其一时前缀用其 [skein|id|阶段]"
+
+
 def cmd_user_prompt(d: dict[str, Any]) -> int:
     """UserPromptSubmit: 每 prompt 必注入。未初始化 → 硬提示先 setup; 已初始化 → 注入单一 _CTX (含命中信号证据, 走 flow/inline 交 AI 读判据自判)。"""
     # ponytail: 用户显式调 skein slash command = 已决定走 skein 流程, 无需路由启发判定/未初始化提示, 直接放行
@@ -401,6 +421,7 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
         ctx = _CTX
         if evidence:
             ctx += f"\n本次命中: {', '.join(evidence)}"
+        ctx += "\n\n" + _PREFIX_RULE + _task_phase_hints(dir_)
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
     return 0
