@@ -251,6 +251,14 @@
       "kind": "task"
     },
     {
+      "id": "worktree-config-gate",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "worktree-git-toplevel",
       "status": "已完成",
       "deps": [],
