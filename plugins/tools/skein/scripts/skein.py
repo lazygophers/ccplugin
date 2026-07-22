@@ -230,14 +230,18 @@ class Skein:
 
     def config_cmd(self, a: argparse.Namespace) -> None:
         cfg = self.config()  # 生效值 (含 ENV override + 缺键回填)
-        if a.action == "get":
-            if a.key:
-                if a.key not in CONFIG_DEFAULTS:
-                    raise SystemExit(f"未知配置键: {a.key} — 可用: {', '.join(CONFIG_DEFAULTS)}")
-                print(cfg[a.key])
-            else:
-                for k in CONFIG_DEFAULTS:
-                    print(f"{k}={cfg[k]}")
+        action = getattr(a, "action", None)
+        if action is None:  # 无参 → 展示全部生效配置
+            for k in CONFIG_DEFAULTS:
+                print(f"{k}={cfg[k]}")
+            return
+        if action == "reset":  # 全部重置为默认值 (覆写 config.yaml)
+            (self.dir / "config.yaml").write_text(_yaml_dump(dict(CONFIG_DEFAULTS)))
+            print("已重置全部配置为默认值:")
+            for k in CONFIG_DEFAULTS:
+                print(f"{k}={CONFIG_DEFAULTS[k]}")
+                if os.environ.get(f"CLAUDE_PLUGIN_OPTION_{k.upper()}"):
+                    print(f"注意: {k} 有 ENV override 生效, 实际读取仍为环境值 (写盘已重置)")
             return
         # set
         if a.key not in CONFIG_DEFAULTS:
@@ -3090,13 +3094,12 @@ def main() -> None:
     rn.add_argument("sid", nargs="?", help="subtask id (给则改该 subtask, 否则改 task)")
     rn.add_argument("--id", dest="id", help="新 id/sid (task id 仅 pending 可改, 同步跨引用)")
     rn.add_argument("--name", help="新显示名")
-    cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (config get [key] | config set <key> <value>)")
-    cfg_sub = cfg_p.add_subparsers(dest="action", required=True)
-    cg = cfg_sub.add_parser("get", help="打印生效配置 (无 key 出全部)")
-    cg.add_argument("key", nargs="?", help="配置键 (省略=全部)")
+    cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (无参=展示全部 | set <key> <value> | reset)")
+    cfg_sub = cfg_p.add_subparsers(dest="action")
     cs = cfg_sub.add_parser("set", help="写单个配置键")
     cs.add_argument("key")
     cs.add_argument("value")
+    cfg_sub.add_parser("reset", help="重置全部配置为默认值")
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
