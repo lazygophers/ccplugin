@@ -11,6 +11,9 @@
 | 交互模式 / 状态 / 反馈 / 微交互 / 防错 | [interaction-design.md](interaction-design.md) |
 | 可用性启发式（Nielsen 10）/ 无障碍（WCAG / 键盘 / 对比） | [usability-a11y.md](usability-a11y.md) |
 | **主流场景设计建议**（电商/SaaS/BI/落地页/认证/onboarding/搜索/设置/社交/教育/表单/协作/通知 14 场景） | [scenarios.md](scenarios.md) |
+| **行业推理规则**（100 行业 × 11 大类：科技/金融/医疗/电商/创意...） | [industry-rules.md](industry-rules.md) |
+| **UX 规则全清单**（10 类 ~170 条：无障碍/触控/性能/风格/布局/排版色彩/动画/表单/导航/图表） | [rules.md](rules.md) |
+| **图表选型决策**（25 图表类型 × 8 分组：趋势/对比/分布/地理/KPI/层级/金融/多变量） | [charts.md](charts.md) |
 
 ## 定位
 
