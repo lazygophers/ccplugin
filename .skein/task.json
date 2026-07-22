@@ -1,6 +1,14 @@
 {
   "tasks": [
     {
+      "id": "design-uiux-augment",
+      "status": "进行中",
+      "deps": [],
+      "worktree": ".worktrees/skein-design-uiux-augment",
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "design-uiux-refs",
       "status": "待处理",
       "deps": [],
