@@ -228,6 +228,10 @@ class Skein:
                 cfg[k] = int(v)
         return cfg
 
+    def _wt_shown(self) -> bool:
+        # 禁用态 (use_worktree=false) 各出口不展示 worktree 段/列
+        return bool(self.config().get("use_worktree", True))
+
     def config_cmd(self, a: argparse.Namespace) -> None:
         cfg = self.config()  # 生效值 (含 ENV override + 缺键回填)
         action = getattr(a, "action", None)
@@ -550,10 +554,12 @@ class Skein:
                 parent_kind_ok = True
             else:
                 raise SystemExit(f"parent {parent_id} kind={p.get('kind')!r} 非法 — 仅允许 task|supertask")
+        repos = self._parse_repos(getattr(a, "repos", None))
+        if repos and not self.config().get("use_worktree", True):
+            raise SystemExit(f"{tid} 声明 --repos 但 config use_worktree=false — 多子 git 隔离需启用 worktree")
         (self.tasks / tid).mkdir(parents=True)
         self._scaffold(tid, a.name)  # 落 prd/design/findings 脚手架 (planning 填)
         deps = [d.strip() for d in (a.deps or "").split(",") if d.strip()]
-        repos = self._parse_repos(getattr(a, "repos", None))
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
@@ -629,6 +635,8 @@ class Skein:
         if a.set is None:
             print("\n".join(t.get("repos") or []) or "(未声明子 git — 单根/原地模式)")
             return
+        if not self.config().get("use_worktree", True):
+            raise SystemExit(f"{a.id} config use_worktree=false — worktree 禁用, 不可声明 repos")
         if t["status"] != S_PENDING:
             raise SystemExit(f"{a.id} 状态 {t['status']}, repos 只能在 start 前 (pending) 声明")
         t["repos"] = self._parse_repos(a.set)
@@ -1001,8 +1009,12 @@ class Skein:
         if not active:
             print("无 active task")
             return
+        wt_col = self._wt_shown()
         for t in active:
-            print(f"{t['id']}\t{t['status']}\t{t['name']}\t{t.get('worktree') or '-'}")
+            if wt_col:
+                print(f"{t['id']}\t{t['status']}\t{t['name']}\t{t.get('worktree') or '-'}")
+            else:
+                print(f"{t['id']}\t{t['status']}\t{t['name']}")
 
     def ready(self, a: argparse.Namespace) -> None:
         # task 级就绪批 (脚本算, 非 AI 判): pending + 前置全 done + 有空闲 active 槽位。
@@ -1058,7 +1070,10 @@ class Skein:
         pct = _task_pct(t)
         deps = ",".join(t.get("deps", [])) or "-"
         print(f"task\t{t['id']}\t{t['status']}\t{pct}%\t{t['name']}")
-        print(f"worktree\t{t.get('worktree') or '-'}\t前置:{deps}")
+        if self._wt_shown():
+            print(f"worktree\t{t.get('worktree') or '-'}\t前置:{deps}")
+        else:
+            print(f"前置:{deps}")
         if not subs:
             print("subtask\t无")
             return
@@ -1081,11 +1096,12 @@ class Skein:
         pct = _task_pct(t)
         ready = t["status"] == S_PENDING and not any(
             self._dep_unfinished(d) for d in t.get("deps", []))
+        wt_shown = self._wt_shown()
         return {"id": t["id"], "status": t["status"], "name": t.get("name", ""),
                 "desc": t.get("desc", ""), "deps": t.get("deps", []),
                 "repos": t.get("repos", []),
-                "worktree": t.get("worktree") or None,
-                "worktrees": [{"repo": w["repo"], "wt": w["wt"]} for w in self._wts(t)],
+                "worktree": (t.get("worktree") or None) if wt_shown else None,
+                "worktrees": [{"repo": w["repo"], "wt": w["wt"]} for w in self._wts(t)] if wt_shown else [],
                 "pct": pct, "subs": cnt, "ready": ready}
 
     def list_(self, a: argparse.Namespace) -> None:
@@ -1521,17 +1537,22 @@ class Skein:
             return
         hint = self._pending_fix_hint()  # .pending-fix 标记独立于 active task, 无 active 也提示
         active = self._active()
+        wt_shown = self._wt_shown()
         lines = []
         if active:
             lines += ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
             for t in active:
-                lines.append(f"- `{t['id']}` [{t['status']}] {t['name']} — worktree: {t.get('worktree') or '-'}")
+                wt = f" — worktree: {t.get('worktree') or '-'}" if wt_shown else ""
+                lines.append(f"- `{t['id']}` [{t['status']}] {t['name']}{wt}")
                 prd = self.tasks / t["id"] / "prd.md"
                 if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
                     lines.append(f"  - 主入口 PRD: `{prd}`")
             lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
         if hint:
             lines.append(hint)
+        cfg = self.config()
+        wt_txt = "启用 (task 各开 worktree 隔离)" if cfg.get("use_worktree", True) else "禁用 (原地执行, 无 worktree)"
+        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}"]
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
         lines += ["", "# 回复前缀 (强制)",
                   "- 每条回复以 `[skein]` 开头",
@@ -1571,14 +1592,16 @@ class Skein:
                 by_parent.setdefault(t["parent"], []).append(t)
         supertasks = [t for t in tasks if t.get("kind") == "supertask"]
         grouped = bool(supertasks)
+        wt_col = self._wt_shown()
+        empty = "| - | - | - | - | - |" if wt_col else "| - | - | - | - |"
 
         def row(t: dict[str, Any]) -> str:
             deps = ",".join(t.get("deps", [])) or "-"
-            wt = t.get("worktree") or "-"
-            return f"| {t['id']} | {t['name']} | {t['status']} | {deps} | {wt} |"
+            base = f"| {t['id']} | {t['name']} | {t['status']} | {deps} |"
+            return f"{base} {t.get('worktree') or '-'} |" if wt_col else base
 
         if not grouped:
-            body = "\n".join(row(t) for t in tasks) if tasks else "| - | - | - | - | - |"
+            body = "\n".join(row(t) for t in tasks) if tasks else empty
         else:
             lines: list[str] = []
             seen: set[str] = set()
@@ -1586,17 +1609,21 @@ class Skein:
                 lines.append(row(st))
                 seen.add(st["id"])
                 for c in by_parent.get(st["id"], []):
-                    lines.append(f"| ↳ {c['id']} | {c['name']} | {c['status']} | "
-                                 f"{','.join(c.get('deps', [])) or '-'} | {c.get('worktree') or '-'} |")
+                    crow = (f"| ↳ {c['id']} | {c['name']} | {c['status']} | "
+                            f"{','.join(c.get('deps', [])) or '-'} |")
+                    if wt_col:
+                        crow += f" {c.get('worktree') or '-'} |"
+                    lines.append(crow)
                     seen.add(c["id"])
             rest = [t for t in tasks if t["id"] not in seen]
             lines.extend(row(t) for t in rest)  # 独立/孤儿 task 原样平铺, 不强制分组
-            body = "\n".join(lines) if lines else "| - | - | - | - | - |"
+            body = "\n".join(lines) if lines else empty
+        head = ("| id | 名称 | 状态 | 前置 | worktree |\n|---|---|---|---|---|"
+                if wt_col else "| id | 名称 | 状态 | 前置 |\n|---|---|---|---|")
         md = (
             "# SKEIN 看板\n\n"
             "> task.json 变更即自动渲染, 禁直接编辑。无 task 级 focus — 就绪 task 皆可并行。\n\n"
-            "| id | 名称 | 状态 | 前置 | worktree |\n"
-            "|---|---|---|---|---|\n"
+            f"{head}\n"
             f"{body}\n"
         )
         self._write_if_changed(self.dir / "task.md", md)
@@ -2067,7 +2094,7 @@ class Skein:
                 "parent": t.get("parent"), "kind": t.get("kind", "task"),  # task 级父子层 (supertask 分组用, 数据就绪; 前端分组渲染待补)
                 "nextUp": t["id"] == next_up_id,
                 "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
-                "worktree": t.get("worktree") or None,
+                "worktree": (t.get("worktree") or None) if self._wt_shown() else None,
                 "created": t.get("created"),
                 "started": t.get("started"),
                 "checked": t.get("checked"),
