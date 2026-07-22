@@ -95,6 +95,34 @@ error:       red  success: green  warning: yellow  info: blue
 
 实现：检测 `$COLORTERM` / `$TERM`，选对应表。
 
+## 终端兼容速查
+
+选主题前先确认目标终端的色域与特性支持：
+
+| 终端 | 真彩(TrueColor) | 256 色 | 斜体 | 连字 | 模糊背景 | 备注 |
+|------|:---:|:---:|:---:|:---:|:---:|------|
+| iTerm2 (macOS) | ✅ | ✅ | ✅ | ✅ | ✅ | 开发者首选 |
+| Terminal.app (macOS) | ✅ | ✅ | ⚠️有限 | ❌ | ❌ | 系统 Basic，兼容底线 |
+| Windows Terminal | ✅ | ✅ | ✅ | ✅ | ✅ | Win 默认现代终端 |
+| Alacritty | ✅ | ✅ | ✅ | ✅ | ❌ | GPU 渲染、极快 |
+| kitty | ✅ | ✅ | ✅ | ✅ | ✅ | 图形 / 图片支持 |
+| WezTerm | ✅ | ✅ | ✅ | ✅ | ✅ | 跨平台、可编程 |
+| GNOME Terminal | ✅ | ✅ | ⚠️需开 | ❌ | ❌ | Linux 桌面默认 |
+| tmux 内层 | 继承 | 继承 | 需 `tmux -2` / `set -g default-terminal tmux-256color` + `terminal-overrides` | | | tmux 自身需配 truecolor 透传 |
+| Linux TTY (Ctrl+F1) | ❌ | ❌ | ❌ | ❌ | ❌ | 仅 16 色，必须降级到模板 4 极简单色 |
+| CI / 日志 / 管道 | ❌ | ❌ | ❌ | ❌ | ❌ | 非 TTY，全关色 |
+
+### 色域检测策略
+
+```
+COLORTERM=truecolor   → 用真彩 hex（模板 1/2/3 全色）
+TERM=*-256color       → 用 256 色码（见色域降级表）
+TERM=linux / TTY      → 16 色（模板 4 极简单色）
+非 TTY（管道/CI）      → 关色，纯文本（CLI 同理）
+```
+
+实现：启动时检测 `$COLORTERM` / `$TERM` / `isatty(stdout)`，选对应色表。跨终端通用工具默认走「256 色 + 模板 4 降级」最安全。
+
 ## 键位风格模板
 
 | 风格 | 导航 | 选定 | 退出 | 模态 | 受众 |

@@ -135,6 +135,26 @@ ANSI 备用（非 TTY 关）：
 RED=\033[31m  GREEN=\033[32m  YELLOW=\033[33m  BLUE=\033[34m  RESET=\033[0m
 ```
 
+### Shell 兼容速查
+
+彩色 / 交互输出跨 shell 差异：
+
+| Shell | ANSI 色 | Unicode emoji | 补全框架 | 备注 |
+|------|:---:|:---:|------|------|
+| bash | ✅ | ✅ | bash-completion | Linux 默认，兼容底线 |
+| zsh | ✅ | ✅ | zsh-completions / Oh-My-Zsh | macOS 默认 |
+| fish | ✅ | ✅ | 内置(无需框架) | 语法不同，脚本不能复用 |
+| PowerShell | ⚠️ 需 `$PSStyle` | ✅ | PSReadLine | Win 默认，ANSI 需 7.2+ |
+| nushell | ⚠️ 结构化输出 | ✅ | 内置 | 数据优先，禁纯文本污染 |
+| cmd.exe | ❌ 有限 | ⚠️ 乱码 | 无 | 仅作底线兼容，降级无色无 emoji |
+
+### 跨 shell 安全原则
+
+- **TTY 检测**：`isatty(stdout)` 为假（管道 / 重定向 / CI）→ 全关色、全关 emoji、表格降级为 `-o` 结构化输出
+- **emoji**：bash/fish 通用；PowerShell 可用；cmd.exe / 管道降级纯 ASCII 前缀（`>>` `!!` `--` `!!`）
+- **补全**：生成时按 shell 分文件（`completion.bash` / `_tool.zsh` / `tool.fish` / `_tool.ps1`），别指望一份通吃
+- **脚本安全**：输出禁含未转义的特殊字符（`\x1b` 在非 TTY 会污染日志）
+
 ### help 排版风格
 
 统一：

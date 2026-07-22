@@ -47,7 +47,7 @@ description: 跨媒介设计 skill——帮用户做 UI/UX 与接口设计决策
 | 主题 | 二级索引 | 覆盖 |
 |------|---------|------|
 | UI/UX | [ui-ux/INDEX](references/ui-ux/INDEX.md) | 设计原则 / 信息架构 / 交互设计 / 可用性与无障碍 |
-| 配色 | [color/INDEX](references/color/INDEX.md) | 色彩理论 / 调色板模板 / 可访问性 |
+| 配色 | [color/INDEX](references/color/INDEX.md) | 色彩理论 / 调色板模板 / 可访问性 / [主题清单](references/color/themes-catalog.md) / [配色清单](references/color/palettes-catalog.md) |
 
 设计任务先在共用层定原则与色板，再去 medium 层落地实现。
 

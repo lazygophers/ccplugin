@@ -1,0 +1,112 @@
+{
+  "id": "design-catalogs",
+  "name": "build-theme-palette-catalogs-and-platforms",
+  "desc": "建主题/配色总清单 + 补热门主题 + 补全平台覆盖",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "write-themes-catalog",
+      "desc": "themes-catalog.md: 全主题清单(现有+热门补全), 可扫",
+      "depends_on": [],
+      "验收": [
+        "≥30 主题",
+        "每条色值+适用+链接"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784686213,
+      "started": 1784686221,
+      "finished": 1784686447
+    },
+    {
+      "sid": "s2",
+      "name": "write-palettes-catalog",
+      "desc": "palettes-catalog.md: 全配色清单",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "含品牌/中性/语义/命名色板"
+      ],
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784686214,
+      "started": 1784686448,
+      "finished": 1784686449
+    },
+    {
+      "sid": "s3",
+      "name": "expand-platforms",
+      "desc": "app/tui/cli 平台覆盖补全",
+      "depends_on": [
+        "s2"
+      ],
+      "验收": [
+        "app含iPadOS/watchOS/tvOS/WearOS",
+        "tui含终端兼容表",
+        "cli含shell兼容"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784686215,
+      "started": 1784686450,
+      "finished": 1784686532
+    },
+    {
+      "sid": "s4",
+      "name": "wire-and-commit",
+      "desc": "INDEX/SKILL 引用清单 + commit",
+      "depends_on": [
+        "s3"
+      ],
+      "验收": [
+        "引用齐",
+        "无断链",
+        "commit完成"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784686215,
+      "started": 1784686533,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-design-catalogs",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-design-catalogs",
+      "branch": "skein/design-catalogs",
+      "merged": false
+    }
+  ],
+  "branch": "skein/design-catalogs",
+  "parent": null,
+  "kind": "task",
+  "created": 1784686211,
+  "started": 1784686220,
+  "checked": null,
+  "finished": null,
+  "updated": 1784686533
+}

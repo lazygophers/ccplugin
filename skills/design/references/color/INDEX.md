@@ -9,6 +9,8 @@
 | 色彩理论（色相 / 明度 / 饱和 / 色环 / 配色法） | [theory.md](theory.md) |
 | 现成调色板模板（品牌色阶 / 语义色 / 主题色板，复制即用） | [palette-templates.md](palette-templates.md) |
 | 可访问性（对比度 / 色盲安全 / 暗模式） | [accessibility.md](accessibility.md) |
+| **主题总清单**（扫全部主题 + 跨平台热门预设 Nord/Dracula/Catppuccin...） | [themes-catalog.md](themes-catalog.md) |
+| **配色总清单**（扫全部色板：品牌色阶 / 中性阶 / 语义色 / 命名色板） | [palettes-catalog.md](palettes-catalog.md) |
 
 ## 定位
 

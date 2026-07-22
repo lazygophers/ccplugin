@@ -105,6 +105,26 @@ tap-target:   44/48
 
 ---
 
+## 平台覆盖速查（每平台 token 差异）
+
+| 平台 | 主色取法 | 圆角 | 点击区 | 字体 | 关键约束 |
+|------|---------|------|--------|------|---------|
+| iOS / iPhone | systemBlue `#007AFF` | 12pt 卡 / 10pt 按钮 | 44pt | SF Pro | safe-area、Dynamic Type |
+| iPadOS | 同 iOS + 分栏 / Stage Manager | 12pt | 44pt | SF Pro | split-view、多窗口；侧栏 320pt 起 |
+| watchOS | 饱和度 +20%（小屏弱光）| 16pt（圆屏大圆角）| 44pt | SF Rounded | 单列、禁复杂表格、≤4 项/屏、glanceable |
+| tvOS | focus 引擎放大聚焦项 | 16pt | focus 引擎（非点击）| SF Pro Display | 10ft 远距离、字号大、禁密集交互、parallax 图标 |
+| macOS / Win 桌面 | 见模板 3 Fluent | 4-8px（紧凑）| 鼠标精度 | Segoe UI / SF Text | 菜单栏 / 右键菜单 / 多窗口 |
+| Android Phone | Material 3 `#6750A4` | 8/12/16/28dp | 48dp | Roboto | Material elevation、edge-to-edge |
+| Android Tablet | 同上 + 多窗 / 分屏 | 同上 | 48dp | Roboto | NavigationRail（非 BottomBar）、list-detail |
+| Wear OS | 高饱和、大字 | 屏幕圆角 | 边缘 swipe | Roboto | 圆屏适配、≤3 项/屏、ambient 模式降色 |
+
+### 跨平台复用原则
+
+- **同一品牌色**全平台统一（主色 hex 不变），但密度 / 圆角 / 字号按平台调
+- **语义色用系统色**（iOS systemRed vs Material error），保证原生熟悉感
+- **tap-target**：iOS 44pt / Material 48dp 是硬下限，重叠区取大值（48）
+- **暗模式**：各平台系统色暗态不同，别用一套暗 token 硬套——iOS 暗底纯黑 `#000`，Material 暗底带紫 `#141218`
+
 ## 配色决策
 
 ### 色板构成（每项目必备）
