@@ -1,0 +1,117 @@
+{
+  "id": "design-skills-optimize",
+  "name": "design skills 深度优化（流程 B 9维评分+爬山）",
+  "desc": "对 design-uiux 和 design-color 跑 9 维评分诊断，validation-gated 单变量爬山优化短板维度",
+  "status": "已完成",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "opt-failpoint",
+      "name": "补失败模式+检查点",
+      "desc": "两 SKILL.md 加 if-then 三段式 + 🔴/🛑 视觉标记",
+      "depends_on": [],
+      "验收": [
+        "两 SKILL.md 含失败模式三段式",
+        "含🔴🛑视觉标记",
+        "行数≤原×1.5"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784739809,
+      "started": 1784739827,
+      "finished": 1784739870
+    },
+    {
+      "sid": "opt-migrate-typo",
+      "name": "typography 迁 design-uiux",
+      "desc": "typography.md 从 color/ 迁到 ui-ux/，更新两 SKILL + INDEX",
+      "depends_on": [
+        "opt-failpoint"
+      ],
+      "验收": [
+        "typography.md 在 design-uiux/references/ui-ux/",
+        "color/INDEX 无 typography 行",
+        "uiux/INDEX 有 typography 行",
+        "两 SKILL 方法论表更新",
+        "无断链"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784739809,
+      "started": 1784739870,
+      "finished": 1784739922
+    },
+    {
+      "sid": "opt-compress-desc",
+      "name": "压缩 description<512",
+      "desc": "两 description 压到 512 字符内，key use case 前置",
+      "depends_on": [
+        "opt-migrate-typo"
+      ],
+      "验收": [
+        "两 description<512字符",
+        "key use case前置",
+        "触发词无丢失"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784739809,
+      "started": 1784739922,
+      "finished": 1784739989
+    },
+    {
+      "sid": "opt-test-prompt",
+      "name": "补 test prompt 验证",
+      "desc": "造 test prompt + 过 claude -p 质量门",
+      "depends_on": [
+        "opt-compress-desc"
+      ],
+      "验收": [
+        "每 skill≥2 test prompt",
+        "claude -p 返回非空且识别正确"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784739810,
+      "started": 1784739990,
+      "finished": 1784740540
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/design-skills-optimize",
+  "parent": null,
+  "kind": "task",
+  "created": 1784739431,
+  "started": 1784739823,
+  "checked": null,
+  "finished": 1784740547,
+  "updated": 1784740547
+}

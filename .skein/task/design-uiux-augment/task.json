@@ -2,7 +2,7 @@
   "id": "design-uiux-augment",
   "name": "design skills 增量补齐 ui-ux-pro-max 数据",
   "desc": "学习 ui-ux-pro-max-skill, 将 100 行业规则/10 类UX规则/67风格/57字体/25图表/pro-rules checklist 增量补进 skills/design, 不破坏现有结构",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -18,31 +18,30 @@
         "各 INDEX 挂新文件",
         "无断链"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784735726,
       "started": null,
-      "finished": null
+      "finished": 1784736621
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-uiux-augment",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-uiux-augment",
-      "branch": "skein/design-uiux-augment",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-uiux-augment",
   "parent": null,
   "kind": "task",
   "created": 1784735709,
   "started": 1784735768,
   "checked": null,
-  "finished": null,
-  "updated": 1784735768
+  "finished": 1784736638,
+  "updated": 1784736638
 }

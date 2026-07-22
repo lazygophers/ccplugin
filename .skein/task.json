@@ -1,14 +1,6 @@
 {
   "tasks": [
     {
-      "id": "design-uiux-augment",
-      "status": "进行中",
-      "deps": [],
-      "worktree": ".worktrees/skein-design-uiux-augment",
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "design-uiux-refs",
       "status": "待处理",
       "deps": [],
@@ -98,6 +90,22 @@
     },
     {
       "id": "design-skills",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-skills-optimize",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-uiux-augment",
       "status": "已完成",
       "deps": [],
       "worktree": null,
