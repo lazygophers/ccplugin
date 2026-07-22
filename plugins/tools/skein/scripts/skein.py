@@ -1015,36 +1015,6 @@ class Skein:
             deps = ",".join(t["deps"]) or "-"
             print(f"{t['id']}\t{t['name']}\t前置: {deps}")
 
-    def pop(self, a: argparse.Namespace) -> None:
-        # 只读提取一个"可执行" (task, subtask) 对: active task 内首个就绪 subtask (pending+依赖全done+有空闲并发槽)。
-        # 仅选取, 不改状态/不认领 —— 是否执行、何时认领由 AI 判定。执行前须 `subtask claim/start` 占槽。
-        for t in self._active():
-            batch = self._ready(t)
-            if not batch:
-                continue
-            s = batch[0]
-            wt = t.get("worktree") or "-"
-            deps = ",".join(s.get("depends_on", [])) or "-"
-            skl = ",".join(s.get("skills", [])) or "-"
-            chk = "; ".join(s.get("验收", [])) or "-"
-            print(f"task\t{t['id']}\t{t['name']}\tworktree: {wt}")
-            print(f"subtask\t{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}\tskills: {skl}\t前置: {deps}")
-            print(f"desc\t{s.get('desc') or '-'}")
-            print(f"验收\t{chk}")
-            print("— 决定执行后, 认领就绪批(整批标 running): "
-                  f"`skein.py subtask claim {t['id']}`  或只占此单个: `skein.py subtask start {t['id']} {s['sid']}`")
-            print(f"— 完成后: `skein.py subtask done {t['id']} {s['sid']}` (失败 `subtask fail {t['id']} {s['sid']} --note ...`)")
-            return
-        # 无 active task 含就绪 subtask → 提示是否有就绪 pending task 待激活
-        if self.config()["max_active"] - len(self._active()) > 0:
-            for t in self._all():
-                if t["status"] != S_PENDING or any(self._dep_unfinished(d) for d in t["deps"]):
-                    continue
-                print(f"无 active task 含就绪 subtask; 有就绪 pending task 待激活: {t['id']} ({t['name']})")
-                print(f"— 先激活再 pop: `skein.py start {t['id']}`")
-                return
-        print("无可执行 (task, subtask): active task 均无就绪 subtask, 亦无就绪 pending task 可激活")
-
     def status(self, a: argparse.Namespace) -> None:
         # 只读查态: `status <tid>` 出 task 态 + subtask 汇总; `status <tid> <sid>` 出单个 subtask 明细。
         t = self._load(a.tid)
@@ -1717,8 +1687,32 @@ class Skein:
 
     def claim(self, a: argparse.Namespace) -> None:
         """全局跨 task 认领就绪批: 所有 active task ready subtask 竞争全局 max_active 槽。
-        整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。"""
+        整批标 running + 各 task 各 _save。无 tid (对照 `subtask claim <tid>` 单 task)。
+        `--dry-run`: 只读预览整批 (与默认认领同源排序), 不改状态 (旧 pop)。"""
         batch = self._global_ready()
+        if getattr(a, "dry_run", False):
+            if not batch:
+                tasks = self._active()
+                grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
+                gpend = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_PENDING)
+                mp = self.config()["max_active"]
+                print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
+                if mp - len(tasks) > 0:
+                    for t in self._all():
+                        if t["status"] != S_PENDING or any(self._dep_unfinished(d) for d in t["deps"]):
+                            continue
+                        print(f"有就绪 pending task 待激活: {t['id']} ({t['name']})")
+                        print(f"— 先激活再执行: `skein.py start {t['id']}`")
+                        break
+                return
+            print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
+            for t, s in batch:
+                sk = ",".join(s.get("skills", [])) or "-"
+                chk = "; ".join(s.get("验收", [])) or "-"
+                print(f"{t['id']}/{s['sid']}\t{s['name']}\tagent: {s.get('agent', 'skein-executor')}"
+                      f"\tskills: {sk}\t验收: {chk}")
+            print("— 认领整批: `skein.py claim`  或只占单个: `skein.py subtask start <tid> <sid>`")
+            return
         if not batch:
             tasks = self._active()
             grun = sum(1 for t in tasks for s in t.get("subtasks", []) if s["status"] == SS_RUNNING)
@@ -2263,7 +2257,7 @@ class Skein:
                 "activeTasks": active_tasks}
 
     def _queue(self) -> dict[str, Any]:
-        # 待执行队列 (复用 ready/pop 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
+        # 待执行队列 (复用 ready/claim 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
         tasks = self._render_tasks()
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                         "deps": t.get("deps", []), "desc": t.get("desc", ""),
@@ -2357,8 +2351,6 @@ class Skein:
             return base + (argv + ["--status", g("status")] if s("status") else argv)
         if cmd == "ready":
             return base + ["ready"]
-        if cmd == "pop":
-            return base + ["pop"]
         if cmd == "current":
             return base + ["current"]
         if cmd == "doctor":
@@ -3109,8 +3101,8 @@ def main() -> None:
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
     sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
-    sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_active 槽)")
-    sub.add_parser("pop", help="只读提取一个可执行 (task, subtask) 对 (active task 内首个就绪 subtask; 仅选取, 是否执行交 AI 判)")
+    cm = sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_active 槽); --dry-run 只读预览")
+    cm.add_argument("--dry-run", action="store_true", help="只读预览全局就绪批, 不改状态 (旧 pop)")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
     li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
@@ -3190,7 +3182,7 @@ def main() -> None:
         "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
         "check": sk.check,
         "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
-        "ready": sk.ready, "pop": sk.pop, "claim": sk.claim,
+        "ready": sk.ready, "claim": sk.claim,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps,
         "status": sk.status, "subtask": sk.subtask, "prd": sk.prd,

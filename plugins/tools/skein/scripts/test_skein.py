@@ -207,16 +207,16 @@ def main() -> None:
         # ready 只读: s3 就绪但未认领仍待处理
         subs = json.loads((d / ".skein/task/task-5/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in subs}["s3"] == "待处理"
-        # ---- pop: 只读提取一个可执行 (task, subtask) 对 ----
-        # task-4 仍 active 且 s1 就绪 → pop 主路径返回 (task-4, s1)
-        rp = sk(d, "pop").stdout
-        assert "task-4" in rp and "s1" in rp, f"pop 未提取到 active task 就绪 subtask: {rp!r}"
-        # pop 只读: 不改状态
+        # ---- claim --dry-run: 只读预览全局就绪批 (旧 pop 折叠进此) ----
+        # task-4 仍 active 且 s1 就绪 → s1 出现在全局就绪批预览 (task-4/s1)
+        rp = sk(d, "claim", "--dry-run").stdout
+        assert "task-4" in rp and "s1" in rp, f"claim --dry-run 未含 active task 就绪 subtask: {rp!r}"
+        # claim --dry-run 只读: 不改状态
         s4 = json.loads((d / ".skein/task/task-4/task.json").read_text())["subtasks"]
-        assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "pop 误改状态 (应只读)"
+        assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "claim --dry-run 误改状态 (应只读)"
         # 无 active 就绪 + 有就绪 pending 时走 "待激活" 提示 (task-5 pending, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
-        assert "待激活" in sk(d, "pop").stdout, "pop 未提示就绪 pending task"
+        assert "待激活" in sk(d, "claim", "--dry-run").stdout, "claim --dry-run 未提示就绪 pending task"
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,

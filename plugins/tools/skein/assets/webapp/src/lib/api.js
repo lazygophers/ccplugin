@@ -42,5 +42,5 @@ export const search = (q) => getJSON(BASE + "/search?q=" + encodeURIComponent(q)
 export const getConfig = () => getJSON(BASE + "/config");
 export const setConfig = (cfg) => postJSON(BASE + "/config", cfg).then((r) => (r && r.config) || cfg);
 export const data = () => getJSON(BASE + "/data");
-// exec: cmd + 其余参数平铺进 body (list/ready/pop/current/status/doctor/contract/subtask-list/create/subtask-add)
+// exec: cmd + 其余参数平铺进 body (list/ready/current/status/doctor/contract/subtask-list/create/subtask-add)
 export const exec = (cmd, args) => postJSON(BASE + "/exec", Object.assign({ cmd }, args || {}));
