@@ -55,6 +55,7 @@ STATUS_ACTIVE = {S_ACTIVE, S_CHECK}
 _STATUS_ALIAS = {"pending": S_PENDING, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
 # 看板排序: 进行中 > 检查中 > 待处理 > 已完成 (同状态内按 id 稳定)
 STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
+PHASE_OF = {S_PENDING: "plan", S_ACTIVE: "exec", S_CHECK: "check"}  # task status → 回复前缀阶段
 # subtask 状态
 SS_PENDING = "待处理"
 SS_RUNNING = "运行中"
@@ -1500,8 +1501,6 @@ class Skein:
             return
         hint = self._pending_fix_hint()  # .pending-fix 标记独立于 active task, 无 active 也提示
         active = self._active()
-        if not active and not hint:
-            return
         lines = []
         if active:
             lines += ["# SKEIN 活跃任务 (compaction 上下文恢复)", ""]
@@ -1513,6 +1512,10 @@ class Skein:
             lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
         if hint:
             lines.append(hint)
+        prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
+        lines += ["", "# 回复前缀 (强制): 每条回复以 `[skein]` 开头; 处理某 task 时用 `[skein|<taskId>|<阶段>]` (阶段 plan/exec/check/research)。"]
+        if prefix_tasks:
+            lines.append(f"当前 active task: {prefix_tasks}")
         ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
         print(json.dumps({"hookSpecificOutput": {
             "hookEventName": "SessionStart", "additionalContext": ctx}}))
