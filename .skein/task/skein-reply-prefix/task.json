@@ -2,7 +2,7 @@
   "id": "skein-reply-prefix",
   "name": "回复前缀强制注入",
   "desc": "SessionStart+UserPromptSubmit 注入指令: 回复以 [skein] 或 [skein|taskId|phase] 开头",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [
     "skein-rename-cmd"
   ],
@@ -18,13 +18,17 @@
         "SessionStart 同",
         "status→phase 映射正确"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784697724,
       "started": 1784698257,
-      "finished": null
+      "finished": 1784698532
     },
     {
       "sid": "test-prefix",
@@ -36,31 +40,26 @@
       "验收": [
         "pytest 全绿"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784697725,
-      "started": null,
-      "finished": null
+      "started": 1784698532,
+      "finished": 1784698706
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-skein-reply-prefix",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-skein-reply-prefix",
-      "branch": "skein/skein-reply-prefix",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/skein-reply-prefix",
   "parent": null,
   "kind": "task",
   "created": 1784697703,
   "started": 1784698257,
   "checked": null,
-  "finished": null,
-  "updated": 1784698257
+  "finished": 1784698988,
+  "updated": 1784698988
 }

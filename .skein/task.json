@@ -1,16 +1,6 @@
 {
   "tasks": [
     {
-      "id": "skein-reply-prefix",
-      "status": "进行中",
-      "deps": [
-        "skein-rename-cmd"
-      ],
-      "worktree": ".worktrees/skein-skein-reply-prefix",
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "design-uiux-refs",
       "status": "待处理",
       "deps": [],
@@ -158,6 +148,16 @@
       "id": "skein-rename-cmd",
       "status": "已完成",
       "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "skein-reply-prefix",
+      "status": "已完成",
+      "deps": [
+        "skein-rename-cmd"
+      ],
       "worktree": null,
       "parent": null,
       "kind": "task"
