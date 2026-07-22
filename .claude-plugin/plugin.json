@@ -2,22 +2,6 @@
   "name": "ccplugin-skills",
   "version": "0.1.0",
   "description": "Claude Code skill 集合——设计(主题配色/UI-UX)、Git 工作流、代码质量、项目工程、skill 开发方法论。一套 plugin 打包全部 skills，/plugin install 一键装齐。",
-  "author": {
-    "name": "lazygophers",
-    "email": "admin@lazygophers.dev"
-  },
-  "homepage": "https://github.com/lazygophers/ccplugin",
-  "repository": "https://github.com/lazygophers/ccplugin",
-  "license": "AGPL-3.0-or-later",
-  "keywords": [
-    "design",
-    "ui-ux",
-    "color",
-    "git",
-    "code-quality",
-    "skill-dev",
-    "skills"
-  ],
   "skills": [
     "./skills/design/design-color",
     "./skills/design/design-uiux",
