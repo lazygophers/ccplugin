@@ -33,6 +33,14 @@
       "kind": "task"
     },
     {
+      "id": "config-default-show",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "design-catalogs",
       "status": "已完成",
       "deps": [],
@@ -129,6 +137,14 @@
       "kind": "task"
     },
     {
+      "id": "merge-pop-claim",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "plan-done-criteria",
       "status": "已完成",
       "deps": [],
@@ -138,6 +154,14 @@
     },
     {
       "id": "prd-section-cli",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "prefix-rule-multiline",
       "status": "已完成",
       "deps": [],
       "worktree": null,
@@ -187,6 +211,14 @@
       "kind": "task"
     },
     {
+      "id": "skills-worktree-aware",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "skip-flow-judge-on-slash",
       "status": "已完成",
       "deps": [],
@@ -204,6 +236,14 @@
     },
     {
       "id": "ui-ux-scenarios",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "worktree-git-toplevel",
       "status": "已完成",
       "deps": [],
       "worktree": null,
