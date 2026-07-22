@@ -232,6 +232,9 @@ class Skein:
         cfg = self.config()  # 生效值 (含 ENV override + 缺键回填)
         action = getattr(a, "action", None)
         if action is None:  # 无参 → 展示全部生效配置
+            if getattr(a, "json", False):  # --json: 机器可解析 (skein config --json | jq -r .use_worktree)
+                print(json.dumps({k: cfg[k] for k in CONFIG_DEFAULTS}, ensure_ascii=False))
+                return
             for k in CONFIG_DEFAULTS:
                 print(f"{k}={cfg[k]}")
             return
@@ -3104,7 +3107,8 @@ def main() -> None:
     rn.add_argument("sid", nargs="?", help="subtask id (给则改该 subtask, 否则改 task)")
     rn.add_argument("--id", dest="id", help="新 id/sid (task id 仅 pending 可改, 同步跨引用)")
     rn.add_argument("--name", help="新显示名")
-    cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (无参=展示全部 | set <key> <value> | reset)")
+    cfg_p = sub.add_parser("config", help="读写 .skein/config.yaml 配置 (无参=展示全部 | --json 机器可解析 | set <key> <value> | reset)")
+    cfg_p.add_argument("--json", action="store_true", help="无参展示时输出 JSON (供 jq 解析, 如 skein config --json | jq -r .use_worktree)")
     cfg_sub = cfg_p.add_subparsers(dest="action")
     cs = cfg_sub.add_parser("set", help="写单个配置键")
     cs.add_argument("key")

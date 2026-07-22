@@ -16,13 +16,15 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 载体
 
+> **工作目录 (worktree 态自适应)** — 本仓 worktree 隔离启用态: !`skein config --json 2>/dev/null | jq -r '.use_worktree' || echo unknown`。`true`=在 **task worktree** 内验证/修复; `false`/`unknown`=**原地在仓库根**。真值以 task 的 `worktree` 字段为准 (null=原地)。下文"task worktree"按此二读。
+
 - **验证** → 派 `skein-checker` (只读 + 跑命令, 回传 PASS/FAIL 报告)。
-- **修复** → 派合适 agent (按修复性质挑现有 agent, 无则 `skein-executor`) 在 task worktree 内定点改 (dispatch prompt 带执行纪律)。
+- **修复** → 派合适 agent (按修复性质挑现有 agent, 无则 `skein-executor`) 在该 task 工作目录 (worktree 或原地仓库根) 内定点改 (dispatch prompt 带执行纪律)。
 - main 作调度器串起「验证 → 修复 → 重验」循环, 不亲跑 check、不亲改码。
 
 ## 流程
 
-1. **验证** — 派 `skein-checker`: 传 Active task id + worktree 路径。checker 自跑 `skein prd read <id> --type=acceptance` 取验收标准 (禁 dispatch prompt 传验收全文, 避免上下文漂移 + 省 token)。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
+1. **验证** — 派 `skein-checker`: 传 Active task id + 工作目录 (task 的 `worktree` 字段; null=原地仓库根)。checker 自跑 `skein prd read <id> --type=acceptance` 取验收标准 (禁 dispatch prompt 传验收全文, 避免上下文漂移 + 省 token)。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
    - **验收项增量验证** — checker 读 prd `## 验收标准` 章节时, **只验未勾 (`- [ ]`) 项**; 已 `- [x]` 项视为上轮已确认通过, **跳过不重复验证/处理** → 报告仅覆盖未勾项。
    - **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail:
      - `skein contract <id>` (列出 planning 阶段锁进 task.json 的契约)
