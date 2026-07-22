@@ -73,6 +73,14 @@
       "kind": "task"
     },
     {
+      "id": "fix-skein-plugin-json",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "hook-prompt-judge-ai-only",
       "status": "已完成",
       "deps": [],
