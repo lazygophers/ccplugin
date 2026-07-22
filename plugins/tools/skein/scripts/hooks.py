@@ -383,7 +383,7 @@ def _judge_signal(prompt: str) -> list[str]:
 
 
 _PHASE = {"待处理": "plan", "进行中": "exec", "检查中": "check"}
-_PREFIX_RULE = ("# 回复前缀 (强制, 无论输入什么)\n"
+_PREFIX_RULE = ("# 回复前缀 (强制)\n"
                 "每条回复以 `[skein]` 开头; 正在处理某 task 时改用 `[skein|<taskId>|<阶段>]` "
                 "(阶段: plan/exec/check/research)。")
 
