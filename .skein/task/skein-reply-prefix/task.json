@@ -1,0 +1,66 @@
+{
+  "id": "skein-reply-prefix",
+  "name": "回复前缀强制注入",
+  "desc": "SessionStart+UserPromptSubmit 注入指令: 回复以 [skein] 或 [skein|taskId|phase] 开头",
+  "status": "进行中",
+  "deps": [
+    "skein-rename-cmd"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "impl-prefix",
+      "name": "两注入点加前缀规则",
+      "desc": "hooks.py cmd_user_prompt + skein.py session_context 追加前缀指令 + active task/phase 清单 helper",
+      "depends_on": [],
+      "验收": [
+        "UserPromptSubmit 注入含前缀规则+active清单",
+        "SessionStart 同",
+        "status→phase 映射正确"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784697724,
+      "started": 1784698257,
+      "finished": null
+    },
+    {
+      "sid": "test-prefix",
+      "name": "前缀注入测试",
+      "desc": "覆盖两注入点输出含前缀规则 + phase 映射",
+      "depends_on": [
+        "impl-prefix"
+      ],
+      "验收": [
+        "pytest 全绿"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784697725,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-skein-reply-prefix",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-skein-reply-prefix",
+      "branch": "skein/skein-reply-prefix",
+      "merged": false
+    }
+  ],
+  "branch": "skein/skein-reply-prefix",
+  "parent": null,
+  "kind": "task",
+  "created": 1784697703,
+  "started": 1784698257,
+  "checked": null,
+  "finished": null,
+  "updated": 1784698257
+}

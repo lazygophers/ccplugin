@@ -10,6 +10,20 @@
   },
   "plugins": [
     {
+      "name": "ccplugin-skills",
+      "source": "./",
+      "description": "Claude Code skill 集合 plugin——设计(主题配色/UI-UX)、Git、代码质量、项目工程、skill 开发，13 个 skill 一键装齐。",
+      "category": "skills",
+      "keywords": [
+        "design",
+        "ui-ux",
+        "color",
+        "git",
+        "code-quality",
+        "skills"
+      ]
+    },
+    {
       "name": "deepresearch",
       "source": "./plugins/tools/deepresearch",
       "description": "深度研究插件 - 基于图思维框架的多智能体深度研究系统。支持多领域深度调查、引用验证、知识合成和专业报告生成",
