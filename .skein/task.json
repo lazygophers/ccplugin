@@ -1,14 +1,6 @@
 {
   "tasks": [
     {
-      "id": "design-catalogs",
-      "status": "进行中",
-      "deps": [],
-      "worktree": ".worktrees/skein-design-catalogs",
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "design-uiux-refs",
       "status": "待处理",
       "deps": [],
@@ -26,6 +18,14 @@
     },
     {
       "id": "ask-matt-integrate",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "design-catalogs",
       "status": "已完成",
       "deps": [],
       "worktree": null,
@@ -154,6 +154,14 @@
     },
     {
       "id": "skip-flow-judge-on-slash",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "ui-ux-scenarios",
       "status": "已完成",
       "deps": [],
       "worktree": null,

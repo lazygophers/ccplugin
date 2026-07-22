@@ -10,6 +10,7 @@
 | 信息架构 / 导航 / 内容优先级 / 用户心智模型 | [information-architecture.md](information-architecture.md) |
 | 交互模式 / 状态 / 反馈 / 微交互 / 防错 | [interaction-design.md](interaction-design.md) |
 | 可用性启发式（Nielsen 10）/ 无障碍（WCAG / 键盘 / 对比） | [usability-a11y.md](usability-a11y.md) |
+| **主流场景设计建议**（电商/SaaS/BI/落地页/认证/onboarding/搜索/设置/社交/教育/表单/协作/通知 14 场景） | [scenarios.md](scenarios.md) |
 
 ## 定位
 

@@ -2,7 +2,7 @@
   "id": "design-catalogs",
   "name": "build-theme-palette-catalogs-and-platforms",
   "desc": "建主题/配色总清单 + 补热门主题 + 补全平台覆盖",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -82,31 +82,28 @@
         "无断链",
         "commit完成"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1784686215,
       "started": 1784686533,
-      "finished": null
+      "finished": 1784686576
     }
   ],
   "repos": [],
-  "worktree": ".worktrees/skein-design-catalogs",
-  "worktrees": [
-    {
-      "repo": ".",
-      "wt": ".worktrees/skein-design-catalogs",
-      "branch": "skein/design-catalogs",
-      "merged": false
-    }
-  ],
+  "worktree": null,
+  "worktrees": [],
   "branch": "skein/design-catalogs",
   "parent": null,
   "kind": "task",
   "created": 1784686211,
   "started": 1784686220,
   "checked": null,
-  "finished": null,
-  "updated": 1784686533
+  "finished": 1784686577,
+  "updated": 1784686577
 }
