@@ -596,13 +596,20 @@ class Skein:
             f.write(f"{sep}# skein worktree 隔离 (任务源码改动落此, 不入库)\n{wt}\n")
 
     def _mkwt(self, t: dict[str, Any], repo: str, cfg: dict[str, Any]) -> dict[str, Any]:
-        # 在指定子 git (repo='.'=根仓) 建 worktree+branch; 校验确是 git 工作树 (含 submodule)
+        # 在指定子 git (repo='.'=根仓) 建 worktree+branch; 校验 sub 确是 git 顶层 (根/submodule/嵌套独立 git)
         sub = self.root if repo == "." else self.root / repo
         if not sub.exists():
             raise SystemExit(f"repos 声明的路径不存在: {repo}")
-        rc = git("rev-parse", "--is-inside-work-tree", cwd=sub, check=False)
-        if rc.returncode != 0 or rc.stdout.strip() != "true":
-            raise SystemExit(f"{repo} 不是 git 仓库 (repos 只能声明 git 仓/submodule)")
+        # 必须是 sub 自己那个 git 仓的顶层才可开 worktree: show-toplevel == sub。
+        # 不用 --is-inside-work-tree — 它对根仓的普通子目录也返回 true, 会让 `git worktree add cwd=sub`
+        # 错落到外层根仓 (隔离错位)。等值判定恰好: 根仓/submodule/任意深度嵌套独立 git → toplevel==sub ✓;
+        # 普通子目录 → toplevel==外层仓 ≠ sub ✗ (拒)。
+        rc = git("rev-parse", "--show-toplevel", cwd=sub, check=False)
+        top = rc.stdout.strip()
+        if rc.returncode != 0 or not top or Path(top).resolve() != sub.resolve():
+            raise SystemExit(
+                f"{repo} 不是 git 顶层 — repos 只能声明 git 仓顶层 (根/submodule/嵌套独立 git); "
+                f"普通子目录不可声明 (worktree 会错落到外层仓)")
         wt_root = cfg["worktree_root"].strip("/")
         # worktree 落在**该子 git 内部** (<repo>/<worktree_root>/skein-<id>), 相对 root 存盘免绝对路径入库。
         # 每子仓各自 .worktrees 目录, 天然无碰撞 (旧版全塞 root, 现落各仓内)。
