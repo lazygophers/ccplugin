@@ -846,6 +846,83 @@ class Skein:
         self._sync()  # 刷顶层索引 (移除该 task) + 看板
         print(f"{tid} deleted (软删可恢复: {dst})")
 
+    def rename(self, a: argparse.Namespace) -> None:
+        # 重命名 task/subtask 的 id 或 name (至少给一个 --id / --name)。
+        # - 无 sid: 改 task。--name 改显示名 (任意状态); --id 改 id (仅 pending, 同步目录/branch/别 task deps/child parent/顶层索引)
+        # - 带 sid: 改 subtask。--name 改子任务名; --id 改 sid (同步同 task 内别 subtask 的 depends_on 引用)
+        tid = a.tid
+        t = self._load(tid)  # 不存在即 SystemExit
+        new_id = (a.id or "").strip() or None
+        new_name = a.name  # None=不改; "" 视为显式空名 (校验拒空)
+        if not new_id and new_name is None:
+            raise SystemExit("rename 需至少一个: --id 或 --name")
+        if new_name is not None and not new_name.strip():
+            raise SystemExit("--name 不可为空")
+
+        if a.sid:  # 改 subtask
+            subs = t.get("subtasks", [])
+            s = next((x for x in subs if x.get("sid") == a.sid), None)
+            if s is None:
+                raise SystemExit(f"subtask 不存在: {tid}/{a.sid}")
+            if new_id and any(x.get("sid") == new_id for x in subs):
+                raise SystemExit(f"sid 已占用: {tid}/{new_id}")
+            if new_name is not None:
+                s["name"] = new_name
+            if new_id:
+                old_sid = s["sid"]
+                s["sid"] = new_id
+                for x in subs:  # 同 task 内别 subtask 的 depends_on 引用同步改名
+                    if x is s:
+                        continue
+                    x["depends_on"] = [new_id if d == old_sid else d for d in x.get("depends_on", [])]
+            self._save(t)
+            self._sync()
+            print(f"{tid}/{a.sid} renamed"
+                  + (f" → sid={new_id}" if new_id else "")
+                  + (f" name={new_name!r}" if new_name is not None else ""))
+            return
+
+        # 改 task
+        if new_name is not None:
+            t["name"] = new_name
+        if not new_id:  # 仅改 name
+            self._save(t)
+            self._sync()
+            print(f"{tid} renamed: name={t['name']!r}")
+            return
+        # 改 id: 仅 pending (active 有 live worktree/branch, 改 id 需迁分支+移 worktree, 风险高不支持)
+        if t["status"] != S_PENDING:
+            raise SystemExit(
+                f"task id 重命名仅限 pending: {tid} 当前 {t['status']} "
+                "(active 有 live worktree/branch, 不支持改 id; 先 finish/archive, 或只改 --name)")
+        if not SLUG_RE.match(new_id):
+            raise SystemExit(f"非法 id: {new_id!r} — 须为 kebab-case slug (小写字母/数字/连字符, 字母数字开头)")
+        if CODE_ID_RE.match(new_id):
+            raise SystemExit(f"id 须可读: {new_id!r} 是字母+数字编号 — 用描述性 slug")
+        if new_id in self._used_ids():
+            raise SystemExit(f"id 已占用: {new_id} — 换一个 (含已归档的也不可复用)")
+        old_id = t["id"]
+        t["id"] = new_id
+        t["branch"] = f"skein/{new_id}"  # pending 无 worktree, 只更 branch 字符串
+        # 目录改名 (旧 → 新), 再经 _save 按新 id 落 task.json + 刷子任务看板
+        # ponytail: prd.md 脚手架内的 `subtask list <old-id>` 提示行不重写 (planning 后 prd 已被 AI 大改, 属 AI 内容, 非脚本真值)
+        shutil.move(str(self.tasks / old_id), str(self.tasks / new_id))
+        self._save(t)
+        for other in self._all():  # 同步别 task 的 deps + child 的 parent 引用
+            if other["id"] == new_id:
+                continue
+            changed = False
+            if old_id in (other.get("deps") or []):
+                other["deps"] = [new_id if d == old_id else d for d in other["deps"]]
+                changed = True
+            if other.get("parent") == old_id:
+                other["parent"] = new_id
+                changed = True
+            if changed:
+                self._save(other)
+        self._sync()
+        print(f"{old_id} renamed → {new_id}")
+
     def _archive(self, tid: str) -> None:
         src = self.tasks / tid
         if not src.exists():
@@ -2981,6 +3058,11 @@ def main() -> None:
     _d.add_argument("task_id", help="task id")
     _d.add_argument("subtask_sid", nargs="?", help="subtask id (有则删该 subtask, task 不动; 无则删整个 task)")
     _d.add_argument("--dry-run", action="store_true", help="预览将删什么, 不动盘")
+    rn = sub.add_parser("rename", help="重命名 task/subtask 的 id 或 name (rename <tid> [sid] [--id NEW] [--name NEW]; task id 仅 pending)")
+    rn.add_argument("tid", help="task id")
+    rn.add_argument("sid", nargs="?", help="subtask id (给则改该 subtask, 否则改 task)")
+    rn.add_argument("--id", dest="id", help="新 id/sid (task id 仅 pending 可改, 同步跨引用)")
+    rn.add_argument("--name", help="新显示名")
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
@@ -3071,11 +3153,12 @@ def main() -> None:
         "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps,
         "status": sk.status, "subtask": sk.subtask, "prd": sk.prd,
         "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
+        "rename": sk.rename,
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "start", "check", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove"}
+                "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove", "rename"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)
