@@ -26,7 +26,7 @@ effort: low
 
 main 作调度器编排, 全部改动落 task worktree、主工作区零改动、每个 agent 完成即回传。角色分工:
 
-- **调度** → main 亲跑 (脚本不能 spawn): `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_parallel` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容 (仅该 task 内截断); 只想先看一个可执行候选再决定是否执行, 用 `skein pop` (只读提取一个 (task, subtask) 对, 不改态)。
+- **调度** → main 亲跑 (脚本不能 spawn): `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_parallel` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容 (仅该 task 内截断); 只想先看就绪批再决定是否执行, 用 `skein claim --dry-run` (只读预览就绪批, 不改态)。
 - **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享 task worktree, 不调度不递归 (Recursion Guard)。
 - **禁 main 亲改源码** — 实质产出一律派 subagent (仅 ≤3 文件微改等特别情况例外, 且必在 task worktree 内)。
 - **载体 = 单 subagent (禁 team)** — 每 subtask 派**单 subagent** (一次 `Agent` 调用); agent-teams 已被 skein SessionStart 关闭 (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=0`), 需多 agent 协同的活一律拆成独立 subtask 各派单 subagent, 不组 team。

@@ -17,7 +17,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | `subtask add <tid> <sid> --name --desc [--agent --deps --check --skills]` | planning/main | 登记 subtask 到 DAG。**`sid`/`--name`/`--desc` 必填** (缺一 argparse 报错); `--agent` 省略默认 `skein-executor` (有更合适的具名 agent 显式填); `--check` = 验收标准 checklist 分号分隔, `--skills` 逗号分隔 0-n |
 | `claim` | main (每轮, **主路径**) | **全局跨 task**: 所有 active task 的 ready subtask 合池竞争同一 `max_parallel` 槽, 按 (拓扑深度降序, task 登记序, subtask 登记序) 截取 + 整批标 running, 返回给 main 逐个 dispatch |
 | `subtask claim <tid>` | main (单 task 兼容模式) | **仅该 task 内**算就绪批 (拓扑深度降序) + 标 running; 不跨 task 竞争, 单 task 场景的兼容路径 |
-| `pop` | main (查候选) | **只读提取一个可执行 (task, subtask) 对** (active task 内首个就绪 subtask); 仅选取不改态, 是否执行由 main/AI 判。决定执行后仍走 `claim`/`subtask start` 占槽 |
+| `claim --dry-run` | main (查候选) | **只读预览全局就绪批** (与 `claim` 同源排序), 不改状态; 无就绪时提示激活 pending task。决定执行后去掉 `--dry-run` 即认领 |
 | `subtask check <tid> <sid> --passed "1,3"` | main (agent 回) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条) |
 | `subtask done/fail <tid> <sid>` | main (agent 回) | agent 完成/失败即改态 (`done` 自动把验收标满 → 100%) |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
