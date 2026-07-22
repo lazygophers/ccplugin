@@ -1523,7 +1523,10 @@ class Skein:
         if hint:
             lines.append(hint)
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
-        lines += ["", "# 回复前缀 (强制): 每条回复以 `[skein]` 开头; 处理某 task 时用 `[skein|<taskId>|<阶段>]` (阶段 plan/exec/check/research)。"]
+        lines += ["", "# 回复前缀 (强制)",
+                  "- 每条回复以 `[skein]` 开头",
+                  "- 处理某 task 时用 `[skein|<taskId>|<阶段>]`",
+                  "- 阶段取值: plan / exec / check / research"]
         if prefix_tasks:
             lines.append(f"当前 active task: {prefix_tasks}")
         ctx = budget_guard("\n".join(lines), SESSION_CTX_BUDGET_TOKENS, "skein:session-context")
