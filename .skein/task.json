@@ -1,10 +1,10 @@
 {
   "tasks": [
     {
-      "id": "split-design-skill",
+      "id": "skein-rename-cmd",
       "status": "进行中",
       "deps": [],
-      "worktree": ".worktrees/skein-split-design-skill",
+      "worktree": ".worktrees/skein-skein-rename-cmd",
       "parent": null,
       "kind": "task"
     },
@@ -162,6 +162,14 @@
     },
     {
       "id": "skip-flow-judge-on-slash",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "split-design-skill",
       "status": "已完成",
       "deps": [],
       "worktree": null,

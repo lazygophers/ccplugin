@@ -1,0 +1,68 @@
+{
+  "id": "skein-rename-cmd",
+  "name": "skein rename 命令",
+  "desc": "加 rename 命令: 重命名 task/subtask 的 id(pending)/name, 同步跨引用",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "impl-rename",
+      "name": "实现 rename 命令",
+      "desc": "加 rename 方法+parser+dispatch+MUTATING",
+      "depends_on": [],
+      "验收": [
+        "rename 方法落地",
+        "parser 注册",
+        "dispatch/MUTATING 含 rename"
+      ],
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784697420,
+      "started": 1784697442,
+      "finished": 1784697572
+    },
+    {
+      "sid": "test-rename",
+      "name": "rename 测试",
+      "desc": "覆盖 task/subtask id/name rename + 跨引用 + 非pending拒",
+      "depends_on": [
+        "impl-rename"
+      ],
+      "验收": [
+        "pytest 全绿"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784697421,
+      "started": 1784697572,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-skein-rename-cmd",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-skein-rename-cmd",
+      "branch": "skein/skein-rename-cmd",
+      "merged": false
+    }
+  ],
+  "branch": "skein/skein-rename-cmd",
+  "parent": null,
+  "kind": "task",
+  "created": 1784697395,
+  "started": 1784697423,
+  "checked": null,
+  "finished": null,
+  "updated": 1784697572
+}
