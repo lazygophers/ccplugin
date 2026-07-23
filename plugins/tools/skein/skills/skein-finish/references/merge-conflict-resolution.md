@@ -42,4 +42,4 @@
 
 ## 外部引用 (可选)
 
-ask-matt `/resolving-merge-conflicts` 是上述 5 步纪律同源 skill。**未安装则跳过, skein 用本文件原生覆盖** — 不因缺外部 skill 而失效。
+ask-matt `/resolving-merge-conflicts` 是上述 5 步纪律同源 skill。**存在则用增强 / 否则原生**: 已装 → 可委托它辅助解冲突 (原生为主, 补充不替代); 未装则跳过, skein 用本文件原生覆盖 — 不因缺外部 skill 而失效。

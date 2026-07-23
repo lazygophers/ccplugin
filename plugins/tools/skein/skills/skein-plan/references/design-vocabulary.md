@@ -1,6 +1,6 @@
 # deep-module 设计词表 + ADR 机制
 
-skein 设计阶段的 deep-module 词表 + 难逆决策 (ADR) 记录机制。ask-matt `/codebase-design` (deep-module 词表) + `/domain-modeling` (ADR) 同源, skein 原生化。
+skein 设计阶段的 deep-module 词表 + 难逆决策 (ADR) 记录机制。ask-matt `/codebase-design` (deep-module 词表) + `/domain-modeling` (ADR) 同源, skein 原生化。**存在则用增强 / 否则原生**: 已装这两个 skill → 评 design.md 时可选委托作词表/ADR 增强 (原生为主); 未装则用本文件原生词表兜底。
 
 - **用途一 (词表)**: design.md 写架构/取舍时, 用这套词描述模块边界与质量。
 - **用途二 (ADR)**: 难逆决策实时记在 design.md「取舍」/「可能性分支」段, 防遗忘、防回退代价高的决策无痕迹蒸发。
