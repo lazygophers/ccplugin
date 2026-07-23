@@ -77,41 +77,8 @@ def _git_root(start: str) -> str:
         d = parent
 
 
-# active task 判定: task.json status ∈ {进行中, 检查中} (与 skein.py STATUS_ACTIVE 同义, 直扫免 subprocess)
-# ponytail: 字面值复制自 skein.py:S_ACTIVE/S_CHECK (跨模块 import 启动开销大; 两处值稳定不变)
-_ACTIVE_STATUSES = {"进行中", "检查中"}
-
-
-def _has_active_task(root: str) -> bool:
-    """扫 .skein/task/*/task.json status 字段, 命中 active (进行中/检查中) 即 True。
-
-    扫描跳过 archive/ 与损坏/缺字段文件 (单文件错不炸整门)。
-    """
-    tasks_dir = os.path.join(root, ".skein", "task")
-    if not os.path.isdir(tasks_dir):
-        return False
-    try:
-        entries = os.listdir(tasks_dir)
-    except OSError:
-        return False
-    for name in entries:
-        if name == "archive":
-            continue
-        f = os.path.join(tasks_dir, name, "task.json")
-        if not os.path.isfile(f):
-            continue
-        try:
-            with open(f, encoding="utf-8") as fh:
-                status = json.load(fh).get("status", "")
-        except (json.JSONDecodeError, ValueError, OSError):
-            continue  # 单个 task.json 损坏不炸门
-        if status in _ACTIVE_STATUSES:
-            return True
-    return False
-
-
 def cmd_guard(d: dict[str, Any]) -> int:
-    """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 + 无 active task 落码门 (命中 exit 2)。"""
+    """硬阻直接读写 task.json/task.md + trellis 未初始化迁移门 (命中 exit 2)。"""
     fp = d.get("tool_input", {}).get("file_path", "")
     parts = fp.replace("\\", "/").split("/") if fp else []
 
@@ -138,17 +105,6 @@ def cmd_guard(d: dict[str, Any]) -> int:
             )
             return 2
 
-    # C. 无 active task 守门: 已初始化 skein + 无 active task + 落码 (非 .skein/) → 硬阻。
-    # 激进策略 (用户定): 不留「豁免首次 Write」口, 豁免判定已上移 UserPromptSubmit 信号层; 到 Write 层一律硬阻无 active task 的落码。
-    if d.get("tool_name") in ("Edit", "Write", "MultiEdit") and fp and ".skein" not in parts:
-        root = _git_root(d.get("cwd") or os.getcwd())
-        if (os.path.exists(os.path.join(root, ".skein", "config.yaml"))
-                and not _has_active_task(root)):
-            print("当前无 active SKEIN task。落代码改动 (非 .skein/ 工件) 前先 `skein create` 建 task + "
-                  "`skein start <id>` 走 flow 闭环 (plan→exec→check→finish)。纯查询/问答不触发本门, "
-                  "但单文件多行改动必须先建 task 再改。",
-                  file=sys.stderr)
-            return 2
     return 0
 
 
@@ -340,7 +296,7 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 #   ponytail: 删旧 _INIT_CTX 全 negation 框架 (MUST/禁/违规/黑名单) — 官方 hooks 文档实证
 #   祈使句框架触发 prompt-injection 防御致 AI 自降级; 改事实陈述 + 正向目标行为。
 #   信号是参谋非判官: _judge_signal 只检测命中信号作证据, 走 flow/inline 完全交 AI 读 _CTX 条件自判 (脚本不替判档位)。
-#   走 flow 的硬约束由 cmd_task_created (机械阻 TaskCreate) + cmd_guard (active-task 落码门) 兜底,
+#   走 flow 由 cmd_task_created (机械阻 TaskCreate) 兜底, 落码不再强制 active task (用户定: 去落码门);
 #   prompt 仅留正向指引 + 证据展示, 不重复禁令。
 _CTX = """# SKEIN 判定 (信号仅建议, AI 综合上下文定夺)
 判据: 走 flow(优先) = 跨≥2文件/多步骤/改动类动词/新建类/复杂调研 | 可 inline = 纯查询/问答/单文件单处 | 判不清 = AskUserQuestion。
