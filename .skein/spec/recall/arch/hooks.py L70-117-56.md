@@ -1,6 +1,6 @@
 ---
 title: status 字面值跨模块复制
-layer: core
+layer: recall
 category: arch
 keywords: [常量复制,跨模块,DRY权衡,ponytail,性能优化]
 source: hooks.py L70-117

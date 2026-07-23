@@ -1,6 +1,6 @@
 ---
 title: hook 判定防自降级护栏
-layer: core
+layer: recall
 category: planning
 keywords: [hook,判定,自降级,修饰词,TaskCreate,flow,inline,防御,信号证据,证据展示]
 source: hook-prompt-judge-ai-only

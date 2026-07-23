@@ -1,6 +1,6 @@
 ---
 title: hook 入口统一 hooks.py（非 skein.py）
-layer: core
+layer: recall
 category: arch
 keywords: [hook,入口,hooks.py,unified,cmd_*,DISPATCH,plugin.json]
 source: sediment
