@@ -17,7 +17,7 @@ effort: medium
 ### plan
 - **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` (只取判归属所需字段省 token) 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create <id> --name "任务名" --desc "一句话描述"` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
 - **memory recall** — 派 `skein-recaller` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
-- Skill(skein-grill) 确认需求 → Skill(skein-plan --continue) 规划+`subtask add` 登记 → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
+- Skill(skein-plan --continue) 走完 brainstorm 需求澄清 → grill 硬门 → 规划+`subtask add` 登记 (brainstorm/grill 均在 skein-plan 内, 单一真值源, 顺序 brainstorm→grill) → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
 - **plan 阶段完成判据**: 4 条 checklist (task 已 create / prd 已填完 / subtask 已规划 / 设计方案已定或 main 豁免) 详见 `skein-plan` SKILL.md「✅ plan 阶段完成判据」段。未勾满 = planning 未收敛, 禁 `skein start`。
 ### exec
 - Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (🛑 硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
@@ -28,7 +28,7 @@ effort: medium
 - Skill(skein-finish) 收尾门 (check 全绿后): 派 `skein-finisher` 勘察 → 委托 `skein-spec` sediment → 清理悬挂 → `skein finish`。**sediment 判定门 (自动沉淀)**: `skein-specer` 产候选 → main 逐项 trace + `skein-spec sediment` 自动写盘; 无增量跳过。详见 `skein-finish` skill。
 
 **闭环完成判据 (四步逐一勾满才算 Done)**:
-- [ ] plan: 查重 + create/并入 + grill 确认 + `skein start` 激活
+- [ ] plan: 查重 + create/并入 + brainstorm 需求澄清 + grill 确认 + `skein start` 激活
 - [ ] exec: 每 ready subtask 派真实 `Agent`, 回合末输出任务清单
 - [ ] check: lint/type/test/契约全绿且零冲突
 - [ ] finish: archive + 销 worktree + sediment 异步派出
