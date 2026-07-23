@@ -1,0 +1,86 @@
+{
+  "id": "skein-flow-align",
+  "name": "skein-flow 图与执行逻辑对齐",
+  "desc": "修正 skein-flow.mmd + exec/check skill 使执行逻辑与预期一致(6点)",
+  "status": "检查中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "skill逻辑对齐",
+      "desc": "exec去勾验收(点1)+check加checkpoint核对与场景自适应(点3)",
+      "depends_on": [],
+      "验收": [
+        "exec loop 不再 subtask check 勾验收, 仅 done/fail",
+        "check skill step1=checkpoint核对(task+subtask --check项)",
+        "check step2=场景自适应(编程build/test/arch, 小说逻辑一致性)",
+        "claude -p 质量门通过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784821351,
+      "started": 1784821394,
+      "finished": 1784821826
+    },
+    {
+      "sid": "s2",
+      "name": "重写diagram+png",
+      "desc": "skein-flow.mmd 按6点修正 + 重生成高清png",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "mmd 反映: create=task.json+文件夹(点6)",
+        "plan确认→start→exec连线(点5)",
+        "exec无验收完成即done(点1)",
+        "单task全done→check多task全done→exec停(点2)",
+        "check=checkpoint+场景check(点3)",
+        "finish=merge→销wt→标记完成→异步spec(点4)",
+        "配置核心节点",
+        "png 高清重生成"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784821351,
+      "started": 1784821826,
+      "finished": 1784822020
+    }
+  ],
+  "repos": [],
+  "worktree": ".worktrees/skein-skein-flow-align",
+  "worktrees": [
+    {
+      "repo": ".",
+      "wt": ".worktrees/skein-skein-flow-align",
+      "branch": "skein/skein-flow-align",
+      "merged": false
+    }
+  ],
+  "branch": "skein/skein-flow-align",
+  "parent": null,
+  "kind": "task",
+  "created": 1784821322,
+  "started": 1784821374,
+  "checked": 1784822034,
+  "finished": null,
+  "updated": 1784822647
+}

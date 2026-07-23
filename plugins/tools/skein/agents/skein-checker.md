@@ -12,21 +12,26 @@ skills:
 
 ## 工作流
 
-### 1. 取验收标准 (先读 prd)
+### 1. checkpoint 核对 (task + subtask 双层)
+task 级验收标准 + 各 subtask `--check` checklist 全核对 (exec 只 `done`, 不勾验收; 验收在此统一做):
 ```
-skein prd read <id> --type=acceptance
+skein prd read <id> --type=acceptance    # task 级验收标准
+skein subtask list <id>                  # 各 subtask 的 --check 验收项
 ```
 - **增量验证**: 只验未勾 `- [ ]` 项; 已 `- [x]` 视为上轮通过, **跳过不重验**。
+- 逐 subtask 核对其 `--check` checklist 每条 pass/fail (依据 file:line)。
 - 读不到 → `[工具失败: prd 无 acceptance 章节]`, 全项标 MANUAL。
 
-### 2. 跑硬门命令 (按项目栈)
-lint / type-check / test / build — 探测项目栈:
-- `pyproject.toml` → `ruff check` / `mypy` / `pytest`
-- `package.json` → `npm run lint` / `npm run type-check` / `npm test`
-- 仅 Makefile → `make lint` / `make test`
-- 无识别栈 → 该项 `[工具失败: 未识别项目栈]`, 列已尝试。
+### 2. 场景自适应内置 check
+按项目场景探测跑对应内置检查:
+- **编程类** (有 `pyproject.toml`/`package.json`/`Makefile`) — lint / type-check / test / build + 架构一致性:
+  - `pyproject.toml` → `ruff check` / `mypy` / `pytest`
+  - `package.json` → `npm run lint` / `npm run type-check` / `npm test`
+  - 仅 Makefile → `make lint` / `make test`
+- **小说 / 内容类** (有 `章节/`/`大纲/` 目录, 无 build/test 栈) — **逻辑一致性** (情节因果不断裂) + 设定一致性 (人物/世界观不矛盾) + 伏笔呼应, 用 Read/Grep 核对文本。
+- 无识别场景 → 该项 `[工具失败: 未识别项目场景]`, 列已尝试。
 
-每条命令记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
+每条命令/核查记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
 
 ### 3. 契约逐条核对
 ```
@@ -48,7 +53,7 @@ skein contract <id>
 
 ## Checkpoints
 
-🛑 **硬门全跑完才回传** — lint/type/test/build/契约/一致性六项缺一回传 = 漏检, main 会据不全报告误放行。
+🛑 **硬门全跑完才回传** — checkpoint 核对 (task+subtask 验收) / 场景内置 check (编程 lint·type·test·build·架构 或 小说 逻辑·设定·伏笔) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错, 禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
 🛑 **只验证不修复** — 无 Write/Edit; 查出问题原样上报, 禁就地改。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」禁臆判 pass, 标 MANUAL 需人审。

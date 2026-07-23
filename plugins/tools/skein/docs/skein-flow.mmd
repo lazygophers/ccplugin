@@ -1,0 +1,134 @@
+graph TB
+  subgraph Route["请求路由"]
+    REQ[用户请求] --> USER_PROMPT{user-prompt hook}
+    USER_PROMPT -->|flow: 跨文件/多步| CREATE[建 task]
+    USER_PROMPT -->|inline: 单文件小改| INLINE[直接改]
+    USER_PROMPT -->|grey: 模糊| ASK[AskUserQuestion]
+  end
+
+  subgraph Config["配置核心 (config.yaml — 严格遵守)"]
+    CFG["use_worktree / max_active<br/>auto_commit / retain_days<br/>spec_core_budget"]
+    CFG -.->|use_worktree| CFG_WT[worktree 隔离 or 原地]
+    CFG -.->|max_active| CFG_CC[task 级并发上限]
+    CFG -.->|retain_days| CFG_RD[归档保留期]
+  end
+
+  subgraph Workspace["工作区初始化 (skein init, 一次性)"]
+    INIT{skein init} --> CONFIG[config.yaml]
+    INIT --> TASK_DIR[task/]
+    INIT --> SPEC_DIR[spec/]
+    INIT --> WORKTREE_ROOT[".worktrees/ (use_worktree=true 时)"]
+  end
+
+  subgraph CreateTask["建 task (skein create) — 更新 task.json + 初始化文件夹"]
+    CREATE --> C_JSON[更新 task.json<br/>status=待处理]
+    CREATE --> C_FOLDER[初始化 task/&lt;id&gt;/ 文件夹]
+    C_FOLDER --> C_PRD[prd.md 脚手架]
+    C_FOLDER --> C_DESIGN[design.md 脚手架]
+    C_FOLDER --> C_FIND[findings.md 脚手架]
+  end
+
+  subgraph Plan["Phase 1: 规划 — skein-plan"]
+    C_JSON --> P1[愿景翻译]
+    P1 --> P2[Brainstorm]
+    P2 --> P3{需调研?}
+    P3 -->|是| RESEARCHER[skein-researcher<br/>代码survey + 外部搜索]
+    P3 -->|否| P4{GriLL hard gate}
+    RESEARCHER --> P4
+    P4 -->|通过| P5[产出工件]
+    P4 -->|不通过| P6[回头修改方案]
+    P6 --> P2
+    P5 --> PRD[prd.md]
+    P5 --> DESIGN[design.md]
+    P5 --> FINDINGS[findings.md]
+    P5 --> DAG[subtask DAG]
+    P5 --> CONTRACT["contracts[]"]
+  end
+
+  subgraph Confirm["规划确认 → 激活 (plan 与 exec 连接)"]
+    PRD --> USER_CONFIRM{AskUserQuestion<br/>用户评审确认}
+    DESIGN --> USER_CONFIRM
+    DAG --> USER_CONFIRM
+    USER_CONFIRM -->|通过| START["skein start<br/>建 worktree + task→进行中"]
+    USER_CONFIRM -->|驳回| P6
+  end
+
+  subgraph Exec["Phase 2: 执行 — skein-exec (无验收, 执行完成即 done)"]
+    START --> CLAIM{"skein claim<br/>(全局跨 task 竞争 max_active 槽)"}
+    CLAIM -->|就绪 subtask| DISPATCH[按 agent 派发]
+    DISPATCH --> EXECUTE[执行]
+    EXECUTE -->|完成| DONE["skein subtask done<br/>(执行完成即完成, 不勾验收)"]
+    EXECUTE -->|出错/阻塞| HEAL[自愈: 原地重派 ≤2轮<br/>或加修复 subtask 定点修根因]
+    HEAL --> CLAIM
+    DONE --> NEXT{本 task subtask 全 done?}
+    NEXT -->|否, 还有就绪| CLAIM
+    NEXT -->|是| TASK_CHECK["skein check &lt;id&gt;<br/>该 task → 检查中"]
+    TASK_CHECK --> MORE_TASK{还有未完成 task?}
+    MORE_TASK -->|是, 继续调度| CLAIM
+    MORE_TASK -->|否| EXEC_PAUSE[全部 task 完成<br/>exec 暂停工作]
+  end
+
+  subgraph Check["Phase 3: 检查 — skein-check (唯一验收方)"]
+    TASK_CHECK --> CKPT["1. checkpoint 核对<br/>task+subtask 验收项(--check)全完成?<br/>完成则标记完成"]
+    CKPT --> BUILTIN["2. 场景自适应内置 check"]
+    BUILTIN --> CODE_CHK["编程类: build/test/lint/type<br/>+ 架构一致性 + 契约合规"]
+    BUILTIN --> NOVEL_CHK["小说类: 逻辑一致性<br/>+ 设定/伏笔一致性"]
+    CODE_CHK --> CHECK_VERIFY{全部通过 + 零冲突?}
+    NOVEL_CHK --> CHECK_VERIFY
+    CHECK_VERIFY -->|是| CHECK_PASS[检查通过]
+    CHECK_VERIFY -->|否 ≤2轮| REPLAN["回 planning 重确认修复方向<br/>→ subtask add 修复子任务 → 回 exec"]
+    REPLAN --> CLAIM
+    CHECK_VERIFY -->|否 ≥3轮| RCA[Root Cause Protocol<br/>5维: 需求/设计/实现/环境/测试]
+    RCA -->|带根因重修| REPLAN
+    RCA -->|转人工| HUMAN[附根因报告]
+  end
+
+  subgraph Finish["Phase 4: 收束 — skein-finish"]
+    CHECK_PASS --> INSPECT[完成度检查<br/>finisher 只读勘察]
+    INSPECT --> MERGE["1. 合并 worktree → 主分支"]
+    MERGE --> CLEANUP["2. 删除 worktree"]
+    CLEANUP --> MARK_DONE["3. 标记任务完成 (archive)"]
+    MARK_DONE --> ASYNC["4. 异步 fire-and-forget agent<br/>(finish 已闭环, 不阻塞)"]
+    ASYNC --> SPECER["skein-specer<br/>记忆 / spec 沉淀"]
+  end
+
+  subgraph Memory["规则记忆系统 (异步)"]
+    SPECER --> SEDIMENT{Sediment 判定门}
+    SEDIMENT -->|违反即错| CORE[spec/core/]
+    SEDIMENT -->|值得参考| RECALL[spec/recall/]
+    SEDIMENT -->|一次性| DROP[丢弃]
+    SPEC_INIT[session-context hook] --> CORE_INJECT[注入 core 全部规则<br/>~4000 char budget]
+    PLAN_MEM[plan 阶段] --> RECALLER[skein-recaller<br/>skein-spec recall &lt;query&gt;]
+    RECALLER --> FTS5[BM25 FTS5 检索]
+    FTS5 --> INJECT_R[注入 planning]
+    EMPTY[首次空仓] --> BOOTSTRAP[skein-spec bootstrap<br/>扫 5 维约定]
+    BOOTSTRAP --> WRITE[写盘 + 更新 index.md]
+    CORE --> WRITE
+    RECALL --> WRITE
+  end
+
+  subgraph Architecture["组件架构"]
+    HOOKS[Hook 系统] --> SKILLS[Skill 编排层]
+    SKILLS --> AGENTS[Agent 执行层]
+    AGENTS --> SCRIPTS[脚本引擎<br/>skein.py / spec.py / hooks.py]
+    SCRIPTS --> WORKSPACE[.skein/ 工作区]
+    CFG -.->|真值源| SCRIPTS
+  end
+
+  subgraph Exception["异常处理"]
+    ARCHIVE_ANY[skein archive] -.->|任意状态可丢弃| MARK_DONE
+    CONFLICT[finish 合并冲突] --> CANCEL[auto abort]
+    CANCEL --> MANUAL[手动解冲突后重跑]
+  end
+
+  style CREATE fill:#4a9eff,color:#fff
+  style CFG fill:#00bcd4,color:#000
+  style PRD fill:#f9f,color:#000
+  style USER_CONFIRM fill:#ffeb3b,color:#000
+  style CKPT fill:#8bc34a,color:#000
+  style CORE fill:#4caf50,color:#fff
+  style RECALL fill:#ff9800,color:#fff
+  style MARK_DONE fill:#9e9e9e,color:#fff
+  style ASYNC fill:#ce93d8,color:#000
+  style ASK fill:#ffeb3b,color:#000
+  style INLINE fill:#e0e0e0,color:#000

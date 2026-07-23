@@ -24,8 +24,14 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 ## 流程
 
-1. **验证** — 派 `skein-checker`: 传 Active task id + 工作目录 (task 的 `worktree` 字段; null=原地仓库根)。checker 自跑 `skein prd read <id> --type=acceptance` 取验收标准 (禁 dispatch prompt 传验收全文, 避免上下文漂移 + 省 token)。checker 跑 lint/type/test/build + 契约合规 + 一致性核查, 回传报告。
-   - **验收项增量验证** — checker 读 prd `## 验收标准` 章节时, **只验未勾 (`- [ ]`) 项**; 已 `- [x]` 项视为上轮已确认通过, **跳过不重复验证/处理** → 报告仅覆盖未勾项。
+1. **验证** — 派 `skein-checker`: 传 Active task id + 工作目录 (task 的 `worktree` 字段; null=原地仓库根)。checker 分两步: **① checkpoint 核对 → ② 场景自适应内置 check**, 回传报告。
+   - **① checkpoint 核对 (task + subtask 双层)** — checker 核对本 task 全部 checkpoint 是否完成:
+     - **task 级** — 自跑 `skein prd read <id> --type=acceptance` 取 prd `## 验收标准` (禁 dispatch prompt 传验收全文, 避免上下文漂移 + 省 token), **只验未勾 (`- [ ]`) 项**; 已 `- [x]` 项视为上轮已过, 跳过不重复验。
+     - **subtask 级** — 逐个 subtask 核对其 planning 登记的 `--check` 验收 checklist (`skein subtask list <id>` 出各 subtask 验收项)。全过 → checkpoint 满足 (勾验收/标记完成归 step 2 判定回写)。这是 exec **不做**、由 check 统一做的验收 (点1↔点3 对接: exec 只 `done`, check 才勾验收)。
+   - **② 场景自适应内置 check** — checker 按项目场景跑对应内置检查:
+     - **编程类** — build 能过 / test 能跑通 / lint / type-check / **架构一致性** (接口签名/职责/命名/数据流) + 契约合规。
+     - **小说 / 内容类** — **逻辑一致性** (情节因果不断裂) + 设定一致性 (人物/世界观不自相矛盾) + 伏笔呼应。
+     - 场景由项目类型自判 (有 build/test 配置=编程类; 有 章节/大纲 目录=小说类), 无固定字段, checker 自适应选内置项。
    - **契约逐条验证** — checker MUST 先读出本 task 全部契约, **逐条核对是否被满足**, 报告每条 pass/fail:
      - `skein contract <id>` (列出 planning 阶段锁进 task.json 的契约)
      - 任一条 fail → 进修复循环 (同 lint/type/test 未过路径), 派合适 agent (无则 `skein-executor`) 定点修复后重检。
@@ -39,7 +45,8 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 5. **放行** — 全绿且零冲突 → 回 `skein-flow` 走 finish。
 
 **完成判据 (放行 finish 前勾满)**:
-- [ ] checker 回传, lint/type/test/build 全绿
+- [ ] checkpoint 核对: task 验收标准 + 各 subtask `--check` 项全完成 (标记完成)
+- [ ] 场景内置 check 全绿 (编程类 build/test/lint/type/架构一致性; 小说类 逻辑/设定/伏笔一致性)
 - [ ] 契约逐条 pass (`skein contract` 全覆盖, 无遗漏)
 - [ ] 一致性核查零冲突
 - [ ] 本轮通过的验收项已回写 `- [x]`
