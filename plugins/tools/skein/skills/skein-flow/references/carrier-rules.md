@@ -5,7 +5,7 @@ skein-flow 全流程的载体层强制规则 (最高优先级)。每条都不可
 - **「派 agent」= 真实调用 `Agent` 工具, 不是叙述**。每个「派 agent」动作 MUST 在同一回复产生真实 tool_use。禁在无 `Agent` 调用时回传「已派出 / 在做」— 宣称 ≠ 调用 = 幻觉跳步。task/看板/worktree 的「已建」同理必须是真跑过命令的结果。
 - **main 默认禁写源码** — 改源码为该 subtask 选合适 agent (无则 `skein-executor`), 跑 check 派 `skein-checker`。仅特别情况例外 (≤3 文件微改 / 上下文密集决策 / 用户显式要求), 且必在 task worktree 内。
 - **exec / check 分工, main 作调度器** — exec: 为每个 subtask 选合适 agent (无则 `skein-executor`) 各执行 1 个 (并发上限 2 / 完成即派 / 共享 task worktree); 执行 agent 由 dispatch prompt 硬禁再派 subagent (Recursion Guard, 自己做完 1 个 subtask)。check: 派 `skein-checker` (工具受限, 无 Write/Edit/Agent/Task 的具名 agent)。调度算法详见 `skein-exec` skill, check 详见 `skein-check`。
-- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。**多子 git**: 改动跨多个子 git (并列独立 repo 或 submodule) 时, planning 阶段用 `skein create --repos <rel路径,逗号分隔>` 声明目标子 git (root 用 `.`); `start` 为每个声明的子 git 各建 1 worktree+分支, `finish` 各自 commit→merge→销。声明留空 = 单根/原地模式 (原行为)。子 git 集合由 planning 声明, 不靠脚本猜。
+- **有 task 必有 worktree** — task 在其 worktree 内执行 (`skein start` 自动建), 主工作区零改动; 默认 1 task 1 worktree。finish 后自动销。**多子 git**: 改动跨多个子 git (并列独立 repo 或 submodule) 时, planning 阶段用 `skein create <id> --name "X" --desc "Y" --repos <rel路径,逗号分隔>` 声明目标子 git (root 用 `.`); `start` 为每个声明的子 git 各建 1 worktree+分支, `finish` 各自 commit→merge→销。声明留空 = 单根/原地模式 (原行为)。子 git 集合由 planning 声明, 不靠脚本猜。
 - **`skein` 由 main 同步跑** — create/start/finish/archive 是任务记录管理, main 直接跑, 不派 agent、不算实质工作。
 - **看板自动刷** — task.json 每次变更 (create/start/subtask/finish) 脚本自动渲染 task.md/task.html, 无需手动跑命令; AI 禁直接编辑 (guard hook 硬阻)。
 - **用户交互决策 main 亲做** — `AskUserQuestion` (判新旧不准 / 产物评审 / scope 澄清) subagent 不能与用户对话; subagent 缺信息在返回标 `需要: <问题>` 由 main 转达。

@@ -29,9 +29,9 @@ skein-spec sediment --layer=<core|recall> --category=<类目>
 
 ### 3. 重建 task
 ```
-skein create <id> --name ... --desc ...    # 逐个重建
-skein contract <id> ...                      # 迁契约
-skein subtask add <id> ...                    # 迁 subtask
+skein create <id> --name "标题" --desc "一句话"                    # 逐个重建
+skein contract <id> --add "契约文本"                                # 迁契约 (每条一次)
+skein subtask add <id> <sid> --name "X" --desc "Y" [--deps a,b] [--check "c1;c2"]   # 迁 subtask
 ```
 - 按 `.trellis/` 原语义逐 task 重建, 契约/subtask 逐条迁入。
 
