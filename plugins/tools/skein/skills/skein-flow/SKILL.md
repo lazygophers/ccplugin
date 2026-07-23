@@ -15,7 +15,7 @@ effort: medium
 
 ## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
-- **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json` 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create <id> --name "任务名" --desc "一句话描述"` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
+- **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` (只取判归属所需字段省 token) 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create <id> --name "任务名" --desc "一句话描述"` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
 - **memory recall** — 派 `skein-recaller` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
 - Skill(skein-grill) 确认需求 → Skill(skein-plan --continue) 规划+`subtask add` 登记 → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein start <id>` 激活 (建 worktree)。未确认禁进 exec (硬门 · STOP)。
 - **plan 阶段完成判据**: 4 条 checklist (task 已 create / prd 已填完 / subtask 已规划 / 设计方案已定或 main 豁免) 详见 `skein-plan` SKILL.md「✅ plan 阶段完成判据」段。未勾满 = planning 未收敛, 禁 `skein start`。
