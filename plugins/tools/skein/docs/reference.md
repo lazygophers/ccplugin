@@ -9,7 +9,8 @@
 | `skein init` | 初始化 .skein/ 工作区 |
 | `skein doctor` | 健康检查 |
 | `skein create <id> [--name] [--desc] [--deps] [--kind] [--parent] [--repos]` | 创建 task |
-| `skein start <id>` | 开始 (创建 worktree) |
+| `skein confirm <id>` | 用户确认门: 验 prd + ≥1 subtask, 待处理→就绪 |
+| `skein start <id>` | 激活 (占 active 槽 + 创建 worktree), 就绪→进行中 |
 | `skein finish <id> [--force]` | 完成 (合并 + sediment + archive) |
 | `skein archive <id>` | 归档 (丢弃 worktree, 不合并) |
 | `skein rename <id> <new-id>` | 重命名 |
@@ -135,15 +136,16 @@ skein create <child2> --parent <id>
 
 ### 状态
 
-| 状态 | 含义 |
-| --- | --- |
-| 待处理 | 已规划, 未开始 |
-| 进行中 | 正在 worktree 中执行 |
-| 检查中 | subtask 全完成, 质量门验证 |
-| 已完成 | 检查通过, 等待归档 |
-| 已归档 | finish 完成, worktree 销毁 |
-| 运行中 (subtask) | 正在执行 |
-| 失败 (subtask) | 执行失败, 可重试 |
+| 状态 | 含义 | 占 active 槽 |
+| --- | --- | --- |
+| 待处理 | 规划中 (未过 confirm 用户门) | 否 |
+| 就绪 | 规划完成待启动 (已过 confirm, 可 start) | 否 |
+| 进行中 | 正在 worktree 中执行 | 是 |
+| 检查中 | subtask 全完成, 质量门验证 | 否 |
+| 已完成 | 检查通过, 等待归档 | 否 |
+| 已归档 | finish 完成, worktree 销毁 | 否 |
+| 运行中 (subtask) | 正在执行 | — |
+| 失败 (subtask) | 执行失败, 可重试 | — |
 
 ### Signal Routing
 

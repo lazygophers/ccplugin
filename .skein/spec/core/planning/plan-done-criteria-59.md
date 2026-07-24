@@ -31,5 +31,5 @@ updated: 1784647149
 - planning 流程 checkpoint
 
 ## 关联
-- 铁律: start 强制 prd 硬门 (core/planning/task-detail-enhance-52.md) — 互补，本门是 plan 完成判据，prd 门是 start 前校验
+- 铁律: prd 硬门（主门在 confirm，start 兜底）(core/planning/task-detail-enhance-52.md) — 互补，本门是 plan 完成判据，prd 门在 confirm 主校验
 - 实现细节: skein-plan SKILL.md §✅ plan 阶段完成判据 (2026-07-21落地)

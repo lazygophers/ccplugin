@@ -32,4 +32,4 @@ updated: 1784822953
 
 ## 关联
 - 铁律: plan 阶段完成判据门（prd 必须填完）
-- 铁律: start 强制 prd 硬门
+- 铁律: prd 硬门（主门在 confirm，start 兜底）

@@ -46,16 +46,20 @@ SESSION_CTX_BUDGET_TOKENS = 400  # session-context 注入 token 硬预算 (activ
 DBG = Debug(False)
 
 # task 状态 (中文落盘, 逻辑比较用常量)
+# 生命周期: 待处理(规划中) → [confirm 用户确认门] → 就绪(规划完成待启动) → [start] → 进行中 → [check] → 检查中 → [finish] → 已完成
 S_PENDING = "待处理"
+S_READY = "就绪"
 S_ACTIVE = "进行中"
 S_CHECK = "检查中"
 S_DONE = "已完成"
-STATUS_ACTIVE = {S_ACTIVE, S_CHECK}
+# 两套语义分离: 占 max_active 槽的仅执行中 (检查中/就绪不占); 已 start 有 worktree/可 finish 的含检查中
+STATUS_ACTIVE = {S_ACTIVE}             # 占并发槽 (_active 门 / current 显示)
+STATUS_INFLIGHT = {S_ACTIVE, S_CHECK}  # 已 start 有 worktree, 可 finish / del 需销 worktree
 # list --status 过滤别名 (英文简写 → 中文态); open/未完成 特判非 done
-_STATUS_ALIAS = {"pending": S_PENDING, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
-# 看板排序: 进行中 > 检查中 > 待处理 > 已完成 (同状态内按 id 稳定)
-STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
-PHASE_OF = {S_PENDING: "plan", S_ACTIVE: "exec", S_CHECK: "check"}  # task status → 回复前缀阶段
+_STATUS_ALIAS = {"pending": S_PENDING, "ready": S_READY, "active": S_ACTIVE, "check": S_CHECK, "done": S_DONE}
+# 看板排序: 进行中 > 检查中 > 就绪 > 待处理 > 已完成 (同状态内按 id 稳定)
+STATUS_ORDER = {S_ACTIVE: 0, S_CHECK: 1, S_READY: 2, S_PENDING: 3, S_DONE: 4}
+PHASE_OF = {S_PENDING: "plan", S_READY: "ready", S_ACTIVE: "exec", S_CHECK: "check"}  # task status → 回复前缀阶段
 # subtask 状态
 SS_PENDING = "待处理"
 SS_RUNNING = "运行中"
@@ -635,8 +639,8 @@ class Skein:
             return
         if not self.config().get("use_worktree", True):
             raise SystemExit(f"{a.id} config use_worktree=false — worktree 禁用, 不可声明 repos")
-        if t["status"] != S_PENDING:
-            raise SystemExit(f"{a.id} 状态 {t['status']}, repos 只能在 start 前 (pending) 声明")
+        if t["status"] not in (S_PENDING, S_READY):
+            raise SystemExit(f"{a.id} 状态 {t['status']}, repos 只能在 start 前 (待处理/就绪) 声明")
         t["repos"] = self._parse_repos(a.set)
         self._save(t)
         self._sync()
@@ -650,8 +654,8 @@ class Skein:
         if a.set is None:
             print(",".join(t.get("deps") or []) or "(无前置)")
             return
-        if t["status"] != S_PENDING:
-            raise SystemExit(f"{a.id} 状态 {t['status']}, deps 只能在 start 前 (pending) 设置")
+        if t["status"] not in (S_PENDING, S_READY):
+            raise SystemExit(f"{a.id} 状态 {t['status']}, deps 只能在 start 前 (待处理/就绪) 设置")
         if t.get("deps"):
             raise SystemExit(
                 f"{a.id} 已有前置 {','.join(t['deps'])} — 既有依赖不可改 (deps 只补无前置的 task)")
@@ -690,13 +694,31 @@ class Skein:
         self._sync()
         print(f"{a.id} deps = {', '.join(new) or '(空)'}")
 
+    def confirm(self, a: argparse.Namespace) -> None:
+        # 用户确认门 (待处理→就绪): planning 完成 (prd 填齐 + ≥1 subtask) 且用户评审通过后调用,
+        # 把 task 从「规划中」推到「就绪」(待启动)。就绪不占并发槽, 供 start 前排队。
+        t = self._load(a.id)
+        if t["status"] != S_PENDING:
+            raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
+        # planning 完成门: 无 subtask / prd 未填齐 → 拒绝进就绪 (逼先补全规划)
+        subs = t.get("subtasks") or []
+        if len(subs) == 0:
+            raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 confirm")
+        self._validate_prd(a.id)
+        t["status"] = S_READY
+        self._save(t)
+        self._sync()
+        print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
+
     def start(self, a: argparse.Namespace) -> None:
         # start 前置体检: 跑 doctor 结构不变量检查, 有 ✗ 错误 → doctor 内 raise SystemExit(1) 阻止 start
         print("start 前置体检 (doctor):")
         self.doctor(a)
         t = self._load(a.id)
-        if t["status"] != S_PENDING:
-            raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 start 待处理 task")
+        if t["status"] != S_READY:
+            raise SystemExit(
+                f"{a.id} 状态为 {t['status']}, 只能 start 就绪 task — "
+                f"待处理(规划中) 须先 skein confirm 过用户确认门")
         cfg = self.config()
         active = self._active()
         if len(active) >= cfg["max_active"]:
@@ -706,11 +728,7 @@ class Skein:
         undone = [d for d in t["deps"] if self._dep_unfinished(d)]
         if undone:
             raise SystemExit(f"前置未完成: {', '.join(undone)} — 先 finish 它们")
-        # 校验: task 必须有至少 1 个 subtask (无 subtask 不许 start, 逼用户先拆 subtask)
-        subs = t.get("subtasks") or []
-        if len(subs) == 0:
-            raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 start")
-        # prd 就绪门: 拒绝 start 未填 prd 的 task (无 prd / 章节不全 / 残留 TODO 占位)
+        # planning 完成门 (subtask + prd) 已在 confirm 时校验; 此处 double-check prd 防 confirm 后被改空
         self._validate_prd(a.id)
         t["status"] = S_ACTIVE
         repos = t.get("repos") or []
@@ -768,8 +786,8 @@ class Skein:
     def finish(self, a: argparse.Namespace) -> None:
         tid = a.id
         t = self._load(tid)
-        if t["status"] not in STATUS_ACTIVE:
-            raise SystemExit(f"{tid} 状态 {t['status']}, 非 active 无法 finish")
+        if t["status"] not in STATUS_INFLIGHT:
+            raise SystemExit(f"{tid} 状态 {t['status']}, 非在途 (进行中/检查中) 无法 finish")
         # supertask 聚合归档: finish 前所有 child task(parent 指向它)须全 done
         # ponytail: 遍历 tasks 过滤 parent==tid 找 child (不维护 child_ids 数组, 真值源单一)
         if t.get("kind") == "supertask":
@@ -886,14 +904,14 @@ class Skein:
         if a.dry_run:
             lines = [f"[dry-run] 将删 task {tid} ({t['name']}):",
                      f"  软删: {src} → {self.trash_dir}/{tid}.{datetime.datetime.now().strftime('%Y%m%d')}/"]
-            if t["status"] in STATUS_ACTIVE:
+            if t["status"] in STATUS_INFLIGHT:
                 for w in self._wts(t):
                     lines.append(f"  销 worktree: {w['wt']}  分支: {w['branch']}  (子 git {w['repo']})")
             print("\n".join(lines))
             return
 
-        # active task 先销 worktree/分支 (finish/archive 同策略, 免悬挂); pending/done 无 worktree, 跳过
-        if t["status"] in STATUS_ACTIVE:
+        # 在途 task (进行中/检查中) 先销 worktree/分支 (finish/archive 同策略, 免悬挂); 待处理/就绪/done 无 worktree, 跳过
+        if t["status"] in STATUS_INFLIGHT:
             self._destroy_worktrees(t)
         dst = self.trash_dir / f"{tid}.{datetime.datetime.now().strftime('%Y%m%d')}"
         self.trash_dir.mkdir(parents=True, exist_ok=True)
@@ -947,11 +965,11 @@ class Skein:
             self._sync()
             print(f"{tid} renamed: name={t['name']!r}")
             return
-        # 改 id: 仅 pending (active 有 live worktree/branch, 改 id 需迁分支+移 worktree, 风险高不支持)
-        if t["status"] != S_PENDING:
+        # 改 id: 仅 pre-start (待处理/就绪 无 live worktree; active/check 改 id 需迁分支+移 worktree, 风险高不支持)
+        if t["status"] not in (S_PENDING, S_READY):
             raise SystemExit(
-                f"task id 重命名仅限 pending: {tid} 当前 {t['status']} "
-                "(active 有 live worktree/branch, 不支持改 id; 先 finish/archive, 或只改 --name)")
+                f"task id 重命名仅限 start 前 (待处理/就绪): {tid} 当前 {t['status']} "
+                "(在途 task 有 live worktree/branch, 不支持改 id; 先 finish/archive, 或只改 --name)")
         if not SLUG_RE.match(new_id):
             raise SystemExit(f"非法 id: {new_id!r} — 须为 kebab-case slug (小写字母/数字/连字符, 字母数字开头)")
         if CODE_ID_RE.match(new_id):
@@ -1015,7 +1033,7 @@ class Skein:
                 print(f"{t['id']}\t{t['status']}\t{t['name']}")
 
     def ready(self, a: argparse.Namespace) -> None:
-        # task 级就绪批 (脚本算, 非 AI 判): pending + 前置全 done + 有空闲 active 槽位。
+        # task 级可启动批 (脚本算, 非 AI 判): 就绪态 (已过 confirm 门) + 前置全 done + 有空闲 active 槽位。
         # 与 subtask ready 同构, 但只读预览 (start 才占槽); task 无写集字段, 故不算写集冲突。
         slots = self.config()["max_active"] - len(self._active())
         if slots <= 0:
@@ -1023,7 +1041,7 @@ class Skein:
             return
         picked: list[dict[str, Any]] = []
         for t in self._all():
-            if t["status"] != S_PENDING:
+            if t["status"] != S_READY:
                 continue
             undone = [d for d in t["deps"] if self._dep_unfinished(d)]
             if undone:
@@ -1032,9 +1050,9 @@ class Skein:
             if len(picked) >= slots:
                 break
         if not picked:
-            print("无就绪 task (pending 均有未完成前置, 或无 pending)")
+            print("无可启动 task (就绪态均有未完成前置, 或无就绪态 — 待处理须先 skein confirm)")
             return
-        print("就绪 task (只读预览, 激活用 `skein.py start <id>`):")
+        print("可启动 task (只读预览, 激活用 `skein.py start <id>`):")
         for t in picked:
             deps = ",".join(t["deps"]) or "-"
             print(f"{t['id']}\t{t['name']}\t前置: {deps}")
@@ -1083,7 +1101,7 @@ class Skein:
 
     def _brief(self, t: dict[str, Any]) -> dict[str, Any]:
         # 压缩任务摘要 (exec 取未完成任务用, 省 token): 仅调度所需字段, 不含全量 subtask 明细。
-        # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 pending task 前置全 done (可 start)。
+        # subs 数组固定序 [已完成, 运行中, 待处理, 失败]; ready = 该 就绪 task 前置全 done (可 start)。
         subs = t.get("subtasks", [])
         cnt = [0, 0, 0, 0]
         idx: dict[str, int] = {SS_DONE: 0, SS_RUNNING: 1, SS_PENDING: 2, SS_FAILED: 3}
@@ -1092,7 +1110,7 @@ class Skein:
             if i is not None:
                 cnt[i] += 1
         pct = _task_pct(t)
-        ready = t["status"] == S_PENDING and not any(
+        ready = t["status"] == S_READY and not any(
             self._dep_unfinished(d) for d in t.get("deps", []))
         wt_shown = self._wt_shown()
         return {"id": t["id"], "status": t["status"], "name": t.get("name", ""),
@@ -1110,11 +1128,11 @@ class Skein:
                 tasks = [t for t in tasks if t["status"] != S_DONE]
             else:
                 wanted = {_STATUS_ALIAS.get(x.strip(), x.strip()) for x in st.split(",")}
-                bad = wanted - {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}
+                bad = wanted - {S_PENDING, S_READY, S_ACTIVE, S_CHECK, S_DONE}
                 if bad:
                     raise SystemExit(
                         f"未知 status: {', '.join(sorted(bad))} — 可选 "
-                        f"待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成")
+                        f"待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), open=全部未完成")
                 tasks = [t for t in tasks if t["status"] in wanted]
         if getattr(a, "json", False):
             print(json.dumps([self._brief(t) for t in tasks],
@@ -1321,7 +1339,7 @@ class Skein:
             tid = t.get("id", "?")
             if not SLUG_RE.match(str(tid)):
                 errs.append(f"{tid}: id 非 kebab-case slug")
-            if t.get("status") not in {S_PENDING, S_ACTIVE, S_CHECK, S_DONE}:
+            if t.get("status") not in {S_PENDING, S_READY, S_ACTIVE, S_CHECK, S_DONE}:
                 errs.append(f"{tid}: 非法 status {t.get('status')!r}")
             # task 级父子层 (受控字段 parent/kind): 允许 supertask↔task 父子聚合 (parent 指回 supertask id,
             # kind 区分父聚合层 vs 普通独立 task)。仅禁未登记的父子字段名 (parent_id/children/subtask_of)。
@@ -1655,7 +1673,7 @@ class Skein:
         就绪 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
         q: list[dict[str, Any]] = []
         for ti, t in enumerate(tasks):
-            if t["status"] not in (S_PENDING, S_ACTIVE, S_CHECK):
+            if t["status"] not in (S_PENDING, S_READY, S_ACTIVE, S_CHECK):
                 continue  # 已完成/失败 task 跳过
             subs = t.get("subtasks", [])
             if not any(s["status"] == SS_PENDING for s in subs):
@@ -1742,10 +1760,10 @@ class Skein:
                 print(f"无全局就绪 subtask (全局 running: {grun}/{mp}, pending: {gpend}) — 满槽或依赖未完成")
                 if mp - len(tasks) > 0:
                     for t in self._all():
-                        if t["status"] != S_PENDING or any(self._dep_unfinished(d) for d in t["deps"]):
+                        if t["status"] != S_READY or any(self._dep_unfinished(d) for d in t["deps"]):
                             continue
-                        print(f"有就绪 pending task 待激活: {t['id']} ({t['name']})")
-                        print(f"— 先激活再执行: `skein.py start {t['id']}`")
+                        print(f"有就绪 task 待启动: {t['id']} ({t['name']})")
+                        print(f"— 直接启动执行: `skein.py start {t['id']}` (待处理 task 须先 skein confirm 过确认门)")
                         break
                 return
             print("全局就绪批 (只读预览, 不改状态) — 决定执行后去掉 --dry-run 认领:")
@@ -1929,11 +1947,12 @@ class Skein:
     def _board_data(self) -> dict[str, Any]:
         # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
         # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
-        st_cls: dict[str, str] = {S_PENDING: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
+        # ponytail: 就绪 复用 pending 视觉类 (前端 CSS 无 s-ready 规则), status 文案仍显 "就绪" 区分
+        st_cls: dict[str, str] = {S_PENDING: "s-pending", S_READY: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
         ss_cls: dict[str, str] = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
-        node_var: dict[str, str] = {S_PENDING: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
+        node_var: dict[str, str] = {S_PENDING: "--st-pending", S_READY: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
                     S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
-        node_cls: dict[str, str] = {S_PENDING: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
+        node_cls: dict[str, str] = {S_PENDING: "n-pending", S_READY: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
                     S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
         def fmt_dur(mins: Optional[int]) -> str:
@@ -1942,13 +1961,12 @@ class Skein:
             return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
 
         tnow = now()
-        _srank: dict[str, int] = {S_ACTIVE: 0, S_CHECK: 1, S_PENDING: 2, S_DONE: 3}
-        tasks = sorted(self._render_tasks(), key=lambda t: (_srank.get(t["status"], 9), -(t.get("started") or 0)))
+        tasks = sorted(self._render_tasks(), key=lambda t: (STATUS_ORDER.get(t["status"], 9), -(t.get("started") or 0)))
         name_of: dict[str, str] = {t["id"]: t.get("name", t["id"]) for t in tasks}
 
         def elapsed_of(t: dict[str, Any]) -> int:
             st = t.get("status")
-            if st == S_PENDING:
+            if st in (S_PENDING, S_READY):
                 return 0
             start = t.get("started") or t.get("created")
             if not start:
@@ -2017,11 +2035,11 @@ class Skein:
 
         est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
 
-        # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的待处理 task
+        # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的就绪 task (可 skein start)
         next_up_id: Optional[str] = None
         if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
             next_up_id = next((t["id"] for t in tasks
-                               if t["status"] == S_PENDING
+                               if t["status"] == S_READY
                                and not any(self._dep_unfinished(d) for d in t.get("deps", []))), None)
 
         def prd_data(tid: str) -> list[dict[str, Any]]:
@@ -2108,7 +2126,7 @@ class Skein:
             })
 
         filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
-                       (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
+                       (S_READY, S_READY), (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
         return {
             "proj": self.proj,
             "filterOpts": filter_opts,
@@ -2116,7 +2134,8 @@ class Skein:
             "overview": {
                 "taskCount": len(tasks),
                 "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
-                          S_CHECK: cnt.get(S_CHECK, 0), S_PENDING: cnt.get(S_PENDING, 0)},
+                          S_CHECK: cnt.get(S_CHECK, 0), S_READY: cnt.get(S_READY, 0),
+                          S_PENDING: cnt.get(S_PENDING, 0)},
                 "estMeta": est_meta,
                 "combinedPct": combined_pct,
                 "hasSub": has_sub,
@@ -2279,11 +2298,11 @@ class Skein:
                     "agent": s.get("agent", "skein-executor"),
                     "elapsed": round((tnow - started) / 60) if started else None,
                 })
-        # 就绪 task: pending + 前置全 done
+        # 就绪 task: status=就绪 (已过 confirm 门) + 前置全 done → 可 skein start
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                         "deps": t.get("deps", []), "desc": t.get("desc", "")}
                        for t in self._all()
-                       if t["status"] == S_PENDING
+                       if t["status"] == S_READY
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
         # 执行中 task: cards 已含 elapsed/sdone/stotal/pct (不重算)
         active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
@@ -2306,7 +2325,7 @@ class Skein:
                         "deps": t.get("deps", []), "desc": t.get("desc", ""),
                         "status": t["status"], "spct": _task_pct(t)}
                        for t in self._all()
-                       if t["status"] == S_PENDING
+                       if t["status"] == S_READY
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
         ready_subs: list[dict[str, Any]] = []
         for t in self._active():
@@ -3055,19 +3074,17 @@ def _task_pct(t: dict[str, Any]) -> int:
         return 85
     if st == S_ACTIVE:
         return 10
+    if st == S_READY:
+        return 8   # 就绪 (规划完成, 待 start)
     return 5   # S_PENDING (planning 中)
 
 
 def _task_stage(t: dict[str, Any]) -> str:
-    # task 阶段标签 (plan/exec/check/done) 供 board card 渲染
+    # task 阶段标签 (plan/ready/exec/check/done) 供 board card 渲染
     st = t["status"]
     if st == S_DONE:
         return "done"
-    if st == S_CHECK:
-        return "check"
-    if st == S_ACTIVE:
-        return "exec"
-    return "plan"  # S_PENDING
+    return PHASE_OF.get(st, "plan")  # 待处理→plan / 就绪→ready / 进行中→exec / 检查中→check
 
 
 def _fmt_ts(ts: Optional[int]) -> str:
@@ -3112,7 +3129,9 @@ def main() -> None:
     dp = sub.add_parser("deps", help="查/补 task 级前置 DAG (dedup 排序用; 仅 pending 且无既有 deps 可写)")
     dp.add_argument("id", help="task id")
     dp.add_argument("--set", help="设置前置 task id (逗号分隔; 仅当该 task 现无 deps 时允许); 省略则列出")
-    s = sub.add_parser("start", help="激活 task: 建 worktree + in_progress (就绪即可并行, 无 focus)")
+    cf = sub.add_parser("confirm", help="用户确认门 (待处理→就绪): planning 完成 (prd+≥1 subtask) 且评审通过后调用, 推到就绪待启动")
+    cf.add_argument("id", help="task id")
+    s = sub.add_parser("start", help="激活就绪 task: 建 worktree + 进行中 (就绪须先经 confirm; 就绪即可并行, 无 focus)")
     s.add_argument("id", help="task id")
     ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
     ck.add_argument("id", help="task id")
@@ -3143,11 +3162,11 @@ def main() -> None:
     cl = sub.add_parser("clean", help="[用户主动] 归档完成超保留期的 task (skein-clean skill 入口)")
     cl.add_argument("--days", type=int, help="保留范围: 归档完成超此天数的 task (省略用 config retain_days; 0=全部完成 task 立即归档)")
     sub.add_parser("current", help="列全部 active task (无 focus, 就绪皆可并行)")
-    sub.add_parser("ready", help="脚本算就绪 task 批 (pending+前置全done+有空闲槽, 只读预览)")
+    sub.add_parser("ready", help="脚本算可启动 task 批 (就绪态+前置全done+有空闲槽, 只读预览)")
     cm = sub.add_parser("claim", help="全局跨 task 认领就绪批 (所有 active task ready subtask 竞争 max_active 槽); --dry-run 只读预览")
     cm.add_argument("--dry-run", action="store_true", help="只读预览全局就绪批, 不改状态 (旧 pop)")
     li = sub.add_parser("list", help="列所有 task (含状态); --status 过滤 + --json 压缩输出")
-    li.add_argument("--status", help="过滤: 待处理/进行中/检查中/已完成 (或 pending/active/check/done), open=全部未完成; 逗号多选")
+    li.add_argument("--status", help="过滤: 待处理/就绪/进行中/检查中/已完成 (或 pending/ready/active/check/done), open=全部未完成; 逗号多选")
     li.add_argument("--json", action="store_true",
                     help="压缩单行 JSON (exec 取未完成任务用, 省 token); 每项 {id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}")
     _doc = sub.add_parser("doctor", help="纯脚本体检 task/subtask 不变量违规 (有错 exit 1, 可 CI/hook 门禁); --quality 再跑 mypy+pytest 质量门")
@@ -3222,7 +3241,8 @@ def main() -> None:
         return
     sk = Skein()
     dispatch = {
-        "init": sk.init, "setup": sk.setup, "create": sk.create, "start": sk.start,
+        "init": sk.init, "setup": sk.setup, "create": sk.create,
+        "confirm": sk.confirm, "start": sk.start,
         "check": sk.check,
         "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready, "claim": sk.claim,
@@ -3235,7 +3255,7 @@ def main() -> None:
     }
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
-    MUTATING = {"init", "setup", "create", "start", "check", "finish", "fmt", "archive", "clean",
+    MUTATING = {"init", "setup", "create", "confirm", "start", "check", "finish", "fmt", "archive", "clean",
                 "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove", "rename", "config"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):

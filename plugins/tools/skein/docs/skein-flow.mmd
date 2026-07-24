@@ -9,7 +9,7 @@ graph TB
   subgraph Config["配置核心 (config.yaml — 严格遵守)"]
     CFG["use_worktree / max_active<br/>auto_commit / retain_days<br/>spec_core_budget"]
     CFG -.->|use_worktree| CFG_WT[worktree 隔离 or 原地]
-    CFG -.->|max_active| CFG_CC[task 级并发上限]
+    CFG -.->|max_active| CFG_CC["task 级并发上限<br/>(仅 进行中 占槽, 就绪/检查中 不占)"]
     CFG -.->|retain_days| CFG_RD[归档保留期]
   end
 
@@ -46,11 +46,13 @@ graph TB
     P5 --> CONTRACT["contracts[]"]
   end
 
-  subgraph Confirm["规划确认 → 激活 (plan 与 exec 连接)"]
+  subgraph Confirm["规划确认 → 就绪 → 激活 (plan 与 exec 连接)"]
     PRD --> USER_CONFIRM{AskUserQuestion<br/>用户评审确认}
     DESIGN --> USER_CONFIRM
     DAG --> USER_CONFIRM
-    USER_CONFIRM -->|通过| START["skein start<br/>建 worktree + task→进行中"]
+    USER_CONFIRM -->|通过| CONFIRM_CMD["skein confirm<br/>用户确认门: 验 prd + ≥1 subtask<br/>待处理→就绪"]
+    CONFIRM_CMD --> READY_STATE["就绪<br/>(规划完成待启动, 不占槽)"]
+    READY_STATE -->|deps 已清 + 有空槽| START["skein start<br/>占 active 槽 + 建 worktree<br/>就绪→进行中"]
     USER_CONFIRM -->|驳回| P6
   end
 
@@ -65,7 +67,7 @@ graph TB
     HEAL --> CLAIM
     DONE --> NEXT{本 task subtask 全 done?}
     NEXT -->|否, 还有就绪| CLAIM
-    NEXT -->|是| TASK_CHECK["skein check &lt;id&gt;<br/>该 task → 检查中"]
+    NEXT -->|是| TASK_CHECK["skein check &lt;id&gt;<br/>该 task → 检查中 (独立阶段, 不占 max_active 槽)"]
     TASK_CHECK --> MORE_TASK{还有未完成 task?}
     MORE_TASK -->|是, 继续调度| CLAIM
     MORE_TASK -->|否| EXEC_PAUSE[全部 task 完成<br/>exec 暂停工作]
@@ -136,6 +138,8 @@ graph TB
   style CFG fill:#00bcd4,color:#000
   style PRD fill:#f9f,color:#000
   style USER_CONFIRM fill:#ffeb3b,color:#000
+  style CONFIRM_CMD fill:#ffb74d,color:#000
+  style READY_STATE fill:#b3e5fc,color:#000
   style CKPT fill:#8bc34a,color:#000
   style CORE fill:#4caf50,color:#fff
   style RECALL fill:#ff9800,color:#fff

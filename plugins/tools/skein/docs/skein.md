@@ -68,8 +68,9 @@
 ## 任务生命周期
 
 ```
-状态机: 待处理 → 进行中 → 检查中 → 已完成 → 已归档
-          ↑plan     ↑exec      ↑check    ↑finish
+状态机: 待处理 → 就绪 → 进行中 → 检查中 → 已完成 → 已归档
+          ↑plan   ↑confirm ↑start   ↑check    ↑finish
+占 active 槽: 仅 进行中 (就绪/检查中 不占)
 ```
 
 ### 状态转换
@@ -77,8 +78,9 @@
 | from → to | 触发 | 动作 |
 | --- | --- | --- |
 | (无) → 待处理 | plan 完成 | 产出 prd/design/findings + subtask DAG + contracts |
-| 待处理 → 进行中 | `skein start` | 创建 worktree, 启动 exec |
-| 进行中 → 检查中 | 全部 subtask 验收通过 | 启动 check |
+| 待处理 → 就绪 | `skein confirm` | 用户确认门: 验 prd + ≥1 subtask (不占槽) |
+| 就绪 → 进行中 | `skein start` | 验 deps + 空槽, 创建 worktree, 占槽, 启动 exec |
+| 进行中 → 检查中 | 全部 subtask 完成 | 启动 check (独立阶段, 释放 active 槽) |
 | 检查中 → 已完成 | 全部检查通过 | 启动 finish |
 | 已完成 → 已归档 | finish 完成 | 合并 + sediment + archive |
 | 任意 → (丢弃) | `skein archive` | 删 worktree, 不合并 |

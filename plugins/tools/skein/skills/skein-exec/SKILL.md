@@ -14,8 +14,8 @@ effort: low
 
 - **有入参 `<task-id>`** → 把请求**强制作为 SKEIN task 处理** (不 inline, 即使看似简单), 调用即「建 task 同意」。判新旧: 全新→新建 / 补充现有 active→并入 (裁定不准用 `AskUserQuestion`) → 加载 `skein-flow` 走**完整闭环** (plan→exec→check→finish, flow 承载, 本 skill 不复制)。
 - **无入参 (空)** → 不建新 task, **驱动 `.skein` 内既有 task 走闭环**:
-  1. `skein list --status open --json` (**一次取全部未完成 task 的压缩 JSON, 省 token**): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中` 即 active, `status=待处理 && ready=true` 即就绪批 (可 start)。不再分别跑 `ready`/`current`/直读 task.json。
-  2. 无就绪 (无 `ready=true` 的 pending) 且无 active → 报「无待执行 task」结束。
+  1. `skein list --status open --json` (**一次取全部未完成 task 的压缩 JSON, 省 token**): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中` 即 active, `status=就绪 && ready=true` 即可启动批 (deps 已清, 可 `skein start`); `status=待处理` = 规划中 (未过 `skein confirm` 用户确认门, 尚未就绪, 不可 start)。不再分别跑 `ready`/`current`/直读 task.json。
+  2. 无就绪 (无 `ready=true` 的就绪 task) 且无 active → 报「无待执行 task」结束。
   3. 有 → 对每个就绪/active task 加载 `skein-flow`: 已 planning 完成的从 exec 起 (直接下方调度门), 未 planning 的先补 plan。task 级并发上限 `max_active` (默认 2), ready 即派 / 完成即派 / 冲突或 `depends_on` 未满足则串行等。
   4. 全部 done → 报告完成。
 - **前置**: 无 `.skein/` → 先 `skein init` 再继续。
@@ -43,7 +43,7 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
     → skein subtask done/fail <tid> <sid> → 回到 skein claim (脚本自动重算就绪, 完成即派)
 ```
 - 单 task 场景兼容: `skein subtask claim <tid>` (仅该 task 内截断, 不跨 task 竞争)。
-- **🟢 subtask 调度优先, 空闲才提前 plan (禁干等)** — **优先级: 有可调度 subtask → 一律先 `claim` 派 subtask (尽早完成在飞 task), plan-ahead 是次级填充器**。仅当 `skein claim` 返回空 (满槽 `running==max_parallel` 等回传 / 无就绪 subtask) 时才做 plan-ahead: `skein list --status open --json` 找 **`status=待处理` 且无 subtask (`subs` 全 0) = plan 未完成** 的 task, 加载 `skein-plan --continue` 推到 planning-ready, 使 active 槽一释放即可 `skein start`, 流水线不断档。**plan-ahead 必须让位 subtask**: 每步 planning 前/后回探 `claim`, 一旦有 subtask 可派 (subagent 回传腾槽 / 新 ready) 立即放下 planning 回去派 subtask。**严格遵守配置: planning 只推到 `skein start` 门前即停** — `start` 占 active 槽受 `max_active` 限, 满槽禁 start (脚本会拒), 待 slot 释放再 start。无「未 plan 的 pending」→ 回原逻辑 (满槽等回传 / 真无就绪且无 pending 判死锁收束)。
+- **🟢 subtask 调度优先, 空闲才提前 plan (禁干等)** — **优先级: 有可调度 subtask → 一律先 `claim` 派 subtask (尽早完成在飞 task), plan-ahead 是次级填充器**。仅当 `skein claim` 返回空 (满槽 `running==max_parallel` 等回传 / 无就绪 subtask) 时才做 plan-ahead: `skein list --status open --json` 找 **`status=待处理` 且无 subtask (`subs` 全 0) = plan 未完成** 的 task, 加载 `skein-plan --continue` 推到 planning-ready, 使 active 槽一释放即可 (过 `skein confirm` 用户确认门→就绪 后) `skein start`, 流水线不断档。**plan-ahead 必须让位 subtask**: 每步 planning 前/后回探 `claim`, 一旦有 subtask 可派 (subagent 回传腾槽 / 新 ready) 立即放下 planning 回去派 subtask。**严格遵守配置: planning 只推到 `skein confirm`/`start` 门前即停** — plan-ahead 至多把 task 备到 planning-complete 待处理态 (confirm 是用户门, 不自动过); `start` 占 active 槽受 `max_active` 限, 满槽禁 start (脚本会拒), 待 slot 释放 + 用户 confirm 后再 start。无「未 plan 的 pending」→ 回原逻辑 (满槽等回传 / 真无就绪且无 pending 判死锁收束)。
 - **🔴 exec 无验收 (完成即 done, 验收全归 check)** — subagent 回传即执行完成, main **只 `done`/`fail`, 禁 exec 阶段勾验收** (`subtask check` 勾验收/checkpoint 核对归 `skein-check` 阶段, 见点3)。`done` = 执行动作完成; subtask 的 `--check` 验收项由 skein-check 统一核对。exec 只判「执行有没有跑完/报错」, 不判「验收过没过」。
 
 - **并行只看 depends_on DAG** — ready = 所有前置 done + 有空闲并发槽。无写文件冲突自算 (发挥 AI 自主性: 有序关系靠 planning 写进 `depends_on`, 不靠脚本猜文件重叠)。
@@ -68,7 +68,7 @@ subtask 级 + 多 task 级两层同构 (同一套 DAG), subtask 状态经 `skein
 | ----------------------------- | ------------------------------------------ | ------------------------------------------------ |
 | subtask 报错 (非阻塞)         | 自愈: 定点小缺陷原地重派 ≤2 轮 / 根因独立则 `subtask add --deps` 插修复 subtask 定点修后重派失败 subtask | 修复也失败/累计无进展超上限/超 scope → 停调度回传 main (走 root-cause-protocol), 禁跳过下游 |
 | subagent 返回 `需要:`         | main 转达用户 / 补信息后重派该 subtask     | 信息仍缺 → 该 subtask 挂起, 下游保持未 ready, 禁标 done |
-| `claim` 返回空 (满槽 / 无就绪)  | 先找 `待处理` 且无 subtask 的 task 提前 plan (推到 start 门前) 填空闲 | 无未 plan pending → 满槽等回传; 全 pending 有 subtask 但 `claim` 仍空 → 查 depends_on 死锁 (环) → 停手回 skein-plan 改 DAG, 禁空转轮询 |
+| `claim` 返回空 (满槽 / 无就绪)  | 先找 `待处理` 且无 subtask 的 task 提前 plan (推到 confirm/start 门前) 填空闲 | 无未 plan pending → 满槽等回传; 全 pending 有 subtask 但 `claim` 仍空 → 查 depends_on 死锁 (环) → 停手回 skein-plan 改 DAG, 禁空转轮询 |
 
 ## ✅ 正向配方 (命中反面=流程错误)
 
