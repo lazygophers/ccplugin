@@ -13,8 +13,8 @@ skein.py 自身就是引擎, 无外部 hook 层 — start/finish 直接干活。
   .skein/task/<id>/task.md        单 task 子任务看板 + 调度 DAG (渲染) — 脚本维护, AI 禁读写
   .skein/task/<id>/prd.md         主入口: 需求 + 索引区 (create 落脚手架, skein-plan 填, AI 可读写)
   .skein/task/<id>/design.md      详细设计 (架构/取舍/选型; 不含调度图, 调度归 task.json)
-  .skein/task/<id>/findings.md    深度调研收敛结论 (research/ 存过程, 此文件收敛; skein-plan/main 汇总写)
-  .skein/task/<id>/research/       researcher 过程笔记 (多篇, 最终收敛进 findings.md)
+  .skein/task/<id>/findings.md    深度调研收敛结论 (仅真调研时生; skein-researcher 边研边增量写, 非预建)
+  .skein/task/<id>/research/       researcher 过程笔记 (多篇, 仅真调研时生; 收敛增量进 findings.md)
   .skein/task/archive/<年>/<月-日>/<id>/  归档 (按完成日期分层)
 
 四个 task.json/task.md (顶层 + per-task) 全由本脚本维护, AI 只经命令 stdout 取态
@@ -393,7 +393,8 @@ class Skein:
         return used
 
     def _scaffold(self, tid: str, name: str) -> None:
-        """落 planning 三工件脚手架 (prd 主入口 / design 详细设计 / findings 调研收敛).
+        """落 planning 双工件脚手架 (prd 主入口 / design 详细设计).
+        findings.md 不预建 — 仅真调研时由 skein-researcher 边研边增量生成 (无调研不产出)。
         模板极简 (只给骨架标题, 正文 planning 填), 避免占 token; 已存在则不覆盖。
         调度 DAG / 子任务不在此 — 归 task.json (脚本维护)。"""
         d = self.tasks / tid
@@ -404,14 +405,11 @@ class Skein:
                 "## 边界\n范围内 / 范围外 (非目标) / 已知约束:\n- [ ] TODO: 填边界\n\n"
                 "## 验收标准\n可执行、可核对的完成断言 (逐条):\n- [ ] TODO: 填验收标准\n\n"
                 "## 索引\n- 详细设计: [design.md](design.md)\n"
-                "- 调研收敛: [findings.md](findings.md)\n"
+                "- 调研收敛: [findings.md](findings.md) (仅真调研时生)\n"
                 "- 任务/子任务/调度: task.json (脚本真值, `skein.py subtask list " + tid + "`)\n"),
             "design.md": (
                 f"# {name} — 详细设计\n\n"
                 "架构 / 数据流 / 关键取舍 / 技术选型 (不含调度图, 调度归 task.json):\n"),
-            "findings.md": (
-                f"# {name} — 调研收敛\n\n"
-                "深度调研的收敛结论 + 依据/引用 (过程笔记存 research/):\n"),
         }
         for fn, body in files.items():
             p = d / fn

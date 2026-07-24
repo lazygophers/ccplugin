@@ -1,0 +1,35 @@
+{
+  "id": "skein-5fix",
+  "name": "skein 5点修正",
+  "desc": "findings增量/check回plan/场景扩展/spec纯异步/agent绑skill",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "edit-files",
+      "name": "改7文件+脚本",
+      "desc": "researcher/research/plan/check/checker/specer/executor/dedup/mmd/skein.py 直接编辑",
+      "depends_on": [],
+      "验收": [],
+      "验收done": [],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1784858879,
+      "started": null,
+      "finished": 1784859400
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/skein-5fix",
+  "parent": null,
+  "kind": "task",
+  "created": 1784858857,
+  "started": 1784858897,
+  "checked": null,
+  "finished": null,
+  "updated": 1784859400
+}

@@ -26,16 +26,17 @@ WebSearch / WebFetch 取库文档、方案对比、社区实践
 ```
 - 每条带 URL; 区分「文档写的」vs「社区说的」vs「推断的」。检索失败 → `[工具失败: 检索 <query> 失败]`, 报已得素材。
 
-### 3. 结论落盘 (MUST 做)
-每主题全量过程笔记写入 research/ (经 Bash, 唯一写盘处):
+### 3. 结论落盘 (MUST 做, 边研边增量双写)
+经 Bash 落盘 (唯一写盘处), **每完成一主题即同步写, 非最后一次性**; 这两文件只在真调研时产出 (main 未派你 = 不生, 不预建空壳):
 ```
 mkdir -p .skein/task/<task-id>/research
-# 写 <topic-slug>.md = 完整结论 + 全部证据 + 权衡 (比回传更细)
+# ① 过程证据 → research/<topic-slug>.md = 完整结论 + 全部证据 + 权衡 (比 findings 更细)
+# ② 收敛结论 → 追加进 .skein/task/<task-id>/findings.md (增量, 每主题一段: 结论 + 关键依据/引用 + 未决项)
 ```
-- findings.md 由 main 据你回传的收敛结论填写, 你提供素材不直接写。
+- **findings.md 由你边研边增量写** (每主题收敛即追加, 首次写补 `# <task> — 调研收敛` 标题), 使后续 planning 整理**只读 findings.md 不重读 research/**。research/ = 过程证据留档, findings.md = 收敛交付。
 
 ### 4. 回传压缩结论
-调研目标 + 收敛结论 (供 main 写 findings.md) + 证据来源 + 权衡/选项 + 需要。
+调研目标 + 收敛结论 (已增量写入 findings.md) + 证据来源 + 权衡/选项 + 需要。
 
 ### bootstrap 模式 (dispatch 含 `mode=bootstrap`)
 扫代码库提炼既有约定为候选规则:
@@ -45,7 +46,7 @@ mkdir -p .skein/task/<task-id>/research
 ## Checkpoints
 
 🛑 **不碰项目代码** — 无 Write/Edit; 唯一写盘是 research/ 目录 (经 Bash)。
-🛑 **结论必落盘** — research/<topic>.md 是硬产出, 只回传不落盘 = 素材丢失。
+🛑 **结论必落盘 (边研边增量)** — 每主题即时写 research/<topic>.md (过程) + 追加 findings.md (收敛), 非最后一次性; 只回传不落盘 = 素材丢失且逼后续重读 research/。两文件仅真调研时产出。
 🛑 **带来源, 无来源标 `推测:`** — file:line / URL; 区分文档/社区/推断。
 🛑 **不替用户拍板** — 给收敛结论 + 权衡, 选型决策交 main+用户。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — 检索/Fetch 失败禁把空当「无资料」返回 (main 误判无信息)。
@@ -56,9 +57,10 @@ mkdir -p .skein/task/<task-id>/research
 ```json
 {
   "goal": "<调研目标>",
-  "conclusion": "<收敛结论, 供 main 写 findings.md>",
+  "conclusion": "<收敛结论 (已增量写入 findings.md)>",
   "evidence": [{"source": "<file:line | URL>", "kind": "文档 | 社区 | 推测", "point": "<要点>"}],
   "tradeoffs": [{"option": "<选项>", "pros": "...", "cons": "..."}],
+  "findings_file": ".skein/task/<id>/findings.md",
   "research_files": [".skein/task/<id>/research/<topic-slug>.md"],
   "needs": ["需要: <缺的信息/待用户拍板项>"],
   "tool_failures": ["[工具失败: <原因>]"]

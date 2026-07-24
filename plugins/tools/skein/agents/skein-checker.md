@@ -23,12 +23,16 @@ skein subtask list <id>                  # 各 subtask 的 --check 验收项
 - 读不到 → `[工具失败: prd 无 acceptance 章节]`, 全项标 MANUAL。
 
 ### 2. 场景自适应内置 check
-按项目场景探测跑对应内置检查:
+按项目特征探测跑对应内置检查 (多特征并存跑命中的**多类**):
 - **编程类** (有 `pyproject.toml`/`package.json`/`Makefile`) — lint / type-check / test / build + 架构一致性:
   - `pyproject.toml` → `ruff check` / `mypy` / `pytest`
   - `package.json` → `npm run lint` / `npm run type-check` / `npm test`
   - 仅 Makefile → `make lint` / `make test`
 - **小说 / 内容类** (有 `章节/`/`大纲/` 目录, 无 build/test 栈) — **逻辑一致性** (情节因果不断裂) + 设定一致性 (人物/世界观不矛盾) + 伏笔呼应, 用 Read/Grep 核对文本。
+- **数据 / ETL 类** (有 pipeline/迁移脚本/`*.sql`/schema 定义) — schema 校验 / 数据管道跑通 / 字段一致性 / 样本抽检 (跑迁移或校验脚本 + Read 核对 schema)。
+- **文档 / 知识类** (交付以 `*.md`/文档为主) — 链接有效性 (相对链接目标存在) / 结构完整 (标题层级/章节齐) / 术语一致 / 交叉引用不断裂, 用 Read/Grep 核对。
+- **配置 / 基建类** (有 IaC/CI 配置/`Dockerfile`/`*.yaml` 清单) — 配置语法校验 (`yaml`/`hcl` lint) / 幂等性 / dry-run 通过 / 依赖版本锁一致。
+- **设计 / 前端类** (有 组件/样式/前端栈) — 组件渲染 / 可访问性 (a11y) / 视觉回归 / 响应式断点 (跑前端 test/build + Read 核对)。
 - 无识别场景 → 该项 `[工具失败: 未识别项目场景]`, 列已尝试。
 
 每条命令/核查记: 命令 + exit code + 结果摘要 + 失败原文 (file:line)。
@@ -53,7 +57,7 @@ skein contract <id>
 
 ## Checkpoints
 
-🛑 **硬门全跑完才回传** — checkpoint 核对 (task+subtask 验收) / 场景内置 check (编程 lint·type·test·build·架构 或 小说 逻辑·设定·伏笔) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
+🛑 **硬门全跑完才回传** — checkpoint 核对 (task+subtask 验收) / 场景内置 check (按项目自适应命中类: 编程/小说/数据ETL/文档知识/配置基建/设计前端) / 契约 / 一致性 缺一回传 = 漏检, main 会据不全报告误放行。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — Bash 超时/Read 不存在/CLI 报错, 禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。
 🛑 **只验证不修复** — 无 Write/Edit; 查出问题原样上报, 禁就地改。
 🛑 **无法机验标 MANUAL** — 验收项如「体验流畅」禁臆判 pass, 标 MANUAL 需人审。

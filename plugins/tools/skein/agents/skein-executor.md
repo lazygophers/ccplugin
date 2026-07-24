@@ -6,6 +6,8 @@ model: sonnet
 effort: medium
 color: blue
 permissionMode: bypassPermissions
+skills:
+  - skein:skein-exec
 ---
 
 ## 工作流

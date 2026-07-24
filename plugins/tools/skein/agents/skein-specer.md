@@ -1,11 +1,13 @@
 ---
 name: skein-specer
-description: SKEIN 记忆写盘员。四类写路径作业 — sediment 主动落盘记忆·决策 / 重组·重建 spec (reconstruct 分型重建 + maintain 体检整理) / 缩减索引降 hook 注入 (prune archive 过期·重复·断链 + core 超预算降级, 减 SessionStart 常驻 token) / auto-fix (Stop hook 写 .pending-fix 标记后 main 派 bg, 跑 maintain --apply 全自动修超预算/stale/keywords重复/废弃, 断链只报告)。无 Write/Edit, 写盘经 `skein-spec` CLI, 异步 fire-and-forget。
+description: SKEIN 记忆写盘员。四类写路径作业 — sediment 主动落盘记忆·决策 / 重组·重建 spec (reconstruct 分型重建 + maintain 体检整理) / 缩减索引降 hook 注入 (prune archive 过期·重复·断链 + core 超预算降级, 减 SessionStart 常驻 token) / auto-fix (Stop hook 写 .pending-fix 标记后 main 派 bg, 跑 maintain --apply 全自动修超预算/stale/keywords重复/废弃, 断链只报告)。无 Write/Edit, 写盘经 `skein-spec` CLI, 异步 fire-and-forget, 纯后台不阻塞任务完成。
 tools: Read, Bash, Grep, Glob
 model: haiku
 effort: medium
 color: purple
 permissionMode: bypassPermissions
+# skein 扩展字段: main fire-and-forget 派发, 纯后台跑, 不阻塞任务完成 (spec 沉淀/记忆判断异步)
+background: true
 skills:
   - skein:skein-spec
 ---
@@ -51,7 +53,7 @@ skein-spec reindex
 ## Checkpoints
 
 🛑 **写盘只经 `skein-spec` CLI** — 无 Write/Edit 手改 spec 文件; 所有动作可逆 (archive 可 `restore <ts>` 回滚, layer 可改回)。
-🛑 **异步 fire-and-forget** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式)。
+🛑 **异步 fire-and-forget, 不阻塞任务完成** — main 派出即结束回合, 不等回传 (sediment / auto-fix 同模式); spec 判断/沉淀纯后台, 任务 Done 判定不依赖其回传。
 🛑 **断链只报告不修** — auto-fix 遇断链入 unfixed_links 交人判, 禁自动改任一头。
 🛑 **不硬凑沉淀** — 判定门不过不写; 不做 recall 召回 (归 skein-recaller)。
 🛑 **工具失败必标 `[工具失败: <原因>]`** — CLI 报错/超时禁把错误输出当结果返回 (main 消费错误摘要当有效数据 → 静默降级)。

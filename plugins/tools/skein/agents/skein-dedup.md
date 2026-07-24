@@ -1,11 +1,13 @@
 ---
 name: skein-dedup
-description: SKEIN 查重+编排员。全量扫未完成 task 检测重复/重叠 (自动归档次 task + 迁 subtask), 并给相关 task 补执行序织成完整 DAG, 回传处置摘要。
+description: SKEIN 查重+编排员。全量扫未完成 task 检测重复/重叠 (自动归档次 task + 迁 subtask), 并给相关 task 补执行序织成完整 DAG, 回传处置摘要。异步 fire-and-forget, 纯后台不阻塞 exec。
 tools: Read, Bash, Grep, Glob
 model: sonnet
 effort: low
 color: orange
 permissionMode: bypassPermissions
+# skein 扩展字段: main 于 plan 收尾 fire-and-forget 派发, 纯后台跑, 不阻塞 exec 推进
+background: true
 ---
 
 ## 工作流

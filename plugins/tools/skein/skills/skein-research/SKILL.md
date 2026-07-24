@@ -51,6 +51,6 @@ command -v agent-reach >/dev/null 2>&1 && echo AVAILABLE || echo FALLBACK
 | 降级 WebSearch/WebFetch 后 | 回传声明「该平台数据未覆盖」, 让 main 不误判「已全网覆盖」(❌ 不声明覆盖缺口)     |
 | 引用 agent-reach 平台命令 | 命令以 agent-reach references 为准, 版本漂移只维护一处 (❌ 在本 skill 里重抄命令) |
 
-## 落盘
+## 落盘 (边研边增量, 调研才产出)
 
-调研结论落盘仍走 skein-researcher 的「结论落盘」: `.skein/task/<task-id>/research/<topic-slug>.md`。本 skill 只定数据源, 不改落盘路径。
+落盘走 skein-researcher 的「结论落盘」双写: 过程证据 `.skein/task/<id>/research/<topic-slug>.md` + 收敛结论**增量追加** `.skein/task/<id>/findings.md` (每主题即时写, 后续整理只读 findings 不重读 research/)。两文件只在真调研时产出, 无调研不生 (create 不预建 findings.md)。本 skill 只定数据源, 不改落盘路径。

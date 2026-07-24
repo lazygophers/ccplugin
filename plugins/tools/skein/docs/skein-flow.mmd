@@ -25,22 +25,23 @@ graph TB
     CREATE --> C_FOLDER[初始化 task/&lt;id&gt;/ 文件夹]
     C_FOLDER --> C_PRD[prd.md 脚手架]
     C_FOLDER --> C_DESIGN[design.md 脚手架]
-    C_FOLDER --> C_FIND[findings.md 脚手架]
+    C_FOLDER -.->|不预建 findings.md<br/>仅调研时 researcher 生| C_NOFIND[无 findings 空壳]
   end
 
   subgraph Plan["Phase 1: 规划 — skein-plan"]
     C_JSON --> P1[愿景翻译]
     P1 --> P2[Brainstorm]
     P2 --> P3{需调研?}
-    P3 -->|是| RESEARCHER[skein-researcher<br/>代码survey + 外部搜索]
+    P3 -->|是| RESEARCHER["skein-researcher<br/>代码survey + 外部搜索<br/>边研边增量写 findings.md + research/"]
     P3 -->|否| P4{GriLL hard gate}
+    RESEARCHER --> FINDINGS
     RESEARCHER --> P4
     P4 -->|通过| P5[产出工件]
     P4 -->|不通过| P6[回头修改方案]
     P6 --> P2
     P5 --> PRD[prd.md]
     P5 --> DESIGN[design.md]
-    P5 --> FINDINGS[findings.md]
+    FINDINGS["findings.md (仅调研时生)"]
     P5 --> DAG[subtask DAG]
     P5 --> CONTRACT["contracts[]"]
   end
@@ -73,10 +74,18 @@ graph TB
     CKPT --> BUILTIN["2. 场景自适应内置 check"]
     BUILTIN --> CODE_CHK["编程类: build/test/lint/type<br/>+ 架构一致性 + 契约合规"]
     BUILTIN --> NOVEL_CHK["小说类: 逻辑一致性<br/>+ 设定/伏笔一致性"]
+    BUILTIN --> DATA_CHK["数据/ETL 类: schema 校验<br/>+ 管道跑通 + 字段一致 + 样本抽检"]
+    BUILTIN --> DOC_CHK["文档/知识类: 链接有效<br/>+ 结构完整 + 术语一致 + 交叉引用"]
+    BUILTIN --> CONF_CHK["配置/基建类: 语法校验<br/>+ 幂等 + dry-run + 依赖锁一致"]
+    BUILTIN --> UI_CHK["设计/前端类: 组件渲染<br/>+ 可访问性 + 视觉回归 + 响应式"]
     CODE_CHK --> CHECK_VERIFY{全部通过 + 零冲突?}
     NOVEL_CHK --> CHECK_VERIFY
+    DATA_CHK --> CHECK_VERIFY
+    DOC_CHK --> CHECK_VERIFY
+    CONF_CHK --> CHECK_VERIFY
+    UI_CHK --> CHECK_VERIFY
     CHECK_VERIFY -->|是| CHECK_PASS[检查通过]
-    CHECK_VERIFY -->|否 ≤2轮| REPLAN["回 planning 重确认修复方向<br/>→ subtask add 修复子任务 → 回 exec"]
+    CHECK_VERIFY -->|否 ≤2轮| REPLAN["回 planning 重确认修复方向<br/>方案性→补 design/prd/契约<br/>定点→加修复 subtask → 确认无误回 exec"]
     REPLAN --> CLAIM
     CHECK_VERIFY -->|否 ≥3轮| RCA[Root Cause Protocol<br/>5维: 需求/设计/实现/环境/测试]
     RCA -->|带根因重修| REPLAN
