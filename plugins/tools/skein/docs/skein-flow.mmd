@@ -57,6 +57,8 @@ graph TB
   subgraph Exec["Phase 2: 执行 — skein-exec (无验收, 执行完成即 done)"]
     START --> CLAIM{"skein claim<br/>(全局跨 task 竞争 max_active 槽)"}
     CLAIM -->|就绪 subtask| DISPATCH[按 agent 派发]
+    CLAIM -->|空: 满槽/无就绪, 有未 plan 的 pending| PLAN_AHEAD["提前 plan 排队 task<br/>skein-plan 推到 start 门前<br/>subtask 优先, plan 次级填充"]
+    PLAN_AHEAD --> CLAIM
     DISPATCH --> EXECUTE[执行]
     EXECUTE -->|完成| DONE["skein subtask done<br/>(执行完成即完成, 不勾验收)"]
     EXECUTE -->|出错/阻塞| HEAL[自愈: 原地重派 ≤2轮<br/>或加修复 subtask 定点修根因]

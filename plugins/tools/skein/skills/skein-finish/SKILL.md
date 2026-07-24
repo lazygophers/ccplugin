@@ -15,6 +15,8 @@ check 全绿后、archive 前的**收尾门**。验收/完成度核对已在 che
 ## 载体分工
 
 > **工作目录 (worktree 态自适应)** — 本仓 worktree 隔离启用态: !`skein config --json 2>/dev/null | jq -r '.use_worktree' || echo unknown`。`true`=task 有 worktree, finish 走 commit→merge→销 worktree; `false`/`unknown`=task `worktree=null` 原地, finish 仅 commit (无 merge/销 worktree 步)。真值以 task 的 `worktree` 字段为准 (null=原地)。`skein finish` 脚本按此自适应, 下文"worktree"按此二读。
+>
+> **auto_commit 态自适应** — 本仓 auto_commit: !`skein config --json 2>/dev/null | jq -r '.auto_commit' || echo unknown`。`true` (默认)=`skein finish` 自动 `git add -A` + commit 再 merge; `false`=finish **不自动 commit**, worktree/原地有未提交改动即**拒绝 finish 报错** (防 --force 强删丢失), 须先手动 commit 再 finish。auto_commit=false 时收尾勘察发现改动 → 提示用户手动提交。
 
 | 动作            | 谁                                | 产出                                             |
 | --------------- | --------------------------------- | ------------------------------------------------ |
@@ -43,6 +45,7 @@ check 全绿后、archive 前的**收尾门**。验收/完成度核对已在 che
 | --------------------------- | ------------------------------- | ----------------------------------------- |
 | finisher 报悬挂残留 (调试码/临时文件) | main 清理后再合并               | 清不掉 → 停手, 报用户裁                    |
 | `skein finish` merge 冲突 | 读冲突文件手动解 → 重跑 finish  | 解不开 → 停手, 保留 worktree, 报用户裁 (5 步纪律见 [references/merge-conflict-resolution.md](references/merge-conflict-resolution.md))    |
+| auto_commit=false 且有未提交改动 → finish 拒绝报错 | 提示用户手动 `git commit` 后重跑 finish | 用户不提交 → 停手, 禁 --force 强删 (会丢改动)          |
 | 悬挂 subagent `TaskStop` 关不掉 | 重试 `TaskStop`                | 仍在 → 停手, 禁 archive (未闭环)          |
 
 ## ✅ 正向配方 (命中反面=流程错误)
