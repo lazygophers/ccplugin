@@ -32,6 +32,7 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
     → skein subtask done/fail <tid> <sid> → 回到 skein claim (脚本自动重算就绪, 完成即派)
 ```
 - 单 task 场景兼容: `skein subtask claim <tid>` (仅该 task 内截断, 不跨 task 竞争)。
+- **subtask 优先, 空闲才提前 plan (禁干等)** — **优先级: 有可调度 subtask 一律先 `claim` 派 (尽早完成在飞 task); plan-ahead 仅次级填充**。`claim` 返回空 (满槽等回传 / 无就绪 subtask) 时, main 不空转: `skein list --status open --json` 找 `status=待处理` 且 `subs` 全 0 (无 subtask = plan 未完成) 的 task → 加载 `skein-plan --continue` 做 planning 推到 planning-ready。**只推到 `skein start` 门前即停** (start 占 active 槽受 `max_active` 限, 满槽脚本拒 start; slot 释放再 start)。**必让位 subtask**: 每步 planning 前/后回探 `claim`, subtask 一可派即放下 planning 回去派。目的: 用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」, 流水线不断档。无未 plan pending → 满槽等回传 / 真无就绪且无 pending 才判死锁收束。
 
 - **并发上限 2** — `claim` 内按 `max_parallel - running` 截断, 满槽返回空。
 - **完成即派** — 任一返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不等一批跑完。
