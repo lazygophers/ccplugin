@@ -1550,7 +1550,8 @@ class Skein:
             lines.append(hint)
         cfg = self.config()
         wt_txt = "启用 (task 各开 worktree 隔离)" if cfg.get("use_worktree", True) else "禁用 (原地执行, 无 worktree)"
-        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}"]
+        ac_txt = "启用 (finish/阶段切换自动 commit)" if cfg.get("auto_commit", True) else "禁用 (改动需手动 commit)"
+        lines += ["", "# SKEIN 运行配置", f"- worktree: {wt_txt}", f"- 最大并行 subtask: {cfg['max_active']}", f"- auto_commit: {ac_txt}"]
         prefix_tasks = ", ".join(f"{t['id']}({PHASE_OF.get(t['status'], '')})" for t in active)
         lines += ["", "# 回复前缀 (强制)",
                   "- 每条回复以 `[skein]` 开头",

@@ -359,8 +359,8 @@ def _task_phase_hints(skein_dir: str) -> str:
     return "\n当前 task: " + ", ".join(f"{i}({p2})" for i, p2 in live) + " — 处理其一时前缀用其 [skein|id|阶段]"
 
 
-def _run_config(dir_: str) -> tuple[bool, int]:
-    """读 config.yaml 的 use_worktree + max_active; 默认从 skein.CONFIG_DEFAULTS (hook 不硬编码)。"""
+def _run_config(dir_: str) -> tuple[bool, int, bool]:
+    """读 config.yaml 的 use_worktree + max_active + auto_commit; 默认从 skein.CONFIG_DEFAULTS (hook 不硬编码)。"""
     from skein import CONFIG_DEFAULTS, _yaml_load  # lazy: 仅已初始化热路径需要; 默认真值唯一来源
     try:
         with open(os.path.join(dir_, "config.yaml"), encoding="utf-8") as f:
@@ -368,11 +368,12 @@ def _run_config(dir_: str) -> tuple[bool, int]:
     except (OSError, ValueError):
         cfg = {}
     uw = bool(cfg.get("use_worktree", CONFIG_DEFAULTS["use_worktree"]))
+    ac = bool(cfg.get("auto_commit", CONFIG_DEFAULTS["auto_commit"]))
     ma = cfg.get("max_active", CONFIG_DEFAULTS["max_active"])
     env = os.environ.get("CLAUDE_PLUGIN_OPTION_MAX_ACTIVE")
     if env and env.strip().isdigit():
         ma = int(env)
-    return uw, int(ma)
+    return uw, int(ma), ac
 
 
 def cmd_user_prompt(d: dict[str, Any]) -> int:
@@ -395,9 +396,10 @@ def cmd_user_prompt(d: dict[str, Any]) -> int:
         if evidence:
             ctx += f"\n本次命中: {', '.join(evidence)}"
         ctx += "\n\n" + _PREFIX_RULE + _task_phase_hints(dir_)
-        uw, ma = _run_config(dir_)
+        uw, ma, ac = _run_config(dir_)
         wt_txt = "启用 (task 各开 worktree 隔离)" if uw else "禁用 (原地执行, 无 worktree)"
-        ctx += f"\n\n# SKEIN 运行配置\n- worktree: {wt_txt}\n- 最大并行 subtask: {ma}"
+        ac_txt = "启用 (finish/阶段切换自动 commit)" if ac else "禁用 (改动需手动 commit)"
+        ctx += f"\n\n# SKEIN 运行配置\n- worktree: {wt_txt}\n- 最大并行 subtask: {ma}\n- auto_commit: {ac_txt}"
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
     return 0
