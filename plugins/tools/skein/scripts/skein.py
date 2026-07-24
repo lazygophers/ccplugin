@@ -1174,7 +1174,7 @@ class Skein:
     def _normalize_section_lines(self, raw: str, section: str) -> list[str]:
         """规范化待写入的行:
         - \\n 字面转真换行 (shell 传 $'A\\nB' 或 "A\\nB" 收到字面 \\n)
-        - 目标/验收标准: 裸 `- xxx` → `- [ ] xxx`; 已 checkbox 保留; 有序 `N. xxx` → `- [ ] xxx`; 普通非 list 行 → `- [ ] <行>`
+        - 目标/验收标准: 裸 `- xxx` → `- [ ] xxx`; 已 checkbox 一律降未勾 `- [ ]` (planning 写路径禁预勾, 勾选权归 check 的 `prd check`); 有序 `N. xxx` → `- [ ] xxx`; 普通非 list 行 → `- [ ] <行>`
         - 边界: 裸文本行 → `- <行>` (补 list marker 不补 checkbox); 已 `- ` 保留; 已 checkbox 保留不动"""
         lines = raw.replace("\\n", "\n").split("\n")
         out: list[str] = []
@@ -1183,8 +1183,8 @@ class Skein:
             if not s:
                 continue
             if section in PRD_TODO_SECTIONS:
-                if re.match(r"^-\s+\[[ xX]\]\s+", s):  # 已 checkbox 保留
-                    out.append(s)
+                if m := re.match(r"^-\s+\[[ xX]\]\s+(.+)$", s):  # 已 checkbox → 一律降未勾 (planning 写路径禁预勾, 勾选权归 check)
+                    out.append(f"- [ ] {m.group(1).strip()}")
                 elif m := re.match(r"^-\s+(.+)$", s):  # 裸 `- xxx` → 补 checkbox
                     out.append(f"- [ ] {m.group(1).strip()}")
                 elif m := re.match(r"^\d+[.)]\s+(.+)$", s):  # 有序 → 补 checkbox
