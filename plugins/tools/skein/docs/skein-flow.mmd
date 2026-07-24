@@ -100,7 +100,7 @@ graph TB
     CHECK_PASS --> INSPECT[收尾勘察<br/>finisher 只读 diff+悬挂残留<br/>不做验收核对]
     INSPECT --> MERGE["1. 合并 worktree → 主分支"]
     MERGE --> CLEANUP["2. 删除 worktree"]
-    CLEANUP --> MARK_DONE["3. 标记任务完成 (archive)"]
+    CLEANUP --> MARK_DONE["3. 标记任务完成 (archive)<br/>检查中→已完成→已归档"]
     MARK_DONE --> ASYNC["4. 异步 fire-and-forget agent<br/>(finish 已闭环, 不阻塞)"]
     ASYNC --> SPECER["skein-specer<br/>记忆 / spec 沉淀"]
   end
@@ -147,3 +147,8 @@ graph TB
   style ASYNC fill:#ce93d8,color:#000
   style ASK fill:#ffeb3b,color:#000
   style INLINE fill:#e0e0e0,color:#000
+
+  %% bash 脚本节点标记 (红粗框 = 该节点直接跑 skein.py/spec.py/hooks.py CLI)
+  classDef script stroke:#d32f2f,stroke-width:3px;
+  class USER_PROMPT,INIT,CREATE,CONFIRM_CMD,START,CLAIM,DONE,TASK_CHECK,MARK_DONE,ARCHIVE_ANY,RECALLER,BOOTSTRAP,SPEC_INIT script;
+  LEGEND["▨ 红粗框 = bash 脚本节点<br/>(skein.py / spec.py / hooks.py CLI)"]:::script
