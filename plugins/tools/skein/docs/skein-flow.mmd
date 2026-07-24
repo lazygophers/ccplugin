@@ -93,7 +93,7 @@ graph TB
   end
 
   subgraph Finish["Phase 4: 收束 — skein-finish"]
-    CHECK_PASS --> INSPECT[完成度检查<br/>finisher 只读勘察]
+    CHECK_PASS --> INSPECT[收尾勘察<br/>finisher 只读 diff+悬挂残留<br/>不做验收核对]
     INSPECT --> MERGE["1. 合并 worktree → 主分支"]
     MERGE --> CLEANUP["2. 删除 worktree"]
     CLEANUP --> MARK_DONE["3. 标记任务完成 (archive)"]
