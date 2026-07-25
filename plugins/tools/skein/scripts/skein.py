@@ -2298,25 +2298,48 @@ class Skein:
                     "agent": s.get("agent", "skein-executor"),
                     "elapsed": round((tnow - started) / 60) if started else None,
                 })
+        # 就绪 subtask: active task 内 pending 且依赖全 done (不受空闲槽限, 展示全量就绪)
+        ready_subs: list[dict[str, Any]] = []
+        for t in self._active():
+            done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
+            for s in t.get("subtasks", []):
+                if s.get("status") != SS_PENDING:
+                    continue
+                if not all(d in done_sids for d in s.get("depends_on", [])):
+                    continue
+                ready_subs.append({
+                    "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                    "agent": s.get("agent", "skein-executor"),
+                    "depends_on": s.get("depends_on", [])})
         # 就绪 task: status=就绪 (已过 confirm 门) + 前置全 done → 可 skein start
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                         "deps": t.get("deps", []), "desc": t.get("desc", "")}
                        for t in self._all()
                        if t["status"] == S_READY
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
-        # 执行中 task: cards 已含 elapsed/sdone/stotal/pct (不重算)
-        active_tasks = [{"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
-                         "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
-                         "elapsed": c.get("elapsed")}
-                        for c in data["cards"] if c["status"] in (S_ACTIVE, S_CHECK)]
+        # 待 plan task: 所有 status=待处理 (含未 confirm; subCount=0 即 plan 未收敛)
+        to_plan_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
+                          "desc": t.get("desc", ""), "subCount": len(t.get("subtasks", []))}
+                         for t in self._all() if t["status"] == S_PENDING]
+        # 执行中 / 检查中 task: 一趟遍历分流 (cards 已含 elapsed/sdone/stotal/pct, 不重算)
+        active_tasks: list[dict[str, Any]] = []
+        check_tasks: list[dict[str, Any]] = []
+        for c in data["cards"]:
+            if c["status"] not in (S_ACTIVE, S_CHECK):
+                continue
+            row = {"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
+                   "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
+                   "elapsed": c.get("elapsed")}
+            (active_tasks if c["status"] == S_ACTIVE else check_tasks).append(row)
         return {"proj": self.proj, "taskCount": total,
                 "doneRate": round(done / total * 100) if total else 0,
                 "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
                 "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
                 "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
                 "pendingQueue": ov["pendingQueue"],
-                "runningSubs": running_subs, "readyTasks": ready_tasks,
-                "activeTasks": active_tasks}
+                "runningSubs": running_subs, "readySubs": ready_subs,
+                "readyTasks": ready_tasks, "toPlanTasks": to_plan_tasks,
+                "activeTasks": active_tasks, "checkTasks": check_tasks}
 
     def _queue(self) -> dict[str, Any]:
         # 待执行队列 (复用 ready/claim 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批

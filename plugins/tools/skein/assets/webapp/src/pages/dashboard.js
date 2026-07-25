@@ -1,6 +1,7 @@
 // SKEIN Dashboard 页 (默认首页 /dashboard): 总览 — 指标墙 KPI (完成率环/活跃项/任务总数/织入进度)
 // + 状态分布 (task 级 statusDist / subtask 级 subStatusDist, 状态段分段) + 队列 (队列项摘要, 跳 /queue)。
-// 只读视图; 数据 api.dashboard() 一次拉全 (proj/taskCount/doneRate/activeCount/combinedPct/statusDist/subStatusDist/pendingQueue), onLive 软刷。
+// 只读视图; 数据 api.dashboard() 一次拉全 (proj/taskCount/doneRate/activeCount/combinedPct/statusDist/subStatusDist/pendingQueue
+// + runningSubs/readySubs 子任务, readyTasks/toPlanTasks/activeTasks/checkTasks task), onLive 软刷。
 // 合体: C 骨 (.wrap/.eyebrow/.page-head 布局原语 + .status-panel/.stat-row/.dot/.queue-item 视觉隐喻) × A 皮 (.card 玻璃流沙/.skein-bar 蓝金流光/.entrance 入场)。
 // page 契约: render(mount, params, ctx); ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
 
@@ -118,7 +119,7 @@ const TPL = `
       </div>
     </section>
 
-    <!-- 2 栏 4 区: 左 Subtask (进行中 + 就绪) / 右 Task (执行中 + 就绪) -->
+    <!-- 2 栏 5 区: 左 Subtask (进行中 + 就绪) / 右 Task (执行中 + 检查中 + 就绪 + 待 plan) -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <!-- 左: Subtask -->
       <div class="card p-5">
@@ -148,11 +149,25 @@ const TPL = `
           <span class="li-meta"><code>{{ t.id }}</code> · {{ t.sdone }}/{{ t.stotal }} · {{ t.pct }}%</span>
           <span class="li-progress">耗时 {{ fmtDur(t.elapsed) }}</span>
         </a>
+        <div class="sec-label">检查中 <span>{{ checkTasks.length }}</span></div>
+        <div v-if="!checkTasks.length" class="empty-hint">无检查中</div>
+        <a v-for="t in checkTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)" class="list-item entrance" style="border-left-color:var(--st-check)">
+          <span class="li-name">{{ t.name }}</span>
+          <span class="li-meta"><code>{{ t.id }}</code> · {{ t.sdone }}/{{ t.stotal }} · {{ t.pct }}%</span>
+          <span class="li-progress">耗时 {{ fmtDur(t.elapsed) }}</span>
+        </a>
         <div class="sec-label">就绪 <span>{{ readyTasks.length }}</span></div>
         <div v-if="!readyTasks.length" class="empty-hint">无就绪</div>
         <a v-for="t in readyTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)" class="list-item ready entrance">
           <span class="li-name">{{ t.name }}</span>
           <span class="li-meta"><code>{{ t.id }}</code> · 前置 {{ t.deps.length || '-' }}</span>
+        </a>
+        <div class="sec-label">待 plan <span>{{ toPlanTasks.length }}</span></div>
+        <div v-if="!toPlanTasks.length" class="empty-hint">无待 plan</div>
+        <a v-for="t in toPlanTasks" :key="t.id" :href="'/task?id='+encodeURIComponent(t.id)" class="list-item entrance" style="border-left-color:var(--st-pending)">
+          <span class="li-name">{{ t.name }}</span>
+          <span class="li-meta"><code>{{ t.id }}</code> · subtask {{ t.subCount }}</span>
+          <span v-if="!t.subCount" class="ready-tag" style="background:var(--st-pending)">未拆</span>
         </a>
       </div>
     </section>
@@ -166,13 +181,13 @@ export async function render(mount, params, ctx) {
   async function fetchState() {
     try {
       const r = await api.dashboard();
-      const pq = r.pendingQueue || [];
       return {
         loadErr: "", proj: r.proj || "", taskCount: r.taskCount || 0, doneRate: r.doneRate || 0,
         activeCount: r.activeCount || 0, combinedPct: r.combinedPct || 0,
-        pendingQueue: pq,
-        runningSubs: r.runningSubs || [], readyTasks: r.readyTasks || [], activeTasks: r.activeTasks || [],
-        readySubs: pq.filter((q) => q.ready).slice(0, 6),
+        pendingQueue: r.pendingQueue || [],
+        runningSubs: r.runningSubs || [], readySubs: r.readySubs || [],
+        readyTasks: r.readyTasks || [], toPlanTasks: r.toPlanTasks || [],
+        activeTasks: r.activeTasks || [], checkTasks: r.checkTasks || [],
         dists: [
           Object.assign({ key: "task", label: "任务级" }, segments(r.statusDist)),
           Object.assign({ key: "sub", label: "子任务级" }, segments(r.subStatusDist)),
@@ -182,7 +197,8 @@ export async function render(mount, params, ctx) {
       return {
         loadErr: (e && e.message) || String(e), proj: "", taskCount: 0, doneRate: 0,
         activeCount: 0, combinedPct: 0, pendingQueue: [],
-        runningSubs: [], readyTasks: [], activeTasks: [], readySubs: [], dists: [],
+        runningSubs: [], readySubs: [], readyTasks: [], toPlanTasks: [],
+        activeTasks: [], checkTasks: [], dists: [],
       };
     }
   }
