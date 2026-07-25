@@ -226,7 +226,7 @@ def main() -> None:
         # claim --dry-run 只读: 不改状态
         s4 = json.loads((d / ".skein/task/task-4/task.json").read_text())["subtasks"]
         assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "claim --dry-run 误改状态 (应只读)"
-        # 无 active 就绪 + 有就绪 pending 时走 "待激活" 提示 (task-5 pending, task-4 done 掉 s1 后腾出)
+        # 无 active 就绪 + 有就绪 task 时走 "就绪 task 待启动" 提示 (task-5 已 confirm→就绪, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
         assert "就绪 task 待启动" in sk(d, "claim", "--dry-run").stdout, "claim --dry-run 未提示就绪 task 待启动"
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
