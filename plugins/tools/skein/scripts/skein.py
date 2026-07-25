@@ -2642,6 +2642,15 @@ class Skein:
         from fastapi.staticfiles import StaticFiles
         import asyncio
 
+        # webapp 前端是无构建 ES 模块图: index.html 未给 import 链带 ?v 版本戳, 浏览器强缓存
+        # /src/pages/*.js → 编辑后看旧板 (就绪态改动不生效)。no-cache 令每次载入走重验证
+        # (ETag/Last-Modified 命中仍回 304, 变更即取新), 修根因不改 index.html 模块图。
+        class _NoCacheStatic(StaticFiles):
+            async def get_response(self, path: str, scope: Any) -> Any:
+                resp = await super().get_response(path, scope)
+                resp.headers["Cache-Control"] = "no-cache"
+                return resp
+
         # 注入模块全局: PEP 563 (from __future__ import annotations) 把 handler 参数注解 string化,
         # FastAPI get_typed_signature 用 handler.__globals__ (= 本模块全局) 解析 ForwardRef;
         # Request/WebSocket 仅 serve() 内局部 import → 模块全局无此名 → 解析失败 → POST request 被当 query 参数 → 422。
@@ -2838,9 +2847,9 @@ class Skein:
         app.mount("/board", StaticFiles(directory=str(self._board_assets_dir())), name="board")
         # webapp 工程化前端: 首页在 / 出, 其 index.html 相对引 dist/app.css + src/app.js → 挂 /dist /src /vendor 使之解析
         # (check_dir=False: s1 未落地 / css 未构建时不炸)
-        app.mount("/webapp", StaticFiles(directory=str(self._webapp_dir()), check_dir=False), name="webapp")
-        app.mount("/src", StaticFiles(directory=str(self._webapp_dir() / "src"), check_dir=False), name="src")
-        app.mount("/dist", StaticFiles(directory=str(self._webapp_dir() / "dist"), check_dir=False), name="dist")
+        app.mount("/webapp", _NoCacheStatic(directory=str(self._webapp_dir()), check_dir=False), name="webapp")
+        app.mount("/src", _NoCacheStatic(directory=str(self._webapp_dir() / "src"), check_dir=False), name="src")
+        app.mount("/dist", _NoCacheStatic(directory=str(self._webapp_dir() / "dist"), check_dir=False), name="dist")
         app.mount("/vendor", StaticFiles(directory=str(self._webapp_dir() / "vendor"), check_dir=False), name="vendor")
         # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
         # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
