@@ -1,6 +1,6 @@
 // SKEIN Dashboard 页 (默认首页 /dashboard): 总览 — 指标墙 KPI (完成率环/活跃项/任务总数/织入进度)
-// + 状态分布 (task 级 statusDist / subtask 级 subStatusDist, 状态段分段) + 队列 (队列项摘要, 跳 /queue)。
-// 只读视图; 数据 api.dashboard() 一次拉全 (proj/taskCount/doneRate/activeCount/combinedPct/statusDist/subStatusDist/pendingQueue
+// + 状态分布 (task 级 statusDist / subtask 级 subStatusDist, 状态段分段) + 5 区 (subtask: 进行中/就绪; task: 执行中/检查中/就绪/待plan)。
+// 只读视图; 数据 api.dashboard() 一次拉全 (proj/taskCount/doneRate/activeCount/combinedPct/statusDist/subStatusDist
 // + runningSubs/readySubs 子任务, readyTasks/toPlanTasks/activeTasks/checkTasks task), onLive 软刷。
 // 合体: C 骨 (.wrap/.eyebrow/.page-head 布局原语 + .status-panel/.stat-row/.dot/.queue-item 视觉隐喻) × A 皮 (.card 玻璃流沙/.skein-bar 蓝金流光/.entrance 入场)。
 // page 契约: render(mount, params, ctx); ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
@@ -184,7 +184,6 @@ export async function render(mount, params, ctx) {
       return {
         loadErr: "", proj: r.proj || "", taskCount: r.taskCount || 0, doneRate: r.doneRate || 0,
         activeCount: r.activeCount || 0, combinedPct: r.combinedPct || 0,
-        pendingQueue: r.pendingQueue || [],
         runningSubs: r.runningSubs || [], readySubs: r.readySubs || [],
         readyTasks: r.readyTasks || [], toPlanTasks: r.toPlanTasks || [],
         activeTasks: r.activeTasks || [], checkTasks: r.checkTasks || [],
@@ -196,7 +195,7 @@ export async function render(mount, params, ctx) {
     } catch (e) {
       return {
         loadErr: (e && e.message) || String(e), proj: "", taskCount: 0, doneRate: 0,
-        activeCount: 0, combinedPct: 0, pendingQueue: [],
+        activeCount: 0, combinedPct: 0,
         runningSubs: [], readySubs: [], readyTasks: [], toPlanTasks: [],
         activeTasks: [], checkTasks: [], dists: [],
       };

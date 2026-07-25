@@ -2336,7 +2336,6 @@ class Skein:
                 "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
                 "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
                 "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
-                "pendingQueue": ov["pendingQueue"],
                 "runningSubs": running_subs, "readySubs": ready_subs,
                 "readyTasks": ready_tasks, "toPlanTasks": to_plan_tasks,
                 "activeTasks": active_tasks, "checkTasks": check_tasks}
