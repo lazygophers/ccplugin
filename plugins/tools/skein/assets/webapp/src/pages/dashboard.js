@@ -5,20 +5,20 @@
 // 合体: C 骨 (.wrap/.eyebrow/.page-head 布局原语 + .status-panel/.stat-row/.dot/.queue-item 视觉隐喻) × A 皮 (.card 玻璃流沙/.skein-bar 蓝金流光/.entrance 入场)。
 // page 契约: render(mount, params, ctx); ctx={api, md, onLive}; 响应式走 window.PetiteVue.createApp.
 
-// 状态中文 → --st-* 色令牌 (task S_* 与 subtask SS_* 合并; 运行中 复用 active 色)
+// 状态中文 → --st-* 色令牌 (task S_* 与 subtask SS_* 合并; 运行中 复用 active 色; 就绪 复用 pending 色, 对齐后端 node_cls)
 const ST_VAR = {
-  "待处理": "--st-pending", "进行中": "--st-active", "运行中": "--st-active",
+  "待处理": "--st-pending", "就绪": "--st-pending", "进行中": "--st-active", "运行中": "--st-active",
   "检查中": "--st-check", "已完成": "--st-done", "失败": "--st-failed",
 };
 const stColor = (st) => `var(${ST_VAR[st] || "--st-pending"})`;
 // 状态点映射 (dot 修饰类)
 const DOT_CLS = {
-  "待处理": "pending", "进行中": "active", "运行中": "active",
+  "待处理": "pending", "就绪": "pending", "进行中": "active", "运行中": "active",
   "检查中": "check", "已完成": "done", "失败": "failed",
 };
 
 // 分布字典 → 有序分段 (固定状态序, 只留计数>0), 供状态段分段 + 图例 + 状态点
-const ST_ORDER = ["进行中", "运行中", "检查中", "待处理", "已完成", "失败"];
+const ST_ORDER = ["进行中", "运行中", "检查中", "就绪", "待处理", "已完成", "失败"];
 function segments(dist) {
   const d = dist || {};
   const total = Object.values(d).reduce((a, b) => a + b, 0);

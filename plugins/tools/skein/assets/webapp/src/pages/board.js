@@ -266,7 +266,7 @@ function buildLayoutHtml(data) {
   setNodeMaps(data.nodeVar, data.nodeCls);
   var ov = data.overview;
   var fo = data.filterOpts;
-  var S_ACTIVE = fo[1][0], S_CHECK = fo[2][0], S_PENDING = fo[3][0], S_DONE = fo[4][0];
+  var S_ACTIVE = fo[1][0], S_CHECK = fo[2][0], S_READY = fo[3][0], S_PENDING = fo[4][0], S_DONE = fo[5][0];
   function statcard(label, key, filter, cls) {
     return '<button type="button" class="stat' + (cls ? " " + cls : "") + '" data-filter="' + esc(filter) + '">'
       + '<span class="stat-n">' + (key === "__total__" ? ov.taskCount : (ov.stats[key] || 0))
@@ -274,8 +274,9 @@ function buildLayoutHtml(data) {
   }
   var stats = '<div class="stats" id="sw-filter">'
     + statcard("总计", "__total__", "", "stat-all")
-    + statcard("已完成", S_DONE, S_DONE) + statcard("进行中", S_ACTIVE, S_ACTIVE)
-    + statcard("检查中", S_CHECK, S_CHECK) + statcard("待处理", S_PENDING, S_PENDING) + "</div>";
+    + statcard("进行中", S_ACTIVE, S_ACTIVE) + statcard("检查中", S_CHECK, S_CHECK)
+    + statcard("就绪", S_READY, S_READY) + statcard("待处理", S_PENDING, S_PENDING)
+    + statcard("已完成", S_DONE, S_DONE) + "</div>";
   var sw = '<div class="dag-switch" role="group">'
     + '<button type="button" data-dag="task" class="on">task 维度</button>'
     + '<button type="button" data-dag="full"' + (ov.hasSub ? "" : " disabled") + ">subtask 维度</button></div>";
@@ -334,7 +335,7 @@ function buildLayoutHtml(data) {
 }
 
 // ── 交互 (移植自 switcher.js): 状态筛选 / DAG 维度切换 / 节点浮层 / 进度条门控 ──
-let filterSet = ["进行中", "检查中", "待处理"];  // 内存态, 软刷存活, 换页重置
+let filterSet = ["进行中", "检查中", "就绪", "待处理"];  // 内存态, 软刷存活, 换页重置 (默认显未完成 4 态, 隐已完成)
 
 function bindContent(layout, io) {
   function curFilters() {
