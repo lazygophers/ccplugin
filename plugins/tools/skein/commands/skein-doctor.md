@@ -1,5 +1,5 @@
 ---
-description: SKEIN 体检 — 纯脚本检测 task/subtask 不符合规范的地方 (非法 status/deps 悬空成环/禁父子/active 缺 subtask·worktree/索引不一致/sid 重复/验收越界), 有错 exit 1
+description: SKEIN 体检 — 纯脚本检测 task/subtask 不符合规范的地方 (非法 status/deps 悬空成环/禁父子/active 缺 worktree/done 缺 finished/索引不一致/sid 重复/验收越界), 有错 exit 1
 ---
 
 # skein-doctor
@@ -19,7 +19,7 @@ description: SKEIN 体检 — 纯脚本检测 task/subtask 不符合规范的地
 
 ## 脚本查什么 (规范不变量)
 
-- **task**: id 非 kebab-case / 非法 status / deps 自引用·悬空·成环 / **出现父子字段** (task 级仅 deps DAG, 禁父子) / active 无 subtask·缺 started·worktree 失效 / done 缺 finished / 顶层 task.json 索引 status ≠ per-task 真值 / active 数超 max_active。
+- **task**: id 非 kebab-case / 非法 status / deps 自引用·悬空·成环 / **出现父子字段** (task 级仅 deps DAG, 禁父子) / active 缺 started (⚠)·worktree 失效 / done 缺 finished (⚠) / 顶层 task.json 索引 status ≠ per-task 真值 (⚠) / active 数超 max_active。
 - **subtask**: sid 重复 / 非法 status / depends_on 自引用·悬空 (须同 task 内 sid)·成环 / 验收done 序号越界 / done 但验收未全过 (⚠)。
 
 $ARGUMENTS

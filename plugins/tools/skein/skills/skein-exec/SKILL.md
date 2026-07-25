@@ -19,8 +19,8 @@ effort: low
   3. 有 → 逐个加载 `skein-flow` **走完整闭环** (task 级并发受 `max_active` 默认 2 限, ready 即启 / 完成即启 / 冲突或 `depends_on` 未满足则串行等):
      - **就绪 task** → `skein start` (占 active 槽 + 建 worktree, 就绪→进行中) → 进 exec 调度门 (`claim`→派→`done` 循环)
      - **在途 进行中 task** → 直接进 exec 调度门续跑
-     - task **全 subtask done → 自动进 check** (`skein check` 进行中→检查中 → `skein-check` 验证; 未过回 planning 修复重跑) → **check 全绿 → finish** (`skein-finish`: merge + 销 worktree + archive, 检查中→已完成→已归档)
-  4. **每个 task 必须走到 finish (已归档) 才算完成, 不止于 subtask 全 done**; 全部 task 收束到 finish → 报告闭环完成。
+     - task **全 subtask done → 自动进 check** (`skein check` 进行中→检查中 → `skein-check` 验证; 未过回 planning 修复重跑) → **check 全绿 → finish** (`skein-finish`: merge + 销 worktree + 标记完成, 检查中→已完成)
+  4. **每个 task 必须走到 finish (已完成) 才算完成, 不止于 subtask 全 done**; 全部 task 收束到 finish → 报告闭环完成。
 - **前置**: 无 `.skein/` → 先 `skein init` 再继续。
 
 > 下方是 exec 阶段**调度门本体** (被 `skein-flow` exec 委托, 或无入参驱动已 planning task 时进入)。**只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。**

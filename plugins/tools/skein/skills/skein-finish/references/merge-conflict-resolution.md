@@ -1,6 +1,6 @@
 # merge / rebase 冲突解构纪律
 
-> skein-finish 的 `skein finish` (commit→merge→archive→销 worktree) 在多 task 并行 worktree 合并时常踩冲突。本文件是 ask-matt `/resolving-merge-conflicts` 的 5 步纪律 + skein-finish 失败模式兜底, 供 merge 阶段参考。
+> skein-finish 的 `skein finish` (commit→merge→销 worktree→标记完成) 在多 task 并行 worktree 合并时常踩冲突。本文件是 ask-matt `/resolving-merge-conflicts` 的 5 步纪律 + skein-finish 失败模式兜底, 供 merge 阶段参考。
 
 **触发场景**: `skein finish <id>` 跑到 merge 步骤遇冲突 (worktree 分支已与主分支发散), 或多 task 并行各占独立 worktree 合并回主干互撞。
 

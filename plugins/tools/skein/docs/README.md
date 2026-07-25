@@ -42,9 +42,9 @@ skein init    # 或由 skein-setup skill 自动触发
 | 阶段 | 行为 |
 | --- | --- |
 | plan | brainstorm + grill + PRD + subtask DAG |
-| exec | DAG 调度, worktree 隔离, 每步验收 |
+| exec | DAG 调度, worktree 隔离, subtask done/fail |
 | check | lint / type / test / contract |
-| finish | 合并 → sediment → archive |
+| finish | merge → 销wt → 标记完成 → 异步 sediment |
 
 ```
 skein current    # 活跃 task

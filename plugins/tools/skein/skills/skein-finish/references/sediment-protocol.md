@@ -1,12 +1,12 @@
 # sediment 异步判定门
 
-skein-finish 流程第 4 步的 sediment 沉淀细节。**finish 闭环 (archive + 销 worktree) 后**的异步 fire-and-forget, **不阻塞 finish**。本节是 finisher/main 之外的第三载体 `skein-specer` 的活, 完全复用 `skein-spec` skill, **禁新造沉淀机制**。
+skein-finish 流程第 4 步的 sediment 沉淀细节。**finish 闭环 (销 worktree + 标记完成) 后**的异步 fire-and-forget, **不阻塞 finish**。本节是 finisher/main 之外的第三载体 `skein-specer` 的活, 完全复用 `skein-spec` skill, **禁新造沉淀机制**。
 
 ## 触发与机制 (fire-and-forget)
 
 finish 闭环后, main **异步**派 `skein-specer` 跑 sediment 判定门:
 
-- **触发时机** — 第 3 步 `skein finish` 闭环 (archive + 销 worktree) **之后**, 非阻塞。main 派 memorier 后**不等回传即结束回合**, finish 已闭环。
+- **触发时机** — 第 3 步 `skein finish` 闭环 (销 worktree + 标记完成) **之后**, 非阻塞。main 派 memorier 后**不等回传即结束回合**, finish 已闭环。
 - **fire-and-forget** — memorier 的回传到达后, main **只补 output trace** (finish 已闭环, sediment 判定不输出 trace 即流程错误)。sediment 结果不影响 finish 的闭环性。
 - **禁阻塞 finish** — 禁为等 memorier 回传延后 `skein finish`; finish 先闭环, sediment 异步在后。
 

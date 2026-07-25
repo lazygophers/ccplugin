@@ -1,6 +1,6 @@
 # 样例 `.skein/`
 
-真实执行中快照——10 task (7 在看板 + 3 归档) 覆盖全部状态 + 显式依赖 DAG。
+真实执行中快照——10 task (7 在看板 + 3 归档) 覆盖 待处理/进行中/检查中/已完成 + 显式依赖 DAG (暂无 就绪 态样例)。
 所有 json/md 由 `skein` / `skein-spec` 真跑生成 (仅 prd/design/findings 手动)。
 
 ## Task 一览
@@ -14,9 +14,9 @@
 | refund-flow | 待处理 | deps order-pay+payment-gateway | `task/refund-flow/` |
 | order-report | 待处理 | deps order-create-api | `task/order-report/` |
 | notification-service | 待处理 | deps payment-gateway | `task/notification-service/` |
-| order-query | 已归档 | 前日完成 | `task/archive/2026/07-11/` |
-| user-auth | 已归档 | — | `task/archive/2026/07-10/` |
-| api-gateway | 已归档 | — | `task/archive/2026/07-09/` |
+| order-query | 已完成 (归档) | 前日完成, 目录迁 archive | `task/archive/2026/07-11/` |
+| user-auth | 已完成 (归档) | — | `task/archive/2026/07-10/` |
+| api-gateway | 已完成 (归档) | — | `task/archive/2026/07-09/` |
 
 ## Subtask 演示 (order-create-api)
 

@@ -20,7 +20,7 @@ skein list --status open --json
 ```
 - 判据: 同目标 / 同模块 / 共享改动面 / 互为前置。
 - 逐 task Read prd.md + subtask list 比对; **不硬凑重复**。
-- 主次: 生命周期更靠后为主 (in_progress > check > ready > pending); 同级选 subtask 多者。
+- 主次: 生命周期更靠后为主 (进行中 > 检查中 > 就绪 > 待处理); 同级选 subtask 多者。
 - 归并: 次 task 有 subtask 则逐条迁入主 task, 再删次 task:
 ```
 skein subtask add <主-id> <sid> --name ... --desc ...

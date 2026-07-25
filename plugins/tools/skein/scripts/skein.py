@@ -328,7 +328,7 @@ class Skein:
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
                         f"contracts={len(t.get('contracts', []))}", style="dim")
-        # 状态优先排序 (进行中>检查中>待处理>已完成), 同状态内保持 id 序
+        # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内保持 id 序
         out.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
         return out
 
@@ -1563,7 +1563,7 @@ class Skein:
                 prd = self.tasks / t["id"] / "prd.md"
                 if prd.exists():  # 轻量指针: 只给主入口路径, 不含正文 (需要时 AI 自读)
                     lines.append(f"  - 主入口 PRD: `{prd}`")
-            lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 archive = 未完成。"]
+            lines += ["", "恢复提示: 用 `skein.py current` 查 active task; 未 finish 闭环(标记完成) = 未完成。"]
         if hint:
             lines.append(hint)
         cfg = self.config()
@@ -3163,7 +3163,7 @@ def main() -> None:
     s.add_argument("id", help="task id")
     ck = sub.add_parser("check", help="标记 task 进入检查阶段 (进行中→检查中, 记 checked 时刻)")
     ck.add_argument("id", help="task id")
-    f = sub.add_parser("finish", help="收束 task: commit→merge→archive→销 worktree")
+    f = sub.add_parser("finish", help="收束 task: commit→merge→销 worktree→标记完成 (归档=保留期后自动)")
     f.add_argument("id", help="task id")
     fm = sub.add_parser("fmt", help="规范化 prd.md: 章节内一级 list 补 - [ ] todo + 校验四标准章节 (幂等)")
     fm.add_argument("id", help="task id")

@@ -17,7 +17,7 @@
 | 破坏式重构 | `skein-plan` (heavy 档, `references/breaking-refactor.md`) | 不保兼容、全站点一次改齐的重构模式注解 |
 | 质量门 + 一致性核查 | `skein-check` | 派 `skein-checker` 验证 (lint/type/test/契约 + subtask 产物一致性核查), 未过派合适 agent (无则 `skein-executor`) 修复重检; **孤立失败定点修, 跨 subtask 冲突/check 失败 → 深化拆分 (回 plan 拆新 subtask 逐条覆盖直到零冲突)** |
 | 第 3 轮根因复盘 | `skein-check` (`references/root-cause-protocol.md`) | check 第 3 轮仍 FAIL 时跨维度结构化根因复盘 (需求/设计/实现/环境/测试 5 维 + 预防措施), 出口回 exec 定向重修或停手转人工 |
-| finish 收尾编排门 | `skein-finish` | check 全绿后被 flow 委托: 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein finish` (commit→merge→archive→销 worktree) |
+| finish 收尾编排门 | `skein-finish` | check 全绿后被 flow 委托: 派 `skein-finisher` 收尾勘察 + 委托 `skein-spec` sediment + 清理悬挂 + `skein finish` (commit→merge→销 worktree→标记完成, 异步 spec) |
 | 冷启动播种 | `skein-spec` (`references/bootstrap-seeding.md`) | 空仓首次接入时扫既有代码库约定 (命名/错误处理/测试/架构边界/构建) 播种规则基线 (一次性, 默认多归 recall) |
 | 主动清理 | `skein-clean` | [仅用户主动] 归档完成 task (保留期外) + 清孤儿 worktree / 悬挂分支 |
 

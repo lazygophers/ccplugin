@@ -101,7 +101,7 @@ graph TB
     CHECK_PASS --> INSPECT[收尾勘察<br/>finisher 只读 diff+悬挂残留<br/>不做验收核对]
     INSPECT --> MERGE["1. 合并 worktree → 主分支"]
     MERGE --> CLEANUP["2. 删除 worktree"]
-    CLEANUP --> MARK_DONE["3. 标记任务完成 (archive)<br/>检查中→已完成→已归档"]
+    CLEANUP --> MARK_DONE["3. 标记任务完成<br/>检查中→已完成 (归档=保留期后目录迁移)"]
     MARK_DONE --> ASYNC["4. 异步 fire-and-forget agent<br/>(finish 已闭环, 不阻塞)"]
     ASYNC --> SPECER["skein-specer<br/>记忆 / spec 沉淀"]
   end

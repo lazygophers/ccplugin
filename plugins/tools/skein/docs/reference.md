@@ -143,7 +143,7 @@ skein create <child2> --parent <id>
 | 进行中 | 正在 worktree 中执行 | 是 |
 | 检查中 | subtask 全完成, 质量门验证 | 否 |
 | 已完成 | 检查通过, 等待归档 | 否 |
-| 已归档 | finish 完成, worktree 销毁 | 否 |
+| (已归档) | 完成后 _autoclean 目录迁移到 archive/, 非状态值·不在看板 | — |
 | 运行中 (subtask) | 正在执行 | — |
 | 失败 (subtask) | 执行失败, 可重试 | — |
 

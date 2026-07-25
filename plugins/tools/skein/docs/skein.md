@@ -68,9 +68,10 @@
 ## 任务生命周期
 
 ```
-状态机: 待处理 → 就绪 → 进行中 → 检查中 → 已完成 → 已归档
+状态机: 待处理 → 就绪 → 进行中 → 检查中 → 已完成
           ↑plan   ↑confirm ↑start   ↑check    ↑finish
 占 active 槽: 仅 进行中 (就绪/检查中 不占)
+归档: 已完成后 _autoclean 目录迁移 (task/archive/…), 非状态值
 ```
 
 ### 状态转换
@@ -81,8 +82,8 @@
 | 待处理 → 就绪 | `skein confirm` | 用户确认门: 验 prd + ≥1 subtask (不占槽) |
 | 就绪 → 进行中 | `skein start` | 验 deps + 空槽, 创建 worktree, 占槽, 启动 exec |
 | 进行中 → 检查中 | 全部 subtask 完成 | 启动 check (独立阶段, 释放 active 槽) |
-| 检查中 → 已完成 | 全部检查通过 | 启动 finish |
-| 已完成 → 已归档 | finish 完成 | 合并 + sediment + archive |
+| 检查中 → 已完成 | `skein finish` (全部检查通过) | merge → 销wt → 标记完成 + 异步 spec sediment |
+| 已完成 → (归档) | retain_days 到期 / =0 立即 | 目录迁移 task/archive/…, 非状态值 |
 | 任意 → (丢弃) | `skein archive` | 删 worktree, 不合并 |
 
 ### Phase 1: Plan
@@ -102,7 +103,7 @@
 | --- | --- |
 | claim | DAG → 就绪 subtask → 拓扑排序 → dispatch |
 | dispatch | 按 subtask.agent 派发, 并发 ≤ max_parallel |
-| 验收 | 每 subtask 完 main 验; 失败重派 ≤2 轮 |
+| 完成判定 | 每 subtask 回 done/fail; fail 重派 ≤2 轮 (质量验收全归 check) |
 | 完成即派 | 1 subtask 完 → 释放槽 → claim 下一个 |
 
 **自愈**:
@@ -137,9 +138,10 @@
 | 步骤 | 执行者 | 说明 |
 | --- | --- | --- |
 | 完成度检查 | finisher (只读) | git diff + subtask 全完成 + 无 dangling |
-| 合并 | skein-finish | worktree → 主分支 |
-| Sediment | skein-specer | learning → core / recall / drop |
-| 归档 | skein-finish | `task/archive/<年>/<月-日>/<id>/`, 删 worktree |
+| 合并+销wt | skein finish | 各子 worktree → 主分支, 合并后即销 wt/branch |
+| 标记完成 | skein finish | status=已完成, 记 finished 时刻 |
+| Sediment | skein-specer | 异步 fire-and-forget: learning → core / recall / drop |
+| 归档 | _autoclean | retain_days 到期目录迁移 `task/archive/<年>/<月-日>/<id>/` (wt 已销) |
 
 **Sediment 判定**:
 
