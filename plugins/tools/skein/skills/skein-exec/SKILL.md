@@ -1,6 +1,6 @@
 ---
 name: skein-exec
-description: task exec 阶段执行编排 + /skein-exec 闭环入口。作命令: 有入参→建 task 走闭环 (委托 skein-flow); 无入参→驱动 .skein 既有 ready/active task。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选 agent 各执行 1 个, 改动落 task 工作目录 (worktree 或原地仓库根)。
+description: task exec 阶段执行编排 + /skein-exec 闭环入口。作命令: 有入参→建 task 走闭环 (委托 skein-flow); 无入参→驱动 .skein 既有 ready/active task 走完整闭环直到 finish (start→exec→check→finish, 非只 exec)。作 skill: 被 skein-flow exec 委托, main 按 depends_on DAG 为每个 subtask 选 agent 各执行 1 个, 改动落 task 工作目录 (worktree 或原地仓库根)。
 user-invocable: true
 argument-hint: "[任务ID]"
 arguments: "[任务ID]"
@@ -13,11 +13,14 @@ effort: low
 ## 入口路由 (作 `/skein-exec` 命令时)
 
 - **有入参 `<task-id>`** → 把请求**强制作为 SKEIN task 处理** (不 inline, 即使看似简单), 调用即「建 task 同意」。判新旧: 全新→新建 / 补充现有 active→并入 (裁定不准用 `AskUserQuestion`) → 加载 `skein-flow` 走**完整闭环** (plan→exec→check→finish, flow 承载, 本 skill 不复制)。
-- **无入参 (空)** → 不建新 task, **驱动 `.skein` 内既有 task 走闭环**:
-  1. `skein list --status open --json` (**一次取全部未完成 task 的压缩 JSON, 省 token**): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中` 即 active, `status=就绪 && ready=true` 即可启动批 (deps 已清, 可 `skein start`); `status=待处理` = 规划中 (未过 `skein confirm` 用户确认门, 尚未就绪, 不可 start)。不再分别跑 `ready`/`current`/直读 task.json。
-  2. 无就绪 (无 `ready=true` 的就绪 task) 且无 active → 报「无待执行 task」结束。
-  3. 有 → 对每个就绪/active task 加载 `skein-flow`: 已 planning 完成的从 exec 起 (直接下方调度门), 未 planning 的先补 plan。task 级并发上限 `max_active` (默认 2), ready 即派 / 完成即派 / 冲突或 `depends_on` 未满足则串行等。
-  4. 全部 done → 报告完成。
+- **无入参 (空)** → 不建新 task, **驱动 `.skein` 内既有 task 走完整闭环直到 finish** (不止 exec):
+  1. `skein list --status open --json` (**一次取全部未完成 task 的压缩 JSON, 省 token**): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` — `status=进行中/检查中` 即在途 active, `status=就绪 && ready=true` 即可启动 (deps 已清, 可 `skein start`); `status=待处理` = 规划中 (未过 `skein confirm` 用户确认门, 尚未就绪, 不可 start)。不再分别跑 `ready`/`current`/直读 task.json。
+  2. 无就绪、无在途 active → 报「无待执行 task」结束。
+  3. 有 → 逐个加载 `skein-flow` **走完整闭环** (task 级并发受 `max_active` 默认 2 限, ready 即启 / 完成即启 / 冲突或 `depends_on` 未满足则串行等):
+     - **就绪 task** → `skein start` (占 active 槽 + 建 worktree, 就绪→进行中) → 进 exec 调度门 (`claim`→派→`done` 循环)
+     - **在途 进行中 task** → 直接进 exec 调度门续跑
+     - task **全 subtask done → 自动进 check** (`skein check` 进行中→检查中 → `skein-check` 验证; 未过回 planning 修复重跑) → **check 全绿 → finish** (`skein-finish`: merge + 销 worktree + archive, 检查中→已完成→已归档)
+  4. **每个 task 必须走到 finish (已归档) 才算完成, 不止于 subtask 全 done**; 全部 task 收束到 finish → 报告闭环完成。
 - **前置**: 无 `.skein/` → 先 `skein init` 再继续。
 
 > 下方是 exec 阶段**调度门本体** (被 `skein-flow` exec 委托, 或无入参驱动已 planning task 时进入)。**只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。**
