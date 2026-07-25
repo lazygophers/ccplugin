@@ -204,6 +204,7 @@ def test_global_claim_cross_task(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
         _add(skein_cli, ws, tid, "x")
         _fill_prd(ws, tid)
+        skein_cli(ws, "confirm", tid)                     # 待处理→就绪
         skein_cli(ws, "start", tid)                       # start 建立运行环境 + 占 active
     out = skein_cli(ws, "claim").stdout                   # 全局 claim
     assert "已全局认领" in out
@@ -217,8 +218,8 @@ def test_two_level_task_level_cap_blocks_start(skein_cli: SkeinCli, ws: Path) ->
     for tid in ("alpha-beta", "gamma-delta", "epsilon-zeta"):
         skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
         _add(skein_cli, ws, tid, "x")
-    _fill_prd(ws, "alpha-beta")
-    _fill_prd(ws, "gamma-delta")
+        _fill_prd(ws, tid)
+        skein_cli(ws, "confirm", tid)  # 全部推到就绪 (第 3 个也需就绪才能触并发上限)
     skein_cli(ws, "start", "alpha-beta")
     skein_cli(ws, "start", "gamma-delta")
     # 第 3 个 start 应被并发上限拦截 (check=False 拿非零退出)

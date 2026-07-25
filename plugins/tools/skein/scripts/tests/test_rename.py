@@ -88,14 +88,15 @@ def test_task_rename_id_sync_parent(skein_cli: SkeinCli, ws: Path) -> None:
 
 # ---------- 5. 非 pending 改 --id 拒 ----------
 def test_task_rename_id_non_pending_rejected(skein_cli: SkeinCli, ws: Path) -> None:
-    """active task 改 --id → 拒 (returncode!=0, stderr 含 pending)。"""
+    """active task 改 --id → 拒 (returncode!=0, stderr 提示仅限 start 前 待处理/就绪)。"""
     skein_cli(ws, "create", "task-a", "--name", "a", "--desc", "d")
     skein_cli(ws, "subtask", "add", "task-a", "s1", "--name", "x", "--desc", "d",
               "--agent", "skein-executor")
     _fill_prd(ws, "task-a")
+    skein_cli(ws, "confirm", "task-a")  # 待处理→就绪
     skein_cli(ws, "start", "task-a")
     r = skein_cli(ws, "rename", "task-a", "--id", "task-x", check=False)
-    assert r.returncode != 0 and "pending" in r.stderr, f"非 pending 改 id 未拒: {r.stderr!r}"
+    assert r.returncode != 0 and "仅限 start 前" in r.stderr, f"非 pending 改 id 未拒: {r.stderr!r}"
 
 
 # ---------- 6. 改到已占用 id 拒 ----------

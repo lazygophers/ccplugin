@@ -138,6 +138,7 @@ def test_finish_aggregate_guard(skein_cli: SkeinCli, ws: Path) -> None:
         skein_cli(ws, "subtask", "add", cid, "s1", "--name", "x", "--desc", "d",
                   "--agent", "skein-executor")
         _fill_prd(ws, cid)
+        skein_cli(ws, "confirm", cid)  # 待处理→就绪
         skein_cli(ws, "start", cid)
         skein_cli(ws, "finish", cid)
 

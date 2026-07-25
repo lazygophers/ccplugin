@@ -65,6 +65,13 @@ def main() -> None:
         cfg = d / ".skein/config.yaml"
         cfg.write_text(cfg.read_text().replace("retain_days: 7", "retain_days: 0"))
 
+        def rdy(tid: str) -> None:
+            """填实 prd + confirm 过用户确认门 (待处理→就绪), 使 task 可 start。"""
+            (d / ".skein/task" / tid / "prd.md").write_text(
+                f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
+                "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+            sk(d, "confirm", tid)
+
         # create: id 必填且为可读 slug
         out = sk(d, "create", "task-1", "--name", "第一个任务", "--desc", "测试").stdout.strip()
         tid = out.split("\t")[0]
@@ -88,6 +95,7 @@ def main() -> None:
         sk(d, "subtask", "add", "task-1", "s1", "--name", "核心逻辑", "--desc", "描述", "--agent", "skein-executor")
 
         # start task-1 → worktree 建出
+        rdy("task-1")
         sk(d, "start", "task-1")
         t = json.loads((d / ".skein/task/task-1/task.json").read_text())
         assert t["status"] == "进行中", t["status"]
@@ -116,9 +124,11 @@ def main() -> None:
         # 并发上限: create+start task-2, task-3 应被拒
         sk(d, "create", "task-2", "--name", "第二个", "--desc", "描述")
         sk(d, "subtask", "add", "task-2", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
+        rdy("task-2")
         sk(d, "start", "task-2")
         sk(d, "create", "task-3", "--name", "第三个", "--desc", "描述")
         sk(d, "subtask", "add", "task-3", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
+        rdy("task-3")
         r = sk(d, "start", "task-3", check=False)
         assert r.returncode != 0 and "并发上限" in r.stderr, "并发上限未生效"
 
@@ -161,12 +171,13 @@ def main() -> None:
 
         # task 级 ready: active 空 + task-3 前置(task-2)已归档→视完成 → task-3 就绪
         rout = sk(d, "ready").stdout
-        assert "task-3" in rout and "就绪 task" in rout, f"ready 未列就绪 task-3: {rout!r}"
+        assert "task-3" in rout and "可启动 task" in rout, f"ready 未列就绪 task-3: {rout!r}"
 
         # 多 active 并行: task-3 (dep task-2 已归档→视完成) 与 task-4 可同时 active
         sk(d, "start", "task-3")
         sk(d, "create", "task-4", "--name", "第四个", "--desc", "描述")
         sk(d, "subtask", "add", "task-4", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
+        rdy("task-4")
         sk(d, "start", "task-4")
         top = json.loads((d / ".skein/task.json").read_text())
         act = {x["id"] for x in top["tasks"] if x["status"] == "进行中"}
@@ -180,6 +191,7 @@ def main() -> None:
         sk(d, "subtask", "add", "task-5", "s1", "--name", "x", "--desc", "描述", "--agent", "skein-executor")
         sk(d, "subtask", "add", "task-5", "s2", "--name", "y", "--desc", "描述", "--agent", "skein-executor")
         sk(d, "subtask", "add", "task-5", "s3", "--deps", "s1,s2", "--name", "z", "--desc", "描述", "--agent", "skein-executor")
+        rdy("task-5")  # 过 confirm 门 → 就绪 (供后续 "就绪 task 待启动" 提示)
         assert (d / ".skein/task/task-5/task.md").exists(), "per-task 看板缺失"
         rdy = sk(d, "subtask", "ready", "task-5").stdout
         assert "s1" in rdy and "s2" in rdy and "s3" not in rdy, "就绪批错 (s3 应被依赖挡)"
@@ -216,7 +228,7 @@ def main() -> None:
         assert {s["sid"]: s["status"] for s in s4}["s1"] == "待处理", "claim --dry-run 误改状态 (应只读)"
         # 无 active 就绪 + 有就绪 pending 时走 "待激活" 提示 (task-5 pending, task-4 done 掉 s1 后腾出)
         sk(d, "subtask", "claim", "task-4"); sk(d, "subtask", "done", "task-4", "s1"); sk(d, "finish", "task-4")
-        assert "待激活" in sk(d, "claim", "--dry-run").stdout, "claim --dry-run 未提示就绪 pending task"
+        assert "就绪 task 待启动" in sk(d, "claim", "--dry-run").stdout, "claim --dry-run 未提示就绪 task 待启动"
         # ---- DAG 节点框: 长 name/desc 不截断 + 限宽 [208,272] + 多行换行 (高随行数增长, 不加宽避横滚) ----
         longnm = "改造dag_html节点宽自适应不截断完整展示信息"
         sk(d, "subtask", "add", "task-5", "s4", "--name", longnm,
@@ -320,6 +332,10 @@ def test_multirepo() -> None:
         rl = sk(d, "repos", "feat").stdout
         assert "repoA" in rl and "repoB" in rl, rl
         sk(d, "subtask", "add", "feat", "s1", "--name", "改A", "--desc", "d", "--agent", "skein-executor")
+        (d / ".skein/task/feat/prd.md").write_text(
+            "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
+            "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+        sk(d, "confirm", "feat")  # 待处理→就绪 用户确认门
         sk(d, "start", "feat")
         # worktree 落各子仓内部 (<repo>/.worktrees/skein-<id>), 非旧版根级 .worktrees/skein-<id>/<repo>
         wa = d / "repoA/.worktrees/skein-feat"

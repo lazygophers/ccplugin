@@ -24,11 +24,12 @@ S_DONE = "已完成"
 
 
 def _mk(skein_cli: SkeinCli, ws: Path, tid: str = "feat-wt", *, sub: bool = True) -> str:
-    """造 pending task (附 1 subtask 满足 start 前置), 返回 tid。"""
+    """造就绪 task (附 1 subtask + 填 prd + confirm 过用户确认门), 返回 tid。"""
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d")
     if sub:
         skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
         _fill_prd(ws, tid)  # start 前置 prd 门: 填实占位免被拒
+        skein_cli(ws, "confirm", tid)  # 待处理→就绪 用户确认门 (start 需就绪态)
     return tid
 
 
@@ -123,6 +124,7 @@ def test_multi_repos_each_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "confirm", tid)
     r = skein_cli(ws, "start", tid)
     assert r.returncode == 0, r.stderr
     # 每子 git 各有独立 worktree 目录 + 分支
@@ -140,6 +142,7 @@ def test_multi_repos_finish_merges_each(skein_cli: SkeinCli, git_cmd: GitCmd, ws
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "sub-a,sub-b")
     skein_cli(ws, "subtask", "add", tid, "sub-a", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "confirm", tid)
     skein_cli(ws, "start", tid)
     # 各 worktree 造改动
     (ws / "sub-a" / ".worktrees" / f"skein-{tid}" / "a.txt").write_text("a\n")
@@ -163,6 +166,7 @@ def test_repos_plain_subdir_rejected(skein_cli: SkeinCli, git_cmd: GitCmd, ws: P
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", "plainsub")
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "confirm", tid)
     r = skein_cli(ws, "start", tid, check=False)
     assert r.returncode == 1
     assert "不是 git 顶层" in r.stdout + r.stderr
@@ -183,6 +187,7 @@ def test_repos_deep_nested_git_gets_worktree(skein_cli: SkeinCli, git_cmd: GitCm
     skein_cli(ws, "create", tid, "--name", tid, "--desc", "d", "--repos", rel)
     skein_cli(ws, "subtask", "add", tid, "s", "--name", "A", "--desc", "d")
     _fill_prd(ws, tid)
+    skein_cli(ws, "confirm", tid)
     r = skein_cli(ws, "start", tid)
     assert r.returncode == 0, r.stderr
     assert (deep / ".worktrees" / f"skein-{tid}").exists(), "嵌套 git worktree 未建"
