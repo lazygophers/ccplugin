@@ -34,7 +34,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Iterable, Iterator, Optional, cast
+from typing import Any, AsyncIterator, Callable, Iterable, Iterator, Optional, Protocol, cast
 
 sys.path.insert(0, str(Path(__file__).parent))  # 同目录 hooklib 可导入 (hook 环境非 Bash PATH)
 from hooklib import budget_guard, Debug, debug_enabled  # noqa: E402
@@ -1647,56 +1647,10 @@ class Skein:
 
     # ---- subtask DAG 调度 (单 task 内, 存 per-task task.json 的 subtasks[]) ----
     def _crit_weight(self, subs: list[dict[str, Any]]) -> dict[str, int]:
-        """纯拓扑深度: 每 subtask 的最长下游链长 (每步计 1, 不依赖 estimate)。
-        权重大 = 越靠关键路径 (阻塞最多下游), 槽位紧张时优先派 → 最小化 makespan (总工期)。"""
-        succ: dict[str, list[str]] = {}  # sid -> 直接下游 sid
-        for s in subs:
-            for d in s.get("depends_on", []):
-                succ.setdefault(d, []).append(s["sid"])
-        memo: dict[str, int] = {}
-
-        def w(sid: str, seen: tuple[str, ...] = ()) -> int:
-            if sid in memo:
-                return memo[sid]
-            if sid in seen:  # ponytail: 环保护 (DAG 校验兜底不该到这), 断链避免无限递归, 不缓存
-                return 1
-            r = 1 + max((w(c, seen + (sid,)) for c in succ.get(sid, [])), default=0)
-            memo[sid] = r
-            return r
-
-        return {s["sid"]: w(s["sid"]) for s in subs}
+        return _crit_weight(subs)  # 纯函数, 见模块级 _crit_weight
 
     def _pending_queue(self, tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """待执行 subtask 队列 (全部未完成 task, 同调度序): 每个 pending subtask 一条。
-        排序 = task 调度序 (active > 就绪 pending > 阻塞 pending, 同级按传入顺序)
-        → task 内 (真就绪 > 关键路径权重降序 > 登记序)。
-        就绪 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
-        q: list[dict[str, Any]] = []
-        for ti, t in enumerate(tasks):
-            if t["status"] not in (S_PENDING, S_READY, S_ACTIVE, S_CHECK):
-                continue  # 已完成/失败 task 跳过
-            subs = t.get("subtasks", [])
-            if not any(s["status"] == SS_PENDING for s in subs):
-                continue
-            active = t["status"] in STATUS_ACTIVE
-            blocked = any(self._dep_unfinished(d) for d in t.get("deps", []))
-            trank = 0 if active else (2 if blocked else 1)
-            done = {s["sid"] for s in subs if s["status"] == SS_DONE}
-            crit = self._crit_weight(subs)
-            for i, s in enumerate(subs):
-                if s["status"] != SS_PENDING:
-                    continue
-                ready = active and all(d in done for d in s.get("depends_on", []))
-                q.append({
-                    "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                    "agent": s.get("agent", "skein-executor"), "ready": ready,
-                    "trank": trank, "ti": ti, "crit": crit.get(s["sid"], 0),
-                    "i": i,
-                    "desc": s.get("desc", ""), "status": s["status"],
-                    "depends_on": s.get("depends_on", []),
-                })
-        q.sort(key=lambda x: (x["trank"], x["ti"], not x["ready"], -x["crit"], x["i"]))
-        return q
+        return _pending_queue(tasks, self._dep_unfinished)  # 纯函数, 见模块级 _pending_queue
 
     def _ready(self, t: dict[str, Any]) -> list[dict[str, Any]]:
         """就绪批: pending + 依赖全 done, 按统筹学关键路径权重降序排序后截到空闲槽位
@@ -1944,207 +1898,16 @@ class Skein:
         self._write_if_changed(self.tasks / st["id"] / "vision.md", md)
 
     # ---- 看板可视化 (http 实时渲染, 不落盘; `skein.py view`/`serve` 起服务) ----
+    def _snapshot(self) -> Snapshot:
+        # 一次目录扫描 → 6 board 视图统一输入 (每请求构造一次)
+        return Snapshot(
+            proj=self.proj, wt_shown=self._wt_shown(),
+            tasks_fn=self._render_tasks, all_tasks_fn=self._all,
+            tasks_dir=self.tasks, archive_dir=self.archive_dir,
+            spec_root=self._spec_root())
+
     def _board_data(self) -> dict[str, Any]:
-        # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
-        # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
-        # ponytail: 就绪 复用 pending 视觉类 (前端 CSS 无 s-ready 规则), status 文案仍显 "就绪" 区分
-        st_cls: dict[str, str] = {S_PENDING: "s-pending", S_READY: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
-        ss_cls: dict[str, str] = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
-        node_var: dict[str, str] = {S_PENDING: "--st-pending", S_READY: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
-                    S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
-        node_cls: dict[str, str] = {S_PENDING: "n-pending", S_READY: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
-                    S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
-
-        def fmt_dur(mins: Optional[int]) -> str:
-            if mins is None:
-                return "-"
-            return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
-
-        tnow = now()
-        tasks = sorted(self._render_tasks(), key=lambda t: (STATUS_ORDER.get(t["status"], 9), -(t.get("started") or 0)))
-        name_of: dict[str, str] = {t["id"]: t.get("name", t["id"]) for t in tasks}
-
-        def elapsed_of(t: dict[str, Any]) -> int:
-            st = t.get("status")
-            if st in (S_PENDING, S_READY):
-                return 0
-            start = t.get("started") or t.get("created")
-            if not start:
-                return 0
-            end = t.get("finished") if (st == S_DONE and t.get("finished")) else tnow
-            return cast(int, round((end - start) / 60))
-
-        def task_pct(t: dict[str, Any]) -> int:
-            # ponytail: 委托全局三阶段加权 _task_pct (保留闭包名兼容 board 内多处引用)
-            return _task_pct(t)
-
-        def node(_id: str, nm: str, stt: str, deps: Any, pct: int, desc: Any) -> list[Any]:
-            # DAG 节点统一为数组 [id, name, status, deps(id 数组), pct, desc]
-            return [_id, nm, stt, [d for d in (deps or [])], pct, desc or ""]
-
-        # 概览聚合
-        cnt: dict[str, int] = {}
-        elapsed_total = 0
-        for t in tasks:
-            cnt[t["status"]] = cnt.get(t["status"], 0) + 1
-            elapsed_total += elapsed_of(t)
-
-        task_nodes = [node(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
-                           task_pct(t), t.get("desc", "")) for t in tasks]
-        # 概览 task 节点悬浮浮层数据: 总进度 + subtask DAG (>=2 画图, 否则列表兜底)
-        tips: dict[str, Any] = {}
-        links = {t["id"]: f'#task-{t["id"]}' for t in tasks}
-        for t in tasks:
-            subs = t.get("subtasks", [])
-            snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
-                           _sub_pct(s), s.get("desc", "")) for s in subs]
-            tips[t["id"]] = {
-                "name": t.get("name", t["id"]),
-                "pct": task_pct(t),
-                "subNodes": snodes if len(snodes) >= 2 else None,
-                "subs": [{"name": s.get("name", s["sid"]), "pct": _sub_pct(s)} for s in subs] if subs else None,
-            }
-        # task+subtask 综合 DAG: 只画 subtask, 跨 task 前置连到前置 task 叶子; 无 subtask 的 task 仍作节点
-        has_sub = any(t.get("subtasks") for t in tasks)
-        leaves: dict[str, list[str]] = {}
-        for t in tasks:
-            subs = t.get("subtasks", [])
-            if subs:
-                depd = {d for s in subs for d in s.get("depends_on", [])}
-                leaves[t["id"]] = [f'{t["id"]}/{s["sid"]}' for s in subs if s["sid"] not in depd] \
-                    or [f'{t["id"]}/{subs[-1]["sid"]}']
-            else:
-                leaves[t["id"]] = [t["id"]]
-        combined: list[list[Any]] = []
-        for t in tasks:
-            subs = t.get("subtasks", [])
-            prereq = [nid for d in t.get("deps", []) for nid in leaves.get(d, [d])]
-            if not subs:
-                combined.append(node(t["id"], t.get("name", t["id"]), t["status"], prereq,
-                                     task_pct(t), t.get("desc", "")))
-                continue
-            intra = {s["sid"] for s in subs}
-            for s in subs:
-                sid = f'{t["id"]}/{s["sid"]}'
-                sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", []) if d in intra]
-                if not sdeps:
-                    sdeps = list(prereq)
-                combined.append(node(sid, s.get("name", s["sid"]), s["status"], sdeps,
-                                     _sub_pct(s), s.get("desc", "")))
-        combined_pct = round(sum(n[4] for n in combined) / len(combined)) if combined else 0
-
-        est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
-
-        # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的就绪 task (可 skein start)
-        next_up_id: Optional[str] = None
-        if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
-            next_up_id = next((t["id"] for t in tasks
-                               if t["status"] == S_READY
-                               and not any(self._dep_unfinished(d) for d in t.get("deps", []))), None)
-
-        def prd_data(tid: str) -> list[dict[str, Any]]:
-            # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
-            prd = self.tasks / tid / "prd.md"
-            if not prd.exists():
-                return []
-            secs: dict[str, list[tuple[str, bool, str]]] = {}
-            cur: Optional[str] = None
-            for ln in prd.read_text(encoding="utf-8", errors="replace").splitlines():
-                h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
-                if h:
-                    cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
-                    continue
-                if not cur:
-                    continue
-                m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
-                if m:
-                    txt = m.group(2).strip()
-                    if not txt.lstrip().startswith("TODO"):
-                        secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
-                    continue
-                txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
-                if txt and not txt.lstrip().startswith("TODO"):
-                    secs.setdefault(cur, []).append(("prose", False, txt))
-            out: list[dict[str, Any]] = []
-            for name in ("目标", "验收标准"):
-                items = secs.get(name)
-                if not items:
-                    continue
-                checks = [d for k, d, _ in items if k == "check"]
-                badge: Optional[list[int]] = [sum(1 for c in checks if c), len(checks)] if checks else None
-                prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
-                out.append({
-                    "name": name, "badge": badge,
-                    "items": [{"kind": k, "done": bool(d), "text": tt,
-                               "proseCls": ("" if k == "check" else prose_cls)}
-                              for k, d, tt in items],
-                })
-            return out
-
-        cards: list[dict[str, Any]] = []
-        for t in tasks:
-            subs = t.get("subtasks", [])
-            sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}
-            sdone = sum(1 for s in subs if s["status"] == SS_DONE)
-            snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
-                           _sub_pct(s), s.get("desc", "")) for s in subs]
-            subtable = [{
-                "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
-                "agent": s.get("agent", "skein-executor"),
-                "skills": s.get("skills", []),
-                "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
-                "acc": s.get("验收", []),
-                "created": s.get("created"),
-                "started": s.get("started"),
-                "finished": s.get("finished"),
-            } for s in subs]
-            sblob = " ".join(str(x or "") for x in (
-                t["id"], t.get("name", ""), t.get("desc", ""),
-                *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower()
-            tdir = self.tasks / t["id"]
-            doc_links = [{"doc": f'task/{t["id"]}/{fn}', "title": f'{lab} · {t["id"]}', "label": lab}
-                         for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
-                         if (tdir / fn).exists()]
-            cards.append({
-                "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
-                "stage": _task_stage(t),
-                "parent": t.get("parent"), "kind": t.get("kind", "task"),  # task 级父子层 (supertask 分组用, 数据就绪; 前端分组渲染待补)
-                "nextUp": t["id"] == next_up_id,
-                "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
-                "worktree": (t.get("worktree") or None) if self._wt_shown() else None,
-                "created": t.get("created"),
-                "started": t.get("started"),
-                "checked": t.get("checked"),
-                "finished": t.get("finished"),
-                "elapsed": elapsed_of(t),
-                "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
-                "docLinks": doc_links,
-                "prd": prd_data(t["id"]),
-                "subtable": subtable,
-                "subNodes": snodes,
-                "search": sblob,
-            })
-
-        filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
-                       (S_READY, S_READY), (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
-        return {
-            "proj": self.proj,
-            "filterOpts": filter_opts,
-            "stClsMap": st_cls, "ssClsMap": ss_cls, "nodeVar": node_var, "nodeCls": node_cls,
-            "overview": {
-                "taskCount": len(tasks),
-                "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
-                          S_CHECK: cnt.get(S_CHECK, 0), S_READY: cnt.get(S_READY, 0),
-                          S_PENDING: cnt.get(S_PENDING, 0)},
-                "estMeta": est_meta,
-                "combinedPct": combined_pct,
-                "hasSub": has_sub,
-                "taskDag": {"nodes": task_nodes, "tips": tips, "links": links},
-                "fullDag": {"nodes": combined} if has_sub else None,
-                "pendingQueue": self._pending_queue(tasks),
-            },
-            "cards": cards,
-        }
+        return _view_board_data(self._snapshot())
 
     def _board_html(self) -> str:
         # 单一 JS 渲染器: Python 只出 shell + 内联结构化数据 (window.__SKEIN__),
@@ -2230,198 +1993,15 @@ class Skein:
         return p if (p == root or root in p.parents) else None
 
     def _task_detail(self, tid: str) -> Optional[dict[str, Any]]:
-        # task.json 全文 + prd/design/findings 原文 + subtask + 契约; 未归档缺失则回落归档目录
-        tdir = self.tasks / tid
-        archived = False
-        if not (tdir / "task.json").exists():
-            ap = self._archived_path(tid)
-            if ap:
-                tdir, archived = ap, True
-        tj = tdir / "task.json"
-        if not tj.exists():
-            return None
-        try:
-            data = json.loads(tj.read_text())
-        except (json.JSONDecodeError, OSError):
-            return None
-        docs: dict[str, Any] = {}
-        for fn in ("prd.md", "design.md", "findings.md"):
-            f = tdir / fn
-            docs[fn[:-3]] = f.read_text(encoding="utf-8", errors="replace") if f.exists() else None
-        # research 目录多篇笔记: {filename: content} (无目录或空则空 dict)
-        research: dict[str, str] = {}
-        rdir = tdir / "research"
-        if rdir.is_dir():
-            for rf in sorted(rdir.glob("*.md")):
-                research[rf.name] = rf.read_text(encoding="utf-8", errors="replace")
-        return {"task": data, "docs": docs, "research": research, "archived": archived,
-                "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", [])}
-
+        return _view_task_detail(self._snapshot(), tid)
     def _archive_list(self) -> list[dict[str, Any]]:
-        # 已归档 task 列表 (archive/<年>/<月-日>/<id>)
-        out: list[dict[str, Any]] = []
-        if self.archive_dir.exists():
-            for d in sorted(self.archive_dir.glob("*/*/*")):
-                tj = d / "task.json"
-                if not tj.exists():
-                    continue
-                try:
-                    t = json.loads(tj.read_text())
-                except (json.JSONDecodeError, OSError):
-                    continue
-                out.append({"id": t.get("id", d.name), "name": t.get("name", d.name),
-                            "status": t.get("status"), "desc": t.get("desc", ""),
-                            "finished": t.get("finished"), "archivedAt": d.parent.name,
-                            "subs": len(t.get("subtasks", []))})
-        return out
-
+        return _view_archive_list(self._snapshot())
     def _dashboard(self) -> dict[str, Any]:
-        # 统计聚合: 复用 _board_data overview + 补 subtask 状态分布 + 完成率
-        data = self._board_data()
-        ov = data["overview"]
-        sub_stat: dict[str, int] = {}
-        for c in data["cards"]:
-            for s in c.get("subtable", []):
-                sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
-        total = ov["taskCount"]
-        done = ov["stats"].get(S_DONE, 0)
-        # 进行中 subtask: active task 内 SS_RUNNING (含耗时)
-        tnow = now()
-        running_subs: list[dict[str, Any]] = []
-        for t in self._active():
-            for s in t.get("subtasks", []):
-                if s.get("status") != SS_RUNNING:
-                    continue
-                started = s.get("started")
-                running_subs.append({
-                    "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                    "agent": s.get("agent", "skein-executor"),
-                    "elapsed": round((tnow - started) / 60) if started else None,
-                })
-        # 就绪 subtask: active task 内 pending 且依赖全 done (不受空闲槽限, 展示全量就绪)
-        ready_subs: list[dict[str, Any]] = []
-        for t in self._active():
-            done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
-            for s in t.get("subtasks", []):
-                if s.get("status") != SS_PENDING:
-                    continue
-                if not all(d in done_sids for d in s.get("depends_on", [])):
-                    continue
-                ready_subs.append({
-                    "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                    "agent": s.get("agent", "skein-executor"),
-                    "depends_on": s.get("depends_on", [])})
-        # 就绪 task: status=就绪 (已过 confirm 门) + 前置全 done → 可 skein start
-        ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
-                        "deps": t.get("deps", []), "desc": t.get("desc", "")}
-                       for t in self._all()
-                       if t["status"] == S_READY
-                       and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
-        # 待 plan task: 所有 status=待处理 (含未 confirm; subCount=0 即 plan 未收敛)
-        to_plan_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
-                          "desc": t.get("desc", ""), "subCount": len(t.get("subtasks", []))}
-                         for t in self._all() if t["status"] == S_PENDING]
-        # 执行中 / 检查中 task: 一趟遍历分流 (cards 已含 elapsed/sdone/stotal/pct, 不重算)
-        active_tasks: list[dict[str, Any]] = []
-        check_tasks: list[dict[str, Any]] = []
-        for c in data["cards"]:
-            if c["status"] not in (S_ACTIVE, S_CHECK):
-                continue
-            row = {"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
-                   "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
-                   "elapsed": c.get("elapsed")}
-            (active_tasks if c["status"] == S_ACTIVE else check_tasks).append(row)
-        return {"proj": self.proj, "taskCount": total,
-                "doneRate": round(done / total * 100) if total else 0,
-                "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
-                "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
-                "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
-                "runningSubs": running_subs, "readySubs": ready_subs,
-                "readyTasks": ready_tasks, "toPlanTasks": to_plan_tasks,
-                "activeTasks": active_tasks, "checkTasks": check_tasks}
-
+        return _view_dashboard(self._snapshot())
     def _queue(self) -> dict[str, Any]:
-        # 待执行队列 (web 展示, 不受槽限): 全量 pending subtask 队列 + task 级就绪 + active 内全量就绪 subtask
-        tasks = self._render_tasks()
-        ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
-                        "deps": t.get("deps", []), "desc": t.get("desc", ""),
-                        "status": t["status"], "spct": _task_pct(t)}
-                       for t in self._all()
-                       if t["status"] == S_READY
-                       and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
-        # web 展示不受槽限: pending 且依赖全 done 即列 (与 dashboard readySubs 同, 受槽限只作用于 claim/exec 派发)
-        ready_subs: list[dict[str, Any]] = []
-        for t in self._active():
-            done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
-            for s in t.get("subtasks", []):
-                if s.get("status") != SS_PENDING:
-                    continue
-                if not all(d in done_sids for d in s.get("depends_on", [])):
-                    continue
-                ready_subs.append({"tid": t["id"], "sid": s["sid"],
-                                   "name": s.get("name", s["sid"]),
-                                   "agent": s.get("agent", "skein-executor"),
-                                   "desc": s.get("desc", ""), "status": s["status"],
-                                   "depends_on": s.get("depends_on", [])})
-        # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + _active 内 SS_RUNNING, 不再 _board_data
-        tnow = now()
-        running_subs: list[dict[str, Any]] = []
-        for t in self._active():
-            for s in t.get("subtasks", []):
-                if s.get("status") != SS_RUNNING:
-                    continue
-                started = s.get("started")
-                running_subs.append({"tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
-                                     "agent": s.get("agent", "skein-executor"),
-                                     "elapsed": round((tnow - started) / 60) if started else None})
-        # ponytail: active_tasks 自算, 复用 tasks 避免二次 _render_tasks (字段对齐 _board_data.cards)
-        active_tasks: list[dict[str, Any]] = []
-        for t in tasks:
-            if t["status"] not in (S_ACTIVE, S_CHECK):
-                continue
-            subs = t.get("subtasks", [])
-            st = t.get("status")
-            start = t.get("started") or t.get("created")
-            if st == S_DONE and t.get("finished"):
-                end = t.get("finished")
-            else:
-                end = tnow
-            elapsed = round((end - start) / 60) if start and st != S_PENDING else 0
-            active_tasks.append({"id": t["id"], "name": t.get("name", t["id"]), "status": st,
-                                 "pct": _task_pct(t),
-                                 "sdone": sum(1 for s in subs if s["status"] == SS_DONE),
-                                 "stotal": len(subs), "elapsed": elapsed})
-        return {"pendingQueue": self._pending_queue(tasks),
-                "readyTasks": ready_tasks, "readySubtasks": ready_subs,
-                "activeTasks": active_tasks, "runningSubs": running_subs}
-
+        return _view_queue(self._snapshot())
     def _search(self, q: Any) -> dict[str, Any]:
-        # 跨 task/subtask/prd/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
-        q = (q or "").strip().lower()
-        if not q:
-            return {"query": q, "hits": []}
-        hits: list[dict[str, Any]] = []
-        for t in self._render_tasks():
-            if q in " ".join(str(x or "") for x in (t["id"], t.get("name", ""), t.get("desc", ""))).lower():
-                hits.append({"kind": "task", "id": t["id"],
-                             "name": t.get("name", t["id"]), "snippet": t.get("desc", "")})
-            for s in t.get("subtasks", []):
-                if q in " ".join(str(x or "") for x in (s["sid"], s.get("name", ""), s.get("desc", ""))).lower():
-                    hits.append({"kind": "subtask", "id": f'{t["id"]}/{s["sid"]}',
-                                 "name": s.get("name", s["sid"]), "snippet": s.get("desc", "")})
-            prd = self.tasks / t["id"] / "prd.md"
-            if prd.exists() and q in prd.read_text(encoding="utf-8", errors="replace").lower():
-                hits.append({"kind": "prd", "id": t["id"],
-                             "name": f'{t.get("name", t["id"])} · PRD', "snippet": ""})
-        root = self._spec_root()
-        if root.exists():
-            for f in sorted(root.rglob("*.md")):
-                if f.name == "index.md":
-                    continue
-                if q in f.read_text(encoding="utf-8", errors="replace").lower():
-                    rel = f.relative_to(root).as_posix()
-                    hits.append({"kind": "spec", "id": rel, "name": rel, "snippet": ""})
-        return {"query": q, "hits": hits}
+        return _view_search(self._snapshot(), q)
 
     # exec 白名单: 严格 enum → 固定 argv (绝不 shell 拼串)。返回 argv 或 None(拒绝)。
     def _exec_argv(self, body: dict[str, Any]) -> Optional[list[str]]:
@@ -2635,231 +2215,7 @@ class Skein:
             _cleanup()
 
     def _build_serve_app(self, proj_id: str, quiet: bool, on_ready: Optional[Callable[[], None]] = None) -> Any:
-        # 构建 FastAPI app: 看板页实时渲染 + /board 静态直出 + 主题 POST + /__skein__/live 热重载 WS。
-        from contextlib import asynccontextmanager
-        from fastapi import FastAPI, Request, WebSocket
-        from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
-        from fastapi.staticfiles import StaticFiles
-        import asyncio
-
-        # webapp 前端是无构建 ES 模块图: index.html 未给 import 链带 ?v 版本戳, 浏览器强缓存
-        # /src/pages/*.js → 编辑后看旧板 (就绪态改动不生效)。no-cache 令每次载入走重验证
-        # (ETag/Last-Modified 命中仍回 304, 变更即取新), 修根因不改 index.html 模块图。
-        class _NoCacheStatic(StaticFiles):
-            async def get_response(self, path: str, scope: Any) -> Any:
-                resp = await super().get_response(path, scope)
-                resp.headers["Cache-Control"] = "no-cache"
-                return resp
-
-        # 注入模块全局: PEP 563 (from __future__ import annotations) 把 handler 参数注解 string化,
-        # FastAPI get_typed_signature 用 handler.__globals__ (= 本模块全局) 解析 ForwardRef;
-        # Request/WebSocket 仅 serve() 内局部 import → 模块全局无此名 → 解析失败 → POST request 被当 query 参数 → 422。
-        # 注入模块全局后, 下面 @app.post 的参数注解 (request: Request) 解析为真类, FastAPI 正常隐式注入 Request。
-        _g = globals()
-        _g["Request"] = Request
-        _g["WebSocket"] = WebSocket
-
-        board = self  # 每请求实时从 task.json 渲染, 不吃静态 task.html
-        clients: set[Any] = set()  # 活跃热重载 WS 连接
-
-        async def _watch_loop() -> None:
-            # 每 500ms 比 rev。资产变 (css/js/结构) → "reload" 整页刷 (换 head); 仅数据变 (task.json) → "data" 软刷 (只 swap .layout)。
-            # 资产变优先整页 (data 也可能同变, 但整页已覆盖数据)。
-            last_a = board._asset_rev()
-            last_d = board._data_rev()
-            while True:
-                await asyncio.sleep(0.5)
-                try:
-                    cur_a, cur_d = board._asset_rev(), board._data_rev()
-                except Exception:
-                    continue
-                msg = "reload" if cur_a != last_a else ("data" if cur_d != last_d else None)
-                if msg:
-                    last_a, last_d = cur_a, cur_d
-                    for c in list(clients):
-                        try:
-                            await c.send_text(msg)
-                        except Exception:
-                            clients.discard(c)
-
-        @asynccontextmanager
-        async def lifespan(_app: Any) -> AsyncIterator[None]:
-            task = asyncio.create_task(_watch_loop())
-            if on_ready:
-                on_ready()  # 已 bind, 落 lock (保证 lock 在 = 端口可连)
-            try:
-                yield
-            finally:
-                task.cancel()
-
-        app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
-
-        @app.middleware("http")
-        async def _access_log(request: Request, call_next: Callable[[Request], Any]) -> Any:
-            # 复用旧格式: ms 时间戳 + method/path -> code; POST 附 body (读一次缓存进 scope, handler 复用不重读)。
-            extra = ""
-            if request.method == "POST":
-                try:
-                    raw = await request.body()
-                    request.scope["skein_body"] = raw
-                    extra = " body=" + raw.decode("utf-8", "replace")
-                except Exception:
-                    extra = ""
-            resp = await call_next(request)
-            if not quiet:
-                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-                sys.stderr.write(f"{ts} {request.method} {request.url.path}{extra} -> {resp.status_code}\n")
-            return resp
-
-        @app.get(self._LOCK_ID_PATH, response_class=PlainTextResponse)
-        async def _identify() -> str:  # 身份探测端点: 返回项目标识 (.skein 绝对路径)
-            return proj_id
-
-        @app.get(self._REV_PATH, response_class=PlainTextResponse)
-        async def _rev() -> str:  # 版本探测端点: 轮询兜底 (WS 不可用时)
-            return board._task_json_rev()
-
-        @app.get("/__skein__/data")
-        async def _data() -> JSONResponse:  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
-            return JSONResponse(board._board_data())
-
-        @app.get("/", response_class=HTMLResponse)
-        async def _page() -> str:  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
-            return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
-
-        @app.websocket(self._LIVE_PATH)
-        async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
-            await ws.accept()
-            clients.add(ws)
-            try:
-                while True:
-                    await ws.receive_text()  # 客户端不发则阻塞; 断开抛异常
-            except Exception:
-                pass
-            finally:
-                clients.discard(ws)
-
-        # ---- webapp 后端数据 endpoint (9 个; 全走 board 同一数据源) ----
-        @app.get("/__skein__/dashboard")
-        async def _dashboard() -> JSONResponse:  # 统计: 完成率/活跃数/subtask进度/状态分布
-            return JSONResponse(board._dashboard())
-
-        @app.get("/__skein__/queue")
-        async def _queue() -> JSONResponse:  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
-            return JSONResponse(board._queue())
-
-        @app.get("/__skein__/task/{tid}")
-        async def _task(tid: str) -> Any:  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
-            d = board._task_detail(tid)
-            return JSONResponse(d) if d else JSONResponse({"error": "task 不存在"}, status_code=404)
-
-        @app.get("/__skein__/spec")
-        async def _spec() -> JSONResponse:  # spec 树 core/recall × 类目 × 文件
-            return JSONResponse(board._spec_tree())
-
-        @app.get("/__skein__/spec/file")
-        async def _spec_file(path: str) -> Any:  # 单 spec 原文 (realpath 校验限 .skein/spec/)
-            p = board._spec_resolve(path)
-            if p is None:
-                return JSONResponse({"error": "路径越界"}, status_code=403)
-            if not p.is_file():
-                return JSONResponse({"error": "文件不存在"}, status_code=404)
-            return {"path": path, "content": p.read_text(encoding="utf-8", errors="replace")}
-
-        @app.post("/__skein__/spec/save")
-        async def _spec_save(request: Request) -> Any:  # 写 spec (realpath 校验越界拒; 仅 .md)
-            try:
-                body = json.loads(request.scope.get("skein_body") or b"{}")
-                rel, content = body["path"], body["content"]
-                assert isinstance(rel, str) and isinstance(content, str)
-            except Exception:
-                return JSONResponse({"error": "bad request"}, status_code=400)
-            p = board._spec_resolve(rel)
-            if p is None or p.suffix != ".md":
-                return JSONResponse({"error": "路径越界或非 .md"}, status_code=403)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content, encoding="utf-8")
-            return {"ok": True, "path": rel}
-
-        @app.post("/__skein__/exec")
-        def _exec(request: Request) -> Any:  # 白名单命令 (固定 argv; sync def → 跑线程池不阻塞 loop)
-            try:
-                body = json.loads(request.scope.get("skein_body") or b"{}")
-            except Exception:
-                return JSONResponse({"error": "bad request"}, status_code=400)
-            argv = board._exec_argv(body)
-            if argv is None:
-                return JSONResponse({"error": f"命令不在白名单: {body.get('cmd')!r}", "ok": False},
-                                    status_code=403)
-            try:
-                r = subprocess.run(argv, cwd=str(board.root), capture_output=True, text=True, timeout=60)
-            except Exception as e:
-                return JSONResponse({"error": str(e), "ok": False}, status_code=500)
-            return {"ok": r.returncode == 0, "cmd": body.get("cmd"),
-                    "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
-
-        @app.get("/__skein__/config")
-        def _cfg_get() -> JSONResponse:  # 读 config (含 ENV override, 前端显示生效值)
-            return JSONResponse(board.config())
-
-        @app.post("/__skein__/config")
-        async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (只认 CONFIG_DEFAULTS 键; 前端全量提交)
-            # input 提交多为 str → 按 CONFIG_DEFAULTS[key] 类型 coerce; 未知键忽略 (防注入); 缺键补默认。
-            try:
-                body = json.loads(request.scope.get("skein_body") or b"{}")
-            except Exception:
-                return JSONResponse({"error": "bad request"}, status_code=400)
-
-            def _coerce(k: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
-                try:
-                    return _coerce_config(k, v)
-                except (TypeError, ValueError):
-                    return CONFIG_DEFAULTS[k]
-
-            cfg = {k: _coerce(k, body[k]) for k in CONFIG_DEFAULTS if k in body}
-            full = {**CONFIG_DEFAULTS, **cfg}  # 未提交键补默认 (前端应全量, 容错)
-            (board.dir / "config.yaml").write_text(_yaml_dump(full))
-            return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
-
-        @app.get("/__skein__/archive")
-        async def _archive() -> JSONResponse:  # 已归档 task 列表
-            return JSONResponse(board._archive_list())
-
-        @app.get("/__skein__/search")
-        async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜
-            return JSONResponse(board._search(q))
-
-        # webapp 改 history API (pathname) 路由: 直访 /dashboard /queue /task 等单段 SPA 路径须回 index.html 让前端 router 接管。
-        # /task /board 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
-        # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
-        def _spa() -> str:
-            return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
-
-        @app.get("/task", response_class=HTMLResponse)
-        async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
-            return _spa()
-
-        @app.get("/board", response_class=HTMLResponse)
-        async def _spa_board() -> str:  # /board 裸路径 = board 页; /board/*.css 等资产仍落下方 mount
-            return _spa()
-
-        # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
-        app.mount("/board", StaticFiles(directory=str(self._board_assets_dir())), name="board")
-        # webapp 工程化前端: 首页在 / 出, 其 index.html 相对引 dist/app.css + src/app.js → 挂 /dist /src /vendor 使之解析
-        # (check_dir=False: s1 未落地 / css 未构建时不炸)
-        app.mount("/webapp", _NoCacheStatic(directory=str(self._webapp_dir()), check_dir=False), name="webapp")
-        app.mount("/src", _NoCacheStatic(directory=str(self._webapp_dir() / "src"), check_dir=False), name="src")
-        app.mount("/dist", _NoCacheStatic(directory=str(self._webapp_dir() / "dist"), check_dir=False), name="dist")
-        app.mount("/vendor", StaticFiles(directory=str(self._webapp_dir() / "vendor"), check_dir=False), name="vendor")
-        # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
-        # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
-        app.mount("/task", StaticFiles(directory=str(self.tasks), check_dir=False), name="task")
-        # SPA fallback: 其余无专属 route/mount 的 GET 路径 (/dashboard /queue /spec /archive 等单段 SPA 路由) 兜底回 index.html。
-        # 声明在所有 mount 之后 → 静态 (含 /task/<id>/prd.md, /dist/app.css) 先匹命中; 命不中才回落 SPA。API (/__skein__/*) 在更上方, 优先级最高。
-        @app.get("/{full_path:path}", response_class=HTMLResponse)
-        async def _spa_fallback(full_path: str) -> str:
-            return _spa()
-        return app
+        return build_app(self, proj_id, quiet, on_ready)  # 见模块级 build_app(DataSource seam)
 
     # ---- setup: 初始化 / trellis 迁移 (机械部分; 语义 spec 重组由 skein-setup agent 做) ----
     # trellis 接线 (无条件删, 避免双注入 skein 独占): .trellis 下的 hook/脚本/settings
@@ -3124,9 +2480,789 @@ def _task_stage(t: dict[str, Any]) -> str:
     return PHASE_OF.get(st, "plan")  # 待处理→plan / 就绪→ready / 进行中→exec / 检查中→check
 
 
+# ==== 看板视图层 (纯投影): Snapshot 单一输入 + 无 self 的 _view_* 函数族 ====
+# 一次目录扫描 → Snapshot; 6 个 board 视图皆纯函数 view(snapshot)→dict, 喂假 Snapshot 即可断言。
+# 调度/mutation 仍走 Skein 上的严格 _all()/_dep_unfinished (幽灵骨架不可派发); 此层只读只投影。
+
+def _crit_weight(subs: list[dict[str, Any]]) -> dict[str, int]:
+    """纯拓扑深度: 每 subtask 的最长下游链长 (每步计 1, 不依赖 estimate)。
+    权重大 = 越靠关键路径 (阻塞最多下游), 槽位紧张时优先派 → 最小化 makespan (总工期)。"""
+    succ: dict[str, list[str]] = {}  # sid -> 直接下游 sid
+    for s in subs:
+        for d in s.get("depends_on", []):
+            succ.setdefault(d, []).append(s["sid"])
+    memo: dict[str, int] = {}
+
+    def w(sid: str, seen: tuple[str, ...] = ()) -> int:
+        if sid in memo:
+            return memo[sid]
+        if sid in seen:  # ponytail: 环保护 (DAG 校验兜底不该到这), 断链避免无限递归, 不缓存
+            return 1
+        r = 1 + max((w(c, seen + (sid,)) for c in succ.get(sid, [])), default=0)
+        memo[sid] = r
+        return r
+
+    return {s["sid"]: w(s["sid"]) for s in subs}
+
+
+def _pending_queue(tasks: list[dict[str, Any]], dep_unfinished: Any) -> list[dict[str, Any]]:
+    """待执行 subtask 队列 (全部未完成 task, 同调度序): 每个 pending subtask 一条。
+    排序 = task 调度序 (active > 就绪 pending > 阻塞 pending, 同级按传入顺序)
+    → task 内 (真就绪 > 关键路径权重降序 > 登记序)。
+    就绪 = task 已 active 且 subtask 依赖全 done (可立即派); 其余为排队中。"""
+    q: list[dict[str, Any]] = []
+    for ti, t in enumerate(tasks):
+        if t["status"] not in (S_PENDING, S_READY, S_ACTIVE, S_CHECK):
+            continue  # 已完成/失败 task 跳过
+        subs = t.get("subtasks", [])
+        if not any(s["status"] == SS_PENDING for s in subs):
+            continue
+        active = t["status"] in STATUS_ACTIVE
+        blocked = any(dep_unfinished(d) for d in t.get("deps", []))
+        trank = 0 if active else (2 if blocked else 1)
+        done = {s["sid"] for s in subs if s["status"] == SS_DONE}
+        crit = _crit_weight(subs)
+        for i, s in enumerate(subs):
+            if s["status"] != SS_PENDING:
+                continue
+            ready = active and all(d in done for d in s.get("depends_on", []))
+            q.append({
+                "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                "agent": s.get("agent", "skein-executor"), "ready": ready,
+                "trank": trank, "ti": ti, "crit": crit.get(s["sid"], 0),
+                "i": i,
+                "desc": s.get("desc", ""), "status": s["status"],
+                "depends_on": s.get("depends_on", []),
+            })
+    q.sort(key=lambda x: (x["trank"], x["ti"], not x["ready"], -x["crit"], x["i"]))
+    return q
+
+
+class Snapshot:
+    """一次目录扫描的 task/subtask 内存快照 — board 视图的统一输入。
+    惰性: tasks(渲染源)/all_tasks(严格真值) 首次访问才扫盘并缓存; prd/design/task.json 按需读 (task_path/prd_path)。
+    → task_detail 只碰路径不触发全量扫描 (旧行为), 其余视图访问 .tasks 时才实扫。
+    dep_unfinished 由缓存态 O(1) 判定 (取代逐 dep 读盘)。构造经 Skein._snapshot(), 每请求一次。"""
+
+    def __init__(self, *, proj: str, wt_shown: bool,
+                 tasks_fn: Callable[[], list[dict[str, Any]]],
+                 all_tasks_fn: Callable[[], list[dict[str, Any]]],
+                 tasks_dir: Path, archive_dir: Path, spec_root: Path) -> None:
+        self.proj = proj
+        self.wt_shown = wt_shown
+        self._tasks_fn = tasks_fn      # _render_tasks(): 顶层索引 ∪ per-task 明细 (含幽灵骨架)
+        self._all_fn = all_tasks_fn    # _all(): per-task 严格真值 (无幽灵骨架)
+        self._tasks_dir = tasks_dir
+        self.archive_dir = archive_dir
+        self.spec_root = spec_root
+        self._tasks_cache: Optional[list[dict[str, Any]]] = None
+        self._all_cache: Optional[list[dict[str, Any]]] = None
+        self._dep_index: Optional[tuple[set[str], dict[str, str], set[str]]] = None
+
+    @property
+    def tasks(self) -> list[dict[str, Any]]:
+        if self._tasks_cache is None:
+            self._tasks_cache = self._tasks_fn()
+        return self._tasks_cache
+
+    @property
+    def all_tasks(self) -> list[dict[str, Any]]:
+        if self._all_cache is None:
+            self._all_cache = self._all_fn()
+        return self._all_cache
+
+    @property
+    def active(self) -> list[dict[str, Any]]:
+        return [t for t in self.all_tasks if t["status"] in STATUS_ACTIVE]
+
+    def dep_unfinished(self, dep: str) -> bool:
+        # 等价 Skein._dep_unfinished: 归档→完成; 未知(无 per-task 目录)→不阻塞; 否则 status!=已完成
+        if self._dep_index is None:
+            all_ids = {t["id"] for t in self.all_tasks}
+            status_by_id = {t["id"]: t["status"] for t in self.all_tasks}
+            archived_ids = ({p.name for p in self.archive_dir.glob("*/*/*")}
+                            if self.archive_dir.exists() else set())
+            self._dep_index = (all_ids, status_by_id, archived_ids)
+        all_ids, status_by_id, archived_ids = self._dep_index
+        if dep in archived_ids:
+            return False
+        if dep not in all_ids:
+            return False
+        return status_by_id[dep] != S_DONE
+
+    def task_path(self, tid: str) -> Path:
+        return self._tasks_dir / tid
+
+    def prd_path(self, tid: str) -> Path:
+        return self._tasks_dir / tid / "prd.md"
+
+    def archived_path(self, tid: str) -> Optional[Path]:
+        hits = list(self.archive_dir.glob(f"*/*/{tid}")) if self.archive_dir.exists() else []
+        return hits[0] if hits else None
+
+
+def _view_board_data(snap: Snapshot) -> dict[str, Any]:
+    # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
+    # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
+    # ponytail: 就绪 复用 pending 视觉类 (前端 CSS 无 s-ready 规则), status 文案仍显 "就绪" 区分
+    st_cls: dict[str, str] = {S_PENDING: "s-pending", S_READY: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
+    ss_cls: dict[str, str] = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
+    node_var: dict[str, str] = {S_PENDING: "--st-pending", S_READY: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
+                S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
+    node_cls: dict[str, str] = {S_PENDING: "n-pending", S_READY: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
+                S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
+
+    def fmt_dur(mins: Optional[int]) -> str:
+        if mins is None:
+            return "-"
+        return f"{mins}m" if mins < 60 else f"{mins // 60}h{mins % 60:02d}m"
+
+    tnow = now()
+    tasks = sorted(snap.tasks, key=lambda t: (STATUS_ORDER.get(t["status"], 9), -(t.get("started") or 0)))
+    name_of: dict[str, str] = {t["id"]: t.get("name", t["id"]) for t in tasks}
+
+    def elapsed_of(t: dict[str, Any]) -> int:
+        st = t.get("status")
+        if st in (S_PENDING, S_READY):
+            return 0
+        start = t.get("started") or t.get("created")
+        if not start:
+            return 0
+        end = t.get("finished") if (st == S_DONE and t.get("finished")) else tnow
+        return cast(int, round((end - start) / 60))
+
+    def task_pct(t: dict[str, Any]) -> int:
+        # ponytail: 委托全局三阶段加权 _task_pct (保留闭包名兼容 board 内多处引用)
+        return _task_pct(t)
+
+    def node(_id: str, nm: str, stt: str, deps: Any, pct: int, desc: Any) -> list[Any]:
+        # DAG 节点统一为数组 [id, name, status, deps(id 数组), pct, desc]
+        return [_id, nm, stt, [d for d in (deps or [])], pct, desc or ""]
+
+    # 概览聚合
+    cnt: dict[str, int] = {}
+    elapsed_total = 0
+    for t in tasks:
+        cnt[t["status"]] = cnt.get(t["status"], 0) + 1
+        elapsed_total += elapsed_of(t)
+
+    task_nodes = [node(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
+                       task_pct(t), t.get("desc", "")) for t in tasks]
+    # 概览 task 节点悬浮浮层数据: 总进度 + subtask DAG (>=2 画图, 否则列表兜底)
+    tips: dict[str, Any] = {}
+    links = {t["id"]: f'#task-{t["id"]}' for t in tasks}
+    for t in tasks:
+        subs = t.get("subtasks", [])
+        snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
+                       _sub_pct(s), s.get("desc", "")) for s in subs]
+        tips[t["id"]] = {
+            "name": t.get("name", t["id"]),
+            "pct": task_pct(t),
+            "subNodes": snodes if len(snodes) >= 2 else None,
+            "subs": [{"name": s.get("name", s["sid"]), "pct": _sub_pct(s)} for s in subs] if subs else None,
+        }
+    # task+subtask 综合 DAG: 只画 subtask, 跨 task 前置连到前置 task 叶子; 无 subtask 的 task 仍作节点
+    has_sub = any(t.get("subtasks") for t in tasks)
+    leaves: dict[str, list[str]] = {}
+    for t in tasks:
+        subs = t.get("subtasks", [])
+        if subs:
+            depd = {d for s in subs for d in s.get("depends_on", [])}
+            leaves[t["id"]] = [f'{t["id"]}/{s["sid"]}' for s in subs if s["sid"] not in depd] \
+                or [f'{t["id"]}/{subs[-1]["sid"]}']
+        else:
+            leaves[t["id"]] = [t["id"]]
+    combined: list[list[Any]] = []
+    for t in tasks:
+        subs = t.get("subtasks", [])
+        prereq = [nid for d in t.get("deps", []) for nid in leaves.get(d, [d])]
+        if not subs:
+            combined.append(node(t["id"], t.get("name", t["id"]), t["status"], prereq,
+                                 task_pct(t), t.get("desc", "")))
+            continue
+        intra = {s["sid"] for s in subs}
+        for s in subs:
+            sid = f'{t["id"]}/{s["sid"]}'
+            sdeps = [f'{t["id"]}/{d}' for d in s.get("depends_on", []) if d in intra]
+            if not sdeps:
+                sdeps = list(prereq)
+            combined.append(node(sid, s.get("name", s["sid"]), s["status"], sdeps,
+                                 _sub_pct(s), s.get("desc", "")))
+    combined_pct = round(sum(n[4] for n in combined) / len(combined)) if combined else 0
+
+    est_meta = f'已耗 {fmt_dur(elapsed_total or None)}' if elapsed_total else ''
+
+    # 下一个可执行: 无进行中/检查中 task 时, 首个依赖已清的就绪 task (可 skein start)
+    next_up_id: Optional[str] = None
+    if not any(cnt.get(s, 0) for s in STATUS_ACTIVE):
+        next_up_id = next((t["id"] for t in tasks
+                           if t["status"] == S_READY
+                           and not any(snap.dep_unfinished(d) for d in t.get("deps", []))), None)
+
+    def prd_data(tid: str) -> list[dict[str, Any]]:
+        # 解析 prd.md 目标/验收标准 两节: checklist (勾选态) + prose 直显; 跳 TODO 占位
+        prd = snap.prd_path(tid)
+        if not prd.exists():
+            return []
+        secs: dict[str, list[tuple[str, bool, str]]] = {}
+        cur: Optional[str] = None
+        for ln in prd.read_text(encoding="utf-8", errors="replace").splitlines():
+            h = re.match(r"^#{1,6}\s+(.+?)\s*$", ln)
+            if h:
+                cur = h.group(1).strip() if h.group(1).strip() in ("目标", "验收标准") else None
+                continue
+            if not cur:
+                continue
+            m = re.match(r"^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$", ln)
+            if m:
+                txt = m.group(2).strip()
+                if not txt.lstrip().startswith("TODO"):
+                    secs.setdefault(cur, []).append(("check", m.group(1).lower() == "x", txt))
+                continue
+            txt = re.sub(r"^\s*[-*]\s+", "", ln).strip()
+            if txt and not txt.lstrip().startswith("TODO"):
+                secs.setdefault(cur, []).append(("prose", False, txt))
+        out: list[dict[str, Any]] = []
+        for name in ("目标", "验收标准"):
+            items = secs.get(name)
+            if not items:
+                continue
+            checks = [d for k, d, _ in items if k == "check"]
+            badge: Optional[list[int]] = [sum(1 for c in checks if c), len(checks)] if checks else None
+            prose_cls = ""  # 目标/验收标准 一致: 非 checkbox 行也渲 todo ○/● 标记 (不再对验收段打 .prose 去标记)
+            out.append({
+                "name": name, "badge": badge,
+                "items": [{"kind": k, "done": bool(d), "text": tt,
+                           "proseCls": ("" if k == "check" else prose_cls)}
+                          for k, d, tt in items],
+            })
+        return out
+
+    cards: list[dict[str, Any]] = []
+    for t in tasks:
+        subs = t.get("subtasks", [])
+        sname_of = {s["sid"]: s.get("name", s["sid"]) for s in subs}
+        sdone = sum(1 for s in subs if s["status"] == SS_DONE)
+        snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
+                       _sub_pct(s), s.get("desc", "")) for s in subs]
+        subtable = [{
+            "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
+            "agent": s.get("agent", "skein-executor"),
+            "skills": s.get("skills", []),
+            "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
+            "acc": s.get("验收", []),
+            "created": s.get("created"),
+            "started": s.get("started"),
+            "finished": s.get("finished"),
+        } for s in subs]
+        sblob = " ".join(str(x or "") for x in (
+            t["id"], t.get("name", ""), t.get("desc", ""),
+            *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower()
+        tdir = snap.task_path(t["id"])
+        doc_links = [{"doc": f'task/{t["id"]}/{fn}', "title": f'{lab} · {t["id"]}', "label": lab}
+                     for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
+                     if (tdir / fn).exists()]
+        cards.append({
+            "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
+            "stage": _task_stage(t),
+            "parent": t.get("parent"), "kind": t.get("kind", "task"),  # task 级父子层 (supertask 分组用, 数据就绪; 前端分组渲染待补)
+            "nextUp": t["id"] == next_up_id,
+            "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
+            "worktree": (t.get("worktree") or None) if snap.wt_shown else None,
+            "created": t.get("created"),
+            "started": t.get("started"),
+            "checked": t.get("checked"),
+            "finished": t.get("finished"),
+            "elapsed": elapsed_of(t),
+            "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
+            "docLinks": doc_links,
+            "prd": prd_data(t["id"]),
+            "subtable": subtable,
+            "subNodes": snodes,
+            "search": sblob,
+        })
+
+    filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
+                   (S_READY, S_READY), (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
+    return {
+        "proj": snap.proj,
+        "filterOpts": filter_opts,
+        "stClsMap": st_cls, "ssClsMap": ss_cls, "nodeVar": node_var, "nodeCls": node_cls,
+        "overview": {
+            "taskCount": len(tasks),
+            "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
+                      S_CHECK: cnt.get(S_CHECK, 0), S_READY: cnt.get(S_READY, 0),
+                      S_PENDING: cnt.get(S_PENDING, 0)},
+            "estMeta": est_meta,
+            "combinedPct": combined_pct,
+            "hasSub": has_sub,
+            "taskDag": {"nodes": task_nodes, "tips": tips, "links": links},
+            "fullDag": {"nodes": combined} if has_sub else None,
+            "pendingQueue": _pending_queue(tasks, snap.dep_unfinished),
+        },
+        "cards": cards,
+    }
+
+
+def _view_task_detail(snap: Snapshot, tid: str) -> Optional[dict[str, Any]]:
+    # task.json 全文 + prd/design/findings 原文 + subtask + 契约; 未归档缺失则回落归档目录
+    tdir = snap.task_path(tid)
+    archived = False
+    if not (tdir / "task.json").exists():
+        ap = snap.archived_path(tid)
+        if ap:
+            tdir, archived = ap, True
+    tj = tdir / "task.json"
+    if not tj.exists():
+        return None
+    try:
+        data = json.loads(tj.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+    docs: dict[str, Any] = {}
+    for fn in ("prd.md", "design.md", "findings.md"):
+        f = tdir / fn
+        docs[fn[:-3]] = f.read_text(encoding="utf-8", errors="replace") if f.exists() else None
+    # research 目录多篇笔记: {filename: content} (无目录或空则空 dict)
+    research: dict[str, str] = {}
+    rdir = tdir / "research"
+    if rdir.is_dir():
+        for rf in sorted(rdir.glob("*.md")):
+            research[rf.name] = rf.read_text(encoding="utf-8", errors="replace")
+    return {"task": data, "docs": docs, "research": research, "archived": archived,
+            "subtasks": data.get("subtasks", []), "contracts": data.get("contracts", [])}
+
+
+def _view_archive_list(snap: Snapshot) -> list[dict[str, Any]]:
+    # 已归档 task 列表 (archive/<年>/<月-日>/<id>)
+    out: list[dict[str, Any]] = []
+    if snap.archive_dir.exists():
+        for d in sorted(snap.archive_dir.glob("*/*/*")):
+            tj = d / "task.json"
+            if not tj.exists():
+                continue
+            try:
+                t = json.loads(tj.read_text())
+            except (json.JSONDecodeError, OSError):
+                continue
+            out.append({"id": t.get("id", d.name), "name": t.get("name", d.name),
+                        "status": t.get("status"), "desc": t.get("desc", ""),
+                        "finished": t.get("finished"), "archivedAt": d.parent.name,
+                        "subs": len(t.get("subtasks", []))})
+    return out
+
+
+def _view_dashboard(snap: Snapshot) -> dict[str, Any]:
+    # 统计聚合: 复用 board_data overview + 补 subtask 状态分布 + 完成率
+    data = _view_board_data(snap)
+    ov = data["overview"]
+    sub_stat: dict[str, int] = {}
+    for c in data["cards"]:
+        for s in c.get("subtable", []):
+            sub_stat[s["status"]] = sub_stat.get(s["status"], 0) + 1
+    total = ov["taskCount"]
+    done = ov["stats"].get(S_DONE, 0)
+    # 进行中 subtask: active task 内 SS_RUNNING (含耗时)
+    tnow = now()
+    running_subs: list[dict[str, Any]] = []
+    for t in snap.active:
+        for s in t.get("subtasks", []):
+            if s.get("status") != SS_RUNNING:
+                continue
+            started = s.get("started")
+            running_subs.append({
+                "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                "agent": s.get("agent", "skein-executor"),
+                "elapsed": round((tnow - started) / 60) if started else None,
+            })
+    # 就绪 subtask: active task 内 pending 且依赖全 done (不受空闲槽限, 展示全量就绪)
+    ready_subs: list[dict[str, Any]] = []
+    for t in snap.active:
+        done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
+        for s in t.get("subtasks", []):
+            if s.get("status") != SS_PENDING:
+                continue
+            if not all(d in done_sids for d in s.get("depends_on", [])):
+                continue
+            ready_subs.append({
+                "tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                "agent": s.get("agent", "skein-executor"),
+                "depends_on": s.get("depends_on", [])})
+    # 就绪 task: status=就绪 (已过 confirm 门) + 前置全 done → 可 skein start
+    ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
+                    "deps": t.get("deps", []), "desc": t.get("desc", "")}
+                   for t in snap.all_tasks
+                   if t["status"] == S_READY
+                   and not any(snap.dep_unfinished(d) for d in t.get("deps", []))]
+    # 待 plan task: 所有 status=待处理 (含未 confirm; subCount=0 即 plan 未收敛)
+    to_plan_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
+                      "desc": t.get("desc", ""), "subCount": len(t.get("subtasks", []))}
+                     for t in snap.all_tasks if t["status"] == S_PENDING]
+    # 执行中 / 检查中 task: 一趟遍历分流 (cards 已含 elapsed/sdone/stotal/pct, 不重算)
+    active_tasks: list[dict[str, Any]] = []
+    check_tasks: list[dict[str, Any]] = []
+    for c in data["cards"]:
+        if c["status"] not in (S_ACTIVE, S_CHECK):
+            continue
+        row = {"id": c["id"], "name": c.get("name", c["id"]), "status": c["status"],
+               "pct": c["spct"], "sdone": c["sdone"], "stotal": c["stotal"],
+               "elapsed": c.get("elapsed")}
+        (active_tasks if c["status"] == S_ACTIVE else check_tasks).append(row)
+    return {"proj": snap.proj, "taskCount": total,
+            "doneRate": round(done / total * 100) if total else 0,
+            "activeCount": ov["stats"].get(S_ACTIVE, 0) + ov["stats"].get(S_CHECK, 0),
+            "combinedPct": ov["combinedPct"], "statusDist": ov["stats"],
+            "subStatusDist": sub_stat, "estMeta": ov["estMeta"],
+            "runningSubs": running_subs, "readySubs": ready_subs,
+            "readyTasks": ready_tasks, "toPlanTasks": to_plan_tasks,
+            "activeTasks": active_tasks, "checkTasks": check_tasks}
+
+
+def _view_queue(snap: Snapshot) -> dict[str, Any]:
+    # 待执行队列 (web 展示, 不受槽限): 全量 pending subtask 队列 + task 级就绪 + active 内全量就绪 subtask
+    tasks = snap.tasks
+    ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
+                    "deps": t.get("deps", []), "desc": t.get("desc", ""),
+                    "status": t["status"], "spct": _task_pct(t)}
+                   for t in snap.all_tasks
+                   if t["status"] == S_READY
+                   and not any(snap.dep_unfinished(d) for d in t.get("deps", []))]
+    # web 展示不受槽限: pending 且依赖全 done 即列 (与 dashboard readySubs 同, 受槽限只作用于 claim/exec 派发)
+    ready_subs: list[dict[str, Any]] = []
+    for t in snap.active:
+        done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
+        for s in t.get("subtasks", []):
+            if s.get("status") != SS_PENDING:
+                continue
+            if not all(d in done_sids for d in s.get("depends_on", [])):
+                continue
+            ready_subs.append({"tid": t["id"], "sid": s["sid"],
+                               "name": s.get("name", s["sid"]),
+                               "agent": s.get("agent", "skein-executor"),
+                               "desc": s.get("desc", ""), "status": s["status"],
+                               "depends_on": s.get("depends_on", [])})
+    # 执行中 task / running sub: 复用 tasks (已 _render_tasks) + active 内 SS_RUNNING
+    tnow = now()
+    running_subs: list[dict[str, Any]] = []
+    for t in snap.active:
+        for s in t.get("subtasks", []):
+            if s.get("status") != SS_RUNNING:
+                continue
+            started = s.get("started")
+            running_subs.append({"tid": t["id"], "sid": s["sid"], "name": s.get("name", s["sid"]),
+                                 "agent": s.get("agent", "skein-executor"),
+                                 "elapsed": round((tnow - started) / 60) if started else None})
+    # ponytail: active_tasks 自算, 复用 tasks 避免二次扫描 (字段对齐 board_data.cards)
+    active_tasks: list[dict[str, Any]] = []
+    for t in tasks:
+        if t["status"] not in (S_ACTIVE, S_CHECK):
+            continue
+        subs = t.get("subtasks", [])
+        st = t.get("status")
+        start = t.get("started") or t.get("created")
+        if st == S_DONE and t.get("finished"):
+            end = t.get("finished")
+        else:
+            end = tnow
+        elapsed = round((end - start) / 60) if start and st != S_PENDING else 0
+        active_tasks.append({"id": t["id"], "name": t.get("name", t["id"]), "status": st,
+                             "pct": _task_pct(t),
+                             "sdone": sum(1 for s in subs if s["status"] == SS_DONE),
+                             "stotal": len(subs), "elapsed": elapsed})
+    return {"pendingQueue": _pending_queue(tasks, snap.dep_unfinished),
+            "readyTasks": ready_tasks, "readySubtasks": ready_subs,
+            "activeTasks": active_tasks, "runningSubs": running_subs}
+
+
+def _view_search(snap: Snapshot, q: Any) -> dict[str, Any]:
+    # 跨 task/subtask/prd/spec 关键词 (子串, 不分词): 命中即返回一条 {kind,id,name,snippet}
+    q = (q or "").strip().lower()
+    if not q:
+        return {"query": q, "hits": []}
+    hits: list[dict[str, Any]] = []
+    for t in snap.tasks:
+        if q in " ".join(str(x or "") for x in (t["id"], t.get("name", ""), t.get("desc", ""))).lower():
+            hits.append({"kind": "task", "id": t["id"],
+                         "name": t.get("name", t["id"]), "snippet": t.get("desc", "")})
+        for s in t.get("subtasks", []):
+            if q in " ".join(str(x or "") for x in (s["sid"], s.get("name", ""), s.get("desc", ""))).lower():
+                hits.append({"kind": "subtask", "id": f'{t["id"]}/{s["sid"]}',
+                             "name": s.get("name", s["sid"]), "snippet": s.get("desc", "")})
+        prd = snap.prd_path(t["id"])
+        if prd.exists() and q in prd.read_text(encoding="utf-8", errors="replace").lower():
+            hits.append({"kind": "prd", "id": t["id"],
+                         "name": f'{t.get("name", t["id"])} · PRD', "snippet": ""})
+    root = snap.spec_root
+    if root.exists():
+        for f in sorted(root.rglob("*.md")):
+            if f.name == "index.md":
+                continue
+            if q in f.read_text(encoding="utf-8", errors="replace").lower():
+                rel = f.relative_to(root).as_posix()
+                hits.append({"kind": "spec", "id": rel, "name": rel, "snippet": ""})
+    return {"query": q, "hits": hits}
+
+
 def _fmt_ts(ts: Optional[int]) -> str:
     # epoch 秒 → 本地可读时间; None/0 → "-"
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(ts)) if ts else "-"
+
+
+class DataSource(Protocol):
+    """serve 层 (build_app) 消费的只读数据面 seam — Skein 结构性满足 (无需继承)。
+    真实 Skein + 测试假源 = 两个 adapter, 令路由脱 uvicorn 经 TestClient 单测。
+    列出 build_app 实际调用的全部成员即测试面, 增删端点依赖须同步此处。"""
+    dir: Path
+    root: Path
+    tasks: Path
+    _LOCK_ID_PATH: str
+    _REV_PATH: str
+    _LIVE_PATH: str
+    def _board_assets_dir(self) -> Path: ...
+    def _webapp_dir(self) -> Path: ...
+    def _asset_rev(self) -> str: ...
+    def _data_rev(self) -> str: ...
+    def _task_json_rev(self) -> str: ...
+    def _board_data(self) -> dict[str, Any]: ...
+    def _board_html(self) -> str: ...
+    def _webapp_html(self) -> str: ...
+    def _dashboard(self) -> dict[str, Any]: ...
+    def _queue(self) -> dict[str, Any]: ...
+    def _task_detail(self, tid: str) -> Optional[dict[str, Any]]: ...
+    def _archive_list(self) -> list[dict[str, Any]]: ...
+    def _search(self, q: Any) -> dict[str, Any]: ...
+    def _spec_tree(self) -> dict[str, Any]: ...
+    def _spec_resolve(self, rel: Any) -> Optional[Path]: ...
+    def _exec_argv(self, body: dict[str, Any]) -> Optional[list[str]]: ...
+    def config(self) -> dict[str, Any]: ...
+
+
+def build_app(board: "DataSource", proj_id: str, quiet: bool,
+              on_ready: Optional[Callable[[], None]] = None) -> Any:
+    # 构建 FastAPI app: 看板页实时渲染 + /board 静态直出 + 主题 POST + /__skein__/live 热重载 WS。
+    from contextlib import asynccontextmanager
+    from fastapi import FastAPI, Request, WebSocket
+    from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+    from fastapi.staticfiles import StaticFiles
+    import asyncio
+
+    # webapp 前端是无构建 ES 模块图: index.html 未给 import 链带 ?v 版本戳, 浏览器强缓存
+    # /src/pages/*.js → 编辑后看旧板 (就绪态改动不生效)。no-cache 令每次载入走重验证
+    # (ETag/Last-Modified 命中仍回 304, 变更即取新), 修根因不改 index.html 模块图。
+    class _NoCacheStatic(StaticFiles):
+        async def get_response(self, path: str, scope: Any) -> Any:
+            resp = await super().get_response(path, scope)
+            resp.headers["Cache-Control"] = "no-cache"
+            return resp
+
+    # 注入模块全局: PEP 563 (from __future__ import annotations) 把 handler 参数注解 string化,
+    # FastAPI get_typed_signature 用 handler.__globals__ (= 本模块全局) 解析 ForwardRef;
+    # Request/WebSocket 仅 serve() 内局部 import → 模块全局无此名 → 解析失败 → POST request 被当 query 参数 → 422。
+    # 注入模块全局后, 下面 @app.post 的参数注解 (request: Request) 解析为真类, FastAPI 正常隐式注入 Request。
+    _g = globals()
+    _g["Request"] = Request
+    _g["WebSocket"] = WebSocket
+
+    clients: set[Any] = set()  # 活跃热重载 WS 连接
+
+    async def _watch_loop() -> None:
+        # 每 500ms 比 rev。资产变 (css/js/结构) → "reload" 整页刷 (换 head); 仅数据变 (task.json) → "data" 软刷 (只 swap .layout)。
+        # 资产变优先整页 (data 也可能同变, 但整页已覆盖数据)。
+        last_a = board._asset_rev()
+        last_d = board._data_rev()
+        while True:
+            await asyncio.sleep(0.5)
+            try:
+                cur_a, cur_d = board._asset_rev(), board._data_rev()
+            except Exception:
+                continue
+            msg = "reload" if cur_a != last_a else ("data" if cur_d != last_d else None)
+            if msg:
+                last_a, last_d = cur_a, cur_d
+                for c in list(clients):
+                    try:
+                        await c.send_text(msg)
+                    except Exception:
+                        clients.discard(c)
+
+    @asynccontextmanager
+    async def lifespan(_app: Any) -> AsyncIterator[None]:
+        task = asyncio.create_task(_watch_loop())
+        if on_ready:
+            on_ready()  # 已 bind, 落 lock (保证 lock 在 = 端口可连)
+        try:
+            yield
+        finally:
+            task.cancel()
+
+    app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+
+    @app.middleware("http")
+    async def _access_log(request: Request, call_next: Callable[[Request], Any]) -> Any:
+        # 复用旧格式: ms 时间戳 + method/path -> code; POST 附 body (读一次缓存进 scope, handler 复用不重读)。
+        extra = ""
+        if request.method == "POST":
+            try:
+                raw = await request.body()
+                request.scope["skein_body"] = raw
+                extra = " body=" + raw.decode("utf-8", "replace")
+            except Exception:
+                extra = ""
+        resp = await call_next(request)
+        if not quiet:
+            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            sys.stderr.write(f"{ts} {request.method} {request.url.path}{extra} -> {resp.status_code}\n")
+        return resp
+
+    @app.get(board._LOCK_ID_PATH, response_class=PlainTextResponse)
+    async def _identify() -> str:  # 身份探测端点: 返回项目标识 (.skein 绝对路径)
+        return proj_id
+
+    @app.get(board._REV_PATH, response_class=PlainTextResponse)
+    async def _rev() -> str:  # 版本探测端点: 轮询兜底 (WS 不可用时)
+        return board._task_json_rev()
+
+    @app.get("/__skein__/data")
+    async def _data() -> JSONResponse:  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
+        return JSONResponse(board._board_data())
+
+    @app.get("/", response_class=HTMLResponse)
+    async def _page() -> str:  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
+        return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
+
+    @app.websocket(board._LIVE_PATH)
+    async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
+        await ws.accept()
+        clients.add(ws)
+        try:
+            while True:
+                await ws.receive_text()  # 客户端不发则阻塞; 断开抛异常
+        except Exception:
+            pass
+        finally:
+            clients.discard(ws)
+
+    # ---- webapp 后端数据 endpoint (9 个; 全走 board 同一数据源) ----
+    @app.get("/__skein__/dashboard")
+    async def _dashboard() -> JSONResponse:  # 统计: 完成率/活跃数/subtask进度/状态分布
+        return JSONResponse(board._dashboard())
+
+    @app.get("/__skein__/queue")
+    async def _queue() -> JSONResponse:  # 待执行队列: pending subtask 队列 + task 就绪 + active 内就绪 subtask
+        return JSONResponse(board._queue())
+
+    @app.get("/__skein__/task/{tid}")
+    async def _task(tid: str) -> Any:  # 单 task: task.json 全文 + prd/design/findings 原文 + subtask + 契约
+        d = board._task_detail(tid)
+        return JSONResponse(d) if d else JSONResponse({"error": "task 不存在"}, status_code=404)
+
+    @app.get("/__skein__/spec")
+    async def _spec() -> JSONResponse:  # spec 树 core/recall × 类目 × 文件
+        return JSONResponse(board._spec_tree())
+
+    @app.get("/__skein__/spec/file")
+    async def _spec_file(path: str) -> Any:  # 单 spec 原文 (realpath 校验限 .skein/spec/)
+        p = board._spec_resolve(path)
+        if p is None:
+            return JSONResponse({"error": "路径越界"}, status_code=403)
+        if not p.is_file():
+            return JSONResponse({"error": "文件不存在"}, status_code=404)
+        return {"path": path, "content": p.read_text(encoding="utf-8", errors="replace")}
+
+    @app.post("/__skein__/spec/save")
+    async def _spec_save(request: Request) -> Any:  # 写 spec (realpath 校验越界拒; 仅 .md)
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+            rel, content = body["path"], body["content"]
+            assert isinstance(rel, str) and isinstance(content, str)
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        p = board._spec_resolve(rel)
+        if p is None or p.suffix != ".md":
+            return JSONResponse({"error": "路径越界或非 .md"}, status_code=403)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(content, encoding="utf-8")
+        return {"ok": True, "path": rel}
+
+    @app.post("/__skein__/exec")
+    def _exec(request: Request) -> Any:  # 白名单命令 (固定 argv; sync def → 跑线程池不阻塞 loop)
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+        argv = board._exec_argv(body)
+        if argv is None:
+            return JSONResponse({"error": f"命令不在白名单: {body.get('cmd')!r}", "ok": False},
+                                status_code=403)
+        try:
+            r = subprocess.run(argv, cwd=str(board.root), capture_output=True, text=True, timeout=60)
+        except Exception as e:
+            return JSONResponse({"error": str(e), "ok": False}, status_code=500)
+        return {"ok": r.returncode == 0, "cmd": body.get("cmd"),
+                "exit": r.returncode, "stdout": r.stdout, "stderr": r.stderr}
+
+    @app.get("/__skein__/config")
+    def _cfg_get() -> JSONResponse:  # 读 config (含 ENV override, 前端显示生效值)
+        return JSONResponse(board.config())
+
+    @app.post("/__skein__/config")
+    async def _cfg_save(request: Request) -> JSONResponse:  # 写 config.yaml (只认 CONFIG_DEFAULTS 键; 前端全量提交)
+        # input 提交多为 str → 按 CONFIG_DEFAULTS[key] 类型 coerce; 未知键忽略 (防注入); 缺键补默认。
+        try:
+            body = json.loads(request.scope.get("skein_body") or b"{}")
+        except Exception:
+            return JSONResponse({"error": "bad request"}, status_code=400)
+
+        def _coerce(k: str, v: Any) -> Any:  # str→int/bool; 类型不合 → 默认值兜底 (不报错, 前端 debounce 全量提交)
+            try:
+                return _coerce_config(k, v)
+            except (TypeError, ValueError):
+                return CONFIG_DEFAULTS[k]
+
+        cfg = {k: _coerce(k, body[k]) for k in CONFIG_DEFAULTS if k in body}
+        full = {**CONFIG_DEFAULTS, **cfg}  # 未提交键补默认 (前端应全量, 容错)
+        (board.dir / "config.yaml").write_text(_yaml_dump(full))
+        return JSONResponse({"ok": True, "config": board.config()})  # 返回读回值 (含 ENV override)
+
+    @app.get("/__skein__/archive")
+    async def _archive() -> JSONResponse:  # 已归档 task 列表
+        return JSONResponse(board._archive_list())
+
+    @app.get("/__skein__/search")
+    async def _search(q: str = "") -> JSONResponse:  # 跨 task/subtask/prd/spec 关键词搜
+        return JSONResponse(board._search(q))
+
+    # webapp 改 history API (pathname) 路由: 直访 /dashboard /queue /task 等单段 SPA 路径须回 index.html 让前端 router 接管。
+    # /task /board 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
+    # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
+    def _spa() -> str:
+        return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
+
+    @app.get("/task", response_class=HTMLResponse)
+    async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
+        return _spa()
+
+    @app.get("/board", response_class=HTMLResponse)
+    async def _spa_board() -> str:  # /board 裸路径 = board 页; /board/*.css 等资产仍落下方 mount
+        return _spa()
+
+    # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
+    app.mount("/board", StaticFiles(directory=str(board._board_assets_dir())), name="board")
+    # webapp 工程化前端: 首页在 / 出, 其 index.html 相对引 dist/app.css + src/app.js → 挂 /dist /src /vendor 使之解析
+    # (check_dir=False: s1 未落地 / css 未构建时不炸)
+    app.mount("/webapp", _NoCacheStatic(directory=str(board._webapp_dir()), check_dir=False), name="webapp")
+    app.mount("/src", _NoCacheStatic(directory=str(board._webapp_dir() / "src"), check_dir=False), name="src")
+    app.mount("/dist", _NoCacheStatic(directory=str(board._webapp_dir() / "dist"), check_dir=False), name="dist")
+    app.mount("/vendor", StaticFiles(directory=str(board._webapp_dir() / "vendor"), check_dir=False), name="vendor")
+    # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
+    # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
+    app.mount("/task", StaticFiles(directory=str(board.tasks), check_dir=False), name="task")
+    # SPA fallback: 其余无专属 route/mount 的 GET 路径 (/dashboard /queue /spec /archive 等单段 SPA 路由) 兜底回 index.html。
+    # 声明在所有 mount 之后 → 静态 (含 /task/<id>/prd.md, /dist/app.css) 先匹命中; 命不中才回落 SPA。API (/__skein__/*) 在更上方, 优先级最高。
+    @app.get("/{full_path:path}", response_class=HTMLResponse)
+    async def _spa_fallback(full_path: str) -> str:
+        return _spa()
+    return app
 
 
 def _serve_app_factory() -> Any:
