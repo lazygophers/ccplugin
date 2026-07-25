@@ -2341,7 +2341,7 @@ class Skein:
                 "activeTasks": active_tasks, "checkTasks": check_tasks}
 
     def _queue(self) -> dict[str, Any]:
-        # 待执行队列 (复用 ready/claim 语义): 全量 pending subtask 队列 + task 级就绪 + active 内就绪 subtask 批
+        # 待执行队列 (web 展示, 不受槽限): 全量 pending subtask 队列 + task 级就绪 + active 内全量就绪 subtask
         tasks = self._render_tasks()
         ready_tasks = [{"id": t["id"], "name": t.get("name", t["id"]),
                         "deps": t.get("deps", []), "desc": t.get("desc", ""),
@@ -2349,9 +2349,15 @@ class Skein:
                        for t in self._all()
                        if t["status"] == S_READY
                        and not any(self._dep_unfinished(d) for d in t.get("deps", []))]
+        # web 展示不受槽限: pending 且依赖全 done 即列 (与 dashboard readySubs 同, 受槽限只作用于 claim/exec 派发)
         ready_subs: list[dict[str, Any]] = []
         for t in self._active():
-            for s in self._ready(t):
+            done_sids = {s["sid"] for s in t.get("subtasks", []) if s.get("status") == SS_DONE}
+            for s in t.get("subtasks", []):
+                if s.get("status") != SS_PENDING:
+                    continue
+                if not all(d in done_sids for d in s.get("depends_on", [])):
+                    continue
                 ready_subs.append({"tid": t["id"], "sid": s["sid"],
                                    "name": s.get("name", s["sid"]),
                                    "agent": s.get("agent", "skein-executor"),
