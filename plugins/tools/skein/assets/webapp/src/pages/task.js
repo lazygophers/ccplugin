@@ -6,17 +6,17 @@ import { parsePrdSections, findSection } from "../prd-parse.js";
 
 // 状态中文 → badge 令牌类 (task S_* 与 subtask SS_* 合并; 运行中 复用 active 色)
 const BADGE = {
-  "待处理": "badge-pending", "进行中": "badge-active", "运行中": "badge-active",
+  "待处理": "badge-pending", "就绪": "badge-pending", "进行中": "badge-active", "运行中": "badge-active",
   "检查中": "badge-check", "已完成": "badge-done", "失败": "badge-failed",
 };
 const badgeCls = (st) => BADGE[st] || "badge-pending";
 
 // task 阶段 label (plan/exec/check/done): task.json 无 stage 字段, 由 status 派生 (对齐后端 _task_stage)。
 // ponytail: 详情接口 _task_detail 直返 task.json 原文无 stage, 前端就近派生, 不改后端契约。
-const STAGE_OF = { "已完成": "done", "检查中": "check", "进行中": "exec", "运行中": "exec", "待处理": "plan" };
+const STAGE_OF = { "已完成": "done", "检查中": "check", "进行中": "exec", "运行中": "exec", "就绪": "ready", "待处理": "plan" };
 const stageOf = (st) => STAGE_OF[st] || "plan";
-const STAGE_LABEL = { plan: "plan", exec: "exec", check: "check", done: "done" };
-const STAGE_CLS = { plan: "stg-plan", exec: "stg-exec", check: "stg-check", done: "stg-done" };
+const STAGE_LABEL = { plan: "plan", ready: "ready", exec: "exec", check: "check", done: "done" };
+const STAGE_CLS = { plan: "stg-plan", ready: "stg-ready", exec: "stg-exec", check: "stg-check", done: "stg-done" };
 function stageChip(status) {
   const s = stageOf(status), lbl = STAGE_LABEL[s];
   return lbl ? `<span class="stage-chip ${STAGE_CLS[s]}">${lbl}</span>` : "";
@@ -25,11 +25,11 @@ function stageChip(status) {
 // DAG 节点染色映射 (status → CSS 变量 / class)。对齐后端 _board_data 的 node_var/node_cls。
 // ponytail: _task_detail 不返回 nodeVar/nodeCls, 此处硬编码同一份 (task/subtask 状态中文集合的并集)。
 const NODE_VAR = {
-  "待处理": "--st-pending", "进行中": "--st-active", "运行中": "--st-active",
+  "待处理": "--st-pending", "就绪": "--st-pending", "进行中": "--st-active", "运行中": "--st-active",
   "检查中": "--st-check", "已完成": "--st-done", "失败": "--st-failed",
 };
 const NODE_CLS = {
-  "待处理": "n-pending", "进行中": "n-active", "运行中": "n-active",
+  "待处理": "n-pending", "就绪": "n-pending", "进行中": "n-active", "运行中": "n-active",
   "检查中": "n-check", "已完成": "n-done", "失败": "n-failed",
 };
 
@@ -90,6 +90,7 @@ const TASK_STYLE = `<style>
 /* task 阶段 chip (与 board.js 同色语义: plan=muted/exec=accent/check=st-check/done=st-done) */
 .stage-chip{display:inline-block;padding:0 7px;border-radius:9px;font-size:10px;line-height:17px;font-weight:600;letter-spacing:.02em;vertical-align:baseline;color:#fff}
 .stage-chip.stg-plan{background:var(--muted)}
+.stage-chip.stg-ready{background:var(--st-pending)}
 .stage-chip.stg-exec{background:var(--accent)}
 .stage-chip.stg-check{background:var(--st-check)}
 .stage-chip.stg-done{background:var(--st-done)}

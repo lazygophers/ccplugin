@@ -43,8 +43,8 @@
   // 状态筛选(#sw-filter, 现居任务进展卡) + 搜索(#sw-search, 居 topbar) 统一决定右栏卡显隐:
   // 卡显 iff 状态命中 且 (搜索空 或 data-search 含关键词); 搜索还高亮命中卡关键词 + 左栏 DAG 命中节点高亮/其余变灰
   // 激活的状态过滤集 (空=全部); 取自 .stat.on 卡 (排除总计卡 .stat-all)
-  // 状态筛选默认三态 (进行中/检查中/待处理), 仅内存不持久化: 软刷新走同一 JS 模块 → filterSet 存活, 整页刷新回默认
-  var filterSet=['进行中','检查中','待处理'];
+  // 状态筛选默认四态 (进行中/检查中/就绪/待处理, 即未完成全集, 隐已完成), 仅内存不持久化: 软刷新走同一 JS 模块 → filterSet 存活, 整页刷新回默认
+  var filterSet=['进行中','检查中','就绪','待处理'];
   function curFilters(){var b=document.getElementById('sw-filter');if(!b)return [];
     return Array.prototype.filter.call(b.querySelectorAll('.stat.on'),function(s){return !s.classList.contains('stat-all');})
       .map(function(s){return s.getAttribute('data-filter');});}

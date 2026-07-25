@@ -10,7 +10,7 @@
 
 // 状态中文 → badge 令牌类 (复用 task.js 同名映射)。
 const BADGE = {
-  "待处理": "badge-pending", "进行中": "badge-active", "运行中": "badge-active",
+  "待处理": "badge-pending", "就绪": "badge-pending", "进行中": "badge-active", "运行中": "badge-active",
   "检查中": "badge-check", "已完成": "badge-done", "失败": "badge-failed",
 };
 const badgeCls = (st) => BADGE[st] || "badge-pending";

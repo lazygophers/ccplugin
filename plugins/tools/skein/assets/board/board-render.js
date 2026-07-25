@@ -305,10 +305,10 @@
     dagHtml._nodeVar = data.nodeVar;
     dagHtml._nodeCls = data.nodeCls;
     var ov = data.overview;
-    // filterOpts 顺序: [all, active, check, pending, done] → 拿状态字面值给 statcard
+    // filterOpts 顺序: [all, active, check, ready, pending, done] → 拿状态字面值给 statcard
     var fo = data.filterOpts;
-    var S_ACTIVE = fo[1][0], S_CHECK = fo[2][0], S_PENDING = fo[3][0], S_DONE = fo[4][0];
-    // stat 卡 = 可点击多选筛选器: 总计(清空) + 4 状态; 点击激活状态过滤 (switcher.js 绑定)
+    var S_ACTIVE = fo[1][0], S_CHECK = fo[2][0], S_READY = fo[3][0], S_PENDING = fo[4][0], S_DONE = fo[5][0];
+    // stat 卡 = 可点击多选筛选器: 总计(清空) + 5 状态; 点击激活状态过滤 (switcher.js 绑定)
     function statcard(label, key, filter, cls) {
       return '<button type="button" class="stat' + (cls ? " " + cls : "") + '" data-filter="' + esc(filter) + '">'
         + '<span class="stat-n">' + (key === "__total__" ? ov.taskCount : (ov.stats[key] || 0))
@@ -316,8 +316,9 @@
     }
     var stats = '<div class="stats" id="sw-filter">'
       + statcard("总计", "__total__", "", "stat-all")
-      + statcard("已完成", S_DONE, S_DONE) + statcard("进行中", S_ACTIVE, S_ACTIVE)
-      + statcard("检查中", S_CHECK, S_CHECK) + statcard("待处理", S_PENDING, S_PENDING) + "</div>";
+      + statcard("进行中", S_ACTIVE, S_ACTIVE) + statcard("检查中", S_CHECK, S_CHECK)
+      + statcard("就绪", S_READY, S_READY) + statcard("待处理", S_PENDING, S_PENDING)
+      + statcard("已完成", S_DONE, S_DONE) + "</div>";
     var sw = '<div class="dag-switch" role="group">'
       + '<button type="button" data-dag="task" class="on">task 维度</button>'
       + '<button type="button" data-dag="full"' + (ov.hasSub ? "" : " disabled") + ">subtask 维度</button></div>";
