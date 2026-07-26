@@ -31,6 +31,7 @@ effort: low
 
 main 作调度器编排, 改动落各 subtask 工作目录 (worktree 或原地仓库根)、每个 agent 完成即回传。角色分工:
 
+- **🛑 subtask 状态先行 (硬前置): claim 占槽是派 agent 的硬前置** — pending/failed 态 subtask 禁直接派 agent; 必须先 `skein claim` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` 标 running 占 `max_parallel` 槽后才能 dispatch。违反 → 回退先占槽 (硬门·STOP, 同 skein-flow 顶部「状态先行铁律」subtask 环节)。
 - **claim 默认即改态占槽 (整批标 running), 无需额外参数; --dry-run 才只读预览不改态**。**调度** → main 亲跑 (脚本不能 spawn): `skein claim` (**全局跨 task**, 所有 active task ready subtask 合池竞争同一 `max_parallel` 槽) 算就绪批 + 标 running, main 逐个真实 `Agent` 调用 dispatch。批量推进用 `claim`; 单 task 场景用 `skein subtask claim <tid>` 兼容 (仅该 task 内截断); 只想先看就绪批再决定是否执行, 用 `skein claim --dry-run` (只读预览就绪批, 不改态)。
 - **执行** → 派合适 agent (无则 `skein-executor`) 各做 1 subtask, 共享该 task 工作目录 (worktree 或原地仓库根), 不调度不递归 (Recursion Guard)。
 - **禁 main 亲改源码** — 实质产出一律派 subagent (仅 ≤3 文件微改等特别情况例外, 且必在该 task 工作目录内)。

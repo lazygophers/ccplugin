@@ -14,6 +14,8 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 **禁动 design.md** — design.md 写入归 planning (仅 planning 阶段 + check 失败回 planning 二次进入可写); **exec / check / finish 阶段均禁动**。check 检出方案性冲突 → 回 planning 改 design 后重派, 禁 check 阶段就地改 design。
 
+**🛑 check 状态先行 (硬前置): 必须 skein check 进检查中态才验证** — 全 subtask done 后 main 必须先 `skein check <id>`(进行中→检查中), 才能派 skein-checker 跑验证。禁 main 在 task 仍「进行中」态自跑 lint/test/契约核对当 check 结果 (硬门·STOP, 同 skein-flow 顶部「状态先行铁律」check 环节)。违反 → 回退先 `skein check`。
+
 ## 载体
 
 > **工作目录 (worktree 态自适应)** — 本仓 worktree 隔离启用态: !`skein config --json 2>/dev/null | jq -r '.use_worktree' || echo unknown`。`true`=在 **task worktree** 内验证/修复; `false`/`unknown`=**原地在仓库根**。真值以 task 的 `worktree` 字段为准 (null=原地)。下文"task worktree"按此二读。

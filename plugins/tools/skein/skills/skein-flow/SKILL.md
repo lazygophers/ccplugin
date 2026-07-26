@@ -13,6 +13,16 @@ effort: medium
 ## 执行载体铁律 (最高优先级)
 「派 agent」=真实 `Agent` tool_use / main 默认禁写源码 / 有 task 必有 worktree / dispatch 6 字段 / 完成即时回传 / 并发请求禁互相顶掉 等。全量 11 条铁律详见 [references/carrier-rules.md](references/carrier-rules.md)。
 
+## 状态先行铁律 (state-before-action)
+
+**三环节硬门 — main 操作 task / subtask 前必须先把对应状态机走对。任一违反 = 流程错误 (非优化空间、非效率取舍), 回退到对应状态命令后再继续。**
+
+1. **🛑 task 级: 未 start 禁 exec (硬门·STOP)** — task 必须先 `skein confirm` (待处理→就绪) + `skein start` (就绪→进行中) 才能进 exec 调度门。**待处理 / 就绪态 task 禁派 subtask、禁跑 exec**。违反 → 回退: 先 `skein confirm` + `skein start` 再继续。(L20 plan 段已述此条, 本段为统一入口重述并加强, 不替换 L20。)
+2. **🛑 subtask 级: 未 claim 占槽禁派 (硬门·STOP)** — subtask 必须先 `skein claim` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_parallel` 槽) 才能派 agent。**pending / failed 态 subtask 禁直接派 agent**, 必须先经 claim / start 占槽。违反 → 回退: 先把 subtask 标 running 占槽再派。
+3. **🛑 check 级: 未 skein check 禁验证宣告 (硬门·STOP)** — 全 subtask done 后必须先 `skein check` (进行中→检查中) 才能跑验证 / lint / test / 契约核对。**禁 main 在 task 仍「进行中」态自跑验证当 check 结果**。验证归 `skein-checker`, 在「检查中」态跑。违反 → 回退: 先 `skein check` 进检查中再跑验证。
+
+**🔒 本铁律禁自降级 — 无"简单的可直接"口子。** 三环节任一违反 = 流程错误, 必须回退到对应状态命令后再继续, 禁以「这个简单」「省一步」「状态机差不多对」为由绕过。(memory: `skein-hook-no-self-downgrade` — 禁泛化「简单的直接做」, AI 会自降级绕 flow; 本段文案硬, 不留口子。)
+
 ## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
 - **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` (只取判归属所需字段省 token) 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create <id> --name "任务名" --desc "一句话描述"` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
