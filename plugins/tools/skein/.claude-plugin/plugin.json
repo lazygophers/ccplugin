@@ -17,8 +17,7 @@
         "./skills/skein-spec",
         "./skills/skein-grill",
         "./skills/skein-check",
-        "./skills/skein-finish",
-        "./skills/skein-clean"
+        "./skills/skein-finish"
     ],
     "agents": [
         "./agents/skein-setup.md",
@@ -30,7 +29,8 @@
         "./agents/skein-dedup.md"
     ],
     "commands": [
-        "./commands/skein-doctor.md"
+        "./commands/skein-doctor.md",
+        "./commands/skein-clean.md"
     ],
     "keywords": [
         "task-management",
