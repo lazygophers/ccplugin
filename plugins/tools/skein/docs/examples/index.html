@@ -360,6 +360,54 @@
             .dag-svg .edge.dashed{stroke-dasharray:4 3}
             .dag-svg .edge.active{stroke:#429cd1;stroke-width:1.8;stroke-dasharray:6 4;animation:dagFlow 1s linear infinite}
             .dark .dag-svg .edge.active{stroke:#74b9e8}
+            /* ── DAG Popover + Modal (foreignObject 纯 CSS hover + dialog JS click) ──
+               ponytail: popover 用 foreignObject 嵌 HTML, 纯 :hover 驱动 (零 JS);
+               Modal 复用 antd-modal 范式 (原生 dialog + backdrop + ESC), ~15 行事件委托 */
+            .dag-svg{overflow:visible}  /* 让 popover 可越出 viewBox, 否则出界被裁 */
+            .dag-popover{opacity:0;pointer-events:none;transition:opacity .15s;overflow:visible}
+            .dag-svg .node:hover .dag-popover{opacity:1}
+            .dag-pop-inner{
+                background:#fffefb;border:1px solid rgba(116,185,232,0.4);border-radius:8px;
+                padding:6px 8px;font-size:11px;color:#1e293b;
+                box-shadow:0 4px 12px rgba(15,32,51,0.12);width:170px;height:92px;
+                box-sizing:border-box;display:flex;flex-direction:column;gap:4px;
+                font-family:Inter,system-ui,sans-serif;line-height:1.3;
+            }
+            .dark .dag-pop-inner{background:#162c42;color:#f1f5f9;border-color:rgba(66,156,209,0.4)}
+            .dag-pop-name{font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px}
+            .dag-pop-badge{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0}
+            .dag-pop-badge.done{background:#48bb78}
+            .dag-pop-badge.active{background:#429cd1}
+            .dag-pop-badge.failed{background:#e53e3e}
+            .dag-pop-badge.default{background:#94a3b8}
+            .dag-pop-bar{height:5px;background:rgba(148,163,184,0.25);border-radius:3px;overflow:hidden;margin-top:2px}
+            .dag-pop-bar > i{display:block;height:100%;border-radius:3px;background:#429cd1}
+            .dag-pop-bar.done > i{background:#48bb78}
+            .dag-pop-bar.failed > i{background:#e53e3e}
+            .dark .dag-pop-bar > i{background:#74b9e8}
+            .dag-pop-meta{font-size:10px;color:#64748b;margin-top:auto;display:flex;justify-content:space-between}
+            .dark .dag-pop-meta{color:#94a3b8}
+            /* DAG Modal: 原生 dialog, 自带 backdrop + ESC 关闭 */
+            dialog.dag-modal{border:none;border-radius:10px;padding:0;background:#fffefb;color:#1e293b;max-width:min(420px,90vw);box-shadow:0 8px 24px rgba(15,32,51,0.18)}
+            .dark dialog.dag-modal{background:#162c42;color:#f1f5f9}
+            dialog.dag-modal::backdrop{background:rgba(15,32,51,0.45);backdrop-filter:blur(2px)}
+            .dark dialog.dag-modal::backdrop{background:rgba(9,20,32,0.65)}
+            .dag-modal-inner{padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:300px}
+            .dag-modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+            .dag-modal-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;margin:0}
+            .dag-modal-close{border:none;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#64748b;padding:2px 6px;border-radius:4px}
+            .dag-modal-close:hover{background:rgba(148,163,184,0.2)}
+            .dag-modal-row{font-size:13px;line-height:1.5}
+            .dag-modal-row strong{color:#0f4d75;font-weight:600;margin-right:4px}
+            .dark .dag-modal-row strong{color:#74b9e8}
+            .dag-modal-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+            .dag-modal-chips:empty::after{content:"—";color:#94a3b8}
+            .dag-modal-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;background:rgba(116,185,232,0.16);color:#237bb8}
+            .dark .dag-modal-chip{background:rgba(66,156,209,0.22);color:#74b9e8}
+            .dag-modal-bar-wrap{height:8px;background:rgba(148,163,184,0.25);border-radius:4px;overflow:hidden;margin-top:4px}
+            .dag-modal-bar{display:block;height:100%;border-radius:4px;background:#429cd1;width:0}
+            .dag-modal-bar.done{background:#48bb78}
+            .dag-modal-bar.failed{background:#e53e3e}
         }
     </style>
 </head>
@@ -1933,12 +1981,24 @@
                     <path class="edge" d="M160,168 L80,232" marker-end="url(#dag-arrow)"/>
                     <path class="edge" d="M400,168 L320,232" marker-end="url(#dag-arrow)"/>
                     <path class="edge dashed" d="M400,168 L480,232" marker-end="url(#dag-arrow)"/>
-                    <g class="node done"><title>A · root · 已完成</title><rect x="240" y="32" width="80" height="36" rx="6"/><text x="280" y="50">✓ A · root</text></g>
-                    <g class="node done"><title>B · 已完成</title><rect x="120" y="132" width="80" height="36" rx="6"/><text x="160" y="150">✓ B</text></g>
-                    <g class="node active"><title>C · run · 进行中</title><rect x="360" y="132" width="80" height="36" rx="6"/><text x="400" y="150">⏳ C · run</text></g>
-                    <g class="node"><title>D · 待执行</title><rect x="40" y="232" width="80" height="36" rx="6"/><text x="80" y="250">○ D</text></g>
-                    <g class="node"><title>E · 待执行</title><rect x="280" y="232" width="80" height="36" rx="6"/><text x="320" y="250">○ E</text></g>
-                    <g class="node"><title>F · 待执行</title><rect x="440" y="232" width="80" height="36" rx="6"/><text x="480" y="250">○ F</text></g>
+                    <g class="node done" data-node='{"name":"A · root","status":"done","deps":[],"next":["B","C"],"desc":"根任务, 拆分起点","progress":100,"elapsed":"2h 14m"}'><title>A · root · 已完成</title><rect x="240" y="32" width="80" height="36" rx="6"/><text x="280" y="50">✓ A · root</text>
+                        <foreignObject class="dag-popover" x="195" y="76" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>A · root</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>2h 14m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node done" data-node='{"name":"B","status":"done","deps":["A · root"],"next":["D"],"desc":"B 阶段, 子任务执行","progress":100,"elapsed":"45m"}'><title>B · 已完成</title><rect x="120" y="132" width="80" height="36" rx="6"/><text x="160" y="150">✓ B</text>
+                        <foreignObject class="dag-popover" x="75" y="32" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>B</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>45m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node active" data-node='{"name":"C · run","status":"active","deps":["A · root"],"next":["E","F"],"desc":"C 阶段, 并行执行中","progress":67,"elapsed":"进行中 (已 38m)"}'><title>C · run · 进行中</title><rect x="360" y="132" width="80" height="36" rx="6"/><text x="400" y="150">⏳ C · run</text>
+                        <foreignObject class="dag-popover" x="315" y="32" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge active"></span>C · run</div><div class="dag-pop-bar"><i style="width:67%"></i></div><div class="dag-pop-meta"><span>进行中 67%</span><span>已 38m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node" data-node='{"name":"D","status":"default","deps":["B"],"next":[],"desc":"叶任务 D, 待 B 完成","progress":0,"elapsed":"待执行"}'><title>D · 待执行</title><rect x="40" y="232" width="80" height="36" rx="6"/><text x="80" y="250">○ D</text>
+                        <foreignObject class="dag-popover" x="0" y="132" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge default"></span>D</div><div class="dag-pop-meta"><span>待执行</span><span>—</span></div></div></foreignObject>
+                    </g>
+                    <g class="node" data-node='{"name":"E","status":"default","deps":["C · run"],"next":[],"desc":"叶任务 E, 待 C 完成","progress":0,"elapsed":"待执行"}'><title>E · 待执行</title><rect x="280" y="232" width="80" height="36" rx="6"/><text x="320" y="250">○ E</text>
+                        <foreignObject class="dag-popover" x="235" y="132" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge default"></span>E</div><div class="dag-pop-meta"><span>待执行</span><span>—</span></div></div></foreignObject>
+                    </g>
+                    <g class="node" data-node='{"name":"F","status":"default","deps":["C · run"],"next":[],"desc":"叶任务 F, 弱依赖 (虚线)","progress":0,"elapsed":"待执行"}'><title>F · 待执行</title><rect x="440" y="232" width="80" height="36" rx="6"/><text x="480" y="250">○ F</text>
+                        <foreignObject class="dag-popover" x="390" y="132" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge default"></span>F</div><div class="dag-pop-meta"><span>待执行</span><span>—</span></div></div></foreignObject>
+                    </g>
                 </svg>
             </div>
 
@@ -1952,11 +2012,21 @@
                     <path class="edge" d="M330,60 L420,100" marker-end="url(#dag-arrow)"/>
                     <path class="edge dashed" d="M330,140 L420,100" marker-end="url(#dag-arrow)"/>
                     <path class="edge active" d="M530,100 L620,100" marker-end="url(#dag-arrow-active)"/>
-                    <g class="node done"><title>Input · 已完成</title><rect x="20" y="82" width="110" height="36" rx="6"/><text x="75" y="100">✓ Input</text></g>
-                    <g class="node done"><title>Process A · 已完成</title><rect x="220" y="42" width="110" height="36" rx="6"/><text x="275" y="60">✓ Process A</text></g>
-                    <g class="node"><title>Process B · 待执行</title><rect x="220" y="122" width="110" height="36" rx="6"/><text x="275" y="140">○ Process B</text></g>
-                    <g class="node done"><title>Merge · 已完成</title><rect x="420" y="82" width="110" height="36" rx="6"/><text x="475" y="100">✓ Merge</text></g>
-                    <g class="node active"><title>Output · 进行中</title><rect x="620" y="82" width="110" height="36" rx="6"/><text x="675" y="100">⏳ Output</text></g>
+                    <g class="node done" data-node='{"name":"Input","status":"done","deps":[],"next":["Process A","Process B"],"desc":"数据输入源, pipeline 起点","progress":100,"elapsed":"12m"}'><title>Input · 已完成</title><rect x="20" y="82" width="110" height="36" rx="6"/><text x="75" y="100">✓ Input</text>
+                        <foreignObject class="dag-popover" x="0" y="126" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Input</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>12m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node done" data-node='{"name":"Process A","status":"done","deps":["Input"],"next":["Merge"],"desc":"并行处理分支 A","progress":100,"elapsed":"1h 05m"}'><title>Process A · 已完成</title><rect x="220" y="42" width="110" height="36" rx="6"/><text x="275" y="60">✓ Process A</text>
+                        <foreignObject class="dag-popover" x="190" y="86" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Process A</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>1h 05m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node" data-node='{"name":"Process B","status":"default","deps":["Input"],"next":["Merge"],"desc":"并行处理分支 B (弱依赖)","progress":0,"elapsed":"待执行"}'><title>Process B · 待执行</title><rect x="220" y="122" width="110" height="36" rx="6"/><text x="275" y="140">○ Process B</text>
+                        <foreignObject class="dag-popover" x="190" y="22" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge default"></span>Process B</div><div class="dag-pop-meta"><span>待执行</span><span>—</span></div></div></foreignObject>
+                    </g>
+                    <g class="node done" data-node='{"name":"Merge","status":"done","deps":["Process A","Process B"],"next":["Output"],"desc":"汇聚合并中间结果","progress":100,"elapsed":"28m"}'><title>Merge · 已完成</title><rect x="420" y="82" width="110" height="36" rx="6"/><text x="475" y="100">✓ Merge</text>
+                        <foreignObject class="dag-popover" x="390" y="126" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Merge</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>28m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node active" data-node='{"name":"Output","status":"active","deps":["Merge"],"next":[],"desc":"最终输出, 序列化写入","progress":54,"elapsed":"进行中 (已 22m)"}'><title>Output · 进行中</title><rect x="620" y="82" width="110" height="36" rx="6"/><text x="675" y="100">⏳ Output</text>
+                        <foreignObject class="dag-popover" x="590" y="126" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge active"></span>Output</div><div class="dag-pop-bar"><i style="width:54%"></i></div><div class="dag-pop-meta"><span>进行中 54%</span><span>已 22m</span></div></div></foreignObject>
+                    </g>
                 </svg>
             </div>
 
@@ -1970,11 +2040,21 @@
                     <path class="edge dashed" d="M290,150 L350,212" marker-end="url(#dag-arrow)"/>
                     <path class="edge" d="M150,248 L210,318" marker-end="url(#dag-arrow)"/>
                     <path class="edge dashed" d="M350,248 L290,318" marker-end="url(#dag-arrow)"/>
-                    <g class="node done"><title>Start · 已完成</title><ellipse cx="250" cy="40" rx="55" ry="22"/><text x="250" y="40">✓ Start</text></g>
-                    <g class="node active"><title>check? · 进行中</title><polygon points="250,108 310,150 250,192 190,150"/><text x="250" y="150">⏳ check?</text></g>
-                    <g class="node done"><title>Yes · pass · 已完成</title><rect x="100" y="212" width="100" height="36" rx="6"/><text x="150" y="230">✓ Yes · pass</text></g>
-                    <g class="node failed"><title>No · reject · 失败</title><rect x="300" y="212" width="100" height="36" rx="6"/><text x="350" y="230">✗ No · reject</text></g>
-                    <g class="node"><title>End · 待执行</title><ellipse cx="250" cy="340" rx="55" ry="22"/><text x="250" y="340">○ End</text></g>
+                    <g class="node done" data-node='{"name":"Start","status":"done","deps":[],"next":["check?"],"desc":"决策流入口","progress":100,"elapsed":"3m"}'><title>Start · 已完成</title><ellipse cx="250" cy="40" rx="55" ry="22"/><text x="250" y="40">✓ Start</text>
+                        <foreignObject class="dag-popover" x="165" y="70" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Start</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>3m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node active" data-node='{"name":"check?","status":"active","deps":["Start"],"next":["Yes · pass","No · reject"],"desc":"条件判断, 路由是/否分支","progress":82,"elapsed":"进行中 (已 6m)"}'><title>check? · 进行中</title><polygon points="250,108 310,150 250,192 190,150"/><text x="250" y="150">⏳ check?</text>
+                        <foreignObject class="dag-popover" x="165" y="8" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge active"></span>check?</div><div class="dag-pop-bar"><i style="width:82%"></i></div><div class="dag-pop-meta"><span>进行中 82%</span><span>已 6m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node done" data-node='{"name":"Yes · pass","status":"done","deps":["check?"],"next":["End"],"desc":"条件命中, 通过分支","progress":100,"elapsed":"15m"}'><title>Yes · pass · 已完成</title><rect x="100" y="212" width="100" height="36" rx="6"/><text x="150" y="230">✓ Yes · pass</text>
+                        <foreignObject class="dag-popover" x="65" y="112" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Yes · pass</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>15m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node failed" data-node='{"name":"No · reject","status":"failed","deps":["check?"],"next":["End"],"desc":"条件未命中, 校验失败","progress":48,"elapsed":"失败于 1h 前"}'><title>No · reject · 失败</title><rect x="300" y="212" width="100" height="36" rx="6"/><text x="350" y="230">✗ No · reject</text>
+                        <foreignObject class="dag-popover" x="265" y="112" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge failed"></span>No · reject</div><div class="dag-pop-bar failed"><i style="width:48%"></i></div><div class="dag-pop-meta"><span>失败 48%</span><span>1h 前</span></div></div></foreignObject>
+                    </g>
+                    <g class="node" data-node='{"name":"End","status":"default","deps":["Yes · pass","No · reject"],"next":[],"desc":"决策流终点","progress":0,"elapsed":"待执行"}'><title>End · 待执行</title><ellipse cx="250" cy="340" rx="55" ry="22"/><text x="250" y="340">○ End</text>
+                        <foreignObject class="dag-popover" x="165" y="218" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge default"></span>End</div><div class="dag-pop-meta"><span>待执行</span><span>—</span></div></div></foreignObject>
+                    </g>
                     <text x="170" y="184" style="font-size:10px;fill:#48bb78">是</text>
                     <text x="320" y="184" style="font-size:10px;fill:#e53e3e">否</text>
                 </svg>
@@ -1993,14 +2073,70 @@
                     <path class="edge" d="M300,168 L380,236" marker-end="url(#dag-arrow)"/>
                     <path class="edge active" d="M480,168 L420,236" marker-end="url(#dag-arrow-active)"/>
                     <path class="edge dashed" d="M660,168 L460,236" marker-end="url(#dag-arrow)"/>
-                    <g class="node done"><title>Source · 已完成</title><ellipse cx="400" cy="40" rx="70" ry="24"/><text x="400" y="40">✓ Source</text></g>
-                    <g class="node done"><title>Worker 1 · 已完成</title><rect x="65" y="132" width="110" height="36" rx="6"/><text x="120" y="150">✓ Worker 1</text></g>
-                    <g class="node done"><title>Worker 2 · 已完成</title><rect x="245" y="132" width="110" height="36" rx="6"/><text x="300" y="150">✓ Worker 2</text></g>
-                    <g class="node active"><title>Worker 3 · 进行中</title><rect x="425" y="132" width="110" height="36" rx="6"/><text x="480" y="150">⏳ Worker 3</text></g>
-                    <g class="node failed"><title>Worker 4 · 失败</title><rect x="605" y="132" width="110" height="36" rx="6"/><text x="660" y="150">✗ Worker 4</text></g>
-                    <g class="node"><title>Sink · 待执行</title><ellipse cx="400" cy="260" rx="70" ry="24"/><text x="400" y="260">○ Sink</text></g>
+                    <g class="node done" data-node='{"name":"Source","status":"done","deps":[],"next":["Worker 1","Worker 2","Worker 3","Worker 4"],"desc":"并行任务源, fan-out 分发","progress":100,"elapsed":"8m"}'><title>Source · 已完成</title><ellipse cx="400" cy="40" rx="70" ry="24"/><text x="400" y="40">✓ Source</text>
+                        <foreignObject class="dag-popover" x="315" y="72" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Source</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>8m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node done" data-node='{"name":"Worker 1","status":"done","deps":["Source"],"next":["Sink"],"desc":"并行 worker #1","progress":100,"elapsed":"42m"}'><title>Worker 1 · 已完成</title><rect x="65" y="132" width="110" height="36" rx="6"/><text x="120" y="150">✓ Worker 1</text>
+                        <foreignObject class="dag-popover" x="35" y="32" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Worker 1</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>42m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node done" data-node='{"name":"Worker 2","status":"done","deps":["Source"],"next":["Sink"],"desc":"并行 worker #2","progress":100,"elapsed":"36m"}'><title>Worker 2 · 已完成</title><rect x="245" y="132" width="110" height="36" rx="6"/><text x="300" y="150">✓ Worker 2</text>
+                        <foreignObject class="dag-popover" x="215" y="32" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge done"></span>Worker 2</div><div class="dag-pop-bar done"><i style="width:100%"></i></div><div class="dag-pop-meta"><span>已完成 ✓</span><span>36m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node active" data-node='{"name":"Worker 3","status":"active","deps":["Source"],"next":["Sink"],"desc":"并行 worker #3, 仍执行中","progress":73,"elapsed":"进行中 (已 51m)"}'><title>Worker 3 · 进行中</title><rect x="425" y="132" width="110" height="36" rx="6"/><text x="480" y="150">⏳ Worker 3</text>
+                        <foreignObject class="dag-popover" x="395" y="32" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge active"></span>Worker 3</div><div class="dag-pop-bar"><i style="width:73%"></i></div><div class="dag-pop-meta"><span>进行中 73%</span><span>已 51m</span></div></div></foreignObject>
+                    </g>
+                    <g class="node failed" data-node='{"name":"Worker 4","status":"failed","deps":["Source"],"next":["Sink"],"desc":"并行 worker #4, 执行异常退出","progress":61,"elapsed":"失败于 2h 前"}'><title>Worker 4 · 失败</title><rect x="605" y="132" width="110" height="36" rx="6"/><text x="660" y="150">✗ Worker 4</text>
+                        <foreignObject class="dag-popover" x="575" y="32" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge failed"></span>Worker 4</div><div class="dag-pop-bar failed"><i style="width:61%"></i></div><div class="dag-pop-meta"><span>失败 61%</span><span>2h 前</span></div></div></foreignObject>
+                    </g>
+                    <g class="node" data-node='{"name":"Sink","status":"default","deps":["Worker 1","Worker 2","Worker 3","Worker 4"],"next":[],"desc":"并行结果汇聚, fan-in 收束","progress":0,"elapsed":"待执行"}'><title>Sink · 待执行</title><ellipse cx="400" cy="260" rx="70" ry="24"/><text x="400" y="260">○ Sink</text>
+                        <foreignObject class="dag-popover" x="315" y="136" width="170" height="92"><div xmlns="http://www.w3.org/1999/xhtml" class="dag-pop-inner"><div class="dag-pop-name"><span class="dag-pop-badge default"></span>Sink</div><div class="dag-pop-meta"><span>待执行</span><span>—</span></div></div></foreignObject>
+                    </g>
                 </svg>
             </div>
+
+            <!-- DAG Modal: 原生 <dialog>, JS 事件委托读 data-node 填字段 -->
+            <dialog id="dag-modal" class="dag-modal" aria-label="DAG 节点详情">
+                <div class="dag-modal-inner">
+                    <div class="dag-modal-head">
+                        <h3 class="dag-modal-title"></h3>
+                        <button type="button" class="dag-modal-close" aria-label="关闭">×</button>
+                    </div>
+                    <div class="dag-modal-row"><strong>状态:</strong><span class="dag-modal-status"></span></div>
+                    <div class="dag-modal-row"><strong>描述:</strong><span class="dag-modal-desc"></span></div>
+                    <div class="dag-modal-row"><strong>上游依赖:</strong><div class="dag-modal-chips dag-modal-deps"></div></div>
+                    <div class="dag-modal-row"><strong>下游任务:</strong><div class="dag-modal-chips dag-modal-next"></div></div>
+                    <div class="dag-modal-row"><strong>进度:</strong><span class="dag-modal-prog-text"></span> · <span class="dag-modal-elapsed"></span><div class="dag-modal-bar-wrap"><i class="dag-modal-bar"></i></div></div>
+                </div>
+            </dialog>
+            <script>
+                // ponytail: ~15 行事件委托 — click 命中 .node → 读 data-node JSON → 填 dialog → showModal; 关闭靠 ESC/backdrop/按钮
+                (function(){
+                    const panel = document.querySelector('section[data-tab="dag"]');
+                    if(!panel) return;
+                    const modal = document.getElementById('dag-modal');
+                    if(!modal) return;
+                    const closeBtn = modal.querySelector('.dag-modal-close');
+                    const STATUS = {done:'已完成',active:'进行中',failed:'失败',default:'待执行'};
+                    const set = (sel, html) => { const el = modal.querySelector(sel); if(el) el.innerHTML = html; };
+                    panel.addEventListener('click', (e) => {
+                        const g = e.target.closest('.dag-svg .node');
+                        if(!g || !g.dataset.node) return;
+                        let d; try { d = JSON.parse(g.dataset.node); } catch(_) { return; }
+                        set('.dag-modal-title', '<span class="dag-pop-badge ' + d.status + '"></span>' + d.name);
+                        set('.dag-modal-status', STATUS[d.status] || d.status);
+                        set('.dag-modal-deps', d.deps.map(s => '<span class="dag-modal-chip">' + s + '</span>').join(''));
+                        set('.dag-modal-next', d.next.map(s => '<span class="dag-modal-chip">' + s + '</span>').join(''));
+                        set('.dag-modal-desc', d.desc);
+                        const bar = modal.querySelector('.dag-modal-bar');
+                        bar.className = 'dag-modal-bar ' + d.status;
+                        bar.style.width = (d.progress || 0) + '%';
+                        set('.dag-modal-prog-text', d.progress + '%');
+                        set('.dag-modal-elapsed', d.elapsed);
+                        modal.showModal();
+                    });
+                    closeBtn.addEventListener('click', () => modal.close());
+                })();
+            </script>
         </section>
 
         <footer class="mt-16 text-center text-sm text-slate-400">
