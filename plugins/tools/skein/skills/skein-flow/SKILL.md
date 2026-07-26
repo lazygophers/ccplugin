@@ -25,6 +25,7 @@ effort: medium
 
 ## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
+- **🛑 plan/confirm 不受 deps 完成状态阻塞 (仅 `skein start` 受限)** — `skein create`/`deps`/`confirm` 均不查前置完成状态, 仅 `skein start` 才查 (脚本硬拒未完成 deps)。pending task 不论前置是否 plan/finish, 照常走 brainstorm→grill→`subtask add`→`confirm` 推到就绪, 等 `skein start` 时才等前置。
 - **先查未完成再 durable 登记 (防丢/防并发覆盖/防堆重复)** — 第一步先跑 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` (只取判归属所需字段省 token) 判归属: 相关 → 并入补 subtask 不新建; 无相关才 `skein create <id> --name "任务名" --desc "一句话描述"` 落 pending。被中断/顶掉亦可 `/skein-exec` 无参续跑, **绝不静默跳过**。**禁不查就 create、禁一直堆新 task**。
 - **memory recall** — 派 `skein-recaller` 召回 recall 规则注入 dispatch prompt「已知」段 (core 规则已常驻)。
 - Skill(skein-plan --continue) 走完 brainstorm 需求澄清 → grill 硬门 → 规划+`subtask add` 登记 (brainstorm/grill 均在 skein-plan 内, 单一真值源, 顺序 brainstorm→grill) → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein confirm <id>` 过用户确认门 (待处理→就绪, 验 prd + ≥1 subtask) → `skein start <id>` 激活 (占 active 槽 + 建 worktree, 就绪→进行中)。未 confirm 禁 start, 未 start 禁进 exec (硬门 · STOP)。

@@ -73,6 +73,8 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 ## 流程
 
+**🛑 plan/confirm 不受 deps 完成状态阻塞 (仅 `skein start` 受限)** — `skein create`/`deps`/`confirm` 均不查前置完成状态, 仅 `skein start` 才查 (脚本硬拒未完成 deps)。pending task 不论前置是否 plan/finish, 照常走完整流程推到就绪, 等 `skein start` 时才等前置。
+
 1. **判新旧 + 定粒度** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件 + `subtask add`, 不新建。
    - **登记前强制先查未完成 task (硬前置)** — 任何 `create` 之前 MUST 先 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` (只取判归属所需字段省 token) 核对: 新请求与在列某 task **相关** (同目标/同模块/共享改动面/互为前置) → **并入该 task 补 subtask, 禁新建**; 无相关项才 `create`。**禁不查就 create、禁一直堆新 task** (散 task 丢共享上下文一致性, 是头号反模式)。
    - **🧭 模糊信号判据 (命中即 cold-start, 进 step 3 愿景翻译; 不命中走常规 brainstorm, 零增量)** — 用户输入任一命中: ① 无动词或动词泛 ("重构/优化/加能力"无宾语); ② 无文件路径 / 无具体模块名; ③ 一句话 <15 字; ④ 愿景腔 ("我有个想法/想做个/感觉") → 标 cold-start。命中零条 = 清晰输入, **跳过愿景翻译直接常规 brainstorm (零增量路径)**。
