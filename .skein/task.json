@@ -1,15 +1,15 @@
 {
   "tasks": [
     {
-      "id": "board-timeline-rich",
-      "status": "进行中",
+      "id": "board-card-timeline",
+      "status": "已完成",
       "deps": [],
       "worktree": null,
       "parent": null,
       "kind": "task"
     },
     {
-      "id": "board-card-timeline",
+      "id": "board-timeline-rich",
       "status": "已完成",
       "deps": [],
       "worktree": null,
