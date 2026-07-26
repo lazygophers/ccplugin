@@ -216,13 +216,20 @@
         "doctor过",
         "serve跑通无报错"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785082537,
       "started": 1785084948,
-      "finished": null
+      "finished": 1785109773,
+      "note": "executor 撞 API 5h 限流中断, 未落盘任何改动 (git clean 确认), 重 claim 重派"
     }
   ],
   "repos": [],
@@ -236,5 +243,5 @@
   "confirmed": 1785081994,
   "checked": null,
   "finished": null,
-  "updated": 1785084948
+  "updated": 1785109773
 }

@@ -1953,6 +1953,9 @@ class Skein:
         # T7 前双入口并存 (_webapp_html 旧 petite-vue + _webapp_html_new 新 htm); 现合并单一新入口, 旧码删除。
         # token 缺席则 replace 无副作用 → 与 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
         html = (self._webapp_dir() / "src" / "new" / "index.html").read_text(encoding="utf-8")
+        # 文档从 / 出, 但 index.html 物理在 /src/new/; 注入 <base> 让相对引 (./app.js + ../tokens.css)
+        # 解析到 /src/new/* 而非 / *(命中 SPA fallback 返 text/html → MIME 错)。base 不影响绝对 URL (cdn)。
+        html = html.replace("<head>", '<head>\n  <base href="/src/new/">', 1)
         data = self._board_data()
         payload = (json.dumps(data, ensure_ascii=False)
                    .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
