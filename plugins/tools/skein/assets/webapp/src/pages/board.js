@@ -156,6 +156,12 @@ td .bar{margin:1px 0;min-width:78px}
 .q-block{background:var(--st-pending)}
 .q-name{flex:1 1 auto;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .q-agent{flex:0 0 auto;color:var(--muted);font-size:11px}
+.stepper{display:flex;align-items:center;gap:0;margin:2px 0 8px;max-width:220px}
+.st-cell{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
+.st-dot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--line);background:transparent;box-sizing:border-box}
+.st-dot.on{background:var(--st-c,var(--muted));border-color:var(--st-c,var(--muted))}
+.st-line{flex:1 1 auto;height:1px;background:var(--line);min-width:4px;margin-top:-5px}
+.st-label{font-size:10px;color:var(--muted);margin-top:3px;line-height:1}
 `;
 
 // ── 纯渲染函数 (移植自 board-render.js, 忠实保留像素/边染色逻辑) ──
@@ -185,6 +191,23 @@ function stageChip(stage) {
   var label = { plan: "plan", exec: "exec", check: "check", done: "done" }[stage];
   if (!label) return "";
   return '<span class="stage-chip st-' + stage + '">' + label + "</span>";
+}
+// task 5 态横向 stepper: created/confirmed/started/checked/finished 时间戳 truthy → 实心点
+// ponytail: 一行 flex 5 点 + 点间 1px 连线, 总高 ~24px, 复用 var(--st-*) 不引新色
+function cardStepper(c) {
+  var steps = [
+    { k: "created",  col: "var(--muted)",      lab: "创" },
+    { k: "confirmed", col: "var(--st-pending)", lab: "就" },
+    { k: "started",  col: "var(--st-active)",   lab: "起" },
+    { k: "checked",  col: "var(--st-check)",    lab: "检" },
+    { k: "finished", col: "var(--st-done)",     lab: "完" }
+  ];
+  var cells = steps.map(function (s, i) {
+    var on = c[s.k] ? " on" : "";
+    var cell = '<span class="st-cell"><span class="st-dot' + on + '" style="--st-c:' + s.col + '" title="' + s.lab + '"></span><span class="st-label">' + s.lab + "</span></span>";
+    return i < steps.length - 1 ? cell + '<span class="st-line"></span>' : cell;
+  }).join("");
+  return '<div class="stepper">' + cells + "</div>";
 }
 function fmtDur(mins) {
   if (mins == null) return "-";
@@ -315,7 +338,7 @@ function buildLayoutHtml(data) {
       + '" id="task-' + esc(c.id)
       + '" data-status="' + esc(c.status) + '" data-search="' + esc(c.search) + '">'
       + h2 + '<p class="name">' + esc(c.name) + "</p>"
-      + docRow(c.docLinks) + prdBlock(c.prd) + meta1
+      + docRow(c.docLinks) + prdBlock(c.prd) + meta1 + cardStepper(c)
       + '<p class="meta">子任务 ' + c.sdone + "/" + c.stotal + "</p>" + bar(c.spct, true, "") + stageChip(c.stage)
       + '<div class="task-detail">'
       + dagHtml(c.subNodes, null, null, (c.subNodes || []).length > 4)
