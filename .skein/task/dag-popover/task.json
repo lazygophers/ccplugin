@@ -2,7 +2,7 @@
   "id": "dag-popover",
   "name": "DAG 节点 hover popover + click Modal 浮窗",
   "desc": "DAG 节点 hover 弹富文本 popover (名称/状态/上下游/描述/进度) + click 弹 dialog Modal 全量详情",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -45,6 +45,6 @@
   "started": 1785080085,
   "confirmed": 1785080085,
   "checked": null,
-  "finished": null,
-  "updated": 1785080534
+  "finished": 1785080539,
+  "updated": 1785080539
 }

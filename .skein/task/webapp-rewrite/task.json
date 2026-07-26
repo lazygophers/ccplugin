@@ -1,0 +1,234 @@
+{
+  "id": "webapp-rewrite",
+  "name": "参考 examples 重写 skein serve webapp UI/UX",
+  "desc": "参考 docs/examples/index.html 海滩蓝金风格重写 serve webapp UI/UX (6 页 + 主题系统)",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "research-phase",
+      "name": "勘察 webapp 现状 (前端架构+后端 API+WS+数据流+6页职责)",
+      "desc": "全量勘察 assets/webapp/ + skein.py serve 端点 + WS 协议 + 6 页数据流, 产出 findings.md 供拆 child task DAG",
+      "depends_on": [],
+      "验收": [
+        "findings.md 落盘含: 前端架构图/后端API清单/WS协议/6页数据流/重写影响面",
+        "可据报告拆 child task"
+      ],
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
+      "agent": "skein-researcher",
+      "skills": [],
+      "created": 1785081968,
+      "started": 1785081977,
+      "finished": 1785082477
+    },
+    {
+      "sid": "t1-design-system",
+      "name": "T1 设计系统落地",
+      "desc": "新webapp CSS: examples16色token+antd组件范式+原语8+动效7+. 废oklch改硬token. 无依赖先行",
+      "depends_on": [],
+      "验收": [
+        "16色token齐",
+        "antd组件CSS",
+        "原语8+",
+        "动效7+",
+        "oklch废",
+        "明暗双模"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082521,
+      "started": 1785082547,
+      "finished": 1785082964
+    },
+    {
+      "sid": "t2-frontend-arch",
+      "name": "T2 前端架构基建",
+      "desc": "骨架: index.html Tailwind CDN+htm ESM; app.js boot; router hx-push-url; 页面render契约保留; lib api/live改htm; 去PetiteVue/build-css",
+      "depends_on": [
+        "t1-design-system"
+      ],
+      "验收": [
+        "htm骨架",
+        "hx-push-url",
+        "Tailwind CDN",
+        "render契约",
+        "PetiteVue/build去",
+        "lib改"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082532,
+      "started": 1785082966,
+      "finished": 1785083420
+    },
+    {
+      "sid": "t3-backend-api-ws",
+      "name": "T3 后端 API+WS 重构",
+      "desc": "skein.py serve: 端点拆片段; WS per-resource(data-task-changed); _watch_loop细化; _webapp_html新token; 删/vendor加htm. 保DataSource Protocol",
+      "depends_on": [
+        "t2-frontend-arch"
+      ],
+      "验收": [
+        "片段端点",
+        "WS per-resource",
+        "_watch_loop细化",
+        "_webapp_html新token",
+        "/vendor删htm加",
+        "DataSource保",
+        "doctor过"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082533,
+      "started": 1785083421,
+      "finished": 1785084022
+    },
+    {
+      "sid": "t4-board",
+      "name": "T4 board 页重写",
+      "desc": "board.js 命令式innerHTML→htm片段; 两栏布局; DAG保dag.js Sugiyama; onLive接新WS; 文档弹层",
+      "depends_on": [
+        "t3-backend-api-ws"
+      ],
+      "验收": [
+        "htm片段",
+        "两栏",
+        "DAG保dag.js",
+        "onLive新WS",
+        "文档弹层",
+        "无报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082534,
+      "started": 1785084029,
+      "finished": 1785084388
+    },
+    {
+      "sid": "t5-readonly-pages",
+      "name": "T5 dashboard+queue+archive 三只读页",
+      "desc": "三只读页 PetiteVue→htm; 接onLive新WS; 设计落地",
+      "depends_on": [
+        "t3-backend-api-ws"
+      ],
+      "验收": [
+        "三页htm化",
+        "onLive新WS",
+        "设计落地",
+        "无报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082534,
+      "started": 1785084029,
+      "finished": 1785084442
+    },
+    {
+      "sid": "t6-task-spec",
+      "name": "T6 task+spec 两复杂页",
+      "desc": "task(列表/详情/DAG/exec)+spec(树/编辑/diff/保存) PetiteVue→htm; task onLive, spec无onLive保留; dag共用; spec diff重点",
+      "depends_on": [
+        "t3-backend-api-ws"
+      ],
+      "验收": [
+        "task全htm",
+        "spec全htm",
+        "dag共用",
+        "spec无onLive",
+        "无报错"
+      ],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082535,
+      "started": 1785084443,
+      "finished": null
+    },
+    {
+      "sid": "t7-integration",
+      "name": "T7 集成联调+旧码清理",
+      "desc": "6页联调; WS回归(重连+GRACE遮罩); 删旧webapp(PetiteVue/build-css/旧dist); doctor过; serve跑通",
+      "depends_on": [
+        "t4-board",
+        "t5-readonly-pages",
+        "t6-task-spec"
+      ],
+      "验收": [
+        "6页联调通",
+        "WS回归",
+        "旧webapp删",
+        "doctor过",
+        "serve跑通无报错"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785082537,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/webapp-rewrite",
+  "parent": null,
+  "kind": "task",
+  "created": 1785081468,
+  "started": 1785081994,
+  "confirmed": 1785081994,
+  "checked": null,
+  "finished": null,
+  "updated": 1785084443
+}

@@ -1,7 +1,7 @@
 {
   "tasks": [
     {
-      "id": "dag-popover",
+      "id": "webapp-rewrite",
       "status": "进行中",
       "deps": [],
       "worktree": null,
@@ -34,6 +34,22 @@
     },
     {
       "id": "dag-motion-design",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "dag-popover",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "dag-theme-align",
       "status": "已完成",
       "deps": [],
       "worktree": null,
