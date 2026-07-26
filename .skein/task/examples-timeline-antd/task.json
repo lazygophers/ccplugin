@@ -2,7 +2,7 @@
   "id": "examples-timeline-antd",
   "name": "examples/index.html 加 timeline tab + antd 全组件样例",
   "desc": "现有 4 tab (色卡/组件/图表/动效) 补 timeline tab; 组件 tab 扩展覆盖 antd 全组件类别 (通用/布局/导航/数据录入/数据展示/反馈)",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -101,6 +101,6 @@
   "started": 1785072108,
   "confirmed": 1785072108,
   "checked": 1785073948,
-  "finished": null,
-  "updated": 1785073948
+  "finished": 1785074187,
+  "updated": 1785074187
 }
