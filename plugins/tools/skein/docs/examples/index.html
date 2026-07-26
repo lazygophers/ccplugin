@@ -185,6 +185,115 @@
                 background: #429cd1;
                 color: #ffffff;
             }
+
+            /* ── Timeline 组件 (.tl-*)：借鉴 board.js .rt-* 同源风格，适配海滩蓝金板 ──
+               ponytail: 复用 .pulse-dot 通用脉冲；color-mix 暗模叠加 ocean/night 透明度 */
+            .tl-axis{position:relative;margin:6px 0 4px;padding-left:24px}
+            .tl-node{position:relative;padding:0 0 22px 8px}
+            .tl-node:last-child{padding-bottom:0}
+            .tl-node::before{content:"";position:absolute;left:-19px;top:18px;bottom:-2px;width:2px;background:rgba(148,163,184,0.35)}
+            .dark .tl-node::before{background:rgba(148,163,184,0.25)}
+            .tl-node:last-child::before{display:none}
+            .tl-node.done::before{background:linear-gradient(180deg,rgba(72,187,120,0.6),rgba(148,163,184,0.35))}
+            .tl-dot{
+                position:absolute;left:-23px;top:5px;width:14px;height:14px;border-radius:50%;
+                border:2px solid #cbd5e1;background:#fff;box-sizing:border-box;
+                display:flex;align-items:center;justify-content:center;
+            }
+            .dark .tl-dot{border-color:#475569;background:#162c42}
+            .tl-dot.done{background:var(--tl-c,#429cd1);border-color:var(--tl-c,#429cd1);color:#fff}
+            .tl-dot.done::after{content:"\f00c";font-family:FontAwesome;font-size:7px;line-height:1}
+            .tl-dot.cur{background:var(--tl-c,#429cd1);border-color:var(--tl-c,#429cd1)}
+            .tl-dot.cur{animation:tlPulse 1.6s ease-in-out infinite}
+            @keyframes tlPulse{
+                0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--tl-c,#429cd1) 55%,transparent)}
+                50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--tl-c,#429cd1) 0%,transparent)}
+            }
+            .tl-dot.custom{background:var(--tl-c,#429cd1);border-color:var(--tl-c,#429cd1);color:#fff}
+            .tl-dot.custom::after{content:var(--tl-icon,"\f00c");font-family:FontAwesome;font-size:7px;line-height:1}
+            @media(prefers-reduced-motion:reduce){.tl-dot.cur{animation:none}}
+            .tl-time{font-variant-numeric:tabular-nums;font-size:11px;color:#94a3b8;letter-spacing:0.02em}
+            .dark .tl-time{color:#64748b}
+            .tl-name{font-weight:600;color:#1e293b;font-size:14px}
+            .dark .tl-name{color:#f1f5f9}
+            .tl-desc{font-size:12px;color:#64748b;margin-top:2px;line-height:1.5}
+            .dark .tl-desc{color:#cbd5e1}
+            .tl-dur{font-variant-numeric:tabular-nums;font-size:11px;color:#94a3b8}
+            .dark .tl-dur{color:#64748b}
+            .tl-st{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;line-height:15px;font-weight:500;vertical-align:middle}
+            .tl-st.done{background:rgba(72,187,120,0.18);color:#2f855a}
+            .dark .tl-st.done{background:rgba(72,187,120,0.25);color:#9ae6b4}
+            .tl-st.cur{background:var(--tl-c-bg,rgba(66,156,209,0.2));color:var(--tl-c,#237bb8)}
+            .dark .tl-st.cur{background:var(--tl-c-bg,rgba(116,185,232,0.25));color:#74b9e8}
+            .tl-st.pending{background:transparent;color:#94a3b8;border:1px solid #e2e8f0}
+            .dark .tl-st.pending{color:#64748b;border-color:#334155}
+
+            /* antd 风格横向 timeline (变体 ④) */
+            .tl-h-axis{position:relative;display:flex;justify-content:space-between;padding:24px 12px 8px;overflow-x:auto}
+            .tl-h-axis::before{content:"";position:absolute;left:20px;right:20px;top:32px;height:2px;background:linear-gradient(90deg,#74b9e8,#429cd1,#237bb8)}
+            .dark .tl-h-axis::before{background:linear-gradient(90deg,rgba(116,185,232,0.5),rgba(66,156,209,0.6),rgba(35,123,184,0.5))}
+            .tl-h-node{position:relative;flex:0 0 auto;text-align:center;min-width:80px}
+            .tl-h-dot{width:16px;height:16px;border-radius:50%;background:var(--tl-c,#429cd1);border:3px solid #fff;box-shadow:0 0 0 2px var(--tl-c,#429cd1);margin:0 auto 8px;position:relative;z-index:1}
+            .dark .tl-h-dot{border-color:#162c42;box-shadow:0 0 0 2px var(--tl-c,#429cd1)}
+            .tl-h-label{font-size:12px;color:#475569;font-weight:500}
+            .dark .tl-h-label{color:#cbd5e1}
+            .tl-h-time{font-size:10px;color:#94a3b8;margin-top:2px;font-variant-numeric:tabular-nums}
+            .dark .tl-h-time{color:#64748b}
+
+            /* ── antd 组件模拟辅助类 (纯 HTML+Tailwind, 单文件零依赖) ──
+               ponytail: 复用 Tailwind utility 为主, 仅补 animation/原生 dialog/switch/tooltip */
+            @keyframes antdSpin { to { transform: rotate(360deg); } }
+            .antd-spin { animation: antdSpin 1s linear infinite; display: inline-block; }
+            .antd-skel{
+                background:linear-gradient(90deg,rgba(148,163,184,0.18) 25%,rgba(148,163,184,0.35) 37%,rgba(148,163,184,0.18) 63%);
+                background-size:400% 100%;animation:antdShimmer 1.4s ease infinite;border-radius:4px;
+            }
+            .dark .antd-skel{
+                background:linear-gradient(90deg,rgba(100,116,139,0.18) 25%,rgba(100,116,139,0.35) 37%,rgba(100,116,139,0.18) 63%);
+                background-size:400% 100%;
+            }
+            @keyframes antdShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+            /* Modal: 原生 <dialog>, 自带 backdrop + ESC 关闭 */
+            dialog.antd-modal{
+                border:none;border-radius:8px;padding:0;background:#fff;color:#1e293b;
+                max-width:90vw;box-shadow:0 6px 16px rgba(0,0,0,0.08),0 3px 6px rgba(0,0,0,0.06);
+            }
+            .dark dialog.antd-modal{background:#162c42;color:#f1f5f9;}
+            dialog.antd-modal::backdrop{background:rgba(15,32,51,0.45);backdrop-filter:blur(2px);}
+            .dark dialog.antd-modal::backdrop{background:rgba(9,20,32,0.65);}
+            /* Message: 顶部 toast */
+            .antd-message{
+                position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-100px);
+                opacity:0;transition:all 0.3s cubic-bezier(0.22,1,0.36,1);z-index:2000;pointer-events:none;
+            }
+            .antd-message.show{transform:translateX(-50%) translateY(0);opacity:1;}
+            /* Tooltip: CSS :hover */
+            .antd-tip-wrap{position:relative;display:inline-block;}
+            .antd-tip-wrap .antd-tip{
+                position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) scale(0.85);
+                background:rgba(15,32,51,0.92);color:#fff;padding:6px 10px;border-radius:6px;font-size:12px;
+                white-space:nowrap;opacity:0;pointer-events:none;transition:all 0.18s ease;z-index:100;
+            }
+            .antd-tip-wrap:hover .antd-tip{opacity:1;transform:translateX(-50%) scale(1);}
+            /* Menu 子菜单用 <details>, 零 JS */
+            .antd-menu details > summary{list-style:none;cursor:pointer;}
+            .antd-menu details > summary::-webkit-details-marker{display:none;}
+            .antd-menu details[open] > summary .chev{transform:rotate(90deg);}
+            .antd-menu .chev{transition:transform 0.2s;display:inline-block;}
+            /* Switch: 原生 checkbox + appearance:none 改造为滑块 */
+            .antd-switch{
+                appearance:none;-webkit-appearance:none;width:36px;height:20px;border-radius:999px;
+                background:#cbd5e1;position:relative;cursor:pointer;transition:background 0.2s;outline:none;
+            }
+            .antd-switch::after{
+                content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+                background:#fff;transition:transform 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.2);
+            }
+            .antd-switch:checked{background:#429cd1;}
+            .antd-switch:checked::after{transform:translateX(16px);}
+            .antd-switch:disabled{opacity:0.5;cursor:not-allowed;}
+            .dark .antd-switch{background:#475569;}
+            .dark .antd-switch:checked{background:#429cd1;}
         }
     </style>
 </head>
@@ -237,6 +346,7 @@
             <button data-tab-target="components" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">组件</button>
             <button data-tab-target="charts" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">图表</button>
             <button data-tab-target="motion" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">动效</button>
+            <button data-tab-target="timeline" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">Timeline</button>
         </div>
 
         <!-- ============ Tab: 色卡 ============ -->
@@ -554,6 +664,654 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ============================================== -->
+            <!-- antd 6 大类组件演示 (纯 HTML+Tailwind, 零依赖)  -->
+            <!-- ============================================== -->
+
+            <!-- 类目 1: General 通用 -->
+            <h3 class="text-lg font-semibold mt-10 mb-1 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>
+                <span class="text-ocean-deep dark:text-ocean-shallow">1. General</span>
+                <span class="text-sm font-normal text-slate-500 dark:text-slate-400">通用</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Button · Icon · Typography</p>
+            <div class="grid md:grid-cols-2 gap-5">
+                <!-- Button -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Button · 类型/尺寸/状态</h4>
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <button class="px-4 py-1.5 rounded-md bg-ocean-deep hover:bg-ocean-abyss text-white text-sm font-medium transition-colors">Primary</button>
+                            <button class="px-4 py-1.5 rounded-md border border-ocean-deep text-ocean-deep dark:text-ocean-shallow dark:border-ocean-shallow hover:bg-ocean-deep/10 text-sm font-medium bg-transparent transition-colors">Default</button>
+                            <button class="px-4 py-1.5 rounded-md border border-dashed border-slate-400 dark:border-slate-500 text-slate-600 dark:text-slate-300 hover:border-ocean-mid hover:text-ocean-mid text-sm font-medium bg-transparent transition-colors">Dashed</button>
+                            <button class="px-4 py-1.5 rounded-md text-ocean-deep dark:text-ocean-shallow hover:bg-ocean-deep/10 text-sm font-medium transition-colors">Text</button>
+                            <button class="px-4 py-1.5 rounded-md text-ocean-deep dark:text-ocean-shallow hover:underline text-sm font-medium transition-colors">Link</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <button class="px-5 py-2.5 rounded-md bg-ocean-deep hover:bg-ocean-abyss text-white text-base font-medium transition-colors">大 Large</button>
+                            <button class="px-4 py-1.5 rounded-md bg-ocean-deep hover:bg-ocean-abyss text-white text-sm font-medium transition-colors">中 Default</button>
+                            <button class="px-3 py-1 rounded-md bg-ocean-deep hover:bg-ocean-abyss text-white text-xs font-medium transition-colors">小 Small</button>
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <button class="px-4 py-1.5 rounded-md bg-ocean-deep hover:bg-ocean-abyss text-white text-sm font-medium flex items-center gap-1.5 transition-colors"><i class="fa fa-search"></i>图标按钮</button>
+                            <button disabled class="px-4 py-1.5 rounded-md bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 text-sm font-medium cursor-not-allowed">禁用 Disabled</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Icon -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Icon · 图标网格 (font-awesome · 海滩主题色)</h4>
+                    <div class="grid grid-cols-8 gap-3 text-center">
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-home text-ocean-deep dark:text-ocean-shallow text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">home</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-user text-ocean-mid text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">user</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-cog text-goldSand-deep dark:text-goldSand-mid text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">设置</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-bell text-warning text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">通知</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-heart text-danger text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">收藏</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-check-circle text-success text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">完成</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-star text-goldSand-sunset text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">星标</span></div>
+                        <div class="flex flex-col items-center gap-1"><i class="fa fa-download text-ocean-deep dark:text-ocean-shallow text-lg"></i><span class="text-[10px] text-slate-500 dark:text-slate-400">下载</span></div>
+                    </div>
+                </div>
+
+                <!-- Typography -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Typography · 排版 (Title / Paragraph / Text)</h4>
+                    <div class="grid md:grid-cols-2 gap-5">
+                        <div class="space-y-1.5">
+                            <h1 class="text-3xl font-bold text-slate-800 dark:text-slate-100">Title h1 · 28px</h1>
+                            <h2 class="text-2xl font-semibold text-slate-800 dark:text-slate-100">Title h2 · 24px</h2>
+                            <h3 class="text-xl font-medium text-slate-800 dark:text-slate-100">Title h3 · 20px</h3>
+                            <h4 class="text-base font-medium text-slate-800 dark:text-slate-100">Title h4 · 16px</h4>
+                        </div>
+                        <div class="space-y-3">
+                            <p class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">Paragraph — Skein 是一个任务编排工具，支持 plan → exec → check → finish 全闭环。</p>
+                            <p class="text-sm text-slate-700 dark:text-slate-300 truncate"><span class="text-slate-400 mr-1">ellipsis:</span>这是一段很长的文字会被截断显示省略号因为容器宽度有限无法完整展示全部内容</p>
+                            <p class="text-sm">
+                                <span class="font-bold text-slate-800 dark:text-slate-100">strong</span>
+                                <mark class="bg-goldSand-light/50 dark:bg-goldSand-light/30 text-slate-800 dark:text-slate-100 px-1 rounded">mark</mark>
+                                <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-night-mid text-ocean-deep dark:text-ocean-shallow text-xs font-mono">code()</code>
+                                <del class="text-slate-400">deleted</del>
+                                <u class="text-ocean-deep dark:text-ocean-shallow">underline</u>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 类目 2: Layout 布局 -->
+            <h3 class="text-lg font-semibold mt-10 mb-1 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>
+                <span class="text-ocean-deep dark:text-ocean-shallow">2. Layout</span>
+                <span class="text-sm font-normal text-slate-500 dark:text-slate-400">布局</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Grid · Layout · Space</p>
+            <div class="grid md:grid-cols-2 gap-5">
+                <!-- Grid 24 列栅格 -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Grid · 24 列栅格 (gutter + offset + responsive)</h4>
+                    <div class="space-y-2">
+                        <div class="flex gap-1">
+                            <div class="bg-ocean-shallow/30 text-center text-xs py-2 rounded text-ocean-deep dark:text-ocean-shallow" style="flex: 12;">Col 12</div>
+                            <div class="bg-ocean-shallow/30 text-center text-xs py-2 rounded text-ocean-deep dark:text-ocean-shallow" style="flex: 12;">Col 12</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <div class="bg-ocean-mid/30 text-center text-xs py-2 rounded text-ocean-deep dark:text-ocean-shallow" style="flex: 8;">Col 8</div>
+                            <div class="bg-ocean-mid/30 text-center text-xs py-2 rounded text-ocean-deep dark:text-ocean-shallow" style="flex: 8;">Col 8</div>
+                            <div class="bg-ocean-mid/30 text-center text-xs py-2 rounded text-ocean-deep dark:text-ocean-shallow" style="flex: 8;">Col 8</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <div class="bg-ocean-deep/30 text-center text-xs py-2 rounded text-white" style="flex: 6;">Col 6</div>
+                            <div class="bg-ocean-deep/30 text-center text-xs py-2 rounded text-white" style="flex: 12;">Col 12</div>
+                            <div class="bg-ocean-deep/30 text-center text-xs py-2 rounded text-white" style="flex: 6;">Col 6</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <div style="flex: 6;"></div>
+                            <div class="bg-goldSand-deep/40 text-center text-xs py-2 rounded text-slate-800" style="flex: 12;">Col 12 · offset 6</div>
+                            <div style="flex: 6;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Layout 结构 -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Layout · Header / Sider / Content / Footer</h4>
+                    <div class="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                        <div class="bg-ocean-deep text-white text-center text-xs py-2">Header</div>
+                        <div class="flex" style="min-height: 110px;">
+                            <div class="bg-ocean-abyss text-white text-center text-xs py-2 px-3 flex items-center justify-center" style="width: 80px;">Sider</div>
+                            <div class="bg-ocean-mid/20 dark:bg-ocean-mid/30 text-ocean-deep dark:text-ocean-shallow text-center text-xs py-2 flex items-center justify-center flex-1">Content</div>
+                        </div>
+                        <div class="bg-night-base text-slate-300 text-center text-xs py-2">Footer</div>
+                    </div>
+                </div>
+
+                <!-- Space 间距 -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Space · 间距组件 (small / middle / large)</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 w-16">Small:</span>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 w-16">Middle:</span>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <span class="text-xs text-slate-500 dark:text-slate-400 w-16">Large:</span>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                            <button class="px-3 py-1 rounded border border-slate-300 dark:border-slate-600 text-xs text-slate-700 dark:text-slate-200">Button</button>
+                        </div>
+                        <div class="flex flex-col items-start gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Vertical (stack):</span>
+                            <div class="flex flex-col gap-2">
+                                <span class="text-xs px-2 py-0.5 bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow rounded">Item 1</span>
+                                <span class="text-xs px-2 py-0.5 bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow rounded">Item 2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 类目 3: Navigation 导航 -->
+            <h3 class="text-lg font-semibold mt-10 mb-1 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>
+                <span class="text-ocean-deep dark:text-ocean-shallow">3. Navigation</span>
+                <span class="text-sm font-normal text-slate-500 dark:text-slate-400">导航</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Menu · Pagination · Steps · Breadcrumb</p>
+            <div class="grid md:grid-cols-2 gap-5">
+                <!-- Menu 水平 -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Menu · 顶部水平菜单</h4>
+                    <nav class="flex items-center gap-1 border-b border-slate-200 dark:border-slate-700 pb-2">
+                        <a class="px-3 py-1.5 rounded text-sm text-ocean-deep dark:text-ocean-shallow bg-ocean-mid/15 font-medium cursor-pointer">任务</a>
+                        <a class="px-3 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">日历</a>
+                        <a class="px-3 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">报表</a>
+                        <a class="px-3 py-1.5 rounded text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">设置</a>
+                    </nav>
+                </div>
+
+                <!-- Menu 垂直带子菜单 -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Menu · 侧边垂直 (含子菜单展开)</h4>
+                    <nav class="antd-menu border border-slate-200 dark:border-slate-700 rounded-md p-1 text-sm">
+                        <a class="block px-3 py-2 rounded text-ocean-deep dark:text-ocean-shallow bg-ocean-mid/15 font-medium cursor-pointer">概览</a>
+                        <details>
+                            <summary class="px-3 py-2 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-between">
+                                <span><i class="fa fa-tasks mr-2 text-slate-400"></i>任务管理</span>
+                                <i class="fa fa-chevron-right chev text-xs text-slate-400"></i>
+                            </summary>
+                            <div class="pl-4 py-1 space-y-0.5">
+                                <a class="block px-3 py-1.5 rounded text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">所有任务</a>
+                                <a class="block px-3 py-1.5 rounded text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">我的任务</a>
+                                <a class="block px-3 py-1.5 rounded text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">已归档</a>
+                            </div>
+                        </details>
+                        <details>
+                            <summary class="px-3 py-2 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-between">
+                                <span><i class="fa fa-bar-chart mr-2 text-slate-400"></i>统计报表</span>
+                                <i class="fa fa-chevron-right chev text-xs text-slate-400"></i>
+                            </summary>
+                            <div class="pl-4 py-1 space-y-0.5">
+                                <a class="block px-3 py-1.5 rounded text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">完成率</a>
+                                <a class="block px-3 py-1.5 rounded text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">耗时分布</a>
+                            </div>
+                        </details>
+                        <a class="block px-3 py-2 rounded text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"><i class="fa fa-cog mr-2 text-slate-400"></i>系统设置</a>
+                    </nav>
+                </div>
+
+                <!-- Pagination + Breadcrumb -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 space-y-5">
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Pagination · 分页器</h4>
+                        <nav class="flex items-center gap-1 text-sm">
+                            <button class="w-8 h-8 rounded border border-slate-300 dark:border-slate-600 text-slate-500 hover:border-ocean-mid hover:text-ocean-mid"><i class="fa fa-angle-left"></i></button>
+                            <button class="w-8 h-8 rounded bg-ocean-deep text-white font-medium">1</button>
+                            <button class="w-8 h-8 rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-ocean-mid hover:text-ocean-mid">2</button>
+                            <button class="w-8 h-8 rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-ocean-mid hover:text-ocean-mid">3</button>
+                            <button class="w-8 h-8 rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-ocean-mid hover:text-ocean-mid">4</button>
+                            <span class="px-1 text-slate-400">...</span>
+                            <button class="w-8 h-8 rounded border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-ocean-mid hover:text-ocean-mid">10</button>
+                            <button class="w-8 h-8 rounded border border-slate-300 dark:border-slate-600 text-slate-500 hover:border-ocean-mid hover:text-ocean-mid"><i class="fa fa-angle-right"></i></button>
+                        </nav>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Breadcrumb · 面包屑</h4>
+                        <nav class="flex items-center gap-1.5 text-sm">
+                            <a class="text-ocean-deep dark:text-ocean-shallow hover:underline cursor-pointer">首页</a>
+                            <i class="fa fa-angle-right text-xs text-slate-400"></i>
+                            <a class="text-ocean-deep dark:text-ocean-shallow hover:underline cursor-pointer">任务管理</a>
+                            <i class="fa fa-angle-right text-xs text-slate-400"></i>
+                            <span class="text-slate-500 dark:text-slate-400">feat-auth</span>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Steps · 步骤条 (横向 · done / current / wait)</h4>
+                    <div class="flex items-center justify-center">
+                        <div class="flex flex-col items-center">
+                            <div class="w-9 h-9 rounded-full bg-success text-white flex items-center justify-center text-sm"><i class="fa fa-check"></i></div>
+                            <span class="text-xs mt-1.5 text-slate-700 dark:text-slate-200">创建</span>
+                        </div>
+                        <div class="h-0.5 w-16 bg-success mx-1"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-9 h-9 rounded-full bg-success text-white flex items-center justify-center text-sm"><i class="fa fa-check"></i></div>
+                            <span class="text-xs mt-1.5 text-slate-700 dark:text-slate-200">规划</span>
+                        </div>
+                        <div class="h-0.5 w-16 bg-success mx-1"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-9 h-9 rounded-full bg-ocean-deep text-white flex items-center justify-center text-sm pulse-dot">3</div>
+                            <span class="text-xs mt-1.5 text-ocean-deep dark:text-ocean-shallow font-medium">执行</span>
+                        </div>
+                        <div class="h-0.5 w-16 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-600 text-slate-400 flex items-center justify-center text-sm">4</div>
+                            <span class="text-xs mt-1.5 text-slate-400">检查</span>
+                        </div>
+                        <div class="h-0.5 w-16 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-9 h-9 rounded-full border-2 border-slate-300 dark:border-slate-600 text-slate-400 flex items-center justify-center text-sm">5</div>
+                            <span class="text-xs mt-1.5 text-slate-400">完成</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 类目 4: Data Entry 数据录入 -->
+            <h3 class="text-lg font-semibold mt-10 mb-1 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>
+                <span class="text-ocean-deep dark:text-ocean-shallow">4. Data Entry</span>
+                <span class="text-sm font-normal text-slate-500 dark:text-slate-400">数据录入</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Input · Select · DatePicker · Checkbox / Radio · Switch · TextArea</p>
+            <div class="grid md:grid-cols-2 gap-5">
+                <!-- Input -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Input · 文本框</h4>
+                    <div class="space-y-3">
+                        <input type="text" placeholder="默认输入" class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/20 transition">
+                        <div class="relative">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" placeholder="带前缀图标" class="w-full pl-9 pr-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/20 transition">
+                        </div>
+                        <div class="relative">
+                            <input type="text" placeholder="带后缀清除" class="w-full pl-3 pr-9 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/20 transition">
+                            <i class="fa fa-times-circle absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm hover:text-slate-600 cursor-pointer"></i>
+                        </div>
+                        <input type="text" placeholder="禁用" disabled class="w-full px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-night-deep text-sm text-slate-400 cursor-not-allowed">
+                        <input type="text" value="错误态输入" class="w-full px-3 py-1.5 rounded-md border border-danger bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-danger/20">
+                        <p class="text-xs text-danger"><i class="fa fa-exclamation-circle mr-1"></i>输入内容不合法</p>
+                    </div>
+                </div>
+
+                <!-- Select + DatePicker + TextArea -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 space-y-5">
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Select · 下拉选择</h4>
+                        <select class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/20 transition cursor-pointer" style="appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;background-size:14px;padding-right:28px;">
+                            <option>请选择任务状态...</option>
+                            <option>待处理</option>
+                            <option>进行中</option>
+                            <option>已完成</option>
+                            <option>已阻塞</option>
+                        </select>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">DatePicker · 日期选择</h4>
+                        <input type="date" class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/20 transition cursor-pointer">
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">TextArea · 多行文本</h4>
+                        <textarea rows="3" placeholder="请输入描述..." class="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-night-mid text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/20 transition resize-y"></textarea>
+                    </div>
+                </div>
+
+                <!-- Checkbox + Radio -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Checkbox · 多选组</h4>
+                    <div class="space-y-2 mb-5">
+                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer"><input type="checkbox" checked class="accent-ocean-mid w-4 h-4"> 选项 A</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer"><input type="checkbox" class="accent-ocean-mid w-4 h-4"> 选项 B</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer"><input type="checkbox" checked class="accent-ocean-mid w-4 h-4"> 选项 C</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-400 cursor-not-allowed"><input type="checkbox" disabled class="w-4 h-4"> 禁用项</label>
+                    </div>
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Radio · 单选组</h4>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer"><input type="radio" name="antdR1" checked class="accent-ocean-mid w-4 h-4"> 选项 A</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer"><input type="radio" name="antdR1" class="accent-ocean-mid w-4 h-4"> 选项 B</label>
+                        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 cursor-pointer"><input type="radio" name="antdR1" class="accent-ocean-mid w-4 h-4"> 选项 C</label>
+                    </div>
+                </div>
+
+                <!-- Switch -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Switch · 开关</h4>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                            <input type="checkbox" class="antd-switch" checked> 通知推送 (开)
+                        </label>
+                        <label class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                            <input type="checkbox" class="antd-switch"> 自动归档 (关)
+                        </label>
+                        <label class="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-200 cursor-pointer">
+                            <input type="checkbox" class="antd-switch" checked> 周报邮件订阅
+                        </label>
+                        <label class="flex items-center gap-3 text-sm text-slate-400 cursor-not-allowed">
+                            <input type="checkbox" class="antd-switch" disabled> 禁用态
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 类目 5: Data Display 数据展示 -->
+            <h3 class="text-lg font-semibold mt-10 mb-1 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>
+                <span class="text-ocean-deep dark:text-ocean-shallow">5. Data Display</span>
+                <span class="text-sm font-normal text-slate-500 dark:text-slate-400">数据展示</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Table · List · Tag · Badge · Card · Avatar · Tooltip</p>
+            <div class="grid md:grid-cols-2 gap-5">
+                <!-- Table -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Table · 表格 (表头 + 斑马纹 + hover 行)</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-night-mid text-slate-700 dark:text-slate-200">
+                                    <th class="text-left px-3 py-2 font-medium">Task ID</th>
+                                    <th class="text-left px-3 py-2 font-medium">名称</th>
+                                    <th class="text-left px-3 py-2 font-medium">负责人</th>
+                                    <th class="text-left px-3 py-2 font-medium">状态</th>
+                                    <th class="text-right px-3 py-2 font-medium">进度</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-slate-200 dark:border-slate-700 hover:bg-ocean-mid/10 transition">
+                                    <td class="px-3 py-2 font-mono text-xs text-ocean-deep dark:text-ocean-shallow">feat-auth</td>
+                                    <td class="px-3 py-2 text-slate-800 dark:text-slate-100">登录鉴权重构</td>
+                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-300">张三</td>
+                                    <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-xs bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow">进行中</span></td>
+                                    <td class="px-3 py-2 text-right font-mono text-slate-600 dark:text-slate-300">40%</td>
+                                </tr>
+                                <tr class="border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-night-deep/30 hover:bg-ocean-mid/10 transition">
+                                    <td class="px-3 py-2 font-mono text-xs text-ocean-deep dark:text-ocean-shallow">color-revamp</td>
+                                    <td class="px-3 py-2 text-slate-800 dark:text-slate-100">色卡重构</td>
+                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-300">李四</td>
+                                    <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-xs bg-success/20 text-success">已完成</span></td>
+                                    <td class="px-3 py-2 text-right font-mono text-success">100%</td>
+                                </tr>
+                                <tr class="border-b border-slate-200 dark:border-slate-700 hover:bg-ocean-mid/10 transition">
+                                    <td class="px-3 py-2 font-mono text-xs text-ocean-deep dark:text-ocean-shallow">api-mock</td>
+                                    <td class="px-3 py-2 text-slate-800 dark:text-slate-100">Mock 接口搭建</td>
+                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-300">王五</td>
+                                    <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-xs bg-warning/20 text-warning">待开始</span></td>
+                                    <td class="px-3 py-2 text-right font-mono text-slate-400">0%</td>
+                                </tr>
+                                <tr class="hover:bg-ocean-mid/10 transition bg-slate-50/50 dark:bg-night-deep/30">
+                                    <td class="px-3 py-2 font-mono text-xs text-ocean-deep dark:text-ocean-shallow">web-board</td>
+                                    <td class="px-3 py-2 text-slate-800 dark:text-slate-100">Web 看板</td>
+                                    <td class="px-3 py-2 text-slate-600 dark:text-slate-300">赵六</td>
+                                    <td class="px-3 py-2"><span class="px-2 py-0.5 rounded text-xs bg-danger/20 text-danger">阻塞</span></td>
+                                    <td class="px-3 py-2 text-right font-mono text-danger">65%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- List -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">List · 列表 (头像/标题/描述/操作)</h4>
+                    <ul class="divide-y divide-slate-200 dark:divide-slate-700">
+                        <li class="py-3 flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-full bg-ocean-mid flex items-center justify-center text-white text-xs font-medium shrink-0">ZS</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-slate-800 dark:text-slate-100">张三</span>
+                                    <a class="text-xs text-ocean-deep dark:text-ocean-shallow hover:underline cursor-pointer">编辑</a>
+                                </div>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">回复了「登录鉴权」issue · 5 分钟前</p>
+                            </div>
+                        </li>
+                        <li class="py-3 flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-full bg-goldSand-deep flex items-center justify-center text-white text-xs font-medium shrink-0">LS</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-slate-800 dark:text-slate-100">李四</span>
+                                    <a class="text-xs text-ocean-deep dark:text-ocean-shallow hover:underline cursor-pointer">查看</a>
+                                </div>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">合并了 color-revamp 分支 · 1 小时前</p>
+                            </div>
+                        </li>
+                        <li class="py-3 flex items-start gap-3">
+                            <div class="w-9 h-9 rounded-full bg-success flex items-center justify-center text-white text-xs font-medium shrink-0">WW</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-slate-800 dark:text-slate-100">王五</span>
+                                    <a class="text-xs text-ocean-deep dark:text-ocean-shallow hover:underline cursor-pointer">分配</a>
+                                </div>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">创建了 Mock 接口搭建任务 · 昨天</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Tag + Badge -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 space-y-5">
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Tag · 彩色标签</h4>
+                        <div class="flex flex-wrap gap-2">
+                            <span class="px-2 py-0.5 rounded border text-xs bg-ocean-mid/10 border-ocean-mid text-ocean-deep dark:text-ocean-shallow">ocean</span>
+                            <span class="px-2 py-0.5 rounded border text-xs bg-goldSand-mid/10 border-goldSand-deep text-goldSand-deep">gold</span>
+                            <span class="px-2 py-0.5 rounded border text-xs bg-success/10 border-success text-success">success</span>
+                            <span class="px-2 py-0.5 rounded border text-xs bg-warning/10 border-warning text-warning">warning</span>
+                            <span class="px-2 py-0.5 rounded border text-xs bg-danger/10 border-danger text-danger">danger</span>
+                            <span class="px-2 py-0.5 rounded bg-ocean-deep text-white text-xs">实心</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Badge · 徽标数 / 角标</h4>
+                        <div class="flex items-center gap-8">
+                            <div class="relative">
+                                <i class="fa fa-bell-o text-2xl text-slate-600 dark:text-slate-300"></i>
+                                <span class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-white text-[10px] flex items-center justify-center font-medium">5</span>
+                            </div>
+                            <div class="relative">
+                                <i class="fa fa-envelope-o text-2xl text-slate-600 dark:text-slate-300"></i>
+                                <span class="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-danger border-2 border-white dark:border-night-base"></span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow text-xs">计数 99+</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avatar + Tooltip -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 space-y-5">
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Avatar · 头像 (图片/文字/图标)</h4>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-ocean-shallow to-ocean-deep flex items-center justify-center text-white text-sm font-medium">U</div>
+                            <div class="w-10 h-10 rounded-full bg-goldSand-deep flex items-center justify-center text-white"><i class="fa fa-user"></i></div>
+                            <div class="w-10 h-10 rounded-full bg-success flex items-center justify-center text-white text-sm font-medium">LS</div>
+                            <div class="w-10 h-10 rounded-md bg-ocean-abyss flex items-center justify-center text-white"><i class="fa fa-square"></i></div>
+                            <div class="flex -space-x-2">
+                                <div class="w-8 h-8 rounded-full bg-ocean-mid border-2 border-white dark:border-night-base flex items-center justify-center text-white text-xs">A</div>
+                                <div class="w-8 h-8 rounded-full bg-goldSand-deep border-2 border-white dark:border-night-base flex items-center justify-center text-white text-xs">B</div>
+                                <div class="w-8 h-8 rounded-full bg-success border-2 border-white dark:border-night-base flex items-center justify-center text-white text-xs">C</div>
+                                <div class="w-8 h-8 rounded-full bg-slate-400 border-2 border-white dark:border-night-base flex items-center justify-center text-white text-xs">+3</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Tooltip · 悬浮提示 (CSS :hover)</h4>
+                        <div class="flex items-center gap-6">
+                            <span class="antd-tip-wrap">
+                                <button class="px-3 py-1.5 rounded border border-slate-300 dark:border-slate-600 text-sm text-slate-700 dark:text-slate-200">鼠标移上来</button>
+                                <span class="antd-tip">这是一个 tooltip 提示</span>
+                            </span>
+                            <span class="antd-tip-wrap">
+                                <i class="fa fa-question-circle text-ocean-mid text-lg cursor-help"></i>
+                                <span class="antd-tip">点击查看文档</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card (复用通用组件 Card 样式) -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Card · 卡片 (标题/内容/操作区)</h4>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 hover-float">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-slate-800 dark:text-slate-100">标准卡片</span>
+                                <i class="fa fa-ellipsis-h text-slate-400 cursor-pointer"></i>
+                            </div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">含标题、内容、操作区。</div>
+                            <div class="flex gap-2 border-t border-slate-200 dark:border-slate-700 pt-2">
+                                <a class="text-xs text-ocean-deep dark:text-ocean-shallow hover:underline cursor-pointer">编辑</a>
+                                <a class="text-xs text-danger hover:underline cursor-pointer">删除</a>
+                            </div>
+                        </div>
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 border-l-4 border-l-ocean-mid hover-float">
+                            <div class="text-sm font-medium mb-1 text-slate-800 dark:text-slate-100">强调卡片</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">左侧 ocean-mid 强调条</div>
+                        </div>
+                        <div class="rounded-lg p-4 bg-gradient-to-br from-ocean-mid/15 to-goldSand-mid/15 border border-ocean-mid/30 hover-float">
+                            <div class="text-sm font-medium mb-1 text-slate-800 dark:text-slate-100">渐变卡片</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">ocean→goldSand 浅色渐变背景</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 类目 6: Feedback 反馈 -->
+            <h3 class="text-lg font-semibold mt-10 mb-1 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-6">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>
+                <span class="text-ocean-deep dark:text-ocean-shallow">6. Feedback</span>
+                <span class="text-sm font-normal text-slate-500 dark:text-slate-400">反馈</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Alert · Modal · Message · Spin · Progress · Skeleton</p>
+            <div class="grid md:grid-cols-2 gap-5">
+                <!-- Alert -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 md:col-span-2">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Alert · 警告提示 (4 色带图标)</h4>
+                    <div class="space-y-2">
+                        <div class="flex items-start gap-2 px-4 py-3 rounded-md bg-ocean-mid/10 border border-ocean-mid/30 text-sm">
+                            <i class="fa fa-info-circle text-ocean-deep dark:text-ocean-shallow mt-0.5"></i>
+                            <div class="flex-1"><span class="font-medium text-ocean-deep dark:text-ocean-shallow">Info</span> <span class="text-slate-700 dark:text-slate-200">这是一条普通信息提示。</span></div>
+                        </div>
+                        <div class="flex items-start gap-2 px-4 py-3 rounded-md bg-success/10 border border-success/30 text-sm">
+                            <i class="fa fa-check-circle text-success mt-0.5"></i>
+                            <div class="flex-1"><span class="font-medium text-success">Success</span> <span class="text-slate-700 dark:text-slate-200">任务已成功完成。</span></div>
+                        </div>
+                        <div class="flex items-start gap-2 px-4 py-3 rounded-md bg-warning/10 border border-warning/30 text-sm">
+                            <i class="fa fa-exclamation-triangle text-warning mt-0.5"></i>
+                            <div class="flex-1"><span class="font-medium text-warning">Warning</span> <span class="text-slate-700 dark:text-slate-200">注意：剩余配额不足。</span></div>
+                        </div>
+                        <div class="flex items-start gap-2 px-4 py-3 rounded-md bg-danger/10 border border-danger/30 text-sm">
+                            <i class="fa fa-times-circle text-danger mt-0.5"></i>
+                            <div class="flex-1"><span class="font-medium text-danger">Error</span> <span class="text-slate-700 dark:text-slate-200">无法连接服务器，请稍后再试。</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Modal · 模态框 (原生 dialog + 自带 backdrop)</h4>
+                    <button onclick="document.getElementById('antdModalDemo').showModal()" class="px-4 py-1.5 rounded-md bg-ocean-deep hover:bg-ocean-abyss text-white text-sm font-medium transition-colors">打开模态框</button>
+                    <dialog id="antdModalDemo" class="antd-modal w-[420px] max-w-[90vw]">
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-3 pb-3 border-b border-slate-200 dark:border-slate-700">
+                                <h5 class="font-medium text-base">确认删除任务？</h5>
+                                <button onclick="document.getElementById('antdModalDemo').close()" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"><i class="fa fa-times"></i></button>
+                            </div>
+                            <p class="text-sm text-slate-600 dark:text-slate-300 mb-5">删除后任务将移至归档，30 天内可恢复。此操作不影响已合并的代码。</p>
+                            <div class="flex justify-end gap-2">
+                                <button onclick="document.getElementById('antdModalDemo').close()" class="px-4 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">取消</button>
+                                <button onclick="document.getElementById('antdModalDemo').close(); showAntdMessage('已删除任务 color-revamp', 'success')" class="px-4 py-1.5 rounded-md bg-danger hover:bg-danger/90 text-white text-sm font-medium">确认删除</button>
+                            </div>
+                        </div>
+                    </dialog>
+                </div>
+
+                <!-- Message -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Message · 全局消息条 (顶部 toast)</h4>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="showAntdMessage('操作成功', 'success')" class="px-3 py-1.5 rounded border border-success/40 text-success text-sm hover:bg-success/10">Success</button>
+                        <button onclick="showAntdMessage('请先登录', 'info')" class="px-3 py-1.5 rounded border border-ocean-mid/40 text-ocean-deep dark:text-ocean-shallow text-sm hover:bg-ocean-mid/10">Info</button>
+                        <button onclick="showAntdMessage('配额不足', 'warning')" class="px-3 py-1.5 rounded border border-warning/40 text-warning text-sm hover:bg-warning/10">Warning</button>
+                        <button onclick="showAntdMessage('请求失败', 'error')" class="px-3 py-1.5 rounded border border-danger/40 text-danger text-sm hover:bg-danger/10">Error</button>
+                    </div>
+                </div>
+
+                <!-- Spin + Progress -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Spin · 加载中</h4>
+                    <div class="flex items-center gap-6 mb-5">
+                        <span class="antd-spin text-2xl text-ocean-mid"><i class="fa fa-spinner"></i></span>
+                        <span class="antd-spin text-xl text-goldSand-deep"><i class="fa fa-circle-o-notch"></i></span>
+                        <span class="antd-spin text-lg text-success"><i class="fa fa-refresh"></i></span>
+                        <span class="text-sm text-slate-600 dark:text-slate-300">Loading...</span>
+                    </div>
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Progress · 进度条</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-600 dark:text-slate-300">线形进度</span>
+                                <span class="text-ocean-deep dark:text-ocean-shallow">60%</span>
+                            </div>
+                            <div class="h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                <div class="h-full rounded-full bg-ocean-mid" style="width: 60%"></div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="relative w-16 h-16">
+                                <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8" class="text-slate-200 dark:text-slate-700"></circle>
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#48bb78" stroke-width="8" stroke-linecap="round" stroke-dasharray="198 264"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-success">75%</div>
+                            </div>
+                            <span class="text-xs text-slate-500 dark:text-slate-400">环形进度 · 复用 charts tab 样式</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skeleton -->
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-3 text-slate-700 dark:text-slate-200">Skeleton · 骨架屏</h4>
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="antd-skel w-10 h-10 rounded-full"></div>
+                            <div class="flex-1 space-y-2">
+                                <div class="antd-skel h-3 w-3/4"></div>
+                                <div class="antd-skel h-3 w-1/2"></div>
+                            </div>
+                        </div>
+                        <div class="antd-skel h-3 w-full"></div>
+                        <div class="antd-skel h-3 w-full"></div>
+                        <div class="antd-skel h-3 w-2/3"></div>
+                        <div class="grid grid-cols-3 gap-2 pt-2">
+                            <div class="antd-skel h-16"></div>
+                            <div class="antd-skel h-16"></div>
+                            <div class="antd-skel h-16"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
         <!-- ============ Tab: 图表 ============ -->
@@ -734,6 +1492,338 @@
             </div>
         </section>
 
+        <!-- ============ Tab: Timeline ============ -->
+        <section data-tab="timeline" class="mb-14 animate-stagger-in hidden" style="animation-delay:0.6s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>时间轴 Timeline
+            </h2>
+
+            <!-- ① 任务生命周期 5 态竖向时间轴 -->
+            <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 mb-8">
+                <h3 class="font-medium mb-1 text-ocean-deep dark:text-goldSand-mid">任务生命周期 Lifecycle</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-5">5 态流转：创建 → 就绪 → 起始 → 检查 → 完成｜当前态用脉冲点，已过态实心勾选，未到态空心</p>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- 进行中 task 样例 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-dashed border-slate-200 dark:border-slate-700">
+                            <div class="flex items-center gap-2">
+                                <i class="fa fa-spinner text-ocean-mid"></i>
+                                <span class="font-medium text-sm text-slate-800 dark:text-slate-100">feat-auth</span>
+                                <span class="text-xs text-slate-400">·</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">登录鉴权重构</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow">进行中</span>
+                        </div>
+                        <div class="tl-axis">
+                            <!-- 1. 创建 (已过) -->
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#74b9e8"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">创建</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-22 09:14</span>
+                                    <span class="tl-dur">— / —</span>
+                                </div>
+                                <div class="tl-desc">skein create feat-auth 落 task.json + 初始化 task 文件夹</div>
+                            </div>
+                            <!-- 2. 就绪 (已过) -->
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#429cd1"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">就绪</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-22 10:02</span>
+                                    <span class="tl-dur">48m / 48m</span>
+                                </div>
+                                <div class="tl-desc">plan 完成 + 用户 confirm 通过，等待 skein start 占槽</div>
+                            </div>
+                            <!-- 3. 起始 (当前态 脉冲) -->
+                            <div class="tl-node">
+                                <span class="tl-dot cur" style="--tl-c:#237bb8"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">起始</span>
+                                    <span class="tl-st cur" style="--tl-c:#237bb8;--tl-c-bg:rgba(35,123,184,0.15)">当前</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-22 10:15</span>
+                                    <span class="tl-dur">13m / 1h01m · 计时到 now</span>
+                                </div>
+                                <div class="tl-desc">skein start 占 active 槽，subtask 调度中 (2/5 done)</div>
+                            </div>
+                            <!-- 4. 检查 (未到) -->
+                            <div class="tl-node">
+                                <span class="tl-dot"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">检查</span>
+                                    <span class="tl-st pending">待执行</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">—</span>
+                                    <span class="tl-dur">— / —</span>
+                                </div>
+                                <div class="tl-desc">skein check：checkpoint 核对 + 场景自适应校验</div>
+                            </div>
+                            <!-- 5. 完成 (未到) -->
+                            <div class="tl-node">
+                                <span class="tl-dot"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">完成</span>
+                                    <span class="tl-st pending">待执行</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">—</span>
+                                    <span class="tl-dur">— / —</span>
+                                </div>
+                                <div class="tl-desc">skein finish：merge worktree → 销 worktree → 标记完成 → 异步 spec sediment</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 已完成 task 样例 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-dashed border-slate-200 dark:border-slate-700">
+                            <div class="flex items-center gap-2">
+                                <i class="fa fa-check-circle text-success"></i>
+                                <span class="font-medium text-sm text-slate-800 dark:text-slate-100">color-revamp</span>
+                                <span class="text-xs text-slate-400">·</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400">色卡重构</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-success/20 text-success">已完成</span>
+                        </div>
+                        <div class="tl-axis">
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#74b9e8"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">创建</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-19 14:20</span>
+                                    <span class="tl-dur">— / —</span>
+                                </div>
+                                <div class="tl-desc">skein create color-revamp</div>
+                            </div>
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#429cd1"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">就绪</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-19 16:45</span>
+                                    <span class="tl-dur">2h25m / 2h25m</span>
+                                </div>
+                                <div class="tl-desc">plan 充分，confirm 一次过</div>
+                            </div>
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#237bb8"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">起始</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-19 17:02</span>
+                                    <span class="tl-dur">17m / 2h42m</span>
+                                </div>
+                                <div class="tl-desc">3 subtask 并行 (受 max_parallel=2 限)</div>
+                            </div>
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#e6c88b"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">检查</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-20 09:30</span>
+                                    <span class="tl-dur">16h28m / 19h10m</span>
+                                </div>
+                                <div class="tl-desc">skein-check 两步法全绿</div>
+                            </div>
+                            <div class="tl-node done">
+                                <span class="tl-dot done" style="--tl-c:#48bb78"></span>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="tl-name">完成</span>
+                                    <span class="tl-st done">已完成</span>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <span class="tl-time">07-20 10:15</span>
+                                    <span class="tl-dur">45m / 19h55m</span>
+                                </div>
+                                <div class="tl-desc">merge 完成 + spec 已异步沉淀</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ② 通用 Timeline 组件变体 (antd 风格) -->
+            <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid flex items-center gap-2">
+                <span class="w-1 h-5 bg-ocean-mid rounded"></span>通用 Timeline 变体
+            </h3>
+            <div class="grid md:grid-cols-2 gap-6">
+
+                <!-- 变体 1: 基础竖向 timeline 带时间 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">① 基础竖向 · 带时间</h4>
+                    <div class="tl-axis">
+                        <div class="tl-node done">
+                            <span class="tl-dot done" style="--tl-c:#429cd1"></span>
+                            <div class="tl-name">创建需求</div>
+                            <div class="tl-time">2026-07-20 09:30</div>
+                        </div>
+                        <div class="tl-node done">
+                            <span class="tl-dot done" style="--tl-c:#429cd1"></span>
+                            <div class="tl-name">方案评审</div>
+                            <div class="tl-time">2026-07-21 14:00</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot cur" style="--tl-c:#237bb8"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">开发中</span>
+                                <span class="tl-st cur" style="--tl-c:#237bb8;--tl-c-bg:rgba(35,123,184,0.15)">当前</span>
+                            </div>
+                            <div class="tl-time">2026-07-23 10:15</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot"></span>
+                            <div class="tl-name">测试验收</div>
+                            <div class="tl-time text-slate-400">待定</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot"></span>
+                            <div class="tl-name">发布上线</div>
+                            <div class="tl-time text-slate-400">待定</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 变体 2: 自定义节点图标 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">② 自定义节点图标</h4>
+                    <div class="tl-axis">
+                        <div class="tl-node done">
+                            <span class="tl-dot custom" style="--tl-c:#48bb78;--tl-icon:'\f00c'"></span>
+                            <div class="tl-name">需求确认</div>
+                            <div class="tl-desc">PM 与客户对齐</div>
+                        </div>
+                        <div class="tl-node done">
+                            <span class="tl-dot custom" style="--tl-c:#48bb78;--tl-icon:'\f00c'"></span>
+                            <div class="tl-name">UI 设计</div>
+                            <div class="tl-desc">Figma 出图 12 张</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot custom" style="--tl-c:#429cd1;--tl-icon:'\f121'"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">编码</span>
+                                <span class="tl-st cur" style="--tl-c:#429cd1;--tl-c-bg:rgba(66,156,209,0.2)">进行中</span>
+                            </div>
+                            <div class="tl-desc">前端 60% / 后端 45%</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot custom" style="--tl-c:#ed8936;--tl-icon:'\f05e'"></span>
+                            <div class="tl-name">阻塞</div>
+                            <div class="tl-desc">等待第三方接口联调</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot" style="--tl-c:#94a3b8"></span>
+                            <div class="tl-name">发布</div>
+                            <div class="tl-desc text-slate-400">未开始</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 变体 3: 颜色变体 每节点不同色 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">③ 颜色变体 · 状态色编码</h4>
+                    <div class="tl-axis">
+                        <div class="tl-node done">
+                            <span class="tl-dot done" style="--tl-c:#74b9e8"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">提交申请</span>
+                                <span class="px-2 py-0.5 rounded text-xs bg-ocean-shallow/20 text-ocean-deep dark:text-ocean-shallow">浅海</span>
+                            </div>
+                            <div class="tl-time">07-22 08:00</div>
+                        </div>
+                        <div class="tl-node done">
+                            <span class="tl-dot done" style="--tl-c:#429cd1"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">主管审批</span>
+                                <span class="px-2 py-0.5 rounded text-xs bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow">近海</span>
+                            </div>
+                            <div class="tl-time">07-22 10:30</div>
+                        </div>
+                        <div class="tl-node done">
+                            <span class="tl-dot done" style="--tl-c:#237bb8"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">财务复核</span>
+                                <span class="px-2 py-0.5 rounded text-xs bg-ocean-deep/20 text-ocean-deep dark:text-ocean-shallow">深海</span>
+                            </div>
+                            <div class="tl-time">07-22 14:00</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot cur" style="--tl-c:#c89548"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">总监终审</span>
+                                <span class="tl-st cur" style="--tl-c:#c89548;--tl-c-bg:rgba(200,149,72,0.18)">当前</span>
+                            </div>
+                            <div class="tl-time">07-23 09:00</div>
+                        </div>
+                        <div class="tl-node">
+                            <span class="tl-dot" style="--tl-c:#48bb78"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="tl-name">执行打款</span>
+                                <span class="tl-st pending">待执行</span>
+                            </div>
+                            <div class="tl-time text-slate-400">待定</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 变体 4: 横向 timeline -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h4 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">④ 横向 Timeline · Horizontal</h4>
+                    <div class="tl-h-axis">
+                        <div class="tl-h-node">
+                            <div class="tl-h-dot" style="--tl-c:#48bb78"></div>
+                            <div class="tl-h-label">立项</div>
+                            <div class="tl-h-time">07-19</div>
+                        </div>
+                        <div class="tl-h-node">
+                            <div class="tl-h-dot" style="--tl-c:#48bb78"></div>
+                            <div class="tl-h-label">设计</div>
+                            <div class="tl-h-time">07-21</div>
+                        </div>
+                        <div class="tl-h-node">
+                            <div class="tl-h-dot" style="--tl-c:#429cd1"></div>
+                            <div class="tl-h-label">开发</div>
+                            <div class="tl-h-time">07-23</div>
+                        </div>
+                        <div class="tl-h-node">
+                            <div class="tl-h-dot" style="--tl-c:#429cd1"></div>
+                            <div class="tl-h-label">测试</div>
+                            <div class="tl-h-time">07-25</div>
+                        </div>
+                        <div class="tl-h-node">
+                            <div class="tl-h-dot" style="--tl-c:#c89548"></div>
+                            <div class="tl-h-label">灰度</div>
+                            <div class="tl-h-time">07-26</div>
+                        </div>
+                        <div class="tl-h-node">
+                            <div class="tl-h-dot" style="--tl-c:#94a3b8"></div>
+                            <div class="tl-h-label">全量</div>
+                            <div class="tl-h-time">待定</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">横向适配：项目里程碑/版本 roadmap｜窄屏自动横滚</p>
+                </div>
+            </div>
+        </section>
+
         <footer class="mt-16 text-center text-sm text-slate-400">
             TaskFlow 海滩蓝金主题设计系统｜完整文字色卡 + 品牌色 + 语义色｜无图片资源
         </footer>
@@ -784,6 +1874,29 @@
         el.style.animationPlayState = 'paused';
         observer.observe(el);
     })
+
+    // antd Message toast 辅助 (单文件零依赖, 配合类目 6 的 Message demo)
+    function showAntdMessage(text, type) {
+        type = type || 'info';
+        const colors = {
+            success: { bg: 'rgba(72,187,120,0.95)', icon: 'fa-check-circle' },
+            info:    { bg: 'rgba(66,156,209,0.95)', icon: 'fa-info-circle' },
+            warning: { bg: 'rgba(237,137,54,0.95)', icon: 'fa-exclamation-triangle' },
+            error:   { bg: 'rgba(229,62,62,0.95)', icon: 'fa-times-circle' }
+        };
+        const c = colors[type] || colors.info;
+        let box = document.getElementById('antdMessageBox');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'antdMessageBox';
+            box.className = 'antd-message';
+            document.body.appendChild(box);
+        }
+        box.innerHTML = '<div class="flex items-center gap-2 px-4 py-2.5 rounded-md shadow-lg text-white text-sm" style="background:' + c.bg + '"><i class="fa ' + c.icon + '"></i><span>' + text + '</span></div>';
+        box.classList.add('show');
+        clearTimeout(window.__antdMsgTimer);
+        window.__antdMsgTimer = setTimeout(function(){ box.classList.remove('show'); }, 2500);
+    }
 </script>
 </body>
 </html>
