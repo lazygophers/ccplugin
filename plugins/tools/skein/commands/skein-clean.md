@@ -7,6 +7,7 @@ argument-hint: "[保留天数]"
 arguments: "[保留天数]"
 model: haiku
 effort: low
+agent: skein-clean
 ---
 
 # skein-clean — 主动清理

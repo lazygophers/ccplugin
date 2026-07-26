@@ -186,13 +186,19 @@
         "spec无onLive",
         "无报错"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785082535,
       "started": 1785084443,
-      "finished": null
+      "finished": 1785084948
     },
     {
       "sid": "t7-integration",
@@ -211,11 +217,11 @@
         "serve跑通无报错"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785082537,
-      "started": null,
+      "started": 1785084948,
       "finished": null
     }
   ],
@@ -230,5 +236,5 @@
   "confirmed": 1785081994,
   "checked": null,
   "finished": null,
-  "updated": 1785084443
+  "updated": 1785084948
 }

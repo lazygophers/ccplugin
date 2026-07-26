@@ -26,7 +26,8 @@
         "./agents/skein-executor.md",
         "./agents/skein-finisher.md",
         "./agents/skein-specer.md",
-        "./agents/skein-dedup.md"
+        "./agents/skein-dedup.md",
+        "./agents/skein-clean.md"
     ],
     "commands": [
         "./commands/skein-doctor.md",
