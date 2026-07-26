@@ -8,6 +8,12 @@
 2. **就绪判定** = 所有前置 done + 有空闲并发槽。ready 的 subtask 并行派, 未就绪串行等。
 3. **就绪批排序 = 拓扑深度优先** — 就绪数 > 空闲槽时, `claim` 按**拓扑深度降序**截取 (非登记序 FIFO): 每 subtask 权重 = 最长下游链长度 + 1 (每步等权, 纯拓扑深度, 不依赖 estimate), 深度大者阻塞下游最多, 先派。同深度按 (task 登记序, subtask 登记序) 稳定。脚本自算 (`_crit_weight`), planning 只需把真实有序关系写进 `--deps`, 无需手排优先级。
 
+## claim 默认改态占槽 (铁律)
+
+- **claim 命令族默认调用即改态占槽** — `skein claim` / `skein subtask claim <tid>` 调用即把就绪批整批标 running + 占 `max_parallel` 槽, 这是**执行主路径**, 无需任何额外参数。
+- **`claim --dry-run` 才只读预览** — 想先看就绪批不占槽才加 `--dry-run` (只读预览, 不改态不占槽; 决定执行后去掉 `--dry-run` 即认领)。
+- **单 sid 补派用 `subtask start`** — 失败重派 / 定点补派用 `skein subtask start <tid> <sid>` (单 sid 占槽, 非 claim 路径)。
+
 ## subtask 状态 = 脚本落盘, 非肉眼看 md 文件
 
 subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写), 全程经 `skein subtask` 命令维护。**DAG 算法 + 就绪判定 + 改态由脚本一次性做** (`claim`), main 只负责派 agent (脚本不能 spawn):

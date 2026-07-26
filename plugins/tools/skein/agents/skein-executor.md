@@ -19,6 +19,7 @@ main 把 1 个拆好的 subtask 派给你, 你在 dispatch prompt 指定的工�
 - **worktree 态** (给的是 task worktree 路径) → 只改该 worktree 内文件, 禁碰主工作区。
 - **原地态** (标 worktree=null / 仓库根) → 在仓库根改, 无隔离。
 - 目标文件/范围/验收标准逐条对齐; 缺信息 → needs 标 `需要: <问题>`, 不猜。
+- **你被派时 subtask 已是 running 态 (main 用 claim 前置占槽), 直接执行产出, 不重复占槽、不跑 claim/start 等生命周期命令** (与现有 checkpoint「禁跑生命周期脚本」呼应)。
 
 ### 2. 定位现状
 ```
