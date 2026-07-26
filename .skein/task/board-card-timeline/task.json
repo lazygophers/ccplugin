@@ -17,13 +17,18 @@
         "node --check board.js 通过",
         "复用 var(--st-*) 色"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785033528,
       "started": 1785033592,
-      "finished": null
+      "finished": 1785033823
     },
     {
       "sid": "be-confirm",
@@ -59,5 +64,5 @@
   "confirmed": 1785033579,
   "checked": null,
   "finished": null,
-  "updated": 1785033695
+  "updated": 1785033823
 }
