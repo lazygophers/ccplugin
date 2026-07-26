@@ -32,10 +32,17 @@ export function postJSON(path, body) {
 }
 
 // ── endpoint 签名 (对齐 backend-serve.md HTTP 端点清单) ──
-// T3 若拆片段端点 (如 /board/fragment), 在此处加同 shape 函数即可, page 调用零改。
+// T3 拆出的片段端点 (/board/fragment + /board/dag), page 按需选用; /data 全量兜底。
 export const id       = () => getJSON(BASE + "/id");                 // proj_id 纯文本
 export const rev      = () => getJSON(BASE + "/rev");                // 轮询兜底: data.asset rev
 export const data     = () => getJSON(BASE + "/data");               // board 全量 (cards/overview/nodeVar/nodeCls)
+export const boardFragment = (status, offset = 0, limit) => {
+  let q = "offset=" + offset;
+  if (status) q = "status=" + encodeURIComponent(status) + "&" + q;
+  if (limit != null) q += "&limit=" + limit;
+  return getJSON(BASE + "/board/fragment?" + q);                     // cards 子集 + overview + filterOpts
+};
+export const boardDag = () => getJSON(BASE + "/board/dag");          // nodeVar/nodeCls/taskDag/fullDag 独立端点
 export const dashboard = () => getJSON(BASE + "/dashboard");
 export const queue    = () => getJSON(BASE + "/queue");
 export const task     = (tid) => getJSON(BASE + "/task/" + encodeURIComponent(tid));
