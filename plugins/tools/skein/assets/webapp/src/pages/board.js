@@ -192,7 +192,7 @@ function stageChip(stage) {
   if (!label) return "";
   return '<span class="stage-chip st-' + stage + '">' + label + "</span>";
 }
-// task 5 态横向 stepper: created/confirmed/started/checked/finished 时间戳 truthy → 实心点
+// task 5 态横向 stepper: 用 status 推已达态 (时间戳 null 但 status 已过该态也算到达)
 // ponytail: 一行 flex 5 点 + 点间 1px 连线, 总高 ~24px, 复用 var(--st-*) 不引新色
 function cardStepper(c) {
   var steps = [
@@ -202,8 +202,15 @@ function cardStepper(c) {
     { k: "checked",  col: "var(--st-check)",    lab: "检" },
     { k: "finished", col: "var(--st-done)",     lab: "完" }
   ];
+  // status 中文 → 已达态键序 (含自身及之前全亮)
+  var reached = {
+    "待处理": ["created"], "就绪": ["created", "confirmed"], "进行中": ["created", "confirmed", "started"],
+    "检查中": ["created", "confirmed", "started", "checked"], "已完成": ["created", "confirmed", "started", "checked", "finished"],
+  };
+  var onSet = {}; (reached[c.status] || []).forEach(function (k) { onSet[k] = 1; });
   var cells = steps.map(function (s, i) {
-    var on = c[s.k] ? " on" : "";
+    // 时间戳 truthy 或 status 已达该态 → 实心 (双保险: 老 task confirmed=null 但 status=进行中 也亮)
+    var on = (c[s.k] || onSet[s.k]) ? " on" : "";
     var cell = '<span class="st-cell"><span class="st-dot' + on + '" style="--st-c:' + s.col + '" title="' + s.lab + '"></span><span class="st-label">' + s.lab + "</span></span>";
     return i < steps.length - 1 ? cell + '<span class="st-line"></span>' : cell;
   }).join("");
