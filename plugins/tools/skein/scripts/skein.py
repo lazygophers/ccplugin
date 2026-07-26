@@ -1949,24 +1949,9 @@ class Skein:
         return html
 
     def _webapp_html(self) -> str:
-        # 工程化前端首页: 读 assets/webapp/index.html, 填 token (PROJ/PAYLOAD/VER)。
-        # token 缺席则 replace 无副作用 → 与 s1 的 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
-        html = (self._webapp_dir() / "index.html").read_text(encoding="utf-8")
-        data = self._board_data()
-        payload = (json.dumps(data, ensure_ascii=False)
-                   .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
-        tokens = {
-            "PROJ": self.proj,
-            "PAYLOAD": payload,
-            "VER": self._asset_rev(),  # /dist/app.css?v=VER 缓存击穿
-        }
-        for k, v in tokens.items():
-            html = html.replace("{{" + k + "}}", str(v))
-        return html
-
-    def _webapp_html_new(self) -> str:
-        # 新入口 (htm 重写版, assets/webapp/src/new/index.html): 双入口并存, 默认仍 _webapp_html, T7 切默认。
-        # token 同 _webapp_html (PROJ/PAYLOAD/VER); 新 index.html 引 ../tokens.css + ../design.css + ./app.js。
+        # 工程化前端首页: 读 assets/webapp/src/new/index.html (htm 重写版, T7 切默认入口)。
+        # T7 前双入口并存 (_webapp_html 旧 petite-vue + _webapp_html_new 新 htm); 现合并单一新入口, 旧码删除。
+        # token 缺席则 replace 无副作用 → 与 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
         html = (self._webapp_dir() / "src" / "new" / "index.html").read_text(encoding="utf-8")
         data = self._board_data()
         payload = (json.dumps(data, ensure_ascii=False)
@@ -1974,7 +1959,7 @@ class Skein:
         tokens = {
             "PROJ": self.proj,
             "PAYLOAD": payload,
-            "VER": self._asset_rev(),
+            "VER": self._asset_rev(),  # /src/new/*.js?v=VER 缓存击穿
         }
         for k, v in tokens.items():
             html = html.replace("{{" + k + "}}", str(v))
@@ -2178,7 +2163,7 @@ class Skein:
         cmd += ["-r", str(req)] if req.exists() else ["fastapi", "uvicorn[standard]"]
         subprocess.run(cmd, check=False)
 
-    # ---- webapp 工程化前端: 静态目录 (dist/app.css + vendor/petite-vue.js 已入库, 运行态零下载零构建) ----
+    # ---- webapp 工程化前端: 静态目录 (src/new/* + vendor/htm.js 入库, 运行态零下载零构建) ----
     @staticmethod
     def _webapp_dir() -> Path:
         return (Path(__file__).resolve().parent.parent / "assets" / "webapp").resolve()
@@ -3077,7 +3062,6 @@ class DataSource(Protocol):
     def _board_data(self) -> dict[str, Any]: ...
     def _board_html(self) -> str: ...
     def _webapp_html(self) -> str: ...
-    def _webapp_html_new(self) -> str: ...
     def _board_fragment(self, status: Optional[str] = None,
                         offset: int = 0, limit: Optional[int] = None) -> dict[str, Any]: ...
     def _board_dag(self) -> dict[str, Any]: ...
@@ -3235,17 +3219,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         # DAG 单独端点: nodeVar/nodeCls/taskDag/fullDag (board 页 DAG 区独立 swap, 免拉全量 data)。
         return JSONResponse(board._board_dag())
 
-    @app.get("/__skein__/new", response_class=HTMLResponse)
-    async def _page_new() -> Any:
-        # 新入口 (htm 重写版): 双入口并存, 默认仍 _webapp_html, T7 切默认。
-        # src/new/index.html 不存在 → 404 (开发期显式失败, 不静默回落)。
-        if not (board._webapp_dir() / "src" / "new" / "index.html").exists():
-            return JSONResponse({"error": "新 webapp index.html 未构建"}, status_code=404)
-        return board._webapp_html_new()
-
     @app.get("/", response_class=HTMLResponse)
-    async def _page() -> str:  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
-        return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
+    async def _page() -> str:  # 首页: webapp/src/new/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
+        return board._webapp_html() if (board._webapp_dir() / "src" / "new" / "index.html").exists() else board._board_html()
 
     @app.websocket(board._LIVE_PATH)
     async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
@@ -3353,7 +3329,7 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     # /task /board 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
     # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
     def _spa() -> str:
-        return board._webapp_html() if (board._webapp_dir() / "index.html").exists() else board._board_html()
+        return board._webapp_html() if (board._webapp_dir() / "src" / "new" / "index.html").exists() else board._board_html()
 
     @app.get("/task", response_class=HTMLResponse)
     async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
@@ -3365,11 +3341,11 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
 
     # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
     app.mount("/board", StaticFiles(directory=str(board._board_assets_dir())), name="board")
-    # webapp 工程化前端: 首页在 / 出, 其 index.html 相对引 dist/app.css + src/app.js → 挂 /dist /src /vendor 使之解析
-    # (check_dir=False: s1 未落地 / css 未构建时不炸)
-    app.mount("/webapp", _NoCacheStatic(directory=str(board._webapp_dir()), check_dir=False), name="webapp")
+    # webapp 工程化前端 (htm 重写版): 首页在 / 出, 其 src/new/index.html 相对引 ../tokens.css + ../design.css
+    # + ./app.js (ES module 动态 import ./pages/*.js + ./lib/*.js + ../../dag.js + ../../prd-parse.js)。
+    # 挂 /src /vendor 使这些相对 URL 解析; check_dir=False: 兼容开发期部分目录未落地不炸。
+    # ponytail: T7 删旧 petite-vue 版后 /webapp /dist 两 mount 同步删 (无引用)。
     app.mount("/src", _NoCacheStatic(directory=str(board._webapp_dir() / "src"), check_dir=False), name="src")
-    app.mount("/dist", _NoCacheStatic(directory=str(board._webapp_dir() / "dist"), check_dir=False), name="dist")
     app.mount("/vendor", StaticFiles(directory=str(board._webapp_dir() / "vendor"), check_dir=False), name="vendor")
     # 规划文档 (prd/design/findings.md) 直出 .skein/task/: doc.js fetch task/<id>/<f>.md → /task/<id>/<f>.md
     # check_dir=False: 空仓无 .skein/task 时不炸 (StaticFiles 自带穿越守卫, 只出既存文件)
