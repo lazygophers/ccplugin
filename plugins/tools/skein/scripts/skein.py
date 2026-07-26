@@ -1964,6 +1964,55 @@ class Skein:
             html = html.replace("{{" + k + "}}", str(v))
         return html
 
+    def _webapp_html_new(self) -> str:
+        # 新入口 (htm 重写版, assets/webapp/src/new/index.html): 双入口并存, 默认仍 _webapp_html, T7 切默认。
+        # token 同 _webapp_html (PROJ/PAYLOAD/VER); 新 index.html 引 ../tokens.css + ../design.css + ./app.js。
+        html = (self._webapp_dir() / "src" / "new" / "index.html").read_text(encoding="utf-8")
+        data = self._board_data()
+        payload = (json.dumps(data, ensure_ascii=False)
+                   .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
+        tokens = {
+            "PROJ": self.proj,
+            "PAYLOAD": payload,
+            "VER": self._asset_rev(),
+        }
+        for k, v in tokens.items():
+            html = html.replace("{{" + k + "}}", str(v))
+        return html
+
+    def _board_fragment(self, status: Optional[str] = None,
+                        offset: int = 0, limit: Optional[int] = None) -> dict[str, Any]:
+        # board cards 子集 (复用 _board_data, 支持状态/offset/limit 过滤)。
+        # ponytail: 在 _board_data() 之上做纯过滤, 不破 DataSource seam; 单测复用 _board_data 视图。
+        data = self._board_data()
+        cards = data["cards"]
+        if status and status != "all":
+            cards = [c for c in cards if c.get("status") == status]
+        if offset:
+            cards = cards[offset:]
+        if limit is not None:
+            cards = cards[:limit]
+        return {"cards": cards, "overview": data["overview"], "filterOpts": data["filterOpts"]}
+
+    def _board_dag(self) -> dict[str, Any]:
+        # DAG 单独端点: nodeVar/nodeCls/nodeGraph (board 页 DAG 区独立 swap, 免拉全量 data)。
+        # ponytail: 抽 _board_data 的 DAG 相关字段, 单测复用。
+        data = self._board_data()
+        return {
+            "nodeVar": data["nodeVar"],
+            "nodeCls": data["nodeCls"],
+            "taskDag": data["overview"]["taskDag"],
+            "fullDag": data["overview"].get("fullDag"),
+        }
+
+    def _spec_rev(self) -> str:
+        # spec rev: .skein/spec/ 内 .md 最大 mtime_ns。变 → WS 推 "spec-changed"。
+        # ponytail: rglob ~几十 .md 文件 stat (500ms 周期, 免读内容); 与 _data_rev 独立 (spec 不进 task.json)。
+        root = self._spec_root()
+        if not root.exists():
+            return "0"
+        return self._max_mtime([p for p in root.rglob("*.md") if p.is_file()])
+
     # ---- webapp 后端数据 (serve endpoint 复用; 与 _board_data 同一数据源) ----
     def _spec_root(self) -> Path:
         return (self.dir / "spec").resolve()
@@ -3028,6 +3077,11 @@ class DataSource(Protocol):
     def _board_data(self) -> dict[str, Any]: ...
     def _board_html(self) -> str: ...
     def _webapp_html(self) -> str: ...
+    def _webapp_html_new(self) -> str: ...
+    def _board_fragment(self, status: Optional[str] = None,
+                        offset: int = 0, limit: Optional[int] = None) -> dict[str, Any]: ...
+    def _board_dag(self) -> dict[str, Any]: ...
+    def _spec_rev(self) -> str: ...
     def _dashboard(self) -> dict[str, Any]: ...
     def _queue(self) -> dict[str, Any]: ...
     def _task_detail(self, tid: str) -> Optional[dict[str, Any]]: ...
@@ -3037,6 +3091,17 @@ class DataSource(Protocol):
     def _spec_resolve(self, rel: Any) -> Optional[Path]: ...
     def _exec_argv(self, body: dict[str, Any]) -> Optional[list[str]]: ...
     def config(self) -> dict[str, Any]: ...
+
+
+def _cards_signature(data: dict[str, Any]) -> dict[str, tuple]:
+    # 取 cards 关键字段做 signature (变即推 task-changed); 不深比 desc/subtable 等重字段 (省 CPU)。
+    # ponytail: O(n) n=task 数; signature tuple 含 status/pct/sdone/stotal/started/finished/worktree, 软刷覆盖此集变化。
+    out: dict[str, tuple] = {}
+    for c in data.get("cards", []):
+        out[c["id"]] = (c.get("status"), c.get("spct"), c.get("sdone"), c.get("stotal"),
+                        c.get("started"), c.get("finished"), c.get("worktree"),
+                        c.get("nextUp"), c.get("stage"))
+    return out
 
 
 def build_app(board: "DataSource", proj_id: str, quiet: bool,
@@ -3068,24 +3133,54 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     clients: set[Any] = set()  # 活跃热重载 WS 连接
 
     async def _watch_loop() -> None:
-        # 每 500ms 比 rev。资产变 (css/js/结构) → "reload" 整页刷 (换 head); 仅数据变 (task.json) → "data" 软刷 (只 swap .layout)。
-        # 资产变优先整页 (data 也可能同变, 但整页已覆盖数据)。
+        # 每 500ms 比 rev。资产变 (css/js/结构) → {type:"reload"} 整页刷 (换 head)。
+        # 数据变 (task.json) → diff _board_data() 前后快照, 逐 task id 推 {type:"task-changed", id};
+        #   无差异 (仅 mtime 变内容未变) → 兜底推 {type:"data"} (旧字符串兼容, T2 live.js dispatch 双协议)。
+        # spec 变 (.skein/spec/*.md) → 推 {type:"spec-changed", path:""}; path 暂空 (spec 页全订阅, 不细粒度)。
+        # ponytail: diff 范围限 status/关键字段 (不深比), O(n) n=task 数, 500ms 周期可接受 (n≤百级)。
+        # 兼容: 保留字符串 "reload"/"data" (T2 live.js dispatch 兜底); 新 JSON 为主, 旧字符串作 fallback。
         last_a = board._asset_rev()
         last_d = board._data_rev()
+        last_s = board._spec_rev()
+        try:
+            last_cards = _cards_signature(board._board_data())
+        except Exception:
+            last_cards = {}
+
         while True:
             await asyncio.sleep(0.5)
             try:
-                cur_a, cur_d = board._asset_rev(), board._data_rev()
+                cur_a, cur_d, cur_s = board._asset_rev(), board._data_rev(), board._spec_rev()
             except Exception:
                 continue
-            msg = "reload" if cur_a != last_a else ("data" if cur_d != last_d else None)
-            if msg:
-                last_a, last_d = cur_a, cur_d
+            msgs: list[str] = []
+            if cur_a != last_a:
+                msgs.append(json.dumps({"type": "reload"}))
+            elif cur_d != last_d:
+                # 数据变: diff task id 推精准 swap; 无差异兜底 "data" (全订阅软刷)
+                try:
+                    new_cards = _cards_signature(board._board_data())
+                except Exception:
+                    new_cards = {}
+                changed = [tid for tid, sig in new_cards.items() if last_cards.get(tid) != sig]
+                # 兼容删除的 task: 旧有新无也算 changed (软刷列表移除)
+                removed = [tid for tid in last_cards if tid not in new_cards]
+                for tid in changed + removed:
+                    msgs.append(json.dumps({"type": "task-changed", "id": tid}))
+                if not msgs:
+                    msgs.append("data")  # 旧字符串协议兜底 (无差异但 rev 变, 全订阅软刷)
+                last_cards = new_cards
+            elif cur_s != last_s:
+                msgs.append(json.dumps({"type": "spec-changed", "path": ""}))
+            if msgs:
+                last_a, last_d, last_s = cur_a, cur_d, cur_s
                 for c in list(clients):
-                    try:
-                        await c.send_text(msg)
-                    except Exception:
-                        clients.discard(c)
+                    for msg in msgs:
+                        try:
+                            await c.send_text(msg)
+                        except Exception:
+                            clients.discard(c)
+                            break
 
     @asynccontextmanager
     async def lifespan(_app: Any) -> AsyncIterator[None]:
@@ -3127,6 +3222,26 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     @app.get("/__skein__/data")
     async def _data() -> JSONResponse:  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
         return JSONResponse(board._board_data())
+
+    @app.get("/__skein__/board/fragment")
+    async def _board_fragment(status: Optional[str] = None,
+                              offset: int = 0, limit: Optional[int] = None) -> JSONResponse:
+        # board cards 子集 (T3 拆片段端点): status 过滤 + offset/limit 分页, 复用 _board_data 的 cards。
+        # ponytail: 默认全量 (与 /data 一致), 仅在传参时切片; 不破旧契约。
+        return JSONResponse(board._board_fragment(status=status, offset=offset, limit=limit))
+
+    @app.get("/__skein__/board/dag")
+    async def _board_dag() -> JSONResponse:
+        # DAG 单独端点: nodeVar/nodeCls/taskDag/fullDag (board 页 DAG 区独立 swap, 免拉全量 data)。
+        return JSONResponse(board._board_dag())
+
+    @app.get("/__skein__/new", response_class=HTMLResponse)
+    async def _page_new() -> Any:
+        # 新入口 (htm 重写版): 双入口并存, 默认仍 _webapp_html, T7 切默认。
+        # src/new/index.html 不存在 → 404 (开发期显式失败, 不静默回落)。
+        if not (board._webapp_dir() / "src" / "new" / "index.html").exists():
+            return JSONResponse({"error": "新 webapp index.html 未构建"}, status_code=404)
+        return board._webapp_html_new()
 
     @app.get("/", response_class=HTMLResponse)
     async def _page() -> str:  # 首页: webapp/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)

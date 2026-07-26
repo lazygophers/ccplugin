@@ -1,0 +1,656 @@
+/* SKEIN webapp — Design System 基底 · 海滩蓝金 (框架无关, 纯 CSS)
+   ── 背景流体 + 布局原语 (8+) + antd 6 类组件范式 + 动效 7+ (prefers-reduced-motion 全退化)
+   · 引用 tokens.css 的硬 token, 不依赖 Tailwind; 后续 T2 换 Tailwind CDN 时本文件不改。
+   · 类名约定复用 examples (L54-411 + components tab); 每组件给明暗双模。 */
+
+/* ═══════════ 背景流体 (examples:57-107) ═══════════
+   bg-fluid-light: 白沙→奶油→浪花渐变 + 双角光晕;
+   bg-fluid-dark:  night 渐变 + 海蓝/暖金角光晕。 */
+.bg-fluid-light {
+  background: linear-gradient(180deg, #fffefb 0%, #f8f0dc 50%, #e8f4fa 100%);
+  position: relative; overflow: hidden;
+}
+.bg-fluid-dark {
+  background: linear-gradient(180deg, #0f2033 0%, #162c42 100%);
+  position: relative; overflow: hidden;
+}
+.bg-wave { background: linear-gradient(90deg, #e8f4fa 0%, #74b9e8 100%); }   /* examples:68 */
+
+.bg-fluid-light::before {
+  content: ''; position: absolute; width: 600px; height: 600px; border-radius: 999px;
+  background: radial-gradient(circle, rgba(116,185,232,0.35) 0%, transparent 65%);
+  top: -150px; right: -120px; filter: blur(60px); z-index: 0;
+}
+.bg-fluid-light::after {
+  content: ''; position: absolute; width: 420px; height: 420px; border-radius: 999px;
+  background: radial-gradient(circle, rgba(230,200,139,0.30) 0%, transparent 70%);
+  bottom: -100px; left: -80px; filter: blur(70px); z-index: 0;
+}
+.bg-fluid-dark::before {
+  content: ''; position: absolute; width: 650px; height: 650px; border-radius: 999px;
+  background: radial-gradient(circle, rgba(66,156,209,0.18) 0%, transparent 65%);
+  top: -180px; right: -150px; filter: blur(80px); z-index: 0;
+}
+.bg-fluid-dark::after {
+  content: ''; position: absolute; width: 480px; height: 480px; border-radius: 999px;
+  background: radial-gradient(circle, rgba(212,176,102,0.16) 0%, transparent 70%);
+  bottom: -120px; left: -100px; filter: blur(85px); z-index: 0;
+}
+
+/* ═══════════ 布局原语 (8+) ═══════════ */
+
+/* 1. .glass 玻璃质感 (examples:119-122 backdrop-blur 14px) */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-brd);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.25);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.25);
+  box-shadow: 0 4px 14px var(--popover-shadow), inset 0 1px 0 var(--glass-inset-hi);
+}
+
+/* 2. .hover-float 悬浮上浮 (examples:136-141) */
+.hover-float { transition: all 0.36s cubic-bezier(0.22, 1, 0.36, 1); }
+.hover-float:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+}
+
+/* 3. .text-gradient 渐变文字 (examples:123-134) */
+.text-gradient-gold {
+  background: linear-gradient(90deg, var(--goldSand-deep), var(--goldSand-mid));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.text-gradient-ocean {
+  background: linear-gradient(90deg, var(--ocean-deep), var(--ocean-shallow));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+[data-theme="skein-dark"] .text-gradient-ocean {
+  background: linear-gradient(90deg, var(--ocean-shallow), var(--goldSand-mid));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* 4. .tab-btn 标签按钮 (examples:167-184) — 单 .tab-btn 不绑定 data-tab, 由 JS 切 active */
+.tab-btn {
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.tab-btn:hover { color: var(--ocean-deep); background: rgba(66,156,209,0.08); }
+[data-theme="skein-dark"] .tab-btn:hover { color: var(--ocean-shallow); background: rgba(116,185,232,0.12); }
+.tab-btn.active { background: var(--ocean-mid); color: #fff; }
+[data-theme="skein-dark"] .tab-btn.active { background: var(--ocean-mid); color: #fff; }
+
+/* 5. .eyebrow 小标题前缀 (input.css:201 衔接) */
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--accent2); margin-bottom: 9px;
+  display: inline-flex; align-items: center; gap: 9px;
+}
+.eyebrow::before { content: ''; width: 26px; height: 1px; background: var(--accent); opacity: .6; }
+[data-theme="skein-dark"] .eyebrow { color: var(--goldSand-mid); }
+[data-theme="skein-dark"] .eyebrow::before { background: var(--goldSand-mid); }
+
+/* 6. .tl-dot 时间轴节点 (examples:198-213) — 4 态: default/done/cur/custom */
+.tl-axis { position: relative; margin: 6px 0 4px; padding-left: 24px; }
+.tl-node { position: relative; padding: 0 0 22px 8px; }
+.tl-node:last-child { padding-bottom: 0; }
+.tl-node::before {
+  content: ""; position: absolute; left: -19px; top: 18px; bottom: -2px; width: 2px;
+  background: rgba(148,163,184,0.35);
+}
+[data-theme="skein-dark"] .tl-node::before { background: rgba(148,163,184,0.25); }
+.tl-node:last-child::before { display: none; }
+.tl-node.done::before { background: linear-gradient(180deg, rgba(72,187,120,0.6), rgba(148,163,184,0.35)); }
+.tl-dot {
+  position: absolute; left: -23px; top: 5px; width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #cbd5e1; background: #fff; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+}
+[data-theme="skein-dark"] .tl-dot { border-color: #475569; background: var(--night-mid); }
+.tl-dot.done { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); color: #fff; }
+.tl-dot.done::after { content: "\2713"; font-size: 7px; line-height: 1; }
+.tl-dot.cur { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); animation: tlPulse 1.6s ease-in-out infinite; }
+.tl-dot.custom { background: var(--tl-c, var(--ocean-mid)); border-color: var(--tl-c, var(--ocean-mid)); color: #fff; }
+.tl-dot.custom::after { content: var(--tl-icon, "\2713"); font-size: 7px; line-height: 1; }
+.tl-time { font-variant-numeric: tabular-nums; font-size: 11px; color: #94a3b8; letter-spacing: 0.02em; }
+.tl-name { font-weight: 600; color: var(--fg); font-size: 14px; }
+.tl-desc { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+.tl-dur  { font-variant-numeric: tabular-nums; font-size: 11px; color: #94a3b8; }
+.tl-st   { display: inline-block; padding: 1px 7px; border-radius: 9px; font-size: 10px; line-height: 15px; font-weight: 500; vertical-align: middle; }
+.tl-st.done    { background: rgba(72,187,120,0.18); color: #2f855a; }
+.tl-st.cur     { background: var(--tl-c-bg, rgba(66,156,209,0.2)); color: var(--tl-c, var(--ocean-deep)); }
+.tl-st.pending { background: transparent; color: #94a3b8; border: 1px solid #e2e8f0; }
+[data-theme="skein-dark"] .tl-st.done    { background: rgba(72,187,120,0.25); color: #9ae6b4; }
+[data-theme="skein-dark"] .tl-st.cur     { background: var(--tl-c-bg, rgba(116,185,232,0.25)); color: var(--ocean-shallow); }
+[data-theme="skein-dark"] .tl-st.pending { color: #64748b; border-color: #334155; }
+[data-theme="skein-dark"] .tl-time { color: #64748b; }
+[data-theme="skein-dark"] .tl-dur  { color: #64748b; }
+/* 横向 timeline (examples:232-241) */
+.tl-h-axis { position: relative; display: flex; justify-content: space-between; padding: 24px 12px 8px; overflow-x: auto; }
+.tl-h-axis::before {
+  content: ""; position: absolute; left: 20px; right: 20px; top: 32px; height: 2px;
+  background: linear-gradient(90deg, var(--ocean-shallow), var(--ocean-mid), var(--ocean-deep));
+}
+.tl-h-node { position: relative; flex: 0 0 auto; text-align: center; min-width: 80px; }
+.tl-h-dot {
+  width: 16px; height: 16px; border-radius: 50%; background: var(--tl-c, var(--ocean-mid));
+  border: 3px solid #fff; box-shadow: 0 0 0 2px var(--tl-c, var(--ocean-mid));
+  margin: 0 auto 8px; position: relative; z-index: 1;
+}
+[data-theme="skein-dark"] .tl-h-dot { border-color: var(--night-mid); }
+.tl-h-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+.tl-h-time  { font-size: 10px; color: #94a3b8; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* 7. .dag-node 节点态 (examples:301-356) — 配 .dag-svg; 4 态: default/done/active/failed */
+.dag-svg { width: 100%; height: auto; font-family: var(--font); font-size: 12px; overflow: visible; }
+.dag-svg text { fill: var(--fg); font-weight: 500; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+[data-theme="skein-dark"] .dag-svg text { fill: #f1f5f9; }
+.dag-svg .node > rect, .dag-svg .node > ellipse, .dag-svg .node > polygon {
+  stroke: var(--ocean-shallow); stroke-width: 1.5; fill: var(--whiteSand-pearl);
+  transform-box: fill-box; transform-origin: center;
+  transition: fill .2s, stroke .2s, transform .15s, filter .15s;
+}
+[data-theme="skein-dark"] .dag-svg .node > rect,
+[data-theme="skein-dark"] .dag-svg .node > ellipse,
+[data-theme="skein-dark"] .dag-svg .node > polygon { stroke: var(--ocean-mid); fill: var(--night-mid); }
+.dag-svg .node.done > rect, .dag-svg .node.done > ellipse, .dag-svg .node.done > polygon { fill: rgba(72,187,120,0.18); stroke: var(--success); }
+[data-theme="skein-dark"] .dag-svg .node.done > rect,
+[data-theme="skein-dark"] .dag-svg .node.done > ellipse,
+[data-theme="skein-dark"] .dag-svg .node.done > polygon { fill: rgba(72,187,120,0.28); stroke: var(--success); }
+.dag-svg .node.done > text { fill: #2f855a; }
+[data-theme="skein-dark"] .dag-svg .node.done > text { fill: #9ae6b4; }
+.dag-svg .node.active > rect, .dag-svg .node.active > ellipse, .dag-svg .node.active > polygon {
+  fill: var(--ocean-deep); stroke: var(--ocean-abyss); animation: dagPulse 1.6s ease-in-out infinite;
+}
+[data-theme="skein-dark"] .dag-svg .node.active > rect,
+[data-theme="skein-dark"] .dag-svg .node.active > ellipse,
+[data-theme="skein-dark"] .dag-svg .node.active > polygon { fill: var(--ocean-mid); stroke: var(--ocean-shallow); }
+.dag-svg .node.active > text { fill: #fff; }
+.dag-svg .node.failed > rect, .dag-svg .node.failed > ellipse, .dag-svg .node.failed > polygon {
+  fill: #fff; stroke: var(--danger); stroke-width: 2;
+}
+[data-theme="skein-dark"] .dag-svg .node.failed > rect,
+[data-theme="skein-dark"] .dag-svg .node.failed > ellipse,
+[data-theme="skein-dark"] .dag-svg .node.failed > polygon { fill: var(--night-mid); stroke: var(--danger); }
+.dag-svg .node.failed > text { fill: var(--danger); }
+.dag-svg .node { cursor: pointer; opacity: 0; animation: dagFadeIn .4s ease-out forwards; }
+.dag-svg .node:nth-of-type(4n+1) { animation-delay: 0ms; }
+.dag-svg .node:nth-of-type(4n+2) { animation-delay: 80ms; }
+.dag-svg .node:nth-of-type(4n+3) { animation-delay: 160ms; }
+.dag-svg .node:nth-of-type(4n)   { animation-delay: 240ms; }
+.dag-svg .node:hover > rect, .dag-svg .node:hover > ellipse, .dag-svg .node:hover > polygon {
+  transform: scale(1.08); filter: drop-shadow(0 4px 8px rgba(0,0,0,.15));
+}
+.dag-svg .edge { stroke: #94a3b8; stroke-width: 1.4; fill: none; }
+[data-theme="skein-dark"] .dag-svg .edge { stroke: #64748b; }
+.dag-svg .edge.dashed { stroke-dasharray: 4 3; }
+.dag-svg .edge.active { stroke: var(--ocean-mid); stroke-width: 1.8; stroke-dasharray: 6 4; animation: dagFlow 1s linear infinite; }
+[data-theme="skein-dark"] .dag-svg .edge.active { stroke: var(--ocean-shallow); }
+/* DAG popover + modal (examples:367-411) */
+.dag-popover { opacity: 0; pointer-events: none; transition: opacity .15s; overflow: visible; }
+.dag-svg .node:hover .dag-popover { opacity: 1; }
+.dag-pop-inner {
+  background: var(--popover-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--popover-brd); border-radius: 8px; padding: 6px 8px; font-size: 11px; color: var(--fg);
+  box-shadow: 0 4px 14px var(--popover-shadow); width: 170px; height: 92px;
+  box-sizing: border-box; display: flex; flex-direction: column; gap: 4px;
+  font-family: var(--font); line-height: 1.3;
+}
+[data-theme="skein-dark"] .dag-pop-inner { color: #f1f5f9; }
+.dag-pop-name { font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.dag-pop-badge { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dag-pop-badge.done    { background: var(--success); }
+.dag-pop-badge.active  { background: var(--ocean-mid); }
+.dag-pop-badge.failed  { background: var(--danger); }
+.dag-pop-badge.default { background: #94a3b8; }
+.dag-pop-bar { height: 5px; background: rgba(148,163,184,0.25); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+.dag-pop-bar > i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--ocean-mid), var(--goldSand-deep)); }
+.dag-pop-bar.done > i   { background: var(--success); }
+.dag-pop-bar.failed > i { background: var(--danger); }
+[data-theme="skein-dark"] .dag-pop-bar > i { background: linear-gradient(90deg, var(--ocean-shallow), var(--goldSand-mid)); }
+.dag-pop-meta { font-size: 10px; color: var(--muted); margin-top: auto; display: flex; justify-content: space-between; }
+/* DAG Modal: 原生 dialog (examples:392-411) */
+dialog.dag-modal {
+  border: none; border-radius: 10px; padding: 0;
+  background: rgba(255,254,251,0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  color: var(--fg); max-width: min(420px, 90vw);
+  box-shadow: 0 8px 28px rgba(212,176,102,0.20);
+}
+[data-theme="skein-dark"] dialog.dag-modal { background: rgba(22,44,66,0.90); color: #f1f5f9; }
+dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: blur(2px); }
+[data-theme="skein-dark"] dialog.dag-modal::backdrop { background: rgba(9,20,32,0.65); }
+.dag-modal-inner { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 300px; }
+.dag-modal-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.dag-modal-title {
+  font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; margin: 0;
+  border-bottom: 2px solid var(--goldSand-mid); padding-bottom: 6px;
+}
+.dag-modal-close {
+  border: none; background: transparent; font-size: 22px; line-height: 1; cursor: pointer;
+  color: var(--muted); padding: 2px 6px; border-radius: 4px;
+}
+.dag-modal-close:hover { background: rgba(148,163,184,0.20); }
+.dag-modal-row { font-size: 13px; line-height: 1.5; }
+.dag-modal-row strong { color: var(--ocean-abyss); font-weight: 600; margin-right: 4px; }
+[data-theme="skein-dark"] .dag-modal-row strong { color: var(--ocean-shallow); }
+.dag-modal-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.dag-modal-chips:empty::after { content: "—"; color: #94a3b8; }
+.dag-modal-chip {
+  display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+  background: rgba(240,217,160,0.28); color: var(--goldSand-deep);
+}
+[data-theme="skein-dark"] .dag-modal-chip { background: rgba(230,200,139,0.22); color: var(--goldSand-mid); }
+.dag-modal-bar-wrap { height: 8px; background: rgba(148,163,184,0.25); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.dag-modal-bar { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--ocean-mid), var(--goldSand-deep)); width: 0; }
+.dag-modal-bar.done   { background: var(--success); }
+.dag-modal-bar.failed { background: var(--danger); }
+
+/* 8. .bg-wave-bar 进度条蓝金流光 (替代 skein-bar, 跨页复用) */
+.bg-wave-bar {
+  position: relative; background: var(--bar-track); border-radius: 4px; height: 7px; overflow: hidden;
+}
+.bg-wave-bar > .fill {
+  position: relative; overflow: hidden; height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--ocean-mid), var(--goldSand-deep));
+  box-shadow: 0 0 8px rgba(66,156,209,0.30);
+}
+.bg-wave-bar.active > .fill::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(230,200,139,0.50), transparent);
+  animation: skeinShimmer 1.8s linear infinite;
+}
+
+/* ═══════════ antd 6 类组件范式 (examples:786-1429) ═══════════
+   每类至少 1 组件, 明暗双模; 类名前缀 .antd-* 避免与下游 Tailwind 类冲突。 */
+
+/* ── 类目 1: General · Button (examples:798-815) ── */
+.antd-btn {
+  display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+  padding: 6px 16px; border-radius: var(--radius-sm); border: 1px solid transparent;
+  font: 500 13px/1.4 var(--font); cursor: pointer; transition: background .15s, border-color .15s, color .15s, transform .1s;
+  background: var(--ocean-deep); color: #fff;
+}
+.antd-btn:hover { background: var(--ocean-abyss); }
+[data-theme="skein-dark"] .antd-btn { background: var(--ocean-deep); color: #fff; }
+[data-theme="skein-dark"] .antd-btn:hover { background: var(--ocean-abyss); }
+.antd-btn:active { transform: translateY(1px); }
+.antd-btn-default {
+  background: transparent; color: var(--ocean-deep); border-color: var(--ocean-deep);
+}
+[data-theme="skein-dark"] .antd-btn-default { color: var(--ocean-shallow); border-color: var(--ocean-shallow); }
+.antd-btn-default:hover { background: rgba(66,156,209,0.10); }
+.antd-btn-dashed {
+  background: transparent; color: var(--muted); border: 1px dashed #94a3b8;
+}
+.antd-btn-dashed:hover { color: var(--ocean-mid); border-color: var(--ocean-mid); }
+.antd-btn-text { background: transparent; color: var(--ocean-deep); border-color: transparent; }
+[data-theme="skein-dark"] .antd-btn-text { color: var(--ocean-shallow); }
+.antd-btn-text:hover { background: rgba(66,156,209,0.10); }
+.antd-btn-link { background: transparent; color: var(--ocean-deep); border-color: transparent; padding: 6px 8px; }
+[data-theme="skein-dark"] .antd-btn-link { color: var(--ocean-shallow); }
+.antd-btn-link:hover { text-decoration: underline; }
+.antd-btn-danger { background: var(--danger); color: #fff; }
+.antd-btn-danger:hover { background: #c53030; }
+.antd-btn:disabled,
+.antd-btn.disabled { background: var(--brd); color: var(--muted); cursor: not-allowed; opacity: 0.65; }
+.antd-btn-lg { padding: 10px 20px; font-size: 15px; }
+.antd-btn-sm { padding: 4px 12px; font-size: 12px; }
+
+/* ── 类目 2: Navigation · Menu 水平 + 垂直 (examples:947-985) ── */
+.antd-menu-h {
+  display: flex; align-items: center; gap: 4px;
+  border-bottom: 1px solid var(--brd); padding-bottom: 8px;
+}
+.antd-menu-h > a {
+  padding: 6px 12px; border-radius: var(--radius-sm); font-size: 14px; color: var(--muted);
+  cursor: pointer; text-decoration: none; transition: background .15s, color .15s;
+}
+.antd-menu-h > a:hover { background: rgba(66,156,209,0.08); color: var(--ocean-deep); }
+[data-theme="skein-dark"] .antd-menu-h > a:hover { background: rgba(116,185,232,0.12); color: var(--ocean-shallow); }
+.antd-menu-h > a.active { background: rgba(66,156,209,0.15); color: var(--ocean-deep); font-weight: 500; }
+[data-theme="skein-dark"] .antd-menu-h > a.active { background: rgba(116,185,232,0.20); color: var(--ocean-shallow); }
+.antd-menu-v {
+  border: 1px solid var(--brd); border-radius: var(--radius-sm); padding: 4px;
+  font-size: 14px; background: var(--glass-bg);
+}
+.antd-menu-v > a, .antd-menu-v > details > summary {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius-sm);
+  color: var(--fg); cursor: pointer; text-decoration: none;
+}
+.antd-menu-v > a:hover, .antd-menu-v > details > summary:hover { background: rgba(148,163,184,0.10); }
+.antd-menu-v > a.active { background: rgba(66,156,209,0.15); color: var(--ocean-deep); font-weight: 500; }
+[data-theme="skein-dark"] .antd-menu-v > a.active { background: rgba(116,185,232,0.20); color: var(--ocean-shallow); }
+.antd-menu-v details > summary { list-style: none; }
+.antd-menu-v details > summary::-webkit-details-marker { display: none; }
+.antd-menu-v details[open] > summary .chev { transform: rotate(90deg); }
+.antd-menu-v .chev { transition: transform 0.2s; display: inline-block; font-size: 10px; }
+.antd-menu-v details > div { padding: 4px 0 4px 16px; }
+.antd-menu-v details > div > a {
+  display: block; padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px;
+  color: var(--muted); text-decoration: none; transition: background .15s;
+}
+.antd-menu-v details > div > a:hover { background: rgba(148,163,184,0.10); color: var(--fg); }
+/* Pagination + Breadcrumb (examples:991-1011) */
+.antd-pagination { display: flex; align-items: center; gap: 4px; font-size: 14px; }
+.antd-pagination button {
+  min-width: 32px; height: 32px; padding: 0 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--brd); background: transparent; color: var(--fg);
+  cursor: pointer; transition: border-color .15s, color .15s;
+}
+.antd-pagination button:hover { border-color: var(--ocean-mid); color: var(--ocean-mid); }
+.antd-pagination button.active { background: var(--ocean-deep); color: #fff; border-color: var(--ocean-deep); }
+[data-theme="skein-dark"] .antd-pagination button.active { background: var(--ocean-mid); border-color: var(--ocean-mid); }
+.antd-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.antd-breadcrumb a { color: var(--ocean-deep); text-decoration: none; cursor: pointer; }
+[data-theme="skein-dark"] .antd-breadcrumb a { color: var(--ocean-shallow); }
+.antd-breadcrumb a:hover { text-decoration: underline; }
+.antd-breadcrumb .sep { color: var(--muted); font-size: 11px; }
+.antd-breadcrumb .current { color: var(--muted); }
+/* Steps (examples:1017-1044) */
+.antd-steps { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.antd-steps .step { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.antd-steps .step-dot {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 14px; font-weight: 500;
+}
+.antd-steps .step.done .step-dot { background: var(--success); color: #fff; }
+.antd-steps .step.current .step-dot { background: var(--ocean-deep); color: #fff; }
+[data-theme="skein-dark"] .antd-steps .step.current .step-dot { background: var(--ocean-mid); }
+.antd-steps .step.wait .step-dot {
+  background: transparent; border: 2px solid var(--brd); color: var(--muted);
+}
+.antd-steps .step-label { font-size: 12px; color: var(--muted); }
+.antd-steps .step.current .step-label { color: var(--ocean-deep); font-weight: 500; }
+[data-theme="skein-dark"] .antd-steps .step.current .step-label { color: var(--ocean-shallow); }
+.antd-steps .step-bar { height: 2px; width: 64px; margin: 0 4px; }
+.antd-steps .step-bar.done { background: var(--success); }
+.antd-steps .step-bar.wait { background: var(--brd); }
+
+/* ── 类目 3: DataEntry · Input / Select / Switch (examples:1057-1130) ── */
+.antd-input, .antd-select, .antd-textarea, .antd-datepicker {
+  width: 100%; padding: 6px 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--brd); background: var(--card); color: var(--fg);
+  font: 13px/1.4 var(--font); transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+}
+.antd-input:focus, .antd-select:focus, .antd-textarea:focus, .antd-datepicker:focus {
+  outline: none; border-color: var(--ocean-mid);
+  box-shadow: 0 0 0 2px rgba(66,156,209,0.20);
+}
+.antd-input::placeholder, .antd-textarea::placeholder { color: var(--muted); }
+.antd-input:disabled, .antd-select:disabled {
+  background: rgba(148,163,184,0.10); color: var(--muted); cursor: not-allowed;
+}
+.antd-input.err, .antd-select.err { border-color: var(--danger); }
+.antd-input.err:focus { box-shadow: 0 0 0 2px rgba(229,62,62,0.20); }
+.antd-textarea { resize: vertical; min-height: 80px; }
+.antd-input-wrap { position: relative; display: flex; align-items: center; }
+.antd-input-wrap > .antd-input { padding-left: 36px; }
+.antd-input-wrap > .leading {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 14px; pointer-events: none;
+}
+[data-theme="skein-dark"] .antd-input,
+[data-theme="skein-dark"] .antd-select,
+[data-theme="skein-dark"] .antd-textarea,
+[data-theme="skein-dark"] .antd-datepicker {
+  background: var(--night-mid); border-color: #334155;
+}
+.antd-checkbox, .antd-radio { accent-color: var(--ocean-mid); width: 16px; height: 16px; cursor: pointer; }
+/* Switch (examples:284-296) — appearance:none 改滑块 */
+.antd-switch {
+  appearance: none; -webkit-appearance: none;
+  width: 36px; height: 20px; border-radius: 999px;
+  background: #cbd5e1; position: relative; cursor: pointer;
+  transition: background 0.2s; outline: none; border: 0; flex: none;
+}
+.antd-switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; transition: transform 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+.antd-switch:checked { background: var(--ocean-mid); }
+.antd-switch:checked::after { transform: translateX(16px); }
+.antd-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+[data-theme="skein-dark"] .antd-switch { background: #475569; }
+[data-theme="skein-dark"] .antd-switch:checked { background: var(--ocean-mid); }
+
+/* ── 类目 4: DataDisplay · Card / Tag / Badge / Avatar / Tooltip / Skeleton (examples:1133-1428) ── */
+.antd-card {
+  display: block; padding: 16px 20px; border-radius: var(--radius-sm);
+  background: var(--card); border: 1px solid var(--brd);
+  transition: transform .2s, box-shadow .2s, border-color .2s;
+}
+.antd-card.hoverable:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
+.antd-card.emphasize { border-left: 4px solid var(--ocean-mid); }
+[data-theme="skein-dark"] .antd-card.emphasize { border-left-color: var(--ocean-shallow); }
+.antd-card-title {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  font-size: 14px; font-weight: 500; color: var(--fg); margin-bottom: 8px;
+}
+.antd-card-body { font-size: 13px; color: var(--muted); }
+.antd-card-actions {
+  display: flex; gap: 8px; margin-top: 12px; padding-top: 8px;
+  border-top: 1px solid var(--brd); font-size: 12px;
+}
+.antd-card-actions a { color: var(--ocean-deep); cursor: pointer; text-decoration: none; }
+.antd-card-actions a:hover { text-decoration: underline; }
+.antd-card-actions a.danger { color: var(--danger); }
+[data-theme="skein-dark"] .antd-card-actions a { color: var(--ocean-shallow); }
+[data-theme="skein-dark"] .antd-card { background: rgba(22,44,66,0.60); border-color: #334155; }
+/* Tag (examples:1229-1237) */
+.antd-tag {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px;
+  font-size: 12px; line-height: 18px; font-weight: 500;
+  border: 1px solid transparent; white-space: nowrap;
+}
+.antd-tag.ocean    { background: rgba(66,156,209,0.10);  border-color: var(--ocean-mid);   color: var(--ocean-deep); }
+.antd-tag.gold     { background: rgba(230,200,139,0.10); border-color: var(--goldSand-deep); color: var(--goldSand-deep); }
+.antd-tag.success  { background: rgba(72,187,120,0.10);  border-color: var(--success);    color: var(--success); }
+.antd-tag.warning  { background: rgba(237,137,54,0.10);  border-color: var(--warning);    color: var(--warning); }
+.antd-tag.danger   { background: rgba(229,62,62,0.10);   border-color: var(--danger);     color: var(--danger); }
+.antd-tag.solid    { background: var(--ocean-deep); color: #fff; border-color: var(--ocean-deep); }
+[data-theme="skein-dark"] .antd-tag.ocean { color: var(--ocean-shallow); }
+[data-theme="skein-dark"] .antd-tag.gold  { color: var(--goldSand-mid); }
+/* Badge (examples:1240-1251) — 数字/角标 */
+.antd-badge-count {
+  display: inline-block; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; background: var(--danger); color: #fff;
+  font-size: 10px; font-weight: 500; line-height: 16px; text-align: center;
+}
+.antd-badge-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--danger);
+  border: 2px solid var(--whiteSand-pearl);
+}
+[data-theme="skein-dark"] .antd-badge-dot { border-color: var(--night-base); }
+/* Avatar (examples:1258-1270) */
+.antd-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--ocean-shallow), var(--ocean-deep));
+  color: #fff; font-size: 13px; font-weight: 500; flex: none;
+}
+.antd-avatar.gold { background: var(--goldSand-deep); }
+.antd-avatar.success { background: var(--success); }
+.antd-avatar.square { border-radius: var(--radius-sm); }
+.antd-avatar.lg { width: 48px; height: 48px; font-size: 15px; }
+.antd-avatar.sm { width: 32px; height: 32px; font-size: 11px; }
+/* Tooltip (examples:1273-1277) — 纯 CSS :hover */
+.antd-tip-wrap { position: relative; display: inline-block; }
+.antd-tip-wrap .antd-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%) scale(0.85);
+  background: rgba(15,32,51,0.92); color: #fff; padding: 6px 10px; border-radius: 6px;
+  font-size: 12px; white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: all 0.18s ease; z-index: var(--z-float);
+}
+.antd-tip-wrap:hover .antd-tip { opacity: 1; transform: translateX(-50%) scale(1); }
+/* Skeleton (examples:247-255) — 闪动骨架 */
+.antd-skel {
+  background: linear-gradient(90deg,
+    rgba(148,163,184,0.18) 25%, rgba(148,163,184,0.35) 37%, rgba(148,163,184,0.18) 63%);
+  background-size: 400% 100%; animation: antdShimmer 1.4s ease infinite; border-radius: 4px;
+}
+[data-theme="skein-dark"] .antd-skel {
+  background: linear-gradient(90deg,
+    rgba(100,116,139,0.18) 25%, rgba(100,116,139,0.35) 37%, rgba(100,116,139,0.18) 63%);
+  background-size: 400% 100%;
+}
+
+/* ── 类目 5: Feedback · Modal / Alert / Message / Spin / Progress (examples:1314-1428) ── */
+/* Modal: 原生 dialog (examples:256-263) */
+dialog.antd-modal {
+  border: none; border-radius: var(--radius-sm); padding: 0;
+  background: #fff; color: var(--fg); max-width: 90vw;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.08), 0 3px 6px rgba(0,0,0,0.06);
+}
+[data-theme="skein-dark"] dialog.antd-modal { background: var(--night-mid); color: #f1f5f9; }
+dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: blur(2px); }
+[data-theme="skein-dark"] dialog.antd-modal::backdrop { background: rgba(9,20,32,0.65); }
+.antd-modal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--brd);
+}
+.antd-modal-title { font-size: 15px; font-weight: 600; color: var(--fg); margin: 0; }
+.antd-modal-close {
+  border: 0; background: transparent; color: var(--muted); cursor: pointer;
+  font-size: 16px; line-height: 1; padding: 4px 8px; border-radius: 6px;
+}
+.antd-modal-close:hover { color: var(--fg); background: rgba(148,163,184,0.20); }
+.antd-modal-body { padding: 16px 20px; font-size: 14px; line-height: 1.5; color: var(--fg); }
+.antd-modal-foot {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 20px; border-top: 1px solid var(--brd);
+}
+/* Alert (examples:1322-1342) */
+.antd-alert {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 16px; border-radius: var(--radius-sm);
+  border: 1px solid transparent; font-size: 13px; line-height: 1.5;
+}
+.antd-alert .antd-alert-icon { flex: none; margin-top: 2px; }
+.antd-alert .antd-alert-text { flex: 1; }
+.antd-alert .antd-alert-text strong { font-weight: 600; margin-right: 4px; }
+.antd-alert.info     { background: rgba(66,156,209,0.10);  border-color: rgba(66,156,209,0.30);  color: var(--ocean-deep); }
+.antd-alert.success  { background: rgba(72,187,120,0.10);  border-color: rgba(72,187,120,0.30);  color: var(--success); }
+.antd-alert.warning  { background: rgba(237,137,54,0.10);  border-color: rgba(237,137,54,0.30);  color: var(--warning); }
+.antd-alert.error    { background: rgba(229,62,62,0.10);   border-color: rgba(229,62,62,0.30);   color: var(--danger); }
+[data-theme="skein-dark"] .antd-alert.info { color: var(--ocean-shallow); }
+/* Message: 顶部 toast (examples:264-269) */
+.antd-message {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-100px);
+  opacity: 0; transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
+  z-index: var(--z-toast); pointer-events: none;
+}
+.antd-message.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.antd-message-inner {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-sm);
+  color: #fff; font-size: 14px; box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+.antd-message.success .antd-message-inner { background: rgba(72,187,120,0.95); }
+.antd-message.info    .antd-message-inner { background: rgba(66,156,209,0.95); }
+.antd-message.warning .antd-message-inner { background: rgba(237,137,54,0.95); }
+.antd-message.error   .antd-message-inner { background: rgba(229,62,62,0.95); }
+/* Spin (examples:245-246) */
+.antd-spin { animation: antdSpin 1s linear infinite; display: inline-block; }
+/* Progress (examples:1384-1405) */
+.antd-progress-track {
+  height: 8px; border-radius: 999px; background: var(--brd); overflow: hidden; position: relative;
+}
+.antd-progress-fill {
+  height: 100%; border-radius: 999px;
+  background: var(--ocean-mid); transition: width 0.5s ease;
+}
+.antd-progress-fill.success { background: var(--success); }
+.antd-progress-fill.danger  { background: var(--danger); }
+[data-theme="skein-dark"] .antd-progress-track { background: #334155; }
+.antd-progress-circle { width: 64px; height: 64px; position: relative; }
+.antd-progress-circle svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+.antd-progress-circle .track { stroke: var(--brd); }
+.antd-progress-circle .indicator { stroke: var(--success); stroke-linecap: round; }
+.antd-progress-circle .label {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; color: var(--success);
+}
+
+/* ═══════════ 动效 (examples:144-348) ═══════════
+   7 核心 keyframes: waveShift / staggerIn / pulseDot / tlPulse / dagPulse / antdSpin / antdShimmer
+   + skeinShimmer 进度条流光 + dagFlow 边流动 + dagFadeIn 节点入场 */
+
+/* 1. waveShift (examples:144-148) */
+@keyframes waveShift {
+  0%   { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.03); }
+}
+.animate-wave { animation: waveShift 6s ease-in-out infinite alternate; }
+
+/* 2. staggerIn (examples:150-157) — 列表级联入场 */
+@keyframes staggerIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-stagger-in {
+  opacity: 0; transform: translateY(24px);
+  animation: staggerIn 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+}
+.animate-stagger-in:nth-child(2) { animation-delay: 0.06s; }
+.animate-stagger-in:nth-child(3) { animation-delay: 0.12s; }
+.animate-stagger-in:nth-child(4) { animation-delay: 0.18s; }
+.animate-stagger-in:nth-child(5) { animation-delay: 0.24s; }
+
+/* 3. pulseDot (examples:159-165) — 通用脉冲点 */
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.4); opacity: 0.55; }
+}
+.pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; }
+
+/* 4. tlPulse (examples:207-211) — Timeline 当前点 */
+@keyframes tlPulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--tl-c, var(--ocean-mid)); }
+  50%      { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* 5. dagPulse (examples:325-331) — DAG 进行中节点 opacity */
+@keyframes dagPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.7; }
+}
+
+/* 6. antdSpin (examples:245) */
+@keyframes antdSpin { to { transform: rotate(360deg); } }
+
+/* 7. antdShimmer (examples:255) */
+@keyframes antdShimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* 8. skeinShimmer — 进度条蓝金流光 */
+@keyframes skeinShimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* 9. dagFlow (examples:343) — 边蚂蚁线流动 */
+@keyframes dagFlow { to { stroke-dashoffset: -10; } }
+
+/* 10. dagFadeIn (examples:341) — DAG 节点入场 */
+@keyframes dagFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════ prefers-reduced-motion 全退化 (examples:214 + 344-348) ═══════════
+   关所有循环/级联动效, 入场直显。 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave, .animate-stagger-in, .pulse-dot, .hover-float:hover,
+  .tl-dot.cur, .dag-svg .node, .dag-svg .node.active > *,
+  .dag-svg .edge.active, .antd-spin, .antd-skel,
+  .bg-wave-bar.active > .fill::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .animate-stagger-in, .dag-svg .node { opacity: 1 !important; transform: none !important; }
+  .hover-float:hover { transform: none !important; }
+}
