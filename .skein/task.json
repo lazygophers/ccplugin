@@ -1,14 +1,6 @@
 {
   "tasks": [
     {
-      "id": "state-before-action",
-      "status": "检查中",
-      "deps": [],
-      "worktree": null,
-      "parent": null,
-      "kind": "task"
-    },
-    {
       "id": "board-card-timeline",
       "status": "已完成",
       "deps": [],
@@ -34,6 +26,14 @@
     },
     {
       "id": "remove-doctor-btn",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "state-before-action",
       "status": "已完成",
       "deps": [],
       "worktree": null,
