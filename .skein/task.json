@@ -1,3 +1,20 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "remove-doctor-btn",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "task-detail-timeline",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    }
+  ]
 }

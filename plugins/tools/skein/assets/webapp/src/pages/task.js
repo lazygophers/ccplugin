@@ -95,6 +95,15 @@ const TASK_STYLE = `<style>
 .stage-chip.stg-check{background:var(--st-check)}
 .stage-chip.stg-done{background:var(--st-done)}
 .sec-empty{color:var(--muted);font-size:12.5px;font-style:italic;opacity:.85}
+/* 合并时间线: 竖向圆点+连线, task 态节点(强调点)与 subtask 事件(弱点)共轴 */
+.tl-timeline{position:relative;padding-left:18px}
+.tl-timeline::before{content:"";position:absolute;left:4px;top:4px;bottom:4px;width:1px;background:var(--line)}
+.tl-item{position:relative;padding:4px 0 4px 14px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.tl-dot{position:absolute;left:-14px;top:9px;width:8px;height:8px;border-radius:50%;border:2px solid var(--card)}
+.tl-dot-task{background:var(--accent)}
+.tl-dot-sub{background:var(--muted)}
+.tl-label{color:var(--head)}
+.tl-time{color:var(--muted);font-size:11.5px}
 </style>`;
 
 // html 转义 (renderResult 走 v-html, stdout/stderr 是命令输出须转义防注入)
@@ -164,6 +173,18 @@ const TPL = `
     <div class="task-layout">
       <!-- 左栏 -->
       <div class="tl-col">
+        <!-- 合并时间线: task 五态节点 + subtask 建/起/讫 事件, 按真实时间升序 -->
+        <section v-if="timeline.length" class="card p-5">
+          <h2 class="text-sm font-semibold mb-3" style="color:var(--head)">时间线</h2>
+          <div class="tl-timeline">
+            <div v-for="(ev,i) in timeline" :key="i" class="tl-item">
+              <span class="tl-dot" :class="ev.tag==='task' ? 'tl-dot-task' : 'tl-dot-sub'"></span>
+              <span class="tl-label">{{ ev.tag==='task' ? ev.label : (ev.name + ' · ' + ev.label) }}</span>
+              <span class="tl-time">{{ fmtMix(ev.ts) }}</span>
+            </div>
+          </div>
+        </section>
+
         <!-- subtask DAG 图 (≥2 节点才渲染) -->
         <section v-if="subDag" class="card p-4">
           <div class="flex items-center gap-2 mb-3">
@@ -327,6 +348,27 @@ function buildSubDag(subtasks) {
   return dagHtml(nodes, null, null, nodes.length > 4);
 }
 
+// task 生命周期五态节点 (created/confirmed/started/checked/finished)。
+const TASK_TS_LABELS = [
+  ["created", "创建"], ["confirmed", "就绪"], ["started", "起始"], ["checked", "检查"], ["finished", "完成"],
+];
+// 合并时间线: task 五态时刻 + 各 subtask 建/起/讫事件, 过滤 null/undefined, 按 ts 升序。
+// ponytail: 老 task 无 confirmed 键(undefined) 与未到达态(null) 同走 falsy 分支自然跳过, 无需分别判空。
+function buildTimeline(task, subtasks) {
+  const evs = [];
+  for (const [key, label] of TASK_TS_LABELS) {
+    if (task && task[key]) evs.push({ ts: task[key], label, tag: "task", name: "" });
+  }
+  for (const s of subtasks || []) {
+    const name = s.name || s.sid;
+    if (s.created) evs.push({ ts: s.created, label: "建", tag: "sub", name });
+    if (s.started) evs.push({ ts: s.started, label: "起", tag: "sub", name });
+    if (s.finished) evs.push({ ts: s.finished, label: "讫", tag: "sub", name });
+  }
+  evs.sort((a, b) => a.ts - b.ts);
+  return evs;
+}
+
 export async function render(mount, params, ctx) {
   const { api, md, onLive } = ctx;
 
@@ -380,6 +422,8 @@ export async function render(mount, params, ctx) {
     setNodeMaps(NODE_VAR, NODE_CLS);
     // subtask DAG 字符串在 createApp 前算好注入 (ponytail: 静态, 无需响应式)
     const subDag = buildSubDag(st.subtasks);
+    // 合并时间线 (静态, 同 subDag 一次算好注入; 非响应式源随每次 fetchState/mountApp 重算)
+    const timeline = buildTimeline(st.task, st.subtasks);
     // PRD 目标 / 验收标准 抽取 + md 渲染 (docs.prd 为 null 时 findSection 返回 "")
     const prdSecs = parsePrdSections(st.docs.prd || "");
     const goalHtml = md.renderSafe(findSection(prdSecs, "目标"));
@@ -400,6 +444,7 @@ export async function render(mount, params, ctx) {
       deps: (s) => s.depends_on || [],
       docLabel: (k) => (DOC_TABS.find((d) => d.key === k) || {}).label || k,
       subDag,
+      timeline,
       goalHtml,
       boundaryHtml,
       acceptHtml,

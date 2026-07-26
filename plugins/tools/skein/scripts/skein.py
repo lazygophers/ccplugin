@@ -571,6 +571,7 @@ class Skein:
             "kind": kind,            # "task"(普通/独立, 默认) | "supertask"(父聚合层)
             "created": now(),        # 创建时刻
             "started": None,         # exec 时刻 (start 时置)
+            "confirmed": None,       # 就绪时刻 (confirm 命令置)
             "checked": None,         # 进入检查阶段时刻 (check 命令置)
             "finished": None,        # 完成时刻 (finish 时置; 保留期从此计)
             "updated": now(),
@@ -706,6 +707,7 @@ class Skein:
             raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 confirm")
         self._validate_prd(a.id)
         t["status"] = S_READY
+        t["confirmed"] = now()
         self._save(t)
         self._sync()
         print(f"{a.id} 就绪 (规划完成, 待 skein start 启动)")
