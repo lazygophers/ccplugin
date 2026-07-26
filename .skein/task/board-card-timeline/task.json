@@ -2,7 +2,7 @@
   "id": "board-card-timeline",
   "name": "board 卡片时间线",
   "desc": "board 看板 task 卡片显 5 态精简横向 stepper",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -63,6 +63,6 @@
   "started": 1785033579,
   "confirmed": 1785033579,
   "checked": null,
-  "finished": null,
-  "updated": 1785033823
+  "finished": 1785034188,
+  "updated": 1785034188
 }
