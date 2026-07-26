@@ -1,0 +1,52 @@
+{
+  "id": "board-timeline-rich",
+  "name": "board 卡片富文本竖向时间轴",
+  "desc": "重构 cardStepper 为竖向时间轴: 每态显时刻+状态+段耗时+累计耗时",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "rewrite-axis",
+      "name": "重构 cardStepper 为竖向富文本时间轴",
+      "desc": "board.js 重写 cardStepper + CSS: 5 态竖向节点, 每节点显时刻/状态/段耗时/累计耗时",
+      "depends_on": [],
+      "验收": [
+        "board.js cardStepper 渲染竖向时间轴非横向 stepper",
+        "每态节点含时刻+状态+段耗时+累计耗时",
+        "进行中态耗时算到 now",
+        "待执行态显占位",
+        "node --check board.js 通过",
+        "老 task null 容错",
+        "复用 var(--st-*) 不引新色"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785034998,
+      "started": 1785035012,
+      "finished": 1785035286
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/board-timeline-rich",
+  "parent": null,
+  "kind": "task",
+  "created": 1785034929,
+  "started": 1785035001,
+  "confirmed": 1785034999,
+  "checked": null,
+  "finished": null,
+  "updated": 1785035286
+}
