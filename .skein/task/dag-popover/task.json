@@ -1,0 +1,50 @@
+{
+  "id": "dag-popover",
+  "name": "DAG 节点 hover popover + click Modal 浮窗",
+  "desc": "DAG 节点 hover 弹富文本 popover (名称/状态/上下游/描述/进度) + click 弹 dialog Modal 全量详情",
+  "status": "进行中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "dag-popover-all",
+      "name": "DAG hover popover (foreignObject) + click Modal (dialog)",
+      "desc": "index.html DAG panel: 1)节点 g 加 data-node JSON 存全量字段 2)foreignObject 内纯 CSS hover popover (160x90 名称+状态+进度) 3)panel 末 dialog#dag-modal + ~15行JS事件委托 click 弹全量详情 4)4态示例字段值写死",
+      "depends_on": [],
+      "验收": [
+        "hover foreignObject popover 显名称+状态+进度",
+        "click dialog showModal 弹全量(名称/状态/上下游/描述/进度)",
+        "节点 data-node JSON",
+        "4态各有合理值",
+        "popover 不被裁切",
+        "6tab切换无JS报错"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785080085,
+      "started": 1785080085,
+      "finished": 1785080462
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/dag-popover",
+  "parent": null,
+  "kind": "task",
+  "created": 1785080041,
+  "started": 1785080085,
+  "confirmed": 1785080085,
+  "checked": null,
+  "finished": null,
+  "updated": 1785080534
+}

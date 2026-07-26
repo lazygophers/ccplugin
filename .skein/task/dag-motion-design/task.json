@@ -2,7 +2,7 @@
   "id": "dag-motion-design",
   "name": "DAG tab 动效与设计增强",
   "desc": "DAG panel 补 hover/入场动效 + 蚂蚁线流动边 + 图例徽标 + 节点细节 4 项设计",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -47,6 +47,6 @@
   "started": 1785078374,
   "confirmed": 1785078374,
   "checked": null,
-  "finished": null,
-  "updated": 1785078780
+  "finished": 1785078802,
+  "updated": 1785078802
 }

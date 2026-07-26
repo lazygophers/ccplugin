@@ -1,7 +1,7 @@
 {
   "tasks": [
     {
-      "id": "dag-motion-design",
+      "id": "dag-popover",
       "status": "进行中",
       "deps": [],
       "worktree": null,
@@ -26,6 +26,14 @@
     },
     {
       "id": "claim-start-doc",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "dag-motion-design",
       "status": "已完成",
       "deps": [],
       "worktree": null,
