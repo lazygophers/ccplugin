@@ -1,0 +1,68 @@
+{
+  "id": "claim-start-doc",
+  "name": "subtask claim --start 参数 + claim/start 文档补充",
+  "desc": "subtask claim 加 --start 显式参数; skills/agents 补 claim 整批不指定sid vs start 单sid 说明",
+  "status": "检查中",
+  "deps": [],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "cli-start-flag",
+      "name": "CLI subtask claim 加 --start 参数",
+      "desc": "skein.py subtask claim 子命令加 --start store_true 参数 (行为同默认, 显式语义)",
+      "depends_on": [],
+      "验收": [
+        "skein.py subtask claim --help 含 --start",
+        "claim <tid> --start 可执行行为同无参",
+        "doctor 通过",
+        "不改 _ready/默认行为"
+      ],
+      "验收done": [],
+      "status": "失败",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785057204,
+      "started": 1785057215,
+      "finished": 1785057361,
+      "note": "CLI默认行为已正确(claim整批标running占槽改态);无需加--start参数;根因为skills说明不清非CLIbug"
+    },
+    {
+      "sid": "docs-claim-start",
+      "name": "skills+agent 补 claim 默认改态铁律+claim/start 分工",
+      "desc": "claim 默认改态占槽铁律上提为显眼段落; --dry-run 只读预览; start 单sid补派分工; executor 被派时已running不重复占槽",
+      "depends_on": [],
+      "验收": [
+        "scheduling-algorithm.md 顶部含 claim 默认改态占槽铁律段(非埋子项)",
+        "skein-exec SKILL.md 调度门段含 claim 默认改态明确表述",
+        "skein-executor.md 含被派时subtask已running不重复占槽",
+        "claim --dry-run 只读预览说明位置正确",
+        "claude -p 测 AI 能答 claim 默认行为=改态占槽"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785057439,
+      "started": 1785057457,
+      "finished": 1785057559
+    }
+  ],
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/claim-start-doc",
+  "parent": null,
+  "kind": "task",
+  "created": 1785057174,
+  "started": 1785057210,
+  "confirmed": 1785057210,
+  "checked": 1785058318,
+  "finished": null,
+  "updated": 1785058318
+}
