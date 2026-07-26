@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任务管理工具｜海滩蓝金主题设计系统【完整版色卡】</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // 品牌｜海蓝 - 近海清透蓝（非海军蓝）
+                        ocean: {
+                            light: '#74b9e8',
+                            mid: '#429cd1',
+                            deep: '#237bb8'
+                        },
+                        // 品牌｜沙滩金 白沙滩/日光沙滩
+                        sand: {
+                            pale: '#f8f3e6',
+                            gold: '#e6c88b',
+                            dark: '#d4b066'
+                        },
+                        // 暗色背景
+                        night: {
+                            base: '#0f2033',
+                            mid: '#162c42',
+                            deep: '#091420'
+                        },
+                        // 语义状态色
+                        success: '#48bb78',
+                        warning: '#ed8936',
+                        danger: '#e53e3e',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            /* 背景：纯渐变+模糊光晕，无任何图片 */
+            .bg-fluid-light {
+                background: linear-gradient(135deg, #f8f3e6 0%, #eef6fc 45%, #dcecf8 100%);
+                position: relative;
+                overflow: hidden;
+            }
+            .bg-fluid-dark {
+                background: linear-gradient(135deg, #091420 0%, #0f2033 50%, #162c42 100%);
+                position: relative;
+                overflow: hidden;
+            }
+            .bg-fluid-light::before {
+                content: '';
+                position: absolute;
+                width: 600px;
+                height: 600px;
+                border-radius: 999px;
+                background: radial-gradient(circle, rgba(116,185,232,0.35) 0%, transparent 65%);
+                top: -150px;
+                right: -120px;
+                filter: blur(60px);
+                z-index: 0;
+            }
+            .bg-fluid-light::after {
+                content: '';
+                position: absolute;
+                width: 420px;
+                height: 420px;
+                border-radius: 999px;
+                background: radial-gradient(circle, rgba(230,200,139,0.3) 0%, transparent 70%);
+                bottom: -100px;
+                left: -80px;
+                filter: blur(70px);
+                z-index: 0;
+            }
+            .bg-fluid-dark::before {
+                content: '';
+                position: absolute;
+                width: 650px;
+                height: 650px;
+                border-radius: 999px;
+                background: radial-gradient(circle, rgba(66,156,209,0.18) 0%, transparent 65%);
+                top: -180px;
+                right: -150px;
+                filter: blur(80px);
+                z-index: 0;
+            }
+            .bg-fluid-dark::after {
+                content: '';
+                position: absolute;
+                width: 480px;
+                height: 480px;
+                border-radius: 999px;
+                background: radial-gradient(circle, rgba(212,176,102,0.16) 0%, transparent 70%);
+                bottom: -120px;
+                left: -100px;
+                filter: blur(85px);
+                z-index: 0;
+            }
+            .glass {
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+            }
+            .text-gradient-gold {
+                background: linear-gradient(90deg, #d4b066, #e6c88b);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+            }
+            .text-gradient-ocean {
+                background: linear-gradient(90deg, #237bb8, #74b9e8);
+                -webkit-background-clip: text;
+                background-clip: text;
+                color: transparent;
+            }
+            /* 动效 */
+            .hover-float {
+                transition: all 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+            }
+            .hover-float:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+            }
+            .animate-wave {
+                animation: waveShift 6s ease-in-out infinite alternate;
+            }
+            @keyframes waveShift {
+                0% { opacity: 0.75; transform: scale(1); }
+                100% { opacity: 1; transform: scale(1.03); }
+            }
+            .animate-stagger-in {
+                opacity: 0;
+                transform: translateY(24px);
+                animation: staggerIn 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+            }
+            @keyframes staggerIn {
+                to { opacity: 1; transform: translateY(0); }
+            }
+            /* Tab 导航按钮 */
+            .tab-btn {
+                color: #475569;
+                transition: background-color 0.2s, color 0.2s;
+            }
+            .dark .tab-btn { color: #cbd5e1; }
+            .tab-btn:hover {
+                color: #237bb8;
+                background: rgba(66,156,209,0.08);
+            }
+            .dark .tab-btn:hover {
+                color: #74b9e8;
+                background: rgba(116,185,232,0.12);
+            }
+            .tab-btn.active {
+                background: #429cd1;
+                color: #ffffff;
+            }
+            .dark .tab-btn.active {
+                background: #429cd1;
+                color: #ffffff;
+            }
+        }
+    </style>
+</head>
+<body class="transition-colors duration-500 ease-in-out">
+<div id="app-wrap" class="min-h-screen bg-fluid-light dark:bg-fluid-dark text-slate-800 dark:text-slate-100 relative z-10">
+    <div class="relative z-10 max-w-7xl mx-auto px-4 md:px-8 py-10">
+        <!-- 头部导航 -->
+        <header class="flex justify-between items-center mb-12 animate-stagger-in">
+            <div>
+                <h1 class="text-[clamp(1.8rem,4vw,2.6rem)] font-bold text-gradient-ocean dark:text-gradient-gold">
+                    TaskFlow · 任务管理系统
+                </h1>
+                <p class="text-slate-500 dark:text-slate-300 mt-1">海滩蓝金主题｜完整设计色板｜明暗双模式</p>
+            </div>
+            <button id="themeToggle" class="glass border border-slate-200 dark:border-slate-700 rounded-full px-5 py-2.5 hover-float flex items-center gap-2">
+                <i class="fa fa-moon-o dark:hidden"></i>
+                <i class="fa fa-sun-o hidden dark:inline-block"></i>
+                <span class="text-sm">切换暗色模式</span>
+            </button>
+        </header>
+
+        <!-- 设计理念 -->
+        <section class="mb-10 animate-stagger-in" style="animation-delay:0.1s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>设计理念
+            </h2>
+            <div class="grid md:grid-cols-4 gap-4">
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">自然海滩色彩语言</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">取自近海清透蓝+金沙滩暖调，摒弃厚重深蓝，开阔松弛。无实景图片，依靠渐变+模糊光晕实现海岸氛围感。</p>
+                </div>
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">层次克制原则</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">蓝色为主功能色，金色仅作高亮点缀，不抢夺任务信息焦点，长时间浏览视觉舒适。</p>
+                </div>
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">海浪动效体系</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">缓动曲线模拟海浪起伏，卡片悬浮、状态切换带有弹性回弹，拒绝生硬线性过渡。</p>
+                </div>
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">标准化色彩体系</h3>
+                    <p class="text-sm text-slate-600 dark:text-slate-300">完整包含品牌色、文字层级、边框背景、状态语义色，满足业务开发直接落地。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 导航条（响应式：窄屏可横滚） -->
+        <div class="glass rounded-xl p-1.5 inline-flex gap-1 mb-10 border border-slate-200/60 dark:border-slate-600/40 overflow-x-auto max-w-full animate-stagger-in" style="animation-delay:0.15s">
+            <button data-tab-target="colors" class="tab-btn active px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">色卡</button>
+            <button data-tab-target="components" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">组件</button>
+            <button data-tab-target="charts" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">图表</button>
+            <button data-tab-target="motion" class="tab-btn px-5 py-2 rounded-lg text-sm font-medium whitespace-nowrap">动效</button>
+        </div>
+
+        <!-- ============ Tab: 色卡 ============ -->
+        <section data-tab="colors" class="mb-14 animate-stagger-in" style="animation-delay:0.2s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>完整色彩规范
+            </h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 亮色模式 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 space-y-6">
+                    <h3 class="font-medium">☀️ 亮色｜白沙滩 · 近海</h3>
+                    <!-- 品牌主色 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">品牌色</div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-lg h-16 bg-ocean-light animate-wave relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">浅海蓝 #74b9e8</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-ocean-mid animate-wave relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">中海蓝 #429cd1</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-ocean-deep animate-wave relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">深海蓝 #237bb8</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-sand-pale border relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-700">沙滩米白 #f8f3e6</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-sand-gold relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-800">沙滩金 #e6c88b</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-sand-dark relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-800">深沙金 #d4b066</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 文字层级色 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">文字层级色</div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="rounded-lg h-14 bg-slate-800 flex items-center px-3">
+                                <span class="text-white text-xs">主文本 #1e293b</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-slate-600 flex items-center px-3">
+                                <span class="text-white text-xs">次级文本 #475569</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-slate-400 flex items-center px-3">
+                                <span class="text-white text-xs">辅助/占位 #94a3b8</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-slate-300 flex items-center px-3">
+                                <span class="text-slate-700 text-xs">禁用文本 #cbd5e1</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 边框&背景&状态色 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">边框/语义状态色</div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-lg h-14 border-2 border-slate-200 bg-white flex items-center px-3">
+                                <span class="text-xs text-slate-700">常规边框 #e2e8f0</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-success flex items-center px-3">
+                                <span class="text-white text-xs">成功 #48bb78</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-warning flex items-center px-3">
+                                <span class="text-white text-xs">警告 #ed8936</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-danger flex items-center px-3">
+                                <span class="text-white text-xs">危险 #e53e3e</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 暗色模式 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 space-y-6">
+                    <h3 class="font-medium">🌙 暗色｜夜色海岸</h3>
+                    <!-- 品牌主色 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">品牌色</div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-lg h-16 bg-night-deep border border-slate-700 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-200">夜幕深蓝 #091420</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-night-base border border-slate-700 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-200">夜色海 #0f2033</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-night-mid border border-slate-700 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-200">暗海 #162c42</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-ocean-mid/40 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">蓝高光 #429cd1</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-sand-gold/40 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">金沙高光 #e6c88b</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-sand-dark/50 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">点缀金 #d4b066</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 文字层级色 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">文字层级色</div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="rounded-lg h-14 bg-slate-100 flex items-center px-3">
+                                <span class="text-slate-900 text-xs">主文本 #f1f5f9</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-slate-300 flex items-center px-3">
+                                <span class="text-slate-800 text-xs">次级文本 #cbd5e1</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-slate-500 flex items-center px-3">
+                                <span class="text-white text-xs">辅助/占位 #64748b</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-slate-700 flex items-center px-3">
+                                <span class="text-slate-400 text-xs">禁用文本 #475569</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 边框&背景&状态色 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">边框/语义状态色</div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-lg h-14 border-2 border-slate-700 bg-night-mid flex items-center px-3">
+                                <span class="text-xs text-slate-300">常规边框 #334155</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-success/70 flex items-center px-3">
+                                <span class="text-white text-xs">成功 #48bb78</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-warning/70 flex items-center px-3">
+                                <span class="text-white text-xs">警告 #ed8936</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-danger/70 flex items-center px-3">
+                                <span class="text-white text-xs">危险 #e53e3e</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ Tab: 组件 ============ -->
+        <section data-tab="components" class="mb-14 animate-stagger-in hidden" style="animation-delay:0.3s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>任务编排看板示例
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium text-ocean-deep dark:text-ocean-light mb-3 flex items-center gap-2">
+                        <i class="fa fa-circle-o"></i>待办任务
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 hover-float border border-slate-200 dark:border-slate-700">
+                            <div class="font-medium text-sm text-slate-800 dark:text-slate-100">需求文档梳理</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">优先级｜中等</div>
+                        </div>
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 hover-float border border-slate-200 dark:border-slate-700">
+                            <div class="font-medium text-sm text-slate-800 dark:text-slate-100">接口联调方案</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">优先级｜高</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium text-ocean-mid mb-3 flex items-center gap-2">
+                        <i class="fa fa-spinner"></i>进行中
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 hover-float border-l-4 border-l-ocean-mid border border-slate-200 dark:border-slate-700">
+                            <div class="font-medium text-sm text-slate-800 dark:text-slate-100">任务拖拽功能开发</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">截止：本周四</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium text-sand-dark dark:text-sand-gold mb-3 flex items-center gap-2">
+                        <i class="fa fa-check"></i>已完成
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="rounded-lg p-4 bg-white/40 dark:bg-night-mid/40 hover-float border border-slate-200 dark:border-slate-700 opacity-80">
+                            <div class="font-medium text-sm line-through text-slate-600 dark:text-slate-400">基础页面搭建</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">已验收</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 通用组件演示区 -->
+            <h2 class="text-xl font-semibold mt-12 mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>通用组件演示
+            </h2>
+            <div class="space-y-6">
+                <!-- 按钮变体 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">按钮 Button</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <button class="px-4 py-2 rounded-lg bg-ocean-mid hover:bg-ocean-deep text-white text-sm font-medium transition-colors">主按钮</button>
+                        <button class="px-4 py-2 rounded-lg border border-ocean-mid text-ocean-mid dark:text-ocean-light hover:bg-ocean-mid/10 text-sm font-medium transition-colors">次按钮</button>
+                        <button class="px-4 py-2 rounded-lg bg-danger hover:bg-danger/90 text-white text-sm font-medium transition-colors">危险按钮</button>
+                        <button disabled class="px-4 py-2 rounded-lg bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium cursor-not-allowed">禁用</button>
+                    </div>
+                </div>
+
+                <!-- 输入框 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">输入框 Input</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <input type="text" placeholder="普通输入" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-night-mid/60 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/30 transition">
+                        <input type="text" placeholder="focus 示意态" class="px-4 py-2 rounded-lg border-2 border-ocean-mid bg-white/60 dark:bg-night-mid/60 text-sm text-slate-800 dark:text-slate-100 ring-2 ring-ocean-mid/30 outline-none">
+                        <div class="relative">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" placeholder="带图标输入" class="pl-9 pr-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-night-mid/60 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/30 transition w-full">
+                        </div>
+                        <input type="text" placeholder="禁用输入" disabled class="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-night-deep text-sm text-slate-400 dark:text-slate-500 cursor-not-allowed">
+                    </div>
+                </div>
+
+                <!-- Badge 状态标签 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">状态标签 Badge</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">待办</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-ocean-mid/20 text-ocean-deep dark:text-ocean-light">进行中</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-success/20 text-success">已完成</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-danger/20 text-danger">失败</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">警告</span>
+                    </div>
+                </div>
+
+                <!-- Card 变体 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">卡片 Card 变体</h3>
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 hover-float">
+                            <div class="text-sm font-medium mb-1 text-slate-800 dark:text-slate-100">普通卡片</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">标准 glass 容器</div>
+                        </div>
+                        <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 border-l-4 border-l-ocean-mid hover-float">
+                            <div class="text-sm font-medium mb-1 text-slate-800 dark:text-slate-100">强调卡片</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">左侧 ocean-mid 强调条</div>
+                        </div>
+                        <div class="rounded-lg p-4 bg-white/40 dark:bg-night-mid/40 border border-slate-200 dark:border-slate-700 opacity-70 hover-float">
+                            <div class="text-sm font-medium mb-1 line-through text-slate-600 dark:text-slate-400">已完成卡片</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">降低透明度 + 删除线</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============ Tab: 图表（占位，下一 subtask 填） ============ -->
+        <section data-tab="charts" class="mb-14 animate-stagger-in hidden" style="animation-delay:0.4s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>图表规范
+            </h2>
+            <div class="glass rounded-xl p-12 border border-slate-200/60 dark:border-slate-600/40 text-center">
+                <i class="fa fa-bar-chart text-5xl text-slate-300 dark:text-slate-600 mb-4"></i>
+                <p class="text-slate-400 dark:text-slate-500">待补充｜下一 subtask 填充图表组件演示</p>
+            </div>
+        </section>
+
+        <!-- ============ Tab: 动效（占位，下一 subtask 填） ============ -->
+        <section data-tab="motion" class="mb-14 animate-stagger-in hidden" style="animation-delay:0.5s">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <span class="w-1 h-6 bg-ocean-mid rounded"></span>动效规范
+            </h2>
+            <div class="glass rounded-xl p-12 border border-slate-200/60 dark:border-slate-600/40 text-center">
+                <i class="fa fa-magic text-5xl text-slate-300 dark:text-slate-600 mb-4"></i>
+                <p class="text-slate-400 dark:text-slate-500">待补充｜下一 subtask 填充动效演示</p>
+            </div>
+        </section>
+
+        <footer class="mt-16 text-center text-sm text-slate-400">
+            TaskFlow 海滩蓝金主题设计系统｜完整文字色卡 + 品牌色 + 语义色｜无图片资源
+        </footer>
+    </div>
+</div>
+
+<script>
+    // 主题切换逻辑（独立于 tab 切换）
+    const toggleBtn = document.getElementById('themeToggle');
+    const html = document.documentElement;
+    const savedTheme = localStorage.getItem('task-theme');
+    if(savedTheme === 'dark') html.classList.add('dark');
+
+    toggleBtn.addEventListener('click', ()=>{
+        html.classList.toggle('dark');
+        localStorage.setItem('task-theme', html.classList.contains('dark') ? 'dark' : 'light');
+    })
+
+    // Tab 切换逻辑（独立于主题切换）
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('[data-tab]');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.tabTarget;
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            tabPanels.forEach(p => {
+                const show = p.dataset.tab === target;
+                p.classList.toggle('hidden', !show);
+                // 切到该 panel 时立即播放入场动画（hidden 期间 observer 不触发）
+                if (show) {
+                    p.style.animationPlayState = 'running';
+                    p.querySelectorAll('.animate-stagger-in').forEach(el => {
+                        el.style.animationPlayState = 'running';
+                    });
+                }
+            });
+        });
+    });
+
+    // 滚动入场动画（仅作用于初始可见的 colors panel）
+    const observer = new IntersectionObserver((entries)=>{
+        entries.forEach(item=>{
+            if(item.isIntersecting) item.target.style.animationPlayState = 'running';
+        })
+    },{threshold:0.15})
+    document.querySelectorAll('.animate-stagger-in').forEach(el=>{
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    })
+</script>
+</body>
+</html>
