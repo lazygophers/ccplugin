@@ -31,6 +31,14 @@
       "worktree": null,
       "parent": null,
       "kind": "task"
+    },
+    {
+      "id": "ui-tabs-refactor",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
     }
   ]
 }
