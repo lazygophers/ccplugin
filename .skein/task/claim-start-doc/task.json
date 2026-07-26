@@ -2,7 +2,7 @@
   "id": "claim-start-doc",
   "name": "subtask claim --start 参数 + claim/start 文档补充",
   "desc": "subtask claim 加 --start 显式参数; skills/agents 补 claim 整批不指定sid vs start 单sid 说明",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -63,6 +63,6 @@
   "started": 1785057210,
   "confirmed": 1785057210,
   "checked": 1785058318,
-  "finished": null,
-  "updated": 1785058318
+  "finished": 1785059260,
+  "updated": 1785059260
 }
