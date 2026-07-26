@@ -1,8 +1,8 @@
 {
   "tasks": [
     {
-      "id": "examples-dag",
-      "status": "检查中",
+      "id": "dag-motion-design",
+      "status": "进行中",
       "deps": [],
       "worktree": null,
       "parent": null,
@@ -26,6 +26,14 @@
     },
     {
       "id": "claim-start-doc",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "examples-dag",
       "status": "已完成",
       "deps": [],
       "worktree": null,
