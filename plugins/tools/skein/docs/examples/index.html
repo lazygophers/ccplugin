@@ -12,17 +12,26 @@
             theme: {
                 extend: {
                     colors: {
-                        // 品牌｜海蓝 - 近海清透蓝（非海军蓝）
+                        // 品牌｜海蓝 5 阶（浅→深，体现大海层次）
                         ocean: {
-                            light: '#74b9e8',
-                            mid: '#429cd1',
-                            deep: '#237bb8'
+                            foam: '#e8f4fa',      // 浪花浅蓝（最浅）
+                            shallow: '#74b9e8',   // 浅海/近海
+                            mid: '#429cd1',       // 近海
+                            deep: '#237bb8',      // 深海
+                            abyss: '#0f4d75'      // 深海沟/夜海（最深）
                         },
-                        // 品牌｜沙滩金 白沙滩/日光沙滩
-                        sand: {
-                            pale: '#f8f3e6',
-                            gold: '#e6c88b',
-                            dark: '#d4b066'
+                        // 品牌｜白沙滩（珍珠/贝壳）
+                        whiteSand: {
+                            pearl: '#fffefb',     // 珍珠白
+                            shell: '#fdf6e8',     // 贝壳米
+                            cream: '#f8f0dc'      // 奶油沙
+                        },
+                        // 品牌｜金沙滩（暖金）
+                        goldSand: {
+                            light: '#f0d9a0',     // 浅金
+                            mid: '#e6c88b',       // 沙滩金
+                            deep: '#d4b066',      // 深沙金
+                            sunset: '#c89548'     // 夕阳暖金
                         },
                         // 暗色背景
                         night: {
@@ -44,16 +53,20 @@
     </script>
     <style type="text/tailwindcss">
         @layer utilities {
-            /* 背景：纯渐变+模糊光晕，无任何图片 */
+            /* 背景：白沙滩→浅海浪花渐变 + 模糊光晕，无任何图片 */
             .bg-fluid-light {
-                background: linear-gradient(135deg, #f8f3e6 0%, #eef6fc 45%, #dcecf8 100%);
+                background: linear-gradient(180deg, #fffefb 0%, #f8f0dc 50%, #e8f4fa 100%);
                 position: relative;
                 overflow: hidden;
             }
             .bg-fluid-dark {
-                background: linear-gradient(135deg, #091420 0%, #0f2033 50%, #162c42 100%);
+                background: linear-gradient(180deg, #0f2033 0%, #162c42 100%);
                 position: relative;
                 overflow: hidden;
+            }
+            /* wave 渐变 utility：浪花→近海 */
+            .bg-wave {
+                background: linear-gradient(90deg, #e8f4fa 0%, #74b9e8 100%);
             }
             .bg-fluid-light::before {
                 content: '';
@@ -200,19 +213,19 @@
             </h2>
             <div class="grid md:grid-cols-4 gap-4">
                 <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">自然海滩色彩语言</h3>
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-goldSand-mid">自然海滩色彩语言</h3>
                     <p class="text-sm text-slate-600 dark:text-slate-300">取自近海清透蓝+金沙滩暖调，摒弃厚重深蓝，开阔松弛。无实景图片，依靠渐变+模糊光晕实现海岸氛围感。</p>
                 </div>
                 <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">层次克制原则</h3>
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-goldSand-mid">层次克制原则</h3>
                     <p class="text-sm text-slate-600 dark:text-slate-300">蓝色为主功能色，金色仅作高亮点缀，不抢夺任务信息焦点，长时间浏览视觉舒适。</p>
                 </div>
                 <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">海浪动效体系</h3>
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-goldSand-mid">海浪动效体系</h3>
                     <p class="text-sm text-slate-600 dark:text-slate-300">缓动曲线模拟海浪起伏，卡片悬浮、状态切换带有弹性回弹，拒绝生硬线性过渡。</p>
                 </div>
                 <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-sand-gold">标准化色彩体系</h3>
+                    <h3 class="font-medium mb-2 text-ocean-deep dark:text-goldSand-mid">标准化色彩体系</h3>
                     <p class="text-sm text-slate-600 dark:text-slate-300">完整包含品牌色、文字层级、边框背景、状态语义色，满足业务开发直接落地。</p>
                 </div>
             </div>
@@ -237,26 +250,60 @@
                     <h3 class="font-medium">☀️ 亮色｜白沙滩 · 近海</h3>
                     <!-- 品牌主色 -->
                     <div>
-                        <div class="text-sm mb-2 font-medium">品牌色</div>
-                        <div class="grid grid-cols-3 gap-3">
-                            <div class="rounded-lg h-16 bg-ocean-light animate-wave relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">浅海蓝 #74b9e8</span>
+                        <div class="text-sm mb-2 font-medium">海蓝 ocean · 5 阶</div>
+                        <div class="grid grid-cols-5 gap-2">
+                            <div class="rounded-lg h-16 bg-ocean-foam border border-slate-200 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-700">浪花 #e8f4fa</span>
+                            </div>
+                            <div class="rounded-lg h-16 bg-ocean-shallow animate-wave relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">浅海 #74b9e8</span>
                             </div>
                             <div class="rounded-lg h-16 bg-ocean-mid animate-wave relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">中海蓝 #429cd1</span>
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">近海 #429cd1</span>
                             </div>
                             <div class="rounded-lg h-16 bg-ocean-deep animate-wave relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">深海蓝 #237bb8</span>
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">深海 #237bb8</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-sand-pale border relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-slate-700">沙滩米白 #f8f3e6</span>
+                            <div class="rounded-lg h-16 bg-ocean-abyss relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">海沟 #0f4d75</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-sand-gold relative group">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-sm mb-2 font-medium">白沙滩 whiteSand · 3 色</div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-lg h-14 bg-whiteSand-pearl border border-slate-200 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-700">珍珠 #fffefb</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-whiteSand-shell border border-slate-200 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-700">贝壳 #fdf6e8</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-whiteSand-cream border border-slate-200 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-700">奶油 #f8f0dc</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-sm mb-2 font-medium">金沙滩 goldSand · 4 色</div>
+                        <div class="grid grid-cols-4 gap-3">
+                            <div class="rounded-lg h-14 bg-goldSand-light relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-slate-800">浅金 #f0d9a0</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-goldSand-mid relative group">
                                 <span class="absolute bottom-1 left-1 text-xs text-slate-800">沙滩金 #e6c88b</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-sand-dark relative group">
+                            <div class="rounded-lg h-14 bg-goldSand-deep relative group">
                                 <span class="absolute bottom-1 left-1 text-xs text-slate-800">深沙金 #d4b066</span>
                             </div>
+                            <div class="rounded-lg h-14 bg-goldSand-sunset relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">夕阳金 #c89548</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-sm mb-2 font-medium">浪花渐变 wave · foam→shallow</div>
+                        <div class="rounded-lg h-10 bg-wave relative group flex items-center pl-3">
+                            <span class="text-xs text-slate-700">linear-gradient(90deg, #e8f4fa → #74b9e8)</span>
                         </div>
                     </div>
                     <!-- 文字层级色 -->
@@ -300,28 +347,65 @@
                 <!-- 暗色模式 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 space-y-6">
                     <h3 class="font-medium">🌙 暗色｜夜色海岸</h3>
-                    <!-- 品牌主色 -->
+                    <!-- 夜色背景 3 阶 -->
                     <div>
-                        <div class="text-sm mb-2 font-medium">品牌色</div>
+                        <div class="text-sm mb-2 font-medium">夜色 night · 3 阶</div>
                         <div class="grid grid-cols-3 gap-3">
-                            <div class="rounded-lg h-16 bg-night-deep border border-slate-700 relative group">
+                            <div class="rounded-lg h-14 bg-night-deep border border-slate-700 relative group">
                                 <span class="absolute bottom-1 left-1 text-xs text-slate-200">夜幕深蓝 #091420</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-night-base border border-slate-700 relative group">
+                            <div class="rounded-lg h-14 bg-night-base border border-slate-700 relative group">
                                 <span class="absolute bottom-1 left-1 text-xs text-slate-200">夜色海 #0f2033</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-night-mid border border-slate-700 relative group">
+                            <div class="rounded-lg h-14 bg-night-mid border border-slate-700 relative group">
                                 <span class="absolute bottom-1 left-1 text-xs text-slate-200">暗海 #162c42</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-ocean-mid/40 relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-white">蓝高光 #429cd1</span>
+                        </div>
+                    </div>
+                    <!-- 海蓝 5 阶（暗色背景叠加） -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">海蓝 ocean · 5 阶</div>
+                        <div class="grid grid-cols-5 gap-2">
+                            <div class="rounded-lg h-14 bg-ocean-foam/30 border border-slate-700 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">浪花 #e8f4fa</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-sand-gold/40 relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-white">金沙高光 #e6c88b</span>
+                            <div class="rounded-lg h-14 bg-ocean-shallow/50 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">浅海 #74b9e8</span>
                             </div>
-                            <div class="rounded-lg h-16 bg-sand-dark/50 relative group">
-                                <span class="absolute bottom-1 left-1 text-xs text-white">点缀金 #d4b066</span>
+                            <div class="rounded-lg h-14 bg-ocean-mid/50 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">近海 #429cd1</span>
                             </div>
+                            <div class="rounded-lg h-14 bg-ocean-deep/70 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">深海 #237bb8</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-ocean-abyss relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white drop-shadow">海沟 #0f4d75</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 金沙 4 色（暗色背景叠加） -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">金沙滩 goldSand · 4 色</div>
+                        <div class="grid grid-cols-4 gap-3">
+                            <div class="rounded-lg h-14 bg-goldSand-light/50 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">浅金 #f0d9a0</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-goldSand-mid/50 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">沙滩金 #e6c88b</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-goldSand-deep/60 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">深沙金 #d4b066</span>
+                            </div>
+                            <div class="rounded-lg h-14 bg-goldSand-sunset/70 relative group">
+                                <span class="absolute bottom-1 left-1 text-xs text-white">夕阳金 #c89548</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 浪花渐变 -->
+                    <div>
+                        <div class="text-sm mb-2 font-medium">浪花渐变 wave · foam→shallow</div>
+                        <div class="rounded-lg h-10 bg-wave relative group flex items-center pl-3">
+                            <span class="text-xs text-slate-800">linear-gradient(90deg, #e8f4fa → #74b9e8)</span>
                         </div>
                     </div>
                     <!-- 文字层级色 -->
@@ -371,7 +455,7 @@
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium text-ocean-deep dark:text-ocean-light mb-3 flex items-center gap-2">
+                    <h3 class="font-medium text-ocean-deep dark:text-ocean-shallow mb-3 flex items-center gap-2">
                         <i class="fa fa-circle-o"></i>待办任务
                     </h3>
                     <div class="space-y-3">
@@ -397,7 +481,7 @@
                     </div>
                 </div>
                 <div class="glass rounded-xl p-5 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium text-sand-dark dark:text-sand-gold mb-3 flex items-center gap-2">
+                    <h3 class="font-medium text-goldSand-deep dark:text-goldSand-mid mb-3 flex items-center gap-2">
                         <i class="fa fa-check"></i>已完成
                     </h3>
                     <div class="space-y-3">
@@ -416,10 +500,10 @@
             <div class="space-y-6">
                 <!-- 按钮变体 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">按钮 Button</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">按钮 Button</h3>
                     <div class="flex flex-wrap gap-3">
                         <button class="px-4 py-2 rounded-lg bg-ocean-mid hover:bg-ocean-deep text-white text-sm font-medium transition-colors">主按钮</button>
-                        <button class="px-4 py-2 rounded-lg border border-ocean-mid text-ocean-mid dark:text-ocean-light hover:bg-ocean-mid/10 text-sm font-medium transition-colors">次按钮</button>
+                        <button class="px-4 py-2 rounded-lg border border-ocean-mid text-ocean-mid dark:text-ocean-shallow hover:bg-ocean-mid/10 text-sm font-medium transition-colors">次按钮</button>
                         <button class="px-4 py-2 rounded-lg bg-danger hover:bg-danger/90 text-white text-sm font-medium transition-colors">危险按钮</button>
                         <button disabled class="px-4 py-2 rounded-lg bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-400 text-sm font-medium cursor-not-allowed">禁用</button>
                     </div>
@@ -427,7 +511,7 @@
 
                 <!-- 输入框 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">输入框 Input</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">输入框 Input</h3>
                     <div class="grid md:grid-cols-2 gap-4">
                         <input type="text" placeholder="普通输入" class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white/60 dark:bg-night-mid/60 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-ocean-mid focus:ring-2 focus:ring-ocean-mid/30 transition">
                         <input type="text" placeholder="focus 示意态" class="px-4 py-2 rounded-lg border-2 border-ocean-mid bg-white/60 dark:bg-night-mid/60 text-sm text-slate-800 dark:text-slate-100 ring-2 ring-ocean-mid/30 outline-none">
@@ -441,10 +525,10 @@
 
                 <!-- Badge 状态标签 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">状态标签 Badge</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">状态标签 Badge</h3>
                     <div class="flex flex-wrap gap-3">
                         <span class="px-3 py-1 rounded-full text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">待办</span>
-                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-ocean-mid/20 text-ocean-deep dark:text-ocean-light">进行中</span>
+                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-ocean-mid/20 text-ocean-deep dark:text-ocean-shallow">进行中</span>
                         <span class="px-3 py-1 rounded-full text-xs font-medium bg-success/20 text-success">已完成</span>
                         <span class="px-3 py-1 rounded-full text-xs font-medium bg-danger/20 text-danger">失败</span>
                         <span class="px-3 py-1 rounded-full text-xs font-medium bg-warning/20 text-warning">警告</span>
@@ -453,7 +537,7 @@
 
                 <!-- Card 变体 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">卡片 Card 变体</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">卡片 Card 变体</h3>
                     <div class="grid md:grid-cols-3 gap-4">
                         <div class="rounded-lg p-4 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 hover-float">
                             <div class="text-sm font-medium mb-1 text-slate-800 dark:text-slate-100">普通卡片</div>
@@ -480,7 +564,7 @@
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- 进度条 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">进度条 Progress Bar</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">进度条 Progress Bar</h3>
                     <div class="space-y-4">
                         <div>
                             <div class="flex justify-between text-sm mb-1.5">
@@ -514,7 +598,7 @@
 
                 <!-- 环形进度 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">环形进度 Ring Progress</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">环形进度 Ring Progress</h3>
                     <div class="flex justify-center items-center py-3">
                         <div class="relative w-40 h-40">
                             <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -523,7 +607,7 @@
                                 <circle cx="50" cy="50" r="42" fill="none" stroke="#429cd1" stroke-width="8" stroke-linecap="round" stroke-dasharray="189.9 263.9"></circle>
                             </svg>
                             <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-3xl font-bold text-ocean-deep dark:text-ocean-light">72%</span>
+                                <span class="text-3xl font-bold text-ocean-deep dark:text-ocean-shallow">72%</span>
                                 <span class="text-xs text-slate-500 dark:text-slate-400 mt-1">task 完成</span>
                             </div>
                         </div>
@@ -532,7 +616,7 @@
 
                 <!-- 状态分布条 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">状态分布 Status Distribution</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">状态分布 Status Distribution</h3>
                     <div class="flex h-3 rounded-full overflow-hidden mb-4">
                         <div class="bg-slate-400 dark:bg-slate-500" style="width:25%" title="待办 25%"></div>
                         <div class="bg-ocean-mid" style="width:30%" title="进行中 30%"></div>
@@ -561,7 +645,7 @@
 
                 <!-- 迷你折线 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">完成趋势 7-Day Trend</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">完成趋势 7-Day Trend</h3>
                     <svg viewBox="0 0 320 140" class="w-full h-32" preserveAspectRatio="none">
                         <defs>
                             <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
@@ -597,7 +681,7 @@
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- hover-float 演示 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">悬浮上抬 Hover-Float</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">悬浮上抬 Hover-Float</h3>
                     <div class="rounded-lg p-5 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 hover-float mb-3 cursor-pointer">
                         <div class="font-medium text-sm text-slate-800 dark:text-slate-100">把鼠标移上来</div>
                         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">translateY(-6px) + 阴影增强</div>
@@ -607,19 +691,19 @@
 
                 <!-- 级联入场 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">级联入场 Stagger-In</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">级联入场 Stagger-In</h3>
                     <div class="space-y-2.5">
-                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0s; animation-play-state: running">卡片 1 · delay 0s</div>
-                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0.15s; animation-play-state: running">卡片 2 · delay 0.15s</div>
-                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0.3s; animation-play-state: running">卡片 3 · delay 0.3s</div>
-                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0.45s; animation-play-state: running">卡片 4 · delay 0.45s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-shallow animate-stagger-in" style="animation-delay:0s; animation-play-state: running">卡片 1 · delay 0s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-shallow animate-stagger-in" style="animation-delay:0.15s; animation-play-state: running">卡片 2 · delay 0.15s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-shallow animate-stagger-in" style="animation-delay:0.3s; animation-play-state: running">卡片 3 · delay 0.3s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-shallow animate-stagger-in" style="animation-delay:0.45s; animation-play-state: running">卡片 4 · delay 0.45s</div>
                     </div>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">用途：列表/网格逐项浮现｜递增 animation-delay</p>
                 </div>
 
                 <!-- 脉冲点 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">脉冲点 Pulse</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">脉冲点 Pulse</h3>
                     <div class="flex items-center gap-8 py-2">
                         <div class="flex items-center gap-2">
                             <span class="pulse-dot w-3 h-3 rounded-full bg-ocean-mid"></span>
@@ -639,10 +723,10 @@
 
                 <!-- 光晕呼吸 -->
                 <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
-                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">光晕呼吸 Glow-Wave</h3>
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-goldSand-mid">光晕呼吸 Glow-Wave</h3>
                     <div class="flex items-center justify-around py-3">
-                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-ocean-light to-ocean-deep shadow-lg shadow-ocean-mid/40"></div>
-                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-sand-gold to-sand-dark shadow-lg shadow-sand-gold/40" style="animation-delay:1s"></div>
+                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-ocean-shallow to-ocean-deep shadow-lg shadow-ocean-mid/40"></div>
+                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-goldSand-mid to-goldSand-deep shadow-lg shadow-goldSand-mid/40" style="animation-delay:1s"></div>
                         <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-success to-ocean-deep shadow-lg shadow-success/40" style="animation-delay:2s"></div>
                     </div>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">用途：核心元素呼吸强调｜复用 .animate-wave 类</p>
