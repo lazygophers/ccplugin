@@ -142,6 +142,14 @@
             @keyframes staggerIn {
                 to { opacity: 1; transform: translateY(0); }
             }
+            /* ponytail: 颜色无关脉冲，scale+opacity 任意底色复用 */
+            .pulse-dot {
+                animation: pulseDot 1.6s ease-in-out infinite;
+            }
+            @keyframes pulseDot {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.4); opacity: 0.55; }
+            }
             /* Tab 导航按钮 */
             .tab-btn {
                 color: #475569;
@@ -464,25 +472,181 @@
             </div>
         </section>
 
-        <!-- ============ Tab: 图表（占位，下一 subtask 填） ============ -->
+        <!-- ============ Tab: 图表 ============ -->
         <section data-tab="charts" class="mb-14 animate-stagger-in hidden" style="animation-delay:0.4s">
             <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
                 <span class="w-1 h-6 bg-ocean-mid rounded"></span>图表规范
             </h2>
-            <div class="glass rounded-xl p-12 border border-slate-200/60 dark:border-slate-600/40 text-center">
-                <i class="fa fa-bar-chart text-5xl text-slate-300 dark:text-slate-600 mb-4"></i>
-                <p class="text-slate-400 dark:text-slate-500">待补充｜下一 subtask 填充图表组件演示</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- 进度条 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">进度条 Progress Bar</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm mb-1.5">
+                                <span class="text-slate-700 dark:text-slate-300">需求评审</span>
+                                <span class="text-slate-500 dark:text-slate-400">25%</span>
+                            </div>
+                            <div class="h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                <div class="h-full rounded-full bg-ocean-mid transition-all duration-700" style="width:25%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1.5">
+                                <span class="text-slate-700 dark:text-slate-300">功能开发</span>
+                                <span class="text-slate-500 dark:text-slate-400">60%</span>
+                            </div>
+                            <div class="h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                <div class="h-full rounded-full bg-ocean-mid transition-all duration-700" style="width:60%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-sm mb-1.5">
+                                <span class="text-slate-700 dark:text-slate-300">原型设计</span>
+                                <span class="text-success font-medium">100%</span>
+                            </div>
+                            <div class="h-2.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                <div class="h-full rounded-full bg-success transition-all duration-700" style="width:100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 环形进度 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">环形进度 Ring Progress</h3>
+                    <div class="flex justify-center items-center py-3">
+                        <div class="relative w-40 h-40">
+                            <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="8" class="text-slate-200 dark:text-slate-700"></circle>
+                                <!-- ponytail: 周长 = 2π*42 ≈ 263.9, 72% 进度 = 189.9 -->
+                                <circle cx="50" cy="50" r="42" fill="none" stroke="#429cd1" stroke-width="8" stroke-linecap="round" stroke-dasharray="189.9 263.9"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-bold text-ocean-deep dark:text-ocean-light">72%</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-400 mt-1">task 完成</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 状态分布条 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">状态分布 Status Distribution</h3>
+                    <div class="flex h-3 rounded-full overflow-hidden mb-4">
+                        <div class="bg-slate-400 dark:bg-slate-500" style="width:25%" title="待办 25%"></div>
+                        <div class="bg-ocean-mid" style="width:30%" title="进行中 30%"></div>
+                        <div class="bg-success" style="width:35%" title="已完成 35%"></div>
+                        <div class="bg-danger" style="width:10%" title="失败 10%"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-slate-400 dark:bg-slate-500"></span>
+                            <span class="text-slate-700 dark:text-slate-300">待办 25%</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-ocean-mid"></span>
+                            <span class="text-slate-700 dark:text-slate-300">进行中 30%</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-success"></span>
+                            <span class="text-slate-700 dark:text-slate-300">已完成 35%</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-sm bg-danger"></span>
+                            <span class="text-slate-700 dark:text-slate-300">失败 10%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 迷你折线 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40 hover-float">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">完成趋势 7-Day Trend</h3>
+                    <svg viewBox="0 0 320 140" class="w-full h-32" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#429cd1" stop-opacity="0.4"></stop>
+                                <stop offset="100%" stop-color="#429cd1" stop-opacity="0"></stop>
+                            </linearGradient>
+                        </defs>
+                        <line x1="0" y1="35" x2="320" y2="35" stroke="currentColor" stroke-width="0.5" class="text-slate-300 dark:text-slate-700" stroke-dasharray="3,3"></line>
+                        <line x1="0" y1="70" x2="320" y2="70" stroke="currentColor" stroke-width="0.5" class="text-slate-300 dark:text-slate-700" stroke-dasharray="3,3"></line>
+                        <line x1="0" y1="105" x2="320" y2="105" stroke="currentColor" stroke-width="0.5" class="text-slate-300 dark:text-slate-700" stroke-dasharray="3,3"></line>
+                        <path d="M0,110 L53,90 L107,95 L160,60 L213,70 L267,40 L320,30 L320,140 L0,140 Z" fill="url(#lineGrad)"></path>
+                        <polyline points="0,110 53,90 107,95 160,60 213,70 267,40 320,30" fill="none" stroke="#429cd1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                        <circle cx="0" cy="110" r="3" fill="#429cd1"></circle>
+                        <circle cx="53" cy="90" r="3" fill="#429cd1"></circle>
+                        <circle cx="107" cy="95" r="3" fill="#429cd1"></circle>
+                        <circle cx="160" cy="60" r="3" fill="#429cd1"></circle>
+                        <circle cx="213" cy="70" r="3" fill="#429cd1"></circle>
+                        <circle cx="267" cy="40" r="3" fill="#429cd1"></circle>
+                        <circle cx="320" cy="30" r="3" fill="#429cd1"></circle>
+                    </svg>
+                    <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-2 px-0">
+                        <span>周一</span><span>周二</span><span>周三</span><span>周四</span><span>周五</span><span>周六</span><span>周日</span>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- ============ Tab: 动效（占位，下一 subtask 填） ============ -->
+        <!-- ============ Tab: 动效 ============ -->
         <section data-tab="motion" class="mb-14 animate-stagger-in hidden" style="animation-delay:0.5s">
             <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
                 <span class="w-1 h-6 bg-ocean-mid rounded"></span>动效规范
             </h2>
-            <div class="glass rounded-xl p-12 border border-slate-200/60 dark:border-slate-600/40 text-center">
-                <i class="fa fa-magic text-5xl text-slate-300 dark:text-slate-600 mb-4"></i>
-                <p class="text-slate-400 dark:text-slate-500">待补充｜下一 subtask 填充动效演示</p>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- hover-float 演示 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">悬浮上抬 Hover-Float</h3>
+                    <div class="rounded-lg p-5 bg-white/60 dark:bg-night-mid/60 border border-slate-200 dark:border-slate-700 hover-float mb-3 cursor-pointer">
+                        <div class="font-medium text-sm text-slate-800 dark:text-slate-100">把鼠标移上来</div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">translateY(-6px) + 阴影增强</div>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">用途：卡片/按钮悬停反馈｜缓动 cubic-bezier(0.22,1,0.36,1)</p>
+                </div>
+
+                <!-- 级联入场 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">级联入场 Stagger-In</h3>
+                    <div class="space-y-2.5">
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0s; animation-play-state: running">卡片 1 · delay 0s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0.15s; animation-play-state: running">卡片 2 · delay 0.15s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0.3s; animation-play-state: running">卡片 3 · delay 0.3s</div>
+                        <div class="rounded-md p-2.5 bg-ocean-mid/20 text-xs text-ocean-deep dark:text-ocean-light animate-stagger-in" style="animation-delay:0.45s; animation-play-state: running">卡片 4 · delay 0.45s</div>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">用途：列表/网格逐项浮现｜递增 animation-delay</p>
+                </div>
+
+                <!-- 脉冲点 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">脉冲点 Pulse</h3>
+                    <div class="flex items-center gap-8 py-2">
+                        <div class="flex items-center gap-2">
+                            <span class="pulse-dot w-3 h-3 rounded-full bg-ocean-mid"></span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">进行中</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="pulse-dot w-3 h-3 rounded-full bg-success" style="animation-delay:0.5s"></span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">在线</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="pulse-dot w-3 h-3 rounded-full bg-danger" style="animation-delay:1s"></span>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">告警</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-4">用途：状态点呼吸闪烁｜强调活跃项，柔和不刺眼</p>
+                </div>
+
+                <!-- 光晕呼吸 -->
+                <div class="glass rounded-xl p-6 border border-slate-200/60 dark:border-slate-600/40">
+                    <h3 class="font-medium mb-4 text-ocean-deep dark:text-sand-gold">光晕呼吸 Glow-Wave</h3>
+                    <div class="flex items-center justify-around py-3">
+                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-ocean-light to-ocean-deep shadow-lg shadow-ocean-mid/40"></div>
+                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-sand-gold to-sand-dark shadow-lg shadow-sand-gold/40" style="animation-delay:1s"></div>
+                        <div class="animate-wave w-16 h-16 rounded-full bg-gradient-to-br from-success to-ocean-deep shadow-lg shadow-success/40" style="animation-delay:2s"></div>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">用途：核心元素呼吸强调｜复用 .animate-wave 类</p>
+                </div>
             </div>
         </section>
 
