@@ -156,12 +156,25 @@ td .bar{margin:1px 0;min-width:78px}
 .q-block{background:var(--st-pending)}
 .q-name{flex:1 1 auto;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .q-agent{flex:0 0 auto;color:var(--muted);font-size:11px}
-.stepper{display:flex;align-items:center;gap:0;margin:2px 0 8px;max-width:220px}
-.st-cell{display:flex;flex-direction:column;align-items:center;flex:0 0 auto}
-.st-dot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--line);background:transparent;box-sizing:border-box}
-.st-dot.on{background:var(--st-c,var(--muted));border-color:var(--st-c,var(--muted))}
-.st-line{flex:1 1 auto;height:1px;background:var(--line);min-width:4px;margin-top:-5px}
-.st-label{font-size:10px;color:var(--muted);margin-top:3px;line-height:1}
+/* 竖向时间轴 (.rt-*): 替代旧横向 stepper, 每节点显 态名/时刻/状态badge/段+累计耗时 */
+.rt-axis{position:relative;margin:6px 0 10px;font-size:11px;line-height:1.45}
+.rt-node{position:relative;padding:0 0 8px 20px}
+.rt-node:last-child{padding-bottom:0}
+.rt-node::before{content:"";position:absolute;left:5px;top:14px;bottom:-4px;width:1px;background:var(--line)}
+.rt-node:last-child::before{display:none}
+.rt-dot{position:absolute;left:0;top:3px;width:11px;height:11px;border-radius:50%;border:1.5px solid var(--line);background:transparent;box-sizing:border-box}
+.rt-dot.done{background:var(--c,var(--muted));border-color:var(--c,var(--muted))}
+.rt-dot.cur{background:var(--c,var(--muted));border-color:var(--c,var(--muted));animation:rt-pulse 1.6s ease-in-out infinite}
+@keyframes rt-pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c,var(--muted)) 55%,transparent)}50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--c,var(--muted)) 0%,transparent)}}
+@media(prefers-reduced-motion:reduce){html:not([data-motion=full]) .rt-dot.cur{animation:none}}
+.rt-body{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;color:var(--muted)}
+.rt-name{color:var(--head);font-weight:500;min-width:24px}
+.rt-time{font-variant-numeric:tabular-nums;color:var(--fg)}
+.rt-st{display:inline-block;padding:0 6px;border-radius:8px;font-size:10px;line-height:14px;font-weight:500;vertical-align:baseline}
+.rt-st.done{background:var(--muted);color:#fff}
+.rt-st.cur{background:var(--c,var(--muted));color:#fff}
+.rt-st.pending{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.rt-dur{font-variant-numeric:tabular-nums;color:var(--muted)}
 `;
 
 // ── 纯渲染函数 (移植自 board-render.js, 忠实保留像素/边染色逻辑) ──
@@ -192,29 +205,77 @@ function stageChip(stage) {
   if (!label) return "";
   return '<span class="stage-chip st-' + stage + '">' + label + "</span>";
 }
-// task 5 态横向 stepper: 用 status 推已达态 (时间戳 null 但 status 已过该态也算到达)
-// ponytail: 一行 flex 5 点 + 点间 1px 连线, 总高 ~24px, 复用 var(--st-*) 不引新色
+// task 5 态竖向时间轴: 每节点一行显 态名/时刻/状态badge/段+累计耗时, 当前态耗时算到 now
+// ponytail: 老 task confirmed=null 用 status 推已达; 段耗时跳过空戳找前一个实戳; 复用 var(--st-*) 不引新色
 function cardStepper(c) {
   var steps = [
-    { k: "created",  col: "var(--muted)",      lab: "创" },
-    { k: "confirmed", col: "var(--st-pending)", lab: "就" },
-    { k: "started",  col: "var(--st-active)",   lab: "起" },
-    { k: "checked",  col: "var(--st-check)",    lab: "检" },
-    { k: "finished", col: "var(--st-done)",     lab: "完" }
+    { k: "created",   col: "var(--muted)",      lab: "创建" },
+    { k: "confirmed", col: "var(--st-pending)", lab: "就绪" },
+    { k: "started",   col: "var(--st-active)",  lab: "起始" },
+    { k: "checked",   col: "var(--st-check)",   lab: "检查" },
+    { k: "finished",  col: "var(--st-done)",    lab: "完成" }
   ];
-  // status 中文 → 已达态键序 (含自身及之前全亮)
-  var reached = {
-    "待处理": ["created"], "就绪": ["created", "confirmed"], "进行中": ["created", "confirmed", "started"],
-    "检查中": ["created", "confirmed", "started", "checked"], "已完成": ["created", "confirmed", "started", "checked", "finished"],
+  // status 中文 → 已达态键序 (含自身及之前全亮; 老 task confirmed=null 但 status=进行中 也算达就绪)
+  var reachedMap = {
+    "待处理": ["created"],
+    "就绪":   ["created", "confirmed"],
+    "进行中": ["created", "confirmed", "started"],
+    "检查中": ["created", "confirmed", "started", "checked"],
+    "已完成": ["created", "confirmed", "started", "checked", "finished"]
   };
-  var onSet = {}; (reached[c.status] || []).forEach(function (k) { onSet[k] = 1; });
-  var cells = steps.map(function (s, i) {
-    // 时间戳 truthy 或 status 已达该态 → 实心 (双保险: 老 task confirmed=null 但 status=进行中 也亮)
-    var on = (c[s.k] || onSet[s.k]) ? " on" : "";
-    var cell = '<span class="st-cell"><span class="st-dot' + on + '" style="--st-c:' + s.col + '" title="' + s.lab + '"></span><span class="st-label">' + s.lab + "</span></span>";
-    return i < steps.length - 1 ? cell + '<span class="st-line"></span>' : cell;
+  var reached = reachedMap[c.status] || ["created"];
+  var curKey = reached[reached.length - 1];
+  var curIdx = -1;
+  steps.forEach(function (s, i) { if (s.k === curKey) curIdx = i; });
+  var nowSec = Date.now() / 1000;
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function fmtTs(ts) {
+    if (!ts) return "";
+    var d = new Date(ts * 1000);
+    return pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+  }
+  // 该态发生时刻: 有 ts → MM-DD HH:mm; 无 ts + 已达 → "已过"; 无 ts + 未达 → "—"
+  function timeOf(s, i) {
+    var txt = fmtTs(c[s.k]);
+    if (txt) return txt;
+    return i <= curIdx ? "已过" : "—";
+  }
+  // 向前找最近实戳 (跳过 confirmed=null 老 task)
+  function prevTs(i) {
+    for (var j = i - 1; j >= 0; j--) if (c[steps[j].k]) return c[steps[j].k];
+    return null;
+  }
+  // 段耗时 (分钟): 该态 - 上一已发生态; 首态/未到 → null → fmtDur 显 "-"
+  function segDur(s, i) {
+    if (i === 0 || i > curIdx) return null;
+    var t = c[s.k] || (s.k === curKey ? nowSec : 0);
+    var p = prevTs(i);
+    return t && p ? Math.round((t - p) / 60) : null;
+  }
+  // 累计耗时 (分钟): 该态 - created; 首态/未到 → null
+  function cumDur(s, i) {
+    if (i === 0 || i > curIdx) return null;
+    var t = c[s.k] || (s.k === curKey ? nowSec : 0);
+    return t && c.created ? Math.round((t - c.created) / 60) : null;
+  }
+  var last = steps.length - 1;
+  var nodes = steps.map(function (s, i) {
+    var dotCls, stCls, stTxt;
+    if (i < curIdx) { dotCls = "done"; stCls = "done"; stTxt = "已完成"; }
+    else if (i === curIdx && i === last) { dotCls = "done"; stCls = "done"; stTxt = "已完成"; }
+    else if (i === curIdx) { dotCls = "cur"; stCls = "cur"; stTxt = "当前"; }
+    else { dotCls = "pending"; stCls = "pending"; stTxt = "待执行"; }
+    var dur = fmtDur(segDur(s, i)) + " / " + fmtDur(cumDur(s, i));
+    return '<div class="rt-node">'
+      + '<span class="rt-dot ' + dotCls + '" style="--c:' + s.col + '"></span>'
+      + '<span class="rt-body">'
+      + '<span class="rt-name">' + s.lab + '</span>'
+      + '<span class="rt-time">' + esc(timeOf(s, i)) + '</span>'
+      + '<span class="rt-st ' + stCls + '" style="--c:' + s.col + '">' + stTxt + '</span>'
+      + '<span class="rt-dur" title="段耗时 / 累计耗时">' + esc(dur) + '</span>'
+      + '</span></div>';
   }).join("");
-  return '<div class="stepper">' + cells + "</div>";
+  return '<div class="rt-axis">' + nodes + '</div>';
 }
 function fmtDur(mins) {
   if (mins == null) return "-";
