@@ -1,6 +1,6 @@
 ---
 title: 状态先行铁律 (state-before-action) — 三环节硬门·STOP + 单源重述范式
-layer: core
+layer: recall
 category: planning
 keywords: [state-before-action,状态先行,硬门,STOP,task,subtask,check,自降级,claim,单一真值源,cross-ref,回链,skein-flow]
 source: sediment from state-before-action

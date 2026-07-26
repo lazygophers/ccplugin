@@ -1,6 +1,6 @@
 ---
 title: task 状态流转规则（单 task 全 done → check）
-layer: core
+layer: recall
 category: planning
 keywords: [task,状态机,待处理,就绪,进行中,检查中,done,check,状态转移,占槽,多task协调]
 source: sediment from skein-flow-align

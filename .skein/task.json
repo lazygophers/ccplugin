@@ -1,7 +1,7 @@
 {
   "tasks": [
     {
-      "id": "specer-self-heal-budget",
+      "id": "examples-dag",
       "status": "检查中",
       "deps": [],
       "worktree": null,
@@ -42,6 +42,14 @@
     },
     {
       "id": "remove-doctor-btn",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "specer-self-heal-budget",
       "status": "已完成",
       "deps": [],
       "worktree": null,

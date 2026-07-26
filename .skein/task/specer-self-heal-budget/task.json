@@ -2,7 +2,7 @@
   "id": "specer-self-heal-budget",
   "name": "specer 所有写 mode 末尾统一体检修超预算",
   "desc": "sediment/reconstruct/prune 写盘+reindex 后就地跑 spec.py maintain --apply 修超预算, 不留 .pending-fix 给 Stop hook; auto-fix mode 保留兼容",
-  "status": "检查中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -43,6 +43,6 @@
   "started": 1785074539,
   "confirmed": 1785074539,
   "checked": 1785074632,
-  "finished": null,
-  "updated": 1785074632
+  "finished": 1785074705,
+  "updated": 1785074705
 }
