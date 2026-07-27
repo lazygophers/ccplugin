@@ -169,7 +169,8 @@ def test_serve_http() -> None:
             # 看板页实时渲染: serve 走 webapp SPA shell (工程化前端); 结构化数据走 /__skein__/data
             st, body = get("/task.html")
             b = body.decode()
-            assert st == 200 and '<main id="view">' in b, "serve 页缺 SPA 挂载点 (webapp shell)"
+            # ponytail: 前缀匹配 (无闭合 >) — index.html main 加了 class, 精确子串会失配; 仍验 SPA 挂载点存在
+            assert st == 200 and '<main id="view"' in b, "serve 页缺 SPA 挂载点 (webapp shell)"
             st, body = get("/__skein__/data")
             card = next(c for c in json.loads(body)["cards"] if c["id"] == "prd-demo")
             prd = {s["name"]: s for s in card["prd"]}

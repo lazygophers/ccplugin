@@ -20,7 +20,7 @@
 - 数据面 seam = DataSource Protocol (skein.py:3013-3039) **必须保留** (_snapshot 协议, 单测依赖)。
 - dag.js Sugiyama 纯函数 **勿重造** (board+task 共用, board.js:4-5 警告)。
 - 15 HTTP 端点 + 6 静态 mount + WS /__skein__/live (现 reload/data 二分, 500ms 轮询 _asset_rev/_data_rev)。
-- 6 页数据流: dashboard/board/queue/task/archive 有 onLive 软刷, spec 无 (编辑态保守)。
+- 6 页数据流: dashboard/board/queue/task/archive 有 onLive 软刷; spec 仅订阅 spec-changed (编辑态保守跳过保草稿, 无 task 订阅)。
 
 ## child task DAG (researcher 建议 7 task, 已采纳)
 1. **T1 设计系统落地** (无依赖先行) — examples 16 色 token + antd 组件范式 + 布局原语 + 动效, 迁进新 webapp CSS。

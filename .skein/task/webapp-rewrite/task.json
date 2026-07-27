@@ -183,7 +183,7 @@
         "task全htm",
         "spec全htm",
         "dag共用",
-        "spec无onLive",
+        "spec仅订阅spec-changed(无task订阅)编辑态保守",
         "无报错"
       ],
       "验收done": [
@@ -230,6 +230,22 @@
       "started": 1785084948,
       "finished": 1785109773,
       "note": "executor 撞 API 5h 限流中断, 未落盘任何改动 (git clean 确认), 重 claim 重派"
+    },
+    {
+      "sid": "t7-fix-check",
+      "name": "fix: test 断言跟进 + T6 spec onLive checklist 文案",
+      "desc": "test_board.py:172 断言 <main id=\"view\"> 子串失配 (重写后 main 加 class); T6 subtask --check 'spec无onLive' 与 spec.js:680 实际订阅 onLive 冲突, 认可实现 (订阅 spec-changed 合理) 改 checklist 文案 + design.md 同步",
+      "depends_on": [
+        "t7-integration"
+      ],
+      "验收": [],
+      "验收done": [],
+      "status": "运行中",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785110633,
+      "started": 1785110636,
+      "finished": null
     }
   ],
   "repos": [],
@@ -243,5 +259,5 @@
   "confirmed": 1785081994,
   "checked": null,
   "finished": null,
-  "updated": 1785109773
+  "updated": 1785110730
 }

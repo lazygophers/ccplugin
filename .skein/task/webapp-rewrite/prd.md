@@ -19,13 +19,13 @@
 - [ ] 不改 spec 系统。
 
 ## 验收标准
-- [ ] 前端: htm + 原生 DOM, buildless (无构建步骤, ESM 直跑), 6 页全实现。
-- [ ] 后端: API 端点 + WS 协议重构, serve 跑通。
-- [ ] 设计: 海滩蓝金配色 + antd 组件范式 + 动效语言全落地, 明暗双模。
-- [ ] 功能: task 看板/详情/队列/dashboard/archive/spec 全生命周期可操作。
-- [ ] WS 实时: onLive 软刷 (或等价机制) 保留, task 状态变即刷。
-- [ ] `python3 skein.py serve` 启动, 浏览器打开无 JS 报错, 各页可切。
-- [ ] `python3 skein.py doctor` 通过。
+- [x] 前端: htm + 原生 DOM, buildless (无构建步骤, ESM 直跑), 6 页全实现。
+- [x] 后端: API 端点 + WS 协议重构, serve 跑通。
+- [x] 设计: 海滩蓝金配色 + antd 组件范式 + 动效语言全落地, 明暗双模。
+- [x] 功能: task 看板/详情/队列/dashboard/archive/spec 全生命周期可操作。
+- [x] WS 实时: onLive 软刷 (或等价机制) 保留, task 状态变即刷。
+- [x] `python3 skein.py serve` 启动, 浏览器打开无 JS 报错, 各页可切。
+- [x] `python3 skein.py doctor` 通过。
 
 ## 索引
 - [ ] 详细设计: [design.md](design.md)
