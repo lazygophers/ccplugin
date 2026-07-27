@@ -179,7 +179,11 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   // 依赖深度递增 → 阅读序 (行主序) 递增, 边才不会大面积往回绕
   const pos = new Map(grid.nodes.map((n, i) => [n.id, i]));
   console.assert(grid.edges.every(e => pos.get(e.from.id) < pos.get(e.to.id)), '被依赖方应排在前面');
-  console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)})`);
+  // DFS 拓扑序 + 蛇形行序: 一条纯链的每条边都该落在相邻格 (换行处靠蛇形转向消化, 不横穿画板)
+  const far = grid.edges.filter(e =>
+    Math.abs(e.from.x - e.to.x) > S.colW || Math.abs(e.from.y - e.to.y) > S.rowH);
+  console.assert(far.length === 0, '纯链不该有跨格边, 实际 ' + far.length);
+  console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)}) 跨格边 ${far.length}`);
 }
 
 // 12. 满铺网格环兜底: 有环也不死循环

@@ -638,10 +638,12 @@
 .dag-edges { z-index: 0; overflow: visible; }
 .dag-edge { transition: stroke-opacity .15s, stroke-width .15s; }
 .dag-edge.edge-active { stroke-opacity: 0.95; stroke-width: 3; }
-/* hover 链路高亮: 链上节点提亮描边, 链外节点整体降透明 */
-.dag-node-wrap { transition: opacity .15s, filter .15s; }
-/* !important 压过状态筛选的 tailwind .opacity-40 (同权重, 顺序不定) */
-.dag-node-wrap.chain-dim { opacity: 0.25 !important; filter: grayscale(0.8); }
+/* hover 链路高亮: 链上节点提亮描边, 链外节点降透明。
+   淡化只作用在内层 .dag-node — 淡在 wrap 上会连 ::before 的不透明底垫一起淡掉,
+   连线就从卡片里透出来了。底垫必须始终 100% 不透明。 */
+.dag-node-wrap .dag-node { transition: opacity .15s, filter .15s; }
+.dag-node-wrap.is-dim .dag-node { opacity: 0.4; filter: grayscale(1); }
+.dag-node-wrap.chain-dim .dag-node { opacity: 0.25; filter: grayscale(0.8); }
 .dag-node-wrap.chain-active .dag-node {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,0.28);

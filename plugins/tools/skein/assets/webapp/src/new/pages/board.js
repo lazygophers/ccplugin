@@ -306,27 +306,44 @@ function layoutGrid(ids, depsOf, s, maxW, extraOf) {
   const cols = Math.max(1, Math.floor((maxW - s.padX * 2) / s.colW));
   const w = s.colW - s.gapX, hgt = s.rowH - s.gapY;
 
-  // 排序: 分量内按依赖深度, 分量之间连续摆放 —— 相连的卡挨在一起, 边才不会横跨整张画板
+  // 排序: 分量内走 DFS 风格拓扑序 (Kahn + LIFO)。纯按依赖深度排会把链上的父子拆到很远的
+  // 格子, 边就成了横跨半张画板的长线; LIFO 让刚解锁的后继立刻接在父节点后面, 一条链连续铺开。
   const order = [];
   for (const comp of components(ids, depsOf)) {
     const set = new Set(comp);
-    const memo = new Map();
-    const rank = (id) => {
-      if (memo.has(id)) return memo.get(id);
-      memo.set(id, 0);                                   // 环兜底: 先占位再算, 不死循环
-      const v = Math.max(0, ...depsOf(id).filter(d => set.has(d)).map(d => rank(d) + 1));
-      memo.set(id, v);
-      return v;
-    };
-    order.push(...comp.slice().sort((a, b) => rank(a) - rank(b)));
+    const deps = new Map(comp.map(id => [id, depsOf(id).filter(d => set.has(d))]));
+    const left = new Map(comp.map(id => [id, deps.get(id).length]));
+    const succ = new Map(comp.map(id => [id, []]));
+    for (const id of comp) for (const d of deps.get(id)) succ.get(d).push(id);
+    const stack = comp.filter(id => left.get(id) === 0);
+    const placed = new Set();
+    while (stack.length) {
+      const cur = stack.pop();
+      if (placed.has(cur)) continue;
+      placed.add(cur);
+      order.push(cur);
+      for (const nx of succ.get(cur)) {
+        left.set(nx, left.get(nx) - 1);
+        if (left.get(nx) === 0) stack.push(nx);
+      }
+    }
+    // 环上的节点入度永不归零, Kahn 排不出来 — 按原序补在后面, 保证全量绘制
+    for (const id of comp) if (!placed.has(id)) order.push(id);
   }
 
-  const nodes = order.map((id, i) => ({
-    id, band: 0, w, h: hgt,
-    x: s.padX + (i % cols) * s.colW,
-    y: s.padY + Math.floor(i / cols) * s.rowH,
-    ...extraOf(id),
-  }));
+  // 蛇形行序: 偶数行左→右, 奇数行右→左。行末节点与下一行行首同列, 换行的边只需竖直下降,
+  // 不必从画板最右横穿回最左 —— 长横线是「大量竖线挤在列间空隙」的主要来源。
+  const nodes = order.map((id, i) => {
+    const row = Math.floor(i / cols);
+    const k = i % cols;
+    const col = row % 2 === 0 ? k : cols - 1 - k;
+    return {
+      id, band: 0, w, h: hgt,
+      x: s.padX + col * s.colW,
+      y: s.padY + row * s.rowH,
+      ...extraOf(id),
+    };
+  });
   const nmap = new Map(nodes.map(n => [n.id, n]));
   const edges = [];
   for (const id of ids) {
@@ -573,7 +590,9 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
   const subStats = getSubtaskStats(t);
   const hasSubs = subs.length > 0;
 
-  return h(`div.dag-node-wrap.absolute${dimmed ? ' opacity-40 grayscale' : ''}`,
+  // 淡化用 .is-dim 而非 tailwind .opacity-40: 后者作用在 wrap 上会把 ::before 的
+  // 不透明底垫一起调淡, 连线立刻从卡片里透出来。CSS 里 .is-dim 只淡内层卡面。
+  return h(`div.dag-node-wrap.absolute${dimmed ? ' is-dim' : ''}`,
     {
       'data-node-id': t.id,
       style: {
