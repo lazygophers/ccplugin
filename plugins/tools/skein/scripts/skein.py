@@ -2804,6 +2804,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "sid": s["sid"], "name": s["name"], "status": s["status"], "pct": _sub_pct(s),
             "agent": s.get("agent", "skein-executor"),
             "skills": s.get("skills", []),
+            "dependsOn": s.get("depends_on", []),
             "depNames": [sname_of.get(d, d) for d in s.get("depends_on", [])],
             "acc": s.get("验收", []),
             "created": s.get("created"),
@@ -2822,6 +2823,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "stage": _task_stage(t),
             "parent": t.get("parent"), "kind": t.get("kind", "task"),  # task 级父子层 (supertask 分组用, 数据就绪; 前端分组渲染待补)
             "nextUp": t["id"] == next_up_id,
+            "deps": t.get("deps", []),
             "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
             "worktree": (t.get("worktree") or None) if snap.wt_shown else None,
             "assignee": t.get("assignee") or t.get("owner") or git_user,
