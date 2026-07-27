@@ -10,19 +10,140 @@ import * as md from "./lib/md.js";          // 复用现 lib/md.js (render/sanit
 import * as live from "./lib/live.js";
 import * as router from "./router.js";
 
-// ── htm: 极简 h(tag, props, ...children) → DOM ──
-// htm 返回构造对象 (string tag + props + children), 用 h() 转 DOM。10 行, 替 preact。
+// 重新导出, 方便 page 直接 import { h, api, fmtRelative, fmtTime } from '../app.js'
+export { api, md };
+
+// ---- 时间格式化工具 ----
+export function fmtRelative(ts) {
+  if (!ts) return '';
+  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+  const diff = Date.now() - d.getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return '刚刚';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return min + ' 分钟前';
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return hr + ' 小时前';
+  const day = Math.floor(hr / 24);
+  if (day < 30) return day + ' 天前';
+  const mon = Math.floor(day / 30);
+  if (mon < 12) return mon + ' 个月前';
+  return Math.floor(mon / 12) + ' 年前';
+}
+
+export function fmtTime(ts) {
+  if (!ts) return '';
+  const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${y}-${m}-${day} ${hh}:${mm}`;
+}
+
+// ---- 任务数据规范化: 统一 skein API 的字段名和状态 ----
+const STATUS_MAP = {
+  '待处理': 'pending',
+  '进行中': 'active',
+  '执行中': 'active',
+  '待验收': 'check',
+  '已完成': 'done',
+  '已失败': 'failed',
+  '失败': 'failed',
+  '已取消': 'cancelled',
+  '已归档': 'archived',
+  'pending': 'pending',
+  'active': 'active',
+  'check': 'check',
+  'done': 'done',
+  'failed': 'failed',
+};
+
+export function normalizeTask(t) {
+  if (!t) return t;
+  const statusRaw = t.status || t.st || 'pending';
+  const status = STATUS_MAP[statusRaw] || statusRaw;
+  return {
+    ...t,
+    id: t.id,
+    title: t.title || t.name || '',
+    name: t.title || t.name || '',
+    description: t.description || t.desc || '',
+    desc: t.description || t.desc || '',
+    status,
+    priority: t.priority || t.prio || 'mid',
+    createdAt: t.createdAt || (t.created ? t.created * 1000 : null),
+    updatedAt: t.updatedAt || (t.updated ? t.updated * 1000 : t.created ? t.created * 1000 : null),
+    completedAt: t.completedAt || t.finishedAt || (t.finished ? t.finished * 1000 : null),
+    deps: t.deps || t.depNames || [],
+    depNames: t.deps || t.depNames || [],
+    assignee: t.assignee || t.owner || '',
+    estimate: t.estimate || t.est || null,
+    progress: t.progress != null ? t.progress : t.sdone,
+  };
+}
+
+export function normalizeTasks(list) {
+  return (list || []).map(normalizeTask);
+}
+
+// ---- htm: 极简 h(tag.class1.class2, props, ...children) → DOM ----──
+// 支持 htm 风格的简写: 'div.w-10.h-10.text-center' → tag + className 解析
 // ponytail: 零 vDOM/diff; 仅满足本 webapp 的 DOM 构造, 复杂场景留待 page 自行扩展。
 export function h(tag, props, ...children) {
-  if (typeof tag === "function") return tag(props || {}, children);   // 函数组件 (page 可用)
-  const el = document.createElement(tag);
-  if (props) for (const k in props) {
-    const v = props[k];
+  if (typeof tag === "function") return tag(props || {}, children);   // 函数组件
+
+  // 解析 tag 中的 class: 'div.w-10.h-10' → 'div' + 'w-10 h-10'
+  // 支持 #id 语法: 'div#main.container' → 'div' + id='main' + 'container'
+  // 支持转义点: 'lg\\:grid-cols-4' → 'lg:grid-cols-4' (去掉反斜杠)
+  let tagName = tag;
+  let classesFromTag = '';
+  let idFromTag = null;
+
+  if (typeof tag === 'string' && (tag.includes('.') || tag.includes('#'))) {
+    const parts = tag.split(/(?=[.#])/);  // 按 . 或 # 分割, 保留分隔符
+    tagName = parts[0];
+    for (let i = 1; i < parts.length; i++) {
+      const p = parts[i];
+      if (p.startsWith('.')) {
+        // 去掉类名中的反斜杠转义 (\: → :, \. → .)
+        const cls = p.slice(1).replace(/\\:/g, ':').replace(/\\\./g, '.');
+        classesFromTag += (classesFromTag ? ' ' : '') + cls;
+      } else if (p.startsWith('#')) {
+        idFromTag = p.slice(1).replace(/\\:/g, ':').replace(/\\\./g, '.');
+      }
+    }
+  }
+
+  const el = document.createElement(tagName);
+
+  // 如果 props 不是对象 (是数组/字符串/数字/null), 把它当作 children 处理
+  let actualProps = props;
+  if (props == null || typeof props !== 'object' || Array.isArray(props) || props.nodeType) {
+    if (props != null) children.unshift(props);
+    actualProps = {};
+  }
+
+  // 应用从 tag 解析出的 class/id
+  if (classesFromTag) {
+    if (actualProps.class || actualProps.className) {
+      actualProps.class = classesFromTag + ' ' + (actualProps.class || actualProps.className);
+    } else {
+      actualProps.class = classesFromTag;
+    }
+  }
+  if (idFromTag && !actualProps.id) {
+    actualProps.id = idFromTag;
+  }
+
+  if (actualProps) for (const k in actualProps) {
+    const v = actualProps[k];
     if (v == null || v === false) continue;
     if (k === "class" || k === "className") el.className = v;
     else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
     else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2).toLowerCase(), v);
-    else if (k === "html") el.innerHTML = v;                            // 显式 innerHTML (含 SVG / 大段模板)
+    else if (k === "html") el.innerHTML = v;
     else if (v === true) el.setAttribute(k, "");
     else el.setAttribute(k, String(v));
   }

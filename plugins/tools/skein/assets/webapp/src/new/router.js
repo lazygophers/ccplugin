@@ -11,8 +11,8 @@
 //   ctx.onLive(remountFn) 订阅 WS 软刷, router 切页自动退订。
 //   render 抛错 → 占位错误框, 不影响顶栏。
 
-const ROUTES = ["board", "task", "queue", "dashboard", "archive", "spec"];
-const DEFAULT = "board";
+const ROUTES = ["board", "task", "tasks", "queue", "dashboard", "archive", "spec"];
+const DEFAULT = "dashboard";
 
 function parse() {
   const seg = location.pathname.split("/").filter(Boolean);  // ["task","abc"] | ["board"] | []
@@ -20,8 +20,13 @@ function parse() {
   if (!ROUTES.includes(name)) name = DEFAULT;
   const params = {};
   if (name === "task") {
-    const id = new URLSearchParams(location.search).get("id");
-    if (id) params.id = decodeURIComponent(id);
+    // 支持两种格式: /task/:id (路径参数) 和 /task?id=xxx (查询参数)
+    const pathId = seg[1];
+    if (pathId) params.id = decodeURIComponent(pathId);
+    else {
+      const id = new URLSearchParams(location.search).get("id");
+      if (id) params.id = decodeURIComponent(id);
+    }
   }
   return { name, params };
 }
@@ -41,9 +46,11 @@ function placeholder(mount, name, msg) {
 }
 
 function highlightNav(name) {
+  // task 详情页也高亮 tasks 导航
+  const navName = name === "task" ? "tasks" : name;
   document.querySelectorAll("[data-nav]").forEach((a) => {
     const href = (a.getAttribute("href") || "").split("/").filter(Boolean)[0];
-    const on = href === name;
+    const on = href === navName;
     a.classList.toggle("active", on);
     if (on) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
