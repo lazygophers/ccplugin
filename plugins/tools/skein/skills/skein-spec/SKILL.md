@@ -10,13 +10,13 @@ effort: medium
 
 # skein-spec — 两层规则记忆
 
-> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-workflow 为唯一真值源。
+> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-flow/references/ 为单一真值源。
 
 **差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆分两层, 基于 `.skein/spec`:
 
 > **绑定 agent (按读/写拆两个, 均 frontmatter `skills: skein:skein-spec`)**:
 > - **读路径 → `skein-recaller`** (只读同步召回员, 单一 recall 职责): recall 检索 (planning) 派它, **main 等召回结果进 planning** (dispatch prompt「已知」段带上)。
-> - **写路径 → `skein-specer`** (记忆写盘员): sediment/reconstruct·maintain/prune 三类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。**异步 fire-and-forget 模式** (被 `skein-finish` 在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
+> - **写路径 → `skein-specer`** (记忆写盘员): sediment/reconstruct·maintain/prune 三类写作业 (finish 读 diff + subagent 回传摘要 跑判定门产候选 + 写盘 + reindex)。**异步 fire-and-forget 模式** (被 skein-flow finish 阶段在 finish 闭环后派发): specer 自主跑判定门 + `skein-spec sediment` 写盘 + reindex, **无需 main 等待回传** (main 派发即结束回合, 回传到达后只补 output trace; 判定门通过即自主写, 不逐次询问用户)。仅 bootstrap/reconstruct 全局动作跑前一次征同意。
 
 | 层         | 路径                             | 加载                                                 | 适合                             |
 | ---------- | -------------------------------- | ---------------------------------------------------- | -------------------------------- |
@@ -45,7 +45,7 @@ skein-spec recall "<任务关键词>"
 
 ## sediment (task finish 阶段, 异步 fire-and-forget) — 判定门 + 自主写盘
 
-task finish 闭环后由 `skein-finish` 异步 fire-and-forget 派 `skein-specer` 跑「判定门 checklist → 分层归类 → `skein-spec sediment` 自主写盘 + reindex」三步 (含升降级)。**异步**: main 派 memorier 即结束回合, 不等回传 (finish 已闭环, 禁为 sediment 阻塞); memorier 自主写盘, 回传到达后 main 只补 output trace 供审阅。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
+task finish 闭环后由 skein-flow finish 阶段异步 fire-and-forget 派 `skein-specer` 跑「判定门 checklist → 分层归类 → `skein-spec sediment` 自主写盘 + reindex」三步 (含升降级)。**异步**: main 派 memorier 即结束回合, 不等回传 (finish 已闭环, 禁为 sediment 阻塞); memorier 自主写盘, 回传到达后 main 只补 output trace 供审阅。**判定门 (语义) 通过即写, 不逐次 AskUserQuestion** —— 记忆积累高频, 每次询问是噪声; 误沉淀后续调层/删文件可逆纠正。完整判定 trace 模板、分层/归类规则、写盘命令详见 [references/sediment-workflow.md](references/sediment-workflow.md)。
 
 ## prune (sediment 后自动精简, memorier) — 判定门 + 自主归档
 
@@ -158,6 +158,6 @@ skein-spec maintain --apply   # 同一次扫描自动修可修项 (断链只报�
 
 4. **收尾** — reindex → 清 `.pending-fix` 标记。每步追加写 `.audit-log` (7 天轮转, spec.py 实现)。所有动作可逆 (archive 可 `restore <ts>` 回滚, layer 可改回), 误修后续手工纠正。
 
-**双保险**: `skein-finish` 闭环后也检测一次 `.pending-fix` 标记 (防 Stop hook 漏检), 详见 skein-finish 流程。
+**双保险**: skein-flow finish 阶段闭环后也检测一次 `.pending-fix` 标记 (防 Stop hook 漏检), 详见 skein-flow finish 阶段流程。
 
 **不修断链**: `[[slug]]` 目标缺失无法自动决断该修链还是建目标, 只在回传里列清单待人判断; 其余 4 类判据明确、处置可逆, 直接自动修。

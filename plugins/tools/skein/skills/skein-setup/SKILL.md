@@ -10,7 +10,7 @@ user-invocable: true
 
 # skein-setup — 初始化 / 结构维护
 
-> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-workflow 为唯一真值源。
+> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-flow/references/ 为单一真值源。
 
 两用途：**① 未初始化仓库 → 建 `.skein/` 工作区**；**② 已初始化 → 手动优化 `.skein/` 结构**。**幂等** — 重跑安全。
 

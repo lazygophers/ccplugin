@@ -76,7 +76,7 @@
 | 特征 | 路由 | 入口 |
 | --- | --- | --- |
 | 纯查询/单文件小改 | inline | Claude 直接改 |
-| 跨文件/多步/破坏式 | flow | `/skein-exec` 或自动 |
+| 跨文件/多步/破坏式 | flow | `/skein-flow exec` 或自动 |
 | 模糊/边界不清 | grey | AskUserQuestion |
 
 ### 场景表
@@ -154,4 +154,4 @@ skein create <child2> --parent <id>
 | flow | 复杂请求→建 task 闭环 |
 | inline | 简单请求→直接改 |
 | grey | 模糊→AskUserQuestion |
-| /skein-exec | 强制 flow 信号 |
+| /skein-flow exec | 强制 flow 信号 |

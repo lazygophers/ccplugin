@@ -7,7 +7,7 @@ effort: medium
 color: blue
 permissionMode: bypassPermissions
 skills:
-  - skein:skein-exec
+  - skein:skein-flow
 ---
 
 ## 工作流

@@ -1,6 +1,6 @@
 # sediment 异步判定门
 
-skein-finish 流程第 4 步的 sediment 沉淀细节。**finish 闭环 (销 worktree + 标记完成) 后**的异步 fire-and-forget, **不阻塞 finish**。本节是 finisher/main 之外的第三载体 `skein-specer` 的活, 完全复用 `skein-spec` skill, **禁新造沉淀机制**。
+skein-flow finish 阶段 流程第 4 步的 sediment 沉淀细节。**finish 闭环 (销 worktree + 标记完成) 后**的异步 fire-and-forget, **不阻塞 finish**。本节是 finisher/main 之外的第三载体 `skein-specer` 的活, 完全复用 `skein-spec` skill, **禁新造沉淀机制**。
 
 ## 触发与机制 (fire-and-forget)
 

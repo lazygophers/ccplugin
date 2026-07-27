@@ -1,6 +1,6 @@
 # merge / rebase 冲突解构纪律
 
-> skein-finish 的 `skein finish` (commit→merge→销 worktree→标记完成) 在多 task 并行 worktree 合并时常踩冲突。本文件是 ask-matt `/resolving-merge-conflicts` 的 5 步纪律 + skein-finish 失败模式兜底, 供 merge 阶段参考。
+> skein-flow finish 阶段 的 `skein finish` (commit→merge→销 worktree→标记完成) 在多 task 并行 worktree 合并时常踩冲突。本文件是 ask-matt `/resolving-merge-conflicts` 的 5 步纪律 + skein-flow finish 阶段 失败模式兜底, 供 merge 阶段参考。
 
 **触发场景**: `skein finish <id>` 跑到 merge 步骤遇冲突 (worktree 分支已与主分支发散), 或多 task 并行各占独立 worktree 合并回主干互撞。
 
@@ -33,12 +33,12 @@
 - **merge**: `git add <冲突文件>` → `git commit` (完成 merge commit, message 记互斥 hunk 的 trade-off note)。
 - **rebase**: `git rebase --continue` 逐 commit 解, 直到所有 commit rebased (每解一个 conflict 都要 continue, 不是解一次就完)。
 
-## skein-finish 失败模式兜底
+## skein-flow finish 阶段 失败模式兜底
 
 解不开 (反复 step 4 红 / 双方 intent 读不出 / 冲突面过大超认知负荷):
 - **停手, 保留 worktree** — 禁 `--abort`, 禁强制覆盖。
 - **报用户裁** — 把冲突文件清单 + 双方 commit message + 读出的 intent (或读不出的卡点) 给用户, 让用户拍板互斥 hunk 取舍。
-- 回传 skein-finish 失败模式表 (SKILL.md L43): 「解不开 → 停手, 保留 worktree, 报用户裁」。
+- 回传 skein-flow finish 阶段 失败模式表 (SKILL.md L43): 「解不开 → 停手, 保留 worktree, 报用户裁」。
 
 ## 外部引用 (可选)
 

@@ -10,7 +10,7 @@ skein 设计阶段的 deep-module 词表 + 难逆决策 (ADR) 记录机制。ask
 | 词 | 定义 | skein 落点 |
 |---|---|---|
 | **module** | 行为的内聚单元, 对外是一个接口 | design.md「架构」基本单元 |
-| **interface** | 模块对外暴露的契约 (签名/类型/协议) | 契约 subtask 定死的共享契约 (skein-plan L99) |
+| **interface** | 模块对外暴露的契约 (签名/类型/协议) | 契约 subtask 定死的共享契约 (skein-flow plan 阶段「子任务 + 调度 DAG」段) |
 | **depth** | deep module = 多行为背后小接口; shallow = 大接口少行为 | design.md「取舍」评每个模块 deep/shallow |
 | **seam** | 可替换/可测试的接缝 (依赖注入点 / 适配器边界) | subtask 拆分沿 seam 切, 各 subtask 落 seam 一侧 |
 | **adapter** | 跨 seam 的适配层 (协议转换/外部系统封装) | 跨子系统 task 的契约 subtask 常是 adapter |

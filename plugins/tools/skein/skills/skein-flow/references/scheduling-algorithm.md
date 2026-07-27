@@ -1,6 +1,6 @@
 # 调度算法 (双层同构)
 
-编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-plan`)。
+编排两层, 两层同构、都由 main 作调度器跑同一套 DAG: ① **subtask 级** (exec 阶段, 单 task 内把 planning 拆好的 subtask 为每个选一个合适的 agent (按任务性质挑现有 agent, 无合适的用 `skein-executor`) 执行); ② **task 级** (同 session 多 active task 并行, 见末节)。只管执行编排 (职责划分 / 并行 / 依赖), 不碰需求 / 方案设计 (那归 `skein-flow plan 阶段`)。
 
 ## 调度 DAG = 显式 depends_on (唯一边源)
 
@@ -24,7 +24,7 @@ subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写
 | `claim` | main (每轮, **主路径**) | **全局跨 task**: 所有 active task 的 ready subtask 合池竞争同一 `max_parallel` 槽, 按 (拓扑深度降序, task 登记序, subtask 登记序) 截取 + 整批标 running, 返回给 main 逐个 dispatch |
 | `subtask claim <tid>` | main (单 task 兼容模式) | **仅该 task 内**算就绪批 (拓扑深度降序) + 标 running; 不跨 task 竞争, 单 task 场景的兼容路径 |
 | `claim --dry-run` | main (查候选) | **只读预览全局就绪批** (与 `claim` 同源排序), 不改状态; 无就绪时提示激活 pending task。决定执行后去掉 `--dry-run` 即认领 |
-| `subtask check <tid> <sid> --passed "1,3"` | main (**check 阶段**, 非 exec) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条)。**exec 不勾验收 — 此命令归 skein-check checkpoint 核对** (见点3) |
+| `subtask check <tid> <sid> --passed "1,3"` | main (**check 阶段**, 非 exec) | 勾选已过验收序号 (1-based; `all`/`none`), 更新 subtask 完成百分比 = 已过/总验收 (看板渲染进度条)。**exec 不勾验收 — 此命令归 skein-flow check 阶段 checkpoint 核对** (见点3) |
 | `subtask done/fail <tid> <sid>` | main (exec, agent 回) | agent 执行完成/失败即改态。**exec 唯一改态出口** (`done`=执行动作完成; 验收核对留给 check) |
 | `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
 | `list --status open --json` | main (取未完成) | **一次取全部未完成 task 压缩 JSON** (省 token, 替代分别跑 `current`+`ready`+直读 task.json): 每项 `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}`; `ready=true` 的 pending 即就绪批 |
@@ -38,7 +38,7 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
     → skein subtask done/fail <tid> <sid> → 回到 skein claim (脚本自动重算就绪, 完成即派)
 ```
 - 单 task 场景兼容: `skein subtask claim <tid>` (仅该 task 内截断, 不跨 task 竞争)。
-- **subtask 优先, 空闲才提前 plan (禁干等)** — **优先级: 有可调度 subtask 一律先 `claim` 派 (尽早完成在飞 task); plan-ahead 仅次级填充**。`claim` 返回空 (满槽等回传 / 无就绪 subtask) 时, main 不空转: `skein list --status open --json` 找 `status=待处理` 且 `subs` 全 0 (无 subtask = plan 未完成) 的 task → 加载 `skein-plan --continue` 做 planning 推到 planning-ready。**只推到 `skein start` 门前即停** (start 占 active 槽受 `max_active` 限, 满槽脚本拒 start; slot 释放再 start)。**必让位 subtask**: 每步 planning 前/后回探 `claim`, subtask 一可派即放下 planning 回去派。目的: 用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」, 流水线不断档。无未 plan pending → 满槽等回传 / 真无就绪且无 pending 才判死锁收束。
+- **subtask 优先, 空闲才提前 plan (禁干等)** — **优先级: 有可调度 subtask 一律先 `claim` 派 (尽早完成在飞 task); plan-ahead 仅次级填充**。`claim` 返回空 (满槽等回传 / 无就绪 subtask) 时, main 不空转: `skein list --status open --json` 找 `status=待处理` 且 `subs` 全 0 (无 subtask = plan 未完成) 的 task → 加载 `/skein-flow plan 阶段` 做 planning 推到 planning-ready。**只推到 `skein start` 门前即停** (start 占 active 槽受 `max_active` 限, 满槽脚本拒 start; slot 释放再 start)。**必让位 subtask**: 每步 planning 前/后回探 `claim`, subtask 一可派即放下 planning 回去派。目的: 用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」, 流水线不断档。无未 plan pending → 满槽等回传 / 真无就绪且无 pending 才判死锁收束。
 
 - **并发上限 2** — `claim` 内按 `max_parallel - running` 截断, 满槽返回空。
 - **完成即派** — 任一返回即 `done` 后再 `claim`, 脚本立刻放行新就绪, 不等一批跑完。
@@ -47,7 +47,7 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
 - **subtask 失败 → 自愈闭环 (禁失败即停摆)** — subagent 回 `失败:` / 验收不过 → `subtask fail <tid> <sid> --note <原因>` → main 读根因, 自愈二选一 (均在**本 task scope 内**, 完成原范围, 非扩 scope):
   - **① 定点小缺陷** (实现 bug / 局部漏改) → 缩范围**原地重派** `skein subtask start <tid> <失败sid>` (脚本允许重启 `failed`), bounded ≤ 2 轮。
   - **② 根因是独立可修单元** (缺前置产物 / 共享依赖坏 / 需单独定点修) → **自主 `skein subtask add <tid> <fix-sid> --name "修复<根因>" --desc "定点修<失败sid>根因" --deps <失败sid的前置>` 插一个修复 subtask** → 派 executor 定点修根因 → fix `done` 后 `skein subtask start <tid> <失败sid>` 重派原 subtask (依赖已补, 自愈完成)。
-  - **兜底**: 修复 subtask 也失败 / 同一 subtask 累计 > 2 轮无进展 / 根因超本 task scope (需求·设计缺陷) → 停回传 main (走 [skein-check root-cause-protocol](../../skein-check/references/root-cause-protocol.md) 定位或转人工)。禁「失败即停等人工」跳过自愈, 禁跳过该 subtask 放行下游。
+  - **兜底**: 修复 subtask 也失败 / 同一 subtask 累计 > 2 轮无进展 / 根因超本 task scope (需求·设计缺陷) → 停回传 main (走 [root-cause-protocol](root-cause-protocol.md) 定位或转人工)。禁「失败即停等人工」跳过自愈, 禁跳过该 subtask 放行下游。
 - **禁在 subtask 间问用户顺序** — 顺序归 planning。task.json 缺子任务 DAG (depends_on) → 退回 planning 补。
 
 ## worktree
@@ -92,6 +92,6 @@ while skein claim 返回非空:       # 全局跨 task: 所有 active task ready
 失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
 ```
 
-- **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`), dispatch 时原样带给执行 agent, agent 完成前逐条**自检** (agent 自证产物可用, 非 main 勾验收)、回传时对照。取代旧的 per-file reason: 不再逐文件声明"为何改", 而是给一份"做完要满足什么"的验收清单, 文件由 agent 自主定。**这份 checklist 的正式核对归 skein-check checkpoint 阶段** (点3), exec 只把它带给 agent 自检。
-- **exec 只 done/fail, 验收勾选归 check** — exec 阶段 agent 回传后 main 只 `subtask done/fail`, **不 `subtask check` 勾验收** (点1: exec 无验收步骤, 执行完成即 done)。验收 checklist 的逐条勾选 (`subtask check --passed`, 更新完成百分比) 由 skein-check checkpoint 核对时统一做。看板 (task.md/task.html) 逐 subtask 渲染进度条, task 综合完成率 = 各 subtask 百分比均值。
+- **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`), dispatch 时原样带给执行 agent, agent 完成前逐条**自检** (agent 自证产物可用, 非 main 勾验收)、回传时对照。取代旧的 per-file reason: 不再逐文件声明"为何改", 而是给一份"做完要满足什么"的验收清单, 文件由 agent 自主定。**这份 checklist 的正式核对归 skein-flow check 阶段 checkpoint 核对** (点3), exec 只把它带给 agent 自检。
+- **exec 只 done/fail, 验收勾选归 check** — exec 阶段 agent 回传后 main 只 `subtask done/fail`, **不 `subtask check` 勾验收** (点1: exec 无验收步骤, 执行完成即 done)。验收 checklist 的逐条勾选 (`subtask check --passed`, 更新完成百分比) 由 skein-flow check 阶段 checkpoint 核对时统一做。看板 (task.md/task.html) 逐 subtask 渲染进度条, task 综合完成率 = 各 subtask 百分比均值。
 - **Recursion Guard 靠 dispatch prompt 硬性禁止** — 通用 agent 有 Agent/Task 工具, 故不靠工具面而靠上面 prompt 的硬性指令挡住递归: 执行 agent 只做这一个 subtask, 禁再派 subagent, 自己动手做完; 也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。

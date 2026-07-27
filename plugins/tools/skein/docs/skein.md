@@ -10,15 +10,11 @@
         → .skein/ 工作区
 ```
 
-### Skills (10)
+### Skills (5)
 
 | Skill | 职责 | 入口 |
 | --- | --- | --- |
-| skein-flow | 主线编排: plan→exec→check→finish | 自动 (flow 信号) |
-| skein-plan | 规划: brainstorm + research + grill + DAG | flow 调用 |
-| skein-exec | 执行调度: claim + dispatch | flow 调用 |
-| skein-check | 质量验证: lint/type/test/contract | flow 调用 |
-| skein-finish | 收束: 检查 + 合并 + sediment + archive | flow 调用 |
+| skein-flow | 主线编排: plan→exec→check→finish 四阶段单一真值源, 参数路由 (`/skein-flow [plan\|exec\|check\|finish]`, 默认 plan)。plan=brainstorm+research+grill+DAG / exec=claim+dispatch / check=lint+type+test+contract / finish=merge+sediment+archive | 自动 (flow 信号) |
 | skein-spec | 规则记忆: recall/sediment/bootstrap/prune | 按需 |
 | skein-grill | 对抗审查: red team (plan 后硬门) | flow 调用 |
 | skein-research | 调研: 代码 survey + 外部搜索 | plan/exec 调用 |
@@ -90,12 +86,12 @@
 
 | 步骤 | 执行者 | 产出 |
 | --- | --- | --- |
-| 愿景翻译 | skein-plan | Job Story + said/implied/missing |
-| Brainstorm | skein-plan + 你 | 需求/方案/验收标准 |
+| 愿景翻译 | skein-flow plan 阶段 | Job Story + said/implied/missing |
+| Brainstorm | skein-flow plan 阶段 + 你 | 需求/方案/验收标准 |
 | Research | skein-researcher | `research/<topic>.md` |
 | Grill | skein-grill (hard gate) | 对抗审查通过 |
-| Subtask DAG | skein-plan | subtask + depends_on + agent + skills |
-| Contract | skein-plan | contracts[] 不变量 |
+| Subtask DAG | skein-flow plan 阶段 | subtask + depends_on + agent + skills |
+| Contract | skein-flow plan 阶段 | contracts[] 不变量 |
 
 ### Phase 2: Exec
 

@@ -160,7 +160,7 @@ while skein claim 返回非空:       # 全局跨 task 合池竞争
 ```
 skein list --status open --json
   → 找 status=待处理 且 subs 全 0 (无 subtask = plan 未完成) 的 task
-  → 加载 skein-plan --continue 推到 planning-ready
+  → 加载 /skein-flow plan 阶段 推到 planning-ready
 ```
 
 - **目标**：用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」，流水线不断档
@@ -176,7 +176,7 @@ skein list --status open --json
 ### 6.4 死锁判定
 
 - 无未 plan 的 pending task，且 `claim` 持续返回空 → 检查 depends_on 是否有环
-- 有环 → 停手回 skein-plan 改 DAG，禁空转轮询
+- 有环 → 停手回 skein-flow plan 阶段 改 DAG，禁空转轮询
 
 ---
 

@@ -8,9 +8,9 @@
 
 | 场景 | 触发时机 | 谁发起 | task 状态 | 典型数量 |
 |------|---------|--------|-----------|---------|
-| **规划新增** | plan 阶段，brainstorm + grill 后拆分子任务 | skein-plan | 待处理 (pending) | 多个，构成初始 DAG |
-| **自愈修复** | exec 阶段，subtask 失败后的一线修复 | skein-exec (main 自主) | 进行中 (active) | 1 个 (定点小缺陷) |
-| **check 修复** | check 阶段，验证失败 / 检出冲突后 | skein-check (需用户确认方向) | 进行中 (active，回炉) | 1~多个 (一冲突一 subtask) |
+| **规划新增** | plan 阶段，brainstorm + grill 后拆分子任务 | skein-flow plan 阶段 | 待处理 (pending) | 多个，构成初始 DAG |
+| **自愈修复** | exec 阶段，subtask 失败后的一线修复 | skein-flow exec 阶段 (main 自主) | 进行中 (active) | 1 个 (定点小缺陷) |
+| **check 修复** | check 阶段，验证失败 / 检出冲突后 | skein-flow check 阶段 (需用户确认方向) | 进行中 (active，回炉) | 1~多个 (一冲突一 subtask) |
 | **并入补充** | 新 flow 进来，判为对现有 active task 的补充 | skein-flow (main 裁定) | 进行中 / 待处理 | 按补充范围定 |
 
 ---

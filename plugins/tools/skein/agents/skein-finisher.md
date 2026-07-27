@@ -7,7 +7,7 @@ effort: low
 color: green
 permissionMode: bypassPermissions
 skills:
-  - skein:skein-finish
+  - skein:skein-flow
 ---
 
 ## 工作流

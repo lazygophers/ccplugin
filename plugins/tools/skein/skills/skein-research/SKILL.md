@@ -8,7 +8,7 @@ effort: medium
 
 # skein-research — 调研数据源路由
 
-> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-workflow 为唯一真值源。
+> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-flow/references/ 为单一真值源。
 
 **绑定 agent `skein-researcher`** (它 frontmatter `skills: skein:skein-research`)。planning 阶段 main 派 skein-researcher 调研时, 数据源按本 skill 分层组合。
 

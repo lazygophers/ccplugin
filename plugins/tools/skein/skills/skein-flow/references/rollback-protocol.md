@@ -13,7 +13,7 @@ exec 遇设计缺陷 / check 验证失败 / 一致性冲突 / 契约不通过时
 | 场景 | 触发点 | 典型表现 |
 |------|--------|---------|
 | 设计缺陷 | exec 执行中 | 按 design 实现走不通 / 结构漏洞导致阻塞 |
-| 验证失败 | check 阶段 | ≥2 轮定点修复仍 FAIL (见 [root-cause-protocol](../../skein-check/references/root-cause-protocol.md)) |
+| 验证失败 | check 阶段 | ≥2 轮定点修复仍 FAIL (见 [root-cause-protocol](root-cause-protocol.md)) |
 | 一致性冲突 | exec / check | subtask 间实现冲突 / 与契约矛盾 / 与其他 task 接口对不齐 |
 | 契约不通过 | check 阶段 | checker 验证发现契约未满足，且非实现 bug 而是契约本身有问题 |
 
@@ -45,7 +45,7 @@ exec 遇设计缺陷 / check 验证失败 / 一致性冲突 / 契约不通过时
 - 标记 task 为「修复中」(逻辑标记，状态仍为进行中)
 
 ### 2. 根因分析
-- 复用 [skein-check root-cause-protocol](../../skein-check/references/root-cause-protocol.md) 的 5 维度探针：
+- 复用 [root-cause-protocol](root-cause-protocol.md) 的 5 维度探针：
   - ① 需求理解偏差
   - ② 方案设计缺陷
   - ③ 实现 bug

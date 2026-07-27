@@ -6,7 +6,7 @@
 ## 一句话上手
 
 ```
-/skein-exec 给用户模块加上手机号登录, 含短信验证码下发与校验
+/skein-flow exec 给用户模块加上手机号登录, 含短信验证码下发与校验
 ```
 
 复杂请求自动触发 `skein-flow` 闭环, 无需显式命令。
@@ -36,7 +36,7 @@ skein init    # 或由 skein-setup skill 自动触发
 ## 首个 task
 
 ```
-/skein-exec 加一个用户列表页, 含分页和搜索
+/skein-flow exec 加一个用户列表页, 含分页和搜索
 ```
 
 | 阶段 | 行为 |
@@ -72,7 +72,7 @@ skein view       # 可视化 HTML 看板
 | inline | 单文件小改 | 直接改 |
 | grey | 模糊 | AskUserQuestion |
 
-`/skein-exec` = 强制 flow 信号。
+`/skein-flow exec` = 强制 flow 信号。
 
 ## 文档
 
