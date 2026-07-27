@@ -27,110 +27,268 @@ const DEFAULT_FILTER = new Set(['planning', 'ready', 'active', 'check']);
 // 未完成态: 点击"全部"在全选/未完成之间切换
 const INCOMPLETE_STATUSES = ['planning', 'ready', 'active', 'check'];
 
-// ---- DAG 布局 ----
-function layoutDAG(tasks, size = 'md') {
-  const byId = new Map(tasks.map(t => [t.id, t]));
-  const indeg = new Map();
-  for (const t of tasks) indeg.set(t.id, (t.deps || []).length);
-
-  const layers = [];
-  const remaining = new Set(tasks.map(t => t.id));
-  while (remaining.size) {
-    const cur = [];
-    for (const id of remaining) {
-      const t = byId.get(id);
-      const depDone = (t.deps || []).every(d => !remaining.has(d));
-      if (depDone) cur.push(id);
+// ---- Sugiyama 分层布局核心 (零依赖, 思路取自 dagre / elkjs) ----
+// 1) rank: 最长路径分层 + 逆序下沉紧缩 —— 无依赖节点贴到消费者前一层, 不再全挤第 0 列拉出横跨全图的长边
+// 2) 长边插虚点, 让它在中间层有落脚点: 既参与排序, 又给走线拐点绕开挡路的卡片
+// 3) median + transpose 多轮双向扫描降交叉
+// 4) 层内折行: 行数上限 R 全图统一, 由可用视口宽高比反解 (不写死行数); 装得下就不折
+// 5) 单列层按邻居中位数对齐, 让链路走直
+// 复杂度 O(V+E) 级 (transpose 对 >200 的层跳过), 支撑千节点量级
+function sugiyama(ids, depsOf, opt) {
+  const { colW, rowH, padX, padY, gapY, aspect, viewH } = opt;
+  const idSet = new Set(ids);
+  const deps = new Map(), succ = new Map();
+  for (const id of ids) { deps.set(id, []); succ.set(id, []); }
+  for (const id of ids) {
+    const seen = new Set();
+    for (const d of (depsOf(id) || [])) {
+      if (!idSet.has(d) || d === id || seen.has(d)) continue;
+      seen.add(d);
+      deps.get(id).push(d);
+      succ.get(d).push(id);
     }
-    if (!cur.length) { cur.push(...remaining); remaining.clear(); }
-    for (const id of cur) remaining.delete(id);
-    layers.push(cur);
   }
 
-  // 响应式布局参数
-  const SIZES = {
-    sm: { colW: 260, rowH: 180, padX: 32, padY: 24, gapX: 24, gapY: 16 },
-    md: { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 },
-    lg: { colW: 340, rowH: 220, padX: 50, padY: 40, gapX: 36, gapY: 24 },
-    xl: { colW: 380, rowH: 240, padX: 60, padY: 50, gapX: 40, gapY: 28 },
-  };
-  const s = SIZES[size] || SIZES.md;
-  const { colW, rowH, padX, padY, gapX: gx, gapY: gy } = s;
+  // --- 1. 分层 ---
+  const rank = new Map();
+  const indeg = new Map(ids.map(i => [i, deps.get(i).length]));
+  let frontier = ids.filter(i => indeg.get(i) === 0);
+  let settled = 0;
+  while (frontier.length) {
+    const next = [];
+    for (const id of frontier) {
+      settled++;
+      let r = 0;
+      for (const d of deps.get(id)) r = Math.max(r, (rank.has(d) ? rank.get(d) : -1) + 1);
+      rank.set(id, r);
+      for (const s of succ.get(id)) {
+        indeg.set(s, indeg.get(s) - 1);
+        if (indeg.get(s) === 0) next.push(s);
+      }
+    }
+    frontier = next;
+  }
+  // 有环兜底: 剩下的按已定 dep 强排 (DAG 数据本不该有环, 但不能因此死循环)
+  if (settled < ids.length) {
+    for (const id of ids) {
+      if (rank.has(id)) continue;
+      let r = 0;
+      for (const d of deps.get(id)) if (rank.has(d)) r = Math.max(r, rank.get(d) + 1);
+      rank.set(id, r);
+    }
+  }
+  // 下沉紧缩: rank 降序遍历, 有后继的贴到 min(后继)-1
+  for (const id of ids.slice().sort((a, b) => rank.get(b) - rank.get(a))) {
+    const ss = succ.get(id);
+    if (!ss.length) continue;
+    let m = Infinity;
+    for (const s of ss) m = Math.min(m, rank.get(s));
+    if (m - 1 > rank.get(id)) rank.set(id, m - 1);
+  }
+  // 压掉下沉后留下的空层
+  const usedRanks = [...new Set(ids.map(i => rank.get(i)))].sort((a, b) => a - b);
+  const remap = new Map(usedRanks.map((r, i) => [r, i]));
+  for (const id of ids) rank.set(id, remap.get(rank.get(id)));
+  const L = usedRanks.length;
 
-  const nodes = [];
-  layers.forEach((layer, li) => {
-    layer.forEach((id, ri) => {
-      const t = byId.get(id);
-      nodes.push({
-        id, task: t,
-        x: padX + li * colW,
-        y: padY + ri * rowH,
-        w: colW - gx, h: rowH - gy,
+  // --- 2. 建边 + 长边插虚点 ---
+  const layers = Array.from({ length: L }, () => []);
+  const nodeOf = new Map();
+  for (const id of ids) {
+    const n = { id, rank: rank.get(id), dummy: false };
+    nodeOf.set(id, n);
+    layers[n.rank].push(n);
+  }
+  const edges = [];
+  let dseq = 0;
+  for (const id of ids) {
+    for (const d of deps.get(id)) {
+      const from = nodeOf.get(d), to = nodeOf.get(id);
+      const chain = [];
+      for (let r = from.rank + 1; r < to.rank; r++) {
+        const dn = { id: `~d${dseq++}`, rank: r, dummy: true };
+        layers[r].push(dn);
+        chain.push(dn);
+      }
+      edges.push({ from, to, chain });
+    }
+  }
+  // 相邻层邻接 (虚点串在链上, 与真实节点同等参与排序)
+  const adjUp = new Map(), adjDown = new Map();
+  const link = (a, b) => {
+    if (!adjDown.has(a)) adjDown.set(a, []);
+    if (!adjUp.has(b)) adjUp.set(b, []);
+    adjDown.get(a).push(b); adjUp.get(b).push(a);
+  };
+  for (const e of edges) {
+    let prev = e.from;
+    for (const dn of e.chain) { link(prev, dn); prev = dn; }
+    link(prev, e.to);
+  }
+
+  // --- 3. 交叉最小化 ---
+  const posIn = new Map();
+  const reindex = () => { for (const l of layers) l.forEach((n, i) => posIn.set(n, i)); };
+  reindex();
+  const medianOf = (n, adj) => {
+    const ps = (adj.get(n) || []).map(m => posIn.get(m)).sort((a, b) => a - b);
+    if (!ps.length) return -1;
+    const mid = ps.length >> 1;
+    return ps.length % 2 ? ps[mid] : (ps[mid - 1] + ps[mid]) / 2;
+  };
+  const crossOf = (a, b, adj) => {
+    // a 排在 b 上方时, 二者邻边的逆序对数
+    const pa = (adj.get(a) || []).map(m => posIn.get(m));
+    const pb = (adj.get(b) || []).map(m => posIn.get(m));
+    let c = 0;
+    for (const x of pa) for (const y of pb) if (y < x) c++;
+    return c;
+  };
+  const idxs = layers.map((_, i) => i);
+  for (let it = 0; it < 6; it++) {
+    const down = it % 2 === 0;
+    const seq = down ? idxs.slice(1) : idxs.slice(0, -1).reverse();
+    const adj = down ? adjUp : adjDown;
+    for (const li of seq) {
+      const layer = layers[li];
+      const med = new Map();
+      layer.forEach((n, i) => {
+        const m = medianOf(n, adj);
+        med.set(n, m < 0 ? i : m); // 无邻居的锚在原位, 不被甩到头部
       });
+      layer.sort((a, b) => med.get(a) - med.get(b));
+      reindex();
+      if (layer.length <= 200) {
+        for (let round = 0; round < 4; round++) {
+          let improved = false;
+          for (let i = 0; i + 1 < layer.length; i++) {
+            const a = layer[i], b = layer[i + 1];
+            if (crossOf(a, b, adj) > crossOf(b, a, adj)) {
+              layer[i] = b; layer[i + 1] = a;
+              posIn.set(b, i); posIn.set(a, i + 1);
+              improved = true;
+            }
+          }
+          if (!improved) break;
+        }
+      }
+    }
+    reindex();
+  }
+
+  // --- 4. 折行行数 R: 由视口宽高比反解 ---
+  const maxCount = layers.reduce((m, l) => Math.max(m, l.length), 1);
+  const colsAt = (r) => layers.reduce((sum, l) => sum + Math.max(1, Math.ceil(l.length / r)), 0);
+  let R = maxCount;
+  if (maxCount * rowH > (viewH || 0)) {
+    let bestScore = Infinity;
+    const step = Math.max(1, Math.ceil(maxCount / 200));
+    for (let r = 1; r <= maxCount; r += step) {
+      const w = colsAt(r) * colW, hh = r * rowH;
+      const score = Math.abs(Math.log((w / hh) / aspect));
+      if (score < bestScore) { bestScore = score; R = r; }
+    }
+  }
+
+  // --- 5. 坐标 ---
+  const layerCols = layers.map(l => Math.max(1, Math.ceil(l.length / R)));
+  const layerX = [];
+  let accX = 0;
+  for (let i = 0; i < L; i++) { layerX.push(accX); accX += layerCols[i] * colW; }
+  layers.forEach((l, li) => {
+    const rows = layerCols[li] > 1 ? R : Math.max(1, l.length);
+    l.forEach((n, i) => {
+      n.x = layerX[li] + Math.floor(i / rows) * colW;
+      n.y = (i % rows) * rowH;
+      n.y0 = n.y; // 网格基准位, 对齐只能在其附近微调
     });
   });
-
-  const edges = [];
-  for (const n of nodes) {
-    const deps = n.task.deps || [];
-    for (const depId of deps) {
-      const src = nodes.find(x => x.id === depId);
-      if (src) edges.push({ from: src, to: n });
+  // 单列层按邻居中位数对齐 + 保序推挤 (折行层是网格, 保持整齐不动)
+  // 位移夹在基准位 ±SLACK 行内: 不夹的话对齐会顺着链路级联推高, 整图越排越长
+  const SLACK = 3 * rowH;
+  for (let pass = 0; pass < 3; pass++) {
+    const seq = pass % 2 === 0 ? idxs : idxs.slice().reverse();
+    const adj = pass % 2 === 0 ? adjUp : adjDown;
+    for (const li of seq) {
+      if (layerCols[li] > 1) continue;
+      const layer = layers[li];
+      let prev = -Infinity;
+      for (const n of layer) {
+        const ns = adj.get(n) || [];
+        let want = n.y;
+        if (ns.length) {
+          const ys = ns.map(m => m.y).sort((a, b) => a - b);
+          const mid = ys.length >> 1;
+          want = ys.length % 2 ? ys[mid] : (ys[mid - 1] + ys[mid]) / 2;
+        }
+        want = Math.max(n.y0 - SLACK, Math.min(n.y0 + SLACK, want));
+        n.y = Math.max(want, prev + rowH);
+        prev = n.y;
+      }
     }
   }
+  const all = layers.flat();
+  const minY = all.reduce((m, n) => Math.min(m, n.y), Infinity);
+  for (const n of all) { n.x += padX; n.y += padY - minY; }
+  const maxY = all.reduce((m, n) => Math.max(m, n.y), 0);
+  return {
+    layers, edges,
+    width: accX + padX * 2,
+    height: maxY + (rowH - gapY) + padY,
+  };
+}
 
-  const width = padX * 2 + layers.length * colW;
-  const height = padY * 2 + Math.max(1, ...layers.map(l => l.length)) * rowH;
-  return { nodes, edges, width, height };
+// 响应式布局参数
+const DAG_SIZES = {
+  sm: { colW: 260, rowH: 180, padX: 32, padY: 24, gapX: 24, gapY: 16 },
+  md: { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 },
+  lg: { colW: 340, rowH: 220, padX: 50, padY: 40, gapX: 36, gapY: 24 },
+  xl: { colW: 380, rowH: 240, padX: 60, padY: 50, gapX: 40, gapY: 28 },
+};
+
+// ---- DAG 布局 ----
+// view = { w, h } 可用画布尺寸 — 详情面板开合 / 窗口缩放都会改变它, 布局随之重排
+function layoutDAG(tasks, size = 'md', view) {
+  if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0 };
+  const s = DAG_SIZES[size] || DAG_SIZES.md;
+  const byId = new Map(tasks.map(t => [t.id, t]));
+  const vw = (view && view.w) || 1200, vh = (view && view.h) || 700;
+  const g = sugiyama(tasks.map(t => t.id), id => byId.get(id).deps || [],
+    { ...s, aspect: vw / vh, viewH: vh });
+  return packLayout(g, s, id => ({ task: byId.get(id) }));
+}
+
+// sugiyama 结果 → 渲染用 {nodes, edges}: 丢掉虚点, 虚点坐标转成边的拐点
+function packLayout(g, s, extraOf) {
+  const w = s.colW - s.gapX, hgt = s.rowH - s.gapY;
+  const nodes = [];
+  for (const l of g.layers) {
+    for (const n of l) {
+      if (n.dummy) continue;
+      nodes.push({ id: n.id, x: n.x, y: n.y, w, h: hgt, ...extraOf(n.id) });
+    }
+  }
+  const nmap = new Map(nodes.map(n => [n.id, n]));
+  const edges = [];
+  for (const e of g.edges) {
+    const from = nmap.get(e.from.id), to = nmap.get(e.to.id);
+    if (!from || !to) continue;
+    edges.push({ from, to, bends: e.chain.map(d => ({ x: d.x + w / 2, y: d.y + hgt / 2 })) });
+  }
+  return { nodes, edges, width: g.width, height: g.height };
 }
 
 // ---- 子任务 DAG 布局 (迷你) ----
 function layoutSubDAG(subs) {
   if (!subs || !subs.length) return { nodes: [], edges: [], width: 0, height: 0 };
   const byId = new Map(subs.map(s => [s.id || s.sid, s]));
-  const ids = subs.map(s => s.id || s.sid);
-
-  const layers = [];
-  const remaining = new Set(ids);
-  while (remaining.size) {
-    const cur = [];
-    for (const id of remaining) {
-      const s = byId.get(id);
-      const deps = s.deps || s.dependsOn || [];
-      const depDone = deps.every(d => !remaining.has(d));
-      if (depDone) cur.push(id);
-    }
-    if (!cur.length) { cur.push(...remaining); remaining.clear(); }
-    for (const id of cur) remaining.delete(id);
-    layers.push(cur);
-  }
-
-  const colW = 160, rowH = 60, padX = 16, padY = 12;
-  const nodes = [];
-  layers.forEach((layer, li) => {
-    layer.forEach((id, ri) => {
-      const s = byId.get(id);
-      nodes.push({
-        id, sub: s,
-        x: padX + li * colW,
-        y: padY + ri * rowH,
-        w: colW - 16, h: rowH - 12,
-      });
-    });
-  });
-
-  const edges = [];
-  for (const n of nodes) {
-    const deps = n.sub.deps || n.sub.dependsOn || [];
-    for (const depId of deps) {
-      const src = nodes.find(x => x.id === depId);
-      if (src) edges.push({ from: src, to: n });
-    }
-  }
-
-  const width = padX * 2 + layers.length * colW;
-  const height = padY * 2 + Math.max(1, ...layers.map(l => l.length)) * rowH;
-  return { nodes, edges, width, height };
+  const s = { colW: 160, rowH: 60, padX: 16, padY: 12, gapX: 16, gapY: 12 };
+  // 迷你视图嵌在详情面板里, 宽高比按面板实际比例给, viewH 给足 = 基本不折行
+  const g = sugiyama([...byId.keys()], id => {
+    const sub = byId.get(id);
+    return sub.deps || sub.dependsOn || [];
+  }, { ...s, aspect: 1.6, viewH: 2000 });
+  return packLayout(g, s, id => ({ sub: byId.get(id) }));
 }
 
 // ---- 悬浮 popover ----
@@ -366,18 +524,29 @@ function drawEdges(edges, getEdgeInfo) {
     } else {
       st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
     }
-    // 贝塞尔 control: 跨 layer 用水平中点; 同 x (同 layer / 环 fallback) 用横向偏移避免退化重叠
-    const dx = x2 - x1;
-    let cx1, cx2;
-    if (Math.abs(dx) < 8) {
-      // 同列: control 向右弯出再回, 避线段退化为竖线与邻线重叠
-      const bow = 60;
-      cx1 = x1 + bow; cx2 = x2 + bow;
+    let d;
+    if (e.bends && e.bends.length) {
+      // 跨多层的长边: 串起虚点拐点分段走, 绕开中间层挡路的卡片
+      const pts = [{ x: x1, y: y1 }, ...e.bends, { x: x2, y: y2 }];
+      d = `M ${x1} ${y1}`;
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[i - 1], p1 = pts[i], mx = (p0.x + p1.x) / 2;
+        d += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`;
+      }
     } else {
-      const mx = (x1 + x2) / 2;
-      cx1 = mx; cx2 = mx;
+      // 贝塞尔 control: 跨 layer 用水平中点; 同 x (同 layer / 环 fallback) 用横向偏移避免退化重叠
+      const dx = x2 - x1;
+      let cx1, cx2;
+      if (Math.abs(dx) < 8) {
+        // 同列: control 向右弯出再回, 避线段退化为竖线与邻线重叠
+        const bow = 60;
+        cx1 = x1 + bow; cx2 = x2 + bow;
+      } else {
+        const mx = (x1 + x2) / 2;
+        cx1 = mx; cx2 = mx;
+      }
+      d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
     }
-    const d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
     const opacity = dimmed ? '0.12' : '0.55';
     return h('path', {
       d, fill: 'none',
@@ -1130,12 +1299,14 @@ export async function render(mount, params, ctx) {
     return 'sm';
   }
   let curSize = getSize();
+  // 布局用的可用画布尺寸 — 每次 draw 后按真实 DOM 校正, 详情面板开合 / 窗口缩放都会改到它
+  let viewBox = { w: Math.max(400, window.innerWidth - 80), h: Math.max(600, window.innerHeight - 260) };
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      const ns = getSize();
-      if (ns !== curSize) { curSize = ns; draw(); }
+      curSize = getSize();
+      draw();
     }, 150);
   });
 
@@ -1255,7 +1426,7 @@ export async function render(mount, params, ctx) {
 
   function draw() {
     const allSelected = ALL_STATUSES.every(s => statusSet.has(s));
-    const { nodes, edges, width, height } = layoutDAG(allTasks, curSize);
+    const { nodes, edges, width, height } = layoutDAG(allTasks, curSize, viewBox);
     const selectedTask = allTasks.find(t => t.id === selectedId) || null;
     const hasPanel = !!selectedTask;
     const highlightedCount = allTasks.filter(t => statusSet.has(t.status)).length;
@@ -1290,7 +1461,12 @@ export async function render(mount, params, ctx) {
       // 主内容区: 左 DAG/列表 + (可选) 右详情
       h(`div.board-main.glass-card${hasPanel ? ' has-panel' : ''}`, [
         // 左侧: DAG/列表
-        h('div.flex-1.board-dag-wrap', { id: 'board-dag-wrap' },
+        // DAG 视图锁死可视高度: 画布靠拖拽平移看全, 不锁的话 wrap 被画布撑高,
+        // 布局反解视口比时就拿不到真实可用高度 (会正反馈越排越高)
+        h('div.flex-1.board-dag-wrap', {
+          id: 'board-dag-wrap',
+          style: view === 'dag' ? { height: 'calc(100vh - 260px)' } : null,
+        },
           view === 'dag'
             ? [
                 h('div.dag-canvas.relative',
@@ -1322,6 +1498,16 @@ export async function render(mount, params, ctx) {
       ]),
     );
     setTimeout(() => initDrag(edges), 0);
+    // 用真实容器尺寸校正 viewBox 后重排一次 — 差值收敛到 40px 内即停, 不会反复重绘
+    requestAnimationFrame(() => {
+      const wrap = document.getElementById('board-dag-wrap');
+      if (!wrap || view !== 'dag') return;
+      const w = wrap.clientWidth, hh = wrap.clientHeight;
+      if (w > 100 && hh > 100 && (Math.abs(w - viewBox.w) > 40 || Math.abs(hh - viewBox.h) > 40)) {
+        viewBox = { w, h: hh };
+        draw();
+      }
+    });
   }
 
   draw();
