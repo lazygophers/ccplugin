@@ -39,7 +39,7 @@ const BOARD_CSS = `
 .stat-n{display:block;font-size:20px;font-weight:600;color:var(--head);line-height:1.1}
 .stat-l{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .stat.on .stat-l{color:var(--head)}
-.card{background:var(--card);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:calc(var(--topbar, 70px) + 16px)}
+.card{background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--brd);border-radius:var(--radius);padding:20px 24px;margin:0 0 18px;scroll-margin-top:calc(var(--topbar, 70px) + 16px)}
 .card.next-up{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .next-up-chip{margin-left:8px;padding:0 8px;border-radius:9px;background:var(--accent);color:var(--bg);font-size:11px;line-height:17px;font-weight:600;vertical-align:baseline}
 .card h2{margin:0 0 5px;font-size:17px;font-weight:600;letter-spacing:-.01em;color:var(--head);display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}

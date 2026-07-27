@@ -94,7 +94,7 @@ const TASK_CSS = `
 .stage-chip.stg-check{background:var(--st-check)}
 .stage-chip.stg-done{background:var(--st-done)}
 /* subtask 列表卡片 */
-.sub-card{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--card)}
+.sub-card{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .sub-active{border-color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
 /* 合并时间线: 复用 design.css .tl-axis/.tl-node/.tl-dot 原语 (examples 竖向轴 + done/cur/custom 态).
    task 五态节点 = done 态 (强调主轴, --tl-c=accent); subtask 事件 = custom 态弱点 (--tl-c=muted). */

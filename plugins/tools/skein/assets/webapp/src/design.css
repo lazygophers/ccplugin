@@ -419,7 +419,8 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
 /* ── 类目 4: DataDisplay · Card / Tag / Badge / Avatar / Tooltip / Skeleton (examples:1133-1428) ── */
 .antd-card {
   display: block; padding: 16px 20px; border-radius: var(--radius-sm);
-  background: var(--card); border: 1px solid var(--brd);
+  background: var(--card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--brd);
   transition: transform .2s, box-shadow .2s, border-color .2s;
 }
 .antd-card.hoverable:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.06); }
