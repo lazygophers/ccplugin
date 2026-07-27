@@ -28,6 +28,13 @@ function parse() {
       if (id) params.id = decodeURIComponent(id);
     }
   }
+  // 解析查询参数 (所有页面通用)
+  const sp = new URLSearchParams(location.search);
+  params.query = {};
+  for (const [k, v] of sp.entries()) {
+    if (k === "id") continue; // id 已在上面处理
+    params.query[k] = v;
+  }
   return { name, params };
 }
 
@@ -72,6 +79,8 @@ async function navigate() {
 
   const ctx = Object.assign({}, injectedDeps.ctx, {
     onLive: (cb) => { const u = injectedDeps.onLive(cb); cleanups.push(u); },
+    navigate: go,
+    setQuery: setQuery,
   });
 
   let mod;
@@ -115,7 +124,7 @@ export async function start({ ctx, onLive }) {
   });
 
   navigate();
-  return go;
+  return { go, setQuery };
 }
 
 // 编程式导航 (顶栏搜索 / 页面跳转)
@@ -123,4 +132,23 @@ export function go(path) {
   const p = path.charAt(0) === "/" ? path : "/" + path;
   history.pushState({}, "", p);
   navigate();
+}
+
+// 更新当前页面的查询参数 (不触发页面重渲染, 仅更新 URL)
+// 用于筛选/搜索等局部状态同步到 URL
+// params: { key: value | null }  — null/undefined/'' 表示删除该参数
+export function setQuery(params, replace = false) {
+  const url = new URL(location.href);
+  let changed = false;
+  for (const [k, v] of Object.entries(params)) {
+    if (v == null || v === "" || v === false) {
+      if (url.searchParams.has(k)) { url.searchParams.delete(k); changed = true; }
+    } else {
+      if (url.searchParams.get(k) !== String(v)) { url.searchParams.set(k, String(v)); changed = true; }
+    }
+  }
+  if (!changed) return;
+  const path = url.pathname + url.search + url.hash;
+  if (replace) history.replaceState({}, "", path);
+  else history.pushState({}, "", path);
 }

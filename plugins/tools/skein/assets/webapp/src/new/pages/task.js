@@ -31,42 +31,95 @@ function infoItem(label, value) {
 }
 
 // ---- 时间线 ----
+const STAGE_COLORS = {
+  created:  '#74b9e8',
+  ready:    '#429cd1',
+  started:  '#237bb8',
+  checked:  '#c9a227',
+  finished: '#48bb78',
+};
+
 function buildTimeline(task) {
-  const events = [];
-  if (task.createdAt) events.push({ type: '创建任务', time: task.createdAt, icon: 'fa-plus-circle', color: 'st-planning' });
-  if (task.startedAt) events.push({ type: '开始执行', time: task.startedAt, icon: 'fa-play', color: 'st-active' });
-  if (task.checkedAt) events.push({ type: '进入验收', time: task.checkedAt, icon: 'fa-eye', color: 'st-check' });
-  if (task.finishedAt) events.push({ type: '已完成', time: task.finishedAt, icon: 'fa-check-circle', color: 'st-done' });
-  if (task.subtasks && task.subtasks.length) {
-    for (const s of task.subtasks) {
-      if (s.createdAt) events.push({ type: `子任务创建: ${s.title || s.name || s.sid}`, time: s.createdAt, icon: 'fa-tasks', color: 'st-planning' });
-      if (s.finishedAt) events.push({ type: `子任务完成: ${s.title || s.name || s.sid}`, time: s.finishedAt, icon: 'fa-check', color: 'st-done' });
-    }
-  }
-  events.sort((a, b) => a.time - b.time);
-  return events;
+  const st = task.status || 'planning';
+  const stages = [
+    {
+      key: 'created', label: '创建', name: '创建任务',
+      desc: '任务创建与初始化',
+      time: task.createdAt,
+      done: !!task.createdAt,
+      current: false,
+      color: STAGE_COLORS.created,
+    },
+    {
+      key: 'ready', label: '就绪', name: '进入待执行',
+      desc: '规划完成，等待开始执行',
+      time: task.readyAt,
+      done: !!task.readyAt || st === 'ready' || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
+      current: st === 'ready',
+      color: STAGE_COLORS.ready,
+    },
+    {
+      key: 'started', label: '执行', name: '开始执行',
+      desc: '任务执行中，子任务调度',
+      time: task.startedAt,
+      done: !!task.startedAt || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
+      current: st === 'active',
+      color: STAGE_COLORS.started,
+    },
+    {
+      key: 'checked', label: '验收', name: '进入验收',
+      desc: 'checkpoint 核对 + 场景自适应校验',
+      time: task.checkedAt,
+      done: !!task.checkedAt || st === 'check' || st === 'done' || st === 'failed',
+      current: st === 'check',
+      color: STAGE_COLORS.checked,
+    },
+    {
+      key: 'finished', label: '完成', name: '已完成',
+      desc: '任务完成，归档沉淀',
+      time: task.finishedAt,
+      done: !!task.finishedAt || st === 'done',
+      current: false,
+      color: STAGE_COLORS.finished,
+    },
+  ];
+  return stages;
 }
 
-function timelineView(events) {
-  if (!events || !events.length) {
+function timelineView(stages, task) {
+  if (!stages || !stages.length) {
     return h('div.py-8.text-center.text-muted.text-sm', '暂无活动记录');
   }
-  return h('div.relative',
-    events.map((ev, i) =>
-      h('div.flex.gap-3.relative.pb-5', [
-        h('div.relative.flex-shrink-0.w-5', [
-          h(`span.absolute.left-2.top-1.-translate-x-1/2.w-2.5.h-2.5.rounded-full.bg-${ev.color || 'accent'}.border-2.border-card`),
-          i < events.length - 1
-            ? h('span.absolute.left-2.top-3.bottom-0.w-px.bg-line.-translate-x-1/2')
-            : null,
+  return h('div.tl-axis',
+    stages.map((s, i) => {
+      const stateClass = s.done ? 'done' : s.current ? 'cur' : '';
+      const stClass = s.done ? 'done' : s.current ? 'cur' : 'pending';
+      const stLabel = s.done ? '已完成' : s.current ? '当前' : '待执行';
+      const dotStyle = (s.done || s.current) ? `--tl-c:${s.color}` : '';
+      const stStyle = s.current ? `--tl-c:${s.color};--tl-c-bg:${s.color}26` : '';
+      const timeStr = s.time ? fmtTime(s.time) : '—';
+
+      // 子任务计数
+      const subs = task && task.subtasks ? task.subtasks : [];
+      let extraInfo = '';
+      if (s.key === 'started' && subs.length) {
+        const done = subs.filter(x => x.status === 'done').length;
+        extraInfo = `${done}/${subs.length} 子任务`;
+      }
+
+      return h(`div.tl-node${stateClass ? '.' + stateClass : ''}`, [
+        h(`span.tl-dot${stateClass ? '.' + stateClass : ''}`, { style: dotStyle }),
+        h('div.flex.items-center.gap-2.mb-1', [
+          h('span.tl-name', s.label),
+          h(`span.tl-st.${stClass}`, { style: stStyle }, stLabel),
         ]),
-        h('div.flex-1.pb-1', [
-          h('div.text-sm.text-fg.font-medium', ev.type),
-          ev.message ? h('div.text-xs.text-muted.mt-0.5', ev.message) : null,
-          h('div.text-xs.text-muted.mt-1', ev.time ? fmtTime(ev.time) : ''),
+        h('div.flex.items-center.gap-3', [
+          h('span.tl-time', timeStr),
+          extraInfo ? h('span.tl-dur', extraInfo) : null,
         ]),
-      ])
-    )
+        h('div.tl-desc', s.desc),
+      ]);
+    })
   );
 }
 
@@ -362,9 +415,9 @@ export async function render(mount, params, ctx) {
         h('div.glass-card.p-5', [
           h('h3.section-title', [
             h('i.fa.fa-history.text-accent'),
-            '活动时间线',
+            '生命周期时间线',
           ]),
-          timelineView(timeline),
+          timelineView(timeline, task),
         ]),
       ]),
 

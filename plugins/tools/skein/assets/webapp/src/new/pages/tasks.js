@@ -52,12 +52,15 @@ function taskRow(task) {
 }
 
 // ---- 主渲染 ----
-export async function render(mount) {
+export async function render(mount, params, ctx) {
   const resp = await api.data().catch(() => null);
   const tasks = normalizeTasks((resp && resp.cards) || []);
 
-  let filter = 'all';
-  let search = '';
+  const q = (params && params.query) || {};
+  const VALID_FILTERS = ['all', 'pending', 'active', 'check', 'done', 'failed'];
+
+  let filter = VALID_FILTERS.includes(q.status) ? q.status : 'all';
+  let search = q.q || '';
 
   function applyFilter() {
     let filtered = tasks;
@@ -79,6 +82,9 @@ export async function render(mount) {
     filter = f;
     document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ status: f === 'all' ? null : f });
+    }
     applyFilter();
   }
 
@@ -103,6 +109,13 @@ export async function render(mount) {
     );
   }
 
+  let searchTimer = 0;
+  function syncSearchQuery(val) {
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ q: val || null });
+    }
+  }
+
   // 状态计数
   const countBy = {};
   for (const t of tasks) countBy[t.status] = (countBy[t.status] || 0) + 1;
@@ -117,27 +130,27 @@ export async function render(mount) {
     // 筛选栏
     h('div.glass-card.p-3.mb-6', [
       h('div.flex.items-center.gap-2.flex-wrap', [
-        h('button.filter-btn.active',
+        h(`button.filter-btn${filter === 'all' ? ' active' : ''}`,
           { 'data-filter': 'all', onclick: (e) => setFilter('all', e.currentTarget) },
           `全部 (${tasks.length})`
         ),
-        h('button.filter-btn',
+        h(`button.filter-btn${filter === 'pending' ? ' active' : ''}`,
           { 'data-filter': 'pending', onclick: (e) => setFilter('pending', e.currentTarget) },
           `待办 (${countBy.pending || 0})`
         ),
-        h('button.filter-btn',
+        h(`button.filter-btn${filter === 'active' ? ' active' : ''}`,
           { 'data-filter': 'active', onclick: (e) => setFilter('active', e.currentTarget) },
           `执行中 (${countBy.active || 0})`
         ),
-        h('button.filter-btn',
+        h(`button.filter-btn${filter === 'check' ? ' active' : ''}`,
           { 'data-filter': 'check', onclick: (e) => setFilter('check', e.currentTarget) },
           `待验收 (${countBy.check || 0})`
         ),
-        h('button.filter-btn',
+        h(`button.filter-btn${filter === 'done' ? ' active' : ''}`,
           { 'data-filter': 'done', onclick: (e) => setFilter('done', e.currentTarget) },
           `已完成 (${countBy.done || 0})`
         ),
-        h('button.filter-btn',
+        h(`button.filter-btn${filter === 'failed' ? ' active' : ''}`,
           { 'data-filter': 'failed', onclick: (e) => setFilter('failed', e.currentTarget) },
           `失败 (${countBy.failed || 0})`
         ),
@@ -149,7 +162,13 @@ export async function render(mount) {
               type: 'search',
               placeholder: '搜索任务…',
               class: 'bg-transparent outline-none flex-1 text-sm w-full',
-              oninput: (e) => { search = e.target.value; applyFilter(); },
+              value: search,
+              oninput: (e) => {
+                search = e.target.value;
+                applyFilter();
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => syncSearchQuery(search), 400);
+              },
             }
           ),
         ]),

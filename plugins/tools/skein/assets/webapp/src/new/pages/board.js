@@ -22,8 +22,10 @@ const ST_ICON = {
   done:     'fa-check-circle', failed: 'fa-times-circle',
 };
 const ALL_STATUSES = ['planning', 'ready', 'active', 'check', 'done'];
-// 默认筛选: 规划中 + 待执行 + 执行中 + 验收中 (4 个未完成态)
-const DEFAULT_FILTER = new Set(['planning', 'ready', 'active', 'check']);
+// 默认筛选: 全部 5 个状态 (DAG 需要展示完整依赖链, 包括已完成)
+const DEFAULT_FILTER = new Set(ALL_STATUSES);
+// 未完成态: 点击"全部"在全选/未完成之间切换
+const INCOMPLETE_STATUSES = ['planning', 'ready', 'active', 'check'];
 
 // ---- DAG 布局 ----
 function layoutDAG(tasks) {
@@ -45,7 +47,7 @@ function layoutDAG(tasks) {
     layers.push(cur);
   }
 
-  const colW = 280, rowH = 150, padX = 48, padY = 48;
+  const colW = 260, rowH = 110, padX = 32, padY = 24;
   const nodes = [];
   layers.forEach((layer, li) => {
     layer.forEach((id, ri) => {
@@ -54,7 +56,7 @@ function layoutDAG(tasks) {
         id, task: t,
         x: padX + li * colW,
         y: padY + ri * rowH,
-        w: colW - 32, h: rowH - 30,
+        w: colW - 24, h: rowH - 16,
       });
     });
   });
@@ -126,7 +128,10 @@ function layoutSubDAG(subs) {
 function nodePopover(node) {
   const t = node.task;
   const st = t.status || 'planning';
-  const progress = t.progress != null ? t.progress : (st === 'done' ? 100 : st === 'active' ? 50 : 0);
+  const subs = t.subtasks || [];
+  const subStats = getSubtaskStats(t);
+  const hasSubs = subs.length > 0;
+  const progress = hasSubs ? subStats.progress : (t.progress != null ? t.progress : (st === 'done' ? 100 : st === 'active' ? 50 : 0));
 
   return h('div.dag-popover', [
     h('div.dag-pop-inner', [
@@ -137,10 +142,13 @@ function nodePopover(node) {
       t.description
         ? h('div.dag-pop-desc', t.description)
         : null,
-      h(`div.dag-pop-bar.${st}`, [h('i', { style: { width: progress + '%' } })]),
-      (t.subtasks && t.subtasks.length)
+      h('div.dag-pop-bar-wrap', [
+        h(`div.dag-pop-bar.${st}`, [h('i', { style: { width: progress + '%' } })]),
+        h('span.dag-pop-pct', progress + '%'),
+      ]),
+      hasSubs
         ? h('div.dag-pop-deps',
-            [`子任务 ${t.subtasks.length} 个`]
+            [`子任务 ${subStats.done}/${subs.length}`]
           )
         : null,
       (t.deps && t.deps.length)
@@ -157,11 +165,29 @@ function nodePopover(node) {
   ]);
 }
 
-// ---- 节点卡片 ----
-function nodeCard(node, onClick) {
+// ---- 子任务进度统计 ----
+function getSubtaskStats(task) {
+  const subs = task.subtasks || [];
+  const total = subs.length;
+  if (!total) return { total: 0, done: 0, active: 0, progress: 0 };
+  let done = 0, active = 0;
+  for (const s of subs) {
+    const st = s.status || 'planning';
+    if (st === 'done' || st === 'archived') done++;
+    else if (st === 'active' || st === 'running') active++;
+  }
+  return { total, done, active, progress: Math.round((done / total) * 100) };
+}
+
+// ---- DAG 节点卡片 ----
+function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
   const t = node.task;
   const st = t.status || 'planning';
-  return h('div.dag-node-wrap.absolute',
+  const subs = t.subtasks || [];
+  const subStats = getSubtaskStats(t);
+  const hasSubs = subs.length > 0;
+
+  return h(`div.dag-node-wrap.absolute${dimmed ? ' opacity-40 grayscale' : ''}`,
     {
       style: {
         left: node.x + 'px', top: node.y + 'px',
@@ -170,35 +196,79 @@ function nodeCard(node, onClick) {
     },
     [
       nodePopover(node),
-      h('div.dag-node.glass-card.p-4.cursor-pointer.hover-float.transition-all',
+      h('div.dag-node.glass-card.p-3.cursor-pointer.hover-float.transition-all',
         {
           onclick: (e) => { e.preventDefault(); onClick(t.id); },
           'data-task-id': t.id,
         },
         [
-          h(`div.h-1.rounded-full.-mx-2.-mt-2.mb-3.${ST_COLOR[st]}.opacity-60`),
-          h('div.flex.items-start.gap-2.mb-2', [
-            h(`i.fa.${ST_ICON[st]}.text-${ST_COLOR[st]}.mt-0.5.flex-shrink-0`),
+          h(`div.h-1.rounded-full.-mx-3.-mt-3.mb-2.${ST_COLOR[st]}.opacity-60`),
+          h('div.flex.items-start.gap-2.mb-1.5', [
+            h(`i.fa.${ST_ICON[st]}.text-${ST_COLOR[st]}.mt-0.5.flex-shrink-0.text-sm`),
             h('div.flex-1.min-w-0', [
               h('div.text-sm.font-semibold.text-head.truncate', t.title || t.name || '(未命名)'),
               h('div.text-xs.text-muted.font-mono.truncate', '#' + t.id),
             ]),
           ]),
           t.description
-            ? h('div.text-xs.text-muted.line-clamp-2.mb-3', t.description)
+            ? h('div.text-xs.text-muted.line-clamp-2.mb-2', t.description)
             : null,
+          hasSubs ? h('div.mb-2', [
+            h('div.flex.items-center.justify-between.text-xs.text-muted.mb-1', [
+              h('span.flex.items-center.gap-1', [
+                h('i.fa.fa-sitemap.text-xxs'),
+                `子任务 ${subStats.done}/${subStats.total}`,
+              ]),
+              h('span', `${subStats.progress}%`),
+            ]),
+            h('div.h-1.rounded-full.bg-line.overflow-hidden',
+              [
+                h('div.h-full.rounded-full',
+                  {
+                    style: {
+                      width: subStats.progress + '%',
+                      background: 'var(--st-done)',
+                    },
+                  }
+                ),
+              ]
+            ),
+          ]) : null,
           h('div.flex.items-center.justify-between.text-xs', [
             h(`span.badge.badge-sm.${ST_COLOR[st]}`, ST_LABEL[st] || st),
-            h('span.text-muted', t.updatedAt ? fmtRelative(t.updatedAt) : ''),
+            h('div.flex.items-center.gap-2', [
+              hasSubs
+                ? h('button',
+                    {
+                      onclick: (e) => { e.stopPropagation(); if (onToggleExpand) onToggleExpand(t.id); },
+                      title: isExpanded ? '收起子任务' : '展开子任务',
+                      class: 'text-muted hover:text-accent transition-colors',
+                    },
+                    [h(`i.fa.fa-chevron-${isExpanded ? 'up' : 'down'}`)]
+                  )
+                : null,
+              h('span.text-muted', t.updatedAt ? fmtRelative(t.updatedAt) : ''),
+            ]),
           ]),
         ]
       ),
+      isExpanded && hasSubs ? h('div.mt-2.glass-card.p-3',
+        { onclick: (e) => e.stopPropagation() },
+        [
+          h('div.eyebrow.text-accent.mb-2.text-xs', `子任务 DAG (${subs.length})`),
+          subs.length >= 2
+            ? subDAGView(subs, (sid) => { onClick(t.id); })
+            : subs.length === 1
+              ? h('div.p-2.rounded.bg-surface/50.text-sm', subs[0].title || subs[0].name || subs[0].sid)
+              : null,
+        ]
+      ) : null,
     ]
   );
 }
 
 // ---- SVG 连线 ----
-function drawEdges(edges, getColor) {
+function drawEdges(edges, getEdgeInfo) {
   if (!edges.length) return null;
   const paths = edges.map(e => {
     const x1 = e.from.x + e.from.w;
@@ -207,11 +277,19 @@ function drawEdges(edges, getColor) {
     const y2 = e.to.y + e.to.h / 2;
     const mx = (x1 + x2) / 2;
     const d = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
-    const st = getColor ? getColor(e) : (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
+    let st, dimmed = false;
+    if (getEdgeInfo) {
+      const info = getEdgeInfo(e);
+      st = info.status;
+      dimmed = info.dimmed;
+    } else {
+      st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
+    }
+    const opacity = dimmed ? '0.1' : '0.4';
     return h('path', {
       d, fill: 'none',
       stroke: `var(--${ST_COLOR[st]})`,
-      'stroke-width': '2', 'stroke-opacity': '0.4',
+      'stroke-width': '2', 'stroke-opacity': opacity,
     });
   });
   return h('svg.absolute.inset-0.pointer-events-none',
@@ -244,7 +322,7 @@ function statusFilterBar(statusSet, countBy, onChange) {
   }
 
   function selectAll() {
-    if (allSelected) onChange(new Set(DEFAULT_FILTER));
+    if (allSelected) onChange(new Set(INCOMPLETE_STATUSES));
     else onChange(new Set(ALL_STATUSES));
   }
 
@@ -254,7 +332,7 @@ function statusFilterBar(statusSet, countBy, onChange) {
       `全部 (${total})`
     ),
     ...ALL_STATUSES.map(st =>
-      h(`button.filter-btn${statusSet.has(st) ? ' active' : ''}`,
+      h(`button.filter-btn.st-${st}${statusSet.has(st) ? ' active' : ''}`,
         { onclick: () => toggle(st) },
         `${ST_LABEL[st]} (${countBy[st] || 0})`
       )
@@ -263,11 +341,13 @@ function statusFilterBar(statusSet, countBy, onChange) {
 }
 
 // ---- 列表视图 ----
-function listView(tasks, onClick) {
+function listView(tasks, onClick, statusSet) {
+  const allSelected = ALL_STATUSES.every(s => statusSet.has(s));
   return h('div.grid.grid-cols-1.md\\:grid-cols-2.xl\\:grid-cols-3.gap-4',
     ALL_STATUSES.map(st => {
       const list = tasks.filter(t => (t.status || 'planning') === st);
-      return h('div.glass-card', [
+      const isDimmed = !allSelected && !statusSet.has(st);
+      return h(`div.glass-card${isDimmed ? ' opacity-40' : ''}`, [
         h('div.flex.items-center.gap-2.mb-4', [
           h(`span.w-3.h-3.rounded-full.${ST_COLOR[st]}`),
           h('span.text-sm.font-semibold.text-head', ST_LABEL[st]),
@@ -295,43 +375,105 @@ function listView(tasks, onClick) {
 }
 
 // ---- 时间线 ----
+const STAGE_COLORS = {
+  created:  '#74b9e8',
+  ready:    '#429cd1',
+  started:  '#237bb8',
+  checked:  '#c9a227',
+  finished: '#48bb78',
+};
+
 function buildTimeline(task) {
-  const events = [];
-  if (task.createdAt) events.push({ type: '创建任务', time: task.createdAt, icon: 'fa-plus-circle', color: 'st-planning' });
-  if (task.startedAt) events.push({ type: '开始执行', time: task.startedAt, icon: 'fa-play', color: 'st-active' });
-  if (task.checkedAt) events.push({ type: '进入验收', time: task.checkedAt, icon: 'fa-eye', color: 'st-check' });
-  if (task.finishedAt) events.push({ type: '已完成', time: task.finishedAt, icon: 'fa-check-circle', color: 'st-done' });
-  // 子任务事件
-  if (task.subtasks && task.subtasks.length) {
-    for (const s of task.subtasks) {
-      if (s.createdAt) events.push({ type: `子任务创建: ${s.title || s.name || s.sid}`, time: s.createdAt, icon: 'fa-tasks', color: 'st-planning', sub: true });
-      if (s.finishedAt) events.push({ type: `子任务完成: ${s.title || s.name || s.sid}`, time: s.finishedAt, icon: 'fa-check', color: 'st-done', sub: true });
-    }
+  const st = task.status || 'planning';
+  const stages = [
+    {
+      key: 'created', label: '创建', name: '创建任务',
+      desc: '任务创建与初始化',
+      time: task.createdAt,
+      done: !!task.createdAt,
+      current: false,
+      color: STAGE_COLORS.created,
+    },
+    {
+      key: 'ready', label: '就绪', name: '进入待执行',
+      desc: '规划完成，等待开始执行',
+      time: task.readyAt,
+      done: !!task.readyAt || st === 'ready' || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
+      current: st === 'ready',
+      color: STAGE_COLORS.ready,
+    },
+    {
+      key: 'started', label: '执行', name: '开始执行',
+      desc: '任务执行中，子任务调度',
+      time: task.startedAt,
+      done: !!task.startedAt || st === 'active' || st === 'check' || st === 'done' || st === 'failed',
+      current: st === 'active',
+      color: STAGE_COLORS.started,
+    },
+    {
+      key: 'checked', label: '验收', name: '进入验收',
+      desc: 'checkpoint 核对 + 场景自适应校验',
+      time: task.checkedAt,
+      done: !!task.checkedAt || st === 'check' || st === 'done' || st === 'failed',
+      current: st === 'check',
+      color: STAGE_COLORS.checked,
+    },
+    {
+      key: 'finished', label: '完成', name: '已完成',
+      desc: '任务完成，归档沉淀',
+      time: task.finishedAt,
+      done: !!task.finishedAt || st === 'done',
+      current: false,
+      color: STAGE_COLORS.finished,
+    },
+  ];
+  // 标记当前进行中的阶段（取第一个 current=true 或最后一个 done 之后的 pending）
+  let foundCurrent = false;
+  for (const s of stages) {
+    if (s.current) { foundCurrent = true; break; }
   }
-  events.sort((a, b) => a.time - b.time);
-  return events;
+  if (!foundCurrent) {
+    // 找第一个未完成的作为当前
+    const firstPending = stages.find(s => !s.done);
+    if (firstPending) firstPending.current = false; // pending 态，不算 cur
+  }
+  return stages;
 }
 
-function timelineView(events) {
-  if (!events || !events.length) {
+function timelineView(stages, task) {
+  if (!stages || !stages.length) {
     return h('div.py-6.text-center.text-muted.text-sm', '暂无活动记录');
   }
-  return h('div.relative',
-    events.map((ev, i) =>
-      h('div.flex.gap-3.relative.pb-4', [
-        h('div.relative.flex-shrink-0.w-5', [
-          h(`span.absolute.left-2.top-1.-translate-x-1/2.w-2.5.h-2.5.rounded-full.bg-${ev.color || 'accent'}.border-2.border-card`),
-          i < events.length - 1
-            ? h('span.absolute.left-2.top-3.bottom-0.w-px.bg-line.-translate-x-1/2')
-            : null,
+  return h('div.tl-axis',
+    stages.map((s, i) => {
+      const stateClass = s.done ? 'done' : s.current ? 'cur' : '';
+      const stClass = s.done ? 'done' : s.current ? 'cur' : 'pending';
+      const stLabel = s.done ? '已完成' : s.current ? '当前' : '待执行';
+      const dotStyle = (s.done || s.current) ? `--tl-c:${s.color}` : '';
+      const stStyle = s.current ? `--tl-c:${s.color};--tl-c-bg:${s.color}26` : '';
+      const timeStr = s.time ? fmtTime(s.time) : '—';
+
+      // 子任务计数
+      const subs = task && task.subtasks ? task.subtasks : [];
+      let extraInfo = '';
+      if (s.key === 'started' && subs.length) {
+        const done = subs.filter(x => x.status === 'done').length;
+        extraInfo = `${done}/${subs.length} 子任务`;
+      }
+
+      return h(`div.tl-node${stateClass ? '.' + stateClass : ''}`, [
+        h(`span.tl-dot${stateClass ? '.' + stateClass : ''}`, { style: dotStyle }),
+        h('div.flex.items-center.gap-2.mb-1', [
+          h('span.tl-name', s.label),
+          h(`span.tl-st.${stClass}`, { style: stStyle }, stLabel),
         ]),
-        h('div.flex-1.pb-1', [
-          h('div.text-sm.text-fg.font-medium', ev.type),
-          ev.message ? h('div.text-xs.text-muted.mt-0.5', ev.message) : null,
-          h('div.text-xs.text-muted.mt-0.5', ev.time ? fmtTime(ev.time) : ''),
+        h('div.flex.items-center.gap-3', [
+          h('span.tl-time', timeStr),
+          extraInfo ? h('span.tl-dur', extraInfo) : null,
         ]),
-      ])
-    )
+        h('div.tl-desc', s.desc),
+      ]);
+    })
   );
 }
 
@@ -426,13 +568,12 @@ function designView(design) {
 }
 
 // ---- 右侧详情面板 (仅当有选中任务时显示) ----
-function detailPanel(task, onClose, onSubClick) {
+function detailPanel(task, onClose, onSubClick, onOpenDetail) {
   if (!task) return null;
 
   const st = task.status || 'planning';
   const timeline = buildTimeline(task);
 
-  // 面板内 section tab? 不, 全部堆叠, 可滚动
   return h('aside.detail-panel', [
     // 头部
     h('div.detail-panel-header', [
@@ -443,10 +584,17 @@ function detailPanel(task, onClose, onSubClick) {
         ]),
         h('h3.text-lg.font-semibold.text-head.truncate', task.title || task.name || '(未命名)'),
       ]),
-      h('button.detail-panel-close',
-        { onclick: onClose, title: '关闭' },
-        h('i.fa.fa-times')
-      ),
+      h('div.flex.items-center.gap-1', [
+        h('button.detail-panel-close',
+          { onclick: () => { if (onOpenDetail) onOpenDetail(task.id); },
+            title: '打开详情页' },
+          h('i.fa.fa-external-link')
+        ),
+        h('button.detail-panel-close',
+          { onclick: onClose, title: '关闭' },
+          h('i.fa.fa-times')
+        ),
+      ]),
     ]),
 
     // 正文
@@ -483,8 +631,8 @@ function detailPanel(task, onClose, onSubClick) {
 
       // 时间线
       h('div.glass-card.p-4', [
-        h('div.eyebrow.text-accent.mb-3', '时间线'),
-        timelineView(timeline),
+        h('div.eyebrow.text-accent.mb-3', '生命周期时间线'),
+        timelineView(timeline, task),
       ]),
 
       // 目标 / 验收标准 (来自 PRD)
@@ -530,22 +678,28 @@ function infoRow(label, value) {
 }
 
 // ---- 主渲染 ----
-export async function render(mount) {
+export async function render(mount, params, ctx) {
   const resp = await api.data().catch(() => null);
   const allTasks = normalizeTasks((resp && resp.cards) || []);
 
-  let view = 'dag';
-  let statusSet = new Set(DEFAULT_FILTER);
+  const q = params.query || {};
+
+  // 从 URL 解析初始状态
+  let view = q.view === 'list' ? 'list' : 'dag';
+  let statusSet;
+  if (q.status) {
+    const arr = q.status.split(',').filter(s => ALL_STATUSES.includes(s.trim()));
+    statusSet = new Set(arr.length ? arr : DEFAULT_FILTER);
+  } else {
+    statusSet = new Set(DEFAULT_FILTER);
+  }
   let selectedId = null;
   let scale = 1;
+  const expandedNodes = new Set();
 
   // 状态计数
   const countBy = {};
   for (const t of allTasks) countBy[t.status] = (countBy[t.status] || 0) + 1;
-
-  function getFilteredTasks() {
-    return allTasks.filter(t => statusSet.has(t.status));
-  }
 
   function selectTask(id) {
     selectedId = id;
@@ -557,13 +711,27 @@ export async function render(mount) {
     draw();
   }
 
+  function toggleExpand(id) {
+    if (expandedNodes.has(id)) expandedNodes.delete(id);
+    else expandedNodes.add(id);
+    draw();
+  }
+
   function setFilter(set) {
     statusSet = set;
+    const arr = ALL_STATUSES.filter(s => set.has(s));
+    const isDefault = arr.length === DEFAULT_FILTER.size && [...DEFAULT_FILTER].every(s => set.has(s));
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ status: isDefault ? null : arr.join(',') });
+    }
     draw();
   }
 
   function setView(v) {
     view = v;
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ view: v === 'dag' ? null : v });
+    }
     draw();
   }
 
@@ -572,18 +740,25 @@ export async function render(mount) {
     console.log('subtask clicked:', sid);
   }
 
+  function openDetailPage(id) {
+    if (ctx && ctx.navigate) {
+      ctx.navigate('/task/' + id);
+    }
+  }
+
   function draw() {
-    const filtered = getFilteredTasks();
-    const { nodes, edges, width, height } = layoutDAG(filtered);
+    const allSelected = ALL_STATUSES.every(s => statusSet.has(s));
+    const { nodes, edges, width, height } = layoutDAG(allTasks);
     const selectedTask = allTasks.find(t => t.id === selectedId) || null;
     const hasPanel = !!selectedTask;
+    const highlightedCount = allTasks.filter(t => statusSet.has(t.status)).length;
 
     mount.replaceChildren(
       // 标题行
       h('div.flex.items-center.justify-between.mb-4.flex-wrap.gap-3', [
         h('div', [
           h('h1.text-3xl.font-bold.text-head.mb-1', '任务看板'),
-          h('p.text-muted', `${allTasks.length} 个任务 · ${filtered.length} 个显示中`),
+          h('p.text-muted', `${allTasks.length} 个任务 · ${highlightedCount} 个高亮`),
         ]),
         h('div.flex.items-center.gap-3', [
           view === 'dag' ? h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border.border-brd/40', [
@@ -606,7 +781,7 @@ export async function render(mount) {
       h('div.mb-4', statusFilterBar(statusSet, countBy, setFilter)),
 
       // 主内容区: 左 DAG + (可选) 右详情
-      h(`div.flex.gap-0.min-h-\\[600px\\].glass-card.overflow-hidden${hasPanel ? ' has-panel' : ''}`, [
+      h(`div.board-main.glass-card.overflow-hidden${hasPanel ? ' has-panel' : ''}`, [
         // 左侧: DAG/列表
         h('div.flex-1.overflow-auto',
           view === 'dag'
@@ -622,15 +797,21 @@ export async function render(mount) {
                     },
                   },
                   [
-                    drawEdges(edges),
-                    ...nodes.map(n => nodeCard(n, selectTask)),
+                    drawEdges(edges, (e) => {
+                      const fromSt = e.from.task ? e.from.task.status : 'planning';
+                      const toSt = e.to.task ? e.to.task.status : 'planning';
+                      const fromActive = statusSet.has(fromSt);
+                      const toActive = statusSet.has(toSt);
+                      return { status: toSt, dimmed: !(fromActive && toActive) };
+                    }),
+                    ...nodes.map(n => nodeCard(n, selectTask, toggleExpand, expandedNodes.has(n.id), !statusSet.has(n.task.status))),
                   ]
                 ),
               ]
-            : [listView(filtered, selectTask)]
+            : [listView(allTasks, selectTask, statusSet)]
         ),
         // 右侧: 详情面板 (仅选中时显示)
-        hasPanel ? detailPanel(selectedTask, closePanel, onSubClick) : null,
+        hasPanel ? detailPanel(selectedTask, closePanel, onSubClick, openDetailPage) : null,
       ]),
     );
   }

@@ -212,9 +212,12 @@ function applyTheme(pref) {
   else html.setAttribute("data-theme", "skein-light");
   document.body.classList.toggle("bg-fluid-dark", pref === "dark");
   document.body.classList.toggle("bg-fluid-light", pref !== "dark");
-  document.querySelectorAll("[data-theme-btn]").forEach((b) => {
-    b.classList.toggle("text-accent", b.dataset.themeBtn === pref);
-  });
+  // 更新切换按钮图标文字
+  const btn = document.getElementById("theme-toggle-btn");
+  if (btn) {
+    const label = btn.querySelector("span");
+    if (label) label.textContent = pref === "dark" ? "亮色模式" : "暗色模式";
+  }
 }
 
 function wireTheme() {
@@ -228,14 +231,15 @@ function wireTheme() {
     }
   } catch (_) {}
   applyTheme(pref);
-  document.querySelectorAll("[data-theme-btn]").forEach((btn) => {
+  const btn = document.getElementById("theme-toggle-btn");
+  if (btn) {
     btn.addEventListener("click", () => {
-      const want = btn.dataset.themeBtn;
-      if (!THEMES.includes(want)) return;
-      try { localStorage.setItem("skein-theme", want); } catch (_) {}
-      applyTheme(want);
+      const current = document.documentElement.getAttribute("data-theme") === "skein-dark" ? "dark" : "light";
+      const next = current === "dark" ? "light" : "dark";
+      try { localStorage.setItem("skein-theme", next); } catch (_) {}
+      applyTheme(next);
     });
-  });
+  }
 }
 
 // ── 全局搜索 (防抖 200ms → api.search → 下拉; 现版 app.js:22-81 迁移) ──
@@ -374,6 +378,7 @@ const ctx = {
   h,                          // 极简 h() 转 DOM (htm tag → DOM)
   onLive: null,               // router 启动时填充: (cb) => unsubscribe
   navigate: null,             // router 启动时填充: (path) => void
+  setQuery: null,             // router 启动时填充: (params, replace?) => void
 };
 
 async function boot() {
@@ -385,8 +390,9 @@ async function boot() {
   live.start();
   const onLive = live.subscribe;
   ctx.onLive = onLive;
-  const navigate = await router.start({ ctx, onLive });
-  ctx.navigate = navigate;
+  const { go, setQuery } = await router.start({ ctx, onLive });
+  ctx.navigate = go;
+  ctx.setQuery = setQuery;
   // ponytail: htm 延迟加载 (本地 vendor → CDN), 不阻塞 boot; page 用时 ctx.h 已可用 (本文件内置)。
   loadHtm().then((htmFn) => { ctx.htm = htmFn; }).catch(() => {});
 }

@@ -86,61 +86,17 @@ export async function render(mount, params, ctx) {
   failedTasks.sort(byTime);
   otherTasks.sort(byTime);
 
-  mount.replaceChildren(
-    // 标题
-    h('div.mb-6', [
-      h('h1.text-3xl.font-bold.text-head.mb-1', '任务归档'),
-      h('p.text-muted',
-        `${archived.length} 个已归档任务 · ${doneTasks.length} 个完成 · ${failedTasks.length} 个失败`
-      ),
-    ]),
+  const q = (params && params.query) || {};
+  const VALID_FILTERS = ['all', 'done', 'failed'];
+  let currentFilter = VALID_FILTERS.includes(q.status) ? q.status : 'all';
+  let searchKw = q.q || '';
+  let searchTimer = 0;
 
-    // 筛选 tab
-    h('div.flex.items-center.gap-2.mb-6.glass.rounded-lg.p-1.w-fit.border.border-brd/40', [
-      h('button.archive-tab.px-3.py-1.5.rounded-md.text-sm.font-medium.bg-accent/20.text-accent',
-        { 'data-filter': 'all', onclick: (e) => setFilter('all', e.target) },
-        '全部'),
-      h('button.archive-tab.px-3.py-1.5.rounded-md.text-sm.font-medium.text-muted.hover\\:text-fg.transition-colors',
-        { 'data-filter': 'done', onclick: (e) => setFilter('done', e.target) },
-        '已完成'),
-      h('button.archive-tab.px-3.py-1.5.rounded-md.text-sm.font-medium.text-muted.hover\\:text-fg.transition-colors',
-        { 'data-filter': 'failed', onclick: (e) => setFilter('failed', e.target) },
-        '失败'),
-    ]),
-
-    // 搜索
-  h('div.glass-card.mb-6', [
-    h('label.flex.items-center.gap-2', [
-      h('i.fa.fa-search.text-muted'),
-      h('input',
-        {
-          type: 'search',
-          placeholder: '搜索已归档的任务…',
-          class: 'bg-transparent outline-none flex-1 text-sm w-full',
-          oninput: (e) => applyFilter(e.target.value),
-        }
-      ),
-    ]),
-  ]),
-
-    // 归档内容
-    h('div#archive-content',
-      archived.length
-        ? [
-            archiveGroup('已完成', 'fa-check-circle', doneTasks),
-            archiveGroup('失败', 'fa-times-circle', failedTasks),
-            otherTasks.length ? archiveGroup('其他', 'fa-archive', otherTasks) : null,
-          ]
-        : [h('div.glass-card.py-16.text-center', [
-            h('i.fa.fa-archive.text-4xl.text-muted.opacity-40.mb-3'),
-            h('div.text-muted.mb-1', '暂无归档任务'),
-            h('div.text-xs.text-muted', '已完成或失败的任务会显示在这里'),
-          ])]
-    ),
-  );
-
-  let currentFilter = 'all';
-  let searchKw = '';
+  function syncSearchQuery(val) {
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ q: val || null });
+    }
+  }
 
   function setFilter(f, btn) {
     currentFilter = f;
@@ -148,12 +104,15 @@ export async function render(mount, params, ctx) {
     mount.querySelectorAll('.archive-tab').forEach(b => {
       b.className = 'archive-tab px-3 py-1.5 rounded-md text-sm font-medium text-muted hover:text-fg transition-colors';
     });
-    btn.className = 'archive-tab px-3 py-1.5 rounded-md text-sm font-medium bg-accent/20 text-accent';
+    if (btn) btn.className = 'archive-tab px-3 py-1.5 rounded-md text-sm font-medium bg-accent/20 text-accent';
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ status: f === 'all' ? null : f });
+    }
     applyFilter(searchKw);
   }
 
   function applyFilter(kw) {
-    searchKw = kw || '';
+    searchKw = kw != null ? kw : searchKw;
     const content = mount.querySelector('#archive-content');
     if (!content) return;
 
@@ -185,5 +144,69 @@ export async function render(mount, params, ctx) {
           ])]
       )
     );
+  }
+
+  mount.replaceChildren(
+    // 标题
+    h('div.mb-6', [
+      h('h1.text-3xl.font-bold.text-head.mb-1', '任务归档'),
+      h('p.text-muted',
+        `${archived.length} 个已归档任务 · ${doneTasks.length} 个完成 · ${failedTasks.length} 个失败`
+      ),
+    ]),
+
+    // 筛选 tab
+    h('div.flex.items-center.gap-2.mb-6.glass.rounded-lg.p-1.w-fit.border.border-brd/40', [
+      h(`button.archive-tab.px-3.py-1.5.rounded-md.text-sm.font-medium${currentFilter === 'all' ? '.bg-accent/20.text-accent' : '.text-muted.hover\\:text-fg.transition-colors'}`,
+        { 'data-filter': 'all', onclick: (e) => setFilter('all', e.currentTarget) },
+        '全部'),
+      h(`button.archive-tab.px-3.py-1.5.rounded-md.text-sm.font-medium${currentFilter === 'done' ? '.bg-accent/20.text-accent' : '.text-muted.hover\\:text-fg.transition-colors'}`,
+        { 'data-filter': 'done', onclick: (e) => setFilter('done', e.currentTarget) },
+        '已完成'),
+      h(`button.archive-tab.px-3.py-1.5.rounded-md.text-sm.font-medium${currentFilter === 'failed' ? '.bg-accent/20.text-accent' : '.text-muted.hover\\:text-fg.transition-colors'}`,
+        { 'data-filter': 'failed', onclick: (e) => setFilter('failed', e.currentTarget) },
+        '失败'),
+    ]),
+
+    // 搜索
+  h('div.glass-card.mb-6', [
+    h('label.flex.items-center.gap-2', [
+      h('i.fa.fa-search.text-muted'),
+      h('input',
+        {
+          type: 'search',
+          placeholder: '搜索已归档的任务…',
+          class: 'bg-transparent outline-none flex-1 text-sm w-full',
+          value: searchKw,
+          oninput: (e) => {
+            const val = e.target.value;
+            applyFilter(val);
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => syncSearchQuery(val), 400);
+          },
+        }
+      ),
+    ]),
+  ]),
+
+    // 归档内容
+    h('div#archive-content',
+      archived.length
+        ? [
+            archiveGroup('已完成', 'fa-check-circle', doneTasks),
+            archiveGroup('失败', 'fa-times-circle', failedTasks),
+            otherTasks.length ? archiveGroup('其他', 'fa-archive', otherTasks) : null,
+          ]
+        : [h('div.glass-card.py-16.text-center', [
+            h('i.fa.fa-archive.text-4xl.text-muted.opacity-40.mb-3'),
+            h('div.text-muted.mb-1', '暂无归档任务'),
+            h('div.text-xs.text-muted', '已完成或失败的任务会显示在这里'),
+          ])]
+    ),
+  );
+
+  // 应用初始筛选/搜索
+  if (currentFilter !== 'all' || searchKw) {
+    applyFilter(searchKw);
   }
 }
