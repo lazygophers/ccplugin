@@ -294,8 +294,53 @@ function layoutDAG(tasks, size = 'md', view) {
   const s = DAG_SIZES[size] || DAG_SIZES.md;
   const byId = new Map(tasks.map(t => [t.id, t]));
   const depsOf = id => (byId.get(id).deps || []).filter(d => byId.has(d));
-  return layoutPacked(tasks.map(t => t.id), depsOf, s,
-    (view && view.w) || 1200, (view && view.h) || 800, id => ({ task: byId.get(id) }));
+  return layoutGrid(tasks.map(t => t.id), depsOf, s,
+    (view && view.w) || 1200, id => ({ task: byId.get(id) }));
+}
+
+// 拓扑序满铺网格: 一行内可以并排不同依赖深度的卡。
+// 分层排布 (layoutPacked) 里 27 个依赖层有 21 层只有 1~2 个节点, 每层仍独占整行 —— 98 张卡排出
+// 66 行 15494px, 其中 44 行只坐了 1 张。满铺按 ⌈N/列数⌉ 排, 同样 98 张压到 33 行 ~7300px。
+// 代价: 行不再等于依赖深度, 依赖方向只能靠箭头认。这是明确的取舍 (高度 ÷2 换读图规则)。
+function layoutGrid(ids, depsOf, s, maxW, extraOf) {
+  const cols = Math.max(1, Math.floor((maxW - s.padX * 2) / s.colW));
+  const w = s.colW - s.gapX, hgt = s.rowH - s.gapY;
+
+  // 排序: 分量内按依赖深度, 分量之间连续摆放 —— 相连的卡挨在一起, 边才不会横跨整张画板
+  const order = [];
+  for (const comp of components(ids, depsOf)) {
+    const set = new Set(comp);
+    const memo = new Map();
+    const rank = (id) => {
+      if (memo.has(id)) return memo.get(id);
+      memo.set(id, 0);                                   // 环兜底: 先占位再算, 不死循环
+      const v = Math.max(0, ...depsOf(id).filter(d => set.has(d)).map(d => rank(d) + 1));
+      memo.set(id, v);
+      return v;
+    };
+    order.push(...comp.slice().sort((a, b) => rank(a) - rank(b)));
+  }
+
+  const nodes = order.map((id, i) => ({
+    id, band: 0, w, h: hgt,
+    x: s.padX + (i % cols) * s.colW,
+    y: s.padY + Math.floor(i / cols) * s.rowH,
+    ...extraOf(id),
+  }));
+  const nmap = new Map(nodes.map(n => [n.id, n]));
+  const edges = [];
+  for (const id of ids) {
+    for (const d of depsOf(id)) {
+      const from = nmap.get(d), to = nmap.get(id);
+      if (from && to) edges.push({ from, to, bends: [], cross: false, laneY: 0 });
+    }
+  }
+  const rows = Math.ceil(order.length / cols);
+  return {
+    nodes, edges,
+    width: Math.min(cols, order.length) * s.colW + s.padX * 2 - s.gapX,
+    height: rows * s.rowH + s.padY * 2 - s.gapY,
+  };
 }
 
 // 连通分量 (按无向边划分)
@@ -1400,6 +1445,19 @@ function infoRow(label, value) {
   ]);
 }
 
+// 进页视口对准「正在执行」的 task。优先级取最能代表当前战线的状态; 都没有就退到第一张卡。
+function focusActive(wrap, nodes) {
+  const FOCUS_ORDER = ['active', 'check', 'ready', 'planning', 'done'];
+  if (!nodes.length) return;
+  const target = FOCUS_ORDER.reduce((hit, st) =>
+    hit || nodes.find(n => n.task && n.task.status === st), null) || nodes[0];
+  wrap.scrollTo({
+    left: Math.max(0, target.x + target.w / 2 - wrap.clientWidth / 2),
+    top: Math.max(0, target.y + target.h / 2 - wrap.clientHeight / 2),
+    behavior: 'auto',
+  });
+}
+
 // ---- 主渲染 ----
 export async function render(mount, params, ctx) {
   const resp = await api.data().catch(() => null);
@@ -1418,6 +1476,7 @@ export async function render(mount, params, ctx) {
   }
   let selectedId = null;
   let scale = 1;
+  let focusedOnce = false;
   const expandedNodes = new Set();
 
   // 状态计数
@@ -1689,6 +1748,12 @@ export async function render(mount, params, ctx) {
       if (w > 100 && Math.abs(w - viewBox.w) > 40) {
         viewBox = { w, h: wrap.clientHeight };
         draw();
+        return;
+      }
+      // 布局稳定后, 首次进页把视口对准正在执行的 task (画布高达数千 px, 从左上角开始等于什么都没看到)
+      if (!focusedOnce) {
+        focusedOnce = true;
+        focusActive(wrap, nodes);
       }
     });
   }

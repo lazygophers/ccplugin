@@ -8,9 +8,9 @@ const cut = (name) => {
 };
 // 布局链是纯函数, 整串 eval 出来 (layoutPacked 依赖 components/sugiyama/packLayout)。
 // eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开 board.js 的浏览器 ESM 依赖。
-const { sugiyama, layoutPacked, edgeKinds } = eval(
-  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'edgeKinds'].map(cut).join('\n')}
-   return { sugiyama, layoutPacked, edgeKinds }; })()`);
+const { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive } = eval(
+  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutGrid', 'edgeKinds', 'focusActive'].map(cut).join('\n')}
+   return { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive }; })()`);
 
 const S = { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 };
 const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth: view.w, viewH: view.h });
@@ -152,6 +152,63 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   const orphan = [{ from: { id: 'x', task: { status: 'ready', deps: ['gone'] } }, to: nd('d') }];
   console.assert(edgeKinds(orphan)(orphan[0]) === 'blocked', '图外依赖应视为已满足');
   console.log('10 边语义 OK ' + got);
+}
+
+// 11. 满铺网格: 主看板布局。⌈N/列数⌉ 行, 不留稀疏层空行, 宽度不超约束, 无重叠
+{
+  // 稀疏长链 (每层 1 个节点) —— 分层排布最吃亏的形状
+  const g = { n0: [] };
+  for (let i = 1; i < 30; i++) g['n' + i] = ['n' + (i - 1)];
+  const ids = Object.keys(g);
+  const grid = layoutGrid(ids, id => g[id], S, 1400, () => ({}));
+  const cols = Math.floor((1400 - S.padX * 2) / S.colW);       // = 4
+  console.assert(grid.width <= 1400, '满铺不许超宽, 实际 ' + grid.width);
+  console.assert(grid.nodes.length === 30, '节点应全画, 实际 ' + grid.nodes.length);
+  const rows = new Set(grid.nodes.map(n => n.y)).size;
+  console.assert(rows === Math.ceil(30 / cols), `应为 ${Math.ceil(30 / cols)} 行, 实际 ${rows}`);
+  // 同形状走分层排布 = 30 行, 满铺应显著更矮
+  const packed = layoutPacked(ids, id => g[id], S, 1400, 800, () => ({}));
+  console.assert(grid.height < packed.height * 0.6, `满铺应远矮于分层: ${grid.height} vs ${packed.height}`);
+  const seen = new Set();
+  for (const n of grid.nodes) {
+    const k = n.x + ',' + n.y;
+    console.assert(!seen.has(k), '坐标重叠 ' + n.id);
+    seen.add(k);
+  }
+  console.assert(grid.edges.length === 29, '边应全保留, 实际 ' + grid.edges.length);
+  // 依赖深度递增 → 阅读序 (行主序) 递增, 边才不会大面积往回绕
+  const pos = new Map(grid.nodes.map((n, i) => [n.id, i]));
+  console.assert(grid.edges.every(e => pos.get(e.from.id) < pos.get(e.to.id)), '被依赖方应排在前面');
+  console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)})`);
+}
+
+// 12. 满铺网格环兜底: 有环也不死循环
+{
+  const grid = layoutGrid(['a', 'b', 'c'], id => ({ a: ['b'], b: ['a'], c: ['a'] })[id], S, 1400, () => ({}));
+  console.assert(grid.nodes.length === 3, '环图节点应全画');
+  console.log('12 满铺环兜底 OK ' + grid.width + 'x' + grid.height);
+}
+
+// 13. 进页自动定位: 视口居中到执行中的 task (画布几千 px, 从左上角开始等于没看到东西)
+{
+  const wrap = { clientWidth: 1000, clientHeight: 800, scrollTo(o) { this.last = o; } };
+  const mk = (id, status, x, y) => ({ id, x, y, w: 300, h: 200, task: { status } });
+  // active 优先于 check/ready/done
+  const nodes = [mk('a', 'done', 0, 0), mk('b', 'check', 0, 400), mk('c', 'active', 600, 3000), mk('d', 'ready', 0, 800)];
+  focusActive(wrap, nodes);
+  console.assert(wrap.last.top === 3000 + 100 - 400, '应把 active 卡竖直居中, 实际 ' + wrap.last.top);
+  console.assert(wrap.last.left === 600 + 150 - 500, '应把 active 卡水平居中, 实际 ' + wrap.last.left);
+  // 无 active 时退到 check
+  focusActive(wrap, nodes.filter(n => n.task.status !== 'active'));
+  console.assert(wrap.last.top === 400 + 100 - 400, 'active 缺席应退到 check, 实际 ' + wrap.last.top);
+  // 卡在画布左上角时不许滚出负值
+  focusActive(wrap, [mk('a', 'active', 0, 0)]);
+  console.assert(wrap.last.left === 0 && wrap.last.top === 0, '不许出现负滚动量');
+  // 状态全不在优先级表里 → 退到第一张卡, 不能崩
+  focusActive(wrap, [mk('x', 'unknown', 900, 900)]);
+  console.assert(wrap.last.top === 900 + 100 - 400, '未知状态应退到第一张卡');
+  focusActive(wrap, []);   // 空图不该抛
+  console.log('13 自动定位 OK left=' + wrap.last.left + ' top=' + wrap.last.top);
 }
 
 // 6. 千节点性能
