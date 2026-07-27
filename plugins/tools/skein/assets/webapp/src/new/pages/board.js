@@ -182,14 +182,18 @@ function sugiyama(ids, depsOf, opt) {
   // 这正是 ELK wrapping.strategy 的做法 — 切的是层序列, 让图宽永远塞进可用宽度,
   // 长出来的部分往下走, 由外层的纵向滚动条承担。
   const K = Math.max(1, Math.floor((maxWidth - padX * 2) / colW));
-  // 带内目标行数: 一带尽量高约一屏。宽层 (fan-out) 超过 R 行就吃掉本带的相邻列折行,
+  // 带内目标高度: 一带尽量高约一屏。宽层 (fan-out) 装不下就吃掉本带的相邻列折行,
   // 不折的话 19 个兄弟就堆成一根 4500px 的柱子。
-  const R = Math.max(4, Math.floor((viewH || 800) / rowH));
+  const bandH = Math.max(4, Math.floor((viewH || 800) / rowH)) * rowH;
+  // 虚点只是长边的走线拐点, 不渲染卡片 — 占整行 rowH 就是满屏空白, 缩到通道宽度
+  const DUMMY_H = 28;
+  const hOf = (n) => (n.dummy ? DUMMY_H : rowH);
   // 贪心装带: 每层按需要的列数入座, 装不下就换带
   const seat = [];   // 每层 { band, col, cols }
   let curBand = 0, curCol = 0;
   for (const l of layers) {
-    const cols = Math.min(K, Math.max(1, Math.ceil(l.length / R)));
+    const need = l.reduce((a, n) => a + hOf(n), 0);
+    const cols = Math.min(K, Math.max(1, Math.ceil(need / bandH)));
     if (curCol + cols > K && curCol > 0) { curBand++; curCol = 0; }
     seat.push({ band: curBand, col: curCol, cols });
     curCol += cols;
@@ -197,16 +201,19 @@ function sugiyama(ids, depsOf, opt) {
   const bands = curBand + 1;
   const bandOf = (li) => seat[li].band;
 
-  // --- 5. 坐标 ---
+  // --- 5. 坐标: 层内按节点高度累加, 装满一列换下一列 ---
   layers.forEach((l, li) => {
     const st = seat[li];
-    const rows = st.cols > 1 ? Math.ceil(l.length / st.cols) : l.length;
-    l.forEach((n, i) => {
-      n.x = (st.col + Math.floor(i / rows)) * colW;
-      n.y = (i % rows) * rowH;
-      n.y0 = n.y;   // 网格基准位, 对齐只能在其附近微调
+    let col = 0, acc = 0;
+    for (const n of l) {
+      const nh = hOf(n);
+      if (acc + nh > bandH && acc > 0 && col < st.cols - 1) { col++; acc = 0; }
+      n.x = (st.col + col) * colW;
+      n.y = acc;
+      n.y0 = acc;   // 网格基准位, 对齐只能在其附近微调
       n.band = st.band;
-    });
+      acc += nh;
+    }
   });
   // 层内按邻居中位数对齐 + 保序推挤; 只认同带邻居 (跨带的上下游在图上是回绕线, 不该互相牵引)
   // 位移夹在基准位 ±SLACK 行内: 不夹的话对齐会顺着链路级联推高, 整图越排越长
@@ -228,8 +235,8 @@ function sugiyama(ids, depsOf, opt) {
           want = ys.length % 2 ? ys[mid] : (ys[mid - 1] + ys[mid]) / 2;
         }
         want = Math.max(n.y0 - SLACK, Math.min(n.y0 + SLACK, want));
-        n.y = Math.max(want, prev + rowH);
-        prev = n.y;
+        n.y = Math.max(want, prev);
+        prev = n.y + hOf(n);
       }
     }
   }
@@ -239,14 +246,17 @@ function sugiyama(ids, depsOf, opt) {
   layers.forEach((l, li) => {
     const s = span[seat[li].band];
     usedCols = Math.max(usedCols, seat[li].col + seat[li].cols);
-    for (const n of l) { s.lo = Math.min(s.lo, n.y); s.hi = Math.max(s.hi, n.y); }
+    for (const n of l) { s.lo = Math.min(s.lo, n.y); s.hi = Math.max(s.hi, n.y + hOf(n)); }
   });
   const bandTop = [];
+  const bandsInfo = [];
   let accY = 0;
   for (const s of span) {
     if (s.lo === Infinity) { s.lo = 0; s.hi = 0; }
     bandTop.push({ top: accY, shift: -s.lo });
-    accY += (s.hi - s.lo) + rowH * 2;   // 带间留一行间距
+    // 带的绝对纵向范围 — 跨带的回绕边走带间空隙, 需要它定位水平通道
+    bandsInfo.push({ top: accY + padY, bottom: accY + (s.hi - s.lo) + padY });
+    accY += (s.hi - s.lo) + rowH;   // 带间留一行间距
   }
   const all = layers.flat();
   for (const n of all) {
@@ -254,11 +264,11 @@ function sugiyama(ids, depsOf, opt) {
     n.x += padX;
     n.y += bt.shift + bt.top + padY;
   }
-  const maxY = all.reduce((m, n) => Math.max(m, n.y), 0);
+  const maxY = all.reduce((m, n) => Math.max(m, n.y + (n.dummy ? 0 : rowH - gapY)), 0);
   return {
-    layers, edges, bandCols: usedCols,
+    layers, edges, bandCols: usedCols, bandsInfo,
     width: usedCols * colW + padX * 2,
-    height: maxY + (rowH - gapY) + padY,
+    height: maxY + padY,
   };
 }
 
@@ -277,9 +287,89 @@ function layoutDAG(tasks, size = 'md', view) {
   if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0 };
   const s = DAG_SIZES[size] || DAG_SIZES.md;
   const byId = new Map(tasks.map(t => [t.id, t]));
-  const g = sugiyama(tasks.map(t => t.id), id => byId.get(id).deps || [],
-    { ...s, maxWidth: (view && view.w) || 1200, viewH: (view && view.h) || 800 });
-  return packLayout(g, s, id => ({ task: byId.get(id) }));
+  const depsOf = id => (byId.get(id).deps || []).filter(d => byId.has(d));
+  return layoutPacked(tasks.map(t => t.id), depsOf, s,
+    (view && view.w) || 1200, (view && view.h) || 800, id => ({ task: byId.get(id) }));
+}
+
+// 连通分量 (按无向边划分)
+function components(ids, depsOf) {
+  const adj = new Map(ids.map(id => [id, []]));
+  for (const id of ids) {
+    for (const d of depsOf(id)) {
+      if (!adj.has(d)) continue;
+      adj.get(id).push(d);
+      adj.get(d).push(id);
+    }
+  }
+  const seen = new Set(), out = [];
+  for (const id of ids) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const stack = [id], comp = [];
+    while (stack.length) {
+      const cur = stack.pop();
+      comp.push(cur);
+      for (const nb of adj.get(cur)) if (!seen.has(nb)) { seen.add(nb); stack.push(nb); }
+    }
+    out.push(comp);
+  }
+  return out;
+}
+
+// 单个分量: 横排 (LR) 和竖排 (TB) 各算一遍, 取包围盒面积小的。
+// 链状分量横排会拉出一条 9000px 的长龙再折带, 竖排只要一列宽 —— 整块画板因此小得多。
+function layoutComponent(comp, depsOf, s, inner, viewH) {
+  const base = { ...s, padX: 0, padY: 0 };
+  const lr = sugiyama(comp, depsOf, { ...base, maxWidth: inner, viewH });
+  if (comp.length < 3) return lr;
+  // 竖排 = 层沿 y 排、层内沿 x 排: 把两轴间距对调算完再转置回来。
+  // maxWidth 给个大数 (竖排不折带), 宽度约束改由 viewH=inner 承担 (它决定层内累加上限)
+  const tb = sugiyama(comp, depsOf, { ...base, colW: s.rowH, rowH: s.colW, maxWidth: 1e6, viewH: inner - s.colW });
+  transpose(tb, s);
+  // 宽度是硬约束: 竖排块自己超宽就不能用 (装箱兜不住单块超宽)
+  if (tb.width > inner) return lr;
+  return tb.width * tb.height < lr.width * lr.height ? tb : lr;
+}
+
+// 转置 sugiyama 结果: 交换两轴坐标, 重算尺寸。竖排不折带, 故清空 bandsInfo
+function transpose(g, s) {
+  let mx = 0, my = 0;
+  for (const l of g.layers) {
+    for (const n of l) {
+      const t = n.x; n.x = n.y; n.y = t;
+      n.band = 0;
+      mx = Math.max(mx, n.x);
+      my = Math.max(my, n.y);
+    }
+  }
+  g.width = mx + s.colW;
+  g.height = my + s.rowH - s.gapY;
+  g.bandsInfo = [];
+  g.tb = true;
+}
+
+// 各连通分量独立 sugiyama, 再把结果矩形货架装箱 (ELK separateConnectedComponents 的做法)。
+// 不分的话互不相连的小簇被硬排进同一条层序列: 白占位置, 还扯出满屏跨带长线。
+function layoutPacked(ids, depsOf, s, maxW, viewH, extraOf) {
+  const inner = Math.max(s.colW, maxW - s.padX * 2);
+  const blocks = components(ids, depsOf).map(comp =>
+    packLayout(layoutComponent(comp, depsOf, s, inner, viewH), s, extraOf));
+  blocks.sort((a, b) => b.height - a.height || b.width - a.width);   // 大块先放, 小块填右侧缝
+  const nodes = [], edges = [];
+  let x = 0, y = 0, shelfH = 0, W = 0;
+  for (const b of blocks) {
+    if (x > 0 && x + b.width > inner) { x = 0; y += shelfH; shelfH = 0; }
+    const dx = x + s.padX, dy = y + s.padY;
+    for (const n of b.nodes) { n.x += dx; n.y += dy; }
+    for (const e of b.edges) { e.bends.forEach(p => { p.x += dx; p.y += dy; }); e.laneY += dy; }
+    nodes.push(...b.nodes);
+    edges.push(...b.edges);
+    x += b.width;
+    shelfH = Math.max(shelfH, b.height + s.gapY);
+    W = Math.max(W, x);
+  }
+  return { nodes, edges, width: W + s.padX * 2, height: y + shelfH + s.padY * 2 };
 }
 
 // sugiyama 结果 → 渲染用 {nodes, edges}: 丢掉虚点, 虚点坐标转成边的拐点
@@ -289,15 +379,23 @@ function packLayout(g, s, extraOf) {
   for (const l of g.layers) {
     for (const n of l) {
       if (n.dummy) continue;
-      nodes.push({ id: n.id, x: n.x, y: n.y, w, h: hgt, ...extraOf(n.id) });
+      nodes.push({ id: n.id, x: n.x, y: n.y, w, h: hgt, band: n.band, ...extraOf(n.id) });
     }
   }
   const nmap = new Map(nodes.map(n => [n.id, n]));
+  const info = g.bandsInfo || [];
   const edges = [];
   for (const e of g.edges) {
     const from = nmap.get(e.from.id), to = nmap.get(e.to.id);
     if (!from || !to) continue;
-    edges.push({ from, to, bends: e.chain.map(d => ({ x: d.x + w / 2, y: d.y + hgt / 2 })) });
+    // 虚点在层内轴上只有 28px (见 sugiyama DUMMY_H), 拐点取它自己的中线; 竖排时两轴对调
+    const bends = e.chain.map(d => (g.tb
+      ? { x: d.x + 14, y: d.y + hgt / 2 }
+      : { x: d.x + w / 2, y: d.y + 14 }));
+    const cross = from.band !== to.band;
+    // 跨带的回绕边不穿卡片区 — 走目标带上沿的带间空隙
+    const laneY = cross && info[to.band] ? Math.max(6, info[to.band].top - s.rowH / 2) : 0;
+    edges.push({ from, to, bends, cross, laneY });
   }
   return { nodes, edges, width: g.width, height: g.height };
 }
@@ -309,11 +407,8 @@ function layoutSubDAG(subs) {
   const s = { colW: 160, rowH: 60, padX: 16, padY: 12, gapX: 16, gapY: 12 };
   // 迷你视图嵌在详情面板里, 宽度上限跟面板走 (断点同 design.css 的 .detail-panel)
   const panelW = window.innerWidth >= 1600 ? 720 : window.innerWidth >= 1280 ? 580 : 400;
-  const g = sugiyama([...byId.keys()], id => {
-    const sub = byId.get(id);
-    return sub.deps || sub.dependsOn || [];
-  }, { ...s, maxWidth: panelW - 48, viewH: 600 });
-  return packLayout(g, s, id => ({ sub: byId.get(id) }));
+  const depsOf = id => (byId.get(id).deps || byId.get(id).dependsOn || []).filter(d => byId.has(d));
+  return layoutPacked([...byId.keys()], depsOf, s, panelW - 48, 600, id => ({ sub: byId.get(id) }));
 }
 
 // ---- 悬浮 popover ----
@@ -510,6 +605,28 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
   );
 }
 
+// 正交折点 → 圆角直角 path。相邻点必须共享 x 或 y (每段纯横或纯竖), 退化点直接丢。
+function orthPath(raw) {
+  const pts = [];
+  for (const p of raw) {
+    const last = pts[pts.length - 1];
+    if (last && Math.abs(last.x - p.x) < 0.5 && Math.abs(last.y - p.y) < 0.5) continue;
+    pts.push(p);
+  }
+  if (pts.length < 2) return '';
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const pv = pts[i - 1], p = pts[i], nx = pts[i + 1];
+    const inLen = Math.abs(p.x - pv.x) + Math.abs(p.y - pv.y);
+    const outLen = Math.abs(nx.x - p.x) + Math.abs(nx.y - p.y);
+    const r = Math.min(10, inLen / 2, outLen / 2);
+    d += ` L ${p.x - Math.sign(p.x - pv.x) * r} ${p.y - Math.sign(p.y - pv.y) * r}`;
+    d += ` Q ${p.x} ${p.y} ${p.x + Math.sign(nx.x - p.x) * r} ${p.y + Math.sign(nx.y - p.y) * r}`;
+  }
+  const end = pts[pts.length - 1];
+  return d + ` L ${end.x} ${end.y}`;
+}
+
 // ---- SVG 连线 ----
 // 起止点贴 card 边缘: from 右边中 → to 左边中 (水平流向)。
 // 箭头 marker 标方向 (谁→谁); hover card 时高亮其连线 (edge-highlight class)。
@@ -535,12 +652,22 @@ function drawEdges(edges, getEdgeInfo) {
     ));
   }
 
+  // 通道分配: 竖直段挤在列间空隙里, 同一空隙的多条边互相让开几像素 (电路板走线)
+  const lanes = new Map();
+  const chan = (v, axis) => {
+    const k = axis + Math.round(v / 10);
+    const n = lanes.get(k) || 0;
+    lanes.set(k, n + 1);
+    return v + (n % 5) * 7 - 14;
+  };
   const paths = edges.map(e => {
-    // 起止点退回 card 边缘内一点, 避箭头戳进 card; marker 自带尺寸故终点贴边即可
-    const x1 = e.from.x + e.from.w;
-    const y1 = e.from.y + e.from.h / 2;
-    const x2 = e.to.x;
-    const y2 = e.to.y + e.to.h / 2;
+    // 竖排分量 (layoutComponent 选了 TB) 的边: 从 card 底边中出、顶边中进; 横排走右→左
+    const vert = Math.abs(e.to.x - e.from.x) < e.from.w && e.to.y > e.from.y + e.from.h / 2;
+    // 起止点贴 card 边缘; marker 自带尺寸故终点贴边即可
+    const x1 = vert ? e.from.x + e.from.w / 2 : e.from.x + e.from.w;
+    const y1 = vert ? e.from.y + e.from.h : e.from.y + e.from.h / 2;
+    const x2 = vert ? e.to.x + e.to.w / 2 : e.to.x;
+    const y2 = vert ? e.to.y : e.to.y + e.to.h / 2;
     let st, dimmed = false;
     if (getEdgeInfo) {
       const info = getEdgeInfo(e);
@@ -549,34 +676,37 @@ function drawEdges(edges, getEdgeInfo) {
     } else {
       st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
     }
-    let d;
-    if (e.bends && e.bends.length) {
-      // 跨多层的长边: 串起虚点拐点分段走, 绕开中间层挡路的卡片
-      const pts = [{ x: x1, y: y1 }, ...e.bends, { x: x2, y: y2 }];
-      d = `M ${x1} ${y1}`;
-      for (let i = 1; i < pts.length; i++) {
-        const p0 = pts[i - 1], p1 = pts[i], mx = (p0.x + p1.x) / 2;
-        d += ` C ${mx} ${p0.y}, ${mx} ${p1.y}, ${p1.x} ${p1.y}`;
+    // 折点全部正交 (每段纯横或纯竖), 再由 orthPath 打圆角
+    const pts = [{ x: x1, y: y1 }];
+    if (e.cross) {
+      // 跨带回绕边: 出右侧 stub → 走带间水平通道 → 从目标左侧 stub 进入, 不穿卡片区
+      const sx = chan(x1 + 30, 'x'), ex = chan(x2 - 30, 'x'), yc = chan(e.laneY, 'y');
+      pts.push({ x: sx, y: y1 }, { x: sx, y: yc }, { x: ex, y: yc }, { x: ex, y: y2 });
+    } else if (vert) {
+      // 竖排: 逐段 竖-横-竖, 水平段落在两行之间的通道里
+      let px = x1, py = y1;
+      for (const m of [...(e.bends || []), { x: x2, y: y2 }]) {
+        const cy = chan((py + m.y) / 2, 'y');
+        pts.push({ x: px, y: cy }, { x: m.x, y: cy });
+        px = m.x; py = m.y;
       }
     } else {
-      // 贝塞尔 control: 跨 layer 用水平中点; 同 x (同 layer / 环 fallback) 用横向偏移避免退化重叠
-      const dx = x2 - x1;
-      let cx1, cx2;
-      if (Math.abs(dx) < 8) {
-        // 同列: control 向右弯出再回, 避线段退化为竖线与邻线重叠
-        const bow = 60;
-        cx1 = x1 + bow; cx2 = x2 + bow;
-      } else {
-        const mx = (x1 + x2) / 2;
-        cx1 = mx; cx2 = mx;
+      // 横排: 逐段 横-竖-横, 竖直段落在两列之间的通道里 (长边有虚点拐点, 顺着走)
+      let px = x1, py = y1;
+      for (const m of [...(e.bends || []), { x: x2, y: y2 }]) {
+        const cx = chan((px + m.x) / 2, 'x');
+        pts.push({ x: cx, y: py }, { x: cx, y: m.y });
+        px = m.x; py = m.y;
       }
-      d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
     }
-    const opacity = dimmed ? '0.12' : '0.55';
+    pts.push({ x: x2, y: y2 });
+    const d = orthPath(pts);
+    const opacity = dimmed ? '0.12' : (e.cross ? '0.4' : '0.55');
     return h('path', {
       d, fill: 'none',
       stroke: `var(--${ST_COLOR[st]})`,
       'stroke-width': '2', 'stroke-opacity': opacity,
+      'stroke-dasharray': e.cross ? '7 5' : null,
       'marker-end': `url(#arrow-${st})`,
       class: 'dag-edge',
       'data-from': e.from.id, 'data-to': e.to.id,

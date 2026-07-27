@@ -620,12 +620,22 @@
 /* position 交给渲染侧 (.absolute + left/top 定位), 此处只管层级 —
    若在此写死 relative 会盖掉 .absolute 使卡片退回文档流堆叠, 连线全脱位 */
 .dag-node-wrap { z-index: 1; }
+/* card 背后垫一层画布底色: glass-card 是半透明的, 不垫底连线会从卡片里透出来。
+   z-index:-1 只在 wrap 自己的层叠上下文里下沉 — 仍盖在连线层之上 */
+.dag-node-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: var(--bg);
+  z-index: -1;
+}
 .dag-node-wrap:hover { z-index: 100; }
 /* canvas 零 padding — card 与 svg 同一 0 基准坐标空间, 连线精确依附 card 边缘
    (间距由 layout padX/padY 承担, 勿在此重复加 padding 致连线偏移) */
 .dag-canvas { padding: 0; }
-/* 连线层: 置于 card 之上便看清走向, pointer-events-none 不挡 card 点击/hover */
-.dag-edges { z-index: 50; overflow: visible; }
+/* 连线层: 压在 card 之下 — 穿过 card 的线段被 card 遮住, 视觉上只剩卡片之间的走线 */
+.dag-edges { z-index: 0; overflow: visible; }
 .dag-edge { transition: stroke-opacity .15s, stroke-width .15s; }
 .dag-edge.edge-active { stroke-opacity: 0.95; stroke-width: 3; }
 /* hover 链路高亮: 链上节点提亮描边, 链外节点整体降透明 */
