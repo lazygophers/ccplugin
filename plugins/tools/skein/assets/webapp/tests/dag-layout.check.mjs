@@ -8,9 +8,9 @@ const cut = (name) => {
 };
 // 布局链是纯函数, 整串 eval 出来 (layoutPacked 依赖 components/sugiyama/packLayout)。
 // eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开 board.js 的浏览器 ESM 依赖。
-const { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive } = eval(
-  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutGrid', 'edgeKinds', 'focusActive'].map(cut).join('\n')}
-   return { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive }; })()`);
+const { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive, bundleTrunks } = eval(
+  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutGrid', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
+   return { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive, bundleTrunks }; })()`);
 
 const S = { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 };
 const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth: view.w, viewH: view.h });
@@ -184,6 +184,30 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
     Math.abs(e.from.x - e.to.x) > S.colW || Math.abs(e.from.y - e.to.y) > S.rowH);
   console.assert(far.length === 0, '纯链不该有跨格边, 实际 ' + far.length);
   console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)}) 跨格边 ${far.length}`);
+}
+
+// 14. 边捆绑: 扇入 ≥3 的跨行长边共用一条主干 x, 短边和小扇入不参与
+{
+  const card = (id, x, y) => ({ id, x, y, w: 300, h: 200 });
+  const hub = card('hub', 900, 3000);
+  const far = [0, 1, 2, 3].map(i => card('f' + i, i * 380, i * 260));  // 4 个远源 → hub
+  const near = card('n', 600, 3000);                                   // 同行近邻 → hub
+  const small = card('s2', 0, 0);
+  const edges = [
+    ...far.map(f => ({ from: f, to: hub, cross: false })),
+    { from: near, to: hub, cross: false },
+    { from: small, to: card('t2', 0, 2000), cross: false },            // 扇入 1, 不该捆
+  ];
+  const trunks = bundleTrunks(edges);
+  console.assert(trunks.size === 1, '只该有 hub 一条主干, 实际 ' + trunks.size);
+  const t = trunks.get('hub');
+  console.assert(t.x === hub.x - 16, '主干应贴 hub 左侧列间通道, 实际 ' + t.x);
+  console.assert(t.set.size === 4, '4 条跨行边入束, 实际 ' + t.set.size);
+  console.assert(![...t.set].some(e => e.from.id === 'n'), '同行近邻边不该入束');
+  // 扇入 2 不够成束 (两条线各走各的比绕主干更短)
+  const two = bundleTrunks([{ from: far[0], to: hub, cross: false }, { from: far[1], to: hub, cross: false }]);
+  console.assert(two.size === 0, '扇入 2 不该成束');
+  console.log(`14 边捆绑 OK 主干x=${t.x} 入束${t.set.size}条`);
 }
 
 // 12. 满铺网格环兜底: 有环也不死循环
