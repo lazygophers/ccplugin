@@ -288,6 +288,7 @@ class Skein:
         # 每次变更重算, 免各处同步。无 task 级 focus — 无未完成前置的 task 皆可并行 (DAG 就绪即跑)。
         self._autoclean()  # 惰性归档超保留期的完成 task, 再重算索引
         tasks = [{"id": t["id"], "status": t["status"], "deps": t["deps"],
+                  "priority": t.get("priority", 5),
                   "worktree": t.get("worktree"),
                   "parent": t.get("parent"), "kind": t.get("kind", "task")} for t in self._all()]
         self._write_if_changed(self.dir / "task.json",
@@ -328,8 +329,10 @@ class Skein:
                 DBG.log(f"读 {f}  → id={t.get('id')} status={t.get('status')} "
                         f"subtasks={len(t.get('subtasks', []))} deps={t.get('deps') or '-'} "
                         f"contracts={len(t.get('contracts', []))}", style="dim")
-        # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内保持 id 序
-        out.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
+        # 状态优先排序 (进行中>检查中>就绪>待处理>已完成), 同状态内按优先级降序 (数字越大越靠前), 同优先级按 id 序
+        out.sort(key=lambda t: (STATUS_ORDER.get(t["status"], 9),
+                                -(t.get("priority") or 5),
+                                t["id"]))
         return out
 
     def _render_tasks(self) -> list[dict[str, Any]]:
@@ -355,13 +358,16 @@ class Skein:
                 if r["id"] in have:  # per-task 明细已覆盖 → 保留明细, 跳过镜像骨架
                     continue
                 tasks.append({"id": r["id"], "name": r.get("name", r["id"]), "status": r["status"],
+                              "priority": r.get("priority", 5),
                               "deps": r.get("deps", []), "worktree": r.get("worktree"),
                               "parent": r.get("parent"), "kind": r.get("kind", "task")})
                 mirrored += 1
                 DBG.log(f"  + 镜像补齐幽灵骨架 {r['id']} (per-task 目录缺失, 仅顶层索引可用)", style="yellow")
         else:
             DBG.log(f"顶层镜像 {mirror} 不存在, 仅用 per-task 明细", style="dim")
-        tasks.sort(key=lambda t: STATUS_ORDER.get(t["status"], 9))
+        tasks.sort(key=lambda t: (STATUS_ORDER.get(t["status"], 9),
+                                  -(t.get("priority") or 5),
+                                  t["id"]))
         by_status: dict[str, int] = {}
         sub_total = 0
         sub_by_status: dict[str, int] = {}
@@ -565,6 +571,7 @@ class Skein:
         t = {
             "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
+            "priority": getattr(a, "priority", 5) or 5,  # 0-10, 默认 5 (中)
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
             "parent": parent_id,     # 父 supertask id; None=独立 task (create 默认; --parent 指向 supertask)
@@ -2651,6 +2658,15 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
     node_cls: dict[str, str] = {S_PENDING: "n-pending", S_READY: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
                 S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
 
+    # git 仓库用户名 (作为默认负责人)
+    git_user: Optional[str] = None
+    try:
+        r = git("config", "user.name", check=False, cwd=snap._tasks_dir)
+        if r.returncode == 0 and r.stdout.strip():
+            git_user = r.stdout.strip()
+    except Exception:
+        pass
+
     def fmt_dur(mins: Optional[int]) -> str:
         if mins is None:
             return "-"
@@ -2808,6 +2824,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "nextUp": t["id"] == next_up_id,
             "depNames": [name_of.get(d, d) for d in t.get("deps", [])],
             "worktree": (t.get("worktree") or None) if snap.wt_shown else None,
+            "assignee": t.get("assignee") or t.get("owner") or git_user,
             "created": t.get("created"),
             "started": t.get("started"),
             "checked": t.get("checked"),

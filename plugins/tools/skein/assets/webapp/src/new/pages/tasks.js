@@ -3,7 +3,7 @@
 //  设计: 表格/列表视图 + 筛选 + 搜索
 // ============================================================
 
-import { h, api, fmtRelative, normalizeTasks } from '../app.js';
+import { h, api, fmtRelative, normalizeTasks, prioShortLabel, prioColor } from '../app.js';
 
 const ST_LABEL = { pending: '待办', active: '执行中', check: '待验收', done: '已完成', failed: '失败' };
 const ST_COLOR = {
@@ -12,16 +12,13 @@ const ST_COLOR = {
   failed:  'st-failed',
 };
 
-const PRIO_LABEL = { high: '高', mid: '中', low: '低' };
-const PRIO_COLOR = { high: 'danger', mid: 'warning', low: 'accent' };
-
 function statusBadge(status) {
   return h('span.badge.badge-sm.' + ST_COLOR[status], ST_LABEL[status] || status);
 }
 
 function priorityBadge(priority) {
-  const p = priority || 'mid';
-  return h('span.badge.badge-sm.badge-' + PRIO_COLOR[p], PRIO_LABEL[p] + '优先级');
+  const p = priority != null ? Number(priority) : 5;
+  return h('span.badge.badge-sm.badge-' + prioColor(p), prioShortLabel(p) + `优先级 (${p})`);
 }
 
 function taskRow(task) {

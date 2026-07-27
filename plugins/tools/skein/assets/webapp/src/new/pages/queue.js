@@ -3,10 +3,8 @@
 //  设计: 列表视图 + 优先级排序 + 操作按钮
 // ============================================================
 
-import { h, api, fmtRelative, normalizeTasks } from '../app.js';
+import { h, api, fmtRelative, normalizeTasks, prioShortLabel, prioColor, prioLevel } from '../app.js';
 
-const PRIO_LABEL = { high: '高', mid: '中', low: '低' };
-const PRIO_COLOR = { high: 'danger', mid: 'warning', low: 'accent' };
 const ST_LABEL = { pending: '待办', active: '执行中', check: '待验收', done: '已完成', failed: '失败' };
 const ST_COLOR = {
   pending: 'st-pending', active: 'st-active',
@@ -14,9 +12,10 @@ const ST_COLOR = {
 };
 
 function priorityBadge(p) {
-  const prio = p || 'mid';
-  return h(`span.px-2.py-0.5.rounded-full.text-xs.font-medium.text-${PRIO_COLOR[prio]}.bg-${PRIO_COLOR[prio]}/10`,
-    PRIO_LABEL[prio] + '优先'
+  const prio = p != null ? Number(p) : 5;
+  const color = prioColor(prio);
+  return h(`span.px-2.py-0.5.rounded-full.text-xs.font-medium.text-${color}.bg-${color}/10`,
+    prioShortLabel(prio) + `优先级 (${prio})`
   );
 }
 
@@ -27,14 +26,13 @@ export async function render(mount, params, ctx) {
 
   const tasks = normalizeTasks((queueResp && queueResp.tasks) || (dataResp && dataResp.cards) || []);
 
-  // 队列: pending + active + check, 按优先级 + 时间排序
+  // 队列: pending + active + check, 按优先级降序 + 时间降序
   const queueTasks = tasks
     .filter(t => ['pending', 'active', 'check'].includes(t.status))
     .sort((a, b) => {
-      const prioOrder = { high: 0, mid: 1, low: 2 };
-      const pa = prioOrder[a.priority] ?? 1;
-      const pb = prioOrder[b.priority] ?? 1;
-      if (pa !== pb) return pa - pb;
+      const pa = a.priority != null ? Number(a.priority) : 5;
+      const pb = b.priority != null ? Number(b.priority) : 5;
+      if (pa !== pb) return pb - pa; // 优先级高的在前
       return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
     });
 

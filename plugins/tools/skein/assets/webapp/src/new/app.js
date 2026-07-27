@@ -55,6 +55,30 @@ const STATUS_MAP = {
   '已归档': 'archived',
 };
 
+// ---- 优先级工具 (0-10 分, 默认 5 = 中) ----
+export function prioLevel(p) {
+  const n = p != null ? Number(p) : 5;
+  if (n >= 7) return 'high';
+  if (n >= 4) return 'mid';
+  return 'low';
+}
+export function prioLabel(p) {
+  const lvl = prioLevel(p);
+  return { high: '高优先级', mid: '中优先级', low: '低优先级' }[lvl];
+}
+export function prioShortLabel(p) {
+  const lvl = prioLevel(p);
+  return { high: '高', mid: '中', low: '低' }[lvl];
+}
+export function prioColor(p) {
+  const lvl = prioLevel(p);
+  return { high: 'danger', mid: 'warning', low: 'accent' }[lvl];
+}
+export function prioTextColor(p) {
+  const lvl = prioLevel(p);
+  return { high: 'text-danger', mid: 'text-warn', low: 'text-muted' }[lvl];
+}
+
 export function normalizeTask(t) {
   if (!t) return t;
   const statusRaw = t.status || t.st || 'pending';
@@ -72,7 +96,7 @@ export function normalizeTask(t) {
     desc: t.description || t.desc || '',
     status,
     stage: t.stage || (status === 'planning' ? 'plan' : status === 'ready' ? 'ready' : status === 'active' ? 'exec' : status === 'check' ? 'check' : 'done'),
-    priority: t.priority || t.prio || 'mid',
+    priority: t.priority != null ? Number(t.priority) : (t.prio != null ? Number(t.prio) : 5),
     createdAt: createdTs,
     startedAt: startedTs,
     updatedAt: updatedTs,
