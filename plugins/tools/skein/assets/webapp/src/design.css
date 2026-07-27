@@ -628,6 +628,14 @@
 .dag-edges { z-index: 50; overflow: visible; }
 .dag-edge { transition: stroke-opacity .15s, stroke-width .15s; }
 .dag-edge.edge-active { stroke-opacity: 0.95; stroke-width: 3; }
+/* hover 链路高亮: 链上节点提亮描边, 链外节点整体降透明 */
+.dag-node-wrap { transition: opacity .15s, filter .15s; }
+/* !important 压过状态筛选的 tailwind .opacity-40 (同权重, 顺序不定) */
+.dag-node-wrap.chain-dim { opacity: 0.25 !important; filter: grayscale(0.8); }
+.dag-node-wrap.chain-active .dag-node {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 24px rgba(0,0,0,0.28);
+}
 .dag-node-wrap .dag-popover {
   position: absolute;
   left: 50%;

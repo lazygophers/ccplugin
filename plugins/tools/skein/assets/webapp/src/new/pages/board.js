@@ -246,6 +246,7 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
 
   return h(`div.dag-node-wrap.absolute${dimmed ? ' opacity-40 grayscale' : ''}`,
     {
+      'data-node-id': t.id,
       style: {
         left: node.x + 'px', top: node.y + 'px',
         width: node.w + 'px',
@@ -1139,7 +1140,7 @@ export async function render(mount, params, ctx) {
   });
 
   // ---- DAG 拖拽平移 ----
-  function initDrag() {
+  function initDrag(dagEdges = []) {
     const wrap = document.getElementById('board-dag-wrap');
     const canvas = wrap ? wrap.querySelector('.dag-canvas') : null;
     if (!wrap || !canvas || view !== 'dag') return;
@@ -1201,25 +1202,53 @@ export async function render(mount, params, ctx) {
     wrap.addEventListener('mousedown', onMouseDown);
     wrap.addEventListener('touchstart', onTouchStart, { passive: true });
 
-    // hover card 高亮其相关连线 (from 或 to 命中), 其余降透明 — 辨清"谁到谁"
+    // hover card 高亮整条链路 (该节点 + 全部上游 + 全部下游, 传递闭包) 的节点与连线, 其余降透明
     const edgesSvg = canvas.querySelector('.dag-edges');
     if (edgesSvg) {
-      canvas.addEventListener('mouseover', (e) => {
-        const card = e.target.closest('.dag-node-wrap, .sub-dag-node');
-        const tid = card ? (card.getAttribute('data-task-id') || card.getAttribute('data-sub-id')) : null;
-        edgesSvg.querySelectorAll('.dag-edge').forEach(p => {
-          const hit = tid && (p.getAttribute('data-from') === tid || p.getAttribute('data-to') === tid);
-          p.classList.toggle('edge-active', !!hit);
-          p.style.strokeOpacity = tid ? (hit ? '0.95' : '0.1') : '';
+      // 双向邻接表 (一次建好, 每次 hover 只跑 BFS)
+      const succ = new Map(), pred = new Map();
+      for (const e of dagEdges) {
+        if (!succ.has(e.from.id)) succ.set(e.from.id, []);
+        if (!pred.has(e.to.id)) pred.set(e.to.id, []);
+        succ.get(e.from.id).push(e.to.id);
+        pred.get(e.to.id).push(e.from.id);
+      }
+      function chainOf(id) {
+        const seen = new Set([id]);
+        for (const adj of [succ, pred]) {
+          const queue = [id];
+          while (queue.length) {
+            for (const nx of adj.get(queue.shift()) || []) {
+              if (seen.has(nx)) continue;
+              seen.add(nx);
+              queue.push(nx);
+            }
+          }
+        }
+        return seen;
+      }
+      const cards = () => canvas.querySelectorAll('.dag-node-wrap');
+      function applyChain(chain) {
+        cards().forEach(c => {
+          const inChain = chain && chain.has(c.getAttribute('data-node-id'));
+          c.classList.toggle('chain-active', !!inChain);
+          c.classList.toggle('chain-dim', !!chain && !inChain);
         });
+        edgesSvg.querySelectorAll('.dag-edge').forEach(p => {
+          // 边在链路内 = 两端都在链路内
+          const hit = chain && chain.has(p.getAttribute('data-from')) && chain.has(p.getAttribute('data-to'));
+          p.classList.toggle('edge-active', !!hit);
+          p.style.strokeOpacity = chain ? (hit ? '0.95' : '0.1') : '';
+        });
+      }
+      canvas.addEventListener('mouseover', (e) => {
+        // 只认外层 task 卡片 — 子 DAG 节点 id 不在 task 邻接表内, 命中它会把整图误暗
+        const card = e.target.closest('.dag-node-wrap');
+        const tid = card ? card.getAttribute('data-node-id') : null;
+        applyChain(tid ? chainOf(tid) : null);
       });
       canvas.addEventListener('mouseout', (e) => {
-        if (!e.relatedTarget || !canvas.contains(e.relatedTarget)) {
-          edgesSvg.querySelectorAll('.dag-edge').forEach(p => {
-            p.classList.remove('edge-active');
-            p.style.strokeOpacity = '';
-          });
-        }
+        if (!e.relatedTarget || !canvas.contains(e.relatedTarget)) applyChain(null);
       });
     }
   }
@@ -1292,7 +1321,7 @@ export async function render(mount, params, ctx) {
         hasPanel ? detailPanel(selectedTask, allTasks, closePanel, onSubClick, openDetailPage, selectTask) : null,
       ]),
     );
-    setTimeout(initDrag, 0);
+    setTimeout(() => initDrag(edges), 0);
   }
 
   draw();
