@@ -780,26 +780,34 @@ function drawEdges(edges, getEdgeInfo) {
   const paths = edges.map(e => {
     const trunk = trunks.get(e.to.id);
     const bundled = !!trunk && trunk.set.has(e);
-    // 竖排分量 (layoutComponent 选了 TB) 的边: 从 card 底边中出、顶边中进; 横排走右→左
+    // 竖排分量 (layoutComponent 选了 TB) 的边: 走上下边; 横排走左右边
     const vert = !bundled
       && Math.abs(e.to.x - e.from.x) < e.from.w && e.to.y > e.from.y + e.from.h / 2;
+    // 出入边按相对位置选, 不能写死「右沿出、左沿进」—— 蛇形行序下近一半的边是右→左,
+    // 写死会让首段从右沿往回穿过源卡自己。线只许从边缘朝外起步、朝内收尾。
+    const bx = bundled ? trunk.x : e.to.x + e.to.w / 2;
+    const rightward = bx >= e.from.x + e.from.w / 2;    // 去向在源的右边?
+    const downward = e.to.y >= e.from.y;
     // 起止点贴 card 边缘; marker 自带尺寸故终点贴边即可
-    const x1 = vert ? e.from.x + e.from.w / 2 : e.from.x + e.from.w;
-    const y1 = vert ? e.from.y + e.from.h : e.from.y + e.from.h / 2;
-    const x2 = vert ? e.to.x + e.to.w / 2 : e.to.x;
-    const y2 = vert ? e.to.y : e.to.y + e.to.h / 2;
+    const x1 = vert ? e.from.x + e.from.w / 2 : (rightward ? e.from.x + e.from.w : e.from.x);
+    const y1 = vert ? (downward ? e.from.y + e.from.h : e.from.y) : e.from.y + e.from.h / 2;
+    const x2 = vert ? e.to.x + e.to.w / 2
+      : (bundled || rightward ? e.to.x : e.to.x + e.to.w);
+    const y2 = vert ? (downward ? e.to.y : e.to.y + e.to.h) : e.to.y + e.to.h / 2;
     const kind = kindOf(e);
     const dimmed = getEdgeInfo ? !!getEdgeInfo(e).dimmed : false;
     // 折点全部正交 (每段纯横或纯竖), 再由 orthPath 打圆角
     const pts = [{ x: x1, y: y1 }];
     if (bundled) {
-      // 出源卡右沿 → 下探到源所在行的行间通道 (同一行的多条接入线在此重叠, 又是一次合流)
+      // 出源卡侧沿朝外 → 下探到源所在行的行间通道 (同一行的多条接入线在此重叠, 又是一次合流)
       // → 横向并入主干 → 沿主干竖直下到目标 → 横入目标左沿
-      const sx = x1 + 16, yc = e.from.y + e.from.h + 20;
+      const sx = x1 + (rightward ? 16 : -16), yc = e.from.y + e.from.h + 20;
       pts.push({ x: sx, y: y1 }, { x: sx, y: yc }, { x: trunk.x, y: yc }, { x: trunk.x, y: y2 });
     } else if (e.cross) {
-      // 跨带回绕边: 出右侧 stub → 走带间水平通道 → 从目标左侧 stub 进入, 不穿卡片区
-      const sx = chan(x1 + 30, 'x'), ex = chan(x2 - 30, 'x'), yc = chan(e.laneY, 'y');
+      // 跨带回绕边: 出侧沿 stub → 走带间水平通道 → 从目标侧沿 stub 进入, 不穿卡片区
+      const sx = chan(x1 + (rightward ? 30 : -30), 'x');
+      const ex = chan(x2 + (rightward ? -30 : 30), 'x');
+      const yc = chan(e.laneY, 'y');
       pts.push({ x: sx, y: y1 }, { x: sx, y: yc }, { x: ex, y: yc }, { x: ex, y: y2 });
     } else if (vert) {
       // 竖排: 逐段 竖-横-竖, 水平段落在两行之间的通道里

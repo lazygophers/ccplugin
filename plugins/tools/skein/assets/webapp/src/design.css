@@ -1783,6 +1783,18 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 .sub-dag-node {
   font-size: 11px;
   box-sizing: border-box;
+  z-index: 1;
+}
+/* 卡面是半透明 (bg-card/60 · glass-card), 不垫底连线就从卡里透出来。
+   底垫必须用 --bg —— 它是唯一 100% 不透明的面色, --panel/--panel-2/--card 全是 rgba 半透,
+   垫上去线照样透。与主看板 .dag-node-wrap::before 同策: 卡片必须完全挡住走线。 */
+.sub-dag-node::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: var(--bg);
+  z-index: -1;
 }
 .sub-dag-node:hover {
   border-color: var(--accent) !important;
