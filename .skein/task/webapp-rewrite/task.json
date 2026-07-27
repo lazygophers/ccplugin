@@ -240,12 +240,12 @@
       ],
       "验收": [],
       "验收done": [],
-      "status": "运行中",
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785110633,
       "started": 1785110636,
-      "finished": null
+      "finished": 1785110776
     }
   ],
   "repos": [],
@@ -259,5 +259,5 @@
   "confirmed": 1785081994,
   "checked": null,
   "finished": null,
-  "updated": 1785110730
+  "updated": 1785110776
 }
