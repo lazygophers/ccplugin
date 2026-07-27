@@ -8,9 +8,9 @@ const cut = (name) => {
 };
 // 布局链是纯函数, 整串 eval 出来 (layoutPacked 依赖 components/sugiyama/packLayout)。
 // eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开 board.js 的浏览器 ESM 依赖。
-const { sugiyama, layoutPacked } = eval(
-  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked'].map(cut).join('\n')}
-   return { sugiyama, layoutPacked }; })()`);
+const { sugiyama, layoutPacked, edgeKinds } = eval(
+  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'edgeKinds'].map(cut).join('\n')}
+   return { sugiyama, layoutPacked, edgeKinds }; })()`);
 
 const S = { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 };
 const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth: view.w, viewH: view.h });
@@ -132,6 +132,26 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   const xs = new Set(packed.nodes.map(n => n.x));
   console.assert(xs.size <= 2, '竖排应只占 1~2 列, 实际 ' + xs.size);
   console.log(`9 方向自选 OK ${xs.size}列 size=${Math.round(packed.width)}x${Math.round(packed.height)}`);
+}
+
+// 10. 边语义色: 绿=依赖已完成 / 黄=阻塞但上游可执行 / 红=阻塞且上游被卡
+{
+  const T = {
+    a: { status: 'done', deps: [] },          // a 完成 → a->b 绿
+    b: { status: 'ready', deps: ['a'] },      // b 未完成但依赖全 done → b->c 黄
+    c: { status: 'planning', deps: ['b'] },   // c 未完成且 b 未完成 → c->d 红
+    d: { status: 'planning', deps: ['c'] },
+  };
+  const nd = (id) => ({ id, task: T[id] });
+  const mk = (f, t) => ({ from: nd(f), to: nd(t) });
+  const edges = [mk('a', 'b'), mk('b', 'c'), mk('c', 'd')];
+  const kindOf = edgeKinds(edges);
+  const got = edges.map(kindOf).join(',');
+  console.assert(got === 'ready,blocked,stuck', '边语义应为 ready,blocked,stuck, 实际 ' + got);
+  // 图外 id 视为已满足: 上游依赖被筛掉不该误判成红
+  const orphan = [{ from: { id: 'x', task: { status: 'ready', deps: ['gone'] } }, to: nd('d') }];
+  console.assert(edgeKinds(orphan)(orphan[0]) === 'blocked', '图外依赖应视为已满足');
+  console.log('10 边语义 OK ' + got);
 }
 
 // 6. 千节点性能

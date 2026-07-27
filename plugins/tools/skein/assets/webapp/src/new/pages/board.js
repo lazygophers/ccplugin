@@ -21,6 +21,12 @@ const ST_ICON = {
   active:   'fa-spinner fa-spin', check: 'fa-eye',
   done:     'fa-check-circle', failed: 'fa-times-circle',
 };
+// 连线语义 (边 from→to 表示 "to 依赖 from", from 是被依赖方)
+const EDGE_KIND = {
+  ready:   { color: 'st-done',   label: '依赖已完成' },
+  blocked: { color: 'st-active', label: '阻塞 · 上游可执行' },
+  stuck:   { color: 'st-failed', label: '阻塞 · 上游被卡' },
+};
 const ALL_STATUSES = ['planning', 'ready', 'active', 'check', 'done'];
 // 默认筛选: 不含已完成 (DAG 中已完成任务做灰色, 默认不占视觉焦点)
 const DEFAULT_FILTER = new Set(['planning', 'ready', 'active', 'check']);
@@ -627,28 +633,56 @@ function orthPath(raw) {
   return d + ` L ${end.x} ${end.y}`;
 }
 
+// ---- 边语义判定 ----
+// from 是被依赖方: done → 依赖已满足 (绿); 未 done 且 from 自己的依赖全 done → from 现在就能跑 (黄);
+// from 自己也有未完成依赖 → 这条链短期解不开 (红)。图外的 id 视为已满足 (被筛掉的基本是 done)。
+function edgeKinds(edges) {
+  const item = new Map();
+  for (const e of edges) for (const n of [e.from, e.to]) item.set(n.id, n.task || n.sub || {});
+  const stOf = (id) => (item.has(id) ? (item.get(id).status || 'planning') : 'done');
+  return (e) => {
+    if (stOf(e.from.id) === 'done') return 'ready';
+    const f = item.get(e.from.id) || {};
+    const deps = f.deps || f.dependsOn || [];
+    return deps.every(d => stOf(d) === 'done') ? 'blocked' : 'stuck';
+  };
+}
+
+// ---- 连线图例 ----
+function edgeLegend() {
+  const line = (color, dashed) => h('svg', { width: '26', height: '10', 'aria-hidden': 'true' }, [
+    h('path', {
+      d: 'M 1 5 L 25 5', fill: 'none', stroke: `var(--${color})`,
+      'stroke-width': '2', 'stroke-dasharray': dashed ? '4 3' : null,
+    }),
+  ]);
+  return h('div.dag-legend', [
+    ...Object.entries(EDGE_KIND).map(([, v]) =>
+      h('span.dag-legend-item', [line(v.color, false), v.label])),
+    // 虚线只表"跨行回绕", 线色仍是上面三种语义色 — 别让人以为虚线自成一色
+    h('span.dag-legend-item', [line('muted', true), '虚线 = 跨行回绕 (颜色含义同上)']),
+  ]);
+}
+
 // ---- SVG 连线 ----
 // 起止点贴 card 边缘: from 右边中 → to 左边中 (水平流向)。
 // 箭头 marker 标方向 (谁→谁); hover card 时高亮其连线 (edge-highlight class)。
 function drawEdges(edges, getEdgeInfo) {
   if (!edges.length) return null;
 
-  // 每个状态一个箭头 marker (用 stroke 色), id 去重
-  const usedSts = new Set();
+  const kindOf = edgeKinds(edges);
+
+  // 每种边语义一个箭头 marker (同色), id 去重
+  const usedKinds = new Set();
   const markers = [];
   for (const e of edges) {
-    let st;
-    if (getEdgeInfo) {
-      st = getEdgeInfo(e).status;
-    } else {
-      st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
-    }
-    if (usedSts.has(st)) continue;
-    usedSts.add(st);
+    const k = kindOf(e);
+    if (usedKinds.has(k)) continue;
+    usedKinds.add(k);
     markers.push(h('marker',
-      { id: `arrow-${st}`, viewBox: '0 0 10 10', refX: '9', refY: '5',
+      { id: `arrow-${k}`, viewBox: '0 0 10 10', refX: '9', refY: '5',
         markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' },
-      [h('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: `var(--${ST_COLOR[st]})` })]
+      [h('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: `var(--${EDGE_KIND[k].color})` })]
     ));
   }
 
@@ -668,14 +702,8 @@ function drawEdges(edges, getEdgeInfo) {
     const y1 = vert ? e.from.y + e.from.h : e.from.y + e.from.h / 2;
     const x2 = vert ? e.to.x + e.to.w / 2 : e.to.x;
     const y2 = vert ? e.to.y : e.to.y + e.to.h / 2;
-    let st, dimmed = false;
-    if (getEdgeInfo) {
-      const info = getEdgeInfo(e);
-      st = info.status;
-      dimmed = info.dimmed;
-    } else {
-      st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
-    }
+    const kind = kindOf(e);
+    const dimmed = getEdgeInfo ? !!getEdgeInfo(e).dimmed : false;
     // 折点全部正交 (每段纯横或纯竖), 再由 orthPath 打圆角
     const pts = [{ x: x1, y: y1 }];
     if (e.cross) {
@@ -704,10 +732,10 @@ function drawEdges(edges, getEdgeInfo) {
     const opacity = dimmed ? '0.12' : (e.cross ? '0.4' : '0.55');
     return h('path', {
       d, fill: 'none',
-      stroke: `var(--${ST_COLOR[st]})`,
+      stroke: `var(--${EDGE_KIND[kind].color})`,
       'stroke-width': '2', 'stroke-opacity': opacity,
       'stroke-dasharray': e.cross ? '7 5' : null,
-      'marker-end': `url(#arrow-${st})`,
+      'marker-end': `url(#arrow-${kind})`,
       class: 'dag-edge',
       'data-from': e.from.id, 'data-to': e.to.id,
     });
@@ -909,7 +937,7 @@ function subDAGView(subs, onSubClick) {
     h('div.relative',
       { style: { width: width + 'px', height: height + 'px', minWidth: '100%' } },
       [
-        drawEdges(edges, (e) => e.to.sub.status || 'planning'),
+        drawEdges(edges),
         ...nodes.map(n =>
           h(`div.sub-dag-node.absolute.flex.items-center.gap-2.px-2.py-1.rounded.border.border-brd/40.bg-card/60.cursor-pointer.hover\\:bg-card.transition-colors`,
             {
@@ -1212,10 +1240,7 @@ function depDAGView(task, allTasks, onTaskClick) {
     h('div.dep-dag-canvas.absolute',
       { style: { width: width + 'px', height: height + 'px' } },
       [
-        drawEdges(edges, (e) => {
-          const st = e.to.task.status || 'planning';
-          return { status: st, dimmed: false };
-        }),
+        drawEdges(edges),
         ...nodes.map(n =>
           h(`div.dep-dag-node.absolute.flex.items-center.gap-2.px-2.py-1.rounded-md.cursor-pointer.transition-all${n.isCenter ? '.dep-dag-center' : ''}`,
             {
@@ -1632,9 +1657,7 @@ export async function render(mount, params, ctx) {
                     drawEdges(edges, (e) => {
                       const fromSt = e.from.task ? e.from.task.status : 'planning';
                       const toSt = e.to.task ? e.to.task.status : 'planning';
-                      const fromActive = statusSet.has(fromSt);
-                      const toActive = statusSet.has(toSt);
-                      return { status: toSt, dimmed: !(fromActive && toActive) };
+                      return { dimmed: !(statusSet.has(fromSt) && statusSet.has(toSt)) };
                     }),
                     ...nodes.map(n => nodeCard(n, selectTask, toggleExpand, expandedNodes.has(n.id), !statusSet.has(n.task.status))),
                   ]
@@ -1644,6 +1667,8 @@ export async function render(mount, params, ctx) {
         ),
         // 右侧: 详情面板 (仅选中时显示)
         hasPanel ? detailPanel(selectedTask, allTasks, closePanel, onSubClick, openDetailPage, selectTask) : null,
+        // 连线图例 (浮在画布区左下角, 不随画布滚动)
+        view === 'dag' ? edgeLegend() : null,
       ]),
     );
     setTimeout(() => initDrag(edges), 0);

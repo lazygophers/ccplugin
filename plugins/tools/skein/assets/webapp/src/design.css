@@ -938,6 +938,34 @@
   display: flex;
   gap: 0;
   min-height: 320px;
+  position: relative;   /* .dag-legend 的定位基准 */
+}
+/* 连线图例: 浮在画布区左下角, 不随画布滚动 */
+.dag-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  max-width: calc(100% - 24px);
+  padding: 7px 11px;
+  border: 1px solid var(--brd);
+  border-radius: var(--radius);
+  background: var(--bg);
+  backdrop-filter: blur(var(--glass-blur));
+  font-size: 11px;
+  color: var(--muted);
+  pointer-events: none;
+}
+/* 详情面板开着时别浮到面板上 */
+.board-main.has-panel .dag-legend { max-width: calc(100% - 424px); }
+.dag-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 /* 画布区自己滚 (高度跟 .board-main, 由 board.js 按视口剩余精算), 页面本身不出滚动条 */
 .board-dag-wrap {
