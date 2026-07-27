@@ -132,34 +132,84 @@ function nodePopover(node) {
   const subStats = getSubtaskStats(t);
   const hasSubs = subs.length > 0;
   const progress = hasSubs ? subStats.progress : (t.progress != null ? t.progress : (st === 'done' ? 100 : st === 'active' ? 50 : 0));
+  const popIcon = ST_ICON[st] || 'fa-cube';
+  const prio = t.priority || 'mid';
+  const PRIO_LABEL = { high: '高优先级', mid: '中优先级', low: '低优先级' };
+  const PRIO_ICON = { high: 'fa-arrow-up', mid: 'fa-minus', low: 'fa-arrow-down' };
+  const PRIO_COLOR = { high: 'text-danger', mid: 'text-warn', low: 'text-muted' };
 
   return h('div.dag-popover', [
     h('div.dag-pop-inner', [
-      h('div.dag-pop-name', [
-        h(`span.dag-pop-badge.${st}`),
-        h('span.truncate', t.title || t.name || '(未命名)'),
+      // 头部: 图标 + 标题 + ID + 状态徽章
+      h('div.dag-pop-header', [
+        h(`div.dag-pop-icon.text-${ST_COLOR[st]}`, [h(`i.fa.${popIcon}`)]),
+        h('div.dag-pop-title-group', [
+          h('div.flex.items-center.gap-2.mb-1', [
+            h('div.dag-pop-name.truncate.flex-1', t.title || t.name || '(未命名)'),
+            h(`span.dag-pop-badge.${st}`, ST_LABEL[st] || st),
+          ]),
+          h('div.dag-pop-id', '#' + t.id),
+        ]),
       ]),
+
+      // 描述
       t.description
         ? h('div.dag-pop-desc', t.description)
         : null,
-      h('div.dag-pop-bar-wrap', [
-        h(`div.dag-pop-bar.${st}`, [h('i', { style: { width: progress + '%' } })]),
-        h('span.dag-pop-pct', progress + '%'),
+
+      // 进度条 + 子任务信息
+      h('div.dag-pop-progress-section', [
+        h('div.dag-pop-bar-wrap', [
+          h(`div.dag-pop-bar.${st}`, [h('i', { style: { width: progress + '%' } })]),
+          h('span.dag-pop-pct', progress + '%'),
+        ]),
+        hasSubs
+          ? h('div.dag-pop-sub-info', [
+              h('i.fa.fa-sitemap.text-xxs'),
+              `子任务 ${subStats.done}/${subs.length} · 点击查看详情`,
+            ])
+          : null,
       ]),
-      hasSubs
-        ? h('div.dag-pop-deps',
-            [`子任务 ${subStats.done}/${subs.length}`]
+
+      // 元信息行: 优先级 + 负责人
+      h('div.dag-pop-meta-row', [
+        h('span.dag-pop-meta-item.flex.items-center.gap-1', [
+          h(`i.fa.${PRIO_ICON[prio]}.${PRIO_COLOR[prio]}.text-xs`),
+          PRIO_LABEL[prio] || prio,
+        ]),
+        t.assignee
+          ? h('span.dag-pop-meta-item.flex.items-center.gap-1', [
+              h('i.fa.fa-user.text-muted.text-xs'),
+              t.assignee,
+            ])
+          : null,
+      ]),
+
+      // 标签
+      (t.tags && t.tags.length)
+        ? h('div.dag-pop-tags',
+            t.tags.slice(0, 4).map(tag => h('span.dag-pop-tag', '#' + tag))
+              .concat(t.tags.length > 4 ? [h('span.dag-pop-tag', `+${t.tags.length - 4}`)] : [])
           )
         : null,
+
+      // 依赖
       (t.deps && t.deps.length)
-        ? h('div.dag-pop-deps',
-            ['依赖: '].concat(t.deps.slice(0, 3).map(d => h('span', d.slice(0, 10))))
-              .concat(t.deps.length > 3 ? [`+${t.deps.length - 3}`] : [])
-          )
+        ? h('div.dag-pop-deps', [
+            h('span.dag-pop-deps-label', '依赖: '),
+            h('div.dag-pop-deps-tags',
+              t.deps.slice(0, 3).map(d => h('span', d.slice(0, 12)))
+                .concat(t.deps.length > 3 ? [h('span', `+${t.deps.length - 3}`)] : [])
+            ),
+          ])
         : null,
-      h('div.dag-pop-meta', [
-        h('span', ST_LABEL[st] || st),
-        h('span', t.updatedAt ? fmtRelative(t.updatedAt) : '—'),
+
+      // 底部: 更新时间
+      h('div.dag-pop-footer', [
+        h('span.flex.items-center.gap-1.text-muted', [
+          h('i.fa.fa-clock-o.text-xs'),
+          t.updatedAt ? fmtRelative(t.updatedAt) : '—',
+        ]),
       ]),
     ]),
   ]);

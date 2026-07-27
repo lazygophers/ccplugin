@@ -53,7 +53,7 @@
 
   /* ── 玻璃流沙层 (A 皮, examples:119 + DAG popover L369-377) ── */
   --glass-bg:        rgba(255, 254, 251, 0.78);     /* whiteSand.pearl 半透 */
-  --glass-brd:       rgba(116, 185, 232, 0.28);     /* ocean.shallow 半透细描边 */
+  --glass-brd:       rgba(226, 232, 240, 0.6);      /* slate-200/60 (中性边框, examples 通用) */
   --glass-brd-blue:  rgba(66, 156, 209, 0.45);      /* ocean.mid 描边 (强调态) */
   --glass-inset-hi:  rgba(255, 255, 255, 0.65);     /* 内顶光 */
   --glass-shadow:    rgba(15, 32, 51, 0.10);        /* 海滩阴影 */
@@ -78,9 +78,9 @@
   /* ── UI 令牌 ── */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;  /* examples:47-49 */
   --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', monospace;
-  --radius: 16px;
-  --radius-sm: 8px;        /* antd 组件常用圆角 */
-  --radius-lg: 22px;       /* hero 大卡 */
+  --radius: 8px;            /* rounded-lg: tabs, nav items */
+  --radius-sm: 6px;         /* rounded-md: buttons, inputs */
+  --radius-lg: 12px;        /* rounded-xl: glass cards */
   --z-float: 1000;
   --z-modal: 2000;
   --z-toast: 2100;
@@ -106,9 +106,9 @@
   --accent:  var(--ocean-shallow);           /* 暗模近海蓝 (亮一阶显眼) */
   --accent2: var(--goldSand-mid);            /* 暗模沙金 */
 
-  /* 玻璃流沙层 · 暗: 金细描边 + 金顶光 + 深投影 */
+  /* 玻璃流沙层 · 暗: 中性 slate 描边 + 深投影 */
   --glass-bg:        rgba(22, 44, 66, 0.62);
-  --glass-brd:       rgba(230, 200, 139, 0.22);     /* goldSand.mid 半透 */
+  --glass-brd:       rgba(71, 85, 105, 0.4);      /* slate-600/40 (中性边框, examples 暗模通用) */
   --glass-brd-blue:  rgba(116, 185, 232, 0.55);
   --glass-inset-hi:  rgba(230, 200, 139, 0.28);     /* 金顶光 */
   --glass-shadow:    rgba(0, 0, 0, 0.45);
@@ -142,7 +142,7 @@
     --accent:  var(--ocean-shallow);
     --accent2: var(--goldSand-mid);
     --glass-bg:        rgba(22, 44, 66, 0.62);
-    --glass-brd:       rgba(230, 200, 139, 0.22);
+    --glass-brd:       rgba(71, 85, 105, 0.4);      /* slate-600/40 */
     --glass-brd-blue:  rgba(116, 185, 232, 0.55);
     --glass-inset-hi:  rgba(230, 200, 139, 0.28);
     --glass-shadow:    rgba(0, 0, 0, 0.45);

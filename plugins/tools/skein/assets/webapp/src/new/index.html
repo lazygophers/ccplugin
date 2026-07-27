@@ -96,12 +96,12 @@
       </strong>
 
       <nav class="nav hidden md:flex items-center gap-1 ml-4" aria-label="主导航" data-nav-root>
-        <a href="/dashboard" data-nav class="nav-tab tab-btn px-4 py-2 rounded-lg text-sm font-medium">概览</a>
-        <a href="/board"     data-nav class="nav-tab tab-btn px-4 py-2 rounded-lg text-sm font-medium">看板</a>
-        <a href="/queue"     data-nav class="nav-tab tab-btn px-4 py-2 rounded-lg text-sm font-medium">队列</a>
-        <a href="/tasks"     data-nav class="nav-tab tab-btn px-4 py-2 rounded-lg text-sm font-medium">任务</a>
-        <a href="/spec"      data-nav class="nav-tab tab-btn px-4 py-2 rounded-lg text-sm font-medium">规范</a>
-        <a href="/archive"   data-nav class="nav-tab tab-btn px-4 py-2 rounded-lg text-sm font-medium">归档</a>
+        <a href="/dashboard" data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">概览</a>
+        <a href="/board"     data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">看板</a>
+        <a href="/queue"     data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">队列</a>
+        <a href="/tasks"     data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">任务</a>
+        <a href="/spec"      data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">规范</a>
+        <a href="/archive"   data-nav class="nav-tab px-3 py-1.5 rounded-lg text-sm font-medium">归档</a>
       </nav>
 
       <label class="search ml-auto flex items-center gap-2 px-3 py-2 rounded-lg border border-brd/60 bg-card/60 hover:border-accent/40 transition-colors">
@@ -113,14 +113,11 @@
         <i class="fa fa-cog"></i>
       </button>
 
-      <div class="theme-toggle flex items-center gap-1 glass rounded-lg p-1 border border-brd/40" role="group" aria-label="外观切换">
-        <button type="button" data-theme-btn="light" class="p-1.5 rounded-md text-sm hover:bg-card/80 transition-colors" aria-label="浅色">
-          <i class="fa fa-sun-o"></i>
-        </button>
-        <button type="button" data-theme-btn="dark"  class="p-1.5 rounded-md text-sm hover:bg-card/80 transition-colors" aria-label="暗色">
-          <i class="fa fa-moon-o"></i>
-        </button>
-      </div>
+      <button type="button" id="theme-toggle-btn" class="theme-toggle-btn glass rounded-full px-4 py-2 flex items-center gap-2 hover-float text-sm" aria-label="切换主题">
+        <i class="fa fa-moon-o dark:hidden"></i>
+        <i class="fa fa-sun-o hidden dark:inline-block"></i>
+        <span class="hidden sm:inline">切换主题</span>
+      </button>
     </div>
   </header>
 
