@@ -904,27 +904,21 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
 
     // 正文
     h('div.detail-panel-body', [
-      // 基本信息
+      // 目标 + 验收标准 (同一行, 均来自 PRD)
+      ...(prdGoalsView(task.prd) || []),
+      ...(prdAcceptanceView(task.prd) || []),
+
+      // 基本信息 + 任务描述 (左列) + 契约 (右列)
       h('div.glass-card.p-4', [
         h('div.eyebrow.text-accent.mb-3', '基本信息'),
         infoRow('优先级', prioLabel(task.priority) + ` (${task.priority != null ? Number(task.priority) : 5})`),
         task.assignee ? infoRow('负责人', task.assignee) : null,
         infoRow('预估工时', task.estimate ? task.estimate + ' h' : '—'),
         infoRow('进度', task.progress != null ? task.progress + '%' : (st === 'done' ? '100%' : '—')),
-      ]),
-
-      // 目标 / 验收标准 (来自 PRD) — 目标在上
-      ...(prdGoalsView(task.prd) || []),
-
-      // 验收标准 + 契约 (并排)
-      ...(prdAcceptanceView(task.prd) || []),
-      contractsView(task.contracts),
-
-      // 描述 — 跨全宽
-      h('div.glass-card.p-4.panel-span-2', [
-        h('div.eyebrow.text-accent.mb-2', '任务描述'),
+        h('div.eyebrow.text-accent.mb-2.mt-3', '任务描述'),
         h('p.text-sm.text-fg.whitespace-pre-wrap', task.description || task.desc || '暂无描述'),
       ]),
+      contractsView(task.contracts),
 
       // 子任务 DAG — 跨全宽
       task.subtasks && task.subtasks.length >= 2
