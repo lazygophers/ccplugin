@@ -253,10 +253,12 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
     },
     [
       nodePopover(node),
-      h('div.dag-node.glass-card.p-3.cursor-pointer.hover-float.transition-all',
+      // 卡片本体高度锁定为 node.h — drawEdges 用 node.h 算端点中线, 内容撑高会让连线脱离卡片
+      h('div.dag-node.glass-card.p-3.cursor-pointer.hover-float.transition-all.overflow-hidden.flex.flex-col',
         {
           onclick: (e) => { e.preventDefault(); onClick(t.id); },
           'data-task-id': t.id,
+          style: { height: node.h + 'px' },
         },
         [
           h(`div.h-1.rounded-full.-mx-3.-mt-3.mb-2.${ST_COLOR[st]}.opacity-60`),
@@ -291,7 +293,7 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
               ]
             ),
           ]) : null,
-          h('div.flex.items-center.justify-between.text-xs', [
+          h('div.flex.items-center.justify-between.text-xs.mt-auto', [
             h(`span.badge.badge-sm.${ST_COLOR[st]}`, ST_LABEL[st] || st),
             h('div.flex.items-center.gap-2', [
               hasSubs

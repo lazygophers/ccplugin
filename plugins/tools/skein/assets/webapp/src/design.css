@@ -617,9 +617,13 @@
 }
 
 /* 4e. DAG 节点悬浮 popover (对齐 examples 设计) */
-.dag-node-wrap { position: relative; z-index: 1; }
+/* position 交给渲染侧 (.absolute + left/top 定位), 此处只管层级 —
+   若在此写死 relative 会盖掉 .absolute 使卡片退回文档流堆叠, 连线全脱位 */
+.dag-node-wrap { z-index: 1; }
 .dag-node-wrap:hover { z-index: 100; }
-.dag-canvas { padding: 40px 60px 120px; }
+/* canvas 零 padding — card 与 svg 同一 0 基准坐标空间, 连线精确依附 card 边缘
+   (间距由 layout padX/padY 承担, 勿在此重复加 padding 致连线偏移) */
+.dag-canvas { padding: 0; }
 /* 连线层: 置于 card 之上便看清走向, pointer-events-none 不挡 card 点击/hover */
 .dag-edges { z-index: 50; overflow: visible; }
 .dag-edge { transition: stroke-opacity .15s, stroke-width .15s; }
