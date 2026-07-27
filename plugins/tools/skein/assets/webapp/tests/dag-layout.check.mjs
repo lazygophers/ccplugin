@@ -186,6 +186,22 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
   console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)}) 跨格边 ${far.length}`);
 }
 
+// 15. 行高自适应: 卡高按内容, 行高取该行最高, 短卡不被拉高, 总高低于等高网格
+{
+  const ids = ['a', 'b', 'c', 'd', 'e'];
+  const tall = new Set(['b']);
+  const hOf = id => (tall.has(id) ? 172 : 104);
+  const grid = layoutGrid(ids, () => [], S, 1400, () => ({}), hOf);   // 4 列 → 2 行
+  const n = Object.fromEntries(grid.nodes.map(x => [x.id, x]));
+  console.assert(n.a.h === 104 && n.b.h === 172, '卡高应各按内容, 实际 ' + n.a.h + '/' + n.b.h);
+  console.assert(n.a.y === n.b.y, '同行应顶对齐');
+  console.assert(n.a.rowH === 172 && n.e.rowH === 104, '行高应取该行最高, 实际 ' + n.a.rowH + '/' + n.e.rowH);
+  console.assert(n.e.y === n.a.y + 172 + S.gapY, '次行 y 应按上一行行高推进, 实际 ' + n.e.y);
+  const flat = layoutGrid(ids, () => [], S, 1400, () => ({}));
+  console.assert(grid.height < flat.height, '自适应总高应低于等高网格 ' + grid.height + ' vs ' + flat.height);
+  console.log(`15 行高自适应 OK 行高=${n.a.rowH}/${n.e.rowH} 总高 ${grid.height} (等高为 ${flat.height})`);
+}
+
 // 14. 边捆绑: 扇入 ≥3 的跨行长边共用一条主干 x, 短边和小扇入不参与
 {
   const card = (id, x, y) => ({ id, x, y, w: 300, h: 200 });

@@ -289,20 +289,36 @@ const DAG_SIZES = {
 // ---- DAG 布局 ----
 // view = { w, h } 可用画布尺寸 — 详情面板开合 / 窗口缩放都会改变它, 布局随之重排
 // 宽度是硬约束 (画布永不横向溢出), 高度自由, 超出部分由容器纵向滚动条承担
+// 卡高按内容算, 不是固定 rowH: 没描述 / 没子任务的卡不该跟着最长的卡一起占满一格。
+// 纯函数, 不测 DOM —— 卡片结构是固定的几块, 各块高度是已知常量; 测量-重排循环换不来精度,
+// 只会换来一次多余的重绘和抖动。估值取偏大一档, 宁可留白也别被 overflow-hidden 裁掉内容。
+function cardHeight(t) {
+  let h = 104;                                 // padding + 顶部色条 + 标题/id + 底栏
+  if (t.description) {
+    // line-clamp-2 是上限不是定值 —— 短描述只占一行, 按 (卡宽 270px ÷ text-xs 中文字宽 12px)
+    // ≈ 22 权重/行 估行数, 西文字符按 0.55 折算
+    const wgt = [...t.description].reduce((n, ch) => n + (ch.charCodeAt(0) > 255 ? 1 : 0.55), 0);
+    h += Math.min(2, Math.max(1, Math.ceil(wgt / 22))) * 16 + 8;
+  }
+  if ((t.subtasks || []).length) h += 34;      // 子任务计数行 + 进度条
+  return h;
+}
+
 function layoutDAG(tasks, size = 'md', view) {
   if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0 };
   const s = DAG_SIZES[size] || DAG_SIZES.md;
   const byId = new Map(tasks.map(t => [t.id, t]));
   const depsOf = id => (byId.get(id).deps || []).filter(d => byId.has(d));
   return layoutGrid(tasks.map(t => t.id), depsOf, s,
-    (view && view.w) || 1200, id => ({ task: byId.get(id) }));
+    (view && view.w) || 1200, id => ({ task: byId.get(id) }),
+    id => cardHeight(byId.get(id)));
 }
 
 // 拓扑序满铺网格: 一行内可以并排不同依赖深度的卡。
 // 分层排布 (layoutPacked) 里 27 个依赖层有 21 层只有 1~2 个节点, 每层仍独占整行 —— 98 张卡排出
 // 66 行 15494px, 其中 44 行只坐了 1 张。满铺按 ⌈N/列数⌉ 排, 同样 98 张压到 33 行 ~7300px。
 // 代价: 行不再等于依赖深度, 依赖方向只能靠箭头认。这是明确的取舍 (高度 ÷2 换读图规则)。
-function layoutGrid(ids, depsOf, s, maxW, extraOf) {
+function layoutGrid(ids, depsOf, s, maxW, extraOf, heightOf) {
   const cols = Math.max(1, Math.floor((maxW - s.padX * 2) / s.colW));
   const w = s.colW - s.gapX, hgt = s.rowH - s.gapY;
 
@@ -333,17 +349,27 @@ function layoutGrid(ids, depsOf, s, maxW, extraOf) {
 
   // 蛇形行序: 偶数行左→右, 奇数行右→左。行末节点与下一行行首同列, 换行的边只需竖直下降,
   // 不必从画板最右横穿回最左 —— 长横线是「大量竖线挤在列间空隙」的主要来源。
-  const nodes = order.map((id, i) => {
-    const row = Math.floor(i / cols);
-    const k = i % cols;
-    const col = row % 2 === 0 ? k : cols - 1 - k;
-    return {
-      id, band: 0, w, h: hgt,
-      x: s.padX + col * s.colW,
-      y: s.padY + row * s.rowH,
-      ...extraOf(id),
-    };
-  });
+  //
+  // 行高自适应: 卡高按各自内容 (heightOf), 行高取该行最高的那张。死板的等高网格让描述短的卡
+  // 拖着一大片留白, 整张画板被最长的那条描述定了调子。行内仍顶对齐 —— 保住蛇形与行间走线通道,
+  // 完全 masonry 会把这两样一起拆掉。node.rowH 带出行底, 走线要用它而不是自身 h 找通道。
+  const hOf = (id) => Math.max(48, Math.round((heightOf && heightOf(id)) || hgt));
+  const nodes = [];
+  let y = s.padY;
+  for (let i = 0; i < order.length; i += cols) {
+    const rowIds = order.slice(i, i + cols);
+    const row = i / cols, rowH = Math.max(...rowIds.map(hOf));
+    rowIds.forEach((id, k) => {
+      const col = row % 2 === 0 ? k : cols - 1 - k;
+      nodes.push({
+        id, band: 0, w, h: hOf(id), rowH,
+        x: s.padX + col * s.colW,
+        y,
+        ...extraOf(id),
+      });
+    });
+    y += rowH + s.gapY;
+  }
   const nmap = new Map(nodes.map(n => [n.id, n]));
   const edges = [];
   for (const id of ids) {
@@ -352,11 +378,10 @@ function layoutGrid(ids, depsOf, s, maxW, extraOf) {
       if (from && to) edges.push({ from, to, bends: [], cross: false, laneY: 0 });
     }
   }
-  const rows = Math.ceil(order.length / cols);
   return {
     nodes, edges,
     width: Math.min(cols, order.length) * s.colW + s.padX * 2 - s.gapX,
-    height: rows * s.rowH + s.padY * 2 - s.gapY,
+    height: y - s.gapY + s.padY,
   };
 }
 
@@ -682,7 +707,7 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
 function bundleTrunks(edges) {
   const byTo = new Map();
   for (const e of edges) {
-    if (e.cross || Math.abs(e.to.y - e.from.y) <= e.from.h) continue;
+    if (e.cross || Math.abs(e.to.y - e.from.y) <= (e.from.rowH || e.from.h)) continue;
     if (!byTo.has(e.to.id)) byTo.set(e.to.id, []);
     byTo.get(e.to.id).push(e);
   }
@@ -801,7 +826,8 @@ function drawEdges(edges, getEdgeInfo) {
     if (bundled) {
       // 出源卡侧沿朝外 → 下探到源所在行的行间通道 (同一行的多条接入线在此重叠, 又是一次合流)
       // → 横向并入主干 → 沿主干竖直下到目标 → 横入目标左沿
-      const sx = x1 + (rightward ? 16 : -16), yc = e.from.y + e.from.h + 20;
+      // 通道走行底而非源卡底: 行高自适应后同行卡片高度不一, 用自身 h 会把通道画进旁边高卡的肚子里
+      const sx = x1 + (rightward ? 16 : -16), yc = e.from.y + (e.from.rowH || e.from.h) + 10;
       pts.push({ x: sx, y: y1 }, { x: sx, y: yc }, { x: trunk.x, y: yc }, { x: trunk.x, y: y2 });
     } else if (e.cross) {
       // 跨带回绕边: 出侧沿 stub → 走带间水平通道 → 从目标侧沿 stub 进入, 不穿卡片区
