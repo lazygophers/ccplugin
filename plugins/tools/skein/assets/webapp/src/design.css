@@ -966,6 +966,16 @@
   gap: 16px;
   align-content: start;
 }
+/* 顶部信息卡片区: 两列紧凑排列 */
+.detail-info-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.detail-info-row .glass-card {
+  margin: 0;
+}
 /* 响应式: 大屏详情面板变宽 + 双列 grid */
 @media (min-width: 1280px) {
   .detail-panel { width: 580px; }

@@ -103,8 +103,8 @@ export function normalizeTask(t) {
     completedAt: finishedTs,
     finishedAt: finishedTs,
     checkedAt: t.checkedAt || (t.checked ? t.checked * 1000 : null),
-    deps: t.deps || t.depNames || [],
-    depNames: t.deps || t.depNames || [],
+    deps: t.deps || [],
+    depNames: t.depNames || [],
     assignee: t.assignee || t.owner || '',
     estimate: t.estimate || t.est || null,
     progress: t.progress != null ? t.progress : (t.spct != null ? t.spct : t.sdone != null && t.stotal ? Math.round(t.sdone / t.stotal * 100) : null),
@@ -131,8 +131,8 @@ function normalizeSubtask(s) {
     description: s.description || s.desc || '',
     desc: s.description || s.desc || '',
     status,
-    dependsOn: s.depends_on || s.deps || [],
-    deps: s.depends_on || s.deps || [],
+    dependsOn: s.dependsOn || s.depends_on || s.deps || [],
+    deps: s.dependsOn || s.depends_on || s.deps || [],
     depNames: s.depNames || [],
     progress: s.pct != null ? s.pct : s.progress,
     agent: s.agent || '',
@@ -176,7 +176,11 @@ export function h(tag, props, ...children) {
     }
   }
 
-  const el = document.createElement(tagName);
+  const SVG_TAGS = new Set(['svg', 'path', 'circle', 'rect', 'line', 'polyline', 'polygon', 'ellipse', 'text', 'g', 'defs', 'use', 'tspan', 'linearGradient', 'radialGradient', 'stop', 'clipPath', 'mask', 'pattern', 'marker', 'image', 'view']);
+  const isSvg = SVG_TAGS.has(tagName);
+  const el = isSvg
+    ? document.createElementNS('http://www.w3.org/2000/svg', tagName)
+    : document.createElement(tagName);
 
   // 如果 props 不是对象 (是数组/字符串/数字/null), 把它当作 children 处理
   let actualProps = props;
@@ -200,7 +204,10 @@ export function h(tag, props, ...children) {
   if (actualProps) for (const k in actualProps) {
     const v = actualProps[k];
     if (v == null || v === false) continue;
-    if (k === "class" || k === "className") el.className = v;
+    if (k === "class" || k === "className") {
+      if (isSvg) el.setAttribute('class', v);
+      else el.className = v;
+    }
     else if (k === "style" && typeof v === "object") Object.assign(el.style, v);
     else if (k.startsWith("on") && typeof v === "function") el.addEventListener(k.slice(2).toLowerCase(), v);
     else if (k === "html") el.innerHTML = v;
@@ -209,7 +216,8 @@ export function h(tag, props, ...children) {
   }
   for (const c of children.flat()) {
     if (c == null || c === false) continue;
-    el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    if (c.nodeType) el.appendChild(c);
+    else el.appendChild(document.createTextNode(String(c)));
   }
   return el;
 }
