@@ -68,14 +68,22 @@
   </style>
 </head>
 <body class="bg-fluid-light min-h-screen font-sans text-fg transition-colors duration-500 ease-in-out">
-  <!-- 早同步主题 (避免闪屏): localStorage > prefers-color-scheme -->
+  <!-- 早同步主题 (避免闪屏): localStorage 校验 → 默认 dark -->
   <script>
     (function () {
+      var THEMES = ['light', 'dark'];
+      var DEFAULT = 'dark';
       try {
         var pref = localStorage.getItem('skein-theme');
+        if (!pref || THEMES.indexOf(pref) < 0) {
+          pref = DEFAULT;
+          localStorage.setItem('skein-theme', DEFAULT);
+        }
         if (pref === 'dark') document.documentElement.setAttribute('data-theme', 'skein-dark');
-        else if (pref === 'light') document.documentElement.setAttribute('data-theme', 'skein-light');
-      } catch (_) {}
+        else document.documentElement.setAttribute('data-theme', 'skein-light');
+      } catch (_) {
+        document.documentElement.setAttribute('data-theme', 'skein-dark');
+      }
     })();
   </script>
 

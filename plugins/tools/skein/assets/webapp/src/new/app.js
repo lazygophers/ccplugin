@@ -202,12 +202,14 @@ async function loadHtm() {
   return mod.default;
 }
 
-// ── 主题切换 (浅海滩蓝金 / 暗夜幕) — 现版 app.js:87-123 原样迁移 ──
+// ── 主题切换 (浅海滩蓝金 / 暗夜幕) ──
+const THEMES = ["light", "dark"];
+const DEFAULT_THEME = "dark";
+
 function applyTheme(pref) {
   const html = document.documentElement;
   if (pref === "dark") html.setAttribute("data-theme", "skein-dark");
-  else if (pref === "light") html.setAttribute("data-theme", "skein-light");
-  else html.removeAttribute("data-theme");                  // null = 系统跟随
+  else html.setAttribute("data-theme", "skein-light");
   document.body.classList.toggle("bg-fluid-dark", pref === "dark");
   document.body.classList.toggle("bg-fluid-light", pref !== "dark");
   document.querySelectorAll("[data-theme-btn]").forEach((b) => {
@@ -215,27 +217,23 @@ function applyTheme(pref) {
   });
 }
 
-function sysDark() {
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
 function wireTheme() {
-  let pref = null;
-  try { pref = localStorage.getItem("skein-theme"); } catch (_) {}
+  let pref = DEFAULT_THEME;
+  try {
+    const saved = localStorage.getItem("skein-theme");
+    if (saved && THEMES.includes(saved)) {
+      pref = saved;
+    } else if (saved) {
+      localStorage.setItem("skein-theme", DEFAULT_THEME);
+    }
+  } catch (_) {}
   applyTheme(pref);
-  if (!pref && window.matchMedia) {
-    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-      try { if (localStorage.getItem("skein-theme")) return; } catch (_) {}
-      applyTheme(e.matches ? "dark" : "light");
-    });
-  }
   document.querySelectorAll("[data-theme-btn]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const want = btn.dataset.themeBtn;
-      let next = want;
-      try { if (localStorage.getItem("skein-theme") === want) next = null; } catch (_) {}
-      try { if (next) localStorage.setItem("skein-theme", next); else localStorage.removeItem("skein-theme"); } catch (_) {}
-      applyTheme(next);
+      if (!THEMES.includes(want)) return;
+      try { localStorage.setItem("skein-theme", want); } catch (_) {}
+      applyTheme(want);
     });
   });
 }
