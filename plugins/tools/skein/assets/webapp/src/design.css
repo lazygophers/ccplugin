@@ -278,6 +278,7 @@
 .h-full { height: 100%; }
 .min-w-0 { min-width: 0; }
 .min-w-\\[200px\\] { min-width: 200px; }
+.min-h-\\[600px\\] { min-height: 600px; }
 
 /* Position */
 .relative { position: relative; }
@@ -461,6 +462,161 @@
   color: var(--goldSand-light);
   border-color: rgba(255,215,0,0.2);
 }
+
+/* 4e. DAG 节点悬浮 popover (对齐 examples 设计) */
+.dag-node-wrap { position: relative; }
+.dag-popover {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 50;
+  min-width: 200px;
+}
+.dag-node-wrap:hover .dag-popover { opacity: 1; }
+.dag-pop-inner {
+  background: rgba(255,254,251,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(116,185,232,0.3);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--text);
+  box-shadow: 0 6px 20px rgba(212,176,102,0.2);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  line-height: 1.4;
+}
+[data-theme="skein-dark"] .dag-pop-inner {
+  background: rgba(22,44,66,0.88);
+  color: #f1f5f9;
+  border-color: rgba(66,156,209,0.4);
+}
+.dag-pop-name {
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dag-pop-badge {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dag-pop-badge.done { background: var(--success); }
+.dag-pop-badge.active { background: var(--goldSand-mid); }
+.dag-pop-badge.pending { background: var(--ocean-mid); }
+.dag-pop-badge.check { background: var(--goldSand-light); }
+.dag-pop-badge.failed { background: var(--danger); }
+.dag-pop-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dag-pop-bar {
+  height: 5px;
+  background: rgba(148,163,184,0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.dag-pop-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--ocean-mid), var(--goldSand-mid));
+}
+.dag-pop-bar.done > i { background: var(--success); }
+.dag-pop-bar.failed > i { background: var(--danger); }
+.dag-pop-bar.pending > i { background: var(--ocean-mid); }
+.dag-pop-bar.check > i { background: var(--goldSand-mid); }
+.dag-pop-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+}
+.dag-pop-deps {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.dag-pop-deps span {
+  background: rgba(66,156,209,0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* 4f. 详情面板 (右侧抽屉) */
+.detail-panel {
+  width: 400px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--brd);
+  background: var(--bg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.detail-panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--brd);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+.detail-panel-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+.detail-panel-close:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.detail-panel-body {
+  padding: 16px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+  text-align: center;
+  gap: 8px;
+}
+.detail-empty i { font-size: 32px; opacity: 0.5; }
 
 /* 5. .eyebrow 小标题前缀 (input.css:201 衔接) */
 .eyebrow {
