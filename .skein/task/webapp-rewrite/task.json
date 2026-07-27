@@ -2,7 +2,7 @@
   "id": "webapp-rewrite",
   "name": "参考 examples 重写 skein serve webapp UI/UX",
   "desc": "参考 docs/examples/index.html 海滩蓝金风格重写 serve webapp UI/UX (6 页 + 主题系统)",
-  "status": "进行中",
+  "status": "已完成",
   "deps": [],
   "contracts": [],
   "subtasks": [
@@ -258,6 +258,6 @@
   "started": 1785081994,
   "confirmed": 1785081994,
   "checked": null,
-  "finished": null,
-  "updated": 1785110776
+  "finished": 1785111080,
+  "updated": 1785111080
 }

@@ -96,15 +96,8 @@ const TASK_CSS = `
 /* subtask 列表卡片 */
 .sub-card{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--card)}
 .sub-active{border-color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
-/* 合并时间线 (竖向圆点+连线, task 五态节点(强调点)与 subtask 事件(弱点)共轴) */
-.tl-timeline{position:relative;padding-left:18px}
-.tl-timeline::before{content:"";position:absolute;left:4px;top:4px;bottom:4px;width:1px;background:var(--line)}
-.tl-item{position:relative;padding:4px 0 4px 14px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px}
-.tl-item-dot{position:absolute;left:-14px;top:9px;width:8px;height:8px;border-radius:50%;border:2px solid var(--card)}
-.tl-item-dot-task{background:var(--accent)}
-.tl-item-dot-sub{background:var(--muted)}
-.tl-item-label{color:var(--head)}
-.tl-item-time{color:var(--muted);font-size:11.5px}
+/* 合并时间线: 复用 design.css .tl-axis/.tl-node/.tl-dot 原语 (examples 竖向轴 + done/cur/custom 态).
+   task 五态节点 = done 态 (强调主轴, --tl-c=accent); subtask 事件 = custom 态弱点 (--tl-c=muted). */
 /* 进度条 (subtask) */
 .sub-pct{display:flex;align-items:center;gap:8px;margin-top:8px}
 .sub-pct-track{flex:1;height:6px;border-radius:3px;overflow:hidden;background:var(--line)}
@@ -184,17 +177,21 @@ function buildTimeline(task, subtasks) {
   return evs;
 }
 
-// 时间线 HTML 串 (合并 task 五态 + subtask 事件)
+// 时间线 HTML 串 (复用 design.css .tl-* 原语; task 事件 done 态强调, subtask 事件 custom 态弱点)
 function timelineHtml(timeline) {
   if (!timeline || !timeline.length) return "";
-  const items = timeline.map((ev) =>
-    '<div class="tl-item">' +
-    '<span class="tl-item-dot ' + (ev.tag === "task" ? "tl-item-dot-task" : "tl-item-dot-sub") + '"></span>' +
-    '<span class="tl-item-label">' + esc(ev.tag === "task" ? ev.label : ev.name + " · " + ev.label) + "</span>" +
-    '<span class="tl-item-time">' + esc(fmtMix(ev.ts)) + "</span>" +
-    "</div>"
-  ).join("");
-  return '<div class="tl-timeline">' + items + "</div>";
+  const isTask = (ev) => ev.tag === "task";
+  const nodes = timeline.map((ev) => {
+    const dotCls = isTask(ev) ? "done" : "custom";
+    const dotVar = isTask(ev) ? "var(--accent)" : "var(--muted)";
+    const name = isTask(ev) ? ev.label : ev.name + " · " + ev.label;
+    return '<div class="tl-node done" style="--tl-c:' + dotVar + '">' +
+      '<span class="tl-dot ' + dotCls + '"></span>' +
+      '<span class="tl-name">' + esc(name) + "</span>" +
+      '<span class="tl-time" style="margin-left:8px">' + esc(fmtMix(ev.ts)) + "</span>" +
+      "</div>";
+  }).join("");
+  return '<div class="tl-axis">' + nodes + "</div>";
 }
 
 // subtask 列表 HTML 串

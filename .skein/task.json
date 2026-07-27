@@ -1,8 +1,8 @@
 {
   "tasks": [
     {
-      "id": "webapp-rewrite",
-      "status": "进行中",
+      "id": "webapp-design-align",
+      "status": "待处理",
       "deps": [],
       "worktree": null,
       "parent": null,
@@ -106,6 +106,14 @@
     },
     {
       "id": "ui-tabs-refactor",
+      "status": "已完成",
+      "deps": [],
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "webapp-rewrite",
       "status": "已完成",
       "deps": [],
       "worktree": null,

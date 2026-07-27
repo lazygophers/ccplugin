@@ -176,14 +176,14 @@ export function dagHtml(nodes, tips, links, forceVertical) {
     var _id = node[0], stt = node[2], pct = node.length > 4 ? node[4] : null;
     var nmLines = wrapped[_id][0], dsLines = wrapped[_id][1];
     var pctTxt = pct != null
-      ? '<text x="' + (x + NW - 12) + '" y="' + (y + 22) + '" font-size="11" text-anchor="end" fill="var(--head)">' + pct + "%</text>"
+      ? '<text x="' + (x + NW - 12) + '" y="' + (y + 22) + '" font-size="12" text-anchor="end" fill="var(--head)">' + pct + "%</text>"
       : "";
     var nmTxt = nmLines.map(function (ln, k) {
-      return '<text x="' + (x + 14) + '" y="' + (y + 44 + k * 16) + '" font-size="12" fill="var(--fg)">' + esc(ln) + "</text>";
+      return '<text x="' + (x + 14) + '" y="' + (y + 44 + k * 16) + '" font-size="13" fill="var(--fg)">' + esc(ln) + "</text>";
     }).join("");
     var dsTop = 44 + nmMax * 16;
     var descTxt = dsLines.map(function (ln, k) {
-      return '<text x="' + (x + 14) + '" y="' + (y + dsTop + k * 14) + '" font-size="10" fill="var(--muted)">' + esc(ln) + "</text>";
+      return '<text x="' + (x + 14) + '" y="' + (y + dsTop + k * 14) + '" font-size="11" fill="var(--muted)">' + esc(ln) + "</text>";
     }).join("");
     var hasTip = !!(tips && (i in tips));
     var hasLink = !!(links && (i in links));
@@ -194,7 +194,7 @@ export function dagHtml(nodes, tips, links, forceVertical) {
       '<g class="' + gCls + '"' + gAttr + '><rect x="' + x + '" y="' + y + '" width="' + NW + '" height="' + NH
       + '" rx="6" fill="var(--bg)" stroke="var(--brd)"/>'
       + '<rect x="' + x + '" y="' + y + '" width="4" height="' + NH + '" rx="2" fill="var(' + (NODE_VAR[stt] || "--muted") + ')"/>'
-      + '<text x="' + (x + 14) + '" y="' + (y + 22) + '" font-size="13" fill="var(--fg)">' + esc(_id) + "</text>"
+      + '<text x="' + (x + 14) + '" y="' + (y + 22) + '" font-size="15" font-weight="600" fill="var(--head)">' + esc(_id) + "</text>"
       + pctTxt + nmTxt + descTxt + "</g>";
     if (hasLink) g = '<a href="' + esc(links[i]) + '">' + g + "</a>";
     boxes.push(g);
