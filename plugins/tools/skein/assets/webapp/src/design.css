@@ -212,6 +212,8 @@
 .text-success { color: var(--success); }
 .text-warning { color: var(--warning); }
 .text-danger { color: var(--danger); }
+.text-st-planning { color: var(--st-planning); }
+.text-st-ready { color: var(--st-ready); }
 .text-st-pending { color: var(--st-pending); }
 .text-st-active { color: var(--st-active); }
 .text-st-check { color: var(--st-check); }
@@ -225,6 +227,8 @@
 .bg-accent { background-color: var(--accent); }
 .bg-accent\\/10 { background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
 .bg-accent\\/20 { background-color: color-mix(in srgb, var(--accent) 20%, transparent); }
+.bg-st-planning { background-color: var(--st-planning); }
+.bg-st-ready { background-color: var(--st-ready); }
 .bg-st-pending { background-color: var(--st-pending); }
 .bg-st-active { background-color: var(--st-active); }
 .bg-st-check { background-color: var(--st-check); }
@@ -418,15 +422,19 @@
 .badge-danger  { background: var(--danger);  color: #fff; border-color: var(--danger);  }
 .badge-accent  { background: var(--goldSand-mid); color: #fff; border-color: var(--goldSand-mid); }
 
-/* 状态色徽章 */
-.st-pending { background: var(--ocean-shallow); color: var(--ocean-deep); border-color: var(--ocean-shallow); }
-.st-active  { background: var(--goldSand-light); color: var(--goldSand-deep); border-color: var(--goldSand-light); }
-.st-check   { background: var(--goldSand-mid); color: #fff; border-color: var(--goldSand-mid); }
-.st-done    { background: var(--success); color: #fff; border-color: var(--success); }
-.st-failed  { background: var(--danger); color: #fff; border-color: var(--danger); }
+/* 状态色徽章 — 5 态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成 */
+.st-planning { background: rgba(167, 139, 250, 0.18); color: #7c3aed; border-color: rgba(167, 139, 250, 0.35); }
+.st-ready    { background: rgba(56, 189, 248, 0.18); color: #0369a1; border-color: rgba(56, 189, 248, 0.35); }
+.st-pending  { background: var(--ocean-shallow); color: var(--ocean-deep); border-color: var(--ocean-shallow); }
+.st-active   { background: var(--goldSand-light); color: var(--goldSand-deep); border-color: var(--goldSand-light); }
+.st-check    { background: var(--goldSand-mid); color: #fff; border-color: var(--goldSand-mid); }
+.st-done     { background: var(--success); color: #fff; border-color: var(--success); }
+.st-failed   { background: var(--danger); color: #fff; border-color: var(--danger); }
 
-[data-theme="skein-dark"] .st-pending { background: var(--ocean-mid); color: #fff; border-color: var(--ocean-mid); }
-[data-theme="skein-dark"] .st-active  { background: var(--goldSand-mid); color: var(--night-base); border-color: var(--goldSand-mid); }
+[data-theme="skein-dark"] .st-planning { background: rgba(167, 139, 250, 0.25); color: #c4b5fd; border-color: rgba(167, 139, 250, 0.45); }
+[data-theme="skein-dark"] .st-ready    { background: rgba(56, 189, 248, 0.25); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.45); }
+[data-theme="skein-dark"] .st-pending  { background: var(--ocean-mid); color: #fff; border-color: var(--ocean-mid); }
+[data-theme="skein-dark"] .st-active   { background: var(--goldSand-mid); color: var(--night-base); border-color: var(--goldSand-mid); }
 
 /* 4d. .tag 标签 */
 .tag {
@@ -514,6 +522,8 @@
 }
 .dag-pop-badge.done { background: var(--success); }
 .dag-pop-badge.active { background: var(--goldSand-mid); }
+.dag-pop-badge.planning { background: var(--st-planning); }
+.dag-pop-badge.ready { background: var(--st-ready); }
 .dag-pop-badge.pending { background: var(--ocean-mid); }
 .dag-pop-badge.check { background: var(--goldSand-light); }
 .dag-pop-badge.failed { background: var(--danger); }
@@ -540,6 +550,8 @@
 }
 .dag-pop-bar.done > i { background: var(--success); }
 .dag-pop-bar.failed > i { background: var(--danger); }
+.dag-pop-bar.planning > i { background: var(--st-planning); }
+.dag-pop-bar.ready > i { background: var(--st-ready); }
 .dag-pop-bar.pending > i { background: var(--ocean-mid); }
 .dag-pop-bar.check > i { background: var(--goldSand-mid); }
 .dag-pop-meta {
@@ -1220,4 +1232,29 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
   }
   .animate-stagger-in, .dag-svg .node { opacity: 1 !important; transform: none !important; }
   .hover-float:hover { transform: none !important; }
+}
+
+/* ═══════════ 子任务迷你 DAG (看板详情面板 / task 页) ═══════════ */
+.sub-dag-wrap {
+  max-height: 280px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  padding: 8px;
+  border: 1px solid var(--brd);
+}
+.sub-dag-node {
+  font-size: 11px;
+  box-sizing: border-box;
+}
+.sub-dag-node:hover {
+  border-color: var(--accent) !important;
+}
+
+/* ═══════════ 详情面板动画 (滑入) ═══════════ */
+.detail-panel {
+  animation: slideInRight 0.25s ease-out;
+}
+@keyframes slideInRight {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
 }

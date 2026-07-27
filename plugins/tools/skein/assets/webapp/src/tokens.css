@@ -66,12 +66,14 @@
   --popover-shadow:  rgba(212, 176, 102, 0.18);     /* 暖金 popover 投影 */
 
   /* ── 状态色 (--st-*, 替代 oklch status 派生, 保名兼容) ──
-     pending=ocean.mid / active=goldSand.sunset / check=ocean.shallow / done=success / failed=danger */
-  --st-pending: var(--ocean-mid);
-  --st-active:  var(--goldSand-sunset);
-  --st-check:   var(--ocean-shallow);
-  --st-done:    var(--success);
-  --st-failed:  var(--danger);
+     5 态: planning(规划紫) / ready(就绪青) / active(执行金) / check(验收蓝) / done(完成绿) / failed(失败红) */
+  --st-planning: #a78bfa;
+  --st-ready:    #38bdf8;
+  --st-pending:  var(--ocean-mid);
+  --st-active:   var(--goldSand-sunset);
+  --st-check:    var(--ocean-shallow);
+  --st-done:     var(--success);
+  --st-failed:   var(--danger);
 
   /* ── UI 令牌 ── */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;  /* examples:47-49 */
