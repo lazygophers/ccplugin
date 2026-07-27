@@ -325,15 +325,36 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed) {
 }
 
 // ---- SVG 连线 ----
+// 起止点贴 card 边缘: from 右边中 → to 左边中 (水平流向)。
+// 箭头 marker 标方向 (谁→谁); hover card 时高亮其连线 (edge-highlight class)。
 function drawEdges(edges, getEdgeInfo) {
   if (!edges.length) return null;
+
+  // 每个状态一个箭头 marker (用 stroke 色), id 去重
+  const usedSts = new Set();
+  const markers = [];
+  for (const e of edges) {
+    let st;
+    if (getEdgeInfo) {
+      st = getEdgeInfo(e).status;
+    } else {
+      st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
+    }
+    if (usedSts.has(st)) continue;
+    usedSts.add(st);
+    markers.push(h('marker',
+      { id: `arrow-${st}`, viewBox: '0 0 10 10', refX: '9', refY: '5',
+        markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' },
+      [h('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: `var(--${ST_COLOR[st]})` })]
+    ));
+  }
+
   const paths = edges.map(e => {
+    // 起止点退回 card 边缘内一点, 避箭头戳进 card; marker 自带尺寸故终点贴边即可
     const x1 = e.from.x + e.from.w;
     const y1 = e.from.y + e.from.h / 2;
     const x2 = e.to.x;
     const y2 = e.to.y + e.to.h / 2;
-    const mx = (x1 + x2) / 2;
-    const d = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
     let st, dimmed = false;
     if (getEdgeInfo) {
       const info = getEdgeInfo(e);
@@ -342,16 +363,34 @@ function drawEdges(edges, getEdgeInfo) {
     } else {
       st = (e.to.task ? e.to.task.status : e.to.sub.status) || 'planning';
     }
-    const opacity = dimmed ? '0.1' : '0.4';
+    // 贝塞尔 control: 跨 layer 用水平中点; 同 x (同 layer / 环 fallback) 用横向偏移避免退化重叠
+    const dx = x2 - x1;
+    let cx1, cx2;
+    if (Math.abs(dx) < 8) {
+      // 同列: control 向右弯出再回, 避线段退化为竖线与邻线重叠
+      const bow = 60;
+      cx1 = x1 + bow; cx2 = x2 + bow;
+    } else {
+      const mx = (x1 + x2) / 2;
+      cx1 = mx; cx2 = mx;
+    }
+    const d = `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`;
+    const opacity = dimmed ? '0.12' : '0.55';
     return h('path', {
       d, fill: 'none',
       stroke: `var(--${ST_COLOR[st]})`,
       'stroke-width': '2', 'stroke-opacity': opacity,
+      'marker-end': `url(#arrow-${st})`,
+      class: 'dag-edge',
+      'data-from': e.from.id, 'data-to': e.to.id,
     });
   });
-  return h('svg.absolute.inset-0.pointer-events-none',
-    { style: { width: '100%', height: '100%' } },
-    paths
+  return h('svg.absolute.inset-0.pointer-events-none.dag-edges',
+    { style: { width: '100%', height: '100%' }, 'aria-hidden': 'true' },
+    [
+      h('defs', markers),
+      ...paths,
+    ]
   );
 }
 
@@ -549,6 +588,7 @@ function subDAGView(subs, onSubClick) {
             {
               style: { left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' },
               onclick: (e) => { e.stopPropagation(); if (onSubClick) onSubClick(n.id); },
+              'data-sub-id': n.id,
               title: n.sub.title || n.sub.name || n.id,
             },
             [
@@ -854,6 +894,7 @@ function depDAGView(task, allTasks, onTaskClick) {
             {
               style: { left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' },
               onclick: (e) => { e.stopPropagation(); if (onTaskClick) onTaskClick(n.id); },
+              'data-task-id': n.id,
               title: n.task.title || n.task.name || n.id,
             },
             [
@@ -1157,6 +1198,28 @@ export async function render(mount, params, ctx) {
     wrap.style.cursor = 'grab';
     wrap.addEventListener('mousedown', onMouseDown);
     wrap.addEventListener('touchstart', onTouchStart, { passive: true });
+
+    // hover card 高亮其相关连线 (from 或 to 命中), 其余降透明 — 辨清"谁到谁"
+    const edgesSvg = canvas.querySelector('.dag-edges');
+    if (edgesSvg) {
+      canvas.addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.dag-node-wrap, .sub-dag-node');
+        const tid = card ? (card.getAttribute('data-task-id') || card.getAttribute('data-sub-id')) : null;
+        edgesSvg.querySelectorAll('.dag-edge').forEach(p => {
+          const hit = tid && (p.getAttribute('data-from') === tid || p.getAttribute('data-to') === tid);
+          p.classList.toggle('edge-active', !!hit);
+          p.style.strokeOpacity = tid ? (hit ? '0.95' : '0.1') : '';
+        });
+      });
+      canvas.addEventListener('mouseout', (e) => {
+        if (!e.relatedTarget || !canvas.contains(e.relatedTarget)) {
+          edgesSvg.querySelectorAll('.dag-edge').forEach(p => {
+            p.classList.remove('edge-active');
+            p.style.strokeOpacity = '';
+          });
+        }
+      });
+    }
   }
 
   function draw() {

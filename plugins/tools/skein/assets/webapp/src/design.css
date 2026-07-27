@@ -620,6 +620,10 @@
 .dag-node-wrap { position: relative; z-index: 1; }
 .dag-node-wrap:hover { z-index: 100; }
 .dag-canvas { padding: 40px 60px 120px; }
+/* 连线层: 置于 card 之上便看清走向, pointer-events-none 不挡 card 点击/hover */
+.dag-edges { z-index: 50; overflow: visible; }
+.dag-edge { transition: stroke-opacity .15s, stroke-width .15s; }
+.dag-edge.edge-active { stroke-opacity: 0.95; stroke-width: 3; }
 .dag-node-wrap .dag-popover {
   position: absolute;
   left: 50%;
