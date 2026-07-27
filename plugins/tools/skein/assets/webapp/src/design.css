@@ -927,12 +927,15 @@
 .board-main {
   display: flex;
   gap: 0;
-  min-height: 600px;
+  min-height: 320px;
 }
+/* 画布区自己滚 (高度跟 .board-main, 由 board.js 按视口剩余精算), 页面本身不出滚动条 */
 .board-dag-wrap {
   flex: 1 1 0%;
-  min-height: 600px;
-  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
   position: relative;
 }
 .detail-panel {
@@ -943,10 +946,9 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 80px;
-  max-height: calc(100vh - 100px);
-  align-self: flex-start;
+  /* 高度跟画布区一齐 (由 board.js 精算), 面板内部自己滚 — 不让它把页面撑出滚动条 */
+  height: 100%;
+  min-height: 0;
 }
 .detail-panel-header {
   padding: 16px 20px;
@@ -1707,8 +1709,7 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
   .detail-panel { width: 680px; }
   .detail-panel-body { grid-template-columns: 1fr 1fr; gap: 20px; }
   .detail-panel-body .panel-span-2 { grid-column: 1 / -1; }
-  .board-main { min-height: 700px; }
-  .board-dag-wrap { min-height: 700px; }
+  .board-main { min-height: 320px; }
   .glass-card { border-radius: 14px; }
 }
 @media (min-width: 1700px) {

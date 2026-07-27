@@ -35,7 +35,9 @@ const INCOMPLETE_STATUSES = ['planning', 'ready', 'active', 'check'];
 // 5) 单列层按邻居中位数对齐, 让链路走直
 // 复杂度 O(V+E) 级 (transpose 对 >200 的层跳过), 支撑千节点量级
 function sugiyama(ids, depsOf, opt) {
-  const { colW, rowH, padX, padY, gapY, aspect, viewH } = opt;
+  const { colW, rowH, padX, padY, gapY } = opt;
+  const maxWidth = opt.maxWidth || 1200;   // 硬约束: 画布宽度永不超过它
+  const viewH = opt.viewH || 800;          // 软目标: 一条带尽量高约一屏
   const idSet = new Set(ids);
   const deps = new Map(), succ = new Map();
   for (const id of ids) { deps.set(id, []); succ.set(id, []); }
@@ -176,45 +178,49 @@ function sugiyama(ids, depsOf, opt) {
     reindex();
   }
 
-  // --- 4. 折行行数 R: 由视口宽高比反解 ---
-  const maxCount = layers.reduce((m, l) => Math.max(m, l.length), 1);
-  const colsAt = (r) => layers.reduce((sum, l) => sum + Math.max(1, Math.ceil(l.length / r)), 0);
-  let R = maxCount;
-  if (maxCount * rowH > (viewH || 0)) {
-    let bestScore = Infinity;
-    const step = Math.max(1, Math.ceil(maxCount / 200));
-    for (let r = 1; r <= maxCount; r += step) {
-      const w = colsAt(r) * colW, hh = r * rowH;
-      const score = Math.abs(Math.log((w / hh) / aspect));
-      if (score < bestScore) { bestScore = score; R = r; }
-    }
+  // --- 4. 层序列折行 (蛇形带): 宽度是硬约束, 一带最多放 K 层, 排满换行往下续 ---
+  // 这正是 ELK wrapping.strategy 的做法 — 切的是层序列, 让图宽永远塞进可用宽度,
+  // 长出来的部分往下走, 由外层的纵向滚动条承担。
+  const K = Math.max(1, Math.floor((maxWidth - padX * 2) / colW));
+  // 带内目标行数: 一带尽量高约一屏。宽层 (fan-out) 超过 R 行就吃掉本带的相邻列折行,
+  // 不折的话 19 个兄弟就堆成一根 4500px 的柱子。
+  const R = Math.max(4, Math.floor((viewH || 800) / rowH));
+  // 贪心装带: 每层按需要的列数入座, 装不下就换带
+  const seat = [];   // 每层 { band, col, cols }
+  let curBand = 0, curCol = 0;
+  for (const l of layers) {
+    const cols = Math.min(K, Math.max(1, Math.ceil(l.length / R)));
+    if (curCol + cols > K && curCol > 0) { curBand++; curCol = 0; }
+    seat.push({ band: curBand, col: curCol, cols });
+    curCol += cols;
   }
+  const bands = curBand + 1;
+  const bandOf = (li) => seat[li].band;
 
   // --- 5. 坐标 ---
-  const layerCols = layers.map(l => Math.max(1, Math.ceil(l.length / R)));
-  const layerX = [];
-  let accX = 0;
-  for (let i = 0; i < L; i++) { layerX.push(accX); accX += layerCols[i] * colW; }
   layers.forEach((l, li) => {
-    const rows = layerCols[li] > 1 ? R : Math.max(1, l.length);
+    const st = seat[li];
+    const rows = st.cols > 1 ? Math.ceil(l.length / st.cols) : l.length;
     l.forEach((n, i) => {
-      n.x = layerX[li] + Math.floor(i / rows) * colW;
+      n.x = (st.col + Math.floor(i / rows)) * colW;
       n.y = (i % rows) * rowH;
-      n.y0 = n.y; // 网格基准位, 对齐只能在其附近微调
+      n.y0 = n.y;   // 网格基准位, 对齐只能在其附近微调
+      n.band = st.band;
     });
   });
-  // 单列层按邻居中位数对齐 + 保序推挤 (折行层是网格, 保持整齐不动)
+  // 层内按邻居中位数对齐 + 保序推挤; 只认同带邻居 (跨带的上下游在图上是回绕线, 不该互相牵引)
   // 位移夹在基准位 ±SLACK 行内: 不夹的话对齐会顺着链路级联推高, 整图越排越长
   const SLACK = 3 * rowH;
   for (let pass = 0; pass < 3; pass++) {
     const seq = pass % 2 === 0 ? idxs : idxs.slice().reverse();
     const adj = pass % 2 === 0 ? adjUp : adjDown;
     for (const li of seq) {
-      if (layerCols[li] > 1) continue;
+      if (seat[li].cols > 1) continue;   // 折行层是网格, 保持整齐不动
       const layer = layers[li];
+      const band = bandOf(li);
       let prev = -Infinity;
       for (const n of layer) {
-        const ns = adj.get(n) || [];
+        const ns = (adj.get(n) || []).filter(m => m.band === band);
         let want = n.y;
         if (ns.length) {
           const ys = ns.map(m => m.y).sort((a, b) => a - b);
@@ -227,13 +233,31 @@ function sugiyama(ids, depsOf, opt) {
       }
     }
   }
+  // 带内归零 → 按带高纵向堆叠
+  const span = Array.from({ length: bands }, () => ({ lo: Infinity, hi: -Infinity }));
+  let usedCols = 1;
+  layers.forEach((l, li) => {
+    const s = span[seat[li].band];
+    usedCols = Math.max(usedCols, seat[li].col + seat[li].cols);
+    for (const n of l) { s.lo = Math.min(s.lo, n.y); s.hi = Math.max(s.hi, n.y); }
+  });
+  const bandTop = [];
+  let accY = 0;
+  for (const s of span) {
+    if (s.lo === Infinity) { s.lo = 0; s.hi = 0; }
+    bandTop.push({ top: accY, shift: -s.lo });
+    accY += (s.hi - s.lo) + rowH * 2;   // 带间留一行间距
+  }
   const all = layers.flat();
-  const minY = all.reduce((m, n) => Math.min(m, n.y), Infinity);
-  for (const n of all) { n.x += padX; n.y += padY - minY; }
+  for (const n of all) {
+    const bt = bandTop[n.band];
+    n.x += padX;
+    n.y += bt.shift + bt.top + padY;
+  }
   const maxY = all.reduce((m, n) => Math.max(m, n.y), 0);
   return {
-    layers, edges,
-    width: accX + padX * 2,
+    layers, edges, bandCols: usedCols,
+    width: usedCols * colW + padX * 2,
     height: maxY + (rowH - gapY) + padY,
   };
 }
@@ -248,13 +272,13 @@ const DAG_SIZES = {
 
 // ---- DAG 布局 ----
 // view = { w, h } 可用画布尺寸 — 详情面板开合 / 窗口缩放都会改变它, 布局随之重排
+// 宽度是硬约束 (画布永不横向溢出), 高度自由, 超出部分由容器纵向滚动条承担
 function layoutDAG(tasks, size = 'md', view) {
   if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0 };
   const s = DAG_SIZES[size] || DAG_SIZES.md;
   const byId = new Map(tasks.map(t => [t.id, t]));
-  const vw = (view && view.w) || 1200, vh = (view && view.h) || 700;
   const g = sugiyama(tasks.map(t => t.id), id => byId.get(id).deps || [],
-    { ...s, aspect: vw / vh, viewH: vh });
+    { ...s, maxWidth: (view && view.w) || 1200, viewH: (view && view.h) || 800 });
   return packLayout(g, s, id => ({ task: byId.get(id) }));
 }
 
@@ -283,11 +307,12 @@ function layoutSubDAG(subs) {
   if (!subs || !subs.length) return { nodes: [], edges: [], width: 0, height: 0 };
   const byId = new Map(subs.map(s => [s.id || s.sid, s]));
   const s = { colW: 160, rowH: 60, padX: 16, padY: 12, gapX: 16, gapY: 12 };
-  // 迷你视图嵌在详情面板里, 宽高比按面板实际比例给, viewH 给足 = 基本不折行
+  // 迷你视图嵌在详情面板里, 宽度上限跟面板走 (断点同 design.css 的 .detail-panel)
+  const panelW = window.innerWidth >= 1600 ? 720 : window.innerWidth >= 1280 ? 580 : 400;
   const g = sugiyama([...byId.keys()], id => {
     const sub = byId.get(id);
     return sub.deps || sub.dependsOn || [];
-  }, { ...s, aspect: 1.6, viewH: 2000 });
+  }, { ...s, maxWidth: panelW - 48, viewH: 600 });
   return packLayout(g, s, id => ({ sub: byId.get(id) }));
 }
 
@@ -1238,7 +1263,6 @@ export async function render(mount, params, ctx) {
   }
   let selectedId = null;
   let scale = 1;
-  let offsetX = 0, offsetY = 0;
   const expandedNodes = new Set();
 
   // 状态计数
@@ -1310,7 +1334,9 @@ export async function render(mount, params, ctx) {
     }, 150);
   });
 
-  // ---- DAG 拖拽平移 ----
+  // ---- DAG 抓手拖拽 ----
+  // 拖的是容器滚动位置, 不是 transform — 画布宽度已被布局钳进容器, 纵向靠滚动条,
+  // 再叠 translate 会和滚动条打架 (拖出去的部分滚动条够不着)
   function initDrag(dagEdges = []) {
     const wrap = document.getElementById('board-dag-wrap');
     const canvas = wrap ? wrap.querySelector('.dag-canvas') : null;
@@ -1318,13 +1344,12 @@ export async function render(mount, params, ctx) {
 
     let isDragging = false;
     let startX = 0, startY = 0;
-    let startOffsetX = 0, startOffsetY = 0;
+    let startSL = 0, startST = 0;
 
     function onMouseMove(e) {
       if (!isDragging) return;
-      offsetX = startOffsetX + (e.clientX - startX);
-      offsetY = startOffsetY + (e.clientY - startY);
-      canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      wrap.scrollLeft = startSL - (e.clientX - startX);
+      wrap.scrollTop = startST - (e.clientY - startY);
     }
     function onMouseUp() {
       isDragging = false;
@@ -1337,8 +1362,8 @@ export async function render(mount, params, ctx) {
       isDragging = true;
       startX = e.clientX;
       startY = e.clientY;
-      startOffsetX = offsetX;
-      startOffsetY = offsetY;
+      startSL = wrap.scrollLeft;
+      startST = wrap.scrollTop;
       wrap.style.cursor = 'grabbing';
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
@@ -1347,10 +1372,8 @@ export async function render(mount, params, ctx) {
 
     function onTouchMove(e) {
       if (!isDragging || e.touches.length !== 1) return;
-      e.preventDefault();
-      offsetX = startOffsetX + (e.touches[0].clientX - startX);
-      offsetY = startOffsetY + (e.touches[0].clientY - startY);
-      canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      wrap.scrollLeft = startSL - (e.touches[0].clientX - startX);
+      wrap.scrollTop = startST - (e.touches[0].clientY - startY);
     }
     function onTouchEnd() {
       isDragging = false;
@@ -1363,9 +1386,9 @@ export async function render(mount, params, ctx) {
       isDragging = true;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      startOffsetX = offsetX;
-      startOffsetY = offsetY;
-      wrap.addEventListener('touchmove', onTouchMove, { passive: false });
+      startSL = wrap.scrollLeft;
+      startST = wrap.scrollTop;
+      wrap.addEventListener('touchmove', onTouchMove, { passive: true });
       wrap.addEventListener('touchend', onTouchEnd);
     }
 
@@ -1432,13 +1455,14 @@ export async function render(mount, params, ctx) {
     const highlightedCount = allTasks.filter(t => statusSet.has(t.status)).length;
 
     mount.replaceChildren(
-      // 标题行
-      h('div.flex.items-center.justify-between.mb-4.flex-wrap.gap-3', [
-        h('div', [
-          h('h1.text-3xl.font-bold.text-head.mb-1', '任务看板'),
-          h('p.text-muted', `${allTasks.length} 个任务 · ${highlightedCount} 个高亮`),
+      // 标题行 (标题 / 状态筛选 / 缩放 / 视图切换 同一行)
+      h('div.board-head.flex.items-center.mb-4.flex-wrap.gap-3', [
+        h('div.flex-shrink-0', [
+          h('h1.text-2xl.font-bold.text-head.mb-0\\.5', '任务看板'),
+          h('p.text-muted.text-xs', `${allTasks.length} 个任务 · ${highlightedCount} 个高亮`),
         ]),
-        h('div.flex.items-center.gap-3', [
+        h('div.flex-1.min-w-0', statusFilterBar(statusSet, countBy, setFilter)),
+        h('div.flex.items-center.gap-3.flex-shrink-0', [
           view === 'dag' ? h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border.border-brd/40', [
             h('button.px-2.py-1.rounded-md.text-sm.text-muted.hover\\:text-accent.transition-colors',
               { onclick: () => { scale = Math.min(scale + 0.1, 2); draw(); }, title: '放大' },
@@ -1448,25 +1472,20 @@ export async function render(mount, params, ctx) {
               { onclick: () => { scale = Math.max(scale - 0.1, 0.3); draw(); }, title: '缩小' },
               h('i.fa.fa-search-minus')),
             h('button.px-2.py-1.rounded-md.text-sm.text-muted.hover\\:text-accent.transition-colors',
-              { onclick: () => { scale = 1; offsetX = 0; offsetY = 0; draw(); }, title: '重置' },
+              { onclick: () => { scale = 1; const wp = document.getElementById('board-dag-wrap'); if (wp) wp.scrollTo(0, 0); draw(); }, title: '重置' },
               h('i.fa.fa-expand')),
           ]) : null,
           viewToggle(view, setView),
         ]),
       ]),
 
-      // 状态筛选栏
-      h('div.mb-4', statusFilterBar(statusSet, countBy, setFilter)),
-
       // 主内容区: 左 DAG/列表 + (可选) 右详情
-      h(`div.board-main.glass-card${hasPanel ? ' has-panel' : ''}`, [
-        // 左侧: DAG/列表
-        // DAG 视图锁死可视高度: 画布靠拖拽平移看全, 不锁的话 wrap 被画布撑高,
-        // 布局反解视口比时就拿不到真实可用高度 (会正反馈越排越高)
-        h('div.flex-1.board-dag-wrap', {
-          id: 'board-dag-wrap',
-          style: view === 'dag' ? { height: 'calc(100vh - 260px)' } : null,
-        },
+      h(`div.board-main.glass-card${hasPanel ? ' has-panel' : ''}`, {
+        id: 'board-main',
+        style: view === 'dag' ? { height: 'calc(100vh - 200px)' } : null,
+      }, [
+        // 左侧: DAG/列表 (高度由下面 rAF 锁在 .board-main 上, 内部自己滚)
+        h('div.flex-1.board-dag-wrap', { id: 'board-dag-wrap' },
           view === 'dag'
             ? [
                 h('div.dag-canvas.relative',
@@ -1475,7 +1494,7 @@ export async function render(mount, params, ctx) {
                       width: width + 'px',
                       height: height + 'px',
                       minWidth: '100%',
-                      transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+                      transform: `scale(${scale})`,
                       'transform-origin': 'top left',
                     },
                   },
@@ -1498,13 +1517,22 @@ export async function render(mount, params, ctx) {
       ]),
     );
     setTimeout(() => initDrag(edges), 0);
-    // 用真实容器尺寸校正 viewBox 后重排一次 — 差值收敛到 40px 内即停, 不会反复重绘
     requestAnimationFrame(() => {
       const wrap = document.getElementById('board-dag-wrap');
-      if (!wrap || view !== 'dag') return;
-      const w = wrap.clientWidth, hh = wrap.clientHeight;
-      if (w > 100 && hh > 100 && (Math.abs(w - viewBox.w) > 40 || Math.abs(hh - viewBox.h) > 40)) {
-        viewBox = { w, h: hh };
+      const main = document.getElementById('board-main');
+      if (!wrap || !main || view !== 'dag') return;
+      // 高度锁在 .board-main 上, 画布区和详情面板都 100% 跟它 —— 谁都别把页面撑出滚动条。
+      // 按它在视口里的真实起点精算, 正好吃满剩余空间。
+      const top = main.getBoundingClientRect().top;
+      main.style.height = Math.max(320, window.innerHeight - top - 20) + 'px';
+      // 还剩滚动余量 (外层 padding/margin) 就再扣掉 — 滚动条只该长在画布区和面板里
+      const de = document.documentElement;
+      const spill = de.scrollHeight - de.clientHeight;
+      if (spill > 0) main.style.height = Math.max(320, main.clientHeight - spill) + 'px';
+      // 宽度校正后重排 — 宽度是布局硬约束, 面板开合会改它; 差值收敛到 40px 内即停
+      const w = wrap.clientWidth;
+      if (w > 100 && Math.abs(w - viewBox.w) > 40) {
+        viewBox = { w, h: wrap.clientHeight };
         draw();
       }
     });
