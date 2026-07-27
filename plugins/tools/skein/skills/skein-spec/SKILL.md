@@ -10,6 +10,8 @@ effort: medium
 
 # skein-spec — 两层规则记忆
 
+> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-workflow 为唯一真值源。
+
 **差异化核心**。不同于「按需沉淀单一 spec 文件」, SKEIN 记忆分两层, 基于 `.skein/spec`:
 
 > **绑定 agent (按读/写拆两个, 均 frontmatter `skills: skein:skein-spec`)**:

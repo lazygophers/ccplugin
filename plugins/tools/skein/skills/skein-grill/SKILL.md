@@ -10,6 +10,8 @@ effort: high
 
 # skein-grill — 对抗式审查硬门
 
+> 🔒 全局流程规则（状态机/调度/优先级等）以 skein-workflow 为唯一真值源。
+
 审查对象 = planning 产物 (`prd.md` 主入口 / `design.md` 详细设计 / `findings.md` 调研收敛 + task.json 子任务/调度) 或用户点名要盘的方案。目的: **start/exec 前把需求与方案的漏洞、隐藏假设、未定边界逼出来**, 不是复述内容。
 
 **载体**: main 亲做, 交互式 (逐条与用户确认), **禁派 subagent** (它不能 `AskUserQuestion`)。

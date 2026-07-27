@@ -75,6 +75,8 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 
 **🛑 plan/confirm 不受 deps 完成状态阻塞 (仅 `skein start` 受限)** — `skein create`/`deps`/`confirm` 均不查前置完成状态, 仅 `skein start` 才查 (脚本硬拒未完成 deps)。pending task 不论前置是否 plan/finish, 照常走完整流程推到就绪, 等 `skein start` 时才等前置。
 
+**task 状态机定义与状态流转规则详见 skein-workflow/references/task-state-machine.md。**
+
 1. **判新旧 + 定粒度** — 全新任务 vs 对现有 active task 的补充/延续。不准 → `AskUserQuestion` 用户裁定。并入现有 → 更新其工件 + `subtask add`, 不新建。
    - **登记前强制先查未完成 task (硬前置)** — 任何 `create` 之前 MUST 先 `skein list --status open --json | jq -c '[.[] | {id,name,desc}]'` (只取判归属所需字段省 token) 核对: 新请求与在列某 task **相关** (同目标/同模块/共享改动面/互为前置) → **并入该 task 补 subtask, 禁新建**; 无相关项才 `create`。**禁不查就 create、禁一直堆新 task** (散 task 丢共享上下文一致性, 是头号反模式)。
    - **🧭 模糊信号判据 (命中即 cold-start, 进 step 3 愿景翻译; 不命中走常规 brainstorm, 零增量)** — 用户输入任一命中: ① 无动词或动词泛 ("重构/优化/加能力"无宾语); ② 无文件路径 / 无具体模块名; ③ 一句话 <15 字; ④ 愿景腔 ("我有个想法/想做个/感觉") → 标 cold-start。命中零条 = 清晰输入, **跳过愿景翻译直接常规 brainstorm (零增量路径)**。
@@ -104,6 +106,7 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
    - **子任务 + 调度 DAG (协议先行, 后并行)** — 拆分铁律: 先把 subtask 间的**共享契约** (接口签名 / 数据结构 / 类型 / 协议格式 / DB schema) 抽成**单个前置 subtask** 优先定死, 下游各实现 subtask 只 `--deps` 这一个契约 subtask、彼此**不互挂依赖** → 契约一 done 即全批并行。这是压 makespan 的命门 —— 定协议是唯一真串行, 实现全并行。每个 subtask 含 depends_on + 验收 checklist, 逐条 `skein subtask add <id> <sid> --name --desc [--agent --deps --check]` 落进 task.json (sid/--name/--desc 三者必填, `--agent` 省略默认 `skein-executor`)。**这是 exec 唯一调度真值源**, 不写 mermaid 图文件。
      - **tracer-bullet (端到端瘦实现优先, ask-matt 同源)** — 契约 subtask 不止定死接口, 本身该是**端到端穿通的最瘦实现** (各层 stub / 空实现但全链路跑通一个 happy path): 第一个 subtask 完成后能验证「整条路走得通」(协议对得上 / 数据流闭合 / 边界接得上), 再逐 subtask flesh 内部逻辑。这比「定接口→各实现并行→集成时才暴露不通」早一个周期发现协议缺陷, 是压 makespan 的第二命门。
      - **拆完对表复杂度天花板 (硬)** — subtask 落完立刻对「🛑 复杂度天花板」表逐项核: 命中任一 (subtask > 8 / 跨 ≥2 子系统 / 工期风险高) → `AskUserQuestion` 提醒用户拆成多个互依赖 task, 禁默默塞一个 task 执行完所有事。
+     - **subtask 操作规范（新增/并入/修复）详见 skein-workflow/references/subtask-operations.md；DAG 调度算法与并发控制详见 skein-workflow/references/dag-scheduling.md；subtask 状态机定义详见 skein-workflow/references/subtask-state-machine.md。**
 6. **异步派 skein-dedup (fire-and-forget, 不阻塞 exec)** — 所有 task planning 完成 (batch 末 / plan 收尾, exec 触发前), main **异步派 `skein-dedup`** subagent 全量扫一次未完成 task: ① 查重归并 (同目标 / 同模块 / 共享改动面 / 互为前置, 自动 `subtask add` 迁入主 task + `skein del` 次 task); ② 给散落的相关 task 补执行序织成完整 DAG (自动 `skein deps`, **仅对现无 deps 的 pending task 补前置, 已有 deps 的不碰**, 无关 task 保持孤立)。**异步不阻塞**: dedup 后台跑, exec 照常推进; 归并/补序自动写盘 (CLI 校验存在性/成环)。派它即放手, 不等其回传再 start。
 7. **返回** — `--continue` → 返回工件路径给调用方; 无参 → 停在 start 前, 提示用户 `/skein-exec <task>` 或 `/skein-flow` 激活。
 
@@ -119,6 +122,8 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 ## 调度 = task.json 子任务 DAG
 
 exec 阶段的 DAG 靠 task.json 的 `subtasks[].depends_on` (经 `skein subtask add --deps` 登记), **非文件里的 mermaid 图**。planning 未登记任何 subtask → `skein start` 硬拒 (无从调度)。subtask 拆分 + 依赖登记模板详见 references/dispatch-graph.md。
+
+**DAG 调度算法、并发控制、就绪判定规则详见 skein-workflow/references/dag-scheduling.md；subtask 状态机与操作规范详见 skein-workflow/references/subtask-state-machine.md 和 subtask-operations.md。**
 
 ## 失败模式 (if-then 三段式: 触发 → 一线修复 → 仍失败兜底)
 

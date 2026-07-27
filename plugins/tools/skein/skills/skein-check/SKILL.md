@@ -14,11 +14,11 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
 
 **禁动 design.md** — design.md 写入归 planning (仅 planning 阶段 + check 失败回 planning 二次进入可写); **exec / check / finish 阶段均禁动**。check 检出方案性冲突 → 回 planning 改 design 后重派, 禁 check 阶段就地改 design。
 
-**🛑 check 状态先行 (硬前置): 必须 skein check 进检查中态才验证** — 全 subtask done 后 main 必须先 `skein check <id>`(进行中→检查中), 才能派 skein-checker 跑验证。禁 main 在 task 仍「进行中」态自跑 lint/test/契约核对当 check 结果 (硬门·STOP, 同 skein-flow 顶部「状态先行铁律」check 环节)。违反 → 回退先 `skein check`。
+**🛑 check 状态先行 (硬前置)** — 详见 skein-workflow/references/state-before-action.md 硬门 3。必须先 `skein check <id>` 进检查中态才派 skein-checker 跑验证，禁 main 在 task 仍「进行中」态自跑验证当 check 结果。
 
 ## 载体
 
-> **工作目录 (worktree 态自适应)** — 本仓 worktree 隔离启用态: !`skein config --json 2>/dev/null | jq -r '.use_worktree' || echo unknown`。`true`=在 **task worktree** 内验证/修复; `false`/`unknown`=**原地在仓库根**。真值以 task 的 `worktree` 字段为准 (null=原地)。下文"task worktree"按此二读。
+> **工作目录 (worktree 态自适应)** — 详见 skein-workflow/references/worktree-convention.md。真值以 task 的 `worktree` 字段为准 (null=原地)。
 
 - **验证** → 派 `skein-checker` (只读 + 跑命令, 回传 PASS/FAIL 报告)。
 - **修复** → 派合适 agent (按修复性质挑现有 agent, 无则 `skein-executor`) 在该 task 工作目录 (worktree 或原地仓库根) 内定点改 (dispatch prompt 带执行纪律)。
@@ -43,11 +43,11 @@ exec 完成后、finish 前的**质量门**。**验证与修复分离**: `skein-
      - 任一条 fail → 进修复循环 (同 lint/type/test 未过路径), 派合适 agent (无则 `skein-executor`) 定点修复后重检。
    - **一致性核查** — checker MUST 检 subtask 产物间 + 与 prd 契约有无冲突: 接口签名对不上 / 重复实现同一职责 / 命名与约定相斥 / 数据流断裂 / 契约互相矛盾。逐条报冲突对 (哪两处 file:line + 冲突点)。
 2. **判定** — 全绿 (含零冲突) → 放行 finish。FAIL 或**检出冲突** → 进修复循环 (见下)。**本轮验证通过的验收项** (含部分通过场景), main 经 `skein prd check <id> --type=acceptance --list "<验收项文本>"` 回写勾选态持久化 (脚本写盘, 禁裸 Edit prd.md; 载体是 main 非 checker), 未过项保持 `- [ ]` 留待修复后重验。需反勾 (修复后回退) 用 `skein prd uncheck`。
-3. **回 planning 重确认 (非新枚举, 复用现有 `进行中` 态)** — check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`/`S_ACTIVE`, 不建新 task; 「回 planning」是**思维回炉语义**, 非状态机新枚举)。main **先回 planning 思维重审失败**: 重新审视 checker 报告的失败原因 (lint/type/test/契约 fail / 一致性冲突), 用 `AskUserQuestion` 或 grill 与用户**确认修复方向是否对** (是定点修一处 / 还是方向错了需重拆 / 还是契约本身要改), **禁跳过确认直接补 subtask 回 exec**。确认方向后, **按错误性质分档补设计/工件, 再回 exec** (--deps 挂失败源), 回 exec 重新 `claim` 派发。**确认无误后才继续进入 exec 执行**:
-   - **孤立失败** (单点 lint/type/test/契约 fail) → 确认后加 1 个定点修复 subtask: `skein subtask add <tid> <fix-sid> --name "修复: <失败点>" --desc "<报错原文 / file:line>" --agent <合适> --deps <失败 subtask sid>` (只改失败相关文件, 设计无需动)。
-   - **一致性冲突 / 根因跨 subtask** → 确认后按冲突根因加**多个**修复 subtask (一冲突一 subtask, 逐条覆盖, `--deps` 挂对应源 subtask, 必要时同步更新契约)。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
-   - **方案性 / 设计缺陷** (错误根因在设计本身: 架构选型不对 / 契约定义有误 / 需求边界漏了) → 回 planning **补充或重设计 design.md** (check 失败回 planning 二次进入才可写 design.md), 同步用 `skein prd write/add` 修 prd 目标/边界/验收 + `skein contract <id> --add` 补/改契约, 再据新设计 `subtask add` 重拆或补子任务。**新方案经 grill/AskUserQuestion 确认无误, 才回 exec 执行** (禁未确认就补 subtask)。
-   - 方向确认=必经门: main 不得凭报原文擅自加 subtask, 必先 grill/AskUserQuestion 让用户对修复方向拍板; 用户认可方向后才 `subtask add`。新增修复 subtask `depends_on` 失败源 subtask (已 done) → 立即 ready, exec `claim` 即派; task 全程 `进行中`, 修复进度落在同 task 看板 DAG。
+3. **回 planning 重确认 (非新枚举, 复用现有 `进行中` 态)** — 通用回退流程详见 skein-workflow/references/rollback-protocol.md；check 修复 subtask 操作规范详见 skein-workflow/references/subtask-operations.md 第 4 节。check FAIL 或检出冲突, **禁改 task 状态** (依旧 `进行中`, 不建新 task; 「回 planning」是思维回炉语义, 非状态机新枚举)。main 先回 planning 思维重审失败, 用 `AskUserQuestion` 或 grill 与用户确认修复方向, **禁跳过确认直接补 subtask 回 exec**。check 阶段特有分档:
+   - **孤立失败** (单点 lint/type/test/契约 fail) → 确认后加 1 个定点修复 subtask (--deps 挂失败源), 只改失败相关文件, 设计无需动。
+   - **一致性冲突 / 根因跨 subtask** → 确认后按冲突根因加**多个**修复 subtask (一冲突一 subtask, 逐条覆盖, `--deps` 挂对应源 subtask)。**直到全绿且零冲突才放行** — 未覆盖完所有冲突禁 finish。
+   - **方案性 / 设计缺陷** (错误根因在设计本身: 架构选型不对 / 契约定义有误 / 需求边界漏了) → 回 planning **补充或重设计 design.md** (check 失败回 planning 二次进入才可写 design.md), 同步修 prd + 改契约, 再据新设计重拆或补子任务。**新方案经 grill/AskUserQuestion 确认无误, 才回 exec 执行**。
+   - 方向确认=必经门: main 不得凭报原文擅自加 subtask, 必先 grill/AskUserQuestion 让用户对修复方向拍板。新增修复 subtask `depends_on` 失败源 subtask (已 done) → 立即 ready; task 全程 `进行中`, 修复进度落在同 task 看板 DAG。
 4. **重验** — 修复 subtask 全 done 后重派 `skein-checker` 复跑 (含一致性)。未过回 planning 重确认循环 (task 始终 `进行中`)。
 5. **放行** — 全绿且零冲突 → 回 `skein-flow` 走 finish。
 

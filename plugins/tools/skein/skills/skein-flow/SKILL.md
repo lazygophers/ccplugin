@@ -17,11 +17,13 @@ effort: medium
 
 **三环节硬门 — main 操作 task / subtask 前必须先把对应状态机走对。任一违反 = 流程错误 (非优化空间、非效率取舍), 回退到对应状态命令后再继续。**
 
-1. **🛑 task 级: 未 start 禁 exec (硬门·STOP)** — task 必须先 `skein confirm` (待处理→就绪) + `skein start` (就绪→进行中) 才能进 exec 调度门。**待处理 / 就绪态 task 禁派 subtask、禁跑 exec**。违反 → 回退: 先 `skein confirm` + `skein start` 再继续。(L20 plan 段已述此条, 本段为统一入口重述并加强, 不替换 L20。)
-2. **🛑 subtask 级: 未 claim 占槽禁派 (硬门·STOP)** — subtask 必须先 `skein claim` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_parallel` 槽) 才能派 agent。**pending / failed 态 subtask 禁直接派 agent**, 必须先经 claim / start 占槽。违反 → 回退: 先把 subtask 标 running 占槽再派。
-3. **🛑 check 级: 未 skein check 禁验证宣告 (硬门·STOP)** — 全 subtask done 后必须先 `skein check` (进行中→检查中) 才能跑验证 / lint / test / 契约核对。**禁 main 在 task 仍「进行中」态自跑验证当 check 结果**。验证归 `skein-checker`, 在「检查中」态跑。违反 → 回退: 先 `skein check` 进检查中再跑验证。
+1. **🛑 task 级: 未 start 禁 exec (硬门·STOP)** — task 必须先 confirm + start 才能进 exec 调度门。待处理 / 就绪态 task 禁派 subtask、禁跑 exec。
+2. **🛑 subtask 级: 未 claim 占槽禁派 (硬门·STOP)** — subtask 必须先 claim/start (标 running 占 `max_parallel` 槽) 才能派 agent。pending / failed 态 subtask 禁直接派 agent。
+3. **🛑 check 级: 未 skein check 禁验证宣告 (硬门·STOP)** — 全 subtask done 后必须先 `skein check` 进检查中态才能跑验证。禁 main 在 task 仍「进行中」态自跑验证当 check 结果。
 
-**🔒 本铁律禁自降级 — 无"简单的可直接"口子。** 三环节任一违反 = 流程错误, 必须回退到对应状态命令后再继续, 禁以「这个简单」「省一步」「状态机差不多对」为由绕过。(memory: `skein-hook-no-self-downgrade` — 禁泛化「简单的直接做」, AI 会自降级绕 flow; 本段文案硬, 不留口子。)
+**🔒 本铁律禁自降级 — 无"简单的可直接"口子。** 三环节任一违反 = 流程错误, 必须回退到对应状态命令后再继续。(memory: `skein-hook-no-self-downgrade`)
+
+**详细展开与状态机定义详见 skein-workflow/references/state-before-action.md、task-state-machine.md、subtask-state-machine.md。**
 
 ## 任务执行流程 (plan → exec → check → finish 四步闭环)
 ### plan
@@ -31,10 +33,12 @@ effort: medium
 - Skill(skein-plan --continue) 走完 brainstorm 需求澄清 → grill 硬门 → 规划+`subtask add` 登记 (brainstorm/grill 均在 skein-plan 内, 单一真值源, 顺序 brainstorm→grill) → 🛑 ToolCall(AskUserQuestion) 评审确认 → `skein confirm <id>` 过用户确认门 (待处理→就绪, 验 prd + ≥1 subtask) → `skein start <id>` 激活 (占 active 槽 + 建 worktree, 就绪→进行中)。未 confirm 禁 start, 未 start 禁进 exec (硬门 · STOP)。
 - **plan 阶段完成判据**: 4 条 checklist (task 已 create / prd 已填完 / subtask 已规划 / 设计方案已定或 main 豁免) 详见 `skein-plan` SKILL.md「✅ plan 阶段完成判据」段。未勾满 = planning 未收敛, 禁 `skein start`。
 ### exec
-- Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (🛑 硬门)**: 有 subtask 走 `claim→派 Agent→done→claim`; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
+- Skill(skein-exec) DAG 就绪即派 / 完成即派 (并发上限 2)。**执行一律派 agent (🛑 硬门)**: 有 subtask 走 claim→派 Agent→done 循环; 无 subtask main 派 1 个 `skein-executor`。**禁 main inline 顺跑**。派发后回合末 MUST 输出任务清单; 禁问顺序。
 - **exec/check/finish 禁动 design.md** — 方案调整回 planning 改 design 后重派。
+- DAG 调度算法、并发控制、就绪判定详见 skein-workflow/references/dag-scheduling.md；subtask claim/start/done 操作规范详见 skein-workflow/references/subtask-operations.md；worktree 工作目录约定详见 skein-workflow/references/worktree-convention.md。
 ### check
-- Agent(skein-checker) 跑 lint/type-check/tests/契约合规 + **一致性核查**。未过或检出冲突 → **回 planning 重确认 (task 保持 `进行中`)**: grill/AskUserQuestion 与用户**确认修复方向** (定点修/重拆/改契约), **禁跳过确认直接补 subtask**; 确认后同 task `subtask add` 修复子任务 (`--deps` 挂失败源) 回 exec 重派, 全绿且零冲突才放行。详见 `skein-check` skill。
+- Agent(skein-checker) 跑 lint/type-check/tests/契约合规 + **一致性核查**。未过或检出冲突 → **回 planning 重确认 (task 保持 `进行中`)**: 与用户确认修复方向, 禁跳过确认直接补 subtask; 确认后同 task `subtask add` 修复子任务回 exec 重派, 全绿且零冲突才放行。详见 `skein-check` skill。
+- 回 planning 标准流程（触发条件、修复 subtask 添加规范）详见 skein-workflow/references/rollback-protocol.md。
 ### finish
 - Skill(skein-finish) 收尾门 (check 全绿后): 派 `skein-finisher` 勘察 → 委托 `skein-spec` sediment → 清理悬挂 → `skein finish`。**sediment 判定门 (自动沉淀)**: `skein-specer` 产候选 → main 逐项 trace + `skein-spec sediment` 自动写盘; 无增量跳过。详见 `skein-finish` skill。
 
