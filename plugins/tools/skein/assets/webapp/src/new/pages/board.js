@@ -279,21 +279,17 @@ function sugiyama(ids, depsOf, opt) {
   };
 }
 
-// 两档节点尺寸 —— 分层排布的高度直接由节点高定 (行 = 依赖深度, 层数不可压)。
-// compact 卡上放得下标题 + 状态两行; mini 只剩状态色点 + id, 详情全靠 hover popover。
+// 三档节点尺寸 —— 分层排布的高度直接由节点高定 (行 = 依赖深度, 层数不可压)。
+// large 卡最宽松; compact(默认中号) 放得下标题 + 状态两行; mini 只剩状态色点 + id, 详情全靠 hover popover。
 const DAG_DENSITY = {
+  large:   { w: 260, h: 76, gapX: 18, gapY: 26, padX: 40, padY: 30 },
   compact: { w: 190, h: 52, gapX: 14, gapY: 22, padX: 40, padY: 30 },
-  mini: { w: 120, h: 32, gapX: 14, gapY: 22, padX: 40, padY: 30 },
+  mini:    { w: 120, h: 32, gapX: 14, gapY: 22, padX: 40, padY: 30 },
 };
-
-// 默认档由画布算出来, 不是拍脑袋的节点数阈值: 先按 compact 排, 高度超过视口 3 屏就降到 mini。
-// 图窄或任务少时 compact 本来就装得下, 不该被一刀切的 "> 50 个任务用 mini" 强行缩小。
-function autoDensity(h, viewH) {
-  return h > Math.max(600, viewH) * 3 ? 'mini' : 'compact';
-}
 
 // view = { w, h } 可用画布尺寸 — 详情面板开合 / 窗口缩放都会改变它, 布局随之重排。
 // 宽度是硬约束 (画布永不横向溢出), 高度自由, 超出部分由容器纵向滚动条承担。
+// density 缺省/非法值一律回落中号 compact — 不再走自动降级判定 (autoDensity 已删, 用户明确选档更可靠)。
 function layoutDAG(tasks, view, density) {
   if (!tasks || !tasks.length) return { nodes: [], edges: [], width: 0, height: 0, density: density || 'compact' };
   const byId = new Map(tasks.map(t => [t.id, t]));
@@ -301,12 +297,8 @@ function layoutDAG(tasks, view, density) {
   const ids = tasks.map(t => t.id);
   const maxW = (view && view.w) || 1200;
   const extraOf = id => ({ task: byId.get(id) });
-  const run = (d) => ({ ...layoutTiered(ids, depsOf, DAG_DENSITY[d], maxW, extraOf), density: d });
-
-  if (density === 'mini' || density === 'compact') return run(density);
-  const c = run('compact');
-  const auto = autoDensity(c.height, (view && view.h) || 0);
-  return auto === 'compact' ? c : run('mini');
+  const d = DAG_DENSITY[density] ? density : 'compact';
+  return { ...layoutTiered(ids, depsOf, DAG_DENSITY[d], maxW, extraOf), density: d };
 }
 
 // 真分层 (行 = 依赖深度), 靠缩小节点换回来的。
@@ -505,7 +497,14 @@ function nodePopover(node) {
   const subs = t.subtasks || [];
   const subStats = getSubtaskStats(t);
   const hasSubs = subs.length > 0;
-  const progress = hasSubs ? subStats.progress : (t.progress != null ? t.progress : (st === 'done' ? 100 : st === 'active' ? 50 : 0));
+  // 进度: 优先用后端已算好的 t.progress (= scripts/skein.py _task_pct, 卡片 spct 字段映射而来);
+  // 缺失时按同一算法本地兜底 —— 状态机阶段下限 + (有 subtask 时) subtask 均值取高者, 与后端对齐。
+  const stageFloor = st === 'check' ? 85 : st === 'active' ? 10 : st === 'ready' ? 8 : 5;
+  const progress = t.progress != null ? t.progress
+    : st === 'done' ? 100
+    : hasSubs ? Math.max(stageFloor, Math.floor(subs.reduce((a, s) =>  // floor: 对齐后端 // 整除
+        a + (s.progress != null ? s.progress : (s.status === 'done' ? 100 : s.status === 'active' ? 50 : 0)), 0) / subs.length))
+    : stageFloor;
   const popIcon = ST_ICON[st] || 'fa-cube';
   const prio = t.priority != null ? Number(t.priority) : 5;
   const prioIcon = prio >= 7 ? 'fa-arrow-up' : prio >= 4 ? 'fa-minus' : 'fa-arrow-down';
@@ -605,7 +604,7 @@ function getSubtaskStats(task) {
 // 分层排布下节点尺寸是布局的自变量 (行 = 依赖深度, 高度 = 层数 × 节点高), 所以卡面内容跟着档位走:
 // compact 52px 放标题 + id/状态一行, mini 32px 只剩色点 + 标题。两档的详情都在 hover popover 里,
 // 卡面少画几行不等于信息丢失。
-function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed, density = 'compact') {
+function nodeCard(node, onClick, dimmed, density = 'compact') {
   const t = node.task;
   const st = t.status || 'planning';
   const subs = t.subtasks || [];
@@ -640,26 +639,8 @@ function nodeCard(node, onClick, onToggleExpand, isExpanded, dimmed, density = '
                   hasSubs ? h('span.flex-shrink-0', `${subStats.done}/${subStats.total}`) : null,
                 ]),
               ]),
-          // 子任务展开只在 compact 档给按钮 — mini 卡宽 120px, 塞不下, 点卡片进详情面板一样能看
-          !mini && hasSubs
-            ? h('button.flex-shrink-0.px-1.text-muted.hover\\:text-accent.transition-colors',
-                {
-                  onclick: (e) => { e.stopPropagation(); if (onToggleExpand) onToggleExpand(t.id); },
-                  title: isExpanded ? '收起子任务' : '展开子任务',
-                },
-                [h(`i.fa.fa-chevron-${isExpanded ? 'up' : 'down'}.text-xxs`)])
-            : null,
         ]
       ),
-      isExpanded && hasSubs && !mini ? h('div.mt-2.glass-card.p-3',
-        { onclick: (e) => e.stopPropagation() },
-        [
-          h('div.eyebrow.text-accent.mb-2.text-xs', `子任务 DAG (${subs.length})`),
-          subs.length >= 2
-            ? subDAGView(subs, () => { onClick(t.id); })
-            : h('div.p-2.rounded.bg-surface/50.text-sm', subs[0].title || subs[0].name || subs[0].sid),
-        ]
-      ) : null,
     ]
   );
 }
@@ -964,8 +945,10 @@ function subDAGView(subs, onSubClick) {
       { style: { width: width + 'px', height: height + 'px', minWidth: '100%' } },
       [
         drawEdges(edges),
-        ...nodes.map(n =>
-          h(`div.sub-dag-node.absolute.flex.items-center.gap-2.px-2.py-1.rounded.border.border-brd/40.bg-card/60.cursor-pointer.hover\\:bg-card.transition-colors`,
+        ...nodes.map((n) => {
+          const sst = n.sub.status || 'planning';
+          // 已完成的子任务仍要渲染 (整条链路完整可读), 只降视觉权重 (.is-done 灰显), 不隐藏。
+          return h(`div.sub-dag-node.absolute.flex.items-center.gap-2.px-2.py-1.rounded.border.bg-card/60.cursor-pointer.hover\\:bg-card.transition-colors.${ST_COLOR[sst]}${sst === 'done' ? '.is-done' : ''}`,
             {
               style: { left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' },
               onclick: (e) => { e.stopPropagation(); if (onSubClick) onSubClick(n.id); },
@@ -973,11 +956,11 @@ function subDAGView(subs, onSubClick) {
               title: n.sub.title || n.sub.name || n.id,
             },
             [
-              h(`span.w-2.h-2.rounded-full.flex-shrink-0.bg-${ST_COLOR[n.sub.status || 'planning']}`),
+              h(`span.w-2.h-2.rounded-full.flex-shrink-0.bg-${ST_COLOR[sst]}`),
               h('span.text-xs.text-fg.truncate.flex-1', n.sub.title || n.sub.name || n.id),
             ]
-          )
-        ),
+          );
+        }),
       ]
     ),
   ]);
@@ -1425,7 +1408,6 @@ export async function render(mount, params, ctx) {
   let selectedId = null;
   let scale = 1;
   let focusedOnce = false;
-  const expandedNodes = new Set();
 
   // 状态计数
   const countBy = {};
@@ -1438,12 +1420,6 @@ export async function render(mount, params, ctx) {
 
   function closePanel() {
     selectedId = null;
-    draw();
-  }
-
-  function toggleExpand(id) {
-    if (expandedNodes.has(id)) expandedNodes.delete(id);
-    else expandedNodes.add(id);
     draw();
   }
 
@@ -1514,12 +1490,15 @@ export async function render(mount, params, ctx) {
     }
   }
 
-  // 节点档位: null = 跟随画布自动判定 (autoDensity), 用户切过一次就记住, 换页/刷新不用重切
-  let densityPref = null;
-  try { const v = localStorage.getItem('skein.dag.density'); if (v === 'mini' || v === 'compact') densityPref = v; } catch (_) { /* 隐私模式禁 localStorage */ }
+  // 节点档位: 小/中/大三档, 默认中号(compact); 用户切过一次就记住 (localStorage), 换页/刷新不用重切
+  let densityPref = 'compact';
+  try {
+    const v = localStorage.getItem('skein.dag.density');
+    if (v === 'mini' || v === 'compact' || v === 'large') densityPref = v;
+  } catch (_) { /* 隐私模式禁 localStorage */ }
   function setDensity(d) {
     densityPref = d;
-    try { d ? localStorage.setItem('skein.dag.density', d) : localStorage.removeItem('skein.dag.density'); } catch (_) { /* 同上 */ }
+    try { localStorage.setItem('skein.dag.density', d); } catch (_) { /* 同上 */ }
     draw();
   }
   // 布局用的可用画布尺寸 — 每次 draw 后按真实 DOM 校正, 详情面板开合 / 窗口缩放都会改到它
@@ -1662,18 +1641,15 @@ export async function render(mount, params, ctx) {
         h('div.flex-1.min-w-0', statusFilterBar(statusSet, countBy, setFilter)),
         h('div.flex.items-center.gap-3.flex-shrink-0', [
           view === 'dag' ? h('div.flex.items-center.gap-1.glass.rounded-lg.p-1.border.border-brd/40', [
-            h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'compact' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
-              {
-                onclick: () => setDensity(densityPref === 'compact' ? null : 'compact'),
-                title: densityPref === 'compact' ? '中号节点 (点击回自动)' : '切到中号节点',
-              },
-              h('i.fa.fa-th-large')),
             h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'mini' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
-              {
-                onclick: () => setDensity(densityPref === 'mini' ? null : 'mini'),
-                title: densityPref === 'mini' ? '迷你节点 (点击回自动)' : '切到迷你节点',
-              },
+              { onclick: () => setDensity('mini'), title: '切到迷你节点' },
               h('i.fa.fa-th')),
+            h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'compact' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
+              { onclick: () => setDensity('compact'), title: '切到中号节点' },
+              h('i.fa.fa-th-large')),
+            h(`button.px-2.py-1.rounded-md.text-sm.transition-colors.${curDensity === 'large' ? 'text-accent' : 'text-muted'}.hover\\:text-accent`,
+              { onclick: () => setDensity('large'), title: '切到大号节点' },
+              h('i.fa.fa-square-o')),
             h('span.w-px.h-4.bg-brd/60.mx-1'),
             h('button.px-2.py-1.rounded-md.text-sm.text-muted.hover\\:text-accent.transition-colors',
               { onclick: () => { scale = Math.min(scale + 0.1, 2); draw(); }, title: '放大' },
@@ -1719,7 +1695,7 @@ export async function render(mount, params, ctx) {
                       const toSt = e.to.task ? e.to.task.status : 'planning';
                       return { dimmed: !(statusSet.has(fromSt) && statusSet.has(toSt)) };
                     }),
-                    ...nodes.map(n => nodeCard(n, selectTask, toggleExpand, expandedNodes.has(n.id), !statusSet.has(n.task.status), curDensity)),
+                    ...nodes.map(n => nodeCard(n, selectTask, !statusSet.has(n.task.status), curDensity)),
                   ]
                 ),
               ]

@@ -653,13 +653,16 @@
 /* 两档节点尺寸: 分层排布 (行 = 依赖深度) 的画布高度 = 层数 × 节点高, 节点高就是布局的自变量。
    状态色走描边而非顶部色条 —— 32px 高的卡切一条 4px 色带就只剩 28px 放字。 */
 .dag-node.dag-node-compact,
-.dag-node.dag-node-mini {
+.dag-node.dag-node-mini,
+.dag-node.dag-node-large {
   padding: 0 10px;
   border-radius: 999px;
   border-width: 1.4px;
   border-style: solid;
 }
 .dag-node.dag-node-compact { padding: 0 12px; border-radius: 12px; }
+.dag-node.dag-node-large { padding: 0 18px; border-radius: 14px; border-width: 1.8px; font-size: 1.15em; }
+.dag-node.dag-node-large .dag-dot { width: 10px; height: 10px; }
 /* board.js 一直在用 .text-xxs, 但从来没定义过 —— 之前只是继承父级字号, 没人发现 */
 .text-xxs { font-size: 0.625rem; line-height: 0.9rem; }
 .dag-node .dag-dot {
@@ -1908,6 +1911,15 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
 .sub-dag-node:hover {
   border-color: var(--accent) !important;
 }
+/* 状态着色: 边框随状态色变, 呼应主 DAG .dag-node.st-* 的语义 */
+.sub-dag-node.st-planning { border-color: var(--st-planning); }
+.sub-dag-node.st-ready    { border-color: var(--st-ready); }
+.sub-dag-node.st-active   { border-color: var(--st-active); }
+.sub-dag-node.st-check    { border-color: var(--st-check); }
+.sub-dag-node.st-done     { border-color: var(--st-done); }
+.sub-dag-node.st-failed   { border-color: var(--st-failed); }
+/* 已完成子任务仍渲染 (链路完整可读), 只灰显降权, 不隐藏 */
+.sub-dag-node.is-done { opacity: .55; filter: grayscale(1); }
 
 /* ═══════════ 详情面板动画 (滑入) ═══════════ */
 .detail-panel {

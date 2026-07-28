@@ -16,13 +16,17 @@
         "面板 exec 节点展开子任务时间线",
         "面板无子任务列表区块"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785243708,
       "started": 1785243796,
-      "finished": null
+      "finished": 1785244541
     },
     {
       "sid": "s2",
@@ -37,11 +41,11 @@
         "子 DAG 各状态色区分, done 灰显"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785243708,
-      "started": null,
+      "started": 1785244541,
       "finished": null
     },
     {
@@ -53,13 +57,16 @@
         "python 单测覆盖各状态组合",
         "前端回退算法与后端一致"
       ],
-      "验收done": [],
-      "status": "运行中",
+      "验收done": [
+        1,
+        2
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785243708,
       "started": 1785244484,
-      "finished": null
+      "finished": 1785244541
     },
     {
       "sid": "s4",
@@ -114,5 +121,5 @@
   "confirmed": 1785243792,
   "checked": null,
   "finished": null,
-  "updated": 1785244484
+  "updated": 1785244541
 }

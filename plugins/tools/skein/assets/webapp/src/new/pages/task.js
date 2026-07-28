@@ -150,8 +150,10 @@ function subDAGView(subs, onSubClick) {
           { style: { width: '100%', height: '100%' } },
           paths
         ),
-        ...nodes.map(n =>
-          h(`div.sub-dag-node.absolute.glass-card.p-2.cursor-pointer.transition-all`,
+        ...nodes.map((n) => {
+          const sst = n.sub.status || 'planning';
+          // 已完成子任务仍渲染 (链路完整), 只用 .is-done 灰显降权, 不隐藏。
+          return h(`div.sub-dag-node.absolute.glass-card.p-2.cursor-pointer.transition-all.${ST_COLOR[sst]}${sst === 'done' ? '.is-done' : ''}`,
             {
               style: { left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' },
               onclick: (e) => { if (onSubClick) onSubClick(n.id); },
@@ -159,13 +161,13 @@ function subDAGView(subs, onSubClick) {
             },
             [
               h('div.flex.items-center.gap-2.mb-1', [
-                h(`span.w-2.h-2.rounded-full.flex-shrink-0.bg-${ST_COLOR[n.sub.status || 'planning']}`),
+                h(`span.w-2.h-2.rounded-full.flex-shrink-0.bg-${ST_COLOR[sst]}`),
                 h('span.text-xs.font-medium.text-head.truncate', n.sub.title || n.sub.name || n.id),
               ]),
-              h('div.text-xs.text-muted', ST_LABEL[n.sub.status || 'planning'] || n.sub.status),
+              h('div.text-xs.text-muted', ST_LABEL[sst] || sst),
             ]
-          )
-        ),
+          );
+        }),
       ]
     ),
   ]);
