@@ -309,9 +309,75 @@ function layoutDAG(tasks, size = 'md', view) {
   const s = DAG_SIZES[size] || DAG_SIZES.md;
   const byId = new Map(tasks.map(t => [t.id, t]));
   const depsOf = id => (byId.get(id).deps || []).filter(d => byId.has(d));
-  return layoutGrid(tasks.map(t => t.id), depsOf, s,
+  return layoutCoord(tasks.map(t => t.id), depsOf, s,
     (view && view.w) || 1200, id => ({ task: byId.get(id) }),
     id => cardHeight(byId.get(id)));
+}
+
+// 卡片位置由它的前驱 + 后继共同决定: 逐张按拓扑序落位, 候选落点打分 = 到各邻居的距离 + 落点高度,
+// 取最低分。网格排布是反过来的 —— 先划死格子再往里塞卡, 位置与依赖关系无关, 线只能绕着格子走。
+//
+// 落点由 skyline (逐桶记录当前占用底沿) 给出: 选定 x 后 y 就是该段 skyline 的最高点, 卡自动
+// 贴着已放的卡长上去。面积因此不会退化 —— 这是「贴合装箱」而非力导向, 后者实测把画布拉到近两倍高。
+// 跑两遍: 第一遍只有前驱已定位, 第二遍拿第一遍的坐标, 前驱后继一起参与打分。
+function layoutCoord(ids, depsOf, s, maxW, extraOf, heightOf) {
+  // nodes 顺序即 layoutGrid 的 DFS 拓扑序; 借它的节点尺寸与边表, 位置全部重算
+  const g = layoutGrid(ids, depsOf, s, maxW, extraOf, heightOf);
+  const nodes = g.nodes;
+  if (nodes.length < 2) return g;
+
+  const nmap = new Map(nodes.map(n => [n.id, n]));
+  const nbrIds = new Map(nodes.map(n => [n.id, { pred: [], all: [] }]));
+  for (const id of ids) {
+    for (const d of depsOf(id)) {
+      if (!nmap.has(d) || !nmap.has(id)) continue;
+      nbrIds.get(id).pred.push(d);
+      nbrIds.get(id).all.push(d);
+      nbrIds.get(d).all.push(id);
+    }
+  }
+
+  const B = 8;                                        // 落点按 8px 量化 — 够细, 又把候选数压住
+  const cols = Math.max(1, Math.floor((maxW - s.padX * 2) / B));
+  const place = (pick) => {
+    const sky = new Float64Array(cols);
+    for (const n of nodes) {
+      const span = Math.max(1, Math.ceil((n.w + s.gapX) / B));
+      const maxC = Math.max(0, cols - span);
+      const cand = new Set([0, maxC]);
+      // 候选一: 邻居正下方 / 正上方 (对齐邻居 x, 线就是一条直竖线)
+      for (const m of pick(n)) cand.add(Math.min(maxC, Math.max(0, Math.round((m.x - s.padX) / B))));
+      // 候选二: skyline 的每个台阶变化点 —— 贴着台阶放才不留空洞
+      for (let i = 1; i < cols; i++) if (sky[i] !== sky[i - 1]) cand.add(Math.min(maxC, i));
+      let best = null;
+      for (const c of cand) {
+        let y = 0;
+        for (let i = c; i < c + span && i < cols; i++) if (sky[i] > y) y = sky[i];
+        const x = s.padX + c * B;
+        // 高度项的权重决定「压面积」和「缩短线」谁让步。1.5 是实测的平衡点:
+        // 再低画布迅速长高, 再高就退化成一格接一格的网格。
+        let cost = y * 1.5;
+        for (const m of pick(n)) cost += Math.abs(x - m.x) + Math.abs(y + s.padY - m.y);
+        // 回绕惩罚: 落在前驱上方的边要往回爬, 读图时方向感直接断掉。罚重于省下的那点距离,
+        // 但不设为硬约束 —— 硬约束就退回分层排布 (一层独占一行) 那套 15000px 的柱子了。
+        for (const m of nbrIds.get(n.id).pred.map(id => nmap.get(id))) {
+          if (y + s.padY < m.y + m.h) cost += (m.y + m.h - y - s.padY) * 0.6;
+        }
+        if (!best || cost < best.cost) best = { cost, x, y, c };
+      }
+      n.x = best.x;
+      n.y = s.padY + best.y;
+      for (let i = best.c; i < best.c + span && i < cols; i++) sky[i] = best.y + n.h + s.gapY;
+    }
+  };
+  place(n => nbrIds.get(n.id).pred.map(id => nmap.get(id)));
+  place(n => nbrIds.get(n.id).all.map(id => nmap.get(id)));
+
+  return {
+    nodes, edges: g.edges,
+    width: Math.max(...nodes.map(n => n.x + n.w)) + s.padX,
+    height: Math.max(...nodes.map(n => n.y + n.h)) + s.padY,
+  };
 }
 
 // 拓扑序满铺网格: 一行内可以并排不同依赖深度的卡。

@@ -8,9 +8,9 @@ const cut = (name) => {
 };
 // 布局链是纯函数, 整串 eval 出来 (layoutPacked 依赖 components/sugiyama/packLayout)。
 // eval 的输入是本仓库自己的源码, 非外部输入 — 这里只是绕开 board.js 的浏览器 ESM 依赖。
-const { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive, bundleTrunks } = eval(
-  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutGrid', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
-   return { sugiyama, layoutPacked, layoutGrid, edgeKinds, focusActive, bundleTrunks }; })()`);
+const { sugiyama, layoutPacked, layoutGrid, layoutCoord, edgeKinds, focusActive, bundleTrunks } = eval(
+  `(() => { ${['sugiyama', 'packLayout', 'components', 'transpose', 'layoutComponent', 'layoutPacked', 'layoutGrid', 'layoutCoord', 'edgeKinds', 'focusActive', 'bundleTrunks'].map(cut).join('\n')}
+   return { sugiyama, layoutPacked, layoutGrid, layoutCoord, edgeKinds, focusActive, bundleTrunks }; })()`);
 
 const S = { colW: 300, rowH: 200, padX: 40, padY: 30, gapX: 30, gapY: 20 };
 const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth: view.w, viewH: view.h });
@@ -184,6 +184,34 @@ const run = (g, view) => sugiyama(Object.keys(g), id => g[id], { ...S, maxWidth:
     Math.abs(e.from.x - e.to.x) > S.colW || Math.abs(e.from.y - e.to.y) > S.rowH);
   console.assert(far.length === 0, '纯链不该有跨格边, 实际 ' + far.length);
   console.log(`11 满铺网格 OK ${cols}列x${rows}行 size=${grid.width}x${grid.height} (分层为 ${Math.round(packed.height)}) 跨格边 ${far.length}`);
+}
+
+// 16. 贴合装箱 (layoutCoord): 位置由前驱+后继决定, 边更短、无重叠、不超宽、面积不劣于网格
+{
+  // 菱形团簇串成的图 —— 既有扇出扇入又有长链, 比纯链更接近真实 task 图
+  const g = { r: [] };
+  for (let b = 0; b < 8; b++) {
+    const p = b === 0 ? 'r' : `m${b - 1}`;
+    g[`a${b}`] = [p]; g[`c${b}`] = [p]; g[`d${b}`] = [p];
+    g[`m${b}`] = [`a${b}`, `c${b}`, `d${b}`];
+  }
+  const ids = Object.keys(g), depsOf = id => g[id];
+  const co = layoutCoord(ids, depsOf, S, 1400, () => ({}));
+  const grid = layoutGrid(ids, depsOf, S, 1400, () => ({}));
+  console.assert(co.nodes.length === ids.length, '节点应全画, 实际 ' + co.nodes.length);
+  console.assert(co.edges.length === grid.edges.length, '边应全保留');
+  console.assert(co.width <= 1400, '不许超宽, 实际 ' + co.width);
+  let overlap = 0;
+  for (let i = 0; i < co.nodes.length; i++) for (let j = i + 1; j < co.nodes.length; j++) {
+    const a = co.nodes[i], b = co.nodes[j];
+    if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) overlap++;
+  }
+  console.assert(overlap === 0, '卡片不许重叠, 实际 ' + overlap);
+  const span = (r) => r.edges.reduce((n, e) =>
+    n + Math.abs(e.from.x - e.to.x) + Math.abs(e.from.y - e.to.y), 0);
+  console.assert(span(co) < span(grid), `总边长应短于网格: ${span(co)} vs ${span(grid)}`);
+  console.assert(co.height <= grid.height * 1.15, `高度不该明显劣于网格: ${co.height} vs ${grid.height}`);
+  console.log(`16 贴合装箱 OK ${co.width}x${co.height} (网格 ${grid.width}x${grid.height}) 边长 ${span(co)} vs ${span(grid)}`);
 }
 
 // 15. 行高自适应: 卡高按内容, 行高取该行最高, 短卡不被拉高, 总高低于等高网格
