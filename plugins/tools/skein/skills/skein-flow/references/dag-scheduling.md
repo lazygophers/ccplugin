@@ -23,6 +23,21 @@ SKEIN 的调度完全基于显式依赖边，无隐式依赖推测。
 - 有序关系必须在 planning 阶段写进 `depends_on`，exec 阶段不补
 - 无写文件冲突自算 — 发挥 AI 自主性，拆分时靠人/AI 判断真实有序关系
 
+### 1.3 subtask 命令族 (脚本落盘，非肉眼看 md 文件)
+
+subtask DAG 存 per-task `task.json` 的 `subtasks[]` (guard 硬阻 AI 直读写)，全程经 `skein subtask` 命令维护：
+
+| 命令 | 谁跑 | 作用 |
+|---|---|---|
+| `subtask add <tid> <sid> --name --desc [--agent --deps --check --skills]` | planning/main | 登记 subtask 到 DAG。`sid`/`--name`/`--desc` 必填；`--agent` 省略默认 `skein-executor`；`--check` = 验收 checklist 分号分隔，`--skills` 逗号分隔 0-n |
+| `claim` | main (每轮，主路径) | 见 §5.3 |
+| `subtask claim <tid>` | main (单 task 兼容) | 见 §5.3 |
+| `claim --dry-run` | main (查候选) | 见 §5.3 |
+| `subtask check <tid> <sid> --passed "1,3"` | main (**check 阶段**，非 exec) | 勾选已过验收序号 (1-based；`all`/`none`)，更新完成百分比。exec 不勾验收 — 归 check 阶段 checkpoint 核对 |
+| `subtask done/fail <tid> <sid>` | main (exec，agent 回) | agent 执行完成/失败即改态。exec 唯一改态出口 (`done`=执行动作完成；验收核对留给 check) |
+| `subtask ready <tid>` / `list <tid>` | main (查态) | 只读预览 / 列全 subtask 态 |
+| `list --status open --json` | main (取未完成) | 一次取全部未完成 task 压缩 JSON: `{id,status,name,desc,deps,worktree,pct,subs:[done,run,pend,fail],ready}` |
+
 ---
 
 ## 2. 就绪判定 (Ready = 所有前置 done)
@@ -35,7 +50,7 @@ subtask.ready = (∀ dep ∈ subtask.depends_on: dep.status == done)
 ```
 
 - **前置全 done**：所有被依赖的 subtask 都处于 `已完成` 态
-- **有空闲槽**：全局 running subtask 数 < `max_parallel`
+- **有空闲槽**：全局 running subtask 数 < `max_active`
 
 ### 2.2 deps 阻塞的范围
 
@@ -89,7 +104,7 @@ layer N: 最下游节点
 
 ---
 
-## 4. 并发上限 (max_active / max_parallel)
+## 4. 并发上限 (max_active)
 
 ### 4.1 配置项
 
@@ -122,7 +137,7 @@ layer N: 最下游节点
 
 ```
 while skein claim 返回非空:       # 全局跨 task 合池竞争
-    对认领到的每个 (task, subtask): 派 agent 执行  # ≤ max_parallel
+    对认领到的每个 (task, subtask): 派 agent 执行  # ≤ max_active
     等任一 subagent 返回
     → skein subtask done/fail <tid> <sid> → 回到 skein claim
 ```
@@ -165,7 +180,7 @@ skein list --status open --json
 
 - **目标**：用 exec 空闲窗口把排队 task 备到「一有 slot 即可 start」，流水线不断档
 - **推到哪里停**：至多推到 `skein confirm`/`start` 门前 (planning-complete 待处理态)
-- **不自动过用户门**：confirm 是用户确认门，plan-ahead 不自动 confirm
+- **不自动过用户门**：confirm 是用户确认门，plan-ahead 不自动 confirm。**注**: 这条只约束 plan-ahead 预备的**非焦点 pending task** (exec 空闲时顺手推进的排队 task)。循环当前焦点 task 的 confirm 行为以 [flow-loop.md](flow-loop.md) 为准 (flow 主循环视 confirm 为非阻塞门, 判据勾满自动过); 该 pending task 一旦被 claim/exec 选为焦点, 即按 flow-loop.md 自动过 confirm, 不再受本条限制。
 
 ### 6.3 必让位 subtask
 
@@ -241,7 +256,7 @@ skein subtask add <tid> <fix-sid> \
 
 ### 8.1 跨 task 合池
 
-所有 active task 的 ready subtask 竞争**同一 `max_parallel` 槽**，不是 per-task 各占 max_parallel。
+所有 active task 的 ready subtask 竞争**同一 `max_active` 槽**，不是 per-task 各占 max_active。
 
 ```
 总并发 = task1.running + task2.running + ... ≤ max_active
@@ -258,3 +273,36 @@ skein subtask add <tid> <fix-sid> \
 
 - 各 active task 各占各 worktree，改动天然隔离
 - 派出的 subagent 改各自 task worktree，互不干扰
+
+---
+
+## 9. dispatch prompt 模板 (6 字段自包含，缺字段不派)
+
+**执行者 = main 为该 subtask 选的合适 agent** (按任务性质挑现有 agent，无合适的用默认 `skein-executor`)。默认 `skein-executor` 工具面已剔除 Agent/Task，递归护栏在工具层强制；但若选中的具名 agent **有** Agent/Task 工具，靠工具面兜住的执行纪律 (递归护栏 + 读后写硬门) 就得靠 dispatch prompt 补上 — 故无论选中哪个 agent，6 字段 prompt 都显式带上下面这套纪律：
+
+```
+目标: <这个 subtask 要产出什么>
+已知: Active task <id>, 工作目录=<task 的 worktree 字段值; 非 null=该 worktree 路径 (多子 git 时写对应子 git 的 worktree); null=原地在仓库根>, 相关文件/上文, 召回的 recall 规则
+工作目录与范围: <上述工作目录路径>; worktree 态 (非 null) → 只在此 worktree 内改、禁碰主工作区; 原地态 (worktree=null, 即 use_worktree=false/非 git) → 在仓库根改、无隔离。具体改哪些文件你按目标自主定 (给了自主权, 别越出本 subtask 目标)。
+执行纪律 (硬性, 逐条照做):
+  - Recursion Guard: 你只做派给你的这一个 subtask, 禁再派 subagent (禁调 Agent/Task), 自己动手做完。
+  - 改前查上游: 改函数/类/契约前先 grep 调用站点, 避免半改。
+  - 缺信息不硬猜: 缺关键输入时在返回里标 `需要: <问题>` 交 main 转达用户 (你不能 AskUserQuestion)。
+  - spec 优先, 别凭记忆重推: 动手前相关约定先 `skein-spec recall <关键词>` 拉 recall 层; SubagentStart 已注入的 core 全文即硬约束。踩到「后续同类任务会再犯」的坑 / 定下可复用约定, 在回传给 main 的摘要里标一行 `SPEC:` 供 finish sediment 落盘。
+  - 写前硬门 — 读后写: 改任何文件前先 Read 全文 (禁凭摘要/记忆动手) → 复述适用契约 (来源 `skein contract <id>`) 无矛盾才 Edit/Write。文件现状与契约矛盾 (契约已满足 / 该文件按契约不该改) → 停手, 标 `需要: <文件 path + 矛盾点>` 回传 main, 禁硬改。
+验收标准 (完成前逐条自检, 全过才回 done):
+  - <planning 登记的 --check 验收条 1>
+  - <验收条 2>
+输出格式 (回传 main, 压缩摘要非流水账):
+  subtask <id>: <done | 需要: 问题 | 失败: 原因>
+  改动文件: <path 列表>
+  关键决策: <一两句, 为何这么改>
+  自测: <跑过的验证 + 结果; 无则写 未测>
+  验收: <逐条对照验收标准的自检结果>
+  遗留: <后续 subtask 需知的信息 / 无>
+失败处理: 缺信息在返回标 `需要: <问题>`; 报错读原因缩范围重试
+```
+
+- **验收标准来自 planning 的 `--check`** — 每个 subtask 登记时带一份可验断言 checklist (存 per-task task.json 的 `验收[]`)，dispatch 时原样带给执行 agent，agent 完成前逐条自检、回传时对照。这份 checklist 的正式核对归 skein-flow check 阶段 checkpoint 核对，exec 只把它带给 agent 自检。
+- **exec 只 done/fail，验收勾选归 check** — exec 阶段 agent 回传后 main 只 `subtask done/fail`，不 `subtask check` 勾验收。看板 (task.md/task.html) 逐 subtask 渲染进度条，task 综合完成率 = 各 subtask 百分比均值。
+- **Recursion Guard 靠 dispatch prompt 硬性禁止** — 通用 agent 有 Agent/Task 工具，故不靠工具面而靠上面 prompt 的硬性指令挡住递归：执行 agent 只做这一个 subtask，禁再派 subagent，自己动手做完；也不能 `AskUserQuestion` — 缺信息标 `需要:` 由 main 转达用户。

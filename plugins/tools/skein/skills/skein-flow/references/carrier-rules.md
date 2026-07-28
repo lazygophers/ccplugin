@@ -13,3 +13,23 @@ skein-flow 全流程的载体层强制规则 (最高优先级)。每条都不可
 - **每个 dispatch prompt 6 字段自包含**: 目标 / 已知 (含 `Active task: <id>` + worktree 路径) / 工作目录与范围 / 输出格式 / 验收标准 / 失败处理。缺字段不派。
 - **完成即时回传** — 每个 subagent 完成或阻塞, main 立即输出摘要, 禁批量延迟汇总。
 - **并发多个 flow 请求禁互相顶掉** — 每个 flow 请求 = 独立 durable task, **收到即先 `skein create` 落盘**再处理。第二个请求进来时**禁中断/覆盖/丢弃**在飞的第一个: planning 阶段本就需 main 同步逐问用户 (brainstorm/grill/AskUserQuestion 不能并行), 故多请求**串行 planning** — 先把当前 task 登记 + 推进到不丢的态 (至少 `create` 落盘), 再处理下一个。已 `create` 未处理完的 task 留 pending, 由 `/skein-flow exec 阶段` 无参续跑, 绝不静默跳过。
+
+## ✅ 正向配方 (命中反面=流程错误)
+
+以下场景与上方 11 条铁律互补, 覆盖铁律未逐条列出的具体反例 (与铁律重复的行已去重不重复列出):
+
+| 场景 | 正确做法 (❌ 反面) |
+|---|---|
+| 处理请求 | 强制走 task 闭环, 即使看似简单 (❌ inline 跳 task) |
+| 改任务状态 | 经 skein CLI 操作 (❌ 直编 `.skein/task.md`) |
+| exec 派发顺序 | 按 depends_on DAG 自动排序即派 (❌ exec 阶段问用户顺序) |
+| 有 subtask 的 task | 走 claim→派 subagent→done 循环 (❌ main inline 顺跑不派 subagent) |
+| 相关工作组织 | 归一 task 拆 subtask (❌ 相关工作拆成多个 task) |
+| 进 exec 前置 | 先过 grill 硬门再推进 (❌ 跳 grill 硬门进 exec) |
+| 调度图/子任务落盘 | 写进 task.json (❌ 写进 md 文件) |
+| subagent 回传后 (exec) | 只 `subtask done/fail` (❌ exec 阶段勾验收 — 归 check) |
+| checker 报失败 | 交合适修复 agent 定点改 (❌ checker 自改码) |
+| check 失败 | 走回 planning 重确认: grill 敲定方向 → 同 task `subtask add`, task 保持 `进行中` (❌ 跳确认补 subtask / 改状态 / 另建 task) |
+| finisher 职责 | finisher 只读勘察改动+悬挂, 不做验收核对 (❌ finisher 核对 subtask 完成度 / 自己改码 / 跑 sediment) |
+| sediment 时序 | finish 先闭环, sediment 异步 fire-and-forget 在后 (❌ sediment 阻塞 finish) |
+| 宣告 Done | `skein finish` 标记完成后才宣告 Done (❌ 未 finish 闭环即宣告 Done) |

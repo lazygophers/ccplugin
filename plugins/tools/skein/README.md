@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 初始化 / trellis 迁移 | `setup` skill + `skein setup` | 幂等 scaffold; 检测 `.trellis/` → 软链 spec + 派 `skein-setup` agent 语义迁移 (spec 重组 / task 重建 / 清残留); SessionStart 无 `.skein/` 自动 nudge |
 | 强制 task 闭环 | `skein-flow` | 请求强制走 plan→exec→check→finish, 不 inline |
-| 动态 DAG 编排调度 (双层) | `skein-flow exec 阶段` (`references/scheduling-algorithm.md`) | main 作调度器, task 级 + subtask 级同构, 并行只看 `depends_on` DAG, 并发上限 2, 完成即派 (flow exec 委托) |
+| 动态 DAG 编排调度 (双层) | `skein-flow exec 阶段` (`references/dag-scheduling.md`) | main 作调度器, task 级 + subtask 级同构, 并行只看 `depends_on` DAG, 并发上限 2, 完成即派 (flow exec 委托) |
 | worktree 隔离 | `skein` | 1 task 1 worktree, 主工作区零改动 |
 | 看板 (文本 + 可视化) | `skein board` / `view` | `.skein/task.md` 文本看板 + `.skein/task.html` 静态可视化页 (title/标题带项目名; 预估进度总览 + 预计执行顺序图 + 每 task 时间条, 4 主题 6 配色 深浅色, 页内切换器, `view` 按需打开) |
 | planning 入口 | `skein-flow plan 阶段` | 判新旧 + 登记 + brainstorm + grill 硬门 (必走) |

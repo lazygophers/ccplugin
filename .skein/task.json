@@ -1,7 +1,7 @@
 {
   "tasks": [
     {
-      "id": "skein-wf-refs",
+      "id": "max-parallel-cleanup",
       "status": "待处理",
       "deps": [],
       "priority": 5,
@@ -92,6 +92,15 @@
     },
     {
       "id": "remove-doctor-btn",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "skein-flow-slim",
       "status": "已完成",
       "deps": [],
       "priority": 5,

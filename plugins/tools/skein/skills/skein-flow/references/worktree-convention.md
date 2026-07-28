@@ -68,7 +68,7 @@ skein start 为每个声明子 git 各建 worktree:
 - `skein repos <id>` 可查清单
 - 派 subtask 时 dispatch prompt 必须指名该 subtask 落在哪个子 git 的 worktree
 - 不同子 git 改动天然隔离，可并行派
-- 合计并发仍 ≤ max_parallel
+- 合计并发仍 ≤ max_active
 - finish 逐子 git commit→merge，某子 git 冲突则该 task 留 `进行中` 供修复后重跑
 
 ### 2.2 原地模式 (use_worktree=false 或非 git)

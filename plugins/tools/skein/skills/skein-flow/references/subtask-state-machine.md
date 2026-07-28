@@ -1,6 +1,6 @@
 # Subtask 状态机
 
-SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_parallel` 并发槽的关系。
+SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_active` 并发槽的关系。
 状态常量定义见 `skein.py:64-67`，落盘值为中文。
 
 ---
@@ -10,7 +10,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_parallel`
 | 状态 (中文) | 英文别名 | 占并发槽 | 含义 |
 |---|---|---|---|
 | **待处理** | pending | 否 | 已登记 (`subtask add`)，依赖未全 done / 还没被认领，排队等待调度 |
-| **运行中** | running | **是** | 已 claim / start，占 `max_parallel` 槽，agent 正在执行 |
+| **运行中** | running | **是** | 已 claim / start，占 `max_active` 槽，agent 正在执行 |
 | **已完成** | done | 否 | 执行成功，验收全过，释放槽位，下游依赖可解锁 |
 | **失败** | failed | 否 | 执行失败，释放槽位，等修复后重新 start / 重派 |
 
@@ -94,7 +94,7 @@ SKEIN subtask 的 4 个状态、流转规则、操作命令及与 `max_parallel`
 
 ---
 
-## 与 max_parallel 并发槽的关系
+## 与 max_active 并发槽的关系
 
 ### 槽位定义
 

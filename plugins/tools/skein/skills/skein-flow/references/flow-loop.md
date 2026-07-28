@@ -20,6 +20,8 @@ while 有可推进 task:                      # task 级并发受 max_active (�
 
 阶段内部细则不在此重复: plan / exec / check / finish 各自的流程、硬门、失败模式全部以 SKILL.md 对应章节为准。本文件只定**阶段之间怎么续**。
 
+**本节 `skein confirm` 特指当前循环焦点 task (flow 主循环正在推进的那个)** — flow 视 confirm 为非阻塞门, 判据勾满自动过、禁停手问用户。这与 [dag-scheduling.md](dag-scheduling.md) §6「plan-ahead 填空闲」中「不自动过用户门」**不冲突**: plan-ahead 处理的是**另一个尚未进入本轮循环焦点、exec 空闲时顺手预备的 pending task**, 只推到 confirm/start 门前即停, 待其成为循环焦点 (被 claim/exec 选中推进) 时再走本节的自动 confirm。二者分工: 焦点 task 的 confirm 自动过; 非焦点 task 被 plan-ahead 预备后仍停在confirm 门前, 不抢先替非焦点 task 做用户确认。
+
 ## 唯一允许停顿的点 (白名单, 其余一律续跑)
 
 停顿 = 结束本回合等用户答。只有这几处:

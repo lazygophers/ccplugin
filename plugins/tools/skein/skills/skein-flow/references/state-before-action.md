@@ -6,9 +6,12 @@
 
 ---
 
-## 🔒 禁自降级原则
+## 🔒 禁自降级原则 (本条款单一真值源, SKILL.md/其余 references 引用禁另抄一份)
 
-**无「简单的可直接」口子。** 三环节任一违反 = 流程错误，必须回退到对应状态命令后再继续，禁以「这个简单」「省一步」「状态机差不多对」为由绕过。
+**无「简单的可直接」口子。** 三环节任一违反 = 流程错误，必须回退到对应状态命令后再继续，**禁以下任一借口绕过**（非穷举，同类措辞一律禁用）：
+「这个简单」「省一步」「状态机差不多对」「先做起来再说」「顺手就做了」「反正马上要 start」「差不多勾满了」「跳过也没事」。
+
+**判据: 借口 ≠ 状态命令**。凡是"理由"而非"已跑通对应 skein 命令"，一律不构成豁免；命中上表任一硬门场景，唯一合法出口是先补跑该状态命令，无论理由听起来多合理。
 
 > memory 锚点: `skein-hook-no-self-downgrade` — 禁泛化「简单的直接做」，AI 会自降级绕 flow；本铁律文案硬，不留口子。
 
@@ -37,7 +40,7 @@
 
 | 项 | 内容 |
 |---|---|
-| **门规** | subtask 必须先 `skein claim` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_parallel` 槽) 才能派 agent |
+| **门规** | subtask 必须先 `skein claim` / `skein subtask claim <tid>` / `skein subtask start <tid> <sid>` (标 running 占 `max_active` 槽) 才能派 agent |
 | **禁止行为** | pending / failed 态 subtask 禁直接派 agent，必须先经 claim / start 占槽 |
 | **违反后果** | 流程错误，已派出的 agent 视为无槽运行，必须回收或补占槽 |
 | **回退操作** | 先把 subtask 标 running 占槽 (`skein subtask start <tid> <sid>` 或 `skein claim` 整批认领)，再派 agent |
