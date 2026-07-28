@@ -1,0 +1,67 @@
+{
+  "id": "progress-stage-interp",
+  "name": "进度推算改阶段区间映射",
+  "desc": "task/subtask 进度改为状态区间 + 完成度线性插值 (用户拍板方案 A), 后端 skein.py 与前端 board.js 兜底副本同步",
+  "status": "就绪",
+  "deps": [
+    "webapp-motion-depdag"
+  ],
+  "contracts": [],
+  "subtasks": [
+    {
+      "sid": "s1",
+      "name": "skein.py 区间插值改造",
+      "desc": "重写 _sub_pct / _task_pct 为阶段区间线性插值",
+      "depends_on": [],
+      "验收": [
+        "_task_pct 区间: planning 0-5 / ready 5-10 / active 10-85 / check 85-98 / done 100",
+        "_sub_pct 区间: 待处理 0-5 / running 10-90 / done 100",
+        "样例 active+subAvg75=66, active+subAvg100=85, check+subAvg100=98, ready+subAvg0=5",
+        "样例 running+0/3=10, running+2/3=63, running+无验收=50, done=100",
+        "无 subtask task 取状态区间中点",
+        "python3 -c import 无语法错"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785253908,
+      "started": null,
+      "finished": null
+    },
+    {
+      "sid": "s2",
+      "name": "board.js 兜底副本同步",
+      "desc": "前端本地进度算法对齐后端新公式",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "board.js 兜底算法与 skein.py 同公式同区间",
+        "逐样例结果与后端一致",
+        "node --check 通过"
+      ],
+      "验收done": [],
+      "status": "待处理",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785253908,
+      "started": null,
+      "finished": null
+    }
+  ],
+  "priority": 5,
+  "estimate": 1.0,
+  "repos": [],
+  "worktree": null,
+  "worktrees": [],
+  "branch": "skein/progress-stage-interp",
+  "parent": null,
+  "kind": "task",
+  "created": 1785253853,
+  "started": null,
+  "confirmed": 1785253908,
+  "checked": null,
+  "finished": null,
+  "updated": 1785253908
+}

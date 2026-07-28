@@ -1,6 +1,17 @@
 {
   "tasks": [
     {
+      "id": "progress-stage-interp",
+      "status": "就绪",
+      "deps": [
+        "webapp-motion-depdag"
+      ],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
       "id": "max-parallel-cleanup",
       "status": "待处理",
       "deps": [],
@@ -11,15 +22,6 @@
     },
     {
       "id": "webapp-design-align",
-      "status": "待处理",
-      "deps": [],
-      "priority": 5,
-      "worktree": null,
-      "parent": null,
-      "kind": "task"
-    },
-    {
-      "id": "webapp-motion-depdag",
       "status": "待处理",
       "deps": [],
       "priority": 5,
@@ -146,6 +148,15 @@
     },
     {
       "id": "ui-tabs-refactor",
+      "status": "已完成",
+      "deps": [],
+      "priority": 5,
+      "worktree": null,
+      "parent": null,
+      "kind": "task"
+    },
+    {
+      "id": "webapp-motion-depdag",
       "status": "已完成",
       "deps": [],
       "priority": 5,
