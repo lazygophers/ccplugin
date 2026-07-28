@@ -3,7 +3,7 @@
 //  设计: 列表 = 卡片网格 + 搜索; 详情 = /spec/detail?id=<rel path> 渲染 md 原文
 // ============================================================
 
-import { h, api, md, fmtTime } from '../app.js';
+import { h, api, md } from '../app.js';
 
 const LAYER_LABEL = { core: '常驻', recall: '召回' };
 
@@ -44,23 +44,16 @@ function specCard(spec) {
   );
 }
 
-// 值渲染: 数组 → chip 组; 时间戳 → 可读时间; 状态 → 徽标; 其余 → 文本
-const META_LABEL = {
-  title: '标题', layer: '层级', category: '类目', keywords: '关键词',
-  source: '来源', 'authored-by': '写入者', created: '创建', updated: '更新',
-  status: '状态', related: '关联',
-};
-const META_ORDER = ['layer', 'category', 'status', 'source', 'authored-by',
-                    'created', 'updated', 'keywords', 'related'];
+// 值渲染: 数组 → chip 组; 状态 → 徽标; 其余 → 文本
+// frontmatter 只留 5 字段 (时间类已废弃 — 注入上下文无意义且费 token)
+const META_LABEL = { title: '标题', layer: '层级', category: '类目', keywords: '关键词', status: '状态' };
+const META_ORDER = ['layer', 'category', 'status', 'keywords'];
 
 function metaValue(key, val) {
   if (Array.isArray(val)) {
     return val.length
       ? h('div.flex.flex-wrap.gap-1.5', val.map(v => h('span.antd-tag', String(v))))
       : h('span.text-muted', '—');
-  }
-  if ((key === 'created' || key === 'updated') && /^\d{9,}$/.test(String(val))) {
-    return h('span', fmtTime(Number(val) * 1000));
   }
   if (key === 'status') return h('span.antd-tag' + (val === 'active' ? '.success' : ''), String(val));
   if (key === 'layer') return h('span.antd-tag', LAYER_LABEL[val] || String(val));
