@@ -64,44 +64,82 @@ async function renderDetail(mount, relPath) {
   );
 }
 
-export async function render(mount, params) {
+export async function render(mount, params, ctx) {
   if (params && params.id) return renderDetail(mount, params.id);
 
   const tree = await api.spec().catch(() => null);
   const specs = flatten(tree);
 
+  // 类型 = 层级 (常驻/召回) × 类目 (arch/planning/skill/...); URL query 同步
+  const q = (params && params.query) || {};
+  const layers = [...new Set(specs.map(s => s.layer))];
+  const cats = [...new Set(specs.map(s => s.category))].sort();
+  let curLayer = layers.includes(q.layer) ? q.layer : 'all';
+  let curCat = cats.includes(q.cat) ? q.cat : 'all';
+  let kw = q.q || '';
+
+  function match(s) {
+    if (curLayer !== 'all' && s.layer !== curLayer) return false;
+    if (curCat !== 'all' && s.category !== curCat) return false;
+    const k = kw.toLowerCase().trim();
+    return !k || s.title.toLowerCase().includes(k) ||
+      s.category.toLowerCase().includes(k) || s.id.toLowerCase().includes(k);
+  }
+
+  function apply() {
+    const grid = mount.querySelector('#spec-grid');
+    const cnt = mount.querySelector('#spec-count');
+    if (!grid) return;
+    const items = specs.filter(match);
+    grid.replaceChildren(...(items.length ? items.map(specCard)
+      : [h('div.py-16.text-center.text-muted', '无匹配规范')]));
+    if (cnt) cnt.textContent = `${items.length} / ${specs.length} 条规范 · 来自 .skein/spec/`;
+    if (ctx && ctx.setQuery) {
+      ctx.setQuery({ layer: curLayer === 'all' ? null : curLayer,
+                     cat: curCat === 'all' ? null : curCat, q: kw || null }, true);
+    }
+  }
+
+  // 筛选 chip 组: 值 all = 不筛
+  function chips(name, values, labelOf, getCur, setCur) {
+    const btn = (v) => h(`button.filter-btn${getCur() === v ? '.active' : ''}`,
+      { 'data-chip': name, 'data-val': v,
+        onclick: (e) => {
+          setCur(v);
+          mount.querySelectorAll(`[data-chip="${name}"]`).forEach(b =>
+            b.classList.toggle('active', b.getAttribute('data-val') === v));
+          apply();
+        } },
+      labelOf(v));
+    return h('div.flex.items-center.gap-2.flex-wrap',
+      [h('span.text-xs.text-muted.w-10.flex-shrink-0', name === 'layer' ? '层级' : '类目'),
+       btn('all'), ...values.map(btn)]);
+  }
+
   mount.replaceChildren(
     h('div.mb-6', [
       h('h1.text-3xl.font-bold.text-head.mb-1', '项目规范'),
-      h('p.text-muted', `${specs.length} 条规范 · 来自 .skein/spec/`),
+      h('p#spec-count.text-muted', `${specs.length} 条规范 · 来自 .skein/spec/`),
     ]),
 
-    h('div.glass-card.mb-6',
+    h('div.glass-card.mb-6.space-y-3', [
       h('label.flex.items-center.gap-2.px-3.py-2.rounded-lg.border.border-brd\\/60.bg-card\\/60', [
         h('i.fa.fa-search.text-muted'),
         h('input', {
-          type: 'search',
+          type: 'search', value: kw,
           placeholder: '搜索规范标题或类目…',
           class: 'bg-transparent outline-none flex-1 text-sm w-full',
-          oninput: (e) => filterSpecs(e.target.value),
+          oninput: (e) => { kw = e.target.value; apply(); },
         }),
-      ])
-    ),
+      ]),
+      chips('layer', layers, v => v === 'all' ? '全部' : (LAYER_LABEL[v] || v),
+            () => curLayer, v => { curLayer = v; }),
+      chips('cat', cats, v => v === 'all' ? '全部' : v, () => curCat, v => { curCat = v; }),
+    ]),
 
     h('div#spec-grid.grid.grid-cols-1.md\\:grid-cols-2.xl\\:grid-cols-3.gap-4',
-      specs.length ? specs.map(specCard)
+      specs.length ? specs.filter(match).map(specCard)
         : h('div.py-16.text-center.text-muted', '暂无规范 (.skein/spec/ 为空)')
     ),
   );
-
-  function filterSpecs(keyword) {
-    const grid = mount.querySelector('#spec-grid');
-    if (!grid) return;
-    const kw = keyword.toLowerCase().trim();
-    const items = specs.filter(s => !kw ||
-      s.title.toLowerCase().includes(kw) ||
-      s.category.toLowerCase().includes(kw) ||
-      s.id.toLowerCase().includes(kw));
-    grid.replaceChildren(...items.map(specCard));
-  }
 }
