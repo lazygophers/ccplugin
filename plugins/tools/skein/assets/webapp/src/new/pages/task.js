@@ -337,11 +337,14 @@ function subtaskListView(subs) {
     h('div.space-y-2',
       subs.map(s => {
         const st = s.status || 'planning';
-        return h('div.flex.items-center.gap-3.p-3.rounded-lg.hover\\:bg-card/40.transition-colors', [
-          h(`span.w-2.5.h-2.5.rounded-full.flex-shrink-0.bg-${ST_COLOR[st]}`),
+        const desc = s.desc || s.description || '';
+        return h('div.flex.items-start.gap-3.p-3.rounded-lg.hover\\:bg-card/40.transition-colors', [
+          h(`span.w-2.5.h-2.5.mt-1.5.rounded-full.flex-shrink-0.bg-${ST_COLOR[st]}`),
           h('div.flex-1.min-w-0', [
-            h('div.text-sm.text-fg.truncate', s.title || s.name || s.sid || s.id),
-            h('div.text-xs.text-muted', ST_LABEL[st] || st),
+            h('div.text-sm.text-fg', s.title || s.name || s.sid || s.id),
+            // desc 落盘在 task.json 的 subtask 里 (skein subtask add --desc), 原文直出不截断
+            desc ? h('div.text-xs.text-fg.mt-1.whitespace-pre-wrap.leading-relaxed', desc) : null,
+            h('div.text-xs.text-muted.mt-1', ST_LABEL[st] || st),
           ]),
           s.progress != null
             ? h('span.text-xs.text-muted', s.progress + '%')
@@ -466,15 +469,15 @@ export async function render(mount, params, ctx) {
             ])
           : null,
 
-        // 前置依赖
-        h('div.glass-card.p-5', [
-          h('h3.section-title', [
-            h('i.fa.fa-link.text-accent'),
-            '前置依赖',
-            ` (${depTasks.length})`,
-          ]),
-          depTasks.length
-            ? h('div.space-y-2',
+        // 前置依赖 (空则整卡不渲染, 与「被依赖」一致)
+        depTasks.length
+          ? h('div.glass-card.p-5', [
+              h('h3.section-title', [
+                h('i.fa.fa-link.text-accent'),
+                '前置依赖',
+                ` (${depTasks.length})`,
+              ]),
+              h('div.space-y-2',
                 depTasks.map(d =>
                   h(`a.flex.items-center.gap-2.p-2.rounded-lg.hover\\:bg-card\\/40.transition-colors`,
                     { href: `/task/detail?id=${d.id}`, 'data-nav': '' },
@@ -484,9 +487,9 @@ export async function render(mount, params, ctx) {
                     ]
                   )
                 )
-              )
-            : h('div.py-4.text-center.text-xs.text-muted', '无前置依赖'),
-        ]),
+              ),
+            ])
+          : null,
 
         // 被依赖
         dependents.length
