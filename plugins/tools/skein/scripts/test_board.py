@@ -6,7 +6,7 @@ pytest 收集 test_*; 亦可 python3 test_board.py 直跑 (main)。
 覆盖:
   1. prd_block: 解析 prd.md 目标/验收标准 两节 checklist, 跳过 TODO 占位, 进度徽标计数。
   2. 效率不变量 (用户诉求「尽可能低内存/cpu/写字节」):
-     - _board_html() 零落盘: 不写 task.html, 不拷 .skein/board/ (serve 恒实时渲染)。
+     - _webapp_html() 零落盘: 不写 task.html (serve 恒实时渲染)。
      - _write_if_changed 同内容不写; 变更才写。
      - config() 键完整时不回写。
      (演进删了 _copy_board_assets / _set_config / persist 参数 — 资产改走 StaticFiles 直出,
@@ -78,12 +78,10 @@ def test_prd_and_efficiency() -> None:
         os.chdir(d)
         try:
             sk_obj = m.Skein()
-            # _board_html() 无 persist 参数 — serve 恒实时渲染, 永不落盘 task.html/拷 board 资产
+            # _webapp_html() 无 persist 参数 — serve 恒实时渲染, 永不落盘 task.html
             (d / ".skein/task.html").unlink(missing_ok=True)
-            import shutil
-            shutil.rmtree(d / ".skein/board", ignore_errors=True)
-            html = sk_obj._board_html()
-            assert "window.__SKEIN__" in html, "_board_html shell 应内联结构化数据"
+            html = sk_obj._webapp_html()
+            assert '<main id="view"' in html, "_webapp_html 应出 SPA 挂载点"
 
             # --- prd 数据 (前端渲染, 校验 __SKEIN__ JSON 结构而非 HTML) ---
             data = sk_obj._board_data()
@@ -105,9 +103,8 @@ def test_prd_and_efficiency() -> None:
             assert gp["kind"] == "prose" and gp["proseCls"] == "", "目标 prose 行应无 .prose (todo UI)"
             assert ap["kind"] == "prose" and ap["proseCls"] == "", "验收标准 prose 行应无 .prose (todo UI)"
 
-            # --- 效率: _board_html() 零落盘 (实时渲染, 不写 task.html / 不拷 board/) ---
-            assert not (d / ".skein/task.html").exists(), "_board_html() 不应落盘 task.html"
-            assert not (d / ".skein/board").exists(), "_board_html() 不应拷 board 资产到 .skein/"
+            # --- 效率: _webapp_html() 零落盘 (实时渲染, 不写 task.html) ---
+            assert not (d / ".skein/task.html").exists(), "_webapp_html() 不应落盘 task.html"
 
             # --- 效率: _write_if_changed 同内容不写 ---
             tp = d / ".skein/probe.txt"
@@ -142,9 +139,6 @@ def test_serve_http() -> None:
         sk(d, "create", "prd-demo", "--name", "任务一", "--desc", "d")
         (d / ".skein/task/prd-demo/prd.md").write_text(
             "# PRD\n## 目标\n- [x] G1\n- [ ] G2\n## 验收标准\n- [x] A1\n")
-        # create 已落 board/; 清掉才能验 serve(http) 直出资产、不回拷 .skein/board/
-        import shutil
-        shutil.rmtree(d / ".skein/board", ignore_errors=True)
         lock = d / ".skein/.board-server.lock"
         proc = subprocess.Popen([sys.executable, str(SKEIN), "serve"], cwd=d,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -178,14 +172,14 @@ def test_serve_http() -> None:
             # rev 端点: 数字串 (data_rev.asset_rev)
             st, body = get("/__skein__/rev")
             assert st == 200 and re.fullmatch(r"\d+\.\d+", body.decode()), "rev 端点格式非 data.asset 数字对"
-            # 静态资产直出插件 assets, 且 serve 不拷 .skein/board/
-            st, body = get("/board/base.css")
-            assert st == 200 and b".prd" in body, "board/base.css 未直出或缺 .prd 样式"
-            assert not (d / ".skein/board").exists(), "serve 误把 board 资产拷进 .skein/"
+            # 静态资产直出插件 assets/webapp/ (无 .skein/ 拷贝)
+            st, body = get("/src/design.css")
+            assert st == 200 and b"--" in body, "src/design.css 未直出"
+            assert not (d / ".skein/board").exists(), "serve 误把资产拷进 .skein/"
             # 路径穿越: %2f 形式落 StaticFiles 守卫必须 404 (urllib 不折叠编码 %2f, 落守卫)
             code = 0
             try:
-                get("/board/..%2f..%2fscripts%2fskein.py")
+                get("/src/..%2f..%2fscripts%2fskein.py")
             except urllib.error.HTTPError as e:
                 code = e.code
             assert code == 404, f"路径穿越未挡 (得 {code})"

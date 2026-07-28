@@ -339,7 +339,7 @@ class Skein:
         # 看板专用读取: 顶层 task.json 索引 + 各 task/<id>/task.json 明细 并集为数据源。
         # per-task 目录是真值源 (有 subtask/desc/name, 明细胜出); 顶层镜像补齐目录被删/迁移丢失、
         # 仅存于索引的 task (只 id/status/deps/worktree), 免看板静默空白。
-        # 只服务 _board / _board_html 只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
+        # 只服务看板只读渲染; 调度/mutation 仍走严格 _all() (幽灵骨架不可派发/归档)。
         # ponytail: 顶层索引本就无 name 字段, 看板对幽灵骨架直接用 id 显示 (task 一向以 id 标识, 非降级);
         #           要恢复 subtask/desc 等完整明细需从有 per-task 目录的分支 checkout。
         DBG.rule("看板数据源合并 (顶层索引 ∪ per-task 明细)")
@@ -1918,87 +1918,20 @@ class Skein:
     def _board_data(self) -> dict[str, Any]:
         return _view_board_data(self._snapshot())
 
-    def _board_html(self) -> str:
-        # 单一 JS 渲染器: Python 只出 shell + 内联结构化数据 (window.__SKEIN__),
-        # 卡片/总览/DAG 全由 board-render.js 前端渲染。serve 每请求实时渲染, 不落盘。
-        # 首屏内联数据, 刷新走 GET /__skein__/data 拉新 JSON 重渲染 (不取 HTML)。
-        DBG.rule("渲染看板 shell")
-        data = self._board_data()
-        DBG.log(f"内联 {data['overview']['taskCount']} 个 task 数据 → (内存, serve 实时渲染)", style="cyan")
-        # 内联进 <script>: 转义 <>& 防 </script> 提前闭合 (\\u00XX 仍是合法 JSON 字符串转义)
-        payload = (json.dumps(data, ensure_ascii=False)
-                   .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
-
-        def esc(s: Any) -> str:
-            return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        proj = esc(self.proj)
-        # 资产版本戳: css/js url 带 ?v=<rev>, 资产内容变 → url 变 → 浏览器必重取, 免旧 css/js 缓存 (stat 卡选中态/DAG 置灰 不 stale)
-        rev = self._asset_rev()
-        # 两个主题 css 同时加载 (html[data-theme=...] 选择器互斥, 切 data-theme 即换肤, switcher.js 持久化到 localStorage)
-        links = (f'<link rel=stylesheet href="board/base.css?v={rev}">'
-                 f'<link rel=stylesheet href="board/themes/skein.css?v={rev}">'
-                 f'<link rel=stylesheet href="board/themes/skein-dark.css?v={rev}">')
-        # shell 模板抽到 assets/board/shell.html; Python 只填 token。serve 有 WS 热重载 + topbar 刷新钮。
-        tokens = {
-            "PROJ": proj,
-            "LINKS": links,
-            "PAYLOAD": payload,
-            "HEAD_EXTRA": '',
-            "REFRESH_TOP": ('<button type="button" class="sw-btn" id="sw-refresh-top" '
-                            'title="刷新页面数据 (task.json)">⟳ 刷新</button>'),
-        }
-        html = (self._board_assets_dir() / "shell.html").read_text(encoding="utf-8")
-        # 给 shell.html 内静态 <script src="board/*.js"> 追版本戳 (同 css, 免旧 js 缓存)
-        for js in ("board-render", "switcher", "doc", "live"):
-            html = html.replace(f'src="board/{js}.js"', f'src="board/{js}.js?v={rev}"')
-        for k, v in tokens.items():
-            html = html.replace("{{" + k + "}}", v)
-        return html
-
     def _webapp_html(self) -> str:
-        # 工程化前端首页: 读 assets/webapp/src/new/index.html (htm 重写版, T7 切默认入口)。
-        # T7 前双入口并存 (_webapp_html 旧 petite-vue + _webapp_html_new 新 htm); 现合并单一新入口, 旧码删除。
-        # token 缺席则 replace 无副作用 → 与 index.html 松耦合。首屏内联 PAYLOAD 免额外往返。
+        # 工程化前端首页: 读 assets/webapp/src/new/index.html, 只填 token。
+        # token 缺席则 replace 无副作用 → 与 index.html 松耦合。数据全走 XHR (/__skein__/data), 不内联首屏。
         html = (self._webapp_dir() / "src" / "new" / "index.html").read_text(encoding="utf-8")
         # 文档从 / 出, 但 index.html 物理在 /src/new/; 注入 <base> 让相对引 (./app.js + ../tokens.css)
-        # 解析到 /src/new/* 而非 / *(命中 SPA fallback 返 text/html → MIME 错)。base 不影响绝对 URL (cdn)。
+        # 解析到 /src/new/* 而非 / *(命中 SPA fallback 返 text/html → MIME 错)。base 不影响绝对 URL。
         html = html.replace("<head>", '<head>\n  <base href="/src/new/">', 1)
-        data = self._board_data()
-        payload = (json.dumps(data, ensure_ascii=False)
-                   .replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026"))
         tokens = {
             "PROJ": self.proj,
-            "PAYLOAD": payload,
             "VER": self._asset_rev(),  # /src/new/*.js?v=VER 缓存击穿
         }
         for k, v in tokens.items():
             html = html.replace("{{" + k + "}}", str(v))
         return html
-
-    def _board_fragment(self, status: Optional[str] = None,
-                        offset: int = 0, limit: Optional[int] = None) -> dict[str, Any]:
-        # board cards 子集 (复用 _board_data, 支持状态/offset/limit 过滤)。
-        # ponytail: 在 _board_data() 之上做纯过滤, 不破 DataSource seam; 单测复用 _board_data 视图。
-        data = self._board_data()
-        cards = data["cards"]
-        if status and status != "all":
-            cards = [c for c in cards if c.get("status") == status]
-        if offset:
-            cards = cards[offset:]
-        if limit is not None:
-            cards = cards[:limit]
-        return {"cards": cards, "overview": data["overview"], "filterOpts": data["filterOpts"]}
-
-    def _board_dag(self) -> dict[str, Any]:
-        # DAG 单独端点: nodeVar/nodeCls/nodeGraph (board 页 DAG 区独立 swap, 免拉全量 data)。
-        # ponytail: 抽 _board_data 的 DAG 相关字段, 单测复用。
-        data = self._board_data()
-        return {
-            "nodeVar": data["nodeVar"],
-            "nodeCls": data["nodeCls"],
-            "taskDag": data["overview"]["taskDag"],
-            "fullDag": data["overview"].get("fullDag"),
-        }
 
     def _spec_rev(self) -> str:
         # spec rev: .skein/spec/ 内 .md 最大 mtime_ns。变 → WS 推 "spec-changed"。
@@ -2139,10 +2072,6 @@ class Skein:
     _LIVE_PATH = "/__skein__/live"  # 热重载 WebSocket: rev 变时 server 推 "reload", 浏览器即刷
 
     @staticmethod
-    def _board_assets_dir() -> Path:
-        return (Path(__file__).resolve().parent.parent / "assets" / "board").resolve()
-
-    @staticmethod
     def _max_mtime(files: Iterable[Path]) -> str:
         return str(max((f.stat().st_mtime_ns for f in files if f.exists()), default=0))
 
@@ -2151,10 +2080,9 @@ class Skein:
         return self._max_mtime([self.dir / "task.json"] + list(self.tasks.glob("*/task.json")))
 
     def _asset_rev(self) -> str:
-        # 资产 rev: board 静态资产 + webapp 源 + 编译 css 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
+        # 资产 rev: webapp 源 + 编译 css 最大 mtime_ns。变 → WS 推 "reload" → 整页 reload (换 <head> 里 CSS link/script, 软刷不换 head)。
         # ponytail: 每 500ms rglob assets (~几十文件) stat, 免读内容; vendor 二进制不纳入 (只盯 dist)。
-        dirs = [self._board_assets_dir(), self._webapp_dir()]
-        return self._max_mtime([p for d in dirs for p in d.rglob("*") if p.is_file()])
+        return self._max_mtime([p for p in self._webapp_dir().rglob("*") if p.is_file()])
 
     def _task_json_rev(self) -> str:
         # 合并 rev (data + asset): /__skein__/rev 轮询兜底端点用, 任一变即变。
@@ -2648,16 +2576,8 @@ class Snapshot:
 
 
 def _view_board_data(snap: Snapshot) -> dict[str, Any]:
-    # 结构化看板数据 (JSON 序列化 → window.__SKEIN__); 呈现由 board-render.js 前端做。
-    # 业务逻辑 (pct/耗时/聚合/DAG 节点边推导/next-up/prd 解析) 留此当数据, 不拼 HTML。
-    # ponytail: 就绪 复用 pending 视觉类 (前端 CSS 无 s-ready 规则), status 文案仍显 "就绪" 区分
-    st_cls: dict[str, str] = {S_PENDING: "s-pending", S_READY: "s-pending", S_ACTIVE: "s-active", S_CHECK: "s-check", S_DONE: "s-done"}
-    ss_cls: dict[str, str] = {SS_PENDING: "ss-pending", SS_RUNNING: "ss-running", SS_DONE: "ss-done", SS_FAILED: "ss-failed"}
-    node_var: dict[str, str] = {S_PENDING: "--st-pending", S_READY: "--st-pending", S_ACTIVE: "--st-active", S_CHECK: "--st-check",
-                S_DONE: "--st-done", SS_RUNNING: "--st-active", SS_FAILED: "--st-failed"}
-    node_cls: dict[str, str] = {S_PENDING: "n-pending", S_READY: "n-pending", S_ACTIVE: "n-active", S_CHECK: "n-check",
-                S_DONE: "n-done", SS_RUNNING: "n-active", SS_FAILED: "n-failed"}
-
+    # 结构化看板数据 (GET /__skein__/data); 呈现全由 webapp 前端做。
+    # 业务逻辑 (pct/耗时/聚合/next-up/prd 解析) 留此当数据, 不拼 HTML; DAG 由前端从 cards 推。
     # git 仓库用户名 (作为默认负责人)
     git_user: Optional[str] = None
     try:
@@ -2701,22 +2621,7 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
         cnt[t["status"]] = cnt.get(t["status"], 0) + 1
         elapsed_total += elapsed_of(t)
 
-    task_nodes = [node(t["id"], t.get("name", t["id"]), t["status"], t.get("deps", []),
-                       task_pct(t), t.get("desc", "")) for t in tasks]
-    # 概览 task 节点悬浮浮层数据: 总进度 + subtask DAG (>=2 画图, 否则列表兜底)
-    tips: dict[str, Any] = {}
-    links = {t["id"]: f'#task-{t["id"]}' for t in tasks}
-    for t in tasks:
-        subs = t.get("subtasks", [])
-        snodes = [node(s["sid"], s.get("name", s["sid"]), s["status"], s.get("depends_on", []),
-                       _sub_pct(s), s.get("desc", "")) for s in subs]
-        tips[t["id"]] = {
-            "name": t.get("name", t["id"]),
-            "pct": task_pct(t),
-            "subNodes": snodes if len(snodes) >= 2 else None,
-            "subs": [{"name": s.get("name", s["sid"]), "pct": _sub_pct(s)} for s in subs] if subs else None,
-        }
-    # task+subtask 综合 DAG: 只画 subtask, 跨 task 前置连到前置 task 叶子; 无 subtask 的 task 仍作节点
+    # task+subtask 综合进度: 按 subtask 粒度均摊 (combinedPct, dashboard 用); 无 subtask 的 task 整体算一个节点
     has_sub = any(t.get("subtasks") for t in tasks)
     leaves: dict[str, list[str]] = {}
     for t in tasks:
@@ -2811,13 +2716,6 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "started": s.get("started"),
             "finished": s.get("finished"),
         } for s in subs]
-        sblob = " ".join(str(x or "") for x in (
-            t["id"], t.get("name", ""), t.get("desc", ""),
-            *(v for s in subs for v in (s["sid"], s.get("name", ""), s.get("desc", ""))))).lower()
-        tdir = snap.task_path(t["id"])
-        doc_links = [{"doc": f'task/{t["id"]}/{fn}', "title": f'{lab} · {t["id"]}', "label": lab}
-                     for fn, lab in (("prd.md", "PRD"), ("design.md", "设计"), ("findings.md", "调研"))
-                     if (tdir / fn).exists()]
         cards.append({
             "id": t["id"], "name": t.get("name") or t["id"], "status": t["status"], "desc": t.get("desc", ""),
             "stage": _task_stage(t),
@@ -2833,19 +2731,13 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "finished": t.get("finished"),
             "elapsed": elapsed_of(t),
             "sdone": sdone, "stotal": len(subs), "spct": task_pct(t),
-            "docLinks": doc_links,
             "prd": prd_data(t["id"]),
             "subtable": subtable,
             "subNodes": snodes,
-            "search": sblob,
         })
 
-    filter_opts = [("all", "全部"), (S_ACTIVE, S_ACTIVE), (S_CHECK, S_CHECK),
-                   (S_READY, S_READY), (S_PENDING, S_PENDING), (S_DONE, S_DONE)]
     return {
         "proj": snap.proj,
-        "filterOpts": filter_opts,
-        "stClsMap": st_cls, "ssClsMap": ss_cls, "nodeVar": node_var, "nodeCls": node_cls,
         "overview": {
             "taskCount": len(tasks),
             "stats": {S_DONE: cnt.get(S_DONE, 0), S_ACTIVE: cnt.get(S_ACTIVE, 0),
@@ -2854,9 +2746,6 @@ def _view_board_data(snap: Snapshot) -> dict[str, Any]:
             "estMeta": est_meta,
             "combinedPct": combined_pct,
             "hasSub": has_sub,
-            "taskDag": {"nodes": task_nodes, "tips": tips, "links": links},
-            "fullDag": {"nodes": combined} if has_sub else None,
-            "pendingQueue": _pending_queue(tasks, snap.dep_unfinished),
         },
         "cards": cards,
     }
@@ -3076,17 +2965,12 @@ class DataSource(Protocol):
     _LOCK_ID_PATH: str
     _REV_PATH: str
     _LIVE_PATH: str
-    def _board_assets_dir(self) -> Path: ...
     def _webapp_dir(self) -> Path: ...
     def _asset_rev(self) -> str: ...
     def _data_rev(self) -> str: ...
     def _task_json_rev(self) -> str: ...
     def _board_data(self) -> dict[str, Any]: ...
-    def _board_html(self) -> str: ...
     def _webapp_html(self) -> str: ...
-    def _board_fragment(self, status: Optional[str] = None,
-                        offset: int = 0, limit: Optional[int] = None) -> dict[str, Any]: ...
-    def _board_dag(self) -> dict[str, Any]: ...
     def _spec_rev(self) -> str: ...
     def _dashboard(self) -> dict[str, Any]: ...
     def _queue(self) -> dict[str, Any]: ...
@@ -3199,6 +3083,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
             task.cancel()
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+    # gzip: /data 实测 529KB → 123KB, design.css 74KB → 16KB。1KB 以下不压 (压缩开销 > 收益)。
+    from fastapi.middleware.gzip import GZipMiddleware
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
 
     @app.middleware("http")
     async def _access_log(request: Request, call_next: Callable[[Request], Any]) -> Any:
@@ -3229,21 +3116,9 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
     async def _data() -> JSONResponse:  # 看板数据端点: 前端 softRefresh / WS "data" 拉新 JSON 重渲染 (不取 HTML)
         return JSONResponse(board._board_data())
 
-    @app.get("/__skein__/board/fragment")
-    async def _board_fragment(status: Optional[str] = None,
-                              offset: int = 0, limit: Optional[int] = None) -> JSONResponse:
-        # board cards 子集 (T3 拆片段端点): status 过滤 + offset/limit 分页, 复用 _board_data 的 cards。
-        # ponytail: 默认全量 (与 /data 一致), 仅在传参时切片; 不破旧契约。
-        return JSONResponse(board._board_fragment(status=status, offset=offset, limit=limit))
-
-    @app.get("/__skein__/board/dag")
-    async def _board_dag() -> JSONResponse:
-        # DAG 单独端点: nodeVar/nodeCls/taskDag/fullDag (board 页 DAG 区独立 swap, 免拉全量 data)。
-        return JSONResponse(board._board_dag())
-
     @app.get("/", response_class=HTMLResponse)
-    async def _page() -> str:  # 首页: webapp/src/new/index.html 就绪则出工程化前端, 否则回落旧看板 shell (非回归)
-        return board._webapp_html() if (board._webapp_dir() / "src" / "new" / "index.html").exists() else board._board_html()
+    async def _page() -> str:  # 首页: webapp/src/new/index.html 工程化前端
+        return board._webapp_html()
 
     @app.websocket(board._LIVE_PATH)
     async def _live(ws: WebSocket) -> None:  # 热重载: 接受连接后阻塞保活, rev 变时 _watch_loop 推 "reload"
@@ -3348,21 +3223,19 @@ def build_app(board: "DataSource", proj_id: str, quiet: bool,
         return JSONResponse(board._search(q))
 
     # webapp 改 history API (pathname) 路由: 直访 /dashboard /queue /task 等单段 SPA 路径须回 index.html 让前端 router 接管。
-    # /task /board 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
+    # /task 与下方 StaticFiles mount 同前缀冲突 → 裸路径会被 mount 吞 (StaticFiles 无 index → 404)。
     # 显式 @app.get 在 mount 之前声明, Starlette 按声明顺序匹, 精确 /task /board 命中此 route; /task/<id>/prd.md 落 mount 出静态。
     def _spa() -> str:
-        return board._webapp_html() if (board._webapp_dir() / "src" / "new" / "index.html").exists() else board._board_html()
+        return board._webapp_html()
 
     @app.get("/task", response_class=HTMLResponse)
     async def _spa_task() -> str:  # /task 裸路径 (task 列表页) / /task?id=<tid> (详情) 均走 SPA; ?id 保留给前端 router
         return _spa()
 
     @app.get("/board", response_class=HTMLResponse)
-    async def _spa_board() -> str:  # /board 裸路径 = board 页; /board/*.css 等资产仍落下方 mount
+    async def _spa_board() -> str:  # /board 裸路径 = board 页
         return _spa()
 
-    # 静态资产直出插件 assets/board/ (StaticFiles 自带路径穿越守卫 + 404), 不拷 .skein/board/
-    app.mount("/board", StaticFiles(directory=str(board._board_assets_dir())), name="board")
     # webapp 工程化前端 (htm 重写版): 首页在 / 出, 其 src/new/index.html 相对引 ../tokens.css + ../design.css
     # + ./app.js (ES module 动态 import ./pages/*.js + ./lib/*.js + ../../dag.js + ../../prd-parse.js)。
     # 挂 /src /vendor 使这些相对 URL 解析; check_dir=False: 兼容开发期部分目录未落地不炸。
