@@ -2476,9 +2476,9 @@ def _sub_pct(s: dict[str, Any]) -> int:
 
 
 def _task_pct(t: dict[str, Any]) -> int:
-    # task 进度 = subtask 完成度 (有 subs) / 状态机阶段 (无 subs).
-    # ponytail: 进度反映客观完成度, 不混状态机加权 — subs 全 done 即 100,
-    #   哪怕 task 仍在 active/check (状态机推进由人/finish 命令, 不影响进度数).
+    # task 进度 = max(状态机阶段下限, subtask 完成度均值); 无 subs 时纯状态机阶段。
+    # ponytail: 下限只兜底不封顶 — subs 全 done 即 100, 哪怕 task 仍 active/check;
+    #   反之刚 start 而 subtask 未起跑也不会显示 0% (状态与进度对不上是用户反馈的 bug)。
     st = t.get("status")
     if st == S_DONE:
         return 100

@@ -5,7 +5,7 @@
 // ============================================================
 
 import { h, api, fmtRelative, fmtTime, normalizeTasks, prioLabel, prioTextColor,
-         confirmDialog, alertDialog, buildTimeline } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline, subTimelineView } from '../app.js';
 
 const ST_COLOR = {
   planning: 'st-planning', ready: 'st-ready',
@@ -948,6 +948,7 @@ function timelineView(stages, task) {
           extraInfo ? h('span.tl-dur', extraInfo) : null,
         ]),
         h('div.tl-desc', s.desc),
+        s.key === 'started' && subs.length ? subTimelineView(subs) : null,
       ]);
     })
   );
@@ -1357,46 +1358,6 @@ function detailPanel(task, allTasks, onClose, onSubClick, onOpenDetail, onTaskCl
         ? h('div.glass-card.p-4.panel-span-2', [
             h('div.eyebrow.text-accent.mb-3', `子任务 DAG (${task.subtasks.length})`),
             subDAGView(task.subtasks, onSubClick),
-          ])
-        : null,
-
-      // 子任务列表 — 跨全宽
-      task.subtasks && task.subtasks.length
-        ? h('div.glass-card.p-4.panel-span-2', [
-            h('div.eyebrow.text-accent.mb-3', `子任务列表 (${task.subtasks.length})`),
-            h('div.flex.flex-col.gap-2',
-              task.subtasks.map(s => {
-                const sst = s.status || 'planning';
-                const sIcon = ST_ICON[sst] || 'fa-circle-o';
-                const sColor = ST_COLOR[sst] || 'st-planning';
-                return h('div.subtask-row.flex.items-center.gap-3.p-2.rounded-lg.cursor-pointer.hover\\:bg-surface/60.transition-all',
-                  {
-                    onclick: () => { if (onSubClick) onSubClick(s.sid || s.id); },
-                    'data-sub-id': s.sid || s.id,
-                    title: s.description || s.desc || s.title || s.name,
-                  },
-                  [
-                    h(`span.w-5.h-5.rounded-full.flex.items-center.justify-center.flex-shrink-0.bg-${sColor}/10`,
-                      h(`i.fa.${sIcon}.text-xs.text-${sColor}`)
-                    ),
-                    h('div.flex-1.min-w-0', [
-                      h('div.text-sm.text-fg.truncate', s.title || s.name || s.sid || s.id),
-                      s.description
-                        ? h('div.text-xs.text-muted.line-clamp-1.mt-0.5', s.description)
-                        : null,
-                    ]),
-                    s.progress != null
-                      ? h('span.text-xs.text-muted.font-mono', s.progress + '%')
-                      : null,
-                    s.assignee
-                      ? h('span.text-xs.text-muted.flex.items-center.gap-1',
-                          [h('i.fa.fa-user.text-xxs'), s.assignee.slice(0, 6)]
-                        )
-                      : null,
-                  ]
-                );
-              })
-            ),
           ])
         : null,
 

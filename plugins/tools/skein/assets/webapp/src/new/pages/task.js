@@ -6,7 +6,7 @@
 // ============================================================
 
 import { h, api, md, fmtRelative, fmtTime, normalizeTask, normalizeTasks,
-         confirmDialog, alertDialog, buildTimeline } from '../app.js';
+         confirmDialog, alertDialog, buildTimeline, subTimelineView } from '../app.js';
 
 const ST_LABEL = {
   planning: '规划中', ready: '待执行',
@@ -32,35 +32,7 @@ function infoItem(label, value) {
   ]);
 }
 
-// ---- 时间线 (buildTimeline 见 app.js, 与看板详情面板共用) ----
-
-// 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠)
-function subTimelineView(subs) {
-  const ordered = [...subs].sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity));
-  return h('details.tl-sub', [
-    h('summary.tl-sub-sum', `子任务执行过程 (${subs.length})`),
-    h('div.tl-sub-list',
-      ordered.map(s => {
-        const st = s.status || 'planning';
-        const dur = s.startedAt && s.finishedAt
-          ? `耗时 ${Math.max(1, Math.round((s.finishedAt - s.startedAt) / 60000))} 分钟` : '';
-        return h('div.tl-sub-item', [
-          h(`span.w-1.5.h-1.5.rounded-full.flex-shrink-0.mt-1.5.bg-${ST_COLOR[st]}`),
-          h('div.min-w-0.flex-1', [
-            h('div.text-xs.text-fg', s.title || s.name || s.sid),
-            h('div.text-xs.text-muted.mt-0.5',
-              [ST_LABEL[st] || st,
-               s.startedAt ? `起 ${fmtTime(s.startedAt)}` : null,
-               s.finishedAt ? `止 ${fmtTime(s.finishedAt)}` : null,
-               dur || null,
-               s.agent || null,
-              ].filter(Boolean).join(' · ')),
-          ]),
-        ]);
-      })
-    ),
-  ]);
-}
+// ---- 时间线 (buildTimeline / subTimelineView 见 app.js, 与看板详情面板共用) ----
 
 function timelineView(stages, task) {
   if (!stages || !stages.length) {

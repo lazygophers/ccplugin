@@ -70,6 +70,10 @@ def main() -> None:
             (d / ".skein/task" / tid / "prd.md").write_text(
                 f"# {tid} — PRD\n\n## 目标\n- 解决 X\n\n## 边界\n- 范围内: a\n\n"
                 "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+            # 工时门: prd 填实但没预计工时 → confirm 拒
+            r = sk(d, "confirm", tid, check=False)
+            assert r.returncode != 0 and "预计工时" in r.stderr, f"缺 estimate 未拒: {r.stderr}"
+            sk(d, "estimate", tid, "--set", "4")
             sk(d, "confirm", tid)
 
         # create: id 必填且为可读 slug
@@ -253,7 +257,45 @@ def main() -> None:
     test_lock()
     test_multirepo()
     test_deps_ordering()
+    test_progress_pct()
     print("skein.py 冒烟测试全过 (init/create/start/finish/并发上限/deps门/看板/archive清理/多active并行/subtask-DAG/setup迁移/多子git worktree)")
+
+
+def test_progress_pct() -> None:
+    # 进度 = max(状态机阶段下限, subtask 完成度均值); 覆盖 pending/ready/active/check/done × 有无 subtask
+    m = _load("skein_pct")
+
+    def sub(status: str, crit: int = 0, done: int = 0) -> dict[str, Any]:
+        return {"status": status, "验收": [f"c{i}" for i in range(crit)],
+                "验收done": [f"c{i}" for i in range(done)]}
+
+    def pct(status: str, subs: list[dict[str, Any]] | None = None) -> int:
+        return m._task_pct({"status": status, "subtasks": subs or []})
+
+    # 无 subtask: 纯状态机阶段
+    assert pct(m.S_PENDING) == 5, pct(m.S_PENDING)
+    assert pct(m.S_READY) == 8, pct(m.S_READY)
+    assert pct(m.S_ACTIVE) == 10, pct(m.S_ACTIVE)
+    assert pct(m.S_CHECK) == 85, pct(m.S_CHECK)
+    assert pct(m.S_DONE) == 100, pct(m.S_DONE)
+    # 有 subtask: 阶段下限兜底 (核心 bug — 执行中 + subtask 全待处理 不得为 0%)
+    allpend = [sub(m.SS_PENDING) for _ in range(3)]
+    assert pct(m.S_ACTIVE, allpend) == 10, pct(m.S_ACTIVE, allpend)
+    assert pct(m.S_PENDING, allpend) == 5, pct(m.S_PENDING, allpend)
+    assert pct(m.S_READY, allpend) == 8, pct(m.S_READY, allpend)
+    # subtask 完成度超过下限时以完成度为准 (下限只兜底不封顶)
+    mixed = [sub(m.SS_DONE), sub(m.SS_DONE), sub(m.SS_PENDING)]
+    assert pct(m.S_ACTIVE, mixed) == 66, pct(m.S_ACTIVE, mixed)
+    alldone = [sub(m.SS_DONE) for _ in range(3)]
+    assert pct(m.S_ACTIVE, alldone) == 100, pct(m.S_ACTIVE, alldone)
+    assert pct(m.S_CHECK, alldone) == 100, pct(m.S_CHECK, alldone)
+    assert pct(m.S_CHECK, allpend) == 85, pct(m.S_CHECK, allpend)
+    assert pct(m.S_DONE, allpend) == 100, "done 强制 100"
+    # 验收项粒度: 运行中 subtask 按 验收done/验收 计, 无验收项则记半程
+    assert m._sub_pct(sub(m.SS_RUNNING, crit=4, done=1)) == 25
+    assert m._sub_pct(sub(m.SS_RUNNING)) == 50
+    assert m._sub_pct(sub(m.SS_PENDING)) == 0
+    assert m._sub_pct(sub(m.SS_DONE, crit=4, done=1)) == 100, "done 强制 100"
 
 
 def test_deps_ordering() -> None:
@@ -323,6 +365,7 @@ def test_multirepo() -> None:
         (d / ".skein/task/feat/prd.md").write_text(
             "# feat — PRD\n\n## 目标\n- 改两仓\n\n## 边界\n- 范围内: a\n\n"
             "## 验收标准\n- 用例通过\n\n## 索引\n- design.md\n")
+        sk(d, "estimate", "feat", "--set", "4")
         sk(d, "confirm", "feat")  # 待处理→就绪 用户确认门
         sk(d, "start", "feat")
         # worktree 落各子仓内部 (<repo>/.worktrees/skein-<id>), 非旧版根级 .worktrees/skein-<id>/<repo>

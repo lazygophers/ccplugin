@@ -248,7 +248,9 @@
 .bg-st-planning { background-color: var(--st-planning); }
 .bg-st-ready { background-color: var(--st-ready); }
 .bg-st-pending { background-color: var(--st-pending); }
-.bg-st-active { background-color: var(--st-active); }
+/* 执行中状态点脉冲: 覆盖 DAG 节点 dot / 子任务 DAG mini dot / 时间线 dot / 依赖链接 dot 等所有复用同一
+   工具类的场景, 不必逐处加类名 (pulseDot keyframe 定义见下方 "动效核心" 区) */
+.bg-st-active { background-color: var(--st-active); animation: pulseDot 1.6s ease-in-out infinite; }
 .bg-st-check { background-color: var(--st-check); }
 .bg-st-done { background-color: var(--st-done); }
 .bg-st-failed { background-color: var(--st-failed); }
@@ -668,7 +670,7 @@
 .dag-node.st-planning { border-color: var(--st-planning); }
 .dag-node.st-ready    { border-color: var(--st-ready); }
 .dag-node.st-pending  { border-color: var(--st-pending); }
-.dag-node.st-active   { border-color: var(--st-active); }
+.dag-node.st-active   { border-color: var(--st-active); animation: dagPulse 1.6s ease-in-out infinite; }
 .dag-node.st-check    { border-color: var(--st-check); }
 .dag-node.st-done     { border-color: var(--st-done); }
 .dag-node.st-failed   { border-color: var(--st-failed); }
@@ -808,7 +810,7 @@
   height: auto;
 }
 .dag-node-wrap .dag-pop-badge.done { background: rgba(72,187,120,0.18); color: #2f855a; }
-.dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.2); color: var(--goldSand-deep); }
+.dag-node-wrap .dag-pop-badge.active { background: rgba(201,162,39,0.2); color: var(--goldSand-deep); animation: dagPulse 1.6s ease-in-out infinite; }
 .dag-node-wrap .dag-pop-badge.planning { background: rgba(116,185,232,0.2); color: var(--ocean-deep); }
 .dag-node-wrap .dag-pop-badge.ready { background: rgba(66,156,209,0.18); color: var(--ocean-deep); }
 .dag-node-wrap .dag-pop-badge.check { background: rgba(201,162,39,0.18); color: var(--goldSand-deep); }
@@ -859,6 +861,12 @@
 .dag-node-wrap .dag-pop-bar.planning > i { background: var(--st-planning); }
 .dag-node-wrap .dag-pop-bar.ready > i { background: var(--st-ready); }
 .dag-node-wrap .dag-pop-bar.check > i { background: var(--goldSand-mid); }
+/* 执行中: 条纹流动 (antdShimmer 复用现成 keyframe, 见 antd-progress 同款效果) */
+.dag-node-wrap .dag-pop-bar.active > i {
+  background: linear-gradient(90deg, var(--st-active), var(--goldSand-mid), var(--st-active));
+  background-size: 200% 100%;
+  animation: antdShimmer 1.4s ease infinite;
+}
 .dag-node-wrap .dag-pop-pct {
   font-size: 12px;
   font-weight: 600;
@@ -1614,6 +1622,7 @@ dialog.dag-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: b
   background: rgba(200, 149, 72, 0.14);
   border-color: rgba(200, 149, 72, 0.35);
   color: var(--goldSand-sunset);
+  animation: dagPulse 1.6s ease-in-out infinite;
 }
 .antd-tag-check {
   background: rgba(116, 185, 232, 0.14);
@@ -1861,7 +1870,10 @@ dialog.antd-modal::backdrop { background: rgba(15,32,51,0.45); backdrop-filter: 
   .animate-wave, .animate-stagger-in, .pulse-dot, .hover-float:hover,
   .tl-dot.cur, .dag-svg .node, .dag-svg .node.active > *,
   .dag-svg .edge.active, .antd-spin, .antd-skel,
-  .bg-wave-bar.active > .fill::after {
+  .bg-wave-bar.active > .fill::after,
+  .bg-st-active, .dag-node.st-active, .antd-tag-active,
+  .dag-node-wrap .dag-pop-badge.active, .dag-node-wrap .dag-pop-bar.active > i,
+  i.fa-spin {
     animation: none !important;
     transition: none !important;
   }

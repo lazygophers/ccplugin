@@ -105,6 +105,45 @@ export function buildTimeline(task) {
   ];
 }
 
+// ---- 执行阶段子时间线: 每个 subtask 的执行过程 (默认折叠) ----
+// board 详情面板 / task 详情页共用 (与 buildTimeline 同模式, 挂在时间线「执行」节点下)
+const TL_SUB_COLOR = {
+  planning: 'st-planning', ready: 'st-ready',
+  active:   'st-active',  check: 'st-check',
+  done:     'st-done',    failed: 'st-failed',
+};
+const TL_SUB_LABEL = {
+  planning: '规划中', ready: '待执行',
+  active:   '执行中', check: '验收中',
+  done:     '已完成', failed: '失败',
+};
+export function subTimelineView(subs) {
+  const ordered = [...subs].sort((a, b) => (a.startedAt || Infinity) - (b.startedAt || Infinity));
+  return h('details.tl-sub', [
+    h('summary.tl-sub-sum', `子任务执行过程 (${subs.length})`),
+    h('div.tl-sub-list',
+      ordered.map(s => {
+        const st = s.status || 'planning';
+        const dur = s.startedAt && s.finishedAt
+          ? `耗时 ${Math.max(1, Math.round((s.finishedAt - s.startedAt) / 60000))} 分钟` : '';
+        return h('div.tl-sub-item', [
+          h(`span.w-1.5.h-1.5.rounded-full.flex-shrink-0.mt-1.5.bg-${TL_SUB_COLOR[st]}`),
+          h('div.min-w-0.flex-1', [
+            h('div.text-xs.text-fg', s.title || s.name || s.sid),
+            h('div.text-xs.text-muted.mt-0.5',
+              [TL_SUB_LABEL[st] || st,
+               s.startedAt ? `起 ${fmtTime(s.startedAt)}` : null,
+               s.finishedAt ? `止 ${fmtTime(s.finishedAt)}` : null,
+               dur || null,
+               s.agent || null,
+              ].filter(Boolean).join(' · ')),
+          ]),
+        ]);
+      })
+    ),
+  ]);
+}
+
 // ---- 优先级工具 (0-10 分, 默认 5 = 中) ----
 export function prioLevel(p) {
   const n = p != null ? Number(p) : 5;

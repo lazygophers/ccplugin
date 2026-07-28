@@ -54,11 +54,11 @@
         "前端回退算法与后端一致"
       ],
       "验收done": [],
-      "status": "待处理",
+      "status": "运行中",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785243708,
-      "started": null,
+      "started": 1785244484,
       "finished": null
     },
     {
@@ -114,5 +114,5 @@
   "confirmed": 1785243792,
   "checked": null,
   "finished": null,
-  "updated": 1785244203
+  "updated": 1785244484
 }
