@@ -298,9 +298,13 @@ _UNINIT_PLAIN = """# SKEIN 未初始化 — 先初始化再处理任务
 #   信号是参谋非判官: _judge_signal 只检测命中信号作证据, 走 flow/inline 完全交 AI 读 _CTX 条件自判 (脚本不替判档位)。
 #   走 flow 由 cmd_task_created (机械阻 TaskCreate) 兜底, 落码不再强制 active task (用户定: 去落码门);
 #   prompt 仅留正向指引 + 证据展示, 不重复禁令。
-_CTX = """# SKEIN 判定 (信号仅建议, AI 综合上下文定夺)
-判据: 走 flow(优先) = 跨≥2文件/多步骤/改动类动词/新建类/复杂调研 | 可 inline = 纯查询/问答/单文件单处 | 判不清 = AskUserQuestion。
-→ 倾向 flow[激进]: Bash(skein create) 建 task 走 Skills(skein-flow);倾向 inline[保守]: 直接答/改; 判不清: AskUserQuestion(1. main直接执行|2./skein-flow 执行|3. 先research（走/skein-flow但是强制research）)"""
+_CTX = """# 任务判定
+- 走任务：跨≥2文件/多步骤/改动类动词/新建类/复杂调研
+- 直接执行：纯查询/问答/单文件单处
+
+如果无法判断是否走任务，通过 AskUserQuestion 和用户确认，AI 应该倾向走任务
+如果确认走任务，应该通过 Bash(skein create) 建 task 走 Skills(skein-flow)
+"""
 
 # 信号判据 (只检测证据, 不替判档位 — 档位交 AI 读 _CTX 判据自判)
 #   ponytail: 关键词 / path regex 启发式有覆盖盲区, 但机械信号比 AI prose 合规可靠 (research §4 候选 D)
@@ -341,8 +345,8 @@ def _judge_signal(prompt: str) -> list[str]:
 _PHASE = {"待处理": "plan", "就绪": "ready", "进行中": "exec", "检查中": "check"}
 _PREFIX_RULE = """# 回复前缀 (强制)
 - 每条回复以 `[skein]` 开头
-- 正在处理某 task 时改用 `[skein|<taskId>|<阶段>]`
-- 阶段取值: plan / ready / exec / check / research"""
+- 正在处理某 task 时改用 `[skein|<taskId>]`
+"""
 
 
 def _task_phase_hints(skein_dir: str) -> str:
