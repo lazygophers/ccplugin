@@ -6,17 +6,22 @@
   recall   — .skein/spec/recall/<类目>/*.md      按需语义召回 (planning 时 recall <query> 粗筛, model 读全文)
   external — .skein/spec/external/<类目>/*.md    外部参考 (纯手动 CLI 检索, 不入 hook; recall 跨层命中)
 
-类目 (category) 是层内子目录, 自由取名 (git/test/arch/build/style/domain/ops...), 按需建。
-索引三份: 每层 <layer>/index.md (层内全规则) + 顶层 index.md (三层聚合概览)。
-写盘 (sediment) 由 skein-spec skill 在判定门通过后自动调用 (不逐次询问用户), 写后自动 reindex。
+粒度约定 (硬规):
+  文件夹 = 类目 (category), 层内子目录, 自由取名 (git/test/arch/build/style/domain/ops...)。
+  文件   = 主题 (topic), 文件名即主题; 一个文件承载围绕该主题的**多条规则**。
+  章节   = 单条规则, body 内 `## <规则标题>` 一节一条。禁一条规则一个文件 (碎片化)。
+  规则 id = <layer>/<category>/<topic>.md#<规则标题>; 关联用 `[[topic#规则标题]]` wikilink。
+索引/FTS/反链全部按**章节粒度**建。frontmatter 只留 title/layer/category/keywords/status
+(时间类字段一律不写 — 注入上下文无意义且费 token; 新旧判定走 git/文件系统 mtime)。
 
 命令:
   spec.py init
   spec.py inject-core                        输出全部 core 规则正文 (调试用)
   spec.py session-start                       SessionStart hook: 直接产 hook JSON 注入 core
   spec.py recall "<query>"                   FTS5 BM25 跨层排序 recall+external (无索引/MATCH 失败 → grep fallback)
-  spec.py sediment --layer core|recall|external --category git --title T \
-            --keywords "a,b" --source t01 --body-file /path   写规则 + reindex
+  spec.py sediment --layer core|recall|external --category git --topic merge --title T \
+            --keywords "a,b" --body-file /path   规则追加进主题文件 + reindex
+  spec.py restructure --map plan.json [--dry-run]  按 {目标主题文件: [源文件,...]} 合并碎片文件
   spec.py reindex                            重扫三层重建全部 index
   spec.py list [--layer core|recall|external]
   spec.py maintain [--layer core|recall|external] [--apply]  全量体检 (超预算/stale/断链/keywords重复/废弃/孤立)
@@ -127,11 +132,32 @@ class Spec:
         return sorted(p for p in d.rglob("*.md")
                       if p.name not in ("index.md", "backlinks.md"))
 
-    def _next_seq(self, layer: str) -> int:
-        # 层内已用最大序号 +1 (非文件计数): 删文件后不回退, 免覆盖已有规则
-        used = [int(m.group(1)) for f in self._rule_files(layer)
-                if (m := re.search(r"-(\d+)\.md$", f.name))]
-        return max(used, default=-1) + 1
+    def _rules(self, layer: str) -> list[tuple[Path, str, str]]:
+        """层内全部规则 (章节粒度): [(主题文件, 规则标题, 规则正文)]。"""
+        return [(f, t, b) for f in self._rule_files(layer) for t, b in _sections(f.read_text())]
+
+    def _mtimes(self, use_git: bool = True) -> dict[Path, int]:
+        """各规则文件最近修改时间 (epoch)。git 提交时间优先 (一次 git log 全量解析),
+        未跟踪/无 git/use_git=False → 文件系统 mtime。取代已废弃的 frontmatter created/updated。"""
+        out: dict[Path, int] = {}
+        if use_git:
+            r = subprocess.run(["git", "log", "--format=@%ct", "--name-only", "--", "."],
+                               capture_output=True, text=True, cwd=self.root)
+            if r.returncode == 0:
+                repo = self.root.parent.parent  # .skein/spec → 仓库根 (git log 路径相对仓库根)
+                ts = 0
+                for ln in r.stdout.splitlines():
+                    if ln.startswith("@"):
+                        ts = int(ln[1:])
+                    elif ln.strip():
+                        out.setdefault(repo / ln.strip(), ts)  # log 倒序 → 首次见即最新
+        for layer in LAYERS:
+            for f in self._rule_files(layer):
+                out.setdefault(f, int(f.stat().st_mtime))
+        return out
+
+    def _age_days(self, f: Path, mtimes: dict[Path, int], now_ts: int) -> int:
+        return max(0, (now_ts - mtimes.get(f, now_ts)) // 86400)
 
     # ---- init ----
     def init(self, _: argparse.Namespace) -> None:
@@ -158,13 +184,10 @@ class Spec:
     def inject_core(self, _: argparse.Namespace) -> None:
         sys.stdout.write(self._core_text())
 
-    # ---- core 极简索引 (每条 1 行: [类目] title) ----
+    # ---- core 极简索引 (章节粒度, 每条规则 1 行: [类目] 主题 · title) ----
     def _core_index(self) -> str:
-        lines: list[str] = []
-        for f in self._rule_files("core"):
-            meta = _frontmatter(f.read_text())
-            lines.append(f"- [{f.parent.name}] {meta.get('title', f.stem)}")
-        return "\n".join(lines)
+        return "\n".join(f"- [{f.parent.name}/{f.stem}] {title}"
+                         for f, title, _ in self._rules("core") if title)
 
     # ---- session-start (SessionStart hook: 只注入极简索引, 全文按需 inject-core) ----
     def session_start(self, _: argparse.Namespace) -> None:
@@ -177,9 +200,9 @@ class Spec:
         # maintain 提示: core 超预算 或 最老规则 > 180 天 → 1 行提醒 (不挤 INDEX 预算)
         core_text = self._core_text_raw()
         now_ts = now()
-        ages = [_ts_age_days(_frontmatter(f.read_text()).get("created"), now_ts)
-                for f in self._rule_files("core")]
-        oldest = max((d for d in ages if d is not None), default=0)
+        # hook 热路径: 不跑 git log (use_git=False), 文件系统 mtime 够判"该体检了"
+        mt = self._mtimes(use_git=False)
+        oldest = max((self._age_days(f, mt, now_ts) for f in self._rule_files("core")), default=0)
         if len(core_text) > core_budget() or oldest > STALE_DAYS:
             ctx += f"\n⚠️ core 超 budget / 有 > {STALE_DAYS}天老规则, 跑 `spec.py maintain` 体检"
         print(json.dumps({"hookSpecificOutput": {
@@ -252,14 +275,14 @@ class Spec:
             con = sqlite3.connect(db)
             try:
                 rows = con.execute(
-                    "SELECT stem, category, title, keywords, body, layer FROM rules "
+                    "SELECT rel, category, title, keywords, body, layer FROM rules "
                     "WHERE rules MATCH ? ORDER BY bm25(rules) LIMIT 10", (ftsq,)).fetchall()
             finally:
                 con.close()
         except sqlite3.OperationalError:
             return None  # MATCH 语法敏感字符 → 降级 grep
-        return [f"| [{layer}] {cat}/{stem}.md | {cat} | {title} | {kw} | - | {_summary(body)} |"
-                for stem, cat, title, kw, body, layer in rows]
+        return [f"| [{layer}] {rel} | {cat} | {title} | {kw} | - | {_summary(body)} |"
+                for rel, cat, title, kw, body, layer in rows]
 
     def _recall_grep(self, query: str) -> list[str]:
         """子串 grep recall+external 的 index.md (FTS5 不可用时的 fallback); 命中行带 [layer] 前缀。"""
@@ -275,40 +298,47 @@ class Spec:
                     hits.append(f"[{layer}] {ln}")
         return hits
 
-    # ---- sediment (写盘, 判定门通过后自动调用) ----
+    # ---- sediment (写盘: 规则作为一个章节追加进主题文件, 判定门通过后自动调用) ----
     def sediment(self, a: argparse.Namespace) -> None:
         layer = cast(str, a.layer)
-        category = cast(Optional[str], getattr(a, "category", None))
         title = cast(str, a.title)
-        keywords = cast(Optional[str], getattr(a, "keywords", None))
-        source = cast(Optional[str], getattr(a, "source", None))
+        keywords = cast(Optional[str], getattr(a, "keywords", None)) or ""
         status = cast(Optional[str], getattr(a, "status", None)) or "active"
-        related_raw = cast(Optional[str], getattr(a, "related", None)) or ""
-        related = [s.strip() for s in related_raw.split(",") if s.strip()]
         body_file = cast(Optional[str], getattr(a, "body_file", None))
-        cat = category or "misc"
+        cat = cast(Optional[str], getattr(a, "category", None)) or "misc"
+        # --topic 缺省 → 归入类目同名主题文件 (调用方应按语义指定主题, 免所有规则挤一个文件)
+        topic = _slug(cast(Optional[str], getattr(a, "topic", None)) or cat)
         d = self.layer_dir(layer) / cat
         d.mkdir(parents=True, exist_ok=True)
-        seq = self._next_seq(layer)  # 层内全局序号, 免跨类目撞名
-        f = d / f"{source or 'rule'}-{seq:02d}.md"
-        body = Path(body_file).read_text() if body_file else ""
-        ts = now()
+        f = d / f"{topic}.md"
+        body = (Path(body_file).read_text() if body_file else "").strip()
+        self._append_rule(f, layer, cat, topic, title, body, keywords, status)
+        self._reindex_all()
+        print(f"已沉淀 → {f.relative_to(self.root).as_posix()}#{title}")
+
+    def _append_rule(self, f: Path, layer: str, cat: str, topic: str, title: str,
+                     body: str, keywords: str, status: str) -> None:
+        """把一条规则作为 `## <title>` 章节追加进主题文件 (不存在则建, frontmatter 只留 5 字段)。"""
+        old_body, kws, st = "", [k.strip() for k in keywords.split(",") if k.strip()], status
+        if f.exists():
+            txt = f.read_text()
+            meta = _frontmatter(txt)
+            old_body = _strip_frontmatter(txt).strip()
+            kws = list(dict.fromkeys([k.strip() for k in str(meta.get("keywords", "")).split(",")
+                                      if k.strip()] + kws))
+            # ponytail: status 是文件级 (主题级) 字段 — 追加时只在显式非 active 时覆盖;
+            # 单条规则要独立 status → 拆到自己的主题文件。
+            st = status if status != "active" else str(meta.get("status", "active"))
         f.write_text(
             "---\n"
-            f"title: {title}\n"
+            f"title: {topic}\n"
             f"layer: {layer}\n"
             f"category: {cat}\n"
-            f"keywords: [{keywords or ''}]\n"
-            f"source: {source or '-'}\n"
-            "authored-by: skein-spec\n"
-            f"created: {ts}\n"
-            f"status: {status}\n"
-            f"related: [{','.join(related)}]\n"
-            f"updated: {ts}\n"  # 写盘=created; 后续修订由 d3 写本字段
+            f"keywords: [{','.join(kws)}]\n"
+            f"status: {st}\n"
             "---\n\n"
-            + body.strip() + "\n")
-        self._reindex_all()
-        print(f"已沉淀 → {f}")
+            + (old_body + "\n\n" if old_body else "")
+            + f"## {title}\n\n{body}\n")
 
     # ---- reindex ----
     def reindex(self, _: argparse.Namespace) -> None:
@@ -325,29 +355,38 @@ class Spec:
         return counts
 
     def _rebuild_backlinks(self) -> dict[str, list[str]]:
-        """扫全库 body 的 [[slug]] → {target_stem: [referrer_rel,...]}。A-MEM-lite 反链表。"""
+        """扫全库章节 body 的 [[slug]] → {目标 slug: [来源规则 id,...]}。A-MEM-lite 反链表。
+
+        目标 slug 归一为 `topic` (整篇主题) 或 `topic#规则标题` (单条规则); 来源恒为规则 id
+        (<layer>/<cat>/<topic>.md#<标题>) — 关联落到章节粒度, 检索时可直接跳到那一条。"""
         backlinks: dict[str, list[str]] = {}
         for layer in LAYERS:
-            for f in self._rule_files(layer):
-                rel = f"{layer}/{f.parent.name}/{f.stem}"
-                for m in re.finditer(r"\[\[([^\]]+)\]\]", _strip_frontmatter(f.read_text())):
-                    stem = m.group(1).split("|")[0].split("/")[-1].strip()
-                    if stem:
-                        backlinks.setdefault(stem, []).append(rel)
+            for f, title, body in self._rules(layer):
+                src = f"{layer}/{f.parent.name}/{f.stem}.md#{title}"
+                for m in re.finditer(r"\[\[([^\]]+)\]\]", body):
+                    tgt = _link_target(m.group(1))
+                    if tgt:
+                        backlinks.setdefault(tgt, []).append(src)
         return backlinks
 
     def _rebuild_backlinks_md(self, backlinks: dict[str, list[str]]) -> None:
-        """每层写 <layer>/backlinks.md: 本层每个有入度的 stem 一章节, 列反链 referrer。
-        无章节 = 无入度 (孤立候选, maintain 判据 6 兜底)。"""
+        """每层写 <layer>/backlinks.md: 本层每条规则一章节, 列入链 (谁引用我) + 出链 (我引用谁)。
+        两向都写 — 检索时正查反查同一张表。无章节 = 该规则孤立 (maintain 判据 6 兜底)。"""
         for layer in LAYERS:
-            lines = [f"# SKEIN {layer} 反向链接 (A-MEM-lite)", "",
-                     "扫全库 body 的 `[[slug]]` → 反链表 (谁引用了本 stem)。无章节 = 无入度 (孤立候选)。", ""]
-            for f in self._rule_files(layer):
-                refs = backlinks.get(f.stem)
-                if not refs:
+            lines = [f"# SKEIN {layer} 关联表 (A-MEM-lite 正反链)", "",
+                     "章节粒度: 规则 id = `<类目>/<主题>.md#<规则标题>`; "
+                     "`←` 入链 (谁引用本条) / `→` 出链 (本条引用谁)。无条目 = 孤立候选。", ""]
+            for f, title, body in self._rules(layer):
+                rid = f"{f.parent.name}/{f.stem}.md#{title}"
+                ins = sorted(set(backlinks.get(f"{f.stem}#{title}", [])
+                                 + backlinks.get(f.stem, [])))
+                outs = sorted({t for m in re.finditer(r"\[\[([^\]]+)\]\]", body)
+                               if (t := _link_target(m.group(1)))})
+                if not ins and not outs:
                     continue
-                lines.append(f"## {f.stem}")
-                lines.extend(f"- {r}" for r in sorted(set(refs)))
+                lines.append(f"## {rid}")
+                lines.extend(f"- ← {r}" for r in ins)
+                lines.extend(f"- → [[{t}]]" for t in outs)
                 lines.append("")
             (self.layer_dir(layer) / "backlinks.md").write_text("\n".join(lines))
 
@@ -361,44 +400,43 @@ class Spec:
         con = sqlite3.connect(db)
         try:
             con.execute("DROP TABLE IF EXISTS rules")
-            con.execute("CREATE VIRTUAL TABLE rules USING fts5(stem, category, title, keywords, body, layer)")
+            con.execute("CREATE VIRTUAL TABLE rules USING fts5(rel, category, title, keywords, body, layer)")
             for layer in ("recall", "external"):  # 跨层索引 (core 常驻, 不入)
-                for f in self._rule_files(layer):
-                    txt = f.read_text()
-                    meta = _frontmatter(txt)
+                for f, title, body in self._rules(layer):  # 一行 = 一条规则 (章节), 非一个文件
+                    kw = str(_frontmatter(f.read_text()).get("keywords", ""))
                     con.execute(
-                        "INSERT INTO rules(stem, category, title, keywords, body, layer) VALUES (?,?,?,?,?,?)",
-                        (f.stem, f.parent.name, meta.get("title", ""), meta.get("keywords", ""),
-                         _strip_frontmatter(txt), layer))
+                        "INSERT INTO rules(rel, category, title, keywords, body, layer) VALUES (?,?,?,?,?,?)",
+                        (f"{f.parent.name}/{f.stem}.md#{title}", f.parent.name, title, kw, body, layer))
             con.commit()
         finally:
             con.close()
 
     def _reindex_layer(self, layer: str) -> dict[str, int]:
-        """重建 <layer>/index.md, 返回 {category: 条数}。"""
+        """重建 <layer>/index.md (章节粒度: 一行 = 一条规则), 返回 {category: 规则条数}。"""
         d = self.layer_dir(layer)
         d.mkdir(parents=True, exist_ok=True)
         by_cat: dict[str, int] = {}
         rows: list[tuple[str, str, str, str, str, str]] = []
-        for f in self._rule_files(layer):
-            txt = f.read_text()
-            meta = _frontmatter(txt)
+        for f, title, body in self._rules(layer):
+            meta = _frontmatter(f.read_text())
             cat = f.parent.name  # 类目 = 所在目录 (物理事实), 免与 frontmatter 漂移
-            rel = f.relative_to(d).as_posix()
+            rel = f"{f.relative_to(d).as_posix()}#{title}"  # 规则 id, 可直接定位到章节
             by_cat[cat] = by_cat.get(cat, 0) + 1
+            links = ",".join(sorted({t for m in re.finditer(r"\[\[([^\]]+)\]\]", body)
+                                     if (t := _link_target(m.group(1)))}))
             # .get 容错旧 spec 缺 status (缺字段视为 active, 不报错不迁移)
-            rows.append((cat, rel, _cell(str(meta.get("title", ""))),
-                         _cell(str(meta.get("keywords", ""))),
-                         _cell(str(meta.get("status", "active"))), _summary(txt)))
+            rows.append((cat, rel, _cell(title), _cell(str(meta.get("keywords", ""))),
+                         _cell(str(meta.get("status", "active"))) + (f" / →{_cell(links)}" if links else ""),
+                         _summary(body)))
         rows.sort()
-        body = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {status} | {summ} |"
-                         for cat, rel, title, kw, status, summ in rows)
+        table = "\n".join(f"| {rel} | {cat} | {title} | {kw} | {status} | {summ} |"
+                          for cat, rel, title, kw, status, summ in rows)
         (d / "index.md").write_text(
-            f"# SKEIN {layer} 规则索引\n\n"
-            f"类目: {_dist(by_cat)}\n\n"
-            "| file | category | title | keywords | status | summary |\n"
+            f"# SKEIN {layer} 规则索引 (章节粒度: 一行一条规则)\n\n"
+            f"类目: {_dist(by_cat)} · 关联见 [backlinks.md](backlinks.md)\n\n"
+            "| rule (topic.md#标题) | category | title | keywords | status/出链 | summary |\n"
             "|---|---|---|---|---|---|\n"
-            + (body + "\n" if body else ""))
+            + (table + "\n" if table else ""))
         return by_cat
 
     def _reindex_top(self, counts: dict[str, dict[str, int]]) -> None:
@@ -454,9 +492,12 @@ class Spec:
     # ---- maintain (全量体检: 超预算/stale/断链/keywords重复/废弃; 无 --apply 只报告) ----
     def _scan_findings(self, layers: list[str]) -> list[dict[str, Any]]:
         """全量扫描 → 结构化 findings (kind/text + 修复所需上下文); maintain 报告 & --apply 共用。"""
-        all_stems = {f.stem for layer in LAYERS for f in self._rule_files(layer)}
+        # 合法 wikilink 目标 = 主题 stem (整篇) ∪ stem#规则标题 (单条)
+        all_slugs = {f.stem for layer in LAYERS for f in self._rule_files(layer)} | \
+                    {f"{f.stem}#{t}" for layer in LAYERS for f, t, _ in self._rules(layer)}
         backlinks = self._rebuild_backlinks()  # 一次扫, 判据 6 复用
         now_ts = now()
+        mtimes = self._mtimes()
         findings: list[dict[str, Any]] = []
 
         # 判据 1: 超预算 (仅 core 全文)
@@ -478,25 +519,18 @@ class Spec:
                 rel = f"{layer}/{f.parent.name}/{f.stem}"
                 status = meta.get("status", "active")
 
-                # 判据 2: stale — created 年龄 > STALE_DAYS 且 updated 无/更老
-                created = _ts_age_days(meta.get("created"), now_ts)
-                updated = _ts_age_days(meta.get("updated"), now_ts)
-                newest = min(x for x in (created, updated) if x is not None) \
-                    if any(x is not None for x in (created, updated)) else None
-                if newest is not None and newest > STALE_DAYS:
-                    # newest 非 None 仅保证 created/updated 至少一者有值, 另一者仍可 None → 三元兜底
-                    cd = f"{int(created)}天前" if created is not None else "?"
-                    ud = f"{int(updated)}天前" if updated is not None else "?"
+                # 判据 2: stale — 最近修改 (git 提交时间, 无则 fs mtime) 超 STALE_DAYS
+                age = self._age_days(f, mtimes, now_ts)
+                if age > STALE_DAYS:
                     findings.append({"kind": "stale", "file": f, "rel": rel, "status": status,
-                                     "text": f"[stale] {rel} (created {_months(created)},{cd}, "
-                                             f"updated {_months(updated)},{ud}, status {status})"})
+                                     "text": f"[stale] {rel} (最近改动 {_months(age)},{age}天前, status {status})"})
 
-                # 判据 3: broken wikilink — body 的 [[slug]] 目标 stem 不在库内 (断链只报告, 需人判断修哪头)
+                # 判据 3: broken wikilink — body 的 [[slug]] 目标不在库内 (断链只报告, 需人判断修哪头)
                 body = _strip_frontmatter(txt)
                 for m in re.finditer(r"\[\[([^\]]+)\]\]", body):
                     slug = m.group(1).strip()
-                    stem = slug.split("|")[0].split("/")[-1].strip()
-                    if stem and stem not in all_stems:
+                    tgt = _link_target(slug)
+                    if tgt and tgt not in all_slugs:
                         findings.append({"kind": "broken_link", "rel": rel, "slug": slug,
                                          "text": f"[断链] {rel}: [[{slug}]] ✗ 目标缺失"})
 
@@ -505,10 +539,10 @@ class Spec:
                     findings.append({"kind": "deprecated", "file": f, "rel": rel, "status": status,
                                      "text": f"[废弃] {rel} (status {status}) — 建议 archive"})
 
-                # 判据 6: 孤立 — 无入度 (stem 不在 backlinks) + active + created 超 STALE_DAYS → 候选归档/降级
-                # ponytail: 用 created age (非 stale 的 min(created,updated)) — 抓"老但近期 updated"的孤儿, 与 stale 互补
-                if status == "active" and f.stem not in backlinks \
-                        and created is not None and created > STALE_DAYS:
+                # 判据 6: 孤立 — 整篇无入度 (stem 及其任一章节都不在 backlinks) + active + 超 STALE_DAYS
+                linked = f.stem in backlinks or any(f"{f.stem}#{t}" in backlinks
+                                                    for t, _ in _sections(txt))
+                if status == "active" and not linked and age > STALE_DAYS:
                     findings.append({"kind": "orphan", "file": f, "rel": rel,
                                      "text": f"[孤立] {rel} 无入度+active+超{STALE_DAYS}天 — 候选归档/降级"})
 
@@ -571,8 +605,9 @@ class Spec:
         for fd in findings:
             if fd["kind"] == "keywords_dup":
                 files = cast(list[Path], fd["files"])
-                # 保留最新 (updated/created 最新者), 其余归档
-                newest = max(files, key=lambda f: _newest_ts(_frontmatter(f.read_text())))
+                # 保留最新 (最近改动者, git 提交时间优先), 其余归档
+                mt = self._mtimes()
+                newest = max(files, key=lambda f: mt.get(f, 0))
                 for f in files:
                     if f != newest and f not in archive_reasons:
                         archive_reasons[f] = (
@@ -720,22 +755,52 @@ class Spec:
             raise SystemExit(f"文件不存在: {target} → {f.relative_to(self.root)}")
         return f
 
+    # ---- restructure (碎片文件 → 主题文件合并; 源文件进 .archive/<ts>/ 可回滚) ----
+    def restructure(self, a: argparse.Namespace) -> None:
+        """--map 是 {目标主题文件相对路径: [源文件相对路径,...]} 的 JSON (主题归类由调用方语义判定)。
+
+        每个源文件的每条规则 (章节, 旧库为整篇) 按序追加进目标主题文件, 标题保留原 title。
+        """
+        plan = json.loads(Path(cast(str, a.map)).read_text())
+        dry = bool(getattr(a, "dry_run", False))
+        srcs_all: list[Path] = []
+        for target, srcs in plan.items():
+            t = self.root / target
+            layer, cat = t.relative_to(self.root).parts[0], t.parent.name
+            if layer not in LAYERS:
+                raise SystemExit(f"目标路径层非法: {target} (需 <layer>/<category>/<topic>.md)")
+            for s in srcs:
+                sp = self.root / s
+                if not sp.exists():
+                    raise SystemExit(f"源文件不存在: {s}")
+                txt = sp.read_text()
+                meta = _frontmatter(txt)
+                # 一个源文件 = 一条规则: 标题取 frontmatter title, 整篇正文降级为 `###` 子节
+                # (源文件内的 `## 铁律`/`## 反例表` 是规则的组成部分, 不是独立规则)
+                if not dry:
+                    self._append_rule(t, layer, cat, t.stem,
+                                      str(meta.get("title", "")) or sp.stem,
+                                      _clean_body(_strip_frontmatter(txt)),
+                                      str(meta.get("keywords", "")),
+                                      str(meta.get("status", "active")))
+                if sp != t:  # 源即目标 (原地升格) → 不归档自己
+                    srcs_all.append(sp)
+            print(f"{'[dry] ' if dry else ''}{target} ← {len(srcs)} 个源文件")
+        if dry:
+            print(f"[dry-run] 共 {len(plan)} 个主题文件 / {len(srcs_all)} 个源文件, 未落盘")
+            return
+        moved = self._archive_batch(srcs_all, {f: ("restructure", "合并进主题文件") for f in srcs_all})
+        self._reindex_all()
+        print(f"已重构: {len(plan)} 个主题文件, 源 {moved} 个已归档 (可 restore 回滚)")
+
     # ---- list ----
     def list_(self, a: argparse.Namespace) -> None:
         layer_opt = cast(Optional[str], getattr(a, "layer", None))
         for layer in ([layer_opt] if layer_opt else list(LAYERS)):
-            files = [f.relative_to(self.layer_dir(layer)).as_posix() for f in self._rule_files(layer)]
-            print(f"[{layer}] {len(files)} 条: {', '.join(files) or '-'}")
-
-
-def _ts_age_days(raw: Optional[str], now_ts: int) -> Optional[int]:
-    """frontmatter created/updated 字段 → 距今天数; 非数字/缺 → None (容错旧 spec)。"""
-    if not raw:
-        return None
-    try:
-        return max(0, (now_ts - int(str(raw).strip())) // 86400)
-    except (ValueError, TypeError):
-        return None
+            d = self.layer_dir(layer)
+            rules = [f"{f.relative_to(d).as_posix()}#{t}" for f, t, _ in self._rules(layer)]
+            print(f"[{layer}] {len(rules)} 条规则 / {len(self._rule_files(layer))} 个主题: "
+                  f"{', '.join(rules) or '-'}")
 
 
 def _months(days: Optional[int]) -> str:
@@ -743,17 +808,33 @@ def _months(days: Optional[int]) -> str:
     return f"{int(days) // 30}月" if days is not None else "-"
 
 
-def _newest_ts(meta: dict[str, str]) -> int:
-    """frontmatter 的 updated/created 较新 epoch (缺字段/非数字 → 0); 用于 keywords 重复时保留最新。"""
-    best = 0
-    for k in ("updated", "created"):
-        v = meta.get(k)
-        if v:
-            try:
-                best = max(best, int(str(v).strip()))
-            except (ValueError, TypeError):
-                continue
-    return best
+def _sections(text: str) -> list[tuple[str, str]]:
+    """主题文件 → [(规则标题, 规则正文)], 按 body 内 `## ` 切。
+
+    无 `##` → 整篇算一条 (frontmatter title 为标题), 兼容尚未合并的旧单规则文件。
+    `## ` 之前的引言不算规则 (主题说明), 不入索引。"""
+    body = _strip_frontmatter(text)
+    parts = re.split(r"^##\s+(.+?)\s*$", body, flags=re.M)
+    if len(parts) < 3:
+        t, b = _frontmatter(text).get("title", ""), body.strip()
+        return [(t, b)] if (t or b) else []
+    return [(parts[i].strip(), parts[i + 1].strip()) for i in range(1, len(parts), 2)]
+
+
+def _slug(s: str) -> str:
+    """标题 → 文件名 slug: 空白/路径/markdown 敏感字符 → '-'; 中文原样保留。空 → 'misc'。"""
+    s = re.sub(r"[\s/\\:*?\"'<>|#\[\]]+", "-", s.strip())
+    return re.sub(r"-{2,}", "-", s).strip("-.")[:60] or "misc"
+
+
+def _link_target(raw: str) -> str:
+    """`[[core/git/merge.md#标题|别名]]` → 归一 `merge#标题`; 无锚点 → `merge` (整篇主题)。"""
+    stem, _, anchor = raw.split("|")[0].strip().partition("#")
+    stem = stem.split("/")[-1].strip()
+    if stem.endswith(".md"):
+        stem = stem[:-3]
+    anchor = anchor.strip()
+    return f"{stem}#{anchor}" if anchor else stem
 
 
 def _frontmatter(text: str) -> dict[str, str]:
@@ -778,6 +859,13 @@ def _strip_frontmatter(text: str) -> str:
     return text
 
 
+def _clean_body(body: str) -> str:
+    """合并前清洗规则正文: 剥掉正文里泄漏的 frontmatter 块, 一二级标题降为 `###`
+    (免与主题文件的 `## 规则标题` 层级冲突把一条规则劈成多条)。"""
+    body = re.sub(r"^---\n.*?\n---\n?", "", body.strip(), flags=re.S)
+    return re.sub(r"^(#{1,2})\s+", "### ", body, flags=re.M).strip()
+
+
 def _summary(body: str) -> str:
     s = _strip_frontmatter(body).strip().replace("\n", " ")
     s = re.sub(r"[|]", "/", s)  # 免破坏表格
@@ -800,17 +888,17 @@ def main() -> None:
     sub.add_parser("reindex", help="重建各层 index.md + 顶层总索引 (改盘后同步)")
     r = sub.add_parser("recall", help="按关键词 FTS5 BM25 排序 recall (无 .recall.db/MATCH 失败 → grep fallback)")
     r.add_argument("query", help="任务关键词")
-    s = sub.add_parser("sediment", help="沉淀一条规则写盘 + 自动 reindex")
+    s = sub.add_parser("sediment", help="沉淀一条规则 (追加为主题文件的一个章节) + 自动 reindex")
     s.add_argument("--layer", required=True, choices=list(LAYERS),
                    help="core=常驻硬规 / recall=按需召回 / external=外部参考 (不入 hook)")
-    s.add_argument("--category", help="类目子目录 (git/test/arch/build/style...)")
-    s.add_argument("--title", required=True, help="规则标题")
-    s.add_argument("--keywords", help="召回关键词, 逗号分隔")
-    s.add_argument("--source", help="来源标记 (如 bootstrap)")
+    s.add_argument("--category", help="类目子目录 = 文件夹 (git/test/arch/build/style...)")
+    s.add_argument("--topic", help="主题 = 文件名, 同主题规则并入同一文件 (缺省 = 类目同名主题)")
+    s.add_argument("--title", required=True, help="规则标题 (主题文件内的 `## ` 章节名)")
+    s.add_argument("--keywords", help="召回关键词, 逗号分隔 (并入主题文件已有 keywords)")
+    s.add_argument("--source", help="[已废弃, 忽略] 来源标记")
     s.add_argument("--status", choices=["active", "deprecated", "superseded"], default="active",
-                   help="规则状态 (缺省 active; deprecated=弃用 / superseded=被替代)")
-    s.add_argument("--related", help="关联规则 slug 列表 (wikilink stem), 逗号分隔, 空则无关联")
-    s.add_argument("--body-file", help="规则正文文件路径")
+                   help="主题状态 (缺省 active; deprecated=弃用 / superseded=被替代)")
+    s.add_argument("--body-file", help="规则正文文件路径; 关联写 `[[主题#规则标题]]` wikilink")
     ls = sub.add_parser("list", help="列已存规则")
     ls.add_argument("--layer", choices=list(LAYERS), help="仅列指定层 (缺省列三层)")
     mt = sub.add_parser("maintain", help="全量体检 (超预算/stale/断链/keywords重复/废弃/孤立); --apply 自动修复 (断链只报告)")
@@ -824,6 +912,9 @@ def main() -> None:
     ar.add_argument("--layer", choices=list(LAYERS), help="仅归档指定层 (缺省三层全归档)")
     rs = sub.add_parser("restore", help="从归档恢复规则 (撞名不覆盖新规则, 加 restored- 前缀并存)")
     rs.add_argument("ts", help="归档时间戳 (archive 输出的目录名)")
+    rc = sub.add_parser("restructure", help="按映射把碎片文件合并进主题文件 (源进 .archive/, 可 restore 回滚)")
+    rc.add_argument("--map", required=True, help='JSON 文件: {"core/git/merge.md": ["core/git/rule-01.md", ...]}')
+    rc.add_argument("--dry-run", action="store_true", help="只打印计划不落盘")
 
     # --debug 可置子命令前后任意位置: 预剥离 argv (argparse 子解析器不认父级 flag)
     cli_debug = any(x in ("-d", "--debug") for x in sys.argv[1:])
@@ -840,7 +931,7 @@ def main() -> None:
         "session-start": m.session_start, "subagent-start": m.subagent_start,
         "sediment": m.sediment, "reindex": m.reindex, "list": m.list_,
         "maintain": m.maintain, "degrade": m.degrade,
-        "archive": m.archive, "restore": m.restore,
+        "archive": m.archive, "restore": m.restore, "restructure": m.restructure,
     }[cast(str, a.cmd)](a)
     DBG.log(f"✓ {a.cmd} 完成", style="bold green")
 
