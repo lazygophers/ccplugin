@@ -572,6 +572,7 @@ class Skein:
             "id": tid, "name": a.name, "desc": a.desc,
             "status": S_PENDING, "deps": deps, "contracts": [], "subtasks": [],
             "priority": getattr(a, "priority", 5) or 5,  # 0-10, 默认 5 (中)
+            "estimate": getattr(a, "estimate", None),  # 预计工时(小时), plan 阶段必填, confirm 硬门校验
             "repos": repos,          # planning 声明的目标子 git (rel 路径; 空=单根/原地模式)
             "worktree": None, "worktrees": [], "branch": f"skein/{tid}",
             "parent": parent_id,     # 父 supertask id; None=独立 task (create 默认; --parent 指向 supertask)
@@ -654,6 +655,27 @@ class Skein:
         self._sync()
         print(f"{a.id} repos = {', '.join(t['repos']) or '(空)'}")
 
+    def estimate(self, a: argparse.Namespace) -> None:
+        # 查/填 task 预计工时(小时)。plan 阶段必填, confirm 硬门校验 (见 _validate_estimate)。
+        # 仅 pending/ready 可改 (start 后执行已启动, 工时估算不再变更调度)。
+        t = self._load(a.id)
+        if a.set is None:
+            est = t.get("estimate")
+            print(f"{est} h" if est else "(未估算)")
+            return
+        if t["status"] not in (S_PENDING, S_READY):
+            raise SystemExit(f"{a.id} 状态 {t['status']}, estimate 只能在 start 前 (待处理/就绪) 设置")
+        try:
+            val = float(a.set)
+        except ValueError:
+            raise SystemExit(f"预计工时须为数字(小时): {a.set!r}")
+        if val <= 0:
+            raise SystemExit(f"预计工时须为正数: {val}")
+        t["estimate"] = val
+        self._save(t)
+        self._sync()
+        print(f"{a.id} estimate = {val} h")
+
     def deps(self, a: argparse.Namespace) -> None:
         # 查/补 task 级前置 DAG (dedup 排序用: 给散落 task 之间补执行序, 织成完整 DAG)。
         # 仅 pending 可改 (start 后调度已定); 且仅当现有 deps 为空才允许写 —
@@ -702,17 +724,26 @@ class Skein:
         self._sync()
         print(f"{a.id} deps = {', '.join(new) or '(空)'}")
 
+    def _validate_estimate(self, tid: str, t: dict[str, Any]) -> None:
+        # confirm 硬门: 预计工时(小时)必须已填且为正数, 缺失/默认空 → 拒绝进就绪。
+        # 规则详见 skein-flow/references/estimate-gate.md。
+        est = t.get("estimate")
+        if est is None or est == "" or not (isinstance(est, (int, float)) and est > 0):
+            raise SystemExit(
+                f"{tid} 预计工时未填 — 先 `skein estimate {tid} --set <小时数>` 填实再 confirm")
+
     def confirm(self, a: argparse.Namespace) -> None:
-        # 用户确认门 (待处理→就绪): planning 完成 (prd 填齐 + ≥1 subtask) 且用户评审通过后调用,
+        # 用户确认门 (待处理→就绪): planning 完成 (prd 填齐 + ≥1 subtask + 预计工时) 且用户评审通过后调用,
         # 把 task 从「规划中」推到「就绪」(待启动)。就绪不占并发槽, 供 start 前排队。
         t = self._load(a.id)
         if t["status"] != S_PENDING:
             raise SystemExit(f"{a.id} 状态为 {t['status']}, 只能 confirm 待处理 (规划中) task")
-        # planning 完成门: 无 subtask / prd 未填齐 → 拒绝进就绪 (逼先补全规划)
+        # planning 完成门: 无 subtask / prd 未填齐 / 预计工时未填 → 拒绝进就绪 (逼先补全规划)
         subs = t.get("subtasks") or []
         if len(subs) == 0:
             raise SystemExit(f"{a.id} 无 subtask 登记 — 先 skein subtask add 拆分再 confirm")
         self._validate_prd(a.id)
+        self._validate_estimate(a.id, t)
         t["status"] = S_READY
         t["confirmed"] = now()
         self._save(t)
@@ -3383,6 +3414,10 @@ def main() -> None:
     c.add_argument("--kind", choices=["task", "supertask"], default="task",
                    help="task 类型: task=普通/独立(默认) | supertask=父聚合层 (parent 必须 None, 限 2 层: supertask→task→subtask)")
     c.add_argument("--parent", help="父 supertask id (建 child task; 父须为 supertask, 即其 parent 为 None — 禁 child 作父)")
+    c.add_argument("--estimate", type=float, help="预计工时(小时); 亦可后续用 skein estimate <id> --set 补 (confirm 前必填)")
+    es = sub.add_parser("estimate", help="查/填 task 预计工时(小时); confirm 硬门校验必填, 仅 pending/ready 可改")
+    es.add_argument("id", help="task id")
+    es.add_argument("--set", help="设置预计工时(小时, 正数); 省略则查看当前值")
     rp = sub.add_parser("repos", help="查/声明 task 目标子 git (planning 声明, 各开 worktree; 仅 pending 可改)")
     rp.add_argument("id", help="task id")
     rp.add_argument("--set", help="设置目标子 git (逗号分隔 rel 路径; 空串=清空回单根模式); 省略则列出")
@@ -3507,7 +3542,7 @@ def main() -> None:
         "finish": sk.finish, "fmt": sk.fmt, "archive": sk.archive, "clean": sk.clean, "current": sk.current,
         "ready": sk.ready, "claim": sk.claim,
         "list": sk.list_, "board": sk.board, "view": sk.view, "serve": sk.serve,
-        "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps,
+        "doctor": sk.doctor, "contract": sk.contract, "repos": sk.repos, "deps": sk.deps, "estimate": sk.estimate,
         "status": sk.status, "subtask": sk.subtask, "prd": sk.prd,
         "del": sk.del_, "delete": sk.del_, "rm": sk.del_, "remove": sk.del_,
         "rename": sk.rename,
@@ -3516,7 +3551,8 @@ def main() -> None:
     # 会写 task.json / task.md 的命令加工作区写锁 (防多 skein 进程并发 read-modify-write)。
     # 纯读命令 (current/ready/list/board/view) 免锁。subtask 含读 action 但整体加锁最省事。
     MUTATING = {"init", "setup", "create", "confirm", "start", "check", "finish", "fmt", "archive", "clean",
-                "contract", "repos", "deps", "subtask", "claim", "prd", "del", "delete", "rm", "remove", "rename", "config"}
+                "contract", "repos", "deps", "estimate", "subtask", "claim", "prd", "del", "delete", "rm", "remove",
+                "rename", "config"}
     if a.cmd in MUTATING:
         with _workspace_lock(sk.dir / ".lock"):
             dispatch[a.cmd](a)

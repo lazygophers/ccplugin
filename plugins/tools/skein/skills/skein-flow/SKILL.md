@@ -118,8 +118,9 @@ brainstorm 前先定**是否需要派 skein-researcher**, 按信号分档自动�
 - [ ] prd.md 已填完 (目标/边界/索引章 `- [ ] TODO` 全勾; **验收标准章条目列全即可, 保持未勾 — 勾选归 check 阶段**)
 - [ ] subtask 已规划 (`subtask add` 落 task.json DAG)
 - [ ] 设计方案已定 (design.md 正文; 或 main 判定豁免)
+- [ ] 预计工时已填 (`skein estimate <id> --set <小时数>`; `skein confirm` 硬校验非空正数, 规则详见 [references/estimate-gate.md](references/estimate-gate.md))
 
-未勾满 = planning 未收敛, 禁 `skein start` / 禁转 exec。
+未勾满 = planning 未收敛, 禁 `skein start` / 禁转 exec。`skein confirm` 亦会逐项硬拒 (subtask/prd/预计工时任一缺失即报错阻断)。
 
 ## plan 失败模式
 
