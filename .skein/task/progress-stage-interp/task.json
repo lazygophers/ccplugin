@@ -2,7 +2,7 @@
   "id": "progress-stage-interp",
   "name": "进度推算改阶段区间映射",
   "desc": "task/subtask 进度改为状态区间 + 完成度线性插值 (用户拍板方案 A), 后端 skein.py 与前端 board.js 兜底副本同步",
-  "status": "就绪",
+  "status": "检查中",
   "deps": [
     "webapp-motion-depdag"
   ],
@@ -21,13 +21,20 @@
         "无 subtask task 取状态区间中点",
         "python3 -c import 无语法错"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785253908,
-      "started": null,
-      "finished": null
+      "started": 1785254427,
+      "finished": 1785254561
     },
     {
       "sid": "s2",
@@ -41,13 +48,43 @@
         "逐样例结果与后端一致",
         "node --check 通过"
       ],
-      "验收done": [],
-      "status": "待处理",
+      "验收done": [
+        1,
+        2,
+        3
+      ],
+      "status": "已完成",
       "agent": "skein-executor",
       "skills": [],
       "created": 1785253908,
-      "started": null,
-      "finished": null
+      "started": 1785254561,
+      "finished": 1785254798
+    },
+    {
+      "sid": "s3",
+      "name": "test_task_pct.py 期望值对齐新公式",
+      "desc": "5 项失败用例更新期望值+重命名编码旧语义的用例名",
+      "depends_on": [
+        "s1"
+      ],
+      "验收": [
+        "5 项失败用例期望值改为新公式实测值",
+        "用例名不再编码旧语义 (如 test_subs_all_done_active_task_is_100)",
+        "补失败态 subtask 与无 subs 区间中点的用例",
+        "pytest 该文件全绿"
+      ],
+      "验收done": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "status": "已完成",
+      "agent": "skein-executor",
+      "skills": [],
+      "created": 1785254561,
+      "started": 1785254561,
+      "finished": 1785254764
     }
   ],
   "priority": 5,
@@ -59,9 +96,9 @@
   "parent": null,
   "kind": "task",
   "created": 1785253853,
-  "started": null,
+  "started": 1785254427,
   "confirmed": 1785253908,
-  "checked": null,
+  "checked": 1785254798,
   "finished": null,
-  "updated": 1785253908
+  "updated": 1785254798
 }

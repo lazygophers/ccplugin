@@ -2465,36 +2465,36 @@ def _split_semi(s: Optional[str]) -> list[str]:
     return [x.strip() for x in (s or "").split(";") if x.strip()]
 
 
+_SUB_PCT_RANGE = {SS_PENDING: (0, 5), SS_RUNNING: (10, 90), SS_FAILED: (10, 90)}
+# ponytail: 失败与运行同区间 — 用户裁定冻结在失败前进度, 重试不回跳。
+
+
 def _sub_pct(s: dict[str, Any]) -> int:
-    # subtask 完成百分比 = 已通过验收/总验收 (done 强制 100; 无验收则按状态给底分)
+    # subtask 完成百分比 = 状态区间 + 验收线性插值 (done 强制 100; 无验收项取区间中点)。
+    # 全用 floor (int()), 禁 round() — 防 banker's rounding 与前端 JS Math.floor 分歧。
     if s["status"] == SS_DONE:
         return 100
+    lo, hi = _SUB_PCT_RANGE.get(s["status"], (0, 5))
     crit = s.get("验收", [])
     if crit:
-        return round(len(s.get("验收done", [])) / len(crit) * 100)
-    return 50 if s["status"] == SS_RUNNING else 0  # 无验收项: 在跑的记半程, 否则 0
+        return int(lo + (hi - lo) * len(s.get("验收done", [])) / len(crit))
+    return (lo + hi) // 2
+
+
+_TASK_PCT_RANGE = {S_PENDING: (0, 5), S_READY: (5, 10), S_ACTIVE: (10, 85), S_CHECK: (85, 98)}
 
 
 def _task_pct(t: dict[str, Any]) -> int:
-    # task 进度 = max(状态机阶段下限, subtask 完成度均值); 无 subs 时纯状态机阶段。
-    # ponytail: 下限只兜底不封顶 — subs 全 done 即 100, 哪怕 task 仍 active/check;
-    #   反之刚 start 而 subtask 未起跑也不会显示 0% (状态与进度对不上是用户反馈的 bug)。
+    # task 进度 = 状态区间 + subtask 完成度均值线性插值 (done 强制 100; 无 subs 取区间中点)。
     st = t.get("status")
     if st == S_DONE:
         return 100
+    lo, hi = _TASK_PCT_RANGE.get(st, (0, 5))
     subs: list[dict[str, Any]] = t.get("subtasks", [])
     if subs:
-        # 状态机阶段做下限: 已 start 的 task 不该显示 0% (subtask 尚未起跑时).
-        floor = 85 if st == S_CHECK else 10 if st == S_ACTIVE else 8 if st == S_READY else 5
-        return max(floor, sum(_sub_pct(s) for s in subs) // len(subs))
-    # 无 subs: 用状态机阶段 (planning/exec/check 收尾的单点 task)
-    if st == S_CHECK:
-        return 85
-    if st == S_ACTIVE:
-        return 10
-    if st == S_READY:
-        return 8   # 就绪 (规划完成, 待 start)
-    return 5   # S_PENDING (planning 中)
+        sub_avg = sum(_sub_pct(s) for s in subs) / len(subs)
+        return int(lo + (hi - lo) * sub_avg / 100)
+    return (lo + hi) // 2
 
 
 def _task_stage(t: dict[str, Any]) -> str:

@@ -493,13 +493,23 @@ function nodePopover(node) {
   const subStats = getSubtaskStats(t);
   const hasSubs = subs.length > 0;
   // 进度: 优先用后端已算好的 t.progress (= scripts/skein.py _task_pct, 卡片 spct 字段映射而来);
-  // 缺失时按同一算法本地兜底 —— 状态机阶段下限 + (有 subtask 时) subtask 均值取高者, 与后端对齐。
-  const stageFloor = st === 'check' ? 85 : st === 'active' ? 10 : st === 'ready' ? 8 : 5;
+  // 缺失时按同一公式本地兜底 —— 阶段区间 + 完成度线性插值, 与后端逐值对齐 (skein.py:2468-2495)。
+  const TASK_PCT_RANGE = { planning: [0, 5], ready: [5, 10], active: [10, 85], check: [85, 98] };
+  // subtask 侧: subtable 只带 acc 清单、不带完成数 (无 "验收done" 字段), 拿不到逐项完成度,
+  // 只能退化到状态区间中点 (与后端 _sub_pct 无验收清单时同构: (lo+hi)//2)。
+  // 键含中文原值兜底: app.js STATUS_MAP 缺 '运行中'→'active' 映射, 归一化后仍可能是原始中文。
+  const SUB_PCT_MID = {
+    '待处理': 2, pending: 2, planning: 2,   // SS_PENDING (0,5) 中点
+    '运行中': 50, running: 50, active: 50,  // SS_RUNNING (10,90) 中点
+    '失败': 50, failed: 50,                  // SS_FAILED (10,90) 中点
+  };
+  const subPct = s => (s.status === 'done' || s.status === '已完成') ? 100 : (SUB_PCT_MID[s.status] ?? 2);
+  const [tLo, tHi] = TASK_PCT_RANGE[st] || [0, 5];
   const progress = t.progress != null ? t.progress
     : st === 'done' ? 100
-    : hasSubs ? Math.max(stageFloor, Math.floor(subs.reduce((a, s) =>  // floor: 对齐后端 // 整除
-        a + (s.progress != null ? s.progress : (s.status === 'done' ? 100 : s.status === 'active' ? 50 : 0)), 0) / subs.length))
-    : stageFloor;
+    : hasSubs ? Math.floor(tLo + (tHi - tLo) * (subs.reduce((a, s) =>
+        a + (s.progress != null ? s.progress : subPct(s)), 0) / subs.length) / 100)
+    : Math.floor((tLo + tHi) / 2);
   const popIcon = ST_ICON[st] || 'fa-cube';
   const prio = t.priority != null ? Number(t.priority) : 5;
   const prioIcon = prio >= 7 ? 'fa-arrow-up' : prio >= 4 ? 'fa-minus' : 'fa-arrow-down';

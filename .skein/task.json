@@ -2,7 +2,7 @@
   "tasks": [
     {
       "id": "progress-stage-interp",
-      "status": "就绪",
+      "status": "检查中",
       "deps": [
         "webapp-motion-depdag"
       ],
