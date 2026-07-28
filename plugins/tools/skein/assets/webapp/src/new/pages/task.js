@@ -1,6 +1,6 @@
 // ============================================================
 //  Task — 任务详情
-//  设计: 左元信息(基本信息/时间线/子任务 DAG/依赖/操作) + 右完整内容(描述/PRD/契约/设计/调研/子任务列表)
+//  设计: 左元信息(基本信息/时间线/子任务列表/依赖/操作) + 右完整内容(描述/PRD/契约/子任务 DAG/设计/调研)
 //  路由: /task/detail?id=<tid> — 参数一律 query, 禁 path 参数
 //  状态: 规划中 / 待执行 / 执行中 / 验收中 / 已完成
 // ============================================================
@@ -499,16 +499,8 @@ export async function render(mount, params, ctx) {
           timelineView(timeline, task),
         ]),
 
-        // 子任务 DAG
-        task.subtasks && task.subtasks.length >= 2
-          ? h('div.glass-card.p-5', [
-              h('h3.section-title', [
-                h('i.fa.fa-sitemap.text-accent'),
-                `子任务 DAG (${task.subtasks.length})`,
-              ]),
-              subDAGView(task.subtasks, onSubClick),
-            ])
-          : null,
+        // 子任务列表
+        subtaskListView(task.subtasks),
 
         // 前置依赖 (空则整卡不渲染, 与「被依赖」一致)
         depTasks.length
@@ -580,14 +572,22 @@ export async function render(mount, params, ctx) {
         // 契约
         contractsView(task.contracts),
 
+        // 子任务 DAG
+        task.subtasks && task.subtasks.length >= 2
+          ? h('div.glass-card.p-5', [
+              h('h3.section-title', [
+                h('i.fa.fa-sitemap.text-accent'),
+                `子任务 DAG (${task.subtasks.length})`,
+              ]),
+              subDAGView(task.subtasks, onSubClick),
+            ])
+          : null,
+
         // 详细设计
         task.docs && task.docs.design ? designView(task.docs.design) : null,
 
         // 调研: findings.md 结论 + research/*.md 过程
         researchView(task.docs && task.docs.findings, task.research),
-
-        // 子任务列表
-        subtaskListView(task.subtasks),
       ]),
     ]),
   );
